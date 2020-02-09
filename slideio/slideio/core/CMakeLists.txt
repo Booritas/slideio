@@ -1,0 +1,14 @@
+set(SOURCE_FILES 
+   ${SOURCE_FILES}
+   ${CMAKE_CURRENT_SOURCE_DIR}/imagedriver.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/imagedriver.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/imagedrivermanager.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/imagedrivermanager.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/scene.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/scene.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/slide.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/slide.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/structs.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/slideio.cpp
+   PARENT_SCOPE
+   )

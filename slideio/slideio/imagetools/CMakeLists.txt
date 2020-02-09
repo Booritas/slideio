@@ -1,0 +1,17 @@
+set(SOURCE_FILES 
+   ${SOURCE_FILES}
+   ${CMAKE_CURRENT_SOURCE_DIR}/gdalcodec.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/imagetools.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/imagetools.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/jp2kcodec.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/jxrcodec.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/memory_stream.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/memory_stream.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/tifftools.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/tifftools.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/tilecomposer.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/tilecomposer.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/tools.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/tools.cpp
+   PARENT_SCOPE
+   )

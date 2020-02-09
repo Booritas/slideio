@@ -1,0 +1,16 @@
+set(SOURCE_FILES 
+   ${SOURCE_FILES}
+   ${CMAKE_CURRENT_SOURCE_DIR}/svsimagedriver.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/svsimagedriver.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/svsscene.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/svsscene.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/svsslide.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/svsslide.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/svssmallscene.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/svssmallscene.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/svstiledscene.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/svstiledscene.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/svstools.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/svstools.cpp
+   PARENT_SCOPE
+   )
