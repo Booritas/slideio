@@ -56,6 +56,42 @@ def configure_conan(slideio_dir):
             print(F"Profile:{profile}")
             process_conan_profile(profile, os.path.dirname(trg_conan_file_path), trg_conan_file_path.absolute().as_posix())
 
+def configure_slideio(slideio_dir, build_dir):
+    platform = get_platform()
+    print("Start configuration")
+    if platform=="Windows":
+        generator = 'Visual Studio 15 2017 Win64'
+        cmake = "cmake.exe"
+    else:
+        generator = 'Unix Makefiles'
+        cmake = "cmake"
+
+    cmake_props = {
+        "CMAKE_CXX_STANDARD_REQUIRED":"ON",
+        }
+
+    cmd = [cmake, 
+        "-G", generator,
+        "-DCMAKE_CXX_STANDARD=14"]
+
+    for pname, pvalue in cmake_props.items():
+        cmd.append(F'-D{pname}={pvalue}')
+
+    cmd = cmd + ["-S", slideio_dir, "-B", build_dir]
+    print(cmd)
+    subprocess.check_call(cmd, stderr=subprocess.STDOUT)
+
+def build_slideio(build_dir):
+    platform = get_platform()
+    print("Start build")
+    if platform=="Windows":
+        cmake = "cmake.exe"
+    else:
+        cmake = "cmake"
+    cmd = [cmake, "--build", build_dir]
+    print(cmd)
+    subprocess.check_call(cmd, stderr=subprocess.STDOUT)
+
 
 if __name__ == "__main__":
     platform = get_platform()
@@ -66,5 +102,7 @@ if __name__ == "__main__":
     print(F"Slideio directory: {slideio_directory}")
     print(F"Build directory: {build_directory}")
     print("---------------------------------------------------")
-
+    clean_prev_build(build_directory)
     configure_conan(slideio_directory)
+    configure_slideio(slideio_directory, build_directory)
+    build_slideio(build_directory)

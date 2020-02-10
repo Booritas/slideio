@@ -9,6 +9,7 @@
 #include "slideio/imagetools/tools.hpp"
 #include "slideio/imagetools/imagetools.hpp"
 #include <set>
+#include <functional>
 
 using namespace cv::slideio;
 const double DOUBLE_EPSILON = 1.e-4;
