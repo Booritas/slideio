@@ -5,7 +5,6 @@
 #include "slideio/drivers/gdal/gdalscene.hpp"
 #include <boost/filesystem.hpp>
 
-using namespace cv;
 
 slideio::GDALSlide::GDALSlide(GDALDatasetH ds, const std::string& filePath)
 {
@@ -30,7 +29,7 @@ std::string slideio::GDALSlide::getFilePath() const
 	return empty_path;
 }
 
-cv::Ptr<slideio::Scene> slideio::GDALSlide::getScene(int index) const
+std::shared_ptr<slideio::Scene> slideio::GDALSlide::getScene(int index) const
 {
 	if(index>=getNumbScenes())
 		throw std::runtime_error("GDAL driver: invalide m_scene index");

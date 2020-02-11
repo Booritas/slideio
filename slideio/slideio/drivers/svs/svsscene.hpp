@@ -12,28 +12,25 @@
 #pragma warning(disable: 4251)
 #endif
 
-namespace cv
+namespace slideio
 {
-    namespace slideio
+    class SLIDEIO_EXPORTS SVSScene : public Scene
     {
-        class SLIDEIO_EXPORTS SVSScene : public Scene
-        {
-        public:
-            SVSScene(const std::string& filePath, const std::string& name) :
-                m_filePath(filePath),
-                m_name(name) {
-            }
-            std::string getFilePath() const override {
-                return m_filePath;
-            }
-            std::string getName() const override {
-                return m_name;
-            }
-        protected:
-            std::string m_filePath;
-            std::string m_name;
-        };
-    }
+    public:
+        SVSScene(const std::string& filePath, const std::string& name) :
+            m_filePath(filePath),
+            m_name(name) {
+        }
+        std::string getFilePath() const override {
+            return m_filePath;
+        }
+        std::string getName() const override {
+            return m_name;
+        }
+    protected:
+        std::string m_filePath;
+        std::string m_name;
+    };
 }
 
 #if defined(_MSC_VER)

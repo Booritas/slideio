@@ -10,36 +10,33 @@
 #include <vector>
 #include <string>
 
-namespace cv
+namespace slideio
 {
-    namespace slideio
+    class SLIDEIO_EXPORTS Scene
     {
-        class SLIDEIO_EXPORTS Scene
-        {
-        public:
-            virtual ~Scene() = default;
-            virtual std::string getFilePath() const = 0;
-            virtual std::string getName() const = 0;
-            virtual cv::Rect getRect() const = 0;
-            virtual int getNumChannels() const = 0;
-            virtual int getNumZSlices() const {return 1;}
-            virtual int getNumTFrames() const {return 1;}
-            virtual cv::slideio::DataType getChannelDataType(int channel) const = 0;
-            virtual std::string getChannelName(int channel) const;
-            virtual Resolution  getResolution() const = 0;
-            virtual double getZSliceResolution() const {return 0;}
-            virtual double getTFrameResolution() const {return 0;}
-            virtual double getMagnification() const = 0;
-            virtual void readBlock(const cv::Rect& blockRect, cv::OutputArray output);
-            virtual void readBlockChannels(const cv::Rect& blockRect, const std::vector<int>& channelIndices, cv::OutputArray output);
-            virtual void readResampledBlock(const cv::Rect& blockRect, const cv::Size& blockSize, cv::OutputArray output);
-            virtual void readResampledBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize, const std::vector<int>& channelIndices, cv::OutputArray output) = 0;
-            virtual void read4DBlock(const cv::Rect& blockRect, const cv::Range& zSliceRange, const cv::Range& timeFrameRange, cv::OutputArray output);
-            virtual void read4DBlockChannels(const cv::Rect& blockRect, const std::vector<int>& channelIndices, const cv::Range& zSliceRange, const cv::Range& timeFrameRange, cv::OutputArray output);
-            virtual void readResampled4DBlock(const cv::Rect& blockRect, const cv::Size& blockSize, const cv::Range& zSliceRange, const cv::Range& timeFrameRange, cv::OutputArray output);
-            virtual void readResampled4DBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize, const std::vector<int>& channelIndices, const cv::Range& zSliceRange, const cv::Range& timeFrameRange, cv::OutputArray output);
-};
-
-    }
+    public:
+        virtual ~Scene() = default;
+        virtual std::string getFilePath() const = 0;
+        virtual std::string getName() const = 0;
+        virtual cv::Rect getRect() const = 0;
+        virtual int getNumChannels() const = 0;
+        virtual int getNumZSlices() const {return 1;}
+        virtual int getNumTFrames() const {return 1;}
+        virtual slideio::DataType getChannelDataType(int channel) const = 0;
+        virtual std::string getChannelName(int channel) const;
+        virtual Resolution  getResolution() const = 0;
+        virtual double getZSliceResolution() const {return 0;}
+        virtual double getTFrameResolution() const {return 0;}
+        virtual double getMagnification() const = 0;
+        virtual void readBlock(const cv::Rect& blockRect, cv::OutputArray output);
+        virtual void readBlockChannels(const cv::Rect& blockRect, const std::vector<int>& channelIndices, cv::OutputArray output);
+        virtual void readResampledBlock(const cv::Rect& blockRect, const cv::Size& blockSize, cv::OutputArray output);
+        virtual void readResampledBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize, const std::vector<int>& channelIndices, cv::OutputArray output) = 0;
+        virtual void read4DBlock(const cv::Rect& blockRect, const cv::Range& zSliceRange, const cv::Range& timeFrameRange, cv::OutputArray output);
+        virtual void read4DBlockChannels(const cv::Rect& blockRect, const std::vector<int>& channelIndices, const cv::Range& zSliceRange, const cv::Range& timeFrameRange, cv::OutputArray output);
+        virtual void readResampled4DBlock(const cv::Rect& blockRect, const cv::Size& blockSize, const cv::Range& zSliceRange, const cv::Range& timeFrameRange, cv::OutputArray output);
+        virtual void readResampled4DBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize, const std::vector<int>& channelIndices, const cv::Range& zSliceRange, const cv::Range& timeFrameRange, cv::OutputArray output);
+    };
 }
+
 #endif

@@ -3,7 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/core/scene.hpp"
 
-using namespace cv::slideio;
+using namespace slideio;
 
 std::string Scene::getChannelName(int) const
 {

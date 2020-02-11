@@ -6,7 +6,6 @@
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string.hpp>
 
-using namespace cv;
 
 slideio::SVSImageDriver::SVSImageDriver()
 {
@@ -21,7 +20,7 @@ std::string slideio::SVSImageDriver::getID() const
 	return std::string("SVS");
 }
 
-cv::Ptr<slideio::Slide> slideio::SVSImageDriver::openFile(const std::string& filePath)
+std::shared_ptr<slideio::Slide> slideio::SVSImageDriver::openFile(const std::string& filePath)
 {
 	return SVSSlide::openFile(filePath);
 }

@@ -5,7 +5,7 @@
 #include "slideio/drivers/czi/czislide.hpp"
 #include <boost/filesystem.hpp>
 
-using namespace cv::slideio;
+using namespace slideio;
 
 std::string CZIImageDriver::filePathPattern = "*.czi";
 
@@ -22,13 +22,13 @@ std::string CZIImageDriver::getID() const
     return "CZI";
 }
 
-cv::Ptr<Slide> CZIImageDriver::openFile(const std::string& filePath)
+std::shared_ptr<Slide> CZIImageDriver::openFile(const std::string& filePath)
 {
     namespace fs = boost::filesystem;
     if(!fs::exists(filePath)){
         throw std::runtime_error(std::string("CZIImageDriver: File does not exist:") + filePath);
     }
-    cv::Ptr<Slide> ptr = new CZISlide(filePath);
+    std::shared_ptr<Slide> ptr(new CZISlide(filePath));
     return ptr;
 }
 

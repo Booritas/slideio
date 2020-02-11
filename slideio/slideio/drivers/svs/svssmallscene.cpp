@@ -10,7 +10,7 @@
 #include <opencv2/imgproc.hpp>
 #include <boost/format.hpp>
 
-using namespace cv::slideio;
+using namespace slideio;
 
 SVSSmallScene::SVSSmallScene(const std::string& filePath,
     const std::string& name,

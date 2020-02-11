@@ -7,7 +7,7 @@
 #include <boost/format.hpp>
 
 
-bool cv::slideio::CZISubBlock::isInBlock(int channel, int z, int t, int r, int s, int i, int b, int h, int v) const
+bool slideio::CZISubBlock::isInBlock(int channel, int z, int t, int r, int s, int i, int b, int h, int v) const
 {
     const bool inBlock = (channel >= firstChannel() && channel <= lastChannel()) &&
         (z >= firstZSlice() && z <= lastZSlice()) &&
@@ -22,7 +22,7 @@ bool cv::slideio::CZISubBlock::isInBlock(int channel, int z, int t, int r, int s
 }
 
 
-cv::slideio::CZISubBlock::CZISubBlock() : m_dataType(DataType::DT_Unknown), m_cziPixelType(0), m_pixelSize(1),
+slideio::CZISubBlock::CZISubBlock() : m_dataType(DataType::DT_Unknown), m_cziPixelType(0), m_pixelSize(1),
                                           m_planeSize(0), m_filePosition(-1),
                                           m_dataPosition(-1), m_dataSize(0), m_filePart(-1),
                                           m_compression(-1), m_channelIndex(-1), m_zSliceIndex(-1),
@@ -32,7 +32,7 @@ cv::slideio::CZISubBlock::CZISubBlock() : m_dataType(DataType::DT_Unknown), m_cz
 {
 }
 
-int64_t cv::slideio::CZISubBlock::computeDataOffset(int channel, int z, int t, int r, int s, int i, int b, int h,
+int64_t slideio::CZISubBlock::computeDataOffset(int channel, int z, int t, int r, int s, int i, int b, int h,
                                                     int v) const
 {
     if (!isInBlock(channel, z, t, r, s, i, b, h, v))
@@ -100,7 +100,7 @@ int64_t cv::slideio::CZISubBlock::computeDataOffset(int channel, int z, int t, i
     return offset;
 }
 
-void cv::slideio::CZISubBlock::setupBlock(const SubBlockHeader& subblockHeader, std::vector<DimensionEntryDV>& dimensionEntries)
+void slideio::CZISubBlock::setupBlock(const SubBlockHeader& subblockHeader, std::vector<DimensionEntryDV>& dimensionEntries)
 {
     const DirectoryEntryDV& entryHeader = subblockHeader.direEntry;
     m_filePosition = entryHeader.filePosition;

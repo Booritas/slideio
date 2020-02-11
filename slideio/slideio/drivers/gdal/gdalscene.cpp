@@ -6,7 +6,6 @@
 #include <boost/filesystem.hpp>
 #include <boost/format.hpp>
 
-using namespace cv;
 
 slideio::GDALScene::GDALScene(const std::string& path) : m_hFile(nullptr)
 {

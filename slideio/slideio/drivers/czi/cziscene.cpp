@@ -11,7 +11,7 @@
 #include <set>
 #include <functional>
 
-using namespace cv::slideio;
+using namespace slideio;
 const double DOUBLE_EPSILON = 1.e-4;
 
 // comparison function for zoom levels
@@ -63,7 +63,7 @@ double CZIScene::getTFrameResolution() const
     return getTFrameResolution();
 }
 
-cv::slideio::DataType CZIScene::getChannelDataType(int channel) const
+slideio::DataType CZIScene::getChannelDataType(int channel) const
 {
     if (channel < 0 || channel >= getNumChannels())
     {

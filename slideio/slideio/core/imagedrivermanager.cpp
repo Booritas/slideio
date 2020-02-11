@@ -6,8 +6,8 @@
 #include "slideio/drivers/svs/svsimagedriver.hpp"
 #include "slideio/drivers/czi/cziimagedriver.hpp"
 
-using namespace cv::slideio;
-std::map<std::string, cv::Ptr<ImageDriver>> ImageDriverManager::driverMap;
+using namespace slideio;
+std::map<std::string, std::shared_ptr<ImageDriver>> ImageDriverManager::driverMap;
 
 
 ImageDriverManager::ImageDriverManager()
@@ -34,26 +34,26 @@ void ImageDriverManager::initialize()
     {
         {
             GDALImageDriver* driver = new GDALImageDriver;
-            cv::Ptr<ImageDriver> gdal(driver);
+            std::shared_ptr<ImageDriver> gdal(driver);
             driverMap[gdal->getID()] = gdal;
         }
         {
             SVSImageDriver* driver = new SVSImageDriver;
-            cv::Ptr<ImageDriver> svs(driver);
+            std::shared_ptr<ImageDriver> svs(driver);
             driverMap[svs->getID()] = svs;
         }
         {
-            cv::Ptr<ImageDriver> driver(new CZIImageDriver);
+            std::shared_ptr<ImageDriver> driver(new CZIImageDriver);
             driverMap[driver->getID()] = driver;
         }
     }
 }
 
-cv::Ptr<Slide> ImageDriverManager::openSlide(const std::string& filePath, const std::string& driverName)
+std::shared_ptr<Slide> ImageDriverManager::openSlide(const std::string& filePath, const std::string& driverName)
 {
     auto it = driverMap.find(driverName);
     if(it==driverMap.end())
         throw std::runtime_error("ImageDriverManager: Unknown driver " + driverName);
-    cv::Ptr<slideio::ImageDriver> driver = it->second;
+    std::shared_ptr<slideio::ImageDriver> driver = it->second;
     return driver->openFile(filePath);
 }

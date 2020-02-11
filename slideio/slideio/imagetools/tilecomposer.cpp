@@ -7,8 +7,6 @@
 #include <opencv2/imgproc.hpp>
 
 
-using namespace cv;
-
 
 void slideio::TileComposer::composeRect(slideio::Tiler* tiler,
                                         const std::vector<int>& channelIndices,

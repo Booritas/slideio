@@ -15,22 +15,19 @@
 #pragma warning(disable: 4251)
 #endif
 
-namespace cv
+namespace slideio
 {
-    namespace slideio
+    class SLIDEIO_EXPORTS CZIImageDriver : public slideio::ImageDriver
     {
-        class SLIDEIO_EXPORTS CZIImageDriver : public slideio::ImageDriver
-        {
-        public:
-            CZIImageDriver();
-            ~CZIImageDriver();
-            std::string getID() const override;
-            cv::Ptr<Slide> openFile(const std::string& filePath) override;
-            std::string getFileSpecs() const override;
-        private:
-            static std::string filePathPattern;
-        };
-    }
+    public:
+        CZIImageDriver();
+        ~CZIImageDriver();
+        std::string getID() const override;
+        std::shared_ptr<Slide> openFile(const std::string& filePath) override;
+        std::string getFileSpecs() const override;
+    private:
+        static std::string filePathPattern;
+    };
 }
 
 #if defined(_MSC_VER)

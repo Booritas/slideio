@@ -8,7 +8,7 @@
 #else
 #include <fnmatch.h>
 #endif
-using namespace cv::slideio;
+using namespace slideio;
 
 bool Tools::matchPattern(const std::string& path, const std::string& pattern)
 {

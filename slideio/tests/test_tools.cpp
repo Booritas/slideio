@@ -5,15 +5,15 @@
 #include "slideio/imagetools/tools.hpp"
 
 
-TEST(Slideio_Tools, matchPattern)
+TEST(Tools, matchPattern)
 {
-    EXPECT_TRUE(cv::slideio::Tools::matchPattern("c:\\abs.ad.czi","*.czi"));
-    EXPECT_TRUE(cv::slideio::Tools::matchPattern("c:\\abs.ad.czi","*.tiff;*.czi"));
-    EXPECT_FALSE(cv::slideio::Tools::matchPattern("c:\\abs.ad.czi","*.tiff;*.aczi"));
-    EXPECT_TRUE(cv::slideio::Tools::matchPattern("c:\\abs.ad.OME.TIFF","*.tiff;*.aczi;*.ome.tiff"));
-    EXPECT_TRUE(cv::slideio::Tools::matchPattern("c:\\abs\\SLIDEIO123.OME.TIFF","*.tiff;*.aczi;slideio*.ome.tiff"));
+    EXPECT_TRUE(slideio::Tools::matchPattern("c:\\abs.ad.czi","*.czi"));
+    EXPECT_TRUE(slideio::Tools::matchPattern("c:\\abs.ad.czi","*.tiff;*.czi"));
+    EXPECT_FALSE(slideio::Tools::matchPattern("c:\\abs.ad.czi","*.tiff;*.aczi"));
+    EXPECT_TRUE(slideio::Tools::matchPattern("c:\\abs.ad.OME.TIFF","*.tiff;*.aczi;*.ome.tiff"));
+    EXPECT_TRUE(slideio::Tools::matchPattern("c:\\abs\\SLIDEIO123.OME.TIFF","*.tiff;*.aczi;slideio*.ome.tiff"));
 }
-TEST(Slideio_Tools, findZoomLevel)
+TEST(Tools, findZoomLevel)
 {
     struct ZoomLevel
     {
@@ -34,16 +34,16 @@ TEST(Slideio_Tools, findZoomLevel)
         return levels[level].zoom;
     };
     const int numLevels = static_cast<int>(levels.size());
-    EXPECT_EQ(cv::slideio::Tools::findZoomLevel(2., numLevels, zoomFunct), 0);
-    EXPECT_EQ(cv::slideio::Tools::findZoomLevel(lastZoom, numLevels, zoomFunct), 9);
-    EXPECT_EQ(cv::slideio::Tools::findZoomLevel(lastZoom * 2, numLevels, zoomFunct), 8);
-    EXPECT_EQ(cv::slideio::Tools::findZoomLevel(lastZoom / 2, numLevels, zoomFunct), 9);
-    EXPECT_EQ(cv::slideio::Tools::findZoomLevel(0.5, numLevels, zoomFunct), 1);
-    EXPECT_EQ(cv::slideio::Tools::findZoomLevel(0.501, numLevels, zoomFunct), 1);
-    EXPECT_EQ(cv::slideio::Tools::findZoomLevel(0.499, numLevels, zoomFunct), 1);
-    EXPECT_EQ(cv::slideio::Tools::findZoomLevel(0.25, numLevels, zoomFunct), 2);
-    EXPECT_EQ(cv::slideio::Tools::findZoomLevel(0.125, numLevels, zoomFunct), 3);
-    EXPECT_EQ(cv::slideio::Tools::findZoomLevel(0.55, numLevels, zoomFunct), 0);
-    EXPECT_EQ(cv::slideio::Tools::findZoomLevel(0.45, numLevels, zoomFunct), 1);
-    EXPECT_EQ(cv::slideio::Tools::findZoomLevel(0.1, numLevels, zoomFunct), 3);
+    EXPECT_EQ(slideio::Tools::findZoomLevel(2., numLevels, zoomFunct), 0);
+    EXPECT_EQ(slideio::Tools::findZoomLevel(lastZoom, numLevels, zoomFunct), 9);
+    EXPECT_EQ(slideio::Tools::findZoomLevel(lastZoom * 2, numLevels, zoomFunct), 8);
+    EXPECT_EQ(slideio::Tools::findZoomLevel(lastZoom / 2, numLevels, zoomFunct), 9);
+    EXPECT_EQ(slideio::Tools::findZoomLevel(0.5, numLevels, zoomFunct), 1);
+    EXPECT_EQ(slideio::Tools::findZoomLevel(0.501, numLevels, zoomFunct), 1);
+    EXPECT_EQ(slideio::Tools::findZoomLevel(0.499, numLevels, zoomFunct), 1);
+    EXPECT_EQ(slideio::Tools::findZoomLevel(0.25, numLevels, zoomFunct), 2);
+    EXPECT_EQ(slideio::Tools::findZoomLevel(0.125, numLevels, zoomFunct), 3);
+    EXPECT_EQ(slideio::Tools::findZoomLevel(0.55, numLevels, zoomFunct), 0);
+    EXPECT_EQ(slideio::Tools::findZoomLevel(0.45, numLevels, zoomFunct), 1);
+    EXPECT_EQ(slideio::Tools::findZoomLevel(0.1, numLevels, zoomFunct), 3);
 }

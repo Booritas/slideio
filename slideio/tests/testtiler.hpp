@@ -1,7 +1,7 @@
 #pragma once
 #include "slideio/imagetools/tilecomposer.hpp"
 
-class TestTiler : public cv::slideio::Tiler
+class TestTiler : public slideio::Tiler
 {
 public:
 	TestTiler(int tileWidth, int tileHeight, int tilesX, int tilesY, cv::Scalar black, cv::Scalar white) :

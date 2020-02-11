@@ -9,9 +9,9 @@
 // is used for impllementation of this file and the corresponded header
 // file
 
-using namespace cv::slideio;
+using namespace slideio;
 
-OPJ_SIZE_T readFromMemory(void *buffer, OPJ_SIZE_T bytes, cv::slideio::OPJStreamUserData* data);
+OPJ_SIZE_T readFromMemory(void *buffer, OPJ_SIZE_T bytes, slideio::OPJStreamUserData* data);
 OPJ_SIZE_T writeToMemory (void *buffer, OPJ_SIZE_T bytes, OPJStreamUserData* data);
 OPJ_OFF_T skipMemory (OPJ_OFF_T bytes, OPJStreamUserData * data);
 OPJ_BOOL seekMemory (OPJ_OFF_T bytes, OPJStreamUserData * data);
@@ -67,7 +67,7 @@ OPJ_BOOL seekMemory (OPJ_OFF_T bytes, OPJStreamUserData * data)
 	return OPJ_TRUE;
 }
 
-opj_stream_t* cv::slideio::createOPJMemoryStream(OPJStreamUserData* userData, size_t size, bool input )
+opj_stream_t* slideio::createOPJMemoryStream(OPJStreamUserData* userData, size_t size, bool input )
 {
 	opj_stream_t* stream(nullptr);
 	if (!userData)

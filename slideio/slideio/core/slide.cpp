@@ -3,5 +3,5 @@
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/core/slide.hpp"
 
-using namespace cv::slideio;
+using namespace slideio;
 

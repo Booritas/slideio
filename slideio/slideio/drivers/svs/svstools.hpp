@@ -8,15 +8,13 @@
 #include <opencv2/core.hpp>
 #include <string>
 
-namespace cv
+namespace slideio
 {
-    namespace slideio
+    class SLIDEIO_EXPORTS SVSTools
     {
-        class SLIDEIO_EXPORTS SVSTools
-        {
-        public:
-            static int extractMagnifiation(const std::string& description);
-        };
-    }
+    public:
+        static int extractMagnifiation(const std::string& description);
+    };
 }
+
 #endif

@@ -6,19 +6,19 @@
 #include "testtools.hpp"
 #include <fstream>
 
-TEST(Slideio_ImageTools, readJp2KFile)
+TEST(ImageTools, readJp2KFile)
 {
     std::string filePath = TestTools::getTestImagePath("jp2K","relax.jp2");
     std::string bmpFilePath = TestTools::getTestImagePath("jp2K","relax.bmp");
     // read jp2k file
     cv::Mat jp2k;
-    cv::slideio::ImageTools::readJp2KFile(filePath, jp2k);
+    slideio::ImageTools::readJp2KFile(filePath, jp2k);
     EXPECT_EQ(300, jp2k.rows);
     EXPECT_EQ(400, jp2k.cols);
     EXPECT_EQ(3, jp2k.channels());
     // read bmp file (conversion from jp2k)
     cv::Mat bmp;
-    cv::slideio::ImageTools::readGDALImage(bmpFilePath, bmp);
+    slideio::ImageTools::readGDALImage(bmpFilePath, bmp);
     // compare similarity of rasters from bmp and decoded jp2k file
     cv::Mat score;
     cv::matchTemplate(bmp, jp2k, score, cv::TM_CCOEFF_NORMED);
@@ -27,11 +27,11 @@ TEST(Slideio_ImageTools, readJp2KFile)
     ASSERT_LT(0.99, minScore);
 }
 
-TEST(Slideio_ImageTools, readGDALImage)
+TEST(ImageTools, readGDALImage)
 {
     std::string path = TestTools::getTestImagePath("gdal","img_1024x600_3x8bit_RGB_color_bars_CMYKWRGB.png");
     cv::Mat image;
-    cv::slideio::ImageTools::readGDALImage(path, image);
+    slideio::ImageTools::readGDALImage(path, image);
     cv::Rect rect(260, 500, 100, 100);
     cv::Mat block(image, rect);
 
@@ -62,13 +62,13 @@ TEST(Slideio_ImageTools, readGDALImage)
     EXPECT_EQ(maxVal,0);
 }
 
-TEST(Slideio_ImageTools, readJxrImage)
+TEST(ImageTools, readJxrImage)
 {
     std::string pathJxr = TestTools::getTestImagePath("jxr","seagull.wdp");
     std::string pathBmp = TestTools::getTestImagePath("jxr","seagull.bmp");
     cv::Mat jxrImage, bmpImage;
-    cv::slideio::ImageTools::readJxrImage(pathJxr, jxrImage);
-    cv::slideio::ImageTools::readGDALImage(pathBmp, bmpImage);
+    slideio::ImageTools::readJxrImage(pathJxr, jxrImage);
+    slideio::ImageTools::readGDALImage(pathBmp, bmpImage);
 
     // compare similarity of rasters from bmp and decoded jpxr file
     cv::Mat score;
@@ -78,7 +78,7 @@ TEST(Slideio_ImageTools, readJxrImage)
     ASSERT_LT(0.99, minScore);
 }
 
-TEST(Slideio_ImageTools, decodeJxrBlock)
+TEST(ImageTools, decodeJxrBlock)
 {
     std::string pathJxr = TestTools::getTestImagePath("jxr","seagull.wdp");
     std::string pathBmp = TestTools::getTestImagePath("jxr","seagull.bmp");
@@ -93,10 +93,10 @@ TEST(Slideio_ImageTools, decodeJxrBlock)
     file.close();
     // decode the codeblock
     cv::Mat jxrImage;
-    cv::slideio::ImageTools::decodeJxrBlock(buffer.data(), buffer.size(), jxrImage);
+    slideio::ImageTools::decodeJxrBlock(buffer.data(), buffer.size(), jxrImage);
     ASSERT_FALSE(jxrImage.empty());
     cv::Mat bmpImage;
-    cv::slideio::ImageTools::readGDALImage(pathBmp, bmpImage);
+    slideio::ImageTools::readGDALImage(pathBmp, bmpImage);
     ASSERT_FALSE(bmpImage.empty());
     // compare similarity of rasters from bmp and decoded jpxr file
     cv::Mat score;

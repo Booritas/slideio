@@ -10,7 +10,7 @@
 #include <tinyxml2.h>
 #include <set>
 
-using namespace cv::slideio;
+using namespace slideio;
 using namespace tinyxml2;
 
 static char SID_FILES[] = "ZISRAWFILE";
@@ -47,7 +47,7 @@ static const XMLElement* getXmlElementByPath(const XMLNode* parent, const std::v
     return xmlCurrentElement;
 }
 
-using namespace cv::slideio;
+using namespace slideio;
 
 CZISlide::CZISlide(const std::string& filePath) : m_filePath(filePath), m_resZ(0), m_resT(0)
 {
@@ -64,7 +64,7 @@ std::string CZISlide::getFilePath() const
 	return m_filePath;
 }
 
-cv::Ptr<Scene> CZISlide::getScene(int index) const
+std::shared_ptr<Scene> CZISlide::getScene(int index) const
 {
     if(index<0 || index>=getNumbScenes())
     {
@@ -292,7 +292,7 @@ void CZISlide::readDirectory()
         const uint64_t sceneId = sceneIds[sceneIndex];
         const CZISubBlocks& blocks = sceneBlocks[sceneIndex];
         CZIScene::SceneParams params{};
-        cv::Ptr<CZIScene> scene(new CZIScene);
+        std::shared_ptr<CZIScene> scene(new CZIScene);
         CZIScene::dimsFromSceneId(sceneId, params);
         scene->init(sceneId, params, m_filePath, blocks, this);
         m_scenes.push_back(scene);

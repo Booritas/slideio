@@ -8,7 +8,6 @@
 #include <boost/filesystem.hpp>
 #include <gdal/gdal.h>
 
-using namespace cv;
 
 static slideio::DataType dataTypeFromGDALDataType(GDALDataType dt)
 {

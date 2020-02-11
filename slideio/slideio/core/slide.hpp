@@ -8,18 +8,16 @@
 #include "slideio/core/scene.hpp"
 #include <string>
 
-namespace cv
+namespace slideio
 {
-    namespace slideio
+    class SLIDEIO_EXPORTS Slide
     {
-        class SLIDEIO_EXPORTS Slide
-        {
-        public:
-            virtual ~Slide(){}
-            virtual int getNumbScenes() const = 0;
-            virtual std::string getFilePath() const = 0;
-            virtual cv::Ptr<Scene> getScene(int index) const = 0;
-        };
-    }
+    public:
+        virtual ~Slide(){}
+        virtual int getNumbScenes() const = 0;
+        virtual std::string getFilePath() const = 0;
+        virtual std::shared_ptr<Scene> getScene(int index) const = 0;
+    };
 }
+
 #endif

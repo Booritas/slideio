@@ -3,28 +3,28 @@
 #include "testtools.hpp"
 #include <numeric>
 
-TEST(Slideio_GDALDriver, driverID)
+TEST(GDALDriver, driverID)
 {
-    cv::slideio::GDALImageDriver driver;
+    slideio::GDALImageDriver driver;
     EXPECT_EQ(driver.getID(), "GDAL");
 }
 
-TEST(Slideio_GDALDriver, canOpenFile)
+TEST(GDALDriver, canOpenFile)
 {
-    cv::slideio::GDALImageDriver driver;
+    slideio::GDALImageDriver driver;
     EXPECT_TRUE(driver.canOpenFile("abc.png"));
     EXPECT_FALSE(driver.canOpenFile("abc.svs"));
 }
 
-TEST(Slideio_GDALDriver, openPngFile_3chnls_8bit)
+TEST(GDALDriver, openPngFile_3chnls_8bit)
 {
-    cv::slideio::GDALImageDriver driver;
+    slideio::GDALImageDriver driver;
     std::string path = TestTools::getTestImagePath("gdal","img_2448x2448_3x8bit_SRC_RGB_ducks.png");
-    std::shared_ptr<cv::slideio::Slide> slide = driver.openFile(path);
+    std::shared_ptr<slideio::Slide> slide = driver.openFile(path);
     ASSERT_TRUE(slide!=nullptr);
     int numbScenes = slide->getNumbScenes();
     ASSERT_TRUE(numbScenes==1);
-    std::shared_ptr<cv::slideio::Scene> scene = slide->getScene(0);
+    std::shared_ptr<slideio::Scene> scene = slide->getScene(0);
     ASSERT_TRUE(scene!=nullptr);
     EXPECT_EQ(slide->getFilePath(),path);
     EXPECT_EQ(scene->getFilePath(),path);
@@ -33,23 +33,23 @@ TEST(Slideio_GDALDriver, openPngFile_3chnls_8bit)
     cv::Rect sceneRect = scene->getRect();
     EXPECT_EQ(sceneRect.width, 2448);
     EXPECT_EQ(sceneRect.height, 2448);
-    EXPECT_EQ(scene->getChannelDataType(0), cv::slideio::DataType::DT_Byte);
-    EXPECT_EQ(scene->getChannelDataType(1), cv::slideio::DataType::DT_Byte);
-    EXPECT_EQ(scene->getChannelDataType(2), cv::slideio::DataType::DT_Byte);
-    cv::slideio::Resolution res = scene->getResolution();
+    EXPECT_EQ(scene->getChannelDataType(0), slideio::DataType::DT_Byte);
+    EXPECT_EQ(scene->getChannelDataType(1), slideio::DataType::DT_Byte);
+    EXPECT_EQ(scene->getChannelDataType(2), slideio::DataType::DT_Byte);
+    slideio::Resolution res = scene->getResolution();
     EXPECT_EQ(res.x, 0.);
     EXPECT_EQ(res.y, 0.);
 }
 
-TEST(Slideio_GDALDriver, openPngFile_1chnl_8bit)
+TEST(GDALDriver, openPngFile_1chnl_8bit)
 {
-    cv::slideio::GDALImageDriver driver;
+    slideio::GDALImageDriver driver;
     std::string path = TestTools::getTestImagePath("gdal","img_2448x2448_1x8bit_SRC_GRAY_ducks.png");
-    std::shared_ptr<cv::slideio::Slide> slide = driver.openFile(path);
+    std::shared_ptr<slideio::Slide> slide = driver.openFile(path);
     ASSERT_TRUE(slide!=nullptr);
     int numbScenes = slide->getNumbScenes();
     ASSERT_TRUE(numbScenes==1);
-    std::shared_ptr<cv::slideio::Scene> scene = slide->getScene(0);
+    std::shared_ptr<slideio::Scene> scene = slide->getScene(0);
     ASSERT_TRUE(scene!=nullptr);
     EXPECT_EQ(slide->getFilePath(),path);
     EXPECT_EQ(scene->getFilePath(),path);
@@ -58,21 +58,21 @@ TEST(Slideio_GDALDriver, openPngFile_1chnl_8bit)
     cv::Rect sceneRect = scene->getRect();
     EXPECT_EQ(sceneRect.width, 2448);
     EXPECT_EQ(sceneRect.height, 2448);
-    EXPECT_EQ(scene->getChannelDataType(0), cv::slideio::DataType::DT_Byte);
-    cv::slideio::Resolution res = scene->getResolution();
+    EXPECT_EQ(scene->getChannelDataType(0), slideio::DataType::DT_Byte);
+    slideio::Resolution res = scene->getResolution();
     EXPECT_EQ(res.x, 0.);
     EXPECT_EQ(res.y, 0.);
 }
 
-TEST(Slideio_GDALDriver, openPngFile_3chnl_16bit)
+TEST(GDALDriver, openPngFile_3chnl_16bit)
 {
-    cv::slideio::GDALImageDriver driver;
+    slideio::GDALImageDriver driver;
     std::string path = TestTools::getTestImagePath("gdal","img_2448x2448_3x16bit_SRC_RGB_ducks.png");
-    std::shared_ptr<cv::slideio::Slide> slide = driver.openFile(path);
+    std::shared_ptr<slideio::Slide> slide = driver.openFile(path);
     ASSERT_TRUE(slide!=nullptr);
     int numbScenes = slide->getNumbScenes();
     ASSERT_TRUE(numbScenes==1);
-    std::shared_ptr<cv::slideio::Scene> scene = slide->getScene(0);
+    std::shared_ptr<slideio::Scene> scene = slide->getScene(0);
     ASSERT_TRUE(scene!=nullptr);
     EXPECT_EQ(slide->getFilePath(),path);
     EXPECT_EQ(scene->getFilePath(),path);
@@ -81,23 +81,23 @@ TEST(Slideio_GDALDriver, openPngFile_3chnl_16bit)
     cv::Rect sceneRect = scene->getRect();
     EXPECT_EQ(sceneRect.width, 2448);
     EXPECT_EQ(sceneRect.height, 2448);
-    EXPECT_EQ(scene->getChannelDataType(0), cv::slideio::DataType::DT_UInt16);
-    EXPECT_EQ(scene->getChannelDataType(1), cv::slideio::DataType::DT_UInt16);
-    EXPECT_EQ(scene->getChannelDataType(2), cv::slideio::DataType::DT_UInt16);
-    cv::slideio::Resolution res = scene->getResolution();
+    EXPECT_EQ(scene->getChannelDataType(0), slideio::DataType::DT_UInt16);
+    EXPECT_EQ(scene->getChannelDataType(1), slideio::DataType::DT_UInt16);
+    EXPECT_EQ(scene->getChannelDataType(2), slideio::DataType::DT_UInt16);
+    slideio::Resolution res = scene->getResolution();
     EXPECT_EQ(res.x, 0.);
     EXPECT_EQ(res.y, 0.);
 }
 
-TEST(Slideio_GDALDriver, openJpegFile_3chnl_8bit)
+TEST(GDALDriver, openJpegFile_3chnl_8bit)
 {
-    cv::slideio::GDALImageDriver driver;
+    slideio::GDALImageDriver driver;
     std::string path = TestTools::getTestImagePath("gdal","Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg");
-    std::shared_ptr<cv::slideio::Slide> slide = driver.openFile(path);
+    std::shared_ptr<slideio::Slide> slide = driver.openFile(path);
     ASSERT_TRUE(slide!=nullptr);
     int numbScenes = slide->getNumbScenes();
     ASSERT_TRUE(numbScenes==1);
-    std::shared_ptr<cv::slideio::Scene> scene = slide->getScene(0);
+    std::shared_ptr<slideio::Scene> scene = slide->getScene(0);
     ASSERT_TRUE(scene!=nullptr);
     EXPECT_EQ(slide->getFilePath(),path);
     EXPECT_EQ(scene->getFilePath(),path);
@@ -106,30 +106,30 @@ TEST(Slideio_GDALDriver, openJpegFile_3chnl_8bit)
     cv::Rect sceneRect = scene->getRect();
     EXPECT_EQ(sceneRect.width, 5494);
     EXPECT_EQ(sceneRect.height, 5839);
-    EXPECT_EQ(scene->getChannelDataType(0), cv::slideio::DataType::DT_Byte);
-    EXPECT_EQ(scene->getChannelDataType(1), cv::slideio::DataType::DT_Byte);
-    EXPECT_EQ(scene->getChannelDataType(2), cv::slideio::DataType::DT_Byte);
-    cv::slideio::Resolution res = scene->getResolution();
+    EXPECT_EQ(scene->getChannelDataType(0), slideio::DataType::DT_Byte);
+    EXPECT_EQ(scene->getChannelDataType(1), slideio::DataType::DT_Byte);
+    EXPECT_EQ(scene->getChannelDataType(2), slideio::DataType::DT_Byte);
+    slideio::Resolution res = scene->getResolution();
     EXPECT_EQ(res.x, 0.);
     EXPECT_EQ(res.y, 0.);
 }
 
-TEST(Slideio_GDALDriver, readBlockPng)
+TEST(GDALDriver, readBlockPng)
 {
-    cv::slideio::GDALImageDriver driver;
+    slideio::GDALImageDriver driver;
     std::string path = TestTools::getTestImagePath("gdal","img_1024x600_3x8bit_RGB_color_bars_CMYKWRGB.png");
-    std::shared_ptr<cv::slideio::Slide> slide = driver.openFile(path);
+    std::shared_ptr<slideio::Slide> slide = driver.openFile(path);
     ASSERT_TRUE(slide!=nullptr);
     int numbScenes = slide->getNumbScenes();
     ASSERT_TRUE(numbScenes==1);
-    std::shared_ptr<cv::slideio::Scene> scene = slide->getScene(0);
+    std::shared_ptr<slideio::Scene> scene = slide->getScene(0);
     ASSERT_TRUE(scene!=nullptr);
     int channels = scene->getNumChannels();
     EXPECT_EQ(channels, 3);
     cv::Rect sceneRect = scene->getRect();
     EXPECT_EQ(sceneRect.width, 1024);
     EXPECT_EQ(sceneRect.height, 600);
-    EXPECT_EQ(scene->getChannelDataType(0), cv::slideio::DataType::DT_Byte);
+    EXPECT_EQ(scene->getChannelDataType(0), slideio::DataType::DT_Byte);
     cv::Rect block = {260,500,100,100};
     cv::Mat blockRaster;
 
@@ -155,22 +155,22 @@ TEST(Slideio_GDALDriver, readBlockPng)
     EXPECT_EQ(channelStddev[0], 0);
 }
 
-TEST(Slideio_GDALDriver, readBlockPngResampling)
+TEST(GDALDriver, readBlockPngResampling)
 {
-    cv::slideio::GDALImageDriver driver;
+    slideio::GDALImageDriver driver;
     std::string path = TestTools::getTestImagePath("gdal","img_1024x600_3x8bit_RGB_color_bars_CMYKWRGB.png");
-    std::shared_ptr<cv::slideio::Slide> slide = driver.openFile(path);
+    std::shared_ptr<slideio::Slide> slide = driver.openFile(path);
     ASSERT_TRUE(slide!=nullptr);
     int numbScenes = slide->getNumbScenes();
     ASSERT_TRUE(numbScenes==1);
-    std::shared_ptr<cv::slideio::Scene> scene = slide->getScene(0);
+    std::shared_ptr<slideio::Scene> scene = slide->getScene(0);
     ASSERT_TRUE(scene!=nullptr);
     int channels = scene->getNumChannels();
     EXPECT_EQ(channels, 3);
     cv::Rect rectScene = scene->getRect();
     EXPECT_EQ(rectScene.width, 1024);
     EXPECT_EQ(rectScene.height, 600);
-    EXPECT_EQ(scene->getChannelDataType(0), cv::slideio::DataType::DT_Byte);
+    EXPECT_EQ(scene->getChannelDataType(0), slideio::DataType::DT_Byte);
     cv::Rect blockRect = {260,500, 100,100};
     cv::Size blockSize = {12,12};
     cv::Mat blockRaster;

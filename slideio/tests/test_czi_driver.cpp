@@ -8,31 +8,31 @@
 #include "testtools.hpp"
 #include <opencv2/imgcodecs.hpp>
 
-TEST(Slideio_CZIImageDriver, DriverManager_getDriverIDs)
+TEST(CZIImageDriver, DriverManager_getDriverIDs)
 {
-    std::vector<std::string> driverIds = cv::slideio::ImageDriverManager::getDriverIDs();
+    std::vector<std::string> driverIds = slideio::ImageDriverManager::getDriverIDs();
     auto it = std::find(driverIds.begin(),driverIds.end(), "CZI");
     EXPECT_FALSE(it==driverIds.end());
 }
-TEST(Slideio_CZIImageDriver, getID)
+TEST(CZIImageDriver, getID)
 {
-    cv::slideio::CZIImageDriver driver;
+    slideio::CZIImageDriver driver;
     std::string id = driver.getID();
     EXPECT_EQ(id,"CZI");
 }
 
-TEST(Slideio_CZIImageDriver, canOpenFile)
+TEST(CZIImageDriver, canOpenFile)
 {
-    cv::slideio::CZIImageDriver driver;
+    slideio::CZIImageDriver driver;
     EXPECT_TRUE(driver.canOpenFile("c:\\abbb\\a.czi"));
     EXPECT_FALSE(driver.canOpenFile("c:\\abbb\\a.czi.tmp"));
 }
 
-TEST(Slideio_CZIImageDriver, openFile)
+TEST(CZIImageDriver, openFile)
 {
-    cv::slideio::CZIImageDriver driver;
+    slideio::CZIImageDriver driver;
     std::string filePath = TestTools::getTestImagePath("czi","pJP31mCherry.czi");
-    cv::Ptr<cv::slideio::Slide> slide = driver.openFile(filePath);
+    std::shared_ptr<slideio::Slide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide!=nullptr);
     int numScenes = slide->getNumbScenes();
     ASSERT_EQ(numScenes, 1);
@@ -47,21 +47,21 @@ TEST(Slideio_CZIImageDriver, openFile)
     EXPECT_EQ(numChannels, 3);
     for(int channel=0; channel<numChannels; ++channel)
     {
-        EXPECT_EQ(scene->getChannelDataType(channel), cv::slideio::DataType::DT_Byte);
+        EXPECT_EQ(scene->getChannelDataType(channel), slideio::DataType::DT_Byte);
     }
     EXPECT_EQ(scene->getMagnification(), 100.);
-    cv::slideio::Resolution res = scene->getResolution();
+    slideio::Resolution res = scene->getResolution();
     const double fileRes = 9.76783e-8;
     EXPECT_LT((100 * std::abs(res.x - fileRes) / fileRes), 1);
     EXPECT_LT((100 * std::abs(res.y - fileRes) / fileRes), 1);
 }
 
-TEST(Slideio_CZIImageDriver, openFileInfo)
+TEST(CZIImageDriver, openFileInfo)
 {
-    cv::slideio::CZIImageDriver driver;
+    slideio::CZIImageDriver driver;
     std::string filePath = TestTools::getTestImagePath("czi", "08_18_2018_enc_1001_633.czi");
     std::string channelNames[] = {"646", "655", "664", "673", "682", "691"};
-    cv::Ptr<cv::slideio::Slide> slide = driver.openFile(filePath);
+    std::shared_ptr<slideio::Slide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
     int numScenes = slide->getNumbScenes();
     ASSERT_EQ(numScenes, 1);
@@ -78,10 +78,10 @@ TEST(Slideio_CZIImageDriver, openFileInfo)
     {
         std::string channelName = scene->getChannelName(channelIndex);
         EXPECT_EQ(channelName, channelNames[channelIndex]);
-        EXPECT_EQ(scene->getChannelDataType(channelIndex), cv::slideio::DataType::DT_UInt16);
+        EXPECT_EQ(scene->getChannelDataType(channelIndex), slideio::DataType::DT_UInt16);
     }
     EXPECT_EQ(scene->getMagnification(), 63.);
-    cv::slideio::Resolution res = scene->getResolution();
+    slideio::Resolution res = scene->getResolution();
     const double fileRes = 6.7475572821478794e-008;
     EXPECT_LT((100 * std::abs(res.x - fileRes) / fileRes), 1);
     EXPECT_LT((100 * std::abs(res.y - fileRes) / fileRes), 1);
@@ -89,16 +89,16 @@ TEST(Slideio_CZIImageDriver, openFileInfo)
     std::string sceneName = scene->getName();
 }
 
-TEST(Slideio_CZIImageDriver, readBlock)
+TEST(CZIImageDriver, readBlock)
 {
-    cv::slideio::CZIImageDriver driver;
+    slideio::CZIImageDriver driver;
     std::string filePath = TestTools::getTestImagePath("czi","pJP31mCherry.czi");
     std::string channelBmps[] = {
         TestTools::getTestImagePath("czi","pJP31mCherry.grey/pJP31mCherry_b0t0z0c0x0-512y0-512.bmp"),
         TestTools::getTestImagePath("czi","pJP31mCherry.grey/pJP31mCherry_b0t0z0c1x0-512y0-512.bmp"),
         TestTools::getTestImagePath("czi","pJP31mCherry.grey/pJP31mCherry_b0t0z0c2x0-512y0-512.bmp")
     };
-    cv::Ptr<cv::slideio::Slide> slide = driver.openFile(filePath);
+    std::shared_ptr<slideio::Slide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide!=nullptr);
     int numScenes = slide->getNumbScenes();
     ASSERT_EQ(numScenes, 1);
@@ -119,11 +119,11 @@ TEST(Slideio_CZIImageDriver, readBlock)
     }
 }
 
-TEST(Slideio_CZIImageDriver, readBlock4D)
+TEST(CZIImageDriver, readBlock4D)
 {
-    cv::slideio::CZIImageDriver driver;
+    slideio::CZIImageDriver driver;
     std::string filePath = TestTools::getTestImagePath("czi","pJP31mCherry.czi");
-    cv::Ptr<cv::slideio::Slide> slide = driver.openFile(filePath);
+    std::shared_ptr<slideio::Slide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide!=nullptr);
     int numScenes = slide->getNumbScenes();
     ASSERT_EQ(numScenes, 1);
@@ -158,13 +158,13 @@ TEST(Slideio_CZIImageDriver, readBlock4D)
     }
 }
 
-TEST(Slideio_CZIImageDriver, sceneId)
+TEST(CZIImageDriver, sceneId)
 {
     {
         int values[] = { 1, 2, 3, 4, 5, 6 };
         int values2[6] = { 0 };
-        uint64_t sceneId = cv::slideio::CZIScene::sceneIdFromDims(values[0], values[1], values[2], values[3], values[4], values[5]);
-        cv::slideio::CZIScene::dimsFromSceneId(sceneId, values2[0], values2[1], values2[2], values2[3], values2[4], values2[5]);
+        uint64_t sceneId = slideio::CZIScene::sceneIdFromDims(values[0], values[1], values[2], values[3], values[4], values[5]);
+        slideio::CZIScene::dimsFromSceneId(sceneId, values2[0], values2[1], values2[2], values2[3], values2[4], values2[5]);
         for (int val = 0; val < 6; val++)
         {
             EXPECT_EQ(values[val], values2[val]);
@@ -173,8 +173,8 @@ TEST(Slideio_CZIImageDriver, sceneId)
     {
         int values[] = { 1, 0, 0, 0, 0, 0 };
         int values2[6] = { 0 };
-        uint64_t sceneId = cv::slideio::CZIScene::sceneIdFromDims(values[0], values[1], values[2], values[3], values[4], values[5]);
-        cv::slideio::CZIScene::dimsFromSceneId(sceneId, values2[0], values2[1], values2[2], values2[3], values2[4], values2[5]);
+        uint64_t sceneId = slideio::CZIScene::sceneIdFromDims(values[0], values[1], values[2], values[3], values[4], values[5]);
+        slideio::CZIScene::dimsFromSceneId(sceneId, values2[0], values2[1], values2[2], values2[3], values2[4], values2[5]);
         for (int val = 0; val < 6; val++)
         {
             EXPECT_EQ(values[val], values2[val]);
@@ -183,8 +183,8 @@ TEST(Slideio_CZIImageDriver, sceneId)
     {
         int values[] = { 0, 0, 4, 0, 0, 0 };
         int values2[6] = { 0 };
-        uint64_t sceneId = cv::slideio::CZIScene::sceneIdFromDims(values[0], values[1], values[2], values[3], values[4], values[5]);
-        cv::slideio::CZIScene::dimsFromSceneId(sceneId, values2[0], values2[1], values2[2], values2[3], values2[4], values2[5]);
+        uint64_t sceneId = slideio::CZIScene::sceneIdFromDims(values[0], values[1], values[2], values[3], values[4], values[5]);
+        slideio::CZIScene::dimsFromSceneId(sceneId, values2[0], values2[1], values2[2], values2[3], values2[4], values2[5]);
         for (int val = 0; val < 6; val++)
         {
             EXPECT_EQ(values[val], values2[val]);
@@ -193,18 +193,18 @@ TEST(Slideio_CZIImageDriver, sceneId)
     {
         int values[] = { 0, 0, 0, 0, 10, 0 };
         int values2[6] = { 0 };
-        uint64_t sceneId = cv::slideio::CZIScene::sceneIdFromDims(values[0], values[1], values[2], values[3], values[4], values[5]);
-        cv::slideio::CZIScene::dimsFromSceneId(sceneId, values2[0], values2[1], values2[2], values2[3], values2[4], values2[5]);
+        uint64_t sceneId = slideio::CZIScene::sceneIdFromDims(values[0], values[1], values[2], values[3], values[4], values[5]);
+        slideio::CZIScene::dimsFromSceneId(sceneId, values2[0], values2[1], values2[2], values2[3], values2[4], values2[5]);
         for (int val = 0; val < 6; val++)
         {
             EXPECT_EQ(values[val], values2[val]);
         }
     }
 }
-TEST(Slideio_CZIImageDriver, sceneIdsFromDims)
+TEST(CZIImageDriver, sceneIdsFromDims)
 {
     {
-        std::vector<cv::slideio::Dimension> dims = {
+        std::vector<slideio::Dimension> dims = {
             {'V',1,1},
             {'H',2,1},
             {'I',3,1},
@@ -213,13 +213,13 @@ TEST(Slideio_CZIImageDriver, sceneIdsFromDims)
             {'S',6,1},
         };
         std::vector<uint64_t> ids;
-        cv::slideio::CZIScene::sceneIdsFromDims(dims, ids);
-        auto sceneId = cv::slideio::CZIScene::sceneIdFromDims(6,3,1,2,4,5);
+        slideio::CZIScene::sceneIdsFromDims(dims, ids);
+        auto sceneId = slideio::CZIScene::sceneIdFromDims(6,3,1,2,4,5);
         EXPECT_EQ(ids.size(),1);
         EXPECT_EQ(ids[0], sceneId);
     }
     {
-        std::vector<cv::slideio::Dimension> dims = {
+        std::vector<slideio::Dimension> dims = {
             {'V',1,1},
             {'H',2,1},
             {'I',3,1},
@@ -228,24 +228,24 @@ TEST(Slideio_CZIImageDriver, sceneIdsFromDims)
             {'S',6,2},
         };
         std::vector<uint64_t> ids;
-        cv::slideio::CZIScene::sceneIdsFromDims(dims, ids);
-        auto sceneId1 = cv::slideio::CZIScene::sceneIdFromDims(6,3,1,2,4,5);
-        auto sceneId2 = cv::slideio::CZIScene::sceneIdFromDims(7,3,1,2,4,5);
+        slideio::CZIScene::sceneIdsFromDims(dims, ids);
+        auto sceneId1 = slideio::CZIScene::sceneIdFromDims(6,3,1,2,4,5);
+        auto sceneId2 = slideio::CZIScene::sceneIdFromDims(7,3,1,2,4,5);
         EXPECT_EQ(ids.size(),2);
         EXPECT_EQ(ids[0], sceneId1);
         EXPECT_EQ(ids[1], sceneId2);
     }
     {
-        std::vector<cv::slideio::Dimension> dims = {
+        std::vector<slideio::Dimension> dims = {
             {'V',1,2},
             {'S',6,2},
         };
         std::vector<uint64_t> ids;
-        cv::slideio::CZIScene::sceneIdsFromDims(dims, ids);
-        auto sceneId1 = cv::slideio::CZIScene::sceneIdFromDims(6,0,1,0,0,0);
-        auto sceneId2 = cv::slideio::CZIScene::sceneIdFromDims(6,0,2,0,0,0);
-        auto sceneId3 = cv::slideio::CZIScene::sceneIdFromDims(7,0,1,0,0,0);
-        auto sceneId4 = cv::slideio::CZIScene::sceneIdFromDims(7,0,2,0,0,0);
+        slideio::CZIScene::sceneIdsFromDims(dims, ids);
+        auto sceneId1 = slideio::CZIScene::sceneIdFromDims(6,0,1,0,0,0);
+        auto sceneId2 = slideio::CZIScene::sceneIdFromDims(6,0,2,0,0,0);
+        auto sceneId3 = slideio::CZIScene::sceneIdFromDims(7,0,1,0,0,0);
+        auto sceneId4 = slideio::CZIScene::sceneIdFromDims(7,0,2,0,0,0);
         EXPECT_EQ(ids.size(),4);
         EXPECT_TRUE(std::find(ids.begin(), ids.end(),sceneId1)!=ids.end());
         EXPECT_TRUE(std::find(ids.begin(), ids.end(),sceneId2)!=ids.end());
@@ -253,7 +253,7 @@ TEST(Slideio_CZIImageDriver, sceneIdsFromDims)
         EXPECT_TRUE(std::find(ids.begin(), ids.end(),sceneId4)!=ids.end());
     }
     {
-        std::vector<cv::slideio::Dimension> dims = {
+        std::vector<slideio::Dimension> dims = {
             {'V',1,2},
             {'H',2,2},
             {'I',3,2},
@@ -262,16 +262,16 @@ TEST(Slideio_CZIImageDriver, sceneIdsFromDims)
             {'S',6,2},
         };
         std::vector<uint64_t> ids;
-        cv::slideio::CZIScene::sceneIdsFromDims(dims, ids);
+        slideio::CZIScene::sceneIdsFromDims(dims, ids);
         EXPECT_EQ(ids.size(),64);
     }
 }
 //TODO: CLEAR COMMENTED OUT TESTS
-//TEST(Slideio_CZIImageDriver, readBlock3)
+//TEST(CZIImageDriver, readBlock3)
 //{
 //    slideio::CZIImageDriver driver;
 //    std::string filePath = TestTools::getTestImagePath("czi","test3.czi");
-//    cv::Ptr<slideio::Slide> slide = driver.openFile(filePath);
+//    std::shared_ptr<slideio::Slide> slide = driver.openFile(filePath);
 //    ASSERT_TRUE(slide!=nullptr);
 //    int numScenes = slide->getNumbScenes();
 //    auto scene = slide->getScene(1);
@@ -290,11 +290,11 @@ TEST(Slideio_CZIImageDriver, sceneIdsFromDims)
 //    waitKey(0);
 //}
 //
-//TEST(Slideio_CZIImageDriver, readBlock4)
+//TEST(CZIImageDriver, readBlock4)
 //{
 //    slideio::CZIImageDriver driver;
 //    std::string filePath = TestTools::getTestImagePath("czi","test.czi");
-//    cv::Ptr<slideio::Slide> slide = driver.openFile(filePath);
+//    std::shared_ptr<slideio::Slide> slide = driver.openFile(filePath);
 //    ASSERT_TRUE(slide!=nullptr);
 //    int numScenes = slide->getNumbScenes();
 //    auto scene = slide->getScene(0);
@@ -315,11 +315,11 @@ TEST(Slideio_CZIImageDriver, sceneIdsFromDims)
 //    waitKey(0);
 //}
 //
-//TEST(Slideio_CZIImageDriver, readBlock5)
+//TEST(CZIImageDriver, readBlock5)
 //{
 //    slideio::CZIImageDriver driver;
 //    std::string filePath = TestTools::getTestImagePath("czi","test2.czi");
-//    cv::Ptr<slideio::Slide> slide = driver.openFile(filePath);
+//    std::shared_ptr<slideio::Slide> slide = driver.openFile(filePath);
 //    ASSERT_TRUE(slide!=nullptr);
 //    int numScenes = slide->getNumbScenes();
 //    cv::Rect sceneRect;
@@ -352,11 +352,11 @@ TEST(Slideio_CZIImageDriver, sceneIdsFromDims)
 //    imshow( "Display window", dst);
 //    waitKey(0);
 //}
-//TEST(Slideio_CZIImageDriver, readBlock2)
+//TEST(CZIImageDriver, readBlock2)
 //{
 //    slideio::CZIImageDriver driver;
 //    std::string filePath = TestTools::getTestImagePath("czi","03_15_2019_DSGN0549_C_fov_9_633.czi");
-//    cv::Ptr<slideio::Slide> slide = driver.openFile(filePath);
+//    std::shared_ptr<slideio::Slide> slide = driver.openFile(filePath);
 //    ASSERT_TRUE(slide!=nullptr);
 //    int numScenes = slide->getNumbScenes();
 //    auto scene = slide->getScene(0);

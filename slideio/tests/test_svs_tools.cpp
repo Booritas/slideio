@@ -3,7 +3,7 @@
 #include <string>
 #include <regex>
 
-TEST(Slideio_SVSTools, extractMagnification)
+TEST(SVSTools, extractMagnification)
 {
 	std::string description = "Aperio Image Library v11.2.1\n"
 		"46000x32914 [42673,5576 2220x2967] (240x240) JPEG/RGB Q=30;Aperio Image Library v10.0.51\n"
@@ -15,12 +15,12 @@ TEST(Slideio_SVSTools, extractMagnification)
 		"|Focus Offset = 0.000000|ImageID = 1004486|OriginalWidth = 46920"
 		"|Originalheight = 33014|Filtered = 5"
 		"|OriginalWidth = 46000|OriginalHeight = 32914";
-	int magn = cv::slideio::SVSTools::extractMagnifiation(description);
+	int magn = slideio::SVSTools::extractMagnifiation(description);
 	EXPECT_EQ(20, magn);
 	std::string description2 = "91574|Top = 23.449873|LineCameraSkew = -0.000424";
-	magn = cv::slideio::SVSTools::extractMagnifiation(description2);
+	magn = slideio::SVSTools::extractMagnifiation(description2);
 	EXPECT_EQ(0, magn);
-	magn = cv::slideio::SVSTools::extractMagnifiation("");
+	magn = slideio::SVSTools::extractMagnifiation("");
 	EXPECT_EQ(0, magn);
 }
 

@@ -14,26 +14,23 @@
 #pragma warning(disable: 4251)
 #endif
 
-namespace cv
+namespace slideio
 {
-    namespace slideio
+    class SLIDEIO_EXPORTS SVSSlide : public slideio::Slide
     {
-        class SLIDEIO_EXPORTS SVSSlide : public slideio::Slide
-        {
-        protected:
-            SVSSlide();
-        public:
-            virtual ~SVSSlide();
-            int getNumbScenes() const override;
-            std::string getFilePath() const override;
-            cv::Ptr<slideio::Scene> getScene(int index) const override;
-            static cv::Ptr<SVSSlide> openFile(const std::string& path);
-            static void closeFile(TIFF* hfile);
-        private:
-            std::vector<cv::Ptr<slideio::Scene>> m_Scenes;
-            std::string m_filePath;
-        };
-    }
+    protected:
+        SVSSlide();
+    public:
+        virtual ~SVSSlide();
+        int getNumbScenes() const override;
+        std::string getFilePath() const override;
+        std::shared_ptr<slideio::Scene> getScene(int index) const override;
+        static std::shared_ptr<SVSSlide> openFile(const std::string& path);
+        static void closeFile(TIFF* hfile);
+    private:
+        std::vector<std::shared_ptr<slideio::Scene>> m_Scenes;
+        std::string m_filePath;
+    };
 }
 
 #if defined(_MSC_VER)

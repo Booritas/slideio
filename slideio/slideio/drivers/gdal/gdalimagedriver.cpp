@@ -10,7 +10,6 @@
 #include "slideio/gdal_lib.hpp"
 
 
-using namespace cv;
 
 slideio::GDALImageDriver::GDALImageDriver()
 {
@@ -27,11 +26,11 @@ std::string slideio::GDALImageDriver::getID() const
 }
 
 
-cv::Ptr<slideio::Slide> slideio::GDALImageDriver::openFile(const std::string& filePath)
+std::shared_ptr<slideio::Slide> slideio::GDALImageDriver::openFile(const std::string& filePath)
 {
 	GDALDatasetH ds = GDALScene::openFile(filePath);
 	slideio::Slide* slide = new GDALSlide(ds, filePath);
-	cv::Ptr<slideio::Slide> ptr(slide);
+	std::shared_ptr<slideio::Slide> ptr(slide);
 	return ptr;
 }
 

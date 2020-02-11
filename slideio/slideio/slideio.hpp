@@ -11,24 +11,22 @@
 #include <string>
 #include <vector>
 
-namespace cv
+namespace  slideio
 {
-    namespace  slideio
+    SLIDEIO_EXPORTS std::shared_ptr<Slide> openSlide(const cv::String& path, const cv::String& driver);
+    SLIDEIO_EXPORTS std::vector<cv::String> getDrivers();
+    inline DataType fromOpencvType(int type)
     {
-        SLIDEIO_EXPORTS cv::Ptr<Slide> openSlide(const cv::String& path, const cv::String& driver);
-        SLIDEIO_EXPORTS std::vector<cv::String> getDrivers();
-        inline DataType fromOpencvType(int type)
-        {
-            return static_cast<DataType>(type);
-        }
-        inline int toOpencvType(DataType dt)
-        {
-            return static_cast<int>(dt);
-        }
-        inline bool isValidDataType(slideio::DataType dt)
-        {
-            return dt <= slideio::DataType::DT_LastValid;
-        }
+        return static_cast<DataType>(type);
+    }
+    inline int toOpencvType(DataType dt)
+    {
+        return static_cast<int>(dt);
+    }
+    inline bool isValidDataType(slideio::DataType dt)
+    {
+        return dt <= slideio::DataType::DT_LastValid;
     }
 }
+
 #endif

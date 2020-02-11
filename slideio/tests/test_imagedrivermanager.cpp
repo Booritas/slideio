@@ -3,14 +3,14 @@
 #include "slideio/slideio.hpp"
 
 
-GTEST_TEST(Slideio_ImageDriverManager, getDriverIDs)
+GTEST_TEST(ImageDriverManager, getDriverIDs)
 {
-    std::vector<std::string> driverIDs = cv::slideio::ImageDriverManager::getDriverIDs();
+    std::vector<std::string> driverIDs = slideio::ImageDriverManager::getDriverIDs();
     EXPECT_FALSE(driverIDs.empty());
 }
 
-GTEST_TEST(Slideio_ImageDriverManager, getDriversGlobal)
+GTEST_TEST(ImageDriverManager, getDriversGlobal)
 {
-    auto drivers = cv::slideio::getDrivers();
+    auto drivers = slideio::getDrivers();
     EXPECT_FALSE(drivers.empty());
 }

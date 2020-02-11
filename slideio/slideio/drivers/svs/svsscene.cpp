@@ -4,5 +4,5 @@
 #include "slideio/drivers/svs/svsscene.hpp"
 #include "slideio/imagetools/tifftools.hpp"
 
-using namespace cv::slideio;
+using namespace slideio;
 

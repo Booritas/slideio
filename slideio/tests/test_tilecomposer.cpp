@@ -2,7 +2,7 @@
 #include <opencv2/core.hpp>
 #include "testtiler.hpp"
 
-TEST(Slideio_TileComposer, composeRect)
+TEST(TileComposer, composeRect)
 {
     const int tileWidth(100), tileHeight(200), tilesX(6), tilesY(3);
     cv::Scalar white(255, 255, 0), black(0, 255, 255);
@@ -17,7 +17,7 @@ TEST(Slideio_TileComposer, composeRect)
     const cv::Rect imageRect = { dX, dY, imageWidth - dX * 2, imageHeight - dY * 2 };
     const std::vector<int> channelIndices;
     const cv::Size blockSize = { imageRect.width / 2, imageRect.height / 4 };
-    cv::slideio::TileComposer::composeRect(&testTiler, channelIndices, imageRect, blockSize, image, nullptr);
+    slideio::TileComposer::composeRect(&testTiler, channelIndices, imageRect, blockSize, image, nullptr);
 
     cv::Rect subWhiteImageRect(dX / 2, dY / 4, tileWidth / 2, tileHeight / 4);
     cv::Rect subBlackImageRect(dX / 2 + tileWidth / 2, dY / 4, tileWidth / 2, tileHeight / 4);

@@ -15,32 +15,29 @@
 #pragma warning(disable: 4251)
 #endif
 
-namespace cv
+namespace slideio
 {
-    namespace slideio
+    class SLIDEIO_EXPORTS GDALScene : public slideio::Scene
     {
-        class SLIDEIO_EXPORTS GDALScene : public slideio::Scene
-        {
-        public:
-            GDALScene(const std::string& filePath);
-            GDALScene(GDALDatasetH ds, const std::string& filePath);
-            virtual ~GDALScene();
-            std::string getFilePath() const override;
-            int getNumChannels() const override;
-            slideio::DataType getChannelDataType(int channel) const override;
-            slideio::Resolution getResolution() const override;
-            double getMagnification() const override;
-            static GDALDatasetH openFile(const std::string& filePath);
-            static void closeFile(GDALDatasetH hfile);
-            static slideio::DataType dataTypeFromGDALDataType(GDALDataType dt);
-            std::string getName() const override;
-            cv::Rect getRect() const override;
-            void readResampledBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize, const std::vector<int>& channelIndices, cv::OutputArray output) override;
-        private:
-            GDALDatasetH m_hFile;
-            std::string m_filePath;
-        };
-    }
+    public:
+        GDALScene(const std::string& filePath);
+        GDALScene(GDALDatasetH ds, const std::string& filePath);
+        virtual ~GDALScene();
+        std::string getFilePath() const override;
+        int getNumChannels() const override;
+        slideio::DataType getChannelDataType(int channel) const override;
+        slideio::Resolution getResolution() const override;
+        double getMagnification() const override;
+        static GDALDatasetH openFile(const std::string& filePath);
+        static void closeFile(GDALDatasetH hfile);
+        static slideio::DataType dataTypeFromGDALDataType(GDALDataType dt);
+        std::string getName() const override;
+        cv::Rect getRect() const override;
+        void readResampledBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize, const std::vector<int>& channelIndices, cv::OutputArray output) override;
+    private:
+        GDALDatasetH m_hFile;
+        std::string m_filePath;
+    };
 }
 
 #if defined(_MSC_VER)

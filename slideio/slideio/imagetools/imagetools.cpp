@@ -6,7 +6,6 @@
 #include <boost/format.hpp>
 #include <boost/filesystem.hpp>
 
-using namespace cv;
 
 
 int slideio::ImageTools::dataTypeSize(slideio::DataType dt)

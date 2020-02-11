@@ -4,7 +4,7 @@
 #include "slideio/core/imagedriver.hpp"
 #include "slideio/imagetools/tools.hpp"
 
-bool cv::slideio::ImageDriver::canOpenFile(const std::string& filePath) const
+bool slideio::ImageDriver::canOpenFile(const std::string& filePath) const
 {
-    return cv::slideio::Tools::matchPattern(filePath, getFileSpecs());
+    return slideio::Tools::matchPattern(filePath, getFileSpecs());
 }

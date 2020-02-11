@@ -5,7 +5,7 @@
 #include <string>
 #include <regex>
 
-using namespace cv::slideio;
+using namespace slideio;
 
 int SVSTools::extractMagnifiation(const std::string& description)
 {

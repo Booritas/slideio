@@ -11,7 +11,6 @@
 #include <boost/filesystem.hpp>
 #include <fstream>
 
-using namespace cv;
 
 void slideio::ImageTools::readJp2KFile(const std::string& filePath, cv::OutputArray output)
 {

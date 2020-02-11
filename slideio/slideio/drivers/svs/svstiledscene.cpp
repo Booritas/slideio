@@ -8,7 +8,7 @@
 #include "slideio/drivers/svs/svsscene.hpp"
 #include "slideio/imagetools/tools.hpp"
 
-using namespace cv::slideio;
+using namespace slideio;
 
 SVSTiledScene::SVSTiledScene(const std::string& filePath,
     const std::string& name,

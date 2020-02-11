@@ -10,28 +10,28 @@
 #include <numeric>
 #include <vector>
 
-TEST(Slideio_SVSImageDriver, driverID)
+TEST(SVSImageDriver, driverID)
 {
-    cv::slideio::SVSImageDriver driver;
+    slideio::SVSImageDriver driver;
     EXPECT_EQ(driver.getID(), "SVS");
 }
 
-TEST(Slideio_SVSImageDriver, canOpenFile)
+TEST(SVSImageDriver, canOpenFile)
 {
-    cv::slideio::SVSImageDriver driver;
+    slideio::SVSImageDriver driver;
     EXPECT_TRUE(driver.canOpenFile("abc.svs"));
     EXPECT_FALSE(driver.canOpenFile("abc.tif"));
 }
 
-TEST(Slideio_SVSImageDriver, openFile_BrightField)
+TEST(SVSImageDriver, openFile_BrightField)
 {
-    cv::slideio::SVSImageDriver driver;
+    slideio::SVSImageDriver driver;
     std::string path = TestTools::getTestImagePath("svs","CMU-1-Small-Region.svs");
-    std::shared_ptr<cv::slideio::Slide> slide = driver.openFile(path);
+    std::shared_ptr<slideio::Slide> slide = driver.openFile(path);
     ASSERT_TRUE(slide!=nullptr);
     int numbScenes = slide->getNumbScenes();
     ASSERT_TRUE(numbScenes==4);
-    std::shared_ptr<cv::slideio::Scene> scene = slide->getScene(0);
+    std::shared_ptr<slideio::Scene> scene = slide->getScene(0);
     ASSERT_TRUE(scene!=nullptr);
     EXPECT_EQ(slide->getFilePath(),path);
     EXPECT_EQ(scene->getFilePath(),path);
@@ -40,26 +40,26 @@ TEST(Slideio_SVSImageDriver, openFile_BrightField)
     cv::Rect sceneRect = scene->getRect();
     EXPECT_EQ(sceneRect.width, 2220);
     EXPECT_EQ(sceneRect.height, 2967);
-    EXPECT_EQ(scene->getChannelDataType(0), cv::slideio::DataType::DT_Byte);
-    EXPECT_EQ(scene->getChannelDataType(1), cv::slideio::DataType::DT_Byte);
-    EXPECT_EQ(scene->getChannelDataType(2), cv::slideio::DataType::DT_Byte);
-    cv::slideio::Resolution res = scene->getResolution();
+    EXPECT_EQ(scene->getChannelDataType(0), slideio::DataType::DT_Byte);
+    EXPECT_EQ(scene->getChannelDataType(1), slideio::DataType::DT_Byte);
+    EXPECT_EQ(scene->getChannelDataType(2), slideio::DataType::DT_Byte);
+    slideio::Resolution res = scene->getResolution();
     EXPECT_EQ(res.x, 0.);
     EXPECT_EQ(res.y, 0.);
     double magn = scene->getMagnification();
     EXPECT_EQ(20., magn);
 }
 
-TEST(Slideio_SVSImageDriver, read_Thumbnail_WholeImage)
+TEST(SVSImageDriver, read_Thumbnail_WholeImage)
 {
     // read image by svs driver
-    cv::slideio::SVSImageDriver driver;
+    slideio::SVSImageDriver driver;
     std::string path = TestTools::getTestImagePath("svs","CMU-1-Small-Region.svs");
-    std::shared_ptr<cv::slideio::Slide> slide = driver.openFile(path);
+    std::shared_ptr<slideio::Slide> slide = driver.openFile(path);
     ASSERT_TRUE(slide!=nullptr);
     int numbScenes = slide->getNumbScenes();
     ASSERT_TRUE(numbScenes==4);
-    std::shared_ptr<cv::slideio::Scene> scene = slide->getScene(1);
+    std::shared_ptr<slideio::Scene> scene = slide->getScene(1);
     ASSERT_TRUE(scene!=nullptr);
     cv::Rect sceneRect = scene->getRect();
     cv::Mat imageRaster;
@@ -68,7 +68,7 @@ TEST(Slideio_SVSImageDriver, read_Thumbnail_WholeImage)
     // read extracted page by GDAL library
     std::string pathPageFile = TestTools::getTestImagePath("svs","CMU-1-Small-Region-page-1.tif");
     cv::Mat pageRaster;
-    cv::slideio::ImageTools::readGDALImage(pathPageFile, pageRaster);
+    slideio::ImageTools::readGDALImage(pathPageFile, pageRaster);
 
     cv::Mat score;
     cv::matchTemplate(imageRaster, pageRaster, score, cv::TM_CCOEFF_NORMED);
@@ -77,16 +77,16 @@ TEST(Slideio_SVSImageDriver, read_Thumbnail_WholeImage)
     ASSERT_LT(0.99, minScore);
 }
 
-TEST(Slideio_SVSImageDriver, read_Thumbnail_Block)
+TEST(SVSImageDriver, read_Thumbnail_Block)
 {
     // read image by svs driver
-    cv::slideio::SVSImageDriver driver;
+    slideio::SVSImageDriver driver;
     std::string path = TestTools::getTestImagePath("svs","CMU-1-Small-Region.svs");
-    std::shared_ptr<cv::slideio::Slide> slide = driver.openFile(path);
+    std::shared_ptr<slideio::Slide> slide = driver.openFile(path);
     ASSERT_TRUE(slide!=nullptr);
     int numbScenes = slide->getNumbScenes();
     ASSERT_TRUE(numbScenes==4);
-    std::shared_ptr<cv::slideio::Scene> scene = slide->getScene(1);
+    std::shared_ptr<slideio::Scene> scene = slide->getScene(1);
     ASSERT_TRUE(scene!=nullptr);
     cv::Rect sceneRect = scene->getRect();
     int block_sx = sceneRect.width/4;
@@ -103,7 +103,7 @@ TEST(Slideio_SVSImageDriver, read_Thumbnail_Block)
     // read extracted page by GDAL library
     std::string pathPageFile = TestTools::getTestImagePath("svs", "CMU-1-Small-Region-page-1.tif");
     cv::Mat pageRaster;
-    cv::slideio::ImageTools::readGDALImage(pathPageFile, pageRaster);
+    slideio::ImageTools::readGDALImage(pathPageFile, pageRaster);
     cv::Mat pageBlockRaster = pageRaster(blockRect);
 
     cv::Mat score;
@@ -113,16 +113,16 @@ TEST(Slideio_SVSImageDriver, read_Thumbnail_Block)
     ASSERT_LT(0.99, minScore);
 }
 
-TEST(Slideio_SVSImageDriver, read_Thumbnail_BlockWithScale)
+TEST(SVSImageDriver, read_Thumbnail_BlockWithScale)
 {
     // read image by svs driver
-    cv::slideio::SVSImageDriver driver;
+    slideio::SVSImageDriver driver;
     std::string path = TestTools::getTestImagePath("svs", "CMU-1-Small-Region.svs");
-    std::shared_ptr<cv::slideio::Slide> slide = driver.openFile(path);
+    std::shared_ptr<slideio::Slide> slide = driver.openFile(path);
     ASSERT_TRUE(slide != nullptr);
     int numbScenes = slide->getNumbScenes();
     ASSERT_TRUE(numbScenes == 4);
-    std::shared_ptr<cv::slideio::Scene> scene = slide->getScene(1);
+    std::shared_ptr<slideio::Scene> scene = slide->getScene(1);
     ASSERT_TRUE(scene != nullptr);
     cv::Rect sceneRect = scene->getRect();
     int block_sx = sceneRect.width/3;
@@ -142,7 +142,7 @@ TEST(Slideio_SVSImageDriver, read_Thumbnail_BlockWithScale)
     // read extracted page by GDAL library
     std::string pathPageFile = TestTools::getTestImagePath("svs", "CMU-1-Small-Region-page-1.tif");
     cv::Mat pageRaster;
-    cv::slideio::ImageTools::readGDALImage(pathPageFile, pageRaster);
+    slideio::ImageTools::readGDALImage(pathPageFile, pageRaster);
     cv::Mat pageBlockRaster = pageRaster(blockRect);
     cv::Mat pageResizedRaster;
     cv::resize(pageBlockRaster, pageResizedRaster, blockSize);
@@ -154,9 +154,9 @@ TEST(Slideio_SVSImageDriver, read_Thumbnail_BlockWithScale)
     ASSERT_LT(0.99, minScore);
 }
 
-TEST(Slideio_SVSImageDriver, findZoomDirectory)
+TEST(SVSImageDriver, findZoomDirectory)
 {
-    std::vector<cv::slideio::TiffDirectory> dirs;
+    std::vector<slideio::TiffDirectory> dirs;
     dirs.resize(10);
     int baseWidth = 38528;
     int baseHeight = 77056;
@@ -170,7 +170,7 @@ TEST(Slideio_SVSImageDriver, findZoomDirectory)
         scale *= 2;
         index++;
     }
-    cv::slideio::SVSTiledScene scene("path", "name", dirs, nullptr);
+    slideio::SVSTiledScene scene("path", "name", dirs, nullptr);
     auto& lastDir = dirs[dirs.size()-1];
     const cv::Rect sceneRect = scene.getRect();
     double lastZoom = static_cast<double>(lastDir.width) / static_cast<double>(sceneRect.width);
@@ -189,15 +189,15 @@ TEST(Slideio_SVSImageDriver, findZoomDirectory)
     EXPECT_EQ(scene.findZoomDirectory(0.1).dirIndex, 3);
 }
 
-TEST(Slideio_SVSImageDriver, readBlock_WholeImage)
+TEST(SVSImageDriver, readBlock_WholeImage)
 {
-    cv::slideio::SVSImageDriver driver;
+    slideio::SVSImageDriver driver;
     std::string path = TestTools::getTestImagePath("svs", "CMU-1-Small-Region.svs");
-    std::shared_ptr<cv::slideio::Slide> slide = driver.openFile(path);
+    std::shared_ptr<slideio::Slide> slide = driver.openFile(path);
     ASSERT_TRUE(slide != nullptr);
     int numbScenes = slide->getNumbScenes();
     ASSERT_TRUE(numbScenes == 4);
-    std::shared_ptr<cv::slideio::Scene> scene = slide->getScene(0);
+    std::shared_ptr<slideio::Scene> scene = slide->getScene(0);
     ASSERT_TRUE(scene != nullptr);
     const cv::Rect sceneRect = scene->getRect();
     ASSERT_EQ(sceneRect.width, 2220);
@@ -212,7 +212,7 @@ TEST(Slideio_SVSImageDriver, readBlock_WholeImage)
     // read extracted page by GDAL library
     std::string pathPageFile = TestTools::getTestImagePath("svs", "CMU-1-Small-Region-page-0.tif");
     cv::Mat pageRaster;
-    cv::slideio::ImageTools::readGDALImage(pathPageFile, pageRaster);
+    slideio::ImageTools::readGDALImage(pathPageFile, pageRaster);
     cv::Mat pageBlockRaster = pageRaster(sceneRect);
     cv::Mat score;
     cv::matchTemplate(sceneRaster, pageBlockRaster, score, cv::TM_CCOEFF_NORMED);
@@ -221,15 +221,15 @@ TEST(Slideio_SVSImageDriver, readBlock_WholeImage)
     ASSERT_LT(0.99, minScore);
 }
 
-TEST(Slideio_SVSImageDriver, readBlock_Part)
+TEST(SVSImageDriver, readBlock_Part)
 {
-    cv::slideio::SVSImageDriver driver;
+    slideio::SVSImageDriver driver;
     std::string path = TestTools::getTestImagePath("svs", "CMU-1-Small-Region.svs");
-    std::shared_ptr<cv::slideio::Slide> slide = driver.openFile(path);
+    std::shared_ptr<slideio::Slide> slide = driver.openFile(path);
     ASSERT_TRUE(slide != nullptr);
     int numbScenes = slide->getNumbScenes();
     ASSERT_TRUE(numbScenes == 4);
-    std::shared_ptr<cv::slideio::Scene> scene = slide->getScene(0);
+    std::shared_ptr<slideio::Scene> scene = slide->getScene(0);
     ASSERT_TRUE(scene != nullptr);
     const cv::Rect sceneRect = scene->getRect();
     ASSERT_EQ(sceneRect.width, 2220);
@@ -241,7 +241,7 @@ TEST(Slideio_SVSImageDriver, readBlock_Part)
     // read extracted page by GDAL library
     std::string pathPageFile = TestTools::getTestImagePath("svs", "CMU-1-Small-Region-page-0.tif");
     cv::Mat pageRaster;
-    cv::slideio::ImageTools::readGDALImage(pathPageFile, pageRaster);
+    slideio::ImageTools::readGDALImage(pathPageFile, pageRaster);
     cv::Mat pageBlockRaster = pageRaster(blockRect);
     cv::Mat score;
     cv::matchTemplate(blockRaster, pageBlockRaster, score, cv::TM_CCOEFF_NORMED);
@@ -250,15 +250,15 @@ TEST(Slideio_SVSImageDriver, readBlock_Part)
     ASSERT_LT(0.99, minScore);
 }
 
-TEST(Slideio_SVSImageDriver, readBlock_PartScale)
+TEST(SVSImageDriver, readBlock_PartScale)
 {
-    cv::slideio::SVSImageDriver driver;
+    slideio::SVSImageDriver driver;
     std::string path = TestTools::getTestImagePath("svs", "CMU-1-Small-Region.svs");
-    std::shared_ptr<cv::slideio::Slide> slide = driver.openFile(path);
+    std::shared_ptr<slideio::Slide> slide = driver.openFile(path);
     ASSERT_TRUE(slide != nullptr);
     int numbScenes = slide->getNumbScenes();
     ASSERT_TRUE(numbScenes == 4);
-    std::shared_ptr<cv::slideio::Scene> scene = slide->getScene(0);
+    std::shared_ptr<slideio::Scene> scene = slide->getScene(0);
     ASSERT_TRUE(scene != nullptr);
     const cv::Rect sceneRect = scene->getRect();
     ASSERT_EQ(sceneRect.width, 2220);
@@ -272,7 +272,7 @@ TEST(Slideio_SVSImageDriver, readBlock_PartScale)
     // read extracted page by GDAL library
     std::string pathPageFile = TestTools::getTestImagePath("svs", "CMU-1-Small-Region-page-0.tif");
     cv::Mat pageRaster;
-    cv::slideio::ImageTools::readGDALImage(pathPageFile, pageRaster);
+    slideio::ImageTools::readGDALImage(pathPageFile, pageRaster);
     cv::Mat pageBlockRaster = pageRaster(blockRect);
     cv::Mat scaledRaster;
     cv::resize(pageBlockRaster, scaledRaster, blockSize);

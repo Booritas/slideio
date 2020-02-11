@@ -10,8 +10,6 @@
 #include <tiffio.h>
 #include <boost/filesystem.hpp>
 
-using namespace cv;
-
 
 static slideio::DataType dataTypeFromTIFFDataType(TIFFDataType dt)
 {

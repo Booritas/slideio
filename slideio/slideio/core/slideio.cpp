@@ -8,14 +8,14 @@
 
 #include <string>
 
-using namespace cv::slideio;
+using namespace slideio;
 
-cv::Ptr<Slide> cv::slideio::openSlide(const cv::String& filePath, const cv::String& driver)
+std::shared_ptr<Slide> slideio::openSlide(const cv::String& filePath, const cv::String& driver)
 {
     return ImageDriverManager::openSlide(filePath, driver);
 }
 
-std::vector<cv::String> cv::slideio::getDrivers()
+std::vector<cv::String> slideio::getDrivers()
 {
     return ImageDriverManager::getDriverIDs();
 }

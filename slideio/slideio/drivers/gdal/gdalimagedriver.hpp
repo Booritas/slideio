@@ -9,19 +9,17 @@
 #include "slideio/core/slide.hpp"
 #include <opencv2/core.hpp>
 
-namespace cv
+namespace slideio
 {
-    namespace slideio
+    class SLIDEIO_EXPORTS GDALImageDriver : public slideio::ImageDriver
     {
-        class SLIDEIO_EXPORTS GDALImageDriver : public slideio::ImageDriver
-        {
-        public:
-            GDALImageDriver();
-            ~GDALImageDriver();
-            std::string getID() const override;
-            cv::Ptr<Slide> openFile(const std::string& filePath) override;
-            std::string getFileSpecs() const override;
-        };
-    }
+    public:
+        GDALImageDriver();
+        ~GDALImageDriver();
+        std::string getID() const override;
+        std::shared_ptr<Slide> openFile(const std::string& filePath) override;
+        std::string getFileSpecs() const override;
+    };
 }
+
 #endif

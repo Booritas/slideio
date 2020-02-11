@@ -9,7 +9,7 @@
 #include <boost/filesystem.hpp>
 
 
-using namespace cv::slideio;
+using namespace slideio;
 
 SVSSlide::SVSSlide()
 {
@@ -29,17 +29,17 @@ std::string SVSSlide::getFilePath() const
     return m_filePath;
 }
 
-cv::Ptr<Scene> SVSSlide::getScene(int index) const
+std::shared_ptr<Scene> SVSSlide::getScene(int index) const
 {
     if(index>=getNumbScenes())
         throw std::runtime_error("SVS driver: invalide m_scene index");
     return m_Scenes[index];
 }
 
-cv::Ptr<SVSSlide> SVSSlide::openFile(const std::string& filePath)
+std::shared_ptr<SVSSlide> SVSSlide::openFile(const std::string& filePath)
 {
     namespace fs = boost::filesystem;
-    cv::Ptr<SVSSlide> slide;
+    std::shared_ptr<SVSSlide> slide;
     if(!fs::exists(filePath)){
         throw std::runtime_error(std::string("SVSImageDriver: File does not exist:") + filePath);
     }
@@ -74,32 +74,32 @@ cv::Ptr<SVSSlide> SVSSlide::openFile(const std::string& filePath)
         else if(directory.description.find("macro")!=std::string::npos)
             macro = nextDir;
     }
-    std::vector<cv::Ptr<Scene>> scenes;
+    std::vector<std::shared_ptr<Scene>> scenes;
     
     if(image.size()>0){
         std::vector<TiffDirectory> image_dirs;
         for(const auto index: image){
             image_dirs.push_back(directories[index]);
         }
-        cv::Ptr<Scene> scene(new SVSTiledScene(filePath,"Image",
+        std::shared_ptr<Scene> scene(new SVSTiledScene(filePath,"Image",
             image_dirs, tiff));
         scenes.push_back(scene);
     }
     if(thumbnail>=0)
     {
-        cv::Ptr<Scene> scene(new SVSSmallScene(filePath,"Thumbnail",
+        std::shared_ptr<Scene> scene(new SVSSmallScene(filePath,"Thumbnail",
             directories[thumbnail], tiff));
         scenes.push_back(scene);
     }
     if(label>=0)
     {
-        cv::Ptr<Scene> scene(new SVSSmallScene(filePath,"Label",
+        std::shared_ptr<Scene> scene(new SVSSmallScene(filePath,"Label",
             directories[label], tiff));
         scenes.push_back(scene);
     }
     if(macro>=0)
     {
-        cv::Ptr<Scene> scene(new SVSSmallScene(filePath,"Macro",
+        std::shared_ptr<Scene> scene(new SVSSmallScene(filePath,"Macro",
             directories[macro], tiff));
         scenes.push_back(scene);
     }

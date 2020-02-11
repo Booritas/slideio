@@ -15,23 +15,20 @@
 #pragma warning(disable: 4251)
 #endif
 
-namespace cv
+namespace slideio
 {
-    namespace slideio
+    class SLIDEIO_EXPORTS GDALSlide : public slideio::Slide
     {
-        class SLIDEIO_EXPORTS GDALSlide : public slideio::Slide
-        {
-        public:
-            GDALSlide(GDALDatasetH ds, const std::string& filePath);
-            virtual ~GDALSlide();
-            int getNumbScenes() const override;
-            std::string getFilePath() const override;
-            cv::Ptr<slideio::Scene> getScene(int index) const override;
-        private:
-            cv::Ptr<slideio::Scene> m_scene;
-        };
+    public:
+        GDALSlide(GDALDatasetH ds, const std::string& filePath);
+        virtual ~GDALSlide();
+        int getNumbScenes() const override;
+        std::string getFilePath() const override;
+        std::shared_ptr<slideio::Scene> getScene(int index) const override;
+    private:
+        std::shared_ptr<slideio::Scene> m_scene;
+    };
 
-    }
 }
 
 #if defined(_MSC_VER)

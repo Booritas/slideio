@@ -7,19 +7,16 @@
 #include "slideio/slideio_def.hpp"
 #include "slideio/core/imagedriver.hpp"
 
-namespace cv
+namespace slideio
 {
-    namespace slideio
+    class SLIDEIO_EXPORTS SVSImageDriver : public slideio::ImageDriver
     {
-        class SLIDEIO_EXPORTS SVSImageDriver : public cv::slideio::ImageDriver
-        {
-        public:
-            SVSImageDriver();
-            ~SVSImageDriver();
-            std::string getID() const override;
-            cv::Ptr<slideio::Slide> openFile(const std::string& filePath) override;
-            std::string getFileSpecs() const override;
-        };
-    }
+    public:
+        SVSImageDriver();
+        ~SVSImageDriver();
+        std::string getID() const override;
+        std::shared_ptr<slideio::Slide> openFile(const std::string& filePath) override;
+        std::string getFileSpecs() const override;
+    };
 }
 #endif
