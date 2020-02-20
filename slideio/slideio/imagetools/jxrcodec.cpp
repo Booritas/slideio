@@ -90,7 +90,7 @@ void slideio::ImageTools::readJxrImage(const std::string& path, cv::OutputArray 
 
     output.create(decoder->uHeight, decoder->uWidth, CV_MAKETYPE(CV_8U, 3));
     cv::Mat raster = output.getMat();
-    char* outputFileExtension = ".bmp";
+    char* outputFileExtension = const_cast<char*>(".bmp");
 
     Float rX = 0.0, rY = 0.0;
     PKRect rect = {0, 0, 0, 0};
@@ -211,7 +211,7 @@ void slideio::ImageTools::decodeJxrBlock(const uint8_t* data, size_t dataBlockSi
 
     output.create(decoder->uHeight, decoder->uWidth, CV_MAKETYPE(CV_8U, 3));
     cv::Mat raster = output.getMat();
-    char* outputFileExtension = ".bmp";
+    char* outputFileExtension = const_cast<char*>(".bmp");
 
     Float rX = 0.0, rY = 0.0;
     PKRect rect = {0, 0, 0, 0};

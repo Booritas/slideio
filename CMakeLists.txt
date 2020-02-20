@@ -23,6 +23,7 @@ endforeach( OUTPUTCONFIG CMAKE_CONFIGURATION_TYPES )
 add_subdirectory(slideio)
 
 add_library(${PROJECT_NAME} ${SOURCE_FILES})
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 IF(WIN32)
    target_link_libraries(${PROJECT_NAME} Shlwapi)
@@ -34,3 +35,9 @@ conan_target_link_libraries(${PROJECT_NAME})
 set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 target_include_directories(${PROJECT_NAME} PRIVATE ${INCLUDE_ROOT})
 
+foreach(_DIR ${CONAN_INCLUDE_DIRS_RELEASE})
+    target_include_directories(${PROJECT_NAME} PRIVATE ${_DIR})
+endforeach()
+foreach(_DIR ${CONAN_INCLUDE_DIRS_DEBUG})
+    target_include_directories(${PROJECT_NAME} PRIVATE ${_DIR})
+endforeach()

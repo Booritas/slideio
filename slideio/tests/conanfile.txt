@@ -2,5 +2,6 @@
 gtest/1.10.0@_/_
 opencv/4.1.1@local/stable
 boost/1.72.0@_/_
+tinyxml2/7.1.0@nicolastagliani/stable
 [options]
 boost:shared=False

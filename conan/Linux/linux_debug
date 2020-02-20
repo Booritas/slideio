@@ -2,12 +2,13 @@
 os=Linux
 arch=x86_64
 compiler=clang
-compiler.version=6.0
+compiler.version=9
 compiler.libcxx=libstdc++
 build_type=Debug
-boost:compiler=clang
-boost:compiler.version=6.0
-boost:compiler.libcxx=libstdc++
+tinyxml2:compiler=clang
+tinyxml2:compiler.version=7.0
 [options]
+tinyxml2:shared=False
+boost:shared=False
 [build_requires]
 [env]

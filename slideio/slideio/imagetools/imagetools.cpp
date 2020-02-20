@@ -24,6 +24,9 @@ int slideio::ImageTools::dataTypeSize(slideio::DataType dt)
         return 4;
     case DataType::DT_Float64:
         return 8;
+    case DataType::DT_Unknown:
+    case DataType::DT_None:
+        break;
     }
     throw std::runtime_error(
         (boost::format("Unknown data type: %1%") % (int)dt).str());
