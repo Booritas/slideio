@@ -1,7 +1,8 @@
 [requires]
-gtest/1.10.0@_/_
 opencv/4.1.1@local/stable
-boost/1.72.0@_/_
 tinyxml2/7.1.0@nicolastagliani/stable
+gtest/1.10.0@local/stable
+boost/1.72.0@_/_
+expat/2.2.9@_/_
 [options]
 boost:shared=False

@@ -1,8 +1,7 @@
 set(INCLUDE_ROOT ${CMAKE_SOURCE_DIR}/slideio)
 set(BINDLIB_NAME pyslideio)
 
-include(conanbuildinfo_multi.cmake)
-conan_basic_setup()
+CONAN_MAIN()
 
 set(BINDLIB_SOURCE 
    pybind.cpp
@@ -27,10 +26,11 @@ if(NOT Python3_FOUND AND Python3_Development_FOUND)
     message(FATAL_ERROR ${errmsg})
 endif()
 
-add_library(${BINDLIB_NAME} ${BINDLIB_SOURCE})
-# Python3_add_library(${BINDLIB_NAME} MODULE ${BINDLIB_SOURCE})
+add_library(${BINDLIB_NAME} SHARED ${BINDLIB_SOURCE})
 target_include_directories(${BINDLIB_NAME} PRIVATE ${INCLUDE_ROOT} ${Python3_INCLUDE_DIRS} ${Python3_NumPy_INCLUDE_DIRS})
-conan_target_link_libraries(${BINDLIB_NAME} )
+
+CONAN_CONFIGURE(${BINDLIB_NAME})
+
 target_link_libraries(${BINDLIB_NAME} ${PROJECT_NAME} ${Python3_LIBRARIES})
 target_link_directories(${BINDLIB_NAME} PRIVATE ${Python3_LIBRARY_DIRS})
 
@@ -38,10 +38,3 @@ IF(WIN32)
    set_target_properties(${BINDLIB_NAME} PROPERTIES LINK_FLAGS "/ignore:4099")
    target_compile_definitions(${BINDLIB_NAME} PRIVATE _CRT_SECURE_NO_WARNINGS)
 ENDIF(WIN32)
-
-foreach(_DIR ${CONAN_INCLUDE_DIRS_RELEASE})
-    target_include_directories(${BINDLIB_NAME} PRIVATE ${_DIR})
-endforeach()
-foreach(_DIR ${CONAN_INCLUDE_DIRS_DEBUG})
-    target_include_directories(${BINDLIB_NAME} PRIVATE ${_DIR})
-endforeach()

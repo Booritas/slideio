@@ -1,9 +1,7 @@
-include(GoogleTest)
 set(INCLUDE_ROOT ${CMAKE_SOURCE_DIR}/slideio)
 set(TEST_NAME slideio_tests)
 
-include(conanbuildinfo_multi.cmake)
-conan_basic_setup()
+CONAN_MAIN()
 
 set(TEST_SOURCES 
    test_imagedrivermanager.cpp
@@ -22,18 +20,16 @@ set(TEST_SOURCES
 )
 
 add_executable(${TEST_NAME} ${TEST_SOURCES})
+
 target_include_directories(${TEST_NAME} PRIVATE ${INCLUDE_ROOT})
-conan_target_link_libraries(${TEST_NAME})
 target_link_libraries(${TEST_NAME} ${PROJECT_NAME})
+
+CONAN_CONFIGURE(${TEST_NAME})
 
 IF(WIN32)
    set_target_properties(${TEST_NAME} PROPERTIES LINK_FLAGS "/ignore:4099")
    target_compile_definitions(${TEST_NAME} PRIVATE _CRT_SECURE_NO_WARNINGS)
 ENDIF(WIN32)
 
-foreach(_DIR ${CONAN_INCLUDE_DIRS_RELEASE})
-    target_include_directories(${TEST_NAME} PRIVATE ${_DIR})
-endforeach()
-foreach(_DIR ${CONAN_INCLUDE_DIRS_DEBUG})
-    target_include_directories(${TEST_NAME} PRIVATE ${_DIR})
-endforeach()
+
+add_test(${TEST_NAME} ${TEST_DIR}/${TEST_NAME})
