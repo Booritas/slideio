@@ -3,22 +3,31 @@
 // of this distribution and at http://slideio.com/license.html.
 //
 #include "slideio/imagetools/tools.hpp"
+#include <boost/algorithm/string.hpp>
 #if defined(WIN32)
 #include <Shlwapi.h>
 #else
 #include <fnmatch.h>
 #endif
 using namespace slideio;
+extern "C" int wildmat(char* text, char* p);
+
 
 bool Tools::matchPattern(const std::string& path, const std::string& pattern)
 {
-    //TODO:: Implement Linux version for fnmatch
     bool ret(false);
 #if defined(WIN32)
     ret = PathMatchSpecA(path.c_str(), pattern.c_str())!=0;
 #else
-    ret = fnmatch(pattern.c_str(), path.c_str(), FNM_NOESCAPE)==0;
+    std::vector<std::string> subPatterns;
+    boost::algorithm::split(subPatterns, pattern, boost::is_any_of(";"), boost::algorithm::token_compress_on);
+    for(const auto& sub_pattern : subPatterns)
+    {
+        ret = wildmat(const_cast<char*>(path.c_str()),const_cast<char*>(sub_pattern.c_str()));
+        if(ret){
+            break;
+        }
+    }
 #endif
-
     return ret;
 }

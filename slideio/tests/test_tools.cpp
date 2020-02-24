@@ -7,11 +7,18 @@
 
 TEST(Tools, matchPattern)
 {
+#if defined(WIN32)    
     EXPECT_TRUE(slideio::Tools::matchPattern("c:\\abs.ad.czi","*.czi"));
     EXPECT_TRUE(slideio::Tools::matchPattern("c:\\abs.ad.czi","*.tiff;*.czi"));
     EXPECT_FALSE(slideio::Tools::matchPattern("c:\\abs.ad.czi","*.tiff;*.aczi"));
-    EXPECT_TRUE(slideio::Tools::matchPattern("c:\\abs.ad.OME.TIFF","*.tiff;*.aczi;*.ome.tiff"));
-    EXPECT_TRUE(slideio::Tools::matchPattern("c:\\abs\\SLIDEIO123.OME.TIFF","*.tiff;*.aczi;slideio*.ome.tiff"));
+    EXPECT_TRUE(slideio::Tools::matchPattern("c:\\abs.ad.OME.TIFF","*.atiff;*.aczi;*.ome.tiff"));
+#else
+    EXPECT_TRUE(slideio::Tools::matchPattern("ad.czi","*.czi"));
+    EXPECT_TRUE(slideio::Tools::matchPattern("/root/abs.ad.czi","*.czi"));
+    EXPECT_TRUE(slideio::Tools::matchPattern("/root/abs.ad.czi","*.tiff;*.czi"));
+    EXPECT_FALSE(slideio::Tools::matchPattern("/root/abs.ad.czi","*.tiff;*.aczi"));
+    EXPECT_TRUE(slideio::Tools::matchPattern("/root/abs.ad.ome.tiff","*.atiff;*.aczi;*.ome.tiff"));
+#endif
 }
 TEST(Tools, findZoomLevel)
 {

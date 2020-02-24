@@ -13,5 +13,6 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/tilecomposer.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/tools.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/tools.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/wildmat.c
    PARENT_SCOPE
    )
