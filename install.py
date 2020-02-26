@@ -62,18 +62,21 @@ def single_configuration(config_name, build_dir, project_dir):
     cmake_props = {
         "CMAKE_CXX_STANDARD_REQUIRED":"ON",
     }
+    architecture = None
     if platform=="Windows":
-        generator = 'Visual Studio 15 2017 Win64'
+        generator = 'Visual Studio 16 2019'
         cmake = "cmake.exe"
+        architecture = 'x64'
     else:
         generator = 'Unix Makefiles'
         cmake = "cmake"
         cmake_props["CMAKE_BUILD_TYPE"] = config_name
 
 
-    cmd = [cmake, 
-        "-G", generator,
-        "-DCMAKE_CXX_STANDARD=14"]
+    cmd = [cmake, "-G", generator]
+    if architecture is not None:
+        cmd += ["-A", "x64"]
+    cmd += ["-DCMAKE_CXX_STANDARD=14"]
 
     for pname, pvalue in cmake_props.items():
         cmd.append(F'-D{pname}={pvalue}')

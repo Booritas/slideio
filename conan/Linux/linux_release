@@ -5,8 +5,6 @@ compiler=clang
 compiler.version=9
 compiler.libcxx=libstdc++
 build_type=Release
-tinyxml2:compiler=clang
-tinyxml2:compiler.version=7.0
 [options]
 tinyxml2:shared=False
 boost:shared=False

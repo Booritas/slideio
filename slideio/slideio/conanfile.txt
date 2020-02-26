@@ -1,11 +1,11 @@
 [requires]
 boost/1.72.0@_/_
-gdal/3.0.2@local/stable
-libtiff/4.0.10@local/stable
+gdal/3.0.2@slideio/stable
+libtiff/4.0.10@slideio/stable
 libjpeg/9c@_/_
-openjpeg/2.3.1@local/stable
-tinyxml2/7.1.0@nicolastagliani/stable
-jxrlib/1.1.1@local/stable
-opencv/4.1.1@local/stable
+openjpeg/2.3.1@slideio/stable
+tinyxml2/7.1.0@_/_
+jxrlib/1.1.1@slideio/stable
+opencv/4.1.1@slideio/stable
 [options]
 boost:shared=False
