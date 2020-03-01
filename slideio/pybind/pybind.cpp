@@ -11,7 +11,7 @@ PYBIND11_MODULE(slideio, m) {
     m.doc() = "Reading of medical images";
     m.def("open_slide",&slideio::openSlide,py::arg("file_path"), py::arg("driver_id"));
     m.def("get_driver_ids", &slideio::getDriverIDs);
-    py::class_<slideio::Slide>(m, "Slide")
+    py::class_<slideio::Slide, std::shared_ptr<slideio::Slide>>(m, "Slide")
         .def("get_numb_scenes", &slideio::Slide::getNumbScenes)
         .def("get_file_path", &slideio::Slide::getFilePath);
 }
