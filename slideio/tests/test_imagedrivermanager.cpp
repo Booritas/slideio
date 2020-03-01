@@ -11,6 +11,6 @@ GTEST_TEST(ImageDriverManager, getDriverIDs)
 
 GTEST_TEST(ImageDriverManager, getDriversGlobal)
 {
-    auto drivers = slideio::getDrivers();
+    auto drivers = slideio::getDriverIDs();
     EXPECT_FALSE(drivers.empty());
 }

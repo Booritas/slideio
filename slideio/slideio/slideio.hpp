@@ -13,8 +13,8 @@
 
 namespace  slideio
 {
-    SLIDEIO_EXPORTS std::shared_ptr<Slide> openSlide(const cv::String& path, const cv::String& driver);
-    SLIDEIO_EXPORTS std::vector<cv::String> getDrivers();
+    SLIDEIO_EXPORTS std::shared_ptr<Slide> openSlide(const std::string& path, const std::string& driver);
+    SLIDEIO_EXPORTS std::vector<cv::String> getDriverIDs();
     inline DataType fromOpencvType(int type)
     {
         return static_cast<DataType>(type);

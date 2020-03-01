@@ -10,12 +10,12 @@
 
 using namespace slideio;
 
-std::shared_ptr<Slide> slideio::openSlide(const cv::String& filePath, const cv::String& driver)
+std::shared_ptr<Slide> slideio::openSlide(const std::string& filePath, const std::string& driver)
 {
     return ImageDriverManager::openSlide(filePath, driver);
 }
 
-std::vector<cv::String> slideio::getDrivers()
+std::vector<cv::String> slideio::getDriverIDs()
 {
     return ImageDriverManager::getDriverIDs();
 }
