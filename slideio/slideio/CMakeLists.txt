@@ -1,4 +1,4 @@
-set(LIBRARY_NAME slideio)
+set(LIBRARY_NAME slide_io)
 
 CONAN_MAIN()
 

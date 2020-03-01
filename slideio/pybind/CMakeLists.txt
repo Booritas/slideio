@@ -1,40 +1,18 @@
 set(INCLUDE_ROOT ${CMAKE_SOURCE_DIR}/slideio)
-set(BINDLIB_NAME pyslideio)
+set(BINDLIB_NAME slideio)
 
 CONAN_MAIN()
 
 set(BINDLIB_SOURCE 
    pybind.cpp
 )
-
-find_package (Python3 COMPONENTS Interpreter Development NumPy)
-
-message(STATUS "Python: version=${Python3_VERSION}")
-message(STATUS "Python interpreter=${Python3_EXECUTABLE}")
-message(STATUS "Python include=${Python3_INCLUDE_DIRS}")
-message(STATUS "Python libraries=${Python3_LIBRARIES}")
-message(STATUS "Python library directories=${Python3_LIBRARY_DIRS}")
-message(STATUS "Python NumPy include=${Python3_NumPy_INCLUDE_DIRS}")
-
-if(NOT Python3_FOUND AND Python3_Development_FOUND)
-    #   find_package() will not abort the build if anything's missing.
-    string(JOIN "\n" errmsg
-        "  Python3 and/or development libs not found."
-        "  - Python3_FOUND=${Python3_FOUND}"
-        "  - Python3_Development_FOUND=${Python3_Development_FOUND}"
-        )
-    message(FATAL_ERROR ${errmsg})
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+   set(pybind11_DIR ${CONAN_PYBIND11_ROOT_DEBUG}/share/cmake/pybind11)
+else()
+   set(pybind11_DIR ${CONAN_PYBIND11_ROOT_RELEASE}/share/cmake/pybind11)
 endif()
-
-add_library(${BINDLIB_NAME} SHARED ${BINDLIB_SOURCE})
-target_include_directories(${BINDLIB_NAME} PRIVATE ${INCLUDE_ROOT} ${Python3_INCLUDE_DIRS} ${Python3_NumPy_INCLUDE_DIRS})
-
-CONAN_CONFIGURE(${BINDLIB_NAME})
-
-target_link_libraries(${BINDLIB_NAME} ${PROJECT_NAME} ${Python3_LIBRARIES})
-target_link_directories(${BINDLIB_NAME} PRIVATE ${Python3_LIBRARY_DIRS})
-
-IF(WIN32)
-   set_target_properties(${BINDLIB_NAME} PROPERTIES LINK_FLAGS "/ignore:4099")
-   target_compile_definitions(${BINDLIB_NAME} PRIVATE _CRT_SECURE_NO_WARNINGS)
-ENDIF(WIN32)
+message("-------------pybind_dir: ${pybind11_DIR}"<<<<<<<<<<)
+find_package(pybind11 REQUIRED)
+pybind11_add_module(${BINDLIB_NAME} ${BINDLIB_SOURCE})
+target_include_directories(${BINDLIB_NAME} PRIVATE ${INCLUDE_ROOT})
+target_link_libraries(${BINDLIB_NAME} PRIVATE ${PROJECT_NAME})
