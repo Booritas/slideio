@@ -51,6 +51,7 @@ void ImageDriverManager::initialize()
 
 std::shared_ptr<Slide> ImageDriverManager::openSlide(const std::string& filePath, const std::string& driverName)
 {
+    initialize();
     auto it = driverMap.find(driverName);
     if(it==driverMap.end())
         throw std::runtime_error("ImageDriverManager: Unknown driver " + driverName);

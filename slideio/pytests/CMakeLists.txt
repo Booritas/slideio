@@ -1,0 +1,4 @@
+add_test (NAME gdal_driver_tests
+  COMMAND pytest ${CMAKE_CURRENT_SOURCE_DIR}/gdal_driver.py
+  WORKING_DIRECTORY ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
+)

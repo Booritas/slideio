@@ -17,3 +17,4 @@ conanbuildinfo_release.cmake
 conaninfo.txt
 graph_info.json
 build/
+__pycache__/
