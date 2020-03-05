@@ -3,12 +3,12 @@
 
 std::shared_ptr<PySlide> pyOpenSlide(const std::string& path, const std::string& driver)
 {
-    std::shared_ptr<slideio::CVSlide> slide = slideio::openSlide(path, driver);
+    std::shared_ptr<slideio::Slide> slide = slideio::openSlide(path, driver);
     std::shared_ptr<PySlide> wrapper(new PySlide(slide));
     return wrapper;
 }
 
-std::vector<cv::String> pyGetDriverIDs()
+std::vector<std::string> pyGetDriverIDs()
 {
     return slideio::getDriverIDs();
 }

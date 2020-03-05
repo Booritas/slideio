@@ -5,4 +5,4 @@
 #include "pyslide.hpp"
 
 std::shared_ptr<PySlide> pyOpenSlide(const std::string& path, const std::string& driver);
-std::vector<cv::String> pyGetDriverIDs();
+std::vector<std::string> pyGetDriverIDs();

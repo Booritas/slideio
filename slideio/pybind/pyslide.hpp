@@ -6,17 +6,17 @@
 
 
 #include "pyscene.hpp"
-#include "slideio/core/cvslide.hpp"
+#include "slideio/slide.hpp"
 
 class PySlide
 {
 public:
-    PySlide(std::shared_ptr<slideio::CVSlide> slide) : m_Slide(std::move(slide))
+    PySlide(std::shared_ptr<slideio::Slide> slide) : m_Slide(std::move(slide))
     {
     }
     int getNumbScenes() const;
     std::string getFilePath() const;
     std::shared_ptr<PyScene> getScene(int index);
 private:
-    std::shared_ptr<slideio::CVSlide> m_Slide;
+    std::shared_ptr<slideio::Slide> m_Slide;
 };

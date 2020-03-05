@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "slideio/core/cvscene.hpp"
+#include "slideio/scene.hpp"
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 
@@ -7,7 +7,7 @@
 class PyScene
 {
 public:
-    PyScene(std::shared_ptr<slideio::CVScene> scene) : m_Scene(std::move(scene))
+    PyScene(std::shared_ptr<slideio::Scene> scene) : m_scene(std::move(scene))
     {
     }
     std::string getFilePath() const;
@@ -26,5 +26,5 @@ public:
         std::tuple<int,int> size, std::vector<int> channelIndices,
         std::tuple<int,int> sliceRange, std::tuple<int,int> tframeRange) const;
 private:
-    std::shared_ptr<slideio::CVScene> m_Scene;
+    std::shared_ptr<slideio::Scene> m_scene;
 };

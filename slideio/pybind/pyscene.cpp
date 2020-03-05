@@ -5,66 +5,62 @@ namespace py = pybind11;
 
 std::string PyScene::getFilePath() const
 {
-    return m_Scene->getFilePath();
+    return m_scene->getFilePath();
 }
 
 std::string PyScene::getName() const
 {
-    return m_Scene->getName();
+    return m_scene->getName();
 }
 
 std::tuple<int, int, int, int> PyScene::getRect() const
 {
-    cv::Rect rect = m_Scene->getRect();
-    std::tuple<int,int,int,int> wrapper(rect.x, rect.y, rect.width, rect.height);
-    return wrapper;
+    return m_scene->getRect();
 }
 
 int PyScene::getNumChannels() const
 {
-    return m_Scene->getNumChannels();
+    return m_scene->getNumChannels();
 }
 
 int PyScene::getNumZSlices() const
 {
-    return m_Scene->getNumZSlices();
+    return m_scene->getNumZSlices();
 }
 
 int PyScene::getNumTFrames() const
 {
-    return m_Scene->getNumTFrames();
+    return m_scene->getNumTFrames();
 }
 
 std::string PyScene::getChannelName(int channel) const
 {
-    return m_Scene->getChannelName(channel);
+    return m_scene->getChannelName(channel);
 }
 
 std::tuple<double, double> PyScene::getResolution() const
 {
-    slideio::Resolution res = m_Scene->getResolution();
-    std::tuple<double,double> wrapper(res.x, res.y);
-    return wrapper;
+    return m_scene->getResolution();
 }
 
 double PyScene::getZSliceResolution() const
 {
-    return m_Scene->getZSliceResolution();
+    return m_scene->getZSliceResolution();
 }
 
 double PyScene::getTFrameResolution() const
 {
-    return m_Scene->getTFrameResolution();
+    return m_scene->getTFrameResolution();
 }
 
 double PyScene::getMagnification() const
 {
-    return m_Scene->getMagnification();
+    return m_scene->getMagnification();
 }
 
 py::dtype PyScene::getChannelDataType(int channel) const
 {
-    auto dt = m_Scene->getChannelDataType(channel);
+    auto dt = m_scene->getChannelDataType(channel);
     switch(dt)
     {
         case slideio::DataType::DT_Byte:
@@ -91,41 +87,21 @@ pybind11::array PyScene::readBlock(std::tuple<int, int, int, int> rect,
     std::tuple<int,int> sliceRange, std::tuple<int,int> tframeRange) const
 {
     const int imageChannels = getNumChannels();
-    const cv::Rect imageRect = m_Scene->getRect();
-    const int imageWidth = imageRect.width - imageRect.x;
-    const int imageHeight = imageRect.height - imageRect.y;
+    const std::tuple<int,int,int,int> imageRect = m_scene->getRect();
+    const int imageWidth = std::get<2>(imageRect) - std::get<0>(imageRect);
+    const int imageHeight = std::get<3>(imageRect) - std::get<1>(imageRect);
+
     const int startSlice = std::max(0,std::get<0>(sliceRange));
     const int stopSlice = std::get<1>(sliceRange);
     const int startFrame = std::max(0,std::get<0>(tframeRange));
     const int stopFrame = std::get<1>(tframeRange);
     const int numSlices = std::max(1,stopSlice - startSlice);
     const int numFrames = std::max(1,stopFrame - startFrame);
-    const cv::Range zRange(startSlice, startSlice+numSlices);
-    const cv::Range tRange(startFrame, startFrame+numFrames);
 
-    if(channelIndices.empty())
-    {
-        for(int index=0; index<imageChannels; ++index)
-        {
-            channelIndices.push_back(index);
-        }
-    }
+    const int refChannel = channelIndices.empty()?0:channelIndices[0];
+    const int numChannels = channelIndices.empty()?imageChannels:static_cast<int>(channelIndices.size());
 
-    if(channelIndices.empty())
-    {
-        throw std::runtime_error("Unexpected: number of channels is zero");
-    }
-
-    const auto dtype = getChannelDataType(channelIndices.front());
-    const auto cvType = m_Scene->getChannelDataType(0);
-    for(const auto& channel : channelIndices)
-    {
-        auto channelDataType = m_Scene->getChannelDataType(channel);
-        if(channelDataType != cvType)
-        {
-            throw std::runtime_error("All channels in the block should be of the same type.");
-        }
-    }
+    const py::dtype dtype = getChannelDataType(refChannel);
 
     // source block parameters
     int srcHeight = std::get<3>(rect);
@@ -144,24 +120,19 @@ pybind11::array PyScene::readBlock(std::tuple<int, int, int, int> rect,
     if(trgHeight==0)
         trgHeight = srcHeight;
 
-    const cv::Rect srcRect(std::get<0>(rect), std::get<1>(rect), srcWidth, srcHeight);
-    const cv::Size trgSize( trgWidth, trgHeight);
+    std::tuple<int,int> blockSize(trgWidth, trgHeight);
+    std::tuple<int, int, int, int> blockRect(std::get<0>(rect), std::get<1>(rect), srcWidth, srcHeight);
 
+    const int memSize = m_scene->getBlockSize(blockSize, refChannel, numChannels, numSlices, numFrames);
     py::array numpy_array(dtype, {trgWidth, trgHeight, blockChannels*numSlices*numFrames});
-    cv::Mat raster(trgHeight, trgWidth, CV_MAKETYPE(static_cast<int>(cvType), blockChannels), numpy_array.mutable_data());
 
-    if(zRange.start==0 && zRange.end==1 && tRange.start==0 && tRange.end==1)
+    if(startSlice==0 && stopSlice==1 && startFrame==0 && stopFrame==1)
     {
-        m_Scene->readResampledBlockChannels(srcRect, trgSize, channelIndices, raster);
+        m_scene->readResampledBlockChannels(rect, blockSize, channelIndices, numpy_array.mutable_data(), memSize);
     }
     else
     {
-        m_Scene->readResampled4DBlockChannels(srcRect, trgSize, channelIndices, zRange, tRange, raster);
-    }
-
-    if(numpy_array.mutable_data()!=raster.data)
-    {
-        throw std::runtime_error("Unexpected data reallocation");
+        m_scene->readResampled4DBlockChannels(blockRect, blockSize, channelIndices, sliceRange, tframeRange, numpy_array.mutable_data(), memSize);
     }
 
     return numpy_array;
