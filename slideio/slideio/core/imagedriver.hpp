@@ -5,7 +5,7 @@
 #define OPENCV_slideio_imagedriver_HPP
 
 #include "slideio/slideio_def.hpp"
-#include "slideio/core/slide.hpp"
+#include "slideio/core/CVSlide.hpp"
 #include <opencv2/core.hpp>
 #include <string>
 
@@ -17,7 +17,7 @@ namespace slideio
         virtual ~ImageDriver(){}
         virtual std::string getID() const = 0;
         virtual bool canOpenFile(const std::string& filePath) const;
-        virtual std::shared_ptr<Slide> openFile(const std::string& filePath) = 0;
+        virtual std::shared_ptr<CVSlide> openFile(const std::string& filePath) = 0;
         virtual std::string getFileSpecs() const = 0;
     };
 }

@@ -5,7 +5,7 @@
 #define OPENCV_slideio_imagetools_HPP
 
 #include "slideio/slideio_def.hpp"
-#include "slideio/core/structs.hpp"
+#include "slideio/slideio.hpp"
 #include <opencv2/core.hpp>
 
 #if defined(WIN32)

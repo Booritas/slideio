@@ -15,7 +15,7 @@ namespace slideio
         SVSImageDriver();
         ~SVSImageDriver();
         std::string getID() const override;
-        std::shared_ptr<slideio::Slide> openFile(const std::string& filePath) override;
+        std::shared_ptr<slideio::CVSlide> openFile(const std::string& filePath) override;
         std::string getFileSpecs() const override;
     };
 }

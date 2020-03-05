@@ -26,11 +26,11 @@ std::string slideio::GDALImageDriver::getID() const
 }
 
 
-std::shared_ptr<slideio::Slide> slideio::GDALImageDriver::openFile(const std::string& filePath)
+std::shared_ptr<slideio::CVSlide> slideio::GDALImageDriver::openFile(const std::string& filePath)
 {
 	GDALDatasetH ds = GDALScene::openFile(filePath);
-	slideio::Slide* slide = new GDALSlide(ds, filePath);
-	std::shared_ptr<slideio::Slide> ptr(slide);
+	slideio::CVSlide* slide = new GDALSlide(ds, filePath);
+	std::shared_ptr<slideio::CVSlide> ptr(slide);
 	return ptr;
 }
 

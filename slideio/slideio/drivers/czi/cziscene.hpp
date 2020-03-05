@@ -3,7 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 #ifndef OPENCV_slideio_cziscene_HPP
 #define OPENCV_slideio_cziscene_HPP
-#include "slideio/core/scene.hpp"
+#include "slideio/core/CVScene.hpp"
 #include "slideio/imagetools/tilecomposer.hpp"
 #include "slideio/drivers/czi/czisubblock.hpp"
 #include "slideio/drivers/czi/czistructs.hpp"
@@ -17,7 +17,7 @@
 namespace slideio
 {
     class CZISlide;
-    class SLIDEIO_EXPORTS CZIScene : public Scene, public Tiler
+    class SLIDEIO_EXPORTS CZIScene : public CVScene, public Tiler
     {
     public:
         struct SceneParams

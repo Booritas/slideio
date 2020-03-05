@@ -64,7 +64,7 @@ std::string CZISlide::getFilePath() const
 	return m_filePath;
 }
 
-std::shared_ptr<Scene> CZISlide::getScene(int index) const
+std::shared_ptr<CVScene> CZISlide::getScene(int index) const
 {
     if(index<0 || index>=getNumbScenes())
     {

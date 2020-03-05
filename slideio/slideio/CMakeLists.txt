@@ -9,8 +9,14 @@ add_subdirectory(imagetools)
 set(SOURCE_FILES 
 	${SOURCE_FILES}
 	${CMAKE_CURRENT_SOURCE_DIR}/slideio.hpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/slideio_def.hpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/gdal_lib.hpp
+	${CMAKE_CURRENT_SOURCE_DIR}/slideio.cpp
+   	${CMAKE_CURRENT_SOURCE_DIR}/slideio_def.hpp
+   	${CMAKE_CURRENT_SOURCE_DIR}/gdal_lib.hpp
+   	${CMAKE_CURRENT_SOURCE_DIR}/slide.hpp
+   	${CMAKE_CURRENT_SOURCE_DIR}/slide.cpp
+   	${CMAKE_CURRENT_SOURCE_DIR}/scene.hpp
+   	${CMAKE_CURRENT_SOURCE_DIR}/scene.cpp
+   	${CMAKE_CURRENT_SOURCE_DIR}/structs.hpp
 )
 
 add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES})

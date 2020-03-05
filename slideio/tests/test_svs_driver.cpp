@@ -27,11 +27,11 @@ TEST(SVSImageDriver, openFile_BrightField)
 {
     slideio::SVSImageDriver driver;
     std::string path = TestTools::getTestImagePath("svs","CMU-1-Small-Region.svs");
-    std::shared_ptr<slideio::Slide> slide = driver.openFile(path);
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(path);
     ASSERT_TRUE(slide!=nullptr);
     int numbScenes = slide->getNumbScenes();
     ASSERT_TRUE(numbScenes==4);
-    std::shared_ptr<slideio::Scene> scene = slide->getScene(0);
+    std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
     ASSERT_TRUE(scene!=nullptr);
     EXPECT_EQ(slide->getFilePath(),path);
     EXPECT_EQ(scene->getFilePath(),path);
@@ -55,11 +55,11 @@ TEST(SVSImageDriver, read_Thumbnail_WholeImage)
     // read image by svs driver
     slideio::SVSImageDriver driver;
     std::string path = TestTools::getTestImagePath("svs","CMU-1-Small-Region.svs");
-    std::shared_ptr<slideio::Slide> slide = driver.openFile(path);
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(path);
     ASSERT_TRUE(slide!=nullptr);
     int numbScenes = slide->getNumbScenes();
     ASSERT_TRUE(numbScenes==4);
-    std::shared_ptr<slideio::Scene> scene = slide->getScene(1);
+    std::shared_ptr<slideio::CVScene> scene = slide->getScene(1);
     ASSERT_TRUE(scene!=nullptr);
     cv::Rect sceneRect = scene->getRect();
     cv::Mat imageRaster;
@@ -82,11 +82,11 @@ TEST(SVSImageDriver, read_Thumbnail_Block)
     // read image by svs driver
     slideio::SVSImageDriver driver;
     std::string path = TestTools::getTestImagePath("svs","CMU-1-Small-Region.svs");
-    std::shared_ptr<slideio::Slide> slide = driver.openFile(path);
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(path);
     ASSERT_TRUE(slide!=nullptr);
     int numbScenes = slide->getNumbScenes();
     ASSERT_TRUE(numbScenes==4);
-    std::shared_ptr<slideio::Scene> scene = slide->getScene(1);
+    std::shared_ptr<slideio::CVScene> scene = slide->getScene(1);
     ASSERT_TRUE(scene!=nullptr);
     cv::Rect sceneRect = scene->getRect();
     int block_sx = sceneRect.width/4;
@@ -118,11 +118,11 @@ TEST(SVSImageDriver, read_Thumbnail_BlockWithScale)
     // read image by svs driver
     slideio::SVSImageDriver driver;
     std::string path = TestTools::getTestImagePath("svs", "CMU-1-Small-Region.svs");
-    std::shared_ptr<slideio::Slide> slide = driver.openFile(path);
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(path);
     ASSERT_TRUE(slide != nullptr);
     int numbScenes = slide->getNumbScenes();
     ASSERT_TRUE(numbScenes == 4);
-    std::shared_ptr<slideio::Scene> scene = slide->getScene(1);
+    std::shared_ptr<slideio::CVScene> scene = slide->getScene(1);
     ASSERT_TRUE(scene != nullptr);
     cv::Rect sceneRect = scene->getRect();
     int block_sx = sceneRect.width/3;
@@ -193,11 +193,11 @@ TEST(SVSImageDriver, readBlock_WholeImage)
 {
     slideio::SVSImageDriver driver;
     std::string path = TestTools::getTestImagePath("svs", "CMU-1-Small-Region.svs");
-    std::shared_ptr<slideio::Slide> slide = driver.openFile(path);
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(path);
     ASSERT_TRUE(slide != nullptr);
     int numbScenes = slide->getNumbScenes();
     ASSERT_TRUE(numbScenes == 4);
-    std::shared_ptr<slideio::Scene> scene = slide->getScene(0);
+    std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
     ASSERT_TRUE(scene != nullptr);
     const cv::Rect sceneRect = scene->getRect();
     ASSERT_EQ(sceneRect.width, 2220);
@@ -225,11 +225,11 @@ TEST(SVSImageDriver, readBlock_Part)
 {
     slideio::SVSImageDriver driver;
     std::string path = TestTools::getTestImagePath("svs", "CMU-1-Small-Region.svs");
-    std::shared_ptr<slideio::Slide> slide = driver.openFile(path);
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(path);
     ASSERT_TRUE(slide != nullptr);
     int numbScenes = slide->getNumbScenes();
     ASSERT_TRUE(numbScenes == 4);
-    std::shared_ptr<slideio::Scene> scene = slide->getScene(0);
+    std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
     ASSERT_TRUE(scene != nullptr);
     const cv::Rect sceneRect = scene->getRect();
     ASSERT_EQ(sceneRect.width, 2220);
@@ -254,11 +254,11 @@ TEST(SVSImageDriver, readBlock_PartScale)
 {
     slideio::SVSImageDriver driver;
     std::string path = TestTools::getTestImagePath("svs", "CMU-1-Small-Region.svs");
-    std::shared_ptr<slideio::Slide> slide = driver.openFile(path);
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(path);
     ASSERT_TRUE(slide != nullptr);
     int numbScenes = slide->getNumbScenes();
     ASSERT_TRUE(numbScenes == 4);
-    std::shared_ptr<slideio::Scene> scene = slide->getScene(0);
+    std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
     ASSERT_TRUE(scene != nullptr);
     const cv::Rect sceneRect = scene->getRect();
     ASSERT_EQ(sceneRect.width, 2220);
@@ -297,11 +297,11 @@ TEST(SVSImageDriver, readBlock_PartScale)
 //{
 //    slideio::SVSImageDriver driver;
 //    std::string path = TestTools::getTestImagePath("svs", "JP2K-33003-1.svs");
-//    std::shared_ptr<slideio::Slide> slide = driver.openFile(path);
+//    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(path);
 //    ASSERT_TRUE(slide != nullptr);
 //    int numbScenes = slide->getNumbScenes();
 //    ASSERT_TRUE(numbScenes == 4);
-//    std::shared_ptr<slideio::Scene> scene = slide->getScene(0);
+//    std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
 //    ASSERT_TRUE(scene != nullptr);
 //    const cv::Rect sceneRect = scene->getRect();
 //    cv::Mat blockRaster;

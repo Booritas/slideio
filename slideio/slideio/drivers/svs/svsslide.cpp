@@ -29,7 +29,7 @@ std::string SVSSlide::getFilePath() const
     return m_filePath;
 }
 
-std::shared_ptr<Scene> SVSSlide::getScene(int index) const
+std::shared_ptr<CVScene> SVSSlide::getScene(int index) const
 {
     if(index>=getNumbScenes())
         throw std::runtime_error("SVS driver: invalide m_scene index");
@@ -74,32 +74,32 @@ std::shared_ptr<SVSSlide> SVSSlide::openFile(const std::string& filePath)
         else if(directory.description.find("macro")!=std::string::npos)
             macro = nextDir;
     }
-    std::vector<std::shared_ptr<Scene>> scenes;
+    std::vector<std::shared_ptr<CVScene>> scenes;
     
     if(image.size()>0){
         std::vector<TiffDirectory> image_dirs;
         for(const auto index: image){
             image_dirs.push_back(directories[index]);
         }
-        std::shared_ptr<Scene> scene(new SVSTiledScene(filePath,"Image",
+        std::shared_ptr<CVScene> scene(new SVSTiledScene(filePath,"Image",
             image_dirs, tiff));
         scenes.push_back(scene);
     }
     if(thumbnail>=0)
     {
-        std::shared_ptr<Scene> scene(new SVSSmallScene(filePath,"Thumbnail",
+        std::shared_ptr<CVScene> scene(new SVSSmallScene(filePath,"Thumbnail",
             directories[thumbnail], tiff));
         scenes.push_back(scene);
     }
     if(label>=0)
     {
-        std::shared_ptr<Scene> scene(new SVSSmallScene(filePath,"Label",
+        std::shared_ptr<CVScene> scene(new SVSSmallScene(filePath,"Label",
             directories[label], tiff));
         scenes.push_back(scene);
     }
     if(macro>=0)
     {
-        std::shared_ptr<Scene> scene(new SVSSmallScene(filePath,"Macro",
+        std::shared_ptr<CVScene> scene(new SVSSmallScene(filePath,"Macro",
             directories[macro], tiff));
         scenes.push_back(scene);
     }

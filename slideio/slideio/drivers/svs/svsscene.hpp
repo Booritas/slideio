@@ -5,7 +5,7 @@
 #define OPENCV_slideio_svsscene_HPP
 
 #include "slideio/slideio_def.hpp"
-#include "slideio/core/scene.hpp"
+#include "slideio/core/CVScene.hpp"
 
 #if defined(_MSC_VER)
 #pragma warning( push )
@@ -14,7 +14,7 @@
 
 namespace slideio
 {
-    class SLIDEIO_EXPORTS SVSScene : public Scene
+    class SLIDEIO_EXPORTS SVSScene : public CVScene
     {
     public:
         SVSScene(const std::string& filePath, const std::string& name) :

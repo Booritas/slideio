@@ -49,7 +49,7 @@ void ImageDriverManager::initialize()
     }
 }
 
-std::shared_ptr<Slide> ImageDriverManager::openSlide(const std::string& filePath, const std::string& driverName)
+std::shared_ptr<CVSlide> ImageDriverManager::openSlide(const std::string& filePath, const std::string& driverName)
 {
     initialize();
     auto it = driverMap.find(driverName);

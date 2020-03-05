@@ -7,5 +7,6 @@ openjpeg/2.3.1@slideio/stable
 tinyxml2/7.1.0@_/_
 jxrlib/1.1.1@slideio/stable
 opencv/4.1.1@slideio/stable
+pybind11/2.3.0@conan/stable
 [options]
 boost:shared=False

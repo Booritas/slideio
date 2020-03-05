@@ -5,8 +5,8 @@
 #define OPENCV_slideio_svsslide_HPP
 
 #include "slideio/slideio_def.hpp"
-#include "slideio/core/scene.hpp"
-#include "slideio/core/slide.hpp"
+#include "slideio/core/CVScene.hpp"
+#include "slideio/core/CVSlide.hpp"
 #include <tiffio.h>
 
 #if defined(_MSC_VER)
@@ -16,7 +16,7 @@
 
 namespace slideio
 {
-    class SLIDEIO_EXPORTS SVSSlide : public slideio::Slide
+    class SLIDEIO_EXPORTS SVSSlide : public slideio::CVSlide
     {
     protected:
         SVSSlide();
@@ -24,11 +24,11 @@ namespace slideio
         virtual ~SVSSlide();
         int getNumbScenes() const override;
         std::string getFilePath() const override;
-        std::shared_ptr<slideio::Scene> getScene(int index) const override;
+        std::shared_ptr<slideio::CVScene> getScene(int index) const override;
         static std::shared_ptr<SVSSlide> openFile(const std::string& path);
         static void closeFile(TIFF* hfile);
     private:
-        std::vector<std::shared_ptr<slideio::Scene>> m_Scenes;
+        std::vector<std::shared_ptr<slideio::CVScene>> m_Scenes;
         std::string m_filePath;
     };
 }

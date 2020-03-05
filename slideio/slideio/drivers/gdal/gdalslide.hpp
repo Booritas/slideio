@@ -5,8 +5,8 @@
 #define OPENCV_slideio_gdalslide_HPP
 
 #include "slideio/slideio_def.hpp"
-#include "slideio/core/slide.hpp"
-#include "slideio/core/scene.hpp"
+#include "slideio/core/CVSlide.hpp"
+#include "slideio/core/CVScene.hpp"
 #include "slideio/gdal_lib.hpp"
 #include <opencv2/core.hpp>
 
@@ -17,16 +17,16 @@
 
 namespace slideio
 {
-    class SLIDEIO_EXPORTS GDALSlide : public slideio::Slide
+    class SLIDEIO_EXPORTS GDALSlide : public slideio::CVSlide
     {
     public:
         GDALSlide(GDALDatasetH ds, const std::string& filePath);
         virtual ~GDALSlide();
         int getNumbScenes() const override;
         std::string getFilePath() const override;
-        std::shared_ptr<slideio::Scene> getScene(int index) const override;
+        std::shared_ptr<slideio::CVScene> getScene(int index) const override;
     private:
-        std::shared_ptr<slideio::Scene> m_scene;
+        std::shared_ptr<slideio::CVScene> m_scene;
     };
 
 }

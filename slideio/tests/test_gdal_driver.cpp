@@ -20,11 +20,11 @@ TEST(GDALDriver, openPngFile_3chnls_8bit)
 {
     slideio::GDALImageDriver driver;
     std::string path = TestTools::getTestImagePath("gdal","img_2448x2448_3x8bit_SRC_RGB_ducks.png");
-    std::shared_ptr<slideio::Slide> slide = driver.openFile(path);
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(path);
     ASSERT_TRUE(slide!=nullptr);
     int numbScenes = slide->getNumbScenes();
     ASSERT_TRUE(numbScenes==1);
-    std::shared_ptr<slideio::Scene> scene = slide->getScene(0);
+    std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
     ASSERT_TRUE(scene!=nullptr);
     EXPECT_EQ(slide->getFilePath(),path);
     EXPECT_EQ(scene->getFilePath(),path);
@@ -45,11 +45,11 @@ TEST(GDALDriver, openPngFile_1chnl_8bit)
 {
     slideio::GDALImageDriver driver;
     std::string path = TestTools::getTestImagePath("gdal","img_2448x2448_1x8bit_SRC_GRAY_ducks.png");
-    std::shared_ptr<slideio::Slide> slide = driver.openFile(path);
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(path);
     ASSERT_TRUE(slide!=nullptr);
     int numbScenes = slide->getNumbScenes();
     ASSERT_TRUE(numbScenes==1);
-    std::shared_ptr<slideio::Scene> scene = slide->getScene(0);
+    std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
     ASSERT_TRUE(scene!=nullptr);
     EXPECT_EQ(slide->getFilePath(),path);
     EXPECT_EQ(scene->getFilePath(),path);
@@ -68,11 +68,11 @@ TEST(GDALDriver, openPngFile_3chnl_16bit)
 {
     slideio::GDALImageDriver driver;
     std::string path = TestTools::getTestImagePath("gdal","img_2448x2448_3x16bit_SRC_RGB_ducks.png");
-    std::shared_ptr<slideio::Slide> slide = driver.openFile(path);
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(path);
     ASSERT_TRUE(slide!=nullptr);
     int numbScenes = slide->getNumbScenes();
     ASSERT_TRUE(numbScenes==1);
-    std::shared_ptr<slideio::Scene> scene = slide->getScene(0);
+    std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
     ASSERT_TRUE(scene!=nullptr);
     EXPECT_EQ(slide->getFilePath(),path);
     EXPECT_EQ(scene->getFilePath(),path);
@@ -93,11 +93,11 @@ TEST(GDALDriver, openJpegFile_3chnl_8bit)
 {
     slideio::GDALImageDriver driver;
     std::string path = TestTools::getTestImagePath("gdal","Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg");
-    std::shared_ptr<slideio::Slide> slide = driver.openFile(path);
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(path);
     ASSERT_TRUE(slide!=nullptr);
     int numbScenes = slide->getNumbScenes();
     ASSERT_TRUE(numbScenes==1);
-    std::shared_ptr<slideio::Scene> scene = slide->getScene(0);
+    std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
     ASSERT_TRUE(scene!=nullptr);
     EXPECT_EQ(slide->getFilePath(),path);
     EXPECT_EQ(scene->getFilePath(),path);
@@ -118,11 +118,11 @@ TEST(GDALDriver, readBlockPng)
 {
     slideio::GDALImageDriver driver;
     std::string path = TestTools::getTestImagePath("gdal","img_1024x600_3x8bit_RGB_color_bars_CMYKWRGB.png");
-    std::shared_ptr<slideio::Slide> slide = driver.openFile(path);
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(path);
     ASSERT_TRUE(slide!=nullptr);
     int numbScenes = slide->getNumbScenes();
     ASSERT_TRUE(numbScenes==1);
-    std::shared_ptr<slideio::Scene> scene = slide->getScene(0);
+    std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
     ASSERT_TRUE(scene!=nullptr);
     int channels = scene->getNumChannels();
     EXPECT_EQ(channels, 3);
@@ -159,11 +159,11 @@ TEST(GDALDriver, readBlockPngResampling)
 {
     slideio::GDALImageDriver driver;
     std::string path = TestTools::getTestImagePath("gdal","img_1024x600_3x8bit_RGB_color_bars_CMYKWRGB.png");
-    std::shared_ptr<slideio::Slide> slide = driver.openFile(path);
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(path);
     ASSERT_TRUE(slide!=nullptr);
     int numbScenes = slide->getNumbScenes();
     ASSERT_TRUE(numbScenes==1);
-    std::shared_ptr<slideio::Scene> scene = slide->getScene(0);
+    std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
     ASSERT_TRUE(scene!=nullptr);
     int channels = scene->getNumChannels();
     EXPECT_EQ(channels, 3);

@@ -5,18 +5,18 @@
 #define OPENCV_slideio_slide_HPP
 
 #include "slideio/slideio_def.hpp"
-#include "slideio/core/scene.hpp"
+#include "slideio/core/cvscene.hpp"
 #include <string>
 
 namespace slideio
 {
-    class SLIDEIO_EXPORTS Slide
+    class SLIDEIO_EXPORTS CVSlide
     {
     public:
-        virtual ~Slide(){}
+        virtual ~CVSlide(){}
         virtual int getNumbScenes() const = 0;
         virtual std::string getFilePath() const = 0;
-        virtual std::shared_ptr<Scene> getScene(int index) const = 0;
+        virtual std::shared_ptr<CVScene> getScene(int index) const = 0;
     };
 }
 

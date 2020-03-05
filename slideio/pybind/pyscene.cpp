@@ -1,68 +1,68 @@
-﻿#include "SceneW.h"
+﻿#include "pyscene.hpp"
 #include <pybind11/numpy.h>
 
 namespace py = pybind11;
 
-std::string SceneW::getFilePath() const
+std::string PyScene::getFilePath() const
 {
     return m_Scene->getFilePath();
 }
 
-std::string SceneW::getName() const
+std::string PyScene::getName() const
 {
     return m_Scene->getName();
 }
 
-std::tuple<int, int, int, int> SceneW::getRect() const
+std::tuple<int, int, int, int> PyScene::getRect() const
 {
     cv::Rect rect = m_Scene->getRect();
     std::tuple<int,int,int,int> wrapper(rect.x, rect.y, rect.width, rect.height);
     return wrapper;
 }
 
-int SceneW::getNumChannels() const
+int PyScene::getNumChannels() const
 {
     return m_Scene->getNumChannels();
 }
 
-int SceneW::getNumZSlices() const
+int PyScene::getNumZSlices() const
 {
     return m_Scene->getNumZSlices();
 }
 
-int SceneW::getNumTFrames() const
+int PyScene::getNumTFrames() const
 {
     return m_Scene->getNumTFrames();
 }
 
-std::string SceneW::getChannelName(int channel) const
+std::string PyScene::getChannelName(int channel) const
 {
     return m_Scene->getChannelName(channel);
 }
 
-std::tuple<double, double> SceneW::getResolution() const
+std::tuple<double, double> PyScene::getResolution() const
 {
     slideio::Resolution res = m_Scene->getResolution();
     std::tuple<double,double> wrapper(res.x, res.y);
     return wrapper;
 }
 
-double SceneW::getZSliceResolution() const
+double PyScene::getZSliceResolution() const
 {
     return m_Scene->getZSliceResolution();
 }
 
-double SceneW::getTFrameResolution() const
+double PyScene::getTFrameResolution() const
 {
     return m_Scene->getTFrameResolution();
 }
 
-double SceneW::getMagnification() const
+double PyScene::getMagnification() const
 {
     return m_Scene->getMagnification();
 }
 
-py::dtype SceneW::getChannelDataType(int channel) const
+py::dtype PyScene::getChannelDataType(int channel) const
 {
     auto dt = m_Scene->getChannelDataType(channel);
     switch(dt)
@@ -86,7 +86,7 @@ py::dtype SceneW::getChannelDataType(int channel) const
     }
 }
 
-pybind11::array SceneW::readBlock(std::tuple<int, int, int, int> rect,
+pybind11::array PyScene::readBlock(std::tuple<int, int, int, int> rect,
     std::tuple<int, int> size, std::vector<int> channelIndices,
     std::tuple<int,int> sliceRange, std::tuple<int,int> tframeRange) const
 {

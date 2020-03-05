@@ -5,7 +5,7 @@
 #define OPENCV_slideio_imagedrivermanager_HPP
 
 #include "slideio/slideio_def.hpp"
-#include "slideio/core/slide.hpp"
+#include "slideio/core/CVSlide.hpp"
 #include <opencv2/core.hpp>
 #include <map>
 #include <vector>
@@ -27,7 +27,7 @@ namespace slideio
         static std::vector<std::string> getDriverIDs();
         static ImageDriver* getDriver(const std::string& driverName);
         static ImageDriver* findDriver(const std::string& filePath);
-        static std::shared_ptr<Slide> openSlide(const std::string& cs, const std::string& driver);
+        static std::shared_ptr<CVSlide> openSlide(const std::string& cs, const std::string& driver);
     protected:
         static void initialize();
     private:

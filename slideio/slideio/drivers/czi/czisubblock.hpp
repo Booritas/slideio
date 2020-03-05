@@ -6,7 +6,7 @@
 
 #include "slideio/slideio_def.hpp"
 #include "slideio/drivers/czi/czistructs.hpp"
-#include "slideio/core/structs.hpp"
+#include "slideio/structs.hpp"
 #include <opencv2/core.hpp>
 #include <cstdint>
 #include <vector>

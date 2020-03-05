@@ -4,11 +4,12 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/imagedriver.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/imagedrivermanager.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/imagedrivermanager.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/scene.hpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/scene.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/slide.hpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/slide.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/structs.hpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/slideio.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/cvscene.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/cvscene.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/cvslide.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/cvslide.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/cvstructs.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/cvglobals.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/cvglobals.hpp
    PARENT_SCOPE
    )

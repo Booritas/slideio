@@ -4,7 +4,7 @@
 //
 #include "slideio/imagetools/tifftools.hpp"
 #include "slideio/imagetools/imagetools.hpp"
-#include "slideio/slideio.hpp"
+#include "slideio/core/cvglobals.hpp"
 #include <opencv2/core.hpp>
 #include <boost/format.hpp>
 #include <tiffio.h>

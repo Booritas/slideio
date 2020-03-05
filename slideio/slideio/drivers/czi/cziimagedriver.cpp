@@ -22,13 +22,13 @@ std::string CZIImageDriver::getID() const
     return "CZI";
 }
 
-std::shared_ptr<Slide> CZIImageDriver::openFile(const std::string& filePath)
+std::shared_ptr<CVSlide> CZIImageDriver::openFile(const std::string& filePath)
 {
     namespace fs = boost::filesystem;
     if(!fs::exists(filePath)){
         throw std::runtime_error(std::string("CZIImageDriver: File does not exist:") + filePath);
     }
-    std::shared_ptr<Slide> ptr(new CZISlide(filePath));
+    std::shared_ptr<CVSlide> ptr(new CZISlide(filePath));
     return ptr;
 }
 

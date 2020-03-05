@@ -5,8 +5,8 @@
 #define OPENCV_slideio_gdalscene_HPP
 
 #include "slideio/slideio_def.hpp"
-#include "slideio/core/scene.hpp"
-#include "slideio/core/structs.hpp"
+#include "slideio/core/CVScene.hpp"
+#include "slideio/structs.hpp"
 #include <opencv2/core.hpp>
 #include "slideio/gdal_lib.hpp"
 
@@ -17,7 +17,7 @@
 
 namespace slideio
 {
-    class SLIDEIO_EXPORTS GDALScene : public slideio::Scene
+    class SLIDEIO_EXPORTS GDALScene : public slideio::CVScene
     {
     public:
         GDALScene(const std::string& filePath);

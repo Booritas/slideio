@@ -6,7 +6,7 @@
 
 #include "slideio/slideio_def.hpp"
 #include "slideio/core/imagedriver.hpp"
-#include "slideio/core/slide.hpp"
+#include "slideio/core/CVSlide.hpp"
 #include <opencv2/core.hpp>
 
 namespace slideio
@@ -17,7 +17,7 @@ namespace slideio
         GDALImageDriver();
         ~GDALImageDriver();
         std::string getID() const override;
-        std::shared_ptr<Slide> openFile(const std::string& filePath) override;
+        std::shared_ptr<CVSlide> openFile(const std::string& filePath) override;
         std::string getFileSpecs() const override;
     };
 }

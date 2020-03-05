@@ -5,7 +5,8 @@
 #define OPENCV_slideio_tifftools_HPP
 
 #include "slideio/slideio_def.hpp"
-#include "slideio/core/structs.hpp"
+#include "slideio/core/cvstructs.hpp"
+#include "slideio/structs.hpp"
 #include <opencv2/core.hpp>
 #include <string>
 #include <vector>

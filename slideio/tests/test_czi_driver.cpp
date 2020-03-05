@@ -32,7 +32,7 @@ TEST(CZIImageDriver, openFile)
 {
     slideio::CZIImageDriver driver;
     std::string filePath = TestTools::getTestImagePath("czi","pJP31mCherry.czi");
-    std::shared_ptr<slideio::Slide> slide = driver.openFile(filePath);
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide!=nullptr);
     int numScenes = slide->getNumbScenes();
     ASSERT_EQ(numScenes, 1);
@@ -61,7 +61,7 @@ TEST(CZIImageDriver, openFileInfo)
     slideio::CZIImageDriver driver;
     std::string filePath = TestTools::getTestImagePath("czi", "08_18_2018_enc_1001_633.czi");
     std::string channelNames[] = {"646", "655", "664", "673", "682", "691"};
-    std::shared_ptr<slideio::Slide> slide = driver.openFile(filePath);
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
     int numScenes = slide->getNumbScenes();
     ASSERT_EQ(numScenes, 1);
@@ -98,7 +98,7 @@ TEST(CZIImageDriver, readBlock)
         TestTools::getTestImagePath("czi","pJP31mCherry.grey/pJP31mCherry_b0t0z0c1x0-512y0-512.bmp"),
         TestTools::getTestImagePath("czi","pJP31mCherry.grey/pJP31mCherry_b0t0z0c2x0-512y0-512.bmp")
     };
-    std::shared_ptr<slideio::Slide> slide = driver.openFile(filePath);
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide!=nullptr);
     int numScenes = slide->getNumbScenes();
     ASSERT_EQ(numScenes, 1);
@@ -123,7 +123,7 @@ TEST(CZIImageDriver, readBlock4D)
 {
     slideio::CZIImageDriver driver;
     std::string filePath = TestTools::getTestImagePath("czi","pJP31mCherry.czi");
-    std::shared_ptr<slideio::Slide> slide = driver.openFile(filePath);
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide!=nullptr);
     int numScenes = slide->getNumbScenes();
     ASSERT_EQ(numScenes, 1);
@@ -271,7 +271,7 @@ TEST(CZIImageDriver, sceneIdsFromDims)
 //{
 //    slideio::CZIImageDriver driver;
 //    std::string filePath = TestTools::getTestImagePath("czi","test3.czi");
-//    std::shared_ptr<slideio::Slide> slide = driver.openFile(filePath);
+//    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
 //    ASSERT_TRUE(slide!=nullptr);
 //    int numScenes = slide->getNumbScenes();
 //    auto scene = slide->getScene(1);
@@ -294,7 +294,7 @@ TEST(CZIImageDriver, sceneIdsFromDims)
 //{
 //    slideio::CZIImageDriver driver;
 //    std::string filePath = TestTools::getTestImagePath("czi","test.czi");
-//    std::shared_ptr<slideio::Slide> slide = driver.openFile(filePath);
+//    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
 //    ASSERT_TRUE(slide!=nullptr);
 //    int numScenes = slide->getNumbScenes();
 //    auto scene = slide->getScene(0);
@@ -319,7 +319,7 @@ TEST(CZIImageDriver, sceneIdsFromDims)
 //{
 //    slideio::CZIImageDriver driver;
 //    std::string filePath = TestTools::getTestImagePath("czi","test2.czi");
-//    std::shared_ptr<slideio::Slide> slide = driver.openFile(filePath);
+//    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
 //    ASSERT_TRUE(slide!=nullptr);
 //    int numScenes = slide->getNumbScenes();
 //    cv::Rect sceneRect;
@@ -356,7 +356,7 @@ TEST(CZIImageDriver, sceneIdsFromDims)
 //{
 //    slideio::CZIImageDriver driver;
 //    std::string filePath = TestTools::getTestImagePath("czi","03_15_2019_DSGN0549_C_fov_9_633.czi");
-//    std::shared_ptr<slideio::Slide> slide = driver.openFile(filePath);
+//    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
 //    ASSERT_TRUE(slide!=nullptr);
 //    int numScenes = slide->getNumbScenes();
 //    auto scene = slide->getScene(0);

@@ -5,17 +5,18 @@
 #define OPENCV_slideio_scene_HPP
 
 #include "slideio/slideio_def.hpp"
-#include "slideio/core/structs.hpp"
+#include "slideio/core/cvstructs.hpp"
+#include "slideio/structs.hpp"
 #include "opencv2/core.hpp"
 #include <vector>
 #include <string>
 
 namespace slideio
 {
-    class SLIDEIO_EXPORTS Scene
+    class SLIDEIO_EXPORTS CVScene
     {
     public:
-        virtual ~Scene() = default;
+        virtual ~CVScene() = default;
         virtual std::string getFilePath() const = 0;
         virtual std::string getName() const = 0;
         virtual cv::Rect getRect() const = 0;
