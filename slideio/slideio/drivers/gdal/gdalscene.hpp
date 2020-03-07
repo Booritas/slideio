@@ -5,7 +5,7 @@
 #define OPENCV_slideio_gdalscene_HPP
 
 #include "slideio/slideio_def.hpp"
-#include "slideio/core/CVScene.hpp"
+#include "slideio/core/cvscene.hpp"
 #include "slideio/structs.hpp"
 #include <opencv2/core.hpp>
 #include "slideio/gdal_lib.hpp"

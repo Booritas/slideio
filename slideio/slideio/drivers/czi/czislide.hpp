@@ -3,7 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 #ifndef OPENCV_slideio_czislide_HPP
 #define OPENCV_slideio_czislide_HPP
-#include "slideio/core/CVSlide.hpp"
+#include "slideio/core/cvslide.hpp"
 #include "slideio/drivers/czi/cziscene.hpp"
 #include "slideio/drivers/czi/czistructs.hpp"
 #include <fstream>

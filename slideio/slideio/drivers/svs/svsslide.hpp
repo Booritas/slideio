@@ -5,8 +5,8 @@
 #define OPENCV_slideio_svsslide_HPP
 
 #include "slideio/slideio_def.hpp"
-#include "slideio/core/CVScene.hpp"
-#include "slideio/core/CVSlide.hpp"
+#include "slideio/core/cvscene.hpp"
+#include "slideio/core/cvslide.hpp"
 #include <tiffio.h>
 
 #if defined(_MSC_VER)
