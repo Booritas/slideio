@@ -6,7 +6,10 @@ import sys
 from pathlib import Path
 import argparse
 from argparse import RawTextHelpFormatter
-import distro
+try:
+	import distro
+except ImportError:
+	pass
     
 def get_platform():
     platforms = {
