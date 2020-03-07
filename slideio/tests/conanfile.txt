@@ -3,6 +3,6 @@ opencv/4.1.1@slideio/stable
 tinyxml2/7.1.0@_/_
 gtest/1.10.0@slideio/stable
 boost/1.72.0@_/_
-expat/2.2.9@_/_
+expat/2.2.9@slideio/stable
 [options]
 boost:shared=False

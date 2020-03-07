@@ -5,7 +5,7 @@
 #define OPENCV_slideio_imagedrivermanager_HPP
 
 #include "slideio/slideio_def.hpp"
-#include "slideio/core/CVSlide.hpp"
+#include "slideio/core/cvslide.hpp"
 #include <opencv2/core.hpp>
 #include <map>
 #include <vector>

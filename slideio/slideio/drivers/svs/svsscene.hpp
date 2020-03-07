@@ -5,7 +5,7 @@
 #define OPENCV_slideio_svsscene_HPP
 
 #include "slideio/slideio_def.hpp"
-#include "slideio/core/CVScene.hpp"
+#include "slideio/core/cvscene.hpp"
 
 #if defined(_MSC_VER)
 #pragma warning( push )

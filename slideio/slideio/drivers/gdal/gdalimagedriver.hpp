@@ -6,7 +6,7 @@
 
 #include "slideio/slideio_def.hpp"
 #include "slideio/core/imagedriver.hpp"
-#include "slideio/core/CVSlide.hpp"
+#include "slideio/core/cvslide.hpp"
 #include <opencv2/core.hpp>
 
 namespace slideio

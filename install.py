@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 import argparse
 from argparse import RawTextHelpFormatter
+import distro
     
 def get_platform():
     platforms = {
@@ -20,6 +21,9 @@ def get_platform():
     
     return platforms[sys.platform]
 
+def is_linux():
+    return get_platform() != "Windows"
+
 def clean_prev_build(build_directory):
     print(F"Cleaning directory {build_directory}")
     if os.path.exists(build_directory):
@@ -27,16 +31,24 @@ def clean_prev_build(build_directory):
     os.makedirs(build_directory)
 
 
-def collect_profiles(profile_dir):
+def collect_profiles(profile_dir, compiler=""):
+    compiler_dir = profile_dir
+    if is_linux() and compiler=="":
+        compiler = "clang-9"
+        plt = distro.linux_distribution(full_distribution_name=False)
+        print(plt)
+        if plt[0] != "ubuntu":
+            compiler = "gcc-8"
+        compiler_dir = os.path.join(profile_dir, compiler)    
+
     profiles = []
-    for root, dirs, files in os.walk(profile_dir):
+    for root, dirs, files in os.walk(compiler_dir):
         files = glob.glob(os.path.join(root,'*'))
         for f in files :
             profiles.append(os.path.abspath(f))
     return profiles
 
 def process_conan_profile(profile, trg_dir, conan_file):
-    platform = get_platform()
     generator = "cmake_multi"
     command = ['conan','install',
         '-pr',profile,
@@ -47,8 +59,8 @@ def process_conan_profile(profile, trg_dir, conan_file):
     subprocess.check_call(command)
 
 def configure_conan(slideio_dir):
-    platform = get_platform()
-    conan_profile_dir_path = os.path.join(slideio_dir, "conan", platform)
+    os_platform = get_platform()
+    conan_profile_dir_path = os.path.join(slideio_dir, "conan", os_platform)
     # collect paths to conan profile files
     profiles = collect_profiles(conan_profile_dir_path)
     for trg_conan_file_path in Path(slideio_dir).rglob('conanfile.txt'):
@@ -58,12 +70,12 @@ def configure_conan(slideio_dir):
             process_conan_profile(profile, os.path.dirname(trg_conan_file_path), trg_conan_file_path.absolute().as_posix())
 
 def single_configuration(config_name, build_dir, project_dir):
-    platform = get_platform()
+    os_platform = get_platform()
     cmake_props = {
         "CMAKE_CXX_STANDARD_REQUIRED":"ON",
     }
     architecture = None
-    if platform=="Windows":
+    if os_platform=="Windows":
         generator = 'Visual Studio 16 2019'
         cmake = "cmake.exe"
         architecture = 'x64'
@@ -99,9 +111,9 @@ def configure_slideio(configuration):
             single_configuration("Debug",configuration["build_debug_directory"], slideio_dir)
 
 def build_slideio(configuration):
-    platform = get_platform()
+    os_platform = get_platform()
     print("Start build")
-    if platform=="Windows":
+    if os_platform=="Windows":
         cmake = "cmake.exe"
     else:
         cmake = "cmake"
@@ -127,7 +139,7 @@ if __name__ == "__main__":
     parser.add_argument('-c', '--config', choices=['release','debug', 'all'], default='all', help = config_help)
     parser.add_argument('--clean', action='store_true', help = 'Clean before build. Add this flag if you want to clean build folders before the build.')
     args = parser.parse_args()
-    platform = get_platform()
+    os_platform = get_platform()
     slideio_directory = os.getcwd()
     root_directory = os.path.dirname(slideio_directory)
     build_directory = os.path.join(slideio_directory, "build")
@@ -147,7 +159,7 @@ if __name__ == "__main__":
         "build_release_directory": build_directory,
         "build_debug_directory": build_directory
     }
-    if platform == "Linux":
+    if os_platform == "Linux":
         configuration["build_release_directory"] = os.path.join(build_directory,"release")
         configuration["build_debug_directory"] = os.path.join(build_directory,"debug")
 
