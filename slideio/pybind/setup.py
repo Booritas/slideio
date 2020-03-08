@@ -10,6 +10,8 @@ from distutils.version import LooseVersion
 
 
 version = '0.0.1'
+source_dir= os.path.abspath('../../')
+build_dir= os.path.abspath('../../build_py')
 
 # Get the long description from the README file
 here = os.path.abspath(os.path.dirname(__file__))
@@ -21,9 +23,10 @@ with open(os.path.join(here, 'requirements-dev.txt')) as f:
     requirements_dev = f.read().replace('==', '>=').splitlines()
 
 class CMakeExtension(Extension):
-    def __init__(self, name, sourcedir=''):
+    def __init__(self, name, source_dir='', build_dir=None):
         Extension.__init__(self, name, sources=[])
-        self.sourcedir = os.path.abspath(sourcedir)
+        self.source_dir = os.path.abspath(source_dir)
+        self.build_dir = os.path.abspath(build_dir)
 
 class CMakeBuild(build_ext):
     def run(self):
@@ -46,6 +49,8 @@ class CMakeBuild(build_ext):
             self.build_extension(ext)
 
     def build_extension(self, ext):
+        if not (ext.build_dir is None):
+            self.build_temp = ext.build_dir
         extdir = os.path.abspath(os.path.dirname(
             self.get_ext_fullpath(ext.name)))
         cmake_args = [
@@ -77,7 +82,7 @@ class CMakeBuild(build_ext):
         if not os.path.exists(self.build_temp):
             os.makedirs(self.build_temp)
         subprocess.check_call(
-            ['cmake', ext.sourcedir] + cmake_args,
+            ['cmake', ext.source_dir] + cmake_args,
             cwd=self.build_temp, env=env
         )
         subprocess.check_call(
@@ -92,9 +97,10 @@ setup(
     author_email='stanislav.melnikov@gmail.com',
     description='Reading of medical images',
     long_description=long_description,
-    ext_modules=[CMakeExtension('slideio','../../')],
+    ext_modules=[CMakeExtension(name = 'slideio', source_dir=source_dir, build_dir=build_dir)],
     cmdclass=dict(build_ext=CMakeBuild),
     packages=find_packages(),
+    package_data={'slideio': ['slide_io.lib']},
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',
