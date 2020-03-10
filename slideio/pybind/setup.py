@@ -3,15 +3,52 @@ import re
 import sys
 import platform
 import subprocess
+import fnmatch
+import shutil
 
 from setuptools import setup, Extension, find_packages
 from setuptools.command.build_ext import build_ext
 from distutils.version import LooseVersion
-
+from ctypes.util import find_library
 
 version = '0.0.1'
 source_dir= os.path.abspath('../../')
 build_dir= os.path.abspath('../../build_py')
+
+def get_platform():
+    platforms = {
+        'linux' : 'Linux',
+        'linux1' : 'Linux',
+        'linux2' : 'Linux',
+        'darwin' : 'OS X',
+        'win32' : 'Windows'
+    }
+    if sys.platform not in platforms:
+        return sys.platform
+    return platforms[sys.platform]
+
+PLATFORM = get_platform()
+
+REDISTR_LIBS = []
+
+if PLATFORM=='Windows':
+    REDISTR_LIBS = [
+        'concrt140.dll',
+        'msvcp140.dll',
+        'msvcp140_1.dll',
+        'msvcp140_2.dll',
+        'msvcp140_codecvt_ids.dll',
+        'vccorlib140.dll',
+        'vcruntime140.dll',
+        'vcruntime140_1.dll']
+
+
+def find_shared_libs(dir, pattern):
+    matches = []
+    for root, dirnames, filenames in os.walk(dir):
+        for filename in fnmatch.filter(filenames, pattern):
+            matches.append(os.path.join(root, filename))
+    return matches
 
 # Get the long description from the README file
 here = os.path.abspath(os.path.dirname(__file__))
@@ -21,6 +58,7 @@ with open(os.path.join(here, 'README.md'), encoding='utf-8') as f:
 # Get requirements from requirements-dev.txt file
 with open(os.path.join(here, 'requirements-dev.txt')) as f:
     requirements_dev = f.read().replace('==', '>=').splitlines()
+
 
 class CMakeExtension(Extension):
     def __init__(self, name, source_dir='', build_dir=None):
@@ -54,7 +92,7 @@ class CMakeBuild(build_ext):
         extdir = os.path.abspath(os.path.dirname(
             self.get_ext_fullpath(ext.name)))
         cmake_args = [
-            '-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=' + extdir,
+          '-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=' + extdir,
             '-DPYTHON_EXECUTABLE=' + sys.executable
         ]
 
@@ -89,6 +127,18 @@ class CMakeBuild(build_ext):
             ['cmake', '--build', '.'] + build_args,
             cwd=self.build_temp
         )
+        pattern = "*.so"
+        if PLATFORM == "Windows":
+            pattern = "*.dll"
+        extra_files = find_shared_libs(self.build_temp, pattern)
+        for fl in extra_files:
+            file_name = os.path.basename(fl)
+            destination = os.path.join(extdir, file_name)
+            shutil.copyfile(fl, destination)
+
+        for lib in REDISTR_LIBS:
+            shutil.copy(find_library(lib), extdir)
+        
 
 setup(
     name='slideio',
@@ -100,7 +150,7 @@ setup(
     ext_modules=[CMakeExtension(name = 'slideio', source_dir=source_dir, build_dir=build_dir)],
     cmdclass=dict(build_ext=CMakeBuild),
     packages=find_packages(),
-    package_data={'slideio': ['slide_io.lib']},
+    package_data={},
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',
@@ -113,7 +163,7 @@ setup(
     },
     data_files=[(
         '.', [
-            'requirements-dev.txt',
+            'requirements-dev.txt'
         ]
     )],
     zip_safe=False,
