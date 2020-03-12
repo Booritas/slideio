@@ -19,7 +19,7 @@ SVSSlide::~SVSSlide()
 {
 }
 
-int SVSSlide::getNumbScenes() const
+int SVSSlide::getNumScenes() const
 {
     return (int)m_Scenes.size();
 }
@@ -31,7 +31,7 @@ std::string SVSSlide::getFilePath() const
 
 std::shared_ptr<CVScene> SVSSlide::getScene(int index) const
 {
-    if(index>=getNumbScenes())
+    if(index>=getNumScenes())
         throw std::runtime_error("SVS driver: invalide m_scene index");
     return m_Scenes[index];
 }

@@ -14,9 +14,9 @@ Slide::~Slide()
 {
 }
 
-int Slide::getNumbScenes() const
+int Slide::getNumScenes() const
 {
-    return m_slide->getNumbScenes();
+    return m_slide->getNumScenes();
 }
 
 std::string Slide::getFilePath() const

@@ -1,9 +1,9 @@
 ﻿#include "pyslide.hpp"
 #include "pyscene.hpp"
 
-int PySlide::getNumbScenes() const
+int PySlide::getNumScenes() const
 {
-    return m_Slide->getNumbScenes();
+    return m_Slide->getNumScenes();
 }
 
 std::string PySlide::getFilePath() const

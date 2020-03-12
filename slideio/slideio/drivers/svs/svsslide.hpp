@@ -22,7 +22,7 @@ namespace slideio
         SVSSlide();
     public:
         virtual ~SVSSlide();
-        int getNumbScenes() const override;
+        int getNumScenes() const override;
         std::string getFilePath() const override;
         std::shared_ptr<slideio::CVScene> getScene(int index) const override;
         static std::shared_ptr<SVSSlide> openFile(const std::string& path);

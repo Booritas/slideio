@@ -14,7 +14,7 @@ namespace slideio
     {
     public:
         virtual ~CVSlide(){}
-        virtual int getNumbScenes() const = 0;
+        virtual int getNumScenes() const = 0;
         virtual std::string getFilePath() const = 0;
         virtual std::shared_ptr<CVScene> getScene(int index) const = 0;
     };

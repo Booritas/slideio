@@ -14,7 +14,7 @@ public:
     PySlide(std::shared_ptr<slideio::Slide> slide) : m_Slide(std::move(slide))
     {
     }
-    int getNumbScenes() const;
+    int getNumScenes() const;
     std::string getFilePath() const;
     std::shared_ptr<PyScene> getScene(int index);
 private:

@@ -10,7 +10,7 @@ using namespace slideio;
 
 inline  cv::Rect tupleToRect(const std::tuple<int, int, int, int>& tpl)
 {
-    cv::Rect rect(std::get<0>(tpl), std::get<1>(tpl), std::get<2>(tpl), std::get<1>(tpl));
+    cv::Rect rect(std::get<0>(tpl), std::get<1>(tpl), std::get<2>(tpl), std::get<3>(tpl));
     return rect;
 }
 
