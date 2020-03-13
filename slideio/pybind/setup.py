@@ -130,10 +130,15 @@ class CMakeBuild(build_ext):
         pattern = "*.so"
         if PLATFORM == "Windows":
             pattern = "*.dll"
+        print("----Look for shared libraries int directory", self.build_temp)
         extra_files = find_shared_libs(self.build_temp, pattern)
+        print("----Found libraries:", extra_files)
+        if not os.path.exists(extdir):
+            os.makedirs(extdir)
         for fl in extra_files:
             file_name = os.path.basename(fl)
             destination = os.path.join(extdir, file_name)
+            print("Copy",fl,"->",destination)
             shutil.copyfile(fl, destination)
 
         for lib in REDISTR_LIBS:
