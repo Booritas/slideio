@@ -17,4 +17,8 @@ conanbuildinfo_release.cmake
 conaninfo.txt
 graph_info.json
 build/
+build_py/
 __pycache__/
+.vscode
+slideio/pybind/dist/
+*.egg-info/

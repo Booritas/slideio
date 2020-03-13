@@ -88,8 +88,8 @@ pybind11::array PyScene::readBlock(std::tuple<int, int, int, int> rect,
 {
     const int imageChannels = getNumChannels();
     const std::tuple<int,int,int,int> imageRect = m_scene->getRect();
-    const int imageWidth = std::get<2>(imageRect) - std::get<0>(imageRect);
-    const int imageHeight = std::get<3>(imageRect) - std::get<1>(imageRect);
+    const int imageWidth = std::get<2>(imageRect);
+    const int imageHeight = std::get<3>(imageRect);
 
     const int startSlice = std::max(0,std::get<0>(sliceRange));
     const int stopSlice = std::get<1>(sliceRange);
@@ -110,7 +110,6 @@ pybind11::array PyScene::readBlock(std::tuple<int, int, int, int> rect,
     int srcWidth = std::get<2>(rect);
     if(srcWidth==0)
         srcWidth = imageWidth;
-    const int blockChannels = static_cast<int>(channelIndices.size());
 
     // output block parameters
     int trgWidth = std::get<0>(size);
@@ -124,11 +123,24 @@ pybind11::array PyScene::readBlock(std::tuple<int, int, int, int> rect,
     std::tuple<int, int, int, int> blockRect(std::get<0>(rect), std::get<1>(rect), srcWidth, srcHeight);
 
     const int memSize = m_scene->getBlockSize(blockSize, refChannel, numChannels, numSlices, numFrames);
-    py::array numpy_array(dtype, {trgWidth, trgHeight, blockChannels*numSlices*numFrames});
+
+    py::array::ShapeContainer shape;
+    const int planes = numChannels*numSlices*numFrames;
+
+    if(planes==1)
+    {
+        shape = {trgHeight, trgWidth};
+    }
+    else
+    {
+        shape = {trgHeight, trgWidth, planes};
+    }
+
+    py::array numpy_array(dtype, shape);
 
     if(startSlice==0 && stopSlice==1 && startFrame==0 && stopFrame==1)
     {
-        m_scene->readResampledBlockChannels(rect, blockSize, channelIndices, numpy_array.mutable_data(), memSize);
+        m_scene->readResampledBlockChannels(blockRect, blockSize, channelIndices, numpy_array.mutable_data(), memSize);
     }
     else
     {

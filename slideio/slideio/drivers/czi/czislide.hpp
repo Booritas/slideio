@@ -26,7 +26,7 @@ namespace slideio
     {
     public:
         CZISlide(const std::string& filePath);
-        int getNumbScenes() const override;
+        int getNumScenes() const override;
         std::string getFilePath() const override;
         std::shared_ptr<CVScene> getScene(int index) const override;
         double getMagnification() const { return m_magnification; }

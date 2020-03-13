@@ -54,7 +54,7 @@ CZISlide::CZISlide(const std::string& filePath) : m_filePath(filePath), m_resZ(0
     init();
 }
 
-int CZISlide::getNumbScenes() const
+int CZISlide::getNumScenes() const
 {
 	return static_cast<int>(m_scenes.size());
 }
@@ -66,7 +66,7 @@ std::string CZISlide::getFilePath() const
 
 std::shared_ptr<CVScene> CZISlide::getScene(int index) const
 {
-    if(index<0 || index>=getNumbScenes())
+    if(index<0 || index>=getNumScenes())
     {
         throw std::runtime_error(
             (boost::format("CZIImageDriver: Invalid scene index %1%") % index).str());

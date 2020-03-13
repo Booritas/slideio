@@ -22,7 +22,7 @@ namespace slideio
     public:
         Slide(std::shared_ptr<CVSlide> slide);
         ~Slide();
-        int getNumbScenes() const;
+        int getNumScenes() const;
         std::string getFilePath() const;
         std::shared_ptr<Scene> getScene(int index) const;
     private:
