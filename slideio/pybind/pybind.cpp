@@ -9,11 +9,13 @@
 namespace py = pybind11;
 
 PYBIND11_MODULE(slideio, m) {
-    m.doc() = "Reading of medical images";
+    m.doc() = R"delimiter(
+        Module for reading of medical images.
+    )delimiter";
     m.def("open_slide",&pyOpenSlide,
         py::arg("file_path"),
         py::arg("driver_id"),
-        "Opens an image slide. Returns slide object.");
+        "Opens an image slide. Returns Slide object.");
     m.def("get_driver_ids", &pyGetDriverIDs,
         "Returns list of driver ids");
     py::class_<PySlide, std::shared_ptr<PySlide>>(m, "Slide")
@@ -39,5 +41,18 @@ PYBIND11_MODULE(slideio, m) {
             py::arg("channel_indices") = std::vector<int>(),
             py::arg("slices")=std::tuple<int,int>(0,1),
             py::arg("frames")=std::tuple<int,int>(0,1),
-            "Reads rectangular block of the scene with rescaling (optional)");
+            R"del(
+            Reads rectangular block of the scene with optional rescaling.
+
+            Args:
+                rect: block rectangle, defined as a tuple (x, y, widht, height), where x,y - pixel coordinates of the left top corner of the block, width, height - block width and height
+                size: size of the block after rescaling (0,0) - no scaling.
+                channel_indices: array of channel indices to be retrieved. [] - all channels.
+                slices: range of z slices (first, last+1) to be retrieved. (0,3) for 0,1,2 slices. (0,0) for the first slice only.
+                frames: range of time frames (first, last+1) to be retrieved.
+
+            Returns:
+                numpy array with pixel values
+            )del"
+            );
 }
