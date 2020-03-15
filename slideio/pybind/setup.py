@@ -11,7 +11,7 @@ from setuptools.command.build_ext import build_ext
 from distutils.version import LooseVersion
 from ctypes.util import find_library
 
-version = '0.0.1'
+version = '0.0.2'
 source_dir= os.path.abspath('../../')
 build_dir= os.path.abspath('../../build_py')
 
@@ -155,12 +155,17 @@ setup(
     ext_modules=[CMakeExtension(name = 'slideio', source_dir=source_dir, build_dir=build_dir)],
     cmdclass=dict(build_ext=CMakeBuild),
     packages=find_packages(),
+    project_urls={'Documentation':'http://slideio.com'},
+    keywords = 'images, pathology, tissue, medical, czi, svs',
     package_data={},
     classifiers=[
         'Development Status :: 3 - Alpha',
-        'Intended Audience :: Developers',
-        'License :: OSI Approved :: MIT License',
+        'Intended Audience :: Science/Research',
+        'License :: OSI Approved :: BSD License',
         'Topic :: Scientific/Engineering',
+        'Topic :: Scientific/Engineering :: Bio-Informatics',
+        'Topic :: Scientific/Engineering :: Image Recognition',
+        'Topic :: Scientific/Engineering :: Medical Science Apps.',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
