@@ -49,7 +49,7 @@ static const XMLElement* getXmlElementByPath(const XMLNode* parent, const std::v
 
 using namespace slideio;
 
-CZISlide::CZISlide(const std::string& filePath) : m_filePath(filePath), m_resZ(0), m_resT(0)
+CZISlide::CZISlide(const std::string& filePath) : m_filePath(filePath), m_resZ(0), m_resT(0), m_magnification(0)
 {
     init();
 }
@@ -100,7 +100,8 @@ void CZISlide::parseMagnification(XMLNode* root)
         "Objectives", "Objective", "NominalMagnification"
     };
     const XMLElement* xmlMagnification = getXmlElementByPath(root, magnificationPath);
-    m_magnification = xmlMagnification->FloatText(20.);
+    if(xmlMagnification)
+        m_magnification = xmlMagnification->FloatText(20.);
 }
 
 void CZISlide::parseMetadataXmL(const char* xmlString, size_t dataSize)
