@@ -1,4 +1,4 @@
-$pythons = @("3.5","3.6","3.7","3.8")
+$pythons = @("3.8","3.7","3.6","3.5")
 for($p=0; $p -lt $pythons.Length; $p++)
 {
    $pversion = "python/" +  $pythons[$p] + "@slideio/stable"

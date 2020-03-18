@@ -24,7 +24,7 @@ public:
     }
 };
 
-CZIScene::CZIScene() : m_slide(nullptr), m_numZSlices(1), m_numTFrames(1)
+CZIScene::CZIScene() : m_slide(nullptr), m_numZSlices(1), m_numTFrames(1), m_compression(Compression::Unknown)
 {
 }
 
@@ -265,6 +265,7 @@ void CZIScene::init(uint64_t sceneId, SceneParams& sceneParams, const std::strin
     computeSceneRect();
     compute4DParameters();
     generateSceneName();
+    computeSceneMetadata();
 }
 
 int CZIScene::getTileCount(void* userData)
@@ -365,6 +366,19 @@ std::vector<uint8_t> CZIScene::decodeData(const CZISubBlock& block, const std::v
     {
         cv::Mat raster;
         ImageTools::decodeJxrBlock(encodedData.data(), encodedData.size(), raster);
+        const cv::Rect& blockRect = block.rect();
+        if(blockRect.width!=raster.cols || blockRect.height!=raster.rows)
+        {
+            throw std::runtime_error(
+                (boost::format("Unexpected shape of czi sub-block. Expected: (%1%,%2%). Received:(%3%,%4%). Zoom: %5%.")
+                 %blockRect.width
+                 %blockRect.height 
+                 %raster.cols 
+                 %raster.rows
+                 %block.zoom()
+                ).str()
+            );
+        }
         size_t dataSize = raster.total()*raster.elemSize();
         std::vector<uint8_t> decodedData(dataSize);
         std::memcpy(decodedData.data(), raster.data, dataSize);
@@ -414,6 +428,35 @@ void CZIScene::unpackChannels(const CZISubBlock& block, const std::vector<int>& 
         {
             cv::Mat channelRaster(rasterSize, CV_MAKETYPE(cvPixelType, channelInfo.numComponents), (void*)channelData);
             extractChannel(channelRaster, componentRasters[index], channelComponent);
+        }
+    }
+}
+
+void CZIScene::computeSceneMetadata()
+{
+    if(!m_zoomLevels.empty())
+    {
+        const ZoomLevel& zoomLevel = m_zoomLevels.front();
+        if(!zoomLevel.blocks.empty())
+        {
+            const CZISubBlock& block = zoomLevel.blocks.front();
+            CZISubBlock::Compression compression = block.compression();
+            switch(compression)
+            {
+            case CZISubBlock::Uncompressed:
+                m_compression = Compression::Uncompressed;
+                break;
+            case CZISubBlock::Jpeg:
+                m_compression = Compression::Jpeg;
+                break;
+            case CZISubBlock::LZW:
+                m_compression = Compression::LZW;
+                break;
+            case CZISubBlock::JpegXR:
+                m_compression = Compression::JpegXR;
+                break;
+            default: ;
+            }
         }
     }
 }

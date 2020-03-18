@@ -98,7 +98,7 @@ void slideio::ImageTools::readJxrImage(const std::string& path, cv::OutputArray 
     rect.Height = (I32)(decoder->WMP.wmiI.cROIHeight);
     decoder->GetResolution(decoder.object(), &rX, &rY);
     const int rasterSize = rect.Height*rect.Width*numChannels;
-    const int size = rasterSize + 100;
+    const int size = rasterSize + 1000;
     std::vector<uint8_t> buff(size);
     const auto outFormat = GUID_PKPixelFormat24bppRGB;
     struct WMPStream* encodeStream = nullptr;

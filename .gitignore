@@ -22,3 +22,7 @@ __pycache__/
 .vscode
 slideio/pybind/dist/
 *.egg-info/
+#python binding temporary folders
+slideio/pybind/conan/
+slideio/pybind/wheelhouse/
+slideio/pybind/slideio/

@@ -17,6 +17,7 @@ set(SOURCE_FILES
    	${CMAKE_CURRENT_SOURCE_DIR}/scene.hpp
    	${CMAKE_CURRENT_SOURCE_DIR}/scene.cpp
    	${CMAKE_CURRENT_SOURCE_DIR}/structs.hpp
+   	${CMAKE_CURRENT_SOURCE_DIR}/slideio_enums.hpp
 )
 
 add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES})

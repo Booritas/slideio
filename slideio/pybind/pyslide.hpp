@@ -17,6 +17,7 @@ public:
     int getNumScenes() const;
     std::string getFilePath() const;
     std::shared_ptr<PyScene> getScene(int index);
+    const std::string& getRawMetadata() const;
 private:
     std::shared_ptr<slideio::Slide> m_Slide;
 };

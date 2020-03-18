@@ -10,39 +10,118 @@
 #include <tiffio.h>
 #include <boost/filesystem.hpp>
 
+using namespace slideio;
 
 static slideio::DataType dataTypeFromTIFFDataType(TIFFDataType dt)
 {
     switch(dt)
     {
     case TIFF_NOTYPE:
-        return slideio::DataType::DT_None;
+        return DataType::DT_None;
     case TIFF_LONG8:
     case TIFF_BYTE:
-        return slideio::DataType::DT_Byte;
+        return DataType::DT_Byte;
     case TIFF_ASCII:
-        return slideio::DataType::DT_None;
+        return DataType::DT_None;
     case TIFF_SHORT:
-        return slideio::DataType::DT_UInt16;
+        return DataType::DT_UInt16;
     case TIFF_SLONG8:
     case TIFF_SBYTE:
-        return slideio::DataType::DT_Int8;
+        return DataType::DT_Int8;
     case TIFF_UNDEFINED:
-        return slideio::DataType::DT_Unknown;
+        return DataType::DT_Unknown;
     case TIFF_SSHORT:
-        return slideio::DataType::DT_Int16;
+        return DataType::DT_Int16;
     case TIFF_SRATIONAL:
-        return slideio::DataType::DT_Unknown;
+        return DataType::DT_Unknown;
     case TIFF_FLOAT:
-        return slideio::DataType::DT_Float32;
+        return DataType::DT_Float32;
     case TIFF_DOUBLE:
-        return slideio::DataType::DT_Float64;
+        return DataType::DT_Float64;
     case TIFF_IFD:
     case TIFF_RATIONAL:
     case TIFF_IFD8:
     default: ;
-        return slideio::DataType::DT_Unknown;
+        return DataType::DT_Unknown;
     }
+}
+
+static slideio::Compression compressTiffToSlideio(int tiffCompression)
+{
+    Compression compression = Compression::Unknown;
+    switch(tiffCompression)
+    {
+    case 0x1:
+        compression = Compression::Uncompressed;
+        break;
+    case 0x2:
+        compression = Compression::HuffmanRL;
+        break;
+    case 0x3:
+        compression = Compression::CCITT_T4;
+        break;
+    case 0x4:
+        compression = Compression::CCITT_T6;
+        break;
+    case 0x5:
+        compression = Compression::LempelZivWelch;
+        break;
+    case 0x6:
+        compression = Compression::JpegOld;
+        break;
+    case 0x7:
+        compression = Compression::Jpeg;
+        break;
+    case 0x8:
+        compression = Compression::Zlib;
+        break;
+    case 0x9:
+        compression = Compression::JBIG85;
+        break;
+    case 0xa:
+        compression = Compression::JBIG43;
+        break;
+    case 0x7ffe:
+        compression = Compression::NextRLE;
+        break;
+    case 0x8005:
+        compression = Compression::PackBits;
+        break;
+    case 0x8029:
+        compression = Compression::ThunderScanRLE;
+        break;
+    case 0x807f:
+        compression = Compression::RasterPadding;
+        break;
+    case 0x8080:
+        compression = Compression::RLE_LW;
+        break;
+    case 0x8081:
+        compression = Compression::RLE_HC;
+        break;
+    case 0x8082:
+        compression = Compression::RLE_BL;
+        break;
+    case 0x80b2:
+        compression = Compression::PKZIP;
+        break;
+    case 0x80b3:
+        compression = Compression::KodakDCS;
+        break;
+    case 0x8765:
+        compression = Compression::JBIG;
+        break;
+    case 0x8798:
+        compression = Compression::Jpeg2000;
+        break;
+    case 0x8799:
+        compression = Compression::NikonNEF;
+        break;
+    case 0x879b:
+        compression = Compression::JBIG2;
+        break;
+    }
+    return compression;
 }
 
 TIFF* slideio::TiffTools::openTiffFile(const std::string& path)
@@ -125,6 +204,7 @@ void  slideio::TiffTools::scanTiffDirTags(TIFF* tiff, int dirIndex, int64_t dirO
     dir.tiled = tiled;
     dir.compression = compress;
     dir.rowsPerStrip = rowsPerStripe;
+    dir.slideioCompression = compressTiffToSlideio(compress);
     
     
 }

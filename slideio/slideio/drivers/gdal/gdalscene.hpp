@@ -34,9 +34,15 @@ namespace slideio
         std::string getName() const override;
         cv::Rect getRect() const override;
         void readResampledBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize, const std::vector<int>& channelIndices, cv::OutputArray output) override;
+        Compression getCompression() const override{
+            return m_compression;
+        }
+    private:
+        void init();
     private:
         GDALDatasetH m_hFile;
         std::string m_filePath;
+        Compression m_compression;
     };
 }
 

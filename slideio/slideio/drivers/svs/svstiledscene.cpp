@@ -36,6 +36,15 @@ SVSTiledScene::SVSTiledScene(const std::string& filePath,
         }
     }
     m_magnification = SVSTools::extractMagnifiation(dir.description);
+    if(!m_directories.empty())
+    {
+        const auto& dir = m_directories.front();
+        m_compression = dir.slideioCompression;
+        if(m_compression==Compression::Unknown && dir.compression==33003)
+        {
+            m_compression = Compression::Jpeg2000;
+        }
+    }
 }
 
 cv::Rect SVSTiledScene::getRect() const

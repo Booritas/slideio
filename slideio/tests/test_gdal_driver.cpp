@@ -186,3 +186,22 @@ TEST(GDALDriver, readBlockPngResampling)
     EXPECT_EQ(colorMean[2], 0);
     EXPECT_EQ(colorStddev[2], 0);
 }
+
+TEST(GDALDriver, metadataCompression)
+{
+    slideio::GDALImageDriver driver;
+    typedef std::tuple<std::string, slideio::Compression> Data;
+    const Data imageData[] = {
+        Data("img_1024x600_3x8bit_RGB_color_bars_CMYKWRGB.png", slideio::Compression::Png),
+        Data("Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg", slideio::Compression::Jpeg)
+    };
+    for(const auto& item : imageData)
+    {
+        std::string filePath = TestTools::getTestImagePath("gdal",std::get<0>(item));
+        std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+        const slideio::Compression sceneCompression = std::get<1>(item);
+        std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
+        EXPECT_TRUE(scene!=nullptr);
+        EXPECT_EQ(scene->getCompression(), sceneCompression);
+    }
+}

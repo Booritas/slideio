@@ -38,6 +38,7 @@ SVSSmallScene::SVSSmallScene(const std::string& filePath,
         }
     }
     m_magnification = SVSTools::extractMagnifiation(dir.description);
+    m_compression = m_directory.slideioCompression;
 }
 
 

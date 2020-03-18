@@ -13,10 +13,12 @@ slideio::GDALScene::GDALScene(const std::string& path) : m_hFile(nullptr)
 {
     m_hFile = openFile(path);
     m_filePath = path;
+    init();
 }
 
 slideio::GDALScene::GDALScene(GDALDatasetH ds, const std::string& path) : m_hFile(ds), m_filePath(path)
 {
+    init();
 }
 
 slideio::GDALScene::~GDALScene()
@@ -180,5 +182,36 @@ void slideio::GDALScene::readResampledBlockChannels(const cv::Rect& blockRect, c
     else if(channelRasters.size()==1)
     {
         channelRasters[0].copyTo(output);
+    }
+}
+
+void slideio::GDALScene::init()
+{
+    auto driver = GDALGetDatasetDriver(m_hFile);
+    std::string driverName = GDALGetDriverShortName(driver);
+
+    if(driverName.compare("PNG")==0)
+    {
+        m_compression = Compression::Png;
+    }
+    else if(driverName.compare("JPEG")==0)
+    {
+        m_compression = Compression::Jpeg;
+    }
+    else if(driverName.compare("GIF")==0)
+    {
+        m_compression = Compression::GIF;
+    }
+    else if(driverName.compare("BIGGIF")==0)
+    {
+        m_compression = Compression::BIGGIF;
+    }
+    else if(driverName.compare("BMP")==0)
+    {
+        m_compression = Compression::Uncompressed;
+    }
+    else if(driverName.compare("JPEG2000")==0)
+    {
+        m_compression = Compression::Jpeg2000;
     }
 }

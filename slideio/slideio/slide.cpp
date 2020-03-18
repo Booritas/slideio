@@ -30,3 +30,8 @@ std::shared_ptr<Scene> Slide::getScene(int index) const
     std::shared_ptr<Scene> scene(new Scene(cvScene));
     return scene;
 }
+
+const std::string& Slide::getRawMetadata() const
+{
+    return m_slide->getRawMetadata();
+}

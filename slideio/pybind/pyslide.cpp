@@ -17,3 +17,8 @@ std::shared_ptr<PyScene> PySlide::getScene(int index)
     std::shared_ptr<PyScene> wrapper(new PyScene(std::move(scene)));
     return wrapper;
 }
+
+const std::string& PySlide::getRawMetadata() const
+{
+    return m_Slide->getRawMetadata();
+}

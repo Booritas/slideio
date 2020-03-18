@@ -62,6 +62,11 @@ int Scene::getNumTFrames()
     return m_scene->getNumTFrames();
 }
 
+Compression Scene::getCompression() const
+{
+    return m_scene->getCompression();
+}
+
 slideio::DataType Scene::getChannelDataType(int channel) const
 {
     return m_scene->getChannelDataType(channel);

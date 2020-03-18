@@ -7,9 +7,11 @@
 #include "slideio/slideio_def.hpp"
 #include "slideio/core/cvstructs.hpp"
 #include "slideio/structs.hpp"
+#include "slideio/slideio_enums.hpp"
 #include <opencv2/core.hpp>
 #include <string>
 #include <vector>
+
 
 struct tiff;
 typedef tiff TIFF;
@@ -26,6 +28,7 @@ namespace slideio
         int channels;
         int bitsPerSample;
         uint32_t compression;
+        Compression slideioCompression;
         int dirIndex;
         int64 offset;
         std::string description;

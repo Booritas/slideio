@@ -7,6 +7,8 @@
 #include "slideio/drivers/czi/czislide.hpp"
 #include "testtools.hpp"
 #include <opencv2/imgcodecs.hpp>
+#include <boost/algorithm/string/predicate.hpp>
+#include "slideio/scene.hpp"
 
 TEST(CZIImageDriver, DriverManager_getDriverIDs)
 {
@@ -266,30 +268,120 @@ TEST(CZIImageDriver, sceneIdsFromDims)
         EXPECT_EQ(ids.size(),64);
     }
 }
-//TODO: CLEAR COMMENTED OUT TESTS
-//TEST(CZIImageDriver, readBlock3)
+
+static void testChannelNames(const std::string& imageName, int sceneIndex, const std::vector<std::string>& channelNames)
+{
+    slideio::CZIImageDriver driver;
+    std::string filePath = TestTools::getTestImagePath("czi",imageName);
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide!=nullptr);
+    int numScenes = slide->getNumScenes();
+    ASSERT_GT(numScenes, sceneIndex);
+    auto scene = slide->getScene(sceneIndex);
+    ASSERT_FALSE(scene == nullptr);
+    const size_t numChannels = scene->getNumChannels();
+    ASSERT_EQ(numChannels, channelNames.size());
+    for(int channelIndex=0; channelIndex<numChannels; ++channelIndex)
+    {
+        const std::string channelName = scene->getChannelName(channelIndex);
+        EXPECT_EQ(channelNames[channelIndex], channelName);
+    }    
+}
+
+TEST(CZIImageDriver, channelNames)
+{
+    {
+        std::string image_name("03_14_2019_DSGN0545_A_wb_1353_fov_1_633.czi");
+        std::vector<std::string> channelNames = {"646","655","664", "673", "682", "691"};
+        testChannelNames(image_name, 0, channelNames);
+    }
+    {
+        std::string image_name("pJP31mCherry.czi");
+        std::vector<std::string> channelNames = {"ChS1","Ch2","NDD T1"};
+        testChannelNames(image_name, 0, channelNames);
+    }
+}
+
+TEST(CZIImageDriver, slideRawMetadata)
+{
+    const std::string images[] = {
+        "03_14_2019_DSGN0545_A_wb_1353_fov_1_633.czi",
+        "pJP31mCherry.czi"
+    };
+    slideio::CZIImageDriver driver;
+    for(const auto& imageName: images)
+    {
+        std::string filePath = TestTools::getTestImagePath("czi",imageName);
+        std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+        const std::string& metadata = slide->getRawMetadata();
+        EXPECT_GT(metadata.length(),0);
+        const std::string header("<ImageDocument>");
+        EXPECT_TRUE(boost::algorithm::starts_with(metadata, header));
+    }    
+}
+
+TEST(CZIImageDriver, metadataCompression)
+{
+    const std::string images[] = {
+        "03_14_2019_DSGN0545_A_wb_1353_fov_1_633.czi",
+        "pJP31mCherry.czi", "test2.czi"
+    };
+    typedef std::tuple<int, slideio::Compression> SceneCompression;
+    const SceneCompression compression[] ={
+        SceneCompression(0,slideio::Compression::Uncompressed),
+        SceneCompression(0, slideio::Compression::Uncompressed),
+    };
+    const int itemCount = sizeof(compression)/sizeof(compression[0]);
+
+    slideio::CZIImageDriver driver;
+    for(int item=0; item<itemCount; ++item)
+    {
+        const std::string& imageName = images[item];
+        const SceneCompression& compr = compression[item];
+
+        std::string filePath = TestTools::getTestImagePath("czi",imageName);
+        std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+        const int sceneIndex = std::get<0>(compr);
+        const slideio::Compression sceneCompression = std::get<1>(compr);
+        std::shared_ptr<slideio::CVScene> scene = slide->getScene(sceneIndex);
+        EXPECT_TRUE(scene!=nullptr);
+        EXPECT_EQ(scene->getCompression(), sceneCompression);
+    }    
+}
+
+//TEST(CZIImageDriver, openFile1)
 //{
 //    slideio::CZIImageDriver driver;
-//    std::string filePath = TestTools::getTestImagePath("czi","test3.czi");
+//    std::string filePath = R"del(c:\Images\CZI\BPAE-Cells_63x_oversampled-3chZ(WF).czi)del";
 //    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
 //    ASSERT_TRUE(slide!=nullptr);
-//    int numScenes = slide->getNumScenes();
-//    auto scene = slide->getScene(1);
-//    ASSERT_FALSE(scene == nullptr);
-//    auto sceneRect = scene->getRect();
-//    cv::Mat raster;
-//    std::vector<int> channelIndices;
-//    cv::Size size = sceneRect.size();
-//    scene->readResampledBlockChannels(sceneRect, size, channelIndices, raster);
-//    double dmax, dmin;
-//    cv::minMaxLoc(raster, &dmin, &dmax);
-//    cv::Mat dst;
-//    raster.convertTo(dst,CV_8U,255./dmax, 0);
-//    namedWindow( "Display window", WINDOW_AUTOSIZE );
-//    imshow( "Display window", dst);
-//    waitKey(0);
 //}
-//
+
+//TODO: CLEAR COMMENTED OUT TESTS
+#include <opencv2/imgproc.hpp>
+#include <opencv2/highgui.hpp>
+
+TEST(CZIImageDriver, readBlock3)
+{
+    slideio::CZIImageDriver driver;
+    std::string filePath = TestTools::getTestImagePath("czi","test2.czi");
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide!=nullptr);
+    int numScenes = slide->getNumScenes();
+    auto scene = slide->getScene(2);
+    ASSERT_FALSE(scene == nullptr);
+    auto sceneRect = scene->getRect();
+    sceneRect.x = 0;
+    sceneRect.y = 0;
+    cv::Mat raster;
+    std::vector<int> channelIndices;
+    cv::Size size = {550, 345};
+    scene->readResampledBlockChannels(sceneRect, size, channelIndices, raster);
+    cv::namedWindow( "Display window", cv::WINDOW_AUTOSIZE );
+    cv::imshow( "Display window", raster);
+    cv::waitKey(0);
+}
+
 //TEST(CZIImageDriver, readBlock4)
 //{
 //    slideio::CZIImageDriver driver;

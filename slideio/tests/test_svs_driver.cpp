@@ -1,3 +1,4 @@
+#include <boost/algorithm/string/predicate.hpp>
 #include <gtest/gtest.h>
 #include "slideio/drivers/svs/svsimagedriver.hpp"
 #include "slideio/drivers/svs/svstiledscene.hpp"
@@ -281,33 +282,45 @@ TEST(SVSImageDriver, readBlock_PartScale)
     double minScore(0), maxScore(0);
     cv::minMaxLoc(score, &minScore, &maxScore);
     EXPECT_LT(0.98, minScore);
-    //{
-    //    namedWindow( "svs", WINDOW_AUTOSIZE );
-    //    imshow( "svs", blockRaster );
-    //    namedWindow( "gdal", WINDOW_AUTOSIZE );
-    //    imshow( "gdal", scaledRaster ); 
-    //    cv::Mat difmat;
-    //    difmat = scaledRaster - blockRaster;
-    //    namedWindow( "diff", WINDOW_AUTOSIZE );
-    //    imshow( "diff", difmat ); 
-    //    waitKey(0);
-    //}
 }
-//TEST(SVSImageDriver, composeRect2)
-//{
-//    slideio::SVSImageDriver driver;
-//    std::string path = TestTools::getTestImagePath("svs", "JP2K-33003-1.svs");
-//    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(path);
-//    ASSERT_TRUE(slide != nullptr);
-//    int numbScenes = slide->getNumScenes();
-//    ASSERT_TRUE(numbScenes == 4);
-//    std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
-//    ASSERT_TRUE(scene != nullptr);
-//    const cv::Rect sceneRect = scene->getRect();
-//    cv::Mat blockRaster;
-//    cv::Size blockSize = { sceneRect.width /3, sceneRect.height / 3};
-//    cv::Mat image;
-//    scene->readResampledBlock(sceneRect, blockSize, image);
-//
-//    cv::imwrite(R"(c:\Temp\a.bmp)", image);
-//}
+
+TEST(SVSImageDriver, metadataCompression)
+{
+    typedef std::tuple<std::string, int, slideio::Compression> SceneCompression;
+    const SceneCompression compressionData[] ={
+        SceneCompression("CMU-1-Small-Region.svs",0,slideio::Compression::Jpeg),
+        SceneCompression("JP2K-33003-1.svs", 0, slideio::Compression::Jpeg2000),
+    };
+    slideio::SVSImageDriver driver;
+    for(const auto& item: compressionData)
+    {
+
+        const std::string& imageName = std::get<0>(item);
+        const int sceneIndex = std::get<1>(item);
+        const slideio::Compression sceneCompression = std::get<2>(item);
+
+        std::string filePath = TestTools::getTestImagePath("svs",imageName);
+        std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+        std::shared_ptr<slideio::CVScene> scene = slide->getScene(sceneIndex);
+        EXPECT_TRUE(scene!=nullptr);
+        EXPECT_EQ(scene->getCompression(), sceneCompression);
+    }    
+}
+
+TEST(SVSImageDriver, slideRawMetadata)
+{
+    const std::string images[] = {
+        "CMU-1-Small-Region.svs",
+        "JP2K-33003-1.svs"
+    };
+    slideio::SVSImageDriver driver;
+    for(const auto& imageName: images)
+    {
+        std::string filePath = TestTools::getTestImagePath("svs",imageName);
+        std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+        const std::string& metadata = slide->getRawMetadata();
+        EXPECT_GT(metadata.length(),0);
+        const std::string header("Aperio Image Library");
+        EXPECT_TRUE(boost::algorithm::starts_with(metadata, header));
+    }    
+}
