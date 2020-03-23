@@ -7,6 +7,7 @@
 #include "slideio/slideio_def.hpp"
 #include "slideio/core/cvstructs.hpp"
 #include "slideio/structs.hpp"
+#include "slideio/slideio_enums.hpp"
 #include "opencv2/core.hpp"
 #include <vector>
 #include <string>
@@ -29,6 +30,7 @@ namespace slideio
         virtual double getZSliceResolution() const {return 0;}
         virtual double getTFrameResolution() const {return 0;}
         virtual double getMagnification() const = 0;
+        virtual Compression getCompression() const = 0;
         virtual void readBlock(const cv::Rect& blockRect, cv::OutputArray output);
         virtual void readBlockChannels(const cv::Rect& blockRect, const std::vector<int>& channelIndices, cv::OutputArray output);
         virtual void readResampledBlock(const cv::Rect& blockRect, const cv::Size& blockSize, cv::OutputArray output);

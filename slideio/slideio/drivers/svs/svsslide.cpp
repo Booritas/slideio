@@ -106,6 +106,11 @@ std::shared_ptr<SVSSlide> SVSSlide::openFile(const std::string& filePath)
     slide.reset(new SVSSlide);
     slide->m_Scenes.assign(scenes.begin(), scenes.end());
     slide->m_filePath = filePath;
+    if(!directories.empty())
+    {
+        const auto& dir = directories.front();
+        slide->m_rawMetadata = dir.description;
+    }
     
     return slide;
 }

@@ -19,7 +19,8 @@ namespace slideio
     public:
         SVSScene(const std::string& filePath, const std::string& name) :
             m_filePath(filePath),
-            m_name(name) {
+            m_name(name),
+            m_compression(Compression::Unknown){
         }
         std::string getFilePath() const override {
             return m_filePath;
@@ -27,9 +28,13 @@ namespace slideio
         std::string getName() const override {
             return m_name;
         }
+        Compression getCompression() const override{
+            return m_compression;
+        }
     protected:
         std::string m_filePath;
         std::string m_name;
+        Compression m_compression;
     };
 }
 

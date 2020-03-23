@@ -89,6 +89,9 @@ namespace slideio
         bool getTileRect(int tileIndex, cv::Rect& tileRect, void* userData) override;
         bool readTile(int tileIndex, const std::vector<int>& componentIndices, cv::OutputArray tileRaster,
                         void* userData) override;
+        Compression getCompression() const override{
+            return m_compression;
+        }
     private:
         void setupComponents(const std::map<int, int>& channelPixelType);
         void generateSceneName();
@@ -102,6 +105,7 @@ namespace slideio
         bool blockHasData(const CZISubBlock& block, const std::vector<int>& componentIndices, const TilerData* tilerData);
         static std::vector<uint8_t> decodeData(const CZISubBlock& block, const std::vector<unsigned char>& encodedData);
         void unpackChannels(const CZISubBlock& block, const std::vector<int>& orgComponentIndices, const std::vector<unsigned char>& blockData, const TilerData* tilerData, std::vector<cv::Mat>& componentRasters);
+        void computeSceneMetadata();
     public:
         // static members
         static uint64_t sceneIdFromDims(int s, int i, int v, int h, int r, int b);
@@ -127,6 +131,7 @@ namespace slideio
         SceneParams m_sceneParams{};
         int m_numZSlices;
         int m_numTFrames;
+        Compression m_compression;
     };
 }
 

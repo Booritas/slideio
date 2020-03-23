@@ -4,10 +4,12 @@
 #pragma once
 
 #include "slideio/slideio_def.hpp"
+#include "slideio/slideio_enums.hpp"
 #include "structs.hpp"
 #include <string>
 #include <vector>
 #include <memory>
+
 
 #if defined(_MSC_VER)
 #pragma warning( push )
@@ -28,6 +30,7 @@ namespace slideio
         int getNumChannels() const;
         int getNumZSlices();
         int getNumTFrames();
+        Compression getCompression() const;
         slideio::DataType getChannelDataType(int channel) const;
         std::string getChannelName(int channel) const;
         std::tuple<double,double> getResolution() const;

@@ -3,8 +3,11 @@
 #include <opencv2/imgproc.hpp>
 #include "slideio/imagetools/tifftools.hpp"
 #include "slideio/imagetools/imagetools.hpp"
+#include "slideio/drivers/gdal/gdalimagedriver.hpp"
 #include "testtools.hpp"
 #include <fstream>
+
+#include "slideio/imagetools/tempfile.hpp"
 
 TEST(ImageTools, readJp2KFile)
 {
@@ -60,6 +63,30 @@ TEST(ImageTools, readGDALImage)
     cv::minMaxLoc(channelRaster[2], &minVal, &maxVal);
     EXPECT_EQ(minVal,0);
     EXPECT_EQ(maxVal,0);
+}
+
+TEST(ImageTools, writeRGBImage)
+{
+    std::string pathBmp = TestTools::getTestImagePath("jxr","seagull.bmp");
+    slideio::TempFile pathPng("png");
+    cv::Mat sourceRaster;
+    slideio::ImageTools::readGDALImage(pathBmp, sourceRaster);
+    slideio::ImageTools::writeRGBImage(pathPng.getPath().string(), slideio::Compression::Png, sourceRaster);
+    slideio::GDALImageDriver drv;
+    auto slide = drv.openFile(pathPng.getPath().string());
+    auto scene = slide->getScene(0);
+    cv::Mat destRaster;
+    auto rect = scene->getRect();
+    auto compression = scene->getCompression();
+    EXPECT_EQ(rect.width, sourceRaster.cols);
+    EXPECT_EQ(rect.height, sourceRaster.rows);
+    EXPECT_EQ(compression, slideio::Compression::Png);
+    scene->readBlock(rect, destRaster);
+    cv::Mat diffRaster = sourceRaster - destRaster;
+    double minVal(0), maxVal(0);
+    cv::minMaxLoc(diffRaster, &minVal, &maxVal);
+    EXPECT_EQ(minVal, 0);
+    EXPECT_EQ(maxVal, 0);
 }
 
 TEST(ImageTools, readJxrImage)

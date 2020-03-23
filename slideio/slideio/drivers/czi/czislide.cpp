@@ -4,7 +4,7 @@
 #include "slideio/drivers/czi/czislide.hpp"
 #include "slideio/drivers/czi/cziscene.hpp"
 #include "slideio/drivers/czi/czistructs.hpp"
-
+#include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/format.hpp>
 #include <tinyxml2.h>
@@ -49,7 +49,7 @@ static const XMLElement* getXmlElementByPath(const XMLNode* parent, const std::v
 
 using namespace slideio;
 
-CZISlide::CZISlide(const std::string& filePath) : m_filePath(filePath), m_resZ(0), m_resT(0)
+CZISlide::CZISlide(const std::string& filePath) : m_filePath(filePath), m_resZ(0), m_resT(0), m_magnification(0)
 {
     init();
 }
@@ -75,7 +75,6 @@ std::shared_ptr<CVScene> CZISlide::getScene(int index) const
 	return m_scenes[index];
 }
 
-
 void CZISlide::readBlock(uint64_t pos, uint64_t size, std::vector<unsigned char>& data)
 {
     data.resize(size);
@@ -100,7 +99,8 @@ void CZISlide::parseMagnification(XMLNode* root)
         "Objectives", "Objective", "NominalMagnification"
     };
     const XMLElement* xmlMagnification = getXmlElementByPath(root, magnificationPath);
-    m_magnification = xmlMagnification->FloatText(20.);
+    if(xmlMagnification)
+        m_magnification = xmlMagnification->FloatText(20.);
 }
 
 void CZISlide::parseMetadataXmL(const char* xmlString, size_t dataSize)
@@ -162,6 +162,7 @@ void CZISlide::parseChannels(XMLNode* root)
         "ImageDocument","Metadata",
         "DisplaySetting", "Channels"
     };
+    int currentIndex(0);
     const XMLElement* xmlDisplayChannels = getXmlElementByPath(root, displayInfoPath);
     for (auto xmlDisplayChannel = xmlDisplayChannels->FirstChildElement("Channel");
         xmlDisplayChannel != nullptr; xmlDisplayChannel = xmlDisplayChannel->NextSiblingElement())
@@ -182,8 +183,16 @@ void CZISlide::parseChannels(XMLNode* root)
                         const int channelIndex = idIt->second;
                         m_channels[channelIndex].name = channelName;
                     }
+                    else
+                    {
+                        // id is not in the id map. Most likely
+                        // matadtata is not created according to
+                        // the specs. 
+                        m_channels[currentIndex].name = channelName;
+                    }
                 }
             }
+            currentIndex++;
         }
     }
 }
@@ -207,6 +216,8 @@ void CZISlide::readMetadata()
     std::vector<char> xmlString(xmlSize);
     // read metadata xml
     m_fileStream.read(xmlString.data(), xmlSize);
+    m_rawMetadata.assign(xmlString.data(), xmlSize);
+    boost::replace_all(m_rawMetadata,"\r\n","\n");
     parseMetadataXmL(xmlString.data(), xmlSize);
 }
 

@@ -8,6 +8,11 @@
 #include "slideio/core/cvscene.hpp"
 #include <string>
 
+#if defined(_MSC_VER)
+#pragma warning( push )
+#pragma warning(disable: 4251)
+#endif
+
 namespace slideio
 {
     class SLIDEIO_EXPORTS CVSlide
@@ -16,7 +21,10 @@ namespace slideio
         virtual ~CVSlide(){}
         virtual int getNumScenes() const = 0;
         virtual std::string getFilePath() const = 0;
+        virtual const std::string& getRawMetadata() const {return m_rawMetadata;}
         virtual std::shared_ptr<CVScene> getScene(int index) const = 0;
+    protected:
+        std::string m_rawMetadata;
     };
 }
 

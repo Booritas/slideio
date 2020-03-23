@@ -1,5 +1,6 @@
 ﻿#include "pyscene.hpp"
 #include <pybind11/numpy.h>
+#include <boost/format.hpp>
 
 namespace py = pybind11;
 
@@ -58,6 +59,11 @@ double PyScene::getMagnification() const
     return m_scene->getMagnification();
 }
 
+slideio::Compression PyScene::getCompression() const
+{
+    return m_scene->getCompression();
+}
+
 py::dtype PyScene::getChannelDataType(int channel) const
 {
     auto dt = m_scene->getChannelDataType(channel);
@@ -103,24 +109,10 @@ pybind11::array PyScene::readBlock(std::tuple<int, int, int, int> rect,
 
     const py::dtype dtype = getChannelDataType(refChannel);
 
+    PyRect blockRect = adjustSourceRect(rect);
+    PySize blockSize = adjustTargetSize(blockRect, size);
+
     // source block parameters
-    int srcHeight = std::get<3>(rect);
-    if(srcHeight<=0)
-        srcHeight = imageHeight;
-    int srcWidth = std::get<2>(rect);
-    if(srcWidth==0)
-        srcWidth = imageWidth;
-
-    // output block parameters
-    int trgWidth = std::get<0>(size);
-    if(trgWidth==0)
-        trgWidth = srcWidth;
-    int trgHeight = std::get<1>(size);
-    if(trgHeight==0)
-        trgHeight = srcHeight;
-
-    std::tuple<int,int> blockSize(trgWidth, trgHeight);
-    std::tuple<int, int, int, int> blockRect(std::get<0>(rect), std::get<1>(rect), srcWidth, srcHeight);
 
     const int memSize = m_scene->getBlockSize(blockSize, refChannel, numChannels, numSlices, numFrames);
 
@@ -129,23 +121,80 @@ pybind11::array PyScene::readBlock(std::tuple<int, int, int, int> rect,
 
     if(planes==1)
     {
-        shape = {trgHeight, trgWidth};
+        shape = {blockSize.height(), blockSize.width()};
     }
     else
     {
-        shape = {trgHeight, trgWidth, planes};
+        shape = {blockSize.height(), blockSize.width(), planes};
     }
 
     py::array numpy_array(dtype, shape);
 
-    if(startSlice==0 && stopSlice==1 && startFrame==0 && stopFrame==1)
+    if(startSlice==0 && stopSlice<=1 && startFrame==0 && stopFrame<=1)
     {
         m_scene->readResampledBlockChannels(blockRect, blockSize, channelIndices, numpy_array.mutable_data(), memSize);
     }
     else
     {
+        if(stopSlice<=startSlice)
+        {
+            throw std::runtime_error(
+                (boost::format("Invalid slice range (%1%,%2%)") %startSlice %stopSlice).str()
+            );
+        }
+        if(stopFrame<=startFrame)
+        {
+            throw std::runtime_error(
+                (boost::format("Invalid time frame range (%1%,%2%)") %startFrame %stopFrame).str()
+            );
+        }
         m_scene->readResampled4DBlockChannels(blockRect, blockSize, channelIndices, sliceRange, tframeRange, numpy_array.mutable_data(), memSize);
     }
 
     return numpy_array;
 }
+
+PyRect PyScene::adjustSourceRect(const PyRect& rect) const
+{
+    PyRect srcRect(rect);
+    const PyRect imageRect = m_scene->getRect();
+    if(srcRect.width()==0)
+    {
+        srcRect.width() = imageRect.width() - srcRect.x();
+    }
+    if(srcRect.height()==0)
+    {
+        srcRect.height() = imageRect.height() - srcRect.y();
+    }
+    return srcRect;
+}
+
+PySize PyScene::adjustTargetSize(const PyRect& rect, const PySize& size) const
+{
+    PySize trgSize(size);
+    if(trgSize.width()<=0 && trgSize.height()<=0)
+    {
+        // both width and height are invalid
+        // set them to the size of the source 
+        trgSize.width() = rect.width();
+        trgSize.height() = rect.height();
+    }
+    else if(trgSize.width()<=0)
+    {
+        // only target height is set.
+        // compute target width from the height
+        double coef = double(trgSize.height())/double(rect.height());
+        double width = coef*double(rect.width());
+        trgSize.width() = static_cast<int>(std::lround(width));
+    }
+    else if(trgSize.height()<=0)
+    {
+        // only target width is set.
+        // compute target width from the height
+        double coef = double(trgSize.width())/double(rect.width());
+        double height = coef*double(rect.height());
+        trgSize.height() = static_cast<int>(std::lround(height));
+    }
+    return trgSize;
+}
+

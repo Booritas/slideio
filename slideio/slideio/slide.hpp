@@ -25,6 +25,7 @@ namespace slideio
         int getNumScenes() const;
         std::string getFilePath() const;
         std::shared_ptr<Scene> getScene(int index) const;
+        const std::string& getRawMetadata() const;
     private:
         std::shared_ptr<CVSlide> m_slide;
     };
