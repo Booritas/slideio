@@ -357,30 +357,30 @@ TEST(CZIImageDriver, metadataCompression)
 //    ASSERT_TRUE(slide!=nullptr);
 //}
 
-//TODO: CLEAR COMMENTED OUT TESTS
-#include <opencv2/imgproc.hpp>
-#include <opencv2/highgui.hpp>
-
-TEST(CZIImageDriver, readBlock3)
-{
-    slideio::CZIImageDriver driver;
-    std::string filePath = TestTools::getTestImagePath("czi","test2.czi");
-    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
-    ASSERT_TRUE(slide!=nullptr);
-    int numScenes = slide->getNumScenes();
-    auto scene = slide->getScene(2);
-    ASSERT_FALSE(scene == nullptr);
-    auto sceneRect = scene->getRect();
-    sceneRect.x = 0;
-    sceneRect.y = 0;
-    cv::Mat raster;
-    std::vector<int> channelIndices;
-    cv::Size size = {550, 345};
-    scene->readResampledBlockChannels(sceneRect, size, channelIndices, raster);
-    cv::namedWindow( "Display window", cv::WINDOW_AUTOSIZE );
-    cv::imshow( "Display window", raster);
-    cv::waitKey(0);
-}
+////TODO: CLEAR COMMENTED OUT TESTS
+//#include <opencv2/imgproc.hpp>
+//#include <opencv2/highgui.hpp>
+//
+//TEST(CZIImageDriver, readBlock3)
+//{
+//    slideio::CZIImageDriver driver;
+//    std::string filePath = TestTools::getTestImagePath("czi","test2.czi");
+//    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+//    ASSERT_TRUE(slide!=nullptr);
+//    int numScenes = slide->getNumScenes();
+//    auto scene = slide->getScene(2);
+//    ASSERT_FALSE(scene == nullptr);
+//    auto sceneRect = scene->getRect();
+//    sceneRect.x = 0;
+//    sceneRect.y = 0;
+//    cv::Mat raster;
+//    std::vector<int> channelIndices;
+//    cv::Size size = {550, 345};
+//    scene->readResampledBlockChannels(sceneRect, size, channelIndices, raster);
+//    cv::namedWindow( "Display window", cv::WINDOW_AUTOSIZE );
+//    cv::imshow( "Display window", raster);
+//    cv::waitKey(0);
+//}
 
 //TEST(CZIImageDriver, readBlock4)
 //{

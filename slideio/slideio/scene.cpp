@@ -189,6 +189,7 @@ void Scene::readResampled4DBlockChannels(const std::tuple<int, int, int, int>& r
     const int numSlices = sliceRange.size();
     const int numFrames = frameRange.size();
     const int refChannel = (channelIndices.empty()?0:channelIndices[0]);
+    const int numPlanes =  numChannels*numSlices*numFrames;
     const int blockMemSize = getBlockSize(size, refChannel, numChannels, numSlices, numFrames);
     const auto cvType = m_scene->getChannelDataType(refChannel);
 
@@ -196,7 +197,7 @@ void Scene::readResampled4DBlockChannels(const std::tuple<int, int, int, int>& r
     {
         throw std::runtime_error("Supplied memory buffer is too small");
     }
-    cv::Mat raster(blockSize.height, blockSize.width, CV_MAKETYPE(static_cast<int>(cvType), numChannels), buffer);
+    cv::Mat raster(blockSize.height, blockSize.width, CV_MAKETYPE(static_cast<int>(cvType), numPlanes), buffer);
     m_scene->readResampled4DBlockChannels(blockRect, blockSize, channelIndices, sliceRange, frameRange, raster);
 
     if(buffer!=raster.data)
