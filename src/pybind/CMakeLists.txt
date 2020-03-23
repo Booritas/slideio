@@ -1,4 +1,4 @@
-set(INCLUDE_ROOT ${CMAKE_SOURCE_DIR}/slideio)
+set(INCLUDE_ROOT ${CMAKE_SOURCE_DIR}/src)
 set(BINDLIB_NAME slideio)
 
 CONAN_MAIN()

@@ -1,4 +1,4 @@
-set(INCLUDE_ROOT ${CMAKE_SOURCE_DIR}/slideio)
+set(INCLUDE_ROOT ${CMAKE_SOURCE_DIR}/src)
 set(TEST_NAME slideio_tests)
 
 CONAN_MAIN()

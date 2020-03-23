@@ -3,7 +3,7 @@ enable_testing()
 
 set(PROJECT_NAME slide_io)
 set(projectVersion 0.0.1)
-set(INCLUDE_ROOT ${CMAKE_SOURCE_DIR}/slideio)
+set(INCLUDE_ROOT ${CMAKE_SOURCE_DIR}/src)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 project(${PROJECT_NAME} VERSION ${projectVersion} LANGUAGES C CXX)
@@ -39,4 +39,4 @@ ENDIF(WIN32)
 
 set(TEST_DIR ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 
-add_subdirectory(slideio)
+add_subdirectory(src)
