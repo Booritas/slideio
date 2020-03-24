@@ -11,7 +11,10 @@
 class PySlide
 {
 public:
-    PySlide(std::shared_ptr<slideio::Slide> slide) : m_Slide(std::move(slide))
+    PySlide(std::shared_ptr<slideio::Slide> slide) : m_slide(slide)
+    {
+    }
+    ~PySlide()
     {
     }
     int getNumScenes() const;
@@ -19,5 +22,5 @@ public:
     std::shared_ptr<PyScene> getScene(int index);
     const std::string& getRawMetadata() const;
 private:
-    std::shared_ptr<slideio::Slide> m_Slide;
+    std::shared_ptr<slideio::Slide> m_slide;
 };

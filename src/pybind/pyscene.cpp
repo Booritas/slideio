@@ -1,8 +1,14 @@
 ﻿#include "pyscene.hpp"
 #include <pybind11/numpy.h>
 #include <boost/format.hpp>
+#include "pyslide.hpp"
 
 namespace py = pybind11;
+
+PyScene::PyScene(std::shared_ptr<slideio::Scene> scene, std::shared_ptr<slideio::Slide> slide):
+    m_scene(std::move(scene)), m_slide(slide)
+{
+}
 
 std::string PyScene::getFilePath() const
 {

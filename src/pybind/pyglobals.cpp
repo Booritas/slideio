@@ -2,6 +2,8 @@
 #include <slideio/slideio.hpp>
 #include <boost/format.hpp>
 
+namespace py = pybind11;
+
 std::shared_ptr<PySlide> pyOpenSlide(const std::string& path, const std::string& driver)
 {
     std::shared_ptr<slideio::Slide> slide = slideio::openSlide(path, driver);
@@ -10,7 +12,8 @@ std::shared_ptr<PySlide> pyOpenSlide(const std::string& path, const std::string&
         throw std::runtime_error(
             (boost::format("Cannot open file \"%1%\" with driver \"%2%\"") % path % driver).str());
     }
-    std::shared_ptr<PySlide> wrapper(new PySlide(slide));
+    PySlide* pySlide = new PySlide(slide);
+    std::shared_ptr<PySlide> wrapper(pySlide);
     return wrapper;
 }
 

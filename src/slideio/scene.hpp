@@ -23,7 +23,8 @@ namespace slideio
     {
     public:
         Scene(std::shared_ptr<CVScene> scene);
-        ~Scene() = default;
+        virtual ~Scene(){
+        }
         std::string getFilePath() const;
         std::string getName() const;
         std::tuple<int,int,int,int> getRect() const;

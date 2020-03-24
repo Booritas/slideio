@@ -4,11 +4,16 @@
 #include <pybind11/numpy.h>
 #include "pyaux.hpp"
 
+namespace slideio
+{
+    class Slide;
+}
+
 class PyScene
 {
 public:
-    PyScene(std::shared_ptr<slideio::Scene> scene) : m_scene(std::move(scene))
-    {
+    PyScene(std::shared_ptr<slideio::Scene> scene, std::shared_ptr<slideio::Slide> slide);
+    ~PyScene(){
     }
     std::string getFilePath() const;
     std::string getName() const;
@@ -31,4 +36,5 @@ private:
     PySize adjustTargetSize(const PyRect& rect, const PySize& size) const;
 private:
     std::shared_ptr<slideio::Scene> m_scene;
+    std::shared_ptr<slideio::Slide> m_slide;
 };
