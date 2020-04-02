@@ -364,6 +364,9 @@ std::vector<uint8_t> CZIScene::decodeData(const CZISubBlock& block, const std::v
     }
     else if(block.compression()==CZISubBlock::JpegXR)
     {
+        //std::ofstream fout("c:/Temp/tile.jxr", std::ios::out | std::ios::binary);
+        //fout.write((char*)encodedData.data(), encodedData.size());
+        //fout.close();
         cv::Mat raster;
         ImageTools::decodeJxrBlock(encodedData.data(), encodedData.size(), raster);
         const cv::Rect& blockRect = block.rect();

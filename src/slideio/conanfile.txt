@@ -5,7 +5,7 @@ libtiff/4.0.10@slideio/stable
 libjpeg/9c@_/_
 openjpeg/2.3.1@slideio/stable
 tinyxml2/7.1.0@_/_
-jxrlib/1.1.1@slideio/stable
+jpegxrcodec/1.0.0@slideio/stable
 opencv/4.1.1@slideio/stable
 pybind11/2.3.0@conan/stable
 [options]

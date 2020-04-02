@@ -11,7 +11,7 @@ from setuptools.command.build_ext import build_ext
 from distutils.version import LooseVersion
 from ctypes.util import find_library
 
-version = '0.0.3'
+version = '0.1.0'
 source_dir= os.path.abspath('../../')
 build_dir= os.path.abspath('../../build_py')
 
@@ -159,7 +159,7 @@ setup(
     keywords = 'images, pathology, tissue, medical, czi, svs',
     package_data={},
     classifiers=[
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 4 - Beta',
         'Intended Audience :: Science/Research',
         'License :: OSI Approved :: BSD License',
         'Topic :: Scientific/Engineering',

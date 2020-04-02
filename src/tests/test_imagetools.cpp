@@ -132,3 +132,29 @@ TEST(ImageTools, decodeJxrBlock)
     cv::minMaxLoc(score, &minScore, &maxScore);
     ASSERT_LT(0.99, minScore);
 }
+
+TEST(ImageTools, decodeJxrBlock16)
+{
+    std::string pathJxr = TestTools::getTestImagePath("jxr","tile16.jxr");
+    std::string pathRaw = TestTools::getTestImagePath("jxr","tile16.raw");
+    // read jpxr file to the memory
+    std::ifstream file (pathJxr, std::ios::in| std::ios::binary| std::ios::ate);
+    ASSERT_TRUE(file.is_open());
+    size_t size = file.tellg();
+    ASSERT_GT(size, 0);
+    std::vector<uint8_t> buffer(size);
+    file.seekg(0,std::ios::beg);
+    file.read(reinterpret_cast<char*>(buffer.data()), size);
+    file.close();
+    // decode the codeblock
+    cv::Mat jxrImage;
+    slideio::ImageTools::decodeJxrBlock(buffer.data(), buffer.size(), jxrImage);
+    ASSERT_FALSE(jxrImage.empty());
+
+
+    std::ifstream rawFile(pathRaw.c_str(), std::ios::binary);
+    std::vector<unsigned char> raw((std::istreambuf_iterator<char>(rawFile)), std::istreambuf_iterator<char>());
+    size_t rasterSize = jxrImage.total() * jxrImage.elemSize();
+    ASSERT_EQ(rasterSize, raw.size());
+    ASSERT_EQ(memcmp(jxrImage.data, raw.data(), raw.size()), 0);
+}
