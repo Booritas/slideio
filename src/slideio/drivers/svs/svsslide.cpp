@@ -54,9 +54,12 @@ std::shared_ptr<SVSSlide> SVSSlide::openFile(const std::string& filePath)
     int thumbnail(-1), macro(-1), label(-1);
     image.push_back(0); //base image
     int nextDir = 1;
-    if(!directories[nextDir].tiled){
-        thumbnail = nextDir;
-        nextDir++;
+    if(static_cast<int>(directories.size()) > nextDir)
+    {
+        if(!directories[nextDir].tiled){
+            thumbnail = nextDir;
+            nextDir++;
+        }
     }
     for(int dir=nextDir; dir<directories.size(); dir++)
     {

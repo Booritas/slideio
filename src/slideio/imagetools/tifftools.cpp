@@ -194,7 +194,8 @@ void  slideio::TiffTools::scanTiffDirTags(TIFF* tiff, int dirIndex, int64_t dirO
     }
     dir.position = {posx, posy};
     bool tiled = TIFFIsTiled(tiff);
-    dir.description = description;
+    if(description)
+        dir.description = description;
     dir.bitsPerSample = dirbits;
     dir.channels = dirchnls;
     dir.height = height;
@@ -336,7 +337,7 @@ void slideio::TiffTools::readRegularTile(TIFF* hFile, const slideio::TiffDirecto
     if(readBytes<=0)
         throw std::runtime_error(
         (boost::format(
-            "TiffTools: error reading endoced tiff tile %1% of directory %2%."
+            "TiffTools: error reading encoded tiff tile %1% of directory %2%."
             "Compression: %3%") % tile %dir.dirIndex % dir.compression).str());
     if(channelIndices.empty())
     {

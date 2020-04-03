@@ -324,3 +324,16 @@ TEST(SVSImageDriver, slideRawMetadata)
         EXPECT_TRUE(boost::algorithm::starts_with(metadata, header));
     }    
 }
+
+TEST(SVSImageDriver, crashTest)
+{
+    slideio::SVSImageDriver driver;
+    std::string filePath = TestTools::getTestImagePath("svs","corrupted.svs");
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    int numScenes = slide->getNumScenes();
+    std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
+    cv::Rect rect = scene->getRect();
+    cv::Mat block;
+    cv::Rect blockRect = {0, 0, 1000,1000};
+    EXPECT_THROW(scene->readBlock(blockRect, block),std::runtime_error);
+}
