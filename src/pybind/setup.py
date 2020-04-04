@@ -11,7 +11,7 @@ from setuptools.command.build_ext import build_ext
 from distutils.version import LooseVersion
 from ctypes.util import find_library
 
-version = '0.1.0'
+version = '0.2.0'
 source_dir= os.path.abspath('../../')
 build_dir= os.path.abspath('../../build_py')
 

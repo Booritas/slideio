@@ -349,6 +349,20 @@ TEST(CZIImageDriver, metadataCompression)
     }    
 }
 
+TEST(CZIImageDriver, crashTestNotCZIImage)
+{
+    std::string filePath = TestTools::getTestImagePath("svs","corrupted.svs");
+    slideio::CZIImageDriver driver;
+    EXPECT_THROW(driver.openFile(filePath),std::runtime_error);
+}
+
+TEST(CZIImageDriver, corruptedCZI)
+{
+    std::string filePath = TestTools::getTestImagePath("czi","corrupted.czi");
+    slideio::CZIImageDriver driver;
+    EXPECT_THROW(driver.openFile(filePath), std::runtime_error);
+}
+
 //TODO: CLEAR COMMENTED OUT TESTS
 //#include <opencv2/imgproc.hpp>
 //#include <opencv2/highgui.hpp>
