@@ -179,5 +179,21 @@ class Test_CZI(unittest.TestCase):
                     )
                 self.assertTrue(np.array_equal(slice_raster, reference_raster))
 
+    def test_corrupted_image(self):
+        """
+        Raise an error for corrupted images.
+
+        Tries to open and read a corrupted image.
+        slideio shall raise an exception.
+        """
+        # Image to test
+        image_path = get_test_image_path(
+            "czi",
+            "corrupted.czi"
+            )
+        with pytest.raises(RuntimeError):
+            slideio.open_slide(image_path, "CZI")
+
+
 if __name__ == '__main__':
     unittest.main()
