@@ -13,7 +13,7 @@ import unittest
 import cv2 as cv
 import numpy as np
 import slideio
-from testlib import get_test_image_path
+from privtestlib import get_priv_test_image_path as get_test_image_path
 
 
 class TestCziRgbPriv(unittest.TestCase):

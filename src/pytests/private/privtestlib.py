@@ -3,7 +3,7 @@
 import os
 
 
-def get_test_image_path(folder, image_name):
+def get_priv_test_image_path(folder, image_name):
     """
     Path to a test image.
 
