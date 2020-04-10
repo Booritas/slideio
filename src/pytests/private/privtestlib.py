@@ -5,7 +5,7 @@ import os
 
 def get_priv_test_image_path(folder, image_name):
     """
-    Path to a test image.
+    Return a path to a test image.
 
     The function returns path to a test image by
     specifying folder and image name.

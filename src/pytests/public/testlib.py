@@ -1,14 +1,12 @@
-"""
-
-Auxilary functions for testing.
-
-"""
+"""Auxilary functions for testing."""
 
 import os
 
 
 def get_test_image_path(folder, image_name):
     """
+    Return path to a test image.
+
     The function returns path to a test image by
     specifying folder and image name.
     Parameters:

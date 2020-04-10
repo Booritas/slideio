@@ -3,8 +3,8 @@
 import unittest
 import pytest
 import cv2 as cv
-import slideio
 import numpy as np
+import slideio
 from testlib import get_test_image_path
 
 
@@ -97,7 +97,7 @@ class TestCZI(unittest.TestCase):
         self.assertEqual(correct_res, pytest.approx(res[0]))
         self.assertEqual(correct_res, pytest.approx(res[1]))
 
-    def test_read_block_2D(self):
+    def test_read_block_2d(self):
         """
         Read 2d uncompressed block.
 
@@ -136,7 +136,7 @@ class TestCZI(unittest.TestCase):
             )
             self.assertTrue(np.array_equal(image_raster, reference_raster))
 
-    def test_read_block_4D(self):
+    def test_read_block_4d(self):
         """
         Read 4d uncompressed block.
 

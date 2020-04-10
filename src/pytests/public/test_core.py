@@ -1,7 +1,5 @@
 """slideio module core functionality testing."""
 
-import sys
-import os
 import unittest
 import pytest
 import slideio
