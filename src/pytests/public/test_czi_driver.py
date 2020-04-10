@@ -8,7 +8,7 @@ import numpy as np
 from testlib import get_test_image_path
 
 
-class Test_CZI(unittest.TestCase):
+class TestCZI(unittest.TestCase):
     """Tests for slideio CZI driver functionality."""
 
     def test_not_existing_file(self):

@@ -8,7 +8,7 @@ import slideio
 from testlib import get_test_image_path
 
 
-class Test_Core(unittest.TestCase):
+class TestCore(unittest.TestCase):
     """Tests for core functionality of the slideio module."""
 
     def test_driver_list(self):

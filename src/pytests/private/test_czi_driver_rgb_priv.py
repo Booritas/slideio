@@ -1,14 +1,22 @@
-"""slideio CZI driver testing."""
+"""
+slideio CZI driver testing.
+
+Testing of CZI driver functionality
+for bright field images.
+The testing images are located in a private repository
+and cannot be shared.
+Path to the repository is defined in the
+environmental variable SLIDEIO_TEST_DATA_PRIV_PATH.
+"""
 
 import unittest
-import pytest
 import cv2 as cv
-import slideio
 import numpy as np
+import slideio
 from testlib import get_test_image_path
 
 
-class Test_CZI_Priv(unittest.TestCase):
+class TestCziRgbPriv(unittest.TestCase):
     """Tests for slideio CZI driver functionality."""
 
     def test_jpegxr_rgb_read_block(self):
@@ -25,9 +33,9 @@ class Test_CZI_Priv(unittest.TestCase):
             )
         # Reference channel images
         ref_image_paths = get_test_image_path(
-                "czi",
-                "jxr-rgb-1scene-large/region.png"
-                )
+            "czi",
+            "jxr-rgb-1scene-large/region.png"
+            )
         slide = slideio.open_slide(image_path, "CZI")
         self.assertTrue(slide is not None)
         scene = slide.get_scene(0)
@@ -93,6 +101,37 @@ class Test_CZI_Priv(unittest.TestCase):
             print(resize_cof, scores_cf, scores_sq)
             self.assertLess(params[0], scores_cf)
             self.assertLess(scores_sq, params[1])
+
+    def test_jpegxr_rgb_regression(self):
+        """
+        Regression test for rgb jpegxr compressed image.
+
+        Read the block from a slide and compares it
+        with a reference image. The reference image
+        is obtained by reading of the same region
+        by the slideo and savint it as png file.
+        """
+        # Image to test
+        image_path = get_test_image_path(
+            "czi",
+            "jxr-rgb-1scene-large.czi"
+            )
+        # Reference channel images
+        ref_image_path = get_test_image_path(
+            "czi",
+            "jxr-rgb-1scene-large/regression_x63000_y18000_w1000_h500.png"
+            )
+
+        reference_image = cv.imread(ref_image_path)
+        new_size = (reference_image.shape[1], reference_image.shape[0])
+        slide = slideio.open_slide(image_path, "CZI")
+        scene = slide.get_scene(0)
+        # check accuracy of resizing for different scale coeeficients
+        image_raster = scene.read_block(
+                (63000, 18000, 1000, 500),
+                size=new_size
+                )
+        self.assertTrue(np.array_equal(image_raster, reference_image))
 
 
 if __name__ == '__main__':

@@ -8,7 +8,7 @@ import numpy as np
 from testlib import get_test_image_path
 
 
-class Test_GDAL(unittest.TestCase):
+class TestGDAL(unittest.TestCase):
     """Tests for slideio GDAL driver functionality."""
 
     def test_not_existing_file(self):
