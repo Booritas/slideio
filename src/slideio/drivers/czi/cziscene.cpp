@@ -499,6 +499,10 @@ bool CZIScene::readTile(int tileIndex, const std::vector<int>& orgComponentIndic
     {
         cv::merge(channelRasters, tileRaster);
     }
+    {
+        //const std::string path = (boost::format("D:/Temp/tile_x%1%_y%2%.png") % tileRect.x % tileRect.y).str();
+        //slideio::ImageTools::writeRGBImage(path, slideio::Compression::Png, tileRaster.getMat());
+    }
     return true;
 }
 

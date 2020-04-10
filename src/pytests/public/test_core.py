@@ -1,9 +1,7 @@
-"""
+"""slideio module core functionality testing."""
 
-slideio module core functionality testing.
-
-"""
-
+import sys
+import os
 import unittest
 import pytest
 import slideio
@@ -22,6 +20,8 @@ class Test_Core(unittest.TestCase):
 
     def test_not_existing_driver(self):
         """
+        Test for calling of not-existing driver.
+
         Checks if slideio throws RuntimeError
         exception during opening of not existing file.
         """
