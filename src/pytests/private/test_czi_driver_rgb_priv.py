@@ -109,7 +109,7 @@ class TestCziRgbPriv(unittest.TestCase):
         Read the block from a slide and compares it
         with a reference image. The reference image
         is obtained by reading of the same region
-        by the slideo and savint it as png file.
+        by the slideo and saving it as png file.
         """
         # Image to test
         image_path = get_test_image_path(

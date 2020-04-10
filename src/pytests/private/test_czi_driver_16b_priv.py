@@ -113,6 +113,36 @@ class TestCzi16bPriv(unittest.TestCase):
             self.assertLess(params[0], scores_cf)
             self.assertLess(scores_sq, params[1])
 
+    def test_jpegxr_16b_regression(self):
+        """
+        Regression test for 16b jpegxr compressed image.
+
+        Read the block from a slide and compares it
+        with a reference image. The reference image
+        is obtained by reading of the same region
+        by the slideo and savint it as a tif file.
+        """
+        # Image to test
+        image_path = get_test_image_path(
+            "czi",
+            "jxr-16bit-4chnls-2.czi"
+            )
+        # Reference image
+        ref_image_path = get_test_image_path(
+            "czi",
+            "jxr-16bit-4chnls-2/regression_x5000_y2000_w1000_h500.tif"
+        )
+        region_size = (1000, 500)
+        region_new_size = (300, 150)
+        region_rect = (5000, 2000, region_size[0], region_size[1])
+        slide = slideio.open_slide(image_path, "CZI")
+        self.assertTrue(slide is not None)
+        scene = slide.get_scene(0)
+        self.assertTrue(scene is not None)
+        image = scene.read_block(region_rect, size=region_new_size)
+        reference_image = cv.imread(ref_image_path, cv.IMREAD_UNCHANGED)
+        self.assertTrue(np.array_equal(image, reference_image))
+
 
 if __name__ == '__main__':
     unittest.main()
