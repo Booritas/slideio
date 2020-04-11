@@ -629,6 +629,90 @@ class TestSVS(unittest.TestCase):
             self.assertLess(score_sq, sq_threshold)
             self.assertLess(cf_threshold, score_cf)
 
+    def test_rgb_jpeg_regression(self):
+        """
+        Regression test for rgb jpeg compressed image.
+
+        Read the block from a slide and compares it
+        with a reference image. The reference image
+        is obtained by reading of the same region
+        by the slideo and saving it as a png file.
+        """
+        # Image to test
+        image_path = get_test_image_path(
+            "svs",
+            "CMU-1-Small-Region.svs"
+            )
+        # Image to test
+        reference_image_path = get_test_image_path(
+            "svs",
+            "CMU-1-Small-Region.regression_x700_y400_w500_y400.png"
+            )
+        # Read reference image
+        reference_image = cv.imread(
+            reference_image_path,
+            cv.IMREAD_UNCHANGED
+            )
+        x_beg = 700
+        y_beg = 400
+        width = 500
+        height = 400
+        rect = (x_beg, y_beg, width, height)
+        new_size = (100, 80)
+
+        # open the slide
+        slide = slideio.open_slide(image_path, "SVS")
+        self.assertTrue(slide is not None)
+        scene = slide.get_scene(0)
+        self.assertTrue(scene is not None)
+        block_raster = scene.read_block(
+            rect,
+            size=new_size
+            )
+        self.assertTrue(np.array_equal(block_raster, reference_image))
+
+    def test_rgb_jp2k_regression(self):
+        """
+        Regression test for rgb jp2k compressed image.
+
+        Read the block from a slide and compares it
+        with a reference image. The reference image
+        is obtained by reading of the same region
+        by the slideo and saving it as a png file.
+        """
+        # Image to test
+        image_path = get_test_image_path(
+            "svs",
+            "JP2K-33003-1.svs"
+            )
+        # Image to test
+        reference_image_path = get_test_image_path(
+            "svs",
+            "JP2K-33003-1.regression_x4000_y4000_w500_y400.png"
+            )
+        # Read reference image
+        reference_image = cv.imread(
+            reference_image_path,
+            cv.IMREAD_UNCHANGED
+            )
+        x_beg = 4000
+        y_beg = 4000
+        width = 500
+        height = 400
+        rect = (x_beg, y_beg, width, height)
+        new_size = (100, 80)
+
+        # open the slide
+        slide = slideio.open_slide(image_path, "SVS")
+        self.assertTrue(slide is not None)
+        scene = slide.get_scene(0)
+        self.assertTrue(scene is not None)
+        block_raster = scene.read_block(
+            rect,
+            size=new_size
+            )
+        self.assertTrue(np.array_equal(block_raster, reference_image))
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -310,7 +310,7 @@ void slideio::TiffTools::readTile(TIFF* hFile, const slideio::TiffDirectory& dir
     }
     setCurrentDirectory(hFile, dir);
 
-    if(dir.compression==34712 || dir.compression==33003)
+    if(dir.compression==34712 || dir.compression==33003 || dir.compression == 33005)
     {
         readJ2KTile(hFile, dir, tile, channelIndices, output);
     }

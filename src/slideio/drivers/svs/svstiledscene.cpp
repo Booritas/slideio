@@ -40,7 +40,8 @@ SVSTiledScene::SVSTiledScene(const std::string& filePath,
     {
         const auto& dir = m_directories.front();
         m_compression = dir.slideioCompression;
-        if(m_compression==Compression::Unknown && dir.compression==33003)
+        if(m_compression==Compression::Unknown &&
+            (dir.compression==33003 || dir.compression==3305))
         {
             m_compression = Compression::Jpeg2000;
         }

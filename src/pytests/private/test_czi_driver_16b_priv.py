@@ -12,9 +12,9 @@ environmental variable SLIDEIO_TEST_DATA_PRIV_PATH.
 import unittest
 import cv2 as cv
 import numpy as np
+import czifile as czi
 import slideio
 from privtestlib import get_priv_test_image_path as get_test_image_path
-import czifile as czi
 
 
 class TestCzi16bPriv(unittest.TestCase):
@@ -47,16 +47,16 @@ class TestCzi16bPriv(unittest.TestCase):
             )
         # call structural difference score
         scores_cf = cv.matchTemplate(
-                    reference_raster.astype(np.float32),
-                    image_raster.astype(np.float32),
-                    cv.TM_CCOEFF_NORMED
-                    )[0][0]
+            reference_raster.astype(np.float32),
+            image_raster.astype(np.float32),
+            cv.TM_CCOEFF_NORMED
+            )[0][0]
         # calculate square normed errors
         scores_sq = cv.matchTemplate(
-                    reference_raster.astype(np.float32),
-                    image_raster.astype(np.float32),
-                    cv.TM_SQDIFF_NORMED
-                    )[0][0]
+            reference_raster.astype(np.float32),
+            image_raster.astype(np.float32),
+            cv.TM_SQDIFF_NORMED
+            )[0][0]
         self.assertLess(0.99, scores_cf)
         self.assertLess(scores_sq, 0.0002)
 
@@ -100,16 +100,16 @@ class TestCzi16bPriv(unittest.TestCase):
             cv_resized_raster = cv.resize(origin_raster, new_size)
             # call structural difference score
             scores_cf = cv.matchTemplate(
-                        resized_raster.astype(np.float32),
-                        cv_resized_raster.astype(np.float32),
-                        cv.TM_CCOEFF_NORMED
-                        )[0][0]
+                resized_raster.astype(np.float32),
+                cv_resized_raster.astype(np.float32),
+                cv.TM_CCOEFF_NORMED
+                )[0][0]
             # calculate square normed errors
             scores_sq = cv.matchTemplate(
-                        resized_raster.astype(np.float32),
-                        cv_resized_raster.astype(np.float32),
-                        cv.TM_SQDIFF_NORMED
-                        )[0][0]
+                resized_raster.astype(np.float32),
+                cv_resized_raster.astype(np.float32),
+                cv.TM_SQDIFF_NORMED
+                )[0][0]
             self.assertLess(params[0], scores_cf)
             self.assertLess(scores_sq, params[1])
 
