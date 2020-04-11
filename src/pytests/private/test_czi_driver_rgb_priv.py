@@ -133,6 +133,38 @@ class TestCziRgbPriv(unittest.TestCase):
             )
         self.assertTrue(np.array_equal(image_raster, reference_image))
 
+    def test_jpegxr_rgb_regression_small(self):
+        """
+        Regression test for rgb jpegxr compressed image.
+
+        Read the block from a slide and compares it
+        with a reference image. The reference image
+        is obtained by reading of the same region
+        by the slideo and saving it as png file.
+        Old version of the jpegxr codec delivered
+        corupted images for the scene 2 with low
+        scaling
+        """
+        # Image to test
+        image_path = get_test_image_path(
+            "czi",
+            "jxr-rgb-5scenes.czi"
+            )
+        # Reference channel images
+        ref_image_path = get_test_image_path(
+            "czi",
+            "jxr-rgb-5scenes.czi.regression_s2.png"
+            )
+
+        reference_image = cv.imread(ref_image_path, cv.IMREAD_UNCHANGED)
+        slide = slideio.open_slide(image_path, "CZI")
+        scene = slide.get_scene(2)
+        # check accuracy of resizing for different scale coeeficients
+        image_raster = scene.read_block(
+            size=(400, 0)
+            )
+        self.assertTrue(np.array_equal(image_raster, reference_image))
+
 
 if __name__ == '__main__':
     unittest.main()
