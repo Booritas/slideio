@@ -22,6 +22,23 @@ class TestSVS(unittest.TestCase):
         with pytest.raises(RuntimeError):
             slideio.open_slide(image_path, "SVS")
 
+    def test_corrupted_file(self):
+        """
+        Opening of a corrupted image.
+
+        Checks if slideio throws RuntimeError
+        exception during opening.
+        """
+        image_path = get_test_image_path(
+            "svs",
+            "corrupted.svs"
+            )
+        slide = slideio.open_slide(image_path, "SVS")
+        scene = slide.get_scene(0)
+        with pytest.raises(RuntimeError):
+            scene.read_block()
+
+
     def test_file_j2k_metadata(self):
         """
         Checks image metadata.
