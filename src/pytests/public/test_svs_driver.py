@@ -203,7 +203,7 @@ class TestSVS(unittest.TestCase):
                 cv.IMREAD_UNCHANGED
                 )
             self.assertEqual(scene_image.shape, reference_image.shape)
-            
+
     def test_file_rgb_image(self):
         """
         Checks image raster pictures.
@@ -217,8 +217,8 @@ class TestSVS(unittest.TestCase):
             "CMU-1-Small-Region.svs"
             )
         reference_image_path = get_test_image_path(
-                "svs",
-                "CMU-1-Small-Region-page-0.tif"
+            "svs",
+            "CMU-1-Small-Region-page-0.tif"
             )
         slide = slideio.open_slide(image_path, "SVS")
         self.assertTrue(slide is not None)
@@ -248,8 +248,8 @@ class TestSVS(unittest.TestCase):
             "CMU-1-Small-Region.svs"
             )
         reference_image_path = get_test_image_path(
-                "svs",
-                "CMU-1-Small-Region-page-0.tif"
+            "svs",
+            "CMU-1-Small-Region-page-0.tif"
             )
         slide = slideio.open_slide(image_path, "SVS")
         self.assertTrue(slide is not None)
@@ -257,20 +257,20 @@ class TestSVS(unittest.TestCase):
         self.assertEqual(num_scenes, 4)
         scene = slide.get_scene(0)
         self.assertTrue(scene is not None)
-        xn = 500
-        yn = 500
+        x_beg = 500
+        y_beg = 500
         width = 600
         height = 300
-        rect = (xn, yn, width, height)
+        rect = (x_beg, y_beg, width, height)
         scene_image = scene.read_block(rect)
         reference_image = cv.imread(
             reference_image_path,
             cv.IMREAD_UNCHANGED
             )
         reference_image = cv.cvtColor(reference_image, cv.COLOR_BGR2RGB)
-        xe = xn + width
-        ye = yn + height
-        reference_region = reference_image[yn:ye, xn:xe]
+        x_end = x_beg + width
+        y_end = y_beg + height
+        reference_region = reference_image[y_beg:y_end, x_beg:x_end]
         self.assertEqual(scene_image.shape, reference_region.shape)
         self.assertTrue(np.array_equal(scene_image, reference_region))
 
@@ -287,8 +287,8 @@ class TestSVS(unittest.TestCase):
             "CMU-1-Small-Region.svs"
             )
         reference_image_path = get_test_image_path(
-                "svs",
-                "CMU-1-Small-Region-page-0.tif"
+            "svs",
+            "CMU-1-Small-Region-page-0.tif"
             )
         slide = slideio.open_slide(image_path, "SVS")
         self.assertTrue(slide is not None)
@@ -296,27 +296,27 @@ class TestSVS(unittest.TestCase):
         self.assertEqual(num_scenes, 4)
         scene = slide.get_scene(0)
         self.assertTrue(scene is not None)
-        xn = 500
-        yn = 500
+        x_beg = 500
+        y_beg = 500
         width = 600
         height = 300
         params = [
             ((400, 200), (0.0011, 0.98)),
             ((200, 100), (0.012, 0.83))
         ]
-        rect = (xn, yn, width, height)
-        xe = xn + width
-        ye = yn + height
+        rect = (x_beg, y_beg, width, height)
+        x_end = x_beg + width
+        y_end = y_beg + height
         reference_image = cv.imread(
             reference_image_path,
             cv.IMREAD_UNCHANGED
             )
         reference_image = cv.cvtColor(reference_image, cv.COLOR_BGR2RGB)
-        reference_image = reference_image[yn:ye, xn:xe]
+        reference_image = reference_image[y_beg:y_end, x_beg:x_end]
         for param in params:
             size = param[0]
-            cf = param[1][1]
-            sq = param[1][0]
+            cf_threshold = param[1][1]
+            sq_threshold = param[1][0]
             scene_image = scene.read_block(rect, size=size)
             reference_region = cv.resize(reference_image, size)
             self.assertEqual(scene_image.shape, reference_region.shape)
@@ -330,15 +330,15 @@ class TestSVS(unittest.TestCase):
                 reference_region,
                 cv.TM_CCOEFF_NORMED
                 )[0][0]
-            self.assertLess(score_sq, sq)
-            self.assertLess(cf, score_cf)
+            self.assertLess(score_sq, sq_threshold)
+            self.assertLess(cf_threshold, score_cf)
 
     def test_file_rgb_image_channel_swap(self):
         """
         Checks image raster pictures.
 
         Reads 3 channel brightfield Jpeg commpressed file
-        with channel swaping and checks raster against 
+        with channel swaping and checks raster against
         extracted by a 3rd party tools pictures.
         """
         image_path = get_test_image_path(
