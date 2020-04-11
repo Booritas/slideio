@@ -61,9 +61,9 @@ class TestCziRgbPriv(unittest.TestCase):
             )
         # Reference channel images
         ref_image_paths = get_test_image_path(
-                "czi",
-                "jxr-rgb-1scene-large/region.png"
-                )
+            "czi",
+            "jxr-rgb-1scene-large/region.png"
+            )
         scaling_params = {
             1.0: (0.9999, 1.e-7),
             1.5: (0.98, 0.005),
@@ -88,16 +88,16 @@ class TestCziRgbPriv(unittest.TestCase):
                 channel_indices=[2, 1, 0]
                 )
             scores_cf = cv.matchTemplate(
-                        reference_raster,
-                        image_raster,
-                        cv.TM_CCOEFF_NORMED
-                        )[0][0]
+                reference_raster,
+                image_raster,
+                cv.TM_CCOEFF_NORMED
+                )[0][0]
 
             scores_sq = cv.matchTemplate(
-                        reference_raster,
-                        image_raster,
-                        cv.TM_SQDIFF_NORMED
-                        )[0][0]
+                reference_raster,
+                image_raster,
+                cv.TM_SQDIFF_NORMED
+                )[0][0]
             print(resize_cof, scores_cf, scores_sq)
             self.assertLess(params[0], scores_cf)
             self.assertLess(scores_sq, params[1])
@@ -128,9 +128,9 @@ class TestCziRgbPriv(unittest.TestCase):
         scene = slide.get_scene(0)
         # check accuracy of resizing for different scale coeeficients
         image_raster = scene.read_block(
-                (63000, 18000, 1000, 500),
-                size=new_size
-                )
+            (63000, 18000, 1000, 500),
+            size=new_size
+            )
         self.assertTrue(np.array_equal(image_raster, reference_image))
 
 

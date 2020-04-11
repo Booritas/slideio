@@ -38,7 +38,6 @@ class TestSVS(unittest.TestCase):
         with pytest.raises(RuntimeError):
             scene.read_block()
 
-
     def test_file_j2k_metadata(self):
         """
         Checks image metadata.
@@ -381,6 +380,254 @@ class TestSVS(unittest.TestCase):
             )
         self.assertEqual(scene_image.shape, reference_image.shape)
         self.assertTrue(np.array_equal(scene_image, reference_image))
+
+    def test_file_jp2k_image_region(self):
+        """
+        Checks reading of an image region.
+
+        Opens 3 channel brightfield Jpeg2K commpressed file
+        and checks raster agains extracted by
+        a 3rd party tools pictures.
+        """
+        image_path = get_test_image_path(
+            "svs",
+            "JP2K-33003-1.svs"
+            )
+        reference_image_path = get_test_image_path(
+            "svs",
+            "JP2K-33003-1-region_x4000_y4000_w3000_h1500.tif"
+            )
+        slide = slideio.open_slide(image_path, "SVS")
+        self.assertTrue(slide is not None)
+        num_scenes = slide.num_scenes
+        self.assertEqual(num_scenes, 4)
+        scene = slide.get_scene(0)
+        self.assertTrue(scene is not None)
+        x_beg = 4000
+        y_beg = 4000
+        width = 3000
+        height = 1500
+        rect = (x_beg, y_beg, width, height)
+        scene_image = scene.read_block(rect)
+        reference_image = cv.imread(
+            reference_image_path,
+            cv.IMREAD_UNCHANGED
+            )
+        reference_region = cv.cvtColor(reference_image, cv.COLOR_BGR2RGB)
+        self.assertEqual(scene_image.shape, reference_region.shape)
+
+        score_sq = cv.matchTemplate(
+            scene_image,
+            reference_region,
+            cv.TM_SQDIFF_NORMED
+            )[0][0]
+        score_cf = cv.matchTemplate(
+            scene_image,
+            reference_region,
+            cv.TM_CCOEFF_NORMED
+            )[0][0]
+
+        self.assertLess(score_sq, 0.00125)
+        self.assertLess(0.99, score_cf)
+
+    def test_file_jp2k_image_region_resize(self):
+        """
+        Checks reading of an image region with resizing.
+
+        Opens 3 channel brightfield Jpeg2K commpressed file
+        and checks raster agains extracted by
+        a 3rd party tools pictures.
+        """
+        image_path = get_test_image_path(
+            "svs",
+            "JP2K-33003-1.svs"
+            )
+        reference_image_path = get_test_image_path(
+            "svs",
+            "JP2K-33003-1-region_x4000_y4000_w3000_h1500.tif"
+            )
+        slide = slideio.open_slide(image_path, "SVS")
+        self.assertTrue(slide is not None)
+        num_scenes = slide.num_scenes
+        self.assertEqual(num_scenes, 4)
+        scene = slide.get_scene(0)
+        self.assertTrue(scene is not None)
+        x_beg = 4000
+        y_beg = 4000
+        width = 3000
+        height = 1500
+        rect = (x_beg, y_beg, width, height)
+        reference_image = cv.imread(
+            reference_image_path,
+            cv.IMREAD_UNCHANGED
+            )
+        reference_image = cv.cvtColor(reference_image, cv.COLOR_BGR2RGB)
+        scaling_params = [
+            (1.0, 0.99, 0.0013),
+            (1.5, 0.93, 0.007),
+            (2.0, 0.99, 0.0009),
+            (3.0, 0.90, 0.01),
+            (5.0, 0.84, 0.015)
+            ]
+        for param in scaling_params:
+            scale = param[0]
+            cf_threshold = param[1]
+            sq_threshold = param[2]
+            new_size = (
+                int(round(reference_image.shape[1]/scale)),
+                int(round(reference_image.shape[0]/scale))
+                )
+            reference_region = cv.resize(reference_image, new_size)
+            image_region = scene.read_block(rect, size=new_size)
+            self.assertEqual(image_region.shape, reference_region.shape)
+
+            score_sq = cv.matchTemplate(
+                image_region,
+                reference_region,
+                cv.TM_SQDIFF_NORMED
+                )[0][0]
+            score_cf = cv.matchTemplate(
+                image_region,
+                reference_region,
+                cv.TM_CCOEFF_NORMED
+                )[0][0]
+
+            self.assertLess(score_sq, sq_threshold)
+            self.assertLess(cf_threshold, score_cf)
+
+    def test_file_jp2k_image_region_resize_1channel(self):
+        """
+        Checks reading of an image region with resizing.
+
+        Read 1 channel region form brightfield Jpeg2K
+        commpressed image and checks raster agains extracted by
+        a 3rd party tools pictures.
+        """
+        image_path = get_test_image_path(
+            "svs",
+            "JP2K-33003-1.svs"
+            )
+        reference_image_path = get_test_image_path(
+            "svs",
+            "JP2K-33003-1-region_x4000_y4000_w3000_h1500.tif"
+            )
+        slide = slideio.open_slide(image_path, "SVS")
+        self.assertTrue(slide is not None)
+        num_scenes = slide.num_scenes
+        self.assertEqual(num_scenes, 4)
+        scene = slide.get_scene(0)
+        self.assertTrue(scene is not None)
+        x_beg = 4000
+        y_beg = 4000
+        width = 3000
+        height = 1500
+        rect = (x_beg, y_beg, width, height)
+        reference_image = cv.imread(
+            reference_image_path,
+            cv.IMREAD_UNCHANGED
+            )
+        reference_image = cv.cvtColor(reference_image, cv.COLOR_BGR2RGB)
+        reference_image = cv.extractChannel(reference_image, 1)
+
+        scaling_params = [
+            (2.0, 0.99, 0.0009)
+            ]
+
+        for param in scaling_params:
+            scale = param[0]
+            cf_threshold = param[1]
+            sq_threshold = param[2]
+            new_size = (
+                int(round(reference_image.shape[1]/scale)),
+                int(round(reference_image.shape[0]/scale))
+                )
+            reference_region = cv.resize(reference_image, new_size)
+            image_region = scene.read_block(
+                rect,
+                size=new_size,
+                channel_indices=[1]
+                )
+            self.assertEqual(image_region.shape, reference_region.shape)
+
+            score_sq = cv.matchTemplate(
+                image_region,
+                reference_region,
+                cv.TM_SQDIFF_NORMED
+                )[0][0]
+            score_cf = cv.matchTemplate(
+                image_region,
+                reference_region,
+                cv.TM_CCOEFF_NORMED
+                )[0][0]
+
+            self.assertLess(score_sq, sq_threshold)
+            self.assertLess(cf_threshold, score_cf)
+
+    def test_file_jp2k_image_region_resize_swap_channels(self):
+        """
+        Checks reading of an image region with resizing.
+
+        Opens 3 channel brightfield Jpeg2K commpressed file
+        and checks raster agains extracted by
+        a 3rd party tools pictures.
+        """
+        image_path = get_test_image_path(
+            "svs",
+            "JP2K-33003-1.svs"
+            )
+        reference_image_path = get_test_image_path(
+            "svs",
+            "JP2K-33003-1-region_x4000_y4000_w3000_h1500.tif"
+            )
+        slide = slideio.open_slide(image_path, "SVS")
+        self.assertTrue(slide is not None)
+        num_scenes = slide.num_scenes
+        self.assertEqual(num_scenes, 4)
+        scene = slide.get_scene(0)
+        self.assertTrue(scene is not None)
+        x_beg = 4000
+        y_beg = 4000
+        width = 3000
+        height = 1500
+        rect = (x_beg, y_beg, width, height)
+        reference_image = cv.imread(
+            reference_image_path,
+            cv.IMREAD_UNCHANGED
+            )
+
+        scaling_params = [
+            (2.0, 0.99, 0.0009)
+            ]
+
+        for param in scaling_params:
+            scale = param[0]
+            cf_threshold = param[1]
+            sq_threshold = param[2]
+            new_size = (
+                int(round(reference_image.shape[1]/scale)),
+                int(round(reference_image.shape[0]/scale))
+                )
+            reference_region = cv.resize(reference_image, new_size)
+            image_region = scene.read_block(
+                rect,
+                size=new_size,
+                channel_indices=[2, 1, 0]
+                )
+            self.assertEqual(image_region.shape, reference_region.shape)
+
+            score_sq = cv.matchTemplate(
+                image_region,
+                reference_region,
+                cv.TM_SQDIFF_NORMED
+                )[0][0]
+            score_cf = cv.matchTemplate(
+                image_region,
+                reference_region,
+                cv.TM_CCOEFF_NORMED
+                )[0][0]
+
+            self.assertLess(score_sq, sq_threshold)
+            self.assertLess(cf_threshold, score_cf)
 
 
 if __name__ == '__main__':
