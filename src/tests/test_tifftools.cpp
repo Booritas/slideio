@@ -115,3 +115,40 @@ TEST(TiffTools, readTile_J2K)
     cv::minMaxLoc(score, &minScore, &maxScore);
     ASSERT_LT(0.99, minScore);
 }
+
+TEST(TiffTools, readTile_jpeg_swapChannles)
+{
+    const std::string filePath =
+        TestTools::getTestImagePath("svs", "CMU-1-Small-Region.svs");
+    const std::string tilePath =
+        TestTools::getTestImagePath("svs", "CMU-1-Small-Region-page-0-tile_5-5.bmp");
+    // read tile from a tiff file
+    TIFF* tiff = slideio::TiffTools::openTiffFile(filePath);
+    ASSERT_TRUE(tiff != nullptr);
+    slideio::TiffDirectory dir;
+    slideio::TiffTools::scanTiffDir(tiff, 0, 0, dir);
+    dir.dataType = slideio::DataType::DT_Byte;
+    int tile_sx = (dir.width - 1) / dir.tileWidth + 1;
+    int tile = 5 * tile_sx + 5;
+    std::vector<int> channelIndices = { 2, 1, 0 };
+    cv::Mat tileRaster;
+    slideio::TiffTools::readTile(tiff, dir, tile, channelIndices, tileRaster);
+    slideio::TiffTools::closeTiffFile(tiff);
+    // read extracted tile
+    cv::Mat bmpRaster;
+    slideio::ImageTools::readGDALImage(tilePath, bmpRaster);
+    ASSERT_EQ(bmpRaster.cols, tileRaster.cols);
+    ASSERT_EQ(bmpRaster.rows, tileRaster.rows);
+    ASSERT_EQ(bmpRaster.channels(), tileRaster.channels());
+
+    int channelSize = bmpRaster.cols * bmpRaster.rows;
+
+    for (int swapedIndex = 0; swapedIndex < 3; ++swapedIndex)
+    {
+        int originIndex = channelIndices[swapedIndex];
+        cv::Mat originChannel, swapedChannel;
+        cv::extractChannel(bmpRaster, originChannel, originIndex);
+        cv::extractChannel(tileRaster, swapedChannel, swapedIndex);
+        EXPECT_EQ(std::memcmp(originChannel.data, swapedChannel.data, channelSize), 0);
+    }
+}

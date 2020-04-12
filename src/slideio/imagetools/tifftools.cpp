@@ -350,11 +350,10 @@ void slideio::TiffTools::readRegularTile(TIFF* hFile, const slideio::TiffDirecto
     else
     {
         std::vector<cv::Mat> channelRasters;
-        channelRasters.reserve(channelIndices.size());
+        channelRasters.resize(channelIndices.size());
         for(int channelIndex : channelIndices)
         {
-            cv::Mat channelRaster;
-            cv::extractChannel(tileRaster, channelRaster, channelIndices[channelIndex]);
+            cv::extractChannel(tileRaster, channelRasters[channelIndex], channelIndices[channelIndex]);
         }
         cv::merge(channelRasters, output);
     }

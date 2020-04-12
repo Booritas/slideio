@@ -337,3 +337,27 @@ TEST(SVSImageDriver, crashTest)
     cv::Rect blockRect = {0, 0, 1000,1000};
     EXPECT_THROW(scene->readBlock(blockRect, block),std::runtime_error);
 }
+
+TEST(SVSImageDriver, swapedChannels)
+{
+    slideio::SVSImageDriver driver;
+    std::string filePath = TestTools::getTestImagePath("svs", "CMU-1-Small-Region.svs");
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
+    cv::Mat matSwaped, matOrigin;
+    cv::Rect rect = scene->getRect();
+    std::vector<int> channels = { 2,1,0 };
+    cv::Size size = { rect.width / 5, rect.height / 5 };
+    scene->readResampledBlock(rect, size, matOrigin);
+    scene->readResampledBlockChannels(rect, size, channels, matSwaped);
+    int channelSize = size.width * size.height;
+   
+    for(int swapedIndex=0; swapedIndex<3; ++swapedIndex)
+    {
+        int originIndex = channels[swapedIndex];
+        cv::Mat originChannel, swapedChannel;
+        cv::extractChannel(matOrigin, originChannel, originIndex);
+        cv::extractChannel(matSwaped, swapedChannel, swapedIndex);
+        EXPECT_EQ(std::memcmp(originChannel.data, swapedChannel.data, channelSize), 0);
+    }
+}
