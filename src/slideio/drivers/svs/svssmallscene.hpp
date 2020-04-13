@@ -22,7 +22,8 @@ namespace slideio
             const std::string& filePath,
             const std::string& name,
             const slideio::TiffDirectory& dir,
-            TIFF* hfile);
+            TIFF* hfile,
+            bool auxiliary=true);
         cv::Rect getRect() const override;
         int getNumChannels() const override;
         void readResampledBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize, const std::vector<int>& channelIndices,

@@ -15,7 +15,8 @@ using namespace slideio;
 SVSSmallScene::SVSSmallScene(const std::string& filePath,
     const std::string& name,
     const TiffDirectory& dir,
-    TIFF* hfile):
+    TIFF* hfile,
+    bool auxiliary):
         SVSScene(filePath, name, hfile),
         m_directory(dir)
 {
@@ -35,9 +36,12 @@ SVSSmallScene::SVSSmallScene(const std::string& filePath,
                 m_dataType = DataType::DT_Unknown;
         }
     }
-    m_magnification = SVSTools::extractMagnifiation(dir.description);
-    double res = SVSTools::extractResolution(dir.description);
-    m_resolution = { res, res };
+    if(!auxiliary)
+    {
+        m_magnification = SVSTools::extractMagnifiation(dir.description);
+        double res = SVSTools::extractResolution(dir.description);
+        m_resolution = { res, res };
+    }
     m_compression = m_directory.slideioCompression;
 }
 

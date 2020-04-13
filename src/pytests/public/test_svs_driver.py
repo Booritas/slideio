@@ -72,7 +72,7 @@ class TestSVS(unittest.TestCase):
             (415, 422),
             (1280, 421)
             ]
-        scene_magnifications = [40., 40., 0., 0.]
+        scene_magnifications = [40., 0., 0., 0.]
 
         for scene_index in range(num_scenes):
             scene = slide.get_scene(scene_index)
@@ -141,7 +141,7 @@ class TestSVS(unittest.TestCase):
             (387, 463),
             (1280, 431)
             ]
-        scene_magnifications = [20., 20., 0., 0.]
+        scene_magnifications = [20., 0., 0., 0.]
 
         for scene_index in range(num_scenes):
             scene = slide.get_scene(scene_index)
