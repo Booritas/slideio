@@ -23,9 +23,6 @@ namespace slideio
             std::vector<slideio::TiffDirectory> dirs,
             TIFF* tiff);
         int getNumChannels() const override;
-        slideio::DataType getChannelDataType(int channel) const override;
-        slideio::Resolution getResolution() const override;
-        double getMagnification() const override;
         cv::Rect getRect() const override;
         void readResampledBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize, const std::vector<int>& channelIndices,
             cv::OutputArray output) override;
@@ -37,9 +34,6 @@ namespace slideio
             void* userData) override;
     private:
         std::vector<slideio::TiffDirectory> m_directories;
-        slideio::DataType m_dataType;
-        double m_magnification;
-        TIFF* m_hFile;
     };
 }
 

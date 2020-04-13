@@ -45,8 +45,8 @@ TEST(SVSImageDriver, openFile_BrightField)
     EXPECT_EQ(scene->getChannelDataType(1), slideio::DataType::DT_Byte);
     EXPECT_EQ(scene->getChannelDataType(2), slideio::DataType::DT_Byte);
     slideio::Resolution res = scene->getResolution();
-    EXPECT_EQ(res.x, 0.);
-    EXPECT_EQ(res.y, 0.);
+    EXPECT_EQ(res.x, 4.99e-7);
+    EXPECT_EQ(res.y, 4.99e-7);
     double magn = scene->getMagnification();
     EXPECT_EQ(20., magn);
 }
@@ -360,4 +360,15 @@ TEST(SVSImageDriver, swapedChannels)
         cv::extractChannel(matSwaped, swapedChannel, swapedIndex);
         EXPECT_EQ(std::memcmp(originChannel.data, swapedChannel.data, channelSize), 0);
     }
+}
+
+TEST(SVSImageDriver, imageResolution)
+{
+    slideio::SVSImageDriver driver;
+    std::string filePath = TestTools::getTestImagePath("svs", "CMU-1-Small-Region.svs");
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
+    slideio::Resolution res = scene->getResolution();
+    EXPECT_DOUBLE_EQ(res.x, 0.4990e-6);
+    EXPECT_DOUBLE_EQ(res.y, 0.4990e-6);
 }

@@ -10,14 +10,16 @@
 
 using namespace slideio;
 
-SVSTiledScene::SVSTiledScene(const std::string& filePath,
+SVSTiledScene::SVSTiledScene(
+    const std::string& filePath,
     const std::string& name,
-    std::vector<TiffDirectory> dirs, TIFF* hfile):
-    slideio::SVSScene(filePath, name),
-        m_directories(dirs),
-        m_dataType(slideio::DataType::DT_Unknown),
-        m_hFile(hfile)
+    std::vector<TiffDirectory> dirs,
+    TIFF* hfile):
+    slideio::SVSScene(filePath, name, hfile),
+        m_directories(dirs)
+
 {
+    m_resolution = { 0., 0. };
     auto& dir = m_directories[0];
     m_dataType = dir.dataType;
 
@@ -36,6 +38,8 @@ SVSTiledScene::SVSTiledScene(const std::string& filePath,
         }
     }
     m_magnification = SVSTools::extractMagnifiation(dir.description);
+    double res = SVSTools::extractResolution(dir.description);
+    m_resolution = { res, res };
     if(!m_directories.empty())
     {
         const auto& dir = m_directories.front();
@@ -60,21 +64,6 @@ int SVSTiledScene::getNumChannels() const
     return dir.channels;
 }
 
-DataType SVSTiledScene::getChannelDataType(int) const
-{
-    return m_dataType;
-}
-
-Resolution SVSTiledScene::getResolution() const
-{
-    const auto& dir = m_directories[0];
-    return dir.res;
-}
-
-double SVSTiledScene::getMagnification() const
-{
-    return m_magnification;
-}
 
 void SVSTiledScene::readResampledBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize,
     const std::vector<int>& channelIndices, cv::OutputArray output)

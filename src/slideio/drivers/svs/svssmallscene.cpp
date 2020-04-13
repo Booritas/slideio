@@ -16,10 +16,8 @@ SVSSmallScene::SVSSmallScene(const std::string& filePath,
     const std::string& name,
     const TiffDirectory& dir,
     TIFF* hfile):
-        SVSScene(filePath, name),
-        m_directory(dir),
-        m_dataType(DataType::DT_Unknown),
-        m_hFile(hfile)
+        SVSScene(filePath, name, hfile),
+        m_directory(dir)
 {
     m_dataType = m_directory.dataType;
 
@@ -38,6 +36,8 @@ SVSSmallScene::SVSSmallScene(const std::string& filePath,
         }
     }
     m_magnification = SVSTools::extractMagnifiation(dir.description);
+    double res = SVSTools::extractResolution(dir.description);
+    m_resolution = { res, res };
     m_compression = m_directory.slideioCompression;
 }
 
@@ -52,22 +52,6 @@ int SVSSmallScene::getNumChannels() const
 {
     return m_directory.channels;
 }
-
-DataType SVSSmallScene::getChannelDataType(int ) const
-{
-    return m_dataType;
-}
-
-Resolution SVSSmallScene::getResolution() const
-{
-    return m_directory.res;
-}
-
-double SVSSmallScene::getMagnification() const
-{
-    return m_magnification;
-}
-
 
 void SVSSmallScene::readResampledBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize,
     const std::vector<int>& channelIndices, cv::OutputArray output)

@@ -6,6 +6,7 @@
 
 #include "slideio/slideio_def.hpp"
 #include "slideio/core/cvscene.hpp"
+#include "slideio/imagetools/tifftools.hpp"
 
 #if defined(_MSC_VER)
 #pragma warning( push )
@@ -17,10 +18,21 @@ namespace slideio
     class SLIDEIO_EXPORTS SVSScene : public CVScene
     {
     public:
-        SVSScene(const std::string& filePath, const std::string& name) :
+        /**
+         * \brief Constructor
+         * \param filePath: path to the slide file
+         * \param name: scene name
+         * \param hfile: tiff file handle of the slide
+         */
+        SVSScene(const std::string& filePath, const std::string& name, TIFF* hfile) :
             m_filePath(filePath),
             m_name(name),
-            m_compression(Compression::Unknown){
+            m_compression(Compression::Unknown),
+            m_resolution(0., 0.),
+            m_dataType(slideio::DataType::DT_Unknown),
+            m_magnification(0.),
+            m_hFile(hfile)
+        {
         }
         std::string getFilePath() const override {
             return m_filePath;
@@ -31,10 +43,23 @@ namespace slideio
         Compression getCompression() const override{
             return m_compression;
         }
+        slideio::Resolution getResolution() const override{
+            return m_resolution;
+        }
+        double getMagnification() const override{
+            return m_magnification;
+        }
+        DataType getChannelDataType(int) const{
+            return m_dataType;
+        }
     protected:
         std::string m_filePath;
         std::string m_name;
         Compression m_compression;
+        Resolution m_resolution;
+        double m_magnification;
+        slideio::DataType m_dataType;
+        TIFF* m_hFile;
     };
 }
 

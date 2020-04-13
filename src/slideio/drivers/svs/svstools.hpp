@@ -13,7 +13,10 @@ namespace slideio
     class SLIDEIO_EXPORTS SVSTools
     {
     public:
+        // Extracts magnification value from image information string
         static int extractMagnifiation(const std::string& description);
+        // Extracts resolution value from image information string
+        static double extractResolution(const std::string& description);
     };
 }
 
