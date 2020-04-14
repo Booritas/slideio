@@ -49,8 +49,17 @@ void slideio::TileComposer::composeRect(slideio::Tiler* tiler,
                 {
                     if(scaledBlockRaster.empty())
                     {
+                        const bool initialize = output.empty();
                         output.create(scaledBlockRect.height, scaledBlockRect.width, tileRaster.type());
                         scaledBlockRaster = output.getMat();
+                        if(initialize)
+                        {
+                            // We initialize the memory only
+                            // if we allocate it. Otherwise it is
+                            // responsibility of the caller to
+                            // initialize the buffer.
+                            scaledBlockRaster = cv::Scalar(0);
+                        }
                     }
                 }
             }

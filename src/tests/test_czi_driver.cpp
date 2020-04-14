@@ -366,20 +366,25 @@ TEST(CZIImageDriver, corruptedCZI)
 //TODO: CLEAR COMMENTED OUT TESTS
 //#include <opencv2/imgproc.hpp>
 //#include <opencv2/highgui.hpp>
-//
+
 //TEST(CZIImageDriver, readBlock3)
 //{
 //    slideio::CZIImageDriver driver;
-//    std::string filePath(R"(d:\Projects\slideio\slideio_extra_priv\testdata\cv\slideio\czi\jxr-rgb-1scene-large.czi)");
+//    std::string filePath(R"(d:\Projects\slideio\slideio_extra_priv\testdata\cv\slideio\czi\jxr-rgb-5scenes.czi)");
 //    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
 //    ASSERT_TRUE(slide!=nullptr);
 //    int numScenes = slide->getNumScenes();
-//    auto scene = slide->getScene(0);
+//    auto scene = slide->getScene(2);
 //    ASSERT_FALSE(scene == nullptr);
-//    cv::Rect blockRect = { 63000,18000,1000,500 };
+//    cv::Rect sceneRect = scene->getRect();
+//    double coef = 400. / sceneRect.width;
+//    int height = (int)std::round(coef * sceneRect.height);
+//    cv::Size size = { 400, height };
 //    cv::Mat raster;
-//    scene->readBlock(blockRect, raster);
-//    cv::namedWindow( "Display window", cv::WINDOW_AUTOSIZE );
-//    cv::imshow( "Display window", raster);
-//    cv::waitKey(0);
+//    sceneRect.x = sceneRect.y = 0;
+//    scene->readResampledBlock(sceneRect, size, raster);
+//    //cv::namedWindow( "Display window", cv::WINDOW_AUTOSIZE );
+//    //cv::imshow( "Display window", raster);
+//    //cv::waitKey(0);
+//    int a = 0;
 //}

@@ -100,6 +100,7 @@ void slideio::ImageTools::decodeJxrBlock(const uint8_t* data, size_t dataBlockSi
     int type = getCvType(info);
     output.create(info.height, info.width,CV_MAKETYPE(type, info.channels));
     cv::Mat mat = output.getMat();
+    mat.setTo(cv::Scalar(0));
     uint8_t* outputBuff = mat.data;
     uint32_t ouputBuffSize = (int)(mat.total() * mat.elemSize());
     jpegxr_decompress((uint8_t*)data, (uint32_t)dataBlockSize, outputBuff, ouputBuffSize);

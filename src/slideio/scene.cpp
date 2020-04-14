@@ -142,6 +142,7 @@ void Scene::readResampledBlockChannels(const std::tuple<int, int, int, int>& rec
         throw std::runtime_error("Supplied memory buffer is too small");
     }
     cv::Mat raster(blockSize.height, blockSize.width, CV_MAKETYPE(static_cast<int>(cvType), numChannels), buffer);
+    raster = cv::Scalar(0);
     m_scene->readResampledBlockChannels(blockRect, blockSize, channelIndices, raster);
 
     if(buffer!=raster.data)
