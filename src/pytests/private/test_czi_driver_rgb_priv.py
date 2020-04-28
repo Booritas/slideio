@@ -13,7 +13,8 @@ import unittest
 import cv2 as cv
 import numpy as np
 import slideio
-from privtestlib import get_priv_test_image_path as get_test_image_path
+from privtestlib import get_priv_test_image_path as get_test_image_path,\
+    get_priv_regression_image_path as get_regression_image_path
 
 
 class TestCziRgbPriv(unittest.TestCase):
@@ -29,23 +30,28 @@ class TestCziRgbPriv(unittest.TestCase):
         # Image to test
         image_path = get_test_image_path(
             "czi",
-            "jxr-rgb-1scene-large.czi"
+            "jxr-rgb-5scenes.czi"
             )
         # Reference channel images
         ref_image_paths = get_test_image_path(
             "czi",
-            "jxr-rgb-1scene-large/region.png"
+            "jxr-rgb-5scenes/jxr-rgb-5scenes_s3_x2500_y3000_w400_h600.png"
             )
         slide = slideio.open_slide(image_path, "CZI")
         self.assertTrue(slide is not None)
-        scene = slide.get_scene(0)
+        scene = slide.get_scene(3)
         self.assertTrue(scene is not None)
         image_raster = scene.read_block(
-            (63000, 18000, 1000, 500),
-            channel_indices=[2, 1, 0]
+            (2500, 3000, 400, 600)
             )
-        reference_raster = cv.imread(ref_image_paths)
-        self.assertTrue(np.array_equal(image_raster, reference_raster))
+        reference_raster = cv.imread(ref_image_paths,
+                                     cv.IMREAD_UNCHANGED)
+        scores_cf = cv.matchTemplate(
+            reference_raster,
+            image_raster,
+            cv.TM_CCOEFF_NORMED
+            )[0][0]
+        self.assertLess(0.99, scores_cf)
 
     def test_jpegxr_rgb_resample_block(self):
         """
@@ -57,50 +63,42 @@ class TestCziRgbPriv(unittest.TestCase):
         # Image to test
         image_path = get_test_image_path(
             "czi",
-            "jxr-rgb-1scene-large.czi"
+            "jxr-rgb-5scenes.czi"
             )
         # Reference channel images
         ref_image_paths = get_test_image_path(
             "czi",
-            "jxr-rgb-1scene-large/region.png"
+            "jxr-rgb-5scenes/jxr-rgb-5scenes_s3_x2500_y3000_w400_h600.png"
             )
+
         scaling_params = {
-            1.0: (0.9999, 1.e-7),
-            1.5: (0.98, 0.005),
-            2.0: (0.92, 0.03),
-            3.0: (0.90, 0.035),
-            5.0: (0.86, 0.05)
+            1.0: 0.99,
+            1.5: 0.94,
+            2.0: 0.92,
+            3.0: 0.85
             }
 
         reference_image = cv.imread(ref_image_paths)
         slide = slideio.open_slide(image_path, "CZI")
-        scene = slide.get_scene(0)
+        scene = slide.get_scene(3)
         # check accuracy of resizing for different scale coeeficients
-        for resize_cof, params in scaling_params.items():
+        for resize_cof, thresh in scaling_params.items():
             new_size = (
                 int(round(reference_image.shape[1]/resize_cof)),
                 int(round(reference_image.shape[0]//resize_cof))
                 )
             reference_raster = cv.resize(reference_image, new_size)
             image_raster = scene.read_block(
-                (63000, 18000, 1000, 500),
+                (2500, 3000, 400, 600),
                 size=new_size,
-                channel_indices=[2, 1, 0]
+                channel_indices=[0, 1, 2]
                 )
             scores_cf = cv.matchTemplate(
                 reference_raster,
                 image_raster,
                 cv.TM_CCOEFF_NORMED
                 )[0][0]
-
-            scores_sq = cv.matchTemplate(
-                reference_raster,
-                image_raster,
-                cv.TM_SQDIFF_NORMED
-                )[0][0]
-            print(resize_cof, scores_cf, scores_sq)
-            self.assertLess(params[0], scores_cf)
-            self.assertLess(scores_sq, params[1])
+            self.assertLess(thresh, scores_cf)
 
     def test_jpegxr_rgb_regression(self):
         """
@@ -111,27 +109,38 @@ class TestCziRgbPriv(unittest.TestCase):
         is obtained by reading of the same region
         by the slideo and saving it as png file.
         """
+        image_name = "jxr-rgb-5scenes.czi"
+        folder = "czi"
+        driver = "CZI"
+        ext = ".png"
         # Image to test
         image_path = get_test_image_path(
-            "czi",
-            "jxr-rgb-1scene-large.czi"
+            folder,
+            image_name
             )
-        # Reference channel images
-        ref_image_path = get_test_image_path(
-            "czi",
-            "jxr-rgb-1scene-large/regression_x63000_y18000_w1000_h500.png"
-            )
+        rect = (4000, 2000, 1000, 800)
+        new_size = (250, 200)
+        scene_index = 2
+        # export_image_region(folder,
+        #                    image_name, driver, scene_index,
+        #                    rect, new_size, ext
+        #                    )
+        slide = slideio.open_slide(image_path, driver)
+        scene = slide.get_scene(scene_index)
 
-        reference_image = cv.imread(ref_image_path)
-        new_size = (reference_image.shape[1], reference_image.shape[0])
-        slide = slideio.open_slide(image_path, "CZI")
-        scene = slide.get_scene(0)
-        # check accuracy of resizing for different scale coeeficients
-        image_raster = scene.read_block(
-            (63000, 18000, 1000, 500),
-            size=new_size
-            )
-        self.assertTrue(np.array_equal(image_raster, reference_image))
+        for channel_index in range(scene.num_channels):
+            image_raster = scene.read_block(
+                rect,
+                new_size,
+                channel_indices=[channel_index]
+                )
+            regr_image_path = get_regression_image_path(
+                folder, image_name, scene_index, channel_index,
+                rect, ext
+                )
+            reference_image = cv.imread(regr_image_path,
+                                        cv.IMREAD_UNCHANGED)
+            self.assertTrue(np.array_equal(image_raster, reference_image))
 
     def test_jpegxr_rgb_regression_small(self):
         """
