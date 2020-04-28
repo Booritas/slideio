@@ -32,6 +32,9 @@ int slideio::cvGetDataTypeSize(DataType dt)
     case DataType::DT_Float32: return 4;
     case DataType::DT_Float64: return 8;
     case DataType::DT_UInt16: return 2;
+    case DataType::DT_Unknown:
+    case DataType::DT_None:
+    break;
     }
     throw std::runtime_error("Unsupported data type.");
 }
