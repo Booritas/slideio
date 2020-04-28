@@ -8,6 +8,10 @@ git clone https://booritas@bitbucket.org/bioslide/slideio.git
 ```
 git clone https://booritas@bitbucket.org/bioslide/slideio_extra.git
 ```
+#### Add slideio conan repository to your remotes
+```
+conan remote add slideio https://api.bintray.com/conan/booritas/slideio
+```
 ### Windows
 #### Requirements:
 - Visual Studio 2019, Community edition
@@ -51,7 +55,7 @@ For build for Linux you can use docker containers. Following containers are prep
 - Manylinux2010: booritas/slideio-manylinux2010:latest . This image is used for praparing of python distributives.
  
 The docker images have everything needed preinstalled.
-For manual installation following software is required:
+For a manual installation the following software is required:
 - clang compiler v.9
 - python 3.5 or later with packages:
 - - conan package manager version 1.20 or later

@@ -49,7 +49,7 @@ namespace slideio
         double getMagnification() const override{
             return m_magnification;
         }
-        DataType getChannelDataType(int) const{
+        DataType getChannelDataType(int) const override{
             return m_dataType;
         }
     protected:

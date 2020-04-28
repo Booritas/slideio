@@ -29,7 +29,7 @@ namespace slideio
              pattern += ext;
           }
           m_path = boost::filesystem::temp_directory_path();
-          m_path += boost::filesystem::unique_path(pattern);
+          m_path /= boost::filesystem::unique_path(pattern);
        }
        const boost::filesystem::path& getPath() const{
 		    return m_path;
