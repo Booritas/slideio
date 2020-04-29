@@ -15,7 +15,7 @@ conan remote add slideio https://api.bintray.com/conan/booritas/slideio
 ### Windows
 #### Requirements:
 - Visual Studio 2019, Community edition
-- cmake version 3.2 or later
+- cmake version 3.14 or later
 - python 3.5 or later with packages:
 - - conan package manager version 1.20 or later
 - - numpy
@@ -47,7 +47,6 @@ ctest
 ```
 twine upload *
 ```
-
 ### Linux
 #### Requirements:
 For build for Linux you can use docker containers. Following containers are prepared for the project:
@@ -57,6 +56,7 @@ For build for Linux you can use docker containers. Following containers are prep
 The docker images have everything needed preinstalled.
 For a manual installation the following software is required:
 - clang compiler v.9
+- cmake version 3.14 or later
 - python 3.5 or later with packages:
 - - conan package manager version 1.20 or later
 - - numpy
