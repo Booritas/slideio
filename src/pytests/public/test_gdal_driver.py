@@ -25,7 +25,7 @@ class TestGDAL(unittest.TestCase):
     def test_3chnl_png_metadata(self):
         """Opens 3 channel png file and checks metadata."""
         image_path = get_test_image_path(
-            "GDAL",
+            "gdal",
             "img_2448x2448_3x8bit_SRC_RGB_ducks.png"
             )
         slide = slideio.open_slide(image_path, "GDAL")
@@ -54,7 +54,7 @@ class TestGDAL(unittest.TestCase):
     def test_1chnl_png_metadata(self):
         """Opens 3 channel png file and checks metadata."""
         image_path = get_test_image_path(
-            "GDAL",
+            "gdal",
             "img_2448x2448_1x8bit_SRC_GRAY_ducks.png"
             )
         slide = slideio.open_slide(image_path, "GDAL")
@@ -83,7 +83,7 @@ class TestGDAL(unittest.TestCase):
     def test_3chnl_png16b_metadata(self):
         """Opens 3 channel 16 bit png file and checks metadata."""
         image_path = get_test_image_path(
-            "GDAL",
+            "gdal",
             "img_2448x2448_3x16bit_SRC_RGB_ducks.png"
             )
         slide = slideio.open_slide(image_path, "GDAL")
@@ -112,7 +112,7 @@ class TestGDAL(unittest.TestCase):
     def test_3chnl_jpeg_metadata(self):
         """Opens 3 channel jpeg file and checks metadata."""
         image_path = get_test_image_path(
-            "GDAL",
+            "gdal",
             "Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg"
             )
         slide = slideio.open_slide(image_path, "GDAL")
@@ -147,7 +147,7 @@ class TestGDAL(unittest.TestCase):
         specific rectangles
         """
         image_path = get_test_image_path(
-            "GDAL",
+            "gdal",
             "img_1024x600_3x8bit_RGB_color_bars_CMYKWRGB.png"
             )
         slide = slideio.open_slide(image_path, "GDAL")
@@ -178,7 +178,7 @@ class TestGDAL(unittest.TestCase):
         specific rectangles
         """
         image_path = get_test_image_path(
-            "GDAL",
+            "gdal",
             "img_1024x600_3x8bit_RGB_color_bars_CMYKWRGB.png"
             )
         slide = slideio.open_slide(image_path, "GDAL")
