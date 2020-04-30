@@ -57,7 +57,9 @@ The docker images have everything needed preinstalled.
 For a manual installation the following software is required:
 - clang compiler v.9
 - cmake version 3.14 or later
-- python 3.5 or later with packages:
+- python 3.5 or later
+- python dev
+- python packages:
 - - conan package manager version 1.20 or later
 - - numpy
 - - twine
