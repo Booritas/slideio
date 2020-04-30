@@ -45,20 +45,22 @@ class TestCzi16bPriv(unittest.TestCase):
             czi.imread(image_path)[0, 0, 0, :, :, :, 0],
             (1, 2, 0)
             )
-        # call structural difference score
-        scores_cf = cv.matchTemplate(
-            reference_raster.astype(np.float32),
-            image_raster.astype(np.float32),
-            cv.TM_CCOEFF_NORMED
-            )[0][0]
+        image_raster = image_raster[:, :, 0]
+        reference_raster = reference_raster[:, :, 0]
         # calculate square normed errors
         scores_sq = cv.matchTemplate(
             reference_raster.astype(np.float32),
             image_raster.astype(np.float32),
             cv.TM_SQDIFF_NORMED
             )[0][0]
+        # call structural difference score
+        scores_cf = cv.matchTemplate(
+            reference_raster.astype(np.float32),
+            image_raster.astype(np.float32),
+            cv.TM_CCOEFF_NORMED
+            )[0][0]
         self.assertLess(0.99, scores_cf)
-        self.assertLess(scores_sq, 0.0002)
+        self.assertLess(scores_sq, 0.002)
 
     def test_jpegxr_16b_resample_block(self):
         """
