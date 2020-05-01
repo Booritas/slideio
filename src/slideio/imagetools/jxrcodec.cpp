@@ -96,7 +96,7 @@ void slideio::ImageTools::readJxrImage(const std::string& path, cv::OutputArray 
 void slideio::ImageTools::decodeJxrBlock(const uint8_t* data, size_t dataBlockSize, cv::OutputArray output)
 {
     jpegxr_image_info info;
-    jpegxr_get_image_info((uint8_t*)data, dataBlockSize, info);
+    jpegxr_get_image_info((uint8_t*)data, (uint32_t)dataBlockSize, info);
     int type = getCvType(info);
     output.create(info.height, info.width,CV_MAKETYPE(type, info.channels));
     cv::Mat mat = output.getMat();
