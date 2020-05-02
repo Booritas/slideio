@@ -13,9 +13,8 @@ using namespace slideio;
 SVSTiledScene::SVSTiledScene(
     const std::string& filePath,
     const std::string& name,
-    std::vector<TiffDirectory> dirs,
-    TIFF* hfile):
-    slideio::SVSScene(filePath, name, hfile),
+    std::vector<TiffDirectory> dirs):
+    slideio::SVSScene(filePath, name),
         m_directories(dirs)
 
 {
@@ -68,7 +67,8 @@ int SVSTiledScene::getNumChannels() const
 void SVSTiledScene::readResampledBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize,
     const std::vector<int>& channelIndices, cv::OutputArray output)
 {
-    if (m_hFile == nullptr)
+    auto hFile = getFileHandle();
+    if (hFile == nullptr)
         throw std::runtime_error("SVSDriver: Invalid file header by raster reading operation");
     double zoomX = static_cast<double>(blockSize.width) / static_cast<double>(blockRect.width);
     double zoomY = static_cast<double>(blockSize.height) / static_cast<double>(blockRect.height);
@@ -118,7 +118,7 @@ bool SVSTiledScene::readTile(int tileIndex, const std::vector<int>& channelIndic
     void* userData)
 {
     const TiffDirectory* dir = (const TiffDirectory*)userData;
-    TiffTools::readTile(m_hFile, *dir, tileIndex, channelIndices, tileRaster);
+    TiffTools::readTile(getFileHandle(), *dir, tileIndex, channelIndices, tileRaster);
     return true;
 }
 

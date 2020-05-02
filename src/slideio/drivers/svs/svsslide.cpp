@@ -48,7 +48,8 @@ std::shared_ptr<SVSSlide> SVSSlide::openFile(const std::string& filePath)
     tiff = TIFFOpen(filePath.c_str(), "r");
     if(!tiff)
         return slide;
-    
+    TIFFKeeper keeper(tiff);
+
     TiffTools::scanFile(tiff, directories);
     std::vector<int> image;
     int thumbnail(-1), macro(-1), label(-1);
@@ -84,26 +85,26 @@ std::shared_ptr<SVSSlide> SVSSlide::openFile(const std::string& filePath)
         for(const auto index: image){
             image_dirs.push_back(directories[index]);
         }
-        std::shared_ptr<CVScene> scene(new SVSTiledScene(filePath,"Image",
-            image_dirs, tiff));
+        std::shared_ptr<CVScene> scene = std::make_shared<SVSTiledScene>(
+            filePath,"Image", image_dirs);
         scenes.push_back(scene);
     }
     if(thumbnail>=0)
     {
-        std::shared_ptr<CVScene> scene(new SVSSmallScene(filePath,"Thumbnail",
-            directories[thumbnail], tiff));
+        std::shared_ptr<CVScene> scene = std::make_shared <SVSSmallScene>(
+            filePath,"Thumbnail", directories[thumbnail], tiff);
         scenes.push_back(scene);
     }
     if(label>=0)
     {
-        std::shared_ptr<CVScene> scene(new SVSSmallScene(filePath,"Label",
-            directories[label], tiff));
+        std::shared_ptr<CVScene> scene = std::make_shared <SVSSmallScene>(
+            filePath,"Label", directories[label], tiff);
         scenes.push_back(scene);
     }
     if(macro>=0)
     {
-        std::shared_ptr<CVScene> scene(new SVSSmallScene(filePath,"Macro",
-            directories[macro], tiff));
+        std::shared_ptr<CVScene> scene = std::make_shared <SVSSmallScene>(
+            filePath,"Macro", directories[macro], tiff);
         scenes.push_back(scene);
     }
     slide.reset(new SVSSlide);

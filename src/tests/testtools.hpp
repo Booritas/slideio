@@ -7,7 +7,8 @@
 class TestTools
 {
 public:
-	static std::string getTestImageDirectory();
-	static std::string getTestImagePath(const std::string& subfolder, const std::string& image);
+	static bool isPrivateTestEnabled();
+	static std::string getTestImageDirectory(bool priv=false);
+	static std::string getTestImagePath(const std::string& subfolder, const std::string& image, bool priv=false);
 };
 

@@ -15,9 +15,8 @@ using namespace slideio;
 SVSSmallScene::SVSSmallScene(const std::string& filePath,
     const std::string& name,
     const TiffDirectory& dir,
-    TIFF* hfile,
     bool auxiliary):
-        SVSScene(filePath, name, hfile),
+        SVSScene(filePath, name),
         m_directory(dir)
 {
     m_dataType = m_directory.dataType;
@@ -60,18 +59,20 @@ int SVSSmallScene::getNumChannels() const
 void SVSSmallScene::readResampledBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize,
     const std::vector<int>& channelIndices, cv::OutputArray output)
 {
-    if (m_hFile == nullptr)
+    auto hFile = getFileHandle();
+
+    if (hFile == nullptr)
         throw std::runtime_error("SVSDriver: Invalid file header by raster reading operation");
 
     cv::Mat wholeDirRaster;
     if(channelIndices.empty())
     {
-        TiffTools::readStripedDir(m_hFile, m_directory, wholeDirRaster);
+        TiffTools::readStripedDir(hFile, m_directory, wholeDirRaster);
     }
     else
     {
         cv::Mat dirRaster;
-        TiffTools::readStripedDir(m_hFile, m_directory, dirRaster);
+        TiffTools::readStripedDir(hFile, m_directory, dirRaster);
         if(channelIndices.size()==1)
         {
             cv::extractChannel(dirRaster, wholeDirRaster, channelIndices[0]);

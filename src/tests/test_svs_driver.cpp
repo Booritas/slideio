@@ -171,7 +171,9 @@ TEST(SVSImageDriver, findZoomDirectory)
         scale *= 2;
         index++;
     }
-    slideio::SVSTiledScene scene("path", "name", dirs, nullptr);
+
+    std::string fake_path = TestTools::getTestImagePath("svs", "CMU-1-Small-Region.svs");
+    slideio::SVSTiledScene scene(fake_path, "fake_name", dirs);
     auto& lastDir = dirs[dirs.size()-1];
     const cv::Rect sceneRect = scene.getRect();
     double lastZoom = static_cast<double>(lastDir.width) / static_cast<double>(sceneRect.width);
@@ -371,4 +373,19 @@ TEST(SVSImageDriver, imageResolution)
     slideio::Resolution res = scene->getResolution();
     EXPECT_DOUBLE_EQ(res.x, 0.4990e-6);
     EXPECT_DOUBLE_EQ(res.y, 0.4990e-6);
+}
+
+TEST(SVSImageDriver, imageResolutionPrivate)
+{
+    if(!TestTools::isPrivateTestEnabled())
+    {
+        GTEST_SKIP() << "Skip private test because private dataset is not enabled";
+    }
+    slideio::SVSImageDriver driver;
+    std::string filePath = TestTools::getTestImagePath("svs", "jp2k_3chnl_8bit.svs", true);
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
+    slideio::Resolution res = scene->getResolution();
+    EXPECT_DOUBLE_EQ(res.x, 0.23250e-6);
+    EXPECT_DOUBLE_EQ(res.y, 0.23250e-6);
 }

@@ -359,8 +359,9 @@ void slideio::TiffTools::readRegularTile(TIFF* hFile, const slideio::TiffDirecto
     }
 }
 
+
 void slideio::TiffTools::readJ2KTile(TIFF* hFile, const slideio::TiffDirectory& dir, int tile,
-            const std::vector<int>& channelIndices, cv::OutputArray output)
+                                     const std::vector<int>& channelIndices, cv::OutputArray output)
 {
     const auto tileSize = TIFFTileSize(hFile);
     std::vector<uint8_t> rawTile(tileSize);
@@ -403,4 +404,17 @@ void slideio::TiffTools::setCurrentDirectory(TIFF* hFile, const slideio::TiffDir
         }
     }
 }
+
+
+TIFFKeeper::TIFFKeeper(TIFF* hfile) : m_hFile(hfile)
+{
+}
+
+
+TIFFKeeper::~TIFFKeeper()
+{
+    if (m_hFile)
+        TIFFClose(m_hFile);
+}
+
 
