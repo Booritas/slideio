@@ -13,11 +13,10 @@ SVSScene::SVSScene(const std::string& filePath, const std::string& name):
     m_compression(Compression::Unknown),
     m_resolution(0., 0.),
     m_dataType(slideio::DataType::DT_Unknown),
-    m_magnification(0.),
-    m_hFile(nullptr)
+    m_magnification(0.)
 {
-    m_hFile = TIFFOpen(filePath.c_str(), "r");
-    if (!m_hFile)
+    m_tiffKeeper = TIFFOpen(filePath.c_str(), "r");
+    if (!m_tiffKeeper.isValid())
     {
         throw std::runtime_error(std::string("SVSImageDriver: Cannot open file:") + filePath);
     }
@@ -25,6 +24,4 @@ SVSScene::SVSScene(const std::string& filePath, const std::string& name):
 
 SVSScene::~SVSScene()
 {
-    if (m_hFile)
-        TIFFClose(m_hFile);
 }
