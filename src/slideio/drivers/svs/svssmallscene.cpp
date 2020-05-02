@@ -15,9 +15,8 @@ using namespace slideio;
 SVSSmallScene::SVSSmallScene(const std::string& filePath,
     const std::string& name,
     const TiffDirectory& dir,
-    TIFF* hfile,
     bool auxiliary):
-        SVSScene(filePath, name, hfile),
+        SVSScene(filePath, name),
         m_directory(dir)
 {
     m_dataType = m_directory.dataType;

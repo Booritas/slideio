@@ -58,6 +58,15 @@ namespace slideio
         static void readRegularTile(TIFF* hFile, const slideio::TiffDirectory& dir, int tile,
             const std::vector<int>& channelIndices, cv::OutputArray output);
     };
+
+    class TIFFKeeper
+    {
+    public:
+        TIFFKeeper(TIFF* hfile);
+
+        ~TIFFKeeper();
+        TIFF* m_hFile;
+    };
 }
 
 #endif

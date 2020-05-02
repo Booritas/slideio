@@ -24,16 +24,10 @@ namespace slideio
          * \param name: scene name
          * \param hfile: tiff file handle of the slide
          */
-        SVSScene(const std::string& filePath, const std::string& name, TIFF* hfile) :
-            m_filePath(filePath),
-            m_name(name),
-            m_compression(Compression::Unknown),
-            m_resolution(0., 0.),
-            m_dataType(slideio::DataType::DT_Unknown),
-            m_magnification(0.),
-            m_hFile(hfile)
-        {
-        }
+        SVSScene(const std::string& filePath, const std::string& name);
+
+        virtual ~SVSScene();
+
         std::string getFilePath() const override {
             return m_filePath;
         }

@@ -20,8 +20,7 @@ namespace slideio
     public:
         SVSTiledScene(const std::string& filePath,
             const std::string& name,
-            std::vector<slideio::TiffDirectory> dirs,
-            TIFF* tiff);
+            std::vector<slideio::TiffDirectory> dirs);
         int getNumChannels() const override;
         cv::Rect getRect() const override;
         void readResampledBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize, const std::vector<int>& channelIndices,

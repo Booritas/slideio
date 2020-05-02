@@ -22,7 +22,6 @@ namespace slideio
             const std::string& filePath,
             const std::string& name,
             const slideio::TiffDirectory& dir,
-            TIFF* hfile,
             bool auxiliary=true);
         cv::Rect getRect() const override;
         int getNumChannels() const override;

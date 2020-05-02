@@ -48,7 +48,8 @@ std::shared_ptr<SVSSlide> SVSSlide::openFile(const std::string& filePath)
     tiff = TIFFOpen(filePath.c_str(), "r");
     if(!tiff)
         return slide;
-    
+    TIFFKeeper keeper(tiff);
+
     TiffTools::scanFile(tiff, directories);
     std::vector<int> image;
     int thumbnail(-1), macro(-1), label(-1);
@@ -84,8 +85,7 @@ std::shared_ptr<SVSSlide> SVSSlide::openFile(const std::string& filePath)
         for(const auto index: image){
             image_dirs.push_back(directories[index]);
         }
-        std::shared_ptr<CVScene> scene(new SVSTiledScene(filePath,"Image",
-            image_dirs, tiff));
+        std::shared_ptr<CVScene> scene(new SVSTiledScene(filePath,"Image", image_dirs));
         scenes.push_back(scene);
     }
     if(thumbnail>=0)

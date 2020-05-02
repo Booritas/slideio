@@ -13,9 +13,8 @@ using namespace slideio;
 SVSTiledScene::SVSTiledScene(
     const std::string& filePath,
     const std::string& name,
-    std::vector<TiffDirectory> dirs,
-    TIFF* hfile):
-    slideio::SVSScene(filePath, name, hfile),
+    std::vector<TiffDirectory> dirs):
+    slideio::SVSScene(filePath, name),
         m_directories(dirs)
 
 {
