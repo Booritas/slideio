@@ -32,7 +32,7 @@ std::string SVSSlide::getFilePath() const
 std::shared_ptr<CVScene> SVSSlide::getScene(int index) const
 {
     if(index>=getNumScenes())
-        throw std::runtime_error("SVS driver: invalide m_scene index");
+        throw std::runtime_error("SVS driver: invalid m_scene index");
     return m_Scenes[index];
 }
 

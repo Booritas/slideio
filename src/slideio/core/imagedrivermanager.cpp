@@ -2,6 +2,7 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/core/imagedrivermanager.hpp"
+#include "slideio/drivers/afi/afiimagedriver.hpp"
 #include "slideio/drivers/gdal/gdalimagedriver.hpp"
 #include "slideio/drivers/svs/svsimagedriver.hpp"
 #include "slideio/drivers/czi/cziimagedriver.hpp"
@@ -44,6 +45,10 @@ void ImageDriverManager::initialize()
         }
         {
             std::shared_ptr<ImageDriver> driver(new CZIImageDriver);
+            driverMap[driver->getID()] = driver;
+        }
+        {
+            std::shared_ptr<ImageDriver> driver{ std::make_shared<AFIImageDriver>() };
             driverMap[driver->getID()] = driver;
         }
     }
