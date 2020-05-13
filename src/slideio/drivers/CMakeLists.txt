@@ -1,3 +1,4 @@
+add_subdirectory(afi)
 add_subdirectory(czi)
 add_subdirectory(gdal)
 add_subdirectory(svs)

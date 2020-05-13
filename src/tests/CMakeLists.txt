@@ -8,6 +8,7 @@ set(TEST_SOURCES
    test_czi_driver.cpp
    test_gdal_driver.cpp
    test_imagetools.cpp
+   test_afi_driver.cpp
    test_svs_driver.cpp
    test_svs_tools.cpp
    test_tifftools.cpp
