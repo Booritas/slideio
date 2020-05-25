@@ -1,0 +1,53 @@
+services:
+    - docker
+stages:
+    - build
+    - test
+python-manylinux:
+    image: booritas/slideio-manylinux2010:latest
+    stage: build
+    script:
+        - python3 ./install.py -a conan
+        - cd src/pybind
+        - bash ./install.sh
+        - cd ../..
+        - cp -r src/pybind/wheelhouse .
+    artifacts:
+        paths:
+            - ./wheelhouse
+cpp-ubuntu:
+    image: booritas/slideio-ubuntu-clang-9:latest
+    stage: build
+    script:
+        - python ./install.py -a build
+        - mkdir ./bin
+        - mkdir ./bin/release
+        - mkdir ./bin/debug
+        - cp build/release/bin/* ./bin/release
+        - cp build/debug/bin/* ./bin/debug
+    artifacts:
+        paths:
+            - ./bin
+cpp-test:
+    image: booritas/slideio-ubuntu-clang-9:latest
+    stage: test
+    script:
+        - git clone https://gitlab+deploy-token-168011:_4qq46H6PBb6hxEGFzBE@gitlab.com/bioslide/slideio_extra.git slideio_extra
+        - export SLIDEIO_TEST_DATA_PATH=/builds/bioslide/slideio/slideio_extra/testdata/cv/slideio
+        - cd ./bin/release
+        - ls -l
+        - ./slideio_tests
+            
+pytest:
+    image: booritas/slideio-pytest:latest
+    stage: test
+    script:
+        - ls -l
+        - git clone https://gitlab+deploy-token-168011:_4qq46H6PBb6hxEGFzBE@gitlab.com/bioslide/slideio_extra.git slideio_extra
+        - export SLIDEIO_TEST_DATA_PATH=/builds/bioslide/slideio/slideio_extra/testdata/cv/slideio
+        - conda init bash
+        - source ~/.bashrc
+        - conda activate slideio
+        - find ./wheelhouse -name *cp38*.whl -exec pip install {} \;
+        - cd /builds/bioslide/slideio/src/pytests/public
+        - python -m unittest --verbose

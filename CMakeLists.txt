@@ -5,6 +5,7 @@ set(PROJECT_NAME slide_io)
 set(projectVersion 0.0.1)
 set(INCLUDE_ROOT ${CMAKE_SOURCE_DIR}/src)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+set(CMAKE_BUILD_RPATH_USE_ORIGIN 1)
 
 project(${PROJECT_NAME} VERSION ${projectVersion} LANGUAGES C CXX)
 

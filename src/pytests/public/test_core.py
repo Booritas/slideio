@@ -9,14 +9,14 @@ from testlib import get_test_image_path
 class TestCore(unittest.TestCase):
     """Tests for core functionality of the slideio module."""
 
-    def test_driver_list(self):
+    def test_core_driver_list(self):
         """The test checks if all drivers are available."""
         driver_ids = slideio.get_driver_ids()
         self.assertTrue("SVS" in driver_ids)
         self.assertTrue("GDAL" in driver_ids)
         self.assertTrue("CZI" in driver_ids)
 
-    def test_not_existing_driver(self):
+    def test_core_not_existing_driver(self):
         """
         Test for calling of not-existing driver.
 
