@@ -11,7 +11,7 @@ from setuptools.command.build_ext import build_ext
 from distutils.version import LooseVersion
 from ctypes.util import find_library
 
-version = '0.2.0.'
+version = '0.3.0.'
 if os.environ.get('CI_PIPELINE_IID'):
     version = version + os.environ['CI_PIPELINE_IID']
 else:
