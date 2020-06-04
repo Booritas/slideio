@@ -1,8 +1,18 @@
 services:
     - docker
+variables:
+    SLIDEIO_VERSION: "0.2.0"
+    LINUX_ARTIFACT_DIR: "linux"
+    LINUX_PY_ARTIFACT_DIR: "linux-py"
+    WINDOWS_ARTIFACT_DIR: "win"
+    WINDOWS_PY_ARTIFACT_DIR: "win-py"
+    PY_ARTIFACT_DIR: "python-wheels"
 stages:
     - build
     - test
+    - collect
+    - deployment
+
 python-manylinux:
     image: booritas/slideio-manylinux2010:latest
     stage: build
@@ -11,34 +21,35 @@ python-manylinux:
         - cd src/pybind
         - bash ./install.sh
         - cd ../..
-        - cp -r src/pybind/wheelhouse .
+        - mkdir ./${LINUX_PY_ARTIFACT_DIR}
+        - cp src/pybind/wheelhouse/* ./${LINUX_PY_ARTIFACT_DIR}
     artifacts:
         paths:
-            - ./wheelhouse
+            - ./${LINUX_PY_ARTIFACT_DIR}
 cpp-ubuntu:
     image: booritas/slideio-ubuntu-clang-9:latest
     stage: build
     script:
         - python ./install.py -a build
-        - mkdir ./bin
-        - mkdir ./bin/release
-        - mkdir ./bin/debug
-        - cp build/release/bin/* ./bin/release
-        - cp build/debug/bin/* ./bin/debug
+        - mkdir ./${LINUX_ARTIFACT_DIR}
+        - mkdir ./${LINUX_ARTIFACT_DIR}/release
+        - mkdir ./${LINUX_ARTIFACT_DIR}/debug
+        - cp build/release/bin/* ./${LINUX_ARTIFACT_DIR}/release
+        - cp build/debug/bin/* ./${LINUX_ARTIFACT_DIR}/debug
     artifacts:
         paths:
-            - ./bin
-cpp-test:
+            - ./${LINUX_ARTIFACT_DIR}
+
+cpp-test-ubuntu:
     image: booritas/slideio-ubuntu-clang-9:latest
     stage: test
     script:
         - git clone https://gitlab+deploy-token-168011:_4qq46H6PBb6hxEGFzBE@gitlab.com/bioslide/slideio_extra.git slideio_extra
         - export SLIDEIO_TEST_DATA_PATH=/builds/bioslide/slideio/slideio_extra/testdata/cv/slideio
-        - cd ./bin/release
-        - ls -l
+        - cd ./${LINUX_ARTIFACT_DIR}/release
         - ./slideio_tests
             
-pytest:
+python-test-ubuntu:
     image: booritas/slideio-pytest:latest
     stage: test
     script:
@@ -48,6 +59,92 @@ pytest:
         - conda init bash
         - source ~/.bashrc
         - conda activate slideio
-        - find ./wheelhouse -name *cp38*.whl -exec pip install {} \;
+        - find ./${LINUX_PY_ARTIFACT_DIR} -name *cp38*.whl -exec pip install {} \;
         - cd /builds/bioslide/slideio/src/pytests/public
         - python -m unittest --verbose
+
+cpp-windows:
+    stage: build
+    tags:
+        - win-build
+    script:
+        - python install.py -a build
+        - mkdir ${WINDOWS_ARTIFACT_DIR}
+        - mkdir ./${WINDOWS_ARTIFACT_DIR}/release
+        - mkdir ./${WINDOWS_ARTIFACT_DIR}/debug
+        - cp ./build/bin/Release/* ./${WINDOWS_ARTIFACT_DIR}/release
+        - cp ./build/bin/Debug/* ./${WINDOWS_ARTIFACT_DIR}/debug
+    artifacts:
+        paths:
+            - ./${WINDOWS_ARTIFACT_DIR}
+
+python-windows:
+    stage: build
+    tags:
+        - win-build
+    script:
+        - python ./install.py -a conan
+        - cd src/pybind
+        - ./install.ps1
+        - cd ../..
+        - mkdir ./${WINDOWS_PY_ARTIFACT_DIR}
+        - cp -r src/pybind/dist/* ./${WINDOWS_PY_ARTIFACT_DIR}
+    artifacts:
+        paths:
+            - ./${WINDOWS_PY_ARTIFACT_DIR}
+
+cpp-test-windows:
+    stage: test
+    tags:
+        - win-build
+    variables:
+        GIT_STRATEGY: none
+        SLIDEIO_TEST_DATA_PATH: "${CI_PROJECT_DIR}/slideio_extra/testdata/cv/slideio"
+    script:
+        - git clone https://gitlab+deploy-token-168011:_4qq46H6PBb6hxEGFzBE@gitlab.com/bioslide/slideio_extra.git slideio_extra
+        - echo ${SLIDEIO_TEST_DATA_PATH}
+        - echo ${CI_PROJECT_DIR}
+        - cd ./${WINDOWS_ARTIFACT_DIR}/release
+        - ./slideio_tests.exe
+
+python-test-windows:
+    stage: test
+    tags:
+        - win-build
+    variables:
+        GIT_STRATEGY: fetch
+        SLIDEIO_TEST_DATA_PATH: "${CI_PROJECT_DIR}/slideio_extra/testdata/cv/slideio"
+        WHL_PACKAGE: "slideio-${SLIDEIO_VERSION}.${CI_PIPELINE_IID}-cp37-cp37m-win_amd64.whl"
+    script:
+        - git clone https://gitlab+deploy-token-168011:_4qq46H6PBb6hxEGFzBE@gitlab.com/bioslide/slideio_extra.git slideio_extra
+        - echo ${SLIDEIO_TEST_DATA_PATH}
+        - echo ${WHL_PACKAGE}
+        - python -m pip install ./${WINDOWS_PY_ARTIFACT_DIR}/${WHL_PACKAGE}
+        - cd src/pytests/public
+        - python -m unittest --verbose
+
+collect:
+    stage: collect
+    variables:
+        GIT_STRATEGY: none
+    script:
+        - mkdir ./${PY_ARTIFACT_DIR}
+        - cp ./${LINUX_PY_ARTIFACT_DIR}/* ./${PY_ARTIFACT_DIR}
+        - cp ./${WINDOWS_PY_ARTIFACT_DIR}/* ./${PY_ARTIFACT_DIR}
+    artifacts:
+        paths:
+            - ./${PY_ARTIFACT_DIR}
+            
+deployment:
+    image: booritas/slideio-pytest:latest
+    stage: deployment
+    variables:
+        GIT_STRATEGY: none
+    script:
+        - conda init bash
+        - source ~/.bashrc
+        - conda activate slideio
+        - python -m pip install twine
+        - cd  ./${PY_ARTIFACT_DIR}
+        - twine upload *.whl -u booritas -p "$TWINE_PASSWORD"
+    when: manual
