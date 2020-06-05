@@ -27,3 +27,4 @@ src/pybind/conan/
 src/pybind/wheelhouse/
 src/pybind/slideio/
 src/pybind/dist/
+doc/build/

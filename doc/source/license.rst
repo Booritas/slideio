@@ -5,7 +5,7 @@ By downloading, copying, installing or using the software you agree to this lice
 
 BSD 3-clause License
 
-Copyright (c) 2020, Stanislav Melnikov
+Copyright (c) 2020, Stanislav Melnikov, Vadim Popov
 All rights reserved.
 
 Third party copyrights are property of their respective owners.
