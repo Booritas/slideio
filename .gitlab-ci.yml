@@ -43,7 +43,7 @@ cpp-ubuntu:
         - cp build/debug/bin/* ./${LINUX_ARTIFACT_DIR}/debug
         - cd ./src/pybind
         - python setup.py sdist bdist_wheel
-        - python -m pip install ./dist/${WHL_PACKAGE}
+        - python -m pip install --ignore-installed ./dist/${WHL_PACKAGE}
         - cd ${CI_PROJECT_DIR}
         - cd doc
         - make html
