@@ -10,6 +10,6 @@ Examples:
  import slideio
  slideio.get_driver_ids()
  > ['CZI', 'GDAL', 'SVS']
- slide = slideio.open_slidei(file_path="/data/a.czi",driver_id="CZI")
+ slide = slideio.open_slide(file_path="/data/a.czi",driver_id="CZI")
  slide.get_num_scenes()
  > 1
