@@ -52,6 +52,7 @@ namespace slideio
         int getNumChannels() const override;
         void readResampledBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize,
             const std::vector<int>& channelIndices, cv::OutputArray output) override;
+        std::string getChannelName(int channel) const override;
     protected:
         void init(const tinyxml2::XMLElement* xmlImage);
     protected:
@@ -64,6 +65,8 @@ namespace slideio
         slideio::DataType m_dataType;
         cv::Rect m_rect;
         int m_numChannels;
+        TIFFKeeper m_tiff;
+        std::vector<std::string> m_channelNames;
     };
 }
 

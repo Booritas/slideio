@@ -34,3 +34,4 @@ const XMLElement* XMLTools::getElementByPath(const XMLNode* parent, const std::v
     }
     return xmlCurrentElement;
 }
+
