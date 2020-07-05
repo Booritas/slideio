@@ -3,16 +3,62 @@
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/drivers/scn/scnslide.hpp"
 #include "slideio/imagetools/imagetools.hpp"
+#include "slideio/xmltools.hpp"
 
 #include <boost/filesystem.hpp>
-
-#include "slideio/imagetools/tifftools.hpp"
+#include <tiffio.h>
 
 
 using namespace slideio;
+using namespace tinyxml2;
 
-SCNSlide::SCNSlide()
+SCNSlide::SCNSlide(const std::string& filePath) : m_filePath(filePath)
 {
+    init();
+}
+
+void SCNSlide::init()
+{
+    namespace fs = boost::filesystem;
+    if (!fs::exists(m_filePath)) {
+        throw std::runtime_error(std::string("SCNImageDriver: File does not exist:") + m_filePath);
+    }
+    std::vector<TiffDirectory> directories;
+    m_tiff = TIFFOpen(m_filePath.c_str(), "r");
+    if (!m_tiff.isValid())
+    {
+        throw std::runtime_error(std::string("SCNImageDriver: Cannot open file:") + m_filePath);
+    }
+    TiffTools::scanFile(m_tiff, directories);
+    m_rawMetadata = directories[0].description;
+    constructScenes();
+}
+
+void SCNSlide::constructScenes()
+{
+    XMLDocument doc;
+    XMLError error = doc.Parse(m_rawMetadata.c_str(), m_rawMetadata.size());
+    if (error != XML_SUCCESS)
+    {
+        throw std::runtime_error("SCNImageDriver: Error parsing metadata xml");
+    }
+    std::vector<std::string> collectionPath = {"scn", "collection"};
+    const XMLElement* xmlCollection = XMLTools::getElementByPath(&doc, collectionPath);
+    for (auto xmlImage = xmlCollection->FirstChildElement("image");
+        xmlImage != nullptr; xmlImage = xmlImage->NextSiblingElement())
+    {
+        const char* name = xmlImage->Attribute("name");
+        std::string sceneName = name ? name : "unknown";
+        std::shared_ptr<SCNScene> scene(new SCNScene(m_filePath, sceneName));
+        m_Scenes.push_back(scene);
+        XMLPrinter printer;
+        xmlImage->Accept(&printer);
+        std::stringstream imageDoc;
+        imageDoc << printer.CStr();
+
+
+    }
+    //doc.SaveFile("D:/Temp/scn.xml");
 }
 
 SCNSlide::~SCNSlide()
@@ -36,21 +82,3 @@ std::shared_ptr<CVScene> SCNSlide::getScene(int index) const
     return m_Scenes[index];
 }
 
-std::shared_ptr<SCNSlide> SCNSlide::openFile(const std::string& filePath)
-{
-    namespace fs = boost::filesystem;
-    std::shared_ptr<SCNSlide> slide;
-    if(!fs::exists(filePath)){
-        throw std::runtime_error(std::string("SCNImageDriver: File does not exist:") + filePath);
-    }
-    std::vector<TiffDirectory> directories;
-    TIFF* tiff(nullptr);
-    tiff = TIFFOpen(filePath.c_str(), "r");
-    if(!tiff)
-        return slide;
-    TIFFKeeper keeper(tiff);
-
-    TiffTools::scanFile(tiff, directories);
-
-    return slide;
-}

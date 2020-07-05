@@ -46,9 +46,11 @@ namespace slideio
         DataType getChannelDataType(int) const override{
             return m_dataType;
         }
-        TIFF* getFileHandle() const {
-            return m_tiffKeeper;
-        }
+
+        cv::Rect getRect() const override;
+        int getNumChannels() const override;
+        void readResampledBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize,
+            const std::vector<int>& channelIndices, cv::OutputArray output) override;
     protected:
         std::string m_filePath;
         std::string m_name;
@@ -56,8 +58,8 @@ namespace slideio
         Resolution m_resolution;
         double m_magnification;
         slideio::DataType m_dataType;
-    private:
-        TIFFKeeper m_tiffKeeper;
+        cv::Rect m_rect;
+        int m_numChannels;
     };
 }
 

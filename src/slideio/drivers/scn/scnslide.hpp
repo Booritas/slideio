@@ -4,10 +4,11 @@
 #ifndef OPENCV_slideio_scnslide_HPP
 #define OPENCV_slideio_scnslide_HPP
 
+#include "scnscene.hpp"
 #include "slideio/slideio_def.hpp"
 #include "slideio/core/cvscene.hpp"
 #include "slideio/core/cvslide.hpp"
-#include <tiffio.h>
+#include "slideio/imagetools/tifftools.hpp"
 
 #if defined(_MSC_VER)
 #pragma warning( push )
@@ -18,18 +19,20 @@ namespace slideio
 {
     class SLIDEIO_EXPORTS SCNSlide : public slideio::CVSlide
     {
+        friend class SCNImageDriver;
     protected:
-        SCNSlide();
+        SCNSlide(const std::string& filePath);
+        void init();
+        void constructScenes();
     public:
         virtual ~SCNSlide();
         int getNumScenes() const override;
         std::string getFilePath() const override;
         std::shared_ptr<slideio::CVScene> getScene(int index) const override;
-        static std::shared_ptr<SCNSlide> openFile(const std::string& path);
-        static void closeFile(TIFF* hfile);
     private:
-        std::vector<std::shared_ptr<slideio::CVScene>> m_Scenes;
+        std::vector<std::shared_ptr<slideio::SCNScene>> m_Scenes;
         std::string m_filePath;
+        TIFFKeeper m_tiff;
     };
 }
 

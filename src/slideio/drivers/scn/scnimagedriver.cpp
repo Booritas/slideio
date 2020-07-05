@@ -22,7 +22,12 @@ std::string slideio::SCNImageDriver::getID() const
 
 std::shared_ptr<slideio::CVSlide> slideio::SCNImageDriver::openFile(const std::string& filePath)
 {
-	return SCNSlide::openFile(filePath);
+    namespace fs = boost::filesystem;
+    if (!fs::exists(filePath)) {
+        throw std::runtime_error(std::string("CZIImageDriver: File does not exist:") + filePath);
+    }
+    std::shared_ptr<CVSlide> ptr(new SCNSlide(filePath));
+    return ptr;
 }
 
 std::string slideio::SCNImageDriver::getFileSpecs() const

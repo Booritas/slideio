@@ -15,13 +15,23 @@ SCNScene::SCNScene(const std::string& filePath, const std::string& name):
     m_dataType(slideio::DataType::DT_Unknown),
     m_magnification(0.)
 {
-    m_tiffKeeper = TIFFOpen(filePath.c_str(), "r");
-    if (!m_tiffKeeper.isValid())
-    {
-        throw std::runtime_error(std::string("SCNImageDriver: Cannot open file:") + filePath);
-    }
 }
 
 SCNScene::~SCNScene()
+{
+}
+
+cv::Rect SCNScene::getRect() const
+{
+    return m_rect;
+}
+
+int SCNScene::getNumChannels() const
+{
+    return m_numChannels;
+}
+
+void SCNScene::readResampledBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize,
+    const std::vector<int>& channelIndices, cv::OutputArray output)
 {
 }
