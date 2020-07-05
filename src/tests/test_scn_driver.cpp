@@ -58,11 +58,13 @@ TEST(SCNImageDriver, openFile)
     ASSERT_EQ(numScenes, 3);
     auto scene = slide->getScene(0);
     ASSERT_FALSE(scene == nullptr);
-    //auto sceneRect = scene->getRect();
-    //EXPECT_EQ(sceneRect.x, 0);
-    //EXPECT_EQ(sceneRect.y, 0);
-    //EXPECT_EQ(sceneRect.width, 512);
-    //EXPECT_EQ(sceneRect.height, 512);
+    std::string sceneName = scene->getName();
+    EXPECT_EQ(sceneName, "image_0000000586");
+    auto sceneRect = scene->getRect();
+    EXPECT_EQ(sceneRect.x, 0);
+    EXPECT_EQ(sceneRect.y, 0);
+    EXPECT_EQ(sceneRect.width, 1616);
+    EXPECT_EQ(sceneRect.height, 4668);
     //int numChannels = scene->getNumChannels();
     //EXPECT_EQ(numChannels, 3);
     //for(int channel=0; channel<numChannels; ++channel)

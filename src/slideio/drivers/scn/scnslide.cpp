@@ -47,16 +47,8 @@ void SCNSlide::constructScenes()
     for (auto xmlImage = xmlCollection->FirstChildElement("image");
         xmlImage != nullptr; xmlImage = xmlImage->NextSiblingElement())
     {
-        const char* name = xmlImage->Attribute("name");
-        std::string sceneName = name ? name : "unknown";
-        std::shared_ptr<SCNScene> scene(new SCNScene(m_filePath, sceneName));
+        std::shared_ptr<SCNScene> scene(new SCNScene(m_filePath, xmlImage));
         m_Scenes.push_back(scene);
-        XMLPrinter printer;
-        xmlImage->Accept(&printer);
-        std::stringstream imageDoc;
-        imageDoc << printer.CStr();
-
-
     }
     //doc.SaveFile("D:/Temp/scn.xml");
 }

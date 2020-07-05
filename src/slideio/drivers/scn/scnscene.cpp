@@ -5,16 +5,19 @@
 #include "slideio/imagetools/tifftools.hpp"
 #include <tiffio.h>
 
-using namespace slideio;
+#include "slideio/xmltools.hpp"
 
-SCNScene::SCNScene(const std::string& filePath, const std::string& name):
+using namespace slideio;
+using namespace tinyxml2;
+
+SCNScene::SCNScene(const std::string& filePath, const tinyxml2::XMLElement* xmlImage):
     m_filePath(filePath),
-    m_name(name),
     m_compression(Compression::Unknown),
     m_resolution(0., 0.),
     m_dataType(slideio::DataType::DT_Unknown),
     m_magnification(0.)
 {
+    init(xmlImage);
 }
 
 SCNScene::~SCNScene()
@@ -34,4 +37,18 @@ int SCNScene::getNumChannels() const
 void SCNScene::readResampledBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize,
     const std::vector<int>& channelIndices, cv::OutputArray output)
 {
+}
+
+void SCNScene::init(const XMLElement* xmlImage)
+{
+    const char* name = xmlImage->Attribute("name");
+    m_name = name ? name : "unknown";
+    XMLPrinter printer;
+    xmlImage->Accept(&printer);
+    std::stringstream imageDoc;
+    imageDoc << printer.CStr();
+    m_reawMetadata = imageDoc.str();
+    const XMLElement* xmlPixels = xmlImage->FirstChildElement("pixels");
+    m_rect.width = xmlPixels->IntAttribute("sizeX");
+    m_rect.height = xmlPixels->IntAttribute("sizeY");
 }

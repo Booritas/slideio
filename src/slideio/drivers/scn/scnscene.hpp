@@ -7,6 +7,7 @@
 #include "slideio/slideio_def.hpp"
 #include "slideio/core/cvscene.hpp"
 #include "slideio/imagetools/tifftools.hpp"
+#include <tinyxml2.h>
 
 #if defined(_MSC_VER)
 #pragma warning( push )
@@ -24,7 +25,7 @@ namespace slideio
          * \param name: scene name
          * \param hfile: tiff file handle of the slide
          */
-        SCNScene(const std::string& filePath, const std::string& name);
+        SCNScene(const std::string& filePath, const tinyxml2::XMLElement* xmlImage);
 
         virtual ~SCNScene();
 
@@ -52,8 +53,11 @@ namespace slideio
         void readResampledBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize,
             const std::vector<int>& channelIndices, cv::OutputArray output) override;
     protected:
+        void init(const tinyxml2::XMLElement* xmlImage);
+    protected:
         std::string m_filePath;
         std::string m_name;
+        std::string m_reawMetadata;
         Compression m_compression;
         Resolution m_resolution;
         double m_magnification;
