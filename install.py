@@ -75,7 +75,6 @@ def configure_conan(slideio_dir):
 def single_configuration(config_name, build_dir, project_dir):
     os_platform = get_platform()
     cmake_props = {
-        "CMAKE_CXX_STANDARD_REQUIRED":"ON",
     }
     architecture = None
     if os_platform=="Windows":
@@ -91,7 +90,6 @@ def single_configuration(config_name, build_dir, project_dir):
     cmd = [cmake, "-G", generator]
     if architecture is not None:
         cmd += ["-A", "x64"]
-    cmd += ["-DCMAKE_CXX_STANDARD=14"]
 
     for pname, pvalue in cmake_props.items():
         cmd.append(F'-D{pname}={pvalue}')

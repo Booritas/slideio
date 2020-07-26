@@ -93,7 +93,9 @@ TEST_F(AFIDriverFileTest, checkFile)
     EXPECT_EQ(slide->getFilePath(), filePath);
     auto scene = slide->getScene(1);
     EXPECT_EQ(scene->getName(), "Image");
-    EXPECT_EQ(scene->getFilePath(), getPrivTestImagesPath("afi", "fs_Alexa Fluor 488.svs"));
+    std::string scenePath = boost::filesystem::path(scene->getFilePath()).lexically_normal().string();
+    std::string svsPath = getPrivTestImagesPath("afi", "fs_Alexa Fluor 488.svs");
+    EXPECT_EQ(scenePath, svsPath);
 }
 
 TEST_F(AFIDriverFileTest, read_ImageBlock)
