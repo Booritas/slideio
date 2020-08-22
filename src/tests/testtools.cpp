@@ -1,6 +1,8 @@
 #include <gtest/gtest.h>
 #include "testtools.hpp"
 
+#include <boost/filesystem/path.hpp>
+
 static const char* TEST_PATH_VARIABLE = "SLIDEIO_TEST_DATA_PATH";
 static const char* PRIV_TEST_PATH_VARIABLE = "SLIDEIO_TEST_DATA_PRIV_PATH";
 
@@ -29,7 +31,7 @@ std::string TestTools::getTestImagePath(const std::string& subfolder, const std:
     if(!subfolder.empty())
         imagePath += std::string("/") + subfolder;
     imagePath += std::string("/") +  image;
-    return imagePath;
+    return boost::filesystem::path(imagePath).lexically_normal().string();
 }
 
 

@@ -4,6 +4,7 @@
 #include "slideio/drivers/czi/czislide.hpp"
 #include "slideio/drivers/czi/cziscene.hpp"
 #include "slideio/drivers/czi/czistructs.hpp"
+#include "slideio/xmltools.hpp"
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/format.hpp>
@@ -16,36 +17,6 @@ using namespace tinyxml2;
 static char SID_FILES[] = "ZISRAWFILE";
 static char SID_METADATA[] = "ZISRAWMETADATA";
 static char SID_DIRECTORY[] = "ZISRAWDIRECTORY";
-
-//-------------------------------------------------------
-// Static helper functions for parsing of the metadata
-// ------------------------------------------------------
-static int xmlChildNodeTextToInt(const XMLNode* xmlParent, const char* childName, int defaultValue = -1)
-{
-    if (xmlParent == nullptr)
-        throw std::runtime_error("CZIImageDriver: Invalid xml document");
-    const XMLElement* xmlChild = xmlParent->FirstChildElement(childName);
-    int value = defaultValue;
-    if (xmlChild != nullptr)
-        value = xmlChild->IntText(defaultValue);
-    return value;
-}
-
-static const XMLElement* getXmlElementByPath(const XMLNode* parent, const std::vector<std::string>& path)
-{
-    const XMLElement* xmlCurrentElement = nullptr;
-    const XMLNode* xmlCurrentNode = parent;
-    for (const auto& tag : path)
-    {
-        xmlCurrentElement = xmlCurrentNode->FirstChildElement(tag.c_str());
-        if (xmlCurrentElement == nullptr)
-        {
-            return nullptr;
-        }
-        xmlCurrentNode = xmlCurrentElement;
-    }
-    return xmlCurrentElement;
-}
 
 using namespace slideio;
 
@@ -98,7 +69,7 @@ void CZISlide::parseMagnification(XMLNode* root)
         "ImageDocument","Metadata","Information", "Instrument",
         "Objectives", "Objective", "NominalMagnification"
     };
-    const XMLElement* xmlMagnification = getXmlElementByPath(root, magnificationPath);
+    const XMLElement* xmlMagnification = XMLTools::getElementByPath(root, magnificationPath);
     if(xmlMagnification)
         m_magnification = xmlMagnification->FloatText(20.);
 }
@@ -115,7 +86,7 @@ void CZISlide::parseMetadataXmL(const char* xmlString, size_t dataSize)
         "ImageDocument","Metadata","Information", "Document","Title"
     };
     //doc.SaveFile(R"(C:\Temp\czi1.xml)");
-    const XMLElement* xmlTitle = getXmlElementByPath(&doc, titlePath);
+    const XMLElement* xmlTitle = XMLTools::getElementByPath(&doc, titlePath);
     if(xmlTitle){
         m_title = xmlTitle->GetText();
     }
@@ -131,7 +102,7 @@ void CZISlide::parseChannels(XMLNode* root)
         "ImageDocument","Metadata","Information", "Image",
         "Dimensions", "Channels"
     };
-    const XMLElement* xmlChannels = getXmlElementByPath(root, imagePath);
+    const XMLElement* xmlChannels = XMLTools::getElementByPath(root, imagePath);
     if (xmlChannels == nullptr)
     {
         throw std::runtime_error("CZIImageDriver: Invalid xml: no channel information");
@@ -163,7 +134,7 @@ void CZISlide::parseChannels(XMLNode* root)
         "DisplaySetting", "Channels"
     };
     int currentIndex(0);
-    const XMLElement* xmlDisplayChannels = getXmlElementByPath(root, displayInfoPath);
+    const XMLElement* xmlDisplayChannels = XMLTools::getElementByPath(root, displayInfoPath);
     for (auto xmlDisplayChannel = xmlDisplayChannels->FirstChildElement("Channel");
         xmlDisplayChannel != nullptr; xmlDisplayChannel = xmlDisplayChannel->NextSiblingElement())
     {
@@ -317,7 +288,7 @@ void CZISlide::parseResolutions(XMLNode* root)
         "ImageDocument","Metadata","Scaling", "Items"
     };
     // resolutions
-    const XMLElement* xmlItems = getXmlElementByPath(root, scalingItemsPath);
+    const XMLElement* xmlItems = XMLTools::getElementByPath(root, scalingItemsPath);
     for (auto child = xmlItems->FirstChildElement(); child != nullptr;
         child = child->NextSiblingElement())
     {
@@ -356,16 +327,16 @@ void CZISlide::parseResolutions(XMLNode* root)
 void CZISlide::parseSizes(tinyxml2::XMLNode* root)
 {
     const std::vector<std::string> imagePath = { "ImageDocument","Metadata","Information", "Image" };
-    const XMLElement* xmlImage = getXmlElementByPath(root, imagePath);
-    m_slideXs = xmlChildNodeTextToInt(xmlImage, "SizeX");
-    m_slideYs = xmlChildNodeTextToInt(xmlImage, "SizeY");
-    m_slideZs = xmlChildNodeTextToInt(xmlImage, "SizeZ");
-    m_slideTs = xmlChildNodeTextToInt(xmlImage, "SizeT");
-    m_slideRs = xmlChildNodeTextToInt(xmlImage, "SizeR");
-    m_slideIs = xmlChildNodeTextToInt(xmlImage, "SizeI");
-    m_slideSs = xmlChildNodeTextToInt(xmlImage, "SizeS");
-    m_slideHs = xmlChildNodeTextToInt(xmlImage, "SizeH");
-    m_slideMs = xmlChildNodeTextToInt(xmlImage, "SizeM");
-    m_slideBs = xmlChildNodeTextToInt(xmlImage, "SizeB");
-    m_slideVs = xmlChildNodeTextToInt(xmlImage, "SizeV");
+    const XMLElement* xmlImage = XMLTools::getElementByPath(root, imagePath);
+    m_slideXs = XMLTools::childNodeTextToInt(xmlImage, "SizeX");
+    m_slideYs = XMLTools::childNodeTextToInt(xmlImage, "SizeY");
+    m_slideZs = XMLTools::childNodeTextToInt(xmlImage, "SizeZ");
+    m_slideTs = XMLTools::childNodeTextToInt(xmlImage, "SizeT");
+    m_slideRs = XMLTools::childNodeTextToInt(xmlImage, "SizeR");
+    m_slideIs = XMLTools::childNodeTextToInt(xmlImage, "SizeI");
+    m_slideSs = XMLTools::childNodeTextToInt(xmlImage, "SizeS");
+    m_slideHs = XMLTools::childNodeTextToInt(xmlImage, "SizeH");
+    m_slideMs = XMLTools::childNodeTextToInt(xmlImage, "SizeM");
+    m_slideBs = XMLTools::childNodeTextToInt(xmlImage, "SizeB");
+    m_slideVs = XMLTools::childNodeTextToInt(xmlImage, "SizeV");
 }
