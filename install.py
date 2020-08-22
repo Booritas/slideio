@@ -16,7 +16,7 @@ def get_platform():
         'linux' : 'Linux',
         'linux1' : 'Linux',
         'linux2' : 'Linux',
-        'darwin' : 'OS X',
+        'darwin' : 'OSX',
         'win32' : 'Windows'
     }
     if sys.platform not in platforms:
@@ -24,8 +24,15 @@ def get_platform():
     
     return platforms[sys.platform]
 
+
 def is_linux():
-    return get_platform() != "Windows"
+    platform = get_platform()
+    return platform == "Linux"
+
+def is_osx():
+    platform = get_platform()
+    return platform == "OSX"
+
 
 def clean_prev_build(build_directory):
     print(F"Cleaning directory {build_directory}")
@@ -60,6 +67,7 @@ def process_conan_profile(profile, trg_dir, conan_file):
     command.append(conan_file)
     print(command)
     subprocess.check_call(command)
+
 
 def configure_conan(slideio_dir):
     os_platform = get_platform()
@@ -162,7 +170,7 @@ if __name__ == "__main__":
         "build_release_directory": build_directory,
         "build_debug_directory": build_directory
     }
-    if os_platform == "Linux":
+    if is_linux() or is_osx():
         configuration["build_release_directory"] = os.path.join(build_directory,"release")
         configuration["build_debug_directory"] = os.path.join(build_directory,"debug")
 

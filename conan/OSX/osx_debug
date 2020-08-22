@@ -1,0 +1,12 @@
+[settings]
+os=Macos
+arch=x86_64
+compiler=apple-clang
+compiler.version=11.0
+compiler.libcxx=libc++
+build_type=Debug
+[options]
+tinyxml2:shared=False
+boost:shared=False
+[build_requires]
+[env]
