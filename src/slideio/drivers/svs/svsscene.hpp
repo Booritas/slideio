@@ -46,7 +46,7 @@ namespace slideio
         DataType getChannelDataType(int) const override{
             return m_dataType;
         }
-        TIFF* getFileHandle() const {
+        libtiff::TIFF* getFileHandle() const {
             return m_tiffKeeper;
         }
     protected:

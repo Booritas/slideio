@@ -6,7 +6,7 @@
 #include "slideio/xmltools.hpp"
 
 #include <boost/filesystem.hpp>
-#include <tiffio.h>
+#include "slideio/libtiff.hpp"
 
 
 using namespace slideio;
@@ -24,7 +24,7 @@ void SCNSlide::init()
         throw std::runtime_error(std::string("SCNImageDriver: File does not exist:") + m_filePath);
     }
     std::vector<TiffDirectory> directories;
-    m_tiff = TIFFOpen(m_filePath.c_str(), "r");
+    m_tiff = libtiff::TIFFOpen(m_filePath.c_str(), "r");
     if (!m_tiff.isValid())
     {
         throw std::runtime_error(std::string("SCNImageDriver: Cannot open file:") + m_filePath);

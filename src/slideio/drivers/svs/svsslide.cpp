@@ -44,8 +44,8 @@ std::shared_ptr<SVSSlide> SVSSlide::openFile(const std::string& filePath)
         throw std::runtime_error(std::string("SVSImageDriver: File does not exist:") + filePath);
     }
     std::vector<TiffDirectory> directories;
-    TIFF* tiff(nullptr);
-    tiff = TIFFOpen(filePath.c_str(), "r");
+    libtiff::TIFF* tiff(nullptr);
+    tiff = libtiff::TIFFOpen(filePath.c_str(), "r");
     if(!tiff)
         return slide;
     TIFFKeeper keeper(tiff);

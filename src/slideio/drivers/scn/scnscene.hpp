@@ -72,7 +72,7 @@ namespace slideio
         void parseMagnification(const tinyxml2::XMLElement* xmlImage);
         void defineChannelDataType();
         void setupChannels(const tinyxml2::XMLElement* xmlPixels);
-        TIFF* getFileHandle() {
+        libtiff::TIFF* getFileHandle() {
             return m_tiff;
         }
     protected:

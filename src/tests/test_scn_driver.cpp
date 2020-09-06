@@ -316,7 +316,6 @@ TEST(SCNImageDriver, readTile_interleaved_channels)
 {
     slideio::SCNImageDriver driver;
     std::string filePath = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1.scn");
-    std::string tilePath = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1/dir_0_tile_1-7.bmp");
     std::vector<slideio::TiffDirectory> dirs;
     slideio::TiffTools::scanFile(filePath, dirs);
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
@@ -332,7 +331,11 @@ TEST(SCNImageDriver, readTile_interleaved_channels)
     const std::vector<int> channelIndices = { 2, 1, 0 };
     const int tileIndex = 1 + 7 * 4;
     scene->readTile(tileIndex, channelIndices, raster, &info);
-    cv::Mat bmpImage = cv::imread(tilePath, cv::IMREAD_COLOR);
+
+    std::string tilePath = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1/dir_0_tile_1-7.png");
+    cv::Mat bmpImage;
+    slideio::ImageTools::readGDALImage(tilePath, bmpImage);
+
     cv::Rect roi{ 0,0,512,200 };
     cv::Mat dif;
     cv::absdiff(raster(roi), bmpImage(roi), dif);
@@ -401,4 +404,24 @@ TEST(SCNImageDriver, readTile_readBlockResampling)
 
 
     ASSERT_LT(0.8, minScore);
+}
+
+TEST(SCNImageDriver, readThumbnail)
+{
+    slideio::SCNImageDriver driver;
+    std::string filePath = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1.scn");
+    std::string thumbnailPath = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1/thumbnail.png");
+    cv::Mat thumbnail;
+    slideio::ImageTools::readGDALImage(thumbnailPath, thumbnail);
+    slideio::SCNImageDriver imageDriver;
+    auto slide = imageDriver.openFile(filePath);
+    auto scene = slide->getScene(0);
+    auto rect = scene->getRect();
+    cv::Mat raster;
+    std::vector<int> channels = { 0, 1, 2 };
+    double cof = 300. / double(rect.width);
+    cv::Size size = { (int)std::lround(rect.width*cof), (int)std::lround(rect.height*cof) };
+    scene->readResampledBlockChannels(rect, size, channels, raster);
+    const int compare = std::memcmp(raster.data, thumbnail.data, raster.total() * raster.elemSize());
+    EXPECT_EQ(compare, 0);
 }

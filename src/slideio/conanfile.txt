@@ -3,10 +3,13 @@ boost/1.72.0@_/_
 gdal/3.0.2@slideio/stable
 libtiff/4.0.10@slideio/stable
 libjpeg/9c@_/_
+libiconv/1.16
 openjpeg/2.3.1@slideio/stable
 tinyxml2/7.1.0@_/_
 jpegxrcodec/1.0.0@slideio/stable
 opencv/4.1.1@slideio/stable
 pybind11/2.3.0@conan/stable
+libcurl/7.66.0@bincrafters/stable
+libxml2/2.9.10
 [options]
 boost:shared=False
