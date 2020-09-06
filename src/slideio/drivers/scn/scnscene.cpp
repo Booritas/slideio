@@ -6,9 +6,8 @@
 #include "slideio/xmltools.hpp"
 #include "slideio/imagetools/imagetools.hpp"
 #include "slideio/imagetools/tools.hpp"
-
+#include "slideio/libtiff.hpp"
 #include <boost/format.hpp>
-#include <tiffio.h>
 
 
 using namespace slideio;
@@ -198,7 +197,7 @@ void SCNScene::setupChannels(const XMLElement* xmlImage)
 
 void SCNScene::init(const XMLElement* xmlImage)
 {
-    m_tiff = TIFFOpen(m_filePath.c_str(), "r");
+    m_tiff = libtiff::TIFFOpen(m_filePath.c_str(), "r");
     if (!m_tiff.isValid())
     {
         throw std::runtime_error(std::string("SCNImageDriver: Cannot open file:") + m_filePath);
@@ -290,6 +289,12 @@ bool SCNScene::readTile(int tileIndex, const std::vector<int>& channelIndices, c
         }
         cv::merge(channelRasters, tileRaster);
     }
+    //{
+    //    cv::Rect tileRect;
+    //    getTileRect(tileIndex, tileRect, userData);
+    //    const std::string path = (boost::format("D:/Temp/tiles/tile_x%1%_y%2%.png") % tileRect.x % tileRect.y).str();
+    //    slideio::ImageTools::writeRGBImage(path, slideio::Compression::Png, tileRaster.getMat());
+    //}
     return true;
 }
 

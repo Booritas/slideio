@@ -7,6 +7,7 @@
 #include "slideio/slideio_def.hpp"
 #include <vector>
 #include <string>
+#include <cmath>
 
 namespace slideio
 {

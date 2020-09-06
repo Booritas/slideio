@@ -1,4 +1,6 @@
 #include <gtest/gtest.h>
+#include <opencv2/highgui.hpp>
+
 #include "slideio/imagetools/tifftools.hpp"
 #include "testtools.hpp"
 #include "slideio/imagetools/imagetools.hpp"
@@ -39,7 +41,7 @@ TEST(TiffTools, readStripedDir)
 {
     std::string filePathTiff = TestTools::getTestImagePath("svs","CMU-1-Small-Region.svs");
     std::string filePathBmp = TestTools::getTestImagePath("svs", "CMU-1-Small-Region-page-2.bmp");
-    TIFF* tiff = slideio::TiffTools::openTiffFile(filePathTiff);;
+    libtiff::TIFF* tiff = slideio::TiffTools::openTiffFile(filePathTiff);;
     ASSERT_TRUE(tiff!=nullptr);
     int dirIndex = 2;
     slideio::TiffDirectory dir;
@@ -66,7 +68,7 @@ TEST(TiffTools, readTile_jpeg)
     const std::string tilePath = 
         TestTools::getTestImagePath("svs","CMU-1-Small-Region-page-0-tile_5-5.bmp");
     // read tile from a tiff file
-    TIFF* tiff = slideio::TiffTools::openTiffFile(filePath);
+    libtiff::TIFF* tiff = slideio::TiffTools::openTiffFile(filePath);
     ASSERT_TRUE(tiff!=nullptr);
     slideio::TiffDirectory dir;
     slideio::TiffTools::scanTiffDir(tiff, 0, 0, dir);
@@ -95,7 +97,7 @@ TEST(TiffTools, readTile_J2K)
     const std::string bmpPath = 
         TestTools::getTestImagePath("svs","CMU-1-Small-Region-page-0-tile_5-5.bmp");
     // read tile from a tiff file
-    TIFF* tiff = slideio::TiffTools::openTiffFile(filePath);
+    libtiff::TIFF* tiff = slideio::TiffTools::openTiffFile(filePath);
     ASSERT_TRUE(tiff!=nullptr);
     slideio::TiffDirectory dir;
     slideio::TiffTools::scanTiffDir(tiff, 0,0,dir);
@@ -123,7 +125,7 @@ TEST(TiffTools, readTile_jpeg_swapChannles)
     const std::string tilePath =
         TestTools::getTestImagePath("svs", "CMU-1-Small-Region-page-0-tile_5-5.bmp");
     // read tile from a tiff file
-    TIFF* tiff = slideio::TiffTools::openTiffFile(filePath);
+    libtiff::TIFF* tiff = slideio::TiffTools::openTiffFile(filePath);
     ASSERT_TRUE(tiff != nullptr);
     slideio::TiffDirectory dir;
     slideio::TiffTools::scanTiffDir(tiff, 0, 0, dir);
@@ -151,4 +153,43 @@ TEST(TiffTools, readTile_jpeg_swapChannles)
         cv::extractChannel(tileRaster, swapedChannel, swapedIndex);
         EXPECT_EQ(std::memcmp(originChannel.data, swapedChannel.data, channelSize), 0);
     }
+}
+
+TEST(TiffTools, readPhotometricYCbCr)
+{
+    std::string filePath = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1.scn");
+    std::vector<slideio::TiffDirectory> dirs;
+    slideio::TiffTools::scanFile(filePath, dirs);
+    int dirCount = (int)dirs.size();
+    ASSERT_EQ(dirCount, 18);
+    const slideio::TiffDirectory& dir = dirs[0];
+    EXPECT_EQ(dir.photometric, 6);
+    EXPECT_EQ(dir.YCbCrSubsampling[0], 2);
+    EXPECT_EQ(dir.YCbCrSubsampling[1], 2);
+    const slideio::TiffDirectory& dir2 = dirs[6];
+    EXPECT_EQ(dir2.photometric, 1);
+    EXPECT_EQ(dir2.YCbCrSubsampling[0], 2);
+    EXPECT_EQ(dir2.YCbCrSubsampling[1], 2);
+}
+
+TEST(TiffTools, readNotRGBTile)
+{
+    std::string filePath = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1.scn");
+    std::vector<slideio::TiffDirectory> dirs;
+    slideio::TiffTools::scanFile(filePath, dirs);
+    int dirCount = (int)dirs.size();
+    ASSERT_EQ(dirCount, 18);
+    const slideio::TiffDirectory& dir = dirs[0];
+    slideio::TIFFKeeper tiff(slideio::TiffTools::openTiffFile(filePath));
+    std::vector<int> channels = { 0,1,2 };
+    cv::Mat raster;
+    slideio::TiffTools::readNotRGBTile(tiff, dir, 24, channels, raster);
+    ASSERT_EQ(raster.cols, 512);
+    ASSERT_EQ(raster.rows, 512);
+    ASSERT_EQ(raster.channels(), 3);
+    std::string tilePath = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1/tile.png");
+    cv::Mat tile;
+    slideio::ImageTools::readGDALImage(tilePath, tile);
+    const int compare = std::memcmp(raster.data, tile.data, raster.total() * raster.elemSize());
+    EXPECT_EQ(compare, 0);
 }

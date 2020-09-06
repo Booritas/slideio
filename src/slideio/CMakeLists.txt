@@ -20,6 +20,7 @@ set(SOURCE_FILES
    	${CMAKE_CURRENT_SOURCE_DIR}/slideio_enums.hpp
    	${CMAKE_CURRENT_SOURCE_DIR}/xmltools.hpp
    	${CMAKE_CURRENT_SOURCE_DIR}/xmltools.cpp
+   	${CMAKE_CURRENT_SOURCE_DIR}/libtiff.hpp
 )
 
 add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES})

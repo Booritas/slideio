@@ -40,8 +40,15 @@ def clean_prev_build(build_directory):
         shutil.rmtree(build_directory)
     os.makedirs(build_directory)
 
+def is_debug_profile(path):
+    file_name = os.path.basename(path).lower();
+    return file_name.find("debug") > 0
 
-def collect_profiles(profile_dir, compiler=""):
+def is_release_profile(path):
+    file_name = os.path.basename(path).lower();
+    return file_name.find("release") > 0
+
+def collect_profiles(profile_dir, configuration, compiler=""):
     compiler_dir = profile_dir
     if is_linux() and compiler=="":
         compiler = "clang-9"
@@ -69,16 +76,22 @@ def process_conan_profile(profile, trg_dir, conan_file):
     subprocess.check_call(command)
 
 
-def configure_conan(slideio_dir):
+
+def configure_conan(slideio_dir, configuration):
     os_platform = get_platform()
     conan_profile_dir_path = os.path.join(slideio_dir, "conan", os_platform)
     # collect paths to conan profile files
-    profiles = collect_profiles(conan_profile_dir_path)
+    profiles = collect_profiles(conan_profile_dir_path, configuration)
     for trg_conan_file_path in Path(slideio_dir).rglob('conanfile.txt'):
         print("-------Process file: ", trg_conan_file_path)
         for profile in profiles:
             print(F"Profile:{profile}")
-            process_conan_profile(profile, os.path.dirname(trg_conan_file_path), trg_conan_file_path.absolute().as_posix())
+            release = is_release_profile(profile)
+            debug = is_debug_profile(profile)
+            if (debug and configuration["debug"]) \
+                or (release and configuration["release"]) \
+                or (not debug and not release): 
+                    process_conan_profile(profile, os.path.dirname(trg_conan_file_path), trg_conan_file_path.absolute().as_posix())
 
 def single_configuration(config_name, build_dir, project_dir):
     os_platform = get_platform()
@@ -89,6 +102,10 @@ def single_configuration(config_name, build_dir, project_dir):
         generator = 'Visual Studio 16 2019'
         cmake = "cmake.exe"
         architecture = 'x64'
+    elif os_platform == "OSX":
+        generator = 'Unix Makefiles'
+        cmake = "cmake"
+        cmake_props["CMAKE_BUILD_TYPE"] = config_name
     else:
         generator = 'Unix Makefiles'
         cmake = "cmake"
@@ -176,8 +193,7 @@ if __name__ == "__main__":
         configuration["release"] = False
     if args.config == 'release':
         configuration["debug"] = False
-
-    configure_conan(slideio_directory)
+    configure_conan(slideio_directory, configuration)
     if args.action in ['configure','build']:
         configure_slideio(configuration)
     if args.action in ['build']:

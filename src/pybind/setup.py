@@ -11,7 +11,7 @@ from setuptools.command.build_ext import build_ext
 from distutils.version import LooseVersion
 from ctypes.util import find_library
 
-version = '0.3.0.'
+version = '0.4.'
 if os.environ.get('CI_PIPELINE_IID'):
     version = version + os.environ['CI_PIPELINE_IID']
 else:
@@ -25,7 +25,7 @@ def get_platform():
         'linux' : 'Linux',
         'linux1' : 'Linux',
         'linux2' : 'Linux',
-        'darwin' : 'OS X',
+        'darwin' : 'Macos',
         'win32' : 'Windows'
     }
     if sys.platform not in platforms:
@@ -132,11 +132,19 @@ class CMakeBuild(build_ext):
             ['cmake', '--build', '.'] + build_args,
             cwd=self.build_temp
         )
-        pattern = "*.so"
+        patterns = ["*.so"]
         if PLATFORM == "Windows":
-            pattern = "*.dll"
+            patterns = ["*.dll"]
+        elif PLATFORM == "Macos":
+            patterns = ["*.so", "*.dylib"]
+            
         print("----Look for shared libraries int directory", self.build_temp)
-        extra_files = find_shared_libs(self.build_temp, pattern)
+        extra_files = []
+        for pattern in patterns:
+            files = find_shared_libs(self.build_temp, pattern)
+            if len(files)>0:
+                extra_files.extend(files)
+
         print("----Found libraries:", extra_files)
         if not os.path.exists(extdir):
             os.makedirs(extdir)
@@ -164,7 +172,7 @@ setup(
         'Documentation':'http://slideio.com',
         "Source Code": "https://gitlab.com/bioslide/slideio.git"
     },
-    keywords = 'images, pathology, tissue, medical, czi, svs, afi',
+    keywords = 'images, pathology, tissue, medical, czi, svs, afi, scn',
     package_data={},
     classifiers=[
         'Development Status :: 4 - Beta',

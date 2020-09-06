@@ -1,4 +1,8 @@
 $pythons = @("3.8","3.7","3.6","3.5")
+if (-not (Test-Path env:CI_PIPELINE_IID)) 
+{ 
+   $env:CI_PIPELINE_IID = 5 
+}
 for($p=0; $p -lt $pythons.Length; $p++)
 {
    $pversion = "python/" +  $pythons[$p] + "@slideio/stable"
