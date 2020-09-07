@@ -12,6 +12,8 @@ The slideio module accesses images through a system of image drivers. A driver i
 +--------+-----------------+----------+------------+
 | AFI    |     yes         |   no     |    no      |
 +--------+-----------------+----------+------------+
+| SCN    |     yes         |   no     |    no      |
++--------+-----------------+----------+------------+
 | GDAL   | no              |  no      |     no     |
 +--------+-----------------+----------+------------+
 
@@ -87,9 +89,27 @@ AFI driver
 AFI images is a collection of SVS images boundled together by an xml file with extention "afi". 
 Each SVS image is represented by a separated *Scene* object.  *Slide* property raw_metadata always returns an empty string.
 
+SCN driver
+------------------
+SCN driver allows reading of images produced by a popular `Leica SCN400 scanner <https://www.leica-microsystems.com/company/news/news-details/article/fast-efficient-and-reliable-slide-scanner-leica-scn400-for-optimal-histological-examinations/>`_.
+Files produced by the scanner have extension .scn and normally contain muliple images such as high resolution scanes of different regions of tissue,
+thumbnails, lables and barcodes. Each of such internal images exposed as a separated scene objects. Scene property "rect" descripes 
+size of the image and offset of the region.
+
+Scene naming
+******************
+Names of scenes are taken from an xml metadata document located in the "Image Description" tiff tag.
+
+Metadata
+******************
+*Slide* property *raw_metadata* returns a string extracted from "Image Description" tiff tag of the main image tag directory.
+
 
 GDAL driver
 ------------------
 
 GDAL driver opens generic formats like jpeg, png, tiff, etc. *Slide* object always contains a single *Scene* object.
- *Slide* property raw_metadata always returns an empty string.
+
+Metadata
+******************
+*Slide* property raw_metadata always returns an empty string.
