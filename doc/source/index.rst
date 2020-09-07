@@ -1,4 +1,4 @@
-Module slideio (v0.4.100)
+Module slideio (version 0.4)
 ===================================
 
 .. image:: images/mrt.png
