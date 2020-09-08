@@ -3,5 +3,6 @@ add_subdirectory(czi)
 add_subdirectory(gdal)
 add_subdirectory(svs)
 add_subdirectory(scn)
+add_subdirectory(dcm)
 
 set(SOURCE_FILES ${SOURCE_FILES} PARENT_SCOPE)

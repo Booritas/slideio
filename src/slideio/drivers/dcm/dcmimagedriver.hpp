@@ -25,8 +25,6 @@ namespace slideio
         std::string getID() const override;
         std::shared_ptr<CVSlide> openFile(const std::string& filePath) override;
         std::string getFileSpecs() const override;
-    private:
-        static std::string filePathPattern;
     };
 }
 

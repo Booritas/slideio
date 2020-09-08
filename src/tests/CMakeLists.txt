@@ -12,6 +12,7 @@ set(TEST_SOURCES
    test_afi_driver.cpp
    test_svs_driver.cpp
    test_svs_tools.cpp
+   test_dcm_driver.cpp
    test_tifftools.cpp
    test_tilecomposer.cpp
    test_tools.cpp

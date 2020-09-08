@@ -7,3 +7,25 @@
 
 using namespace slideio;
 
+static const std::string filePathPattern = "*.dcm";
+static const std::string ID("DCM");
+
+DCMImageDriver::DCMImageDriver() = default;
+
+DCMImageDriver::~DCMImageDriver() = default;
+
+
+std::string DCMImageDriver::getID() const
+{
+	return ID;
+}
+
+std::shared_ptr<CVSlide> DCMImageDriver::openFile(const std::string& filePath)
+{
+	return nullptr;
+}
+
+std::string DCMImageDriver::getFileSpecs() const
+{
+	return filePathPattern;
+}

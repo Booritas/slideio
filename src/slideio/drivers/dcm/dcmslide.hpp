@@ -4,8 +4,7 @@
 #ifndef OPENCV_slideio_dcmslide_HPP
 #define OPENCV_slideio_dcmslide_HPP
 #include "slideio/core/cvslide.hpp"
-#include "slideio/drivers/czi/dcmscene.hpp"
-#include "slideio/drivers/czi/czistructs.hpp"
+#include "slideio/drivers/dcm/dcmscene.hpp"
 #include <fstream>
 
 #if defined(_MSC_VER)

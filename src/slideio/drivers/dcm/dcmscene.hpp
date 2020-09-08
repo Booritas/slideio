@@ -17,7 +17,7 @@
 namespace slideio
 {
     class DCMSlide;
-    class SLIDEIO_EXPORTS DCMScene : public CVScene, public Tiler
+    class SLIDEIO_EXPORTS DCMScene : public CVScene
     {
     public:
         DCMScene();
