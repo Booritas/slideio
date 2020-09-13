@@ -4,12 +4,12 @@
 #include <gtest/gtest.h>
 #include "slideio/core/imagedrivermanager.hpp"
 #include "testtools.hpp"
-#include "slideio/drivers/zvi/zviutils.hpp"
+#include "slideio/drivers/zvi/ZVIUtils.hpp"
 #include <pole/polepp.hpp>
 
 
 
-TEST(zviutils, read_stream_int)
+TEST(ZVIUtils, read_stream_int)
 {
     std::string file_path = TestTools::getTestImagePath("zvi","Zeiss-1-Merged.zvi");
     ole::compound_document doc(file_path);
@@ -22,25 +22,25 @@ TEST(zviutils, read_stream_int)
     ASSERT_TRUE(contents != storage->end());
 
     ole::basic_stream stream = contents->stream();
-    zviutils::skipItems(stream, 4);
+    ZVIUtils::skipItems(stream, 4);
 
-    int32_t width = zviutils::readOleInt(stream);
+    int32_t width = ZVIUtils::readOleInt(stream);
     EXPECT_EQ(width, 1480);
 
-    int32_t height = zviutils::readOleInt(stream);
+    int32_t height = ZVIUtils::readOleInt(stream);
     EXPECT_EQ(height, 1132);
 
-    int32_t depth = zviutils::readOleInt(stream);
+    int32_t depth = ZVIUtils::readOleInt(stream);
     EXPECT_EQ(depth, 0);
 
-    int32_t pixelFormat = zviutils::readOleInt(stream);
+    int32_t pixelFormat = ZVIUtils::readOleInt(stream);
     EXPECT_EQ(pixelFormat, 4);
 
-    int32_t rawCount = zviutils::readOleInt(stream);
+    int32_t rawCount = ZVIUtils::readOleInt(stream);
     EXPECT_EQ(rawCount, 3);
 }
 
-TEST(zviutils, read_stream_double)
+TEST(ZVIUtils, read_stream_double)
 {
     std::string file_path = TestTools::getTestImagePath("zvi","Zeiss-1-Merged.zvi");
     ole::compound_document doc(file_path);
@@ -51,14 +51,14 @@ TEST(zviutils, read_stream_double)
     ASSERT_TRUE(scaling_storage != doc.end());
     auto contents_stream = scaling_storage->find_stream("/Image/Scaling/Contents");
     ASSERT_TRUE(contents_stream != scaling_storage->end());
-    zviutils::skipItems(contents_stream->stream(), 3);
-    double value = zviutils::readOleDouble(contents_stream->stream());
+    ZVIUtils::skipItems(contents_stream->stream(), 3);
+    double value = ZVIUtils::readOleDouble(contents_stream->stream());
     ASSERT_DOUBLE_EQ(value, 0.0645);
-    int scalingUnits = zviutils::readOleInt(contents_stream->stream());
+    int scalingUnits = ZVIUtils::readOleInt(contents_stream->stream());
     ASSERT_EQ(scalingUnits, 76);
 }
 
-TEST(zviutils, read_stream_string)
+TEST(ZVIUtils, read_stream_string)
 {
     std::string file_path = TestTools::getTestImagePath("zvi","Zeiss-1-Merged.zvi");
     ole::compound_document doc(file_path);
@@ -69,7 +69,7 @@ TEST(zviutils, read_stream_string)
     ASSERT_TRUE(scaling_storage != doc.end());
     auto contents_stream = scaling_storage->find_stream("/Image/Scaling/Contents");
     ASSERT_TRUE(contents_stream != scaling_storage->end());
-    zviutils::skipItems(contents_stream->stream(), 1);
-    std::string key = zviutils::readOleString(contents_stream->stream());
+    ZVIUtils::skipItems(contents_stream->stream(), 1);
+    std::string key = ZVIUtils::readOleString(contents_stream->stream());
     ASSERT_EQ(key, std::string("Scaling124"));
 }

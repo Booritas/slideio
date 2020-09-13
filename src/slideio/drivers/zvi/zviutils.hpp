@@ -3,7 +3,7 @@
 #include <string>
 #include <pole/polepp.hpp>
 
-namespace zviutils
+namespace ZVIUtils
 {
 	typedef  enum tagVARENUM
 	{
