@@ -11,8 +11,10 @@ set(TEST_SOURCES
    test_imagetools.cpp
    test_afi_driver.cpp
    test_svs_driver.cpp
+   test_zvi_driver.cpp
    test_svs_tools.cpp
    test_tifftools.cpp
+   test_zviutils.cpp
    test_tilecomposer.cpp
    test_tools.cpp
    testtiler.cpp
