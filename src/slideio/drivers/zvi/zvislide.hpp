@@ -29,6 +29,7 @@ namespace slideio
         void init();
     private:
         std::string m_filePath;
+        std::shared_ptr<ZVIScene> m_scene;
     };
 }
 

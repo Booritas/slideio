@@ -8,6 +8,7 @@
 #include "slideio/drivers/czi/czisubblock.hpp"
 #include "slideio/drivers/czi/czistructs.hpp"
 #include <map>
+#include <pole/storage.hpp>
 
 #if defined(_MSC_VER)
 #pragma warning( push )
@@ -20,7 +21,7 @@ namespace slideio
     class SLIDEIO_EXPORTS ZVIScene : public CVScene
     {
     public:
-        ZVIScene();
+        ZVIScene(const std::string& filePath);
         std::string getFilePath() const override;
         cv::Rect getRect() const override;
         int getNumChannels() const override;
@@ -42,6 +43,14 @@ namespace slideio
         std::string getName() const override;
         Compression getCompression() const override;
     private:
+        void init();
+    private:
+        std::string m_filePath;
+        ole::compound_document m_Doc;
+        int m_Width;
+        int m_Height;
+        int m_PixelFormat;
+        int m_RawCount;
     };
 }
 

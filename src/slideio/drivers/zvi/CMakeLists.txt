@@ -6,5 +6,6 @@ set(SOURCE_FILES ${SOURCE_FILES}
         ${CMAKE_CURRENT_SOURCE_DIR}/zvislide.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/zvislide.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/zviutils.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/zviutils.cpp
         PARENT_SCOPE
    )

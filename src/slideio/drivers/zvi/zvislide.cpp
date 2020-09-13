@@ -3,9 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/drivers/zvi/zvislide.hpp"
 #include "slideio/drivers/zvi/zviscene.hpp"
-#include <boost/filesystem.hpp>
-#include <pole/polepp.hpp>
-#include <boost/format.hpp>
+#include "slideio/drivers/zvi/zviutils.hpp"
 
 using namespace slideio;
 
@@ -16,7 +14,7 @@ ZVISlide::ZVISlide(const std::string& filePath) : m_filePath(filePath)
 
 int ZVISlide::getNumScenes() const
 {
-	return 0;
+	return 1;
 }
 
 std::string ZVISlide::getFilePath() const
@@ -26,7 +24,11 @@ std::string ZVISlide::getFilePath() const
 
 std::shared_ptr<CVScene> ZVISlide::getScene(int index) const
 {
-	return nullptr;
+	if(index!=1)
+	{
+		throw std::runtime_error("ZVIImageDriver: Invalid scene index");
+	}
+	return m_scene;
 }
 
 double ZVISlide::getMagnification() const
@@ -51,15 +53,6 @@ double ZVISlide::getTFrameResolution() const
 
 void ZVISlide::init()
 {
-    namespace fs = boost::filesystem;
-    if (!fs::exists(m_filePath)) {
-        throw std::runtime_error(std::string("ZVIImageDriver: File does not exist:") + m_filePath);
-    }
-	ole::compound_document doc(m_filePath);
-	if(!doc.good())
-	{
-		throw std::runtime_error(
-			(boost::format("Cannot open compound file %1%") % m_filePath).str());
-	}
+	m_scene.reset(new ZVIScene(m_filePath));
 }
 
