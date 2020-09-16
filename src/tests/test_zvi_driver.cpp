@@ -39,5 +39,14 @@ TEST(ZVIImageDriver, openSlide)
         std::string filePath = TestTools::getTestImagePath("zvi", imageName);
         std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
         ASSERT_TRUE(slide.get() != nullptr);
+        const int sceneCount = slide->getNumScenes();
+        ASSERT_EQ(sceneCount, 1);
+        auto scene = slide->getScene(0);
+        ASSERT_TRUE(scene.get() != nullptr);
+        const auto rect = scene->getRect();
+        EXPECT_EQ(rect.x, 0);
+        EXPECT_EQ(rect.y, 0);
+        EXPECT_EQ(rect.width, 1480);
+        EXPECT_EQ(rect.height, 1132);
     }
 }

@@ -108,13 +108,13 @@ void ZVIScene::init()
         throw std::runtime_error(
             (boost::format("Cannot open compound file %1%") % m_filePath).str());
     }
-    auto imageStorageItr = m_Doc.find_storage("Image");
+    auto imageStorageItr = m_Doc.find_storage("/Image");
     if (imageStorageItr == m_Doc.end())
     {
         throw std::runtime_error("ZVIImageDriver: Invalid storage. Missing 'Image' directory");
     }
     auto imageStorage = *imageStorageItr;
-    auto contentsStreamItr = imageStorage.find_stream("Image/Contents");
+    auto contentsStreamItr = imageStorage.find_stream("/Image/Contents");
     if (contentsStreamItr == imageStorage.end())
     {
         throw std::runtime_error("ZVIImageDriver: Invalid storage. Missing 'Image/Contents' stream");
