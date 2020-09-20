@@ -24,7 +24,7 @@ std::string ZVISlide::getFilePath() const
 
 std::shared_ptr<CVScene> ZVISlide::getScene(int index) const
 {
-	if(index!=1)
+	if(index!=0)
 	{
 		throw std::runtime_error("ZVIImageDriver: Invalid scene index");
 	}

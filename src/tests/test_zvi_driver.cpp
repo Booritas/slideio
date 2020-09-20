@@ -48,5 +48,8 @@ TEST(ZVIImageDriver, openSlide)
         EXPECT_EQ(rect.y, 0);
         EXPECT_EQ(rect.width, 1480);
         EXPECT_EQ(rect.height, 1132);
+        EXPECT_EQ(scene->getNumChannels(), 1);
+        EXPECT_EQ(scene->getChannelDataType(0), slideio::DataType::DT_Int16);
+        EXPECT_EQ(scene->getChannelName(0), std::string("intensity"));
     }
 }

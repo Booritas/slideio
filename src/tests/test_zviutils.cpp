@@ -73,3 +73,48 @@ TEST(ZVIUtils, read_stream_string)
     std::string key = ZVIUtils::readStringItem(contents_stream->stream());
     ASSERT_EQ(key, std::string("Scaling124"));
 }
+
+TEST(ZVIUtils, StreamKeeper)
+{
+    std::string file_path = TestTools::getTestImagePath("zvi", "Zeiss-1-Merged.zvi");
+    ole::compound_document doc(file_path);
+    ZVIUtils::StreamKeeper stream(doc, "/Image/Scaling/Contents");
+    ZVIUtils::skipItems(stream, 1);
+    std::string key = ZVIUtils::readStringItem(stream);
+    ASSERT_EQ(key, std::string("Scaling124"));
+}
+
+TEST(ZVIUtils, StreamKeeperNegative)
+{
+    std::string file_path = TestTools::getTestImagePath("zvi", "Zeiss-1-Merged.zvi");
+    ole::compound_document doc(file_path);
+
+    ASSERT_THROW(ZVIUtils::StreamKeeper(doc, "/Image/Scaling1/Contents"), std::runtime_error);
+}
+
+TEST(ZVIUtils, readItem)
+{
+    std::string file_path = TestTools::getTestImagePath("zvi", "Zeiss-1-Merged.zvi");
+    ole::compound_document doc(file_path);
+    ZVIUtils::StreamKeeper stream(doc, "/Image/Scaling/Contents");
+    ZVIUtils::skipItems(stream, 1);
+    auto stringItem = ZVIUtils::readItem(stream);
+    std::string* tps = boost::get<std::string>(&stringItem);
+    ASSERT_TRUE(tps!=nullptr);
+    std::string value = boost::get<std::string>(stringItem);
+    ASSERT_EQ(value, std::string("Scaling124"));
+    auto intItem = ZVIUtils::readItem(stream);
+    int32_t* tpi = boost::get<int32_t>(&intItem);
+    ASSERT_TRUE(tpi != nullptr);
+    tps = boost::get<std::string>(&intItem);
+    ASSERT_TRUE(tps == nullptr);
+    auto doubleItem = ZVIUtils::readItem(stream);
+    tpi = boost::get<int32_t>(&doubleItem);
+    ASSERT_TRUE(tpi == nullptr);
+    tps = boost::get<std::string>(&doubleItem);
+    ASSERT_TRUE(tps == nullptr);
+    double* tpd = boost::get<double>(&doubleItem);
+    ASSERT_TRUE(tpd != nullptr);
+    EXPECT_DOUBLE_EQ(*tpd, 0.0645);
+
+}
