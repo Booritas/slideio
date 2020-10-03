@@ -15,6 +15,7 @@
 
 using namespace slideio;
 
+
 ZVIScene::ZVIScene(const std::string& filePath) :
                         m_filePath(filePath),
                         m_ChannelCount(0),
@@ -197,10 +198,28 @@ DataType ZVIScene::dataTypeFromPixelFormat(const PixelFormat pixelFormat)
     return dt;
 }
 
-void ZVIScene::readImageItemContents(ImageItem& item)
+int ZVIScene::channelCountFromPixelFormat(const ZVIScene::PixelFormat pixelFormat)
 {
-    const std::string streamPath = (boost::format("/Image/Item(%1%)/Contents") % item.getItemIndex()).str();
-    ZVIUtils::StreamKeeper stream(m_Doc, streamPath);
+    int channels = 1;
+    if (pixelFormat == PixelFormat::PF_BGR
+        || pixelFormat == PixelFormat::PF_BGRA
+        || pixelFormat == PixelFormat::PF_BGR16)
+    {
+        channels = 3;
+    }
+    return channels;
+}
+
+void ZVIScene::ImageItem::readItemInfo(ole::compound_document& doc)
+{
+    readContents(doc);
+    readTags(doc);
+}
+
+void ZVIScene::ImageItem::readContents(ole::compound_document& doc)
+{
+    const std::string streamPath = (boost::format("/Image/Item(%1%)/Contents") % getItemIndex()).str();
+    ZVIUtils::StreamKeeper stream(doc, streamPath);
 
     ZVIUtils::skipItems(stream, 11);
     uint16_t type;
@@ -211,11 +230,11 @@ void ZVIScene::readImageItemContents(ImageItem& item)
     stream->read(posBuffer.data(), posBuffer.size());
     const uint32_t* position = reinterpret_cast<uint32_t*>(posBuffer.data());
 
-    item.setZIndex(position[2]);
-    item.setCIndex(position[3]);
-    item.setTIndex(position[4]);
-    item.setSceneIndex(position[5]);
-    item.setPositionIndex(position[6]);
+    setZIndex(position[2]);
+    setCIndex(position[3]);
+    setTIndex(position[4]);
+    setSceneIndex(position[5]);
+    setPositionIndex(position[6]);
 
     ZVIUtils::skipItems(stream, 5);
     std::vector<int32_t> header(6);
@@ -226,20 +245,22 @@ void ZVIScene::readImageItemContents(ImageItem& item)
     const int32_t depth = header[3];
     const PixelFormat pixelFormat = static_cast<PixelFormat>(header[5]);
 
-    item.setPixelFormat(pixelFormat);
+    setPixelFormat(pixelFormat);
     DataType dt = dataTypeFromPixelFormat(pixelFormat);
-    item.setDataType(dt);
-    item.setHeight(height);
-    item.setWidth(width);
-    item.setZSliceCount(depth);
+    int channels = channelCountFromPixelFormat(pixelFormat);
+    setDataType(dt);
+    setHeight(height);
+    setWidth(width);
+    setZSliceCount(depth);
     std::streamoff pos = stream->pos();
-    item.setDataOffset(pos);
+    setDataOffset(pos);
 }
 
-void ZVIScene::readImageItemTags(ImageItem& item)
+
+void ZVIScene::ImageItem::readTags(ole::compound_document& doc)
 {
-    const std::string streamPath = (boost::format("/Image/Item(%1%)/Tags/Contents") % item.getItemIndex()).str();
-    ZVIUtils::StreamKeeper stream(m_Doc, streamPath);
+    const std::string streamPath = (boost::format("/Image/Item(%1%)/Tags/Contents") % getItemIndex()).str();
+    ZVIUtils::StreamKeeper stream(doc, streamPath);
 
     const int version = ZVIUtils::readIntItem(stream);
     const int numTags = ZVIUtils::readIntItem(stream);
@@ -290,7 +311,7 @@ void ZVIScene::readImageItemTags(ImageItem& item)
         }
     }
 
-    item.setChannelName(channelName);
+    setChannelName(channelName);
 }
 
 
@@ -393,8 +414,7 @@ void ZVIScene::readImageItems()
     {
         auto& item = m_ImageItems[itemIndex];
         item.setItemIndex(itemIndex);
-        readImageItemContents(item);
-        readImageItemTags(item);
+        item.readItemInfo(m_Doc);
     }
 }
 

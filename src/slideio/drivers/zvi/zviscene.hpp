@@ -40,6 +40,7 @@ namespace slideio
         {
         public:
             ImageItem() = default;
+            void setItemIndex(int itemIndex) { m_ItemIndex = itemIndex; }
             int getZIndex() const { return m_ZIndex; }
             int getCIndex() const { return m_CIndex; }
             int getTIndex() const { return m_TIndex; }
@@ -47,7 +48,21 @@ namespace slideio
             int getSceneIndex() const { return m_SceneIndex; }
             int getItemIndex() const { return m_ItemIndex; }
             std::streamoff getDataOffset() { return m_DataPos; }
-            void setItemIndex(int itemIndex) { m_ItemIndex = itemIndex; }
+            std::string getChannelName() const { return m_ChannelName; }
+            PixelFormat getPixelFormat() const { return m_PixelFormat; }
+            int getWidth() const { return m_Width; }
+            int getHeight() const { return m_Height; }
+            int getZSliceCount() const { return m_ZSliceCount; }
+            void setZSliceCount(int depth) { m_ZSliceCount = depth; }
+            DataType getDataType() const { return m_DataType; }
+            int getChannelCount() const { return m_ChannelCount; }
+            void readItemInfo(ole::compound_document& doc);
+        private:
+            void setWidth(int width) { m_Width = width; }
+            void setHeight(int height) { m_Height = height; }
+            void setChannelCount(int channels) { m_ChannelCount = channels; }
+            void setDataType(DataType dt) { m_DataType = dt; }
+            void setPixelFormat(PixelFormat pixelFormat) { m_PixelFormat = pixelFormat; }
             void setZIndex(int zIndex) { m_ZIndex = zIndex; }
             void setCIndex(int cIndex) { m_CIndex = cIndex; }
             void setTIndex(int tIndex) { m_TIndex = tIndex; }
@@ -55,18 +70,10 @@ namespace slideio
             void setSceneIndex(int sceneIndex) { m_SceneIndex = sceneIndex; }
             void setDataOffset(std::streamoff pos) { m_DataPos = pos; }
             void setChannelName(const std::string& name) { m_ChannelName = name; }
-            std::string getChannelName() const { return m_ChannelName; }
-            PixelFormat getPixelFormat() const { return m_PixelFormat; }
-            void setPixelFormat(PixelFormat pixelFormat) { m_PixelFormat = pixelFormat; }
-            int getWidth() const { return m_Width; }
-            void setWidth(int width) { m_Width = width; }
-            int getHeight() const { return m_Height; }
-            void setHeight(int height) { m_Height = height; }
-            int getZSliceCount() const { return m_ZSliceCount; }
-            void setZSliceCount(int depth) { m_ZSliceCount = depth; }
-            DataType getDataType() const { return m_DataType; }
-            void setDataType(DataType dt) { m_DataType = dt; }
+            void readContents(ole::compound_document& doc);
+            void readTags(ole::compound_document& doc);
         private:
+            int m_ChannelCount = 0;
             int m_Width = 0;
             int m_Height = 0;
             int m_ItemIndex = -1;
@@ -114,8 +121,7 @@ namespace slideio
                       void* userData) override;
     private:
         static DataType dataTypeFromPixelFormat(const PixelFormat pixel_format);
-        void readImageItemContents(ImageItem& item);
-        void readImageItemTags(ImageItem& item);
+        static int channelCountFromPixelFormat(PixelFormat pixelFormat);
         void alignChannelInfoToPixelFormat();
         void computeSceneDimensions();
         void readImageItems();
