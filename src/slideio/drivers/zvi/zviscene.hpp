@@ -131,12 +131,14 @@ namespace slideio
     private:
         std::string m_filePath;
         ole::compound_document m_Doc;
-        int m_Width;
-        int m_Height;
-        int m_RawCount;
-        int m_ChannelCount;
-        int m_ZSliceCount;
-        int m_TFrameCount;
+        int m_Width = 0;
+        int m_Height = 0;
+        int m_RawCount = 0;
+        int m_ChannelCount = 0;
+        int m_ZSliceCount = 0;
+        int m_TFrameCount = 0;
+        int m_TileCountX = 1;
+        int m_TileCountY = 1;
         std::vector<DataType> m_ChannelDataTypes;
         std::vector<std::string> m_ChannelNames;
         std::vector<ImageItem> m_ImageItems;

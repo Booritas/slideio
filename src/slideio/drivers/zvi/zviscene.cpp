@@ -18,11 +18,7 @@ using namespace slideio;
 
 ZVIScene::ZVIScene(const std::string& filePath) :
                         m_filePath(filePath),
-                        m_ChannelCount(0),
-                        m_Doc(filePath),
-                        m_ZSliceCount(0),
-                        m_TFrameCount(0),
-                        m_RawCount(0)
+                        m_Doc(filePath)
 {
     init();
 }
@@ -475,23 +471,17 @@ void ZVIScene::parseImageTags()
 
     for(int tagIndex=0; tagIndex<numTags; ++tagIndex)
     {
-        ZVIUtils::Variant tag = ZVIUtils::readItem(stream);
-        ZVITAG id = static_cast<ZVITAG>(ZVIUtils::readIntItem(stream));
-        ZVIUtils::Variant attr = ZVIUtils::readItem(stream);
+        const ZVIUtils::Variant tag = ZVIUtils::readItem(stream);
+        const ZVITAG id = static_cast<ZVITAG>(ZVIUtils::readIntItem(stream));
+        ZVIUtils::skipItem(stream);
 
         switch(id)
         {
-        case ZVITAG_IMAGE_WIDTH:
-            break;
-        case ZVITAG_IMAGE_HEIGHT:
-            break;
-        case ZVITAG_IMAGE_COUNT:
-            break;
-        case ZVITAG_IMAGE_PIXEL_TYPE:
-            break;
         case ZVITAG_IMAGE_COUNT_U:
+            m_TileCountX = boost::get<int32_t>(tag);
             break;
         case ZVITAG_IMAGE_COUNT_V:
+            m_TileCountY = boost::get<int32_t>(tag);
             break;
         case ZVITAG_SCALE_X:
             scaleX = boost::get<double>(tag);

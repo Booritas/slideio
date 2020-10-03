@@ -87,3 +87,39 @@ TEST(ZVIImageDriver, openSlide3D)
     auto zres = scene->getZSliceResolution();
     EXPECT_DOUBLE_EQ(zres, 0.25e-6);
 }
+
+TEST(ZVIImageDriver, openSlideMosaic)
+{
+    if (!TestTools::isFullTestEnabled())
+    {
+        GTEST_SKIP() << "Skip private test because private dataset is not enabled";
+    }
+
+    slideio::ZVIImageDriver driver;
+    std::string filePath = TestTools::getFullTestImagePath("zvi", "Zeiss-3-Mosaic.zvi");
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide.get() != nullptr);
+    const int sceneCount = slide->getNumScenes();
+    ASSERT_EQ(sceneCount, 1);
+    auto scene = slide->getScene(0);
+    ASSERT_TRUE(scene.get() != nullptr);
+    //const auto rect = scene->getRect();
+    //EXPECT_EQ(rect.x, 0);
+    //EXPECT_EQ(rect.y, 0);
+    //EXPECT_EQ(rect.width, 1388);
+    //EXPECT_EQ(rect.height, 1040);
+    //EXPECT_EQ(scene->getNumChannels(), 3);
+    //EXPECT_EQ(scene->getNumZSlices(), 13);
+    //EXPECT_EQ(scene->getNumTFrames(), 1);
+    //EXPECT_EQ(scene->getChannelDataType(0), slideio::DataType::DT_Int16);
+    //EXPECT_EQ(scene->getChannelDataType(1), slideio::DataType::DT_Int16);
+    //EXPECT_EQ(scene->getChannelDataType(2), slideio::DataType::DT_Int16);
+    //EXPECT_EQ(scene->getChannelName(0), std::string("Hoechst 33342"));
+    //EXPECT_EQ(scene->getChannelName(1), std::string("Cy3"));
+    //EXPECT_EQ(scene->getChannelName(2), std::string("FITC"));
+    //auto res = scene->getResolution();
+    //EXPECT_DOUBLE_EQ(res.x, 0.0645e-6);
+    //EXPECT_DOUBLE_EQ(res.y, 0.0645e-6);
+    //auto zres = scene->getZSliceResolution();
+    //EXPECT_DOUBLE_EQ(zres, 0.25e-6);
+}
