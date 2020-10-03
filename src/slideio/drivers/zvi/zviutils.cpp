@@ -43,6 +43,7 @@ void ZVIUtils::skipItem(ole::basic_stream& stream)
     case VT_BSTR:
     case VT_ARRAY:
     case VT_BLOB:
+    case VT_STORED_OBJECT:
         stream.read((char*)&offset, 4);
         break;
     case VT_DISPATCH:

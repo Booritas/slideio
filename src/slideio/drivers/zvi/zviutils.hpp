@@ -54,6 +54,10 @@ namespace ZVIUtils
         VT_INT_PTR = 0x0025,
         VT_UINT_PTR = 0x0026,
         VT_BLOB = 0x0041,
+        VT_STREAM = 0x0042,
+        VT_STORAGE = 0x0043,
+        VT_STREAMED_OBJECT = 0x0044,
+        VT_STORED_OBJECT = 0x0045,
         VT_ARRAY = 0x2000,
         VT_BYREF = 0x4000
     } VARENUM;

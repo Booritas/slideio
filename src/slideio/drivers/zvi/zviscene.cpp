@@ -18,7 +18,10 @@ using namespace slideio;
 ZVIScene::ZVIScene(const std::string& filePath) :
                         m_filePath(filePath),
                         m_ChannelCount(0),
-                        m_Doc(filePath)
+                        m_Doc(filePath),
+                        m_ZSliceCount(0),
+                        m_TFrameCount(0),
+                        m_RawCount(0)
 {
     init();
 }
@@ -40,12 +43,12 @@ int ZVIScene::getNumChannels() const
 
 int ZVIScene::getNumZSlices() const
 {
-    return 0;
+    return m_ZSliceCount;
 }
 
 int ZVIScene::getNumTFrames() const
 {
-    return 0;
+    return m_TFrameCount;
 }
 
 double ZVIScene::getZSliceResolution() const
@@ -58,19 +61,31 @@ double ZVIScene::getTFrameResolution() const
     return 0;
 }
 
+void ZVIScene::validateChannelIndex(int channel) const
+{
+    if(channel<0 || channel>=m_ChannelCount) {
+        throw std::runtime_error(
+            (boost::format("Invalid channel index: %1%. Number of channels: %2%")
+                % channel % m_ChannelCount).str()
+        );
+    }
+}
+
 slideio::DataType ZVIScene::getChannelDataType(int channel) const
 {
-    return m_ChannelDataType;
+    validateChannelIndex(channel);
+    return m_ChannelDataTypes[channel];
 }
 
 std::string ZVIScene::getChannelName(int channel) const
 {
+    validateChannelIndex(channel);
     return m_ChannelNames[channel];
 }
 
 Resolution ZVIScene::getResolution() const
 {
-    return Resolution();
+    return m_res;
 }
 
 double ZVIScene::getMagnification() const
@@ -147,31 +162,228 @@ bool ZVIScene::readTile(int tileIndex, const std::vector<int>& channelIndices, c
     return false;
 }
 
-void ZVIScene::readImageItem(ImageItem& item)
+DataType ZVIScene::dataTypeFromPixelFormat(const PixelFormat pixelFormat)
+{
+    DataType dt = DataType::DT_Unknown;
+
+    switch (pixelFormat)
+    {
+    case PixelFormat::PF_BGR:
+    case PixelFormat::PF_BGRA:
+    case PixelFormat::PF_UINT8:
+        dt = DataType::DT_Byte;
+        break;
+    case PixelFormat::PF_BGR16:
+    case PixelFormat::PF_INT16:
+        dt = DataType::DT_Int16;
+        break;
+    case PixelFormat::PF_BGR32:
+    case PixelFormat::PF_INT32:
+        dt = DataType::DT_Int32;
+        break;
+    case PixelFormat::PF_FLOAT:
+        dt = DataType::DT_Float32;
+        break;
+    case PixelFormat::PF_DOUBLE:
+        dt = DataType::DT_Float64;
+        break;
+    case PixelFormat::PF_UNKNOWN:
+    default:
+        throw std::runtime_error(
+            (boost::format("ZVIImageDriver: Invalid pixel format: %1%")
+                % (int)pixelFormat).str()
+        );
+    }
+    return dt;
+}
+
+void ZVIScene::readImageItemContents(ImageItem& item)
 {
     const std::string streamPath = (boost::format("/Image/Item(%1%)/Contents") % item.getItemIndex()).str();
     ZVIUtils::StreamKeeper stream(m_Doc, streamPath);
-    //ZVIUtils::skipItems(stream, 4);
-    //const int itemWidth = ZVIUtils::readIntItem(stream);
-    //const int itemHeight = ZVIUtils::readIntItem(stream);
-    //const int itemDepth = ZVIUtils::readIntItem(stream);
-    //const int itemPixelFormat = ZVIUtils::readIntItem(stream);
-    //ZVIUtils::skipItem(stream);
-    //const int validBitsPerPixel = ZVIUtils::readIntItem(stream);
-    //ZVIUtils::skipItem(stream);
 
     ZVIUtils::skipItems(stream, 11);
     uint16_t type;
     stream->read(reinterpret_cast<char*>(&type), sizeof(type));
     uint32_t sz;
     stream->read(reinterpret_cast<char*>(&sz), sizeof(sz));
-    std::array<int32_t, 8> position{};
-    stream->read(reinterpret_cast<char*>(position.data()), sizeof(int32_t)*position.size());
-    item.setZIndex(position[3]);
-    item.setCIndex(position[4]);
-    item.setTIndex(position[5]);
-    item.setSceneIndex(position[6]);
-    item.setPositionIndex(position[7]);
+    std::vector<char> posBuffer(sz);
+    stream->read(posBuffer.data(), posBuffer.size());
+    const uint32_t* position = reinterpret_cast<uint32_t*>(posBuffer.data());
+
+    item.setZIndex(position[2]);
+    item.setCIndex(position[3]);
+    item.setTIndex(position[4]);
+    item.setSceneIndex(position[5]);
+    item.setPositionIndex(position[6]);
+
+    ZVIUtils::skipItems(stream, 5);
+    std::vector<int32_t> header(6);
+    stream->read(reinterpret_cast<char*>(header.data()), sizeof(int32_t) * header.size());
+    const int32_t version = header[0];
+    const int32_t width = header[1];
+    const int32_t height = header[2];
+    const int32_t depth = header[3];
+    const PixelFormat pixelFormat = static_cast<PixelFormat>(header[5]);
+
+    item.setPixelFormat(pixelFormat);
+    DataType dt = dataTypeFromPixelFormat(pixelFormat);
+    item.setDataType(dt);
+    item.setHeight(height);
+    item.setWidth(width);
+    item.setZSliceCount(depth);
+    std::streamoff pos = stream->pos();
+    item.setDataOffset(pos);
+}
+
+void ZVIScene::readImageItemTags(ImageItem& item)
+{
+    const std::string streamPath = (boost::format("/Image/Item(%1%)/Tags/Contents") % item.getItemIndex()).str();
+    ZVIUtils::StreamKeeper stream(m_Doc, streamPath);
+
+    const int version = ZVIUtils::readIntItem(stream);
+    const int numTags = ZVIUtils::readIntItem(stream);
+    int32_t itemWidth = 0;
+    int32_t itemHeight = 0;
+    int32_t itemTilesX = 0;
+    int32_t itemTilesY = 0;
+    int32_t itemTileIndexX = 0;
+    int32_t itemTileIndexY = 0;
+    int32_t imageTileIndex = 0;
+    std::string channelName;
+    for (int tagIndex = 0; tagIndex < numTags; ++tagIndex)
+    {
+        ZVIUtils::Variant tag = ZVIUtils::readItem(stream);
+        ZVITAG id = static_cast<ZVITAG>(ZVIUtils::readIntItem(stream));
+        ZVIUtils::skipItem(stream);
+
+        switch (id)
+        {
+        case ZVITAG_IMAGE_TILE_INDEX:
+            imageTileIndex = boost::get<int32_t>(tag);
+            break;
+        case ZVITAG_IMAGE_WIDTH:
+            itemWidth = boost::get<int32_t>(tag);
+            break;
+        case ZVITAG_IMAGE_HEIGHT:
+            itemHeight = boost::get<int32_t>(tag);
+            break;
+        case ZVITAG_IMAGE_COUNT:
+            break;
+        case ZVITAG_IMAGE_PIXEL_TYPE:
+            break;
+        case ZVITAG_IMAGE_INDEX_U:
+            itemTileIndexX = boost::get<int32_t>(tag);
+            break;
+        case ZVITAG_IMAGE_INDEX_V:
+            itemTileIndexY = boost::get<int32_t>(tag);
+            break;
+        case ZVITAG_IMAGE_COUNT_U:
+            itemTileIndexY = boost::get<int32_t>(tag);
+            break;
+        case ZVITAG_IMAGE_COUNT_V:
+            itemTilesY = boost::get<int32_t>(tag);
+            break;
+        case ZVITAG_CHANNEL_NAME:
+            channelName = boost::get<std::string>(tag);
+            break;
+        }
+    }
+
+    item.setChannelName(channelName);
+}
+
+
+
+void ZVIScene::alignChannelInfoToPixelFormat()
+{
+    if(m_ChannelCount==1 && !m_ImageItems.empty())
+    {
+        PixelFormat pixelFormat = m_ImageItems[0].getPixelFormat();
+        switch (pixelFormat)
+        {
+        case PixelFormat::PF_BGR:
+            m_ChannelCount = 3;
+            m_ChannelNames.resize(m_ChannelCount);
+            m_ChannelDataTypes.resize(m_ChannelCount);
+            std::fill(m_ChannelDataTypes.begin(), m_ChannelDataTypes.end(), DataType::DT_Byte);
+            m_ChannelNames[0] = "blue";
+            m_ChannelNames[1] = "green";
+            m_ChannelNames[2] = "red";
+            break;
+        case PixelFormat::PF_BGR16:
+            m_ChannelCount = 3;
+            m_ChannelDataTypes.resize(m_ChannelCount);
+            std::fill(m_ChannelDataTypes.begin(), m_ChannelDataTypes.end(), DataType::DT_Int16);
+            m_ChannelNames.resize(m_ChannelCount);
+            m_ChannelNames[0] = "blue";
+            m_ChannelNames[1] = "green";
+            m_ChannelNames[2] = "red";
+            break;
+        case PixelFormat::PF_BGR32:
+            m_ChannelCount = 3;
+            m_ChannelDataTypes.resize(m_ChannelCount);
+            std::fill(m_ChannelDataTypes.begin(), m_ChannelDataTypes.end(), DataType::DT_Int32);
+            m_ChannelNames.resize(m_ChannelCount);
+            m_ChannelNames[0] = "blue";
+            m_ChannelNames[1] = "green";
+            m_ChannelNames[2] = "red";
+            break;
+        case PixelFormat::PF_BGRA:
+            m_ChannelCount = 4;
+            m_ChannelDataTypes.resize(m_ChannelCount);
+            std::fill(m_ChannelDataTypes.begin(), m_ChannelDataTypes.end(), DataType::DT_Byte);
+            m_ChannelNames.resize(m_ChannelCount);
+            m_ChannelNames[0] = "blue";
+            m_ChannelNames[1] = "green";
+            m_ChannelNames[2] = "red";
+            m_ChannelNames[2] = "alpha";
+            break;
+        case PixelFormat::PF_UINT8:
+        case PixelFormat::PF_INT16:
+        case PixelFormat::PF_INT32:
+        case PixelFormat::PF_FLOAT:
+        case PixelFormat::PF_DOUBLE:
+            break;
+        case PixelFormat::PF_UNKNOWN:
+        default:
+            throw std::runtime_error(
+                (boost::format("ZVIImageDriver: Invalid pixel format: %1% for file %2%")
+                    % (int)pixelFormat % m_filePath).str()
+            );
+        }
+    }
+}
+
+void ZVIScene::computeSceneDimensions()
+{
+    int maxChannel = 0;
+    int maxZ = 0;
+    int maxT = 0;
+
+    for(auto&& imageItem:m_ImageItems)
+    {
+        maxChannel = std::max(imageItem.getCIndex(), maxChannel);
+        maxZ = std::max(imageItem.getZIndex(), maxZ);
+        maxT = std::max(imageItem.getTIndex(), maxT);
+    }
+
+    m_ChannelCount = maxChannel + 1;
+    m_ZSliceCount = maxZ + 1;
+    m_TFrameCount = maxT + 1;
+    m_ChannelNames.resize(m_ChannelCount);
+    m_ChannelDataTypes.resize(m_ChannelCount);
+
+    for (auto&& imageItem : m_ImageItems)
+    {
+        const int channelIndex = imageItem.getCIndex();
+        const std::string channelName = imageItem.getChannelName();
+        if (!channelName.empty())
+            m_ChannelNames[channelIndex] = channelName;
+        m_ChannelDataTypes[channelIndex] = imageItem.getDataType();
+    }
+
+    alignChannelInfoToPixelFormat();
 }
 
 void ZVIScene::readImageItems()
@@ -181,7 +393,8 @@ void ZVIScene::readImageItems()
     {
         auto& item = m_ImageItems[itemIndex];
         item.setItemIndex(itemIndex);
-        readImageItem(item);
+        readImageItemContents(item);
+        readImageItemTags(item);
     }
 }
 
@@ -192,82 +405,9 @@ void ZVIScene::parseImageInfo()
     m_Width = ZVIUtils::readIntItem(stream);
     m_Height = ZVIUtils::readIntItem(stream);
     int depth = ZVIUtils::readIntItem(stream);
-    m_PixelFormat = static_cast<PixelFormat>(ZVIUtils::readIntItem(stream));
+    PixelFormat pixelFormat = static_cast<PixelFormat>(ZVIUtils::readIntItem(stream));
     m_RawCount = ZVIUtils::readIntItem(stream);
 
-    switch(m_PixelFormat)
-    {
-    case PixelFormat::PF_BGR:
-        m_ChannelCount = 3;
-        m_ChannelDataType = DataType::DT_Byte;
-        m_ChannelNames.resize(m_ChannelCount);
-        m_ChannelNames[0] = "blue";
-        m_ChannelNames[1] = "green";
-        m_ChannelNames[2] = "red";
-        break;
-    case PixelFormat::PF_BGR16:
-        m_ChannelCount = 3;
-        m_ChannelDataType = DataType::DT_Int16;
-        m_ChannelNames.resize(m_ChannelCount);
-        m_ChannelNames[0] = "blue";
-        m_ChannelNames[1] = "green";
-        m_ChannelNames[2] = "red";
-        break;
-    case PixelFormat::PF_BGR32:
-        m_ChannelCount = 3;
-        m_ChannelDataType = DataType::DT_Int32;
-        m_ChannelNames.resize(m_ChannelCount);
-        m_ChannelNames[0] = "blue";
-        m_ChannelNames[1] = "green";
-        m_ChannelNames[2] = "red";
-        break;
-    case PixelFormat::PF_BGRA:
-        m_ChannelCount = 4;
-        m_ChannelNames.resize(m_ChannelCount);
-        m_ChannelDataType = DataType::DT_Byte;
-        m_ChannelNames[0] = "blue";
-        m_ChannelNames[1] = "green";
-        m_ChannelNames[2] = "red";
-        m_ChannelNames[2] = "alpha";
-        break;
-    case PixelFormat::PF_UINT8:
-        m_ChannelCount = 1;
-        m_ChannelDataType = DataType::DT_Byte;
-        m_ChannelNames.resize(m_ChannelCount);
-        m_ChannelNames[0] = "intensity";
-        break;
-    case PixelFormat::PF_INT16:
-        m_ChannelCount = 1;
-        m_ChannelDataType = DataType::DT_Int16;
-        m_ChannelNames.resize(m_ChannelCount);
-        m_ChannelNames[0] = "intensity";
-        break;
-    case PixelFormat::PF_INT32:
-        m_ChannelCount = 1;
-        m_ChannelDataType = DataType::DT_Int32;
-        m_ChannelNames.resize(m_ChannelCount);
-        m_ChannelNames[0] = "intensity";
-        break;
-    case PixelFormat::PF_FLOAT:
-        m_ChannelCount = 1;
-        m_ChannelDataType = DataType::DT_Float32;
-        m_ChannelNames.resize(m_ChannelCount);
-        m_ChannelNames[0] = "intensity";
-        break;
-    case PixelFormat::PF_DOUBLE:
-        m_ChannelCount = 1;
-        m_ChannelDataType = DataType::DT_Float64;
-        m_ChannelNames.resize(m_ChannelCount);
-        m_ChannelNames[0] = "intensity";
-        break;
-        break;
-    case PixelFormat::PF_UNKNOWN:
-    default:
-        throw std::runtime_error(
-            (boost::format("ZVIImageDriver: Invalid pixel format: %1% for file %2%")
-                % (int)m_PixelFormat % m_filePath).str()
-        );
-    }
 }
 
 void ZVIScene::init()
@@ -283,6 +423,26 @@ void ZVIScene::init()
     }
     parseImageInfo();
     readImageItems();
+    computeSceneDimensions();
+    parseImageTags();
+}
+
+static double scaleToResolution(double scale, int units)
+{
+    double res = scale;
+    switch(units)
+    {
+    case 72: // Meter
+        break;
+    case 76: // Micrometer
+    case 84: // Micrometer
+        res /= 1.e6;
+        break;
+    case 77: // Namometer
+        res /= 1.e9;
+        break;
+    }
+    return res;
 }
 
 void ZVIScene::parseImageTags()
@@ -290,11 +450,14 @@ void ZVIScene::parseImageTags()
     ZVIUtils::StreamKeeper stream(m_Doc, "/Image/Tags/Contents");
     const int version = ZVIUtils::readIntItem(stream);
     const int numTags = ZVIUtils::readIntItem(stream);
+    double scaleX(0), scaleY(0), scaleZ(0);
+    int unitsX(0), unitsY(0), unitsZ(0);
+
     for(int tagIndex=0; tagIndex<numTags; ++tagIndex)
     {
         ZVIUtils::Variant tag = ZVIUtils::readItem(stream);
         ZVITAG id = static_cast<ZVITAG>(ZVIUtils::readIntItem(stream));
-        ZVIUtils::skipItem(stream);
+        ZVIUtils::Variant attr = ZVIUtils::readItem(stream);
 
         switch(id)
         {
@@ -310,8 +473,26 @@ void ZVIScene::parseImageTags()
             break;
         case ZVITAG_IMAGE_COUNT_V:
             break;
+        case ZVITAG_SCALE_X:
+            scaleX = boost::get<double>(tag);
+            break;
+        case ZVITAG_SCALE_UNIT_X:
+            unitsX = boost::get<int32_t>(tag);
+            break;
+        case ZVITAG_SCALE_Y:
+            scaleY = boost::get<double>(tag);
+            break;
+        case ZVITAG_SCALE_UNIT_Y:
+            unitsY = boost::get<int32_t>(tag);
+            break;
+        case ZVITAG_SCALE_Z:
+            scaleZ = boost::get<double>(tag);
+            break;
+        case ZVITAG_SCALE_UNIT_Z:
+            unitsZ = boost::get<int32_t>(tag);
+            break;
         }
-        
-        // std::cout << "Id:" << id << ";  Type:" << tag.which() << "; Value: " << tag << std::endl;
     }
+    m_res.x = scaleToResolution(scaleX, unitsX);
+    m_res.y = scaleToResolution(scaleY, unitsY);
 }

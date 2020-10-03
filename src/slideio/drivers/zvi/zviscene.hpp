@@ -39,28 +39,47 @@ namespace slideio
         class ImageItem
         {
         public:
-            ImageItem() : m_ItemIndex(-1), m_ZIndex(-1), m_CIndex(-1), m_TIndex(-1),
-                          m_PositionIndex(-1), m_SceneIndex(-1) {
-            }
+            ImageItem() = default;
             int getZIndex() const { return m_ZIndex; }
             int getCIndex() const { return m_CIndex; }
             int getTIndex() const { return m_TIndex; }
             int getPositionIndex() const { return m_PositionIndex; }
             int getSceneIndex() const { return m_SceneIndex; }
             int getItemIndex() const { return m_ItemIndex; }
+            std::streamoff getDataOffset() { return m_DataPos; }
             void setItemIndex(int itemIndex) { m_ItemIndex = itemIndex; }
             void setZIndex(int zIndex) { m_ZIndex = zIndex; }
             void setCIndex(int cIndex) { m_CIndex = cIndex; }
             void setTIndex(int tIndex) { m_TIndex = tIndex; }
             void setPositionIndex(int positionIndex) { m_PositionIndex = positionIndex; }
             void setSceneIndex(int sceneIndex) { m_SceneIndex = sceneIndex; }
+            void setDataOffset(std::streamoff pos) { m_DataPos = pos; }
+            void setChannelName(const std::string& name) { m_ChannelName = name; }
+            std::string getChannelName() const { return m_ChannelName; }
+            PixelFormat getPixelFormat() const { return m_PixelFormat; }
+            void setPixelFormat(PixelFormat pixelFormat) { m_PixelFormat = pixelFormat; }
+            int getWidth() const { return m_Width; }
+            void setWidth(int width) { m_Width = width; }
+            int getHeight() const { return m_Height; }
+            void setHeight(int height) { m_Height = height; }
+            int getZSliceCount() const { return m_ZSliceCount; }
+            void setZSliceCount(int depth) { m_ZSliceCount = depth; }
+            DataType getDataType() const { return m_DataType; }
+            void setDataType(DataType dt) { m_DataType = dt; }
         private:
-            int m_ItemIndex;
-            int m_ZIndex;
-            int m_CIndex;
-            int m_TIndex;
-            int m_PositionIndex;
-            int m_SceneIndex;
+            int m_Width = 0;
+            int m_Height = 0;
+            int m_ItemIndex = -1;
+            int m_ZIndex = -1;
+            int m_CIndex = -1;
+            int m_TIndex = -1;
+            int m_PositionIndex = -1;
+            int m_SceneIndex = -1;
+            std::streamoff m_DataPos = 0;
+            std::string m_ChannelName;
+            PixelFormat m_PixelFormat = PixelFormat::PF_UNKNOWN;
+            int m_ZSliceCount = 1;
+            DataType m_DataType = DataType::DT_Unknown;
         };
 
     public:
@@ -72,6 +91,7 @@ namespace slideio
         int getNumTFrames() const override;
         double getZSliceResolution() const override;
         double getTFrameResolution() const override;
+        void validateChannelIndex(int channel) const;
         slideio::DataType getChannelDataType(int channel) const override;
         std::string getChannelName(int channel) const override;
         Resolution getResolution() const override;
@@ -93,7 +113,11 @@ namespace slideio
         bool readTile(int tileIndex, const std::vector<int>& channelIndices, cv::OutputArray tileRaster,
                       void* userData) override;
     private:
-        void readImageItem(ImageItem& item);
+        static DataType dataTypeFromPixelFormat(const PixelFormat pixel_format);
+        void readImageItemContents(ImageItem& item);
+        void readImageItemTags(ImageItem& item);
+        void alignChannelInfoToPixelFormat();
+        void computeSceneDimensions();
         void readImageItems();
         void init();
         void parseImageTags();
@@ -103,12 +127,14 @@ namespace slideio
         ole::compound_document m_Doc;
         int m_Width;
         int m_Height;
-        PixelFormat m_PixelFormat;
         int m_RawCount;
         int m_ChannelCount;
-        DataType m_ChannelDataType;
+        int m_ZSliceCount;
+        int m_TFrameCount;
+        std::vector<DataType> m_ChannelDataTypes;
         std::vector<std::string> m_ChannelNames;
         std::vector<ImageItem> m_ImageItems;
+        Resolution m_res = {0,0};
     };
 }
 

@@ -30,26 +30,29 @@ TEST(ZVIImageDriver, canOpenFile)
 
 TEST(ZVIImageDriver, openSlide)
 {
-    const std::string images[] = {
-        "Zeiss-1-Merged.zvi"
-    };
     slideio::ZVIImageDriver driver;
-    for (const auto& imageName : images)
-    {
-        std::string filePath = TestTools::getTestImagePath("zvi", imageName);
-        std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
-        ASSERT_TRUE(slide.get() != nullptr);
-        const int sceneCount = slide->getNumScenes();
-        ASSERT_EQ(sceneCount, 1);
-        auto scene = slide->getScene(0);
-        ASSERT_TRUE(scene.get() != nullptr);
-        const auto rect = scene->getRect();
-        EXPECT_EQ(rect.x, 0);
-        EXPECT_EQ(rect.y, 0);
-        EXPECT_EQ(rect.width, 1480);
-        EXPECT_EQ(rect.height, 1132);
-        EXPECT_EQ(scene->getNumChannels(), 1);
-        EXPECT_EQ(scene->getChannelDataType(0), slideio::DataType::DT_Int16);
-        EXPECT_EQ(scene->getChannelName(0), std::string("intensity"));
-    }
+    std::string filePath = TestTools::getTestImagePath("zvi", "Zeiss-1-Merged.zvi");
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide.get() != nullptr);
+    const int sceneCount = slide->getNumScenes();
+    ASSERT_EQ(sceneCount, 1);
+    auto scene = slide->getScene(0);
+    ASSERT_TRUE(scene.get() != nullptr);
+    const auto rect = scene->getRect();
+    EXPECT_EQ(rect.x, 0);
+    EXPECT_EQ(rect.y, 0);
+    EXPECT_EQ(rect.width, 1480);
+    EXPECT_EQ(rect.height, 1132);
+    EXPECT_EQ(scene->getNumChannels(), 3);
+    EXPECT_EQ(scene->getNumZSlices(), 1);
+    EXPECT_EQ(scene->getNumTFrames(), 1);
+    EXPECT_EQ(scene->getChannelDataType(0), slideio::DataType::DT_Int16);
+    EXPECT_EQ(scene->getChannelDataType(1), slideio::DataType::DT_Int16);
+    EXPECT_EQ(scene->getChannelDataType(2), slideio::DataType::DT_Int16);
+    EXPECT_EQ(scene->getChannelName(0), std::string("Hoechst 33342"));
+    EXPECT_EQ(scene->getChannelName(1), std::string("Cy3"));
+    EXPECT_EQ(scene->getChannelName(2), std::string("FITC"));
+    auto res = scene->getResolution();
+    EXPECT_DOUBLE_EQ(res.x, 0.0645e-6);
+    EXPECT_DOUBLE_EQ(res.y, 0.0645e-6);
 }
