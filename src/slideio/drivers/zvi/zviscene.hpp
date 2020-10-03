@@ -135,6 +135,7 @@ namespace slideio
         std::vector<std::string> m_ChannelNames;
         std::vector<ImageItem> m_ImageItems;
         Resolution m_res = {0,0};
+        double m_ZSliceRes = 0.;
     };
 }
 

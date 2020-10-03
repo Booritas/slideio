@@ -53,7 +53,7 @@ int ZVIScene::getNumTFrames() const
 
 double ZVIScene::getZSliceResolution() const
 {
-    return 0;
+    return m_ZSliceRes;
 }
 
 double ZVIScene::getTFrameResolution() const
@@ -495,4 +495,5 @@ void ZVIScene::parseImageTags()
     }
     m_res.x = scaleToResolution(scaleX, unitsX);
     m_res.y = scaleToResolution(scaleY, unitsY);
+    m_ZSliceRes = scaleToResolution(scaleZ, unitsZ);
 }
