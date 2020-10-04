@@ -8,5 +8,8 @@ set(SOURCE_FILES ${SOURCE_FILES}
         ${CMAKE_CURRENT_SOURCE_DIR}/zviutils.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/zviutils.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/zvitags.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/zviimageitem.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/zviimageitem.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/zvipixelformat.hpp
         PARENT_SCOPE
    )

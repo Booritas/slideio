@@ -6,6 +6,9 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
 
+#include "zvipixelformat.hpp"
+using namespace slideio;
+
 void ZVIUtils::skipItem(ole::basic_stream& stream)
 {
     uint16_t type;
@@ -235,4 +238,51 @@ ZVIUtils::StreamKeeper::StreamKeeper(ole::compound_document& doc, const std::str
             (boost::format("ZVIImageDriver: Invalid stream path: %1%") % path).str()
         );
     }
+}
+
+slideio::DataType ZVIUtils::dataTypeFromPixelFormat(const ZVIPixelFormat pixelFormat)
+{
+    DataType dt = DataType::DT_Unknown;
+
+    switch (pixelFormat)
+    {
+    case ZVIPixelFormat::PF_BGR:
+    case ZVIPixelFormat::PF_BGRA:
+    case ZVIPixelFormat::PF_UINT8:
+        dt = DataType::DT_Byte;
+        break;
+    case ZVIPixelFormat::PF_BGR16:
+    case ZVIPixelFormat::PF_INT16:
+        dt = DataType::DT_Int16;
+        break;
+    case ZVIPixelFormat::PF_BGR32:
+    case ZVIPixelFormat::PF_INT32:
+        dt = DataType::DT_Int32;
+        break;
+    case ZVIPixelFormat::PF_FLOAT:
+        dt = DataType::DT_Float32;
+        break;
+    case ZVIPixelFormat::PF_DOUBLE:
+        dt = DataType::DT_Float64;
+        break;
+    case ZVIPixelFormat::PF_UNKNOWN:
+    default:
+        throw std::runtime_error(
+            (boost::format("ZVIImageDriver: Invalid pixel format: %1%")
+                % (int)pixelFormat).str()
+        );
+    }
+    return dt;
+}
+
+int ZVIUtils::channelCountFromPixelFormat(const ZVIPixelFormat pixelFormat)
+{
+    int channels = 1;
+    if (pixelFormat == ZVIPixelFormat::PF_BGR
+        || pixelFormat == ZVIPixelFormat::PF_BGRA
+        || pixelFormat == ZVIPixelFormat::PF_BGR16)
+    {
+        channels = 3;
+    }
+    return channels;
 }

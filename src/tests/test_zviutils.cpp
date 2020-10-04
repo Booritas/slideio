@@ -8,6 +8,7 @@
 #include <pole/polepp.hpp>
 
 
+using namespace slideio;
 
 TEST(ZVIUtils, read_stream_int)
 {

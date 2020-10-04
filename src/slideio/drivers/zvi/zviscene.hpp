@@ -5,9 +5,9 @@
 #define OPENCV_slideio_zviscene_HPP
 #include "slideio/core/cvscene.hpp"
 #include "slideio/imagetools/tilecomposer.hpp"
-#include "slideio/drivers/czi/czisubblock.hpp"
-#include "slideio/drivers/czi/czistructs.hpp"
-#include <map>
+#include "slideio/drivers/zvi/zvipixelformat.hpp"
+#include "slideio/drivers/zvi/zviimageitem.hpp"
+#include "slideio/drivers/zvi/zvipixelformat.hpp"
 #include <pole/storage.hpp>
 
 #if defined(_MSC_VER)
@@ -21,74 +21,6 @@ namespace slideio
 
     class SLIDEIO_EXPORTS ZVIScene : public CVScene, public Tiler
     {
-    private:
-        enum class PixelFormat
-        {
-            PF_UNKNOWN,
-            PF_BGR,
-            PF_BGRA,
-            PF_UINT8,
-            PF_INT16,
-            PF_INT32,
-            PF_FLOAT,
-            PF_DOUBLE,
-            PF_BGR16,
-            PF_BGR32
-        };
-
-        class ImageItem
-        {
-        public:
-            ImageItem() = default;
-            void setItemIndex(int itemIndex) { m_ItemIndex = itemIndex; }
-            int getZIndex() const { return m_ZIndex; }
-            int getCIndex() const { return m_CIndex; }
-            int getTIndex() const { return m_TIndex; }
-            int getPositionIndex() const { return m_PositionIndex; }
-            int getSceneIndex() const { return m_SceneIndex; }
-            int getItemIndex() const { return m_ItemIndex; }
-            std::streamoff getDataOffset() { return m_DataPos; }
-            std::string getChannelName() const { return m_ChannelName; }
-            PixelFormat getPixelFormat() const { return m_PixelFormat; }
-            int getWidth() const { return m_Width; }
-            int getHeight() const { return m_Height; }
-            int getZSliceCount() const { return m_ZSliceCount; }
-            void setZSliceCount(int depth) { m_ZSliceCount = depth; }
-            DataType getDataType() const { return m_DataType; }
-            int getChannelCount() const { return m_ChannelCount; }
-            void readItemInfo(ole::compound_document& doc);
-        private:
-            void setWidth(int width) { m_Width = width; }
-            void setHeight(int height) { m_Height = height; }
-            void setChannelCount(int channels) { m_ChannelCount = channels; }
-            void setDataType(DataType dt) { m_DataType = dt; }
-            void setPixelFormat(PixelFormat pixelFormat) { m_PixelFormat = pixelFormat; }
-            void setZIndex(int zIndex) { m_ZIndex = zIndex; }
-            void setCIndex(int cIndex) { m_CIndex = cIndex; }
-            void setTIndex(int tIndex) { m_TIndex = tIndex; }
-            void setPositionIndex(int positionIndex) { m_PositionIndex = positionIndex; }
-            void setSceneIndex(int sceneIndex) { m_SceneIndex = sceneIndex; }
-            void setDataOffset(std::streamoff pos) { m_DataPos = pos; }
-            void setChannelName(const std::string& name) { m_ChannelName = name; }
-            void readContents(ole::compound_document& doc);
-            void readTags(ole::compound_document& doc);
-        private:
-            int m_ChannelCount = 0;
-            int m_Width = 0;
-            int m_Height = 0;
-            int m_ItemIndex = -1;
-            int m_ZIndex = -1;
-            int m_CIndex = -1;
-            int m_TIndex = -1;
-            int m_PositionIndex = -1;
-            int m_SceneIndex = -1;
-            std::streamoff m_DataPos = 0;
-            std::string m_ChannelName;
-            PixelFormat m_PixelFormat = PixelFormat::PF_UNKNOWN;
-            int m_ZSliceCount = 1;
-            DataType m_DataType = DataType::DT_Unknown;
-        };
-
     public:
         ZVIScene(const std::string& filePath);
         std::string getFilePath() const override;
@@ -120,8 +52,6 @@ namespace slideio
         bool readTile(int tileIndex, const std::vector<int>& channelIndices, cv::OutputArray tileRaster,
                       void* userData) override;
     private:
-        static DataType dataTypeFromPixelFormat(const PixelFormat pixel_format);
-        static int channelCountFromPixelFormat(PixelFormat pixelFormat);
         void alignChannelInfoToPixelFormat();
         void computeSceneDimensions();
         void readImageItems();
@@ -141,7 +71,7 @@ namespace slideio
         int m_TileCountY = 1;
         std::vector<DataType> m_ChannelDataTypes;
         std::vector<std::string> m_ChannelNames;
-        std::vector<ImageItem> m_ImageItems;
+        std::vector<ZVIImageItem> m_ImageItems;
         Resolution m_res = {0,0};
         double m_ZSliceRes = 0.;
     };
