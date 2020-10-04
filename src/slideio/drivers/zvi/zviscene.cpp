@@ -417,11 +417,7 @@ void ZVIScene::readImageItems()
 void ZVIScene::parseImageInfo()
 {
     ZVIUtils::StreamKeeper stream(m_Doc, "/Image/Contents");
-    ZVIUtils::skipItems(stream, 4);
-    m_Width = ZVIUtils::readIntItem(stream);
-    m_Height = ZVIUtils::readIntItem(stream);
-    int depth = ZVIUtils::readIntItem(stream);
-    PixelFormat pixelFormat = static_cast<PixelFormat>(ZVIUtils::readIntItem(stream));
+    ZVIUtils::skipItems(stream, 8);
     m_RawCount = ZVIUtils::readIntItem(stream);
 
 }
@@ -477,6 +473,12 @@ void ZVIScene::parseImageTags()
 
         switch(id)
         {
+        case ZVITAG_IMAGE_WIDTH:
+            m_Width = boost::get<int32_t>(tag);
+            break;
+        case ZVITAG_IMAGE_HEIGHT:
+            m_Height = boost::get<int32_t>(tag);
+            break;
         case ZVITAG_IMAGE_COUNT_U:
             m_TileCountX = boost::get<int32_t>(tag);
             break;
