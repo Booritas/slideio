@@ -30,6 +30,8 @@ namespace slideio
             DataType getDataType() const { return m_DataType; }
             int getChannelCount() const { return m_ChannelCount; }
             void readItemInfo(ole::compound_document& doc);
+            int getTileIndexX() const { return m_TileIndexX; }
+            int getTileIndexY() const { return m_TileIndexY; }
         private:
             void setWidth(int width) { m_Width = width; }
             void setHeight(int height) { m_Height = height; }
@@ -43,6 +45,8 @@ namespace slideio
             void setSceneIndex(int sceneIndex) { m_SceneIndex = sceneIndex; }
             void setDataOffset(std::streamoff pos) { m_DataPos = pos; }
             void setChannelName(const std::string& name) { m_ChannelName = name; }
+            void setTileIndexX(int index) { m_TileIndexX = index; }
+            void setTileIndexY(int index) { m_TileIndexY = index; }
             void readContents(ole::compound_document& doc);
             void readTags(ole::compound_document& doc);
         private:
@@ -55,6 +59,8 @@ namespace slideio
             int m_TIndex = -1;
             int m_PositionIndex = -1;
             int m_SceneIndex = -1;
+            int m_TileIndexX = -1;
+            int m_TileIndexY = -1;
             std::streamoff m_DataPos = 0;
             std::string m_ChannelName;
             ZVIPixelFormat m_PixelFormat = ZVIPixelFormat::PF_UNKNOWN;

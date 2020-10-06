@@ -3,12 +3,13 @@
 // of this distribution and at http://slideio.com/license.html.
 #ifndef OPENCV_slideio_zviscene_HPP
 #define OPENCV_slideio_zviscene_HPP
+
 #include "slideio/core/cvscene.hpp"
 #include "slideio/imagetools/tilecomposer.hpp"
-#include "slideio/drivers/zvi/zvipixelformat.hpp"
 #include "slideio/drivers/zvi/zviimageitem.hpp"
-#include "slideio/drivers/zvi/zvipixelformat.hpp"
 #include <pole/storage.hpp>
+
+#include "zvitile.hpp"
 
 #if defined(_MSC_VER)
 #pragma warning( push )
@@ -58,6 +59,7 @@ namespace slideio
         void init();
         void parseImageTags();
         void parseImageInfo();
+        void computeTiles();
     private:
         std::string m_filePath;
         ole::compound_document m_Doc;
@@ -72,6 +74,7 @@ namespace slideio
         std::vector<DataType> m_ChannelDataTypes;
         std::vector<std::string> m_ChannelNames;
         std::vector<ZVIImageItem> m_ImageItems;
+        std::vector<ZVITile> m_Tiles;
         Resolution m_res = {0,0};
         double m_ZSliceRes = 0.;
     };

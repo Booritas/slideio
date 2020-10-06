@@ -78,37 +78,39 @@ void ZVIImageItem::readTags(ole::compound_document& doc)
 
         switch (id)
         {
-        case ZVITAG_IMAGE_TILE_INDEX:
+        case ZVITAG::ZVITAG_IMAGE_TILE_INDEX:
             imageTileIndex = boost::get<int32_t>(tag);
             break;
-        case ZVITAG_IMAGE_WIDTH:
+        case ZVITAG::ZVITAG_IMAGE_WIDTH:
             itemWidth = boost::get<int32_t>(tag);
             break;
-        case ZVITAG_IMAGE_HEIGHT:
+        case ZVITAG::ZVITAG_IMAGE_HEIGHT:
             itemHeight = boost::get<int32_t>(tag);
             break;
-        case ZVITAG_IMAGE_COUNT:
+        case ZVITAG::ZVITAG_IMAGE_COUNT:
             break;
-        case ZVITAG_IMAGE_PIXEL_TYPE:
+        case ZVITAG::ZVITAG_IMAGE_PIXEL_TYPE:
             break;
-        case ZVITAG_IMAGE_INDEX_U:
+        case ZVITAG::ZVITAG_IMAGE_INDEX_U:
             itemTileIndexX = boost::get<int32_t>(tag);
             break;
-        case ZVITAG_IMAGE_INDEX_V:
+        case ZVITAG::ZVITAG_IMAGE_INDEX_V:
             itemTileIndexY = boost::get<int32_t>(tag);
             break;
-        case ZVITAG_IMAGE_COUNT_U:
+        case ZVITAG::ZVITAG_IMAGE_COUNT_U:
             itemTileIndexY = boost::get<int32_t>(tag);
             break;
-        case ZVITAG_IMAGE_COUNT_V:
+        case ZVITAG::ZVITAG_IMAGE_COUNT_V:
             itemTilesY = boost::get<int32_t>(tag);
             break;
-        case ZVITAG_CHANNEL_NAME:
+        case ZVITAG::ZVITAG_CHANNEL_NAME:
             channelName = boost::get<std::string>(tag);
             break;
         }
     }
 
     setChannelName(channelName);
+    setTileIndexX(itemTileIndexX);
+    setTileIndexY(itemTileIndexY);
 }
 

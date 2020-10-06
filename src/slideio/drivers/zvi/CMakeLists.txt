@@ -11,5 +11,7 @@ set(SOURCE_FILES ${SOURCE_FILES}
         ${CMAKE_CURRENT_SOURCE_DIR}/zviimageitem.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/zviimageitem.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/zvipixelformat.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/zvitile.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/zvitile.cpp
         PARENT_SCOPE
    )

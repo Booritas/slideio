@@ -270,6 +270,43 @@ void ZVIScene::parseImageInfo()
 
 }
 
+void ZVIScene::computeTiles()
+{
+    const int tileCount = m_TileCountX * m_TileCountY;
+    m_Tiles.resize(tileCount);
+
+    std::vector<int> w(m_TileCountX, -1);
+    std::vector<int> h(m_TileCountY, -1);
+
+    for (auto itemIndex = 0; itemIndex < m_ImageItems.size(); ++itemIndex)
+    {
+        const ZVIImageItem& item = m_ImageItems[itemIndex];
+        int xIndex = item.getTileIndexX();
+        int yIndex = item.getTileIndexY();
+        int tileIndex = yIndex * m_TileCountX + xIndex;
+        ZVITile& tile = m_Tiles[tileIndex];
+        tile.addItem(&item);
+        if (w[xIndex] < 0)
+            w[xIndex] = item.getWidth();
+        if (h[yIndex] < 0)
+            h[yIndex] = item.getHeight();
+    }
+    int yPos = 0; int tileIndex = 0;
+    for (int yIndex=0; yIndex<m_TileCountY; ++yIndex)
+    {
+        int xPos = 0;
+        for (int xIndex = 0; xIndex < m_TileCountX; ++xIndex)
+        {
+            ZVITile& tile = m_Tiles[tileIndex];
+            tile.setTilePosition(xPos, yPos);
+            tile.finalize();
+            xPos += w[xIndex];
+            tileIndex++;
+        }
+        yPos += h[yIndex];
+    }   
+}
+
 void ZVIScene::init()
 {
     namespace fs = boost::filesystem;
@@ -285,6 +322,7 @@ void ZVIScene::init()
     readImageItems();
     computeSceneDimensions();
     parseImageTags();
+    computeTiles();
 }
 
 static double scaleToResolution(double scale, int units)
@@ -321,34 +359,34 @@ void ZVIScene::parseImageTags()
 
         switch(id)
         {
-        case ZVITAG_IMAGE_WIDTH:
+        case ZVITAG::ZVITAG_IMAGE_WIDTH:
             m_Width = boost::get<int32_t>(tag);
             break;
-        case ZVITAG_IMAGE_HEIGHT:
+        case ZVITAG::ZVITAG_IMAGE_HEIGHT:
             m_Height = boost::get<int32_t>(tag);
             break;
-        case ZVITAG_IMAGE_COUNT_U:
+        case ZVITAG::ZVITAG_IMAGE_COUNT_U:
             m_TileCountX = boost::get<int32_t>(tag);
             break;
-        case ZVITAG_IMAGE_COUNT_V:
+        case ZVITAG::ZVITAG_IMAGE_COUNT_V:
             m_TileCountY = boost::get<int32_t>(tag);
             break;
-        case ZVITAG_SCALE_X:
+        case ZVITAG::ZVITAG_SCALE_X:
             scaleX = boost::get<double>(tag);
             break;
-        case ZVITAG_SCALE_UNIT_X:
+        case ZVITAG::ZVITAG_SCALE_UNIT_X:
             unitsX = boost::get<int32_t>(tag);
             break;
-        case ZVITAG_SCALE_Y:
+        case ZVITAG::ZVITAG_SCALE_Y:
             scaleY = boost::get<double>(tag);
             break;
-        case ZVITAG_SCALE_UNIT_Y:
+        case ZVITAG::ZVITAG_SCALE_UNIT_Y:
             unitsY = boost::get<int32_t>(tag);
             break;
-        case ZVITAG_SCALE_Z:
+        case ZVITAG::ZVITAG_SCALE_Z:
             scaleZ = boost::get<double>(tag);
             break;
-        case ZVITAG_SCALE_UNIT_Z:
+        case ZVITAG::ZVITAG_SCALE_UNIT_Z:
             unitsZ = boost::get<int32_t>(tag);
             break;
         }
