@@ -19,6 +19,7 @@ namespace slideio
         void addItem(const ZVIImageItem* item);
         void finalize();
         void setTilePosition(int x, int y);
+        bool readTile(const std::vector<int>& componentIndices, cv::OutputArray tile_raster, int slice);
     private:
         int m_Index = 0;
         int m_XIndex = -1;

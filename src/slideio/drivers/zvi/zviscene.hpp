@@ -22,6 +22,11 @@ namespace slideio
 
     class SLIDEIO_EXPORTS ZVIScene : public CVScene, public Tiler
     {
+    private:
+        struct TilerData
+        {
+            int zSliceIndex = 0;
+        };
     public:
         ZVIScene(const std::string& filePath);
         std::string getFilePath() const override;

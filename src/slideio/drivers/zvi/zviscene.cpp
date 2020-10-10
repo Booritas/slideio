@@ -99,21 +99,9 @@ void ZVIScene::readResampledBlockChannels(const cv::Rect& blockRect, const cv::S
 void ZVIScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
     const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output)
 {
-    //TilerData userData;
-    //const double zoomX = static_cast<double>(blockSize.width) / static_cast<double>(blockRect.width);
-    //const double zoomY = static_cast<double>(blockSize.height) / static_cast<double>(blockRect.height);
-    //const double zoom = std::max(zoomX, zoomY);
-    //const std::vector<ZoomLevel>& zoomLevels = m_zoomLevels;
-    //userData.zoomLevelIndex = Tools::findZoomLevel(zoom, static_cast<int>(m_zoomLevels.size()), [&zoomLevels](int index) {
-    //    return zoomLevels[index].zoom;
-    //    });
-    //const double levelZoom = zoomLevels[userData.zoomLevelIndex].zoom;
-    //cv::Rect zoomLevelRect;
-    //ImageTools::scaleRect(blockRect, levelZoom, levelZoom, zoomLevelRect);
-    //userData.relativeZoom = levelZoom / zoom;
-    //userData.zSliceIndex = zSliceIndex;
-    //userData.tFrameIndex = tFrameIndex;
-    //TileComposer::composeRect(this, componentIndices, zoomLevelRect, blockSize, output, &userData);
+    TilerData userData;
+    userData.zSliceIndex = zSliceIndex;
+    TileComposer::composeRect(this, componentIndices, blockRect, blockSize, output, &userData);
 }
 
 void ZVIScene::readResampled4DBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize,
@@ -145,18 +133,22 @@ Compression ZVIScene::getCompression() const
 
 int ZVIScene::getTileCount(void* userData)
 {
-    return 0;
+    return m_TileCountX*m_TileCountY;
 }
 
 bool ZVIScene::getTileRect(int tileIndex, cv::Rect& tileRect, void* userData)
 {
-    return false;
+    tileRect = m_Tiles[tileIndex].getRect();
+    return true;
 }
 
 bool ZVIScene::readTile(int tileIndex, const std::vector<int>& channelIndices, cv::OutputArray tileRaster,
     void* userData)
 {
-    return false;
+    TilerData* data = (TilerData*)userData;
+    int slice = data->zSliceIndex;
+    ZVITile& tile = m_Tiles[tileIndex];
+    return tile.readTile(channelIndices, tileRaster, slice);
 }
 
 

@@ -47,3 +47,8 @@ void ZVITile::setTilePosition(int x, int y)
     m_Rect.x = x;
     m_Rect.y = y;
 }
+
+bool ZVITile::readTile(const std::vector<int>& componentIndices, cv::OutputArray tile_raster, int slice)
+{
+    return false;
+}
