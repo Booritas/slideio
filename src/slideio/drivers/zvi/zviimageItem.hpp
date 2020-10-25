@@ -6,6 +6,7 @@
 #include <pole/storage.hpp>
 #include "slideio/drivers/zvi/zvipixelformat.hpp"
 #include "slideio/structs.hpp"
+#include <opencv2/opencv.hpp>
 
 namespace slideio
 {
@@ -20,7 +21,7 @@ namespace slideio
             int getPositionIndex() const { return m_PositionIndex; }
             int getSceneIndex() const { return m_SceneIndex; }
             int getItemIndex() const { return m_ItemIndex; }
-            std::streamoff getDataOffset() { return m_DataPos; }
+            std::streamoff getDataOffset() const { return m_DataPos; }
             std::string getChannelName() const { return m_ChannelName; }
             ZVIPixelFormat getPixelFormat() const { return m_PixelFormat; }
             int getWidth() const { return m_Width; }
@@ -32,6 +33,7 @@ namespace slideio
             void readItemInfo(ole::compound_document& doc);
             int getTileIndexX() const { return m_TileIndexX; }
             int getTileIndexY() const { return m_TileIndexY; }
+            cv::Mat readRaster(ole::compound_document& doc) const;
         private:
             void setWidth(int width) { m_Width = width; }
             void setHeight(int height) { m_Height = height; }

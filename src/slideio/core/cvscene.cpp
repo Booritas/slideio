@@ -62,3 +62,18 @@ void CVScene::readResampled4DBlockChannels(const cv::Rect& blockRect, const cv::
         throw std::runtime_error("4D API are not supported by this driver");
     }
 }
+
+std::vector<int> CVScene::getValidChannelIndices(const std::vector<int>& channelIndices)
+{
+    auto validChannelIndices(channelIndices);
+    if (validChannelIndices.empty())
+    {
+        const  int numChannels = getNumChannels();
+        validChannelIndices.resize(numChannels);
+        for (int channelIndex = 0; channelIndex < numChannels; ++channelIndex)
+        {
+            validChannelIndices[channelIndex] = channelIndex;
+        }
+    }
+    return validChannelIndices;
+}

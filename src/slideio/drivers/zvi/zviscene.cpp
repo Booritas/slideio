@@ -17,8 +17,8 @@ using namespace slideio;
 
 
 ZVIScene::ZVIScene(const std::string& filePath) :
-                        m_filePath(filePath),
-                        m_Doc(filePath)
+    m_filePath(filePath),
+    m_Doc(filePath)
 {
     init();
 }
@@ -30,7 +30,7 @@ std::string ZVIScene::getFilePath() const
 
 cv::Rect ZVIScene::getRect() const
 {
-    return cv::Rect(0,0, m_Width, m_Height);
+    return cv::Rect(0, 0, m_Width, m_Height);
 }
 
 int ZVIScene::getNumChannels() const
@@ -60,7 +60,8 @@ double ZVIScene::getTFrameResolution() const
 
 void ZVIScene::validateChannelIndex(int channel) const
 {
-    if(channel<0 || channel>=m_ChannelCount) {
+    if (channel < 0 || channel >= m_ChannelCount)
+    {
         throw std::runtime_error(
             (boost::format("Invalid channel index: %1%. Number of channels: %2%")
                 % channel % m_ChannelCount).str()
@@ -91,13 +92,14 @@ double ZVIScene::getMagnification() const
 }
 
 void ZVIScene::readResampledBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize,
-    const std::vector<int>& componentIndices, cv::OutputArray output)
+                                          const std::vector<int>& componentIndices, cv::OutputArray output)
 {
-    readResampledBlockChannelsEx(blockRect, blockSize, componentIndices, 0, 0, output);
+    readResampledBlockChannelsEx(blockRect, blockSize, getValidChannelIndices(componentIndices), 0, 0, output);
 }
 
 void ZVIScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
-    const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output)
+                                            const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex,
+                                            cv::OutputArray output)
 {
     TilerData userData;
     userData.zSliceIndex = zSliceIndex;
@@ -105,8 +107,9 @@ void ZVIScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv:
 }
 
 void ZVIScene::readResampled4DBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize,
-    const std::vector<int>& channelIndices, const cv::Range& zSliceRange, const cv::Range& timeFrameRange,
-    cv::OutputArray output)
+                                            const std::vector<int>& channelIndices, const cv::Range& zSliceRange,
+                                            const cv::Range& timeFrameRange,
+                                            cv::OutputArray output)
 {
     std::vector<cv::Mat> rasters;
     for (int tfIndex = timeFrameRange.start; tfIndex < timeFrameRange.end; ++tfIndex)
@@ -133,7 +136,7 @@ Compression ZVIScene::getCompression() const
 
 int ZVIScene::getTileCount(void* userData)
 {
-    return m_TileCountX*m_TileCountY;
+    return m_TileCountX * m_TileCountY;
 }
 
 bool ZVIScene::getTileRect(int tileIndex, cv::Rect& tileRect, void* userData)
@@ -143,18 +146,18 @@ bool ZVIScene::getTileRect(int tileIndex, cv::Rect& tileRect, void* userData)
 }
 
 bool ZVIScene::readTile(int tileIndex, const std::vector<int>& channelIndices, cv::OutputArray tileRaster,
-    void* userData)
+                        void* userData)
 {
     TilerData* data = (TilerData*)userData;
     int slice = data->zSliceIndex;
     ZVITile& tile = m_Tiles[tileIndex];
-    return tile.readTile(channelIndices, tileRaster, slice);
+    return tile.readTile(channelIndices, tileRaster, slice, m_Doc);
 }
 
 
 void ZVIScene::alignChannelInfoToPixelFormat()
 {
-    if(m_ChannelCount==1 && !m_ImageItems.empty())
+    if (m_ChannelCount == 1 && !m_ImageItems.empty())
     {
         ZVIPixelFormat pixelFormat = m_ImageItems[0].getPixelFormat();
         switch (pixelFormat)
@@ -218,7 +221,7 @@ void ZVIScene::computeSceneDimensions()
     int maxZ = 0;
     int maxT = 0;
 
-    for(auto&& imageItem:m_ImageItems)
+    for (auto&& imageItem : m_ImageItems)
     {
         maxChannel = std::max(imageItem.getCIndex(), maxChannel);
         maxZ = std::max(imageItem.getZIndex(), maxZ);
@@ -246,7 +249,7 @@ void ZVIScene::computeSceneDimensions()
 void ZVIScene::readImageItems()
 {
     m_ImageItems.resize(m_RawCount);
-    for(auto itemIndex=0; itemIndex<m_RawCount; ++itemIndex)
+    for (auto itemIndex = 0; itemIndex < m_RawCount; ++itemIndex)
     {
         auto& item = m_ImageItems[itemIndex];
         item.setItemIndex(itemIndex);
@@ -259,7 +262,6 @@ void ZVIScene::parseImageInfo()
     ZVIUtils::StreamKeeper stream(m_Doc, "/Image/Contents");
     ZVIUtils::skipItems(stream, 8);
     m_RawCount = ZVIUtils::readIntItem(stream);
-
 }
 
 void ZVIScene::computeTiles()
@@ -283,8 +285,9 @@ void ZVIScene::computeTiles()
         if (h[yIndex] < 0)
             h[yIndex] = item.getHeight();
     }
-    int yPos = 0; int tileIndex = 0;
-    for (int yIndex=0; yIndex<m_TileCountY; ++yIndex)
+    int yPos = 0;
+    int tileIndex = 0;
+    for (int yIndex = 0; yIndex < m_TileCountY; ++yIndex)
     {
         int xPos = 0;
         for (int xIndex = 0; xIndex < m_TileCountX; ++xIndex)
@@ -296,13 +299,14 @@ void ZVIScene::computeTiles()
             tileIndex++;
         }
         yPos += h[yIndex];
-    }   
+    }
 }
 
 void ZVIScene::init()
 {
     namespace fs = boost::filesystem;
-    if (!fs::exists(m_filePath)) {
+    if (!fs::exists(m_filePath))
+    {
         throw std::runtime_error(std::string("ZVIImageDriver: File does not exist:") + m_filePath);
     }
     if (!m_Doc.good())
@@ -320,7 +324,7 @@ void ZVIScene::init()
 static double scaleToResolution(double scale, int units)
 {
     double res = scale;
-    switch(units)
+    switch (units)
     {
     case 72: // Meter
         break;
@@ -343,13 +347,13 @@ void ZVIScene::parseImageTags()
     double scaleX(0), scaleY(0), scaleZ(0);
     int unitsX(0), unitsY(0), unitsZ(0);
 
-    for(int tagIndex=0; tagIndex<numTags; ++tagIndex)
+    for (int tagIndex = 0; tagIndex < numTags; ++tagIndex)
     {
         const ZVIUtils::Variant tag = ZVIUtils::readItem(stream);
         const ZVITAG id = static_cast<ZVITAG>(ZVIUtils::readIntItem(stream));
         ZVIUtils::skipItem(stream);
 
-        switch(id)
+        switch (id)
         {
         case ZVITAG::ZVITAG_IMAGE_WIDTH:
             m_Width = boost::get<int32_t>(tag);

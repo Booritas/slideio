@@ -2,6 +2,8 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include <gtest/gtest.h>
+#include <opencv2/highgui.hpp>
+
 #include "slideio/core/imagedrivermanager.hpp"
 #include "testtools.hpp"
 #include "slideio/scene.hpp"
@@ -92,7 +94,7 @@ TEST(ZVIImageDriver, openSlideMosaic)
 {
     if (!TestTools::isFullTestEnabled())
     {
-        GTEST_SKIP() << "Skip private test because private dataset is not enabled";
+        GTEST_SKIP() << "Skip private test because full image dataset is not available";
     }
 
     slideio::ZVIImageDriver driver;
@@ -122,4 +124,22 @@ TEST(ZVIImageDriver, openSlideMosaic)
     EXPECT_DOUBLE_EQ(res.y, 0.3225e-6);
     auto zres = scene->getZSliceResolution();
     EXPECT_DOUBLE_EQ(zres, 1);
+}
+
+TEST(ZVIImageDriver, readBlock)
+{
+    slideio::ZVIImageDriver driver;
+    std::string filePath = TestTools::getTestImagePath("zvi", "Zeiss-1-Merged.zvi");
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide.get() != nullptr);
+    auto scene = slide->getScene(0);
+    ASSERT_TRUE(scene.get() != nullptr);
+    const auto rect = scene->getRect();
+    cv::Mat raster;
+    std::vector<int> channels = { 0 };
+    scene->readBlockChannels(rect, channels, raster);
+    EXPECT_EQ(raster.cols, rect.width);
+    EXPECT_EQ(raster.rows, rect.height);
+    cv::imshow( "Display window", raster );
+    cv::waitKey(0);
 }

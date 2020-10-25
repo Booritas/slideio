@@ -5,6 +5,10 @@
 #define OPENCV_slideio_zvitile_HPP
 #include <opencv2/opencv.hpp>
 
+namespace ole {
+    class compound_document;
+}
+
 namespace slideio
 {
     class ZVIImageItem;
@@ -19,7 +23,7 @@ namespace slideio
         void addItem(const ZVIImageItem* item);
         void finalize();
         void setTilePosition(int x, int y);
-        bool readTile(const std::vector<int>& componentIndices, cv::OutputArray tile_raster, int slice);
+        bool readTile(const std::vector<int>& componentIndices, cv::OutputArray tile_raster, int slice, ole::compound_document& doc);
     private:
         int m_Index = 0;
         int m_XIndex = -1;

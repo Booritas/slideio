@@ -48,7 +48,38 @@ void ZVITile::setTilePosition(int x, int y)
     m_Rect.y = y;
 }
 
-bool ZVITile::readTile(const std::vector<int>& componentIndices, cv::OutputArray tile_raster, int slice)
+bool ZVITile::readTile(const std::vector<int>& componentIndices, cv::OutputArray tileRaster, int slice, ole::compound_document& doc)
 {
-    return false;
+    bool ok = false;
+
+    if (componentIndices.size() == 1)
+    {
+        const int channelIndex = componentIndices[0];
+        const ZVIImageItem* item = nullptr;
+        for(auto index=0; item==nullptr && index< m_ImageItems.size(); ++index)
+        {
+            const auto currItem = m_ImageItems[index];
+            if(currItem->getSceneIndex()==slice)
+            {
+                if(currItem->getCIndex()==channelIndex)
+                {
+                    item = currItem;
+                }
+            }
+        }
+        if(item)
+        {
+            cv::Mat itemRaster = item->readRaster(doc);
+            if(itemRaster.channels()>1)
+            {
+                cv::extractChannel(itemRaster, tileRaster, channelIndex);
+            }
+            else
+            {
+                tileRaster.copyTo(itemRaster);
+            }
+            ok = true;
+        }
+    }
+    return ok;
 }

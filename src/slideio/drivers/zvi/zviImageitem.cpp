@@ -2,6 +2,8 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include <boost/format.hpp>
+
+#include "slideio/core/cvglobals.hpp"
 #include "slideio/drivers/zvi/zvitags.hpp"
 #include "slideio/drivers/zvi/zviutils.hpp"
 #include "slideio/drivers/zvi/zviimageitem.hpp"
@@ -13,6 +15,7 @@ void ZVIImageItem::readItemInfo(ole::compound_document& doc)
     readContents(doc);
     readTags(doc);
 }
+
 
 void ZVIImageItem::readContents(ole::compound_document& doc)
 {
@@ -114,3 +117,14 @@ void ZVIImageItem::readTags(ole::compound_document& doc)
     setTileIndexY(itemTileIndexY);
 }
 
+cv::Mat ZVIImageItem::readRaster(ole::compound_document& doc) const
+{
+    cv::Mat raster;
+    const std::string streamPath = (boost::format("/Image/Item(%1%)/Contents") % getItemIndex()).str();
+    ZVIUtils::StreamKeeper stream(doc, streamPath);
+    stream->seek( getDataOffset(), std::ios::beg);
+    raster.create(m_Height, m_Width, CV_MAKETYPE(toOpencvType(m_DataType), m_ChannelCount));
+    size_t bytes = raster.total() * raster.elemSize();
+    stream->read(reinterpret_cast<char*>(raster.data), bytes);
+    return raster;
+}
