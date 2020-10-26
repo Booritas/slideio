@@ -38,23 +38,22 @@ void ZVIImageItem::readContents(ole::compound_document& doc)
     setPositionIndex(position[6]);
 
     ZVIUtils::skipItems(stream, 5);
-    std::vector<int32_t> header(6);
+    std::vector<int32_t> header(7);
     stream->read(reinterpret_cast<char*>(header.data()), sizeof(int32_t) * header.size());
     const int32_t version = header[0];
     const int32_t width = header[1];
     const int32_t height = header[2];
     const int32_t depth = header[3];
-    const ZVIPixelFormat pixelFormat = static_cast<ZVIPixelFormat>(header[5]);
+    const auto pixelFormat = static_cast<ZVIPixelFormat>(header[5]);
+    const int32_t validBits = header[6];
 
     setPixelFormat(pixelFormat);
-    DataType dt = ZVIUtils::dataTypeFromPixelFormat(pixelFormat);
-    int channels = ZVIUtils::channelCountFromPixelFormat(pixelFormat);
-    setDataType(dt);
     setHeight(height);
     setWidth(width);
     setZSliceCount(depth);
+    setValidBits(validBits);
     std::streamoff pos = stream->pos();
-    setDataOffset(pos);
+    setDataOffset(pos + 4);
 }
 
 
@@ -117,14 +116,36 @@ void ZVIImageItem::readTags(ole::compound_document& doc)
     setTileIndexY(itemTileIndexY);
 }
 
-cv::Mat ZVIImageItem::readRaster(ole::compound_document& doc) const
+void ZVIImageItem::readRaster(ole::compound_document& doc, cv::OutputArray raster) const
 {
-    cv::Mat raster;
+    const DataType dt = getDataType();
+    const int ds = cvGetDataTypeSize(dt);
+    const size_t pixels = getWidth() * getHeight();
+    const std::streamoff rasterSize = pixels * ds;
+    raster.create(m_Height, m_Width, CV_MAKETYPE(toOpencvType(m_DataType), m_ChannelCount));
+    cv::Mat& mat = raster.getMatRef();
+
     const std::string streamPath = (boost::format("/Image/Item(%1%)/Contents") % getItemIndex()).str();
     ZVIUtils::StreamKeeper stream(doc, streamPath);
-    stream->seek( getDataOffset(), std::ios::beg);
-    raster.create(m_Height, m_Width, CV_MAKETYPE(toOpencvType(m_DataType), m_ChannelCount));
-    size_t bytes = raster.total() * raster.elemSize();
-    stream->read(reinterpret_cast<char*>(raster.data), bytes);
-    return raster;
+    if(getPixelFormat() == ZVIPixelFormat::PF_INT16 && getValidBits()==16)
+    {
+        stream->seek(rasterSize, std::ios::end);
+        const auto readBytes = stream->read(reinterpret_cast<char*>(mat.data), rasterSize);
+        if (readBytes != rasterSize) {
+            throw std::runtime_error("ZVIImageDriver: Unexpected end of stream");
+        }
+    }
+    else
+    {
+        throw std::runtime_error(
+            (boost::format("ZVIImageDriver: Unexpected raster format (Pixel format: %1%, Valid bytes: %2%")
+                % (int)getPixelFormat() % getValidBits()).str());
+    }
+}
+
+void ZVIImageItem::setPixelFormat(ZVIPixelFormat pixelFormat)
+{
+    m_PixelFormat = pixelFormat;
+    m_ChannelCount = ZVIUtils::channelCountFromPixelFormat(pixelFormat);
+    m_DataType = ZVIUtils::dataTypeFromPixelFormat(pixelFormat);
 }

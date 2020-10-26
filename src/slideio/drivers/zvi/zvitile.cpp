@@ -69,14 +69,15 @@ bool ZVITile::readTile(const std::vector<int>& componentIndices, cv::OutputArray
         }
         if(item)
         {
-            cv::Mat itemRaster = item->readRaster(doc);
+            cv::Mat itemRaster;
+            item->readRaster(doc, itemRaster);
             if(itemRaster.channels()>1)
             {
                 cv::extractChannel(itemRaster, tileRaster, channelIndex);
             }
             else
             {
-                tileRaster.copyTo(itemRaster);
+                itemRaster.copyTo(tileRaster);
             }
             ok = true;
         }

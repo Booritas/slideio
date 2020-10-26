@@ -278,11 +278,27 @@ slideio::DataType ZVIUtils::dataTypeFromPixelFormat(const ZVIPixelFormat pixelFo
 int ZVIUtils::channelCountFromPixelFormat(const ZVIPixelFormat pixelFormat)
 {
     int channels = 1;
-    if (pixelFormat == ZVIPixelFormat::PF_BGR
-        || pixelFormat == ZVIPixelFormat::PF_BGRA
-        || pixelFormat == ZVIPixelFormat::PF_BGR16)
+    switch (pixelFormat)
     {
+    case ZVIPixelFormat::PF_BGR16:
+    case ZVIPixelFormat::PF_BGR32:
+    case ZVIPixelFormat::PF_BGR:
         channels = 3;
+        break;
+    case ZVIPixelFormat::PF_BGRA:
+        channels = 4;
+        break;
+    case ZVIPixelFormat::PF_UINT8:
+    case ZVIPixelFormat::PF_INT16:
+    case ZVIPixelFormat::PF_INT32:
+    case ZVIPixelFormat::PF_FLOAT:
+    case ZVIPixelFormat::PF_DOUBLE:
+        channels = 1;
+        break;
+    default:
+        throw std::runtime_error(
+            (boost::format("ZVIImageDriver: unexpected pixel format: %1%")
+                % static_cast<int>(pixelFormat)).str());
     }
     return channels;
 }

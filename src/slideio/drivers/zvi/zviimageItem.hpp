@@ -33,13 +33,12 @@ namespace slideio
             void readItemInfo(ole::compound_document& doc);
             int getTileIndexX() const { return m_TileIndexX; }
             int getTileIndexY() const { return m_TileIndexY; }
-            cv::Mat readRaster(ole::compound_document& doc) const;
+            void readRaster(ole::compound_document& doc, cv::OutputArray raster) const;
+            int getValidBits() const { return m_ValidBits; }
         private:
             void setWidth(int width) { m_Width = width; }
             void setHeight(int height) { m_Height = height; }
-            void setChannelCount(int channels) { m_ChannelCount = channels; }
-            void setDataType(DataType dt) { m_DataType = dt; }
-            void setPixelFormat(ZVIPixelFormat pixelFormat) { m_PixelFormat = pixelFormat; }
+            void setPixelFormat(ZVIPixelFormat pixelFormat);
             void setZIndex(int zIndex) { m_ZIndex = zIndex; }
             void setCIndex(int cIndex) { m_CIndex = cIndex; }
             void setTIndex(int tIndex) { m_TIndex = tIndex; }
@@ -51,6 +50,7 @@ namespace slideio
             void setTileIndexY(int index) { m_TileIndexY = index; }
             void readContents(ole::compound_document& doc);
             void readTags(ole::compound_document& doc);
+            void setValidBits(int bits) { m_ValidBits = bits; }
         private:
             int m_ChannelCount = 0;
             int m_Width = 0;
@@ -63,6 +63,7 @@ namespace slideio
             int m_SceneIndex = -1;
             int m_TileIndexX = -1;
             int m_TileIndexY = -1;
+            int m_ValidBits = 0;
             std::streamoff m_DataPos = 0;
             std::string m_ChannelName;
             ZVIPixelFormat m_PixelFormat = ZVIPixelFormat::PF_UNKNOWN;
