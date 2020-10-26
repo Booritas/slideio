@@ -53,7 +53,7 @@ void ZVIImageItem::readContents(ole::compound_document& doc)
     setZSliceCount(depth);
     setValidBits(validBits);
     std::streamoff pos = stream->pos();
-    setDataOffset(pos + 4);
+    setDataOffset(pos);
 }
 
 
@@ -129,7 +129,7 @@ void ZVIImageItem::readRaster(ole::compound_document& doc, cv::OutputArray raste
     ZVIUtils::StreamKeeper stream(doc, streamPath);
     if(getPixelFormat() == ZVIPixelFormat::PF_INT16 && getValidBits()==16)
     {
-        stream->seek(rasterSize, std::ios::end);
+        stream->seek(getDataOffset(), std::ios::beg);
         const auto readBytes = stream->read(reinterpret_cast<char*>(mat.data), rasterSize);
         if (readBytes != rasterSize) {
             throw std::runtime_error("ZVIImageDriver: Unexpected end of stream");
