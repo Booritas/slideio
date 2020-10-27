@@ -81,20 +81,17 @@ bool ZVITile::readTile(const std::vector<int>& componentIndices,
                 (boost::format("ZVIImageDriver: Cannot find image item for channel %1% and slice %2%")
                     % channelIndex % slice).str());
         }
-        if (item)
+        cv::Mat itemRaster;
+        item->readRaster(doc, itemRaster);
+        if (itemRaster.channels() == 1)
         {
-            cv::Mat itemRaster;
-            item->readRaster(doc, itemRaster);
-            if (itemRaster.channels() == 1)
-            {
-                channelRasters.push_back(itemRaster);
-            }
-            else
-            {
-                cv::Mat channelRaster;
-                cv::extractChannel(itemRaster, channelRaster, channelIndex);
-                channelRasters.push_back(channelRaster);
-            }
+            channelRasters.push_back(itemRaster);
+        }
+        else
+        {
+            cv::Mat channelRaster;
+            cv::extractChannel(itemRaster, channelRaster, channelIndex);
+            channelRasters.push_back(channelRaster);
         }
     }
 
