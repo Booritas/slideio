@@ -136,7 +136,7 @@ TEST(ZVIImageDriver, readBlock)
     ASSERT_TRUE(scene.get() != nullptr);
     const auto rect = scene->getRect();
     cv::Mat raster;
-    std::vector<int> channels = { 2 };
+    std::vector<int> channels;
     scene->readBlockChannels(rect, channels, raster);
     EXPECT_EQ(raster.cols, rect.width);
     EXPECT_EQ(raster.rows, rect.height);
