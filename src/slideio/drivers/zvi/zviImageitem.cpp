@@ -7,6 +7,7 @@
 #include "slideio/drivers/zvi/zvitags.hpp"
 #include "slideio/drivers/zvi/zviutils.hpp"
 #include "slideio/drivers/zvi/zviimageitem.hpp"
+#include "slideio/imagetools/imagetools.hpp"
 
 using namespace slideio;
 
@@ -121,26 +122,39 @@ void ZVIImageItem::readRaster(ole::compound_document& doc, cv::OutputArray raste
     const DataType dt = getDataType();
     const int ds = cvGetDataTypeSize(dt);
     const size_t pixels = getWidth() * getHeight();
-    const std::streamoff rasterSize = pixels * ds;
-    raster.create(m_Height, m_Width, CV_MAKETYPE(toOpencvType(m_DataType), m_ChannelCount));
-    cv::Mat& mat = raster.getMatRef();
+    const int channels = getChannelCount();
+    const std::streamoff rasterSize = pixels * ds * channels;
+    const int validBites = getValidBits();
+    const ZVIPixelFormat pixelFormat = getPixelFormat();
+
 
     const std::string streamPath = (boost::format("/Image/Item(%1%)/Contents") % getItemIndex()).str();
     ZVIUtils::StreamKeeper stream(doc, streamPath);
-    if(getPixelFormat() == ZVIPixelFormat::PF_INT16 && getValidBits()==16)
+
+    stream->seek(getDataOffset(), std::ios::beg);
+
+    if (validBites==0 || validBites==1)
     {
+        stream->seek(0, std::ios::end);
+        std::streampos endPos = stream->pos();
+        std::streamsize bytesToRead = endPos - getDataOffset();
+        stream->seek(getDataOffset(), std::ios::beg);
+        std::vector<uint8_t> buff(bytesToRead);
+        stream->read(reinterpret_cast<char*>(buff.data()), bytesToRead);
+        ImageTools::decodeJp2KStream(buff, raster);
+    }
+    else
+    {
+        raster.create(getHeight(), getWidth(), CV_MAKETYPE(toOpencvType(dt), channels));
+        cv::Mat& mat = raster.getMatRef();
+
         stream->seek(getDataOffset(), std::ios::beg);
         const auto readBytes = stream->read(reinterpret_cast<char*>(mat.data), rasterSize);
         if (readBytes != rasterSize) {
             throw std::runtime_error("ZVIImageDriver: Unexpected end of stream");
         }
     }
-    else
-    {
-        throw std::runtime_error(
-            (boost::format("ZVIImageDriver: Unexpected raster format (Pixel format: %1%, Valid bytes: %2%")
-                % (int)getPixelFormat() % getValidBits()).str());
-    }
+
 }
 
 void ZVIImageItem::setPixelFormat(ZVIPixelFormat pixelFormat)
