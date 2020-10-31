@@ -11,6 +11,6 @@ opencv/4.1.1@slideio/stable
 pybind11/2.3.0@conan/stable
 libcurl/7.66.0@bincrafters/stable
 libxml2/2.9.10
-pole/1.0.0@slideio/stable
+pole/1.0.1@slideio/stable
 [options]
 boost:shared=False

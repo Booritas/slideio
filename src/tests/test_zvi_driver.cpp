@@ -142,6 +142,6 @@ TEST(ZVIImageDriver, readBlock)
     EXPECT_EQ(raster.rows, rect.height);
     double min(0), max(0);
     cv::minMaxLoc(raster, &min, &max);
-    cv::imshow( "Display window", raster );
-    cv::waitKey(0);
+    //cv::imshow( "Display window", raster );
+    //cv::waitKey(0);
 }
