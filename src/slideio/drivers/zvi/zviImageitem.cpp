@@ -141,7 +141,7 @@ void ZVIImageItem::readRaster(ole::compound_document& doc, cv::OutputArray raste
         stream->seek(getDataOffset(), std::ios::beg);
         std::vector<uint8_t> buff(bytesToRead);
         stream->read(reinterpret_cast<char*>(buff.data()), bytesToRead);
-        ImageTools::decodeJp2KStream(buff, raster);
+        ImageTools::decodeJpegStream(buff.data(), buff.size(), raster);
     }
     else
     {
