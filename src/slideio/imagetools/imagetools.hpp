@@ -22,6 +22,7 @@ namespace slideio
         static int dataTypeSize(slideio::DataType dt);
         static void readGDALImage(const std::string& path, cv::OutputArray output);
         static void writeRGBImage(const std::string& path, Compression compression, cv::Mat raster);
+        static void writeTiffImage(const std::string& path, cv::Mat raster);
         static void readJxrImage(const std::string& path, cv::OutputArray output);
         static void decodeJxrBlock(const uint8_t* data, size_t size, cv::OutputArray output);
         static void decodeJpegStream(const uint8_t* data, size_t size, cv::OutputArray output);

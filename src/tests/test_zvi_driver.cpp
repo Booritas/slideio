@@ -1,13 +1,17 @@
 ﻿// This file is part of slideio project.
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
+#include <boost/format.hpp>
 #include <gtest/gtest.h>
 #include <opencv2/highgui.hpp>
+#include <opencv2/imgproc.hpp>
+
 
 #include "slideio/core/imagedrivermanager.hpp"
 #include "testtools.hpp"
 #include "slideio/scene.hpp"
 #include "slideio/drivers/zvi/zviimagedriver.hpp"
+#include "slideio/imagetools/imagetools.hpp"
 
 TEST(ZVIImageDriver, DriverManager_getDriverIDs)
 {
@@ -126,7 +130,7 @@ TEST(ZVIImageDriver, openSlideMosaic)
     EXPECT_DOUBLE_EQ(zres, 1);
 }
 
-TEST(ZVIImageDriver, readBlock)
+TEST(ZVIImageDriver, readBlock3Layers)
 {
     slideio::ZVIImageDriver driver;
     std::string filePath = TestTools::getTestImagePath("zvi", "Zeiss-1-Merged.zvi");
@@ -140,8 +144,75 @@ TEST(ZVIImageDriver, readBlock)
     scene->readBlockChannels(rect, channels, raster);
     EXPECT_EQ(raster.cols, rect.width);
     EXPECT_EQ(raster.rows, rect.height);
+
+    for (int channel = 0; channel < 3; channel++) {
+        cv::Mat channelRaster, channelRasterTest;
+        cv::extractChannel(raster, channelRaster, channel);
+        std::string channelName = (boost::format("Zeiss-1-Merged-ch%1%.tif") % channel).str();
+        std::string channelPath = TestTools::getTestImagePath("zvi", channelName);
+        slideio::ImageTools::readGDALImage(channelPath, channelRasterTest);
+        cv::Mat channelDiff = cv::abs(channelRaster - channelRasterTest);
+        double min(0), max(0);
+        cv::minMaxLoc(channelDiff, &min, &max);
+        EXPECT_EQ(min, 0);
+        EXPECT_EQ(max, 0);
+    }
+}
+
+TEST(ZVIImageDriver, readBlockROI)
+{
+    slideio::ZVIImageDriver driver;
+    std::string filePath = TestTools::getTestImagePath("zvi", "Zeiss-1-Merged.zvi");
+    std::string filePathChannel = TestTools::getTestImagePath("zvi", "Zeiss-1-Merged-ch0.zvi");
+
+
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide.get() != nullptr);
+    auto scene = slide->getScene(0);
+    ASSERT_TRUE(scene.get() != nullptr);
+    const auto rect = scene->getRect();
+    cv::Mat raster;
+    std::vector<int> channels = { 0 };
+    scene->readBlockChannels(rect, channels, raster);
+    EXPECT_EQ(raster.cols, rect.width);
+    EXPECT_EQ(raster.rows, rect.height);
+
+    cv::Mat channelRaster;
+    std::string channelPath = TestTools::getTestImagePath("zvi", "Zeiss-1-Merged-ch0.tif");
+    slideio::ImageTools::readGDALImage(channelPath, channelRaster);
+    cv::Mat channelDiff = cv::abs(raster - channelRaster);
     double min(0), max(0);
-    cv::minMaxLoc(raster, &min, &max);
-    //cv::imshow( "Display window", raster );
-    //cv::waitKey(0);
+    cv::minMaxLoc(channelDiff, &min, &max);
+    EXPECT_EQ(min, 0);
+    EXPECT_EQ(max, 0);
+
+    const int width4 = rect.width / 4;
+    const int height4 = rect.height / 4;
+    cv::Rect rectRoi(width4, height4, width4, height4);
+    scene->readBlockChannels(rectRoi, channels, raster);
+    EXPECT_EQ(raster.cols, width4);
+    EXPECT_EQ(raster.rows, height4);
+
+    cv::Mat channelRoi = channelRaster(rectRoi);
+    channelDiff = cv::abs(raster - channelRoi);
+    min = 0; max = 0;
+    cv::minMaxLoc(channelDiff, &min, &max);
+    EXPECT_EQ(min, 0);
+    EXPECT_EQ(max, 0);
+
+    const int width2 = rect.width / 2;
+    const int height2 = rect.height / 2;
+    cv::Rect rectRoi2(width4, height4, width2, height2);
+    scene->readResampledBlockChannels(rectRoi, { width4, height4 }, channels, raster);
+    EXPECT_EQ(raster.cols, width4);
+    EXPECT_EQ(raster.rows, height4);
+    channelRoi = channelRaster(rectRoi);
+    cv::Mat channelRoiResized;
+    cv::resize(channelRoi, channelRoiResized, { width4, height4 });
+
+    channelDiff = cv::abs(raster - channelRoiResized);
+    min = 0; max = 0;
+    cv::minMaxLoc(channelDiff, &min, &max);
+    EXPECT_EQ(min, 0);
+    EXPECT_EQ(max, 0);
 }

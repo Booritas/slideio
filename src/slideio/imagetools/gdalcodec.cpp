@@ -169,3 +169,85 @@ void slideio::ImageTools::writeRGBImage(const std::string& path, Compression com
         throw ex;
     }
 }
+static GDALDataType toGdalType(slideio::DataType dt)
+{
+    switch(dt)
+    {
+    case slideio::DataType::DT_Byte: return GDT_Byte;
+    case slideio::DataType::DT_Int16: return GDT_Int16;
+    case slideio::DataType::DT_Int32: return GDT_Int32;
+    case slideio::DataType::DT_Float32: return GDT_Float32;
+    case slideio::DataType::DT_Float64: return GDT_Float64;
+    default: ;
+        throw std::runtime_error(
+            (boost::format("toGdalType: Cannot convert type %1% to GDAL supported types") % (int)dt).str());
+    }
+}
+
+void slideio::ImageTools::writeTiffImage(const std::string& path,cv::Mat raster)
+{
+    GDALAllRegister();
+    const int numChannels = raster.channels();
+    const std::string driverName = "GTiff";
+    const int cvType = raster.type() & CV_MAT_DEPTH_MASK;
+    const DataType dt = fromOpencvType(cvType);
+    const GDALDataType gdalType = toGdalType(dt);
+
+    const int width = raster.cols;
+    const int height = raster.rows;
+    if (raster.empty())
+    {
+        throw std::runtime_error(
+            (boost::format("Invalid raster for file %1%") % path).str()
+        );
+    }
+    GDALDatasetH dataset = nullptr;
+    try
+    {
+        auto memoryDriver = GDALGetDriverByName("MEM");
+        auto imageDriver = GDALGetDriverByName(driverName.c_str());
+        dataset = GDALCreate(memoryDriver, "", width, height, numChannels, gdalType, nullptr);
+        for (int channelIndex = 0; channelIndex < numChannels; ++channelIndex)
+        {
+            GDALRasterBandH band = GDALGetRasterBand(dataset, channelIndex + 1);
+            if (band == nullptr)
+            {
+                throw std::runtime_error(
+                    (boost::format("Error writing of image file %1% during processing of channel %2%. Received null band")
+                        % path % channelIndex).str()
+                );
+            }
+            cv::Mat channelRaster;
+            cv::extractChannel(raster, channelRaster, channelIndex);
+            CPLErr err = GDALRasterIO(band, GF_Write,
+                0, 0, width, height,
+                channelRaster.data,
+                width, height, gdalType,
+                0, 0);
+            if (err != CE_None)
+            {
+                throw std::runtime_error(
+                    (boost::format("Error writing of image file %1% during processing of channel %2%. GDAL error: %3%")
+                        % path % channelIndex % err).str()
+                );
+            }
+        }
+        GDALDatasetH imageDateaset = GDALCreateCopy(imageDriver, path.c_str(), dataset, FALSE, nullptr, nullptr,
+            nullptr);
+        if (imageDateaset)
+        {
+            GDALClose(imageDateaset);
+        }
+
+        GDALClose(dataset);
+    }
+    catch (std::exception& ex)
+    {
+        if (dataset != nullptr)
+        {
+            GDALClose(dataset);
+            dataset = nullptr;
+        }
+        throw ex;
+    }
+}
