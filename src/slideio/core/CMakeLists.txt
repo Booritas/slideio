@@ -9,7 +9,7 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/cvslide.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/cvslide.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/cvstructs.hpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/cvglobals.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/cvglobals.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/cvtools.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/cvtools.hpp
    PARENT_SCOPE
    )

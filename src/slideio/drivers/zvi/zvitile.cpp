@@ -54,7 +54,7 @@ const ZVIImageItem* ZVITile::getImageItem(int slice, const int channelIndex) con
     for (auto index = 0; item == nullptr && index < m_ImageItems.size(); ++index)
     {
         const ZVIImageItem* currItem = m_ImageItems[index];
-        if (currItem->getSceneIndex() == slice)
+        if (currItem->getZIndex() == slice)
         {
             if (currItem->getCIndex() == channelIndex)
             {

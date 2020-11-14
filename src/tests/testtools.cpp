@@ -1,7 +1,10 @@
 #include <gtest/gtest.h>
 #include "testtools.hpp"
 
+
+#include <fstream>
 #include <boost/filesystem/path.hpp>
+#include <opencv2/core/mat.hpp>
 
 static const char* TEST_PATH_VARIABLE = "SLIDEIO_TEST_DATA_PATH";
 static const char* PRIV_TEST_PATH_VARIABLE = "SLIDEIO_TEST_DATA_PRIV_PATH";
@@ -56,3 +59,13 @@ std::string TestTools::getFullTestImagePath(const std::string& subfolder, const 
 }
 
 
+void TestTools::readRawImage(std::string& path, cv::Mat& image)
+{
+    std::ifstream is;
+    is.open(path, std::ios::binary);
+    is.seekg(0, std::ios::end);
+    auto length = is.tellg();
+    is.seekg(0, std::ios::beg);
+    is.read((char*)image.data, image.total() * image.elemSize());
+    is.close();
+}

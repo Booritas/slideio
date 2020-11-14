@@ -4,7 +4,7 @@
 #include "slideio/drivers/gdal/gdalscene.hpp"
 #include "slideio/slideio.hpp"
 #include "slideio/core/cvstructs.hpp"
-#include "slideio/core/cvglobals.hpp"
+#include "slideio/core/cvtools.hpp"
 #include <boost/filesystem.hpp>
 #include <boost/format.hpp>
 
@@ -155,12 +155,12 @@ void slideio::GDALScene::readResampledBlockChannels(const cv::Rect& blockRect, c
             (boost::format("Cannot open raster band from: %1%") % m_filePath).str());
         const GDALDataType dt = GDALGetRasterDataType(hBand);
         const DataType dataType = dataTypeFromGDALDataType(dt);
-        if(!isValidDataType(dataType))
+        if(!CVTools::isValidDataType(dataType))
         {
             throw std::runtime_error(
                 (boost::format("Unknown data type %1% of channel %2% of file %3%") % dt % channelIndex % m_filePath).str());
         }
-        const int cvDt = toOpencvType(dataType);
+        const int cvDt = CVTools::toOpencvType(dataType);
         cv::Mat channelRaster; 
         int channelType = CV_MAKETYPE(cvDt, 1);
         channelRaster.create(blockSize, channelType);

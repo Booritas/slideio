@@ -5,13 +5,12 @@
 #include "slideio/drivers/zvi/zvislide.hpp"
 #include "slideio/drivers/zvi/zvitags.hpp"
 #include <boost/filesystem.hpp>
-#include <pole/polepp.hpp>
 #include <boost/format.hpp>
 #include <boost/variant.hpp>
 
-#include "ZVIUtils.hpp"
+#include "zviutils.hpp"
+#include "slideio/core/cvtools.hpp"
 #include "slideio/imagetools/imagetools.hpp"
-#include "slideio/imagetools/tools.hpp"
 
 using namespace slideio;
 
@@ -107,21 +106,84 @@ void ZVIScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv:
 }
 
 void ZVIScene::readResampled4DBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize,
-                                            const std::vector<int>& channelIndices, const cv::Range& zSliceRange,
-                                            const cv::Range& timeFrameRange,
-                                            cv::OutputArray output)
+    const std::vector<int>& channelIndices, const cv::Range& zSliceRange,
+    const cv::Range& timeFrameRange,
+    cv::OutputArray output)
 {
-    std::vector<cv::Mat> rasters;
+    const int sliceCount = zSliceRange.end - zSliceRange.start;
+    const int frameCount = timeFrameRange.end - timeFrameRange.start;
+    const int channelCount = static_cast<int>(channelIndices.size());
+    const int width = blockSize.width;
+    const int height = blockSize.height;
+    bool planeMatrix = sliceCount == 1 && frameCount == 1;
+    int zDimIndex = 2;
+    int tDimIndex = 3;
+    if(sliceCount==1) {
+        zDimIndex = -1;
+        tDimIndex = 2;
+    }
+    if(frameCount==1) {
+        tDimIndex = -1;
+    }
+    const int zLocalIndex = zDimIndex - 2;
+    const int tLocalIndex = tDimIndex - 2;
+
+    std::vector<int> dims = { height, width };
+    if (zDimIndex > 0)
+        dims.push_back(sliceCount);
+    if (tDimIndex > 0)
+        dims.push_back(frameCount);
+
+    const slideio::DataType dt = getChannelDataType(0);
+    const int cvDt = CVTools::toOpencvType(dt);
+    std::vector<int> indices;
+
+    if (planeMatrix) {
+        output.create(height, width, CV_MAKE_TYPE(cvDt, channelCount));
+    }
+    else {
+        output.create((int)dims.size(), dims.data(), CV_MAKE_TYPE(cvDt, channelCount));
+    }
+    cv::Mat dataRaster = output.getMat();
+    std::vector<cv::Range> subDims(2);
+    subDims[0] = cv::Range(0, height);
+    subDims[1] = cv::Range(0, width);
+
+    if (zDimIndex > 0) {
+        subDims.emplace_back(0, 0);
+        indices.push_back(0);
+    }
+    if (tDimIndex > 0) {
+        subDims.emplace_back(0, 0);
+        indices.push_back(0);
+    }
+
     for (int tfIndex = timeFrameRange.start; tfIndex < timeFrameRange.end; ++tfIndex)
     {
+        if(tDimIndex>0){
+            const int frameCounter = tfIndex - timeFrameRange.start;
+            subDims[tDimIndex] = cv::Range(frameCounter, frameCounter + 1);
+            indices[tLocalIndex] = frameCounter;
+        }
+
         for (int zSlieceIndex = zSliceRange.start; zSlieceIndex < zSliceRange.end; ++zSlieceIndex)
         {
-            cv::Mat raster;
-            readResampledBlockChannelsEx(blockRect, blockSize, channelIndices, zSlieceIndex, tfIndex, raster);
-            rasters.push_back(raster);
+            if(zDimIndex>0){
+                const int sliceCounter = zSlieceIndex - zSliceRange.start;
+                subDims[zDimIndex] = cv::Range(sliceCounter, sliceCounter + 1);
+                indices[zLocalIndex] = sliceCounter;
+            }
+            if (planeMatrix) {
+                readResampledBlockChannelsEx(blockRect, blockSize, channelIndices, zSlieceIndex, tfIndex, dataRaster);
+            }
+            else {
+                cv::Mat sliceRaster;
+                readResampledBlockChannelsEx(blockRect, blockSize, channelIndices, zSlieceIndex, tfIndex, sliceRaster);
+                CVTools::insertSliceInMultidimMatrix(dataRaster, sliceRaster, indices);
+            }
         }
     }
-    cv::merge(rasters, output);
+
 }
 
 std::string ZVIScene::getName() const

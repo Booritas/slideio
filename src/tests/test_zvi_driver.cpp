@@ -1,6 +1,7 @@
 ﻿// This file is part of slideio project.
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
+#include <fstream>
 #include <boost/format.hpp>
 #include <gtest/gtest.h>
 #include <opencv2/highgui.hpp>
@@ -10,8 +11,11 @@
 #include "slideio/core/imagedrivermanager.hpp"
 #include "testtools.hpp"
 #include "slideio/scene.hpp"
+#include "slideio/core/cvtools.hpp"
 #include "slideio/drivers/zvi/zviimagedriver.hpp"
 #include "slideio/imagetools/imagetools.hpp"
+
+using namespace slideio;
 
 TEST(ZVIImageDriver, DriverManager_getDriverIDs)
 {
@@ -163,8 +167,6 @@ TEST(ZVIImageDriver, readBlockROI)
 {
     slideio::ZVIImageDriver driver;
     std::string filePath = TestTools::getTestImagePath("zvi", "Zeiss-1-Merged.zvi");
-    std::string filePathChannel = TestTools::getTestImagePath("zvi", "Zeiss-1-Merged-ch0.zvi");
-
 
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide.get() != nullptr);
@@ -215,4 +217,185 @@ TEST(ZVIImageDriver, readBlockROI)
     cv::minMaxLoc(channelDiff, &min, &max);
     EXPECT_EQ(min, 0);
     EXPECT_EQ(max, 0);
+}
+
+TEST(ZVIImageDriver, readBlock3DSlice)
+{
+    slideio::ZVIImageDriver driver;
+    std::string filePath = TestTools::getTestImagePath("zvi", "Zeiss-1-Stacked.zvi");
+
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide.get() != nullptr);
+    auto scene = slide->getScene(0);
+    ASSERT_TRUE(scene.get() != nullptr);
+    const auto rect = scene->getRect();
+    cv::Mat raster;
+    std::vector<int> channels = { 1 };
+    const int zSlices = scene->getNumZSlices();
+
+    cv::Rect rectRoi = rect;
+    cv::Size sizeRoi(rect.width, rect.height);
+    cv::Range zSliceRange(6, 7);
+    cv::Range tFrameRange(0, 1);
+    scene->readResampled4DBlockChannels(rectRoi, sizeRoi, channels, zSliceRange, tFrameRange, raster);
+    EXPECT_EQ(raster.dims, 2);
+    EXPECT_EQ(raster.channels(), 1);
+    EXPECT_EQ(raster.cols, sizeRoi.width);
+    EXPECT_EQ(raster.rows, sizeRoi.height);
+    cv::Mat rawSlice(rect.height, rect.width, CV_16SC1);
+    std::string slicePath = TestTools::getTestImagePath("zvi", "Zeiss-1-Stacked/zvi_slice_6_channel_1");
+    TestTools::readRawImage(slicePath, rawSlice);
+
+    cv::Mat diff;
+    cv::subtract(raster, rawSlice, diff);
+    double dmax(0), dmin(0);
+    cv::minMaxLoc(diff, &dmin, &dmax);
+
+    EXPECT_DOUBLE_EQ(dmax, 0);
+    EXPECT_DOUBLE_EQ(dmin, 0);
+}
+
+TEST(ZVIImageDriver, readBlock3DROI)
+{
+    slideio::ZVIImageDriver driver;
+    std::string filePath = TestTools::getTestImagePath("zvi", "Zeiss-1-Stacked.zvi");
+
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide.get() != nullptr);
+    auto scene = slide->getScene(0);
+    ASSERT_TRUE(scene.get() != nullptr);
+    const auto rect = scene->getRect();
+    cv::Mat raster;
+    std::vector<int> channels = { 1 };
+    const int zSlices = scene->getNumZSlices();
+
+    const int width2 = rect.width / 2;
+    const int height2 = rect.height / 2;
+    const int width4 = rect.width / 4;
+    const int height4 = rect.height / 4;
+    const cv::Rect rectRoi(width4, height4, width2, height2);
+    const cv::Size sizeRoi(width2, height2);
+    const cv::Range zSliceRange(6, 7);
+    const cv::Range tFrameRange(0, 1);
+
+    scene->readResampled4DBlockChannels(rectRoi, sizeRoi, channels, zSliceRange, tFrameRange,  raster);
+    EXPECT_EQ(raster.dims, 2);
+    EXPECT_EQ(raster.channels(), 1);
+    EXPECT_EQ(raster.cols, sizeRoi.width);
+    EXPECT_EQ(raster.rows, sizeRoi.height);
+    cv::Mat rawSlice(rect.height, rect.width, CV_16SC1);
+    std::string slicePath = TestTools::getTestImagePath("zvi", "Zeiss-1-Stacked/zvi_slice_6_channel_1");
+    TestTools::readRawImage(slicePath, rawSlice);
+    cv::Mat roi = rawSlice(rectRoi);
+    cv::Mat diff;
+    cv::subtract(raster, roi, diff);
+    double dmax(0), dmin(0);
+    cv::minMaxLoc(diff, &dmin, &dmax);
+}
+
+TEST(ZVIImageDriver, readBlock3DROIResized)
+{
+    slideio::ZVIImageDriver driver;
+    std::string filePath = TestTools::getTestImagePath("zvi", "Zeiss-1-Stacked.zvi");
+
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide.get() != nullptr);
+    auto scene = slide->getScene(0);
+    ASSERT_TRUE(scene.get() != nullptr);
+    const auto rect = scene->getRect();
+    cv::Mat raster;
+    std::vector<int> channels = { 1 };
+    const int zSlices = scene->getNumZSlices();
+
+    const int width2 = rect.width / 2;
+    const int height2 = rect.height / 2;
+    const int width4 = rect.width / 4;
+    const int height4 = rect.height / 4;
+    const cv::Rect rectRoi(width4, height4, width2, height2);
+    const cv::Size sizeRoi(width4, height4);
+    const cv::Range zSliceRange(6, 7);
+    const cv::Range tFrameRange(0, 1);
+
+    scene->readResampled4DBlockChannels(rectRoi, sizeRoi, channels, zSliceRange, tFrameRange, raster);
+    EXPECT_EQ(raster.dims, 2);
+    EXPECT_EQ(raster.channels(), 1);
+    EXPECT_EQ(raster.cols, sizeRoi.width);
+    EXPECT_EQ(raster.rows, sizeRoi.height);
+    cv::Mat rawSlice(rect.height, rect.width, CV_16SC1);
+    std::string slicePath = TestTools::getTestImagePath("zvi", "Zeiss-1-Stacked/zvi_slice_6_channel_1");
+    TestTools::readRawImage(slicePath, rawSlice);
+    cv::Mat rawRoi = rawSlice(rectRoi);
+    cv::Mat rawRoiResized;
+    cv::resize(rawRoi, rawRoiResized, sizeRoi, 0, 0, cv::INTER_NEAREST);
+    cv::Mat diff;
+    cv::subtract(raster, rawRoiResized, diff);
+    double dmax(0), dmin(0);
+    cv::minMaxLoc(diff, &dmin, &dmax);
+}
+
+TEST(ZVIImageDriver, readBlock3DROIResizedMultiSlice)
+{
+    slideio::ZVIImageDriver driver;
+    std::string filePath = TestTools::getTestImagePath("zvi", "Zeiss-1-Stacked.zvi");
+
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide.get() != nullptr);
+    auto scene = slide->getScene(0);
+    ASSERT_TRUE(scene.get() != nullptr);
+    const auto sceneRect = scene->getRect();
+    cv::Mat raster;
+    std::vector<int> channels = { 1, 2 };
+    const int zSlices = scene->getNumZSlices();
+
+    const int width2 = sceneRect.width / 2;
+    const int height2 = sceneRect.height / 2;
+    const int width4 = sceneRect.width / 4;
+    const int height4 = sceneRect.height / 4;
+    const cv::Rect rectRoi(width4, height4, width2, height2);
+    const cv::Size sizeRoi(width4, height4);
+    const cv::Range zSliceRange(6, 9);
+    const cv::Range tFrameRange(0, 1);
+
+    scene->readResampled4DBlockChannels(rectRoi, sizeRoi, channels, zSliceRange, tFrameRange, raster);
+
+    EXPECT_EQ(raster.dims, 3);
+    EXPECT_EQ(raster.channels(), 2);
+    EXPECT_EQ(raster.size[0], sizeRoi.height);
+    EXPECT_EQ(raster.size[1], sizeRoi.width);
+    EXPECT_EQ(raster.size[2], 3);
+
+    cv::Mat sliceRaster;
+    CVTools::extractSliceFrom3D(raster, 1, sliceRaster);
+
+    EXPECT_EQ(sliceRaster.dims, 2);
+    EXPECT_EQ(sliceRaster.channels(), 2);
+    EXPECT_EQ(sliceRaster.rows, sizeRoi.height);
+    EXPECT_EQ(sliceRaster.cols, sizeRoi.width);
+
+    cv::Mat channelRaster;
+    cv::extractChannel(sliceRaster, channelRaster, 1);
+
+    std::string slicePath = TestTools::getTestImagePath("zvi", "Zeiss-1-Stacked/zvi_slice_7_channel_2");
+
+    cv::Mat rawSlice(sceneRect.height, sceneRect.width, CV_16SC1);
+    TestTools::readRawImage(slicePath, rawSlice);
+    cv::Mat rawRoi = rawSlice(rectRoi);
+    cv::Mat resizedRoi;
+    cv::resize(rawRoi, resizedRoi, sizeRoi, 0, 0, cv::INTER_NEAREST);
+
+    cv::Mat max;
+    cv::max(channelRaster, resizedRoi, max);
+    cv::Mat diff;
+    cv::absdiff(channelRaster, resizedRoi, diff);
+    cv::Mat norm;
+    cv::Mat diffFl, maxFl;
+    diff.convertTo(diffFl, CV_32FC1);
+    max.convertTo(maxFl, CV_32FC1);
+
+    cv::divide(diffFl, maxFl, norm);
+    double minScore(0), maxScore(0);
+    cv::minMaxLoc(norm, &minScore, &maxScore);
+    cv::Scalar mean, stddev;
+    cv::meanStdDev(norm, mean, stddev);
+    EXPECT_LT(mean[0], 0.03);
 }

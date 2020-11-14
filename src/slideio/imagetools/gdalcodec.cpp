@@ -2,7 +2,7 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/imagetools/imagetools.hpp"
-#include "slideio/core/cvglobals.hpp"
+#include "slideio/core/cvtools.hpp"
 #include <boost/format.hpp>
 #include <boost/filesystem.hpp>
 #include <gdal/gdal.h>
@@ -56,10 +56,10 @@ void slideio::ImageTools::readGDALImage(const std::string& filePath, cv::OutputA
                     (boost::format("Cannot open raster band from: %1%") % filePath).str());
             const GDALDataType dt = GDALGetRasterDataType(hBand);
             const DataType dataType = dataTypeFromGDALDataType(dt);
-            if(isValidDataType(dataType)){
+            if(CVTools::isValidDataType(dataType)){
                 
             }
-            const int cvDt = toOpencvType(dataType);
+            const int cvDt = CVTools::toOpencvType(dataType);
             cv::Mat& channel = channels[channelIndex];
             int channelType = CV_MAKETYPE(cvDt, 1);
             channel.create(imageSize, channelType);
@@ -190,7 +190,7 @@ void slideio::ImageTools::writeTiffImage(const std::string& path,cv::Mat raster)
     const int numChannels = raster.channels();
     const std::string driverName = "GTiff";
     const int cvType = raster.type() & CV_MAT_DEPTH_MASK;
-    const DataType dt = fromOpencvType(cvType);
+    const DataType dt = CVTools::fromOpencvType(cvType);
     const GDALDataType gdalType = toGdalType(dt);
 
     const int width = raster.cols;

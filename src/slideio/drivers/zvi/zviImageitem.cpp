@@ -1,9 +1,10 @@
 // This file is part of slideio project.
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
+#include <fstream>
 #include <boost/format.hpp>
 
-#include "slideio/core/cvglobals.hpp"
+#include "slideio/core/cvtools.hpp"
 #include "slideio/drivers/zvi/zvitags.hpp"
 #include "slideio/drivers/zvi/zviutils.hpp"
 #include "slideio/drivers/zvi/zviimageitem.hpp"
@@ -120,7 +121,7 @@ void ZVIImageItem::readTags(ole::compound_document& doc)
 void ZVIImageItem::readRaster(ole::compound_document& doc, cv::OutputArray raster) const
 {
     const DataType dt = getDataType();
-    const int ds = cvGetDataTypeSize(dt);
+    const int ds = CVTools::cvGetDataTypeSize(dt);
     const size_t pixels = getWidth() * getHeight();
     const int channels = getChannelCount();
     const std::streamoff rasterSize = pixels * ds * channels;
@@ -145,7 +146,7 @@ void ZVIImageItem::readRaster(ole::compound_document& doc, cv::OutputArray raste
     }
     else
     {
-        raster.create(getHeight(), getWidth(), CV_MAKETYPE(toOpencvType(dt), channels));
+        raster.create(getHeight(), getWidth(), CV_MAKETYPE(CVTools::toOpencvType(dt), channels));
         cv::Mat& mat = raster.getMatRef();
 
         stream->seek(getDataOffset(), std::ios::beg);
@@ -153,6 +154,11 @@ void ZVIImageItem::readRaster(ole::compound_document& doc, cv::OutputArray raste
         if (readBytes != rasterSize) {
             throw std::runtime_error("ZVIImageDriver: Unexpected end of stream");
         }
+        std::string filePath = (boost::format("D:\\Temp\\zvi_slice_%1%_channel_%2%") % this->getZIndex() % getCIndex()).str();
+        std::fstream fileRaster;
+        fileRaster = std::fstream(filePath, std::ios::out | std::ios::binary);
+        fileRaster.write(reinterpret_cast<char*>(mat.data), rasterSize);
+        fileRaster.close();
     }
 
 }

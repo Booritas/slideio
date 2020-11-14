@@ -3,7 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/scene.hpp"
 
-#include "core/cvglobals.hpp"
+#include "core/cvtools.hpp"
 #include "slideio/core/cvscene.hpp"
 
 using namespace slideio;
@@ -105,7 +105,7 @@ int Scene::getBlockSize(const std::tuple<int, int>& blockSize, int refChannel, i
     const int blockHeight = std::get<1>(blockSize);
     const int numPlanes = numSlices*numFrames*numChannels;
     const DataType dt = m_scene->getChannelDataType(refChannel);
-    const int ds = cvGetDataTypeSize(dt);
+    const int ds = CVTools::cvGetDataTypeSize(dt);
     const int planeSize = blockWidth*blockHeight*ds;
     return planeSize*numPlanes;
 }
