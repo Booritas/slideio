@@ -155,6 +155,7 @@ TEST(ZVIImageDriver, readBlock3Layers)
         std::string channelName = (boost::format("Zeiss-1-Merged-ch%1%.tif") % channel).str();
         std::string channelPath = TestTools::getTestImagePath("zvi", channelName);
         slideio::ImageTools::readGDALImage(channelPath, channelRasterTest);
+
         cv::Mat channelDiff = cv::abs(channelRaster - channelRasterTest);
         double min(0), max(0);
         cv::minMaxLoc(channelDiff, &min, &max);
@@ -212,11 +213,8 @@ TEST(ZVIImageDriver, readBlockROI)
     cv::Mat channelRoiResized;
     cv::resize(channelRoi, channelRoiResized, { width4, height4 });
 
-    channelDiff = cv::abs(raster - channelRoiResized);
-    min = 0; max = 0;
-    cv::minMaxLoc(channelDiff, &min, &max);
-    EXPECT_EQ(min, 0);
-    EXPECT_EQ(max, 0);
+    double similarity = TestTools::computeSimilarity(raster, channelRoiResized);
+    EXPECT_DOUBLE_EQ(1., similarity);
 }
 
 TEST(ZVIImageDriver, readBlock3DSlice)
@@ -246,13 +244,8 @@ TEST(ZVIImageDriver, readBlock3DSlice)
     std::string slicePath = TestTools::getTestImagePath("zvi", "Zeiss-1-Stacked/zvi_slice_6_channel_1");
     TestTools::readRawImage(slicePath, rawSlice);
 
-    cv::Mat diff;
-    cv::subtract(raster, rawSlice, diff);
-    double dmax(0), dmin(0);
-    cv::minMaxLoc(diff, &dmin, &dmax);
-
-    EXPECT_DOUBLE_EQ(dmax, 0);
-    EXPECT_DOUBLE_EQ(dmin, 0);
+    double similarity = TestTools::computeSimilarity(raster, rawSlice);
+    EXPECT_DOUBLE_EQ(1., similarity);
 }
 
 TEST(ZVIImageDriver, readBlock3DROI)
@@ -286,11 +279,11 @@ TEST(ZVIImageDriver, readBlock3DROI)
     cv::Mat rawSlice(rect.height, rect.width, CV_16SC1);
     std::string slicePath = TestTools::getTestImagePath("zvi", "Zeiss-1-Stacked/zvi_slice_6_channel_1");
     TestTools::readRawImage(slicePath, rawSlice);
+
     cv::Mat roi = rawSlice(rectRoi);
-    cv::Mat diff;
-    cv::subtract(raster, roi, diff);
-    double dmax(0), dmin(0);
-    cv::minMaxLoc(diff, &dmin, &dmax);
+
+    double similarity = TestTools::computeSimilarity(raster, roi);
+    EXPECT_DOUBLE_EQ(1., similarity);
 }
 
 TEST(ZVIImageDriver, readBlock3DROIResized)
@@ -327,11 +320,11 @@ TEST(ZVIImageDriver, readBlock3DROIResized)
     cv::Mat rawRoi = rawSlice(rectRoi);
     cv::Mat rawRoiResized;
     cv::resize(rawRoi, rawRoiResized, sizeRoi, 0, 0, cv::INTER_NEAREST);
-    cv::Mat diff;
-    cv::subtract(raster, rawRoiResized, diff);
-    double dmax(0), dmin(0);
-    cv::minMaxLoc(diff, &dmin, &dmax);
+
+    double similarity = TestTools::computeSimilarity(raster, rawRoiResized);
+    EXPECT_LT(0.95, similarity);
 }
+
 
 TEST(ZVIImageDriver, readBlock3DROIResizedMultiSlice)
 {
@@ -383,19 +376,6 @@ TEST(ZVIImageDriver, readBlock3DROIResizedMultiSlice)
     cv::Mat resizedRoi;
     cv::resize(rawRoi, resizedRoi, sizeRoi, 0, 0, cv::INTER_NEAREST);
 
-    cv::Mat max;
-    cv::max(channelRaster, resizedRoi, max);
-    cv::Mat diff;
-    cv::absdiff(channelRaster, resizedRoi, diff);
-    cv::Mat norm;
-    cv::Mat diffFl, maxFl;
-    diff.convertTo(diffFl, CV_32FC1);
-    max.convertTo(maxFl, CV_32FC1);
-
-    cv::divide(diffFl, maxFl, norm);
-    double minScore(0), maxScore(0);
-    cv::minMaxLoc(norm, &minScore, &maxScore);
-    cv::Scalar mean, stddev;
-    cv::meanStdDev(norm, mean, stddev);
-    EXPECT_LT(mean[0], 0.03);
+    double similarity = TestTools::computeSimilarity(channelRaster, resizedRoi);
+    EXPECT_LT(0.95, similarity);
 }

@@ -16,6 +16,7 @@ set(TEST_SOURCES
    test_tifftools.cpp
    test_zviutils.cpp
    test_tilecomposer.cpp
+   test_testtools.cpp
    test_tools.cpp
    test_cvtools.cpp
    testtiler.cpp
