@@ -72,9 +72,27 @@ void TestTools::readRawImage(std::string& path, cv::Mat& image)
     is.read((char*)image.data, image.total() * image.elemSize());
     is.close();
 }
-double TestTools::computeSimilarity(const cv::Mat& left, const cv::Mat& right)
+double TestTools::computeSimilarity(const cv::Mat& leftM, const cv::Mat& rightM)
 {
     double similarity = 0;
+
+    // convert to 8bit images
+    cv::Mat oneChannelLeftM = leftM.reshape(1);
+    cv::Mat oneChannelRightM = rightM.reshape(1);
+    double minLeft(0), maxLeft(0), minRight(0), maxRight(0);
+    cv::minMaxLoc(oneChannelLeftM, &minLeft, &maxLeft);
+    cv::minMaxLoc(oneChannelRightM, &minRight, &maxRight);
+    double minVal = std::min(minLeft, minRight);
+    double maxVal = std::max(maxLeft, maxRight);
+    double absVal = maxVal;
+    absVal -= minVal;
+    double alpha = 255. / absVal;
+    double beta = -minVal * alpha;
+
+    cv::Mat left, right;
+    leftM.convertTo(left, CV_MAKE_TYPE(CV_8U, left.channels()), alpha, beta);
+    rightM.convertTo(right, CV_MAKE_TYPE(CV_8U, right.channels()), alpha, beta);
+
     cv::Rect rectWindow(0, 0, 30, 30);
     const int width = left.size[1];
     const int height = left.size[0];
@@ -100,28 +118,18 @@ double TestTools::computeSimilarity(const cv::Mat& left, const cv::Mat& right)
     return similarity;
 }
 
-double TestTools::compareHistograms(const cv::Mat& leftM, const cv::Mat& rightM, int binCount)
+double TestTools::compareHistograms(const cv::Mat& left, const cv::Mat& right, int binCount)
 {
     double similarity = 0;
-    cv::Mat left, right;
-    leftM.convertTo(left, CV_MAKE_TYPE(CV_32F, left.channels()));
-    rightM.convertTo(right, CV_MAKE_TYPE(CV_32F, right.channels()));
 
     const int channelCount = left.channels();
     std::vector<int> channels(channelCount);
-    double minLeft(0), maxLeft(0), minRight(0), maxRight(0);
-    cv::Mat oneChannelLeft = left.reshape(1);
-    cv::Mat oneChannelRight = right.reshape(1);
-    cv::minMaxLoc(oneChannelLeft, &minLeft, &maxLeft);
-    cv::minMaxLoc(oneChannelRight, &minRight, &maxRight);
+
+    std::vector<float*> ranges(channelCount);
     std::vector<int> histSizes(channelCount);
     std::vector<float> rangeVals(channelCount * 2);
-    double minVal = std::min(minLeft, minRight);
-    double maxVal = std::max(maxLeft, maxRight);
-    if (minVal == maxVal) {
-        maxVal *= 1.01;
-    }
-    std::vector<float*> ranges(channelCount);
+    float minVal = 0;
+    float maxVal = 256;
 
     for( int channel=0; channel<channelCount; ++channel) {
         channels[channel] = channel;
@@ -143,68 +151,5 @@ double TestTools::compareHistograms(const cv::Mat& leftM, const cv::Mat& rightM,
 
     similarity = cv::compareHist(histLeft, histRight, cv::HISTCMP_CORREL);
 
-    return similarity;
-}
-double computeSimilarity(const cv::Mat& leftM, const cv::Mat& rightM)
-{
-    double similarity = 0;
-    // convert matrices to 32 float
-    cv::Mat left, right;
-    leftM.convertTo(left, CV_MAKE_TYPE(CV_32F, left.channels()));
-    rightM.convertTo(right, CV_MAKE_TYPE(CV_32F, right.channels()));
-    cv::Mat score;
-    cv::matchTemplate(left, right, score, cv::TM_SQDIFF_NORMED);
-    double minErr(0), maxErr(0);
-    cv::minMaxLoc(score, &minErr, &maxErr);
-    //cv::Scalar mean, stdDev;
-    //cv::meanStdDev(score, mean, stdDev);
-    similarity = 1 - maxErr;
-    return similarity;
-}
-
-double TestTools::computeSimilarity2(const cv::Mat& leftM, const cv::Mat& rightM)
-{
-    double similarity = 0;
-    // convert matrices to 32 float
-    cv::Mat left, right;
-    leftM.convertTo(left, CV_MAKE_TYPE(CV_32F, left.channels()));
-    rightM.convertTo(right, CV_MAKE_TYPE(CV_32F, right.channels()));
-
-    double minLeft(0), maxLeft(0), minRight(0), maxRight(0);
-    cv::minMaxLoc(left, &minLeft, &maxLeft);
-    cv::minMaxLoc(right, &minRight, &maxRight);
-    double minVal = std::min(minLeft, minRight);
-    double maxVal = std::max(maxLeft, maxRight);
-    if(minVal <= 0) {
-        minVal -= std::abs(maxVal * 0.01);
-        maxVal -= minVal;
-        cv::Scalar shift;
-        for(int channel=0; channel<left.channels(); ++channel) {
-            shift[channel] = -minVal;
-        }
-        cv::add(left, shift, left);
-        cv::add(right, shift, right);
-    }
-
-    cv::Mat err;
-    cv::absdiff(left, right, err);
-    cv::Scalar maxScalar;
-    for (int channel = 0; channel < left.channels(); ++channel) {
-        maxScalar[channel] = maxVal;
-    }
-    cv::divide(err, maxScalar, err);
-    cv::multiply(err, err, err);
-    cv::Scalar sqErrScalar = cv::sum(err);
-    double sqErr = 0;
-    for (int channel = 0; channel < left.channels(); ++channel) {
-        sqErr += sqErrScalar[channel];
-    }
-    double meanSqErr = sqErr / (left.total()*left.channels());
-    similarity = 1 - meanSqErr;
-    //double minScore(0), maxScore(0);
-    //cv::minMaxLoc(err, &minScore, &maxScore);
-    //cv::Scalar mean, stddev;
-    //cv::meanStdDev(err, mean, stddev);
-    //similarity = std::abs(1. - mean[0]);
     return similarity;
 }

@@ -16,6 +16,5 @@ public:
     static void readRawImage(std::string& path, cv::Mat& image);
     static double computeSimilarity(const cv::Mat& left, const cv::Mat& right);
     static double compareHistograms(const cv::Mat& leftM, const cv::Mat& rightM, int bins);
-    static double computeSimilarity2(const cv::Mat& left, const cv::Mat& right);
 };
 
