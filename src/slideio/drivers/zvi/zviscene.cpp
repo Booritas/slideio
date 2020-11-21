@@ -17,7 +17,8 @@ using namespace slideio;
 
 ZVIScene::ZVIScene(const std::string& filePath) :
     m_filePath(filePath),
-    m_Doc(filePath)
+    m_Doc(filePath),
+    m_SceneName("Unknown")
 {
     init();
 }
@@ -188,7 +189,7 @@ void ZVIScene::readResampled4DBlockChannels(const cv::Rect& blockRect, const cv:
 
 std::string ZVIScene::getName() const
 {
-    return "";
+    return m_SceneName;
 }
 
 Compression ZVIScene::getCompression() const
@@ -414,6 +415,8 @@ void ZVIScene::parseImageTags()
         const ZVIUtils::Variant tag = ZVIUtils::readItem(stream);
         const ZVITAG id = static_cast<ZVITAG>(ZVIUtils::readIntItem(stream));
         ZVIUtils::skipItem(stream);
+        if (tag.which() == 0)
+            continue;
 
         switch (id)
         {
@@ -446,6 +449,9 @@ void ZVIScene::parseImageTags()
             break;
         case ZVITAG::ZVITAG_SCALE_UNIT_Z:
             unitsZ = boost::get<int32_t>(tag);
+            break;
+        case ZVITAG::ZVITAG_FILE_NAME:
+            m_SceneName = boost::get<std::string>(tag);
             break;
         }
     }
