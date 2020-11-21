@@ -83,6 +83,7 @@ namespace slideio
         Resolution m_res = {0,0};
         double m_ZSliceRes = 0.;
         std::string m_SceneName;
+        Compression m_Compression = Compression::Uncompressed;
     };
 }
 

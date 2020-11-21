@@ -63,6 +63,7 @@ TEST(ZVIImageDriver, openSlide2D)
     EXPECT_EQ(scene->getChannelName(1), std::string("Cy3"));
     EXPECT_EQ(scene->getChannelName(2), std::string("FITC"));
     EXPECT_EQ(scene->getName(), std::string("RQ26033_04310292C0004S_Calu3_amplified_100x_21Jun2012 ic zsm.zvi"));
+    EXPECT_EQ(scene->getCompression(), Compression::Uncompressed);
 
     auto res = scene->getResolution();
     EXPECT_DOUBLE_EQ(res.x, 0.0645e-6);

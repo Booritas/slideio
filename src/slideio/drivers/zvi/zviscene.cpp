@@ -194,7 +194,7 @@ std::string ZVIScene::getName() const
 
 Compression ZVIScene::getCompression() const
 {
-    return Compression::Unknown;
+    return m_Compression;
 }
 
 int ZVIScene::getTileCount(void* userData)
@@ -317,6 +317,10 @@ void ZVIScene::readImageItems()
         auto& item = m_ImageItems[itemIndex];
         item.setItemIndex(itemIndex);
         item.readItemInfo(m_Doc);
+        const int validBits = item.getValidBits();
+        if (validBits==0 || validBits==1) {
+            m_Compression = Compression::Jpeg;
+        }
     }
 }
 
@@ -452,6 +456,8 @@ void ZVIScene::parseImageTags()
             break;
         case ZVITAG::ZVITAG_FILE_NAME:
             m_SceneName = boost::get<std::string>(tag);
+            break;
+        case ZVITAG::ZVITAG_COMPRESSION:
             break;
         }
     }
