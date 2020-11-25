@@ -382,3 +382,27 @@ TEST(ZVIImageDriver, readBlock3DROIResizedMultiSlice)
     double similarity = TestTools::computeSimilarity(channelRaster, resizedRoi);
     EXPECT_LT(0.95, similarity);
 }
+
+TEST(ZVIImageDriver, readBlock)
+{
+    if (!TestTools::isFullTestEnabled()) {
+        GTEST_SKIP() << "Skip full test because full dataset is not enabled";
+    }
+    slideio::ZVIImageDriver driver;
+    std::string filePath = TestTools::getFullTestImagePath("zvi", "20140505_mouse_2cell_H2AUb_RING1B_DAPI_T_005.zvi");
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide.get() != nullptr);
+    auto scene = slide->getScene(0);
+    ASSERT_TRUE(scene.get() != nullptr);
+    const auto rect = scene->getRect();
+    auto dt = scene->getChannelDataType(0);
+    auto channels = scene->getNumChannels();
+    const double asp = (double)rect.height / (double)rect.width;
+    cv::Mat raster;
+    std::vector<int> channelIndices = { 0, 1, 2 };
+    scene->readBlockChannels(rect, channelIndices, raster);
+    EXPECT_EQ(raster.cols, rect.width);
+    EXPECT_EQ(raster.rows, rect.height);
+    EXPECT_EQ(channels, 3);
+    EXPECT_EQ(dt, slideio::DataType::DT_Int16);
+}

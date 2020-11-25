@@ -283,15 +283,18 @@ void ZVIScene::computeSceneDimensions()
     int maxChannel = 0;
     int maxZ = 0;
     int maxT = 0;
+    int minChannel = std::numeric_limits<int>::max();
 
     for (auto&& imageItem : m_ImageItems)
     {
-        maxChannel = std::max(imageItem.getCIndex(), maxChannel);
+        const int channelIndex = imageItem.getCIndex();
+        maxChannel = std::max(channelIndex, maxChannel);
+        minChannel = std::min(channelIndex, minChannel);
         maxZ = std::max(imageItem.getZIndex(), maxZ);
         maxT = std::max(imageItem.getTIndex(), maxT);
     }
 
-    m_ChannelCount = maxChannel + 1;
+    m_ChannelCount = maxChannel - minChannel + 1;
     m_ZSliceCount = maxZ + 1;
     m_TFrameCount = maxT + 1;
     m_ChannelNames.resize(m_ChannelCount);
@@ -299,7 +302,11 @@ void ZVIScene::computeSceneDimensions()
 
     for (auto&& imageItem : m_ImageItems)
     {
-        const int channelIndex = imageItem.getCIndex();
+        int channelIndex = imageItem.getCIndex();
+        if (minChannel > 0) {
+            channelIndex -= minChannel;
+            imageItem.setCIndex(channelIndex);
+        }
         const std::string channelName = imageItem.getChannelName();
         if (!channelName.empty())
             m_ChannelNames[channelIndex] = channelName;
@@ -312,6 +319,7 @@ void ZVIScene::computeSceneDimensions()
 void ZVIScene::readImageItems()
 {
     m_ImageItems.resize(m_RawCount);
+
     for (auto itemIndex = 0; itemIndex < m_RawCount; ++itemIndex)
     {
         auto& item = m_ImageItems[itemIndex];

@@ -154,11 +154,11 @@ void ZVIImageItem::readRaster(ole::compound_document& doc, cv::OutputArray raste
         if (readBytes != rasterSize) {
             throw std::runtime_error("ZVIImageDriver: Unexpected end of stream");
         }
-        std::string filePath = (boost::format("D:\\Temp\\zvi_slice_%1%_channel_%2%") % this->getZIndex() % getCIndex()).str();
-        std::fstream fileRaster;
-        fileRaster = std::fstream(filePath, std::ios::out | std::ios::binary);
-        fileRaster.write(reinterpret_cast<char*>(mat.data), rasterSize);
-        fileRaster.close();
+        //std::string filePath = (boost::format("D:\\Temp\\zvi_slice_%1%_channel_%2%") % this->getZIndex() % getCIndex()).str();
+        //std::fstream fileRaster;
+        //fileRaster = std::fstream(filePath, std::ios::out | std::ios::binary);
+        //fileRaster.write(reinterpret_cast<char*>(mat.data), rasterSize);
+        //fileRaster.close();
     }
 
 }

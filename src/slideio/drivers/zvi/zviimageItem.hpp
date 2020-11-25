@@ -35,12 +35,12 @@ namespace slideio
             int getTileIndexY() const { return m_TileIndexY; }
             void readRaster(ole::compound_document& doc, cv::OutputArray raster) const;
             int getValidBits() const { return m_ValidBits; }
+            void setCIndex(int cIndex) { m_CIndex = cIndex; }
         private:
             void setWidth(int width) { m_Width = width; }
             void setHeight(int height) { m_Height = height; }
             void setPixelFormat(ZVIPixelFormat pixelFormat);
             void setZIndex(int zIndex) { m_ZIndex = zIndex; }
-            void setCIndex(int cIndex) { m_CIndex = cIndex; }
             void setTIndex(int tIndex) { m_TIndex = tIndex; }
             void setPositionIndex(int positionIndex) { m_PositionIndex = positionIndex; }
             void setSceneIndex(int sceneIndex) { m_SceneIndex = sceneIndex; }
