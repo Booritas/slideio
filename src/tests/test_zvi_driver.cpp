@@ -424,3 +424,30 @@ TEST(ZVIImageDriver, readBlockTOMM)
     EXPECT_EQ(channels, 1);
 }
 
+TEST(ZVIImageDriver, readBlock3D)
+{
+    if (!TestTools::isFullTestEnabled()) {
+        GTEST_SKIP() << "Skip full test because full dataset is not enabled";
+    }
+    slideio::ZVIImageDriver driver;
+    std::string filePath = TestTools::getFullTestImagePath("zvi", "mouse/20140505_mouse_2cell_H2AUb_RING1B_DAPI_T_005.zvi");
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide.get() != nullptr);
+    auto scene = slide->getScene(0);
+    ASSERT_TRUE(scene.get() != nullptr);
+    const auto rect = scene->getRect();
+    auto dt = scene->getChannelDataType(0);
+    auto channels = scene->getNumChannels();
+    const double asp = (double)rect.height / (double)rect.width;
+    cv::Mat raster;
+    std::vector<int> channelIndices = { 0 };
+    cv::Size size = { rect.width, rect.height };
+    cv::Range slices = { 0, 10 };
+    cv::Range frames = { 0, 1 };
+    scene->readResampled4DBlockChannels(rect, size, channelIndices, slices, frames, raster);
+    EXPECT_EQ(raster.size[0], size.height);
+    EXPECT_EQ(raster.size[1], size.width);
+    EXPECT_EQ(raster.size[2], 10);
+    EXPECT_EQ(dt, slideio::DataType::DT_Int16);
+}
+

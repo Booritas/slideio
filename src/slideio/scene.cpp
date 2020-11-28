@@ -213,11 +213,11 @@ void Scene::readResampled4DBlockChannels(const std::tuple<int, int, int, int>& r
         std::vector<int> indices;
         int sliceIndex(-1), frameIndex(-1);
 
-        if(numSlices>1) {
+        if(numSlices > 1) {
             sliceIndex = 0;
             indices.push_back(0);
         }
-        if( numFrames>0) {
+        if( numFrames > 1) {
             frameIndex = sliceIndex + 1;
             indices.push_back(0);
         }
