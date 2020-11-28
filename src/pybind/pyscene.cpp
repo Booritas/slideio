@@ -128,9 +128,9 @@ pybind11::array PyScene::readBlock(std::tuple<int, int, int, int> rect,
     if(numChannels>1)
         shape->push_back(numChannels);
     if(numSlices>1)
-        shape->push_back(numSlices);
+        shape->insert(shape->begin(), numSlices);
     if(numFrames>1)
-        shape->push_back(numFrames);
+        shape->insert(shape->begin(), numFrames);
 
     py::array numpy_array(dtype, shape);
 
