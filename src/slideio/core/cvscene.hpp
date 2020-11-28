@@ -40,6 +40,8 @@ namespace slideio
         virtual void readResampled4DBlock(const cv::Rect& blockRect, const cv::Size& blockSize, const cv::Range& zSliceRange, const cv::Range& timeFrameRange, cv::OutputArray output);
         virtual void readResampled4DBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize, const std::vector<int>& channelIndices, const cv::Range& zSliceRange, const cv::Range& timeFrameRange, cv::OutputArray output);
     protected:
+        virtual void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
+            const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output);
         std::vector<int> getValidChannelIndices(const std::vector<int>& channelIndices);
     };
 }

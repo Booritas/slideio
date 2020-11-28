@@ -9,6 +9,7 @@
 #include <opencv2/imgcodecs.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include "slideio/scene.hpp"
+#include "slideio/core/cvtools.hpp"
 
 TEST(CZIImageDriver, DriverManager_getDriverIDs)
 {
@@ -138,13 +139,16 @@ TEST(CZIImageDriver, readBlock4D)
         // read channel raster
         cv::Mat raster;
         std::vector<int> channelIndices = {channelIndex};
-        scene->readResampled4DBlockChannels(sceneRect,sceneRect.size(), channelIndices,
+        scene->readResampled4DBlockChannels(sceneRect, sceneRect.size(), channelIndices,
             {2,5}, {0,1}, raster);
-        ASSERT_EQ(raster.channels(), zSliceRange.size());
+        EXPECT_EQ(raster.channels(), channelIndices.size());
+        EXPECT_EQ(raster.size[0], sceneRect.width);
+        EXPECT_EQ(raster.size[1], sceneRect.height);
+        EXPECT_EQ(raster.size[2], 3);
         for(int zSliceIndex=zSliceRange.start; zSliceIndex<zSliceRange.end; ++zSliceIndex)
         {
             cv::Mat sliceRaster;
-            cv::extractChannel(raster, sliceRaster, zSliceIndex-zSliceRange.start);
+            slideio::CVTools::extractSliceFrom3D(raster, zSliceIndex - zSliceRange.start, sliceRaster);
             std::string bmpFileName = 
             std::string("pJP31mCherry.grey/pJP31mCherry_b0t0z") +
             std::to_string(zSliceIndex) +

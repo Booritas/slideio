@@ -64,7 +64,7 @@ TEST(CVTools, insertSliceInMultidimMatrix)
     CVTools::insertSliceInMultidimMatrix(mat3D, mat2D, indices);
 
     std::vector<int> dims = {height, width, 1};
-    cv::Mat test(dims.size(), dims.data(), CV_16SC3, cv::Scalar(1001, 1002, 1003));
+    cv::Mat test((int)dims.size(), dims.data(), CV_16SC3, cv::Scalar(1001, 1002, 1003));
 
     std::vector<cv::Range> ranges = {
         cv::Range(0, height),

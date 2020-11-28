@@ -77,11 +77,6 @@ namespace slideio
         double getMagnification() const override;
         void readResampledBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize,
             const std::vector<int>& componentIndices, cv::OutputArray output) override;
-        void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
-            const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output);
-        void readResampled4DBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize,
-            const std::vector<int>& channelIndices, const cv::Range& zSliceRange, const cv::Range& timeFrameRange,
-            cv::OutputArray output) override;
         std::string getName() const override;
         void init(uint64_t sceneId, SceneParams& sceneParams, const std::string& filePath, const CZISubBlocks& blocks, CZISlide* slide);
         // interface Tiler implementaton
@@ -92,6 +87,9 @@ namespace slideio
         Compression getCompression() const override{
             return m_compression;
         }
+    protected:
+        void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
+            const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output);
     private:
         void setupComponents(const std::map<int, int>& channelPixelType);
         void generateSceneName();

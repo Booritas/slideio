@@ -102,5 +102,5 @@ void CVTools::insertSliceInMultidimMatrix(cv::Mat multidimMat, cv::Mat sliceMat,
         dims.push_back(1);
     }
     cv::Mat sliceMat1 = multidimMat(ranges);
-    sliceMat.reshape(multidimMat.channels(), dims.size(), dims.data()).copyTo(sliceMat1);
+    sliceMat.reshape(multidimMat.channels(), static_cast<int>(dims.size()), dims.data()).copyTo(sliceMat1);
 }

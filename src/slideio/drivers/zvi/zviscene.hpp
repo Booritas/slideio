@@ -43,15 +43,12 @@ namespace slideio
         double getMagnification() const override;
         void readResampledBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize,
                                         const std::vector<int>& componentIndices, cv::OutputArray output) override;
-        void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
-                                          const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex,
-                                          cv::OutputArray output);
-        void readResampled4DBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize,
-                                          const std::vector<int>& channelIndices, const cv::Range& zSliceRange,
-                                          const cv::Range& timeFrameRange,
-                                          cv::OutputArray output) override;
         std::string getName() const override;
         Compression getCompression() const override;
+    protected:
+        void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
+            const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex,
+            cv::OutputArray output);
     public:
         int getTileCount(void* userData) override;
         bool getTileRect(int tileIndex, cv::Rect& tileRect, void* userData) override;
