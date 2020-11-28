@@ -58,6 +58,7 @@ namespace slideio
         bool readTile(int tileIndex, const std::vector<int>& channelIndices, cv::OutputArray tileRaster,
                       void* userData) override;
     private:
+        ZVIPixelFormat getPixelFormat() const;
         void alignChannelInfoToPixelFormat();
         void computeSceneDimensions();
         void readImageItems();
@@ -71,6 +72,7 @@ namespace slideio
         int m_Width = 0;
         int m_Height = 0;
         int m_RawCount = 0;
+        ZVIPixelFormat m_PixelFormat = ZVIPixelFormat::PF_UNKNOWN;
         int m_ChannelCount = 0;
         int m_ZSliceCount = 0;
         int m_TFrameCount = 0;

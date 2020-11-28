@@ -389,7 +389,7 @@ TEST(ZVIImageDriver, readBlock)
         GTEST_SKIP() << "Skip full test because full dataset is not enabled";
     }
     slideio::ZVIImageDriver driver;
-    std::string filePath = TestTools::getFullTestImagePath("zvi", "20140505_mouse_2cell_H2AUb_RING1B_DAPI_T_005.zvi");
+    std::string filePath = TestTools::getFullTestImagePath("zvi", "20140207_mouse_2cell_H2AUb_HA_DAPI_inj_002.zvi");
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide.get() != nullptr);
     auto scene = slide->getScene(0);
@@ -405,4 +405,21 @@ TEST(ZVIImageDriver, readBlock)
     EXPECT_EQ(raster.rows, rect.height);
     EXPECT_EQ(channels, 3);
     EXPECT_EQ(dt, slideio::DataType::DT_Int16);
+}
+
+TEST(ZVIImageDriver, readBlockTOMM)
+{
+    slideio::ZVIImageDriver driver;
+    std::string filePath = TestTools::getTestImagePath("zvi", "TOMMAlexaFluor647.zvi");
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide.get() != nullptr);
+    auto scene = slide->getScene(0);
+    ASSERT_TRUE(scene.get() != nullptr);
+    const auto rect = scene->getRect();
+    EXPECT_EQ(rect.width, 1388);
+    EXPECT_EQ(rect.height, 1040);
+    const auto dt = scene->getChannelDataType(0);
+    const auto channels = scene->getNumChannels();
+    EXPECT_EQ(dt, DataType::DT_Int16);
+    EXPECT_EQ(channels, 1);
 }

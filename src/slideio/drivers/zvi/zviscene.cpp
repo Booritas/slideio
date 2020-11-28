@@ -218,11 +218,16 @@ bool ZVIScene::readTile(int tileIndex, const std::vector<int>& channelIndices, c
 }
 
 
+ZVIPixelFormat ZVIScene::getPixelFormat() const
+{
+    return (m_PixelFormat == ZVIPixelFormat::PF_UNKNOWN) ? m_ImageItems[0].getPixelFormat() : m_PixelFormat;
+}
+
 void ZVIScene::alignChannelInfoToPixelFormat()
 {
     if (m_ChannelCount == 1 && !m_ImageItems.empty())
     {
-        ZVIPixelFormat pixelFormat = m_ImageItems[0].getPixelFormat();
+        ZVIPixelFormat pixelFormat = getPixelFormat();
         switch (pixelFormat)
         {
         case ZVIPixelFormat::PF_BGR:
@@ -335,7 +340,11 @@ void ZVIScene::readImageItems()
 void ZVIScene::parseImageInfo()
 {
     ZVIUtils::StreamKeeper stream(m_Doc, "/Image/Contents");
-    ZVIUtils::skipItems(stream, 8);
+    ZVIUtils::skipItems(stream, 4);
+    m_Width = ZVIUtils::readIntItem(stream);
+    m_Height = ZVIUtils::readIntItem(stream);
+    ZVIUtils::skipItem(stream);
+    m_PixelFormat = (ZVIPixelFormat)ZVIUtils::readIntItem(stream);
     m_RawCount = ZVIUtils::readIntItem(stream);
 }
 
