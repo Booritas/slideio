@@ -11,7 +11,7 @@
 
 static const char* TEST_PATH_VARIABLE = "SLIDEIO_TEST_DATA_PATH";
 static const char* PRIV_TEST_PATH_VARIABLE = "SLIDEIO_TEST_DATA_PRIV_PATH";
-static const char* TEST_FULL_TEST_PATH_VARIABLE = "SLIDEIO_IMAGE_FOLDER_PATH";
+static const char* TEST_FULL_TEST_PATH_VARIABLE = "SLIDEIO_IMAGES_PATH";
 
 
 bool TestTools::isPrivateTestEnabled()

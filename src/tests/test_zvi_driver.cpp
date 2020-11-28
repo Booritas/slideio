@@ -109,7 +109,7 @@ TEST(ZVIImageDriver, openSlideMosaic)
     }
 
     slideio::ZVIImageDriver driver;
-    std::string filePath = TestTools::getFullTestImagePath("zvi", "Zeiss-3-Mosaic.zvi");
+    std::string filePath = TestTools::getFullTestImagePath("zvi", "openslide/Zeiss-3-Mosaic.zvi");
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide.get() != nullptr);
     const int sceneCount = slide->getNumScenes();
@@ -389,7 +389,7 @@ TEST(ZVIImageDriver, readBlock)
         GTEST_SKIP() << "Skip full test because full dataset is not enabled";
     }
     slideio::ZVIImageDriver driver;
-    std::string filePath = TestTools::getFullTestImagePath("zvi", "20140207_mouse_2cell_H2AUb_HA_DAPI_inj_002.zvi");
+    std::string filePath = TestTools::getFullTestImagePath("zvi", "mouse/20140207_mouse_2cell_H2AUb_HA_DAPI_inj_002.zvi");
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide.get() != nullptr);
     auto scene = slide->getScene(0);
@@ -423,3 +423,4 @@ TEST(ZVIImageDriver, readBlockTOMM)
     EXPECT_EQ(dt, DataType::DT_Int16);
     EXPECT_EQ(channels, 1);
 }
+
