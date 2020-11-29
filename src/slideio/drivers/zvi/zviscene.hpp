@@ -48,7 +48,7 @@ namespace slideio
     protected:
         void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
             const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex,
-            cv::OutputArray output);
+            cv::OutputArray output) override;
     public:
         int getTileCount(void* userData) override;
         bool getTileRect(int tileIndex, cv::Rect& tileRect, void* userData) override;

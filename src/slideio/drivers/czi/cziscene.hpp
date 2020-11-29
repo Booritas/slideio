@@ -89,7 +89,7 @@ namespace slideio
         }
     protected:
         void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
-            const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output);
+            const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output) override;
     private:
         void setupComponents(const std::map<int, int>& channelPixelType);
         void generateSceneName();
