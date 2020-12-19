@@ -1,4 +1,5 @@
-set(SOURCE_FILES ${SOURCE_FILES}
+set(SOURCE_FILES 
+        ${SOURCE_FILES}
         ${CMAKE_CURRENT_SOURCE_DIR}/zviimagedriver.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/zviimagedriver.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/zviscene.hpp
