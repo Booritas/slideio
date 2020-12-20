@@ -5,7 +5,7 @@
 #include "slideio/core/cvtools.hpp"
 #include <boost/format.hpp>
 #include <boost/filesystem.hpp>
-#include <gdal/gdal.h>
+#include "slideio/gdal_lib.hpp"
 
 
 static slideio::DataType dataTypeFromGDALDataType(GDALDataType dt)

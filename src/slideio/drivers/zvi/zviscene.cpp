@@ -343,6 +343,11 @@ static double scaleToResolution(double scale, int units)
     return res;
 }
 
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wswitch"
+#endif
+
 void ZVIScene::parseImageTags()
 {
     ZVIUtils::StreamKeeper stream(m_Doc, "/Image/Tags/Contents");
@@ -402,3 +407,8 @@ void ZVIScene::parseImageTags()
     m_res.y = scaleToResolution(scaleY, unitsY);
     m_ZSliceRes = scaleToResolution(scaleZ, unitsZ);
 }
+
+#if defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
+

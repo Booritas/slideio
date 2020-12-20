@@ -7,7 +7,7 @@
 #include "slideio/slideio_def.hpp"
 #include <codecvt>
 #include <string>
-#include <pole/polepp.hpp>
+#include "slideio/pole_lib.hpp"
 #include <boost/variant.hpp>
 
 #include "slideio/structs.hpp"

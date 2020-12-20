@@ -5,7 +5,7 @@
 #include "slideio/core/imagedrivermanager.hpp"
 #include "testtools.hpp"
 #include "slideio/drivers/zvi/ZVIUtils.hpp"
-#include <pole/polepp.hpp>
+#include "slideio/pole_lib.hpp"
 
 
 using namespace slideio;

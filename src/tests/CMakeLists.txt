@@ -3,26 +3,26 @@ set(TEST_NAME slideio_tests)
 
 CONAN_MAIN()
 
-set(TEST_SOURCES 
-   test_imagedrivermanager.cpp
-   test_czi_driver.cpp
-   test_scn_driver.cpp
-   test_gdal_driver.cpp
-   test_imagetools.cpp
-   test_afi_driver.cpp
-   test_svs_driver.cpp
-   test_zvi_driver.cpp
-   test_svs_tools.cpp
-   test_tifftools.cpp
-   test_zviutils.cpp
-   test_tilecomposer.cpp
-   test_testtools.cpp
-   test_tools.cpp
-   test_cvtools.cpp
-   testtiler.cpp
-   testtiler.hpp
-   testtools.cpp
-   testtools.hpp
+set(TEST_SOURCES
+  test_imagedrivermanager.cpp
+  test_czi_driver.cpp
+  test_scn_driver.cpp
+  test_gdal_driver.cpp
+  test_imagetools.cpp
+  test_afi_driver.cpp
+  test_svs_driver.cpp
+  test_zvi_driver.cpp
+  test_svs_tools.cpp
+  test_tifftools.cpp
+  test_zviutils.cpp
+  test_tilecomposer.cpp
+  test_testtools.cpp
+  test_tools.cpp
+  test_cvtools.cpp
+  testtiler.cpp
+  testtiler.hpp
+  testtools.cpp
+  testtools.hpp
 )
 
 add_executable(${TEST_NAME} ${TEST_SOURCES})

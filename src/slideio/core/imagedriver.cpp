@@ -6,5 +6,5 @@
 
 bool slideio::ImageDriver::canOpenFile(const std::string& filePath) const
 {
-    return slideio::Tools::matchPattern(filePath, getFileSpecs());
+    return false;//slideio::Tools::matchPattern(filePath, getFileSpecs());
 }

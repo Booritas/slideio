@@ -58,6 +58,10 @@ void ZVIImageItem::readContents(ole::compound_document& doc)
     setDataOffset(pos);
 }
 
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wswitch"
+#endif
 
 void ZVIImageItem::readTags(ole::compound_document& doc)
 {
@@ -117,6 +121,10 @@ void ZVIImageItem::readTags(ole::compound_document& doc)
     setTileIndexX(itemTileIndexX);
     setTileIndexY(itemTileIndexY);
 }
+
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
 
 void ZVIImageItem::readRaster(ole::compound_document& doc, cv::OutputArray raster) const
 {

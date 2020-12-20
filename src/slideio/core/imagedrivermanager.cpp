@@ -35,32 +35,32 @@ void ImageDriverManager::initialize()
 {
     if(driverMap.empty())
     {
-        {
-            GDALImageDriver* driver = new GDALImageDriver;
-            std::shared_ptr<ImageDriver> gdal(driver);
-            driverMap[gdal->getID()] = gdal;
-        }
-        {
-            SVSImageDriver* driver = new SVSImageDriver;
-            std::shared_ptr<ImageDriver> svs(driver);
-            driverMap[svs->getID()] = svs;
-        }
-        {
-            std::shared_ptr<ImageDriver> driver(new CZIImageDriver);
-            driverMap[driver->getID()] = driver;
-        }
-        {
-            std::shared_ptr<ImageDriver> driver{ std::make_shared<AFIImageDriver>() };
-            driverMap[driver->getID()] = driver;
-        }
-        {
-            std::shared_ptr<ImageDriver> driver{ std::make_shared<SCNImageDriver>() };
-            driverMap[driver->getID()] = driver;
-        }
-        {
-            std::shared_ptr<ImageDriver> driver{ std::make_shared<ZVIImageDriver>() };
-            driverMap[driver->getID()] = driver;
-        }
+        // {
+        //     GDALImageDriver* driver = new GDALImageDriver;
+        //     std::shared_ptr<ImageDriver> gdal(driver);
+        //     driverMap[gdal->getID()] = gdal;
+        // }
+        // {
+        //     SVSImageDriver* driver = new SVSImageDriver;
+        //     std::shared_ptr<ImageDriver> svs(driver);
+        //     driverMap[svs->getID()] = svs;
+        // }
+        // {
+        //     std::shared_ptr<ImageDriver> driver(new CZIImageDriver);
+        //     driverMap[driver->getID()] = driver;
+        // }
+        // {
+        //     std::shared_ptr<ImageDriver> driver{ std::make_shared<AFIImageDriver>() };
+        //     driverMap[driver->getID()] = driver;
+        // }
+        // {
+        //     std::shared_ptr<ImageDriver> driver{ std::make_shared<SCNImageDriver>() };
+        //     driverMap[driver->getID()] = driver;
+        // }
+        // {
+        //     std::shared_ptr<ImageDriver> driver{ std::make_shared<ZVIImageDriver>() };
+        //     driverMap[driver->getID()] = driver;
+        // }
     }
 }
 
