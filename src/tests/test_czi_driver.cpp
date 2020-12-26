@@ -364,7 +364,7 @@ TEST(CZIImageDriver, corruptedCZI)
 {
     std::string filePath = TestTools::getTestImagePath("czi","corrupted.czi");
     slideio::CZIImageDriver driver;
-    EXPECT_THROW(driver.openFile(filePath), std::runtime_error);
+    EXPECT_THROW(driver.openFile(filePath), std::exception);
 }
 
 //TODO: CLEAR COMMENTED OUT TESTS
