@@ -112,6 +112,7 @@ python-windows:
 
 cpp-test-windows:
     stage: test
+    when: manual
     tags:
         - win-build
     variables:
@@ -126,6 +127,7 @@ cpp-test-windows:
 
 python-test-windows:
     stage: test
+    when: manual
     tags:
         - win-build
     variables:
