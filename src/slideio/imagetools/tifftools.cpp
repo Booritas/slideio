@@ -4,7 +4,7 @@
 //
 #include "slideio/imagetools/tifftools.hpp"
 #include "slideio/imagetools/imagetools.hpp"
-#include "slideio/core/cvglobals.hpp"
+#include "slideio/core/cvtools.hpp"
 #include <opencv2/core.hpp>
 #include <boost/format.hpp>
 #include "slideio/libtiff.hpp"
@@ -288,7 +288,7 @@ void slideio::TiffTools::readStripedDir(libtiff::TIFF* file, const slideio::Tiff
     int buff_size = dir.width*dir.height*dir.channels*ImageTools::dataTypeSize(dir.dataType);
     cv::Size sizeImage = { dir.width, dir.height };
     slideio::DataType dt = dir.dataType;
-    output.create(sizeImage, CV_MAKETYPE(slideio::toOpencvType(dt), dir.channels));
+    output.create(sizeImage, CV_MAKETYPE(slideio::CVTools::toOpencvType(dt), dir.channels));
     cv::Mat imageRaster = output.getMat();
     libtiff::TIFFSetDirectory(file, static_cast<uint16_t>(dir.dirIndex));
     if(dir.offset>0){
@@ -338,7 +338,7 @@ void slideio::TiffTools::readRegularTile(libtiff::TIFF* hFile, const slideio::Ti
     cv::Size tileSize = { dir.tileWidth, dir.tileHeight };
     slideio::DataType dt = dir.dataType;
     cv::Mat tileRaster;
-    tileRaster.create(tileSize, CV_MAKETYPE(slideio::toOpencvType(dt), dir.channels));
+    tileRaster.create(tileSize, CV_MAKETYPE(slideio::CVTools::toOpencvType(dt), dir.channels));
     libtiff::TIFFSetDirectory(hFile, static_cast<uint16_t>(dir.dirIndex));
     if (dir.offset > 0) {
         libtiff::TIFFSetSubDirectory(hFile, dir.offset);
@@ -410,7 +410,7 @@ void TiffTools::readNotRGBTile(libtiff::TIFF* hFile, const slideio::TiffDirector
     cv::Size tileSize = { dir.tileWidth, dir.tileHeight };
     slideio::DataType dt = dir.dataType;
     cv::Mat tileRaster;
-    tileRaster.create(tileSize, CV_MAKETYPE(slideio::toOpencvType(dt), 4));
+    tileRaster.create(tileSize, CV_MAKETYPE(slideio::CVTools::toOpencvType(dt), 4));
     libtiff::TIFFSetDirectory(hFile, static_cast<uint16_t>(dir.dirIndex));
     if (dir.offset > 0) {
         libtiff::TIFFSetSubDirectory(hFile, dir.offset);

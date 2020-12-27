@@ -3,8 +3,9 @@
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/scene.hpp"
 
-#include "core/cvglobals.hpp"
+#include "core/cvtools.hpp"
 #include "slideio/core/cvscene.hpp"
+#include <boost/format.hpp>
 
 using namespace slideio;
 
@@ -105,7 +106,7 @@ int Scene::getBlockSize(const std::tuple<int, int>& blockSize, int refChannel, i
     const int blockHeight = std::get<1>(blockSize);
     const int numPlanes = numSlices*numFrames*numChannels;
     const DataType dt = m_scene->getChannelDataType(refChannel);
-    const int ds = cvGetDataTypeSize(dt);
+    const int ds = CVTools::cvGetDataTypeSize(dt);
     const int planeSize = blockWidth*blockHeight*ds;
     return planeSize*numPlanes;
 }
@@ -192,19 +193,57 @@ void Scene::readResampled4DBlockChannels(const std::tuple<int, int, int, int>& r
     const int refChannel = (channelIndices.empty()?0:channelIndices[0]);
     const int numPlanes =  numChannels*numSlices*numFrames;
     const int blockMemSize = getBlockSize(size, refChannel, numChannels, numSlices, numFrames);
+    const int planeMemSize = getBlockSize(size, refChannel, numChannels, 1, 1);
     const auto cvType = m_scene->getChannelDataType(refChannel);
 
-    if(blockMemSize>bufferSize)
-    {
-        throw std::runtime_error("Supplied memory buffer is too small");
+    if(blockMemSize>bufferSize) {
+        throw std::runtime_error(
+            (boost::format("Supplied memory buffer is too small. Received: %1%. Required: %2%") % bufferSize % blockMemSize).str());
     }
-    cv::Mat raster(blockSize.height, blockSize.width, CV_MAKETYPE(static_cast<int>(cvType), numPlanes), buffer);
-    m_scene->readResampled4DBlockChannels(blockRect, blockSize, channelIndices, sliceRange, frameRange, raster);
 
-    if(buffer!=raster.data)
-    {
-        throw std::runtime_error("Unexpected data reallocation");
+    cv::Mat raster(blockSize.height, blockSize.width, CV_MAKETYPE(static_cast<int>(cvType), numPlanes), buffer);
+    if (numSlices==1 && numFrames==1) {
+        m_scene->readResampled4DBlockChannels(blockRect, blockSize, channelIndices, sliceRange, frameRange, raster);
+        if (buffer != raster.data) {
+            throw std::runtime_error("Unexpected memory reallocation");
+        }
     }
+    else {
+        cv::Mat mdRaster;
+        std::vector<int> indices;
+        int sliceIndex(-1), frameIndex(-1);
+
+        if(numSlices > 1) {
+            sliceIndex = 0;
+            indices.push_back(0);
+        }
+        if( numFrames > 1) {
+            frameIndex = sliceIndex + 1;
+            indices.push_back(0);
+        }
+        int planeNum(0);
+        uint8_t* planeBegin = static_cast<uint8_t*>(buffer);
+        m_scene->readResampled4DBlockChannels(blockRect, blockSize, channelIndices, sliceRange, frameRange, mdRaster);
+        for (int tfIndex = frameRange.start; tfIndex < frameRange.end; ++tfIndex)
+        {
+            if(frameIndex>=0) {
+                indices[frameIndex] = tfIndex - frameRange.start;
+            }
+            for (int zSlieceIndex = sliceRange.start; zSlieceIndex < sliceRange.end; ++zSlieceIndex, ++planeNum, planeBegin+=planeMemSize)
+            {
+                if (sliceIndex >= 0) {
+                    indices[sliceIndex] = zSlieceIndex - sliceRange.start;
+                }
+                cv::Mat sliceRaster;
+                CVTools::extractSliceFromMultidimMatrix(mdRaster, indices , sliceRaster);
+                if( !sliceRaster.isContinuous()) {
+                    throw std::runtime_error("Unexpected non-continuous matrix");
+                }
+                memcpy(planeBegin, sliceRaster.data, planeMemSize);
+            }
+        }
+    }
+
 }
 
 

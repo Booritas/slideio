@@ -10,8 +10,7 @@ set(SOURCE_FILES
 	${SOURCE_FILES}
 	${CMAKE_CURRENT_SOURCE_DIR}/slideio.hpp
 	${CMAKE_CURRENT_SOURCE_DIR}/slideio.cpp
-   	${CMAKE_CURRENT_SOURCE_DIR}/slideio_def.hpp
-   	${CMAKE_CURRENT_SOURCE_DIR}/gdal_lib.hpp
+  	${CMAKE_CURRENT_SOURCE_DIR}/slideio_def.hpp
    	${CMAKE_CURRENT_SOURCE_DIR}/slide.hpp
    	${CMAKE_CURRENT_SOURCE_DIR}/slide.cpp
    	${CMAKE_CURRENT_SOURCE_DIR}/scene.hpp
@@ -21,6 +20,8 @@ set(SOURCE_FILES
    	${CMAKE_CURRENT_SOURCE_DIR}/xmltools.hpp
    	${CMAKE_CURRENT_SOURCE_DIR}/xmltools.cpp
    	${CMAKE_CURRENT_SOURCE_DIR}/libtiff.hpp
+  	${CMAKE_CURRENT_SOURCE_DIR}/gdal_lib.hpp
+  	${CMAKE_CURRENT_SOURCE_DIR}/pole_lib.hpp
 )
 
 add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES})
