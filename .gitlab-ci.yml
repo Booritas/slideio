@@ -82,6 +82,7 @@ cpp-windows:
     stage: build
     tags:
         - win-build
+    when: manual
     script:
         - python install.py -a build
         - mkdir ${WINDOWS_ARTIFACT_DIR}
@@ -97,6 +98,7 @@ python-windows:
     stage: build
     tags:
         - win-build
+    when: manual
     script:
         - python ./install.py -a conan
         - cd src/pybind
