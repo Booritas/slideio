@@ -172,3 +172,59 @@ TEST(ImageTools, decodeJxrBlock16)
     ASSERT_EQ(rasterSize, raw.size());
     ASSERT_EQ(memcmp(jxrImage.data, raw.data(), raw.size()), 0);
 }
+
+TEST(ImageTools, decodeJpegStream)
+{
+    std::string pathJpg = TestTools::getTestImagePath("jpeg", "lena_256.jpg");
+    std::string pathPng = TestTools::getTestImagePath("jpeg", "lena_256.png");
+
+    std::ifstream file(pathJpg, std::ios::in | std::ios::binary | std::ios::ate);
+    ASSERT_TRUE(file.is_open());
+    size_t size = file.tellg();
+    ASSERT_GT(size, 0);
+    std::vector<uint8_t> buffer(size);
+    file.seekg(0, std::ios::beg);
+    file.read(reinterpret_cast<char*>(buffer.data()), size);
+    file.close();
+    // decode the codeblock
+    cv::Mat jpegImage;
+    slideio::ImageTools::decodeJpegStream(buffer.data(), buffer.size(), jpegImage);
+    ASSERT_FALSE(jpegImage.empty());
+    cv::Mat bmpImage;
+    slideio::ImageTools::readGDALImage(pathPng, bmpImage);
+    ASSERT_FALSE(bmpImage.empty());
+    // compare similarity of rasters from bmp and decoded jpeg file
+    cv::Mat score;
+    cv::matchTemplate(jpegImage, bmpImage, score, cv::TM_CCOEFF_NORMED);
+    double minScore(0), maxScore(0);
+    cv::minMaxLoc(score, &minScore, &maxScore);
+    ASSERT_LT(0.999, minScore);
+}
+
+TEST(ImageTools, decodeJpegStream2)
+{
+    std::string pathJpg = TestTools::getTestImagePath("jpeg", "p2YCpvg.jpeg");
+    std::string pathPng = TestTools::getTestImagePath("jpeg", "p2YCpvg.png");
+
+    std::ifstream file(pathJpg, std::ios::in | std::ios::binary | std::ios::ate);
+    ASSERT_TRUE(file.is_open());
+    size_t size = file.tellg();
+    ASSERT_GT(size, 0);
+    std::vector<uint8_t> buffer(size);
+    file.seekg(0, std::ios::beg);
+    file.read(reinterpret_cast<char*>(buffer.data()), size);
+    file.close();
+    // decode the codeblock
+    cv::Mat jpegImage;
+    slideio::ImageTools::decodeJpegStream(buffer.data(), buffer.size(), jpegImage);
+    ASSERT_FALSE(jpegImage.empty());
+    cv::Mat bmpImage;
+    slideio::ImageTools::readGDALImage(pathPng, bmpImage);
+    ASSERT_FALSE(bmpImage.empty());
+    // compare similarity of rasters from bmp and decoded jpeg file
+    cv::Mat score;
+    cv::matchTemplate(jpegImage, bmpImage, score, cv::TM_CCOEFF_NORMED);
+    double minScore(0), maxScore(0);
+    cv::minMaxLoc(score, &minScore, &maxScore);
+    ASSERT_LT(0.999, minScore);
+}

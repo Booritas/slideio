@@ -123,16 +123,14 @@ pybind11::array PyScene::readBlock(std::tuple<int, int, int, int> rect,
     const int memSize = m_scene->getBlockSize(blockSize, refChannel, numChannels, numSlices, numFrames);
 
     py::array::ShapeContainer shape;
-    const int planes = numChannels*numSlices*numFrames;
-
-    if(planes==1)
-    {
-        shape = {blockSize.height(), blockSize.width()};
-    }
-    else
-    {
-        shape = {blockSize.height(), blockSize.width(), planes};
-    }
+    shape->push_back(blockSize.height());
+    shape->push_back(blockSize.width());
+    if(numChannels>1)
+        shape->push_back(numChannels);
+    if(numSlices>1)
+        shape->insert(shape->begin(), numSlices);
+    if(numFrames>1)
+        shape->insert(shape->begin(), numFrames);
 
     py::array numpy_array(dtype, shape);
 

@@ -119,23 +119,6 @@ void CZIScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv:
     TileComposer::composeRect(this, componentIndices, zoomLevelRect, blockSize, output, &userData);
 }
 
-void CZIScene::readResampled4DBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize,
-                                            const std::vector<int>& channelIndices, const cv::Range& zSliceRange,
-                                            const cv::Range& timeFrameRange, cv::OutputArray output)
-{
-    std::vector<cv::Mat> rasters;
-    for(int tfIndex=timeFrameRange.start; tfIndex<timeFrameRange.end; ++tfIndex)
-    {
-        for(int zSlieceIndex=zSliceRange.start; zSlieceIndex<zSliceRange.end; ++zSlieceIndex)
-        {
-            cv::Mat raster;
-            readResampledBlockChannelsEx(blockRect, blockSize, channelIndices, zSlieceIndex, tfIndex, raster);
-            rasters.push_back(raster);
-        }
-    }
-    cv::merge(rasters, output);
-}
-
 std::string CZIScene::getName() const
 {
     return m_name;

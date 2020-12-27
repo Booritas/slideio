@@ -10,8 +10,10 @@
 #include "slideio/imagetools/tilecomposer.hpp"
 #include "slideio/drivers/scn/scnstruct.h"
 
-#include <tinyxml2.h>
-
+namespace tinyxml2
+{
+    class XMLElement;
+}
 
 #if defined(_MSC_VER)
 #pragma warning( push )
