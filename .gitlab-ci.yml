@@ -15,7 +15,7 @@ python-manylinux:
     image: booritas/slideio-manylinux2010:latest
     stage: build
     script:
-        - ls -l srd/slideio/drivers/zvi
+        - ls -l src/slideio/drivers/zvi
         - python3 ./install.py -a conan
         - cd src/pybind
         - bash ./install.sh
