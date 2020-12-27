@@ -1,4 +1,4 @@
-$pythons = @("3.8","3.7","3.6","3.5")
+$pythons = @("3.9","3.8","3.7","3.6","3.5")
 if (-not (Test-Path env:CI_PIPELINE_IID)) 
 { 
    $env:CI_PIPELINE_IID = 5 
