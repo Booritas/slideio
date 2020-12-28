@@ -1,18 +1,18 @@
 set(SOURCE_FILES 
-        ${SOURCE_FILES}
-        ${CMAKE_CURRENT_SOURCE_DIR}/zviimagedriver.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/zviimagedriver.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/zviscene.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/zviscene.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/zvislide.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/zvislide.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/zviutils.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/zviutils.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/zvitags.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/zviimageitem.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/zviimageitem.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/zvipixelformat.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/zvitile.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/zvitile.cpp
-        PARENT_SCOPE
+   ${SOURCE_FILES}
+   ${CMAKE_CURRENT_SOURCE_DIR}/zviimagedriver.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/zviimagedriver.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/zviscene.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/zviscene.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/zvislide.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/zvislide.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/zviutils.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/zviutils.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/zvitags.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/zvipixelformat.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/zviimageitem.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/zviimageitem.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/zvitile.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/zvitile.cpp
+   PARENT_SCOPE
    )
