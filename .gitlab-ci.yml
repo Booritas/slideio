@@ -1,7 +1,7 @@
 services:
     - docker
 variables:
-    SLIDEIO_VERSION: "0.5.0"
+    SLIDEIO_VERSION: "0.5"
     LINUX_ARTIFACT_DIR: "linux"
     LINUX_PY_ARTIFACT_DIR: "linux-py"
     WINDOWS_ARTIFACT_DIR: "win"
