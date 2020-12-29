@@ -4,7 +4,7 @@
 #include <gtest/gtest.h>
 #include "slideio/core/imagedrivermanager.hpp"
 #include "testtools.hpp"
-#include "slideio/drivers/zvi/ZVIUtils.hpp"
+#include "slideio/drivers/zvi/zviutils.hpp"
 #include "slideio/pole_lib.hpp"
 
 
