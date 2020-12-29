@@ -10,6 +10,9 @@ variables:
     DOC_ARTIFACT_DIR: "doc-dist"
 stages:
     - build
+    - test
+    - collect
+    - deployment
 
 python-manylinux:
     image: booritas/slideio-manylinux2010:latest
@@ -53,4 +56,54 @@ cpp-ubuntu:
         paths:
             - ./${LINUX_ARTIFACT_DIR}
             - ./${DOC_ARTIFACT_DIR}
+
+cpp-test-ubuntu:
+    image: booritas/slideio-ubuntu-clang-9:latest
+    stage: test
+    script:
+        - git clone https://gitlab+deploy-token-168011:_4qq46H6PBb6hxEGFzBE@gitlab.com/bioslide/slideio_extra.git slideio_extra
+        - export SLIDEIO_TEST_DATA_PATH=/builds/bioslide/slideio/slideio_extra/testdata/cv/slideio
+        - cd ./${LINUX_ARTIFACT_DIR}/release
+        - ./slideio_tests
             
+python-test-ubuntu:
+    image: booritas/slideio-pytest:latest
+    stage: test
+    script:
+        - ls -l
+        - git clone https://gitlab+deploy-token-168011:_4qq46H6PBb6hxEGFzBE@gitlab.com/bioslide/slideio_extra.git slideio_extra
+        - export SLIDEIO_TEST_DATA_PATH=/builds/bioslide/slideio/slideio_extra/testdata/cv/slideio
+        - conda init bash
+        - source ~/.bashrc
+        - conda activate slideio
+        - find ./${LINUX_PY_ARTIFACT_DIR} -name *cp38*.whl -exec pip install {} \;
+        - cd /builds/bioslide/slideio/src/pytests/public
+        - python -m unittest --verbose
+
+collect:
+    stage: collect
+    variables:
+        GIT_STRATEGY: none
+    script:
+        - mkdir ./${PY_ARTIFACT_DIR}
+        - cp ./${LINUX_PY_ARTIFACT_DIR}/* ./${PY_ARTIFACT_DIR}
+        - cp ./${WINDOWS_PY_ARTIFACT_DIR}/* ./${PY_ARTIFACT_DIR}
+        - cp -r ./${DOC_ARTIFACT_DIR}/* ./${PY_ARTIFACT_DIR}
+    artifacts:
+        paths:
+            - ./${PY_ARTIFACT_DIR}
+            
+deployment:
+    image: booritas/slideio-pytest:latest
+    stage: deployment
+    variables:
+        GIT_STRATEGY: none
+    script:
+        - conda init bash
+        - source ~/.bashrc
+        - conda activate slideio
+        - python -m pip install twine
+        - cd  ./${PY_ARTIFACT_DIR}
+        - twine upload *.whl -u booritas -p "$TWINE_PASSWORD"
+    when: manual
+        
