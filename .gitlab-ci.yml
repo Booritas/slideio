@@ -38,8 +38,8 @@ cpp-ubuntu:
         - mkdir ./${LINUX_ARTIFACT_DIR}
         - mkdir ./${LINUX_ARTIFACT_DIR}/release
         - mkdir ./${LINUX_ARTIFACT_DIR}/debug
-        - cp build/release/bin/* ./${LINUX_ARTIFACT_DIR}/release
-        - cp build/debug/bin/* ./${LINUX_ARTIFACT_DIR}/debug
+        - cp build/Linux/release/bin/* ./${LINUX_ARTIFACT_DIR}/release
+        - cp build/Linux/debug/bin/* ./${LINUX_ARTIFACT_DIR}/debug
         - cd ./src/pybind
         - python setup.py sdist bdist_wheel
         - python -m pip install --ignore-installed ./dist/${WHL_PACKAGE}
