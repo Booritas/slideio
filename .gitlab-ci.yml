@@ -26,3 +26,31 @@ python-manylinux:
     artifacts:
         paths:
             - ./${LINUX_PY_ARTIFACT_DIR}
+cpp-ubuntu:
+    variables:
+        WHL_PACKAGE: "slideio-${SLIDEIO_VERSION}.${CI_PIPELINE_IID}-cp38-cp38-linux_x86_64.whl"
+    image: booritas/slideio-ubuntu-clang-9:latest
+    stage: build
+    script:
+        - python -m pip install Sphinx
+        - python ./install.py -a build
+        - cd ${CI_PROJECT_DIR}
+        - mkdir ./${LINUX_ARTIFACT_DIR}
+        - mkdir ./${LINUX_ARTIFACT_DIR}/release
+        - mkdir ./${LINUX_ARTIFACT_DIR}/debug
+        - cp build/release/bin/* ./${LINUX_ARTIFACT_DIR}/release
+        - cp build/debug/bin/* ./${LINUX_ARTIFACT_DIR}/debug
+        - cd ./src/pybind
+        - python setup.py sdist bdist_wheel
+        - python -m pip install --ignore-installed ./dist/${WHL_PACKAGE}
+        - cd ${CI_PROJECT_DIR}
+        - cd doc
+        - make html
+        - cd ${CI_PROJECT_DIR}
+        - mkdir ${DOC_ARTIFACT_DIR}
+        - cp -r doc/build/html ${DOC_ARTIFACT_DIR}
+    artifacts:
+        paths:
+            - ./${LINUX_ARTIFACT_DIR}
+            - ./${DOC_ARTIFACT_DIR}
+            
