@@ -80,14 +80,13 @@ python-test-ubuntu:
         - cd /builds/bioslide/slideio/src/pytests/public
         - python -m unittest --verbose
 
-collect:
+collect_linux:
     stage: collect
     variables:
         GIT_STRATEGY: none
     script:
         - mkdir ./${PY_ARTIFACT_DIR}
         - cp ./${LINUX_PY_ARTIFACT_DIR}/* ./${PY_ARTIFACT_DIR}
-        - cp ./${WINDOWS_PY_ARTIFACT_DIR}/* ./${PY_ARTIFACT_DIR}
         - cp -r ./${DOC_ARTIFACT_DIR}/* ./${PY_ARTIFACT_DIR}
     artifacts:
         paths:
