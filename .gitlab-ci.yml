@@ -101,10 +101,10 @@ collect:
 
 build_mac:
     stage: build
+    when: manual
     tags:
         - macos-slideio
     script:
-        - printenv
         - source ~/.zshrc
         - conda init bash
         - conda activate conan
@@ -112,8 +112,8 @@ build_mac:
         - cd src/pybind
         - bash ./install-mac.sh
         - cd ../..
-        - mkdir ./$MAC_PY_ARTIFACT_DIR
-        - cp src/pybind/wheelhouse/* ./$MAC_PY_ARTIFACT_DIR
+        - mkdir ./${MAC_PY_ARTIFACT_DIR}
+        - cp src/pybind/dist/*.whl ./${MAC_PY_ARTIFACT_DIR}
     artifacts:
         paths:
             - ./${MAC_PY_ARTIFACT_DIR}
