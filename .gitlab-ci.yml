@@ -66,7 +66,9 @@ cpp-test-ubuntu:
         - export SLIDEIO_TEST_DATA_PATH=/builds/bioslide/slideio/slideio_extra/testdata/cv/slideio
         - cd ./${LINUX_ARTIFACT_DIR}/release
         - ./slideio_tests
-            
+    dependencies:
+        - cpp-ubuntu
+
 python-test-ubuntu:
     image: booritas/slideio-pytest:latest
     stage: test
@@ -80,15 +82,19 @@ python-test-ubuntu:
         - find ./${LINUX_PY_ARTIFACT_DIR} -name *cp38*.whl -exec pip install {} \;
         - cd /builds/bioslide/slideio/src/pytests/public
         - python -m unittest --verbose
-
-collect_linux:
+    dependencies:
+        - python-manylinux
+    
+collect:
     stage: collect
+    when: manual
     variables:
         GIT_STRATEGY: none
     script:
         - mkdir ./${PY_ARTIFACT_DIR}
         - cp ./${LINUX_PY_ARTIFACT_DIR}/* ./${PY_ARTIFACT_DIR}
         - cp -r ./${DOC_ARTIFACT_DIR}/* ./${PY_ARTIFACT_DIR}
+        - cp ./${MAC_PY_ARTIFACT_DIR}/* ./${PY_ARTIFACT_DIR}
     artifacts:
         paths:
             - ./${PY_ARTIFACT_DIR}
@@ -98,6 +104,7 @@ build_mac:
     tags:
         - macos-slideio
     script:
+        - printenv
         - source ~/.zshrc
         - conda init bash
         - conda activate conan
@@ -105,8 +112,8 @@ build_mac:
         - cd src/pybind
         - bash ./install-mac.sh
         - cd ../..
-        - mkdir ./${MAC_PY_ARTIFACT_DIR}
-        - cp src/pybind/wheelhouse/* ./${MAC_PY_ARTIFACT_DIR}
+        - mkdir ./$MAC_PY_ARTIFACT_DIR
+        - cp src/pybind/wheelhouse/* ./$MAC_PY_ARTIFACT_DIR
     artifacts:
         paths:
             - ./${MAC_PY_ARTIFACT_DIR}
