@@ -91,14 +91,14 @@ collect_linux:
     artifacts:
         paths:
             - ./${PY_ARTIFACT_DIR}
-            
+
 build_mac:
     stage: build
     tags:
         - macos-slideio
     script:
+        - source ~/.zshrc
         - conda init bash
-        - source ~/.bashrc
         - conda activate conan
         - python install.py -a conan
 
