@@ -4,6 +4,7 @@ variables:
     SLIDEIO_VERSION: "0.5"
     LINUX_ARTIFACT_DIR: "linux"
     LINUX_PY_ARTIFACT_DIR: "linux-py"
+    MAC_PY_ARTIFACT_DIR: "mac-py"
     WINDOWS_ARTIFACT_DIR: "win"
     WINDOWS_PY_ARTIFACT_DIR: "win-py"
     PY_ARTIFACT_DIR: "python-wheels"
@@ -103,7 +104,13 @@ build_mac:
         - python install.py -a conan
         - cd src/pybind
         - bash ./install-mac.sh
-
+        - cd ../..
+        - mkdir ./${MAC_PY_ARTIFACT_DIR}
+        - cp src/pybind/wheelhouse/* ./${MAC_PY_ARTIFACT_DIR}
+    artifacts:
+        paths:
+            - ./${MAC_PY_ARTIFACT_DIR}
+    
 deployment:
     image: booritas/slideio-pytest:latest
     stage: deployment
