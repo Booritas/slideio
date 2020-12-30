@@ -68,6 +68,7 @@ cpp-test-ubuntu:
         - ./slideio_tests
     dependencies:
         - cpp-ubuntu
+    needs: ["cpp-ubuntu"]
 
 python-test-ubuntu:
     image: booritas/slideio-pytest:latest
@@ -84,6 +85,7 @@ python-test-ubuntu:
         - python -m unittest --verbose
     dependencies:
         - python-manylinux
+    needs: ["python-manylinux"]
     
 collect:
     stage: collect
