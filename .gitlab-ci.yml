@@ -92,6 +92,16 @@ collect_linux:
         paths:
             - ./${PY_ARTIFACT_DIR}
             
+build_mac:
+    stage: build
+    tags:
+        - macos-slideio
+    script:
+        - conda init bash
+        - source ~/.bashrc
+        - conda activate conan
+        - python install.py -a conan
+
 deployment:
     image: booritas/slideio-pytest:latest
     stage: deployment
