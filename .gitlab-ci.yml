@@ -101,6 +101,8 @@ build_mac:
         - conda init bash
         - conda activate conan
         - python install.py -a conan
+        - cd src/pybind
+        - bash ./install-mac.sh
 
 deployment:
     image: booritas/slideio-pytest:latest
