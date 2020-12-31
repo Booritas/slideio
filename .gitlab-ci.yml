@@ -131,11 +131,61 @@ cpp-windows:
         - mkdir ${WINDOWS_ARTIFACT_DIR}
         - mkdir ./${WINDOWS_ARTIFACT_DIR}/release
         - mkdir ./${WINDOWS_ARTIFACT_DIR}/debug
-        - cp ./build/bin/Windows/Release/* ./${WINDOWS_ARTIFACT_DIR}/release
-        - cp ./build/bin/Windows/Debug/* ./${WINDOWS_ARTIFACT_DIR}/debug
+        - cp ./build/Windows/bin/Release/* ./${WINDOWS_ARTIFACT_DIR}/release
+        - cp ./build/Windows/bin/Debug/* ./${WINDOWS_ARTIFACT_DIR}/debug
     artifacts:
         paths:
             - ./${WINDOWS_ARTIFACT_DIR}
+
+
+python-windows:
+    stage: build
+    when: manual
+    tags:
+        - win-build
+    script:
+        - python ./install.py -a conan
+        - cd src/pybind
+        - ./install.ps1
+        - cd ../..
+        - mkdir ./${WINDOWS_PY_ARTIFACT_DIR}
+        - cp -r src/pybind/dist/* ./${WINDOWS_PY_ARTIFACT_DIR}
+    artifacts:
+        paths:
+            - ./${WINDOWS_PY_ARTIFACT_DIR}
+
+
+cpp-test-windows:
+    stage: test
+    tags:
+        - win-build
+    variables:
+        GIT_STRATEGY: none
+        SLIDEIO_TEST_DATA_PATH: "${CI_PROJECT_DIR}/slideio_extra/testdata/cv/slideio"
+    script:
+        - git clone https://gitlab+deploy-token-168011:_4qq46H6PBb6hxEGFzBE@gitlab.com/bioslide/slideio_extra.git slideio_extra
+        - echo ${SLIDEIO_TEST_DATA_PATH}
+        - echo ${CI_PROJECT_DIR}
+        - cd ./${WINDOWS_ARTIFACT_DIR}/release
+        - ./slideio_tests.exe
+    needs: ["cpp-windows"]
+
+python-test-windows:
+    stage: test
+    tags:
+        - win-build
+    variables:
+        GIT_STRATEGY: fetch
+        SLIDEIO_TEST_DATA_PATH: "${CI_PROJECT_DIR}/slideio_extra/testdata/cv/slideio"
+        WHL_PACKAGE: "slideio-${SLIDEIO_VERSION}.${CI_PIPELINE_IID}-cp37-cp37m-win_amd64.whl"
+    script:
+        - git clone https://gitlab+deploy-token-168011:_4qq46H6PBb6hxEGFzBE@gitlab.com/bioslide/slideio_extra.git slideio_extra
+        - echo ${SLIDEIO_TEST_DATA_PATH}
+        - echo ${WHL_PACKAGE}
+        - python -m pip install ./${WINDOWS_PY_ARTIFACT_DIR}/${WHL_PACKAGE}
+        - cd src/pytests/public
+        - python -m unittest --verbose
+    needs: ["python-windows"]
 
 
 deployment:
