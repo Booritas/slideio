@@ -119,7 +119,26 @@ build_mac:
     artifacts:
         paths:
             - ./${MAC_PY_ARTIFACT_DIR}
-    
+
+
+cpp-windows:
+    stage: build
+    when: manual
+    tags:
+        - win-build
+    script:
+        - conda activate conan
+        - python install.py -a build
+        - mkdir ${WINDOWS_ARTIFACT_DIR}
+        - mkdir ./${WINDOWS_ARTIFACT_DIR}/release
+        - mkdir ./${WINDOWS_ARTIFACT_DIR}/debug
+        - cp ./build/bin/Release/* ./${WINDOWS_ARTIFACT_DIR}/release
+        - cp ./build/bin/Debug/* ./${WINDOWS_ARTIFACT_DIR}/debug
+    artifacts:
+        paths:
+            - ./${WINDOWS_ARTIFACT_DIR}
+
+
 deployment:
     image: booritas/slideio-pytest:latest
     stage: deployment
