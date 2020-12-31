@@ -180,7 +180,7 @@ python-test-windows:
     variables:
         GIT_STRATEGY: fetch
         SLIDEIO_TEST_DATA_PATH: "${CI_PROJECT_DIR}/slideio_extra/testdata/cv/slideio"
-        WHL_PACKAGE: "slideio-${SLIDEIO_VERSION}.${CI_PIPELINE_IID}-cp37-cp37m-win_amd64.whl"
+        WHL_PACKAGE: "slideio-${SLIDEIO_VERSION}.${CI_PIPELINE_IID}-cp38-cp38-win_amd64.whl"
     script:
         - git clone https://gitlab+deploy-token-168011:_4qq46H6PBb6hxEGFzBE@gitlab.com/bioslide/slideio_extra.git slideio_extra
         - echo ${SLIDEIO_TEST_DATA_PATH}
