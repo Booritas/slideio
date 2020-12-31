@@ -97,6 +97,7 @@ collect:
         - cp ./${LINUX_PY_ARTIFACT_DIR}/* ./${PY_ARTIFACT_DIR}
         - cp -r ./${DOC_ARTIFACT_DIR}/* ./${PY_ARTIFACT_DIR}
         - cp ./${MAC_PY_ARTIFACT_DIR}/* ./${PY_ARTIFACT_DIR}
+        - cp ./${WINDOWS_PY_ARTIFACT_DIR}/* ./${PY_ARTIFACT_DIR}
     artifacts:
         paths:
             - ./${PY_ARTIFACT_DIR}
