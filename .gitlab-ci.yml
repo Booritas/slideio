@@ -127,7 +127,8 @@ cpp-windows:
     tags:
         - win-build
     script:
-        - CALL c:/ProgramData/Anaconda3/condabin/conda.bat acitvate conan
+        - c:/ProgramData/Anaconda3/Scripts/conda init powershell
+        - c:/ProgramData/Anaconda3/Scripts/conda activate conan
         - python install.py -a build
         - mkdir ${WINDOWS_ARTIFACT_DIR}
         - mkdir ./${WINDOWS_ARTIFACT_DIR}/release
