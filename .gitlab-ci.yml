@@ -127,14 +127,12 @@ cpp-windows:
     tags:
         - win-build
     script:
-        - c:/ProgramData/Anaconda3/Scripts/conda init powershell
-        - C:/ProgramData/Anaconda3/condabin/conda.bat activate conan
         - python install.py -a build
         - mkdir ${WINDOWS_ARTIFACT_DIR}
         - mkdir ./${WINDOWS_ARTIFACT_DIR}/release
         - mkdir ./${WINDOWS_ARTIFACT_DIR}/debug
-        - cp ./build/bin/Release/* ./${WINDOWS_ARTIFACT_DIR}/release
-        - cp ./build/bin/Debug/* ./${WINDOWS_ARTIFACT_DIR}/debug
+        - cp ./build/bin/Windows/Release/* ./${WINDOWS_ARTIFACT_DIR}/release
+        - cp ./build/bin/Windows/Debug/* ./${WINDOWS_ARTIFACT_DIR}/debug
     artifacts:
         paths:
             - ./${WINDOWS_ARTIFACT_DIR}
