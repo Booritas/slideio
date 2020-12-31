@@ -169,6 +169,8 @@ cpp-test-windows:
         - echo ${CI_PROJECT_DIR}
         - cd ./${WINDOWS_ARTIFACT_DIR}/release
         - ./slideio_tests.exe
+    dependencies:
+        - cpp-windows
     needs: ["cpp-windows"]
 
 python-test-windows:
@@ -186,6 +188,8 @@ python-test-windows:
         - python -m pip install ./${WINDOWS_PY_ARTIFACT_DIR}/${WHL_PACKAGE}
         - cd src/pytests/public
         - python -m unittest --verbose
+    dependencies:
+        - python-windows
     needs: ["python-windows"]
 
 
