@@ -161,9 +161,9 @@ class TestCZI(unittest.TestCase):
                 frames=frames
                 )
             image_shape = image_raster.shape
-            self.assertEqual(image_shape, (512, 512, 3))
+            self.assertEqual(image_shape, (3, 512, 512))
             for slice_index in range(slices[0], slices[1]):
-                slice_raster = image_raster[:, :, slice_index-slices[0]]
+                slice_raster = image_raster[slice_index-slices[0], :, :]
                 slice_shape = slice_raster.shape
                 self.assertEqual(slice_shape, (512, 512))
                 ref_image_name = "pJP31mCherry.grey/pJP31mCherry_b0t0z" + \
