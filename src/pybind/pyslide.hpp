@@ -17,6 +17,8 @@ public:
     ~PySlide()
     {
     }
+    void enter() {};
+    void exit() {};
     int getNumScenes() const;
     std::string getFilePath() const;
     std::shared_ptr<PyScene> getScene(int index);
