@@ -8,7 +8,7 @@
 
 namespace py = pybind11;
 
-PYBIND11_MODULE(slideio, m) {
+PYBIND11_MODULE(slideiopybind, m) {
     m.doc() = R"delimiter(
         Module for reading of medical images.
     )delimiter";
