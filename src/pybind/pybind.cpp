@@ -20,8 +20,6 @@ PYBIND11_MODULE(slideio, m) {
         "Returns list of driver ids");
     py::class_<PySlide, std::shared_ptr<PySlide>>(m, "Slide")
         .def("get_scene", &PySlide::getScene, py::arg("index"), "Returns a Scene object by index")
-        .def("__enter__", &PySlide::enter)
-        .def("__exit__", &PySlide::exit)
         .def_property_readonly("num_scenes", &PySlide::getNumScenes, "Number of scenes in the slide")
         .def_property_readonly("raw_metadata", &PySlide::getRawMetadata, "Slide raw metadata")
         .def_property_readonly("file_path", &PySlide::getFilePath, "File path to the image");
