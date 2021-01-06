@@ -61,10 +61,10 @@ class TestSVS(unittest.TestCase):
         # test scene metadates
         scene_names = ["Image", "Thumbnail", "Label", "Macro"]
         compression_types = [
-            slideio.Jpeg2000,
-            slideio.Jpeg,
-            slideio.LempelZivWelch,
-            slideio.Jpeg
+            slideio.Compression.Jpeg2000,
+            slideio.Compression.Jpeg,
+            slideio.Compression.LempelZivWelch,
+            slideio.Compression.Jpeg
             ]
         scene_sizes = [
             (15374, 17497),
@@ -130,10 +130,10 @@ class TestSVS(unittest.TestCase):
         # test scene metadates
         scene_names = ["Image", "Thumbnail", "Label", "Macro"]
         compression_types = [
-            slideio.Jpeg,
-            slideio.Jpeg,
-            slideio.LempelZivWelch,
-            slideio.Jpeg
+            slideio.Compression.Jpeg,
+            slideio.Compression.Jpeg,
+            slideio.Compression.LempelZivWelch,
+            slideio.Compression.Jpeg
             ]
         scene_sizes = [
             (2220, 2967),
