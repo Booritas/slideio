@@ -8,6 +8,7 @@ import shutil
 
 from setuptools import setup, Extension, find_packages
 from setuptools.command.build_ext import build_ext
+import setuptools.command.build_py
 from distutils.version import LooseVersion
 from ctypes.util import find_library
 

@@ -1,5 +1,5 @@
 set(INCLUDE_ROOT ${CMAKE_SOURCE_DIR}/src)
-set(BINDLIB_NAME slideio)
+set(BINDLIB_NAME slideiopybind)
 set(CMAKE_BUILD_RPATH_USE_ORIGIN 1)
 
 CONAN_MAIN()

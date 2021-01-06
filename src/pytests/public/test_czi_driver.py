@@ -53,7 +53,7 @@ class TestCZI(unittest.TestCase):
             channel_type = scene.get_channel_data_type(channel_index)
             self.assertEqual(channel_type, np.uint8)
             compression = scene.compression
-            self.assertEqual(compression, slideio.Uncompressed)
+            self.assertEqual(compression, slideio.Compression.Uncompressed)
         res = scene.resolution
         correct_res = 9.76783e-8
         self.assertEqual(correct_res, pytest.approx(res[0]))
@@ -89,7 +89,7 @@ class TestCZI(unittest.TestCase):
             channel_type = scene.get_channel_data_type(channel_index)
             self.assertEqual(channel_type, np.uint16)
             compression = scene.compression
-            self.assertEqual(compression, slideio.Uncompressed)
+            self.assertEqual(compression, slideio.Compression.Uncompressed)
             channel_name = scene.get_channel_name(channel_index)
             self.assertEqual(channel_name, channel_names[channel_index])
         res = scene.resolution
