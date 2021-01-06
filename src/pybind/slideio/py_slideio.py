@@ -183,3 +183,7 @@ def open_slide(path:str, driver:str):
 def get_driver_ids():
     '''Returns a list of ids of available image drivers'''
     return sld.get_driver_ids()
+
+def compare_images(left, right):
+    '''Compares two images represented by numpy arrays'''
+    return sld.compare_images(left, right)

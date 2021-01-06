@@ -58,7 +58,7 @@ static slideio::DataType typeFromNumpyType(const pybind11::dtype& type)
     throw std::runtime_error("Cannot convert numpy data type to internal type");
 }
 
-static cv::Mat fromNumpy2Mat(const py::array& np_array)
+static cv::Mat fromNumpy2Mat(py::array& np_array)
 {
     slideio::DataType dt = typeFromNumpyType(np_array.dtype());
     int cvType = slideio::CVTools::toOpencvType(dt);
@@ -66,13 +66,13 @@ static cv::Mat fromNumpy2Mat(const py::array& np_array)
     if(dims>3) {
         throw std::runtime_error("Only 2D images are supported.");
     }
-    size_t width = np_array.shape(0);
-    size_t height = np_array.shape(1);
+    int width = (int)np_array.shape(0);
+    int height = (int)np_array.shape(1);
     int channels = 1;
     if(dims>2) {
-        channels = np_array.shape(2);
+        channels = (int)np_array.shape(2);
     }
-    cv::Mat mat(height, width, CV_MAKETYPE(cvType, channels));
+    cv::Mat mat(height, width, CV_MAKETYPE(cvType, channels), np_array.mutable_data());
     return mat;
 }
 
