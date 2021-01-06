@@ -3,6 +3,9 @@
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/core/cvscene.hpp"
 
+#include <numeric>
+
+
 #include "cvtools.hpp"
 
 using namespace slideio;
@@ -52,10 +55,16 @@ void CVScene::readResampled4DBlock(const cv::Rect& blockRect, const cv::Size& bl
 }
 
 void CVScene::readResampled4DBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize,
-    const std::vector<int>& channelIndices, const cv::Range& zSliceRange,
+    const std::vector<int>& channelIndicesIn, const cv::Range& zSliceRange,
     const cv::Range& timeFrameRange,
     cv::OutputArray output)
 {
+    std::vector<int> channelIndices(channelIndicesIn);
+    if(channelIndices.empty()) {
+        const int sceneNumChannels = getNumChannels();
+        channelIndices.resize(sceneNumChannels);
+        std::iota(channelIndices.begin(), channelIndices.end(), 0);
+    }
     const int sliceCount = zSliceRange.end - zSliceRange.start;
     const int frameCount = timeFrameRange.end - timeFrameRange.start;
     const int channelCount = static_cast<int>(channelIndices.size());
