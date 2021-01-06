@@ -205,6 +205,37 @@ class TestGDAL(unittest.TestCase):
         self.assertEqual(mean[0], 255)
         self.assertEqual(stddev[0], 0)
 
+    def test_readblock_png8bit_with(self):
+        """
+        8 bit png image.
+
+        Reads 8b png images and checks the raster.
+        by calculation of raster statistics for
+        specific rectangles
+        """
+        image_path = get_test_image_path(
+            "gdal",
+            "img_1024x600_3x8bit_RGB_color_bars_CMYKWRGB.png"
+            )
+            
+        with slideio.open_slide(image_path, "GDAL") as slide:
+            self.assertTrue(slide is not None)
+            with slide.get_scene(0) as scene:
+                block_rect = (260, 500, 100, 100)
+                # read 3 channel block
+                raster = scene.read_block(block_rect)
+                mean, stddev = cv.meanStdDev(raster)
+                self.assertEqual(mean[0], 255)
+                self.assertEqual(stddev[0], 0)
+                self.assertEqual(mean[1], 255)
+                self.assertEqual(stddev[1], 0)
+                self.assertEqual(mean[2], 0)
+                self.assertEqual(stddev[2], 0)
+                # read one channel block
+                raster = scene.read_block(block_rect, channel_indices=[1])
+                mean, stddev = cv.meanStdDev(raster)
+                self.assertEqual(mean[0], 255)
+                self.assertEqual(stddev[0], 0)
 
 if __name__ == '__main__':
     unittest.main()
