@@ -14,7 +14,5 @@ public:
 	static std::string getTestImagePath(const std::string& subfolder, const std::string& image, bool priv=false);
     static std::string getFullTestImagePath(const std::string& subfolder, const std::string& image);
     static void readRawImage(std::string& path, cv::Mat& image);
-    static double computeSimilarity(const cv::Mat& left, const cv::Mat& right);
-    static double compareHistograms(const cv::Mat& leftM, const cv::Mat& rightM, int bins);
 };
 

@@ -18,6 +18,9 @@ PYBIND11_MODULE(slideiopybind, m) {
         "Opens an image slide. Returns Slide object.");
     m.def("get_driver_ids", &pyGetDriverIDs,
         "Returns list of driver ids");
+    m.def("compare_images", &pyCompareImages,
+        py::arg("left"),
+        py::arg("right"));
     py::class_<PySlide, std::shared_ptr<PySlide>>(m, "Slide")
         .def("get_scene", &PySlide::getScene, py::arg("index"), "Returns a Scene object by index")
         .def_property_readonly("num_scenes", &PySlide::getNumScenes, "Number of scenes in the slide")

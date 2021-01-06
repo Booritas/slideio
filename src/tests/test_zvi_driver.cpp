@@ -216,7 +216,7 @@ TEST(ZVIImageDriver, readBlockROI)
     cv::Mat channelRoiResized;
     cv::resize(channelRoi, channelRoiResized, { width4, height4 });
 
-    double similarity = TestTools::computeSimilarity(raster, channelRoiResized);
+    double similarity = ImageTools::computeSimilarity(raster, channelRoiResized);
     EXPECT_DOUBLE_EQ(1., similarity);
 }
 
@@ -247,7 +247,7 @@ TEST(ZVIImageDriver, readBlock3DSlice)
     std::string slicePath = TestTools::getTestImagePath("zvi", "Zeiss-1-Stacked/zvi_slice_6_channel_1");
     TestTools::readRawImage(slicePath, rawSlice);
 
-    double similarity = TestTools::computeSimilarity(raster, rawSlice);
+    double similarity = ImageTools::computeSimilarity(raster, rawSlice);
     EXPECT_DOUBLE_EQ(1., similarity);
 }
 
@@ -285,7 +285,7 @@ TEST(ZVIImageDriver, readBlock3DROI)
 
     cv::Mat roi = rawSlice(rectRoi);
 
-    double similarity = TestTools::computeSimilarity(raster, roi);
+    double similarity = ImageTools::computeSimilarity(raster, roi);
     EXPECT_DOUBLE_EQ(1., similarity);
 }
 
@@ -324,7 +324,7 @@ TEST(ZVIImageDriver, readBlock3DROIResized)
     cv::Mat rawRoiResized;
     cv::resize(rawRoi, rawRoiResized, sizeRoi, 0, 0, cv::INTER_NEAREST);
 
-    double similarity = TestTools::computeSimilarity(raster, rawRoiResized);
+    double similarity = ImageTools::computeSimilarity(raster, rawRoiResized);
     EXPECT_LT(0.95, similarity);
 }
 
@@ -379,7 +379,7 @@ TEST(ZVIImageDriver, readBlock3DROIResizedMultiSlice)
     cv::Mat resizedRoi;
     cv::resize(rawRoi, resizedRoi, sizeRoi, 0, 0, cv::INTER_NEAREST);
 
-    double similarity = TestTools::computeSimilarity(channelRaster, resizedRoi);
+    double similarity = ImageTools::computeSimilarity(channelRaster, resizedRoi);
     EXPECT_LT(0.95, similarity);
 }
 

@@ -33,6 +33,8 @@ namespace slideio
             bool forceYUV = false);
         static void scaleRect(const cv::Rect& srcRect, const cv::Size& newSize, cv::Rect& trgRect);
         static void scaleRect(const cv::Rect& srcRect, double scaleX, double scaleY, cv::Rect& trgRect);
+        static double computeSimilarity(const cv::Mat& left, const cv::Mat& right);
+        static double compareHistograms(const cv::Mat& leftM, const cv::Mat& rightM, int bins);
     };
 }
 
