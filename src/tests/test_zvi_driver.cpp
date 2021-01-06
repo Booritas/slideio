@@ -451,3 +451,26 @@ TEST(ZVIImageDriver, readBlock3D)
     EXPECT_EQ(dt, slideio::DataType::DT_Int16);
 }
 
+TEST(ZVIImageDriver, readBlock3D_emptyChannelIndices)
+{
+    slideio::ZVIImageDriver driver;
+    std::string filePath = TestTools::getTestImagePath("zvi", "Zeiss-1-Stacked.zvi");
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide.get() != nullptr);
+    auto scene = slide->getScene(0);
+    ASSERT_TRUE(scene.get() != nullptr);
+    const auto rect = scene->getRect();
+    auto dt = scene->getChannelDataType(0);
+    auto channels = scene->getNumChannels();
+    const double asp = (double)rect.height / (double)rect.width;
+    cv::Mat raster;
+    std::vector<int> channelIndices;
+    cv::Size size = { rect.width, rect.height };
+    cv::Range slices = { 0, 10 };
+    cv::Range frames = { 0, 1 };
+    scene->readResampled4DBlockChannels(rect, size, channelIndices, slices, frames, raster);
+    EXPECT_EQ(raster.size[0], size.height);
+    EXPECT_EQ(raster.size[1], size.width);
+    EXPECT_EQ(raster.size[2], 10);
+    EXPECT_EQ(dt, slideio::DataType::DT_Int16);
+}
