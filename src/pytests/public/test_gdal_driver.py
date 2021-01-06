@@ -46,7 +46,7 @@ class TestGDAL(unittest.TestCase):
             channel_type = scene.get_channel_data_type(channel_index)
             self.assertEqual(channel_type, np.uint8)
             compression = scene.compression
-            self.assertEqual(compression, slideio.Png)
+            self.assertEqual(compression, slideio.Compression.Png)
         res = scene.resolution
         self.assertEqual(0, res[0])
         self.assertEqual(0, res[1])
@@ -75,7 +75,7 @@ class TestGDAL(unittest.TestCase):
             channel_type = scene.get_channel_data_type(channel_index)
             self.assertEqual(channel_type, np.uint8)
             compression = scene.compression
-            self.assertEqual(compression, slideio.Png)
+            self.assertEqual(compression, slideio.Compression.Png)
         res = scene.resolution
         self.assertEqual(0, res[0])
         self.assertEqual(0, res[1])
@@ -104,7 +104,7 @@ class TestGDAL(unittest.TestCase):
             channel_type = scene.get_channel_data_type(channel_index)
             self.assertEqual(channel_type, np.uint16)
             compression = scene.compression
-            self.assertEqual(compression, slideio.Png)
+            self.assertEqual(compression, slideio.Compression.Png)
         res = scene.resolution
         self.assertEqual(0, res[0])
         self.assertEqual(0, res[1])
@@ -133,7 +133,7 @@ class TestGDAL(unittest.TestCase):
             channel_type = scene.get_channel_data_type(channel_index)
             self.assertEqual(channel_type, np.uint8)
             compression = scene.compression
-            self.assertEqual(compression, slideio.Jpeg)
+            self.assertEqual(compression, slideio.Compression.Jpeg)
         res = scene.resolution
         self.assertEqual(0, res[0])
         self.assertEqual(0, res[1])
