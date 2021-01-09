@@ -80,7 +80,6 @@ python-test-ubuntu:
         - conda activate slideio
         - find ./${LINUX_PY_ARTIFACT_DIR} -name *cp38*.whl -exec pip install {} \;
         - cd  ${CI_PROJECT_DIR}/src/pytests/public
-        - ls -l  ${CI_PROJECT_DIR}/slideio_extra/testdata/cv/slideio/gdal/
         - python -m unittest --verbose
     dependencies:
         - python-manylinux

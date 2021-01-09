@@ -17,7 +17,7 @@ class TestTools(unittest.TestCase):
             "GDAL",
             "img_2448x2448_3x8bit_SRC_RGB_ducks.png"
             )
-        with slideio.open_slide(image_path, "GDAL") as slide:
+        with slideio.open_slide(image_path, "gdal") as slide:
             with slide.get_scene(0) as scene:
                 img1 = scene.read_block()
                 img2 = scene.read_block()
