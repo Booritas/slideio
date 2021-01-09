@@ -3,6 +3,8 @@
 #include "testtools.hpp"
 #include <numeric>
 
+#include "slideio/slideio.hpp"
+
 TEST(GDALDriver, driverID)
 {
     slideio::GDALImageDriver driver;
@@ -204,4 +206,16 @@ TEST(GDALDriver, metadataCompression)
         EXPECT_TRUE(scene!=nullptr);
         EXPECT_EQ(scene->getCompression(), sceneCompression);
     }
+}
+
+TEST(GDALDriver, read16bitSignedImage)
+{
+    // Should not throw exception. See issue #5
+    // Gdal driver throws an error during reading of signed 16bit image
+    std::string path = TestTools::getTestImagePath("zvi", "Zeiss-1-Merged-ch1.tif");
+    std::shared_ptr<slideio::Slide> slide = slideio::openSlide(path, "GDAL");
+    std::shared_ptr<slideio::Scene> scene = slide->getScene(0);
+    std::vector<uint8_t> buffer(2 * 1480 * 1132);
+    auto rect = scene->getRect();
+    scene->readBlock(rect, buffer.data(), buffer.size());
 }
