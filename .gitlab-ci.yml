@@ -61,7 +61,7 @@ cpp-test-ubuntu:
     stage: test
     script:
         - git clone https://${DEPLOY_TOKEN}@gitlab.com/bioslide/slideio_extra.git slideio_extra
-        - export SLIDEIO_TEST_DATA_PATH= ${CI_PROJECT_DIR}/slideio_extra/testdata/cv/slideio
+        - export SLIDEIO_TEST_DATA_PATH=${CI_PROJECT_DIR}/slideio_extra/testdata/cv/slideio
         - cd ./${LINUX_ARTIFACT_DIR}/release
         - ./slideio_tests
     dependencies:
@@ -74,7 +74,7 @@ python-test-ubuntu:
     script:
         - ls -l
         - git clone https://${DEPLOY_TOKEN}@gitlab.com/bioslide/slideio_extra.git slideio_extra
-        - export SLIDEIO_TEST_DATA_PATH= ${CI_PROJECT_DIR}/slideio_extra/testdata/cv/slideio
+        - export SLIDEIO_TEST_DATA_PATH=${CI_PROJECT_DIR}/slideio_extra/testdata/cv/slideio
         - conda init bash
         - source ~/.bashrc
         - conda activate slideio
