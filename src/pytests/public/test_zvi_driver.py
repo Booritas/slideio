@@ -43,5 +43,96 @@ class TestZVI(unittest.TestCase):
                 self.assertEqual(shape[2],1388)
                 self.assertEqual(shape[3],3)
 
+    def test_open_slidei2D(self):
+        """
+        Open a 2D image and read metadata
+        """
+        image_path = get_test_image_path(
+            "zvi",
+            "Zeiss-1-Merged.zvi"
+            )
+        with slideio.open_slide(image_path, "ZVI") as slide:
+            self.assertTrue(slide is not None)
+            scene_count = slide.num_scenes
+            self.assertEqual(scene_count, 1)
+            with slide.get_scene(0) as scene:
+                rect = scene.rect
+                self.assertEqual(rect, (0, 0, 1480, 1132))
+                size = scene.size
+                self.assertEqual(size,(1480, 1132))
+                org = scene.origin
+                self.assertEqual(org, (0, 0))
+                channel_count = scene.num_channels
+                self.assertEqual(channel_count, 3)
+                name = scene.get_channel_name(0)
+                self.assertEqual(name, 'Hoechst 33342')
+                name = scene.get_channel_name(1)
+                self.assertEqual(name, 'Cy3')
+                name = scene.get_channel_name(2)
+                self.assertEqual(name, 'FITC')
+                name = scene.name
+                self.assertEqual(name, 'RQ26033_04310292C0004S_Calu3_amplified_100x_21Jun2012 ic zsm.zvi')
+                self.assertEqual(scene.compression, slideio.Compression.Uncompressed)
+                self.assertEqual(scene.resolution, (0.0645e-6, 0.0645e-6))
+                self.assertEqual(scene.num_z_slices, 1)
+                self.assertEqual(scene.num_t_frames, 1)
+
+    def test_open_slidei3D(self):
+        """
+        Open a 3D image and read metadata
+        """
+        image_path = get_test_image_path(
+            "zvi",
+            "Zeiss-1-Stacked.zvi"
+            )
+        with slideio.open_slide(image_path, "ZVI") as slide:
+            self.assertTrue(slide is not None)
+            scene_count = slide.num_scenes
+            self.assertEqual(scene_count, 1)
+            with slide.get_scene(0) as scene:
+                rect = scene.rect
+                self.assertEqual(rect, (0, 0, 1388, 1040))
+                size = scene.size
+                self.assertEqual(size,(1388, 1040))
+                org = scene.origin
+                self.assertEqual(org, (0, 0))
+                channel_count = scene.num_channels
+                self.assertEqual(channel_count, 3)
+                name = scene.get_channel_name(0)
+                self.assertEqual(name, 'Hoechst 33342')
+                name = scene.get_channel_name(1)
+                self.assertEqual(name, 'Cy3')
+                name = scene.get_channel_name(2)
+                self.assertEqual(name, 'FITC')
+                self.assertEqual(scene.compression, slideio.Compression.Uncompressed)
+                self.assertEqual(scene.resolution, (0.0645e-6, 0.0645e-6))
+                self.assertEqual(scene.z_resolution, 0.25e-6)
+                self.assertEqual(scene.num_z_slices, 13)
+                self.assertEqual(scene.num_t_frames, 1)
+                
+    def test_read_image(self):
+        """
+        Read a block from 2D image
+        """
+        image_path = get_test_image_path(
+            "zvi",
+            "Zeiss-1-Merged.zvi"
+            )
+        with slideio.open_slide(image_path, "ZVI") as slide:
+            self.assertTrue(slide is not None)
+            scene_count = slide.num_scenes
+            self.assertEqual(scene_count, 1)
+            with slide.get_scene(0) as scene:
+                channel_count = scene.num_channels
+                image = scene.read_block()
+                for channel in (0, channel_count):
+                    channel_raster = image[:,:,channel].copy()
+                    test_image_path = get_test_image_path("zvi", f"Zeiss-1-Merged-ch{channel}.tif")
+                    with slideio.open_slide(test_image_path,"GDAL") as test_slide:
+                        with test_slide.get_scene(0) as test_scene:
+                            test_raster = test_scene.read_block(channel_indices=[0])
+                    score = slideio.compare_images(channel_raster, test_raster)
+                    self.assertEqual(score, 1)
+
 if __name__ == '__main__':
     unittest.main()
