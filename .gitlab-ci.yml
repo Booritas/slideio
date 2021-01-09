@@ -19,8 +19,6 @@ python-manylinux:
     image: booritas/slideio-manylinux2010:v0.5
     stage: build
     script:
-        - pwd
-        - ls -l src/slideio/drivers/zvi
         - python3 ./install.py -a conan
         - cd src/pybind
         - bash ./install.sh
@@ -63,7 +61,7 @@ cpp-test-ubuntu:
     stage: test
     script:
         - git clone https://${DEPLOY_TOKEN}@gitlab.com/bioslide/slideio_extra.git slideio_extra
-        - export SLIDEIO_TEST_DATA_PATH=/builds/bioslide/slideio/slideio_extra/testdata/cv/slideio
+        - export SLIDEIO_TEST_DATA_PATH=${CI_PROJECT_DIR}/slideio_extra/testdata/cv/slideio
         - cd ./${LINUX_ARTIFACT_DIR}/release
         - ./slideio_tests
     dependencies:
@@ -76,12 +74,12 @@ python-test-ubuntu:
     script:
         - ls -l
         - git clone https://${DEPLOY_TOKEN}@gitlab.com/bioslide/slideio_extra.git slideio_extra
-        - export SLIDEIO_TEST_DATA_PATH=/builds/bioslide/slideio/slideio_extra/testdata/cv/slideio
+        - export SLIDEIO_TEST_DATA_PATH=${CI_PROJECT_DIR}/slideio_extra/testdata/cv/slideio
         - conda init bash
         - source ~/.bashrc
         - conda activate slideio
         - find ./${LINUX_PY_ARTIFACT_DIR} -name *cp38*.whl -exec pip install {} \;
-        - cd /builds/bioslide/slideio/src/pytests/public
+        - cd  ${CI_PROJECT_DIR}/src/pytests/public
         - python -m unittest --verbose
     dependencies:
         - python-manylinux
