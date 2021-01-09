@@ -112,13 +112,6 @@ TEST(ImageTools, readJxrImageCorrupted)
     EXPECT_THROW(slideio::ImageTools::readJxrImage(pathJxr, jxrImage), std::exception);
 }
 
-TEST(ImageTools, readJxrImageCorrupted2)
-{
-    std::string pathJxr = TestTools::getTestImagePath("jxr","corrupted2.wdp");
-    cv::Mat jxrImage, bmpImage;
-    EXPECT_THROW(slideio::ImageTools::readJxrImage(pathJxr, jxrImage), std::exception);
-}
-
 TEST(ImageTools, decodeJxrBlock)
 {
     std::string pathJxr = TestTools::getTestImagePath("jxr","seagull.wdp");
