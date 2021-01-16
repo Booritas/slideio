@@ -337,7 +337,7 @@ TEST(SVSImageDriver, crashTest)
     cv::Rect rect = scene->getRect();
     cv::Mat block;
     cv::Rect blockRect = {0, 0, 1000,1000};
-    EXPECT_THROW(scene->readBlock(blockRect, block),std::runtime_error);
+    EXPECT_NO_THROW(scene->readBlock(blockRect, block));
 }
 
 TEST(SVSImageDriver, swapedChannels)
