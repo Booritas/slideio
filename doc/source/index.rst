@@ -31,6 +31,7 @@ The module builds accesses images through a system of image drivers that impleme
 
 The module provides 2 python classes: *Slide* and *Scene*. *Slide* is a container object returned by the module function *open_slide*. In the simplest case, a *Slide* object contains a single *Scene* object. Some slides can contain multiple scenes. For example, a czi file can contain several scanned regions, each of them is represented as a *Scene* object. *Scene* class provides methods to access image pixel values and metadata. 
 
+
 Contents
 ----------
 
@@ -65,6 +66,10 @@ Here is an example of a reading of a czi file:
  slide = slideio.open_slidei(file_path="/data/a.czi",driver_id="CZI")
  scene = slide.get_scene(0)
  block = scene.read_block()
+
+Source code
+------------
+Souce code is located in the `gitlab repository <https://gitlab.com/bioslide/slideio>`_ and mirror `github repository <https://github.com/Booritas/slideio>`_.
 
 Indices and tables
 ------------------
