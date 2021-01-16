@@ -118,7 +118,15 @@ bool SVSTiledScene::readTile(int tileIndex, const std::vector<int>& channelIndic
     void* userData)
 {
     const TiffDirectory* dir = (const TiffDirectory*)userData;
-    TiffTools::readTile(getFileHandle(), *dir, tileIndex, channelIndices, tileRaster);
-    return true;
+    bool ret = false;
+    try
+    {
+        TiffTools::readTile(getFileHandle(), *dir, tileIndex, channelIndices, tileRaster);
+        ret = true;
+    }
+    catch(std::runtime_error& err){
+    }
+
+    return ret;
 }
 
