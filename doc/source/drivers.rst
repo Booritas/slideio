@@ -16,6 +16,8 @@ The slideio module accesses images through a system of image drivers. A driver i
 +--------+-----------------+----------+------------+
 | GDAL   | no              |  no      |     no     |
 +--------+-----------------+----------+------------+
+| ZVI    | no              |  yes     |     no     |
++--------+-----------------+----------+------------+
 
 CZI driver
 ------------------
@@ -109,6 +111,15 @@ GDAL driver
 ------------------
 
 GDAL driver opens generic formats like jpeg, png, tiff, etc. *Slide* object always contains a single *Scene* object.
+
+Metadata
+******************
+*Slide* property raw_metadata always returns an empty string.
+
+ZVI driver
+------------------
+
+ZVI driver opens images produced by Carl Zeiss `AxioVision microscope <https://microscopy-news.com/download-center/software/carl-zeiss-axiovision-digital-image-processing-software-for-your-microscope/>`_. The files can containe 2D or 3D images. *Slide* object always contains a single *Scene* object.
 
 Metadata
 ******************

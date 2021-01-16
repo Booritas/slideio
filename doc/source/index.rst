@@ -1,12 +1,13 @@
-Module slideio (version 0.4)
+Module slideio (version 0.5)
 ===================================
 
 .. image:: images/mrt.png
 
 What is new
 -------------------
-- Support of Leica SCN files
-- Support of MacOS
+- Support of ZVI files
+- Support of python 3.9
+- Improved work with volumes
 - Bug fixing and small improvements
 
 
@@ -26,6 +27,7 @@ The module builds accesses images through a system of image drivers that impleme
 - AFI - driver for the reading of Aperio fluorescent images.
 - SCN - driver for the reading of `Leica SCN images <https://www.leica-microsystems.com/company/news/news-details/article/fast-efficient-and-reliable-slide-scanner-leica-scn400-for-optimal-histological-examinations/>`_.
 - GDAL - driver for the reading of generic formats like jpeg, png, tiff, etc. It uses a popular c++ image library `GDAL <https://gdal.org>`_.
+- ZVI - driver for reading of images produced by Carl Zeiss `AxioVision microscope <https://microscopy-news.com/download-center/software/carl-zeiss-axiovision-digital-image-processing-software-for-your-microscope/>`_.
 
 The module provides 2 python classes: *Slide* and *Scene*. *Slide* is a container object returned by the module function *open_slide*. In the simplest case, a *Slide* object contains a single *Scene* object. Some slides can contain multiple scenes. For example, a czi file can contain several scanned regions, each of them is represented as a *Scene* object. *Scene* class provides methods to access image pixel values and metadata. 
 
