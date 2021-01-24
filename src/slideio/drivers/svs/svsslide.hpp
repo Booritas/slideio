@@ -8,6 +8,7 @@
 #include "slideio/core/cvscene.hpp"
 #include "slideio/core/cvslide.hpp"
 #include "slideio/libtiff.hpp"
+#include <map>
 
 #if defined(_MSC_VER)
 #pragma warning( push )
@@ -27,8 +28,10 @@ namespace slideio
         std::shared_ptr<slideio::CVScene> getScene(int index) const override;
         static std::shared_ptr<SVSSlide> openFile(const std::string& path);
         static void closeFile(libtiff::TIFF* hfile);
+        std::shared_ptr<CVScene> getAuxImage(const std::string& sceneName) const override;
     private:
         std::vector<std::shared_ptr<slideio::CVScene>> m_Scenes;
+        std::map<std::string, std::shared_ptr<slideio::CVScene>> m_auxImages;
         std::string m_filePath;
     };
 }
