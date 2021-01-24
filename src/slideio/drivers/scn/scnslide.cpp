@@ -6,6 +6,7 @@
 #include "slideio/xmltools.hpp"
 
 #include <boost/filesystem.hpp>
+#include <boost/format.hpp>
 #include "slideio/libtiff.hpp"
 
 
@@ -38,8 +39,7 @@ void SCNSlide::constructScenes()
 {
     XMLDocument doc;
     XMLError error = doc.Parse(m_rawMetadata.c_str(), m_rawMetadata.size());
-    if (error != XML_SUCCESS)
-    {
+    if (error != XML_SUCCESS) {
         throw std::runtime_error("SCNImageDriver: Error parsing metadata xml");
     }
     std::vector<std::string> collectionPath = {"scn", "collection"};
@@ -48,9 +48,22 @@ void SCNSlide::constructScenes()
         xmlImage != nullptr; xmlImage = xmlImage->NextSiblingElement())
     {
         std::shared_ptr<SCNScene> scene(new SCNScene(m_filePath, xmlImage));
-        m_Scenes.push_back(scene);
+        double magn = scene->getMagnification();
+        if(magn >= 1.) {
+            m_Scenes.push_back(scene);
+        }
+        else {
+            std::string name = "Macro";
+            int count = static_cast<int>(m_auxImages.size());
+            if(count>0) {
+                name += "~";
+                name += std::to_string(count);
+            }
+            m_auxImages[name] = scene;
+            m_auxNames.push_back(name);
+        }
     }
-    //doc.SaveFile("D:/Temp/scn.xml");
+    //doc.SaveFile("D:/Temp/scn3.xml");
 }
 
 SCNSlide::~SCNSlide()
@@ -74,3 +87,13 @@ std::shared_ptr<CVScene> SCNSlide::getScene(int index) const
     return m_Scenes[index];
 }
 
+std::shared_ptr<CVScene> SCNSlide::getAuxImage(const std::string& sceneName) const
+{
+    auto it = m_auxImages.find(sceneName);
+    if (it == m_auxImages.end()) {
+        throw std::runtime_error(
+            (boost::format("The slide does non have auxiliary image \"%1%\"") % sceneName).str()
+        );
+    }
+    return it->second;
+}

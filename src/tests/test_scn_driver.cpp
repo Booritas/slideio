@@ -76,12 +76,21 @@ TEST(SCNImageDriver, openFile)
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide!=nullptr);
     const int numScenes = slide->getNumScenes();
-    ASSERT_EQ(numScenes, 3);
+    ASSERT_EQ(numScenes, 1);
     std::string channelNames[] = { "405|Empty", "L5|Empty", "TX2|Empty"};
-    for(int sceneIndex=0; sceneIndex<numScenes; ++sceneIndex)
+    for(int sceneIndex=0; sceneIndex<3; ++sceneIndex)
     {
         const SceneInfo& sceneInfo = infos[sceneIndex];
-        auto scene = slide->getScene(sceneIndex);
+        std::shared_ptr<slideio::CVScene> scene;
+        if (sceneIndex == 0) {
+            scene = slide->getAuxImage("Macro");
+        }
+        else if (sceneIndex == 1) {
+            scene = slide->getAuxImage("Macro~1");
+        }
+        else {
+            scene = slide->getScene(0);
+        }
         ASSERT_FALSE(scene == nullptr);
         EXPECT_EQ(scene->getName(), sceneInfo.name);
         EXPECT_EQ(scene->getRect(), sceneInfo.rect);
@@ -112,9 +121,9 @@ TEST(SCNImageDriver, getChannelDir)
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
     const int numScenes = slide->getNumScenes();
-    ASSERT_EQ(numScenes, 3);
+    ASSERT_EQ(numScenes, 1);
     {
-        std::shared_ptr<slideio::SCNScene> scene = std::dynamic_pointer_cast<slideio::SCNScene>(slide->getScene(0));
+        std::shared_ptr<slideio::SCNScene> scene = std::dynamic_pointer_cast<slideio::SCNScene>(slide->getAuxImage("Macro"));
         ASSERT_FALSE(scene == nullptr);
         auto dirs = scene->getChannelDirectories(0);
         EXPECT_EQ(dirs[0].width, 1616);
@@ -130,7 +139,7 @@ TEST(SCNImageDriver, getChannelDir)
         }
     }
     {
-        std::shared_ptr<slideio::SCNScene> scene = std::dynamic_pointer_cast<slideio::SCNScene>(slide->getScene(2));
+        std::shared_ptr<slideio::SCNScene> scene = std::dynamic_pointer_cast<slideio::SCNScene>(slide->getScene(0));
         ASSERT_FALSE(scene == nullptr);
         auto dirs = scene->getChannelDirectories(0);
         EXPECT_EQ(dirs[0].width, 4737);
@@ -154,9 +163,9 @@ TEST(SCNImageDriver, findZoomDirectory)
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
     const int numScenes = slide->getNumScenes();
-    ASSERT_EQ(numScenes, 3);
+    ASSERT_EQ(numScenes, 1);
     {
-        std::shared_ptr<slideio::SCNScene> scene = std::dynamic_pointer_cast<slideio::SCNScene>(slide->getScene(0));
+        std::shared_ptr<slideio::SCNScene> scene = std::dynamic_pointer_cast<slideio::SCNScene>(slide->getAuxImage("Macro"));
         ASSERT_FALSE(scene == nullptr);
         {
             const auto& dir = scene->findZoomDirectory(0, 1);
@@ -176,7 +185,7 @@ TEST(SCNImageDriver, findZoomDirectory)
         }
     }
     {
-        std::shared_ptr<slideio::SCNScene> scene = std::dynamic_pointer_cast<slideio::SCNScene>(slide->getScene(2));
+        std::shared_ptr<slideio::SCNScene> scene = std::dynamic_pointer_cast<slideio::SCNScene>(slide->getScene(0));
         ASSERT_FALSE(scene == nullptr);
         {
             const auto& dir = scene->findZoomDirectory(2, 1);
@@ -206,10 +215,10 @@ TEST(SCNImageDriver, getTileCount)
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
     const int numScenes = slide->getNumScenes();
-    ASSERT_EQ(numScenes, 3);
+    ASSERT_EQ(numScenes, 1);
     {
         std::shared_ptr<slideio::SCNScene> scene = 
-            std::dynamic_pointer_cast<slideio::SCNScene>(slide->getScene(0));
+            std::dynamic_pointer_cast<slideio::SCNScene>(slide->getAuxImage("Macro"));
         ASSERT_FALSE(scene == nullptr);
         SCNTilingInfo info;
         info.channel2ifd[0] = &dirs[0];
@@ -218,7 +227,7 @@ TEST(SCNImageDriver, getTileCount)
     }
     {
         std::shared_ptr<slideio::SCNScene> scene = 
-            std::dynamic_pointer_cast<slideio::SCNScene>(slide->getScene(2));
+            std::dynamic_pointer_cast<slideio::SCNScene>(slide->getScene(0));
         ASSERT_FALSE(scene == nullptr);
         SCNTilingInfo info;
         info.channel2ifd[0] = &dirs[8];
@@ -236,10 +245,10 @@ TEST(SCNImageDriver, getTileRect)
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
     const int numScenes = slide->getNumScenes();
-    ASSERT_EQ(numScenes, 3);
+    ASSERT_EQ(numScenes, 1);
     {
         std::shared_ptr<slideio::SCNScene> scene =
-            std::dynamic_pointer_cast<slideio::SCNScene>(slide->getScene(0));
+            std::dynamic_pointer_cast<slideio::SCNScene>(slide->getAuxImage("Macro"));
         ASSERT_FALSE(scene == nullptr);
         SCNTilingInfo info;
         info.channel2ifd[0] = &dirs[0];
@@ -261,9 +270,9 @@ TEST(SCNImageDriver, readTile_1_channel)
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
     const int numScenes = slide->getNumScenes();
-    ASSERT_EQ(numScenes, 3);
+    ASSERT_EQ(numScenes, 1);
     std::shared_ptr<slideio::SCNScene> scene =
-        std::dynamic_pointer_cast<slideio::SCNScene>(slide->getScene(2));
+        std::dynamic_pointer_cast<slideio::SCNScene>(slide->getScene(0));
     ASSERT_FALSE(scene == nullptr);
     SCNTilingInfo info;
     info.channel2ifd[0] = &dirs[8];
@@ -287,9 +296,9 @@ TEST(SCNImageDriver, readTile_2_channels)
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
     const int numScenes = slide->getNumScenes();
-    ASSERT_EQ(numScenes, 3);
+    ASSERT_EQ(numScenes, 1);
     std::shared_ptr<slideio::SCNScene> scene =
-        std::dynamic_pointer_cast<slideio::SCNScene>(slide->getScene(2));
+        std::dynamic_pointer_cast<slideio::SCNScene>(slide->getScene(0));
     ASSERT_FALSE(scene == nullptr);
     SCNTilingInfo info;
     info.channel2ifd[0] = &dirs[6];
@@ -321,9 +330,9 @@ TEST(SCNImageDriver, readTile_interleaved_channels)
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
     const int numScenes = slide->getNumScenes();
-    ASSERT_EQ(numScenes, 3);
+    ASSERT_EQ(numScenes, 1);
     std::shared_ptr<slideio::SCNScene> scene =
-        std::dynamic_pointer_cast<slideio::SCNScene>(slide->getScene(0));
+        std::dynamic_pointer_cast<slideio::SCNScene>(slide->getAuxImage("Macro"));
     ASSERT_FALSE(scene == nullptr);
     SCNTilingInfo info;
     info.channel2ifd[0] = &dirs[0];
@@ -360,9 +369,9 @@ TEST(SCNImageDriver, readTile_readBlock)
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
     const int numScenes = slide->getNumScenes();
-    ASSERT_EQ(numScenes, 3);
+    ASSERT_EQ(numScenes, 1);
     std::shared_ptr<slideio::SCNScene> scene =
-        std::dynamic_pointer_cast<slideio::SCNScene>(slide->getScene(2));
+        std::dynamic_pointer_cast<slideio::SCNScene>(slide->getScene(0));
     ASSERT_FALSE(scene == nullptr);
     cv::Mat block;
     std::vector<int> channelIndices = { 0, 1, 2 };
@@ -389,9 +398,9 @@ TEST(SCNImageDriver, readTile_readBlockResampling)
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
     const int numScenes = slide->getNumScenes();
-    ASSERT_EQ(numScenes, 3);
+    ASSERT_EQ(numScenes, 1);
     std::shared_ptr<slideio::SCNScene> scene =
-        std::dynamic_pointer_cast<slideio::SCNScene>(slide->getScene(2));
+        std::dynamic_pointer_cast<slideio::SCNScene>(slide->getScene(0));
     ASSERT_FALSE(scene == nullptr);
     cv::Mat block;
     std::vector<int> channelIndices = { 0, 1, 2 };
@@ -415,7 +424,7 @@ TEST(SCNImageDriver, readThumbnail)
     slideio::ImageTools::readGDALImage(thumbnailPath, thumbnail);
     slideio::SCNImageDriver imageDriver;
     auto slide = imageDriver.openFile(filePath);
-    auto scene = slide->getScene(0);
+    auto scene = slide->getAuxImage("Macro");
     auto rect = scene->getRect();
     cv::Mat raster;
     std::vector<int> channels = { 0, 1, 2 };
@@ -424,4 +433,17 @@ TEST(SCNImageDriver, readThumbnail)
     scene->readResampledBlockChannels(rect, size, channels, raster);
     const int compare = std::memcmp(raster.data, thumbnail.data, raster.total() * raster.elemSize());
     EXPECT_EQ(compare, 0);
+}
+
+TEST(SCNImageDriver, auxImages)
+{
+    slideio::SCNImageDriver driver;
+    std::string filePath = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1.scn");
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    const int numImages = slide->getNumAuxImages();
+    ASSERT_EQ(numImages, 2);
+    std::list<std::string> imageNames = slide->getAuxImageNames();
+    ASSERT_FALSE(std::find(imageNames.begin(), imageNames.end(), "Macro") == imageNames.end());
+    ASSERT_FALSE(std::find(imageNames.begin(), imageNames.end(), "Macro~1") == imageNames.end());
 }
