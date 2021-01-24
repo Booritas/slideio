@@ -246,4 +246,21 @@ void Scene::readResampled4DBlockChannels(const std::tuple<int, int, int, int>& r
 
 }
 
+const std::list<std::string>& Scene::getAuxImageNames() const
+{
+    return m_scene->getAuxImageNames();
+}
+
+int Scene::getNumAuxImages() const
+{
+    return m_scene->getNumAuxImages();
+}
+
+std::shared_ptr<Scene> Scene::getAuxImage(const std::string& sceneName) const
+{
+    std::shared_ptr<CVScene> cvScene = m_scene->getAuxImage(sceneName);
+    std::shared_ptr<Scene> scene(new Scene(cvScene));
+    return scene;
+}
+
 
