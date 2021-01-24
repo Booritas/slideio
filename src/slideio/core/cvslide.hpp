@@ -26,6 +26,9 @@ namespace slideio
         virtual const std::list<std::string>& getAuxImageNames() const {
             return m_auxNames;
         }
+        virtual int getNumAuxImages() const {
+            return static_cast<int>(m_auxNames.size());
+        }
         virtual std::shared_ptr<CVScene> getAuxImage(const std::string& sceneName) const;
     protected:
         std::string m_rawMetadata;

@@ -31,7 +31,7 @@ TEST(SVSImageDriver, openFile_BrightField)
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(path);
     ASSERT_TRUE(slide!=nullptr);
     int numbScenes = slide->getNumScenes();
-    ASSERT_TRUE(numbScenes==4);
+    ASSERT_TRUE(numbScenes==1);
     std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
     ASSERT_TRUE(scene!=nullptr);
     EXPECT_EQ(slide->getFilePath(),path);
@@ -59,8 +59,12 @@ TEST(SVSImageDriver, read_Thumbnail_WholeImage)
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(path);
     ASSERT_TRUE(slide!=nullptr);
     int numbScenes = slide->getNumScenes();
-    ASSERT_TRUE(numbScenes==4);
-    std::shared_ptr<slideio::CVScene> scene = slide->getScene(1);
+    ASSERT_TRUE(numbScenes == 1);
+    int numbAuxImages = slide->getNumAuxImages();
+    ASSERT_TRUE(numbAuxImages == 3);
+    const std::list<std::string>& auxImages = slide->getAuxImageNames();
+    ASSERT_TRUE(std::find(auxImages.begin(), auxImages.end(), "Thumbnail") != auxImages.end());
+    std::shared_ptr<slideio::CVScene> scene = slide->getAuxImage("Thumbnail");
     ASSERT_TRUE(scene!=nullptr);
     cv::Rect sceneRect = scene->getRect();
     cv::Mat imageRaster;
@@ -86,8 +90,12 @@ TEST(SVSImageDriver, read_Thumbnail_Block)
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(path);
     ASSERT_TRUE(slide!=nullptr);
     int numbScenes = slide->getNumScenes();
-    ASSERT_TRUE(numbScenes==4);
-    std::shared_ptr<slideio::CVScene> scene = slide->getScene(1);
+    ASSERT_TRUE(numbScenes==1);
+    int numbAuxImages = slide->getNumAuxImages();
+    ASSERT_TRUE(numbAuxImages == 3);
+    const std::list<std::string>& auxImages = slide->getAuxImageNames();
+    ASSERT_TRUE(std::find(auxImages.begin(), auxImages.end(), "Thumbnail") != auxImages.end());
+    std::shared_ptr<slideio::CVScene> scene = slide->getAuxImage("Thumbnail");
     ASSERT_TRUE(scene!=nullptr);
     cv::Rect sceneRect = scene->getRect();
     int block_sx = sceneRect.width/4;
@@ -122,8 +130,12 @@ TEST(SVSImageDriver, read_Thumbnail_BlockWithScale)
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(path);
     ASSERT_TRUE(slide != nullptr);
     int numbScenes = slide->getNumScenes();
-    ASSERT_TRUE(numbScenes == 4);
-    std::shared_ptr<slideio::CVScene> scene = slide->getScene(1);
+    ASSERT_TRUE(numbScenes == 1);
+    int numbAuxImages = slide->getNumAuxImages();
+    ASSERT_TRUE(numbAuxImages == 3);
+    const std::list<std::string>& auxImages = slide->getAuxImageNames();
+    ASSERT_TRUE(std::find(auxImages.begin(), auxImages.end(), "Thumbnail") != auxImages.end());
+    std::shared_ptr<slideio::CVScene> scene = slide->getAuxImage("Thumbnail");
     ASSERT_TRUE(scene != nullptr);
     cv::Rect sceneRect = scene->getRect();
     int block_sx = sceneRect.width/3;
@@ -199,7 +211,7 @@ TEST(SVSImageDriver, readBlock_WholeImage)
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(path);
     ASSERT_TRUE(slide != nullptr);
     int numbScenes = slide->getNumScenes();
-    ASSERT_TRUE(numbScenes == 4);
+    ASSERT_TRUE(numbScenes == 1);
     std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
     ASSERT_TRUE(scene != nullptr);
     const cv::Rect sceneRect = scene->getRect();
@@ -231,7 +243,7 @@ TEST(SVSImageDriver, readBlock_Part)
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(path);
     ASSERT_TRUE(slide != nullptr);
     int numbScenes = slide->getNumScenes();
-    ASSERT_TRUE(numbScenes == 4);
+    ASSERT_TRUE(numbScenes == 1);
     std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
     ASSERT_TRUE(scene != nullptr);
     const cv::Rect sceneRect = scene->getRect();
@@ -260,7 +272,7 @@ TEST(SVSImageDriver, readBlock_PartScale)
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(path);
     ASSERT_TRUE(slide != nullptr);
     int numbScenes = slide->getNumScenes();
-    ASSERT_TRUE(numbScenes == 4);
+    ASSERT_TRUE(numbScenes == 1);
     std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
     ASSERT_TRUE(scene != nullptr);
     const cv::Rect sceneRect = scene->getRect();
@@ -388,4 +400,50 @@ TEST(SVSImageDriver, imageResolutionPrivate)
     slideio::Resolution res = scene->getResolution();
     EXPECT_DOUBLE_EQ(res.x, 0.23250e-6);
     EXPECT_DOUBLE_EQ(res.y, 0.23250e-6);
+}
+
+TEST(SVSImageDriver, auxImages)
+{
+    // read image by svs driver
+    slideio::SVSImageDriver driver;
+    std::string path = TestTools::getTestImagePath("svs", "CMU-1-Small-Region.svs");
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(path);
+    ASSERT_TRUE(slide != nullptr);
+    int numbScenes = slide->getNumScenes();
+    ASSERT_TRUE(numbScenes == 1);
+    int numbAuxImages = slide->getNumAuxImages();
+    ASSERT_TRUE(numbAuxImages == 3);
+    const std::list<std::string>& auxImages = slide->getAuxImageNames();
+    ASSERT_TRUE(std::find(auxImages.begin(), auxImages.end(), "Thumbnail") != auxImages.end());
+    ASSERT_TRUE(std::find(auxImages.begin(), auxImages.end(), "Macro") != auxImages.end());
+    ASSERT_TRUE(std::find(auxImages.begin(), auxImages.end(), "Label") != auxImages.end());
+    // Thumbnail
+    std::shared_ptr<slideio::CVScene> thumbnail = slide->getAuxImage("Thumbnail");
+    ASSERT_TRUE(thumbnail != nullptr);
+    cv::Rect sceneRect = thumbnail->getRect();
+    ASSERT_EQ(sceneRect, cv::Rect(0, 0, 574, 768));
+    cv::Mat thumbRaster;
+    thumbnail->readBlock(sceneRect, thumbRaster);
+    ASSERT_EQ(thumbRaster.cols, sceneRect.width);
+    ASSERT_EQ(thumbRaster.rows, sceneRect.height);
+
+    // Macro
+    std::shared_ptr<slideio::CVScene> macro = slide->getAuxImage("Macro");
+    ASSERT_TRUE(macro != nullptr);
+    sceneRect = macro->getRect();
+    ASSERT_EQ(sceneRect, cv::Rect(0, 0, 1280, 431));
+    cv::Mat macroRaster;
+    macro->readBlock(sceneRect, macroRaster);
+    ASSERT_EQ(macroRaster.cols, sceneRect.width);
+    ASSERT_EQ(macroRaster.rows, sceneRect.height);
+
+    // Label
+    std::shared_ptr<slideio::CVScene> label = slide->getAuxImage("Label");
+    ASSERT_TRUE(label != nullptr);
+    sceneRect = label->getRect();
+    ASSERT_EQ(sceneRect, cv::Rect(0, 0, 387, 463));
+    cv::Mat labelRaster;
+    thumbnail->readBlock(sceneRect, labelRaster);
+    ASSERT_EQ(labelRaster.cols, sceneRect.width);
+    ASSERT_EQ(labelRaster.rows, sceneRect.height);
 }
