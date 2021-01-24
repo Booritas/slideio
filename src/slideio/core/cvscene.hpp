@@ -11,6 +11,12 @@
 #include "opencv2/core.hpp"
 #include <vector>
 #include <string>
+#include <list>
+
+#if defined(_MSC_VER)
+#pragma warning( push )
+#pragma warning(disable: 4251)
+#endif
 
 namespace slideio
 {
@@ -39,10 +45,16 @@ namespace slideio
         virtual void read4DBlockChannels(const cv::Rect& blockRect, const std::vector<int>& channelIndices, const cv::Range& zSliceRange, const cv::Range& timeFrameRange, cv::OutputArray output);
         virtual void readResampled4DBlock(const cv::Rect& blockRect, const cv::Size& blockSize, const cv::Range& zSliceRange, const cv::Range& timeFrameRange, cv::OutputArray output);
         virtual void readResampled4DBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize, const std::vector<int>& channelIndices, const cv::Range& zSliceRange, const cv::Range& timeFrameRange, cv::OutputArray output);
+        virtual const std::list<std::string>& getAuxImageNames() const {
+            return m_auxNames;
+        }
+        virtual std::shared_ptr<CVScene> getAuxImage(const std::string& sceneName) const;
     protected:
         virtual void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
             const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output);
         std::vector<int> getValidChannelIndices(const std::vector<int>& channelIndices);
+    private:
+        std::list<std::string> m_auxNames;
     };
 }
 

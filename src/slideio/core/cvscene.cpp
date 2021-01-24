@@ -141,8 +141,13 @@ void CVScene::readResampled4DBlockChannels(const cv::Rect& blockRect, const cv::
 
 }
 
+std::shared_ptr<CVScene> CVScene::getAuxImage(const std::string& sceneName) const
+{
+    throw std::runtime_error("The scene does not have any auxiliary image");
+}
+
 void CVScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
-    const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output)
+                                           const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output)
 {
     if (zSliceIndex== 0 && tFrameIndex == 0)
     {
