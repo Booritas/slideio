@@ -162,7 +162,6 @@ cpp-test-windows:
         GIT_STRATEGY: none
         SLIDEIO_TEST_DATA_PATH: "${CI_PROJECT_DIR}/slideio_extra/testdata/cv/slideio"
     script:
-        - Remove-Item 'slideio_extra' -Recurse -ErrorAction Ignore
         - git clone https://${DEPLOY_TOKEN}@gitlab.com/bioslide/slideio_extra.git slideio_extra
         - echo ${SLIDEIO_TEST_DATA_PATH}
         - echo ${CI_PROJECT_DIR}
@@ -181,7 +180,6 @@ python-test-windows:
         SLIDEIO_TEST_DATA_PATH: "${CI_PROJECT_DIR}/slideio_extra/testdata/cv/slideio"
         WHL_PACKAGE: "slideio-${SLIDEIO_VERSION}.${CI_PIPELINE_IID}-cp38-cp38-win_amd64.whl"
     script:
-        - Remove-Item 'slideio_extra' -Recurse -ErrorAction Ignore
         - git clone https://${DEPLOY_TOKEN}@gitlab.com/bioslide/slideio_extra.git slideio_extra
         - echo ${SLIDEIO_TEST_DATA_PATH}
         - echo ${WHL_PACKAGE}
