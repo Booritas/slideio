@@ -8,6 +8,8 @@
 #include "slideio/drivers/czi/czistructs.hpp"
 #include <fstream>
 
+#include "cziauximage.hpp"
+
 namespace tinyxml2
 {
     class XMLNode;
@@ -36,7 +38,9 @@ namespace slideio
         const CZIChannelInfos& getChannelInfo() const { return m_channels; }
         const std::string& getTitle() const { return m_title; }
         void readBlock(uint64_t pos, uint64_t size, std::vector<unsigned char>& data);;
+        std::shared_ptr<CVScene> getAuxImage(const std::string& sceneName) const override;
     private:
+        void readAttachments();
         void init();
         void readMetadata();
         void readFileHeader();
@@ -46,12 +50,14 @@ namespace slideio
         void parseResolutions(tinyxml2::XMLNode* root);
         void parseSizes(tinyxml2::XMLNode* root);
         void parseChannels(tinyxml2::XMLNode* root);
+        void addAuxiliaryImage(const std::string& name, const std::string& type, int64_t position);
     private:
         std::vector<std::shared_ptr<CZIScene>> m_scenes;
         std::string m_filePath;
         std::ifstream m_fileStream;
         uint64_t m_directoryPosition{};
         uint64_t m_metadataPosition{};
+        uint64_t m_attachmentDirectoryPosition;
         // image parameters
         int m_slideXs{};
         int m_slideYs{};
@@ -70,7 +76,10 @@ namespace slideio
         double m_resT{};
         CZIChannelInfos m_channels;
         std::string m_title;
+        std::map<std::string, std::shared_ptr<CZIAuxImage >> m_auxImages;
     };
+
+
 }
 
 #if defined(_MSC_VER)

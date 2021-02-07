@@ -367,6 +367,21 @@ TEST(CZIImageDriver, corruptedCZI)
     EXPECT_THROW(driver.openFile(filePath), std::exception);
 }
 
+TEST(CZIImageDriver, auxiliaryImages)
+{
+    if (!TestTools::isPrivateTestEnabled())
+    {
+        GTEST_SKIP() << "Skip private test because private dataset is not enabled";
+    }
+    slideio::CZIImageDriver driver;
+    std::string filePath = TestTools::getTestImagePath("czi", "jxr-16bit-4chnls.czi", true);
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    int numAuxImages = slide->getNumAuxImages();
+    ASSERT_EQ(numAuxImages, 3);
+
+}
+
 //TODO: CLEAR COMMENTED OUT TESTS
 //#include <opencv2/imgproc.hpp>
 //#include <opencv2/highgui.hpp>

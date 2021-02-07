@@ -11,12 +11,17 @@
 #include <tinyxml2.h>
 #include <set>
 
+#include "czismallimage.hpp"
+#include "czithumbnail.hpp"
+
 using namespace slideio;
 using namespace tinyxml2;
 
 static char SID_FILES[] = "ZISRAWFILE";
 static char SID_METADATA[] = "ZISRAWMETADATA";
 static char SID_DIRECTORY[] = "ZISRAWDIRECTORY";
+static char SID_ATTACHMENT_DIR[] = "ZISRAWATTDIR";
+static char SID_ATTACHMENT_CONTENT[] = "ZISRAWATTACH";
 
 using namespace slideio;
 
@@ -50,7 +55,49 @@ void CZISlide::readBlock(uint64_t pos, uint64_t size, std::vector<unsigned char>
 {
     data.resize(size);
     m_fileStream.seekg(pos);
+    bool good = m_fileStream.good();
     m_fileStream.read((char*)data.data(), size);
+}
+
+std::shared_ptr<CVScene> CZISlide::getAuxImage(const std::string& sceneName) const {
+    auto it = m_auxImages.find(sceneName);
+    if(it==m_auxImages.end()) {
+        throw std::runtime_error(
+            (boost::format("CZIImageDriver: unknown auxiliary image %1%") % sceneName).str()
+        );
+    }
+    return it->second;
+}
+
+void CZISlide::readAttachments()
+{
+    if(m_attachmentDirectoryPosition>0)
+    {
+        m_fileStream.seekg(m_attachmentDirectoryPosition, std::ios_base::beg);
+        int32_t numbAttachments(0);
+        char sid[16] = {};
+        m_fileStream.read(sid, sizeof(sid));
+        if(strcmp(sid, SID_ATTACHMENT_DIR)==0) {
+            m_fileStream.read(reinterpret_cast<char*>(&numbAttachments), sizeof(numbAttachments));
+            std::ifstream::pos_type pos = m_attachmentDirectoryPosition + 16 + 256 + 16;
+            for (int attachment = 0; attachment < numbAttachments; ++attachment)
+            {
+                m_fileStream.seekg(pos, std::ios_base::beg);
+                AttachmentEntry entry{ 0 };
+                m_fileStream.read(reinterpret_cast<char*>(&entry), sizeof(entry));
+                if(!m_fileStream){
+                    break;
+                }
+                if (strcmp(entry.schemaType, "A1") == 0 &&
+                    ((strcmp(entry.contentFileType, "JPG") == 0) ||
+                            (strcmp(entry.contentFileType, "CZI") == 0)))
+                {
+                    addAuxiliaryImage(entry.name, entry.contentFileType, entry.filePosition);
+                }
+                pos += 128;
+            }
+        }
+    }
 }
 
 void CZISlide::init()
@@ -61,6 +108,7 @@ void CZISlide::init()
     readFileHeader();
     readMetadata();
     readDirectory();
+    readAttachments();
 }
 
 void CZISlide::parseMagnification(XMLNode* root)
@@ -205,6 +253,7 @@ void CZISlide::readFileHeader()
     m_fileStream.read(reinterpret_cast<char*>(&fileHeader), sizeof(fileHeader));
     m_directoryPosition = fileHeader.directoryPosition;
     m_metadataPosition = fileHeader.metadataPosition;
+    m_attachmentDirectoryPosition = fileHeader.attachmentDirectoryPosition;
 }
 
 void CZISlide::readDirectory()
@@ -339,4 +388,40 @@ void CZISlide::parseSizes(tinyxml2::XMLNode* root)
     m_slideMs = XMLTools::childNodeTextToInt(xmlImage, "SizeM");
     m_slideBs = XMLTools::childNodeTextToInt(xmlImage, "SizeB");
     m_slideVs = XMLTools::childNodeTextToInt(xmlImage, "SizeV");
+}
+
+void CZISlide::addAuxiliaryImage(const std::string& name, const std::string& typeName, int64_t position)
+{
+    m_fileStream.seekg(position, std::ios_base::beg);
+    char sid[16];
+    m_fileStream.read(sid, sizeof(sid));
+    if(strcmp(sid, SID_ATTACHMENT_CONTENT)==0)
+    {
+        int32_t dataSize(0);
+        m_fileStream.read((char*)&dataSize, sizeof(dataSize));
+        const int64_t dataPosition = position + 16 + 256 + 16;
+        dataSize -= 16;
+        std::shared_ptr<CZIAuxImage> attachment;
+        CZIAuxImage::Type type = CZIAuxImage::typeFromString(typeName);
+        if (type == CZIAuxImage::Type::Unknown) {
+            throw std::runtime_error(
+                (boost::format("CZIImageDriver: unknown attachment type %1%") % typeName).str()
+            );
+        }
+        else if(type==CZIAuxImage::Type::CZI) {
+            attachment.reset(new CZISmallImage);
+        }
+        else if (type == CZIAuxImage::Type::JPG || type == CZIAuxImage::Type::PNG) {
+            attachment.reset(new CZIThumbnail);
+        }
+        else {
+            throw std::runtime_error(
+                (boost::format("CZIImageDriver: unexpected image type %1%") % (int)type).str()
+            );
+        }
+        attachment->setAttachmentData(this, type, dataPosition, dataSize, name);
+        attachment->init();
+        m_auxImages[name] = attachment;
+        m_auxNames.push_back(name);
+    }
 }

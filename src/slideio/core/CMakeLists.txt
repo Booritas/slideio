@@ -11,5 +11,7 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/cvstructs.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/cvtools.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/cvtools.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/cvsmallscene.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/cvsmallscene.cpp
    PARENT_SCOPE
    )

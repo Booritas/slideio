@@ -66,6 +66,16 @@ namespace slideio
         int64_t dataSize;
         DirectoryEntryDV direEntry;
     };
+    struct AttachmentEntry
+    {
+        char schemaType[2];
+        uint8_t reserved[10];
+        int64_t filePosition;
+        int32_t filePart;
+        char guidContent[16];
+        char contentFileType[8];
+        char name[80];
+    };
     #pragma pack(pop)
     struct CZIChannelInfo
     {
