@@ -10,6 +10,7 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include "slideio/scene.hpp"
 #include "slideio/core/cvtools.hpp"
+#include "slideio/imagetools/imagetools.hpp"
 
 TEST(CZIImageDriver, DriverManager_getDriverIDs)
 {
@@ -367,7 +368,7 @@ TEST(CZIImageDriver, corruptedCZI)
     EXPECT_THROW(driver.openFile(filePath), std::exception);
 }
 
-TEST(CZIImageDriver, auxiliaryImages)
+TEST(CZIImageDriver, auxThumbnail)
 {
     if (!TestTools::isPrivateTestEnabled())
     {
@@ -379,7 +380,18 @@ TEST(CZIImageDriver, auxiliaryImages)
     ASSERT_TRUE(slide != nullptr);
     int numAuxImages = slide->getNumAuxImages();
     ASSERT_EQ(numAuxImages, 3);
+    std::shared_ptr<slideio::CVScene> thumbnail = slide->getAuxImage("Thumbnail");
+    cv::Rect rectThumb = thumbnail->getRect();
+    cv::Mat thumb;
+    thumbnail->readBlock(rectThumb, thumb);
+    ASSERT_EQ(thumb.size().width, rectThumb.width);
+    ASSERT_EQ(thumb.size().height, rectThumb.height);
 
+    std::string thumbPath = TestTools::getTestImagePath("czi", "jxr-16bit-4chnls.thumb.png", true);
+    cv::Mat thumbTest;
+    slideio::ImageTools::readGDALImage(thumbPath, thumbTest);
+    double score = slideio::ImageTools::computeSimilarity(thumb, thumbTest);
+    ASSERT_DOUBLE_EQ(score, 1.);
 }
 
 //TODO: CLEAR COMMENTED OUT TESTS

@@ -33,7 +33,6 @@ namespace slideio
         ~CZIAuxImage(){}
         void setAttachmentData(CZISlide* slide, Type type, int64_t position, int32_t size, const std::string& name);
         static CZIAuxImage::Type typeFromString(const std::string& typeName);
-        virtual bool init() = 0;
     protected:
         int64_t m_dataPos{0};
         int32_t m_dataSize{0};

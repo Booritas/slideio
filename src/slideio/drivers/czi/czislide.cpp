@@ -71,32 +71,40 @@ std::shared_ptr<CVScene> CZISlide::getAuxImage(const std::string& sceneName) con
 
 void CZISlide::readAttachments()
 {
-    if(m_attachmentDirectoryPosition>0)
-    {
-        m_fileStream.seekg(m_attachmentDirectoryPosition, std::ios_base::beg);
-        int32_t numbAttachments(0);
-        char sid[16] = {};
-        m_fileStream.read(sid, sizeof(sid));
-        if(strcmp(sid, SID_ATTACHMENT_DIR)==0) {
-            m_fileStream.read(reinterpret_cast<char*>(&numbAttachments), sizeof(numbAttachments));
-            std::ifstream::pos_type pos = m_attachmentDirectoryPosition + 16 + 256 + 16;
-            for (int attachment = 0; attachment < numbAttachments; ++attachment)
-            {
-                m_fileStream.seekg(pos, std::ios_base::beg);
-                AttachmentEntry entry{ 0 };
-                m_fileStream.read(reinterpret_cast<char*>(&entry), sizeof(entry));
-                if(!m_fileStream){
-                    break;
-                }
-                if (strcmp(entry.schemaType, "A1") == 0 &&
-                    ((strcmp(entry.contentFileType, "JPG") == 0) ||
-                            (strcmp(entry.contentFileType, "CZI") == 0)))
+    try {
+        if (m_attachmentDirectoryPosition > 0)
+        {
+            m_fileStream.seekg(m_attachmentDirectoryPosition, std::ios_base::beg);
+            int32_t numbAttachments(0);
+            char sid[16] = {};
+            m_fileStream.read(sid, sizeof(sid));
+            if (strcmp(sid, SID_ATTACHMENT_DIR) == 0) {
+                m_fileStream.read(reinterpret_cast<char*>(&numbAttachments), sizeof(numbAttachments));
+                std::ifstream::pos_type pos = m_attachmentDirectoryPosition + 16 + 256 + 16;
+                numbAttachments /= 128;
+                for (int attachment = 0; attachment < numbAttachments; ++attachment)
                 {
-                    addAuxiliaryImage(entry.name, entry.contentFileType, entry.filePosition);
+                    m_fileStream.seekg(pos, std::ios_base::beg);
+                    bool good = m_fileStream.good();
+                    AttachmentEntry entry{ 0 };
+                    m_fileStream.read(reinterpret_cast<char*>(&entry), sizeof(entry));
+                    if (!m_fileStream) {
+                        break;
+                    }
+                    if (strcmp(entry.schemaType, "A1") != 0) {
+                        break;
+                    }
+                    if (strcmp(entry.contentFileType, "JPG") == 0 ||
+                        strcmp(entry.contentFileType, "CZI") == 0)
+                    {
+                        addAuxiliaryImage(entry.name, entry.contentFileType, entry.filePosition);
+                    }
+                    pos += 128;
                 }
-                pos += 128;
             }
         }
+    }
+    catch(std::exception&) {
     }
 }
 

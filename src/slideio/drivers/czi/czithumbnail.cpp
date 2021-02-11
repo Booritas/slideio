@@ -30,4 +30,7 @@ bool CZIThumbnail::init()
 
 void CZIThumbnail::readImage(cv::OutputArray output)
 {
+    std::vector<uint8_t> buffer;
+    m_slide->readBlock(m_dataPos, m_dataSize, buffer);
+    slideio::ImageTools::decodeJpegStream(buffer.data(), buffer.size(), output);
 }
