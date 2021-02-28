@@ -11,18 +11,26 @@
 #include <tinyxml2.h>
 #include <set>
 
+#include "czithumbnail.hpp"
+
 using namespace slideio;
 using namespace tinyxml2;
 
 static char SID_FILES[] = "ZISRAWFILE";
 static char SID_METADATA[] = "ZISRAWMETADATA";
 static char SID_DIRECTORY[] = "ZISRAWDIRECTORY";
+static char SID_ATTACHMENT_DIR[] = "ZISRAWATTDIR";
+static char SID_ATTACHMENT_CONTENT[] = "ZISRAWATTACH";
 
 using namespace slideio;
 
 CZISlide::CZISlide(const std::string& filePath) : m_filePath(filePath), m_resZ(0), m_resT(0), m_magnification(0)
 {
     init();
+}
+
+CZISlide::~CZISlide()
+{
 }
 
 int CZISlide::getNumScenes() const
@@ -48,9 +56,70 @@ std::shared_ptr<CVScene> CZISlide::getScene(int index) const
 
 void CZISlide::readBlock(uint64_t pos, uint64_t size, std::vector<unsigned char>& data)
 {
-    data.resize(size);
-    m_fileStream.seekg(pos);
-    m_fileStream.read((char*)data.data(), size);
+    try 
+    {
+        data.resize(size);
+        m_fileStream.seekg(pos, std::ios_base::beg);
+        m_fileStream.read((char*)data.data(), size);
+    }
+    catch(std::exception& ex) {
+        m_fileStream.clear();
+        m_fileStream.seekg(0);
+        throw ex;
+    }
+}
+
+std::shared_ptr<CVScene> CZISlide::getAuxImage(const std::string& sceneName) const {
+    auto it = m_auxImages.find(sceneName);
+    if(it==m_auxImages.end()) {
+        throw std::runtime_error(
+            (boost::format("CZIImageDriver: unknown auxiliary image %1%") % sceneName).str()
+        );
+    }
+    return it->second;
+}
+
+void CZISlide::readAttachments()
+{
+    try 
+    {
+        if (m_attachmentDirectoryPosition > 0)
+        {
+            AttachmentDirectorySegment attachmentDirectory{};
+            m_fileStream.seekg(m_attachmentDirectoryPosition, std::ios_base::beg);
+            m_fileStream.read((char*)&attachmentDirectory, sizeof(attachmentDirectory));
+            if (strcmp(attachmentDirectory.header.SID, SID_ATTACHMENT_DIR) == 0) {
+                const int32_t numbAttachments = attachmentDirectory.data.entryCount;
+                std::ifstream::pos_type pos = m_fileStream.tellg();
+                for (int attachment = 0; attachment < numbAttachments; ++attachment)
+                {
+                    m_fileStream.seekg(pos, std::ios_base::beg);
+                    AttachmentEntry entry{ 0 };
+                    m_fileStream.read(reinterpret_cast<char*>(&entry), sizeof(entry));
+                    if (!m_fileStream) {
+                        break;
+                    }
+                    if (strcmp(entry.schemaType, "A1") != 0) {
+                        break;
+                    }
+                    if (strcmp(entry.contentFileType, "JPG") == 0 ||
+                        strcmp(entry.contentFileType, "CZI") == 0)
+                    {
+                        try {
+                            addAuxiliaryImage(entry.name, entry.contentFileType, entry.filePosition);
+                        }
+                        catch(std::exception& ex) {
+                            m_fileStream.clear();
+                        }
+                    }
+                    pos += 128;
+                }
+            }
+        }
+    }
+    catch(std::exception&) {
+        m_fileStream.clear();
+    }
 }
 
 void CZISlide::init()
@@ -61,6 +130,7 @@ void CZISlide::init()
     readFileHeader();
     readMetadata();
     readDirectory();
+    readAttachments();
 }
 
 void CZISlide::parseMagnification(XMLNode* root)
@@ -168,6 +238,7 @@ void CZISlide::parseChannels(XMLNode* root)
     }
 }
 
+
 void CZISlide::readMetadata()
 {
     // position stream pointer to metadata segment
@@ -192,9 +263,9 @@ void CZISlide::readMetadata()
     parseMetadataXmL(xmlString.data(), xmlSize);
 }
 
-void CZISlide::readFileHeader()
-{
-    FileHeader fileHeader{};
+void CZISlide::readFileHeader(FileHeader& fileHeader) {
+    fileHeader = {};
+    uint64_t pos = m_fileStream.tellg();
     SegmentHeader header{};
     m_fileStream.read(reinterpret_cast<char*>(&header), sizeof(header));
     if (strncmp(header.SID, SID_FILES, sizeof(SID_FILES)) != 0)
@@ -203,14 +274,19 @@ void CZISlide::readFileHeader()
             (boost::format("CZIImageDriver: file %1% is not a CZI file.") % m_filePath).str());
     }
     m_fileStream.read(reinterpret_cast<char*>(&fileHeader), sizeof(fileHeader));
-    m_directoryPosition = fileHeader.directoryPosition;
-    m_metadataPosition = fileHeader.metadataPosition;
 }
 
-void CZISlide::readDirectory()
+void CZISlide::readFileHeader()
 {
-    // position stream pointer to the directory segment
-    m_fileStream.seekg(m_directoryPosition, std::ios_base::beg);
+    FileHeader fileHeader;
+    readFileHeader(fileHeader);
+    m_directoryPosition = fileHeader.directoryPosition;
+    m_metadataPosition = fileHeader.metadataPosition;
+    m_attachmentDirectoryPosition = fileHeader.attachmentDirectoryPosition;
+}
+
+void CZISlide::readSubBlocks(uint64_t directoryPosition, uint64_t originPos, std::vector<CZISubBlocks>& sceneBlocks, std::vector<uint64_t>& sceneIds) {
+    m_fileStream.seekg(directoryPosition + originPos, std::ios_base::beg);
     // read segment header
     SegmentHeader header{};
     m_fileStream.read(reinterpret_cast<char*>(&header), sizeof(header));
@@ -221,12 +297,8 @@ void CZISlide::readDirectory()
     }
     DirectoryHeader directoryHeader{};
     m_fileStream.read(reinterpret_cast<char*>(&directoryHeader), sizeof(directoryHeader));
-    std::vector<CZISubBlocks> sceneBlocks;
-    std::vector<uint64_t> sceneIds;
     std::map<uint64_t, int> sceneMap;
     auto filePos = m_fileStream.tellg();
-    //std::ofstream out("c:/Temp/blocks.csv",std::ifstream::out);
-    //out << CZISubBlock::blockHeaderString() << std::endl;
     for (unsigned int entry = 0; entry < directoryHeader.entryCount; ++entry)
     {
         CZISubBlock block;
@@ -240,13 +312,13 @@ void CZISlide::readDirectory()
             m_fileStream.read(reinterpret_cast<char*>(&dimEntry), sizeof(dimEntry));
         }
         filePos = m_fileStream.tellg();
-        m_fileStream.seekg(entryHeader.filePosition);
+        m_fileStream.seekg(entryHeader.filePosition + originPos);
         SegmentHeader segmentHeader;
         m_fileStream.read((char*)&segmentHeader, sizeof(segmentHeader));
         SubBlockHeader subblockHeader;
         m_fileStream.read((char*)&subblockHeader, sizeof(subblockHeader));
+        subblockHeader.direEntry.filePosition += originPos;
         block.setupBlock(subblockHeader, dimensions);
-        //out << block;
         const std::vector<Dimension>& blockDimensions = block.dimensions();
         std::vector<uint64_t> blockSceneIds;
         CZIScene::sceneIdsFromDims(blockDimensions, blockSceneIds);
@@ -269,14 +341,28 @@ void CZISlide::readDirectory()
             sceneBlocks[sceneIndex].push_back(block);
         }
     }
+}
+
+std::shared_ptr<CZIScene> CZISlide::constructScene(const uint64_t sceneId, const CZISubBlocks& blocks)
+{
+    CZIScene::SceneParams params{};
+    std::shared_ptr<CZIScene>scene(new CZIScene);
+    CZIScene::dimsFromSceneId(sceneId, params);
+    scene->init(sceneId, params, m_filePath, blocks, this);
+    return scene;
+}
+
+void CZISlide::readDirectory()
+{
+    // position stream pointer to the directory segment
+    std::vector<CZISubBlocks> sceneBlocks;
+    std::vector<uint64_t> sceneIds;
+    readSubBlocks(m_directoryPosition, 0, sceneBlocks, sceneIds);
     for(size_t sceneIndex = 0; sceneIndex < sceneBlocks.size(); ++sceneIndex)
     {
         const uint64_t sceneId = sceneIds[sceneIndex];
         const CZISubBlocks& blocks = sceneBlocks[sceneIndex];
-        CZIScene::SceneParams params{};
-        std::shared_ptr<CZIScene> scene(new CZIScene);
-        CZIScene::dimsFromSceneId(sceneId, params);
-        scene->init(sceneId, params, m_filePath, blocks, this);
+        std::shared_ptr<CZIScene> scene = constructScene(sceneId, blocks);
         m_scenes.push_back(scene);
     }
 
@@ -339,4 +425,64 @@ void CZISlide::parseSizes(tinyxml2::XMLNode* root)
     m_slideMs = XMLTools::childNodeTextToInt(xmlImage, "SizeM");
     m_slideBs = XMLTools::childNodeTextToInt(xmlImage, "SizeB");
     m_slideVs = XMLTools::childNodeTextToInt(xmlImage, "SizeV");
+}
+
+
+void CZISlide::addAuxiliaryImage(const std::string& name, const std::string& typeName, int64_t position)
+{
+    m_fileStream.seekg(position, std::ios_base::beg);
+    AttachmentSegment attachmentSegment;
+    m_fileStream.read(reinterpret_cast<char*>(&attachmentSegment), sizeof(attachmentSegment));
+    if (strcmp(attachmentSegment.header.SID, SID_ATTACHMENT_CONTENT) == 0)
+    {
+        int64_t dataSize = attachmentSegment.data.dataSize;
+        const int64_t dataPosition = position + 256;
+        if (typeName.compare("CZI") == 0) {
+            createCZIAttachmentScenes(dataPosition, dataSize, name);
+        }
+        else if (typeName.compare("JPG") == 0) {
+            createJpgAttachmentScenes(dataPosition, dataSize, name);
+        }
+        else {
+            throw std::runtime_error(
+                (boost::format("CZIImageDriver: unexpected attachment image type %1%") % typeName).str()
+            );
+        }
+    }
+}
+
+void CZISlide::createCZIAttachmentScenes(const int64_t dataPos, int64_t dataSize, const std::string& attachmentName)
+{
+    const int64_t fileOrigin = dataPos + sizeof(SegmentHeader);
+    m_fileStream.seekg(fileOrigin);
+    FileHeader fileHeader{};
+    readFileHeader(fileHeader);
+    std::vector<CZISubBlocks> sceneBlocks;
+    std::vector<uint64_t> sceneIds;
+    readSubBlocks(fileHeader.directoryPosition, fileOrigin, sceneBlocks, sceneIds);
+    const bool multiScene = sceneIds.size() > 1;
+    for (size_t sceneIndex = 0; sceneIndex < sceneBlocks.size(); ++sceneIndex)
+    {
+        const uint64_t sceneId = sceneIds[sceneIndex];
+        const CZISubBlocks& blocks = sceneBlocks[sceneIndex];
+        std::shared_ptr<CZIScene> scene = constructScene(sceneId, blocks);
+        std::string sceneName = attachmentName;
+        if (multiScene) {
+            sceneName += (boost::format("(%1%)") % (sceneIndex + 1)).str();
+        }
+        m_auxImages[sceneName] = scene;
+        m_auxNames.push_back(sceneName);
+    }
+}
+
+void CZISlide::createJpgAttachmentScenes(const int64_t dataPosition, int64_t dataSize, const std::string& name)
+{
+    const int64_t fileOrigin = dataPosition + sizeof(SegmentHeader);
+    std::shared_ptr<CZIThumbnail> thumbnail(new CZIThumbnail);
+    thumbnail->setAttachmentData(this, fileOrigin, dataSize, name);
+    if (thumbnail->init()) {
+        std::shared_ptr<CVScene> attachment = thumbnail;
+        m_auxImages[name] = attachment;
+        m_auxNames.push_back(name);
+    }
 }

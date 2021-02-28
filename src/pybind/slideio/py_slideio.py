@@ -106,6 +106,26 @@ class Scene(object):
         '''Distance between two Z-slices in meters.'''
         return self.scene.z_resolution
 
+    @property
+    def num_aux_images(self):
+        '''Number of auxiliary images of the scene.'''
+        return self.scene.num_aux_images
+
+    def get_aux_image_names(self):
+        '''Get list of auxiliary image names'''
+        return self.scene.get_aux_image_names()
+
+    def get_aux_image(self, image_name, size=(0,0), channel_indices=[]):
+        '''Get auxiliary image as numpy array.
+
+        Args:
+            image_name: name of the auxiliary image
+            channel_indices: array of channel indices to be retrieved. [] - all channels.
+            size: size of the block after rescaling. (0,0) - no scaling.
+        '''
+        scene = self.scene.get_aux_image(image_name)
+        return scene.read_block(rect=(0,0,0,0), size=size, channel_indices=channel_indices, slices=(0,1), frames=(0,1))
+
     def read_block(self, rect=(0,0,0,0), size=(0,0), channel_indices=[], slices=(0,1), frames=(0,1)):
         '''Reads rectangular block of the scene with optional rescaling.
 
@@ -174,6 +194,35 @@ class Slide(object):
     def file_path(self):
         '''Returns path to the slide file/folder'''
         return self.slide.file_path
+
+    @property
+    def num_aux_images(self):
+        '''Number of auxiliary images of the slide.'''
+        return self.slide.num_aux_images
+
+    def get_aux_image_names(self):
+        '''Get list of auxiliary image names'''
+        return self.slide.get_aux_image_names()
+
+    def get_aux_image_raster(self, image_name, size=(0,0), channel_indices=[]):
+        '''Get auxiliary image as numpy array.
+
+        Args:
+            image_name: name of the auxiliary image
+            channel_indices: array of channel indices to be retrieved. [] - all channels.
+            size: size of the block after rescaling. (0,0) - no scaling.
+        '''
+        scene = self.slide.get_aux_image(image_name)
+        return scene.read_block(rect=(0,0,0,0), size=size, channel_indices=channel_indices, slices=(0,1), frames=(0,1))
+
+    def get_aux_image(self, image_name):
+        '''Get auxiliary image as objecty.
+
+        Args:
+            image_name: name of the auxiliary image
+        '''
+        return self.slide.get_aux_image(image_name)
+
 
 def open_slide(path:str, driver:str):
     '''Returns an instance of a slide object'''

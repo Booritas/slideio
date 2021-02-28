@@ -35,3 +35,20 @@ const std::string& Slide::getRawMetadata() const
 {
     return m_slide->getRawMetadata();
 }
+
+const std::list<std::string>& Slide::getAuxImageNames() const
+{
+    return m_slide->getAuxImageNames();
+}
+
+int Slide::getNumAuxImages() const
+{
+    return m_slide->getNumAuxImages();
+}
+
+std::shared_ptr<Scene> Slide::getAuxImage(const std::string& sceneName) const
+{
+    std::shared_ptr<CVScene> cvScene = m_slide->getAuxImage(sceneName);
+    std::shared_ptr<Scene> scene(new Scene(cvScene));
+    return scene;
+}

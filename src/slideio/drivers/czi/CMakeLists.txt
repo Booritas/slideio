@@ -8,5 +8,7 @@ set(SOURCE_FILES ${SOURCE_FILES}
    ${CMAKE_CURRENT_SOURCE_DIR}/czistructs.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/czisubblock.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/czisubblock.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/czithumbnail.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/czithumbnail.cpp
    PARENT_SCOPE
    )

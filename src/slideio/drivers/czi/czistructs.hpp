@@ -9,6 +9,8 @@
 
 namespace slideio
 {
+    const int SIZE_ATTACHMENTDIRECTORY_DATA = 256;
+
     #pragma pack(push,1)
     struct SegmentHeader
     {
@@ -65,6 +67,52 @@ namespace slideio
         int32_t attachmentSize;
         int64_t dataSize;
         DirectoryEntryDV direEntry;
+    };
+    struct AttachmentEntry
+    {
+        char schemaType[2];
+        uint8_t reserved[10];
+        int64_t filePosition;
+        int32_t filePart;
+        char guidContent[16];
+        char contentFileType[8];
+        char name[80];
+    };
+    struct AttachmentDirectorySegmentData
+    {
+        int32_t entryCount;
+        uint8_t spare[SIZE_ATTACHMENTDIRECTORY_DATA - 4];
+    };
+    struct AttachmentDirectorySegment
+    {
+        struct SegmentHeader header;
+        struct AttachmentDirectorySegmentData data;
+    };
+    struct AttachmentEntryA1
+    {
+        char schemaType[2];
+        uint8_t reserved[10];
+        int64_t filePosition;
+        int filePart;
+        uint8_t contentGuid[16];
+        char contentFileType[8];
+        char name[80];
+    };
+    struct AttachmentSegmentData
+    {
+        int64_t dataSize;
+        uint8_t spare[8];
+        union
+        {
+            struct AttachmentEntryA1 attachmentEntry;
+            uint8_t reservedSpace[128];
+        };
+        uint8_t reserved[112];
+    };
+    struct AttachmentSegment
+    {
+        struct SegmentHeader header;
+        struct AttachmentSegmentData data;
     };
     #pragma pack(pop)
     struct CZIChannelInfo

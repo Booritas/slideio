@@ -3,7 +3,7 @@
 import os
 
 
-def get_test_image_path(folder, image_name):
+def get_test_image_path(folder, image_name, private=False):
     """
     Return path to a test image.
 
@@ -14,7 +14,7 @@ def get_test_image_path(folder, image_name):
                 in the folder of test images.
         image_name: image file name, include file extension.
     """
-    root_folder = os.environ['SLIDEIO_TEST_DATA_PATH']
+    root_folder = os.environ['SLIDEIO_TEST_DATA_PRIV_PATH'] if private else os.environ['SLIDEIO_TEST_DATA_PATH'];
     if root_folder is None:
         raise "Environment variable SLIDEIO_TEST_DATA_PATH is not set"
     image_path = os.path.join(root_folder, folder, image_name)
