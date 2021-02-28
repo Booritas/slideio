@@ -10,6 +10,7 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include "slideio/scene.hpp"
 #include "slideio/core/cvtools.hpp"
+#include "slideio/imagetools/imagetools.hpp"
 
 TEST(CZIImageDriver, DriverManager_getDriverIDs)
 {
@@ -365,6 +366,100 @@ TEST(CZIImageDriver, corruptedCZI)
     std::string filePath = TestTools::getTestImagePath("czi","corrupted.czi");
     slideio::CZIImageDriver driver;
     EXPECT_THROW(driver.openFile(filePath), std::exception);
+}
+
+static void testAuxImage(const std::string& imagePath, const std::string& auxImageName, const std::string testImagePath)
+{
+    slideio::CZIImageDriver driver;
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(imagePath);
+    ASSERT_TRUE(slide != nullptr);
+    std::shared_ptr<slideio::CVScene> auxScene = slide->getAuxImage(auxImageName);
+    cv::Rect rect = auxScene->getRect();
+    cv::Mat auxRaster;
+    rect.x = rect.y = 0;
+    auxScene->readBlock(rect, auxRaster);
+    ASSERT_EQ(auxRaster.size().width, rect.width);
+    ASSERT_EQ(auxRaster.size().height, rect.height);
+
+    cv::Mat testRaster;
+    slideio::ImageTools::readGDALImage(testImagePath, testRaster);
+    double score = slideio::ImageTools::computeSimilarity(auxRaster, testRaster);
+    ASSERT_DOUBLE_EQ(score, 1.);
+}
+
+static void writeAuxImage(const std::string& imagePath, const std::string& auxImageName, const std::string testImagePath)
+{
+    slideio::CZIImageDriver driver;
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(imagePath);
+    ASSERT_TRUE(slide != nullptr);
+    std::shared_ptr<slideio::CVScene> auxScene = slide->getAuxImage(auxImageName);
+    cv::Rect rect = auxScene->getRect();
+    cv::Mat auxRaster;
+    rect.x = rect.y = 0;
+    auxScene->readBlock(rect, auxRaster);
+    ASSERT_EQ(auxRaster.size().width, rect.width);
+    ASSERT_EQ(auxRaster.size().height, rect.height);
+
+    slideio::ImageTools::writeTiffImage(testImagePath, auxRaster);
+}
+
+TEST(CZIImageDriver, auxSlidePreview)
+{
+    if (!TestTools::isPrivateTestEnabled())
+    {
+        GTEST_SKIP() << "Skip private test because private dataset is not enabled";
+    }
+    std::string imagePath = TestTools::getTestImagePath("czi", "jxr-rgb-5scenes.czi", true);
+    std::string testImagePath = TestTools::getTestImagePath("czi", "jxr-rgb-5scenes.preview.tiff", true);
+    testAuxImage(imagePath, "SlidePreview", testImagePath);
+}
+
+TEST(CZIImageDriver, auxSlidePreviewTimeFrame)
+{
+    if (!TestTools::isPrivateTestEnabled())
+    {
+        GTEST_SKIP() << "Skip private test because private dataset is not enabled";
+    }
+    std::string imagePath = TestTools::getTestImagePath("czi", "jxr-16bit-4chnls.czi", true);
+    std::string testImagePath = TestTools::getTestImagePath("czi", "jxr-16bit-4chnls.preview.tiff", true);
+    testAuxImage(imagePath, "SlidePreview", testImagePath);
+}
+
+TEST(CZIImageDriver, auxThumbnail)
+{
+    if (!TestTools::isPrivateTestEnabled())
+    {
+        GTEST_SKIP() << "Skip private test because private dataset is not enabled";
+    }
+    std::string imagePath = TestTools::getTestImagePath("czi", "jxr-16bit-4chnls.czi", true);
+    std::string testImagePath = TestTools::getTestImagePath("czi", "jxr-16bit-4chnls.thumb.png", true);
+    testAuxImage(imagePath, "Thumbnail", testImagePath);
+}
+
+TEST(CZIImageDriver, auxThumbnail2)
+{
+    if (!TestTools::isPrivateTestEnabled())
+    {
+        GTEST_SKIP() << "Skip private test because private dataset is not enabled";
+    }
+    std::string imagePath = TestTools::getTestImagePath("czi", "jxr-rgb-5scenes.czi", true);
+    std::string testImagePath = TestTools::getTestImagePath("czi", "jxr-rgb-5scenes.thumb.png", true);
+    testAuxImage(imagePath, "Thumbnail", testImagePath);
+}
+
+TEST(CZIImageDriver, auxLabel)
+{
+    if (!TestTools::isPrivateTestEnabled())
+    {
+        GTEST_SKIP() << "Skip private test because private dataset is not enabled";
+    }
+    if (!TestTools::isPrivateTestEnabled())
+    {
+        GTEST_SKIP() << "Skip private test because private dataset is not enabled";
+    }
+    std::string imagePath = TestTools::getTestImagePath("czi", "jxr-rgb-5scenes.czi", true);
+    std::string testImagePath = TestTools::getTestImagePath("czi", "jxr-rgb-5scenes.label.tiff", true);
+    testAuxImage(imagePath, "Label", testImagePath);
 }
 
 //TODO: CLEAR COMMENTED OUT TESTS

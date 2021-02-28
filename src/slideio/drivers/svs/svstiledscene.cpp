@@ -124,7 +124,7 @@ bool SVSTiledScene::readTile(int tileIndex, const std::vector<int>& channelIndic
         TiffTools::readTile(getFileHandle(), *dir, tileIndex, channelIndices, tileRaster);
         ret = true;
     }
-    catch(std::runtime_error& err){
+    catch(std::runtime_error&){
     }
 
     return ret;

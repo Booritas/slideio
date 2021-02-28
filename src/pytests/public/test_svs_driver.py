@@ -52,27 +52,29 @@ class TestSVS(unittest.TestCase):
         slide = slideio.open_slide(image_path, "SVS")
         self.assertTrue(slide is not None)
         num_scenes = slide.num_scenes
-        self.assertEqual(num_scenes, 4)
+        self.assertEqual(num_scenes, 1)
         self.assertEqual(image_path, slide.file_path)
 
         raw_metadata = slide.raw_metadata
         self.assertTrue(raw_metadata.startswith("Aperio Image Library"))
 
+        # auxiliary images
+        self.assertEqual(slide.num_aux_images, 3)
+        aux_image_names = slide.get_aux_image_names().sort()
+        names = ["Thumbnail", "Label", "Macro"].sort()
+        self.assertEqual(names, aux_image_names)
+        thumbnail = slide.get_aux_image_raster("Thumbnail")
+        self.assertEqual(thumbnail.shape, (768, 674, 3))
+        label = slide.get_aux_image_raster("Label")
+        self.assertEqual(label.shape, (422, 415, 3))
+        macro = slide.get_aux_image_raster("Macro")
+        self.assertEqual(macro.shape, (421, 1280, 3))
+
         # test scene metadates
-        scene_names = ["Image", "Thumbnail", "Label", "Macro"]
-        compression_types = [
-            slideio.Compression.Jpeg2000,
-            slideio.Compression.Jpeg,
-            slideio.Compression.LempelZivWelch,
-            slideio.Compression.Jpeg
-            ]
-        scene_sizes = [
-            (15374, 17497),
-            (674, 768),
-            (415, 422),
-            (1280, 421)
-            ]
-        scene_magnifications = [40., 0., 0., 0.]
+        compression_types = [slideio.Compression.Jpeg2000]
+        scene_sizes = [(15374, 17497)]
+        scene_magnifications = [40.]
+        scene_names = ["Image"]
 
         for scene_index in range(num_scenes):
             scene = slide.get_scene(scene_index)
@@ -93,7 +95,7 @@ class TestSVS(unittest.TestCase):
                 self.assertEqual(channel_type, np.uint8)
 
         # test scene resolutuion
-        scene_resolutions = [0.2498e-6, 0, 0, 0]
+        scene_resolutions = [0.2498e-6]
         for scene_index in range(num_scenes):
             scene = slide.get_scene(scene_index)
             self.assertTrue(scene is not None)
@@ -121,27 +123,34 @@ class TestSVS(unittest.TestCase):
         slide = slideio.open_slide(image_path, "SVS")
         self.assertTrue(slide is not None)
         num_scenes = slide.num_scenes
-        self.assertEqual(num_scenes, 4)
+        self.assertEqual(num_scenes, 1)
         self.assertEqual(image_path, slide.file_path)
 
         raw_metadata = slide.raw_metadata
         self.assertTrue(raw_metadata.startswith("Aperio Image Library"))
 
+        # auxiliary images
+        self.assertEqual(slide.num_aux_images, 3)
+        aux_image_names = slide.get_aux_image_names().sort()
+        names = ["Thumbnail", "Label", "Macro"].sort()
+        self.assertEqual(names, aux_image_names)
+        thumbnail = slide.get_aux_image_raster("Thumbnail")
+        self.assertEqual(thumbnail.shape, (768, 574, 3))
+        label = slide.get_aux_image_raster("Label")
+        self.assertEqual(label.shape, (463, 387, 3))
+        macro = slide.get_aux_image_raster("Macro")
+        self.assertEqual(macro.shape, (431, 1280, 3))
+
+
         # test scene metadates
-        scene_names = ["Image", "Thumbnail", "Label", "Macro"]
+        scene_names = ["Image"]
         compression_types = [
             slideio.Compression.Jpeg,
-            slideio.Compression.Jpeg,
-            slideio.Compression.LempelZivWelch,
-            slideio.Compression.Jpeg
             ]
         scene_sizes = [
             (2220, 2967),
-            (574, 768),
-            (387, 463),
-            (1280, 431)
             ]
-        scene_magnifications = [20., 0., 0., 0.]
+        scene_magnifications = [20.]
 
         for scene_index in range(num_scenes):
             scene = slide.get_scene(scene_index)
@@ -162,7 +171,7 @@ class TestSVS(unittest.TestCase):
                 self.assertEqual(channel_type, np.uint8)
 
         # test scene resolutuion
-        scene_resolutions = [0.4990e-6, 0, 0, 0]
+        scene_resolutions = [0.4990e-6]
         for scene_index in range(num_scenes):
             scene = slide.get_scene(scene_index)
             self.assertTrue(scene is not None)
@@ -188,37 +197,34 @@ class TestSVS(unittest.TestCase):
             "svs",
             "CMU-1-Small-Region.svs"
             )
-        metadata_pic_paths = [
-            get_test_image_path(
-                "svs",
-                "CMU-1-Small-Region-page-0.tif"
-            ),
-            get_test_image_path(
+        metadata_pic_paths = {
+            "Thumbnail" : get_test_image_path(
                 "svs",
                 "CMU-1-Small-Region-page-1.tif"
             ),
-            get_test_image_path(
+            "Label" : get_test_image_path(
                 "svs",
                 "CMU-1-Small-Region-page-2.tif"
             ),
-            get_test_image_path(
+            "Macro": get_test_image_path(
                 "svs",
                 "CMU-1-Small-Region-page-3.tif"
             ),
-        ]
+        }
         slide = slideio.open_slide(image_path, "SVS")
         self.assertTrue(slide is not None)
-        num_scenes = slide.num_scenes
-        self.assertEqual(num_scenes, 4)
-        for scene_index in range(1, num_scenes):
-            scene = slide.get_scene(scene_index)
-            self.assertTrue(scene is not None)
-            scene_image = scene.read_block(channel_indices=[2, 1, 0])
+        num_aux_images = slide.num_aux_images
+        self.assertEqual(num_aux_images, 3)
+        image_names = slide.get_aux_image_names()
+        for image_name in image_names:
+            image = slide.get_aux_image_raster(image_name, channel_indices=[2, 1, 0])
             reference_image = cv.imread(
-                metadata_pic_paths[scene_index],
+                metadata_pic_paths[image_name],
                 cv.IMREAD_UNCHANGED
                 )
-            self.assertEqual(scene_image.shape, reference_image.shape)
+            self.assertEqual(image.shape, reference_image.shape)
+            score = slideio.compare_images(image, reference_image)
+            self.assertEqual(score, 1)
 
     def test_file_rgb_image(self):
         """
@@ -239,7 +245,7 @@ class TestSVS(unittest.TestCase):
         slide = slideio.open_slide(image_path, "SVS")
         self.assertTrue(slide is not None)
         num_scenes = slide.num_scenes
-        self.assertEqual(num_scenes, 4)
+        self.assertEqual(num_scenes, 1)
         scene = slide.get_scene(0)
         self.assertTrue(scene is not None)
         scene_image = scene.read_block()
@@ -270,7 +276,7 @@ class TestSVS(unittest.TestCase):
         slide = slideio.open_slide(image_path, "SVS")
         self.assertTrue(slide is not None)
         num_scenes = slide.num_scenes
-        self.assertEqual(num_scenes, 4)
+        self.assertEqual(num_scenes, 1)
         scene = slide.get_scene(0)
         self.assertTrue(scene is not None)
         x_beg = 500
@@ -309,7 +315,7 @@ class TestSVS(unittest.TestCase):
         slide = slideio.open_slide(image_path, "SVS")
         self.assertTrue(slide is not None)
         num_scenes = slide.num_scenes
-        self.assertEqual(num_scenes, 4)
+        self.assertEqual(num_scenes, 1)
         scene = slide.get_scene(0)
         self.assertTrue(scene is not None)
         x_beg = 500
@@ -368,7 +374,7 @@ class TestSVS(unittest.TestCase):
         slide = slideio.open_slide(image_path, "SVS")
         self.assertTrue(slide is not None)
         num_scenes = slide.num_scenes
-        self.assertEqual(num_scenes, 4)
+        self.assertEqual(num_scenes, 1)
         scene = slide.get_scene(0)
         self.assertTrue(scene is not None)
         scene_image = scene.read_block(
@@ -400,7 +406,7 @@ class TestSVS(unittest.TestCase):
         slide = slideio.open_slide(image_path, "SVS")
         self.assertTrue(slide is not None)
         num_scenes = slide.num_scenes
-        self.assertEqual(num_scenes, 4)
+        self.assertEqual(num_scenes, 1)
         scene = slide.get_scene(0)
         self.assertTrue(scene is not None)
         x_beg = 4000
@@ -449,7 +455,7 @@ class TestSVS(unittest.TestCase):
         slide = slideio.open_slide(image_path, "SVS")
         self.assertTrue(slide is not None)
         num_scenes = slide.num_scenes
-        self.assertEqual(num_scenes, 4)
+        self.assertEqual(num_scenes, 1)
         scene = slide.get_scene(0)
         self.assertTrue(scene is not None)
         x_beg = 4000
@@ -514,7 +520,7 @@ class TestSVS(unittest.TestCase):
         slide = slideio.open_slide(image_path, "SVS")
         self.assertTrue(slide is not None)
         num_scenes = slide.num_scenes
-        self.assertEqual(num_scenes, 4)
+        self.assertEqual(num_scenes, 1)
         scene = slide.get_scene(0)
         self.assertTrue(scene is not None)
         x_beg = 4000
@@ -582,7 +588,7 @@ class TestSVS(unittest.TestCase):
         slide = slideio.open_slide(image_path, "SVS")
         self.assertTrue(slide is not None)
         num_scenes = slide.num_scenes
-        self.assertEqual(num_scenes, 4)
+        self.assertEqual(num_scenes, 1)
         scene = slide.get_scene(0)
         self.assertTrue(scene is not None)
         x_beg = 4000

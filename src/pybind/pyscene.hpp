@@ -31,6 +31,9 @@ public:
     pybind11::array readBlock(std::tuple<int,int,int,int> rect,
         std::tuple<int,int> size, std::vector<int> channelIndices,
         std::tuple<int,int> sliceRange, std::tuple<int,int> tframeRange) const;
+    std::list<std::string> getAuxImageNames() const;
+    int getNumAuxImages() const;
+    std::shared_ptr<PyScene> getAuxImage(const std::string& imageName);
 private:
     PyRect adjustSourceRect(const PyRect& rect) const;
     PySize adjustTargetSize(const PyRect& rect, const PySize& size) const;

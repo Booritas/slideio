@@ -5,3 +5,7 @@
 
 using namespace slideio;
 
+std::shared_ptr<CVScene> CVSlide::getAuxImage(const std::string& sceneName) const
+{
+    throw std::runtime_error("The slide does not have any auxiliary image");
+}

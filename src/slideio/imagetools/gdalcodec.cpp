@@ -175,6 +175,7 @@ static GDALDataType toGdalType(slideio::DataType dt)
     {
     case slideio::DataType::DT_Byte: return GDT_Byte;
     case slideio::DataType::DT_Int16: return GDT_Int16;
+    case slideio::DataType::DT_UInt16: return GDT_UInt16;
     case slideio::DataType::DT_Int32: return GDT_Int32;
     case slideio::DataType::DT_Float32: return GDT_Float32;
     case slideio::DataType::DT_Float64: return GDT_Float64;

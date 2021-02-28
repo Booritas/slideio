@@ -99,8 +99,26 @@ void CZIScene::readResampledBlockChannels(const cv::Rect& blockRect, const cv::S
     readResampledBlockChannelsEx(blockRect, blockSize, componentIndices, 0, 0, output);
 }
 
+void CZIScene::addAuxImage(const std::string& name, std::shared_ptr<CVScene> image)
+{
+    m_auxNames.push_back(name);
+    m_auxImages[name] = image;
+}
+
+
+std::shared_ptr<CVScene> CZIScene::getAuxImage(const std::string& sceneName) const
+{
+    auto it = m_auxImages.find(sceneName);
+    if(it == m_auxImages.end()) {
+        throw std::runtime_error(
+            (boost::format("The scene does not have auxiliary image %1%") %sceneName).str());
+    }
+    return it->second;
+}
+
+
 void CZIScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
-    const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output)
+                                            const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output)
 {
     TilerData userData;
     const double zoomX = static_cast<double>(blockSize.width) / static_cast<double>(blockRect.width);
@@ -114,8 +132,8 @@ void CZIScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv:
     cv::Rect zoomLevelRect;
     ImageTools::scaleRect(blockRect, levelZoom, levelZoom, zoomLevelRect);
     userData.relativeZoom = levelZoom / zoom;
-    userData.zSliceIndex = zSliceIndex;
-    userData.tFrameIndex = tFrameIndex;
+    userData.zSliceIndex = zSliceIndex + m_firstSliceIndex;
+    userData.tFrameIndex = tFrameIndex + m_firstTFrameIndex;
     TileComposer::composeRect(this, componentIndices, zoomLevelRect, blockSize, output, &userData);
 }
 
@@ -181,8 +199,25 @@ void CZIScene::compute4DParameters()
         firstZSlice = std::min(firstZSlice, block.firstZSlice());
         lastZSlice = std::max(lastZSlice, block.lastZSlice());
     }
-    if(firstZSlice>0 || firstTFrame>0)
-    {
+    m_firstSliceIndex = firstZSlice;
+    m_firstTFrameIndex = firstTFrame;
+    if(firstZSlice == 0 && firstTFrame == 0){
+        m_numZSlices = lastZSlice + 1;
+        m_numTFrames = lastTFrame + 1;
+    }
+    else if(firstZSlice==0 && firstTFrame>0 && firstTFrame==lastTFrame) {
+        m_numZSlices = lastZSlice + 1;
+        m_numTFrames = 1;
+    }
+    else if (firstTFrame == 0 && firstZSlice > 0 && firstZSlice == lastZSlice) {
+        m_numTFrames = m_numTFrames + 1;
+        m_numZSlices = 1;
+    }
+    else if (firstTFrame > 0 && firstTFrame == lastTFrame && firstZSlice > 0 && firstZSlice == lastZSlice) {
+        m_numTFrames = 1;
+        m_numZSlices = 1;
+    }
+    else {
         throw std::runtime_error(
             (boost::format("CZIImageDriver: Unexpected 4D configuration: Z:(%1%-%2%) Time:(%3%-%4%)")
                 % firstZSlice
@@ -190,8 +225,6 @@ void CZIScene::compute4DParameters()
                 % firstTFrame
                 % lastTFrame).str());
     }
-    m_numZSlices = lastZSlice + 1;
-    m_numTFrames = lastTFrame + 1;
 }
 
 const CZIScene::ZoomLevel& CZIScene::getBaseZoomLevel() const
