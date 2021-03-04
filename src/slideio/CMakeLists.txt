@@ -2,6 +2,7 @@ set(LIBRARY_NAME slide_io)
 
 CONAN_MAIN()
 
+
 add_subdirectory(core)
 add_subdirectory(drivers)
 add_subdirectory(imagetools)
@@ -25,6 +26,8 @@ set(SOURCE_FILES
 )
 
 add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES})
+
+SOURCE_GROUP_BY_FOLDER(SOURCE_FILES)
 
 IF(WIN32)
    target_link_libraries(${LIBRARY_NAME} Shlwapi)

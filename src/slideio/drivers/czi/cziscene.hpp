@@ -87,6 +87,8 @@ namespace slideio
         Compression getCompression() const override{
             return m_compression;
         }
+        void addAuxImage(const std::string& name, std::shared_ptr<CVScene> image);
+        std::shared_ptr<CVScene> getAuxImage(const std::string& sceneName) const override;
     protected:
         void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
             const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output) override;
@@ -129,7 +131,10 @@ namespace slideio
         SceneParams m_sceneParams{};
         int m_numZSlices;
         int m_numTFrames;
+        int m_firstSliceIndex = 0;
+        int m_firstTFrameIndex = 0;
         Compression m_compression;
+        std::map<std::string, std::shared_ptr<CVScene>> m_auxImages;
     };
 }
 

@@ -23,8 +23,16 @@ namespace slideio
         virtual std::string getFilePath() const = 0;
         virtual const std::string& getRawMetadata() const {return m_rawMetadata;}
         virtual std::shared_ptr<CVScene> getScene(int index) const = 0;
+        virtual const std::list<std::string>& getAuxImageNames() const {
+            return m_auxNames;
+        }
+        virtual int getNumAuxImages() const {
+            return static_cast<int>(m_auxNames.size());
+        }
+        virtual std::shared_ptr<CVScene> getAuxImage(const std::string& sceneName) const;
     protected:
         std::string m_rawMetadata;
+        std::list<std::string> m_auxNames;
     };
 }
 

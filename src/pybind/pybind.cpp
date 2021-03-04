@@ -23,7 +23,10 @@ PYBIND11_MODULE(slideiopybind, m) {
         py::arg("right"));
     py::class_<PySlide, std::shared_ptr<PySlide>>(m, "Slide")
         .def("get_scene", &PySlide::getScene, py::arg("index"), "Returns a Scene object by index")
+        .def("get_aux_image", &PySlide::getAuxImage, py::arg("image_name"), "Returns an auxiliary image object by name")
+        .def("get_aux_image_names", &PySlide::getAuxImageNames, "Returns list of aux images")
         .def_property_readonly("num_scenes", &PySlide::getNumScenes, "Number of scenes in the slide")
+        .def_property_readonly("num_aux_images", &PySlide::getNumAuxImages, "Number of auxiliary images")
         .def_property_readonly("raw_metadata", &PySlide::getRawMetadata, "Slide raw metadata")
         .def_property_readonly("file_path", &PySlide::getFilePath, "File path to the image");
     py::class_<PyScene, std::shared_ptr<PyScene>>(m, "Scene")
@@ -38,9 +41,12 @@ PYBIND11_MODULE(slideiopybind, m) {
         .def_property_readonly("file_path", &PyScene::getFilePath, "File path to the scene")
         .def_property_readonly("rect", &PyScene::getRect, "Scene rectangle")
         .def_property_readonly("num_channels", &PyScene::getNumChannels, "Number of channels in the scene")
+        .def_property_readonly("num_aux_images", &PyScene::getNumAuxImages, "Number of auxiliary images")
         .def("get_channel_data_type", &PyScene::getChannelDataType, py::arg("index"), "Returns datatype of a channel by index")
         .def("get_channel_name", &PyScene::getChannelName, py::arg("index"), "Returns channel name (if any)")
-        .def("read_block", &PyScene::readBlock, 
+        .def("get_aux_image", &PyScene::getAuxImage, py::arg("image_name"), "Returns an auxiliary image object by name")
+        .def("get_aux_image_names", &PyScene::getAuxImageNames, "Returns list of aux images")
+        .def("read_block", &PyScene::readBlock,
             py::arg("rect") = std::tuple<int,int,int,int>(0,0,0,0),
             py::arg("size")=std::tuple<int,int>(0,0),
             py::arg("channel_indices") = std::vector<int>(),

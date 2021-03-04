@@ -195,5 +195,7 @@ class TestCZI(unittest.TestCase):
             slideio.open_slide(image_path, "CZI")
 
 
+
+
 if __name__ == '__main__':
     unittest.main()

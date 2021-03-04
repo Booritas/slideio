@@ -202,3 +202,20 @@ PySize PyScene::adjustTargetSize(const PyRect& rect, const PySize& size) const
     return trgSize;
 }
 
+std::list<std::string> PyScene::getAuxImageNames() const
+{
+    return m_scene->getAuxImageNames();
+}
+
+int PyScene::getNumAuxImages() const
+{
+    return m_scene->getNumAuxImages();
+}
+
+std::shared_ptr<PyScene> PyScene::getAuxImage(const std::string& imageName)
+{
+    std::shared_ptr<slideio::Scene> scene = m_scene->getAuxImage(imageName);
+    std::shared_ptr<PyScene> wrapper(new PyScene(scene, m_slide));
+    return wrapper;
+}
+

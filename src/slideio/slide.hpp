@@ -6,6 +6,7 @@
 #include "slideio/slideio_def.hpp"
 #include <string>
 #include <memory>
+#include <list>
 #include "scene.hpp"
 
 #if defined(_MSC_VER)
@@ -26,6 +27,9 @@ namespace slideio
         std::string getFilePath() const;
         std::shared_ptr<Scene> getScene(int index) const;
         const std::string& getRawMetadata() const;
+        const std::list<std::string>& getAuxImageNames() const;
+        virtual int getNumAuxImages() const;
+        virtual std::shared_ptr<Scene> getAuxImage(const std::string& sceneName) const;
     private:
         std::shared_ptr<CVSlide> m_slide;
     };

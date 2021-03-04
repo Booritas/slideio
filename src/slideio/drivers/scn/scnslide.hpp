@@ -29,8 +29,10 @@ namespace slideio
         int getNumScenes() const override;
         std::string getFilePath() const override;
         std::shared_ptr<slideio::CVScene> getScene(int index) const override;
+        std::shared_ptr<CVScene> getAuxImage(const std::string& sceneName) const override;
     private:
         std::vector<std::shared_ptr<slideio::SCNScene>> m_Scenes;
+        std::map<std::string, std::shared_ptr<slideio::SCNScene>> m_auxImages;
         std::string m_filePath;
         TIFFKeeper m_tiff;
     };

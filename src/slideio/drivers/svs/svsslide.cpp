@@ -7,9 +7,15 @@
 #include "slideio/drivers/svs/svstiledscene.hpp"
 
 #include <boost/filesystem.hpp>
+#include <boost/format.hpp>
 
 
 using namespace slideio;
+
+const char* THUMBNAIL = "Thumbnail";
+const char* MACRO = "Macro";
+const char* LABEL = "Label";
+
 
 SVSSlide::SVSSlide()
 {
@@ -79,7 +85,9 @@ std::shared_ptr<SVSSlide> SVSSlide::openFile(const std::string& filePath)
             macro = nextDir;
     }
     std::vector<std::shared_ptr<CVScene>> scenes;
-    
+    std::map<std::string, std::shared_ptr<CVScene>> auxImages;
+    std::list<std::string> auxNames;
+
     if(image.size()>0){
         std::vector<TiffDirectory> image_dirs;
         for(const auto index: image){
@@ -92,24 +100,31 @@ std::shared_ptr<SVSSlide> SVSSlide::openFile(const std::string& filePath)
     if(thumbnail>=0)
     {
         std::shared_ptr<CVScene> scene = std::make_shared <SVSSmallScene>(
-            filePath,"Thumbnail", directories[thumbnail], tiff);
-        scenes.push_back(scene);
+            filePath, THUMBNAIL, directories[thumbnail], tiff);
+        auxImages[THUMBNAIL] = scene;
+        auxNames.emplace_back(THUMBNAIL);
     }
     if(label>=0)
     {
         std::shared_ptr<CVScene> scene = std::make_shared <SVSSmallScene>(
-            filePath,"Label", directories[label], tiff);
-        scenes.push_back(scene);
+            filePath,LABEL, directories[label], tiff);
+        auxImages[LABEL] = scene;
+        auxNames.emplace_back(LABEL);
     }
     if(macro>=0)
     {
         std::shared_ptr<CVScene> scene = std::make_shared <SVSSmallScene>(
-            filePath,"Macro", directories[macro], tiff);
-        scenes.push_back(scene);
+            filePath, MACRO, directories[macro], tiff);
+        auxImages[MACRO] = scene;
+        auxNames.emplace_back(MACRO);
     }
     slide.reset(new SVSSlide);
     slide->m_Scenes.assign(scenes.begin(), scenes.end());
     slide->m_filePath = filePath;
+    slide->m_auxImages = auxImages;
+    slide->m_auxNames = auxNames;
+
+
     if(!directories.empty())
     {
         const auto& dir = directories.front();
@@ -117,4 +132,15 @@ std::shared_ptr<SVSSlide> SVSSlide::openFile(const std::string& filePath)
     }
     
     return slide;
+}
+
+std::shared_ptr<CVScene> SVSSlide::getAuxImage(const std::string& sceneName) const
+{
+    auto it = m_auxImages.find(sceneName);
+    if(it==m_auxImages.end()) {
+        throw std::runtime_error(
+            (boost::format("The slide does non have auxiliary image \"%1%\"") % sceneName).str()
+        );
+    }
+    return it->second;
 }
