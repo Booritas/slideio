@@ -112,13 +112,6 @@ TEST(ImageTools, readJxrImageCorrupted)
     EXPECT_THROW(slideio::ImageTools::readJxrImage(pathJxr, jxrImage), std::exception);
 }
 
-TEST(ImageTools, readJxrImageCorrupted2)
-{
-    std::string pathJxr = TestTools::getTestImagePath("jxr","corrupted2.wdp");
-    cv::Mat jxrImage, bmpImage;
-    EXPECT_THROW(slideio::ImageTools::readJxrImage(pathJxr, jxrImage), std::exception);
-}
-
 TEST(ImageTools, decodeJxrBlock)
 {
     std::string pathJxr = TestTools::getTestImagePath("jxr","seagull.wdp");
@@ -171,4 +164,106 @@ TEST(ImageTools, decodeJxrBlock16)
     size_t rasterSize = jxrImage.total() * jxrImage.elemSize();
     ASSERT_EQ(rasterSize, raw.size());
     ASSERT_EQ(memcmp(jxrImage.data, raw.data(), raw.size()), 0);
+}
+
+TEST(ImageTools, decodeJpegStream)
+{
+    std::string pathJpg = TestTools::getTestImagePath("jpeg", "lena_256.jpg");
+    std::string pathPng = TestTools::getTestImagePath("jpeg", "lena_256.png");
+
+    std::ifstream file(pathJpg, std::ios::in | std::ios::binary | std::ios::ate);
+    ASSERT_TRUE(file.is_open());
+    size_t size = file.tellg();
+    ASSERT_GT(size, 0);
+    std::vector<uint8_t> buffer(size);
+    file.seekg(0, std::ios::beg);
+    file.read(reinterpret_cast<char*>(buffer.data()), size);
+    file.close();
+    // decode the codeblock
+    cv::Mat jpegImage;
+    slideio::ImageTools::decodeJpegStream(buffer.data(), buffer.size(), jpegImage);
+    ASSERT_FALSE(jpegImage.empty());
+    cv::Mat bmpImage;
+    slideio::ImageTools::readGDALImage(pathPng, bmpImage);
+    ASSERT_FALSE(bmpImage.empty());
+    // compare similarity of rasters from bmp and decoded jpeg file
+    cv::Mat score;
+    cv::matchTemplate(jpegImage, bmpImage, score, cv::TM_CCOEFF_NORMED);
+    double minScore(0), maxScore(0);
+    cv::minMaxLoc(score, &minScore, &maxScore);
+    ASSERT_LT(0.999, minScore);
+}
+
+TEST(ImageTools, decodeJpegStream2)
+{
+    std::string pathJpg = TestTools::getTestImagePath("jpeg", "p2YCpvg.jpeg");
+    std::string pathPng = TestTools::getTestImagePath("jpeg", "p2YCpvg.png");
+
+    std::ifstream file(pathJpg, std::ios::in | std::ios::binary | std::ios::ate);
+    ASSERT_TRUE(file.is_open());
+    size_t size = file.tellg();
+    ASSERT_GT(size, 0);
+    std::vector<uint8_t> buffer(size);
+    file.seekg(0, std::ios::beg);
+    file.read(reinterpret_cast<char*>(buffer.data()), size);
+    file.close();
+    // decode the codeblock
+    cv::Mat jpegImage;
+    slideio::ImageTools::decodeJpegStream(buffer.data(), buffer.size(), jpegImage);
+    ASSERT_FALSE(jpegImage.empty());
+    cv::Mat bmpImage;
+    slideio::ImageTools::readGDALImage(pathPng, bmpImage);
+    ASSERT_FALSE(bmpImage.empty());
+    // compare similarity of rasters from bmp and decoded jpeg file
+    cv::Mat score;
+    cv::matchTemplate(jpegImage, bmpImage, score, cv::TM_CCOEFF_NORMED);
+    double minScore(0), maxScore(0);
+    cv::minMaxLoc(score, &minScore, &maxScore);
+    ASSERT_LT(0.999, minScore);
+}
+
+TEST(ImageTools, computeSimilarityEqual)
+{
+    cv::Mat left(100, 200, CV_16SC1, cv::Scalar((short)55));
+    cv::Mat right(100, 200, CV_16SC1, cv::Scalar((short)55));
+    double similarity = slideio::ImageTools::computeSimilarity(left, right);
+    EXPECT_DOUBLE_EQ(similarity, 1.);
+}
+
+TEST(ImageTools, computeSimilarityDifferent)
+{
+    cv::Mat left(100, 200, CV_16SC1);
+    cv::Mat right(100, 200, CV_16SC1);
+
+    double mean = 0.0;
+    double stddev = 500.0 / 3.0;
+    cv::randn(left, cv::Scalar(mean), cv::Scalar(stddev));
+    cv::randu(right, cv::Scalar(-500), cv::Scalar(500));
+
+    double similarity = slideio::ImageTools::computeSimilarity(left, right);
+    EXPECT_LT(similarity, 0.6);
+}
+
+TEST(ImageTools, computeSimilaritySimilar)
+{
+    std::string pathPng = TestTools::getTestImagePath("jpeg", "lena_256.png");
+    cv::Mat left;
+    slideio::ImageTools::readGDALImage(pathPng, left);
+    cv::Mat right = left.clone();
+    cv::blur(right, right, cv::Size(3, 3));
+    double similarity = slideio::ImageTools::computeSimilarity(left, right);
+    EXPECT_GT(similarity, 0.9);
+}
+
+TEST(ImageTools, computeSimilaritySimilar2)
+{
+    std::string pathPng = TestTools::getTestImagePath("jpeg", "lena_256.png");
+    cv::Mat left;
+    slideio::ImageTools::readGDALImage(pathPng, left);
+    cv::Mat right = left.clone();
+    cv::Point center(right.cols / 2, right.rows / 2);
+    cv::circle(right, center, 75, cv::Scalar(0, 0, 0), cv::FILLED);
+    double similarity = slideio::ImageTools::computeSimilarity(left, right);
+    EXPECT_LT(similarity, 0.75);
+    EXPECT_GT(similarity, 0.5);
 }

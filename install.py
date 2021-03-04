@@ -168,7 +168,7 @@ if __name__ == "__main__":
     os_platform = get_platform()
     slideio_directory = os.getcwd()
     root_directory = os.path.dirname(slideio_directory)
-    build_directory = os.path.join(slideio_directory, "build")
+    build_directory = os.path.join(slideio_directory, "build", os_platform)
     print("----------Installattion of slideio-----------------")
     print(F"Slideio directory: {slideio_directory}")
     print(F"Build directory: {build_directory}")

@@ -8,14 +8,19 @@ import shutil
 
 from setuptools import setup, Extension, find_packages
 from setuptools.command.build_ext import build_ext
+import setuptools.command.build_py
 from distutils.version import LooseVersion
 from ctypes.util import find_library
 
-version = '0.4.'
+version = '0.5.'
+vrs_sub = '0'
+
 if os.environ.get('CI_PIPELINE_IID'):
-    version = version + os.environ['CI_PIPELINE_IID']
-else:
-    verions = version + '0'
+    ci_id = os.environ['CI_PIPELINE_IID']
+    if (isinstance(ci_id, str) and len(ci_id)>0) or isinstance(ci_id, int):
+        vrs_sub = ci_id
+
+version = version + vrs_sub
 
 source_dir= os.path.abspath('../../')
 build_dir= os.path.abspath('../../build_py')
@@ -186,6 +191,7 @@ setup(
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
+        'Programming Language :: Python :: 3.9',
     ],
     install_requires=['numpy'],
     extras_require={},

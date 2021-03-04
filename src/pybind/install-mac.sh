@@ -1,6 +1,5 @@
 set -e
-export CI_PIPELINE_IID=0
-pythons=( "3.8" "3.7" "3.6" "3.5" )
+pythons=("3.9" "3.8" "3.7" "3.6" "3.5" )
 for version in "${pythons[@]}"
 do
    rm -rf ./build

@@ -53,7 +53,7 @@ class TestCZI(unittest.TestCase):
             channel_type = scene.get_channel_data_type(channel_index)
             self.assertEqual(channel_type, np.uint8)
             compression = scene.compression
-            self.assertEqual(compression, slideio.Uncompressed)
+            self.assertEqual(compression, slideio.Compression.Uncompressed)
         res = scene.resolution
         correct_res = 9.76783e-8
         self.assertEqual(correct_res, pytest.approx(res[0]))
@@ -89,7 +89,7 @@ class TestCZI(unittest.TestCase):
             channel_type = scene.get_channel_data_type(channel_index)
             self.assertEqual(channel_type, np.uint16)
             compression = scene.compression
-            self.assertEqual(compression, slideio.Uncompressed)
+            self.assertEqual(compression, slideio.Compression.Uncompressed)
             channel_name = scene.get_channel_name(channel_index)
             self.assertEqual(channel_name, channel_names[channel_index])
         res = scene.resolution
@@ -161,9 +161,9 @@ class TestCZI(unittest.TestCase):
                 frames=frames
                 )
             image_shape = image_raster.shape
-            self.assertEqual(image_shape, (512, 512, 3))
+            self.assertEqual(image_shape, (3, 512, 512))
             for slice_index in range(slices[0], slices[1]):
-                slice_raster = image_raster[:, :, slice_index-slices[0]]
+                slice_raster = image_raster[slice_index-slices[0], :, :]
                 slice_shape = slice_raster.shape
                 self.assertEqual(slice_shape, (512, 512))
                 ref_image_name = "pJP31mCherry.grey/pJP31mCherry_b0t0z" + \

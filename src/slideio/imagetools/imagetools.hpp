@@ -22,8 +22,10 @@ namespace slideio
         static int dataTypeSize(slideio::DataType dt);
         static void readGDALImage(const std::string& path, cv::OutputArray output);
         static void writeRGBImage(const std::string& path, Compression compression, cv::Mat raster);
+        static void writeTiffImage(const std::string& path, cv::Mat raster);
         static void readJxrImage(const std::string& path, cv::OutputArray output);
         static void decodeJxrBlock(const uint8_t* data, size_t size, cv::OutputArray output);
+        static void decodeJpegStream(const uint8_t* data, size_t size, cv::OutputArray output);
         // jpeg 2000 related methods
         static void readJp2KFile(const std::string& path, cv::OutputArray output);
         static void decodeJp2KStream(const std::vector<uint8_t>& data, cv::OutputArray output,
@@ -31,6 +33,8 @@ namespace slideio
             bool forceYUV = false);
         static void scaleRect(const cv::Rect& srcRect, const cv::Size& newSize, cv::Rect& trgRect);
         static void scaleRect(const cv::Rect& srcRect, double scaleX, double scaleY, cv::Rect& trgRect);
+        static double computeSimilarity(const cv::Mat& left, const cv::Mat& right);
+        static double compareHistograms(const cv::Mat& leftM, const cv::Mat& rightM, int bins);
     };
 }
 

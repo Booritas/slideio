@@ -15,7 +15,7 @@ namespace slideio
         DT_Float32 = 5,
         DT_Float64 = 6,
         DT_UInt16 = 2,
-        DT_LastValid = 2,
+        DT_LastValid = 3,
         DT_Unknown = 1024,
         DT_None = 2048
     };

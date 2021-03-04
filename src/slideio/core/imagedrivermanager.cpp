@@ -8,6 +8,7 @@
 #include "slideio/drivers/czi/cziimagedriver.hpp"
 #include "slideio/drivers/scn/scnimagedriver.hpp"
 #include "slideio/drivers/dcm/dcmimagedriver.hpp"
+#include "slideio/drivers/zvi/zviimagedriver.hpp"
 
 using namespace slideio;
 std::map<std::string, std::shared_ptr<ImageDriver>> ImageDriverManager::driverMap;
@@ -59,6 +60,10 @@ void ImageDriverManager::initialize()
         }
         {
             std::shared_ptr<ImageDriver> driver{ std::make_shared<DCMImageDriver>() };
+            driverMap[driver->getID()] = driver;
+        }
+        {
+            std::shared_ptr<ImageDriver> driver{ std::make_shared<ZVIImageDriver>() };
             driverMap[driver->getID()] = driver;
         }
     }

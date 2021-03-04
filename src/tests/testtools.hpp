@@ -3,12 +3,16 @@
 // of this distribution and at http://slideio.com/license.html.
 #pragma once
 #include <string>
+#include <opencv2/core/mat.hpp>
 
 class TestTools
 {
 public:
 	static bool isPrivateTestEnabled();
-	static std::string getTestImageDirectory(bool priv=false);
+    static bool isFullTestEnabled();
+    static std::string getTestImageDirectory(bool priv=false);
 	static std::string getTestImagePath(const std::string& subfolder, const std::string& image, bool priv=false);
+    static std::string getFullTestImagePath(const std::string& subfolder, const std::string& image);
+    static void readRawImage(std::string& path, cv::Mat& image);
 };
 
