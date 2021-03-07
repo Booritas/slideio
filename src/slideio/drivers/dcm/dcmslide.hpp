@@ -21,12 +21,14 @@ namespace slideio
         int getNumScenes() const override;
         std::string getFilePath() const override;
         std::shared_ptr<CVScene> getScene(int index) const override;
-        double getMagnification() const;
-        Resolution getResolution() const;
-        double getZSliceResolution() const;
-        double getTFrameResolution() const;
+        void initFromFile();
     private:
+        void processSeries(std::vector<std::shared_ptr<DCMFile>>& files);
+        void initFromDir();
+        void init();
     private:
+        std::vector<std::shared_ptr<DCMScene>> m_scenes;
+        std::string m_srcPath;
     };
 }
 

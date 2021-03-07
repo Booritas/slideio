@@ -3,6 +3,9 @@
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/drivers/dcm/dcmscene.hpp"
 #include "slideio/drivers/dcm/dcmslide.hpp"
+#include <set>
+#include <boost/format.hpp>
+
 
 using namespace slideio;
 
@@ -17,22 +20,22 @@ std::string DCMScene::getFilePath() const
 
 cv::Rect DCMScene::getRect() const
 {
-    return cv::Rect();
+    return m_rect;
 }
 
 int DCMScene::getNumChannels() const
 {
-    return 0;
+    return m_numChannels;
 }
 
 int DCMScene::getNumZSlices() const
 {
-    return 0;
+    return m_numSlices;
 }
 
 int DCMScene::getNumTFrames() const
 {
-    return 0;
+    return m_numFrames;
 }
 
 double DCMScene::getZSliceResolution() const
@@ -83,10 +86,61 @@ void DCMScene::readResampled4DBlockChannels(const cv::Rect& blockRect, const cv:
 
 std::string DCMScene::getName() const
 {
-    return "";
+    return m_name;
 }
 
 Compression DCMScene::getCompression() const
 {
     return Compression::Unknown;
+}
+
+void DCMScene::addFile(std::shared_ptr<DCMFile>& file)
+{
+    m_files.push_back(file);
+}
+
+void DCMScene::init()
+{
+    if (m_files.empty()) {
+        std::string message = "DCMImageDriver: attempt to create an empty scene";
+        throw std::runtime_error(message);
+    }
+    std::set<std::tuple<int, int>> sizes;
+    std::set<std::string> series;
+    std::set<int> channelCounts;
+    int slices = 0;
+    for(auto&& file: m_files) {
+        sizes.insert({ file->getWidth(), file->getHeight() });
+        slices += file->getNumSlices();
+        series.insert(file->getSeriesUID());
+        channelCounts.insert(file->getNumChannels());
+    }
+    if(sizes.size()!=1) {
+        std::string message = 
+            (boost::format("DCMImageDriver: Unexpected number of different sizes in a scene. Expected: 1. Found: %1%")
+                % sizes.size()).str();
+        throw std::runtime_error(message);
+    }
+    if (series.size() != 1) {
+        std::string message =
+            (boost::format("DCMImageDriver: Unexpected number of different series UID in a scene. Expected: 1. Found: %1%")
+                % series.size()).str();
+        throw std::runtime_error(message);
+    }
+    if (channelCounts.size() != 1) {
+        std::string message = "DCMImageDriver: All frames shall have the same number of channels";
+        throw std::runtime_error(message);
+    }
+    auto size = *sizes.begin();
+    m_rect = { 0, 0, std::get<0>(size), std::get<1>(size) };
+    m_numSlices = slices;
+    m_name = *(series.begin());
+    m_numChannels = *(channelCounts.begin());
+    if(m_files.size()>1) {
+        std::sort(m_files.begin(), m_files.end(),
+            [](std::shared_ptr<DCMFile>& left, std::shared_ptr<DCMFile>& right)
+            {
+                return left->getInstanceNumber() < right->getInstanceNumber();
+            });
+    }
 }

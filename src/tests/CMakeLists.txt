@@ -20,6 +20,7 @@ set(TEST_SOURCES
   test_testtools.cpp
   test_tools.cpp
   test_cvtools.cpp
+  test_dcmfile.cpp
   testtiler.cpp
   testtiler.hpp
   testtools.cpp

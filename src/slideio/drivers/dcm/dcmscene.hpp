@@ -4,10 +4,7 @@
 #ifndef OPENCV_slideio_dcmscene_HPP
 #define OPENCV_slideio_dcmscene_HPP
 #include "slideio/core/cvscene.hpp"
-#include "slideio/imagetools/tilecomposer.hpp"
-#include "slideio/drivers/czi/czisubblock.hpp"
-#include "slideio/drivers/czi/czistructs.hpp"
-#include <map>
+#include "dcmfile.hpp"
 
 #if defined(_MSC_VER)
 #pragma warning( push )
@@ -41,7 +38,15 @@ namespace slideio
             cv::OutputArray output) override;
         std::string getName() const override;
         Compression getCompression() const override;
+        void addFile(std::shared_ptr<DCMFile>& file);
+        void init();
     private:
+        std::vector<std::shared_ptr<DCMFile>> m_files;
+        cv::Rect m_rect = { 0, 0, 0, 0 };
+        std::string m_name;
+        int m_numSlices = 1;
+        int m_numFrames = 1;
+        int m_numChannels = 0;
     };
 }
 

@@ -10,5 +10,7 @@ libtiff/4.1.0
 libjpeg/9d@_/_
 expat/2.2.10
 pole/1.0.1@slideio/stable
+dcmtk/3.6.5
+openssl/1.1.1h
 [options]
 boost:shared=False

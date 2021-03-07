@@ -22,7 +22,12 @@ std::string DCMImageDriver::getID() const
 
 std::shared_ptr<CVSlide> DCMImageDriver::openFile(const std::string& filePath)
 {
-	return nullptr;
+    namespace fs = boost::filesystem;
+    if (!fs::exists(filePath)) {
+        throw std::runtime_error(std::string("DCMImageDriver: File does not exist:") + filePath);
+    }
+    std::shared_ptr<CVSlide> ptr(new DCMSlide(filePath));
+    return ptr;
 }
 
 std::string DCMImageDriver::getFileSpecs() const
