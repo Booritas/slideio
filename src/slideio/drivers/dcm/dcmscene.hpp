@@ -32,7 +32,7 @@ namespace slideio
         void readResampledBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize,
             const std::vector<int>& componentIndices, cv::OutputArray output) override;
         void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
-            const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output);
+            const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output) override;
         void readResampled4DBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize,
             const std::vector<int>& channelIndices, const cv::Range& zSliceRange, const cv::Range& timeFrameRange,
             cv::OutputArray output) override;
