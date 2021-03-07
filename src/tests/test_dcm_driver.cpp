@@ -87,6 +87,10 @@ TEST(DCMImageDriver, openDirectoryRecursively)
     const int numScenes = slide->getNumScenes();
     ASSERT_EQ(numScenes, 2);
     auto scene = slide->getScene(0);
+    const std::string sceneName = scene->getName();
+    if(sceneName=="COU IV") {
+        scene = slide->getScene(1);
+    }
     ASSERT_TRUE(scene);
     const cv::Rect rect = scene->getRect();
     const cv::Rect refRect = { 0, 0, 512, 512 };

@@ -1,7 +1,7 @@
 // This file is part of slideio project.
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
-#ifndef OPENCV_slideio_dcmsfil_HPP
+#ifndef OPENCV_slideio_dcmsfile_HPP
 #define OPENCV_slideio_dcmfile_HPP
 #include "slideio/slideio_def.hpp"
 #include <string>
