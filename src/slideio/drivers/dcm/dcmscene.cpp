@@ -135,6 +135,10 @@ void DCMScene::init()
     m_rect = { 0, 0, std::get<0>(size), std::get<1>(size) };
     m_numSlices = slices;
     m_name = *(series.begin());
+    const std::string seriesDescription = (*(m_files.begin()))->getSeriesDescription();
+    if(!seriesDescription.empty()) {
+        m_name = seriesDescription;
+    }
     m_numChannels = *(channelCounts.begin());
     if(m_files.size()>1) {
         std::sort(m_files.begin(), m_files.end(),

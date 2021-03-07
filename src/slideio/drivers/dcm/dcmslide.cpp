@@ -63,7 +63,7 @@ void DCMSlide::processSeries(std::vector<std::shared_ptr<DCMFile>>& files)
         if (left->getInstanceNumber()<0 || right->getInstanceNumber()<0) {
             return false;
         }
-        return false;
+        return true;
     };
 
     if(!files.empty()) {
@@ -107,7 +107,7 @@ void DCMSlide::initFromDir()
     };
     fs::recursive_directory_iterator dir(m_srcPath), end;
     std::map<std::string, std::shared_ptr<Series>> seriesMap;
-    while(dir!=end) {
+    for (; dir != end; ++dir) {
         if(fs::is_regular_file(dir->path())) {
             try {
                 std::shared_ptr<DCMFile> file(new DCMFile(dir->path().string()));
@@ -117,6 +117,7 @@ void DCMSlide::initFromDir()
                 if(itScene==seriesMap.end()) {
                     std::shared_ptr<Series> series(new Series);
                     series->files.push_back(file);
+                    seriesMap[seriesUID] = series;
                 }
                 else {
                     itScene->second->files.push_back(file);

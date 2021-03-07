@@ -44,6 +44,9 @@ namespace slideio
         int getNumChannels() const {
             return m_numChannels;
         }
+        const std::string& getSeriesDescription() const {
+            return m_seriesDescription;
+        }
     private:
         DcmDataset* getDataset() const;
         DcmDataset* getValidDataset() const;
@@ -57,6 +60,7 @@ namespace slideio
         int m_slices = 1;
         int m_instanceNumber = -1;
         std::string m_seriesUID;
+        std::string m_seriesDescription;
         int m_numChannels = 0;
     };
 }

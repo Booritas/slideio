@@ -21,5 +21,6 @@ TEST(DCMFile, init)
     EXPECT_EQ(numSlices, 1);
     EXPECT_EQ(seriesUID, std::string("1.2.276.0.7230010.3.1.4.1787169844.28773.1454574501.602007"));
     EXPECT_EQ(1, file.getNumChannels());
+    EXPECT_EQ(file.getSeriesDescription(), "case0377");
 
 }

@@ -40,6 +40,7 @@ void DCMFile::init()
     if (!getIntTag(DCM_SamplesPerPixel, m_numChannels)) {
         m_numChannels = 1;
     }
+    getStringTag(DCM_SeriesDescription, m_seriesDescription);
 }
 
 DcmDataset* DCMFile::getDataset() const
