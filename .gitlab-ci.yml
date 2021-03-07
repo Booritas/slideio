@@ -170,6 +170,7 @@ cpp-test-windows:
     dependencies:
         - cpp-windows
     needs: ["cpp-windows"]
+    when: manual
 
 python-test-windows:
     stage: test
@@ -189,6 +190,7 @@ python-test-windows:
     dependencies:
         - python-windows
     needs: ["python-windows"]
+    when: manual
 
 
 deployment:
