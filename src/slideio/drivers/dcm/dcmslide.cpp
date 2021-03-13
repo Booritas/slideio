@@ -6,6 +6,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/format.hpp>
 #include <algorithm>
+#include "slideio/logs.hpp"
 
 using namespace slideio;
 namespace fs = boost::filesystem;
@@ -31,12 +32,14 @@ std::shared_ptr<CVScene> DCMSlide::getScene(int index) const
 }
 
 void DCMSlide::initFromFile() {
+    BOOST_LOG_TRIVIAL(trace) << "DCMImageDriver::initFromFile: initialize DCMSlide from file: " << m_srcPath;
     std::shared_ptr<DCMScene> scene(new DCMScene);
     std::shared_ptr<DCMFile> file(new DCMFile(m_srcPath));
     file->init();
     scene->addFile(file);
     scene->init();
     m_scenes.push_back(scene);
+    BOOST_LOG_TRIVIAL(trace) << "DCMImageDriver::initFromFile: initialize DCMSlide from file: " << m_srcPath;
 }
 
 void DCMSlide::processSeries(std::vector<std::shared_ptr<DCMFile>>& files)
@@ -83,7 +86,7 @@ void DCMSlide::processSeries(std::vector<std::shared_ptr<DCMFile>>& files)
                     m_scenes.push_back(scene);
                 }
                 catch(std::exception& ex) {
-                    
+                    BOOST_LOG_TRIVIAL(warning) << "DCMImageDriver: error openning file " << file->getFilePath() << ". Error: " << ex.what();
                 }
                 scene.reset(new DCMScene);
                 scene->addFile(file);
