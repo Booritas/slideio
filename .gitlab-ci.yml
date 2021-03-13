@@ -16,7 +16,7 @@ stages:
     - deployment
 
 python-manylinux:
-    image: booritas/slideio-manylinux2010:v0.5
+    image: booritas/slideio-manylinux2010:v0.6
     stage: build
     script:
         - python3 ./install.py -a conan
