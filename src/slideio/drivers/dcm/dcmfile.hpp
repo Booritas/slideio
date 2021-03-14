@@ -47,6 +47,7 @@ namespace slideio
         const std::string& getSeriesDescription() const {
             return m_seriesDescription;
         }
+        void logData();
     private:
         DcmDataset* getDataset() const;
         DcmDataset* getValidDataset() const;

@@ -1,0 +1,7 @@
+set(SOURCE_FILES 
+   ${SOURCE_FILES}
+   ${CMAKE_CURRENT_SOURCE_DIR}/logs.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/logs.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/exceptions.hpp
+   PARENT_SCOPE
+   )

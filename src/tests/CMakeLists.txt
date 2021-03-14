@@ -25,6 +25,7 @@ set(TEST_SOURCES
   testtiler.hpp
   testtools.cpp
   testtools.hpp
+  test_exception.cpp
 )
 
 add_executable(${TEST_NAME} ${TEST_SOURCES})

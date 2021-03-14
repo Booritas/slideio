@@ -5,6 +5,7 @@
 #include "slideio/drivers/dcm/dcmslide.hpp"
 #include <set>
 #include <boost/format.hpp>
+#include "slideio/base.hpp"
 
 
 using namespace slideio;
@@ -15,7 +16,7 @@ DCMScene::DCMScene()
 
 std::string DCMScene::getFilePath() const
 {
-    return "";
+    return m_filePath;
 }
 
 cv::Rect DCMScene::getRect() const
@@ -101,10 +102,13 @@ void DCMScene::addFile(std::shared_ptr<DCMFile>& file)
 
 void DCMScene::init()
 {
+    SLIDEIO_LOG(trace) << "DCMScene::init-begin";
     if (m_files.empty()) {
+        SLIDEIO_LOG(error) << "DCMScene::init attempt to create an empty scene.";
         std::string message = "DCMImageDriver: attempt to create an empty scene";
         throw std::runtime_error(message);
     }
+    m_filePath = (*m_files.begin())->getFilePath();
     std::set<std::tuple<int, int>> sizes;
     std::set<std::string> series;
     std::set<int> channelCounts;
@@ -119,16 +123,19 @@ void DCMScene::init()
         std::string message = 
             (boost::format("DCMImageDriver: Unexpected number of different sizes in a scene. Expected: 1. Found: %1%")
                 % sizes.size()).str();
+        SLIDEIO_LOG(error) << message;
         throw std::runtime_error(message);
     }
     if (series.size() != 1) {
         std::string message =
             (boost::format("DCMImageDriver: Unexpected number of different series UID in a scene. Expected: 1. Found: %1%")
                 % series.size()).str();
+        SLIDEIO_LOG(error) << message;
         throw std::runtime_error(message);
     }
     if (channelCounts.size() != 1) {
         std::string message = "DCMImageDriver: All frames shall have the same number of channels";
+        SLIDEIO_LOG(error) << message;
         throw std::runtime_error(message);
     }
     auto size = *sizes.begin();
@@ -147,4 +154,5 @@ void DCMScene::init()
                 return left->getInstanceNumber() < right->getInstanceNumber();
             });
     }
+    SLIDEIO_LOG(trace) << " DCMScene::init-end";
 }

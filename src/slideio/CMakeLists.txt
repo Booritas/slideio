@@ -6,6 +6,7 @@ CONAN_MAIN()
 add_subdirectory(core)
 add_subdirectory(drivers)
 add_subdirectory(imagetools)
+add_subdirectory(ext)
 
 set(SOURCE_FILES 
 	${SOURCE_FILES}
@@ -23,8 +24,7 @@ set(SOURCE_FILES
    	${CMAKE_CURRENT_SOURCE_DIR}/libtiff.hpp
   	${CMAKE_CURRENT_SOURCE_DIR}/gdal_lib.hpp
   	${CMAKE_CURRENT_SOURCE_DIR}/pole_lib.hpp
-  	${CMAKE_CURRENT_SOURCE_DIR}/logs.cpp
-  	${CMAKE_CURRENT_SOURCE_DIR}/logs.hpp
+  	${CMAKE_CURRENT_SOURCE_DIR}/base.hpp
 )
 
 add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES})

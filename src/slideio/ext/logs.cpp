@@ -10,13 +10,19 @@
 namespace logging = boost::log;
 namespace keywords = boost::log::keywords;
 
+#ifdef _DEBUG
+const logging::trivial::severity_level defaultLogLevel = logging::trivial::trace;
+#else
+const logging::trivial::severity_level defaultLogLevel = logging::trivial::error;
+#endif
+
 class InitLog
 {
 public:
     InitLog() {
         logging::register_simple_formatter_factory<logging::trivial::severity_level, char>("Severity");
         logging::core::get()->set_filter( 
-            logging::trivial::severity >= logging::trivial::error
+            logging::trivial::severity >= defaultLogLevel
         );
         logging::add_common_attributes();
     }

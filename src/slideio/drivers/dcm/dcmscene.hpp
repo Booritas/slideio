@@ -47,6 +47,7 @@ namespace slideio
         int m_numSlices = 1;
         int m_numFrames = 1;
         int m_numChannels = 0;
+        std::string m_filePath;
     };
 }
 

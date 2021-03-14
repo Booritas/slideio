@@ -5,6 +5,8 @@
 #include <dcmtk/dcmdata/dctk.h>
 #include <dcmtk/dcmimgle/dcmimage.h>
 #include <boost/format.hpp>
+#include "slideio/base.hpp"
+#include <ostream>
 
 using namespace slideio;
 
@@ -16,8 +18,11 @@ DCMFile::DCMFile(const std::string& filePath):
 
 void DCMFile::init()
 {
+    SLIDEIO_LOG(trace) << "DCMFlile::init: initializing DICOM file " << m_filePath;
+
     OFCondition status = m_file->loadFile(m_filePath.c_str());
     if (status.bad()) {
+        RAISE_RUNTIME_ERROR << "DCMImageDriver: Cannot open file: " << m_filePath;
         throw std::runtime_error(std::string("DCMImageDriver: Cannot open file:") + m_filePath);
     }
     DcmDataset* dataset = getValidDataset();
@@ -41,6 +46,21 @@ void DCMFile::init()
         m_numChannels = 1;
     }
     getStringTag(DCM_SeriesDescription, m_seriesDescription);
+
+
+
+    logData();
+}
+
+void DCMFile::logData()
+{
+    SLIDEIO_LOG(trace) << "DICOM file: " << m_filePath << std::endl
+        << "Width:" << m_width << std::endl
+        << "Height:" << m_height << std::endl
+        << "Slices:" << m_slices << std::endl
+        << "Series UID:" << m_seriesUID << std::endl
+        << "Series description:" << m_seriesDescription << std::endl
+        << "Channels:" << m_numChannels << std::endl;
 }
 
 DcmDataset* DCMFile::getDataset() const
