@@ -4,8 +4,10 @@
 #ifndef OPENCV_slideio_dcmfile_HPP
 #define OPENCV_slideio_dcmfile_HPP
 #include "slideio/slideio_def.hpp"
+#include "slideio/structs.hpp"
 #include <string>
 #include <memory>
+#include <opencv2/core.hpp>
 
 #if defined(_MSC_VER)
 #pragma warning( push )
@@ -18,6 +20,24 @@ class DcmTagKey;
 
 namespace slideio
 {
+    enum class EPhotoInterpetation {
+        PHIN_UNKNOWN,
+        PHIN_MONOCHROME1,
+        PHIN_MONOCHROME2,
+        PHIN_RGB,
+        PHIN_PALETTE,
+        PHIN_YCBCR,
+        PHIN_YBR_FULL,
+        PHIN_YBR_422_FULL,
+        PHIN_HSV,
+        PHIN_ARGB,
+        PHIN_CMYK,
+        PHIN_YBR_FULL_422,
+        PHIN_YBR_PARTIAL_420,
+        PHIN_YBR_ICT,
+        PHIN_YBR_RCT
+    };
+
     class SLIDEIO_EXPORTS DCMFile
     {
     public:
@@ -47,7 +67,18 @@ namespace slideio
         const std::string& getSeriesDescription() const {
             return m_seriesDescription;
         }
+        DataType getDataType() const {
+            return m_dataType;
+        }
+        bool getPlanarConfiguration() const {
+            return m_planarConfiguration;
+        }
+        EPhotoInterpetation getPhotointerpretation() const {
+            return m_photoInterpretation;
+        }
+        void initPhotoInterpretaion();
         void logData();
+        void readPixelValues(std::vector<cv::Mat>& frames);
     private:
         DcmDataset* getDataset() const;
         DcmDataset* getValidDataset() const;
@@ -63,6 +94,9 @@ namespace slideio
         std::string m_seriesUID;
         std::string m_seriesDescription;
         int m_numChannels = 0;
+        DataType m_dataType = DataType::DT_Unknown;
+        bool m_planarConfiguration = false;
+        EPhotoInterpetation m_photoInterpretation = EPhotoInterpetation::PHIN_UNKNOWN;
     };
 }
 

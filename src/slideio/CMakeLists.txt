@@ -25,6 +25,7 @@ set(SOURCE_FILES
   	${CMAKE_CURRENT_SOURCE_DIR}/gdal_lib.hpp
   	${CMAKE_CURRENT_SOURCE_DIR}/pole_lib.hpp
   	${CMAKE_CURRENT_SOURCE_DIR}/base.hpp
+  	${CMAKE_CURRENT_SOURCE_DIR}/logs.hpp
 )
 
 add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES})

@@ -35,6 +35,8 @@ namespace  slideio
         static void extractSliceFromMultidimMatrix(cv::Mat multidimMat, const std::vector<int>& indices,
                                              cv::OutputArray output);
         static void insertSliceInMultidimMatrix(cv::Mat multidimMat, cv::Mat sliceMat, const std::vector<int>& indices);
+        static std::string dataTypeToString(DataType dataType);
+        static std::string compressionToString(Compression dataType);
     };
 }
 
