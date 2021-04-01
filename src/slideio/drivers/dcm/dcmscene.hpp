@@ -29,19 +29,23 @@ namespace slideio
         std::string getChannelName(int channel) const override;
         Resolution getResolution() const override;
         double getMagnification() const override;
-        void readResampledBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize,
-            const std::vector<int>& componentIndices, cv::OutputArray output) override;
         void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
             const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output) override;
-        void readResampled4DBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize,
-            const std::vector<int>& channelIndices, const cv::Range& zSliceRange, const cv::Range& timeFrameRange,
-            cv::OutputArray output) override;
         std::string getName() const override;
         Compression getCompression() const override;
         void addFile(std::shared_ptr<DCMFile>& file);
         void init();
+    protected:
+        void initializeCounter() override;
+        void cleanCounter() override;
+        void extractSliceRaster(const std::vector<cv::Mat>& frames,
+                                const cv::Rect& blockRect,
+                                const cv::Size& blockSize,
+                                const std::vector<int>& componentIndices,
+                                int zSliceIndex, cv::OutputArray output);
     private:
         std::vector<std::shared_ptr<DCMFile>> m_files;
+        std::vector<cv::Mat> m_frameRasters;
         cv::Rect m_rect = { 0, 0, 0, 0 };
         std::string m_name;
         int m_numSlices = 1;

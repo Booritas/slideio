@@ -12,6 +12,7 @@
 #include <vector>
 #include <string>
 #include <list>
+#include "refcounter.hpp"
 #include <map>
 
 #if defined(_MSC_VER)
@@ -21,7 +22,7 @@
 
 namespace slideio
 {
-    class SLIDEIO_EXPORTS CVScene
+    class SLIDEIO_EXPORTS CVScene : public RefCounter
     {
     public:
         virtual ~CVScene() = default;
@@ -41,7 +42,7 @@ namespace slideio
         virtual void readBlock(const cv::Rect& blockRect, cv::OutputArray output);
         virtual void readBlockChannels(const cv::Rect& blockRect, const std::vector<int>& channelIndices, cv::OutputArray output);
         virtual void readResampledBlock(const cv::Rect& blockRect, const cv::Size& blockSize, cv::OutputArray output);
-        virtual void readResampledBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize, const std::vector<int>& channelIndices, cv::OutputArray output) = 0;
+        virtual void readResampledBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize, const std::vector<int>& channelIndices, cv::OutputArray output);
         virtual void read4DBlock(const cv::Rect& blockRect, const cv::Range& zSliceRange, const cv::Range& timeFrameRange, cv::OutputArray output);
         virtual void read4DBlockChannels(const cv::Rect& blockRect, const std::vector<int>& channelIndices, const cv::Range& zSliceRange, const cv::Range& timeFrameRange, cv::OutputArray output);
         virtual void readResampled4DBlock(const cv::Rect& blockRect, const cv::Size& blockSize, const cv::Range& zSliceRange, const cv::Range& timeFrameRange, cv::OutputArray output);

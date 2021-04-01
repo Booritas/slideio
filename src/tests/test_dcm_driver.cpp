@@ -2,44 +2,48 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include <gtest/gtest.h>
+
+#include <opencv2/imgcodecs.hpp>
+#include <opencv2/imgproc.hpp>
+
+
 #include "slideio/core/imagedrivermanager.hpp"
 #include "testtools.hpp"
 #include "slideio/scene.hpp"
 #include "slideio/drivers/dcm/dcmimagedriver.hpp"
+#include "slideio/imagetools/imagetools.hpp"
 
-using namespace  slideio;
+using namespace slideio;
 
-TEST(DCMImageDriver, DriverManager_getDriverIDs)
-{
+TEST(DCMImageDriver, DriverManager_getDriverIDs) {
     std::vector<std::string> driverIds = ImageDriverManager::getDriverIDs();
-    auto it = std::find(driverIds.begin(),driverIds.end(), "DCM");
-    EXPECT_FALSE(it==driverIds.end());
+    auto it = std::find(driverIds.begin(), driverIds.end(), "DCM");
+    EXPECT_FALSE(it == driverIds.end());
 }
-TEST(DCMImageDriver, getID)
-{
+
+TEST(DCMImageDriver, getID) {
     DCMImageDriver driver;
     std::string id = driver.getID();
-    EXPECT_EQ(id,"DCM");
+    EXPECT_EQ(id, "DCM");
 }
 
-TEST(DCMImageDriver, canOpenFile)
-{
+TEST(DCMImageDriver, canOpenFile) {
     DCMImageDriver driver;
     EXPECT_TRUE(driver.canOpenFile("c:\\abbb\\a.dcm"));
     EXPECT_FALSE(driver.canOpenFile("c:\\abbb\\a.scn.tmp"));
 }
 
-TEST(DCMImageDriver, openFile)
-{
+TEST(DCMImageDriver, openFile) {
     DCMImageDriver driver;
-    std::string slidePath = TestTools::getTestImagePath("dcm", "benigns_01/patient0186/0186.LEFT_CC.dcm");
+    std::string slidePath = TestTools::getTestImagePath(
+        "dcm", "benigns_01/patient0186/0186.LEFT_CC.dcm");
     auto slide = driver.openFile(slidePath);
     const int numScenes = slide->getNumScenes();
     ASSERT_EQ(numScenes, 1);
     auto scene = slide->getScene(0);
     ASSERT_TRUE(scene);
     const cv::Rect rect = scene->getRect();
-    const cv::Rect refRect = { 0, 0, 3984, 5528 };
+    const cv::Rect refRect = {0, 0, 3984, 5528};
     EXPECT_EQ(rect, refRect);
     const int numChannels = scene->getNumChannels();
     const int numSlices = scene->getNumZSlices();
@@ -51,20 +55,21 @@ TEST(DCMImageDriver, openFile)
 }
 
 
-TEST(DCMImageDriver, openDirectory)
-{
+TEST(DCMImageDriver, openDirectory) {
     if (!TestTools::isPrivateTestEnabled()) {
-        GTEST_SKIP() << "Skip private test because private dataset is not enabled";
+        GTEST_SKIP() <<
+            "Skip private test because private dataset is not enabled";
     }
     DCMImageDriver driver;
-    std::string slidePath = TestTools::getTestImagePath("dcm", "series/series_1", true);
+    std::string slidePath = TestTools::getTestImagePath(
+        "dcm", "series/series_1", true);
     auto slide = driver.openFile(slidePath);
     const int numScenes = slide->getNumScenes();
     ASSERT_EQ(numScenes, 1);
     auto scene = slide->getScene(0);
     ASSERT_TRUE(scene);
     const cv::Rect rect = scene->getRect();
-    const cv::Rect refRect = { 0, 0, 512, 512 };
+    const cv::Rect refRect = {0, 0, 512, 512};
     EXPECT_EQ(rect, refRect);
     const int numChannels = scene->getNumChannels();
     const int numSlices = scene->getNumZSlices();
@@ -76,10 +81,10 @@ TEST(DCMImageDriver, openDirectory)
 }
 
 
-TEST(DCMImageDriver, openDirectoryRecursively)
-{
+TEST(DCMImageDriver, openDirectoryRecursively) {
     if (!TestTools::isPrivateTestEnabled()) {
-        GTEST_SKIP() << "Skip private test because private dataset is not enabled";
+        GTEST_SKIP() <<
+            "Skip private test because private dataset is not enabled";
     }
     DCMImageDriver driver;
     std::string slidePath = TestTools::getTestImagePath("dcm", "series", true);
@@ -88,12 +93,12 @@ TEST(DCMImageDriver, openDirectoryRecursively)
     ASSERT_EQ(numScenes, 2);
     auto scene = slide->getScene(0);
     const std::string sceneName = scene->getName();
-    if(sceneName=="COU IV") {
+    if (sceneName == "COU IV") {
         scene = slide->getScene(1);
     }
     ASSERT_TRUE(scene);
     const cv::Rect rect = scene->getRect();
-    const cv::Rect refRect = { 0, 0, 512, 512 };
+    const cv::Rect refRect = {0, 0, 512, 512};
     EXPECT_EQ(rect, refRect);
     const int numChannels = scene->getNumChannels();
     const int numSlices = scene->getNumZSlices();
@@ -102,4 +107,50 @@ TEST(DCMImageDriver, openDirectoryRecursively)
     EXPECT_EQ(numSlices, 9);
     EXPECT_EQ(numFrames, 1);
     EXPECT_EQ(scene->getName(), "1.2.276.0.7230010.3.100.1.1");
+}
+
+TEST(DCMImageDriver, readSimpleFileWholeBlock) {
+    std::string slidePath = TestTools::getTestImagePath(
+        "dcm", "openmicroscopy/OT-MONO2-8-hip.dcm");
+    std::string testPath = TestTools::getTestImagePath(
+        "dcm", "openmicroscopy/Test/OT-MONO2-8-hip.bmp");
+
+    DCMImageDriver driver;
+    auto slide = driver.openFile(slidePath);
+    const int numScenes = slide->getNumScenes();
+    ASSERT_EQ(numScenes, 1);
+    auto scene = slide->getScene(0);
+    ASSERT_TRUE(scene);
+    const cv::Rect rect = scene->getRect();
+    cv::Mat image;
+    scene->readBlock(rect, image);
+    ASSERT_FALSE(image.empty());
+    cv::Mat bmpImage = cv::imread(testPath, cv::IMREAD_UNCHANGED);
+    double similarity = ImageTools::computeSimilarity(image, bmpImage);
+    EXPECT_EQ(1, similarity);
+}
+
+TEST(DCMImageDriver, readSimpleFileResampled) {
+    std::string slidePath = TestTools::getTestImagePath(
+        "dcm", "openmicroscopy/OT-MONO2-8-hip.dcm");
+    std::string testPath = TestTools::getTestImagePath(
+        "dcm", "openmicroscopy/Test/OT-MONO2-8-hip.bmp");
+
+    DCMImageDriver driver;
+    auto slide = driver.openFile(slidePath);
+    const int numScenes = slide->getNumScenes();
+    ASSERT_EQ(numScenes, 1);
+    auto scene = slide->getScene(0);
+    ASSERT_TRUE(scene);
+    const cv::Rect rect = { 100, 100, 400, 400 };
+    const cv::Size size = { 200, 200 };
+    cv::Mat image;
+    scene->readResampledBlock(rect, size, image);
+    ASSERT_FALSE(image.empty());
+    cv::Mat bmpImage = cv::imread(testPath, cv::IMREAD_UNCHANGED);
+    cv::Mat bmpBlock = bmpImage(rect);
+    cv::Mat resizedBlock;
+    cv::resize(bmpBlock, resizedBlock, size);
+    double similarity = ImageTools::computeSimilarity(image, resizedBlock);
+    EXPECT_EQ(1, similarity);
 }

@@ -17,25 +17,36 @@ std::string CVScene::getChannelName(int) const
 
 void CVScene::readBlock(const cv::Rect& blockRect, cv::OutputArray output)
 {
+    RefCounterGuard guard(this);
     const std::vector<int> channelIndices;
     return readBlockChannels(blockRect, channelIndices, output);
 }
 
 void CVScene::readBlockChannels(const cv::Rect& blockRect, const std::vector<int>& channelIndices, cv::OutputArray output)
 {
+    RefCounterGuard guard(this);
     const cv::Rect rectScene = blockRect;
     return readResampledBlockChannels(blockRect, blockRect.size(), channelIndices, output);
 }
 
 void CVScene::readResampledBlock(const cv::Rect& blockRect, const cv::Size& blockSize, cv::OutputArray output)
 {
+    RefCounterGuard guard(this);
     const std::vector<int> channelIndices;
     return readResampledBlockChannels(blockRect, blockSize, channelIndices, output);
 }
 
+void CVScene::readResampledBlockChannels(const cv::Rect& blockRect,
+    const cv::Size& blockSize, const std::vector<int>& channelIndices,
+    cv::OutputArray output) {
+    RefCounterGuard guard(this);
+    readResampledBlockChannelsEx(blockRect, blockSize, channelIndices, 0, 0, output);
+}
+
 void CVScene::read4DBlock(const cv::Rect& blockRect, const cv::Range& zSliceRange, const cv::Range& timeFrameRange,
-    cv::OutputArray output)
+                          cv::OutputArray output)
 {
+    RefCounterGuard guard(this);
     const std::vector<int> channelIndices;
     return read4DBlockChannels(blockRect, channelIndices, zSliceRange, timeFrameRange, output);
 }
@@ -43,6 +54,7 @@ void CVScene::read4DBlock(const cv::Rect& blockRect, const cv::Range& zSliceRang
 void CVScene::read4DBlockChannels(const cv::Rect& blockRect, const std::vector<int>& channelIndices,
     const cv::Range& zSliceRange, const cv::Range& timeFrameRange, cv::OutputArray output)
 {
+    RefCounterGuard guard(this);
     const cv::Rect rectScene = blockRect;
     return readResampled4DBlockChannels(blockRect, blockRect.size(), channelIndices, zSliceRange, timeFrameRange, output);
 }
@@ -50,6 +62,7 @@ void CVScene::read4DBlockChannels(const cv::Rect& blockRect, const std::vector<i
 void CVScene::readResampled4DBlock(const cv::Rect& blockRect, const cv::Size& blockSize, const cv::Range& zSliceRange,
     const cv::Range& timeFrameRange, cv::OutputArray output)
 {
+    RefCounterGuard guard(this);
     const std::vector<int> channelIndices;
     return readResampled4DBlockChannels(blockRect, blockSize, channelIndices, zSliceRange, timeFrameRange, output);
 }
@@ -59,6 +72,7 @@ void CVScene::readResampled4DBlockChannels(const cv::Rect& blockRect, const cv::
     const cv::Range& timeFrameRange,
     cv::OutputArray output)
 {
+    RefCounterGuard guard(this);
     std::vector<int> channelIndices(channelIndicesIn);
     if(channelIndices.empty()) {
         const int sceneNumChannels = getNumChannels();
@@ -149,6 +163,7 @@ std::shared_ptr<CVScene> CVScene::getAuxImage(const std::string& sceneName) cons
 void CVScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
                                            const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output)
 {
+    RefCounterGuard guard(this);
     if (zSliceIndex== 0 && tFrameIndex == 0)
     {
         readResampledBlockChannels(blockRect, blockSize, componentIndices, output);
