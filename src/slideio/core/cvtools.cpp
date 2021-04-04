@@ -75,15 +75,20 @@ void CVTools::extractSliceFromMultidimMatrix(cv::Mat multidimMat, const std::vec
     output.assign(matOut);
 }
 
-void CVTools::insertSliceInMultidimMatrix(cv::Mat multidimMat, cv::Mat sliceMat, const std::vector<int>& indices)
+void CVTools::insertSliceInMultidimMatrix(cv::Mat& multidimMat, const cv::Mat& sliceMat, const std::vector<int>& indices)
 {
     const int dimCount = multidimMat.dims;
     if (dimCount <= 2) {
-        RAISE_RUNTIME_ERROR << "Slice extraction: expected 3 or more dimensions. Received:" << multidimMat.dims;
+        RAISE_RUNTIME_ERROR << "Slice copy: expected 3 or more dimensions. Received:" << multidimMat.dims;
     }
     const int extraDims = dimCount - 2;
     if (indices.size() != extraDims) {
-        RAISE_RUNTIME_ERROR << "Slice extraction : expected: " << extraDims << " indices. Received:" << indices.size();
+        RAISE_RUNTIME_ERROR << "Slice copy: expected: " << extraDims << " indices. Received:" << indices.size();
+    }
+    if(multidimMat.type()!=sliceMat.type())
+    {
+        RAISE_RUNTIME_ERROR << "Slice copy: Only matrices of the same type are supported for copy slice operation"
+            << "Received types: XD: " << multidimMat.type() << ". 2D: " << sliceMat.type();
     }
 
     const int height = multidimMat.size[0];
@@ -99,7 +104,14 @@ void CVTools::insertSliceInMultidimMatrix(cv::Mat multidimMat, cv::Mat sliceMat,
         dims.push_back(1);
     }
     cv::Mat sliceMat1 = multidimMat(ranges);
-    sliceMat.reshape(multidimMat.channels(), static_cast<int>(dims.size()), dims.data()).copyTo(sliceMat1);
+    void* dataPtr1 = sliceMat1.data;
+    cv::Mat tmpMat = sliceMat.reshape(multidimMat.channels(), static_cast<int>(dims.size()), dims.data());
+    tmpMat.copyTo(sliceMat1);
+    void* dataPtr2 = sliceMat1.data;
+    if(dataPtr1!=dataPtr2)
+    {
+        RAISE_RUNTIME_ERROR << "Slice copy: Unexpected memory reallocation";
+    }
 }
 
 std::string CVTools::dataTypeToString(DataType dataType) {
@@ -152,6 +164,7 @@ std::string CVTools::compressionToString(Compression compression) {
     case slideio::Compression::JBIG2: name = "JBIG2"; break;
     case slideio::Compression::GIF: name = "GIF"; break;
     case slideio::Compression::BIGGIF: name = "BIGGIF"; break;
+    case slideio::Compression::RLE: name = "RLE"; break;
     default: name = std::to_string((int)compression);
     }
     return name;

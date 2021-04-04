@@ -9,6 +9,8 @@
 #include <memory>
 #include <opencv2/core.hpp>
 
+#include "slideio/slideio_enums.hpp"
+
 #if defined(_MSC_VER)
 #pragma warning( push )
 #pragma warning(disable: 4251)
@@ -20,7 +22,8 @@ class DcmTagKey;
 
 namespace slideio
 {
-    enum class EPhotoInterpetation {
+    enum class EPhotoInterpetation
+    {
         PHIN_UNKNOWN,
         PHIN_MONOCHROME1,
         PHIN_MONOCHROME2,
@@ -43,47 +46,77 @@ namespace slideio
     public:
         DCMFile(const std::string& filePath);
         void init();
-        int getWidth() const {
+
+        int getWidth() const
+        {
             return m_width;
         }
-        int getHeight() const {
+
+        int getHeight() const
+        {
             return m_height;
         }
-        int getNumSlices() const {
+
+        int getNumSlices() const
+        {
             return m_slices;
         }
-        const std::string getFilePath() const {
+
+        const std::string& getFilePath() const
+        {
             return m_filePath;
         }
-        const std::string& getSeriesUID() const{
+
+        const std::string& getSeriesUID() const
+        {
             return m_seriesUID;
         }
-        int getInstanceNumber() const {
+
+        int getInstanceNumber() const
+        {
             return m_instanceNumber;
         }
-        int getNumChannels() const {
+
+        int getNumChannels() const
+        {
             return m_numChannels;
         }
-        const std::string& getSeriesDescription() const {
+
+        const std::string& getSeriesDescription() const
+        {
             return m_seriesDescription;
         }
-        DataType getDataType() const {
+
+        DataType getDataType() const
+        {
             return m_dataType;
         }
-        bool getPlanarConfiguration() const {
+
+        bool getPlanarConfiguration() const
+        {
             return m_planarConfiguration;
         }
-        EPhotoInterpetation getPhotointerpretation() const {
+
+        EPhotoInterpetation getPhotointerpretation() const
+        {
             return m_photoInterpretation;
         }
-        void initPhotoInterpretaion();
+
+        Compression getCompression() const
+        {
+            return m_compression;
+        }
+
         void logData();
         void readPixelValues(std::vector<cv::Mat>& frames);
     private:
+        void initPhotoInterpretaion();
+        void defineCompression();
         DcmDataset* getDataset() const;
         DcmDataset* getValidDataset() const;
         bool getIntTag(const DcmTagKey& tag, int& value, int pos = 0) const;
         bool getStringTag(const DcmTagKey& tag, std::string& value) const;
+        bool getDblTag(const DcmTagKey& tag, double& value, double defaultValue);
     private:
         std::string m_filePath;
         std::shared_ptr<DcmFileFormat> m_file;
@@ -97,6 +130,13 @@ namespace slideio
         DataType m_dataType = DataType::DT_Unknown;
         bool m_planarConfiguration = false;
         EPhotoInterpetation m_photoInterpretation = EPhotoInterpetation::PHIN_UNKNOWN;
+        double m_windowCenter = -1;
+        double m_windowWidth = -1;
+        double m_rescaleSlope = -1;
+        double m_rescaleIntercept = -1;
+        bool m_useWindowing = false;
+        bool m_useRescaling = false;
+        Compression m_compression = Compression::Unknown;
     };
 }
 

@@ -38,6 +38,7 @@ namespace slideio
         NikonNEF,
         JBIG2,
         GIF,
-        BIGGIF
+        BIGGIF,
+        RLE
     };
 }

@@ -15,7 +15,7 @@ namespace keywords = boost::log::keywords;
 
 
 #ifdef _DEBUG
-const logging::trivial::severity_level defaultLogLevel = logging::trivial::trace;
+const logging::trivial::severity_level defaultLogLevel = logging::trivial::warning;
 #else
 const logging::trivial::severity_level defaultLogLevel = logging::trivial::error;
 #endif

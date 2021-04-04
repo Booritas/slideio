@@ -25,7 +25,7 @@ namespace slideio
         int getNumTFrames() const override;
         double getZSliceResolution() const override;
         double getTFrameResolution() const override;
-        slideio::DataType getChannelDataType(int channel) const override;
+        DataType getChannelDataType(int channel) const override;
         std::string getChannelName(int channel) const override;
         Resolution getResolution() const override;
         double getMagnification() const override;
@@ -36,6 +36,8 @@ namespace slideio
         void addFile(std::shared_ptr<DCMFile>& file);
         void init();
     protected:
+        void prepareSliceIndices();
+        void checkScene();
         void initializeCounter() override;
         void cleanCounter() override;
         void extractSliceRaster(const std::vector<cv::Mat>& frames,
@@ -43,15 +45,19 @@ namespace slideio
                                 const cv::Size& blockSize,
                                 const std::vector<int>& componentIndices,
                                 int zSliceIndex, cv::OutputArray output);
+        std::pair<int, int> findFileIndex(int zSliceIndex);
     private:
         std::vector<std::shared_ptr<DCMFile>> m_files;
         std::vector<cv::Mat> m_frameRasters;
+        std::map<int, int> m_sliceMap;
         cv::Rect m_rect = { 0, 0, 0, 0 };
         std::string m_name;
         int m_numSlices = 1;
         int m_numFrames = 1;
         int m_numChannels = 0;
         std::string m_filePath;
+        DataType m_dataType = DataType::DT_Unknown;
+        Compression m_compression = Compression::Unknown;
     };
 }
 
