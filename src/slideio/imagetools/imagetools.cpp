@@ -10,7 +10,7 @@
 #include <boost/filesystem.hpp>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
-#include "gdal/gdal.h"
+#include "slideio/gdal_lib.hpp"
 
 
 int slideio::ImageTools::dataTypeSize(slideio::DataType dt)

@@ -80,7 +80,7 @@ TEST_F(AFIDriverFileTest, getScenesFromNonExistentFiles)
 {
     std::vector<std::string> svsFiles = { "FakeFile1.svs", "FakeFile2.svs" };
     const std::string afiFile = getPrivTestImagesPath("afi", "fs.afi");
-    EXPECT_THROW(slideio::AFISlide::getSlidesScenesFromFiles(svsFiles, afiFile), std::exception);
+    EXPECT_THROW(slideio::AFISlide::getSlidesScenesFromFiles(svsFiles, afiFile), slideio::RuntimeError);
 }
 
 TEST_F(AFIDriverFileTest, checkFile)
