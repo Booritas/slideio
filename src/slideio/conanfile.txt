@@ -1,5 +1,5 @@
 [requires]
-dcmtk/3.6.5
+dcmtk/3.6.5@slideio/stable
 boost/1.72.0
 tinyxml2/8.0.0
 openjpeg/2.4.0

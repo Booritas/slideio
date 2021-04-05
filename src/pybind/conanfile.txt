@@ -1,6 +1,6 @@
 [requires]
 boost/1.72.0
 opencv/4.5.1
-pybind11/2.6.2
+pybind11/2.3.0@conan/stable
 [options]
 boost:shared=False
