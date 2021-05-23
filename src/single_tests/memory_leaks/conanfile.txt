@@ -1,5 +1,6 @@
 [requires]
-opencv/4.5.1
+libwebp/1.2.0
+opencv/4.5.2
 boost/1.72.0
 [options]
 boost:shared=False

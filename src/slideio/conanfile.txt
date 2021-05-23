@@ -1,4 +1,5 @@
 [requires]
+libwebp/1.2.0
 dcmtk/3.6.5@slideio/stable
 boost/1.72.0
 tinyxml2/8.0.0
@@ -6,7 +7,7 @@ openjpeg/2.4.0
 gdal/3.2.1
 jpegxrcodec/1.0.2@slideio/stable
 openssl/1.1.1j
-opencv/4.5.1
+opencv/4.5.2
 pole/1.0.1@slideio/stable
 [options]
 boost:shared=False

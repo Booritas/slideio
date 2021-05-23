@@ -1,6 +1,7 @@
 [requires]
+libwebp/1.2.0
 gtest/1.10.0@slideio/stable
-opencv/4.5.1
+opencv/4.5.2
 boost/1.72.0
 pole/1.0.1@slideio/stable
 [options]
