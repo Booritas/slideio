@@ -4,15 +4,29 @@
 #include "slideio/drivers/dcm/dcmimagedriver.hpp"
 #include "slideio/drivers/dcm/dcmslide.hpp"
 #include <boost/filesystem.hpp>
+#include <dcmdata/dcrledrg.h>    /* for DcmRLEDecoderRegistration */
+#include <dcmjpeg/djdecode.h>    /* for dcmjpeg decoders */
+#include <dcmjpeg/ddpiimpl.h>    /* for class DicomDirImageImplementation */
+#include <dcmtk/dcmjpls/djdecode.h>
 
 using namespace slideio;
 
 static const std::string filePathPattern = "*.dcm";
 static const std::string ID("DCM");
 
-DCMImageDriver::DCMImageDriver() = default;
+DCMImageDriver::DCMImageDriver()
+{
+    DcmRLEDecoderRegistration::registerCodecs();
+    DJDecoderRegistration::registerCodecs();
+    DJLSDecoderRegistration::registerCodecs();
+}
 
-DCMImageDriver::~DCMImageDriver() = default;
+DCMImageDriver::~DCMImageDriver()
+{
+    DcmRLEDecoderRegistration::cleanup();
+    DJDecoderRegistration::cleanup();
+    DJLSDecoderRegistration::cleanup();
+}
 
 
 std::string DCMImageDriver::getID() const

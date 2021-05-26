@@ -268,6 +268,10 @@ void DCMFile::readPixelValues(std::vector<cv::Mat>& frames)
         RAISE_RUNTIME_ERROR << "DCMImageDriver: unexpected null as dataset for file " << m_filePath;
     }
 
+    //OFCondition resultCode = dataset->chooseRepresentation(EXS_LittleEndianExplicit, NULL);
+    //if(resultCode.bad()) {
+    //    RAISE_RUNTIME_ERROR << "DCMImageDriver: cannot decompress file " << m_filePath << ". Error: " << resultCode.text();
+    //}
     DicomImage image(dataset, EXS_LittleEndianExplicit);
     const DiPixel* pixels = image.getInterData();
     if (!pixels)
