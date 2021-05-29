@@ -259,29 +259,31 @@ void DCMFile::logData()
         << "Intercept:" << m_rescaleIntercept << std::endl;
 }
 
-void DCMFile::readPixelValues(std::vector<cv::Mat>& frames)
+void DCMFile::readPixelValues(std::vector<cv::Mat>& frames, int startFrame, int numFrames)
 {
     SLIDEIO_LOG(trace) << "Extracting pixel values from the dataset";
+
     DcmDataset* dataset = getDataset();
     if (!dataset)
     {
         RAISE_RUNTIME_ERROR << "DCMImageDriver: unexpected null as dataset for file " << m_filePath;
     }
 
-    //OFCondition resultCode = dataset->chooseRepresentation(EXS_LittleEndianExplicit, NULL);
-    //if(resultCode.bad()) {
-    //    RAISE_RUNTIME_ERROR << "DCMImageDriver: cannot decompress file " << m_filePath << ". Error: " << resultCode.text();
-    //}
-    DicomImage image(dataset, EXS_LittleEndianExplicit);
-    const DiPixel* pixels = image.getInterData();
-    if (!pixels)
+    DicomImage image(dataset, EXS_LittleEndianExplicit, CIF_UsePartialAccessToPixelData, (ulong)startFrame, (ulong)1);
+    if(image.getStatus()!=EIS_Normal) 
     {
-        RAISE_RUNTIME_ERROR << "DCMImageDriver: cannot extract pixel data fro file " << m_filePath;
+        RAISE_RUNTIME_ERROR << "DCMImageDriver: cannot decompress file " << m_filePath << ". Image status: " << image.getStatus();
     }
-    const int numFrames = image.getFrameCount();
+
+    const int numFileFrames = image.getFrameCount();
     const int numChannels = getNumChannels();
     const DataType originalDataType = getDataType();
     DataType intermediateDataType = originalDataType;
+    const int cvIntermediateType = CVTools::toOpencvType(intermediateDataType);
+    const int cvOriginalType = CVTools::toOpencvType(originalDataType);
+    const int numFramePixels = getWidth() * getHeight();
+    const int numFrameBytes = numChannels * numFramePixels * ImageTools::dataTypeSize(getDataType());
+
     if (m_useRescaling)
     {
         if (originalDataType == DataType::DT_UInt16)
@@ -289,23 +291,27 @@ void DCMFile::readPixelValues(std::vector<cv::Mat>& frames)
             intermediateDataType = DataType::DT_Int16;
         }
     }
-    const int cvIntermediateType = CVTools::toOpencvType(intermediateDataType);
-    const int cvOriginalType = CVTools::toOpencvType(originalDataType);
-    const int numFramePixels = getWidth() * getHeight();
-    const int numImagePixels = numFramePixels * numFrames;
-    const int numFrameBytes = numChannels * numFramePixels * ImageTools::dataTypeSize(getDataType());
-    if (numImagePixels != pixels->getCount())
-    {
-        RAISE_RUNTIME_ERROR << "DCMImageDriver: Unexpected number of pixels received from image. Expected:"
-            << numImagePixels << ". Received: " << pixels->getCount() << ". File:" << m_filePath;
-    }
-    const auto* frameDataPtr = static_cast<const uint8_t*>(pixels->getData());
+
     frames.resize(numFrames);
-    for (int frame = 0; frame < numFrames; ++frame)
+
+    for(int frame=0; frame < numFrames; ++frame)  
     {
+        const DiPixel* pixels = image.getInterData();
+        if (!pixels)
+        {
+            RAISE_RUNTIME_ERROR << "DCMImageDriver: cannot extract pixel data fro file " << m_filePath;
+        }
+        if (numFramePixels != pixels->getCount())
+        {
+            RAISE_RUNTIME_ERROR << "DCMImageDriver: Unexpected number of pixels received for a frame. Expected:"
+                << numFramePixels << ". Received: " << pixels->getCount() << ". File:" << m_filePath;
+        }
+        const auto* frameDataPtr = static_cast<const uint8_t*>(pixels->getData());
+
         cv::Mat cvImage(image.getWidth(), image.getHeight(), CV_MAKE_TYPE(cvIntermediateType, numChannels),
-                        (void*)frameDataPtr);
-        if (intermediateDataType == originalDataType)
+            (void*)frameDataPtr);
+
+        if (intermediateDataType == originalDataType && !m_useRescaling)
         {
             cvImage.copyTo(frames[frame]);
         }
@@ -315,7 +321,7 @@ void DCMFile::readPixelValues(std::vector<cv::Mat>& frames)
             cvImage.convertTo(cvImageTmp, CV_MAKE_TYPE(cvOriginalType, numChannels), m_rescaleSlope, -m_rescaleIntercept);
             cvImageTmp.copyTo(frames[frame]);
         }
-        frameDataPtr += numFrameBytes;
+        image.processNextFrames();
     }
 }
 

@@ -184,24 +184,6 @@ void DCMScene::init()
     prepareSliceIndices();
 }
 
-void DCMScene::initializeCounter()
-{
-    if (m_files.size() == 1)
-    {
-        SLIDEIO_LOG(trace) << "DCMImageDriver: create raster scene cache.";
-        auto file = m_files.front();
-        file->readPixelValues(m_frameRasters);
-    }
-}
-
-void DCMScene::cleanCounter()
-{
-    if (!m_frameRasters.empty())
-    {
-        SLIDEIO_LOG(trace) << "DCMImageDriver: clean raster scene cache.";
-        m_frameRasters.clear();
-    }
-}
 
 void DCMScene::extractSliceRaster(const std::vector<cv::Mat>& frames,
                                   const cv::Rect& blockRect,
@@ -271,9 +253,9 @@ void DCMScene::readResampledBlockChannelsEx(const cv::Rect& blockRect,
         << "slice: " << zSliceIndex << std::endl
         << "frame: " << tFrameIndex;
 
-    const std::vector<cv::Mat>& frames = m_frameRasters;
+    const std::vector<cv::Mat> frames;
 
-    if (m_frameRasters.empty())
+    if (frames.empty())
     {
         const auto indices = findFileIndex(zSliceIndex);
         const int fileIndex = indices.first;

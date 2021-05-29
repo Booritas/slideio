@@ -38,8 +38,6 @@ namespace slideio
     protected:
         void prepareSliceIndices();
         void checkScene();
-        void initializeCounter() override;
-        void cleanCounter() override;
         void extractSliceRaster(const std::vector<cv::Mat>& frames,
                                 const cv::Rect& blockRect,
                                 const cv::Size& blockSize,
@@ -48,7 +46,6 @@ namespace slideio
         std::pair<int, int> findFileIndex(int zSliceIndex);
     private:
         std::vector<std::shared_ptr<DCMFile>> m_files;
-        std::vector<cv::Mat> m_frameRasters;
         std::map<int, int> m_sliceMap;
         cv::Rect m_rect = { 0, 0, 0, 0 };
         std::string m_name;

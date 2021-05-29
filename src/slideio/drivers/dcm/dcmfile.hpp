@@ -108,7 +108,7 @@ namespace slideio
         }
 
         void logData();
-        void readPixelValues(std::vector<cv::Mat>& frames);
+        void readPixelValues(std::vector<cv::Mat>& frames, int startFrame=0, int numFrames=1);
     private:
         void initPhotoInterpretaion();
         void defineCompression();
