@@ -25,6 +25,8 @@ namespace slideio
         std::string getID() const override;
         std::shared_ptr<CVSlide> openFile(const std::string& filePath) override;
         std::string getFileSpecs() const override;
+        static void initializeDCMTK();
+        static void clieanUpDCMTK();
     };
 }
 

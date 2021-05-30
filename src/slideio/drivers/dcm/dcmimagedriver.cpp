@@ -4,10 +4,14 @@
 #include "slideio/drivers/dcm/dcmimagedriver.hpp"
 #include "slideio/drivers/dcm/dcmslide.hpp"
 #include <boost/filesystem.hpp>
+
+#include <dcmdata/dcpixel.h>
 #include <dcmdata/dcrledrg.h>    /* for DcmRLEDecoderRegistration */
 #include <dcmjpeg/djdecode.h>    /* for dcmjpeg decoders */
 #include <dcmjpeg/ddpiimpl.h>    /* for class DicomDirImageImplementation */
 #include <dcmtk/dcmjpls/djdecode.h>
+#include <dcmtk/dcmimage/diregist.h>
+#include <dcmtk/dcmdata/dccodec.h>
 
 using namespace slideio;
 
@@ -16,16 +20,12 @@ static const std::string ID("DCM");
 
 DCMImageDriver::DCMImageDriver()
 {
-    DcmRLEDecoderRegistration::registerCodecs();
-    DJDecoderRegistration::registerCodecs();
-    DJLSDecoderRegistration::registerCodecs();
+    initializeDCMTK();
 }
 
 DCMImageDriver::~DCMImageDriver()
 {
-    DcmRLEDecoderRegistration::cleanup();
-    DJDecoderRegistration::cleanup();
-    DJLSDecoderRegistration::cleanup();
+    clieanUpDCMTK();
 }
 
 
@@ -47,4 +47,18 @@ std::shared_ptr<CVSlide> DCMImageDriver::openFile(const std::string& filePath)
 std::string DCMImageDriver::getFileSpecs() const
 {
 	return filePathPattern;
+}
+
+void DCMImageDriver::initializeDCMTK()
+{
+    DcmRLEDecoderRegistration::registerCodecs();
+    DJDecoderRegistration::registerCodecs();
+    DJLSDecoderRegistration::registerCodecs();
+}
+
+void DCMImageDriver::clieanUpDCMTK()
+{
+    DcmRLEDecoderRegistration::cleanup();
+    DJDecoderRegistration::cleanup();
+    DJLSDecoderRegistration::cleanup();
 }

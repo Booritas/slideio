@@ -98,7 +98,7 @@ void DCMFile::init()
     int pixelRepresentation(0);
     if (!getIntTag(DCM_PixelRepresentation, pixelRepresentation))
     {
-        RAISE_RUNTIME_ERROR << "DCMImageDriver: undefined valude for DCM_PixelRepresentation tag. File:" << m_filePath;
+        RAISE_RUNTIME_ERROR << "DCMImageDriver: undefined value for DCM_PixelRepresentation tag. File:" << m_filePath;
     }
     const int PXREP_SIGNED = 1;
     const int PXREP_UNSIGNED = 0;
@@ -123,6 +123,10 @@ void DCMFile::init()
     initPhotoInterpretaion();
     logData();
     defineCompression();
+    if(m_photoInterpretation == EPhotoInterpetation::PHIN_PALETTE)
+    {
+        m_numChannels = 3;
+    }
 }
 
 void DCMFile::defineCompression()
@@ -269,7 +273,8 @@ void DCMFile::readPixelValues(std::vector<cv::Mat>& frames, int startFrame, int 
         RAISE_RUNTIME_ERROR << "DCMImageDriver: unexpected null as dataset for file " << m_filePath;
     }
 
-    DicomImage image(dataset, EXS_LittleEndianExplicit, CIF_UsePartialAccessToPixelData, (ulong)startFrame, (ulong)1);
+    E_TransferSyntax xfer = dataset->getOriginalXfer();
+    DicomImage image(dataset, xfer, CIF_UsePartialAccessToPixelData, (ulong)startFrame, (ulong)1);
     if(image.getStatus()!=EIS_Normal) 
     {
         RAISE_RUNTIME_ERROR << "DCMImageDriver: cannot decompress file " << m_filePath << ". Image status: " << image.getStatus();
@@ -306,21 +311,40 @@ void DCMFile::readPixelValues(std::vector<cv::Mat>& frames, int startFrame, int 
             RAISE_RUNTIME_ERROR << "DCMImageDriver: Unexpected number of pixels received for a frame. Expected:"
                 << numFramePixels << ". Received: " << pixels->getCount() << ". File:" << m_filePath;
         }
-        const auto* frameDataPtr = static_cast<const uint8_t*>(pixels->getData());
-
-        cv::Mat cvImage(image.getWidth(), image.getHeight(), CV_MAKE_TYPE(cvIntermediateType, numChannels),
-            (void*)frameDataPtr);
-
-        if (intermediateDataType == originalDataType && !m_useRescaling)
+        if (numChannels != pixels->getPlanes())
         {
-            cvImage.copyTo(frames[frame]);
+            RAISE_RUNTIME_ERROR << "DCMImageDriver: Unexpected number of planes received for a frame. Expected:"
+                << numChannels << ". Received: " << pixels->getPlanes() << ". File:" << m_filePath;
+        }
+        const auto* frameDataPtr = static_cast<const uint8_t*>(pixels->getData());
+        if(numChannels == 1)
+        {
+            frames[frame].create(image.getHeight(), image.getWidth(), CV_MAKE_TYPE(cvIntermediateType, numChannels));
+            std::memcpy(frames[frame].data, frameDataPtr, numFrameBytes);
+            if (intermediateDataType != originalDataType || m_useRescaling)
+            {
+                frames[frame].convertTo(frames[frame], CV_MAKE_TYPE(cvOriginalType, numChannels), m_rescaleSlope, -m_rescaleIntercept);
+            }
+        }
+        else if(numChannels == 3)
+        {
+            void** channels = (void**)frameDataPtr;
+            void* red = channels[0];
+            void* green = channels[1];
+            void* blue = channels[2];
+
+            cv::Mat channelR(image.getHeight(), image.getWidth(), CV_MAKE_TYPE(cvIntermediateType, 1), red);
+            cv::Mat channelG(image.getHeight(), image.getWidth(), CV_MAKE_TYPE(cvIntermediateType, 1), green);
+            cv::Mat channelB(image.getHeight(), image.getWidth(), CV_MAKE_TYPE(cvIntermediateType, 1), blue);
+            std::vector<cv::Mat> rgb = { channelR, channelG, channelB };
+            cv::merge(rgb, frames[frame]);
         }
         else
         {
-            cv::Mat cvImageTmp;
-            cvImage.convertTo(cvImageTmp, CV_MAKE_TYPE(cvOriginalType, numChannels), m_rescaleSlope, -m_rescaleIntercept);
-            cvImageTmp.copyTo(frames[frame]);
+            RAISE_RUNTIME_ERROR << "DCMImageDriver: Unexpected number of planes received for a frame. Accepted values: 1 or 3."
+                << " Received: " << pixels->getPlanes() << ". File:" << m_filePath;
         }
+
         image.processNextFrames();
     }
 }

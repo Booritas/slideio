@@ -3,9 +3,12 @@
 // of this distribution and at http://slideio.com/license.html.
 #include <gtest/gtest.h>
 #include <opencv2/imgcodecs.hpp>
+#include <opencv2/imgproc.hpp>
 
 #include "slideio/drivers/dcm/dcmfile.hpp"
 #include "testtools.hpp"
+
+#include "slideio/drivers/dcm/dcmimagedriver.hpp"
 #include "slideio/imagetools/imagetools.hpp"
 
 using namespace  slideio;
@@ -31,21 +34,56 @@ TEST(DCMFile, init)
 
 }
 
+TEST(DCMFile, initPaletted)
+{
+    std::string slidePath = TestTools::getTestImagePath("dcm", "bare.dev/US-PAL-8-10x-echo");
+    DCMFile file(slidePath);
+    file.init();
+    const int width = file.getWidth();
+    const int height = file.getHeight();
+    const int numSlices = file.getNumSlices();
+    const std::string seriesUID = file.getSeriesUID();
+    EXPECT_EQ(width, 600);
+    EXPECT_EQ(height, 430);
+    EXPECT_EQ(numSlices, 10);
+    EXPECT_EQ(3, file.getNumChannels());
+    EXPECT_EQ(file.getDataType(), DataType::DT_Byte);
+    EXPECT_EQ(file.getPhotointerpretation(), EPhotoInterpetation::PHIN_PALETTE);
+
+}
+
 TEST(DCMFile, pixelValues)
 {
-    std::string slidePath = TestTools::getTestImagePath("dcm", "openmicroscopy/OT-MONO2-8-hip.dcm");
-    std::string testPath = TestTools::getTestImagePath("dcm", "openmicroscopy/Test/OT-MONO2-8-hip.bmp");
+    std::string slidePath = TestTools::getTestImagePath("dcm", "bare.dev/OT-MONO2-8-hip.dcm");
+    std::string testPath = TestTools::getTestImagePath("dcm", "bare.dev/OT-MONO2-8-hip.frames/frame0.png");
     DCMFile file(slidePath);
     file.init();
     std::vector<cv::Mat> frames;
     file.readPixelValues(frames);
     ASSERT_FALSE(frames.empty());
     EXPECT_EQ(frames.size(), 1);
-    cv::Mat bmpImage = cv::imread(testPath, cv::IMREAD_UNCHANGED);
-    double similarity = ImageTools::computeSimilarity(frames[0], bmpImage);
-    EXPECT_EQ(1, similarity);
+    cv::Mat pngImage;
+    slideio::ImageTools::readGDALImage(testPath, pngImage);
+    double similarity = ImageTools::computeSimilarity(frames[0], pngImage);
+    EXPECT_LT(0.99, similarity);
 }
 
+TEST(DCMFile, pixelRGB)
+{
+    std::string slidePath = TestTools::getTestImagePath("dcm", "bare.dev/US-RGB-8-epicard");
+    std::string testPath = TestTools::getTestImagePath("dcm", "bare.dev/US-RGB-8-epicard.frames/frame0.png");
+    DCMFile file(slidePath);
+    file.init();
+    std::vector<cv::Mat> frames;
+    file.readPixelValues(frames);
+    ASSERT_FALSE(frames.empty());
+    EXPECT_EQ(frames.size(), 1);
+    cv::Mat pngImage;
+    slideio::ImageTools::readGDALImage(testPath, pngImage);
+    cv::cvtColor(pngImage, pngImage, cv::COLOR_BGR2RGB);
+    double similarity = ImageTools::computeSimilarity(frames[0], pngImage);
+    EXPECT_EQ(1, similarity);
+}
 
 TEST(DCMFile, pixelValuesExtended)
 {
@@ -68,4 +106,30 @@ TEST(DCMFile, pixelValuesExtended)
     slideio::ImageTools::readGDALImage(testPath2, bmpImage2);
     similarity = ImageTools::computeSimilarity(frames[1], bmpImage2);
     EXPECT_EQ(1, similarity);
+}
+
+TEST(DCMFile, pixelPaleteExtended)
+{
+    DCMImageDriver::initializeDCMTK();
+
+    std::string slidePath = TestTools::getTestImagePath("dcm", "bare.dev/US-PAL-8-10x-echo");
+    std::string testPath1 = TestTools::getTestImagePath("dcm", "bare.dev/US-PAL-8-10x-echo.frames/frame5.png");
+    std::string testPath2 = TestTools::getTestImagePath("dcm", "bare.dev/US-PAL-8-10x-echo.frames/frame6.png");
+    DCMFile file(slidePath);
+    file.init();
+    int fileFrames = file.getNumSlices();
+    ASSERT_EQ(10, fileFrames);
+    std::vector<cv::Mat> frames;
+    file.readPixelValues(frames, 5, 2);
+    ASSERT_FALSE(frames.empty());
+    EXPECT_EQ(frames.size(), 2);
+    EXPECT_EQ(3, frames[0].channels());
+    cv::Mat bmpImage1;
+    slideio::ImageTools::readGDALImage(testPath1, bmpImage1);
+    double similarity = ImageTools::computeSimilarity(frames[0], bmpImage1);
+    EXPECT_LT(0.92, similarity);
+    cv::Mat bmpImage2;
+    slideio::ImageTools::readGDALImage(testPath2, bmpImage2);
+    similarity = ImageTools::computeSimilarity(frames[1], bmpImage2);
+    EXPECT_LT(0.92, similarity);
 }
