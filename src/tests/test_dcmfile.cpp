@@ -133,3 +133,30 @@ TEST(DCMFile, pixelPaleteExtended)
     similarity = ImageTools::computeSimilarity(frames[1], bmpImage2);
     EXPECT_LT(0.92, similarity);
 }
+
+
+TEST(DCMFile, pixelJpegExtended)
+{
+    DCMImageDriver::initializeDCMTK();
+
+    std::string slidePath = TestTools::getTestImagePath("dcm", "bare.dev/XA-MONO2-8-12x-catheter");
+    std::string testPath1 = TestTools::getTestImagePath("dcm", "bare.dev/XA-MONO2-8-12x-catheter.frames/frame5.png");
+    std::string testPath2 = TestTools::getTestImagePath("dcm", "bare.dev/XA-MONO2-8-12x-catheter.frames/frame6.png");
+    DCMFile file(slidePath);
+    file.init();
+    int fileFrames = file.getNumSlices();
+    ASSERT_EQ(12, fileFrames);
+    std::vector<cv::Mat> frames;
+    file.readPixelValues(frames, 5, 2);
+    ASSERT_FALSE(frames.empty());
+    EXPECT_EQ(frames.size(), 2);
+    EXPECT_EQ(1, frames[0].channels());
+    cv::Mat bmpImage1;
+    slideio::ImageTools::readGDALImage(testPath1, bmpImage1);
+    double similarity = ImageTools::computeSimilarity(frames[0], bmpImage1);
+    EXPECT_LT(0.99, similarity);
+    cv::Mat bmpImage2;
+    slideio::ImageTools::readGDALImage(testPath2, bmpImage2);
+    similarity = ImageTools::computeSimilarity(frames[1], bmpImage2);
+    EXPECT_LT(0.99, similarity);
+}
