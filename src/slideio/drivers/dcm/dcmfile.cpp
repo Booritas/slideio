@@ -85,9 +85,11 @@ void DCMFile::init()
     }
     m_useWindowing = getDblTag(DCM_WindowCenter, m_windowCenter, -1.) &&
         getDblTag(DCM_WindowWidth, m_windowWidth, -1.);
-    m_useRescaling = getDblTag(DCM_RescaleSlope, m_rescaleSlope, -1.) &&
-        getDblTag(DCM_RescaleIntercept, m_rescaleIntercept, -1.);
 
+    getDblTag(DCM_RescaleSlope, m_rescaleSlope, 1.);
+    getDblTag(DCM_RescaleIntercept, m_rescaleIntercept, 0.);
+    m_useRescaling = std::abs(m_rescaleSlope -1.)>1.e-6 || m_rescaleIntercept > 0.9;
+    
     getStringTag(DCM_SeriesDescription, m_seriesDescription);
     int bitsAllocated(0);
     if (!getIntTag(DCM_BitsAllocated, bitsAllocated))
@@ -263,6 +265,43 @@ void DCMFile::logData()
         << "Intercept:" << m_rescaleIntercept << std::endl;
 }
 
+inline int getPixelRepresentationDataSize(EP_Representation rep)
+{
+    switch(rep)
+    {
+    case EPR_Uint8:
+    case EPR_Sint8:
+        return 1;
+    case EPR_Uint16:
+    case EPR_Sint16:
+        return 2;
+    case EPR_Uint32:
+    case EPR_Sint32:
+        return 4;
+    }
+    RAISE_RUNTIME_ERROR << "DCMImageDriver: unexpected pixel representation:" << (int)rep;
+}
+
+inline int getCvTypeForPixelRepresentation(EP_Representation rep)
+{
+    switch (rep)
+    {
+    case EPR_Uint8:
+        return CV_8U;
+    case EPR_Sint8:
+        return CV_8S;
+    case EPR_Uint16:
+        return CV_16U;
+    case EPR_Sint16:
+        return CV_16S;
+    case EPR_Uint32:
+        return CV_32S;
+    case EPR_Sint32:
+        return CV_32S;
+    }
+    RAISE_RUNTIME_ERROR << "DCMImageDriver: unexpected pixel representation:" << (int)rep;
+}
+
 void DCMFile::readPixelValues(std::vector<cv::Mat>& frames, int startFrame, int numFrames)
 {
     SLIDEIO_LOG(trace) << "Extracting pixel values from the dataset";
@@ -272,7 +311,7 @@ void DCMFile::readPixelValues(std::vector<cv::Mat>& frames, int startFrame, int 
     {
         RAISE_RUNTIME_ERROR << "DCMImageDriver: unexpected null as dataset for file " << m_filePath;
     }
-
+    // dataset->chooseRepresentation(EXS_LittleEndianExplicit, nullptr);
     E_TransferSyntax xfer = dataset->getOriginalXfer();
     DicomImage image(dataset, xfer, CIF_UsePartialAccessToPixelData, (ulong)startFrame, (ulong)1);
     if(image.getStatus()!=EIS_Normal) 
@@ -283,25 +322,26 @@ void DCMFile::readPixelValues(std::vector<cv::Mat>& frames, int startFrame, int 
     const int numFileFrames = image.getFrameCount();
     const int numChannels = getNumChannels();
     const DataType originalDataType = getDataType();
-    DataType intermediateDataType = originalDataType;
-    const int cvIntermediateType = CVTools::toOpencvType(intermediateDataType);
-    const int cvOriginalType = CVTools::toOpencvType(originalDataType);
     const int numFramePixels = getWidth() * getHeight();
-    const int numFrameBytes = numChannels * numFramePixels * ImageTools::dataTypeSize(getDataType());
-
-    if (m_useRescaling)
-    {
-        if (originalDataType == DataType::DT_UInt16)
-        {
-            intermediateDataType = DataType::DT_Int16;
-        }
-    }
+    const int cvOriginalType = CVTools::toOpencvType(originalDataType);
 
     frames.resize(numFrames);
-
+    const int bits = image.getDepth();
     for(int frame=0; frame < numFrames; ++frame)  
     {
         const DiPixel* pixels = image.getInterData();
+        EP_Representation rep = pixels->getRepresentation();
+        int cvIntermediateType = getCvTypeForPixelRepresentation(rep);
+        const int numFrameBytes = numChannels * numFramePixels * getPixelRepresentationDataSize(rep);
+
+        if (m_useRescaling)
+        {
+            if (cvIntermediateType == CV_16U)
+            {
+                cvIntermediateType = CV_16S;
+            }
+        }
+
         if (!pixels)
         {
             RAISE_RUNTIME_ERROR << "DCMImageDriver: cannot extract pixel data fro file " << m_filePath;
@@ -321,7 +361,7 @@ void DCMFile::readPixelValues(std::vector<cv::Mat>& frames, int startFrame, int 
         {
             frames[frame].create(image.getHeight(), image.getWidth(), CV_MAKE_TYPE(cvIntermediateType, numChannels));
             std::memcpy(frames[frame].data, frameDataPtr, numFrameBytes);
-            if (intermediateDataType != originalDataType || m_useRescaling)
+            if (cvIntermediateType != cvOriginalType || m_useRescaling)
             {
                 frames[frame].convertTo(frames[frame], CV_MAKE_TYPE(cvOriginalType, numChannels), m_rescaleSlope, -m_rescaleIntercept);
             }

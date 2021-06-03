@@ -2,6 +2,8 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include <gtest/gtest.h>
+
+#include <opencv2/highgui.hpp>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
 
@@ -159,4 +161,35 @@ TEST(DCMFile, pixelJpegExtended)
     slideio::ImageTools::readGDALImage(testPath2, bmpImage2);
     similarity = ImageTools::computeSimilarity(frames[1], bmpImage2);
     EXPECT_LT(0.99, similarity);
+}
+
+TEST(DCMFile, pixelJpegLsValues)
+{
+    DCMImageDriver::initializeDCMTK();
+
+    std::string slidePath = TestTools::getTestImagePath("dcm", "benigns_01/patient0186/0186.LEFT_MLO.dcm");
+    std::string testPath = TestTools::getTestImagePath("dcm", "benigns_01/patient0186/0186.LEFT_MLO.frames/frame0.tif");
+    DCMFile file(slidePath);
+    file.init();
+    EXPECT_EQ(4008, file.getWidth());
+    EXPECT_EQ(5528, file.getHeight());
+    EXPECT_EQ(1, file.getNumChannels());
+    std::vector<cv::Mat> frames;
+    file.readPixelValues(frames);
+    ASSERT_FALSE(frames.empty());
+    EXPECT_EQ(frames.size(), 1);
+
+    frames[0].convertTo(frames[0], CV_MAKE_TYPE(CV_8U, 1));
+
+    cv::Mat tiffImage;
+    slideio::ImageTools::readGDALImage(testPath, tiffImage);
+    double similarity = ImageTools::computeSimilarity(frames[0], tiffImage);
+    EXPECT_LT(0.99, similarity);
+
+    // cv::namedWindow("Display window", cv::WINDOW_AUTOSIZE);// Create a window for display.
+    // cv::Mat mat;
+    // cv::resize(frames[0], mat, cv::Size(400, 552));
+    // cv::imshow( "Display window", mat );                   // Show our image inside it.
+    // cv::waitKey(0);
+
 }

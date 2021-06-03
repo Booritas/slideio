@@ -185,18 +185,13 @@ void DCMScene::init()
 }
 
 
-void DCMScene::extractSliceRaster(const std::vector<cv::Mat>& frames,
+void DCMScene::extractSliceRaster(const cv::Mat& frame,
                                   const cv::Rect& blockRect,
                                   const cv::Size& blockSize,
                                   const std::vector<int>& componentIndices,
-                                  int zSliceIndex, cv::OutputArray output)
+                                   cv::OutputArray output)
 {
-    if (zSliceIndex >= frames.size())
-    {
-        RAISE_RUNTIME_ERROR << "DCMImageDriver: frame index: " <<
-            zSliceIndex << " exceeds number of frames: " << frames.size();
-    }
-    cv::Mat block = frames[zSliceIndex](blockRect);
+    cv::Mat block = frame(blockRect);
     cv::Mat resizedBlock;
     cv::resize(block, resizedBlock, blockSize);
     if (componentIndices.empty() || (componentIndices.size() == getNumChannels()
@@ -253,20 +248,11 @@ void DCMScene::readResampledBlockChannelsEx(const cv::Rect& blockRect,
         << "slice: " << zSliceIndex << std::endl
         << "frame: " << tFrameIndex;
 
-    const std::vector<cv::Mat> frames;
-
-    if (frames.empty())
-    {
-        const auto indices = findFileIndex(zSliceIndex);
-        const int fileIndex = indices.first;
-        const int fileSlice = indices.second;
-        auto file = m_files[fileIndex];
-        std::vector<cv::Mat> frameRasters;
-        file->readPixelValues(frameRasters);
-        extractSliceRaster(frameRasters, blockRect, blockSize, componentIndices, fileSlice, output);
-    }
-    else
-    {
-        extractSliceRaster(frames, blockRect, blockSize, componentIndices, zSliceIndex, output);
-    }
+    const auto indices = findFileIndex(zSliceIndex);
+    const int fileIndex = indices.first;
+    const int fileSlice = indices.second;
+    auto file = m_files[fileIndex];
+    std::vector<cv::Mat> frames;
+    file->readPixelValues(frames, fileSlice, 1);
+    extractSliceRaster(frames[0], blockRect, blockSize, componentIndices, output);
 }
