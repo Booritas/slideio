@@ -173,10 +173,8 @@ TEST(DCMImageDriver, readSimpleFileResampled)
 
 TEST(DCMImageDriver, readJpegLsCompression)
 {
-    std::string slidePath = TestTools::getTestImagePath(
-        "dcm", "benigns_01/patient0186/0186.RIGHT_MLO.dcm");
-    //std::string testPath = TestTools::getTestImagePath(
-    //    "dcm", "openmicroscopy/Test/OT-MONO2-8-hip.bmp");
+    std::string slidePath = TestTools::getTestImagePath("dcm", "benigns_01/patient0186/0186.LEFT_MLO.dcm");
+    std::string testPath = TestTools::getTestImagePath("dcm", "benigns_01/patient0186/0186.LEFT_MLO.frames/frame0.tif");
 
     DCMImageDriver driver;
     auto slide = driver.openFile(slidePath);
@@ -184,17 +182,17 @@ TEST(DCMImageDriver, readJpegLsCompression)
     ASSERT_EQ(numScenes, 1);
     auto scene = slide->getScene(0);
     ASSERT_TRUE(scene);
-    const cv::Rect rect = { 100, 100, 400, 400 };
-    const cv::Size size = { 200, 200 };
     cv::Mat image;
+    cv::Rect rect = scene->getRect();
+    cv::Size size = rect.size();
+    slideio::DataType dt = scene->getChannelDataType(0);
     scene->readResampledBlock(rect, size, image);
     ASSERT_FALSE(image.empty());
-    //cv::Mat bmpImage = cv::imread(testPath, cv::IMREAD_UNCHANGED);
-    //cv::Mat bmpBlock = bmpImage(rect);
-    //cv::Mat resizedBlock;
-    //cv::resize(bmpBlock, resizedBlock, size);
-    //double similarity = ImageTools::computeSimilarity(image, resizedBlock);
-    //EXPECT_EQ(1, similarity);
+    image.convertTo(image, CV_MAKE_TYPE(CV_8U, 1));
+    cv::Mat testImage;
+    slideio::ImageTools::readGDALImage(testPath, testImage);
+    double similarity = ImageTools::computeSimilarity(image, testImage);
+    EXPECT_LT(0.99, similarity);
 }
 
 
