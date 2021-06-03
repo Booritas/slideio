@@ -473,7 +473,7 @@ bool DCMFile::getDblTag(const DcmTagKey& tag, double& value, double defaultValue
 
     if (nullptr == element)
     {
-        value = -1;
+        value = defaultValue;
         return false;
     }
     if (dataset->findAndGetFloat64(tag, value).good())

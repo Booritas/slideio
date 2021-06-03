@@ -132,8 +132,8 @@ namespace slideio
         EPhotoInterpetation m_photoInterpretation = EPhotoInterpetation::PHIN_UNKNOWN;
         double m_windowCenter = -1;
         double m_windowWidth = -1;
-        double m_rescaleSlope = -1;
-        double m_rescaleIntercept = -1;
+        double m_rescaleSlope = 1.;
+        double m_rescaleIntercept = 0.;
         bool m_useWindowing = false;
         bool m_useRescaling = false;
         Compression m_compression = Compression::Unknown;

@@ -185,11 +185,4 @@ TEST(DCMFile, pixelJpegLsValues)
     slideio::ImageTools::readGDALImage(testPath, tiffImage);
     double similarity = ImageTools::computeSimilarity(frames[0], tiffImage);
     EXPECT_LT(0.99, similarity);
-
-    // cv::namedWindow("Display window", cv::WINDOW_AUTOSIZE);// Create a window for display.
-    // cv::Mat mat;
-    // cv::resize(frames[0], mat, cv::Size(400, 552));
-    // cv::imshow( "Display window", mat );                   // Show our image inside it.
-    // cv::waitKey(0);
-
 }
