@@ -171,7 +171,7 @@ TEST(DCMImageDriver, readSimpleFileResampled)
     EXPECT_EQ(1, similarity);
 }
 
-TEST(DCMImageDriver, readJpegLsCompression)
+TEST(DCMImageDriver, readSingleFrame)
 {
     std::string slidePath = TestTools::getTestImagePath("dcm", "benigns_01/patient0186/0186.LEFT_MLO.dcm");
     std::string testPath = TestTools::getTestImagePath("dcm", "benigns_01/patient0186/0186.LEFT_MLO.frames/frame0.tif");
@@ -195,6 +195,72 @@ TEST(DCMImageDriver, readJpegLsCompression)
     EXPECT_LT(0.99, similarity);
 }
 
+TEST(DCMImageDriver, readSingleFrameROIRescale)
+{
+    std::string slidePath = TestTools::getTestImagePath("dcm", "benigns_01/patient0186/0186.LEFT_MLO.dcm");
+    std::string testPath = TestTools::getTestImagePath("dcm", "benigns_01/patient0186/0186.LEFT_MLO.frames/frame0.tif");
+
+    DCMImageDriver driver;
+    auto slide = driver.openFile(slidePath);
+    const int numScenes = slide->getNumScenes();
+    ASSERT_EQ(numScenes, 1);
+    auto scene = slide->getScene(0);
+    ASSERT_TRUE(scene);
+    cv::Mat image;
+    cv::Rect rect = { 1000, 500, 600, 1000 };
+    cv::Size size = { 300, 500 };
+    slideio::DataType dt = scene->getChannelDataType(0);
+    scene->readResampledBlock(rect, size, image);
+    ASSERT_FALSE(image.empty());
+    ASSERT_EQ(300, image.size().width);
+    ASSERT_EQ(500, image.size().height);
+    image.convertTo(image, CV_MAKE_TYPE(CV_8U, 1));
+    cv::Mat testImage;
+    slideio::ImageTools::readGDALImage(testPath, testImage);
+    cv::Mat roi = testImage(rect);
+    cv::resize(roi, roi, size);
+    double similarity = ImageTools::computeSimilarity(image, roi);
+    EXPECT_LT(0.99, similarity);
+}
+
+TEST(DCMImageDriver, readMultiFrameROIRescale)
+{
+    std::string slidePath = TestTools::getTestImagePath("dcm", "bare.dev/XA-MONO2-8-12x-catheter");
+    std::string testPath1 = TestTools::getTestImagePath("dcm", "bare.dev/XA-MONO2-8-12x-catheter.frames/frame5.png");
+    std::string testPath2 = TestTools::getTestImagePath("dcm", "bare.dev/XA-MONO2-8-12x-catheter.frames/frame6.png");
+
+    DCMImageDriver driver;
+    auto slide = driver.openFile(slidePath);
+    const int numScenes = slide->getNumScenes();
+    ASSERT_EQ(numScenes, 1);
+    auto scene = slide->getScene(0);
+    ASSERT_TRUE(scene);
+    cv::Mat image;
+    cv::Rect rect = { 100, 50, 300, 360 };
+    cv::Size size = { 150, 180 };
+    scene->readResampled4DBlock(rect, size, cv::Range(5,7), cv::Range(0,1),image);
+    ASSERT_FALSE(image.empty());
+    ASSERT_EQ(150, image.size[1]);
+    ASSERT_EQ(180, image.size[0]);
+    ASSERT_EQ(2, image.size[2]);
+    cv::Mat slice5, slice6;
+    CVTools::extractSliceFrom3D(image, 0, slice5);
+    CVTools::extractSliceFrom3D(image, 1, slice6);
+
+    cv::Mat testImage5;
+    slideio::ImageTools::readGDALImage(testPath1, testImage5);
+    cv::Mat roi5 = testImage5(rect);
+    cv::resize(roi5, roi5, size);
+
+    cv::Mat testImage6;
+    slideio::ImageTools::readGDALImage(testPath2, testImage6);
+    cv::Mat roi6 = testImage6(rect);
+    cv::resize(roi6, roi6, size);
+    double similarity = ImageTools::computeSimilarity(slice5, roi5);
+    EXPECT_LT(0.999, similarity);
+    similarity = ImageTools::computeSimilarity(slice6, roi6);
+    EXPECT_LT(0.999, similarity);
+}
 
 TEST(DCMImageDriver, readDirectory3D)
 {
