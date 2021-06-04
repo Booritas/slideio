@@ -128,11 +128,11 @@ TEST(DCMFile, pixelPaleteExtended)
     EXPECT_EQ(3, frames[0].channels());
     cv::Mat bmpImage1;
     slideio::ImageTools::readGDALImage(testPath1, bmpImage1);
-    double similarity = ImageTools::computeSimilarity(frames[0], bmpImage1);
+    double similarity = ImageTools::computeSimilarity(frames[0], bmpImage1, true);
     EXPECT_LT(0.92, similarity);
     cv::Mat bmpImage2;
     slideio::ImageTools::readGDALImage(testPath2, bmpImage2);
-    similarity = ImageTools::computeSimilarity(frames[1], bmpImage2);
+    similarity = ImageTools::computeSimilarity(frames[1], bmpImage2, true);
     EXPECT_LT(0.92, similarity);
 }
 
@@ -185,4 +185,12 @@ TEST(DCMFile, pixelJpegLsValues)
     slideio::ImageTools::readGDALImage(testPath, tiffImage);
     double similarity = ImageTools::computeSimilarity(frames[0], tiffImage);
     EXPECT_LT(0.99, similarity);
+}
+
+TEST(DCMFile, getMetadata)
+{
+    std::string slidePath = TestTools::getTestImagePath("dcm", "bare.dev/US-PAL-8-10x-echo");
+    DCMFile file(slidePath);
+    file.init();
+    std::string metadata = file.getMetadata();
 }

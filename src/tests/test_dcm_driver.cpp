@@ -126,9 +126,9 @@ TEST(DCMImageDriver, openDirectoryRecursively)
 TEST(DCMImageDriver, readSimpleFileWholeBlock)
 {
     std::string slidePath = TestTools::getTestImagePath(
-        "dcm", "openmicroscopy/OT-MONO2-8-hip.dcm");
+        "dcm", "bare.dev/OT-MONO2-8-hip.dcm");
     std::string testPath = TestTools::getTestImagePath(
-        "dcm", "openmicroscopy/Test/OT-MONO2-8-hip.bmp");
+        "dcm", "bare.dev/OT-MONO2-8-hip.frames/frame0.png");
 
     DCMImageDriver driver;
     auto slide = driver.openFile(slidePath);
@@ -140,17 +140,19 @@ TEST(DCMImageDriver, readSimpleFileWholeBlock)
     cv::Mat image;
     scene->readBlock(rect, image);
     ASSERT_FALSE(image.empty());
-    cv::Mat bmpImage = cv::imread(testPath, cv::IMREAD_UNCHANGED);
+    cv::Mat bmpImage;
+    slideio::ImageTools::readGDALImage(testPath, bmpImage);
+    cv::Mat bmpBlock = bmpImage(rect);
     double similarity = ImageTools::computeSimilarity(image, bmpImage);
-    EXPECT_EQ(1, similarity);
+    EXPECT_LT(0.99, similarity);
 }
 
 TEST(DCMImageDriver, readSimpleFileResampled)
 {
     std::string slidePath = TestTools::getTestImagePath(
-        "dcm", "openmicroscopy/OT-MONO2-8-hip.dcm");
+        "dcm", "bare.dev/OT-MONO2-8-hip.dcm");
     std::string testPath = TestTools::getTestImagePath(
-        "dcm", "openmicroscopy/Test/OT-MONO2-8-hip.bmp");
+        "dcm", "bare.dev/OT-MONO2-8-hip.frames/frame0.png");
 
     DCMImageDriver driver;
     auto slide = driver.openFile(slidePath);
@@ -163,12 +165,13 @@ TEST(DCMImageDriver, readSimpleFileResampled)
     cv::Mat image;
     scene->readResampledBlock(rect, size, image);
     ASSERT_FALSE(image.empty());
-    cv::Mat bmpImage = cv::imread(testPath, cv::IMREAD_UNCHANGED);
+    cv::Mat bmpImage;
+    slideio::ImageTools::readGDALImage(testPath, bmpImage);
     cv::Mat bmpBlock = bmpImage(rect);
     cv::Mat resizedBlock;
     cv::resize(bmpBlock, resizedBlock, size);
     double similarity = ImageTools::computeSimilarity(image, resizedBlock);
-    EXPECT_EQ(1, similarity);
+    EXPECT_LT(0.99, similarity);
 }
 
 TEST(DCMImageDriver, readSingleFrame)
@@ -294,4 +297,45 @@ TEST(DCMImageDriver, readDirectory3D)
     ImageTools::readGDALImage(testImagePath, bmpImage);
     double similarity = ImageTools::computeSimilarity(sliceRaster, bmpImage);
     EXPECT_EQ(1, similarity);
+}
+
+TEST(DCMImageDriver, openDicomDirFile)
+{
+    DCMImageDriver driver;
+    std::string slidePath = TestTools::getFullTestImagePath("dcm", "spine_mr/DICOMDIR");
+    auto slide = driver.openFile(slidePath);
+    const int numScenes = slide->getNumScenes();
+    EXPECT_EQ(16, numScenes);
+    struct SceneInfo
+    {
+        cv::Size size;
+        int numFrames;
+        int numChannel;
+    };
+    SceneInfo scenes[] = 
+    {
+        {
+            cv::Size(256,256),
+            9,
+            1
+        },
+        {
+            cv::Size(512,512),
+            13,
+            1
+        },
+        {
+            cv::Size(64,64),
+            118,
+            1
+        },
+    };
+    const int numTestScenes = sizeof(scenes) / sizeof(scenes[0]);
+    for(int sceneIndex=0; sceneIndex< numTestScenes; ++sceneIndex)
+    {
+        auto scene = slide->getScene(sceneIndex);
+        cv::Rect rect = scene->getRect();
+        int numFrames = scene->getNumZSlices();
+        int numChannel = scene->getNumChannels();
+    }
 }

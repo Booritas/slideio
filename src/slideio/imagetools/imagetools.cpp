@@ -59,7 +59,7 @@ void slideio::ImageTools::scaleRect(const cv::Rect& srcRect, double scaleX, doub
     trgRect.height = dyn - trgRect.y;
 }
 
-double slideio::ImageTools::computeSimilarity(const cv::Mat& leftM, const cv::Mat& rightM)
+double slideio::ImageTools::computeSimilarity(const cv::Mat& leftM, const cv::Mat& rightM, bool ignoreTypes)
 {
     double similarity = 0;
     const cv::Size leftSize = leftM.size();
@@ -76,7 +76,7 @@ double slideio::ImageTools::computeSimilarity(const cv::Mat& leftM, const cv::Ma
     }
     int dtLeft = leftM.type();
     int dtRight = rightM.type();
-    if(dtLeft!=dtRight)
+    if(!ignoreTypes && dtLeft!=dtRight)
     {
         RAISE_RUNTIME_ERROR << "Image types for comparison shall be equal. Left image: " << dtLeft
             << ". Right image:" << dtRight << ".";

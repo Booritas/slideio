@@ -7,6 +7,7 @@
 #include <boost/format.hpp>
 #include "slideio/base.hpp"
 #include "slideio/core/cvtools.hpp"
+#include <dcmtk/dcmdata/dcjson.h>
 
 #include <ostream>
 
@@ -58,7 +59,6 @@ void DCMFile::init()
         RAISE_RUNTIME_ERROR << "DCMImageDriver: Cannot open file: " << m_filePath;
     }
     DcmDataset* dataset = getValidDataset();
-
     if (!getIntTag(DCM_Columns, m_width))
     {
         RAISE_RUNTIME_ERROR << "DCMImageDriver: Cannot extract image width for the file:" << m_filePath;
@@ -387,6 +387,18 @@ void DCMFile::readPixelValues(std::vector<cv::Mat>& frames, int startFrame, int 
 
         image.processNextFrames();
     }
+}
+
+std::string DCMFile::getMetadata()
+{
+    DcmDataset* dataset = getValidDataset();
+    DcmJsonFormatCompact frmt;
+    std::stringstream os;
+    if (dataset->writeJson(os, frmt).good())
+    {
+        int a = 0;
+    }
+    return "";
 }
 
 
