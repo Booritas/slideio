@@ -192,11 +192,12 @@ bool DCMSlide::initFromDicomDirFile()
                             filePath = directoryPath / fileName;
                             std::string str = filePath.string();
                             std::shared_ptr<DCMFile> dcm(new DCMFile(str));
+                            dcm->init();
                             series.push_back(dcm);
                         }
                         catch(std::exception& ex)
                         {
-                            RAISE_RUNTIME_ERROR << "DCMImageDriver: Error by processing DICOMDIR for file:" << ex.what();
+                            SLIDEIO_LOG(warning) << "DCMImageDriver: Error by processing DICOMDIR for file:" << ex.what();
                         }
                     }
                 }

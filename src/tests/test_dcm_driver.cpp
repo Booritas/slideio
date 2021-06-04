@@ -310,7 +310,7 @@ TEST(DCMImageDriver, openDicomDirFile)
     {
         cv::Size size;
         int numFrames;
-        int numChannel;
+        int numChannels;
     };
     SceneInfo scenes[] = 
     {
@@ -334,8 +334,20 @@ TEST(DCMImageDriver, openDicomDirFile)
     for(int sceneIndex=0; sceneIndex< numTestScenes; ++sceneIndex)
     {
         auto scene = slide->getScene(sceneIndex);
-        cv::Rect rect = scene->getRect();
+        cv::Size size = scene->getRect().size();
         int numFrames = scene->getNumZSlices();
-        int numChannel = scene->getNumChannels();
+        int numChannels = scene->getNumChannels();
+        EXPECT_EQ(size, scenes[sceneIndex].size);
+        EXPECT_EQ(numFrames, scenes[sceneIndex].numFrames);
+        EXPECT_EQ(numChannels, scenes[sceneIndex].numChannels);
     }
+    auto scene = slide->getScene(1);
+    cv::Rect rect = { 100, 150, 200, 300 };
+    cv::Mat image;
+    scene->read4DBlock(rect, cv::Range(3, 7), cv::Range(0, 1), image);
+    ASSERT_FALSE(image.empty());
+    EXPECT_EQ(300, image.size[0]);
+    EXPECT_EQ(200, image.size[1]);
+    EXPECT_EQ(4, image.size[2]);
+
 }
