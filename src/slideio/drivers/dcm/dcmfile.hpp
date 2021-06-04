@@ -45,6 +45,7 @@ namespace slideio
     {
     public:
         DCMFile(const std::string& filePath);
+        void loadFile();
         void init();
 
         int getWidth() const
@@ -110,6 +111,7 @@ namespace slideio
         void logData();
         void readPixelValues(std::vector<cv::Mat>& frames, int startFrame=0, int numFrames=1);
         std::string getMetadata();
+        static bool isDicomDirFile(const std::string& filePath);
     private:
         void initPhotoInterpretaion();
         void defineCompression();

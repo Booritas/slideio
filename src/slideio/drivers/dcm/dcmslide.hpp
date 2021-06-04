@@ -25,7 +25,7 @@ namespace slideio
     private:
         void processSeries(std::vector<std::shared_ptr<DCMFile>>& files, bool keepOrder=false);
         void initFromDir();
-        bool initFromDicomDirFile();
+        void initFromDicomDirFile();
         void init();
     private:
         std::vector<std::shared_ptr<DCMScene>> m_scenes;

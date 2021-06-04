@@ -194,3 +194,18 @@ TEST(DCMFile, getMetadata)
     file.init();
     std::string metadata = file.getMetadata();
 }
+
+TEST(DCMFile, isDicomDirFile)
+{
+    if (!TestTools::isFullTestEnabled())
+    {
+        GTEST_SKIP() <<
+            "Skip the test because full dataset is not enabled";
+    }
+    std::string filePath = TestTools::getTestImagePath("dcm", "bare.dev/US-PAL-8-10x-echo");
+    bool res = DCMFile::isDicomDirFile(filePath);
+    EXPECT_FALSE(res);
+    filePath = TestTools::getFullTestImagePath("dcm", "spine_mr/DICOMDIR");
+    res = DCMFile::isDicomDirFile(filePath);
+    EXPECT_TRUE(res);
+}

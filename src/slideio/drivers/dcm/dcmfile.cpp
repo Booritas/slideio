@@ -49,15 +49,21 @@ DCMFile::DCMFile(const std::string& filePath):
     m_file.reset(new DcmFileFormat);
 }
 
-void DCMFile::init()
+void DCMFile::loadFile()
 {
-    SLIDEIO_LOG(trace) << "DCMFlile::init: initializing DICOM file " << m_filePath;
-
     OFCondition status = m_file->loadFile(m_filePath.c_str());
     if (status.bad())
     {
         RAISE_RUNTIME_ERROR << "DCMImageDriver: Cannot open file: " << m_filePath;
     }
+}
+
+void DCMFile::init()
+{
+    SLIDEIO_LOG(trace) << "DCMFlile::init: initializing DICOM file " << m_filePath;
+
+    loadFile();
+
     DcmDataset* dataset = getValidDataset();
     if (!getIntTag(DCM_Columns, m_width))
     {
@@ -512,3 +518,23 @@ bool DCMFile::getStringTag(const DcmTagKey& tag, std::string& value) const
     }
     return ok;
 }
+
+bool DCMFile::isDicomDirFile(const std::string& filePath)
+{
+    bool isDicomDir = false;
+    DcmFileFormat file;
+    if(!file.loadFile(filePath.c_str()).good(), EXS_Unknown, EGL_noChange, DCM_MaxReadLength, ERM_metaOnly)
+    {
+        DcmMetaInfo* metainfo = file.getMetaInfo();
+        if(metainfo)
+        {
+            OFString dstrVal;
+            if (metainfo->findAndGetOFString(DCM_MediaStorageSOPClassUID, dstrVal).good())
+            {
+                isDicomDir = dstrVal == UID_MediaStorageDirectoryStorage;
+            }
+        }
+    }
+    return isDicomDir;
+}
+

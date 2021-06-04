@@ -10,6 +10,7 @@
 #include <algorithm>
 
 #include <dcmdata/dcdeftag.h>
+#include <dcmdata/dcmetinf.h>
 
 #include <dcmtk/dcmdata/dcdicdir.h>
 
@@ -160,7 +161,7 @@ void DCMSlide::initFromDir()
     SLIDEIO_LOG(trace) << "DCMSlide::initFromDir-end: initialize DCMSlide from directory: " << m_srcPath;
 }
 
-bool DCMSlide::initFromDicomDirFile()
+void DCMSlide::initFromDicomDirFile()
 {
     SLIDEIO_LOG(trace) << "DCMSlide::initFromDicomDirFile: attempt to initialize slide from as from DicomDir file : " << m_srcPath;
     bool ok(false);
@@ -215,16 +216,20 @@ bool DCMSlide::initFromDicomDirFile()
     }
     else
     {
-        SLIDEIO_LOG(trace) << "DCMSlide::initFromDicomDirFile: initialization failed.";
+        RAISE_RUNTIME_ERROR << "DCMSlide::initFromDicomDirFile: loading of DICOMDIR file failed.";
     }
-    return ok;
 }
 
 void DCMSlide::init()
 {
     SLIDEIO_LOG(trace) << "DCMSlide::init-begin: initialize DCMSlide from path: " << m_srcPath;
-    if(fs::is_regular_file(m_srcPath)) {
-        if(!initFromDicomDirFile())
+    if(fs::is_regular_file(m_srcPath)) 
+    {
+        if (DCMFile::isDicomDirFile(m_srcPath))
+        {
+            initFromDicomDirFile();
+        }
+        else
         {
             initFromFile();
         }

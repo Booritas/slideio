@@ -301,6 +301,11 @@ TEST(DCMImageDriver, readDirectory3D)
 
 TEST(DCMImageDriver, openDicomDirFile)
 {
+    if (!TestTools::isFullTestEnabled())
+    {
+        GTEST_SKIP() <<
+            "Skip the test because full dataset is not enabled";
+    }
     DCMImageDriver driver;
     std::string slidePath = TestTools::getFullTestImagePath("dcm", "spine_mr/DICOMDIR");
     auto slide = driver.openFile(slidePath);
