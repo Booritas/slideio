@@ -184,12 +184,23 @@ void DCMScene::init()
     prepareSliceIndices();
 }
 
+std::string DCMScene::getRawMetadata() const
+{
+    std::string metadata;
+    if(!m_files.empty())
+    {
+        std::shared_ptr<DCMFile> file = m_files.front();
+        metadata = file->getMetadata();
+    }
+    return metadata;
+}
+
 
 void DCMScene::extractSliceRaster(const cv::Mat& frame,
                                   const cv::Rect& blockRect,
                                   const cv::Size& blockSize,
                                   const std::vector<int>& componentIndices,
-                                   cv::OutputArray output)
+                                  cv::OutputArray output)
 {
     cv::Mat block = frame(blockRect);
     cv::Mat resizedBlock;

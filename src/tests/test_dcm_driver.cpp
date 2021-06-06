@@ -147,6 +147,23 @@ TEST(DCMImageDriver, readSimpleFileWholeBlock)
     EXPECT_LT(0.99, similarity);
 }
 
+TEST(DCMImageDriver, getRawMetadata)
+{
+    std::string slidePath = TestTools::getTestImagePath(
+        "dcm", "bare.dev/OT-MONO2-8-hip.dcm");
+
+    DCMImageDriver driver;
+    auto slide = driver.openFile(slidePath);
+    const int numScenes = slide->getNumScenes();
+    ASSERT_EQ(numScenes, 1);
+    auto scene = slide->getScene(0);
+    std::string metadata = scene->getRawMetadata();
+    ASSERT_LT(2, metadata.length());
+    EXPECT_EQ('{', metadata.front());
+    EXPECT_EQ('}', metadata.back());
+}
+
+
 TEST(DCMImageDriver, readSimpleFileResampled)
 {
     std::string slidePath = TestTools::getTestImagePath(

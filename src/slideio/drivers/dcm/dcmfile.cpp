@@ -16,6 +16,32 @@
 
 using namespace slideio;
 
+class JsonFormat : public DcmJsonFormatCompact
+{
+public:
+    bool asBulkDataURI(const DcmTagKey& tag, OFString& uri) override
+    {
+        if (tag == DCM_PixelData ||
+            tag == DCM_RETIRED_GrayLookupTableData ||
+            tag == DCM_RedPaletteColorLookupTableData ||
+            tag == DCM_GreenPaletteColorLookupTableData ||
+            tag == DCM_BluePaletteColorLookupTableData ||
+            tag == DCM_AlphaPaletteColorLookupTableData ||
+            tag == DCM_RETIRED_LargeRedPaletteColorLookupTableData ||
+            tag == DCM_RETIRED_LargeGreenPaletteColorLookupTableData ||
+            tag == DCM_RETIRED_LargeBluePaletteColorLookupTableData ||
+            tag == DCM_RETIRED_LargePaletteColorLookupTableUID ||
+            tag == DCM_SegmentedRedPaletteColorLookupTableData ||
+            tag == DCM_SegmentedGreenPaletteColorLookupTableData ||
+            tag == DCM_SegmentedBluePaletteColorLookupTableData ||
+            tag == DCM_SegmentedAlphaPaletteColorLookupTableData)
+        {
+            return OFTrue;
+        }
+        return OFFalse;
+    }
+};
+
 static std::string photoInterpetationToString(EPhotoInterpetation photoInt)
 {
 #define TONAME(name) std::string(#name)
@@ -94,8 +120,8 @@ void DCMFile::init()
 
     getDblTag(DCM_RescaleSlope, m_rescaleSlope, 1.);
     getDblTag(DCM_RescaleIntercept, m_rescaleIntercept, 0.);
-    m_useRescaling = std::abs(m_rescaleSlope -1.)>1.e-6 || m_rescaleIntercept > 0.9;
-    
+    m_useRescaling = std::abs(m_rescaleSlope - 1.) > 1.e-6 || m_rescaleIntercept > 0.9;
+
     getStringTag(DCM_SeriesDescription, m_seriesDescription);
     int bitsAllocated(0);
     if (!getIntTag(DCM_BitsAllocated, bitsAllocated))
@@ -131,7 +157,7 @@ void DCMFile::init()
     initPhotoInterpretaion();
     logData();
     defineCompression();
-    if(m_photoInterpretation == EPhotoInterpetation::PHIN_PALETTE)
+    if (m_photoInterpretation == EPhotoInterpetation::PHIN_PALETTE)
     {
         m_numChannels = 3;
     }
@@ -273,7 +299,7 @@ void DCMFile::logData()
 
 inline int getPixelRepresentationDataSize(EP_Representation rep)
 {
-    switch(rep)
+    switch (rep)
     {
     case EPR_Uint8:
     case EPR_Sint8:
@@ -317,12 +343,12 @@ void DCMFile::readPixelValues(std::vector<cv::Mat>& frames, int startFrame, int 
     {
         RAISE_RUNTIME_ERROR << "DCMImageDriver: unexpected null as dataset for file " << m_filePath;
     }
-    // dataset->chooseRepresentation(EXS_LittleEndianExplicit, nullptr);
     E_TransferSyntax xfer = dataset->getOriginalXfer();
     DicomImage image(dataset, xfer, CIF_UsePartialAccessToPixelData, (ulong)startFrame, (ulong)1);
-    if(image.getStatus()!=EIS_Normal) 
+    if (image.getStatus() != EIS_Normal)
     {
-        RAISE_RUNTIME_ERROR << "DCMImageDriver: cannot decompress file " << m_filePath << ". Image status: " << image.getStatus();
+        RAISE_RUNTIME_ERROR << "DCMImageDriver: cannot decompress file " << m_filePath << ". Image status: " << image.
+            getStatus();
     }
 
     const int numFileFrames = image.getFrameCount();
@@ -333,7 +359,7 @@ void DCMFile::readPixelValues(std::vector<cv::Mat>& frames, int startFrame, int 
 
     frames.resize(numFrames);
     const int bits = image.getDepth();
-    for(int frame=0; frame < numFrames; ++frame)  
+    for (int frame = 0; frame < numFrames; ++frame)
     {
         const DiPixel* pixels = image.getInterData();
         EP_Representation rep = pixels->getRepresentation();
@@ -363,16 +389,17 @@ void DCMFile::readPixelValues(std::vector<cv::Mat>& frames, int startFrame, int 
                 << numChannels << ". Received: " << pixels->getPlanes() << ". File:" << m_filePath;
         }
         const auto* frameDataPtr = static_cast<const uint8_t*>(pixels->getData());
-        if(numChannels == 1)
+        if (numChannels == 1)
         {
             frames[frame].create(image.getHeight(), image.getWidth(), CV_MAKE_TYPE(cvIntermediateType, numChannels));
             std::memcpy(frames[frame].data, frameDataPtr, numFrameBytes);
             if (cvIntermediateType != cvOriginalType || m_useRescaling)
             {
-                frames[frame].convertTo(frames[frame], CV_MAKE_TYPE(cvOriginalType, numChannels), m_rescaleSlope, -m_rescaleIntercept);
+                frames[frame].convertTo(frames[frame], CV_MAKE_TYPE(cvOriginalType, numChannels), m_rescaleSlope,
+                                        -m_rescaleIntercept);
             }
         }
-        else if(numChannels == 3)
+        else if (numChannels == 3)
         {
             void** channels = (void**)frameDataPtr;
             void* red = channels[0];
@@ -382,12 +409,13 @@ void DCMFile::readPixelValues(std::vector<cv::Mat>& frames, int startFrame, int 
             cv::Mat channelR(image.getHeight(), image.getWidth(), CV_MAKE_TYPE(cvIntermediateType, 1), red);
             cv::Mat channelG(image.getHeight(), image.getWidth(), CV_MAKE_TYPE(cvIntermediateType, 1), green);
             cv::Mat channelB(image.getHeight(), image.getWidth(), CV_MAKE_TYPE(cvIntermediateType, 1), blue);
-            std::vector<cv::Mat> rgb = { channelR, channelG, channelB };
+            std::vector<cv::Mat> rgb = {channelR, channelG, channelB};
             cv::merge(rgb, frames[frame]);
         }
         else
         {
-            RAISE_RUNTIME_ERROR << "DCMImageDriver: Unexpected number of planes received for a frame. Accepted values: 1 or 3."
+            RAISE_RUNTIME_ERROR <<
+                "DCMImageDriver: Unexpected number of planes received for a frame. Accepted values: 1 or 3."
                 << " Received: " << pixels->getPlanes() << ". File:" << m_filePath;
         }
 
@@ -398,13 +426,17 @@ void DCMFile::readPixelValues(std::vector<cv::Mat>& frames, int startFrame, int 
 std::string DCMFile::getMetadata()
 {
     DcmDataset* dataset = getValidDataset();
-    DcmJsonFormatCompact frmt;
+    const JsonFormat format;
     std::stringstream os;
-    if (dataset->writeJson(os, frmt).good())
+    os << "{";
+    const OFCondition code = dataset->writeJson(os, format);
+    if (!code.good())
     {
-        int a = 0;
+        RAISE_RUNTIME_ERROR << "DCMImageDriver: Error by retrieving of metadata. "
+            << code.text();
     }
-    return "";
+    os << "}";
+    return os.str();
 }
 
 
@@ -523,10 +555,10 @@ bool DCMFile::isDicomDirFile(const std::string& filePath)
 {
     bool isDicomDir = false;
     DcmFileFormat file;
-    if(!file.loadFile(filePath.c_str()).good(), EXS_Unknown, EGL_noChange, DCM_MaxReadLength, ERM_metaOnly)
+    if (!file.loadFile(filePath.c_str()).good(), EXS_Unknown, EGL_noChange, DCM_MaxReadLength, ERM_metaOnly)
     {
         DcmMetaInfo* metainfo = file.getMetaInfo();
-        if(metainfo)
+        if (metainfo)
         {
             OFString dstrVal;
             if (metainfo->findAndGetOFString(DCM_MediaStorageSOPClassUID, dstrVal).good())
@@ -537,4 +569,3 @@ bool DCMFile::isDicomDirFile(const std::string& filePath)
     }
     return isDicomDir;
 }
-

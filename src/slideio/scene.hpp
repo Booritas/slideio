@@ -49,6 +49,7 @@ namespace slideio
         void readResampled4DBlockChannels(const std::tuple<int,int,int,int>& blockRect, const std::tuple<int,int>& blockSize, const std::vector<int>& channelIndices, const std::tuple<int,int>& zSliceRange, const std::tuple<int,int>& timeFrameRange, void* buffer, size_t bufferSize);
         virtual const std::list<std::string>& getAuxImageNames() const;
         virtual int getNumAuxImages() const;
+        std::string getRawMetadata() const;
         virtual std::shared_ptr<Scene> getAuxImage(const std::string& sceneName) const;
     private:
         std::shared_ptr<CVScene> m_scene;

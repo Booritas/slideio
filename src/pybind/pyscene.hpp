@@ -34,6 +34,7 @@ public:
     std::list<std::string> getAuxImageNames() const;
     int getNumAuxImages() const;
     std::shared_ptr<PyScene> getAuxImage(const std::string& imageName);
+    std::string getRawMetadata() const;
 private:
     PyRect adjustSourceRect(const PyRect& rect) const;
     PySize adjustTargetSize(const PyRect& rect, const PySize& size) const;

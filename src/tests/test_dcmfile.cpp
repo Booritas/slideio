@@ -193,6 +193,10 @@ TEST(DCMFile, getMetadata)
     DCMFile file(slidePath);
     file.init();
     std::string metadata = file.getMetadata();
+    ASSERT_LT(2, metadata.length());
+    EXPECT_EQ('{', metadata.front());
+    EXPECT_EQ('}', metadata.back());
+
 }
 
 TEST(DCMFile, isDicomDirFile)

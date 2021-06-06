@@ -54,6 +54,7 @@ namespace slideio
             return static_cast<int>(m_auxNames.size());
         }
         virtual std::shared_ptr<CVScene> getAuxImage(const std::string& sceneName) const;
+        virtual std::string getRawMetadata() const { return ""; }
     protected:
         virtual void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
             const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output);
