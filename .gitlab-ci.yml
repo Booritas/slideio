@@ -16,7 +16,7 @@ stages:
     - deployment
 
 python-manylinux:
-    image: booritas/slideio-manylinux2010:v0.5
+    image: booritas/slideio-manylinux2010:v0.6
     stage: build
     script:
         - python3 ./install.py -a conan
@@ -31,7 +31,7 @@ python-manylinux:
 cpp-ubuntu:
     variables:
         WHL_PACKAGE: "slideio-${SLIDEIO_VERSION}.${CI_PIPELINE_IID}-cp38-cp38-linux_x86_64.whl"
-    image: booritas/slideio-ubuntu-clang-9:v0.5
+    image: booritas/slideio-ubuntu-clang-9:v0.6
     stage: build
     script:
         - python -m pip install Sphinx
@@ -57,7 +57,7 @@ cpp-ubuntu:
             - ./${DOC_ARTIFACT_DIR}
 
 cpp-test-ubuntu:
-    image: booritas/slideio-ubuntu-clang-9:v0.5
+    image: booritas/slideio-ubuntu-clang-9:v0.6
     stage: test
     script:
         - git clone https://${DEPLOY_TOKEN}@gitlab.com/bioslide/slideio_extra.git slideio_extra
