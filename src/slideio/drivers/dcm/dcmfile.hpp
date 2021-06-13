@@ -16,6 +16,7 @@
 #pragma warning(disable: 4251)
 #endif
 
+class DicomImage;
 class DcmDataset;
 class DcmFileFormat;
 class DcmTagKey;
@@ -113,6 +114,7 @@ namespace slideio
         std::string getMetadata();
         static bool isDicomDirFile(const std::string& filePath);
     private:
+        std::shared_ptr<DicomImage> createImage(int firstSlice=0, int numSlices=1);
         void initPhotoInterpretaion();
         void defineCompression();
         DcmDataset* getDataset() const;

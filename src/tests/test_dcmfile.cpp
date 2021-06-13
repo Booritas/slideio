@@ -17,6 +17,8 @@ using namespace  slideio;
 
 TEST(DCMFile, init)
 {
+    DCMImageDriver::initializeDCMTK();
+
     std::string slidePath = TestTools::getTestImagePath("dcm", "benigns_01/patient0186/0186.LEFT_CC.dcm");
     DCMFile file(slidePath);
     file.init();
@@ -38,7 +40,9 @@ TEST(DCMFile, init)
 
 TEST(DCMFile, initPaletted)
 {
-    std::string slidePath = TestTools::getTestImagePath("dcm", "bare.dev/US-PAL-8-10x-echo");
+    DCMImageDriver::initializeDCMTK();
+
+    std::string slidePath = TestTools::getTestImagePath("dcm", "barre.dev/US-PAL-8-10x-echo");
     DCMFile file(slidePath);
     file.init();
     const int width = file.getWidth();
@@ -49,15 +53,15 @@ TEST(DCMFile, initPaletted)
     EXPECT_EQ(height, 430);
     EXPECT_EQ(numSlices, 10);
     EXPECT_EQ(3, file.getNumChannels());
-    EXPECT_EQ(file.getDataType(), DataType::DT_Byte);
+    EXPECT_EQ(file.getDataType(), DataType::DT_UInt16);
     EXPECT_EQ(file.getPhotointerpretation(), EPhotoInterpetation::PHIN_PALETTE);
 
 }
 
 TEST(DCMFile, pixelValues)
 {
-    std::string slidePath = TestTools::getTestImagePath("dcm", "bare.dev/OT-MONO2-8-hip.dcm");
-    std::string testPath = TestTools::getTestImagePath("dcm", "bare.dev/OT-MONO2-8-hip.frames/frame0.png");
+    std::string slidePath = TestTools::getTestImagePath("dcm", "barre.dev/OT-MONO2-8-hip.dcm");
+    std::string testPath = TestTools::getTestImagePath("dcm", "barre.dev/OT-MONO2-8-hip.frames/frame0.png");
     DCMFile file(slidePath);
     file.init();
     std::vector<cv::Mat> frames;
@@ -72,8 +76,8 @@ TEST(DCMFile, pixelValues)
 
 TEST(DCMFile, pixelRGB)
 {
-    std::string slidePath = TestTools::getTestImagePath("dcm", "bare.dev/US-RGB-8-epicard");
-    std::string testPath = TestTools::getTestImagePath("dcm", "bare.dev/US-RGB-8-epicard.frames/frame0.png");
+    std::string slidePath = TestTools::getTestImagePath("dcm", "barre.dev/US-RGB-8-epicard");
+    std::string testPath = TestTools::getTestImagePath("dcm", "barre.dev/US-RGB-8-epicard.frames/frame0.png");
     DCMFile file(slidePath);
     file.init();
     std::vector<cv::Mat> frames;
@@ -89,9 +93,9 @@ TEST(DCMFile, pixelRGB)
 
 TEST(DCMFile, pixelValuesExtended)
 {
-    std::string slidePath = TestTools::getTestImagePath("dcm", "bare.dev/MR-MONO2-8-16x-heart");
-    std::string testPath1 =  TestTools::getTestImagePath("dcm", "bare.dev/MR-MONO2-8-16x-heart.frames/frame5.png");
-    std::string testPath2 = TestTools::getTestImagePath("dcm", "bare.dev/MR-MONO2-8-16x-heart.frames/frame6.png");
+    std::string slidePath = TestTools::getTestImagePath("dcm", "barre.dev/MR-MONO2-8-16x-heart");
+    std::string testPath1 =  TestTools::getTestImagePath("dcm", "barre.dev/MR-MONO2-8-16x-heart.frames/frame5.png");
+    std::string testPath2 = TestTools::getTestImagePath("dcm", "barre.dev/MR-MONO2-8-16x-heart.frames/frame6.png");
     DCMFile file(slidePath);
     file.init();
     int fileFrames = file.getNumSlices();
@@ -114,9 +118,9 @@ TEST(DCMFile, pixelPaleteExtended)
 {
     DCMImageDriver::initializeDCMTK();
 
-    std::string slidePath = TestTools::getTestImagePath("dcm", "bare.dev/US-PAL-8-10x-echo");
-    std::string testPath1 = TestTools::getTestImagePath("dcm", "bare.dev/US-PAL-8-10x-echo.frames/frame5.png");
-    std::string testPath2 = TestTools::getTestImagePath("dcm", "bare.dev/US-PAL-8-10x-echo.frames/frame6.png");
+    std::string slidePath = TestTools::getTestImagePath("dcm", "barre.dev/US-PAL-8-10x-echo");
+    std::string testPath1 = TestTools::getTestImagePath("dcm", "barre.dev/US-PAL-8-10x-echo.frames/frame5.png");
+    std::string testPath2 = TestTools::getTestImagePath("dcm", "barre.dev/US-PAL-8-10x-echo.frames/frame6.png");
     DCMFile file(slidePath);
     file.init();
     int fileFrames = file.getNumSlices();
@@ -141,9 +145,9 @@ TEST(DCMFile, pixelJpegExtended)
 {
     DCMImageDriver::initializeDCMTK();
 
-    std::string slidePath = TestTools::getTestImagePath("dcm", "bare.dev/XA-MONO2-8-12x-catheter");
-    std::string testPath1 = TestTools::getTestImagePath("dcm", "bare.dev/XA-MONO2-8-12x-catheter.frames/frame5.png");
-    std::string testPath2 = TestTools::getTestImagePath("dcm", "bare.dev/XA-MONO2-8-12x-catheter.frames/frame6.png");
+    std::string slidePath = TestTools::getTestImagePath("dcm", "barre.dev/XA-MONO2-8-12x-catheter");
+    std::string testPath1 = TestTools::getTestImagePath("dcm", "barre.dev/XA-MONO2-8-12x-catheter.frames/frame5.png");
+    std::string testPath2 = TestTools::getTestImagePath("dcm", "barre.dev/XA-MONO2-8-12x-catheter.frames/frame6.png");
     DCMFile file(slidePath);
     file.init();
     int fileFrames = file.getNumSlices();
@@ -189,7 +193,7 @@ TEST(DCMFile, pixelJpegLsValues)
 
 TEST(DCMFile, getMetadata)
 {
-    std::string slidePath = TestTools::getTestImagePath("dcm", "bare.dev/US-PAL-8-10x-echo");
+    std::string slidePath = TestTools::getTestImagePath("dcm", "barre.dev/US-PAL-8-10x-echo");
     DCMFile file(slidePath);
     file.init();
     std::string metadata = file.getMetadata();
@@ -206,10 +210,20 @@ TEST(DCMFile, isDicomDirFile)
         GTEST_SKIP() <<
             "Skip the test because full dataset is not enabled";
     }
-    std::string filePath = TestTools::getTestImagePath("dcm", "bare.dev/US-PAL-8-10x-echo");
+    std::string filePath = TestTools::getTestImagePath("dcm", "barre.dev/US-PAL-8-10x-echo");
     bool res = DCMFile::isDicomDirFile(filePath);
     EXPECT_FALSE(res);
     filePath = TestTools::getFullTestImagePath("dcm", "spine_mr/DICOMDIR");
     res = DCMFile::isDicomDirFile(filePath);
     EXPECT_TRUE(res);
+}
+
+TEST(DCMFile, channelDataType)
+{
+    DCMImageDriver::initializeDCMTK();
+
+    std::string slidePath = TestTools::getTestImagePath("dcm", "barre.dev/US-PAL-8-10x-echo");
+    DCMFile file(slidePath);
+    file.init();
+    DataType dt = file.getDataType();
 }

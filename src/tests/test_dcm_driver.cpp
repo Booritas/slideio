@@ -126,9 +126,9 @@ TEST(DCMImageDriver, openDirectoryRecursively)
 TEST(DCMImageDriver, readSimpleFileWholeBlock)
 {
     std::string slidePath = TestTools::getTestImagePath(
-        "dcm", "bare.dev/OT-MONO2-8-hip.dcm");
+        "dcm", "barre.dev/OT-MONO2-8-hip.dcm");
     std::string testPath = TestTools::getTestImagePath(
-        "dcm", "bare.dev/OT-MONO2-8-hip.frames/frame0.png");
+        "dcm", "barre.dev/OT-MONO2-8-hip.frames/frame0.png");
 
     DCMImageDriver driver;
     auto slide = driver.openFile(slidePath);
@@ -150,7 +150,7 @@ TEST(DCMImageDriver, readSimpleFileWholeBlock)
 TEST(DCMImageDriver, getRawMetadata)
 {
     std::string slidePath = TestTools::getTestImagePath(
-        "dcm", "bare.dev/OT-MONO2-8-hip.dcm");
+        "dcm", "barre.dev/OT-MONO2-8-hip.dcm");
 
     DCMImageDriver driver;
     auto slide = driver.openFile(slidePath);
@@ -167,9 +167,9 @@ TEST(DCMImageDriver, getRawMetadata)
 TEST(DCMImageDriver, readSimpleFileResampled)
 {
     std::string slidePath = TestTools::getTestImagePath(
-        "dcm", "bare.dev/OT-MONO2-8-hip.dcm");
+        "dcm", "barre.dev/OT-MONO2-8-hip.dcm");
     std::string testPath = TestTools::getTestImagePath(
-        "dcm", "bare.dev/OT-MONO2-8-hip.frames/frame0.png");
+        "dcm", "barre.dev/OT-MONO2-8-hip.frames/frame0.png");
 
     DCMImageDriver driver;
     auto slide = driver.openFile(slidePath);
@@ -245,9 +245,9 @@ TEST(DCMImageDriver, readSingleFrameROIRescale)
 
 TEST(DCMImageDriver, readMultiFrameROIRescale)
 {
-    std::string slidePath = TestTools::getTestImagePath("dcm", "bare.dev/XA-MONO2-8-12x-catheter");
-    std::string testPath1 = TestTools::getTestImagePath("dcm", "bare.dev/XA-MONO2-8-12x-catheter.frames/frame5.png");
-    std::string testPath2 = TestTools::getTestImagePath("dcm", "bare.dev/XA-MONO2-8-12x-catheter.frames/frame6.png");
+    std::string slidePath = TestTools::getTestImagePath("dcm", "barre.dev/XA-MONO2-8-12x-catheter");
+    std::string testPath1 = TestTools::getTestImagePath("dcm", "barre.dev/XA-MONO2-8-12x-catheter.frames/frame5.png");
+    std::string testPath2 = TestTools::getTestImagePath("dcm", "barre.dev/XA-MONO2-8-12x-catheter.frames/frame6.png");
 
     DCMImageDriver driver;
     auto slide = driver.openFile(slidePath);
@@ -372,4 +372,19 @@ TEST(DCMImageDriver, openDicomDirFile)
     EXPECT_EQ(200, image.size[1]);
     EXPECT_EQ(4, image.size[2]);
 
+}
+
+TEST(DCMImageDriver, readBlockChangingBits)
+{
+    std::string slidePath = TestTools::getTestImagePath("dcm", "barre.dev/US-PAL-8-10x-echo");
+    DCMImageDriver driver;
+    auto slide = driver.openFile(slidePath);
+    const int numScenes = slide->getNumScenes();
+    ASSERT_EQ(numScenes, 1);
+    auto scene = slide->getScene(0);
+    ASSERT_TRUE(scene);
+    const cv::Rect rect = scene->getRect();
+    const int slices = scene->getNumZSlices();
+    cv::Mat image;
+    scene->read4DBlock(rect, cv::Range(0, slices), cv::Range(0, 1), image);
 }

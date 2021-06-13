@@ -84,11 +84,31 @@ void DCMFile::loadFile()
     }
 }
 
+std::shared_ptr<DicomImage> DCMFile::createImage(int firstFrame, int numFrames)
+{
+    DcmDataset* dataset = getDataset();
+    std::shared_ptr<DicomImage> image;
+    if (!dataset)
+    {
+        RAISE_RUNTIME_ERROR << "DCMImageDriver: unexpected null as dataset for file " << m_filePath;
+    }
+    E_TransferSyntax xfer = dataset->getOriginalXfer();
+    image.reset(new DicomImage(dataset, xfer, CIF_UsePartialAccessToPixelData, (ulong)firstFrame, (ulong)numFrames));
+    if (image->getStatus() != EIS_Normal)
+    {
+        RAISE_RUNTIME_ERROR << "DCMImageDriver: cannot decompress file " << m_filePath << ". Image status: "
+            << image->getStatus();
+    }
+    return image;
+}
+
+
 void DCMFile::init()
 {
     SLIDEIO_LOG(trace) << "DCMFlile::init: initializing DICOM file " << m_filePath;
 
     loadFile();
+    std::shared_ptr<DicomImage> image = createImage();
 
     DcmDataset* dataset = getValidDataset();
     if (!getIntTag(DCM_Columns, m_width))
@@ -136,17 +156,19 @@ void DCMFile::init()
     }
     const int PXREP_SIGNED = 1;
     const int PXREP_UNSIGNED = 0;
-    if (bitsAllocated == 8)
+    const int bits = image->getDepth();
+    if (bits == 8)
     {
         m_dataType = pixelRepresentation == PXREP_SIGNED ? DataType::DT_Int8 : DataType::DT_Byte;
     }
-    else if (bitsAllocated == 16)
+    else if (bits == 16 || (bits>8 && bitsAllocated==16))
     {
         m_dataType = pixelRepresentation == PXREP_SIGNED ? DataType::DT_Int16 : DataType::DT_UInt16;
     }
     else
     {
-        RAISE_RUNTIME_ERROR << "DCMImageDriver: unexpected value for allocated bits: " << bitsAllocated;
+        RAISE_RUNTIME_ERROR << "DCMImageDriver: unexpected value for allocated bits: "
+            << bits << "(" << bitsAllocated << ")";
     }
     int planarConfiguration(0);
     if (!getIntTag(DCM_PlanarConfiguration, planarConfiguration))
@@ -344,24 +366,19 @@ void DCMFile::readPixelValues(std::vector<cv::Mat>& frames, int startFrame, int 
         RAISE_RUNTIME_ERROR << "DCMImageDriver: unexpected null as dataset for file " << m_filePath;
     }
     E_TransferSyntax xfer = dataset->getOriginalXfer();
-    DicomImage image(dataset, xfer, CIF_UsePartialAccessToPixelData, (ulong)startFrame, (ulong)1);
-    if (image.getStatus() != EIS_Normal)
-    {
-        RAISE_RUNTIME_ERROR << "DCMImageDriver: cannot decompress file " << m_filePath << ". Image status: " << image.
-            getStatus();
-    }
+    std::shared_ptr<DicomImage> image = createImage((ulong)startFrame, (ulong)1);
 
-    const int numFileFrames = image.getFrameCount();
+    const int numFileFrames = image->getFrameCount();
     const int numChannels = getNumChannels();
     const DataType originalDataType = getDataType();
     const int numFramePixels = getWidth() * getHeight();
     const int cvOriginalType = CVTools::toOpencvType(originalDataType);
 
     frames.resize(numFrames);
-    const int bits = image.getDepth();
+    const int bits = image->getDepth();
     for (int frame = 0; frame < numFrames; ++frame)
     {
-        const DiPixel* pixels = image.getInterData();
+        const DiPixel* pixels = image->getInterData();
         EP_Representation rep = pixels->getRepresentation();
         int cvIntermediateType = getCvTypeForPixelRepresentation(rep);
         const int numFrameBytes = numChannels * numFramePixels * getPixelRepresentationDataSize(rep);
@@ -391,7 +408,7 @@ void DCMFile::readPixelValues(std::vector<cv::Mat>& frames, int startFrame, int 
         const auto* frameDataPtr = static_cast<const uint8_t*>(pixels->getData());
         if (numChannels == 1)
         {
-            frames[frame].create(image.getHeight(), image.getWidth(), CV_MAKE_TYPE(cvIntermediateType, numChannels));
+            frames[frame].create(image->getHeight(), image->getWidth(), CV_MAKE_TYPE(cvIntermediateType, numChannels));
             std::memcpy(frames[frame].data, frameDataPtr, numFrameBytes);
             if (cvIntermediateType != cvOriginalType || m_useRescaling)
             {
@@ -406,9 +423,9 @@ void DCMFile::readPixelValues(std::vector<cv::Mat>& frames, int startFrame, int 
             void* green = channels[1];
             void* blue = channels[2];
 
-            cv::Mat channelR(image.getHeight(), image.getWidth(), CV_MAKE_TYPE(cvIntermediateType, 1), red);
-            cv::Mat channelG(image.getHeight(), image.getWidth(), CV_MAKE_TYPE(cvIntermediateType, 1), green);
-            cv::Mat channelB(image.getHeight(), image.getWidth(), CV_MAKE_TYPE(cvIntermediateType, 1), blue);
+            cv::Mat channelR(image->getHeight(), image->getWidth(), CV_MAKE_TYPE(cvIntermediateType, 1), red);
+            cv::Mat channelG(image->getHeight(), image->getWidth(), CV_MAKE_TYPE(cvIntermediateType, 1), green);
+            cv::Mat channelB(image->getHeight(), image->getWidth(), CV_MAKE_TYPE(cvIntermediateType, 1), blue);
             std::vector<cv::Mat> rgb = {channelR, channelG, channelB};
             cv::merge(rgb, frames[frame]);
         }
@@ -419,7 +436,7 @@ void DCMFile::readPixelValues(std::vector<cv::Mat>& frames, int startFrame, int 
                 << " Received: " << pixels->getPlanes() << ". File:" << m_filePath;
         }
 
-        image.processNextFrames();
+        image->processNextFrames();
     }
 }
 
