@@ -226,4 +226,5 @@ TEST(DCMFile, channelDataType)
     DCMFile file(slidePath);
     file.init();
     DataType dt = file.getDataType();
+    ASSERT_EQ(dt, DataType::DT_UInt16);
 }
