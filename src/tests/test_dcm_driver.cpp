@@ -388,3 +388,28 @@ TEST(DCMImageDriver, readBlockChangingBits)
     cv::Mat image;
     scene->read4DBlock(rect, cv::Range(0, slices), cv::Range(0, 1), image);
 }
+
+
+// TEST(DCMImageDriver, readSingleFrameCT)
+// {
+//     std::string slidePath = TestTools::getTestImagePath("dcm", "barre.dev/CT-MONO2-12-lomb-an2");
+//     //std::string testPath = TestTools::getTestImagePath("dcm", "benigns_01/patient0186/0186.LEFT_MLO.frames/frame0.tif");
+//
+//     DCMImageDriver driver;
+//     auto slide = driver.openFile(slidePath);
+//     const int numScenes = slide->getNumScenes();
+//     ASSERT_EQ(numScenes, 1);
+//     auto scene = slide->getScene(0);
+//     ASSERT_TRUE(scene);
+//     cv::Mat image;
+//     cv::Rect rect = scene->getRect();
+//     cv::Size size = rect.size();
+//     slideio::DataType dt = scene->getChannelDataType(0);
+//     scene->readResampledBlock(rect, size, image);
+//     ASSERT_FALSE(image.empty());
+//     // image.convertTo(image, CV_MAKE_TYPE(CV_8U, 1));
+//     // cv::Mat testImage;
+//     // slideio::ImageTools::readGDALImage(testPath, testImage);
+//     // double similarity = ImageTools::computeSimilarity(image, testImage);
+//     // EXPECT_LT(0.99, similarity);
+// }

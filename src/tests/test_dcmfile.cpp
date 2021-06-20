@@ -228,3 +228,34 @@ TEST(DCMFile, channelDataType)
     DataType dt = file.getDataType();
     ASSERT_EQ(dt, DataType::DT_UInt16);
 }
+
+TEST(DCMFile, pixelValuesCTMono)
+{
+    DCMImageDriver::initializeDCMTK();
+
+    std::string slidePath = TestTools::getTestImagePath("dcm", "barre.dev/CT-MONO2-12-lomb-an2");
+    std::string testPath = TestTools::getTestImagePath("dcm", "barre.dev/CT-MONO2-12-lomb-an2.frames/frame0.png");
+    DCMFile file(slidePath);
+    file.init();
+    EXPECT_EQ(512, file.getWidth());
+    EXPECT_EQ(512, file.getHeight());
+    EXPECT_EQ(1, file.getNumChannels());
+    EXPECT_EQ(DataType::DT_UInt16, file.getDataType());
+    std::vector<cv::Mat> frames;
+    file.readPixelValues(frames);
+    ASSERT_FALSE(frames.empty());
+    EXPECT_EQ(frames.size(), 1);
+
+    double min, max;
+    cv::minMaxLoc(frames[0], &min, &max);
+    double range = max - min;
+    double alpha = 255. / range;
+    double beta = -(min * alpha);
+
+    frames[0].convertTo(frames[0], CV_MAKE_TYPE(CV_8U, 1), alpha, beta);
+
+    cv::Mat testImage;
+    slideio::ImageTools::readGDALImage(testPath, testImage);
+    double similarity = ImageTools::computeSimilarity(frames[0], testImage);
+    EXPECT_LT(0.99, similarity);
+}

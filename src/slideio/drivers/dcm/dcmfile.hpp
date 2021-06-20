@@ -114,6 +114,8 @@ namespace slideio
         std::string getMetadata();
         static bool isDicomDirFile(const std::string& filePath);
     private:
+        void extractPixelsPartialy(std::vector<cv::Mat>& frames, int startFrame, int numFrames);
+        void extractPixelsWholeFileDecompression(std::vector<cv::Mat>& mats, int startFrame, int numFrames);
         std::shared_ptr<DicomImage> createImage(int firstSlice=0, int numSlices=1);
         void initPhotoInterpretaion();
         void defineCompression();
@@ -142,6 +144,7 @@ namespace slideio
         bool m_useWindowing = false;
         bool m_useRescaling = false;
         Compression m_compression = Compression::Unknown;
+        bool m_decompressWholeFile = false;
     };
 }
 
