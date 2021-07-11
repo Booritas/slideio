@@ -165,8 +165,7 @@ void DCMFile::init()
     m_useRescaling = std::abs(m_rescaleSlope - 1.) > 1.e-6 || m_rescaleIntercept > 0.9;
 
     getStringTag(DCM_SeriesDescription, m_seriesDescription);
-    int bitsAllocated(0);
-    if (!getIntTag(DCM_BitsAllocated, bitsAllocated))
+    if (!getIntTag(DCM_BitsAllocated, m_bitsAllocated))
     {
         RAISE_RUNTIME_ERROR << "DCMImageDriver: undefined valude for DCM_BitsAllocated tag. File:" << m_filePath;
     }
@@ -178,7 +177,7 @@ void DCMFile::init()
     }
     const int PXREP_SIGNED = 1;
     const int PXREP_UNSIGNED = 0;
-    const int bits = image.get()?image->getDepth():bitsAllocated;
+    const int bits = image.get()?image->getDepth(): m_bitsAllocated;
 
     if (bits == 8)
     {
@@ -191,7 +190,7 @@ void DCMFile::init()
     else
     {
         RAISE_RUNTIME_ERROR << "DCMImageDriver: unexpected value for allocated bits: "
-            << bits << "(" << bitsAllocated << ")";
+            << bits << "(" << m_bitsAllocated << ")";
     }
     int planarConfiguration(0);
     if (!getIntTag(DCM_PlanarConfiguration, planarConfiguration))
@@ -492,16 +491,35 @@ void DCMFile::extractPixelsWholeFileDecompression(std::vector<cv::Mat>& frames, 
 
     if(!cond.good())
     {
-        RAISE_RUNTIME_ERROR << "Error by getting pixel array. Message:"
+        RAISE_RUNTIME_ERROR << "DCMImageDriver: Error by getting pixel array. Message:"
             << cond.text();
     }
+    const int dataSize = elem->getLength();
     const int numFileFrames = getNumSlices();
     const int numChannels = getNumChannels();
     const DataType dt = getDataType();
-    const int numFramePixels = getWidth() * getHeight();
+    const int numChannelPixels = getWidth() * getHeight();
     const int cvType = CVTools::toOpencvType(dt);
     const int ds = CVTools::cvGetDataTypeSize(dt);
-    const int numFrameBytes = ds * getWidth() * getHeight()*getNumChannels();
+    const int numFramePixels = numChannelPixels * numChannels;
+    const int numFrameBytes = ds * numFramePixels;
+
+    std::vector<uint16_t> dataBuff;
+    if(m_bitsAllocated==12 && (dt == DataType::DT_Int16 || dt == DataType::DT_UInt16) && dataSize == (numFrameBytes/4)*3)
+    {
+        // workaround for 12 allocated bit pixels
+        dataBuff.resize(numFramePixels);
+        Tools::convert12BitsTo16Bits(data, dataBuff.data(), numFramePixels);
+        data = (uint8_t*)dataBuff.data();
+    }
+    else
+    {
+        if(dataSize != numFrameBytes)
+        {
+            RAISE_RUNTIME_ERROR << "DCMImageDriver: Unexpected size of pixel data. Expected: "
+                << numFrameBytes << ". Received: " << dataSize;
+        }
+    }
 
     frames.resize(numFrames);
     const uint8_t* frameDataPtr = data + startFrame * numFrameBytes;

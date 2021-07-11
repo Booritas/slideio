@@ -260,12 +260,12 @@ TEST(DCMFile, pixelValuesCTMono)
     EXPECT_LT(0.99, similarity);
 }
 
-TEST(DCMFile, pixelValues2)
+TEST(DCMFile, pixelValues12AllocatedBits)
 {
     DCMImageDriver::initializeDCMTK();
 
     std::string slidePath = TestTools::getTestImagePath("dcm", "barre.dev/MR-MONO2-12-angio-an1");
-    std::string testPath = TestTools::getTestImagePath("dcm", "barre.dev/MR-MONO2-12-angio-an1.frames/frame0.png");
+    std::string testPath = TestTools::getTestImagePath("dcm", "barre.dev/MR-MONO2-12-angio-an1.frames/frame0.tif");
     DCMFile file(slidePath);
     file.init();
     EXPECT_EQ(256, file.getWidth());
@@ -276,4 +276,17 @@ TEST(DCMFile, pixelValues2)
     file.readPixelValues(frames);
     ASSERT_FALSE(frames.empty());
     EXPECT_EQ(frames.size(), 1);
+
+    double min, max;
+    cv::minMaxLoc(frames[0], &min, &max);
+    double range = max - min;
+    double alpha = 255. / range;
+    double beta = -(min * alpha);
+    
+    frames[0].convertTo(frames[0], CV_MAKE_TYPE(CV_8U, 1), alpha, beta);
+
+    cv::Mat testImage;
+    slideio::ImageTools::readGDALImage(testPath, testImage);
+    double similarity = ImageTools::computeSimilarity(frames[0], testImage);
+    EXPECT_LT(0.85, similarity);
 }

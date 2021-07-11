@@ -145,6 +145,7 @@ namespace slideio
         bool m_useRescaling = false;
         Compression m_compression = Compression::Unknown;
         bool m_decompressWholeFile = false;
+        int m_bitsAllocated = 0;
     };
 }
 

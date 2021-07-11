@@ -61,6 +61,7 @@ namespace slideio
             }
             return  goodLevelIndex;
         }
+        static void convert12BitsTo16Bits(uint8_t* source, uint16_t* target, int targetLen);
     };
 }
 #endif
