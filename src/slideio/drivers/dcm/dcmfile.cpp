@@ -184,7 +184,7 @@ void DCMFile::init()
     {
         m_dataType = pixelRepresentation == PXREP_SIGNED ? DataType::DT_Int8 : DataType::DT_Byte;
     }
-    else if (bits == 16 || (bits>8 && bitsAllocated==16))
+    else if (bits > 8)
     {
         m_dataType = pixelRepresentation == PXREP_SIGNED ? DataType::DT_Int16 : DataType::DT_UInt16;
     }

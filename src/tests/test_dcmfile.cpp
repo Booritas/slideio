@@ -259,3 +259,21 @@ TEST(DCMFile, pixelValuesCTMono)
     double similarity = ImageTools::computeSimilarity(frames[0], testImage);
     EXPECT_LT(0.99, similarity);
 }
+
+TEST(DCMFile, pixelValues2)
+{
+    DCMImageDriver::initializeDCMTK();
+
+    std::string slidePath = TestTools::getTestImagePath("dcm", "barre.dev/MR-MONO2-12-angio-an1");
+    std::string testPath = TestTools::getTestImagePath("dcm", "barre.dev/MR-MONO2-12-angio-an1.frames/frame0.png");
+    DCMFile file(slidePath);
+    file.init();
+    EXPECT_EQ(256, file.getWidth());
+    EXPECT_EQ(256, file.getHeight());
+    EXPECT_EQ(1, file.getNumChannels());
+    EXPECT_EQ(DataType::DT_UInt16, file.getDataType());
+    std::vector<cv::Mat> frames;
+    file.readPixelValues(frames);
+    ASSERT_FALSE(frames.empty());
+    EXPECT_EQ(frames.size(), 1);
+}
