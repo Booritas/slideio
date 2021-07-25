@@ -58,7 +58,9 @@ void DCMImageDriver::initializeDCMTK()
 
 void DCMImageDriver::clieanUpDCMTK()
 {
+#ifndef __GNUC__
     DcmRLEDecoderRegistration::cleanup();
     DJDecoderRegistration::cleanup();
     DJLSDecoderRegistration::cleanup();
+#endif
 }
