@@ -1,7 +1,7 @@
 $pythons = @("3.9","3.8","3.7","3.6","3.5")
 if (-not (Test-Path env:CI_PIPELINE_IID)) 
 { 
-   $env:CI_PIPELINE_IID = 0 
+   $env:CI_PIPELINE_IID = 1
 }
 for($p=0; $p -lt $pythons.Length; $p++)
 {
