@@ -5,6 +5,8 @@
 #include "slideio/imagetools/imagetools.hpp"
 #include "slideio/drivers/svs/svssmallscene.hpp"
 #include "slideio/drivers/svs/svstiledscene.hpp"
+#include "slideio/imagetools/tifftools.hpp"
+#include "slideio/base.hpp"
 
 #include <boost/filesystem.hpp>
 #include <boost/format.hpp>
@@ -44,19 +46,24 @@ std::shared_ptr<CVScene> SVSSlide::getScene(int index) const
 
 std::shared_ptr<SVSSlide> SVSSlide::openFile(const std::string& filePath)
 {
+    SLIDEIO_LOG(trace) << "SVSSlide::openFile: " << filePath;
     namespace fs = boost::filesystem;
     std::shared_ptr<SVSSlide> slide;
     if(!fs::exists(filePath)){
-        throw std::runtime_error(std::string("SVSImageDriver: File does not exist:") + filePath);
+        RAISE_RUNTIME_ERROR << "DCMImageDriver: File: " << filePath << "does nont exist!";
     }
     std::vector<TiffDirectory> directories;
     libtiff::TIFF* tiff(nullptr);
     tiff = libtiff::TIFFOpen(filePath.c_str(), "r");
-    if(!tiff)
+    if(!tiff) {
+        SLIDEIO_LOG(warning) << "SVSSlide::openFile: cannot open file " << filePath << " with libtiff";
         return slide;
+    }
     TIFFKeeper keeper(tiff);
 
     TiffTools::scanFile(tiff, directories);
+    //SLIDEIO_LOG(trace) << directories[0];
+
     std::vector<int> image;
     int thumbnail(-1), macro(-1), label(-1);
     image.push_back(0); //base image
@@ -130,7 +137,7 @@ std::shared_ptr<SVSSlide> SVSSlide::openFile(const std::string& filePath)
         const auto& dir = directories.front();
         slide->m_rawMetadata = dir.description;
     }
-    
+    //SLIDEIO_LOG(info) << slide << std::endl;
     return slide;
 }
 
@@ -143,4 +150,10 @@ std::shared_ptr<CVScene> SVSSlide::getAuxImage(const std::string& sceneName) con
         );
     }
     return it->second;
+}
+
+void SVSSlide::log()
+{
+    SLIDEIO_LOG(info) << "---SVSSlide" << std::endl;
+    SLIDEIO_LOG(info) << "filePath:" << m_filePath << std::endl;
 }

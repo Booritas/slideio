@@ -1,4 +1,7 @@
 [requires]
+libtiff/4.2.0
+openssl/1.1.1i
+dcmtk/3.6.5@slideio/stable
 opencv/4.1.1@slideio/stable
 libwebp/1.0.3
 boost/1.72.0
@@ -6,7 +9,6 @@ tinyxml2/8.0.0
 openjpeg/2.3.1@slideio/stable
 jpegxrcodec/1.0.2@slideio/stable
 gdal/3.2.0@slideio/stable
-libtiff/4.1.0
 libjpeg/9d@_/_
 expat/2.2.10
 pole/1.0.1@slideio/stable

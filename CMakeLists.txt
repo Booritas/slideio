@@ -1,4 +1,6 @@
-cmake_minimum_required(VERSION 3.2)
+cmake_minimum_required(VERSION 3.9)
+cmake_policy(SET CMP0057 NEW)
+cmake_policy(SET CMP0068 OLD)
 
 set(PROJECT_NAME slide_io)
 set(projectVersion 0.5.0)

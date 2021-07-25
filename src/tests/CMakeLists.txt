@@ -13,16 +13,19 @@ set(TEST_SOURCES
   test_svs_driver.cpp
   test_zvi_driver.cpp
   test_svs_tools.cpp
+  test_dcm_driver.cpp
   test_tifftools.cpp
   test_zviutils.cpp
   test_tilecomposer.cpp
   test_testtools.cpp
   test_tools.cpp
   test_cvtools.cpp
+  test_dcmfile.cpp
   testtiler.cpp
   testtiler.hpp
   testtools.cpp
   testtools.hpp
+  test_exception.cpp
 )
 
 add_executable(${TEST_NAME} ${TEST_SOURCES})

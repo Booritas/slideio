@@ -6,6 +6,7 @@
 #include "slideio/imagetools/imagetools.hpp"
 #include "opencv2/imgproc.hpp"
 
+
 TEST(TiffTools, scanTiffFile)
 {
     std::string filePath = TestTools::getTestImagePath("svs","JP2K-33003-1.svs");

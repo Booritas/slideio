@@ -10,7 +10,7 @@
 #include <boost/filesystem.hpp>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
-#include "gdal/gdal.h"
+#include "slideio/gdal_lib.hpp"
 
 
 int slideio::ImageTools::dataTypeSize(slideio::DataType dt)
@@ -59,10 +59,28 @@ void slideio::ImageTools::scaleRect(const cv::Rect& srcRect, double scaleX, doub
     trgRect.height = dyn - trgRect.y;
 }
 
-double slideio::ImageTools::computeSimilarity(const cv::Mat& leftM, const cv::Mat& rightM)
+double slideio::ImageTools::computeSimilarity(const cv::Mat& leftM, const cv::Mat& rightM, bool ignoreTypes)
 {
     double similarity = 0;
-
+    const cv::Size leftSize = leftM.size();
+    const cv::Size rightSize = rightM.size();
+    if(leftSize != rightSize)
+    {
+        RAISE_RUNTIME_ERROR << "Image sizes for comparison shall be equal. Left image: (" << leftSize.width << "," << leftSize.height
+            << "), Right image: (" << rightSize.width << "," << rightSize.height << ")";
+    }
+    if(leftM.channels() != rightM.channels())
+    {
+        RAISE_RUNTIME_ERROR << "Number of image channesl for comparison shall be equal. Left image: " << leftM.channels()
+            << ". Right image:" << rightM.channels() << ".";
+    }
+    int dtLeft = leftM.type();
+    int dtRight = rightM.type();
+    if(!ignoreTypes && dtLeft!=dtRight)
+    {
+        RAISE_RUNTIME_ERROR << "Image types for comparison shall be equal. Left image: " << dtLeft
+            << ". Right image:" << dtRight << ".";
+    }
     // convert to 8bit images
     cv::Mat oneChannelLeftM = leftM.reshape(1);
     cv::Mat oneChannelRightM = rightM.reshape(1);

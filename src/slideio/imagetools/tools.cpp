@@ -31,3 +31,32 @@ bool Tools::matchPattern(const std::string& path, const std::string& pattern)
 #endif
     return ret;
 }
+
+inline void convertPair12BitsTo16Bits(uint8_t* source, uint16_t* target)
+{
+    target[0] = (*((uint16_t*)source)) & 0xFFF;
+    uint8_t* next = source + 1;
+    target[1] = (*((uint16_t*)(source+1))) >> 4;
+
+}
+
+void Tools::convert12BitsTo16Bits(uint8_t* source, uint16_t* target, int targetLen)
+{
+    uint16_t buff[2] = { 0 };
+    uint16_t* targetPtr = target;
+    uint8_t* sourcePtr = source;
+    int srcBits = 0;
+    for(int ind=0; ind<targetLen; ind+=2, targetPtr+=2, sourcePtr+=3)
+    {
+        if((ind+1)<targetLen)
+        {
+            convertPair12BitsTo16Bits(sourcePtr, targetPtr);
+        }
+        else
+        {
+            *targetPtr = (*((uint16_t*)sourcePtr)) & 0xFFF;
+        }
+    }
+}
+
+

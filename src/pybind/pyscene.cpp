@@ -219,3 +219,8 @@ std::shared_ptr<PyScene> PyScene::getAuxImage(const std::string& imageName)
     return wrapper;
 }
 
+std::string PyScene::getRawMetadata() const
+{
+    return m_scene->getRawMetadata();
+}
+

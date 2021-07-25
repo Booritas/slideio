@@ -256,6 +256,11 @@ int Scene::getNumAuxImages() const
     return m_scene->getNumAuxImages();
 }
 
+std::string Scene::getRawMetadata() const
+{
+    return m_scene->getRawMetadata();
+}
+
 std::shared_ptr<Scene> Scene::getAuxImage(const std::string& sceneName) const
 {
     std::shared_ptr<CVScene> cvScene = m_scene->getAuxImage(sceneName);

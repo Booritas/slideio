@@ -8,6 +8,7 @@
 #include "slideio/core/cvstructs.hpp"
 #include "slideio/structs.hpp"
 #include "slideio/slideio_enums.hpp"
+#include "slideio/base.hpp"
 #include <opencv2/core.hpp>
 #include <string>
 #include <vector>
@@ -44,6 +45,8 @@ namespace slideio
         DataType dataType;
         int stripSize;
     };
+
+
     class SLIDEIO_EXPORTS  TiffTools
     {
     public:
@@ -88,5 +91,8 @@ namespace slideio
         libtiff::TIFF* m_hFile;
     };
 }
+
+//boost::log::basic_formatting_ostream& operator << (boost::log::basic_formatting_ostream& os, const slideio::TiffDirectory& dir);
+//boost::log::basic_formatting_ostream& operator << (boost::log::basic_formatting_ostream& os, const std::vector<slideio::TiffDirectory>& dirs);
 
 #endif
