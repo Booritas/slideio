@@ -116,7 +116,7 @@ class Scene(object):
         return self.scene.get_aux_image_names()
 
     def get_aux_image(self, image_name, size=(0,0), channel_indices=[]):
-        '''Get auxiliary image as numpy array.
+        '''Get auxiliary image as a numpy array.
 
         Args:
             image_name: name of the auxiliary image

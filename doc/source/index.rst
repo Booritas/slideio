@@ -1,13 +1,12 @@
-Module slideio (version 0.5)
+Module slideio (version 0.6.1)
 ===================================
 
 .. image:: images/mrt.png
 
 What is new
 -------------------
-- Support of ZVI files
-- Support of python 3.9
-- Improved work with volumes
+- Support of DICOM files
+- New functionality for retriving of auxiliary images of scene and slide objects such as thumbnails and labels.
 - Bug fixing and small improvements
 
 
