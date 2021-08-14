@@ -3,6 +3,8 @@ Module slideio (version 0.6.1)
 
 .. image:: images/mrt.png
 
+If you have any question about the library or want to report a bug, visit our new `forum <http://slideio.com/forum/viewforum.php?f=2>`_ .
+
 What is new
 -------------------
 - Support of DICOM files
