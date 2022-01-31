@@ -65,7 +65,7 @@ TEST(SCNImageDriver, openFile)
         double res_y;
         slideio::DataType dataType;
     };
-    const SceneInfo infos[] = 
+    const SceneInfo infos[] =
     {
         {"image_0000000586", {0, 0, 1616, 4668}, 3, 0.60833, 0.16438446e-4, 0.16438446e-4, slideio::DataType::DT_Byte},
         {"image_0000000590", {0, 0, 1616, 4668}, 3, 0.60833, 0.16438446e-4, 0.16438446e-4, slideio::DataType::DT_Byte},
@@ -217,7 +217,7 @@ TEST(SCNImageDriver, getTileCount)
     const int numScenes = slide->getNumScenes();
     ASSERT_EQ(numScenes, 1);
     {
-        std::shared_ptr<slideio::SCNScene> scene = 
+        std::shared_ptr<slideio::SCNScene> scene =
             std::dynamic_pointer_cast<slideio::SCNScene>(slide->getAuxImage("Macro"));
         ASSERT_FALSE(scene == nullptr);
         SCNTilingInfo info;
@@ -226,7 +226,7 @@ TEST(SCNImageDriver, getTileCount)
         EXPECT_EQ(count, 40);
     }
     {
-        std::shared_ptr<slideio::SCNScene> scene = 
+        std::shared_ptr<slideio::SCNScene> scene =
             std::dynamic_pointer_cast<slideio::SCNScene>(slide->getScene(0));
         ASSERT_FALSE(scene == nullptr);
         SCNTilingInfo info;
@@ -447,3 +447,18 @@ TEST(SCNImageDriver, auxImages)
     ASSERT_FALSE(std::find(imageNames.begin(), imageNames.end(), "Macro") == imageNames.end());
     ASSERT_FALSE(std::find(imageNames.begin(), imageNames.end(), "Macro~1") == imageNames.end());
 }
+
+//TEST(SCNImageDriver, test1)
+//{
+//    slideio::SCNImageDriver driver;
+//    std::string filePath = "/Users/s.melnikov/Downloads/Leica Aperio Versa 5 channel fluorescent image.scn"; //TestTools::getTestImagePath("scn", "Leica-Fluorescence-1.scn");
+//    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+//    ASSERT_TRUE(slide != nullptr);
+//    const int numScenes = slide->getNumScenes();
+//    ASSERT_EQ(numScenes, 3);
+//    const int numImages = slide->getNumAuxImages();
+//    ASSERT_EQ(numImages, 0);
+////    std::list<std::string> imageNames = slide->getAuxImageNames();
+////    ASSERT_FALSE(std::find(imageNames.begin(), imageNames.end(), "Macro") == imageNames.end());
+////    ASSERT_FALSE(std::find(imageNames.begin(), imageNames.end(), "Macro~1") == imageNames.end());
+//}

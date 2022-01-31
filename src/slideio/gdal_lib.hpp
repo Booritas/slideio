@@ -3,7 +3,7 @@
 #pragma warning( push )
 #pragma warning(disable:4005)
 #endif
-#include <gdal/gdal.h>
+#include <gdal.h>
 #if defined(WIN32)
 #pragma warning( pop )
 #endif

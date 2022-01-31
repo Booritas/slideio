@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
   <component name="BranchesTreeState">
     <expand>
       <path>
@@ -28,18 +31,26 @@
   </component>
   <component name="CMakeSettings" AUTO_RELOAD="true">
     <configurations>
-      <configuration PROFILE_NAME="Debug" CONFIG_NAME="Debug">
+      <configuration PROFILE_NAME="Debug" ENABLED="true" CONFIG_NAME="Debug">
         <ADDITIONAL_GENERATION_ENVIRONMENT>
           <envs>
             <env name="Python3_ROOT_DIR" value="$USER_HOME$/opt/anaconda3/envs/slideio/bin/" />
           </envs>
         </ADDITIONAL_GENERATION_ENVIRONMENT>
       </configuration>
-      <configuration PROFILE_NAME="Release" CONFIG_NAME="Release" />
+      <configuration PROFILE_NAME="Release" ENABLED="true" CONFIG_NAME="Release" />
     </configurations>
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="ab3fa5e4-e9e7-4544-8e69-a93644a57165" name="Default Changelist" comment="" />
+    <list default="true" id="ab3fa5e4-e9e7-4544-8e69-a93644a57165" name="Default Changelist" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/conan/OSX/osx_debug" beforeDir="false" afterPath="$PROJECT_DIR$/conan/OSX/osx_debug" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/conan/OSX/osx_release" beforeDir="false" afterPath="$PROJECT_DIR$/conan/OSX/osx_release" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/slideio/conanfile.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/conanfile.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/slideio/drivers/scn/scnslide.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/drivers/scn/scnslide.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/slideio/gdal_lib.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/gdal_lib.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/tests/test_scn_driver.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/tests/test_scn_driver.cpp" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -59,6 +70,9 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
+  <component name="MarkdownSettingsMigration">
+    <option name="stateVersion" value="1" />
+  </component>
   <component name="ProjectId" id="1gSDoNjR2ezJRsp3M58xlWr9uBZ" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
@@ -67,8 +81,12 @@
   <component name="PropertiesComponent">
     <property name="RunOnceActivity.OpenProjectViewOnStart" value="true" />
     <property name="RunOnceActivity.ShowReadmeOnStart" value="true" />
+    <property name="RunOnceActivity.cidr.known.project.marker" value="true" />
     <property name="WebServerToolWindowFactoryState" value="false" />
     <property name="cf.first.check.clang-format" value="false" />
+    <property name="cidr.known.project.marker" value="true" />
+    <property name="cmake.loaded.for.project" value="true" />
+    <property name="ctest.advertisement.all.test.configuration.is.created" value="true" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$" />
     <property name="node.js.detected.package.eslint" value="true" />
     <property name="node.js.detected.package.tslint" value="true" />
@@ -78,19 +96,14 @@
     <property name="node.js.selected.package.tslint" value="(autodetect)" />
     <property name="settings.editor.selected.configurable" value="CMakeSettings" />
   </component>
-  <component name="RunManager" selected="Google Test.DCMFile.pixelValues">
-    <configuration default="true" type="CLionExternalRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true">
-      <method v="2">
-        <option name="CLION.EXTERNAL.BUILD" enabled="true" />
-      </method>
-    </configuration>
-    <configuration name="DCMFile.init" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" temporary="true" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="slideio_tests" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="slide_io" RUN_TARGET_NAME="slideio_tests" TEST_CLASS="DCMFile" TEST_METHOD="init" TEST_MODE="SUITE_TEST">
+  <component name="RunManager" selected="Google Test.SCNImageDriver.test1">
+    <configuration name="DCMFile.init" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" temporary="true" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="slideio_tests" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="slide_io" RUN_TARGET_NAME="slideio_tests" TEST_CLASS="DCMFile" TEST_METHOD="init" TEST_MODE="SUITE_TEST">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
         <option name="BeforeTestRunTask" enabled="true" />
       </method>
     </configuration>
-    <configuration name="DCMFile.pixelValues" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" temporary="true" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="slideio_tests" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="slide_io" RUN_TARGET_NAME="slideio_tests" TEST_CLASS="DCMFile" TEST_METHOD="pixelValues" TEST_MODE="SUITE_TEST">
+    <configuration name="DCMFile.pixelValues" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" temporary="true" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="slideio_tests" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="slide_io" RUN_TARGET_NAME="slideio_tests" TEST_CLASS="DCMFile" TEST_METHOD="pixelValues" TEST_MODE="SUITE_TEST">
       <envs>
         <env name="DCMDICTPATH" value="$USER_HOME$/.conan/data/dcmtk/3.6.5/slideio/stable/package/abcc8d3e944a715c0d5c41283333659ec3f5264e/bin/share/dcmtk/dicom.dic" />
       </envs>
@@ -99,42 +112,52 @@
         <option name="BeforeTestRunTask" enabled="true" />
       </method>
     </configuration>
-    <configuration name="slideio_tests" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="slideio_tests" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="slide_io" RUN_TARGET_NAME="slideio_tests" TEST_MODE="SUITE_TEST">
+    <configuration name="SCNImageDriver.test1" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" temporary="true" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="slideio_tests" RUN_TARGET_PROJECT_NAME="slide_io" RUN_TARGET_NAME="slideio_tests" TEST_CLASS="SCNImageDriver" TEST_METHOD="test1" TEST_MODE="SUITE_TEST">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
         <option name="BeforeTestRunTask" enabled="true" />
       </method>
     </configuration>
-    <configuration default="true" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true">
+    <configuration name="slideio_tests" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="slideio_tests" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="slide_io" RUN_TARGET_NAME="slideio_tests" TEST_MODE="SUITE_TEST">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+        <option name="BeforeTestRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="memory_leaks" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="memory_leaks" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="slide_io" RUN_TARGET_NAME="memory_leaks">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
     </configuration>
-    <configuration name="memory_leaks" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="memory_leaks" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="slide_io" RUN_TARGET_NAME="memory_leaks">
+    <configuration name="slide_io" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="slide_io" CONFIG_NAME="Debug">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
     </configuration>
-    <configuration name="slide_io" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="slide_io" CONFIG_NAME="Debug">
+    <configuration name="slideiopybind" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="slideiopybind" CONFIG_NAME="Debug">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
     </configuration>
-    <configuration name="slideiopybind" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="slideiopybind" CONFIG_NAME="Debug">
+    <configuration name="All CTest" type="CTestRunConfiguration" factoryName="CTestRun" PROGRAM_PARAMS="--extra-verbose" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" WORKING_DIR="file://$CMakeCurrentLocalGenerationDir$" PASS_PARENT_ENVS_2="true" RUN_PATH="$CTestCurrentExecutableName$" EXPLICIT_BUILD_TARGET_NAME="all" TEST_MODE="SUITE_TEST">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+        <option name="BeforeTestRunTask" enabled="true" />
       </method>
     </configuration>
     <list>
       <item itemvalue="CMake Application.slideiopybind" />
       <item itemvalue="CMake Application.memory_leaks" />
       <item itemvalue="CMake Application.slide_io" />
+      <item itemvalue="CTest Application.All CTest" />
       <item itemvalue="Google Test.slideio_tests" />
       <item itemvalue="Google Test.DCMFile.init" />
       <item itemvalue="Google Test.DCMFile.pixelValues" />
+      <item itemvalue="Google Test.SCNImageDriver.test1" />
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Google Test.SCNImageDriver.test1" />
         <item itemvalue="Google Test.DCMFile.pixelValues" />
         <item itemvalue="Google Test.DCMFile.init" />
       </list>
@@ -159,64 +182,16 @@
       <workItem from="1598690755108" duration="54000" />
       <workItem from="1598690980290" duration="13252000" />
       <workItem from="1617613548355" duration="6269000" />
+      <workItem from="1627282800371" duration="99000" />
+      <workItem from="1643482336387" duration="1957000" />
+      <workItem from="1643613016322" duration="420000" />
+      <workItem from="1643615992145" duration="26000" />
+      <workItem from="1643616731617" duration="2138000" />
     </task>
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
-  </component>
-  <component name="Vcs.Log.Tabs.Properties">
-    <option name="oldMeFiltersMigrated" value="true" />
-  </component>
-  <component name="WindowStateProjectService">
-    <state x="272" y="205" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1617628544663">
-      <screen x="0" y="25" width="3440" height="1361" />
-    </state>
-    <state x="272" y="205" key="#com.intellij.execution.impl.EditConfigurationsDialog/-1920.212.1920.1055/3440.349.1440.875/0.25.3440.1361@0.25.3440.1361" timestamp="1617628544663" />
-    <state x="668" y="280" width="1716" height="804" key="EnvironmentVariablesDialog" timestamp="1617628540967">
-      <screen x="0" y="25" width="3440" height="1361" />
-    </state>
-    <state x="668" y="280" width="1716" height="804" key="EnvironmentVariablesDialog/-1920.212.1920.1055/3440.349.1440.875/0.25.3440.1361@0.25.3440.1361" timestamp="1617628540967" />
-    <state width="1699" height="247" key="GridCell.Tab.0.bottom" timestamp="1617693241622">
-      <screen x="0" y="25" width="3440" height="1361" />
-    </state>
-    <state width="1699" height="387" key="GridCell.Tab.0.bottom/-1920.212.1920.1055/3440.349.1440.875/0.25.3440.1361@0.25.3440.1361" timestamp="1617628640711" />
-    <state width="1699" height="247" key="GridCell.Tab.0.bottom/3440.349.1440.875/-1920.212.1920.1055/0.25.3440.1361@0.25.3440.1361" timestamp="1617693241622" />
-    <state width="1699" height="247" key="GridCell.Tab.0.center" timestamp="1617693241621">
-      <screen x="0" y="25" width="3440" height="1361" />
-    </state>
-    <state width="1699" height="387" key="GridCell.Tab.0.center/-1920.212.1920.1055/3440.349.1440.875/0.25.3440.1361@0.25.3440.1361" timestamp="1617628640710" />
-    <state width="1699" height="247" key="GridCell.Tab.0.center/3440.349.1440.875/-1920.212.1920.1055/0.25.3440.1361@0.25.3440.1361" timestamp="1617693241621" />
-    <state width="1699" height="247" key="GridCell.Tab.0.left" timestamp="1617693241620">
-      <screen x="0" y="25" width="3440" height="1361" />
-    </state>
-    <state width="1699" height="387" key="GridCell.Tab.0.left/-1920.212.1920.1055/3440.349.1440.875/0.25.3440.1361@0.25.3440.1361" timestamp="1617628640709" />
-    <state width="1699" height="247" key="GridCell.Tab.0.left/3440.349.1440.875/-1920.212.1920.1055/0.25.3440.1361@0.25.3440.1361" timestamp="1617693241620" />
-    <state width="1699" height="247" key="GridCell.Tab.0.right" timestamp="1617693241621">
-      <screen x="0" y="25" width="3440" height="1361" />
-    </state>
-    <state width="1699" height="387" key="GridCell.Tab.0.right/-1920.212.1920.1055/3440.349.1440.875/0.25.3440.1361@0.25.3440.1361" timestamp="1617628640710" />
-    <state width="1699" height="247" key="GridCell.Tab.0.right/3440.349.1440.875/-1920.212.1920.1055/0.25.3440.1361@0.25.3440.1361" timestamp="1617693241621" />
-    <state width="1699" height="247" key="GridCell.Tab.1.bottom" timestamp="1617693241623">
-      <screen x="0" y="25" width="3440" height="1361" />
-    </state>
-    <state width="1699" height="247" key="GridCell.Tab.1.bottom/-1920.212.1920.1055/3440.349.1440.875/0.25.3440.1361@0.25.3440.1361" timestamp="1617628624386" />
-    <state width="1699" height="247" key="GridCell.Tab.1.bottom/3440.349.1440.875/-1920.212.1920.1055/0.25.3440.1361@0.25.3440.1361" timestamp="1617693241623" />
-    <state width="1699" height="247" key="GridCell.Tab.1.center" timestamp="1617693241623">
-      <screen x="0" y="25" width="3440" height="1361" />
-    </state>
-    <state width="1699" height="247" key="GridCell.Tab.1.center/-1920.212.1920.1055/3440.349.1440.875/0.25.3440.1361@0.25.3440.1361" timestamp="1617628624384" />
-    <state width="1699" height="247" key="GridCell.Tab.1.center/3440.349.1440.875/-1920.212.1920.1055/0.25.3440.1361@0.25.3440.1361" timestamp="1617693241623" />
-    <state width="1699" height="247" key="GridCell.Tab.1.left" timestamp="1617693241622">
-      <screen x="0" y="25" width="3440" height="1361" />
-    </state>
-    <state width="1699" height="247" key="GridCell.Tab.1.left/-1920.212.1920.1055/3440.349.1440.875/0.25.3440.1361@0.25.3440.1361" timestamp="1617628624384" />
-    <state width="1699" height="247" key="GridCell.Tab.1.left/3440.349.1440.875/-1920.212.1920.1055/0.25.3440.1361@0.25.3440.1361" timestamp="1617693241622" />
-    <state width="1699" height="247" key="GridCell.Tab.1.right" timestamp="1617693241623">
-      <screen x="0" y="25" width="3440" height="1361" />
-    </state>
-    <state width="1699" height="247" key="GridCell.Tab.1.right/-1920.212.1920.1055/3440.349.1440.875/0.25.3440.1361@0.25.3440.1361" timestamp="1617628624385" />
-    <state width="1699" height="247" key="GridCell.Tab.1.right/3440.349.1440.875/-1920.212.1920.1055/0.25.3440.1361@0.25.3440.1361" timestamp="1617693241623" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -230,6 +205,11 @@
           <url>file://$PROJECT_DIR$/src/slideio/drivers/dcm/dcmfile.cpp</url>
           <line>270</line>
           <option name="timeStamp" value="13" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
+          <url>file://$PROJECT_DIR$/src/tests/test_scn_driver.cpp</url>
+          <line>454</line>
+          <option name="timeStamp" value="14" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
