@@ -42,28 +42,31 @@ void SCNSlide::constructScenes()
     if (error != XML_SUCCESS) {
         throw std::runtime_error("SCNImageDriver: Error parsing metadata xml");
     }
+    //doc.SaveFile("/tmp/scn.xml");
     std::vector<std::string> collectionPath = {"scn", "collection"};
     const XMLElement* xmlCollection = XMLTools::getElementByPath(&doc, collectionPath);
     for (auto xmlImage = xmlCollection->FirstChildElement("image");
         xmlImage != nullptr; xmlImage = xmlImage->NextSiblingElement())
     {
-        std::shared_ptr<SCNScene> scene(new SCNScene(m_filePath, xmlImage));
-        double magn = scene->getMagnification();
-        if(magn >= 1.) {
-            m_Scenes.push_back(scene);
-        }
-        else {
-            std::string name = "Macro";
-            int count = static_cast<int>(m_auxImages.size());
-            if(count>0) {
-                name += "~";
-                name += std::to_string(count);
+        auto name = xmlImage->Name();
+        if(name && strcmp(name, "image")==0) {
+            std::shared_ptr<SCNScene> scene(new SCNScene(m_filePath, xmlImage));
+            double magn = scene->getMagnification();
+            if(magn >= 1.) {
+                m_Scenes.push_back(scene);
             }
-            m_auxImages[name] = scene;
-            m_auxNames.push_back(name);
+            else {
+                std::string name = "Macro";
+                int count = static_cast<int>(m_auxImages.size());
+                if(count>0) {
+                    name += "~";
+                    name += std::to_string(count);
+                }
+                m_auxImages[name] = scene;
+                m_auxNames.push_back(name);
+            }
         }
     }
-    //doc.SaveFile("D:/Temp/scn3.xml");
 }
 
 SCNSlide::~SCNSlide()
