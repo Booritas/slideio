@@ -9,7 +9,7 @@ boost/1.72.0
 tinyxml2/8.0.0
 openjpeg/2.3.1@slideio/stable
 jpegxrcodec/1.0.2@slideio/stable
-gdal/3.3.3
+gdal/3.3.1
 libjpeg/9d@_/_
 expat/2.2.10
 pole/1.0.1@slideio/stable
