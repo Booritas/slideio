@@ -29,3 +29,6 @@ jobs:
       run: conan remote list
 
     - uses: actions/checkout@v2
+
+    - name: Install conan dependencies
+      run: python install.py -a conan
