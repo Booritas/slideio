@@ -1,4 +1,4 @@
-name: CMake
+name: Build slideio python packages
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: windows-latest
 
     steps:
     - name: Install Conan
@@ -17,5 +17,14 @@ jobs:
 
     - name: Conan version
       run: echo "${{ steps.conan.outputs.version }}"
+
+    - name: Add slideio conan remote
+      run: conan remote add slideio ${{CONAN_REMOTE}}
       
+    - name: Login to slideio conan remote
+      run: conan user -p ${{CONAN_PASSWORD}} -r slideio ${{CONAN_USER}}
+
+    - name: Conan remote
+      run: conan remote list
+
     - uses: actions/checkout@v2
