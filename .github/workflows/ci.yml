@@ -5,7 +5,8 @@ on:
     branches: [ master ]
   pull_request:
     branches: [ master ]
-
+env:
+  CONAN_REVISIONS_ENABLED: 1
 jobs:
   build:
     runs-on: windows-latest
