@@ -32,11 +32,17 @@ jobs:
       uses: actions/checkout@v2
       with:
         submodules: 'true'
+        
+    - name: chekout conan recepies
+      uses: actions/checkout@v2
+      with:
+        repository: 'https://gitlab.com/bioslide/conan-recipes.git'
+        path: 'conan-recepies'
 
-    - name: Install conan dependencies
-      run: python install.py -a conan
+    # - name: Install conan dependencies
+    #   run: python install.py -a conan
 
-    - name: compile
-      run: |
-        cd src/pybind
-        powershell install.ps1
+    # - name: compile
+    #   run: |
+    #     cd src/pybind
+    #     powershell install.ps1
