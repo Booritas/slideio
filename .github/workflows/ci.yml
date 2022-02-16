@@ -34,10 +34,7 @@ jobs:
         submodules: 'true'
         
     - name: chekout conan recepies
-      uses: actions/checkout@v2
-      with:
-        repository: 'booritas/https://gitlab.com/bioslide/conan-recipes.git'
-        path: 'conan-recepies'
+      run: git clone 'https://gitlab.com/bioslide/conan-recipes.git' conan-recepies
 
     # - name: Install conan dependencies
     #   run: python install.py -a conan
