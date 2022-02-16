@@ -14,12 +14,7 @@ set(BINDLIB_SOURCE
    pyscene.cpp
 )
 
-if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-   set(pybind11_DIR ${CONAN_PYBIND11_ROOT_DEBUG}/share/cmake/pybind11)
-else()
-   set(pybind11_DIR ${CONAN_PYBIND11_ROOT_RELEASE}/share/cmake/pybind11)
-endif()
-find_package(pybind11 REQUIRED)
+add_subdirectory(pybind11)
 
 if (DEFINED ENV{PYTHON_LOCATION_IS_SET})
    message("Python location is set externaly")
