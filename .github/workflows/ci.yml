@@ -36,7 +36,7 @@ jobs:
     - name: chekout conan recepies
       uses: actions/checkout@v2
       with:
-        repository: 'https://gitlab.com/bioslide/conan-recipes.git'
+        repository: 'booritas/https://gitlab.com/bioslide/conan-recipes.git'
         path: 'conan-recepies'
 
     # - name: Install conan dependencies
