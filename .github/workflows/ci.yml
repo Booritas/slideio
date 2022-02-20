@@ -15,7 +15,7 @@ jobs:
     - name: create python packages
       #working-directory: .\src\pybind
       run: |
-        echo "$HOME\conan-recepies\python.txt"
+        echo "$${{ github.workspace }}\conan-recepies\python.txt"
         ls
         pwd
         
