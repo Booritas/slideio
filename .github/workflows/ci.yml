@@ -42,12 +42,12 @@ jobs:
       run: powershell ./install.ps1
 
     - name: create python packages
-      working-directory: ./slideio/src/pybind
-      run: echo "${{ env.GITHUB_WORKSPACE }}/conan-recepies/python.txt"
+      working-directory: .\src\pybind
+      run: echo "${{ env.GITHUB_WORKSPACE }}\conan-recepies\python.txt"
 
     - name: display file
-      working-directory: ./slideio/src/pybind
-      run: cat "${{ env.GITHUB_WORKSPACE }}/conan-recepies/python.txt"
+      working-directory: .\src\pybind
+      run: cat "${{ env.GITHUB_WORKSPACE }}\conan-recepies\python.txt"
 
     # - name: Install conan dependencies
     #   run: python install.py -a conan
