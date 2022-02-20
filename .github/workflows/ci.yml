@@ -48,9 +48,8 @@ jobs:
       run: powershell .\install.ps1 "${{ github.workspace }}\conan-recipes\pythons.txt"
 
     - name: Archive python packagess
-      working-directory: .\src\pybind
       uses: actions/upload-artifact@v2
       with:
         name: python-windows-dist
         path: |
-          dist
+          ./src/pybind/dist
