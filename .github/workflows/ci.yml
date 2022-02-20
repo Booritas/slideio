@@ -33,7 +33,6 @@ jobs:
       with:
         submodules: 'true'
 
-      
     - name: chekout conan recipes
       run: git clone 'https://gitlab.com/bioslide/conan-recipes.git' conan-recipes
 
@@ -41,20 +40,9 @@ jobs:
       working-directory: ./conan-recipes
       run: powershell ./install.ps1
 
-    - name: create python packages
-      working-directory: .\src\pybind
-      run: |
-        echo "${{ github.workspace }}\conan-recipes\pythons.txt"
+    - name: Install conan dependencies
+      run: python install.py -a conan
       
-
-    - name: display file
+    - name: build python packages
       working-directory: .\src\pybind
-      run: cat "${{ github.workspace }}\conan-recipes\pythons.txt"
-
-    # - name: Install conan dependencies
-    #   run: python install.py -a conan
-
-    # - name: compile
-    #   run: |
-    #     cd src/pybind
-    #     powershell install.ps1
+      run: powershell .\install.ps1 "${{ github.workspace }}\conan-recipes\pythons.txt"
