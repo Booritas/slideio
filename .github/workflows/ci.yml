@@ -49,7 +49,7 @@ jobs:
 
     - name: display file
       working-directory: .\src\pybind
-      run: cat "${{ github.workspace }}\conan-recepies\python.txt"
+      run: cat "${{ github.workspace }}\conan-recepies\pythons.txt"
 
     # - name: Install conan dependencies
     #   run: python install.py -a conan
