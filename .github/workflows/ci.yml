@@ -43,11 +43,11 @@ jobs:
 
     - name: create python packages
       working-directory: ./slideio/src/pybind
-      run: echo "${{ GITHUB_WORKSPACE }}/conan-recepies/python.txt"
+      run: echo "${{ env.GITHUB_WORKSPACE }}/conan-recepies/python.txt"
 
     - name: display file
       working-directory: ./slideio/src/pybind
-      run: cat "${{ GITHUB_WORKSPACE }}/conan-recepies/python.txt"
+      run: cat "${{ env.GITHUB_WORKSPACE }}/conan-recepies/python.txt"
 
     # - name: Install conan dependencies
     #   run: python install.py -a conan
