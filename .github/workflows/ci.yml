@@ -14,7 +14,7 @@ jobs:
     steps:
     - name: create python packages
       #working-directory: .\src\pybind
-      run: echo "$GITHUB_WORKSPACE\conan-recepies\python.txt"
+      run: echo "$GITHUB_HOME\conan-recepies\python.txt"
 
     - name: display file
       #working-directory: .\src\pybind
