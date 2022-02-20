@@ -32,9 +32,22 @@ jobs:
       uses: actions/checkout@v2
       with:
         submodules: 'true'
-        
-    - name: chekout conan recepies
-      run: git clone 'https://gitlab.com/bioslide/conan-recipes.git' conan-recepies
+
+      
+    - name: chekout conan recipes
+      run: git clone 'https://gitlab.com/bioslide/conan-recipes.git' conan-recipes
+
+    - name: install python distributions
+      working-directory: ./conan-recipes
+      run: powershell ./install.ps1
+
+    - name: create python packages
+      working-directory: ./slideio/src/pybind
+      run: echo "${{ GITHUB_WORKSPACE }}/conan-recepies/python.txt"
+
+    - name: display file
+      working-directory: ./slideio/src/pybind
+      run: cat "${{ GITHUB_WORKSPACE }}/conan-recepies/python.txt"
 
     # - name: Install conan dependencies
     #   run: python install.py -a conan
