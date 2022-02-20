@@ -12,18 +12,6 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - name: create python packages
-      #working-directory: .\src\pybind
-      run: |
-        echo "${{ github.workspace }}\conan-recepies\python.txt"
-        ls
-        pwd
-        
-
-    - name: display file
-      #working-directory: .\src\pybind
-      run: cat "$GITHUB_WORKSPACE\conan-recepies\python.txt"
-
     - name: Install Conan
       id: conan
       uses: turtlebrowser/get-conan@main
@@ -53,6 +41,15 @@ jobs:
       working-directory: ./conan-recipes
       run: powershell ./install.ps1
 
+    - name: create python packages
+      working-directory: .\src\pybind
+      run: |
+        echo "${{ github.workspace }}\conan-recepies\python.txt"
+      
+
+    - name: display file
+      working-directory: .\src\pybind
+      run: cat "${{ github.workspace }}\conan-recepies\python.txt"
 
     # - name: Install conan dependencies
     #   run: python install.py -a conan
