@@ -14,7 +14,11 @@ jobs:
     steps:
     - name: create python packages
       #working-directory: .\src\pybind
-      run: echo "$HOME\conan-recepies\python.txt"
+      run: |
+        echo "$HOME\conan-recepies\python.txt"
+        ls
+        pwd
+        
 
     - name: display file
       #working-directory: .\src\pybind
