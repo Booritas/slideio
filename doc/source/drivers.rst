@@ -18,6 +18,8 @@ The slideio module accesses images through a system of image drivers. A driver i
 +--------+-----------------+----------+------------+
 | ZVI    | no              |  yes     |     no     |
 +--------+-----------------+----------+------------+
+| DCM    | yes             |  yes     |     no     |
++--------+-----------------+----------+------------+
 
 CZI driver
 ------------------
@@ -62,6 +64,11 @@ Metadata
 
 *Slide* property *raw_metadata* returns a textual representation of embedded in the slide xml document with image metadata.
 
+Auxiliary images
+******************
+The driver supports auxiliary images for *Slide* and *Scene* objects. Images are extracted from corresponded "attachment" sections
+of the file.
+
 SVS driver
 ------------------
 SVS driver exposes images extracted from Aperion SVS slides. Each *Slide* objects contains at least one *Scene* object - image itself.
@@ -83,6 +90,10 @@ Metadata
 ***********
 
 *Slide* property *raw_metadata* returns a string extracted from "Image Description" tiff tag of the main image tag directory.
+
+Auxiliary images
+******************
+The driver supports auxiliary images for *Slide* objects.
 
 
 AFI driver
@@ -107,6 +118,11 @@ Metadata
 *Slide* property *raw_metadata* returns a string extracted from "Image Description" tiff tag of the main image tag directory.
 
 
+Auxiliary images
+******************
+The driver supports auxiliary images for *Slide* objects.
+
+
 GDAL driver
 ------------------
 
@@ -123,4 +139,24 @@ ZVI driver opens images produced by Carl Zeiss `AxioVision microscope <https://m
 
 Metadata
 ******************
-*Slide* property raw_metadata always returns an empty string.
+raw_metadata property of a *Slide* object always returns an empty string.
+
+DCM driver
+------------------
+
+DCM driver opens DICOM images and directories. The path parameter in open_slide function can be one of the following:
+
+ - path to a DICOM image;
+ - path to a DICOMDIR file;
+ - path to a difrectory with DICOM files.
+
+Each *Scene* object of a slide corresponds to a single series for a study and a patient. If path parameter in the open_slide function references a DICOMDIR file or a directory with DICOM files, all images are sorted by series, study and patient and a collection of scene objects is created.
+
+Metadata
+******************
+raw_metadata property of a *Slide* object always returns an empty string.
+raw_metadata property of a *Scene* object returns json representation of DICOM tags for the first image of the scene.
+
+Auxiliary images
+******************
+Auxiliary images are not supported by the driver.
