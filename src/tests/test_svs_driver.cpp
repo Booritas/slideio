@@ -69,7 +69,7 @@ TEST(SVSImageDriver, read_Thumbnail_WholeImage)
     cv::Rect sceneRect = scene->getRect();
     cv::Mat imageRaster;
     scene->readBlock(sceneRect, imageRaster);
-    
+
     // read extracted page by GDAL library
     std::string pathPageFile = TestTools::getTestImagePath("svs","CMU-1-Small-Region-page-1.tif");
     cv::Mat pageRaster;
@@ -102,7 +102,7 @@ TEST(SVSImageDriver, read_Thumbnail_Block)
     int block_sy = sceneRect.height/3;
     int block_x = sceneRect.width/6;
     int block_y = sceneRect.height/5;
-    
+
     cv::Rect blockRect = {block_x,block_y,block_sx, block_sy};
     cv::Mat blockRaster;
     scene->readBlock(blockRect, blockRaster);
@@ -318,7 +318,7 @@ TEST(SVSImageDriver, metadataCompression)
         std::shared_ptr<slideio::CVScene> scene = slide->getScene(sceneIndex);
         EXPECT_TRUE(scene!=nullptr);
         EXPECT_EQ(scene->getCompression(), sceneCompression);
-    }    
+    }
 }
 
 TEST(SVSImageDriver, slideRawMetadata)
@@ -336,7 +336,7 @@ TEST(SVSImageDriver, slideRawMetadata)
         EXPECT_GT(metadata.length(),0);
         const std::string header("Aperio Image Library");
         EXPECT_TRUE(boost::algorithm::starts_with(metadata, header));
-    }    
+    }
 }
 
 TEST(SVSImageDriver, crashTest)
@@ -365,7 +365,7 @@ TEST(SVSImageDriver, swapedChannels)
     scene->readResampledBlock(rect, size, matOrigin);
     scene->readResampledBlockChannels(rect, size, channels, matSwaped);
     int channelSize = size.width * size.height;
-   
+
     for(int swapedIndex=0; swapedIndex<3; ++swapedIndex)
     {
         int originIndex = channels[swapedIndex];
@@ -446,4 +446,19 @@ TEST(SVSImageDriver, auxImages)
     thumbnail->readBlock(sceneRect, labelRaster);
     ASSERT_EQ(labelRaster.cols, sceneRect.width);
     ASSERT_EQ(labelRaster.rows, sceneRect.height);
+}
+
+TEST(SVSImageDriver, readCELabImage)
+{
+    // read image by svs driver
+    slideio::SVSImageDriver driver;
+    std::string path = TestTools::getFullTestImagePath("svs", "S1303802-11-HE-DX1.svs");
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(path);
+    ASSERT_TRUE(slide != nullptr);
+    int numbScenes = slide->getNumScenes();
+    ASSERT_TRUE(numbScenes == 1);
+    auto scene = slide->getScene(0);
+    cv::Mat block;
+    std::vector<int> channelIndices = {0, 1, 2};
+    scene->readBlock(cv::Rect(0, 0, 1000, 1000), block);
 }

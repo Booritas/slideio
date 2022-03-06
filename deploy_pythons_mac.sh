@@ -6,4 +6,4 @@ do
    pversion="python-${version}"
    echo $pversion
    conan create ${CONAN_CUSTOM_DIR}/${pversion} slideio/stable
-done
+doness

@@ -204,7 +204,7 @@ void  slideio::TiffTools::scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, int
     libtiff::TIFFGetField(tiff,TIFFTAG_TILEWIDTH ,&tile_width);
     libtiff::TIFFGetField(tiff,TIFFTAG_TILELENGTH,&tile_height);
     libtiff::TIFFGetField(tiff, TIFFTAG_IMAGEDESCRIPTION, &description);
-    libtiff::TIFFGetField(tiff, TIFFTAG_PLANARCONFIG ,&planar_config);	
+    libtiff::TIFFGetField(tiff, TIFFTAG_PLANARCONFIG ,&planar_config);
     float resx(0), resy(0);
     libtiff::uint16 units(0);
     libtiff::TIFFGetField(tiff, TIFFTAG_XRESOLUTION, &resx);
@@ -254,8 +254,8 @@ void  slideio::TiffTools::scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, int
     dir.compression = compress;
     dir.rowsPerStrip = rowsPerStripe;
     dir.slideioCompression = compressTiffToSlideio(compress);
-    
-    
+
+
 }
 
 void slideio::TiffTools::scanTiffDir(libtiff::TIFF* tiff, int dirIndex, int64_t dirOffset, slideio::TiffDirectory& dir)
@@ -282,7 +282,7 @@ void slideio::TiffTools::scanTiffDir(libtiff::TIFF* tiff, int dirIndex, int64_t 
         {
             if(libtiff::TIFFSetSubDirectory(tiff, offsets[subdir]))
             {
-                scanTiffDirTags(tiff, dirIndex, dir.subdirectories[subdir].offset, dir.subdirectories[subdir]);	
+                scanTiffDirTags(tiff, dirIndex, dir.subdirectories[subdir].offset, dir.subdirectories[subdir]);
             }
         }
     }
@@ -296,7 +296,7 @@ void slideio::TiffTools::scanFile(libtiff::TIFF* tiff, std::vector<TiffDirectory
     {
         directories[dir].dirIndex = dir;
         scanTiffDir(tiff, dir, 0, directories[dir]);
-    }	
+    }
 }
 
 void slideio::TiffTools::scanFile(const std::string& filePath, std::vector<TiffDirectory>& directories)
@@ -324,7 +324,7 @@ void slideio::TiffTools::readStripedDir(libtiff::TIFF* file, const slideio::Tiff
 {
     if(!dir.interleaved)
         throw std::runtime_error("Planar striped images are not supported");
-    
+
     int buff_size = dir.width*dir.height*dir.channels*ImageTools::dataTypeSize(dir.dataType);
     cv::Size sizeImage = { dir.width, dir.height };
     slideio::DataType dt = dir.dataType;
@@ -336,7 +336,7 @@ void slideio::TiffTools::readStripedDir(libtiff::TIFF* file, const slideio::Tiff
     }
     libtiff::uint8* buff_begin = imageRaster.data;
     int strip_buf_size = dir.stripSize;
-    
+
     for(int strip=0, row=0; row<dir.height; strip++, row+=dir.rowsPerStrip, buff_begin+=strip_buf_size)
     {
         if((strip+strip_buf_size)>buff_size)
@@ -439,7 +439,7 @@ void slideio::TiffTools::readJ2KTile(libtiff::TIFF* hFile, const slideio::TiffDi
         //std::vector<cv::Mat> channelRasters;
         //for(const auto& channelIndex : channelIndices)
         //{
-        //    
+        //
         //}
     }
 }
@@ -463,21 +463,21 @@ void TiffTools::readNotRGBTile(libtiff::TIFF* hFile, const slideio::TiffDirector
     int col = tile - row * cols;
     int tileX = col * dir.tileWidth;
     int tileY = row * dir.tileHeight;
-    auto readBytes = libtiff::TIFFReadRGBATile(hFile, tileX, tileY, buffBegin);
-    if (readBytes <= 0)
-        throw std::runtime_error(
-            (boost::format(
-                "TiffTools: error reading encoded tiff tile %1% of directory %2%."
-                "Compression: %3%") % tile % dir.dirIndex % dir.compression).str());
+//    auto readBytes = libtiff::TIFFReadRGBATile(hFile, tileX, tileY, buffBegin);
+//    if (readBytes <= 0)
+//        throw std::runtime_error(
+//            (boost::format(
+//                "TiffTools: error reading encoded tiff tile %1% of directory %2%."
+//                "Compression: %3%") % tile % dir.dirIndex % dir.compression).str());
 
     cv::Mat flipped;
     if (channelIndices.empty())
     {
         std::vector<cv::Mat> channelRasters;
-        channelRasters.resize(channelIndices.size());
+        channelRasters.resize(3);
         for (int channelIndex=0; channelIndex<3; ++channelIndex)
         {
-            cv::extractChannel(tileRaster, channelRasters[channelIndex], channelIndices[channelIndex]);
+            cv::extractChannel(tileRaster, channelRasters[channelIndex], channelIndex);
         }
         cv::merge(channelRasters, flipped);
     }
