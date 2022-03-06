@@ -1,0 +1,55 @@
+name: Build slideio python packages
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+env:
+  CONAN_REVISIONS_ENABLED: 1
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Install Conan
+      id: conan
+      uses: turtlebrowser/get-conan@main
+
+    - name: Conan version
+      run: echo "${{ steps.conan.outputs.version }}"
+
+    - name: Add slideio conan remote
+      run: conan remote add slideio ${{ secrets.CONAN_REMOTE }}
+      
+    - name: Login to slideio conan remote
+      run: conan user -p ${{ secrets.CONAN_PASSWORD }} -r slideio ${{ secrets.CONAN_USER }}
+
+    - name: Conan remote
+      run: conan remote list
+
+    - name: checkout
+      uses: actions/checkout@v2
+      with:
+        submodules: 'true'
+
+    - name: chekout conan recipes
+      run: git clone 'https://gitlab.com/bioslide/conan-recipes.git' conan-recipes
+
+    - name: install python distributions
+      working-directory: ./conan-recipes
+      run: powershell ./install.ps1
+
+    - name: Install conan dependencies
+      run: python install.py -a conan
+      
+    - name: build python packages
+      working-directory: .\src\pybind
+      run: powershell .\install.ps1 "${{ github.workspace }}\conan-recipes\pythons.txt"
+
+    - name: Archive python packagess
+      uses: actions/upload-artifact@v2
+      with:
+        name: python-windows-dist
+        path: |
+          ./src/pybind/dist
