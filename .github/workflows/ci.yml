@@ -9,7 +9,7 @@ env:
   CONAN_REVISIONS_ENABLED: 1
 jobs:
   build:
-    runs-on: macos-latest
+    runs-on: windows-latest
 
     steps:
     - name: Install Conan
@@ -36,9 +36,9 @@ jobs:
     - name: chekout conan recipes
       run: git clone 'https://gitlab.com/bioslide/conan-recipes.git' conan-recipes
 
-    # - name: install python distributions
-    #   working-directory: ./conan-recipes
-    #   run: powershell ./install.ps1
+    - name: install python distributions
+      working-directory: ./conan-recipes
+      run: python deploy-python-dists.py
 
     # - name: Install conan dependencies
     #   run: python install.py -a conan
