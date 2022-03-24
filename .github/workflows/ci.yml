@@ -54,8 +54,8 @@ jobs:
       run: python install.py -a conan
       
     - name: build python packages
-      working-directory: .\src\pybind
-      run: python .\build_py_dists.py "${{ github.workspace }}\conan-recipes\py.txt"
+      working-directory: ./src/pybind
+      run: python build_py_dists.py "${{ github.workspace }}/conan-recipes/py.txt"
 
     - name: Archive python packagess
       uses: actions/upload-artifact@v2
