@@ -70,7 +70,8 @@ def process_conan_profile(profile, trg_dir, conan_file):
     command = ['conan','install',
         '-pr',profile,
         '-if',trg_dir,
-        '-g', generator]
+        '-g', generator,
+        '-b', 'missing']
     command.append(conan_file)
     print(command)
     subprocess.check_call(command)
