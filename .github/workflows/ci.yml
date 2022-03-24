@@ -9,7 +9,7 @@ env:
   CONAN_REVISIONS_ENABLED: 1
 jobs:
   build:
-    runs-on: macos-11
+    runs-on: macos-10.15
 
     steps:
 
@@ -21,7 +21,7 @@ jobs:
 
     - name: Display Python version
       run: python --version
-      
+
     - name: Install Conan
       id: conan
       uses: turtlebrowser/get-conan@main
