@@ -1,0 +1,35 @@
+name: Build slideio python packages
+
+on:
+  push:
+    branches: [ master ]
+jobs:
+  build-linux:
+    container:
+      image: booritas/slideio-manylinux2014:v0.62
+      env:
+        CONAN_REVISIONS_ENABLED: 1
+
+    steps:
+
+    - name: Conan remote
+      run: conan remote list
+
+    - name: checkout
+      uses: actions/checkout@v2
+      with:
+        submodules: 'true'
+
+    - name: Install conan dependencies
+      run: python install.py -a conan -c release
+      
+    - name: build python packages
+      working-directory: ./src/pybind
+      run: bash ./install.sh
+
+    - name: Archive python packagess
+      uses: actions/upload-artifact@v2
+      with:
+        name: python-dist
+        path: |
+          ./src/pybind/wheelhouse
