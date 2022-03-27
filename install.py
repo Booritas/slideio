@@ -55,7 +55,7 @@ def collect_profiles(profile_dir, configuration, compiler=""):
         plt = distro.linux_distribution(full_distribution_name=False)
         print(plt)
         if plt[0] != "ubuntu":
-            compiler = "gcc-8"
+            compiler = "multilinux"
         compiler_dir = os.path.join(profile_dir, compiler)    
 
     profiles = []
