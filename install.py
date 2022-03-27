@@ -67,11 +67,12 @@ def collect_profiles(profile_dir, configuration, compiler=""):
 
 def process_conan_profile(profile, trg_dir, conan_file):
     generator = "cmake_multi"
+    build_libs = 'missing'
     command = ['conan','install',
         '-pr',profile,
         '-if',trg_dir,
         '-g', generator,
-        '-b', 'missing']
+        '-b', build_libs]
     command.append(conan_file)
     print(command)
     subprocess.check_call(command)

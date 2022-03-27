@@ -44,9 +44,6 @@
   <component name="ChangeListManager">
     <list default="true" id="ab3fa5e4-e9e7-4544-8e69-a93644a57165" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/deploy_pythons_mac.sh" beforeDir="false" afterPath="$PROJECT_DIR$/deploy_pythons_mac.sh" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/slideio/imagetools/tifftools.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/imagetools/tifftools.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/tests/test_svs_driver.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/tests/test_svs_driver.cpp" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -56,7 +53,6 @@
   <component name="ClangdSettings">
     <option name="formatViaClangd" value="false" />
   </component>
-  <component name="ExecutionTargetManager" SELECTED_TARGET="CMakeBuildProfile:Debug" />
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
       <list>
@@ -93,7 +89,12 @@
     <property name="node.js.selected.package.tslint" value="(autodetect)" />
     <property name="settings.editor.selected.configurable" value="CMakeSettings" />
   </component>
-  <component name="RunManager" selected="Google Test.SVSImageDriver.readCELabImage">
+  <component name="RunManager">
+    <configuration default="true" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="DCMFile.pixelValues" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" temporary="true" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="slideio_tests" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="slide_io" RUN_TARGET_NAME="slideio_tests" TEST_CLASS="DCMFile" TEST_METHOD="pixelValues" TEST_MODE="SUITE_TEST">
       <envs>
         <env name="DCMDICTPATH" value="$USER_HOME$/.conan/data/dcmtk/3.6.5/slideio/stable/package/abcc8d3e944a715c0d5c41283333659ec3f5264e/bin/share/dcmtk/dicom.dic" />
@@ -133,11 +134,6 @@
         <option name="BeforeTestRunTask" enabled="true" />
       </method>
     </configuration>
-    <configuration default="true" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true">
-      <method v="2">
-        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
-      </method>
-    </configuration>
     <configuration name="memory_leaks" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="memory_leaks" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="slide_io" RUN_TARGET_NAME="memory_leaks">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
@@ -159,27 +155,6 @@
         <option name="BeforeTestRunTask" enabled="true" />
       </method>
     </configuration>
-    <list>
-      <item itemvalue="CMake Application.slideiopybind" />
-      <item itemvalue="CMake Application.memory_leaks" />
-      <item itemvalue="CMake Application.slide_io" />
-      <item itemvalue="CTest Application.All CTest" />
-      <item itemvalue="Google Test.slideio_tests" />
-      <item itemvalue="Google Test.DCMFile.pixelValues" />
-      <item itemvalue="Google Test.SCNImageDriver.test1" />
-      <item itemvalue="Google Test.SVSImageDriver.driverID" />
-      <item itemvalue="Google Test.SVSImageDriver.test1" />
-      <item itemvalue="Google Test.SVSImageDriver.readCELabImage" />
-    </list>
-    <recent_temporary>
-      <list>
-        <item itemvalue="Google Test.SVSImageDriver.readCELabImage" />
-        <item itemvalue="Google Test.SVSImageDriver.test1" />
-        <item itemvalue="Google Test.SVSImageDriver.driverID" />
-        <item itemvalue="Google Test.SCNImageDriver.test1" />
-        <item itemvalue="Google Test.DCMFile.pixelValues" />
-      </list>
-    </recent_temporary>
   </component>
   <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="SvnConfiguration">
@@ -205,37 +180,12 @@
       <workItem from="1643613016322" duration="420000" />
       <workItem from="1643615992145" duration="26000" />
       <workItem from="1643616731617" duration="2138000" />
-      <workItem from="1646560912188" duration="4395000" />
+      <workItem from="1646560912188" duration="4923000" />
+      <workItem from="1646671501823" duration="135000" />
     </task>
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
-  </component>
-  <component name="XDebuggerManager">
-    <breakpoint-manager>
-      <breakpoints>
-        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
-          <url>file://$PROJECT_DIR$/src/slideio/drivers/dcm/dcmfile.cpp</url>
-          <line>179</line>
-          <option name="timeStamp" value="11" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
-          <url>file://$PROJECT_DIR$/src/slideio/drivers/dcm/dcmfile.cpp</url>
-          <line>270</line>
-          <option name="timeStamp" value="13" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
-          <url>file://$PROJECT_DIR$/src/tests/test_scn_driver.cpp</url>
-          <line>454</line>
-          <option name="timeStamp" value="14" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
-          <url>file://$PROJECT_DIR$/src/slideio/imagetools/tifftools.cpp</url>
-          <line>464</line>
-          <option name="timeStamp" value="18" />
-        </line-breakpoint>
-      </breakpoints>
-    </breakpoint-manager>
   </component>
 </project>
