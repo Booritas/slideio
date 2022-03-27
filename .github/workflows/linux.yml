@@ -5,6 +5,7 @@ on:
     branches: [ master ]
 jobs:
   build-linux:
+    runs-on: linux
     container:
       image: booritas/slideio-manylinux2014:v0.62
       env:
