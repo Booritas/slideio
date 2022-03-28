@@ -13,6 +13,15 @@ jobs:
 
     steps:
 
+    - name: Conan version
+      run: echo "${{ steps.conan.outputs.version }}"
+
+    - name: Add slideio conan remote
+      run: conan remote add slideio ${{ secrets.CONAN_REMOTE }}
+      
+    - name: Login to slideio conan remote
+      run: conan user -p ${{ secrets.CONAN_PASSWORD }} -r slideio ${{ secrets.CONAN_USER }}
+
     - name: Conan remote
       run: conan remote list
 
