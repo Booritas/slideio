@@ -33,6 +33,10 @@ jobs:
     - name: Install conan dependencies
       run: python3 install.py -a conan -c release
       
+    - name: find references
+      working-directory: ./src/pybind
+      run: bash ./search.sh
+
     - name: build python packages
       working-directory: ./src/pybind
       run: bash ./install.sh
