@@ -68,7 +68,7 @@ def collect_profiles(profile_dir, configuration, compiler=""):
 def process_conan_profile(profile, trg_dir, conan_file):
     generator = "cmake_multi"
     build_libs = 'missing'
-    if is_linux() and compiler=="":
+    if is_linux():
         build_libs = "never"
     command = ['conan','install',
         '-pr',profile,
