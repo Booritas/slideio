@@ -1,13 +1,13 @@
 name: Build slideio python packages
 
 on:
-  push:
+  create:
     branches: [ master ]
 jobs:
   build-linux:
     runs-on: ubuntu-20.04
     container:
-      image: booritas/slideio-manylinux2014:v0.62rc1
+      image: booritas/slideio-manylinux2014:v0.62
       env:
         CONAN_REVISIONS_ENABLED: 1
 
