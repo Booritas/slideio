@@ -25,6 +25,12 @@ jobs:
     - name: Conan remote
       run: conan remote list
 
+    - name: compile libxml2
+      run: conan install -pr conan/Linux/multilinux/linux_release -b libxml2  libxml2/2.9.10@_/_
+
+    - name: compile sqlite3
+      run: conan install -pr conan/Linux/multilinux/linux_release -b sqlite3  sqlite3/all 3.36.0@_/_
+
     - name: checkout
       uses: actions/checkout@v2
       with:
