@@ -1,7 +1,7 @@
 name: Build slideio python packages
 
 on:
-  create:
+  push:
     branches: [ master ]
 jobs:
   build-linux:
