@@ -1,14 +1,16 @@
 name: Build slideio python packages
 
 on:
-  create:
+  push:
     branches: [ master ]
 env:
   CONAN_REVISIONS_ENABLED: 1
 jobs:
   build-mac-win:
-    runs-on: [macos-10.15, windows-2019]
-
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-10.15, windows-2019]
     steps:
 
     - uses: actions/checkout@v3
