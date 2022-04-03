@@ -8,6 +8,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/format.hpp>
 #include "slideio/libtiff.hpp"
+#include "slideio/drivers/svs/svssmallscene.hpp"
 
 
 using namespace slideio;
@@ -39,31 +40,57 @@ void SCNSlide::constructScenes()
 {
     XMLDocument doc;
     XMLError error = doc.Parse(m_rawMetadata.c_str(), m_rawMetadata.size());
-    if (error != XML_SUCCESS) {
+    if (error != XML_SUCCESS)
+    {
         throw std::runtime_error("SCNImageDriver: Error parsing metadata xml");
     }
-    //doc.SaveFile("/tmp/scn.xml");
+    // begin testing block
+    // doc.SaveFile("d:Temp/scn.xml", false);
+    // end testing block
     std::vector<std::string> collectionPath = {"scn", "collection"};
     const XMLElement* xmlCollection = XMLTools::getElementByPath(&doc, collectionPath);
     for (auto xmlImage = xmlCollection->FirstChildElement("image");
-        xmlImage != nullptr; xmlImage = xmlImage->NextSiblingElement())
+         xmlImage != nullptr; xmlImage = xmlImage->NextSiblingElement())
     {
-        auto name = xmlImage->Name();
-        if(name && strcmp(name, "image")==0) {
-            std::shared_ptr<SCNScene> scene(new SCNScene(m_filePath, xmlImage));
-            double magn = scene->getMagnification();
-            if(magn >= 1.) {
-                m_Scenes.push_back(scene);
-            }
-            else {
-                std::string name = "Macro";
-                int count = static_cast<int>(m_auxImages.size());
-                if(count>0) {
-                    name += "~";
-                    name += std::to_string(count);
+        const char* tagName = xmlImage->Name();
+        if (tagName)
+        {
+            if (strcmp(tagName, "image") == 0)
+            {
+                std::shared_ptr<SCNScene> scene(new SCNScene(m_filePath, xmlImage));
+                double magn = scene->getMagnification();
+                if (magn >= 1.)
+                {
+                    m_Scenes.push_back(scene);
                 }
-                m_auxImages[name] = scene;
-                m_auxNames.push_back(name);
+                else
+                {
+                    std::string name(tagName);
+                    if (name.compare("image") == 0)
+                        name = "Macro";
+                    int count = static_cast<int>(m_auxImages.size());
+                    if (count > 0)
+                    {
+                        name += "~";
+                        name += std::to_string(count);
+                    }
+                    m_auxImages[name] = scene;
+                    m_auxNames.push_back(name);
+                }
+            }
+            else if (strcmp(tagName, "supplementalImage") == 0)
+            {
+                const char *type = xmlImage->Attribute("type");
+                int dir = xmlImage->IntAttribute("ifd", -1);
+                if (type && dir>=0)
+                {
+                    slideio::TiffDirectory directory;
+                    TiffTools::scanTiffDir(m_tiff.getHandle(), dir, 0, directory);
+                    std::shared_ptr<CVScene> scene = std::make_shared<SVSSmallScene>(
+                        m_filePath, tagName, directory, m_tiff.getHandle());
+                    m_auxImages[type] = scene;
+                    m_auxNames.push_back(type);
+                }
             }
         }
     }

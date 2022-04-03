@@ -448,17 +448,32 @@ TEST(SCNImageDriver, auxImages)
     ASSERT_FALSE(std::find(imageNames.begin(), imageNames.end(), "Macro~1") == imageNames.end());
 }
 
-//TEST(SCNImageDriver, test1)
-//{
-//    slideio::SCNImageDriver driver;
-//    std::string filePath = "/Users/s.melnikov/Downloads/Leica Aperio Versa 5 channel fluorescent image.scn"; //TestTools::getTestImagePath("scn", "Leica-Fluorescence-1.scn");
-//    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
-//    ASSERT_TRUE(slide != nullptr);
-//    const int numScenes = slide->getNumScenes();
-//    ASSERT_EQ(numScenes, 3);
-//    const int numImages = slide->getNumAuxImages();
-//    ASSERT_EQ(numImages, 0);
-////    std::list<std::string> imageNames = slide->getAuxImageNames();
-////    ASSERT_FALSE(std::find(imageNames.begin(), imageNames.end(), "Macro") == imageNames.end());
-////    ASSERT_FALSE(std::find(imageNames.begin(), imageNames.end(), "Macro~1") == imageNames.end());
-//}
+TEST(SCNImageDriver, supplementalImage)
+{
+    slideio::SCNImageDriver driver;
+    std::string filePath = TestTools::getFullTestImagePath("scn", "ultivue/Leica Aperio Versa 5 channel fluorescent image.scn");
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    const int numScenes = slide->getNumScenes();
+    ASSERT_EQ(numScenes, 3);
+    const int numImages = slide->getNumAuxImages();
+    ASSERT_EQ(numImages, 1);
+    std::list<std::string> imageNames = slide->getAuxImageNames();
+    ASSERT_TRUE(std::find(imageNames.begin(), imageNames.end(), "label") != imageNames.end());
+    auto scene = slide->getAuxImage("label");
+    auto rect = scene->getRect();
+    cv::Mat label;
+    scene->readBlock(rect, label);
+    std::string testFilePath = TestTools::getFullTestImagePath("scn", "ultivue/test/Leica Aperio Versa 5 channel fluorescent image-label.png");
+    cv::Mat expectedLabel;
+    slideio::ImageTools::readGDALImage(testFilePath, expectedLabel);
+    cv::Mat dif;
+    cv::absdiff(label, expectedLabel, dif);
+    cv::Mat dif1, dif2, dif3;
+    cv::extractChannel(dif, dif1, 0);
+    cv::extractChannel(dif, dif2, 1);
+    cv::extractChannel(dif, dif3, 2);
+    EXPECT_EQ(cv::countNonZero(dif1), 0);
+    EXPECT_EQ(cv::countNonZero(dif2), 0);
+    EXPECT_EQ(cv::countNonZero(dif3), 0);
+}

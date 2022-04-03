@@ -461,4 +461,17 @@ TEST(SVSImageDriver, readCELabImage)
     cv::Mat block;
     std::vector<int> channelIndices = {0, 1, 2};
     scene->readBlock(cv::Rect(0, 0, 1000, 1000), block);
+    std::string pathTest = TestTools::getFullTestImagePath("svs", "test/S1303802-11-HE-DX1-block.png");
+    cv::Mat expectedBlock;
+    slideio::ImageTools::readGDALImage(pathTest, expectedBlock);
+    cv::Mat dif;
+    cv::absdiff(block, expectedBlock, dif);
+    cv::Mat dif1, dif2, dif3;
+    cv::extractChannel(dif, dif1, 0);
+    cv::extractChannel(dif, dif2, 1);
+    cv::extractChannel(dif, dif3, 2);
+    EXPECT_EQ(cv::countNonZero(dif1), 0);
+    EXPECT_EQ(cv::countNonZero(dif2), 0);
+    EXPECT_EQ(cv::countNonZero(dif3), 0);
+
 }

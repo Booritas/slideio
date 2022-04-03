@@ -12,8 +12,8 @@ import setuptools.command.build_py
 from distutils.version import LooseVersion
 from ctypes.util import find_library
 
-version = '0.6.'
-vrs_sub = '2'
+version = '1.0.'
+vrs_sub = '0'
 
 if os.environ.get('CI_PIPELINE_IID'):
     ci_id = os.environ['CI_PIPELINE_IID']

@@ -206,7 +206,7 @@ void  slideio::TiffTools::scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, int
     libtiff::TIFFGetField(tiff, TIFFTAG_IMAGEDESCRIPTION, &description);
     libtiff::TIFFGetField(tiff, TIFFTAG_PLANARCONFIG ,&planar_config);
     float resx(0), resy(0);
-    libtiff::uint16 units(0);
+    uint16_t units(0);
     libtiff::TIFFGetField(tiff, TIFFTAG_XRESOLUTION, &resx);
     libtiff::TIFFGetField(tiff, TIFFTAG_YRESOLUTION, &resy);
     libtiff::TIFFGetField(tiff, TIFFTAG_RESOLUTIONUNIT, &units);
@@ -214,7 +214,7 @@ void  slideio::TiffTools::scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, int
     float posx(0), posy(0);
     libtiff::TIFFGetField(tiff, TIFFTAG_XPOSITION, &posx);
     libtiff::TIFFGetField(tiff, TIFFTAG_YPOSITION, &posy);
-    libtiff::int32 rowsPerStripe(0);
+    int32_t rowsPerStripe(0);
     libtiff::TIFFGetField(tiff, TIFFTAG_ROWSPERSTRIP, &rowsPerStripe);
     libtiff::TIFFDataType dt(libtiff::TIFF_NOTYPE);
     libtiff::TIFFGetField(tiff, TIFFTAG_DATATYPE, &dt);
@@ -319,33 +319,95 @@ void slideio::TiffTools::scanFile(const std::string& filePath, std::vector<TiffD
         libtiff::TIFFClose(file);
 }
 
+void TiffTools::readNotRGBStripedDir(libtiff::TIFF* file, const TiffDirectory& dir, cv::_OutputArray output)
+{
+    std::vector<uint8_t> rgbaRaster(4 * dir.rowsPerStrip * dir.width);
+
+    int buff_size = dir.width * dir.height * dir.channels * ImageTools::dataTypeSize(dir.dataType);
+    cv::Size sizeImage = { dir.width, dir.height };
+    slideio::DataType dt = dir.dataType;
+    output.create(sizeImage, CV_MAKETYPE(slideio::CVTools::toOpencvType(dt), dir.channels));
+    cv::Mat imageRaster = output.getMat();
+    libtiff::TIFFSetDirectory(file, static_cast<uint16_t>(dir.dirIndex));
+    if (dir.offset > 0) {
+        libtiff::TIFFSetSubDirectory(file, dir.offset);
+    }
+    uint8_t* buffBegin = imageRaster.data;
+    int stripBuffSize = dir.stripSize;
+    const int imageWidth3 = dir.width * 3;
+    const int imageWidth4 = dir.width * 4;
+
+    for (int strip = 0, row = 0; row < dir.height; strip++, row += dir.rowsPerStrip, buffBegin += stripBuffSize)
+    {
+        if ((strip + stripBuffSize) > buff_size)
+            stripBuffSize = buff_size - strip;
+
+            int stripeRows = dir.rowsPerStrip;
+            if (row + stripeRows > dir.height) {
+                stripeRows = dir.height - row;
+            }
+
+            int read = libtiff::TIFFReadRGBAStrip(file, row, (uint32_t*)rgbaRaster.data());
+            if (read != 1) {
+                throw std::runtime_error("TiffTools: Error by reading of tif strip");
+            }
+            uint8_t* lineBegin = buffBegin;
+            uint8_t* stripeLineBegin = rgbaRaster.data();
+            for (int stripeRow = 0; stripeRow < stripeRows; ++stripeRow) {
+                uint8_t* pixelBegin = lineBegin;
+                uint8_t* stripePixelBegin = stripeLineBegin;
+                for (int column = 0; column < dir.width; ++column, pixelBegin += 3, stripePixelBegin += 4) {
+                    memcpy(pixelBegin, stripePixelBegin, 3);
+                }
+                lineBegin += imageWidth3;
+                stripeLineBegin += imageWidth4;
+            }
+    }
+}
+
+void slideio::TiffTools::readRegularStripedDir(libtiff::TIFF* file, const slideio::TiffDirectory& dir, cv::OutputArray output)
+{
+
+    int buff_size = dir.width * dir.height * dir.channels * ImageTools::dataTypeSize(dir.dataType);
+    cv::Size sizeImage = { dir.width, dir.height };
+    slideio::DataType dt = dir.dataType;
+    output.create(sizeImage, CV_MAKETYPE(slideio::CVTools::toOpencvType(dt), dir.channels));
+    cv::Mat imageRaster = output.getMat();
+    libtiff::TIFFSetDirectory(file, static_cast<uint16_t>(dir.dirIndex));
+    if (dir.offset > 0) {
+        libtiff::TIFFSetSubDirectory(file, dir.offset);
+    }
+    uint8_t* buffBegin = imageRaster.data;
+    int stripBuffSize = dir.stripSize;
+
+    for (int strip = 0, row = 0; row < dir.height; strip++, row += dir.rowsPerStrip, buffBegin += stripBuffSize)
+    {
+        if ((strip + stripBuffSize) > buff_size)
+            stripBuffSize = buff_size - strip;
+
+        int read = (int)libtiff::TIFFReadEncodedStrip(file, strip, buffBegin, stripBuffSize);
+        if (read <= 0) {
+            throw std::runtime_error("TiffTools: Error by reading of tif strip");
+        }
+    }
+    return;
+}
+
 
 void slideio::TiffTools::readStripedDir(libtiff::TIFF* file, const slideio::TiffDirectory& dir, cv::OutputArray output)
 {
     if(!dir.interleaved)
         throw std::runtime_error("Planar striped images are not supported");
 
-    int buff_size = dir.width*dir.height*dir.channels*ImageTools::dataTypeSize(dir.dataType);
-    cv::Size sizeImage = { dir.width, dir.height };
-    slideio::DataType dt = dir.dataType;
-    output.create(sizeImage, CV_MAKETYPE(slideio::CVTools::toOpencvType(dt), dir.channels));
-    cv::Mat imageRaster = output.getMat();
-    libtiff::TIFFSetDirectory(file, static_cast<uint16_t>(dir.dirIndex));
-    if(dir.offset>0){
-        libtiff::TIFFSetSubDirectory(file, dir.offset);
+    std::vector<uint8_t> rgbaRaster;
+    bool notRGB = dir.photometric == 6 || dir.photometric == 8 || dir.photometric == 9 || dir.photometric == 10;
+    if (notRGB) {
+        readNotRGBStripedDir(file, dir, output);
     }
-    libtiff::uint8* buff_begin = imageRaster.data;
-    int strip_buf_size = dir.stripSize;
+    else {
+        readRegularStripedDir(file, dir, output);
+    }
 
-    for(int strip=0, row=0; row<dir.height; strip++, row+=dir.rowsPerStrip, buff_begin+=strip_buf_size)
-    {
-        if((strip+strip_buf_size)>buff_size)
-            strip_buf_size = buff_size - strip;
-        int read = (int)libtiff::TIFFReadEncodedStrip(file, strip, buff_begin, strip_buf_size);
-        if(read<=0){
-            throw std::runtime_error("TiffTools: Error by reading of tif strip");
-        }
-    }
     return;
 }
 
@@ -383,7 +445,7 @@ void slideio::TiffTools::readRegularTile(libtiff::TIFF* hFile, const slideio::Ti
     if (dir.offset > 0) {
         libtiff::TIFFSetSubDirectory(hFile, dir.offset);
     }
-    libtiff::uint8* buff_begin = tileRaster.data;
+    uint8_t* buff_begin = tileRaster.data;
     auto buf_size = tileRaster.total()*tileRaster.elemSize();
     auto readBytes = libtiff::TIFFReadEncodedTile(hFile, tile, buff_begin, buf_size);
     if(readBytes<=0)
@@ -455,7 +517,7 @@ void TiffTools::readNotRGBTile(libtiff::TIFF* hFile, const slideio::TiffDirector
     if (dir.offset > 0) {
         libtiff::TIFFSetSubDirectory(hFile, dir.offset);
     }
-    libtiff::uint32* buffBegin = reinterpret_cast<libtiff::uint32*>(tileRaster.data);
+    uint32_t* buffBegin = reinterpret_cast<uint32_t*>(tileRaster.data);
 
     int cols = (dir.width - 1) / dir.tileWidth + 1;
     int rows = (dir.height - 1) / dir.tileHeight + 1;
@@ -463,12 +525,12 @@ void TiffTools::readNotRGBTile(libtiff::TIFF* hFile, const slideio::TiffDirector
     int col = tile - row * cols;
     int tileX = col * dir.tileWidth;
     int tileY = row * dir.tileHeight;
-//    auto readBytes = libtiff::TIFFReadRGBATile(hFile, tileX, tileY, buffBegin);
-//    if (readBytes <= 0)
-//        throw std::runtime_error(
-//            (boost::format(
-//                "TiffTools: error reading encoded tiff tile %1% of directory %2%."
-//                "Compression: %3%") % tile % dir.dirIndex % dir.compression).str());
+    auto readBytes = libtiff::TIFFReadRGBATile(hFile, tileX, tileY, buffBegin);
+    if (readBytes <= 0)
+        throw std::runtime_error(
+            (boost::format(
+                "TiffTools: error reading encoded tiff tile %1% of directory %2%."
+                "Compression: %3%") % tile % dir.dirIndex % dir.compression).str());
 
     cv::Mat flipped;
     if (channelIndices.empty())
