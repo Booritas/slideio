@@ -180,7 +180,7 @@ setup(
     keywords = 'images, pathology, tissue, medical, czi, svs, afi, scn',
     package_data={},
     classifiers=[
-        'Development Status :: 4 - Beta',
+        'Development Status :: 5 - Production',
         'Intended Audience :: Science/Research',
         'License :: OSI Approved :: BSD License',
         'Topic :: Scientific/Engineering',
@@ -192,6 +192,7 @@ setup(
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
+        'Programming Language :: Python :: 3.10',
     ],
     install_requires=['numpy'],
     extras_require={},
