@@ -180,7 +180,7 @@ setup(
     keywords = 'images, pathology, tissue, medical, czi, svs, afi, scn',
     package_data={},
     classifiers=[
-        'Development Status :: 5 - Production',
+        'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Science/Research',
         'License :: OSI Approved :: BSD License',
         'Topic :: Scientific/Engineering',
