@@ -1,8 +1,6 @@
-name: Build slideio python packages
+name: Build slideio windows and macos python packages
 
-on:
-  push:
-    branches: [ master ]
+on: [workflow_dispatch]
 env:
   CONAN_REVISIONS_ENABLED: 1
 jobs:
