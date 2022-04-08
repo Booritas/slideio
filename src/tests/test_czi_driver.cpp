@@ -462,6 +462,21 @@ TEST(CZIImageDriver, auxLabel)
     testAuxImage(imagePath, "Label", testImagePath);
 }
 
+TEST(CZIImageDriver, timeResolution)
+{
+    if (!TestTools::isFullTestEnabled())
+    {
+        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
+    }
+    std::string imagePath = TestTools::getFullTestImagePath("czi", "T_3_CH_2.czi");
+    slideio::CZIImageDriver driver;
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(imagePath);
+    ASSERT_TRUE(slide != nullptr);
+    std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
+    auto res = scene->getTFrameResolution();
+    ASSERT_DOUBLE_EQ(res, 0);
+}
+
 //TODO: CLEAR COMMENTED OUT TESTS
 //#include <opencv2/imgproc.hpp>
 //#include <opencv2/highgui.hpp>

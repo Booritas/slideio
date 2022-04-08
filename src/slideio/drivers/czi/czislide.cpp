@@ -155,7 +155,7 @@ void CZISlide::parseMetadataXmL(const char* xmlString, size_t dataSize)
     const std::vector<std::string> titlePath = {
         "ImageDocument","Metadata","Information", "Document","Title"
     };
-    //doc.SaveFile(R"(C:\Temp\czi1.xml)");
+    //doc.SaveFile(R"(D:\Temp\czi1.xml)");
     const XMLElement* xmlTitle = XMLTools::getElementByPath(&doc, titlePath);
     if(xmlTitle){
         m_title = xmlTitle->GetText();

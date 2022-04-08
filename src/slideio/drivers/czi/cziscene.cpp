@@ -60,7 +60,7 @@ double CZIScene::getZSliceResolution() const
 
 double CZIScene::getTFrameResolution() const
 {
-    return getTFrameResolution();
+    return m_slide->getTFrameResolution();
 }
 
 slideio::DataType CZIScene::getChannelDataType(int channel) const
