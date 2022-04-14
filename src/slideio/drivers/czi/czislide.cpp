@@ -374,6 +374,7 @@ void CZISlide::parseResolutions(XMLNode* root)
         "ImageDocument","Metadata","Scaling", "Items"
     };
     // resolutions
+    bool timeResolutionSet = false;
     const XMLElement* xmlItems = XMLTools::getElementByPath(root, scalingItemsPath);
     for (auto child = xmlItems->FirstChildElement(); child != nullptr;
         child = child->NextSiblingElement())
@@ -388,24 +389,31 @@ void CZISlide::parseResolutions(XMLNode* root)
                 if (valueElement)
                 {
                     const double value = valueElement->DoubleText(0);
-                    if (strcmp("X", id) == 0)
-                    {
+                    if (strcmp("X", id) == 0) {
                         m_res.x = value;
                     }
-                    else if (strcmp("Y", id) == 0)
-                    {
+                    else if (strcmp("Y", id) == 0) {
                         m_res.y = value;
                     }
-                    else if (strcmp("Z", id) == 0)
-                    {
+                    else if (strcmp("Z", id) == 0) {
                         m_resZ = value;
                     }
-                    else if (strcmp("T", id) == 0)
-                    {
+                    else if (strcmp("T", id) == 0) {
                         m_resT = value;
+                        timeResolutionSet = m_resT > 0.;
                     }
                 }
             }
+        }
+    }
+    if (!timeResolutionSet) {
+        // fix for the issue: https://gitlab.com/bioslide/slideio/-/issues/14
+        const std::vector<std::string> scalingItemsPath2 = {
+            "ImageDocument","Metadata","Information", "Image","Dimensions","T","Positions","Interval","Increment"
+        };
+        const XMLElement* xmlItems2 = XMLTools::getElementByPath(root, scalingItemsPath2);
+        if (xmlItems2) {
+            m_resT = xmlItems2->DoubleText(0);
         }
     }
 }

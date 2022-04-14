@@ -474,7 +474,7 @@ TEST(CZIImageDriver, timeResolution)
     ASSERT_TRUE(slide != nullptr);
     std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
     auto res = scene->getTFrameResolution();
-    ASSERT_DOUBLE_EQ(res, 0);
+    ASSERT_DOUBLE_EQ(res, 0.0615);
 }
 
 //TODO: CLEAR COMMENTED OUT TESTS
