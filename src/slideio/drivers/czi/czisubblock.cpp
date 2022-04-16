@@ -28,8 +28,9 @@ slideio::CZISubBlock::CZISubBlock() : m_dataType(DataType::DT_Unknown), m_cziPix
                                           m_compression(-1), m_channelIndex(-1), m_zSliceIndex(-1),
                                           m_tFrameIndex(-1), m_illuminationIndex(-1),
                                           m_bAcquisitionIndex(-1), m_rotationIndex(-1), m_sceneIndex(-1),
-                                          m_hPhaseIndex(-1), m_viewIndex(-1), m_zoom(1.)
+                                          m_hPhaseIndex(-1), m_viewIndex(-1), m_mosaicIndex(-1), m_zoom(1.)
 {
+    m_rect = { 0, 0, 0, 0 };
 }
 
 int64_t slideio::CZISubBlock::computeDataOffset(int channel, int z, int t, int r, int s, int i, int b, int h,
@@ -165,6 +166,10 @@ void slideio::CZISubBlock::setupBlock(const SubBlockHeader& subblockHeader, std:
             else if (dimEntry.dimension[0] == 'V')
             {
                 m_viewIndex = static_cast<int>(m_dimensions.size());
+            }
+            else if (dimEntry.dimension[0] == 'M')
+            {
+                m_mosaicIndex = static_cast<int>(m_dimensions.size());
             }
             Dimension dimension = { dimEntry.dimension[0], dimEntry.start , dimEntry.size};
             m_dimensions.push_back(dimension);

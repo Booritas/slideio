@@ -24,7 +24,7 @@ public:
     }
 };
 
-CZIScene::CZIScene() : m_slide(nullptr), m_numZSlices(1), m_numTFrames(1), m_compression(Compression::Unknown)
+CZIScene::CZIScene() : m_slide(nullptr), m_numZSlices(1), m_numTFrames(1), m_compression(Compression::Unknown), m_bMosaic(false)
 {
 }
 
@@ -161,12 +161,17 @@ void CZIScene::computeSceneRect()
     m_sceneRect = { 0,0,0,0 };
     const Tiles& tiles = zoomLevelMax.tiles;
     const CZISubBlocks& tileBlocks = zoomLevelMax.blocks;
-    for(size_t index = 0; index<tiles.size(); index++)
+    for (const auto& tile : tiles)
     {
-        int blockIndex = tiles[index].blockIndices[0];
-        const CZISubBlock& block = tileBlocks[blockIndex];
-        const cv::Rect& tileRect = block.rect();
-        m_sceneRect |= tileRect;
+        const auto blockCount = tile.blockIndices.size();
+        for (int blockIndex: tile.blockIndices) {
+            const CZISubBlock& block = tileBlocks[blockIndex];
+            const cv::Rect& tileRect = block.rect();
+            m_sceneRect |= tileRect;
+            if(!isMosaic()) {
+                break;
+            }
+        }
     }
 }
 
@@ -178,6 +183,26 @@ void CZIScene::computeSceneTiles()
         combineBlockInTiles(zoomLevel);
     }
 }
+
+void CZIScene::updateTileRects()
+{
+    // combine zoom level blocks in tiles
+    for (auto& zoomLevel : m_zoomLevels)
+    {
+        updateTileRects(zoomLevel);
+    }
+}
+
+void CZIScene::updateTileRects(ZoomLevel& zoomLevel)
+{
+    std::vector<Tile>& tiles = zoomLevel.tiles;
+    for(auto& tile: tiles) {
+        tile.rect.x -= m_sceneRect.x;
+        tile.rect.y -= m_sceneRect.y;
+    }
+}
+
+
 
 void CZIScene::compute4DParameters()
 {
@@ -227,6 +252,7 @@ void CZIScene::compute4DParameters()
     }
 }
 
+
 const CZIScene::ZoomLevel& CZIScene::getBaseZoomLevel() const
 {
     const ZoomLevel& zoomLevelMax = m_zoomLevels.front();
@@ -271,6 +297,9 @@ void CZIScene::init(uint64_t sceneId, SceneParams& sceneParams, const std::strin
         }
         m_zoomLevels[zoomLevelIndex].blocks.push_back(block);
     }
+    if(!blocks.empty()) {
+        setMosaic(blocks.front().isMosaic());
+    }
     setupComponents(channelPixelType);
     // sort zoom levels in ascending order
     std::sort(m_zoomLevels.begin(), m_zoomLevels.end(), [](const ZoomLevel& left, const ZoomLevel& right)
@@ -279,6 +308,7 @@ void CZIScene::init(uint64_t sceneId, SceneParams& sceneParams, const std::strin
     });
     computeSceneTiles();
     computeSceneRect();
+    updateTileRects();
     compute4DParameters();
     generateSceneName();
     computeSceneMetadata();
@@ -298,13 +328,7 @@ bool CZIScene::getTileRect(int tileIndex, cv::Rect& tileRect, void* userData)
     const int zoomLevelIndex = tilerData->zoomLevelIndex;
     const ZoomLevel& zoomLevel = m_zoomLevels[zoomLevelIndex];
     const Tiles& tiles = zoomLevel.tiles;
-    const int firstBlockIndex = tiles[tileIndex].blockIndices[0];
-    const CZISubBlock& firstBlock = zoomLevel.blocks[firstBlockIndex];
-    tileRect = firstBlock.rect();
-    tileRect.x -= m_sceneRect.x;
-    tileRect.y -= m_sceneRect.y;
-    tileRect.x = static_cast<int>(std::ceil(static_cast<double>(tileRect.x)* zoomLevel.zoom));
-    tileRect.y = static_cast<int>(std::ceil(static_cast<double>(tileRect.y)* zoomLevel.zoom));
+    tileRect = tiles[tileIndex].rect;
     return true;
 }
 
@@ -545,7 +569,9 @@ void CZIScene::combineBlockInTiles(ZoomLevel& zoomLevel)
             index = tileIt->second;
         }
         tiles[index].blockIndices.push_back(blockIndex);
+        tiles[index].rect |= rectBlock;
     }
+    
 }
 
 void CZIScene::channelComponentInfo(CZIDataType channelCZIDataType, DataType& componentType, int& numComponents,

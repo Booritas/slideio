@@ -477,6 +477,29 @@ TEST(CZIImageDriver, timeResolution)
     ASSERT_DOUBLE_EQ(res, 0.0615);
 }
 
+TEST(CZIImageDriver, mosaicFile)
+{
+    if (!TestTools::isFullTestEnabled())
+    {
+        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
+    }
+    std::string imagePath = TestTools::getFullTestImagePath("czi", "16bit_CH_1_doughnut_crop.czi");
+    slideio::CZIImageDriver driver;
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(imagePath);
+    ASSERT_TRUE(slide != nullptr);
+    std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
+    auto rect = scene->getRect();
+    ASSERT_EQ(rect.width, 498);
+    ASSERT_EQ(rect.height, 266);
+    cv::Mat raster;
+    scene->readBlock(rect, raster);
+    std::string testImagePath = TestTools::getFullTestImagePath("czi", "test/16bit_CH_1_doughnut_crop.tiff");
+    cv::Mat testRaster;
+    slideio::ImageTools::readGDALImage(testImagePath, testRaster);
+    int memSize = raster.total() * raster.elemSize();
+    ASSERT_EQ(memcmp(raster.data, testRaster.data, memSize),0);
+}
+
 //TODO: CLEAR COMMENTED OUT TESTS
 //#include <opencv2/imgproc.hpp>
 //#include <opencv2/highgui.hpp>

@@ -32,7 +32,9 @@ namespace slideio
     private:
         struct Tile
         {
+            Tile() { rect = { 0,0,0,0 }; }
             std::vector<int> blockIndices;
+            cv::Rect rect;
         };
         typedef std::vector<Tile> Tiles;
         struct ZoomLevel
@@ -89,15 +91,19 @@ namespace slideio
         }
         void addAuxImage(const std::string& name, std::shared_ptr<CVScene> image);
         std::shared_ptr<CVScene> getAuxImage(const std::string& sceneName) const override;
+        bool isMosaic() const { return m_bMosaic; }
     protected:
         void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
             const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output) override;
     private:
+        void setMosaic(bool mosaic) { m_bMosaic = mosaic; }
         void setupComponents(const std::map<int, int>& channelPixelType);
         void generateSceneName();
         void computeSceneRect();
         void computeSceneTiles();
         void compute4DParameters();
+        void updateTileRects(ZoomLevel& value);
+        void updateTileRects();
         const ZoomLevel& getBaseZoomLevel() const;
         int findBlockIndex(const Tile& tile, const CZISubBlocks& blocks, int channelIndex, int zSliceIndex, int tFrameIndex) const ;
         const Tile& getTile(const TilerData* tilerData, int tileIndex) const;
@@ -116,7 +122,7 @@ namespace slideio
         static void dimsFromSceneId(uint64_t sceneId, SceneParams& params);
         static void channelComponentInfo(CZIDataType channelType, DataType& componentType, int& numComponents, int& pixelSize);
     private:
-        static void combineBlockInTiles(ZoomLevel& zoomLevel);
+        void combineBlockInTiles(ZoomLevel& zoomLevel);
         // data members
     private:
         std::vector<ZoomLevel> m_zoomLevels;
@@ -135,6 +141,7 @@ namespace slideio
         int m_firstTFrameIndex = 0;
         Compression m_compression;
         std::map<std::string, std::shared_ptr<CVScene>> m_auxImages;
+        bool m_bMosaic;
     };
 }
 

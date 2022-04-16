@@ -47,6 +47,9 @@ namespace slideio
         int lastHPhase() const { return lastDimensionIndex(m_hPhaseIndex); }
         int firstView() const { return firstDimensionIndex(m_viewIndex); }
         int lastView() const { return lastDimensionIndex(m_viewIndex); }
+        int firstMosaic() const { return firstDimensionIndex(m_mosaicIndex); }
+        int lastMosaic() const { return lastDimensionIndex(m_mosaicIndex); }
+        bool isMosaic() const { return m_mosaicIndex > 0; }
         double zoom() const { return m_zoom; }
         const cv::Rect& rect() const { return m_rect; }
         int cziPixelType() const { return m_cziPixelType; }
@@ -127,6 +130,7 @@ namespace slideio
         int m_sceneIndex;
         int m_hPhaseIndex;
         int m_viewIndex;
+        int m_mosaicIndex;
         double m_zoom;
         std::vector<Dimension> m_dimensions;
     };
