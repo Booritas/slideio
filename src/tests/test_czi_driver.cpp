@@ -496,8 +496,31 @@ TEST(CZIImageDriver, mosaicFile)
     std::string testImagePath = TestTools::getFullTestImagePath("czi", "test/16bit_CH_1_doughnut_crop.tiff");
     cv::Mat testRaster;
     slideio::ImageTools::readGDALImage(testImagePath, testRaster);
-    int memSize = raster.total() * raster.elemSize();
+    auto memSize = raster.total() * raster.elemSize();
     ASSERT_EQ(memcmp(raster.data, testRaster.data, memSize),0);
+}
+
+TEST(CZIImageDriver, artificialFile)
+{
+    if (!TestTools::isFullTestEnabled())
+    {
+        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
+    }
+    std::string imagePath = TestTools::getFullTestImagePath("czi", "bug_2D_rgb_compressed.czi");
+    slideio::CZIImageDriver driver;
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(imagePath);
+    ASSERT_TRUE(slide != nullptr);
+    std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
+    auto rect = scene->getRect();
+    ASSERT_EQ(rect.width, 975);
+    ASSERT_EQ(rect.height, 918);
+    cv::Mat raster;
+    scene->readBlock(rect, raster);
+    std::string testImagePath = TestTools::getFullTestImagePath("czi", "test/bug_2D_rgb_compressed.png");
+    cv::Mat testRaster;
+    slideio::ImageTools::readGDALImage(testImagePath, testRaster);
+    auto memSize = raster.total() * raster.elemSize();
+    ASSERT_EQ(memcmp(raster.data, testRaster.data, memSize), 0);
 }
 
 //TODO: CLEAR COMMENTED OUT TESTS

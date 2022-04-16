@@ -6,6 +6,7 @@ CONAN_MAIN()
 set(TEST_SOURCES
   test_imagedrivermanager.cpp
   test_czi_driver.cpp
+  test_czi_tools.cpp
   test_scn_driver.cpp
   test_gdal_driver.cpp
   test_imagetools.cpp

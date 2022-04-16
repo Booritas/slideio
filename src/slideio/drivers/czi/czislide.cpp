@@ -12,6 +12,7 @@
 #include <set>
 
 #include "czithumbnail.hpp"
+#include "czitools.hpp"
 
 using namespace slideio;
 using namespace tinyxml2;
@@ -108,7 +109,7 @@ void CZISlide::readAttachments()
                         try {
                             addAuxiliaryImage(entry.name, entry.contentFileType, entry.filePosition);
                         }
-                        catch(std::exception& ex) {
+                        catch(std::exception&) {
                             m_fileStream.clear();
                         }
                     }
@@ -172,32 +173,47 @@ void CZISlide::parseChannels(XMLNode* root)
         "ImageDocument","Metadata","Information", "Image",
         "Dimensions", "Channels"
     };
+    std::map<std::string, int> channelIds;
     const XMLElement* xmlChannels = XMLTools::getElementByPath(root, imagePath);
-    if (xmlChannels == nullptr)
+    if (xmlChannels != nullptr)
     {
-        throw std::runtime_error("CZIImageDriver: Invalid xml: no channel information");
-    }
-    std::map<std::string,int> channelIds;
-    for (auto xmlChannel = xmlChannels->FirstChildElement("Channel");
-        xmlChannel != nullptr; xmlChannel = xmlChannel->NextSiblingElement())
-    {
-        const char* name = xmlChannel->Name();
-        if (name && strcmp(name, "Channel") == 0)
+        for (auto xmlChannel = xmlChannels->FirstChildElement("Channel");
+            xmlChannel != nullptr; xmlChannel = xmlChannel->NextSiblingElement())
         {
-            m_channels.emplace_back();
-            CZIChannelInfo& channel = m_channels.back();
-            const char* channelId = xmlChannel->Attribute("Id");
-            if (channelId)
+            const char* name = xmlChannel->Name();
+            if (name && strcmp(name, "Channel") == 0)
             {
-                channel.id = channelId;
-                channelIds[channelId] = static_cast<int>(m_channels.size()) - 1;
-            }
-            const char* channelName = xmlChannel->Attribute("Name");
-            if (channelName)
-            {
-                channel.name = channelName;
+                m_channels.emplace_back();
+                CZIChannelInfo& channel = m_channels.back();
+                const char* channelId = xmlChannel->Attribute("Id");
+                if (channelId)
+                {
+                    channel.id = channelId;
+                    channelIds[channelId] = static_cast<int>(m_channels.size()) - 1;
+                }
+                const char* channelName = xmlChannel->Attribute("Name");
+                if (channelName)
+                {
+                    channel.name = channelName;
+                }
             }
         }
+    }
+    else
+    {
+        // channel information is missing
+        // see https://gitlab.com/bioslide/slideio/-/issues/16
+        // create channel info based on "PixelType" xml entry
+        const std::vector<std::string> pixelTypePath = {
+            "ImageDocument","Metadata","Information", "Image",
+            "PixelType"
+        };
+        const XMLElement* xmlPixelType = XMLTools::getElementByPath(root, pixelTypePath);
+        if (!xmlPixelType) {
+            RAISE_RUNTIME_ERROR << "CZIImageDriver: Invalid xml : no channel information";
+        }
+        int channelCount = CZITools::channelCountFromPixelType(xmlPixelType);
+        m_channels.resize(channelCount);
     }
     const std::vector<std::string> displayInfoPath = {
         "ImageDocument","Metadata",
