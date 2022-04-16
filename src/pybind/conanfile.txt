@@ -1,4 +1,5 @@
 [requires]
+zlib/1.2.12
 boost/1.72.0
 opencv/4.1.1@slideio/stable
 [options]
