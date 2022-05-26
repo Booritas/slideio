@@ -197,8 +197,8 @@ void CZIScene::updateTileRects(ZoomLevel& zoomLevel)
 {
     std::vector<Tile>& tiles = zoomLevel.tiles;
     for(auto& tile: tiles) {
-        tile.rect.x -= m_sceneRect.x;
-        tile.rect.y -= m_sceneRect.y;
+        tile.rect.x = lround(zoomLevel.zoom*(tile.rect.x-m_sceneRect.x));
+        tile.rect.y = lround(zoomLevel.zoom*(tile.rect.y-m_sceneRect.y));
     }
 }
 
