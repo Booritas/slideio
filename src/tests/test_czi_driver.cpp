@@ -523,6 +523,34 @@ TEST(CZIImageDriver, artificialFile)
     ASSERT_EQ(memcmp(raster.data, testRaster.data, memSize), 0);
 }
 
+
+TEST(CZIImageDriver, mozaicZoomPyramid)
+{
+    if (!TestTools::isFullTestEnabled())
+    {
+        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
+    }
+    std::string imagePath = TestTools::getFullTestImagePath("czi", "zeiss.czi");
+    std::string testImagePath = TestTools::getFullTestImagePath("czi", "test/zeiss-block.png");
+    slideio::CZIImageDriver driver;
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(imagePath);
+    ASSERT_TRUE(slide != nullptr);
+    std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
+    auto rect = scene->getRect();
+    ASSERT_EQ(rect.height, 7673);
+    ASSERT_EQ(rect.width, 46232);
+    cv::Mat raster;
+    cv::Rect blockRect = { 9350, 1000, 3300, 3000 };
+    cv::Size blockSize = blockRect.size();
+    blockSize.width /= 3;
+    blockSize.height /= 3;
+    scene->readResampledBlock(blockRect, blockSize, raster);
+    cv::Mat testRaster;
+    slideio::ImageTools::readGDALImage(testImagePath, testRaster);
+    auto memSize = raster.total() * raster.elemSize();
+    ASSERT_EQ(memcmp(raster.data, testRaster.data, memSize), 0);
+}
+
 //TODO: CLEAR COMMENTED OUT TESTS
 //#include <opencv2/imgproc.hpp>
 //#include <opencv2/highgui.hpp>
