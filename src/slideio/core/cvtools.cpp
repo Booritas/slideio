@@ -3,24 +3,14 @@
 // of this distribution and at http://slideio.com/license.html.
 //
 #include "slideio/core/cvslide.hpp"
-#include "slideio/core/imagedrivermanager.hpp"
 #include "slideio/core/cvtools.hpp"
 #include <boost/format.hpp>
-#include "slideio/base.hpp"
+#include "slideio/core/base.hpp"
 
 #include <string>
 
 using namespace slideio;
 
-std::shared_ptr<CVSlide> CVTools::cvOpenSlide(const std::string& filePath, const std::string& driver)
-{
-    return ImageDriverManager::openSlide(filePath, driver);
-}
-
-std::vector<std::string> CVTools::cvGetDriverIDs()
-{
-    return ImageDriverManager::getDriverIDs();
-}
 
 int CVTools::cvGetDataTypeSize(DataType dt)
 {

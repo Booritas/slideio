@@ -1,4 +1,0 @@
-numpy>=1.18
-pytest>=5.4.1
-czifile==2019.7.2
-opencv-python>=4.1.0

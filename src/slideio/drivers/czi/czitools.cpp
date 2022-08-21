@@ -2,7 +2,7 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include "czitools.hpp"
-#include "slideio/ext/exceptions.hpp"
+#include "slideio/core/tools/exceptions.hpp"
 #include <tinyxml2.h>
 
 int CZITools::channelCountFromPixelType(const tinyxml2::XMLElement* xmlPixelType)

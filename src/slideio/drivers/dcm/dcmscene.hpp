@@ -3,8 +3,10 @@
 // of this distribution and at http://slideio.com/license.html.
 #ifndef OPENCV_slideio_dcmscene_HPP
 #define OPENCV_slideio_dcmscene_HPP
+
+#include "slideio/drivers/dcm/dcm_api_def.hpp"
 #include "slideio/core/cvscene.hpp"
-#include "dcmfile.hpp"
+#include "slideio/drivers/dcm/dcmfile.hpp"
 
 #if defined(_MSC_VER)
 #pragma warning( push )
@@ -14,7 +16,7 @@
 namespace slideio
 {
     class DCMSlide;
-    class SLIDEIO_EXPORTS DCMScene : public CVScene
+    class SLIDEIO_DCM_EXPORTS DCMScene : public CVScene
     {
     public:
         DCMScene();

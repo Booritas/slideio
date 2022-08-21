@@ -3,8 +3,8 @@
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/drivers/svs/svssmallscene.hpp"
 #include "slideio/drivers/svs/svstools.hpp"
-#include "slideio/slideio.hpp"
-#include "slideio/imagetools/tifftools.hpp"
+#include "slideio/slideio/slideio.hpp"
+#include "slideio/core/imagetools/tifftools.hpp"
 
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>

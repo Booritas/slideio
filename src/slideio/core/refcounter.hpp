@@ -2,10 +2,10 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #pragma once
-#include "slideio/slideio_def.hpp"
+#include "slideio/core/slideio_core_def.hpp"
 namespace slideio
 {
-    class SLIDEIO_EXPORTS RefCounter
+    class SLIDEIO_CORE_EXPORTS RefCounter
     {
     public:
         void increaseCounter() {
@@ -25,7 +25,7 @@ namespace slideio
         int m_counter = 0;
     };
 
-    class SLIDEIO_EXPORTS RefCounterGuard
+    class SLIDEIO_CORE_EXPORTS RefCounterGuard
     {
     public:
         RefCounterGuard(RefCounter* counter) : m_counter(counter) {

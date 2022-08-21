@@ -8,8 +8,8 @@
 
 #include <opencv2/imgproc.hpp>
 
-#include "slideio/base.hpp"
-#include "slideio/imagetools/tools.hpp"
+#include "slideio/core/base.hpp"
+#include "slideio/core/imagetools/tools.hpp"
 
 
 using namespace slideio;

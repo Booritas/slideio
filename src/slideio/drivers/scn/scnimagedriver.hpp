@@ -4,12 +4,12 @@
 #ifndef OPENCV_slideio_scnimagedriver_HPP
 #define OPENCV_slideio_scnimagedriver_HPP
 
-#include "slideio/slideio_def.hpp"
+#include "slideio/drivers/scn/scn_api_def.hpp"
 #include "slideio/core/imagedriver.hpp"
 
 namespace slideio
 {
-    class SLIDEIO_EXPORTS SCNImageDriver : public slideio::ImageDriver
+    class SLIDEIO_SCN_EXPORTS SCNImageDriver : public slideio::ImageDriver
     {
     public:
         SCNImageDriver();

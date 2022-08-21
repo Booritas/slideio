@@ -4,14 +4,14 @@
 #ifndef OPENCV_slideio_imagedriver_HPP
 #define OPENCV_slideio_imagedriver_HPP
 
-#include "slideio/slideio_def.hpp"
+#include "slideio/core/slideio_core_def.hpp"
 #include "slideio/core/cvslide.hpp"
 #include <opencv2/core.hpp>
 #include <string>
 
 namespace slideio
 {
-    class SLIDEIO_EXPORTS ImageDriver
+    class SLIDEIO_CORE_EXPORTS ImageDriver
     {
     public:
         virtual ~ImageDriver(){}

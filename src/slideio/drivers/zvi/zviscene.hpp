@@ -5,11 +5,11 @@
 #define OPENCV_slideio_zviscene_HPP
 
 #include "slideio/core/cvscene.hpp"
-#include "slideio/imagetools/tilecomposer.hpp"
+#include "slideio/core/imagetools/tilecomposer.hpp"
 #include "slideio/drivers/zvi/zviimageitem.hpp"
 #include <pole/storage.hpp>
-
-#include "zvitile.hpp"
+#include "slideio/drivers/zvi/zvitile.hpp"
+#include "slideio/drivers/zvi/zvi_api_def.hpp"
 
 #if defined(_MSC_VER)
 #pragma warning( push )
@@ -20,7 +20,7 @@ namespace slideio
 {
     class ZVISlide;
 
-    class SLIDEIO_EXPORTS ZVIScene : public CVScene, public Tiler
+    class SLIDEIO_ZVI_EXPORTS ZVIScene : public CVScene, public Tiler
     {
     private:
         struct TilerData

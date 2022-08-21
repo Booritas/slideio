@@ -4,9 +4,9 @@
 #ifndef OPENCV_slideio_czisubblock_HPP
 #define OPENCV_slideio_czisubblock_HPP
 
-#include "slideio/slideio_def.hpp"
+#include "slideio/drivers/czi/czi_api_def.hpp"
 #include "slideio/drivers/czi/czistructs.hpp"
-#include "slideio/structs.hpp"
+#include "slideio/core/structs.hpp"
 #include <opencv2/core.hpp>
 #include <cstdint>
 #include <vector>
@@ -18,7 +18,7 @@
 
 namespace slideio
 {
-    class SLIDEIO_EXPORTS CZISubBlock
+    class SLIDEIO_CZI_EXPORTS CZISubBlock
     {
     public:
         enum Compression

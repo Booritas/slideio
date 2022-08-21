@@ -4,7 +4,7 @@
 #include "slideio/drivers/czi/czislide.hpp"
 #include "slideio/drivers/czi/cziscene.hpp"
 #include "slideio/drivers/czi/czistructs.hpp"
-#include "slideio/xmltools.hpp"
+#include "slideio/core/tools/xmltools.hpp"
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/format.hpp>

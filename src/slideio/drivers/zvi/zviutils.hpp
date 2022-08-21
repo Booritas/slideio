@@ -4,13 +4,12 @@
 #ifndef OPENCV_slideio_zviutils_HPP
 #define OPENCV_slideio_zviutils_HPP
 
-#include "slideio/slideio_def.hpp"
+#include "slideio/drivers/zvi/zvi_api_def.hpp"
+#include "slideio/drivers/zvi/pole_lib.hpp"
+#include "slideio/core/structs.hpp"
+#include <boost/variant.hpp>
 #include <codecvt>
 #include <string>
-#include "slideio/pole_lib.hpp"
-#include <boost/variant.hpp>
-
-#include "slideio/structs.hpp"
 
 #if defined(_MSC_VER)
 #pragma warning( push )
@@ -68,16 +67,16 @@ namespace slideio
             VT_BYREF = 0x4000
         } VARENUM;
         typedef boost::variant<boost::blank, bool, int32_t, uint32_t, uint64_t, int64_t, double, std::string> Variant;
-        void SLIDEIO_EXPORTS skipItem(ole::basic_stream& stream);
-        void SLIDEIO_EXPORTS skipItems(ole::basic_stream& stream, int count);
-        int32_t SLIDEIO_EXPORTS readIntItem(ole::basic_stream& stream);
-        double SLIDEIO_EXPORTS readDoubleItem(ole::basic_stream& stream);
-        std::string SLIDEIO_EXPORTS readStringItem(ole::basic_stream& stream);
-        Variant SLIDEIO_EXPORTS readItem(ole::basic_stream& stream, bool skipUnusedTypes = true);
+        void SLIDEIO_ZVI_EXPORTS skipItem(ole::basic_stream& stream);
+        void SLIDEIO_ZVI_EXPORTS skipItems(ole::basic_stream& stream, int count);
+        int32_t SLIDEIO_ZVI_EXPORTS readIntItem(ole::basic_stream& stream);
+        double SLIDEIO_ZVI_EXPORTS readDoubleItem(ole::basic_stream& stream);
+        std::string SLIDEIO_ZVI_EXPORTS readStringItem(ole::basic_stream& stream);
+        Variant SLIDEIO_ZVI_EXPORTS readItem(ole::basic_stream& stream, bool skipUnusedTypes = true);
         slideio::DataType dataTypeFromPixelFormat(const ZVIPixelFormat pixel_format);
         int channelCountFromPixelFormat(ZVIPixelFormat pixelFormat);
 
-        class SLIDEIO_EXPORTS StreamKeeper
+        class SLIDEIO_ZVI_EXPORTS StreamKeeper
         {
         public:
             StreamKeeper(ole::compound_document& doc, const std::string& path);

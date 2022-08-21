@@ -3,13 +3,14 @@
 // of this distribution and at http://slideio.com/license.html.
 #ifndef OPENCV_slideio_dcmfile_HPP
 #define OPENCV_slideio_dcmfile_HPP
-#include "slideio/slideio_def.hpp"
-#include "slideio/structs.hpp"
+
+#include "slideio/drivers/dcm/dcm_api_def.hpp"
+#include "slideio/core/structs.hpp"
 #include <string>
 #include <memory>
 #include <opencv2/core.hpp>
 
-#include "slideio/slideio_enums.hpp"
+#include "slideio/core/slideio_enums.hpp"
 
 #if defined(_MSC_VER)
 #pragma warning( push )
@@ -42,7 +43,7 @@ namespace slideio
         PHIN_YBR_RCT
     };
 
-    class SLIDEIO_EXPORTS DCMFile
+    class SLIDEIO_DCM_EXPORTS DCMFile
     {
     public:
         DCMFile(const std::string& filePath);

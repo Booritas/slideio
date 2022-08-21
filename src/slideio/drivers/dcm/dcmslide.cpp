@@ -3,7 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/drivers/dcm/dcmslide.hpp"
 #include "slideio/drivers/dcm/dcmscene.hpp"
-#include "slideio/base.hpp"
+#include "slideio/core/base.hpp"
 #include <boost/filesystem.hpp>
 #include <boost/format.hpp>
 #include <boost/algorithm/string.hpp>

@@ -4,9 +4,9 @@
 #ifndef OPENCV_slideio_svssmallscene_HPP
 #define OPENCV_slideio_svssmallscene_HPP
 
-#include "slideio/slideio_def.hpp"
+#include "slideio/drivers/svs/svs_api_def.hpp"
 #include "slideio/drivers/svs/svsscene.hpp"
-#include "slideio/imagetools/tifftools.hpp"
+#include "slideio/core/imagetools/tifftools.hpp"
 
 #if defined(_MSC_VER)
 #pragma warning( push )
@@ -15,7 +15,7 @@
 
 namespace slideio
 {
-    class SLIDEIO_EXPORTS SVSSmallScene : public SVSScene
+    class SLIDEIO_SVS_EXPORTS SVSSmallScene : public SVSScene
     {
     public:
         SVSSmallScene(

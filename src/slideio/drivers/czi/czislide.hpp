@@ -3,6 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 #ifndef OPENCV_slideio_czislide_HPP
 #define OPENCV_slideio_czislide_HPP
+#include "slideio/drivers/czi/czi_api_def.hpp"
 #include "slideio/core/cvslide.hpp"
 #include "slideio/drivers/czi/cziscene.hpp"
 #include "slideio/drivers/czi/czistructs.hpp"
@@ -23,7 +24,7 @@ namespace tinyxml2
 
 namespace slideio
 {
-    class SLIDEIO_EXPORTS CZISlide : public CVSlide
+    class SLIDEIO_CZI_EXPORTS CZISlide : public CVSlide
     {
     public:
         CZISlide(const std::string& filePath);

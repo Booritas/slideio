@@ -4,12 +4,12 @@
 #ifndef OPENCV_slideio_svsimagedriver_HPP
 #define OPENCV_slideio_svsimagedriver_HPP
 
-#include "slideio/slideio_def.hpp"
+#include "slideio/drivers/svs/svs_api_def.hpp"
 #include "slideio/core/imagedriver.hpp"
 
 namespace slideio
 {
-    class SLIDEIO_EXPORTS SVSImageDriver : public slideio::ImageDriver
+    class SLIDEIO_SVS_EXPORTS SVSImageDriver : public slideio::ImageDriver
     {
     public:
         SVSImageDriver();

@@ -5,9 +5,9 @@
 #include <boost/format.hpp>
 #include <map>
 #include "slideio/drivers/czi/czislide.hpp"
-#include "slideio/imagetools/tilecomposer.hpp"
-#include "slideio/imagetools/tools.hpp"
-#include "slideio/imagetools/imagetools.hpp"
+#include "slideio/core/imagetools/tilecomposer.hpp"
+#include "slideio/core/imagetools/tools.hpp"
+#include "slideio/core/imagetools/imagetools.hpp"
 #include <set>
 #include <functional>
 

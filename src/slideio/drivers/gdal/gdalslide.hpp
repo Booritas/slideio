@@ -4,10 +4,10 @@
 #ifndef OPENCV_slideio_gdalslide_HPP
 #define OPENCV_slideio_gdalslide_HPP
 
-#include "slideio/slideio_def.hpp"
+#include "slideio/drivers/gdal/gdal_api_def.hpp"
 #include "slideio/core/cvslide.hpp"
 #include "slideio/core/cvscene.hpp"
-#include "slideio/gdal_lib.hpp"
+#include "slideio/core/imagetools/gdal_lib.hpp"
 #include <opencv2/core.hpp>
 
 #if defined(_MSC_VER)
@@ -17,7 +17,7 @@
 
 namespace slideio
 {
-    class SLIDEIO_EXPORTS GDALSlide : public slideio::CVSlide
+    class SLIDEIO_GDAL_EXPORTS GDALSlide : public slideio::CVSlide
     {
     public:
         GDALSlide(GDALDatasetH ds, const std::string& filePath);

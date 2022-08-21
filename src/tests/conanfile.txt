@@ -1,9 +1,0 @@
-[requires]
-zlib/1.2.12
-gtest/1.10.0@slideio/stable
-opencv/4.1.1@slideio/stable
-boost/1.72.0
-pole/1.0.1@slideio/stable
-tinyxml2/8.0.0
-[options]
-boost:shared=False

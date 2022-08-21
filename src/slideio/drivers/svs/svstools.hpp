@@ -4,13 +4,13 @@
 #ifndef OPENCV_slideio_svstools_HPP
 #define OPENCV_slideio_svstools_HPP
 
-#include "slideio/slideio_def.hpp"
+#include "slideio/drivers/svs/svs_api_def.hpp"
 #include <opencv2/core.hpp>
 #include <string>
 
 namespace slideio
 {
-    class SLIDEIO_EXPORTS SVSTools
+    class SLIDEIO_SVS_EXPORTS SVSTools
     {
     public:
         // Extracts magnification value from image information string

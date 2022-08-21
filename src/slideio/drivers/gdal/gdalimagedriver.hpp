@@ -4,14 +4,14 @@
 #ifndef OPENCV_slideio_gdalimagedriver_HPP
 #define OPENCV_slideio_gdalimagedriver_HPP
 
-#include "slideio/slideio_def.hpp"
+#include "slideio/drivers/gdal/gdal_api_def.hpp"
 #include "slideio/core/imagedriver.hpp"
 #include "slideio/core/cvslide.hpp"
 #include <opencv2/core.hpp>
 
 namespace slideio
 {
-    class SLIDEIO_EXPORTS GDALImageDriver : public slideio::ImageDriver
+    class SLIDEIO_GDAL_EXPORTS GDALImageDriver : public slideio::ImageDriver
     {
     public:
         GDALImageDriver();

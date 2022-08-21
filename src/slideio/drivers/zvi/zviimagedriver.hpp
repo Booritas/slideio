@@ -4,7 +4,7 @@
 #ifndef OPENCV_slideio_zviimagedriver_HPP
 #define OPENCV_slideio_zviimagedriver_HPP
 
-#include "slideio/slideio_def.hpp"
+#include "slideio/drivers/zvi/zvi_api_def.hpp"
 #include "slideio/core/imagedriver.hpp"
 #include "slideio/core/cvslide.hpp"
 #include <opencv2/core.hpp>
@@ -17,7 +17,7 @@
 
 namespace slideio
 {
-    class SLIDEIO_EXPORTS ZVIImageDriver : public slideio::ImageDriver
+    class SLIDEIO_ZVI_EXPORTS ZVIImageDriver : public slideio::ImageDriver
     {
     public:
         ZVIImageDriver();

@@ -4,10 +4,10 @@
 #ifndef OPENCV_slideio_scene_HPP
 #define OPENCV_slideio_scene_HPP
 
-#include "slideio/slideio_def.hpp"
+#include "slideio/core/slideio_core_def.hpp"
 #include "slideio/core/cvstructs.hpp"
-#include "slideio/structs.hpp"
-#include "slideio/slideio_enums.hpp"
+#include "slideio/core/structs.hpp"
+#include "slideio/core/slideio_enums.hpp"
 #include "opencv2/core.hpp"
 #include <vector>
 #include <string>
@@ -22,7 +22,7 @@
 
 namespace slideio
 {
-    class SLIDEIO_EXPORTS CVScene : public RefCounter
+    class SLIDEIO_CORE_EXPORTS CVScene : public RefCounter
     {
     public:
         virtual ~CVScene() = default;

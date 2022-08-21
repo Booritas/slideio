@@ -14,6 +14,18 @@ set(CMAKE_BUILD_RPATH_USE_ORIGIN 1)
 set(CMAKE_CXX_STANDARD_REQUIRED, ON)
 set(CMAKE_CXX_STANDARD,14)
 
+set(CORE_LIB_NAME slideio-core)
+set(SLIEIO_LIB_NAME slideio)
+set(GDAL_DRIVER_NAME slideio-gdal)
+set(SVS_DRIVER_NAME slideio-svs)
+set(AFI_DRIVER_NAME slideio-afi)
+set(CZI_DRIVER_NAME slideio-czi)
+set(DCM_DRIVER_NAME slideio-dcm)
+set(SCN_DRIVER_NAME slideio-scn)
+set(ZVI_DRIVER_NAME slideio-zvi)
+
+include_directories(${INCLUDE_ROOT})
+
 MACRO(SOURCE_GROUP_BY_FOLDER target)
   SET(SOURCE_GROUP_DELIMITER "/")
   SET(last_dir "")

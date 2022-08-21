@@ -4,12 +4,12 @@
 #ifndef OPENCV_slideio_afiimagedriver_HPP
 #define OPENCV_slideio_afiimagedriver_HPP
 
-#include "slideio/slideio_def.hpp"
+#include "slideio/drivers/afi/afi_api_def.hpp"
 #include "slideio/core/imagedriver.hpp"
 
 namespace slideio
 {
-    class SLIDEIO_EXPORTS AFIImageDriver : public slideio::ImageDriver
+    class SLIDEIO_AFI_EXPORTS AFIImageDriver : public slideio::ImageDriver
     {
     public:
         AFIImageDriver();

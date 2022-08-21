@@ -4,7 +4,7 @@
 #include "slideio/drivers/svs/svsimagedriver.hpp"
 #include "slideio/drivers/svs/svsslide.hpp"
 #include <boost/filesystem.hpp>
-#include "slideio/logs.hpp"
+#include "slideio/core/tools/log.hpp"
 
 slideio::SVSImageDriver::SVSImageDriver()
 {

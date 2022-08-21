@@ -5,10 +5,10 @@
 #define OPENCV_slideio_scnslide_HPP
 
 #include "scnscene.hpp"
-#include "slideio/slideio_def.hpp"
+#include "slideio/drivers/scn/scn_api_def.hpp"
 #include "slideio/core/cvscene.hpp"
 #include "slideio/core/cvslide.hpp"
-#include "slideio/imagetools/tifftools.hpp"
+#include "slideio/core/imagetools/tifftools.hpp"
 
 #if defined(_MSC_VER)
 #pragma warning( push )
@@ -17,7 +17,7 @@
 
 namespace slideio
 {
-    class SLIDEIO_EXPORTS SCNSlide : public slideio::CVSlide
+    class SLIDEIO_SCN_EXPORTS SCNSlide : public slideio::CVSlide
     {
         friend class SCNImageDriver;
     protected:

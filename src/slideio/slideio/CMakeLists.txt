@@ -1,0 +1,31 @@
+CONAN_MAIN()
+set(LIBRARY_NAME ${SLIEIO_LIB_NAME})
+
+set(SOURCE_FILES 
+   ${SOURCE_FILES}
+   ${CMAKE_CURRENT_SOURCE_DIR}/imagedrivermanager.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/imagedrivermanager.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/logs.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/slideio.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/slideio.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/slideio_def.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/slide.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/slide.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/scene.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/scene.cpp
+   )
+
+
+add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES})
+
+SOURCE_GROUP_BY_FOLDER(SOURCE_FILES)
+
+IF(WIN32)
+   target_link_libraries(${LIBRARY_NAME} ${CORE_LIB_NAME} Shlwapi)
+   set_target_properties(${LIBRARY_NAME} PROPERTIES LINK_FLAGS "/ignore:4099")
+   target_compile_definitions(${LIBRARY_NAME} PRIVATE SLIDEIO_API _CRT_SECURE_NO_WARNINGS)
+ENDIF(WIN32)
+
+set_target_properties(${LIBRARY_NAME} PROPERTIES LINKER_LANGUAGE CXX)
+
+CONAN_CONFIGURE(${LIBRARY_NAME})

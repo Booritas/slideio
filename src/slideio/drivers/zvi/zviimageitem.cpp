@@ -8,7 +8,7 @@
 #include "slideio/drivers/zvi/zvitags.hpp"
 #include "slideio/drivers/zvi/zviutils.hpp"
 #include "slideio/drivers/zvi/zviimageitem.hpp"
-#include "slideio/imagetools/imagetools.hpp"
+#include "slideio/core/imagetools/imagetools.hpp"
 
 using namespace slideio;
 

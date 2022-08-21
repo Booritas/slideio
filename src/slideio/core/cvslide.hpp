@@ -4,7 +4,7 @@
 #ifndef OPENCV_slideio_slide_HPP
 #define OPENCV_slideio_slide_HPP
 
-#include "slideio/slideio_def.hpp"
+#include "slideio/core/slideio_core_def.hpp"
 #include "slideio/core/cvscene.hpp"
 #include <string>
 
@@ -15,7 +15,7 @@
 
 namespace slideio
 {
-    class SLIDEIO_EXPORTS CVSlide
+    class SLIDEIO_CORE_EXPORTS CVSlide
     {
     public:
         virtual ~CVSlide(){}

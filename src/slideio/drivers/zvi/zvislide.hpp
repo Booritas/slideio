@@ -14,7 +14,7 @@
 
 namespace slideio
 {
-    class SLIDEIO_EXPORTS ZVISlide : public CVSlide
+    class SLIDEIO_ZVI_EXPORTS ZVISlide : public CVSlide
     {
     public:
         ZVISlide(const std::string& filePath);

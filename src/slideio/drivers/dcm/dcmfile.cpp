@@ -5,15 +5,15 @@
 #include <dcmtk/dcmdata/dctk.h>
 #include <dcmtk/dcmimgle/dcmimage.h>
 #include <boost/format.hpp>
-#include "slideio/base.hpp"
+#include "slideio/core/base.hpp"
 #include "slideio/core/cvtools.hpp"
 #include <dcmtk/dcmdata/dcjson.h>
 
 #include <ostream>
 
-#include "slideio/structs.hpp"
-#include "slideio/imagetools/imagetools.hpp"
-#include "slideio/imagetools/tools.hpp"
+#include "slideio/core/structs.hpp"
+#include "slideio/core/imagetools/imagetools.hpp"
+#include "slideio/core/imagetools/tools.hpp"
 
 using namespace slideio;
 

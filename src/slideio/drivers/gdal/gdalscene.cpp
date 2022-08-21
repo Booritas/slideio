@@ -2,7 +2,7 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/drivers/gdal/gdalscene.hpp"
-#include "slideio/slideio.hpp"
+#include "slideio/slideio/slideio.hpp"
 #include "slideio/core/cvstructs.hpp"
 #include "slideio/core/cvtools.hpp"
 #include <boost/filesystem.hpp>

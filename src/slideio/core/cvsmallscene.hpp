@@ -4,7 +4,7 @@
 #ifndef OPENCV_slideio_cvsmallscene_HPP
 #define OPENCV_slideio_cvsmallscene_HPP
 
-#include "slideio/slideio_def.hpp"
+#include "slideio/core/slideio_core_def.hpp"
 #include "slideio/core/cvscene.hpp"
 
 #if defined(_MSC_VER)
@@ -14,7 +14,7 @@
 
 namespace slideio
 {
-    class SLIDEIO_EXPORTS CVSmallScene : public CVScene
+    class SLIDEIO_CORE_EXPORTS CVSmallScene : public CVScene
     {
     public:
         CVSmallScene() {

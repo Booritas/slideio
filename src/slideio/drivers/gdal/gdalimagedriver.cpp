@@ -6,9 +6,8 @@
 #include "slideio/drivers/gdal/gdalscene.hpp"
 #include "slideio/drivers/gdal/gdalslide.hpp"
 #include <boost/algorithm/string.hpp>
+#include "slideio/core/imagetools/gdal_lib.hpp"
 #include <set>
-#include "slideio/gdal_lib.hpp"
-
 
 
 slideio::GDALImageDriver::GDALImageDriver()

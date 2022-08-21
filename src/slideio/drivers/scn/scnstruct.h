@@ -1,6 +1,6 @@
 #pragma once
 #include <map>
-#include "slideio/imagetools/tifftools.hpp"
+#include "slideio/core/imagetools/tifftools.hpp"
 
 struct SCNDimensionInfo
 {

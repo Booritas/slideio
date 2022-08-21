@@ -4,7 +4,7 @@
 #ifndef OPENCV_slideio_afislide_HPP
 #define OPENCV_slideio_afislide_HPP
 
-#include "slideio/slideio_def.hpp"
+#include "slideio/drivers/afi/afi_api_def.hpp"
 #include "slideio/core/cvscene.hpp"
 #include "slideio/core/cvslide.hpp"
 
@@ -15,7 +15,7 @@
 
 namespace slideio
 {
-    class SLIDEIO_EXPORTS AFISlide : public slideio::CVSlide
+    class SLIDEIO_AFI_EXPORTS AFISlide : public slideio::CVSlide
     {
     protected:
     public:

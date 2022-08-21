@@ -5,7 +5,7 @@
 #define OPENCV_slideio_czithumbnail_HPP
 
 
-#include "slideio/slideio_def.hpp"
+#include "slideio/drivers/czi/czi_api_def.hpp"
 #include "slideio/core/cvsmallscene.hpp"
 
 #if defined(_MSC_VER)
@@ -17,7 +17,7 @@ namespace slideio
 {
     class CZISlide;
 
-    class SLIDEIO_EXPORTS CZIThumbnail : public CVSmallScene
+    class SLIDEIO_CZI_EXPORTS CZIThumbnail : public CVSmallScene
     {
     public:
         bool init() override;

@@ -3,9 +3,9 @@
 // of this distribution and at http://slideio.com/license.html.
 #ifndef OPENCV_slideio_zviimagedriver_imageitem_HPP
 #define OPENCV_slideio_zviimagedriver_imageitem_HPP
-#include "slideio/pole_lib.hpp"
+#include "slideio/drivers/zvi/pole_lib.hpp"
 #include "slideio/drivers/zvi/zvipixelformat.hpp"
-#include "slideio/structs.hpp"
+#include "slideio/core/structs.hpp"
 #include <opencv2/opencv.hpp>
 
 namespace slideio

@@ -5,15 +5,15 @@
 #define OPENCV_slideio_cvtools_HPP
 
 #include <opencv2/core.hpp>
-#include "slideio/slideio_def.hpp"
+#include "slideio/core/slideio_core_def.hpp"
 #include "slideio/core/cvslide.hpp"
-#include "slideio/structs.hpp"
+#include "slideio/core/structs.hpp"
 #include <string>
 #include <vector>
 
 namespace slideio
 {
-    class SLIDEIO_EXPORTS CVTools
+    class SLIDEIO_CORE_EXPORTS CVTools
     {
     public:
         static std::shared_ptr<CVSlide> cvOpenSlide(const std::string& path, const std::string& driver);

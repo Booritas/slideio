@@ -3,7 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/drivers/czi/czithumbnail.hpp"
 #include "slideio/drivers/czi/czislide.hpp"
-#include "slideio/imagetools/imagetools.hpp"
+#include "slideio/core/imagetools/imagetools.hpp"
 
 using namespace slideio;
 

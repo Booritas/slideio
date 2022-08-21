@@ -4,10 +4,10 @@
 #ifndef OPENCV_slideio_scnscene_HPP
 #define OPENCV_slideio_scnscene_HPP
 
-#include "slideio/slideio_def.hpp"
+#include "slideio/drivers/scn/scn_api_def.hpp"
 #include "slideio/core/cvscene.hpp"
-#include "slideio/imagetools/tifftools.hpp"
-#include "slideio/imagetools/tilecomposer.hpp"
+#include "slideio/core/imagetools/tifftools.hpp"
+#include "slideio/core/imagetools/tilecomposer.hpp"
 #include "slideio/drivers/scn/scnstruct.h"
 
 namespace tinyxml2
@@ -22,7 +22,7 @@ namespace tinyxml2
 
 namespace slideio
 {
-    class SLIDEIO_EXPORTS SCNScene : public CVScene, public Tiler
+    class SLIDEIO_SCN_EXPORTS SCNScene : public CVScene, public Tiler
     {
     public:
         /**

@@ -4,7 +4,7 @@
 #ifndef OPENCV_slideio_cziimagedriver_HPP
 #define OPENCV_slideio_cziimagedriver_HPP
 
-#include "slideio/slideio_def.hpp"
+#include "slideio/drivers/czi/czi_api_def.hpp"
 #include "slideio/core/imagedriver.hpp"
 #include "slideio/core/cvslide.hpp"
 #include <opencv2/core.hpp>
@@ -17,7 +17,7 @@
 
 namespace slideio
 {
-    class SLIDEIO_EXPORTS CZIImageDriver : public slideio::ImageDriver
+    class SLIDEIO_CZI_EXPORTS CZIImageDriver : public slideio::ImageDriver
     {
     public:
         CZIImageDriver();

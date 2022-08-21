@@ -4,10 +4,10 @@
 #ifndef OPENCV_slideio_svsslide_HPP
 #define OPENCV_slideio_svsslide_HPP
 
-#include "slideio/slideio_def.hpp"
+#include "slideio/drivers/svs/svs_api_def.hpp"
 #include "slideio/core/cvscene.hpp"
 #include "slideio/core/cvslide.hpp"
-#include "slideio/libtiff.hpp"
+#include "slideio/core/imagetools/libtiff.hpp"
 #include <map>
 
 #if defined(_MSC_VER)
@@ -24,7 +24,7 @@ namespace slideio
 
 namespace slideio
 {
-    class SLIDEIO_EXPORTS SVSSlide : public slideio::CVSlide
+    class SLIDEIO_SVS_EXPORTS SVSSlide : public slideio::CVSlide
     {
     protected:
         SVSSlide();

@@ -4,7 +4,7 @@
 #ifndef OPENCV_slideio_dcmimagedriver_HPP
 #define OPENCV_slideio_dcmimagedriver_HPP
 
-#include "slideio/slideio_def.hpp"
+#include "slideio/drivers/dcm/dcm_api_def.hpp"
 #include "slideio/core/imagedriver.hpp"
 #include "slideio/core/cvslide.hpp"
 #include <opencv2/core.hpp>
@@ -17,7 +17,7 @@
 
 namespace slideio
 {
-    class SLIDEIO_EXPORTS DCMImageDriver : public slideio::ImageDriver
+    class SLIDEIO_DCM_EXPORTS DCMImageDriver : public slideio::ImageDriver
     {
     public:
         DCMImageDriver();
