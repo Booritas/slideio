@@ -39,7 +39,17 @@ pybind11_add_module(${BINDLIB_NAME} ${BINDLIB_SOURCE})
 
 target_include_directories(${BINDLIB_NAME} PRIVATE ${INCLUDE_ROOT} ${Python3_INCLUDE_DIRS} ${Python3_NumPy_INCLUDE_DIRS})
 target_include_directories(${BINDLIB_NAME} PRIVATE ${INCLUDE_ROOT})
-target_link_libraries(${BINDLIB_NAME} PRIVATE ${SLIEIO_LIB_NAME})
+target_link_libraries(${BINDLIB_NAME} PRIVATE 
+   ${SLIEIO_LIB_NAME}
+   ${CORE_LIB_NAME}
+   ${GDAL_DRIVER_NAME}
+   ${SVS_DRIVER_NAME}
+   ${AFI_DRIVER_NAME}
+   ${CZI_DRIVER_NAME}
+   ${DCM_DRIVER_NAME}
+   ${SCN_DRIVER_NAME}
+   ${ZVI_DRIVER_NAME}
+   )
 
 
 CONAN_CONFIGURE_INCLUDES(${BINDLIB_NAME})
@@ -47,6 +57,6 @@ CONAN_CONFIGURE_INCLUDES(${BINDLIB_NAME})
 if (APPLE)
    add_custom_command(TARGET ${BINDLIB_NAME}
            POST_BUILD COMMAND
-           ${CMAKE_INSTALL_NAME_TOOL} -change libslide_io.dylib @loader_path/libslide_io.dylib
+           ${CMAKE_INSTALL_NAME_TOOL} -change libslideio.dylib @loader_path/libslideio.dylib
            $<TARGET_FILE:${BINDLIB_NAME}>)
 endif()
