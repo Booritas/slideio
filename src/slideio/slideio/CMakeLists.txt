@@ -20,7 +20,16 @@ add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES})
 
 SOURCE_GROUP_BY_FOLDER(SOURCE_FILES)
 
-target_link_libraries(${LIBRARY_NAME} ${CORE_LIB_NAME})
+target_link_libraries(${LIBRARY_NAME} 
+   ${CORE_LIB_NAME}
+   ${GDAL_DRIVER_NAME}
+   ${SVS_DRIVER_NAME}
+   ${AFI_DRIVER_NAME}
+   ${CZI_DRIVER_NAME}
+   ${DCM_DRIVER_NAME}
+   ${SCN_DRIVER_NAME}
+   ${ZVI_DRIVER_NAME}
+   )
 
 IF(WIN32)
    target_link_libraries(${LIBRARY_NAME} Shlwapi)

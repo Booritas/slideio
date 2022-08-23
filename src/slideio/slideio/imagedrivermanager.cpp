@@ -3,6 +3,13 @@
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/slideio/imagedrivermanager.hpp"
 #include "slideio/core/imagedriver.hpp"
+#include "slideio/drivers/afi/afiimagedriver.hpp"
+#include "slideio/drivers/czi/cziimagedriver.hpp"
+#include "slideio/drivers/dcm/dcmimagedriver.hpp"
+#include "slideio/drivers/gdal/gdalimagedriver.hpp"
+#include "slideio/drivers/scn/scnimagedriver.hpp"
+#include "slideio/drivers/svs/svsimagedriver.hpp"
+#include "slideio/drivers/zvi/zviimagedriver.hpp"
 
 using namespace slideio;
 std::map<std::string, std::shared_ptr<ImageDriver>> ImageDriverManager::driverMap;
@@ -28,39 +35,39 @@ std::vector<std::string> ImageDriverManager::getDriverIDs()
 
 void ImageDriverManager::initialize()
 {
-    // if(driverMap.empty())
-    // {
-    //     {
-    //         GDALImageDriver* driver = new GDALImageDriver;
-    //         std::shared_ptr<ImageDriver> gdal(driver);
-    //         driverMap[gdal->getID()] = gdal;
-    //     }
-    //     {
-    //         SVSImageDriver* driver = new SVSImageDriver;
-    //         std::shared_ptr<ImageDriver> svs(driver);
-    //         driverMap[svs->getID()] = svs;
-    //     }
-    //     {
-    //         std::shared_ptr<ImageDriver> driver(new CZIImageDriver);
-    //         driverMap[driver->getID()] = driver;
-    //     }
-    //     {
-    //         std::shared_ptr<ImageDriver> driver{ std::make_shared<AFIImageDriver>() };
-    //         driverMap[driver->getID()] = driver;
-    //     }
-    //     {
-    //         std::shared_ptr<ImageDriver> driver{ std::make_shared<SCNImageDriver>() };
-    //         driverMap[driver->getID()] = driver;
-    //     }
-    //     {
-    //         std::shared_ptr<ImageDriver> driver{ std::make_shared<DCMImageDriver>() };
-    //         driverMap[driver->getID()] = driver;
-    //     }
-    //     {
-    //         std::shared_ptr<ImageDriver> driver{ std::make_shared<ZVIImageDriver>() };
-    //         driverMap[driver->getID()] = driver;
-    //     }
-    // }
+    if(driverMap.empty())
+    {
+        {
+            GDALImageDriver* driver = new GDALImageDriver;
+            std::shared_ptr<ImageDriver> gdal(driver);
+            driverMap[gdal->getID()] = gdal;
+        }
+        {
+            SVSImageDriver* driver = new SVSImageDriver;
+            std::shared_ptr<ImageDriver> svs(driver);
+            driverMap[svs->getID()] = svs;
+        }
+        {
+            std::shared_ptr<ImageDriver> driver(new CZIImageDriver);
+            driverMap[driver->getID()] = driver;
+        }
+        {
+            std::shared_ptr<ImageDriver> driver{ std::make_shared<AFIImageDriver>() };
+            driverMap[driver->getID()] = driver;
+        }
+        {
+            std::shared_ptr<ImageDriver> driver{ std::make_shared<SCNImageDriver>() };
+            driverMap[driver->getID()] = driver;
+        }
+        {
+            std::shared_ptr<ImageDriver> driver{ std::make_shared<DCMImageDriver>() };
+            driverMap[driver->getID()] = driver;
+        }
+        {
+            std::shared_ptr<ImageDriver> driver{ std::make_shared<ZVIImageDriver>() };
+            driverMap[driver->getID()] = driver;
+        }
+    }
 }
 
 std::shared_ptr<CVSlide> ImageDriverManager::openSlide(const std::string& filePath, const std::string& driverName)
