@@ -26,7 +26,7 @@ __pycache__/
 slideio/pybind/dist/
 *.egg-info/
 #python binding temporary folders
-src/pybind/conan/
-src/pybind/wheelhouse/
-src/pybind/dist/
+src/py-bind/conan/
+src/py-bind/wheelhouse/
+src/py-bind/dist/
 doc/build/
