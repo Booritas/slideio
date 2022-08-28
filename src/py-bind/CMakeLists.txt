@@ -35,7 +35,7 @@ message(STATUS "Python libraries=${Python3_LIBRARIES}")
 message(STATUS "Python library directories=${Python3_LIBRARY_DIRS}")
 message(STATUS "Python NumPy include=${Python3_NumPy_INCLUDE_DIRS}")
 
-pybind11_add_module(${BINDLIB_NAME} ${BINDLIB_SOURCE})
+pybind11_add_module(${BINDLIB_NAME} SHARED ${BINDLIB_SOURCE})
 
 target_include_directories(${BINDLIB_NAME} PRIVATE ${INCLUDE_ROOT} ${Python3_INCLUDE_DIRS} ${Python3_NumPy_INCLUDE_DIRS})
 target_include_directories(${BINDLIB_NAME} PRIVATE ${INCLUDE_ROOT})

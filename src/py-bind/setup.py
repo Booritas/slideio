@@ -117,6 +117,7 @@ class CMakeBuild(build_ext):
             ]
             if sys.maxsize > 2**32:
                 cmake_args += ['-A', 'x64']
+            cmake_args += ['-G', 'Visual Studio 16 2019']
             build_args += ['--', '/m']
         else:
             cmake_args += ['-DCMAKE_BUILD_TYPE=' + cfg]
@@ -139,7 +140,7 @@ class CMakeBuild(build_ext):
         )
         patterns = ["*.so"]
         if PLATFORM == "Windows":
-            patterns = ["*.dll"]
+            patterns = ["*.dll","*.pyd"]
         elif PLATFORM == "Macos":
             patterns = ["*.so", "*.dylib"]
             
