@@ -1,0 +1,13 @@
+[requires]
+zlib/1.2.12
+ndpi-libtiff/4.3.0@slideio/stable
+openssl/1.1.1i
+opencv/4.1.1@slideio/stable
+libwebp/1.0.3
+boost/1.72.0
+tinyxml2/8.0.0
+jpegxrcodec/1.0.2@slideio/stable
+ndpi-libjpeg/9d@slideio/stable
+expat/2.2.10
+[options]
+boost:shared=False

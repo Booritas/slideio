@@ -29,6 +29,7 @@ target_link_libraries(${LIBRARY_NAME}
    ${DCM_DRIVER_NAME}
    ${SCN_DRIVER_NAME}
    ${ZVI_DRIVER_NAME}
+   ${NDPI_DRIVER_NAME}
    )
 
 IF(WIN32)
