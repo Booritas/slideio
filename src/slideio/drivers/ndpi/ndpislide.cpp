@@ -7,12 +7,13 @@
 
 #include <boost/filesystem.hpp>
 #include <boost/format.hpp>
+#include "slideio/drivers/ndpi/ndpifile.hpp"
 
 
 using namespace slideio;
 
 
-NDPISlide::NDPISlide()
+NDPISlide::NDPISlide(const std::string& filePath)
 {
 }
 
@@ -34,18 +35,7 @@ std::shared_ptr<CVScene> NDPISlide::getScene(int index) const
 {
     if(index>=getNumScenes())
         throw std::runtime_error("NDPI driver: invalid m_scene index");
-    return m_Scenes[index];
-}
-
-std::shared_ptr<NDPISlide> NDPISlide::openFile(const std::string& filePath)
-{
-    SLIDEIO_LOG(trace) << "NDPISlide::openFile: " << filePath;
-    namespace fs = boost::filesystem;
-    std::shared_ptr<NDPISlide> slide;
-    if(!fs::exists(filePath)){
-        RAISE_RUNTIME_ERROR << "NDPISlide: File: " << filePath << "does nont exist!";
-    }
-    return slide;
+    return nullptr;
 }
 
 std::shared_ptr<CVScene> NDPISlide::getAuxImage(const std::string& sceneName) const
