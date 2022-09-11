@@ -2,10 +2,10 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/drivers/svs/svsslide.hpp"
-#include "slideio/core/imagetools/imagetools.hpp"
+#include "slideio/imagetools/imagetools.hpp"
 #include "slideio/drivers/svs/svssmallscene.hpp"
 #include "slideio/drivers/svs/svstiledscene.hpp"
-#include "slideio/core/imagetools/tifftools.hpp"
+#include "slideio/imagetools/tifftools.hpp"
 #include "slideio/core/base.hpp"
 
 #include <boost/filesystem.hpp>

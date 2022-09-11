@@ -1,9 +1,9 @@
 // This file is part of slideio project.
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
-#include "slideio/core/imagetools/imagetools.hpp"
+#include "slideio/imagetools/imagetools.hpp"
 #include <opencv2/imgproc.hpp>
-#include "slideio/core/imagetools/memory_stream.hpp"
+#include "slideio/imagetools/memory_stream.hpp"
 
 #include <openjpeg.h>
 #include <boost/format.hpp>

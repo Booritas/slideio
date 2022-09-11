@@ -10,7 +10,7 @@
 
 #include "zviutils.hpp"
 #include "slideio/core/cvtools.hpp"
-#include "slideio/core/imagetools/imagetools.hpp"
+#include "slideio/imagetools/imagetools.hpp"
 
 using namespace slideio;
 

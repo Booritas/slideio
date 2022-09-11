@@ -14,7 +14,7 @@
 #include "slideio/slideio/scene.hpp"
 #include "slideio/core/cvtools.hpp"
 #include "slideio/drivers/dcm/dcmimagedriver.hpp"
-#include "slideio/core/imagetools/imagetools.hpp"
+#include "slideio/imagetools/imagetools.hpp"
 
 using namespace slideio;
 

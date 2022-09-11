@@ -5,7 +5,7 @@
 #define OPENCV_slideio_cziscene_HPP
 #include "slideio/drivers/czi/czi_api_def.hpp"
 #include "slideio/core/cvscene.hpp"
-#include "slideio/core/imagetools/tilecomposer.hpp"
+#include "slideio/core/tools/tilecomposer.hpp"
 #include "slideio/drivers/czi/czisubblock.hpp"
 #include "slideio/drivers/czi/czistructs.hpp"
 #include <map>

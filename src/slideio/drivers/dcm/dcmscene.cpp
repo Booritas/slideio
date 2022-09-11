@@ -9,7 +9,7 @@
 #include <opencv2/imgproc.hpp>
 
 #include "slideio/core/base.hpp"
-#include "slideio/core/imagetools/tools.hpp"
+#include "slideio/core/tools/tools.hpp"
 
 
 using namespace slideio;

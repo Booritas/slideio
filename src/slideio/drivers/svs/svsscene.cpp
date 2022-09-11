@@ -2,8 +2,8 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/drivers/svs/svsscene.hpp"
-#include "slideio/core/imagetools/tifftools.hpp"
-#include "slideio/core/imagetools/libtiff.hpp"
+#include "slideio/imagetools/tifftools.hpp"
+#include "slideio/imagetools/libtiff.hpp"
 
 using namespace slideio;
 

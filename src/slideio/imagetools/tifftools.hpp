@@ -4,7 +4,7 @@
 #ifndef OPENCV_slideio_tifftools_HPP
 #define OPENCV_slideio_tifftools_HPP
 
-#include "slideio/core/slideio_core_def.hpp"
+#include "slideio/imagetools/slideio_imagetools_def.hpp"
 #include "slideio/core/cvstructs.hpp"
 #include "slideio/core/structs.hpp"
 #include "slideio/core/slideio_enums.hpp"
@@ -47,7 +47,7 @@ namespace slideio
     };
 
 
-    class SLIDEIO_CORE_EXPORTS  TiffTools
+    class SLIDEIO_IMAGETOOLS_EXPORTS  TiffTools
     {
     public:
         static libtiff::TIFF* openTiffFile(const std::string& path);
@@ -70,7 +70,7 @@ namespace slideio
             const std::vector<int>& channelIndices, cv::OutputArray output);
     };
 
-    class SLIDEIO_CORE_EXPORTS TIFFKeeper
+    class SLIDEIO_IMAGETOOLS_EXPORTS TIFFKeeper
     {
     public:
         TIFFKeeper(libtiff::TIFF* hfile=nullptr);

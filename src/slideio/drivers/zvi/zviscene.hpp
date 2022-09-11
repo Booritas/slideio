@@ -5,7 +5,7 @@
 #define OPENCV_slideio_zviscene_HPP
 
 #include "slideio/core/cvscene.hpp"
-#include "slideio/core/imagetools/tilecomposer.hpp"
+#include "slideio/core/tools/tilecomposer.hpp"
 #include "slideio/drivers/zvi/zviimageitem.hpp"
 #include <pole/storage.hpp>
 #include "slideio/drivers/zvi/zvitile.hpp"

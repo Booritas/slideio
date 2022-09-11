@@ -2,11 +2,11 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/drivers/scn/scnscene.hpp"
-#include "slideio/core/imagetools/tifftools.hpp"
+#include "slideio/imagetools/tifftools.hpp"
 #include "slideio/core/tools/xmltools.hpp"
-#include "slideio/core/imagetools/imagetools.hpp"
-#include "slideio/core/imagetools/tools.hpp"
-#include "slideio/core/imagetools/libtiff.hpp"
+#include "slideio/imagetools/imagetools.hpp"
+#include "slideio/core/tools/tools.hpp"
+#include "slideio/imagetools/libtiff.hpp"
 #include <boost/format.hpp>
 
 
@@ -70,7 +70,7 @@ void SCNScene::readResampledBlockChannels(const cv::Rect& blockRect, const cv::S
     }
 
     cv::Rect resizedBlock;
-    ImageTools::scaleRect(blockRect, zoomDirX, zoomDirY, resizedBlock);
+    Tools::scaleRect(blockRect, zoomDirX, zoomDirY, resizedBlock);
     TileComposer::composeRect(this, channelIndices, resizedBlock, blockSize, output, (void*)&info);
 }
 

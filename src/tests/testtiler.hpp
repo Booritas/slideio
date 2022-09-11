@@ -1,5 +1,5 @@
 #pragma once
-#include "slideio/core/imagetools/tilecomposer.hpp"
+#include "slideio/core/tools/tilecomposer.hpp"
 
 class TestTiler : public slideio::Tiler
 {

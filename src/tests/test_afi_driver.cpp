@@ -1,7 +1,7 @@
 #include "testtools.hpp"
 #include "slideio/drivers/afi/afiimagedriver.hpp"
 #include "slideio/drivers/afi/afislide.hpp"
-#include "slideio/core/imagetools/imagetools.hpp"
+#include "slideio/imagetools/imagetools.hpp"
 
 #include <gtest/gtest.h>
 #include <boost/filesystem.hpp>

@@ -5,9 +5,9 @@
 #include <boost/format.hpp>
 #include <map>
 #include "slideio/drivers/czi/czislide.hpp"
-#include "slideio/core/imagetools/tilecomposer.hpp"
-#include "slideio/core/imagetools/tools.hpp"
-#include "slideio/core/imagetools/imagetools.hpp"
+#include "slideio/core/tools/tilecomposer.hpp"
+#include "slideio/core/tools/tools.hpp"
+#include "slideio/imagetools/imagetools.hpp"
 #include <set>
 #include <functional>
 
@@ -130,7 +130,7 @@ void CZIScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv:
     });
     const double levelZoom = zoomLevels[userData.zoomLevelIndex].zoom;
     cv::Rect zoomLevelRect;
-    ImageTools::scaleRect(blockRect, levelZoom, levelZoom, zoomLevelRect);
+    Tools::scaleRect(blockRect, levelZoom, levelZoom, zoomLevelRect);
     userData.relativeZoom = levelZoom / zoom;
     userData.zSliceIndex = zSliceIndex + m_firstSliceIndex;
     userData.tFrameIndex = tFrameIndex + m_firstTFrameIndex;

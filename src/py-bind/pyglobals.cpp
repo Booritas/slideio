@@ -1,6 +1,6 @@
 #include "pyglobals.hpp"
 #include <slideio/slideio/slideio.hpp>
-#include <slideio/core/imagetools/imagetools.hpp>
+#include <slideio/imagetools/imagetools.hpp>
 #include <boost/format.hpp>
 #include <opencv2/core/mat.hpp>
 

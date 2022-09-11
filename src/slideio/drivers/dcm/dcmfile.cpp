@@ -12,8 +12,8 @@
 #include <ostream>
 
 #include "slideio/core/structs.hpp"
-#include "slideio/core/imagetools/imagetools.hpp"
-#include "slideio/core/imagetools/tools.hpp"
+#include "slideio/imagetools/imagetools.hpp"
+#include "slideio/core/tools/tools.hpp"
 
 using namespace slideio;
 

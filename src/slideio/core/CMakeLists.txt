@@ -17,7 +17,6 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/refcounter.hpp
    )
 
-add_subdirectory(imagetools)
 add_subdirectory(tools)
 
 

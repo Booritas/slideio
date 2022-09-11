@@ -2,7 +2,7 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include <algorithm>
-#include "slideio/core/imagetools/memory_stream.hpp"
+#include "slideio/imagetools/memory_stream.hpp"
 #include <openjpeg.h>
 #include <string.h>
 // https://github.com/DraconPern/fmjpeg2koj/blob/master/memory_file.cpp

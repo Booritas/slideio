@@ -2,8 +2,8 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 
-#include "slideio/core/imagetools/tilecomposer.hpp"
-#include "slideio/core/imagetools/imagetools.hpp"
+#include "slideio/core/tools/tilecomposer.hpp"
+#include "slideio/core/tools/tools.hpp"
 #include <opencv2/imgproc.hpp>
 
 
@@ -23,7 +23,7 @@ void slideio::TileComposer::composeRect(slideio::Tiler* tiler,
     const double scaleX = static_cast<double>(blockSize.width)/static_cast<double>(blockRect.width);
     const double scaleY = static_cast<double>(blockSize.height)/static_cast<double>(blockRect.height);
     cv::Rect scaledBlockRect;
-    slideio::ImageTools::scaleRect(blockRect, blockSize, scaledBlockRect);
+    slideio::Tools::scaleRect(blockRect, blockSize, scaledBlockRect);
     if(tileTest)
     {
         output.create(scaledBlockRect.height, scaledBlockRect.width, CV_MAKETYPE(CV_8U,1));
@@ -66,7 +66,7 @@ void slideio::TileComposer::composeRect(slideio::Tiler* tiler,
             if(!tileRaster.empty())
             {
                 cv::Rect scaledTileRect;
-                slideio::ImageTools::scaleRect(tileRect, scaleX, scaleY, scaledTileRect);
+                slideio::Tools::scaleRect(tileRect, scaleX, scaleY, scaledTileRect);
                 // scale tile raster
                 cv::Mat scaledTileRaster;
                 cv::resize(tileRaster, scaledTileRaster, scaledTileRect.size());

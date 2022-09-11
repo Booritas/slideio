@@ -1,9 +1,9 @@
 #include <gtest/gtest.h>
 #include <opencv2/highgui.hpp>
 
-#include "slideio/core/imagetools/tifftools.hpp"
+#include "slideio/imagetools/tifftools.hpp"
 #include "testtools.hpp"
-#include "slideio/core/imagetools/imagetools.hpp"
+#include "slideio/imagetools/imagetools.hpp"
 #include "opencv2/imgproc.hpp"
 
 

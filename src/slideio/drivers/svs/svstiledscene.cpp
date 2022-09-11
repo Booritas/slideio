@@ -2,11 +2,11 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/drivers/svs//svstiledscene.hpp"
-#include "slideio/core/imagetools/tifftools.hpp"
+#include "slideio/imagetools/tifftools.hpp"
 #include "slideio/drivers/svs/svstools.hpp"
-#include "slideio/core/imagetools/imagetools.hpp"
+#include "slideio/imagetools/imagetools.hpp"
 #include "slideio/drivers/svs/svsscene.hpp"
-#include "slideio/core/imagetools/tools.hpp"
+#include "slideio/core/tools/tools.hpp"
 
 using namespace slideio;
 
@@ -77,7 +77,7 @@ void SVSTiledScene::readResampledBlockChannels(const cv::Rect& blockRect, const 
     double zoomDirX = static_cast<double>(dir.width) / static_cast<double>(m_directories[0].width); 
     double zoomDirY = static_cast<double>(dir.height) / static_cast<double>(m_directories[0].height);
     cv::Rect resizedBlock;
-    ImageTools::scaleRect(blockRect, zoomDirX, zoomDirY, resizedBlock);
+    Tools::scaleRect(blockRect, zoomDirX, zoomDirY, resizedBlock);
     TileComposer::composeRect(this, channelIndices, resizedBlock, blockSize, output, (void*)&dir);
 }
 

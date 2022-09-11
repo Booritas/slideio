@@ -12,7 +12,7 @@
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
 
-#include "slideio/core/imagetools/imagetools.hpp"
+#include "slideio/imagetools/imagetools.hpp"
 
 
 TEST(SCNImageDriver, DriverManager_getDriverIDs)

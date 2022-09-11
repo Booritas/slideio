@@ -8,6 +8,9 @@
 #include <vector>
 #include <string>
 #include <cmath>
+#include <opencv2/core.hpp>
+#include "slideio/core/slideio_enums.hpp"
+#include "slideio/core/structs.hpp"
 
 namespace slideio
 {
@@ -62,6 +65,9 @@ namespace slideio
             return  goodLevelIndex;
         }
         static void convert12BitsTo16Bits(uint8_t* source, uint16_t* target, int targetLen);
+        static void scaleRect(const cv::Rect& srcRect, const cv::Size& newSize, cv::Rect& trgRect);
+        static void scaleRect(const cv::Rect& srcRect, double scaleX, double scaleY, cv::Rect& trgRect);
+        static int dataTypeSize(slideio::DataType dt);
     };
 }
 #endif

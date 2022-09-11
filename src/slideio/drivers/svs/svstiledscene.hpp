@@ -5,8 +5,8 @@
 #define OPENCV_slideio_svstiled_HPP
 
 #include "slideio/drivers/svs/svsscene.hpp"
-#include "slideio/core/imagetools/tifftools.hpp"
-#include "slideio/core/imagetools/tilecomposer.hpp"
+#include "slideio/imagetools/tifftools.hpp"
+#include "slideio/core/tools/tilecomposer.hpp"
 
 #if defined(_MSC_VER)
 #pragma warning( push )

@@ -2,7 +2,7 @@
 #include <gtest/gtest.h>
 #include "slideio/drivers/svs/svsimagedriver.hpp"
 #include "slideio/drivers/svs/svstiledscene.hpp"
-#include "slideio/core/imagetools/imagetools.hpp"
+#include "slideio/imagetools/imagetools.hpp"
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
 #include "testtools.hpp"

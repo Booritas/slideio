@@ -1,11 +1,11 @@
 // This file is part of slideio project.
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
-#include "slideio/core/imagetools/imagetools.hpp"
+#include "slideio/imagetools/imagetools.hpp"
 #include "slideio/core/cvtools.hpp"
 #include <boost/format.hpp>
 #include <boost/filesystem.hpp>
-#include "slideio/core/imagetools/gdal_lib.hpp"
+#include "slideio/imagetools/gdal_lib.hpp"
 
 
 static slideio::DataType dataTypeFromGDALDataType(GDALDataType dt)

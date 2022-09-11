@@ -13,7 +13,7 @@
 #include "slideio/slideio/scene.hpp"
 #include "slideio/core/cvtools.hpp"
 #include "slideio/drivers/zvi/zviimagedriver.hpp"
-#include "slideio/core/imagetools/imagetools.hpp"
+#include "slideio/imagetools/imagetools.hpp"
 
 using namespace slideio;
 

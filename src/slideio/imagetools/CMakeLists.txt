@@ -1,0 +1,33 @@
+CONAN_MAIN()
+set(LIBRARY_NAME ${IMAGETOOLS_LIB_NAME})
+
+set(SOURCE_FILES 
+   ${SOURCE_FILES}
+   ${CMAKE_CURRENT_SOURCE_DIR}/gdalcodec.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/imagetools.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/imagetools.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/jp2kcodec.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/jxrcodec.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/memory_stream.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/memory_stream.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/tifftools.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/tifftools.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/tempfile.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/wildmat.c
+   )
+
+
+add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES})
+
+SOURCE_GROUP_BY_FOLDER(SOURCE_FILES)
+
+IF(WIN32)
+   target_link_libraries(${LIBRARY_NAME} Shlwapi)
+   set_target_properties(${LIBRARY_NAME} PROPERTIES LINK_FLAGS "/ignore:4099")
+   target_compile_definitions(${LIBRARY_NAME} PRIVATE SLIDEIO_IMAGETOOLS_API _CRT_SECURE_NO_WARNINGS)
+ENDIF(WIN32)
+
+target_link_libraries(${LIBRARY_NAME} ${CORE_LIB_NAME})
+set_target_properties(${LIBRARY_NAME} PROPERTIES LINKER_LANGUAGE CXX)
+
+CONAN_CONFIGURE(${LIBRARY_NAME})

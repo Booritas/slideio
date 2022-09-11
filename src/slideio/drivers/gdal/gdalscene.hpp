@@ -8,7 +8,7 @@
 #include "slideio/core/cvscene.hpp"
 #include "slideio/core/structs.hpp"
 #include <opencv2/core.hpp>
-#include "slideio/core/imagetools/gdal_lib.hpp"
+#include "slideio/imagetools/gdal_lib.hpp"
 
 #if defined(_MSC_VER)
 #pragma warning( push )

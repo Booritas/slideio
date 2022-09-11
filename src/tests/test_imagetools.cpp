@@ -1,13 +1,13 @@
 #include <gtest/gtest.h>
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
-#include "slideio/core/imagetools/tifftools.hpp"
-#include "slideio/core/imagetools/imagetools.hpp"
+#include "slideio/imagetools/tifftools.hpp"
+#include "slideio/imagetools/imagetools.hpp"
 #include "slideio/drivers/gdal/gdalimagedriver.hpp"
 #include "testtools.hpp"
 #include <fstream>
 
-#include "slideio/core/imagetools/tempfile.hpp"
+#include "slideio/imagetools/tempfile.hpp"
 
 TEST(ImageTools, readJp2KFile)
 {

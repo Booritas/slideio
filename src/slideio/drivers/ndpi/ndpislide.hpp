@@ -7,7 +7,7 @@
 #include "slideio/drivers/ndpi/ndpi_api_def.hpp"
 #include "slideio/core/cvscene.hpp"
 #include "slideio/core/cvslide.hpp"
-#include "slideio/core/imagetools/libtiff.hpp"
+#include "slideio/imagetools/libtiff.hpp"
 #include <map>
 
 #if defined(_MSC_VER)

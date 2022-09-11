@@ -2,13 +2,14 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 //
-#include "slideio/core/imagetools/tifftools.hpp"
-#include "slideio/core/imagetools/imagetools.hpp"
+#include "slideio/imagetools/tifftools.hpp"
+#include "slideio/imagetools/imagetools.hpp"
 #include "slideio/core/cvtools.hpp"
 #include <opencv2/core.hpp>
 #include <boost/format.hpp>
-#include "slideio/core/imagetools/libtiff.hpp"
+#include "slideio/imagetools/libtiff.hpp"
 #include <boost/filesystem.hpp>
+#include "slideio/core/tools/tools.hpp"
 
 using namespace slideio;
 
@@ -323,7 +324,7 @@ void TiffTools::readNotRGBStripedDir(libtiff::TIFF* file, const TiffDirectory& d
 {
     std::vector<uint8_t> rgbaRaster(4 * dir.rowsPerStrip * dir.width);
 
-    int buff_size = dir.width * dir.height * dir.channels * ImageTools::dataTypeSize(dir.dataType);
+    int buff_size = dir.width * dir.height * dir.channels * Tools::dataTypeSize(dir.dataType);
     cv::Size sizeImage = { dir.width, dir.height };
     slideio::DataType dt = dir.dataType;
     output.create(sizeImage, CV_MAKETYPE(slideio::CVTools::toOpencvType(dt), dir.channels));
@@ -368,7 +369,7 @@ void TiffTools::readNotRGBStripedDir(libtiff::TIFF* file, const TiffDirectory& d
 void slideio::TiffTools::readRegularStripedDir(libtiff::TIFF* file, const slideio::TiffDirectory& dir, cv::OutputArray output)
 {
 
-    int buff_size = dir.width * dir.height * dir.channels * ImageTools::dataTypeSize(dir.dataType);
+    int buff_size = dir.width * dir.height * dir.channels * Tools::dataTypeSize(dir.dataType);
     cv::Size sizeImage = { dir.width, dir.height };
     slideio::DataType dt = dir.dataType;
     output.create(sizeImage, CV_MAKETYPE(slideio::CVTools::toOpencvType(dt), dir.channels));
