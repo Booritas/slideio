@@ -1,4 +1,4 @@
-#include "testtools.hpp"
+#include "tests/testlib/testtools.hpp"
 #include "slideio/drivers/afi/afiimagedriver.hpp"
 #include "slideio/drivers/afi/afislide.hpp"
 #include "slideio/imagetools/imagetools.hpp"

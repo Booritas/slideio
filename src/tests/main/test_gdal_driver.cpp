@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 #include "slideio/drivers/gdal/gdalimagedriver.hpp"
-#include "testtools.hpp"
+#include "tests/testlib/testtools.hpp"
 #include <numeric>
 
 #include "slideio/slideio/slideio.hpp"

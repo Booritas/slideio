@@ -1,9 +1,11 @@
 // This file is part of slideio project.
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
-#ifndef OPENCV_slideio_tifftools_HPP
-#define OPENCV_slideio_tifftools_HPP
+#ifndef OPENCV_slideio_ndpitifftools_HPP
+#define OPENCV_slideio_ndpitifftools_HPP
 
+
+#include "slideio/drivers/ndpi/ndpi_api_def.hpp"
 #include "slideio/core/cvstructs.hpp"
 #include "slideio/core/structs.hpp"
 #include "slideio/core/slideio_enums.hpp"
@@ -18,9 +20,14 @@ namespace libtiff
     typedef tiff TIFF;
 }
 
+#if defined(_MSC_VER)
+#pragma warning( push )
+#pragma warning(disable: 4251)
+#endif
+
 namespace slideio
 {
-    struct NDPITiffDirectory
+    struct SLIDEIO_NDPI_EXPORTS  NDPITiffDirectory
     {
         int width;
         int height;
@@ -46,7 +53,7 @@ namespace slideio
     };
 
 
-    class NDPITiffTools
+    class SLIDEIO_NDPI_EXPORTS NDPITiffTools
     {
     public:
         static libtiff::TIFF* openTiffFile(const std::string& path);
@@ -91,7 +98,8 @@ namespace slideio
     };
 }
 
-//boost::log::basic_formatting_ostream& operator << (boost::log::basic_formatting_ostream& os, const slideio::NDPITiffDirectory& dir);
-//boost::log::basic_formatting_ostream& operator << (boost::log::basic_formatting_ostream& os, const std::vector<slideio::NDPITiffDirectory>& dirs);
+#if defined(_MSC_VER)
+#pragma warning( pop )
+#endif
 
 #endif

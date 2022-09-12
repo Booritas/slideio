@@ -5,7 +5,7 @@
 #include "slideio/slideio/imagedrivermanager.hpp"
 #include "slideio/drivers/czi/cziimagedriver.hpp"
 #include "slideio/drivers/czi/czislide.hpp"
-#include "testtools.hpp"
+#include "tests/testlib/testtools.hpp"
 #include <opencv2/imgcodecs.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include "slideio/slideio/scene.hpp"

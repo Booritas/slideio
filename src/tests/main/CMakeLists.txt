@@ -18,21 +18,14 @@ set(TEST_SOURCES
   test_tifftools.cpp
   test_zviutils.cpp
   test_tilecomposer.cpp
-  test_testtools.cpp
-  test_tools.cpp
   test_cvtools.cpp
   test_dcmfile.cpp
-  testtiler.cpp
-  testtiler.hpp
-  testtools.cpp
-  testtools.hpp
-  test_exception.cpp
 )
 
 add_executable(${TEST_NAME} ${TEST_SOURCES})
 
 target_include_directories(${TEST_NAME} PRIVATE ${INCLUDE_ROOT})
-target_link_libraries(${TEST_NAME} ${SLIEIO_LIB_NAME})
+target_link_libraries(${TEST_NAME} ${SLIEIO_LIB_NAME} ${TEST_LIB_NAME})
 
 CONAN_CONFIGURE(${TEST_NAME})
 

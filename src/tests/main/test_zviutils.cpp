@@ -3,7 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 #include <gtest/gtest.h>
 #include "slideio/slideio/imagedrivermanager.hpp"
-#include "testtools.hpp"
+#include "tests/testlib/testtools.hpp"
 #include "slideio/drivers/zvi/zviutils.hpp"
 #include "slideio/drivers/zvi/pole_lib.hpp"
 

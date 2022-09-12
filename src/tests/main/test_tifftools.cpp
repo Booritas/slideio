@@ -2,7 +2,7 @@
 #include <opencv2/highgui.hpp>
 
 #include "slideio/imagetools/tifftools.hpp"
-#include "testtools.hpp"
+#include "tests/testlib/testtools.hpp"
 #include "slideio/imagetools/imagetools.hpp"
 #include "opencv2/imgproc.hpp"
 

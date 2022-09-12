@@ -8,7 +8,7 @@
 #include <opencv2/imgproc.hpp>
 
 #include "slideio/drivers/dcm/dcmfile.hpp"
-#include "testtools.hpp"
+#include "tests/testlib/testtools.hpp"
 
 #include "slideio/drivers/dcm/dcmimagedriver.hpp"
 #include "slideio/imagetools/imagetools.hpp"

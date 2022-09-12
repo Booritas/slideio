@@ -4,7 +4,7 @@
 #include "slideio/imagetools/tifftools.hpp"
 #include "slideio/imagetools/imagetools.hpp"
 #include "slideio/drivers/gdal/gdalimagedriver.hpp"
-#include "testtools.hpp"
+#include "tests/testlib/testtools.hpp"
 #include <fstream>
 
 #include "slideio/imagetools/tempfile.hpp"

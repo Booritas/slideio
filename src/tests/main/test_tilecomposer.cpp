@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 #include <opencv2/core.hpp>
-#include "testtiler.hpp"
+#include "tests/testlib/testtiler.hpp"
 
 TEST(TileComposer, composeRect)
 {

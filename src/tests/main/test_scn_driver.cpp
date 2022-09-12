@@ -4,7 +4,7 @@
 #include <gtest/gtest.h>
 #include "slideio/slideio/imagedrivermanager.hpp"
 #include "slideio/drivers/scn/scnimagedriver.hpp"
-#include "testtools.hpp"
+#include "tests/testlib/testtools.hpp"
 #include "slideio/slideio/scene.hpp"
 #include "slideio/drivers/scn/scnscene.hpp"
 

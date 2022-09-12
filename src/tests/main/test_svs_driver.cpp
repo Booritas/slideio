@@ -5,7 +5,7 @@
 #include "slideio/imagetools/imagetools.hpp"
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
-#include "testtools.hpp"
+#include "tests/testlib/testtools.hpp"
 #include <stdint.h>
 #include <functional>
 #include <numeric>

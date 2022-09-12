@@ -25,6 +25,7 @@ set(DCM_DRIVER_NAME slideio-dcm)
 set(SCN_DRIVER_NAME slideio-scn)
 set(ZVI_DRIVER_NAME slideio-zvi)
 set(NDPI_DRIVER_NAME slideio-ndpi)
+set(TEST_LIB_NAME slideio-test-lib)
 
 include_directories(${INCLUDE_ROOT})
 
