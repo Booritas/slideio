@@ -69,11 +69,13 @@ namespace slideio
         static void readNotRGBStripedDir(libtiff::TIFF* tiff, const NDPITiffDirectory& dir, cv::_OutputArray output);
         static void readRegularStripedDir(libtiff::TIFF* file, const slideio::NDPITiffDirectory& dir, cv::OutputArray output);
         static void readStripedDir(libtiff::TIFF* file, const slideio::NDPITiffDirectory& dir, cv::OutputArray output);
+        static void readJpegXRTile(libtiff::TIFF* tiff, const slideio::NDPITiffDirectory& dir, int tile, const std::vector<int>& vector, cv::OutputArray output);
         static void readTile(libtiff::TIFF* hFile, const slideio::NDPITiffDirectory& dir, int tile,
-            const std::vector<int>& channelIndices, cv::OutputArray output);
+                             const std::vector<int>& channelIndices, cv::OutputArray output);
         static void setCurrentDirectory(libtiff::TIFF* hFile, const slideio::NDPITiffDirectory& dir);
+        static void decodeJxrBlock(const uint8_t* data, size_t dataBlockSize, cv::OutputArray output);
         static void readRegularTile(libtiff::TIFF* hFile, const slideio::NDPITiffDirectory& dir, int tile,
-            const std::vector<int>& channelIndices, cv::OutputArray output);
+                                    const std::vector<int>& channelIndices, cv::OutputArray output);
         static void readNotRGBTile(libtiff::TIFF* hFile, const slideio::NDPITiffDirectory& dir, int tile,
             const std::vector<int>& channelIndices, cv::OutputArray output);
     };

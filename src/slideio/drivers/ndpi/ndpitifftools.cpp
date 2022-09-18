@@ -7,10 +7,57 @@
 #include <opencv2/core.hpp>
 #include <boost/format.hpp>
 #include <boost/filesystem.hpp>
+#include <jxrcodec/jxrcodec.hpp>
+
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/drivers/ndpi/ndpilibtiff.hpp"
 
 using namespace slideio;
+
+static int getCvType(jpegxr_image_info& info)
+{
+    int type = -1;
+    if (info.sample_type == jpegxr_sample_type::Uint)
+    {
+        switch (info.sample_size)
+        {
+        case 1:
+            type = CV_8U;
+            break;
+        case 2:
+            type = CV_16U;
+            break;
+        }
+    }
+    else if (info.sample_type == jpegxr_sample_type::Int)
+    {
+        switch (info.sample_size)
+        {
+        case 2:
+            type = CV_16S;
+            break;
+        case 4:
+            type = CV_32S;
+            break;
+        }
+    }
+    else if (info.sample_type == jpegxr_sample_type::Float)
+    {
+        switch (info.sample_size)
+        {
+        case 2:
+            type = CV_16F;
+            break;
+        case 4:
+            type = CV_32F;
+            break;
+        }
+    }
+    if (type < 0)
+        throw std::runtime_error("Unsuported type of jpegxr compression");
+
+    return type;
+}
 
 static slideio::DataType dataTypeFromTIFFDataType(libtiff::TIFFDataType dt)
 {
@@ -119,6 +166,9 @@ static slideio::Compression compressTiffToSlideio(int tiffCompression)
         break;
     case 0x879b:
         compression = Compression::JBIG2;
+        break;
+    case 0x5852:
+        compression = Compression::JpegXR;
         break;
     }
     return compression;
@@ -428,16 +478,36 @@ void slideio::NDPITiffTools::readStripedDir(libtiff::TIFF* file, const slideio::
     return;
 }
 
+void NDPITiffTools::readJpegXRTile(libtiff::TIFF* tiff, const slideio::NDPITiffDirectory& dir, int tile,
+    const std::vector<int>& vector, cv::OutputArray output)
+{
+    const auto tileSize = libtiff::TIFFTileSize(tiff);
+    std::vector<uint8_t> rawTile(tileSize);
+    if (dir.interleaved)
+    {
+        // process interleaved channels
+        libtiff::tmsize_t readBytes = libtiff::TIFFReadRawTile(tiff, tile, rawTile.data(), (int)rawTile.size());
+        if (readBytes <= 0) {
+            throw std::runtime_error("TiffTools: Error reading raw tile");
+        }
+        decodeJxrBlock(rawTile.data(), readBytes, output);
+    }
+}
+
 
 void slideio::NDPITiffTools::readTile(libtiff::TIFF* hFile, const slideio::NDPITiffDirectory& dir, int tile,
-    const std::vector<int>& channelIndices, cv::OutputArray output)
+                                      const std::vector<int>& channelIndices, cv::OutputArray output)
 {
     if(!dir.tiled){
         throw std::runtime_error("NDPITiffTools: Expected tiled configuration, received striped");
     }
     setCurrentDirectory(hFile, dir);
 
-    if(dir.photometric==6 || dir.photometric==8 || dir.photometric==9 || dir.photometric==10)
+    if(dir.compression == 0x5852)
+    {
+        readJpegXRTile(hFile, dir, tile, channelIndices, output);
+    }
+    else if(dir.photometric==6 || dir.photometric==8 || dir.photometric==9 || dir.photometric==10)
     {
         readNotRGBTile(hFile, dir, tile, channelIndices, output);
     }
@@ -552,6 +622,19 @@ void slideio::NDPITiffTools::setCurrentDirectory(libtiff::TIFF* hFile, const sli
             throw std::runtime_error("NDPITiffTools: error by setting current sub-directory");
         }
     }
+}
+
+void slideio::NDPITiffTools::decodeJxrBlock(const uint8_t* data, size_t dataBlockSize, cv::OutputArray output)
+{
+    jpegxr_image_info info;
+    jpegxr_get_image_info((uint8_t*)data, (uint32_t)dataBlockSize, info);
+    int type = getCvType(info);
+    output.create(info.height, info.width, CV_MAKETYPE(type, info.channels));
+    cv::Mat mat = output.getMat();
+    mat.setTo(cv::Scalar(0));
+    uint8_t* outputBuff = mat.data;
+    uint32_t ouputBuffSize = (int)(mat.total() * mat.elemSize());
+    jpegxr_decompress((uint8_t*)data, (uint32_t)dataBlockSize, outputBuff, ouputBuffSize);
 }
 
 slideio::NDPITIFFKeeper::NDPITIFFKeeper(libtiff::TIFF* hfile) : m_hFile(hfile)
