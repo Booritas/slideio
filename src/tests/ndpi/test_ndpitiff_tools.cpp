@@ -3,34 +3,35 @@
 #include "tests/testlib/testtools.hpp"
 #include <string>
 
-TEST(NDPITiffTools, extractMagnification)
+TEST(NDPITiffTools, scanFile)
 {
-    std::string filePath = TestTools::getTestImagePath("svs", "JP2K-33003-1.svs");
+    std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "2017-02-27 15.29.08.ndpi");
     std::vector<slideio::NDPITiffDirectory> dirs;
     slideio::NDPITiffTools::scanFile(filePath, dirs);
     int dirCount = (int)dirs.size();
-    ASSERT_EQ(dirCount, 6);
+    ASSERT_EQ(dirCount, 5);
     const slideio::NDPITiffDirectory& dir = dirs[0];
-    EXPECT_EQ(dir.width, 15374);
-    EXPECT_EQ(dir.height, 17497);
-    EXPECT_TRUE(dir.tiled);
-    EXPECT_EQ(dir.tileWidth, 256);
-    EXPECT_EQ(dir.tileHeight, 256);
+    EXPECT_EQ(dir.width, 11520);
+    EXPECT_EQ(dir.height, 9984);
+    EXPECT_FALSE(dir.tiled);
+    EXPECT_EQ(dir.rowsPerStrip, 9984);
     EXPECT_EQ(dir.channels, 3);
     EXPECT_EQ(dir.bitsPerSample, 8);
-    EXPECT_EQ(dir.description.size(), 530);
-    const slideio::NDPITiffDirectory& dir5 = dirs[5];
-    EXPECT_EQ(dir5.width, 1280);
-    EXPECT_EQ(dir5.height, 421);
+    EXPECT_EQ(dir.description.size(), 0);
+    EXPECT_NE(dir.userLabel.size(), 0);
+    EXPECT_EQ(dir.dataType, slideio::DataType::DT_Byte);
+    const slideio::NDPITiffDirectory& dir5 = dirs[4];
+    EXPECT_EQ(dir5.width, 599);
+    EXPECT_EQ(dir5.height, 204);
     EXPECT_FALSE(dir5.tiled);
     EXPECT_EQ(dir5.tileWidth, 0);
     EXPECT_EQ(dir5.tileHeight, 0);
-    EXPECT_EQ(dir5.channels, 3);
+    EXPECT_EQ(dir5.channels, 0);
     EXPECT_EQ(dir5.bitsPerSample, 8);
-    EXPECT_EQ(dir5.description.size(), 44);
+    EXPECT_EQ(dir5.description.size(), 0);
     EXPECT_TRUE(dir5.interleaved);
     EXPECT_EQ(0, dir5.res.x);
     EXPECT_EQ(0, dir5.res.y);
-    EXPECT_EQ((uint32_t)7, dir5.compression);
+    EXPECT_EQ((uint32_t)1, dir5.compression);
 }
 

@@ -43,6 +43,8 @@ namespace slideio
         int dirIndex;
         int64 offset;
         std::string description;
+        std::string userLabel;
+        std::string comments;
         std::vector<NDPITiffDirectory> subdirectories;
         Resolution res;
         cv::Point2d position;
@@ -50,6 +52,8 @@ namespace slideio
         int rowsPerStrip;
         DataType dataType;
         int stripSize;
+        double magnification;
+        uint32_t blankLines;
     };
 
 

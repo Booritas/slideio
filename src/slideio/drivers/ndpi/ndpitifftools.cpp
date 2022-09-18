@@ -3,13 +3,12 @@
 // of this distribution and at http://slideio.com/license.html.
 //
 #include "slideio/drivers/ndpi/ndpitifftools.hpp"
-#include "slideio/imagetools/imagetools.hpp"
 #include "slideio/core/cvtools.hpp"
 #include <opencv2/core.hpp>
 #include <boost/format.hpp>
-#include "slideio/imagetools/libtiff.hpp"
 #include <boost/filesystem.hpp>
 #include "slideio/core/tools/tools.hpp"
+#include "slideio/drivers/ndpi/ndpilibtiff.hpp"
 
 using namespace slideio;
 
@@ -193,10 +192,14 @@ void  slideio::NDPITiffTools::scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex,
     dir.offset = dirOffset;
 
     char *description(nullptr);
+    char* userLabel(nullptr);
+    char* comments(nullptr);
     short dirchnls(0), dirbits(0);
+    uint32_t blankLines(0);
     uint16_t compress(0);
     short  planar_config(0);
     int width(0), height(0), tile_width(0), tile_height(0);
+    float magnification(0);
     libtiff::TIFFGetField(tiff, TIFFTAG_SAMPLESPERPIXEL, &dirchnls);
     libtiff::TIFFGetField(tiff, TIFFTAG_BITSPERSAMPLE, &dirbits);
     libtiff::TIFFGetField(tiff, TIFFTAG_COMPRESSION, &compress);
@@ -205,7 +208,11 @@ void  slideio::NDPITiffTools::scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex,
     libtiff::TIFFGetField(tiff,TIFFTAG_TILEWIDTH ,&tile_width);
     libtiff::TIFFGetField(tiff,TIFFTAG_TILELENGTH,&tile_height);
     libtiff::TIFFGetField(tiff, TIFFTAG_IMAGEDESCRIPTION, &description);
+    libtiff::TIFFGetField(tiff, NDPITAG_USERGIVENSLIDELABEL, &comments);
+    libtiff::TIFFGetField(tiff, NDPITAG_COMMENTS, &userLabel);
     libtiff::TIFFGetField(tiff, TIFFTAG_PLANARCONFIG ,&planar_config);
+    libtiff::TIFFGetField(tiff, NDPITAG_MAGNIFICATION, &magnification);
+    libtiff::TIFFGetField(tiff, NDPITAG_BLANKLANES, &blankLines);
     float resx(0), resy(0);
     uint16_t units(0);
     libtiff::TIFFGetField(tiff, TIFFTAG_XRESOLUTION, &resx);
@@ -224,6 +231,9 @@ void  slideio::NDPITiffTools::scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex,
     dir.photometric = ph;
     dir.stripSize = (int)libtiff::TIFFStripSize(tiff);
     dir.dataType = dataTypeFromTIFFDataType(dt);
+    if (dir.dataType == DataType::DT_None)
+        dir.dataType = DataType::DT_Byte;
+
     short YCbCrSubsampling[2] = { 2,2 };
     libtiff::TIFFGetField(tiff, TIFFTAG_YCBCRSUBSAMPLING, &YCbCrSubsampling[0], &YCbCrSubsampling[0]);
     dir.YCbCrSubsampling[0] = YCbCrSubsampling[0];
@@ -255,6 +265,12 @@ void  slideio::NDPITiffTools::scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex,
     dir.compression = compress;
     dir.rowsPerStrip = rowsPerStripe;
     dir.slideioCompression = compressTiffToSlideio(compress);
+    dir.magnification = magnification;
+    if(comments)
+        dir.comments = comments;
+    if(userLabel)
+        dir.userLabel = userLabel;
+    dir.blankLines = blankLines;
 
 
 }
