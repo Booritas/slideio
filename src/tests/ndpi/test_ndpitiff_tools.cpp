@@ -73,6 +73,7 @@ TEST(NDPITiffTools, readRegularStripedDir)
 TEST(NDPITiffTools, readTile)
 {
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "DM0014 - 2020-04-02 11.10.47.ndpi");
+    std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "DM0014 - 2020-04-02 11.10.47.bin");
     std::vector<slideio::NDPITiffDirectory> dirs;
     slideio::NDPITiffTools::scanFile(filePath, dirs);
     int dirCount = (int)dirs.size();
@@ -88,21 +89,21 @@ TEST(NDPITiffTools, readTile)
     slideio::NDPITiffTools::closeTiffFile(tiff);
     EXPECT_EQ(tileRaster.rows, dir.tileHeight);
     EXPECT_EQ(tileRaster.cols, dir.tileWidth);
-    cv::namedWindow( "Display window", cv::WINDOW_AUTOSIZE );
-    cv::imshow( "Display window", tileRaster);
-    cv::waitKey(0);
+    // cv::namedWindow( "Display window", cv::WINDOW_AUTOSIZE );
+    // cv::imshow( "Display window", tileRaster);
+    // cv::waitKey(0);
 
     // cv::FileStorage file(testFilePath, cv::FileStorage::WRITE);
-    // file << "test" << dirRaster;
+    // file << "test" << tileRaster;
     // file.release();
-    // cv::Mat testRaster;
-    // cv::FileStorage file2(testFilePath, cv::FileStorage::READ);
-    // file2["test"] >> testRaster;
-    // cv::Mat diff = dirRaster != testRaster;
-    // // Equal if no elements disagree
-    // double min(1.), max(1.);
-    // cv::minMaxLoc(diff, &min, &max);
-    // EXPECT_EQ(min, 0);
-    // EXPECT_EQ(max, 0);
+    cv::Mat testRaster;
+    cv::FileStorage file2(testFilePath, cv::FileStorage::READ);
+    file2["test"] >> testRaster;
+    cv::Mat diff = tileRaster != testRaster;
+    // Equal if no elements disagree
+    double min(1.), max(1.);
+    cv::minMaxLoc(diff, &min, &max);
+    EXPECT_EQ(min, 0);
+    EXPECT_EQ(max, 0);
 
 }
