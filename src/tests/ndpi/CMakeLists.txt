@@ -5,6 +5,7 @@ CONAN_MAIN()
 
 set(TEST_SOURCES
   test_ndpitiff_tools.cpp
+  test_ndpi_driver.cpp
 )
 
 add_executable(${TEST_NAME} ${TEST_SOURCES})

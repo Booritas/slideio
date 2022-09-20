@@ -12,6 +12,7 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/ndpislide.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/ndpi_api_def.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/ndpifile.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/ndpifile.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/ndpitifftools.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/ndpitifftools.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/ndpilibtiff.hpp

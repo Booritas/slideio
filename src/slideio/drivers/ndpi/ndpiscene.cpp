@@ -3,13 +3,21 @@
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/drivers/ndpi//ndpiscene.hpp"
 
+#include "ndpifile.hpp"
+
 using namespace slideio;
 
-NDPIScene::NDPIScene(
-    const std::string& filePath,
-    const std::string& name)
-
+NDPIScene::NDPIScene() : m_pfile(nullptr), m_startDir(-1), m_endDir(-1)
 {
+}
+
+void NDPIScene::init(const std::string& name, NDPIFile* file, int32_t startDirIndex, int32_t endDirIndex)
+{
+    m_sceneName = name;
+    m_pfile = file;
+    m_startDir = startDirIndex;
+    m_endDir = endDirIndex;
+
 }
 
 cv::Rect NDPIScene::getRect() const
@@ -92,5 +100,35 @@ bool NDPIScene::readTile(int tileIndex, const std::vector<int>& channelIndices, 
     // }
 
     return ret;
+}
+
+std::string NDPIScene::getFilePath() const
+{
+    if (!m_pfile)
+    {
+        throw std::runtime_error(std::string("NDPIScene: Invalid file pointer"));
+    }
+    return m_pfile->getFilePath();
+}
+
+slideio::DataType NDPIScene::getChannelDataType(int channel) const
+{
+    return DataType::DT_Unknown;
+}
+
+Resolution NDPIScene::getResolution() const
+{
+    Resolution res(0, 0);
+    return res;
+}
+
+double NDPIScene::getMagnification() const
+{
+    return 0;
+}
+
+Compression NDPIScene::getCompression() const
+{
+    return Compression::Unknown;
 }
 

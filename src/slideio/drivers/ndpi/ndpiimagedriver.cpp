@@ -21,7 +21,9 @@ std::string slideio::NDPIImageDriver::getID() const
 
 std::shared_ptr<slideio::CVSlide> slideio::NDPIImageDriver::openFile(const std::string& filePath)
 {
-	return nullptr;
+	std::shared_ptr<NDPISlide> slide(new NDPISlide);
+	slide->init(filePath);
+	return slide;
 }
 
 std::string slideio::NDPIImageDriver::getFileSpecs() const

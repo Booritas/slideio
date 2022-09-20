@@ -9,7 +9,15 @@
 #pragma warning( push )
 #pragma warning(disable: 4251)
 #endif
+#include <string>
 
+#include "ndpitifftools.hpp"
+
+namespace libtiff
+{
+    struct tiff;
+    typedef tiff TIFF;
+}
 
 namespace slideio
 {
@@ -17,8 +25,22 @@ namespace slideio
     {
     public:
         NDPIFile(){
-
         }
+        void init(const std::string& filePath);
+        const std::vector<NDPITiffDirectory>& directories() const {
+            return m_directories;
+        }
+        const std::string getFilePath() const  {
+            return m_filePath;
+        }
+        libtiff::TIFF* getTiffHandle()
+        {
+            return m_tiff;
+        }
+    private:
+        std::string m_filePath;
+        NDPITIFFKeeper m_tiff;
+        std::vector<NDPITiffDirectory> m_directories;
     };
 }
 

@@ -18,19 +18,19 @@
 
 namespace slideio
 {
-    class NDPISlide;
+    class NDPIFile;
 }
 
-class NDPIFile;
 
 namespace slideio
 {
     class SLIDEIO_NDPI_EXPORTS NDPISlide : public slideio::CVSlide
     {
+        friend class NDPIImageDriver;
     protected:
-        NDPISlide(const std::string& filePath);
-        void init();
+        NDPISlide();
         void constructScenes();
+        void init(const std::string& filePath);
     public:
         virtual ~NDPISlide();
         int getNumScenes() const override;
@@ -40,7 +40,7 @@ namespace slideio
     private:
         void log();
     private:
-        std::vector<std::shared_ptr<slideio::NDPISlide>> m_Scenes;
+        std::vector<std::shared_ptr<slideio::CVScene>> m_Scenes;
         std::map<std::string, std::shared_ptr<slideio::CVScene>> m_auxImages;
         std::string m_filePath;
         NDPIFile* m_pfile;
