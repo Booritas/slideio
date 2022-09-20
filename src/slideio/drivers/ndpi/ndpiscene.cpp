@@ -22,7 +22,17 @@ void NDPIScene::init(const std::string& name, NDPIFile* file, int32_t startDirIn
 
 cv::Rect NDPIScene::getRect() const
 {
-    cv::Rect rect;// = { 0,0,  m_directories[0].width,  m_directories[0].height };
+    if (!m_pfile) 
+    {
+        RAISE_RUNTIME_ERROR << "NDPIImageDriver: Invalid file handle.";
+    }
+    const std::vector<NDPITiffDirectory>& directories = m_pfile->directories();
+    if(m_startDir<0 || m_startDir>=directories.size())
+    {
+        RAISE_RUNTIME_ERROR << "NDPIImageDriver: Invalid directory index: " << m_startDir << ". File:" << m_pfile->getFilePath();
+    }
+    const NDPITiffDirectory& dir = directories[m_startDir];
+    cv::Rect rect(0,0, dir.width, dir.height);
     return rect;
 }
 
