@@ -24,12 +24,42 @@ void NDPISlide::constructScenes()
     const std::vector<NDPITiffDirectory>& directories = m_pfile->directories();
     int startIndex = 0;
     int endIndex = 0;
+    bool keepCount = true;
     for(int index=0; index<directories.size(); ++index)
     {
         const NDPITiffDirectory& dir = directories[index];
         if(dir.magnification>=0)
         {
-            endIndex++;
+            if(keepCount)
+            {
+                endIndex++;
+            }
+            else
+            {
+                RAISE_RUNTIME_ERROR << "NDPIImageDriver: Unexpected TIFF directory structure. File:" << m_filePath;
+            }
+        }
+        else
+        {
+            keepCount = false;
+        }
+
+        if(dir.magnification < -1.5)
+        {
+
+            const std::string imageName("map");
+            std::shared_ptr<NDPIScene> scene(new NDPIScene);
+            scene->init(imageName, m_pfile, index, index + 1);
+            m_auxImages[imageName] = scene;
+            m_auxNames.push_back(imageName);
+        }
+        else if (dir.magnification < -0.5)
+        {
+            const std::string imageName("macro");
+            std::shared_ptr<NDPIScene> scene(new NDPIScene);
+            scene->init(imageName, m_pfile, index, index + 1);
+            m_auxImages[imageName] = scene;
+            m_auxNames.push_back(imageName);
         }
     }
     if(endIndex>startIndex)
@@ -45,7 +75,7 @@ void NDPISlide::init(const std::string& filePath)
     m_filePath = filePath;
     namespace fs = boost::filesystem;
     if (!fs::exists(m_filePath)) {
-        throw std::runtime_error(std::string("NDPIImageDriver: File does not exist:") + m_filePath);
+        RAISE_RUNTIME_ERROR << "NDPIImageDriver: File does not exist:" << m_filePath;
     }
     m_pfile = new NDPIFile;
     m_pfile->init(m_filePath);
@@ -73,7 +103,9 @@ std::string NDPISlide::getFilePath() const
 std::shared_ptr<CVScene> NDPISlide::getScene(int index) const
 {
     if(index>=getNumScenes())
-        throw std::runtime_error("NDPI driver: invalid m_scene index");
+    {
+        RAISE_RUNTIME_ERROR << "NDPIImageDriver: invalid m_scene index:" << index << "for file: " << m_filePath;
+    }
     return m_Scenes[index];
 }
 
@@ -81,9 +113,8 @@ std::shared_ptr<CVScene> NDPISlide::getAuxImage(const std::string& sceneName) co
 {
     auto it = m_auxImages.find(sceneName);
     if(it==m_auxImages.end()) {
-        throw std::runtime_error(
-            (boost::format("The slide does non have auxiliary image \"%1%\"") % sceneName).str()
-        );
+        RAISE_RUNTIME_ERROR << "NDPIImageDriver: The slide does not have auxiliary image with name:"
+                << sceneName << ". File: " << m_filePath;
     }
     return it->second;
 }

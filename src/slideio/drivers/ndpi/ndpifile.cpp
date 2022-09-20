@@ -10,12 +10,12 @@ void slideio::NDPIFile::init(const std::string& filePath)
 {
     namespace fs = boost::filesystem;
     if (!fs::exists(filePath)) {
-        throw std::runtime_error(std::string("SCNImageDriver: File does not exist:") + filePath);
+        RAISE_RUNTIME_ERROR << "NDPIImageDriver: File does not exist::" << filePath;
     }
     m_tiff = libtiff::TIFFOpen(filePath.c_str(), "r");
     if (!m_tiff.isValid())
     {
-        throw std::runtime_error(std::string("SCNImageDriver: Cannot open file:") + filePath);
+        RAISE_RUNTIME_ERROR << "NDPIImageDriver: Cannot open file:" << filePath;
     }
     m_filePath = filePath;
     NDPITiffTools::scanFile(m_tiff, m_directories);

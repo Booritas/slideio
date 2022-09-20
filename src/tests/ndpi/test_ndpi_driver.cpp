@@ -16,5 +16,9 @@ TEST(NDPIImageDriver, openFile)
     EXPECT_EQ(1, numScenes);
     std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
     ASSERT_TRUE(scene);
+    const std::list<std::string>& names = slide->getAuxImageNames();
+    EXPECT_EQ(2, names.size());
+    EXPECT_EQ(std::string("macro"), names.front());
+    EXPECT_EQ(std::string("map"), names.back());
 }
 
