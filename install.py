@@ -51,7 +51,7 @@ def is_release_profile(path):
 def collect_profiles(profile_dir, configuration, compiler=""):
     compiler_dir = profile_dir
     if is_linux() and compiler=="":
-        compiler = "clang-9"
+        compiler = "ubuntu"
         plt = distro.linux_distribution(full_distribution_name=False)
         print(plt)
         if plt[0] != "ubuntu":
