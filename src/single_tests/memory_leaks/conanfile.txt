@@ -1,6 +1,6 @@
 [requires]
 zlib/1.2.12
 opencv/4.1.1@slideio/stable
-boost/1.72.0
+boost/1.80.0
 [options]
 boost:shared=False

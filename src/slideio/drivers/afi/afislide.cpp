@@ -7,7 +7,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/format.hpp>
 #include <tinyxml2.h>
-
+#include <fstream>
 
 using namespace slideio;
 using namespace tinyxml2;

@@ -4,7 +4,7 @@ ndpi-libtiff/4.3.0@slideio/stable
 openssl/1.1.1i
 opencv/4.1.1@slideio/stable
 libwebp/1.0.3
-boost/1.72.0
+boost/1.80.0
 tinyxml2/8.0.0
 jpegxrcodec/1.0.2@slideio/stable
 ndpi-libjpeg/9d@slideio/stable
