@@ -46,6 +46,12 @@ Log::Log()
     logging::add_common_attributes();
 }
 
+Log& Log::getInstance()
+{
+    static Log instance;
+    return instance;
+}
+
 void Log::setLogLevel(Level level)
 {
     logging::register_simple_formatter_factory<logging::trivial::severity_level, char>("Severity");
