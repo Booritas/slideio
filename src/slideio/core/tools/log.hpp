@@ -9,9 +9,7 @@
 #include <boost/log/sources/logger.hpp>
 
 
-#define SLIDEIO_LOG(lvl)\
-    BOOST_LOG_STREAM_WITH_PARAMS(Log::getInstance().getLog(),\
-        (::boost::log::keywords::severity = ::boost::log::trivial::lvl))
+#define SLIDEIO_LOG(lvl) slideio::Log::getInstance()
 
 #if defined(_MSC_VER)
 #pragma warning( push )
@@ -34,14 +32,30 @@ namespace slideio {
         static Log& getInstance();
         Log(Log const&) = delete;
         void operator = (Log const&) = delete;
-        boost::log::sources::logger& getLog() {
-            return m_logger;
-        }
         void setLogLevel(Level level);
         void setLogFilePath(const std::string& path);
-    private:
+        template<typename T>
+        Log& operator << (const T& data)
+        {
+            m_stream << data;
+            return *this;
+        }
+        // this is the type of std::cout
+        typedef std::basic_ostream<char, std::char_traits<char> > CoutType;
+
+        // this is the function signature of std::endl
+        typedef CoutType& (*StandardEndLine)(CoutType&);
+
+        // define an operator<< to take in std::endl
+        Log& operator<<(StandardEndLine manip)
+        {
+            // call the function, but we cannot return it's value
+            manip(std::cout);
+
+            return *this;
+        }    private:
         Log();
-        boost::log::sources::logger m_logger;
+        std::ostream& m_stream;
     };
 }
 
