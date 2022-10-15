@@ -5,7 +5,7 @@ jobs:
   build-linux:
     runs-on: ubuntu-20.04
     container:
-      image: booritas/slideio-manylinux2014:v0.62
+      image: booritas/slideio-manylinux2014:v1.0.4
       env:
         CONAN_REVISIONS_ENABLED: 1
 
