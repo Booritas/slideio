@@ -319,7 +319,6 @@ void CZISlide::readSubBlocks(uint64_t directoryPosition, uint64_t originPos, std
     {
         try
         {
-            std::cout << entry << std::endl;
             CZISubBlock block;
             DirectoryEntryDV entryHeader{};
             m_fileStream.seekg(filePos);
