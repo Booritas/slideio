@@ -14,5 +14,6 @@ gdal/3.3.1
 libjpeg/9d@_/_
 expat/2.2.10
 pole/1.0.1@slideio/stable
+libiconv/1.17
 [options]
 boost:shared=False
