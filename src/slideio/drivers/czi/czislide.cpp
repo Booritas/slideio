@@ -317,44 +317,53 @@ void CZISlide::readSubBlocks(uint64_t directoryPosition, uint64_t originPos, std
     auto filePos = m_fileStream.tellg();
     for (unsigned int entry = 0; entry < directoryHeader.entryCount; ++entry)
     {
-        CZISubBlock block;
-        DirectoryEntryDV entryHeader{};
-        m_fileStream.seekg(filePos);
-        m_fileStream.read(reinterpret_cast<char*>(&entryHeader), sizeof(entryHeader));
-        std::vector<DimensionEntryDV> dimensions(entryHeader.dimensionCount);
-        for (int dim = 0; dim < entryHeader.dimensionCount; ++dim)
+        try
         {
-            DimensionEntryDV& dimEntry = dimensions[dim];
-            m_fileStream.read(reinterpret_cast<char*>(&dimEntry), sizeof(dimEntry));
-        }
-        filePos = m_fileStream.tellg();
-        m_fileStream.seekg(entryHeader.filePosition + originPos);
-        SegmentHeader segmentHeader;
-        m_fileStream.read((char*)&segmentHeader, sizeof(segmentHeader));
-        SubBlockHeader subblockHeader;
-        m_fileStream.read((char*)&subblockHeader, sizeof(subblockHeader));
-        subblockHeader.direEntry.filePosition += originPos;
-        block.setupBlock(subblockHeader, dimensions);
-        const std::vector<Dimension>& blockDimensions = block.dimensions();
-        std::vector<uint64_t> blockSceneIds;
-        CZIScene::sceneIdsFromDims(blockDimensions, blockSceneIds);
+            std::cout << entry << std::endl;
+            CZISubBlock block;
+            DirectoryEntryDV entryHeader{};
+            m_fileStream.seekg(filePos);
+            m_fileStream.read(reinterpret_cast<char*>(&entryHeader), sizeof(entryHeader));
+            std::vector<DimensionEntryDV> dimensions(entryHeader.dimensionCount);
+            for (int dim = 0; dim < entryHeader.dimensionCount; ++dim)
+            {
+                DimensionEntryDV& dimEntry = dimensions[dim];
+                m_fileStream.read(reinterpret_cast<char*>(&dimEntry), sizeof(dimEntry));
+            }
+            filePos = m_fileStream.tellg();
+            m_fileStream.seekg(entryHeader.filePosition + originPos);
+            SegmentHeader segmentHeader;
+            m_fileStream.read((char*)&segmentHeader, sizeof(segmentHeader));
+            SubBlockHeader subblockHeader;
+            m_fileStream.read((char*)&subblockHeader, sizeof(subblockHeader));
+            subblockHeader.direEntry.filePosition += originPos;
+            block.setupBlock(subblockHeader, dimensions);
+            const std::vector<Dimension>& blockDimensions = block.dimensions();
+            std::vector<uint64_t> blockSceneIds;
+            CZIScene::sceneIdsFromDims(blockDimensions, blockSceneIds);
 
-        for(const auto& sceneId : blockSceneIds)
+            for(const auto& sceneId : blockSceneIds)
+            {
+                auto sceneIt = sceneMap.find(sceneId);
+                int sceneIndex = 0;
+                if(sceneIt==sceneMap.end())
+                {
+                    sceneIndex = static_cast<int>(sceneBlocks.size());
+                    sceneBlocks.emplace_back();
+                    sceneMap[sceneId] = sceneIndex;
+                    sceneIds.push_back(sceneId);
+                }
+                else
+                {
+                    sceneIndex = sceneIt->second;
+                }
+                sceneBlocks[sceneIndex].push_back(block);
+            }
+        }
+        catch (const std::ios_base::failure& ex)
         {
-            auto sceneIt = sceneMap.find(sceneId);
-            int sceneIndex = 0;
-            if(sceneIt==sceneMap.end())
-            {
-                sceneIndex = static_cast<int>(sceneBlocks.size());
-                sceneBlocks.emplace_back();
-                sceneMap[sceneId] = sceneIndex;
-                sceneIds.push_back(sceneId);
-            }
-            else
-            {
-                sceneIndex = sceneIt->second;
-            }
-            sceneBlocks[sceneIndex].push_back(block);
+            SLIDEIO_LOG(warning) << "Error by reading of subblocks of the file " << getFilePath() << "." << std::endl;
+            break;
         }
     }
 }
