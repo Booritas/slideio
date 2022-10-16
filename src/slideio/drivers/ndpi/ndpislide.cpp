@@ -8,7 +8,9 @@
 #include <boost/filesystem.hpp>
 #include <boost/format.hpp>
 
+#include "ndpistripedscene.hpp"
 #include "ndpitifftools.hpp"
+#include "ndpitiledscene.hpp"
 #include "slideio/drivers/ndpi/ndpifile.hpp"
 
 
@@ -25,6 +27,14 @@ void NDPISlide::constructScenes()
     int startIndex = 0;
     int endIndex = 0;
     bool keepCount = true;
+
+    auto createScene = [](bool tiled)
+    {
+        if (tiled)
+            return (NDPIScene*)new NDPITiledScene;
+        return (NDPIScene*) new NDPIStripedScene;
+    };
+
     for(int index=0; index<directories.size(); ++index)
     {
         const NDPITiffDirectory& dir = directories[index];
@@ -48,7 +58,7 @@ void NDPISlide::constructScenes()
         {
 
             const std::string imageName("map");
-            std::shared_ptr<NDPIScene> scene(new NDPIScene);
+            std::shared_ptr<NDPIScene> scene(createScene(dir.tiled));
             scene->init(imageName, m_pfile, index, index + 1);
             m_auxImages[imageName] = scene;
             m_auxNames.push_back(imageName);
@@ -56,7 +66,7 @@ void NDPISlide::constructScenes()
         else if (dir.magnification < -0.5)
         {
             const std::string imageName("macro");
-            std::shared_ptr<NDPIScene> scene(new NDPIScene);
+            std::shared_ptr<NDPIScene> scene(createScene(dir.tiled));
             scene->init(imageName, m_pfile, index, index + 1);
             m_auxImages[imageName] = scene;
             m_auxNames.push_back(imageName);
@@ -64,7 +74,7 @@ void NDPISlide::constructScenes()
     }
     if(endIndex>startIndex)
     {
-        std::shared_ptr<NDPIScene> mainScene(new NDPIScene);
+        std::shared_ptr<NDPIScene> mainScene(createScene(directories[startIndex].tiled));
         mainScene->init("main", m_pfile, startIndex, endIndex);
         m_Scenes.push_back(mainScene);
     }

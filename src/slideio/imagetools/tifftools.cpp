@@ -237,9 +237,13 @@ void  slideio::TiffTools::scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, int
         dir.res.x = 0.0254/resx;
         dir.res.y = 0.0254/resy;
     }
-    else{
-        dir.res.x = 0.;
-        dir.res.y = 0.;
+    else if (units == RESUNIT_CENTIMETER && resx > 0 && resy > 0) {
+        dir.res.x = 0.01 / resx;
+        dir.res.y = 0.01 / resy;
+    }
+    else {
+        dir.res.x = resx;
+        dir.res.y = resy;
     }
     dir.position = {posx, posy};
     bool tiled = libtiff::TIFFIsTiled(tiff);

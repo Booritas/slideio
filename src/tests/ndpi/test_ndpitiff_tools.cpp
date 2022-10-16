@@ -21,9 +21,7 @@ TEST(NDPITiffTools, scanFile)
     EXPECT_EQ(dir.description.size(), 0);
     EXPECT_NE(dir.userLabel.size(), 0);
     EXPECT_EQ(dir.dataType, slideio::DataType::DT_Byte);
-    //std::cout << dir.userLabel;
     const slideio::NDPITiffDirectory& dir5 = dirs[4];
-    //std::cout << std::endl << std::endl << "------------------------" << std::endl << dir5.userLabel;
     EXPECT_EQ(dir5.width, 599);
     EXPECT_EQ(dir5.height, 204);
     EXPECT_FALSE(dir5.tiled);
@@ -67,6 +65,40 @@ TEST(NDPITiffTools, readRegularStripedDir)
     double min(1.), max(1.);
     cv::minMaxLoc(diff, &min, &max);
     EXPECT_EQ(min,0);
+    EXPECT_EQ(max, 0);
+}
+
+TEST(NDPITiffTools, readRegularStrip)
+{
+    std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1.ndpi");
+    std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1.bin");
+    std::vector<slideio::NDPITiffDirectory> dirs;
+    slideio::NDPITiffTools::scanFile(filePath, dirs);
+    int dirCount = (int)dirs.size();
+    libtiff::TIFF* tiff = slideio::NDPITiffTools::openTiffFile(filePath);;
+    ASSERT_TRUE(tiff != nullptr);
+    int dirIndex = 3;
+    slideio::NDPITiffDirectory dir;
+    slideio::NDPITiffTools::scanTiffDirTags(tiff, dirIndex, 0, dir);
+    dir.dataType = slideio::DataType::DT_Byte;
+    const std::vector<int> channelIndices = { 0,1,2 };
+    cv::Mat stripRaster;
+    slideio::NDPITiffTools::readStrip(tiff, dir, 0, channelIndices, stripRaster);
+    slideio::NDPITiffTools::closeTiffFile(tiff);
+    EXPECT_EQ(stripRaster.rows, dir.rowsPerStrip);
+    EXPECT_EQ(stripRaster.cols, dir.width);
+    // cv::namedWindow( "Display window", cv::WINDOW_AUTOSIZE );
+    // cv::imshow( "Display window", stripRaster);
+    // cv::waitKey(0);
+
+    cv::Mat testRaster;
+    cv::FileStorage file2(testFilePath, cv::FileStorage::READ);
+    file2["test"] >> testRaster;
+    cv::Mat diff = stripRaster != testRaster;
+    // Equal if no elements disagree
+    double min(1.), max(1.);
+    cv::minMaxLoc(diff, &min, &max);
+    EXPECT_EQ(min, 0);
     EXPECT_EQ(max, 0);
 }
 

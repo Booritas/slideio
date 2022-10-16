@@ -27,14 +27,8 @@ namespace slideio
         void init(const std::string& name, NDPIFile* file, int32_t startDirIndex, int32_t endDirIndex);
         int getNumChannels() const override;
         cv::Rect getRect() const override;
-        void readResampledBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize, const std::vector<int>& channelIndices,
-            cv::OutputArray output) override;
         //const slideio::TiffDirectory& findZoomDirectory(double zoom) const;
         // Tiler methods
-        int getTileCount(void* userData) override;
-        bool getTileRect(int tileIndex, cv::Rect& tileRect, void* userData) override;
-        bool readTile(int tileIndex, const std::vector<int>& channelIndices, cv::OutputArray tileRaster,
-            void* userData) override;
         std::string getFilePath() const override;
         std::string getName() const override {
             return m_sceneName;
@@ -49,6 +43,7 @@ namespace slideio
         int m_endDir;
         std::string m_sceneName;
     };
+
 }
 
 #if defined(_MSC_VER)

@@ -16,6 +16,10 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/ndpitifftools.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/ndpitifftools.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/ndpilibtiff.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/ndpistripedscene.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/ndpistripedscene.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/ndpitiledscene.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/ndpitiledscene.hpp
    )
 
 add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES})

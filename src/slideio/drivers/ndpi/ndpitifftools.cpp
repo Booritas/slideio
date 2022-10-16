@@ -297,9 +297,13 @@ void  slideio::NDPITiffTools::scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex,
         dir.res.x = 0.0254/resx;
         dir.res.y = 0.0254/resy;
     }
+    else if (units == RESUNIT_CENTIMETER && resx > 0 && resy > 0) {
+        dir.res.x = 0.01 / resx;
+        dir.res.y = 0.01 / resy;
+    }
     else{
-        dir.res.x = 0.;
-        dir.res.y = 0.;
+        dir.res.x = resx;
+        dir.res.y = resy;
     }
     dir.position = {posx, posy};
     bool tiled = libtiff::TIFFIsTiled(tiff);
@@ -517,8 +521,132 @@ void slideio::NDPITiffTools::readTile(libtiff::TIFF* hFile, const slideio::NDPIT
     }
 }
 
+void NDPITiffTools::readJpegXRStrip(libtiff::TIFF* tiff, const NDPITiffDirectory& dir, int strip,
+    const std::vector<int>& vector, cv::_OutputArray output)
+{
+    const auto tileSize = libtiff::TIFFStripSize(tiff);
+    std::vector<uint8_t> rawTile(tileSize);
+    if (dir.interleaved)
+    {
+        // process interleaved channels
+        libtiff::tmsize_t readBytes = libtiff::TIFFReadRawStrip(tiff, strip, rawTile.data(), (int)rawTile.size());
+        if (readBytes <= 0) {
+            throw std::runtime_error("TiffTools: Error reading raw tile");
+        }
+        decodeJxrBlock(rawTile.data(), readBytes, output);
+    }
+}
+
+void NDPITiffTools::readNotRGBStrip(libtiff::TIFF* hFile, const NDPITiffDirectory& dir, int strip,
+    const std::vector<int>& channelIndices, cv::_OutputArray output)
+{
+    cv::Size stripSize = { dir.width, dir.rowsPerStrip };
+    slideio::DataType dt = dir.dataType;
+    cv::Mat stripRaster;
+    stripRaster.create(stripSize, CV_MAKETYPE(slideio::CVTools::toOpencvType(dt), 4));
+    libtiff::TIFFSetDirectory(hFile, static_cast<uint16_t>(dir.dirIndex));
+    if (dir.offset > 0) {
+        libtiff::TIFFSetSubDirectory(hFile, dir.offset);
+    }
+    uint32_t* buffBegin = reinterpret_cast<uint32_t*>(stripRaster.data);
+
+    auto readBytes = libtiff::TIFFReadRGBAStrip(hFile, strip, buffBegin);
+    if (readBytes <= 0)
+    {
+        RAISE_RUNTIME_ERROR << "NDPITiffTools: error reading encoded strip " << strip
+            << " of directory " << dir.dirIndex << ". Compression: " << (int)(dir.compression);
+
+    }
+
+    if (channelIndices.empty())
+    {
+        std::vector<cv::Mat> channelRasters;
+        channelRasters.resize(3);
+        for (int channelIndex = 0; channelIndex < 3; ++channelIndex)
+        {
+            cv::extractChannel(stripRaster, channelRasters[channelIndex], channelIndex);
+        }
+        cv::merge(channelRasters, output);
+    }
+    else if (channelIndices.size() == 1)
+    {
+        cv::extractChannel(stripRaster, output, channelIndices[0]);
+    }
+    else
+    {
+        std::vector<cv::Mat> channelRasters;
+        channelRasters.resize(channelIndices.size());
+        for (int channelIndex : channelIndices)
+        {
+            cv::extractChannel(stripRaster, channelRasters[channelIndex], channelIndices[channelIndex]);
+        }
+        cv::merge(channelRasters, output);
+    }
+}
+
+void NDPITiffTools::readRegularStrip(libtiff::TIFF* tiff, const NDPITiffDirectory& dir, int strip,
+                                     const std::vector<int>& channelIndices, cv::_OutputArray output)
+{
+    cv::Size stripSize = { dir.width, dir.rowsPerStrip };
+    slideio::DataType dt = dir.dataType;
+    cv::Mat stripRaster;
+    stripRaster.create(stripSize, CV_MAKETYPE(slideio::CVTools::toOpencvType(dt), dir.channels));
+    libtiff::TIFFSetDirectory(tiff, static_cast<uint16_t>(dir.dirIndex));
+    if (dir.offset > 0) {
+        libtiff::TIFFSetSubDirectory(tiff, dir.offset);
+    }
+    uint8_t* buff_begin = stripRaster.data;
+    auto buf_size = stripRaster.total() * stripRaster.elemSize();
+    auto readBytes = libtiff::TIFFReadEncodedStrip(tiff, strip, buff_begin, buf_size);
+    if (readBytes <= 0)
+    {
+        RAISE_RUNTIME_ERROR << "NDPITiffTools: error reading encoded strip " << strip
+            << " of directory " << dir.dirIndex << ". Compression: " << (int)(dir.compression);
+    }
+    if (channelIndices.empty())
+    {
+        stripRaster.copyTo(output);
+    }
+    else if (channelIndices.size() == 1)
+    {
+        cv::extractChannel(stripRaster, output, channelIndices[0]);
+    }
+    else
+    {
+        std::vector<cv::Mat> channelRasters;
+        channelRasters.resize(channelIndices.size());
+        for (int channelIndex : channelIndices)
+        {
+            cv::extractChannel(stripRaster, channelRasters[channelIndex], channelIndices[channelIndex]);
+        }
+        cv::merge(channelRasters, output);
+    }
+}
+
+void NDPITiffTools::readStrip(libtiff::TIFF* hFile, const slideio::NDPITiffDirectory& dir, int strip,
+                              const std::vector<int>& channelIndices, cv::OutputArray output)
+{
+    if (dir.tiled) {
+        throw std::runtime_error("NDPITiffTools: Expected tiled configuration, received striped");
+    }
+    setCurrentDirectory(hFile, dir);
+
+    if (dir.compression == 0x5852)
+    {
+        readJpegXRStrip(hFile, dir, strip, channelIndices, output);
+    }
+    else if (dir.photometric == 6 || dir.photometric == 8 || dir.photometric == 9 || dir.photometric == 10)
+    {
+        readNotRGBStrip(hFile, dir, strip, channelIndices, output);
+    }
+    else
+    {
+        readRegularStrip(hFile, dir, strip, channelIndices, output);
+    }
+}
+
 void slideio::NDPITiffTools::readRegularTile(libtiff::TIFF* hFile, const slideio::NDPITiffDirectory& dir, int tile,
-            const std::vector<int>& channelIndices, cv::OutputArray output)
+                                             const std::vector<int>& channelIndices, cv::OutputArray output)
 {
     cv::Size tileSize = { dir.tileWidth, dir.tileHeight };
     slideio::DataType dt = dir.dataType;

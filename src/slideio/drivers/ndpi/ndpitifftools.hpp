@@ -72,6 +72,11 @@ namespace slideio
         static void readJpegXRTile(libtiff::TIFF* tiff, const slideio::NDPITiffDirectory& dir, int tile, const std::vector<int>& vector, cv::OutputArray output);
         static void readTile(libtiff::TIFF* hFile, const slideio::NDPITiffDirectory& dir, int tile,
                              const std::vector<int>& channelIndices, cv::OutputArray output);
+        static void readJpegXRStrip(libtiff::TIFF* tiff, const NDPITiffDirectory& dir, int strip, const std::vector<int>& vector, cv::_OutputArray output);
+        static void readNotRGBStrip(libtiff::TIFF* tiff, const NDPITiffDirectory& dir, int strip, const std::vector<int>& vector, cv::_OutputArray output);
+        static void readRegularStrip(libtiff::TIFF* tiff, const NDPITiffDirectory& dir, int strip, const std::vector<int>& vector, cv::_OutputArray output);
+        static void readStrip(libtiff::TIFF* hFile, const slideio::NDPITiffDirectory& dir, int strip,
+                              const std::vector<int>& channelIndices, cv::OutputArray output);
         static void setCurrentDirectory(libtiff::TIFF* hFile, const slideio::NDPITiffDirectory& dir);
         static void decodeJxrBlock(const uint8_t* data, size_t dataBlockSize, cv::OutputArray output);
         static void readRegularTile(libtiff::TIFF* hFile, const slideio::NDPITiffDirectory& dir, int tile,
