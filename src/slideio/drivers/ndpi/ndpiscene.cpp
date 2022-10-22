@@ -1,13 +1,15 @@
 // This file is part of slideio project.
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
+
 #include "slideio/drivers/ndpi//ndpiscene.hpp"
 
 #include "ndpifile.hpp"
+#include "slideio/core/tools/tools.hpp"
 
 using namespace slideio;
 
-NDPIScene::NDPIScene() : m_pfile(nullptr), m_startDir(-1), m_endDir(-1)
+NDPIScene::NDPIScene() : m_pfile(nullptr), m_startDir(-1), m_endDir(-1), m_rect(0,0,0,0)
 {
 }
 
@@ -18,22 +20,21 @@ void NDPIScene::init(const std::string& name, NDPIFile* file, int32_t startDirIn
     m_startDir = startDirIndex;
     m_endDir = endDirIndex;
 
+    if (!m_pfile) {
+        RAISE_RUNTIME_ERROR << "NDPIImageDriver: Invalid file handle.";
+    }
+    const std::vector<NDPITiffDirectory>& directories = m_pfile->directories();
+    if (m_startDir < 0 || m_startDir >= directories.size()) {
+        RAISE_RUNTIME_ERROR << "NDPIImageDriver: Invalid directory index: " << m_startDir << ". File:" << m_pfile->getFilePath();
+    }
+    const NDPITiffDirectory& dir = m_pfile->directories()[m_startDir];
+    m_rect.width = dir.width;
+    m_rect.height = dir.height;
 }
 
 cv::Rect NDPIScene::getRect() const
 {
-    if (!m_pfile) 
-    {
-        RAISE_RUNTIME_ERROR << "NDPIImageDriver: Invalid file handle.";
-    }
-    const std::vector<NDPITiffDirectory>& directories = m_pfile->directories();
-    if(m_startDir<0 || m_startDir>=directories.size())
-    {
-        RAISE_RUNTIME_ERROR << "NDPIImageDriver: Invalid directory index: " << m_startDir << ". File:" << m_pfile->getFilePath();
-    }
-    const NDPITiffDirectory& dir = directories[m_startDir];
-    cv::Rect rect(0,0, dir.width, dir.height);
-    return rect;
+    return m_rect;
 }
 
 int NDPIScene::getNumChannels() const
@@ -46,19 +47,6 @@ int NDPIScene::getNumChannels() const
     const auto& dir = directories[m_startDir];
     return dir.channels;
 }
-
-
-
-// const TiffDirectory& NDPIScene::findZoomDirectory(double zoom) const
-// {
-//     const cv::Rect sceneRect = getRect();
-//     const double sceneWidth = static_cast<double>(sceneRect.width);
-//     const auto& directories = m_directories;
-//     int index = Tools::findZoomLevel(zoom, (int)m_directories.size(), [&directories, sceneWidth](int index){
-//         return directories[index].width/sceneWidth;
-//     });
-//     return m_directories[index];
-// }
 
 
 std::string NDPIScene::getFilePath() const
@@ -114,3 +102,17 @@ Compression NDPIScene::getCompression() const
     return dir.slideioCompression;
 }
 
+void NDPIScene::readResampledBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize,
+    const std::vector<int>& channelIndices, cv::OutputArray output)
+{
+    const std::vector<NDPITiffDirectory>& directories = m_pfile->directories();
+    double zoomX = static_cast<double>(blockSize.width) / static_cast<double>(blockRect.width);
+    double zoomY = static_cast<double>(blockSize.height) / static_cast<double>(blockRect.height);
+    double zoom = std::max(zoomX, zoomY);
+    const slideio::NDPITiffDirectory& dir = m_pfile->findZoomDirectory(zoom, m_rect.width, m_startDir, m_endDir);
+    double zoomDirX = static_cast<double>(dir.width) / static_cast<double>(directories[0].width);
+    double zoomDirY = static_cast<double>(dir.height) / static_cast<double>(directories[0].height);
+    cv::Rect resizedBlock;
+    Tools::scaleRect(blockRect, zoomDirX, zoomDirY, resizedBlock);
+    TileComposer::composeRect(this, channelIndices, resizedBlock, blockSize, output, (void*)&dir);
+}

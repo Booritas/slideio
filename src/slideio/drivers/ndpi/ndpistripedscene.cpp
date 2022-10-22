@@ -7,22 +7,6 @@
 
 using namespace slideio;
 
-void NDPIStripedScene::readResampledBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize,
-    const std::vector<int>& channelIndices, cv::OutputArray output)
-{
-    // auto hFile = getFileHandle();
-    // if (hFile == nullptr)
-    //     throw std::runtime_error("SVSDriver: Invalid file header by raster reading operation");
-    // double zoomX = static_cast<double>(blockSize.width) / static_cast<double>(blockRect.width);
-    // double zoomY = static_cast<double>(blockSize.height) / static_cast<double>(blockRect.height);
-    // double zoom = std::max(zoomX, zoomY);
-    // const slideio::TiffDirectory& dir = findZoomDirectory(zoom);
-    // double zoomDirX = static_cast<double>(dir.width) / static_cast<double>(m_directories[0].width); 
-    // double zoomDirY = static_cast<double>(dir.height) / static_cast<double>(m_directories[0].height);
-    // cv::Rect resizedBlock;
-    // ImageTools::scaleRect(blockRect, zoomDirX, zoomDirY, resizedBlock);
-    // TileComposer::composeRect(this, channelIndices, resizedBlock, blockSize, output, (void*)&dir);
-}
 
 int NDPIStripedScene::getTileCount(void* userData)
 {

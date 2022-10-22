@@ -37,6 +37,8 @@ namespace slideio
         {
             return m_tiff;
         }
+
+        const NDPITiffDirectory& findZoomDirectory(double zoom, int sceneWidth, int dirBegin, int dirEnd);
     private:
         std::string m_filePath;
         NDPITIFFKeeper m_tiff;

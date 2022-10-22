@@ -20,8 +20,6 @@ namespace slideio
     class SLIDEIO_NDPI_EXPORTS NDPIStripedScene : public NDPIScene
     {
     public:
-        void readResampledBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize, const std::vector<int>& channelIndices,
-            cv::OutputArray output) override;
         int getTileCount(void* userData) override;
         bool getTileRect(int tileIndex, cv::Rect& tileRect, void* userData) override;
         bool readTile(int tileIndex, const std::vector<int>& channelIndices, cv::OutputArray tileRaster,

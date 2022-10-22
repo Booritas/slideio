@@ -31,8 +31,8 @@ TEST(NDPITiffTools, scanFile)
     EXPECT_EQ(dir5.bitsPerSample, 8);
     EXPECT_EQ(dir5.description.size(), 0);
     EXPECT_TRUE(dir5.interleaved);
-    EXPECT_EQ(0, dir5.res.x);
-    EXPECT_EQ(0, dir5.res.y);
+    EXPECT_DOUBLE_EQ(0.00012820512820512821, dir5.res.x);
+    EXPECT_DOUBLE_EQ(0.00012820512820512821, dir5.res.y);
     EXPECT_EQ((uint32_t)1, dir5.compression);
 }
 
@@ -138,4 +138,93 @@ TEST(NDPITiffTools, readTile)
     EXPECT_EQ(min, 0);
     EXPECT_EQ(max, 0);
 
+}
+
+TEST(NDPITiffTools, compupteTileCounts)
+{
+    slideio::NDPITiffDirectory dir;
+    dir.width = 1000;
+    dir.height = 2000;
+    dir.tileHeight = 100;
+    dir.tileWidth = 100;
+    cv::Size counts = slideio::NDPITiffTools::computeTileCounts(dir);
+    EXPECT_EQ(10, counts.width);
+    EXPECT_EQ(20, counts.height);
+    dir.width = 999;
+    dir.height = 1960;
+    counts = slideio::NDPITiffTools::computeTileCounts(dir);
+    EXPECT_EQ(10, counts.width);
+    EXPECT_EQ(20, counts.height);
+    dir.width = 50;
+    dir.height = 50;
+    counts = slideio::NDPITiffTools::computeTileCounts(dir);
+    EXPECT_EQ(1, counts.width);
+    EXPECT_EQ(1, counts.height);
+    dir.width = 101;
+    dir.height = 50;
+    counts = slideio::NDPITiffTools::computeTileCounts(dir);
+    EXPECT_EQ(2, counts.width);
+    EXPECT_EQ(1, counts.height);
+    dir.width = 50;
+    dir.height = 101;
+    counts = slideio::NDPITiffTools::computeTileCounts(dir);
+    EXPECT_EQ(1, counts.width);
+    EXPECT_EQ(2, counts.height);
+}
+
+TEST(NDPITiffTools, compupteTileSize)
+{
+    slideio::NDPITiffDirectory dir;
+    dir.width = 1000;
+    dir.height = 1500;
+    dir.tileHeight = 100;
+    dir.tileWidth = 150;
+    cv::Size size = slideio::NDPITiffTools::computeTileSize(dir, 0);
+    EXPECT_EQ(150, size.width);
+    EXPECT_EQ(100, size.height);
+
+    dir.width = 99;
+    dir.height = 85;
+    dir.tileHeight = 100;
+    dir.tileWidth = 150;
+    size = slideio::NDPITiffTools::computeTileSize(dir, 0);
+    EXPECT_EQ(99, size.width);
+    EXPECT_EQ(85, size.height);
+
+    dir.width = 101;
+    dir.height = 151;
+    dir.tileHeight = 100;
+    dir.tileWidth = 150;
+    EXPECT_ANY_THROW(slideio::NDPITiffTools::computeTileSize(dir, 3));
+
+    dir.height = 151;
+    dir.width = 101;
+    dir.tileHeight = 150;
+    dir.tileWidth = 100;
+    size = slideio::NDPITiffTools::computeTileSize(dir, 3);
+    EXPECT_EQ(1, size.width);
+    EXPECT_EQ(1, size.height);
+
+    dir.height = 151;
+    dir.width = 301;
+    dir.tileHeight = 150;
+    dir.tileWidth = 100;
+    size = slideio::NDPITiffTools::computeTileSize(dir, 5);
+    EXPECT_EQ(100, size.width);
+    EXPECT_EQ(1, size.height);
+}
+
+TEST(NDPITiffTools, compupteStripHeight)
+{
+    slideio::NDPITiffDirectory dir;
+    dir.width = 1000;
+    dir.height = 1500;
+    dir.rowsPerStrip = 100;
+    int lines = slideio::NDPITiffTools::computeStripHeight(dir, 0);
+    EXPECT_EQ(100, lines);
+    dir.width = 1000;
+    dir.height = 101;
+    dir.rowsPerStrip = 100;
+    lines = slideio::NDPITiffTools::computeStripHeight(dir, 1);
+    EXPECT_EQ(1, lines);
 }
