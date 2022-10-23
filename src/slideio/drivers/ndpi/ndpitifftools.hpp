@@ -79,6 +79,7 @@ namespace slideio
                               const std::vector<int>& channelIndices, cv::OutputArray output);
         static void setCurrentDirectory(libtiff::TIFF* hFile, const slideio::NDPITiffDirectory& dir);
         static void decodeJxrBlock(const uint8_t* data, size_t dataBlockSize, cv::OutputArray output);
+        static void test0(const std::string& path);
         static void readRegularTile(libtiff::TIFF* hFile, const slideio::NDPITiffDirectory& dir, int tile,
                                     const std::vector<int>& channelIndices, cv::OutputArray output);
         static void readNotRGBTile(libtiff::TIFF* hFile, const slideio::NDPITiffDirectory& dir, int tile,

@@ -8,6 +8,14 @@
 #include "slideio/drivers/ndpi/ndpilibtiff.hpp"
 
 
+slideio::NDPIFile::~NDPIFile()
+{
+    if(m_tiff) {
+        libtiff::TIFFClose(m_tiff);
+        m_tiff = nullptr;
+    }
+}
+
 void slideio::NDPIFile::init(const std::string& filePath)
 {
     namespace fs = boost::filesystem;

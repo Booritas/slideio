@@ -232,97 +232,97 @@ void slideio::NDPITiffTools::closeTiffFile(libtiff::TIFF* file)
 
 void  slideio::NDPITiffTools::scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, int64_t dirOffset, slideio::NDPITiffDirectory& dir)
 {
-    libtiff::TIFFSetDirectory(tiff, static_cast<short>(dirIndex));
-    if(dirOffset)
-        libtiff::TIFFSetSubDirectory(tiff, dirOffset);
+    libtiff::TIFFSetDirectory(tiff, static_cast<uint16_t>(dirIndex));
+     if(dirOffset)
+         libtiff::TIFFSetSubDirectory(tiff, dirOffset);
+    
+     dir.dirIndex = dirIndex;
+     dir.offset = dirOffset;
 
-    dir.dirIndex = dirIndex;
-    dir.offset = dirOffset;
-
-    char *description(nullptr);
-    char* userLabel(nullptr);
-    char* comments(nullptr);
-    short dirchnls(0), dirbits(0);
-    uint32_t blankLines(0);
-    uint16_t compress(0);
-    short  planar_config(0);
-    int width(0), height(0), tile_width(0), tile_height(0);
-    float magnification(0);
-    libtiff::TIFFGetField(tiff, TIFFTAG_SAMPLESPERPIXEL, &dirchnls);
-    libtiff::TIFFGetField(tiff, TIFFTAG_BITSPERSAMPLE, &dirbits);
-    libtiff::TIFFGetField(tiff, TIFFTAG_COMPRESSION, &compress);
-    libtiff::TIFFGetField(tiff, TIFFTAG_IMAGEWIDTH, &width);
-    libtiff::TIFFGetField(tiff, TIFFTAG_IMAGELENGTH, &height);
-    libtiff::TIFFGetField(tiff,TIFFTAG_TILEWIDTH ,&tile_width);
-    libtiff::TIFFGetField(tiff,TIFFTAG_TILELENGTH,&tile_height);
-    libtiff::TIFFGetField(tiff, TIFFTAG_IMAGEDESCRIPTION, &description);
-    libtiff::TIFFGetField(tiff, NDPITAG_USERGIVENSLIDELABEL, &comments);
-    libtiff::TIFFGetField(tiff, NDPITAG_COMMENTS, &userLabel);
-    libtiff::TIFFGetField(tiff, TIFFTAG_PLANARCONFIG ,&planar_config);
-    libtiff::TIFFGetField(tiff, NDPITAG_MAGNIFICATION, &magnification);
-    libtiff::TIFFGetField(tiff, NDPITAG_BLANKLANES, &blankLines);
-    float resx(0), resy(0);
-    uint16_t units(0);
-    libtiff::TIFFGetField(tiff, TIFFTAG_XRESOLUTION, &resx);
-    libtiff::TIFFGetField(tiff, TIFFTAG_YRESOLUTION, &resy);
-    libtiff::TIFFGetField(tiff, TIFFTAG_RESOLUTIONUNIT, &units);
-    dir.interleaved = planar_config==PLANARCONFIG_CONTIG;
-    float posx(0), posy(0);
-    libtiff::TIFFGetField(tiff, TIFFTAG_XPOSITION, &posx);
-    libtiff::TIFFGetField(tiff, TIFFTAG_YPOSITION, &posy);
-    int32_t rowsPerStripe(0);
-    libtiff::TIFFGetField(tiff, TIFFTAG_ROWSPERSTRIP, &rowsPerStripe);
-    libtiff::TIFFDataType dt(libtiff::TIFF_NOTYPE);
-    libtiff::TIFFGetField(tiff, TIFFTAG_DATATYPE, &dt);
-    short ph(0);
-    libtiff::TIFFGetField(tiff, TIFFTAG_PHOTOMETRIC, &ph);
-    dir.photometric = ph;
-    dir.stripSize = (int)libtiff::TIFFStripSize(tiff);
-    dir.dataType = dataTypeFromTIFFDataType(dt);
-    if (dir.dataType == DataType::DT_None)
-        dir.dataType = DataType::DT_Byte;
-
-    short YCbCrSubsampling[2] = { 2,2 };
-    libtiff::TIFFGetField(tiff, TIFFTAG_YCBCRSUBSAMPLING, &YCbCrSubsampling[0], &YCbCrSubsampling[0]);
-    dir.YCbCrSubsampling[0] = YCbCrSubsampling[0];
-    dir.YCbCrSubsampling[1] = YCbCrSubsampling[1];
-
-    if(units==RESUNIT_INCH && resx>0 && resy>0){
-        dir.res.x = 0.01/resx;
-        dir.res.y = 0.01/resy;
-    }
-    else if(units==RESUNIT_INCH && resx>0 && resy>0){
-        dir.res.x = 0.0254/resx;
-        dir.res.y = 0.0254/resy;
-    }
-    else if (units == RESUNIT_CENTIMETER && resx > 0 && resy > 0) {
-        dir.res.x = 0.01 / resx;
-        dir.res.y = 0.01 / resy;
-    }
-    else{
-        dir.res.x = resx;
-        dir.res.y = resy;
-    }
-    dir.position = {posx, posy};
-    bool tiled = libtiff::TIFFIsTiled(tiff);
-    if(description)
-        dir.description = description;
-    dir.bitsPerSample = dirbits;
-    dir.channels = dirchnls;
-    dir.height = height;
-    dir.width = width;
-    dir.tileHeight = tile_height;
-    dir.tileWidth = tile_width;
-    dir.tiled = tiled;
-    dir.compression = compress;
-    dir.rowsPerStrip = rowsPerStripe;
-    dir.slideioCompression = compressTiffToSlideio(compress);
-    dir.magnification = magnification;
-    if(comments)
-        dir.comments = comments;
-    if(userLabel)
-        dir.userLabel = userLabel;
-    dir.blankLines = blankLines;
+     char *description(nullptr);
+     char* userLabel(nullptr);
+     char* comments(nullptr);
+     short dirchnls(0), dirbits(0);
+     uint32_t blankLines(0);
+     uint16_t compress(0);
+     short  planar_config(0);
+     uint32_t width(0), height(0), tile_width(0), tile_height(0);
+     float magnification(0);
+     libtiff::TIFFGetField(tiff, TIFFTAG_SAMPLESPERPIXEL, &dirchnls);
+     libtiff::TIFFGetField(tiff, TIFFTAG_BITSPERSAMPLE, &dirbits);
+     libtiff::TIFFGetField(tiff, TIFFTAG_COMPRESSION, &compress);
+     libtiff::TIFFGetField(tiff, TIFFTAG_IMAGEWIDTH, &width);
+     libtiff::TIFFGetField(tiff, TIFFTAG_IMAGELENGTH, &height);
+     libtiff::TIFFGetField(tiff,TIFFTAG_TILEWIDTH ,&tile_width);
+     libtiff::TIFFGetField(tiff,TIFFTAG_TILELENGTH,&tile_height);
+     libtiff::TIFFGetField(tiff, TIFFTAG_IMAGEDESCRIPTION, &description);
+     libtiff::TIFFGetField(tiff, NDPITAG_USERGIVENSLIDELABEL, &comments);
+     libtiff::TIFFGetField(tiff, NDPITAG_COMMENTS, &userLabel);
+     libtiff::TIFFGetField(tiff, TIFFTAG_PLANARCONFIG ,&planar_config);
+     libtiff::TIFFGetField(tiff, NDPITAG_MAGNIFICATION, &magnification);
+     libtiff::TIFFGetField(tiff, NDPITAG_BLANKLANES, &blankLines);
+     float resx(0), resy(0);
+     uint16_t units(0);
+     libtiff::TIFFGetField(tiff, TIFFTAG_XRESOLUTION, &resx);
+     libtiff::TIFFGetField(tiff, TIFFTAG_YRESOLUTION, &resy);
+     libtiff::TIFFGetField(tiff, TIFFTAG_RESOLUTIONUNIT, &units);
+     dir.interleaved = planar_config==PLANARCONFIG_CONTIG;
+     float posx(0), posy(0);
+     libtiff::TIFFGetField(tiff, TIFFTAG_XPOSITION, &posx);
+     libtiff::TIFFGetField(tiff, TIFFTAG_YPOSITION, &posy);
+     uint32_t rowsPerStripe(0);
+     libtiff::TIFFGetField(tiff, TIFFTAG_ROWSPERSTRIP, &rowsPerStripe);
+     libtiff::TIFFDataType dt(libtiff::TIFF_NOTYPE);
+     libtiff::TIFFGetField(tiff, TIFFTAG_DATATYPE, &dt);
+     short ph(0);
+     libtiff::TIFFGetField(tiff, TIFFTAG_PHOTOMETRIC, &ph);
+     dir.photometric = ph;
+     dir.stripSize = (int)libtiff::TIFFStripSize(tiff);
+     dir.dataType = dataTypeFromTIFFDataType(dt);
+     if (dir.dataType == DataType::DT_None)
+         dir.dataType = DataType::DT_Byte;
+    
+     short YCbCrSubsampling[2] = { 2,2 };
+     libtiff::TIFFGetField(tiff, TIFFTAG_YCBCRSUBSAMPLING, &YCbCrSubsampling[0], &YCbCrSubsampling[0]);
+     dir.YCbCrSubsampling[0] = YCbCrSubsampling[0];
+     dir.YCbCrSubsampling[1] = YCbCrSubsampling[1];
+    
+     if(units==RESUNIT_INCH && resx>0 && resy>0){
+         dir.res.x = 0.01/resx;
+         dir.res.y = 0.01/resy;
+     }
+     else if(units==RESUNIT_INCH && resx>0 && resy>0){
+         dir.res.x = 0.0254/resx;
+         dir.res.y = 0.0254/resy;
+     }
+     else if (units == RESUNIT_CENTIMETER && resx > 0 && resy > 0) {
+         dir.res.x = 0.01 / resx;
+         dir.res.y = 0.01 / resy;
+     }
+     else{
+         dir.res.x = resx;
+         dir.res.y = resy;
+     }
+     dir.position = {posx, posy};
+     bool tiled = libtiff::TIFFIsTiled(tiff);
+     if(description)
+         dir.description = description;
+     dir.bitsPerSample = dirbits;
+     dir.channels = dirchnls;
+     dir.height = height;
+     dir.width = width;
+     dir.tileHeight = tile_height;
+     dir.tileWidth = tile_width;
+     dir.tiled = tiled;
+     dir.compression = compress;
+     dir.rowsPerStrip = rowsPerStripe;
+     dir.slideioCompression = compressTiffToSlideio(compress);
+     dir.magnification = magnification;
+     if(comments)
+         dir.comments = comments;
+     if(userLabel)
+         dir.userLabel = userLabel;
+     dir.blankLines = blankLines;
 
 
 }
@@ -808,6 +808,16 @@ void slideio::NDPITiffTools::decodeJxrBlock(const uint8_t* data, size_t dataBloc
     jpegxr_decompress((uint8_t*)data, (uint32_t)dataBlockSize, outputBuff, ouputBuffSize);
 }
 
+void slideio::NDPITiffTools::test0(const std::string& path)
+{
+    libtiff::TIFF* tiff = libtiff::TIFFOpen(path.c_str(),"r");
+    libtiff::TIFFSetDirectory(tiff, 0);
+    libtiff::TIFFSetDirectory(tiff, 1);
+    libtiff::TIFFSetDirectory(tiff, 2);
+    libtiff::TIFFSetDirectory(tiff, 3);
+    libtiff::TIFFSetDirectory(tiff, 0);
+    libtiff::TIFFClose(tiff);
+}
 slideio::NDPITIFFKeeper::NDPITIFFKeeper(libtiff::TIFF* hfile) : m_hFile(hfile)
 {
 }

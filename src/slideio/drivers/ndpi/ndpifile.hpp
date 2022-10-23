@@ -26,6 +26,7 @@ namespace slideio
     public:
         NDPIFile(){
         }
+        ~NDPIFile();
         void init(const std::string& filePath);
         const std::vector<NDPITiffDirectory>& directories() const {
             return m_directories;

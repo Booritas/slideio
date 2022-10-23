@@ -10,40 +10,35 @@ using namespace slideio;
 
 int NDPIStripedScene::getTileCount(void* userData)
 {
-    // const TiffDirectory* dir = (const TiffDirectory*)userData;
-    // int tilesX = (dir->width-1)/dir->tileWidth + 1;
-    // int tilesY = (dir->height-1)/dir->tileHeight + 1;
-    // return tilesX * tilesY;
-    return 0;
+    const NDPITiffDirectory* dir = (const NDPITiffDirectory*)userData;
+    const int stripes = (dir->height-1)/dir->rowsPerStrip + 1;
+    return stripes;
 }
 
 bool NDPIStripedScene::getTileRect(int tileIndex, cv::Rect& tileRect, void* userData)
 {
-    // const TiffDirectory* dir = (const TiffDirectory*)userData;
-    // const int tilesX = (dir->width - 1) / dir->tileWidth + 1;
-    // const int tilesY = (dir->height - 1) / dir->tileHeight + 1;
-    // const int tileY = tileIndex / tilesX;
-    // const int tileX = tileIndex % tilesX;
-    // tileRect.x = tileX * dir->tileWidth;
-    // tileRect.y = tileY * dir->tileHeight;
-    // tileRect.width = dir->tileWidth;
-    // tileRect.height = dir->tileHeight;
-    // return true;
-    return false;
+    const NDPITiffDirectory* dir = (const NDPITiffDirectory*)userData;
+    
+    const int y = tileIndex * dir->rowsPerStrip;
+    tileRect.x = 0;
+    tileRect.y = y;
+    tileRect.width = dir->width;
+    tileRect.height = NDPITiffTools::computeStripHeight(*dir, tileIndex);
+    return true;
 }
 
 bool NDPIStripedScene::readTile(int tileIndex, const std::vector<int>& channelIndices, cv::OutputArray tileRaster,
     void* userData)
 {
-    //const TiffDirectory* dir = (const TiffDirectory*)userData;
+    const NDPITiffDirectory* dir = (const NDPITiffDirectory*)userData;
     bool ret = false;
-    // try
-    // {
-    //     TiffTools::readTile(getFileHandle(), *dir, tileIndex, channelIndices, tileRaster);
-    //     ret = true;
-    // }
-    // catch(std::runtime_error&){
-    // }
+    try
+    {
+        NDPITiffTools::readStrip(m_pfile->getTiffHandle(), *dir, tileIndex, channelIndices, tileRaster);
+        ret = true;
+    }
+    catch(std::runtime_error&){
+    }
 
     return ret;
 }

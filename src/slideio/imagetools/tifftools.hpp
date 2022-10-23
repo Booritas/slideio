@@ -62,8 +62,9 @@ namespace slideio
         static void readTile(libtiff::TIFF* hFile, const slideio::TiffDirectory& dir, int tile,
             const std::vector<int>& channelIndices, cv::OutputArray output);
         static void setCurrentDirectory(libtiff::TIFF* hFile, const slideio::TiffDirectory& dir);
+        static void test0(const std::string& path);
         static void readJ2KTile(libtiff::TIFF* hFile, const slideio::TiffDirectory& dir, int tile,
-            const std::vector<int>& channelIndices, cv::OutputArray output);
+                                const std::vector<int>& channelIndices, cv::OutputArray output);
         static void readRegularTile(libtiff::TIFF* hFile, const slideio::TiffDirectory& dir, int tile,
             const std::vector<int>& channelIndices, cv::OutputArray output);
         static void readNotRGBTile(libtiff::TIFF* hFile, const slideio::TiffDirectory& dir, int tile,

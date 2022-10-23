@@ -13,6 +13,10 @@ NDPIScene::NDPIScene() : m_pfile(nullptr), m_startDir(-1), m_endDir(-1), m_rect(
 {
 }
 
+NDPIScene::~NDPIScene()
+{
+}
+
 void NDPIScene::init(const std::string& name, NDPIFile* file, int32_t startDirIndex, int32_t endDirIndex)
 {
     m_sceneName = name;

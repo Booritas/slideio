@@ -72,9 +72,6 @@ TEST(NDPITiffTools, readRegularStrip)
 {
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1.ndpi");
     std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1.bin");
-    std::vector<slideio::NDPITiffDirectory> dirs;
-    slideio::NDPITiffTools::scanFile(filePath, dirs);
-    int dirCount = (int)dirs.size();
     libtiff::TIFF* tiff = slideio::NDPITiffTools::openTiffFile(filePath);;
     ASSERT_TRUE(tiff != nullptr);
     int dirIndex = 3;
@@ -83,6 +80,8 @@ TEST(NDPITiffTools, readRegularStrip)
     dir.dataType = slideio::DataType::DT_Byte;
     const std::vector<int> channelIndices = { 0,1,2 };
     cv::Mat stripRaster;
+    slideio::NDPITiffTools::scanTiffDirTags(tiff, 0, 0, dir);
+    slideio::NDPITiffTools::scanTiffDirTags(tiff, dirIndex, 0, dir);
     slideio::NDPITiffTools::readStrip(tiff, dir, 0, channelIndices, stripRaster);
     slideio::NDPITiffTools::closeTiffFile(tiff);
     EXPECT_EQ(stripRaster.rows, dir.rowsPerStrip);
@@ -90,7 +89,6 @@ TEST(NDPITiffTools, readRegularStrip)
     // cv::namedWindow( "Display window", cv::WINDOW_AUTOSIZE );
     // cv::imshow( "Display window", stripRaster);
     // cv::waitKey(0);
-
     cv::Mat testRaster;
     cv::FileStorage file2(testFilePath, cv::FileStorage::READ);
     file2["test"] >> testRaster;
@@ -101,6 +99,7 @@ TEST(NDPITiffTools, readRegularStrip)
     EXPECT_EQ(min, 0);
     EXPECT_EQ(max, 0);
 }
+
 
 TEST(NDPITiffTools, readTile)
 {
@@ -227,4 +226,10 @@ TEST(NDPITiffTools, compupteStripHeight)
     dir.rowsPerStrip = 100;
     lines = slideio::NDPITiffTools::computeStripHeight(dir, 1);
     EXPECT_EQ(1, lines);
+}
+
+TEST(NDPITiffTools, test0)
+{
+    std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1.ndpi");
+    slideio::NDPITiffTools::test0(filePath);
 }
