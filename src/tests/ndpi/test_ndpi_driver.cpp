@@ -40,7 +40,8 @@ TEST(NDPIImageDriver, openFile)
 TEST(NDPIImageDriver, readStrippedScene)
 {
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1.ndpi");
-    std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1.bin");
+    std::string testFilePath1 = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1-1.bin");
+    std::string testFilePath2 = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1-2.bin");
     slideio::NDPIImageDriver driver;
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide);
@@ -64,12 +65,57 @@ TEST(NDPIImageDriver, readStrippedScene)
     EXPECT_EQ(slideio::Compression::Jpeg, compression);
     slideio::DataType dt = scene->getChannelDataType(0);
     EXPECT_EQ(slideio::DataType::DT_Byte, dt);
+
     cv::Rect blockRect(rect);
     cv::Size blockSize(rect.width / 100, rect.height / 100);
     cv::Mat blockRaster;
     scene->readResampledBlock(blockRect, blockSize, blockRaster);
-    cv::namedWindow( "Display window", cv::WINDOW_AUTOSIZE );
-    cv::imshow( "Display window", blockRaster);
-    cv::waitKey(0);
+    // cv::namedWindow( "Display window", cv::WINDOW_AUTOSIZE );
+    // cv::imshow( "Display window", blockRaster);
+    // cv::waitKey(0);
+    // {
+    //     cv::FileStorage file(testFilePath1, cv::FileStorage::WRITE);
+    //     file << "test" << blockRaster;
+    //     file.release();
+    // }
+    {
+        cv::Mat testRaster;
+        cv::FileStorage file2(testFilePath1, cv::FileStorage::READ);
+        file2["test"] >> testRaster;
+        cv::Mat diff = blockRaster != testRaster;
+        // Equal if no elements disagree
+        double min(1.), max(1.);
+        cv::minMaxLoc(diff, &min, &max);
+        EXPECT_EQ(min, 0);
+        EXPECT_EQ(max, 0);
+    }
+    blockRect.x = rect.width / 4;
+    blockRect.y = rect.height / 4;
+    blockRect.width = rect.width / 2;
+    blockRect.height = rect.height / 2;
+    const int imageWidth = 1500;
+    double cof = static_cast<double>(imageWidth) / blockRect.width;
+    blockSize.width = imageWidth;
+    blockSize.height = std::lround(cof * blockRect.height);
+    scene->readResampledBlock(blockRect, blockSize, blockRaster);
+    // cv::namedWindow("Display window", cv::WINDOW_AUTOSIZE);
+    // cv::imshow("Display window", blockRaster);
+    // cv::waitKey(0);
+    // {
+    //     cv::FileStorage file(testFilePath2, cv::FileStorage::WRITE);
+    //     file << "test" << blockRaster;
+    //     file.release();
+    // }
+    {
+        cv::Mat testRaster;
+        cv::FileStorage file2(testFilePath2, cv::FileStorage::READ);
+        file2["test"] >> testRaster;
+        cv::Mat diff = blockRaster != testRaster;
+        // Equal if no elements disagree
+        double min(1.), max(1.);
+        cv::minMaxLoc(diff, &min, &max);
+        EXPECT_EQ(min, 0);
+        EXPECT_EQ(max, 0);
+    }
 }
 

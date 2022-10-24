@@ -578,18 +578,6 @@ void slideio::TiffTools::setCurrentDirectory(libtiff::TIFF* hFile, const slideio
     }
 }
 
-void slideio::TiffTools::test0(const std::string& path)
-{
-    libtiff::TIFF* tiff = libtiff::TIFFOpen(path.c_str(), "r");
-    libtiff::TIFFSetDirectory(tiff, 0);
-    libtiff::TIFFSetDirectory(tiff, 1);
-    libtiff::TIFFSetDirectory(tiff, 2);
-    libtiff::TIFFSetDirectory(tiff, 3);
-    libtiff::TIFFSetDirectory(tiff, 4);
-    libtiff::TIFFSetDirectory(tiff, 0);
-    libtiff::TIFFClose(tiff);
-}
-
 
 TIFFKeeper::TIFFKeeper(libtiff::TIFF* hfile) : m_hFile(hfile)
 {

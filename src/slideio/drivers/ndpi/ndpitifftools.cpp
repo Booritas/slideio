@@ -808,16 +808,6 @@ void slideio::NDPITiffTools::decodeJxrBlock(const uint8_t* data, size_t dataBloc
     jpegxr_decompress((uint8_t*)data, (uint32_t)dataBlockSize, outputBuff, ouputBuffSize);
 }
 
-void slideio::NDPITiffTools::test0(const std::string& path)
-{
-    libtiff::TIFF* tiff = libtiff::TIFFOpen(path.c_str(),"r");
-    libtiff::TIFFSetDirectory(tiff, 0);
-    libtiff::TIFFSetDirectory(tiff, 1);
-    libtiff::TIFFSetDirectory(tiff, 2);
-    libtiff::TIFFSetDirectory(tiff, 3);
-    libtiff::TIFFSetDirectory(tiff, 0);
-    libtiff::TIFFClose(tiff);
-}
 slideio::NDPITIFFKeeper::NDPITIFFKeeper(libtiff::TIFF* hfile) : m_hFile(hfile)
 {
 }

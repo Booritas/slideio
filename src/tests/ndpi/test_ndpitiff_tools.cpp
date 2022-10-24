@@ -227,9 +227,3 @@ TEST(NDPITiffTools, compupteStripHeight)
     lines = slideio::NDPITiffTools::computeStripHeight(dir, 1);
     EXPECT_EQ(1, lines);
 }
-
-TEST(NDPITiffTools, test0)
-{
-    std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1.ndpi");
-    slideio::NDPITiffTools::test0(filePath);
-}

@@ -194,9 +194,3 @@ TEST(TiffTools, readNotRGBTile)
     const int compare = std::memcmp(raster.data, tile.data, raster.total() * raster.elemSize());
     EXPECT_EQ(compare, 0);
 }
-
-TEST(TiffTools, test0)
-{
-    std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1.ndpi");
-    slideio::TiffTools::test0(filePath);
-}

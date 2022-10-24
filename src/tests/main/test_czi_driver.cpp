@@ -551,28 +551,12 @@ TEST(CZIImageDriver, mozaicZoomPyramid)
     ASSERT_EQ(memcmp(raster.data, testRaster.data, memSize), 0);
 }
 
-//TODO: CLEAR COMMENTED OUT TESTS
-//#include <opencv2/imgproc.hpp>
-//#include <opencv2/highgui.hpp>
 
-//TEST(CZIImageDriver, readBlock3)
-//{
-//    slideio::CZIImageDriver driver;
-//    std::string filePath(R"(d:\Projects\slideio\slideio_extra_priv\testdata\cv\slideio\czi\jxr-rgb-5scenes.czi)");
-//    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
-//    ASSERT_TRUE(slide!=nullptr);
-//    int numScenes = slide->getNumScenes();
-//    auto scene = slide->getScene(2);
-//    ASSERT_FALSE(scene == nullptr);
-//    cv::Rect sceneRect = scene->getRect();
-//    double coef = 400. / sceneRect.width;
-//    int height = (int)std::round(coef * sceneRect.height);
-//    cv::Size size = { 400, height };
-//    cv::Mat raster;
-//    sceneRect.x = sceneRect.y = 0;
-//    scene->readResampledBlock(sceneRect, size, raster);
-//    //cv::namedWindow( "Display window", cv::WINDOW_AUTOSIZE );
-//    //cv::imshow( "Display window", raster);
-//    //cv::waitKey(0);
-//    int a = 0;
-//}
+TEST(CZIImageDriver, openDamagedFile)
+{
+    slideio::CZIImageDriver driver;
+
+    std::string filePath = TestTools::getFullTestImagePath("czi", "private/E2_A3_W12.czi");
+
+    ASSERT_NO_THROW(driver.openFile(filePath));
+}
