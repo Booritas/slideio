@@ -607,6 +607,8 @@ void NDPITiffTools::readScanlines(libtiff::TIFF* tiff, FILE* file, const NDPITif
 
     jpeg_create_decompress(&cinfo);
     jpeg_stdio_src(&cinfo, file);
+    cinfo.image_width = dir.width;
+    cinfo.image_height = dir.height;
     jpeg_read_header(&cinfo, TRUE);
     jpeg_start_decompress(&cinfo);
     int row_stride = cinfo.output_width * cinfo.output_components;
