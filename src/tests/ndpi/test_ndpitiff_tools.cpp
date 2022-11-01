@@ -16,6 +16,13 @@ inline void compareRasters(cv::Mat& raster1, cv::Mat& raster2)
     EXPECT_EQ(max, 0);
 }
 
+inline void showRaster(cv::Mat& raster)
+{
+    cv::namedWindow("Display window", cv::WINDOW_AUTOSIZE);
+    cv::imshow("Display window", raster);
+    cv::waitKey(0);
+}
+
 TEST(NDPITiffTools, scanFile)
 {
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "2017-02-27 15.29.08.ndpi");
@@ -51,7 +58,7 @@ TEST(NDPITiffTools, scanFile)
 TEST(NDPITiffTools, readRegularStripedDir)
 {
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1.ndpi");
-    std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1.bin");
+    std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1-3.png");
     std::vector<slideio::NDPITiffDirectory> dirs;
     slideio::NDPITiffTools::scanFile(filePath, dirs);
     int dirCount = (int)dirs.size();
@@ -66,24 +73,16 @@ TEST(NDPITiffTools, readRegularStripedDir)
     slideio::NDPITiffTools::closeTiffFile(tiff);
     EXPECT_EQ(dirRaster.rows, dir.height);
     EXPECT_EQ(dirRaster.cols, dir.width);
-    // cv::FileStorage file(testFilePath, cv::FileStorage::WRITE);
-    // file << "test" << dirRaster;
-    // file.release();
+    //slideio::NDPITestTools::writePNG(dirRaster, testFilePath);
     cv::Mat testRaster;
-    cv::FileStorage file2(testFilePath, cv::FileStorage::READ);
-    file2["test"] >> testRaster;
-    cv::Mat diff = dirRaster != testRaster;
-    // Equal if no elements disagree
-    double min(1.), max(1.);
-    cv::minMaxLoc(diff, &min, &max);
-    EXPECT_EQ(min,0);
-    EXPECT_EQ(max, 0);
+    slideio::NDPITestTools::readPNG(testFilePath, testRaster);
+    compareRasters(dirRaster, testRaster);
 }
 
 TEST(NDPITiffTools, readRegularStrip)
 {
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1.ndpi");
-    std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1.bin");
+    std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1-3.png");
     libtiff::TIFF* tiff = slideio::NDPITiffTools::openTiffFile(filePath);;
     ASSERT_TRUE(tiff != nullptr);
     int dirIndex = 3;
@@ -98,25 +97,17 @@ TEST(NDPITiffTools, readRegularStrip)
     slideio::NDPITiffTools::closeTiffFile(tiff);
     EXPECT_EQ(stripRaster.rows, dir.rowsPerStrip);
     EXPECT_EQ(stripRaster.cols, dir.width);
-    // cv::namedWindow( "Display window", cv::WINDOW_AUTOSIZE );
-    // cv::imshow( "Display window", stripRaster);
-    // cv::waitKey(0);
+    //slideio::NDPITestTools::writePNG(dirRaster, testFilePath);
     cv::Mat testRaster;
-    cv::FileStorage file2(testFilePath, cv::FileStorage::READ);
-    file2["test"] >> testRaster;
-    cv::Mat diff = stripRaster != testRaster;
-    // Equal if no elements disagree
-    double min(1.), max(1.);
-    cv::minMaxLoc(diff, &min, &max);
-    EXPECT_EQ(min, 0);
-    EXPECT_EQ(max, 0);
+    slideio::NDPITestTools::readPNG(testFilePath, testRaster);
+    compareRasters(stripRaster, testRaster);
 }
 
 
 TEST(NDPITiffTools, readTile)
 {
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "DM0014 - 2020-04-02 11.10.47.ndpi");
-    std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "DM0014 - 2020-04-02 11.10.47.bin");
+    std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "DM0014 - 2020-04-02 11.10.47-2.png");
     std::vector<slideio::NDPITiffDirectory> dirs;
     slideio::NDPITiffTools::scanFile(filePath, dirs);
     int dirCount = (int)dirs.size();
@@ -132,23 +123,10 @@ TEST(NDPITiffTools, readTile)
     slideio::NDPITiffTools::closeTiffFile(tiff);
     EXPECT_EQ(tileRaster.rows, dir.tileHeight);
     EXPECT_EQ(tileRaster.cols, dir.tileWidth);
-    // cv::namedWindow( "Display window", cv::WINDOW_AUTOSIZE );
-    // cv::imshow( "Display window", tileRaster);
-    // cv::waitKey(0);
-
-    // cv::FileStorage file(testFilePath, cv::FileStorage::WRITE);
-    // file << "test" << tileRaster;
-    // file.release();
+    //slideio::NDPITestTools::writePNG(tileRaster, testFilePath);
     cv::Mat testRaster;
-    cv::FileStorage file2(testFilePath, cv::FileStorage::READ);
-    file2["test"] >> testRaster;
-    cv::Mat diff = tileRaster != testRaster;
-    // Equal if no elements disagree
-    double min(1.), max(1.);
-    cv::minMaxLoc(diff, &min, &max);
-    EXPECT_EQ(min, 0);
-    EXPECT_EQ(max, 0);
-
+    slideio::NDPITestTools::readPNG(testFilePath, testRaster);
+    compareRasters(tileRaster, testRaster);
 }
 
 TEST(NDPITiffTools, compupteTileCounts)
@@ -244,7 +222,7 @@ TEST(NDPITiffTools, computeStripHeight)
 TEST(NDPITiffTools, readScanlines)
 {
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1.ndpi");
-    std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1.bin");
+    std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1-scanline.png");
     libtiff::TIFF* tiff = slideio::NDPITiffTools::openTiffFile(filePath);;
     ASSERT_TRUE(tiff != nullptr);
     int dirIndex = 3;
@@ -263,24 +241,17 @@ TEST(NDPITiffTools, readScanlines)
     fclose(file);
     EXPECT_EQ(numberScanlines, stripRaster.rows);
     EXPECT_EQ(dir.width, stripRaster.cols);
-    cv::namedWindow( "Display window", cv::WINDOW_AUTOSIZE );
-    cv::imshow( "Display window", stripRaster);
-    cv::waitKey(0);
-    // cv::Mat testRaster;
-    // cv::FileStorage file2(testFilePath, cv::FileStorage::READ);
-    // file2["test"] >> testRaster;
-    // cv::Mat diff = stripRaster != testRaster;
-    // // Equal if no elements disagree
-    // double min(1.), max(1.);
-    // cv::minMaxLoc(diff, &min, &max);
-    // EXPECT_EQ(min, 0);
-    // EXPECT_EQ(max, 0);
+    //slideio::NDPITestTools::writePNG(stripRaster, testFilePath);
+    cv::Mat testRaster;
+    slideio::NDPITestTools::readPNG(testFilePath, testRaster);
+    compareRasters(testRaster, stripRaster);
+    //showRaster(stripRaster);
 }
 
 TEST(NDPITiffTools, readScanlines2)
 {
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "2017-02-27 15.29.08.ndpi");
-    std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "B05-41379_10.bin");
+    std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "2017-02-27 15.29.08-scanlines.png");
     libtiff::TIFF* tiff = slideio::NDPITiffTools::openTiffFile(filePath);;
     ASSERT_TRUE(tiff != nullptr);
     int dirIndex = 0;
@@ -299,18 +270,7 @@ TEST(NDPITiffTools, readScanlines2)
     fclose(file);
     EXPECT_EQ(numberScanlines, stripRaster.rows);
     EXPECT_EQ(dir.width, stripRaster.cols);
-    cv::namedWindow("Display window", cv::WINDOW_AUTOSIZE);
-    cv::imshow("Display window", stripRaster);
-    cv::waitKey(0);
-    // cv::Mat testRaster;
-    // cv::FileStorage file2(testFilePath, cv::FileStorage::READ);
-    // file2["test"] >> testRaster;
-    // cv::Mat diff = stripRaster != testRaster;
-    // // Equal if no elements disagree
-    // double min(1.), max(1.);
-    // cv::minMaxLoc(diff, &min, &max);
-    // EXPECT_EQ(min, 0);
-    // EXPECT_EQ(max, 0);
+    showRaster(stripRaster);
 }
 
 TEST(NDPITiffTools, readRegularStripedDir2)
@@ -335,8 +295,5 @@ TEST(NDPITiffTools, readRegularStripedDir2)
     cv::Mat testRaster;
     slideio::NDPITestTools::readPNG(testFilePath, testRaster);
     compareRasters(dirRaster, testRaster);
-    // cv::Mat dif = dirRaster != testRaster;
-    // cv::namedWindow( "Display window", cv::WINDOW_AUTOSIZE );
-    // cv::imshow( "Display window", testRaster);
-    // cv::waitKey(0);
+    showRaster(testRaster);
 }
