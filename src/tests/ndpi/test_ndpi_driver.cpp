@@ -148,13 +148,16 @@ TEST(NDPIImageDriver, readTiledScene)
     slideio::DataType dt = scene->getChannelDataType(0);
     EXPECT_EQ(slideio::DataType::DT_Byte, dt);
 
-    cv::Rect blockRect(rect);
-    cv::Size blockSize(rect.width / 100, rect.height / 100);
+    const int blockWidth = 300;
+    const int blockHeight = 300;
+    cv::Rect blockRect(rect.width/3, rect.height/3, blockWidth, blockHeight);
+    cv::Size blockSize(blockWidth, blockHeight);
     cv::Mat blockRaster;
     scene->readResampledBlock(blockRect, blockSize, blockRaster);
     cv::namedWindow( "Display window", cv::WINDOW_AUTOSIZE );
     cv::imshow( "Display window", blockRaster);
     cv::waitKey(0);
+    return;
     // {
     //     cv::FileStorage file(testFilePath1, cv::FileStorage::WRITE);
     //     file << "test" << blockRaster;

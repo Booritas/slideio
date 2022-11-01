@@ -84,9 +84,11 @@ namespace slideio
                                     const std::vector<int>& channelIndices, cv::OutputArray output);
         static void readNotRGBTile(libtiff::TIFF* hFile, const slideio::NDPITiffDirectory& dir, int tile,
             const std::vector<int>& channelIndices, cv::OutputArray output);
-        static int computeStripHeight(const NDPITiffDirectory& dir, int strip);
+        static int computeStripHeight(int height, int rowsPerStrip, int strip);
         static cv::Size computeTileSize(const NDPITiffDirectory& dir, int tile);
         static cv::Size computeTileCounts(const NDPITiffDirectory& dir);
+        static void readScanlines(libtiff::TIFF* tiff, FILE* file, const NDPITiffDirectory& dir, int firstScanline,
+            int numberScanlines, const std::vector<int>& channelIndices, cv::_OutputArray output);
     };
 
     class  NDPITIFFKeeper

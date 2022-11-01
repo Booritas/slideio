@@ -2,15 +2,17 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 //
-#include "slideio/drivers/ndpi/ndpitifftools.hpp"
-#include "slideio/core/cvtools.hpp"
 #include <opencv2/core.hpp>
 #include <boost/format.hpp>
 #include <boost/filesystem.hpp>
 #include <jxrcodec/jxrcodec.hpp>
 
+
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/drivers/ndpi/ndpilibtiff.hpp"
+#include "slideio/drivers/ndpi/ndpitifftools.hpp"
+#include "slideio/core/cvtools.hpp"
+#include "jpeglib.h"
 
 using namespace slideio;
 
@@ -523,15 +525,15 @@ void slideio::NDPITiffTools::readTile(libtiff::TIFF* hFile, const slideio::NDPIT
     }
 }
 
-int NDPITiffTools::computeStripHeight(const NDPITiffDirectory& dir, int strip)
+int NDPITiffTools::computeStripHeight(int height, int rowsPerStrip, int strip)
 {
-    const int stripCount = (dir.height - 1) / dir.rowsPerStrip + 1;
+    const int stripCount = (height - 1) / rowsPerStrip + 1;
     if(strip >= stripCount || strip < 0) {
         RAISE_RUNTIME_ERROR << "Invalid strip number: " << strip << ". Number of strips: " << stripCount;
     }
-    int lineCount = dir.rowsPerStrip;
+    int lineCount = rowsPerStrip;
     if(strip == (stripCount-1)) {
-        lineCount = dir.height - strip * dir.rowsPerStrip;
+        lineCount = height - strip * rowsPerStrip;
     }
     return lineCount;
 }
@@ -566,10 +568,79 @@ cv::Size NDPITiffTools::computeTileCounts(const NDPITiffDirectory& dir)
     return tileCounts;
 }
 
+struct ErrorManager {
+    struct jpeg_error_mgr pub;    /* "public" fields */
+    jmp_buf setjmp_buffer;        /* for return to caller */
+};
+typedef struct ErrorManager* my_error_ptr;
+
+void ErrorExit(j_common_ptr cinfo)
+{
+    /* cinfo->err really points to a ErrorManager struct, so coerce pointer */
+    my_error_ptr myerr = (my_error_ptr)cinfo->err;
+    /* Always display the message. */
+    /* We could postpone this until after returning, if we chose. */
+    (*cinfo->err->output_message) (cinfo);
+    /* Return control to the setjmp point */
+    longjmp(myerr->setjmp_buffer, 1);
+}
+
+void NDPITiffTools::readScanlines(libtiff::TIFF* tiff, FILE* file, const NDPITiffDirectory& dir, int firstScanline,
+                                  int numberScanlines, const std::vector<int>& channelIndices, cv::_OutputArray output)
+{
+    setCurrentDirectory(tiff, dir);
+
+    uint64_t stripeOffset = libtiff::TIFFGetStrileOffset(tiff, 0);
+    int ret = _fseeki64(file, stripeOffset, SEEK_SET);
+    jpeg_decompress_struct cinfo;
+    ErrorManager jerr;
+
+    cinfo.err = jpeg_std_error(&jerr.pub);
+    jerr.pub.error_exit = ErrorExit;
+
+    if (setjmp(jerr.setjmp_buffer)) {
+        /* If we get here, the JPEG code has signaled an error.
+         * We need to clean up the JPEG object, close the input file, and return.*/
+        jpeg_destroy_decompress(&cinfo);
+        return;
+    }
+
+    jpeg_create_decompress(&cinfo);
+    jpeg_stdio_src(&cinfo, file);
+    jpeg_read_header(&cinfo, TRUE);
+    jpeg_start_decompress(&cinfo);
+    int row_stride = cinfo.output_width * cinfo.output_components;
+
+    if (firstScanline) {
+        int skipped = jpeg_skip_scanlines(&cinfo, firstScanline);
+        if (skipped != firstScanline) {
+            RAISE_RUNTIME_ERROR << "NDPIImageDriver: error by skipping scanlines. Expected:" << firstScanline << ". Skipped: " << skipped;
+        }
+    }
+    output.create(numberScanlines, cinfo.output_width, CV_MAKETYPE(CV_8U, cinfo.output_components));
+    cv::Mat mat = output.getMat();
+    mat.setTo(cv::Scalar(0));
+    uint8_t* rowBegin = mat.data;
+
+    for (int scanline = 0; scanline < numberScanlines; ++scanline) {
+        int read = jpeg_read_scanlines(&cinfo, &rowBegin, 1);
+        if (read != 1) {
+            RAISE_RUNTIME_ERROR << "NDPIImageDriver: error by reading scanline " << scanline << " of " << numberScanlines;
+        }
+        rowBegin += row_stride;
+    }
+    const int rowsLeft = dir.height - firstScanline - numberScanlines;
+    if(rowsLeft>0) {
+        jpeg_skip_scanlines(&cinfo, rowsLeft);
+    }
+    jpeg_finish_decompress(&cinfo);
+    jpeg_destroy_decompress(&cinfo);
+}
+
 void NDPITiffTools::readJpegXRStrip(libtiff::TIFF* tiff, const NDPITiffDirectory& dir, int strip,
                                     const std::vector<int>& vector, cv::_OutputArray output)
 {
-    const int lineCount = computeStripHeight(dir, strip);
+    const int lineCount = computeStripHeight(dir.height, dir.rowsPerStrip, strip);
     const int stripSize = dir.channels * lineCount * dir.width * Tools::dataTypeSize(dir.dataType);
     std::vector<uint8_t> rawStrip(stripSize);
     if (dir.interleaved)
@@ -588,7 +659,7 @@ void NDPITiffTools::readJpegXRStrip(libtiff::TIFF* tiff, const NDPITiffDirectory
 void NDPITiffTools::readNotRGBStrip(libtiff::TIFF* hFile, const NDPITiffDirectory& dir, int strip,
     const std::vector<int>& channelIndices, cv::_OutputArray output)
 {
-    const int lineCount = computeStripHeight(dir, strip);
+    const int lineCount = computeStripHeight(dir.height, dir.rowsPerStrip, strip);
     cv::Size stripSize = { dir.width, lineCount };
     slideio::DataType dt = dir.dataType;
     cv::Mat stripRaster;
@@ -598,7 +669,6 @@ void NDPITiffTools::readNotRGBStrip(libtiff::TIFF* hFile, const NDPITiffDirector
         libtiff::TIFFSetSubDirectory(hFile, dir.offset);
     }
     uint32_t* buffBegin = reinterpret_cast<uint32_t*>(stripRaster.data);
-
     auto readBytes = libtiff::TIFFReadRGBAStrip(hFile, strip, buffBegin);
     if (readBytes <= 0)
     {
@@ -636,7 +706,7 @@ void NDPITiffTools::readNotRGBStrip(libtiff::TIFF* hFile, const NDPITiffDirector
 void NDPITiffTools::readRegularStrip(libtiff::TIFF* tiff, const NDPITiffDirectory& dir, int strip,
                                      const std::vector<int>& channelIndices, cv::_OutputArray output)
 {
-    const int lineCount = computeStripHeight(dir, strip);
+    const int lineCount = computeStripHeight(dir.height, dir.rowsPerStrip, strip);
     cv::Size stripSize = { dir.width, lineCount };
     slideio::DataType dt = dir.dataType;
     cv::Mat stripRaster;

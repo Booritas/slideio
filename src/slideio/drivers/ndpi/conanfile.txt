@@ -7,7 +7,7 @@ libwebp/1.0.3
 boost/1.80.0
 tinyxml2/8.0.0
 jpegxrcodec/1.0.2@slideio/stable
-ndpi-libjpeg/9d@slideio/stable
+ndpi-libjpeg-turbo/2.1.2@slideio/stable
 expat/2.2.10
 [options]
 boost:shared=False

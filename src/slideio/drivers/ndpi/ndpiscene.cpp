@@ -9,6 +9,42 @@
 
 using namespace slideio;
 
+class NDPIUserData
+{
+public:
+    NDPIUserData(const NDPITiffDirectory* dir, const std::string& filePath) : m_dir(dir), m_file(nullptr), m_rowsPerStrip(0) {
+        if((!dir->tiled) && (dir->rowsPerStrip == dir->height)) {
+            m_file = fopen(filePath.c_str(), "rb");
+            if (!m_file) {
+                RAISE_RUNTIME_ERROR << "NDPI Image Driver: Cannot open file " << filePath;
+            }
+            const int MAX_BUFFER_SIZE = 10 * 1024 * 1024;
+            int strideSize = dir->width * dir->channels * Tools::dataTypeSize(dir->dataType);
+            int rowsPerStrip = MAX_BUFFER_SIZE / strideSize;
+            m_rowsPerStrip = std::min(rowsPerStrip, dir->height);
+        }
+    }
+    ~NDPIUserData(){
+        if(m_file) {
+            fclose(m_file);
+        }
+    }
+    const NDPITiffDirectory* dir() const {
+        return m_dir;
+    }
+
+    FILE* file() const {
+        return m_file;
+    }
+    int rowsPerStrip() const {
+        return m_rowsPerStrip;
+    }
+private:
+    const NDPITiffDirectory* m_dir;
+    FILE* m_file;
+    int m_rowsPerStrip;
+};
+
 NDPIScene::NDPIScene() : m_pfile(nullptr), m_startDir(-1), m_endDir(-1), m_rect(0,0,0,0)
 {
 }
@@ -118,25 +154,29 @@ void NDPIScene::readResampledBlockChannels(const cv::Rect& blockRect, const cv::
     double zoomDirY = static_cast<double>(dir.height) / static_cast<double>(directories[0].height);
     cv::Rect resizedBlock;
     Tools::scaleRect(blockRect, zoomDirX, zoomDirY, resizedBlock);
-    TileComposer::composeRect(this, channelIndices, resizedBlock, blockSize, output, (void*)&dir);
+    NDPIUserData data(&dir, getFilePath());
+    TileComposer::composeRect(this, channelIndices, resizedBlock, blockSize, output, (void*)&data);
 }
 
 int NDPIScene::getTileCount(void* userData)
 {
-    const NDPITiffDirectory* dir = (const NDPITiffDirectory*)userData;
+    NDPIUserData* data = (NDPIUserData*)userData;
+    const NDPITiffDirectory* dir = data->dir();
     if (dir->tiled) {
         int tilesX = (dir->width-1)/dir->tileWidth + 1;
         int tilesY = (dir->height-1)/dir->tileHeight + 1;
         return tilesX * tilesY;
     } else {
-        const int stripes = (dir->height - 1) / dir->rowsPerStrip + 1;
+        const int rowsPerStrip = (dir->rowsPerStrip == dir->height) ? data->rowsPerStrip() : dir->rowsPerStrip;
+        const int stripes = (dir->height - 1) / rowsPerStrip + 1;
         return stripes;
     }
 }
 
 bool NDPIScene::getTileRect(int tileIndex, cv::Rect& tileRect, void* userData)
 {
-    const NDPITiffDirectory* dir = (const NDPITiffDirectory*)userData;
+    NDPIUserData* data = (NDPIUserData*)userData;
+    const NDPITiffDirectory* dir = data->dir();
     if (dir->tiled) {
         const int tilesX = (dir->width - 1) / dir->tileWidth + 1;
         const int tilesY = (dir->height - 1) / dir->tileHeight + 1;
@@ -148,11 +188,12 @@ bool NDPIScene::getTileRect(int tileIndex, cv::Rect& tileRect, void* userData)
         tileRect.height = dir->tileHeight;
         return true;
     } else {
-        const int y = tileIndex * dir->rowsPerStrip;
+        const int rowsPerStrip = (dir->rowsPerStrip == dir->height) ? data->rowsPerStrip() : dir->rowsPerStrip;
+        const int y = tileIndex * rowsPerStrip;
         tileRect.x = 0;
         tileRect.y = y;
         tileRect.width = dir->width;
-        tileRect.height = NDPITiffTools::computeStripHeight(*dir, tileIndex);
+        tileRect.height = NDPITiffTools::computeStripHeight(dir->height, rowsPerStrip, tileIndex);
         return true;
     }
 }
@@ -160,7 +201,8 @@ bool NDPIScene::getTileRect(int tileIndex, cv::Rect& tileRect, void* userData)
 bool NDPIScene::readTile(int tileIndex, const std::vector<int>& channelIndices, cv::OutputArray tileRaster,
     void* userData)
 {
-    const NDPITiffDirectory* dir = (const NDPITiffDirectory*)userData;
+    NDPIUserData* data = (NDPIUserData*)userData;
+    const NDPITiffDirectory* dir = data->dir();
     bool ret = false;
 
     if (dir->tiled) {
@@ -171,13 +213,23 @@ bool NDPIScene::readTile(int tileIndex, const std::vector<int>& channelIndices, 
         }
         catch(std::runtime_error&){
         }
-    } else {
+    } else if(dir->rowsPerStrip != dir->height) {
         try
         {
             NDPITiffTools::readStrip(m_pfile->getTiffHandle(), *dir, tileIndex, channelIndices, tileRaster);
             ret = true;
         }
         catch (std::runtime_error&) {
+        }
+    } else {
+        try 
+        {
+            const int firstScanline = tileIndex*data->rowsPerStrip();
+            const int numberScanlines = data->rowsPerStrip();
+            NDPITiffTools::readScanlines(m_pfile->getTiffHandle(), data->file(), *dir, firstScanline, numberScanlines, channelIndices, tileRaster);
+        }
+        catch(std::runtime_error& ) {
+            
         }
     }
     return ret;
