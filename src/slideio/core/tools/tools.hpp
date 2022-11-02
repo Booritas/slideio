@@ -68,6 +68,22 @@ namespace slideio
         static void scaleRect(const cv::Rect& srcRect, const cv::Size& newSize, cv::Rect& trgRect);
         static void scaleRect(const cv::Rect& srcRect, double scaleX, double scaleY, cv::Rect& trgRect);
         static int dataTypeSize(slideio::DataType dt);
+        static bool isCompleteChannelList(const std::vector<int>& channelIndices, const int numChannels)
+        {
+            bool allChannels = channelIndices.empty();
+            if(!allChannels) {
+                if (channelIndices.size() == numChannels) {
+                    allChannels = true;
+                    for (int channel = 0; channel < channelIndices.size(); ++channel) {
+                        if (channelIndices[channel] != channel) {
+                            allChannels = false;
+                            break;
+                        }
+                    }
+                }
+            }
+            return allChannels;
+        }
     };
 }
 #endif

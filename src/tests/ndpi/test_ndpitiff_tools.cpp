@@ -274,35 +274,11 @@ TEST(NDPITiffTools, readRegularStripedDir2)
     //showRaster(testRaster);
 }
 
-TEST(NDPITiffTools, readRegularStripedDir0)
-{
-    std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "2017-02-27 15.29.08.ndpi");
-    std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "2017-02-27 15.29.08-dir-0.png");
-    std::vector<slideio::NDPITiffDirectory> dirs;
-    slideio::NDPITiffTools::scanFile(filePath, dirs);
-    int dirCount = (int)dirs.size();
-    libtiff::TIFF* tiff = slideio::NDPITiffTools::openTiffFile(filePath);;
-    ASSERT_TRUE(tiff != nullptr);
-    int dirIndex = 0;
-    slideio::NDPITiffDirectory dir;
-    slideio::NDPITiffTools::scanTiffDirTags(tiff, dirIndex, 0, dir);
-    dir.dataType = slideio::DataType::DT_Byte;
-    cv::Mat dirRaster;
-    slideio::NDPITiffTools::readStripedDir(tiff, dir, dirRaster);
-    slideio::NDPITiffTools::closeTiffFile(tiff);
-    EXPECT_EQ(dirRaster.rows, dir.height);
-    EXPECT_EQ(dirRaster.cols, dir.width);
-    // slideio::NDPITestTools::writePNG(dirRaster, testFilePath);
-    // cv::Mat testRaster;
-    // slideio::NDPITestTools::readPNG(testFilePath, testRaster);
-    // compareRasters(dirRaster, testRaster);
-    showRaster(dirRaster);
-}
 
-TEST(NDPITiffTools, readScanlines2)
+TEST(NDPITiffTools, readScanlinesDNLMarker)
 {
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "HE_Hamamatsu.ndpi");
-    std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "test-0-scanlines.png");
+    std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "HE_Hamamatsu-roi.png");
     libtiff::TIFF* tiff = slideio::NDPITiffTools::openTiffFile(filePath);
     ASSERT_TRUE(tiff != nullptr);
     int dirIndex = 0;
@@ -311,17 +287,13 @@ TEST(NDPITiffTools, readScanlines2)
     dir.dataType = slideio::DataType::DT_Byte;
     const std::vector<int> channelIndices = { 0,1,2 };
     cv::Mat stripRaster;
-    const int numberScanlines = 300;
-    const int firstScanline = dir.height / 2;
-    FILE* file = fopen(filePath.c_str(), "rb");
-    slideio::NDPITiffTools::readScanlines(tiff, file, dir, firstScanline, numberScanlines, channelIndices, stripRaster);
-    slideio::NDPITiffTools::closeTiffFile(tiff);
-    fclose(file);
-    EXPECT_EQ(numberScanlines, stripRaster.rows);
-    EXPECT_EQ(dir.width, stripRaster.cols);
-    slideio::NDPITestTools::writePNG(stripRaster, testFilePath);
-    // cv::Mat testRaster;
-    // slideio::NDPITestTools::readPNG(testFilePath, testRaster);
-    // compareRasters(testRaster, stripRaster);
-    showRaster(stripRaster);
+    cv::Rect roi = { dir.width / 2, dir.height / 2, 400, 300 };
+    slideio::NDPITiffTools::readJpegDirectoryRegion(tiff, filePath, roi, dir, channelIndices, stripRaster);
+    EXPECT_EQ(roi.height, stripRaster.rows);
+    EXPECT_EQ(roi.width, stripRaster.cols);
+    //slideio::NDPITestTools::writePNG(stripRaster, testFilePath);
+    cv::Mat testRaster;
+    slideio::NDPITestTools::readPNG(testFilePath, testRaster);
+    compareRasters(testRaster, stripRaster);
+    //showRaster(stripRaster);
 }

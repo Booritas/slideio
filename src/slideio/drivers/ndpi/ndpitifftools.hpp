@@ -89,6 +89,8 @@ namespace slideio
         static cv::Size computeTileCounts(const NDPITiffDirectory& dir);
         static void readScanlines(libtiff::TIFF* tiff, FILE* file, const NDPITiffDirectory& dir, int firstScanline,
             int numberScanlines, const std::vector<int>& channelIndices, cv::_OutputArray output);
+        static void readJpegDirectoryRegion(libtiff::TIFF* tiff, const std::string& filePath, const cv::Rect& region, const NDPITiffDirectory& dir,
+            const std::vector<int>& channelIndices, cv::_OutputArray output);
     };
 
     class  NDPITIFFKeeper

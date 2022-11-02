@@ -227,6 +227,7 @@ bool NDPIScene::readTile(int tileIndex, const std::vector<int>& channelIndices, 
             const int firstScanline = tileIndex*data->rowsPerStrip();
             const int numberScanlines = data->rowsPerStrip();
             NDPITiffTools::readScanlines(m_pfile->getTiffHandle(), data->file(), *dir, firstScanline, numberScanlines, channelIndices, tileRaster);
+            ret = true;
         }
         catch(std::runtime_error& ) {
             
