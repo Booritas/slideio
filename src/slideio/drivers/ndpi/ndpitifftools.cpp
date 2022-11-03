@@ -694,6 +694,14 @@ void NDPITiffTools::readJpegDirectoryRegion(libtiff::TIFF* tiff, const std::stri
         cv::Mat imageBuffer(numBufferLines, dir.width, CV_MAKETYPE(cvType, cinfo.output_components));
         imageBuffer.setTo(cv::Scalar(255, 255, 255));
 
+        // channel mapping
+        std::vector<int> fromTo(channelIndices.size() * 2);
+        for (int index = 0; index < channelIndices.size(); ++index) {
+            int location = index * 2;
+            fromTo[location] = channelIndices[index];
+            fromTo[location + 1] = index;
+        }
+
         uint8_t* rowBegin = imageBuffer.data;
         int imageLine(0), bufferLine(0), bufferIndex(0);
         bool startNewBlock(true);
@@ -722,15 +730,7 @@ void NDPITiffTools::readJpegDirectoryRegion(libtiff::TIFF* tiff, const std::stri
                     srcImage.copyTo(dstImage);
                 }
                 else {
-                    cv::Mat channelImage;
-                    std::vector<int> fromTo(channelIndices.size() * 2);
-                    for(int index=0; index<channelIndices.size(); ++index) {
-                        int location = index * 2;
-                        fromTo[location] = channelIndices[index];
-                        fromTo[location + 1] = index;
-                    }
                     cv::mixChannels(&srcImage, 1, &dstImage, 1, fromTo.data(), channelIndices.size());
-                    channelImage.copyTo(dstImage);
                 }
                 bufferIndex++;
                 startNewBlock = true;

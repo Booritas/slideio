@@ -297,3 +297,50 @@ TEST(NDPITiffTools, readScanlinesDNLMarker)
     compareRasters(testRaster, stripRaster);
     //showRaster(stripRaster);
 }
+
+TEST(NDPITiffTools, readScanlinesDNLMarkerSingleChannel)
+{
+    std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "HE_Hamamatsu.ndpi");
+    std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "HE_Hamamatsu-roi-gray.png");
+    libtiff::TIFF* tiff = slideio::NDPITiffTools::openTiffFile(filePath);
+    ASSERT_TRUE(tiff != nullptr);
+    int dirIndex = 0;
+    slideio::NDPITiffDirectory dir;
+    slideio::NDPITiffTools::scanTiffDirTags(tiff, dirIndex, 0, dir);
+    dir.dataType = slideio::DataType::DT_Byte;
+    const std::vector<int> channelIndices = { 1 };
+    cv::Mat stripRaster;
+    cv::Rect roi = { dir.width / 3, dir.height / 3, 400, 300 };
+    slideio::NDPITiffTools::readJpegDirectoryRegion(tiff, filePath, roi, dir, channelIndices, stripRaster);
+    EXPECT_EQ(roi.height, stripRaster.rows);
+    EXPECT_EQ(roi.width, stripRaster.cols);
+    EXPECT_EQ(1, stripRaster.channels());
+    //slideio::NDPITestTools::writePNG(stripRaster, testFilePath);
+    cv::Mat testRaster;
+    slideio::NDPITestTools::readPNG(testFilePath, testRaster);
+    compareRasters(testRaster, stripRaster);
+    //showRaster(stripRaster);
+}
+
+TEST(NDPITiffTools, readScanlinesDNLMarkerInversedChannels)
+{
+    std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "HE_Hamamatsu.ndpi");
+    std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "HE_Hamamatsu-roi-inversed.png");
+    libtiff::TIFF* tiff = slideio::NDPITiffTools::openTiffFile(filePath);
+    ASSERT_TRUE(tiff != nullptr);
+    int dirIndex = 0;
+    slideio::NDPITiffDirectory dir;
+    slideio::NDPITiffTools::scanTiffDirTags(tiff, dirIndex, 0, dir);
+    dir.dataType = slideio::DataType::DT_Byte;
+    const std::vector<int> channelIndices = { 2,0,1};
+    cv::Mat stripRaster;
+    cv::Rect roi = { dir.width / 2, dir.height / 2, 400, 300 };
+    slideio::NDPITiffTools::readJpegDirectoryRegion(tiff, filePath, roi, dir, channelIndices, stripRaster);
+    EXPECT_EQ(roi.height, stripRaster.rows);
+    EXPECT_EQ(roi.width, stripRaster.cols);
+    //slideio::NDPITestTools::writePNG(stripRaster, testFilePath);
+    cv::Mat testRaster;
+    slideio::NDPITestTools::readPNG(testFilePath, testRaster);
+    compareRasters(testRaster, stripRaster);
+    //showRaster(stripRaster);
+}

@@ -46,7 +46,7 @@ void NDPITestTools::writePNG(cv::Mat raster, const std::string& filePath)
         const int width = raster.cols;
         const int height = raster.rows;
         const int bitDepth = 8;
-        const int colorType = PNG_COLOR_TYPE_RGB;
+        const int colorType = (raster.channels()==3)?PNG_COLOR_TYPE_RGB: PNG_COLOR_TYPE_GRAY;
         png_set_IHDR(png_ptr, info_ptr, width, height,
                      bitDepth, colorType, PNG_INTERLACE_NONE,
                      PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
