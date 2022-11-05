@@ -2,26 +2,7 @@
 #include "slideio/drivers/ndpi/ndpitifftools.hpp"
 #include "tests/testlib/testtools.hpp"
 #include <string>
-#include <opencv2/highgui.hpp>
 
-#include "ndpitesttools.hpp"
-
-inline void compareRasters(cv::Mat& raster1, cv::Mat& raster2)
-{
-    cv::Mat diff = raster1 != raster2;
-    // Equal if no elements disagree
-    double min(1.), max(1.);
-    cv::minMaxLoc(diff, &min, &max);
-    EXPECT_EQ(min, 0);
-    EXPECT_EQ(max, 0);
-}
-
-inline void showRaster(cv::Mat& raster)
-{
-    cv::namedWindow("Display window", cv::WINDOW_AUTOSIZE);
-    cv::imshow("Display window", raster);
-    cv::waitKey(0);
-}
 
 TEST(NDPITiffTools, scanFile)
 {
@@ -75,8 +56,8 @@ TEST(NDPITiffTools, readRegularStripedDir)
     EXPECT_EQ(dirRaster.cols, dir.width);
     //slideio::NDPITestTools::writePNG(dirRaster, testFilePath);
     cv::Mat testRaster;
-    slideio::NDPITestTools::readPNG(testFilePath, testRaster);
-    compareRasters(dirRaster, testRaster);
+    TestTools::readPNG(testFilePath, testRaster);
+    TestTools::compareRasters(dirRaster, testRaster);
 }
 
 TEST(NDPITiffTools, readRegularStrip)
@@ -99,8 +80,8 @@ TEST(NDPITiffTools, readRegularStrip)
     EXPECT_EQ(stripRaster.cols, dir.width);
     //slideio::NDPITestTools::writePNG(dirRaster, testFilePath);
     cv::Mat testRaster;
-    slideio::NDPITestTools::readPNG(testFilePath, testRaster);
-    compareRasters(stripRaster, testRaster);
+    TestTools::readPNG(testFilePath, testRaster);
+    TestTools::compareRasters(stripRaster, testRaster);
 }
 
 
@@ -125,8 +106,8 @@ TEST(NDPITiffTools, readTile)
     EXPECT_EQ(tileRaster.cols, dir.tileWidth);
     //slideio::NDPITestTools::writePNG(tileRaster, testFilePath);
     cv::Mat testRaster;
-    slideio::NDPITestTools::readPNG(testFilePath, testRaster);
-    compareRasters(tileRaster, testRaster);
+    TestTools::readPNG(testFilePath, testRaster);
+    TestTools::compareRasters(tileRaster, testRaster);
 }
 
 TEST(NDPITiffTools, compupteTileCounts)
@@ -243,8 +224,8 @@ TEST(NDPITiffTools, readScanlines)
     EXPECT_EQ(dir.width, stripRaster.cols);
     //slideio::NDPITestTools::writePNG(stripRaster, testFilePath);
     cv::Mat testRaster;
-    slideio::NDPITestTools::readPNG(testFilePath, testRaster);
-    compareRasters(testRaster, stripRaster);
+    TestTools::readPNG(testFilePath, testRaster);
+    TestTools::compareRasters(testRaster, stripRaster);
     //showRaster(stripRaster);
 }
 
@@ -269,8 +250,8 @@ TEST(NDPITiffTools, readRegularStripedDir2)
     EXPECT_EQ(dirRaster.cols, dir.width);
     //slideio::NDPITestTools::writePNG(dirRaster, testFilePath);
     cv::Mat testRaster;
-    slideio::NDPITestTools::readPNG(testFilePath, testRaster);
-    compareRasters(dirRaster, testRaster);
+    TestTools::readPNG(testFilePath, testRaster);
+    TestTools::compareRasters(dirRaster, testRaster);
     //showRaster(testRaster);
 }
 
@@ -293,8 +274,8 @@ TEST(NDPITiffTools, readScanlinesDNLMarker)
     EXPECT_EQ(roi.width, stripRaster.cols);
     //slideio::NDPITestTools::writePNG(stripRaster, testFilePath);
     cv::Mat testRaster;
-    slideio::NDPITestTools::readPNG(testFilePath, testRaster);
-    compareRasters(testRaster, stripRaster);
+    TestTools::readPNG(testFilePath, testRaster);
+    TestTools::compareRasters(testRaster, stripRaster);
     //showRaster(stripRaster);
 }
 
@@ -317,8 +298,8 @@ TEST(NDPITiffTools, readScanlinesDNLMarkerSingleChannel)
     EXPECT_EQ(1, stripRaster.channels());
     //slideio::NDPITestTools::writePNG(stripRaster, testFilePath);
     cv::Mat testRaster;
-    slideio::NDPITestTools::readPNG(testFilePath, testRaster);
-    compareRasters(testRaster, stripRaster);
+    TestTools::readPNG(testFilePath, testRaster);
+    TestTools::compareRasters(testRaster, stripRaster);
     //showRaster(stripRaster);
 }
 
@@ -340,7 +321,7 @@ TEST(NDPITiffTools, readScanlinesDNLMarkerInversedChannels)
     EXPECT_EQ(roi.width, stripRaster.cols);
     //slideio::NDPITestTools::writePNG(stripRaster, testFilePath);
     cv::Mat testRaster;
-    slideio::NDPITestTools::readPNG(testFilePath, testRaster);
-    compareRasters(testRaster, stripRaster);
+    TestTools::readPNG(testFilePath, testRaster);
+    TestTools::compareRasters(testRaster, stripRaster);
     //showRaster(stripRaster);
 }

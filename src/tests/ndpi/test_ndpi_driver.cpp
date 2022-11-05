@@ -2,27 +2,8 @@
 #include "slideio/drivers/ndpi/ndpitifftools.hpp"
 #include "tests/testlib/testtools.hpp"
 #include <string>
-#include <opencv2/highgui.hpp>
-
-#include "ndpitesttools.hpp"
 #include "slideio/drivers/ndpi/ndpiimagedriver.hpp"
 
-inline void compareRasters(cv::Mat& raster1, cv::Mat& raster2)
-{
-    cv::Mat diff = raster1 != raster2;
-    // Equal if no elements disagree
-    double min(1.), max(1.);
-    cv::minMaxLoc(diff, &min, &max);
-    EXPECT_EQ(min, 0);
-    EXPECT_EQ(max, 0);
-}
-
-inline void showRaster(cv::Mat& raster)
-{
-    cv::namedWindow("Display window", cv::WINDOW_AUTOSIZE);
-    cv::imshow("Display window", raster);
-    cv::waitKey(0);
-}
 
 TEST(NDPIImageDriver, openFile)
 {
@@ -58,8 +39,8 @@ TEST(NDPIImageDriver, openFile)
 TEST(NDPIImageDriver, readStrippedScene)
 {
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1.ndpi");
-    std::string testFilePath1 = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1-1.bin");
-    std::string testFilePath2 = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1-2.bin");
+    std::string testFilePath1 = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1-1.png");
+    std::string testFilePath2 = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1-2.png");
     slideio::NDPIImageDriver driver;
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide);
@@ -88,25 +69,11 @@ TEST(NDPIImageDriver, readStrippedScene)
     cv::Size blockSize(rect.width / 100, rect.height / 100);
     cv::Mat blockRaster;
     scene->readResampledBlock(blockRect, blockSize, blockRaster);
-    // cv::namedWindow( "Display window", cv::WINDOW_AUTOSIZE );
-    // cv::imshow( "Display window", blockRaster);
-    // cv::waitKey(0);
-    // {
-    //     cv::FileStorage file(testFilePath1, cv::FileStorage::WRITE);
-    //     file << "test" << blockRaster;
-    //     file.release();
-    // }
-    {
-        cv::Mat testRaster;
-        cv::FileStorage file2(testFilePath1, cv::FileStorage::READ);
-        file2["test"] >> testRaster;
-        cv::Mat diff = blockRaster != testRaster;
-        // Equal if no elements disagree
-        double min(1.), max(1.);
-        cv::minMaxLoc(diff, &min, &max);
-        EXPECT_EQ(min, 0);
-        EXPECT_EQ(max, 0);
-    }
+    //TestTools::writePNG(blockRaster, testFilePath1);
+    cv::Mat testRaster;
+    TestTools::readPNG(testFilePath1, testRaster);
+    TestTools::compareRasters(blockRaster, testRaster);
+    //TestTools::showRaster(blockRaster);
     blockRect.x = rect.width / 4;
     blockRect.y = rect.height / 4;
     blockRect.width = rect.width / 2;
@@ -116,25 +83,8 @@ TEST(NDPIImageDriver, readStrippedScene)
     blockSize.width = imageWidth;
     blockSize.height = std::lround(cof * blockRect.height);
     scene->readResampledBlock(blockRect, blockSize, blockRaster);
-    // cv::namedWindow("Display window", cv::WINDOW_AUTOSIZE);
-    // cv::imshow("Display window", blockRaster);
-    // cv::waitKey(0);
-    // {
-    //     cv::FileStorage file(testFilePath2, cv::FileStorage::WRITE);
-    //     file << "test" << blockRaster;
-    //     file.release();
-    // }
-    {
-        cv::Mat testRaster;
-        cv::FileStorage file2(testFilePath2, cv::FileStorage::READ);
-        file2["test"] >> testRaster;
-        cv::Mat diff = blockRaster != testRaster;
-        // Equal if no elements disagree
-        double min(1.), max(1.);
-        cv::minMaxLoc(diff, &min, &max);
-        EXPECT_EQ(min, 0);
-        EXPECT_EQ(max, 0);
-    }
+    //TestTools::writePNG(blockRaster, testFilePath2);
+    TestTools::readPNG(testFilePath2, testRaster);
 }
 
 TEST(NDPIImageDriver, readROI)
@@ -173,8 +123,8 @@ TEST(NDPIImageDriver, readROI)
     scene->readResampledBlock(blockRect, blockSize, blockRaster);
     //slideio::NDPITestTools::writePNG(blockRaster, testFilePath);
     cv::Mat testRaster;
-    slideio::NDPITestTools::readPNG(testFilePath, testRaster);
-    compareRasters(testRaster, blockRaster);
+    TestTools::readPNG(testFilePath, testRaster);
+    TestTools::compareRasters(testRaster, blockRaster);
 }
 
 
@@ -217,6 +167,6 @@ TEST(NDPIImageDriver, readROIResampled)
     scene->readResampledBlock(blockRect, blockSize, blockRaster);
     //slideio::NDPITestTools::writePNG(blockRaster, testFilePath);
     cv::Mat testRaster;
-    slideio::NDPITestTools::readPNG(testFilePath, testRaster);
-    compareRasters(testRaster, blockRaster);
+    TestTools::readPNG(testFilePath, testRaster);
+    TestTools::compareRasters(testRaster, blockRaster);
 }

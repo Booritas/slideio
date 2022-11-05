@@ -14,5 +14,9 @@ public:
 	static std::string getTestImagePath(const std::string& subfolder, const std::string& image, bool priv=false);
     static std::string getFullTestImagePath(const std::string& subfolder, const std::string& image);
     static void readRawImage(std::string& path, cv::Mat& image);
+    static void compareRasters(cv::Mat& raster1, cv::Mat& raster2);
+    static void showRaster(cv::Mat& raster);
+    static void writePNG(cv::Mat raster, const std::string& filePath);
+    static void readPNG(const std::string& filePath, cv::OutputArray output);
 };
 

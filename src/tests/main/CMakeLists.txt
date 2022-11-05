@@ -20,6 +20,7 @@ set(TEST_SOURCES
   test_tilecomposer.cpp
   test_cvtools.cpp
   test_dcmfile.cpp
+  test_exception.cpp
 )
 
 add_executable(${TEST_NAME} ${TEST_SOURCES})

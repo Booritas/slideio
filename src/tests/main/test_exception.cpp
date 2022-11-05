@@ -3,7 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 #include <gtest/gtest.h>
 #include "slideio/core/base.hpp"
-#include "testtools.hpp"
+#include "tests/testlib/testtools.hpp"
 
 using namespace  slideio;
 

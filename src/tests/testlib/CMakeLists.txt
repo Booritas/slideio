@@ -7,7 +7,6 @@ set(SOURCE_FILES
    testtiler.hpp
    testtools.cpp
    testtools.hpp
-   test_exception.cpp
    )
 
 
