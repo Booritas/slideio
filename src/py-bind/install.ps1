@@ -1,6 +1,7 @@
 Write-Output $args
 
 foreach($python_exe in Get-Content $args[0]) {
+    Remove-Item .\build -Recurse
     Write-Output $python_exe
     & $python_exe -m pip install --user --upgrade pip
     & $python_exe -m pip install --user --upgrade setuptools wheel
