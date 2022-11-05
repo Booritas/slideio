@@ -4,6 +4,8 @@
 
 #include "slideio/drivers/ndpi//ndpiscene.hpp"
 
+#include <opencv2/imgproc.hpp>
+
 #include "ndpifile.hpp"
 #include "slideio/core/tools/tools.hpp"
 
@@ -12,7 +14,8 @@ using namespace slideio;
 class NDPIUserData
 {
 public:
-    NDPIUserData(const NDPITiffDirectory* dir, const std::string& filePath) : m_dir(dir), m_file(nullptr), m_rowsPerStrip(0) {
+    NDPIUserData(const NDPITiffDirectory* dir, const std::string& filePath) : m_dir(dir),
+            m_file(nullptr), m_rowsPerStrip(0), m_filePath(filePath) {
         if((!dir->tiled) && (dir->rowsPerStrip == dir->height)) {
             m_file = fopen(filePath.c_str(), "rb");
             if (!m_file) {
@@ -39,10 +42,14 @@ public:
     int rowsPerStrip() const {
         return m_rowsPerStrip;
     }
+    const std::string& filePath() const {
+        return m_filePath;
+    }
 private:
     const NDPITiffDirectory* m_dir;
     FILE* m_file;
     int m_rowsPerStrip;
+    std::string m_filePath;
 };
 
 NDPIScene::NDPIScene() : m_pfile(nullptr), m_startDir(-1), m_endDir(-1), m_rect(0,0,0,0)
@@ -155,7 +162,15 @@ void NDPIScene::readResampledBlockChannels(const cv::Rect& blockRect, const cv::
     cv::Rect resizedBlock;
     Tools::scaleRect(blockRect, zoomDirX, zoomDirY, resizedBlock);
     NDPIUserData data(&dir, getFilePath());
-    TileComposer::composeRect(this, channelIndices, resizedBlock, blockSize, output, (void*)&data);
+
+    if(!dir.tiled && dir.rowsPerStrip == dir.height && dir.slideioCompression == Compression::Jpeg) {
+        cv::Mat dirRaster;
+        NDPITiffTools::readJpegDirectoryRegion(m_pfile->getTiffHandle(), getFilePath(), resizedBlock, dir, channelIndices, dirRaster);
+        cv::resize(dirRaster, output, blockSize);
+        
+    } else {
+        TileComposer::composeRect(this, channelIndices, resizedBlock, blockSize, output, (void*)&data);
+    }
 }
 
 int NDPIScene::getTileCount(void* userData)

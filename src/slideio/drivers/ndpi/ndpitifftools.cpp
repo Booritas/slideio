@@ -651,7 +651,7 @@ void NDPITiffTools::readJpegDirectoryRegion(libtiff::TIFF* tiff, const std::stri
         const slideio::DataType dt = dir.dataType;
         const int dataSize = slideio::Tools::dataTypeSize(dt);
         const int cvType = slideio::CVTools::toOpencvType(dt);
-        output.create(region.size(), CV_MAKETYPE(cvType, static_cast<int>(channelIndices.size())));
+        output.create(region.size(), CV_MAKETYPE(cvType, allChannels?dir.channels:static_cast<int>(channelIndices.size())));
         cv::Mat outputMat = output.getMat();
         outputMat.setTo(0);
 
