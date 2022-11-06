@@ -1,10 +1,10 @@
 set(INCLUDE_ROOT ${CMAKE_SOURCE_DIR}/src)
-set(TEST_NAME memory_leaks)
+set(TEST_NAME ndpi_memory)
 
 CONAN_MAIN()
 
 set(SOURCE_FILES 
-	memory_leaks.cpp
+	ndpi_memory.cpp
 )
 
 add_executable(${TEST_NAME} ${SOURCE_FILES})
@@ -20,6 +20,6 @@ target_include_directories(${TEST_NAME} PRIVATE ${INCLUDE_ROOT})
 target_link_libraries(${TEST_NAME} PRIVATE
    ${CORE_LIB_NAME}
    $(IMAGETOOLS_LIB_NAME)
-   ${CZI_DRIVER_NAME}
+   ${NDPI_DRIVER_NAME}
    ${TEST_LIB_NAME}
 )
