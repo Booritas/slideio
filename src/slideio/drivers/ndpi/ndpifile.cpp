@@ -38,5 +38,5 @@ const slideio::NDPITiffDirectory& slideio::NDPIFile::findZoomDirectory(double zo
     int index = Tools::findZoomLevel(zoom, dirCount, [&directories, sceneWidth, dirBegin](int ind){
         return static_cast<double>(directories[ind+dirBegin].width)/static_cast<double>(sceneWidth);
     });
-    return m_directories[index];
+    return m_directories[index + dirBegin];
 }

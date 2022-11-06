@@ -27,7 +27,7 @@ TEST(NDPITiffTools, scanFile)
     EXPECT_FALSE(dir5.tiled);
     EXPECT_EQ(dir5.tileWidth, 0);
     EXPECT_EQ(dir5.tileHeight, 0);
-    EXPECT_EQ(dir5.channels, 0);
+    EXPECT_EQ(dir5.channels, 1);
     EXPECT_EQ(dir5.bitsPerSample, 8);
     EXPECT_EQ(dir5.description.size(), 0);
     EXPECT_TRUE(dir5.interleaved);

@@ -302,6 +302,9 @@ void slideio::NDPITiffTools::scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, 
     bool tiled = libtiff::TIFFIsTiled(tiff);
     if (description)
         dir.description = description;
+    if(dirchnls == 0 && (ph == 0 || ph == 1)) {
+        dirchnls = 1;
+    }
     dir.bitsPerSample = dirbits;
     dir.channels = dirchnls;
     dir.height = height;
@@ -636,10 +639,8 @@ void NDPITiffTools::readJpegDirectoryRegion(libtiff::TIFF* tiff, const std::stri
         RAISE_RUNTIME_ERROR << "One strip directory is expected. Rows per strip: " << dir.rowsPerStrip << ". Height:" <<
             dir.height;
     }
-    libtiff::TIFFSetDirectory(tiff, static_cast<uint16_t>(dir.dirIndex));
-    if (dir.offset > 0) {
-        libtiff::TIFFSetSubDirectory(tiff, dir.offset);
-    }
+    setCurrentDirectory(tiff, dir);
+
     FILE* file = fopen(filePath.c_str(), "rb");
     if (!file) {
         RAISE_RUNTIME_ERROR << "NDPI Image Driver: Cannot open file " << filePath;
@@ -690,7 +691,7 @@ void NDPITiffTools::readJpegDirectoryRegion(libtiff::TIFF* tiff, const std::stri
         }
         int bufferRowStride = cinfo.output_width * cinfo.output_components * slideio::Tools::dataTypeSize(dt);
         const int MAX_BUFFER_SIZE = 10 * 1024 * 1024;
-        const int numBufferLines = MAX_BUFFER_SIZE / bufferRowStride;
+        const int numBufferLines = std::min(dir.height, MAX_BUFFER_SIZE / bufferRowStride);
         cv::Mat imageBuffer(numBufferLines, dir.width, CV_MAKETYPE(cvType, cinfo.output_components));
         imageBuffer.setTo(cv::Scalar(255, 255, 255));
 

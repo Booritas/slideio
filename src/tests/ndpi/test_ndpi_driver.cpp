@@ -170,3 +170,38 @@ TEST(NDPIImageDriver, readROIResampled)
     TestTools::readPNG(testFilePath, testRaster);
     TestTools::compareRasters(testRaster, blockRaster);
 }
+
+TEST(NDPIImageDriver, readAuxImages)
+{
+    std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "2017-02-27 15.29.08.ndpi");
+    std::string macroFilePath = TestTools::getFullTestImagePath("hamamatsu", "2017-02-27 15.29.08.macro.png");
+    std::string mapFilePath = TestTools::getFullTestImagePath("hamamatsu", "2017-02-27 15.29.08.map.png");
+    slideio::NDPIImageDriver driver;
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide);
+    const int numAuxImages = slide->getNumAuxImages();
+    EXPECT_EQ(2, numAuxImages);
+    std::list<std::string> names = slide->getAuxImageNames();
+    EXPECT_EQ(names.front(), "macro");
+    EXPECT_EQ(names.back(), "map");
+
+    std::shared_ptr<slideio::CVScene> macroScene = slide->getAuxImage("macro");
+    EXPECT_TRUE(macroScene.get() != nullptr);
+    cv::Rect rect = macroScene->getRect();
+    cv::Mat macroRaster;
+    macroScene->readBlock(rect, macroRaster);
+    //TestTools::writePNG(macroRaster, macroFilePath);
+    cv::Mat testRaster;
+    TestTools::readPNG(macroFilePath, testRaster);
+    TestTools::compareRasters(testRaster, macroRaster);
+
+    std::shared_ptr<slideio::CVScene> mapScene = slide->getAuxImage("map");
+    EXPECT_TRUE(mapScene.get() != nullptr);
+    cv::Rect rectMap = mapScene->getRect();
+    cv::Mat mapRaster;
+    mapScene->readBlock(rectMap, mapRaster);
+    //TestTools::writePNG(mapRaster, mapFilePath);
+    cv::Mat mapTestRaster;
+    TestTools::readPNG(mapFilePath, mapTestRaster);
+    TestTools::compareRasters(mapRaster, mapTestRaster);
+}
