@@ -4,5 +4,7 @@ gtest/1.10.0@slideio/stable
 opencv/4.1.1@slideio/stable
 libpng/1.6.38
 boost/1.80.0
+glog/0.6.0
 [options]
 boost:shared=False
+glog:shared=False

@@ -18,17 +18,22 @@ slideio::NDPIFile::~NDPIFile()
 
 void slideio::NDPIFile::init(const std::string& filePath)
 {
+    SLIDEIO_LOG(INFO) << "NDPIFile::init-begin";
+
     namespace fs = boost::filesystem;
     if (!fs::exists(filePath)) {
         RAISE_RUNTIME_ERROR << "NDPIImageDriver: File does not exist::" << filePath;
     }
+    SLIDEIO_LOG(INFO) << "NDPIFile::init-open tiff file";
     m_tiff = libtiff::TIFFOpen(filePath.c_str(), "r");
     if (!m_tiff.isValid())
     {
         RAISE_RUNTIME_ERROR << "NDPIImageDriver: Cannot open file:" << filePath;
     }
+    SLIDEIO_LOG(INFO) << "NDPIFile::init tiff file opened";
     m_filePath = filePath;
     NDPITiffTools::scanFile(m_tiff, m_directories);
+    SLIDEIO_LOG(INFO) << "NDPIFile::init-end";
 }
 
 const slideio::NDPITiffDirectory& slideio::NDPIFile::findZoomDirectory(double zoom, int sceneWidth, int dirBegin, int dirEnd)

@@ -1,6 +1,8 @@
 [requires]
 zlib/1.2.12
 boost/1.80.0
+glog/0.6.0
 opencv/4.1.1@slideio/stable
 [options]
 boost:shared=False
+glog:shared=False

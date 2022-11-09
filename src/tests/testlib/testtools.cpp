@@ -80,10 +80,10 @@ void TestTools::compareRasters(cv::Mat& raster1, cv::Mat& raster2)
 {
     cv::Mat diff = raster1 != raster2;
     // Equal if no elements disagree
-    double min(1.), max(1.);
-    cv::minMaxLoc(diff, &min, &max);
-    EXPECT_EQ(min, 0);
-    EXPECT_EQ(max, 0);
+    double minVal(1.), maxVal(1.);
+    cv::minMaxLoc(diff, &minVal, &maxVal);
+    EXPECT_EQ(minVal, 0);
+    EXPECT_EQ(maxVal, 0);
 }
 
 void TestTools::showRaster(cv::Mat& raster)

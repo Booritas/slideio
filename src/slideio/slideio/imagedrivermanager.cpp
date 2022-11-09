@@ -18,10 +18,13 @@ std::map<std::string, std::shared_ptr<ImageDriver>> ImageDriverManager::driverMa
 
 ImageDriverManager::ImageDriverManager()
 {
+    FLAGS_logtostderr = true;
+    SLIDEIO_LOG(INFO) << "Create ImageDriverManager";
 }
 
 ImageDriverManager::~ImageDriverManager()
 {
+    SLIDEIO_LOG(INFO) << "Destroy ImageDriverManager";
 }
 
 std::vector<std::string> ImageDriverManager::getDriverIDs()

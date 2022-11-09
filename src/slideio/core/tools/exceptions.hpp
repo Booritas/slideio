@@ -20,7 +20,7 @@ namespace slideio {
         RuntimeError(RuntimeError& rhs) {
             std::string message = rhs.m_innerStream.str();
             if(!m_shown) {
-                SLIDEIO_LOG(error) << message;
+                SLIDEIO_LOG(ERROR) << message;
             }
             m_innerStream << message;
         }

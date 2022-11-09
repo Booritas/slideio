@@ -106,7 +106,7 @@ std::shared_ptr<DicomImage> DCMFile::createImage(int firstFrame, int numFrames)
 
 void DCMFile::init()
 {
-    SLIDEIO_LOG(trace) << "DCMFile::init: initializing DICOM file " << m_filePath;
+    SLIDEIO_LOG(INFO) << "DCMFile::init: initializing DICOM file " << m_filePath;
 
     loadFile();
     std::shared_ptr<DicomImage> image;
@@ -119,7 +119,7 @@ void DCMFile::init()
     catch (slideio::RuntimeError& err)
     {
         m_decompressWholeFile = true;
-        SLIDEIO_LOG(warning) << "DCMFile::init: Cannot create DicomImage instance for the file:"
+        SLIDEIO_LOG(WARNING) << "DCMFile::init: Cannot create DicomImage instance for the file:"
             << m_filePath
             << ". Trying to decomress the whole file. Error message:"
             << err.what();
@@ -253,7 +253,7 @@ void DCMFile::defineCompression()
         m_compression = Compression::Jpeg2000;
         break;
     default: ;
-        SLIDEIO_LOG(warning) << "DCMImageDriver: Unknown xTransfer:" << xfer << " for file " << m_filePath;
+        SLIDEIO_LOG(WARNING) << "DCMImageDriver: Unknown xTransfer:" << xfer << " for file " << m_filePath;
     }
 }
 
@@ -324,7 +324,7 @@ void DCMFile::initPhotoInterpretaion()
 
 void DCMFile::logData()
 {
-    SLIDEIO_LOG(info) << "DICOM file: " << m_filePath << std::endl
+    SLIDEIO_LOG(INFO) << "DICOM file: " << m_filePath << std::endl
         << "Width:" << m_width << std::endl
         << "Height:" << m_height << std::endl
         << "Slices:" << m_slices << std::endl
@@ -380,7 +380,7 @@ inline int getCvTypeForPixelRepresentation(EP_Representation rep)
 
 void DCMFile::extractPixelsPartialy(std::vector<cv::Mat>& frames, int startFrame, int numFrames)
 {
-    SLIDEIO_LOG(trace) << "Extracting pixel values with partial decompression.";
+    SLIDEIO_LOG(INFO) << "Extracting pixel values with partial decompression.";
 
     DcmDataset* dataset = getDataset();
     if (!dataset)
@@ -464,7 +464,7 @@ void DCMFile::extractPixelsPartialy(std::vector<cv::Mat>& frames, int startFrame
 
 void DCMFile::extractPixelsWholeFileDecompression(std::vector<cv::Mat>& frames, int startFrame, int numFrames)
 {
-    SLIDEIO_LOG(trace) << "Extracting pixel values with partial decompression.";
+    SLIDEIO_LOG(INFO) << "Extracting pixel values with partial decompression.";
     DcmDataset* dataset = getDataset();
     if (!dataset)
     {
@@ -555,7 +555,7 @@ void DCMFile::extractPixelsWholeFileDecompression(std::vector<cv::Mat>& frames, 
 
 void DCMFile::readPixelValues(std::vector<cv::Mat>& frames, int startFrame, int numFrames)
 {
-    SLIDEIO_LOG(trace) << "Extracting pixel values from the dataset";
+    SLIDEIO_LOG(INFO) << "Extracting pixel values from the dataset";
     if(!m_decompressWholeFile)
     {
         extractPixelsPartialy(frames, startFrame, numFrames);

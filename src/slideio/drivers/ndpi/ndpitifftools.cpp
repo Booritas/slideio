@@ -227,6 +227,8 @@ void slideio::NDPITiffTools::closeTiffFile(libtiff::TIFF* file)
 void slideio::NDPITiffTools::scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, int64_t dirOffset,
                                              slideio::NDPITiffDirectory& dir)
 {
+    SLIDEIO_LOG(INFO) << "NDPITiffTools::scanTiffDirTags-begin " << dirIndex;
+
     libtiff::TIFFSetDirectory(tiff, static_cast<uint16_t>(dirIndex));
     if (dirOffset)
         libtiff::TIFFSetSubDirectory(tiff, dirOffset);
@@ -238,24 +240,35 @@ void slideio::NDPITiffTools::scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, 
     char* userLabel(nullptr);
     char* comments(nullptr);
     short dirchnls(0), dirbits(0);
-    uint32_t blankLines(0);
+    uint32_t *blankLines(nullptr), nblanklines(0);
     uint16_t compress(0);
     short planar_config(0);
     uint32_t width(0), height(0), tile_width(0), tile_height(0);
     float magnification(0);
+    SLIDEIO_LOG(INFO) << "NDPITiffTools::scanTiffDirTags-start scanning " << dirIndex;
+
     libtiff::TIFFGetField(tiff, TIFFTAG_SAMPLESPERPIXEL, &dirchnls);
     libtiff::TIFFGetField(tiff, TIFFTAG_BITSPERSAMPLE, &dirbits);
     libtiff::TIFFGetField(tiff, TIFFTAG_COMPRESSION, &compress);
+
+    SLIDEIO_LOG(INFO) << "NDPITiffTools::scanTiffDirTags scanning mark 1";
+
     libtiff::TIFFGetField(tiff, TIFFTAG_IMAGEWIDTH, &width);
     libtiff::TIFFGetField(tiff, TIFFTAG_IMAGELENGTH, &height);
     libtiff::TIFFGetField(tiff,TIFFTAG_TILEWIDTH, &tile_width);
+
+
     libtiff::TIFFGetField(tiff,TIFFTAG_TILELENGTH, &tile_height);
     libtiff::TIFFGetField(tiff, TIFFTAG_IMAGEDESCRIPTION, &description);
     libtiff::TIFFGetField(tiff, NDPITAG_USERGIVENSLIDELABEL, &comments);
     libtiff::TIFFGetField(tiff, NDPITAG_COMMENTS, &userLabel);
     libtiff::TIFFGetField(tiff, TIFFTAG_PLANARCONFIG, &planar_config);
     libtiff::TIFFGetField(tiff, NDPITAG_MAGNIFICATION, &magnification);
-    libtiff::TIFFGetField(tiff, NDPITAG_BLANKLANES, &blankLines);
+    SLIDEIO_LOG(INFO) << "NDPITiffTools::scanTiffDirTags scanning mark 2";
+    libtiff::TIFFGetField(tiff, NDPITAG_BLANKLANES, &nblanklines, &blankLines);
+    SLIDEIO_LOG(INFO) << "NDPITiffTools::scanTiffDirTags scanning mark 3";
+
+
     float resx(0), resy(0);
     uint16_t units(0);
     libtiff::TIFFGetField(tiff, TIFFTAG_XRESOLUTION, &resx);
@@ -320,12 +333,22 @@ void slideio::NDPITiffTools::scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, 
         dir.comments = comments;
     if (userLabel)
         dir.userLabel = userLabel;
-    dir.blankLines = blankLines;
+    dir.blankLines = nblanklines;
+    SLIDEIO_LOG(INFO) << "Directory " << dir.dirIndex;
+    SLIDEIO_LOG(INFO) << "channels: " << dir.channels;
+    SLIDEIO_LOG(INFO) << "height: " << dir.height;
+    SLIDEIO_LOG(INFO) << "width: " << dir.width;
+    SLIDEIO_LOG(INFO) << "magnification: " << dir.magnification;
+    SLIDEIO_LOG(INFO) << "compression: " << dir.compression;
+    SLIDEIO_LOG(INFO) << "tiled: " << dir.tiled;
+    SLIDEIO_LOG(INFO) << "NDPITiffTools::scanTiffDirTags-end " << dirIndex;
 }
 
 void slideio::NDPITiffTools::scanTiffDir(libtiff::TIFF* tiff, int dirIndex, int64_t dirOffset,
                                          slideio::NDPITiffDirectory& dir)
 {
+    SLIDEIO_LOG(INFO) << "NDPITiffTools::scanTiffDir-begin " << dir.dirIndex;
+
     libtiff::TIFFSetDirectory(tiff, (short)dirIndex);
     if (dirOffset > 0)
         libtiff::TIFFSetSubDirectory(tiff, dirOffset);
@@ -348,16 +371,21 @@ void slideio::NDPITiffTools::scanTiffDir(libtiff::TIFF* tiff, int dirIndex, int6
             }
         }
     }
+    SLIDEIO_LOG(INFO) << "NDPITiffTools::scanTiffDir-end " << dir.dirIndex;
 }
 
 void slideio::NDPITiffTools::scanFile(libtiff::TIFF* tiff, std::vector<NDPITiffDirectory>& directories)
 {
+    SLIDEIO_LOG(INFO) << "NDPITiffTools::scanFile-begin";
+
     int dirs = libtiff::TIFFNumberOfDirectories(tiff);
     directories.resize(dirs);
     for (int dir = 0; dir < dirs; dir++) {
+        SLIDEIO_LOG(INFO) << "NDPITiffTools::scanFile processing directory " << dir;
         directories[dir].dirIndex = dir;
         scanTiffDir(tiff, dir, 0, directories[dir]);
     }
+    SLIDEIO_LOG(INFO) << "NDPITiffTools::scanFile-end";
 }
 
 void slideio::NDPITiffTools::scanFile(const std::string& filePath, std::vector<NDPITiffDirectory>& directories)

@@ -361,7 +361,7 @@ void CZISlide::readSubBlocks(uint64_t directoryPosition, uint64_t originPos, std
         }
         catch (const std::ios_base::failure&)
         {
-            SLIDEIO_LOG(warning) << "Error by reading of subblocks of the file " << getFilePath() << "." << std::endl;
+            SLIDEIO_LOG(WARNING) << "Error by reading of subblocks of the file " << getFilePath() << "." << std::endl;
             break;
         }
     }

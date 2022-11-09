@@ -46,7 +46,7 @@ std::shared_ptr<CVScene> SVSSlide::getScene(int index) const
 
 std::shared_ptr<SVSSlide> SVSSlide::openFile(const std::string& filePath)
 {
-    SLIDEIO_LOG(trace) << "SVSSlide::openFile: " << filePath;
+    SLIDEIO_LOG(INFO) << "SVSSlide::openFile: " << filePath;
     namespace fs = boost::filesystem;
     std::shared_ptr<SVSSlide> slide;
     if(!fs::exists(filePath)){
@@ -56,13 +56,13 @@ std::shared_ptr<SVSSlide> SVSSlide::openFile(const std::string& filePath)
     libtiff::TIFF* tiff(nullptr);
     tiff = libtiff::TIFFOpen(filePath.c_str(), "r");
     if(!tiff) {
-        SLIDEIO_LOG(warning) << "SVSSlide::openFile: cannot open file " << filePath << " with libtiff";
+        SLIDEIO_LOG(WARNING) << "SVSSlide::openFile: cannot open file " << filePath << " with libtiff";
         return slide;
     }
     TIFFKeeper keeper(tiff);
 
     TiffTools::scanFile(tiff, directories);
-    //SLIDEIO_LOG(trace) << directories[0];
+    //SLIDEIO_LOG(INFO) << directories[0];
 
     std::vector<int> image;
     int thumbnail(-1), macro(-1), label(-1);
@@ -154,6 +154,6 @@ std::shared_ptr<CVScene> SVSSlide::getAuxImage(const std::string& sceneName) con
 
 void SVSSlide::log()
 {
-    SLIDEIO_LOG(info) << "---SVSSlide" << std::endl;
-    SLIDEIO_LOG(info) << "filePath:" << m_filePath << std::endl;
+    SLIDEIO_LOG(INFO) << "---SVSSlide" << std::endl;
+    SLIDEIO_LOG(INFO) << "filePath:" << m_filePath << std::endl;
 }

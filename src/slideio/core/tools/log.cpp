@@ -4,25 +4,25 @@
 #include "log.hpp"
 
 
-using namespace slideio;
-
-
-
-
-Log::Log() : m_stream(std::cout)
-{
-}
-
-Log& Log::getInstance()
-{
-    static Log instance;
-    return instance;
-}
-
-void Log::setLogLevel(Level level)
-{
-}
-
-void Log::setLogFilePath(const std::string& path)
-{
-}
+// using namespace slideio;
+//
+//
+//
+//
+// Log::Log() : m_stream(std::cout)
+// {
+// }
+//
+// Log& Log::getInstance()
+// {
+//     static Log instance;
+//     return instance;
+// }
+//
+// void Log::setLogLevel(Level level)
+// {
+// }
+//
+// void Log::setLogFilePath(const std::string& path)
+// {
+// }

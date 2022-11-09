@@ -24,9 +24,9 @@ struct Series
 
 DCMSlide::DCMSlide(const std::string& filePath) : m_srcPath(filePath)
 {
-    SLIDEIO_LOG(trace) << "DCMSlide::constructor-begin: " << m_srcPath;
+    SLIDEIO_LOG(INFO) << "DCMSlide::constructor-begin: " << m_srcPath;
     init();
-    SLIDEIO_LOG(trace) << "DCMSlide::constructor-end: " << m_srcPath;
+    SLIDEIO_LOG(INFO) << "DCMSlide::constructor-end: " << m_srcPath;
 }
 
 int DCMSlide::getNumScenes() const
@@ -45,7 +45,7 @@ std::shared_ptr<CVScene> DCMSlide::getScene(int index) const
 }
 
 void DCMSlide::initFromFile() {
-    SLIDEIO_LOG(trace) << "DCMSlide::initFromFile-begin: initialize DCMSlide from file: " << m_srcPath;
+    SLIDEIO_LOG(INFO) << "DCMSlide::initFromFile-begin: initialize DCMSlide from file: " << m_srcPath;
 
     std::shared_ptr<DCMScene> scene(new DCMScene);
     std::shared_ptr<DCMFile> file(new DCMFile(m_srcPath));
@@ -54,12 +54,12 @@ void DCMSlide::initFromFile() {
     scene->init();
     m_scenes.push_back(scene);
 
-    SLIDEIO_LOG(trace) << "DCMSlide::initFromFile-end: initialize DCMSlide from file: " << m_srcPath;
+    SLIDEIO_LOG(INFO) << "DCMSlide::initFromFile-end: initialize DCMSlide from file: " << m_srcPath;
 }
 
 void DCMSlide::processSeries(std::vector<std::shared_ptr<DCMFile>>& files, bool keepOrder)
 {
-    SLIDEIO_LOG(trace) << "DCMSlide::processSeries-begin: initialize DCMSlide from file: " << m_srcPath;
+    SLIDEIO_LOG(INFO) << "DCMSlide::processSeries-begin: initialize DCMSlide from file: " << m_srcPath;
 
     auto compare = [](std::shared_ptr <DCMFile> left, std::shared_ptr < DCMFile> right)->bool {
         if (left->getWidth() < right->getWidth()) {
@@ -106,7 +106,7 @@ void DCMSlide::processSeries(std::vector<std::shared_ptr<DCMFile>>& files, bool 
                     m_scenes.push_back(scene);
                 }
                 catch(std::exception& ex) {
-                    SLIDEIO_LOG(warning) << "DCMSlide::processSeries: initialization of scene:" << file->getFilePath() << ". Error: " << ex.what();
+                    SLIDEIO_LOG(WARNING) << "DCMSlide::processSeries: initialization of scene:" << file->getFilePath() << ". Error: " << ex.what();
                 }
                 scene.reset(new DCMScene);
                 scene->addFile(file);
@@ -117,15 +117,15 @@ void DCMSlide::processSeries(std::vector<std::shared_ptr<DCMFile>>& files, bool 
             m_scenes.push_back(scene);
         }
         catch (std::exception& ex) {
-            SLIDEIO_LOG(warning) << "DCMSlide::processSeries: error initialization of scene: " << scene->getFilePath() << ". Error: " << ex.what();
+            SLIDEIO_LOG(WARNING) << "DCMSlide::processSeries: error initialization of scene: " << scene->getFilePath() << ". Error: " << ex.what();
         }
     }
-    SLIDEIO_LOG(trace) << "DCMSlide::processSeries-end: initialize DCMSlide from file: " << m_srcPath;
+    SLIDEIO_LOG(INFO) << "DCMSlide::processSeries-end: initialize DCMSlide from file: " << m_srcPath;
 }
 
 void DCMSlide::initFromDir()
 {
-    SLIDEIO_LOG(trace) << "DCMSlide::initFromDir-begin: initialize DCMSlide from directory: " << m_srcPath;
+    SLIDEIO_LOG(INFO) << "DCMSlide::initFromDir-begin: initialize DCMSlide from directory: " << m_srcPath;
     fs::recursive_directory_iterator dir(m_srcPath), end;
     std::map<std::string, std::shared_ptr<Series>> seriesMap;
     for (; dir != end; ++dir) {
@@ -145,7 +145,7 @@ void DCMSlide::initFromDir()
                 }
             }
             catch(std::exception& ex) {
-                SLIDEIO_LOG(error) << "DCMSlide::initFromDir: No valid DICOM files found in the directory: " << m_srcPath << ". Error: " << ex.what();
+                SLIDEIO_LOG(ERROR) << "DCMSlide::initFromDir: No valid DICOM files found in the directory: " << m_srcPath << ". Error: " << ex.what();
             }
         }
     }
@@ -154,16 +154,16 @@ void DCMSlide::initFromDir()
         processSeries(series->files);
     }
     if(getNumScenes()==0) {
-        SLIDEIO_LOG(error) << "DCMSlide::initFromDir: No valid DICOM files found in the directory: " << m_srcPath;
+        SLIDEIO_LOG(ERROR) << "DCMSlide::initFromDir: No valid DICOM files found in the directory: " << m_srcPath;
         throw std::runtime_error(
             (boost::format("DCMImageDriver: No valid DICOM files found in the directory %1%") % m_srcPath).str());
     }
-    SLIDEIO_LOG(trace) << "DCMSlide::initFromDir-end: initialize DCMSlide from directory: " << m_srcPath;
+    SLIDEIO_LOG(INFO) << "DCMSlide::initFromDir-end: initialize DCMSlide from directory: " << m_srcPath;
 }
 
 void DCMSlide::initFromDicomDirFile()
 {
-    SLIDEIO_LOG(trace) << "DCMSlide::initFromDicomDirFile: attempt to initialize slide from as from DicomDir file : " << m_srcPath;
+    SLIDEIO_LOG(INFO) << "DCMSlide::initFromDicomDirFile: attempt to initialize slide from as from DicomDir file : " << m_srcPath;
     bool ok(false);
     DcmDicomDir dicomdir(m_srcPath.c_str());
     DcmDirectoryRecord& rec = dicomdir.getRootRecord();
@@ -198,7 +198,7 @@ void DCMSlide::initFromDicomDirFile()
                         }
                         catch(std::exception& ex)
                         {
-                            SLIDEIO_LOG(warning) << "DCMImageDriver: Error by processing DICOMDIR for file:" << ex.what();
+                            SLIDEIO_LOG(WARNING) << "DCMImageDriver: Error by processing DICOMDIR for file:" << ex.what();
                         }
                     }
                 }
@@ -212,7 +212,7 @@ void DCMSlide::initFromDicomDirFile()
     }
     if(ok)
     {
-        SLIDEIO_LOG(trace) << "DCMSlide::initFromDicomDirFile: initialization is successful.";
+        SLIDEIO_LOG(INFO) << "DCMSlide::initFromDicomDirFile: initialization is successful.";
     }
     else
     {
@@ -222,7 +222,7 @@ void DCMSlide::initFromDicomDirFile()
 
 void DCMSlide::init()
 {
-    SLIDEIO_LOG(trace) << "DCMSlide::init-begin: initialize DCMSlide from path: " << m_srcPath;
+    SLIDEIO_LOG(INFO) << "DCMSlide::init-begin: initialize DCMSlide from path: " << m_srcPath;
     if(fs::is_regular_file(m_srcPath)) 
     {
         if (DCMFile::isDicomDirFile(m_srcPath))
@@ -238,9 +238,9 @@ void DCMSlide::init()
         initFromDir();
     }
     else {
-        SLIDEIO_LOG(error) << "DCMSlide::init: Only regular files or directories are supported: " << m_srcPath;
+        SLIDEIO_LOG(ERROR) << "DCMSlide::init: Only regular files or directories are supported: " << m_srcPath;
         throw std::runtime_error("DCMImageDriver: Only regular files are supported");
     }
-    SLIDEIO_LOG(trace) << "DCMSlide::init-end: initialize DCMSlide from path: " << m_srcPath;
+    SLIDEIO_LOG(INFO) << "DCMSlide::init-end: initialize DCMSlide from path: " << m_srcPath;
 }
 

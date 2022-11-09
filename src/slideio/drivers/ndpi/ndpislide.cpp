@@ -21,6 +21,8 @@ NDPISlide::NDPISlide()
 
 void NDPISlide::constructScenes()
 {
+    SLIDEIO_LOG(INFO) << "NDPISlide:constructScenes-begin";
+
     const std::vector<NDPITiffDirectory>& directories = m_pfile->directories();
     int startIndex = 0;
     int endIndex = 0;
@@ -29,6 +31,8 @@ void NDPISlide::constructScenes()
 
     for(int index=0; index<directories.size(); ++index)
     {
+        SLIDEIO_LOG(INFO) << "NDPISlide processing directory " << index;
+
         const NDPITiffDirectory& dir = directories[index];
         if(dir.magnification>=0)
         {
@@ -70,10 +74,12 @@ void NDPISlide::constructScenes()
         mainScene->init("main", m_pfile, startIndex, endIndex);
         m_Scenes.push_back(mainScene);
     }
+    SLIDEIO_LOG(INFO) << "NDPISlide:constructScenes-end";
 }
 
 void NDPISlide::init(const std::string& filePath)
 {
+    SLIDEIO_LOG(INFO) << "NDPIImageDriver:init-begin";
     m_filePath = filePath;
     namespace fs = boost::filesystem;
     if (!fs::exists(m_filePath)) {
@@ -82,6 +88,7 @@ void NDPISlide::init(const std::string& filePath)
     m_pfile = new NDPIFile;
     m_pfile->init(m_filePath);
     constructScenes();
+    SLIDEIO_LOG(INFO) << "NDPIImageDriver:init-end";
 }
 
 NDPISlide::~NDPISlide()
@@ -123,6 +130,6 @@ std::shared_ptr<CVScene> NDPISlide::getAuxImage(const std::string& sceneName) co
 
 void NDPISlide::log()
 {
-    SLIDEIO_LOG(info) << "---NDPISlide" << std::endl;
-    SLIDEIO_LOG(info) << "filePath:" << m_filePath << std::endl;
+    SLIDEIO_LOG(INFO) << "---NDPISlide" << std::endl;
+    SLIDEIO_LOG(INFO) << "filePath:" << m_filePath << std::endl;
 }

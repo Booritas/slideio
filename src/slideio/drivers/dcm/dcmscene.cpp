@@ -147,7 +147,7 @@ void DCMScene::checkScene()
 
 void DCMScene::init()
 {
-    SLIDEIO_LOG(trace) << "DCMScene::init-begin";
+    SLIDEIO_LOG(INFO) << "DCMScene::init-begin";
     if (m_files.empty())
     {
         RAISE_RUNTIME_ERROR << "DCMScene::init attempt to create an empty scene.";
@@ -251,7 +251,7 @@ void DCMScene::readResampledBlockChannelsEx(const cv::Rect& blockRect,
                                             int tFrameIndex,
                                             cv::OutputArray output)
 {
-    SLIDEIO_LOG(trace) << "DCMImageDriver: Resample block:" << std::endl
+    SLIDEIO_LOG(INFO) << "DCMImageDriver: Resample block:" << std::endl
         << "block: " << blockRect.x << "," << blockRect.y << ","
         << blockRect.width << "," << blockRect.height << std::endl
         << "size: " << blockSize.width << "," << blockSize.height << std::endl
