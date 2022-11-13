@@ -12,7 +12,6 @@ void test()
     google::InitGoogleLogging("slideio");
     FLAGS_minloglevel = 0;
     FLAGS_logtostderr = true;
-    FLAGS_log_dir = "D:/temp";
 
     NDPIImageDriver driver;
     const std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "2017-02-27 15.39.33.ndpi");

@@ -18,7 +18,6 @@ std::map<std::string, std::shared_ptr<ImageDriver>> ImageDriverManager::driverMa
 
 ImageDriverManager::ImageDriverManager()
 {
-    FLAGS_logtostderr = true;
     SLIDEIO_LOG(INFO) << "Create ImageDriverManager";
 }
 

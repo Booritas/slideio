@@ -137,7 +137,7 @@ void TestTools::writePNG(cv::Mat raster, const std::string& filePath)
         }
         const int width = raster.cols;
         const int height = raster.rows;
-        const int bitDepth = raster.depth()*8;
+        const int bitDepth = (int)(raster.elemSize1()*8);
         const int colorType = (raster.channels() == 3) ? PNG_COLOR_TYPE_RGB : PNG_COLOR_TYPE_GRAY;
         png_set_IHDR(pngStruct, pngInfo, width, height,
             bitDepth, colorType, PNG_INTERLACE_NONE,
