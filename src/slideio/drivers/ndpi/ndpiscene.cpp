@@ -18,7 +18,7 @@ public:
                                                                               m_file(nullptr), m_rowsPerStrip(0),
                                                                               m_filePath(filePath)
     {
-        if ((!dir->tiled) && (dir->rowsPerStrip == dir->height)) {
+        if ((!dir->tiled) && (dir->rowsPerStrip == dir->height) && dir->slideioCompression==Compression::Jpeg) {
             m_file = fopen(filePath.c_str(), "rb");
             if (!m_file) {
                 RAISE_RUNTIME_ERROR << "NDPI Image Driver: Cannot open file " << filePath;
@@ -27,6 +27,8 @@ public:
             int strideSize = dir->width * dir->channels * Tools::dataTypeSize(dir->dataType);
             int rowsPerStrip = MAX_BUFFER_SIZE / strideSize;
             m_rowsPerStrip = std::min(rowsPerStrip, dir->height);
+        } else {
+            m_rowsPerStrip = dir->rowsPerStrip;
         }
     }
 
