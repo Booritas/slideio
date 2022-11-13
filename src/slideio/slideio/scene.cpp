@@ -148,7 +148,7 @@ void Scene::readResampledBlockChannels(const std::tuple<int, int, int, int>& rec
 
     if(buffer!=raster.data)
     {
-        throw std::runtime_error("Unexpected data reallocation");
+        RAISE_RUNTIME_ERROR << "Unexpected data reallocation by reading of file " << getFilePath();
     }
 }
 

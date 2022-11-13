@@ -2,6 +2,7 @@
 #include "testtools.hpp"
 
 
+#include <codecvt>
 #include <fstream>
 #include <numeric>
 #include <boost/filesystem/path.hpp>
@@ -12,10 +13,19 @@
 #include "slideio/core/tools/exceptions.hpp"
 #include <png.h>
 
+
 static const char* TEST_PATH_VARIABLE = "SLIDEIO_TEST_DATA_PATH";
 static const char* PRIV_TEST_PATH_VARIABLE = "SLIDEIO_TEST_DATA_PRIV_PATH";
 static const char* TEST_FULL_TEST_PATH_VARIABLE = "SLIDEIO_IMAGES_PATH";
 
+
+inline bool littleEndian()
+{
+    const int value{ 0x01 };
+    const void* address = static_cast<const void*>(&value);
+    const unsigned char* least_significant_address = static_cast<const unsigned char*>(address);
+    return (*least_significant_address == 0x01);
+}
 
 bool TestTools::isPrivateTestEnabled()
 {
@@ -103,41 +113,43 @@ void TestTools::writePNG(cv::Mat raster, const std::string& filePath)
 
     try {
         /* initialize stuff */
-        png_structp png_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+        png_structp pngStruct = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
 
-        if (!png_ptr) {
+        if (!pngStruct) {
             RAISE_RUNTIME_ERROR << "png_create_write_struct failed";
         }
 
-        png_infop info_ptr = png_create_info_struct(png_ptr);
-        if (!info_ptr) {
+        png_infop pngInfo = png_create_info_struct(pngStruct);
+        if (!pngInfo) {
             RAISE_RUNTIME_ERROR << "png_create_info_struct failed";
         }
 
-        if (setjmp(png_jmpbuf(png_ptr))) {
+        if (setjmp(png_jmpbuf(pngStruct))) {
             RAISE_RUNTIME_ERROR << "Error during init_io";
         }
 
-        png_init_io(png_ptr, fp);
+        png_init_io(pngStruct, fp);
 
 
         /* write header */
-        if (setjmp(png_jmpbuf(png_ptr))) {
+        if (setjmp(png_jmpbuf(pngStruct))) {
             RAISE_RUNTIME_ERROR << "Error during writing header";
         }
         const int width = raster.cols;
         const int height = raster.rows;
-        const int bitDepth = 8;
+        const int bitDepth = raster.depth()*8;
         const int colorType = (raster.channels() == 3) ? PNG_COLOR_TYPE_RGB : PNG_COLOR_TYPE_GRAY;
-        png_set_IHDR(png_ptr, info_ptr, width, height,
+        png_set_IHDR(pngStruct, pngInfo, width, height,
             bitDepth, colorType, PNG_INTERLACE_NONE,
             PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
 
-        png_write_info(png_ptr, info_ptr);
-
+        png_write_info(pngStruct, pngInfo);
+        if (littleEndian() && png_get_bit_depth(pngStruct, pngInfo) > 8) {
+            png_set_swap(pngStruct);
+        }
 
         /* write bytes */
-        if (setjmp(png_jmpbuf(png_ptr))) {
+        if (setjmp(png_jmpbuf(pngStruct))) {
             RAISE_RUNTIME_ERROR << "Error during writing bytes";
         }
         if (!raster.isContinuous()) {
@@ -150,15 +162,17 @@ void TestTools::writePNG(cv::Mat raster, const std::string& filePath)
             rows[row] = raster.data + offset;
         }
 
-        png_write_image(png_ptr, rows.data());
+        png_write_image(pngStruct, rows.data());
 
 
         /* end write */
-        if (setjmp(png_jmpbuf(png_ptr))) {
+        if (setjmp(png_jmpbuf(pngStruct))) {
             RAISE_RUNTIME_ERROR << "Error during end of write";
         }
 
-        png_write_end(png_ptr, NULL);
+        png_write_end(pngStruct, NULL);
+
+        png_destroy_write_struct(&pngStruct, &pngInfo);
     }
     catch (std::exception&) {
         if (fp)
@@ -189,36 +203,40 @@ void TestTools::readPNG(const std::string& filePath, cv::OutputArray output)
 
 
         /* initialize stuff */
-        png_structp png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+        png_structp pngStruct = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
 
-        if (!png_ptr) {
+        if (!pngStruct) {
             RAISE_RUNTIME_ERROR << "[read_png_file] png_create_read_struct failed";
         }
 
-        png_infop info_ptr = png_create_info_struct(png_ptr);
-        if (!info_ptr) {
+        png_infop pngInfo = png_create_info_struct(pngStruct);
+        if (!pngInfo) {
             RAISE_RUNTIME_ERROR << "[read_png_file] png_create_info_struct failed";
         }
 
-        if (setjmp(png_jmpbuf(png_ptr))) {
+        if (setjmp(png_jmpbuf(pngStruct))) {
             RAISE_RUNTIME_ERROR << "[read_png_file] Error during init_io";
         }
 
-        png_init_io(png_ptr, fp);
-        png_set_sig_bytes(png_ptr, 8);
+        png_init_io(pngStruct, fp);
+        png_set_sig_bytes(pngStruct, 8);
 
-        png_read_info(png_ptr, info_ptr);
+        png_read_info(pngStruct, pngInfo);
 
-        png_uint_32 width = png_get_image_width(png_ptr, info_ptr);
-        png_uint_32 height = png_get_image_height(png_ptr, info_ptr);
-        png_byte bitDepth = png_get_bit_depth(png_ptr, info_ptr);
+        if (littleEndian() && png_get_bit_depth(pngStruct, pngInfo) > 8) {
+            png_set_swap(pngStruct);
+        }
+
+        png_uint_32 width = png_get_image_width(pngStruct, pngInfo);
+        png_uint_32 height = png_get_image_height(pngStruct, pngInfo);
+        png_byte bitDepth = png_get_bit_depth(pngStruct, pngInfo);
         uint8_t dataType = (bitDepth > 8) ? CV_16U : CV_8U;
 
-        png_read_update_info(png_ptr, info_ptr);
-        int channels = png_get_channels(png_ptr, info_ptr);
+        png_read_update_info(pngStruct, pngInfo);
+        int channels = png_get_channels(pngStruct, pngInfo);
 
         /* read file */
-        if (setjmp(png_jmpbuf(png_ptr))) {
+        if (setjmp(png_jmpbuf(pngStruct))) {
             RAISE_RUNTIME_ERROR << "[read_png_file] Error during read_image";
         }
 
@@ -232,7 +250,9 @@ void TestTools::readPNG(const std::string& filePath, cv::OutputArray output)
             rows[row] = raster.data + offset;
         }
 
-        png_read_image(png_ptr, rows.data());
+        png_read_image(pngStruct, rows.data());
+
+        png_destroy_read_struct(&pngStruct, &pngInfo, nullptr);
     }
     catch (std::exception&) {
         if (fp) {

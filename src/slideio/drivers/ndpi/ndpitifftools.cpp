@@ -56,6 +56,46 @@ static int getCvType(jpegxr_image_info& info)
     return type;
 }
 
+static DataType getSlideioType(jpegxr_image_info& info)
+{
+    DataType type = DataType::DT_Unknown;
+    if (info.sample_type == jpegxr_sample_type::Uint) {
+        switch (info.sample_size) {
+        case 1:
+            type = DataType::DT_Byte;
+            break;
+        case 2:
+            type = DataType::DT_UInt16;
+            break;
+        }
+    }
+    else if (info.sample_type == jpegxr_sample_type::Int) {
+        switch (info.sample_size) {
+        case 2:
+            type = DataType::DT_Int16;
+            break;
+        case 4:
+            type = DataType::DT_Int32;
+            break;
+        }
+    }
+    else if (info.sample_type == jpegxr_sample_type::Float) {
+        switch (info.sample_size) {
+        case 2:
+            type = DataType::DT_Float16;
+            break;
+        case 4:
+            type = DataType::DT_Float32;
+            break;
+        }
+    }
+    if (type == DataType::DT_Unknown) {
+        RAISE_RUNTIME_ERROR << "Unsupported type of jpegxr compression: " << (int)info.sample_type;
+    }
+
+    return type;
+}
+
 static slideio::DataType dataTypeFromTIFFDataType(libtiff::TIFFDataType dt)
 {
     switch (dt) {
@@ -248,25 +288,39 @@ void slideio::NDPITiffTools::scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, 
     SLIDEIO_LOG(INFO) << "NDPITiffTools::scanTiffDirTags-start scanning " << dirIndex;
 
     libtiff::TIFFGetField(tiff, TIFFTAG_SAMPLESPERPIXEL, &dirchnls);
+    SLIDEIO_LOG(INFO) << "NDPITiffTools::scanTiffDirTags TIFFTAG_SAMPLESPERPIXEL: " << dirchnls;
     libtiff::TIFFGetField(tiff, TIFFTAG_BITSPERSAMPLE, &dirbits);
+    SLIDEIO_LOG(INFO) << "NDPITiffTools::scanTiffDirTags TIFFTAG_BITSPERSAMPLE: " << dirbits;
     libtiff::TIFFGetField(tiff, TIFFTAG_COMPRESSION, &compress);
+    SLIDEIO_LOG(INFO) << "NDPITiffTools::scanTiffDirTags TIFFTAG_COMPRESSION: " << compress;
 
-    SLIDEIO_LOG(INFO) << "NDPITiffTools::scanTiffDirTags scanning mark 1";
 
     libtiff::TIFFGetField(tiff, TIFFTAG_IMAGEWIDTH, &width);
+    SLIDEIO_LOG(INFO) << "NDPITiffTools::scanTiffDirTags TIFFTAG_IMAGEWIDTH: " << width;
     libtiff::TIFFGetField(tiff, TIFFTAG_IMAGELENGTH, &height);
+    SLIDEIO_LOG(INFO) << "NDPITiffTools::scanTiffDirTags TIFFTAG_IMAGELENGTH: " << height;
     libtiff::TIFFGetField(tiff,TIFFTAG_TILEWIDTH, &tile_width);
-
-
+    SLIDEIO_LOG(INFO) << "NDPITiffTools::scanTiffDirTags TIFFTAG_TILEWIDTH: " << tile_width;
     libtiff::TIFFGetField(tiff,TIFFTAG_TILELENGTH, &tile_height);
+    SLIDEIO_LOG(INFO) << "NDPITiffTools::scanTiffDirTags TIFFTAG_TILELENGTH: " << tile_height;
     libtiff::TIFFGetField(tiff, TIFFTAG_IMAGEDESCRIPTION, &description);
-    libtiff::TIFFGetField(tiff, NDPITAG_USERGIVENSLIDELABEL, &comments);
+    if(description) {
+        SLIDEIO_LOG(INFO) << "NDPITiffTools::scanTiffDirTags TIFFTAG_IMAGEDESCRIPTION: " << description;
+    }
+    libtiff::TIFFGetField(tiff, NDPITAG_USERGIVENSLIDELABEL, &userLabel);
+    if (userLabel) {
+        SLIDEIO_LOG(INFO) << "NDPITiffTools::scanTiffDirTags NDPITAG_USERGIVENSLIDELABEL: " << userLabel;
+    }
     libtiff::TIFFGetField(tiff, NDPITAG_COMMENTS, &userLabel);
+    if (comments) {
+        SLIDEIO_LOG(INFO) << "NDPITiffTools::scanTiffDirTags NDPITAG_COMMENTS: " << comments;
+    }
     libtiff::TIFFGetField(tiff, TIFFTAG_PLANARCONFIG, &planar_config);
+    SLIDEIO_LOG(INFO) << "NDPITiffTools::scanTiffDirTags TIFFTAG_PLANARCONFIG: " << planar_config;
     libtiff::TIFFGetField(tiff, NDPITAG_MAGNIFICATION, &magnification);
-    SLIDEIO_LOG(INFO) << "NDPITiffTools::scanTiffDirTags scanning mark 2";
+    SLIDEIO_LOG(INFO) << "NDPITiffTools::scanTiffDirTags NDPITAG_MAGNIFICATION: " << magnification;
     libtiff::TIFFGetField(tiff, NDPITAG_BLANKLANES, &nblanklines, &blankLines);
-    SLIDEIO_LOG(INFO) << "NDPITiffTools::scanTiffDirTags scanning mark 3";
+    SLIDEIO_LOG(INFO) << "NDPITiffTools::scanTiffDirTags NDPITAG_BLANKLANES: " << nblanklines;
 
 
     float resx(0), resy(0);
@@ -334,14 +388,25 @@ void slideio::NDPITiffTools::scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, 
     if (userLabel)
         dir.userLabel = userLabel;
     dir.blankLines = nblanklines;
-    SLIDEIO_LOG(INFO) << "Directory " << dir.dirIndex;
-    SLIDEIO_LOG(INFO) << "channels: " << dir.channels;
-    SLIDEIO_LOG(INFO) << "height: " << dir.height;
-    SLIDEIO_LOG(INFO) << "width: " << dir.width;
-    SLIDEIO_LOG(INFO) << "magnification: " << dir.magnification;
-    SLIDEIO_LOG(INFO) << "compression: " << dir.compression;
-    SLIDEIO_LOG(INFO) << "tiled: " << dir.tiled;
     SLIDEIO_LOG(INFO) << "NDPITiffTools::scanTiffDirTags-end " << dirIndex;
+}
+
+void NDPITiffTools::updateJpegXRCompressedDirectoryMedatata(libtiff::TIFF* tiff, NDPITiffDirectory& dir)
+{
+    if (dir.tiled) {
+        const int tile = 0;
+        cv::Size tileSize = computeTileSize(dir, tile);
+        const int tileBufferSize = dir.channels * tileSize.width * tileSize.height * Tools::dataTypeSize(dir.dataType);
+        std::vector<uint8_t> rawTile(tileBufferSize);
+        libtiff::tmsize_t readBytes = libtiff::TIFFReadRawTile(tiff, tile, rawTile.data(), (int)rawTile.size());
+        if (readBytes <= 0) {
+            RAISE_RUNTIME_ERROR << "TiffTools: Error reading raw tile";
+        }
+        jpegxr_image_info info;
+        jpegxr_get_image_info((uint8_t*)rawTile.data(), (uint32_t)rawTile.size(), info);
+        dir.channels = info.channels;
+        dir.dataType = getSlideioType(info);
+    }
 }
 
 void slideio::NDPITiffTools::scanTiffDir(libtiff::TIFF* tiff, int dirIndex, int64_t dirOffset,
@@ -357,6 +422,10 @@ void slideio::NDPITiffTools::scanTiffDir(libtiff::TIFF* tiff, int dirIndex, int6
     dir.offset = dirOffset;
 
     scanTiffDirTags(tiff, dirIndex, dirOffset, dir);
+    // check if we have to refine data for jpegxr compressed files
+    if(dir.slideioCompression == Compression::JpegXR) {
+        updateJpegXRCompressedDirectoryMedatata(tiff, dir);
+    }
     dir.offset = 0;
     long subdirs(0);
     int64* offsets_raw(nullptr);

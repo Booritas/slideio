@@ -63,6 +63,7 @@ namespace slideio
         static libtiff::TIFF* openTiffFile(const std::string& path);
         static void closeTiffFile(libtiff::TIFF* file);
         static void scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, int64_t dirOffset, slideio::NDPITiffDirectory& dir);
+        static void updateJpegXRCompressedDirectoryMedatata(libtiff::TIFF* tiff, NDPITiffDirectory& dir);
         static void scanTiffDir(libtiff::TIFF* tiff, int dirIndex, int64_t dirOffset, slideio::NDPITiffDirectory& dir);
         static void scanFile(libtiff::TIFF* file, std::vector<NDPITiffDirectory>& directories);
         static void scanFile(const std::string& filePath, std::vector<NDPITiffDirectory>& directories);

@@ -87,15 +87,15 @@ TEST(NDPITiffTools, readRegularStrip)
 
 TEST(NDPITiffTools, readTile)
 {
-    std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "DM0014 - 2020-04-02 11.10.47.ndpi");
-    std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "DM0014 - 2020-04-02 11.10.47-2.png");
+    std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "DM0014 - 2020-04-02 10.25.21.ndpi");
+    std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "DM0014 - 2020-04-02 10.25.21-tile.png");
     std::vector<slideio::NDPITiffDirectory> dirs;
     slideio::NDPITiffTools::scanFile(filePath, dirs);
     int dirCount = (int)dirs.size();
 
     libtiff::TIFF* tiff = slideio::NDPITiffTools::openTiffFile(filePath);;
     ASSERT_TRUE(tiff != nullptr);
-    const int dirIndex = 2;
+    const int dirIndex = 3;
     const int tileIndex = 306;
     cv::Mat tileRaster;
     const slideio::NDPITiffDirectory& dir = dirs[dirIndex];
@@ -104,7 +104,8 @@ TEST(NDPITiffTools, readTile)
     slideio::NDPITiffTools::closeTiffFile(tiff);
     EXPECT_EQ(tileRaster.rows, dir.tileHeight);
     EXPECT_EQ(tileRaster.cols, dir.tileWidth);
-    //slideio::NDPITestTools::writePNG(tileRaster, testFilePath);
+    // TestTools::showRaster(tileRaster);
+    // TestTools::writePNG(tileRaster, testFilePath);
     cv::Mat testRaster;
     TestTools::readPNG(testFilePath, testRaster);
     TestTools::compareRasters(tileRaster, testRaster);
