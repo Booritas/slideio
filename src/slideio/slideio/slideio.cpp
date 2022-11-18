@@ -11,15 +11,6 @@ using namespace slideio;
 
 std::shared_ptr<slideio::Slide> slideio::openSlide(const std::string& path, const std::string& driver)
 {
-    static bool initLog = false;
-    if(!initLog) {
-        google::InitGoogleLogging("slideio");
-        gflags::SetCommandLineOption("GLOG_minloglevel", "3");
-        FLAGS_logtostderr = true;
-        FLAGS_minloglevel = google::GLOG_FATAL;
-        initLog = true;
-    }
-
     std::shared_ptr<CVSlide> cvSlide = ImageDriverManager::openSlide(path, driver);
     std::shared_ptr<Slide> slide(new Slide(cvSlide));
     return slide;
