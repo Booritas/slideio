@@ -167,7 +167,7 @@ class CMakeBuild(build_ext):
 setup(
     name='slideio',
     version=version,
-    author='Stanislav Melnikov, Vadim Popov',
+    author='Stanislav Melnikov',
     author_email='stanislav.melnikov@gmail.com',
     description='Reading of medical images',
     long_description=long_description,
@@ -176,9 +176,9 @@ setup(
     packages=find_packages(),
     project_urls={
         'Documentation':'http://slideio.com',
-        "Source Code": "https://gitlab.com/bioslide/slideio.git"
+        "Source Code": "https://github.com/Booritas/slideio"
     },
-    keywords = 'images, pathology, tissue, medical, czi, svs, afi, scn',
+    keywords = 'images, pathology, tissue, medical, czi, svs, afi, scn, ndpi',
     package_data={},
     classifiers=[
         'Development Status :: 5 - Production/Stable',
