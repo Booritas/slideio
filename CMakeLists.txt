@@ -29,6 +29,7 @@ set(TEST_LIB_NAME slideio-test-lib)
 
 include_directories(${INCLUDE_ROOT})
 
+
 MACRO(SOURCE_GROUP_BY_FOLDER target)
   SET(SOURCE_GROUP_DELIMITER "/")
   SET(last_dir "")
@@ -96,3 +97,4 @@ ENDIF(WIN32)
 set(TEST_DIR ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 
 add_subdirectory(src)
+

@@ -17,4 +17,4 @@ expat/2.2.10
 pole/1.0.1@slideio/stable
 [options]
 boost:shared=False
-glog:shared=False
+glog:shared=True

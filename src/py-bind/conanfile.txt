@@ -5,4 +5,4 @@ glog/0.6.0
 opencv/4.1.1@slideio/stable
 [options]
 boost:shared=False
-glog:shared=False
+glog:shared=True

@@ -83,13 +83,10 @@ std::shared_ptr<CVSlide> ImageDriverManager::openSlide(const std::string& filePa
     static bool initLog = false;
     if (!initLog) {
         google::InitGoogleLogging("slideio");
-        gflags::SetCommandLineOption("GLOG_minloglevel", "3");
         FLAGS_logtostderr = true;
         FLAGS_minloglevel = google::GLOG_FATAL;
         initLog = true;
     }
-
-    SLIDEIO_LOG(INFO) << "-------------- LOG --------- Level: " << FLAGS_minloglevel;
     initialize();
     auto it = driverMap.find(driverName);
     if(it==driverMap.end())

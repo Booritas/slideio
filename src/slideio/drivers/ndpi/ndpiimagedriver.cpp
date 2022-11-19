@@ -23,7 +23,7 @@ std::string slideio::NDPIImageDriver::getID() const
 
 std::shared_ptr<slideio::CVSlide> slideio::NDPIImageDriver::openFile(const std::string& filePath)
 {
-	SLIDEIO_LOG(INFO) << "NDPIImageDriver: open file: " << filePath << ".";
+	SLIDEIO_LOG(INFO) << "NDPIImageDriver: open file: " << filePath;
 	std::shared_ptr<NDPISlide> slide(new NDPISlide);
 	slide->init(filePath);
 	SLIDEIO_LOG(INFO) << "NDPIImageDriver: file " << filePath << " opened successfully.";
