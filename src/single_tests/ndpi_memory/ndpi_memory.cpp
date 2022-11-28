@@ -1,6 +1,8 @@
 #define _CRTDBG_MAP_ALLOC
 #include <stdlib.h>
+#if defined(WIN32)
 #include <crtdbg.h>
+#endif
 
 #include <iostream>
 #include "slideio/drivers/ndpi/ndpiimagedriver.hpp"

@@ -14,6 +14,16 @@
 #include "slideio/core/cvtools.hpp"
 #include "jpeglib.h"
 
+#if defined(WIN32)
+#define FSEEK64 _fseek64
+#else
+#include <stdarg.h>
+#include <stddef.h>
+#include <setjmp.h>
+#define FSEEK64 fseek
+#endif
+
+
 using namespace slideio;
 
 static int getCvType(jpegxr_image_info& info)
@@ -675,7 +685,7 @@ void NDPITiffTools::readScanlines(libtiff::TIFF* tiff, FILE* file, const NDPITif
     setCurrentDirectory(tiff, dir);
 
     uint64_t stripeOffset = libtiff::TIFFGetStrileOffset(tiff, 0);
-    int ret = _fseeki64(file, stripeOffset, SEEK_SET);
+    int ret = FSEEK64(file, stripeOffset, SEEK_SET);
     jpeg_decompress_struct cinfo;
     ErrorManager jerr;
 
@@ -757,7 +767,7 @@ void NDPITiffTools::readJpegDirectoryRegion(libtiff::TIFF* tiff, const std::stri
         const int numberScanlines = region.height;
 
         uint64_t stripeOffset = libtiff::TIFFGetStrileOffset(tiff, 0);
-        int ret = _fseeki64(file, stripeOffset, SEEK_SET);
+        int ret = FSEEK64(file, stripeOffset, SEEK_SET);
         jpeg_decompress_struct cinfo{};
         ErrorManager jErr{};
 

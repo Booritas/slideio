@@ -1,13 +1,9 @@
 [requires]
-zlib/1.2.12
-openssl/1.1.1i
-libdeflate/1.9
-opencv/4.1.1@slideio/stable
-libwebp/1.0.3
 boost/1.80.0
 glog/0.6.0
-tinyxml2/8.0.0
-expat/2.2.10
+opencv/4.1.1@slideio/stable
+zlib/1.2.13
+tinyxml2/9.0.0
 [options]
 boost:shared=False
 glog:shared=True
