@@ -15,7 +15,7 @@
 #include "jpeglib.h"
 
 #if defined(WIN32)
-#define FSEEK64 _fseek64
+#define FSEEK64 _fseeki64
 #else
 #include <stdarg.h>
 #include <stddef.h>
