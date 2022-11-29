@@ -1,7 +1,7 @@
 CONAN_MAIN()
 set(LIBRARY_NAME ${IMAGETOOLS_LIB_NAME})
 
-set(SOURCE_FILES 
+set(SOURCE_FILES
    ${SOURCE_FILES}
    ${CMAKE_CURRENT_SOURCE_DIR}/gdalcodec.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/imagetools.hpp
@@ -13,7 +13,6 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/tifftools.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/tifftools.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/tempfile.hpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/wildmat.c
    )
 
 

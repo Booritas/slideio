@@ -28,6 +28,22 @@ set(ZVI_DRIVER_NAME slideio-zvi)
 set(NDPI_DRIVER_NAME slideio-ndpi)
 set(TEST_LIB_NAME slideio-test-lib)
 
+set(NAME_TOOL_LIB_LIST
+    "lib${SLIEIO_LIB_NAME}.dylib"
+    "lib${CORE_LIB_NAME}.dylib"
+    "lib${GDAL_DRIVER_NAME}.dylib"
+    "lib${SVS_DRIVER_NAME}.dylib"
+    "lib${AFI_DRIVER_NAME}.dylib"
+    "lib${CZI_DRIVER_NAME}.dylib"
+    "lib${DCM_DRIVER_NAME}.dylib"
+    "lib${SCN_DRIVER_NAME}.dylib"
+    "lib${ZVI_DRIVER_NAME}.dylib"
+    "lib${NDPI_DRIVER_NAME}.dylib"
+    "@rpath/libgflags_nothreads.2.2.dylib"
+    "@rpath/libglog.1.dylib"
+    "@rpath/libglogd.1.dylib"
+    "@rpath/libgflags_nothreads_debug.2.2.dylib"
+)
 include_directories(${INCLUDE_ROOT})
 
 
@@ -96,6 +112,19 @@ ELSE()
     set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 ENDIF(WIN32)
+
+MACRO(FIX_MACOS_RPATH target)
+    IF (APPLE)
+        FOREACH(entry ${NAME_TOOL_LIB_LIST})
+            string(REPLACE "@rpath/" "" new_val ${entry})
+            add_custom_command(TARGET ${target}
+                POST_BUILD COMMAND
+                ${CMAKE_INSTALL_NAME_TOOL} -change ${entry} @loader_path/${new_val}
+                $<TARGET_FILE:${target}>)
+        ENDFOREACH()
+    ENDIF()
+ENDMACRO(FIX_MACOS_RPATH)
+
 
 set(TEST_DIR ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 

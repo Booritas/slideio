@@ -1,4 +1,4 @@
-set(SOURCE_FILES 
+set(SOURCE_FILES
    ${SOURCE_FILES}
    ${CMAKE_CURRENT_SOURCE_DIR}/exceptions.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/log.hpp
@@ -9,5 +9,6 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/tools.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/tilecomposer.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/tilecomposer.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/wildmat.c
    PARENT_SCOPE
    )

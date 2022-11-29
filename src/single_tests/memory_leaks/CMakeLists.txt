@@ -23,3 +23,5 @@ target_link_libraries(${TEST_NAME} PRIVATE
    ${CZI_DRIVER_NAME}
    ${TEST_LIB_NAME}
 )
+
+FIX_MACOS_RPATH(${TEST_NAME})
