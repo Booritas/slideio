@@ -1,6 +1,7 @@
 
 import sys
 import os
+import shutil
 
 def process_python_dist(bin_path):
     if os.name == 'nt':
@@ -17,7 +18,17 @@ if __name__ == "__main__":
     path_file = arguments[0]
     file = open(path_file, 'r')
     lines = file.readlines()
+    build_paths = []
+    build_paths.append(os.path.abspath("./build"))
+    build_paths.append(os.path.abspath("../../build"))
+    build_paths.append(os.path.abspath("../../build_py"))
+    dist_path = os.path.abspath("./dist")
+    if os.path.exists(dist_path):
+        shutil.rmtree(dist_path)
     for line in lines:
+        for build_path in build_paths:
+            if os.path.exists(build_path):
+                shutil.rmtree(build_path)
         line = line.rstrip("\n")
         print(f"============={line}==================")
         if(len(line)>1):

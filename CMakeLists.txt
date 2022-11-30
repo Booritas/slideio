@@ -39,6 +39,7 @@ set(NAME_TOOL_LIB_LIST
     "lib${SCN_DRIVER_NAME}.dylib"
     "lib${ZVI_DRIVER_NAME}.dylib"
     "lib${NDPI_DRIVER_NAME}.dylib"
+    "lib${IMAGETOOLS_LIB_NAME}.dylib"
     "@rpath/libgflags_nothreads.2.2.dylib"
     "@rpath/libglog.1.dylib"
     "@rpath/libglogd.1.dylib"

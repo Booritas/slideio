@@ -62,18 +62,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="ab3fa5e4-e9e7-4544-8e69-a93644a57165" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/py-bind/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/py-bind/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/single_tests/memory_leaks/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/single_tests/memory_leaks/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/single_tests/ndpi_memory/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/single_tests/ndpi_memory/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/slideio/core/tools/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/core/tools/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/slideio/core/tools/tools.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/core/tools/tools.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/slideio/imagetools/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/imagetools/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/slideio/imagetools/wildmat.c" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/tests/main/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/tests/main/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/tests/ndpi/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/tests/ndpi/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/a.txt" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/py-bind/build_py_dists.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/py-bind/build_py_dists.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -157,11 +149,6 @@
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
         <option name="BeforeTestRunTask" enabled="true" />
-      </method>
-    </configuration>
-    <configuration default="true" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true">
-      <method v="2">
-        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
     </configuration>
     <configuration name="memory_leaks" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="memory_leaks" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="slide_io" RUN_TARGET_NAME="memory_leaks">
@@ -307,7 +294,8 @@
       <workItem from="1646560912188" duration="4923000" />
       <workItem from="1646671501823" duration="135000" />
       <workItem from="1669732100339" duration="1004000" />
-      <workItem from="1669733708176" duration="901000" />
+      <workItem from="1669733708176" duration="2113000" />
+      <workItem from="1669809987191" duration="357000" />
     </task>
     <servers />
   </component>
