@@ -67,8 +67,8 @@ def collect_profiles(profile_dir, configuration, compiler=""):
 
 def process_conan_profile(profile, trg_dir, conan_file):
     generator = "cmake_multi"
-    build_libs = None
-    build_libs = 'missing'
+    build_libs = []
+    build_libs.append('missing')
     # if is_linux():
     #     build_libs = "missing"
     command = ['conan','install',
@@ -76,9 +76,9 @@ def process_conan_profile(profile, trg_dir, conan_file):
         '-if',trg_dir,
         '-g', generator
         ]
-    if build_libs is not None:
+    for lib in build_libs:
         command.append('-b')
-        command.append(build_libs)
+        command.append(lib)
     command.append(conan_file)
     print(command)
     subprocess.check_call(command)

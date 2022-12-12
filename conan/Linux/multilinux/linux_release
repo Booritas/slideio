@@ -8,5 +8,6 @@ build_type=Release
 [options]
 tinyxml2:shared=False
 boost:shared=False
+gdal:fPIC=True
 [build_requires]
 [env]

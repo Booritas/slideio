@@ -4,7 +4,6 @@
 #include "slideio/slideio/slideio.hpp"
 #include "slideio/core/cvtools.hpp"
 #include "slideio/slideio/imagedrivermanager.hpp"
-#include <gflags/gflags.h>
 
 using namespace slideio;
 

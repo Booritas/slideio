@@ -1,6 +1,6 @@
 [requires]
-boost/1.80.0
-glog/0.6.0
+boost/1.73.0
+glog/0.6.0@slideio/stable
 opencv/4.1.1@slideio/stable
 zlib/1.2.13
 jpegxrcodec/1.0.2@slideio/stable
