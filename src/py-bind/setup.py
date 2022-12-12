@@ -138,7 +138,7 @@ class CMakeBuild(build_ext):
             ['cmake', '--build', '.'] + build_args,
             cwd=self.build_temp
         )
-        patterns = ["*.so"]
+        patterns = ["*.so","*.so.*"]
         if PLATFORM == "Windows":
             patterns = ["*.dll","*.pyd"]
         elif PLATFORM == "Macos":
