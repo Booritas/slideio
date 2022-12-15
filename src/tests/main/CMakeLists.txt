@@ -25,8 +25,10 @@ set(TEST_SOURCES
 
 add_executable(${TEST_NAME} ${TEST_SOURCES})
 
+CONAN_CONFIGURE(${TEST_NAME})
+
 target_include_directories(${TEST_NAME} PRIVATE ${INCLUDE_ROOT})
-target_link_libraries(${TEST_NAME} ${SLIEIO_LIB_NAME} ${TEST_LIB_NAME})
+target_link_libraries(${TEST_NAME} ${SLIEIO_LIB_NAME} ${TEST_LIB_NAME} ${CONAN_LIB_DIRS_POLE_DEBUG}/pole)
 
 
 # Remove boost libraries from linking
@@ -34,7 +36,6 @@ message("list: ${CONAN_LIBS_RELEASE}")
 LIST(FILTER CONAN_LIBS_RELEASE EXCLUDE REGEX "^(.)+boost(.)+")
 LIST(FILTER CONAN_LIBS_DEBUG EXCLUDE REGEX "^(.)+boost(.)+")
 
-CONAN_CONFIGURE(${TEST_NAME})
 
 IF(WIN32)
    set_target_properties(${TEST_NAME} PROPERTIES LINK_FLAGS "/ignore:4099")
