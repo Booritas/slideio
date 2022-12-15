@@ -28,7 +28,7 @@ add_executable(${TEST_NAME} ${TEST_SOURCES})
 CONAN_CONFIGURE(${TEST_NAME})
 
 target_include_directories(${TEST_NAME} PRIVATE ${INCLUDE_ROOT})
-target_link_libraries(${TEST_NAME} ${SLIEIO_LIB_NAME} ${TEST_LIB_NAME} ${CONAN_LIB_DIRS_POLE_DEBUG}/pole)
+target_link_libraries(${TEST_NAME} ${SLIEIO_LIB_NAME} ${TEST_LIB_NAME} ${CONAN_LIB_DIRS_POLE_DEBUG}/libpole.a)
 
 
 # Remove boost libraries from linking
