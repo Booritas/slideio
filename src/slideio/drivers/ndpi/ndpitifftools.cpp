@@ -1059,11 +1059,13 @@ void NDPITiffTools::readNotRGBTile(libtiff::TIFF* hFile, const slideio::NDPITiff
 void slideio::NDPITiffTools::setCurrentDirectory(libtiff::TIFF* hFile, const slideio::NDPITiffDirectory& dir)
 {
     if (!libtiff::TIFFSetDirectory(hFile, static_cast<uint16_t>(dir.dirIndex))) {
-        RAISE_RUNTIME_ERROR << "NDPITiffTools: error by setting current directory";
+        RAISE_RUNTIME_ERROR << "NDPITiffTools: error by setting current directory " << dir.dirIndex;
     }
     if (dir.offset > 0) {
         if (!libtiff::TIFFSetSubDirectory(hFile, dir.offset)) {
-            RAISE_RUNTIME_ERROR << "NDPITiffTools: error by setting current sub-directory";
+            RAISE_RUNTIME_ERROR << "NDPITiffTools: error by setting current sub-directory. Directory:"
+                << dir.dirIndex
+                << ".Offset:" << dir.offset;
         }
     }
 }
