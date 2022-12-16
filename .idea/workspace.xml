@@ -63,9 +63,8 @@
   <component name="ChangeListManager">
     <list default="true" id="ab3fa5e4-e9e7-4544-8e69-a93644a57165" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/a.txt" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/py-bind/build_py_dists.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/py-bind/build_py_dists.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/install.py" beforeDir="false" afterPath="$PROJECT_DIR$/install.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/tests/main/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/tests/main/CMakeLists.txt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -86,6 +85,10 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
+  <component name="HighlightingSettingsPerFile">
+    <setting file="file:///usr/include/c++/10/bits/shared_ptr_base.h" root0="SKIP_INSPECTION" />
+    <setting file="file:///usr/include/c++/11/bits/shared_ptr_base.h" root0="SKIP_INSPECTION" />
+  </component>
   <component name="MarkdownSettingsMigration">
     <option name="stateVersion" value="1" />
   </component>
@@ -97,25 +100,35 @@
   </component>
   <component name="PropertiesComponent">{
   &quot;keyToString&quot;: {
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.cidr.known.project.marker&quot;: &quot;true&quot;,
     &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
     &quot;cf.first.check.clang-format&quot;: &quot;false&quot;,
     &quot;cidr.known.project.marker&quot;: &quot;true&quot;,
     &quot;ctest.advertisement.all.test.configuration.is.created&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/home/stanislav/projects/slideio/slideio&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
     &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
     &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;reference.settings.ide.settings.new.ui&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
 }</component>
-  <component name="RunManager" selected="Google Test.All in test_ndpi_driver.cpp">
-    <configuration name="All in test_czi_driver.cpp" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" temporary="true" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="slideio_tests" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="slide_io" RUN_TARGET_NAME="slideio_tests" TEST_PATTERN="all-tests(file://$PROJECT_DIR$/src/tests/main/test_czi_driver.cpp)" TEST_MODE="PATTERN">
+  <component name="RunManager" selected="Google Test.CVTools.extractSliceFrom3D">
+    <configuration default="true" type="CLionExternalRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true">
+      <method v="2">
+        <option name="CLION.EXTERNAL.BUILD" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="AFIDriver.driverID" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" temporary="true" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="slideio_tests" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="slide_io" RUN_TARGET_NAME="slideio_tests" TEST_CLASS="AFIDriver" TEST_METHOD="driverID" TEST_MODE="SUITE_TEST">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
         <option name="BeforeTestRunTask" enabled="true" />
       </method>
     </configuration>
-    <configuration name="All in test_ndpi_driver.cpp" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" temporary="true" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="slideio_ndpi_tests" RUN_TARGET_PROJECT_NAME="slide_io" RUN_TARGET_NAME="slideio_ndpi_tests" TEST_PATTERN="all-tests(file://$PROJECT_DIR$/src/tests/ndpi/test_ndpi_driver.cpp)" TEST_MODE="PATTERN">
+    <configuration name="All in test_ndpi_driver.cpp" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" temporary="true" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="slideio_ndpi_tests" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="slide_io" RUN_TARGET_NAME="slideio_ndpi_tests" TEST_PATTERN="all-tests(file://$PROJECT_DIR$/src/tests/ndpi/test_ndpi_driver.cpp)" TEST_MODE="PATTERN">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
         <option name="BeforeTestRunTask" enabled="true" />
@@ -127,25 +140,13 @@
         <option name="BeforeTestRunTask" enabled="true" />
       </method>
     </configuration>
-    <configuration name="CZIImageDriver.canOpenFile" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" temporary="true" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="slideio_tests" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="slide_io" RUN_TARGET_NAME="slideio_tests" TEST_CLASS="CZIImageDriver" TEST_METHOD="canOpenFile" TEST_MODE="SUITE_TEST">
+    <configuration name="CVTools.extractSliceFrom3D" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" temporary="true" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="slideio_tests" RUN_TARGET_PROJECT_NAME="slide_io" RUN_TARGET_NAME="slideio_tests" TEST_CLASS="CVTools" TEST_METHOD="extractSliceFrom3D" TEST_MODE="SUITE_TEST">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
         <option name="BeforeTestRunTask" enabled="true" />
       </method>
     </configuration>
-    <configuration name="NDPIImageDriver.readResampled" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" temporary="true" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="slideio_ndpi_tests" RUN_TARGET_PROJECT_NAME="slide_io" RUN_TARGET_NAME="slideio_ndpi_tests" TEST_CLASS="NDPIImageDriver" TEST_METHOD="readResampled" TEST_MODE="SUITE_TEST">
-      <method v="2">
-        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
-        <option name="BeforeTestRunTask" enabled="true" />
-      </method>
-    </configuration>
-    <configuration name="slideio_ndpi_tests" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="slideio_ndpi_tests" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="slide_io" RUN_TARGET_NAME="slideio_ndpi_tests" TEST_MODE="SUITE_TEST">
-      <method v="2">
-        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
-        <option name="BeforeTestRunTask" enabled="true" />
-      </method>
-    </configuration>
-    <configuration name="slideio_tests" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="slideio_tests" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="slide_io" RUN_TARGET_NAME="slideio_tests" TEST_MODE="SUITE_TEST">
+    <configuration name="NDPIImageDriver.readResampled" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" temporary="true" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="slideio_ndpi_tests" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="slide_io" RUN_TARGET_NAME="slideio_ndpi_tests" TEST_CLASS="NDPIImageDriver" TEST_METHOD="readResampled" TEST_MODE="SUITE_TEST">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
         <option name="BeforeTestRunTask" enabled="true" />
@@ -249,21 +250,19 @@
       <item itemvalue="CMake Application.slideiopybind" />
       <item itemvalue="CMake Application.slideio-test-lib" />
       <item itemvalue="CTest Application.All CTest" />
-      <item itemvalue="Google Test.slideio_tests" />
-      <item itemvalue="Google Test.slideio_ndpi_tests" />
+      <item itemvalue="Google Test.AFIDriver.driverID" />
+      <item itemvalue="Google Test.CVTools.extractSliceFrom3D" />
       <item itemvalue="Google Test.All in test_ndpi_driver.cpp" />
       <item itemvalue="Google Test.All in test_ndpitiff_tools.cpp" />
       <item itemvalue="Google Test.NDPIImageDriver.readResampled" />
-      <item itemvalue="Google Test.All in test_czi_driver.cpp" />
-      <item itemvalue="Google Test.CZIImageDriver.canOpenFile" />
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Google Test.CVTools.extractSliceFrom3D" />
+        <item itemvalue="Google Test.AFIDriver.driverID" />
         <item itemvalue="Google Test.All in test_ndpi_driver.cpp" />
         <item itemvalue="Google Test.NDPIImageDriver.readResampled" />
         <item itemvalue="Google Test.All in test_ndpitiff_tools.cpp" />
-        <item itemvalue="Google Test.CZIImageDriver.canOpenFile" />
-        <item itemvalue="Google Test.All in test_czi_driver.cpp" />
       </list>
     </recent_temporary>
   </component>
@@ -296,6 +295,17 @@
       <workItem from="1669732100339" duration="1004000" />
       <workItem from="1669733708176" duration="2113000" />
       <workItem from="1669809987191" duration="357000" />
+      <workItem from="1670873216948" duration="305000" />
+      <workItem from="1671118790511" duration="452000" />
+      <workItem from="1671122214127" duration="6000" />
+      <workItem from="1671122294964" duration="2832000" />
+      <workItem from="1671129468528" duration="22000" />
+      <workItem from="1671129575058" duration="34000" />
+      <workItem from="1671129614237" duration="98000" />
+      <workItem from="1671129738463" duration="152000" />
+      <workItem from="1671129897436" duration="15000" />
+      <workItem from="1671129991946" duration="47000" />
+      <workItem from="1671179546379" duration="416000" />
     </task>
     <servers />
   </component>
@@ -321,7 +331,22 @@
           <line>291</line>
           <option name="timeStamp" value="1" />
         </line-breakpoint>
+        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
+          <url>file://$PROJECT_DIR$/src/slideio/drivers/ndpi/ndpitifftools.cpp</url>
+          <line>1060</line>
+          <option name="timeStamp" value="6" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
+          <url>file://$PROJECT_DIR$/src/tests/main/test_afi_driver.cpp</url>
+          <line>19</line>
+          <option name="timeStamp" value="7" />
+        </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
+    <watches-manager>
+      <configuration name="CMakeRunConfiguration">
+        <watch expression="nextdir" />
+      </configuration>
+    </watches-manager>
   </component>
 </project>
