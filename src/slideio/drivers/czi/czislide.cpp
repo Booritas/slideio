@@ -57,7 +57,7 @@ std::shared_ptr<CVScene> CZISlide::getScene(int index) const
 
 void CZISlide::readBlock(uint64_t pos, uint64_t size, std::vector<unsigned char>& data)
 {
-    try 
+    try
     {
         data.resize(size);
         m_fileStream.seekg(pos, std::ios_base::beg);
@@ -82,7 +82,7 @@ std::shared_ptr<CVScene> CZISlide::getAuxImage(const std::string& sceneName) con
 
 void CZISlide::readAttachments()
 {
-    try 
+    try
     {
         if (m_attachmentDirectoryPosition > 0)
         {
@@ -125,6 +125,7 @@ void CZISlide::readAttachments()
 
 void CZISlide::init()
 {
+    SLIDEIO_LOG(INFO) << "Slide initialization. File path: " << getFilePath();
     // read file header
     m_fileStream.exceptions(std::ios::failbit | std::ios::badbit);
     m_fileStream.open(m_filePath.c_str(), std::ifstream::in | std::ifstream::binary);
@@ -132,6 +133,8 @@ void CZISlide::init()
     readMetadata();
     readDirectory();
     readAttachments();
+    SLIDEIO_LOG(INFO) << "Auxiliary images: " << m_auxNames;
+    SLIDEIO_LOG(INFO) << "Slide initialized successfully.";
 }
 
 void CZISlide::parseMagnification(XMLNode* root)
@@ -244,7 +247,7 @@ void CZISlide::parseChannels(XMLNode* root)
                     {
                         // id is not in the id map. Most likely
                         // matadtata is not created according to
-                        // the specs. 
+                        // the specs.
                         m_channels[currentIndex].name = channelName;
                     }
                 }

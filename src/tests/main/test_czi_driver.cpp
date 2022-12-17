@@ -150,7 +150,7 @@ TEST(CZIImageDriver, readBlock4D)
         {
             cv::Mat sliceRaster;
             slideio::CVTools::extractSliceFrom3D(raster, zSliceIndex - zSliceRange.start, sliceRaster);
-            std::string bmpFileName = 
+            std::string bmpFileName =
             std::string("pJP31mCherry.grey/pJP31mCherry_b0t0z") +
             std::to_string(zSliceIndex) +
             std::string("c") +
@@ -290,7 +290,7 @@ static void testChannelNames(const std::string& imageName, int sceneIndex, const
     {
         const std::string channelName = scene->getChannelName(channelIndex);
         EXPECT_EQ(channelNames[channelIndex], channelName);
-    }    
+    }
 }
 
 TEST(CZIImageDriver, channelNames)
@@ -322,7 +322,7 @@ TEST(CZIImageDriver, slideRawMetadata)
         EXPECT_GT(metadata.length(),0);
         const std::string header("<ImageDocument>");
         EXPECT_TRUE(boost::algorithm::starts_with(metadata, header));
-    }    
+    }
 }
 
 TEST(CZIImageDriver, metadataCompression)
@@ -351,7 +351,7 @@ TEST(CZIImageDriver, metadataCompression)
         std::shared_ptr<slideio::CVScene> scene = slide->getScene(sceneIndex);
         EXPECT_TRUE(scene!=nullptr);
         EXPECT_EQ(scene->getCompression(), sceneCompression);
-    }    
+    }
 }
 
 TEST(CZIImageDriver, crashTestNotCZIImage)
@@ -389,7 +389,7 @@ static void testAuxImage(const std::string& imagePath, const std::string& auxIma
 
 static void writeAuxImage(const std::string& imagePath, const std::string& auxImageName, const std::string testImagePath)
 {
-    slideio::CZIImageDriver driver;
+   slideio::CZIImageDriver driver;
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(imagePath);
     ASSERT_TRUE(slide != nullptr);
     std::shared_ptr<slideio::CVScene> auxScene = slide->getAuxImage(auxImageName);
