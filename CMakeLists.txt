@@ -27,6 +27,7 @@ set(SCN_DRIVER_NAME slideio-scn)
 set(ZVI_DRIVER_NAME slideio-zvi)
 set(NDPI_DRIVER_NAME slideio-ndpi)
 set(TEST_LIB_NAME slideio-test-lib)
+set(CONVERTER_LIB_NAME slideio-converter)
 
 set(NAME_TOOL_LIB_LIST
     "lib${SLIEIO_LIB_NAME}.dylib"
