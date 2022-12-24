@@ -32,7 +32,7 @@ jobs:
       run: python3 install.py -a conan -c release
       
     - name: build python packages
-      working-directory: ./src/pybind
+      working-directory: ./src/py-bind
       run: bash ./build_py_dists_linux.sh
 
     - name: Archive python packagess
