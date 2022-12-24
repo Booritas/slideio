@@ -5,7 +5,7 @@ jobs:
   build-linux:
     runs-on: ubuntu-20.04
     container:
-      image: booritas/slideio-manylinux2014:v0.62
+      image: booritas/slideio-manylinux2014:v2.0.0
       env:
         CONAN_REVISIONS_ENABLED: 1
 
@@ -28,22 +28,12 @@ jobs:
       with:
         submodules: 'true'
   
-    - name: compile libxml2
-      run: conan install -pr ./conan/Linux/multilinux/linux_release -b libxml2  libxml2/2.9.10@_/_
-
-    - name: compile sqlite3
-      run: conan install -pr ./conan/Linux/multilinux/linux_release -b sqlite3  sqlite3/3.36.0@_/_
-
-
     - name: Install conan dependencies
       run: python3 install.py -a conan -c release
       
-    - name: find references
-      run: bash ./search.sh
-
     - name: build python packages
       working-directory: ./src/pybind
-      run: bash ./install.sh
+      run: bash ./build_py_dists_linux.sh
 
     - name: Archive python packagess
       uses: actions/upload-artifact@v2
