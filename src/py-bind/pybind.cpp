@@ -16,6 +16,9 @@ PYBIND11_MODULE(slideiopybind, m) {
         py::arg("file_path"),
         py::arg("driver_id"),
         "Opens an image slide. Returns Slide object.");
+    m.def("set_log_level",&pySetLogLevel,
+          py::arg("log_level"),
+          "Sets log level for the library.");
     m.def("get_driver_ids", &pyGetDriverIDs,
         "Returns list of driver ids");
     m.def("compare_images", &pyCompareImages,

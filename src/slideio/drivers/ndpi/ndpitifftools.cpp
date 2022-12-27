@@ -458,6 +458,7 @@ void slideio::NDPITiffTools::scanFile(libtiff::TIFF* tiff, std::vector<NDPITiffD
     SLIDEIO_LOG(INFO) << "NDPITiffTools::scanFile-begin";
 
     int dirs = libtiff::TIFFNumberOfDirectories(tiff);
+    SLIDEIO_LOG(INFO) << "Total number of directories: " << dirs;
     directories.resize(dirs);
     for (int dir = 0; dir < dirs; dir++) {
         SLIDEIO_LOG(INFO) << "NDPITiffTools::scanFile processing directory " << dir;

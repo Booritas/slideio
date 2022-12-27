@@ -236,3 +236,7 @@ def get_driver_ids():
 def compare_images(left, right):
     '''Compares two images represented by numpy arrays'''
     return sld.compare_images(left, right)
+
+def set_log_level(log_level:str):
+    '''Sets log level'''
+    sld.set_log_level(log_level)

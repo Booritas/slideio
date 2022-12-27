@@ -14,20 +14,25 @@ void test()
     google::InitGoogleLogging("slideio");
     FLAGS_minloglevel = 0;
     FLAGS_logtostderr = true;
-
-    NDPIImageDriver driver;
-    const std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "2017-02-27 15.39.33.ndpi");
-    auto slide = driver.openFile(filePath.c_str());
-    auto scene = slide->getScene(0);
-    cv::Rect rectScene = scene->getRect();
-    const int blockWidth = 2000;
-    const int blockHeight = 1000;
-    cv::Rect blockRect = { rectScene.width/2,rectScene.height/2,blockWidth,blockHeight };
-    const double scale = 0.6;
-    cv::Size blockSize(std::lround(blockWidth * scale), std::lround(blockHeight * scale));
-    std::vector<int> channelIndices = { 0, 1, 2 };
-    cv::Mat mat;
-    scene->readResampledBlock(blockRect, blockSize, mat);
+    {
+        NDPIImageDriver driver;
+        const std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "2017-02-27 15.39.33.ndpi");
+        auto slide = driver.openFile(filePath.c_str());
+         auto scene = slide->getScene(0);
+         cv::Rect rectScene = scene->getRect();
+         const int blockWidth = 2000;
+         const int blockHeight = 1000;
+         cv::Rect blockRect = { rectScene.width/2,rectScene.height/2,blockWidth,blockHeight };
+         const double scale = 0.6;
+         cv::Size blockSize(std::lround(blockWidth * scale), std::lround(blockHeight * scale));
+         std::vector<int> channelIndices = { 0, 1, 2 };
+         cv::Mat mat;
+         scene->readResampledBlock(blockRect, blockSize, mat);
+         int channels = scene->getNumChannels();
+         std::cout << "Channels:" << channels << std::endl;
+         std::string channel = scene->getChannelName(0);
+         std::cout << "Channel 0: " << channel << std::endl;
+    }
     std::cout << "Done" << std::endl;
 }
 

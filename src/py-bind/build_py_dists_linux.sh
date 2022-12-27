@@ -15,14 +15,14 @@ rm -rf ../../build
 
 echo "Build python wheels"
 
-for dir in /opt/python/cp*
- do
-   export py="$dir/bin/python"
-   build_wheel
- done
+#for dir in /opt/python/cp*
+# do
+#   export py="$dir/bin/python"
+#   build_wheel
+# done
 
-#export py="/opt/python/cp310-cp310/bin/python"
-#build_wheel
+export py="/opt/python/cp38-cp38/bin/python"
+build_wheel
 
 echo "updating wheels"
 

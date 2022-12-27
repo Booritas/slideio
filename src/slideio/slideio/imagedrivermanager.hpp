@@ -28,6 +28,7 @@ namespace slideio
         static ImageDriver* getDriver(const std::string& driverName);
         static ImageDriver* findDriver(const std::string& filePath);
         static std::shared_ptr<CVSlide> openSlide(const std::string& cs, const std::string& driver);
+        static void setLogLevel(const std::string& level);
     protected:
         static void initialize();
     private:
