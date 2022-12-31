@@ -62,44 +62,26 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="ab3fa5e4-e9e7-4544-8e69-a93644a57165" name="Default Changelist" comment="">
+      <change afterPath="$PROJECT_DIR$/src/slideio/drivers/ndpi/ndpitiffmessagehandler.cpp" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/slideio/drivers/ndpi/ndpitiffmessagehandler.hpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/py-bind/build_py_dists_linux.sh" beforeDir="false" afterPath="$PROJECT_DIR$/src/py-bind/build_py_dists_linux.sh" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/py-bind/pybind.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/py-bind/pybind.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/py-bind/pyglobals.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/py-bind/pyglobals.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/py-bind/pyglobals.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/py-bind/pyglobals.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/py-bind/slideio/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/py-bind/slideio/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/py-bind/slideio/py_slideio.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/py-bind/slideio/py_slideio.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/single_tests/memory_leaks/memory_leaks.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/single_tests/memory_leaks/memory_leaks.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/single_tests/ndpi_memory/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/single_tests/ndpi_memory/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/py-bind/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/py-bind/CMakeLists.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/single_tests/ndpi_memory/ndpi_memory.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/single_tests/ndpi_memory/ndpi_memory.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/slideio/core/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/core/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/slideio/core/slideio_core_def.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/core/slideio_core_def.hpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/slideio/drivers/afi/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/drivers/afi/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/slideio/drivers/afi/afi_api_def.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/drivers/afi/afi_api_def.hpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/slideio/drivers/czi/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/drivers/czi/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/slideio/drivers/czi/czi_api_def.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/drivers/czi/czi_api_def.hpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/slideio/drivers/dcm/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/drivers/dcm/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/slideio/drivers/dcm/dcm_api_def.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/drivers/dcm/dcm_api_def.hpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/slideio/drivers/gdal/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/drivers/gdal/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/slideio/drivers/gdal/gdal_api_def.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/drivers/gdal/gdal_api_def.hpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/slideio/drivers/ndpi/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/drivers/ndpi/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/slideio/drivers/ndpi/ndpi_api_def.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/drivers/ndpi/ndpi_api_def.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/slideio/drivers/ndpi/ndpifile.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/drivers/ndpi/ndpifile.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/slideio/drivers/ndpi/ndpitifftools.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/drivers/ndpi/ndpitifftools.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/slideio/drivers/ndpi/ndpiimagedriver.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/drivers/ndpi/ndpiimagedriver.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/slideio/drivers/ndpi/ndpiscene.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/drivers/ndpi/ndpiscene.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/slideio/drivers/ndpi/ndpislide.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/drivers/ndpi/ndpislide.cpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/slideio/drivers/scn/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/drivers/scn/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/slideio/drivers/scn/scn_api_def.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/drivers/scn/scn_api_def.hpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/slideio/drivers/svs/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/drivers/svs/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/slideio/drivers/svs/svs_api_def.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/drivers/svs/svs_api_def.hpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/slideio/drivers/zvi/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/drivers/zvi/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/slideio/drivers/zvi/zvi_api_def.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/drivers/zvi/zvi_api_def.hpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/slideio/imagetools/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/imagetools/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/slideio/imagetools/slideio_imagetools_def.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/imagetools/slideio_imagetools_def.hpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/slideio/slideio/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/slideio/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/slideio/slideio/imagedrivermanager.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/slideio/imagedrivermanager.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/slideio/slideio/imagedrivermanager.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/slideio/imagedrivermanager.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/slideio/slideio/slideio_def.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/slideio/slideio_def.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/tests/ndpi/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/tests/ndpi/CMakeLists.txt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -119,6 +101,9 @@
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="HighlightingSettingsPerFile">
+    <setting file="file:///usr/include/x86_64-linux-gnu/tiffio.h" root0="SKIP_INSPECTION" />
   </component>
   <component name="MarkdownSettingsMigration">
     <option name="stateVersion" value="1" />
@@ -143,11 +128,11 @@
     &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
     &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
     &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;CPPToolchains&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;reference.settings.ide.settings.new.ui&quot;,
     &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
 }</component>
-  <component name="RunManager" selected="Google Test.All in test_ndpi_driver.cpp">
+  <component name="RunManager" selected="CMake Application.ndpi_memory">
     <configuration default="true" type="CLionExternalRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true">
       <method v="2">
         <option name="CLION.EXTERNAL.BUILD" enabled="true" />
@@ -194,6 +179,11 @@
       </method>
     </configuration>
     <configuration name="ndpi_memory" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="ndpi_memory" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="slide_io" RUN_TARGET_NAME="ndpi_memory">
+      <envs>
+        <env name="SLIDEIO_IMAGES_PATH" value="$PROJECT_DIR$/../images/images" />
+        <env name="SLIDEIO_TEST_DATA_PRIV_PATH" value="$PROJECT_DIR$/../images/slideio_extra_priv/testdata/cv/slideio" />
+        <env name="SLIDEIO_TEST_DATA_PATH" value="$PROJECT_DIR$/../images/slideio_extra/testdata/cv/slideio" />
+      </envs>
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
@@ -353,6 +343,11 @@
       <workItem from="1671993286580" duration="1729000" />
       <workItem from="1672073731266" duration="748000" />
       <workItem from="1672172649411" duration="1329000" />
+      <workItem from="1672229818050" duration="1809000" />
+      <workItem from="1672414112377" duration="4457000" />
+      <workItem from="1672488076663" duration="747000" />
+      <workItem from="1672488829334" duration="184000" />
+      <workItem from="1672491345160" duration="5192000" />
     </task>
     <servers />
   </component>

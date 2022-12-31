@@ -20,7 +20,7 @@
 #include <stdarg.h>
 #include <stddef.h>
 #include <setjmp.h>
-#define FSEEK64 fseek
+#define FSEEK64 fseeko64
 #endif
 
 

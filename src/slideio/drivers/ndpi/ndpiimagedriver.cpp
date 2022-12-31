@@ -3,7 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/drivers/ndpi/ndpiimagedriver.hpp"
 #include "slideio/drivers/ndpi/ndpislide.hpp"
-#include <boost/filesystem.hpp>
+#include "slideio/drivers/ndpi/ndpitiffmessagehandler.hpp"
 #include "slideio/core/tools/log.hpp"
 
 slideio::NDPIImageDriver::NDPIImageDriver()
@@ -23,6 +23,7 @@ std::string slideio::NDPIImageDriver::getID() const
 
 std::shared_ptr<slideio::CVSlide> slideio::NDPIImageDriver::openFile(const std::string& filePath)
 {
+    NDPITIFFMessageHandler mh;
 	SLIDEIO_LOG(INFO) << "NDPIImageDriver: open file: " << filePath;
 	std::shared_ptr<NDPISlide> slide(new NDPISlide);
 	slide->init(filePath);
