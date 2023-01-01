@@ -8,7 +8,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [windows-2019]
+        os: [macos-10.15]
     steps:
 
     - uses: actions/checkout@v3
@@ -45,5 +45,7 @@ jobs:
       run: python install.py -a conan
 
     - run: conan upload "ndpi-libtiff/4.3.0@slideio/stable" -r slideio --all
-    - run: conan upload "opencv/4.1.1@slideio/stable" -r slideio --all
     - run: conan upload "pole/1.0.1@slideio/stable" -r slideio --all
+    - run: conan upload "ndpi-libjpeg-turbo/2.1.2@slideio/stable" -r slideio --all
+    - run: conan upload "glog/0.6.0@slideio/stable" -r slideio --all
+    - run: conan upload "libxml2/2.9.10@slideio/stable" -r slideio --all
