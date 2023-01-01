@@ -2,11 +2,13 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 //
+#include <stdarg.h>
+#include <stddef.h>
+#include <setjmp.h>
 #include <opencv2/core.hpp>
 #include <boost/format.hpp>
 #include <boost/filesystem.hpp>
 #include <jxrcodec/jxrcodec.hpp>
-
 
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/drivers/ndpi/ndpilibtiff.hpp"
@@ -16,6 +18,8 @@
 
 #if defined(WIN32)
 #define FSEEK64 _fseeki64
+#elif __APPLE__
+#define FSEEK64 fseeko
 #else
 #include <stdarg.h>
 #include <stddef.h>
