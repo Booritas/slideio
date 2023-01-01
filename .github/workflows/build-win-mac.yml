@@ -63,4 +63,4 @@ jobs:
       with:
         name: python-dist
         path: |
-          ./src/pybind/dist
+          ./src/py-bind/dist
