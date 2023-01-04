@@ -6,7 +6,7 @@
 #include <dcmtk/dcmimgle/dcmimage.h>
 #include <boost/format.hpp>
 #include "slideio/core/base.hpp"
-#include "slideio/core/cvtools.hpp"
+#include "slideio/imagetools/cvtools.hpp"
 #include <dcmtk/dcmdata/dcjson.h>
 
 #include <ostream>

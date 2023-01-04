@@ -4,7 +4,7 @@
 #include <fstream>
 #include <boost/format.hpp>
 
-#include "slideio/core/cvtools.hpp"
+#include "slideio/imagetools/cvtools.hpp"
 #include "slideio/drivers/zvi/zvitags.hpp"
 #include "slideio/drivers/zvi/zviutils.hpp"
 #include "slideio/drivers/zvi/zviimageitem.hpp"

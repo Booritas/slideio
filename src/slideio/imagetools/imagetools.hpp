@@ -33,6 +33,7 @@ namespace slideio
             bool forceYUV = false);
         static double computeSimilarity(const cv::Mat& left, const cv::Mat& right, bool ignoreTypes=false);
         static double compareHistograms(const cv::Mat& leftM, const cv::Mat& rightM, int bins);
+        static int dataTypeSize(slideio::DataType dt);
     };
 }
 

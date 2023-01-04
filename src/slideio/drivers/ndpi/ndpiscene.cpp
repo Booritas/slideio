@@ -9,6 +9,7 @@
 #include "ndpifile.hpp"
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/drivers/ndpi/ndpitiffmessagehandler.hpp"
+#include "slideio/imagetools/imagetools.hpp"
 
 using namespace slideio;
 
@@ -25,7 +26,7 @@ public:
                 RAISE_RUNTIME_ERROR << "NDPI Image Driver: Cannot open file " << filePath;
             }
             const int MAX_BUFFER_SIZE = 10 * 1024 * 1024;
-            int strideSize = dir->width * dir->channels * Tools::dataTypeSize(dir->dataType);
+            int strideSize = dir->width * dir->channels * ImageTools::dataTypeSize(dir->dataType);
             int rowsPerStrip = MAX_BUFFER_SIZE / strideSize;
             m_rowsPerStrip = std::min(rowsPerStrip, dir->height);
         } else {

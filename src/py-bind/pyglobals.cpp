@@ -5,7 +5,7 @@
 #include <boost/format.hpp>
 #include <opencv2/core/mat.hpp>
 
-#include "slideio/core/cvtools.hpp"
+#include "slideio/imagetools/cvtools.hpp"
 
 namespace py = pybind11;
 

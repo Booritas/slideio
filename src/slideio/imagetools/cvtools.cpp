@@ -3,7 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 //
 #include "slideio/core/cvslide.hpp"
-#include "slideio/core/cvtools.hpp"
+#include "slideio/imagetools/cvtools.hpp"
 #include <boost/format.hpp>
 #include "slideio/core/base.hpp"
 
