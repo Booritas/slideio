@@ -19,8 +19,10 @@ namespace slideio
 {
     class SLIDEIO_GDAL_EXPORTS GDALSlide : public slideio::CVSlide
     {
-    public:
+        friend class GDALImageDriver;
+    protected:
         GDALSlide(GDALDatasetH ds, const std::string& filePath);
+    public:
         virtual ~GDALSlide();
         int getNumScenes() const override;
         std::string getFilePath() const override;

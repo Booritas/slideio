@@ -26,8 +26,10 @@ namespace slideio
 {
     class SLIDEIO_CZI_EXPORTS CZISlide : public CVSlide
     {
-    public:
+        friend class CZIImageDriver;
+    protected:
         CZISlide(const std::string& filePath);
+    public:
         virtual ~CZISlide() override;
         int getNumScenes() const override;
         std::string getFilePath() const override;

@@ -22,8 +22,10 @@ namespace slideio
 {
     class SLIDEIO_NDPI_EXPORTS NDPIScene : public CVScene, public Tiler
     {
-    public:
+        friend class NDPISlide;
+    protected:
         NDPIScene();
+    public:
         virtual ~NDPIScene();
         void init(const std::string& name, NDPIFile* file, int32_t startDirIndex, int32_t endDirIndex);
         int getNumChannels() const override;

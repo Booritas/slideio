@@ -18,11 +18,11 @@ namespace slideio
     class SLIDEIO_AFI_EXPORTS AFISlide : public slideio::CVSlide
     {
     protected:
+        AFISlide();
     public:
         using Scenes = std::vector<std::shared_ptr<slideio::CVScene>>;
         using Slides = std::vector<std::shared_ptr<slideio::CVSlide>>;
         using SlidesScenes = std::pair<Slides, Scenes>;
-        AFISlide();
         virtual ~AFISlide();
         int getNumScenes() const override;
         std::string getFilePath() const override;
