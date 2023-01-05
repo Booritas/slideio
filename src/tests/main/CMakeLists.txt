@@ -21,6 +21,7 @@ set(TEST_SOURCES
   test_cvtools.cpp
   test_dcmfile.cpp
   test_exception.cpp
+  test_generic.cpp
 )
 
 add_executable(${TEST_NAME} ${TEST_SOURCES})

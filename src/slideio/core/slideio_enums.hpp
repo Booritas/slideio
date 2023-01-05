@@ -23,7 +23,7 @@ namespace slideio
         Png,
         /**@brief JPEG 2000 compression*/
         Jpeg2000,
-        /**@brief Lempel–Ziv–Welch universal lossless data compression algorithm. / */
+        /**@brief Lempel - Ziv - Welch universal lossless data compression algorithm.*/
         LZW,
         /**@brief RL-Huffman encoding*/
         HuffmanRL,
@@ -31,7 +31,7 @@ namespace slideio
         CCITT_T4,
         /**@brief CCITT T.6 2-Dimensional compression*/
         CCITT_T6,
-        /**@brief Old JPEG compression algorithm. / */
+        /**@brief Old JPEG compression algorithm. */
         JpegOld,
         /**@brief zlib looseless data compression*/
         Zlib,
