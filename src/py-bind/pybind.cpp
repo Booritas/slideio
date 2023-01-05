@@ -81,7 +81,6 @@ PYBIND11_MODULE(slideiopybind, m) {
         .value("HuffmanRL",slideio::Compression::HuffmanRL)
         .value("CCITT_T4",slideio::Compression::CCITT_T4)
         .value("CCITT_T6",slideio::Compression::CCITT_T6)
-        .value("LempelZivWelch",slideio::Compression::LempelZivWelch)
         .value("JpegOld",slideio::Compression::JpegOld)
         .value("Zlib",slideio::Compression::Zlib)
         .value("JBIG85",slideio::Compression::JBIG85)

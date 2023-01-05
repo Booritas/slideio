@@ -65,7 +65,7 @@ static slideio::Compression compressTiffToSlideio(int tiffCompression)
         compression = Compression::CCITT_T6;
         break;
     case 0x5:
-        compression = Compression::LempelZivWelch;
+        compression = Compression::LZW;
         break;
     case 0x6:
         compression = Compression::JpegOld;
