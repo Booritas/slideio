@@ -1,0 +1,321 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+   <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-10048700-2"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'UA-10048700-2');
+    </script>
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="manifest" href="/site.webmanifest">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Image Drivers &#8212; slideio 0.6.1 documentation</title>
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Quick Tutorial" href="tutorial.html" />
+    <link rel="prev" title="Class Scene" href="scene.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="image-drivers">
+<h1>Image Drivers<a class="headerlink" href="#image-drivers" title="Permalink to this headline">¶</a></h1>
+<p>The slideio module accesses images through a system of image drivers. A driver implements an image format specifics. The driver’s capabilities depend on the image format. The table below contains information about driver capabilities.</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 17%" />
+<col style="width: 36%" />
+<col style="width: 21%" />
+<col style="width: 26%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>Driver</p></th>
+<th class="head"><p>Multiple Scenes</p></th>
+<th class="head"><p>Z Stacks</p></th>
+<th class="head"><p>Time Frames</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>CZI</p></td>
+<td><p>yes</p></td>
+<td><p>yes</p></td>
+<td><p>yes</p></td>
+</tr>
+<tr class="row-odd"><td><p>SVS</p></td>
+<td><p>yes</p></td>
+<td><p>no</p></td>
+<td><p>no</p></td>
+</tr>
+<tr class="row-even"><td><p>AFI</p></td>
+<td><p>yes</p></td>
+<td><p>no</p></td>
+<td><p>no</p></td>
+</tr>
+<tr class="row-odd"><td><p>SCN</p></td>
+<td><p>yes</p></td>
+<td><p>no</p></td>
+<td><p>no</p></td>
+</tr>
+<tr class="row-even"><td><p>GDAL</p></td>
+<td><p>no</p></td>
+<td><p>no</p></td>
+<td><p>no</p></td>
+</tr>
+<tr class="row-odd"><td><p>ZVI</p></td>
+<td><p>no</p></td>
+<td><p>yes</p></td>
+<td><p>no</p></td>
+</tr>
+<tr class="row-even"><td><p>DCM</p></td>
+<td><p>yes</p></td>
+<td><p>yes</p></td>
+<td><p>no</p></td>
+</tr>
+</tbody>
+</table>
+<div class="section" id="czi-driver">
+<h2>CZI driver<a class="headerlink" href="#czi-driver" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="overview">
+<h3>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h3>
+<p>A CZI image is a collection of multi-dimensional pixel regions (sub-blocks) that are aquired with different parameters.
+As of version 1.2.2 the following parameters (dimensions) are supported:</p>
+<ul class="simple">
+<li><p>Channel (C) - index of a channel in a multi-channel data set</p></li>
+<li><p>Slice index (Z) - index of a slice in Z direction.</p></li>
+<li><p>Time point (T) - index of a time frame in a sequentially acquired series of data.</p></li>
+<li><p>Rotation (R) – used in acquisition modes where the data is recorded from various angles.</p></li>
+<li><p>Region (S) – for clustering items in X/Y direction (data belonging to contiguous regions of interests in a mosaic image).</p></li>
+<li><p>Illumination (I) - illumination direction index (e.g. from left=0, from right=1).</p></li>
+<li><p>Acquisition (B) Block index in segmented experiments.</p></li>
+<li><p>Mosaic tile index (I) – this index uniquely identifies all tiles in a specific plane.</p></li>
+<li><p>Phase index (H) – for specific acquisition methods.</p></li>
+<li><p>View index (V) - for multi – view images, e.g. SPIM.</p></li>
+</ul>
+<p><em>Slideio</em> combines the sub-blocks in 2D-4D(depending if Z slices and time-frames are present) continuous scenes.
+Each scene corresponds to different sequence of dimensions:</p>
+<ul class="simple">
+<li><p>Rotation (R).</p></li>
+<li><p>Region (S).</p></li>
+<li><p>Illumination (I).</p></li>
+<li><p>Acquisition (B).</p></li>
+<li><p>Mosaic tile index (I).</p></li>
+<li><p>Phase index (H).</p></li>
+<li><p>View index (V).</p></li>
+</ul>
+</div>
+<div class="section" id="scene-naming">
+<h3>Scene naming<a class="headerlink" href="#scene-naming" title="Permalink to this headline">¶</a></h3>
+<p>The actual values of the dimension parameters are coded in the scene name.
+For example, scene with name: “s:1 i:0 v:2 h:1 r:0 b:1” corresponds to a region with index 1, illumination index 0,
+view index 2, phase index 1, rotation angle index 0 and block index 1.</p>
+</div>
+<div class="section" id="metadata">
+<h3>Metadata<a class="headerlink" href="#metadata" title="Permalink to this headline">¶</a></h3>
+<p><em>Slide</em> property <em>raw_metadata</em> returns a textual representation of embedded in the slide xml document with image metadata.</p>
+</div>
+<div class="section" id="auxiliary-images">
+<h3>Auxiliary images<a class="headerlink" href="#auxiliary-images" title="Permalink to this headline">¶</a></h3>
+<p>The driver supports auxiliary images for <em>Slide</em> and <em>Scene</em> objects. Images are extracted from corresponded “attachment” sections
+of the file.</p>
+</div>
+</div>
+<div class="section" id="svs-driver">
+<h2>SVS driver<a class="headerlink" href="#svs-driver" title="Permalink to this headline">¶</a></h2>
+<p>SVS driver exposes images extracted from Aperion SVS slides. Each <em>Slide</em> objects contains at least one <em>Scene</em> object - image itself.
+Another <em>Scene</em> objects represent thumbnail, label, and macro.</p>
+<div class="section" id="id1">
+<h3>Scene naming<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
+<p>The following scene names are used:</p>
+<ul class="simple">
+<li><p>Image: main image;</p></li>
+<li><p>Macro: macro image;</p></li>
+<li><p>Thumbnail: thumbnail image;</p></li>
+<li><p>Label: label image;</p></li>
+</ul>
+<p>Main image is always the first in the scene collection.</p>
+</div>
+<div class="section" id="id2">
+<h3>Metadata<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h3>
+<p><em>Slide</em> property <em>raw_metadata</em> returns a string extracted from “Image Description” tiff tag of the main image tag directory.</p>
+</div>
+<div class="section" id="id3">
+<h3>Auxiliary images<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h3>
+<p>The driver supports auxiliary images for <em>Slide</em> objects.</p>
+</div>
+</div>
+<div class="section" id="afi-driver">
+<h2>AFI driver<a class="headerlink" href="#afi-driver" title="Permalink to this headline">¶</a></h2>
+<p>AFI images is a collection of SVS images boundled together by an xml file with extention “afi”.
+Each SVS image is represented by a separated <em>Scene</em> object.  <em>Slide</em> property raw_metadata always returns an empty string.</p>
+</div>
+<div class="section" id="scn-driver">
+<h2>SCN driver<a class="headerlink" href="#scn-driver" title="Permalink to this headline">¶</a></h2>
+<p>SCN driver allows reading of images produced by a popular <a class="reference external" href="https://www.leica-microsystems.com/company/news/news-details/article/fast-efficient-and-reliable-slide-scanner-leica-scn400-for-optimal-histological-examinations/">Leica SCN400 scanner</a>.
+Files produced by the scanner have extension .scn and normally contain muliple images such as high resolution scanes of different regions of tissue,
+thumbnails, lables and barcodes. Each of such internal images exposed as a separated scene objects. Scene property “rect” descripes
+size of the image and offset of the region.</p>
+<div class="section" id="id4">
+<h3>Scene naming<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h3>
+<p>Names of scenes are taken from an xml metadata document located in the “Image Description” tiff tag.</p>
+</div>
+<div class="section" id="id5">
+<h3>Metadata<a class="headerlink" href="#id5" title="Permalink to this headline">¶</a></h3>
+<p><em>Slide</em> property <em>raw_metadata</em> returns a string extracted from “Image Description” tiff tag of the main image tag directory.</p>
+</div>
+<div class="section" id="id6">
+<h3>Auxiliary images<a class="headerlink" href="#id6" title="Permalink to this headline">¶</a></h3>
+<p>The driver supports auxiliary images for <em>Slide</em> objects.</p>
+</div>
+</div>
+<div class="section" id="gdal-driver">
+<h2>GDAL driver<a class="headerlink" href="#gdal-driver" title="Permalink to this headline">¶</a></h2>
+<p>GDAL driver opens generic formats like jpeg, png, tiff, etc. <em>Slide</em> object always contains a single <em>Scene</em> object.</p>
+<div class="section" id="id7">
+<h3>Metadata<a class="headerlink" href="#id7" title="Permalink to this headline">¶</a></h3>
+<p><em>Slide</em> property raw_metadata always returns an empty string.</p>
+</div>
+</div>
+<div class="section" id="zvi-driver">
+<h2>ZVI driver<a class="headerlink" href="#zvi-driver" title="Permalink to this headline">¶</a></h2>
+<p>ZVI driver opens images produced by Carl Zeiss <a class="reference external" href="https://microscopy-news.com/download-center/software/carl-zeiss-axiovision-digital-image-processing-software-for-your-microscope/">AxioVision microscope</a>. The files can containe 2D or 3D images. <em>Slide</em> object always contains a single <em>Scene</em> object.</p>
+<div class="section" id="id8">
+<h3>Metadata<a class="headerlink" href="#id8" title="Permalink to this headline">¶</a></h3>
+<p>raw_metadata property of a <em>Slide</em> object always returns an empty string.</p>
+</div>
+</div>
+<div class="section" id="dcm-driver">
+<h2>DCM driver<a class="headerlink" href="#dcm-driver" title="Permalink to this headline">¶</a></h2>
+<p>DCM driver opens DICOM images and directories. The path parameter in open_slide function can be one of the following:</p>
+<blockquote>
+<div><ul class="simple">
+<li><p>path to a DICOM image;</p></li>
+<li><p>path to a DICOMDIR file;</p></li>
+<li><p>path to a difrectory with DICOM files.</p></li>
+</ul>
+</div></blockquote>
+<p>Each <em>Scene</em> object of a slide corresponds to a single series for a study and a patient. If path parameter in the open_slide function references a DICOMDIR file or a directory with DICOM files, all images are sorted by series, study and patient and a collection of scene objects is created.</p>
+<div class="section" id="id9">
+<h3>Metadata<a class="headerlink" href="#id9" title="Permalink to this headline">¶</a></h3>
+<p>raw_metadata property of a <em>Slide</em> object always returns an empty string.
+raw_metadata property of a <em>Scene</em> object returns json representation of DICOM tags for the first image of the scene.</p>
+</div>
+<div class="section" id="id10">
+<h3>Auxiliary images<a class="headerlink" href="#id10" title="Permalink to this headline">¶</a></h3>
+<p>Auxiliary images are not supported by the driver.</p>
+</div>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">slideio</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Table of contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="functions.html">Module functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="slide.html">Class Slide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="scene.html">Class Scene</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Image Drivers</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#czi-driver">CZI driver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#svs-driver">SVS driver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#afi-driver">AFI driver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#scn-driver">SCN driver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#gdal-driver">GDAL driver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#zvi-driver">ZVI driver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#dcm-driver">DCM driver</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Quick Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="software.html">Used Software</a></li>
+<li class="toctree-l1"><a class="reference internal" href="software.html#used-development-environments">Used development environments</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="scene.html" title="previous chapter">Class Scene</a></li>
+      <li>Next: <a href="tutorial.html" title="next chapter">Quick Tutorial</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2021, Stanislav Melnikov, Vadim Popov.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.4.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/drivers.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

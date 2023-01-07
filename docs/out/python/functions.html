@@ -1,0 +1,422 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-10048700-2"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'UA-10048700-2');
+    </script>
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="manifest" href="/site.webmanifest">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Module functions &#8212; slideio 0.6.1 documentation</title>
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Class Slide" href="slide.html" />
+    <link rel="prev" title="Module slideio (version 0.5)" href="index.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="module-slideio">
+<span id="module-functions"></span><h1>Module functions<a class="headerlink" href="#module-slideio" title="Permalink to this headline">¶</a></h1>
+<dl class="py class">
+<dt id="slideio.Compression">
+<em class="property">class </em><code class="sig-prename descclassname">slideio.</code><code class="sig-name descname">Compression</code><a class="headerlink" href="#slideio.Compression" title="Permalink to this definition">¶</a></dt>
+<dd><p>Members:</p>
+<p>Unknown</p>
+<p>Uncompressed</p>
+<p>Jpeg</p>
+<p>JpegXR</p>
+<p>Png</p>
+<p>Jpeg2000</p>
+<p>LZW</p>
+<p>HuffmanRL</p>
+<p>CCITT_T4</p>
+<p>CCITT_T6</p>
+<p>LempelZivWelch</p>
+<p>JpegOld</p>
+<p>Zlib</p>
+<p>JBIG85</p>
+<p>JBIG43</p>
+<p>NextRLE</p>
+<p>PackBits</p>
+<p>ThunderScanRLE</p>
+<p>RasterPadding</p>
+<p>RLE_LW</p>
+<p>RLE_HC</p>
+<p>RLE_BL</p>
+<p>PKZIP</p>
+<p>KodakDCS</p>
+<p>JBIG</p>
+<p>NikonNEF</p>
+<p>JBIG2</p>
+<p>GIF</p>
+<p>BIGGIF</p>
+<dl class="py method">
+<dt id="slideio.Compression.name">
+<em class="property">property </em><code class="sig-name descname">name</code><a class="headerlink" href="#slideio.Compression.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>handle) -&gt; str</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type</dt>
+<dd class="field-odd"><p>(self</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="slideio.Scene">
+<em class="property">class </em><code class="sig-prename descclassname">slideio.</code><code class="sig-name descname">Scene</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">slide</span></em>, <em class="sig-param"><span class="n">index</span><span class="p">:</span> <span class="n">int</span></em><span class="sig-paren">)</span><a class="headerlink" href="#slideio.Scene" title="Permalink to this definition">¶</a></dt>
+<dd><p>slideio Scene class.</p>
+<p>Scene class represents a single 2D-4D image from a Slide object.
+The class implements methods for accessing the image raster and metadata.
+All raster channels of the scene have the same resolution and the same size.
+Raster channels may have different data types depending on the image format.
+A scene can represent a separate region of interest of the slide.
+A Scene object can be created by a “get_scene” method of a Slide object or by using the constructor:</p>
+<p>scene = Scene(slide, scene_index)</p>
+<dl class="py method">
+<dt id="slideio.Scene.compression">
+<em class="property">property </em><code class="sig-name descname">compression</code><a class="headerlink" href="#slideio.Scene.compression" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compression method for the scene raster data.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="slideio.Scene.file_path">
+<em class="property">property </em><code class="sig-name descname">file_path</code><a class="headerlink" href="#slideio.Scene.file_path" title="Permalink to this definition">¶</a></dt>
+<dd><p>File path to the scene. In the most cases the same as file path of the slide.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="slideio.Scene.get_aux_image">
+<code class="sig-name descname">get_aux_image</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">image_name</span></em>, <em class="sig-param"><span class="n">size</span><span class="o">=</span><span class="default_value">(0, 0)</span></em>, <em class="sig-param"><span class="n">channel_indices</span><span class="o">=</span><span class="default_value">[]</span></em><span class="sig-paren">)</span><a class="headerlink" href="#slideio.Scene.get_aux_image" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get auxiliary image as numpy array.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>image_name</strong> – name of the auxiliary image</p></li>
+<li><p><strong>channel_indices</strong> – array of channel indices to be retrieved. [] - all channels.</p></li>
+<li><p><strong>size</strong> – size of the block after rescaling. (0,0) - no scaling.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="slideio.Scene.get_aux_image_names">
+<code class="sig-name descname">get_aux_image_names</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#slideio.Scene.get_aux_image_names" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get list of auxiliary image names</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="slideio.Scene.get_channel_data_type">
+<code class="sig-name descname">get_channel_data_type</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">channel</span></em><span class="sig-paren">)</span><a class="headerlink" href="#slideio.Scene.get_channel_data_type" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns data type for a scene channel by index
+:param channel: channel index.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="slideio.Scene.get_channel_name">
+<code class="sig-name descname">get_channel_name</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">channel</span></em><span class="sig-paren">)</span><a class="headerlink" href="#slideio.Scene.get_channel_name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns name of a scene channel by index
+:param channel: channel index.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="slideio.Scene.magnification">
+<em class="property">property </em><code class="sig-name descname">magnification</code><a class="headerlink" href="#slideio.Scene.magnification" title="Permalink to this definition">¶</a></dt>
+<dd><p>Scanning magnification extracted from the slide metadata.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="slideio.Scene.name">
+<em class="property">property </em><code class="sig-name descname">name</code><a class="headerlink" href="#slideio.Scene.name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Scene name extracted from slide metadata.”</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="slideio.Scene.num_aux_images">
+<em class="property">property </em><code class="sig-name descname">num_aux_images</code><a class="headerlink" href="#slideio.Scene.num_aux_images" title="Permalink to this definition">¶</a></dt>
+<dd><p>Number of auxiliary images of the scene.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="slideio.Scene.num_channels">
+<em class="property">property </em><code class="sig-name descname">num_channels</code><a class="headerlink" href="#slideio.Scene.num_channels" title="Permalink to this definition">¶</a></dt>
+<dd><p>Number of raster channels in the scene raster data.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="slideio.Scene.num_t_frames">
+<em class="property">property </em><code class="sig-name descname">num_t_frames</code><a class="headerlink" href="#slideio.Scene.num_t_frames" title="Permalink to this definition">¶</a></dt>
+<dd><p>Number of time frames in the scene raster data.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="slideio.Scene.num_z_slices">
+<em class="property">property </em><code class="sig-name descname">num_z_slices</code><a class="headerlink" href="#slideio.Scene.num_z_slices" title="Permalink to this definition">¶</a></dt>
+<dd><p>Number slices along Z axis in the scene raster data.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="slideio.Scene.origin">
+<em class="property">property </em><code class="sig-name descname">origin</code><a class="headerlink" href="#slideio.Scene.origin" title="Permalink to this definition">¶</a></dt>
+<dd><p>Coordinates of the top left corner of the scene. A tuple (x, y).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="slideio.Scene.read_block">
+<code class="sig-name descname">read_block</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">rect</span><span class="o">=</span><span class="default_value">(0, 0, 0, 0)</span></em>, <em class="sig-param"><span class="n">size</span><span class="o">=</span><span class="default_value">(0, 0)</span></em>, <em class="sig-param"><span class="n">channel_indices</span><span class="o">=</span><span class="default_value">[]</span></em>, <em class="sig-param"><span class="n">slices</span><span class="o">=</span><span class="default_value">(0, 1)</span></em>, <em class="sig-param"><span class="n">frames</span><span class="o">=</span><span class="default_value">(0, 1)</span></em><span class="sig-paren">)</span><a class="headerlink" href="#slideio.Scene.read_block" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reads rectangular block of the scene with optional rescaling.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>rect</strong> – block rectangle, defined as a tuple (x, y, widht, height), where x,y - pixel coordinates of the  top left corner of the block relatively to the scene top left corner, width, height - block width and height</p></li>
+<li><p><strong>size</strong> – size of the block after rescaling. (0,0) - no scaling.</p></li>
+<li><p><strong>channel_indices</strong> – array of channel indices to be retrieved. [] - all channels.</p></li>
+<li><p><strong>slices</strong> – range of z slices (first, last+1) to be retrieved. (0,3) for 0,1,2 slices. (0,0) for the first slice only.</p></li>
+<li><p><strong>frames</strong> – range of time frames (first, last+1) to be retrieved.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>numpy array with pixel values</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="slideio.Scene.rect">
+<em class="property">property </em><code class="sig-name descname">rect</code><a class="headerlink" href="#slideio.Scene.rect" title="Permalink to this definition">¶</a></dt>
+<dd><p>Scene rectangle in pixels. A tuple (x-origin, y-origin, width, height).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="slideio.Scene.resolution">
+<em class="property">property </em><code class="sig-name descname">resolution</code><a class="headerlink" href="#slideio.Scene.resolution" title="Permalink to this definition">¶</a></dt>
+<dd><p>Scene resolution in meters per pixel (pixel size in meters). A tuple (x-res, y-res)</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="slideio.Scene.size">
+<em class="property">property </em><code class="sig-name descname">size</code><a class="headerlink" href="#slideio.Scene.size" title="Permalink to this definition">¶</a></dt>
+<dd><p>Scene size in pixels. A tuple (width, height).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="slideio.Scene.t_resolution">
+<em class="property">property </em><code class="sig-name descname">t_resolution</code><a class="headerlink" href="#slideio.Scene.t_resolution" title="Permalink to this definition">¶</a></dt>
+<dd><p>Time distance between two time-frames in seconds.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="slideio.Scene.z_resolution">
+<em class="property">property </em><code class="sig-name descname">z_resolution</code><a class="headerlink" href="#slideio.Scene.z_resolution" title="Permalink to this definition">¶</a></dt>
+<dd><p>Distance between two Z-slices in meters.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt id="slideio.Slide">
+<em class="property">class </em><code class="sig-prename descclassname">slideio.</code><code class="sig-name descname">Slide</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">path</span><span class="p">:</span> <span class="n">str</span></em>, <em class="sig-param"><span class="n">driver</span><span class="p">:</span> <span class="n">str</span></em><span class="sig-paren">)</span><a class="headerlink" href="#slideio.Slide" title="Permalink to this definition">¶</a></dt>
+<dd><p>Slide class represents slides, normally a single image file or a folder.
+Slide contains a collection of scenes - separate images.</p>
+<dl class="py method">
+<dt id="slideio.Slide.file_path">
+<em class="property">property </em><code class="sig-name descname">file_path</code><a class="headerlink" href="#slideio.Slide.file_path" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns path to the slide file/folder</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="slideio.Slide.get_aux_image">
+<code class="sig-name descname">get_aux_image</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">image_name</span></em><span class="sig-paren">)</span><a class="headerlink" href="#slideio.Slide.get_aux_image" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get auxiliary image as objecty.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>image_name</strong> – name of the auxiliary image</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="slideio.Slide.get_aux_image_names">
+<code class="sig-name descname">get_aux_image_names</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#slideio.Slide.get_aux_image_names" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get list of auxiliary image names</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="slideio.Slide.get_aux_image_raster">
+<code class="sig-name descname">get_aux_image_raster</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">image_name</span></em>, <em class="sig-param"><span class="n">size</span><span class="o">=</span><span class="default_value">(0, 0)</span></em>, <em class="sig-param"><span class="n">channel_indices</span><span class="o">=</span><span class="default_value">[]</span></em><span class="sig-paren">)</span><a class="headerlink" href="#slideio.Slide.get_aux_image_raster" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get auxiliary image as numpy array.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>image_name</strong> – name of the auxiliary image</p></li>
+<li><p><strong>channel_indices</strong> – array of channel indices to be retrieved. [] - all channels.</p></li>
+<li><p><strong>size</strong> – size of the block after rescaling. (0,0) - no scaling.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt id="slideio.Slide.get_scene">
+<code class="sig-name descname">get_scene</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">index</span></em><span class="sig-paren">)</span><a class="headerlink" href="#slideio.Slide.get_scene" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return slide scene by index</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="slideio.Slide.num_aux_images">
+<em class="property">property </em><code class="sig-name descname">num_aux_images</code><a class="headerlink" href="#slideio.Slide.num_aux_images" title="Permalink to this definition">¶</a></dt>
+<dd><p>Number of auxiliary images of the slide.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="slideio.Slide.num_scenes">
+<em class="property">property </em><code class="sig-name descname">num_scenes</code><a class="headerlink" href="#slideio.Slide.num_scenes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Number of scenes in the slide</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="slideio.Slide.raw_metadata">
+<em class="property">property </em><code class="sig-name descname">raw_metadata</code><a class="headerlink" href="#slideio.Slide.raw_metadata" title="Permalink to this definition">¶</a></dt>
+<dd><p>Raw metadata extracted from the slide</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt id="slideio.compare_images">
+<code class="sig-prename descclassname">slideio.</code><code class="sig-name descname">compare_images</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">left</span></em>, <em class="sig-param"><span class="n">right</span></em><span class="sig-paren">)</span><a class="headerlink" href="#slideio.compare_images" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compares two images represented by numpy arrays</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="slideio.get_driver_ids">
+<code class="sig-prename descclassname">slideio.</code><code class="sig-name descname">get_driver_ids</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#slideio.get_driver_ids" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a list of ids of available image drivers</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="slideio.open_slide">
+<code class="sig-prename descclassname">slideio.</code><code class="sig-name descname">open_slide</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">path</span><span class="p">:</span> <span class="n">str</span></em>, <em class="sig-param"><span class="n">driver</span><span class="p">:</span> <span class="n">str</span></em><span class="sig-paren">)</span><a class="headerlink" href="#slideio.open_slide" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns an instance of a slide object</p>
+</dd></dl>
+
+<p>Examples:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">slideio</span>
+<span class="n">slideio</span><span class="o">.</span><span class="n">get_driver_ids</span><span class="p">()</span>
+<span class="o">&gt;</span> <span class="p">[</span><span class="s1">&#39;CZI&#39;</span><span class="p">,</span> <span class="s1">&#39;GDAL&#39;</span><span class="p">,</span> <span class="s1">&#39;SVS&#39;</span><span class="p">]</span>
+<span class="n">slide</span> <span class="o">=</span> <span class="n">slideio</span><span class="o">.</span><span class="n">open_slide</span><span class="p">(</span><span class="n">file_path</span><span class="o">=</span><span class="s2">&quot;/data/a.czi&quot;</span><span class="p">,</span><span class="n">driver_id</span><span class="o">=</span><span class="s2">&quot;CZI&quot;</span><span class="p">)</span>
+<span class="n">slide</span><span class="o">.</span><span class="n">get_num_scenes</span><span class="p">()</span>
+<span class="o">&gt;</span> <span class="mi">1</span>
+</pre></div>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">slideio</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Table of contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Module functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="slide.html">Class Slide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="scene.html">Class Scene</a></li>
+<li class="toctree-l1"><a class="reference internal" href="drivers.html">Image Drivers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Quick Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="software.html">Used Software</a></li>
+<li class="toctree-l1"><a class="reference internal" href="software.html#used-development-environments">Used development environments</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="index.html" title="previous chapter">Module slideio (version 0.5)</a></li>
+      <li>Next: <a href="slide.html" title="next chapter">Class Slide</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2021, Stanislav Melnikov, Vadim Popov.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.4.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/functions.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

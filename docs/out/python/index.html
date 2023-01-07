@@ -1,0 +1,217 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <!-- Global site tag (gtag.js) - Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=UA-10048700-2"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'UA-10048700-2');
+    </script>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Module slideio (version 0.6.1) &#8212; slideio 0.6.1 documentation</title>
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="manifest" href="/site.webmanifest">
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Module functions" href="functions.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="module-slideio-version-0-6-1">
+<h1>Module slideio (version 0.6.1)<a class="headerlink" href="#module-slideio-version-0-6-1" title="Permalink to this headline">¶</a></h1>
+<img alt="_images/mrt.png" src="_images/mrt.png" />
+<p>If you have any question about the library or want to report a bug, visit our new <a class="reference external" href="http://slideio.com/forum/viewforum.php?f=2">forum</a> .</p>
+<div class="section" id="what-is-new">
+<h2>What is new<a class="headerlink" href="#what-is-new" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p>Support of DICOM files</p></li>
+<li><p>New functionality for retriving of auxiliary images of scene and slide objects such as thumbnails and labels.</p></li>
+<li><p>Bug fixing and small improvements</p></li>
+</ul>
+</div>
+<div class="section" id="overview">
+<h2>Overview<a class="headerlink" href="#overview" title="Permalink to this headline">¶</a></h2>
+<p>Slideio is a python module for the reading of medical images. It allows reading whole slides as well as any region of a slide.
+Large slides can be effectively scaled to a smaller size.
+The module uses internal zoom pyramids of images to make the scaling process as fast as possible.
+Slideio supports 2D slides as well as 3D data sets and time series.</p>
+<p>The module delivers a raster as a numpy array and compatible with the popular computer vision library <a class="reference external" href="https://opencv.org/">OpenCV</a>.</p>
+<p>The module builds accesses images through a system of image drivers that implement specifics of different image formats. Currently following drivers are implemented:</p>
+<ul class="simple">
+<li><p>CZI - driver for the reading of <a class="reference external" href="https://www.zeiss.com/microscopy/int/products/microscope-software/zen/czi.html">Zeiss CZI</a> images.</p></li>
+<li><p>SVS - driver for the reading of <a class="reference external" href="https://tmalab.jhmi.edu/imagescope.html">Aperio SVS</a> images.</p></li>
+<li><p>AFI - driver for the reading of Aperio fluorescent images.</p></li>
+<li><p>SCN - driver for the reading of <a class="reference external" href="https://www.leica-microsystems.com/company/news/news-details/article/fast-efficient-and-reliable-slide-scanner-leica-scn400-for-optimal-histological-examinations/">Leica SCN images</a>.</p></li>
+<li><p>GDAL - driver for the reading of generic formats like jpeg, png, tiff, etc. It uses a popular c++ image library <a class="reference external" href="https://gdal.org">GDAL</a>.</p></li>
+<li><p>ZVI - driver for reading of images produced by Carl Zeiss <a class="reference external" href="https://microscopy-news.com/download-center/software/carl-zeiss-axiovision-digital-image-processing-software-for-your-microscope/">AxioVision microscope</a>.</p></li>
+<li><p>DCM - driver for reading of DICOM images.</p></li>
+</ul>
+<p>The module provides 2 python classes: <em>Slide</em> and <em>Scene</em>. <em>Slide</em> is a container object returned by the module function <em>open_slide</em>. In the simplest case, a <em>Slide</em> object contains a single <em>Scene</em> object. Some slides can contain multiple scenes. For example, a czi file can contain several scanned regions, each of them is represented as a <em>Scene</em> object. <em>Scene</em> class provides methods to access image pixel values and metadata.</p>
+</div>
+<div class="section" id="contents">
+<h2>Contents<a class="headerlink" href="#contents" title="Permalink to this headline">¶</a></h2>
+<div class="toctree-wrapper compound">
+<p class="caption"><span class="caption-text">Table of contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="functions.html">Module functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="slide.html">Class Slide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="scene.html">Class Scene</a></li>
+<li class="toctree-l1"><a class="reference internal" href="drivers.html">Image Drivers</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="drivers.html#czi-driver">CZI driver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="drivers.html#svs-driver">SVS driver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="drivers.html#afi-driver">AFI driver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="drivers.html#scn-driver">SCN driver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="drivers.html#gdal-driver">GDAL driver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="drivers.html#zvi-driver">ZVI driver</a></li>
+<li class="toctree-l2"><a class="reference internal" href="drivers.html#dcm-driver">DCM driver</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Quick Tutorial</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="tutorial.html#read-the-whole-image">Read the whole image</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial.html#read-a-rectangular-block-of-an-image">Read a rectangular block of an image</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial.html#read-a-rectangular-block-with-rescaling">Read a rectangular block with rescaling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial.html#read-10-z-slices-of-a-rectangular-block-with-rescaling">Read 10 z-slices of a rectangular block with rescaling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial.html#iterate-through-scenes">Iterate through scenes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tutorial.html#read-a-single-channel-of-an-image">Read a single channel of an image</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="software.html">Used Software</a></li>
+<li class="toctree-l1"><a class="reference internal" href="software.html#used-development-environments">Used development environments</a></li>
+</ul>
+</div>
+</div>
+<div class="section" id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this headline">¶</a></h2>
+<p>Installation of the modile available through pip.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pip</span> <span class="n">install</span> <span class="n">slideio</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="quick-start">
+<h2>Quick Start<a class="headerlink" href="#quick-start" title="Permalink to this headline">¶</a></h2>
+<p>Here is an example of a reading of a czi file:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">slideio</span>
+<span class="n">slide</span> <span class="o">=</span> <span class="n">slideio</span><span class="o">.</span><span class="n">open_slidei</span><span class="p">(</span><span class="n">file_path</span><span class="o">=</span><span class="s2">&quot;/data/a.czi&quot;</span><span class="p">,</span><span class="n">driver_id</span><span class="o">=</span><span class="s2">&quot;CZI&quot;</span><span class="p">)</span>
+<span class="n">scene</span> <span class="o">=</span> <span class="n">slide</span><span class="o">.</span><span class="n">get_scene</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">block</span> <span class="o">=</span> <span class="n">scene</span><span class="o">.</span><span class="n">read_block</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="source-code">
+<h2>Source code<a class="headerlink" href="#source-code" title="Permalink to this headline">¶</a></h2>
+<p>Souce code is located in the <a class="reference external" href="https://gitlab.com/bioslide/slideio">gitlab repository</a> and mirror <a class="reference external" href="https://github.com/Booritas/slideio">github repository</a>.</p>
+</div>
+<div class="section" id="indices-and-tables">
+<h2>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h2>
+<ul class="simple">
+<li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
+<li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>
+<li><p><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></p></li>
+</ul>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="#">slideio</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Table of contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="functions.html">Module functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="slide.html">Class Slide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="scene.html">Class Scene</a></li>
+<li class="toctree-l1"><a class="reference internal" href="drivers.html">Image Drivers</a></li>
+<li class="toctree-l1"><a class="reference internal" href="tutorial.html">Quick Tutorial</a></li>
+<li class="toctree-l1"><a class="reference internal" href="license.html">License</a></li>
+<li class="toctree-l1"><a class="reference internal" href="software.html">Used Software</a></li>
+<li class="toctree-l1"><a class="reference internal" href="software.html#used-development-environments">Used development environments</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="#">Documentation overview</a><ul>
+      <li>Next: <a href="functions.html" title="next chapter">Module functions</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2021, Stanislav Melnikov, Vadim Popov.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.4.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/index.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
