@@ -6,11 +6,11 @@ highlighter:      pygments
 permalink:        pretty
 
 # Setup
-title:            Hyde
-tagline:          'A Jekyll theme'
+title:            SlideIO
+tagline:          'Imaging library for python and c++'
 description:      'A brazen two-column <a href="http://jekyllrb.com" target="_blank">Jekyll</a> theme that pairs a prominent sidebar with uncomplicated content. Made by <a href="https://twitter.com/mdo" target="_blank">@mdo</a>.'
-url:              https://booritas.github.io/slideio
-baseurl:          https://booritas.github.io/slideio/
+url:              https://booritas.github.io/slideio/
+baseurl:          /
 
 author:
   name:           'Mark Otto'
@@ -19,7 +19,7 @@ author:
 paginate:         5
 
 # Custom vars
-version:          2.1.0
+version:          2.0.0
 
 github:
   repo:           https://github.com/poole/hyde
