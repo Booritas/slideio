@@ -11,7 +11,7 @@ libjpeg/9e
 libwebp/1.2.4
 libpng/1.6.38
 openjpeg/2.5.0
-jpegxrcodec/1.0.2@slideio/stable
+jpegxrcodec/1.0.3@slideio/stable
 libiconv/1.17
 [options]
 boost:shared=False
