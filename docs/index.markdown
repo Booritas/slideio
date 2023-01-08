@@ -1,4 +1,8 @@
-# SLIDEIO - Open source python/c++ library for reading of medical images (version 2.0.0)
+---
+layout: index
+title: Home
+---
+# Open source python/c++ library for reading of medical images (version 2.0.0)
 ## Overview
 Slideio is a c++ library and a python module for the reading of medical images. It allows reading whole slides as well as any region of a slide. Large slides can be effectively scaled to a smaller size. The module uses internal zoom pyramids of images to make the scaling process as fast as possible. Slideio supports 2D slides as well as 3D data sets and time series.
 
@@ -18,4 +22,3 @@ The module builds accesses images through a system of image drivers that impleme
 | **GDAL** | General image formates | *.jpeg,*.jpg,*.tiff,*.tiff,*.png | - | - |
 
 The library is built as a c++ python extension and provides c++ and python interfaces.
-For details visit [the library WEB site](https://booritas.github.io/slideio/).
