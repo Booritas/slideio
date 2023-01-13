@@ -12,7 +12,7 @@ author:
   url:            https://www.linkedin.com/in/stanislav-melnikov/
 
 # Build settings
-theme: jekyll-theme-hydeout
+remote_theme: fongandrew/jekyll-theme-hydeout
 plugins:
   - jekyll-feed
   - jekyll-gist
