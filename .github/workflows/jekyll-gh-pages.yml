@@ -28,6 +28,11 @@ jobs:
         with:
           source: ./docs
           destination: ./_site
+      - name: Doxygen
+        uses: mattnotmitt/doxygen-action@v1.9.5
+        with:
+            working-directory: 'src/slideio/'
+            doxyfile-path: 'docs-src/Doxygen/Doxyfile'
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v1
 
