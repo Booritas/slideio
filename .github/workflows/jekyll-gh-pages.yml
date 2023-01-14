@@ -28,6 +28,11 @@ jobs:
         with:
           source: ./docs
           destination: ./_site
+      - uses: ammaraskar/sphinx-action@master
+        with:
+          docs-folder: "./docs-src/Sphinx"
+          pre-build-command: "pip install slideio"
+          build-command: "sphinx-build -b html ./source ../../_site/sphinx"
       - name: Doxygen
         uses: mattnotmitt/doxygen-action@v1.9.5
         with:
