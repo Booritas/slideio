@@ -15,16 +15,16 @@ System requrements:
 - [Conan package manager](https://conan.io/).
 
 Execute the following steps to build the library.
-### 1. Install conan package manager
+#### 1. Install conan package manager
 ```
 pip install conan
 ```
-### 2. Setup SlideIO conan repository
+#### 2. Setup SlideIO conan repository
 ```
 export CONAN_REVISIONS_ENABLED=1
 conan remote add slideio-conan-local https://bioslide.jfrog.io/artifactory/api/conan/slideio-conan-local
 ```
-### 3. Build the library
+#### 3. Build the library
 ```
 python ./install.py -a build
 ```
