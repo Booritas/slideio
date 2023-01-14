@@ -12,31 +12,8 @@ The library provides 2 main c++ calsses:
 System requrements:
 
 - Python v3.6 and above
-
 - [Conan package manager](https://conan.io/).
 
-### Used 3rd party libraries:
-
-- [boost](https://boost.org)
-- [dcmtk](https://dicom.offis.de/)
-- [gdal](https://gdal.org)
-- [gtest](https://github.com/google/googletest)
-- [json-c](https://github.com/json-c/json-c)
-- [JPEG XR Reference Codec](https://jpeg.org/jpegxr/software.html)
-- [libjpeg](https://libjpeg.sourceforge.net/)
-- [libpng](http://libpng.org)
-- [libtiff](http://libtiff.org)
-- [NDPITools](https://www.imnc.in2p3.fr/pagesperso/deroulers/software/ndpitools/)
-- [opencv](https://opencv.org)
-- [openjpeg](https://openjpeg.org)
-- [pole](https://www.dimin.net/software/pole/)
-- [tinyxml2](https://github.com/leethomason/tinyxml2)
-
-
-SlideIO library provides two c++ interfaces: generic interface and OpenCV based interface. Both of them implement the same functionality. The only difference that OpenCV API expose objects of OpenCV library, generic interface uses only standard c++ classes.
-See [SlideIO c++ API doxygen documentation](https://booritas.github.io/slideio/doxygen/html/)
-
-# Installation
 Execute the following steps to build the library.
 ## Install conan package manager
 ```
@@ -53,6 +30,10 @@ python ./install.py -a build
 ```
 After the successful build you can find all shared libraries in the directory ./build/<OSName>/Release|Debug/bin
 
+
+SlideIO library provides two c++ interfaces: generic interface and OpenCV based interface. Both of them implement the same functionality. The only difference that OpenCV API expose objects of OpenCV library, generic interface uses only standard c++ classes.
+See [SlideIO c++ API doxygen documentation](https://booritas.github.io/slideio/doxygen/html/)
+
 # Generic c++ Interface
 SlideIO generic c++ interface provides 2 global functions slideio::openSlide(), slideio::getDriverIDs() and 2 classes: slideio::Slide and slideio::Scene. Function slideio::openSlide() opens a slide and returns object of class slideio::Slide. The class slideio::Slide exposes methods for accessing of the slide properties including metadata and images. A single instance of slideio::Slide can contain multiple raster images that are represented by slideio::Scene class. Class slideio::Scene exposes methods for working with a single raster image of a slide. The class provides method for accessing to raster data and metadata.
 {% gist 83df5998e83a737661374aa3515a84d8 %}
@@ -62,3 +43,19 @@ SlideIO OpenCV interface exposes methods for extraction information from medical
 
 {% gist 1ec5e35da0097e8df6b6ad25791d406c %}
 
+# Used 3rd party libraries:
+
+- [boost](https://boost.org)
+- [dcmtk](https://dicom.offis.de/)
+- [gdal](https://gdal.org)
+- [gtest](https://github.com/google/googletest)
+- [json-c](https://github.com/json-c/json-c)
+- [JPEG XR Reference Codec](https://jpeg.org/jpegxr/software.html)
+- [libjpeg](https://libjpeg.sourceforge.net/)
+- [libpng](http://libpng.org)
+- [libtiff](http://libtiff.org)
+- [NDPITools](https://www.imnc.in2p3.fr/pagesperso/deroulers/software/ndpitools/)
+- [opencv](https://opencv.org)
+- [openjpeg](https://openjpeg.org)
+- [pole](https://www.dimin.net/software/pole/)
+- [tinyxml2](https://github.com/leethomason/tinyxml2)
