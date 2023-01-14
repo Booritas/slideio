@@ -1,7 +1,7 @@
-Module slideio (version 0.6.1)
+Module SlideIO (version 2.0.0)
 ===================================
 
-.. image:: images/mrt.png
+.. image:: images/slideio.png
 
 If you have any question about the library or want to report a bug, visit our new `forum <http://slideio.com/forum/viewforum.php?f=2>`_ .
 
