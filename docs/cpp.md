@@ -35,6 +35,24 @@ System requrements:
 
 SlideIO library provides two c++ interfaces: generic interface and OpenCV based interface. Both of them implement the same functionality. The only difference that OpenCV API expose objects of OpenCV library, generic interface uses only standard c++ classes.
 See [SlideIO c++ API doxygen documentation](https://booritas.github.io/slideio/doxygen/html/)
+
+# Installation
+Execute the following steps to build the library.
+## Install conan package manager
+```
+pip install conan
+```
+## Setup SlideIO conan repository
+```
+export CONAN_REVISIONS_ENABLED=1
+conan remote add slideio-conan-local https://bioslide.jfrog.io/artifactory/api/conan/slideio-conan-local
+```
+## Build the library
+```
+python ./install.py -a build
+```
+After the successful build you can find all shared libraries in the directory ./build/<OSName>/Release|Debug/bin
+
 # Generic c++ Interface
 SlideIO generic c++ interface provides 2 global functions slideio::openSlide(), slideio::getDriverIDs() and 2 classes: slideio::Slide and slideio::Scene. Function slideio::openSlide() opens a slide and returns object of class slideio::Slide. The class slideio::Slide exposes methods for accessing of the slide properties including metadata and images. A single instance of slideio::Slide can contain multiple raster images that are represented by slideio::Scene class. Class slideio::Scene exposes methods for working with a single raster image of a slide. The class provides method for accessing to raster data and metadata.
 {% gist 83df5998e83a737661374aa3515a84d8 %}
@@ -43,3 +61,4 @@ SlideIO generic c++ interface provides 2 global functions slideio::openSlide(), 
 SlideIO OpenCV interface exposes methods for extraction information from medical slides and intensively uses classes of the OpenCV library. The interface exposes the following classes: slideio::CVSlide, slideio::CVScene
 
 {% gist 1ec5e35da0097e8df6b6ad25791d406c %}
+
