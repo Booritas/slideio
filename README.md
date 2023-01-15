@@ -18,39 +18,4 @@ The module builds accesses images through a system of image drivers that impleme
 | **GDAL** | General image formates | *.jpeg,*.jpg,*.tiff,*.tiff,*.png | - | - |
 
 The library is built as a c++ python extension and provides c++ and python interfaces.
-## Python Interface
-### Overview
-The python module provides 2 python classes: Slide and Scene. Slide is a container object returned by the module function open_slide. In the simplest case, a Slide object contains a single Scene object. Some slides can contain multiple scenes. For example, a czi file can contain several scanned regions, each of them is represented as a Scene object. Scene class provides methods to access image pixel values and metadata.
-### Installation
-The python package can be installed with the pip utility:
-```
-pip install slideio
-```
-## C++ interface
-## Overview
-The software is cross-platform and should work on Windows10/11, MacOS version 10.14 and above, most of the Linux systems. It is tested on Window 10/10, [Ubuntu] 22.04, MacOS 11.
-The library provides 2 main c++ calsses: 
-### Installation the library from the source
-System requrements:
-
-- Python v3.6 and above
-
-- [Conan package manager](https://conan.io/).
-
-### Used 3rd party libraries:
-
-- [boost](https://boost.org)
-- [dcmtk](https://dicom.offis.de/)
-- [gdal](https://gdal.org)
-- [gtest](https://github.com/google/googletest)
-- [json-c](https://github.com/json-c/json-c)
-- [JPEG XR Reference Codec](https://jpeg.org/jpegxr/software.html)
-- [libjpeg](https://libjpeg.sourceforge.net/)
-- [libpng](http://libpng.org)
-- [libtiff](http://libtiff.org)
-- [NDPITools](https://www.imnc.in2p3.fr/pagesperso/deroulers/software/ndpitools/)
-- [opencv](https://opencv.org)
-- [openjpeg](https://openjpeg.org)
-- [pole](https://www.dimin.net/software/pole/)
-- [tinyxml2](https://github.com/leethomason/tinyxml2)
-
+For details visit [the library WEB site](https://booritas.github.io/slideio/).
