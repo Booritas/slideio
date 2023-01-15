@@ -20,7 +20,8 @@ The slideio module accesses images through a system of image drivers. A driver i
 +--------+-----------------+----------+------------+
 | DCM    | yes             |  yes     |     no     |
 +--------+-----------------+----------+------------+
-
+| NDPI   | no              |  no      |     no     |
++--------+-----------------+----------+------------+
 CZI driver
 ------------------
 
@@ -160,3 +161,18 @@ raw_metadata property of a *Scene* object returns json representation of DICOM t
 Auxiliary images
 ******************
 Auxiliary images are not supported by the driver.
+
+NDPI driver
+------------------
+
+NDPI driver opens NDPI pathology images created by a Hamamatsu slide scanner, such as the Hamamatsu NanoZoomer.
+
+Metadata
+******************
+raw_metadata property of a *Slide* and *Scene* objects always returns an empty string.
+
+Auxiliary images
+******************
+The driver supports auxiliary images for Slide objects. An slide may contain the following auxiliary images:
+- map
+- macro

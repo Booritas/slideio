@@ -30,6 +30,7 @@ python ./install.py -a build
 ```
 After the successful build you can find all shared libraries in the directory ./build/<OSName>/Release|Debug/bin
 
+## C++ API 
 
 SlideIO library provides two c++ interfaces: generic interface and OpenCV based interface. Both of them implement the same functionality. The only difference that OpenCV API expose objects of OpenCV library, generic interface uses only standard c++ classes.
 See [SlideIO c++ API doxygen documentation](https://booritas.github.io/slideio/doxygen/html/)
