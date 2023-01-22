@@ -698,7 +698,7 @@ bool DCMFile::isDicomDirFile(const std::string& filePath)
 {
     bool isDicomDir = false;
     DcmFileFormat file;
-   if (!file.loadFile(filePath.c_str()).good())
+    if (!file.loadFile(filePath.c_str()).good(), EXS_Unknown, EGL_noChange, DCM_MaxReadLength, ERM_metaOnly)
     {
         DcmMetaInfo* metainfo = file.getMetaInfo();
         if (metainfo)
