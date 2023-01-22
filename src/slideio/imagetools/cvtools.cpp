@@ -3,7 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 //
 #include "slideio/core/cvslide.hpp"
-#include "slideio/core/cvtools.hpp"
+#include "slideio/imagetools/cvtools.hpp"
 #include <boost/format.hpp>
 #include "slideio/core/base.hpp"
 
@@ -135,7 +135,6 @@ std::string CVTools::compressionToString(Compression compression) {
     case slideio::Compression::HuffmanRL: name = "HuffmanRL"; break;
     case slideio::Compression::CCITT_T4: name = "CCITT_T4"; break;
     case slideio::Compression::CCITT_T6: name = "CCITT_T6"; break;
-    case slideio::Compression::LempelZivWelch: name = "LempelZivWech"; break;
     case slideio::Compression::JpegOld: name = "JpegOld"; break;
     case slideio::Compression::Zlib: name = "Zlib"; break;
     case slideio::Compression::JBIG85: name = "JBIG85"; break;

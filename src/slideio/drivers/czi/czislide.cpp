@@ -82,6 +82,7 @@ std::shared_ptr<CVScene> CZISlide::getAuxImage(const std::string& sceneName) con
 
 void CZISlide::readAttachments()
 {
+    SLIDEIO_LOG(INFO) << "Reading slide attachments (position: " << m_attachmentDirectoryPosition << ")";
     try
     {
         if (m_attachmentDirectoryPosition > 0)
@@ -90,13 +91,20 @@ void CZISlide::readAttachments()
             m_fileStream.seekg(m_attachmentDirectoryPosition, std::ios_base::beg);
             m_fileStream.read((char*)&attachmentDirectory, sizeof(attachmentDirectory));
             if (strcmp(attachmentDirectory.header.SID, SID_ATTACHMENT_DIR) == 0) {
+                SLIDEIO_LOG(INFO) << "Reading attachment header. Number of attachments: "
+                    << m_attachmentDirectoryPosition
+                    << attachmentDirectory.data.entryCount
+                    << ")";
                 const int32_t numbAttachments = attachmentDirectory.data.entryCount;
                 std::ifstream::pos_type pos = m_fileStream.tellg();
                 for (int attachment = 0; attachment < numbAttachments; ++attachment)
                 {
+                    SLIDEIO_LOG(INFO) << "Reading attachment " << attachment << ". Position: " << pos << ".";
                     m_fileStream.seekg(pos, std::ios_base::beg);
                     AttachmentEntry entry{ 0 };
                     m_fileStream.read(reinterpret_cast<char*>(&entry), sizeof(entry));
+                    SLIDEIO_LOG(INFO) << "Attachment Schema Type:" << entry.schemaType;
+                    SLIDEIO_LOG(INFO) << "Attachment Content Type:" << entry.contentFileType;
                     if (!m_fileStream) {
                         break;
                     }
@@ -109,7 +117,8 @@ void CZISlide::readAttachments()
                         try {
                             addAuxiliaryImage(entry.name, entry.contentFileType, entry.filePosition);
                         }
-                        catch(std::exception&) {
+                        catch(std::exception& err) {
+                            SLIDEIO_LOG(WARNING) << "Error reading auxiliary image: " << err.what();
                             m_fileStream.clear();
                         }
                     }
@@ -118,7 +127,8 @@ void CZISlide::readAttachments()
             }
         }
     }
-    catch(std::exception&) {
+    catch(std::exception& err) {
+        SLIDEIO_LOG(WARNING) << "Error reading attachments: " << err.what();
         m_fileStream.clear();
     }
 }
@@ -133,7 +143,7 @@ void CZISlide::init()
     readMetadata();
     readDirectory();
     readAttachments();
-    SLIDEIO_LOG(INFO) << "Auxiliary images: " << m_auxNames;
+    SLIDEIO_LOG(INFO) << "Auxiliary images (" << m_auxImages.size() << "):" << m_auxNames;
     SLIDEIO_LOG(INFO) << "Slide initialized successfully.";
 }
 
@@ -465,6 +475,7 @@ void CZISlide::parseSizes(tinyxml2::XMLNode* root)
 
 void CZISlide::addAuxiliaryImage(const std::string& name, const std::string& typeName, int64_t position)
 {
+    SLIDEIO_LOG(INFO) << "Reading Auxiliary Image:" << name << ".Type: " << typeName << ".Position: " << position;
     m_fileStream.seekg(position, std::ios_base::beg);
     AttachmentSegment attachmentSegment;
     m_fileStream.read(reinterpret_cast<char*>(&attachmentSegment), sizeof(attachmentSegment));

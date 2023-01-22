@@ -62,7 +62,26 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="ab3fa5e4-e9e7-4544-8e69-a93644a57165" name="Default Changelist" comment="">
+      <change afterPath="$PROJECT_DIR$/src/slideio/drivers/ndpi/ndpitiffmessagehandler.cpp" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/slideio/drivers/ndpi/ndpitiffmessagehandler.hpp" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/py-bind/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/py-bind/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/single_tests/ndpi_memory/ndpi_memory.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/single_tests/ndpi_memory/ndpi_memory.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/slideio/core/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/core/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/slideio/drivers/afi/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/drivers/afi/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/slideio/drivers/czi/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/drivers/czi/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/slideio/drivers/dcm/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/drivers/dcm/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/slideio/drivers/gdal/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/drivers/gdal/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/slideio/drivers/ndpi/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/drivers/ndpi/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/slideio/drivers/ndpi/ndpiimagedriver.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/drivers/ndpi/ndpiimagedriver.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/slideio/drivers/ndpi/ndpiscene.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/drivers/ndpi/ndpiscene.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/slideio/drivers/ndpi/ndpislide.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/drivers/ndpi/ndpislide.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/slideio/drivers/scn/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/drivers/scn/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/slideio/drivers/svs/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/drivers/svs/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/slideio/drivers/zvi/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/drivers/zvi/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/slideio/imagetools/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/imagetools/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/slideio/slideio/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/slideio/CMakeLists.txt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -82,6 +101,9 @@
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="HighlightingSettingsPerFile">
+    <setting file="file:///usr/include/x86_64-linux-gnu/tiffio.h" root0="SKIP_INSPECTION" />
   </component>
   <component name="MarkdownSettingsMigration">
     <option name="stateVersion" value="1" />
@@ -110,7 +132,12 @@
     &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
 }</component>
-  <component name="RunManager" selected="Google Test.CVTools.extractSliceFrom3D">
+  <component name="RunManager" selected="CMake Application.ndpi_memory">
+    <configuration default="true" type="CLionExternalRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true">
+      <method v="2">
+        <option name="CLION.EXTERNAL.BUILD" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="AFIDriver.driverID" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" temporary="true" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="slideio_tests" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="slide_io" RUN_TARGET_NAME="slideio_tests" TEST_CLASS="AFIDriver" TEST_METHOD="driverID" TEST_MODE="SUITE_TEST">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
@@ -118,12 +145,11 @@
       </method>
     </configuration>
     <configuration name="All in test_ndpi_driver.cpp" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" temporary="true" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="slideio_ndpi_tests" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="slide_io" RUN_TARGET_NAME="slideio_ndpi_tests" TEST_PATTERN="all-tests(file://$PROJECT_DIR$/src/tests/ndpi/test_ndpi_driver.cpp)" TEST_MODE="PATTERN">
-      <method v="2">
-        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
-        <option name="BeforeTestRunTask" enabled="true" />
-      </method>
-    </configuration>
-    <configuration name="All in test_ndpitiff_tools.cpp" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" temporary="true" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="slideio_ndpi_tests" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="slide_io" RUN_TARGET_NAME="slideio_ndpi_tests" TEST_PATTERN="all-tests(file://$PROJECT_DIR$/src/tests/ndpi/test_ndpitiff_tools.cpp)" TEST_MODE="PATTERN">
+      <envs>
+        <env name="SLIDEIO_IMAGES_PATH" value="$PROJECT_DIR$/../images/images" />
+        <env name="SLIDEIO_TEST_DATA_PRIV_PATH" value="$PROJECT_DIR$/../images/slideio_extra_priv/testdata/cv/slideio" />
+        <env name="SLIDEIO_TEST_DATA_PATH" value="$PROJECT_DIR$/../images/slideio_extra/testdata/cv/slideio" />
+      </envs>
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
         <option name="BeforeTestRunTask" enabled="true" />
@@ -141,12 +167,23 @@
         <option name="BeforeTestRunTask" enabled="true" />
       </method>
     </configuration>
+    <configuration name="NDPITiffTools.scanFile" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" temporary="true" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="slideio_ndpi_tests" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="slide_io" RUN_TARGET_NAME="slideio_ndpi_tests" TEST_CLASS="NDPITiffTools" TEST_METHOD="scanFile" TEST_MODE="SUITE_TEST">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+        <option name="BeforeTestRunTask" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="memory_leaks" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="memory_leaks" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="slide_io" RUN_TARGET_NAME="memory_leaks">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
     </configuration>
     <configuration name="ndpi_memory" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="ndpi_memory" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="slide_io" RUN_TARGET_NAME="ndpi_memory">
+      <envs>
+        <env name="SLIDEIO_IMAGES_PATH" value="$PROJECT_DIR$/../images/images" />
+        <env name="SLIDEIO_TEST_DATA_PRIV_PATH" value="$PROJECT_DIR$/../images/slideio_extra_priv/testdata/cv/slideio" />
+        <env name="SLIDEIO_TEST_DATA_PATH" value="$PROJECT_DIR$/../images/slideio_extra/testdata/cv/slideio" />
+      </envs>
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
@@ -239,19 +276,19 @@
       <item itemvalue="CMake Application.slideiopybind" />
       <item itemvalue="CMake Application.slideio-test-lib" />
       <item itemvalue="CTest Application.All CTest" />
+      <item itemvalue="Google Test.NDPITiffTools.scanFile" />
       <item itemvalue="Google Test.AFIDriver.driverID" />
       <item itemvalue="Google Test.CVTools.extractSliceFrom3D" />
       <item itemvalue="Google Test.All in test_ndpi_driver.cpp" />
-      <item itemvalue="Google Test.All in test_ndpitiff_tools.cpp" />
       <item itemvalue="Google Test.NDPIImageDriver.readResampled" />
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Google Test.All in test_ndpi_driver.cpp" />
+        <item itemvalue="Google Test.NDPITiffTools.scanFile" />
         <item itemvalue="Google Test.CVTools.extractSliceFrom3D" />
         <item itemvalue="Google Test.AFIDriver.driverID" />
-        <item itemvalue="Google Test.All in test_ndpi_driver.cpp" />
         <item itemvalue="Google Test.NDPIImageDriver.readResampled" />
-        <item itemvalue="Google Test.All in test_ndpitiff_tools.cpp" />
       </list>
     </recent_temporary>
   </component>
@@ -296,6 +333,21 @@
       <workItem from="1671129991946" duration="47000" />
       <workItem from="1671179546379" duration="416000" />
       <workItem from="1671288280792" duration="3713000" />
+      <workItem from="1671890259296" duration="2000" />
+      <workItem from="1671890374574" duration="6000" />
+      <workItem from="1671890391901" duration="2921000" />
+      <workItem from="1671893868393" duration="1962000" />
+      <workItem from="1671897582162" duration="6659000" />
+      <workItem from="1671908531639" duration="6000" />
+      <workItem from="1671955859740" duration="4246000" />
+      <workItem from="1671993286580" duration="1729000" />
+      <workItem from="1672073731266" duration="748000" />
+      <workItem from="1672172649411" duration="1329000" />
+      <workItem from="1672229818050" duration="1809000" />
+      <workItem from="1672414112377" duration="4457000" />
+      <workItem from="1672488076663" duration="747000" />
+      <workItem from="1672488829334" duration="184000" />
+      <workItem from="1672491345160" duration="5192000" />
     </task>
     <servers />
   </component>
@@ -323,13 +375,23 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
           <url>file://$PROJECT_DIR$/src/slideio/drivers/ndpi/ndpitifftools.cpp</url>
-          <line>1060</line>
+          <line>1061</line>
           <option name="timeStamp" value="6" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
           <url>file://$PROJECT_DIR$/src/tests/main/test_afi_driver.cpp</url>
           <line>19</line>
           <option name="timeStamp" value="7" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
+          <url>file://$PROJECT_DIR$/src/slideio/drivers/ndpi/ndpitifftools.cpp</url>
+          <line>314</line>
+          <option name="timeStamp" value="8" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
+          <url>file://$PROJECT_DIR$/src/tests/ndpi/test_ndpitiff_tools.cpp</url>
+          <line>10</line>
+          <option name="timeStamp" value="9" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

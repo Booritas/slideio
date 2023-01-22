@@ -100,21 +100,20 @@ std::shared_ptr<SVSSlide> SVSSlide::openFile(const std::string& filePath)
         for(const auto index: image){
             image_dirs.push_back(directories[index]);
         }
-        std::shared_ptr<CVScene> scene = std::make_shared<SVSTiledScene>(
-            filePath,"Image", image_dirs);
+        std::shared_ptr<CVScene> scene(new SVSTiledScene(filePath,"Image", image_dirs));
         scenes.push_back(scene);
     }
     if(thumbnail>=0)
     {
-        std::shared_ptr<CVScene> scene = std::make_shared <SVSSmallScene>(
-            filePath, THUMBNAIL, directories[thumbnail], tiff);
+        std::shared_ptr<CVScene> scene(new SVSSmallScene(filePath,
+            THUMBNAIL, directories[thumbnail], tiff));
         auxImages[THUMBNAIL] = scene;
         auxNames.emplace_back(THUMBNAIL);
     }
     if(label>=0)
     {
-        std::shared_ptr<CVScene> scene = std::make_shared <SVSSmallScene>(
-            filePath,LABEL, directories[label], tiff);
+        std::shared_ptr<CVScene> scene(new SVSSmallScene(filePath,LABEL,
+            directories[label], tiff));
         auxImages[LABEL] = scene;
         auxNames.emplace_back(LABEL);
     }

@@ -5,7 +5,7 @@ libxml2/2.9.10@slideio/stable
 glog/0.6.0@slideio/stable
 opencv/4.1.1@slideio/stable
 zlib/1.2.13
-jpegxrcodec/1.0.2@slideio/stable
+jpegxrcodec/1.0.3@slideio/stable
 tinyxml2/9.0.0
 [options]
 boost:shared=False

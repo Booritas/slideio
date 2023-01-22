@@ -16,6 +16,9 @@ PYBIND11_MODULE(slideiopybind, m) {
         py::arg("file_path"),
         py::arg("driver_id"),
         "Opens an image slide. Returns Slide object.");
+    m.def("set_log_level",&pySetLogLevel,
+          py::arg("log_level"),
+          "Sets log level for the library.");
     m.def("get_driver_ids", &pyGetDriverIDs,
         "Returns list of driver ids");
     m.def("compare_images", &pyCompareImages,
@@ -78,7 +81,6 @@ PYBIND11_MODULE(slideiopybind, m) {
         .value("HuffmanRL",slideio::Compression::HuffmanRL)
         .value("CCITT_T4",slideio::Compression::CCITT_T4)
         .value("CCITT_T6",slideio::Compression::CCITT_T6)
-        .value("LempelZivWelch",slideio::Compression::LempelZivWelch)
         .value("JpegOld",slideio::Compression::JpegOld)
         .value("Zlib",slideio::Compression::Zlib)
         .value("JBIG85",slideio::Compression::JBIG85)

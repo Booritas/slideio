@@ -2,6 +2,9 @@ CONAN_MAIN()
 
 set(LIBRARY_NAME ${GDAL_DRIVER_NAME})
 
+HIDE_LIB("libtiff")
+HIDE_LIB("libjpeg")
+
 set(SOURCE_FILES ${SOURCE_FILES}
    ${CMAKE_CURRENT_SOURCE_DIR}/gdalimagedriver.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/gdalimagedriver.cpp
@@ -25,5 +28,6 @@ IF(WIN32)
 ENDIF(WIN32)
 
 set_target_properties(${LIBRARY_NAME} PROPERTIES LINKER_LANGUAGE CXX)
+#set_target_properties(${LIBRARY_NAME} PROPERTIES CXX_VISIBILITY_PRESET hidden)
 
 CONAN_CONFIGURE(${LIBRARY_NAME})

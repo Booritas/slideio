@@ -11,6 +11,7 @@
 slideio::NDPIFile::~NDPIFile()
 {
     if(m_tiff) {
+        SLIDEIO_LOG(INFO) << "Closing file " << m_filePath;
         libtiff::TIFFClose(m_tiff);
         m_tiff = nullptr;
     }
@@ -18,22 +19,22 @@ slideio::NDPIFile::~NDPIFile()
 
 void slideio::NDPIFile::init(const std::string& filePath)
 {
-    SLIDEIO_LOG(INFO) << "NDPIFile::init-begin";
+    SLIDEIO_LOG(INFO) << "Initialization of NDPI TIFF file : " << filePath;
 
     namespace fs = boost::filesystem;
     if (!fs::exists(filePath)) {
         RAISE_RUNTIME_ERROR << "NDPIImageDriver: File does not exist::" << filePath;
     }
-    SLIDEIO_LOG(INFO) << "NDPIFile::init-open tiff file";
+    SLIDEIO_LOG(INFO) << "Opening of NDPI TIFF file " << filePath;
     m_tiff = libtiff::TIFFOpen(filePath.c_str(), "r");
     if (!m_tiff.isValid())
     {
         RAISE_RUNTIME_ERROR << "NDPIImageDriver: Cannot open file:" << filePath;
     }
-    SLIDEIO_LOG(INFO) << "NDPIFile::init tiff file opened";
+    SLIDEIO_LOG(INFO) << "File " << filePath << " is successfully opened";
     m_filePath = filePath;
     NDPITiffTools::scanFile(m_tiff, m_directories);
-    SLIDEIO_LOG(INFO) << "NDPIFile::init-end";
+    SLIDEIO_LOG(INFO) << "File " << filePath << " initialization is complete";
 }
 
 const slideio::NDPITiffDirectory& slideio::NDPIFile::findZoomDirectory(double zoom, int sceneWidth, int dirBegin, int dirEnd)

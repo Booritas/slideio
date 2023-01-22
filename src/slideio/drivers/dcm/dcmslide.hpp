@@ -18,8 +18,10 @@ namespace slideio
 {
     class SLIDEIO_DCM_EXPORTS DCMSlide : public CVSlide
     {
-    public:
+        friend class DCMImageDriver;
+    protected:
         DCMSlide(const std::string& filePath);
+    public:
         int getNumScenes() const override;
         std::string getFilePath() const override;
         std::shared_ptr<CVScene> getScene(int index) const override;

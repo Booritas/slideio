@@ -2,7 +2,7 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/imagetools/imagetools.hpp"
-#include "slideio/core/cvtools.hpp"
+#include "slideio/imagetools/cvtools.hpp"
 #include <boost/format.hpp>
 #include <boost/filesystem.hpp>
 #include "slideio/imagetools/gdal_lib.hpp"

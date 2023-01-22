@@ -86,8 +86,8 @@ void SCNSlide::constructScenes()
                 {
                     slideio::TiffDirectory directory;
                     TiffTools::scanTiffDir(m_tiff.getHandle(), dir, 0, directory);
-                    std::shared_ptr<CVScene> scene = std::make_shared<SVSSmallScene>(
-                        m_filePath, tagName, directory, m_tiff.getHandle());
+                    std::shared_ptr<CVScene> scene(new SVSSmallScene(m_filePath, tagName,
+                        directory, m_tiff.getHandle()));
                     m_auxImages[type] = scene;
                     m_auxNames.push_back(type);
                 }

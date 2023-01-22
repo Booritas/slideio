@@ -4,10 +4,11 @@
 #ifndef OPENCV_slideio_converter_HPP
 #define OPENCV_slideio_converter_HPP
 
-#include "slideio/core/slideio_core_def.hpp"
+#include "slideio/converter/converter_def.hpp"
 #include "slideio/core/cvstructs.hpp"
 #include "slideio/core/structs.hpp"
 #include "slideio/core/slideio_enums.hpp"
+#include "slideio/core/cvscene.hpp"
 
 #if defined(_MSC_VER)
 #pragma warning( push )
@@ -16,8 +17,10 @@
 
 namespace slideio
 {
-   void SLIDEIO_AFI_EXPORTS convertScene(std::shared_ptr<slideio::CVSlide> inputScene, cons std::string& driverId,
-      const std::string& outPath, const std::map<std::string, std::string>& parameters);
+   void SLIDEIO_CONVERTER_EXPORTS convertScene(std::shared_ptr<slideio::CVScene> inputScene,
+                                                const std::string& driverId,
+                                                const std::string& outPath,
+                                                const std::map<std::string, std::string>& parameters);
 }
 
 #endif

@@ -41,15 +41,6 @@ target_include_directories(${BINDLIB_NAME} PRIVATE ${INCLUDE_ROOT} ${Python3_INC
 target_include_directories(${BINDLIB_NAME} PRIVATE ${INCLUDE_ROOT})
 target_link_libraries(${BINDLIB_NAME} PRIVATE 
    ${SLIEIO_LIB_NAME}
-   ${CORE_LIB_NAME}
-   ${GDAL_DRIVER_NAME}
-   ${SVS_DRIVER_NAME}
-   ${AFI_DRIVER_NAME}
-   ${CZI_DRIVER_NAME}
-   ${DCM_DRIVER_NAME}
-   ${SCN_DRIVER_NAME}
-   ${ZVI_DRIVER_NAME}
-   ${NDPI_DRIVER_NAME}
    )
 
 

@@ -4,7 +4,7 @@
 //
 #include "slideio/imagetools/tifftools.hpp"
 #include "slideio/imagetools/imagetools.hpp"
-#include "slideio/core/cvtools.hpp"
+#include "slideio/imagetools/cvtools.hpp"
 #include <opencv2/core.hpp>
 #include <boost/format.hpp>
 #include "slideio/imagetools/libtiff.hpp"
@@ -65,7 +65,7 @@ static slideio::Compression compressTiffToSlideio(int tiffCompression)
         compression = Compression::CCITT_T6;
         break;
     case 0x5:
-        compression = Compression::LempelZivWelch;
+        compression = Compression::LZW;
         break;
     case 0x6:
         compression = Compression::JpegOld;
@@ -328,7 +328,7 @@ void TiffTools::readNotRGBStripedDir(libtiff::TIFF* file, const TiffDirectory& d
 {
     std::vector<uint8_t> rgbaRaster(4 * dir.rowsPerStrip * dir.width);
 
-    int buff_size = dir.width * dir.height * dir.channels * Tools::dataTypeSize(dir.dataType);
+    int buff_size = dir.width * dir.height * dir.channels * ImageTools::dataTypeSize(dir.dataType);
     cv::Size sizeImage = { dir.width, dir.height };
     slideio::DataType dt = dir.dataType;
     output.create(sizeImage, CV_MAKETYPE(slideio::CVTools::toOpencvType(dt), dir.channels));
@@ -373,7 +373,7 @@ void TiffTools::readNotRGBStripedDir(libtiff::TIFF* file, const TiffDirectory& d
 void slideio::TiffTools::readRegularStripedDir(libtiff::TIFF* file, const slideio::TiffDirectory& dir, cv::OutputArray output)
 {
 
-    int buff_size = dir.width * dir.height * dir.channels * Tools::dataTypeSize(dir.dataType);
+    int buff_size = dir.width * dir.height * dir.channels * ImageTools::dataTypeSize(dir.dataType);
     cv::Size sizeImage = { dir.width, dir.height };
     slideio::DataType dt = dir.dataType;
     output.create(sizeImage, CV_MAKETYPE(slideio::CVTools::toOpencvType(dt), dir.channels));

@@ -5,7 +5,7 @@
 #include "slideio/drivers/ndpi/ndpislide.hpp"
 #include "slideio/drivers/ndpi/ndpiscene.hpp"
 #include "slideio/core/base.hpp"
-#include "ndpitifftools.hpp"
+#include "slideio/drivers/ndpi/ndpitifftools.hpp"
 #include "slideio/drivers/ndpi/ndpifile.hpp"
 
 #include <boost/filesystem.hpp>

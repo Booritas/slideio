@@ -109,7 +109,7 @@ std::shared_ptr<AFISlide> AFISlide::openFile(const std::string& filePath)
     const auto files = getFileList(fileString);
     const auto slidesScenes = getSlidesScenesFromFiles(files, filePath);
     checkError(!slidesScenes.second.empty(), "File %s contains no images to open", filePath);
-    std::shared_ptr<AFISlide> afiSlide = std::make_shared<AFISlide>();
+    std::shared_ptr<AFISlide> afiSlide(new AFISlide);
     afiSlide->m_scenes.assign(slidesScenes.second.begin(), slidesScenes.second.end());
     afiSlide->m_slides.assign(slidesScenes.first.begin(), slidesScenes.first.end());
     afiSlide->m_filePath = filePath;

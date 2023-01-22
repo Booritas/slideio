@@ -21,7 +21,7 @@ for dir in /opt/python/cp*
    build_wheel
  done
 
-#export py="/opt/python/cp310-cp310/bin/python"
+#export py="/opt/python/cp38-cp38/bin/python"
 #build_wheel
 
 echo "updating wheels"

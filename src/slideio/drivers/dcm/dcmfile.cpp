@@ -6,7 +6,7 @@
 #include <dcmtk/dcmimgle/dcmimage.h>
 #include <boost/format.hpp>
 #include "slideio/core/base.hpp"
-#include "slideio/core/cvtools.hpp"
+#include "slideio/imagetools/cvtools.hpp"
 #include <dcmtk/dcmdata/dcjson.h>
 
 #include <ostream>
@@ -698,7 +698,7 @@ bool DCMFile::isDicomDirFile(const std::string& filePath)
 {
     bool isDicomDir = false;
     DcmFileFormat file;
-    if (!file.loadFile(filePath.c_str()).good(), EXS_Unknown, EGL_noChange, DCM_MaxReadLength, ERM_metaOnly)
+   if (!file.loadFile(filePath.c_str()).good())
     {
         DcmMetaInfo* metainfo = file.getMetaInfo();
         if (metainfo)

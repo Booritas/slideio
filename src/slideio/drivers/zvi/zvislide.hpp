@@ -16,8 +16,10 @@ namespace slideio
 {
     class SLIDEIO_ZVI_EXPORTS ZVISlide : public CVSlide
     {
-    public:
+        friend class ZVIImageDriver;
+    protected:
         ZVISlide(const std::string& filePath);
+    public:
         int getNumScenes() const override;
         std::string getFilePath() const override;
         std::shared_ptr<CVScene> getScene(int index) const override;

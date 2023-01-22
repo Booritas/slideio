@@ -1,10 +1,11 @@
 #include "pyglobals.hpp"
 #include <slideio/slideio/slideio.hpp>
 #include <slideio/imagetools/imagetools.hpp>
+#include <slideio/slideio/imagedrivermanager.hpp>
 #include <boost/format.hpp>
 #include <opencv2/core/mat.hpp>
 
-#include "slideio/core/cvtools.hpp"
+#include "slideio/imagetools/cvtools.hpp"
 
 namespace py = pybind11;
 
@@ -82,4 +83,9 @@ double pyCompareImages(py::array& left, py::array& right)
     cv::Mat rightMat = fromNumpy2Mat(right);
     double sim = slideio::ImageTools::computeSimilarity(leftMat, rightMat);
     return sim;
+}
+
+void pySetLogLevel(const std::string& level)
+{
+    slideio::ImageDriverManager::setLogLevel(level);
 }

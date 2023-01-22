@@ -15,6 +15,16 @@
 using namespace slideio;
 std::map<std::string, std::shared_ptr<ImageDriver>> ImageDriverManager::driverMap;
 
+static void initLogging()
+{
+    static bool initLog = false;
+    if (!initLog) {
+        google::InitGoogleLogging("slideio");
+        FLAGS_logtostderr = true;
+        FLAGS_minloglevel = google::GLOG_FATAL;
+        initLog = true;
+    }
+}
 
 ImageDriverManager::ImageDriverManager()
 {
@@ -38,6 +48,8 @@ std::vector<std::string> ImageDriverManager::getDriverIDs()
 
 void ImageDriverManager::initialize()
 {
+    initLogging();
+
     if(driverMap.empty())
     {
         SLIDEIO_LOG(INFO) << "Initialization ImageDriverManager";
@@ -81,12 +93,6 @@ void ImageDriverManager::initialize()
 std::shared_ptr<CVSlide> ImageDriverManager::openSlide(const std::string& filePath, const std::string& driverName)
 {
     static bool initLog = false;
-    if (!initLog) {
-        google::InitGoogleLogging("slideio");
-        FLAGS_logtostderr = true;
-        FLAGS_minloglevel = google::GLOG_FATAL;
-        initLog = true;
-    }
     initialize();
     auto it = driverMap.find(driverName);
     if(it==driverMap.end())
@@ -94,3 +100,17 @@ std::shared_ptr<CVSlide> ImageDriverManager::openSlide(const std::string& filePa
     std::shared_ptr<slideio::ImageDriver> driver = it->second;
     return driver->openFile(filePath);
 }
+
+void ImageDriverManager::setLogLevel(const std::string &level) {
+    initLogging();
+    if(level.compare("INFO")==0) {
+        FLAGS_minloglevel = google::GLOG_INFO;
+    } else if(level.compare("ERROR")==0) {
+        FLAGS_minloglevel = google::GLOG_ERROR;
+    } else if(level.compare("WARNING")==0) {
+        FLAGS_minloglevel = google::GLOG_WARNING;
+    } else if(level.compare("FATAL")==0) {
+        FLAGS_minloglevel = google::GLOG_FATAL;
+    }
+}
+

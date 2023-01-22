@@ -1,6 +1,9 @@
 CONAN_MAIN()
 set(LIBRARY_NAME ${IMAGETOOLS_LIB_NAME})
 
+HIDE_LIB("libtiff")
+HIDE_LIB("libjpeg")
+
 set(SOURCE_FILES
    ${SOURCE_FILES}
    ${CMAKE_CURRENT_SOURCE_DIR}/gdalcodec.cpp
@@ -13,6 +16,8 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/tifftools.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/tifftools.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/tempfile.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/cvtools.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/cvtools.hpp
    )
 
 
@@ -26,8 +31,9 @@ IF(WIN32)
    target_compile_definitions(${LIBRARY_NAME} PRIVATE SLIDEIO_IMAGETOOLS_API _CRT_SECURE_NO_WARNINGS)
 ENDIF(WIN32)
 
-target_link_libraries(${LIBRARY_NAME} ${CORE_LIB_NAME})
+target_link_libraries(${LIBRARY_NAME})
 set_target_properties(${LIBRARY_NAME} PROPERTIES LINKER_LANGUAGE CXX)
+#set_target_properties(${LIBRARY_NAME} PROPERTIES CXX_VISIBILITY_PRESET hidden)
 
 set_property(TARGET ${LIBRARY_NAME} PROPERTY POSITION_INDEPENDENT_CODE ON)
 

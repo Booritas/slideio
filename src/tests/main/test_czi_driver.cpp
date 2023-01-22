@@ -9,7 +9,7 @@
 #include <opencv2/imgcodecs.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include "slideio/slideio/scene.hpp"
-#include "slideio/core/cvtools.hpp"
+#include "slideio/imagetools/cvtools.hpp"
 #include "slideio/imagetools/imagetools.hpp"
 
 TEST(CZIImageDriver, DriverManager_getDriverIDs)

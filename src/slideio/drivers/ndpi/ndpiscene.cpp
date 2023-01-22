@@ -8,6 +8,8 @@
 
 #include "ndpifile.hpp"
 #include "slideio/core/tools/tools.hpp"
+#include "slideio/drivers/ndpi/ndpitiffmessagehandler.hpp"
+#include "slideio/imagetools/imagetools.hpp"
 
 using namespace slideio;
 
@@ -24,7 +26,7 @@ public:
                 RAISE_RUNTIME_ERROR << "NDPI Image Driver: Cannot open file " << filePath;
             }
             const int MAX_BUFFER_SIZE = 10 * 1024 * 1024;
-            int strideSize = dir->width * dir->channels * Tools::dataTypeSize(dir->dataType);
+            int strideSize = dir->width * dir->channels * ImageTools::dataTypeSize(dir->dataType);
             int rowsPerStrip = MAX_BUFFER_SIZE / strideSize;
             m_rowsPerStrip = std::min(rowsPerStrip, dir->height);
         } else {
@@ -76,6 +78,8 @@ NDPIScene::~NDPIScene()
 
 void NDPIScene::init(const std::string& name, NDPIFile* file, int32_t startDirIndex, int32_t endDirIndex)
 {
+    NDPITIFFMessageHandler mh;
+
     m_sceneName = name;
     m_pfile = file;
     m_startDir = startDirIndex;
@@ -166,6 +170,8 @@ Compression NDPIScene::getCompression() const
 void NDPIScene::readResampledBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize,
                                            const std::vector<int>& channelIndices, cv::OutputArray output)
 {
+    NDPITIFFMessageHandler mh;
+
     const std::vector<NDPITiffDirectory>& directories = m_pfile->directories();
     double zoomX = static_cast<double>(blockSize.width) / static_cast<double>(blockRect.width);
     double zoomY = static_cast<double>(blockSize.height) / static_cast<double>(blockRect.height);
@@ -207,6 +213,8 @@ int NDPIScene::getTileCount(void* userData)
 
 bool NDPIScene::getTileRect(int tileIndex, cv::Rect& tileRect, void* userData)
 {
+    NDPITIFFMessageHandler mh;
+
     NDPIUserData* data = (NDPIUserData*)userData;
     const NDPITiffDirectory* dir = data->dir();
     if (dir->tiled) {
@@ -234,6 +242,8 @@ bool NDPIScene::getTileRect(int tileIndex, cv::Rect& tileRect, void* userData)
 bool NDPIScene::readTile(int tileIndex, const std::vector<int>& channelIndices, cv::OutputArray tileRaster,
                          void* userData)
 {
+    NDPITIFFMessageHandler mh;
+
     NDPIUserData* data = (NDPIUserData*)userData;
     const NDPITiffDirectory* dir = data->dir();
     bool ret = false;

@@ -50,9 +50,12 @@ jobs:
 
     - name: Install conan dependencies
       run: python install.py -a conan
+
+    - name: Upload conan dependencies
+      run: conan upload "ndpi-libtiff/4.3.0@slideio/stable" -r slideio --all
       
     - name: build python packages
-      working-directory: ./src/pybind
+      working-directory: ./src/py-bind
       run: python build_py_dists.py "${{ github.workspace }}/conan-recipes/py.txt"
 
     - name: Archive python packagess
@@ -60,4 +63,4 @@ jobs:
       with:
         name: python-dist
         path: |
-          ./src/pybind/dist
+          ./src/py-bind/dist

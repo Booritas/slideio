@@ -11,7 +11,7 @@
 #include "slideio/slideio/imagedrivermanager.hpp"
 #include "tests/testlib/testtools.hpp"
 #include "slideio/slideio/scene.hpp"
-#include "slideio/core/cvtools.hpp"
+#include "slideio/imagetools/cvtools.hpp"
 #include "slideio/drivers/zvi/zviimagedriver.hpp"
 #include "slideio/imagetools/imagetools.hpp"
 

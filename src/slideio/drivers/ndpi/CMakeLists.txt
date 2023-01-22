@@ -2,6 +2,10 @@ CONAN_MAIN()
 
 set(LIBRARY_NAME ${NDPI_DRIVER_NAME})
 
+HIDE_LIB("libtiff")
+HIDE_LIB("libjpeg")
+
+
 set(SOURCE_FILES 
    ${SOURCE_FILES}
    ${CMAKE_CURRENT_SOURCE_DIR}/ndpiimagedriver.hpp
@@ -16,13 +20,15 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/ndpitifftools.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/ndpitifftools.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/ndpilibtiff.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/ndpitiffmessagehandler.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/ndpitiffmessagehandler.cpp
    )
 
 add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES})
 
 SOURCE_GROUP_BY_FOLDER(SOURCE_FILES)
 
-target_link_libraries(${LIBRARY_NAME} ${CORE_LIB_NAME})
+target_link_libraries(${LIBRARY_NAME} ${CORE_LIB_NAME} ${IMAGETOOLS_LIB_NAME})
 
 IF(WIN32)
    target_link_libraries(${LIBRARY_NAME} Shlwapi)

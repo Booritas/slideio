@@ -11,13 +11,15 @@ set(TEST_SOURCES
 add_executable(${TEST_NAME} ${TEST_SOURCES})
 
 target_include_directories(${TEST_NAME} PRIVATE ${INCLUDE_ROOT})
+
+CONAN_CONFIGURE(${TEST_NAME})
+
 target_link_libraries(${TEST_NAME} 
     ${CORE_LIB_NAME}
     ${NDPI_DRIVER_NAME}
     ${TEST_LIB_NAME}
   )
 
-CONAN_CONFIGURE(${TEST_NAME})
 
 IF(WIN32)
    set_target_properties(${TEST_NAME} PROPERTIES LINK_FLAGS "/ignore:4099")

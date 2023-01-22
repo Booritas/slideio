@@ -4,6 +4,7 @@ set(LIBRARY_NAME ${CONVERTER_LIB_NAME})
 set(SOURCE_FILES 
    ${SOURCE_FILES}
    ${CMAKE_CURRENT_SOURCE_DIR}/converter.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/converter_def.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/converter.cpp
    )
 
@@ -15,7 +16,7 @@ SOURCE_GROUP_BY_FOLDER(SOURCE_FILES)
 IF(WIN32)
    target_link_libraries(${LIBRARY_NAME} Shlwapi)
    set_target_properties(${LIBRARY_NAME} PROPERTIES LINK_FLAGS "/ignore:4099")
-   target_compile_definitions(${LIBRARY_NAME} PRIVATE SLIDEIO_CORE _CRT_SECURE_NO_WARNINGS)
+   target_compile_definitions(${LIBRARY_NAME} PRIVATE SLIDEIO_CONVERTER_API _CRT_SECURE_NO_WARNINGS)
 ENDIF(WIN32)
 
 set_target_properties(${LIBRARY_NAME} PROPERTIES LINKER_LANGUAGE CXX)

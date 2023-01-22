@@ -9,7 +9,7 @@
 #include <boost/variant.hpp>
 
 #include "zviutils.hpp"
-#include "slideio/core/cvtools.hpp"
+#include "slideio/imagetools/cvtools.hpp"
 #include "slideio/imagetools/imagetools.hpp"
 
 using namespace slideio;

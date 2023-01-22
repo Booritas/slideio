@@ -2,25 +2,30 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 //
+#include <stdarg.h>
+#include <stddef.h>
+#include <setjmp.h>
 #include <opencv2/core.hpp>
 #include <boost/format.hpp>
 #include <boost/filesystem.hpp>
 #include <jxrcodec/jxrcodec.hpp>
 
-
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/drivers/ndpi/ndpilibtiff.hpp"
 #include "slideio/drivers/ndpi/ndpitifftools.hpp"
-#include "slideio/core/cvtools.hpp"
+#include "slideio/imagetools/cvtools.hpp"
 #include "jpeglib.h"
+#include "slideio/imagetools/imagetools.hpp"
 
 #if defined(WIN32)
 #define FSEEK64 _fseeki64
+#elif __APPLE__
+#define FSEEK64 fseeko
 #else
 #include <stdarg.h>
 #include <stddef.h>
 #include <setjmp.h>
-#define FSEEK64 fseek
+#define FSEEK64 fseeko64
 #endif
 
 
@@ -156,7 +161,7 @@ static slideio::Compression compressTiffToSlideio(int tiffCompression)
         compression = Compression::CCITT_T6;
         break;
     case 0x5:
-        compression = Compression::LempelZivWelch;
+        compression = Compression::LZW;
         break;
     case 0x6:
         compression = Compression::JpegOld;
@@ -406,7 +411,7 @@ void NDPITiffTools::updateJpegXRCompressedDirectoryMedatata(libtiff::TIFF* tiff,
     if (dir.tiled) {
         const int tile = 0;
         cv::Size tileSize = computeTileSize(dir, tile);
-        const int tileBufferSize = dir.channels * tileSize.width * tileSize.height * Tools::dataTypeSize(dir.dataType);
+        const int tileBufferSize = dir.channels * tileSize.width * tileSize.height * ImageTools::dataTypeSize(dir.dataType);
         std::vector<uint8_t> rawTile(tileBufferSize);
         libtiff::tmsize_t readBytes = libtiff::TIFFReadRawTile(tiff, tile, rawTile.data(), (int)rawTile.size());
         if (readBytes <= 0) {
@@ -458,6 +463,7 @@ void slideio::NDPITiffTools::scanFile(libtiff::TIFF* tiff, std::vector<NDPITiffD
     SLIDEIO_LOG(INFO) << "NDPITiffTools::scanFile-begin";
 
     int dirs = libtiff::TIFFNumberOfDirectories(tiff);
+    SLIDEIO_LOG(INFO) << "Total number of directories: " << dirs;
     directories.resize(dirs);
     for (int dir = 0; dir < dirs; dir++) {
         SLIDEIO_LOG(INFO) << "NDPITiffTools::scanFile processing directory " << dir;
@@ -490,7 +496,7 @@ void NDPITiffTools::readNotRGBStripedDir(libtiff::TIFF* file, const NDPITiffDire
 {
     std::vector<uint8_t> rgbaRaster(4 * dir.rowsPerStrip * dir.width);
 
-    int buff_size = dir.width * dir.height * dir.channels * Tools::dataTypeSize(dir.dataType);
+    int buff_size = dir.width * dir.height * dir.channels * ImageTools::dataTypeSize(dir.dataType);
     cv::Size sizeImage = {dir.width, dir.height};
     slideio::DataType dt = dir.dataType;
     output.create(sizeImage, CV_MAKETYPE(slideio::CVTools::toOpencvType(dt), dir.channels));
@@ -534,7 +540,7 @@ void NDPITiffTools::readNotRGBStripedDir(libtiff::TIFF* file, const NDPITiffDire
 void slideio::NDPITiffTools::readRegularStripedDir(libtiff::TIFF* file, const slideio::NDPITiffDirectory& dir,
                                                    cv::OutputArray output)
 {
-    int buff_size = dir.width * dir.height * dir.channels * Tools::dataTypeSize(dir.dataType);
+    int buff_size = dir.width * dir.height * dir.channels * ImageTools::dataTypeSize(dir.dataType);
     cv::Size sizeImage = {dir.width, dir.height};
     slideio::DataType dt = dir.dataType;
     output.create(sizeImage, CV_MAKETYPE(slideio::CVTools::toOpencvType(dt), dir.channels));
@@ -582,7 +588,7 @@ void NDPITiffTools::readJpegXRTile(libtiff::TIFF* tiff, const slideio::NDPITiffD
                                    const std::vector<int>& vector, cv::OutputArray output)
 {
     cv::Size tileSize = computeTileSize(dir, tile);
-    const int tileBufferSize = dir.channels * tileSize.width * tileSize.height * Tools::dataTypeSize(dir.dataType);
+    const int tileBufferSize = dir.channels * tileSize.width * tileSize.height * ImageTools::dataTypeSize(dir.dataType);
     std::vector<uint8_t> rawTile(tileBufferSize);
     if (dir.interleaved) {
         // process interleaved channels
@@ -757,7 +763,7 @@ void NDPITiffTools::readJpegDirectoryRegion(libtiff::TIFF* tiff, const std::stri
 
     try {
         const slideio::DataType dt = dir.dataType;
-        const int dataSize = slideio::Tools::dataTypeSize(dt);
+        const int dataSize = slideio::ImageTools::dataTypeSize(dt);
         const int cvType = slideio::CVTools::toOpencvType(dt);
         output.create(region.size(), CV_MAKETYPE(cvType, allChannels?dir.channels:static_cast<int>(channelIndices.size())));
         cv::Mat outputMat = output.getMat();
@@ -796,7 +802,7 @@ void NDPITiffTools::readJpegDirectoryRegion(libtiff::TIFF* tiff, const std::stri
                     ". Skipped: " << skipped;
             }
         }
-        int bufferRowStride = cinfo.output_width * cinfo.output_components * slideio::Tools::dataTypeSize(dt);
+        int bufferRowStride = cinfo.output_width * cinfo.output_components * slideio::ImageTools::dataTypeSize(dt);
         const int MAX_BUFFER_SIZE = 10 * 1024 * 1024;
         const int numBufferLines = std::min(dir.height, MAX_BUFFER_SIZE / bufferRowStride);
         cv::Mat imageBuffer(numBufferLines, dir.width, CV_MAKETYPE(cvType, cinfo.output_components));
@@ -863,7 +869,7 @@ void NDPITiffTools::readJpegXRStrip(libtiff::TIFF* tiff, const NDPITiffDirectory
                                     const std::vector<int>& vector, cv::_OutputArray output)
 {
     const int lineCount = computeStripHeight(dir.height, dir.rowsPerStrip, strip);
-    const int stripSize = dir.channels * lineCount * dir.width * Tools::dataTypeSize(dir.dataType);
+    const int stripSize = dir.channels * lineCount * dir.width * ImageTools::dataTypeSize(dir.dataType);
     std::vector<uint8_t> rawStrip(stripSize);
     if (dir.interleaved) {
         // process interleaved channels
