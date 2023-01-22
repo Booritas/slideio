@@ -273,6 +273,8 @@ namespace slideio
     };
 }
 
+#define ScenePtr std::shared_ptr<slideio::Scene>
+
 #if defined(_MSC_VER)
 #pragma warning( pop )
 #endif

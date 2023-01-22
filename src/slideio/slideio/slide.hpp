@@ -61,6 +61,7 @@ namespace slideio
     };
 }
 
+#define SlidePtr std::shared_ptr<slideio::Slide>
 
 #if defined(_MSC_VER)
 #pragma warning( pop )

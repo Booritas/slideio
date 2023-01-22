@@ -5,10 +5,9 @@
 
 using namespace slideio;
 
-void slideio::convertScene(std::shared_ptr<slideio::CVScene> inputScene,
-                           const std::string& driverId,
-                           const std::string& outPath,
-                           const std::map<std::string,std::string>& parameters)
+void slideio::convertScene(std::shared_ptr<slideio::Scene> inputScene,
+                            const std::map<std::string, std::string>& parameters,
+                            const std::string& outPath)
 {
 
 }

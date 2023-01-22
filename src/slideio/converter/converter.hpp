@@ -6,9 +6,7 @@
 
 #include "slideio/converter/converter_def.hpp"
 #include "slideio/core/cvstructs.hpp"
-#include "slideio/core/structs.hpp"
-#include "slideio/core/slideio_enums.hpp"
-#include "slideio/core/cvscene.hpp"
+#include "slideio/slideio/scene.hpp"
 
 #if defined(_MSC_VER)
 #pragma warning( push )
@@ -17,10 +15,9 @@
 
 namespace slideio
 {
-   void SLIDEIO_CONVERTER_EXPORTS convertScene(std::shared_ptr<slideio::CVScene> inputScene,
-                                                const std::string& driverId,
-                                                const std::string& outPath,
-                                                const std::map<std::string, std::string>& parameters);
+   void SLIDEIO_CONVERTER_EXPORTS convertScene(std::shared_ptr<slideio::Scene> inputScene,
+                                                const std::map <std::string,std::string> & parameters,
+                                                const std::string& outPath);
 }
 
 #endif
