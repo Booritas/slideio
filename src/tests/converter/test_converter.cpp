@@ -15,7 +15,7 @@ TEST(Converter, convertGDAL)
 
 	std::map<std::string, std::string> parameters;
 	parameters[DRIVER] = "SVS";
-	std::string outputPath = TestTools::getTestImagePath("gdal", "test.svs");
+	std::string outputPath = TestTools::getTestImagePath("svs", "tests/gdal-test.svs");
 	slideio::convertScene(scene, parameters, outputPath);
 }
 
@@ -50,3 +50,16 @@ TEST(Converter, unsupportedDriver)
 	std::string outputPath = TestTools::getTestImagePath("gdal", "test.svs");
 	ASSERT_THROW(slideio::convertScene(scene, parameters, outputPath), slideio::RuntimeError);
 }
+
+TEST(Converter, outputPathExists)
+{
+	std::string path = TestTools::getTestImagePath("gdal", "Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg");
+	SlidePtr slide = slideio::openSlide(path, "GDAL");
+	ScenePtr scene = slide->getScene(0);
+	ASSERT_TRUE(scene.get() != nullptr);
+
+	std::map<std::string, std::string> parameters;
+	parameters[DRIVER] = "GDAL";
+	ASSERT_THROW(slideio::convertScene(scene, parameters, path), slideio::RuntimeError);
+}
+

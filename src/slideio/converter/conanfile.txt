@@ -6,6 +6,9 @@ glog/0.6.0@slideio/stable
 opencv/4.1.1@slideio/stable
 zlib/1.2.13
 tinyxml2/9.0.0
+libtiff/4.4.0
+libjpeg/9e
+libwebp/1.2.4
 [options]
 boost:shared=False
 glog:shared=True

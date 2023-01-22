@@ -19,7 +19,7 @@ namespace slideio
 {
    void SLIDEIO_CONVERTER_EXPORTS convertScene(std::shared_ptr<slideio::Scene> inputScene,
                                                 const std::map <std::string,std::string> & parameters,
-                                                const std::string& outPath);
+                                                const std::string& outputPath);
 }
 
 #endif
