@@ -15,7 +15,7 @@ CONAN_CONFIGURE(${TEST_NAME})
 
 target_link_libraries(${TEST_NAME} 
     ${CORE_LIB_NAME}
-    ${SLIEIO_LIB_NAME}
+    ${SLIDEIO_LIB_NAME}
     ${CONVERTER_LIB_NAME}
     ${TEST_LIB_NAME}
   )

@@ -8,6 +8,8 @@
 #include "slideio/core/cvstructs.hpp"
 #include "slideio/slideio/scene.hpp"
 
+const std::string DRIVER = "DRIVER";
+
 #if defined(_MSC_VER)
 #pragma warning( push )
 #pragma warning(disable: 4251)

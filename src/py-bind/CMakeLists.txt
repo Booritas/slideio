@@ -40,7 +40,7 @@ pybind11_add_module(${BINDLIB_NAME} SHARED ${BINDLIB_SOURCE})
 target_include_directories(${BINDLIB_NAME} PRIVATE ${INCLUDE_ROOT} ${Python3_INCLUDE_DIRS} ${Python3_NumPy_INCLUDE_DIRS})
 target_include_directories(${BINDLIB_NAME} PRIVATE ${INCLUDE_ROOT})
 target_link_libraries(${BINDLIB_NAME} PRIVATE 
-   ${SLIEIO_LIB_NAME}
+   ${SLIDEIO_LIB_NAME}
    )
 
 

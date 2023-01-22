@@ -5,9 +5,22 @@
 
 using namespace slideio;
 
-void slideio::convertScene(std::shared_ptr<slideio::Scene> inputScene,
+void slideio::convertScene(std::shared_ptr<slideio::Scene> scene,
                             const std::map<std::string, std::string>& parameters,
                             const std::string& outPath)
 {
-
+    if(scene == nullptr) {
+        RAISE_RUNTIME_ERROR << "Converter: invalid input scene!";
+    }
+    auto itDriver = parameters.find(DRIVER);
+    if(itDriver == parameters.end()) {
+        RAISE_RUNTIME_ERROR << "Converter: unspecified output format!";
+    }
+    std::string driver = itDriver->second;
+    if(driver.compare("SVS")!=0) {
+        RAISE_RUNTIME_ERROR << "Converter: output format '" << driver << "' is not supported!";
+    }
+    std::string sceneName = scene->getName();
+    std::string filePath = scene->getFilePath();
+    SLIDEIO_LOG(INFO) << "Convert a scene " << sceneName << " from file " << filePath << " to format: '" << driver << "'.";
 }
