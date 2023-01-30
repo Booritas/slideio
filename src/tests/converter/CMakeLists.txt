@@ -5,6 +5,7 @@ CONAN_MAIN()
 
 set(TEST_SOURCES
   test_converter.cpp
+  test_convertertools.cpp
 )
 
 add_executable(${TEST_NAME} ${TEST_SOURCES})

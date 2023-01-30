@@ -6,6 +6,8 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/converter.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/converter_def.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/converter.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/convertertools.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/convertertools.hpp
    )
 
 
