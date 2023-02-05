@@ -185,7 +185,9 @@ void slideio::TiffTools::closeTiffFile(libtiff::TIFF* file)
 
 void  slideio::TiffTools::scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, int64_t dirOffset, slideio::TiffDirectory& dir)
 {
-    libtiff::TIFFSetDirectory(tiff, static_cast<short>(dirIndex));
+    if (libtiff::TIFFCurrentDirectory(tiff) != dirIndex) {
+        libtiff::TIFFSetDirectory(tiff, (short)dirIndex);
+    }
     if(dirOffset)
         libtiff::TIFFSetSubDirectory(tiff, dirOffset);
 
@@ -265,7 +267,9 @@ void  slideio::TiffTools::scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, int
 
 void slideio::TiffTools::scanTiffDir(libtiff::TIFF* tiff, int dirIndex, int64_t dirOffset, slideio::TiffDirectory& dir)
 {
-    libtiff::TIFFSetDirectory(tiff, (short)dirIndex);
+    if(libtiff::TIFFCurrentDirectory(tiff) != dirIndex) {
+        libtiff::TIFFSetDirectory(tiff, (short)dirIndex);
+    }
     if(dirOffset>0)
         libtiff::TIFFSetSubDirectory(tiff, dirOffset);
 
@@ -333,7 +337,7 @@ void TiffTools::readNotRGBStripedDir(libtiff::TIFF* file, const TiffDirectory& d
     slideio::DataType dt = dir.dataType;
     output.create(sizeImage, CV_MAKETYPE(slideio::CVTools::toOpencvType(dt), dir.channels));
     cv::Mat imageRaster = output.getMat();
-    libtiff::TIFFSetDirectory(file, static_cast<uint16_t>(dir.dirIndex));
+    setCurrentDirectory(file, dir);
     if (dir.offset > 0) {
         libtiff::TIFFSetSubDirectory(file, dir.offset);
     }
@@ -378,7 +382,7 @@ void slideio::TiffTools::readRegularStripedDir(libtiff::TIFF* file, const slidei
     slideio::DataType dt = dir.dataType;
     output.create(sizeImage, CV_MAKETYPE(slideio::CVTools::toOpencvType(dt), dir.channels));
     cv::Mat imageRaster = output.getMat();
-    libtiff::TIFFSetDirectory(file, static_cast<uint16_t>(dir.dirIndex));
+    setCurrentDirectory(file, dir);
     if (dir.offset > 0) {
         libtiff::TIFFSetSubDirectory(file, dir.offset);
     }
@@ -446,7 +450,7 @@ void slideio::TiffTools::readRegularTile(libtiff::TIFF* hFile, const slideio::Ti
     slideio::DataType dt = dir.dataType;
     cv::Mat tileRaster;
     tileRaster.create(tileSize, CV_MAKETYPE(slideio::CVTools::toOpencvType(dt), dir.channels));
-    libtiff::TIFFSetDirectory(hFile, static_cast<uint16_t>(dir.dirIndex));
+    setCurrentDirectory(hFile, dir);
     if (dir.offset > 0) {
         libtiff::TIFFSetSubDirectory(hFile, dir.offset);
     }
@@ -518,10 +522,7 @@ void TiffTools::readNotRGBTile(libtiff::TIFF* hFile, const slideio::TiffDirector
     slideio::DataType dt = dir.dataType;
     cv::Mat tileRaster;
     tileRaster.create(tileSize, CV_MAKETYPE(slideio::CVTools::toOpencvType(dt), 4));
-    libtiff::TIFFSetDirectory(hFile, static_cast<uint16_t>(dir.dirIndex));
-    if (dir.offset > 0) {
-        libtiff::TIFFSetSubDirectory(hFile, dir.offset);
-    }
+    setCurrentDirectory(hFile, dir);
     uint32_t* buffBegin = reinterpret_cast<uint32_t*>(tileRaster.data);
 
     int cols = (dir.width - 1) / dir.tileWidth + 1;
@@ -568,8 +569,10 @@ void TiffTools::readNotRGBTile(libtiff::TIFF* hFile, const slideio::TiffDirector
 
 void slideio::TiffTools::setCurrentDirectory(libtiff::TIFF* hFile, const slideio::TiffDirectory& dir)
 {
-    if(!libtiff::TIFFSetDirectory(hFile, static_cast<uint16_t>(dir.dirIndex))){
-        throw std::runtime_error("TiffTools: error by setting current directory");
+    if(libtiff::TIFFCurrentDirectory(hFile) != static_cast<uint16_t>(dir.dirIndex)) {
+        if (!libtiff::TIFFSetDirectory(hFile, static_cast<uint16_t>(dir.dirIndex))) {
+            throw std::runtime_error("TiffTools: error by setting current directory");
+        }
     }
     if(dir.offset>0){
         if(!libtiff::TIFFSetSubDirectory(hFile, dir.offset)){
