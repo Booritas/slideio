@@ -28,6 +28,6 @@ IF(WIN32)
 ENDIF(WIN32)
 
 set_target_properties(${LIBRARY_NAME} PROPERTIES LINKER_LANGUAGE CXX)
-#set_target_properties(${LIBRARY_NAME} PROPERTIES CXX_VISIBILITY_PRESET hidden)
 
-CONAN_CONFIGURE(${LIBRARY_NAME})
+CONAN_CONFIGURE_INCLUDES(${LIBRARY_NAME})
+conan_target_link_libraries_with_hide(${LIBRARY_NAME} "^(.)+(tiff|libjpeg)(.)+")

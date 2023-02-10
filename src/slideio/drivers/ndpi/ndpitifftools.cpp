@@ -284,7 +284,9 @@ void slideio::NDPITiffTools::scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, 
 {
     SLIDEIO_LOG(INFO) << "NDPITiffTools::scanTiffDirTags-begin " << dirIndex;
 
-    libtiff::TIFFSetDirectory(tiff, static_cast<uint16_t>(dirIndex));
+    if (libtiff::TIFFCurrentDirectory(tiff) != dirIndex) {
+        libtiff::TIFFSetDirectory(tiff, (short)dirIndex);
+    }
     if (dirOffset)
         libtiff::TIFFSetSubDirectory(tiff, dirOffset);
 
@@ -326,7 +328,7 @@ void slideio::NDPITiffTools::scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, 
     if (userLabel) {
         SLIDEIO_LOG(INFO) << "NDPITiffTools::scanTiffDirTags NDPITAG_USERGIVENSLIDELABEL: " << userLabel;
     }
-    libtiff::TIFFGetField(tiff, NDPITAG_COMMENTS, &userLabel);
+    libtiff::TIFFGetField(tiff, NDPITAG_COMMENTS, &comments);
     if (comments) {
         SLIDEIO_LOG(INFO) << "NDPITiffTools::scanTiffDirTags NDPITAG_COMMENTS: " << comments;
     }
@@ -429,7 +431,9 @@ void slideio::NDPITiffTools::scanTiffDir(libtiff::TIFF* tiff, int dirIndex, int6
 {
     SLIDEIO_LOG(INFO) << "NDPITiffTools::scanTiffDir-begin " << dir.dirIndex;
 
-    libtiff::TIFFSetDirectory(tiff, (short)dirIndex);
+    if (libtiff::TIFFCurrentDirectory(tiff) != dirIndex) {
+        libtiff::TIFFSetDirectory(tiff, (short)dirIndex);
+    }
     if (dirOffset > 0)
         libtiff::TIFFSetSubDirectory(tiff, dirOffset);
 
@@ -501,7 +505,7 @@ void NDPITiffTools::readNotRGBStripedDir(libtiff::TIFF* file, const NDPITiffDire
     slideio::DataType dt = dir.dataType;
     output.create(sizeImage, CV_MAKETYPE(slideio::CVTools::toOpencvType(dt), dir.channels));
     cv::Mat imageRaster = output.getMat();
-    libtiff::TIFFSetDirectory(file, static_cast<uint16_t>(dir.dirIndex));
+    setCurrentDirectory(file, dir);
     if (dir.offset > 0) {
         libtiff::TIFFSetSubDirectory(file, dir.offset);
     }
@@ -545,7 +549,7 @@ void slideio::NDPITiffTools::readRegularStripedDir(libtiff::TIFF* file, const sl
     slideio::DataType dt = dir.dataType;
     output.create(sizeImage, CV_MAKETYPE(slideio::CVTools::toOpencvType(dt), dir.channels));
     cv::Mat imageRaster = output.getMat();
-    libtiff::TIFFSetDirectory(file, static_cast<uint16_t>(dir.dirIndex));
+    setCurrentDirectory(file, dir);
     if (dir.offset > 0) {
         libtiff::TIFFSetSubDirectory(file, dir.offset);
     }
@@ -835,7 +839,7 @@ void NDPITiffTools::readJpegDirectoryRegion(libtiff::TIFF* tiff, const std::stri
                 const int firstLine = bufferIndex * numBufferLines;
                 const int numbLeftLines = numberScanlines - firstLine;
                 const int numValidLines = std::min(numbLeftLines, numBufferLines);
-                
+
                 cv::Rect srcRoi = {region.x, 0, region.width, numValidLines };
                 cv::Rect dstRoi = {0, firstLine, region.width, numValidLines };
                 cv::Mat srcImage(imageBuffer, srcRoi);
@@ -892,7 +896,7 @@ void NDPITiffTools::readNotRGBStrip(libtiff::TIFF* hFile, const NDPITiffDirector
     slideio::DataType dt = dir.dataType;
     cv::Mat stripRaster;
     stripRaster.create(stripSize, CV_MAKETYPE(slideio::CVTools::toOpencvType(dt), 4));
-    libtiff::TIFFSetDirectory(hFile, static_cast<uint16_t>(dir.dirIndex));
+    setCurrentDirectory(hFile, dir);
     if (dir.offset > 0) {
         libtiff::TIFFSetSubDirectory(hFile, dir.offset);
     }
@@ -933,7 +937,7 @@ void NDPITiffTools::readRegularStrip(libtiff::TIFF* tiff, const NDPITiffDirector
     slideio::DataType dt = dir.dataType;
     cv::Mat stripRaster;
     stripRaster.create(stripSize, CV_MAKETYPE(slideio::CVTools::toOpencvType(dt), dir.channels));
-    libtiff::TIFFSetDirectory(tiff, static_cast<uint16_t>(dir.dirIndex));
+    setCurrentDirectory(tiff, dir);
     if (dir.offset > 0) {
         libtiff::TIFFSetSubDirectory(tiff, dir.offset);
     }
@@ -986,7 +990,7 @@ void slideio::NDPITiffTools::readRegularTile(libtiff::TIFF* hFile, const slideio
     slideio::DataType dt = dir.dataType;
     cv::Mat tileRaster;
     tileRaster.create(tileSize, CV_MAKETYPE(slideio::CVTools::toOpencvType(dt), dir.channels));
-    libtiff::TIFFSetDirectory(hFile, static_cast<uint16_t>(dir.dirIndex));
+    setCurrentDirectory(hFile, dir);
     if (dir.offset > 0) {
         libtiff::TIFFSetSubDirectory(hFile, dir.offset);
     }
@@ -1021,7 +1025,7 @@ void NDPITiffTools::readNotRGBTile(libtiff::TIFF* hFile, const slideio::NDPITiff
     slideio::DataType dt = dir.dataType;
     cv::Mat tileRaster;
     tileRaster.create(tileSize, CV_MAKETYPE(slideio::CVTools::toOpencvType(dt), 4));
-    libtiff::TIFFSetDirectory(hFile, static_cast<uint16_t>(dir.dirIndex));
+    setCurrentDirectory(hFile, dir);
     if (dir.offset > 0) {
         libtiff::TIFFSetSubDirectory(hFile, dir.offset);
     }

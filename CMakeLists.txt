@@ -7,7 +7,8 @@ set(projectVersion 0.5.0)
 
 project(${PROJECT_NAME} VERSION ${projectVersion} LANGUAGES C CXX)
 enable_testing()
-
+set( CMAKE_VERBOSE_MAKEFILE on )
+set( CMAKE_VERBOSE_MAKEFILE on )
 set(INCLUDE_ROOT ${CMAKE_SOURCE_DIR}/src)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_BUILD_RPATH_USE_ORIGIN 1)
@@ -135,6 +136,46 @@ MACRO(HIDE_LIB LIB)
         set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--exclude-libs,${LIB}")
     endif()
 ENDMACRO(HIDE_LIB)
+
+macro(macos_conan_target_link_libraries_with_hide target hide)
+
+    SET(HIDE_CANDIDATES_DEBUG ${CONAN_LIBS_DEBUG})
+    SET(NORMAL_DEBUG ${CONAN_LIBS_DEBUG})
+    LIST(FILTER HIDE_CANDIDATES_DEBUG INCLUDE REGEX ${hide})
+    LIST(FILTER NORMAL_DEBUG EXCLUDE REGEX ${hide})
+
+    SET(HIDE_CANDIDATES_RELEASE ${CONAN_LIBS_RELEASE})
+    SET(NORMAL_RELEASE ${CONAN_LIBS_RELEASE})
+    LIST(FILTER HIDE_CANDIDATES_RELEASE INCLUDE REGEX ${hide})
+
+    LIST(FILTER NORMAL_RELEASE EXCLUDE REGEX ${hide})
+
+    set(HIDDEN_DEBUG "")
+    foreach(_LIB ${HIDE_CANDIDATES_DEBUG})
+        LIST(APPEND HIDDEN_DEBUG "-load_hidden ${_LIB}")
+    endforeach()
+    
+    set(HIDDEN_RELEASE "")
+    foreach(_LIB ${HIDE_CANDIDATES_RELEASE})
+        LIST(APPEND HIDDEN_RELEASE "-load_hidden ${_LIB}")
+    endforeach()
+
+    if(CONAN_TARGETS)
+        target_link_libraries(${target} ${CONAN_TARGETS})
+    else()
+        target_link_libraries(${target} ${CONAN_LIBS})
+        target_link_libraries(${target} $<$<CONFIG:Debug>:${NORMAL_DEBUG}>$<$<CONFIG:Release>:${NORMAL_RELEASE}>)
+        target_link_libraries(${target} $<$<CONFIG:Debug>:${HIDDEN_DEBUG}>$<$<CONFIG:Release>:${HIDDEN_RELEASE}>)
+    endif()
+endmacro()
+
+macro(conan_target_link_libraries_with_hide target hide)
+    IF(APPLE)
+        macos_conan_target_link_libraries_with_hide(${target} ${hide})
+    ELSE()
+        conan_target_link_libraries(${target} ${hide})
+    ENDIF()
+endmacro()
 
 add_subdirectory(src)
 
