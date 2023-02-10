@@ -187,8 +187,7 @@ void DCMScene::init()
 std::string DCMScene::getRawMetadata() const
 {
     std::string metadata;
-    if(!m_files.empty())
-    {
+    if(!m_files.empty()) {
         std::shared_ptr<DCMFile> file = m_files.front();
         metadata = file->getMetadata();
     }
