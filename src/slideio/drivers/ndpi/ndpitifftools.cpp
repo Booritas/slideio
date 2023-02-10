@@ -328,7 +328,7 @@ void slideio::NDPITiffTools::scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, 
     if (userLabel) {
         SLIDEIO_LOG(INFO) << "NDPITiffTools::scanTiffDirTags NDPITAG_USERGIVENSLIDELABEL: " << userLabel;
     }
-    libtiff::TIFFGetField(tiff, NDPITAG_COMMENTS, &userLabel);
+    libtiff::TIFFGetField(tiff, NDPITAG_COMMENTS, &comments);
     if (comments) {
         SLIDEIO_LOG(INFO) << "NDPITiffTools::scanTiffDirTags NDPITAG_COMMENTS: " << comments;
     }
@@ -839,7 +839,7 @@ void NDPITiffTools::readJpegDirectoryRegion(libtiff::TIFF* tiff, const std::stri
                 const int firstLine = bufferIndex * numBufferLines;
                 const int numbLeftLines = numberScanlines - firstLine;
                 const int numValidLines = std::min(numbLeftLines, numBufferLines);
-                
+
                 cv::Rect srcRoi = {region.x, 0, region.width, numValidLines };
                 cv::Rect dstRoi = {0, firstLine, region.width, numValidLines };
                 cv::Mat srcImage(imageBuffer, srcRoi);
