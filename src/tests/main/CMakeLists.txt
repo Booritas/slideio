@@ -31,7 +31,6 @@ target_link_libraries(${TEST_NAME} ${SLIEIO_LIB_NAME} ${TEST_LIB_NAME})
 
 
 # Remove boost libraries from linking
-message("list: ${CONAN_LIBS_RELEASE}")
 LIST(FILTER CONAN_LIBS_RELEASE EXCLUDE REGEX "^(.)+boost(.)+")
 LIST(FILTER CONAN_LIBS_DEBUG EXCLUDE REGEX "^(.)+boost(.)+")
 

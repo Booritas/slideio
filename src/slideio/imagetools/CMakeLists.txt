@@ -18,12 +18,9 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/tempfile.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/cvtools.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/cvtools.hpp
-   )
-
+)
 
 add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES})
-
-SOURCE_GROUP_BY_FOLDER(SOURCE_FILES)
 
 IF(WIN32)
    target_link_libraries(${LIBRARY_NAME} Shlwapi)
@@ -31,10 +28,8 @@ IF(WIN32)
    target_compile_definitions(${LIBRARY_NAME} PRIVATE SLIDEIO_IMAGETOOLS_API _CRT_SECURE_NO_WARNINGS)
 ENDIF(WIN32)
 
-target_link_libraries(${LIBRARY_NAME})
+CONAN_CONFIGURE_INCLUDES(${LIBRARY_NAME})
+conan_target_link_libraries_with_hide(${LIBRARY_NAME} "^(.)+(tiff|libjpeg)(.)+")
+
 set_target_properties(${LIBRARY_NAME} PROPERTIES LINKER_LANGUAGE CXX)
-#set_target_properties(${LIBRARY_NAME} PROPERTIES CXX_VISIBILITY_PRESET hidden)
-
 set_property(TARGET ${LIBRARY_NAME} PROPERTY POSITION_INDEPENDENT_CODE ON)
-
-CONAN_CONFIGURE(${LIBRARY_NAME})
