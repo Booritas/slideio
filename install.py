@@ -169,7 +169,7 @@ if __name__ == "__main__":
         install:    install the software"""
     config_help = "Software configuration to be configured and build. Select from release, debug or all."
     parser = argparse.ArgumentParser(formatter_class=RawTextHelpFormatter, description='Configuration, building and installation of the slideio library.')
-    parser.add_argument('-a','--action', choices=['conan','configure','build', 'test', 'install'], default='configure', help=action_help)
+    parser.add_argument('-a','--action', choices=['conan','configure', 'configure-only', 'build', 'build-only', 'test', 'install'], default='configure', help=action_help)
     parser.add_argument('-c', '--config', choices=['release','debug', 'all'], default='all', help = config_help)
     parser.add_argument('--clean', action='store_true', help = 'Clean before build. Add this flag if you want to clean build folders before the build.')
     args = parser.parse_args()
@@ -201,8 +201,9 @@ if __name__ == "__main__":
         configuration["release"] = False
     if args.config == 'release':
         configuration["debug"] = False
-    configure_conan(slideio_directory, configuration)
-    if args.action in ['configure','build']:
+    if not args.action in ['build-only', 'configure-only']:
+        configure_conan(slideio_directory, configuration)
+    if args.action in ['configure','configure-only', 'build','build-only']:
         configure_slideio(configuration)
-    if args.action in ['build']:
+    if args.action in ['build','build-only']:
         build_slideio(configuration)
