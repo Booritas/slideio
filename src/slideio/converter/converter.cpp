@@ -6,18 +6,18 @@
 
 #include "convertertools.hpp"
 #include "slideio/core/tools/tools.hpp"
+#include "slideio/core/cvscene.hpp"
 #include "slideio/imagetools/imagetools.hpp"
 #include "slideio/imagetools/libtiff.hpp"
 #include "slideio/imagetools/tifftools.hpp"
 
 using namespace slideio;
 
-void convertToSVS(const std::shared_ptr<slideio::Scene>& scene, 
-                const std::map<std::string, 
-                std::string>& parameters, 
+void convertToSVS(CVScenePtr scene,
+                const std::map<std::string, std::string>& parameters, 
                 const std::string& outputPath);
 
-void slideio::convertScene(std::shared_ptr<slideio::Scene> scene,
+void slideio::convertScene(ScenePtr scene,
                            const std::map<std::string, std::string>& parameters,
                            const std::string& outputPath)
 {
@@ -38,18 +38,18 @@ void slideio::convertScene(std::shared_ptr<slideio::Scene> scene,
     std::string sceneName = scene->getName();
     std::string filePath = scene->getFilePath();
     SLIDEIO_LOG(INFO) << "Convert a scene " << sceneName << " from file " << filePath << " to format: '" << driver << "'.";
-    convertToSVS(scene, parameters, outputPath);
+    convertToSVS(scene->getCVScene(), parameters, outputPath);
 }
 
 
-static uint16_t bitsPerSampleFromScene(const std::shared_ptr<slideio::Scene>& scene)
+static uint16_t bitsPerSampleFromScene(CVScenePtr scene)
 {
     DataType dt = scene->getChannelDataType(0);
     int ds = ImageTools::dataTypeSize(dt);
     return (uint16_t)(ds * 8);
 }
 
-static uint16_t compressionFromScene(const std::shared_ptr<slideio::Scene>& scene)
+static uint16_t compressionFromScene(CVScenePtr scene)
 {
     const DataType dt = scene->getChannelDataType(0);
     const int numChannels = scene->getNumChannels();
@@ -74,7 +74,7 @@ static uint16_t compressionFromScene(const std::shared_ptr<slideio::Scene>& scen
 }
 
 
-static uint16_t tiffDataTypeFromScene(ScenePtr scene)
+static uint16_t tiffDataTypeFromScene(CVScenePtr scene)
 {
     const DataType dt = scene->getChannelDataType(0);
     uint16_t tiffDataType = libtiff::TIFF_NOTYPE;
@@ -108,7 +108,7 @@ static uint16_t tiffDataTypeFromScene(ScenePtr scene)
     return tiffDataType;
 }
 
-uint16_t photometricFromScene(const std::shared_ptr<slideio::Scene>& scene)
+uint16_t photometricFromScene(CVScenePtr scene)
 {
     const DataType dt = scene->getChannelDataType(0);
     const int numChannels = scene->getNumChannels();
@@ -119,12 +119,12 @@ uint16_t photometricFromScene(const std::shared_ptr<slideio::Scene>& scene)
     return photometric;
 }
 
-static std::string createDescription(ScenePtr scene)
+static std::string createDescription(CVScenePtr scene)
 {
     auto rect = scene->getRect();
     std::stringstream buff;
     buff << "SlideIO Library 2.0" << std::endl;
-    buff << std::get<2>(rect) << "x" << std::get<3>(rect) << std::endl;
+    buff << rect.width << "x" << rect.height << std::endl;
     double magn = scene->getMagnification();
     if(magn>0) {
         buff << "AppMag = " << magn;
@@ -132,21 +132,21 @@ static std::string createDescription(ScenePtr scene)
     return buff.str();
 }
 
-static void readTile(const std::shared_ptr<slideio::Scene>& scene,
+static void readTile(CVScenePtr scene,
                         int zoomLevel,
-                        const std::tuple<int, int, int, int>& tileRect,
-                        const std::tuple<int, int>& tileSize,
-                        std::vector<uint8_t>& data)
+                        const cv::Rect& tileRect,
+                        const cv::Size& tileSize,
+                        cv::OutputArray tile)
 {
     auto sceneRect = scene->getRect();
-    int lastX = std::get<0>(tileRect) + std::get<2>(tileRect);
-    int lastY = std::get<1>(tileRect) + std::get<3>(tileRect);
-    int diffX = std::get<2>(sceneRect) - lastX;
-    int diffY = std::get<3>(sceneRect) - lastY;
-    int orgTileWidth = std::get<2>(tileRect);
-    int orgTileHeight = std::get<3>(tileRect);
-    int tileWidth = std::get<0>(tileSize);
-    int tileHeight = std::get<1>(tileSize);
+    int lastX = tileRect.x + tileRect.width;
+    int lastY = tileRect.y + tileRect.height;
+    int diffX = sceneRect.width - lastX;
+    int diffY = sceneRect.height - lastY;
+    int orgTileWidth = tileRect.width;
+    int orgTileHeight = tileRect.height;
+    int tileWidth = tileSize.width;
+    int tileHeight = tileSize.height;
 
     if(diffX<0) {
         orgTileWidth += diffX;
@@ -157,23 +157,23 @@ static void readTile(const std::shared_ptr<slideio::Scene>& scene,
         tileHeight = orgTileHeight >> zoomLevel;
     }
 
-    std::tuple<int, int, int, int>adjustedRect(std::get<0>(tileRect), std::get<1>(tileRect), orgTileWidth, orgTileHeight);
-    std::tuple<int,int> adjustedTileSize(tileWidth,tileHeight);
+    cv::Rect adjustedRect(tileRect.x, tileRect.y, orgTileWidth, orgTileHeight);
+    cv::Size adjustedTileSize(tileWidth,tileHeight);
 
-    scene->readResampledBlock(adjustedRect, adjustedTileSize, data.data(), data.size());
+    scene->readResampledBlock(adjustedRect, adjustedTileSize, tile);
 }
 
-void createZoomLevel(libtiff::TIFF* tiff, int zoomLevel, ScenePtr scene, const std::tuple<int, int>& tileSize)
+void createZoomLevel(libtiff::TIFF* tiff, int zoomLevel, CVScenePtr scene, const cv::Size& tileSize)
 {
     if (zoomLevel > 0) {
         libtiff::TIFFWriteDirectory(tiff);
     }
     double scaling = 1./(double(2 > zoomLevel));
     auto rect = scene->getRect();
-    const uint32_t imageWidth = (uint32_t)std::lround(double(std::get<2>(rect))*scaling);
-    const uint32_t imageHeight = (uint32_t)std::lround(double(std::get<3>(rect))*scaling);
-    const uint32_t tileWidth = std::get<0>(tileSize);
-    const uint32_t tileHeight = std::get<1>(tileSize);
+    const uint32_t imageWidth = (uint32_t)std::lround(double(rect.width)*scaling);
+    const uint32_t imageHeight = (uint32_t)std::lround(double(rect.height)*scaling);
+    const uint32_t tileWidth = tileSize.width;
+    const uint32_t tileHeight = tileSize.height;
 
     const uint16_t numChannels = (uint16_t)scene->getNumChannels();
     libtiff::TIFFSetField(tiff, TIFFTAG_SAMPLESPERPIXEL, numChannels);
@@ -188,9 +188,9 @@ void createZoomLevel(libtiff::TIFF* tiff, int zoomLevel, ScenePtr scene, const s
     const std::string description = createDescription(scene);
     libtiff::TIFFSetField(tiff, TIFFTAG_IMAGEDESCRIPTION, description.c_str());
     libtiff::TIFFSetField(tiff, TIFFTAG_PLANARCONFIG, 1);
-    const std::tuple<double, double> res = scene->getResolution();
-    libtiff::TIFFSetField(tiff, TIFFTAG_XRESOLUTION, (float)std::get<0>(res));
-    libtiff::TIFFSetField(tiff, TIFFTAG_YRESOLUTION, (float)std::get<1>(res));
+    auto res = scene->getResolution();
+    libtiff::TIFFSetField(tiff, TIFFTAG_XRESOLUTION, (float)res.x);
+    libtiff::TIFFSetField(tiff, TIFFTAG_YRESOLUTION, (float)res.y);
     libtiff::TIFFSetField(tiff, TIFFTAG_RESOLUTIONUNIT, 1);
     libtiff::TIFFSetField(tiff, TIFFTAG_XPOSITION, 0);
     libtiff::TIFFSetField(tiff, TIFFTAG_YPOSITION, 0);
@@ -204,18 +204,18 @@ void createZoomLevel(libtiff::TIFF* tiff, int zoomLevel, ScenePtr scene, const s
     int originY = 0;
     int originTileWidth = tileWidth << zoomLevel;
     int originTileHeight = tileHeight << zoomLevel;
-    std::vector<uint8_t> data;
+    cv::Mat tile;
     for(uint32_t y=0; y<imageHeight; y+=tileHeight, originY+=originTileHeight) {
         for(uint32_t x=0; x<imageWidth; x+=tileWidth, originX+=originTileWidth) {
-            std::tuple<int, int> tilePos(x, y);
-            std::tuple<int, int, int, int> originRect(originX, originY, originTileWidth, originTileHeight);
-            readTile(scene, zoomLevel, originRect, tileSize, data);
+            cv::Point tilePos(x, y);
+            cv::Rect originRect(originX, originY, originTileWidth, originTileHeight);
+            readTile(scene, zoomLevel, originRect, tileSize, tile);
         }
     }
 }
 
 
-void checkSVSRequirements(const std::shared_ptr<slideio::Scene>& scene)
+void checkSVSRequirements(std::shared_ptr<slideio::CVScene>& scene)
 {
     const DataType dt = scene->getChannelDataType(0);
     const int numChannels = scene->getNumChannels();
@@ -226,7 +226,7 @@ void checkSVSRequirements(const std::shared_ptr<slideio::Scene>& scene)
     }
 }
 
-void createSVS(libtiff::TIFF* tiff, ScenePtr scene, int numZoomLevels, const std::tuple<int,int>& tileSize)
+void createSVS(libtiff::TIFF* tiff, std::shared_ptr<slideio::CVScene>& scene, int numZoomLevels, const cv::Size& tileSize)
 {
     checkSVSRequirements(scene);
     for (int zoomLevel = 0; zoomLevel < numZoomLevels; ++zoomLevel) {
@@ -235,7 +235,7 @@ void createSVS(libtiff::TIFF* tiff, ScenePtr scene, int numZoomLevels, const std
 }
 
 
-static void convertToSVS(const std::shared_ptr<slideio::Scene>& scene,
+static void convertToSVS(CVScenePtr scene,
                          const std::map<std::string,std::string>& parameters,
                          const std::string& outputPath)
 {
@@ -246,11 +246,11 @@ static void convertToSVS(const std::shared_ptr<slideio::Scene>& scene,
         RAISE_RUNTIME_ERROR << "Converter: cannot create output file '" << outputPath << "'.";
     }
 
-    const std::tuple<int, int> tileSize(256, 256);
+    const cv::Size tileSize(256, 256);
 
     auto rect = scene->getRect();
-    const int imageWidth = std::get<2>(rect);
-    const int imageHeight = std::get<3>(rect);
+    const int imageWidth = rect.width;
+    const int imageHeight = rect.height;
 
     const int numZoomLevels = ConverterTools::computeNumZoomLevels(imageWidth, imageHeight);
 

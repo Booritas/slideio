@@ -198,4 +198,6 @@ namespace slideio
     };
 }
 
+#define CVScenePtr std::shared_ptr<slideio::CVScene>
+
 #endif

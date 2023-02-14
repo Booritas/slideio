@@ -268,6 +268,7 @@ namespace slideio
          * @param imageName : name of the auxiliary image.
          */
         virtual std::shared_ptr<Scene> getAuxImage(const std::string& imageName) const;
+        std::shared_ptr<CVScene> getCVScene() { return m_scene; }
     private:
         std::shared_ptr<CVScene> m_scene;
     };
