@@ -115,6 +115,10 @@ class Scene(object):
         '''Get list of auxiliary image names'''
         return self.scene.get_aux_image_names()
 
+    def get_raw_metadata(self):
+        '''Get raw metadata of the scene'''
+        return self.scene.get_raw_metadata()
+
     def get_aux_image(self, image_name, size=(0,0), channel_indices=[]):
         '''Get auxiliary image as a numpy array.
 

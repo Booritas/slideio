@@ -45,7 +45,7 @@ PYBIND11_MODULE(slideiopybind, m) {
         .def_property_readonly("rect", &PyScene::getRect, "Scene rectangle")
         .def_property_readonly("num_channels", &PyScene::getNumChannels, "Number of channels in the scene")
         .def_property_readonly("num_aux_images", &PyScene::getNumAuxImages, "Number of auxiliary images")
-        .def_property_readonly("raw_metadata", &PyScene::getRawMetadata, "Scene raw metadata")
+        .def("get_raw_metadata", &PyScene::getRawMetadata, "Scene raw metadata")
         .def("get_channel_data_type", &PyScene::getChannelDataType, py::arg("index"), "Returns datatype of a channel by index")
         .def("get_channel_name", &PyScene::getChannelName, py::arg("index"), "Returns channel name (if any)")
         .def("get_aux_image", &PyScene::getAuxImage, py::arg("image_name"), "Returns an auxiliary image object by name")
