@@ -5,6 +5,7 @@
 #include "tests/testlib/testtools.hpp"
 #include "slideio/imagetools/imagetools.hpp"
 #include "opencv2/imgproc.hpp"
+#include "slideio/imagetools/tiffkeeper.hpp"
 
 
 TEST(TiffTools, scanTiffFile)

@@ -50,7 +50,7 @@ namespace slideio
     class SLIDEIO_IMAGETOOLS_EXPORTS  TiffTools
     {
     public:
-        static libtiff::TIFF* openTiffFile(const std::string& path);
+        static libtiff::TIFF* openTiffFile(const std::string& path, bool readOnly=true);
         static void closeTiffFile(libtiff::TIFF* file);
         static void scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, int64_t dirOffset, slideio::TiffDirectory& dir);
         static void scanTiffDir(libtiff::TIFF* tiff, int dirIndex, int64_t dirOffset, slideio::TiffDirectory& dir);
@@ -69,29 +69,7 @@ namespace slideio
             const std::vector<int>& channelIndices, cv::OutputArray output);
         static void readNotRGBTile(libtiff::TIFF* hFile, const slideio::TiffDirectory& dir, int tile,
             const std::vector<int>& channelIndices, cv::OutputArray output);
-    };
-
-    class SLIDEIO_IMAGETOOLS_EXPORTS TIFFKeeper
-    {
-    public:
-        TIFFKeeper(libtiff::TIFF* hfile=nullptr);
-        ~TIFFKeeper();
-        libtiff::TIFF* getHandle() const{
-            return m_hFile;
-        }
-        bool isValid() const{
-            return getHandle() != nullptr;
-        }
-        operator libtiff::TIFF* () const {
-            return getHandle();
-        }
-        TIFFKeeper& operator = (libtiff::TIFF* hFile){
-            m_hFile = hFile;
-            return *this;
-        }
-
-    private:
-        libtiff::TIFF* m_hFile;
+        static uint16_t slideioDataTypeToTiffDataType(slideio::DataType dataType);
     };
 }
 

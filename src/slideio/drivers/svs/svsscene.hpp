@@ -6,6 +6,7 @@
 
 #include "slideio/drivers/svs/svs_api_def.hpp"
 #include "slideio/core/cvscene.hpp"
+#include "slideio/imagetools/tiffkeeper.hpp"
 #include "slideio/imagetools/tifftools.hpp"
 
 #if defined(_MSC_VER)

@@ -18,6 +18,8 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/tempfile.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/cvtools.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/cvtools.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/tiffkeeper.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/tiffkeeper.cpp
 )
 
 add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES})

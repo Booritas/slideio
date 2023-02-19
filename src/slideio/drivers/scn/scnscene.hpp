@@ -9,6 +9,7 @@
 #include "slideio/imagetools/tifftools.hpp"
 #include "slideio/core/tools/tilecomposer.hpp"
 #include "slideio/drivers/scn/scnstruct.h"
+#include "slideio/imagetools/tiffkeeper.hpp"
 
 namespace tinyxml2
 {

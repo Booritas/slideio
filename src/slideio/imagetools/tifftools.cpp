@@ -165,22 +165,25 @@ static slideio::Compression compressTiffToSlideio(int tiffCompression)
 //    return os;
 //}
 
-libtiff::TIFF* slideio::TiffTools::openTiffFile(const std::string& path)
+libtiff::TIFF* slideio::TiffTools::openTiffFile(const std::string& path, bool readOnly)
 {
     namespace fs = boost::filesystem;
     boost::filesystem::path filePath(path);
-    if(!fs::exists(filePath))
-    {
-        throw std::runtime_error(
-            (boost::format("File %1% does not exist") % path).str()
-        );
+    if(!fs::exists(filePath)) {
+        RAISE_RUNTIME_ERROR << "File " << path << " does not exist";
     }
-    return libtiff::TIFFOpen(path.c_str(), "r");
+    libtiff::TIFF* file = libtiff::TIFFOpen(path.c_str(), readOnly ? "r" : "w");
+    if(!file) {
+        RAISE_RUNTIME_ERROR << "Cannot open file " << path << " for " << (readOnly ? "reading" : "writing.");
+    }
+    SLIDEIO_LOG(INFO) << "File " << path << " successfully opened for " << (readOnly ? "reading" : "writing");
+    return file;
 }
 
 void slideio::TiffTools::closeTiffFile(libtiff::TIFF* file)
 {
-    libtiff::TIFFClose(file);
+    if(file)
+        libtiff::TIFFClose(file);
 }
 
 void  slideio::TiffTools::scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, int64_t dirOffset, slideio::TiffDirectory& dir)
@@ -566,6 +569,39 @@ void TiffTools::readNotRGBTile(libtiff::TIFF* hFile, const slideio::TiffDirector
     cv::flip(flipped, output, 0);
 }
 
+uint16_t TiffTools::slideioDataTypeToTiffDataType(slideio::DataType dt)
+{
+    uint16_t tiffDataType = libtiff::TIFF_NOTYPE;
+
+    switch (dt) {
+    case DataType::DT_Byte:
+        tiffDataType = libtiff::TIFF_BYTE;
+        break;
+    case DataType::DT_Int16:
+        tiffDataType = libtiff::TIFF_SSHORT;
+        break;
+    case DataType::DT_UInt16:
+        tiffDataType = libtiff::TIFF_SHORT;
+        break;
+    case DataType::DT_Int8:
+        tiffDataType = libtiff::TIFF_SBYTE;
+        break;
+    case DataType::DT_Int32:
+        tiffDataType = libtiff::TIFF_SBYTE;
+        break;
+    case DataType::DT_Float32:
+        tiffDataType = libtiff::TIFF_FLOAT;
+        break;
+    case DataType::DT_Float64:
+        tiffDataType = libtiff::TIFF_DOUBLE;
+        break;
+    default:
+        RAISE_RUNTIME_ERROR << "Converter: Unsupported type by TIFF: " << (int)dt;
+    }
+
+    return tiffDataType;
+}
+
 
 void slideio::TiffTools::setCurrentDirectory(libtiff::TIFF* hFile, const slideio::TiffDirectory& dir)
 {
@@ -580,17 +616,3 @@ void slideio::TiffTools::setCurrentDirectory(libtiff::TIFF* hFile, const slideio
         }
     }
 }
-
-
-TIFFKeeper::TIFFKeeper(libtiff::TIFF* hfile) : m_hFile(hfile)
-{
-}
-
-
-TIFFKeeper::~TIFFKeeper()
-{
-    if (m_hFile)
-        libtiff::TIFFClose(m_hFile);
-}
-
-
