@@ -3,7 +3,7 @@
 #include "slideio/converter/converter.hpp"
 #include "slideio/slideio/slideio.hpp"
 #include "slideio/slideio/scene.hpp"
-#include "slideio/core/tools/exceptions.hpp"
+#include "slideio/base/exceptions.hpp"
 
 
 TEST(Converter, convertGDAL)
@@ -12,7 +12,7 @@ TEST(Converter, convertGDAL)
 	SlidePtr slide = slideio::openSlide(path, "GDAL");
 	ScenePtr scene = slide->getScene(0);
 	ASSERT_TRUE(scene.get() != nullptr);
-
+	
 	std::map<std::string, std::string> parameters;
 	parameters[DRIVER] = "SVS";
 	std::string outputPath = TestTools::getTestImagePath("svs", "tests/gdal-test.svs");
@@ -32,7 +32,7 @@ TEST(Converter, unspecifiedDriver)
 	SlidePtr slide = slideio::openSlide(path, "GDAL");
 	ScenePtr scene = slide->getScene(0);
 	ASSERT_TRUE(scene.get() != nullptr);
-
+	
 	std::map<std::string, std::string> parameters;
 	std::string outputPath = TestTools::getTestImagePath("gdal", "test.svs");
 	ASSERT_THROW(slideio::convertScene(scene, parameters, outputPath), slideio::RuntimeError);
@@ -44,7 +44,7 @@ TEST(Converter, unsupportedDriver)
 	SlidePtr slide = slideio::openSlide(path, "GDAL");
 	ScenePtr scene = slide->getScene(0);
 	ASSERT_TRUE(scene.get() != nullptr);
-
+	
 	std::map<std::string, std::string> parameters;
 	parameters[DRIVER] = "GDAL";
 	std::string outputPath = TestTools::getTestImagePath("gdal", "test.svs");
@@ -57,7 +57,7 @@ TEST(Converter, outputPathExists)
 	SlidePtr slide = slideio::openSlide(path, "GDAL");
 	ScenePtr scene = slide->getScene(0);
 	ASSERT_TRUE(scene.get() != nullptr);
-
+	
 	std::map<std::string, std::string> parameters;
 	parameters[DRIVER] = "GDAL";
 	ASSERT_THROW(slideio::convertScene(scene, parameters, path), slideio::RuntimeError);

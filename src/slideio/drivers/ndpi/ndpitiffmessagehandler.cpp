@@ -3,8 +3,8 @@
 // of this distribution and at http://slideio.com/license.html.
 #include <stdlib.h>
 #include "slideio/drivers/ndpi/ndpitiffmessagehandler.hpp"
-#include "slideio/core/tools/log.hpp"
-#include "slideio/core/tools/exceptions.hpp"
+#include "slideio/base/log.hpp"
+#include "slideio/base/exceptions.hpp"
 
 using namespace slideio;
 

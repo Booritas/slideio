@@ -5,7 +5,7 @@
 #define OPENCV_slideio_zviimagedriver_imageitem_HPP
 #include "slideio/drivers/zvi/pole_lib.hpp"
 #include "slideio/drivers/zvi/zvipixelformat.hpp"
-#include "slideio/core/structs.hpp"
+#include "slideio/base/slideio_enums.hpp"
 #include <opencv2/opencv.hpp>
 
 namespace slideio

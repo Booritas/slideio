@@ -5,13 +5,13 @@
 #include <dcmtk/dcmdata/dctk.h>
 #include <dcmtk/dcmimgle/dcmimage.h>
 #include <boost/format.hpp>
-#include "slideio/core/base.hpp"
+#include "slideio/base/base.hpp"
 #include "slideio/imagetools/cvtools.hpp"
 #include <dcmtk/dcmdata/dcjson.h>
 
 #include <ostream>
 
-#include "slideio/core/structs.hpp"
+#include "slideio/base/slideio_enums.hpp"
 #include "slideio/imagetools/imagetools.hpp"
 #include "slideio/core/tools/tools.hpp"
 

@@ -8,7 +8,7 @@
 
 #include <opencv2/imgproc.hpp>
 
-#include "slideio/core/base.hpp"
+#include "slideio/base/base.hpp"
 #include "slideio/core/tools/tools.hpp"
 
 

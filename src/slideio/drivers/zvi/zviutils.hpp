@@ -6,7 +6,7 @@
 
 #include "slideio/drivers/zvi/zvi_api_def.hpp"
 #include "slideio/drivers/zvi/pole_lib.hpp"
-#include "slideio/core/structs.hpp"
+#include "slideio/base/slideio_enums.hpp"
 #include <boost/variant.hpp>
 #include <codecvt>
 #include <string>

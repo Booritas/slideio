@@ -4,7 +4,7 @@
 #include "slideio/drivers/ndpi/ndpiimagedriver.hpp"
 #include "slideio/drivers/ndpi/ndpislide.hpp"
 #include "slideio/drivers/ndpi/ndpitiffmessagehandler.hpp"
-#include "slideio/core/tools/log.hpp"
+#include "slideio/base/log.hpp"
 
 slideio::NDPIImageDriver::NDPIImageDriver()
 {

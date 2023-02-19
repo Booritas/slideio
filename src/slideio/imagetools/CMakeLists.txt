@@ -30,6 +30,10 @@ IF(WIN32)
    target_compile_definitions(${LIBRARY_NAME} PRIVATE SLIDEIO_IMAGETOOLS_API _CRT_SECURE_NO_WARNINGS)
 ENDIF(WIN32)
 
+target_link_libraries(${LIBRARY_NAME}
+   ${BASE_LIB_NAME}
+)
+
 CONAN_CONFIGURE_INCLUDES(${LIBRARY_NAME})
 conan_target_link_libraries_with_hide(${LIBRARY_NAME} "^(.)+(tiff|libjpeg)(.)+")
 

@@ -6,7 +6,7 @@
 #include "slideio/drivers/svs/svssmallscene.hpp"
 #include "slideio/drivers/svs/svstiledscene.hpp"
 #include "slideio/imagetools/tifftools.hpp"
-#include "slideio/core/base.hpp"
+#include "slideio/base/base.hpp"
 
 #include <boost/filesystem.hpp>
 #include <boost/format.hpp>

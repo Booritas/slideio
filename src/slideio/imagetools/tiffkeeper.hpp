@@ -5,6 +5,8 @@
 #ifndef OPENCV_slideio_tiffkeeper_HPP
 #define OPENCV_slideio_tiffkeeper_HPP
 #include <string>
+
+#include "tifftools.hpp"
 #include "slideio/imagetools/slideio_imagetools_def.hpp"
 #include "slideio/imagetools/imagetools.hpp"
 
@@ -37,6 +39,8 @@ namespace slideio
         }
         void openTiffFile(const std::string& filePath, bool readOnly = true);
         void closeTiffFile();
+        void writeDirectory();
+        void setTags(const TiffDirectory& dir, bool newDirectory);
 
     private:
         libtiff::TIFF* m_hFile;

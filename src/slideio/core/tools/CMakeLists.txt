@@ -1,8 +1,5 @@
 set(SOURCE_FILES
    ${SOURCE_FILES}
-   ${CMAKE_CURRENT_SOURCE_DIR}/exceptions.hpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/log.hpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/log.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/xmltools.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/xmltools.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/tools.hpp

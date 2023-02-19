@@ -10,7 +10,7 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/core/mat.hpp>
-#include "slideio/core/tools/exceptions.hpp"
+#include "slideio/base/exceptions.hpp"
 #include <png.h>
 
 

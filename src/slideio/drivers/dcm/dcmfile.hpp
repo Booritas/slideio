@@ -5,12 +5,12 @@
 #define OPENCV_slideio_dcmfile_HPP
 
 #include "slideio/drivers/dcm/dcm_api_def.hpp"
-#include "slideio/core/structs.hpp"
+#include "slideio/base/slideio_enums.hpp"
 #include <string>
 #include <memory>
 #include <opencv2/core.hpp>
 
-#include "slideio/core/slideio_enums.hpp"
+#include "slideio/base/slideio_enums.hpp"
 
 #if defined(_MSC_VER)
 #pragma warning( push )

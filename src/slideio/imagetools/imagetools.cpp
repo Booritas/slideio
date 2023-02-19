@@ -9,6 +9,8 @@
 #include <boost/filesystem.hpp>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
+
+#include "slideio/base/exceptions.hpp"
 #include "slideio/imagetools/gdal_lib.hpp"
 
 

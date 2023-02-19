@@ -9,8 +9,7 @@
 #include <string>
 #include <cmath>
 #include <opencv2/core.hpp>
-#include "slideio/core/slideio_enums.hpp"
-#include "slideio/core/structs.hpp"
+#include "slideio/base/slideio_enums.hpp"
 
 namespace slideio
 {

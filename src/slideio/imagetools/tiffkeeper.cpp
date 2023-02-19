@@ -35,3 +35,13 @@ void TIFFKeeper::closeTiffFile()
     m_hFile = nullptr;
 }
 
+void TIFFKeeper::writeDirectory()
+{
+    TiffTools::writeDirectory(m_hFile);
+}
+
+void TIFFKeeper::setTags(const TiffDirectory& dir, bool newDirectory)
+{
+    TiffTools::setTags(m_hFile, dir, newDirectory);
+}
+

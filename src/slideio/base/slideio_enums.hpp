@@ -2,9 +2,8 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #pragma once
-#include <ostream>
 #include <string>
-#include "slideio/core/base.hpp"
+#include "slideio/base/slideio_base_def.hpp"
 
 namespace slideio
 {
@@ -57,4 +56,24 @@ namespace slideio
         /**@brief Run-length encoding*/
         RLE
     };
+
+    enum class DataType
+    {
+        DT_Byte = 0,
+        DT_Int8 = 1,
+        DT_Int16 = 3,
+        DT_Float16 = 7,
+        DT_Int32 = 4,
+        DT_Float32 = 5,
+        DT_Float64 = 6,
+        DT_UInt16 = 2,
+        DT_LastValid = 3,
+        DT_Unknown = 1024,
+        DT_None = 2048
+    };
+
+
+    std::string SLIDEIO_BASE_EXPORTS compressionToString(Compression compression);
+    SLIDEIO_BASE_EXPORTS std::ostream& operator<<(std::ostream& os, Compression compression);
+    SLIDEIO_BASE_EXPORTS std::ostream& operator << (std::ostream& os, const slideio::DataType& dt);
 }

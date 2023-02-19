@@ -6,8 +6,7 @@
 
 #include "slideio/core/slideio_core_def.hpp"
 #include "slideio/core/cvstructs.hpp"
-#include "slideio/core/structs.hpp"
-#include "slideio/core/slideio_enums.hpp"
+#include "slideio/base/slideio_enums.hpp"
 #include "opencv2/core.hpp"
 #include <vector>
 #include <string>

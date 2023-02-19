@@ -7,7 +7,7 @@
 #include <opencv2/core.hpp>
 #include "slideio/imagetools/slideio_imagetools_def.hpp"
 #include "slideio/core/cvslide.hpp"
-#include "slideio/core/structs.hpp"
+#include "slideio/base/slideio_enums.hpp"
 #include <string>
 #include <vector>
 

@@ -43,7 +43,32 @@ static slideio::DataType dataTypeFromTIFFDataType(libtiff::TIFFDataType dt)
     case libtiff::TIFF_RATIONAL:
     case libtiff::TIFF_IFD8:
     default: ;
-        return DataType::DT_Unknown;
+        RAISE_RUNTIME_ERROR << "Invalid tiff data type " << dt;
+    }
+}
+
+libtiff::TIFFDataType TIFFDataTypeFromDataType(slideio::DataType dt)
+{
+    switch (dt)
+    {
+    case DataType::DT_None:
+        return libtiff::TIFF_NOTYPE;
+    case DataType::DT_Byte:
+        return libtiff::TIFF_BYTE;
+    case DataType::DT_UInt16:
+        return libtiff::TIFF_SHORT;
+    case DataType::DT_Int8:
+        return libtiff::TIFF_SBYTE;
+    case DataType::DT_Unknown:
+        return libtiff::TIFF_UNDEFINED;
+    case DataType::DT_Int16:
+        return libtiff::TIFF_SSHORT;
+    case DataType::DT_Float32:
+        return libtiff::TIFF_FLOAT;
+    case DataType::DT_Float64:
+        return libtiff::TIFF_DOUBLE;
+    default:
+        RAISE_RUNTIME_ERROR << "Invalid data type: " << dt;
     }
 }
 
@@ -113,6 +138,9 @@ static slideio::Compression compressTiffToSlideio(int tiffCompression)
         compression = Compression::JBIG;
         break;
     case 0x8798:
+    case 0x80ED:
+    case 0x80EB:
+    case 0x80EA:
         compression = Compression::Jpeg2000;
         break;
     case 0x8799:
@@ -121,8 +149,90 @@ static slideio::Compression compressTiffToSlideio(int tiffCompression)
     case 0x879b:
         compression = Compression::JBIG2;
         break;
+    default:
+        RAISE_RUNTIME_ERROR << "Invalid compression type: " << tiffCompression;
     }
     return compression;
+}
+
+int compressSlideioToTiff(slideio::Compression compression)
+{
+    int tiffCompression = -1;
+    switch (compression)
+    {
+    case slideio::Compression::Uncompressed:
+        tiffCompression = 0x1;
+        break;
+    case slideio::Compression::HuffmanRL:
+        tiffCompression = 0x2;
+        break;
+    case slideio::Compression::CCITT_T4:
+        tiffCompression = 0x3;
+        break;
+    case slideio::Compression::CCITT_T6:
+        tiffCompression = 0x4;
+        break;
+    case slideio::Compression::LZW:
+        tiffCompression = 0x5;
+        break;
+    case slideio::Compression::JpegOld:
+        tiffCompression = 0x6;
+        break;
+    case slideio::Compression::Jpeg:
+        tiffCompression = 0x7;
+        break;
+    case slideio::Compression::Zlib:
+        tiffCompression = 0x8;
+        break;
+    case slideio::Compression::JBIG85:
+        tiffCompression = 0x9;
+        break;
+    case slideio::Compression::JBIG43:
+        tiffCompression = 0xa;
+        break;
+    case slideio::Compression::NextRLE:
+        tiffCompression = 0x7ffe;
+        break;
+    case slideio::Compression::PackBits:
+        tiffCompression = 0x8005;
+        break;
+    case slideio::Compression::ThunderScanRLE:
+        tiffCompression = 0x8029;
+        break;
+    case slideio::Compression::RasterPadding:
+        tiffCompression = 0x807f;
+        break;
+    case slideio::Compression::RLE_LW:
+        tiffCompression = 0x8080;
+        break;
+    case slideio::Compression::RLE_HC:
+        tiffCompression = 0x8081;
+        break;
+    case slideio::Compression::RLE_BL:
+        tiffCompression = 0x8082;
+        break;
+    case slideio::Compression::PKZIP:
+        tiffCompression = 0x80b2;
+        break;
+    case slideio::Compression::KodakDCS:
+        tiffCompression = 0x80b3;
+        break;
+    case slideio::Compression::JBIG:
+        tiffCompression = 0x8765;
+        break;
+    case slideio::Compression::Jpeg2000:
+        tiffCompression = 0x8798;
+        break;
+    case slideio::Compression::NikonNEF:
+        tiffCompression = 0x8799;
+        break;
+    case slideio::Compression::JBIG2:
+        tiffCompression = 0x879b;
+        break;
+    default:
+        RAISE_RUNTIME_ERROR << "Invalid compression type: " << compression;
+    }
+    return tiffCompression;
 }
 
 //std::ostream& operator<<(std::ostream& os, const TiffDirectory& dir)
@@ -600,6 +710,59 @@ uint16_t TiffTools::slideioDataTypeToTiffDataType(slideio::DataType dt)
     }
 
     return tiffDataType;
+}
+
+void TiffTools::writeDirectory(libtiff::TIFF* tiff)
+{
+    libtiff::TIFFWriteDirectory(tiff);
+}
+
+inline uint16_t bitsPerSampleDataType(DataType dt)
+{
+    int ds = ImageTools::dataTypeSize(dt);
+    return (uint16_t)(ds * 8);
+}
+
+uint16_t computeDirectoryPhotometric(TiffDirectory dir)
+{
+    const DataType dt = dir.dataType;
+    const int numChannels = dir.channels;
+    uint16_t photometric = PHOTOMETRIC_SEPARATED;
+    if(dt==DataType::DT_Byte && numChannels==3) {
+        photometric = PHOTOMETRIC_RGB;
+    }
+    return photometric;
+}
+
+
+void TiffTools::setTags(libtiff::TIFF* tiff, const TiffDirectory& dir, bool newDirectory)
+{
+    if(newDirectory) {
+        writeDirectory(tiff);
+    }
+
+    const uint16_t numChannels = (uint16_t)dir.channels;
+    libtiff::TIFFSetField(tiff, TIFFTAG_SAMPLESPERPIXEL, numChannels);
+    const uint16_t bitsPerSample = bitsPerSampleDataType(dir.dataType);
+    libtiff::TIFFSetField(tiff, TIFFTAG_BITSPERSAMPLE, bitsPerSample);
+    const uint16_t compression = compressSlideioToTiff(dir.slideioCompression);
+    libtiff::TIFFSetField(tiff, TIFFTAG_COMPRESSION, compression);
+    libtiff::TIFFSetField(tiff, TIFFTAG_IMAGEWIDTH, dir.width);
+    libtiff::TIFFSetField(tiff, TIFFTAG_IMAGELENGTH, dir.height);
+    libtiff::TIFFSetField(tiff, TIFFTAG_TILEWIDTH, dir.tileWidth);
+    libtiff::TIFFSetField(tiff, TIFFTAG_TILELENGTH, dir.tileHeight);;
+    libtiff::TIFFSetField(tiff, TIFFTAG_IMAGEDESCRIPTION, dir.description.c_str());
+    libtiff::TIFFSetField(tiff, TIFFTAG_PLANARCONFIG, 1);
+    auto res = dir.res;
+    libtiff::TIFFSetField(tiff, TIFFTAG_XRESOLUTION, (float)res.x);
+    libtiff::TIFFSetField(tiff, TIFFTAG_YRESOLUTION, (float)res.y);
+    libtiff::TIFFSetField(tiff, TIFFTAG_RESOLUTIONUNIT, 1);
+    libtiff::TIFFSetField(tiff, TIFFTAG_XPOSITION, 0);
+    libtiff::TIFFSetField(tiff, TIFFTAG_YPOSITION, 0);
+    uint16_t dt = TIFFDataTypeFromDataType(dir.dataType);
+    libtiff::TIFFSetField(tiff, TIFFTAG_DATATYPE, dt);
+    uint16_t phm = computeDirectoryPhotometric(dir);
+    libtiff::TIFFSetField(tiff, TIFFTAG_PHOTOMETRIC, phm);
 }
 
 

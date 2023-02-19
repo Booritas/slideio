@@ -19,4 +19,4 @@
 #include <crtdbg.h>
 #endif
 #endif
-#include "slideio/core/tools/log.hpp"
+#include "slideio/base/log.hpp"

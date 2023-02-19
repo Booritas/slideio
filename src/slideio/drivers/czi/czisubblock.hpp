@@ -6,7 +6,7 @@
 
 #include "slideio/drivers/czi/czi_api_def.hpp"
 #include "slideio/drivers/czi/czistructs.hpp"
-#include "slideio/core/structs.hpp"
+#include "slideio/base/slideio_enums.hpp"
 #include <opencv2/core.hpp>
 #include <cstdint>
 #include <vector>

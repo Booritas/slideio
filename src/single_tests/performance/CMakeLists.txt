@@ -22,6 +22,7 @@ target_link_libraries(${TEST_NAME} PRIVATE
    ${IMAGETOOLS_LIB_NAME}
    ${DCM_DRIVER_NAME}
    ${TEST_LIB_NAME}
+   ${BASE_LIB_NAME}
 )
 
 FIX_MACOS_RPATH(${TEST_NAME})

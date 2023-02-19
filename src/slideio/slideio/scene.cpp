@@ -7,6 +7,8 @@
 #include "slideio/core/cvscene.hpp"
 #include <boost/format.hpp>
 
+#include "slideio/base/exceptions.hpp"
+
 using namespace slideio;
 
 inline  cv::Rect tupleToRect(const std::tuple<int, int, int, int>& tpl)

@@ -13,6 +13,8 @@
 
 #include "czithumbnail.hpp"
 #include "czitools.hpp"
+#include "slideio/base/exceptions.hpp"
+#include "slideio/base/log.hpp"
 
 using namespace slideio;
 using namespace tinyxml2;

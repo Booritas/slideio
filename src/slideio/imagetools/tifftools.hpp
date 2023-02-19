@@ -6,9 +6,8 @@
 
 #include "slideio/imagetools/slideio_imagetools_def.hpp"
 #include "slideio/core/cvstructs.hpp"
-#include "slideio/core/structs.hpp"
-#include "slideio/core/slideio_enums.hpp"
-#include "slideio/core/base.hpp"
+#include "slideio/base/slideio_enums.hpp"
+#include "slideio/base/base.hpp"
 #include <opencv2/core.hpp>
 #include <string>
 #include <vector>
@@ -70,6 +69,8 @@ namespace slideio
         static void readNotRGBTile(libtiff::TIFF* hFile, const slideio::TiffDirectory& dir, int tile,
             const std::vector<int>& channelIndices, cv::OutputArray output);
         static uint16_t slideioDataTypeToTiffDataType(slideio::DataType dataType);
+        static void writeDirectory(libtiff::TIFF* tiff);
+        static void setTags(libtiff::TIFF* tiff, const TiffDirectory& dir, bool newDirectory);
     };
 }
 

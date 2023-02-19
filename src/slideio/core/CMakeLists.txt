@@ -29,7 +29,10 @@ IF(WIN32)
 ENDIF(WIN32)
 
 set_target_properties(${LIBRARY_NAME} PROPERTIES LINKER_LANGUAGE CXX)
-target_link_libraries(${LIBRARY_NAME} ${IMAGETOOLS_LIB_NAME})
+target_link_libraries(${LIBRARY_NAME} 
+   ${IMAGETOOLS_LIB_NAME}
+   ${BASE_LIB_NAME}
+)
 
 #set_target_properties(${LIBRARY_NAME} PROPERTIES CXX_VISIBILITY_PRESET hidden)
 
