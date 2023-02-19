@@ -4,6 +4,7 @@
 #include "slideio/slideio/slideio.hpp"
 #include "slideio/slideio/scene.hpp"
 #include "slideio/base/exceptions.hpp"
+#include <boost/filesystem.hpp>
 
 
 TEST(Converter, convertGDAL)
@@ -16,6 +17,9 @@ TEST(Converter, convertGDAL)
 	std::map<std::string, std::string> parameters;
 	parameters[DRIVER] = "SVS";
 	std::string outputPath = TestTools::getTestImagePath("svs", "tests/gdal-test.svs");
+	if(boost::filesystem::exists(outputPath)) {
+		boost::filesystem::remove(outputPath);
+	}
 	slideio::convertScene(scene, parameters, outputPath);
 }
 

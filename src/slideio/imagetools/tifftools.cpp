@@ -279,7 +279,7 @@ libtiff::TIFF* slideio::TiffTools::openTiffFile(const std::string& path, bool re
 {
     namespace fs = boost::filesystem;
     boost::filesystem::path filePath(path);
-    if(!fs::exists(filePath)) {
+    if(readOnly && !fs::exists(filePath)) {
         RAISE_RUNTIME_ERROR << "File " << path << " does not exist";
     }
     libtiff::TIFF* file = libtiff::TIFFOpen(path.c_str(), readOnly ? "r" : "w");
