@@ -62,43 +62,42 @@ static void readTile(CVScenePtr scene,
                         const cv::Size& tileSize,
                         cv::OutputArray tile)
 {
-    auto sceneRect = scene->getRect();
-    int lastX = tileRect.x + tileRect.width;
-    int lastY = tileRect.y + tileRect.height;
-    int diffX = sceneRect.width - lastX;
-    int diffY = sceneRect.height - lastY;
-    int orgTileWidth = tileRect.width;
-    int orgTileHeight = tileRect.height;
-    int tileWidth = tileSize.width;
-    int tileHeight = tileSize.height;
-
-    if(diffX<0) {
-        orgTileWidth += diffX;
-        tileWidth = orgTileWidth >> zoomLevel;
+    cv::Rect rectScene = scene->getRect();
+    if(rectScene.contains(tileRect.br())) {
+        scene->readResampledBlock(tileRect, tileSize, tile);
     }
-    if(diffY<0) {
-        orgTileHeight += diffY;
-        tileHeight = orgTileHeight >> zoomLevel;
+    else {
+        cv::Rect adjustedRect = rectScene & tileRect;
+        cv::Size adjustedTileSize(adjustedRect.width >> zoomLevel, adjustedRect.height >> zoomLevel);
+        cv::Mat adjustedTile;
+        tile.create(tileSize, CV_MAKE_TYPE(CV_8U, scene->getNumChannels()));
+        tile.setTo(cv::Scalar(0));
+        if(!adjustedRect.empty()) {
+            scene->readResampledBlock(adjustedRect, adjustedTileSize, adjustedTile);
+            cv::Rect roi(0, 0, adjustedTileSize.width, adjustedTileSize.height);
+            cv::Mat matTile = tile.getMat();
+            adjustedTile.copyTo(matTile(roi));
+        }
     }
-
-    cv::Rect adjustedRect(tileRect.x, tileRect.y, orgTileWidth, orgTileHeight);
-    cv::Size adjustedTileSize(tileWidth,tileHeight);
-
-    scene->readResampledBlock(adjustedRect, adjustedTileSize, tile);
 }
 
 void createZoomLevel(TIFFKeeperPtr& file, int zoomLevel, CVScenePtr scene, const cv::Size& tileSize)
 {
-    if (zoomLevel > 0) {
-        file->writeDirectory();
-    }
-
-    double scaling = 1./(double(2 > zoomLevel));
     auto rect = scene->getRect();
-    const uint32_t imageWidth = (uint32_t)std::lround(double(rect.width)*scaling);
-    const uint32_t imageHeight = (uint32_t)std::lround(double(rect.height)*scaling);
+    const uint32_t sceneWidth = rect.width;
+    const uint32_t sceneHeight = rect.height;
+
+    // compute scaled image size
+    uint32_t imageWidth = sceneWidth >> zoomLevel;
+    uint32_t imageHeight = sceneHeight >> zoomLevel;
+
     const uint32_t tileWidth = tileSize.width;
     const uint32_t tileHeight = tileSize.height;
+
+    // align image size to integer number of tiles
+    imageWidth = ((imageWidth - 1) / tileWidth + 1) * tileWidth;
+    imageHeight = ((imageHeight - 1) / tileHeight + 1) * tileHeight;
+
     TiffDirectory dir;
     dir.channels = scene->getNumChannels();
     dir.dataType = scene->getChannelDataType(0);
@@ -109,7 +108,7 @@ void createZoomLevel(TIFFKeeperPtr& file, int zoomLevel, CVScenePtr scene, const
     dir.tileHeight = tileHeight;
     dir.description = createDescription(scene);
     dir.res = scene->getResolution();
-    file->setTags(dir, true);
+    file->setTags(dir, zoomLevel > 0);
     
     std::tuple<int, int> imageSize(imageWidth, imageHeight);
     int originX = 0;
