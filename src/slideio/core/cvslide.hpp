@@ -62,4 +62,5 @@ namespace slideio
     };
 }
 
+#define CVSlidePtr std::shared_ptr<slideio::CVSlide>
 #endif

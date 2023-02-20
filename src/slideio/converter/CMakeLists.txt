@@ -8,6 +8,10 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/converter.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/convertertools.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/convertertools.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/convertertifftools.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/convertertifftools.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/convertersvstools.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/convertersvstools.hpp
    )
 
 

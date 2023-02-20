@@ -6,15 +6,22 @@ CONAN_MAIN()
 set(TEST_SOURCES
   test_converter.cpp
   test_convertertools.cpp
+  test_convertertifftools.cpp
+  test_convertersvstools.cpp
 )
 
 add_executable(${TEST_NAME} ${TEST_SOURCES})
 
 target_include_directories(${TEST_NAME} PRIVATE ${INCLUDE_ROOT})
 
+
+LIST(FILTER CONAN_LIBS_RELEASE EXCLUDE REGEX "^(.)+boost(.)+")
+LIST(FILTER CONAN_LIBS_DEBUG EXCLUDE REGEX "^(.)+boost(.)+")
+
 CONAN_CONFIGURE(${TEST_NAME})
 
 target_link_libraries(${TEST_NAME} 
+    ${BASE_LIB_NAME}
     ${CORE_LIB_NAME}
     ${SLIDEIO_LIB_NAME}
     ${CONVERTER_LIB_NAME}

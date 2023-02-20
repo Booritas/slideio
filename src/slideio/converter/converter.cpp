@@ -3,6 +3,8 @@
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/converter/converter.hpp"
 #include <boost/filesystem.hpp>
+
+#include "convertersvstools.hpp"
 #include "convertertools.hpp"
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/core/cvscene.hpp"
@@ -126,20 +128,10 @@ void createZoomLevel(TIFFKeeperPtr& file, int zoomLevel, CVScenePtr scene, const
 }
 
 
-void checkSVSRequirements(std::shared_ptr<slideio::CVScene>& scene)
-{
-    const DataType dt = scene->getChannelDataType(0);
-    const int numChannels = scene->getNumChannels();
-    for(int channel=1; channel<numChannels; ++channel) {
-        if(dt != scene->getChannelDataType(channel)) {
-            RAISE_RUNTIME_ERROR << "Converter: Cannot convert scene with different channel types to SVS";
-        }
-    }
-}
 
 void createSVS(TIFFKeeperPtr& file, std::shared_ptr<slideio::CVScene>& scene, int numZoomLevels, const cv::Size& tileSize)
 {
-    checkSVSRequirements(scene);
+    ConverterSVSTools::checkSVSRequirements(scene);
     for (int zoomLevel = 0; zoomLevel < numZoomLevels; ++zoomLevel) {
         createZoomLevel(file, zoomLevel, scene, tileSize);
     }
