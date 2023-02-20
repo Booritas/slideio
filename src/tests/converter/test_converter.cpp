@@ -6,6 +6,9 @@
 #include "slideio/base/exceptions.hpp"
 #include <boost/filesystem.hpp>
 
+#include "slideio/core/cvslide.hpp"
+#include "slideio/slideio/imagedrivermanager.hpp"
+
 
 TEST(Converter, convertGDAL)
 {

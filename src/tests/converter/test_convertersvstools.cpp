@@ -30,7 +30,7 @@ TEST(ConverterSVSTools, checkSVSRequirements)
 			"DCM",
 			false
 		}
-};
+    };
 	for(auto test : tests) {
 		CVSlidePtr slide = slideio::ImageDriverManager::openSlide(test.path, test.driver);
 		CVScenePtr scene = slide->getScene(0);

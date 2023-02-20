@@ -3,4 +3,13 @@
 // of this distribution and at http://slideio.com/license.html.
 #ifndef OPENCV_slideio_convertertifftools_HPP
 #define OPENCV_slideio_convertertifftools_HPP
+#include "slideio/converter/converter_def.hpp"
+#include "slideio/core/cvscene.hpp"
+
+namespace slideio
+{
+	class SLIDEIO_CONVERTER_EXPORTS ConverterTiffTools
+	{
+	};
+}
 #endif

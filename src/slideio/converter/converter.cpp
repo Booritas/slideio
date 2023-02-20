@@ -5,6 +5,7 @@
 #include <boost/filesystem.hpp>
 
 #include "convertersvstools.hpp"
+#include "convertertifftools.hpp"
 #include "convertertools.hpp"
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/core/cvscene.hpp"
@@ -58,31 +59,6 @@ static std::string createDescription(CVScenePtr scene)
     return buff.str();
 }
 
-static void readTile(CVScenePtr scene,
-                        int zoomLevel,
-                        const cv::Rect& tileRect,
-                        const cv::Size& tileSize,
-                        cv::OutputArray tile)
-{
-    cv::Rect rectScene = scene->getRect();
-    if(rectScene.contains(tileRect.br())) {
-        scene->readResampledBlock(tileRect, tileSize, tile);
-    }
-    else {
-        cv::Rect adjustedRect = rectScene & tileRect;
-        cv::Size adjustedTileSize(adjustedRect.width >> zoomLevel, adjustedRect.height >> zoomLevel);
-        cv::Mat adjustedTile;
-        tile.create(tileSize, CV_MAKE_TYPE(CV_8U, scene->getNumChannels()));
-        tile.setTo(cv::Scalar(0));
-        if(!adjustedRect.empty()) {
-            scene->readResampledBlock(adjustedRect, adjustedTileSize, adjustedTile);
-            cv::Rect roi(0, 0, adjustedTileSize.width, adjustedTileSize.height);
-            cv::Mat matTile = tile.getMat();
-            adjustedTile.copyTo(matTile(roi));
-        }
-    }
-}
-
 void createZoomLevel(TIFFKeeperPtr& file, int zoomLevel, CVScenePtr scene, const cv::Size& tileSize)
 {
     auto rect = scene->getRect();
@@ -122,7 +98,7 @@ void createZoomLevel(TIFFKeeperPtr& file, int zoomLevel, CVScenePtr scene, const
         for(uint32_t x=0; x<imageWidth; x+=tileWidth, originX+=originTileWidth) {
             cv::Point tilePos(x, y);
             cv::Rect originRect(originX, originY, originTileWidth, originTileHeight);
-            readTile(scene, zoomLevel, originRect, tileSize, tile);
+            ConverterTools::readTile(scene, zoomLevel, originRect, tileSize, tile);
         }
     }
 }
