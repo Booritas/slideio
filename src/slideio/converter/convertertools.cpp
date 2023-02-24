@@ -41,6 +41,32 @@ cv::Size slideio::ConverterTools::scaleSize(const cv::Size& size, int zoomLevel,
     return newSize;
 }
 
+
+void slideio::ConverterTools::readTile(const CVScenePtr& scene, int zoomLevel,
+    const cv::Rect& sceneBlockRect, cv::OutputArray tile)
+{
+    cv::Rect rectScene = scene->getRect();
+    cv::Size tileSize = ConverterTools::scaleSize(sceneBlockRect.size(), zoomLevel, true);
+    if (rectScene.contains(sceneBlockRect.br())) {
+        // internal tiles
+        scene->readResampledBlock(sceneBlockRect, tileSize, tile);
+    }
+    else {
+        // border tiles
+        tile.create(tileSize, CV_MAKE_TYPE(CV_8U, scene->getNumChannels()));
+        tile.setTo(cv::Scalar(0));
+        const cv::Rect adjustedRect = rectScene & sceneBlockRect;
+        const cv::Size adjustedTileSize = scaleSize(adjustedRect.size(), zoomLevel, true);
+        if (!adjustedRect.empty()) {
+            cv::Mat adjustedTile;
+            scene->readResampledBlock(adjustedRect, adjustedTileSize, adjustedTile);
+            const cv::Rect roi(0, 0, adjustedTileSize.width, adjustedTileSize.height);
+            cv::Mat matTile = tile.getMat();
+            adjustedTile.copyTo(matTile(roi));
+        }
+    }
+}
+
 cv::Rect slideio::ConverterTools::scaleRect(const cv::Rect& rect, int zoomLevel, bool downScale)
 {
     if (zoomLevel < 0) {
@@ -62,27 +88,14 @@ cv::Rect slideio::ConverterTools::scaleRect(const cv::Rect& rect, int zoomLevel,
     return newRect;
 }
 
-void slideio::ConverterTools::readTile(const CVScenePtr& scene,
-    int zoomLevel,
-    const cv::Rect& tileRect,
-    const cv::Size& tileSize,
-    cv::OutputArray tile)
+cv::Rect slideio::ConverterTools::computeZoomLevelRect(const cv::Rect& sceneRect,
+                                                        const cv::Size& tileSize,
+                                                        int zoomLevel)
 {
-    cv::Rect rectScene = scene->getRect();
-    if (rectScene.contains(tileRect.br())) {
-        scene->readResampledBlock(tileRect, tileSize, tile);
-    }
-    else {
-        cv::Rect adjustedRect = rectScene & tileRect;
-        cv::Size adjustedTileSize(adjustedRect.width >> zoomLevel, adjustedRect.height >> zoomLevel);
-        cv::Mat adjustedTile;
-        tile.create(tileSize, CV_MAKE_TYPE(CV_8U, scene->getNumChannels()));
-        tile.setTo(cv::Scalar(0));
-        if (!adjustedRect.empty()) {
-            scene->readResampledBlock(adjustedRect, adjustedTileSize, adjustedTile);
-            cv::Rect roi(0, 0, adjustedTileSize.width, adjustedTileSize.height);
-            cv::Mat matTile = tile.getMat();
-            adjustedTile.copyTo(matTile(roi));
-        }
-    }
+    cv::Rect levelRect = scaleRect(sceneRect, zoomLevel, true);
+    // align image size to integer number of tiles
+    levelRect.width = ((levelRect.width - 1) / tileSize.width + 1) * tileSize.width;
+    levelRect.height = ((levelRect.height - 1) / tileSize.height + 1) * tileSize.height;
+    return levelRect;
 }
+

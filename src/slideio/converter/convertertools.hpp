@@ -15,8 +15,9 @@ namespace slideio
         static int computeNumZoomLevels(int width, int height);
         static cv::Size scaleSize(const cv::Size& size, int zoomLevel, bool downScale=true);
         static cv::Rect scaleRect(const cv::Rect& rect, int zoomLevel, bool downScale);
-        static void readTile(const CVScenePtr& scene, int zoomLevel, const cv::Rect& tileRect,
-                             const cv::Size& tileSize, cv::OutputArray tile);
+        static void readTile(const CVScenePtr& scene, int zoomLevel, const cv::Rect& sceneBlockRect,
+                             cv::OutputArray tile);
+        static cv::Rect computeZoomLevelRect(const cv::Rect& sceneRect, const cv::Size& tileSize, int zoomLevel);
     };
 }
 

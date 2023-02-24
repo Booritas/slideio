@@ -1,4 +1,6 @@
 #include <gtest/gtest.h>
+#include <opencv2/highgui.hpp>
+
 #include "tests/testlib/testtools.hpp"
 #include "slideio/converter/convertertools.hpp"
 #include "slideio/slideio/imagedrivermanager.hpp"
@@ -21,14 +23,26 @@ TEST(ConverterTools, readTile_normal)
 		"Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg");
 	CVSlidePtr slide = slideio::ImageDriverManager::openSlide(path, "GDAL");
 	CVScenePtr scene = slide->getScene(0);
-	cv::Rect tileRect(0, 0, 256, 180);
-	cv::Size tileSize(tileRect.size());
-	cv::Mat tileRaster;
-	slideio::ConverterTools::readTile(scene, 0, tileRect, tileSize, tileRaster);
-	cv::Mat blockRaster;
-	cv::Rect blockRect(0, 0, 256, 180);
-	scene->readBlock(blockRect, blockRaster);
-	EXPECT_EQ(cv::norm(blockRaster, tileRaster, cv::NORM_L2), 0);
+	{
+        const cv::Rect tileRect(0, 0, 256, 180);
+        const cv::Size tileSize(tileRect.size());
+		cv::Mat tileRaster;
+		slideio::ConverterTools::readTile(scene, 0, tileRect, tileRaster);
+		cv::Mat blockRaster;
+        const cv::Rect blockRect(tileRect);
+		scene->readBlock(blockRect, blockRaster);
+		EXPECT_EQ(cv::norm(blockRaster, tileRaster, cv::NORM_L2), 0);
+	}
+	{
+		const cv::Rect tileRect(500, 600, 256, 180);
+		const cv::Size tileSize(tileRect.size());
+		cv::Mat tileRaster;
+		slideio::ConverterTools::readTile(scene, 0, tileRect, tileRaster);
+		cv::Mat blockRaster;
+		const cv::Rect blockRect(tileRect);
+		scene->readBlock(blockRect, blockRaster);
+		EXPECT_EQ(cv::norm(blockRaster, tileRaster, cv::NORM_L2), 0);
+	}
 }
 
 TEST(ConverterTools, readTile_scaled)
@@ -37,15 +51,55 @@ TEST(ConverterTools, readTile_scaled)
 		"Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg");
 	CVSlidePtr slide = slideio::ImageDriverManager::openSlide(path, "GDAL");
 	CVScenePtr scene = slide->getScene(0);
+	{
+		const int zoomLevel = 1;
+		cv::Rect sceneRect = scene->getRect();
+		const cv::Rect blockRect(55, 75, 512, 1024);
+		cv::Mat tileRaster;
+		slideio::ConverterTools::readTile(scene, zoomLevel, blockRect, tileRaster);
+		cv::Size tileSize = slideio::ConverterTools::scaleSize(blockRect.size(), zoomLevel, true);
+		cv::Mat blockRaster;
+		scene->readResampledBlock(blockRect, tileSize, blockRaster);
+		EXPECT_EQ(cv::norm(blockRaster, tileRaster, cv::NORM_L2), 0);
+	}
+	{
+		const int zoomLevel = 2;
+		cv::Rect sceneRect = scene->getRect();
+		const cv::Rect blockRect(55, 75, 512, 1024);
+		cv::Mat tileRaster;
+		slideio::ConverterTools::readTile(scene, zoomLevel, blockRect, tileRaster);
+		cv::Size tileSize = slideio::ConverterTools::scaleSize(blockRect.size(), zoomLevel, true);
+		cv::Mat blockRaster;
+		scene->readResampledBlock(blockRect, tileSize, blockRaster);
+		EXPECT_EQ(cv::norm(blockRaster, tileRaster, cv::NORM_L2), 0);
+	}
+}
+
+TEST(ConverterTools, readTile_edge)
+{
+	std::string path = TestTools::getTestImagePath("gdal",
+		"Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg");
+	CVSlidePtr slide = slideio::ImageDriverManager::openSlide(path, "GDAL");
+	CVScenePtr scene = slide->getScene(0);
 	cv::Rect sceneRect = scene->getRect();
-	cv::Rect tileRect(0, 0, 256,512);
-	cv::Size tileSize(tileRect.size());
-	cv::Mat tileRaster;
-	slideio::ConverterTools::readTile(scene, 1, tileRect, tileSize, tileRaster);
-	cv::Mat blockRaster;
-	cv::Rect blockRect(0, 0, 256, 180);
-	scene->readBlock(blockRect, blockRaster);
-	EXPECT_EQ(cv::norm(blockRaster, tileRaster, cv::NORM_L2), 0);
+	{
+		const int zoomLevel = 1;
+		const cv::Rect blockRect(5200, 5600, 1024, 1024);
+		cv::Mat tileRaster;
+		slideio::ConverterTools::readTile(scene, zoomLevel, blockRect, tileRaster);
+		cv::Rect validSceneRect = sceneRect & blockRect;
+	    cv::Size tileSize = slideio::ConverterTools::scaleSize(validSceneRect.size(), zoomLevel, true);
+		cv::Mat blockRaster;
+		scene->readResampledBlock(validSceneRect, tileSize, blockRaster);
+		cv::Rect validZoneRect(0, 0, tileSize.width, tileSize.height);
+		EXPECT_EQ(cv::norm(blockRaster, tileRaster(validZoneRect), cv::NORM_L2), 0);
+	    namedWindow( "Display window", cv::WINDOW_AUTOSIZE );// Create a window for display.
+        cv::imshow( "Display window", tileRaster);                   // Show our image inside it.
+        cv::waitKey(0);
+		namedWindow("Display window", cv::WINDOW_AUTOSIZE);// Create a window for display.
+		cv::imshow("Display window", blockRaster);                   // Show our image inside it.
+		cv::waitKey(0);
+	}
 }
 
 TEST(ConverterTools, scaleSize_downScale)
@@ -149,4 +203,37 @@ TEST(ConverterTools, scaleRect)
 		EXPECT_EQ(scaledRect.width, 7);
 		EXPECT_EQ(scaledRect.height, 10);
 	}
+}
+
+TEST(ConverterTools, computeZoomLevelRect)
+{
+	{
+		cv::Rect rect(0, 0, 100, 200);
+		cv::Size tile(256, 256);
+		cv::Rect levelRect = slideio::ConverterTools::computeZoomLevelRect(rect, tile, 0);
+		cv::Rect expectedRect(0, 0, 256, 256);
+		EXPECT_EQ(levelRect, expectedRect);
+	}
+	{
+		cv::Rect rect(0, 0, 256, 256);
+		cv::Size tile(256, 256);
+		cv::Rect levelRect = slideio::ConverterTools::computeZoomLevelRect(rect, tile, 0);
+		cv::Rect expectedRect(0, 0, 256, 256);
+		EXPECT_EQ(levelRect, expectedRect);
+	}
+	{
+		cv::Rect rect(0, 0, 450, 700);
+		cv::Size tile(100, 200);
+		cv::Rect levelRect = slideio::ConverterTools::computeZoomLevelRect(rect, tile, 0);
+		cv::Rect expectedRect(0, 0, 500, 800);
+		EXPECT_EQ(levelRect, expectedRect);
+	}
+	{
+		cv::Rect rect(0, 0, 900, 1400);
+		cv::Size tile(100, 200);
+		cv::Rect levelRect = slideio::ConverterTools::computeZoomLevelRect(rect, tile, 1);
+		cv::Rect expectedRect(0, 0, 500, 800);
+		EXPECT_EQ(levelRect, expectedRect);
+	}
+
 }

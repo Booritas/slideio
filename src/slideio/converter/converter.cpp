@@ -61,44 +61,30 @@ static std::string createDescription(CVScenePtr scene)
 
 void createZoomLevel(TIFFKeeperPtr& file, int zoomLevel, CVScenePtr scene, const cv::Size& tileSize)
 {
-    auto rect = scene->getRect();
-    const uint32_t sceneWidth = rect.width;
-    const uint32_t sceneHeight = rect.height;
+    cv::Rect sceneRect = scene->getRect();
+    sceneRect.x = sceneRect.y = 0;
+    cv::Rect levelRect = ConverterTools::computeZoomLevelRect(sceneRect, tileSize, zoomLevel);
 
-    // compute scaled image size
-    uint32_t imageWidth = sceneWidth >> zoomLevel;
-    uint32_t imageHeight = sceneHeight >> zoomLevel;
-
-    const uint32_t tileWidth = tileSize.width;
-    const uint32_t tileHeight = tileSize.height;
-
-    // align image size to integer number of tiles
-    imageWidth = ((imageWidth - 1) / tileWidth + 1) * tileWidth;
-    imageHeight = ((imageHeight - 1) / tileHeight + 1) * tileHeight;
 
     TiffDirectory dir;
     dir.channels = scene->getNumChannels();
     dir.dataType = scene->getChannelDataType(0);
     dir.slideioCompression = Compression::Jpeg;
-    dir.width = imageWidth;
-    dir.height = imageHeight;
-    dir.tileWidth = tileWidth;
-    dir.tileHeight = tileHeight;
+    dir.width = levelRect.width;
+    dir.height = levelRect.height;
+    dir.tileWidth = tileSize.width;
+    dir.tileHeight = tileSize.height;
     dir.description = createDescription(scene);
     dir.res = scene->getResolution();
     file->setTags(dir, zoomLevel > 0);
+
+    cv::Size sceneTileSize = ConverterTools::scaleSize(tileSize, zoomLevel, false);
     
-    std::tuple<int, int> imageSize(imageWidth, imageHeight);
-    int originX = 0;
-    int originY = 0;
-    int originTileWidth = tileWidth << zoomLevel;
-    int originTileHeight = tileHeight << zoomLevel;
     cv::Mat tile;
-    for(uint32_t y=0; y<imageHeight; y+=tileHeight, originY+=originTileHeight) {
-        for(uint32_t x=0; x<imageWidth; x+=tileWidth, originX+=originTileWidth) {
-            cv::Point tilePos(x, y);
-            cv::Rect originRect(originX, originY, originTileWidth, originTileHeight);
-            ConverterTools::readTile(scene, zoomLevel, originRect, tileSize, tile);
+    for(int y=0; y<sceneRect.height; y+= sceneTileSize.height) {
+        for(int x=0; x<sceneRect.width; x+=sceneTileSize.width) {
+            cv::Rect blockRect(x, y, sceneTileSize.width, sceneTileSize.height);
+            ConverterTools::readTile(scene, zoomLevel, blockRect, tile);
         }
     }
 }
