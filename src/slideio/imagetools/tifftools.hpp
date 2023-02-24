@@ -71,6 +71,7 @@ namespace slideio
         static uint16_t slideioDataTypeToTiffDataType(slideio::DataType dataType);
         static void writeDirectory(libtiff::TIFF* tiff);
         static void setTags(libtiff::TIFF* tiff, const TiffDirectory& dir, bool newDirectory);
+        static void writeTile(libtiff::TIFF* tiff, int tile, uint8_t* data, int size);
     };
 }
 

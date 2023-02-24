@@ -3,6 +3,8 @@
 // of this distribution and at http://slideio.com/license.html.
 
 #include "convertersvstools.hpp"
+
+#include "convertertools.hpp"
 #include "slideio/base/exceptions.hpp"
 
 void slideio::ConverterSVSTools::checkSVSRequirements(const CVScenePtr& scene)
@@ -33,4 +35,39 @@ std::string slideio::ConverterSVSTools::createDescription(const CVScenePtr& scen
         buff << "AppMag = " << magn;
     }
     return buff.str();
+}
+
+void slideio::ConverterSVSTools::createZoomLevel(TIFFKeeperPtr& file, int zoomLevel, const CVScenePtr& scene, const cv::Size& tileSize)
+{
+    cv::Rect sceneRect = scene->getRect();
+    sceneRect.x = sceneRect.y = 0;
+    cv::Rect levelRect = ConverterTools::computeZoomLevelRect(sceneRect, tileSize, zoomLevel);
+
+
+    slideio::TiffDirectory dir;
+    dir.channels = scene->getNumChannels();
+    dir.dataType = scene->getChannelDataType(0);
+    dir.slideioCompression = slideio::Compression::Jpeg;
+    dir.width = levelRect.width;
+    dir.height = levelRect.height;
+    dir.tileWidth = tileSize.width;
+    dir.tileHeight = tileSize.height;
+    if (zoomLevel == 0) {
+        dir.description = createDescription(scene);
+    }
+    else {
+        dir.description = "";
+    }
+    dir.res = scene->getResolution();
+    file->setTags(dir, zoomLevel > 0);
+
+    cv::Size sceneTileSize = slideio::ConverterTools::scaleSize(tileSize, zoomLevel, false);
+
+    cv::Mat tile;
+    for (int y = 0; y < sceneRect.height; y += sceneTileSize.height) {
+        for (int x = 0; x < sceneRect.width; x += sceneTileSize.width) {
+            cv::Rect blockRect(x, y, sceneTileSize.width, sceneTileSize.height);
+            ConverterTools::readTile(scene, zoomLevel, blockRect, tile);
+        }
+    }
 }

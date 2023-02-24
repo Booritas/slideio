@@ -41,6 +41,7 @@ namespace slideio
         void closeTiffFile();
         void writeDirectory();
         void setTags(const TiffDirectory& dir, bool newDirectory);
+        void writeTile(int tile, uint8_t* data, int dataSize);
 
     private:
         libtiff::TIFF* m_hFile;

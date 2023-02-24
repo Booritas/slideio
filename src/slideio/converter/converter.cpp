@@ -49,7 +49,7 @@ void createSVS(TIFFKeeperPtr& file, std::shared_ptr<slideio::CVScene>& scene, in
 {
     ConverterSVSTools::checkSVSRequirements(scene);
     for (int zoomLevel = 0; zoomLevel < numZoomLevels; ++zoomLevel) {
-        ConverterTools::createZoomLevel(file, zoomLevel, scene, tileSize);
+        ConverterSVSTools::createZoomLevel(file, zoomLevel, scene, tileSize);
     }
 }
 

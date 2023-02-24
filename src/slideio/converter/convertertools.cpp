@@ -102,38 +102,4 @@ cv::Rect slideio::ConverterTools::computeZoomLevelRect(const cv::Rect& sceneRect
     return levelRect;
 }
 
-void slideio::ConverterTools::createZoomLevel(TIFFKeeperPtr& file, int zoomLevel, const CVScenePtr& scene, const cv::Size& tileSize)
-{
-    cv::Rect sceneRect = scene->getRect();
-    sceneRect.x = sceneRect.y = 0;
-    cv::Rect levelRect = computeZoomLevelRect(sceneRect, tileSize, zoomLevel);
-
-
-    slideio::TiffDirectory dir;
-    dir.channels = scene->getNumChannels();
-    dir.dataType = scene->getChannelDataType(0);
-    dir.slideioCompression = slideio::Compression::Jpeg;
-    dir.width = levelRect.width;
-    dir.height = levelRect.height;
-    dir.tileWidth = tileSize.width;
-    dir.tileHeight = tileSize.height;
-    if(zoomLevel == 0) {
-        dir.description = ConverterSVSTools::createDescription(scene);
-    }
-    else {
-        dir.description = "";
-    }
-    dir.res = scene->getResolution();
-    file->setTags(dir, zoomLevel > 0);
-
-    cv::Size sceneTileSize = slideio::ConverterTools::scaleSize(tileSize, zoomLevel, false);
-
-    cv::Mat tile;
-    for (int y = 0; y < sceneRect.height; y += sceneTileSize.height) {
-        for (int x = 0; x < sceneRect.width; x += sceneTileSize.width) {
-            cv::Rect blockRect(x, y, sceneTileSize.width, sceneTileSize.height);
-            readTile(scene, zoomLevel, blockRect, tile);
-        }
-    }
-}
 

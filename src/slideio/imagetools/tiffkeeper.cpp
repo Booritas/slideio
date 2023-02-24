@@ -45,3 +45,8 @@ void TIFFKeeper::setTags(const TiffDirectory& dir, bool newDirectory)
     TiffTools::setTags(m_hFile, dir, newDirectory);
 }
 
+void TIFFKeeper::writeTile(int tile, uint8_t* data, int dataSize)
+{
+    TiffTools::writeTile(m_hFile, tile, data, dataSize);
+}
+

@@ -765,6 +765,14 @@ void TiffTools::setTags(libtiff::TIFF* tiff, const TiffDirectory& dir, bool newD
     libtiff::TIFFSetField(tiff, TIFFTAG_PHOTOMETRIC, phm);
 }
 
+void TiffTools::writeTile(libtiff::TIFF* tiff, int tile, uint8_t* data, int size)
+{
+    int64_t written = libtiff::TIFFWriteRawTile(tiff, tile, data, size);
+    if((int64_t)size != written) {
+        RAISE_RUNTIME_ERROR << "Error by writing tiff tile";
+    }
+}
+
 
 void slideio::TiffTools::setCurrentDirectory(libtiff::TIFF* hFile, const slideio::TiffDirectory& dir)
 {

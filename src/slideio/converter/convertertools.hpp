@@ -19,7 +19,6 @@ namespace slideio
         static void readTile(const CVScenePtr& scene, int zoomLevel, const cv::Rect& sceneBlockRect,
                              cv::OutputArray tile);
         static cv::Rect computeZoomLevelRect(const cv::Rect& sceneRect, const cv::Size& tileSize, int zoomLevel);
-        static void createZoomLevel(TIFFKeeperPtr& file, int zoomLevel, const CVScenePtr& scene, const cv::Size& tileSize);
     };
 }
 
