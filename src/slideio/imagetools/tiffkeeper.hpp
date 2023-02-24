@@ -47,4 +47,6 @@ namespace slideio
     };
 }
 
+#define TIFFKeeperPtr std::shared_ptr<slideio::TIFFKeeper>
+
 #endif

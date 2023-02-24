@@ -21,3 +21,16 @@ void slideio::ConverterSVSTools::checkSVSRequirements(const CVScenePtr& scene)
         }
     }
 }
+
+std::string slideio::ConverterSVSTools::createDescription(const CVScenePtr& scene)
+{
+    auto rect = scene->getRect();
+    std::stringstream buff;
+    buff << "SlideIO Library 2.0" << std::endl;
+    buff << rect.width << "x" << rect.height << std::endl;
+    double magn = scene->getMagnification();
+    if (magn > 0) {
+        buff << "AppMag = " << magn;
+    }
+    return buff.str();
+}

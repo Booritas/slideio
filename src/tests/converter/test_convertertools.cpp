@@ -93,12 +93,6 @@ TEST(ConverterTools, readTile_edge)
 		scene->readResampledBlock(validSceneRect, tileSize, blockRaster);
 		cv::Rect validZoneRect(0, 0, tileSize.width, tileSize.height);
 		EXPECT_EQ(cv::norm(blockRaster, tileRaster(validZoneRect), cv::NORM_L2), 0);
-	    namedWindow( "Display window", cv::WINDOW_AUTOSIZE );// Create a window for display.
-        cv::imshow( "Display window", tileRaster);                   // Show our image inside it.
-        cv::waitKey(0);
-		namedWindow("Display window", cv::WINDOW_AUTOSIZE);// Create a window for display.
-		cv::imshow("Display window", blockRaster);                   // Show our image inside it.
-		cv::waitKey(0);
 	}
 }
 

@@ -13,6 +13,7 @@ namespace slideio
     {
     public:
         static void checkSVSRequirements(const CVScenePtr& scene);
+        static std::string createDescription(const CVScenePtr& scene);
     };
 }
 #endif

@@ -42,3 +42,15 @@ TEST(ConverterSVSTools, checkSVSRequirements)
 		}
 	}
 }
+
+TEST(ConverterSVSTools, createDescription)
+{
+	std::string imagePath = TestTools::getTestImagePath("svs", "CMU-1-Small-Region.svs");
+    CVSlidePtr slide = slideio::ImageDriverManager::openSlide(imagePath,"SVS");
+    CVScenePtr scene = slide->getScene(0);
+    std::string description = slideio::ConverterSVSTools::createDescription(scene);
+	EXPECT_FALSE(description.empty());
+	EXPECT_TRUE(description.find("SlideIO") >= 0);
+	EXPECT_TRUE(description.find("2220x2967") > 0);
+	EXPECT_TRUE(description.find("AppMag = 20") > 0);
+}

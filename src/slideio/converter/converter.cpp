@@ -15,7 +15,6 @@
 
 using namespace slideio;
 
-#define TIFFKeeperPtr std::shared_ptr<TIFFKeeper>
 
 void convertToSVS(CVScenePtr scene,
                 const std::map<std::string, std::string>& parameters, 
@@ -46,56 +45,11 @@ void slideio::convertScene(ScenePtr scene,
 }
 
 
-static std::string createDescription(CVScenePtr scene)
-{
-    auto rect = scene->getRect();
-    std::stringstream buff;
-    buff << "SlideIO Library 2.0" << std::endl;
-    buff << rect.width << "x" << rect.height << std::endl;
-    double magn = scene->getMagnification();
-    if(magn>0) {
-        buff << "AppMag = " << magn;
-    }
-    return buff.str();
-}
-
-void createZoomLevel(TIFFKeeperPtr& file, int zoomLevel, CVScenePtr scene, const cv::Size& tileSize)
-{
-    cv::Rect sceneRect = scene->getRect();
-    sceneRect.x = sceneRect.y = 0;
-    cv::Rect levelRect = ConverterTools::computeZoomLevelRect(sceneRect, tileSize, zoomLevel);
-
-
-    TiffDirectory dir;
-    dir.channels = scene->getNumChannels();
-    dir.dataType = scene->getChannelDataType(0);
-    dir.slideioCompression = Compression::Jpeg;
-    dir.width = levelRect.width;
-    dir.height = levelRect.height;
-    dir.tileWidth = tileSize.width;
-    dir.tileHeight = tileSize.height;
-    dir.description = createDescription(scene);
-    dir.res = scene->getResolution();
-    file->setTags(dir, zoomLevel > 0);
-
-    cv::Size sceneTileSize = ConverterTools::scaleSize(tileSize, zoomLevel, false);
-    
-    cv::Mat tile;
-    for(int y=0; y<sceneRect.height; y+= sceneTileSize.height) {
-        for(int x=0; x<sceneRect.width; x+=sceneTileSize.width) {
-            cv::Rect blockRect(x, y, sceneTileSize.width, sceneTileSize.height);
-            ConverterTools::readTile(scene, zoomLevel, blockRect, tile);
-        }
-    }
-}
-
-
-
 void createSVS(TIFFKeeperPtr& file, std::shared_ptr<slideio::CVScene>& scene, int numZoomLevels, const cv::Size& tileSize)
 {
     ConverterSVSTools::checkSVSRequirements(scene);
     for (int zoomLevel = 0; zoomLevel < numZoomLevels; ++zoomLevel) {
-        createZoomLevel(file, zoomLevel, scene, tileSize);
+        ConverterTools::createZoomLevel(file, zoomLevel, scene, tileSize);
     }
 }
 
