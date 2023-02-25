@@ -11,6 +11,7 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/imagetools.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/jp2kcodec.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/jxrcodec.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/jpegcodec.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/memory_stream.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/memory_stream.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/tifftools.hpp
@@ -20,6 +21,8 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/cvtools.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/tiffkeeper.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/tiffkeeper.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/jpeglib_aux.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/jpeglib_aux.cpp
 )
 
 add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES})

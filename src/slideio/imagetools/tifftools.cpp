@@ -765,12 +765,12 @@ void TiffTools::setTags(libtiff::TIFF* tiff, const TiffDirectory& dir, bool newD
     libtiff::TIFFSetField(tiff, TIFFTAG_PHOTOMETRIC, phm);
 }
 
-void TiffTools::writeTile(libtiff::TIFF* tiff, int tile, uint8_t* data, int size)
+void TiffTools::writeTile(libtiff::TIFF* tiff, int x, int y, cv::Mat& tileRaster)
 {
-    int64_t written = libtiff::TIFFWriteRawTile(tiff, tile, data, size);
-    if((int64_t)size != written) {
-        RAISE_RUNTIME_ERROR << "Error by writing tiff tile";
-    }
+    // int64_t written = libtiff::TIFFWriteRawTile(tiff, tile, data, size);
+    // if((int64_t)size != written) {
+    //     RAISE_RUNTIME_ERROR << "Error by writing tiff tile";
+    // }
 }
 
 

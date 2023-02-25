@@ -267,3 +267,22 @@ TEST(ImageTools, computeSimilaritySimilar2)
     EXPECT_LT(similarity, 0.75);
     EXPECT_GT(similarity, 0.5);
 }
+
+TEST(ImageTools, encodeJpeg)
+{
+    std::string pathPng = TestTools::getTestImagePath("jpeg", "lena_256.png");
+    cv::Mat source;
+    slideio::ImageTools::readGDALImage(pathPng, source);
+    std::vector<uint8_t> output;
+    slideio::ImageTools::encodeJpeg(source, output, 99);
+    slideio::TempFile jpeg("jpg");
+    std::string pathJpeg = jpeg.getPath().string();
+    std::ofstream file(pathJpeg, std::ios::binary);
+    ASSERT_TRUE(file.is_open());
+    file.write(reinterpret_cast<const char*>(output.data()), output.size());
+    file.close();
+    cv::Mat target;
+    slideio::ImageTools::readGDALImage(pathJpeg, target);
+    double similarity = slideio::ImageTools::computeSimilarity(source, target);
+    EXPECT_LT(similarity, 0.99);
+}
