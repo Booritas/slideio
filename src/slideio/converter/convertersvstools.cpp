@@ -45,6 +45,7 @@ void slideio::ConverterSVSTools::createZoomLevel(TIFFKeeperPtr& file, int zoomLe
     const int quality = 95;
 
     slideio::TiffDirectory dir;
+    dir.tiled = true;
     dir.channels = scene->getNumChannels();
     dir.dataType = scene->getChannelDataType(0);
     dir.slideioCompression = slideio::Compression::Jpeg;
