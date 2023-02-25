@@ -284,5 +284,5 @@ TEST(ImageTools, encodeJpeg)
     cv::Mat target;
     slideio::ImageTools::readGDALImage(pathJpeg, target);
     double similarity = slideio::ImageTools::computeSimilarity(source, target);
-    EXPECT_LT(similarity, 0.99);
+    EXPECT_GE(similarity, 0.99);
 }
