@@ -45,7 +45,7 @@ void TIFFKeeper::setTags(const TiffDirectory& dir, bool newDirectory)
     TiffTools::setTags(m_hFile, dir, newDirectory);
 }
 
-void TIFFKeeper::writeTile(int x, int y, cv::Mat& tileRaster)
+void TIFFKeeper::writeTile(int x, int y, Compression compression, int quality, const cv::Mat& tileRaster)
 {
-    TiffTools::writeTile(m_hFile, x, y, tileRaster);
+    TiffTools::writeTile(m_hFile, x, y, compression, quality, tileRaster);
 }

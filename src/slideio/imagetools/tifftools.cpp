@@ -765,8 +765,10 @@ void TiffTools::setTags(libtiff::TIFF* tiff, const TiffDirectory& dir, bool newD
     libtiff::TIFFSetField(tiff, TIFFTAG_PHOTOMETRIC, phm);
 }
 
-void TiffTools::writeTile(libtiff::TIFF* tiff, int x, int y, cv::Mat& tileRaster)
+void TiffTools::writeTile(libtiff::TIFF* tiff, int x, int y, Compression compression, int quality, const cv::Mat& tileRaster)
 {
+    std::vector<uint8_t> encodedStream;
+    ImageTools::encodeJpeg(tileRaster, encodedStream, quality);
     // int64_t written = libtiff::TIFFWriteRawTile(tiff, tile, data, size);
     // if((int64_t)size != written) {
     //     RAISE_RUNTIME_ERROR << "Error by writing tiff tile";

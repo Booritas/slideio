@@ -45,15 +45,6 @@ void slideio::convertScene(ScenePtr scene,
 }
 
 
-void createSVS(TIFFKeeperPtr& file, std::shared_ptr<slideio::CVScene>& scene, int numZoomLevels, const cv::Size& tileSize)
-{
-    ConverterSVSTools::checkSVSRequirements(scene);
-    for (int zoomLevel = 0; zoomLevel < numZoomLevels; ++zoomLevel) {
-        ConverterSVSTools::createZoomLevel(file, zoomLevel, scene, tileSize);
-    }
-}
-
-
 static void convertToSVS(CVScenePtr scene,
                          const std::map<std::string,std::string>& parameters,
                          const std::string& outputPath)
@@ -70,7 +61,7 @@ static void convertToSVS(CVScenePtr scene,
 
     const int numZoomLevels = ConverterTools::computeNumZoomLevels(imageWidth, imageHeight);
 
-    createSVS(file, scene, numZoomLevels, tileSize);
+    ConverterSVSTools::createSVS(file, scene, numZoomLevels, tileSize);
 
     file->closeTiffFile();
 

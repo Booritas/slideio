@@ -18,7 +18,7 @@ void slideio::ImageTools::decodeJpegStream(const uint8_t* jpg_buffer, size_t jpg
 }
 
 
-void slideio::ImageTools::encodeJpeg(cv::Mat& raster, std::vector<uint8_t>& encodedStream, int quality)
+void slideio::ImageTools::encodeJpeg(const cv::Mat& raster, std::vector<uint8_t>& encodedStream, int quality)
 {
     try {
         jpeglibEncode(raster, encodedStream, quality);

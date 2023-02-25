@@ -25,7 +25,7 @@ namespace slideio
         static void readJxrImage(const std::string& path, cv::OutputArray output);
         static void decodeJxrBlock(const uint8_t* data, size_t size, cv::OutputArray output);
         static void decodeJpegStream(const uint8_t* data, size_t size, cv::OutputArray output);
-        static void encodeJpeg(cv::Mat& raster, std::vector<uint8_t>& encodedStream, int quality);
+        static void encodeJpeg(const cv::Mat& raster, std::vector<uint8_t>& encodedStream, int quality);
         // jpeg 2000 related methods
         static void readJp2KFile(const std::string& path, cv::OutputArray output);
         static void decodeJp2KStream(const std::vector<uint8_t>& data, cv::OutputArray output,

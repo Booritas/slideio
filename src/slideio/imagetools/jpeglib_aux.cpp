@@ -84,7 +84,7 @@ void jpeglibDecode(const uint8_t* jpg_buffer, size_t jpg_size, cv::OutputArray o
     jpeg_destroy_decompress(&cinfo);
 }
 
-void jpeglibEncode(cv::Mat& raster, std::vector<uint8_t>& encodedStream, int quality)
+void jpeglibEncode(const cv::Mat& raster, std::vector<uint8_t>& encodedStream, int quality)
 {
     if (!raster.isContinuous()) {
         throw std::runtime_error("Expected continuous matrix!");
