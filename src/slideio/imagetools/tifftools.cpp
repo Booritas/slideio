@@ -752,7 +752,7 @@ void TiffTools::setTags(libtiff::TIFF* tiff, const TiffDirectory& dir, bool newD
     libtiff::TIFFSetField(tiff, TIFFTAG_TILEWIDTH, dir.tileWidth);
     libtiff::TIFFSetField(tiff, TIFFTAG_TILELENGTH, dir.tileHeight);;
     libtiff::TIFFSetField(tiff, TIFFTAG_IMAGEDESCRIPTION, dir.description.c_str());
-    libtiff::TIFFSetField(tiff, TIFFTAG_PLANARCONFIG, 1);
+    libtiff::TIFFSetField(tiff, TIFFTAG_PLANARCONFIG, ((numChannels==1)?2:1));
     auto res = dir.res;
     libtiff::TIFFSetField(tiff, TIFFTAG_XRESOLUTION, (float)res.x);
     libtiff::TIFFSetField(tiff, TIFFTAG_YRESOLUTION, (float)res.y);

@@ -270,7 +270,26 @@ TEST(ImageTools, computeSimilaritySimilar2)
 
 TEST(ImageTools, encodeJpeg)
 {
-    std::string pathPng = TestTools::getTestImagePath("jpeg", "lena_256.png");
+    std::string pathPng = TestTools::getTestImagePath("gdal", "img_2448x2448_3x8bit_SRC_RGB_ducks.png");
+    cv::Mat source;
+    slideio::ImageTools::readGDALImage(pathPng, source);
+    std::vector<uint8_t> output;
+    slideio::ImageTools::encodeJpeg(source, output, 99);
+    slideio::TempFile jpeg("jpg");
+    std::string pathJpeg = jpeg.getPath().string();
+    std::ofstream file(pathJpeg, std::ios::binary);
+    ASSERT_TRUE(file.is_open());
+    file.write(reinterpret_cast<const char*>(output.data()), output.size());
+    file.close();
+    cv::Mat target;
+    slideio::ImageTools::readGDALImage(pathJpeg, target);
+    double similarity = slideio::ImageTools::computeSimilarity(source, target);
+    EXPECT_GE(similarity, 0.99);
+}
+
+TEST(ImageTools, encodeJpegGray)
+{
+    std::string pathPng = TestTools::getTestImagePath("gdal", "img_2448x2448_1x8bit_SRC_GRAY_ducks.png");
     cv::Mat source;
     slideio::ImageTools::readGDALImage(pathPng, source);
     std::vector<uint8_t> output;
