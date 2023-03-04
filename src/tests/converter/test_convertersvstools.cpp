@@ -77,14 +77,11 @@ TEST(ConverterSVSTools, createZoomLevelGray)
 	slideio::ImageTools::readGDALImage(tiff.getPath().string(), target);
 	double similarity = slideio::ImageTools::computeSimilarity(source, target(sourceRect));
 	EXPECT_GT(similarity, 0.99);
-	// namedWindow( "Display window", cv::WINDOW_AUTOSIZE );// Create a window for display.
- //    cv::imshow( "Display window", target(sourceRect) );                   // Show our image inside it.
- //    cv::waitKey(0);
 }
 
 TEST(ConverterSVSTools, createZoomLevelColor)
 {
-	std::string imagePath = TestTools::getTestImagePath("gdal", "Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg");
+	std::string imagePath = TestTools::getTestImagePath("gdal", "img_2448x2448_3x8bit_SRC_RGB_ducks.png");
 	CVSlidePtr slide = slideio::ImageDriverManager::openSlide(imagePath, "GDAL");
 	CVScenePtr scene = slide->getScene(0);
 	cv::Rect sourceRect = scene->getRect();
@@ -95,14 +92,8 @@ TEST(ConverterSVSTools, createZoomLevelColor)
 	TIFFKeeperPtr file(new slideio::TIFFKeeper(tiff.getPath().string(), false));
 	slideio::ConverterSVSTools::createZoomLevel(file, 0, scene, tileSize);
 	file->closeTiffFile();
-	std::vector<slideio::TiffDirectory> dirs;
-	slideio::TiffTools::scanFile(tiff.getPath().string(), dirs);
-
-	cv::Mat target;
+    cv::Mat target;
 	slideio::ImageTools::readGDALImage(tiff.getPath().string(), target);
 	double similarity = slideio::ImageTools::computeSimilarity(source, target(sourceRect));
 	EXPECT_GT(similarity, 0.99);
-	namedWindow( "Display window", cv::WINDOW_AUTOSIZE );	// Create a window for display.
-    cv::imshow( "Display window", target(sourceRect) );   // Show our image inside it.
-    cv::waitKey(0);
 }

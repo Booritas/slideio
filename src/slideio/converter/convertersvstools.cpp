@@ -41,6 +41,7 @@ void slideio::ConverterSVSTools::createZoomLevel(TIFFKeeperPtr& file, int zoomLe
 {
     cv::Rect sceneRect = scene->getRect();
     sceneRect.x = sceneRect.y = 0;
+    cv::Size levelImageSize = ConverterTools::scaleSize(sceneRect.size(), zoomLevel);
     cv::Rect levelRect = ConverterTools::computeZoomLevelRect(sceneRect, tileSize, zoomLevel);
     const int quality = 95;
 
@@ -49,10 +50,11 @@ void slideio::ConverterSVSTools::createZoomLevel(TIFFKeeperPtr& file, int zoomLe
     dir.channels = scene->getNumChannels();
     dir.dataType = scene->getChannelDataType(0);
     dir.slideioCompression = slideio::Compression::Jpeg;
-    dir.width = levelRect.width;
-    dir.height = levelRect.height;
+    dir.width = levelImageSize.width;
+    dir.height = levelImageSize.height;
     dir.tileWidth = tileSize.width;
     dir.tileHeight = tileSize.height;
+    dir.compressionQuality = 99;
     if (zoomLevel == 0) {
         dir.description = createDescription(scene);
     }

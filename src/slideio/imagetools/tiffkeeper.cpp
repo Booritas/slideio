@@ -49,3 +49,9 @@ void TIFFKeeper::writeTile(int x, int y, Compression compression, int quality, c
 {
     TiffTools::writeTile(m_hFile, x, y, compression, quality, tileRaster);
 }
+
+void TIFFKeeper::readTile(const slideio::TiffDirectory& dir, int tile, const std::vector<int>& channelIndices,
+    cv::OutputArray output)
+{
+    TiffTools::readTile(m_hFile, dir, tile, channelIndices, output);
+}

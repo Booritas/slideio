@@ -43,6 +43,7 @@ namespace slideio
         int rowsPerStrip;
         DataType dataType;
         int stripSize;
+        int compressionQuality;
     };
 
 

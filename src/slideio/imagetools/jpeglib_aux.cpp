@@ -119,6 +119,10 @@ void jpeglibEncode(const cv::Mat& raster, std::vector<uint8_t>& encodedStream, i
     size_t length = 0;
     uint8_t* output = nullptr;
     jpeg_mem_dest(&cinfo, &output, &length);
+    for(int channel=0; channel<numChannels; ++channel) {
+        cinfo.comp_info[channel].h_samp_factor = 1;
+        cinfo.comp_info[channel].v_samp_factor = 1;
+    }
     jpeg_start_compress(&cinfo, TRUE);
     uint8_t* row(raster.data);
     bool success(true);

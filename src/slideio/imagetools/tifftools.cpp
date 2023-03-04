@@ -306,6 +306,7 @@ void  slideio::TiffTools::scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, int
 
     dir.dirIndex = dirIndex;
     dir.offset = dirOffset;
+    dir.compressionQuality = 0;
 
     char *description(nullptr);
     short dirchnls(0), dirbits(0);
@@ -334,6 +335,8 @@ void  slideio::TiffTools::scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, int
     libtiff::TIFFGetField(tiff, TIFFTAG_ROWSPERSTRIP, &rowsPerStripe);
     libtiff::TIFFDataType dt(libtiff::TIFF_NOTYPE);
     libtiff::TIFFGetField(tiff, TIFFTAG_DATATYPE, &dt);
+    int32_t compressionQuality = 0;
+    libtiff::TIFFGetField(tiff, TIFFTAG_JPEGQUALITY, &compressionQuality);
     short ph(0);
     libtiff::TIFFGetField(tiff, TIFFTAG_PHOTOMETRIC, &ph);
     dir.photometric = ph;
@@ -374,6 +377,7 @@ void  slideio::TiffTools::scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, int
     dir.compression = compress;
     dir.rowsPerStrip = rowsPerStripe;
     dir.slideioCompression = compressTiffToSlideio(compress);
+    dir.compressionQuality = compressionQuality;
 
 
 }
@@ -567,14 +571,23 @@ void slideio::TiffTools::readRegularTile(libtiff::TIFF* hFile, const slideio::Ti
     if (dir.offset > 0) {
         libtiff::TIFFSetSubDirectory(hFile, dir.offset);
     }
-    uint8_t* buff_begin = tileRaster.data;
-    auto buf_size = tileRaster.total()*tileRaster.elemSize();
-    auto readBytes = libtiff::TIFFReadEncodedTile(hFile, tile, buff_begin, buf_size);
-    if(readBytes<=0)
-        throw std::runtime_error(
-        (boost::format(
-            "TiffTools: error reading encoded tiff tile %1% of directory %2%."
-            "Compression: %3%") % tile %dir.dirIndex % dir.compression).str());
+    // if(dir.compression==7) {
+    //     std::vector<uint8_t> buff(libtiff::TIFFTileSize(hFile));
+    //     int64_t size = libtiff::TIFFReadRawTile(hFile, tile, buff.data(), buff.size());
+    //     buff.resize(size);
+    //     ImageTools::decodeJpegStream(buff.data(), buff.size(), tileRaster);
+    // }
+    else 
+    {
+        uint8_t* buff_begin = tileRaster.data;
+        auto buf_size = tileRaster.total() * tileRaster.elemSize();
+        auto readBytes = libtiff::TIFFReadEncodedTile(hFile, tile, buff_begin, buf_size);
+        if (readBytes <= 0)
+            throw std::runtime_error(
+                (boost::format(
+                    "TiffTools: error reading encoded tiff tile %1% of directory %2%."
+                    "Compression: %3%") % tile % dir.dirIndex % dir.compression).str());
+    }
     if(channelIndices.empty())
     {
         tileRaster.copyTo(output);
@@ -763,22 +776,28 @@ void TiffTools::setTags(libtiff::TIFF* tiff, const TiffDirectory& dir, bool newD
     libtiff::TIFFSetField(tiff, TIFFTAG_DATATYPE, dt);
     uint16_t phm = computeDirectoryPhotometric(dir);
     libtiff::TIFFSetField(tiff, TIFFTAG_PHOTOMETRIC, phm);
+    libtiff::TIFFSetField(tiff, TIFFTAG_JPEGQUALITY, dir.compressionQuality);
 }
 
 void TiffTools::writeTile(libtiff::TIFF* tiff, int x, int y, Compression compression, int quality, const cv::Mat& tileRaster)
 {
-    std::vector<uint8_t> encodedStream;
     if(compression==Compression::Jpeg) {
-        ImageTools::encodeJpeg(tileRaster, encodedStream, quality);
+        //ImageTools::encodeJpeg(tileRaster, encodedStream, quality);
+        const uint32_t tile = libtiff::TIFFComputeTile(tiff, x, y, 0, 0);
+        const size_t dataSize = tileRaster.total() * tileRaster.elemSize();
+        const int64_t written = libtiff::TIFFWriteEncodedTile(tiff, tile, tileRaster.data, dataSize);
+        if ((int64_t)dataSize != written) {
+            RAISE_RUNTIME_ERROR << "Error by writing tiff tile";
+        }
     }
     else {
         RAISE_RUNTIME_ERROR << "Unsupported compression: " << compression;
     }
-    uint32_t tile = libtiff::TIFFComputeTile(tiff, x, y, 0, 0);
-    int64_t written = libtiff::TIFFWriteRawTile(tiff, tile, encodedStream.data(), encodedStream.size());
-    if((int64_t)encodedStream.size() != written) {
-         RAISE_RUNTIME_ERROR << "Error by writing tiff tile";
-    }
+    // uint32_t tile = libtiff::TIFFComputeTile(tiff, x, y, 0, 0);
+    // int64_t written = libtiff::TIFFWriteRawTile(tiff, tile, encodedStream.data(), encodedStream.size());
+    // if((int64_t)encodedStream.size() != written) {
+    //      RAISE_RUNTIME_ERROR << "Error by writing tiff tile";
+    //}
 }
 
 
