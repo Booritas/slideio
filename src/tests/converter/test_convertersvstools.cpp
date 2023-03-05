@@ -8,6 +8,7 @@
 #include "slideio/base/exceptions.hpp"
 #include "slideio/converter/converter.hpp"
 #include "slideio/imagetools/tempfile.hpp"
+#include "slideio/slideio/slideio.hpp"
 
 
 TEST(ConverterSVSTools, checkSVSRequirements)
@@ -107,5 +108,57 @@ TEST(ConverterSVSTools, createZoomLevelColor)
     cv::Mat target;
 	slideio::ImageTools::readGDALImage(tiff.getPath().string(), target);
 	double similarity = slideio::ImageTools::computeSimilarity(source, target(sourceRect));
+	EXPECT_GT(similarity, 0.99);
+}
+
+TEST(ConverterSVSTools, createSVS8bitGray)
+{
+	std::string imagePath = TestTools::getTestImagePath("gdal", "img_2448x2448_1x8bit_SRC_GRAY_ducks.png");
+	std::shared_ptr<slideio::Slide> slide = slideio::openSlide(imagePath, "GDAL");
+	ASSERT_NE(slide, nullptr);
+	const int numScenes = slide->getNumScenes();
+	ASSERT_EQ(numScenes, 1);
+	std::shared_ptr<slideio::Scene> scene = slide->getScene(0);
+	slideio::TempFile svs("svs");
+	slideio::ConverterParameters parameters;
+	parameters.driver = "SVS";
+	parameters.tileWidth = 256;
+	parameters.tileHeight = 256;
+	slideio::convertScene(scene, parameters, svs.getPath().string());
+
+	cv::Mat source;
+	slideio::ImageTools::readGDALImage(imagePath, source);
+	CVSlidePtr targetSlide = slideio::ImageDriverManager::openSlide(svs.getPath().string(), "SVS");
+	CVScenePtr targetScene = targetSlide->getScene(0);
+	cv::Rect sceneRect = targetScene->getRect();
+	cv::Mat target;
+	targetScene->readBlock(sceneRect, target);
+	double similarity = slideio::ImageTools::computeSimilarity(source, target);
+	EXPECT_GT(similarity, 0.99);
+}
+
+TEST(ConverterSVSTools, createSVS8bitColor)
+{
+	std::string imagePath = TestTools::getTestImagePath("gdal", "img_2448x2448_3x8bit_SRC_RGB_ducks.png");
+	std::shared_ptr<slideio::Slide> slide = slideio::openSlide(imagePath, "GDAL");
+	ASSERT_NE(slide, nullptr);
+	const int numScenes = slide->getNumScenes();
+	ASSERT_EQ(numScenes, 1);
+	std::shared_ptr<slideio::Scene> scene = slide->getScene(0);
+	slideio::TempFile svs("svs");
+	slideio::ConverterParameters parameters;
+	parameters.driver = "SVS";
+	parameters.tileWidth = 256;
+	parameters.tileHeight = 256;
+	slideio::convertScene(scene, parameters, svs.getPath().string());
+
+	cv::Mat source;
+	slideio::ImageTools::readGDALImage(imagePath, source);
+	CVSlidePtr targetSlide = slideio::ImageDriverManager::openSlide(svs.getPath().string(), "SVS");
+	CVScenePtr targetScene = targetSlide->getScene(0);
+	cv::Rect sceneRect = targetScene->getRect();
+	cv::Mat target;
+	targetScene->readBlock(sceneRect, target);
+	double similarity = slideio::ImageTools::computeSimilarity(source, target);
 	EXPECT_GT(similarity, 0.99);
 }
