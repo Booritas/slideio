@@ -6,6 +6,7 @@
 #include "slideio/core/cvslide.hpp"
 #include "slideio/slideio/imagedrivermanager.hpp"
 #include "slideio/base/exceptions.hpp"
+#include "slideio/converter/converter.hpp"
 #include "slideio/imagetools/tempfile.hpp"
 
 
@@ -65,10 +66,13 @@ TEST(ConverterSVSTools, createZoomLevelGray)
 	cv::Rect sourceRect = scene->getRect();
 	cv::Mat source;
 	slideio::ImageTools::readGDALImage(imagePath, source);
-    cv::Size tileSize(256,256);
 	slideio::TempFile tiff("tiff");
 	TIFFKeeperPtr file(new slideio::TIFFKeeper(tiff.getPath().string(), false));
-	slideio::ConverterSVSTools::createZoomLevel(file, 0, scene, tileSize);
+	slideio::ConverterParameters parameters;
+	parameters.driver = "SVS";
+	parameters.tileWidth = 256;
+	parameters.tileHeight = 256;
+	slideio::ConverterSVSTools::createZoomLevel(file, 0, scene, parameters);
 	file->closeTiffFile();
 	std::vector<slideio::TiffDirectory> dirs;
 	slideio::TiffTools::scanFile(tiff.getPath().string(), dirs);
@@ -90,7 +94,11 @@ TEST(ConverterSVSTools, createZoomLevelColor)
 	cv::Size tileSize(256, 256);
 	slideio::TempFile tiff("tiff");
 	TIFFKeeperPtr file(new slideio::TIFFKeeper(tiff.getPath().string(), false));
-	slideio::ConverterSVSTools::createZoomLevel(file, 0, scene, tileSize);
+    slideio::ConverterParameters parameters;
+	parameters.driver = "SVS";
+	parameters.tileWidth = 256;
+	parameters.tileHeight = 256;
+	slideio::ConverterSVSTools::createZoomLevel(file, 0, scene, parameters);
 	file->closeTiffFile();
     cv::Mat target;
 	slideio::ImageTools::readGDALImage(tiff.getPath().string(), target);

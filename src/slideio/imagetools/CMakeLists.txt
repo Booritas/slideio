@@ -23,6 +23,8 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/tiffkeeper.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/jpeglib_aux.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/jpeglib_aux.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/jp2kmem.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/jp2kmem.cpp
 )
 
 add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES})

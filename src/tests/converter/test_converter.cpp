@@ -17,19 +17,20 @@ TEST(Converter, convertGDAL)
 	ScenePtr scene = slide->getScene(0);
 	ASSERT_TRUE(scene.get() != nullptr);
 	
-	std::map<std::string, std::string> parameters;
-	parameters[DRIVER] = "SVS";
 	std::string outputPath = TestTools::getTestImagePath("svs", "tests/gdal-test.svs");
 	if(boost::filesystem::exists(outputPath)) {
 		boost::filesystem::remove(outputPath);
 	}
+    slideio::ConverterParameters parameters;
+	parameters.driver = "SVS";
 	slideio::convertScene(scene, parameters, outputPath);
 }
 
 TEST(Converter, nullScene)
 {
-	std::map<std::string, std::string> parameters;
 	std::string outputPath = TestTools::getTestImagePath("gdal", "test.svs");
+	slideio::ConverterParameters parameters;
+	parameters.driver = "SVS";
 	ASSERT_THROW(slideio::convertScene(nullptr, parameters, outputPath), slideio::RuntimeError);
 }
 
@@ -40,7 +41,7 @@ TEST(Converter, unspecifiedDriver)
 	ScenePtr scene = slide->getScene(0);
 	ASSERT_TRUE(scene.get() != nullptr);
 	
-	std::map<std::string, std::string> parameters;
+	slideio::ConverterParameters parameters;
 	std::string outputPath = TestTools::getTestImagePath("gdal", "test.svs");
 	ASSERT_THROW(slideio::convertScene(scene, parameters, outputPath), slideio::RuntimeError);
 }
@@ -52,8 +53,8 @@ TEST(Converter, unsupportedDriver)
 	ScenePtr scene = slide->getScene(0);
 	ASSERT_TRUE(scene.get() != nullptr);
 	
-	std::map<std::string, std::string> parameters;
-	parameters[DRIVER] = "GDAL";
+	slideio::ConverterParameters parameters;
+	parameters.driver = "GDAL";
 	std::string outputPath = TestTools::getTestImagePath("gdal", "test.svs");
 	ASSERT_THROW(slideio::convertScene(scene, parameters, outputPath), slideio::RuntimeError);
 }
@@ -65,8 +66,8 @@ TEST(Converter, outputPathExists)
 	ScenePtr scene = slide->getScene(0);
 	ASSERT_TRUE(scene.get() != nullptr);
 	
-	std::map<std::string, std::string> parameters;
-	parameters[DRIVER] = "GDAL";
+	slideio::ConverterParameters parameters;
+	parameters.driver = "SVS";
 	ASSERT_THROW(slideio::convertScene(scene, parameters, path), slideio::RuntimeError);
 }
 

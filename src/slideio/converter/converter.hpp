@@ -19,8 +19,24 @@ const std::string DRIVER = "DRIVER";
 
 namespace slideio
 {
+    struct ConverterParameters
+    {
+        ConverterParameters() :
+            compression(Compression::Unknown),
+            compressionQuality(99),
+            numZoomLevels(0),
+            tileWidth(256),
+            tileHeight(256){
+        }
+        Compression compression;
+        int compressionQuality;
+        int numZoomLevels;
+        std::string driver;
+        int tileWidth;
+        int tileHeight;
+    };
    void SLIDEIO_CONVERTER_EXPORTS convertScene(std::shared_ptr<slideio::Scene> inputScene,
-                                                const std::map<std::string,std::string> & parameters,
+                                                ConverterParameters& parameters,
                                                 const std::string& outputPath);
 }
 

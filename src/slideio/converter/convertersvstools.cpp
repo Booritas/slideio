@@ -4,6 +4,7 @@
 
 #include "convertersvstools.hpp"
 
+#include "converter.hpp"
 #include "convertertools.hpp"
 #include "slideio/base/exceptions.hpp"
 
@@ -37,13 +38,14 @@ std::string slideio::ConverterSVSTools::createDescription(const CVScenePtr& scen
     return buff.str();
 }
 
-void slideio::ConverterSVSTools::createZoomLevel(TIFFKeeperPtr& file, int zoomLevel, const CVScenePtr& scene, const cv::Size& tileSize)
+void slideio::ConverterSVSTools::createZoomLevel(TIFFKeeperPtr& file, int zoomLevel, const CVScenePtr& scene, ConverterParameters& parameters)
 {
     cv::Rect sceneRect = scene->getRect();
+    cv::Size tileSize(parameters.tileWidth, parameters.tileHeight);
     sceneRect.x = sceneRect.y = 0;
     cv::Size levelImageSize = ConverterTools::scaleSize(sceneRect.size(), zoomLevel);
     cv::Rect levelRect = ConverterTools::computeZoomLevelRect(sceneRect, tileSize, zoomLevel);
-    const int quality = 95;
+    const int quality = parameters.compressionQuality;
 
     slideio::TiffDirectory dir;
     dir.tiled = true;
@@ -54,7 +56,7 @@ void slideio::ConverterSVSTools::createZoomLevel(TIFFKeeperPtr& file, int zoomLe
     dir.height = levelImageSize.height;
     dir.tileWidth = tileSize.width;
     dir.tileHeight = tileSize.height;
-    dir.compressionQuality = 99;
+    dir.compressionQuality = quality;
     if (zoomLevel == 0) {
         dir.description = createDescription(scene);
     }
@@ -77,13 +79,13 @@ void slideio::ConverterSVSTools::createZoomLevel(TIFFKeeperPtr& file, int zoomLe
     }
 }
 
-void slideio::ConverterSVSTools::createSVS(TIFFKeeperPtr& file, const CVScenePtr& scene, int numZoomLevels, const cv::Size& tileSize)
+void slideio::ConverterSVSTools::createSVS(TIFFKeeperPtr& file, const CVScenePtr& scene, ConverterParameters& parameters)
 {
-    if(numZoomLevels <1) {
-        RAISE_RUNTIME_ERROR << "Expected positive number of zoom levels. Received: " << numZoomLevels;
+    if(parameters.numZoomLevels <1) {
+        RAISE_RUNTIME_ERROR << "Expected positive number of zoom levels. Received: " << parameters.numZoomLevels;
     }
-    if(tileSize.empty()) {
-        RAISE_RUNTIME_ERROR << "Expected not empty tile size. Received: " << tileSize;
+    if(parameters.tileWidth<=0 || parameters.tileHeight<=0) {
+        RAISE_RUNTIME_ERROR << "Expected not empty tile size. Received: " << parameters.tileWidth << "x" << parameters.tileHeight;
     }
     if(!file->isValid()) {
         RAISE_RUNTIME_ERROR << "Received invalid tiff file handle!";
@@ -92,7 +94,7 @@ void slideio::ConverterSVSTools::createSVS(TIFFKeeperPtr& file, const CVScenePtr
         RAISE_RUNTIME_ERROR << "Received invalid scene object!";
     }
     slideio::ConverterSVSTools::checkSVSRequirements(scene);
-    for (int zoomLevel = 0; zoomLevel < numZoomLevels; ++zoomLevel) {
-        slideio::ConverterSVSTools::createZoomLevel(file, zoomLevel, scene, tileSize);
+    for (int zoomLevel = 0; zoomLevel < parameters.numZoomLevels; ++zoomLevel) {
+        slideio::ConverterSVSTools::createZoomLevel(file, zoomLevel, scene, parameters);
     }
 }

@@ -4,11 +4,39 @@
 #include "slideio/imagetools/imagetools.hpp"
 #include <opencv2/imgproc.hpp>
 #include "slideio/imagetools/memory_stream.hpp"
+#include "slideio/base/exceptions.hpp"
+#include "slideio/base/log.hpp"
 
 #include <openjpeg.h>
 #include <boost/format.hpp>
 #include <boost/filesystem.hpp>
 #include <fstream>
+
+/* opj_* Helper code from https://groups.google.com/forum/#!topic/openjpeg/8cebr0u7JgY */
+typedef struct
+{
+    OPJ_UINT8* pData;
+    OPJ_SIZE_T dataSize;
+    OPJ_SIZE_T offset;
+    // j2k_encode_helper *helper;
+} opj_memory_stream;
+
+
+static void openjpeg_warning(const char* msg, void* client_data)
+{
+    SLIDEIO_LOG(WARNING) << msg;
+}
+
+static void openjpeg_error(const char* msg, void* client_data)
+{
+    RAISE_RUNTIME_ERROR << msg;
+}
+
+static void openjpeg_info(const char* msg, void* client_data)
+{
+    SLIDEIO_LOG(INFO) << msg;
+}
+
 
 
 void slideio::ImageTools::readJp2KFile(const std::string& filePath, cv::OutputArray output)
@@ -187,3 +215,82 @@ void slideio::ImageTools::decodeJp2KStream(
         throw ex;
     }
 }
+
+
+// std::vector<unsigned char> encodeJp2000(const cv::Mat& input, int quality)
+// {
+//     // Check input image type
+//     int depth = input.depth();
+//     int channels = input.channels();
+//     int colorSpace = OPJ_CLRSPC_UNKNOWN;
+//     if (channels == 1) {
+//         colorSpace = OPJ_CLRSPC_GRAY;
+//     }
+//     else if (channels == 3) {
+//         colorSpace = OPJ_CLRSPC_SRGB;
+//     }
+//     else if (channels == 4) {
+//         colorSpace = OPJ_CLRSPC_SYCC;
+//     }
+//     if (depth != CV_8U && depth != CV_16U && depth != CV_32F) {
+//        RAISE_RUNTIME_ERROR << "Input image must be 8-bit, 16-bit or 32-bit float grayscale or 3/4-channel image";
+//     }
+//
+//     // Convert input image to 8-bit BGR
+//     cv::Mat bgr;
+//     if (depth == CV_8U) {
+//         if (channels == 1) {
+//             cv::cvtColor(input, bgr, cv::COLOR_GRAY2BGR);
+//         }
+//         else {
+//             input.convertTo(bgr, CV_8U);
+//         }
+//     }
+//     else if (depth == CV_16U) {
+//         input.convertTo(bgr, CV_8U, 255.0 / 65535.0);
+//     }
+//     else {
+//         input.convertTo(bgr, CV_8U, 255.0);
+//     }
+//
+//     // Create OpenJPEG codec
+//     opj_cparameters_t parameters;
+//     opj_set_default_encoder_parameters(&parameters);
+//     parameters.tcp_numlayers = 1;
+//     parameters.tcp_rates[0] = quality;
+//     opj_codec_t* codec = opj_create_compress(OPJ_CODEC_J2K);
+//
+//     // Set OpenJPEG stream
+//     opj_stream_t* stream = opj_stream_create_default_memory_stream();
+//     opj_set_info_handler(codec, NULL, NULL);
+//     opj_set_warning_handler(codec, NULL, NULL);
+//     opj_setup_encoder(codec, &parameters, image);
+//     opj_image_t* image = opj_image_create(bgr.size().width, bgr.size().height, 3, colorSpace);
+//     image->x0 = 0;
+//     image->y0 = 0;
+//     image->x1 = bgr.size().width;
+//     image->y1 = bgr.size().height;
+//     for (int i = 0; i < channels; i++)
+//     {
+//         image->comps[i].data = bgr.data + i;
+//         image->comps[i]. = channels;
+//     }
+//     opj_start_compress(codec, image, stream);
+//
+//     // Encode OpenJPEG stream
+//     opj_encode(codec, stream);
+//
+//     // Get compressed buffer
+//     OPJ_UINT32 compressedSize;
+//     OPJ_BYTE* compressedData;
+//     opj_end_compress(codec, stream);
+//     opj_stream_memory_get_buffer(stream, &compressedData, &compressedSize, true);
+//     std::vector<unsigned char> compressedBuffer(compressedData, compressedData + compressedSize);
+//
+//     // Clean up
+//     opj_stream_destroy(stream);
+//     opj_destroy_codec(codec);
+//     opj_image_destroy(image);
+//
+//     return compressedBuffer;
+// }

@@ -10,13 +10,15 @@
 
 namespace slideio
 {
+    struct ConverterParameters;
+
     class SLIDEIO_CONVERTER_EXPORTS ConverterSVSTools
     {
     public:
         static void checkSVSRequirements(const CVScenePtr& scene);
         static std::string createDescription(const CVScenePtr& scene);
-        static void createZoomLevel(TIFFKeeperPtr& file, int zoomLevel, const CVScenePtr& scene, const cv::Size& tileSize);
-        static void createSVS(TIFFKeeperPtr& file, const CVScenePtr& scene, int numZoomLevels, const cv::Size& tileSize);
+        static void createZoomLevel(TIFFKeeperPtr& file, int zoomLevel, const CVScenePtr& scene, ConverterParameters& parameters);
+        static void createSVS(TIFFKeeperPtr& file, const CVScenePtr& scene, ConverterParameters& parameters);
     };
 }
 #endif
