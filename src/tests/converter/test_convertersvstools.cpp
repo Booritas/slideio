@@ -51,7 +51,11 @@ TEST(ConverterSVSTools, createDescription)
 	std::string imagePath = TestTools::getTestImagePath("svs", "CMU-1-Small-Region.svs");
     CVSlidePtr slide = slideio::ImageDriverManager::openSlide(imagePath,"SVS");
     CVScenePtr scene = slide->getScene(0);
-    std::string description = slideio::ConverterSVSTools::createDescription(scene);
+    slideio::ConverterParameters parameters;
+	parameters.driver = "SVS";
+	parameters.compression = slideio::Compression::Jpeg;
+	parameters.compressionQuality = 95;
+    std::string description = slideio::ConverterSVSTools::createDescription(scene, parameters);
 	EXPECT_FALSE(description.empty());
 	EXPECT_TRUE(description.find("SlideIO") >= 0);
 	EXPECT_TRUE(description.find("2220x2967") > 0);

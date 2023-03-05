@@ -22,7 +22,7 @@ namespace slideio
     struct ConverterParameters
     {
         ConverterParameters() :
-            compression(Compression::Unknown),
+            compression(Compression::Jpeg),
             compressionQuality(99),
             numZoomLevels(0),
             tileWidth(256),
