@@ -1407,7 +1407,7 @@ int imagetopgx(opj_image_t * image, const char *outfile)
         }
 
         if (nbytes == 1) {
-            unsigned char* line_buffer = malloc((size_t)w);
+            unsigned char* line_buffer = (unsigned char*)malloc((size_t)w);
             if (line_buffer == NULL) {
                 fprintf(stderr, "Out of memory");
                 if (total > 256) {
