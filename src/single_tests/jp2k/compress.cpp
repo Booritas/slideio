@@ -91,25 +91,25 @@ void rasterToOPJImage(const cv::Mat& mat, ImagePtr& image, const ConvertJ2KParam
         channelData[channelIndex] = image.get()->comps[channelIndex].data;
     }
 
-    switch (depth) {
-    case CV_8U:  
-        convertTo32bitChannels(data, mat.cols(),
-            mat.rows(), numChannels, channelData.data());
-    case CV_8S:
-        convertTo32bitChannels(reinterpret_cast<int8_t*>(data), mat.cols(),
-            mat.rows(), numChannels, channelData.data());
-    case CV_16U:
-        convertTo32bitChannels(reinterpret_cast<uint16_t*>(data), mat.cols(),
-            mat.rows(), numChannels, channelData.data());
-    case CV_16S:
-        convertTo32bitChannels(reinterpret_cast<int16_t*>(data), mat.cols(),
-            mat.rows(), numChannels, channelData.data());
-    case CV_32S:
-        convertTo32bitChannels(reinterpret_cast<int32_t*>(data), mat.cols(),
-            mat.rows(), numChannels, channelData.data());
-    default:
-        RAISE_RUNTIME_ERROR << "Unsupported type for Jpeg2000 conversion: " << depth;
-    }
+    // switch (depth) {
+    // case CV_8U:  
+    //     convertTo32bitChannels(data, mat.cols(),
+    //         mat.rows(), numChannels, channelData.data());
+    // case CV_8S:
+    //     convertTo32bitChannels(reinterpret_cast<int8_t*>(data), mat.cols(),
+    //         mat.rows(), 
+    // case CV_16U:
+    //     convertTo32bitChannels(reinterpret_cast<uint16_t*>(data), mat.cols(),
+    //         mat.rows(), numChannels, channelData.data());
+    // case CV_16S:
+    //     convertTo32bitChannels(reinterpret_cast<int16_t*>(data), mat.cols(),
+    //         mat.rows(), 
+    // case CV_32S:
+    //     convertTo32bitChannels(reinterpret_cast<int32_t*>(data), mat.cols(),
+    //         mat.rows(), numChannels, channelData.data());
+    // default:
+    //     RAISE_RUNTIME_ERROR << "Unsupported type for Jpeg2000 conversion: " << depth;
+    // }
 }
 
 void compressRaster(const cv::Mat& mat, const std::string& targetPath, const ConvertJ2KParameters& params)
