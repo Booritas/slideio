@@ -27,6 +27,7 @@ namespace slideio
         SVSScene(const std::string& filePath, const std::string& name);
 
         virtual ~SVSScene();
+        void makeSureFileIsOpened();
 
         std::string getFilePath() const override {
             return m_filePath;
@@ -46,9 +47,8 @@ namespace slideio
         DataType getChannelDataType(int) const override{
             return m_dataType;
         }
-        libtiff::TIFF* getFileHandle() const {
-            return m_tiffKeeper;
-        }
+        libtiff::TIFF* getFileHandle();
+
     protected:
         std::string m_filePath;
         std::string m_name;

@@ -15,13 +15,22 @@ SVSScene::SVSScene(const std::string& filePath, const std::string& name):
     m_dataType(slideio::DataType::DT_Unknown),
     m_magnification(0.)
 {
-    m_tiffKeeper = libtiff::TIFFOpen(filePath.c_str(), "r");
-    if (!m_tiffKeeper.isValid())
-    {
-        throw std::runtime_error(std::string("SVSImageDriver: Cannot open file:") + filePath);
+}
+
+SVSScene::~SVSScene() = default;
+
+void SVSScene::makeSureFileIsOpened()
+{
+    if (!m_tiffKeeper.isValid()) {
+        m_tiffKeeper = libtiff::TIFFOpen(m_filePath.c_str(), "r");
+        if(!m_tiffKeeper.isValid()) {
+            throw std::runtime_error(std::string("SVSImageDriver: Cannot open file:") + m_filePath);
+        }
     }
 }
 
-SVSScene::~SVSScene()
+libtiff::TIFF* SVSScene::getFileHandle()
 {
+    makeSureFileIsOpened();
+    return m_tiffKeeper;
 }
