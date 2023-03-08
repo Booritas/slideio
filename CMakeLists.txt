@@ -18,7 +18,7 @@ set(CONAN_DISABLE_CHECK_COMPILER ON)
 
 set(CORE_LIB_NAME slideio-core)
 set(IMAGETOOLS_LIB_NAME slideio-imagetools)
-set(SLIEIO_LIB_NAME slideio)
+set(SLIDEIO_LIB_NAME slideio)
 set(GDAL_DRIVER_NAME slideio-gdal)
 set(SVS_DRIVER_NAME slideio-svs)
 set(AFI_DRIVER_NAME slideio-afi)
@@ -30,7 +30,7 @@ set(NDPI_DRIVER_NAME slideio-ndpi)
 set(TEST_LIB_NAME slideio-test-lib)
 
 set(NAME_TOOL_LIB_LIST
-    "lib${SLIEIO_LIB_NAME}.dylib"
+    "lib${SLIDEIO_LIB_NAME}.dylib"
     "lib${CORE_LIB_NAME}.dylib"
     "lib${GDAL_DRIVER_NAME}.dylib"
     "lib${SVS_DRIVER_NAME}.dylib"

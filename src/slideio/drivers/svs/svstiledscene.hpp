@@ -18,9 +18,14 @@ namespace slideio
     class SLIDEIO_SVS_EXPORTS SVSTiledScene : public SVSScene, public Tiler
     {
     public:
+        void initialize();
         SVSTiledScene(const std::string& filePath,
+                      const std::string& name,
+                      const std::vector<slideio::TiffDirectory>& dirs);
+        SVSTiledScene(const std::string& filePath, 
+            libtiff::TIFF* hFile,
             const std::string& name,
-            std::vector<slideio::TiffDirectory> dirs);
+            const std::vector<slideio::TiffDirectory>& dirs);
         int getNumChannels() const override;
         cv::Rect getRect() const override;
         void readResampledBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize, const std::vector<int>& channelIndices,

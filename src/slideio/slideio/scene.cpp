@@ -6,6 +6,7 @@
 #include "slideio/imagetools/cvtools.hpp"
 #include "slideio/core/cvscene.hpp"
 #include <boost/format.hpp>
+#include "slideio/core/tools/log.hpp"
 
 using namespace slideio;
 
@@ -29,20 +30,24 @@ inline  cv::Range tupleToRange(const std::tuple<int, int>& tpl)
 
 Scene::Scene(std::shared_ptr<CVScene> scene) : m_scene(scene)
 {
+    SLIDEIO_LOG(INFO) << "Scene constructor"; 
 }
 
 std::string Scene::getFilePath() const
 {
+    SLIDEIO_LOG(INFO) << "Scene::getFilePath "; 
     return m_scene->getFilePath();
 }
 
 std::string Scene::getName() const
 {
+    SLIDEIO_LOG(INFO) << "Scene::getName "; 
     return m_scene->getName();
 }
 
 std::tuple<int, int, int, int> Scene::getRect() const
 {
+    SLIDEIO_LOG(INFO) << "Scene::getRect "; 
     cv::Rect rect = m_scene->getRect();
     std::tuple<int,int,int,int> wrapper(rect.x, rect.y, rect.width, rect.height);
     return wrapper;
@@ -50,36 +55,43 @@ std::tuple<int, int, int, int> Scene::getRect() const
 
 int Scene::getNumChannels() const
 {
+    SLIDEIO_LOG(INFO) << "Scene::getNumChannels "; 
     return m_scene->getNumChannels();
 }
 
 int Scene::getNumZSlices()
 {
+    SLIDEIO_LOG(INFO) << "Scene::getNumZSlices "; 
     return m_scene->getNumZSlices();
 }
 
 int Scene::getNumTFrames()
 {
+    SLIDEIO_LOG(INFO) << "Scene::getNumTFrames "; 
     return m_scene->getNumTFrames();
 }
 
 Compression Scene::getCompression() const
 {
+    SLIDEIO_LOG(INFO) << "Scene::getCompression "; 
     return m_scene->getCompression();
 }
 
 slideio::DataType Scene::getChannelDataType(int channel) const
 {
+    SLIDEIO_LOG(INFO) << "Scene::getChannelDataType "; 
     return m_scene->getChannelDataType(channel);
 }
 
 std::string Scene::getChannelName(int channel) const
 {
+    SLIDEIO_LOG(INFO) << "Scene::getChannelName "; 
     return m_scene->getChannelName(channel);
 }
 
 std::tuple<double, double> Scene::getResolution() const
 {
+    SLIDEIO_LOG(INFO) << "Scene::getResolution "; 
     slideio::Resolution res = m_scene->getResolution();
     std::tuple<double,double> wrapper(res.x, res.y);
     return wrapper;
@@ -87,21 +99,25 @@ std::tuple<double, double> Scene::getResolution() const
 
 double Scene::getZSliceResolution() const
 {
+    SLIDEIO_LOG(INFO) << "Scene::getZSliceResolution "; 
     return m_scene->getZSliceResolution();
 }
 
 double Scene::getTFrameResolution() const
 {
+    SLIDEIO_LOG(INFO) << "Scene::getTFrameResolution "; 
     return m_scene->getTFrameResolution();
 }
 
 double Scene::getMagnification() const
 {
+    SLIDEIO_LOG(INFO) << "Scene::getMagnification "; 
     return m_scene->getMagnification();
 }
 
 int Scene::getBlockSize(const std::tuple<int, int>& blockSize, int refChannel, int numChannels, int numSlices, int numFrames) const
 {
+    SLIDEIO_LOG(INFO) << "Scene::getBlockSize ";// << blockSize << "," << refChannel << "," << numChannels << "," << numSlices << "," << numFrames;
     const int blockWidth = std::get<0>(blockSize);
     const int blockHeight = std::get<1>(blockSize);
     const int numPlanes = numSlices*numFrames*numChannels;
@@ -113,6 +129,7 @@ int Scene::getBlockSize(const std::tuple<int, int>& blockSize, int refChannel, i
 
 void Scene::readBlock(const std::tuple<int, int, int, int>& rect, void* buffer, size_t bufferSize)
 {
+    SLIDEIO_LOG(INFO) << "Scene::readBlock ";// << rect;
     const std::vector<int> channelIndices;
     return readBlockChannels(rect, channelIndices, buffer, bufferSize);
 }
@@ -120,6 +137,7 @@ void Scene::readBlock(const std::tuple<int, int, int, int>& rect, void* buffer, 
 void Scene::readBlockChannels(const std::tuple<int, int, int, int>& blockRect, const std::vector<int>& channelIndices,
     void* buffer, size_t bufferSize)
 {
+    SLIDEIO_LOG(INFO) << "Scene::readBlockChannels ";// << blockRect << "," << channelIndices;
     const int blockWidth = std::get<2>(blockRect) - std::get<0>(blockRect);
     const int blockHeight = std::get<3>(blockRect) - std::get<1>(blockRect);
     const std::tuple<int,int> size(blockWidth, blockHeight);
@@ -129,6 +147,7 @@ void Scene::readBlockChannels(const std::tuple<int, int, int, int>& blockRect, c
 void Scene::readResampledBlockChannels(const std::tuple<int, int, int, int>& rect,
     const std::tuple<int, int>& size, const std::vector<int>& channelIndices, void* buffer, size_t bufferSize)
 {
+    SLIDEIO_LOG(INFO) << "Scene::readResampledBlockChannels ";// << rect << "," << size << "," << channelIndices;
     cv::Rect blockRect = tupleToRect(rect);
     cv::Size blockSize = tupleToSize(size);
     const int numChannels = (channelIndices.empty()?m_scene->getNumChannels():static_cast<int>(channelIndices.size()));
@@ -155,6 +174,7 @@ void Scene::readResampledBlockChannels(const std::tuple<int, int, int, int>& rec
 void Scene::read4DBlock(const std::tuple<int, int, int, int>& blockRect, const std::tuple<int, int>& zSliceRange,
     const std::tuple<int, int>& timeFrameRange, void* buffer, size_t bufferSize)
 {
+    SLIDEIO_LOG(INFO) << "Scene::read4DBlock ";// << blockRect << "," << zSliceRange << "," << timeFrameRange;
     const std::vector<int> channelIndices;
     return read4DBlockChannels(blockRect, channelIndices, zSliceRange, timeFrameRange, buffer, bufferSize);
 }
@@ -163,6 +183,7 @@ void Scene::read4DBlockChannels(const std::tuple<int, int, int, int>& blockRect,
     const std::tuple<int, int>& zSliceRange, const std::tuple<int, int>& timeFrameRange, void* buffer,
     size_t bufferSize)
 {
+    SLIDEIO_LOG(INFO) << "Scene::read4DBlock ";// << blockRect << "," << channelIndices << "," << zSliceRange << "," << timeFrameRange;
     const int blockWidth = std::get<2>(blockRect) - std::get<0>(blockRect);
     const int blockHeight = std::get<3>(blockRect) - std::get<1>(blockRect);
     const std::tuple<int,int> blockSize(blockWidth, blockHeight);
@@ -173,6 +194,7 @@ void Scene::readResampled4DBlock(const std::tuple<int, int, int, int>& blockRect
     const std::tuple<int, int>& zSliceRange, const std::tuple<int, int>& timeFrameRange, void* buffer,
     size_t bufferSize)
 {
+    SLIDEIO_LOG(INFO) << "Scene::readResampled4DBlock ";// << blockRect << "," << zSliceRange << "," << timeFrameRange;
     const std::vector<int> channelIndices;
     return readResampled4DBlockChannels(blockRect, blockSize, channelIndices, zSliceRange, timeFrameRange, buffer, bufferSize);
 }
@@ -182,6 +204,7 @@ void Scene::readResampled4DBlockChannels(const std::tuple<int, int, int, int>& r
     const std::tuple<int, int>& zSliceRange, const std::tuple<int, int>& timeFrameRange, void* buffer,
     size_t bufferSize)
 {
+    SLIDEIO_LOG(INFO) << "Scene::readResampled4DBlockChannels ";// << rect << "," << size << "," << channelIndices << "," << zSliceRange << "," << timeFrameRange;
     cv::Rect blockRect = tupleToRect(rect);
     cv::Size blockSize = tupleToSize(size);
     cv::Range sliceRange = tupleToRange(zSliceRange);
@@ -248,21 +271,25 @@ void Scene::readResampled4DBlockChannels(const std::tuple<int, int, int, int>& r
 
 const std::list<std::string>& Scene::getAuxImageNames() const
 {
+    SLIDEIO_LOG(INFO) << "Scene::getAuxImageNames "; 
     return m_scene->getAuxImageNames();
 }
 
 int Scene::getNumAuxImages() const
 {
+    SLIDEIO_LOG(INFO) << "Scene::getNumAuxImages "; 
     return m_scene->getNumAuxImages();
 }
 
 std::string Scene::getRawMetadata() const
 {
+    SLIDEIO_LOG(INFO) << "Scene::getRawMetadata "; 
     return m_scene->getRawMetadata();
 }
 
 std::shared_ptr<Scene> Scene::getAuxImage(const std::string& sceneName) const
 {
+    SLIDEIO_LOG(INFO) << "Scene::getAuxImage " << sceneName; 
     std::shared_ptr<CVScene> cvScene = m_scene->getAuxImage(sceneName);
     std::shared_ptr<Scene> scene(new Scene(cvScene));
     return scene;

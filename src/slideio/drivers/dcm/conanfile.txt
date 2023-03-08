@@ -5,6 +5,7 @@ libxml2/2.9.10@slideio/stable
 glog/0.6.0@slideio/stable
 opencv/4.1.1@slideio/stable
 zlib/1.2.13
+xz_utils/5.4.0
 dcmtk/3.6.5@slideio/stable
 libiconv/1.17
 libwebp/1.2.4

@@ -560,3 +560,22 @@ TEST(CZIImageDriver, openDamagedFile)
 
     ASSERT_NO_THROW(driver.openFile(filePath));
 }
+
+TEST(CZIImageDriver, auxSceneMemoryReallocatedBug)
+{
+    std::string imagePath = TestTools::getTestImagePath("czi", "03_14_2019_DSGN0545_A_wb_1353_fov_1_633.czi");
+    slideio::CZIImageDriver driver;
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(imagePath);
+    ASSERT_TRUE(slide != nullptr);
+    std::list<std::string> imageNames = slide->getAuxImageNames();
+    const int maxWidth = 500;
+    for(auto & imageName: imageNames) {
+        std::shared_ptr<slideio::CVScene> auxImage = slide->getAuxImage(imageName);
+        cv::Mat auxRaster;
+        cv::Rect sceneRect = auxImage->getRect();
+        double cof = 500. / sceneRect.width;
+        cv::Size size(500, std::lround(cof * sceneRect.height));
+        std::vector<int> channels = {2,1,0};
+        auxImage->readResampledBlockChannels(sceneRect, size, channels, auxRaster);
+    }
+}

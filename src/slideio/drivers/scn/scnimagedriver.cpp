@@ -24,7 +24,7 @@ std::shared_ptr<slideio::CVSlide> slideio::SCNImageDriver::openFile(const std::s
 {
     namespace fs = boost::filesystem;
     if (!fs::exists(filePath)) {
-        throw std::runtime_error(std::string("CZIImageDriver: File does not exist:") + filePath);
+        throw std::runtime_error(std::string("SCNImageDriver: File does not exist:") + filePath);
     }
     std::shared_ptr<CVSlide> ptr(new SCNSlide(filePath));
     return ptr;
