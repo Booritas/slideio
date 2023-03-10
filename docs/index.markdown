@@ -22,3 +22,12 @@ The module builds accesses images through a system of image drivers that impleme
 | **GDAL** | General image formates | *.jpeg,*.jpg,*.tiff,*.tiff,*.png | - | - |
 
 The library is built as a c++ python extension and provides c++ and python interfaces.
+# Library news
+<ul>
+  {% for post in site.news %}
+    <li>
+      <a href="{{ post.url }}">{{ post.title }}</a>
+      {{ post.excerpt }}
+    </li>
+  {% endfor %}
+</ul>
