@@ -25,9 +25,11 @@ The library is built as a c++ python extension and provides c++ and python inter
 # Library news
 <ul>
   {% for post in site.posts %}
-    <li>
-      <a href="{{ post.url }}">{{ post.title }}</a>
-      {{ post.excerpt }}
-    </li>
+     {% if post.categories contains 'News' %}
+      <li>
+        <a href="{{ post.permalink }}">{{ post.title }}</a>
+        {{ post.excerpt }}
+      </li>
+    {% endif %}
   {% endfor %}
 </ul>
