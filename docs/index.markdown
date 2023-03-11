@@ -24,10 +24,10 @@ The module builds accesses images through a system of image drivers that impleme
 The library is built as a c++ python extension and provides c++ and python interfaces.
 # Library news
 <ul>
-  {% for post in site.posts limit:2 %}
+  {% for post in site.posts limit:3 %}
      {% if post.categories contains 'News' %}
       <li>
-        <a href="{{ post.permalink }}">{{ post.title }}</a>
+        <a href="{{ post.url }}">{{ post.title }}</a>
         {{ post.excerpt }}
       </li>
     {% endif %}
