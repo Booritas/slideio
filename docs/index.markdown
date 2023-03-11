@@ -33,4 +33,4 @@ The library is built as a c++ python extension and provides c++ and python inter
     {% endif %}
   {% endfor %}
 </ul>
-<a href="{{ site.baseurl }}{{ site.categories.News }}>">More news</a>
+<a href="{{ site.baseurl }}{{ site.categories.News.url }}>">More news</a>
