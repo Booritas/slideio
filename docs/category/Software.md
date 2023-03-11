@@ -25,4 +25,4 @@ sidebar_sort_order: 700
 -   [Microsoft Visual Studio](https://visualstudio.microsoft.com/)
 -   [Visual Studio Code](https://code.visualstudio.com/)
 
-[![image](images/jetbrains.png){width="200px"}](https://www.jetbrains.com/?from=slideio)
+[![JetBrains](/assets/jetbrains.png)](https://www.jetbrains.com/?from=slideio)
