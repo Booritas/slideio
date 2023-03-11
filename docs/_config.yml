@@ -2,8 +2,7 @@ title: SlideIO
 email: admin@slideio.com
 description: >- # this means to ignore newlines until "baseurl:"
   Medical imaging library for python and c++.
-baseurl: "/slideio" # the subpath of your site, e.g. /blog
-url: "https://booritas.github.io" # the base hostname & protocol for your site, e.g. http://example.com
+url: "https://www.slideio.com" # the base hostname & protocol for your site, e.g. http://example.com
 hydeout:
   repo: "https://github.com/Booritas/slideio"
 
