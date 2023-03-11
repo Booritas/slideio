@@ -27,6 +27,7 @@ The library is built as a c++ python extension and provides c++ and python inter
   {% for post in site.posts %}
     <li>
       <a href="{{ post.url }}">{{ post.title }}</a>
+      {{ post.excerpt }}
     </li>
   {% endfor %}
 </ul>
