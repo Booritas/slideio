@@ -23,4 +23,10 @@ The module builds accesses images through a system of image drivers that impleme
 
 The library is built as a c++ python extension and provides c++ and python interfaces.
 # Library news
-<!--more-->
+<ul>
+  {% for post in site.posts %}
+    <li>
+      <a href="{{ post.url }}">{{ post.title }}</a>
+    </li>
+  {% endfor %}
+</ul>
