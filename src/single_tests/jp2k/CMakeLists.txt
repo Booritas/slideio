@@ -20,6 +20,7 @@ set(SOURCE_FILES
    opj_getopt.h
    opj_string.h
    opj_wrappers.h
+   opj_compress.cpp
 )
 
 add_executable(${TEST_NAME} ${SOURCE_FILES})

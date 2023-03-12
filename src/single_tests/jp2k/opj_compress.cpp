@@ -1916,7 +1916,7 @@ OPJ_FLOAT64 opj_clock(void)
  * OPJ_COMPRESS MAIN
  */
 /* -------------------------------------------------------------------------- */
-int main(int argc, char **argv)
+int omain(int argc, char **argv)
 {
 
     opj_cparameters_t parameters;   /* compression parameters */

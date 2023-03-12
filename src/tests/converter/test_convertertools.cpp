@@ -229,5 +229,45 @@ TEST(ConverterTools, computeZoomLevelRect)
 		cv::Rect expectedRect(0, 0, 500, 800);
 		EXPECT_EQ(levelRect, expectedRect);
 	}
+}
 
+TEST(ConverterTools, ConvertTo32BitChannelsTest) {
+	const int width = 3;
+	const int height = 2;
+	const int numChannels = 3;
+
+	// Input data
+	uint8_t inputData[] = {
+		255, 0, 0,  // Red
+		0, 255, 0,  // Green
+		0, 0, 255,  // Blue
+		128, 128, 128,  // Gray
+		255, 255, 0,  // Yellow
+		0, 255, 255   // Cyan
+	};
+
+	// Expected output data
+	int32_t expectedChannel1[] = { 255, 0, 0,  128, 255, 0 };
+	int32_t expectedChannel2[] = { 0, 255, 0,  128, 255, 255 };
+	int32_t expectedChannel3[] = { 0, 0, 255,  128, 0, 255 };
+
+	// Initialize channel pointers
+	int32_t* channel1 = new int32_t[width * height];
+	int32_t* channel2 = new int32_t[width * height];
+	int32_t* channel3 = new int32_t[width * height];
+	int32_t* channels[] = { channel1, channel2, channel3 };
+
+	slideio::ConverterTools::convertTo32bitChannels(inputData, width, height, numChannels, channels);
+
+	// Check the results
+	for (int i = 0; i < width * height; i++) {
+		EXPECT_EQ(expectedChannel1[i], channel1[i]) << "Error at index " << i << " for channel 1";
+		EXPECT_EQ(expectedChannel2[i], channel2[i]) << "Error at index " << i << " for channel 2";
+		EXPECT_EQ(expectedChannel3[i], channel3[i]) << "Error at index " << i << " for channel 3";
+	}
+
+	// Clean up memory
+	delete[] channel1;
+	delete[] channel2;
+	delete[] channel3;
 }

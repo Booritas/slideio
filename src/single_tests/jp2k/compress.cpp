@@ -5,6 +5,7 @@
 #include "slideio/base/exceptions.hpp"
 #include "slideio/core/imagedrivermanager.hpp"
 #include "opj_wrappers.h"
+#include "slideio/converter/convertertools.hpp"
 
 static void error_callback(const char* msg, void* )
 {
@@ -25,26 +26,6 @@ struct ConvertJ2KParameters
     int subSamplingDY;
 };
 
-template <typename Type>
-void convertTo32bitChannels(Type* data, int width, int height, int numChannels, int32_t** channels)
-{
-    const int pixelSize = numChannels;
-    const int stride = pixelSize * width;
-    Type* line = data;
-    int channelShift = 0;
-    for (int y = 0; y < height; ++y) {
-        Type* pixel = line;
-        for (int x = 0; x < width; ++x) {
-            for (int channelIndex = 0; channelIndex < numChannels; ++channelIndex) {
-                int32_t* channel = channels[channelIndex];
-                channel[channelShift] = static_cast<int32_t>(pixel[channelIndex]);
-            }
-            pixel += pixelSize;
-            channelShift++;
-        }
-        line += stride;
-    }
-}
 
 void rasterToOPJImage(const cv::Mat& mat, ImagePtr& image, const ConvertJ2KParameters& params)
 {
@@ -84,6 +65,9 @@ void rasterToOPJImage(const cv::Mat& mat, ImagePtr& image, const ConvertJ2KParam
 
     image = opj_image_create(numChannels, channelParameters.data(),
         colorSpace);
+    image.get()->x1 = width;
+    image.get()->y1 = height;
+    image.get()->numcomps = numChannels;
 
     uint8_t* data = mat.data;
     std::vector<int32_t*> channelData(numChannels);
@@ -92,21 +76,26 @@ void rasterToOPJImage(const cv::Mat& mat, ImagePtr& image, const ConvertJ2KParam
     }
 
     switch (depth) {
-    case CV_8U:  
-        convertTo32bitChannels(data, mat.cols,
-            mat.rows, numChannels, channelData.data());
+    case CV_8U:
+        slideio::ConverterTools::convertTo32bitChannels(data, mat.cols,
+        mat.rows, numChannels, channelData.data());
+        break;
     case CV_8S:
-        convertTo32bitChannels(reinterpret_cast<int8_t*>(data), mat.cols,
+        slideio::ConverterTools::convertTo32bitChannels(reinterpret_cast<int8_t*>(data), mat.cols,
             mat.rows, numChannels, channelData.data());
+        break;
     case CV_16U:
-        convertTo32bitChannels(reinterpret_cast<uint16_t*>(data), mat.cols,
+        slideio::ConverterTools::convertTo32bitChannels(reinterpret_cast<uint16_t*>(data), mat.cols,
             mat.rows, numChannels, channelData.data());
+        break;
     case CV_16S:
-        convertTo32bitChannels(reinterpret_cast<int16_t*>(data), mat.cols,
+        slideio::ConverterTools::convertTo32bitChannels(reinterpret_cast<int16_t*>(data), mat.cols,
             mat.rows, numChannels, channelData.data());
+        break;
     case CV_32S:
-        convertTo32bitChannels(reinterpret_cast<int32_t*>(data), mat.cols,
+        slideio::ConverterTools::convertTo32bitChannels(reinterpret_cast<int32_t*>(data), mat.cols,
             mat.rows, numChannels, channelData.data());
+        break;
     default:
         RAISE_RUNTIME_ERROR << "Unsupported type for Jpeg2000 conversion: " << depth;
     }
@@ -115,10 +104,16 @@ void rasterToOPJImage(const cv::Mat& mat, ImagePtr& image, const ConvertJ2KParam
 void compressRaster(const cv::Mat& mat, const std::string& targetPath, const ConvertJ2KParameters& params)
 {
     wopj_cparameters parameters;   /* compression parameters */
-    strncpy(parameters.outfile, targetPath.c_str(), OPJ_PATH_LEN);
     ImagePtr image;
 
-    CodecPtr codec = opj_create_compress(OPJ_CODEC_J2K);
+    opj_set_default_encoder_parameters(&parameters);
+    parameters.decod_format = 17;
+    parameters.cod_format = 1;
+    parameters.tcp_mct = 1;
+
+    strncpy(parameters.outfile, targetPath.c_str(), OPJ_PATH_LEN);
+
+    CodecPtr codec = opj_create_compress(OPJ_CODEC_JP2);
 
     rasterToOPJImage(mat, image, params);
     opj_set_info_handler(codec, info_callback, nullptr);
@@ -143,7 +138,6 @@ void compressRaster(const cv::Mat& mat, const std::string& targetPath, const Con
     if(!opj_end_compress(codec, stream)) {
         RAISE_RUNTIME_ERROR << "Failed to encode image : opj_end_compress.";
     }
-
 }
 
 void convertScene(const CVScenePtr& scene, const std::string& targetPath, const ConvertJ2KParameters& params)
