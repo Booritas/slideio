@@ -10,46 +10,54 @@
 
 using namespace slideio;
 
-SVSTiledScene::SVSTiledScene(
-    const std::string& filePath,
-    const std::string& name,
-    std::vector<TiffDirectory> dirs):
-    slideio::SVSScene(filePath, name),
-        m_directories(dirs)
 
+SVSTiledScene::SVSTiledScene(const std::string& filePath, const std::string& name, 
+    const std::vector<TiffDirectory>& dirs): SVSScene(filePath, name), m_directories(dirs)
+{
+    initialize();
+}
+
+SVSTiledScene::SVSTiledScene(const std::string& filePath, libtiff::TIFF* hFile, const std::string& name,
+    const std::vector<slideio::TiffDirectory>& dirs) : SVSScene(filePath, hFile, name), m_directories(dirs)
+{
+    initialize();
+}
+
+void SVSTiledScene::initialize()
 {
     m_resolution = { 0., 0. };
     auto& dir = m_directories[0];
     m_dataType = dir.dataType;
 
-    if(m_dataType==DataType::DT_None || m_dataType==DataType::DT_Unknown)
+    if (m_dataType == DataType::DT_None || m_dataType == DataType::DT_Unknown)
     {
-        switch(dir.bitsPerSample)
+        switch (dir.bitsPerSample)
         {
-            case 8:
-                m_dataType = dir.dataType = DataType::DT_Byte;
+        case 8:
+            m_dataType = dir.dataType = DataType::DT_Byte;
             break;
-            case 16:
-                m_dataType = dir.dataType = DataType::DT_UInt16;
+        case 16:
+            m_dataType = dir.dataType = DataType::DT_UInt16;
             break;
-            default:
-                m_dataType = DataType::DT_Unknown;
+        default:
+            m_dataType = DataType::DT_Unknown;
         }
     }
     m_magnification = SVSTools::extractMagnifiation(dir.description);
     double res = SVSTools::extractResolution(dir.description);
     m_resolution = { res, res };
-    if(!m_directories.empty())
+    if (!m_directories.empty())
     {
         const auto& dir = m_directories.front();
         m_compression = dir.slideioCompression;
-        if(m_compression==Compression::Unknown &&
-            (dir.compression==33003 || dir.compression==3305))
+        if (m_compression == Compression::Unknown &&
+            (dir.compression == 33003 || dir.compression == 3305))
         {
             m_compression = Compression::Jpeg2000;
         }
     }
 }
+
 
 cv::Rect SVSTiledScene::getRect() const
 {

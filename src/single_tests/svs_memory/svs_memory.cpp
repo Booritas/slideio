@@ -1,5 +1,4 @@
 #include <iostream>
-#include "slideio/drivers/dcm/dcmimagedriver.hpp"
 #include "tests/testlib/testtools.hpp"
 #include "slideio/slideio/slideio.hpp"
 using namespace slideio;
