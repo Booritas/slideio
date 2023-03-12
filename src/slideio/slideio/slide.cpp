@@ -3,7 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/slideio/slide.hpp"
 #include "slideio/core/cvslide.hpp"
-#include "slideio/core/tools/log.hpp"
+#include "slideio/base/log.hpp"
 
 using namespace slideio;
 

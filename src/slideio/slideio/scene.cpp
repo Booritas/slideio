@@ -6,7 +6,7 @@
 #include "slideio/imagetools/cvtools.hpp"
 #include "slideio/core/cvscene.hpp"
 #include <boost/format.hpp>
-#include "slideio/core/tools/log.hpp"
+#include "slideio/base/log.hpp"
 
 #include "slideio/base/exceptions.hpp"
 

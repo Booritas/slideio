@@ -37,6 +37,11 @@ namespace slideio
             m_hFile = hFile;
             return *this;
         }
+        libtiff::TIFF* release() {
+            libtiff::TIFF* handle = m_hFile;
+            m_hFile = nullptr;
+            return handle;
+        }
         void openTiffFile(const std::string& filePath, bool readOnly = true);
         void closeTiffFile();
         void writeDirectory();
