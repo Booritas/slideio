@@ -59,7 +59,7 @@ void rasterToOPJImage(const cv::Mat& mat, ImagePtr& image, const ConvertJ2KParam
     if(numChannels == 1) {
         colorSpace = OPJ_CLRSPC_GRAY;
     }
-    else if(numChannels == 3 && bitDepth == 8) {
+    else if(numChannels == 3) {
         colorSpace = OPJ_CLRSPC_SRGB;
     }
 
@@ -68,6 +68,7 @@ void rasterToOPJImage(const cv::Mat& mat, ImagePtr& image, const ConvertJ2KParam
     image.get()->x1 = width;
     image.get()->y1 = height;
     image.get()->numcomps = numChannels;
+
 
     uint8_t* data = mat.data;
     std::vector<int32_t*> channelData(numChannels);
@@ -109,13 +110,17 @@ void compressRaster(const cv::Mat& mat, const std::string& targetPath, const Con
     opj_set_default_encoder_parameters(&parameters);
     parameters.decod_format = 17;
     parameters.cod_format = 1;
-    parameters.tcp_mct = 1;
+    parameters.tcp_mct = 0;
+
 
     strncpy(parameters.outfile, targetPath.c_str(), OPJ_PATH_LEN);
 
     CodecPtr codec = opj_create_compress(OPJ_CODEC_JP2);
 
     rasterToOPJImage(mat, image, params);
+    if (image.get()->color_space == OPJ_CLRSPC_SRGB) {
+        parameters.tcp_mct = 1;
+    }
     opj_set_info_handler(codec, info_callback, nullptr);
     opj_set_warning_handler(codec, warning_callback, nullptr);
     opj_set_error_handler(codec, error_callback, nullptr);
@@ -158,10 +163,16 @@ void compress(const std::string& sourcePath, const std::string& driver, const st
 
 int main()
 {
-    const std::string sourcePath("d:/Projects/slideio/slideio_extra/testdata/cv/slideio/gdal/img_2448x2448_3x8bit_SRC_RGB_ducks.png");
-    const std::string targetPath("d:/Temp/a.jp2");
+    //const std::string sourcePath("d:/Projects/slideio/slideio_extra/testdata/cv/slideio/gdal/img_2448x2448_3x8bit_SRC_RGB_ducks.png");
+    //const std::string driver = "GDAL";
+    //const std::string sourcePath("d:/Projects/slideio/slideio_extra/testdata/cv/slideio/gdal/img_2448x2448_3x16bit_SRC_RGB_ducks.png");
+    // const std::string sourcePath("d:/Projects/slideio/slideio_extra/testdata/cv/slideio/dcm/barre.dev/CT-MONO2-12-lomb-an2");
+    // const std::string driver = "DCM";
+    const std::string sourcePath("d:/Projects/slideio/slideio_extra/testdata/cv/slideio/ndpi/test3-DAPI-2-(387).ndpi");
+    const std::string driver = "NDPI";
+    const std::string targetPath("d:/Temp/e.jp2");
     ConvertJ2KParameters params = { 1,1 };
-    compress(sourcePath, "GDAL", targetPath, params);
+    compress(sourcePath, driver, targetPath, params);
     return 0;
     
 }
