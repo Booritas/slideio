@@ -123,6 +123,24 @@ TEST(CZIImageDriver, readBlock)
     }
 }
 
+TEST(CZIImageDriver, readBlockStrongDownscaleNotThrowing)
+{
+    slideio::CZIImageDriver driver;
+    std::string filePath = TestTools::getTestImagePath("czi", "PYP-467.czi");
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    int numScenes = slide->getNumScenes();
+    ASSERT_EQ(numScenes, 1);
+    auto scene = slide->getScene(0);
+    ASSERT_FALSE(scene == nullptr);
+    auto sceneRect = scene->getRect();
+    cv::Size blockSize(5, 5);
+    cv::Rect blockRect(2148, 0, 40, 40);
+    cv::Mat mat;
+    scene->readResampledBlock(blockRect, blockSize, mat);
+    //TestTools::showRaster(mat);
+}
+
 TEST(CZIImageDriver, readBlock4D)
 {
     slideio::CZIImageDriver driver;
