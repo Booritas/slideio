@@ -21,6 +21,8 @@ set(SOURCE_FILES
    opj_string.h
    opj_wrappers.h
    opj_compress.cpp
+   jp2_memory.cpp
+   jp2_memory.hpp
 )
 
 add_executable(${TEST_NAME} ${SOURCE_FILES})

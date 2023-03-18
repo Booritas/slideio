@@ -1,7 +1,8 @@
 #include <iostream>
+#include <fstream>
 #include <openjpeg.h>
 
-#include "format_defs.h"
+#include "jp2_memory.hpp"
 #include "slideio/base/exceptions.hpp"
 #include "slideio/core/imagedrivermanager.hpp"
 #include "opj_wrappers.h"
@@ -102,7 +103,7 @@ void rasterToOPJImage(const cv::Mat& mat, ImagePtr& image, const ConvertJ2KParam
     }
 }
 
-void compressRaster(const cv::Mat& mat, const std::string& targetPath, const ConvertJ2KParameters& params)
+void compressRasterToFile(const cv::Mat& mat, const std::string& targetPath, const ConvertJ2KParameters& params)
 {
     wopj_cparameters parameters;   /* compression parameters */
     ImagePtr image;
@@ -145,13 +146,67 @@ void compressRaster(const cv::Mat& mat, const std::string& targetPath, const Con
     }
 }
 
+void compressRasterToMemory(const cv::Mat& mat, std::vector<uint8_t>& buffer, const ConvertJ2KParameters& params)
+{
+    wopj_cparameters parameters;   /* compression parameters */
+    ImagePtr image;
+
+    opj_set_default_encoder_parameters(&parameters);
+    parameters.decod_format = 17;
+    parameters.cod_format = 1;
+    parameters.tcp_mct = 0;
+
+    CodecPtr codec = opj_create_compress(OPJ_CODEC_JP2);
+
+    rasterToOPJImage(mat, image, params);
+    if (image.get()->color_space == OPJ_CLRSPC_SRGB) {
+        parameters.tcp_mct = 1;
+    }
+    opj_set_info_handler(codec, info_callback, nullptr);
+    opj_set_warning_handler(codec, warning_callback, nullptr);
+    opj_set_error_handler(codec, error_callback, nullptr);
+
+    if (!opj_setup_encoder(codec, &parameters, image)) {
+        RAISE_RUNTIME_ERROR << "Failed to encode image: opj_setup_encoder.";
+    }
+
+    opj_memory_stream stream;
+    stream.dataSize = buffer.size();
+    stream.offset = 0;
+    stream.pData = buffer.data();
+
+    opj_stream_t* strm = opj_stream_create_default_memory_stream(&stream, OPJ_FALSE);
+
+    if (!strm) {
+        RAISE_RUNTIME_ERROR << "Cannot create default file stream.";
+    }
+    if (!opj_start_compress(codec, image, strm)) {
+        RAISE_RUNTIME_ERROR << "Failed to encode image : opj_start_compress.";
+    }
+    if (!opj_encode(codec, strm)) {
+        RAISE_RUNTIME_ERROR << "Failed to encode image : opj_encode.";
+    }
+    if (!opj_end_compress(codec, strm)) {
+        RAISE_RUNTIME_ERROR << "Failed to encode image : opj_end_compress.";
+    }
+    buffer.resize(stream.offset);
+}
+
 void convertScene(const CVScenePtr& scene, const std::string& targetPath, const ConvertJ2KParameters& params)
 {
     auto sceneRect = scene->getRect();
     sceneRect.x = sceneRect.y = 0;
     cv::Mat sourceRaster;
     scene->readBlock(sceneRect, sourceRaster);
-    compressRaster(sourceRaster, targetPath, params);
+    int memorySize = sourceRaster.total()* sourceRaster.elemSize();
+    std::vector<uint8_t> mem(memorySize);
+    compressRasterToMemory(sourceRaster, mem, params);
+    // Open the file in binary output mode
+    std::ofstream output_file(targetPath, std::ios::binary);
+    // Write the contents of the vector to the file
+    output_file.write((const char*)mem.data(), mem.size());
+    // Close the file
+    output_file.close();
 }
 
 void compress(const std::string& sourcePath, const std::string& driver, const std::string& targetPath, const ConvertJ2KParameters& params)
