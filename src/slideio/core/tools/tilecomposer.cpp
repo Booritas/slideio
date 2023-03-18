@@ -72,11 +72,13 @@ void slideio::TileComposer::composeRect(slideio::Tiler* tiler,
                 cv::resize(tileRaster, scaledTileRaster, scaledTileRect.size());
                 // compute intersection of scaled tile rectangle and scaled block rectangle
                 cv::Rect scaledIntersectionRect = scaledBlockRect & scaledTileRect;
-                const cv::Rect blockPart = scaledIntersectionRect - scaledBlockRect.tl();
-                const cv::Rect tilePart = scaledIntersectionRect - scaledTileRect.tl();
-                cv::Mat blockPartRaster(scaledBlockRaster, blockPart);
-                cv::Mat tilePartRaster(scaledTileRaster, tilePart);
-                tilePartRaster.copyTo(blockPartRaster);
+                if(!scaledIntersectionRect.empty()) {
+                    const cv::Rect blockPart = scaledIntersectionRect - scaledBlockRect.tl();
+                    const cv::Rect tilePart = scaledIntersectionRect - scaledTileRect.tl();
+                    cv::Mat blockPartRaster(scaledBlockRaster, blockPart);
+                    cv::Mat tilePartRaster(scaledTileRaster, tilePart);
+                    tilePartRaster.copyTo(blockPartRaster);
+                }
             }
         }
     }
