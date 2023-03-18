@@ -1,3 +1,5 @@
+// source of the code is taken from
+// https://groups.google.com/g/openjpeg/c/8cebr0u7JgY/m/hc5k6r_LDAAJ
 // These routines are added to use memory instead of a file for input and output.
 //Structure need to treat memory as a stream.
 #include <cstring>
