@@ -9,7 +9,9 @@
 
 int main()
 {
-	std::string path = TestTools::getTestImagePath("gdal", "Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg");
+	
+	//std::string path = TestTools::getTestImagePath("gdal", "Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg");
+	std::string path = TestTools::getTestImagePath("gdal", "img_2448x2448_3x16bit_SRC_RGB_ducks.png");
 	SlidePtr slide = slideio::openSlide(path, "GDAL");
 	ScenePtr scene = slide->getScene(0);
 	auto sceneRect = scene->getRect();
@@ -18,7 +20,8 @@ int main()
 
 	// slideio::TempFile tmp("svs");
 	// std::string outputPath = tmp.getPath().string();
-	std::string outputPath = TestTools::getTestImagePath("gdal", "Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.svs");
+	//std::string outputPath = TestTools::getTestImagePath("gdal", "Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.svs");
+	std::string outputPath = TestTools::getTestImagePath("gdal", "img_2448x2448_3x16bit_SRC_RGB_ducks.svs");
 	if (boost::filesystem::exists(outputPath)) {
 		boost::filesystem::remove(outputPath);
 	}
