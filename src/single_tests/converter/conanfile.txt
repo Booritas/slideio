@@ -1,0 +1,8 @@
+[requires]
+glog/0.6.0@slideio/stable
+boost/1.73.0
+opencv/4.1.1@slideio/stable
+zlib/1.2.13
+[options]
+boost:shared=False
+glog:shared=True

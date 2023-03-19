@@ -331,6 +331,7 @@ int slideio::ImageTools::encodeJp2KStream(const cv::Mat& mat, uint8_t* buffer, i
     if (!opj_end_compress(codec, strm)) {
         RAISE_RUNTIME_ERROR << "Failed to encode image : opj_end_compress.";
     }
+    opj_stream_destroy(strm);
     return (int)stream.offset;
 }
 
