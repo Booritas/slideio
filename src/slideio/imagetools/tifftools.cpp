@@ -779,16 +779,25 @@ void TiffTools::setTags(libtiff::TIFF* tiff, const TiffDirectory& dir, bool newD
     libtiff::TIFFSetField(tiff, TIFFTAG_JPEGQUALITY, dir.compressionQuality);
 }
 
-void TiffTools::writeTile(libtiff::TIFF* tiff, int x, int y, Compression compression, int quality, const cv::Mat& tileRaster)
+void TiffTools::writeTile(libtiff::TIFF* tiff, int x, int y, Compression compression, 
+                        const cv::Mat& tileRaster, const ImageTools::EncodeParameters& parameters)
 {
     if(compression==Compression::Jpeg) {
-        //ImageTools::encodeJpeg(tileRaster, encodedStream, quality);
         const uint32_t tile = libtiff::TIFFComputeTile(tiff, x, y, 0, 0);
         const size_t dataSize = tileRaster.total() * tileRaster.elemSize();
         const int64_t written = libtiff::TIFFWriteEncodedTile(tiff, tile, tileRaster.data, dataSize);
         if ((int64_t)dataSize != written) {
             RAISE_RUNTIME_ERROR << "Error by writing tiff tile";
         }
+    }
+    else if(compression==Compression::Jpeg2000) {
+        const size_t dataSize = tileRaster.total() * tileRaster.elemSize();
+        const uint32_t tile = libtiff::TIFFComputeTile(tiff, x, y, 0, 0);
+        std::vector<uint8_t> buffer(dataSize);
+        const ImageTools::JP2KEncodeParameters& jp2param = 
+            static_cast<const ImageTools::JP2KEncodeParameters &>(parameters);
+        ImageTools::encodeJp2KStream(tileRaster, buffer, jp2param);
+        libtiff::TIFFWriteRawTile(tiff, tile, buffer.data(), buffer.size());
     }
     else {
         RAISE_RUNTIME_ERROR << "Unsupported compression: " << compression;

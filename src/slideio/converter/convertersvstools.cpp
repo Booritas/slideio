@@ -32,8 +32,8 @@ std::string slideio::ConverterSVSTools::createDescription(const CVScenePtr& scen
     buff << "SlideIO Library 2.0" << std::endl;
     buff << rect.width << "x" << rect.height;
     buff << "(" << parameters.tileWidth << "x" << parameters.tileHeight << ") ";
-    if(parameters.compression == Compression::Jpeg) {
-        buff << "JPEG/RGB " << "Q=" << parameters.compressionQuality;
+    if(parameters.encoding->compression == Compression::Jpeg) {
+        buff << "JPEG/RGB " << "Q=" << ((ImageTools::JpegEncodeParameters*)parameters.encoding)->quality;
     }
     buff << std::endl;
     double magn = scene->getMagnification();
@@ -50,18 +50,19 @@ void slideio::ConverterSVSTools::createZoomLevel(TIFFKeeperPtr& file, int zoomLe
     sceneRect.x = sceneRect.y = 0;
     cv::Size levelImageSize = ConverterTools::scaleSize(sceneRect.size(), zoomLevel);
     cv::Rect levelRect = ConverterTools::computeZoomLevelRect(sceneRect, tileSize, zoomLevel);
-    const int quality = parameters.compressionQuality;
 
     slideio::TiffDirectory dir;
     dir.tiled = true;
     dir.channels = scene->getNumChannels();
     dir.dataType = scene->getChannelDataType(0);
-    dir.slideioCompression = parameters.compression;
+    dir.slideioCompression = parameters.encoding->compression;
     dir.width = levelImageSize.width;
     dir.height = levelImageSize.height;
     dir.tileWidth = tileSize.width;
     dir.tileHeight = tileSize.height;
-    dir.compressionQuality = quality;
+    if(parameters.encoding->compression==Compression::Jpeg) {
+        dir.compressionQuality = static_cast<ImageTools::JpegEncodeParameters*>(parameters.encoding)->quality;
+    }
     if (zoomLevel == 0) {
         dir.description = createDescription(scene, parameters);
     }
@@ -79,7 +80,7 @@ void slideio::ConverterSVSTools::createZoomLevel(TIFFKeeperPtr& file, int zoomLe
             cv::Rect blockRect(x, y, sceneTileSize.width, sceneTileSize.height);
             ConverterTools::readTile(scene, zoomLevel, blockRect, tile);
             cv::Rect zoomLevelRect = ConverterTools::scaleRect(blockRect, zoomLevel, true);
-            file->writeTile(zoomLevelRect.x, zoomLevelRect.y, dir.slideioCompression, quality, tile);
+            file->writeTile(zoomLevelRect.x, zoomLevelRect.y, dir.slideioCompression, *(parameters.encoding), tile);
         }
     }
 }

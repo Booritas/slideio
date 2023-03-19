@@ -475,3 +475,26 @@ TEST(SVSImageDriver, readCELabImage)
     EXPECT_EQ(cv::countNonZero(dif3), 0);
 
 }
+
+TEST(SVSImageDriver, readJP2Kcompression)
+{
+    slideio::SVSImageDriver driver;
+    std::string filePath = TestTools::getTestImagePath("svs", "JP2K-33003-1.svs");
+    std::string testPath = TestTools::getTestImagePath("svs", "tests/JP2K-33003-1.png");
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
+    ASSERT_TRUE(scene != nullptr);
+    cv::Rect rect = scene->getRect();
+    cv::Mat blockRaster;
+    cv::Rect blockRect(rect.width / 2, rect.height / 2, rect.width / 4, rect.height / 4);
+    const int width = 300;
+    double scale = double(width) / double(blockRect.width);
+    const int height = std::lround(double(blockRect.height) * scale);
+    cv::Size blockSize(width, height);
+    scene->readResampledBlock(blockRect, blockSize, blockRaster);
+    //TestTools::writePNG(blockRaster, testPath);
+    cv::Mat testRaster;
+    TestTools::readPNG(testPath, testRaster);
+    TestTools::compareRasters(testRaster, blockRaster);
+    //TestTools::showRaster(blockRaster);
+}

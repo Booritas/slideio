@@ -79,23 +79,23 @@ void rasterToOPJImage(const cv::Mat& mat, ImagePtr& image, const ConvertJ2KParam
 
     switch (depth) {
     case CV_8U:
-        slideio::ConverterTools::convertTo32bitChannels(data, mat.cols,
+        slideio::ImageTools::convertTo32bitChannels(data, mat.cols,
         mat.rows, numChannels, channelData.data());
         break;
     case CV_8S:
-        slideio::ConverterTools::convertTo32bitChannels(reinterpret_cast<int8_t*>(data), mat.cols,
+        slideio::ImageTools::convertTo32bitChannels(reinterpret_cast<int8_t*>(data), mat.cols,
             mat.rows, numChannels, channelData.data());
         break;
     case CV_16U:
-        slideio::ConverterTools::convertTo32bitChannels(reinterpret_cast<uint16_t*>(data), mat.cols,
+        slideio::ImageTools::convertTo32bitChannels(reinterpret_cast<uint16_t*>(data), mat.cols,
             mat.rows, numChannels, channelData.data());
         break;
     case CV_16S:
-        slideio::ConverterTools::convertTo32bitChannels(reinterpret_cast<int16_t*>(data), mat.cols,
+        slideio::ImageTools::convertTo32bitChannels(reinterpret_cast<int16_t*>(data), mat.cols,
             mat.rows, numChannels, channelData.data());
         break;
     case CV_32S:
-        slideio::ConverterTools::convertTo32bitChannels(reinterpret_cast<int32_t*>(data), mat.cols,
+        slideio::ImageTools::convertTo32bitChannels(reinterpret_cast<int32_t*>(data), mat.cols,
             mat.rows, numChannels, channelData.data());
         break;
     default:

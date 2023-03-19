@@ -18,10 +18,10 @@ void slideio::ImageTools::decodeJpegStream(const uint8_t* jpg_buffer, size_t jpg
 }
 
 
-void slideio::ImageTools::encodeJpeg(const cv::Mat& raster, std::vector<uint8_t>& encodedStream, int quality)
+void slideio::ImageTools::encodeJpeg(const cv::Mat& raster, std::vector<uint8_t>& encodedStream, const JpegEncodeParameters& params)
 {
     try {
-        jpeglibEncode(raster, encodedStream, quality);
+        jpeglibEncode(raster, encodedStream, params.quality);
     }
     catch (std::runtime_error& er) {
         RAISE_RUNTIME_ERROR << "Error encoding jpeg stream: " << er.what();

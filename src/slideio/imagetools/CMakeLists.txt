@@ -10,6 +10,7 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/imagetools.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/imagetools.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/jp2kcodec.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/jp2kcodec.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/jxrcodec.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/jpegcodec.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/memory_stream.hpp

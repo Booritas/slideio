@@ -12,6 +12,8 @@
 #include <string>
 #include <vector>
 
+#include "imagetools.hpp"
+
 namespace libtiff
 {
     struct tiff;
@@ -72,7 +74,8 @@ namespace slideio
         static uint16_t slideioDataTypeToTiffDataType(slideio::DataType dataType);
         static void writeDirectory(libtiff::TIFF* tiff);
         static void setTags(libtiff::TIFF* tiff, const TiffDirectory& dir, bool newDirectory);
-        static void writeTile(libtiff::TIFF* tiff, int x, int y, Compression compression, int quality, const cv::Mat& tileRaster);
+        static void writeTile(libtiff::TIFF* tiff, int x, int y, Compression compression,
+            const cv::Mat& tileRaster, const ImageTools::EncodeParameters& parameters);
     };
 }
 

@@ -6,20 +6,16 @@
 #include "slideio/imagetools/memory_stream.hpp"
 #include "slideio/base/exceptions.hpp"
 #include "slideio/base/log.hpp"
+#include "jp2kcodec.hpp"
 
 #include <openjpeg.h>
 #include <boost/format.hpp>
 #include <boost/filesystem.hpp>
 #include <fstream>
 
+#include "single_tests/jp2k/jp2_memory.hpp"
+
 /* opj_* Helper code from https://groups.google.com/forum/#!topic/openjpeg/8cebr0u7JgY */
-typedef struct
-{
-    OPJ_UINT8* pData;
-    OPJ_SIZE_T dataSize;
-    OPJ_SIZE_T offset;
-    // j2k_encode_helper *helper;
-} opj_memory_stream;
 
 
 static void openjpeg_warning(const char* msg, void* client_data)
@@ -214,6 +210,128 @@ void slideio::ImageTools::decodeJp2KStream(
             opj_stream_destroy(stream);
         throw ex;
     }
+}
+
+void rasterToOPJImage(const cv::Mat& mat, ImagePtr& image, const slideio::ImageTools::JP2KEncodeParameters& params)
+{
+    const int numChannels = mat.channels();
+    std::vector<opj_image_cmptparm_t> channelParameters(numChannels);
+    const int type = mat.type();
+    const int depth = type & CV_MAT_DEPTH_MASK;
+    const int bitDepth = static_cast<int>(8 * mat.elemSize() / numChannels);
+    const int width = mat.cols;
+    const int height = mat.rows;
+    int sign = 0;
+
+    switch (depth) {
+    case CV_8S:
+    case CV_16S:
+    case CV_32S:
+        sign = 1;
+    }
+
+    for (auto& parameter : channelParameters) {
+        /* bits_per_pixel: 8 or 16 */
+        memset(&parameter, 0, sizeof(opj_image_cmptparm_t));
+        parameter.prec = static_cast<OPJ_UINT32>(bitDepth);
+        parameter.sgnd = sign;
+        parameter.dx = static_cast<OPJ_UINT32>(params.subSamplingDX);
+        parameter.dy = static_cast<OPJ_UINT32>(params.subSamplingDY);
+        parameter.w = static_cast<OPJ_UINT32>(width);
+        parameter.h = static_cast<OPJ_UINT32>(height);
+    }
+    COLOR_SPACE colorSpace = OPJ_CLRSPC_UNKNOWN;
+    if (numChannels == 1) {
+        colorSpace = OPJ_CLRSPC_GRAY;
+    }
+    else if (numChannels == 3) {
+        colorSpace = OPJ_CLRSPC_SRGB;
+    }
+
+    image = opj_image_create(numChannels, channelParameters.data(),
+        colorSpace);
+    image.get()->x1 = width;
+    image.get()->y1 = height;
+    image.get()->numcomps = numChannels;
+
+
+    uint8_t* data = mat.data;
+    std::vector<int32_t*> channelData(numChannels);
+    for (int channelIndex = 0; channelIndex < numChannels; ++channelIndex) {
+        channelData[channelIndex] = image.get()->comps[channelIndex].data;
+    }
+
+    switch (depth) {
+    case CV_8U:
+        slideio::ImageTools::convertTo32bitChannels(data, mat.cols,
+            mat.rows, numChannels, channelData.data());
+        break;
+    case CV_8S:
+        slideio::ImageTools::convertTo32bitChannels(reinterpret_cast<int8_t*>(data), mat.cols,
+            mat.rows, numChannels, channelData.data());
+        break;
+    case CV_16U:
+        slideio::ImageTools::convertTo32bitChannels(reinterpret_cast<uint16_t*>(data), mat.cols,
+            mat.rows, numChannels, channelData.data());
+        break;
+    case CV_16S:
+        slideio::ImageTools::convertTo32bitChannels(reinterpret_cast<int16_t*>(data), mat.cols,
+            mat.rows, numChannels, channelData.data());
+        break;
+    case CV_32S:
+        slideio::ImageTools::convertTo32bitChannels(reinterpret_cast<int32_t*>(data), mat.cols,
+            mat.rows, numChannels, channelData.data());
+        break;
+    default:
+        RAISE_RUNTIME_ERROR << "Unsupported type for Jpeg2000 conversion: " << depth;
+    }
+}
+
+void slideio::ImageTools::encodeJp2KStream(const cv::Mat& mat, std::vector<uint8_t>& buffer,
+    const JP2KEncodeParameters& jp2Params)
+{
+    wopj_cparameters parameters;   /* compression parameters */
+    ImagePtr image;
+
+    opj_set_default_encoder_parameters(&parameters);
+    parameters.decod_format = 17;
+    parameters.cod_format = jp2Params.codecFormat;
+    parameters.tcp_mct = 0;
+
+    CodecPtr codec = opj_create_compress((OPJ_CODEC_FORMAT)jp2Params.codecFormat);
+
+    rasterToOPJImage(mat, image, jp2Params);
+    if (image.get()->color_space == OPJ_CLRSPC_SRGB) {
+        parameters.tcp_mct = 1;
+    }
+    opj_set_info_handler(codec, openjpeg_info, nullptr);
+    opj_set_warning_handler(codec, openjpeg_warning, nullptr);
+    opj_set_error_handler(codec, openjpeg_error, nullptr);
+
+    if (!opj_setup_encoder(codec, &parameters, image)) {
+        RAISE_RUNTIME_ERROR << "Failed to encode image: opj_setup_encoder.";
+    }
+
+    opj_memory_stream stream;
+    stream.dataSize = buffer.size();
+    stream.offset = 0;
+    stream.pData = buffer.data();
+
+    opj_stream_t* strm = opj_stream_create_default_memory_stream(&stream, OPJ_FALSE);
+
+    if (!strm) {
+        RAISE_RUNTIME_ERROR << "Cannot create default file stream.";
+    }
+    if (!opj_start_compress(codec, image, strm)) {
+        RAISE_RUNTIME_ERROR << "Failed to encode image : opj_start_compress.";
+    }
+    if (!opj_encode(codec, strm)) {
+        RAISE_RUNTIME_ERROR << "Failed to encode image : opj_encode.";
+    }
+    if (!opj_end_compress(codec, strm)) {
+        RAISE_RUNTIME_ERROR << "Failed to encode image : opj_end_compress.";
+    }
+    buffer.resize(stream.offset);
 }
 
 

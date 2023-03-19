@@ -21,7 +21,8 @@ TEST(Converter, convertGDAL)
 	if(boost::filesystem::exists(outputPath)) {
 		boost::filesystem::remove(outputPath);
 	}
-    slideio::ConverterParameters parameters;
+	slideio::ImageTools::JpegEncodeParameters encodeParameters(99);
+    slideio::ConverterParameters parameters(&encodeParameters);
 	parameters.driver = "SVS";
 	slideio::convertScene(scene, parameters, outputPath);
 }
@@ -29,7 +30,8 @@ TEST(Converter, convertGDAL)
 TEST(Converter, nullScene)
 {
 	std::string outputPath = TestTools::getTestImagePath("gdal", "test.svs");
-	slideio::ConverterParameters parameters;
+	slideio::ImageTools::JpegEncodeParameters encodeParameters(99);
+	slideio::ConverterParameters parameters(&encodeParameters);
 	parameters.driver = "SVS";
 	ASSERT_THROW(slideio::convertScene(nullptr, parameters, outputPath), slideio::RuntimeError);
 }
@@ -41,7 +43,8 @@ TEST(Converter, unspecifiedDriver)
 	ScenePtr scene = slide->getScene(0);
 	ASSERT_TRUE(scene.get() != nullptr);
 	
-	slideio::ConverterParameters parameters;
+	slideio::ImageTools::JpegEncodeParameters encodeParameters(99);
+	slideio::ConverterParameters parameters(&encodeParameters);
 	std::string outputPath = TestTools::getTestImagePath("gdal", "test.svs");
 	ASSERT_THROW(slideio::convertScene(scene, parameters, outputPath), slideio::RuntimeError);
 }
@@ -53,7 +56,8 @@ TEST(Converter, unsupportedDriver)
 	ScenePtr scene = slide->getScene(0);
 	ASSERT_TRUE(scene.get() != nullptr);
 	
-	slideio::ConverterParameters parameters;
+	slideio::ImageTools::JpegEncodeParameters encodeParameters(99);
+	slideio::ConverterParameters parameters(&encodeParameters);
 	parameters.driver = "GDAL";
 	std::string outputPath = TestTools::getTestImagePath("gdal", "test.svs");
 	ASSERT_THROW(slideio::convertScene(scene, parameters, outputPath), slideio::RuntimeError);
@@ -66,7 +70,8 @@ TEST(Converter, outputPathExists)
 	ScenePtr scene = slide->getScene(0);
 	ASSERT_TRUE(scene.get() != nullptr);
 	
-	slideio::ConverterParameters parameters;
+	slideio::ImageTools::JpegEncodeParameters encodeParameters(99);
+	slideio::ConverterParameters parameters(&encodeParameters);
 	parameters.driver = "SVS";
 	ASSERT_THROW(slideio::convertScene(scene, parameters, path), slideio::RuntimeError);
 }

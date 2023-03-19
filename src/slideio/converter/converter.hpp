@@ -8,6 +8,7 @@
 
 #include "slideio/converter/converter_def.hpp"
 #include "slideio/core/cvstructs.hpp"
+#include "slideio/imagetools/imagetools.hpp"
 #include "slideio/slideio/scene.hpp"
 
 const std::string DRIVER = "DRIVER";
@@ -21,15 +22,13 @@ namespace slideio
 {
     struct ConverterParameters
     {
-        ConverterParameters() :
-            compression(Compression::Jpeg),
-            compressionQuality(99),
+        ConverterParameters(ImageTools::EncodeParameters* encodeParameters) :
             numZoomLevels(0),
             tileWidth(256),
-            tileHeight(256){
+            tileHeight(256),
+            encoding(encodeParameters) {
         }
-        Compression compression;
-        int compressionQuality;
+        ImageTools::EncodeParameters* encoding;
         int numZoomLevels;
         std::string driver;
         int tileWidth;

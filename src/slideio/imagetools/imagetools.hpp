@@ -4,9 +4,9 @@
 #ifndef OPENCV_slideio_imagetools_HPP
 #define OPENCV_slideio_imagetools_HPP
 
+#include <opencv2/core.hpp>
 #include "slideio/imagetools/slideio_imagetools_def.hpp"
 #include "slideio/base/slideio_enums.hpp"
-#include <opencv2/core.hpp>
 
 #if defined(WIN32)
 #pragma warning( push )
@@ -19,21 +19,69 @@ namespace slideio
     class SLIDEIO_IMAGETOOLS_EXPORTS ImageTools
     {
     public:
+        struct EncodeParameters {
+            Compression compression;
+        };
+        struct JpegEncodeParameters : public EncodeParameters {
+            JpegEncodeParameters(int quality=95) {
+                this->compression = Compression::Jpeg;
+                this->quality = quality;
+            }
+            int quality;
+        };
+        struct JP2KEncodeParameters : public EncodeParameters {
+            enum Codec {
+                J2KStream,
+                J2KFile
+            };
+            JP2KEncodeParameters(Codec codec=Codec::J2KStream) {
+                subSamplingDX = 1;
+                subSamplingDY = 1;
+                codecFormat = codec;
+            }
+            int subSamplingDX;
+            int subSamplingDY;
+            Codec codecFormat;
+        };
+
+    public:
         static void readGDALImage(const std::string& path, cv::OutputArray output);
         static void writeRGBImage(const std::string& path, Compression compression, cv::Mat raster);
         static void writeTiffImage(const std::string& path, cv::Mat raster);
         static void readJxrImage(const std::string& path, cv::OutputArray output);
         static void decodeJxrBlock(const uint8_t* data, size_t size, cv::OutputArray output);
         static void decodeJpegStream(const uint8_t* data, size_t size, cv::OutputArray output);
-        static void encodeJpeg(const cv::Mat& raster, std::vector<uint8_t>& encodedStream, int quality);
+        static void encodeJpeg(const cv::Mat& raster, std::vector<uint8_t>& encodedStream, const JpegEncodeParameters& params);
         // jpeg 2000 related methods
         static void readJp2KFile(const std::string& path, cv::OutputArray output);
         static void decodeJp2KStream(const std::vector<uint8_t>& data, cv::OutputArray output,
             const std::vector<int>& channelIndices = std::vector<int>(),
             bool forceYUV = false);
+        static void encodeJp2KStream(const cv::Mat& mat, std::vector<uint8_t>& buffer,
+            const JP2KEncodeParameters& parameters);
         static double computeSimilarity(const cv::Mat& left, const cv::Mat& right, bool ignoreTypes=false);
         static double compareHistograms(const cv::Mat& leftM, const cv::Mat& rightM, int bins);
         static int dataTypeSize(slideio::DataType dt);
+        template <typename Type>
+        static void convertTo32bitChannels(Type* data, int width, int height, int numChannels, int32_t** channels)
+        {
+            const int pixelSize = numChannels;
+            const int stride = pixelSize * width;
+            Type* line = data;
+            int channelShift = 0;
+            for (int y = 0; y < height; ++y) {
+                Type* pixel = line;
+                for (int x = 0; x < width; ++x) {
+                    for (int channelIndex = 0; channelIndex < numChannels; ++channelIndex) {
+                        int32_t* channel = channels[channelIndex];
+                        channel[channelShift] = static_cast<int32_t>(pixel[channelIndex]);
+                    }
+                    pixel += pixelSize;
+                    channelShift++;
+                }
+                line += stride;
+            }
+        }
     };
 }
 

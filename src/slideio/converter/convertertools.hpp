@@ -20,26 +20,6 @@ namespace slideio
                              cv::OutputArray tile);
         static cv::Rect computeZoomLevelRect(const cv::Rect& sceneRect, const cv::Size& tileSize, int zoomLevel);
 
-        template <typename Type>
-        static void convertTo32bitChannels(Type* data, int width, int height, int numChannels, int32_t** channels)
-        {
-            const int pixelSize = numChannels;
-            const int stride = pixelSize * width;
-            Type* line = data;
-            int channelShift = 0;
-            for (int y = 0; y < height; ++y) {
-                Type* pixel = line;
-                for (int x = 0; x < width; ++x) {
-                    for (int channelIndex = 0; channelIndex < numChannels; ++channelIndex) {
-                        int32_t* channel = channels[channelIndex];
-                        channel[channelShift] = static_cast<int32_t>(pixel[channelIndex]);
-                    }
-                    pixel += pixelSize;
-                    channelShift++;
-                }
-                line += stride;
-            }
-        }
 
     };
 }
