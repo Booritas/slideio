@@ -4,6 +4,8 @@
 #include "slideio/slideio/scene.hpp"
 #include "slideio/base/exceptions.hpp"
 #include <boost/filesystem.hpp>
+
+#include "slideio/imagetools/tempfile.hpp"
 #include "slideio/slideio/imagedrivermanager.hpp"
 
 
@@ -11,8 +13,8 @@ int main()
 {
 	
 	//std::string path = TestTools::getTestImagePath("gdal", "Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg");
-	std::string path = TestTools::getTestImagePath("gdal", "img_2448x2448_3x16bit_SRC_RGB_ducks.png");
-	SlidePtr slide = slideio::openSlide(path, "GDAL");
+	std::string path = TestTools::getFullTestImagePath("svs", "private/fs_Alexa Fluor 488.svs");
+	SlidePtr slide = slideio::openSlide(path, "SVS");
 	ScenePtr scene = slide->getScene(0);
 	auto sceneRect = scene->getRect();
 	int sceneWidth = std::get<2>(sceneRect);
@@ -21,7 +23,9 @@ int main()
 	// slideio::TempFile tmp("svs");
 	// std::string outputPath = tmp.getPath().string();
 	//std::string outputPath = TestTools::getTestImagePath("gdal", "Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.svs");
-	std::string outputPath = TestTools::getTestImagePath("gdal", "img_2448x2448_3x16bit_SRC_RGB_ducks.svs");
+	std::string outputPath = TestTools::getTestImagePath("gdal", "fs_Alexa Fluor 488.svs");
+	// slideio::TempFile tmp("svs");
+	//std::string outputPath = tmp.getPath().string();
 	if (boost::filesystem::exists(outputPath)) {
 		boost::filesystem::remove(outputPath);
 	}
