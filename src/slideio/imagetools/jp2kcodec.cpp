@@ -287,7 +287,7 @@ void rasterToOPJImage(const cv::Mat& mat, ImagePtr& image, const slideio::ImageT
     }
 }
 
-void slideio::ImageTools::encodeJp2KStream(const cv::Mat& mat, std::vector<uint8_t>& buffer,
+int slideio::ImageTools::encodeJp2KStream(const cv::Mat& mat, uint8_t* buffer, int bufferSize,
     const JP2KEncodeParameters& jp2Params)
 {
     wopj_cparameters parameters;   /* compression parameters */
@@ -313,9 +313,9 @@ void slideio::ImageTools::encodeJp2KStream(const cv::Mat& mat, std::vector<uint8
     }
 
     opj_memory_stream stream;
-    stream.dataSize = buffer.size();
+    stream.dataSize = bufferSize;
     stream.offset = 0;
-    stream.pData = buffer.data();
+    stream.pData = buffer;
 
     opj_stream_t* strm = opj_stream_create_default_memory_stream(&stream, OPJ_FALSE);
 
@@ -331,7 +331,7 @@ void slideio::ImageTools::encodeJp2KStream(const cv::Mat& mat, std::vector<uint8
     if (!opj_end_compress(codec, strm)) {
         RAISE_RUNTIME_ERROR << "Failed to encode image : opj_end_compress.";
     }
-    buffer.resize(stream.offset);
+    return (int)stream.offset;
 }
 
 

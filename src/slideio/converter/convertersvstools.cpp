@@ -7,6 +7,7 @@
 #include "converter.hpp"
 #include "convertertools.hpp"
 #include "slideio/base/exceptions.hpp"
+#include "slideio/imagetools/cvtools.hpp"
 
 void slideio::ConverterSVSTools::checkSVSRequirements(const CVScenePtr& scene)
 {
@@ -34,6 +35,9 @@ std::string slideio::ConverterSVSTools::createDescription(const CVScenePtr& scen
     buff << "(" << parameters.tileWidth << "x" << parameters.tileHeight << ") ";
     if(parameters.encoding->compression == Compression::Jpeg) {
         buff << "JPEG/RGB " << "Q=" << ((ImageTools::JpegEncodeParameters*)parameters.encoding)->quality;
+    }
+    else if(parameters.encoding->compression == Compression::Jpeg2000) {
+        buff << "J2K";
     }
     buff << std::endl;
     double magn = scene->getMagnification();
@@ -73,14 +77,18 @@ void slideio::ConverterSVSTools::createZoomLevel(TIFFKeeperPtr& file, int zoomLe
     file->setTags(dir, zoomLevel > 0);
 
     cv::Size sceneTileSize = slideio::ConverterTools::scaleSize(tileSize, zoomLevel, false);
-
+    std::vector<uint8_t> buffer;
+    if(parameters.encoding->compression == Compression::Jpeg2000) {
+        int dataSize = tileSize.width * tileSize.height * scene->getNumChannels() * ImageTools::dataTypeSize(scene->getChannelDataType(0));
+        buffer.resize(dataSize);
+    }
     cv::Mat tile;
     for (int y = 0; y < sceneRect.height; y += sceneTileSize.height) {
         for (int x = 0; x < sceneRect.width; x += sceneTileSize.width) {
             cv::Rect blockRect(x, y, sceneTileSize.width, sceneTileSize.height);
             ConverterTools::readTile(scene, zoomLevel, blockRect, tile);
             cv::Rect zoomLevelRect = ConverterTools::scaleRect(blockRect, zoomLevel, true);
-            file->writeTile(zoomLevelRect.x, zoomLevelRect.y, dir.slideioCompression, *(parameters.encoding), tile);
+            file->writeTile(zoomLevelRect.x, zoomLevelRect.y, dir.slideioCompression, *(parameters.encoding), tile, buffer.data(), buffer.size());
         }
     }
 }

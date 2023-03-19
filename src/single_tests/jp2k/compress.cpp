@@ -198,7 +198,7 @@ void convertScene(const CVScenePtr& scene, const std::string& targetPath, const 
     sceneRect.x = sceneRect.y = 0;
     cv::Mat sourceRaster;
     scene->readBlock(sceneRect, sourceRaster);
-    int memorySize = sourceRaster.total()* sourceRaster.elemSize();
+    int memorySize = (int)(sourceRaster.total()* sourceRaster.elemSize());
     std::vector<uint8_t> mem(memorySize);
     compressRasterToMemory(sourceRaster, mem, params);
     // Open the file in binary output mode

@@ -39,7 +39,8 @@ void slideio::convertScene(ScenePtr scene,
     if(scene == nullptr) {
         RAISE_RUNTIME_ERROR << "Converter: invalid input scene!";
     }
-    if(parameters.encoding->compression != Compression::Jpeg) {
+    if(parameters.encoding->compression != Compression::Jpeg
+        && parameters.encoding->compression != Compression::Jpeg2000) {
         RAISE_RUNTIME_ERROR << "Unsupported compression type: " << parameters.encoding->compression;
     }
     if(parameters.driver.empty()) {

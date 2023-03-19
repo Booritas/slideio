@@ -35,6 +35,7 @@ namespace slideio
                 J2KFile
             };
             JP2KEncodeParameters(Codec codec=Codec::J2KStream) {
+                compression = Compression::Jpeg2000;
                 subSamplingDX = 1;
                 subSamplingDY = 1;
                 codecFormat = codec;
@@ -57,7 +58,7 @@ namespace slideio
         static void decodeJp2KStream(const std::vector<uint8_t>& data, cv::OutputArray output,
             const std::vector<int>& channelIndices = std::vector<int>(),
             bool forceYUV = false);
-        static void encodeJp2KStream(const cv::Mat& mat, std::vector<uint8_t>& buffer,
+        static int encodeJp2KStream(const cv::Mat& mat, uint8_t* buffer, int bufferSize,
             const JP2KEncodeParameters& parameters);
         static double computeSimilarity(const cv::Mat& left, const cv::Mat& right, bool ignoreTypes=false);
         static double compareHistograms(const cv::Mat& leftM, const cv::Mat& rightM, int bins);

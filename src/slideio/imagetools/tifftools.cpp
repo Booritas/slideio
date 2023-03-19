@@ -221,7 +221,8 @@ int compressSlideioToTiff(slideio::Compression compression)
         tiffCompression = 0x8765;
         break;
     case slideio::Compression::Jpeg2000:
-        tiffCompression = 0x8798;
+        //tiffCompression = 0x8798;
+        tiffCompression = 33005;
         break;
     case slideio::Compression::NikonNEF:
         tiffCompression = 0x8799;
@@ -780,7 +781,8 @@ void TiffTools::setTags(libtiff::TIFF* tiff, const TiffDirectory& dir, bool newD
 }
 
 void TiffTools::writeTile(libtiff::TIFF* tiff, int x, int y, Compression compression, 
-                        const cv::Mat& tileRaster, const ImageTools::EncodeParameters& parameters)
+                        const cv::Mat& tileRaster, const ImageTools::EncodeParameters& parameters,
+                        uint8_t* buffer, int bufferSize)
 {
     if(compression==Compression::Jpeg) {
         const uint32_t tile = libtiff::TIFFComputeTile(tiff, x, y, 0, 0);
@@ -791,13 +793,21 @@ void TiffTools::writeTile(libtiff::TIFF* tiff, int x, int y, Compression compres
         }
     }
     else if(compression==Compression::Jpeg2000) {
-        const size_t dataSize = tileRaster.total() * tileRaster.elemSize();
         const uint32_t tile = libtiff::TIFFComputeTile(tiff, x, y, 0, 0);
-        std::vector<uint8_t> buffer(dataSize);
+        std::vector<uint8_t> buff;
+        if(buffer==nullptr || bufferSize<=0) {
+            const size_t dataSize = tileRaster.total() * tileRaster.elemSize();
+            buff.resize(dataSize);
+            buffer = buff.data();
+            bufferSize = dataSize;
+        }
         const ImageTools::JP2KEncodeParameters& jp2param = 
             static_cast<const ImageTools::JP2KEncodeParameters &>(parameters);
-        ImageTools::encodeJp2KStream(tileRaster, buffer, jp2param);
-        libtiff::TIFFWriteRawTile(tiff, tile, buffer.data(), buffer.size());
+        int dataSize = ImageTools::encodeJp2KStream(tileRaster, buffer, bufferSize, jp2param);
+        if(dataSize <= 0) {
+            RAISE_RUNTIME_ERROR << "JPEG 2000 Encoding failed";
+        }
+        libtiff::TIFFWriteRawTile(tiff, tile, buffer, dataSize);
     }
     else {
         RAISE_RUNTIME_ERROR << "Unsupported compression: " << compression;
