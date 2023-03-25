@@ -3,6 +3,9 @@
 // of this distribution and at http://slideio.com/license.html.
 //
 #include "slideio/imagetools/tifftools.hpp"
+
+#include <codecvt>
+
 #include "slideio/imagetools/imagetools.hpp"
 #include "slideio/imagetools/cvtools.hpp"
 #include <opencv2/core.hpp>
@@ -168,14 +171,23 @@ static slideio::Compression compressTiffToSlideio(int tiffCompression)
 libtiff::TIFF* slideio::TiffTools::openTiffFile(const std::string& path)
 {
     namespace fs = boost::filesystem;
-    boost::filesystem::path filePath(path);
-    if(!fs::exists(filePath))
-    {
-        throw std::runtime_error(
-            (boost::format("File %1% does not exist") % path).str()
-        );
+    libtiff::TIFF* hfile(nullptr);
+#if defined(WIN32)
+    std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converter;
+    std::wstring wsPath = converter.from_bytes(path);
+    boost::filesystem::path filePath(wsPath);
+    if (!fs::exists(wsPath)) {
+        RAISE_RUNTIME_ERROR << "File " << path << " does not exist";
     }
-    return libtiff::TIFFOpen(path.c_str(), "r");
+    hfile = libtiff::TIFFOpenW(wsPath.c_str(), "r");
+#else
+    boost::filesystem::path filePath(path);
+    if (!fs::exists(filePath)) {
+        RAISE_RUNTIME_ERROR << "File " << path << " does not exist";
+    }
+    hfile = libtiff::TIFFOpen(path.c_str(), "r");
+#endif
+    return hfile;
 }
 
 void slideio::TiffTools::closeTiffFile(libtiff::TIFF* file)
@@ -313,7 +325,7 @@ void slideio::TiffTools::scanFile(const std::string& filePath, std::vector<TiffD
     libtiff::TIFF* file(nullptr);
     try
     {
-        file = libtiff::TIFFOpen(filePath.c_str(), "r");
+        file = openTiffFile(filePath);
         if(file==nullptr)
             throw std::runtime_error(std::string("TiffTools: cannot open tiff file") + filePath);
         scanFile(file, directories);
@@ -321,11 +333,11 @@ void slideio::TiffTools::scanFile(const std::string& filePath, std::vector<TiffD
     catch(std::exception& ex)
     {
         if(file)
-            libtiff::TIFFClose(file);
+            closeTiffFile(file);
         throw ex;
     }
     if(file)
-        libtiff::TIFFClose(file);
+        closeTiffFile(file);
 }
 
 void TiffTools::readNotRGBStripedDir(libtiff::TIFF* file, const TiffDirectory& dir, cv::_OutputArray output)

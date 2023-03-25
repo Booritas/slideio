@@ -94,7 +94,6 @@ namespace slideio
             m_hFile = nullptr;
             return hfile;
         }
-
     private:
         libtiff::TIFF* m_hFile;
     };
