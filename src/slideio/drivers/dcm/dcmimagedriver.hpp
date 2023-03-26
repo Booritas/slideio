@@ -27,6 +27,7 @@ namespace slideio
         std::string getFileSpecs() const override;
         static void initializeDCMTK();
         static void clieanUpDCMTK();
+        bool canOpenFile(const std::string& filePath) const override;
     };
 }
 

@@ -63,3 +63,16 @@ void DCMImageDriver::clieanUpDCMTK()
     DJLSDecoderRegistration::cleanup();
 #endif
 }
+
+bool DCMImageDriver::canOpenFile(const std::string& filePath) const
+{
+    bool can = ImageDriver::canOpenFile(filePath);
+    if(!can) {
+        boost::filesystem::path fp(filePath);
+        std::string extension = fp.extension().string();
+        if(extension.empty()) {
+            can = true;
+        }
+    }
+    return can;
+}

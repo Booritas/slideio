@@ -46,6 +46,18 @@ std::vector<std::string> ImageDriverManager::getDriverIDs()
     return ids;
 }
 
+std::shared_ptr<slideio::ImageDriver> ImageDriverManager::findDriver(const std::string& filePath)
+{
+    initialize();
+    for (auto itDriver = driverMap.begin(); itDriver != driverMap.end(); ++itDriver) {
+        auto driver = itDriver->second;
+        if(driver->canOpenFile(filePath)) {
+            return driver;
+        }
+    }
+    return nullptr;
+}
+
 void ImageDriverManager::initialize()
 {
     initLogging();
@@ -94,10 +106,19 @@ std::shared_ptr<CVSlide> ImageDriverManager::openSlide(const std::string& filePa
 {
     static bool initLog = false;
     initialize();
-    auto it = driverMap.find(driverName);
-    if(it==driverMap.end())
-        throw std::runtime_error("ImageDriverManager: Unknown driver " + driverName);
-    std::shared_ptr<slideio::ImageDriver> driver = it->second;
+    std::shared_ptr<slideio::ImageDriver> driver;
+    if(driverName.compare("AUTO")==0 || driverName.empty()) {
+        driver = findDriver(filePath);
+        if(!driver.get()) {
+            RAISE_RUNTIME_ERROR << "Cannot find driver for file " << filePath << ". Try to define driver manually.";
+        }
+    }
+    else {
+        auto it = driverMap.find(driverName);
+        if (it == driverMap.end())
+            throw std::runtime_error("ImageDriverManager: Unknown driver " + driverName);
+        driver = it->second;
+    }
     return driver->openFile(filePath);
 }
 
