@@ -20,7 +20,7 @@ if __name__ == "__main__":
     lines = file.readlines()
     build_paths = []
     build_paths.append(os.path.abspath("./build"))
-    build_paths.append(os.path.abspath("../../build"))
+    # build_paths.append(os.path.abspath("../../build"))
     build_paths.append(os.path.abspath("../../build_py"))
     dist_path = os.path.abspath("./dist")
     if os.path.exists(dist_path):

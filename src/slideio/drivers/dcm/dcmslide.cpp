@@ -14,6 +14,8 @@
 
 #include <dcmtk/dcmdata/dcdicdir.h>
 
+#include "slideio/core/tools/tools.hpp"
+
 using namespace slideio;
 namespace fs = boost::filesystem;
 
@@ -223,7 +225,12 @@ void DCMSlide::initFromDicomDirFile()
 void DCMSlide::init()
 {
     SLIDEIO_LOG(INFO) << "DCMSlide::init-begin: initialize DCMSlide from path: " << m_srcPath;
-    if(fs::is_regular_file(m_srcPath)) 
+#if defined(WIN32)
+    std::wstring srcPathW = Tools::toWstring(m_srcPath);
+    if(fs::is_regular_file(srcPathW))
+#else
+    if (fs::is_regular_file(m_srcPath))
+#endif
     {
         if (DCMFile::isDicomDirFile(m_srcPath))
         {
@@ -234,7 +241,12 @@ void DCMSlide::init()
             initFromFile();
         }
     }
-    else if(fs::is_directory(m_srcPath)) {
+#if defined(WIN32)
+    else if(fs::is_directory(srcPathW))
+#else
+    else if (fs::is_directory(m_srcPath))
+#endif
+    {
         initFromDir();
     }
     else {

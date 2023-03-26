@@ -93,14 +93,14 @@ std::wstring Tools::toWstring(const std::string& string)
     return wstr;
 }
 
-void Tools::throwIfPathNotExist(const std::string& path)
+void Tools::throwIfPathNotExist(const std::string& path, const std::string label)
 {
     namespace fs = boost::filesystem;
 #if defined(WIN32)
     std::wstring wsPath = Tools::toWstring(path);
     boost::filesystem::path filePath(wsPath);
     if (!fs::exists(wsPath)) {
-        RAISE_RUNTIME_ERROR << "File " << path << " does not exist";
+        RAISE_RUNTIME_ERROR << label << "File " << path << " does not exist";
     }
 #else
     boost::filesystem::path filePath(path);

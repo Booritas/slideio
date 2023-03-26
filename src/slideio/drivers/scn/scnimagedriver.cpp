@@ -6,6 +6,8 @@
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string.hpp>
 
+#include "slideio/core/tools/tools.hpp"
+
 
 slideio::SCNImageDriver::SCNImageDriver()
 {
@@ -22,10 +24,7 @@ std::string slideio::SCNImageDriver::getID() const
 
 std::shared_ptr<slideio::CVSlide> slideio::SCNImageDriver::openFile(const std::string& filePath)
 {
-    namespace fs = boost::filesystem;
-    if (!fs::exists(filePath)) {
-        throw std::runtime_error(std::string("SCNImageDriver: File does not exist:") + filePath);
-    }
+    Tools::throwIfPathNotExist(filePath,"SCNImageDriver::openFile");
     std::shared_ptr<CVSlide> ptr(new SCNSlide(filePath));
     return ptr;
 }

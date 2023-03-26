@@ -78,7 +78,12 @@ DCMFile::DCMFile(const std::string& filePath):
 
 void DCMFile::loadFile()
 {
+#if defined(WIN32)
+    std::wstring filePathW = Tools::toWstring(m_filePath);
+    OFCondition status = m_file->loadFile(filePathW.c_str());
+#else
     OFCondition status = m_file->loadFile(m_filePath.c_str());
+#endif
     if (status.bad())
     {
         RAISE_RUNTIME_ERROR << "DCMImageDriver: Cannot open file: " << m_filePath;

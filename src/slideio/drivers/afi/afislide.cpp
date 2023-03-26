@@ -104,7 +104,7 @@ std::shared_ptr<CVScene> AFISlide::getScene(int index) const
 
 std::shared_ptr<AFISlide> AFISlide::openFile(const std::string& filePath)
 {
-    Tools::throwIfPathNotExist(filePath);
+    Tools::throwIfPathNotExist(filePath, "AFISlide::openFile");
 #if defined(WIN32)
     std::wstring filePathW = Tools::toWstring(filePath);
     std::ifstream ifs(filePathW);

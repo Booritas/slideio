@@ -84,7 +84,7 @@ namespace slideio
             return allChannels;
         }
         static std::wstring toWstring(const std::string& string);
-        static void throwIfPathNotExist(const std::string& path);
+        static void throwIfPathNotExist(const std::string& path, const std::string label);
     };
 }
 #endif

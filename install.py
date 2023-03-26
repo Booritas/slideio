@@ -69,7 +69,7 @@ def process_conan_profile(profile, trg_dir, conan_file):
     generator = "cmake_multi"
     build_libs = []
     build_libs.append('missing')
-    # build_libs.append('libxml2')
+    # build_libs.append('dcmtk')
     # build_libs.append('sqlite3')
     command = ['conan','install',
         '-pr',profile,

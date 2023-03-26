@@ -389,6 +389,21 @@ TEST(DCMImageDriver, readBlockChangingBits)
     scene->read4DBlock(rect, cv::Range(0, slices), cv::Range(0, 1), image);
 }
 
+TEST(DCMImageDriver, openFileUtf8Path)
+{
+    DCMImageDriver driver;
+    std::string slidePath = TestTools::getFullTestImagePath(
+        "unicode", u8"тест/CT-MONO2-12-lomb-an2");
+    auto slide = driver.openFile(slidePath);
+    const int numScenes = slide->getNumScenes();
+    ASSERT_EQ(numScenes, 1);
+    auto scene = slide->getScene(0);
+    ASSERT_TRUE(scene);
+    const cv::Rect rect = scene->getRect();
+    const cv::Rect refRect = { 0, 0, 512, 512 };
+    EXPECT_EQ(rect, refRect);
+}
+
 
 // TEST(DCMImageDriver, readSingleFrameCT)
 // {

@@ -26,7 +26,7 @@ std::string CZIImageDriver::getID() const
 
 std::shared_ptr<CVSlide> CZIImageDriver::openFile(const std::string& filePath)
 {
-    Tools::throwIfPathNotExist(filePath);
+    Tools::throwIfPathNotExist(filePath, "CZIImageDriver::openFile");
     std::shared_ptr<CVSlide> ptr(new CZISlide(filePath));
     return ptr;
 }
