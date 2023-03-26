@@ -3,6 +3,8 @@
 // of this distribution and at http://slideio.com/license.html.
 //
 #include "slideio/core/tools/tools.hpp"
+
+#include <codecvt>
 #include <boost/algorithm/string.hpp>
 #include <numeric>
 #include <boost/format.hpp>
@@ -82,5 +84,30 @@ void slideio::Tools::scaleRect(const cv::Rect& srcRect, double scaleX, double sc
     int dyn = static_cast<int>(std::ceil(static_cast<double>(yn)* scaleY));
     trgRect.width = dxn - trgRect.x;
     trgRect.height = dyn - trgRect.y;
+}
+
+std::wstring Tools::toWstring(const std::string& string)
+{
+    std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converter;
+    std::wstring wstr = converter.from_bytes(string);
+    return wstr;
+}
+
+void Tools::throwIfPathNotExist(const std::string& path)
+{
+    namespace fs = boost::filesystem;
+#if defined(WIN32)
+    std::wstring wsPath = Tools::toWstring(path);
+    boost::filesystem::path filePath(wsPath);
+    if (!fs::exists(wsPath)) {
+        RAISE_RUNTIME_ERROR << "File " << path << " does not exist";
+    }
+#else
+    boost::filesystem::path filePath(path);
+    if (!fs::exists(filePath)) {
+        RAISE_RUNTIME_ERROR << "File " << path << " does not exist";
+    }
+#endif
+
 }
 

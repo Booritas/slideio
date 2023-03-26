@@ -13,6 +13,8 @@
 #include <dcmtk/dcmimage/diregist.h>
 #include <dcmtk/dcmdata/dccodec.h>
 
+#include "slideio/core/tools/tools.hpp"
+
 using namespace slideio;
 
 static const std::string filePathPattern = "*.dcm";
@@ -36,10 +38,7 @@ std::string DCMImageDriver::getID() const
 
 std::shared_ptr<CVSlide> DCMImageDriver::openFile(const std::string& filePath)
 {
-    namespace fs = boost::filesystem;
-    if (!fs::exists(filePath)) {
-        throw std::runtime_error(std::string("DCMImageDriver: File does not exist:") + filePath);
-    }
+    Tools::throwIfPathNotExist(filePath);
     std::shared_ptr<CVSlide> ptr(new DCMSlide(filePath));
     return ptr;
 }

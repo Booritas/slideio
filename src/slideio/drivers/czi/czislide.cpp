@@ -13,6 +13,7 @@
 
 #include "czithumbnail.hpp"
 #include "czitools.hpp"
+#include "slideio/core/tools/tools.hpp"
 
 using namespace slideio;
 using namespace tinyxml2;
@@ -138,7 +139,13 @@ void CZISlide::init()
     SLIDEIO_LOG(INFO) << "Slide initialization. File path: " << getFilePath();
     // read file header
     m_fileStream.exceptions(std::ios::failbit | std::ios::badbit);
-    m_fileStream.open(m_filePath.c_str(), std::ifstream::in | std::ifstream::binary);
+    int flags = std::ifstream::in | std::ifstream::binary;
+#if defined(WIN32)
+    std::wstring wsPath = Tools::toWstring(getFilePath());
+    m_fileStream.open(wsPath.c_str(), flags);
+#else
+    m_fileStream.open(m_filePath.c_str(), flags);
+#endif
     readFileHeader();
     readMetadata();
     readDirectory();
