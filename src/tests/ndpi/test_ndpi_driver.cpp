@@ -1,9 +1,14 @@
-#include <gtest/gtest.h>
+﻿#include <gtest/gtest.h>
 #include "slideio/drivers/ndpi/ndpitifftools.hpp"
 #include "tests/testlib/testtools.hpp"
 #include <string>
 #include "slideio/drivers/ndpi/ndpiimagedriver.hpp"
 
+
+namespace slideio
+{
+    class Slide;
+}
 
 TEST(NDPIImageDriver, openFile)
 {
@@ -305,4 +310,19 @@ TEST(NDPIImageDriver, readResampled)
     cv::Mat testRaster;
     TestTools::readPNG(testFilePath, testRaster);
     TestTools::compareRasters(testRaster, blockRaster);
+}
+
+TEST(NDPIImageDriver, openFileUtf8)
+{
+    {
+        std::string filePath = TestTools::getFullTestImagePath("unicode", u8"тест/test3-TRITC 2 (560).ndpi");
+        slideio::NDPIImageDriver driver;
+        std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+        int dirCount = slide->getNumScenes();
+        ASSERT_EQ(dirCount, 1);
+        std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
+        auto rect = scene->getRect();
+        cv::Rect expectedRect(0, 0, 3968, 4864);
+        EXPECT_EQ(rect, expectedRect);
+    }
 }

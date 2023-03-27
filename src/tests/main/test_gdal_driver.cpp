@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+﻿#include <gtest/gtest.h>
 #include "slideio/drivers/gdal/gdalimagedriver.hpp"
 #include "tests/testlib/testtools.hpp"
 #include <numeric>
@@ -218,4 +218,28 @@ TEST(GDALDriver, read16bitSignedImage)
     std::vector<uint8_t> buffer(2 * 1480 * 1132);
     auto rect = scene->getRect();
     scene->readBlock(rect, buffer.data(), buffer.size());
+}
+
+TEST(GDALDriver, openFileUtf8)
+{
+    {
+        std::string filePath = TestTools::getTestImagePath("gdal", u8"тест/тест.tif");
+        std::shared_ptr<slideio::Slide> slide = slideio::openSlide(filePath, "GDAL");
+        int dirCount = slide->getNumScenes();
+        ASSERT_EQ(dirCount, 1);
+        std::shared_ptr<slideio::Scene> scene = slide->getScene(0);
+        auto rect = scene->getRect();
+        std::tuple<int, int, int, int> expectedRect(0, 0, 387, 463);
+        EXPECT_EQ(rect, expectedRect);
+    }
+    {
+        std::string filePath = TestTools::getFullTestImagePath("unicode", u8"тест/lena_256.jpg");
+        std::shared_ptr<slideio::Slide> slide = slideio::openSlide(filePath, "GDAL");
+        int dirCount = slide->getNumScenes();
+        ASSERT_EQ(dirCount, 1);
+        std::shared_ptr<slideio::Scene> scene = slide->getScene(0);
+        auto rect = scene->getRect();
+        std::tuple<int, int, int, int> expectedRect(0, 0, 256, 256);
+        EXPECT_EQ(rect, expectedRect);
+    }
 }

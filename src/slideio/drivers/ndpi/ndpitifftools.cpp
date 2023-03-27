@@ -269,11 +269,7 @@ static slideio::Compression compressTiffToSlideio(int tiffCompression)
 
 libtiff::TIFF* slideio::NDPITiffTools::openTiffFile(const std::string& path)
 {
-    namespace fs = boost::filesystem;
-    boost::filesystem::path filePath(path);
-    if (!fs::exists(filePath)) {
-        RAISE_RUNTIME_ERROR << "File " << path << " does not exist";
-    }
+    Tools::throwIfPathNotExist(path, "NDPITiffTools::openTiffFile");
     libtiff::TIFF* hfile(nullptr);
 #if defined(WIN32)
     std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converter;

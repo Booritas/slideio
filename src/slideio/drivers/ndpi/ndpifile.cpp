@@ -21,10 +21,7 @@ void slideio::NDPIFile::init(const std::string& filePath)
 {
     SLIDEIO_LOG(INFO) << "Initialization of NDPI TIFF file : " << filePath;
 
-    namespace fs = boost::filesystem;
-    if (!fs::exists(filePath)) {
-        RAISE_RUNTIME_ERROR << "NDPIImageDriver: File does not exist::" << filePath;
-    }
+    Tools::throwIfPathNotExist(filePath, "NDPIFile::init");
     SLIDEIO_LOG(INFO) << "Opening of NDPI TIFF file " << filePath;
     m_tiff = NDPITiffTools::openTiffFile(filePath);
     if (!m_tiff.isValid())
