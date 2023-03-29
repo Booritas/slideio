@@ -5,7 +5,7 @@ libxml2/2.9.10@slideio/stable
 glog/0.6.0@slideio/stable
 opencv/4.1.1@slideio/stable
 zlib/1.2.13
-pole/1.0.1@slideio/stable
+pole/1.0.2@slideio/stable
 [options]
 boost:shared=False
 glog:shared=True
