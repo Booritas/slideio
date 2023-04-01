@@ -3,6 +3,7 @@ name: Build slideio windows and macos python packages
 on: [workflow_dispatch]
 env:
   CONAN_REVISIONS_ENABLED: 1
+  CONAN_DISABLE_CHECK_COMPILER: 1
 jobs:
   build-mac-win:
     runs-on: ${{ matrix.os }}
@@ -52,9 +53,6 @@ jobs:
 
     - name: Install conan dependencies
       run: python install.py -a conan
-
-    - name: Upload conan dependencies
-      run: conan upload "ndpi-libtiff/4.3.0@slideio/stable" -r slideio --all
       
     - name: build python packages
       working-directory: ./src/py-bind
