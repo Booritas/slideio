@@ -139,7 +139,7 @@ void CZISlide::init()
     SLIDEIO_LOG(INFO) << "Slide initialization. File path: " << getFilePath();
     // read file header
     m_fileStream.exceptions(std::ios::failbit | std::ios::badbit);
-    int flags = std::ifstream::in | std::ifstream::binary;
+    auto flags = std::ifstream::in | std::ifstream::binary;
 #if defined(WIN32)
     std::wstring wsPath = Tools::toWstring(getFilePath());
     m_fileStream.open(wsPath.c_str(), flags);
