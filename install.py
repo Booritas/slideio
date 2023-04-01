@@ -90,7 +90,7 @@ def configure_conan(slideio_dir, configuration):
     conan_profile_dir_path = os.path.join(slideio_dir, "conan", os_platform)
     # collect paths to conan profile files
     profiles = collect_profiles(conan_profile_dir_path, configuration)
-    for trg_conan_file_path in Path(slideio_dir).rglob('conanfile.txt'):
+    for trg_conan_file_path in Path(slideio_dir).rglob('conanfile.*'):
         print("-------Process file: ", trg_conan_file_path)
         for profile in profiles:
             print(F"Profile:{profile}")
