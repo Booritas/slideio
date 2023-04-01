@@ -105,7 +105,7 @@ void Tools::throwIfPathNotExist(const std::string& path, const std::string label
 #else
     boost::filesystem::path filePath(path);
     if (!fs::exists(filePath)) {
-        RAISE_RUNTIME_ERROR << "File " << path << " does not exist";
+        RAISE_RUNTIME_ERROR << label << " File " << path << " does not exist";
     }
 #endif
 
