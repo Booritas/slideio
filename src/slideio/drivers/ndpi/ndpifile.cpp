@@ -12,7 +12,7 @@ slideio::NDPIFile::~NDPIFile()
 {
     if(m_tiff) {
         SLIDEIO_LOG(INFO) << "Closing file " << m_filePath;
-        libtiff::TIFFClose(m_tiff);
+        NDPITiffTools::closeTiffFile(m_tiff);
         m_tiff = nullptr;
     }
 }
@@ -21,12 +21,9 @@ void slideio::NDPIFile::init(const std::string& filePath)
 {
     SLIDEIO_LOG(INFO) << "Initialization of NDPI TIFF file : " << filePath;
 
-    namespace fs = boost::filesystem;
-    if (!fs::exists(filePath)) {
-        RAISE_RUNTIME_ERROR << "NDPIImageDriver: File does not exist::" << filePath;
-    }
+    Tools::throwIfPathNotExist(filePath, "NDPIFile::init");
     SLIDEIO_LOG(INFO) << "Opening of NDPI TIFF file " << filePath;
-    m_tiff = libtiff::TIFFOpen(filePath.c_str(), "r");
+    m_tiff = NDPITiffTools::openTiffFile(filePath);
     if (!m_tiff.isValid())
     {
         RAISE_RUNTIME_ERROR << "NDPIImageDriver: Cannot open file:" << filePath;

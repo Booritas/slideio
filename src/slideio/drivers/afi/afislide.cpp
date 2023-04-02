@@ -9,6 +9,8 @@
 #include <tinyxml2.h>
 #include <fstream>
 
+#include "slideio/core/tools/tools.hpp"
+
 using namespace slideio;
 using namespace tinyxml2;
 
@@ -102,7 +104,13 @@ std::shared_ptr<CVScene> AFISlide::getScene(int index) const
 
 std::shared_ptr<AFISlide> AFISlide::openFile(const std::string& filePath)
 {
+    Tools::throwIfPathNotExist(filePath, "AFISlide::openFile");
+#if defined(WIN32)
+    std::wstring filePathW = Tools::toWstring(filePath);
+    std::ifstream ifs(filePathW);
+#else
     std::ifstream ifs(filePath);
+#endif
     checkError(ifs.good(), "File doesn't exist %s", filePath);
     std::string fileString((std::istreambuf_iterator<char>(ifs)),
                             std::istreambuf_iterator<char>());

@@ -3,6 +3,9 @@
 // of this distribution and at http://slideio.com/license.html.
 //
 #include "slideio/imagetools/tifftools.hpp"
+
+#include <codecvt>
+
 #include "slideio/imagetools/imagetools.hpp"
 #include "slideio/imagetools/cvtools.hpp"
 #include <opencv2/core.hpp>
@@ -279,16 +282,27 @@ int compressSlideioToTiff(slideio::Compression compression)
 libtiff::TIFF* slideio::TiffTools::openTiffFile(const std::string& path, bool readOnly)
 {
     namespace fs = boost::filesystem;
-    boost::filesystem::path filePath(path);
-    if(readOnly && !fs::exists(filePath)) {
+    libtiff::TIFF* hfile(nullptr);
+#if defined(WIN32)
+    std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converter;
+    std::wstring wsPath = converter.from_bytes(path);
+    boost::filesystem::path filePath(wsPath);
+    if (readOnly && !fs::exists(wsPath)) {
         RAISE_RUNTIME_ERROR << "File " << path << " does not exist";
     }
-    libtiff::TIFF* file = libtiff::TIFFOpen(path.c_str(), readOnly ? "r" : "w");
-    if(!file) {
+    hfile = libtiff::TIFFOpenW(wsPath.c_str(), readOnly ? "r" : "w");
+#else
+    boost::filesystem::path filePath(path);
+    if (readOnly && !fs::exists(filePath)) {
+        RAISE_RUNTIME_ERROR << "File " << path << " does not exist";
+    }
+    hfile = libtiff::TIFFOpen(path.c_str(),  readOnly ? "r" : "w");
+#endif
+    if(!hfile) {
         RAISE_RUNTIME_ERROR << "Cannot open file " << path << " for " << (readOnly ? "reading" : "writing.");
     }
     SLIDEIO_LOG(INFO) << "File " << path << " successfully opened for " << (readOnly ? "reading" : "writing");
-    return file;
+    return hfile;
 }
 
 void slideio::TiffTools::closeTiffFile(libtiff::TIFF* file)
@@ -431,7 +445,7 @@ void slideio::TiffTools::scanFile(const std::string& filePath, std::vector<TiffD
     libtiff::TIFF* file(nullptr);
     try
     {
-        file = libtiff::TIFFOpen(filePath.c_str(), "r");
+        file = openTiffFile(filePath);
         if(file==nullptr)
             throw std::runtime_error(std::string("TiffTools: cannot open tiff file") + filePath);
         scanFile(file, directories);
@@ -439,11 +453,11 @@ void slideio::TiffTools::scanFile(const std::string& filePath, std::vector<TiffD
     catch(std::exception& ex)
     {
         if(file)
-            libtiff::TIFFClose(file);
+            closeTiffFile(file);
         throw ex;
     }
     if(file)
-        libtiff::TIFFClose(file);
+        closeTiffFile(file);
 }
 
 void TiffTools::readNotRGBStripedDir(libtiff::TIFF* file, const TiffDirectory& dir, cv::_OutputArray output)
@@ -799,7 +813,7 @@ void TiffTools::writeTile(libtiff::TIFF* tiff, int x, int y, Compression compres
             const size_t dataSize = tileRaster.total() * tileRaster.elemSize();
             buff.resize(dataSize);
             buffer = buff.data();
-            bufferSize = dataSize;
+            bufferSize = (int)dataSize;
         }
         const ImageTools::JP2KEncodeParameters& jp2param = 
             static_cast<const ImageTools::JP2KEncodeParameters &>(parameters);

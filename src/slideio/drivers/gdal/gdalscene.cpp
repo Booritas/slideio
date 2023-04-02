@@ -8,6 +8,8 @@
 #include <boost/filesystem.hpp>
 #include <boost/format.hpp>
 
+#include "slideio/core/tools/tools.hpp"
+
 
 slideio::GDALScene::GDALScene(const std::string& path) : m_hFile(nullptr)
 {
@@ -71,10 +73,7 @@ double slideio::GDALScene::getMagnification() const
 
 GDALDatasetH slideio::GDALScene::openFile(const std::string& filePath)
 {
-    namespace fs = boost::filesystem;
-    if(!fs::exists(filePath)){
-        throw std::runtime_error(std::string("File does not exist:") + filePath);
-    }
+    Tools::throwIfPathNotExist(filePath, ":GDALScene::openFile");
     GDALDatasetH hfile = GDALOpen(filePath.c_str(), GA_ReadOnly);
     if(hfile==nullptr){
         throw std::runtime_error(std::string("Cannot open file with GDAL driver:") + filePath);

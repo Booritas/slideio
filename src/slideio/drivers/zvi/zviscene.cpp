@@ -9,6 +9,7 @@
 #include <boost/variant.hpp>
 
 #include "zviutils.hpp"
+#include "slideio/core/tools/tools.hpp"
 #include "slideio/imagetools/cvtools.hpp"
 #include "slideio/imagetools/imagetools.hpp"
 
@@ -17,7 +18,11 @@ using namespace slideio;
 
 ZVIScene::ZVIScene(const std::string& filePath) :
     m_filePath(filePath),
+#if defined(WIN32)
+    m_Doc(Tools::toWstring(filePath)),
+#else
     m_Doc(filePath),
+#endif
     m_SceneName("Unknown")
 {
     init();
@@ -308,11 +313,7 @@ void ZVIScene::computeTiles()
 
 void ZVIScene::init()
 {
-    namespace fs = boost::filesystem;
-    if (!fs::exists(m_filePath))
-    {
-        throw std::runtime_error(std::string("ZVIImageDriver: File does not exist:") + m_filePath);
-    }
+    Tools::throwIfPathNotExist(m_filePath, "ZVIScene::init");
     if (!m_Doc.good())
     {
         throw std::runtime_error(

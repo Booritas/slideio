@@ -69,7 +69,7 @@ def process_conan_profile(profile, trg_dir, conan_file):
     generator = "cmake_multi"
     build_libs = []
     build_libs.append('missing')
-    # build_libs.append('libxml2')
+    # build_libs.append('dcmtk')
     # build_libs.append('sqlite3')
     command = ['conan','install',
         '-pr',profile,
@@ -90,7 +90,8 @@ def configure_conan(slideio_dir, configuration):
     conan_profile_dir_path = os.path.join(slideio_dir, "conan", os_platform)
     # collect paths to conan profile files
     profiles = collect_profiles(conan_profile_dir_path, configuration)
-    for trg_conan_file_path in Path(slideio_dir).rglob('conanfile.txt'):
+    src_dir = os.path.join(slideio_dir,"src")
+    for trg_conan_file_path in Path(src_dir).rglob('conanfile.*'):
         print("-------Process file: ", trg_conan_file_path)
         for profile in profiles:
             print(F"Profile:{profile}")

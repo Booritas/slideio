@@ -229,7 +229,12 @@ class Slide(object):
 
 
 def open_slide(path:str, driver:str):
-    '''Returns an instance of a slide object'''
+    '''Returns an instance of a slide object
+
+    Args:
+        path: a path to the image file
+        driver: name of the driver or "AUTO" for automatic driver selection
+    '''
     slide = Slide(path, driver)
     return slide
 

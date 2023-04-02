@@ -1,4 +1,4 @@
-#include <gtest/gtest.h>
+﻿#include <gtest/gtest.h>
 #include <opencv2/highgui.hpp>
 
 #include "slideio/imagetools/tifftools.hpp"
@@ -195,3 +195,13 @@ TEST(TiffTools, readNotRGBTile)
     const int compare = std::memcmp(raster.data, tile.data, raster.total() * raster.elemSize());
     EXPECT_EQ(compare, 0);
 }
+
+TEST(TiffTools, openFileUtf8)
+{
+    std::string filePath = TestTools::getTestImagePath("gdal", u8"тест/тест.tif");
+    std::vector<slideio::TiffDirectory> dirs;
+    slideio::TiffTools::scanFile(filePath, dirs);
+    int dirCount = (int)dirs.size();
+    ASSERT_EQ(dirCount, 1);
+}
+

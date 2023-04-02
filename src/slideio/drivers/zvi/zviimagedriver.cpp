@@ -5,6 +5,8 @@
 #include "slideio/drivers/zvi/zvislide.hpp"
 #include <boost/filesystem.hpp>
 
+#include "slideio/core/tools/tools.hpp"
+
 using namespace slideio;
 
 static const std::string filePathPattern = "*.zvi";
@@ -22,10 +24,7 @@ std::string ZVIImageDriver::getID() const
 
 std::shared_ptr<CVSlide> ZVIImageDriver::openFile(const std::string& filePath)
 {
-    namespace fs = boost::filesystem;
-    if (!fs::exists(filePath)) {
-        throw std::runtime_error(std::string("ZVIImageDriver: File does not exist:") + filePath);
-    }
+    Tools::throwIfPathNotExist(filePath, "ZVIImageDriver::openFile");
     std::shared_ptr<CVSlide> ptr(new ZVISlide(filePath));
     return ptr;
 }

@@ -21,14 +21,9 @@ SCNSlide::SCNSlide(const std::string& filePath) : m_filePath(filePath)
 
 void SCNSlide::init()
 {
-    namespace fs = boost::filesystem;
-    if (!fs::exists(m_filePath)) {
-        throw std::runtime_error(std::string("SCNImageDriver: File does not exist:") + m_filePath);
-    }
     std::vector<TiffDirectory> directories;
-    m_tiff = libtiff::TIFFOpen(m_filePath.c_str(), "r");
-    if (!m_tiff.isValid())
-    {
+    m_tiff = TiffTools::openTiffFile(m_filePath);
+    if (!m_tiff.isValid()) {
         throw std::runtime_error(std::string("SCNImageDriver: Cannot open file:") + m_filePath);
     }
     TiffTools::scanFile(m_tiff, directories);

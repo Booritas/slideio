@@ -13,6 +13,9 @@
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/drivers/ndpi/ndpilibtiff.hpp"
 #include "slideio/drivers/ndpi/ndpitifftools.hpp"
+
+#include <codecvt>
+
 #include "slideio/imagetools/cvtools.hpp"
 #include "jpeglib.h"
 #include "slideio/imagetools/imagetools.hpp"
@@ -266,12 +269,16 @@ static slideio::Compression compressTiffToSlideio(int tiffCompression)
 
 libtiff::TIFF* slideio::NDPITiffTools::openTiffFile(const std::string& path)
 {
-    namespace fs = boost::filesystem;
-    boost::filesystem::path filePath(path);
-    if (!fs::exists(filePath)) {
-        RAISE_RUNTIME_ERROR << "File " << path << " does not exist";
-    }
-    return libtiff::TIFFOpen(path.c_str(), "r");
+    Tools::throwIfPathNotExist(path, "NDPITiffTools::openTiffFile");
+    libtiff::TIFF* hfile(nullptr);
+#if defined(WIN32)
+    std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converter;
+    std::wstring wsPath = converter.from_bytes(path);
+    hfile = libtiff::TIFFOpenW(wsPath.c_str(), "r");
+#else
+    hfile = libtiff::TIFFOpen(path.c_str(), "r");
+#endif
+    return hfile;
 }
 
 void slideio::NDPITiffTools::closeTiffFile(libtiff::TIFF* file)
@@ -481,7 +488,7 @@ void slideio::NDPITiffTools::scanFile(const std::string& filePath, std::vector<N
 {
     libtiff::TIFF* file(nullptr);
     try {
-        file = libtiff::TIFFOpen(filePath.c_str(), "r");
+        file = openTiffFile(filePath);
         if (file == nullptr) {
             RAISE_RUNTIME_ERROR << "NDPITiffTools: cannot open tiff file " << filePath;
         }
@@ -489,11 +496,11 @@ void slideio::NDPITiffTools::scanFile(const std::string& filePath, std::vector<N
     }
     catch (std::exception& ex) {
         if (file)
-            libtiff::TIFFClose(file);
+            closeTiffFile(file);
         throw ex;
     }
     if (file)
-        libtiff::TIFFClose(file);
+        closeTiffFile(file);
 }
 
 void NDPITiffTools::readNotRGBStripedDir(libtiff::TIFF* file, const NDPITiffDirectory& dir, cv::_OutputArray output)

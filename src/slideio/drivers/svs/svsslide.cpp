@@ -49,12 +49,9 @@ std::shared_ptr<SVSSlide> SVSSlide::openFile(const std::string& filePath)
     SLIDEIO_LOG(INFO) << "SVSSlide::openFile: " << filePath;
     namespace fs = boost::filesystem;
     std::shared_ptr<SVSSlide> slide;
-    if(!fs::exists(filePath)){
-        RAISE_RUNTIME_ERROR << "DCMImageDriver: File: " << filePath << "does nont exist!";
-    }
     std::vector<TiffDirectory> directories;
     libtiff::TIFF* tiff(nullptr);
-    tiff = libtiff::TIFFOpen(filePath.c_str(), "r");
+    tiff = TiffTools::openTiffFile(filePath);
     if(!tiff) {
         SLIDEIO_LOG(WARNING) << "SVSSlide::openFile: cannot open file " << filePath << " with libtiff";
         return slide;

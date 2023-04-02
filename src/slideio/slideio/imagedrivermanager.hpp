@@ -31,6 +31,7 @@ namespace slideio
     public:
         /**@brief returns a list of ids of available image format drivers*/
         static std::vector<std::string> getDriverIDs();
+        static std::shared_ptr<slideio::ImageDriver> findDriver(const std::string& filePath);
         /**@brief opens a slide and returns a smart pointer to object of slideio::CVSlide class.
          *
          * @param filePath : a path to a slide file/folder;

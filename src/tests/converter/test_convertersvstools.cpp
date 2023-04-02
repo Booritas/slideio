@@ -32,7 +32,7 @@ TEST(ConverterSVSTools, checkSVSRequirements)
 		{
 			TestTools::getTestImagePath("dcm", "barre.dev/MR-MONO2-12-angio-an1"),
 			"DCM",
-			false
+			true
 		}
     };
 	for(auto test : tests) {

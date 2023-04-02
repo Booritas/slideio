@@ -11,6 +11,8 @@
 #include <boost/filesystem.hpp>
 #include <boost/format.hpp>
 
+#include "slideio/core/tools/tools.hpp"
+
 
 using namespace slideio;
 
@@ -81,10 +83,7 @@ void NDPISlide::init(const std::string& filePath)
 {
     SLIDEIO_LOG(INFO) << "NDPIImageDriver:init-begin";
     m_filePath = filePath;
-    namespace fs = boost::filesystem;
-    if (!fs::exists(m_filePath)) {
-        RAISE_RUNTIME_ERROR << "NDPIImageDriver: File does not exist:" << m_filePath;
-    }
+    Tools::throwIfPathNotExist(m_filePath, "NDPISlide::init");
     m_pfile = new NDPIFile;
     m_pfile->init(m_filePath);
     constructScenes();

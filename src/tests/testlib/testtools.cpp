@@ -7,7 +7,7 @@
 #include <numeric>
 #include <boost/filesystem/path.hpp>
 #include <opencv2/core.hpp>
-#include <opencv2/highgui.hpp>
+//#include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/core/mat.hpp>
 #include "slideio/base/exceptions.hpp"
@@ -98,9 +98,9 @@ void TestTools::compareRasters(cv::Mat& raster1, cv::Mat& raster2)
 
 void TestTools::showRaster(cv::Mat& raster)
 {
-    cv::namedWindow("Display window", cv::WINDOW_AUTOSIZE);
-    cv::imshow("Display window", raster);
-    cv::waitKey(0);
+    // cv::namedWindow("Display window", cv::WINDOW_AUTOSIZE);
+    // cv::imshow("Display window", raster);
+    // cv::waitKey(0);
 }
 
 void TestTools::writePNG(cv::Mat raster, const std::string& filePath)

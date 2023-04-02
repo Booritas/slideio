@@ -474,3 +474,18 @@ TEST(ZVIImageDriver, readBlock3D_emptyChannelIndices)
     EXPECT_EQ(raster.size[2], 10);
     EXPECT_EQ(dt, slideio::DataType::DT_Int16);
 }
+
+TEST(ZVIImageDriver, openFileUtf8)
+{
+    {
+        std::string filePath = TestTools::getFullTestImagePath("unicode", u8"тест/TOMMAlexaFluor647.zvi");
+        slideio::ZVIImageDriver driver;
+        std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+        int dirCount = slide->getNumScenes();
+        ASSERT_EQ(dirCount, 1);
+        std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
+        auto rect = scene->getRect();
+        cv::Rect expectedRect(0, 0, 1388, 1040);
+        EXPECT_EQ(rect, expectedRect);
+    }
+}

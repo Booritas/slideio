@@ -2,6 +2,8 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/slideio/imagedrivermanager.hpp"
+
+#include "slideio/base/exceptions.hpp"
 #include "slideio/core/imagedriver.hpp"
 #include "slideio/drivers/afi/afiimagedriver.hpp"
 #include "slideio/drivers/czi/cziimagedriver.hpp"
@@ -44,6 +46,18 @@ std::vector<std::string> ImageDriverManager::getDriverIDs()
         ids.push_back(drv.first);
     }
     return ids;
+}
+
+std::shared_ptr<slideio::ImageDriver> ImageDriverManager::findDriver(const std::string& filePath)
+{
+    initialize();
+    for (auto itDriver = driverMap.begin(); itDriver != driverMap.end(); ++itDriver) {
+        auto driver = itDriver->second;
+        if(driver->canOpenFile(filePath)) {
+            return driver;
+        }
+    }
+    return nullptr;
 }
 
 void ImageDriverManager::initialize()
@@ -94,10 +108,19 @@ std::shared_ptr<CVSlide> ImageDriverManager::openSlide(const std::string& filePa
 {
     static bool initLog = false;
     initialize();
-    auto it = driverMap.find(driverName);
-    if(it==driverMap.end())
-        throw std::runtime_error("ImageDriverManager: Unknown driver " + driverName);
-    std::shared_ptr<slideio::ImageDriver> driver = it->second;
+    std::shared_ptr<slideio::ImageDriver> driver;
+    if(driverName.compare("AUTO")==0 || driverName.empty()) {
+        driver = findDriver(filePath);
+        if(!driver.get()) {
+            RAISE_RUNTIME_ERROR << "Cannot find driver for file " << filePath << ". Try to define driver manually.";
+        }
+    }
+    else {
+        auto it = driverMap.find(driverName);
+        if (it == driverMap.end())
+            throw std::runtime_error("ImageDriverManager: Unknown driver " + driverName);
+        driver = it->second;
+    }
     return driver->openFile(filePath);
 }
 
