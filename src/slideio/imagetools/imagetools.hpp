@@ -34,15 +34,17 @@ namespace slideio
                 J2KStream,
                 J2KFile
             };
-            JP2KEncodeParameters(Codec codec=Codec::J2KStream) {
+            JP2KEncodeParameters(float rate = 4.5, Codec codec=Codec::J2KStream) {
                 compression = Compression::Jpeg2000;
                 subSamplingDX = 1;
                 subSamplingDY = 1;
                 codecFormat = codec;
+                compressionRate = rate;
             }
             int subSamplingDX;
             int subSamplingDY;
             Codec codecFormat;
+            float compressionRate;
         };
 
     public:

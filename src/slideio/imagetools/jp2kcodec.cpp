@@ -298,12 +298,16 @@ int slideio::ImageTools::encodeJp2KStream(const cv::Mat& mat, uint8_t* buffer, i
     parameters.cod_format = jp2Params.codecFormat;
     parameters.tcp_mct = 0;
 
+    parameters.tcp_numlayers = 1; // set number of quality layers
+    parameters.tcp_rates[0] = jp2Params.compressionRate;
     CodecPtr codec = opj_create_compress((OPJ_CODEC_FORMAT)jp2Params.codecFormat);
 
     rasterToOPJImage(mat, image, jp2Params);
     if (image.get()->color_space == OPJ_CLRSPC_SRGB) {
         parameters.tcp_mct = 1;
     }
+    parameters.cp_disto_alloc = 1;
+
     opj_set_info_handler(codec, openjpeg_info, nullptr);
     opj_set_warning_handler(codec, openjpeg_warning, nullptr);
     opj_set_error_handler(codec, openjpeg_error, nullptr);

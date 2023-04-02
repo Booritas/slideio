@@ -62,7 +62,7 @@ TEST(Converter, convertGDALJp2K)
 	if (boost::filesystem::exists(outputPath)) {
 		boost::filesystem::remove(outputPath);
 	}
-	slideio::ImageTools::JP2KEncodeParameters encodeParameters;
+	slideio::ImageTools::JP2KEncodeParameters encodeParameters(5.f);
 	slideio::ConverterParameters parameters(&encodeParameters);
 	parameters.driver = "SVS";
 	slideio::convertScene(scene, parameters, outputPath);
@@ -81,6 +81,10 @@ TEST(Converter, convertGDALJp2K)
 	//TestTools::showRaster(svsImage);
 	double sim = slideio::ImageTools::computeSimilarity(svsImage, gdalImage);
 	EXPECT_LE(0.99, sim);
+	// size_t fileSizeOutput = boost::filesystem::file_size(outputPath);
+	// size_t fileSizeInput = boost::filesystem::file_size(path);
+	// EXPECT_EQ(0., double(fileSizeInput)/(1024.*1024.));
+	// EXPECT_EQ(0., double(fileSizeOutput) / (1024. * 1024.));
 }
 
 TEST(Converter, nullScene)
