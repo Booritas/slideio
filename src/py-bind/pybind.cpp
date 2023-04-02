@@ -1,3 +1,6 @@
+// This file is part of slideio project.
+// It is subject to the license terms in the LICENSE file found in the top-level directory
+// of this distribution and at http://slideio.com/license.html.
 #include "pyslide.hpp"
 #include "pyglobals.hpp"
 #include <pybind11/pybind11.h>
@@ -5,6 +8,8 @@
 #include <pybind11/complex.h>
 #include <pybind11/functional.h>
 #include <pybind11/chrono.h>
+
+#include "pyconverter.hpp"
 
 namespace py = pybind11;
 

@@ -1,3 +1,6 @@
+// This file is part of slideio project.
+// It is subject to the license terms in the LICENSE file found in the top-level directory
+// of this distribution and at http://slideio.com/license.html.
 #include "pyglobals.hpp"
 #include <slideio/slideio/slideio.hpp>
 #include <slideio/imagetools/imagetools.hpp>
@@ -5,7 +8,6 @@
 #include <boost/format.hpp>
 #include <opencv2/core/mat.hpp>
 
-#include "slideio/converter/converter.hpp"
 #include "slideio/imagetools/cvtools.hpp"
 
 namespace py = pybind11;
@@ -23,11 +25,6 @@ std::shared_ptr<PySlide> pyOpenSlide(const std::string& path, const std::string&
     return wrapper;
 }
 
-void pyConvertFile(std::shared_ptr<PyScene>& pyScene, slideio::ConverterParameters& parameters, const std::string& filePath)
-{
-    std::shared_ptr<slideio::Scene> scene = extractScene(pyScene);
-    slideio::convertScene(scene, parameters, filePath);
-}
 
 std::vector<std::string> pyGetDriverIDs()
 {

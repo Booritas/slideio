@@ -12,6 +12,8 @@ set(BINDLIB_SOURCE
    pyslide.cpp
    pyscene.hpp
    pyscene.cpp
+   pyconverter.hpp
+   pyconverter.cpp
 )
 
 add_subdirectory(pybind11)
