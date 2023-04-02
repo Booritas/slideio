@@ -224,3 +224,7 @@ std::string PyScene::getRawMetadata() const
     return m_scene->getRawMetadata();
 }
 
+std::shared_ptr<slideio::Scene> extractScene(std::shared_ptr<PyScene> pyScene)
+{
+    return pyScene->m_scene;
+}

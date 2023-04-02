@@ -56,8 +56,6 @@ TEST(Converter, convertGDALJp2K)
 	int sceneHeight = std::get<3>(sceneRect);
 	ASSERT_TRUE(scene.get() != nullptr);
 
-	// slideio::TempFile tmp("svs");
-	// std::string outputPath = tmp.getPath().string();
 	std::string outputPath = TestTools::getTestImagePath("gdal", "Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.svs");
 	if (boost::filesystem::exists(outputPath)) {
 		boost::filesystem::remove(outputPath);
@@ -78,13 +76,8 @@ TEST(Converter, convertGDALJp2K)
 	scene->readBlock(sceneRect, gdalBuffer.data(), gdalBuffer.size());
 	cv::Mat svsImage(sceneHeight, sceneWidth, CV_8UC3, svsBuffer.data());
 	cv::Mat gdalImage(sceneHeight, sceneWidth, CV_8UC3, gdalBuffer.data());
-	//TestTools::showRaster(svsImage);
 	double sim = slideio::ImageTools::computeSimilarity(svsImage, gdalImage);
 	EXPECT_LE(0.99, sim);
-	// size_t fileSizeOutput = boost::filesystem::file_size(outputPath);
-	// size_t fileSizeInput = boost::filesystem::file_size(path);
-	// EXPECT_EQ(0., double(fileSizeInput)/(1024.*1024.));
-	// EXPECT_EQ(0., double(fileSizeOutput) / (1024. * 1024.));
 }
 
 TEST(Converter, nullScene)

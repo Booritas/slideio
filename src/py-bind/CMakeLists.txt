@@ -41,6 +41,7 @@ target_include_directories(${BINDLIB_NAME} PRIVATE ${INCLUDE_ROOT} ${Python3_INC
 target_include_directories(${BINDLIB_NAME} PRIVATE ${INCLUDE_ROOT})
 target_link_libraries(${BINDLIB_NAME} PRIVATE 
    ${SLIDEIO_LIB_NAME}
+   ${CONVERTER_LIB_NAME}
    )
 
 

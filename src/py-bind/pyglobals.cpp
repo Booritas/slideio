@@ -5,6 +5,7 @@
 #include <boost/format.hpp>
 #include <opencv2/core/mat.hpp>
 
+#include "slideio/converter/converter.hpp"
 #include "slideio/imagetools/cvtools.hpp"
 
 namespace py = pybind11;
@@ -20,6 +21,12 @@ std::shared_ptr<PySlide> pyOpenSlide(const std::string& path, const std::string&
     PySlide* pySlide = new PySlide(slide);
     std::shared_ptr<PySlide> wrapper(pySlide);
     return wrapper;
+}
+
+void pyConvertFile(std::shared_ptr<PyScene>& pyScene, slideio::ConverterParameters& parameters, const std::string& filePath)
+{
+    std::shared_ptr<slideio::Scene> scene = extractScene(pyScene);
+    slideio::convertScene(scene, parameters, filePath);
 }
 
 std::vector<std::string> pyGetDriverIDs()
