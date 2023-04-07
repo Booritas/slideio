@@ -3,6 +3,8 @@
 #include "tests/testlib/testtools.hpp"
 #include <numeric>
 
+#include "slideio/core/tools/tools.hpp"
+#include "slideio/imagetools/cvtools.hpp"
 #include "slideio/slideio/slideio.hpp"
 
 TEST(GDALDriver, driverID)
@@ -231,6 +233,11 @@ TEST(GDALDriver, openFileUtf8)
         auto rect = scene->getRect();
         std::tuple<int, int, int, int> expectedRect(0, 0, 387, 463);
         EXPECT_EQ(rect, expectedRect);
+        const slideio::DataType dt = scene->getChannelDataType(0);
+        const int ds = slideio::CVTools::cvGetDataTypeSize(dt);
+        int rasterSize = std::get<2>(rect) * std::get<3>(rect) * scene->getNumChannels() * ds;
+        std::vector<uint8_t> raster(rasterSize);
+        scene->readBlock(rect, raster.data(), raster.size());
     }
     {
         std::string filePath = TestTools::getFullTestImagePath("unicode", u8"тест/lena_256.jpg");
@@ -241,5 +248,10 @@ TEST(GDALDriver, openFileUtf8)
         auto rect = scene->getRect();
         std::tuple<int, int, int, int> expectedRect(0, 0, 256, 256);
         EXPECT_EQ(rect, expectedRect);
+        const slideio::DataType dt = scene->getChannelDataType(0);
+        const int ds = slideio::CVTools::cvGetDataTypeSize(dt);
+        int rasterSize = std::get<2>(rect) * std::get<3>(rect) * scene->getNumChannels() * ds;
+        std::vector<uint8_t> raster(rasterSize);
+        scene->readBlock(rect, raster.data(), raster.size());
     }
 }

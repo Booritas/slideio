@@ -13,7 +13,7 @@ from distutils.version import LooseVersion
 from ctypes.util import find_library
 
 version = '2.0.'
-vrs_sub = '6'
+vrs_sub = '7'
 
 if os.environ.get('CI_PIPELINE_IID'):
     ci_id = os.environ['CI_PIPELINE_IID']

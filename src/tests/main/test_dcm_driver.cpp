@@ -402,6 +402,10 @@ TEST(DCMImageDriver, openFileUtf8Path)
     const cv::Rect rect = scene->getRect();
     const cv::Rect refRect = { 0, 0, 512, 512 };
     EXPECT_EQ(rect, refRect);
+    cv::Mat raster;
+    scene->readBlock(rect, raster);
+    EXPECT_EQ(raster.cols, rect.width);
+    EXPECT_EQ(raster.rows, rect.height);
 }
 
 

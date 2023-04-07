@@ -1,4 +1,4 @@
-#include <boost/algorithm/string/predicate.hpp>
+﻿#include <boost/algorithm/string/predicate.hpp>
 #include <gtest/gtest.h>
 #include "slideio/drivers/svs/svsimagedriver.hpp"
 #include "slideio/drivers/svs/svstiledscene.hpp"
@@ -474,4 +474,32 @@ TEST(SVSImageDriver, readCELabImage)
     EXPECT_EQ(cv::countNonZero(dif2), 0);
     EXPECT_EQ(cv::countNonZero(dif3), 0);
 
+}
+
+TEST(SVSImageDriver, openFileUtf8)
+{
+    if (!TestTools::isFullTestEnabled())
+    {
+        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
+    }
+    {
+        std::string filePath = TestTools::getFullTestImagePath("unicode", u8"тест/CMU-1-Small-Region.svs");
+        slideio::SVSImageDriver driver;
+        std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+        int dirCount = slide->getNumScenes();
+        ASSERT_EQ(dirCount, 1);
+        std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
+        auto rect = scene->getRect();
+        cv::Rect expectedRect(0, 0, 2220, 2967);
+        EXPECT_EQ(rect, expectedRect);
+        cv::Mat raster;
+        cv::Size size;
+        double scale = 0.5;
+        size.width = std::lround(double(rect.width) * scale);
+        size.height = std::lround(double(rect.height) * scale);
+        rect.x = rect.y = 0;
+        scene->readResampledBlock(rect, size, raster);
+        EXPECT_EQ(raster.cols, size.width);
+        EXPECT_EQ(raster.rows, size.height);
+    }
 }

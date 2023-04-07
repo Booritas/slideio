@@ -21,7 +21,11 @@ public:
                                                                               m_filePath(filePath)
     {
         if ((!dir->tiled) && (dir->rowsPerStrip == dir->height) && dir->slideioCompression==Compression::Jpeg) {
+#if defined(WIN32)
+            m_file = _wfopen(Tools::toWstring(filePath).c_str(), L"rb");
+#else
             m_file = fopen(filePath.c_str(), "rb");
+#endif
             if (!m_file) {
                 RAISE_RUNTIME_ERROR << "NDPI Image Driver: Cannot open file " << filePath;
             }

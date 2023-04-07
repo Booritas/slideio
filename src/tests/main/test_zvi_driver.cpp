@@ -487,5 +487,14 @@ TEST(ZVIImageDriver, openFileUtf8)
         auto rect = scene->getRect();
         cv::Rect expectedRect(0, 0, 1388, 1040);
         EXPECT_EQ(rect, expectedRect);
+        cv::Mat raster;
+        cv::Size size;
+        double scale = 0.5;
+        size.width = std::lround(double(rect.width) * scale);
+        size.height = std::lround(double(rect.height) * scale);
+        rect.x = rect.y = 0;
+        scene->readResampledBlock(rect, size, raster);
+        EXPECT_EQ(raster.cols, size.width);
+        EXPECT_EQ(raster.rows, size.height);
     }
 }
