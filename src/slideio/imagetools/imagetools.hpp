@@ -7,6 +7,7 @@
 #include <opencv2/core.hpp>
 #include "slideio/imagetools/slideio_imagetools_def.hpp"
 #include "slideio/base/slideio_enums.hpp"
+#include "slideio/imagetools/encodeparameters.hpp"
 
 #if defined(WIN32)
 #pragma warning( push )
@@ -18,35 +19,6 @@ namespace slideio
 {
     class SLIDEIO_IMAGETOOLS_EXPORTS ImageTools
     {
-    public:
-        struct EncodeParameters {
-            Compression compression;
-        };
-        struct JpegEncodeParameters : public EncodeParameters {
-            JpegEncodeParameters(int quality=95) {
-                this->compression = Compression::Jpeg;
-                this->quality = quality;
-            }
-            int quality;
-        };
-        struct JP2KEncodeParameters : public EncodeParameters {
-            enum Codec {
-                J2KStream,
-                J2KFile
-            };
-            JP2KEncodeParameters(float rate = 4.5, Codec codec=Codec::J2KStream) {
-                compression = Compression::Jpeg2000;
-                subSamplingDX = 1;
-                subSamplingDY = 1;
-                codecFormat = codec;
-                compressionRate = rate;
-            }
-            int subSamplingDX;
-            int subSamplingDY;
-            Codec codecFormat;
-            float compressionRate;
-        };
-
     public:
         static void readGDALImage(const std::string& path, cv::OutputArray output);
         static void writeRGBImage(const std::string& path, Compression compression, cv::Mat raster);

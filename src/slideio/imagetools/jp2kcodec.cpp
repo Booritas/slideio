@@ -212,7 +212,7 @@ void slideio::ImageTools::decodeJp2KStream(
     }
 }
 
-void rasterToOPJImage(const cv::Mat& mat, ImagePtr& image, const slideio::ImageTools::JP2KEncodeParameters& params)
+void rasterToOPJImage(const cv::Mat& mat, ImagePtr& image, const slideio::JP2KEncodeParameters& params)
 {
     const int numChannels = mat.channels();
     std::vector<opj_image_cmptparm_t> channelParameters(numChannels);
@@ -235,8 +235,8 @@ void rasterToOPJImage(const cv::Mat& mat, ImagePtr& image, const slideio::ImageT
         memset(&parameter, 0, sizeof(opj_image_cmptparm_t));
         parameter.prec = static_cast<OPJ_UINT32>(bitDepth);
         parameter.sgnd = sign;
-        parameter.dx = static_cast<OPJ_UINT32>(params.subSamplingDX);
-        parameter.dy = static_cast<OPJ_UINT32>(params.subSamplingDY);
+        parameter.dx = static_cast<OPJ_UINT32>(params.getSubSamplingDx());
+        parameter.dy = static_cast<OPJ_UINT32>(params.getSubSamplingDy());
         parameter.w = static_cast<OPJ_UINT32>(width);
         parameter.h = static_cast<OPJ_UINT32>(height);
     }
@@ -295,12 +295,14 @@ int slideio::ImageTools::encodeJp2KStream(const cv::Mat& mat, uint8_t* buffer, i
 
     opj_set_default_encoder_parameters(&parameters);
     parameters.decod_format = 17;
-    parameters.cod_format = jp2Params.codecFormat;
+    parameters.cod_format = jp2Params.getCodecFormat();
     parameters.tcp_mct = 0;
 
     parameters.tcp_numlayers = 1; // set number of quality layers
-    parameters.tcp_rates[0] = jp2Params.compressionRate;
-    CodecPtr codec = opj_create_compress((OPJ_CODEC_FORMAT)jp2Params.codecFormat);
+    parameters.tcp_rates[0] = jp2Params.getCompressionRate();
+    OPJ_CODEC_FORMAT codecFormat = 
+        (jp2Params.getCodecFormat() == JP2KEncodeParameters::Codec::J2KFile ? OPJ_CODEC_JP2 : OPJ_CODEC_J2K);
+    CodecPtr codec = opj_create_compress(codecFormat);
 
     rasterToOPJImage(mat, image, jp2Params);
     if (image.get()->color_space == OPJ_CLRSPC_SRGB) {

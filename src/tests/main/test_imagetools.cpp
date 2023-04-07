@@ -274,7 +274,7 @@ TEST(ImageTools, encodeJpeg)
     cv::Mat source;
     slideio::ImageTools::readGDALImage(pathPng, source);
     std::vector<uint8_t> output;
-    slideio::ImageTools::JpegEncodeParameters encodeParameters(99);
+    slideio::JpegEncodeParameters encodeParameters(99);
     slideio::ImageTools::encodeJpeg(source, output, encodeParameters);
     slideio::TempFile jpeg("jpg");
     std::string pathJpeg = jpeg.getPath().string();
@@ -294,8 +294,8 @@ TEST(ImageTools, encodeJpegGray)
     cv::Mat source;
     slideio::ImageTools::readGDALImage(pathPng, source);
     std::vector<uint8_t> output;
-    slideio::ImageTools::JpegEncodeParameters params;
-    params.quality = 99;
+    slideio::JpegEncodeParameters params;
+    params.setQuality(99);
     slideio::ImageTools::encodeJpeg(source, output, params);
     slideio::TempFile jpeg("jpg");
     std::string pathJpeg = jpeg.getPath().string();

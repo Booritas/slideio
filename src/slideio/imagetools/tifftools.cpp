@@ -795,7 +795,7 @@ void TiffTools::setTags(libtiff::TIFF* tiff, const TiffDirectory& dir, bool newD
 }
 
 void TiffTools::writeTile(libtiff::TIFF* tiff, int x, int y, Compression compression, 
-                        const cv::Mat& tileRaster, const ImageTools::EncodeParameters& parameters,
+                        const cv::Mat& tileRaster, const EncodeParameters& parameters,
                         uint8_t* buffer, int bufferSize)
 {
     if(compression==Compression::Jpeg) {
@@ -815,8 +815,8 @@ void TiffTools::writeTile(libtiff::TIFF* tiff, int x, int y, Compression compres
             buffer = buff.data();
             bufferSize = (int)dataSize;
         }
-        const ImageTools::JP2KEncodeParameters& jp2param = 
-            static_cast<const ImageTools::JP2KEncodeParameters &>(parameters);
+        const JP2KEncodeParameters& jp2param = 
+            static_cast<const JP2KEncodeParameters &>(parameters);
         int dataSize = ImageTools::encodeJp2KStream(tileRaster, buffer, bufferSize, jp2param);
         if(dataSize <= 0) {
             RAISE_RUNTIME_ERROR << "JPEG 2000 Encoding failed";

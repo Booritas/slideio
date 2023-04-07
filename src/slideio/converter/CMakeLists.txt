@@ -12,6 +12,8 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/convertertifftools.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/convertersvstools.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/convertersvstools.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/converterparameters.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/converterparameters.hpp
    )
 
 

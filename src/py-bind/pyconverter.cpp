@@ -4,16 +4,19 @@
 #include "pyscene.hpp"
 #include "pyconverter.hpp"
 #include "slideio/base/exceptions.hpp"
+#include "slideio/converter/converter.hpp"
+#include "slideio/converter/converterparameters.hpp"
 
-std::shared_ptr<PyConverterParameters> createConverterParameters(ConverterFormat format, ConverterEncoding encoding)
+using namespace slideio;
+ConverterParameters* pyCreateConverterParameters(ImageFormat format, Compression encoding)
 {
-    std::shared_ptr<PyConverterParameters> params;
-    if (format == ConverterFormat::SVS) {
-        if (encoding == ConverterEncoding::JPEG) {
-            params.reset(new PySVSJpegConverterParameters);
+    ConverterParameters* params(nullptr);
+    if (format == ImageFormat::SVS) {
+        if (encoding == Compression::Jpeg) {
+            params = new SVSJpegConverterParameters;
         }
-        else if (encoding == ConverterEncoding::JPEG2000) {
-            params.reset(new PySVSJp2KConverterParameters);
+        else if (encoding == Compression::Jpeg2000) {
+            params = new SVSJp2KConverterParameters;
         }
         else {
             RAISE_RUNTIME_ERROR << "Unknown encoding for SVS m_format: " << (int)encoding;
@@ -25,8 +28,8 @@ std::shared_ptr<PyConverterParameters> createConverterParameters(ConverterFormat
     return params;
 }
 
-void pyConvertFile(std::shared_ptr<PyScene>& pyScene, std::shared_ptr<PyConverterParameters>& parameters, const std::string& filePath)
+void pyConvertFile(std::shared_ptr<PyScene>& pyScene, ConverterParameters* parameters, const std::string& filePath)
 {
     std::shared_ptr<slideio::Scene> scene = extractScene(pyScene);
-    //slideio::convertScene(scene, parameters, filePath);
+    slideio::convertScene(scene, *parameters, filePath);
 }

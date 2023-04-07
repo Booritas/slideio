@@ -6,6 +6,7 @@
 #include "slideio/base/exceptions.hpp"
 #include <boost/filesystem.hpp>
 
+#include "slideio/converter/converterparameters.hpp"
 #include "slideio/core/cvslide.hpp"
 #include "slideio/imagetools/tempfile.hpp"
 #include "slideio/slideio/imagedrivermanager.hpp"
@@ -26,9 +27,8 @@ TEST(Converter, convertGDALJpeg)
 	if(boost::filesystem::exists(outputPath)) {
 		boost::filesystem::remove(outputPath);
 	}
-	slideio::ImageTools::JpegEncodeParameters encodeParameters(99);
-    slideio::ConverterParameters parameters(&encodeParameters);
-	parameters.driver = "SVS";
+    slideio::SVSJpegConverterParameters parameters;
+	parameters.setQuality(99);
 	slideio::convertScene(scene, parameters, outputPath);
 	SlidePtr svsSlide = slideio::openSlide(outputPath, "SVS");
 	ScenePtr svsScene = svsSlide->getScene(0);
@@ -60,9 +60,7 @@ TEST(Converter, convertGDALJp2K)
 	if (boost::filesystem::exists(outputPath)) {
 		boost::filesystem::remove(outputPath);
 	}
-	slideio::ImageTools::JP2KEncodeParameters encodeParameters(5.f);
-	slideio::ConverterParameters parameters(&encodeParameters);
-	parameters.driver = "SVS";
+	slideio::SVSJp2KConverterParameters parameters;
 	slideio::convertScene(scene, parameters, outputPath);
 	SlidePtr svsSlide = slideio::openSlide(outputPath, "SVS");
 	ScenePtr svsScene = svsSlide->getScene(0);
@@ -83,9 +81,8 @@ TEST(Converter, convertGDALJp2K)
 TEST(Converter, nullScene)
 {
 	std::string outputPath = TestTools::getTestImagePath("gdal", "test.svs");
-	slideio::ImageTools::JpegEncodeParameters encodeParameters(99);
-	slideio::ConverterParameters parameters(&encodeParameters);
-	parameters.driver = "SVS";
+	slideio::SVSJpegConverterParameters parameters;
+	parameters.setQuality(99);
 	ASSERT_THROW(slideio::convertScene(nullptr, parameters, outputPath), slideio::RuntimeError);
 }
 
@@ -96,8 +93,8 @@ TEST(Converter, unspecifiedDriver)
 	ScenePtr scene = slide->getScene(0);
 	ASSERT_TRUE(scene.get() != nullptr);
 	
-	slideio::ImageTools::JpegEncodeParameters encodeParameters(99);
-	slideio::ConverterParameters parameters(&encodeParameters);
+	slideio::SVSJpegConverterParameters parameters;
+	parameters.setQuality(99);
 	std::string outputPath = TestTools::getTestImagePath("gdal", "test.svs");
 	ASSERT_THROW(slideio::convertScene(scene, parameters, outputPath), slideio::RuntimeError);
 }
@@ -109,9 +106,8 @@ TEST(Converter, unsupportedDriver)
 	ScenePtr scene = slide->getScene(0);
 	ASSERT_TRUE(scene.get() != nullptr);
 	
-	slideio::ImageTools::JpegEncodeParameters encodeParameters(99);
-	slideio::ConverterParameters parameters(&encodeParameters);
-	parameters.driver = "GDAL";
+	slideio::SVSJpegConverterParameters parameters;
+	parameters.setQuality(99);
 	std::string outputPath = TestTools::getTestImagePath("gdal", "test.svs");
 	ASSERT_THROW(slideio::convertScene(scene, parameters, outputPath), slideio::RuntimeError);
 }
@@ -123,9 +119,8 @@ TEST(Converter, outputPathExists)
 	ScenePtr scene = slide->getScene(0);
 	ASSERT_TRUE(scene.get() != nullptr);
 	
-	slideio::ImageTools::JpegEncodeParameters encodeParameters(99);
-	slideio::ConverterParameters parameters(&encodeParameters);
-	parameters.driver = "SVS";
+	slideio::SVSJpegConverterParameters parameters;
+	parameters.setQuality(99);
 	ASSERT_THROW(slideio::convertScene(scene, parameters, path), slideio::RuntimeError);
 }
 

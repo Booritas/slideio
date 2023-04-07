@@ -7,7 +7,6 @@
 #include <map>
 
 #include "slideio/converter/converter_def.hpp"
-#include "slideio/core/cvstructs.hpp"
 #include "slideio/imagetools/imagetools.hpp"
 #include "slideio/slideio/scene.hpp"
 
@@ -20,21 +19,8 @@ const std::string DRIVER = "DRIVER";
 
 namespace slideio
 {
-    struct ConverterParameters
-    {
-        ConverterParameters(ImageTools::EncodeParameters* encodeParameters) :
-            numZoomLevels(0),
-            tileWidth(256),
-            tileHeight(256),
-            encoding(encodeParameters) {
-        }
-        ImageTools::EncodeParameters* encoding;
-        int numZoomLevels;
-        std::string driver;
-        int tileWidth;
-        int tileHeight;
-    };
-   void SLIDEIO_CONVERTER_EXPORTS convertScene(std::shared_ptr<slideio::Scene> inputScene,
+    class ConverterParameters;
+    void SLIDEIO_CONVERTER_EXPORTS convertScene(std::shared_ptr<slideio::Scene> inputScene,
                                                 ConverterParameters& parameters,
                                                 const std::string& outputPath);
 }

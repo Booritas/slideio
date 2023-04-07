@@ -5,6 +5,7 @@
 #include "slideio/base/exceptions.hpp"
 #include <boost/filesystem.hpp>
 
+#include "slideio/converter/converterparameters.hpp"
 #include "slideio/imagetools/tempfile.hpp"
 #include "slideio/slideio/imagedrivermanager.hpp"
 
@@ -29,9 +30,7 @@ int main()
 	if (boost::filesystem::exists(outputPath)) {
 		boost::filesystem::remove(outputPath);
 	}
-	slideio::ImageTools::JP2KEncodeParameters encodeParameters;
-	slideio::ConverterParameters parameters(&encodeParameters);
-	parameters.driver = "SVS";
+	slideio::SVSJpegConverterParameters parameters;
 	slideio::convertScene(scene, parameters, outputPath);
 	// SlidePtr svsSlide = slideio::openSlide(outputPath, "SVS");
 	// ScenePtr svsScene = svsSlide->getScene(0);

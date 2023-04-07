@@ -75,7 +75,7 @@ namespace slideio
         static void writeDirectory(libtiff::TIFF* tiff);
         static void setTags(libtiff::TIFF* tiff, const TiffDirectory& dir, bool newDirectory);
         static void writeTile(libtiff::TIFF* tiff, int x, int y, Compression compression,
-            const cv::Mat& tileRaster, const ImageTools::EncodeParameters& parameters,
+            const cv::Mat& tileRaster, const EncodeParameters& parameters,
             uint8_t* buffer=nullptr, int bufferSize=0);
     };
 }

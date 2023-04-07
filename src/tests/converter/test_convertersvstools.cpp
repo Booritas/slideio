@@ -7,6 +7,7 @@
 #include "slideio/slideio/imagedrivermanager.hpp"
 #include "slideio/base/exceptions.hpp"
 #include "slideio/converter/converter.hpp"
+#include "slideio/converter/converterparameters.hpp"
 #include "slideio/imagetools/tempfile.hpp"
 #include "slideio/slideio/slideio.hpp"
 
@@ -52,9 +53,8 @@ TEST(ConverterSVSTools, createDescription)
 	std::string imagePath = TestTools::getTestImagePath("svs", "CMU-1-Small-Region.svs");
     CVSlidePtr slide = slideio::ImageDriverManager::openSlide(imagePath,"SVS");
     CVScenePtr scene = slide->getScene(0);
-	slideio::ImageTools::JpegEncodeParameters encodeParameters(95);
-	slideio::ConverterParameters parameters(&encodeParameters);
-	parameters.driver = "SVS";
+	slideio::SVSJpegConverterParameters parameters;
+	parameters.setQuality(99);
     std::string description = slideio::ConverterSVSTools::createDescription(scene, parameters);
 	EXPECT_FALSE(description.empty());
 	EXPECT_TRUE(description.find("SlideIO") >= 0);
@@ -72,11 +72,10 @@ TEST(ConverterSVSTools, createZoomLevelGray)
 	slideio::ImageTools::readGDALImage(imagePath, source);
 	slideio::TempFile tiff("tiff");
 	TIFFKeeperPtr file(new slideio::TIFFKeeper(tiff.getPath().string(), false));
-	slideio::ImageTools::JpegEncodeParameters encodeParameters(99);
-	slideio::ConverterParameters parameters(&encodeParameters);
-	parameters.driver = "SVS";
-	parameters.tileWidth = 256;
-	parameters.tileHeight = 256;
+	slideio::SVSJpegConverterParameters parameters;
+	parameters.setQuality(99);
+	parameters.setTileWidth(256);
+	parameters.setTileHeight(256);
 	slideio::ConverterSVSTools::createZoomLevel(file, 0, scene, parameters);
 	file->closeTiffFile();
 	std::vector<slideio::TiffDirectory> dirs;
@@ -99,11 +98,10 @@ TEST(ConverterSVSTools, createZoomLevelColor)
 	cv::Size tileSize(256, 256);
 	slideio::TempFile tiff("tiff");
 	TIFFKeeperPtr file(new slideio::TIFFKeeper(tiff.getPath().string(), false));
-	slideio::ImageTools::JpegEncodeParameters encodeParameters(99);
-	slideio::ConverterParameters parameters(&encodeParameters);
-	parameters.driver = "SVS";
-	parameters.tileWidth = 256;
-	parameters.tileHeight = 256;
+	slideio::SVSJpegConverterParameters parameters;
+	parameters.setQuality(99);
+	parameters.setTileWidth(256);
+	parameters.setTileHeight(256);
 	slideio::ConverterSVSTools::createZoomLevel(file, 0, scene, parameters);
 	file->closeTiffFile();
     cv::Mat target;
@@ -121,11 +119,10 @@ TEST(ConverterSVSTools, createSVS8bitGray)
 	ASSERT_EQ(numScenes, 1);
 	std::shared_ptr<slideio::Scene> scene = slide->getScene(0);
 	slideio::TempFile svs("svs");
-	slideio::ImageTools::JpegEncodeParameters encodeParameters(99);
-	slideio::ConverterParameters parameters(&encodeParameters);
-	parameters.driver = "SVS";
-	parameters.tileWidth = 256;
-	parameters.tileHeight = 256;
+	slideio::SVSJpegConverterParameters parameters;
+	parameters.setQuality(99);
+	parameters.setTileWidth(256);
+	parameters.setTileHeight(256);
 	slideio::convertScene(scene, parameters, svs.getPath().string());
 
 	cv::Mat source;
@@ -148,11 +145,10 @@ TEST(ConverterSVSTools, createSVS8bitColor)
 	ASSERT_EQ(numScenes, 1);
 	std::shared_ptr<slideio::Scene> scene = slide->getScene(0);
 	slideio::TempFile svs("svs");
-	slideio::ImageTools::JpegEncodeParameters encodeParameters(99);
-	slideio::ConverterParameters parameters(&encodeParameters);
-	parameters.driver = "SVS";
-	parameters.tileWidth = 256;
-	parameters.tileHeight = 256;
+	slideio::SVSJpegConverterParameters parameters;
+	parameters.setQuality(99);
+	parameters.setTileWidth(256);
+	parameters.setTileHeight(256);
 	slideio::convertScene(scene, parameters, svs.getPath().string());
 
 	cv::Mat source;

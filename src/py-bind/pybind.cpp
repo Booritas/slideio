@@ -5,11 +5,10 @@
 #include "pyglobals.hpp"
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
-#include <pybind11/complex.h>
-#include <pybind11/functional.h>
 #include <pybind11/chrono.h>
 
 #include "pyconverter.hpp"
+#include "slideio/converter/converterparameters.hpp"
 
 namespace py = pybind11;
 
@@ -109,4 +108,20 @@ PYBIND11_MODULE(slideiopybind, m) {
         .value("GIF",slideio::Compression::GIF)
         .value("BIGGIF",slideio::Compression::BIGGIF)
         .export_values();
+    py::enum_<slideio::ImageFormat>(m, "ImageFormat")
+        .value("Unknown", slideio::ImageFormat::Unknown)
+        .value("SVS", slideio::ImageFormat::SVS);
+    py::class_<slideio::ConverterParameters>(m, "ConverterParameters")
+        .def_property_readonly("format", &slideio::ConverterParameters::getFormat, "Format of output file");
+    py::class_<slideio::SVSConverterParameters, slideio::ConverterParameters>(m, "SVSParameters")
+        .def_property("tile_width", &slideio::SVSConverterParameters::getTileWidth, &slideio::SVSConverterParameters::setTileWidth, "Width of tiles in pixels")
+        .def_property("tile_height", &slideio::SVSConverterParameters::getTileHeight, &slideio::SVSConverterParameters::setTileHeight, "Height of tiles in pixels")
+        .def_property("num_zoom_levels", &slideio::SVSConverterParameters::getNumZoomLevels, &slideio::SVSConverterParameters::setNumZoomLevels, "Number of zoom levels")
+        .def_property_readonly("encoding", &slideio::SVSConverterParameters::getEncoding, "Tile encoding parameters");
+    py::class_<slideio::SVSJpegConverterParameters, slideio::SVSConverterParameters, slideio::ConverterParameters>(m, "SVSJpegParameters")
+        .def(py::init<>())
+        .def_property("quality", &slideio::SVSJpegConverterParameters::getQuality, &slideio::SVSJpegConverterParameters::setQuality, "Quality of JPEG encoding");
+    py::class_<slideio::SVSJp2KConverterParameters, slideio::SVSConverterParameters, slideio::ConverterParameters>(m, "SVSJp2KParameters")
+        .def(py::init<>())
+        .def_property("compression_rate", &slideio::SVSJp2KConverterParameters::getCompressionRate, &slideio::SVSJp2KConverterParameters::setCompressionRate, "Compression rate of JPEG200 encoding");
 }
