@@ -764,8 +764,11 @@ void NDPITiffTools::readJpegDirectoryRegion(libtiff::TIFF* tiff, const std::stri
             dir.height;
     }
     setCurrentDirectory(tiff, dir);
-
+#if defined(WIN32)
+    FILE* file = _wfopen(Tools::toWstring(filePath).c_str(), L"rb");
+#else
     FILE* file = fopen(filePath.c_str(), "rb");
+#endif
     if (!file) {
         RAISE_RUNTIME_ERROR << "NDPI Image Driver: Cannot open file " << filePath;
     }

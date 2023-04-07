@@ -597,3 +597,27 @@ TEST(CZIImageDriver, auxSceneMemoryReallocatedBug)
         auxImage->readResampledBlockChannels(sceneRect, size, channels, auxRaster);
     }
 }
+
+TEST(CZIImageDriver, openFileUtf8)
+{
+    if (!TestTools::isFullTestEnabled())
+    {
+        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
+    }
+    {
+        std::string filePath = TestTools::getFullTestImagePath("unicode", u8"тест/pJP31mCherry.czi");
+        slideio::CZIImageDriver driver;
+        std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+        int dirCount = slide->getNumScenes();
+        ASSERT_EQ(dirCount, 1);
+        std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
+        auto rect = scene->getRect();
+        cv::Rect expectedRect(0, 0, 512, 512);
+        EXPECT_EQ(rect, expectedRect);
+        cv::Mat raster;
+        rect.x = rect.y = 0;
+        scene->readBlock(rect, raster);
+        EXPECT_EQ(raster.cols, rect.width);
+        EXPECT_EQ(raster.rows, rect.height);
+    }
+}

@@ -314,6 +314,10 @@ TEST(NDPIImageDriver, readResampled)
 
 TEST(NDPIImageDriver, openFileUtf8)
 {
+    if (!TestTools::isFullTestEnabled())
+    {
+        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
+    }
     {
         std::string filePath = TestTools::getFullTestImagePath("unicode", u8"тест/test3-TRITC 2 (560).ndpi");
         slideio::NDPIImageDriver driver;
@@ -324,5 +328,9 @@ TEST(NDPIImageDriver, openFileUtf8)
         auto rect = scene->getRect();
         cv::Rect expectedRect(0, 0, 3968, 4864);
         EXPECT_EQ(rect, expectedRect);
+        cv::Mat raster;
+        scene->readBlock(rect, raster);
+        EXPECT_EQ(raster.cols, rect.width);
+        EXPECT_EQ(raster.rows, rect.height);
     }
 }
