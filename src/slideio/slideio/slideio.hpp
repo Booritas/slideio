@@ -88,7 +88,7 @@ namespace  slideio
     @param path : path of the file/folder that contains the slide.
     @param driver : id of image driver
     */
-    SLIDEIO_EXPORTS std::shared_ptr<Slide> openSlide(const std::string& path, const std::string& driver);
+    SLIDEIO_EXPORTS std::shared_ptr<Slide> openSlide(const std::string& path, const std::string& driver= "");
     /**@brief Returns a list of available driver ids. */
     SLIDEIO_EXPORTS std::vector<std::string> getDriverIDs();
 }

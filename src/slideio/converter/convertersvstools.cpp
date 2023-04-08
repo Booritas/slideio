@@ -8,6 +8,7 @@
 #include "converterparameters.hpp"
 #include "convertertools.hpp"
 #include "slideio/base/exceptions.hpp"
+#include "slideio/core/tools/tools.hpp"
 #include "slideio/imagetools/cvtools.hpp"
 
 void slideio::ConverterSVSTools::checkSVSRequirements(const CVScenePtr& scene)
@@ -83,10 +84,13 @@ void slideio::ConverterSVSTools::createZoomLevel(TIFFKeeperPtr& file, int zoomLe
         buffer.resize(dataSize);
     }
     cv::Mat tile;
+    int cvType = CVTools::toOpencvType(dir.dataType);
     const EncodeParameters& encoding = parameters.getEncodeParameters();
     for (int y = 0; y < sceneRect.height; y += sceneTileSize.height) {
         for (int x = 0; x < sceneRect.width; x += sceneTileSize.width) {
             cv::Rect blockRect(x, y, sceneTileSize.width, sceneTileSize.height);
+            tile.create(tileSize.height, tileSize.width, CV_MAKE_TYPE(cvType,scene->getNumChannels()));
+            tile.setTo(0);
             ConverterTools::readTile(scene, zoomLevel, blockRect, tile);
             cv::Rect zoomLevelRect = ConverterTools::scaleRect(blockRect, zoomLevel, true);
             file->writeTile(zoomLevelRect.x, zoomLevelRect.y, dir.slideioCompression, encoding, tile, buffer.data(), (int)buffer.size());

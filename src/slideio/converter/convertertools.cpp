@@ -5,6 +5,7 @@
 
 #include "convertersvstools.hpp"
 #include "slideio/base/exceptions.hpp"
+#include "slideio/imagetools/cvtools.hpp"
 #include "slideio/imagetools/tiffkeeper.hpp"
 #include "slideio/imagetools/tifftools.hpp"
 
@@ -49,6 +50,7 @@ void slideio::ConverterTools::readTile(const CVScenePtr& scene, int zoomLevel,
     const cv::Rect& sceneBlockRect, cv::OutputArray tile)
 {
     cv::Rect rectScene = scene->getRect();
+    rectScene.x = rectScene.y = 0;
     cv::Size tileSize = ConverterTools::scaleSize(sceneBlockRect.size(), zoomLevel, true);
     if (rectScene.contains(sceneBlockRect.br())) {
         // internal tiles
@@ -56,16 +58,19 @@ void slideio::ConverterTools::readTile(const CVScenePtr& scene, int zoomLevel,
     }
     else {
         // border tiles
-        tile.create(tileSize, CV_MAKE_TYPE(CV_8U, scene->getNumChannels()));
+        int dt = CVTools::toOpencvType(scene->getChannelDataType(0));
+        tile.create(tileSize, CV_MAKE_TYPE(dt, scene->getNumChannels()));
         tile.setTo(cv::Scalar(0));
         const cv::Rect adjustedRect = rectScene & sceneBlockRect;
         const cv::Size adjustedTileSize = scaleSize(adjustedRect.size(), zoomLevel, true);
         if (!adjustedRect.empty()) {
             cv::Mat adjustedTile;
             scene->readResampledBlock(adjustedRect, adjustedTileSize, adjustedTile);
-            const cv::Rect roi(0, 0, adjustedTileSize.width, adjustedTileSize.height);
-            cv::Mat matTile = tile.getMat();
-            adjustedTile.copyTo(matTile(roi));
+            if(!adjustedTile.empty()) {
+                const cv::Rect roi(0, 0, adjustedTileSize.width, adjustedTileSize.height);
+                cv::Mat matTile = tile.getMat();
+                adjustedTile.copyTo(matTile(roi));
+            }
         }
     }
 }

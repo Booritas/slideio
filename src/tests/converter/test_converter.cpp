@@ -124,3 +124,23 @@ TEST(Converter, outputPathExists)
 	ASSERT_THROW(slideio::convertScene(scene, parameters, path), slideio::RuntimeError);
 }
 
+TEST(Converter, fromMultipleScenes)
+{
+	if (!TestTools::isFullTestEnabled())
+	{
+		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
+	}
+	std::string path = TestTools::getFullTestImagePath("czi", "jxr-rgb-5scenes.czi");
+	SlidePtr slide = slideio::openSlide(path);
+    ScenePtr scene = slide->getScene(0);
+	ASSERT_TRUE(scene.get() != nullptr);
+
+	slideio::SVSJpegConverterParameters parameters;
+	parameters.setQuality(90);
+    const slideio::TempFile tmp("svs");
+    const std::string outputPath = tmp.getPath().string();
+	if (boost::filesystem::exists(outputPath)) {
+		boost::filesystem::remove(outputPath);
+	}
+	slideio::convertScene(scene, parameters, outputPath);
+}
