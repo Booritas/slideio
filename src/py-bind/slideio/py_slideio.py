@@ -249,3 +249,17 @@ def compare_images(left, right):
 def set_log_level(log_level:str):
     '''Sets log level'''
     sld.set_log_level(log_level)
+
+def convert_scene(scene, params, output_path, callback=None):
+    '''Save scene to a file
+    
+    Args:
+        scene: origin scene
+        params: image format of the output file
+        output_path: path to the output file
+        callback: callback progress function
+    '''
+    if(callback is None):
+        sld.convert_scene(scene, params, output_path)
+    else:
+        sld.convert_scene_ex(scene, params, output_path, callback)
