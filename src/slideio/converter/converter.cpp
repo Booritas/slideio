@@ -23,8 +23,15 @@ static void convertToSVS(CVScenePtr scene, ConverterParameters& params, const st
         SVSConverterParameters& parameters = static_cast<SVSConverterParameters&>(params);
         TIFFKeeperPtr file(new TIFFKeeper(outputPath, false));
         if (parameters.getNumZoomLevels() <= 0) {
-            auto rect = scene->getRect();
-            parameters.setNumZoomLevels(ConverterTools::computeNumZoomLevels(rect.width, rect.height));
+            const auto& rect = scene->getRect();
+            const auto& block = params.getRect();
+            int width = rect.width;
+            int height = rect.height;
+            if(block.isValid()) {
+                width = block.width;
+                height = block.height;
+            }
+            parameters.setNumZoomLevels(ConverterTools::computeNumZoomLevels(width, height));
         }
         ConverterSVSTools::createSVS(file, scene, parameters, cb);
     }

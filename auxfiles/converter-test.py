@@ -26,6 +26,10 @@ def convertJp2K(path1, path2, callback):
     scene_input = slide_input.get_scene(0)
 
     params = sld.SVSJp2KParameters()
+    params.rect.x = 1000
+    params.rect.y = 2000
+    params.rect.width = 4000
+    params.rect.height = 3000
     sld.convert_scene_ex(scene_input,params,path2, callback)
 
 def callback(a):

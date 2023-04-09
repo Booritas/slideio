@@ -18,8 +18,8 @@ namespace slideio
     public:
         static void checkSVSRequirements(const CVScenePtr& scene);
         static std::string createDescription(const CVScenePtr& scene, const SVSConverterParameters& parameters);
-        static void createZoomLevel(TIFFKeeperPtr& file, int zoomLevel, const CVScenePtr& scene, const SVSConverterParameters& parameters, const std::function<void(int, int)>& cb = nullptr);
-        static void createSVS(TIFFKeeperPtr& file, const CVScenePtr& scene, const SVSConverterParameters& parameters, ConverterCallback cb);
+        static void createZoomLevel(TIFFKeeperPtr& file, int zoomLevel, const CVScenePtr& scene, SVSConverterParameters& parameters, const std::function<void(int, int)>& cb = nullptr);
+        static void createSVS(TIFFKeeperPtr& file, const CVScenePtr& scene, SVSConverterParameters& parameters, ConverterCallback cb);
     };
 }
 #endif

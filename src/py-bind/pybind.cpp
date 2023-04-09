@@ -113,11 +113,19 @@ PYBIND11_MODULE(slideiopybind, m) {
         .value("GIF",slideio::Compression::GIF)
         .value("BIGGIF",slideio::Compression::BIGGIF)
         .export_values();
+    py::class_<slideio::Rectangle>(m, "Rectangle")
+        .def_readwrite("x",&slideio::Rectangle::x)
+        .def_readwrite("y", &slideio::Rectangle::y)
+        .def_readwrite("width", &slideio::Rectangle::width)
+        .def_readwrite("height", &slideio::Rectangle::height);
     py::enum_<slideio::ImageFormat>(m, "ImageFormat")
         .value("Unknown", slideio::ImageFormat::Unknown)
         .value("SVS", slideio::ImageFormat::SVS);
     py::class_<slideio::ConverterParameters>(m, "ConverterParameters")
-        .def_property_readonly("format", &slideio::ConverterParameters::getFormat, "Format of output file");
+        .def_property_readonly("format", &slideio::ConverterParameters::getFormat, "Format of output file")
+        .def_property("rect", &slideio::ConverterParameters::getRect, &slideio::ConverterParameters::setRect, "Scene region")
+        .def_property("z_slice", &slideio::ConverterParameters::getZSlice, &slideio::ConverterParameters::setZSlice, "Z slice")
+        .def_property("t_frame", &slideio::ConverterParameters::getTFrame, &slideio::ConverterParameters::setTFrame, "Time frame");
     py::class_<slideio::SVSConverterParameters, slideio::ConverterParameters>(m, "SVSParameters")
         .def_property("tile_width", &slideio::SVSConverterParameters::getTileWidth, &slideio::SVSConverterParameters::setTileWidth, "Width of tiles in pixels")
         .def_property("tile_height", &slideio::SVSConverterParameters::getTileHeight, &slideio::SVSConverterParameters::setTileHeight, "Height of tiles in pixels")

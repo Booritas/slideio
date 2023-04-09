@@ -17,17 +17,48 @@ namespace slideio
         JPEG2000
 
     };
+
+    struct Rectangle
+    {
+        int32_t x = -1;
+        int32_t y = -1;
+        int32_t width = 0;
+        int32_t height = 0;
+        bool isValid() const { return x >= 0 && y >= 0 && width > 0 && height > 0; }
+    };
+
     class ConverterParameters
     {
     protected:
-        ConverterParameters() : m_format(ImageFormat::Unknown) {
+        ConverterParameters() : m_format(ImageFormat::Unknown), m_zSlice(0), m_tFrame(0) {
         }
     public:
         ImageFormat getFormat() const {
             return m_format;
         }
+        Rectangle& getRect() {
+            return m_rect;
+        }
+        void setRect(const Rectangle& rect) {
+            m_rect = rect;
+        }
+        int32_t getZSlice() const {
+            return m_zSlice;
+        }
+        void setZSlice(int32_t zSlice) {
+            m_zSlice = zSlice;
+        }
+        int32_t getTFrame() const {
+            return m_tFrame;
+        }
+        void setTFrame(int32_t tFrame) {
+            m_tFrame = tFrame;
+        }
     protected:
         ImageFormat m_format;
+        Rectangle m_rect;
+        int32_t m_zSlice;
+        int32_t m_tFrame;
     };
 
     class SVSConverterParameters : public ConverterParameters
