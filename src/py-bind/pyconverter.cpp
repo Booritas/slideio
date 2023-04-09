@@ -7,6 +7,8 @@
 #include "slideio/converter/converter.hpp"
 #include "slideio/converter/converterparameters.hpp"
 
+namespace py = pybind11;
+
 using namespace slideio;
 ConverterParameters* pyCreateConverterParameters(ImageFormat format, Compression encoding)
 {
@@ -32,4 +34,11 @@ void pyConvertFile(std::shared_ptr<PyScene>& pyScene, ConverterParameters* param
 {
     std::shared_ptr<slideio::Scene> scene = extractScene(pyScene);
     slideio::convertScene(scene, *parameters, filePath);
+}
+
+void pyConvertFileEx(std::shared_ptr<PyScene>& pyScene, ConverterParameters* parameters, const std::string& filePath, py::function callback)
+{
+    const std::function<void(int)>& cb = callback;
+    std::shared_ptr<slideio::Scene> scene = extractScene(pyScene);
+    slideio::convertScene(scene, *parameters, filePath, cb);
 }

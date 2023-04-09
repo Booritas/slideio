@@ -14,7 +14,7 @@
 using namespace slideio;
 
 
-static void convertToSVS(CVScenePtr scene, ConverterParameters& params, const std::string& outputPath)
+static void convertToSVS(CVScenePtr scene, ConverterParameters& params, const std::string& outputPath, ConverterCallback cb)
 {
     if(params.getFormat() != ImageFormat::SVS) {
         RAISE_RUNTIME_ERROR << "Incorrect parameter type for the output file";
@@ -26,7 +26,7 @@ static void convertToSVS(CVScenePtr scene, ConverterParameters& params, const st
             auto rect = scene->getRect();
             parameters.setNumZoomLevels(ConverterTools::computeNumZoomLevels(rect.width, rect.height));
         }
-        ConverterSVSTools::createSVS(file, scene, parameters);
+        ConverterSVSTools::createSVS(file, scene, parameters, cb);
     }
     catch(std::exception&) {
         boost::filesystem::remove(outputPath);
@@ -36,7 +36,8 @@ static void convertToSVS(CVScenePtr scene, ConverterParameters& params, const st
 
 void slideio::convertScene(ScenePtr scene,
                             ConverterParameters& parameters,
-                            const std::string& outputPath)
+                            const std::string& outputPath,
+                            ConverterCallback cb)
 {
     if(scene == nullptr) {
         RAISE_RUNTIME_ERROR << "Converter: invalid input scene!";
@@ -56,7 +57,7 @@ void slideio::convertScene(ScenePtr scene,
     std::string filePath = scene->getFilePath();
     SLIDEIO_LOG(INFO) << "Convert a scene " << sceneName << " from file "
             << filePath << " to format: '" << (int)parameters.getFormat() << "'.";
-    convertToSVS(scene->getCVScene(), parameters, outputPath);
+    convertToSVS(scene->getCVScene(), parameters, outputPath, cb);
 }
 
 

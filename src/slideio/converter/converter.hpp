@@ -6,8 +6,8 @@
 
 #include <map>
 
+#include "convertersvstools.hpp"
 #include "slideio/converter/converter_def.hpp"
-#include "slideio/imagetools/imagetools.hpp"
 #include "slideio/slideio/scene.hpp"
 
 const std::string DRIVER = "DRIVER";
@@ -22,7 +22,8 @@ namespace slideio
     class ConverterParameters;
     void SLIDEIO_CONVERTER_EXPORTS convertScene(std::shared_ptr<slideio::Scene> inputScene,
                                                 ConverterParameters& parameters,
-                                                const std::string& outputPath);
+                                                const std::string& outputPath,
+                                                ConverterCallback cb=nullptr);
 }
 
 #endif

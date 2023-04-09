@@ -3,6 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 #pragma once
 #include <memory>
+#include <pybind11/pybind11.h>
 
 namespace slideio
 {
@@ -12,3 +13,4 @@ namespace slideio
 class PyScene;
 
 void pyConvertFile(std::shared_ptr<PyScene>& pyScene, slideio::ConverterParameters*  params, const std::string& filePath);
+void pyConvertFileEx(std::shared_ptr<PyScene>& pyScene, slideio::ConverterParameters* params, const std::string& filePath, pybind11::function callback);

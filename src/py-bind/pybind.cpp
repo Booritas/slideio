@@ -32,6 +32,11 @@ PYBIND11_MODULE(slideiopybind, m) {
         py::arg("scene"),
         py::arg("parameters"),
         py::arg("file_path"));
+    m.def("convert_scene_ex", &pyConvertFileEx,
+        py::arg("scene"),
+        py::arg("parameters"),
+        py::arg("file_path"),
+        py::arg("callback"));
     py::class_<PySlide, std::shared_ptr<PySlide>>(m, "Slide")
         .def("get_scene", &PySlide::getScene, py::arg("index"), "Returns a Scene object by index")
         .def("get_aux_image", &PySlide::getAuxImage, py::arg("image_name"), "Returns an auxiliary image object by name")
