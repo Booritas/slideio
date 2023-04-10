@@ -7,6 +7,7 @@
 #include "slideio/core/imagedrivermanager.hpp"
 #include "opj_wrappers.h"
 #include "slideio/converter/convertertools.hpp"
+#include "slideio/imagetools/imagetools.hpp"
 
 static void error_callback(const char* msg, void* )
 {

@@ -228,7 +228,7 @@ class Slide(object):
         return self.slide.get_aux_image(image_name)
 
 
-def open_slide(path:str, driver:str):
+def open_slide(path:str, driver:str='AUTO'):
     '''Returns an instance of a slide object
 
     Args:
@@ -250,7 +250,7 @@ def set_log_level(log_level:str):
     '''Sets log level'''
     sld.set_log_level(log_level)
 
-def convert_scene(scene, params, output_path, callback=None):
+def save_scene(scene, params, output_path, callback=None):
     '''Save scene to a file
     
     Args:

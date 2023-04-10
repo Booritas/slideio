@@ -101,7 +101,7 @@ void slideio::ConverterSVSTools::createZoomLevel(TIFFKeeperPtr& file, int zoomLe
             cv::Rect blockRect(x, y, sceneTileSize.width, sceneTileSize.height);
             tile.create(tileSize.height, tileSize.width, CV_MAKE_TYPE(cvType,scene->getNumChannels()));
             tile.setTo(0);
-            ConverterTools::readTile(scene, zoomLevel, blockRect, tile);
+            ConverterTools::readTile(scene, zoomLevel, blockRect, 0, 0, tile);
             blockRect.x -= sceneRect.x;
             blockRect.y -= sceneRect.y;
             cv::Rect zoomLevelRect = ConverterTools::scaleRect(blockRect, zoomLevel, true);

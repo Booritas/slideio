@@ -140,8 +140,8 @@ void Scene::readBlockChannels(const std::tuple<int, int, int, int>& blockRect, c
     void* buffer, size_t bufferSize)
 {
     SLIDEIO_LOG(INFO) << "Scene::readBlockChannels ";// << blockRect << "," << channelIndices;
-    const int blockWidth = std::get<2>(blockRect) - std::get<0>(blockRect);
-    const int blockHeight = std::get<3>(blockRect) - std::get<1>(blockRect);
+    const int blockWidth = std::get<2>(blockRect);
+    const int blockHeight = std::get<3>(blockRect);
     const std::tuple<int,int> size(blockWidth, blockHeight);
     return readResampledBlockChannels(blockRect, size, channelIndices, buffer, bufferSize);
 }

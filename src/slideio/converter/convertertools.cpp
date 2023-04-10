@@ -47,8 +47,10 @@ cv::Size slideio::ConverterTools::scaleSize(const cv::Size& size, int zoomLevel,
 
 
 void slideio::ConverterTools::readTile(const CVScenePtr& scene, int zoomLevel,
-    const cv::Rect& sceneBlockRect, cv::OutputArray tile)
+    const cv::Rect& sceneBlockRect, int slice, int frame, cv::OutputArray tile)
 {
+    cv::Range slices(slice, 1);
+    cv::Range frames(frame, 1);
     cv::Rect rectScene = scene->getRect();
     rectScene.x = rectScene.y = 0;
     cv::Size tileSize = ConverterTools::scaleSize(sceneBlockRect.size(), zoomLevel, true);
@@ -65,7 +67,7 @@ void slideio::ConverterTools::readTile(const CVScenePtr& scene, int zoomLevel,
         const cv::Size adjustedTileSize = scaleSize(adjustedRect.size(), zoomLevel, true);
         if (!adjustedRect.empty()) {
             cv::Mat adjustedTile;
-            scene->readResampledBlock(adjustedRect, adjustedTileSize, adjustedTile);
+            scene->readResampled4DBlockChannels(adjustedRect, adjustedTileSize, {}, slices, frames, adjustedTile);
             if(!adjustedTile.empty()) {
                 const cv::Rect roi(0, 0, adjustedTileSize.width, adjustedTileSize.height);
                 cv::Mat matTile = tile.getMat();

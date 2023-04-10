@@ -86,19 +86,6 @@ TEST(Converter, nullScene)
 	ASSERT_THROW(slideio::convertScene(nullptr, parameters, outputPath), slideio::RuntimeError);
 }
 
-TEST(Converter, unspecifiedDriver)
-{
-	std::string path = TestTools::getTestImagePath("gdal", "Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg");
-	SlidePtr slide = slideio::openSlide(path, "GDAL");
-	ScenePtr scene = slide->getScene(0);
-	ASSERT_TRUE(scene.get() != nullptr);
-	
-	slideio::SVSJpegConverterParameters parameters;
-	parameters.setQuality(99);
-	std::string outputPath = TestTools::getTestImagePath("gdal", "test.svs");
-	ASSERT_THROW(slideio::convertScene(scene, parameters, outputPath), slideio::RuntimeError);
-}
-
 TEST(Converter, unsupportedDriver)
 {
 	std::string path = TestTools::getTestImagePath("gdal", "Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg");
@@ -135,12 +122,42 @@ TEST(Converter, fromMultipleScenes)
     ScenePtr scene = slide->getScene(0);
 	ASSERT_TRUE(scene.get() != nullptr);
 
+	const int x = 1000;
+	const int y = 2000;
+	const int width = 400;
+	const int height = 300;
+	const int numChannels = scene->getNumChannels();
+	const int dataTypeSize = slideio::ImageTools::dataTypeSize(scene->getChannelDataType(0));
+	const int rasterSize = width * height * numChannels * dataTypeSize;
+
+    const std::tuple<int, int, int, int> block = { x,y,width,height };
+	std::vector<uint8_t> buffer(rasterSize);
+	scene->readBlock(block, buffer.data(), buffer.size());
+	
 	slideio::SVSJpegConverterParameters parameters;
 	parameters.setQuality(90);
+	slideio::Rectangle rect = { x,y, width, height};
+	parameters.setRect(rect);
     const slideio::TempFile tmp("svs");
     const std::string outputPath = tmp.getPath().string();
 	if (boost::filesystem::exists(outputPath)) {
 		boost::filesystem::remove(outputPath);
 	}
 	slideio::convertScene(scene, parameters, outputPath);
+	SlidePtr outputSlide = slideio::openSlide(outputPath);
+	ASSERT_TRUE(outputSlide != nullptr);
+	ScenePtr outputScene = outputSlide->getScene(0);
+	ASSERT_TRUE(outputScene != nullptr);
+	const auto outputRect = outputScene->getRect();
+	ASSERT_EQ(std::get<0>(outputRect), 0);
+	ASSERT_EQ(std::get<1>(outputRect), 0);
+	ASSERT_EQ(std::get<2>(outputRect), width);
+	ASSERT_EQ(std::get<3>(outputRect), height);
+	std::vector<uint8_t> outputBuffer(rasterSize);
+	outputScene->readBlock(outputRect, outputBuffer.data(), outputBuffer.size());
+	cv::Mat inputImage(height, width, CV_8UC3, buffer.data());
+	cv::Mat outputImage(height, width, CV_8UC3, outputBuffer.data());
+	double sim = slideio::ImageTools::computeSimilarity(inputImage, outputImage);
+	EXPECT_LE(0.999, sim);
+
 }

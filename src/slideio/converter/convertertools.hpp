@@ -6,7 +6,6 @@
 
 #include "slideio/converter/converter_def.hpp"
 #include "slideio/core/cvscene.hpp"
-#include "slideio/imagetools/tiffkeeper.hpp"
 
 namespace slideio
 {
@@ -17,7 +16,7 @@ namespace slideio
         static cv::Size scaleSize(const cv::Size& size, int zoomLevel, bool downScale=true);
         static cv::Rect scaleRect(const cv::Rect& rect, int zoomLevel, bool downScale);
         static void readTile(const CVScenePtr& scene, int zoomLevel, const cv::Rect& sceneBlockRect,
-                             cv::OutputArray tile);
+                             int slice, int frame, cv::OutputArray tile);
         static cv::Rect computeZoomLevelRect(const cv::Rect& sceneRect, const cv::Size& tileSize, int zoomLevel);
 
 

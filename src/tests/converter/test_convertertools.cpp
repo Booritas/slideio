@@ -27,7 +27,7 @@ TEST(ConverterTools, readTile_normal)
         const cv::Rect tileRect(0, 0, 256, 180);
         const cv::Size tileSize(tileRect.size());
 		cv::Mat tileRaster;
-		slideio::ConverterTools::readTile(scene, 0, tileRect, tileRaster);
+		slideio::ConverterTools::readTile(scene, 0, tileRect, 0, 0, tileRaster);
 		cv::Mat blockRaster;
         const cv::Rect blockRect(tileRect);
 		scene->readBlock(blockRect, blockRaster);
@@ -37,7 +37,7 @@ TEST(ConverterTools, readTile_normal)
 		const cv::Rect tileRect(500, 600, 256, 180);
 		const cv::Size tileSize(tileRect.size());
 		cv::Mat tileRaster;
-		slideio::ConverterTools::readTile(scene, 0, tileRect, tileRaster);
+		slideio::ConverterTools::readTile(scene, 0, tileRect, 0, 0, tileRaster);
 		cv::Mat blockRaster;
 		const cv::Rect blockRect(tileRect);
 		scene->readBlock(blockRect, blockRaster);
@@ -56,7 +56,7 @@ TEST(ConverterTools, readTile_scaled)
 		cv::Rect sceneRect = scene->getRect();
 		const cv::Rect blockRect(55, 75, 512, 1024);
 		cv::Mat tileRaster;
-		slideio::ConverterTools::readTile(scene, zoomLevel, blockRect, tileRaster);
+		slideio::ConverterTools::readTile(scene, zoomLevel, blockRect, 0, 0, tileRaster);
 		cv::Size tileSize = slideio::ConverterTools::scaleSize(blockRect.size(), zoomLevel, true);
 		cv::Mat blockRaster;
 		scene->readResampledBlock(blockRect, tileSize, blockRaster);
@@ -67,7 +67,7 @@ TEST(ConverterTools, readTile_scaled)
 		cv::Rect sceneRect = scene->getRect();
 		const cv::Rect blockRect(55, 75, 512, 1024);
 		cv::Mat tileRaster;
-		slideio::ConverterTools::readTile(scene, zoomLevel, blockRect, tileRaster);
+		slideio::ConverterTools::readTile(scene, zoomLevel, blockRect, 0, 0, tileRaster);
 		cv::Size tileSize = slideio::ConverterTools::scaleSize(blockRect.size(), zoomLevel, true);
 		cv::Mat blockRaster;
 		scene->readResampledBlock(blockRect, tileSize, blockRaster);
@@ -86,7 +86,7 @@ TEST(ConverterTools, readTile_edge)
 		const int zoomLevel = 1;
 		const cv::Rect blockRect(5200, 5600, 1024, 1024);
 		cv::Mat tileRaster;
-		slideio::ConverterTools::readTile(scene, zoomLevel, blockRect, tileRaster);
+		slideio::ConverterTools::readTile(scene, zoomLevel, blockRect, 0, 0, tileRaster);
 		cv::Rect validSceneRect = sceneRect & blockRect;
 	    cv::Size tileSize = slideio::ConverterTools::scaleSize(validSceneRect.size(), zoomLevel, true);
 		cv::Mat blockRaster;
