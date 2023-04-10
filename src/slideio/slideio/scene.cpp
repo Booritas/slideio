@@ -186,8 +186,8 @@ void Scene::read4DBlockChannels(const std::tuple<int, int, int, int>& blockRect,
     size_t bufferSize)
 {
     SLIDEIO_LOG(INFO) << "Scene::read4DBlock ";// << blockRect << "," << channelIndices << "," << zSliceRange << "," << timeFrameRange;
-    const int blockWidth = std::get<2>(blockRect) - std::get<0>(blockRect);
-    const int blockHeight = std::get<3>(blockRect) - std::get<1>(blockRect);
+    const int blockWidth = std::get<2>(blockRect);
+    const int blockHeight = std::get<3>(blockRect);
     const std::tuple<int,int> blockSize(blockWidth, blockHeight);
     return readResampled4DBlockChannels(blockRect, blockSize, channelIndices, zSliceRange, timeFrameRange, buffer, bufferSize);
 }

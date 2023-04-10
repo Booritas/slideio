@@ -49,14 +49,14 @@ cv::Size slideio::ConverterTools::scaleSize(const cv::Size& size, int zoomLevel,
 void slideio::ConverterTools::readTile(const CVScenePtr& scene, int zoomLevel,
     const cv::Rect& sceneBlockRect, int slice, int frame, cv::OutputArray tile)
 {
-    cv::Range slices(slice, 1);
-    cv::Range frames(frame, 1);
+    cv::Range slices(slice, slice + 1);
+    cv::Range frames(frame, frame + 1);
     cv::Rect rectScene = scene->getRect();
     rectScene.x = rectScene.y = 0;
     cv::Size tileSize = ConverterTools::scaleSize(sceneBlockRect.size(), zoomLevel, true);
     if (rectScene.contains(sceneBlockRect.br())) {
         // internal tiles
-        scene->readResampledBlock(sceneBlockRect, tileSize, tile);
+        scene->readResampled4DBlockChannels(sceneBlockRect, tileSize, {}, slices, frames, tile);
     }
     else {
         // border tiles

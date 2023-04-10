@@ -161,3 +161,62 @@ TEST(Converter, fromMultipleScenes)
 	EXPECT_LE(0.999, sim);
 
 }
+
+
+TEST(Converter, from3DScene)
+{
+	if (!TestTools::isFullTestEnabled())
+	{
+		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
+	}
+	std::string path = TestTools::getFullTestImagePath("czi", "pJP31mCherry.czi");
+	SlidePtr slide = slideio::openSlide(path);
+	ScenePtr scene = slide->getScene(0);
+	ASSERT_TRUE(scene.get() != nullptr);
+
+	const int x = 100;
+	const int y = 100;
+	const int width = 300;
+	const int height = 300;
+	const int numChannels = scene->getNumChannels();
+	const int dataTypeSize = slideio::ImageTools::dataTypeSize(scene->getChannelDataType(0));
+	const int rasterSize = width * height * numChannels * dataTypeSize;
+	const int slice = 6;
+	const int frame = 0;
+
+	constexpr std::tuple<int, int> sliceRange(slice, slice + 1);
+	constexpr std::tuple<int, int> frameRange(frame, frame + 1);
+	constexpr std::tuple<int, int, int, int> block = { x,y,width,height };
+	std::vector<uint8_t> buffer(rasterSize);
+
+	scene->read4DBlock(block, sliceRange, frameRange, buffer.data(), buffer.size());
+
+	slideio::SVSJpegConverterParameters parameters;
+	parameters.setZSlice(slice);
+	parameters.setTFrame(frame);
+	parameters.setQuality(90);
+	slideio::Rectangle rect = { x,y, width, height };
+	parameters.setRect(rect);
+	const slideio::TempFile tmp("svs");
+	const std::string outputPath = tmp.getPath().string();
+	if (boost::filesystem::exists(outputPath)) {
+		boost::filesystem::remove(outputPath);
+	}
+	slideio::convertScene(scene, parameters, outputPath);
+	SlidePtr outputSlide = slideio::openSlide(outputPath);
+	ASSERT_TRUE(outputSlide != nullptr);
+	ScenePtr outputScene = outputSlide->getScene(0);
+	ASSERT_TRUE(outputScene != nullptr);
+	const auto outputRect = outputScene->getRect();
+	ASSERT_EQ(std::get<0>(outputRect), 0);
+	ASSERT_EQ(std::get<1>(outputRect), 0);
+	ASSERT_EQ(std::get<2>(outputRect), width);
+	ASSERT_EQ(std::get<3>(outputRect), height);
+	std::vector<uint8_t> outputBuffer(rasterSize);
+	outputScene->readBlock(outputRect, outputBuffer.data(), outputBuffer.size());
+	cv::Mat inputImage(height, width, CV_8UC3, buffer.data());
+	cv::Mat outputImage(height, width, CV_8UC3, outputBuffer.data());
+	double sim = slideio::ImageTools::computeSimilarity(inputImage, outputImage);
+	EXPECT_LE(0.999, sim);
+
+}
