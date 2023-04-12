@@ -334,7 +334,7 @@ TEST(DCMImageDriver, openDicomDirFile)
         int numFrames;
         int numChannels;
     };
-    SceneInfo scenes[] = 
+    SceneInfo scenes[] =
     {
         {
             cv::Size(256,256),
@@ -391,6 +391,11 @@ TEST(DCMImageDriver, readBlockChangingBits)
 
 TEST(DCMImageDriver, openFileUtf8Path)
 {
+    if (!TestTools::isFullTestEnabled())
+    {
+        GTEST_SKIP() <<
+                     "Skip private test because private dataset is not enabled";
+    }
     DCMImageDriver driver;
     std::string slidePath = TestTools::getFullTestImagePath(
         "unicode", u8"тест/CT-MONO2-12-lomb-an2");
@@ -408,6 +413,20 @@ TEST(DCMImageDriver, openFileUtf8Path)
     EXPECT_EQ(raster.rows, rect.height);
 }
 
+TEST(DCMImageDriver, openDirectory2)
+{
+    if (!TestTools::isFullTestEnabled())
+    {
+        GTEST_SKIP() <<
+        "Skip private test because private dataset is not enabled";
+    }
+    DCMImageDriver driver;
+    std::string slidePath = TestTools::getFullTestImagePath(
+            "dcm", "private/H01EBB50P-24777");
+    auto slide = driver.openFile(slidePath);
+    const int numScenes = slide->getNumScenes();
+    ASSERT_EQ(numScenes, 12);
+}
 
 // TEST(DCMImageDriver, readSingleFrameCT)
 // {
