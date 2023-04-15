@@ -109,7 +109,10 @@ namespace slideio
         {
             return m_compression;
         }
-
+        const std::string& getModality() const
+        {
+            return m_modality;
+        }
         void logData();
         void readPixelValues(std::vector<cv::Mat>& frames, int startFrame=0, int numFrames=1);
         std::string getMetadata();
@@ -147,6 +150,7 @@ namespace slideio
         Compression m_compression = Compression::Unknown;
         bool m_decompressWholeFile = false;
         int m_bitsAllocated = 0;
+        std::string m_modality;
     };
 }
 

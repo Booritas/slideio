@@ -154,6 +154,9 @@ void DCMFile::init()
     {
         m_seriesUID = "Unknown series";
     }
+    if (!getStringTag(DCM_Modality, m_modality)) {
+        m_modality = "Unknown modality";
+    }
     if (!getIntTag(DCM_InstanceNumber, m_instanceNumber))
     {
         m_instanceNumber = -1;
