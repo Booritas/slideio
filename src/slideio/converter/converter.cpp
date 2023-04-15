@@ -36,7 +36,11 @@ static void convertToSVS(CVScenePtr scene, ConverterParameters& params, const st
         ConverterSVSTools::createSVS(file, scene, parameters, cb);
     }
     catch(std::exception&) {
+#if defined(WIN32)
+        boost::filesystem::remove(Tools::toWstring(outputPath));
+#else
         boost::filesystem::remove(outputPath);
+#endif
         throw;
     }
 }

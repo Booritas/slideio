@@ -24,7 +24,9 @@ bool Tools::matchPattern(const std::string& path, const std::string& pattern)
 {
     bool ret(false);
 #if defined(WIN32)
-    ret = PathMatchSpecA(path.c_str(), pattern.c_str())!=0;
+    const std::wstring wpath = Tools::toWstring(path);
+    const std::wstring wpattern = Tools::toWstring(pattern);
+    ret = PathMatchSpecW(wpath.c_str(), wpattern.c_str())!=0;
 #else
     std::vector<std::string> subPatterns;
     boost::algorithm::split(subPatterns, pattern, boost::is_any_of(";"), boost::algorithm::token_compress_on);

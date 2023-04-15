@@ -68,11 +68,15 @@ bool DCMImageDriver::canOpenFile(const std::string& filePath) const
 {
     bool can = ImageDriver::canOpenFile(filePath);
     if(!can) {
+#if defined(WIN32)
+        boost::filesystem::path fp(Tools::toWstring(filePath));
+        std::wstring extension = fp.extension().wstring();
+        can = extension.empty();
+#else
         boost::filesystem::path fp(filePath);
         std::string extension = fp.extension().string();
-        if(extension.empty()) {
-            can = true;
-        }
+        can = extension.empty();
+#endif
     }
     return can;
 }
