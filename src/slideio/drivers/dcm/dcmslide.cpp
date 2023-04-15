@@ -18,6 +18,8 @@
 
 using namespace slideio;
 namespace fs = boost::filesystem;
+const std::string SLIDE_MICROSCOPY_MODALITY = "SM";
+
 
 struct Series
 {
@@ -67,15 +69,21 @@ void DCMSlide::processSeries(std::vector<std::shared_ptr<DCMFile>>& files, bool 
         if (left->getWidth() < right->getWidth()) {
             return true;
         }
-        if (left->getHeight() < right->getHeight()) {
-            return true;
-        }
-        if (left->getInstanceNumber() < right->getInstanceNumber()) {
-            return true;
+        if (left->getWidth() == right->getWidth()) {
+            if (left->getHeight() < right->getHeight()) {
+                return true;
+            }
+            if (left->getHeight() == right->getHeight()) {
+                if (left->getInstanceNumber() < right->getInstanceNumber()) {
+                    return true;
+                }
+            }
         }
         return false;
     };
     auto equal = [](const std::shared_ptr<DCMFile>& left, const std::shared_ptr<DCMFile>& right) {
+        if (SLIDE_MICROSCOPY_MODALITY == left->getModality() || SLIDE_MICROSCOPY_MODALITY == right->getModality())
+            return false;
         if (left->getWidth() != right->getWidth()) {
             return false;
         }

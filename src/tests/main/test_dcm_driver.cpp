@@ -413,7 +413,7 @@ TEST(DCMImageDriver, openFileUtf8Path)
     EXPECT_EQ(raster.rows, rect.height);
 }
 
-TEST(DCMImageDriver, openDirectory2)
+TEST(DCMImageDriver, openWSIDirectory)
 {
     if (!TestTools::isFullTestEnabled())
     {
