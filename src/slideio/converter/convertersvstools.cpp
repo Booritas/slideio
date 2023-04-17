@@ -11,13 +11,21 @@
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/imagetools/cvtools.hpp"
 
-void slideio::ConverterSVSTools::checkSVSRequirements(const CVScenePtr& scene)
+void slideio::ConverterSVSTools::checkSVSRequirements(const CVScenePtr& scene, const SVSConverterParameters& parameters)
 {
     const DataType dt = scene->getChannelDataType(0);
     const int numChannels = scene->getNumChannels();
     for (int channel = 1; channel < numChannels; ++channel) {
         if (dt != scene->getChannelDataType(channel)) {
             RAISE_RUNTIME_ERROR << "Converter: Cannot convert scene with different channel types to SVS!";
+        }
+    }
+    if(parameters.getEncoding() == Compression::Jpeg) {
+        if(dt != DataType::DT_Byte) {
+            RAISE_RUNTIME_ERROR << "Converter: Jpeg compression can be used for 8bit images only!";
+        }
+        if(scene->getNumChannels()!=1 && scene->getNumChannels()!=3) {
+            RAISE_RUNTIME_ERROR << "Converter: Jpeg compression can be used for 1 and 3 channel images only!";
         }
     }
 }
@@ -131,7 +139,7 @@ void slideio::ConverterSVSTools::createSVS(TIFFKeeperPtr& file, const CVScenePtr
     if(!scene) {
         RAISE_RUNTIME_ERROR << "Received invalid scene object!";
     }
-    checkSVSRequirements(scene);
+    checkSVSRequirements(scene, parameters);
 
     int tileCount = 0;
 
@@ -171,5 +179,8 @@ void slideio::ConverterSVSTools::createSVS(TIFFKeeperPtr& file, const CVScenePtr
         else {
             createZoomLevel(file, zoomLevel, scene, parameters, nullptr);
         }
+    }
+    if(cb != nullptr && percents!=100) {
+        cb(100);
     }
 }

@@ -26,7 +26,7 @@ void slideio::TileComposer::composeRect(slideio::Tiler* tiler,
     slideio::Tools::scaleRect(blockRect, blockSize, scaledBlockRect);
     if(tileTest)
     {
-        output.create(scaledBlockRect.height, scaledBlockRect.width, CV_MAKETYPE(CV_8U,1));
+        output.create(scaledBlockRect.height, scaledBlockRect.width, CV_MAKETYPE(CV_8U, channelCount));
         scaledBlockRaster = output.getMat();
         scaledBlockRaster = output.getMat();
     }
