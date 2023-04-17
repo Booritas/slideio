@@ -7,6 +7,7 @@
 #include "slideio/imagetools/imagetools.hpp"
 #include "slideio/drivers/svs/svsscene.hpp"
 #include "slideio/core/tools/tools.hpp"
+#include "slideio/imagetools/cvtools.hpp"
 
 using namespace slideio;
 
@@ -133,6 +134,10 @@ bool SVSTiledScene::readTile(int tileIndex, const std::vector<int>& channelIndic
         ret = true;
     }
     catch(std::runtime_error&){
+        const cv::Size tileSize = { dir->tileWidth, dir->tileHeight };
+        const slideio::DataType dt = dir->dataType;
+        tileRaster.create(tileSize, CV_MAKETYPE(slideio::CVTools::toOpencvType(dt), dir->channels));
+        tileRaster.setTo(dt==DataType::DT_Byte?255:0);
     }
 
     return ret;
