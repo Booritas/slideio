@@ -228,6 +228,20 @@ class Slide(object):
         return self.slide.get_aux_image(image_name)
 
 
+def convert_scene(scene, params, output_path, callback=None):
+    '''Save scene to a file with conversion
+    
+    Args:
+        scene: origin scene
+        params: image format of the output file
+        output_path: path to the output file
+        callback: callback progress function
+    '''
+    if(callback is None):
+        sld.convert_scene(scene.scene, params, output_path)
+    else:
+        sld.convert_scene_ex(scene.scene, params, output_path, callback)
+
 def open_slide(path:str, driver:str='AUTO'):
     '''Returns an instance of a slide object
 
@@ -250,16 +264,3 @@ def set_log_level(log_level:str):
     '''Sets log level'''
     sld.set_log_level(log_level)
 
-def save_scene(scene, params, output_path, callback=None):
-    '''Save scene to a file
-    
-    Args:
-        scene: origin scene
-        params: image format of the output file
-        output_path: path to the output file
-        callback: callback progress function
-    '''
-    if(callback is None):
-        sld.convert_scene(scene, params, output_path)
-    else:
-        sld.convert_scene_ex(scene, params, output_path, callback)
