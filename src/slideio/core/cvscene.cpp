@@ -114,6 +114,7 @@ void CVScene::readResampled4DBlockChannels(const cv::Rect& blockRect, const cv::
         output.create((int)dims.size(), dims.data(), CV_MAKE_TYPE(cvDt, channelCount));
     }
     cv::Mat& dataRaster = output.getMatRef();
+    dataRaster.setTo(cv::Scalar(0));
     std::vector<cv::Range> subDims(2);
     subDims[0] = cv::Range(0, height);
     subDims[1] = cv::Range(0, width);

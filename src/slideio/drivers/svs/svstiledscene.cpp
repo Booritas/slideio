@@ -137,7 +137,7 @@ bool SVSTiledScene::readTile(int tileIndex, const std::vector<int>& channelIndic
         const cv::Size tileSize = { dir->tileWidth, dir->tileHeight };
         const slideio::DataType dt = dir->dataType;
         tileRaster.create(tileSize, CV_MAKETYPE(slideio::CVTools::toOpencvType(dt), dir->channels));
-        tileRaster.setTo(dt==DataType::DT_Byte?255:0);
+        tileRaster.setTo(0);
     }
 
     return ret;
