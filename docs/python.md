@@ -48,6 +48,14 @@ python install.py -a conan
 cd ./src/py-bind
 python build_py_dists.py path-to-the-file-with-python-distributons
 ```
+Here, *path-to-the-file-with-python-distributions* refers to a file path to a text file that contains a list of paths for Python executables, for which the package should be built. For example
+```
+D:\Python310\python.exe
+D:\Python36\python.exe
+D:\Python37\python.exe
+D:\Python38\python.exe
+D:\Python39\python.exe
+```
 After successful build, the wheel files of the extension can be found in the *SLIDEIO-ROOT/src/py-bin/dist* folder.
 
 # Quick Start
