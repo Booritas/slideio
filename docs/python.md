@@ -48,7 +48,7 @@ python install.py -a conan
 cd ./src/py-bind
 python build_py_dists.py path-to-the-file-with-python-distributons
 ```
-Here, *path-to-the-file-with-python-distributions* refers to a file path to a text file that contains a list of paths for Python executables, for which the package should be built. For example
+Here, *path-to-the-file-with-python-distributions* refers to a path to a text file that contains a list of paths for Python executables, for which the package should be built. For example
 ```
 D:\Python310\python.exe
 D:\Python36\python.exe
