@@ -37,7 +37,7 @@ pip install conan
 #### 2. Setup SlideIO conan repository
 ```
 export CONAN_REVISIONS_ENABLED=1
-conan remote add slideio-conan-local https://bioslide.jfrog.io/artifactory/api/conan/slideio-conan-local
+conan remote add slideio https://bioslide.jfrog.io/artifactory/api/conan/slideio-conan
 ```
 #### 3. Download/Build library dependencies
 ```
