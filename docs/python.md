@@ -39,7 +39,11 @@ pip install conan
 export CONAN_REVISIONS_ENABLED=1
 conan remote add slideio-conan-local https://bioslide.jfrog.io/artifactory/api/conan/slideio-conan-local
 ```
-#### 3. Build the library
+#### 3. Download/Build library dependencies
+```
+python install.py -a conan
+```
+#### 4. Build the library
 ```
 cd ./src/py-bind
 python build_py_dists.py path-to-the-file-with-python-distributons
