@@ -4,7 +4,7 @@ os_build=Macos
 arch=armv8
 arch_build=armv8
 compiler=apple-clang
-compiler.version=13
+compiler.version=14
 compiler.libcxx=libc++
 build_type=Release
 [build_requires]
