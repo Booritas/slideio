@@ -32,7 +32,7 @@ D:\conan\python\3.9\slideio\stable\package\ca33edce272a279b24f87dc0d4cf5bbdcffbc
 Execute the following steps to build the library.
 #### 1. Install conan package manager
 ```
-pip install conan
+pip install conan==1.59.0
 ```
 #### 2. Setup SlideIO conan repository
 ```
