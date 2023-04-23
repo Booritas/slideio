@@ -6,9 +6,11 @@ glog/0.6.0@slideio/stable
 opencv/4.1.1@slideio/stable
 zlib/1.2.13
 xz_utils/5.4.0
-dcmtk/3.6.5@slideio/stable
+dcmtk/3.6.7
 libiconv/1.17
 libwebp/1.2.4
 [options]
 boost:shared=False
 glog:shared=True
+dcmtk:builtin_dictionary=True
+dcmkt:wide_io=True

@@ -7,5 +7,8 @@ compiler=apple-clang
 compiler.version=14
 compiler.libcxx=libc++
 build_type=Debug
+[options]
+tinyxml2:shared=False
+boost:shared=False
 [build_requires]
 [env]
