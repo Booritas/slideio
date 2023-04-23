@@ -13,4 +13,4 @@ libwebp/1.2.4
 boost:shared=False
 glog:shared=True
 dcmtk:builtin_dictionary=True
-dcmkt:wide_io=True
+dcmtk:wide_io=True
