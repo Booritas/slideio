@@ -10,6 +10,8 @@ jobs:
         CONAN_REVISIONS_ENABLED: 1
 
     steps:
+    - name: Install conan
+      run: python3 -m pip install -U conan==1.59.0
 
     - name: Conan version
       run: echo "${{ steps.conan.outputs.version }}"
