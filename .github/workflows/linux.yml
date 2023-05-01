@@ -35,7 +35,7 @@ jobs:
       
     - name: build python packages
       working-directory: ./src/py-bind
-      run: bash ./build_py_dists_linux.sh
+      run: bash ./build_slideio_dists_linux.sh
 
     - name: Archive python packagess
       uses: actions/upload-artifact@v2

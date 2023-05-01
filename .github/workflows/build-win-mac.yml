@@ -56,7 +56,7 @@ jobs:
       
     - name: build python packages
       working-directory: ./src/py-bind
-      run: python build_py_dists.py "${{ github.workspace }}/conan-recipes/py.txt"
+      run: python build_slideio_dists.py "${{ github.workspace }}/conan-recipes/py.txt"
 
     - name: Archive python packagess
       uses: actions/upload-artifact@v2
