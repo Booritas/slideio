@@ -53,7 +53,7 @@ def collect_profiles(profile_dir, configuration, compiler=""):
     compiler_dir = profile_dir
     if is_linux() and compiler=="":
         compiler = "ubuntu"
-        plt = distro.linux_distribution(full_distribution_name=False)
+        plt = distro.id()
         print(plt)
         if plt[0] != "ubuntu":
             compiler = "multilinux"
