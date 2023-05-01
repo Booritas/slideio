@@ -39,7 +39,7 @@ jobs:
       
     - name: Add digital ocean conan remote
       run: /
-        conan remote add digitalo ${{ CONAN_DO_SERVER }}
+        conan remote add digitalo $CONAN_DO_SERVER
         conan user -p ${{ secrets.CONAN_DO_PASSWORD }} -r digitalo ${{ secrets.CONAN_DO_USER }}
 
     - name: Conan remote
