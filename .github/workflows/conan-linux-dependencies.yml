@@ -10,7 +10,7 @@ jobs:
 
     steps:
     - name: prepare system
-      run: /
+      run: |
         yum install -y wget
         yum install -y soci-sqlite3-devel.x86_64
         yum install -y gtk2-devel
@@ -19,13 +19,13 @@ jobs:
         yes | pip3 install numpy
 
     - name: install cmake
-      run: /
+      run: |
         wget -qO- "https://cmake.org/files/v3.20/cmake-3.20.0-linux-x86_64.tar.gz"
         update-alternatives --install /usr/bin/cmake cmake /usr/local/bin/cmake 10
         update-alternatives --install /usr/bin/ccmake ccmake /usr/local/bin/ccmake 10
 
     - name: install conan
-      run: /
+      run: |
         python3 -m pip install -U conan==1.59.0
         update-alternatives --install /usr/bin/conan conan /opt/python/cp38-cp38/bin/conan 10
 
@@ -33,12 +33,12 @@ jobs:
       run: echo "${{ steps.conan.outputs.version }}"
 
     - name: Add slideio conan remote
-      run: /
+      run: |
         conan remote add slideio ${{ secrets.CONAN_REMOTE }}
         conan user -p ${{ secrets.CONAN_PASSWORD }} -r slideio ${{ secrets.CONAN_USER }}
       
     - name: Add digital ocean conan remote
-      run: /
+      run: |
         conan remote add digitalo $CONAN_DO_SERVER
         conan user -p ${{ secrets.CONAN_DO_PASSWORD }} -r digitalo ${{ secrets.CONAN_DO_USER }}
 
