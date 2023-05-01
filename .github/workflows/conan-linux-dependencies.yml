@@ -11,6 +11,7 @@ jobs:
     steps:
     - name: prepare system
       run: |
+        yum update -y
         yum install -y wget
         yum install -y soci-sqlite3-devel.x86_64
         yum install -y gtk2-devel
@@ -20,7 +21,7 @@ jobs:
 
     - name: install cmake
       run: |
-        wget -qO- "https://cmake.org/files/v3.20/cmake-3.20.0-linux-x86_64.tar.gz"
+        wget -qO- "https://github.com/Kitware/CMake/releases/download/v3.26.3/cmake-3.26.3-linux-x86_64.tar.gz"  | tar --strip-components=1 -xz -C /usr/local
         update-alternatives --install /usr/bin/cmake cmake /usr/local/bin/cmake 10
         update-alternatives --install /usr/bin/ccmake ccmake /usr/local/bin/ccmake 10
 
