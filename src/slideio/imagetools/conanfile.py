@@ -4,7 +4,7 @@ class ImageToolsRecipe(ConanFile):
     settings = "os", "compiler", "build_type", "arch"
     default_options = {"boost:shared": False, "glog:shared": True}
     def requirements(self):
-        self.requires("boost/1.76.0")
+        self.requires("boost/1.81.0")
         self.requires("sqlite3/3.38.5@slideio/stable")
         self.requires("libxml2/2.9.10@slideio/stable")
         self.requires("glog/0.6.0@slideio/stable")
