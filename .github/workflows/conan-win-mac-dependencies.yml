@@ -1,4 +1,4 @@
-name: Build slideio windows and macos python packages
+name: Win/Mac conan dependencies
 
 on: [workflow_dispatch]
 env:

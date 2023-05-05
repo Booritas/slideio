@@ -1,4 +1,4 @@
-name: Conan build and upload dependencies for linux
+name: Linux conan dependencies
 on: [workflow_dispatch]
 jobs:
   build-linux:
