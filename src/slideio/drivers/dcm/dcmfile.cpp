@@ -80,7 +80,8 @@ void DCMFile::loadFile()
 {
 #if defined(WIN32)
     std::wstring filePathW = Tools::toWstring(m_filePath);
-    OFCondition status = m_file->loadFile(filePathW.c_str());
+    OFFilename filename(filePathW.c_str());
+    OFCondition status = m_file->loadFile(filename);
 #else
     OFCondition status = m_file->loadFile(m_filePath.c_str());
 #endif
@@ -577,7 +578,7 @@ void DCMFile::readPixelValues(std::vector<cv::Mat>& frames, int startFrame, int 
 std::string DCMFile::getMetadata()
 {
     DcmDataset* dataset = getValidDataset();
-    const JsonFormat format;
+    JsonFormat format;
     std::stringstream os;
     os << "{";
     const OFCondition code = dataset->writeJson(os, format);

@@ -3,7 +3,7 @@ os=Linux
 arch=x86_64
 compiler=gcc
 compiler.version=10
-compiler.libcxx=libstdc++
+compiler.libcxx=libstdc++11
 build_type=Debug
 [options]
 tinyxml2:shared=False

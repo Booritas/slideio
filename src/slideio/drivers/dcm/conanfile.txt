@@ -1,14 +1,15 @@
 [requires]
-boost/1.73.0
+boost/1.81.0
 sqlite3/3.38.5@slideio/stable
 libxml2/2.9.10@slideio/stable
 glog/0.6.0@slideio/stable
 opencv/4.1.1@slideio/stable
 zlib/1.2.13
 xz_utils/5.4.0
-dcmtk/3.6.5@slideio/stable
+dcmtk/3.6.7@slideio/stable
 libiconv/1.17
 libwebp/1.2.4
 [options]
 boost:shared=False
 glog:shared=True
+dcmtk:wide_io=True

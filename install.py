@@ -4,6 +4,7 @@ import subprocess
 import shutil
 import sys
 from pathlib import Path
+import platform
 import argparse
 from argparse import RawTextHelpFormatter
 try:
@@ -52,12 +53,16 @@ def collect_profiles(profile_dir, configuration, compiler=""):
     compiler_dir = profile_dir
     if is_linux() and compiler=="":
         compiler = "ubuntu"
-        plt = distro.linux_distribution(full_distribution_name=False)
+        plt = distro.id()
         print(plt)
         if plt[0] != "ubuntu":
             compiler = "multilinux"
-        compiler_dir = os.path.join(profile_dir, compiler)    
-
+        compiler_dir = os.path.join(profile_dir, compiler)
+    if is_osx():
+        if platform.processor()=="arm":
+            compiler_dir =  os.path.join(profile_dir, 'arm')
+        else:
+            compiler_dir =  os.path.join(profile_dir, 'x86-64')
     profiles = []
     for root, dirs, files in os.walk(compiler_dir):
         files = glob.glob(os.path.join(root,'*'))
@@ -90,6 +95,8 @@ def configure_conan(slideio_dir, configuration):
     conan_profile_dir_path = os.path.join(slideio_dir, "conan", os_platform)
     # collect paths to conan profile files
     profiles = collect_profiles(conan_profile_dir_path, configuration)
+    print(F"Detected profiles:{profiles}")
+    
     src_dir = os.path.join(slideio_dir,"src")
     for trg_conan_file_path in Path(src_dir).rglob('conanfile.*'):
         print("-------Process file: ", trg_conan_file_path)
@@ -181,6 +188,8 @@ if __name__ == "__main__":
     print("----------Installattion of slideio-----------------")
     print(F"Slideio directory: {slideio_directory}")
     print(F"Build directory: {build_directory}")
+    print(F"Platform: {platform.system()}")
+    print(F"Processor: {platform.processor()}")
     print("---------------------------------------------------")
 
     if args.clean:
@@ -194,6 +203,11 @@ if __name__ == "__main__":
         "build_release_directory": build_directory,
         "build_debug_directory": build_directory
     }
+    if is_linux():
+        print("------------Linux detected----------------")
+    if is_osx():
+        print("------------Apple detected----------------")
+        
     if is_linux() or is_osx():
         configuration["build_release_directory"] = os.path.join(build_directory,"release")
         configuration["build_debug_directory"] = os.path.join(build_directory,"debug")

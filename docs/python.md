@@ -32,17 +32,29 @@ D:\conan\python\3.9\slideio\stable\package\ca33edce272a279b24f87dc0d4cf5bbdcffbc
 Execute the following steps to build the library.
 #### 1. Install conan package manager
 ```
-pip install conan
+pip install conan==1.59.0
 ```
 #### 2. Setup SlideIO conan repository
 ```
 export CONAN_REVISIONS_ENABLED=1
-conan remote add slideio-conan-local https://bioslide.jfrog.io/artifactory/api/conan/slideio-conan-local
+conan remote add slideio https://bioslide.jfrog.io/artifactory/api/conan/slideio-conan
 ```
-#### 3. Build the library
+#### 3. Download/Build library dependencies
+```
+python install.py -a conan
+```
+#### 4. Build the library
 ```
 cd ./src/py-bind
 python build_py_dists.py path-to-the-file-with-python-distributons
+```
+Here, *path-to-the-file-with-python-distributions* refers to a path to a text file that contains a list of paths for Python executables, for which the package should be built. For example
+```
+D:\Python310\python.exe
+D:\Python36\python.exe
+D:\Python37\python.exe
+D:\Python38\python.exe
+D:\Python39\python.exe
 ```
 After successful build, the wheel files of the extension can be found in the *SLIDEIO-ROOT/src/py-bin/dist* folder.
 

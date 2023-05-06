@@ -1,4 +1,4 @@
-name: Build slideio linux python packages
+name: Linux slideio build
 
 on: [workflow_dispatch]
 jobs:
@@ -10,6 +10,8 @@ jobs:
         CONAN_REVISIONS_ENABLED: 1
 
     steps:
+    - name: Install conan
+      run: python3 -m pip install -U conan==1.59.0
 
     - name: Conan version
       run: echo "${{ steps.conan.outputs.version }}"
@@ -19,6 +21,11 @@ jobs:
       
     - name: Login to slideio conan remote
       run: conan user -p ${{ secrets.CONAN_PASSWORD }} -r slideio ${{ secrets.CONAN_USER }}
+
+    - name: Add digital ocean conan remote
+      run: |
+        conan remote add digitalo http://167.172.176.224
+        conan user -p ${{ secrets.CONAN_DO_PASSWORD }} -r digitalo ${{ secrets.CONAN_DO_USER }}      
 
     - name: Conan remote
       run: conan remote list
@@ -33,7 +40,7 @@ jobs:
       
     - name: build python packages
       working-directory: ./src/py-bind
-      run: bash ./build_py_dists_linux.sh
+      run: bash ./build_slideio_dists_linux.sh
 
     - name: Archive python packagess
       uses: actions/upload-artifact@v2

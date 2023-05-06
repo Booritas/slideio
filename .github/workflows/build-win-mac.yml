@@ -1,4 +1,4 @@
-name: Build slideio windows and macos python packages
+name: Win/Mac slideio build
 
 on: [workflow_dispatch]
 env:
@@ -36,8 +36,10 @@ jobs:
     - name: Login to slideio conan remote
       run: conan user -p ${{ secrets.CONAN_PASSWORD }} -r slideio ${{ secrets.CONAN_USER }}
 
-    - name: Conan remote
-      run: conan remote list
+    - name: Add digital ocean conan remote
+      run: |
+        conan remote add digitalo http://167.172.176.224
+        conan user -p ${{ secrets.CONAN_DO_PASSWORD }} -r digitalo ${{ secrets.CONAN_DO_USER }}
 
     - name: checkout
       uses: actions/checkout@v2
@@ -56,7 +58,7 @@ jobs:
       
     - name: build python packages
       working-directory: ./src/py-bind
-      run: python build_py_dists.py "${{ github.workspace }}/conan-recipes/py.txt"
+      run: python build_slideio_dists.py "${{ github.workspace }}/conan-recipes/py.txt"
 
     - name: Archive python packagess
       uses: actions/upload-artifact@v2

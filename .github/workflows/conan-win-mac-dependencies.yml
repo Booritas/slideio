@@ -1,14 +1,15 @@
-name: Conan build and upload dependencies
+name: Win/Mac conan dependencies
 
 on: [workflow_dispatch]
 env:
   CONAN_REVISIONS_ENABLED: 1
+  CONAN_DISABLE_CHECK_COMPILER: 1
 jobs:
   build-mac-win:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-11]
+        os: [macos-11, windows-2019]
     steps:
 
     - uses: actions/checkout@v3
@@ -23,6 +24,8 @@ jobs:
     - name: Install Conan
       id: conan
       uses: turtlebrowser/get-conan@main
+      with:
+        version: 1.59.0
 
     - name: Conan version
       run: echo "${{ steps.conan.outputs.version }}"
@@ -33,6 +36,11 @@ jobs:
     - name: Login to slideio conan remote
       run: conan user -p ${{ secrets.CONAN_PASSWORD }} -r slideio ${{ secrets.CONAN_USER }}
 
+    - name: Add digital ocean conan remote
+      run: |
+        conan remote add digitalo http://167.172.176.224
+        conan user -p ${{ secrets.CONAN_DO_PASSWORD }} -r digitalo ${{ secrets.CONAN_DO_USER }}
+
     - name: Conan remote
       run: conan remote list
 
@@ -42,15 +50,8 @@ jobs:
         submodules: 'true'
 
     - name: Install conan dependencies
-      run: python install.py -a conan
+      run: python install.py -a conan -c release
 
-    - run: conan upload "ndpi-libtiff/4.3.0@slideio/stable" -r slideio --all
-    - run: conan upload "pole/1.0.1@slideio/stable" -r slideio --all
-    - run: conan upload "ndpi-libjpeg-turbo/2.1.2@slideio/stable" -r slideio --all
-    - run: conan upload "glog/0.6.0@slideio/stable" -r slideio --all
-    - run: conan upload "libxml2/2.9.10@slideio/stable" -r slideio --all
-    - run: conan upload "sqlite3/3.38.5@slideio/stable" -r slideio --all
-    - run: conan upload "opencv/4.1.1@slideio/stable" -r slideio --all
-    - run: conan upload "jpegxrcodec/1.0.3@slideio/stable" -r slideio --all
-    - run: conan upload "dcmtk/3.6.5@slideio/stable" -r slideio --all
-    - run: conan upload "gdal/3.4.3@slideio/stable" -r slideio --all
+    - name: Upload packages to digiatal ocean
+      run: conan upload "*" -r digitalo --all -c      
+      

@@ -7,6 +7,7 @@ def process_python_dist(bin_path):
     if os.name == 'nt':
         code = os.system(f"{bin_path} -m pip install --user --upgrade pip")
         code = os.system(f"{bin_path} -m pip install --user --upgrade setuptools wheel")
+    code = os.system(f"{bin_path} -m pip install wheel")
     code = os.system(f"{bin_path} setup.py sdist bdist_wheel")
     if code !=0:
         raise Exception(f"Error processing {bin_path}")
