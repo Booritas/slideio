@@ -192,6 +192,9 @@ namespace slideio
         virtual void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
             const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output);
         std::vector<int> getValidChannelIndices(const std::vector<int>& channelIndices);
+        void initializeSceneBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices,
+                                  cv::OutputArray output) const;
+
     protected:
         std::list<std::string> m_auxNames;
     };

@@ -114,7 +114,6 @@ void CVScene::readResampled4DBlockChannels(const cv::Rect& blockRect, const cv::
         output.create((int)dims.size(), dims.data(), CV_MAKE_TYPE(cvDt, channelCount));
     }
     cv::Mat& dataRaster = output.getMatRef();
-    dataRaster.setTo(cv::Scalar(0));
     std::vector<cv::Range> subDims(2);
     subDims[0] = cv::Range(0, height);
     subDims[1] = cv::Range(0, width);
@@ -188,4 +187,20 @@ std::vector<int> CVScene::getValidChannelIndices(const std::vector<int>& channel
         }
     }
     return validChannelIndices;
+}
+
+void CVScene::initializeSceneBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices, cv::OutputArray output) const
+{
+    const slideio::DataType dt = this->getChannelDataType(0);
+    int numChannels = static_cast<int>(channelIndices.size());
+    if (numChannels == 0) {
+        numChannels = getNumChannels();
+    }
+    output.create(blockSize, CV_MAKETYPE(CVTools::toOpencvType(dt), numChannels));
+    if (dt == DataType::DT_Byte) {
+        output.setTo(255);
+    }
+    else {
+        output.setTo(0.0);
+    }
 }

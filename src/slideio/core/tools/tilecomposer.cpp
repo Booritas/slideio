@@ -24,6 +24,7 @@ void slideio::TileComposer::composeRect(slideio::Tiler* tiler,
     const double scaleY = static_cast<double>(blockSize.height)/static_cast<double>(blockRect.height);
     cv::Rect scaledBlockRect;
     slideio::Tools::scaleRect(blockRect, blockSize, scaledBlockRect);
+    tiler->initializeBlock(blockSize, channelIndices, output);
     if(tileTest)
     {
         output.create(scaledBlockRect.height, scaledBlockRect.width, CV_MAKETYPE(CV_8U, channelCount));

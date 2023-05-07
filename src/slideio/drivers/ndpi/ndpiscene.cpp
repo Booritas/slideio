@@ -281,3 +281,8 @@ bool NDPIScene::readTile(int tileIndex, const std::vector<int>& channelIndices, 
     }
     return ret;
 }
+
+void NDPIScene::initializeBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices, cv::OutputArray output)
+{
+    initializeSceneBlock(blockSize, channelIndices, output);
+}

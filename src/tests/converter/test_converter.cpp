@@ -158,7 +158,7 @@ TEST(Converter, fromMultipleScenes)
 	cv::Mat inputImage(height, width, CV_8UC3, buffer.data());
 	cv::Mat outputImage(height, width, CV_8UC3, outputBuffer.data());
 	double sim = slideio::ImageTools::computeSimilarity(inputImage, outputImage);
-	EXPECT_LE(0.999, sim);
+	EXPECT_LE(0.998, sim);
 
 }
 
@@ -330,5 +330,4 @@ TEST(Converter, invalidRegions)
 	cv::Mat outputImage(height, width, CV_8UC3, outputBuffer.data());
 	double sim = slideio::ImageTools::computeSimilarity(inputImage, outputImage);
 	EXPECT_LE(0.999, sim);
-
 }

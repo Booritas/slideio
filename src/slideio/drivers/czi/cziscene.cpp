@@ -803,3 +803,8 @@ void CZIScene::dimsFromSceneId(uint64_t sceneId, SceneParams& params)
         params.rotationIndex,
         params.bAcquisitionIndex);
 }
+
+void CZIScene::initializeBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices, cv::OutputArray output)
+{
+    initializeSceneBlock(blockSize, channelIndices, output);
+}

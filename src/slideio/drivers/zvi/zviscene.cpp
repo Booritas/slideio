@@ -409,6 +409,11 @@ void ZVIScene::parseImageTags()
     m_ZSliceRes = scaleToResolution(scaleZ, unitsZ);
 }
 
+void ZVIScene::initializeBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices, cv::OutputArray output)
+{
+    initializeSceneBlock(blockSize, channelIndices, output);
+}
+
 #if defined(__GNUC__)
 #pragma GCC diagnostic pop
 #endif

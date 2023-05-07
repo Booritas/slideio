@@ -36,6 +36,8 @@ namespace slideio
         bool getTileRect(int tileIndex, cv::Rect& tileRect, void* userData) override;
         bool readTile(int tileIndex, const std::vector<int>& channelIndices, cv::OutputArray tileRaster,
             void* userData) override;
+        void initializeBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices, cv::OutputArray output) override;
+
     private:
         std::vector<slideio::TiffDirectory> m_directories;
     };

@@ -109,9 +109,14 @@ void slideio::ConverterSVSTools::createZoomLevel(TIFFKeeperPtr& file, int zoomLe
     for (int y = sceneRect.y; y < yEnd; y += sceneTileSize.height) {
         for (int x = sceneRect.x; x < xEnd; x += sceneTileSize.width) {
             cv::Rect blockRect(x, y, sceneTileSize.width, sceneTileSize.height);
-            tile.create(tileSize.height, tileSize.width, CV_MAKE_TYPE(cvType,scene->getNumChannels()));
-            tile.setTo(0);
             ConverterTools::readTile(scene, zoomLevel, blockRect, slice, frame, tile);
+            if(tile.rows!=tileSize.height || tile.cols!=tileSize.width) {
+                RAISE_RUNTIME_ERROR << "Converter: Unexpected tile size ("
+                    << tile.cols << ","
+                    << tile.rows << "). Expected tile size: ("
+                    << tileSize.width << ","
+                    << tileSize.height << ").";
+            }
             blockRect.x -= sceneRect.x;
             blockRect.y -= sceneRect.y;
             cv::Rect zoomLevelRect = ConverterTools::scaleRect(blockRect, zoomLevel, true);

@@ -143,3 +143,8 @@ bool SVSTiledScene::readTile(int tileIndex, const std::vector<int>& channelIndic
     return ret;
 }
 
+void SVSTiledScene::initializeBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices, cv::OutputArray output)
+{
+    initializeSceneBlock(blockSize, channelIndices, output);
+}
+
