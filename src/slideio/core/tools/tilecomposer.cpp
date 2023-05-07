@@ -28,7 +28,6 @@ void slideio::TileComposer::composeRect(slideio::Tiler* tiler,
     {
         output.create(scaledBlockRect.height, scaledBlockRect.width, CV_MAKETYPE(CV_8U, channelCount));
         scaledBlockRaster = output.getMat();
-        scaledBlockRaster = output.getMat();
     }
     for(int tileIndex = 0; tileIndex<tileCount; tileIndex++)
     {
