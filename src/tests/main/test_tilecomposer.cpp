@@ -1,11 +1,12 @@
 #include <gtest/gtest.h>
 #include <opencv2/core.hpp>
+
 #include "tests/testlib/testtiler.hpp"
 
 TEST(TileComposer, composeRect)
 {
     const int tileWidth(100), tileHeight(200), tilesX(6), tilesY(3);
-    cv::Scalar white(255, 255, 0), black(0, 255, 255);
+    cv::Scalar white(255, 255, 255), black(0, 0, 0);
     TestTiler testTiler(tileWidth, tileHeight, tilesX, tilesY, black, white);
     cv::Mat image;
 
@@ -14,8 +15,8 @@ TEST(TileComposer, composeRect)
     const int dX = tileWidth / 2;
     const int dY = tileHeight / 2;
 
-    const cv::Rect imageRect = { dX, dY, imageWidth - dX * 2, imageHeight - dY * 2 };
     const std::vector<int> channelIndices;
+    const cv::Rect imageRect = { dX, dY, imageWidth - dX * 2, imageHeight - dY * 2 };
     const cv::Size blockSize = { imageRect.width / 2, imageRect.height / 4 };
     slideio::TileComposer::composeRect(&testTiler, channelIndices, imageRect, blockSize, image, nullptr);
 
@@ -32,7 +33,5 @@ TEST(TileComposer, composeRect)
     EXPECT_TRUE(blackMean==black);
     EXPECT_TRUE(whiteStddev==cv::Scalar(0, 0, 0));
     EXPECT_TRUE(blackStddev==cv::Scalar(0, 0, 0));
-
-    //cv::imwrite(R"(d:\Temp\a.bmp)", image);
-
+    
 }

@@ -18,18 +18,13 @@ void slideio::TileComposer::composeRect(slideio::Tiler* tiler,
     const bool tileTest = false;
     const int tileCount = tiler->getTileCount(userData);
     const int channelCount = static_cast<int>(channelIndices.size());
-    cv::Mat scaledBlockRaster;
     const cv::Point blockOrigin = blockRect.tl();
     const double scaleX = static_cast<double>(blockSize.width)/static_cast<double>(blockRect.width);
     const double scaleY = static_cast<double>(blockSize.height)/static_cast<double>(blockRect.height);
     cv::Rect scaledBlockRect;
     slideio::Tools::scaleRect(blockRect, blockSize, scaledBlockRect);
     tiler->initializeBlock(blockSize, channelIndices, output);
-    if(tileTest)
-    {
-        output.create(scaledBlockRect.height, scaledBlockRect.width, CV_MAKETYPE(CV_8U, channelCount));
-        scaledBlockRaster = output.getMat();
-    }
+    cv::Mat scaledBlockRaster = output.getMat();
     for(int tileIndex = 0; tileIndex<tileCount; tileIndex++)
     {
         cv::Rect tileRect;
@@ -45,22 +40,10 @@ void slideio::TileComposer::composeRect(slideio::Tiler* tiler,
             }
             else
             {
-                if(tiler->readTile(tileIndex, channelIndices, tileRaster, userData))
+                if(!tiler->readTile(tileIndex, channelIndices, tileRaster, userData))
                 {
-                    if(scaledBlockRaster.empty())
-                    {
-                        const bool initialize = output.empty();
-                        output.create(scaledBlockRect.height, scaledBlockRect.width, tileRaster.type());
-                        scaledBlockRaster = output.getMat();
-                        if(initialize)
-                        {
-                            // We initialize the memory only
-                            // if we allocate it. Otherwise it is
-                            // responsibility of the caller to
-                            // initialize the buffer.
-                            scaledBlockRaster = cv::Scalar(0);
-                        }
-                    }
+                    // fill tile with background color if the tile is not available
+                    tiler->initializeBlock(tileRect.size(), channelIndices, tileRaster);
                 }
             }
             if(!tileRaster.empty())

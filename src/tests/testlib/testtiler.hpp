@@ -15,8 +15,10 @@ public:
 	bool getTileRect(int tileIndex, cv::Rect& tileRect, void* userData) override;
 	bool readTile(int tileIndex, const std::vector<int>& channelIndices, cv::OutputArray tileRaster,
 		void* userData) override;
-public:
-	int m_tileWidth;
+    void initializeBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices,
+        cv::OutputArray output) override;;
+
+    int m_tileWidth;
 	int m_tileHeight;
 	int m_tilesX;
 	int m_tilesY;

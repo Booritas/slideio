@@ -331,3 +331,51 @@ TEST(Converter, invalidRegions)
 	double sim = slideio::ImageTools::computeSimilarity(inputImage, outputImage);
 	EXPECT_LE(0.999, sim);
 }
+
+TEST(Converter, jpeg2k)
+{
+	if (!TestTools::isFullTestEnabled())
+	{
+		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
+	}
+	std::string path = TestTools::getFullTestImagePath("czi", "doughnut.czi");
+	SlidePtr slide = slideio::openSlide(path);
+	ScenePtr scene = slide->getScene(0);
+	ASSERT_TRUE(scene.get() != nullptr);
+
+
+	slideio::SVSJp2KConverterParameters parameters;
+	const slideio::TempFile tmp("svs");
+	const std::string outputPath = tmp.getPath().string();
+	if (boost::filesystem::exists(outputPath)) {
+		boost::filesystem::remove(outputPath);
+	}
+	auto sceneRect = scene->getRect();
+	int width = std::get<2>(sceneRect);
+	int height = std::get<3>(sceneRect);
+	int numChannels = scene->getNumChannels();
+	int dataTypeSize = slideio::ImageTools::dataTypeSize(scene->getChannelDataType(0));
+	int rasterSize = width * height * numChannels * dataTypeSize;
+	std::tuple<int,int,int,int> block(0,0,width,height);
+	std::vector<uint8_t> buffer(rasterSize);
+	scene->readBlock(block, buffer.data(), buffer.size());
+
+	slideio::convertScene(scene, parameters, outputPath);
+	SlidePtr outputSlide = slideio::openSlide(outputPath);
+	ASSERT_TRUE(outputSlide != nullptr);
+	ScenePtr outputScene = outputSlide->getScene(0);
+	ASSERT_TRUE(outputScene != nullptr);
+	const auto outputRect = outputScene->getRect();
+	ASSERT_EQ(std::get<0>(outputRect), 0);
+	ASSERT_EQ(std::get<1>(outputRect), 0);
+	ASSERT_EQ(std::get<2>(outputRect), width);
+	ASSERT_EQ(std::get<3>(outputRect), height);
+	std::vector<uint8_t> outputBuffer(rasterSize);
+	outputScene->readBlock(outputRect, outputBuffer.data(), outputBuffer.size());
+	cv::Mat inputImage(height, width, CV_16UC1, buffer.data());
+	cv::Mat outputImage(height, width, CV_16UC1, outputBuffer.data());
+	double sim = slideio::ImageTools::computeSimilarity(inputImage, outputImage);
+	TestTools::showRaster(outputImage);
+	EXPECT_LE(0.999, sim);
+
+}
