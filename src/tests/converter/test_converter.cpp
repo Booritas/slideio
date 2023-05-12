@@ -375,7 +375,7 @@ TEST(Converter, jpeg2k)
 	cv::Mat inputImage(height, width, CV_16UC1, buffer.data());
 	cv::Mat outputImage(height, width, CV_16UC1, outputBuffer.data());
 	double sim = slideio::ImageTools::computeSimilarity(inputImage, outputImage);
-	TestTools::showRaster(outputImage);
+	//TestTools::showRaster(outputImage);
 	EXPECT_LE(0.999, sim);
 
 }

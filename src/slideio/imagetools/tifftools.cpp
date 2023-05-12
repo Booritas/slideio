@@ -629,30 +629,19 @@ void slideio::TiffTools::readJ2KTile(libtiff::TIFF* hFile, const slideio::TiffDi
 {
     const auto tileSize = libtiff::TIFFTileSize(hFile);
     std::vector<uint8_t> rawTile(tileSize);
-    if(dir.interleaved)
+    if(dir.interleaved || dir.channels == 1)
     {
         // process interleaved channels
         libtiff::tmsize_t readBytes = libtiff::TIFFReadRawTile(hFile, tile, rawTile.data(), (int)rawTile.size());
         if(readBytes<=0){
             throw std::runtime_error("TiffTools: Error reading raw tile");
         }
-        bool yuv = dir.compression==33003;
+        bool yuv = dir.channels==3 && dir.compression==33003;
         slideio::ImageTools::decodeJp2KStream(rawTile, output, channelIndices, yuv);
-    }
-    else if(channelIndices.size()==1)
-    {
-        // process a single planar channel
-        throw std::runtime_error("Not implemented");
     }
     else
     {
         throw std::runtime_error("Not implemented");
-        //// process planar channels
-        //std::vector<cv::Mat> channelRasters;
-        //for(const auto& channelIndex : channelIndices)
-        //{
-        //
-        //}
     }
 }
 
