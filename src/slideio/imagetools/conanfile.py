@@ -10,7 +10,7 @@ class ImageToolsRecipe(ConanFile):
         self.requires("glog/0.6.0@slideio/stable")
         self.requires("opencv/4.1.1@slideio/stable")
         self.requires("zlib/1.2.13")
-        self.requires("xz_utils/5.4.0")
+        self.requires("xz_utils/5.4.2")
         self.requires("libtiff/4.4.0")
         self.requires("libjpeg/9e")
         self.requires("libwebp/1.2.4")

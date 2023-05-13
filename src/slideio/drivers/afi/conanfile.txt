@@ -5,7 +5,7 @@ libxml2/2.9.10@slideio/stable
 glog/0.6.0@slideio/stable
 opencv/4.1.1@slideio/stable
 zlib/1.2.13
-xz_utils/5.4.0
+xz_utils/5.4.2
 libtiff/4.4.0
 libjpeg/9e
 libwebp/1.2.4
