@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include <opencv2/highgui.hpp>
+//#include <opencv2/highgui.hpp>
 
 #include "slideio/converter/convertersvstools.hpp"
 #include "tests/testlib/testtools.hpp"

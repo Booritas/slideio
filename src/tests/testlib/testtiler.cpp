@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include "testtiler.hpp"
 
-#include <opencv2/highgui.hpp>
+//#include <opencv2/highgui.hpp>
 
 #include "testtools.hpp"
 #include "slideio/base/slideio_enums.hpp"

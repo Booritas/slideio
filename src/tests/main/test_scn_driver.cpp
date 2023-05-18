@@ -319,7 +319,7 @@ TEST(SCNImageDriver, readTile_2_channels)
     EXPECT_EQ(compare, 0);
 }
 
-#include <opencv2/highgui.hpp>
+//#include <opencv2/highgui.hpp>
 
 TEST(SCNImageDriver, readTile_interleaved_channels)
 {
