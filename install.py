@@ -126,7 +126,9 @@ def single_configuration(config_name, build_dir, project_dir):
         generator = 'Unix Makefiles'
         cmake = "cmake"
         cmake_props["CMAKE_BUILD_TYPE"] = config_name
-
+        plt = distro.id()
+        if plt == 'centos':
+            cmake_props["CMAKE_CXX_FLAGS"] = "-D_GLIBCXX_USE_CXX11_ABI=0" # Needed for multilinux
 
     cmd = [cmake, "-G", generator]
     if architecture is not None:

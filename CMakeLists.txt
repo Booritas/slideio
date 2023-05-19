@@ -77,9 +77,7 @@ IF(APPLE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -stdlib=libc++")
     add_compile_definitions(_FILE_OFFSET_BITS=64)
 ELSEIF(UNIX)
-    add_compile_definitions(_FILE_OFFSET_BITS=64)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -static-libstdc++")
-    #add_definitions(-D_GLIBCXX_USE_CXX11_ABI=0)
 ENDIF()
 
 
