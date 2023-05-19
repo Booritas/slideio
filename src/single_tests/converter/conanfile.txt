@@ -1,6 +1,6 @@
 [requires]
 glog/0.6.0@slideio/stable
-boost/1.81.0
+boost/1.81.0@slideio/stable
 opencv/4.1.1@slideio/stable
 zlib/1.2.13
 [options]

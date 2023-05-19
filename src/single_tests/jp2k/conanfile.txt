@@ -6,7 +6,7 @@ libpng/1.6.38
 zlib/1.2.13
 libtiff/4.4.0
 xz_utils/5.4.2
-boost/1.81.0
+boost/1.81.0@slideio/stable
 libwebp/1.2.4
 [options]
 glog:shared=True
