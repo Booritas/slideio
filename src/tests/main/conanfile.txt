@@ -9,5 +9,4 @@ zlib/1.2.13
 tinyxml2/9.0.0
 pole/1.0.2@slideio/stable
 [options]
-boost:shared=False
 glog:shared=True

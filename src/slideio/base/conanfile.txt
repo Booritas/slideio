@@ -2,5 +2,4 @@
 boost/1.81.0
 glog/0.6.0@slideio/stable
 [options]
-boost:shared=False
 glog:shared=True

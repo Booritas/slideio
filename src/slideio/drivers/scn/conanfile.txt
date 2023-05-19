@@ -10,5 +10,4 @@ xz_utils/5.4.2
 libtiff/4.4.0
 libwebp/1.2.4
 [options]
-boost:shared=False
 glog:shared=True

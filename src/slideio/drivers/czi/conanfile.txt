@@ -8,5 +8,4 @@ zlib/1.2.13
 jpegxrcodec/1.0.3@slideio/stable
 tinyxml2/9.0.0
 [options]
-boost:shared=False
 glog:shared=True

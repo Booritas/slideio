@@ -14,5 +14,4 @@ openjpeg/2.5.0
 tinyxml2/9.0.0
 libiconv/1.17
 [options]
-boost:shared=False
 glog:shared=True

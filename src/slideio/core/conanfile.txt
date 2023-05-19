@@ -7,5 +7,4 @@ opencv/4.1.1@slideio/stable
 zlib/1.2.13
 tinyxml2/9.0.0
 [options]
-boost:shared=False
 glog:shared=True
