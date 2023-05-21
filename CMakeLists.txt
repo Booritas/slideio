@@ -44,6 +44,7 @@ set(NAME_TOOL_LIB_LIST
     "lib${NDPI_DRIVER_NAME}.dylib"
     "lib${IMAGETOOLS_LIB_NAME}.dylib"
     "lib${CONVERTER_LIB_NAME}.dylib"
+    "lib${BASE_LIB_NAME}.dylib"
     "@rpath/libgflags_nothreads.2.2.dylib"
     "@rpath/libglog.1.dylib"
     "@rpath/libglogd.1.dylib"
