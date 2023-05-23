@@ -62,7 +62,7 @@ void slideio::ConverterTools::readTile(const CVScenePtr& scene, int zoomLevel,
         // border tiles
         int dt = CVTools::toOpencvType(scene->getChannelDataType(0));
         tile.create(tileSize, CV_MAKE_TYPE(dt, scene->getNumChannels()));
-        tile.setTo(cv::Scalar(0));
+        tile.setTo(0);
         const cv::Rect adjustedRect = rectScene & sceneBlockRect;
         const cv::Size adjustedTileSize = scaleSize(adjustedRect.size(), zoomLevel, true);
         if (!adjustedRect.empty()) {
