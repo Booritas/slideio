@@ -423,3 +423,56 @@ TEST(Converter, jpeg2kBorderTiles)
 	EXPECT_LE(0.999, sim);
 
 }
+
+TEST(Converter, metadata)
+{
+	std::string path = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1.scn");
+	SlidePtr slide = slideio::openSlide(path);
+	ScenePtr scene = slide->getScene(0);
+	ASSERT_TRUE(scene.get() != nullptr);
+
+	const int x = 100;
+	const int y = 100;
+	const int width = 300;
+	const int height = 300;
+	const int numChannels = scene->getNumChannels();
+	const int dataTypeSize = slideio::ImageTools::dataTypeSize(scene->getChannelDataType(0));
+	const int rasterSize = width * height * numChannels * dataTypeSize;
+	constexpr std::tuple<int, int, int, int> block = { x,y,width,height };
+	std::vector<uint8_t> buffer(rasterSize);
+
+	scene->readBlock(block, buffer.data(), buffer.size());
+
+	slideio::SVSJpegConverterParameters parameters;
+	parameters.setQuality(90);
+	slideio::Rectangle rect = { x,y, width, height };
+	parameters.setRect(rect);
+	const slideio::TempFile tmp("svs");
+	const std::string outputPath = tmp.getPath().string();
+	if (boost::filesystem::exists(outputPath)) {
+		boost::filesystem::remove(outputPath);
+	}
+	slideio::convertScene(scene, parameters, outputPath);
+	SlidePtr outputSlide = slideio::openSlide(outputPath);
+	ASSERT_TRUE(outputSlide != nullptr);
+	ScenePtr outputScene = outputSlide->getScene(0);
+	ASSERT_TRUE(outputScene != nullptr);
+	const auto outputRect = outputScene->getRect();
+	ASSERT_EQ(std::get<0>(outputRect), 0);
+	ASSERT_EQ(std::get<1>(outputRect), 0);
+	ASSERT_EQ(std::get<2>(outputRect), width);
+	ASSERT_EQ(std::get<3>(outputRect), height);
+	std::vector<uint8_t> outputBuffer(rasterSize);
+	outputScene->readBlock(outputRect, outputBuffer.data(), outputBuffer.size());
+	cv::Mat inputImage(height, width, CV_8UC3, buffer.data());
+	cv::Mat outputImage(height, width, CV_8UC3, outputBuffer.data());
+	double sim = slideio::ImageTools::computeSimilarity(inputImage, outputImage);
+	EXPECT_LE(0.999, sim);
+	double originMagnificaton = scene->getMagnification();
+	double outputMagnification = outputScene->getMagnification();
+	EXPECT_DOUBLE_EQ(originMagnificaton, outputMagnification);
+	std::tuple<double, double> originRes = scene->getResolution();
+	std::tuple<double, double> outputRes = outputScene->getResolution();
+	EXPECT_DOUBLE_EQ(std::get<0>(originRes), std::get<0>(outputRes));
+	EXPECT_DOUBLE_EQ(std::get<1>(originRes), std::get<1>(outputRes));
+}

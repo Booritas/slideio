@@ -10,6 +10,8 @@
 #include "slideio/base/exceptions.hpp"
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/imagetools/cvtools.hpp"
+#include <boost/filesystem.hpp>
+#include <boost/date_time/posix_time/posix_time.hpp>
 
 void slideio::ConverterSVSTools::checkSVSRequirements(const CVScenePtr& scene, const SVSConverterParameters& parameters)
 {
@@ -30,6 +32,26 @@ void slideio::ConverterSVSTools::checkSVSRequirements(const CVScenePtr& scene, c
     }
 }
 
+static std::string retrieveDate()
+{
+    std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
+    std::time_t time = std::chrono::system_clock::to_time_t(now);
+    char buffer[80];
+    std::strftime(buffer, sizeof(buffer), "Date = %m/%d/%Y", std::localtime(&time));
+    std::string strDate(buffer);
+    return strDate;
+}
+
+static std::string retrieveTime()
+{
+    std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
+    std::time_t time = std::chrono::system_clock::to_time_t(now);
+    char buffer[80];
+    std::strftime(buffer, sizeof(buffer), "Time = %H/%M/%S", std::localtime(&time));
+    std::string strTime(buffer);
+    return strTime;
+}
+
 std::string slideio::ConverterSVSTools::createDescription(const CVScenePtr& scene, const SVSConverterParameters& parameters)
 {
     auto rect = scene->getRect();
@@ -45,9 +67,19 @@ std::string slideio::ConverterSVSTools::createDescription(const CVScenePtr& scen
     }
     buff << std::endl;
     double magn = scene->getMagnification();
-    if (magn > 0) {
-        buff << "AppMag = " << magn;
+    Resolution resolution = scene->getResolution();
+    if(resolution.x>0) {
+        buff << "|MPP = " << resolution.x * 1.e6;
     }
+    if (magn > 0) {
+        buff << "|AppMag = " << magn;
+    }
+
+    std::string filePath = scene->getFilePath();
+    boost::filesystem::path path(filePath);
+    buff << "|Filename = " << path.stem().string();
+    buff << "|" << retrieveDate() << "|" << retrieveTime();
+
     return buff.str();
 }
 
