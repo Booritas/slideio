@@ -71,7 +71,6 @@ namespace slideio
             const std::vector<int>& channelIndices, cv::OutputArray output);
         static void readNotRGBTile(libtiff::TIFF* hFile, const slideio::TiffDirectory& dir, int tile,
             const std::vector<int>& channelIndices, cv::OutputArray output);
-        static uint16_t slideioDataTypeToTiffDataType(slideio::DataType dataType);
         static void writeDirectory(libtiff::TIFF* tiff);
         static void setTags(libtiff::TIFF* tiff, const TiffDirectory& dir, bool newDirectory);
         static void writeTile(libtiff::TIFF* tiff, int x, int y, Compression compression,

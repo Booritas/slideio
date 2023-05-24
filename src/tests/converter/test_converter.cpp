@@ -64,6 +64,7 @@ TEST(Converter, convertGDALJp2K)
 	slideio::convertScene(scene, parameters, outputPath);
 	SlidePtr svsSlide = slideio::openSlide(outputPath, "SVS");
 	ScenePtr svsScene = svsSlide->getScene(0);
+	EXPECT_EQ(scene->getChannelDataType(0), svsScene->getChannelDataType(0));
 	auto svsRect = svsScene->getRect();
 	EXPECT_EQ(sceneWidth, std::get<2>(svsRect));
 	EXPECT_EQ(sceneHeight, std::get<3>(svsRect));
@@ -147,6 +148,7 @@ TEST(Converter, fromMultipleScenes)
 	SlidePtr outputSlide = slideio::openSlide(outputPath);
 	ASSERT_TRUE(outputSlide != nullptr);
 	ScenePtr outputScene = outputSlide->getScene(0);
+	EXPECT_EQ(scene->getChannelDataType(0), outputScene->getChannelDataType(0));
 	ASSERT_TRUE(outputScene != nullptr);
 	const auto outputRect = outputScene->getRect();
 	ASSERT_EQ(std::get<0>(outputRect), 0);
@@ -207,6 +209,7 @@ TEST(Converter, from3DScene)
 	ASSERT_TRUE(outputSlide != nullptr);
 	ScenePtr outputScene = outputSlide->getScene(0);
 	ASSERT_TRUE(outputScene != nullptr);
+	EXPECT_EQ(scene->getChannelDataType(0), outputScene->getChannelDataType(0));
 	const auto outputRect = outputScene->getRect();
 	ASSERT_EQ(std::get<0>(outputRect), 0);
 	ASSERT_EQ(std::get<1>(outputRect), 0);
@@ -264,6 +267,7 @@ TEST(Converter, jpeg2k4channelsScene)
 	ASSERT_TRUE(outputSlide != nullptr);
 	ScenePtr outputScene = outputSlide->getScene(0);
 	ASSERT_TRUE(outputScene != nullptr);
+	EXPECT_EQ(scene->getChannelDataType(0), outputScene->getChannelDataType(0));
 	const auto outputRect = outputScene->getRect();
 	ASSERT_EQ(std::get<0>(outputRect), 0);
 	ASSERT_EQ(std::get<1>(outputRect), 0);
@@ -319,6 +323,7 @@ TEST(Converter, invalidRegions)
 	ASSERT_TRUE(outputSlide != nullptr);
 	ScenePtr outputScene = outputSlide->getScene(0);
 	ASSERT_TRUE(outputScene != nullptr);
+	EXPECT_EQ(scene->getChannelDataType(0), outputScene->getChannelDataType(0));
 	const auto outputRect = outputScene->getRect();
 	ASSERT_EQ(std::get<0>(outputRect), 0);
 	ASSERT_EQ(std::get<1>(outputRect), 0);
@@ -365,6 +370,8 @@ TEST(Converter, jpeg2k)
 	ASSERT_TRUE(outputSlide != nullptr);
 	ScenePtr outputScene = outputSlide->getScene(0);
 	ASSERT_TRUE(outputScene != nullptr);
+	EXPECT_EQ(scene->getChannelDataType(0), outputScene->getChannelDataType(0));
+
 	const auto outputRect = outputScene->getRect();
 	ASSERT_EQ(std::get<0>(outputRect), 0);
 	ASSERT_EQ(std::get<1>(outputRect), 0);
@@ -409,6 +416,8 @@ TEST(Converter, jpeg2kBorderTiles)
 	ASSERT_TRUE(outputSlide != nullptr);
 	ScenePtr outputScene = outputSlide->getScene(0);
 	ASSERT_TRUE(outputScene != nullptr);
+	EXPECT_EQ(scene->getChannelDataType(0), outputScene->getChannelDataType(0));
+
 	const auto outputRect = outputScene->getRect();
 	ASSERT_EQ(std::get<0>(outputRect), 0);
 	ASSERT_EQ(std::get<1>(outputRect), 0);
@@ -457,6 +466,8 @@ TEST(Converter, metadata)
 	ASSERT_TRUE(outputSlide != nullptr);
 	ScenePtr outputScene = outputSlide->getScene(0);
 	ASSERT_TRUE(outputScene != nullptr);
+	EXPECT_EQ(scene->getChannelDataType(0), outputScene->getChannelDataType(0));
+
 	const auto outputRect = outputScene->getRect();
 	ASSERT_EQ(std::get<0>(outputRect), 0);
 	ASSERT_EQ(std::get<1>(outputRect), 0);
@@ -466,6 +477,61 @@ TEST(Converter, metadata)
 	outputScene->readBlock(outputRect, outputBuffer.data(), outputBuffer.size());
 	cv::Mat inputImage(height, width, CV_8UC3, buffer.data());
 	cv::Mat outputImage(height, width, CV_8UC3, outputBuffer.data());
+	double sim = slideio::ImageTools::computeSimilarity(inputImage, outputImage);
+	EXPECT_LE(0.999, sim);
+	double originMagnificaton = scene->getMagnification();
+	double outputMagnification = outputScene->getMagnification();
+	EXPECT_DOUBLE_EQ(originMagnificaton, outputMagnification);
+	std::tuple<double, double> originRes = scene->getResolution();
+	std::tuple<double, double> outputRes = outputScene->getResolution();
+	EXPECT_DOUBLE_EQ(std::get<0>(originRes), std::get<0>(outputRes));
+	EXPECT_DOUBLE_EQ(std::get<1>(originRes), std::get<1>(outputRes));
+}
+
+TEST(Converter, intData)
+{
+	std::string path = TestTools::getTestImagePath("zvi", "Zeiss-1-Merged.zvi");
+	SlidePtr slide = slideio::openSlide(path);
+	ScenePtr scene = slide->getScene(0);
+	ASSERT_TRUE(scene.get() != nullptr);
+
+	const int x = 100;
+	const int y = 100;
+	const int width = 300;
+	const int height = 300;
+	const int numChannels = scene->getNumChannels();
+	const int dataTypeSize = slideio::ImageTools::dataTypeSize(scene->getChannelDataType(0));
+	const int rasterSize = width * height * numChannels * dataTypeSize;
+	constexpr std::tuple<int, int, int, int> block = { x,y,width,height };
+	std::vector<uint8_t> buffer(rasterSize);
+
+	scene->readBlock(block, buffer.data(), buffer.size());
+
+	slideio::SVSJp2KConverterParameters parameters;
+	parameters.setCompressionRate(5);
+	slideio::Rectangle rect = { x,y, width, height };
+	parameters.setRect(rect);
+	const slideio::TempFile tmp("svs");
+	const std::string outputPath = tmp.getPath().string();
+	if (boost::filesystem::exists(outputPath)) {
+		boost::filesystem::remove(outputPath);
+	}
+	slideio::convertScene(scene, parameters, outputPath);
+	SlidePtr outputSlide = slideio::openSlide(outputPath);
+	ASSERT_TRUE(outputSlide != nullptr);
+	ScenePtr outputScene = outputSlide->getScene(0);
+	ASSERT_TRUE(outputScene != nullptr);
+	EXPECT_EQ(scene->getChannelDataType(0), outputScene->getChannelDataType(0));
+
+	const auto outputRect = outputScene->getRect();
+	ASSERT_EQ(std::get<0>(outputRect), 0);
+	ASSERT_EQ(std::get<1>(outputRect), 0);
+	ASSERT_EQ(std::get<2>(outputRect), width);
+	ASSERT_EQ(std::get<3>(outputRect), height);
+	std::vector<uint8_t> outputBuffer(rasterSize);
+	outputScene->readBlock(outputRect, outputBuffer.data(), outputBuffer.size());
+	cv::Mat inputImage(height, width, CV_16SC3, buffer.data());
+	cv::Mat outputImage(height, width, CV_16SC3, outputBuffer.data());
 	double sim = slideio::ImageTools::computeSimilarity(inputImage, outputImage);
 	EXPECT_LE(0.999, sim);
 	double originMagnificaton = scene->getMagnification();

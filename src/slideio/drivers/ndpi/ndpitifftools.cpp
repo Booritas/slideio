@@ -114,38 +114,6 @@ static DataType getSlideioType(jpegxr_image_info& info)
     return type;
 }
 
-static slideio::DataType dataTypeFromTIFFDataType(libtiff::TIFFDataType dt)
-{
-    switch (dt) {
-    case libtiff::TIFF_NOTYPE:
-        return DataType::DT_None;
-    case libtiff::TIFF_LONG8:
-    case libtiff::TIFF_BYTE:
-        return DataType::DT_Byte;
-    case libtiff::TIFF_ASCII:
-        return DataType::DT_None;
-    case libtiff::TIFF_SHORT:
-        return DataType::DT_UInt16;
-    case libtiff::TIFF_SLONG8:
-    case libtiff::TIFF_SBYTE:
-        return DataType::DT_Int8;
-    case libtiff::TIFF_UNDEFINED:
-        return DataType::DT_Unknown;
-    case libtiff::TIFF_SSHORT:
-        return DataType::DT_Int16;
-    case libtiff::TIFF_SRATIONAL:
-        return DataType::DT_Unknown;
-    case libtiff::TIFF_FLOAT:
-        return DataType::DT_Float32;
-    case libtiff::TIFF_DOUBLE:
-        return DataType::DT_Float64;
-    case libtiff::TIFF_IFD:
-    case libtiff::TIFF_RATIONAL:
-    case libtiff::TIFF_IFD8:
-    default: ;
-        return DataType::DT_Unknown;
-    }
-}
 
 static slideio::Compression compressTiffToSlideio(int tiffCompression)
 {
@@ -286,6 +254,69 @@ void slideio::NDPITiffTools::closeTiffFile(libtiff::TIFF* file)
     libtiff::TIFFClose(file);
 }
 
+static slideio::DataType retrieveTiffDataType(libtiff::TIFF* tiff)
+{
+    int bitsPerSample = 0;
+    int sampleFormat = 0;
+
+    slideio::DataType dataType = slideio::DataType::DT_Unknown;
+    if (!libtiff::TIFFGetField(tiff, TIFFTAG_BITSPERSAMPLE, &bitsPerSample)) {
+        RAISE_RUNTIME_ERROR << "Cannot retrieve bits per sample from tiff image";
+    }
+    if (!libtiff::TIFFGetField(tiff, TIFFTAG_SAMPLEFORMAT, &sampleFormat)) {
+        sampleFormat = SAMPLEFORMAT_UINT;
+    }
+
+    if (bitsPerSample == 8) {
+        if (sampleFormat == SAMPLEFORMAT_UINT) {
+            dataType = slideio::DataType::DT_Byte;
+        }
+        else if (sampleFormat == SAMPLEFORMAT_INT) {
+            dataType = slideio::DataType::DT_Int8;
+        }
+        else {
+            RAISE_RUNTIME_ERROR << "Unsupported sample format for 8bit images: " << sampleFormat;
+        }
+    }
+    else if (bitsPerSample == 16) {
+        if (sampleFormat == SAMPLEFORMAT_UINT) {
+            dataType = slideio::DataType::DT_UInt16;
+        }
+        else if (sampleFormat == SAMPLEFORMAT_INT) {
+            dataType = slideio::DataType::DT_Int16;
+        }
+        else if (sampleFormat == SAMPLEFORMAT_IEEEFP) {
+            dataType = slideio::DataType::DT_Float16;
+        }
+        else {
+            RAISE_RUNTIME_ERROR << "Unsupported sample format for 16bit images: " << sampleFormat;
+        }
+    }
+    else if (bitsPerSample == 32) {
+        if (sampleFormat == SAMPLEFORMAT_INT) {
+            dataType = slideio::DataType::DT_Int32;
+        }
+        else if (sampleFormat == SAMPLEFORMAT_IEEEFP) {
+            dataType = slideio::DataType::DT_Float32;
+        }
+        else {
+            RAISE_RUNTIME_ERROR << "Unsupported sample format for 32bit images: " << sampleFormat;
+        }
+    }
+    else if (bitsPerSample == 64) {
+        if (sampleFormat == SAMPLEFORMAT_IEEEFP) {
+            dataType = slideio::DataType::DT_Float64;
+        }
+        else {
+            RAISE_RUNTIME_ERROR << "Unsupported sample format for 64bit images: " << sampleFormat;
+        }
+    }
+    else {
+        RAISE_RUNTIME_ERROR << "Unsupported bits per sample: " << bitsPerSample;
+    }
+    return dataType;
+}
+
 void slideio::NDPITiffTools::scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, int64_t dirOffset,
                                              slideio::NDPITiffDirectory& dir)
 {
@@ -364,9 +395,7 @@ void slideio::NDPITiffTools::scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, 
     libtiff::TIFFGetField(tiff, TIFFTAG_PHOTOMETRIC, &ph);
     dir.photometric = ph;
     dir.stripSize = (int)libtiff::TIFFStripSize(tiff);
-    dir.dataType = dataTypeFromTIFFDataType(dt);
-    if (dir.dataType == DataType::DT_None)
-        dir.dataType = DataType::DT_Byte;
+    dir.dataType = retrieveTiffDataType(tiff);
 
     short YCbCrSubsampling[2] = {2, 2};
     libtiff::TIFFGetField(tiff, TIFFTAG_YCBCRSUBSAMPLING, &YCbCrSubsampling[0], &YCbCrSubsampling[0]);

@@ -311,6 +311,118 @@ void slideio::TiffTools::closeTiffFile(libtiff::TIFF* file)
         libtiff::TIFFClose(file);
 }
 
+
+static slideio::DataType retrieveTiffDataType(libtiff::TIFF* tiff)
+{
+    int bitsPerSample = 0;
+    int sampleFormat = 0;
+
+    slideio::DataType dataType = slideio::DataType::DT_Unknown;
+    if (!libtiff::TIFFGetField(tiff, TIFFTAG_BITSPERSAMPLE, &bitsPerSample)) {
+        RAISE_RUNTIME_ERROR << "Cannot retrieve bits per sample from tiff image";
+    }
+    if (!libtiff::TIFFGetField(tiff, TIFFTAG_SAMPLEFORMAT, &sampleFormat)) {
+        sampleFormat = SAMPLEFORMAT_UINT;
+    }
+
+    if (bitsPerSample == 8) {
+        if(sampleFormat == SAMPLEFORMAT_UINT) {
+            dataType = slideio::DataType::DT_Byte;
+        }
+        else if(sampleFormat == SAMPLEFORMAT_INT) {
+            dataType = slideio::DataType::DT_Int8;
+        }
+        else {
+            RAISE_RUNTIME_ERROR << "Unsupported sample format for 8bit images: " << sampleFormat;
+        }
+    }
+    else if (bitsPerSample == 16) {
+        if(sampleFormat == SAMPLEFORMAT_UINT) {
+            dataType = slideio::DataType::DT_UInt16;
+        }
+        else if (sampleFormat == SAMPLEFORMAT_INT) {
+            dataType = slideio::DataType::DT_Int16;
+        }
+        else if (sampleFormat == SAMPLEFORMAT_IEEEFP) {
+            dataType = slideio::DataType::DT_Float16;
+        }
+        else {
+            RAISE_RUNTIME_ERROR << "Unsupported sample format for 16bit images: " << sampleFormat;
+        }
+    }
+    else if (bitsPerSample == 32) {
+        if (sampleFormat == SAMPLEFORMAT_INT) {
+            dataType = slideio::DataType::DT_Int32;
+        }
+        else if (sampleFormat == SAMPLEFORMAT_IEEEFP) {
+            dataType = slideio::DataType::DT_Float32;
+        }
+        else {
+            RAISE_RUNTIME_ERROR << "Unsupported sample format for 32bit images: " << sampleFormat;
+        }
+    }
+    else if (bitsPerSample == 64) {
+        if (sampleFormat == SAMPLEFORMAT_IEEEFP) {
+            dataType = slideio::DataType::DT_Float64;
+        }
+        else {
+            RAISE_RUNTIME_ERROR << "Unsupported sample format for 64bit images: " << sampleFormat;
+        }
+    }
+    else {
+        RAISE_RUNTIME_ERROR << "Unsupported bits per sample: " << bitsPerSample;
+    }
+    return dataType;
+}
+
+static void setTiffDataType(libtiff::TIFF* tiff, slideio::DataType dataType)
+{
+    int sampleFormat = 0;
+    int bitsPerSample = 0;
+
+    switch (dataType)
+    {
+    case slideio::DataType::DT_Byte:
+        sampleFormat = SAMPLEFORMAT_UINT;
+        bitsPerSample = 8;
+        break;
+    case slideio::DataType::DT_Int8:
+        sampleFormat = SAMPLEFORMAT_INT;
+        bitsPerSample = 8;
+        break;
+    case slideio::DataType::DT_UInt16:
+        sampleFormat = SAMPLEFORMAT_UINT;
+        bitsPerSample = 16;
+        break;
+    case slideio::DataType::DT_Int16:
+        sampleFormat = SAMPLEFORMAT_INT;
+        bitsPerSample = 16;
+        break;
+    case slideio::DataType::DT_Float16:
+        sampleFormat = SAMPLEFORMAT_IEEEFP;
+        bitsPerSample = 16;
+        break;
+    case slideio::DataType::DT_Int32:
+        sampleFormat = SAMPLEFORMAT_INT;
+        bitsPerSample = 32;
+        break;
+    case slideio::DataType::DT_Float32:
+        sampleFormat = SAMPLEFORMAT_IEEEFP;
+        bitsPerSample = 32;
+        break;
+    case slideio::DataType::DT_Float64:
+        sampleFormat = SAMPLEFORMAT_IEEEFP;
+        bitsPerSample = 64;
+        break;
+    default:
+        RAISE_RUNTIME_ERROR << "Unsupported data type: " << dataType;
+        return;
+    }
+    // Set the TIFF tags
+    TIFFSetField(tiff, TIFFTAG_SAMPLEFORMAT, sampleFormat);
+    TIFFSetField(tiff, TIFFTAG_BITSPERSAMPLE, bitsPerSample);
+}
+
 void  slideio::TiffTools::scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, int64_t dirOffset, slideio::TiffDirectory& dir)
 {
     if (libtiff::TIFFCurrentDirectory(tiff) != dirIndex) {
@@ -348,15 +460,13 @@ void  slideio::TiffTools::scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, int
     libtiff::TIFFGetField(tiff, TIFFTAG_YPOSITION, &posy);
     int32_t rowsPerStripe(0);
     libtiff::TIFFGetField(tiff, TIFFTAG_ROWSPERSTRIP, &rowsPerStripe);
-    libtiff::TIFFDataType dt(libtiff::TIFF_NOTYPE);
-    libtiff::TIFFGetField(tiff, TIFFTAG_DATATYPE, &dt);
     int32_t compressionQuality = 0;
     libtiff::TIFFGetField(tiff, TIFFTAG_JPEGQUALITY, &compressionQuality);
     short ph(0);
     libtiff::TIFFGetField(tiff, TIFFTAG_PHOTOMETRIC, &ph);
     dir.photometric = ph;
     dir.stripSize = (int)libtiff::TIFFStripSize(tiff);
-    dir.dataType = dataTypeFromTIFFDataType(dt);
+    dir.dataType = retrieveTiffDataType(tiff);
     short YCbCrSubsampling[2] = { 2,2 };
     libtiff::TIFFGetField(tiff, TIFFTAG_YCBCRSUBSAMPLING, &YCbCrSubsampling[0], &YCbCrSubsampling[0]);
     dir.YCbCrSubsampling[0] = YCbCrSubsampling[0];
@@ -696,39 +806,6 @@ void TiffTools::readNotRGBTile(libtiff::TIFF* hFile, const slideio::TiffDirector
     cv::flip(flipped, output, 0);
 }
 
-uint16_t TiffTools::slideioDataTypeToTiffDataType(slideio::DataType dt)
-{
-    uint16_t tiffDataType = libtiff::TIFF_NOTYPE;
-
-    switch (dt) {
-    case DataType::DT_Byte:
-        tiffDataType = libtiff::TIFF_BYTE;
-        break;
-    case DataType::DT_Int16:
-        tiffDataType = libtiff::TIFF_SSHORT;
-        break;
-    case DataType::DT_UInt16:
-        tiffDataType = libtiff::TIFF_SHORT;
-        break;
-    case DataType::DT_Int8:
-        tiffDataType = libtiff::TIFF_SBYTE;
-        break;
-    case DataType::DT_Int32:
-        tiffDataType = libtiff::TIFF_SBYTE;
-        break;
-    case DataType::DT_Float32:
-        tiffDataType = libtiff::TIFF_FLOAT;
-        break;
-    case DataType::DT_Float64:
-        tiffDataType = libtiff::TIFF_DOUBLE;
-        break;
-    default:
-        RAISE_RUNTIME_ERROR << "Converter: Unsupported type by TIFF: " << (int)dt;
-    }
-
-    return tiffDataType;
-}
-
 void TiffTools::writeDirectory(libtiff::TIFF* tiff)
 {
     libtiff::TIFFWriteDirectory(tiff);
@@ -776,8 +853,7 @@ void TiffTools::setTags(libtiff::TIFF* tiff, const TiffDirectory& dir, bool newD
     libtiff::TIFFSetField(tiff, TIFFTAG_RESOLUTIONUNIT, 1);
     libtiff::TIFFSetField(tiff, TIFFTAG_XPOSITION, 0);
     libtiff::TIFFSetField(tiff, TIFFTAG_YPOSITION, 0);
-    uint16_t dt = TIFFDataTypeFromDataType(dir.dataType);
-    libtiff::TIFFSetField(tiff, TIFFTAG_DATATYPE, dt);
+    setTiffDataType(tiff, dir.dataType);
     uint16_t phm = computeDirectoryPhotometric(dir);
     libtiff::TIFFSetField(tiff, TIFFTAG_PHOTOMETRIC, phm);
     libtiff::TIFFSetField(tiff, TIFFTAG_JPEGQUALITY, dir.compressionQuality);
