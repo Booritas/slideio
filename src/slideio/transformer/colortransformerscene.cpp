@@ -8,7 +8,11 @@
 
 using namespace slideio;
 
-ColorTransformerScene::ColorTransformerScene(std::shared_ptr<CVScene> originScene, ColorTransformation& transformation) : TransformerScene(originScene), m_transformation(transformation)
+ColorTransformerScene::ColorTransformerScene(
+    std::shared_ptr<CVScene> originScene,
+    ColorTransformation& transformation):
+        TransformerScene(originScene),
+        m_transformation(transformation)
 {
 }
 
