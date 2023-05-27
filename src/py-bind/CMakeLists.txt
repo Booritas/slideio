@@ -14,6 +14,8 @@ set(BINDLIB_SOURCE
    pyscene.cpp
    pyconverter.hpp
    pyconverter.cpp
+   pytransformation.hpp
+   pytransformation.cpp
 )
 
 add_subdirectory(pybind11)
@@ -44,6 +46,7 @@ target_include_directories(${BINDLIB_NAME} PRIVATE ${INCLUDE_ROOT})
 target_link_libraries(${BINDLIB_NAME} PRIVATE 
    ${SLIDEIO_LIB_NAME}
    ${CONVERTER_LIB_NAME}
+   ${TRANSFORMER_LIB_NAME}
    )
 
 

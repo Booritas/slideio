@@ -8,7 +8,10 @@
 #include <pybind11/chrono.h>
 
 #include "pyconverter.hpp"
+#include "pytransformation.hpp"
 #include "slideio/converter/converterparameters.hpp"
+#include "slideio/transformer/transformer.hpp"
+#include "slideio/transformer/transformation.hpp"
 
 namespace py = pybind11;
 
@@ -37,6 +40,9 @@ PYBIND11_MODULE(slideiopybind, m) {
         py::arg("parameters"),
         py::arg("file_path"),
         py::arg("callback"));
+    m.def("transform_scene", &pyTransformScene,
+        py::arg("scene"),
+        py::arg("parameters"));
     py::class_<PySlide, std::shared_ptr<PySlide>>(m, "Slide")
         .def("get_scene", &PySlide::getScene, py::arg("index"), "Returns a Scene object by index")
         .def("get_aux_image", &PySlide::getAuxImage, py::arg("image_name"), "Returns an auxiliary image object by name")
@@ -137,4 +143,19 @@ PYBIND11_MODULE(slideiopybind, m) {
     py::class_<slideio::SVSJp2KConverterParameters, slideio::SVSConverterParameters, slideio::ConverterParameters>(m, "SVSJp2KParameters")
         .def(py::init<>())
         .def_property("compression_rate", &slideio::SVSJp2KConverterParameters::getCompressionRate, &slideio::SVSJp2KConverterParameters::setCompressionRate, "Compression rate of JPEG200 encoding");
+    py::class_<slideio::Transformation>(m, "Transformation")
+        .def_property_readonly("type", &slideio::Transformation::getType, "Type of transformation");
+    py::class_<slideio::ColorTransformation, slideio::Transformation>(m, "ColorTransformation")
+        .def(py::init<>())
+        .def_property_readonly("type", &slideio::ColorTransformation::getType, "Type of transformation")
+        .def_property("color_space", &slideio::ColorTransformation::getColorSpace, &slideio::ColorTransformation::setColorSpace, "Target color space");
+    py::enum_<slideio::ColorSpace>(m, "ColorSpace")
+        .value("GRAY", slideio::ColorSpace::GRAY)
+        .value("HSV", slideio::ColorSpace::HSV)
+        .value("HLS", slideio::ColorSpace::HLS)
+        .value("YCbCr", slideio::ColorSpace::YCbCr)
+        .value("XYZ", slideio::ColorSpace::XYZ)
+        .value("Lab", slideio::ColorSpace::LAB)
+        .value("Luv", slideio::ColorSpace::LUV)
+        .value("YUV", slideio::ColorSpace::YUV);
 }

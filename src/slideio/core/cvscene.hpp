@@ -188,9 +188,9 @@ namespace slideio
         virtual std::shared_ptr<CVScene> getAuxImage(const std::string& imageName) const;
         /**@brief returns string of serialized metadata. Content of the string depends on image format.*/
         virtual std::string getRawMetadata() const { return ""; }
-    protected:
         virtual void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
             const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output);
+    protected:
         std::vector<int> getValidChannelIndices(const std::vector<int>& channelIndices);
         void initializeSceneBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices,
                                   cv::OutputArray output) const;

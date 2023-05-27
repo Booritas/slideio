@@ -30,6 +30,7 @@ set(NDPI_DRIVER_NAME slideio-ndpi)
 set(TEST_LIB_NAME slideio-test-lib)
 set(BASE_LIB_NAME slideio-base)
 set(CONVERTER_LIB_NAME slideio-converter)
+set(TRANSFORMER_LIB_NAME slideio-transformer)
 
 set(NAME_TOOL_LIB_LIST
     "lib${SLIDEIO_LIB_NAME}.dylib"
@@ -45,6 +46,7 @@ set(NAME_TOOL_LIB_LIST
     "lib${IMAGETOOLS_LIB_NAME}.dylib"
     "lib${CONVERTER_LIB_NAME}.dylib"
     "lib${BASE_LIB_NAME}.dylib"
+    "lib${TRANSFORMER_LIB_NAME}.dylib"
     "@rpath/libgflags_nothreads.2.2.dylib"
     "@rpath/libglog.1.dylib"
     "@rpath/libglogd.1.dylib"
