@@ -17,6 +17,7 @@ namespace slideio
         void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
             const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex,
             cv::OutputArray output) override;
+        int getNumChannels() const override;
 
     private:
         ColorTransformation m_transformation;
