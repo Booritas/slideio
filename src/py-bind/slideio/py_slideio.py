@@ -20,13 +20,12 @@ class Scene(object):
 
     scene = Scene(slide, scene_index)    
     '''
-    def __init__(self, slide, index:int):
+    def __init__(self, scene):
         '''Creates an instance of Scene class.
         Args:
-            slide (an Instance of Slide class): Instance of Slide class.
-            index(int): Index of the scene.
+            scene: Instance of sld.Scene class.
         '''
-        self.scene = slide.get_scene(index)
+        self.scene = scene
 
     def __del__(self):
         if self.scene is not None:
@@ -181,7 +180,7 @@ class Slide(object):
 
     def get_scene(self, index):
         '''Return slide scene by index'''
-        scene = Scene(self.slide, index)
+        scene = Scene(self.slide.get_scene(index))
         return scene
     
     @property
@@ -264,3 +263,14 @@ def set_log_level(log_level:str):
     '''Sets log level'''
     sld.set_log_level(log_level)
 
+def transform_scene(scene, params):
+    '''Transform scene raster
+    
+    Args:
+        scene: origin scene
+        params: transformation parameters
+    '''
+    internal_scene = scene.scene
+    transformed = sld.transform_scene(internal_scene, params)
+    new_scene = Scene(transformed)
+    return new_scene
