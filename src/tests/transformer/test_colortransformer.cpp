@@ -11,7 +11,7 @@
 
 using namespace slideio;
 
-TEST(ColorTransfomation, colors)
+TEST(ColorTransfomation, grayColor)
 {
 	std::string path = TestTools::getTestImagePath("gdal", "colors.png");
 	std::shared_ptr<slideio::Slide> slide = openSlide(path, "AUTO");
@@ -32,5 +32,52 @@ TEST(ColorTransfomation, colors)
 	cv::Mat originGray;
     cv::cvtColor(originImage, originGray, cv::COLOR_RGB2GRAY);
 	TestTools::compareRasters(originGray, transformedImage);
+}
+
+TEST(ColorTransfomation, colorspaces3channels)
+{
+	struct ColorSpaceItem
+	{
+		ColorSpace colorSpace;
+		int cvTransformation;
+
+	};
+	ColorSpaceItem items[] = {
+		{ ColorSpace::HSV, cv::COLOR_RGB2HSV},
+		{ ColorSpace::HLS, cv::COLOR_RGB2HLS},
+		{ ColorSpace::YUV, cv::COLOR_RGB2YUV},
+		{ ColorSpace::YCbCr, cv::COLOR_RGB2YCrCb},
+		{ ColorSpace::LUV, cv::COLOR_RGB2Luv},
+		{ ColorSpace::LAB, cv::COLOR_RGB2Lab},
+	    { ColorSpace::XYZ, cv::COLOR_RGB2XYZ}};
+	
+
+	std::string path = TestTools::getTestImagePath("gdal", "colors.png");
+	std::shared_ptr<slideio::Slide> slide = openSlide(path, "AUTO");
+	std::shared_ptr<slideio::Scene> originScene = slide->getScene(0);
+
+	std::tuple<int, int, int, int> rect = originScene->getRect();
+	const int width = std::get<2>(rect);
+	const int height = std::get<3>(rect);
+	const int bufferSize = width * height * 3;
+	std::vector<unsigned char> buffer(bufferSize);
+	originScene->readBlock(rect, buffer.data(), buffer.size());
+	cv::Mat originImage(height, width, CV_8UC3, buffer.data());
+	std::vector<uint8_t> transformedBuffer(bufferSize);
+
+	ColorTransformation transformation;
+	for(auto item: items)
+	{
+		ColorSpace colorSpace = item.colorSpace;
+		int cvTransformation = item.cvTransformation;
+	    transformation.setColorSpace(colorSpace);
+        std::shared_ptr<slideio::Scene> transformedScene = transformScene(originScene, transformation);
+        ASSERT_EQ(3, transformedScene->getNumChannels());
+        transformedScene->readBlock(rect, transformedBuffer.data(), transformedBuffer.size());
+        cv::Mat transformedImage(height, width, CV_8UC3, transformedBuffer.data());
+        cv::Mat originGray;
+        cv::cvtColor(originImage, originGray, cvTransformation);
+        TestTools::compareRasters(originGray, transformedImage);
+    }	
 }
 
