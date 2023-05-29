@@ -12,6 +12,7 @@
 #include "slideio/converter/converterparameters.hpp"
 #include "slideio/transformer/transformer.hpp"
 #include "slideio/transformer/transformation.hpp"
+#include "slideio/transformer/colortransformation.hpp"
 
 namespace py = pybind11;
 

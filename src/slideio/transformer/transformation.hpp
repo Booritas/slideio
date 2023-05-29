@@ -9,7 +9,12 @@ namespace slideio
     enum class TransformationType
     {
         Unknown,
-        ColorTransformation
+        ColorTransformation,
+        GaussianBlurFilter,
+        MedianBlurFilter,
+        SobelFilter,
+        ScharrFilter,
+
     };
 
     class Transformation
@@ -23,35 +28,5 @@ namespace slideio
         }
     protected:
         TransformationType m_type;
-    };
-
-    enum class ColorSpace
-    {
-        RGB,
-        GRAY,
-        HSV,
-        HLS,
-        YUV,
-        YCbCr,
-        XYZ,
-        LAB,
-        LUV,
-    };
-
-    class ColorTransformation : public slideio::Transformation
-    {
-    public:
-        ColorTransformation() {
-            m_type = TransformationType::ColorTransformation;
-            m_colorSpace = ColorSpace::RGB;
-        }
-        ColorSpace getColorSpace() const {
-            return m_colorSpace;
-        }
-        void setColorSpace(ColorSpace colorSpace) {
-            m_colorSpace = colorSpace;
-        }
-    private:
-        ColorSpace m_colorSpace;
     };
 }

@@ -4,7 +4,7 @@
 #pragma once
 #include "transformer_def.hpp"
 #include "transformerscene.hpp"
-#include "transformation.hpp"
+#include "colortransformation.hpp"
 
 namespace slideio
 {

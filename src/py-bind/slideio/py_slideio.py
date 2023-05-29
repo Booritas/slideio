@@ -158,6 +158,27 @@ class Scene(object):
         '''
         return self.scene.get_channel_name(channel)
 
+    def save_image(self, params, output_path, callback=None):
+        '''Save scene image to a file
+        Args:
+            params: image format of the output file
+            output_path: path to the output file
+            callback: callback progress function
+        '''
+        if(callback is None):
+            sld.convert_scene(self.scene, params, output_path)
+        else:
+            sld.convert_scene_ex(self.scene, params, output_path, callback)
+
+    def apply_transformation(self, transormation):
+        '''Transform scene raster
+        
+        Args:
+            transformation: transformation parameters
+        '''
+        transformed = sld.transform_scene(self.scene, transormation)
+        new_scene = Scene(transformed)
+        return new_scene
 
 class Slide(object):
     '''Slide class represents slides, normally a single image file or a folder.
