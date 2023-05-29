@@ -3,7 +3,6 @@
 // of this distribution and at http://slideio.com/license.html.
 #include "colortransformerscene.hpp"
 #include <opencv2/imgproc.hpp>
-
 #include "slideio/base/exceptions.hpp"
 
 using namespace slideio;

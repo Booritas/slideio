@@ -6,7 +6,7 @@
 
 namespace slideio
 {
-    enum class TransformationType
+    enum class SLIDEIO_TRANSFORMER_EXPORTS TransformationType
     {
         Unknown,
         ColorTransformation,
@@ -17,7 +17,7 @@ namespace slideio
 
     };
 
-    class Transformation
+    class SLIDEIO_TRANSFORMER_EXPORTS Transformation
     {
     public:
         Transformation() {

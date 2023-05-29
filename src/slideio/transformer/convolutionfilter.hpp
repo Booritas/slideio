@@ -6,7 +6,7 @@
 
 namespace slideio
 {
-    class GaussianBlurFilter : public Transformation
+    class SLIDEIO_TRANSFORMER_EXPORTS GaussianBlurFilter : public Transformation
     {
     public:
         GaussianBlurFilter() {
@@ -53,7 +53,7 @@ namespace slideio
         }
     };
 
-    class MedianBlurFilter : public Transformation
+    class SLIDEIO_TRANSFORMER_EXPORTS MedianBlurFilter : public Transformation
     {
     public:
         MedianBlurFilter() {
@@ -71,7 +71,7 @@ namespace slideio
 
     };
 
-    class SobelFilter : public Transformation
+    class SLIDEIO_TRANSFORMER_EXPORTS SobelFilter : public Transformation
     {
     public:
         SobelFilter() {
@@ -95,10 +95,10 @@ namespace slideio
         void setDy(int dy) {
             m_dy = dy;
         }
-        int getKsize() const {
+        int getKernelSize() const {
             return m_ksize;
         }
-        void setKsize(int ksize) {
+        void setKernelSize(int ksize) {
             m_ksize = ksize;
         }
         double getScale() const {
@@ -122,7 +122,7 @@ namespace slideio
         double m_delta = 0.;
     };
 
-    class ScharrFilter : public Transformation
+    class SLIDEIO_TRANSFORMER_EXPORTS ScharrFilter : public Transformation
     {
     public:
         ScharrFilter() {
