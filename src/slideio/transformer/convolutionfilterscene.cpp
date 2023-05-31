@@ -6,6 +6,7 @@
 
 #include "convolutionfilter.hpp"
 #include "slideio/base/exceptions.hpp"
+#include "slideio/imagetools/cvtools.hpp"
 
 using namespace slideio;
 
@@ -84,4 +85,42 @@ cv::Rect ConvolutionFilterScene::inflateRect(const cv::Rect& rect)
     }
     cv::Rect inflatedRect(left,top,right-left,bottom-top);
     return inflatedRect;
+}
+
+void ConvolutionFilterScene::appyTransformation(const cv::Mat& mat, const cv::Mat& transformedInflatedBlock)
+{
+    switch (m_transformation.getType()) {
+    case TransformationType::GaussianBlurFilter:
+        {
+            const auto& gaussianBlur = static_cast<GaussianBlurFilter&>(m_transformation);
+            cv::GaussianBlur(mat, transformedInflatedBlock,
+                             cv::Size(gaussianBlur.getKernelSizeX(), gaussianBlur.getKernelSizeY()),
+                             gaussianBlur.getSigmaX(), gaussianBlur.getSigmaY());
+        }
+        break;
+    case TransformationType::MedianBlurFilter:
+        {
+            const auto& medianBlur = static_cast<MedianBlurFilter&>(m_transformation);
+            cv::medianBlur(mat, transformedInflatedBlock, medianBlur.getKernelSize());
+        }
+        break;
+    case TransformationType::SobelFilter:
+        {
+            const auto& sobel = static_cast<SobelFilter&>(m_transformation);
+            DataType dt = sobel.getDepth();
+            int depth = CVTools::cvTypeFromDataType(dt);
+            cv::Sobel(mat, transformedInflatedBlock, depth, sobel.getDx(), sobel.getDy(), sobel.getKernelSize());
+        }
+        break;
+    case TransformationType::ScharrFilter:
+        {
+            const auto& scharr = static_cast<ScharrFilter&>(m_transformation);
+            DataType dt = scharr.getDepth();
+            int depth = CVTools::cvTypeFromDataType(dt);
+            cv::Scharr(mat, transformedInflatedBlock, -1, scharr.getDx(), scharr.getDy());
+        }
+        break;
+    default:
+        RAISE_RUNTIME_ERROR << "Unexpected transformation" << (int)m_transformation.getType();
+    }
 }

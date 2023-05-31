@@ -34,6 +34,7 @@ namespace slideio
         }
 
         static int cvGetDataTypeSize(DataType dt);
+        static int cvTypeFromDataType(DataType dt);
         static void extractSliceFrom3D(cv::Mat mat3D, int sliceIndex, cv::OutputArray output);
         static void extractSliceFromMultidimMatrix(cv::Mat multidimMat, const std::vector<int>& indices,
                                                    cv::OutputArray output);
