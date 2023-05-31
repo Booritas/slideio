@@ -13,15 +13,21 @@ namespace slideio
     {
     public:
         ConvolutionFilterScene(std::shared_ptr<CVScene> originScene, Transformation& transformation);
+        ~ConvolutionFilterScene();
+
     public:
         void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
                                           const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex,
                                           cv::OutputArray output) override;
-    private:
         int getBlockExtensionForGaussianBlur(const GaussianBlurFilter& gaussianBlur) const;
-        cv::Rect inflateRect(const cv::Rect& rect);
+        cv::Rect extendBlockRect(const cv::Rect& rect);
         void appyTransformation(const cv::Mat& mat, const cv::Mat& transformedInflatedBlock);
     private:
-        Transformation m_transformation;
+        template <class Filter>
+        const Filter& getFilter() {
+            return (static_cast<const Filter&>(*m_transformation.get()));
+        }   
+    private:
+        std::shared_ptr<Transformation> m_transformation;
     };
 }

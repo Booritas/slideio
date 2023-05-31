@@ -12,7 +12,9 @@ namespace slideio
         GaussianBlurFilter() {
             m_type = TransformationType::GaussianBlurFilter;
         }
-        virtual ~GaussianBlurFilter() = default;
+        virtual ~GaussianBlurFilter() {
+            
+        }
     private:
         int m_kernelSizeX = 5;
         int m_kernelSizeY = 5;
