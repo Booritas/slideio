@@ -200,3 +200,52 @@ TEST(ConvolutionFilters, readBlockPartialScharr)
     TestTools::compareRasters(testImageBlock, transformedImage);
     //TestTools::showRaster(transformedImage);
 }
+
+TEST(ConvolutionFilters, readScaledBlockMedian)
+{
+    // scale the image to 50% and apply median filter
+    const double scale = 0.5;
+    const int kernelSize = 7;
+
+    std::string path = TestTools::getTestImagePath("gdal", "colors.png");
+    std::shared_ptr<slideio::Slide> slide = openSlide(path, "AUTO");
+    std::shared_ptr<slideio::Scene> originScene = slide->getScene(0);
+
+    std::tuple<int, int, int, int> rect = originScene->getRect();
+    const int width = std::get<2>(rect);
+    const int height = std::get<3>(rect);
+
+    // specify the block to read
+    const cv::Rect cvBlockRect(width / 4, height / 4, width / 2, height / 2);
+    // specify the block size after scaling
+    const cv::Size cvBlockSize(std::lround(cvBlockRect.width * scale), std::lround(cvBlockRect.height * scale));
+    // specify image size after scaling
+    const cv::Size cvScaledImageSize(std::lround(width*scale), std::lround(height*scale));
+
+    // read the original image and scale it
+    const int bufferSize = cvScaledImageSize.width * cvScaledImageSize.height * 3;
+    std::vector<unsigned char> buffer(bufferSize);
+    auto imageSize = std::make_tuple(cvScaledImageSize.width, cvScaledImageSize.height);
+    originScene->readResampledBlock(rect, imageSize, buffer.data(), buffer.size());
+    cv::Mat scaledImage(cvScaledImageSize.height, cvScaledImageSize.width, CV_8UC3, buffer.data());
+    // apply median filter to the scaled image
+    cv::Mat testImage;
+    cv::medianBlur(scaledImage, testImage, kernelSize);
+    const cv::Rect cvTestRect(std::lround(cvBlockRect.x*scale),
+        std::lround(cvBlockRect.y*scale),
+        std::lround(cvBlockRect.width*scale),
+        std::lround(cvBlockRect.height*scale));
+    // extract the test image block
+    cv::Mat testImageBlock(testImage, cvTestRect);
+
+    MedianBlurFilter filter;
+    filter.setKernelSize(kernelSize);
+    std::shared_ptr<slideio::Scene> transformedScene = transformScene(originScene, filter);
+    std::vector<unsigned char> transformedBuffer(cvBlockSize.width*cvBlockSize.height*3);
+    auto blockRect = std::make_tuple(cvBlockRect.x, cvBlockRect.y, cvBlockRect.width, cvBlockRect.height);
+    auto blockSize = std::make_tuple(cvBlockSize.width, cvBlockSize.height);
+    transformedScene->readResampledBlock(blockRect, blockSize, transformedBuffer.data(), transformedBuffer.size());
+    cv::Mat transformedImage(cvBlockSize.height, cvBlockSize.width, CV_8UC3, transformedBuffer.data());
+    TestTools::compareRasters(testImageBlock, transformedImage);
+    TestTools::showRaster(transformedImage);
+}

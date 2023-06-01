@@ -146,8 +146,16 @@ void Scene::readBlockChannels(const std::tuple<int, int, int, int>& blockRect, c
     return readResampledBlockChannels(blockRect, size, channelIndices, buffer, bufferSize);
 }
 
+void Scene::readResampledBlock(const std::tuple<int, int, int, int>& blockRect, const std::tuple<int, int>& blockSize,
+    void* buffer, size_t bufferSize)
+{
+    SLIDEIO_LOG(INFO) << "Scene::readResampledBlock ";// << blockRect << "," << blockSize;
+    const std::vector<int> channelIndices;
+    return readResampledBlockChannels(blockRect, blockSize, channelIndices, buffer, bufferSize);
+}
+
 void Scene::readResampledBlockChannels(const std::tuple<int, int, int, int>& rect,
-    const std::tuple<int, int>& size, const std::vector<int>& channelIndices, void* buffer, size_t bufferSize)
+                                       const std::tuple<int, int>& size, const std::vector<int>& channelIndices, void* buffer, size_t bufferSize)
 {
     SLIDEIO_LOG(INFO) << "Scene::readResampledBlockChannels ";// << rect << "," << size << "," << channelIndices;
     cv::Rect blockRect = tupleToRect(rect);
