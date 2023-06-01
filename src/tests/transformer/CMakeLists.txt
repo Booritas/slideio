@@ -6,6 +6,7 @@ CONAN_MAIN()
 set(TEST_SOURCES
   test_colortransformer.cpp
   test_convolutionfilters.cpp
+  test_transformertools.cpp
 )
 
 add_executable(${TEST_NAME} ${TEST_SOURCES})

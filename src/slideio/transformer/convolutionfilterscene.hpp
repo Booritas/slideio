@@ -19,9 +19,7 @@ namespace slideio
         void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
                                           const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex,
                                           cv::OutputArray output) override;
-        int getBlockExtensionForGaussianBlur(const GaussianBlurFilter& gaussianBlur) const;
-        cv::Rect extendBlockRect(const cv::Rect& rect);
-        void appyTransformation(const cv::Mat& block, cv::OutputArray transformedBlock);
+        void applyTransformation(const cv::Mat& block, cv::OutputArray transformedBlock) const;
         DataType getChannelDataType(int channel) const override;
     private:
         template <class Filter>

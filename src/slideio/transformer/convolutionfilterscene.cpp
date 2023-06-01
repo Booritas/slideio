@@ -5,6 +5,7 @@
 #include <opencv2/imgproc.hpp>
 
 #include "convolutionfilter.hpp"
+#include "transformertools.hpp"
 #include "slideio/base/exceptions.hpp"
 #include "slideio/imagetools/cvtools.hpp"
 
@@ -52,81 +53,25 @@ void ConvolutionFilterScene::readResampledBlockChannelsEx(const cv::Rect& blockR
                                                           const std::vector<int>& componentIndices, int zSliceIndex,
                                                           int tFrameIndex, cv::OutputArray output)
 {
+    cv::Rect extendedBlockRect;
+    cv::Size extendedBlockSize;
+    cv::Point blockPosition;
+    const int inflationValue = TransformerTools::getBlockInflationValue(*m_transformation);
+    cv::Rect sceneRect = getRect();
+    cv::Size sceneSize(sceneRect.size());
+    TransformerTools::computeInflatedRectParams(sceneSize, blockRect, inflationValue, blockSize, extendedBlockRect, extendedBlockSize, blockPosition);
     cv::Mat inflatedBlock;
-    cv::Rect inflatedBlockRect = extendBlockRect(blockRect);
-    getOriginScene()->readResampledBlockChannelsEx(inflatedBlockRect, blockSize, componentIndices, zSliceIndex,
+    getOriginScene()->readResampledBlockChannelsEx(extendedBlockRect, extendedBlockSize, componentIndices, zSliceIndex,
                                                    tFrameIndex, inflatedBlock);
     cv::Mat transformedInflatedBlock;
-    appyTransformation(inflatedBlock, transformedInflatedBlock);
-    cv::Rect rectInInflatedRect = cv::Rect(blockRect.x - inflatedBlockRect.x, blockRect.y - inflatedBlockRect.y,
-                                           blockRect.width, blockRect.height);
+    applyTransformation(inflatedBlock, transformedInflatedBlock);
+    cv::Rect rectInInflatedRect = cv::Rect(blockPosition.x, blockPosition.y, blockSize.width, blockSize.height);
     cv::Mat block = transformedInflatedBlock(rectInInflatedRect);
     block.copyTo(output);
 }
 
-int ConvolutionFilterScene::getBlockExtensionForGaussianBlur(const GaussianBlurFilter& gaussianBlur) const
-{
-    int kernel = std::max(gaussianBlur.getKernelSizeX(), gaussianBlur.getKernelSizeY());
-    if (kernel == 0) {
-        kernel = (int)ceil(2 *
-            ceil(2 * std::max(gaussianBlur.getSigmaX(), gaussianBlur.getSigmaY())) + 1);
-    }
-    const int extension = (kernel + 1) / 2;
-    return extension;
-}
 
-cv::Rect ConvolutionFilterScene::extendBlockRect(const cv::Rect& rect)
-{
-    int shift = 0;
-    switch (m_transformation->getType()) {
-    case TransformationType::GaussianBlurFilter:
-        {
-            shift = getBlockExtensionForGaussianBlur(getFilter<GaussianBlurFilter>());
-        }
-        break;
-    case TransformationType::MedianBlurFilter:
-        {
-            const auto& medianBlur = getFilter<MedianBlurFilter>();
-            shift = (medianBlur.getKernelSize() + 1) / 2;
-        }
-        break;
-    case TransformationType::SobelFilter:
-        {
-            const auto& sobel = getFilter<SobelFilter>();
-            shift = (sobel.getKernelSize() + 1) / 2;
-        }
-        break;
-    case TransformationType::ScharrFilter:
-        {
-            shift = 2;
-        }
-        break;
-    default:
-        RAISE_RUNTIME_ERROR << "Unexpected transformation type for convolution filter: "
-            << (int)m_transformation->getType() << ".";
-    }
-    int left = rect.x - shift;
-    if (left < 0) {
-        left = 0;
-    }
-    int top = rect.y - shift;
-    if (top < 0) {
-        top = 0;
-    }
-    const cv::Size sceneSize = getRect().size();
-    int right = rect.x + rect.width + shift;
-    if (right > sceneSize.width) {
-        right = sceneSize.width;
-    }
-    int bottom = rect.y + rect.height + shift;
-    if (bottom > sceneSize.height) {
-        bottom = sceneSize.height;
-    }
-    cv::Rect inflatedRect(left, top, right - left, bottom - top);
-    return inflatedRect;
-}
-
-void ConvolutionFilterScene::appyTransformation(const cv::Mat& block, cv::OutputArray transformedBlock)
+void ConvolutionFilterScene::applyTransformation(const cv::Mat& block, cv::OutputArray transformedBlock) const
 {
     switch (m_transformation->getType()) {
     case TransformationType::GaussianBlurFilter:

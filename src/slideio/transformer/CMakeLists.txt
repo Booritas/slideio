@@ -17,6 +17,8 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/convolutionfilterscene.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/convolutionfilter.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/transformations.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/transformertools.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/transformertools.hpp
    )
 
 

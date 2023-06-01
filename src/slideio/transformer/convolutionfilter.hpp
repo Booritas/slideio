@@ -3,6 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 #pragma once
 #include "transformation.hpp"
+#include "slideio/base/slideio_enums.hpp"
 
 namespace slideio
 {
@@ -11,9 +12,6 @@ namespace slideio
     public:
         GaussianBlurFilter() {
             m_type = TransformationType::GaussianBlurFilter;
-        }
-        virtual ~GaussianBlurFilter() {
-            
         }
     private:
         int m_kernelSizeX = 5;
