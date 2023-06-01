@@ -46,26 +46,29 @@ ConvolutionFilterScene::ConvolutionFilterScene(std::shared_ptr<CVScene> originSc
 
 ConvolutionFilterScene::~ConvolutionFilterScene()
 {
-
 }
 
 void ConvolutionFilterScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
-                                                          const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output)
+                                                          const std::vector<int>& componentIndices, int zSliceIndex,
+                                                          int tFrameIndex, cv::OutputArray output)
 {
     cv::Mat inflatedBlock;
     cv::Rect inflatedBlockRect = extendBlockRect(blockRect);
-    getOriginScene()->readResampledBlockChannelsEx(inflatedBlockRect, blockSize, componentIndices, zSliceIndex, tFrameIndex, inflatedBlock);
+    getOriginScene()->readResampledBlockChannelsEx(inflatedBlockRect, blockSize, componentIndices, zSliceIndex,
+                                                   tFrameIndex, inflatedBlock);
     cv::Mat transformedInflatedBlock;
     appyTransformation(inflatedBlock, transformedInflatedBlock);
-    cv::Rect rectInInflatedRect = cv::Rect(blockRect.x - inflatedBlockRect.x, blockRect.y - inflatedBlockRect.y, blockRect.width, blockRect.height);
+    cv::Rect rectInInflatedRect = cv::Rect(blockRect.x - inflatedBlockRect.x, blockRect.y - inflatedBlockRect.y,
+                                           blockRect.width, blockRect.height);
     cv::Mat block = transformedInflatedBlock(rectInInflatedRect);
     block.copyTo(output);
 }
 
 int ConvolutionFilterScene::getBlockExtensionForGaussianBlur(const GaussianBlurFilter& gaussianBlur) const
-{   int kernel = std::max(gaussianBlur.getKernelSizeX(), gaussianBlur.getKernelSizeY());
-    if(kernel == 0) {
-        kernel = (int)ceil(2 * 
+{
+    int kernel = std::max(gaussianBlur.getKernelSizeX(), gaussianBlur.getKernelSizeY());
+    if (kernel == 0) {
+        kernel = (int)ceil(2 *
             ceil(2 * std::max(gaussianBlur.getSigmaX(), gaussianBlur.getSigmaY())) + 1);
     }
     const int extension = (kernel + 1) / 2;
@@ -159,4 +162,22 @@ void ConvolutionFilterScene::appyTransformation(const cv::Mat& block, cv::Output
     default:
         RAISE_RUNTIME_ERROR << "Unexpected transformation" << (int)m_transformation->getType();
     }
+}
+
+DataType ConvolutionFilterScene::getChannelDataType(int channel) const
+{
+    TransformationType transformationType = m_transformation->getType();
+    switch (transformationType) {
+    case TransformationType::SobelFilter:
+        {
+            const SobelFilter& filter = getFilter<SobelFilter>();
+            return filter.getDepth();
+        }
+    case TransformationType::ScharrFilter:
+        {
+            const ScharrFilter& filter = getFilter<ScharrFilter>();
+            return filter.getDepth();
+        }
+    }
+    return TransformerScene::getChannelDataType(channel);
 }

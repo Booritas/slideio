@@ -157,13 +157,14 @@ void Scene::readResampledBlockChannels(const std::tuple<int, int, int, int>& rec
     const int numFrames = 1;
     const int refChannel = (channelIndices.empty()?0:channelIndices[0]);
     const int blockMemSize = getBlockSize(size, refChannel, numChannels, numSlices, numFrames);
-    const auto cvType = m_scene->getChannelDataType(refChannel);
+    const auto dt = m_scene->getChannelDataType(refChannel);
+    int cvType = CVTools::cvTypeFromDataType(dt);
 
     if(blockMemSize>bufferSize)
     {
         throw std::runtime_error("Supplied memory buffer is too small");
     }
-    cv::Mat raster(blockSize.height, blockSize.width, CV_MAKETYPE(static_cast<int>(cvType), numChannels), buffer);
+    cv::Mat raster(blockSize.height, blockSize.width, CV_MAKETYPE(cvType, numChannels), buffer);
     raster = cv::Scalar(0);
     m_scene->readResampledBlockChannels(blockRect, blockSize, channelIndices, raster);
 

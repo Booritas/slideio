@@ -22,11 +22,12 @@ namespace slideio
         int getBlockExtensionForGaussianBlur(const GaussianBlurFilter& gaussianBlur) const;
         cv::Rect extendBlockRect(const cv::Rect& rect);
         void appyTransformation(const cv::Mat& block, cv::OutputArray transformedBlock);
+        DataType getChannelDataType(int channel) const override;
     private:
         template <class Filter>
-        const Filter& getFilter() {
+        const Filter& getFilter() const{
             return (static_cast<const Filter&>(*m_transformation.get()));
-        }   
+        }
     private:
         std::shared_ptr<Transformation> m_transformation;
     };

@@ -6,6 +6,9 @@
 #include "slideio/base/exceptions.hpp"
 #include <boost/filesystem.hpp>
 #include <opencv2/imgproc.hpp>
+
+#include "slideio/core/tools/tools.hpp"
+#include "slideio/imagetools/cvtools.hpp"
 #include "slideio/transformer/colortransformation.hpp"
 #include "slideio/transformer/convolutionfilter.hpp"
 #include "slideio/transformer/convolutionfilterscene.hpp"
@@ -89,7 +92,7 @@ void testBlockRect(ConvolutionFilterScene& scene, const cv::Rect& sceneRect, int
     EXPECT_EQ(blockHeight + kernel2 + dy, extendedRect.height);
 }
 
-TEST(ConvolutionFiltes, getBlockExtensionForGaussianBlur)
+TEST(ConvolutionFilters, getBlockExtensionForGaussianBlur)
 {
     std::shared_ptr<TestScene> originScene(new TestScene);
     GaussianBlurFilter filter;
@@ -118,7 +121,7 @@ TEST(ConvolutionFiltes, getBlockExtensionForGaussianBlur)
     EXPECT_EQ(4, extension);
 }
 
-TEST(ConvolutionFiltes, extendBlockRect)
+TEST(ConvolutionFilters, extendBlockRect)
 {
     std::shared_ptr<TestScene> originScene(new TestScene);
     cv::Rect sceneRect = cv::Rect(0, 0, 1000, 1000);
@@ -149,7 +152,7 @@ TEST(ConvolutionFiltes, extendBlockRect)
     }
 }
 
-TEST(ConvolutionFiltes, applyTransformationGaussianBlur)
+TEST(ConvolutionFilters, applyTransformationGaussianBlur)
 {
     std::string path = TestTools::getTestImagePath("gdal", "colors.png");
     std::shared_ptr<slideio::Slide> slide = openSlide(path, "AUTO");
@@ -176,7 +179,7 @@ TEST(ConvolutionFiltes, applyTransformationGaussianBlur)
 
 }
 
-TEST(ConvolutionFiltes, applyTransformationMedianBlur)
+TEST(ConvolutionFilters, applyTransformationMedianBlur)
 {
     std::string path = TestTools::getTestImagePath("gdal", "colors.png");
     std::shared_ptr<slideio::Slide> slide = openSlide(path, "AUTO");
@@ -201,7 +204,7 @@ TEST(ConvolutionFiltes, applyTransformationMedianBlur)
     TestTools::compareRasters(testImage, transformedImage);
 }
 
-TEST(ConvolutionFiltes, applyTransformationSobelFilter)
+TEST(ConvolutionFilters, applyTransformationSobelFilter)
 {
     std::string path = TestTools::getTestImagePath("gdal", "colors.png");
     std::shared_ptr<slideio::Slide> slide = openSlide(path, "AUTO");
@@ -230,7 +233,7 @@ TEST(ConvolutionFiltes, applyTransformationSobelFilter)
     //TestTools::showRaster(transformedImage);
 }
 
-TEST(ConvolutionFiltes, applyTransformationSharrFilter)
+TEST(ConvolutionFilters, applyTransformationSharrFilter)
 {
     std::string path = TestTools::getTestImagePath("gdal", "colors.png");
     std::shared_ptr<slideio::Slide> slide = openSlide(path, "AUTO");
@@ -255,4 +258,42 @@ TEST(ConvolutionFiltes, applyTransformationSharrFilter)
     cv::Scharr(originImage, testImage, CV_16S, 1, 0);
     TestTools::compareRasters(testImage, transformedImage);
     //TestTools::showRaster(transformedImage);
+}
+
+TEST(ConvolutionFilters, readBlockWholeImge)
+{
+    std::string path = TestTools::getTestImagePath("gdal", "colors.png");
+    std::shared_ptr<slideio::Slide> slide = openSlide(path, "AUTO");
+    std::shared_ptr<slideio::Scene> originScene = slide->getScene(0);
+
+    std::tuple<int, int, int, int> rect = originScene->getRect();
+    const int width = std::get<2>(rect);
+    const int height = std::get<3>(rect);
+    const int bufferSize = width * height * 3;
+    std::vector<unsigned char> buffer(bufferSize);
+    originScene->readBlock(rect, buffer.data(), buffer.size());
+
+    cv::Mat originImage(height, width, CV_8UC3, buffer.data());
+
+    SobelFilter filter;
+    const int kernelSize = 15;
+    DataType dt = DataType::DT_Int16;
+    int cvType = CVTools::cvTypeFromDataType(dt);
+    filter.setDepth(dt);
+    filter.setKernelSize(kernelSize);
+    filter.setDx(1);
+    filter.setDy(0);
+    std::shared_ptr<slideio::Scene> transformedScene = transformScene(originScene, filter);
+    std::vector<unsigned char> transformedBuffer(width*height*originScene->getNumChannels()*CVTools::cvGetDataTypeSize(dt));
+    transformedScene->readBlock(rect, transformedBuffer.data(), transformedBuffer.size());
+    cv::Mat transformedImage(height, width, CV_MAKETYPE(cvType,originScene->getNumChannels()), transformedBuffer.data());
+    cv::Mat testImage;
+    cv::Sobel(originImage, testImage, cvType, 1, 0, kernelSize);
+    auto testDepth = testImage.depth();
+    auto transformedDepth = transformedImage.depth();
+    ASSERT_EQ(testDepth, transformedDepth);
+    ASSERT_EQ(testImage.channels(), transformedImage.channels());
+    TestTools::compareRasters(testImage, transformedImage);
+    TestTools::showRaster(transformedImage);
+
 }
