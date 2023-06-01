@@ -123,13 +123,13 @@ cv::Rect ConvolutionFilterScene::extendBlockRect(const cv::Rect& rect)
     return inflatedRect;
 }
 
-void ConvolutionFilterScene::appyTransformation(const cv::Mat& mat, const cv::Mat& transformedInflatedBlock)
+void ConvolutionFilterScene::appyTransformation(const cv::Mat& block, cv::OutputArray transformedBlock)
 {
     switch (m_transformation->getType()) {
     case TransformationType::GaussianBlurFilter:
         {
             const auto& gaussianBlur = getFilter<GaussianBlurFilter>();
-            cv::GaussianBlur(mat, transformedInflatedBlock,
+            cv::GaussianBlur(block, transformedBlock,
                              cv::Size(gaussianBlur.getKernelSizeX(), gaussianBlur.getKernelSizeY()),
                              gaussianBlur.getSigmaX(), gaussianBlur.getSigmaY());
         }
@@ -137,7 +137,7 @@ void ConvolutionFilterScene::appyTransformation(const cv::Mat& mat, const cv::Ma
     case TransformationType::MedianBlurFilter:
         {
             const auto& medianBlur = getFilter<MedianBlurFilter>();
-            cv::medianBlur(mat, transformedInflatedBlock, medianBlur.getKernelSize());
+            cv::medianBlur(block, transformedBlock, medianBlur.getKernelSize());
         }
         break;
     case TransformationType::SobelFilter:
@@ -145,7 +145,7 @@ void ConvolutionFilterScene::appyTransformation(const cv::Mat& mat, const cv::Ma
             const auto& sobel = getFilter<SobelFilter>();
             DataType dt = sobel.getDepth();
             int depth = CVTools::cvTypeFromDataType(dt);
-            cv::Sobel(mat, transformedInflatedBlock, depth, sobel.getDx(), sobel.getDy(), sobel.getKernelSize());
+            cv::Sobel(block, transformedBlock, depth, sobel.getDx(), sobel.getDy(), sobel.getKernelSize());
         }
         break;
     case TransformationType::ScharrFilter:
@@ -153,7 +153,7 @@ void ConvolutionFilterScene::appyTransformation(const cv::Mat& mat, const cv::Ma
             const auto& scharr = getFilter<ScharrFilter>();
             DataType dt = scharr.getDepth();
             int depth = CVTools::cvTypeFromDataType(dt);
-            cv::Scharr(mat, transformedInflatedBlock, -1, scharr.getDx(), scharr.getDy());
+            cv::Scharr(block, transformedBlock, depth, scharr.getDx(), scharr.getDy());
         }
         break;
     default:

@@ -148,3 +148,111 @@ TEST(ConvolutionFiltes, extendBlockRect)
         testBlockRect(scene, sceneRect, 3);
     }
 }
+
+TEST(ConvolutionFiltes, applyTransformationGaussianBlur)
+{
+    std::string path = TestTools::getTestImagePath("gdal", "colors.png");
+    std::shared_ptr<slideio::Slide> slide = openSlide(path, "AUTO");
+    std::shared_ptr<slideio::Scene> originScene = slide->getScene(0);
+
+    std::tuple<int, int, int, int> rect = originScene->getRect();
+    const int width = std::get<2>(rect);
+    const int height = std::get<3>(rect);
+    const int bufferSize = width * height * 3;
+    std::vector<unsigned char> buffer(bufferSize);
+    originScene->readBlock(rect, buffer.data(), buffer.size());
+    cv::Mat originImage(height, width, CV_8UC3, buffer.data());
+
+    GaussianBlurFilter filter;
+    const int kernelSize = 15;
+    filter.setKernelSizeX(kernelSize);
+    filter.setKernelSizeY(kernelSize);
+    ConvolutionFilterScene scene(originScene->getCVScene(), filter);
+    cv::Mat transformedImage;
+    scene.appyTransformation(originImage, transformedImage);
+    cv::Mat testImage;
+    cv::GaussianBlur(originImage, testImage, cv::Size(kernelSize, kernelSize), 0);
+    TestTools::compareRasters(testImage, transformedImage);
+
+}
+
+TEST(ConvolutionFiltes, applyTransformationMedianBlur)
+{
+    std::string path = TestTools::getTestImagePath("gdal", "colors.png");
+    std::shared_ptr<slideio::Slide> slide = openSlide(path, "AUTO");
+    std::shared_ptr<slideio::Scene> originScene = slide->getScene(0);
+
+    std::tuple<int, int, int, int> rect = originScene->getRect();
+    const int width = std::get<2>(rect);
+    const int height = std::get<3>(rect);
+    const int bufferSize = width * height * 3;
+    std::vector<unsigned char> buffer(bufferSize);
+    originScene->readBlock(rect, buffer.data(), buffer.size());
+    cv::Mat originImage(height, width, CV_8UC3, buffer.data());
+
+    MedianBlurFilter filter;
+    const int kernelSize = 15;
+    filter.setKernelSize(kernelSize);
+    ConvolutionFilterScene scene(originScene->getCVScene(), filter);
+    cv::Mat transformedImage;
+    scene.appyTransformation(originImage, transformedImage);
+    cv::Mat testImage;
+    cv::medianBlur(originImage, testImage, kernelSize);
+    TestTools::compareRasters(testImage, transformedImage);
+}
+
+TEST(ConvolutionFiltes, applyTransformationSobelFilter)
+{
+    std::string path = TestTools::getTestImagePath("gdal", "colors.png");
+    std::shared_ptr<slideio::Slide> slide = openSlide(path, "AUTO");
+    std::shared_ptr<slideio::Scene> originScene = slide->getScene(0);
+
+    std::tuple<int, int, int, int> rect = originScene->getRect();
+    const int width = std::get<2>(rect);
+    const int height = std::get<3>(rect);
+    const int bufferSize = width * height * 3;
+    std::vector<unsigned char> buffer(bufferSize);
+    originScene->readBlock(rect, buffer.data(), buffer.size());
+    cv::Mat originImage(height, width, CV_8UC3, buffer.data());
+
+    SobelFilter filter;
+    const int kernelSize = 15;
+    filter.setDepth(DataType::DT_Int16);
+    filter.setKernelSize(kernelSize);
+    filter.setDx(1);
+    filter.setDy(0);
+    ConvolutionFilterScene scene(originScene->getCVScene(), filter);
+    cv::Mat transformedImage;
+    scene.appyTransformation(originImage, transformedImage);
+    cv::Mat testImage;
+    cv::Sobel(originImage, testImage, CV_16S, 1, 0, kernelSize);
+    TestTools::compareRasters(testImage, transformedImage);
+    //TestTools::showRaster(transformedImage);
+}
+
+TEST(ConvolutionFiltes, applyTransformationSharrFilter)
+{
+    std::string path = TestTools::getTestImagePath("gdal", "colors.png");
+    std::shared_ptr<slideio::Slide> slide = openSlide(path, "AUTO");
+    std::shared_ptr<slideio::Scene> originScene = slide->getScene(0);
+
+    std::tuple<int, int, int, int> rect = originScene->getRect();
+    const int width = std::get<2>(rect);
+    const int height = std::get<3>(rect);
+    const int bufferSize = width * height * 3;
+    std::vector<unsigned char> buffer(bufferSize);
+    originScene->readBlock(rect, buffer.data(), buffer.size());
+    cv::Mat originImage(height, width, CV_8UC3, buffer.data());
+
+    ScharrFilter filter;
+    filter.setDepth(DataType::DT_Int16);
+    filter.setDx(1);
+    filter.setDy(0);
+    ConvolutionFilterScene scene(originScene->getCVScene(), filter);
+    cv::Mat transformedImage;
+    scene.appyTransformation(originImage, transformedImage);
+    cv::Mat testImage;
+    cv::Scharr(originImage, testImage, CV_16S, 1, 0);
+    TestTools::compareRasters(testImage, transformedImage);
+    //TestTools::showRaster(transformedImage);
+}

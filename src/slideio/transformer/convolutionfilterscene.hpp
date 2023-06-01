@@ -21,7 +21,7 @@ namespace slideio
                                           cv::OutputArray output) override;
         int getBlockExtensionForGaussianBlur(const GaussianBlurFilter& gaussianBlur) const;
         cv::Rect extendBlockRect(const cv::Rect& rect);
-        void appyTransformation(const cv::Mat& mat, const cv::Mat& transformedInflatedBlock);
+        void appyTransformation(const cv::Mat& block, cv::OutputArray transformedBlock);
     private:
         template <class Filter>
         const Filter& getFilter() {
