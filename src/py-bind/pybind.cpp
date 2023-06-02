@@ -13,6 +13,7 @@
 #include "slideio/transformer/transformer.hpp"
 #include "slideio/transformer/transformation.hpp"
 #include "slideio/transformer/colortransformation.hpp"
+#include "slideio/transformer/convolutionfilter.hpp"
 
 namespace py = pybind11;
 
@@ -159,4 +160,50 @@ PYBIND11_MODULE(slideiopybind, m) {
         .value("Lab", slideio::ColorSpace::LAB)
         .value("Luv", slideio::ColorSpace::LUV)
         .value("YUV", slideio::ColorSpace::YUV);
+    py::enum_<slideio::DataType>(m, "DataType")
+        .value("Byte", slideio::DataType::DT_Byte)
+        .value("Int8", slideio::DataType::DT_Int8)
+        .value("Int16", slideio::DataType::DT_Int16)
+        .value("Float16", slideio::DataType::DT_Float16)
+        .value("Int32", slideio::DataType::DT_Int32)
+        .value("Float32", slideio::DataType::DT_Float32)
+        .value("Float64", slideio::DataType::DT_Float64)
+        .value("UInt16", slideio::DataType::DT_UInt16)
+        .value("Unknown", slideio::DataType::DT_Unknown)
+        .value("None", slideio::DataType::DT_None);
+    py::class_<slideio::GaussianBlurFilter, slideio::Transformation>(m, "GaussianBlurFilter")
+        .def(py::init<>())
+        .def_property_readonly("type", &slideio::GaussianBlurFilter::getType, "Type of transformation")
+        .def_property("kernel_size_x", &slideio::GaussianBlurFilter::getKernelSizeX, &slideio::GaussianBlurFilter::setKernelSizeX, "Kernel size along x-axis")
+        .def_property("kernel_size_y", &slideio::GaussianBlurFilter::getKernelSizeY, &slideio::GaussianBlurFilter::setKernelSizeY, "Kernel size along y-axis")
+        .def_property("sigma_x", &slideio::GaussianBlurFilter::getSigmaX, &slideio::GaussianBlurFilter::setSigmaX, "Sigma along x-axis")
+        .def_property("sigma_y", &slideio::GaussianBlurFilter::getSigmaY, &slideio::GaussianBlurFilter::setSigmaY, "Sigma along y-axis");
+    py::class_<slideio::MedianBlurFilter, slideio::Transformation>(m, "MedianBlurFilter")
+        .def(py::init<>())
+        .def_property_readonly("type", &slideio::MedianBlurFilter::getType, "Type of transformation")
+        .def_property("kernel_size", &slideio::MedianBlurFilter::getKernelSize, &slideio::MedianBlurFilter::setKernelSize, "Kernel size");
+    py::class_<slideio::SobelFilter, slideio::Transformation>(m, "SobelFilter")
+        .def(py::init<>())
+        .def_property_readonly("type", &slideio::SobelFilter::getType, "Type of transformation")
+        .def_property("kernel_size", &slideio::SobelFilter::getKernelSize, &slideio::SobelFilter::setKernelSize, "Kernel size")
+        .def_property("dx", &slideio::SobelFilter::getDx, &slideio::SobelFilter::setDx, "Derivative order along x-axis")
+        .def_property("dy", &slideio::SobelFilter::getDy, &slideio::SobelFilter::setDy, "Derivative order along y-axis")
+        .def_property("depth", &slideio::SobelFilter::getDepth, &slideio::SobelFilter::setDepth, "Depth of output image")
+        .def_property("scale", &slideio::SobelFilter::getScale, &slideio::SobelFilter::setScale, "Scale factor")
+        .def_property("delta", &slideio::SobelFilter::getDelta, &slideio::SobelFilter::setDelta, "Delta value");
+    py::class_<slideio::ScharrFilter, slideio::Transformation>(m, "ScharrFilter")
+        .def(py::init<>())
+        .def_property_readonly("type", &slideio::ScharrFilter::getType, "Type of transformation")
+        .def_property("dx", &slideio::ScharrFilter::getDx, &slideio::ScharrFilter::setDx, "Derivative order along x-axis")
+        .def_property("dy", &slideio::ScharrFilter::getDy, &slideio::ScharrFilter::setDy, "Derivative order along y-axis")
+        .def_property("depth", &slideio::ScharrFilter::getDepth, &slideio::ScharrFilter::setDepth, "Depth of output image")
+        .def_property("scale", &slideio::ScharrFilter::getScale, &slideio::ScharrFilter::setScale, "Scale factor")
+        .def_property("delta", &slideio::ScharrFilter::getDelta, &slideio::ScharrFilter::setDelta, "Delta value");
+    py::class_<slideio::LaplacianFilter, slideio::Transformation>(m, "LaplacianFilter")
+        .def(py::init<>())
+        .def_property_readonly("type", &slideio::LaplacianFilter::getType, "Type of transformation")
+        .def_property("kernel_size", &slideio::LaplacianFilter::getKernelSize, &slideio::LaplacianFilter::setKernelSize, "Kernel size")
+        .def_property("depth", &slideio::LaplacianFilter::getDepth, &slideio::LaplacianFilter::setDepth, "Depth of output image")
+        .def_property("scale", &slideio::LaplacianFilter::getScale, &slideio::LaplacianFilter::setScale, "Scale factor")
+        .def_property("delta", &slideio::LaplacianFilter::getDelta, &slideio::LaplacianFilter::setDelta, "Delta value");
 }
