@@ -3,8 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 #pragma once
 #include "transformertools.hpp"
-
-#include "convolutionfilter.hpp"
+#include "filter.hpp"
 #include "transformation.hpp"
 
 using namespace slideio;
@@ -12,12 +11,49 @@ using namespace slideio;
 int TransformerTools::getBlockInflationValue(const Transformation& transformation)
 {
     TransformationType transformationType = transformation.getType();
+    switch (transformationType) {
+    case TransformationType::GaussianBlurFilter:
+        {
+            const GaussianBlurFilter& gaussianBlur = static_cast<const GaussianBlurFilter&>(transformation);
+            return getBlockExtensionForGaussianBlur(gaussianBlur);
+        }
+    case TransformationType::MedianBlurFilter:
+        {
+            const MedianBlurFilter& medianBlur = static_cast<const MedianBlurFilter&>(transformation);
+            return (medianBlur.getKernelSize() + 1) / 2;
+        }
+    case TransformationType::SobelFilter:
+        {
+            const SobelFilter& sobel = static_cast<const SobelFilter&>(transformation);
+            return (sobel.getKernelSize() + 1) / 2;
+        }
+    case TransformationType::ScharrFilter:
+        {
+            return 2;
+        }
+    case TransformationType::LaplacianFilter:
+        {
+            const LaplacianFilter& laplacian = static_cast<const LaplacianFilter&>(transformation);
+            return (laplacian.getKernelSize() + 1) / 2;
+        }
+    case TransformationType::BilateralFilter:
+        {
+            const BilateralFilter& bilateral = static_cast<const BilateralFilter&>(transformation);
+            int d = bilateral.getDiameter();
+            return d > 0 ? ((d + 1) / 2) : 7;
+        }
+    case TransformationType::CannyFilter: break;
+        const CannyFilter& canny = static_cast<const CannyFilter&>(transformation);
+        return (canny.getApertureSize() + 1) / 2;
+    }
     return 0;
 }
 
-void TransformerTools::computeInflatedRectParams(const cv::Size& sceneSize, const cv::Rect& blockRect, int inflationValue,
-    const cv::Size& blockSize, cv::Rect& inflatedBlockRect, cv::Size& inflatedSize,
-    cv::Point& blockPositionInInflatedRect)
+void TransformerTools::computeInflatedRectParams(const cv::Size& sceneSize, const cv::Rect& blockRect,
+                                                 int inflationValue,
+                                                 const cv::Size& blockSize, cv::Rect& inflatedBlockRect,
+                                                 cv::Size& inflatedSize,
+                                                 cv::Point& blockPositionInInflatedRect)
 {
     double xScale = (double)blockSize.width / (double)blockRect.width;
     double yScale = (double)blockSize.height / (double)blockRect.height;
@@ -26,14 +62,14 @@ void TransformerTools::computeInflatedRectParams(const cv::Size& sceneSize, cons
     inflatedBlockRect = blockRect;
     inflatedBlockRect.x -= inflationValueX;
     inflatedBlockRect.y -= inflationValueY;
-    inflatedBlockRect.width += 2*inflationValueX;
-    inflatedBlockRect.height += 2*inflationValueY;
+    inflatedBlockRect.width += 2 * inflationValueX;
+    inflatedBlockRect.height += 2 * inflationValueY;
     inflatedBlockRect &= cv::Rect(0, 0, sceneSize.width, sceneSize.height);
-    inflatedSize.width = std::lround(xScale*(double)inflatedBlockRect.width);
-    inflatedSize.height = std::lround(yScale*(double)inflatedBlockRect.height);
+    inflatedSize.width = std::lround(xScale * (double)inflatedBlockRect.width);
+    inflatedSize.height = std::lround(yScale * (double)inflatedBlockRect.height);
     blockPositionInInflatedRect = cv::Point(
-        std::lround(xScale*(blockRect.x - inflatedBlockRect.x)),
-        std::lround(yScale*(blockRect.y - inflatedBlockRect.y)));
+        std::lround(xScale * (blockRect.x - inflatedBlockRect.x)),
+        std::lround(yScale * (blockRect.y - inflatedBlockRect.y)));
 }
 
 int TransformerTools::getBlockExtensionForGaussianBlur(const GaussianBlurFilter& gaussianBlur)

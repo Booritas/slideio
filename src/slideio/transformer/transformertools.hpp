@@ -4,7 +4,7 @@
 #pragma once
 #include <opencv2/core/types.hpp>
 
-#include "convolutionfilter.hpp"
+#include "filter.hpp"
 #include "transformer_def.hpp"
 
 namespace slideio

@@ -4,7 +4,7 @@
 #include "transformer.hpp"
 
 #include "colortransformerscene.hpp"
-#include "convolutionfilterscene.hpp"
+#include "FilterScene.hpp"
 #include "slideio/slideio/scene.hpp"
 #include "transformation.hpp"
 #include "slideio/base/exceptions.hpp"
@@ -19,9 +19,12 @@ std::shared_ptr<slideio::Scene> slideio::transformScene(std::shared_ptr<slideio:
     case TransformationType::MedianBlurFilter:
     case TransformationType::SobelFilter:
     case TransformationType::ScharrFilter:
+    case TransformationType::LaplacianFilter:
+    case TransformationType::BilateralFilter:
+    case TransformationType::CannyFilter:
         {
             std::shared_ptr<CVScene> transformedCVScene(
-                new ConvolutionFilterScene(scene->getCVScene(), transform));
+                new FilterScene(scene->getCVScene(), transform));
             std::shared_ptr<slideio::Scene> transformedScene(new Scene(transformedCVScene));
             return transformedScene;
         }

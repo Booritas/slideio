@@ -13,7 +13,7 @@
 #include "slideio/transformer/transformer.hpp"
 #include "slideio/transformer/transformation.hpp"
 #include "slideio/transformer/colortransformation.hpp"
-#include "slideio/transformer/convolutionfilter.hpp"
+#include "slideio/transformer/filter.hpp"
 
 namespace py = pybind11;
 
@@ -206,4 +206,17 @@ PYBIND11_MODULE(slideiopybind, m) {
         .def_property("depth", &slideio::LaplacianFilter::getDepth, &slideio::LaplacianFilter::setDepth, "Depth of output image")
         .def_property("scale", &slideio::LaplacianFilter::getScale, &slideio::LaplacianFilter::setScale, "Scale factor")
         .def_property("delta", &slideio::LaplacianFilter::getDelta, &slideio::LaplacianFilter::setDelta, "Delta value");
+    py::class_<slideio::BilateralFilter, slideio::Transformation>(m, "BilateralFilter")
+        .def(py::init<>())
+        .def_property_readonly("type", &slideio::BilateralFilter::getType, "Type of transformation")
+        .def_property("diameter", &slideio::BilateralFilter::getDiameter, &slideio::BilateralFilter::setDiameter, "Diameter of each pixel neighborhood")
+        .def_property("sigma_color", &slideio::BilateralFilter::getSigmaColor, &slideio::BilateralFilter::setSigmaColor, "Filter sigma in the color space")
+        .def_property("sigma_space", &slideio::BilateralFilter::getSigmaSpace, &slideio::BilateralFilter::setSigmaSpace, "Filter sigma in the coordinate space");
+    py::class_<slideio::CannyFilter, slideio::Transformation>(m, "CannyFilter")
+        .def(py::init<>())
+        .def_property_readonly("type", &slideio::CannyFilter::getType, "Type of transformation")
+        .def_property("threshold1", &slideio::CannyFilter::getThreshold1, &slideio::CannyFilter::setThreshold1, "First threshold for the hysteresis procedure")
+        .def_property("threshold2", &slideio::CannyFilter::getThreshold2, &slideio::CannyFilter::setThreshold2, "Second threshold for the hysteresis procedure")
+        .def_property("aperture_size", &slideio::CannyFilter::getApertureSize, &slideio::CannyFilter::setApertureSize, "Aperture size for the Sobel operator")
+        .def_property("l2gradient", &slideio::CannyFilter::getL2Gradient, &slideio::CannyFilter::setL2Gradient, "Indicates, whether L2 norm should be used");
 }

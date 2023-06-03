@@ -5,15 +5,15 @@
 #pragma once
 #include "transformer_def.hpp"
 #include "transformerscene.hpp"
-#include "convolutionfilter.hpp"
+#include "filter.hpp"
 
 namespace slideio
 {
-    class SLIDEIO_TRANSFORMER_EXPORTS ConvolutionFilterScene : public TransformerScene
+    class SLIDEIO_TRANSFORMER_EXPORTS FilterScene : public TransformerScene
     {
     public:
-        ConvolutionFilterScene(std::shared_ptr<CVScene> originScene, Transformation& transformation);
-        ~ConvolutionFilterScene();
+        FilterScene(std::shared_ptr<CVScene> originScene, Transformation& transformation);
+        ~FilterScene();
 
     public:
         void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
@@ -21,6 +21,7 @@ namespace slideio
                                           cv::OutputArray output) override;
         void applyTransformation(const cv::Mat& block, cv::OutputArray transformedBlock) const;
         DataType getChannelDataType(int channel) const override;
+        int getNumChannels() const override;
     private:
         template <class Filter>
         const Filter& getFilter() const{

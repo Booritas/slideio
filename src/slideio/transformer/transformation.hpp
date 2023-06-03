@@ -14,6 +14,9 @@ namespace slideio
         MedianBlurFilter,
         SobelFilter,
         ScharrFilter,
+        LaplacianFilter,
+        BilateralFilter,
+        CannyFilter,
 
     };
 

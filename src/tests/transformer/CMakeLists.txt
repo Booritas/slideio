@@ -5,7 +5,7 @@ CONAN_MAIN()
 
 set(TEST_SOURCES
   test_colortransformer.cpp
-  test_convolutionfilters.cpp
+  test_filters.cpp
   test_transformertools.cpp
 )
 

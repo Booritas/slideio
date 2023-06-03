@@ -13,9 +13,9 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/transformerscene.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/transformerscene.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/colortransformation.hpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/convolutionfilterscene.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/convolutionfilterscene.hpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/convolutionfilter.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/filterscene.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/filterscene.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/filter.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/transformations.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/transformertools.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/transformertools.hpp
