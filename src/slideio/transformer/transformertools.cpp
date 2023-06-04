@@ -42,7 +42,7 @@ int TransformerTools::getBlockInflationValue(const Transformation& transformatio
             int d = bilateral.getDiameter();
             return d > 0 ? ((d + 1) / 2) : 7;
         }
-    case TransformationType::CannyFilter: break;
+    case TransformationType::CannyFilter:
         const CannyFilter& canny = static_cast<const CannyFilter&>(transformation);
         return (canny.getApertureSize() + 1) / 2;
     }

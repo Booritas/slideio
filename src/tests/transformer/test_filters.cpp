@@ -415,5 +415,5 @@ TEST(Filters, readScaledBlockCanny)
     auto ch2 = transformedImage.channels();
     TestTools::compareRasters(testImageBlock, transformedImage);
     cv::Mat diff = (testImageBlock != transformedImage);
-    TestTools::showRaster(diff);
+    //TestTools::showRaster(diff);
 }
