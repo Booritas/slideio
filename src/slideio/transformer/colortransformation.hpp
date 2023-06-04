@@ -20,7 +20,7 @@ namespace slideio
         LUV,
     };
 
-    class ColorTransformation : public slideio::Transformation
+    class SLIDEIO_TRANSFORMER_EXPORTS ColorTransformation : public slideio::Transformation
     {
     public:
         ColorTransformation() {
@@ -33,6 +33,10 @@ namespace slideio
         void setColorSpace(ColorSpace colorSpace) {
             m_colorSpace = colorSpace;
         }
+
+        void applyTransformation(const cv::Mat& block, cv::OutputArray transformedBlock) const override;
+        std::vector<DataType> computeChannelDataTypes(const std::vector<DataType>& channels) const override;
+
     private:
         ColorSpace m_colorSpace;
     };

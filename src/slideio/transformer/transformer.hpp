@@ -9,4 +9,5 @@
 namespace slideio
 {
      std::shared_ptr<slideio::Scene> SLIDEIO_TRANSFORMER_EXPORTS transformScene(std::shared_ptr<slideio::Scene> scene, Transformation& transform);
+     std::shared_ptr<slideio::Scene> SLIDEIO_TRANSFORMER_EXPORTS transformSceneEx(std::shared_ptr<slideio::Scene> scene, std::list<std::shared_ptr<Transformation>>& transforms);
 }

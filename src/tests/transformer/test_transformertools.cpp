@@ -1,4 +1,6 @@
 #include <gtest/gtest.h>
+
+#include "slideio/transformer/gaussianblurfilter.hpp"
 #include "slideio/transformer/transformertools.hpp"
 
 using namespace slideio;
@@ -173,24 +175,23 @@ TEST(TransformerTools, getBlockExtensionForGaussianBlur)
     GaussianBlurFilter filter;
     filter.setKernelSizeX(3);
     filter.setKernelSizeY(3);
-    int extension = TransformerTools::getBlockExtensionForGaussianBlur(filter);
+    int extension = filter.getInflationValue();
     EXPECT_EQ(2, extension);
     filter.setKernelSizeX(5);
     filter.setKernelSizeY(3);
-    extension = TransformerTools::getBlockExtensionForGaussianBlur(filter);
-    EXPECT_EQ(3, extension);
+    extension = filter.getInflationValue();
     filter.setKernelSizeX(0);
     filter.setKernelSizeY(0);
     filter.setSigmaX(1.0);
     filter.setSigmaY(1.0);
-    extension = TransformerTools::getBlockExtensionForGaussianBlur(filter);
+    extension = filter.getInflationValue();
     EXPECT_EQ(3, extension);
     filter.setSigmaX(2.0);
     filter.setSigmaY(1.0);
-    extension = TransformerTools::getBlockExtensionForGaussianBlur(filter);
+    extension = filter.getInflationValue();
     EXPECT_EQ(5, extension);
     filter.setSigmaX(1.5);
     filter.setSigmaY(1.0);
-    extension = TransformerTools::getBlockExtensionForGaussianBlur(filter);
+    extension = filter.getInflationValue();
     EXPECT_EQ(4, extension);
 }

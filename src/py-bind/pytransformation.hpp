@@ -13,4 +13,4 @@ namespace slideio
 
 class PyScene;
 
-std::shared_ptr<PyScene> pyTransformScene(std::shared_ptr<PyScene>& pyScene, slideio::Transformation*  params);
+std::shared_ptr<PyScene> pyTransformScene(std::shared_ptr<PyScene>& pyScene, const pybind11::list& l);

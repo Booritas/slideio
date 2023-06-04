@@ -9,7 +9,7 @@ scene_input = slide_input.get_scene(0)
 
 params = sld.ColorTransformation()
 params.color_space = sld.ColorSpace.HSV
-transformed = sld.transform_scene(scene_input,params)
+transformed = sld.transform_scene(scene_input,[params])
 
 print('done')
 

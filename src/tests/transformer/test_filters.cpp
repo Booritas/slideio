@@ -9,14 +9,12 @@
 
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/imagetools/cvtools.hpp"
-#include "slideio/transformer/colortransformation.hpp"
-#include "slideio/transformer/filter.hpp"
-#include "slideio/transformer/FilterScene.hpp"
+#include "slideio/transformer/transformations.hpp"
 #include "slideio/transformer/transformer.hpp"
+#include "slideio/transformer/transformerscene.hpp"
 #include "tests/testlib/testscene.hpp"
 
 using namespace slideio;
-
 
 TEST(Filters, applyTransformationGaussianBlur)
 {
@@ -32,13 +30,12 @@ TEST(Filters, applyTransformationGaussianBlur)
     originScene->readBlock(rect, buffer.data(), buffer.size());
     cv::Mat originImage(height, width, CV_8UC3, buffer.data());
 
-    GaussianBlurFilter filter;
+    std::shared_ptr<GaussianBlurFilter> filter(new GaussianBlurFilter);
     const int kernelSize = 15;
-    filter.setKernelSizeX(kernelSize);
-    filter.setKernelSizeY(kernelSize);
-    FilterScene scene(originScene->getCVScene(), filter);
+    filter->setKernelSizeX(kernelSize);
+    filter->setKernelSizeY(kernelSize);
     cv::Mat transformedImage;
-    scene.applyTransformation(originImage, transformedImage);
+    filter->applyTransformation(originImage, transformedImage);
     cv::Mat testImage;
     cv::GaussianBlur(originImage, testImage, cv::Size(kernelSize, kernelSize), 0);
     TestTools::compareRasters(testImage, transformedImage);
@@ -62,9 +59,8 @@ TEST(Filters, applyTransformationMedianBlur)
     MedianBlurFilter filter;
     const int kernelSize = 15;
     filter.setKernelSize(kernelSize);
-    FilterScene scene(originScene->getCVScene(), filter);
     cv::Mat transformedImage;
-    scene.applyTransformation(originImage, transformedImage);
+    filter.applyTransformation(originImage, transformedImage);
     cv::Mat testImage;
     cv::medianBlur(originImage, testImage, kernelSize);
     TestTools::compareRasters(testImage, transformedImage);
@@ -90,9 +86,8 @@ TEST(Filters, applyTransformationSobelFilter)
     filter.setKernelSize(kernelSize);
     filter.setDx(1);
     filter.setDy(0);
-    FilterScene scene(originScene->getCVScene(), filter);
     cv::Mat transformedImage;
-    scene.applyTransformation(originImage, transformedImage);
+    filter.applyTransformation(originImage, transformedImage);
     cv::Mat testImage;
     cv::Sobel(originImage, testImage, CV_16S, 1, 0, kernelSize);
     TestTools::compareRasters(testImage, transformedImage);
@@ -117,9 +112,8 @@ TEST(Filters, applyTransformationSharrFilter)
     filter.setDepth(DataType::DT_Int16);
     filter.setDx(1);
     filter.setDy(0);
-    FilterScene scene(originScene->getCVScene(), filter);
     cv::Mat transformedImage;
-    scene.applyTransformation(originImage, transformedImage);
+    filter.applyTransformation(originImage, transformedImage);
     cv::Mat testImage;
     cv::Scharr(originImage, testImage, CV_16S, 1, 0);
     TestTools::compareRasters(testImage, transformedImage);
