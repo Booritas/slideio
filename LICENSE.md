@@ -1,7 +1,7 @@
 
 By downloading, copying, installing or using the software you agree to this license. If you do not agree to this license, do not download, install, copy or use the software.
 
-BSD 3-clause License
+BSD 3-clause Revised License
 
 Copyright (c) 2023, Stanislav Melnikov All rights reserved.
 
