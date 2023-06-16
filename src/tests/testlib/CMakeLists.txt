@@ -7,6 +7,8 @@ set(SOURCE_FILES
    testtiler.hpp
    testtools.cpp
    testtools.hpp
+   testscene.hpp
+   testscene.cpp
    )
 
 

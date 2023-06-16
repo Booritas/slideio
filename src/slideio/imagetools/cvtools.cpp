@@ -31,6 +31,24 @@ int CVTools::cvGetDataTypeSize(DataType dt)
     RAISE_RUNTIME_ERROR << "Unsupported data type" << (int)dt;
 }
 
+int CVTools::cvTypeFromDataType(DataType dt)
+{
+    switch (dt) {
+    case DataType::DT_Byte: return CV_8U;
+    case DataType::DT_Int8: return CV_8S;
+    case DataType::DT_Int16: return CV_16S;
+    case DataType::DT_UInt16: return CV_16U;
+    case DataType::DT_Float16: return CV_16F;
+    case DataType::DT_Int32: return CV_32S;
+    case DataType::DT_Float32: return CV_32F;
+    case DataType::DT_Float64: return CV_64F;
+    case DataType::DT_Unknown:
+    case DataType::DT_None:
+        break;
+    }
+    RAISE_RUNTIME_ERROR << "Unsupported data type" << (int)dt;
+}
+
 void CVTools::extractSliceFrom3D(cv::Mat mat3D, int sliceIndex, cv::OutputArray output)
 {
     std::vector<int> indices = { sliceIndex };

@@ -26,9 +26,8 @@ namespace slideio
     class SLIDEIO_EXPORTS Scene
     {
         friend class Slide;
-    private:
-        Scene(std::shared_ptr<CVScene> scene);
     public:
+        Scene(std::shared_ptr<CVScene> scene);
         virtual ~Scene(){
         }
         /**@brief returns path of the slide */

@@ -146,8 +146,16 @@ void Scene::readBlockChannels(const std::tuple<int, int, int, int>& blockRect, c
     return readResampledBlockChannels(blockRect, size, channelIndices, buffer, bufferSize);
 }
 
+void Scene::readResampledBlock(const std::tuple<int, int, int, int>& blockRect, const std::tuple<int, int>& blockSize,
+    void* buffer, size_t bufferSize)
+{
+    SLIDEIO_LOG(INFO) << "Scene::readResampledBlock ";// << blockRect << "," << blockSize;
+    const std::vector<int> channelIndices;
+    return readResampledBlockChannels(blockRect, blockSize, channelIndices, buffer, bufferSize);
+}
+
 void Scene::readResampledBlockChannels(const std::tuple<int, int, int, int>& rect,
-    const std::tuple<int, int>& size, const std::vector<int>& channelIndices, void* buffer, size_t bufferSize)
+                                       const std::tuple<int, int>& size, const std::vector<int>& channelIndices, void* buffer, size_t bufferSize)
 {
     SLIDEIO_LOG(INFO) << "Scene::readResampledBlockChannels ";// << rect << "," << size << "," << channelIndices;
     cv::Rect blockRect = tupleToRect(rect);
@@ -157,13 +165,14 @@ void Scene::readResampledBlockChannels(const std::tuple<int, int, int, int>& rec
     const int numFrames = 1;
     const int refChannel = (channelIndices.empty()?0:channelIndices[0]);
     const int blockMemSize = getBlockSize(size, refChannel, numChannels, numSlices, numFrames);
-    const auto cvType = m_scene->getChannelDataType(refChannel);
+    const auto dt = m_scene->getChannelDataType(refChannel);
+    int cvType = CVTools::cvTypeFromDataType(dt);
 
     if(blockMemSize>bufferSize)
     {
         throw std::runtime_error("Supplied memory buffer is too small");
     }
-    cv::Mat raster(blockSize.height, blockSize.width, CV_MAKETYPE(static_cast<int>(cvType), numChannels), buffer);
+    cv::Mat raster(blockSize.height, blockSize.width, CV_MAKETYPE(cvType, numChannels), buffer);
     raster = cv::Scalar(0);
     m_scene->readResampledBlockChannels(blockRect, blockSize, channelIndices, raster);
 
