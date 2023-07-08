@@ -1,41 +1,28 @@
 set(INCLUDE_ROOT ${CMAKE_SOURCE_DIR}/src)
-set(TEST_NAME slideio_tests)
+set(TEST_NAME slideio_vsi_tests)
 
 CONAN_MAIN()
 
 set(TEST_SOURCES
-  test_imagedrivermanager.cpp
-  test_czi_driver.cpp
-  test_czi_tools.cpp
-  test_scn_driver.cpp
-  test_gdal_driver.cpp
-  test_imagetools.cpp
-  test_afi_driver.cpp
-  test_svs_driver.cpp
-  test_zvi_driver.cpp
-  test_svs_tools.cpp
-  test_dcm_driver.cpp
-  test_tifftools.cpp
-  test_zviutils.cpp
-  test_tilecomposer.cpp
-  test_cvtools.cpp
-  test_dcmfile.cpp
-  test_exception.cpp
-  test_generic.cpp
   test_vsi_driver.cpp
 )
 
 add_executable(${TEST_NAME} ${TEST_SOURCES})
 
 target_include_directories(${TEST_NAME} PRIVATE ${INCLUDE_ROOT})
-target_link_libraries(${TEST_NAME} ${SLIDEIO_LIB_NAME} ${TEST_LIB_NAME})
-
 
 # Remove boost libraries from linking
 LIST(FILTER CONAN_LIBS_RELEASE EXCLUDE REGEX "^(.)+boost(.)+")
 LIST(FILTER CONAN_LIBS_DEBUG EXCLUDE REGEX "^(.)+boost(.)+")
 
 CONAN_CONFIGURE(${TEST_NAME})
+
+target_link_libraries(${TEST_NAME} 
+    ${CORE_LIB_NAME}
+    ${VSI_DRIVER_NAME}
+    ${TEST_LIB_NAME}
+  )
+
 
 IF(WIN32)
    set_target_properties(${TEST_NAME} PROPERTIES LINK_FLAGS "/ignore:4099")
