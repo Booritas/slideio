@@ -2,7 +2,7 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #ifndef OPENCV_slideio_vsiscene_hpp
-#define opencv_slideio_vsiscene_hpp
+#define OPENCV_slideio_vsiscene_hpp
 
 #include "slideio/drivers/vsi/vsi_api_def.hpp"
 #include "slideio/core/cvscene.hpp"

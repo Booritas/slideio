@@ -898,6 +898,16 @@ void TiffTools::writeTile(libtiff::TIFF* tiff, int x, int y, Compression compres
     //}
 }
 
+std::string TiffTools::readStringTag(libtiff::TIFF* tiff, uint16_t tag)
+{
+    std::string result;
+    char* value = nullptr;
+    if (libtiff::TIFFGetField(tiff, tag, &value)) {
+               result = value;
+    }
+    return result;  
+}
+
 
 void slideio::TiffTools::setCurrentDirectory(libtiff::TIFF* hFile, const slideio::TiffDirectory& dir)
 {

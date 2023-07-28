@@ -76,6 +76,7 @@ namespace slideio
         static void writeTile(libtiff::TIFF* tiff, int x, int y, Compression compression,
             const cv::Mat& tileRaster, const EncodeParameters& parameters,
             uint8_t* buffer=nullptr, int bufferSize=0);
+        static std::string readStringTag(libtiff::TIFF* tiff, uint16_t tag);
     };
 }
 

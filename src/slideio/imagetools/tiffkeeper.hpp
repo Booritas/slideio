@@ -50,6 +50,7 @@ namespace slideio
             uint8_t* buffer, int bufferSize);
         void readTile(const slideio::TiffDirectory& dir, int tile,
             const std::vector<int>& channelIndices, cv::OutputArray output);
+        std::string readStringTag(uint16_t tag);
 
     private:
         libtiff::TIFF* m_hFile;

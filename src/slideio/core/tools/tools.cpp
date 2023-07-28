@@ -97,6 +97,13 @@ std::wstring Tools::toWstring(const std::string& string)
     return wstr;
 }
 
+std::string Tools::fromWstring(const std::wstring& wstring)
+{
+    std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converter;
+    std::string str = converter.to_bytes(wstring);
+    return str;
+}
+
 void Tools::throwIfPathNotExist(const std::string& path, const std::string label)
 {
     namespace fs = boost::filesystem;

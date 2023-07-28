@@ -56,3 +56,8 @@ void TIFFKeeper::readTile(const slideio::TiffDirectory& dir, int tile, const std
 {
     TiffTools::readTile(m_hFile, dir, tile, channelIndices, output);
 }
+
+std::string TIFFKeeper::readStringTag(uint16_t tag)
+{
+    return TiffTools::readStringTag(m_hFile, tag);
+}

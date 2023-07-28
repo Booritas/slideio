@@ -3,7 +3,6 @@ CONAN_MAIN()
 set(LIBRARY_NAME ${VSI_DRIVER_NAME})
 
 set(SOURCE_FILES 
-   ${SOURCE_FILES}
    ${CMAKE_CURRENT_SOURCE_DIR}/vsiimagedriver.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/vsiimagedriver.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/vsiscene.hpp
@@ -12,6 +11,11 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/vsislide.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/vsi_api_def.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/vsistruct.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/vsitags.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/pyramid.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/pyramid.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/vsistream.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/vsistream.hpp
    )
 
 add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES})
