@@ -243,7 +243,7 @@ bool VSISlide::readTags(vsi::VSIStream& vsi, bool populateMetadata, std::string 
                         value += ")";
                     }
                     if (temp.metadataIndex >= 0) {
-                        vsi::Pyramid pyramid = m_pyramids[temp.metadataIndex];
+                        vsi::Pyramid& pyramid = m_pyramids[temp.metadataIndex];
                         if (tag == vsi::IMAGE_BOUNDARY) {
                             if (pyramid.width == 0) {
                                 pyramid.width = intValues[2];
@@ -285,7 +285,7 @@ bool VSISlide::readTags(vsi::VSIStream& vsi, bool populateMetadata, std::string 
                         value += ')';
                     }
                     if(temp.metadataIndex>=0) {
-                        vsi::Pyramid pyramid = m_pyramids[temp.metadataIndex];
+                        vsi::Pyramid& pyramid = m_pyramids[temp.metadataIndex];
                         if (tag == vsi::RWC_FRAME_SCALE) {
                             if (pyramid.physicalSizeX == 0.) {
                                 pyramid.physicalSizeX = doubleValues[0];
@@ -325,7 +325,7 @@ bool VSISlide::readTags(vsi::VSIStream& vsi, bool populateMetadata, std::string 
             }
 
             if (temp.metadataIndex >= 0) {
-                vsi::Pyramid pyramid = m_pyramids[temp.metadataIndex];
+                vsi::Pyramid& pyramid = m_pyramids[temp.metadataIndex];
                 try {
                     char* end{};
                     if (tag == vsi::STACK_TYPE) {
@@ -457,7 +457,7 @@ bool VSISlide::readTags(vsi::VSIStream& vsi, bool populateMetadata, std::string 
             storedValue = value;
         }
         if (inDimensionProperties) {
-            vsi::Pyramid p = m_pyramids[temp.metadataIndex];
+            vsi::Pyramid& p = m_pyramids[temp.metadataIndex];
             if (tag == vsi::Z_START && !mapContainsValue(p.dimensionOrdering, dimensionTag)) {
                 p.dimensionOrdering["Z"] = dimensionTag;
             }
