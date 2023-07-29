@@ -26,9 +26,6 @@ TEST(VSIImageDriver, openFile)
 TEST(VSIImageDriver, openFile2)
 {
     std::string filePath = TestTools::getFullTestImagePath("vsi", "OS-1/OS-1.vsi");
-    slideio::VSIImageDriver driver;
-    std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
-    ASSERT_TRUE(slide != nullptr);
-    const int numScenes = slide->getNumScenes();
-    ASSERT_EQ(1, numScenes);
+    VSISlide slide(filePath);
+    ASSERT_EQ(1, slide.getNumExternalFiles());
 }

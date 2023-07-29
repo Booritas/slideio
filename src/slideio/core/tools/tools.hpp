@@ -8,6 +8,7 @@
 #include <vector>
 #include <string>
 #include <cmath>
+#include <list>
 #include <opencv2/core.hpp>
 #include "slideio/base/slideio_enums.hpp"
 
@@ -85,6 +86,7 @@ namespace slideio
         static std::wstring toWstring(const std::string& string);
         static std::string fromWstring(const std::wstring& wstring);
         static void throwIfPathNotExist(const std::string& path, const std::string label);
+        static std::list<std::string> findFilesWithExtension(const std::string& directory, const std::string& extension);
     };
 }
 #endif

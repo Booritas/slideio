@@ -17,6 +17,8 @@
 #include <fnmatch.h>
 #endif
 using namespace slideio;
+namespace fs = boost::filesystem;
+
 extern "C" int wildmat(char* text, char* p);
 
 
@@ -120,5 +122,22 @@ void Tools::throwIfPathNotExist(const std::string& path, const std::string label
     }
 #endif
 
+}
+
+std::list<std::string> Tools::findFilesWithExtension(const std::string& directory, const std::string& extension)
+{
+    std::list<std::string> filePaths;
+
+    if (!fs::exists(directory) || !fs::is_directory(directory)) {
+        std::cerr << "Invalid directory path or not a directory." << std::endl;
+        return filePaths;
+    }
+
+    for (fs::recursive_directory_iterator it(directory); it != fs::recursive_directory_iterator(); ++it) {
+        if (fs::is_regular_file(*it) && it->path().extension() == extension) {
+            filePaths.push_back(fs::canonical(*it).string());
+        }
+    }
+    return filePaths;
 }
 

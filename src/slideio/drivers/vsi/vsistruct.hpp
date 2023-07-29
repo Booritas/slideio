@@ -48,6 +48,48 @@ namespace slideio
             int32_t nextField;
             uint32_t dataSize;
         };
+
+        struct EtsVolumeHeader {
+            char magic[4]; // Magic ID 'S', 'I', 'S', '\0'
+            uint32_t headerSize; // Size of the header : 64
+            uint32_t versionNumber; // Version number of the header
+            uint32_t numDimensions; // Number of dimensions of the multidimensional indices
+            uint64_t additionalHeaderPos; // 64bit index to the file position of the additional header
+            uint32_t additionalHeaderSize; // Size of the additional header
+            uint32_t unused1;
+            uint64_t usedChunksPos; // 64 bit index to the file position of used chunks
+            uint32_t numUsedChunks; // Number of used chunks
+            uint32_t unused2;
+            uint64_t freeChunksPos; // 64 bit index to the file position of free chunks
+            uint32_t numFreeChunks; // Number of free chunks
+            uint32_t unused3;
+        };
+        struct ETSAdditionalHeader
+        {
+            char magic[4]; // Header identification ( 0x00535445 )
+            uint32_t version; // Header version info
+            uint32_t componentType; // Component type
+            uint32_t componentCount; // Component count
+            uint32_t colorSpace; // Component color space
+            uint32_t format; // Compression format
+            uint32_t quality; // Compression quality
+            uint32_t sizeX; // Tile x size
+            uint32_t sizeY; // Tile y size
+            uint32_t sizeZ; // Tile z size
+            uint32_t pixInfoHints[17]; // Pixel info hints
+            uint32_t background[10]; // Background color
+            uint32_t componentOrder; // Component order
+            uint32_t usePyramid; // Use pyramid
+            uint32_t unused[18]; // For future use
+
+        };
+        struct ETSBlock
+        {
+            int64_t filePos;
+            uint32_t size;
+            uint32_t unused;
+        };
+
 #pragma pack(pop)
         constexpr uint32_t EXTENDED_FIELD_TYPE_MASK = 0x1000000;
         constexpr uint32_t VOLUME_DATA_BLOCK_TYPE_MASK = 0x10000000;
@@ -100,6 +142,24 @@ namespace slideio
             DIM_INDEX_2 = 8199,
             VOLUME_INDEX = 8200,
             PIXEL_INFO_TYPE = 8470,
+        };
+        enum class ColorSpace
+        {
+            Unknown = 0,
+            Gray = 1,
+            Palette = 2,
+            RGB = 3,
+            BGR = 4,
+            HSV = 5
+        };
+        enum class Compression
+        {
+            RAW = 0,
+            JPEG = 2,
+            JPEG_2000 = 3,
+            JPEG_LOSSLESS = 5,
+            PNG = 8,
+            BMP = 9,
         };
         constexpr int DEFAULT_IMAGE = 0;
         constexpr int OVERVIEW_IMAGE = 1;

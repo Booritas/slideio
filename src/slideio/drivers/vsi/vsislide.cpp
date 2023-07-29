@@ -13,6 +13,11 @@
 #include "slideio/imagetools/libtiff.hpp"
 #include "slideio/drivers/vsi/vsitags.hpp"
 
+#include <boost/filesystem.hpp>
+
+
+namespace fs = boost::filesystem;
+
 
 using namespace slideio;
 
@@ -436,7 +441,7 @@ bool VSISlide::readTags(vsi::VSIStream& vsi, bool populateMetadata, std::string 
             }
 
             if (tag == vsi::HAS_EXTERNAL_FILE) {
-                expectETS = std::stol(value) == 1;
+                m_hasExternalFiles = std::stol(value) == 1;
             }
 
             if (!tagName.empty() && populateMetadata) {
@@ -447,11 +452,12 @@ bool VSISlide::readTags(vsi::VSIStream& vsi, bool populateMetadata, std::string 
                 else if (tag != vsi::VALUE || tagPrefix.length() > 0) {
                     // addGlobalMetaList(tagPrefix + tagName, value);
                 }
-                if (std::string("Channel Wavelength Value").compare(tagPrefix + tagName)) {
-                    channelCount++;
+                std::string fullTagName = tagPrefix + tagName;
+                if (fullTagName.compare("Channel Wavelength Value")==0) {
+                    m_numChannels++;
                 }
-                else if (std::string("Z valueValue").compare(tagPrefix + tagName)==0) {
-                    zCount++;
+                else if (fullTagName.compare("Z valueValue")==0) {
+                    m_numSlices++;
                 }
             }
             storedValue = value;
@@ -548,6 +554,29 @@ void VSISlide::readVolumeInfo()
     readTags(vsiStream, false, "", temp);
 }
 
+
+void VSISlide::readExternalFiles()
+{
+    const fs::path filePath(m_filePath);
+    const fs::path dirPath = filePath.parent_path();
+    for (fs::directory_iterator it(dirPath); it != fs::directory_iterator(); ++it) {
+        const fs::path& currentPath = it->path();
+        if (fs::is_directory(currentPath)) {
+            std::string name = currentPath.filename().string();
+            if (name.size() > 2 
+                && name[0] == '_'
+                && name[name.size() - 1] == '_') {
+                std::list<std::string> files = Tools::findFilesWithExtension(currentPath.string(), ".ets");
+                for(auto file: files) {
+                    auto etsFile = std::make_shared<vsi::EtsFile>(file);
+                    etsFile->read();
+                    m_etsFiles.push_back(etsFile);
+                }
+            }
+        }
+    }
+}
+
 void VSISlide::init()
 {
     /*
@@ -558,6 +587,9 @@ void VSISlide::init()
 
 
     readVolumeInfo();
+    if (m_hasExternalFiles) {
+        readExternalFiles();
+    }
 }
 
 std::string VSISlide::getVolumeName(int32_t tag)

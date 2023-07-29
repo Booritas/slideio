@@ -16,7 +16,11 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/pyramid.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/vsistream.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/vsistream.hpp
-   )
+   ${CMAKE_CURRENT_SOURCE_DIR}/etsfile.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/etsfile.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/vsitools.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/vsitools.cpp
+)
 
 add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES})
 

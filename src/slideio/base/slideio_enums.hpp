@@ -54,7 +54,9 @@ namespace slideio
         GIF,
         BIGGIF,
         /**@brief Run-length encoding*/
-        RLE
+        RLE,
+        BMP,
+        JpegLossless,
     };
 
     enum class DataType
@@ -67,7 +69,10 @@ namespace slideio
         DT_Float32 = 5,
         DT_Float64 = 6,
         DT_UInt16 = 2,
-        DT_LastValid = 3,
+        DT_UInt32 = 8,
+        DT_Int64 = 9,
+        DT_UInt64 = 10,
+        DT_LastValid = 10,
         DT_Unknown = 1024,
         DT_None = 2048
     };
