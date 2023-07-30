@@ -3,6 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/drivers/vsi/vsiscene.hpp"
 #include "slideio/imagetools/imagetools.hpp"
+#include "slideio/drivers/vsi/pyramid.hpp"
 
 
 using namespace slideio;
@@ -44,6 +45,9 @@ std::string VSIScene::getChannelName(int channel) const
 
 void VSIScene::init()
 {
+    m_name = m_pyramid->name;
+    m_magnification = m_pyramid->magnification;
+    m_rect = cv::Rect(0, 0, m_pyramid->width, m_pyramid->height);
 }
 
 

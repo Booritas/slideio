@@ -22,6 +22,14 @@ TEST(VSIImageDriver, openFile)
     ASSERT_TRUE(slide!=nullptr);
     const int numScenes = slide->getNumScenes();
     ASSERT_EQ(1, numScenes);
+    std::shared_ptr<CVScene> scene = slide->getScene(0);
+    EXPECT_EQ(scene->getName(), "001 C405, C488");
+    auto rect = scene->getRect();
+    EXPECT_EQ(rect.width, 1645);
+    EXPECT_EQ(rect.height, 1682);
+    EXPECT_EQ(rect.x, 0);
+    EXPECT_EQ(rect.y, 0);
+    EXPECT_DOUBLE_EQ(scene->getMagnification(), 60.);
 }
 
 TEST(VSIImageDriver, VSIFileOpen0)
