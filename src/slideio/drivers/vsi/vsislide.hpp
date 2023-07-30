@@ -23,6 +23,7 @@ namespace slideio
 {
     namespace vsi
     {
+        class VSIFile;
         struct TempData;
     }
 
@@ -37,29 +38,13 @@ namespace slideio
         std::string getFilePath() const override;
         std::shared_ptr<slideio::CVScene> getScene(int index) const override;
         std::shared_ptr<CVScene> getAuxImage(const std::string& sceneName) const override;
-        int getNumExternalFiles() const {
-            return static_cast<int>(m_etsFiles.size());
-        }
     private:
-        std::string getStackType(const std::string& value);
-        std::string getDeviceSubtype(const std::string& value);
-        void addMetaList(const std::string& basicString, const std::string& value, const std::string& originalMetadata);
-        void addGlobalMetaList(const std::string& basicString, const std::string& value);
-        bool readTags(vsi::VSIStream& vsi, bool populateMetadata, std::string tagPrefix, vsi::TempData& temp);
-        void readVolumeInfo();
-        void readExternalFiles();
         void init();
-        std::string getVolumeName(int32_t tag);
-        std::string getTagName(int32_t tag);
     private:
         std::vector<std::shared_ptr<slideio::VSIScene>> m_Scenes;
         std::map<std::string, std::shared_ptr<slideio::CVScene>> m_auxImages;
         std::string m_filePath;
-        std::vector<vsi::Pyramid> m_pyramids;
-        std::vector<std::shared_ptr<vsi::EtsFile>> m_etsFiles;
-        bool m_hasExternalFiles = false;
-        int m_numChannels = 0;
-        int m_numSlices = 0;
+        std::shared_ptr<vsi::VSIFile> m_vsiFile;
     };
 }
 

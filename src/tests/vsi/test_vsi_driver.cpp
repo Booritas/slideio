@@ -4,6 +4,7 @@
 #include "slideio/drivers/vsi/vsiimagedriver.hpp"
 #include "slideio/drivers/vsi/vsiscene.hpp"
 #include "slideio/drivers/vsi/vsislide.hpp"
+#include "slideio/drivers/vsi/vsifile.hpp"
 
 
 namespace slideio
@@ -23,9 +24,10 @@ TEST(VSIImageDriver, openFile)
     ASSERT_EQ(1, numScenes);
 }
 
-TEST(VSIImageDriver, openFile2)
+TEST(VSIImageDriver, VSIFileOpen)
 {
-    std::string filePath = TestTools::getFullTestImagePath("vsi", "OS-1/OS-1.vsi");
-    VSISlide slide(filePath);
-    ASSERT_EQ(1, slide.getNumExternalFiles());
+    std::string filePath = TestTools::getFullTestImagePath("vsi", "Zenodo/Abdominal/G1M16_ABD_HE_B6.vsi");
+    vsi::VSIFile vsiFile;
+    vsiFile.read(filePath);
+    ASSERT_EQ(1, vsiFile.getNumExternalFiles());
 }

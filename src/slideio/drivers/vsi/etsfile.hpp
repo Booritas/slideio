@@ -23,9 +23,15 @@ namespace slideio
         class SLIDEIO_VSI_EXPORTS EtsFile
         {
         public:
+            struct TileInfo
+            {
+                std::vector<int> coordinates;
+                int64_t offset = 0;
+                uint32_t size = 0;
+            };
+        public:
             EtsFile(const std::string& filePath);
             ~EtsFile();
-        public:
             std::string getFilePath() const {
                 return m_filePath;
             }
@@ -43,8 +49,8 @@ namespace slideio
             uint32_t m_pixelInfoHints[17] = { 0 };
             uint32_t m_backgroundColor[10] = { 0 };
             bool m_usePyramid = true;
-            std::vector<uint64_t> m_tileOffsets;
             std::vector<int> m_dimensions;
+            std::vector<TileInfo> m_tiles;
         };
     }
 }

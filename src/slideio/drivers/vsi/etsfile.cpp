@@ -56,23 +56,22 @@ void slideio::vsi::EtsFile::read()
     std::memcpy(m_pixelInfoHints, additionalHeader.pixInfoHints, sizeof(m_pixelInfoHints));
     std::memcpy(m_backgroundColor, additionalHeader.background, sizeof(m_backgroundColor));
     m_usePyramid = additionalHeader.usePyramid != 0;
-    m_tileOffsets.resize(header.numUsedChunks);
 
 
     ets.setPos(header.usedChunksPos);
+    m_tiles.resize(header.numUsedChunks);
+    const int dimensions = static_cast<int>(m_dimensions.back());
     for(auto chunk=0; chunk<header.numUsedChunks; ++chunk) {
+        TileInfo& tileInfo = m_tiles[chunk];
         ets.skipBytes(4);
-        int dimensions = static_cast<int>(m_dimensions.back());
-        std::vector<int> coordinate(dimensions);
+        tileInfo.coordinates.resize(dimensions);
         for(int i=0; i<dimensions; ++i) {
-            coordinate[i] = ets.readValue<int32_t>();
+            tileInfo.coordinates[i] = ets.readValue<int32_t>();
         }
-        m_tileOffsets[chunk] = ets.readValue<int64_t>();
-        uint32_t bytes = ets.readValue<uint32_t>();
+        tileInfo.offset = ets.readValue<int64_t>();
+        tileInfo.size = ets.readValue<uint32_t>();
         ets.skipBytes(4);
     }
-
-    //tileOffsets.add(new Long[nUsedChunks]);
 
     //ArrayList<TileCoordinate> tmpTiles = new ArrayList<TileCoordinate>();
 
