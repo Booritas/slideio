@@ -118,7 +118,9 @@ bool vsi::VSIFile::readTags(vsi::VSIStream& vsi, bool populateMetadata, std::str
 
 
         if (temp.metadataIndex >= static_cast<int>(m_pyramids.size())) {
-            m_pyramids.resize(temp.metadataIndex + 1);
+            for(auto i = m_pyramids.size(); i <= temp.metadataIndex; ++i) {
+                m_pyramids.push_back(std::make_shared<Pyramid>());
+            }   
         }
 
         int32_t tag = tagHeader.tag;
@@ -215,12 +217,12 @@ bool vsi::VSIFile::readTags(vsi::VSIStream& vsi, bool populateMetadata, std::str
                     value = vsi.readString(dataSize);
                     if (temp.metadataIndex >= 0)
                     {
-                        vsi::Pyramid& pyramid = m_pyramids[temp.metadataIndex];
+                        std::shared_ptr<Pyramid> pyramid = m_pyramids[temp.metadataIndex];
                         if (tag == vsi::CHANNEL_NAME) {
-                            pyramid.channelNames.push_back(value);
+                            pyramid->channelNames.push_back(value);
                         }
-                        else if (tag == vsi::STACK_NAME && !value.compare("0") == 0 && pyramid.name.empty()) {
-                            pyramid.name = value;
+                        else if (tag == vsi::STACK_NAME && !value.compare("0") == 0 && pyramid->name.empty()) {
+                            pyramid->name = value;
                         }
                     }
                     break;
@@ -254,16 +256,16 @@ bool vsi::VSIFile::readTags(vsi::VSIStream& vsi, bool populateMetadata, std::str
                         value += ")";
                     }
                     if (temp.metadataIndex >= 0) {
-                        vsi::Pyramid& pyramid = m_pyramids[temp.metadataIndex];
+                        std::shared_ptr<Pyramid> pyramid = m_pyramids[temp.metadataIndex];
                         if (tag == vsi::IMAGE_BOUNDARY) {
-                            if (pyramid.width == 0) {
-                                pyramid.width = intValues[2];
-                                pyramid.height = intValues[3];
+                            if (pyramid->width == 0) {
+                                pyramid->width = intValues[2];
+                                pyramid->height = intValues[3];
                             }
                         }
                         else if (tag == vsi::TILE_ORIGIN) {
-                            pyramid.tileOriginX = intValues[0];
-                            pyramid.tileOriginY = intValues[1];
+                            pyramid->tileOriginX = intValues[0];
+                            pyramid->tileOriginY = intValues[1];
                         }
                     }
                 }
@@ -296,17 +298,17 @@ bool vsi::VSIFile::readTags(vsi::VSIStream& vsi, bool populateMetadata, std::str
                         value += ')';
                     }
                     if (temp.metadataIndex >= 0) {
-                        vsi::Pyramid& pyramid = m_pyramids[temp.metadataIndex];
+                        std::shared_ptr<Pyramid> pyramid = m_pyramids[temp.metadataIndex];
                         if (tag == vsi::RWC_FRAME_SCALE) {
-                            if (pyramid.physicalSizeX == 0.) {
-                                pyramid.physicalSizeX = doubleValues[0];
-                                pyramid.physicalSizeY = doubleValues[1];
+                            if (pyramid->physicalSizeX == 0.) {
+                                pyramid->physicalSizeX = doubleValues[0];
+                                pyramid->physicalSizeY = doubleValues[1];
                             }
                         }
                         else if (tag == vsi::RWC_FRAME_ORIGIN) {
-                            if (pyramid.originX == 0.) {
-                                pyramid.originX = doubleValues[0];
-                                pyramid.originY = doubleValues[1];
+                            if (pyramid->originX == 0.) {
+                                pyramid->originX = doubleValues[0];
+                                pyramid->originY = doubleValues[1];
                             }
                         }
                     }
@@ -336,104 +338,104 @@ bool vsi::VSIFile::readTags(vsi::VSIStream& vsi, bool populateMetadata, std::str
             }
 
             if (temp.metadataIndex >= 0) {
-                vsi::Pyramid& pyramid = m_pyramids[temp.metadataIndex];
+                std::shared_ptr<Pyramid> pyramid = m_pyramids[temp.metadataIndex];
                 try {
                     char* end{};
                     if (tag == vsi::STACK_TYPE) {
-                        if(pyramid.stackType == vsi::StackType::UNKNOWN) {
-                            pyramid.stackType = VSITools::intToStackType(std::stoi(value));
+                        if(pyramid->stackType == vsi::StackType::UNKNOWN) {
+                            pyramid->stackType = VSITools::intToStackType(std::stoi(value));
                         }
                         value = VSITools::getStackTypeName(value);
                     }
                     else if (tag == vsi::DEVICE_SUBTYPE) {
                         value = VSITools::getDeviceSubtype(value);
-                        pyramid.deviceTypes.push_back(value);
+                        pyramid->deviceTypes.push_back(value);
                     }
                     else if (tag == vsi::DEVICE_ID) {
-                        pyramid.deviceIDs.push_back(value);
+                        pyramid->deviceIDs.push_back(value);
                     }
                     else if (tag == vsi::DEVICE_NAME) {
-                        pyramid.deviceNames.push_back(value);
+                        pyramid->deviceNames.push_back(value);
                     }
                     else if (tag == vsi::DEVICE_MANUFACTURER) {
-                        pyramid.deviceManufacturers.push_back(value);
+                        pyramid->deviceManufacturers.push_back(value);
                     }
                     else if (tag == vsi::EXPOSURE_TIME && tagPrefix.length() == 0) {
-                        pyramid.exposureTimes.push_back(std::stoll(value));
+                        pyramid->exposureTimes.push_back(std::stoll(value));
                     }
                     else if (tag == vsi::EXPOSURE_TIME) {
-                        pyramid.defaultExposureTime = std::stoll(value);
-                        pyramid.otherExposureTimes.push_back(pyramid.defaultExposureTime);
+                        pyramid->defaultExposureTime = std::stoll(value);
+                        pyramid->otherExposureTimes.push_back(pyramid->defaultExposureTime);
                     }
-                    else if (tag == vsi::CREATION_TIME && pyramid.acquisitionTime == 0) {
-                        pyramid.acquisitionTime = std::stoll(value);
+                    else if (tag == vsi::CREATION_TIME && pyramid->acquisitionTime == 0) {
+                        pyramid->acquisitionTime = std::stoll(value);
                     }
                     else if (tag == vsi::REFRACTIVE_INDEX) {
-                        pyramid.refractiveIndex = std::strtod(value.c_str(), &end);
+                        pyramid->refractiveIndex = std::strtod(value.c_str(), &end);
                     }
                     else if (tag == vsi::OBJECTIVE_MAG) {
-                        pyramid.magnification = std::strtod(value.c_str(), &end);
+                        pyramid->magnification = std::strtod(value.c_str(), &end);
                     }
                     else if (tag == vsi::NUMERICAL_APERTURE) {
-                        pyramid.numericalAperture = std::strtod(value.c_str(), &end);
+                        pyramid->numericalAperture = std::strtod(value.c_str(), &end);
                     }
                     else if (tag == vsi::WORKING_DISTANCE) {
-                        pyramid.workingDistance = std::strtod(value.c_str(), &end);
+                        pyramid->workingDistance = std::strtod(value.c_str(), &end);
                     }
                     else if (tag == vsi::OBJECTIVE_NAME) {
-                        pyramid.objectiveNames.push_back(value);
+                        pyramid->objectiveNames.push_back(value);
                     }
                     else if (tag == vsi::OBJECTIVE_TYPE) {
-                        pyramid.objectiveTypes.push_back(std::stol(value));
+                        pyramid->objectiveTypes.push_back(std::stol(value));
                     }
                     else if (tag == vsi::BIT_DEPTH) {
-                        pyramid.bitDepth = std::stol(value);
+                        pyramid->bitDepth = std::stol(value);
                     }
                     else if (tag == vsi::X_BINNING) {
-                        pyramid.binningX = std::stol(value);
+                        pyramid->binningX = std::stol(value);
                     }
                     else if (tag == vsi::Y_BINNING) {
-                        pyramid.binningY = std::stol(value);
+                        pyramid->binningY = std::stol(value);
                     }
                     else if (tag == vsi::CAMERA_GAIN) {
-                        pyramid.gain = std::strtod(value.c_str(), &end);
+                        pyramid->gain = std::strtod(value.c_str(), &end);
                     }
                     else if (tag == vsi::CAMERA_OFFSET) {
-                        pyramid.offset = std::strtod(value.c_str(), &end);
+                        pyramid->offset = std::strtod(value.c_str(), &end);
                     }
                     else if (tag == vsi::RED_GAIN) {
-                        pyramid.redGain = std::strtod(value.c_str(), &end);
+                        pyramid->redGain = std::strtod(value.c_str(), &end);
                     }
                     else if (tag == vsi::GREEN_GAIN) {
-                        pyramid.greenGain = std::strtod(value.c_str(), &end);
+                        pyramid->greenGain = std::strtod(value.c_str(), &end);
                     }
                     else if (tag == vsi::BLUE_GAIN) {
-                        pyramid.blueGain = std::strtod(value.c_str(), &end);
+                        pyramid->blueGain = std::strtod(value.c_str(), &end);
                     }
                     else if (tag == vsi::RED_OFFSET) {
-                        pyramid.redOffset = std::strtod(value.c_str(), &end);
+                        pyramid->redOffset = std::strtod(value.c_str(), &end);
                     }
                     else if (tag == vsi::GREEN_OFFSET) {
-                        pyramid.greenOffset = std::strtod(value.c_str(), &end);
+                        pyramid->greenOffset = std::strtod(value.c_str(), &end);
                     }
                     else if (tag == vsi::BLUE_OFFSET) {
-                        pyramid.blueOffset = std::strtod(value.c_str(), &end);
+                        pyramid->blueOffset = std::strtod(value.c_str(), &end);
                     }
                     else if (tag == vsi::VALUE) {
                         if (tagPrefix.compare("Channel Wavelength ") == 0) {
-                            pyramid.channelWavelengths.push_back(std::strtod(value.c_str(), &end));
+                            pyramid->channelWavelengths.push_back(std::strtod(value.c_str(), &end));
                         }
                         else if (tagPrefix.find("Objective Working Distance") == 0) {
-                            pyramid.workingDistance = std::strtod(value.c_str(), &end);
+                            pyramid->workingDistance = std::strtod(value.c_str(), &end);
                         }
                         else if (tagPrefix.compare("Z start position") == 0) {
-                            pyramid.zStart = std::strtod(value.c_str(), &end);
+                            pyramid->zStart = std::strtod(value.c_str(), &end);
                         }
                         else if (tagPrefix.compare("Z increment") == 0) {
-                            pyramid.zIncrement = std::strtod(value.c_str(), &end);
+                            pyramid->zIncrement = std::strtod(value.c_str(), &end);
                         }
                         else if (tagPrefix.compare("Z value") == 0) {
-                            pyramid.zValues.push_back(std::strtod(value.c_str(), &end));
+                            pyramid->zValues.push_back(std::strtod(value.c_str(), &end));
                         }
                     }
                 }
@@ -472,24 +474,24 @@ bool vsi::VSIFile::readTags(vsi::VSIStream& vsi, bool populateMetadata, std::str
             storedValue = value;
         }
         if (inDimensionProperties) {
-            vsi::Pyramid& p = m_pyramids[temp.metadataIndex];
-            if (tag == vsi::Z_START && !mapContainsValue(p.dimensionOrdering, dimensionTag)) {
-                p.dimensionOrdering["Z"] = dimensionTag;
+            std::shared_ptr<Pyramid> pyramid = m_pyramids[temp.metadataIndex];
+            if (tag == vsi::Z_START && !mapContainsValue(pyramid->dimensionOrdering, dimensionTag)) {
+                pyramid->dimensionOrdering["Z"] = dimensionTag;
             }
             else if ((tag == vsi::TIME_START || tag == vsi::DIMENSION_VALUE_ID) &&
-                !mapContainsValue(p.dimensionOrdering, dimensionTag))
+                !mapContainsValue(pyramid->dimensionOrdering, dimensionTag))
             {
-                p.dimensionOrdering["T"] = dimensionTag;
+                pyramid->dimensionOrdering["T"] = dimensionTag;
             }
             else if (tag == vsi::LAMBDA_START &&
-                !mapContainsValue(p.dimensionOrdering, dimensionTag))
+                !mapContainsValue(pyramid->dimensionOrdering, dimensionTag))
             {
-                p.dimensionOrdering["L"] = dimensionTag;
+                pyramid->dimensionOrdering["L"] = dimensionTag;
             }
             else if (tag == vsi::CHANNEL_PROPERTIES && foundChannelTag &&
-                !mapContainsValue(p.dimensionOrdering, dimensionTag))
+                !mapContainsValue(pyramid->dimensionOrdering, dimensionTag))
             {
-                p.dimensionOrdering["C"] = dimensionTag;
+                pyramid->dimensionOrdering["C"] = dimensionTag;
             }
             else if (tag == vsi::CHANNEL_PROPERTIES) {
                 foundChannelTag = true;
@@ -502,19 +504,19 @@ bool vsi::VSIFile::readTags(vsi::VSIStream& vsi, bool populateMetadata, std::str
                 catch (std::exception e) {}
                 switch (dimension) {
                 case vsi::Z:
-                    p.dimensionOrdering["Z"] = dimensionTag;
+                    pyramid->dimensionOrdering["Z"] = dimensionTag;
                     break;
                 case vsi::T:
-                    p.dimensionOrdering["T"] = dimensionTag;
+                    pyramid->dimensionOrdering["T"] = dimensionTag;
                     break;
                 case vsi::LAMBDA:
-                    p.dimensionOrdering["L"] = dimensionTag;
+                    pyramid->dimensionOrdering["L"] = dimensionTag;
                     break;
                 case vsi::C:
-                    p.dimensionOrdering["C"] = dimensionTag;
+                    pyramid->dimensionOrdering["C"] = dimensionTag;
                     break;
                 case vsi::PHASE:
-                    p.dimensionOrdering["P"] = dimensionTag;
+                    pyramid->dimensionOrdering["P"] = dimensionTag;
                 default:
                     RAISE_RUNTIME_ERROR << "Invalid dimension: " << dimension;
                 }

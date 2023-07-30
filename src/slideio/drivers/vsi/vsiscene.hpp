@@ -17,14 +17,15 @@
 
 namespace slideio
 {
+    namespace vsi
+    {
+        class Pyramid;
+    }
+
     class SLIDEIO_VSI_EXPORTS VSIScene : public CVScene, public Tiler
     {
     public:
-        /**
-         * \brief Constructor
-         * \param filePath: path to the slide file
-         */
-        VSIScene(const std::string& filePath);
+        VSIScene(const std::string& filePath, std::shared_ptr<vsi::Pyramid>& pyramid);
 
         virtual ~VSIScene();
 
@@ -71,6 +72,7 @@ namespace slideio
         int m_numChannels;
         std::vector<std::string> m_channelNames;
         std::vector<DataType> m_channelDataType;
+        std::shared_ptr<vsi::Pyramid> m_pyramid;
     };
 }
 

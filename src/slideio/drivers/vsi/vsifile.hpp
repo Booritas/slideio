@@ -33,7 +33,7 @@ namespace slideio
             int getNumPyramids() const {
                 return static_cast<int>(m_pyramids.size());
             }
-            const Pyramid& getPyramid(int index) const {
+            std::shared_ptr<Pyramid> getPyramid(int index) const {
                 return m_pyramids[index];
             }
         private:
@@ -41,9 +41,8 @@ namespace slideio
             bool readTags(vsi::VSIStream& vsi, bool populateMetadata, std::string tagPrefix, vsi::TempData& temp);
             void readVolumeInfo();
             void readExternalFiles();
-            void init();
         private:
-            std::vector<vsi::Pyramid> m_pyramids;
+            std::vector<std::shared_ptr<Pyramid>> m_pyramids;
             std::vector<std::shared_ptr<vsi::EtsFile>> m_etsFiles;
             bool m_hasExternalFiles = false;
             int m_numChannels = 0;
