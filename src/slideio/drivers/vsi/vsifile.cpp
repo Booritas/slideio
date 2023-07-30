@@ -38,11 +38,12 @@ static bool mapContainsValue(const std::map<std::string, int>& map, int value)
     return false;
 }
 
-vsi::VSIFile::VSIFile()
+vsi::VSIFile::VSIFile(const std::string& filePath) : m_filePath(filePath)
 {
+    read();
 }
 
-void vsi::VSIFile::read(const std::string& filePath)
+void vsi::VSIFile::read()
 {
     readVolumeInfo();
     if (m_hasExternalFiles) {
@@ -335,6 +336,9 @@ bool vsi::VSIFile::readTags(vsi::VSIStream& vsi, bool populateMetadata, std::str
                 try {
                     char* end{};
                     if (tag == vsi::STACK_TYPE) {
+                        if(pyramid.stackType == vsi::StackType::UNKNOWN) {
+                            pyramid.stackType = static_cast<vsi::StackType>(std::stoi(value));
+                        }
                         value = getStackType(value);
                     }
                     else if (tag == vsi::DEVICE_SUBTYPE) {
@@ -1011,25 +1015,25 @@ std::string vsi::VSIFile::getTagName(int32_t tag)
 
 std::string vsi::VSIFile::getStackType(const std::string& value)
 {
-    int stackType = std::stoi(value);
+    auto stackType = static_cast<StackType>(std::stoi(value));
     switch (stackType) {
-    case vsi::DEFAULT_IMAGE:
+    case StackType::DEFAULT_IMAGE:
         return "Default image";
-    case vsi::OVERVIEW_IMAGE:
+    case StackType::OVERVIEW_IMAGE:
         return "Overview image";
-    case vsi::SAMPLE_MASK:
+    case StackType::SAMPLE_MASK:
         return "Sample mask";
-    case vsi::FOCUS_IMAGE:
+    case StackType::FOCUS_IMAGE:
         return "Focus image";
-    case vsi::EFI_SHARPNESS_MAP:
+    case StackType::EFI_SHARPNESS_MAP:
         return "EFI sharpness map";
-    case vsi::EFI_HEIGHT_MAP:
+    case StackType::EFI_HEIGHT_MAP:
         return "EFI height map";
-    case vsi::EFI_TEXTURE_MAP:
+    case StackType::EFI_TEXTURE_MAP:
         return "EFI texture map";
-    case vsi::EFI_STACK:
+    case StackType::EFI_STACK:
         return "EFI stack";
-    case vsi::MACRO_IMAGE:
+    case StackType::MACRO_IMAGE:
         return "Macro image";
     }
     return value;

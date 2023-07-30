@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 
+#include "vsistruct.hpp"
 #include "slideio/drivers/vsi/vsi_api_def.hpp"
 
 #if defined(_MSC_VER)
@@ -22,6 +23,7 @@ namespace slideio
         public:
             Pyramid();
             ~Pyramid();
+            StackType stackType = StackType::UNKNOWN;
             std::vector<std::string> channelNames;
             std::string name;
             int width = 0;

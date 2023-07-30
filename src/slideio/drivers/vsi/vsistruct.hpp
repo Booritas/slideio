@@ -161,15 +161,19 @@ namespace slideio
             PNG = 8,
             BMP = 9,
         };
-        constexpr int DEFAULT_IMAGE = 0;
-        constexpr int OVERVIEW_IMAGE = 1;
-        constexpr int SAMPLE_MASK = 2;
-        constexpr int FOCUS_IMAGE = 4;
-        constexpr int EFI_SHARPNESS_MAP = 8;
-        constexpr int EFI_HEIGHT_MAP = 16;
-        constexpr int EFI_TEXTURE_MAP = 32;
-        constexpr int EFI_STACK = 64;
-        constexpr int MACRO_IMAGE = 256;
+        enum class StackType
+        {
+            DEFAULT_IMAGE = 0,
+            OVERVIEW_IMAGE = 1,
+            SAMPLE_MASK = 2,
+            FOCUS_IMAGE = 4,
+            EFI_SHARPNESS_MAP = 8,
+            EFI_HEIGHT_MAP = 16,
+            EFI_TEXTURE_MAP = 32,
+            EFI_STACK = 64,
+            MACRO_IMAGE = 256,
+            UNKNOWN = 0xFFFF,
+        };
         constexpr int Z = 1;
         constexpr int T = 2;
         constexpr int LAMBDA = 3;

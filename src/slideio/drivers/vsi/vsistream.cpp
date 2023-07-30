@@ -16,6 +16,7 @@ std::string VSIStream::readString(size_t dataSize)
     if (m_stream->bad()) {
         RAISE_RUNTIME_ERROR << "VSI driver: error by reading stream";
     }
+    wstr.erase(std::find(wstr.begin(), wstr.end(), '\0'), wstr.end());
     return Tools::fromWstring(wstr);
 #else
     std::string wstr(dataSize + 1, '\0');

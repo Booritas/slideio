@@ -21,8 +21,7 @@ VSISlide::VSISlide(const std::string& filePath) : m_filePath(filePath)
 
 void VSISlide::init()
 {
-    m_vsiFile = std::make_shared<vsi::VSIFile>();
-    m_vsiFile->read(m_filePath);
+    m_vsiFile = std::make_shared<vsi::VSIFile>(m_filePath);
 }
 
 

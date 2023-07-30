@@ -25,12 +25,18 @@ namespace slideio
         class SLIDEIO_VSI_EXPORTS VSIFile
         {
         public:
-            VSIFile();
-            void read(const std::string& filePath);
+            VSIFile(const std::string& filePath);
             int getNumExternalFiles() const {
                 return static_cast<int>(m_etsFiles.size());
             }
-        protected:
+            int getNumPyramids() const {
+                return static_cast<int>(m_pyramids.size());
+            }
+            const Pyramid& getPyramid(int index) const {
+                return m_pyramids[index];
+            }
+        private:
+            void read();
             std::string getStackType(const std::string& value);
             std::string getDeviceSubtype(const std::string& value);
             bool readTags(vsi::VSIStream& vsi, bool populateMetadata, std::string tagPrefix, vsi::TempData& temp);
@@ -50,7 +56,3 @@ namespace slideio
     }
 }
 
-
-#if defined(_MSC_VER)
-#pragma warning( pop )
-#endif
