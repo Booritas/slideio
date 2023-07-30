@@ -2,18 +2,20 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/drivers/vsi/vsiscene.hpp"
+#include "slideio/drivers/vsi/vsifile.hpp"
 #include "slideio/imagetools/imagetools.hpp"
 #include "slideio/drivers/vsi/pyramid.hpp"
 
 
 using namespace slideio;
 
-VSIScene::VSIScene(const std::string& filePath, std::shared_ptr<vsi::Pyramid>& pyramid):
+VSIScene::VSIScene(const std::string& filePath, std::shared_ptr<vsi::VSIFile>& vsiFile, int index):
     m_filePath(filePath),
     m_compression(Compression::Unknown),
     m_resolution(0., 0.),
     m_magnification(0.),
-    m_pyramid(pyramid)
+    m_vsiFile(vsiFile),
+    m_sceneIndex(index)
 {
     init();
 }
@@ -45,11 +47,21 @@ std::string VSIScene::getChannelName(int channel) const
 
 void VSIScene::init()
 {
-    m_name = m_pyramid->name;
-    m_magnification = m_pyramid->magnification;
-    m_rect = cv::Rect(0, 0, m_pyramid->width, m_pyramid->height);
+    auto pyramid = getPyramid();
+    m_name = pyramid->name;
+    m_magnification = pyramid->magnification;
+    m_rect = cv::Rect(0, 0, pyramid->width, pyramid->height);
 }
 
+std::shared_ptr<vsi::Pyramid> VSIScene::getPyramid() const
+{
+    return m_vsiFile->getPyramid(m_sceneIndex);
+}
+
+std::shared_ptr<vsi::EtsFile> VSIScene::getEtsFile() const
+{
+    return (m_vsiFile->getNumEtsFiles()>m_sceneIndex)?m_vsiFile->getEtsFile(m_sceneIndex):nullptr;
+}
 
 
 int VSIScene::getTileCount(void* userData)

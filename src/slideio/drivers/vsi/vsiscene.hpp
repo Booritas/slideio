@@ -4,9 +4,11 @@
 #ifndef OPENCV_slideio_vsiscene_hpp
 #define OPENCV_slideio_vsiscene_hpp
 
+#include "vsifile.hpp"
 #include "slideio/drivers/vsi/vsi_api_def.hpp"
 #include "slideio/core/cvscene.hpp"
 #include "slideio/core/tools/tilecomposer.hpp"
+#include "slideio/drivers/vsi/etsfile.hpp"
 #include "slideio/drivers/vsi/vsistruct.hpp"
 
 
@@ -20,12 +22,13 @@ namespace slideio
     namespace vsi
     {
         class Pyramid;
+        class VSIFile;
     }
 
     class SLIDEIO_VSI_EXPORTS VSIScene : public CVScene, public Tiler
     {
     public:
-        VSIScene(const std::string& filePath, std::shared_ptr<vsi::Pyramid>& pyramid);
+        VSIScene(const std::string& filePath, std::shared_ptr<vsi::VSIFile>& vsiFile, int sceneIndex);
 
         virtual ~VSIScene();
 
@@ -60,7 +63,8 @@ namespace slideio
             cv::OutputArray output) override;
     protected:
         void init();
-
+        std::shared_ptr<vsi::Pyramid> getPyramid() const;
+        std::shared_ptr<vsi::EtsFile> getEtsFile() const;
     protected:
         std::string m_filePath;
         std::string m_name;
@@ -70,9 +74,10 @@ namespace slideio
         double m_magnification;
         cv::Rect m_rect;
         int m_numChannels;
+        int m_sceneIndex;
         std::vector<std::string> m_channelNames;
         std::vector<DataType> m_channelDataType;
-        std::shared_ptr<vsi::Pyramid> m_pyramid;
+        std::shared_ptr<vsi::VSIFile> m_vsiFile;
     };
 }
 

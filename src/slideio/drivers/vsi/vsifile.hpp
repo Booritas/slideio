@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 
+#include "vsiscene.hpp"
 #include "vsistruct.hpp"
 #include "slideio/drivers/vsi/vsi_api_def.hpp"
 
@@ -36,6 +37,13 @@ namespace slideio
             std::shared_ptr<Pyramid> getPyramid(int index) const {
                 return m_pyramids[index];
             }
+            std::shared_ptr<vsi::EtsFile> getEtsFile(int index) const {
+                return m_etsFiles[index];
+            }
+            int getNumEtsFiles() const {
+                return static_cast<int>(m_etsFiles.size());
+            }
+
         private:
             void read();
             bool readTags(vsi::VSIStream& vsi, bool populateMetadata, std::string tagPrefix, vsi::TempData& temp);
