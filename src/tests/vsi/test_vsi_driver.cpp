@@ -32,6 +32,37 @@ TEST(VSIImageDriver, openFile)
     EXPECT_DOUBLE_EQ(scene->getMagnification(), 60.);
 }
 
+TEST(VSIImageDriver, openFileMultiscene)
+{
+    std::tuple<std::string,int,int, double> result[] = {
+        {"40x_01", 14749,20874,40},
+        {"40x_02", 15596,19403,40},
+        {"40x_03", 16240,18759,40},
+    };
+    std::string filePath = TestTools::getFullTestImagePath("vsi", "Zenodo/Abdominal/G1M16_ABD_HE_B6.vsi");
+    slideio::VSIImageDriver driver;
+    std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    const int numScenes = slide->getNumScenes();
+    ASSERT_EQ(3, numScenes);
+    for(int sceneIndex=0; sceneIndex<numScenes; ++sceneIndex) {
+        std::shared_ptr<CVScene> scene = slide->getScene(sceneIndex);
+        EXPECT_EQ(scene->getName(), std::get<0>(result[sceneIndex]));
+        auto rect = scene->getRect();
+        EXPECT_EQ(rect.width, std::get<1>(result[sceneIndex]));
+        EXPECT_EQ(rect.height, std::get<2>(result[sceneIndex]));
+        EXPECT_EQ(rect.x, 0);
+        EXPECT_EQ(rect.y, 0);
+        EXPECT_DOUBLE_EQ(scene->getMagnification(), std::get<3>(result[sceneIndex]));
+
+    }
+    const int numAuxImages = slide->getNumAuxImages();
+    ASSERT_EQ(1, numAuxImages);
+    auto imageNames = slide->getAuxImageNames();
+    auto image = slide->getAuxImage(imageNames.front());
+    EXPECT_EQ(image->getName(), "Overview");
+}
+
 TEST(VSIImageDriver, VSIFileOpen0)
 {
     std::string filePath = TestTools::getFullTestImagePath("vsi", "vsi-multifile/vsi-ets-test-jpg2k.vsi");

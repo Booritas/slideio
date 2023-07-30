@@ -32,6 +32,7 @@ void VSISlide::init()
         }
         else {
             m_auxImages[pyramid->name] = std::make_shared<VSIScene>(m_filePath, m_vsiFile, sceneIndex);
+            m_auxNames.push_back(pyramid->name);
         }
     }
 }
