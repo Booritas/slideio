@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 
+#include "vsistruct.hpp"
 #include "slideio/drivers/vsi/vsi_api_def.hpp"
 
 #if defined(_MSC_VER)
@@ -37,14 +38,10 @@ namespace slideio
             }
         private:
             void read();
-            std::string getStackType(const std::string& value);
-            std::string getDeviceSubtype(const std::string& value);
             bool readTags(vsi::VSIStream& vsi, bool populateMetadata, std::string tagPrefix, vsi::TempData& temp);
             void readVolumeInfo();
             void readExternalFiles();
             void init();
-            std::string getVolumeName(int32_t tag);
-            std::string getTagName(int32_t tag);
         private:
             std::vector<vsi::Pyramid> m_pyramids;
             std::vector<std::shared_ptr<vsi::EtsFile>> m_etsFiles;

@@ -63,3 +63,9 @@ bool VSIScene::readTile(int tileIndex, const std::vector<int>& channelIndices, c
     return false;
 }
 
+void VSIScene::initializeBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices,
+    cv::OutputArray output)
+{
+    initializeSceneBlock(blockSize, channelIndices, output);
+}
+

@@ -22,6 +22,18 @@ VSISlide::VSISlide(const std::string& filePath) : m_filePath(filePath)
 void VSISlide::init()
 {
     m_vsiFile = std::make_shared<vsi::VSIFile>(m_filePath);
+    const int numPyramids = m_vsiFile->getNumPyramids();
+    for (int i = 0; i < numPyramids; ++i) {
+        auto& pyramid = m_vsiFile->getPyramid(i);
+        if (pyramid.stackType == vsi::StackType::DEFAULT_IMAGE
+            || pyramid.stackType == vsi::StackType::UNKNOWN) {
+            std::shared_ptr<VSIScene> scene = std::make_shared<VSIScene>(m_filePath);
+            m_Scenes.push_back(scene);
+        }
+        else {
+            m_auxImages[pyramid.name] = std::make_shared<VSIScene>(m_filePath);
+        }
+    }
 }
 
 
