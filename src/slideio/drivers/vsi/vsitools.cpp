@@ -93,7 +93,8 @@ std::string vsi::VSITools::getVolumeName(int32_t tag)
 std::string vsi::VSITools::getTagName(const TagInfo& tagInfo)
 {
     if(tagInfo.extendedType == ExtendedType::PROPERTY_SET_VOLUME 
-        || tagInfo.extendedType == ExtendedType::NEW_MDIM_VOLUME_HEADER) {
+        || tagInfo.extendedType == ExtendedType::NEW_MDIM_VOLUME_HEADER
+        || tagInfo.extendedType == ExtendedType::NEW_VOLUME_HEADER) {
         switch (tagInfo.tag)
         {
         case vsi::DIMENSION_SIZE:
@@ -105,7 +106,8 @@ std::string vsi::VSITools::getTagName(const TagInfo& tagInfo)
         case vsi::FRAME_PROPERTIES:
             return "Frame properties";
         case vsi::DIMENSION_DESCRIPTION_VOLUME:
-            return "Dimension description volume";
+            return std::string("Volume for dimension ") + 
+                std::to_string(tagInfo.secondTag) + std::string(" description");
         case vsi::CHANNEL_PROPERTIES:
             return "Channel properties";
         case vsi::DISPLAY_MAPPING_VOLUME:
@@ -118,6 +120,10 @@ std::string vsi::VSITools::getTagName(const TagInfo& tagInfo)
             return "Channel Wavelength ";
         case vsi::WORKING_DISTANCE:
             return "Objective Working Distance ";
+        case vsi::CHANNEL_INFO_PROPERTIES:
+            return "Channel info properties";
+        case vsi::EXTERNAL_FILE_PROPERTIES:
+            return "External file properties";
         }
     }
 
@@ -215,6 +221,9 @@ std::string vsi::VSITools::getTagName(const TagInfo& tagInfo)
     case vsi::TIME_START:
         return "Timelapse start";
     case vsi::TIME_INCREMENT:
+        if(tagInfo.fieldType == 0x1800000A) {
+            return "TIFF IFD of the default sample";
+        }
         return "Timelapse increment";
     case vsi::TIME_VALUE:
         return "Timestamp";
@@ -544,7 +553,7 @@ bool vsi::VSITools::isArray(const TagInfo& tagInfo)
     if (tagInfo.tag == MULTIDIM_IMAGE_VOLUME) {
         return true;
     }
-    else if(tagInfo.tag == 0 || tagInfo.tag == 1) {
+    else if(tagInfo.tag == 0 || tagInfo.tag == 1 || tagInfo.tag == LAYER_INFO_PROPERTIES) {
         return true;
     }
     return false;

@@ -782,6 +782,7 @@ bool vsi::VSIFile::readMetadata(VSIStream& vsi, boost::json::object& parentObjec
         }
 
         tagInfo.dataSize = tagHeader.dataSize;
+        tagInfo.secondTag = secondTag;
         int dimensionTag = -1;
         bool inDimensionProperties = false;
         bool foundChannelTag = false;
@@ -790,13 +791,14 @@ bool vsi::VSIFile::readMetadata(VSIStream& vsi, boost::json::object& parentObjec
         std::string tagKey = std::to_string(tagInfo.tag);
         boost::json::object tagObject;
         tagObject["name"] = tagName;
-        tagObject["offset"] = tagPos;
-        tagObject["nextField"] = nextField;
+        //tagObject["offset"] = tagPos;
+        //tagObject["nextField"] = nextField;
         tagObject["fieldType"] = tagHeader.fieldType;
         tagObject["valueType"] = (int)tagInfo.valueType;
         tagObject["extendedType"] = (int)tagInfo.extendedType;
         tagObject["extraTag"] = extraTag;
         tagObject["extendedField"] = extendedField;
+        tagObject["secondTag"] = tagInfo.secondTag;
 
         if(extendedField) {
             switch(tagInfo.extendedType) {
