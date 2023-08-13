@@ -6,6 +6,7 @@ namespace slideio
 {
     namespace vsi
     {
+        const int  PROPERTY_SET_VOLUME_FOR_DOCUMENT_PROPERTIES = 2;
         const int  COLLECTION_VOLUME = 2000;
         const int  MULTIDIM_IMAGE_VOLUME = 2001;
         const int  IMAGE_FRAME_VOLUME = 2002;

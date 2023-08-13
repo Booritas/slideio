@@ -12,8 +12,8 @@
 #include "vsistream.hpp"
 #include "pyramid.hpp"
 #include "etsfile.hpp"
-#include "vsiscene.hpp"
 #include "vsitools.hpp"
+#include <boost/json.hpp>
 
 using namespace slideio;
 namespace fs = boost::filesystem;
@@ -56,14 +56,7 @@ void vsi::VSIFile::read()
 
 bool vsi::VSIFile::readTags(vsi::VSIStream& vsi, bool populateMetadata, std::string tagPrefix, vsi::TempData& temp)
 {
-    const int32_t NEW_VOLUME_HEADER = 0;
-    const int32_t PROPERTY_SET_VOLUME = 1;
-    const int32_t NEW_MDIM_VOLUME_HEADER = 2;
-
     const int64_t headerPos = vsi.getPos();
-    if (headerPos == 403303) {
-        int a = 0;
-    }
     vsi::VolumeHeader volumeHeader = {};
     vsi.read<vsi::VolumeHeader>(volumeHeader);
     if (volumeHeader.headerSize != 24) {
@@ -95,7 +88,7 @@ bool vsi::VSIFile::readTags(vsi::VSIStream& vsi, bool populateMetadata, std::str
         bool array = (!inlineData && !extendedField) &&
             ((tagHeader.fieldType & 0x20000000) >> 29) == 1;
 
-        int realType = tagHeader.fieldType & 0xffffff;
+
         int secondTag = -1;
 
         if (extraTag) {
@@ -123,23 +116,33 @@ bool vsi::VSIFile::readTags(vsi::VSIStream& vsi, bool populateMetadata, std::str
             }   
         }
 
-        int32_t tag = tagHeader.tag;
-        uint32_t dataSize = tagHeader.dataSize;
+        TagInfo tagInfo;
+        tagInfo.tag = tagHeader.tag;
+        if(extendedField) {
+            tagInfo.extendedType = (ExtendedType)(tagHeader.fieldType & 0xffffff);
+        }
+        else {
+            tagInfo.valueType = (ValueType)(tagHeader.fieldType & 0xffffff);
+        }
+        tagInfo.fieldType = tagHeader.fieldType;
+        tagInfo.dataSize = tagHeader.dataSize;
+
         int dimensionTag = -1;
         bool inDimensionProperties = false;
         bool foundChannelTag = false;
 
-        if (extendedField && realType == NEW_VOLUME_HEADER) {
-            if (tag == vsi::DIMENSION_DESCRIPTION_VOLUME) {
+
+        if (tagInfo.extendedType == ExtendedType::NEW_VOLUME_HEADER) {
+            if (tagInfo.tag == vsi::DIMENSION_DESCRIPTION_VOLUME) {
                 dimensionTag = secondTag;
                 inDimensionProperties = true;
             }
-            int64_t endPointer = vsi.getPos() + dataSize;
+            int64_t endPointer = vsi.getPos() + tagInfo.dataSize;
             while (vsi.getPos() < endPointer && vsi.getPos() < vsi.getSize())
             {
                 int64_t start = vsi.getPos();
                 bool ok = readTags(vsi, populateMetadata || inDimensionProperties, 
-                    VSITools::getVolumeName(tag), temp);
+                    VSITools::getVolumeName(tagInfo.tag), temp);
                 if (!ok) {
                     break;
                 }
@@ -148,18 +151,18 @@ bool vsi::VSIFile::readTags(vsi::VSIStream& vsi, bool populateMetadata, std::str
                     break;
                 }
             }
-            if (tag == vsi::DIMENSION_DESCRIPTION_VOLUME) {
+            if (tagInfo.tag == vsi::DIMENSION_DESCRIPTION_VOLUME) {
                 inDimensionProperties = false;
                 foundChannelTag = false;
             }
         }
-        else if (extendedField && (realType == PROPERTY_SET_VOLUME ||
-            realType == NEW_MDIM_VOLUME_HEADER))
+        else if (tagInfo.extendedType == ExtendedType::PROPERTY_SET_VOLUME ||
+            tagInfo.extendedType == ExtendedType::NEW_MDIM_VOLUME_HEADER)
         {
             int64_t start = vsi.getPos();
-            std::string tagName = realType == NEW_MDIM_VOLUME_HEADER ? VSITools::getVolumeName(tag) : tagPrefix;
-            if (tagName.empty() && realType == NEW_MDIM_VOLUME_HEADER) {
-                switch (tag) {
+            std::string tagName = tagInfo.extendedType == ExtendedType::NEW_MDIM_VOLUME_HEADER ? VSITools::getVolumeName(tagInfo.tag) : tagPrefix;
+            if (tagName.empty() && tagInfo.extendedType == ExtendedType::NEW_MDIM_VOLUME_HEADER) {
+                switch (tagInfo.tag) {
                 case vsi::Z_START:
                     tagName = "Z start position";
                     break;
@@ -171,76 +174,76 @@ bool vsi::VSIFile::readTags(vsi::VSIStream& vsi, bool populateMetadata, std::str
                     break;
                 }
             }
-            readTags(vsi, tag != 2037, tagName, temp);
+            readTags(vsi, tagInfo.tag != 2037, tagName, temp);
         }
         else {
-            std::string tagName = VSITools::getTagName(tag);
-            std::string value = inlineData ? std::to_string(dataSize) : " ";
+            std::string tagName = VSITools::getTagName(tagInfo);
+            std::string value = inlineData ? std::to_string(tagInfo.dataSize) : " ";
 
 
-            if (!inlineData && dataSize > 0) {
-                switch (realType)
+            if (!inlineData && tagInfo.dataSize > 0) {
+                switch (tagInfo.valueType)
                 {
-                case vsi::PixelType::CHAR:
-                case vsi::PixelType::UCHAR:
+                case vsi::ValueType::CHAR:
+                case vsi::ValueType::UCHAR:
                     value = std::to_string(vsi.readValue<uint8_t>());
                     break;
-                case vsi::PixelType::SHORT:
-                case vsi::PixelType::USHORT:
+                case vsi::ValueType::SHORT:
+                case vsi::ValueType::USHORT:
                     value = std::to_string(vsi.readValue<uint16_t>());
                     break;
-                case vsi::PixelType::INT:
-                case vsi::PixelType::UINT:
-                case vsi::PixelType::DWORD:
-                case vsi::PixelType::FIELD_TYPE:
-                case vsi::PixelType::MEM_MODEL:
-                case vsi::PixelType::COLOR_SPACE:
+                case vsi::ValueType::INT:
+                case vsi::ValueType::UINT:
+                case vsi::ValueType::DWORD:
+                case vsi::ValueType::FIELD_TYPE:
+                case vsi::ValueType::MEM_MODEL:
+                case vsi::ValueType::COLOR_SPACE:
                     value = std::to_string(vsi.readValue<uint32_t>());
                     break;
-                case vsi::PixelType::INT64:
-                case vsi::PixelType::UINT64:
-                case vsi::PixelType::TIMESTAMP:
+                case vsi::ValueType::INT64:
+                case vsi::ValueType::UINT64:
+                case vsi::ValueType::TIMESTAMP:
                     value = std::to_string(vsi.readValue<uint64_t>());
                     break;
-                case vsi::PixelType::FLOAT:
+                case vsi::ValueType::FLOAT:
                     value = std::to_string(vsi.readValue<float>());
                     break;
-                case vsi::PixelType::DOUBLE:
-                case vsi::PixelType::DATE:
+                case vsi::ValueType::DOUBLE:
+                case vsi::ValueType::DATE:
                     value = std::to_string(vsi.readValue<double>());
                     break;
-                case vsi::PixelType::BOOL:
+                case vsi::ValueType::BOOL:
                     value = std::to_string(vsi.readValue<bool>());
                     break;
-                case vsi::PixelType::TCHAR:
-                case vsi::PixelType::UNICODE_TCHAR:
-                    value = vsi.readString(dataSize);
+                case vsi::ValueType::TCHAR:
+                case vsi::ValueType::UNICODE_TCHAR:
+                    value = vsi.readString(tagInfo.dataSize);
                     if (temp.metadataIndex >= 0)
                     {
                         std::shared_ptr<Pyramid> pyramid = m_pyramids[temp.metadataIndex];
-                        if (tag == vsi::CHANNEL_NAME) {
+                        if (tagInfo.tag == vsi::CHANNEL_NAME) {
                             pyramid->channelNames.push_back(value);
                         }
-                        else if (tag == vsi::STACK_NAME && !value.compare("0") == 0 && pyramid->name.empty()) {
+                        else if (tagInfo.tag == vsi::STACK_NAME && !value.compare("0") == 0 && pyramid->name.empty()) {
                             pyramid->name = value;
                         }
                     }
                     break;
-                case vsi::PixelType::VECTOR_INT_2:
-                case vsi::PixelType::TUPLE_INT:
-                case vsi::PixelType::ARRAY_INT_2:
-                case vsi::PixelType::VECTOR_INT_3:
-                case vsi::PixelType::ARRAY_INT_3:
-                case vsi::PixelType::VECTOR_INT_4:
-                case vsi::PixelType::RECT_INT:
-                case vsi::PixelType::ARRAY_INT_4:
-                case vsi::PixelType::ARRAY_INT_5:
-                case vsi::PixelType::DIM_INDEX_1:
-                case vsi::PixelType::DIM_INDEX_2:
-                case vsi::PixelType::VOLUME_INDEX:
-                case vsi::PixelType::PIXEL_INFO_TYPE:
+                case vsi::ValueType::VECTOR_INT_2:
+                case vsi::ValueType::TUPLE_INT:
+                case vsi::ValueType::ARRAY_INT_2:
+                case vsi::ValueType::VECTOR_INT_3:
+                case vsi::ValueType::ARRAY_INT_3:
+                case vsi::ValueType::VECTOR_INT_4:
+                case vsi::ValueType::RECT_INT:
+                case vsi::ValueType::ARRAY_INT_4:
+                case vsi::ValueType::ARRAY_INT_5:
+                case vsi::ValueType::DIM_INDEX_1:
+                case vsi::ValueType::DIM_INDEX_2:
+                case vsi::ValueType::VOLUME_INDEX:
+                case vsi::ValueType::PIXEL_INFO_TYPE:
                 {
-                    uint32_t nIntValues = dataSize / 4;
+                    uint32_t nIntValues = tagInfo.dataSize / 4;
                     std::vector<int32_t> intValues(nIntValues);
                     if (nIntValues > 1) {
                         value += "(";
@@ -257,32 +260,32 @@ bool vsi::VSIFile::readTags(vsi::VSIStream& vsi, bool populateMetadata, std::str
                     }
                     if (temp.metadataIndex >= 0) {
                         std::shared_ptr<Pyramid> pyramid = m_pyramids[temp.metadataIndex];
-                        if (tag == vsi::IMAGE_BOUNDARY) {
+                        if (tagInfo.tag == vsi::IMAGE_BOUNDARY) {
                             if (pyramid->width == 0) {
                                 pyramid->width = intValues[2];
                                 pyramid->height = intValues[3];
                             }
                         }
-                        else if (tag == vsi::TILE_ORIGIN) {
+                        else if (tagInfo.tag == vsi::TILE_ORIGIN) {
                             pyramid->tileOriginX = intValues[0];
                             pyramid->tileOriginY = intValues[1];
                         }
                     }
                 }
                 break;
-                case vsi::PixelType::DOUBLE2:
-                case vsi::PixelType::VECTOR_DOUBLE_2:
-                case vsi::PixelType::TUPLE_DOUBLE:
-                case vsi::PixelType::ARRAY_DOUBLE_2:
-                case vsi::PixelType::VECTOR_DOUBLE_3:
-                case vsi::PixelType::ARRAY_DOUBLE_3:
-                case vsi::PixelType::VECTOR_DOUBLE_4:
-                case vsi::PixelType::RECT_DOUBLE:
-                case vsi::PixelType::MATRIX_DOUBLE_2_2:
-                case vsi::PixelType::MATRIX_DOUBLE_3_3:
-                case vsi::PixelType::MATRIX_DOUBLE_4_4:
+                case vsi::ValueType::DOUBLE2:
+                case vsi::ValueType::VECTOR_DOUBLE_2:
+                case vsi::ValueType::TUPLE_DOUBLE:
+                case vsi::ValueType::ARRAY_DOUBLE_2:
+                case vsi::ValueType::VECTOR_DOUBLE_3:
+                case vsi::ValueType::ARRAY_DOUBLE_3:
+                case vsi::ValueType::VECTOR_DOUBLE_4:
+                case vsi::ValueType::RECT_DOUBLE:
+                case vsi::ValueType::MATRIX_DOUBLE_2_2:
+                case vsi::ValueType::MATRIX_DOUBLE_3_3:
+                case vsi::ValueType::MATRIX_DOUBLE_4_4:
                 {
-                    int nDoubleValues = dataSize / sizeof(double);
+                    int nDoubleValues = tagInfo.dataSize / sizeof(double);
                     std::vector<double> doubleValues(nDoubleValues);
                     if (nDoubleValues > 1) {
                         value += "(";
@@ -299,13 +302,13 @@ bool vsi::VSIFile::readTags(vsi::VSIStream& vsi, bool populateMetadata, std::str
                     }
                     if (temp.metadataIndex >= 0) {
                         std::shared_ptr<Pyramid> pyramid = m_pyramids[temp.metadataIndex];
-                        if (tag == vsi::RWC_FRAME_SCALE) {
+                        if (tagInfo.tag == vsi::RWC_FRAME_SCALE) {
                             if (pyramid->physicalSizeX == 0.) {
                                 pyramid->physicalSizeX = doubleValues[0];
                                 pyramid->physicalSizeY = doubleValues[1];
                             }
                         }
-                        else if (tag == vsi::RWC_FRAME_ORIGIN) {
+                        else if (tagInfo.tag == vsi::RWC_FRAME_ORIGIN) {
                             if (pyramid->originX == 0.) {
                                 pyramid->originX = doubleValues[0];
                                 pyramid->originY = doubleValues[1];
@@ -314,7 +317,7 @@ bool vsi::VSIFile::readTags(vsi::VSIStream& vsi, bool populateMetadata, std::str
                     }
                 }
                 break;
-                case vsi::PixelType::RGB:
+                case vsi::ValueType::RGB:
                 {
                     int red = vsi.readValue<uint8_t>();
                     int green = vsi.readValue<uint8_t>();
@@ -324,7 +327,7 @@ bool vsi::VSIFile::readTags(vsi::VSIStream& vsi, bool populateMetadata, std::str
                         + ", blue = " + std::to_string(blue);
                 }
                 break;
-                case vsi::PixelType::BGR:
+                case vsi::ValueType::BGR:
                 {
                     int blue = vsi.readValue<uint8_t>();
                     int green = vsi.readValue<uint8_t>();
@@ -341,87 +344,87 @@ bool vsi::VSIFile::readTags(vsi::VSIStream& vsi, bool populateMetadata, std::str
                 std::shared_ptr<Pyramid> pyramid = m_pyramids[temp.metadataIndex];
                 try {
                     char* end{};
-                    if (tag == vsi::STACK_TYPE) {
+                    if (tagInfo.tag == vsi::STACK_TYPE) {
                         if(pyramid->stackType == vsi::StackType::UNKNOWN) {
                             pyramid->stackType = VSITools::intToStackType(std::stoi(value));
                         }
                         value = VSITools::getStackTypeName(value);
                     }
-                    else if (tag == vsi::DEVICE_SUBTYPE) {
+                    else if (tagInfo.tag == vsi::DEVICE_SUBTYPE) {
                         value = VSITools::getDeviceSubtype(value);
                         pyramid->deviceTypes.push_back(value);
                     }
-                    else if (tag == vsi::DEVICE_ID) {
+                    else if (tagInfo.tag == vsi::DEVICE_ID) {
                         pyramid->deviceIDs.push_back(value);
                     }
-                    else if (tag == vsi::DEVICE_NAME) {
+                    else if (tagInfo.tag == vsi::DEVICE_NAME) {
                         pyramid->deviceNames.push_back(value);
                     }
-                    else if (tag == vsi::DEVICE_MANUFACTURER) {
+                    else if (tagInfo.tag == vsi::DEVICE_MANUFACTURER) {
                         pyramid->deviceManufacturers.push_back(value);
                     }
-                    else if (tag == vsi::EXPOSURE_TIME && tagPrefix.length() == 0) {
+                    else if (tagInfo.tag == vsi::EXPOSURE_TIME && tagPrefix.length() == 0) {
                         pyramid->exposureTimes.push_back(std::stoll(value));
                     }
-                    else if (tag == vsi::EXPOSURE_TIME) {
+                    else if (tagInfo.tag == vsi::EXPOSURE_TIME) {
                         pyramid->defaultExposureTime = std::stoll(value);
                         pyramid->otherExposureTimes.push_back(pyramid->defaultExposureTime);
                     }
-                    else if (tag == vsi::CREATION_TIME && pyramid->acquisitionTime == 0) {
+                    else if (tagInfo.tag == vsi::CREATION_TIME && pyramid->acquisitionTime == 0) {
                         pyramid->acquisitionTime = std::stoll(value);
                     }
-                    else if (tag == vsi::REFRACTIVE_INDEX) {
+                    else if (tagInfo.tag == vsi::REFRACTIVE_INDEX) {
                         pyramid->refractiveIndex = std::strtod(value.c_str(), &end);
                     }
-                    else if (tag == vsi::OBJECTIVE_MAG) {
+                    else if (tagInfo.tag == vsi::OBJECTIVE_MAG) {
                         pyramid->magnification = std::strtod(value.c_str(), &end);
                     }
-                    else if (tag == vsi::NUMERICAL_APERTURE) {
+                    else if (tagInfo.tag == vsi::NUMERICAL_APERTURE) {
                         pyramid->numericalAperture = std::strtod(value.c_str(), &end);
                     }
-                    else if (tag == vsi::WORKING_DISTANCE) {
+                    else if (tagInfo.tag == vsi::WORKING_DISTANCE) {
                         pyramid->workingDistance = std::strtod(value.c_str(), &end);
                     }
-                    else if (tag == vsi::OBJECTIVE_NAME) {
+                    else if (tagInfo.tag == vsi::OBJECTIVE_NAME) {
                         pyramid->objectiveNames.push_back(value);
                     }
-                    else if (tag == vsi::OBJECTIVE_TYPE) {
+                    else if (tagInfo.tag == vsi::OBJECTIVE_TYPE) {
                         pyramid->objectiveTypes.push_back(std::stol(value));
                     }
-                    else if (tag == vsi::BIT_DEPTH) {
+                    else if (tagInfo.tag == vsi::BIT_DEPTH) {
                         pyramid->bitDepth = std::stol(value);
                     }
-                    else if (tag == vsi::X_BINNING) {
+                    else if (tagInfo.tag == vsi::X_BINNING) {
                         pyramid->binningX = std::stol(value);
                     }
-                    else if (tag == vsi::Y_BINNING) {
+                    else if (tagInfo.tag == vsi::Y_BINNING) {
                         pyramid->binningY = std::stol(value);
                     }
-                    else if (tag == vsi::CAMERA_GAIN) {
+                    else if (tagInfo.tag == vsi::CAMERA_GAIN) {
                         pyramid->gain = std::strtod(value.c_str(), &end);
                     }
-                    else if (tag == vsi::CAMERA_OFFSET) {
+                    else if (tagInfo.tag == vsi::CAMERA_OFFSET) {
                         pyramid->offset = std::strtod(value.c_str(), &end);
                     }
-                    else if (tag == vsi::RED_GAIN) {
+                    else if (tagInfo.tag == vsi::RED_GAIN) {
                         pyramid->redGain = std::strtod(value.c_str(), &end);
                     }
-                    else if (tag == vsi::GREEN_GAIN) {
+                    else if (tagInfo.tag == vsi::GREEN_GAIN) {
                         pyramid->greenGain = std::strtod(value.c_str(), &end);
                     }
-                    else if (tag == vsi::BLUE_GAIN) {
+                    else if (tagInfo.tag == vsi::BLUE_GAIN) {
                         pyramid->blueGain = std::strtod(value.c_str(), &end);
                     }
-                    else if (tag == vsi::RED_OFFSET) {
+                    else if (tagInfo.tag == vsi::RED_OFFSET) {
                         pyramid->redOffset = std::strtod(value.c_str(), &end);
                     }
-                    else if (tag == vsi::GREEN_OFFSET) {
+                    else if (tagInfo.tag == vsi::GREEN_OFFSET) {
                         pyramid->greenOffset = std::strtod(value.c_str(), &end);
                     }
-                    else if (tag == vsi::BLUE_OFFSET) {
+                    else if (tagInfo.tag == vsi::BLUE_OFFSET) {
                         pyramid->blueOffset = std::strtod(value.c_str(), &end);
                     }
-                    else if (tag == vsi::VALUE) {
+                    else if (tagInfo.tag == vsi::VALUE) {
                         if (tagPrefix.compare("Channel Wavelength ") == 0) {
                             pyramid->channelWavelengths.push_back(std::strtod(value.c_str(), &end));
                         }
@@ -444,14 +447,14 @@ bool vsi::VSIFile::readTags(vsi::VSIStream& vsi, bool populateMetadata, std::str
                 }
             }
 
-            if (tag == vsi::DOCUMENT_TIME || tag == vsi::CREATION_TIME) {
+            if (tagInfo.tag == vsi::DOCUMENT_TIME || tagInfo.tag == vsi::CREATION_TIME) {
                 std::ostringstream oss;
                 time_t time = std::stoll(value);
                 oss << std::put_time(std::localtime(&time), "%d-%m-%Y %H-%M-%S");
                 value = oss.str();
             }
 
-            if (tag == vsi::HAS_EXTERNAL_FILE) {
+            if (tagInfo.tag == vsi::HAS_EXTERNAL_FILE) {
                 m_hasExternalFiles = std::stol(value) == 1;
             }
 
@@ -460,7 +463,7 @@ bool vsi::VSIFile::readTags(vsi::VSIStream& vsi, bool populateMetadata, std::str
                     //addMetaList(tagPrefix + tagName, value,
                     //    m_pyramids[metadataIndex].originalMetadata);
                 }
-                else if (tag != vsi::VALUE || tagPrefix.length() > 0) {
+                else if (tagInfo.tag != vsi::VALUE || tagPrefix.length() > 0) {
                     // addGlobalMetaList(tagPrefix + tagName, value);
                 }
                 std::string fullTagName = tagPrefix + tagName;
@@ -475,28 +478,28 @@ bool vsi::VSIFile::readTags(vsi::VSIStream& vsi, bool populateMetadata, std::str
         }
         if (inDimensionProperties) {
             std::shared_ptr<Pyramid> pyramid = m_pyramids[temp.metadataIndex];
-            if (tag == vsi::Z_START && !mapContainsValue(pyramid->dimensionOrdering, dimensionTag)) {
+            if (tagInfo.tag == vsi::Z_START && !mapContainsValue(pyramid->dimensionOrdering, dimensionTag)) {
                 pyramid->dimensionOrdering["Z"] = dimensionTag;
             }
-            else if ((tag == vsi::TIME_START || tag == vsi::DIMENSION_VALUE_ID) &&
+            else if ((tagInfo.tag == vsi::TIME_START || tagInfo.tag == vsi::DIMENSION_VALUE_ID) &&
                 !mapContainsValue(pyramid->dimensionOrdering, dimensionTag))
             {
                 pyramid->dimensionOrdering["T"] = dimensionTag;
             }
-            else if (tag == vsi::LAMBDA_START &&
+            else if (tagInfo.tag == vsi::LAMBDA_START &&
                 !mapContainsValue(pyramid->dimensionOrdering, dimensionTag))
             {
                 pyramid->dimensionOrdering["L"] = dimensionTag;
             }
-            else if (tag == vsi::CHANNEL_PROPERTIES && foundChannelTag &&
+            else if (tagInfo.tag == vsi::CHANNEL_PROPERTIES && foundChannelTag &&
                 !mapContainsValue(pyramid->dimensionOrdering, dimensionTag))
             {
                 pyramid->dimensionOrdering["C"] = dimensionTag;
             }
-            else if (tag == vsi::CHANNEL_PROPERTIES) {
+            else if (tagInfo.tag == vsi::CHANNEL_PROPERTIES) {
                 foundChannelTag = true;
             }
-            else if (tag == vsi::DIMENSION_MEANING && !storedValue.empty()) {
+            else if (tagInfo.tag == vsi::DIMENSION_MEANING && !storedValue.empty()) {
                 int dimension = -1;
                 try {
                     dimension = std::stoi(storedValue);
@@ -523,9 +526,9 @@ bool vsi::VSIFile::readTags(vsi::VSIStream& vsi, bool populateMetadata, std::str
             }
         }
 
-        if (nextField == 0 || tag == -494804095) {
-            if (headerPos + dataSize + 32 < vsi.getSize() && headerPos + dataSize >= 0) {
-                vsi.setPos(headerPos + dataSize + 32);
+        if (nextField == 0 || tagInfo.tag == -494804095) {
+            if (headerPos + tagInfo.dataSize + 32 < vsi.getSize() && headerPos + tagInfo.dataSize >= 0) {
+                vsi.setPos(headerPos + tagInfo.dataSize + 32);
             }
             return true;
         }
@@ -562,7 +565,16 @@ void vsi::VSIFile::readVolumeInfo()
     }
 
     vsi::TempData temp;
+    int64_t headerPos = vsiStream.getPos();
     readTags(vsiStream, false, "", temp);
+    vsiStream.setPos(headerPos);
+    readMetadata(vsiStream, m_metadata);
+    {
+        std::ofstream ofs("d:\\Temp\\metadata.json");
+        ofs << boost::json::serialize(m_metadata);
+        ofs.close();
+
+    }
 }
 
 
@@ -581,5 +593,293 @@ void vsi::VSIFile::readExternalFiles()
             m_etsFiles.push_back(etsFile);
         }
     }
+}
+
+std::string vsi::VSIFile::extractTagValue(vsi::VSIStream& vsi, const vsi::TagInfo& tagInfo)
+{
+    std::string value;
+    switch (tagInfo.valueType)
+    {
+    case vsi::ValueType::CHAR:
+    case vsi::ValueType::UCHAR:
+        value = std::to_string(vsi.readValue<uint8_t>());
+        break;
+    case vsi::ValueType::SHORT:
+    case vsi::ValueType::USHORT:
+        value = std::to_string(vsi.readValue<uint16_t>());
+        break;
+    case vsi::ValueType::INT:
+    case vsi::ValueType::UINT:
+    case vsi::ValueType::DWORD:
+    case vsi::ValueType::FIELD_TYPE:
+    case vsi::ValueType::MEM_MODEL:
+    case vsi::ValueType::COLOR_SPACE:
+        value = std::to_string(vsi.readValue<uint32_t>());
+        break;
+    case vsi::ValueType::INT64:
+    case vsi::ValueType::UINT64:
+    case vsi::ValueType::TIMESTAMP:
+        value = std::to_string(vsi.readValue<uint64_t>());
+        break;
+    case vsi::ValueType::FLOAT:
+        value = std::to_string(vsi.readValue<float>());
+        break;
+    case vsi::ValueType::DOUBLE:
+    case vsi::ValueType::DATE:
+        value = std::to_string(vsi.readValue<double>());
+        break;
+    case vsi::ValueType::BOOL:
+        value = std::to_string(vsi.readValue<bool>());
+        break;
+    case vsi::ValueType::TCHAR:
+    case vsi::ValueType::UNICODE_TCHAR:
+        value = vsi.readString(tagInfo.dataSize);
+        break;
+    case vsi::ValueType::VECTOR_INT_2:
+    case vsi::ValueType::TUPLE_INT:
+    case vsi::ValueType::ARRAY_INT_2:
+    case vsi::ValueType::VECTOR_INT_3:
+    case vsi::ValueType::ARRAY_INT_3:
+    case vsi::ValueType::VECTOR_INT_4:
+    case vsi::ValueType::RECT_INT:
+    case vsi::ValueType::ARRAY_INT_4:
+    case vsi::ValueType::ARRAY_INT_5:
+    case vsi::ValueType::DIM_INDEX_1:
+    case vsi::ValueType::DIM_INDEX_2:
+    case vsi::ValueType::VOLUME_INDEX:
+    case vsi::ValueType::PIXEL_INFO_TYPE:
+        {
+            uint32_t nIntValues = tagInfo.dataSize / 4;
+            std::vector<int32_t> intValues(nIntValues);
+            if (nIntValues > 1) {
+                value += "(";
+            }
+            for (uint32_t v = 0; v < nIntValues; v++) {
+                intValues[v] = vsi.readValue<int32_t>();
+                value += std::to_string(intValues[v]);
+                if (v < nIntValues - 1) {
+                    value += ", ";
+                }
+            }
+            if (nIntValues > 1) {
+                value += ")";
+            }
+        }
+        break;
+    case vsi::ValueType::DOUBLE2:
+    case vsi::ValueType::VECTOR_DOUBLE_2:
+    case vsi::ValueType::TUPLE_DOUBLE:
+    case vsi::ValueType::ARRAY_DOUBLE_2:
+    case vsi::ValueType::VECTOR_DOUBLE_3:
+    case vsi::ValueType::ARRAY_DOUBLE_3:
+    case vsi::ValueType::VECTOR_DOUBLE_4:
+    case vsi::ValueType::RECT_DOUBLE:
+    case vsi::ValueType::MATRIX_DOUBLE_2_2:
+    case vsi::ValueType::MATRIX_DOUBLE_3_3:
+    case vsi::ValueType::MATRIX_DOUBLE_4_4:
+        {
+            int nDoubleValues = tagInfo.dataSize / sizeof(double);
+            std::vector<double> doubleValues(nDoubleValues);
+            if (nDoubleValues > 1) {
+                value += "(";
+            }
+            for (int v = 0; v < nDoubleValues; v++) {
+                doubleValues[v] = vsi.readValue<double>();
+                value += std::to_string(doubleValues[v]);
+                if (v < nDoubleValues - 1) {
+                    value += ", ";
+                }
+            }
+            if (nDoubleValues > 1) {
+                value += ')';
+            }
+        }
+        break;
+    case vsi::ValueType::RGB:
+        {
+            int red = vsi.readValue<uint8_t>();
+            int green = vsi.readValue<uint8_t>();
+            int blue = vsi.readValue<uint8_t>();
+            value = "red = " + std::to_string(red)
+                + ", green = " + std::to_string(green)
+                + ", blue = " + std::to_string(blue);
+        }
+        break;
+    case vsi::ValueType::BGR:
+        {
+            int blue = vsi.readValue<uint8_t>();
+            int green = vsi.readValue<uint8_t>();
+            int red = vsi.readValue<uint8_t>();
+            value = "red = " + std::to_string(red)
+                + ", green = " + std::to_string(green)
+                + ", blue = " + std::to_string(blue);
+        }
+        break;
+    }
+    return value;
+}
+
+bool vsi::VSIFile::readMetadata(VSIStream& vsi, boost::json::object& parentObject)
+{
+    const int32_t NEW_VOLUME_HEADER = 0;
+    const int32_t PROPERTY_SET_VOLUME = 1;
+    const int32_t NEW_MDIM_VOLUME_HEADER = 2;
+
+    const int64_t headerPos = vsi.getPos();
+    vsi::VolumeHeader volumeHeader = {};
+    vsi.read<vsi::VolumeHeader>(volumeHeader);
+    if (volumeHeader.headerSize != 24) {
+        return false;
+    }
+    if (volumeHeader.magicNumber != 21321) {
+        return false;
+    }
+    if (volumeHeader.offsetFirstDataField < 0) {
+        return false;
+    }
+    const int64_t dataFieldOffset = headerPos + volumeHeader.offsetFirstDataField;
+    if (dataFieldOffset >= vsi.getSize()) {
+        return false;
+    }
+    bool dataBlockFollowsHeader = (volumeHeader.flags & vsi::VOLUME_DATA_BLOCK_TYPE_MASK) != 0;
+    const uint32_t volumeTagCount = volumeHeader.flags & vsi::VOLUME_TAG_COUNT_MASK;
+    vsi.setPos(dataFieldOffset);
+
+    struct vsi::TagHeader tagHeader;
+    parentObject["tagCount"] = volumeTagCount;
+    for (uint tagIndex = 0; tagIndex < volumeTagCount; ++tagIndex) {
+        TagInfo tagInfo;
+        int64_t tagPos = vsi.getPos();
+        std::string storedValue;
+        //auto hdr = vsi.readValue<vsi::TagHeader>();
+        vsi.read(tagHeader);
+        int32_t nextField = tagHeader.nextField & 0xFFFFFFFFL;
+        const bool extraTag = ((tagHeader.fieldType & 0x8000000) >> 27) == 1;
+        const bool extendedField = ((tagHeader.fieldType & 0x10000000) >> 28) == 1;
+        const bool inlineData = ((tagHeader.fieldType & 0x40000000) >> 30) == 1;
+        bool array = (!inlineData && !extendedField) &&
+            ((tagHeader.fieldType & 0x20000000) >> 29) == 1;
+
+        tagInfo.tag = tagHeader.tag;
+        tagInfo.fieldType = tagHeader.fieldType;
+        if(extendedField) {
+            tagInfo.extendedType = static_cast<ExtendedType>(tagHeader.fieldType & 0xffffff);
+        }
+        else {
+            tagInfo.valueType = static_cast<ValueType>(tagHeader.fieldType & 0xffffff);
+        }
+
+        int secondTag = -1;
+
+        if (extraTag) {
+            vsi.read<int>(secondTag);
+        }
+        if (tagHeader.tag < 0) {
+            if (!inlineData && (tagHeader.dataSize + vsi.getPos()) < vsi.getSize()) {
+                vsi.skipBytes(tagHeader.dataSize);
+            }
+            return false;
+        }
+
+        tagInfo.dataSize = tagHeader.dataSize;
+        int dimensionTag = -1;
+        bool inDimensionProperties = false;
+        bool foundChannelTag = false;
+
+        std::string tagName = VSITools::getTagName(tagInfo);
+        std::string tagKey = std::to_string(tagInfo.tag);
+        boost::json::object tagObject;
+        tagObject["name"] = tagName;
+        tagObject["offset"] = tagPos;
+        tagObject["nextField"] = nextField;
+        tagObject["fieldType"] = tagHeader.fieldType;
+        tagObject["valueType"] = (int)tagInfo.valueType;
+        tagObject["extendedType"] = (int)tagInfo.extendedType;
+        tagObject["extraTag"] = extraTag;
+        tagObject["extendedField"] = extendedField;
+
+        if(extendedField) {
+            switch(tagInfo.extendedType) {
+                case ExtendedType::NEW_VOLUME_HEADER:
+                    {
+                        if (tagInfo.tag == vsi::DIMENSION_DESCRIPTION_VOLUME) {
+                            dimensionTag = secondTag;
+                            inDimensionProperties = true;
+                        }
+                        int64_t endPointer = vsi.getPos() + tagInfo.dataSize;
+                        while (vsi.getPos() < endPointer && vsi.getPos() < vsi.getSize())
+                        {
+                            int64_t start = vsi.getPos();
+                            bool ok = readMetadata(vsi, tagObject);
+                            if (!ok) {
+                                break;
+                            }
+                            int64_t end = vsi.getPos();
+                            if (start >= end) {
+                                break;
+                            }
+                        }
+                        if (tagInfo.tag == vsi::DIMENSION_DESCRIPTION_VOLUME) {
+                            inDimensionProperties = false;
+                            foundChannelTag = false;
+                        }
+                    }
+                    break;
+                case ExtendedType::PROPERTY_SET_VOLUME:
+                case ExtendedType::NEW_MDIM_VOLUME_HEADER:
+                    readMetadata(vsi, tagObject);
+                    break;
+            }
+        }
+        else {
+            std::string value = inlineData ? std::to_string(tagInfo.dataSize) : " ";
+            if (!inlineData && tagInfo.dataSize > 0) {
+                value = extractTagValue(vsi, tagInfo);
+            }
+
+            if (tagInfo.tag == vsi::DOCUMENT_TIME || tagInfo.tag == vsi::CREATION_TIME) {
+                std::ostringstream oss;
+                time_t time = std::stoll(value);
+                oss << std::put_time(std::localtime(&time), "%d-%m-%Y %H-%M-%S");
+                value = oss.str();
+            }
+            tagObject["value"] = value;
+        }
+
+        if (vsi::VSITools::isArray(tagInfo)) {
+            auto it = parentObject.find(tagKey);
+            if (it != parentObject.end()) {
+                auto& array = it->value().as_array().emplace_back(std::move(tagObject));
+            }
+            else {
+                boost::json::array array;
+                array.emplace_back(std::move(tagObject));
+                parentObject[tagKey] = std::move(array);
+            }
+
+        }
+        else {
+            if(parentObject.find(tagKey)!=parentObject.end()) {
+                std::cout << "Duplicate tag " << tagKey << std::endl;
+            }
+            parentObject[tagKey] = std::move(tagObject);
+        }
+
+
+        if (nextField == 0 || tagInfo.tag == -494804095) {
+            if (headerPos + tagInfo.dataSize + 32 < vsi.getSize() && headerPos + tagInfo.dataSize >= 0) {
+                vsi.setPos(headerPos + tagInfo.dataSize + 32);
+            }
+            return true;
+        }
+
+        if (headerPos + nextField < vsi.getSize() && headerPos + nextField >= 0) {
+            vsi.setPos(headerPos + nextField);
+        }
+        else
+            break;
+
+    }
+    return true;
 }
 

@@ -61,7 +61,7 @@ void slideio::vsi::EtsFile::read()
     ets.setPos(header.usedChunksPos);
     m_tiles.resize(header.numUsedChunks);
     const int dimensions = static_cast<int>(m_dimensions.back());
-    for(auto chunk=0; chunk<header.numUsedChunks; ++chunk) {
+    for(uint chunk=0; chunk<header.numUsedChunks; ++chunk) {
         TileInfo& tileInfo = m_tiles[chunk];
         ets.skipBytes(4);
         tileInfo.coordinates.resize(dimensions);

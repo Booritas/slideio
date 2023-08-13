@@ -94,9 +94,21 @@ namespace slideio
         constexpr uint32_t EXTENDED_FIELD_TYPE_MASK = 0x1000000;
         constexpr uint32_t VOLUME_DATA_BLOCK_TYPE_MASK = 0x10000000;
         constexpr uint32_t VOLUME_TAG_COUNT_MASK = 0xFFFFFFF;
-        // Pixel types
-        enum class PixelType
+
+        enum class ExtendedType
         {
+            UNSET = -1,
+            NEW_VOLUME_HEADER = 0,
+            PROPERTY_SET_VOLUME = 1,
+            NEW_MDIM_VOLUME_HEADER = 2,
+            TIFF_ID = 0xA,
+            VECTOR_DATA = 0xB
+
+        };
+
+        enum class ValueType
+        {
+            UNSET = 0,
             CHAR = 1,
             UCHAR = 2,
             SHORT = 3,

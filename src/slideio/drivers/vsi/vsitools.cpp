@@ -11,16 +11,16 @@ DataType vsi::VSITools::toSlideioPixelType(uint32_t vsiPixelType)
 {
     switch(vsiPixelType)
     {
-      case vsi::PixelType::CHAR: return DataType::DT_Int8;
-      case vsi::PixelType::UCHAR: return DataType::DT_Byte;
-      case vsi::PixelType::SHORT: return DataType::DT_Int16;
-	  case vsi::PixelType::USHORT: return DataType::DT_UInt16;
-	  case vsi::PixelType::INT: return DataType::DT_Int32;
-	  case vsi::PixelType::UINT: return DataType::DT_UInt32;
-	  case vsi::PixelType::INT64: return DataType::DT_Int64;
-	  case vsi::PixelType::UINT64: return DataType::DT_UInt64;
-	  case vsi::PixelType::FLOAT: return DataType::DT_Float32;
-	  case vsi::PixelType::DOUBLE: return DataType::DT_Float64;
+      case vsi::ValueType::CHAR: return DataType::DT_Int8;
+      case vsi::ValueType::UCHAR: return DataType::DT_Byte;
+      case vsi::ValueType::SHORT: return DataType::DT_Int16;
+	  case vsi::ValueType::USHORT: return DataType::DT_UInt16;
+	  case vsi::ValueType::INT: return DataType::DT_Int32;
+	  case vsi::ValueType::UINT: return DataType::DT_UInt32;
+	  case vsi::ValueType::INT64: return DataType::DT_Int64;
+	  case vsi::ValueType::UINT64: return DataType::DT_UInt64;
+	  case vsi::ValueType::FLOAT: return DataType::DT_Float32;
+	  case vsi::ValueType::DOUBLE: return DataType::DT_Float64;
     }
 	RAISE_RUNTIME_ERROR << "VSI Driver: Unsupported pixel type: " << vsiPixelType;
 }
@@ -90,9 +90,46 @@ std::string vsi::VSITools::getVolumeName(int32_t tag)
 
 }
 
-std::string vsi::VSITools::getTagName(int32_t tag)
+std::string vsi::VSITools::getTagName(const TagInfo& tagInfo)
 {
-    switch (tag) {
+    if(tagInfo.extendedType == ExtendedType::PROPERTY_SET_VOLUME 
+        || tagInfo.extendedType == ExtendedType::NEW_MDIM_VOLUME_HEADER) {
+        switch (tagInfo.tag)
+        {
+        case vsi::DIMENSION_SIZE:
+            return "Dimension size";
+        case vsi::IMAGE_COLLECTION_PROPERTIES:
+            return "Image collection properties";
+        case vsi::MULTIDIM_STACK_PROPERTIES:
+            return "Multidimensional stack properties";
+        case vsi::FRAME_PROPERTIES:
+            return "Frame properties";
+        case vsi::DIMENSION_DESCRIPTION_VOLUME:
+            return "Dimension description volume";
+        case vsi::CHANNEL_PROPERTIES:
+            return "Channel properties";
+        case vsi::DISPLAY_MAPPING_VOLUME:
+            return "Display mapping volume";
+        case vsi::LAYER_INFO_PROPERTIES:
+            return "Layer info properties";
+        case vsi::OPTICAL_PATH:
+            return "Microscope ";
+        case 2417:
+            return "Channel Wavelength ";
+        case vsi::WORKING_DISTANCE:
+            return "Objective Working Distance ";
+        }
+    }
+
+    switch (tagInfo.tag) {
+    case vsi::IMAGE_FRAME_VOLUME:
+        return "Image frame volume";
+    case vsi::COLLECTION_VOLUME:
+        return "Collection volume";
+    case vsi::MULTIDIM_IMAGE_VOLUME:
+        return "Multidimensional image volume";
+    case vsi::PROPERTY_SET_VOLUME_FOR_DOCUMENT_PROPERTIES:
+        return "Document properties";
     case vsi::Y_PLANE_DIMENSION_UNIT:
         return "Image plane rectangle unit (Y dimension)";
     case vsi::Y_DIMENSION_UNIT:
@@ -208,6 +245,9 @@ std::string vsi::VSITools::getTagName(int32_t tag)
     case vsi::TILE_ORIGIN:
         return "Origin of tile coordinate system";
     case vsi::DISPLAY_LIMITS:
+        if(tagInfo.fieldType == 8195) {
+            return "Multidimensional Index";
+        }
         return "Display limits";
     case vsi::STACK_DISPLAY_LUT:
         return "Stack display LUT";
@@ -497,6 +537,17 @@ std::string vsi::VSITools::getTagName(int32_t tag)
         return "Camera WiDER Enabled";
     }
     return "";
+}
+
+bool vsi::VSITools::isArray(const TagInfo& tagInfo)
+{
+    if (tagInfo.tag == MULTIDIM_IMAGE_VOLUME) {
+        return true;
+    }
+    else if(tagInfo.tag == 0 || tagInfo.tag == 1) {
+        return true;
+    }
+    return false;
 }
 
 std::string vsi::VSITools::getStackTypeName(const std::string& value)

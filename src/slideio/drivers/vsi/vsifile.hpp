@@ -5,15 +5,17 @@
 #include <memory>
 #include <string>
 #include <vector>
-
+#include <boost/json.hpp>
 #include "vsiscene.hpp"
 #include "vsistruct.hpp"
+#include "vsitools.hpp"
 #include "slideio/drivers/vsi/vsi_api_def.hpp"
 
 #if defined(_MSC_VER)
 #pragma warning( push )
 #pragma warning(disable: 4251)
 #endif
+
 
 namespace slideio
 {
@@ -47,8 +49,11 @@ namespace slideio
         private:
             void read();
             bool readTags(vsi::VSIStream& vsi, bool populateMetadata, std::string tagPrefix, vsi::TempData& temp);
+            bool readMetadata(VSIStream& vsiStream, boost::json::object& parent);
             void readVolumeInfo();
             void readExternalFiles();
+            std::string extractTagValue(vsi::VSIStream& vsi, const vsi::TagInfo& tagInfo);
+
         private:
             std::vector<std::shared_ptr<Pyramid>> m_pyramids;
             std::vector<std::shared_ptr<vsi::EtsFile>> m_etsFiles;
@@ -56,6 +61,7 @@ namespace slideio
             int m_numChannels = 0;
             int m_numSlices = 0;
             std::string m_filePath;
+            boost::json::object m_metadata;
         };
     }
 }

@@ -11,6 +11,17 @@ namespace slideio
 {
     namespace vsi
     {
+        struct TagInfo
+        {
+            int tag = 0;
+            int fieldType = 0;
+            ValueType valueType = ValueType::UNSET;
+            ExtendedType extendedType = ExtendedType::UNSET;
+            int secondTag = -1;
+            bool extended = false;
+            int32_t dataSize = 0;
+
+        };
         class VSITools
         {
         public:
@@ -18,7 +29,8 @@ namespace slideio
             static slideio::Compression toSlideioCompression(vsi::Compression format);
             static StackType intToStackType(int value);
             static std::string getVolumeName(int32_t tag);
-            static std::string getTagName(int32_t tag);
+            static std::string getTagName(const TagInfo& tagInfo);
+            static bool isArray(const TagInfo& tagInfo);
             static std::string getStackTypeName(const std::string& value);
             static std::string getDeviceSubtype(const std::string& value);
         };
