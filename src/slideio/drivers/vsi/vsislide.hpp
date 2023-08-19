@@ -10,7 +10,6 @@
 #include "slideio/drivers/vsi/vsiscene.hpp"
 #include "slideio/drivers/vsi/vsi_api_def.hpp"
 #include "slideio/imagetools/tifftools.hpp"
-#include "slideio/drivers/vsi/pyramid.hpp"
 #include "slideio/drivers/vsi/vsistream.hpp"
 #include  "slideio/drivers/vsi/etsfile.hpp"
 
@@ -33,11 +32,13 @@ namespace slideio
     public:
         VSISlide(const std::string& filePath);
     public:
-        virtual ~VSISlide();
+        ~VSISlide() override;
         int getNumScenes() const override;
         std::string getFilePath() const override;
         std::shared_ptr<slideio::CVScene> getScene(int index) const override;
         std::shared_ptr<CVScene> getAuxImage(const std::string& sceneName) const override;
+        const std::string& getRawMetadata() const override;
+        MetadataType getMetadataType() const override { return MetadataType::JSON; }
     private:
         void init();
     private:

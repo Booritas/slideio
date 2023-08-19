@@ -63,7 +63,6 @@ namespace slideio
             cv::OutputArray output) override;
     protected:
         void init();
-        std::shared_ptr<vsi::Pyramid> getPyramid() const;
         std::shared_ptr<vsi::EtsFile> getEtsFile() const;
     protected:
         std::string m_filePath;

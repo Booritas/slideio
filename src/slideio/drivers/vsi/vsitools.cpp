@@ -63,27 +63,27 @@ vsi::StackType vsi::VSITools::intToStackType(int value) {
     }
 }
 
-std::string vsi::VSITools::getVolumeName(int32_t tag)
+std::string vsi::VSITools::getVolumeName(Tag tag)
 {
     switch (tag)
     {
-    case vsi::COLLECTION_VOLUME:
-    case vsi::MULTIDIM_IMAGE_VOLUME:
-    case vsi::IMAGE_FRAME_VOLUME:
-    case vsi::DIMENSION_SIZE:
-    case vsi::IMAGE_COLLECTION_PROPERTIES:
-    case vsi::MULTIDIM_STACK_PROPERTIES:
-    case vsi::FRAME_PROPERTIES:
-    case vsi::DIMENSION_DESCRIPTION_VOLUME:
-    case vsi::CHANNEL_PROPERTIES:
-    case vsi::DISPLAY_MAPPING_VOLUME:
-    case vsi::LAYER_INFO_PROPERTIES:
+    case vsi::Tag::COLLECTION_VOLUME:
+    case vsi::Tag::MULTIDIM_IMAGE_VOLUME:
+    case vsi::Tag::IMAGE_FRAME_VOLUME:
+    case vsi::Tag::DIMENSION_SIZE:
+    case vsi::Tag::IMAGE_COLLECTION_PROPERTIES:
+    case vsi::Tag::MULTIDIM_STACK_PROPERTIES:
+    case vsi::Tag::FRAME_PROPERTIES:
+    case vsi::Tag::DIMENSION_DESCRIPTION_VOLUME:
+    case vsi::Tag::CHANNEL_PROPERTIES:
+    case vsi::Tag::DISPLAY_MAPPING_VOLUME:
+    case vsi::Tag::LAYER_INFO_PROPERTIES:
         return "";
-    case vsi::OPTICAL_PATH:
+    case vsi::Tag::OPTICAL_PATH:
         return "Microscope ";
     case 2417:
         return "Channel Wavelength ";
-    case vsi::WORKING_DISTANCE:
+    case vsi::Tag::WORKING_DISTANCE:
         return "Objective Working Distance ";
     }
     return "";
@@ -97,322 +97,322 @@ std::string vsi::VSITools::getTagName(const TagInfo& tagInfo)
         || tagInfo.extendedType == ExtendedType::NEW_VOLUME_HEADER) {
         switch (tagInfo.tag)
         {
-        case vsi::DIMENSION_SIZE:
+        case vsi::Tag::DIMENSION_SIZE:
             return "Dimension size";
-        case vsi::IMAGE_COLLECTION_PROPERTIES:
+        case vsi::Tag::IMAGE_COLLECTION_PROPERTIES:
             return "Image collection properties";
-        case vsi::MULTIDIM_STACK_PROPERTIES:
+        case vsi::Tag::MULTIDIM_STACK_PROPERTIES:
             return "Multidimensional stack properties";
-        case vsi::FRAME_PROPERTIES:
+        case vsi::Tag::FRAME_PROPERTIES:
             return "Frame properties";
-        case vsi::DIMENSION_DESCRIPTION_VOLUME:
+        case vsi::Tag::DIMENSION_DESCRIPTION_VOLUME:
             return std::string("Volume for dimension ") + 
                 std::to_string(tagInfo.secondTag) + std::string(" description");
-        case vsi::CHANNEL_PROPERTIES:
+        case vsi::Tag::CHANNEL_PROPERTIES:
             return "Channel properties";
-        case vsi::DISPLAY_MAPPING_VOLUME:
+        case vsi::Tag::DISPLAY_MAPPING_VOLUME:
             return "Display mapping volume";
-        case vsi::LAYER_INFO_PROPERTIES:
+        case vsi::Tag::LAYER_INFO_PROPERTIES:
             return "Layer info properties";
-        case vsi::OPTICAL_PATH:
+        case vsi::Tag::OPTICAL_PATH:
             return "Microscope ";
         case 2417:
             return "Channel Wavelength ";
-        case vsi::WORKING_DISTANCE:
+        case vsi::Tag::WORKING_DISTANCE:
             return "Objective Working Distance ";
-        case vsi::CHANNEL_INFO_PROPERTIES:
+        case vsi::Tag::CHANNEL_INFO_PROPERTIES:
             return "Channel info properties";
-        case vsi::EXTERNAL_FILE_PROPERTIES:
+        case vsi::Tag::EXTERNAL_FILE_PROPERTIES:
             return "External file properties";
         }
     }
 
     switch (tagInfo.tag) {
-    case vsi::IMAGE_FRAME_VOLUME:
+    case vsi::Tag::IMAGE_FRAME_VOLUME:
         return "Image frame volume";
-    case vsi::COLLECTION_VOLUME:
+    case vsi::Tag::COLLECTION_VOLUME:
         return "Collection volume";
-    case vsi::MULTIDIM_IMAGE_VOLUME:
+    case vsi::Tag::MULTIDIM_IMAGE_VOLUME:
         return "Multidimensional image volume";
-    case vsi::PROPERTY_SET_VOLUME_FOR_DOCUMENT_PROPERTIES:
+    case vsi::Tag::PROPERTY_SET_VOLUME_FOR_DOCUMENT_PROPERTIES:
         return "Document properties";
-    case vsi::Y_PLANE_DIMENSION_UNIT:
+    case vsi::Tag::Y_PLANE_DIMENSION_UNIT:
         return "Image plane rectangle unit (Y dimension)";
-    case vsi::Y_DIMENSION_UNIT:
+    case vsi::Tag::Y_DIMENSION_UNIT:
         return "Y dimension unit";
-    case vsi::CHANNEL_OVERFLOW:
+    case vsi::Tag::CHANNEL_OVERFLOW:
         return "Channel under/overflow";
-    case vsi::SLIDE_SPECIMEN:
+    case vsi::Tag::SLIDE_SPECIMEN:
         return "Specimen";
-    case vsi::SLIDE_TISSUE:
+    case vsi::Tag::SLIDE_TISSUE:
         return "Tissue";
-    case vsi::SLIDE_PREPARATION:
+    case vsi::Tag::SLIDE_PREPARATION:
         return "Preparation";
-    case vsi::SLIDE_STAINING:
+    case vsi::Tag::SLIDE_STAINING:
         return "Staining";
-    case vsi::SLIDE_INFO:
+    case vsi::Tag::SLIDE_INFO:
         return "Slide Info";
-    case vsi::SLIDE_NAME:
+    case vsi::Tag::SLIDE_NAME:
         return "Slide Name";
-    case vsi::EXPOSURE_TIME:
+    case vsi::Tag::EXPOSURE_TIME:
         return "Exposure time (microseconds)";
-    case vsi::CAMERA_GAIN:
+    case vsi::Tag::CAMERA_GAIN:
         return "Camera gain";
-    case vsi::CAMERA_OFFSET:
+    case vsi::Tag::CAMERA_OFFSET:
         return "Camera offset";
-    case vsi::CAMERA_GAMMA:
+    case vsi::Tag::CAMERA_GAMMA:
         return "Gamma";
-    case vsi::SHARPNESS:
+    case vsi::Tag::SHARPNESS:
         return "Sharpness";
-    case vsi::RED_GAIN:
+    case vsi::Tag::RED_GAIN:
         return "Red channel gain";
-    case vsi::GREEN_GAIN:
+    case vsi::Tag::GREEN_GAIN:
         return "Green channel gain";
-    case vsi::BLUE_GAIN:
+    case vsi::Tag::BLUE_GAIN:
         return "Blue channel gain";
-    case vsi::RED_OFFSET:
+    case vsi::Tag::RED_OFFSET:
         return "Red channel offset";
-    case vsi::GREEN_OFFSET:
+    case vsi::Tag::GREEN_OFFSET:
         return "Green channel offset";
-    case vsi::BLUE_OFFSET:
+    case vsi::Tag::BLUE_OFFSET:
         return "Blue channel offset";
-    case vsi::SHADING_SUB:
+    case vsi::Tag::SHADING_SUB:
         return "Shading sub";
-    case vsi::SHADING_MUL:
+    case vsi::Tag::SHADING_MUL:
         return "Shading mul";
-    case vsi::X_BINNING:
+    case vsi::Tag::X_BINNING:
         return "Binning (X)";
-    case vsi::Y_BINNING:
+    case vsi::Tag::Y_BINNING:
         return "Binning (Y)";
-    case vsi::CLIPPING:
+    case vsi::Tag::CLIPPING:
         return "Clipping";
-    case vsi::MIRROR_H:
+    case vsi::Tag::MIRROR_H:
         return "Mirror (horizontal)";
-    case vsi::MIRROR_V:
+    case vsi::Tag::MIRROR_V:
         return "Mirror (vertical)";
-    case vsi::CLIPPING_STATE:
+    case vsi::Tag::CLIPPING_STATE:
         return "Clipping state";
-    case vsi::ICC_ENABLED:
+    case vsi::Tag::ICC_ENABLED:
         return "ICC enabled";
-    case vsi::BRIGHTNESS:
+    case vsi::Tag::BRIGHTNESS:
         return "Brightness";
-    case vsi::CONTRAST:
+    case vsi::Tag::CONTRAST:
         return "Contrast";
-    case vsi::CONTRAST_TARGET:
+    case vsi::Tag::CONTRAST_TARGET:
         return "Contrast reference";
-    case vsi::ACCUMULATION:
+    case vsi::Tag::ACCUMULATION:
         return "Camera accumulation";
-    case vsi::AVERAGING:
+    case vsi::Tag::AVERAGING:
         return "Camera averaging";
-    case vsi::ISO_SENSITIVITY:
+    case vsi::Tag::ISO_SENSITIVITY:
         return "ISO sensitivity";
-    case vsi::ACCUMULATION_MODE:
+    case vsi::Tag::ACCUMULATION_MODE:
         return "Camera accumulation mode";
-    case vsi::AUTOEXPOSURE:
+    case vsi::Tag::AUTOEXPOSURE:
         return "Autoexposure enabled";
-    case vsi::EXPOSURE_METERING_MODE:
+    case vsi::Tag::EXPOSURE_METERING_MODE:
         return "Autoexposure metering mode";
-    case vsi::Z_START:
+    case vsi::Tag::Z_START:
         return "Z stack start";
-    case vsi::Z_INCREMENT:
+    case vsi::Tag::Z_INCREMENT:
         return "Z stack increment";
-    case vsi::Z_VALUE:
+    case vsi::Tag::Z_VALUE:
         return "Z position";
-    case vsi::TIME_START:
+    case vsi::Tag::TIME_START:
         return "Timelapse start";
-    case vsi::TIME_INCREMENT:
+    case vsi::Tag::TIME_INCREMENT:
         if(tagInfo.fieldType == 0x1800000A) {
             return "TIFF IFD of the default sample";
         }
         return "Timelapse increment";
-    case vsi::TIME_VALUE:
+    case vsi::Tag::TIME_VALUE:
         return "Timestamp";
-    case vsi::LAMBDA_START:
+    case vsi::Tag::LAMBDA_START:
         return "Lambda start";
-    case vsi::LAMBDA_INCREMENT:
+    case vsi::Tag::LAMBDA_INCREMENT:
         return "Lambda increment";
-    case vsi::LAMBDA_VALUE:
+    case vsi::Tag::LAMBDA_VALUE:
         return "Lambda value";
-    case vsi::DIMENSION_NAME:
+    case vsi::Tag::DIMENSION_NAME:
         return "Dimension name";
-    case vsi::DIMENSION_MEANING:
+    case vsi::Tag::DIMENSION_MEANING:
         return "Dimension description";
-    case vsi::DIMENSION_START_ID:
+    case vsi::Tag::DIMENSION_START_ID:
         return "Dimension start ID";
-    case vsi::DIMENSION_INCREMENT_ID:
+    case vsi::Tag::DIMENSION_INCREMENT_ID:
         return "Dimension increment ID";
-    case vsi::DIMENSION_VALUE_ID:
+    case vsi::Tag::DIMENSION_VALUE_ID:
         return "Dimension value ID";
-    case vsi::IMAGE_BOUNDARY:
+    case vsi::Tag::IMAGE_BOUNDARY:
         return "Image size";
-    case vsi::TILE_SYSTEM:
+    case vsi::Tag::TILE_SYSTEM:
         return "Tile system";
-    case vsi::HAS_EXTERNAL_FILE:
+    case vsi::Tag::HAS_EXTERNAL_FILE:
         return "External file present";
-    case vsi::EXTERNAL_DATA_VOLUME:
+    case vsi::Tag::EXTERNAL_DATA_VOLUME:
         return "External file volume";
-    case vsi::TILE_ORIGIN:
+    case vsi::Tag::TILE_ORIGIN:
         return "Origin of tile coordinate system";
-    case vsi::DISPLAY_LIMITS:
+    case vsi::Tag::DISPLAY_LIMITS:
         if(tagInfo.fieldType == 8195) {
             return "Multidimensional Index";
         }
         return "Display limits";
-    case vsi::STACK_DISPLAY_LUT:
+    case vsi::Tag::STACK_DISPLAY_LUT:
         return "Stack display LUT";
-    case vsi::GAMMA_CORRECTION:
+    case vsi::Tag::GAMMA_CORRECTION:
         return "Gamma correction";
-    case vsi::FRAME_ORIGIN:
+    case vsi::Tag::FRAME_ORIGIN:
         return "Frame origin (plane coordinates)";
-    case vsi::FRAME_SCALE:
+    case vsi::Tag::FRAME_SCALE:
         return "Frame scale (plane coordinates)";
-    case vsi::DISPLAY_COLOR:
+    case vsi::Tag::DISPLAY_COLOR:
         return "Display color";
-    case vsi::CREATION_TIME:
+    case vsi::Tag::CREATION_TIME:
         return "Creation time (UTC)";
-    case vsi::RWC_FRAME_ORIGIN:
+    case vsi::Tag::RWC_FRAME_ORIGIN:
         return "Origin";
-    case vsi::RWC_FRAME_SCALE:
+    case vsi::Tag::RWC_FRAME_SCALE:
         return "Calibration";
-    case vsi::RWC_FRAME_UNIT:
+    case vsi::Tag::RWC_FRAME_UNIT:
         return "Calibration units";
-    case vsi::STACK_NAME:
+    case vsi::Tag::STACK_NAME:
         return "Layer";
-    case vsi::CHANNEL_DIM:
+    case vsi::Tag::CHANNEL_DIM:
         return "Channel dimension";
-    case vsi::STACK_TYPE:
+    case vsi::Tag::STACK_TYPE:
         return "Image Type";
-    case vsi::LIVE_OVERFLOW:
+    case vsi::Tag::LIVE_OVERFLOW:
         return "Live overflow";
-    case vsi::IS_TRANSMISSION:
+    case vsi::Tag::IS_TRANSMISSION:
         return "IS transmission mask";
-    case vsi::CONTRAST_BRIGHTNESS:
+    case vsi::Tag::CONTRAST_BRIGHTNESS:
         return "Contrast and brightness";
-    case vsi::ACQUISITION_PROPERTIES:
+    case vsi::Tag::ACQUISITION_PROPERTIES:
         return "Acquisition properties";
-    case vsi::GRADIENT_LUT:
+    case vsi::Tag::GRADIENT_LUT:
         return "Gradient LUT";
-    case vsi::DISPLAY_PROCESSOR_TYPE:
+    case vsi::Tag::DISPLAY_PROCESSOR_TYPE:
         return "Display processor type";
-    case vsi::RENDER_OPERATION_ID:
+    case vsi::Tag::RENDER_OPERATION_ID:
         return "Render operation ID";
-    case vsi::DISPLAY_STACK_ID:
+    case vsi::Tag::DISPLAY_STACK_ID:
         return "Displayed stack ID";
-    case vsi::TRANSPARENCY_ID:
+    case vsi::Tag::TRANSPARENCY_ID:
         return "Transparency ID";
-    case vsi::THIRD_ID:
+    case vsi::Tag::THIRD_ID:
         return "Display third ID";
-    case vsi::DISPLAY_VISIBLE:
+    case vsi::Tag::DISPLAY_VISIBLE:
         return "Display visible";
-    case vsi::TRANSPARENCY_VALUE:
+    case vsi::Tag::TRANSPARENCY_VALUE:
         return "Transparency value";
-    case vsi::DISPLAY_LUT:
+    case vsi::Tag::DISPLAY_LUT:
         return "Display LUT";
-    case vsi::DISPLAY_STACK_INDEX:
+    case vsi::Tag::DISPLAY_STACK_INDEX:
         return "Display stack index";
-    case vsi::CHANNEL_TRANSPARENCY_VALUE:
+    case vsi::Tag::CHANNEL_TRANSPARENCY_VALUE:
         return "Channel transparency value";
-    case vsi::CHANNEL_VISIBLE:
+    case vsi::Tag::CHANNEL_VISIBLE:
         return "Channel visible";
-    case vsi::SELECTED_CHANNELS:
+    case vsi::Tag::SELECTED_CHANNELS:
         return "List of selected channels";
-    case vsi::DISPLAY_GAMMA_CORRECTION:
+    case vsi::Tag::DISPLAY_GAMMA_CORRECTION:
         return "Display gamma correction";
-    case vsi::CHANNEL_GAMMA_CORRECTION:
+    case vsi::Tag::CHANNEL_GAMMA_CORRECTION:
         return "Channel gamma correction";
-    case vsi::DISPLAY_CONTRAST_BRIGHTNESS:
+    case vsi::Tag::DISPLAY_CONTRAST_BRIGHTNESS:
         return "Display contrast and brightness";
-    case vsi::CHANNEL_CONTRAST_BRIGHTNESS:
+    case vsi::Tag::CHANNEL_CONTRAST_BRIGHTNESS:
         return "Channel contrast and brightness";
-    case vsi::ACTIVE_STACK_DIMENSION:
+    case vsi::Tag::ACTIVE_STACK_DIMENSION:
         return "Active stack dimension";
-    case vsi::SELECTED_FRAMES:
+    case vsi::Tag::SELECTED_FRAMES:
         return "Selected frames";
-    case vsi::DISPLAYED_LUT_ID:
+    case vsi::Tag::DISPLAYED_LUT_ID:
         return "Displayed LUT ID";
-    case vsi::HIDDEN_LAYER:
+    case vsi::Tag::HIDDEN_LAYER:
         return "Hidden layer";
-    case vsi::LAYER_XY_FIXED:
+    case vsi::Tag::LAYER_XY_FIXED:
         return "Layer fixed in XY";
-    case vsi::ACTIVE_LAYER_VECTOR:
+    case vsi::Tag::ACTIVE_LAYER_VECTOR:
         return "Active layer vector";
-    case vsi::ACTIVE_LAYER_INDEX_VECTOR:
+    case vsi::Tag::ACTIVE_LAYER_INDEX_VECTOR:
         return "Active layer index vector";
-    case vsi::CHAINED_LAYERS:
+    case vsi::Tag::CHAINED_LAYERS:
         return "Chained layers";
-    case vsi::LAYER_SELECTION:
+    case vsi::Tag::LAYER_SELECTION:
         return "Layer selection";
-    case vsi::LAYER_SELECTION_INDEX:
+    case vsi::Tag::LAYER_SELECTION_INDEX:
         return "Layer selection index";
-    case vsi::CANVAS_COLOR_1:
+    case vsi::Tag::CANVAS_COLOR_1:
         return "Canvas background color 1";
-    case vsi::CANVAS_COLOR_2:
+    case vsi::Tag::CANVAS_COLOR_2:
         return "Canvas background color 2";
-    case vsi::ORIGINAL_FRAME_RATE:
+    case vsi::Tag::ORIGINAL_FRAME_RATE:
         return "Original frame rate (ms)";
-    case vsi::USE_ORIGINAL_FRAME_RATE:
+    case vsi::Tag::USE_ORIGINAL_FRAME_RATE:
         return "Use original frame rate";
-    case vsi::ACTIVE_CHANNEL:
+    case vsi::Tag::ACTIVE_CHANNEL:
         return "Active channel";
-    case vsi::PLANE_UNIT:
+    case vsi::Tag::PLANE_UNIT:
         return "Plane unit";
-    case vsi::PLANE_ORIGIN_RWC:
+    case vsi::Tag::PLANE_ORIGIN_RWC:
         return "Origin";
-    case vsi::PLANE_SCALE_RWC:
+    case vsi::Tag::PLANE_SCALE_RWC:
         return "Physical pixel size";
-    case vsi::MAGNIFICATION:
+    case vsi::Tag::MAGNIFICATION:
         return "Original magnification";
-    case vsi::DOCUMENT_NAME:
+    case vsi::Tag::DOCUMENT_NAME:
         return "Document Name";
-    case vsi::DOCUMENT_NOTE:
+    case vsi::Tag::DOCUMENT_NOTE:
         return "Document Note";
-    case vsi::DOCUMENT_TIME:
+    case vsi::Tag::DOCUMENT_TIME:
         return "Document Creation Time";
-    case vsi::DOCUMENT_AUTHOR:
+    case vsi::Tag::DOCUMENT_AUTHOR:
         return "Document Author";
-    case vsi::DOCUMENT_COMPANY:
+    case vsi::Tag::DOCUMENT_COMPANY:
         return "Document Company";
-    case vsi::DOCUMENT_CREATOR_NAME:
+    case vsi::Tag::DOCUMENT_CREATOR_NAME:
         return "Document creator name";
-    case vsi::DOCUMENT_CREATOR_MAJOR_VERSION:
+    case vsi::Tag::DOCUMENT_CREATOR_MAJOR_VERSION:
         return "Document creator major version";
-    case vsi::DOCUMENT_CREATOR_MINOR_VERSION:
+    case vsi::Tag::DOCUMENT_CREATOR_MINOR_VERSION:
         return "Document creator minor version";
-    case vsi::DOCUMENT_CREATOR_SUB_VERSION:
+    case vsi::Tag::DOCUMENT_CREATOR_SUB_VERSION:
         return "Document creator sub version";
-    case vsi::DOCUMENT_CREATOR_BUILD_NUMBER:
+    case vsi::Tag::DOCUMENT_CREATOR_BUILD_NUMBER:
         return "Product Build Number";
-    case vsi::DOCUMENT_CREATOR_PACKAGE:
+    case vsi::Tag::DOCUMENT_CREATOR_PACKAGE:
         return "Document creator package";
-    case vsi::DOCUMENT_PRODUCT:
+    case vsi::Tag::DOCUMENT_PRODUCT:
         return "Document product";
-    case vsi::DOCUMENT_PRODUCT_NAME:
+    case vsi::Tag::DOCUMENT_PRODUCT_NAME:
         return "Document product name";
-    case vsi::DOCUMENT_PRODUCT_VERSION:
+    case vsi::Tag::DOCUMENT_PRODUCT_VERSION:
         return "Document product version";
-    case vsi::DOCUMENT_TYPE_HINT:
+    case vsi::Tag::DOCUMENT_TYPE_HINT:
         return "Document type hint";
-    case vsi::DOCUMENT_THUMB:
+    case vsi::Tag::DOCUMENT_THUMB:
         return "Document thumbnail";
-    case vsi::COARSE_PYRAMID_LEVEL:
+    case vsi::Tag::COARSE_PYRAMID_LEVEL:
         return "Coarse pyramid level";
-    case vsi::EXTRA_SAMPLES:
+    case vsi::Tag::EXTRA_SAMPLES:
         return "Extra samples";
-    case vsi::DEFAULT_BACKGROUND_COLOR:
+    case vsi::Tag::DEFAULT_BACKGROUND_COLOR:
         return "Default background color";
-    case vsi::VERSION_NUMBER:
+    case vsi::Tag::VERSION_NUMBER:
         return "Version number";
-    case vsi::CHANNEL_NAME:
+    case vsi::Tag::CHANNEL_NAME:
         return "Channel name";
-    case vsi::OBJECTIVE_MAG:
+    case vsi::Tag::OBJECTIVE_MAG:
         return "Magnification";
-    case vsi::NUMERICAL_APERTURE:
+    case vsi::Tag::NUMERICAL_APERTURE:
         return "Numerical Aperture";
-    case vsi::WORKING_DISTANCE:
+    case vsi::Tag::WORKING_DISTANCE:
         return "Objective Working Distance";
-    case vsi::OBJECTIVE_NAME:
+    case vsi::Tag::OBJECTIVE_NAME:
         return "Objective Name";
-    case vsi::OBJECTIVE_TYPE:
+    case vsi::Tag::OBJECTIVE_TYPE:
         return "Objective Type";
     case 120065:
         return "Objective Description";
@@ -440,25 +440,25 @@ std::string vsi::VSITools::getTagName(const TagInfo& tagInfo)
         return "Product Name";
     case 35:
         return "Product Version";
-    case vsi::DEVICE_NAME:
+    case vsi::Tag::DEVICE_NAME:
         return "Device Name";
-    case vsi::BIT_DEPTH:
+    case vsi::Tag::BIT_DEPTH:
         return "Camera Actual Bit Depth";
     case 120001:
         return "Device Position";
     case 120050:
         return "TV Adapter Magnification";
-    case vsi::REFRACTIVE_INDEX:
+    case vsi::Tag::REFRACTIVE_INDEX:
         return "Objective Refractive Index";
     case 120117:
         return "Device Type";
-    case vsi::DEVICE_ID:
+    case vsi::Tag::DEVICE_ID:
         return "Device Unit ID";
-    case vsi::DEVICE_SUBTYPE:
+    case vsi::Tag::DEVICE_SUBTYPE:
         return "Device Subtype";
     case 120132:
         return "Device Model";
-    case vsi::DEVICE_MANUFACTURER:
+    case vsi::Tag::DEVICE_MANUFACTURER:
         return "Device Manufacturer";
     case 121102:
         return "Stage Insert Position";
@@ -466,7 +466,7 @@ std::string vsi::VSITools::getTagName(const TagInfo& tagInfo)
         return "Laser/Lamp Intensity";
     case 268435456:
         return "Units";
-    case vsi::VALUE:
+    case vsi::Tag::VALUE:
         return "Value";
     case 175208:
         return "Snapshot Count";
@@ -478,71 +478,71 @@ std::string vsi::VSITools::getTagName(const TagInfo& tagInfo)
         return "Device Configuration Index";
     case 124000:
         return "Aperture Max Mode";
-    case vsi::FRAME_SIZE:
+    case vsi::Tag::FRAME_SIZE:
         return "Camera Maximum Frame Size";
-    case vsi::HDRI_ON:
+    case vsi::Tag::HDRI_ON:
         return "Camera HDRI Enabled";
-    case vsi::HDRI_FRAMES:
+    case vsi::Tag::HDRI_FRAMES:
         return "Camera Images per HDRI image";
-    case vsi::HDRI_EXPOSURE_RANGE:
+    case vsi::Tag::HDRI_EXPOSURE_RANGE:
         return "Camera HDRI Exposure Ratio";
-    case vsi::HDRI_MAP_MODE:
+    case vsi::Tag::HDRI_MAP_MODE:
         return "Camera HDRI Mapping Mode";
-    case vsi::CUSTOM_GRAYSCALE:
+    case vsi::Tag::CUSTOM_GRAYSCALE:
         return "Camera Custom Grayscale Value";
-    case vsi::SATURATION:
+    case vsi::Tag::SATURATION:
         return "Camera Saturation";
-    case vsi::WB_PRESET_ID:
+    case vsi::Tag::WB_PRESET_ID:
         return "Camera White Balance Preset ID";
-    case vsi::WB_PRESET_NAME:
+    case vsi::Tag::WB_PRESET_NAME:
         return "Camera White Balance Preset Name";
-    case vsi::WB_MODE:
+    case vsi::Tag::WB_MODE:
         return "Camera White Balance Mode";
-    case vsi::CCD_SENSITIVITY:
+    case vsi::Tag::CCD_SENSITIVITY:
         return "Camera CCD Sensitivity";
-    case vsi::ENHANCED_DYNAMIC_RANGE:
+    case vsi::Tag::ENHANCED_DYNAMIC_RANGE:
         return "Camera Enhanced Dynamic Range";
-    case vsi::PIXEL_CLOCK:
+    case vsi::Tag::PIXEL_CLOCK:
         return "Camera Pixel Clock (MHz)";
-    case vsi::COLORSPACE:
+    case vsi::Tag::COLORSPACE:
         return "Camera Colorspace";
-    case vsi::COOLING_ON:
+    case vsi::Tag::COOLING_ON:
         return "Camera Cooling Enabled";
-    case vsi::FAN_SPEED:
+    case vsi::Tag::FAN_SPEED:
         return "Camera Cooling Fan Speed";
-    case vsi::TEMPERATURE_TARGET:
+    case vsi::Tag::TEMPERATURE_TARGET:
         return "Camera Cooling Temperature Target";
-    case vsi::GAIN_UNIT:
+    case vsi::Tag::GAIN_UNIT:
         return "Camera Gain Unit";
-    case vsi::EM_GAIN:
+    case vsi::Tag::EM_GAIN:
         return "Camera EM Gain";
-    case vsi::PHOTON_IMAGING_MODE:
+    case vsi::Tag::PHOTON_IMAGING_MODE:
         return "Camera Photon Imaging Mode";
-    case vsi::FRAME_TRANSFER:
+    case vsi::Tag::FRAME_TRANSFER:
         return "Camera Frame Transfer Enabled";
-    case vsi::ANDOR_SHIFT_SPEED:
+    case vsi::Tag::ANDOR_SHIFT_SPEED:
         return "Camera iXon Shift Speed";
-    case vsi::VCLOCK_AMPLITUDE:
+    case vsi::Tag::VCLOCK_AMPLITUDE:
         return "Camera Vertical Clock Amplitude";
-    case vsi::SPURIOUS_NOISE_REMOVAL:
+    case vsi::Tag::SPURIOUS_NOISE_REMOVAL:
         return "Camera Spurious Noise Removal Enabled";
-    case vsi::SIGNAL_OUTPUT:
+    case vsi::Tag::SIGNAL_OUTPUT:
         return "Camera Signal Output";
-    case vsi::BASELINE_OFFSET_CLAMP:
+    case vsi::Tag::BASELINE_OFFSET_CLAMP:
         return "Camera Baseline Offset Clamp";
-    case vsi::DP80_FRAME_CENTERING:
+    case vsi::Tag::DP80_FRAME_CENTERING:
         return "Camera DP80 Frame Centering";
-    case vsi::HOT_PIXEL_CORRECTION:
+    case vsi::Tag::HOT_PIXEL_CORRECTION:
         return "Camera Hot Pixel Correction Enabled";
-    case vsi::NOISE_REDUCTION:
+    case vsi::Tag::NOISE_REDUCTION:
         return "Camera Noise Reduction";
-    case vsi::WIDER:
+    case vsi::Tag::WIDER:
         return "Camera WiDER";
-    case vsi::PHOTOBLEACHING:
+    case vsi::Tag::PHOTOBLEACHING:
         return "Camera Photobleaching Enabled";
-    case vsi::PREAMP_GAIN_VALUE:
+    case vsi::Tag::PREAMP_GAIN_VALUE:
         return "Camera Preamp Gain";
-    case vsi::WIDER_ENABLED:
+    case vsi::Tag::WIDER_ENABLED:
         return "Camera WiDER Enabled";
     }
     return "";
@@ -550,10 +550,10 @@ std::string vsi::VSITools::getTagName(const TagInfo& tagInfo)
 
 bool vsi::VSITools::isArray(const TagInfo& tagInfo)
 {
-    if (tagInfo.tag == MULTIDIM_IMAGE_VOLUME) {
+    if (tagInfo.tag == Tag::MULTIDIM_IMAGE_VOLUME) {
         return true;
     }
-    else if(tagInfo.tag == 0 || tagInfo.tag == 1 || tagInfo.tag == LAYER_INFO_PROPERTIES) {
+    else if(tagInfo.tag == (Tag)0 || tagInfo.tag == (Tag)1 || tagInfo.tag == Tag::LAYER_INFO_PROPERTIES) {
         return true;
     }
     return false;
@@ -631,3 +631,126 @@ std::string vsi::VSITools::getDeviceSubtype(const std::string& value)
     return value;
 }
 
+std::string vsi::VSITools::extractTagValue(vsi::VSIStream& vsi, const vsi::TagInfo& tagInfo)
+{
+    std::string value;
+    switch (tagInfo.valueType)
+    {
+    case vsi::ValueType::CHAR:
+    case vsi::ValueType::UCHAR:
+        value = std::to_string(vsi.readValue<uint8_t>());
+        break;
+    case vsi::ValueType::SHORT:
+    case vsi::ValueType::USHORT:
+        value = std::to_string(vsi.readValue<uint16_t>());
+        break;
+    case vsi::ValueType::INT:
+    case vsi::ValueType::UINT:
+    case vsi::ValueType::DWORD:
+    case vsi::ValueType::FIELD_TYPE:
+    case vsi::ValueType::MEM_MODEL:
+    case vsi::ValueType::COLOR_SPACE:
+        value = std::to_string(vsi.readValue<uint32_t>());
+        break;
+    case vsi::ValueType::INT64:
+    case vsi::ValueType::UINT64:
+    case vsi::ValueType::TIMESTAMP:
+        value = std::to_string(vsi.readValue<uint64_t>());
+        break;
+    case vsi::ValueType::FLOAT:
+        value = std::to_string(vsi.readValue<float>());
+        break;
+    case vsi::ValueType::DOUBLE:
+    case vsi::ValueType::DATE:
+        value = std::to_string(vsi.readValue<double>());
+        break;
+    case vsi::ValueType::BOOL:
+        value = std::to_string(vsi.readValue<bool>());
+        break;
+    case vsi::ValueType::TCHAR:
+    case vsi::ValueType::UNICODE_TCHAR:
+        value = vsi.readString(tagInfo.dataSize);
+        break;
+    case vsi::ValueType::VECTOR_INT_2:
+    case vsi::ValueType::TUPLE_INT:
+    case vsi::ValueType::ARRAY_INT_2:
+    case vsi::ValueType::VECTOR_INT_3:
+    case vsi::ValueType::ARRAY_INT_3:
+    case vsi::ValueType::VECTOR_INT_4:
+    case vsi::ValueType::RECT_INT:
+    case vsi::ValueType::ARRAY_INT_4:
+    case vsi::ValueType::ARRAY_INT_5:
+    case vsi::ValueType::DIM_INDEX_1:
+    case vsi::ValueType::DIM_INDEX_2:
+    case vsi::ValueType::VOLUME_INDEX:
+    case vsi::ValueType::PIXEL_INFO_TYPE:
+    {
+        uint32_t nIntValues = tagInfo.dataSize / 4;
+        std::vector<int32_t> intValues(nIntValues);
+        if (nIntValues > 1) {
+            value += "(";
+        }
+        for (uint32_t v = 0; v < nIntValues; v++) {
+            intValues[v] = vsi.readValue<int32_t>();
+            value += std::to_string(intValues[v]);
+            if (v < nIntValues - 1) {
+                value += ", ";
+            }
+        }
+        if (nIntValues > 1) {
+            value += ")";
+        }
+    }
+    break;
+    case vsi::ValueType::DOUBLE2:
+    case vsi::ValueType::VECTOR_DOUBLE_2:
+    case vsi::ValueType::TUPLE_DOUBLE:
+    case vsi::ValueType::ARRAY_DOUBLE_2:
+    case vsi::ValueType::VECTOR_DOUBLE_3:
+    case vsi::ValueType::ARRAY_DOUBLE_3:
+    case vsi::ValueType::VECTOR_DOUBLE_4:
+    case vsi::ValueType::RECT_DOUBLE:
+    case vsi::ValueType::MATRIX_DOUBLE_2_2:
+    case vsi::ValueType::MATRIX_DOUBLE_3_3:
+    case vsi::ValueType::MATRIX_DOUBLE_4_4:
+    {
+        int nDoubleValues = tagInfo.dataSize / sizeof(double);
+        std::vector<double> doubleValues(nDoubleValues);
+        if (nDoubleValues > 1) {
+            value += "(";
+        }
+        for (int v = 0; v < nDoubleValues; v++) {
+            doubleValues[v] = vsi.readValue<double>();
+            value += std::to_string(doubleValues[v]);
+            if (v < nDoubleValues - 1) {
+                value += ", ";
+            }
+        }
+        if (nDoubleValues > 1) {
+            value += ')';
+        }
+    }
+    break;
+    case vsi::ValueType::RGB:
+    {
+        int red = vsi.readValue<uint8_t>();
+        int green = vsi.readValue<uint8_t>();
+        int blue = vsi.readValue<uint8_t>();
+        value = "red = " + std::to_string(red)
+            + ", green = " + std::to_string(green)
+            + ", blue = " + std::to_string(blue);
+    }
+    break;
+    case vsi::ValueType::BGR:
+    {
+        int blue = vsi.readValue<uint8_t>();
+        int green = vsi.readValue<uint8_t>();
+        int red = vsi.readValue<uint8_t>();
+        value = "red = " + std::to_string(red)
+            + ", green = " + std::to_string(green)
+            + ", blue = " + std::to_string(blue);
+    }
+    break;
+    }
+    return value;
+}

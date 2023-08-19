@@ -33,26 +33,20 @@ namespace slideio
             int getNumExternalFiles() const {
                 return static_cast<int>(m_etsFiles.size());
             }
-            int getNumPyramids() const {
-                return static_cast<int>(m_pyramids.size());
-            }
-            std::shared_ptr<Pyramid> getPyramid(int index) const {
-                return m_pyramids[index];
-            }
             std::shared_ptr<vsi::EtsFile> getEtsFile(int index) const {
                 return m_etsFiles[index];
             }
             int getNumEtsFiles() const {
                 return static_cast<int>(m_etsFiles.size());
             }
-
+            std::string getRawMetadata() const;
         private:
             void read();
-            bool readTags(vsi::VSIStream& vsi, bool populateMetadata, std::string tagPrefix, vsi::TempData& temp);
             bool readMetadata(VSIStream& vsiStream, boost::json::object& parent);
+            void checkExternalFilePresense();
             void readVolumeInfo();
             void readExternalFiles();
-            std::string extractTagValue(vsi::VSIStream& vsi, const vsi::TagInfo& tagInfo);
+            void readExtendedType(vsi::VSIStream& vsi, const vsi::TagInfo& tagInfo, boost::json::object& tagObject);
 
         private:
             std::vector<std::shared_ptr<Pyramid>> m_pyramids;
@@ -61,7 +55,7 @@ namespace slideio
             int m_numChannels = 0;
             int m_numSlices = 0;
             std::string m_filePath;
-            boost::json::object m_metadata;
+            boost::json::value m_metadata;
         };
     }
 }

@@ -4,7 +4,6 @@
 #include "slideio/drivers/vsi/vsiscene.hpp"
 #include "slideio/drivers/vsi/vsifile.hpp"
 #include "slideio/imagetools/imagetools.hpp"
-#include "slideio/drivers/vsi/pyramid.hpp"
 
 
 using namespace slideio;
@@ -47,15 +46,6 @@ std::string VSIScene::getChannelName(int channel) const
 
 void VSIScene::init()
 {
-    auto pyramid = getPyramid();
-    m_name = pyramid->name;
-    m_magnification = pyramid->magnification;
-    m_rect = cv::Rect(0, 0, pyramid->width, pyramid->height);
-}
-
-std::shared_ptr<vsi::Pyramid> VSIScene::getPyramid() const
-{
-    return m_vsiFile->getPyramid(m_sceneIndex);
 }
 
 std::shared_ptr<vsi::EtsFile> VSIScene::getEtsFile() const

@@ -12,8 +12,6 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/vsi_api_def.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/vsistruct.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/vsitags.hpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/pyramid.hpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/pyramid.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/vsistream.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/vsistream.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/etsfile.hpp

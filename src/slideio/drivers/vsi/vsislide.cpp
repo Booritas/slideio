@@ -22,29 +22,15 @@ VSISlide::VSISlide(const std::string& filePath) : m_filePath(filePath)
 void VSISlide::init()
 {
     m_vsiFile = std::make_shared<vsi::VSIFile>(m_filePath);
-    const int numPyramids = m_vsiFile->getNumPyramids();
-    for (int sceneIndex = 0; sceneIndex < numPyramids; ++sceneIndex) {
-        auto& pyramid = m_vsiFile->getPyramid(sceneIndex);
-        if (pyramid->stackType == vsi::StackType::DEFAULT_IMAGE
-            || pyramid->stackType == vsi::StackType::UNKNOWN) {
-            std::shared_ptr<VSIScene> scene = std::make_shared<VSIScene>(m_filePath, m_vsiFile, sceneIndex);
-            m_Scenes.push_back(scene);
-        }
-        else {
-            m_auxImages[pyramid->name] = std::make_shared<VSIScene>(m_filePath, m_vsiFile, sceneIndex);
-            m_auxNames.push_back(pyramid->name);
-        }
-    }
+    m_rawMetadata = m_vsiFile->getRawMetadata();
 }
 
 
-VSISlide::~VSISlide()
-{
-}
+VSISlide::~VSISlide() = default;
 
 int VSISlide::getNumScenes() const
 {
-    return (int)m_Scenes.size();
+    return static_cast<int>(m_Scenes.size());
 }
 
 std::string VSISlide::getFilePath() const
@@ -67,5 +53,10 @@ std::shared_ptr<CVScene> VSISlide::getAuxImage(const std::string& sceneName) con
         RAISE_RUNTIME_ERROR << "The slide does non have auxiliary image " << sceneName;
     }
     return it->second;
+}
+
+const std::string& VSISlide::getRawMetadata() const
+{
+    return m_rawMetadata;
 }
 
