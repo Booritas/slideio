@@ -10,6 +10,7 @@
 #include "vsistruct.hpp"
 #include "vsitools.hpp"
 #include "slideio/drivers/vsi/vsi_api_def.hpp"
+#include "slideio/imagetools/tifftools.hpp"
 
 #if defined(_MSC_VER)
 #pragma warning( push )
@@ -43,7 +44,7 @@ namespace slideio
         private:
             void read();
             bool readMetadata(VSIStream& vsiStream, boost::json::object& parent);
-            void checkExternalFilePresense();
+            void checkExternalFilePresence();
             void readVolumeInfo();
             void readExternalFiles();
             void readExtendedType(vsi::VSIStream& vsi, const vsi::TagInfo& tagInfo, boost::json::object& tagObject);
@@ -56,6 +57,7 @@ namespace slideio
             int m_numSlices = 0;
             std::string m_filePath;
             boost::json::value m_metadata;
+            std::vector<TiffDirectory> m_directories;
         };
     }
 }

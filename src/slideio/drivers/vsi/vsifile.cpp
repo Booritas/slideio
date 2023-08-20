@@ -16,6 +16,8 @@
 #include <boost/tokenizer.hpp>
 #include <boost/foreach.hpp>
 
+#include "slideio/imagetools/tifftools.hpp"
+
 using namespace slideio;
 namespace fs = boost::filesystem;
 
@@ -32,7 +34,9 @@ std::string vsi::VSIFile::getRawMetadata() const
 
 void vsi::VSIFile::read()
 {
+    SLIDEIO_LOG(INFO) << "VSI driver: reading file " << m_filePath;
     readVolumeInfo();
+    TiffTools::scanFile(m_filePath, m_directories);
     if (m_hasExternalFiles) {
         readExternalFiles();
     }
@@ -51,39 +55,49 @@ boost::json::object findObject(boost::json::object& parent, const std::string& p
     {
         auto it = current.find(token);
         if(it == current.end()) {
-            return boost::json::object();
+            return {};
         }
         current = it->value().as_object();
     }
     return current;
 }
 
-void vsi::VSIFile::checkExternalFilePresense()
+void vsi::VSIFile::checkExternalFilePresence()
 {
-    auto images = m_metadata.at_pointer("/2000/2001");
-    if(images.is_array()) {
-        boost::json::array imageArray = images.as_array();
-        for (const auto& image : imageArray) {
-            boost::json::object imageObject = image.as_object();
-            boost::json::object externalFile = findObject(imageObject, "2002/2018/20005");
-            if(externalFile.empty()) {
-                continue;
+    SLIDEIO_LOG(INFO) << "VSI driver: checking external file presence";
+    std::error_code error;
+    boost::json::value* ptrImages = m_metadata.find_pointer("/2000/2001", error);
+    if(ptrImages) {
+        auto& images = *ptrImages;// m_metadata.at_pointer("/2000/2001");
+        if(images.is_array()) {
+            boost::json::array imageArray = images.as_array();
+            for (const auto& image : imageArray) {
+                boost::json::object imageObject = image.as_object();
+                boost::json::object externalFile = findObject(imageObject, "2002/2018/20005");
+                if(externalFile.empty()) {
+                    continue;
+                }
+                const auto itValue = externalFile.find("value");
+                if(itValue == externalFile.end()) {
+                    continue;
+                }
+                m_hasExternalFiles = itValue->value().as_string() == std::string("1");
+                SLIDEIO_LOG(INFO) << "VSI driver: external files are " << (m_hasExternalFiles ? "present" : "absent");
+                if(m_hasExternalFiles) 
+                    break;
             }
-            const auto itValue = externalFile.find("value");
-            if(itValue == externalFile.end()) {
-                continue;
-            }
-            m_hasExternalFiles = itValue->value().as_string() == std::string("1");
-            if(m_hasExternalFiles)
-                break;
         }
+    }
+    else {
+        SLIDEIO_LOG(INFO) << "VSI driver: metadata does not contain external file information";
     }
 }
 
 void vsi::VSIFile::readVolumeInfo()
 {
+    SLIDEIO_LOG(INFO) << "VSI driver: reading volume info";
 #if defined(WIN32)
-    std::wstring filePathW = Tools::toWstring(m_filePath);
+    const std::wstring filePathW = Tools::toWstring(m_filePath);
     std::ifstream ifs(filePathW, std::ios::binary);
 #else
     std::ifstream input(m_filePath, std::ios::binary);
@@ -91,7 +105,7 @@ void vsi::VSIFile::readVolumeInfo()
     vsi::VSIStream vsiStream(ifs);
     vsi::ImageFileHeader header;
     vsiStream.read<vsi::ImageFileHeader>(header);
-    if (strncmp((char*)header.magic, "II", 2) != 0) {
+    if (strncmp(reinterpret_cast<char*>(header.magic), "II", 2) != 0) {
         RAISE_RUNTIME_ERROR << "VSI driver: invalid file header. Expected first two bytes: 'II', got: "
             << header.magic;
     }
@@ -107,7 +121,7 @@ void vsi::VSIFile::readVolumeInfo()
     //    ofs << boost::json::serialize(m_metadata);
     //    ofs.close();
     //}
-    checkExternalFilePresense();
+    checkExternalFilePresence();
 }
 
 
@@ -134,15 +148,15 @@ void vsi::VSIFile::readExtendedType(vsi::VSIStream& vsi, const vsi::TagInfo& tag
     switch(tagInfo.extendedType) {
     case ExtendedType::NEW_VOLUME_HEADER:
         {
-            int64_t endPointer = vsi.getPos() + tagInfo.dataSize;
+            const int64_t endPointer = vsi.getPos() + tagInfo.dataSize;
             while (vsi.getPos() < endPointer && vsi.getPos() < vsi.getSize())
             {
-                int64_t start = vsi.getPos();
+                const int64_t start = vsi.getPos();
                 bool ok = readMetadata(vsi, tagObject);
                 if (!ok) {
                     break;
                 }
-                int64_t end = vsi.getPos();
+                const int64_t end = vsi.getPos();
                 if (start >= end) {
                     break;
                 }
@@ -158,6 +172,7 @@ void vsi::VSIFile::readExtendedType(vsi::VSIStream& vsi, const vsi::TagInfo& tag
 
 bool vsi::VSIFile::readMetadata(VSIStream& vsi, boost::json::object& parentObject)
 {
+    SLIDEIO_LOG(INFO) << "VSI driver: reading metadata";
     const int64_t headerPos = vsi.getPos();
     vsi::VolumeHeader volumeHeader = {};
     vsi.read<vsi::VolumeHeader>(volumeHeader);
@@ -190,7 +205,7 @@ bool vsi::VSIFile::readMetadata(VSIStream& vsi, boost::json::object& parentObjec
         const bool extendedField = ((tagHeader.fieldType & 0x10000000) >> 28) == 1;
         const bool inlineData = ((tagHeader.fieldType & 0x40000000) >> 30) == 1;
 
-        tagInfo.tag = (Tag)tagHeader.tag;
+        tagInfo.tag = static_cast<Tag>(tagHeader.tag);
         tagInfo.fieldType = tagHeader.fieldType;
         if(extendedField) {
             tagInfo.extendedType = static_cast<ExtendedType>(tagHeader.fieldType & 0xffffff);
@@ -212,12 +227,12 @@ bool vsi::VSIFile::readMetadata(VSIStream& vsi, boost::json::object& parentObjec
         tagInfo.dataSize = tagHeader.dataSize;
 
         std::string tagName = VSITools::getTagName(tagInfo);
-        std::string tagKey = std::to_string((int)tagInfo.tag);
+        std::string tagKey = std::to_string(static_cast<int>(tagInfo.tag));
         boost::json::object tagObject;
         tagObject["name"] = tagName;
         tagObject["fieldType"] = tagHeader.fieldType;
-        tagObject["valueType"] = (int)tagInfo.valueType;
-        tagObject["extendedType"] = (int)tagInfo.extendedType;
+        tagObject["valueType"] = static_cast<int>(tagInfo.valueType);
+        tagObject["extendedType"] = static_cast<int>(tagInfo.extendedType);
         tagObject["extraTag"] = extraTag;
         tagObject["extendedField"] = extendedField;
         tagObject["secondTag"] = tagInfo.secondTag;
@@ -260,7 +275,7 @@ bool vsi::VSIFile::readMetadata(VSIStream& vsi, boost::json::object& parentObjec
         }
 
 
-        if (nextField == 0 || tagInfo.tag == (Tag)(- 494804095)) {
+        if (nextField == 0) {
             if (headerPos + tagInfo.dataSize + 32 < vsi.getSize() && headerPos + tagInfo.dataSize >= 0) {
                 vsi.setPos(headerPos + tagInfo.dataSize + 32);
             }
