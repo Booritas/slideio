@@ -127,6 +127,7 @@ void vsi::VSIFile::readVolumeInfo()
 
 void vsi::VSIFile::readExternalFiles()
 {
+    SLIDEIO_LOG(INFO) << "VSI driver: reading external ETS files";
     const fs::path filePath(m_filePath);
     const fs::path dirPath = filePath.parent_path();
     const fs::path fileName = filePath.filename();
