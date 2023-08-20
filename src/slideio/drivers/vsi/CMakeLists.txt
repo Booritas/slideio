@@ -20,6 +20,10 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/vsitools.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/vsifile.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/vsifile.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/vsifilescene.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/vsifilescene.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/etsfilescene.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/etsfilescene.cpp
 )
 
 add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES})

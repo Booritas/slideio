@@ -27,9 +27,7 @@ namespace slideio
     class SLIDEIO_VSI_EXPORTS VSIScene : public CVScene, public Tiler
     {
     public:
-        VSIScene(const std::string& filePath, std::shared_ptr<vsi::VSIFile>& vsiFile, int sceneIndex);
-
-        virtual ~VSIScene();
+        VSIScene(const std::string& filePath, std::shared_ptr<vsi::VSIFile>& vsiFile);
 
         std::string getFilePath() const override {
             return m_filePath;
@@ -51,18 +49,9 @@ namespace slideio
         }
         cv::Rect getRect() const override;
         int getNumChannels() const override;
-        void readResampledBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize,
-                                        const std::vector<int>& channelIndices, cv::OutputArray output) override;
         std::string getChannelName(int channel) const override;
-        int getTileCount(void* userData) override;
-        bool getTileRect(int tileIndex, cv::Rect& tileRect, void* userData) override;
-        bool readTile(int tileIndex, const std::vector<int>& channelIndices, cv::OutputArray tileRaster,
-            void* userData) override;
         void initializeBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices,
             cv::OutputArray output) override;
-    protected:
-        void init();
-        std::shared_ptr<vsi::EtsFile> getEtsFile() const;
     protected:
         std::string m_filePath;
         std::string m_name;
@@ -72,7 +61,6 @@ namespace slideio
         double m_magnification;
         cv::Rect m_rect;
         int m_numChannels;
-        int m_sceneIndex;
         std::vector<std::string> m_channelNames;
         std::vector<DataType> m_channelDataType;
         std::shared_ptr<vsi::VSIFile> m_vsiFile;
