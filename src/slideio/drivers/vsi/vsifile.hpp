@@ -6,8 +6,6 @@
 #include <string>
 #include <vector>
 #include <boost/json.hpp>
-#include "vsiscene.hpp"
-#include "vsistruct.hpp"
 #include "vsitools.hpp"
 #include "slideio/drivers/vsi/vsi_api_def.hpp"
 #include "slideio/imagetools/tifftools.hpp"
@@ -22,9 +20,7 @@ namespace slideio
 {
     namespace vsi
     {
-        struct TempData;
         class VSIStream;
-        class Pyramid;
         class EtsFile;
 
         class SLIDEIO_VSI_EXPORTS VSIFile
@@ -50,7 +46,6 @@ namespace slideio
             void readExtendedType(vsi::VSIStream& vsi, const vsi::TagInfo& tagInfo, boost::json::object& tagObject);
 
         private:
-            std::vector<std::shared_ptr<Pyramid>> m_pyramids;
             std::vector<std::shared_ptr<vsi::EtsFile>> m_etsFiles;
             bool m_hasExternalFiles = false;
             int m_numChannels = 0;
