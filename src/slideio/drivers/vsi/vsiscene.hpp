@@ -21,7 +21,6 @@ namespace slideio
 {
     namespace vsi
     {
-        class Pyramid;
         class VSIFile;
     }
 
