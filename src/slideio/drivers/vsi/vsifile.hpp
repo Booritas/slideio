@@ -37,6 +37,12 @@ namespace slideio
                 return static_cast<int>(m_etsFiles.size());
             }
             std::string getRawMetadata() const;
+            int getNumTiffDirectories() const {
+                return static_cast<int>(m_directories.size());
+            }
+            const TiffDirectory& getTiffDirectory(int index) {
+                return m_directories[index];
+            }
         private:
             void read();
             bool readMetadata(VSIStream& vsiStream, boost::json::object& parent);

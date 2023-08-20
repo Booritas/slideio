@@ -18,7 +18,7 @@ namespace slideio
     class SLIDEIO_VSI_EXPORTS VsiFileScene : public VSIScene
     {
     public:
-        VsiFileScene(const std::string& filePath, std::shared_ptr<vsi::VSIFile>& vsiFile);
+        VsiFileScene(const std::string& filePath, std::shared_ptr<vsi::VSIFile>& vsiFile, int directoryIndex);
     public:
         void readResampledBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize,
             const std::vector<int>& channelIndices, cv::OutputArray output) override;
@@ -28,6 +28,8 @@ namespace slideio
             void* userData) override;
     protected:
         void init();
+    protected:
+        int m_directoryIndex;
     };
 
 }

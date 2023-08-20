@@ -32,7 +32,6 @@ namespace slideio
     public:
         VSISlide(const std::string& filePath);
     public:
-        ~VSISlide() override;
         int getNumScenes() const override;
         std::string getFilePath() const override;
         std::shared_ptr<slideio::CVScene> getScene(int index) const override;

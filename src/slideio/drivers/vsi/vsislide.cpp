@@ -5,9 +5,10 @@
 #include <cstdlib>
 #include <iomanip>
 
+#include "etsfilescene.hpp"
+#include "vsifilescene.hpp"
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/drivers/vsi/vsifile.hpp"
-
 
 
 using namespace slideio;
@@ -23,10 +24,22 @@ void VSISlide::init()
 {
     m_vsiFile = std::make_shared<vsi::VSIFile>(m_filePath);
     m_rawMetadata = m_vsiFile->getRawMetadata();
+    if (m_vsiFile->getNumExternalFiles() > 0) {
+        const int numFiles = m_vsiFile->getNumExternalFiles();
+        for (int fileIndex = 0; fileIndex < numFiles; ++fileIndex) {
+            auto scene = std::make_shared<EtsFileScene>(m_filePath, m_vsiFile, fileIndex);
+            m_Scenes.push_back(scene);
+        }
+    }
+    else {
+        const int numDirectories = m_vsiFile->getNumTiffDirectories();
+        for (int directoryIndex = 0; directoryIndex < numDirectories; ++directoryIndex) {
+            auto scene = std::make_shared<VsiFileScene>(m_filePath, m_vsiFile, directoryIndex);
+            m_Scenes.push_back(scene);
+        }
+    }
 }
 
-
-VSISlide::~VSISlide() = default;
 
 int VSISlide::getNumScenes() const
 {
@@ -40,8 +53,9 @@ std::string VSISlide::getFilePath() const
 
 std::shared_ptr<CVScene> VSISlide::getScene(int index) const
 {
-    if(index>=getNumScenes()) {
-        RAISE_RUNTIME_ERROR << "VSI driver: invalid m_scene index: " << index << " from " << getNumScenes() << " scenes";
+    if (index >= getNumScenes()) {
+        RAISE_RUNTIME_ERROR << "VSI driver: invalid m_scene index: " << index << " from " << getNumScenes() <<
+            " scenes";
     }
     return m_Scenes[index];
 }
@@ -59,4 +73,3 @@ const std::string& VSISlide::getRawMetadata() const
 {
     return m_rawMetadata;
 }
-

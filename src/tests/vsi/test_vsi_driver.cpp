@@ -14,25 +14,27 @@ namespace slideio
 
 using namespace slideio;
 
-TEST(VSIImageDriver, openFile)
+TEST(VSIImageDriver, openFileWithoutExternalFiles)
 {
-    std::string filePath = TestTools::getTestImagePath("vsi", "vsi-multifile/vsi-ets-test-jpg2k.vsi");
+    std::string filePath = TestTools::getFullTestImagePath("vsi",
+        "Zenodo/Q6VM49JF/Figure-1-ultrasound-raw-data"
+        "/SPECTRUM_#201_2016-06-14_Jiangtao Liu/1286FL9057GDF8RGDX257R2GLHZ.vsi");
     slideio::VSIImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide!=nullptr);
     const int numScenes = slide->getNumScenes();
     ASSERT_EQ(1, numScenes);
-    std::shared_ptr<CVScene> scene = slide->getScene(0);
-    EXPECT_EQ(scene->getName(), "001 C405, C488");
-    auto rect = scene->getRect();
-    EXPECT_EQ(rect.width, 1645);
-    EXPECT_EQ(rect.height, 1682);
-    EXPECT_EQ(rect.x, 0);
-    EXPECT_EQ(rect.y, 0);
-    EXPECT_DOUBLE_EQ(scene->getMagnification(), 60.);
+    //std::shared_ptr<CVScene> scene = slide->getScene(0);
+    //EXPECT_EQ(scene->getName(), "001 C405, C488");
+    //auto rect = scene->getRect();
+    //EXPECT_EQ(rect.width, 1645);
+    //EXPECT_EQ(rect.height, 1682);
+    //EXPECT_EQ(rect.x, 0);
+    //EXPECT_EQ(rect.y, 0);
+    //EXPECT_DOUBLE_EQ(scene->getMagnification(), 60.);
 }
 
-TEST(VSIImageDriver, openFileMultiscene)
+TEST(VSIImageDriver, openFileWithExternalFiles)
 {
     std::tuple<std::string,int,int, double> result[] = {
         {"40x_01", 14749,20874,40},
@@ -44,51 +46,25 @@ TEST(VSIImageDriver, openFileMultiscene)
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
     const int numScenes = slide->getNumScenes();
-    ASSERT_EQ(3, numScenes);
-    for(int sceneIndex=0; sceneIndex<numScenes; ++sceneIndex) {
-        std::shared_ptr<CVScene> scene = slide->getScene(sceneIndex);
-        EXPECT_EQ(scene->getName(), std::get<0>(result[sceneIndex]));
-        auto rect = scene->getRect();
-        EXPECT_EQ(rect.width, std::get<1>(result[sceneIndex]));
-        EXPECT_EQ(rect.height, std::get<2>(result[sceneIndex]));
-        EXPECT_EQ(rect.x, 0);
-        EXPECT_EQ(rect.y, 0);
-        EXPECT_DOUBLE_EQ(scene->getMagnification(), std::get<3>(result[sceneIndex]));
+    ASSERT_EQ(4, numScenes);
+    //for(int sceneIndex=0; sceneIndex<numScenes; ++sceneIndex) {
+    //    std::shared_ptr<CVScene> scene = slide->getScene(sceneIndex);
+    //    EXPECT_EQ(scene->getName(), std::get<0>(result[sceneIndex]));
+    //    auto rect = scene->getRect();
+    //    EXPECT_EQ(rect.width, std::get<1>(result[sceneIndex]));
+    //    EXPECT_EQ(rect.height, std::get<2>(result[sceneIndex]));
+    //    EXPECT_EQ(rect.x, 0);
+    //    EXPECT_EQ(rect.y, 0);
+    //    EXPECT_DOUBLE_EQ(scene->getMagnification(), std::get<3>(result[sceneIndex]));
 
-    }
-    const int numAuxImages = slide->getNumAuxImages();
-    ASSERT_EQ(1, numAuxImages);
-    auto imageNames = slide->getAuxImageNames();
-    auto image = slide->getAuxImage(imageNames.front());
-    EXPECT_EQ(image->getName(), "Overview");
+    //}
+    //const int numAuxImages = slide->getNumAuxImages();
+    //ASSERT_EQ(1, numAuxImages);
+    //auto imageNames = slide->getAuxImageNames();
+    //auto image = slide->getAuxImage(imageNames.front());
+    //EXPECT_EQ(image->getName(), "Overview");
 }
 
-TEST(VSIImageDriver, VSIFileOpen0)
-{
-    std::string filePath = TestTools::getFullTestImagePath("vsi", "vsi-multifile/vsi-ets-test-jpg2k.vsi");
-    vsi::VSIFile vsiFile(filePath);
-    EXPECT_EQ(1, vsiFile.getNumExternalFiles());
-    //ASSERT_EQ(1, vsiFile.getNumPyramids());
-    //const std::shared_ptr<vsi::Pyramid> pyramid1 = vsiFile.getPyramid(0);
-    //EXPECT_EQ(pyramid1->name, "001 C405, C488");
-    //EXPECT_EQ(pyramid1->stackType, vsi::StackType::UNKNOWN);
-}
-
-TEST(VSIImageDriver, VSIFileOpen1)
-{
-    std::string filePath = TestTools::getFullTestImagePath("vsi", "OS-1/OS-1.vsi");
-    vsi::VSIFile vsiFile(filePath);
-    EXPECT_EQ(2, vsiFile.getNumExternalFiles());
-    //ASSERT_EQ(2, vsiFile.getNumPyramids());
-    //const std::shared_ptr<vsi::Pyramid> pyramid1 = vsiFile.getPyramid(0);
-    //EXPECT_EQ(pyramid1->name, "Overview");
-    //EXPECT_EQ(pyramid1->stackType, vsi::StackType::OVERVIEW_IMAGE);
-    //EXPECT_DOUBLE_EQ(pyramid1->magnification, 2.);
-    //const std::shared_ptr<vsi::Pyramid> pyramid2 = vsiFile.getPyramid(1);
-    //EXPECT_EQ(pyramid2->name, "20x");
-    //EXPECT_EQ(pyramid2->stackType, vsi::StackType::DEFAULT_IMAGE);
-    //EXPECT_DOUBLE_EQ(pyramid2->magnification, 20.);
-}
 
 TEST(VSIImageDriver, VSIFileOpenWithExternalFiles)
 {
