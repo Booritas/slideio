@@ -165,6 +165,7 @@ namespace slideio
             CHANNEL_DIM = 2031,
             STACK_TYPE = 2074,
             LIVE_OVERFLOW = 2076,
+            CHANNEL_WAVELENGTH = 2417,
             IS_TRANSMISSION = 20035,
             CONTRAST_BRIGHTNESS = 10047,
             ACQUISITION_PROPERTIES = 10048,
@@ -211,7 +212,33 @@ namespace slideio
             DEVICE_ID = 120129,
             DEVICE_SUBTYPE = 120130,
             DEVICE_MANUFACTURER = 120133,
-            VALUE = 268435458
+            VALUE = 268435458,
+            OBJECTIVE_DESCRIPTION = 120065,
+            OBJECTIVE_SUBTYPE = 120066,
+            BRIGHTNESS_CORRECTION = 120069,
+            OBJECTIVE_LENS = 120070,
+            OBJECTIVE_X_SHIFT = 120075,
+            OBJECTIVE_Y_SHIFT = 120076,
+            OBJECTIVE_Z_SHIFT = 120077,
+            OBJECTIVE_GEAR_SETTING = 120078,
+            SLIDE_BAR_CODE = 120635,
+            TRAY_NUMBER = 120638,
+            SLIDE_NUMBER = 120637,
+            PRODUCT_NAME = 34,
+            PRODUCT_VERSION = 35,
+            DEVICE_POSITION = 120001,
+            TV_ADAPTER_MAGNIFICATION = 120050,
+            OBJECTIVE_REFRACTIVE_INDEX = 120079,
+            DEVICE_TYPE = 120117,
+            DEVICE_MODEL = 120132,
+            STAGE_INSERT_POSITION = 121102,
+            LASER_LAMP_INTENSITY = 121131,
+            UNITS = 268435456,
+            SNAPSHOT_COUNT = 175208,
+            SCANNING_TIME = 175209,
+            DEVICE_CONFIGURATION_POSITION = 120210,
+            DEVICE_CONFIGURATION_INDEX = 120211,
+            APERTURE_MAX_MODE = 124000
         };
-    }
-}
+   };
+}; 

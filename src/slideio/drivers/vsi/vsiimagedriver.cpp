@@ -7,6 +7,7 @@
 #include <boost/algorithm/string.hpp>
 
 #include "slideio/core/tools/tools.hpp"
+#include <boost/json/src.hpp>
 
 
 slideio::VSIImageDriver::VSIImageDriver()

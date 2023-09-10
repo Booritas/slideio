@@ -24,7 +24,7 @@ void slideio::vsi::EtsFile::read()
     std::wstring filePathW = Tools::toWstring(m_filePath);
     std::ifstream ifs(filePathW, std::ios::binary);
 #else
-    std::ifstream input(m_filePath, std::ios::binary);
+    std::ifstream ifs(m_filePath, std::ios::binary);
 #endif
     vsi::VSIStream ets(ifs);
     vsi::EtsVolumeHeader header = {0};

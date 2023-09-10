@@ -31,3 +31,4 @@ src/py-bind/wheelhouse/
 src/py-bind/dist/
 doc/build/
 _site/
+**/.DS_Store
