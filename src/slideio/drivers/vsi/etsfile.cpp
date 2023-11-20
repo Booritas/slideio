@@ -7,14 +7,11 @@
 #include "vsistruct.hpp"
 #include "vsitools.hpp"
 #include "slideio/core/tools/tools.hpp"
+#include "slideio/imagetools/tifftools.hpp"
 
 using namespace slideio;
 
 slideio::vsi::EtsFile::EtsFile(const std::string& filePath) : m_filePath(filePath)
-{
-}
-
-slideio::vsi::EtsFile::~EtsFile()
 {
 }
 
@@ -73,39 +70,23 @@ void slideio::vsi::EtsFile::read()
         ets.skipBytes(4);
     }
 
-    //ArrayList<TileCoordinate> tmpTiles = new ArrayList<TileCoordinate>();
+    int maxResolution = 0;
 
-    //for (int chunk = 0; chunk < nUsedChunks; chunk++) {
-    //    etsFile.skipBytes(4);
-    //    int dimensions = nDimensions.get(nDimensions.size() - 1);
-    //    TileCoordinate t = new TileCoordinate(dimensions);
-    //    for (int i = 0; i < dimensions; i++) {
-    //        t.coordinate[i] = etsFile.readInt();
-    //    }
-    //    tileOffsets.get(tileOffsets.size() - 1)[chunk] = etsFile.readLong();
-    //    int nBytes = etsFile.readInt();
-    //    etsFile.skipBytes(4);
+    if (m_usePyramid) {
+        for (auto t : m_tiles) {
+            if (t.coordinates[t.coordinates.size() - 1] > maxResolution) {
+                maxResolution = t.coordinates[t.coordinates.size() - 1];
+            }
+        }
+    }
 
-    //    tmpTiles.add(t);
-    //}
+    maxResolution++;
 
-    //int maxResolution = 0;
-
-    //if (usePyramid) {
-    //    for (TileCoordinate t : tmpTiles) {
-    //        if (t.coordinate[t.coordinate.length - 1] > maxResolution) {
-    //            maxResolution = t.coordinate[t.coordinate.length - 1];
-    //        }
-    //    }
-    //}
-
-    //maxResolution++;
-
-    //int[] maxX = new int[maxResolution];
-    //int[] maxY = new int[maxResolution];
-    //int[] maxZ = new int[maxResolution];
-    //int[] maxC = new int[maxResolution];
-    //int[] maxT = new int[maxResolution];
+    std::vector<int> maxX(maxResolution);
+    std::vector<int> maxY(maxResolution);
+    std::vector<int> maxZ(maxResolution);
+    std::vector<int> maxC(maxResolution);
+    std::vector<int> maxT(maxResolution);
 
     //HashMap<String, Integer> dimOrder = pyramids.get(s).dimensionOrdering;
 

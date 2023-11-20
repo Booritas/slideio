@@ -31,9 +31,17 @@ namespace slideio
             };
         public:
             EtsFile(const std::string& filePath);
-            ~EtsFile();
             std::string getFilePath() const {
                 return m_filePath;
+            }
+            DataType getDataType() const {
+                return m_dataType;
+            }
+            int getNumChannels() const {
+                return m_numChannels;
+            }
+            slideio::Compression getCompression() const {
+                return m_compression;
             }
             void read();
         private:

@@ -39,9 +39,18 @@ bool EtsFileScene::readTile(int tileIndex, const std::vector<int>& channelIndice
 
 void EtsFileScene::init()
 {
+    if(!m_vsiFile) {
+        RAISE_RUNTIME_ERROR << "VSIImageDriver: VSI file is not initialized";
+    }
+    const int etsFileCount = m_vsiFile->getNumEtsFiles();
+    std::shared_ptr<vsi::EtsFile> etsFile = getEtsFile();
 }
 
 std::shared_ptr<vsi::EtsFile> EtsFileScene::getEtsFile() const
 {
-	return std::dynamic_pointer_cast<vsi::EtsFile>(m_vsiFile->getEtsFile(m_etsIndex));
+    if (m_etsIndex < 0 || m_etsIndex >= m_vsiFile->getNumEtsFiles()) {
+        RAISE_RUNTIME_ERROR << "VSIImageDriver: ETS index " << m_etsIndex
+            << " is out of range (0-" << m_vsiFile->getNumEtsFiles() << ")";
+    }
+	return m_vsiFile->getEtsFile(m_etsIndex);
 }
