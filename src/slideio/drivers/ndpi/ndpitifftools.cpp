@@ -785,6 +785,10 @@ void NDPITiffTools::readJpegDirectoryRegion(libtiff::TIFF* tiff, const std::stri
                                             const NDPITiffDirectory& dir, const std::vector<int>& channelIndices,
                                             cv::_OutputArray output)
 {
+    SLIDEIO_LOG(INFO)   << "NDPITiffTools::readJpegDirectoryRegion:"
+                        << "Reading JPEG directory region: ("
+                        << region.x << "," << region.y << ", "
+                        << region.width << ", " << region.height << ")";
     if (dir.tiled) {
         RAISE_RUNTIME_ERROR << "Stripped directory expected";
     }
@@ -839,6 +843,7 @@ void NDPITiffTools::readJpegDirectoryRegion(libtiff::TIFF* tiff, const std::stri
 
 
         if (firstScanline) {
+            SLIDEIO_LOG(INFO) << "NDPITiffTools::readJpegDirectoryRegion: skipping " << firstScanline << " scanlines";
             int skipped = jpeg_skip_scanlines(&cinfo, firstScanline);
             if (skipped != firstScanline) {
                 RAISE_RUNTIME_ERROR << "NDPIImageDriver: error by skipping scanlines. Expected:" << firstScanline <<
@@ -862,6 +867,7 @@ void NDPITiffTools::readJpegDirectoryRegion(libtiff::TIFF* tiff, const std::stri
         uint8_t* rowBegin = imageBuffer.data;
         int imageLine(0), bufferLine(0), bufferIndex(0);
         bool startNewBlock(true);
+        SLIDEIO_LOG(INFO) << "NDPITiffTools::readJpegDirectoryRegion: reading " << numberScanlines << " scanlines";
         for (; imageLine < numberScanlines; ++imageLine, ++bufferLine, rowBegin += bufferRowStride) {
             if(startNewBlock) {
                 startNewBlock = false;
