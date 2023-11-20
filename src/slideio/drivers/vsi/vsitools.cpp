@@ -9,18 +9,18 @@ using namespace slideio;
 
 DataType vsi::VSITools::toSlideioPixelType(uint32_t vsiPixelType)
 {
-    switch(vsiPixelType)
+    switch(static_cast<vsi::ValueType>(vsiPixelType))
     {
       case vsi::ValueType::CHAR: return DataType::DT_Int8;
       case vsi::ValueType::UCHAR: return DataType::DT_Byte;
       case vsi::ValueType::SHORT: return DataType::DT_Int16;
-	  case vsi::ValueType::USHORT: return DataType::DT_UInt16;
-	  case vsi::ValueType::INT: return DataType::DT_Int32;
-	  case vsi::ValueType::UINT: return DataType::DT_UInt32;
-	  case vsi::ValueType::INT64: return DataType::DT_Int64;
-	  case vsi::ValueType::UINT64: return DataType::DT_UInt64;
-	  case vsi::ValueType::FLOAT: return DataType::DT_Float32;
-	  case vsi::ValueType::DOUBLE: return DataType::DT_Float64;
+      case vsi::ValueType::USHORT: return DataType::DT_UInt16;
+      case vsi::ValueType::INT: return DataType::DT_Int32;
+      case vsi::ValueType::UINT: return DataType::DT_UInt32;
+      case vsi::ValueType::INT64: return DataType::DT_Int64;
+      case vsi::ValueType::UINT64: return DataType::DT_UInt64;
+      case vsi::ValueType::FLOAT: return DataType::DT_Float32;
+      case vsi::ValueType::DOUBLE: return DataType::DT_Float64;
     }
 	RAISE_RUNTIME_ERROR << "VSI Driver: Unsupported pixel type: " << vsiPixelType;
 }
@@ -81,7 +81,7 @@ std::string vsi::VSITools::getVolumeName(Tag tag)
         return "";
     case vsi::Tag::OPTICAL_PATH:
         return "Microscope ";
-    case 2417:
+    case vsi::Tag::CHANNEL_WAVELENGTH:
         return "Channel Wavelength ";
     case vsi::Tag::WORKING_DISTANCE:
         return "Objective Working Distance ";
@@ -92,7 +92,7 @@ std::string vsi::VSITools::getVolumeName(Tag tag)
 
 std::string vsi::VSITools::getTagName(const TagInfo& tagInfo)
 {
-    if(tagInfo.extendedType == ExtendedType::PROPERTY_SET_VOLUME 
+    if(tagInfo.extendedType == ExtendedType::PROPERTY_SET_VOLUME
         || tagInfo.extendedType == ExtendedType::NEW_MDIM_VOLUME_HEADER
         || tagInfo.extendedType == ExtendedType::NEW_VOLUME_HEADER) {
         switch (tagInfo.tag)
@@ -106,7 +106,7 @@ std::string vsi::VSITools::getTagName(const TagInfo& tagInfo)
         case vsi::Tag::FRAME_PROPERTIES:
             return "Frame properties";
         case vsi::Tag::DIMENSION_DESCRIPTION_VOLUME:
-            return std::string("Volume for dimension ") + 
+            return std::string("Volume for dimension ") +
                 std::to_string(tagInfo.secondTag) + std::string(" description");
         case vsi::Tag::CHANNEL_PROPERTIES:
             return "Channel properties";
@@ -116,7 +116,7 @@ std::string vsi::VSITools::getTagName(const TagInfo& tagInfo)
             return "Layer info properties";
         case vsi::Tag::OPTICAL_PATH:
             return "Microscope ";
-        case 2417:
+        case vsi::Tag::CHANNEL_WAVELENGTH:
             return "Channel Wavelength ";
         case vsi::Tag::WORKING_DISTANCE:
             return "Objective Working Distance ";
@@ -414,69 +414,69 @@ std::string vsi::VSITools::getTagName(const TagInfo& tagInfo)
         return "Objective Name";
     case vsi::Tag::OBJECTIVE_TYPE:
         return "Objective Type";
-    case 120065:
+    case vsi::Tag::OBJECTIVE_DESCRIPTION: //120065:
         return "Objective Description";
-    case 120066:
+    case vsi::Tag::OBJECTIVE_SUBTYPE: //120066:
         return "Objective Subtype";
-    case 120069:
+    case vsi::Tag::BRIGHTNESS_CORRECTION: //120069:
         return "Brightness Correction";
-    case 120070:
+    case vsi::Tag::OBJECTIVE_LENS: //120070:
         return "Objective Lens";
-    case 120075:
+    case vsi::Tag::OBJECTIVE_X_SHIFT:  //120075:
         return "Objective X Shift";
-    case 120076:
+    case vsi::Tag::OBJECTIVE_Y_SHIFT: //120076:
         return "Objective Y Shift";
-    case 120077:
-        return "Objective Z Shift";
-    case 120078:
+    case vsi::Tag::OBJECTIVE_Z_SHIFT: //120077:
+         return "Objective Z Shift";
+    case vsi::Tag::OBJECTIVE_GEAR_SETTING: //120078:
         return "Objective Gear Setting";
-    case 120635:
+    case vsi::Tag::SLIDE_BAR_CODE: // 120635
         return "Slide Bar Code";
-    case 120638:
+    case vsi::Tag::TRAY_NUMBER: // 120638
         return "Tray No.";
-    case 120637:
+    case vsi::Tag::SLIDE_NUMBER: // 120637
         return "Slide No.";
-    case 34:
+    case vsi::Tag::PRODUCT_NAME: // 34
         return "Product Name";
-    case 35:
+    case vsi::Tag::PRODUCT_VERSION: // 35
         return "Product Version";
     case vsi::Tag::DEVICE_NAME:
         return "Device Name";
     case vsi::Tag::BIT_DEPTH:
         return "Camera Actual Bit Depth";
-    case 120001:
+    case vsi::Tag::DEVICE_POSITION: // 120001
         return "Device Position";
-    case 120050:
+    case vsi::Tag::TV_ADAPTER_MAGNIFICATION: // 120050
         return "TV Adapter Magnification";
-    case vsi::Tag::REFRACTIVE_INDEX:
+    case vsi::Tag::OBJECTIVE_REFRACTIVE_INDEX:
         return "Objective Refractive Index";
-    case 120117:
+    case vsi::Tag::DEVICE_TYPE: // 120117
         return "Device Type";
     case vsi::Tag::DEVICE_ID:
         return "Device Unit ID";
     case vsi::Tag::DEVICE_SUBTYPE:
         return "Device Subtype";
-    case 120132:
+    case vsi::Tag::DEVICE_MODEL: //120132:
         return "Device Model";
     case vsi::Tag::DEVICE_MANUFACTURER:
         return "Device Manufacturer";
-    case 121102:
+    case vsi::Tag::STAGE_INSERT_POSITION: // 121102
         return "Stage Insert Position";
-    case 121131:
+    case vsi::Tag::LASER_LAMP_INTENSITY: // 121131
         return "Laser/Lamp Intensity";
-    case 268435456:
+    case vsi::Tag::UNITS: // 268435456
         return "Units";
-    case vsi::Tag::VALUE:
+    case vsi::Tag::VALUE: // 268435458
         return "Value";
-    case 175208:
+    case vsi::Tag::SNAPSHOT_COUNT: // 175208
         return "Snapshot Count";
-    case 175209:
+    case vsi::Tag::SCANNING_TIME: // 175209
         return "Scanning Time (seconds)";
-    case 120210:
+    case vsi::Tag::DEVICE_CONFIGURATION_POSITION: // 120210
         return "Device Configuration Position";
-    case 120211:
+    case vsi::Tag::DEVICE_CONFIGURATION_INDEX: // 120211
         return "Device Configuration Index";
-    case 124000:
+    case vsi::Tag::APERTURE_MAX_MODE: // 124000
         return "Aperture Max Mode";
     case vsi::Tag::FRAME_SIZE:
         return "Camera Maximum Frame Size";

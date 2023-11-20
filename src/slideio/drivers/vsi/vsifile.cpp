@@ -12,7 +12,6 @@
 #include "vsistream.hpp"
 #include "etsfile.hpp"
 #include "vsitools.hpp"
-#include <boost/json.hpp>
 #include <boost/tokenizer.hpp>
 #include <boost/foreach.hpp>
 
@@ -83,7 +82,7 @@ void vsi::VSIFile::checkExternalFilePresence()
                 }
                 m_hasExternalFiles = itValue->value().as_string() == std::string("1");
                 SLIDEIO_LOG(INFO) << "VSI driver: external files are " << (m_hasExternalFiles ? "present" : "absent");
-                if(m_hasExternalFiles) 
+                if(m_hasExternalFiles)
                     break;
             }
         }
@@ -100,7 +99,7 @@ void vsi::VSIFile::readVolumeInfo()
     const std::wstring filePathW = Tools::toWstring(m_filePath);
     std::ifstream ifs(filePathW, std::ios::binary);
 #else
-    std::ifstream input(m_filePath, std::ios::binary);
+    std::ifstream ifs(m_filePath, std::ios::binary);
 #endif
     vsi::VSIStream vsiStream(ifs);
     vsi::ImageFileHeader header;
