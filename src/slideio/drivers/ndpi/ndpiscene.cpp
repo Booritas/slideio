@@ -187,7 +187,7 @@ void NDPIScene::readResampledBlockChannels(const cv::Rect& blockRect, const cv::
     Tools::scaleRect(blockRect, zoomDirX, zoomDirY, resizedBlock);
     NDPIUserData data(&dir, getFilePath());
 
-    if (!dir.tiled && dir.rowsPerStrip == dir.height && dir.slideioCompression == Compression::Jpeg) {
+    if (0) {//!dir.tiled && dir.rowsPerStrip == dir.height && dir.slideioCompression == Compression::Jpeg) {
         cv::Mat dirRaster;
         NDPITiffTools::readJpegDirectoryRegion(m_pfile->getTiffHandle(), getFilePath(), resizedBlock, dir,
                                                channelIndices, dirRaster);

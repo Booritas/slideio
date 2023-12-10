@@ -7,7 +7,7 @@
 #include "tests/testlib/testtools.hpp"
 #include <fstream>
 
-#include "slideio/imagetools/tempfile.hpp"
+#include "slideio/core/tools/tempfile.hpp"
 
 TEST(ImageTools, readJp2KFile)
 {

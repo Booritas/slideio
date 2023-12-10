@@ -8,6 +8,8 @@
 #include "slideio/drivers/ndpi/ndpiimagedriver.hpp"
 #include "tests/testlib/testtools.hpp"
 #include <memory>
+#include <chrono>
+
 using namespace slideio;
 
 void test()
@@ -26,6 +28,7 @@ void test()
         int tile = 0;
         const int tiles = 20;
         cv::Rect blockRect = rectScene; //{ rectScene.width/2,rectScene.height/2,blockWidth,blockHeight };
+        auto start = std::chrono::high_resolution_clock::now();
         for (int x = 0; x < (rectScene.width-blockWidth) && tile<tiles; x += blockWidth) {
             for (int y = 0; y < (rectScene.height-blockHeight) && tile<tiles; y += blockHeight, tile++) {
                 std::cout << "Tile: " << tile << std::endl;
@@ -37,9 +40,16 @@ void test()
                 cv::Size blockSize(std::lround(blockRect.width * scale), std::lround(blockRect.height * scale));
                 std::vector<int> channelIndices = { 0, 1, 2 };
                 cv::Mat mat;
+                auto start0 = std::chrono::high_resolution_clock::now();
                 scene->readResampledBlockChannels(blockRect, blockSize, channelIndices, mat);
+                auto mid0 = std::chrono::high_resolution_clock::now();
+                std::chrono::duration<double> elapsed = mid0 - start0;
+                std::cout << "BLOCK TIME: " << elapsed.count() << std::endl;
             }
         }
+        auto mid = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double> elapsed = mid - start; 
+        std::cout << "Elapsed time: " << elapsed.count() << std::endl;       
         int channels = scene->getNumChannels();
         std::cout << "Channels:" << channels << std::endl;
         std::string channel = scene->getChannelName(0);
