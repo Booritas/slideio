@@ -22,6 +22,8 @@ set(TEST_SOURCES
   test_dcmfile.cpp
   test_exception.cpp
   test_generic.cpp
+  test_blocktiler.cpp
+  test_cachemanager.cpp
 )
 
 add_executable(${TEST_NAME} ${TEST_SOURCES})

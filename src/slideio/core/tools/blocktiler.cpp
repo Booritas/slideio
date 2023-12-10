@@ -3,6 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 
 #include "slideio/core/tools/blocktiler.hpp"
+#include "slideio/base/exceptions.hpp"
 #include "slideio/core/tools/cachemanager.hpp"
 
 using namespace slideio;
@@ -11,16 +12,26 @@ BlockTiler::BlockTiler(const cv::Mat& block, const cv::Size& tileSize) :
     m_tileSize(tileSize),
     m_block(block)
 {
+    if (tileSize.width <= 0 || tileSize.height <= 0) {
+        RAISE_RUNTIME_ERROR << "BlockTiler: Invalid tile size: (" << tileSize.width << ", " << tileSize.height << ")";
+    }
+
+    if(block.cols <= 0 || block.rows <= 0) {
+        RAISE_RUNTIME_ERROR << "BlockTiler: Invalid block size: (" << block.cols << ", " << block.rows << ")";
+    }
 }
 
 
 void BlockTiler::apply(ITileVisitor* visitor) const
 {
-    const int tileCountX = m_block.cols / m_tileSize.width;
-    const int tileCountY = m_block.rows / m_tileSize.height;
+    if(!visitor) {
+        RAISE_RUNTIME_ERROR << "BlockTiler: Visitor is null";
+    }
+    const int tileCountX = (m_block.cols - 1) / m_tileSize.width + 1;
+    const int tileCountY = (m_block.rows - 1) / m_tileSize.height + 1;
     for (int tileY = 0; tileY < tileCountY; ++tileY) {
         const int y = tileY * m_tileSize.height;
-        int height = m_tileSize.width;
+        int height = m_tileSize.height;
         if ((y + m_tileSize.height) > m_block.rows) {
             height = m_block.rows - y;
         }
