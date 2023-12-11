@@ -6,7 +6,8 @@
 
 using namespace slideio;
 
-CacheManager::CacheManager() {
+CacheManager::CacheManager()
+{
 }
 
 CacheManager::~CacheManager()
@@ -15,9 +16,7 @@ CacheManager::~CacheManager()
 
 void CacheManager::addCache(const Metadata& metadata, const cv::Mat& raster)
 {
-    std::string filePath = TempFile::createTempFile();
-    cv::imwrite(filePath, raster);
-    m_cachePointers[metadata] = std::make_pair(0, filePath);
+    m_cachePointers[metadata] = raster;
 }
 
 cv::Mat CacheManager::getCache(const Metadata& metadata)
@@ -26,6 +25,5 @@ cv::Mat CacheManager::getCache(const Metadata& metadata)
     if (it == m_cachePointers.end()) {
         return cv::Mat();
     }
-    auto& cache = it->second;
     return it->second;
 }

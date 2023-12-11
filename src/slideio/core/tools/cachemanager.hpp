@@ -4,9 +4,8 @@
 #pragma once
 #include "slideio/core/slideio_core_def.hpp"
 #include <unordered_map>
-#include <fstream>
+#include <boost/container_hash/hash.hpp>
 #include <opencv2/core.hpp>
-#include "slideio/core/tools/tilevisitor.hpp"
 
 #if defined(_MSC_VER)
 #pragma warning( push )
@@ -20,12 +19,37 @@ namespace slideio {
             double zoomX;
             double zoomY;
             cv::Rect rect;
-        }
+
+            friend bool operator==(const Metadata& lhs, const Metadata& rhs)
+            {
+                return lhs.zoomX == rhs.zoomX
+                    && lhs.zoomY == rhs.zoomY
+                    && lhs.rect == rhs.rect;
+            }
+
+            friend bool operator!=(const Metadata& lhs, const Metadata& rhs)
+            {
+                return !(lhs == rhs);
+            }
+        };
+        struct MetadataHash {
+            std::size_t operator()(const Metadata& key) const {
+                std::size_t seed = 0;
+                boost::hash_combine(seed, key.zoomX);
+                boost::hash_combine(seed, key.zoomY);
+                boost::hash_combine(seed, key.rect.x);
+                boost::hash_combine(seed, key.rect.y);
+                boost::hash_combine(seed, key.rect.width);
+                boost::hash_combine(seed, key.rect.height);
+                return seed;
+            }
+
+        };
         CacheManager();
         virtual ~CacheManager();
-        void addCache(const Metadata& metadata, const cv::Map& raster);
+        void addCache(const Metadata& metadata, const cv::Mat& raster);
         cv::Mat getCache(const Metadata& metadata);
     private:
-        std::unordered_map<Metadata, std::pair<int64_t,int>> m_cachePointers;
+        std::unordered_map<Metadata, cv::Mat, MetadataHash> m_cachePointers;
     };
 }
