@@ -14,21 +14,18 @@
 #endif
 
 namespace slideio {
-    class TempFile;
-    class SLIDEIO_CORE_EXPORTS CacheManager : public ITileVisitor {
+    class SLIDEIO_CORE_EXPORTS CacheManager {
     public:
-        CacheManager(const cv::Size& tileSize, const cv::Size& tileCounts);
+        struct Metadata {
+            double zoomX;
+            double zoomY;
+            cv::Rect rect;
+        }
+        CacheManager();
         virtual ~CacheManager();
-        void saveTile(int x, int y, const cv::Mat& tile);
-        cv::Mat getTile(int x, int y);
-        void visit(int x, int y, const cv::Mat& tile) override;
+        void addCache(const Metadata& metadata, const cv::Map& raster);
+        cv::Mat getCache(const Metadata& metadata);
     private:
-        cv::Size m_tileSize;
-        cv::Size m_tileCounts;
-        std::unordered_map<int64_t, std::pair<int64_t,int>> m_cachePointers;
-        std::fstream m_cacheFile;
-        int64_t m_lastPointer;
-        int m_type;
-        std::unique_ptr<TempFile> m_tempFile;
+        std::unordered_map<Metadata, std::pair<int64_t,int>> m_cachePointers;
     };
 }

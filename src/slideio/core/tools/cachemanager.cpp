@@ -6,39 +6,26 @@
 
 using namespace slideio;
 
-CacheManager::CacheManager(const cv::Size& tileSize, const cv::Size& tileCounts) : m_tileSize(tileSize), m_tileCounts(tileCounts), m_lastPointer(0), m_type(-1) {
-	m_tempFile = std::make_unique<TempFile>("bin");
-    m_cacheFile.open(m_tempFile->getPath().c_str(), std::ios::binary | std::ios::in | std::ios::out | std::ios::trunc);
-    m_cachePointers.reserve(m_tileCounts.area());
+CacheManager::CacheManager() {
 }
 
 CacheManager::~CacheManager()
 {
-	m_cacheFile.close();
 }
 
-void CacheManager::saveTile(int x, int y, const cv::Mat& tile)
+void CacheManager::addCache(const Metadata& metadata, const cv::Mat& raster)
 {
-    if(m_type < 0)
-	    m_type = tile.type();
-    const int64_t tileIndex = y * m_tileCounts.width + x;
-	const int tileSize = static_cast<int>(tile.total() * tile.elemSize());
-    m_cacheFile.write(reinterpret_cast<const char*>(tile.data), tileSize);
-    m_cachePointers[tileIndex] = std::make_pair(m_cacheFile.tellp(), tileSize);
+    std::string filePath = TempFile::createTempFile();
+    cv::imwrite(filePath, raster);
+    m_cachePointers[metadata] = std::make_pair(0, filePath);
 }
 
-cv::Mat CacheManager::getTile(int x, int y)
+cv::Mat CacheManager::getCache(const Metadata& metadata)
 {
-	const int64_t tileIndex = y * m_tileCounts.width + x;
-	const int64_t tileOffset = m_cachePointers[tileIndex].first;
-	const int tileSize = m_cachePointers[tileIndex].second;
-	m_cacheFile.seekp(tileOffset);
-	cv::Mat tile(m_tileSize, m_type);
-	m_cacheFile.read((char*)tile.data, m_tileSize.area());
-	return tile;
-}
-
-void CacheManager::visit(int x, int y, const cv::Mat& tile)
-{
-    saveTile(x, y, tile);
+    auto it = m_cachePointers.find(metadata);
+    if (it == m_cachePointers.end()) {
+        return cv::Mat();
+    }
+    auto& cache = it->second;
+    return it->second;
 }
