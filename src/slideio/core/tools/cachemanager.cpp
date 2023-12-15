@@ -6,6 +6,8 @@
 
 using namespace slideio;
 
+const double CacheManager::Metadata::zoomRound = 10000.0;
+
 CacheManager::CacheManager()
 {
 }

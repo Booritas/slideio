@@ -55,8 +55,8 @@ TEST(CacheManagerTest, NotExistingCache) {
     cacheManager.addCache(metadata1, raster1);
 
     CacheManager::Metadata metadata2;
-    metadata1.zoomX = 1.0001;
-    metadata1.zoomY = 1.0;
+    metadata2.zoomX = 1.0001;
+    metadata2.zoomY = 1.0;
     // Retrieve the cache using the metadata
     cv::Mat retrievedRaster = cacheManager.getCache(metadata2);
 
@@ -98,4 +98,32 @@ TEST(CacheManagerTest, MultipleValues) {
     ASSERT_EQ(retrievedRaster.cols, raster1.cols);
     ASSERT_EQ(retrievedRaster.type(), raster1.type());
     ASSERT_TRUE(cv::countNonZero(retrievedRaster != raster1) == 0);
+}
+
+TEST(CacheManagerTest, SimilarZooms) {
+    // Create a CacheManager object
+    CacheManager cacheManager;
+
+    // Create some test metadata and raster
+    CacheManager::Metadata metadata1;
+    metadata1.zoomX = 1.0;
+    metadata1.zoomY = 1.0;
+    metadata1.rect = cv::Rect(0, 0, 100, 100);
+    cv::Mat raster1(100, 100, CV_8UC3, cv::Scalar(255, 0, 0));
+    // Add the cache to the CacheManager
+    cacheManager.addCache(metadata1, raster1);
+
+    CacheManager::Metadata metadata2;
+    metadata2.zoomX = 1.0001;
+    metadata2.zoomY = 1.0;
+    metadata2.rect = cv::Rect(0, 0, 100, 100);
+    // Retrieve the cache using the metadata
+    cv::Mat retrievedRaster = cacheManager.getCache(metadata2);
+
+    // Check if the retrieved cache is empty
+    ASSERT_TRUE(retrievedRaster.empty());
+
+    metadata2.zoomX = 1.00001;
+    retrievedRaster = cacheManager.getCache(metadata2);
+    ASSERT_FALSE(retrievedRaster.empty());
 }
