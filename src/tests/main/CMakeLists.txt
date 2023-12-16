@@ -24,6 +24,7 @@ set(TEST_SOURCES
   test_generic.cpp
   test_blocktiler.cpp
   test_cachemanager.cpp
+  test_tools.cpp
 )
 
 add_executable(${TEST_NAME} ${TEST_SOURCES})

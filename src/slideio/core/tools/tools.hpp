@@ -84,6 +84,7 @@ namespace slideio
         }
         static std::wstring toWstring(const std::string& string);
         static void throwIfPathNotExist(const std::string& path, const std::string label);
+        static void extractChannels(const cv::Mat& sourceRaster, const std::vector<int>& channels, cv::OutputArray output);
     };
 }
 #endif
