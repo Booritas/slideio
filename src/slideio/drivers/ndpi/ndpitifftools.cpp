@@ -15,6 +15,7 @@
 #include "slideio/drivers/ndpi/ndpitifftools.hpp"
 
 #include <codecvt>
+#include <opencv2/imgproc.hpp>
 
 #include "slideio/imagetools/cvtools.hpp"
 #include "jpeglib.h"
@@ -612,13 +613,22 @@ void slideio::NDPITiffTools::readStripedDir(libtiff::TIFF* file, const slideio::
         RAISE_RUNTIME_ERROR << "Planar striped images are not supported";
     }
 
-    std::vector<uint8_t> rgbaRaster;
-    bool notRGB = dir.photometric == 6 || dir.photometric == 8 || dir.photometric == 9 || dir.photometric == 10;
-    if (notRGB) {
+    const bool notSupportedColorSpace = dir.photometric == 6 || dir.photometric == 8 || dir.photometric == 9 || dir.photometric == 10;
+    if (notSupportedColorSpace) {
+        // let libtiff handle the color space conversion
         readNotRGBStripedDir(file, dir, output);
     }
     else {
         readRegularStripedDir(file, dir, output);
+    }
+
+    readRegularStripedDir(file, dir, output);
+
+    if(dir.photometric == 61) {
+        const cv::Mat imageYCbCr = output.getMat();
+        cv::Mat image;
+        cv::cvtColor(imageYCbCr, image, cv::COLOR_YCrCb2RGB);
+        output.assign(image);
     }
 
     return;

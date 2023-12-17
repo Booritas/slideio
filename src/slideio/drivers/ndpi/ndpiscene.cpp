@@ -171,31 +171,69 @@ Compression NDPIScene::getCompression() const
     return dir.slideioCompression;
 }
 
-void NDPIScene::readResampledBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize,
+
+cv::Mat NDPIScene::getCache(const cv::Rect& imageBlockRect, const cv::Size& requiredBlockSize)
+{
+    const NDPITiffDirectory& dir = findZoomDirectory(imageBlockRect, requiredBlockSize);
+    const double dirZoomX = static_cast<double>(dir.width) / static_cast<double>(m_rect.width);
+    const double dirZoomY = static_cast<double>(dir.height) / static_cast<double>(m_rect.height);
+    CacheManager::Metadata metadata(dirZoomX, dirZoomY);
+    cv::Mat dirRaster = m_cacheManager.getCache(metadata);
+    if(dirRaster.empty()) {
+        NDPITIFFMessageHandler mh;
+        // read the whole directory image to the cache
+        NDPITiffTools::readStripedDir(m_pfile->getTiffHandle(), dir, dirRaster);
+        m_cacheManager.addCache(metadata, dirRaster);
+    }
+    return dirRaster;
+}
+
+
+const NDPITiffDirectory& NDPIScene::findZoomDirectory(const cv::Rect& imageBlockRect, const cv::Size& requiredBlockSize) const
+{
+    auto directories = m_pfile->directories();
+
+    const double zoomImageToBlockX = static_cast<double>(requiredBlockSize.width) / static_cast<double>(imageBlockRect.width);
+    const double zoomImageToBlockY = static_cast<double>(requiredBlockSize.height) / static_cast<double>(imageBlockRect.height);
+
+    const double zoom = std::max(zoomImageToBlockX, zoomImageToBlockY);
+    const NDPITiffDirectory& dir = m_pfile->findZoomDirectory(zoom, m_rect.width, m_startDir, m_endDir);
+    return dir;
+}
+
+void NDPIScene::readResampledBlockChannels(const cv::Rect& imageBlockRect, const cv::Size& requiredBlockSize,
                                            const std::vector<int>& channelIndices, cv::OutputArray output)
 {
-    NDPITIFFMessageHandler mh;
 
-    const std::vector<NDPITiffDirectory>& directories = m_pfile->directories();
-    double zoomX = static_cast<double>(blockSize.width) / static_cast<double>(blockRect.width);
-    double zoomY = static_cast<double>(blockSize.height) / static_cast<double>(blockRect.height);
-    double zoom = std::max(zoomX, zoomY);
-    const slideio::NDPITiffDirectory& dir = m_pfile->findZoomDirectory(zoom, m_rect.width, m_startDir, m_endDir);
-    double zoomDirX = static_cast<double>(dir.width) / static_cast<double>(directories[m_startDir].width);
-    double zoomDirY = static_cast<double>(dir.height) / static_cast<double>(directories[m_startDir].height);
-    cv::Rect resizedBlock;
-    Tools::scaleRect(blockRect, zoomDirX, zoomDirY, resizedBlock);
-    NDPIUserData data(&dir, getFilePath());
+    const slideio::NDPITiffDirectory& dir = findZoomDirectory(imageBlockRect, requiredBlockSize);
 
-    if (0) {//!dir.tiled && dir.rowsPerStrip == dir.height && dir.slideioCompression == Compression::Jpeg) {
-        cv::Mat dirRaster;
-        NDPITiffTools::readJpegDirectoryRegion(m_pfile->getTiffHandle(), getFilePath(), resizedBlock, dir,
-                                               channelIndices, dirRaster);
-        cv::resize(dirRaster, output, blockSize);
+    const auto& directories = m_pfile->directories();
 
+    // scale coefficients to scale original image to the directory image
+    const double zoomImageToDirX = static_cast<double>(dir.width) / static_cast<double>(directories[m_startDir].width);
+    const double zoomImageToDirY = static_cast<double>(dir.height) / static_cast<double>(directories[m_startDir].height);
+
+    // rectangle on the directory zoom level
+    cv::Rect dirBlockRect;
+    Tools::scaleRect(imageBlockRect, zoomImageToDirX, zoomImageToDirY, dirBlockRect);
+
+
+    if (!dir.tiled && dir.rowsPerStrip == dir.height && dir.slideioCompression == Compression::Jpeg) {
+        const cv::Mat dirRaster = getCache(imageBlockRect, requiredBlockSize);
+        if(dirRaster.empty()) {
+            RAISE_RUNTIME_ERROR << "NDPIImageDriver: Cannot read directory cache raster ("
+                << imageBlockRect.x << ", " << imageBlockRect.y << ", "
+                << imageBlockRect.width << ", " << imageBlockRect.height << "), "
+                << "block size (" << requiredBlockSize.width << ", " << requiredBlockSize.height << ")";
+        }
+        const cv::Mat dirBlock(dirRaster, dirBlockRect);
+        cv::Mat block;
+        cv::resize(dirBlock, block, requiredBlockSize);
+        Tools::extractChannels(block, channelIndices, output);
     }
     else {
-        TileComposer::composeRect(this, channelIndices, resizedBlock, blockSize, output, (void*)&data);
+        NDPIUserData data(&dir, getFilePath());
+        TileComposer::composeRect(this, channelIndices, dirBlockRect, requiredBlockSize, output, (void*)&data);
     }
 }
 

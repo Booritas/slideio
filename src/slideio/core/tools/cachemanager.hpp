@@ -45,6 +45,7 @@ namespace slideio {
                 boost::hash_combine(seed, rect.height);
                 return seed;
             }
+        public:
             double zoomX;
             double zoomY;
             cv::Rect rect;

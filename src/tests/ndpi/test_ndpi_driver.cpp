@@ -2,8 +2,11 @@
 #include "slideio/drivers/ndpi/ndpitifftools.hpp"
 #include "tests/testlib/testtools.hpp"
 #include <string>
-#include "slideio/drivers/ndpi/ndpiimagedriver.hpp"
+#include <opencv2/imgproc.hpp>
 
+#include "slideio/drivers/ndpi/ndpiimagedriver.hpp"
+#include "slideio/drivers/ndpi/ndpifile.hpp"
+#include "slideio/drivers/ndpi/ndpiscene.hpp"
 
 namespace slideio
 {
@@ -12,6 +15,11 @@ namespace slideio
 
 TEST(NDPIImageDriver, openFile)
 {
+    if (!TestTools::isFullTestEnabled())
+    {
+        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
+    }
+
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "2017-02-27 15.29.08.ndpi");
     slideio::NDPIImageDriver driver;
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
@@ -43,6 +51,11 @@ TEST(NDPIImageDriver, openFile)
 
 TEST(NDPIImageDriver, readStrippedScene)
 {
+    if (!TestTools::isFullTestEnabled())
+    {
+        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
+    }
+
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1.ndpi");
     std::string testFilePath1 = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1-1.png");
     std::string testFilePath2 = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1-2.png");
@@ -94,6 +107,11 @@ TEST(NDPIImageDriver, readStrippedScene)
 
 TEST(NDPIImageDriver, readROI)
 {
+    if (!TestTools::isFullTestEnabled())
+    {
+        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
+    }
+
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "B05-41379_10.ndpi");
     std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "B05-41379_10-roi.png");
     slideio::NDPIImageDriver driver;
@@ -135,6 +153,11 @@ TEST(NDPIImageDriver, readROI)
 
 TEST(NDPIImageDriver, readROIResampled)
 {
+    if (!TestTools::isFullTestEnabled())
+    {
+        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
+    }
+
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "B05-41379_10.ndpi");
     std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "B05-41379_10-roi-resampled.png");
     slideio::NDPIImageDriver driver;
@@ -178,6 +201,11 @@ TEST(NDPIImageDriver, readROIResampled)
 
 TEST(NDPIImageDriver, readAuxImages)
 {
+    if (!TestTools::isFullTestEnabled())
+    {
+        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
+    }
+
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "2017-02-27 15.29.08.ndpi");
     std::string macroFilePath = TestTools::getFullTestImagePath("hamamatsu", "2017-02-27 15.29.08.macro.png");
     std::string mapFilePath = TestTools::getFullTestImagePath("hamamatsu", "2017-02-27 15.29.08.map.png");
@@ -213,6 +241,10 @@ TEST(NDPIImageDriver, readAuxImages)
 
 TEST(NDPIImageDriver, readResampledTiled)
 {
+    if (!TestTools::isFullTestEnabled())
+    {
+        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
+    }
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "DM0014 - 2020-04-02 10.25.21.ndpi");
     std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "DM0014 - 2020-04-02 10.25.21-roi-resampled.png");
     slideio::NDPIImageDriver driver;
@@ -252,6 +284,11 @@ TEST(NDPIImageDriver, readResampledTiled)
 
 TEST(NDPIImageDriver, readResampledTiledRoi)
 {
+    if (!TestTools::isFullTestEnabled())
+    {
+        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
+    }
+
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "DM0014 - 2020-04-02 10.25.21.ndpi");
     std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "DM0014 - 2020-04-02 10.25.21-roi-resampled-tiled.png");
     slideio::NDPIImageDriver driver;
@@ -291,6 +328,10 @@ TEST(NDPIImageDriver, readResampledTiledRoi)
 
 TEST(NDPIImageDriver, readResampled)
 {
+    if (!TestTools::isFullTestEnabled())
+    {
+        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
+    }
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "DM0014 - 2020-04-02 11.10.47.ndpi");
     std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "DM0014 - 2020-04-02 11.10.47-resampled.png");
     slideio::NDPIImageDriver driver;
@@ -333,4 +374,103 @@ TEST(NDPIImageDriver, openFileUtf8)
         EXPECT_EQ(raster.cols, rect.width);
         EXPECT_EQ(raster.rows, rect.height);
     }
+}
+
+
+TEST(NDPIImageDriver, findZoomDirectory)
+{
+    if (!TestTools::isFullTestEnabled())
+    {
+        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
+    }
+    const std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "DM0014 - 2020-04-02 11.10.47.ndpi");
+    slideio::NDPIImageDriver driver;
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    const int dirCount = slide->getNumScenes();
+    ASSERT_EQ(dirCount, 1);
+    std::shared_ptr<slideio::NDPIScene> scene = std::static_pointer_cast<slideio::NDPIScene>(slide->getScene(0));
+    const auto imageRect = scene->getRect();
+
+    // Define the input parameters for the function
+    const cv::Rect imageBlockRect(0, 0, 200, 200);
+
+    {
+        cv::Size requiredBlockSize(200, 200);
+        const slideio::NDPITiffDirectory& dir = scene->findZoomDirectory(imageBlockRect, requiredBlockSize);
+        double scale = static_cast<double>(imageRect.width) / static_cast<double>(dir.width);
+        EXPECT_DOUBLE_EQ(1., scale);
+    }
+
+    {
+        cv::Size requiredBlockSize(150, 150);
+        const slideio::NDPITiffDirectory& dir = scene->findZoomDirectory(imageBlockRect, requiredBlockSize);
+        double scale = static_cast<double>(imageRect.width) / static_cast<double>(dir.width);
+        EXPECT_DOUBLE_EQ(1., scale);
+    }
+
+    {
+        cv::Size requiredBlockSize(100, 100);
+        const slideio::NDPITiffDirectory& dir = scene->findZoomDirectory(imageBlockRect, requiredBlockSize);
+        double scale = static_cast<double>(imageRect.width) / static_cast<double>(dir.width);
+        EXPECT_DOUBLE_EQ(2., scale);
+    }
+
+    {
+        cv::Size requiredBlockSize(75, 75);
+        const slideio::NDPITiffDirectory& dir = scene->findZoomDirectory(imageBlockRect, requiredBlockSize);
+        double scale = static_cast<double>(imageRect.width) / static_cast<double>(dir.width);
+        EXPECT_DOUBLE_EQ(2., scale);
+    }
+
+}
+
+TEST(NDPIImageDriver, getCache)
+{
+    if (!TestTools::isFullTestEnabled())
+    {
+        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
+    }
+    const std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1.ndpi");
+    slideio::NDPIImageDriver driver;
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    const int dirCount = slide->getNumScenes();
+    ASSERT_EQ(dirCount, 1);
+    std::shared_ptr<slideio::NDPIScene> scene = std::static_pointer_cast<slideio::NDPIScene>(slide->getScene(0));
+    const auto imageRect = scene->getRect();
+
+    // Define the input parameters for the function
+    const cv::Rect imageBlockRect(0, 0, 200, 200);
+
+    {
+        const cv::Size requiredBlockSize(200, 200);
+        cv::Mat cache = scene->getCache(imageBlockRect, requiredBlockSize);
+        ASSERT_FALSE(cache.empty());
+        double scale = static_cast<double>(imageRect.width) / static_cast<double>(cache.size().width);
+        EXPECT_DOUBLE_EQ(1., scale);
+    }
+
+    {
+        cv::Size requiredBlockSize(100, 100);
+        cv::Mat cache = scene->getCache(imageBlockRect, requiredBlockSize);
+        double scale = static_cast<double>(imageRect.width) / static_cast<double>(cache.size().width);
+        EXPECT_DOUBLE_EQ(1., scale);
+    }
+
+    {
+        cv::Size requiredBlockSize(40, 40);
+        cv::Mat cache = scene->getCache(imageBlockRect, requiredBlockSize);
+        double scale = static_cast<double>(imageRect.width) / static_cast<double>(cache.size().width);
+        EXPECT_DOUBLE_EQ(4., scale);
+    }
+
+    {
+        cv::Size requiredBlockSize(50, 50);
+        cv::Mat cache = scene->getCache(imageBlockRect, requiredBlockSize);
+        double scale = static_cast<double>(imageRect.width) / static_cast<double>(cache.size().width);
+        EXPECT_DOUBLE_EQ(4., scale);
+        cv::Mat cache2;
+        cv::resize(cache, cache2, cv::Size(2000, 2000));
+        TestTools::showRaster(cache2);
+    }
+
 }

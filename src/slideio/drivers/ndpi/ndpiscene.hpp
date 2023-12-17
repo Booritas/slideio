@@ -4,8 +4,10 @@
 #ifndef OPENCV_slideio_ndpiscene_HPP
 #define OPENCV_slideio_ndpiscene_HPP
 
+#include "ndpitifftools.hpp"
 #include "slideio/drivers/ndpi/ndpi_api_def.hpp"
 #include "slideio/core/cvscene.hpp"
+#include "slideio/core/tools/cachemanager.hpp"
 #include "slideio/core/tools/tilecomposer.hpp"
 
 #if defined(_MSC_VER)
@@ -38,8 +40,10 @@ namespace slideio
         Resolution getResolution() const override;
         double getMagnification() const override;
         Compression getCompression() const override;
-        void readResampledBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize, const std::vector<int>& channelIndices,
+        void readResampledBlockChannels(const cv::Rect& imageBlockRect, const cv::Size& requiredBlockSize, const std::vector<int>& channelIndices,
             cv::OutputArray output) override;
+        cv::Mat getCache(const cv::Rect& imageBlockRect, const cv::Size& requiredBlockSize);
+        const NDPITiffDirectory& findZoomDirectory(const cv::Rect& imageBlockRect, const cv::Size& requiredBlockSize) const;
         int getTileCount(void* userData) override;
         bool getTileRect(int tileIndex, cv::Rect& tileRect, void* userData) override;
         bool readTile(int tileIndex, const std::vector<int>& channelIndices, cv::OutputArray tileRaster,
@@ -52,6 +56,7 @@ namespace slideio
         int m_endDir;
         std::string m_sceneName;
         cv::Rect m_rect;
+        CacheManager m_cacheManager;
     };
 
 }
