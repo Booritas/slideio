@@ -19,6 +19,7 @@ namespace slideio {
     public:
         BlockTiler(const cv::Mat& block, const cv::Size& tileSize);
         void apply(ITileVisitor* visitor) const;
+        void apply(std::function<void(int, int, const cv::Mat&)> visitor) const;
     private:
         cv::Size m_tileSize;
         cv::Mat m_block;

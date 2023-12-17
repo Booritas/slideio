@@ -1,129 +1,42 @@
 
 #include <gtest/gtest.h>
+#include "slideio/base/exceptions.hpp"
 #include "slideio/core/tools/cachemanager.hpp"
 
 using namespace slideio;
 
-TEST(CacheManagerTest, AddAndGetCache) {
-    // Create a CacheManager object
+TEST(CacheManagerTest, addAndGetTiles)
+{
     CacheManager cacheManager;
 
-    // Create some test metadata and raster
-    CacheManager::Metadata metadata1;
-    metadata1.zoomX = 1.0;
-    metadata1.zoomY = 1.0;
-    metadata1.rect = cv::Rect(0, 0, 100, 100);
-    cv::Mat raster1(100, 100, CV_8UC3, cv::Scalar(255, 0, 0));
-    // Add the cache to the CacheManager
-    cacheManager.addCache(metadata1, raster1);
+    const cv::Rect rect1(10, 20, 200, 300);
+    const cv::Mat tile1(rect1.size(), CV_8UC3, cv::Scalar(255, 0, 0));
+    cacheManager.addTile(0, rect1.tl(), tile1);
 
-    // Retrieve the cache using the metadata
-    cv::Mat retrievedRaster = cacheManager.getCache(metadata1);
+    EXPECT_EQ(cacheManager.getTileCount(0), 1);
+    EXPECT_EQ(cacheManager.getTileCount(1), 0);
 
-    // Check if the retrieved cache matches the original raster
-    ASSERT_EQ(retrievedRaster.rows, raster1.rows);
-    ASSERT_EQ(retrievedRaster.cols, raster1.cols);
-    ASSERT_EQ(retrievedRaster.type(), raster1.type());
-    ASSERT_TRUE(cv::countNonZero(retrievedRaster != raster1) == 0);
-}
+    const cv::Rect rect2(14, 22, 210, 330);
+    const cv::Mat tile2(rect2.size(), CV_8UC3, cv::Scalar(255, 255, 0));
+    cacheManager.addTile(0, rect2.tl(), tile2);
+    EXPECT_EQ(cacheManager.getTileCount(0), 2);
 
-TEST(CacheManagerTest, EmptyCache) {
-    // Create a CacheManager object
-    CacheManager cacheManager;
+    cv::Mat tl1 = cacheManager.getTile(0, 0);
+    cv::Rect r1 = cacheManager.getTileRect(0, 0);
+    EXPECT_EQ(r1, rect1);
+    ASSERT_EQ(tile1.rows, tl1.rows);
+    ASSERT_EQ(tile1.cols, tl1.cols);
+    ASSERT_EQ(tile1.type(), tl1.type());
+    ASSERT_TRUE(cv::countNonZero(tile1 != tl1) == 0);
 
-    // Create some test metadata
-    CacheManager::Metadata metadata1;
+    cv::Mat tl2 = cacheManager.getTile(0, 1);
+    cv::Rect r2 = cacheManager.getTileRect(0, 1);
+    EXPECT_EQ(r2, rect2);
+    ASSERT_EQ(tile2.rows, tl2.rows);
+    ASSERT_EQ(tile2.cols, tl2.cols);
+    ASSERT_EQ(tile2.type(), tl2.type());
+    ASSERT_TRUE(cv::countNonZero(tile2 != tl2) == 0);
 
-    // Retrieve a non-existing cache using the metadata
-    cv::Mat retrievedRaster = cacheManager.getCache(metadata1);
-
-    // Check if the retrieved cache is empty
-    ASSERT_TRUE(retrievedRaster.empty());
-}
-
-TEST(CacheManagerTest, NotExistingCache) {
-    // Create a CacheManager object
-    CacheManager cacheManager;
-
-    // Create some test metadata and raster
-    CacheManager::Metadata metadata1;
-    metadata1.zoomX = 1.0;
-    metadata1.zoomY = 1.0;
-    metadata1.rect = cv::Rect(0, 0, 100, 100);
-    cv::Mat raster1(100, 100, CV_8UC3, cv::Scalar(255, 0, 0));
-    // Add the cache to the CacheManager
-    cacheManager.addCache(metadata1, raster1);
-
-    CacheManager::Metadata metadata2;
-    metadata2.zoomX = 1.0001;
-    metadata2.zoomY = 1.0;
-    // Retrieve the cache using the metadata
-    cv::Mat retrievedRaster = cacheManager.getCache(metadata2);
-
-    // Check if the retrieved cache is empty
-    ASSERT_TRUE(retrievedRaster.empty());
-}
-
-TEST(CacheManagerTest, MultipleValues) {
-    // Create a CacheManager object
-    CacheManager cacheManager;
-
-    // Create some test metadata and raster
-    CacheManager::Metadata metadata2;
-    metadata2.zoomX = 1.000004;
-    metadata2.zoomY = 1.0;
-    metadata2.rect = cv::Rect(0, 0, 100, 100);
-    cv::Mat raster1(100, 100, CV_8UC1, cv::Scalar(0));
-    // Add the cache to the CacheManager
-    cacheManager.addCache(metadata2, raster1);
-
-
-    // Retrieve the cache using the metadata
-    cv::Mat retrievedRaster = cacheManager.getCache(metadata2);
-
-
-    for(int i = 0; i < 10; ++i) {
-               // Create some test metadata and raster
-        CacheManager::Metadata metadata1;
-        metadata1.zoomX = 1.0 + double(i) * 0.01;
-        metadata1.zoomY = 1.0;
-        metadata1.rect = cv::Rect(0, 0, 100, 100);
-        cv::Mat raster1(10+i+1, 10, CV_8UC1, cv::Scalar(0));
-        // Add the cache to the CacheManager
-        cacheManager.addCache(metadata1, raster1);
-    }
-
-    // Check if the retrieved cache matches the original raster
-    ASSERT_EQ(retrievedRaster.rows, raster1.rows);
-    ASSERT_EQ(retrievedRaster.cols, raster1.cols);
-    ASSERT_EQ(retrievedRaster.type(), raster1.type());
-    ASSERT_TRUE(cv::countNonZero(retrievedRaster != raster1) == 0);
-}
-
-TEST(CacheManagerTest, SimilarZooms) {
-    // Create a CacheManager object
-    CacheManager cacheManager;
-
-    // Create some test metadata and raster
-    CacheManager::Metadata metadata1;
-    metadata1.zoomX = 1.0;
-    metadata1.zoomY = 1.0;
-    metadata1.rect = cv::Rect(0, 0, 100, 100);
-    cv::Mat raster1(100, 100, CV_8UC3, cv::Scalar(255, 0, 0));
-    // Add the cache to the CacheManager
-    cacheManager.addCache(metadata1, raster1);
-
-    CacheManager::Metadata metadata2;
-    metadata2.zoomX = 1.0001;
-    metadata2.zoomY = 1.0;
-    metadata2.rect = cv::Rect(0, 0, 100, 100);
-    // Retrieve the cache using the metadata
-    cv::Mat retrievedRaster = cacheManager.getCache(metadata2);
-
-    // Check if the retrieved cache is empty
-    ASSERT_TRUE(retrievedRaster.empty());
-
-    metadata2.zoomX = 1.00001;
-    retrievedRaster = cacheManager.getCache(metadata2);
-    ASSERT_FALSE(retrievedRaster.empty());
+    EXPECT_THROW(cacheManager.getTile(3, 3), slideio::RuntimeError);
+    EXPECT_THROW(cacheManager.getTile(0, 3), slideio::RuntimeError);
 }

@@ -2,67 +2,98 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #pragma once
+#include <map>
+
 #include "slideio/core/slideio_core_def.hpp"
 #include <unordered_map>
 #include <boost/container_hash/hash.hpp>
 #include <opencv2/core.hpp>
+
+#include "tilecomposer.hpp"
+#include "tools.hpp"
 
 #if defined(_MSC_VER)
 #pragma warning( push )
 #pragma warning(disable: 4251)
 #endif
 
-namespace slideio {
-    class SLIDEIO_CORE_EXPORTS CacheManager {
+namespace slideio
+{
+    class SLIDEIO_CORE_EXPORTS CacheManager
+    {
     public:
-        class Metadata {
+        class Level
+        {
         public:
-            Metadata() : zoomX(0.0), zoomY(0.0) {}
-            Metadata(double zX, double zY) :
-                zoomX(zX), zoomY(zY)
+            Level(int id) : m_id(id)
             {
-            }
-            friend bool operator==(const Metadata& lhs, const Metadata& rhs)
-            {
-                return std::lround(lhs.zoomX*zoomRound) == std::lround(rhs.zoomX*zoomRound)
-                    && std::lround(lhs.zoomY*zoomRound) == std::lround(rhs.zoomY*zoomRound)
-                    && lhs.rect == rhs.rect;
-            }
-            friend bool operator!=(const Metadata& lhs, const Metadata& rhs)
-            {
-                return !(lhs == rhs);
-            }
-            std::size_t hash() const
-            {
-                std::size_t seed = 0;
-                const long zoomX = std::lround(this->zoomX * zoomRound);
-                const long zoomY = std::lround(this->zoomY * zoomRound);
-                boost::hash_combine(seed, zoomX);
-                boost::hash_combine(seed, zoomY);
-                boost::hash_combine(seed, rect.x);
-                boost::hash_combine(seed, rect.y);
-                boost::hash_combine(seed, rect.width);
-                boost::hash_combine(seed, rect.height);
-                return seed;
-            }
-        public:
-            double zoomX;
-            double zoomY;
-            cv::Rect rect;
-        private:
-            static const double zoomRound;
-        };
-        struct MetadataHash {
-            std::size_t operator()(const Metadata& key) const {
-                return key.hash();
             }
 
+            int getId() const { return m_id; }
+
+            void addTile(const cv::Rect& rect, int cacheIndex)
+            {
+                tiles.emplace_back(rect, cacheIndex);
+            }
+
+            int getTileCount() const
+            {
+                return static_cast<int>(tiles.size());
+            }
+
+            const cv::Rect& getTileRect(int index) const
+            {
+                return tiles[index].first;
+            }
+
+            int getTileCacheIndex(int index) const
+            {
+                return tiles[index].second;
+            }
+
+        private:
+            int m_id;
+            std::vector<std::pair<cv::Rect, int>> tiles;
         };
+
         CacheManager();
         virtual ~CacheManager();
-        void addCache(const Metadata& metadata, const cv::Mat& raster);
-        cv::Mat getCache(const Metadata& metadata);
+        void addTile(int level, cv::Point2i pos, const cv::Mat& tile);
+        int getTileCount(int level) const;
+        cv::Mat getTile(int levelId, int index) const;
+        const cv::Rect getTileRect(int levelId, int tileIndex) const;
+
     private:
-        std::unordered_map<Metadata, cv::Mat, MetadataHash> m_cachePointers;
+        std::vector<cv::Mat> m_cache;
+        std::map<int, std::shared_ptr<Level>> m_levels;
+    };
+
+    class SLIDEIO_CORE_EXPORTS CacheManagerTiler : public Tiler
+    {
+    public:
+        CacheManagerTiler(std::shared_ptr<CacheManager>& cacheManager, const cv::Size& tileSize, int levelId) :
+            m_cacheManager(cacheManager), m_tileSize(tileSize), m_levelId(levelId) {
+        }
+        int getTileCount(void* userData) override {
+            return m_cacheManager->getTileCount(m_levelId);
+        }
+        bool getTileRect(int tileIndex, cv::Rect& tileRect, void* userData) override {
+            tileRect = m_cacheManager->getTileRect(m_levelId, tileIndex);
+            return true;
+        }
+        bool readTile(int tileIndex, const std::vector<int>& channelIndices, cv::OutputArray tileRaster,
+                      void* userData) override {
+            cv::Mat tile = m_cacheManager->getTile(m_levelId, tileIndex);
+            tileRaster.create(tile.size(), tile.type());
+            Tools::extractChannels(tile, channelIndices, tileRaster);
+            return true;
+        }
+        void initializeBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices,
+                             cv::OutputArray output) override {}
+
+    private:
+        std::shared_ptr<CacheManager> m_cacheManager;
+        cv::Size m_tileSize;
+        int m_levelId;
     };
 }
