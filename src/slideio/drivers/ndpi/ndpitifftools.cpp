@@ -19,6 +19,8 @@
 
 #include "slideio/imagetools/cvtools.hpp"
 #include "jpeglib.h"
+#include "slideio/core/tools/blocktiler.hpp"
+#include "slideio/core/tools/cachemanager.hpp"
 #include "slideio/imagetools/imagetools.hpp"
 
 #if defined(WIN32)
@@ -622,9 +624,7 @@ void slideio::NDPITiffTools::readStripedDir(libtiff::TIFF* file, const slideio::
         readRegularStripedDir(file, dir, output);
     }
 
-    readRegularStripedDir(file, dir, output);
-
-    if(dir.photometric == 61) {
+    if(dir.photometric == 6) {
         const cv::Mat imageYCbCr = output.getMat();
         cv::Mat image;
         cv::cvtColor(imageYCbCr, image, cv::COLOR_YCrCb2RGB);
@@ -782,6 +782,87 @@ void NDPITiffTools::readScanlines(libtiff::TIFF* tiff, FILE* file, const NDPITif
                 numberScanlines;
         }
         rowBegin += row_stride;
+    }
+    const int rowsLeft = dir.height - firstScanline - numberScanlines;
+    if (rowsLeft > 0) {
+        jpeg_skip_scanlines(&cinfo, rowsLeft);
+    }
+    jpeg_finish_decompress(&cinfo);
+    jpeg_destroy_decompress(&cinfo);
+}
+
+void NDPITiffTools::cacheScanlines(libtiff::TIFF* tiff, std::FILE* file, 
+        const NDPITiffDirectory& dir, cv::Size tileSize, CacheManager* cacheManager)
+{
+    if(dir.tiled) {
+        RAISE_RUNTIME_ERROR << "NDPITiffTools: Attempt to use stripped cache for tiled directory.";
+    }
+
+    if(dir.rowsPerStrip != dir.height) {
+        RAISE_RUNTIME_ERROR << "NDPITiffTools: Attempt to use stripped cache for directory with rows per strip: " <<
+            dir.rowsPerStrip << ". Expected: " << dir.height;
+    }
+
+    const int firstScanline = 0;
+    const int numberScanlines = dir.height;
+
+    setCurrentDirectory(tiff, dir);
+
+    uint64_t stripeOffset = libtiff::TIFFGetStrileOffset(tiff, 0);
+    int ret = FSEEK64(file, stripeOffset, SEEK_SET);
+    jpeg_decompress_struct cinfo;
+    ErrorManager jerr;
+
+    cinfo.err = jpeg_std_error(&jerr.pub);
+    jerr.pub.error_exit = ErrorExit;
+
+    if (setjmp(jerr.setjmp_buffer)) {
+        /* If we get here, the JPEG code has signaled an error.
+         * We need to clean up the JPEG object, close the input file, and return.*/
+        jpeg_destroy_decompress(&cinfo);
+        return;
+    }
+
+    jpeg_create_decompress(&cinfo);
+    jpeg_stdio_src(&cinfo, file);
+    cinfo.image_width = dir.width;
+    cinfo.image_height = dir.height;
+    jpeg_read_header(&cinfo, TRUE);
+    jpeg_start_decompress(&cinfo);
+    int rowStride = cinfo.output_width * cinfo.output_components;
+
+    cv::Mat stripe;
+    stripe.create(tileSize.height, cinfo.output_width, CV_MAKETYPE(CV_8U, cinfo.output_components));
+    stripe.setTo(cv::Scalar(0));
+    uint8_t* rowBegin = stripe.data;
+
+    int stripeLine = 0;
+    int stripeRows = tileSize.height;
+    int stripeTop = 0;
+    for (int scanline = 0; scanline < numberScanlines; ++scanline, ++stripeLine) {
+        int read = jpeg_read_scanlines(&cinfo, &rowBegin, 1);
+        if (read != 1) {
+            RAISE_RUNTIME_ERROR << "NDPIImageDriver: error by reading scanline " << scanline << " of " <<
+                numberScanlines;
+        }
+        rowBegin += rowStride;
+        if(stripeLine >= (stripeRows-1) || (scanline+1) == numberScanlines) {
+            BlockTiler tiler(stripe, tileSize);
+            tiler.apply([&cacheManager, stripeTop, &dir, tileSize](int x, int y, const cv::Mat& tile){
+                cacheManager->addTile(dir.dirIndex, cv::Point(x*tileSize.width, stripeTop), tile);
+            });
+            if ((scanline + 1) < numberScanlines) {
+                if (scanline + stripeRows >= numberScanlines) {
+                    stripeRows = numberScanlines - scanline;
+                    stripe.create(stripeRows, cinfo.output_width, CV_MAKETYPE(CV_8U, cinfo.output_components));
+                }
+                // prepare next stripe
+                stripe.setTo(cv::Scalar(0));
+            }
+            rowBegin = stripe.data;
+            stripeLine = -1;
+            stripeTop = scanline + 1;
+        }
     }
     const int rowsLeft = dir.height - firstScanline - numberScanlines;
     if (rowsLeft > 0) {

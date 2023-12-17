@@ -41,14 +41,18 @@ namespace slideio
         double getMagnification() const override;
         Compression getCompression() const override;
         void readResampledBlockChannels(const cv::Rect& imageBlockRect, const cv::Size& requiredBlockSize, const std::vector<int>& channelIndices,
-            cv::OutputArray output) override;
-        cv::Mat getCache(const cv::Rect& imageBlockRect, const cv::Size& requiredBlockSize);
+                                        cv::OutputArray output) override;
+        void readBlockFromCache(const cv::Rect& imageBlockRect, const std::vector<int>& channelIndices, 
+            const cv::Size& requiredBlockSize, cv::OutputArray output);
         const NDPITiffDirectory& findZoomDirectory(const cv::Rect& imageBlockRect, const cv::Size& requiredBlockSize) const;
+        void scaleBlockToDirectory(const cv::Rect& imageBlockRect, const slideio::NDPITiffDirectory& dir, cv::Rect& dirBlockRect) const;
         int getTileCount(void* userData) override;
         bool getTileRect(int tileIndex, cv::Rect& tileRect, void* userData) override;
         bool readTile(int tileIndex, const std::vector<int>& channelIndices, cv::OutputArray tileRaster,
             void* userData) override;
         void initializeBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices, cv::OutputArray output) override;
+        bool isDirectoryCached(const NDPITiffDirectory& dir);
+        void markDirectoryCached(const NDPITiffDirectory& dir);
 
     protected:
         NDPIFile* m_pfile;
@@ -56,7 +60,8 @@ namespace slideio
         int m_endDir;
         std::string m_sceneName;
         cv::Rect m_rect;
-        CacheManager m_cacheManager;
+        std::shared_ptr<CacheManager> m_cacheManager;
+        std::set<int> m_cachedDirectory;
     };
 
 }
