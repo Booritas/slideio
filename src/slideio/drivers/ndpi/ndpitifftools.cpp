@@ -794,6 +794,12 @@ void NDPITiffTools::readScanlines(libtiff::TIFF* tiff, FILE* file, const NDPITif
 void NDPITiffTools::cacheScanlines(libtiff::TIFF* tiff, std::FILE* file, 
         const NDPITiffDirectory& dir, cv::Size tileSize, CacheManager* cacheManager)
 {
+    if(!file) {
+               RAISE_RUNTIME_ERROR << "NDPITiffTools: file pointer is not set";
+    }
+    if(!cacheManager) {
+        RAISE_RUNTIME_ERROR << "NDPITiffTools: cache manager is not set";
+    }
     if(dir.tiled) {
         RAISE_RUNTIME_ERROR << "NDPITiffTools: Attempt to use stripped cache for tiled directory.";
     }

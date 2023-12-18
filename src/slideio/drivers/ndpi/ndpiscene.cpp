@@ -82,6 +82,7 @@ private:
 
 NDPIScene::NDPIScene() : m_pfile(nullptr), m_startDir(-1), m_endDir(-1), m_rect(0, 0, 0, 0)
 {
+    m_cacheManager = std::make_shared<CacheManager>();
 }
 
 NDPIScene::~NDPIScene()
@@ -189,7 +190,7 @@ void NDPIScene::readBlockFromCache(const cv::Rect& imageBlockRect, const std::ve
     const cv::Size tileSize(1000, 1000);
     if(!isDirectoryCached(dir)) {
         NDPITIFFMessageHandler mh;
-        std::unique_ptr<std::FILE, FileDeleter> file(std::fopen(m_pfile->getFilePath().c_str(), "rb"));
+        std::unique_ptr<FILE, FileDeleter> file(std::fopen(m_pfile->getFilePath().c_str(), "rb"));
         NDPITiffTools::cacheScanlines(m_pfile->getTiffHandle(), file.get(), dir, tileSize, m_cacheManager.get());
         markDirectoryCached(dir);
     }

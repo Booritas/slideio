@@ -89,7 +89,10 @@ namespace slideio
             return true;
         }
         void initializeBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices,
-                             cv::OutputArray output) override {}
+                             cv::OutputArray output) override {
+            output.create(blockSize, CV_MAKETYPE(CV_8U, static_cast<int>(channelIndices.size())));
+            output.setTo(0);
+        }
 
     private:
         std::shared_ptr<CacheManager> m_cacheManager;
