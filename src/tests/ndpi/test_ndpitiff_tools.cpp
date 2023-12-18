@@ -3,6 +3,7 @@
 #include "tests/testlib/testtools.hpp"
 #include <string>
 #include "slideio/core/tools/cachemanager.hpp"
+#include "slideio/drivers/ndpi/ndpifile.hpp"
 
 
 TEST(NDPITiffTools, scanFile)
@@ -337,12 +338,11 @@ TEST(NDPITiffTools, cacheScanlines)
     slideio::NDPITiffTools::scanFile(filePath, dirs);
     slideio::NDPITiffDirectory& dir = dirs[2];
     auto tiffFile = slideio::NDPITiffTools::openTiffFile(filePath);
+    slideio::NDPIFile file;
+    file.init(filePath);
     std::shared_ptr<slideio::CacheManager> cacheManager = std::make_shared<slideio::CacheManager>();
-    FILE* filePtr = fopen(filePath.c_str(), "rb");
-    ASSERT_FALSE(filePtr == nullptr);
-
     const cv::Size tileSize = { 100, 200 };
-    slideio::NDPITiffTools::cacheScanlines(tiffFile, filePtr, dir, tileSize, cacheManager.get());
+    slideio::NDPITiffTools::cacheScanlines(&file, dir, tileSize, cacheManager.get());
     const int tileCountY = (dir.height - 1) / tileSize.height + 1;
     const int tileCountX = (dir.width - 1) / tileSize.width + 1;
     const int tileCount = tileCountX * tileCountY;
@@ -355,7 +355,6 @@ TEST(NDPITiffTools, cacheScanlines)
     cv::Mat blockRaster(blockSize, CV_8UC3, cv::Scalar(0, 0, 0));
     slideio::TileComposer::composeRect(&tiler, {}, blockRect, blockSize, blockRaster);
     slideio::NDPITiffTools::closeTiffFile(tiffFile);
-    fclose(filePtr);
     cv::Mat testRaster;
     TestTools::readPNG(testFilePath, testRaster);
     TestTools::compareRasters(testRaster, blockRaster);

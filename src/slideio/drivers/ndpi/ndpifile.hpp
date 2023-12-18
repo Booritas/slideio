@@ -21,7 +21,7 @@ namespace libtiff
 
 namespace slideio
 {
-    class NDPIFile
+    class SLIDEIO_NDPI_EXPORTS NDPIFile
     {
     public:
         NDPIFile(){

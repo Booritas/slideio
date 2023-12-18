@@ -19,6 +19,7 @@
 
 #include "slideio/imagetools/cvtools.hpp"
 #include "jpeglib.h"
+#include "ndpifile.hpp"
 #include "slideio/core/tools/blocktiler.hpp"
 #include "slideio/core/tools/cachemanager.hpp"
 #include "slideio/imagetools/imagetools.hpp"
@@ -36,6 +37,14 @@
 
 
 using namespace slideio;
+
+struct FileDeleter {
+    void operator()(std::FILE* file) const {
+        if (file) {
+            std::fclose(file);
+        }
+    }
+};
 
 static int getCvType(jpegxr_image_info& info)
 {
@@ -791,11 +800,21 @@ void NDPITiffTools::readScanlines(libtiff::TIFF* tiff, FILE* file, const NDPITif
     jpeg_destroy_decompress(&cinfo);
 }
 
-void NDPITiffTools::cacheScanlines(libtiff::TIFF* tiff, std::FILE* file, 
-        const NDPITiffDirectory& dir, cv::Size tileSize, CacheManager* cacheManager)
+void NDPITiffTools::cacheScanlines(NDPIFile* ndpifile, const NDPITiffDirectory& dir,
+    cv::Size tileSize, CacheManager* cacheManager)
 {
+    libtiff::TIFF* tiff = ndpifile->getTiffHandle();
+#if defined(WIN32)
+    std::wstring wfilePath = Tools::toWstring(ndpifile->getFilePath().c_str());
+    std::unique_ptr<FILE, FileDeleter> sfile(_wfopen(wfilePath.c_str(), L"rb"));
+#else
+    std::unique_ptr<FILE, FileDeleter> sfile(std::fopen(ndpifile->getFilePath().c_str(), "rb"));
+#endif
+
+    FILE* file = sfile.get();
+
     if(!file) {
-               RAISE_RUNTIME_ERROR << "NDPITiffTools: file pointer is not set";
+        RAISE_RUNTIME_ERROR << "NDPITiffTools: file pointer is not set";
     }
     if(!cacheManager) {
         RAISE_RUNTIME_ERROR << "NDPITiffTools: cache manager is not set";

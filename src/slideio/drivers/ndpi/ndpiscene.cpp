@@ -13,14 +13,6 @@
 
 using namespace slideio;
 
-struct FileDeleter {
-    void operator()(std::FILE* file) const {
-        if (file) {
-            std::fclose(file);
-        }
-    }
-};
-
 class NDPIUserData
 {
 public:
@@ -190,8 +182,7 @@ void NDPIScene::readBlockFromCache(const cv::Rect& imageBlockRect, const std::ve
     const cv::Size tileSize(1000, 1000);
     if(!isDirectoryCached(dir)) {
         NDPITIFFMessageHandler mh;
-        std::unique_ptr<FILE, FileDeleter> file(std::fopen(m_pfile->getFilePath().c_str(), "rb"));
-        NDPITiffTools::cacheScanlines(m_pfile->getTiffHandle(), file.get(), dir, tileSize, m_cacheManager.get());
+        NDPITiffTools::cacheScanlines(m_pfile, dir, tileSize, m_cacheManager.get());
         markDirectoryCached(dir);
     }
     CacheManagerTiler tiler(m_cacheManager, tileSize, dir.dirIndex);
