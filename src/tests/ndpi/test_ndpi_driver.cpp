@@ -430,7 +430,7 @@ TEST(NDPIImageDriver, readBlockFromCache)
     {
         GTEST_SKIP() << "Skip private test because full dataset is not enabled";
     }
-    const std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1.ndpi");
+    std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1.ndpi");
     slideio::NDPIImageDriver driver;
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     const int dirCount = slide->getNumScenes();
@@ -438,40 +438,31 @@ TEST(NDPIImageDriver, readBlockFromCache)
     std::shared_ptr<slideio::NDPIScene> scene = std::static_pointer_cast<slideio::NDPIScene>(slide->getScene(0));
     const auto imageRect = scene->getRect();
 
-    // Define the input parameters for the function
-    const cv::Rect imageBlockRect(0, 0, 200, 200);
-
     {
-        const cv::Size requiredBlockSize(200, 200);
-        cv::Mat cache;
-        scene->readBlockFromCache(imageBlockRect, {}, requiredBlockSize, cache);
-        ASSERT_FALSE(cache.empty());
-        double scale = static_cast<double>(imageRect.width) / static_cast<double>(cache.size().width);
-        EXPECT_DOUBLE_EQ(1., scale);
+        std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1-readBlockFromCache.png");
+        cv::Rect blockRect = { imageRect.width / 2, imageRect.height / 4, 6000, 5600 };
+        cv::Size blockSize(750, 700);
+        cv::Mat blockRaster;
+        scene->readBlockFromCache(blockRect, {}, blockSize, blockRaster);
+        ASSERT_FALSE(blockRaster.empty());
+        //TestTools::showRaster(blockRaster);
+        //TestTools::writePNG(blockRaster, testFilePath);
+        cv::Mat testRaster;
+        TestTools::readPNG(testFilePath, testRaster);
+        TestTools::compareRasters(testRaster, blockRaster);
     }
 
-    //{
-    //    cv::Size requiredBlockSize(100, 100);
-    //    cv::Mat cache = scene->readBlockFromCache(imageBlockRect, TODO, requiredBlockSize, TODO);
-    //    double scale = static_cast<double>(imageRect.width) / static_cast<double>(cache.size().width);
-    //    EXPECT_DOUBLE_EQ(1., scale);
-    //}
-
-    //{
-    //    cv::Size requiredBlockSize(40, 40);
-    //    cv::Mat cache = scene->readBlockFromCache(imageBlockRect, TODO, requiredBlockSize, TODO);
-    //    double scale = static_cast<double>(imageRect.width) / static_cast<double>(cache.size().width);
-    //    EXPECT_DOUBLE_EQ(4., scale);
-    //}
-
-    //{
-    //    cv::Size requiredBlockSize(50, 50);
-    //    cv::Mat cache = scene->readBlockFromCache(imageBlockRect, TODO, requiredBlockSize, TODO);
-    //    double scale = static_cast<double>(imageRect.width) / static_cast<double>(cache.size().width);
-    //    EXPECT_DOUBLE_EQ(4., scale);
-    //    cv::Mat cache2;
-    //    cv::resize(cache, cache2, cv::Size(2000, 2000));
-    //    TestTools::showRaster(cache2);
-    //}
-
+    {
+        std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1-readBlockFromCache.1.png");
+        cv::Rect blockRect = { imageRect.width / 2, imageRect.height / 4, 6000, 5600 };
+        cv::Size blockSize(750, 700);
+        cv::Mat blockRaster;
+        scene->readBlockFromCache(blockRect, {1}, blockSize, blockRaster);
+        ASSERT_FALSE(blockRaster.empty());
+        //TestTools::showRaster(blockRaster);
+        //TestTools::writePNG(blockRaster, testFilePath);
+        cv::Mat testRaster;
+        TestTools::readPNG(testFilePath, testRaster);
+        TestTools::compareRasters(testRaster, blockRaster);
+    }
 }

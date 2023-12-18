@@ -195,7 +195,9 @@ void NDPIScene::readBlockFromCache(const cv::Rect& imageBlockRect, const std::ve
         markDirectoryCached(dir);
     }
     CacheManagerTiler tiler(m_cacheManager, tileSize, dir.dirIndex);
-    TileComposer::composeRect(&tiler, channelIndices, imageBlockRect, requiredBlockSize, output);
+    cv::Rect dirBlockRect;
+    scaleBlockToDirectory(imageBlockRect, dir, dirBlockRect);
+    TileComposer::composeRect(&tiler, channelIndices, dirBlockRect, requiredBlockSize, output);
 }
 
 

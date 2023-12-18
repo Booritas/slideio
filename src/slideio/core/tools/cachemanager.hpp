@@ -90,7 +90,12 @@ namespace slideio
         }
         void initializeBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices,
                              cv::OutputArray output) override {
-            output.create(blockSize, CV_MAKETYPE(CV_8U, static_cast<int>(channelIndices.size())));
+            cv::Mat tile = m_cacheManager->getTile(m_levelId, 0);
+            int channelCount = static_cast<int>(channelIndices.size());
+            if (channelCount == 0) {
+                channelCount = tile.channels();
+            }
+            output.create(blockSize, CV_MAKETYPE(tile.depth(), channelCount));
             output.setTo(0);
         }
 
