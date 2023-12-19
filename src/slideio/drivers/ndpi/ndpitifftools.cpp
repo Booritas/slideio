@@ -872,6 +872,11 @@ void NDPITiffTools::cacheScanlines(NDPIFile* ndpifile, const NDPITiffDirectory& 
         }
         rowBegin += rowStride;
         if(stripeLine >= (stripeRows-1) || (scanline+1) == numberScanlines) {
+            //if(dir.photometric==6) {
+            //    cv::Mat stripeRGB;
+            //    cv::cvtColor(stripe, stripeRGB, cv::COLOR_YCrCb2BGR);
+            //    stripeRGB.copyTo(stripe);
+            //}
             BlockTiler tiler(stripe, tileSize);
             tiler.apply([&cacheManager, stripeTop, &dir, tileSize](int x, int y, const cv::Mat& tile){
                 cacheManager->addTile(dir.dirIndex, cv::Point(x*tileSize.width, stripeTop), tile);

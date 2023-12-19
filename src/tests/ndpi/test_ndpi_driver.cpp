@@ -7,6 +7,7 @@
 #include "slideio/drivers/ndpi/ndpiimagedriver.hpp"
 #include "slideio/drivers/ndpi/ndpifile.hpp"
 #include "slideio/drivers/ndpi/ndpiscene.hpp"
+#include "slideio/imagetools/imagetools.hpp"
 
 namespace slideio
 {
@@ -92,17 +93,20 @@ TEST(NDPIImageDriver, readStrippedScene)
     TestTools::readPNG(testFilePath1, testRaster);
     TestTools::compareRasters(blockRaster, testRaster);
     //TestTools::showRaster(blockRaster);
+
     blockRect.x = rect.width / 4;
     blockRect.y = rect.height / 4;
     blockRect.width = rect.width / 2;
     blockRect.height = rect.height / 2;
-    const int imageWidth = 1500;
-    double cof = static_cast<double>(imageWidth) / blockRect.width;
-    blockSize.width = imageWidth;
+    const int blockNewWidth = 1500;
+    double cof = static_cast<double>(blockNewWidth) / blockRect.width;
+    blockSize.width = blockNewWidth;
     blockSize.height = std::lround(cof * blockRect.height);
     scene->readResampledBlock(blockRect, blockSize, blockRaster);
     //TestTools::writePNG(blockRaster, testFilePath2);
     TestTools::readPNG(testFilePath2, testRaster);
+    TestTools::compareRasters(blockRaster, testRaster);
+    //TestTools::showRaster(blockRaster);
 }
 
 TEST(NDPIImageDriver, readROI)
@@ -138,9 +142,9 @@ TEST(NDPIImageDriver, readROI)
     slideio::DataType dt = scene->getChannelDataType(0);
     EXPECT_EQ(slideio::DataType::DT_Byte, dt);
 
-    const int blockWidth = 300;
-    const int blockHeight = 300;
-    cv::Rect blockRect(rect.width/3, rect.height/3, blockWidth, blockHeight);
+    const int blockWidth = 800;
+    const int blockHeight = 700;
+    cv::Rect blockRect(13000, 5000, blockWidth, blockHeight);
     cv::Size blockSize(blockWidth, blockHeight);
     cv::Mat blockRaster;
     scene->readResampledBlock(blockRect, blockSize, blockRaster);
@@ -184,16 +188,10 @@ TEST(NDPIImageDriver, readROIResampled)
     slideio::DataType dt = scene->getChannelDataType(0);
     EXPECT_EQ(slideio::DataType::DT_Byte, dt);
 
-    const int blockWidth = 1400;
-    const int blockHeight = 800;
-    const double scale = 0.6;
-    const int scaledWidth = std::lround(scale * blockWidth);
-    const int scaledHeight = std::lround(scale * blockHeight);
-    cv::Rect blockRect(rect.width / 3, rect.height / 3, blockWidth, blockHeight);
-    cv::Size blockSize(scaledWidth, scaledHeight);
+    cv::Rect blockRect(13000, 5000, 3200, 2800);
+    cv::Size blockSize(800, 700);
     cv::Mat blockRaster;
-    scene->readResampledBlock(blockRect, blockSize, blockRaster);
-    //slideio::NDPITestTools::writePNG(blockRaster, testFilePath);
+    scene->readResampledBlockChannels(blockRect, blockSize, {0,1,2},blockRaster);
     cv::Mat testRaster;
     TestTools::readPNG(testFilePath, testRaster);
     TestTools::compareRasters(testRaster, blockRaster);
