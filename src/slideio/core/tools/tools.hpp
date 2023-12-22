@@ -85,6 +85,19 @@ namespace slideio
         static std::wstring toWstring(const std::string& string);
         static void throwIfPathNotExist(const std::string& path, const std::string label);
         static void extractChannels(const cv::Mat& sourceRaster, const std::vector<int>& channels, cv::OutputArray output);
+        static FILE* openFile(const std::string& filePath, const char* mode);
+        // Function to detect if the system is little endian
+        static bool isLittleEndian() {
+            uint16_t number = 0x1;
+            char* numPtr = (char*)&number;
+            return (numPtr[0] == 1);
+        }
+        // Function to convert from big endian to little endian for 16 bit short
+        static uint16_t bigToLittleEndian16(uint16_t bigEndianValue) {
+            return ((bigEndianValue >> 8) & 0xff) |
+                ((bigEndianValue << 8) & 0xff00);
+        }
+
     };
 }
 #endif

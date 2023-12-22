@@ -124,3 +124,14 @@ void Tools::extractChannels(const cv::Mat& sourceRaster, const std::vector<int>&
         cv::merge(channelRasters, output);
     }
 }
+
+FILE* Tools::openFile(const std::string& filePath, const char* mode)
+{
+#if defined(WIN32)
+    std::wstring wfilePath = Tools::toWstring(filePath);
+    std::wstring wmode = Tools::toWstring(mode);
+    return _wfopen(wfilePath.c_str(), wmode.c_str());
+#else
+    return fopen(filePath.c_str(), mode);
+#endif
+}

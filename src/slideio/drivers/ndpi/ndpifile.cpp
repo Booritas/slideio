@@ -24,6 +24,7 @@ void slideio::NDPIFile::init(const std::string& filePath)
     Tools::throwIfPathNotExist(filePath, "NDPIFile::init");
     SLIDEIO_LOG(INFO) << "Opening of NDPI TIFF file " << filePath;
     m_tiff = NDPITiffTools::openTiffFile(filePath);
+
     if (!m_tiff.isValid())
     {
         RAISE_RUNTIME_ERROR << "NDPIImageDriver: Cannot open file:" << filePath;
@@ -31,6 +32,9 @@ void slideio::NDPIFile::init(const std::string& filePath)
     SLIDEIO_LOG(INFO) << "File " << filePath << " is successfully opened";
     m_filePath = filePath;
     NDPITiffTools::scanFile(m_tiff, m_directories);
+    for(const auto& dir : m_directories) {
+        NDPITiffTools::readDirectoryJpegHeaders(this, dir);
+    }
     SLIDEIO_LOG(INFO) << "File " << filePath << " initialization is complete";
 }
 

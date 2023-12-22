@@ -56,6 +56,7 @@ namespace slideio
         int stripSize;
         double magnification;
         uint32_t blankLines;
+        std::vector<uint32_t> mcuStarts;
     };
 
 
@@ -64,6 +65,9 @@ namespace slideio
     public:
         static libtiff::TIFF* openTiffFile(const std::string& path);
         static void closeTiffFile(libtiff::TIFF* file);
+        static cv::Size computeMCUTileSize(NDPIFile* file, const NDPITiffDirectory& dir);
+        static std::pair<uint64_t, uint32_t> findSOFMarker(FILE* file, uint64_t startPosition);
+        static void readMCUTile(NDPIFile* file, const NDPITiffDirectory& dir, int tile, cv::OutputArray output);
         static void scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, int64_t dirOffset, slideio::NDPITiffDirectory& dir);
         static void updateJpegXRCompressedDirectoryMedatata(libtiff::TIFF* tiff, NDPITiffDirectory& dir);
         static void scanTiffDir(libtiff::TIFF* tiff, int dirIndex, int64_t dirOffset, slideio::NDPITiffDirectory& dir);
@@ -96,6 +100,7 @@ namespace slideio
             cv::Size tileSize, CacheManager* cacheManager);
         static void readJpegDirectoryRegion(libtiff::TIFF* tiff, const std::string& filePath, const cv::Rect& region, const NDPITiffDirectory& dir,
             const std::vector<int>& channelIndices, cv::_OutputArray output);
+        static void readDirectoryJpegHeaders(NDPIFile* ndpi, const NDPITiffDirectory& dir);
     };
 
     class  NDPITIFFKeeper
