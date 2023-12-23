@@ -9,7 +9,6 @@
 #include <numeric>
 #include <boost/format.hpp>
 #include <boost/filesystem.hpp>
-
 #include "slideio/base/exceptions.hpp"
 #if defined(WIN32)
 #include <Shlwapi.h>
@@ -134,4 +133,36 @@ FILE* Tools::openFile(const std::string& filePath, const char* mode)
 #else
     return fopen(filePath.c_str(), mode);
 #endif
+}
+
+uint64_t Tools::getFilePos(FILE* file)
+{
+#if defined(WIN32)
+    return _ftelli64(file);
+#elif __APPLE__
+    return ftello(file);
+#else
+    return ftello64(file);
+#endif
+}
+
+int Tools::setFilePos(FILE* file, uint64_t pos, int origin)
+{
+#if defined(WIN32)
+    return _fseeki64(file, pos, origin);
+#elif __APPLE__
+    return fseeko(file, pos, origin);
+#define FTELL64 ftello
+#else
+    return fseeko64(file, pos, origin);
+#endif
+}
+
+uint64_t Tools::getFileSize(FILE* file)
+{
+    uint64_t pos = Tools::getFilePos(file);
+    Tools::setFilePos(file, 0, SEEK_END);
+    uint64_t size = Tools::getFilePos(file);
+    Tools::setFilePos(file, pos, SEEK_SET);
+    return size;
 }

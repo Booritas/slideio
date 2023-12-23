@@ -24,31 +24,10 @@
 #include "slideio/core/tools/cachemanager.hpp"
 #include "slideio/imagetools/imagetools.hpp"
 
-#if defined(WIN32)
-#define FSEEK64 _fseeki64
-#define FTELL64 _ftelli64
-#elif __APPLE__
-#define FSEEK64 fseeko
-#define FTELL64 ftello
-#else
-#include <stdarg.h>
-#include <stddef.h>
-#include <setjmp.h>
-#define FSEEK64 fseeko64
-#define FTELL64 ftello64
-#endif
-
 const int NDPI_RESTART_MARKERS = 65426;
 
 using namespace slideio;
 
-struct FileDeleter {
-    void operator()(std::FILE* file) const {
-        if (file) {
-            std::fclose(file);
-        }
-    }
-};
 
 static int getCvType(jpegxr_image_info& info)
 {
@@ -357,6 +336,7 @@ void slideio::NDPITiffTools::scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, 
     uint16_t compress(0);
     short planar_config(0);
     uint32_t width(0), height(0), tile_width(0), tile_height(0);
+
     float magnification(0);
     SLIDEIO_LOG(INFO) << "NDPITiffTools::scanTiffDirTags-start scanning " << dirIndex;
 
@@ -405,6 +385,10 @@ void slideio::NDPITiffTools::scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, 
     float posx(0), posy(0);
     libtiff::TIFFGetField(tiff, TIFFTAG_XPOSITION, &posx);
     libtiff::TIFFGetField(tiff, TIFFTAG_YPOSITION, &posy);
+
+    uint32_t* stripOffset = 0;
+    auto r = libtiff::TIFFGetField(tiff, TIFFTAG_STRIPOFFSETS, &stripOffset);
+
     uint32_t rowsPerStripe(0);
     libtiff::TIFFGetField(tiff, TIFFTAG_ROWSPERSTRIP, &rowsPerStripe);
     libtiff::TIFFDataType dt(libtiff::TIFF_NOTYPE);
@@ -460,17 +444,13 @@ void slideio::NDPITiffTools::scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, 
         dir.userLabel = userLabel;
     dir.blankLines = nblanklines;
 
-    if(dir.height == dir.rowsPerStrip) {
-        //uint32_t markerCount = 0;
-        //uint32_t* markers = nullptr;
-        //libtiff::TIFFGetField(tiff, NDPI_RESTART_MARKERS, &markerCount, &markers);
-        //if (markerCount) {
-        //    dir.mcuStarts.resize(markerCount);
-        //    memcpy(dir.mcuStarts.data(), markers, markerCount * sizeof(uint32_t));
-        //    cv::Size size = NDPITiffTools::computeMCUTileSize(dir);
-        //}
+    int32_t markers = 0;
+    uint32_t *offsets(nullptr);
+    libtiff::TIFFGetField(tiff, NDPI_RESTART_MARKERS, &markers, &offsets);
+    for(int index = 0; index < markers; ++index) {
+        dir.mcuStarts.push_back(offsets[index] + *stripOffset);
     }
-    
+
     SLIDEIO_LOG(INFO) << "NDPITiffTools::scanTiffDirTags-end " << dirIndex;
 }
 
@@ -768,7 +748,7 @@ void NDPITiffTools::readScanlines(libtiff::TIFF* tiff, FILE* file, const NDPITif
     setCurrentDirectory(tiff, dir);
 
     uint64_t stripeOffset = libtiff::TIFFGetStrileOffset(tiff, 0);
-    int ret = FSEEK64(file, stripeOffset, SEEK_SET);
+    int ret = Tools::setFilePos(file, stripeOffset, SEEK_SET);
     jpeg_decompress_struct cinfo;
     ErrorManager jerr;
 
@@ -822,7 +802,7 @@ void NDPITiffTools::cacheScanlines(NDPIFile* ndpifile, const NDPITiffDirectory& 
     cv::Size tileSize, CacheManager* cacheManager)
 {
     libtiff::TIFF* tiff = ndpifile->getTiffHandle();
-    std::unique_ptr<FILE, FileDeleter> sfile(Tools::openFile(ndpifile->getFilePath(), "rb"));
+    std::unique_ptr<FILE, Tools::FileDeleter> sfile(Tools::openFile(ndpifile->getFilePath(), "rb"));
 
     FILE* file = sfile.get();
 
@@ -847,7 +827,7 @@ void NDPITiffTools::cacheScanlines(NDPIFile* ndpifile, const NDPITiffDirectory& 
     setCurrentDirectory(tiff, dir);
 
     uint64_t stripeOffset = libtiff::TIFFGetStrileOffset(tiff, 0);
-    int ret = FSEEK64(file, stripeOffset, SEEK_SET);
+    int ret = Tools::setFilePos(file, stripeOffset, SEEK_SET);
     jpeg_decompress_struct cinfo;
     ErrorManager jerr;
 
@@ -932,7 +912,7 @@ void NDPITiffTools::readJpegDirectoryRegion(libtiff::TIFF* tiff, const std::stri
     }
     setCurrentDirectory(tiff, dir);
 
-    std::unique_ptr<FILE, FileDeleter> sfile(Tools::openFile(filePath.c_str(), "rb"));
+    std::unique_ptr<FILE, Tools::FileDeleter> sfile(Tools::openFile(filePath.c_str(), "rb"));
     FILE* file = sfile.get();
     if (!file) {
         RAISE_RUNTIME_ERROR << "NDPI Image Driver: Cannot open file " << filePath;
@@ -951,7 +931,7 @@ void NDPITiffTools::readJpegDirectoryRegion(libtiff::TIFF* tiff, const std::stri
     const int numberScanlines = region.height;
 
     uint64_t stripeOffset = libtiff::TIFFGetStrileOffset(tiff, 0);
-    int ret = FSEEK64(file, stripeOffset, SEEK_SET);
+    int ret = Tools::setFilePos(file, stripeOffset, SEEK_SET);
     jpeg_decompress_struct cinfo{};
     ErrorManager jErr{};
 
@@ -1039,27 +1019,41 @@ void NDPITiffTools::readJpegDirectoryRegion(libtiff::TIFF* tiff, const std::stri
     jpeg_destroy_decompress(&cinfo);
 }
 
-void NDPITiffTools::readDirectoryJpegHeaders(NDPIFile* ndpi, const NDPITiffDirectory& dir)
+void NDPITiffTools::readDirectoryJpegHeaders(NDPIFile* ndpi, NDPITiffDirectory& dir)
 {
-    cv::Size tileSize = NDPITiffTools::computeMCUTileSize(ndpi, dir);
+    if (dir.height == dir.rowsPerStrip) {
+        const auto dirIndex = dir.dirIndex;
 
-    auto dirIndex = dir.dirIndex;
-    libtiff::TIFF* tiff = ndpi->getTiffHandle();
-    setCurrentDirectory(tiff, dir);
-    int tileWidth = 0;
-    int tileHeight = 0;
-    std::unique_ptr<FILE, FileDeleter> sfile(Tools::openFile(ndpi->getFilePath(), "rb"));
-    FILE* file = sfile.get();
-    if (!file) {
-        RAISE_RUNTIME_ERROR << "NDPI Image Driver: Cannot open file " << ndpi->getFilePath();
+        libtiff::TIFF* tiff = ndpi->getTiffHandle();
+        setCurrentDirectory(tiff, dir);
+
+        std::unique_ptr<FILE, Tools::FileDeleter> sfile(Tools::openFile(ndpi->getFilePath(), "rb"));
+        FILE* file = sfile.get();
+        if (!file) {
+            RAISE_RUNTIME_ERROR << "NDPI Image Driver: Cannot open file " << ndpi->getFilePath();
+        }
+
+        const auto stripeOffset = libtiff::TIFFGetStrileOffset(tiff, 0);
+
+        int ret = Tools::setFilePos(file, stripeOffset, SEEK_SET);
+        if (ret) {
+            RAISE_RUNTIME_ERROR << "NDPI Image Driver: Cannot seek file " << ndpi->getFilePath() << " to offset "
+                << stripeOffset << ". For directory " << dirIndex << ". Code: " << ret;
+        }
+        cv::Size tileSize = NDPITiffTools::computeMCUTileSize(file, cv::Size(dir.width, dir.height));
+
+        ret = Tools::setFilePos(file, stripeOffset, SEEK_SET);
+        if (ret) {
+            RAISE_RUNTIME_ERROR << "NDPI Image Driver: Cannot seek file " << ndpi->getFilePath() << " to offset "
+                << stripeOffset << ". For directory " << dirIndex << ". Code: " << ret;
+        }
+        const std::pair<uint64_t, uint64_t> headerInfo = NDPITiffTools::getJpegHeaderPos(file);
+        dir.tileWidth = tileSize.width;
+        dir.tileHeight = tileSize.height;
+        dir.jpegHeaderOffset = stripeOffset;
+        dir.jpegHeaderSize = static_cast<uint32_t>(headerInfo.second - stripeOffset);
+        dir.jpegSOFMarker = headerInfo.first;
     }
-
-    uint64_t stripeOffset = libtiff::TIFFGetStrileOffset(tiff, 0);
-    std::pair<uint64_t, uint64_t> markers = findSOFMarker(file, stripeOffset);
-    int ret = FSEEK64(file, stripeOffset, SEEK_SET);
-
-    std::pair<uint64_t, uint32_t> headerInfo = NDPITiffTools::findSOFMarker(file, stripeOffset);
-
 }
 
 void NDPITiffTools::readJpegXRStrip(libtiff::TIFF* tiff, const NDPITiffDirectory& dir, int strip,
@@ -1286,35 +1280,24 @@ void slideio::NDPITiffTools::decodeJxrBlock(const uint8_t* data, size_t dataBloc
     jpegxr_decompress((uint8_t*)data, (uint32_t)dataBlockSize, outputBuff, ouputBuffSize);
 }
 
-cv::Size NDPITiffTools::computeMCUTileSize(NDPIFile* ndpifile, const NDPITiffDirectory& dir)
+cv::Size NDPITiffTools::computeMCUTileSize(FILE* file, const cv::Size& dirSize)
 {
-    auto dirIndex = dir.dirIndex;
-    libtiff::TIFF* tiff = ndpifile->getTiffHandle();
-    setCurrentDirectory(tiff, dir);
     int tileWidth = 0;
     int tileHeight = 0;
-    std::unique_ptr<FILE, FileDeleter> sfile(Tools::openFile(ndpifile->getFilePath(), "rb"));
-    FILE* file = sfile.get();
-    if (!file) {
-        RAISE_RUNTIME_ERROR << "NDPI Image Driver: Cannot open file " << ndpifile->getFilePath();
-    }
-    uint64_t stripeOffset = libtiff::TIFFGetStrileOffset(tiff, 0);
-    std::pair<uint64_t, uint64_t> markers = findSOFMarker(file, stripeOffset);
-    int ret = FSEEK64(file, stripeOffset, SEEK_SET);
     jpeg_decompress_struct cinfo = {};
     ErrorManager jerr = {};
     cinfo.err = jpeg_std_error(&jerr.pub);
     jerr.pub.error_exit = ErrorExit;
     jpeg_create_decompress(&cinfo);
     jpeg_stdio_src(&cinfo, file);
-    cinfo.image_width = dir.width;
-    cinfo.image_height = dir.height;
+    cinfo.image_width = dirSize.width;
+    cinfo.image_height = dirSize.height;
     jpeg_read_header(&cinfo, TRUE);
     jpeg_start_decompress(&cinfo);
     cinfo.output_scanline = cinfo.output_width;
     uint32_t mcuWidth = cinfo.max_h_samp_factor * DCTSIZE;
     uint32_t mcuHeight = cinfo.max_v_samp_factor * DCTSIZE;
-    uint32_t mcuPerRow = (dir.width + mcuWidth - 1) / mcuWidth;
+    uint32_t mcuPerRow = (dirSize.width + mcuWidth - 1) / mcuWidth;
     if(cinfo.restart_interval >0 && cinfo.restart_interval < mcuPerRow) {
         if ((mcuPerRow % cinfo.restart_interval) == 0) {
             tileWidth = mcuWidth * cinfo.restart_interval;
@@ -1326,15 +1309,13 @@ cv::Size NDPITiffTools::computeMCUTileSize(NDPIFile* ndpifile, const NDPITiffDir
     return {tileWidth, tileHeight};
 }
 
-std::pair<uint64_t, uint32_t> NDPITiffTools::findSOFMarker(FILE* file, uint64_t startPosition)
+std::pair<uint64_t, uint64_t> NDPITiffTools::getJpegHeaderPos(FILE* file)
 {
     uint64_t headerStop = 0;
     uint64_t SOFmarker = 0;
-    uint32_t headerLength = 0;
-    FSEEK64(file, startPosition, SEEK_SET);
     uint8_t buff[2];
     while(true) {
-        uint64_t pos = FTELL64(file);
+        uint64_t pos = Tools::getFilePos(file);
         size_t count = fread(buff, sizeof(uint8_t), 2, file);
         if(count != 2) {
             RAISE_RUNTIME_ERROR << "NDPITiffTools: error by reading marker from jpeg stream.";
@@ -1361,20 +1342,132 @@ std::pair<uint64_t, uint32_t> NDPITiffTools::findSOFMarker(FILE* file, uint64_t 
         if(Tools::isLittleEndian()) {
             length = Tools::bigToLittleEndian16(length);
         }
-        FSEEK64(file, pos + sizeof(buff) + length, SEEK_SET);
+        Tools::setFilePos(file, pos + sizeof(buff) + length, SEEK_SET);
         if(marker == 0xDA) {
-            headerStop = FTELL64(file);
-            headerLength = static_cast<uint32_t>(headerStop - SOFmarker);
+            headerStop = Tools::getFilePos(file);
             break;
         }
     }
 
-    return {SOFmarker, headerLength};
+    return {SOFmarker, headerStop };
 }
 
-void NDPITiffTools::readMCUTile(NDPIFile* file, const NDPITiffDirectory& dir, int tile, cv::OutputArray output)
+void NDPITiffTools::readMCUTile(FILE* file, const NDPITiffDirectory& dir, int tile, cv::OutputArray output)
 {
+    if(tile>=dir.mcuStarts.size()) {
+        RAISE_RUNTIME_ERROR << "NDPITiffTools: tile index is out of range (0-"
+            << dir.mcuStarts.size() << "). Received:" << tile;
+    }
+    // read jpeg header
+    const uint64_t headerOffset = dir.jpegHeaderOffset;
+    const uint32_t headerSize = dir.jpegHeaderSize;
+    const uint64_t tileOffset = dir.mcuStarts[tile];
+    uint32_t tileSize = 0;
+    if(tile < dir.mcuStarts.size()-1) {
+        tileSize = static_cast<uint32_t>(dir.mcuStarts[tile + 1] - tileOffset);
+    }
+    else {
+        const uint64_t fileSize = Tools::getFileSize(file);
+        tileSize = static_cast<uint32_t>(fileSize - tileOffset);
+    }
+    std::vector<uint8_t> tileData(headerSize + tileSize);
+    Tools::setFilePos(file, headerOffset, SEEK_SET);
+    auto count = fread(tileData.data(), sizeof(uint8_t), headerSize, file);
+    if(count != headerSize) {
+        RAISE_RUNTIME_ERROR << "NDPITiffTools: error by reading jpeg header. Expected:" << headerSize << ". Read:" << count;
+    }
+    Tools::setFilePos(file, tileOffset, SEEK_SET);
+    count = fread(tileData.data() + headerSize, sizeof(uint8_t), tileSize, file);
+    if(count != tileSize) {
+        RAISE_RUNTIME_ERROR << "NDPITiffTools: error by reading jpeg tile. Expected:" << tileSize << ". Read:" << count;
+    }
 
+    jpeglibDecodeTile(tileData.data(), tileData.size(), cv::Size(dir.tileWidth, dir.tileHeight), output);
+
+}
+
+void NDPITiffTools::jpeglibDecodeTile(const uint8_t* jpg_buffer, size_t jpg_size, const cv::Size& tileSize, cv::OutputArray output)
+{
+    // code derived from: https://gist.github.com/PhirePhly/3080633
+    struct jpeg_decompress_struct cinfo {};
+    struct jpeg_error_mgr jerr {};
+
+    cinfo.err = jpeg_std_error(&jerr);
+    // Allocate a new decompress struct, with the default error handler.
+    // The default error handler will exit() on pretty much any issue,
+    // so it's likely you'll want to replace it or supplement it with
+    // your own.
+    jpeg_create_decompress(&cinfo);
+    jpeg_mem_src(&cinfo, jpg_buffer, static_cast<unsigned long>(jpg_size));
+    // Have the decompressor scan the jpeg header. This won't populate
+    // the cinfo struct output fields, but will indicate if the
+    // jpeg is valid.
+    auto rc = jpeg_read_header(&cinfo, TRUE);
+    cinfo.scale_num = 1;
+    cinfo.scale_denom = 1;
+    cinfo.image_width = tileSize.width;
+    cinfo.image_height = tileSize.height;
+
+    if (rc != 1) {
+        jpeg_destroy_decompress(&cinfo);
+        throw std::runtime_error(
+            (boost::format("Invalid jpeg stream. JpegLib returns code:  %1%") % rc).str()
+        );
+    }
+
+    // By calling jpeg_start_decompress, you populate cinfo
+    // and can then allocate your output bitmap buffers for
+    // each scanline.
+    jpeg_start_decompress(&cinfo);
+
+    const JDIMENSION width = cinfo.output_width;
+    const JDIMENSION height = cinfo.output_height;
+    const int channels = cinfo.output_components;
+
+    const size_t bmpSize = width * height * channels;
+
+    output.create(height, width, CV_MAKETYPE(CV_8U, channels));
+    cv::Mat mat = output.getMat();
+
+    // The row_stride is the total number of bytes it takes to store an
+    // entire scanline (row). 
+    const unsigned int rowStride = width * channels;
+
+    // Now that you have the decompressor entirely configured, it's time
+    // to read out all of the scanlines of the jpeg.
+    //
+    // By default, scanlines will come out in RGBRGBRGB...  order, 
+    // but this can be changed by setting cinfo.out_color_space
+    //
+    // jpeg_read_scanlines takes an array of buffers, one for each scanline.
+    // Even if you give it a complete set of buffers for the whole image,
+    // it will only ever decompress a few lines at a time. For best 
+    // performance, you should pass it an array with cinfo.rec_outbuf_height
+    // scanline buffers. rec_outbuf_height is typically 1, 2, or 4, and 
+    // at the default high quality decompression setting is always 1.
+    while (cinfo.output_scanline < cinfo.output_height)
+    {
+        unsigned char* bufferArray[1];
+        bufferArray[0] = mat.data +
+            (cinfo.output_scanline) * rowStride;
+
+        jpeg_read_scanlines(&cinfo, bufferArray, 1);
+    }
+    // Once done reading *all* scanlines, release all internal buffers,
+    // etc by calling jpeg_finish_decompress. This lets you go back and
+    // reuse the same cinfo object with the same settings, if you
+    // want to decompress several jpegs in a row.
+    //
+    // If you didn't read all the scanlines, but want to stop early,
+    // you instead need to call jpeg_abort_decompress(&cinfo)
+    jpeg_finish_decompress(&cinfo);
+
+    // At this point, optionally go back and either load a new jpg into
+    // the jpg_buffer, or define a new jpeg_mem_src, and then start 
+    // another decompress operation.
+
+    // Once you're really really done, destroy the object to free everything
+    jpeg_destroy_decompress(&cinfo);
 }
 
 

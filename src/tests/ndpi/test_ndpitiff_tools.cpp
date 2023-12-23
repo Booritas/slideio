@@ -361,3 +361,22 @@ TEST(NDPITiffTools, cacheScanlines)
     //TestTools::showRaster(blockRaster);
     //TestTools::writePNG(blockRaster, testFilePath);
 }
+
+
+TEST(NDPITiffTools, readMCUTile)
+{
+    std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1.ndpi");
+    std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1-3.png");
+    slideio::NDPIFile ndpi;
+    ndpi.init(filePath);
+    size_t dirCount = ndpi.directories().size();
+    const slideio::NDPITiffDirectory& dir = ndpi.directories()[0];
+    cv::Mat tileRaster;
+    std::unique_ptr<FILE, slideio::Tools::FileDeleter> sfile(slideio::Tools::openFile(ndpi.getFilePath(), "rb"));
+    FILE* file = sfile.get();
+    slideio::NDPITiffTools::readMCUTile(file, dir, 0, tileRaster);
+    TestTools::showRaster(tileRaster);
+    EXPECT_EQ(tileRaster.rows, dir.tileHeight);
+    EXPECT_EQ(tileRaster.cols, dir.tileWidth);
+    EXPECT_EQ(tileRaster.channels(), 3);
+}

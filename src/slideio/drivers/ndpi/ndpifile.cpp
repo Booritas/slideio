@@ -32,7 +32,7 @@ void slideio::NDPIFile::init(const std::string& filePath)
     SLIDEIO_LOG(INFO) << "File " << filePath << " is successfully opened";
     m_filePath = filePath;
     NDPITiffTools::scanFile(m_tiff, m_directories);
-    for(const auto& dir : m_directories) {
+    for(auto& dir : m_directories) {
         NDPITiffTools::readDirectoryJpegHeaders(this, dir);
     }
     SLIDEIO_LOG(INFO) << "File " << filePath << " initialization is complete";

@@ -4,6 +4,13 @@
 #ifndef OPENCV_slideio_tools_HPP
 #define OPENCV_slideio_tools_HPP
 
+#if defined(WIN32)
+#elif __APPLE__
+#else
+#include <stdarg.h>
+#include <stddef.h>
+#include <setjmp.h>
+#endif
 #include "slideio/core/slideio_core_def.hpp"
 #include <vector>
 #include <string>
@@ -16,6 +23,13 @@ namespace slideio
     class SLIDEIO_CORE_EXPORTS Tools
     {
     public:
+        struct FileDeleter {
+            void operator()(std::FILE* file) const {
+                if (file) {
+                    std::fclose(file);
+                }
+            }
+        };
         static bool matchPattern(const std::string& path, const std::string& pattern);
         static std::vector<int> completeChannelList(const std::vector<int>& orgChannelList, int numChannels)
         {
@@ -97,6 +111,9 @@ namespace slideio
             return ((bigEndianValue >> 8) & 0xff) |
                 ((bigEndianValue << 8) & 0xff00);
         }
+        static uint64_t getFilePos(FILE* file);
+        static int setFilePos(FILE* file, uint64_t pos, int origin);
+        static uint64_t getFileSize(FILE* file);
 
     };
 }

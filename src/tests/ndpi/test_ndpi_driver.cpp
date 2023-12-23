@@ -464,3 +464,4 @@ TEST(NDPIImageDriver, readBlockFromCache)
         TestTools::compareRasters(testRaster, blockRaster);
     }
 }
+
