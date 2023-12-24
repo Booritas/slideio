@@ -1381,7 +1381,10 @@ void NDPITiffTools::readMCUTile(FILE* file, const NDPITiffDirectory& dir, int ti
     if(count != tileSize) {
         RAISE_RUNTIME_ERROR << "NDPITiffTools: error by reading jpeg tile. Expected:" << tileSize << ". Read:" << count;
     }
-
+    if(tileData[tileData.size() - 2] != 0xFF) {
+        RAISE_RUNTIME_ERROR << "NDPITiffTools: error by reading jpeg tile. Expected 0xFF.";
+    }
+    tileData[tileData.size() - 1] = JPEG_EOI; // End of image marker
     jpeglibDecodeTile(tileData.data(), tileData.size(), cv::Size(dir.tileWidth, dir.tileHeight), output);
 
 }

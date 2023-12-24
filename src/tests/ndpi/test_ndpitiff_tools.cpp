@@ -2,6 +2,8 @@
 #include "slideio/drivers/ndpi/ndpitifftools.hpp"
 #include "tests/testlib/testtools.hpp"
 #include <string>
+#include <opencv2/imgproc.hpp>
+
 #include "slideio/core/tools/cachemanager.hpp"
 #include "slideio/drivers/ndpi/ndpifile.hpp"
 
@@ -366,7 +368,7 @@ TEST(NDPITiffTools, cacheScanlines)
 TEST(NDPITiffTools, readMCUTile)
 {
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1.ndpi");
-    std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1-3.png");
+    std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1-tile.png");
     slideio::NDPIFile ndpi;
     ndpi.init(filePath);
     size_t dirCount = ndpi.directories().size();
@@ -374,9 +376,12 @@ TEST(NDPITiffTools, readMCUTile)
     cv::Mat tileRaster;
     std::unique_ptr<FILE, slideio::Tools::FileDeleter> sfile(slideio::Tools::openFile(ndpi.getFilePath(), "rb"));
     FILE* file = sfile.get();
-    slideio::NDPITiffTools::readMCUTile(file, dir, 0, tileRaster);
-    TestTools::showRaster(tileRaster);
+    slideio::NDPITiffTools::readMCUTile(file, dir, 87501, tileRaster);
     EXPECT_EQ(tileRaster.rows, dir.tileHeight);
     EXPECT_EQ(tileRaster.cols, dir.tileWidth);
     EXPECT_EQ(tileRaster.channels(), 3);
+    cv::Mat testRaster;
+    TestTools::readPNG(testFilePath, testRaster);
+    cv::cvtColor(testRaster, testRaster, cv::COLOR_BGRA2BGR);
+    TestTools::compareRasters(tileRaster, testRaster);
 }
