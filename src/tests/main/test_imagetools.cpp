@@ -349,3 +349,32 @@ TEST(ConverterTools, ConvertTo32BitChannelsTest) {
     delete[] channel2;
     delete[] channel3;
 }
+
+TEST(ImageTools, computeSimilarity2)
+{
+    std::string testFilePath1 = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1-dir.png");
+    std::string testFilePath2 = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1-dir1.png");
+    cv::Mat testRaster1;
+    TestTools::readPNG(testFilePath1, testRaster1);
+    cv::cvtColor(testRaster1, testRaster1, cv::COLOR_BGRA2BGR);
+    cv::Mat testRaster2;
+    TestTools::readPNG(testFilePath2, testRaster2);
+    double similarity = slideio::ImageTools::computeSimilarity2(testRaster1, testRaster2);
+    EXPECT_GT(similarity, 0.9);
+}
+
+TEST(ImageTools, computeSimilarity2Equal)
+{
+    cv::Mat left(100, 200, CV_16SC1, cv::Scalar((short)55));
+    cv::Mat right(100, 200, CV_16SC1, cv::Scalar((short)55));
+    double similarity = slideio::ImageTools::computeSimilarity2(left, right);
+    EXPECT_DOUBLE_EQ(similarity, 1.);
+}
+
+TEST(ImageTools, computeSimilarity2Diff)
+{
+    cv::Mat left(100, 200, CV_8U, cv::Scalar((short)0));
+    cv::Mat right(100, 200, CV_8U, cv::Scalar((short)255));
+    double similarity = slideio::ImageTools::computeSimilarity2(left, right);
+    EXPECT_DOUBLE_EQ(similarity, 0);
+}

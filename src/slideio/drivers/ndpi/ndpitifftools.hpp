@@ -31,6 +31,12 @@ namespace slideio
 
     struct SLIDEIO_NDPI_EXPORTS  NDPITiffDirectory
     {
+        enum class DirectoryType
+        {
+            Tiled = 0,
+            Striped = 1,
+            StripTiled = 2
+        };
         int width;
         int height;
         bool tiled;
@@ -60,6 +66,18 @@ namespace slideio
         uint64_t jpegHeaderOffset;
         uint64_t jpegSOFMarker;
         uint32_t jpegHeaderSize;
+
+        DirectoryType getDirectoryType() const {
+            if(tiled) {
+                return DirectoryType::Tiled;
+            }
+            else if(tileWidth > 0 && tileHeight > 0 && !mcuStarts.empty()) {
+                return DirectoryType::StripTiled;
+            }
+            else {
+                return DirectoryType::Striped;
+            }
+        }
     };
 
 
@@ -75,8 +93,6 @@ namespace slideio
         static void scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, int64_t dirOffset, slideio::NDPITiffDirectory& dir);
         static void updateJpegXRCompressedDirectoryMedatata(libtiff::TIFF* tiff, NDPITiffDirectory& dir);
         static void scanTiffDir(libtiff::TIFF* tiff, int dirIndex, int64_t dirOffset, slideio::NDPITiffDirectory& dir);
-        static void scanFile(libtiff::TIFF* file, std::vector<NDPITiffDirectory>& directories);
-        static void scanFile(const std::string& filePath, std::vector<NDPITiffDirectory>& directories);
         static void readNotRGBStripedDir(libtiff::TIFF* tiff, const NDPITiffDirectory& dir, cv::_OutputArray output);
         static void readRegularStripedDir(libtiff::TIFF* file, const slideio::NDPITiffDirectory& dir, cv::OutputArray output);
         static void readStripedDir(libtiff::TIFF* file, const slideio::NDPITiffDirectory& dir, cv::OutputArray output);
@@ -90,7 +106,6 @@ namespace slideio
                               const std::vector<int>& channelIndices, cv::OutputArray output);
         static void setCurrentDirectory(libtiff::TIFF* hFile, const slideio::NDPITiffDirectory& dir);
         static void decodeJxrBlock(const uint8_t* data, size_t dataBlockSize, cv::OutputArray output);
-        static void test0(const std::string& path);
         static void readRegularTile(libtiff::TIFF* hFile, const slideio::NDPITiffDirectory& dir, int tile,
                                     const std::vector<int>& channelIndices, cv::OutputArray output);
         static void readNotRGBTile(libtiff::TIFF* hFile, const slideio::NDPITiffDirectory& dir, int tile,

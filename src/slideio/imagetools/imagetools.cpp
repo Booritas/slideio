@@ -9,13 +9,15 @@
 #include <boost/filesystem.hpp>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
+#include <cmath>
+#include <vector>
 
 #include "slideio/base/exceptions.hpp"
 #include "slideio/imagetools/gdal_lib.hpp"
 
+using namespace slideio;
 
-
-double slideio::ImageTools::computeSimilarity(const cv::Mat& leftM, const cv::Mat& rightM, bool ignoreTypes)
+double ImageTools::computeSimilarity(const cv::Mat& leftM, const cv::Mat& rightM, bool ignoreTypes)
 {
     double similarity = 0;
     const cv::Size leftSize = leftM.size();
@@ -79,7 +81,54 @@ double slideio::ImageTools::computeSimilarity(const cv::Mat& leftM, const cv::Ma
     return similarity;
 }
 
-double slideio::ImageTools::compareHistograms(const cv::Mat& left, const cv::Mat& right, int binCount)
+double ImageTools::computeSimilarity2(const cv::Mat& leftM, const cv::Mat& rightM)
+{
+    double similarity = 0;
+    const cv::Size leftSize = leftM.size();
+    const cv::Size rightSize = rightM.size();
+    if (leftSize != rightSize)
+    {
+        RAISE_RUNTIME_ERROR << "Image sizes for comparison shall be equal. Left image: (" << leftSize.width << "," << leftSize.height
+            << "), Right image: (" << rightSize.width << "," << rightSize.height << ")";
+    }
+    if (leftM.channels() != rightM.channels())
+    {
+        RAISE_RUNTIME_ERROR << "Number of image channesl for comparison shall be equal. Left image: " << leftM.channels()
+            << ". Right image:" << rightM.channels() << ".";
+    }
+    int dtLeft = leftM.type();
+    int dtRight = rightM.type();
+    if (dtLeft != dtRight)
+    {
+        RAISE_RUNTIME_ERROR << "Image types for comparison shall be equal. Left image: " << dtLeft
+            << ". Right image:" << dtRight << ".";
+    }
+
+    double maxVal = 255;
+    {
+        const int channelCount = leftM.channels();
+        std::vector<double> minLeft(channelCount), maxLeft(channelCount), minRight(channelCount), maxRight(channelCount);
+        cv::minMaxLoc(leftM, minLeft.data(), maxLeft.data());
+        cv::minMaxLoc(rightM, minRight.data(), maxRight.data());
+        auto maxElementL = std::max_element(maxLeft.begin(), maxLeft.end());
+        auto maxElementR = std::max_element(maxRight.begin(), maxRight.end());
+        maxVal = std::max(*maxElementL, *maxElementR);
+    }
+
+    cv::Mat diff;
+    cv::absdiff(leftM, rightM, diff);
+    cv::Mat diffd;
+    diff.convertTo(diffd, CV_MAKE_TYPE(CV_32F, diff.channels()));
+    diffd /= maxVal;
+    cv::pow(diffd, 1.5, diffd);
+    cv::Scalar sums = cv::sum(diffd);
+    auto sum = cv::sum(sums);
+    double sumVal = sum[0];
+    similarity = 1.0 - sumVal / (leftSize.width * leftSize.height);
+    return similarity;
+}
+
+double ImageTools::compareHistograms(const cv::Mat& left, const cv::Mat& right, int binCount)
 {
     double similarity = 0;
 
@@ -115,7 +164,7 @@ double slideio::ImageTools::compareHistograms(const cv::Mat& left, const cv::Mat
     return similarity;
 }
 
-int slideio::ImageTools::dataTypeSize(slideio::DataType dt)
+int ImageTools::dataTypeSize(slideio::DataType dt)
 {
     switch (dt)
     {

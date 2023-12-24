@@ -508,39 +508,6 @@ void slideio::NDPITiffTools::scanTiffDir(libtiff::TIFF* tiff, int dirIndex, int6
     SLIDEIO_LOG(INFO) << "NDPITiffTools::scanTiffDir-end " << dir.dirIndex;
 }
 
-void slideio::NDPITiffTools::scanFile(libtiff::TIFF* tiff, std::vector<NDPITiffDirectory>& directories)
-{
-    SLIDEIO_LOG(INFO) << "NDPITiffTools::scanFile-begin";
-
-    int dirs = libtiff::TIFFNumberOfDirectories(tiff);
-    SLIDEIO_LOG(INFO) << "Total number of directories: " << dirs;
-    directories.resize(dirs);
-    for (int dir = 0; dir < dirs; dir++) {
-        SLIDEIO_LOG(INFO) << "NDPITiffTools::scanFile processing directory " << dir;
-        directories[dir].dirIndex = dir;
-        scanTiffDir(tiff, dir, 0, directories[dir]);
-    }
-    SLIDEIO_LOG(INFO) << "NDPITiffTools::scanFile-end";
-}
-
-void slideio::NDPITiffTools::scanFile(const std::string& filePath, std::vector<NDPITiffDirectory>& directories)
-{
-    libtiff::TIFF* file(nullptr);
-    try {
-        file = openTiffFile(filePath);
-        if (file == nullptr) {
-            RAISE_RUNTIME_ERROR << "NDPITiffTools: cannot open tiff file " << filePath;
-        }
-        scanFile(file, directories);
-    }
-    catch (std::exception& ex) {
-        if (file)
-            closeTiffFile(file);
-        throw ex;
-    }
-    if (file)
-        closeTiffFile(file);
-}
 
 void NDPITiffTools::readNotRGBStripedDir(libtiff::TIFF* file, const NDPITiffDirectory& dir, cv::_OutputArray output)
 {
@@ -622,15 +589,7 @@ void slideio::NDPITiffTools::readStripedDir(libtiff::TIFF* file, const slideio::
         RAISE_RUNTIME_ERROR << "Planar striped images are not supported";
     }
 
-    const bool notSupportedColorSpace = dir.photometric == 6 || dir.photometric == 8 || dir.photometric == 9 || dir.photometric == 10;
-    if (notSupportedColorSpace) {
-        // let libtiff handle the color space conversion
-        readNotRGBStripedDir(file, dir, output);
-    }
-    else {
-        readRegularStripedDir(file, dir, output);
-    }
-
+    readRegularStripedDir(file, dir, output);
     if(dir.photometric == 6) {
         const cv::Mat imageYCbCr = output.getMat();
         cv::Mat image;
@@ -1021,7 +980,7 @@ void NDPITiffTools::readJpegDirectoryRegion(libtiff::TIFF* tiff, const std::stri
 
 void NDPITiffTools::readDirectoryJpegHeaders(NDPIFile* ndpi, NDPITiffDirectory& dir)
 {
-    if (dir.height == dir.rowsPerStrip) {
+    if (dir.height == dir.rowsPerStrip && !dir.mcuStarts.empty()) {
         const auto dirIndex = dir.dirIndex;
 
         libtiff::TIFF* tiff = ndpi->getTiffHandle();
@@ -1162,11 +1121,17 @@ void NDPITiffTools::readStrip(libtiff::TIFF* hFile, const slideio::NDPITiffDirec
     if (dir.compression == 0x5852) {
         readJpegXRStrip(hFile, dir, strip, channelIndices, output);
     }
-    else if (dir.photometric == 6 || dir.photometric == 8 || dir.photometric == 9 || dir.photometric == 10) {
-        readNotRGBStrip(hFile, dir, strip, channelIndices, output);
-    }
+    //else if (dir.photometric == 6 || dir.photometric == 8 || dir.photometric == 9 || dir.photometric == 10) {
+    //    readNotRGBStrip(hFile, dir, strip, channelIndices, output);
+    //}
     else {
         readRegularStrip(hFile, dir, strip, channelIndices, output);
+        if (dir.photometric == 6) {
+            const cv::Mat imageYCbCr = output.getMat();
+            cv::Mat image;
+            cv::cvtColor(imageYCbCr, image, cv::COLOR_YCrCb2RGB);
+            output.assign(image);
+        }
     }
 }
 
