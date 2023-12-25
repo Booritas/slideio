@@ -65,7 +65,7 @@ TEST(NDPITiffTools, readRegularStripedDir)
     TestTools::readPNG(testFilePath, testRaster);
     cv::cvtColor(testRaster, testRaster, cv::COLOR_BGRA2RGB);
     cv::Mat diff = dirRaster != testRaster;
-    TestTools::showRaster(dirRaster);
+    //TestTools::showRaster(dirRaster);
     double sim = slideio::ImageTools::computeSimilarity2(dirRaster, testRaster);
     EXPECT_GE(sim, 0.99);
 }
@@ -92,8 +92,8 @@ TEST(NDPITiffTools, readRegularStrip)
     TestTools::readPNG(testFilePath, testRaster);
     cv::cvtColor(testRaster, testRaster, cv::COLOR_BGRA2RGB);
     double similarity = slideio::ImageTools::computeSimilarity2(stripRaster, testRaster);
-    TestTools::showRaster(stripRaster);
-    TestTools::showRaster(testRaster);
+    //TestTools::showRaster(stripRaster);
+    //TestTools::showRaster(testRaster);
     EXPECT_GT(similarity, 0.99);
 }
 
