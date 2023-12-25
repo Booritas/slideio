@@ -1263,12 +1263,13 @@ cv::Size NDPITiffTools::computeMCUTileSize(FILE* file, const cv::Size& dirSize)
     uint32_t mcuWidth = cinfo.max_h_samp_factor * DCTSIZE;
     uint32_t mcuHeight = cinfo.max_v_samp_factor * DCTSIZE;
     uint32_t mcuPerRow = (dirSize.width + mcuWidth - 1) / mcuWidth;
-    if(cinfo.restart_interval >0 && cinfo.restart_interval < mcuPerRow) {
+    if(cinfo.restart_interval >0 && cinfo.restart_interval <= mcuPerRow) {
         if ((mcuPerRow % cinfo.restart_interval) == 0) {
             tileWidth = mcuWidth * cinfo.restart_interval;
             tileHeight = mcuHeight;
         }
     }
+    cinfo.output_scanline = cinfo.output_height; // otherwise libjpeg crashes
     jpeg_finish_decompress(&cinfo);
     jpeg_destroy_decompress(&cinfo);
     return {tileWidth, tileHeight};

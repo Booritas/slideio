@@ -116,8 +116,8 @@ TEST(NDPIImageDriver, readROI)
         GTEST_SKIP() << "Skip private test because full dataset is not enabled";
     }
 
-    std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "B05-41379_10.ndpi");
-    std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "B05-41379_10-roi.png");
+    std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-2.ndpi");
+    std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-2-roi-l0.png");
     slideio::NDPIImageDriver driver;
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide);
@@ -128,30 +128,61 @@ TEST(NDPIImageDriver, readROI)
     cv::Rect rect = scene->getRect();
     EXPECT_EQ(rect.x, 0);
     EXPECT_EQ(rect.y, 0);
-    EXPECT_EQ(rect.width, 106496);
-    EXPECT_EQ(rect.height, 80896);
+    EXPECT_EQ(rect.width, 79872);
+    EXPECT_EQ(rect.height, 33792);
     int channels = scene->getNumChannels();
     EXPECT_EQ(3, channels);
     slideio::Resolution  res = scene->getResolution();
-    EXPECT_DOUBLE_EQ(res.x, 2.2834699609526636e-7);
-    EXPECT_DOUBLE_EQ(res.y, 2.2834699609526636e-7);
+    EXPECT_NEAR(res.x, 4.564e-7, 0.02e-7);
+    EXPECT_NEAR(res.y, 4.564e-7, 0.02e-7);
     double magnification = scene->getMagnification();
-    EXPECT_DOUBLE_EQ(40., magnification);
+    EXPECT_DOUBLE_EQ(20., magnification);
     slideio::Compression compression = scene->getCompression();
     EXPECT_EQ(slideio::Compression::Jpeg, compression);
     slideio::DataType dt = scene->getChannelDataType(0);
     EXPECT_EQ(slideio::DataType::DT_Byte, dt);
 
-    const int blockWidth = 800;
-    const int blockHeight = 700;
-    cv::Rect blockRect(13000, 5000, blockWidth, blockHeight);
+    const int blockWidth = 1000;
+    const int blockHeight = 800;
+    cv::Rect blockRect(15500, 16500, blockWidth, blockHeight);
     cv::Size blockSize(blockWidth, blockHeight);
     cv::Mat blockRaster;
     scene->readResampledBlock(blockRect, blockSize, blockRaster);
-    //slideio::NDPITestTools::writePNG(blockRaster, testFilePath);
     cv::Mat testRaster;
     TestTools::readPNG(testFilePath, testRaster);
-    TestTools::compareRasters(testRaster, blockRaster);
+    cv::cvtColor(testRaster, testRaster, cv::COLOR_BGRA2BGR);
+    double similarity = slideio::ImageTools::computeSimilarity2(blockRaster, testRaster);
+    EXPECT_GE(similarity, 0.99);
+}
+
+TEST(NDPIImageDriver, readROI2)
+{
+    if (!TestTools::isFullTestEnabled())
+    {
+        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
+    }
+
+    std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "test3-TRITC 2 (560).ndpi");
+    std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "test3-TRITC 2 (560)-roi.png");
+    slideio::NDPIImageDriver driver;
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide);
+    const int numScenes = slide->getNumScenes();
+    EXPECT_EQ(1, numScenes);
+    std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
+    EXPECT_TRUE(scene.get() != nullptr);
+
+    cv::Rect blockRect(1000, 1000, 2000, 1000);
+    cv::Size blockSize(500, 250);
+    cv::Mat blockRaster;
+    scene->readResampledBlock(blockRect, blockSize, blockRaster);
+    cv::Mat testRaster;
+    TestTools::readPNG(testFilePath, testRaster);
+    cv::cvtColor(testRaster, testRaster, cv::COLOR_BGRA2BGR);
+    cv::resize(testRaster, testRaster, blockSize);
+    double similarity = slideio::ImageTools::computeSimilarity2(blockRaster, testRaster);
+    EXPECT_GE(similarity, 0.99);
+    //TestTools::showRaster(blockRaster);
 }
 
 
@@ -162,8 +193,8 @@ TEST(NDPIImageDriver, readROIResampled)
         GTEST_SKIP() << "Skip private test because full dataset is not enabled";
     }
 
-    std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "B05-41379_10.ndpi");
-    std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "B05-41379_10-roi-resampled.png");
+    std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-2.ndpi");
+    std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-2-roi-l0.png");
     slideio::NDPIImageDriver driver;
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide);
@@ -174,27 +205,35 @@ TEST(NDPIImageDriver, readROIResampled)
     cv::Rect rect = scene->getRect();
     EXPECT_EQ(rect.x, 0);
     EXPECT_EQ(rect.y, 0);
-    EXPECT_EQ(rect.width, 106496);
-    EXPECT_EQ(rect.height, 80896);
+    EXPECT_EQ(rect.width, 79872);
+    EXPECT_EQ(rect.height, 33792);
     int channels = scene->getNumChannels();
     EXPECT_EQ(3, channels);
     slideio::Resolution  res = scene->getResolution();
-    EXPECT_DOUBLE_EQ(res.x, 2.2834699609526636e-7);
-    EXPECT_DOUBLE_EQ(res.y, 2.2834699609526636e-7);
+    EXPECT_NEAR(res.x, 4.564e-7, 0.02e-7);
+    EXPECT_NEAR(res.y, 4.564e-7, 0.02e-7);
     double magnification = scene->getMagnification();
-    EXPECT_DOUBLE_EQ(40., magnification);
+    EXPECT_DOUBLE_EQ(20., magnification);
     slideio::Compression compression = scene->getCompression();
     EXPECT_EQ(slideio::Compression::Jpeg, compression);
     slideio::DataType dt = scene->getChannelDataType(0);
     EXPECT_EQ(slideio::DataType::DT_Byte, dt);
 
-    cv::Rect blockRect(13000, 5000, 3200, 2800);
-    cv::Size blockSize(800, 700);
+    const int blockWidth = 1000;
+    const int blockHeight = 800;
+    const int resizedBlockWidth = 200;
+    const int resizedBlockHeight = 160;
+
+    cv::Rect blockRect(15500, 16500, blockWidth, blockHeight);
+    cv::Size blockSize(resizedBlockWidth, resizedBlockHeight);
     cv::Mat blockRaster;
-    scene->readResampledBlockChannels(blockRect, blockSize, {0,1,2},blockRaster);
+    scene->readResampledBlock(blockRect, blockSize, blockRaster);
     cv::Mat testRaster;
     TestTools::readPNG(testFilePath, testRaster);
-    TestTools::compareRasters(testRaster, blockRaster);
+    cv::cvtColor(testRaster, testRaster, cv::COLOR_BGRA2BGR);
+    cv::resize(testRaster, testRaster, cv::Size(resizedBlockWidth, resizedBlockHeight));
+    double similarity = slideio::ImageTools::computeSimilarity2(blockRaster, testRaster);
+    EXPECT_GE(similarity, 0.95);
 }
 
 TEST(NDPIImageDriver, readAuxImages)

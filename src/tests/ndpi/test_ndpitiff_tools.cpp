@@ -28,7 +28,7 @@ TEST(NDPITiffTools, scanFile)
     EXPECT_EQ(dir.userLabel.size(), 0);
     EXPECT_NE(dir.comments.size(), 0);
     EXPECT_EQ(dir.dataType, slideio::DataType::DT_Byte);
-    EXPECT_EQ(dir.getDirectoryType(), slideio::NDPITiffDirectory::DirectoryType::StripTiled);
+    EXPECT_EQ(dir.getDirectoryType(), slideio::NDPITiffDirectory::DirectoryType::StripeTiled);
     const slideio::NDPITiffDirectory& dir5 = dirs[4];
     EXPECT_EQ(dir5.width, 599);
     EXPECT_EQ(dir5.height, 204);

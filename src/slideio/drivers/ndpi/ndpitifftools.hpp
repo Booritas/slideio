@@ -35,7 +35,7 @@ namespace slideio
         {
             Tiled = 0,
             Striped = 1,
-            StripTiled = 2
+            StripeTiled = 2
         };
         int width;
         int height;
@@ -72,7 +72,7 @@ namespace slideio
                 return DirectoryType::Tiled;
             }
             else if(tileWidth > 0 && tileHeight > 0 && !mcuStarts.empty()) {
-                return DirectoryType::StripTiled;
+                return DirectoryType::StripeTiled;
             }
             else {
                 return DirectoryType::Striped;
