@@ -31,11 +31,12 @@ namespace slideio
 
     struct SLIDEIO_NDPI_EXPORTS  NDPITiffDirectory
     {
-        enum class DirectoryType
+        enum class Type
         {
             Tiled = 0,
-            Striped = 1,
-            StripeTiled = 2
+            SingleStripe = 1,
+            SingleStripeMCU = 2,
+            Striped = 3
         };
         int width;
         int height;
@@ -66,20 +67,25 @@ namespace slideio
         uint64_t jpegHeaderOffset;
         uint64_t jpegSOFMarker;
         uint32_t jpegHeaderSize;
+        bool auxImage = false;
 
-        DirectoryType getDirectoryType() const {
+        Type getType() const {
             if(tiled) {
-                return DirectoryType::Tiled;
+                return Type::Tiled;
             }
-            else if(tileWidth > 0 && tileHeight > 0 && !mcuStarts.empty()) {
-                return DirectoryType::StripeTiled;
+            else if(tileWidth > 0 && tileHeight > 0 && !mcuStarts.empty() && slideioCompression == Compression::Jpeg) {
+                return Type::SingleStripeMCU;
+            }
+            else if(rowsPerStrip == height) {
+                return Type::SingleStripe;
             }
             else {
-                return DirectoryType::Striped;
+                return Type::Striped;
             }
         }
     };
 
+    SLIDEIO_NDPI_EXPORTS std::ostream&  operator << (std::ostream& os, const NDPITiffDirectory::Type& type);;
 
     class SLIDEIO_NDPI_EXPORTS NDPITiffTools
     {
@@ -102,7 +108,7 @@ namespace slideio
         static void readJpegXRStrip(libtiff::TIFF* tiff, const NDPITiffDirectory& dir, int strip, const std::vector<int>& vector, cv::_OutputArray output);
         static void readNotRGBStrip(libtiff::TIFF* tiff, const NDPITiffDirectory& dir, int strip, const std::vector<int>& vector, cv::_OutputArray output);
         static void readRegularStrip(libtiff::TIFF* tiff, const NDPITiffDirectory& dir, int strip, const std::vector<int>& vector, cv::_OutputArray output);
-        static void readStrip(libtiff::TIFF* hFile, const slideio::NDPITiffDirectory& dir, int strip,
+        static void readStripe(libtiff::TIFF* hFile, const slideio::NDPITiffDirectory& dir, int strip,
                               const std::vector<int>& channelIndices, cv::OutputArray output);
         static void setCurrentDirectory(libtiff::TIFF* hFile, const slideio::NDPITiffDirectory& dir);
         static void decodeJxrBlock(const uint8_t* data, size_t dataBlockSize, cv::OutputArray output);
@@ -113,13 +119,15 @@ namespace slideio
         static int computeStripHeight(int height, int rowsPerStrip, int strip);
         static cv::Size computeTileSize(const NDPITiffDirectory& dir, int tile);
         static cv::Size computeTileCounts(const NDPITiffDirectory& dir);
-        static void readScanlines(libtiff::TIFF* tiff, FILE* file, const NDPITiffDirectory& dir, int firstScanline,
+        static void readJpegScanlines(libtiff::TIFF* tiff, FILE* file, const NDPITiffDirectory& dir, int firstScanline,
             int numberScanlines, const std::vector<int>& channelIndices, cv::_OutputArray output);
         static void cacheScanlines(NDPIFile* file, const NDPITiffDirectory& dir,
             cv::Size tileSize, CacheManager* cacheManager);
         static void readJpegDirectoryRegion(libtiff::TIFF* tiff, const std::string& filePath, const cv::Rect& region, const NDPITiffDirectory& dir,
             const std::vector<int>& channelIndices, cv::_OutputArray output);
         static void readDirectoryJpegHeaders(NDPIFile* ndpi, NDPITiffDirectory& dir);
+        static void readUncompressedScanlines(libtiff::TIFF* tiff, FILE* file, const NDPITiffDirectory& dir, int firstScanline, int numberScanlines, const std::vector<int>& vector,
+                                      cv::_OutputArray tileRaster);
     };
 
     class  NDPITIFFKeeper

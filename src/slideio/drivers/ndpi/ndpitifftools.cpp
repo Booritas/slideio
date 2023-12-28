@@ -230,6 +230,27 @@ static slideio::Compression compressTiffToSlideio(int tiffCompression)
 //    return os;
 //}
 
+std::ostream& slideio::operator<<(std::ostream& os, const NDPITiffDirectory::Type& type) {
+    switch (type) {
+    case NDPITiffDirectory::Type::Tiled:
+        os << "Tiled";
+        break;
+    case NDPITiffDirectory::Type::SingleStripe:
+        os << "SingleStripe";
+        break;
+    case NDPITiffDirectory::Type::SingleStripeMCU:
+        os << "SingleStripeMCU";
+        break;
+    case NDPITiffDirectory::Type::Striped:
+        os << "Striped";
+        break;
+    default:
+        os << "Unknown " << static_cast<int>(type);
+        break;
+    }
+    return os;
+}
+
 libtiff::TIFF* slideio::NDPITiffTools::openTiffFile(const std::string& path)
 {
     Tools::throwIfPathNotExist(path, "NDPITiffTools::openTiffFile");
@@ -370,8 +391,12 @@ void slideio::NDPITiffTools::scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, 
     }
     libtiff::TIFFGetField(tiff, TIFFTAG_PLANARCONFIG, &planar_config);
     SLIDEIO_LOG(INFO) << "NDPITiffTools::scanTiffDirTags TIFFTAG_PLANARCONFIG: " << planar_config;
-    libtiff::TIFFGetField(tiff, NDPITAG_MAGNIFICATION, &magnification);
-    SLIDEIO_LOG(INFO) << "NDPITiffTools::scanTiffDirTags NDPITAG_MAGNIFICATION: " << magnification;
+    if(libtiff::TIFFGetField(tiff, NDPITAG_MAGNIFICATION, &magnification) ==1 ) {
+        SLIDEIO_LOG(INFO) << "NDPITiffTools::scanTiffDirTags NDPITAG_MAGNIFICATION: " << magnification;
+        if(magnification<0) {
+            dir.auxImage = true;
+        }
+    }
     libtiff::TIFFGetField(tiff, NDPITAG_BLANKLANES, &nblanklines, &blankLines);
     SLIDEIO_LOG(INFO) << "NDPITiffTools::scanTiffDirTags NDPITAG_BLANKLANES: " << nblanklines;
 
@@ -701,9 +726,19 @@ void ErrorExit(j_common_ptr cinfo)
     longjmp(myerr->setjmp_buffer, 1);
 }
 
-void NDPITiffTools::readScanlines(libtiff::TIFF* tiff, FILE* file, const NDPITiffDirectory& dir, int firstScanline,
+void NDPITiffTools::readJpegScanlines(libtiff::TIFF* tiff, FILE* file, const NDPITiffDirectory& dir, int firstScanline,
                                   int numberScanlines, const std::vector<int>& channelIndices, cv::_OutputArray output)
 {
+    if(tiff == nullptr) {
+        RAISE_RUNTIME_ERROR << "NDPITiffTools::readJpegScanlines tiff pointer is not set";
+    }
+    if(file == nullptr) {
+        RAISE_RUNTIME_ERROR << "NDPITiffTools::readJpegScanlines file pointer is not set";
+    }
+    if(dir.slideioCompression != Compression::Jpeg) {
+        RAISE_RUNTIME_ERROR << "NDPITiffTools::readJpegScanlines: Attempt to read jpeg scanlines from non jpeg directory";
+    }
+
     setCurrentDirectory(tiff, dir);
 
     uint64_t stripeOffset = libtiff::TIFFGetStrileOffset(tiff, 0);
@@ -1015,6 +1050,22 @@ void NDPITiffTools::readDirectoryJpegHeaders(NDPIFile* ndpi, NDPITiffDirectory& 
     }
 }
 
+void NDPITiffTools::readUncompressedScanlines(libtiff::TIFF* tiff, FILE* file, const NDPITiffDirectory& dir, int firstScanline,
+    int numberScanlines, const std::vector<int>& vector, cv::_OutputArray tileRaster) {
+    if(tiff == nullptr) {
+        RAISE_RUNTIME_ERROR << "NDPITiffTools::readUncompressedScanlines tiff pointer is not set";
+    }
+    if(dir.slideioCompression != Compression::Uncompressed) {
+        RAISE_RUNTIME_ERROR << "NDPITiffTools::readUncompressedScanlines: Attempt to read uncompressed scanlines from non uncompressed directory";
+    }
+    if(dir.tiled) {
+        RAISE_RUNTIME_ERROR << "NDPITiffTools::readUncompressedScanlines: Attempt to read uncompressed scanlines from tiled directory";
+    }
+    if(file == nullptr) {
+        RAISE_RUNTIME_ERROR << "NDPITiffTools::readUncompressedScanlines file pointer is not set";
+    }
+}
+
 void NDPITiffTools::readJpegXRStrip(libtiff::TIFF* tiff, const NDPITiffDirectory& dir, int strip,
                                     const std::vector<int>& vector, cv::_OutputArray output)
 {
@@ -1110,7 +1161,7 @@ void NDPITiffTools::readRegularStrip(libtiff::TIFF* tiff, const NDPITiffDirector
     }
 }
 
-void NDPITiffTools::readStrip(libtiff::TIFF* hFile, const slideio::NDPITiffDirectory& dir, int strip,
+void NDPITiffTools::readStripe(libtiff::TIFF* hFile, const slideio::NDPITiffDirectory& dir, int strip,
                               const std::vector<int>& channelIndices, cv::OutputArray output)
 {
     if (dir.tiled) {
@@ -1121,9 +1172,6 @@ void NDPITiffTools::readStrip(libtiff::TIFF* hFile, const slideio::NDPITiffDirec
     if (dir.compression == 0x5852) {
         readJpegXRStrip(hFile, dir, strip, channelIndices, output);
     }
-    //else if (dir.photometric == 6 || dir.photometric == 8 || dir.photometric == 9 || dir.photometric == 10) {
-    //    readNotRGBStrip(hFile, dir, strip, channelIndices, output);
-    //}
     else {
         readRegularStrip(hFile, dir, strip, channelIndices, output);
         if (dir.photometric == 6) {

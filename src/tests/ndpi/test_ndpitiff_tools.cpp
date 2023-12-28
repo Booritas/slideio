@@ -28,7 +28,7 @@ TEST(NDPITiffTools, scanFile)
     EXPECT_EQ(dir.userLabel.size(), 0);
     EXPECT_NE(dir.comments.size(), 0);
     EXPECT_EQ(dir.dataType, slideio::DataType::DT_Byte);
-    EXPECT_EQ(dir.getDirectoryType(), slideio::NDPITiffDirectory::DirectoryType::StripeTiled);
+    EXPECT_EQ(dir.getType(), slideio::NDPITiffDirectory::Type::SingleStripeMCU);
     const slideio::NDPITiffDirectory& dir5 = dirs[4];
     EXPECT_EQ(dir5.width, 599);
     EXPECT_EQ(dir5.height, 204);
@@ -42,7 +42,7 @@ TEST(NDPITiffTools, scanFile)
     EXPECT_DOUBLE_EQ(0.00012820512820512821, dir5.res.x);
     EXPECT_DOUBLE_EQ(0.00012820512820512821, dir5.res.y);
     EXPECT_EQ((uint32_t)1, dir5.compression);
-    EXPECT_EQ(dir5.getDirectoryType(), slideio::NDPITiffDirectory::DirectoryType::Striped);
+    EXPECT_EQ(dir5.getType(), slideio::NDPITiffDirectory::Type::SingleStripe);
 }
 
 TEST(NDPITiffTools, readRegularStripedDir)
@@ -84,7 +84,7 @@ TEST(NDPITiffTools, readRegularStrip)
     cv::Mat stripRaster;
     slideio::NDPITiffTools::scanTiffDirTags(tiff, 0, 0, dir);
     slideio::NDPITiffTools::scanTiffDirTags(tiff, dirIndex, 0, dir);
-    slideio::NDPITiffTools::readStrip(tiff, dir, 0, channelIndices, stripRaster);
+    slideio::NDPITiffTools::readStripe(tiff, dir, 0, channelIndices, stripRaster);
     slideio::NDPITiffTools::closeTiffFile(tiff);
     EXPECT_EQ(stripRaster.rows, dir.rowsPerStrip);
     EXPECT_EQ(stripRaster.cols, dir.width);
@@ -232,7 +232,7 @@ TEST(NDPITiffTools, readScanlines)
     const int numberScanlines = 300;
     const int firstScanline = 200;
     FILE* file = fopen(filePath.c_str(), "rb");
-    slideio::NDPITiffTools::readScanlines(tiff, file, dir, firstScanline, numberScanlines, channelIndices, stripRaster);
+    slideio::NDPITiffTools::readJpegScanlines(tiff, file, dir, firstScanline, numberScanlines, channelIndices, stripRaster);
     slideio::NDPITiffTools::closeTiffFile(tiff);
     fclose(file);
     EXPECT_EQ(numberScanlines, stripRaster.rows);
@@ -394,4 +394,47 @@ TEST(NDPITiffTools, readMCUTile)
     TestTools::readPNG(testFilePath, testRaster);
     cv::cvtColor(testRaster, testRaster, cv::COLOR_BGRA2BGR);
     TestTools::compareRasters(tileRaster, testRaster);
+}
+
+
+TEST(NDPITiffTools, getDirectoryType) {
+
+    slideio::NDPITiffDirectory dir;
+    dir.width = 100;
+    dir.height = 100;
+
+    dir.tiled = true;
+    EXPECT_EQ(dir.getType(), slideio::NDPITiffDirectory::Type::Tiled);
+
+    dir.tiled = false;
+    dir.tileWidth = 1;
+    dir.tileHeight = 1;
+    dir.mcuStarts.push_back(1);
+    dir.slideioCompression = slideio::Compression::Jpeg;
+    EXPECT_EQ(dir.getType(), slideio::NDPITiffDirectory::Type::SingleStripeMCU);
+
+    dir.tiled = false;
+    dir.tileWidth = 10;
+    dir.tileHeight = 10;
+    dir.rowsPerStrip = dir.height;
+    dir.mcuStarts.push_back(1);
+    dir.slideioCompression = slideio::Compression::Uncompressed;
+    EXPECT_EQ(dir.getType(), slideio::NDPITiffDirectory::Type::SingleStripe);
+
+    dir.tiled = false;
+    dir.tileWidth = 10;
+    dir.tileHeight = 10;
+    dir.rowsPerStrip = dir.tileHeight;
+    dir.mcuStarts.push_back(1);
+    dir.slideioCompression = slideio::Compression::Uncompressed;
+    EXPECT_EQ(dir.getType(), slideio::NDPITiffDirectory::Type::Striped);
+
+    dir.tileWidth = 0;
+    dir.tileHeight = 0;
+    dir.mcuStarts.clear();
+    dir.rowsPerStrip = dir.height;
+    EXPECT_EQ(dir.getType(), slideio::NDPITiffDirectory::Type::SingleStripe);
+
+    dir.rowsPerStrip = 0;
+    EXPECT_EQ(dir.getType(), slideio::NDPITiffDirectory::Type::Striped);
 }

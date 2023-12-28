@@ -17,24 +17,16 @@ class NDPIUserData
 {
 public:
     NDPIUserData(const NDPITiffDirectory* dir, const std::string& filePath) : m_dir(dir),
-                                                                              m_file(nullptr), m_rowsPerStrip(0),
+                                                                              m_file(nullptr),
                                                                               m_filePath(filePath)
     {
-        if ((!dir->tiled) && (dir->rowsPerStrip == dir->height) && dir->slideioCompression==Compression::Jpeg) {
-#if defined(WIN32)
-            m_file = _wfopen(Tools::toWstring(filePath).c_str(), L"rb");
-#else
-            m_file = fopen(filePath.c_str(), "rb");
-#endif
+        if ((!dir->tiled) && (dir->rowsPerStrip == dir->height) 
+            && (dir->slideioCompression==Compression::Jpeg
+            || dir->slideioCompression==Compression::Uncompressed)) {
+            m_file = Tools::openFile(filePath, "rb");
             if (!m_file) {
                 RAISE_RUNTIME_ERROR << "NDPI Image Driver: Cannot open file " << filePath;
             }
-            const int MAX_BUFFER_SIZE = 10 * 1024 * 1024;
-            int strideSize = dir->width * dir->channels * ImageTools::dataTypeSize(dir->dataType);
-            int rowsPerStrip = MAX_BUFFER_SIZE / strideSize;
-            m_rowsPerStrip = std::min(rowsPerStrip, dir->height);
-        } else {
-            m_rowsPerStrip = dir->rowsPerStrip;
         }
     }
 
@@ -55,11 +47,6 @@ public:
         return m_file;
     }
 
-    int rowsPerStrip() const
-    {
-        return m_rowsPerStrip;
-    }
-
     const std::string& filePath() const
     {
         return m_filePath;
@@ -68,13 +55,11 @@ public:
 private:
     const NDPITiffDirectory* m_dir;
     FILE* m_file;
-    int m_rowsPerStrip;
     std::string m_filePath;
 };
 
 NDPIScene::NDPIScene() : m_pfile(nullptr), m_startDir(-1), m_endDir(-1), m_rect(0, 0, 0, 0)
 {
-    m_cacheManager = std::make_shared<CacheManager>();
 }
 
 NDPIScene::~NDPIScene()
@@ -173,25 +158,6 @@ Compression NDPIScene::getCompression() const
 }
 
 
-void NDPIScene::readBlockFromCache(const cv::Rect& imageBlockRect, const std::vector<int>& channelIndices,
-                            const cv::Size& requiredBlockSize, cv::OutputArray output)
-{
-    const NDPITiffDirectory& dir = findZoomDirectory(imageBlockRect, requiredBlockSize);
-    const double dirZoomX = static_cast<double>(dir.width) / static_cast<double>(m_rect.width);
-    const double dirZoomY = static_cast<double>(dir.height) / static_cast<double>(m_rect.height);
-    const cv::Size tileSize(1000, 1000);
-    if(!isDirectoryCached(dir)) {
-        NDPITIFFMessageHandler mh;
-        NDPITiffTools::cacheScanlines(m_pfile, dir, tileSize, m_cacheManager.get());
-        markDirectoryCached(dir);
-    }
-    CacheManagerTiler tiler(m_cacheManager, tileSize, dir.dirIndex);
-    cv::Rect dirBlockRect;
-    scaleBlockToDirectory(imageBlockRect, dir, dirBlockRect);
-    TileComposer::composeRect(&tiler, channelIndices, dirBlockRect, requiredBlockSize, output);
-}
-
-
 const NDPITiffDirectory& NDPIScene::findZoomDirectory(const cv::Rect& imageBlockRect, const cv::Size& requiredBlockSize) const
 {
     auto directories = m_pfile->directories();
@@ -202,18 +168,6 @@ const NDPITiffDirectory& NDPIScene::findZoomDirectory(const cv::Rect& imageBlock
     const double zoom = std::max(zoomImageToBlockX, zoomImageToBlockY);
     const NDPITiffDirectory& dir = m_pfile->findZoomDirectory(zoom, m_rect.width, m_startDir, m_endDir);
     return dir;
-}
-
-
-
-bool NDPIScene::isDirectoryCached(const NDPITiffDirectory& dir)
-{
-    return m_cachedDirectory.find(dir.dirIndex) != m_cachedDirectory.end();
-}
-
-void NDPIScene::markDirectoryCached(const NDPITiffDirectory& dir)
-{
-    m_cachedDirectory.insert(dir.dirIndex);
 }
 
 void NDPIScene::scaleBlockToDirectory(const cv::Rect& imageBlockRect, const slideio::NDPITiffDirectory& dir, cv::Rect& dirBlockRect) const
@@ -236,14 +190,18 @@ void NDPIScene::readResampledBlockChannels(const cv::Rect& imageBlockRect, const
 
     cv::Rect dirBlockRect;
     scaleBlockToDirectory(imageBlockRect, dir, dirBlockRect);
-
-
-    if (!dir.tiled && dir.rowsPerStrip == dir.height && dir.slideioCompression == Compression::Jpeg) {
-        readBlockFromCache(imageBlockRect,channelIndices, requiredBlockSize, output);
-    }
-    else {
-        NDPIUserData data(&dir, getFilePath());
-        TileComposer::composeRect(this, channelIndices, dirBlockRect, requiredBlockSize, output, (void*)&data);
+    NDPIUserData data(&dir, getFilePath());
+    const auto dirType = dir.getType();
+    if(dirType == NDPITiffDirectory::Type::Tiled 
+        || dirType == NDPITiffDirectory::Type::SingleStripeMCU
+        || dirType == NDPITiffDirectory::Type::Striped ) {
+               TileComposer::composeRect(this, channelIndices, dirBlockRect, requiredBlockSize, output, (void*)&data);
+    } else if(dirType==NDPITiffDirectory::Type::SingleStripe){
+        cv::Mat raster;
+        NDPITiffTools::readStripedDir(m_pfile->getTiffHandle(), dir, raster);
+        Tools::extractChannels(raster, channelIndices, output);
+    } else {
+        RAISE_RUNTIME_ERROR << "NDPIScene::readResampledBlockChannels: Unexpected directory type: " << dir.getType();
     }
 }
 
@@ -252,23 +210,22 @@ int NDPIScene::getTileCount(void* userData)
     const NDPIUserData* data = static_cast<const NDPIUserData*>(userData);
 
     const NDPITiffDirectory* dir = data->dir();
-    const auto directoryType = dir->getDirectoryType();
+    const auto directoryType = dir->getType();
 
     switch(directoryType) {
-        case NDPITiffDirectory::DirectoryType::Tiled:
-        case NDPITiffDirectory::DirectoryType::StripeTiled: {
+        case NDPITiffDirectory::Type::Tiled:
+        case NDPITiffDirectory::Type::SingleStripeMCU: {
             const int tilesX = (dir->width - 1) / dir->tileWidth + 1;
             const int tilesY = (dir->height - 1) / dir->tileHeight + 1;
             return tilesX * tilesY;
         }
-        case NDPITiffDirectory::DirectoryType::Striped: {
-            const int rowsPerStrip = (dir->rowsPerStrip == dir->height) ? data->rowsPerStrip() : dir->rowsPerStrip;
-            const int stripes = (dir->height - 1) / rowsPerStrip + 1;
+        case NDPITiffDirectory::Type::Striped: {
+            const int stripes = (dir->height - 1) / dir->rowsPerStrip + 1;
             return stripes;
         }
     }
 
-    RAISE_RUNTIME_ERROR << "NDPIScene::getTileCount: Invalid directory type";
+    RAISE_RUNTIME_ERROR << "NDPIScene::getTileCount: Invalid directory type " << dir->getType();
     return 0;
 }
 
@@ -278,9 +235,9 @@ bool NDPIScene::getTileRect(int tileIndex, cv::Rect& tileRect, void* userData)
 
     const NDPIUserData* data = static_cast<const NDPIUserData*>(userData);
     const NDPITiffDirectory* dir = data->dir();
-    switch (dir->getDirectoryType()) {
-        case NDPITiffDirectory::DirectoryType::Tiled:
-        case NDPITiffDirectory::DirectoryType::StripeTiled: {
+    switch (dir->getType()) {
+        case NDPITiffDirectory::Type::Tiled:
+        case NDPITiffDirectory::Type::SingleStripeMCU: {
             const int tilesX = (dir->width - 1) / dir->tileWidth + 1;
             const int tilesY = (dir->height - 1) / dir->tileHeight + 1;
             const int tileY = tileIndex / tilesX;
@@ -291,8 +248,8 @@ bool NDPIScene::getTileRect(int tileIndex, cv::Rect& tileRect, void* userData)
             tileRect.height = dir->tileHeight;
             return true;
         }
-        case NDPITiffDirectory::DirectoryType::Striped: {
-            const int rowsPerStrip = (dir->rowsPerStrip == dir->height) ? data->rowsPerStrip() : dir->rowsPerStrip;
+        case NDPITiffDirectory::Type::Striped: {
+            const int rowsPerStrip = dir->rowsPerStrip;
             const int y = tileIndex * rowsPerStrip;
             tileRect.x = 0;
             tileRect.y = y;
@@ -300,8 +257,24 @@ bool NDPIScene::getTileRect(int tileIndex, cv::Rect& tileRect, void* userData)
             tileRect.height = NDPITiffTools::computeStripHeight(dir->height, rowsPerStrip, tileIndex);
             return true;
         }
+    default:
+        RAISE_RUNTIME_ERROR << "NDPIScene::getTileRect: Unexpected directory type: " << dir->getType();
+        break;
     }
     return false;
+}
+
+void NDPIScene::makeSureValidDirectoryType(NDPITiffDirectory::Type directoryType) {
+    switch (directoryType) {
+    case NDPITiffDirectory::Type::Tiled:
+    case NDPITiffDirectory::Type::SingleStripe:
+    case NDPITiffDirectory::Type::SingleStripeMCU:
+    case NDPITiffDirectory::Type::Striped:
+        break;
+    default:
+        RAISE_RUNTIME_ERROR << "NDPIScene::readTile: Unexpected directory type: " << directoryType;
+        break;
+    }
 }
 
 bool NDPIScene::readTile(int tileIndex, const std::vector<int>& channelIndices, cv::OutputArray tileRaster,
@@ -312,45 +285,45 @@ bool NDPIScene::readTile(int tileIndex, const std::vector<int>& channelIndices, 
     const NDPIUserData* data = static_cast<const NDPIUserData*>(userData);
     const NDPITiffDirectory* dir = data->dir();
     bool ret = false;
-    switch (dir->getDirectoryType()) {
-        case NDPITiffDirectory::DirectoryType::Tiled: {
-            try {
-                NDPITiffTools::readTile(m_pfile->getTiffHandle(), *dir, tileIndex, channelIndices, tileRaster);
+    NDPITiffDirectory::Type directoryType = dir->getType();
+
+    makeSureValidDirectoryType(directoryType);
+
+    try {
+        switch (directoryType) {
+        case NDPITiffDirectory::Type::Tiled: {
+            NDPITiffTools::readTile(m_pfile->getTiffHandle(), *dir, tileIndex, channelIndices, tileRaster);
+            ret = true;
+            break;
+        }
+        case NDPITiffDirectory::Type::SingleStripeMCU: {
+            cv::Mat stripRaster;
+            NDPITiffTools::readMCUTile(data->file(), *dir, tileIndex, stripRaster);
+            Tools::extractChannels(stripRaster, channelIndices, tileRaster);
+            ret = true;
+            break;
+        }
+        case NDPITiffDirectory::Type::Striped: {
+            NDPITiffTools::readStripe(m_pfile->getTiffHandle(), *dir, tileIndex, channelIndices, tileRaster);
+            ret = true;
+            break;
+        }
+        case NDPITiffDirectory::Type::SingleStripe: {
+            cv::Mat raster;
+            NDPITiffTools::readStripedDir(m_pfile->getTiffHandle(), *dir, raster);
+            cv::Rect tileRect;
+            if(getTileRect(tileIndex,tileRect, userData)) {
+                cv::Mat blockRaster(raster, tileRect);
+                Tools::extractChannels(blockRaster, channelIndices, tileRaster);
                 ret = true;
-            }
-            catch (std::runtime_error&) {
-                SLIDEIO_LOG(WARNING) << "NDPIScene::readTile: Cannot read tile " << tileIndex << " from directory " <<
-                    dir->dirIndex;
             }
             break;
         }
-        case NDPITiffDirectory::DirectoryType::StripeTiled: {
-            try {
-                cv::Mat stripRaster;
-                NDPITiffTools::readMCUTile(data->file(), *dir, tileIndex, stripRaster);
-                Tools::extractChannels(stripRaster, channelIndices, tileRaster);
-                ret = true;
-            }
-            catch (std::runtime_error&) {
-                SLIDEIO_LOG(WARNING) << "NDPIScene::readTile: Cannot read tile " << tileIndex << " from directory " <<
-                    dir->dirIndex;
-            }
-            break;
         }
-        case NDPITiffDirectory::DirectoryType::Striped: {
-            try {
-                const int firstScanline = tileIndex * data->rowsPerStrip();
-                const int numberScanlines = data->rowsPerStrip();
-                NDPITiffTools::readScanlines(m_pfile->getTiffHandle(), data->file(), *dir, firstScanline, numberScanlines,
-                    channelIndices, tileRaster);
-                ret = true;
-            }
-            catch (std::runtime_error&) {
-                SLIDEIO_LOG(WARNING) << "NDPIScene::readTile: Cannot read tile " << tileIndex << " from directory " <<
-                    dir->dirIndex;
-            }
-            break;
-        }
+    }
+    catch (std::runtime_error& ) {
+        SLIDEIO_LOG(WARNING) << "NDPIScene::readTile: Cannot read tile " << tileIndex
+            << " from directory " << dir->dirIndex << ".Directory type: " << dir->getType();
     }
 
     return ret;
