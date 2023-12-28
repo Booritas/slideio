@@ -199,7 +199,8 @@ void NDPIScene::readResampledBlockChannels(const cv::Rect& imageBlockRect, const
     } else if(dirType==NDPITiffDirectory::Type::SingleStripe){
         cv::Mat raster;
         NDPITiffTools::readStripedDir(m_pfile->getTiffHandle(), dir, raster);
-        Tools::extractChannels(raster, channelIndices, output);
+        cv::Mat blockRaster(raster, dirBlockRect);
+        Tools::extractChannels(blockRaster, channelIndices, output);
     } else {
         RAISE_RUNTIME_ERROR << "NDPIScene::readResampledBlockChannels: Unexpected directory type: " << dir.getType();
     }
