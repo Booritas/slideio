@@ -1068,6 +1068,7 @@ void NDPITiffTools::readDirectoryJpegHeaders(NDPIFile* ndpi, NDPITiffDirectory& 
         dir.jpegHeaderOffset = stripeOffset;
         dir.jpegHeaderSize = static_cast<uint32_t>(headerInfo.second - stripeOffset);
         dir.jpegSOFMarker = headerInfo.first;
+
     }
 }
 
@@ -1387,16 +1388,38 @@ std::pair<uint64_t, uint64_t> NDPITiffTools::getJpegHeaderPos(FILE* file)
     return {SOFmarker, headerStop };
 }
 
+void NDPITiffTools::fixJpegHeader(const NDPITiffDirectory& dir, uint8_t* data) {
+    const uint16_t jpegMaxDimension = 65500L;
+    const uint8_t  jpegMaxDimensionHigh = ((jpegMaxDimension >> 8) & 0xff);
+    const uint8_t  jpegMaxDimensionLow = (jpegMaxDimension & 0xff);
+
+    const int64_t sizeOffset = dir.jpegSOFMarker - dir.jpegHeaderOffset + 5;
+    const uint16_t height = (data[sizeOffset + 0] << 8) + data[sizeOffset + 1];
+    if (height > jpegMaxDimension || height == 0) {
+        data[sizeOffset + 0] = jpegMaxDimensionHigh;
+        data[sizeOffset + 1] = jpegMaxDimensionLow;
+    }
+    const uint16_t width = (data[sizeOffset + 2] << 8) + data[sizeOffset + 3];
+    if (width > jpegMaxDimension || width == 0) {
+        data[sizeOffset + 2] = jpegMaxDimensionHigh;
+        data[sizeOffset + 3] = jpegMaxDimensionLow;
+    }
+}
+
 void NDPITiffTools::readMCUTile(FILE* file, const NDPITiffDirectory& dir, int tile, cv::OutputArray output)
 {
     if(tile>=dir.mcuStarts.size()) {
         RAISE_RUNTIME_ERROR << "NDPITiffTools: tile index is out of range (0-"
             << dir.mcuStarts.size() << "). Received:" << tile;
     }
+    if(file ==nullptr) {
+        RAISE_RUNTIME_ERROR << "NDPITiffTools: file pointer is not set";
+    }
     // read jpeg header
     const uint64_t headerOffset = dir.jpegHeaderOffset;
     const uint32_t headerSize = dir.jpegHeaderSize;
     const uint64_t tileOffset = dir.mcuStarts[tile];
+
     uint32_t tileSize = 0;
     if(tile < dir.mcuStarts.size()-1) {
         tileSize = static_cast<uint32_t>(dir.mcuStarts[tile + 1] - tileOffset);
@@ -1406,11 +1429,13 @@ void NDPITiffTools::readMCUTile(FILE* file, const NDPITiffDirectory& dir, int ti
         tileSize = static_cast<uint32_t>(fileSize - tileOffset);
     }
     std::vector<uint8_t> tileData(headerSize + tileSize);
+
     Tools::setFilePos(file, headerOffset, SEEK_SET);
     auto count = fread(tileData.data(), sizeof(uint8_t), headerSize, file);
     if(count != headerSize) {
         RAISE_RUNTIME_ERROR << "NDPITiffTools: error by reading jpeg header. Expected:" << headerSize << ". Read:" << count;
     }
+
     Tools::setFilePos(file, tileOffset, SEEK_SET);
     count = fread(tileData.data() + headerSize, sizeof(uint8_t), tileSize, file);
     if(count != tileSize) {
@@ -1419,7 +1444,10 @@ void NDPITiffTools::readMCUTile(FILE* file, const NDPITiffDirectory& dir, int ti
     if(tileData[tileData.size() - 2] != 0xFF) {
         RAISE_RUNTIME_ERROR << "NDPITiffTools: error by reading jpeg tile. Expected 0xFF.";
     }
+
     tileData[tileData.size() - 1] = JPEG_EOI; // End of image marker
+
+    fixJpegHeader(dir, (uint8_t*)tileData.data());
     jpeglibDecodeTile(tileData.data(), tileData.size(), cv::Size(dir.tileWidth, dir.tileHeight), output);
 
 }

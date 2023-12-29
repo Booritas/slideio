@@ -155,7 +155,7 @@ TEST(NDPIImageDriver, readROI)
     cv::Mat testRaster;
     TestTools::readPNG(testFilePath, testRaster);
     cv::cvtColor(testRaster, testRaster, cv::COLOR_BGRA2BGR);
-    double similarity = slideio::ImageTools::computeSimilarity2(blockRaster, testRaster);
+     double similarity = slideio::ImageTools::computeSimilarity2(blockRaster, testRaster);
     EXPECT_GE(similarity, 0.99);
 }
 
@@ -234,8 +234,8 @@ TEST(NDPIImageDriver, readROIResampled)
     scene->readResampledBlock(blockRect, blockSize, blockRaster);
     cv::Mat testRaster;
     TestTools::readPNG(testFilePath, testRaster);
-    cv::cvtColor(testRaster, testRaster, cv::COLOR_BGRA2BGR);
     cv::resize(testRaster, testRaster, cv::Size(resizedBlockWidth, resizedBlockHeight));
+    cv::cvtColor(testRaster, testRaster, cv::COLOR_BGRA2BGR);
     double similarity = slideio::ImageTools::computeSimilarity2(blockRaster, testRaster);
     EXPECT_GE(similarity, 0.95);
 }

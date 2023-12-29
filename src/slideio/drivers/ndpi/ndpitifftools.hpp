@@ -129,6 +129,8 @@ namespace slideio
         static void readDirectoryJpegHeaders(NDPIFile* ndpi, NDPITiffDirectory& dir);
         static void readUncompressedScanlines(libtiff::TIFF* tiff, FILE* file, const NDPITiffDirectory& dir, int firstScanline, int numberScanlines, const std::vector<int>& vector,
                                       cv::_OutputArray tileRaster);
+    private:
+        static void fixJpegHeader(const NDPITiffDirectory& dir, uint8_t* data);
     };
 
     class  NDPITIFFKeeper
