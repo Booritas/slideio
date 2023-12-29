@@ -606,6 +606,23 @@ void slideio::NDPITiffTools::readRegularStripedDir(libtiff::TIFF* file, const sl
     return;
 }
 
+void NDPITiffTools::readJpegXRStripedDir(libtiff::TIFF* tiff, const NDPITiffDirectory& dir, cv::_OutputArray output) {
+    if (dir.interleaved) {
+        setCurrentDirectory(tiff, dir);
+    	// process interleaved channels
+		const int tileBufferSize = dir.channels * dir.width * dir.height * ImageTools::dataTypeSize(dir.dataType);
+		std::vector<uint8_t> rawTile(tileBufferSize);
+		const size_t readBytes = libtiff::TIFFReadRawStrip(tiff, 0, rawTile.data(), static_cast<int>(rawTile.size()));
+		if (readBytes <= 0) {
+		    RAISE_RUNTIME_ERROR << "TiffTools: Error reading raw tile";
+		}
+		decodeJxrBlock(rawTile.data(), readBytes, output);
+	}
+	else {
+	    RAISE_RUNTIME_ERROR << "TiffTools: jpegxr compressed directory must be interleaved!";
+	}   
+}
+
 
 void slideio::NDPITiffTools::readStripedDir(libtiff::TIFF* file, const slideio::NDPITiffDirectory& dir,
                                             cv::OutputArray output)
@@ -613,13 +630,17 @@ void slideio::NDPITiffTools::readStripedDir(libtiff::TIFF* file, const slideio::
     if (!dir.interleaved) {
         RAISE_RUNTIME_ERROR << "Planar striped images are not supported";
     }
-
-    readRegularStripedDir(file, dir, output);
-    if(dir.photometric == 6) {
-        const cv::Mat imageYCbCr = output.getMat();
-        cv::Mat image;
-        cv::cvtColor(imageYCbCr, image, cv::COLOR_YCrCb2RGB);
-        output.assign(image);
+    if(dir.slideioCompression == Compression::JpegXR) {
+        readJpegXRStripedDir(file, dir, output);
+    }
+    else {
+        readRegularStripedDir(file, dir, output);
+        if (dir.photometric == 6) {
+            const cv::Mat imageYCbCr = output.getMat();
+            cv::Mat image;
+            cv::cvtColor(imageYCbCr, image, cv::COLOR_YCrCb2RGB);
+            output.assign(image);
+        }
     }
 
     return;
@@ -1282,7 +1303,7 @@ void slideio::NDPITiffTools::setCurrentDirectory(libtiff::TIFF* hFile, const sli
 
 void slideio::NDPITiffTools::decodeJxrBlock(const uint8_t* data, size_t dataBlockSize, cv::OutputArray output)
 {
-    jpegxr_image_info info;
+    jpegxr_image_info info = {};
     jpegxr_get_image_info((uint8_t*)data, (uint32_t)dataBlockSize, info);
     int type = getCvType(info);
     output.create(info.height, info.width, CV_MAKETYPE(type, info.channels));

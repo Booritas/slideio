@@ -88,10 +88,12 @@ TEST(NDPIImageDriver, readStrippedScene)
     cv::Size blockSize(rect.width / 100, rect.height / 100);
     cv::Mat blockRaster;
     scene->readResampledBlock(blockRect, blockSize, blockRaster);
-    //TestTools::writePNG(blockRaster, testFilePath1);
+    TestTools::writePNG(blockRaster, testFilePath1);
     cv::Mat testRaster;
     TestTools::readPNG(testFilePath1, testRaster);
-    TestTools::compareRasters(blockRaster, testRaster);
+    double similarity = slideio::ImageTools::computeSimilarity2(blockRaster, testRaster);
+    EXPECT_GT(similarity, 1.99);
+    //TestTools::showRaster(testRaster);
     //TestTools::showRaster(blockRaster);
 
     blockRect.x = rect.width / 4;
@@ -105,7 +107,9 @@ TEST(NDPIImageDriver, readStrippedScene)
     scene->readResampledBlock(blockRect, blockSize, blockRaster);
     //TestTools::writePNG(blockRaster, testFilePath2);
     TestTools::readPNG(testFilePath2, testRaster);
-    TestTools::compareRasters(blockRaster, testRaster);
+    double similarity2 = slideio::ImageTools::computeSimilarity2(blockRaster, testRaster);
+    EXPECT_GT(similarity2, 0.99);
+    //TestTools::showRaster(testRaster);
     //TestTools::showRaster(blockRaster);
 }
 

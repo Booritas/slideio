@@ -185,7 +185,6 @@ void NDPIScene::readResampledBlockChannels(const cv::Rect& imageBlockRect, const
 {
 
     const slideio::NDPITiffDirectory& dir = findZoomDirectory(imageBlockRect, requiredBlockSize);
-
     const auto& directories = m_pfile->directories();
 
     cv::Rect dirBlockRect;
@@ -199,8 +198,10 @@ void NDPIScene::readResampledBlockChannels(const cv::Rect& imageBlockRect, const
     } else if(dirType==NDPITiffDirectory::Type::SingleStripe){
         cv::Mat raster;
         NDPITiffTools::readStripedDir(m_pfile->getTiffHandle(), dir, raster);
-        cv::Mat blockRaster(raster, dirBlockRect);
-        Tools::extractChannels(blockRaster, channelIndices, output);
+        cv::Mat block(raster, dirBlockRect);
+        cv::Mat blockResized;
+        cv::resize(block, blockResized, requiredBlockSize);
+        Tools::extractChannels(blockResized, channelIndices, output);
     } else {
         RAISE_RUNTIME_ERROR << "NDPIScene::readResampledBlockChannels: Unexpected directory type: " << dir.getType();
     }
