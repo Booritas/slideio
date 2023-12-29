@@ -189,6 +189,7 @@ void NDPIScene::readResampledBlockChannels(const cv::Rect& imageBlockRect, const
 
     cv::Rect dirBlockRect;
     scaleBlockToDirectory(imageBlockRect, dir, dirBlockRect);
+    NDPITiffTools::setCurrentDirectory(m_pfile->getTiffHandle(), dir);
     NDPIUserData data(&dir, getFilePath());
     const auto dirType = dir.getType();
     if(dirType == NDPITiffDirectory::Type::Tiled 

@@ -411,9 +411,11 @@ void slideio::NDPITiffTools::scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, 
     libtiff::TIFFGetField(tiff, TIFFTAG_XPOSITION, &posx);
     libtiff::TIFFGetField(tiff, TIFFTAG_YPOSITION, &posy);
 
-    uint32_t* stripOffset = 0;
-    auto r = libtiff::TIFFGetField(tiff, TIFFTAG_STRIPOFFSETS, &stripOffset);
+    uint32_t* stripOffset = nullptr;
+    libtiff::TIFFGetField(tiff, TIFFTAG_STRIPOFFSETS, &stripOffset);
 
+    uint32_t* stripSizes = nullptr;
+    libtiff::TIFFGetField(tiff, TIFFTAG_STRIPBYTECOUNTS, &stripSizes);
     uint32_t rowsPerStripe(0);
     libtiff::TIFFGetField(tiff, TIFFTAG_ROWSPERSTRIP, &rowsPerStripe);
     libtiff::TIFFDataType dt(libtiff::TIFF_NOTYPE);
@@ -468,6 +470,9 @@ void slideio::NDPITiffTools::scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, 
     if (userLabel)
         dir.userLabel = userLabel;
     dir.blankLines = nblanklines;
+    if (stripSizes) {
+        dir.rawStripSize = stripSizes[0];
+    }
 
     int32_t markers = 0;
     uint32_t *offsets(nullptr);
@@ -1425,8 +1430,8 @@ void NDPITiffTools::readMCUTile(FILE* file, const NDPITiffDirectory& dir, int ti
         tileSize = static_cast<uint32_t>(dir.mcuStarts[tile + 1] - tileOffset);
     }
     else {
-        const uint64_t fileSize = Tools::getFileSize(file);
-        tileSize = static_cast<uint32_t>(fileSize - tileOffset);
+        uint64_t stripEndOffset = dir.jpegHeaderOffset + dir.rawStripSize;
+        tileSize = static_cast<uint32_t>(stripEndOffset - tileOffset);
     }
     std::vector<uint8_t> tileData(headerSize + tileSize);
 

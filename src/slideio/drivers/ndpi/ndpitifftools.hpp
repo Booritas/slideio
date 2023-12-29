@@ -67,6 +67,7 @@ namespace slideio
         uint64_t jpegHeaderOffset;
         uint64_t jpegSOFMarker;
         uint32_t jpegHeaderSize;
+        uint32_t rawStripSize = 0;
         bool auxImage = false;
 
         Type getType() const {
