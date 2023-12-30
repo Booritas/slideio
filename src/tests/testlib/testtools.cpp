@@ -105,6 +105,18 @@ void TestTools::showRaster(cv::Mat& raster)
      cv::waitKey(0);
 }
 
+void TestTools::showRasters(cv::Mat& raster1, cv::Mat& raster2)
+{
+    cv::Mat combinedRaster;
+    cv::hconcat(raster1, cv::Mat::zeros(raster1.rows, 1, raster1.type()), combinedRaster);
+    cv::hconcat(combinedRaster, raster2, combinedRaster);
+
+    cv::namedWindow("Display window", cv::WINDOW_AUTOSIZE);
+    cv::imshow("Display window", combinedRaster);
+    cv::waitKey(0);
+}
+
+
 void TestTools::writePNG(cv::Mat raster, const std::string& filePath)
 {
     /* create file */

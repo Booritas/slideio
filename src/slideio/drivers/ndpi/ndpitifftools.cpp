@@ -1478,6 +1478,7 @@ void NDPITiffTools::jpeglibDecodeTile(const uint8_t* jpg_buffer, size_t jpg_size
     cinfo.scale_denom = 1;
     cinfo.image_width = tileSize.width;
     cinfo.image_height = tileSize.height;
+    cinfo.out_color_space = JCS_EXT_BGR;
 
     if (rc != 1) {
         jpeg_destroy_decompress(&cinfo);

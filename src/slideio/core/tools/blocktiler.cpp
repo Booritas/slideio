@@ -24,6 +24,9 @@ BlockTiler::BlockTiler(const cv::Mat& block, const cv::Size& tileSize) :
 
 void BlockTiler::apply(ITileVisitor* visitor) const
 {
+    if(visitor ==nullptr) {
+        RAISE_RUNTIME_ERROR << "BlockTiler: visitor is null";
+    }
     apply([&](int tileX, int tileY, const cv::Mat& tile){
         visitor->visit(tileX, tileY, tile);
     });

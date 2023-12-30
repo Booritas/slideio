@@ -371,7 +371,7 @@ TEST(NDPITiffTools, cacheScanlines)
     TestTools::readPNG(testFilePath, testRaster);
     TestTools::compareRasters(testRaster, blockRaster);
     //TestTools::showRaster(blockRaster);
-    //TestTools::writePNG(blockRaster, testFilePath);
+    //TestTools::writePNG(blockRaster, TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1-cacheLines0.png"));
 }
 
 
@@ -392,7 +392,7 @@ TEST(NDPITiffTools, readMCUTile)
     EXPECT_EQ(tileRaster.channels(), 3);
     cv::Mat testRaster;
     TestTools::readPNG(testFilePath, testRaster);
-    cv::cvtColor(testRaster, testRaster, cv::COLOR_BGRA2BGR);
+    cv::cvtColor(testRaster, testRaster, cv::COLOR_BGRA2RGB);
     TestTools::compareRasters(tileRaster, testRaster);
 }
 

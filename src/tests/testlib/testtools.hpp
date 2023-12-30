@@ -16,6 +16,7 @@ public:
     static void readRawImage(std::string& path, cv::Mat& image);
     static void compareRasters(cv::Mat& raster1, cv::Mat& raster2);
     static void showRaster(cv::Mat& raster);
+    static void showRasters(cv::Mat& raster1, cv::Mat& raster2);
     static void writePNG(cv::Mat raster, const std::string& filePath);
     static void readPNG(const std::string& filePath, cv::OutputArray output);
 };
