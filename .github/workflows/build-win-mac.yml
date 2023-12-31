@@ -30,12 +30,10 @@ jobs:
     - name: Conan version
       run: echo "${{ steps.conan.outputs.version }}"
 
-    - name: Add slideio conan remote
-      run: conan remote add slideio ${{ secrets.CONAN_REMOTE }}
-      
     - name: Add digital ocean conan remote
       run: |
         conan remote add digitalo http://167.172.176.224
+        conan user -p ${{ secrets.CONAN_DO_PASSWORD }} -r digitalo ${{ secrets.CONAN_DO_USER }}
 
     - name: checkout
       uses: actions/checkout@v2
