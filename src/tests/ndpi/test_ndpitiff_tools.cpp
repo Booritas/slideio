@@ -63,7 +63,7 @@ TEST(NDPITiffTools, readRegularStripedDir)
     EXPECT_EQ(dirRaster.cols, dir.width);
     cv::Mat testRaster;
     TestTools::readPNG(testFilePath, testRaster);
-    cv::cvtColor(testRaster, testRaster, cv::COLOR_BGRA2RGB);
+    cv::cvtColor(testRaster, testRaster, cv::COLOR_BGRA2BGR);
     cv::Mat diff = dirRaster != testRaster;
     //TestTools::showRaster(dirRaster);
     double sim = slideio::ImageTools::computeSimilarity2(dirRaster, testRaster);
@@ -267,7 +267,7 @@ TEST(NDPITiffTools, readRegularStripedDir2)
     EXPECT_EQ(dirRaster.cols, dir.width);
     cv::Mat testRaster;
     TestTools::readPNG(testFilePath, testRaster);
-    cv::cvtColor(testRaster, testRaster, cv::COLOR_BGRA2RGB);
+    cv::cvtColor(testRaster, testRaster, cv::COLOR_BGRA2BGR);
     double similarity = slideio::ImageTools::computeSimilarity2(dirRaster, testRaster);
     EXPECT_GT(similarity, 0.98);
 }
@@ -392,7 +392,7 @@ TEST(NDPITiffTools, readMCUTile)
     EXPECT_EQ(tileRaster.channels(), 3);
     cv::Mat testRaster;
     TestTools::readPNG(testFilePath, testRaster);
-    cv::cvtColor(testRaster, testRaster, cv::COLOR_BGRA2RGB);
+    cv::cvtColor(testRaster, testRaster, cv::COLOR_BGRA2BGR);
     TestTools::compareRasters(tileRaster, testRaster);
 }
 

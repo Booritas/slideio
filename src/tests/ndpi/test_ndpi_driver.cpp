@@ -91,7 +91,7 @@ TEST(NDPIImageDriver, readStrippedScene)
     //TestTools::writePNG(blockRaster, testFilePath1);
     cv::Mat testRaster;
     TestTools::readPNG(testFilePath1, testRaster);
-    cv::cvtColor(testRaster, testRaster, cv::COLOR_BGRA2RGB);
+    cv::cvtColor(testRaster, testRaster, cv::COLOR_BGRA2BGR);
     double similarity = slideio::ImageTools::computeSimilarity2(blockRaster, testRaster);
     EXPECT_GT(similarity, 0.99);
     //TestTools::showRasters(testRaster, blockRaster);
@@ -106,7 +106,7 @@ TEST(NDPIImageDriver, readStrippedScene)
     cv::Mat testRaster2;
     slideio::ImageTools::readGDALImage(testFilePath2, testRaster2);
     cv::resize(testRaster2, testRaster2, blockSize);
-    cv::cvtColor(testRaster2, testRaster2, cv::COLOR_BGRA2RGB);
+    cv::cvtColor(testRaster2, testRaster2, cv::COLOR_BGRA2BGR);
     //TestTools::showRasters(testRaster2, blockRaster);
     double similarity2 = slideio::ImageTools::computeSimilarity2(blockRaster, testRaster2);
     EXPECT_GT(similarity2, 0.95);
@@ -153,7 +153,7 @@ TEST(NDPIImageDriver, readROI)
     scene->readResampledBlock(blockRect, blockSize, blockRaster);
     cv::Mat testRaster;
     TestTools::readPNG(testFilePath, testRaster);
-    cv::cvtColor(testRaster, testRaster, cv::COLOR_BGRA2RGB);
+    cv::cvtColor(testRaster, testRaster, cv::COLOR_BGRA2BGR);
     double similarity = slideio::ImageTools::computeSimilarity2(blockRaster, testRaster);
     EXPECT_GE(similarity, 0.99);
     //TestTools::showRasters(testRaster, blockRaster);
@@ -182,7 +182,7 @@ TEST(NDPIImageDriver, readROI2)
     scene->readResampledBlock(blockRect, blockSize, blockRaster);
     cv::Mat testRaster;
     TestTools::readPNG(testFilePath, testRaster);
-    cv::cvtColor(testRaster, testRaster, cv::COLOR_BGRA2RGB);
+    cv::cvtColor(testRaster, testRaster, cv::COLOR_BGRA2BGR);
     cv::resize(testRaster, testRaster, blockSize);
     double similarity = slideio::ImageTools::computeSimilarity2(blockRaster, testRaster);
     EXPECT_GE(similarity, 0.99);
@@ -235,7 +235,7 @@ TEST(NDPIImageDriver, readROIResampled)
     cv::Mat testRaster;
     TestTools::readPNG(testFilePath, testRaster);
     cv::resize(testRaster, testRaster, cv::Size(resizedBlockWidth, resizedBlockHeight));
-    cv::cvtColor(testRaster, testRaster, cv::COLOR_BGRA2RGB);
+    cv::cvtColor(testRaster, testRaster, cv::COLOR_BGRA2BGR);
     double similarity = slideio::ImageTools::computeSimilarity2(blockRaster, testRaster);
     EXPECT_GE(similarity, 0.94);
     //TestTools::showRasters(testRaster, blockRaster);
