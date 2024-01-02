@@ -17,7 +17,6 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/memory_stream.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/tifftools.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/tifftools.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/tempfile.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/cvtools.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/cvtools.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/tiffkeeper.hpp
@@ -27,6 +26,7 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/jp2kmem.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/jp2kmem.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/encodeparameters.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/similaritytools.hpp
 )
 
 add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES})

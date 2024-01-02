@@ -21,7 +21,7 @@ namespace libtiff
 
 namespace slideio
 {
-    class NDPIFile
+    class SLIDEIO_NDPI_EXPORTS NDPIFile
     {
     public:
         NDPIFile(){
@@ -38,8 +38,9 @@ namespace slideio
         {
             return m_tiff;
         }
-
         const NDPITiffDirectory& findZoomDirectory(double zoom, int sceneWidth, int dirBegin, int dirEnd);
+    private:
+        void scanFile();
     private:
         std::string m_filePath;
         NDPITIFFKeeper m_tiff;

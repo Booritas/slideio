@@ -2,6 +2,8 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include <gtest/gtest.h>
+#include <opencv2/imgproc.hpp>
+
 #include "slideio/core/tools/tools.hpp"
 
 
@@ -81,4 +83,33 @@ TEST(Tools, convert12BitsTo16Bits3vals)
     EXPECT_EQ(src1, trg[0]);
     EXPECT_EQ(src2, trg[1]);
     EXPECT_EQ(src3, trg[2]);
+}
+
+TEST(Tools, extractChannels)
+{
+    // Create a sample input image
+    cv::Mat sourceRaster = cv::Mat::zeros(100, 100, CV_8UC3);
+    cv::circle(sourceRaster, cv::Point(50, 50), 30, cv::Scalar(255, 255, 255), -1);
+
+    // Test case 1: Extract all channels
+    cv::Mat output1;
+    slideio::Tools::extractChannels(sourceRaster, {}, output1);
+    EXPECT_EQ(sourceRaster.size(), output1.size());
+    EXPECT_EQ(sourceRaster.type(), output1.type());
+    EXPECT_TRUE(cv::countNonZero(output1 == sourceRaster) == sourceRaster.total());
+
+    // Test case 2: Extract specific channels
+    std::vector<int> channels = {0, 2};
+    cv::Mat output2;
+    slideio::Tools::extractChannels(sourceRaster, channels, output2);
+    EXPECT_EQ(sourceRaster.size(), output2.size());
+    EXPECT_EQ(CV_8UC2, output2.type());
+    cv::Mat originalChannnel0;
+    cv::extractChannel(sourceRaster, originalChannnel0, 0);
+    cv::Mat originalChannel2;
+    cv::extractChannel(sourceRaster, originalChannel2, 2);
+    cv::Mat originalChannels[] = {originalChannnel0, originalChannel2};
+    cv::Mat expected;
+    cv::merge(originalChannels, 2, expected);
+    EXPECT_TRUE(cv::countNonZero(output2 == expected) == expected.total());
 }

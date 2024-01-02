@@ -9,7 +9,6 @@
 #include <numeric>
 #include <boost/format.hpp>
 #include <boost/filesystem.hpp>
-
 #include "slideio/base/exceptions.hpp"
 #if defined(WIN32)
 #include <Shlwapi.h>
@@ -28,7 +27,7 @@ bool Tools::matchPattern(const std::string& path, const std::string& pattern)
 #if defined(WIN32)
     const std::wstring wpath = Tools::toWstring(path);
     const std::wstring wpattern = Tools::toWstring(pattern);
-    ret = PathMatchSpecW(wpath.c_str(), wpattern.c_str())!=0;
+    ret = PathMatchSpecW(wpath.c_str(), wpattern.c_str()) != 0;
 #else
     std::vector<std::string> subPatterns;
     boost::algorithm::split(subPatterns, pattern, boost::is_any_of(";"), boost::algorithm::token_compress_on);
@@ -47,24 +46,20 @@ inline void convertPair12BitsTo16Bits(uint8_t* source, uint16_t* target)
 {
     target[0] = (*((uint16_t*)source)) & 0xFFF;
     uint8_t* next = source + 1;
-    target[1] = (*((uint16_t*)(source+1))) >> 4;
-
+    target[1] = (*((uint16_t*)(source + 1))) >> 4;
 }
 
 void Tools::convert12BitsTo16Bits(uint8_t* source, uint16_t* target, int targetLen)
 {
-    uint16_t buff[2] = { 0 };
+    uint16_t buff[2] = {0};
     uint16_t* targetPtr = target;
     uint8_t* sourcePtr = source;
     int srcBits = 0;
-    for(int ind=0; ind<targetLen; ind+=2, targetPtr+=2, sourcePtr+=3)
-    {
-        if((ind+1)<targetLen)
-        {
+    for (int ind = 0; ind < targetLen; ind += 2, targetPtr += 2, sourcePtr += 3) {
+        if ((ind + 1) < targetLen) {
             convertPair12BitsTo16Bits(sourcePtr, targetPtr);
         }
-        else
-        {
+        else {
             *targetPtr = (*((uint16_t*)sourcePtr)) & 0xFFF;
         }
     }
@@ -74,20 +69,20 @@ void slideio::Tools::scaleRect(const cv::Rect& srcRect, const cv::Size& newSize,
 {
     double scaleX = static_cast<double>(newSize.width) / static_cast<double>(srcRect.width);
     double scaleY = static_cast<double>(newSize.height) / static_cast<double>(srcRect.height);
-    trgRect.x = static_cast<int>(std::floor(static_cast<double>(srcRect.x)*scaleX));
-    trgRect.y = static_cast<int>(std::floor(static_cast<double>(srcRect.y)*scaleY));
+    trgRect.x = static_cast<int>(std::floor(static_cast<double>(srcRect.x) * scaleX));
+    trgRect.y = static_cast<int>(std::floor(static_cast<double>(srcRect.y) * scaleY));
     trgRect.width = newSize.width;
     trgRect.height = newSize.height;
 }
 
 void slideio::Tools::scaleRect(const cv::Rect& srcRect, double scaleX, double scaleY, cv::Rect& trgRect)
 {
-    trgRect.x = static_cast<int>(std::floor(static_cast<double>(srcRect.x)*scaleX));
-    trgRect.y = static_cast<int>(std::floor(static_cast<double>(srcRect.y)*scaleY));
+    trgRect.x = static_cast<int>(std::floor(static_cast<double>(srcRect.x) * scaleX));
+    trgRect.y = static_cast<int>(std::floor(static_cast<double>(srcRect.y) * scaleY));
     int xn = srcRect.x + srcRect.width;
     int yn = srcRect.y + srcRect.height;
-    int dxn = static_cast<int>(std::ceil(static_cast<double>(xn)* scaleX));
-    int dyn = static_cast<int>(std::ceil(static_cast<double>(yn)* scaleY));
+    int dxn = static_cast<int>(std::ceil(static_cast<double>(xn) * scaleX));
+    int dyn = static_cast<int>(std::ceil(static_cast<double>(yn) * scaleY));
     trgRect.width = dxn - trgRect.x;
     trgRect.height = dyn - trgRect.y;
 }
@@ -121,7 +116,6 @@ void Tools::throwIfPathNotExist(const std::string& path, const std::string label
         RAISE_RUNTIME_ERROR << label << " File " << path << " does not exist";
     }
 #endif
-
 }
 
 std::list<std::string> Tools::findFilesWithExtension(const std::string& directory, const std::string& extension)
@@ -141,3 +135,60 @@ std::list<std::string> Tools::findFilesWithExtension(const std::string& director
     return filePaths;
 }
 
+void Tools::extractChannels(const cv::Mat& sourceRaster, const std::vector<int>& channels, cv::OutputArray output)
+{
+    if (channels.empty()) {
+        sourceRaster.copyTo(output);
+    }
+    else {
+        const int numChannels = static_cast<int>(channels.size());
+        std::vector<cv::Mat> channelRasters(numChannels);
+        for (int channel = 0; channel < numChannels; ++channel) {
+            cv::extractChannel(sourceRaster, channelRasters[channel], channels[channel]);
+        }
+        cv::merge(channelRasters, output);
+    }
+}
+
+FILE* Tools::openFile(const std::string& filePath, const char* mode)
+{
+#if defined(WIN32)
+    std::wstring wfilePath = Tools::toWstring(filePath);
+    std::wstring wmode = Tools::toWstring(mode);
+    return _wfopen(wfilePath.c_str(), wmode.c_str());
+#else
+    return fopen(filePath.c_str(), mode);
+#endif
+}
+
+uint64_t Tools::getFilePos(FILE* file)
+{
+#if defined(WIN32)
+    return _ftelli64(file);
+#elif __APPLE__
+    return ftello(file);
+#else
+    return ftello64(file);
+#endif
+}
+
+int Tools::setFilePos(FILE* file, uint64_t pos, int origin)
+{
+#if defined(WIN32)
+    return _fseeki64(file, pos, origin);
+#elif __APPLE__
+    return fseeko(file, pos, origin);
+#define FTELL64 ftello
+#else
+    return fseeko64(file, pos, origin);
+#endif
+}
+
+uint64_t Tools::getFileSize(FILE* file)
+{
+    uint64_t pos = Tools::getFilePos(file);
+    Tools::setFilePos(file, 0, SEEK_END);
+    uint64_t size = Tools::getFilePos(file);
+    Tools::setFilePos(file, pos, SEEK_SET);
+    return size;
+}

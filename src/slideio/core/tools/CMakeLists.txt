@@ -7,5 +7,11 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/tilecomposer.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/tilecomposer.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/wildmat.c
+   ${CMAKE_CURRENT_SOURCE_DIR}/blocktiler.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/blocktiler.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/cachemanager.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/cachemanager.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/tilevisitor.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/tempfile.hpp
    PARENT_SCOPE
    )

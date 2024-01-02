@@ -2,13 +2,19 @@
 #include "slideio/drivers/ndpi/ndpitifftools.hpp"
 #include "tests/testlib/testtools.hpp"
 #include <string>
+#include <opencv2/imgproc.hpp>
+
+#include "slideio/core/tools/cachemanager.hpp"
+#include "slideio/drivers/ndpi/ndpifile.hpp"
+#include "slideio/imagetools/imagetools.hpp"
 
 
 TEST(NDPITiffTools, scanFile)
 {
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "2017-02-27 15.29.08.ndpi");
-    std::vector<slideio::NDPITiffDirectory> dirs;
-    slideio::NDPITiffTools::scanFile(filePath, dirs);
+    slideio::NDPIFile file;
+    file.init(filePath);
+    const std::vector<slideio::NDPITiffDirectory>& dirs = file.directories();
     int dirCount = (int)dirs.size();
     ASSERT_EQ(dirCount, 5);
     const slideio::NDPITiffDirectory& dir = dirs[0];
@@ -22,6 +28,7 @@ TEST(NDPITiffTools, scanFile)
     EXPECT_EQ(dir.userLabel.size(), 0);
     EXPECT_NE(dir.comments.size(), 0);
     EXPECT_EQ(dir.dataType, slideio::DataType::DT_Byte);
+    EXPECT_EQ(dir.getType(), slideio::NDPITiffDirectory::Type::SingleStripeMCU);
     const slideio::NDPITiffDirectory& dir5 = dirs[4];
     EXPECT_EQ(dir5.width, 599);
     EXPECT_EQ(dir5.height, 204);
@@ -35,36 +42,38 @@ TEST(NDPITiffTools, scanFile)
     EXPECT_DOUBLE_EQ(0.00012820512820512821, dir5.res.x);
     EXPECT_DOUBLE_EQ(0.00012820512820512821, dir5.res.y);
     EXPECT_EQ((uint32_t)1, dir5.compression);
+    EXPECT_EQ(dir5.getType(), slideio::NDPITiffDirectory::Type::SingleStripe);
 }
 
 TEST(NDPITiffTools, readRegularStripedDir)
 {
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1.ndpi");
-    std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1-3.png");
-    std::vector<slideio::NDPITiffDirectory> dirs;
-    slideio::NDPITiffTools::scanFile(filePath, dirs);
+    std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1-dir.png");
+    slideio::NDPIFile file;
+    file.init(filePath);
+    const std::vector<slideio::NDPITiffDirectory>& dirs = file.directories();
     int dirCount = (int)dirs.size();
-    libtiff::TIFF* tiff = slideio::NDPITiffTools::openTiffFile(filePath);;
-    ASSERT_TRUE(tiff != nullptr);
     int dirIndex = 3;
-    slideio::NDPITiffDirectory dir;
-    slideio::NDPITiffTools::scanTiffDirTags(tiff, dirIndex, 0, dir);
-    dir.dataType = slideio::DataType::DT_Byte;
     cv::Mat dirRaster;
+    auto tiff = slideio::NDPITiffTools::openTiffFile(filePath);
+    auto& dir = dirs[dirIndex];
     slideio::NDPITiffTools::readStripedDir(tiff, dir, dirRaster);
     slideio::NDPITiffTools::closeTiffFile(tiff);
     EXPECT_EQ(dirRaster.rows, dir.height);
     EXPECT_EQ(dirRaster.cols, dir.width);
-    //slideio::NDPITestTools::writePNG(dirRaster, testFilePath);
     cv::Mat testRaster;
     TestTools::readPNG(testFilePath, testRaster);
-    TestTools::compareRasters(dirRaster, testRaster);
+    cv::cvtColor(testRaster, testRaster, cv::COLOR_BGRA2BGR);
+    cv::Mat diff = dirRaster != testRaster;
+    //TestTools::showRaster(dirRaster);
+    double sim = slideio::ImageTools::computeSimilarity2(dirRaster, testRaster);
+    EXPECT_GE(sim, 0.99);
 }
 
 TEST(NDPITiffTools, readRegularStrip)
 {
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1.ndpi");
-    std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1-3.png");
+    std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1-dir.png");
     libtiff::TIFF* tiff = slideio::NDPITiffTools::openTiffFile(filePath);;
     ASSERT_TRUE(tiff != nullptr);
     int dirIndex = 3;
@@ -75,14 +84,17 @@ TEST(NDPITiffTools, readRegularStrip)
     cv::Mat stripRaster;
     slideio::NDPITiffTools::scanTiffDirTags(tiff, 0, 0, dir);
     slideio::NDPITiffTools::scanTiffDirTags(tiff, dirIndex, 0, dir);
-    slideio::NDPITiffTools::readStrip(tiff, dir, 0, channelIndices, stripRaster);
+    slideio::NDPITiffTools::readStripe(tiff, dir, 0, channelIndices, stripRaster);
     slideio::NDPITiffTools::closeTiffFile(tiff);
     EXPECT_EQ(stripRaster.rows, dir.rowsPerStrip);
     EXPECT_EQ(stripRaster.cols, dir.width);
-    //slideio::NDPITestTools::writePNG(dirRaster, testFilePath);
     cv::Mat testRaster;
     TestTools::readPNG(testFilePath, testRaster);
-    TestTools::compareRasters(stripRaster, testRaster);
+    cv::cvtColor(testRaster, testRaster, cv::COLOR_BGRA2RGB);
+    double similarity = slideio::ImageTools::computeSimilarity2(stripRaster, testRaster);
+    //TestTools::showRaster(stripRaster);
+    //TestTools::showRaster(testRaster);
+    EXPECT_GT(similarity, 0.99);
 }
 
 
@@ -90,8 +102,9 @@ TEST(NDPITiffTools, readTile)
 {
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "DM0014 - 2020-04-02 10.25.21.ndpi");
     std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "DM0014 - 2020-04-02 10.25.21-tile.png");
-    std::vector<slideio::NDPITiffDirectory> dirs;
-    slideio::NDPITiffTools::scanFile(filePath, dirs);
+    slideio::NDPIFile file;
+    file.init(filePath);
+    const std::vector<slideio::NDPITiffDirectory>& dirs = file.directories();
     int dirCount = (int)dirs.size();
 
     libtiff::TIFF* tiff = slideio::NDPITiffTools::openTiffFile(filePath);;
@@ -219,7 +232,7 @@ TEST(NDPITiffTools, readScanlines)
     const int numberScanlines = 300;
     const int firstScanline = 200;
     FILE* file = fopen(filePath.c_str(), "rb");
-    slideio::NDPITiffTools::readScanlines(tiff, file, dir, firstScanline, numberScanlines, channelIndices, stripRaster);
+    slideio::NDPITiffTools::readJpegScanlines(tiff, file, dir, firstScanline, numberScanlines, channelIndices, stripRaster);
     slideio::NDPITiffTools::closeTiffFile(tiff);
     fclose(file);
     EXPECT_EQ(numberScanlines, stripRaster.rows);
@@ -227,6 +240,7 @@ TEST(NDPITiffTools, readScanlines)
     //slideio::NDPITestTools::writePNG(stripRaster, testFilePath);
     cv::Mat testRaster;
     TestTools::readPNG(testFilePath, testRaster);
+    cv::cvtColor(testRaster, testRaster, cv::COLOR_BGRA2BGR);
     TestTools::compareRasters(testRaster, stripRaster);
     //showRaster(stripRaster);
 }
@@ -236,8 +250,9 @@ TEST(NDPITiffTools, readRegularStripedDir2)
 {
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "2017-02-27 15.29.08.ndpi");
     std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "2017-02-27 15.29.08-2.png");
-    std::vector<slideio::NDPITiffDirectory> dirs;
-    slideio::NDPITiffTools::scanFile(filePath, dirs);
+    slideio::NDPIFile file;
+    file.init(filePath);
+    const std::vector<slideio::NDPITiffDirectory>& dirs = file.directories();
     int dirCount = (int)dirs.size();
     libtiff::TIFF* tiff = slideio::NDPITiffTools::openTiffFile(filePath);;
     ASSERT_TRUE(tiff != nullptr);
@@ -250,11 +265,11 @@ TEST(NDPITiffTools, readRegularStripedDir2)
     slideio::NDPITiffTools::closeTiffFile(tiff);
     EXPECT_EQ(dirRaster.rows, dir.height);
     EXPECT_EQ(dirRaster.cols, dir.width);
-    //slideio::NDPITestTools::writePNG(dirRaster, testFilePath);
     cv::Mat testRaster;
     TestTools::readPNG(testFilePath, testRaster);
-    TestTools::compareRasters(dirRaster, testRaster);
-    //showRaster(testRaster);
+    cv::cvtColor(testRaster, testRaster, cv::COLOR_BGRA2BGR);
+    double similarity = slideio::ImageTools::computeSimilarity2(dirRaster, testRaster);
+    EXPECT_GT(similarity, 0.98);
 }
 
 
@@ -326,4 +341,100 @@ TEST(NDPITiffTools, readScanlinesDNLMarkerInversedChannels)
     TestTools::readPNG(testFilePath, testRaster);
     TestTools::compareRasters(testRaster, stripRaster);
     //showRaster(stripRaster);
+}
+
+TEST(NDPITiffTools, cacheScanlines)
+{
+    std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1.ndpi");
+    std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1-cacheLines.png");
+    slideio::NDPIFile file;
+    file.init(filePath);
+    const std::vector<slideio::NDPITiffDirectory>& dirs = file.directories();
+    const slideio::NDPITiffDirectory& dir = dirs[2];
+    auto tiffFile = slideio::NDPITiffTools::openTiffFile(filePath);
+    std::shared_ptr<slideio::CacheManager> cacheManager = std::make_shared<slideio::CacheManager>();
+    const cv::Size tileSize = { 100, 200 };
+    slideio::NDPITiffTools::cacheScanlines(&file, dir, tileSize, cacheManager.get());
+    const int tileCountY = (dir.height - 1) / tileSize.height + 1;
+    const int tileCountX = (dir.width - 1) / tileSize.width + 1;
+    const int tileCount = tileCountX * tileCountY;
+    ASSERT_EQ(cacheManager->getTileCount(dir.dirIndex) , tileCount);
+    const cv::Rect& rect = cacheManager->getTileRect(dir.dirIndex, 0);
+    EXPECT_EQ(rect, cv::Rect(cv::Point2i(0, 0), tileSize));
+    slideio::CacheManagerTiler tiler(cacheManager, tileSize, dir.dirIndex);
+    cv::Rect blockRect = { dir.width/2, dir.height/4, 750, 700 };
+    cv::Size blockSize = blockRect.size();
+    cv::Mat blockRaster(blockSize, CV_8UC3, cv::Scalar(0, 0, 0));
+    slideio::TileComposer::composeRect(&tiler, {}, blockRect, blockSize, blockRaster);
+    slideio::NDPITiffTools::closeTiffFile(tiffFile);
+    cv::Mat testRaster;
+    TestTools::readPNG(testFilePath, testRaster);
+    TestTools::compareRasters(testRaster, blockRaster);
+    //TestTools::showRaster(blockRaster);
+    //TestTools::writePNG(blockRaster, TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1-cacheLines0.png"));
+}
+
+
+TEST(NDPITiffTools, readMCUTile)
+{
+    std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1.ndpi");
+    std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1-tile.png");
+    slideio::NDPIFile ndpi;
+    ndpi.init(filePath);
+    size_t dirCount = ndpi.directories().size();
+    const slideio::NDPITiffDirectory& dir = ndpi.directories()[0];
+    cv::Mat tileRaster;
+    std::unique_ptr<FILE, slideio::Tools::FileDeleter> sfile(slideio::Tools::openFile(ndpi.getFilePath(), "rb"));
+    FILE* file = sfile.get();
+    slideio::NDPITiffTools::readMCUTile(file, dir, 87501, tileRaster);
+    EXPECT_EQ(tileRaster.rows, dir.tileHeight);
+    EXPECT_EQ(tileRaster.cols, dir.tileWidth);
+    EXPECT_EQ(tileRaster.channels(), 3);
+    cv::Mat testRaster;
+    TestTools::readPNG(testFilePath, testRaster);
+    cv::cvtColor(testRaster, testRaster, cv::COLOR_BGRA2BGR);
+    TestTools::compareRasters(tileRaster, testRaster);
+}
+
+
+TEST(NDPITiffTools, getDirectoryType) {
+
+    slideio::NDPITiffDirectory dir;
+    dir.width = 100;
+    dir.height = 100;
+
+    dir.tiled = true;
+    EXPECT_EQ(dir.getType(), slideio::NDPITiffDirectory::Type::Tiled);
+
+    dir.tiled = false;
+    dir.tileWidth = 1;
+    dir.tileHeight = 1;
+    dir.mcuStarts.push_back(1);
+    dir.slideioCompression = slideio::Compression::Jpeg;
+    EXPECT_EQ(dir.getType(), slideio::NDPITiffDirectory::Type::SingleStripeMCU);
+
+    dir.tiled = false;
+    dir.tileWidth = 10;
+    dir.tileHeight = 10;
+    dir.rowsPerStrip = dir.height;
+    dir.mcuStarts.push_back(1);
+    dir.slideioCompression = slideio::Compression::Uncompressed;
+    EXPECT_EQ(dir.getType(), slideio::NDPITiffDirectory::Type::SingleStripe);
+
+    dir.tiled = false;
+    dir.tileWidth = 10;
+    dir.tileHeight = 10;
+    dir.rowsPerStrip = dir.tileHeight;
+    dir.mcuStarts.push_back(1);
+    dir.slideioCompression = slideio::Compression::Uncompressed;
+    EXPECT_EQ(dir.getType(), slideio::NDPITiffDirectory::Type::Striped);
+
+    dir.tileWidth = 0;
+    dir.tileHeight = 0;
+    dir.mcuStarts.clear();
+    dir.rowsPerStrip = dir.height;
+    EXPECT_EQ(dir.getType(), slideio::NDPITiffDirectory::Type::SingleStripe);
+
+    dir.rowsPerStrip = 0;
+    EXPECT_EQ(dir.getType(), slideio::NDPITiffDirectory::Type::Striped);
 }

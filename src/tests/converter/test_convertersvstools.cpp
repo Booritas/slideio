@@ -8,7 +8,7 @@
 #include "slideio/base/exceptions.hpp"
 #include "slideio/converter/converter.hpp"
 #include "slideio/converter/converterparameters.hpp"
-#include "slideio/imagetools/tempfile.hpp"
+#include "slideio/core/tools/tempfile.hpp"
 #include "slideio/slideio/slideio.hpp"
 
 

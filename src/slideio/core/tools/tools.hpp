@@ -4,6 +4,13 @@
 #ifndef OPENCV_slideio_tools_HPP
 #define OPENCV_slideio_tools_HPP
 
+#if defined(WIN32)
+#elif __APPLE__
+#else
+#include <stdarg.h>
+#include <stddef.h>
+#include <setjmp.h>
+#endif
 #include "slideio/core/slideio_core_def.hpp"
 #include <vector>
 #include <string>
@@ -17,6 +24,13 @@ namespace slideio
     class SLIDEIO_CORE_EXPORTS Tools
     {
     public:
+        struct FileDeleter {
+            void operator()(std::FILE* file) const {
+                if (file) {
+                    std::fclose(file);
+                }
+            }
+        };
         static bool matchPattern(const std::string& path, const std::string& pattern);
         static std::vector<int> completeChannelList(const std::vector<int>& orgChannelList, int numChannels)
         {
@@ -87,6 +101,23 @@ namespace slideio
         static std::string fromWstring(const std::wstring& wstring);
         static void throwIfPathNotExist(const std::string& path, const std::string label);
         static std::list<std::string> findFilesWithExtension(const std::string& directory, const std::string& extension);
+        static void extractChannels(const cv::Mat& sourceRaster, const std::vector<int>& channels, cv::OutputArray output);
+        static FILE* openFile(const std::string& filePath, const char* mode);
+        // Function to detect if the system is little endian
+        static bool isLittleEndian() {
+            uint16_t number = 0x1;
+            char* numPtr = (char*)&number;
+            return (numPtr[0] == 1);
+        }
+        // Function to convert from big endian to little endian for 16 bit short
+        static uint16_t bigToLittleEndian16(uint16_t bigEndianValue) {
+            return ((bigEndianValue >> 8) & 0xff) |
+                ((bigEndianValue << 8) & 0xff00);
+        }
+        static uint64_t getFilePos(FILE* file);
+        static int setFilePos(FILE* file, uint64_t pos, int origin);
+        static uint64_t getFileSize(FILE* file);
+
     };
 }
 #endif
