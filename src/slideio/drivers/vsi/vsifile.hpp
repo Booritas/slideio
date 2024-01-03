@@ -58,7 +58,7 @@ namespace slideio
             int m_numChannels = 0;
             int m_numSlices = 0;
             std::string m_filePath;
-            boost::json::value m_metadata;
+            boost::json::object m_metadata;
             std::vector<TiffDirectory> m_directories;
         };
     }

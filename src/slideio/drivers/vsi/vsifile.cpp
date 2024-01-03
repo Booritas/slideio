@@ -64,34 +64,50 @@ boost::json::object findObject(boost::json::object& parent, const std::string& p
     return current;
 }
 
+boost::json::value findObject(boost::json::object& parent, const std::vector<int>& path)
+{
+    boost::json::value current = parent;
+    boost::json::value empty(nullptr);
+
+    for (const int tag: path)
+    {
+        if (!current.is_object()) {
+            return empty;
+        }
+        auto currentParent = current.as_object();
+        std::string token = std::to_string(tag);
+        auto it = currentParent.find(token);
+        if (it == currentParent.end()) {
+            return empty;
+        }
+        current = it->value();
+    }
+    return current;
+}
+
 void vsi::VSIFile::checkExternalFilePresence()
 {
+    const std::vector<int> pathToImages = { Tag::COLLECTION_VOLUME, Tag::MULTIDIM_IMAGE_VOLUME };
+    const std::vector<int> pathToExternalFiles = { Tag::IMAGE_FRAME_VOLUME, Tag::EXTERNAL_FILE_PROPERTIES, Tag::HAS_EXTERNAL_FILE };
+    auto value = findObject(m_metadata, pathToImages);
     SLIDEIO_LOG(INFO) << "VSI driver: checking external file presence";
-    std::error_code error;
-    boost::json::value* ptrImages = m_metadata.find_pointer("/2000/2001", error);
-    if(ptrImages) {
-        auto& images = *ptrImages;// m_metadata.at_pointer("/2000/2001");
-        if(images.is_array()) {
-            boost::json::array imageArray = images.as_array();
-            for (const auto& image : imageArray) {
-                boost::json::object imageObject = image.as_object();
-                boost::json::object externalFile = findObject(imageObject, "2002/2018/20005");
-                if(externalFile.empty()) {
-                    continue;
-                }
-                const auto itValue = externalFile.find("value");
-                if(itValue == externalFile.end()) {
-                    continue;
+    if(value.is_array()) {
+        auto volumes = value.as_array();
+        for (auto& volume: volumes) {
+            boost::json::object imageObject = volume.as_object();
+            boost::json::value externalFile = findObject(imageObject, pathToExternalFiles);// "2002/2018/20005");
+            if(externalFile.is_object()) {
+                auto externalFileObject = externalFile.as_object();
+                const auto itValue = externalFileObject.find("value");
+                if (itValue == externalFileObject.end()) {
+                     continue;
                 }
                 m_hasExternalFiles = itValue->value().as_string() == std::string("1");
-                SLIDEIO_LOG(INFO) << "VSI driver: external files are " << (m_hasExternalFiles ? "present" : "absent");
-                if(m_hasExternalFiles)
-                    break;
             }
+            SLIDEIO_LOG(INFO) << "VSI driver: external files are " << (m_hasExternalFiles ? "present" : "absent");
+            if (m_hasExternalFiles)
+                break;
         }
-    }
-    else {
-        SLIDEIO_LOG(INFO) << "VSI driver: metadata does not contain external file information";
     }
 }
 
@@ -118,6 +134,7 @@ void vsi::VSIFile::readVolumeInfo()
     boost::json::object root;
     readMetadata(vsiStream, root);
     m_metadata = root;
+    bool empty = m_metadata.empty();
     {
         std::ofstream ofs("d:\\Temp\\metadata.json");
         ofs << boost::json::serialize(m_metadata);
@@ -208,7 +225,7 @@ bool vsi::VSIFile::readMetadata(VSIStream& vsi, boost::json::object& parentObjec
         const bool extendedField = ((tagHeader.fieldType & 0x10000000) >> 28) == 1;
         const bool inlineData = ((tagHeader.fieldType & 0x40000000) >> 30) == 1;
 
-        tagInfo.tag = static_cast<Tag>(tagHeader.tag);
+        tagInfo.tag = tagHeader.tag;
         tagInfo.fieldType = tagHeader.fieldType;
         if(extendedField) {
             tagInfo.extendedType = static_cast<ExtendedType>(tagHeader.fieldType & 0xffffff);
@@ -229,9 +246,10 @@ bool vsi::VSIFile::readMetadata(VSIStream& vsi, boost::json::object& parentObjec
 
         tagInfo.dataSize = tagHeader.dataSize;
 
-        std::string tagName = VSITools::getTagName(tagInfo);
+        std::string tagName = VSITools::getTagName(tagInfo, parentObject);
         std::string tagKey = std::to_string(static_cast<int>(tagInfo.tag));
         boost::json::object tagObject;
+        tagObject["tag"] = static_cast<int>(tagInfo.tag);
         tagObject["name"] = tagName;
         tagObject["fieldType"] = tagHeader.fieldType;
         tagObject["valueType"] = static_cast<int>(tagInfo.valueType);

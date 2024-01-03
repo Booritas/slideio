@@ -63,7 +63,7 @@ vsi::StackType vsi::VSITools::intToStackType(int value) {
     }
 }
 
-std::string vsi::VSITools::getVolumeName(Tag tag)
+std::string vsi::VSITools::getVolumeName(int tag)
 {
     switch (tag)
     {
@@ -90,7 +90,106 @@ std::string vsi::VSITools::getVolumeName(Tag tag)
 
 }
 
-std::string vsi::VSITools::getTagName(const TagInfo& tagInfo)
+bool vsi::VSITools::isStackProps(const boost::json::object& parentObject) {
+    bool ret = false;
+    if (parentObject.contains("tag")) {
+        int tag = static_cast<int>(parentObject.at("tag").as_int64());
+        if (tag == static_cast<int>(Tag::MULTIDIM_STACK_PROPERTIES)) {
+            ret = true;
+        }
+    }
+    return ret;
+}
+
+bool vsi::VSITools::isDimensionProps(const boost::json::object& parentObject) {
+	bool ret = false;
+	if (parentObject.contains("tag")) {
+	    int tag = static_cast<int>(parentObject.at("tag").as_int64());
+		if (tag == static_cast<int>(Tag::DIMENSION_DESCRIPTION_VOLUME)) {
+		    ret = true;
+		}
+	}
+	return ret;
+}
+
+std::string vsi::VSITools::getDimensionPropertyName(int tag) {
+    switch (tag) {
+    case Tag::Z_START:
+        return "Z stack start";
+    case Tag::Z_INCREMENT:
+        return "Z stack increment";
+    case Tag::Z_VALUE:
+        return "Z value";
+    case Tag::TIME_START:
+        return "Time start";
+    case Tag::TIME_INCREMENT:
+        return "Time increment";
+    case Tag::TIME_VALUE:
+        return "Time value";
+    case Tag::LAMBDA_START:
+        return "Lambda start";
+    case Tag::LAMBDA_INCREMENT:
+        return "Lambda increment";
+    case Tag::LAMBDA_VALUE:
+        return "Lambda value";
+    case Tag::DIMENSION_NAME:
+        return "Dimension name";
+    case Tag::DIMENSION_MEANING:
+        return "Dimension description";
+    case Tag::DIMENSION_START_ID:
+        return "Dimension start ID";
+    case Tag::DIMENSION_INCREMENT_ID:
+        return "Dimension increment ID";
+    case Tag::DIMENSION_VALUE_ID:
+        return "Dimension value ID";
+    }
+    return "Unknown dimension property";
+}
+std::string vsi::VSITools::getStackPropertyName(int tag) {
+
+    switch (tag) {
+    case Tag::DISPLAY_LIMITS:
+        return "Display limits";
+    case Tag::STACK_DISPLAY_LUT:
+        return "Display LUT";
+    case Tag::GAMMA_CORRECTION:
+        return "Gamma correction";
+    case Tag::FRAME_ORIGIN:
+        return "Frame origin";
+    case Tag::FRAME_SCALE:
+        return "Frame scale";
+    case Tag::DISPLAY_COLOR:
+        return "Display color";
+    case Tag::CREATION_TIME:
+        return "Creation time";
+    case Tag::RWC_FRAME_ORIGIN:
+        return "RWC frame origin";
+    case Tag::RWC_FRAME_SCALE:
+        return "RWC frame scale";
+    case Tag::RWC_FRAME_UNIT:
+        return "RWC frame unit";
+    case vsi::Tag::STACK_NAME:
+        return "Stack name";
+    case Tag::CHANNEL_DIM:
+        return "Channel dimension";
+    case Tag::STACK_TYPE:
+        return "Stack type";
+    case Tag::LIVE_OVERFLOW:
+        return "Live overflow";
+    case Tag::CHANNEL_WAVELENGTH:
+        return "Channel wavelength";
+    case Tag::IS_TRANSMISSION:
+        return "Transmission";
+    case Tag::CONTRAST_BRIGHTNESS:
+        return "Contrast brightness";
+    case Tag::ACQUISITION_PROPERTIES:
+        return "Acquisition properties";
+    case Tag::GRADIENT_LUT:
+        return "Gradient LUT";
+    }
+    return "Unknown stack property";
+}
+std::string vsi::VSITools::getTagName(const TagInfo& tagInfo, const  boost::json::object& parentObject)
 {
     if(tagInfo.extendedType == ExtendedType::PROPERTY_SET_VOLUME
         || tagInfo.extendedType == ExtendedType::NEW_MDIM_VOLUME_HEADER
@@ -125,6 +224,14 @@ std::string vsi::VSITools::getTagName(const TagInfo& tagInfo)
         case vsi::Tag::EXTERNAL_FILE_PROPERTIES:
             return "External file properties";
         }
+    }
+
+    if (isStackProps(parentObject)) {
+        return getStackPropertyName(tagInfo.tag);
+    }
+
+    if(isDimensionProps(parentObject)) {
+        return getDimensionPropertyName(tagInfo.tag);
     }
 
     switch (tagInfo.tag) {
@@ -277,7 +384,7 @@ std::string vsi::VSITools::getTagName(const TagInfo& tagInfo)
     case vsi::Tag::RWC_FRAME_UNIT:
         return "Calibration units";
     case vsi::Tag::STACK_NAME:
-        return "Layer";
+        return "Sample flags";
     case vsi::Tag::CHANNEL_DIM:
         return "Channel dimension";
     case vsi::Tag::STACK_TYPE:
@@ -553,7 +660,7 @@ bool vsi::VSITools::isArray(const TagInfo& tagInfo)
     if (tagInfo.tag == Tag::MULTIDIM_IMAGE_VOLUME) {
         return true;
     }
-    else if(tagInfo.tag == (Tag)0 || tagInfo.tag == (Tag)1 || tagInfo.tag == Tag::LAYER_INFO_PROPERTIES) {
+    else if(tagInfo.tag == 0 || tagInfo.tag == 1 || tagInfo.tag == Tag::LAYER_INFO_PROPERTIES) {
         return true;
     }
     return false;
@@ -754,3 +861,4 @@ std::string vsi::VSITools::extractTagValue(vsi::VSIStream& vsi, const vsi::TagIn
     }
     return value;
 }
+
