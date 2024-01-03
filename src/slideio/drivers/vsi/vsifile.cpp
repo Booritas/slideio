@@ -39,6 +39,9 @@ void vsi::VSIFile::read()
     if (m_hasExternalFiles) {
         readExternalFiles();
     }
+    for(auto& directory : m_directories) {
+
+    }
 }
 
 boost::json::object findObject(boost::json::object& parent, const std::string& path)

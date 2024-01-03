@@ -1,6 +1,8 @@
 ﻿#include <gtest/gtest.h>
 #include "tests/testlib/testtools.hpp"
 #include <string>
+#include <opencv2/imgproc.hpp>
+
 #include "slideio/drivers/vsi/vsiimagedriver.hpp"
 #include "slideio/drivers/vsi/vsiscene.hpp"
 #include "slideio/drivers/vsi/vsislide.hpp"
@@ -87,3 +89,74 @@ TEST(VSIImageDriver, VSIFileOpenWithOutExternalFiles)
     EXPECT_EQ(0, vsiFile.getNumExternalFiles());
 }
 
+TEST(VSIImageDriver, readVSISceneStripedDirUncompressed)
+{
+    std::string filePath = TestTools::getFullTestImagePath("vsi",
+        "Zenodo/Q6VM49JF/Figure-1-ultrasound-raw-data"
+        "/SPECTRUM_#201_2016-06-14_Jiangtao Liu/1286FL9057GDF8RGDX257R2GLHZ.vsi");
+    std::string testFilePath = TestTools::getFullTestImagePath("vsi",
+        "test-output/1286FL9057GDF8RGDX257R2GLHZ.png");
+    slideio::VSIImageDriver driver;
+    std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    const int numScenes = slide->getNumScenes();
+    ASSERT_EQ(1, numScenes);
+    std::shared_ptr<CVScene> scene = slide->getScene(0);
+    const auto rect = scene->getRect();
+    cv::Mat blockRaster;
+    scene->readBlock(rect, blockRaster);
+    cv::Mat testRaster;
+    TestTools::readPNG(testFilePath, testRaster);
+    TestTools::compareRasters(testRaster, blockRaster);
+    //TestTools::showRasters(testRaster, blockRaster);
+}
+
+TEST(VSIImageDriver, readVSISceneStripedDirUncompressedRoi)
+{
+    std::string filePath = TestTools::getFullTestImagePath("vsi",
+        "Zenodo/Q6VM49JF/Figure-1-ultrasound-raw-data"
+        "/SPECTRUM_#201_2016-06-14_Jiangtao Liu/1286FL9057GDF8RGDX257R2GLHZ.vsi");
+    std::string testFilePath = TestTools::getFullTestImagePath("vsi",
+        "test-output/1286FL9057GDF8RGDX257R2GLHZ.png");
+    slideio::VSIImageDriver driver;
+    std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    const int numScenes = slide->getNumScenes();
+    ASSERT_EQ(1, numScenes);
+    std::shared_ptr<CVScene> scene = slide->getScene(0);
+    const auto rect = scene->getRect();
+    cv::Rect roi(rect.x + rect.width/4, rect.y + rect.height/4, rect.width/2, rect.height/2);
+    cv::Mat blockRaster;
+    scene->readBlock(roi, blockRaster);
+    cv::Mat testRaster;
+    TestTools::readPNG(testFilePath, testRaster);
+    cv::Mat testRoi(testRaster, roi);
+    TestTools::compareRasters(testRoi, blockRaster);
+    //TestTools::showRasters(testRoi, blockRaster);
+}
+
+TEST(VSIImageDriver, readVSISceneStripedDirUncompressedRoiResampled)
+{
+    std::string filePath = TestTools::getFullTestImagePath("vsi",
+        "Zenodo/Q6VM49JF/Figure-1-ultrasound-raw-data"
+        "/SPECTRUM_#201_2016-06-14_Jiangtao Liu/1286FL9057GDF8RGDX257R2GLHZ.vsi");
+    std::string testFilePath = TestTools::getFullTestImagePath("vsi",
+        "test-output/1286FL9057GDF8RGDX257R2GLHZ.png");
+    slideio::VSIImageDriver driver;
+    std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    const int numScenes = slide->getNumScenes();
+    ASSERT_EQ(1, numScenes);
+    std::shared_ptr<CVScene> scene = slide->getScene(0);
+    const auto rect = scene->getRect();
+    cv::Rect roi(rect.x + rect.width / 4, rect.y + rect.height / 4, rect.width / 2, rect.height / 2);
+    cv::Size blockSize(std::lround(roi.width*0.8), std::lround(roi.height*0.8));
+    cv::Mat blockRaster;
+    scene->readResampledBlock(roi, blockSize, blockRaster);
+    cv::Mat testRaster;
+    TestTools::readPNG(testFilePath, testRaster);
+    cv::Mat testRoi(testRaster, roi);
+    cv::resize(testRoi, testRoi, blockSize);
+    TestTools::compareRasters(testRoi, blockRaster);
+    //TestTools::showRasters(testRoi, blockRaster);
+}

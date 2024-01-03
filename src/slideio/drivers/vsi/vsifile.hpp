@@ -8,6 +8,7 @@
 #include <boost/json.hpp>
 #include "vsitools.hpp"
 #include "slideio/drivers/vsi/vsi_api_def.hpp"
+#include "slideio/imagetools/tiffkeeper.hpp"
 #include "slideio/imagetools/tifftools.hpp"
 
 #if defined(_MSC_VER)

@@ -5,6 +5,7 @@
 #include "vsifile.hpp"
 #include "vsiscene.hpp"
 #include "slideio/drivers/vsi/vsi_api_def.hpp"
+#include "slideio/imagetools/tiffkeeper.hpp"
 
 
 #if defined(_MSC_VER)
@@ -30,6 +31,7 @@ namespace slideio
         void init();
     protected:
         int m_directoryIndex;
+        TIFFKeeper m_tiff;
     };
 
 }

@@ -16,7 +16,7 @@
 
 using namespace slideio;
 
-static slideio::DataType dataTypeFromTIFFDataType(libtiff::TIFFDataType dt)
+static DataType dataTypeFromTIFFDataType(libtiff::TIFFDataType dt)
 {
     switch(dt)
     {
@@ -50,7 +50,7 @@ static slideio::DataType dataTypeFromTIFFDataType(libtiff::TIFFDataType dt)
     }
 }
 
-libtiff::TIFFDataType TIFFDataTypeFromDataType(slideio::DataType dt)
+libtiff::TIFFDataType TIFFDataTypeFromDataType(DataType dt)
 {
     switch (dt)
     {
@@ -75,7 +75,7 @@ libtiff::TIFFDataType TIFFDataTypeFromDataType(slideio::DataType dt)
     }
 }
 
-static slideio::Compression compressTiffToSlideio(int tiffCompression)
+static Compression compressTiffToSlideio(int tiffCompression)
 {
     Compression compression = Compression::Unknown;
     switch(tiffCompression)
@@ -158,79 +158,79 @@ static slideio::Compression compressTiffToSlideio(int tiffCompression)
     return compression;
 }
 
-int compressSlideioToTiff(slideio::Compression compression)
+int compressSlideioToTiff(Compression compression)
 {
     int tiffCompression = -1;
     switch (compression)
     {
-    case slideio::Compression::Uncompressed:
+    case Compression::Uncompressed:
         tiffCompression = 0x1;
         break;
-    case slideio::Compression::HuffmanRL:
+    case Compression::HuffmanRL:
         tiffCompression = 0x2;
         break;
-    case slideio::Compression::CCITT_T4:
+    case Compression::CCITT_T4:
         tiffCompression = 0x3;
         break;
-    case slideio::Compression::CCITT_T6:
+    case Compression::CCITT_T6:
         tiffCompression = 0x4;
         break;
-    case slideio::Compression::LZW:
+    case Compression::LZW:
         tiffCompression = 0x5;
         break;
-    case slideio::Compression::JpegOld:
+    case Compression::JpegOld:
         tiffCompression = 0x6;
         break;
-    case slideio::Compression::Jpeg:
+    case Compression::Jpeg:
         tiffCompression = 0x7;
         break;
-    case slideio::Compression::Zlib:
+    case Compression::Zlib:
         tiffCompression = 0x8;
         break;
-    case slideio::Compression::JBIG85:
+    case Compression::JBIG85:
         tiffCompression = 0x9;
         break;
-    case slideio::Compression::JBIG43:
+    case Compression::JBIG43:
         tiffCompression = 0xa;
         break;
-    case slideio::Compression::NextRLE:
+    case Compression::NextRLE:
         tiffCompression = 0x7ffe;
         break;
-    case slideio::Compression::PackBits:
+    case Compression::PackBits:
         tiffCompression = 0x8005;
         break;
-    case slideio::Compression::ThunderScanRLE:
+    case Compression::ThunderScanRLE:
         tiffCompression = 0x8029;
         break;
-    case slideio::Compression::RasterPadding:
+    case Compression::RasterPadding:
         tiffCompression = 0x807f;
         break;
-    case slideio::Compression::RLE_LW:
+    case Compression::RLE_LW:
         tiffCompression = 0x8080;
         break;
-    case slideio::Compression::RLE_HC:
+    case Compression::RLE_HC:
         tiffCompression = 0x8081;
         break;
-    case slideio::Compression::RLE_BL:
+    case Compression::RLE_BL:
         tiffCompression = 0x8082;
         break;
-    case slideio::Compression::PKZIP:
+    case Compression::PKZIP:
         tiffCompression = 0x80b2;
         break;
-    case slideio::Compression::KodakDCS:
+    case Compression::KodakDCS:
         tiffCompression = 0x80b3;
         break;
-    case slideio::Compression::JBIG:
+    case Compression::JBIG:
         tiffCompression = 0x8765;
         break;
-    case slideio::Compression::Jpeg2000:
+    case Compression::Jpeg2000:
         //tiffCompression = 0x8798;
         tiffCompression = 33005;
         break;
-    case slideio::Compression::NikonNEF:
+    case Compression::NikonNEF:
         tiffCompression = 0x8799;
         break;
-    case slideio::Compression::JBIG2:
+    case Compression::JBIG2:
         tiffCompression = 0x879b;
         break;
     default:
@@ -269,9 +269,9 @@ int compressSlideioToTiff(slideio::Compression compression)
 //    return os;
 //}
 //
-//std::ostream& operator<<(std::ostream& os, const std::vector<slideio::TiffDirectory>& dirs) {
+//std::ostream& operator<<(std::ostream& os, const std::vector<TiffDirectory>& dirs) {
 //    os << "---Tiff directories. Size:" << dirs.size() << std::endl;
-//    std::vector<slideio::TiffDirectory>::const_iterator iDir;
+//    std::vector<TiffDirectory>::const_iterator iDir;
 //    for (iDir = dirs.begin(); iDir != dirs.end(); ++iDir) {
 //        auto& dir = *iDir;
 //        os << dir;
@@ -279,7 +279,7 @@ int compressSlideioToTiff(slideio::Compression compression)
 //    return os;
 //}
 
-libtiff::TIFF* slideio::TiffTools::openTiffFile(const std::string& path, bool readOnly)
+libtiff::TIFF* TiffTools::openTiffFile(const std::string& path, bool readOnly)
 {
     namespace fs = boost::filesystem;
     libtiff::TIFF* hfile(nullptr);
@@ -305,19 +305,19 @@ libtiff::TIFF* slideio::TiffTools::openTiffFile(const std::string& path, bool re
     return hfile;
 }
 
-void slideio::TiffTools::closeTiffFile(libtiff::TIFF* file)
+void TiffTools::closeTiffFile(libtiff::TIFF* file)
 {
     if(file)
         libtiff::TIFFClose(file);
 }
 
 
-static slideio::DataType retrieveTiffDataType(libtiff::TIFF* tiff)
+static DataType retrieveTiffDataType(libtiff::TIFF* tiff)
 {
     int bitsPerSample = 0;
     int sampleFormat = 0;
 
-    slideio::DataType dataType = slideio::DataType::DT_Unknown;
+    DataType dataType = DataType::DT_Unknown;
     if (!libtiff::TIFFGetField(tiff, TIFFTAG_BITSPERSAMPLE, &bitsPerSample)) {
         RAISE_RUNTIME_ERROR << "Cannot retrieve bits per sample from tiff image";
     }
@@ -327,10 +327,10 @@ static slideio::DataType retrieveTiffDataType(libtiff::TIFF* tiff)
 
     if (bitsPerSample == 8) {
         if(sampleFormat == SAMPLEFORMAT_UINT) {
-            dataType = slideio::DataType::DT_Byte;
+            dataType = DataType::DT_Byte;
         }
         else if(sampleFormat == SAMPLEFORMAT_INT) {
-            dataType = slideio::DataType::DT_Int8;
+            dataType = DataType::DT_Int8;
         }
         else {
             RAISE_RUNTIME_ERROR << "Unsupported sample format for 8bit images: " << sampleFormat;
@@ -338,13 +338,13 @@ static slideio::DataType retrieveTiffDataType(libtiff::TIFF* tiff)
     }
     else if (bitsPerSample == 16) {
         if(sampleFormat == SAMPLEFORMAT_UINT) {
-            dataType = slideio::DataType::DT_UInt16;
+            dataType = DataType::DT_UInt16;
         }
         else if (sampleFormat == SAMPLEFORMAT_INT) {
-            dataType = slideio::DataType::DT_Int16;
+            dataType = DataType::DT_Int16;
         }
         else if (sampleFormat == SAMPLEFORMAT_IEEEFP) {
-            dataType = slideio::DataType::DT_Float16;
+            dataType = DataType::DT_Float16;
         }
         else {
             RAISE_RUNTIME_ERROR << "Unsupported sample format for 16bit images: " << sampleFormat;
@@ -352,10 +352,10 @@ static slideio::DataType retrieveTiffDataType(libtiff::TIFF* tiff)
     }
     else if (bitsPerSample == 32) {
         if (sampleFormat == SAMPLEFORMAT_INT) {
-            dataType = slideio::DataType::DT_Int32;
+            dataType = DataType::DT_Int32;
         }
         else if (sampleFormat == SAMPLEFORMAT_IEEEFP) {
-            dataType = slideio::DataType::DT_Float32;
+            dataType = DataType::DT_Float32;
         }
         else {
             RAISE_RUNTIME_ERROR << "Unsupported sample format for 32bit images: " << sampleFormat;
@@ -363,7 +363,7 @@ static slideio::DataType retrieveTiffDataType(libtiff::TIFF* tiff)
     }
     else if (bitsPerSample == 64) {
         if (sampleFormat == SAMPLEFORMAT_IEEEFP) {
-            dataType = slideio::DataType::DT_Float64;
+            dataType = DataType::DT_Float64;
         }
         else {
             RAISE_RUNTIME_ERROR << "Unsupported sample format for 64bit images: " << sampleFormat;
@@ -375,42 +375,42 @@ static slideio::DataType retrieveTiffDataType(libtiff::TIFF* tiff)
     return dataType;
 }
 
-static void setTiffDataType(libtiff::TIFF* tiff, slideio::DataType dataType)
+static void setTiffDataType(libtiff::TIFF* tiff, DataType dataType)
 {
     int sampleFormat = 0;
     int bitsPerSample = 0;
 
     switch (dataType)
     {
-    case slideio::DataType::DT_Byte:
+    case DataType::DT_Byte:
         sampleFormat = SAMPLEFORMAT_UINT;
         bitsPerSample = 8;
         break;
-    case slideio::DataType::DT_Int8:
+    case DataType::DT_Int8:
         sampleFormat = SAMPLEFORMAT_INT;
         bitsPerSample = 8;
         break;
-    case slideio::DataType::DT_UInt16:
+    case DataType::DT_UInt16:
         sampleFormat = SAMPLEFORMAT_UINT;
         bitsPerSample = 16;
         break;
-    case slideio::DataType::DT_Int16:
+    case DataType::DT_Int16:
         sampleFormat = SAMPLEFORMAT_INT;
         bitsPerSample = 16;
         break;
-    case slideio::DataType::DT_Float16:
+    case DataType::DT_Float16:
         sampleFormat = SAMPLEFORMAT_IEEEFP;
         bitsPerSample = 16;
         break;
-    case slideio::DataType::DT_Int32:
+    case DataType::DT_Int32:
         sampleFormat = SAMPLEFORMAT_INT;
         bitsPerSample = 32;
         break;
-    case slideio::DataType::DT_Float32:
+    case DataType::DT_Float32:
         sampleFormat = SAMPLEFORMAT_IEEEFP;
         bitsPerSample = 32;
         break;
-    case slideio::DataType::DT_Float64:
+    case DataType::DT_Float64:
         sampleFormat = SAMPLEFORMAT_IEEEFP;
         bitsPerSample = 64;
         break;
@@ -423,7 +423,7 @@ static void setTiffDataType(libtiff::TIFF* tiff, slideio::DataType dataType)
     TIFFSetField(tiff, TIFFTAG_BITSPERSAMPLE, bitsPerSample);
 }
 
-void  slideio::TiffTools::scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, int64_t dirOffset, slideio::TiffDirectory& dir)
+void  TiffTools::scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, int64_t dirOffset, TiffDirectory& dir)
 {
     if (libtiff::TIFFCurrentDirectory(tiff) != dirIndex) {
         libtiff::TIFFSetDirectory(tiff, (short)dirIndex);
@@ -507,7 +507,7 @@ void  slideio::TiffTools::scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, int
 
 }
 
-void slideio::TiffTools::scanTiffDir(libtiff::TIFF* tiff, int dirIndex, int64_t dirOffset, slideio::TiffDirectory& dir)
+void TiffTools::scanTiffDir(libtiff::TIFF* tiff, int dirIndex, int64_t dirOffset, TiffDirectory& dir)
 {
     if(libtiff::TIFFCurrentDirectory(tiff) != dirIndex) {
         libtiff::TIFFSetDirectory(tiff, (short)dirIndex);
@@ -539,7 +539,7 @@ void slideio::TiffTools::scanTiffDir(libtiff::TIFF* tiff, int dirIndex, int64_t 
     }
 }
 
-void slideio::TiffTools::scanFile(libtiff::TIFF* tiff, std::vector<TiffDirectory>& directories)
+void TiffTools::scanFile(libtiff::TIFF* tiff, std::vector<TiffDirectory>& directories)
 {
     int dirs = libtiff::TIFFNumberOfDirectories(tiff);
     directories.resize(dirs);
@@ -550,7 +550,7 @@ void slideio::TiffTools::scanFile(libtiff::TIFF* tiff, std::vector<TiffDirectory
     }
 }
 
-void slideio::TiffTools::scanFile(const std::string& filePath, std::vector<TiffDirectory>& directories)
+void TiffTools::scanFile(const std::string& filePath, std::vector<TiffDirectory>& directories)
 {
     libtiff::TIFF* file(nullptr);
     try
@@ -576,8 +576,8 @@ void TiffTools::readNotRGBStripedDir(libtiff::TIFF* file, const TiffDirectory& d
 
     int buff_size = dir.width * dir.height * dir.channels * ImageTools::dataTypeSize(dir.dataType);
     cv::Size sizeImage = { dir.width, dir.height };
-    slideio::DataType dt = dir.dataType;
-    output.create(sizeImage, CV_MAKETYPE(slideio::CVTools::toOpencvType(dt), dir.channels));
+    DataType dt = dir.dataType;
+    output.create(sizeImage, CV_MAKETYPE(CVTools::toOpencvType(dt), dir.channels));
     cv::Mat imageRaster = output.getMat();
     setCurrentDirectory(file, dir);
     if (dir.offset > 0) {
@@ -616,13 +616,13 @@ void TiffTools::readNotRGBStripedDir(libtiff::TIFF* file, const TiffDirectory& d
     }
 }
 
-void slideio::TiffTools::readRegularStripedDir(libtiff::TIFF* file, const slideio::TiffDirectory& dir, cv::OutputArray output)
+void TiffTools::readRegularStripedDir(libtiff::TIFF* file, const TiffDirectory& dir, cv::OutputArray output)
 {
 
     int buff_size = dir.width * dir.height * dir.channels * ImageTools::dataTypeSize(dir.dataType);
     cv::Size sizeImage = { dir.width, dir.height };
-    slideio::DataType dt = dir.dataType;
-    output.create(sizeImage, CV_MAKETYPE(slideio::CVTools::toOpencvType(dt), dir.channels));
+    DataType dt = dir.dataType;
+    output.create(sizeImage, CV_MAKETYPE(CVTools::toOpencvType(dt), dir.channels));
     cv::Mat imageRaster = output.getMat();
     setCurrentDirectory(file, dir);
     if (dir.offset > 0) {
@@ -645,7 +645,7 @@ void slideio::TiffTools::readRegularStripedDir(libtiff::TIFF* file, const slidei
 }
 
 
-void slideio::TiffTools::readStripedDir(libtiff::TIFF* file, const slideio::TiffDirectory& dir, cv::OutputArray output)
+void TiffTools::readStripedDir(libtiff::TIFF* file, const TiffDirectory& dir, cv::OutputArray output)
 {
     if(!dir.interleaved)
         throw std::runtime_error("Planar striped images are not supported");
@@ -663,7 +663,7 @@ void slideio::TiffTools::readStripedDir(libtiff::TIFF* file, const slideio::Tiff
 }
 
 
-void slideio::TiffTools::readTile(libtiff::TIFF* hFile, const slideio::TiffDirectory& dir, int tile,
+void TiffTools::readTile(libtiff::TIFF* hFile, const TiffDirectory& dir, int tile,
     const std::vector<int>& channelIndices, cv::OutputArray output)
 {
     if(!dir.tiled){
@@ -685,13 +685,13 @@ void slideio::TiffTools::readTile(libtiff::TIFF* hFile, const slideio::TiffDirec
     }
 }
 
-void slideio::TiffTools::readRegularTile(libtiff::TIFF* hFile, const slideio::TiffDirectory& dir, int tile,
+void TiffTools::readRegularTile(libtiff::TIFF* hFile, const TiffDirectory& dir, int tile,
             const std::vector<int>& channelIndices, cv::OutputArray output)
 {
     cv::Size tileSize = { dir.tileWidth, dir.tileHeight };
-    slideio::DataType dt = dir.dataType;
+    DataType dt = dir.dataType;
     cv::Mat tileRaster;
-    tileRaster.create(tileSize, CV_MAKETYPE(slideio::CVTools::toOpencvType(dt), dir.channels));
+    tileRaster.create(tileSize, CV_MAKETYPE(CVTools::toOpencvType(dt), dir.channels));
     setCurrentDirectory(hFile, dir);
     if (dir.offset > 0) {
         libtiff::TIFFSetSubDirectory(hFile, dir.offset);
@@ -734,7 +734,7 @@ void slideio::TiffTools::readRegularTile(libtiff::TIFF* hFile, const slideio::Ti
 }
 
 
-void slideio::TiffTools::readJ2KTile(libtiff::TIFF* hFile, const slideio::TiffDirectory& dir, int tile,
+void TiffTools::readJ2KTile(libtiff::TIFF* hFile, const TiffDirectory& dir, int tile,
                                      const std::vector<int>& channelIndices, cv::OutputArray output)
 {
     const auto tileSize = libtiff::TIFFTileSize(hFile);
@@ -747,7 +747,7 @@ void slideio::TiffTools::readJ2KTile(libtiff::TIFF* hFile, const slideio::TiffDi
             throw std::runtime_error("TiffTools: Error reading raw tile");
         }
         bool yuv = dir.channels==3 && dir.compression==33003;
-        slideio::ImageTools::decodeJp2KStream(rawTile, output, channelIndices, yuv);
+        ImageTools::decodeJp2KStream(rawTile, output, channelIndices, yuv);
     }
     else
     {
@@ -755,13 +755,13 @@ void slideio::TiffTools::readJ2KTile(libtiff::TIFF* hFile, const slideio::TiffDi
     }
 }
 
-void TiffTools::readNotRGBTile(libtiff::TIFF* hFile, const slideio::TiffDirectory& dir, int tile,
+void TiffTools::readNotRGBTile(libtiff::TIFF* hFile, const TiffDirectory& dir, int tile,
     const std::vector<int>& channelIndices, cv::OutputArray output)
 {
     cv::Size tileSize = { dir.tileWidth, dir.tileHeight };
-    slideio::DataType dt = dir.dataType;
+    DataType dt = dir.dataType;
     cv::Mat tileRaster;
-    tileRaster.create(tileSize, CV_MAKETYPE(slideio::CVTools::toOpencvType(dt), 4));
+    tileRaster.create(tileSize, CV_MAKETYPE(CVTools::toOpencvType(dt), 4));
     setCurrentDirectory(hFile, dir);
     uint32_t* buffBegin = reinterpret_cast<uint32_t*>(tileRaster.data);
 
@@ -909,7 +909,7 @@ std::string TiffTools::readStringTag(libtiff::TIFF* tiff, uint16_t tag)
 }
 
 
-void slideio::TiffTools::setCurrentDirectory(libtiff::TIFF* hFile, const slideio::TiffDirectory& dir)
+void TiffTools::setCurrentDirectory(libtiff::TIFF* hFile, const TiffDirectory& dir)
 {
     if(libtiff::TIFFCurrentDirectory(hFile) != static_cast<uint16_t>(dir.dirIndex)) {
         if (!libtiff::TIFFSetDirectory(hFile, static_cast<uint16_t>(dir.dirIndex))) {
@@ -921,4 +921,22 @@ void slideio::TiffTools::setCurrentDirectory(libtiff::TIFF* hFile, const slideio
             throw std::runtime_error("TiffTools: error by setting current sub-directory");
         }
     }
+}
+
+void TiffTools::scaleBlockToDirectory(const TiffDirectory& basisDir,  const TiffDirectory& dir, const cv::Rect& basisDirRect, cv::Rect& dirBlockRect)
+{
+    RAISE_RUNTIME_ERROR << "Not tested";
+    // scale coefficients to scale original image to the directory image
+    const double zoomImageToDirX = static_cast<double>(dir.width) / static_cast<double>(dir.width);
+    const double zoomImageToDirY = static_cast<double>(dir.height) / static_cast<double>(dir.height);
+
+    // rectangle on the directory zoom level
+    dirBlockRect.x = static_cast<int>(std::floor(static_cast<double>(basisDirRect.x) * zoomImageToDirX));
+    dirBlockRect.y = static_cast<int>(std::floor(static_cast<double>(basisDirRect.y) * zoomImageToDirY));
+    int xn = basisDirRect.x + basisDirRect.width;
+    int yn = basisDirRect.y + basisDirRect.height;
+    int dxn = static_cast<int>(std::ceil(static_cast<double>(xn) * zoomImageToDirX));
+    int dyn = static_cast<int>(std::ceil(static_cast<double>(yn) * zoomImageToDirY));
+    dirBlockRect.width = dxn - dirBlockRect.x;
+    dirBlockRect.height = dyn - dirBlockRect.y;
 }
