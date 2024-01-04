@@ -14,16 +14,100 @@
 #include "vsitools.hpp"
 #include <boost/tokenizer.hpp>
 #include <boost/foreach.hpp>
-
+#include <boost/algorithm/string.hpp>
 #include "slideio/imagetools/tifftools.hpp"
 
 using namespace slideio;
 namespace fs = boost::filesystem;
+const std::vector<int> PATH_COLLECTION_TO_VOLUME = {vsi::Tag::COLLECTION_VOLUME, vsi::Tag::MULTIDIM_IMAGE_VOLUME };
+const std::vector<int> PATH_VOLUME_TO_HAS_EXTERNAL_FILE = {vsi::Tag::IMAGE_FRAME_VOLUME, vsi::Tag::EXTERNAL_FILE_PROPERTIES, vsi::Tag::HAS_EXTERNAL_FILE };
+const std::vector<int> PATH_VOLUME_TO_STACK_NAME = {vsi::Tag::MULTIDIM_STACK_PROPERTIES, vsi::Tag::STACK_NAME };
+const std::vector<int> PATH_VOLUME_TO_MAGNIFICATION = {vsi::Tag::MULTIDIM_STACK_PROPERTIES, vsi::Tag::MICROSCOPE, vsi::Tag::MICROSCOPE_PROPERTIES, vsi::Tag::OPTICAL_PROPERTIES, vsi::Tag::OBJECTIVE_MAG };
+const std::vector<int> PATH_VOLUME_TO_IMAGE_BOUNDARY = { vsi::Tag::IMAGE_FRAME_VOLUME, vsi::Tag::EXTERNAL_FILE_PROPERTIES, vsi::Tag::IMAGE_BOUNDARY };
+const std::vector<int> PATH_VOLUME_TO_MICROSCOPE_1 = { vsi::Tag::MULTIDIM_STACK_PROPERTIES, vsi::Tag::MICROSCOPE, 1};
+const std::vector<int> PATH_VOLUME_TO_STACK_TYPE = { vsi::Tag::MULTIDIM_STACK_PROPERTIES, vsi::Tag::STACK_TYPE };
+
+const std::vector<int> PATH_MICROSCOPE_TO_BITDEPTH = { 120114, vsi::Tag::BIT_DEPTH};
+
 
 
 vsi::VSIFile::VSIFile(const std::string& filePath) : m_filePath(filePath)
 {
     read();
+    if(!m_metadata.empty()) {
+        auto volumes = findMetadataObject(m_metadata, PATH_COLLECTION_TO_VOLUME);
+        if(volumes.is_array()) {
+            auto volumesArray = volumes.as_array();
+            for(auto& volume: volumesArray) {
+                auto volumeObject = volume.as_object();
+                auto externalFile = findMetadataObject(volumeObject, PATH_VOLUME_TO_HAS_EXTERNAL_FILE);
+                if(!externalFile.is_null()) {
+                    auto volume = std::make_shared<vsi::Volume>();
+                    m_volumes.push_back(volume);
+                    auto stackName = findMetadataObject(volumeObject, PATH_VOLUME_TO_STACK_NAME);
+                    if (!stackName.is_null()) {
+                        auto stackNameObj = stackName.as_object();
+                        auto stackNameVal = stackNameObj["value"];
+                        if (stackNameVal.is_string()) {
+                            volume->setName(stackNameVal.as_string().c_str());
+                        }
+                    }
+                    auto stackType = findMetadataObject(volumeObject, PATH_VOLUME_TO_STACK_TYPE);
+                    if(!stackType.is_null()) {
+                        auto stackTypeObj = stackType.as_object();
+                        auto stackTypeVal = stackTypeObj["value"];
+                        if(stackTypeVal.is_string()) {
+                            std::string value = stackTypeVal.as_string().c_str();
+                            int val = std::stoi(value);
+                            auto stackType = VSITools::intToStackType(val);
+                            volume->setType(stackType);
+                        }
+                    }
+                    auto magnification = findMetadataObject(volumeObject, PATH_VOLUME_TO_MAGNIFICATION);
+                    if(!magnification.is_null()) {
+                        auto magnificationObj = magnification.as_object();
+                        auto magnificationVal = magnificationObj["value"];
+                        if(magnificationVal.is_string()) {
+                            volume->setMagnification(std::stod(magnificationVal.as_string().c_str()));
+                        }
+                    }
+                    auto imageBoundary = findMetadataObject(volumeObject, PATH_VOLUME_TO_IMAGE_BOUNDARY);
+                    if(!imageBoundary.is_null()) {
+                        auto imageBoundaryObj = imageBoundary.as_object();
+                        auto imageBoundaryVal = imageBoundaryObj["value"];
+                        if(imageBoundaryVal.is_string()) {
+                            std::string value = imageBoundaryVal.as_string().c_str();
+                            value.erase(std::remove(value.begin(), value.end(), '('), value.end());
+                            value.erase(std::remove(value.begin(), value.end(), ')'), value.end());
+                            std::vector<std::string> tokens;
+                            boost::split(tokens, value, boost::is_any_of(","));
+                            if(tokens.size()==4) {
+                                int width = std::stoi(tokens[2]);
+                                int height = std::stoi(tokens[3]);
+                                volume->setSize(cv::Size(width, height));
+                            }
+                        }
+                    }
+                    auto microscope1 = findMetadataObject(volumeObject, PATH_VOLUME_TO_MICROSCOPE_1);
+                    if(microscope1.is_array()) {
+                        auto microscopeArray = microscope1.as_array();
+                        auto numberItems = microscopeArray.size();
+                        if(numberItems>0) {
+                            auto container = microscopeArray.at(0).as_object();
+                            auto bitDepth = findMetadataObject(container, PATH_MICROSCOPE_TO_BITDEPTH);
+                            if(!bitDepth.is_null()) {
+                                auto bitDepthObj = bitDepth.as_object();
+                                auto bitDepthVal = bitDepthObj["value"];
+                                if(bitDepthVal.is_string()) {
+                                    volume->setBitDepth(std::stoi(bitDepthVal.as_string().c_str()));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 std::string vsi::VSIFile::getRawMetadata() const
@@ -64,7 +148,7 @@ boost::json::object findObject(boost::json::object& parent, const std::string& p
     return current;
 }
 
-boost::json::value findObject(boost::json::object& parent, const std::vector<int>& path)
+boost::json::value vsi::VSIFile::findMetadataObject(boost::json::object& parent, const std::vector<int>& path)
 {
     boost::json::value current = parent;
     boost::json::value empty(nullptr);
@@ -87,15 +171,13 @@ boost::json::value findObject(boost::json::object& parent, const std::vector<int
 
 void vsi::VSIFile::checkExternalFilePresence()
 {
-    const std::vector<int> pathToImages = { Tag::COLLECTION_VOLUME, Tag::MULTIDIM_IMAGE_VOLUME };
-    const std::vector<int> pathToExternalFiles = { Tag::IMAGE_FRAME_VOLUME, Tag::EXTERNAL_FILE_PROPERTIES, Tag::HAS_EXTERNAL_FILE };
-    auto value = findObject(m_metadata, pathToImages);
+    auto value = findMetadataObject(m_metadata, PATH_COLLECTION_TO_VOLUME);
     SLIDEIO_LOG(INFO) << "VSI driver: checking external file presence";
     if(value.is_array()) {
         auto volumes = value.as_array();
         for (auto& volume: volumes) {
             boost::json::object imageObject = volume.as_object();
-            boost::json::value externalFile = findObject(imageObject, pathToExternalFiles);// "2002/2018/20005");
+            boost::json::value externalFile = findMetadataObject(imageObject, PATH_VOLUME_TO_HAS_EXTERNAL_FILE);// "2002/2018/20005");
             if(externalFile.is_object()) {
                 auto externalFileObject = externalFile.as_object();
                 const auto itValue = externalFileObject.find("value");

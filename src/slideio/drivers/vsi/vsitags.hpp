@@ -22,7 +22,7 @@ namespace slideio
             const int DISPLAY_MAPPING_VOLUME = 2011;
             const int LAYER_INFO_PROPERTIES = 2012;
             const int CHANNEL_INFO_PROPERTIES = 2013;
-            const int DEFAULT_SAMPLE_IFD = 2016;
+            const int DEFAULT_SAMPLE_PIXEL_DATA_IFD = 2016;
             const int VECTOR_LAYER_VOLUME = 2017;
             const int EXTERNAL_FILE_PROPERTIES = 2018;
             const int COARSE_FRAME_IFD = 2019;
@@ -130,7 +130,7 @@ namespace slideio
             const int PHOTOBLEACHING = 100084;
             const int PREAMP_GAIN_VALUE = 100085;
             const int WIDER_ENABLED = 100086;
-            const int OPTICAL_PATH = 2043;
+            const int MICROSCOPE = 2043;
             const int WORKING_DISTANCE = 120062;
             const int Y_PLANE_DIMENSION_UNIT = 2063;
             const int Y_DIMENSION_UNIT = 2064;
@@ -241,6 +241,9 @@ namespace slideio
             const int DIMENSION_START_ID = 2025;
             const int DIMENSION_INCREMENT_ID = 2026;
             const int DIMENSION_VALUE_ID = 2027;
+
+            const int MICROSCOPE_PROPERTIES = 3;
+            const int OPTICAL_PROPERTIES = 120114;
         };
    };
 }; 

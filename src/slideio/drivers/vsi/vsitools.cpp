@@ -7,35 +7,32 @@
 
 using namespace slideio;
 
-DataType vsi::VSITools::toSlideioPixelType(uint32_t vsiPixelType)
-{
-    switch(static_cast<vsi::ValueType>(vsiPixelType))
-    {
-      case vsi::ValueType::CHAR: return DataType::DT_Int8;
-      case vsi::ValueType::UCHAR: return DataType::DT_Byte;
-      case vsi::ValueType::SHORT: return DataType::DT_Int16;
-      case vsi::ValueType::USHORT: return DataType::DT_UInt16;
-      case vsi::ValueType::INT: return DataType::DT_Int32;
-      case vsi::ValueType::UINT: return DataType::DT_UInt32;
-      case vsi::ValueType::INT64: return DataType::DT_Int64;
-      case vsi::ValueType::UINT64: return DataType::DT_UInt64;
-      case vsi::ValueType::FLOAT: return DataType::DT_Float32;
-      case vsi::ValueType::DOUBLE: return DataType::DT_Float64;
+DataType vsi::VSITools::toSlideioPixelType(uint32_t vsiPixelType) {
+    switch (static_cast<vsi::ValueType>(vsiPixelType)) {
+    case vsi::ValueType::CHAR: return DataType::DT_Int8;
+    case vsi::ValueType::UCHAR: return DataType::DT_Byte;
+    case vsi::ValueType::SHORT: return DataType::DT_Int16;
+    case vsi::ValueType::USHORT: return DataType::DT_UInt16;
+    case vsi::ValueType::INT: return DataType::DT_Int32;
+    case vsi::ValueType::UINT: return DataType::DT_UInt32;
+    case vsi::ValueType::INT64: return DataType::DT_Int64;
+    case vsi::ValueType::UINT64: return DataType::DT_UInt64;
+    case vsi::ValueType::FLOAT: return DataType::DT_Float32;
+    case vsi::ValueType::DOUBLE: return DataType::DT_Float64;
     }
-	RAISE_RUNTIME_ERROR << "VSI Driver: Unsupported pixel type: " << vsiPixelType;
+    RAISE_RUNTIME_ERROR << "VSI Driver: Unsupported pixel type: " << vsiPixelType;
 }
 
-Compression vsi::VSITools::toSlideioCompression(vsi::Compression format)
-{
-	switch(format) {
-	case vsi::Compression::RAW: return slideio::Compression::Uncompressed;
-	case vsi::Compression::JPEG: return slideio::Compression::Jpeg;
-	case vsi::Compression::JPEG_2000: return slideio::Compression::Jpeg2000;
-	case vsi::Compression::JPEG_LOSSLESS: return slideio::Compression::JpegLossless;
-	case vsi::Compression::PNG: return slideio::Compression::Png;
-	case vsi::Compression::BMP: return slideio::Compression::BMP;
-	}
-	RAISE_RUNTIME_ERROR << "VSI Driver: Unsupported compression type: " << static_cast<uint32_t>(format);
+Compression vsi::VSITools::toSlideioCompression(vsi::Compression format) {
+    switch (format) {
+    case vsi::Compression::RAW: return slideio::Compression::Uncompressed;
+    case vsi::Compression::JPEG: return slideio::Compression::Jpeg;
+    case vsi::Compression::JPEG_2000: return slideio::Compression::Jpeg2000;
+    case vsi::Compression::JPEG_LOSSLESS: return slideio::Compression::JpegLossless;
+    case vsi::Compression::PNG: return slideio::Compression::Png;
+    case vsi::Compression::BMP: return slideio::Compression::BMP;
+    }
+    RAISE_RUNTIME_ERROR << "VSI Driver: Unsupported compression type: " << static_cast<uint32_t>(format);
 }
 
 vsi::StackType vsi::VSITools::intToStackType(int value) {
@@ -63,10 +60,8 @@ vsi::StackType vsi::VSITools::intToStackType(int value) {
     }
 }
 
-std::string vsi::VSITools::getVolumeName(int tag)
-{
-    switch (tag)
-    {
+std::string vsi::VSITools::getVolumeName(int tag) {
+    switch (tag) {
     case vsi::Tag::COLLECTION_VOLUME:
     case vsi::Tag::MULTIDIM_IMAGE_VOLUME:
     case vsi::Tag::IMAGE_FRAME_VOLUME:
@@ -79,7 +74,7 @@ std::string vsi::VSITools::getVolumeName(int tag)
     case vsi::Tag::DISPLAY_MAPPING_VOLUME:
     case vsi::Tag::LAYER_INFO_PROPERTIES:
         return "";
-    case vsi::Tag::OPTICAL_PATH:
+    case vsi::Tag::MICROSCOPE:
         return "Microscope ";
     case vsi::Tag::CHANNEL_WAVELENGTH:
         return "Channel Wavelength ";
@@ -87,29 +82,17 @@ std::string vsi::VSITools::getVolumeName(int tag)
         return "Objective Working Distance ";
     }
     return "";
-
 }
 
-bool vsi::VSITools::isStackProps(const boost::json::object& parentObject) {
+bool vsi::VSITools::isTag(const boost::json::object& parentObject, int srcTag) {
     bool ret = false;
     if (parentObject.contains("tag")) {
-        int tag = static_cast<int>(parentObject.at("tag").as_int64());
-        if (tag == static_cast<int>(Tag::MULTIDIM_STACK_PROPERTIES)) {
+        const int trgTag = static_cast<int>(parentObject.at("tag").as_int64());
+        if (trgTag == srcTag) {
             ret = true;
         }
     }
     return ret;
-}
-
-bool vsi::VSITools::isDimensionProps(const boost::json::object& parentObject) {
-	bool ret = false;
-	if (parentObject.contains("tag")) {
-	    int tag = static_cast<int>(parentObject.at("tag").as_int64());
-		if (tag == static_cast<int>(Tag::DIMENSION_DESCRIPTION_VOLUME)) {
-		    ret = true;
-		}
-	}
-	return ret;
 }
 
 std::string vsi::VSITools::getDimensionPropertyName(int tag) {
@@ -145,8 +128,8 @@ std::string vsi::VSITools::getDimensionPropertyName(int tag) {
     }
     return "Unknown dimension property";
 }
-std::string vsi::VSITools::getStackPropertyName(int tag) {
 
+std::string vsi::VSITools::getStackPropertyName(int tag) {
     switch (tag) {
     case Tag::DISPLAY_LIMITS:
         return "Display limits";
@@ -186,20 +169,105 @@ std::string vsi::VSITools::getStackPropertyName(int tag) {
         return "Acquisition properties";
     case Tag::GRADIENT_LUT:
         return "Gradient LUT";
+    case Tag::Y_DIMENSION_UNIT:
+        return "Y dimension unit";
+    case Tag::LAYER_XY_FIXED:
+        return "Layer XY fixed";
+    case Tag::MICROSCOPE:
+        return "Microscope";
     }
     return "Unknown stack property";
 }
-std::string vsi::VSITools::getTagName(const TagInfo& tagInfo, const  boost::json::object& parentObject)
-{
-    if(tagInfo.extendedType == ExtendedType::PROPERTY_SET_VOLUME
+
+std::string vsi::VSITools::getTagName(const TagInfo& tagInfo, const boost::json::object& parentObject) {
+
+    if (isTag(parentObject, Tag::PROPERTY_SET_VOLUME_FOR_DOCUMENT_PROPERTIES)) {
+        switch (tagInfo.tag) {
+        case Tag::DOCUMENT_NAME:
+            return "Document name";
+        case Tag::DOCUMENT_NOTE:
+            return "Document note";
+        case Tag::DOCUMENT_TIME:
+            return "Document creation time";
+        case Tag::DOCUMENT_AUTHOR:
+            return "Document author";
+        case Tag::DOCUMENT_COMPANY:
+            return "Document company";
+        case Tag::DOCUMENT_CREATOR_NAME:
+            return "Document creator name";
+        case Tag::DOCUMENT_CREATOR_MAJOR_VERSION:
+            return "Document creator major version";
+        case Tag::DOCUMENT_CREATOR_MINOR_VERSION:
+            return "Document creator minor version";
+        case Tag::DOCUMENT_CREATOR_SUB_VERSION:
+            return "Document creator sub version";
+        case Tag::DOCUMENT_CREATOR_BUILD_NUMBER:
+            return "Document creator build number";
+        case Tag::DOCUMENT_CREATOR_PACKAGE:
+            return "Document creator package";
+        case Tag::DOCUMENT_PRODUCT:
+            return "Document product";
+        case Tag::DOCUMENT_PRODUCT_NAME:
+            return "Document product name";
+        case Tag::DOCUMENT_PRODUCT_VERSION:
+            return "Document product version";
+        case Tag::DOCUMENT_TYPE_HINT:
+            return "Document type hint";
+        case Tag::DOCUMENT_THUMB:
+            return "Document thumbnail";
+        }
+    }
+
+    if (isTag(parentObject, Tag::COLLECTION_VOLUME)) {
+        switch (tagInfo.tag) {
+        case Tag::VERSION_NUMBER:
+            return "Version number";
+        case Tag::DEFAULT_SAMPLE_PIXEL_DATA_IFD:
+            return "Default sample pixel data IFD";
+        case Tag::MULTIDIM_IMAGE_VOLUME:
+            return "Multidimensional image volume";
+        case Tag::IMAGE_COLLECTION_PROPERTIES:
+            return "Image collection properties";
+        case Tag::DISPLAY_MAPPING_VOLUME:
+            return "Display mapping volume";
+        }
+    }
+
+    if (isTag(parentObject, Tag::MULTIDIM_STACK_PROPERTIES)) {
+        return getStackPropertyName(tagInfo.tag);
+    }
+
+    if (isTag(parentObject, Tag::DIMENSION_DESCRIPTION_VOLUME)) {
+        return getDimensionPropertyName(tagInfo.tag);
+    }
+
+    if(isTag(parentObject, Tag::MICROSCOPE)) {
+        if(tagInfo.tag == Tag::MICROSCOPE_PROPERTIES) {
+            return "Microscope properties";
+        }
+    }
+
+    if(isTag(parentObject, Tag::MICROSCOPE_PROPERTIES)) {
+        if(tagInfo.tag == Tag::OPTICAL_PROPERTIES) {
+            return "Optical properties";
+        }
+    }
+
+    if (isTag(parentObject, Tag::IMAGE_FRAME_VOLUME)) {
+        switch (tagInfo.tag) {
+        case Tag::DEFAULT_SAMPLE_PIXEL_DATA_IFD:
+            return "Default sample IFD";
+        case Tag::EXTERNAL_FILE_PROPERTIES:
+            return "External file properties";
+        }
+    }
+
+    if (tagInfo.extendedType == ExtendedType::PROPERTY_SET_VOLUME
         || tagInfo.extendedType == ExtendedType::NEW_MDIM_VOLUME_HEADER
         || tagInfo.extendedType == ExtendedType::NEW_VOLUME_HEADER) {
-        switch (tagInfo.tag)
-        {
+        switch (tagInfo.tag) {
         case vsi::Tag::DIMENSION_SIZE:
             return "Dimension size";
-        case vsi::Tag::IMAGE_COLLECTION_PROPERTIES:
-            return "Image collection properties";
         case vsi::Tag::MULTIDIM_STACK_PROPERTIES:
             return "Multidimensional stack properties";
         case vsi::Tag::FRAME_PROPERTIES:
@@ -209,11 +277,9 @@ std::string vsi::VSITools::getTagName(const TagInfo& tagInfo, const  boost::json
                 std::to_string(tagInfo.secondTag) + std::string(" description");
         case vsi::Tag::CHANNEL_PROPERTIES:
             return "Channel properties";
-        case vsi::Tag::DISPLAY_MAPPING_VOLUME:
-            return "Display mapping volume";
         case vsi::Tag::LAYER_INFO_PROPERTIES:
             return "Layer info properties";
-        case vsi::Tag::OPTICAL_PATH:
+        case vsi::Tag::MICROSCOPE:
             return "Microscope ";
         case vsi::Tag::CHANNEL_WAVELENGTH:
             return "Channel Wavelength ";
@@ -221,26 +287,13 @@ std::string vsi::VSITools::getTagName(const TagInfo& tagInfo, const  boost::json
             return "Objective Working Distance ";
         case vsi::Tag::CHANNEL_INFO_PROPERTIES:
             return "Channel info properties";
-        case vsi::Tag::EXTERNAL_FILE_PROPERTIES:
-            return "External file properties";
         }
     }
 
-    if (isStackProps(parentObject)) {
-        return getStackPropertyName(tagInfo.tag);
-    }
-
-    if(isDimensionProps(parentObject)) {
-        return getDimensionPropertyName(tagInfo.tag);
-    }
 
     switch (tagInfo.tag) {
-    case vsi::Tag::IMAGE_FRAME_VOLUME:
-        return "Image frame volume";
     case vsi::Tag::COLLECTION_VOLUME:
         return "Collection volume";
-    case vsi::Tag::MULTIDIM_IMAGE_VOLUME:
-        return "Multidimensional image volume";
     case vsi::Tag::PROPERTY_SET_VOLUME_FOR_DOCUMENT_PROPERTIES:
         return "Document properties";
     case vsi::Tag::Y_PLANE_DIMENSION_UNIT:
@@ -328,7 +381,7 @@ std::string vsi::VSITools::getTagName(const TagInfo& tagInfo, const  boost::json
     case vsi::Tag::TIME_START:
         return "Timelapse start";
     case vsi::Tag::TIME_INCREMENT:
-        if(tagInfo.fieldType == 0x1800000A) {
+        if (tagInfo.fieldType == 0x1800000A) {
             return "TIFF IFD of the default sample";
         }
         return "Timelapse increment";
@@ -361,7 +414,7 @@ std::string vsi::VSITools::getTagName(const TagInfo& tagInfo, const  boost::json
     case vsi::Tag::TILE_ORIGIN:
         return "Origin of tile coordinate system";
     case vsi::Tag::DISPLAY_LIMITS:
-        if(tagInfo.fieldType == 8195) {
+        if (tagInfo.fieldType == 8195) {
             return "Multidimensional Index";
         }
         return "Display limits";
@@ -469,38 +522,6 @@ std::string vsi::VSITools::getTagName(const TagInfo& tagInfo, const  boost::json
         return "Physical pixel size";
     case vsi::Tag::MAGNIFICATION:
         return "Original magnification";
-    case vsi::Tag::DOCUMENT_NAME:
-        return "Document Name";
-    case vsi::Tag::DOCUMENT_NOTE:
-        return "Document Note";
-    case vsi::Tag::DOCUMENT_TIME:
-        return "Document Creation Time";
-    case vsi::Tag::DOCUMENT_AUTHOR:
-        return "Document Author";
-    case vsi::Tag::DOCUMENT_COMPANY:
-        return "Document Company";
-    case vsi::Tag::DOCUMENT_CREATOR_NAME:
-        return "Document creator name";
-    case vsi::Tag::DOCUMENT_CREATOR_MAJOR_VERSION:
-        return "Document creator major version";
-    case vsi::Tag::DOCUMENT_CREATOR_MINOR_VERSION:
-        return "Document creator minor version";
-    case vsi::Tag::DOCUMENT_CREATOR_SUB_VERSION:
-        return "Document creator sub version";
-    case vsi::Tag::DOCUMENT_CREATOR_BUILD_NUMBER:
-        return "Product Build Number";
-    case vsi::Tag::DOCUMENT_CREATOR_PACKAGE:
-        return "Document creator package";
-    case vsi::Tag::DOCUMENT_PRODUCT:
-        return "Document product";
-    case vsi::Tag::DOCUMENT_PRODUCT_NAME:
-        return "Document product name";
-    case vsi::Tag::DOCUMENT_PRODUCT_VERSION:
-        return "Document product version";
-    case vsi::Tag::DOCUMENT_TYPE_HINT:
-        return "Document type hint";
-    case vsi::Tag::DOCUMENT_THUMB:
-        return "Document thumbnail";
     case vsi::Tag::COARSE_PYRAMID_LEVEL:
         return "Coarse pyramid level";
     case vsi::Tag::EXTRA_SAMPLES:
@@ -529,12 +550,12 @@ std::string vsi::VSITools::getTagName(const TagInfo& tagInfo, const  boost::json
         return "Brightness Correction";
     case vsi::Tag::OBJECTIVE_LENS: //120070:
         return "Objective Lens";
-    case vsi::Tag::OBJECTIVE_X_SHIFT:  //120075:
+    case vsi::Tag::OBJECTIVE_X_SHIFT: //120075:
         return "Objective X Shift";
     case vsi::Tag::OBJECTIVE_Y_SHIFT: //120076:
         return "Objective Y Shift";
     case vsi::Tag::OBJECTIVE_Z_SHIFT: //120077:
-         return "Objective Z Shift";
+        return "Objective Z Shift";
     case vsi::Tag::OBJECTIVE_GEAR_SETTING: //120078:
         return "Objective Gear Setting";
     case vsi::Tag::SLIDE_BAR_CODE: // 120635
@@ -651,23 +672,23 @@ std::string vsi::VSITools::getTagName(const TagInfo& tagInfo, const  boost::json
         return "Camera Preamp Gain";
     case vsi::Tag::WIDER_ENABLED:
         return "Camera WiDER Enabled";
+    case vsi::Tag::EXTRA_SAMPLES_PROPERTIES:
+        return "Extra samples properties";
     }
-    return "";
+    return "Unknown tag";
 }
 
-bool vsi::VSITools::isArray(const TagInfo& tagInfo)
-{
+bool vsi::VSITools::isArray(const TagInfo& tagInfo) {
     if (tagInfo.tag == Tag::MULTIDIM_IMAGE_VOLUME) {
         return true;
     }
-    else if(tagInfo.tag == 0 || tagInfo.tag == 1 || tagInfo.tag == Tag::LAYER_INFO_PROPERTIES) {
+    else if (tagInfo.tag == 0 || tagInfo.tag == 1 || tagInfo.tag == Tag::LAYER_INFO_PROPERTIES) {
         return true;
     }
     return false;
 }
 
-std::string vsi::VSITools::getStackTypeName(const std::string& value)
-{
+std::string vsi::VSITools::getStackTypeName(const std::string& value) {
     auto stackType = static_cast<StackType>(std::stoi(value));
     switch (stackType) {
     case StackType::DEFAULT_IMAGE:
@@ -692,8 +713,7 @@ std::string vsi::VSITools::getStackTypeName(const std::string& value)
     return value;
 }
 
-std::string vsi::VSITools::getDeviceSubtype(const std::string& value)
-{
+std::string vsi::VSITools::getDeviceSubtype(const std::string& value) {
     int deviceType = std::stoi(value);
     switch (deviceType) {
     case 0:
@@ -738,11 +758,9 @@ std::string vsi::VSITools::getDeviceSubtype(const std::string& value)
     return value;
 }
 
-std::string vsi::VSITools::extractTagValue(vsi::VSIStream& vsi, const vsi::TagInfo& tagInfo)
-{
+std::string vsi::VSITools::extractTagValue(vsi::VSIStream& vsi, const vsi::TagInfo& tagInfo) {
     std::string value;
-    switch (tagInfo.valueType)
-    {
+    switch (tagInfo.valueType) {
     case vsi::ValueType::CHAR:
     case vsi::ValueType::UCHAR:
         value = std::to_string(vsi.readValue<uint8_t>());
@@ -790,8 +808,7 @@ std::string vsi::VSITools::extractTagValue(vsi::VSIStream& vsi, const vsi::TagIn
     case vsi::ValueType::DIM_INDEX_1:
     case vsi::ValueType::DIM_INDEX_2:
     case vsi::ValueType::VOLUME_INDEX:
-    case vsi::ValueType::PIXEL_INFO_TYPE:
-    {
+    case vsi::ValueType::PIXEL_INFO_TYPE: {
         uint32_t nIntValues = tagInfo.dataSize / 4;
         std::vector<int32_t> intValues(nIntValues);
         if (nIntValues > 1) {
@@ -819,8 +836,7 @@ std::string vsi::VSITools::extractTagValue(vsi::VSIStream& vsi, const vsi::TagIn
     case vsi::ValueType::RECT_DOUBLE:
     case vsi::ValueType::MATRIX_DOUBLE_2_2:
     case vsi::ValueType::MATRIX_DOUBLE_3_3:
-    case vsi::ValueType::MATRIX_DOUBLE_4_4:
-    {
+    case vsi::ValueType::MATRIX_DOUBLE_4_4: {
         int nDoubleValues = tagInfo.dataSize / sizeof(double);
         std::vector<double> doubleValues(nDoubleValues);
         if (nDoubleValues > 1) {
@@ -838,8 +854,7 @@ std::string vsi::VSITools::extractTagValue(vsi::VSIStream& vsi, const vsi::TagIn
         }
     }
     break;
-    case vsi::ValueType::RGB:
-    {
+    case vsi::ValueType::RGB: {
         int red = vsi.readValue<uint8_t>();
         int green = vsi.readValue<uint8_t>();
         int blue = vsi.readValue<uint8_t>();
@@ -848,8 +863,7 @@ std::string vsi::VSITools::extractTagValue(vsi::VSIStream& vsi, const vsi::TagIn
             + ", blue = " + std::to_string(blue);
     }
     break;
-    case vsi::ValueType::BGR:
-    {
+    case vsi::ValueType::BGR: {
         int blue = vsi.readValue<uint8_t>();
         int green = vsi.readValue<uint8_t>();
         int red = vsi.readValue<uint8_t>();
@@ -861,4 +875,3 @@ std::string vsi::VSITools::extractTagValue(vsi::VSIStream& vsi, const vsi::TagIn
     }
     return value;
 }
-

@@ -25,10 +25,10 @@ void VSISlide::init()
     m_vsiFile = std::make_shared<vsi::VSIFile>(m_filePath);
     m_rawMetadata = m_vsiFile->getRawMetadata();
     const int numDirectories = m_vsiFile->getNumTiffDirectories();
-    for (int directoryIndex = 0; directoryIndex < numDirectories; ++directoryIndex) {
-        auto scene = std::make_shared<VsiFileScene>(m_filePath, m_vsiFile, directoryIndex);
-        m_Scenes.push_back(scene);
-    }
+    // for (int directoryIndex = 0; directoryIndex < numDirectories; ++directoryIndex) {
+    //     auto scene = std::make_shared<VsiFileScene>(m_filePath, m_vsiFile, directoryIndex);
+    //     m_Scenes.push_back(scene);
+    // }
     if (m_vsiFile->getNumExternalFiles() > 0) {
         const int numFiles = m_vsiFile->getNumExternalFiles();
         for (int fileIndex = 0; fileIndex < numFiles; ++fileIndex) {

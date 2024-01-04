@@ -8,8 +8,8 @@
 #include <boost/json.hpp>
 #include "vsitools.hpp"
 #include "slideio/drivers/vsi/vsi_api_def.hpp"
-#include "slideio/imagetools/tiffkeeper.hpp"
 #include "slideio/imagetools/tifftools.hpp"
+#include "slideio/drivers/vsi/volume.hpp"
 
 #if defined(_MSC_VER)
 #pragma warning( push )
@@ -51,7 +51,7 @@ namespace slideio
             void readVolumeInfo();
             void readExternalFiles();
             void readExtendedType(vsi::VSIStream& vsi, const vsi::TagInfo& tagInfo, boost::json::object& tagObject);
-
+            static boost::json::value findMetadataObject(boost::json::object& parent, const std::vector<int>& path);
         private:
             std::vector<std::shared_ptr<vsi::EtsFile>> m_etsFiles;
             bool m_hasExternalFiles = false;
@@ -60,6 +60,7 @@ namespace slideio
             std::string m_filePath;
             boost::json::object m_metadata;
             std::vector<TiffDirectory> m_directories;
+            std::vector<std::shared_ptr<Volume>> m_volumes;
         };
     }
 }

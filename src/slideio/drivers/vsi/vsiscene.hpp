@@ -38,7 +38,7 @@ namespace slideio
         Compression getCompression() const override{
             return m_compression;
         }
-        slideio::Resolution getResolution() const override{
+        Resolution getResolution() const override{
             return m_resolution;
         }
         double getMagnification() const override{
