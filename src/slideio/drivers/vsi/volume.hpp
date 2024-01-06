@@ -48,6 +48,9 @@ namespace slideio
             void setIFD(int ifd) { m_ifd = ifd; }
             int getIFD() const { return m_ifd; }
 
+            void setDefaultColor(int color) { m_defaultColor = color; }
+            int getDefaultColor() const { return m_defaultColor; }
+
         private:
             std::string m_name;
             double m_magnification = 0.;
@@ -57,6 +60,7 @@ namespace slideio
             bool m_hasExternalFile;
             int m_ifd = -1;
             std::vector<std::shared_ptr<Volume>> m_auxVolumes;
+            int m_defaultColor = 0;
         };
 
     };

@@ -33,8 +33,9 @@ const std::vector<int> PATH_VOLUME_TO_IMAGE_BOUNDARY = {
 const std::vector<int> PATH_VOLUME_TO_MICROSCOPE_1 = {vsi::Tag::MULTIDIM_STACK_PROPERTIES, vsi::Tag::MICROSCOPE, 1};
 const std::vector<int> PATH_VOLUME_TO_STACK_TYPE = {vsi::Tag::MULTIDIM_STACK_PROPERTIES, vsi::Tag::STACK_TYPE};
 const std::vector<int> PATH_MICROSCOPE_TO_BITDEPTH = {vsi::Tag::OPTICAL_PROPERTIES, vsi::Tag::BIT_DEPTH};
-
 const std::vector<int> PATH_VOLUME_TO_IFD = {vsi::Tag::IMAGE_FRAME_VOLUME, vsi::Tag::DEFAULT_SAMPLE_PIXEL_DATA_IFD};
+const std::vector<int> PATH_VOLUME_TO_DEFAULT_COLOR = { vsi::Tag::DEFAULT_BACKGROUND_COLOR };
+
 
 
 static int extractBaseDirectoryNameSuffix(const fs::path& path) {
@@ -151,6 +152,16 @@ void vsi::VSIFile::extractVolumesFromMetadata() {
                                 volume->setBitDepth(std::stoi(bitDepthVal.as_string().c_str()));
                             }
                         }
+                    }
+                }
+                auto defaultColor = VSITools::findMetadataObject(volumeObject, PATH_VOLUME_TO_DEFAULT_COLOR);
+                if(!defaultColor.is_null()) {
+                    auto defaultColorObj = defaultColor.as_object();
+                    auto defaultColorVal = defaultColorObj["value"];
+                    if(defaultColorVal.is_string()) {
+                        std::string value = defaultColorVal.as_string().c_str();
+                        int color = std::stoi(value);
+                        volume->setDefaultColor(color);
                     }
                 }
                 m_volumes.push_back(volume);
@@ -294,12 +305,12 @@ void vsi::VSIFile::readVolumeInfo() {
     boost::json::object root;
     readMetadata(vsiStream, root);
     m_metadata = root;
-    bool empty = m_metadata.empty();
-    {
-        std::ofstream ofs("d:\\Temp\\metadata.json");
-        ofs << boost::json::serialize(m_metadata);
-        ofs.close();
-    }
+    //bool empty = m_metadata.empty();
+    //{
+    //    std::ofstream ofs("d:\\Temp\\metadata.json");
+    //    ofs << boost::json::serialize(m_metadata);
+    //    ofs.close();
+    //}
     checkExternalFilePresence();
 }
 

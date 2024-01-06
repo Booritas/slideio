@@ -23,20 +23,20 @@ VSISlide::VSISlide(const std::string& filePath) : m_filePath(filePath)
 void VSISlide::init()
 {
     m_vsiFile = std::make_shared<vsi::VSIFile>(m_filePath);
-    m_rawMetadata = m_vsiFile->getRawMetadata();
-    const int numDirectories = m_vsiFile->getNumTiffDirectories();
     if(!m_vsiFile->hasMetadata()) {
         // No metadata, treat the vsi file as a normal tiff file
-         for (int directoryIndex = 0; directoryIndex < numDirectories; ++directoryIndex) {
+        const int numDirectories = m_vsiFile->getNumTiffDirectories();
+        for (int directoryIndex = 0; directoryIndex < numDirectories; ++directoryIndex) {
              auto scene = std::make_shared<VsiFileScene>(m_filePath, m_vsiFile, directoryIndex);
              m_Scenes.push_back(scene);
          }
     } else {
+        m_rawMetadata = m_vsiFile->getRawMetadata();
         if (m_vsiFile->getNumEtsFiles() > 0) {
             const int numFiles = m_vsiFile->getNumEtsFiles();
             for (int fileIndex = 0; fileIndex < numFiles; ++fileIndex) {
                 auto scene = std::make_shared<EtsFileScene>(m_filePath, m_vsiFile, fileIndex);
-                auto etsFile = m_vsiFile->getEtsFile(fileIndex);
+                const auto etsFile = m_vsiFile->getEtsFile(fileIndex);
                 auto volume = etsFile->getVolume();
                 if(volume) {
                     const int auxImages = volume->getNumAuxVolumes();
