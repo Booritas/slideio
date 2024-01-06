@@ -156,12 +156,17 @@ void vsi::VSIFile::extractVolumesFromMetadata() {
                 }
                 auto defaultColor = VSITools::findMetadataObject(volumeObject, PATH_VOLUME_TO_DEFAULT_COLOR);
                 if(!defaultColor.is_null()) {
-                    auto defaultColorObj = defaultColor.as_object();
-                    auto defaultColorVal = defaultColorObj["value"];
-                    if(defaultColorVal.is_string()) {
-                        std::string value = defaultColorVal.as_string().c_str();
-                        int color = std::stoi(value);
-                        volume->setDefaultColor(color);
+                    try {
+                        auto defaultColorObj = defaultColor.as_object();
+                        auto defaultColorVal = defaultColorObj["value"];
+                        if(defaultColorVal.is_string()) {
+                            std::string value = defaultColorVal.as_string().c_str();
+                            int color = std::stoi(value);
+                            volume->setDefaultColor(color);
+                        }
+                    }
+                    catch (std::exception&) {
+                        SLIDEIO_LOG(WARNING) << "VSI driver: error reading default color (ignored).";
                     }
                 }
                 m_volumes.push_back(volume);
