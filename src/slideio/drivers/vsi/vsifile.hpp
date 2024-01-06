@@ -27,10 +27,8 @@ namespace slideio
         class SLIDEIO_VSI_EXPORTS VSIFile
         {
         public:
+            void extractVolumesFromMetadata();
             VSIFile(const std::string& filePath);
-            int getNumExternalFiles() const {
-                return static_cast<int>(m_etsFiles.size());
-            }
             std::shared_ptr<vsi::EtsFile> getEtsFile(int index) const {
                 return m_etsFiles[index];
             }
@@ -38,11 +36,19 @@ namespace slideio
                 return static_cast<int>(m_etsFiles.size());
             }
             std::string getRawMetadata() const;
+            void assignAuxImages();
+
             int getNumTiffDirectories() const {
                 return static_cast<int>(m_directories.size());
             }
             const TiffDirectory& getTiffDirectory(int index) {
                 return m_directories[index];
+            }
+            int getNumVolumes() const {
+                return static_cast<int>(m_volumes.size());
+            }
+            std::shared_ptr<Volume> getVolume(int index) const {
+                return m_volumes[index];
             }
         private:
             void read();
@@ -51,7 +57,6 @@ namespace slideio
             void readVolumeInfo();
             void readExternalFiles();
             void readExtendedType(vsi::VSIStream& vsi, const vsi::TagInfo& tagInfo, boost::json::object& tagObject);
-            static boost::json::value findMetadataObject(boost::json::object& parent, const std::vector<int>& path);
         private:
             std::vector<std::shared_ptr<vsi::EtsFile>> m_etsFiles;
             bool m_hasExternalFiles = false;

@@ -27,11 +27,14 @@ namespace slideio
         bool getTileRect(int tileIndex, cv::Rect& tileRect, void* userData) override;
         bool readTile(int tileIndex, const std::vector<int>& channelIndices, cv::OutputArray tileRaster,
             void* userData) override;
+        void addAuxImage(const std::string& name, std::shared_ptr<CVScene> scene);
+        std::shared_ptr<CVScene> getAuxImage(const std::string& imageName) const override;
     protected:
         void init();
         std::shared_ptr<vsi::EtsFile> getEtsFile() const;
     protected:
         int m_etsIndex;
+        std::map<std::string, std::shared_ptr<CVScene>> m_auxScenes;
     };
 
 }

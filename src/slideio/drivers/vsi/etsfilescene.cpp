@@ -37,13 +37,29 @@ bool EtsFileScene::readTile(int tileIndex, const std::vector<int>& channelIndice
     return false;
 }
 
+void EtsFileScene::addAuxImage(const std::string& name, std::shared_ptr<CVScene> scene) {
+	m_auxScenes[name] = scene;
+    m_auxNames.push_back(name);
+}
+
+std::shared_ptr<CVScene> EtsFileScene::getAuxImage(const std::string& imageName) const {
+    if(m_auxScenes.count(imageName)) {
+        return m_auxScenes.at(imageName);
+    }
+    RAISE_RUNTIME_ERROR << "VSIImageDriver: ETS file does not contain auxiliary image with name " << imageName;
+}
+
 void EtsFileScene::init()
 {
     if(!m_vsiFile) {
         RAISE_RUNTIME_ERROR << "VSIImageDriver: VSI file is not initialized";
     }
     const int etsFileCount = m_vsiFile->getNumEtsFiles();
-    std::shared_ptr<vsi::EtsFile> etsFile = getEtsFile();
+    const std::shared_ptr<vsi::EtsFile> etsFile = getEtsFile();
+    const auto& volume = etsFile->getVolume();
+    m_name = volume->getName();
+    m_rect = cv::Rect(cv::Point2i(0, 0), volume->getSize());
+    m_magnification = volume->getMagnification();
 }
 
 std::shared_ptr<vsi::EtsFile> EtsFileScene::getEtsFile() const

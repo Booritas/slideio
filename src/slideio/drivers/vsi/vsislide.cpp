@@ -25,15 +25,31 @@ void VSISlide::init()
     m_vsiFile = std::make_shared<vsi::VSIFile>(m_filePath);
     m_rawMetadata = m_vsiFile->getRawMetadata();
     const int numDirectories = m_vsiFile->getNumTiffDirectories();
-    // for (int directoryIndex = 0; directoryIndex < numDirectories; ++directoryIndex) {
-    //     auto scene = std::make_shared<VsiFileScene>(m_filePath, m_vsiFile, directoryIndex);
-    //     m_Scenes.push_back(scene);
-    // }
-    if (m_vsiFile->getNumExternalFiles() > 0) {
-        const int numFiles = m_vsiFile->getNumExternalFiles();
-        for (int fileIndex = 0; fileIndex < numFiles; ++fileIndex) {
-            auto scene = std::make_shared<EtsFileScene>(m_filePath, m_vsiFile, fileIndex);
-            m_Scenes.push_back(scene);
+    if(m_rawMetadata.empty()) {
+        // No metadata, treat the vsi file as a normal tiff file
+         for (int directoryIndex = 0; directoryIndex < numDirectories; ++directoryIndex) {
+             auto scene = std::make_shared<VsiFileScene>(m_filePath, m_vsiFile, directoryIndex);
+             m_Scenes.push_back(scene);
+         }
+    } else {
+        if (m_vsiFile->getNumEtsFiles() > 0) {
+            const int numFiles = m_vsiFile->getNumEtsFiles();
+            for (int fileIndex = 0; fileIndex < numFiles; ++fileIndex) {
+                auto scene = std::make_shared<EtsFileScene>(m_filePath, m_vsiFile, fileIndex);
+                auto etsFile = m_vsiFile->getEtsFile(fileIndex);
+                auto volume = etsFile->getVolume();
+                if(volume) {
+                    const int auxImages = volume->getNumAuxVolumes();
+                    for(int auxIndex=0; auxIndex<auxImages; ++auxIndex) {
+                        auto auxVolume = volume->getAuxVolume(auxIndex);
+                        if(auxVolume) {
+                            auto auxScene = std::make_shared<VsiFileScene>(m_filePath, m_vsiFile, auxVolume->getIFD());
+                            scene->addAuxImage(auxVolume->getName(), auxScene);
+                        }
+                    }
+                }
+                m_Scenes.push_back(scene);
+            }
         }
     }
 }

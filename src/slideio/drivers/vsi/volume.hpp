@@ -37,12 +37,26 @@ namespace slideio
 
             int getBitDepth() const { return m_bitDepth; }
             void setBitDepth(int bitDepth) { m_bitDepth = bitDepth; }
+
+            bool hasExternalFile() const { return m_hasExternalFile; }
+            void setHasExternalFile(bool hasExternalFile) { m_hasExternalFile = hasExternalFile; }
+
+            int getNumAuxVolumes() const { return static_cast<int>(m_auxVolumes.size()); }
+            std::shared_ptr<Volume> getAuxVolume(int index) const { return m_auxVolumes[index]; }
+            void addAuxVolume(std::shared_ptr<Volume>& volume) { m_auxVolumes.push_back(volume); }
+
+            void setIFD(int ifd) { m_ifd = ifd; }
+            int getIFD() const { return m_ifd; }
+
         private:
             std::string m_name;
             double m_magnification = 0.;
             StackType m_type = StackType::UNKNOWN;
             cv::Size m_size = {};
             int m_bitDepth = 0;
+            bool m_hasExternalFile;
+            int m_ifd = -1;
+            std::vector<std::shared_ptr<Volume>> m_auxVolumes;
         };
 
     };

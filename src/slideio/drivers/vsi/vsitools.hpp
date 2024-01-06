@@ -38,6 +38,7 @@ namespace slideio
             static std::string getStackTypeName(const std::string& value);
             static std::string getDeviceSubtype(const std::string& value);
             static std::string extractTagValue(vsi::VSIStream& vsi, const vsi::TagInfo& tagInfo);
+            static boost::json::value findMetadataObject(boost::json::object& parent, const std::vector<int>& path);
         private:
             static bool isTag(const boost::json::object& parentObject, int srcTag);
             static std::string getDimensionPropertyName(int tag);

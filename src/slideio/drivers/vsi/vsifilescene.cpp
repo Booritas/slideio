@@ -22,9 +22,6 @@ void VsiFileScene::readResampledBlockChannels(const cv::Rect& blockRect, const c
     const TiffDirectory& directory = m_vsiFile->getTiffDirectory(m_directoryIndex);
     if(!directory.tiled) {
         cv::Mat directoryRaster;
-        if(m_vsiFile->getNumTiffDirectories() !=1 ) {
-            RAISE_RUNTIME_ERROR << "VSIImageDriver: Expected exactly 1 TIFF directory. Received: " << m_vsiFile->getNumTiffDirectories();
-        }
         TiffTools::readStripedDir(m_tiff, directory, directoryRaster);
         cv::Mat blockRaster(directoryRaster, blockRect);
         cv::Mat resizedBlockRaster;

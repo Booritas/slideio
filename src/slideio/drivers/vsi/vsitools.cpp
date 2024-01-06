@@ -875,3 +875,22 @@ std::string vsi::VSITools::extractTagValue(vsi::VSIStream& vsi, const vsi::TagIn
     }
     return value;
 }
+
+boost::json::value vsi::VSITools::findMetadataObject(boost::json::object& parent, const std::vector<int>& path) {
+    boost::json::value current = parent;
+    boost::json::value empty(nullptr);
+
+    for (const int tag : path) {
+        if (!current.is_object()) {
+            return empty;
+        }
+        auto currentParent = current.as_object();
+        std::string token = std::to_string(tag);
+        auto it = currentParent.find(token);
+        if (it == currentParent.end()) {
+            return empty;
+        }
+        current = it->value();
+    }
+    return current;
+}

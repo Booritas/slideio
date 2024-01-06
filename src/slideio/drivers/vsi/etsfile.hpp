@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 
+#include "volume.hpp"
 #include "vsistruct.hpp"
 #include "slideio/base/slideio_enums.hpp"
 #include "slideio/drivers/vsi/vsi_api_def.hpp"
@@ -44,6 +45,12 @@ namespace slideio
                 return m_compression;
             }
             void read();
+            void assignVolume(const std::shared_ptr<Volume>& volume) {
+                m_volume = volume;
+            }
+            std::shared_ptr<Volume> getVolume() const {
+                return m_volume;
+            }
         private:
             std::string m_filePath;
             DataType m_dataType = DataType::DT_Unknown;
@@ -59,6 +66,7 @@ namespace slideio
             bool m_usePyramid = true;
             std::vector<int> m_dimensions;
             std::vector<TileInfo> m_tiles;
+            std::shared_ptr<Volume> m_volume;
         };
     }
 }
