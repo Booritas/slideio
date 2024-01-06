@@ -25,7 +25,7 @@ void VSISlide::init()
     m_vsiFile = std::make_shared<vsi::VSIFile>(m_filePath);
     m_rawMetadata = m_vsiFile->getRawMetadata();
     const int numDirectories = m_vsiFile->getNumTiffDirectories();
-    if(m_rawMetadata.empty()) {
+    if(!m_vsiFile->hasMetadata()) {
         // No metadata, treat the vsi file as a normal tiff file
          for (int directoryIndex = 0; directoryIndex < numDirectories; ++directoryIndex) {
              auto scene = std::make_shared<VsiFileScene>(m_filePath, m_vsiFile, directoryIndex);

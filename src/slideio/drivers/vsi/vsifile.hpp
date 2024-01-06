@@ -50,6 +50,9 @@ namespace slideio
             std::shared_ptr<Volume> getVolume(int index) const {
                 return m_volumes[index];
             }
+            bool hasMetadata() const {
+                return !m_metadata.empty();
+            }
         private:
             void read();
             bool readMetadata(VSIStream& vsiStream, boost::json::object& parent);
