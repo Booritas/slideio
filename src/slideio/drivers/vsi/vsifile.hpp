@@ -10,6 +10,7 @@
 #include "slideio/drivers/vsi/vsi_api_def.hpp"
 #include "slideio/imagetools/tifftools.hpp"
 #include "slideio/drivers/vsi/volume.hpp"
+#include "slideio/drivers/vsi/taginfo.hpp"
 
 #if defined(_MSC_VER)
 #pragma warning( push )
@@ -27,7 +28,6 @@ namespace slideio
         class SLIDEIO_VSI_EXPORTS VSIFile
         {
         public:
-            void extractVolumesFromMetadata();
             VSIFile(const std::string& filePath);
             std::shared_ptr<vsi::EtsFile> getEtsFile(int index) const {
                 return m_etsFiles[index];
@@ -53,20 +53,32 @@ namespace slideio
             bool hasMetadata() const {
                 return !m_metadata.empty();
             }
+            bool expectExternalFiles() const {
+                return m_expectExternalFiles;
+            }
+            bool hasExternalFiles() const {
+                return !m_etsFiles.empty();
+            }
+            void getVolumeMetadataItems(std::list<const TagInfo*>& volumes) const;
+            static void getImageFrameMetadataItems(const TagInfo* volume, std::list<const TagInfo*>& frames);
+
         private:
             void read();
-            bool readMetadata(VSIStream& vsiStream, boost::json::object& parent);
             void checkExternalFilePresence();
+            void extractVolumesFromMetadata();
+            bool readVolumeHeader(vsi::VSIStream& vsi, vsi::VolumeHeader& volumeHeader);
+            bool readMetadata(VSIStream& vsiStream, TagInfo& parent);
+            void serializeMetatdata(const TagInfo& tagInfo, boost::json::object& jsonObj) const;
             void readVolumeInfo();
             void readExternalFiles();
-            void readExtendedType(vsi::VSIStream& vsi, const vsi::TagInfo& tagInfo, boost::json::object& tagObject);
+            void readExtendedType(vsi::VSIStream& vsi, vsi::TagInfo& tagInfo);
         private:
             std::vector<std::shared_ptr<vsi::EtsFile>> m_etsFiles;
-            bool m_hasExternalFiles = false;
+            bool m_expectExternalFiles = false;
             int m_numChannels = 0;
             int m_numSlices = 0;
             std::string m_filePath;
-            boost::json::object m_metadata;
+            TagInfo m_metadata;
             std::vector<TiffDirectory> m_directories;
             std::vector<std::shared_ptr<Volume>> m_volumes;
         };

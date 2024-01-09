@@ -4,6 +4,7 @@
 #include "vsitools.hpp"
 #include "vsislide.hpp"
 #include "vsitags.hpp"
+#include "taginfo.hpp"
 
 using namespace slideio;
 
@@ -179,9 +180,8 @@ std::string vsi::VSITools::getStackPropertyName(int tag) {
     return "Unknown stack property";
 }
 
-std::string vsi::VSITools::getTagName(const TagInfo& tagInfo, const boost::json::object& parentObject) {
-
-    if (isTag(parentObject, Tag::PROPERTY_SET_VOLUME_FOR_DOCUMENT_PROPERTIES)) {
+std::string vsi::VSITools::getTagName(const TagInfo& tagInfo, const TagInfo& parentObject) {
+    if (parentObject.tag == Tag::PROPERTY_SET_VOLUME_FOR_DOCUMENT_PROPERTIES) {
         switch (tagInfo.tag) {
         case Tag::DOCUMENT_NAME:
             return "Document name";
@@ -218,7 +218,7 @@ std::string vsi::VSITools::getTagName(const TagInfo& tagInfo, const boost::json:
         }
     }
 
-    if (isTag(parentObject, Tag::COLLECTION_VOLUME)) {
+    if (parentObject.tag == Tag::COLLECTION_VOLUME) {
         switch (tagInfo.tag) {
         case Tag::VERSION_NUMBER:
             return "Version number";
@@ -233,27 +233,27 @@ std::string vsi::VSITools::getTagName(const TagInfo& tagInfo, const boost::json:
         }
     }
 
-    if (isTag(parentObject, Tag::MULTIDIM_STACK_PROPERTIES)) {
+    if (parentObject.tag == Tag::MULTIDIM_STACK_PROPERTIES) {
         return getStackPropertyName(tagInfo.tag);
     }
 
-    if (isTag(parentObject, Tag::DIMENSION_DESCRIPTION_VOLUME)) {
+    if (parentObject.tag == Tag::DIMENSION_DESCRIPTION_VOLUME) {
         return getDimensionPropertyName(tagInfo.tag);
     }
 
-    if(isTag(parentObject, Tag::MICROSCOPE)) {
-        if(tagInfo.tag == Tag::MICROSCOPE_PROPERTIES) {
+    if (parentObject.tag == Tag::MICROSCOPE) {
+        if (tagInfo.tag == Tag::MICROSCOPE_PROPERTIES) {
             return "Microscope properties";
         }
     }
 
-    if(isTag(parentObject, Tag::MICROSCOPE_PROPERTIES)) {
-        if(tagInfo.tag == Tag::OPTICAL_PROPERTIES) {
+    if (parentObject.tag == Tag::MICROSCOPE_PROPERTIES) {
+        if (tagInfo.tag == Tag::OPTICAL_PROPERTIES) {
             return "Optical properties";
         }
     }
 
-    if (isTag(parentObject, Tag::IMAGE_FRAME_VOLUME)) {
+    if (parentObject.tag == Tag::IMAGE_FRAME_VOLUME) {
         switch (tagInfo.tag) {
         case Tag::DEFAULT_SAMPLE_PIXEL_DATA_IFD:
             return "Default sample IFD";
@@ -294,6 +294,8 @@ std::string vsi::VSITools::getTagName(const TagInfo& tagInfo, const boost::json:
     switch (tagInfo.tag) {
     case vsi::Tag::COLLECTION_VOLUME:
         return "Collection volume";
+    case vsi::Tag::IMAGE_FRAME_VOLUME:
+        return "Image frame volume";
     case vsi::Tag::PROPERTY_SET_VOLUME_FOR_DOCUMENT_PROPERTIES:
         return "Document properties";
     case vsi::Tag::Y_PLANE_DIMENSION_UNIT:
@@ -825,7 +827,7 @@ std::string vsi::VSITools::extractTagValue(vsi::VSIStream& vsi, const vsi::TagIn
             value += ")";
         }
     }
-    break;
+                                        break;
     case vsi::ValueType::DOUBLE2:
     case vsi::ValueType::VECTOR_DOUBLE_2:
     case vsi::ValueType::TUPLE_DOUBLE:
@@ -853,7 +855,7 @@ std::string vsi::VSITools::extractTagValue(vsi::VSIStream& vsi, const vsi::TagIn
             value += ')';
         }
     }
-    break;
+                                          break;
     case vsi::ValueType::RGB: {
         int red = vsi.readValue<uint8_t>();
         int green = vsi.readValue<uint8_t>();
@@ -862,7 +864,7 @@ std::string vsi::VSITools::extractTagValue(vsi::VSIStream& vsi, const vsi::TagIn
             + ", green = " + std::to_string(green)
             + ", blue = " + std::to_string(blue);
     }
-    break;
+                            break;
     case vsi::ValueType::BGR: {
         int blue = vsi.readValue<uint8_t>();
         int green = vsi.readValue<uint8_t>();
@@ -871,26 +873,7 @@ std::string vsi::VSITools::extractTagValue(vsi::VSIStream& vsi, const vsi::TagIn
             + ", green = " + std::to_string(green)
             + ", blue = " + std::to_string(blue);
     }
-    break;
+                            break;
     }
     return value;
-}
-
-boost::json::value vsi::VSITools::findMetadataObject(boost::json::object& parent, const std::vector<int>& path) {
-    boost::json::value current = parent;
-    boost::json::value empty(nullptr);
-
-    for (const int tag : path) {
-        if (!current.is_object()) {
-            return empty;
-        }
-        auto currentParent = current.as_object();
-        std::string token = std::to_string(tag);
-        auto it = currentParent.find(token);
-        if (it == currentParent.end()) {
-            return empty;
-        }
-        current = it->value();
-    }
-    return current;
 }

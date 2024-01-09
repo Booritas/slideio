@@ -6,7 +6,6 @@
 #include <boost/json/object.hpp>
 #include "etsfile.hpp"
 #include "vsistream.hpp"
-#include "vsitags.hpp"
 #include "slideio/base/slideio_enums.hpp"
 
 
@@ -14,18 +13,7 @@ namespace slideio
 {
     namespace vsi
     {
-
-        struct TagInfo
-        {
-            int tag = Tag::UNKNOWN;
-            int fieldType = 0;
-            ValueType valueType = ValueType::UNSET;
-            ExtendedType extendedType = ExtendedType::UNSET;
-            int secondTag = -1;
-            bool extended = false;
-            int32_t dataSize = 0;
-
-        };
+        class TagInfo;
         class VSITools
         {
         public:
@@ -33,12 +21,11 @@ namespace slideio
             static slideio::Compression toSlideioCompression(vsi::Compression format);
             static StackType intToStackType(int value);
             static std::string getVolumeName(int tag);
-            static std::string getTagName(const TagInfo& tagInfo, const  boost::json::object& parentObject);
+            static std::string getTagName(const TagInfo& tagInfo, const  TagInfo& parentObject);
             static bool isArray(const TagInfo& tagInfo);
             static std::string getStackTypeName(const std::string& value);
             static std::string getDeviceSubtype(const std::string& value);
             static std::string extractTagValue(vsi::VSIStream& vsi, const vsi::TagInfo& tagInfo);
-            static boost::json::value findMetadataObject(boost::json::object& parent, const std::vector<int>& path);
         private:
             static bool isTag(const boost::json::object& parentObject, int srcTag);
             static std::string getDimensionPropertyName(int tag);

@@ -57,7 +57,7 @@ namespace slideio
             StackType m_type = StackType::UNKNOWN;
             cv::Size m_size = {};
             int m_bitDepth = 0;
-            bool m_hasExternalFile;
+            bool m_hasExternalFile = false;
             int m_ifd = -1;
             std::vector<std::shared_ptr<Volume>> m_auxVolumes;
             int m_defaultColor = 0;

@@ -57,9 +57,11 @@ void EtsFileScene::init()
     const int etsFileCount = m_vsiFile->getNumEtsFiles();
     const std::shared_ptr<vsi::EtsFile> etsFile = getEtsFile();
     const auto& volume = etsFile->getVolume();
-    m_name = volume->getName();
-    m_rect = cv::Rect(cv::Point2i(0, 0), volume->getSize());
-    m_magnification = volume->getMagnification();
+    if(volume) {
+        m_name = volume->getName();
+        m_rect = cv::Rect(cv::Point2i(0, 0), volume->getSize());
+        m_magnification = volume->getMagnification();
+    }
 }
 
 std::shared_ptr<vsi::EtsFile> EtsFileScene::getEtsFile() const

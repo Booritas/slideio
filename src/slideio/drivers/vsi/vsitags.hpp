@@ -9,6 +9,7 @@ namespace slideio
         namespace Tag
         {
             const int UNKNOWN = -1;
+            const int ROOT = -2;
             const int PROPERTY_SET_VOLUME_FOR_DOCUMENT_PROPERTIES = 2;
             const int COLLECTION_VOLUME = 2000;
             const int MULTIDIM_IMAGE_VOLUME = 2001;

@@ -185,3 +185,27 @@ TEST(VSIImageDriver, readVSISceneStripedDirUncompressedRoiResampled)
     TestTools::compareRasters(testRoi, blockRaster);
     //TestTools::showRasters(testRoi, blockRaster);
 }
+
+
+TEST(VSIImageDriver, read3DVolume16bit)
+{
+    std::string filePath = TestTools::getFullTestImagePath("vsi","vsi-multifile/vsi-ets-test-jpg2k.vsi");
+    std::string testFilePath = TestTools::getFullTestImagePath("vsi","test-output/vsi-ets-test-jpg2k.tif");
+    slideio::VSIImageDriver driver;
+    std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    const int numScenes = slide->getNumScenes();
+    ASSERT_EQ(1, numScenes);
+    std::shared_ptr<CVScene> scene = slide->getScene(0);
+    const auto rect = scene->getRect();
+    //cv::Rect roi(rect.x + rect.width / 4, rect.y + rect.height / 4, rect.width / 2, rect.height / 2);
+    //cv::Size blockSize(std::lround(roi.width * 0.8), std::lround(roi.height * 0.8));
+    //cv::Mat blockRaster;
+    //scene->readResampledBlock(roi, blockSize, blockRaster);
+    //cv::Mat testRaster;
+    //TestTools::readPNG(testFilePath, testRaster);
+    //cv::Mat testRoi(testRaster, roi);
+    //cv::resize(testRoi, testRoi, blockSize);
+    //TestTools::compareRasters(testRoi, blockRaster);
+    //TestTools::showRasters(testRoi, blockRaster);
+}
