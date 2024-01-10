@@ -31,8 +31,10 @@ namespace slideio
         void initFromDir();
         void initFromDicomDirFile();
         void init();
+        void initFromWSIFile();
+        void initFromRegularDicomFile();
     private:
-        std::vector<std::shared_ptr<DCMScene>> m_scenes;
+        std::vector<std::shared_ptr<CVScene>> m_scenes;
         std::string m_srcPath;
     };
 }

@@ -13,6 +13,8 @@ set(SOURCE_FILES
         ${CMAKE_CURRENT_SOURCE_DIR}/dcmfile.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/dcmfile.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/dcm_api_def.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/wsiscene.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/wsiscene.cpp
         )
 
 add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES})
