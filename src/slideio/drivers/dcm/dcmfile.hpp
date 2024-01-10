@@ -117,6 +117,7 @@ namespace slideio
         void readPixelValues(std::vector<cv::Mat>& frames, int startFrame=0, int numFrames=1);
         std::string getMetadata();
         static bool isDicomDirFile(const std::string& filePath);
+        static bool isWSIFile(const std::string& filePath);
     private:
         void extractPixelsPartialy(std::vector<cv::Mat>& frames, int startFrame, int numFrames);
         void extractPixelsWholeFileDecompression(std::vector<cv::Mat>& mats, int startFrame, int numFrames);

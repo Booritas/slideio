@@ -290,3 +290,18 @@ TEST(DCMFile, pixelValues12AllocatedBits)
     double similarity = ImageTools::computeSimilarity(frames[0], testImage);
     EXPECT_LT(0.85, similarity);
 }
+
+TEST(DCMFile, isWSIFile)
+{
+    if (!TestTools::isFullTestEnabled())
+    {
+        GTEST_SKIP() <<
+            "Skip the test because full dataset is not enabled";
+    }
+    std::string filePath = TestTools::getFullTestImagePath("dcm", "barre.dev/MultiFrame/MR-MONO2-8-16x-heart");
+    bool res = DCMFile::isWSIFile(filePath);
+    EXPECT_FALSE(res);
+    filePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777/H01EBB50P-24777_level-0.dcm");
+    res = DCMFile::isWSIFile(filePath);
+    EXPECT_TRUE(res);
+}

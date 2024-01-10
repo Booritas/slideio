@@ -721,3 +721,21 @@ bool DCMFile::isDicomDirFile(const std::string& filePath)
     }
     return isDicomDir;
 }
+
+bool DCMFile::isWSIFile(const std::string& filePath) {
+    bool isWSI = false;
+    DcmFileFormat file;
+    if (file.loadFile(filePath.c_str()).good())
+    {
+        DcmDataset* dataset = file.getDataset();
+        if (dataset)
+        {
+            OFString sopClassUID;
+            if (dataset->findAndGetOFString(DCM_SOPClassUID, sopClassUID).good())
+            {
+                isWSI = sopClassUID == UID_VLWholeSlideMicroscopyImageStorage;
+            }
+        }
+    }
+    return isWSI;
+}
