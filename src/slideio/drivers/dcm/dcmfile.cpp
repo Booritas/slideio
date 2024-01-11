@@ -8,6 +8,7 @@
 #include "slideio/base/base.hpp"
 #include "slideio/imagetools/cvtools.hpp"
 #include <dcmtk/dcmdata/dcjson.h>
+#include <dcmtk/dcmdata/dcpxitem.h>
 
 #include <ostream>
 
@@ -118,27 +119,6 @@ void DCMFile::init()
     std::shared_ptr<DicomImage> image;
     DcmDataset* dataset = getValidDataset();
 
-    try
-    {
-        image = createImage();
-    }
-    catch (slideio::RuntimeError& err)
-    {
-        m_decompressWholeFile = true;
-        SLIDEIO_LOG(WARNING) << "DCMFile::init: Cannot create DicomImage instance for the file:"
-            << m_filePath
-            << ". Trying to decomress the whole file. Error message:"
-            << err.what();
-        OFCondition cond = dataset->chooseRepresentation(EXS_LittleEndianExplicit, nullptr);
-        if(!cond.good())
-        {
-            RAISE_RUNTIME_ERROR << "DCMFile::init Cannot decompress the file "
-                << m_filePath
-                << ". Error message:"
-                << cond.text();
-        }
-    }
-
     if (!getIntTag(DCM_Columns, m_width))
     {
         RAISE_RUNTIME_ERROR << "DCMImageDriver: Cannot extract image width for the file:" << m_filePath;
@@ -213,6 +193,47 @@ void DCMFile::init()
     if (m_photoInterpretation == EPhotoInterpetation::PHIN_PALETTE)
     {
         m_numChannels = 3;
+    }
+
+    std::string sopClassUID;
+    getStringTag(DCM_SOPClassUID, sopClassUID);
+    std::string dimensionOrganization;
+    getStringTag(DCM_DimensionOrganizationType, dimensionOrganization);
+
+    m_WSISlide = (sopClassUID == UID_VLWholeSlideMicroscopyImageStorage);
+    if(m_WSISlide && dimensionOrganization != "TILED_FULL") {
+        RAISE_RUNTIME_ERROR << "DCMImageDriver: Unsupported dimension organization type for WSI file. Expected: TILED_FULL, received:" << dimensionOrganization;
+    }
+
+    if(m_WSISlide) {
+        m_frames = m_slices;
+        m_slices = 1;
+        m_tileSize = { m_width, m_height };
+        m_width = m_height = 0;
+        if(!getIntTag(DCM_TotalPixelMatrixColumns, m_width)) {
+            RAISE_RUNTIME_ERROR << "DCMImageDriver: Cannot extract total pixel matrix columns for WSI file:" << m_filePath;
+        }
+        if (!getIntTag(DCM_TotalPixelMatrixRows, m_height)) {
+            RAISE_RUNTIME_ERROR << "DCMImageDriver: Cannot extract total pixel matrix rows for WSI file:" << m_filePath;
+        }
+    } else {
+        try {
+            image = createImage();
+        }
+        catch (slideio::RuntimeError& err) {
+            m_decompressWholeFile = true;
+            SLIDEIO_LOG(WARNING) << "DCMFile::init: Cannot create DicomImage instance for the file:"
+                << m_filePath
+                << ". Trying to decomress the whole file. Error message:"
+                << err.what();
+            OFCondition cond = dataset->chooseRepresentation(EXS_LittleEndianExplicit, nullptr);
+            if (!cond.good()) {
+                RAISE_RUNTIME_ERROR << "DCMFile::init Cannot decompress the file "
+                    << m_filePath
+                    << ". Error message:"
+                    << cond.text();
+            }
+        }
     }
 }
 
@@ -402,7 +423,7 @@ void DCMFile::extractPixelsPartialy(std::vector<cv::Mat>& frames, int startFrame
     const int numFileFrames = image->getFrameCount();
     const int numChannels = getNumChannels();
     const DataType originalDataType = getDataType();
-    const int numFramePixels = getWidth() * getHeight();
+    const int numFramePixels = isWSIFile()?(m_tileSize.width*m_tileSize.height):(getWidth() * getHeight());
     const int cvOriginalType = CVTools::toOpencvType(originalDataType);
 
     frames.resize(numFrames);
@@ -739,3 +760,35 @@ bool DCMFile::isWSIFile(const std::string& filePath) {
     }
     return isWSI;
 }
+
+bool DCMFile::getTileRect(int tileIndex, cv::Rect& tileRect) const{
+    if(!m_WSISlide) {
+        RAISE_RUNTIME_ERROR << "DCMFile::getTileRect: the file " << getFilePath() << " is not a WSI slide.";
+    }
+    if(tileIndex < 0 || tileIndex >= m_frames) {
+        RAISE_RUNTIME_ERROR << "DCMFile::getTileRect: tile index is out of range. Number of tiles: "
+            << m_frames << " . Received index: " << tileIndex;
+    }
+    const int tilesX = (m_width - 1)/m_tileSize.width + 1;
+    const int col = tileIndex % tilesX;
+    const int row = tileIndex / tilesX;
+    tileRect = cv::Rect(col*m_tileSize.width, row*m_tileSize.height, m_tileSize.width, m_tileSize.height);
+    return true;
+}
+
+bool DCMFile::readTile(int tileIndex, cv::OutputArray tileRaster) {
+    if (!m_WSISlide) {
+        RAISE_RUNTIME_ERROR << "DCMFile::getTileRect: the file " << getFilePath() << " is not a WSI slide.";
+    }
+    DcmDataset* dataset = getValidDataset();
+    if(!dataset) {
+        RAISE_RUNTIME_ERROR << "DCMFile::readTile: unexpected null as dataset for file " << m_filePath;
+    }
+    tileRaster.create(m_tileSize, CV_MAKETYPE(CVTools::cvTypeFromDataType(m_dataType),getNumChannels()));
+    cv::Mat mat = tileRaster.getMat();
+    std::vector<cv::Mat> frames;
+    frames.push_back(mat);
+    extractPixelsPartialy(frames, tileIndex, 1);
+    return true;
+}
+
