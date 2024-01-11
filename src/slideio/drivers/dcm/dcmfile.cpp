@@ -480,6 +480,11 @@ void DCMFile::extractPixelsPartialy(std::vector<cv::Mat>& frames, int startFrame
             cv::Mat channelB(image->getHeight(), image->getWidth(), CV_MAKE_TYPE(cvIntermediateType, 1), blue);
             std::vector<cv::Mat> rgb = {channelR, channelG, channelB};
             cv::merge(rgb, frames[frame]);
+            if (cvIntermediateType != cvOriginalType || m_useRescaling)
+            {
+                frames[frame].convertTo(frames[frame], CV_MAKE_TYPE(cvOriginalType, numChannels), m_rescaleSlope,
+                    -m_rescaleIntercept);
+            }
         }
         else
         {
