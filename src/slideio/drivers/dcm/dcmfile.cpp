@@ -146,12 +146,22 @@ void DCMFile::init()
     {
         m_numChannels = 1;
     }
+    if(!getDblTag(DCM_EmmetropicMagnification, m_magnification, 0)) {
+        getDblTag(DCM_OpticalMagnificationFactor, m_magnification, 0);
+    }
     m_useWindowing = getDblTag(DCM_WindowCenter, m_windowCenter, -1.) &&
         getDblTag(DCM_WindowWidth, m_windowWidth, -1.);
 
     getDblTag(DCM_RescaleSlope, m_rescaleSlope, 1.);
     getDblTag(DCM_RescaleIntercept, m_rescaleIntercept, 0.);
     m_useRescaling = std::abs(m_rescaleSlope - 1.) > 1.e-6 || m_rescaleIntercept > 0.9;
+
+    if(!dataset->findAndGetFloat64(DCM_PixelSpacing, m_resolution.x, 0).good()) {
+        m_resolution.x = 0.;
+    }
+    if (!dataset->findAndGetFloat64(DCM_PixelSpacing, m_resolution.y, 1).good()) {
+        m_resolution.y = 0.;
+    }
 
     getStringTag(DCM_SeriesDescription, m_seriesDescription);
     if (!getIntTag(DCM_BitsAllocated, m_bitsAllocated))

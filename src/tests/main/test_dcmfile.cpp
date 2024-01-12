@@ -319,6 +319,12 @@ TEST(DCMFile, WSIFileAttributes) {
     EXPECT_EQ(77550, file.getNumFrames());
     EXPECT_EQ(72192, file.getWidth());
     EXPECT_EQ(70400, file.getHeight());
+    EXPECT_EQ(Compression::Jpeg, file.getCompression());
+    EXPECT_EQ(0, file.getMagnification());
+    EXPECT_EQ(3,file.getNumChannels());
+    EXPECT_EQ(1, file.getNumSlices());
+    EXPECT_EQ(DataType::DT_Byte, file.getDataType());
+    EXPECT_EQ(Resolution(0.,0.), file.getResolution());
 }
 
 TEST(DCMFile, getTileRect) {

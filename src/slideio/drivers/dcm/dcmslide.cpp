@@ -251,6 +251,7 @@ void DCMSlide::initFromWSIFile() {
     std::shared_ptr<WSIScene> scene(new WSIScene);
     std::shared_ptr<DCMFile> file(new DCMFile(m_srcPath));
     file->init();
+    file->setScale(1.0);
     scene->addFile(file);
     scene->init();
     m_scenes.push_back(scene);

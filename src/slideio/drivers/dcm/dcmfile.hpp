@@ -11,6 +11,7 @@
 #include <opencv2/core.hpp>
 
 #include "slideio/base/slideio_enums.hpp"
+#include "slideio/core/cvstructs.hpp"
 
 #if defined(_MSC_VER)
 #pragma warning( push )
@@ -110,6 +111,12 @@ namespace slideio
         }
 
         std::string getMetadata();
+        double getMagnification() const {
+            return m_magnification;
+        }
+        const Resolution& getResolution() const {
+            return m_resolution;
+        }
         static bool isDicomDirFile(const std::string& filePath);
         static bool isWSIFile(const std::string& filePath);
 
@@ -122,6 +129,12 @@ namespace slideio
         }
         bool getTileRect(int tileIndex, cv::Rect& tileRect) const;
         bool readTile(int tileIndex, cv::OutputArray tileRaster);
+        double getScale() const {
+            return m_scale;
+        }
+        void setScale(double scale) {
+            m_scale = scale;
+        }
     private:
         void extractPixelsPartialy(std::vector<cv::Mat>& frames, int startFrame, int numFrames);
         void extractPixelsWholeFileDecompression(std::vector<cv::Mat>& mats, int startFrame, int numFrames);
@@ -133,7 +146,6 @@ namespace slideio
         bool getIntTag(const DcmTagKey& tag, int& value, int pos = 0) const;
         bool getStringTag(const DcmTagKey& tag, std::string& value) const;
         bool getDblTag(const DcmTagKey& tag, double& value, double defaultValue);
-
     private:
         std::string m_filePath;
         std::shared_ptr<DcmFileFormat> m_file;
@@ -160,6 +172,9 @@ namespace slideio
         bool m_WSISlide = false;
         int m_frames = 1;
         cv::Size m_tileSize = {0, 0};
+        double m_magnification = 0.;
+        Resolution m_resolution = { 0. };
+        double m_scale = 1.;
     };
 }
 
