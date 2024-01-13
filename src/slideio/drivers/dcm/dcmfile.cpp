@@ -119,6 +119,38 @@ void DCMFile::init()
     std::shared_ptr<DicomImage> image;
     DcmDataset* dataset = getValidDataset();
 
+    std::string sopClassUID;
+    getStringTag(DCM_SOPClassUID, sopClassUID);
+    std::string dimensionOrganization;
+    getStringTag(DCM_DimensionOrganizationType, dimensionOrganization);
+    getStringTag(DCM_ImageType, 2, m_imageType);
+
+    m_WSISlide = (sopClassUID == UID_VLWholeSlideMicroscopyImageStorage);
+    if (dimensionOrganization == "TILED_FULL") {
+        m_bTiled = true;
+    }
+
+    if(!m_bTiled)
+    {
+        try {
+            image = createImage();
+        }
+        catch (slideio::RuntimeError& err) {
+            m_decompressWholeFile = true;
+            SLIDEIO_LOG(WARNING) << "DCMFile::init: Cannot create DicomImage instance for the file:"
+                << m_filePath
+                << ". Trying to decomress the whole file. Error message:"
+                << err.what();
+            OFCondition cond = dataset->chooseRepresentation(EXS_LittleEndianExplicit, nullptr);
+            if (!cond.good()) {
+                RAISE_RUNTIME_ERROR << "DCMFile::init Cannot decompress the file "
+                    << m_filePath
+                    << ". Error message:"
+                    << cond.text();
+            }
+        }
+    }
+
     if (!getIntTag(DCM_Columns, m_width))
     {
         RAISE_RUNTIME_ERROR << "DCMImageDriver: Cannot extract image width for the file:" << m_filePath;
@@ -205,17 +237,6 @@ void DCMFile::init()
         m_numChannels = 3;
     }
 
-    std::string sopClassUID;
-    getStringTag(DCM_SOPClassUID, sopClassUID);
-    std::string dimensionOrganization;
-    getStringTag(DCM_DimensionOrganizationType, dimensionOrganization);
-
-    getStringTag(DCM_ImageType, 2, m_imageType);
-
-    m_WSISlide = (sopClassUID == UID_VLWholeSlideMicroscopyImageStorage);
-    if(dimensionOrganization == "TILED_FULL") {
-        m_bTiled = true;
-    }
 
     if(m_WSISlide && m_bTiled) {
         m_frames = m_slices;
@@ -227,24 +248,6 @@ void DCMFile::init()
         }
         if (!getIntTag(DCM_TotalPixelMatrixRows, m_height)) {
             RAISE_RUNTIME_ERROR << "DCMImageDriver: Cannot extract total pixel matrix rows for WSI file:" << m_filePath;
-        }
-    } else {
-        try {
-            image = createImage();
-        }
-        catch (slideio::RuntimeError& err) {
-            m_decompressWholeFile = true;
-            SLIDEIO_LOG(WARNING) << "DCMFile::init: Cannot create DicomImage instance for the file:"
-                << m_filePath
-                << ". Trying to decomress the whole file. Error message:"
-                << err.what();
-            OFCondition cond = dataset->chooseRepresentation(EXS_LittleEndianExplicit, nullptr);
-            if (!cond.good()) {
-                RAISE_RUNTIME_ERROR << "DCMFile::init Cannot decompress the file "
-                    << m_filePath
-                    << ". Error message:"
-                    << cond.text();
-            }
         }
     }
 }

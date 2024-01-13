@@ -54,7 +54,7 @@ TEST(DCMFile, initPaletted)
     EXPECT_EQ(height, 430);
     EXPECT_EQ(numSlices, 10);
     EXPECT_EQ(3, file.getNumChannels());
-    EXPECT_EQ(file.getDataType(), DataType::DT_Byte);
+    EXPECT_EQ(file.getDataType(), DataType::DT_UInt16);
     EXPECT_EQ(file.getPhotointerpretation(), EPhotoInterpetation::PHIN_PALETTE);
 
 }
@@ -133,13 +133,13 @@ TEST(DCMFile, pixelPaleteExtended)
     EXPECT_EQ(3, frames[0].channels());
     cv::Mat bmpImage1;
     slideio::ImageTools::readGDALImage(testPath1, bmpImage1);
-    TestTools::showRasters(frames[0], bmpImage1);
+    //TestTools::showRaster(frames[0]);
     double similarity = ImageTools::computeSimilarity(frames[0], bmpImage1, true);
     EXPECT_LT(0.92, similarity);
     cv::Mat bmpImage2;
     slideio::ImageTools::readGDALImage(testPath2, bmpImage2);
-    TestTools::showRasters(frames[1], bmpImage2);
-    similarity = ImageTools::computeSimilarity2(frames[1], bmpImage2);
+    //TestTools::showRaster(frames[1]);
+    similarity = ImageTools::computeSimilarity(frames[1], bmpImage2, true);
     EXPECT_LT(0.92, similarity);
 }
 
@@ -229,7 +229,7 @@ TEST(DCMFile, channelDataType)
     DCMFile file(slidePath);
     file.init();
     DataType dt = file.getDataType();
-    ASSERT_EQ(dt, DataType::DT_Byte);
+    ASSERT_EQ(dt, DataType::DT_UInt16);
 }
 
 TEST(DCMFile, pixelValuesCTMono)
