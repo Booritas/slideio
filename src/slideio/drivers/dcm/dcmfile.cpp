@@ -210,12 +210,14 @@ void DCMFile::init()
     std::string dimensionOrganization;
     getStringTag(DCM_DimensionOrganizationType, dimensionOrganization);
 
+    getStringTag(DCM_ImageType, 2, m_imageType);
+
     m_WSISlide = (sopClassUID == UID_VLWholeSlideMicroscopyImageStorage);
-    if(m_WSISlide && dimensionOrganization != "TILED_FULL") {
-        RAISE_RUNTIME_ERROR << "DCMImageDriver: Unsupported dimension organization type for WSI file. Expected: TILED_FULL, received:" << dimensionOrganization;
+    if(dimensionOrganization == "TILED_FULL") {
+        m_bTiled = true;
     }
 
-    if(m_WSISlide) {
+    if(m_WSISlide && m_bTiled) {
         m_frames = m_slices;
         m_slices = 1;
         m_tileSize = { m_width, m_height };
@@ -433,7 +435,7 @@ void DCMFile::extractPixelsPartialy(std::vector<cv::Mat>& frames, int startFrame
     const int numFileFrames = image->getFrameCount();
     const int numChannels = getNumChannels();
     const DataType originalDataType = getDataType();
-    const int numFramePixels = isWSIFile()?(m_tileSize.width*m_tileSize.height):(getWidth() * getHeight());
+    const int numFramePixels = m_bTiled?(m_tileSize.width*m_tileSize.height):(getWidth() * getHeight());
     const int cvOriginalType = CVTools::toOpencvType(originalDataType);
 
     frames.resize(numFrames);
@@ -733,6 +735,18 @@ bool DCMFile::getStringTag(const DcmTagKey& tag, std::string& value) const
     OFString dstrVal;
     if (dataset->findAndGetOFString(tag, dstrVal).good())
     {
+        value = dstrVal.c_str();
+        ok = true;
+    }
+    return ok;
+}
+
+bool DCMFile::getStringTag(const DcmTagKey& tag, int index, std::string& value) const {
+    bool ok(false);
+    bool bRet(false);
+    DcmDataset* dataset = getValidDataset();
+    OFString dstrVal;
+    if (dataset->findAndGetOFString(tag, dstrVal, 2, OFTrue).good()) {
         value = dstrVal.c_str();
         ok = true;
     }

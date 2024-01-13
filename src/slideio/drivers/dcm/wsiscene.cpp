@@ -6,6 +6,7 @@
 
 #include "slideio/base/exceptions.hpp"
 #include "slideio/core/tools/tools.hpp"
+#include "slideio/drivers/dcm/dcmscene.hpp"
 
 using namespace slideio;
 namespace fs = boost::filesystem;
@@ -16,11 +17,32 @@ WSIScene::WSIScene() {
 }
 
 void WSIScene::addFile(std::shared_ptr<DCMFile>& file) {
-	m_files.push_back(file);
+	if(file->isAuxImage()) {
+        std::shared_ptr<DCMScene> auxScene = std::make_shared<DCMScene>();
+		auxScene->addFile(file);
+		auxScene->init();
+	    m_auxNames.push_back(file->getImageType());
+		m_auxImages[file->getImageType()] = auxScene;
+    } else {
+		m_files.push_back(file);
+	}
 }
 
 void WSIScene::init() {
-    std::shared_ptr<DCMFile> baseFile = getBaseFile();
+	std::sort(m_files.begin(), m_files.end(), 
+		[](const std::shared_ptr<DCMFile>& file1, const std::shared_ptr<DCMFile>& file2) {
+		    return file1->getWidth() > file2->getWidth();
+		});
+
+	std::shared_ptr<DCMFile> baseFile = getBaseFile();
+	const int baseWidth = baseFile->getWidth();
+
+	for(auto& file : m_files) {
+	    const int width = file->getWidth();
+		const double scale = static_cast<double>(width) / static_cast<double>(baseWidth);
+		file->setScale(scale);
+	}
+
 	m_name = baseFile->getSeriesUID();
 	m_rect = cv::Rect(0, 0, baseFile->getWidth(), baseFile->getHeight());
 	m_dataType = baseFile->getDataType();
@@ -123,4 +145,13 @@ void WSIScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv:
 	userData.zSliceIndex = zSliceIndex;
 	userData.tFrameIndex = tFrameIndex;
 	TileComposer::composeRect(this, componentIndices, zoomLevelRect, blockSize, output, &userData);
+}
+
+std::shared_ptr<CVScene> WSIScene::getAuxImage(const std::string& imageName) const {
+	auto it = m_auxImages.find(imageName);
+	if(it == m_auxImages.end()) {
+	    RAISE_RUNTIME_ERROR << "DICOM WSI: cannot find aux image " + imageName;
+	}
+    std::shared_ptr<DCMScene> scene = it->second;
+    return scene;
 }

@@ -15,6 +15,7 @@
 
 namespace slideio
 {
+    class DCMScene;
     class DCMSlide;
     class SLIDEIO_DCM_EXPORTS WSIScene : public CVScene, public Tiler
     {
@@ -51,6 +52,7 @@ namespace slideio
         void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
             const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex,
             cv::OutputArray output) override;
+        std::shared_ptr<CVScene> getAuxImage(const std::string& imageName) const override;
 
     private:
         std::vector<std::shared_ptr<DCMFile>> m_files;
@@ -64,5 +66,6 @@ namespace slideio
         Compression m_compression = Compression::Unknown;
         double m_magnification = 0;
         Resolution m_resolution = { 0, 0 };
+        std::map<std::string, std::shared_ptr<DCMScene>> m_auxImages;
     };
 };

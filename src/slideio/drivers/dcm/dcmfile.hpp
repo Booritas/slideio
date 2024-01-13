@@ -135,6 +135,15 @@ namespace slideio
         void setScale(double scale) {
             m_scale = scale;
         }
+        bool isTiled() const {
+            return m_bTiled;
+        }
+        const std::string& getImageType() const {
+            return m_imageType;
+        }
+        bool isAuxImage() const {
+            return m_imageType != "VOLUME";
+        }
     private:
         void extractPixelsPartialy(std::vector<cv::Mat>& frames, int startFrame, int numFrames);
         void extractPixelsWholeFileDecompression(std::vector<cv::Mat>& mats, int startFrame, int numFrames);
@@ -145,6 +154,7 @@ namespace slideio
         DcmDataset* getValidDataset() const;
         bool getIntTag(const DcmTagKey& tag, int& value, int pos = 0) const;
         bool getStringTag(const DcmTagKey& tag, std::string& value) const;
+        bool getStringTag(const DcmTagKey& tag, int index, std::string& value) const;
         bool getDblTag(const DcmTagKey& tag, double& value, double defaultValue);
     private:
         std::string m_filePath;
@@ -175,6 +185,8 @@ namespace slideio
         double m_magnification = 0.;
         Resolution m_resolution = { 0. };
         double m_scale = 1.;
+        bool m_bTiled = false;
+        std::string m_imageType;
     };
 }
 

@@ -133,11 +133,13 @@ TEST(DCMFile, pixelPaleteExtended)
     EXPECT_EQ(3, frames[0].channels());
     cv::Mat bmpImage1;
     slideio::ImageTools::readGDALImage(testPath1, bmpImage1);
+    TestTools::showRasters(frames[0], bmpImage1);
     double similarity = ImageTools::computeSimilarity(frames[0], bmpImage1, true);
     EXPECT_LT(0.92, similarity);
     cv::Mat bmpImage2;
     slideio::ImageTools::readGDALImage(testPath2, bmpImage2);
-    similarity = ImageTools::computeSimilarity(frames[1], bmpImage2, true);
+    TestTools::showRasters(frames[1], bmpImage2);
+    similarity = ImageTools::computeSimilarity2(frames[1], bmpImage2);
     EXPECT_LT(0.92, similarity);
 }
 

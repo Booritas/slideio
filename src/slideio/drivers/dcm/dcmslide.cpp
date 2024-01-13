@@ -56,9 +56,7 @@ void DCMSlide::initFromFile() {
     SLIDEIO_LOG(INFO) << "DCMSlide::initFromFile-end: initialize DCMSlide from file: " << m_srcPath;
 }
 
-void DCMSlide::processSeries(std::vector<std::shared_ptr<DCMFile>>& files, bool keepOrder) {
-    SLIDEIO_LOG(INFO) << "DCMSlide::processSeries-begin: initialize DCMSlide from file: " << m_srcPath;
-
+void DCMSlide::processRegularSeries(std::vector<std::shared_ptr<DCMFile>>& files, bool keepOrder) {
     auto compare = [](std::shared_ptr<DCMFile> left, std::shared_ptr<DCMFile> right)-> bool {
         if (left->getWidth() < right->getWidth()) {
             return true;
@@ -124,6 +122,37 @@ void DCMSlide::processSeries(std::vector<std::shared_ptr<DCMFile>>& files, bool 
             SLIDEIO_LOG(WARNING) << "DCMSlide::processSeries: error initialization of scene: " << scene->getFilePath()
                 << ". Error: " << ex.what();
         }
+    }
+}
+
+void DCMSlide::processWSISeries(std::vector<std::shared_ptr<DCMFile>>& files) {
+    std::vector<std::shared_ptr<DCMFile>> auxFiles;
+    auto scene = std::make_shared<WSIScene>();
+    for(auto&& file : files) {
+        scene->addFile(file);
+    }
+    scene->init();
+    m_scenes.push_back(scene);
+}
+
+void DCMSlide::processSeries(std::vector<std::shared_ptr<DCMFile>>& files, bool keepOrder) {
+    SLIDEIO_LOG(INFO) << "DCMSlide::processSeries-begin: initialize DCMSlide from file: " << m_srcPath;
+
+    std::vector<std::shared_ptr<DCMFile>> wsiFiles;
+    auto moveIterator = std::remove_if(files.begin(), files.end(), [&wsiFiles](std::shared_ptr<DCMFile> file) {
+        if (file->isWSIFile()) {
+            wsiFiles.push_back(file);
+            return true;
+        }
+        return false;
+    });
+    files.erase(moveIterator, files.end());
+
+    if(!wsiFiles.empty()) {
+        processWSISeries(wsiFiles);
+    }
+    if(!files.empty()) {
+        processRegularSeries(files, keepOrder);
     }
     SLIDEIO_LOG(INFO) << "DCMSlide::processSeries-end: initialize DCMSlide from file: " << m_srcPath;
 }

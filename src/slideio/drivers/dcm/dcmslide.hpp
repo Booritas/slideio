@@ -26,7 +26,10 @@ namespace slideio
         std::string getFilePath() const override;
         std::shared_ptr<CVScene> getScene(int index) const override;
         void initFromFile();
+        void processRegularSeries(std::vector<std::shared_ptr<DCMFile>>& files, bool keepOrder);
+
     private:
+        void processWSISeries(std::vector<std::shared_ptr<DCMFile>>& dcmFiles);
         void processSeries(std::vector<std::shared_ptr<DCMFile>>& files, bool keepOrder=false);
         void initFromDir();
         void initFromDicomDirFile();
