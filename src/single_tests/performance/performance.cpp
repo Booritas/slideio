@@ -6,12 +6,12 @@ using namespace slideio;
 void test()
 {
     DCMImageDriver driver;
-    const std::string filePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB49P-24900/H01EBB49P-24900_level-0.dcm");
+    const std::string filePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB49P-24900");
     auto slide = driver.openFile(filePath.c_str());
     auto scene = slide->getScene(0);
     auto rect = scene->getRect();
     cv::Mat mat;
-    scene->readBlock(rect, mat);
+    //scene->readBlock(rect, mat);
     // cv::Rect blockRect[] = {
     //     {1000,1000,256,256},
     //     {2000,2000,256,256},

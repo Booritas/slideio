@@ -82,7 +82,10 @@ void DCMFile::loadFile()
 #if defined(WIN32)
     std::wstring filePathW = Tools::toWstring(m_filePath);
     OFFilename filename(filePathW.c_str());
-    OFCondition status = m_file->loadFile(filename);
+    OFCondition status = m_file->loadFile(filename, EXS_Unknown, EGL_noChange, 128, ERM_fileOnly);
+    if(status.bad()) {
+        status = m_file->loadFile(filename);
+    }
 #else
     OFCondition status = m_file->loadFile(m_filePath.c_str());
 #endif
