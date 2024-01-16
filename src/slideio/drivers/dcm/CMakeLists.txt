@@ -15,6 +15,12 @@ set(SOURCE_FILES
         ${CMAKE_CURRENT_SOURCE_DIR}/dcm_api_def.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/wsiscene.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/wsiscene.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/jp2codecparameter.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/jp2codecparameter.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/jp2decoder.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/jp2decoder.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/jp2decoderregistration.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/jp2decoderregistration.cpp
         )
 
 add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES})

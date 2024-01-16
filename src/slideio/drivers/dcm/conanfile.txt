@@ -9,6 +9,7 @@ xz_utils/5.4.2
 dcmtk/3.6.7@slideio/stable
 libiconv/1.17
 libwebp/1.2.4
+openjpeg/2.5.0
 [options]
 glog:shared=True
 dcmtk:wide_io=True

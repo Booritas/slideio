@@ -425,3 +425,12 @@ TEST(DCMFile, readTile2) {
     //TestTools::showRasters(testImage, tileRaster);
 
 }
+
+TEST(DCMFile, readJ2K) {
+    DCMImageDriver::initializeDCMTK();
+
+    std::string filePath = TestTools::getTestImagePath("dcm", "openmicroscopy.org/MG1_J2KI");
+    std::string testFilePath = TestTools::getTestImagePath("dcm", "openmicroscopy.org/MG1_J2KI.png");
+    DCMFile file(filePath);
+    file.init();
+}
