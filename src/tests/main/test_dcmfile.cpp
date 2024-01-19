@@ -436,8 +436,7 @@ TEST(DCMFile, readJ2K) {
     EXPECT_EQ(1, file.getNumChannels());
     EXPECT_EQ(DataType::DT_Int16, file.getDataType());
     std::vector<cv::Mat> frames;
-    //file.readPixelValues(frames,0,1);
-    file.readFrame(0, frames[0]);
+    file.readPixelValues(frames,0,1);
     //ImageTools::writeTiffImage(testFilePath, frames[0]);
     cv::Mat testImage;
     ImageTools::readGDALImage(testFilePath, testImage);
