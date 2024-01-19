@@ -5,6 +5,9 @@
 // includes
 //----------------------------------------------
 #include "jp2decoder.hpp"
+
+#include <dcmjpeg/djdecode.h>
+
 #include "jp2codecparameter.hpp"
 
 #include "dcmtk/dcmdata/dcdatset.h"  /* for class DcmDataset */
@@ -14,7 +17,9 @@
 #include "dcmtk/dcmdata/dcvrpobw.h"  /* for class DcmPolymorphOBOW */
 #include "dcmtk/dcmdata/dcswap.h"    /* for swapIfNecessary() */
 #include "dcmtk/dcmdata/dcuid.h"     /* for dcmGenerateUniqueIdentifer()*/
+#include "slideio/base/exceptions.hpp"
 #include "slideio/base/slideio_enums.hpp"
+#include "slideio/imagetools/imagetools.hpp"
 
 using namespace slideio;
 
@@ -55,37 +60,14 @@ Jp2Decoder::Photometric Jp2Decoder::DVPhotometricFromDCMTKString(const char* szN
 	return ePh;
 }
 
-//--------------------------------------------------------------------------------
-//  Method: constructor
-//  Parameters: 
-//  Return value:
-//--------------------------------------------------------------------------------
-//
-//--------------------------------------------------------------------------------
 Jp2Decoder::Jp2Decoder(void)
 {
 }
 
-//--------------------------------------------------------------------------------
-//  Method: destructor
-//  Parameters: 
-//  Return value:
-//--------------------------------------------------------------------------------
-//
-//--------------------------------------------------------------------------------
 Jp2Decoder::~Jp2Decoder(void)
 {
 }
 
-//--------------------------------------------------------------------------------
-//  Method: canChangeCoding
-//  Parameters: 
-//              const E_TransferSyntax oldRepType:
-//              const E_TransferSyntax newRepType:
-//  Return value:
-//--------------------------------------------------------------------------------
-//
-//--------------------------------------------------------------------------------
 OFBool Jp2Decoder::canChangeCoding(const E_TransferSyntax oldRepType, const E_TransferSyntax newRepType) const
 {
 	E_TransferSyntax myXfer = EXS_JPEG2000;
@@ -98,35 +80,164 @@ OFBool Jp2Decoder::canChangeCoding(const E_TransferSyntax oldRepType, const E_Tr
 }
 
 
-//--------------------------------------------------------------------------------
-//  Method: encode
-//  Parameters: 
-//              const Uint16 *:
-//              const Uint32:
-//              const DcmRepresentationParameter *:
-//              DcmPixelSequence * &:
-//              const DcmCodecParameter *:
-//              DcmStack &:
-//  Return value:
-//--------------------------------------------------------------------------------
-//
-//--------------------------------------------------------------------------------
-OFCondition Jp2Decoder::encode(
-	const Uint16* /* pixelData */,
-	const Uint32 /* length */,
-	const DcmRepresentationParameter* /* toRepParam */,
-	DcmPixelSequence*& /* pixSeq */,
-	const DcmCodecParameter* /* cp */,
-	DcmStack& /* objStack */) const
-{
-	// we are a decoder only
-	return EC_IllegalCall;
-}
-
 OFCondition Jp2Decoder::decode(const DcmRepresentationParameter* fromRepParam, DcmPixelSequence* pixSeq,
     DcmPolymorphOBOW& uncompressedPixelData, const DcmCodecParameter* cp, const DcmStack& objStack,
     OFBool& removeOldRep) const {
-	return EC_IllegalCall;
+        {
+            OFCondition result = EC_Normal;
+
+            // this codec may modify the DICOM header such that the previous pixel
+            // representation is not valid anymore. Indicate this to the caller
+            // to trigger removal.
+            removeOldRep = OFTrue;
+
+            // assume we can cast the codec parameter to what we need
+            const Jp2CodecParameter* params = OFreinterpret_cast(const Jp2CodecParameter*, cp);
+
+            DcmStack localStack(objStack);
+            (void)localStack.pop();             // pop pixel data element from stack
+            DcmObject* dataset = localStack.pop(); // this is the item in which the pixel data is located
+            if ((!dataset) || ((dataset->ident() != EVR_dataset) && (dataset->ident() != EVR_item))) result = EC_InvalidTag;
+            else
+            {
+                Uint16 imageSamplesPerPixel = 0;
+                Uint16 imageRows = 0;
+                Uint16 imageColumns = 0;
+                Sint32 imageFrames = 1;
+                Uint16 imageBitsAllocated = 0;
+                Uint16 imageBitsStored = 0;
+                Uint16 imageHighBit = 0;
+                const char* sopClassUID = NULL;
+                OFBool createPlanarConfiguration = OFFalse;
+                OFBool createPlanarConfigurationInitialized = OFFalse;
+                EP_Interpretation colorModel = EPI_Unknown;
+                OFBool isSigned = OFFalse;
+                Uint16 pixelRep = 0; // needed to decline color conversion of signed pixel data to RGB
+                OFBool numberOfFramesPresent = OFFalse;
+
+                if (result.good()) result = OFreinterpret_cast(DcmItem*, dataset)->findAndGetUint16(DCM_SamplesPerPixel, imageSamplesPerPixel);
+                if (result.good()) result = OFreinterpret_cast(DcmItem*, dataset)->findAndGetUint16(DCM_Rows, imageRows);
+                if (result.good()) result = OFreinterpret_cast(DcmItem*, dataset)->findAndGetUint16(DCM_Columns, imageColumns);
+                if (result.good()) result = OFreinterpret_cast(DcmItem*, dataset)->findAndGetUint16(DCM_BitsAllocated, imageBitsAllocated);
+                if (result.good()) result = OFreinterpret_cast(DcmItem*, dataset)->findAndGetUint16(DCM_BitsStored, imageBitsStored);
+                if (result.good()) result = OFreinterpret_cast(DcmItem*, dataset)->findAndGetUint16(DCM_HighBit, imageHighBit);
+                if (result.good()) result = OFreinterpret_cast(DcmItem*, dataset)->findAndGetUint16(DCM_PixelRepresentation, pixelRep);
+                isSigned = (pixelRep == 0) ? OFFalse : OFTrue;
+
+                // number of frames is an optional attribute - we don't mind if it isn't present.
+                if (result.good()){
+                    if (OFreinterpret_cast(DcmItem*, dataset)->findAndGetSint32(DCM_NumberOfFrames, imageFrames).good()) numberOfFramesPresent = OFTrue;
+                }
+
+                // we consider SOP Class UID as optional since we only need it to determine SOP Class specific
+                // encoding rules for planar configuration.
+                if (result.good()) (void) OFreinterpret_cast(DcmItem*, dataset)->findAndGetString(DCM_SOPClassUID, sopClassUID);
+
+                EP_Interpretation dicomPI = DcmJpegHelper::getPhotometricInterpretation(OFreinterpret_cast(DcmItem*, dataset));
+
+                OFBool isYBR = OFFalse;
+                if ((dicomPI == EPI_YBR_Full) || (dicomPI == EPI_YBR_Full_422) || (dicomPI == EPI_YBR_Partial_422)) isYBR = OFTrue;
+
+                if (imageFrames >= OFstatic_cast(Sint32, pixSeq->card()))
+                    imageFrames = OFstatic_cast(Sint32, pixSeq->card() - 1); // limit number of frames to number of pixel items - 1
+                if (imageFrames < 1)
+                    imageFrames = 1; // default in case the number of frames attribute contains garbage
+
+                if (result.good())
+                {
+                    DcmPixelItem* pixItem = NULL;
+                    Uint8* jp2Data = NULL;
+                    result = pixSeq->getItem(pixItem, 1); // first item is offset table, use second item
+                    if (result.good() && (pixItem != NULL))
+                    {
+                        Uint32 fragmentLength = pixItem->getLength();
+                        result = pixItem->getUint8Array(jp2Data);
+                        if (result.good())
+                        {
+                            if (jp2Data == NULL) {
+								result = EC_CorruptedData; // JPEG data stream is empty/absent
+							} else {
+								ImageTools::ImageHeader header;
+								ImageTools::readJp2KStremHeader(jp2Data, fragmentLength, header);
+								int cvType = header.chanelTypes[0];
+								Uint32 imageBytesAllocated = sizeof(Uint8);
+								if(cvType == CV_16U || cvType == CV_16S) {
+								    imageBytesAllocated = sizeof(Uint16);
+                                } else if(cvType == CV_32S ) {
+                                    imageBytesAllocated = sizeof(Uint32);
+                                } else {
+                                    return EC_CannotChangeRepresentation;
+                                } 
+								Uint32 frameSize = imageBytesAllocated * imageRows * imageColumns * imageSamplesPerPixel;
+
+								// check for overflow
+								if (imageRows != 0 && frameSize / imageRows != (imageBytesAllocated * imageColumns * imageSamplesPerPixel))
+								{
+									DCMJPEG_WARN("cannot decompress image because uncompressed representation would exceed maximum possible size of PixelData attribute");
+									return EC_ElemLengthExceeds32BitField;
+								}
+
+								Uint32 totalSize = frameSize * imageFrames;
+
+								// check for overflow
+								if (totalSize == 0xFFFFFFFF || (frameSize != 0 && totalSize / frameSize != OFstatic_cast(Uint32, imageFrames)))
+								{
+									DCMJPEG_WARN("cannot decompress image because uncompressed representation would exceed maximum possible size of PixelData attribute");
+									return EC_ElemLengthExceeds32BitField;
+								}
+
+								if (totalSize & 1) 
+									totalSize++; // align on 16-bit word boundary
+								Uint16* imageData16 = NULL;
+								Sint32 currentFrame = 0;
+								size_t currentItem = 1; // ignore offset table
+								result = uncompressedPixelData.createUint16Array(totalSize / sizeof(Uint16), imageData16);
+								Uint8* imageData8 = OFreinterpret_cast(Uint8*, imageData16);
+								while ((currentFrame < imageFrames) && (result.good()))
+								{
+									result = EJ_Suspension;
+									while (EJ_Suspension == result)
+									{
+										result = pixSeq->getItem(pixItem, OFstatic_cast(Uint32, currentItem++));
+										if (result.good())
+										{
+											fragmentLength = pixItem->getLength();
+											result = pixItem->getUint8Array(jp2Data);
+											if (result.good())
+											{
+												cv::Mat output;
+												try {
+													ImageTools::decodeJp2KStream(jp2Data, fragmentLength, output);
+													memcpy(imageData8, output.data, frameSize);
+												}
+												catch (std::exception& e) {
+													SLIDEIO_LOG(ERROR) << "Error decoding jpeg stream: " << e.what();
+													result = EC_CannotChangeRepresentation;
+												}
+											}
+										}
+									}
+									currentFrame++;
+									imageData8 += frameSize;
+								}
+
+							}
+                        }
+                    }
+                }
+
+                if (dataset->ident() == EVR_dataset)
+                {
+                    DcmItem* ditem = OFreinterpret_cast(DcmItem*, dataset);
+                    // create new SOP instance UID if codec parameters require so
+                    if (result.good() && (params->getUIDCreation() == EUC_always)) {
+                        result = DcmCodec::newInstance(ditem, NULL, NULL, NULL);
+                    }
+                }
+
+            }
+            return result;
+        }
 }
 
 OFCondition Jp2Decoder::decodeFrame(const DcmRepresentationParameter* fromParam, DcmPixelSequence* fromPixSeq,
@@ -154,45 +265,6 @@ OFCondition Jp2Decoder::determineDecompressedColorModel(const DcmRepresentationP
 }
 
 
-//--------------------------------------------------------------------------------
-//  Method: encode
-//  Parameters: 
-//              const E_TransferSyntax:
-//              const DcmRepresentationParameter *:
-//              DcmPixelSequence *:
-//              const DcmRepresentationParameter *:
-//              DcmPixelSequence * &:
-//              const DcmCodecParameter *:
-//              DcmStack &:
-//  Return value:
-//--------------------------------------------------------------------------------
-//
-//--------------------------------------------------------------------------------
-OFCondition Jp2Decoder::encode(
-	const E_TransferSyntax /* fromRepType */,
-	const DcmRepresentationParameter* /* fromRepParam */,
-	DcmPixelSequence* /* fromPixSeq */,
-	const DcmRepresentationParameter* /* toRepParam */,
-	DcmPixelSequence*& /* toPixSeq */,
-	const DcmCodecParameter* /* cp */,
-	DcmStack& /* objStack */) const
-{
-	// we don't support re-coding for now.
-	return EC_IllegalCall;
-}
-
-//--------------------------------------------------------------------------------
-//  Method: decode
-//  Parameters: 
-//              const DcmRepresentationParameter *:
-//              DcmPixelSequence * pixSeq:
-//              DcmPolymorphOBOW& uncompressedPixelData:
-//              const DcmCodecParameter * cp:
-//              const DcmStack& objStack:
-//  Return value:
-//--------------------------------------------------------------------------------
-//
-//--------------------------------------------------------------------------------
 OFCondition Jp2Decoder::decode(const DcmRepresentationParameter* /* fromRepParam */, DcmPixelSequence* pixSeq,
 	DcmPolymorphOBOW& uncompressedPixelData, const DcmCodecParameter* cp, const DcmStack& objStack) const
 {
@@ -312,16 +384,19 @@ OFCondition Jp2Decoder::decode(const DcmRepresentationParameter* /* fromRepParam
 						fragmentLength = pixItem->getLength();
 						result = pixItem->getUint8Array(jp2Data);
 						if (result.good()) {
-							//if (!JP2Decode(jp2Data, fragmentLength, eDataType, ePh, imageColumns, imageRows, imageSamplesPerPixel, imageData8, frameSize)) {
-							//	result = EC_CannotChangeRepresentation;
-							//}
+							cv::Mat output;
+                            try {
+                                ImageTools::decodeJp2KStream(jp2Data, totalSize, output);
+                            }
+                            catch (std::exception& e) {
+								SLIDEIO_LOG(ERROR) << "Error decoding jpeg stream: " << e.what();
+								result = EC_CannotChangeRepresentation;
+                            }
 						}
 					}
 				}
 			}
 		}
-		// adjust byte order for uncompressed image to little endian
-		//swapIfNecessary(EBO_LittleEndian, gLocalByteOrder, imageData16, totalSize, sizeof(Uint16));
 	}
 	// the following operations do not affect the Image Pixel Module
 	// but other modules such as SOP Common.  We only perform these

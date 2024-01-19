@@ -6,23 +6,11 @@
 #include "jp2decoder.hpp"
 
 using namespace slideio;
-//----------------------------------------------
-// initialization of static members
-//----------------------------------------------
+
 OFBool slideio::Jp2DecoderRegistration::registered = OFFalse;
 slideio::Jp2CodecParameter* slideio::Jp2DecoderRegistration::cp = NULL;
 slideio::Jp2Decoder* Jp2DecoderRegistration::codec = NULL;
 
-//--------------------------------------------------------------------------------
-//  Method: registerCodecs
-//  Parameters: 
-//              OFBool pCreateSOPInstanceUID:
-//              OFBool pVerbose:
-//              OFBool pReverseDecompressionByteOrder:
-//  Return value:
-//--------------------------------------------------------------------------------
-//
-//--------------------------------------------------------------------------------
 void Jp2DecoderRegistration::registerCodecs(OFBool pCreateSOPInstanceUID, OFBool pVerbose, OFBool pReverseDecompressionByteOrder)
 {
 	if (!registered) {
@@ -36,13 +24,6 @@ void Jp2DecoderRegistration::registerCodecs(OFBool pCreateSOPInstanceUID, OFBool
 	}
 }
 
-//--------------------------------------------------------------------------------
-//  Method: cleanup
-//  Parameters: 
-//  Return value:
-//--------------------------------------------------------------------------------
-//
-//--------------------------------------------------------------------------------
 void Jp2DecoderRegistration::cleanup()
 {
 	if (registered) {

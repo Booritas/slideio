@@ -3,10 +3,8 @@
 // of this distribution and at http://slideio.com/license.html.
 #include <gtest/gtest.h>
 
-//#include <opencv2/highgui.hpp>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
-
 #include "slideio/base/exceptions.hpp"
 #include "slideio/drivers/dcm/dcmfile.hpp"
 #include "tests/testlib/testtools.hpp"
@@ -360,7 +358,7 @@ TEST(DCMFile, getTileRect) {
     EXPECT_THROW(file.getTileRect(numTilesX*numTilesY, tileRect), slideio::RuntimeError);
 }
 
-TEST(DCMFile, readTile) {
+TEST(DCMFile, readFrame) {
     if (!TestTools::isFullTestEnabled()) {
         GTEST_SKIP() <<
             "Skip the test because full dataset is not enabled";
@@ -382,7 +380,7 @@ TEST(DCMFile, readTile) {
     EXPECT_TRUE(file.isWSIFile());
 
     cv::Mat tileRaster;
-    file.readTile(2850, tileRaster);
+    file.readFrame(2850, tileRaster);
     EXPECT_EQ(tileSize.width, tileRaster.cols);
     EXPECT_EQ(tileSize.height, tileRaster.rows);
     //TestTools::writePNG(tileRaster, testFilePath);
@@ -393,7 +391,7 @@ TEST(DCMFile, readTile) {
 
 }
 
-TEST(DCMFile, readTile2) {
+TEST(DCMFile, readFrame2) {
     if (!TestTools::isFullTestEnabled()) {
         GTEST_SKIP() <<
             "Skip the test because full dataset is not enabled";
@@ -415,7 +413,7 @@ TEST(DCMFile, readTile2) {
     EXPECT_TRUE(file.isWSIFile());
 
     cv::Mat tileRaster;
-    file.readTile(file.getNumFrames()/3, tileRaster);
+    file.readFrame(file.getNumFrames()/3, tileRaster);
     EXPECT_EQ(tileSize.width, tileRaster.cols);
     EXPECT_EQ(tileSize.height, tileRaster.rows);
     //TestTools::writePNG(tileRaster, testFilePath);
@@ -429,8 +427,19 @@ TEST(DCMFile, readTile2) {
 TEST(DCMFile, readJ2K) {
     DCMImageDriver::initializeDCMTK();
 
-    std::string filePath = TestTools::getTestImagePath("dcm", "openmicroscopy.org/MG1_J2KI");
-    std::string testFilePath = TestTools::getTestImagePath("dcm", "openmicroscopy.org/MG1_J2KI.png");
+    std::string filePath = TestTools::getTestImagePath("dcm", "openmicroscopy.org/CT1_J2KI");
+    std::string testFilePath = TestTools::getTestImagePath("dcm", "openmicroscopy.org/CT1_J2KI.tiff");
     DCMFile file(filePath);
     file.init();
+    EXPECT_EQ(512, file.getWidth());
+    EXPECT_EQ(512, file.getHeight());
+    EXPECT_EQ(1, file.getNumChannels());
+    EXPECT_EQ(DataType::DT_Int16, file.getDataType());
+    std::vector<cv::Mat> frames;
+    file.readPixelValues(frames,0,1);
+    //ImageTools::writeTiffImage(testFilePath, frames[0]);
+    cv::Mat testImage;
+    ImageTools::readGDALImage(testFilePath, testImage);
+    TestTools::compareRasters(frames[0], testImage);
+    //TestTools::showRasters(testImage, frames[0]);
 }

@@ -128,7 +128,7 @@ namespace slideio
             return m_frames;
         }
         bool getTileRect(int tileIndex, cv::Rect& tileRect) const;
-        bool readTile(int tileIndex, cv::OutputArray tileRaster);
+        bool readFrame(int tileIndex, cv::OutputArray tileRaster);
         double getScale() const {
             return m_scale;
         }
@@ -145,7 +145,7 @@ namespace slideio
             return m_imageType != "VOLUME";
         }
     private:
-        void extractPixelsPartialy(std::vector<cv::Mat>& frames, int startFrame, int numFrames);
+        void readFrames(std::vector<cv::Mat>& frames, int startFrame, int numFrames);
         void extractPixelsWholeFileDecompression(std::vector<cv::Mat>& mats, int startFrame, int numFrames);
         std::shared_ptr<DicomImage> createImage(int firstSlice = 0, int numSlices = 1);
         void initPhotoInterpretaion();

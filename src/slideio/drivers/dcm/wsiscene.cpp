@@ -116,7 +116,7 @@ bool WSIScene::readTile(int tileIndex, const std::vector<int>& channelIndices, c
 	TilerData* data = static_cast<TilerData*>(userData);
 	std::shared_ptr<DCMFile> zoomFile = m_files[data->zoomLevelIndex];
 	cv::Mat tile;
-	if(zoomFile->readTile(tileIndex, tile)) {
+	if(zoomFile->readFrame(tileIndex, tile)) {
 		Tools::extractChannels(tile, channelIndices, tileRaster);
 	    return true;
     }
