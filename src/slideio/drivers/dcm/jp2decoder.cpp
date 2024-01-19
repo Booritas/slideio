@@ -103,61 +103,25 @@ OFCondition Jp2Decoder::decode(const DcmRepresentationParameter* fromRepParam, D
         Uint16 imageRows = 0;
         Uint16 imageColumns = 0;
         Sint32 imageFrames = 1;
-        Uint16 imageBitsAllocated = 0;
-        Uint16 imageBitsStored = 0;
-        Uint16 imageHighBit = 0;
-        const char* sopClassUID = NULL;
-        OFBool createPlanarConfiguration = OFFalse;
-        OFBool createPlanarConfigurationInitialized = OFFalse;
-        EP_Interpretation colorModel = EPI_Unknown;
-        OFBool isSigned = OFFalse;
-        Uint16 pixelRep = 0; // needed to decline color conversion of signed pixel data to RGB
-        OFBool numberOfFramesPresent = OFFalse;
 
-        if (result.good()) result = OFreinterpret_cast(DcmItem*, dataset)->findAndGetUint16(
-            DCM_SamplesPerPixel, imageSamplesPerPixel);
+        if (result.good()) result = OFreinterpret_cast(DcmItem*, dataset)->findAndGetUint16(DCM_SamplesPerPixel, imageSamplesPerPixel);
         if (result.good()) result = OFreinterpret_cast(DcmItem*, dataset)->findAndGetUint16(DCM_Rows, imageRows);
         if (result.good()) result = OFreinterpret_cast(DcmItem*, dataset)->findAndGetUint16(DCM_Columns, imageColumns);
-        if (result.good()) result = OFreinterpret_cast(DcmItem*, dataset)->findAndGetUint16(
-            DCM_BitsAllocated, imageBitsAllocated);
-        if (result.good()) result = OFreinterpret_cast(DcmItem*, dataset)->findAndGetUint16(
-            DCM_BitsStored, imageBitsStored);
-        if (result.good()) result = OFreinterpret_cast(DcmItem*, dataset)->findAndGetUint16(DCM_HighBit, imageHighBit);
-        if (result.good()) result = OFreinterpret_cast(DcmItem*, dataset)->findAndGetUint16(
-            DCM_PixelRepresentation, pixelRep);
-        isSigned = (pixelRep == 0) ? OFFalse : OFTrue;
-
-        // number of frames is an optional attribute - we don't mind if it isn't present.
-        if (result.good()) {
-            if (OFreinterpret_cast(DcmItem*, dataset)->findAndGetSint32(DCM_NumberOfFrames, imageFrames).good())
-                numberOfFramesPresent = OFTrue;
-        }
-
-        // we consider SOP Class UID as optional since we only need it to determine SOP Class specific
-        // encoding rules for planar configuration.
-        if (result.good()) (void)OFreinterpret_cast(DcmItem*, dataset)->findAndGetString(DCM_SOPClassUID, sopClassUID);
-
-        EP_Interpretation dicomPI = DcmJpegHelper::getPhotometricInterpretation(OFreinterpret_cast(DcmItem*, dataset));
-
-        OFBool isYBR = OFFalse;
-        if ((dicomPI == EPI_YBR_Full) || (dicomPI == EPI_YBR_Full_422) || (dicomPI == EPI_YBR_Partial_422)) isYBR =
-            OFTrue;
 
         if (imageFrames >= OFstatic_cast(Sint32, pixSeq->card()))
             imageFrames = OFstatic_cast(Sint32, pixSeq->card() - 1);
-        // limit number of frames to number of pixel items - 1
         if (imageFrames < 1)
-            imageFrames = 1; // default in case the number of frames attribute contains garbage
+            imageFrames = 1;
 
         if (result.good()) {
-            DcmPixelItem* pixItem = NULL;
-            Uint8* jp2Data = NULL;
+            DcmPixelItem* pixItem = nullptr;
             result = pixSeq->getItem(pixItem, 1); // first item is offset table, use second item
-            if (result.good() && (pixItem != NULL)) {
+            if (result.good() && (pixItem != nullptr)) {
                 Uint32 fragmentLength = pixItem->getLength();
+                Uint8* jp2Data = nullptr;
                 result = pixItem->getUint8Array(jp2Data);
                 if (result.good()) {
-                    if (jp2Data == NULL) {
+                    if (jp2Data == nullptr) {
                         result = EC_CorruptedData; // JPEG data stream is empty/absent
                     }
                     else {
@@ -176,9 +140,7 @@ OFCondition Jp2Decoder::decode(const DcmRepresentationParameter* fromRepParam, D
                         }
                         Uint32 frameSize = imageBytesAllocated * imageRows * imageColumns * imageSamplesPerPixel;
 
-                        // check for overflow
-                        if (imageRows != 0 && frameSize / imageRows != (imageBytesAllocated * imageColumns *
-                            imageSamplesPerPixel)) {
+                        if (imageRows != 0 && frameSize / imageRows != (imageBytesAllocated * imageColumns * imageSamplesPerPixel)) {
                             DCMJPEG_WARN(
                                 "cannot decompress image because uncompressed representation would exceed maximum possible size of PixelData attribute")
                             ;
@@ -186,19 +148,15 @@ OFCondition Jp2Decoder::decode(const DcmRepresentationParameter* fromRepParam, D
                         }
 
                         Uint32 totalSize = frameSize * imageFrames;
-
-                        // check for overflow
-                        if (totalSize == 0xFFFFFFFF || (frameSize != 0 && totalSize / frameSize != OFstatic_cast(
-                            Uint32, imageFrames))) {
+                        if (totalSize == 0xFFFFFFFF || (frameSize != 0 && totalSize / frameSize != OFstatic_cast(Uint32, imageFrames))) {
                             DCMJPEG_WARN(
                                 "cannot decompress image because uncompressed representation would exceed maximum possible size of PixelData attribute")
                             ;
                             return EC_ElemLengthExceeds32BitField;
                         }
-
                         if (totalSize & 1)
-                            totalSize++; // align on 16-bit word boundary
-                        Uint16* imageData16 = NULL;
+                            totalSize++;
+                        Uint16* imageData16 = nullptr;
                         Sint32 currentFrame = 0;
                         size_t currentItem = 1; // ignore offset table
                         result = uncompressedPixelData.createUint16Array(totalSize / sizeof(Uint16), imageData16);
@@ -211,8 +169,8 @@ OFCondition Jp2Decoder::decode(const DcmRepresentationParameter* fromRepParam, D
                                     fragmentLength = pixItem->getLength();
                                     result = pixItem->getUint8Array(jp2Data);
                                     if (result.good()) {
-                                        cv::Mat output;
                                         try {
+                                            cv::Mat output;
                                             ImageTools::decodeJp2KStream(jp2Data, fragmentLength, output);
                                             memcpy(imageData8, output.data, frameSize);
                                         }
@@ -235,7 +193,7 @@ OFCondition Jp2Decoder::decode(const DcmRepresentationParameter* fromRepParam, D
             DcmItem* ditem = OFreinterpret_cast(DcmItem*, dataset);
             // create new SOP instance UID if codec parameters require so
             if (result.good() && (params->getUIDCreation() == EUC_always)) {
-                result = DcmCodec::newInstance(ditem, NULL, NULL, NULL);
+                result = DcmCodec::newInstance(ditem, nullptr, NULL, NULL);
             }
         }
     }
@@ -247,7 +205,43 @@ OFCondition Jp2Decoder::decodeFrame(const DcmRepresentationParameter* fromParam,
                                     const DcmCodecParameter* cp, DcmItem* dataset, Uint32 frameNo,
                                     Uint32& startFragment, void* buffer, Uint32 bufSize,
                                     std::string& decompressedColorModel) const {
-    return EC_IllegalCall;
+    OFCondition result = EC_Normal;
+    if ((!dataset) || ((dataset->ident() != EVR_dataset) && (dataset->ident() != EVR_item))) {
+        result = EC_InvalidTag;
+    }
+    else {
+        DcmPixelItem* pixItem = nullptr;
+        result = fromPixSeq->getItem(pixItem, 1); // first item is offset table, use second item
+        if (result.good() && (pixItem != nullptr)) {
+            const Uint32 fragmentLength = pixItem->getLength();
+            Uint8* jp2Data = nullptr;
+            result = pixItem->getUint8Array(jp2Data);
+            if (result.good()) {
+                if (jp2Data == nullptr) {
+                    result = EC_CorruptedData; // Jp2 data stream is empty/absent
+                }
+                else {
+                    result = fromPixSeq->getItem(pixItem, OFstatic_cast(Uint32, 1));
+                    if (result.good()) {
+                        result = pixItem->getUint8Array(jp2Data);
+                        if (result.good()) {
+                            try {
+                                cv::Mat output;
+                                ImageTools::decodeJp2KStream(jp2Data, fragmentLength, output);
+                                const int frameSize = static_cast<int>(output.total() * output.elemSize());
+                                memcpy(buffer, output.data, frameSize);
+                            }
+                            catch (std::exception& e) {
+                                SLIDEIO_LOG(ERROR) << "Error decoding jpeg stream: " << e.what();
+                                result = EC_CannotChangeRepresentation;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return result;
 }
 
 OFCondition Jp2Decoder::encode(const Uint16* pixelData, const Uint32 length,

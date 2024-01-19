@@ -638,3 +638,25 @@ TEST(DCMImageDriver, readAuxImagesWSIDirectory)
         //TestTools::showRaster(auxRaster);
     }
 }
+
+TEST(DCMImageDriver, readJp2K)
+{
+    std::string slidePath = TestTools::getTestImagePath("dcm", "openmicroscopy.org/CT1_J2KI");
+    std::string testPath = TestTools::getTestImagePath("dcm", "openmicroscopy.org/CT1_J2KI.tiff");
+
+    DCMImageDriver driver;
+    auto slide = driver.openFile(slidePath);
+    const int numScenes = slide->getNumScenes();
+    ASSERT_EQ(numScenes, 1);
+    auto scene = slide->getScene(0);
+    ASSERT_TRUE(scene);
+    cv::Mat image;
+    cv::Rect rect = scene->getRect();
+    cv::Size size = rect.size();
+    slideio::DataType dt = scene->getChannelDataType(0);
+    scene->readResampledBlock(rect, size, image);
+    ASSERT_FALSE(image.empty());
+    cv::Mat testImage;
+    slideio::ImageTools::readGDALImage(testPath, testImage);
+    TestTools::compareRasters(image, testImage);
+}
