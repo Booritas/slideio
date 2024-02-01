@@ -11,6 +11,7 @@
 #include <opencv2/core.hpp>
 
 #include "slideio/base/slideio_enums.hpp"
+#include "slideio/core/cvstructs.hpp"
 
 #if defined(_MSC_VER)
 #pragma warning( push )
@@ -50,83 +51,110 @@ namespace slideio
         void loadFile();
         void init();
 
-        int getWidth() const
-        {
+        int getWidth() const {
             return m_width;
         }
 
-        int getHeight() const
-        {
+        int getHeight() const {
             return m_height;
         }
 
-        int getNumSlices() const
-        {
+        int getNumSlices() const {
             return m_slices;
         }
 
-        const std::string& getFilePath() const
-        {
+        const std::string& getFilePath() const {
             return m_filePath;
         }
 
-        const std::string& getSeriesUID() const
-        {
+        const std::string& getSeriesUID() const {
             return m_seriesUID;
         }
 
-        int getInstanceNumber() const
-        {
+        int getInstanceNumber() const {
             return m_instanceNumber;
         }
 
-        int getNumChannels() const
-        {
+        int getNumChannels() const {
             return m_numChannels;
         }
 
-        const std::string& getSeriesDescription() const
-        {
+        const std::string& getSeriesDescription() const {
             return m_seriesDescription;
         }
 
-        DataType getDataType() const
-        {
+        DataType getDataType() const {
             return m_dataType;
         }
 
-        bool getPlanarConfiguration() const
-        {
+        bool getPlanarConfiguration() const {
             return m_planarConfiguration;
         }
 
-        EPhotoInterpetation getPhotointerpretation() const
-        {
+        EPhotoInterpetation getPhotointerpretation() const {
             return m_photoInterpretation;
         }
 
-        Compression getCompression() const
-        {
+        Compression getCompression() const {
             return m_compression;
         }
-        const std::string& getModality() const
-        {
+
+        const std::string& getModality() const {
             return m_modality;
         }
+
         void logData();
-        void readPixelValues(std::vector<cv::Mat>& frames, int startFrame=0, int numFrames=1);
+        void readPixelValues(std::vector<cv::Mat>& frames, int startFrame = 0, int numFrames = 1);
+
+        bool isWSIFile() const {
+            return m_WSISlide;
+        }
+
         std::string getMetadata();
+        double getMagnification() const {
+            return m_magnification;
+        }
+        const Resolution& getResolution() const {
+            return m_resolution;
+        }
         static bool isDicomDirFile(const std::string& filePath);
+        static bool isWSIFile(const std::string& filePath);
+
+        const cv::Size& getTileSize() const {
+            return m_tileSize;
+        }
+
+        int getNumFrames() const {
+            return m_frames;
+        }
+        bool getTileRect(int tileIndex, cv::Rect& tileRect) const;
+        bool readFrame(int tileIndex, cv::OutputArray tileRaster);
+        double getScale() const {
+            return m_scale;
+        }
+        void setScale(double scale) {
+            m_scale = scale;
+        }
+        bool isTiled() const {
+            return m_bTiled;
+        }
+        const std::string& getImageType() const {
+            return m_imageType;
+        }
+        bool isAuxImage() const {
+            return m_imageType != "VOLUME";
+        }
     private:
-        void extractPixelsPartialy(std::vector<cv::Mat>& frames, int startFrame, int numFrames);
+        void readFrames(std::vector<cv::Mat>& frames, int startFrame, int numFrames);
         void extractPixelsWholeFileDecompression(std::vector<cv::Mat>& mats, int startFrame, int numFrames);
-        std::shared_ptr<DicomImage> createImage(int firstSlice=0, int numSlices=1);
+        std::shared_ptr<DicomImage> createImage(int firstSlice = 0, int numSlices = 1);
         void initPhotoInterpretaion();
         void defineCompression();
         DcmDataset* getDataset() const;
         DcmDataset* getValidDataset() const;
         bool getIntTag(const DcmTagKey& tag, int& value, int pos = 0) const;
         bool getStringTag(const DcmTagKey& tag, std::string& value) const;
+        bool getStringTag(const DcmTagKey& tag, int index, std::string& value) const;
         bool getDblTag(const DcmTagKey& tag, double& value, double defaultValue);
     private:
         std::string m_filePath;
@@ -151,6 +179,14 @@ namespace slideio
         bool m_decompressWholeFile = false;
         int m_bitsAllocated = 0;
         std::string m_modality;
+        bool m_WSISlide = false;
+        int m_frames = 1;
+        cv::Size m_tileSize = {0, 0};
+        double m_magnification = 0.;
+        Resolution m_resolution = { 0. };
+        double m_scale = 1.;
+        bool m_bTiled = false;
+        std::string m_imageType;
     };
 }
 

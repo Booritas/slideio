@@ -30,6 +30,35 @@ TEST(ImageTools, readJp2KFile)
     ASSERT_LT(0.99, minScore);
 }
 
+TEST(ImageTools, readJp2Header)
+{
+    std::string filePath = TestTools::getTestImagePath("jp2K", "relax.jp2");
+    std::string bmpFilePath = TestTools::getTestImagePath("jp2K", "relax.bmp");
+
+    auto fileSize = boost::filesystem::file_size(filePath);
+    ASSERT_GT(fileSize, 0);
+    std::ifstream file(filePath, std::ios::binary);
+    // Stop eating new lines in binary mode!!!
+    file.unsetf(std::ios::skipws);
+    // reserve capacity
+    std::vector<uint8_t> vec;
+    vec.reserve(fileSize);
+    // read the data:
+    vec.insert(vec.begin(),
+        std::istream_iterator<uint8_t>(file),
+        std::istream_iterator<uint8_t>());
+    slideio::ImageTools::ImageHeader header;
+    slideio::ImageTools::readJp2KStremHeader(vec.data(), vec.size(), header);
+    EXPECT_EQ(300, header.size.height);
+    EXPECT_EQ(400, header.size.width);
+    EXPECT_EQ(3, header.channels);
+    EXPECT_EQ(3, header.chanelTypes.size());
+    for(int i=0;i<3;i++) {
+        EXPECT_EQ(CV_8U, header.chanelTypes[i]);
+    }
+    file.close();
+}
+
 TEST(ImageTools, readGDALImage)
 {
     std::string path = TestTools::getTestImagePath("gdal","img_1024x600_3x8bit_RGB_color_bars_CMYKWRGB.png");

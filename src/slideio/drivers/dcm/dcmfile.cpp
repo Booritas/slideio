@@ -8,6 +8,7 @@
 #include "slideio/base/base.hpp"
 #include "slideio/imagetools/cvtools.hpp"
 #include <dcmtk/dcmdata/dcjson.h>
+#include <dcmtk/dcmdata/dcpxitem.h>
 
 #include <ostream>
 
@@ -81,7 +82,10 @@ void DCMFile::loadFile()
 #if defined(WIN32)
     std::wstring filePathW = Tools::toWstring(m_filePath);
     OFFilename filename(filePathW.c_str());
-    OFCondition status = m_file->loadFile(filename);
+    OFCondition status = m_file->loadFile(filename, EXS_Unknown, EGL_noChange, 128, ERM_fileOnly);
+    if(status.bad()) {
+        status = m_file->loadFile(filename);
+    }
 #else
     OFCondition status = m_file->loadFile(m_filePath.c_str());
 #endif
@@ -118,24 +122,35 @@ void DCMFile::init()
     std::shared_ptr<DicomImage> image;
     DcmDataset* dataset = getValidDataset();
 
-    try
-    {
-        image = createImage();
+    std::string sopClassUID;
+    getStringTag(DCM_SOPClassUID, sopClassUID);
+    std::string dimensionOrganization;
+    getStringTag(DCM_DimensionOrganizationType, dimensionOrganization);
+    getStringTag(DCM_ImageType, 2, m_imageType);
+
+    m_WSISlide = (sopClassUID == UID_VLWholeSlideMicroscopyImageStorage);
+    if (dimensionOrganization == "TILED_FULL") {
+        m_bTiled = true;
     }
-    catch (slideio::RuntimeError& err)
+
+    if(!m_bTiled)
     {
-        m_decompressWholeFile = true;
-        SLIDEIO_LOG(WARNING) << "DCMFile::init: Cannot create DicomImage instance for the file:"
-            << m_filePath
-            << ". Trying to decomress the whole file. Error message:"
-            << err.what();
-        OFCondition cond = dataset->chooseRepresentation(EXS_LittleEndianExplicit, nullptr);
-        if(!cond.good())
-        {
-            RAISE_RUNTIME_ERROR << "DCMFile::init Cannot decompress the file "
+        try {
+            image = createImage();
+        }
+        catch (slideio::RuntimeError& err) {
+            m_decompressWholeFile = true;
+            SLIDEIO_LOG(WARNING) << "DCMFile::init: Cannot create DicomImage instance for the file:"
                 << m_filePath
-                << ". Error message:"
-                << cond.text();
+                << ". Trying to decomress the whole file. Error message:"
+                << err.what();
+            OFCondition cond = dataset->chooseRepresentation(EXS_LittleEndianExplicit, nullptr);
+            if (!cond.good()) {
+                RAISE_RUNTIME_ERROR << "DCMFile::init Cannot decompress the file "
+                    << m_filePath
+                    << ". Error message:"
+                    << cond.text();
+            }
         }
     }
 
@@ -166,12 +181,22 @@ void DCMFile::init()
     {
         m_numChannels = 1;
     }
+    if(!getDblTag(DCM_EmmetropicMagnification, m_magnification, 0)) {
+        getDblTag(DCM_OpticalMagnificationFactor, m_magnification, 0);
+    }
     m_useWindowing = getDblTag(DCM_WindowCenter, m_windowCenter, -1.) &&
         getDblTag(DCM_WindowWidth, m_windowWidth, -1.);
 
     getDblTag(DCM_RescaleSlope, m_rescaleSlope, 1.);
     getDblTag(DCM_RescaleIntercept, m_rescaleIntercept, 0.);
     m_useRescaling = std::abs(m_rescaleSlope - 1.) > 1.e-6 || m_rescaleIntercept > 0.9;
+
+    if(!dataset->findAndGetFloat64(DCM_PixelSpacing, m_resolution.x, 0).good()) {
+        m_resolution.x = 0.;
+    }
+    if (!dataset->findAndGetFloat64(DCM_PixelSpacing, m_resolution.y, 1).good()) {
+        m_resolution.y = 0.;
+    }
 
     getStringTag(DCM_SeriesDescription, m_seriesDescription);
     if (!getIntTag(DCM_BitsAllocated, m_bitsAllocated))
@@ -214,6 +239,20 @@ void DCMFile::init()
     {
         m_numChannels = 3;
     }
+
+
+    if(m_WSISlide && m_bTiled) {
+        m_frames = m_slices;
+        m_slices = 1;
+        m_tileSize = { m_width, m_height };
+        m_width = m_height = 0;
+        if(!getIntTag(DCM_TotalPixelMatrixColumns, m_width)) {
+            RAISE_RUNTIME_ERROR << "DCMImageDriver: Cannot extract total pixel matrix columns for WSI file:" << m_filePath;
+        }
+        if (!getIntTag(DCM_TotalPixelMatrixRows, m_height)) {
+            RAISE_RUNTIME_ERROR << "DCMImageDriver: Cannot extract total pixel matrix rows for WSI file:" << m_filePath;
+        }
+    }
 }
 
 void DCMFile::defineCompression()
@@ -247,9 +286,6 @@ void DCMFile::defineCompression()
     case EXS_JPEGProcess14SV1:
     case EXS_JPEGLSLossless:
     case EXS_JPEGLSLossy:
-    case EXS_JPEG2000:
-    case EXS_JPEG2000MulticomponentLosslessOnly:
-    case EXS_JPEG2000Multicomponent:
         m_compression = Compression::Jpeg;
         break;
     case EXS_RLELossless:
@@ -259,6 +295,9 @@ void DCMFile::defineCompression()
         m_compression = Compression::Zlib;
         break;
     case EXS_JPEG2000LosslessOnly:
+    case EXS_JPEG2000:
+    case EXS_JPEG2000MulticomponentLosslessOnly:
+    case EXS_JPEG2000Multicomponent:
         m_compression = Compression::Jpeg2000;
         break;
     default: ;
@@ -387,87 +426,12 @@ inline int getCvTypeForPixelRepresentation(EP_Representation rep)
     RAISE_RUNTIME_ERROR << "DCMImageDriver: unexpected pixel representation:" << (int)rep;
 }
 
-void DCMFile::extractPixelsPartialy(std::vector<cv::Mat>& frames, int startFrame, int numFrames)
+void DCMFile::readFrames(std::vector<cv::Mat>& frames, int startFrame, int numFrames)
 {
-    SLIDEIO_LOG(INFO) << "Extracting pixel values with partial decompression.";
-
-    DcmDataset* dataset = getDataset();
-    if (!dataset)
-    {
-        RAISE_RUNTIME_ERROR << "DCMImageDriver: unexpected null as dataset for file " << m_filePath;
-    }
-    E_TransferSyntax xfer = dataset->getOriginalXfer();
-    std::shared_ptr<DicomImage> image = createImage((ulong)startFrame, (ulong)1);
-
-    const int numFileFrames = image->getFrameCount();
-    const int numChannels = getNumChannels();
-    const DataType originalDataType = getDataType();
-    const int numFramePixels = getWidth() * getHeight();
-    const int cvOriginalType = CVTools::toOpencvType(originalDataType);
-
+    SLIDEIO_LOG(INFO) << "Read " << numFrames << " pixel frames starting from " << startFrame << " frame.";
     frames.resize(numFrames);
-    const int bits = image->getDepth();
-    for (int frame = 0; frame < numFrames; ++frame)
-    {
-        const DiPixel* pixels = image->getInterData();
-        EP_Representation rep = pixels->getRepresentation();
-        int cvIntermediateType = getCvTypeForPixelRepresentation(rep);
-        const int numFrameBytes = numChannels * numFramePixels * getPixelRepresentationDataSize(rep);
-
-        if (m_useRescaling)
-        {
-            if (cvIntermediateType == CV_16U)
-            {
-                cvIntermediateType = CV_16S;
-            }
-        }
-
-        if (!pixels)
-        {
-            RAISE_RUNTIME_ERROR << "DCMImageDriver: cannot extract pixel data fro file " << m_filePath;
-        }
-        if (numFramePixels != pixels->getCount())
-        {
-            RAISE_RUNTIME_ERROR << "DCMImageDriver: Unexpected number of pixels received for a frame. Expected:"
-                << numFramePixels << ". Received: " << pixels->getCount() << ". File:" << m_filePath;
-        }
-        if (numChannels != pixels->getPlanes())
-        {
-            RAISE_RUNTIME_ERROR << "DCMImageDriver: Unexpected number of planes received for a frame. Expected:"
-                << numChannels << ". Received: " << pixels->getPlanes() << ". File:" << m_filePath;
-        }
-        const auto* frameDataPtr = static_cast<const uint8_t*>(pixels->getData());
-        if (numChannels == 1)
-        {
-            frames[frame].create(image->getHeight(), image->getWidth(), CV_MAKE_TYPE(cvIntermediateType, numChannels));
-            std::memcpy(frames[frame].data, frameDataPtr, numFrameBytes);
-            if (cvIntermediateType != cvOriginalType || m_useRescaling)
-            {
-                frames[frame].convertTo(frames[frame], CV_MAKE_TYPE(cvOriginalType, numChannels), m_rescaleSlope,
-                                        -m_rescaleIntercept);
-            }
-        }
-        else if (numChannels == 3)
-        {
-            void** channels = (void**)frameDataPtr;
-            void* red = channels[0];
-            void* green = channels[1];
-            void* blue = channels[2];
-
-            cv::Mat channelR(image->getHeight(), image->getWidth(), CV_MAKE_TYPE(cvIntermediateType, 1), red);
-            cv::Mat channelG(image->getHeight(), image->getWidth(), CV_MAKE_TYPE(cvIntermediateType, 1), green);
-            cv::Mat channelB(image->getHeight(), image->getWidth(), CV_MAKE_TYPE(cvIntermediateType, 1), blue);
-            std::vector<cv::Mat> rgb = {channelR, channelG, channelB};
-            cv::merge(rgb, frames[frame]);
-        }
-        else
-        {
-            RAISE_RUNTIME_ERROR <<
-                "DCMImageDriver: Unexpected number of planes received for a frame. Accepted values: 1 or 3."
-                << " Received: " << pixels->getPlanes() << ". File:" << m_filePath;
-        }
-
-        image->processNextFrames();
+    for(int frameIndex=startFrame, frameCount=0; frameCount<numFrames; ++frameIndex, ++frameCount) {
+        readFrame(frameIndex, frames[frameCount]);
     }
 }
 
@@ -567,7 +531,7 @@ void DCMFile::readPixelValues(std::vector<cv::Mat>& frames, int startFrame, int 
     SLIDEIO_LOG(INFO) << "Extracting pixel values from the dataset";
     if(!m_decompressWholeFile)
     {
-        extractPixelsPartialy(frames, startFrame, numFrames);
+        readFrames(frames, startFrame, numFrames);
     }
     else
     {
@@ -703,6 +667,18 @@ bool DCMFile::getStringTag(const DcmTagKey& tag, std::string& value) const
     return ok;
 }
 
+bool DCMFile::getStringTag(const DcmTagKey& tag, int index, std::string& value) const {
+    bool ok(false);
+    bool bRet(false);
+    DcmDataset* dataset = getValidDataset();
+    OFString dstrVal;
+    if (dataset->findAndGetOFString(tag, dstrVal, 2, OFTrue).good()) {
+        value = dstrVal.c_str();
+        ok = true;
+    }
+    return ok;
+}
+
 bool DCMFile::isDicomDirFile(const std::string& filePath)
 {
     bool isDicomDir = false;
@@ -721,3 +697,109 @@ bool DCMFile::isDicomDirFile(const std::string& filePath)
     }
     return isDicomDir;
 }
+
+bool DCMFile::isWSIFile(const std::string& filePath) {
+    bool isWSI = false;
+    DcmFileFormat file;
+    if (file.loadFile(filePath.c_str()).good())
+    {
+        DcmDataset* dataset = file.getDataset();
+        if (dataset)
+        {
+            OFString sopClassUID;
+            if (dataset->findAndGetOFString(DCM_SOPClassUID, sopClassUID).good())
+            {
+                isWSI = sopClassUID == UID_VLWholeSlideMicroscopyImageStorage;
+            }
+        }
+    }
+    return isWSI;
+}
+
+bool DCMFile::getTileRect(int tileIndex, cv::Rect& tileRect) const{
+    if(!m_WSISlide) {
+        RAISE_RUNTIME_ERROR << "DCMFile::getTileRect: the file " << getFilePath() << " is not a WSI slide.";
+    }
+    if(tileIndex < 0 || tileIndex >= m_frames) {
+        RAISE_RUNTIME_ERROR << "DCMFile::getTileRect: tile index is out of range. Number of tiles: "
+            << m_frames << " . Received index: " << tileIndex;
+    }
+    const int tilesX = (m_width - 1)/m_tileSize.width + 1;
+    const int col = tileIndex % tilesX;
+    const int row = tileIndex / tilesX;
+    tileRect = cv::Rect(col*m_tileSize.width, row*m_tileSize.height, m_tileSize.width, m_tileSize.height);
+    return true;
+}
+
+bool DCMFile::readFrame(int frameIndex, cv::OutputArray frame) {
+    SLIDEIO_LOG(INFO) << "Extracting pixel values with partial decompression.";
+
+    DcmDataset* dataset = getDataset();
+    if (!dataset) {
+        RAISE_RUNTIME_ERROR << "DCMImageDriver: unexpected null as dataset for file " << m_filePath;
+    }
+    E_TransferSyntax xfer = dataset->getOriginalXfer();
+    std::shared_ptr<DicomImage> image = createImage((ulong)frameIndex, (ulong)1);
+
+    const int numFileFrames = image->getFrameCount();
+    const int numChannels = getNumChannels();
+    const DataType originalDataType = getDataType();
+    const int numFramePixels = m_bTiled ? (m_tileSize.width * m_tileSize.height) : (getWidth() * getHeight());
+    const int cvOriginalType = CVTools::toOpencvType(originalDataType);
+    const int bits = image->getDepth();
+
+    const DiPixel* pixels = image->getInterData();
+    EP_Representation rep = pixels->getRepresentation();
+    int cvIntermediateType = getCvTypeForPixelRepresentation(rep);
+    const int numFrameBytes = numChannels * numFramePixels * getPixelRepresentationDataSize(rep);
+
+    if (m_useRescaling) {
+        if (cvIntermediateType == CV_16U) {
+            cvIntermediateType = CV_16S;
+        }
+    }
+
+    if (!pixels) {
+        RAISE_RUNTIME_ERROR << "DCMImageDriver: cannot extract pixel data fro file " << m_filePath;
+    }
+    if (numFramePixels != pixels->getCount()) {
+        RAISE_RUNTIME_ERROR << "DCMImageDriver: Unexpected number of pixels received for a frame. Expected:"
+            << numFramePixels << ". Received: " << pixels->getCount() << ". File:" << m_filePath;
+    }
+    if (numChannels != pixels->getPlanes()) {
+        RAISE_RUNTIME_ERROR << "DCMImageDriver: Unexpected number of planes received for a frame. Expected:"
+            << numChannels << ". Received: " << pixels->getPlanes() << ". File:" << m_filePath;
+    }
+    const auto* frameDataPtr = static_cast<const uint8_t*>(pixels->getData());
+    if (numChannels == 1) {
+        frame.create(image->getHeight(), image->getWidth(), CV_MAKE_TYPE(cvIntermediateType, numChannels));
+        cv::Mat frameMat = frame.getMat();
+        std::memcpy(frameMat.data, frameDataPtr, numFrameBytes);
+        if (cvIntermediateType != cvOriginalType || m_useRescaling) {
+            frameMat.convertTo(frame, CV_MAKE_TYPE(cvOriginalType, numChannels), m_rescaleSlope, -m_rescaleIntercept);
+        }
+    }
+    else if (numChannels == 3) {
+        void** channels = (void**)frameDataPtr;
+        void* red = channels[0];
+        void* green = channels[1];
+        void* blue = channels[2];
+
+        cv::Mat channelR(image->getHeight(), image->getWidth(), CV_MAKE_TYPE(cvIntermediateType, 1), red);
+        cv::Mat channelG(image->getHeight(), image->getWidth(), CV_MAKE_TYPE(cvIntermediateType, 1), green);
+        cv::Mat channelB(image->getHeight(), image->getWidth(), CV_MAKE_TYPE(cvIntermediateType, 1), blue);
+        std::vector<cv::Mat> rgb = { channelR, channelG, channelB };
+        cv::merge(rgb, frame);
+        if (cvIntermediateType != cvOriginalType || m_useRescaling) {
+            cv::Mat frameMat = frame.getMat();
+            frameMat.convertTo(frame, CV_MAKE_TYPE(cvOriginalType, numChannels), m_rescaleSlope, -m_rescaleIntercept);
+        }
+    }
+    else {
+        RAISE_RUNTIME_ERROR <<
+            "DCMImageDriver: Unexpected number of planes received for a frame. Accepted values: 1 or 3."
+            << " Received: " << pixels->getPlanes() << ". File:" << m_filePath;
+    }
+    return true;
+}
+

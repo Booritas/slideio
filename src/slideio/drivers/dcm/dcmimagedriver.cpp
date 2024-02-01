@@ -13,6 +13,7 @@
 #include <dcmtk/dcmimage/diregist.h>
 #include <dcmtk/dcmdata/dccodec.h>
 
+#include "jp2decoderregistration.hpp"
 #include "slideio/core/tools/tools.hpp"
 
 using namespace slideio;
@@ -53,6 +54,7 @@ void DCMImageDriver::initializeDCMTK()
     DcmRLEDecoderRegistration::registerCodecs();
     DJDecoderRegistration::registerCodecs();
     DJLSDecoderRegistration::registerCodecs();
+    Jp2DecoderRegistration::registerCodecs();
 }
 
 void DCMImageDriver::clieanUpDCMTK()
@@ -61,6 +63,7 @@ void DCMImageDriver::clieanUpDCMTK()
     DcmRLEDecoderRegistration::cleanup();
     DJDecoderRegistration::cleanup();
     DJLSDecoderRegistration::cleanup();
+    Jp2DecoderRegistration::cleanup();
 #endif
 }
 

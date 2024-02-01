@@ -3,10 +3,9 @@
 // of this distribution and at http://slideio.com/license.html.
 #include <gtest/gtest.h>
 
-//#include <opencv2/highgui.hpp>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
-
+#include "slideio/base/exceptions.hpp"
 #include "slideio/drivers/dcm/dcmfile.hpp"
 #include "tests/testlib/testtools.hpp"
 
@@ -132,10 +131,12 @@ TEST(DCMFile, pixelPaleteExtended)
     EXPECT_EQ(3, frames[0].channels());
     cv::Mat bmpImage1;
     slideio::ImageTools::readGDALImage(testPath1, bmpImage1);
+    //TestTools::showRaster(frames[0]);
     double similarity = ImageTools::computeSimilarity(frames[0], bmpImage1, true);
     EXPECT_LT(0.92, similarity);
     cv::Mat bmpImage2;
     slideio::ImageTools::readGDALImage(testPath2, bmpImage2);
+    //TestTools::showRaster(frames[1]);
     similarity = ImageTools::computeSimilarity(frames[1], bmpImage2, true);
     EXPECT_LT(0.92, similarity);
 }
@@ -289,4 +290,156 @@ TEST(DCMFile, pixelValues12AllocatedBits)
     slideio::ImageTools::readGDALImage(testPath, testImage);
     double similarity = ImageTools::computeSimilarity(frames[0], testImage);
     EXPECT_LT(0.85, similarity);
+}
+
+TEST(DCMFile, isWSIFile)
+{
+    if (!TestTools::isFullTestEnabled())
+    {
+        GTEST_SKIP() <<
+            "Skip the test because full dataset is not enabled";
+    }
+    std::string filePath = TestTools::getFullTestImagePath("dcm", "barre.dev/MultiFrame/MR-MONO2-8-16x-heart");
+    bool res = DCMFile::isWSIFile(filePath);
+    EXPECT_FALSE(res);
+    filePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777/H01EBB50P-24777_level-0.dcm");
+    res = DCMFile::isWSIFile(filePath);
+    EXPECT_TRUE(res);
+}
+
+TEST(DCMFile, WSIFileAttributes) {
+    if (!TestTools::isFullTestEnabled()) {
+        GTEST_SKIP() <<
+            "Skip the test because full dataset is not enabled";
+    }
+    std::string filePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777/H01EBB50P-24777_level-0.dcm");
+    DCMFile file(filePath);
+    file.init();
+    EXPECT_TRUE(file.isWSIFile());
+    EXPECT_EQ(77550, file.getNumFrames());
+    EXPECT_EQ(72192, file.getWidth());
+    EXPECT_EQ(70400, file.getHeight());
+    EXPECT_EQ(Compression::Jpeg, file.getCompression());
+    EXPECT_EQ(0, file.getMagnification());
+    EXPECT_EQ(3,file.getNumChannels());
+    EXPECT_EQ(1, file.getNumSlices());
+    EXPECT_EQ(DataType::DT_Byte, file.getDataType());
+    EXPECT_EQ(Resolution(0.,0.), file.getResolution());
+}
+
+TEST(DCMFile, getTileRect) {
+    if (!TestTools::isFullTestEnabled()) {
+        GTEST_SKIP() <<
+            "Skip the test because full dataset is not enabled";
+    }
+    std::string filePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777/H01EBB50P-24777_level-0.dcm");
+    DCMFile file(filePath);
+    file.init();
+    const int width = 72192;
+    const int height = 70400;
+    EXPECT_EQ(width, file.getWidth());
+    EXPECT_EQ(height, file.getHeight());
+
+    const cv::Size tileSize(256, 256);
+    const int numTilesX = (width -1) / tileSize.width + 1;
+    const int numTilesY = (height - 1) / tileSize.height + 1;
+    EXPECT_TRUE(file.isWSIFile());
+
+    cv::Rect tileRect;
+    EXPECT_TRUE(file.getTileRect(0, tileRect));
+    EXPECT_EQ(cv::Rect(0,0,tileSize.width, tileSize.height), tileRect);
+
+    EXPECT_TRUE(file.getTileRect(1, tileRect));
+    EXPECT_EQ(cv::Rect(tileSize.width, 0, tileSize.width, tileSize.height), tileRect);
+
+    EXPECT_TRUE(file.getTileRect(numTilesX, tileRect));
+    EXPECT_EQ(cv::Rect(0, tileSize.height, tileSize.width, tileSize.height), tileRect);
+
+    EXPECT_THROW(file.getTileRect(numTilesX*numTilesY, tileRect), slideio::RuntimeError);
+}
+
+TEST(DCMFile, readFrame) {
+    if (!TestTools::isFullTestEnabled()) {
+        GTEST_SKIP() <<
+            "Skip the test because full dataset is not enabled";
+    }
+    DCMImageDriver::initializeDCMTK();
+
+    std::string filePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777/H01EBB50P-24777_level-0.dcm");
+    std::string testFilePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777.tile.png");
+    DCMFile file(filePath);
+    file.init();
+    const int width = 72192;
+    const int height = 70400;
+    EXPECT_EQ(width, file.getWidth());
+    EXPECT_EQ(height, file.getHeight());
+
+    const cv::Size tileSize(256, 256);
+    const int numTilesX = (width - 1) / tileSize.width + 1;
+    const int numTilesY = (height - 1) / tileSize.height + 1;
+    EXPECT_TRUE(file.isWSIFile());
+
+    cv::Mat tileRaster;
+    file.readFrame(2850, tileRaster);
+    EXPECT_EQ(tileSize.width, tileRaster.cols);
+    EXPECT_EQ(tileSize.height, tileRaster.rows);
+    //TestTools::writePNG(tileRaster, testFilePath);
+    cv::Mat testImage;
+    TestTools::readPNG(testFilePath, testImage);
+    TestTools::compareRasters(testImage, tileRaster);
+    //TestTools::showRasters(testImage, tileRaster);
+
+}
+
+TEST(DCMFile, readFrame2) {
+    if (!TestTools::isFullTestEnabled()) {
+        GTEST_SKIP() <<
+            "Skip the test because full dataset is not enabled";
+    }
+    DCMImageDriver::initializeDCMTK();
+
+    std::string filePath = TestTools::getFullTestImagePath("dcm", "private/wsi/M01FBC14P-589_level-0.dcm");
+    std::string testFilePath = TestTools::getFullTestImagePath("dcm", "private/wsi/M01FBC14P-589_level-0.tile.png");
+    DCMFile file(filePath);
+    file.init();
+    const int width = 82432;
+    const int height = 103936;
+    EXPECT_EQ(width, file.getWidth());
+    EXPECT_EQ(height, file.getHeight());
+
+    const cv::Size tileSize(256, 256);
+    const int numTilesX = (width - 1) / tileSize.width + 1;
+    const int numTilesY = (height - 1) / tileSize.height + 1;
+    EXPECT_TRUE(file.isWSIFile());
+
+    cv::Mat tileRaster;
+    file.readFrame(file.getNumFrames()/3, tileRaster);
+    EXPECT_EQ(tileSize.width, tileRaster.cols);
+    EXPECT_EQ(tileSize.height, tileRaster.rows);
+    //TestTools::writePNG(tileRaster, testFilePath);
+    cv::Mat testImage;
+    TestTools::readPNG(testFilePath, testImage);
+    TestTools::compareRasters(testImage, tileRaster);
+    //TestTools::showRasters(testImage, tileRaster);
+
+}
+
+TEST(DCMFile, readJ2K) {
+    DCMImageDriver::initializeDCMTK();
+
+    std::string filePath = TestTools::getTestImagePath("dcm", "openmicroscopy.org/CT1_J2KI");
+    std::string testFilePath = TestTools::getTestImagePath("dcm", "openmicroscopy.org/CT1_J2KI.tiff");
+    DCMFile file(filePath);
+    file.init();
+    EXPECT_EQ(512, file.getWidth());
+    EXPECT_EQ(512, file.getHeight());
+    EXPECT_EQ(1, file.getNumChannels());
+    EXPECT_EQ(DataType::DT_Int16, file.getDataType());
+    std::vector<cv::Mat> frames;
+    file.readPixelValues(frames,0,1);
+    //ImageTools::writeTiffImage(testFilePath, frames[0]);
+    cv::Mat testImage;
+    ImageTools::readGDALImage(testFilePath, testImage);
+    TestTools::compareRasters(frames[0], testImage);
+    //TestTools::showRasters(testImage, frames[0]);
 }

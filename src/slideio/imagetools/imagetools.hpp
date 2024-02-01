@@ -20,6 +20,12 @@ namespace slideio
     class SLIDEIO_IMAGETOOLS_EXPORTS ImageTools
     {
     public:
+        struct ImageHeader {
+            int channels = 0;
+            std::vector<int> chanelTypes; // cv types
+            cv::Size size = {};
+        };
+    public:
         static void readGDALImage(const std::string& path, cv::OutputArray output);
         static void writeRGBImage(const std::string& path, Compression compression, cv::Mat raster);
         static void writeTiffImage(const std::string& path, cv::Mat raster);
@@ -29,7 +35,11 @@ namespace slideio
         static void encodeJpeg(const cv::Mat& raster, std::vector<uint8_t>& encodedStream, const JpegEncodeParameters& params);
         // jpeg 2000 related methods
         static void readJp2KFile(const std::string& path, cv::OutputArray output);
+        static void readJp2KStremHeader(const uint8_t* data, size_t dataSize, ImageHeader& header);
         static void decodeJp2KStream(const std::vector<uint8_t>& data, cv::OutputArray output,
+            const std::vector<int>& channelIndices = std::vector<int>(),
+            bool forceYUV = false);
+        static void decodeJp2KStream(const uint8_t* data, size_t dataSize, cv::OutputArray output,
             const std::vector<int>& channelIndices = std::vector<int>(),
             bool forceYUV = false);
         static int encodeJp2KStream(const cv::Mat& mat, uint8_t* buffer, int bufferSize,
