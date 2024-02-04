@@ -38,8 +38,16 @@ static int extractBaseDirectoryNameSuffix(const fs::path& path) {
 }
 
 
-void vsi::VSIFile::extractVolumesFromMetadata() {
+static std::vector<std::string> splitVectorValues(const std::string& value) {
+    std::string val = value;
+    val.erase(std::remove(val.begin(), val.end(), '('), val.end());
+    val.erase(std::remove(val.begin(), val.end(), ')'), val.end());
+    std::vector<std::string> tokens;
+    boost::split(tokens, val, boost::is_any_of(","));
+    return tokens;
+}
 
+void vsi::VSIFile::extractVolumesFromMetadata() {
     const std::vector<int> REL_PATH_TO_MAGNIFICATION = {
         vsi::Tag::MICROSCOPE,
         vsi::Tag::MICROSCOPE_PROPERTIES,
@@ -57,92 +65,138 @@ void vsi::VSIFile::extractVolumesFromMetadata() {
     int countExternalVolumes = 0;
     int countInternalVolumes = 0;
     int countSkippedVolumes = 0;
-    if(!m_metadata.empty()) {
+    if (!m_metadata.empty()) {
         std::list<const TagInfo*> volumes;
         getVolumeMetadataItems(volumes);
-        for(const TagInfo* const& volume :volumes) {
+        for (const TagInfo* const& volume : volumes) {
+            const StackType stackType = getVolumeStackType(volume);
+            if (stackType != StackType::DEFAULT_IMAGE && stackType != StackType::OVERVIEW_IMAGE) {
+                continue;
+            }
+            std::shared_ptr<Volume> volumeObj = std::make_shared<vsi::Volume>();
+            volumeObj->setType(stackType);
             std::list<const TagInfo*> frames;
             getImageFrameMetadataItems(volume, frames);
-            for(auto& frame:frames) {
-                std::shared_ptr<Volume> volumeObj = std::make_shared<vsi::Volume>();
-                const TagInfo* externalFile = frame->findChild(vsi::Tag::EXTERNAL_FILE_PROPERTIES);
-                const TagInfo* hasExternalFile = (externalFile==nullptr)?nullptr: externalFile->findChild(vsi::Tag::HAS_EXTERNAL_FILE);
-                const TagInfo* ifd = frame->findChild(vsi::Tag::DEFAULT_SAMPLE_PIXEL_DATA_IFD);
-                const TagInfo* stackProps = volume->findChild(vsi::Tag::MULTIDIM_STACK_PROPERTIES);
-                const TagInfo* color = volume->findChild(Tag::DEFAULT_BACKGROUND_COLOR);
-                if(color) {
+            if (frames.size() > 1) {
+                RAISE_RUNTIME_ERROR << "VSI Unexpected stack with multiple external files";
+            }
+            if(frames.empty()) {
+                RAISE_RUNTIME_ERROR << "VSI Unexpected stack without external files";
+            }
+            const TagInfo* frame = frames.front();
+            const TagInfo* externalFile = frame->findChild(vsi::Tag::EXTERNAL_FILE_PROPERTIES);
+            const TagInfo* stackProps = volume->findChild(vsi::Tag::MULTIDIM_STACK_PROPERTIES);
+            const TagInfo* color = volume->findChild(Tag::DEFAULT_BACKGROUND_COLOR);
+            if (color) {
+                try {
+                    volumeObj->setDefaultColor(std::stoi(color->value));
+                }
+                catch (std::exception& ex) {
+                    SLIDEIO_LOG(WARNING) << "VSI driver: error reading default color (ignored): " << ex.what();
+                }
+            }
+            if (stackProps) {
+                const TagInfo* stackName = stackProps->findChild(vsi::Tag::STACK_NAME);
+                if (stackName) {
+                    volumeObj->setName(stackName->value);
+                }
+                const TagInfo* stackType = stackProps->findChild(vsi::Tag::STACK_TYPE);
+                if (stackType) {
                     try {
-                        volumeObj->setDefaultColor(std::stoi(color->value));
+                        const int val = std::stoi(stackType->value);
+                        volumeObj->setType(VSITools::intToStackType(val));
                     }
                     catch (std::exception& ex) {
-                        SLIDEIO_LOG(WARNING) << "VSI driver: error reading default color (ignored): " << ex.what();
+                        SLIDEIO_LOG(WARNING) << "VSI driver: error reading stack type (ignored): " << ex.what();
                     }
                 }
-                if(stackProps) {
-                    bool validVolume = false;
-                    const TagInfo* stackName = stackProps->findChild(vsi::Tag::STACK_NAME);
-                    if(stackName) {
-                        volumeObj->setName(stackName->value);
+                const TagInfo* resolutionTag = stackProps->findChild(vsi::Tag::RWC_FRAME_SCALE);
+                if(resolutionTag) {
+                    std::vector<std::string> tokens = splitVectorValues(resolutionTag->value);
+                    if (tokens.size() != 2) {
+                        RAISE_RUNTIME_ERROR << "VSI driver: invalid number of image resolutions. Expected: 2, Received: "
+                            << tokens.size() << " " << resolutionTag->value;
                     }
-                    const TagInfo* stackType = stackProps->findChild(vsi::Tag::STACK_TYPE);
-                    if(stackType) {
-                        try {
-                            const int val = std::stoi(stackType->value);
-                            volumeObj->setType(VSITools::intToStackType(val));
-                        }
-                        catch (std::exception& ex) {
-                            SLIDEIO_LOG(WARNING) << "VSI driver: error reading stack type (ignored): " << ex.what();
-                        }
+                    try {
+                        const double xRes = 1.e-6*std::stod(tokens[0]);
+                        const double yRes = 1.e-6*std::stod(tokens[1]);
+                        volumeObj->setResolution(Resolution(xRes, yRes));
                     }
-                    if(externalFile) {
-                        const TagInfo* boundary = externalFile->findChild(Tag::IMAGE_BOUNDARY);
-                        if(boundary) {
-                            std::string value = boundary->value;
-                            value.erase(std::remove(value.begin(), value.end(), '('), value.end());
-                            value.erase(std::remove(value.begin(), value.end(), ')'), value.end());
-                            std::vector<std::string> tokens;
-                            boost::split(tokens, value, boost::is_any_of(","));
-                            if (tokens.size() == 4) {
-                                const int width = std::stoi(tokens[2]);
-                                const int height = std::stoi(tokens[3]);
-                                volumeObj->setSize(cv::Size(width, height));
+                    catch (std::exception& ex) {
+                        SLIDEIO_LOG(WARNING) << "VSI driver: error reading resolution (ignored): " << ex.what();
+                    }
+                }   
+                const TagInfo* boundary = externalFile->findChild(Tag::IMAGE_BOUNDARY);
+                if (boundary) {
+                    std::vector<std::string> tokens = splitVectorValues(boundary->value);
+                    if (tokens.size() != 4) {
+                        RAISE_RUNTIME_ERROR << "VSI driver: invalid number of image boundaries. Expected: 4, Received: "
+                            << tokens.size() << " "<< boundary->value ;
+                    }
+                    try {
+                        const int width = std::stoi(tokens[2]);
+                        const int height = std::stoi(tokens[3]);
+                        volumeObj->setSize(cv::Size(width, height));
+                    }
+                    catch (std::exception& ex) {
+                        RAISE_RUNTIME_ERROR << "VSI driver: error reading image boundary: " << ex.what();
+                    }
+                }
+                const vsi::TagInfo* magnification = stackProps->findChild(REL_PATH_TO_MAGNIFICATION);
+                if (magnification) {
+                    try {
+                        volumeObj->setMagnification(std::stod(magnification->value));
+                    }
+                    catch (std::exception& ex) {
+                        SLIDEIO_LOG(WARNING) << "VSI driver: error reading magnification (ignored): " << ex.what();
+                    }
+                }
+                const TagInfo* bitDepth = stackProps->findChild(REL_PATH_TO_BITDEPTH);
+                if (bitDepth) {
+                    try {
+                        volumeObj->setBitDepth(std::stoi(bitDepth->value));
+                    }
+                    catch (std::exception& ex) {
+                        SLIDEIO_LOG(WARNING) << "VSI driver: error reading bit depth (ignored): " << ex.what();
+                    }
+                }
+                m_volumes.push_back(volumeObj);
+                for (vsi::TagInfo::const_iterator it = volume->begin(); it != volume->end(); ++it) {
+                    it = volume->findNextChild(Tag::DIMENSION_DESCRIPTION_VOLUME, it);
+                    if (it == volume->end()) {
+                        break;
+                    }
+                    const TagInfo& dimensionDescription = *it;
+                    const int index = dimensionDescription.secondTag;
+                    for (auto& itc = dimensionDescription.children.begin(); itc != dimensionDescription.children.
+                         end(); ++itc) {
+                        if (itc->tag == Tag::DIMENSION_PARAMETERS) {
+                            auto& dimParams = *itc;
+                            const TagInfo* indexTag = dimParams.findChild(Tag::DIMENSION_INDEX);
+                            if (indexTag) {
+                                int dimension = std::stoi(indexTag->value);
+                                switch (dimension) {
+                                case 1:
+                                    volumeObj->setDimensionOrder(Dimensions::Z, index + 2);
+                                    break;
+                                case 2:
+                                    volumeObj->setDimensionOrder(Dimensions::T, index + 2);
+                                    break;
+                                case 3:
+                                    volumeObj->setDimensionOrder(Dimensions::L, index + 2);
+                                    break;
+                                case 4:
+                                    volumeObj->setDimensionOrder(Dimensions::C, index + 2);
+                                    break;
+                                case 9:
+                                    volumeObj->setDimensionOrder(Dimensions::P, index + 2);
+                                    break;
+                                default:
+                                    RAISE_RUNTIME_ERROR << "VSI driver: invalid dimension index: " << dimension;
+                                    break;
+                                }
                             }
                         }
-                    }
-                    if (hasExternalFile) {
-                        volumeObj->setHasExternalFile(true);
-                        countExternalVolumes++;
-                        validVolume = true;
-                    }
-                    else if (ifd) {
-                        volumeObj->setIFD(ifd->secondTag);
-                        countInternalVolumes++;
-                        validVolume = true;
-                    }
-                    else {
-                        countSkippedVolumes++;
-                        continue;
-                    }
-                    const vsi::TagInfo* magnification = stackProps->findChild(REL_PATH_TO_MAGNIFICATION);
-                    if(magnification) {
-                        try {
-                            volumeObj->setMagnification(std::stod(magnification->value));
-                        }
-                        catch (std::exception& ex) {
-                            SLIDEIO_LOG(WARNING) << "VSI driver: error reading magnification (ignored): " << ex.what();
-                        }
-                    }
-                    const TagInfo* bitDepth = stackProps->findChild(REL_PATH_TO_BITDEPTH);
-                    if(bitDepth) {
-                        try {
-                            volumeObj->setBitDepth(std::stoi(bitDepth->value));
-                        }
-                        catch (std::exception& ex) {
-                            SLIDEIO_LOG(WARNING) << "VSI driver: error reading bit depth (ignored): " << ex.what();
-                        }
-                    }
-                    if (validVolume) {
-                        m_volumes.push_back(volumeObj);
                     }
                 }
             }
@@ -157,8 +211,8 @@ vsi::VSIFile::VSIFile(const std::string& filePath) : m_filePath(filePath) {
 }
 
 std::string vsi::VSIFile::getRawMetadata() const {
-    boost::json::object jsonMtd     ;
-    serializeMetatdata(m_metadata, jsonMtd);
+    boost::json::object jsonMtd;
+    serializeMetadata(m_metadata, jsonMtd);
     return boost::json::serialize(jsonMtd);
 }
 
@@ -203,7 +257,7 @@ void VSIFile::getVolumeMetadataItems(std::list<const TagInfo*>& volumes) const {
     if (volumeCollection) {
         for (auto itPos = volumeCollection->begin(); itPos != volumeCollection->end(); ++itPos) {
             auto itVolume = volumeCollection->findNextChild(vsi::Tag::MULTIDIM_IMAGE_VOLUME, itPos);
-            if(itVolume==volumeCollection->end())
+            if (itVolume == volumeCollection->end())
                 break;
             volumes.push_back(&*itVolume);
             itPos = itVolume;
@@ -211,12 +265,16 @@ void VSIFile::getVolumeMetadataItems(std::list<const TagInfo*>& volumes) const {
     }
 }
 
-void VSIFile::getImageFrameMetadataItems(const TagInfo* volume, std::list<const TagInfo*>& frames){
-    for(auto itPos = volume->begin(); itPos != volume->end(); ++itPos) {
+void VSIFile::getImageFrameMetadataItems(const TagInfo* volume, std::list<const TagInfo*>& frames) {
+    for (auto itPos = volume->begin(); itPos != volume->end(); ++itPos) {
         auto itFrame = volume->findNextChild(vsi::Tag::IMAGE_FRAME_VOLUME, itPos);
         if (itFrame == volume->end())
             break;
-        frames.push_back(&*itFrame);
+        if (itFrame->findChild(Tag::EXTERNAL_FILE_PROPERTIES)) {
+            // ignore all frames without external file
+            // they contain undocumented vector layers
+            frames.push_back(&*itFrame);
+        }
         itPos = itFrame;
     }
 }
@@ -232,13 +290,13 @@ void VSIFile::read() {
         assignAuxImages();
         // Assign volumes to external files
         std::vector<std::shared_ptr<Volume>> imageVolumes;
-        for(auto& volume: m_volumes) {
+        for (auto& volume : m_volumes) {
             const auto stackType = volume->getType();
-            if(stackType==StackType::DEFAULT_IMAGE || stackType==StackType::OVERVIEW_IMAGE) {
+            if (stackType == StackType::DEFAULT_IMAGE || stackType == StackType::OVERVIEW_IMAGE) {
                 imageVolumes.push_back(volume);
             }
         }
-        if(imageVolumes.size() == m_etsFiles.size()) {
+        if (imageVolumes.size() == m_etsFiles.size()) {
             // we assume that the order of volumes and ets files is the same
             for (size_t index = 0; index < imageVolumes.size(); index++) {
                 m_etsFiles[index]->assignVolume(imageVolumes[index]);
@@ -269,12 +327,12 @@ void vsi::VSIFile::checkExternalFilePresence() {
     SLIDEIO_LOG(INFO) << "VSI driver: checking external file presence";
     std::list<const TagInfo*> volumes;
     getVolumeMetadataItems(volumes);
-    for(auto& volume: volumes) {
+    for (auto& volume : volumes) {
         std::list<const TagInfo*> frames;
         getImageFrameMetadataItems(volume, frames);
-        for(auto& frame: frames) {
+        for (auto& frame : frames) {
             const TagInfo* externalFile = frame->findChild(vsi::Tag::EXTERNAL_FILE_PROPERTIES);
-            if(externalFile) {
+            if (externalFile) {
                 const TagInfo* hasExternalFile = externalFile->findChild(vsi::Tag::HAS_EXTERNAL_FILE);
                 if (hasExternalFile) {
                     const std::string& value = hasExternalFile->value;
@@ -289,15 +347,31 @@ void vsi::VSIFile::checkExternalFilePresence() {
     SLIDEIO_LOG(INFO) << "VSI driver: external files are " << (m_expectExternalFiles ? "present" : "absent");
 }
 
-void vsi::VSIFile::serializeMetatdata(const TagInfo& tagInfo, boost::json::object& jsonObj) const {
+StackType VSIFile::getVolumeStackType(const TagInfo* volume) {
+    const TagInfo* stackProps = volume->findChild(vsi::Tag::MULTIDIM_STACK_PROPERTIES);
+    if (stackProps) {
+        const TagInfo* stackType = stackProps->findChild(vsi::Tag::STACK_TYPE);
+        if (stackType) {
+            const int val = std::stoi(stackType->value);
+            return VSITools::intToStackType(val);
+        }
+        else {
+            return StackType::DEFAULT_IMAGE;
+        }
+    }
+    return StackType::UNKNOWN;
+}
+
+
+void vsi::VSIFile::serializeMetadata(const TagInfo& tagInfo, boost::json::object& jsonObj) const {
     jsonObj["tag"] = tagInfo.tag;
     jsonObj["name"] = tagInfo.name;
     jsonObj["value"] = tagInfo.value;
-    if(!tagInfo.children.empty()) {
+    if (!tagInfo.children.empty()) {
         boost::json::array array;
-        for(const auto& child: tagInfo.children) {
+        for (const auto& child : tagInfo.children) {
             boost::json::object childObject;
-            serializeMetatdata(child, childObject);
+            serializeMetadata(child, childObject);
             array.emplace_back(std::move(childObject));
         }
         jsonObj["value"] = std::move(array);
@@ -305,7 +379,7 @@ void vsi::VSIFile::serializeMetatdata(const TagInfo& tagInfo, boost::json::objec
     else {
         for (const auto& child : tagInfo.children) {
             boost::json::object childObject;
-            serializeMetatdata(child, childObject);
+            serializeMetadata(child, childObject);
             std::string tag = std::to_string(child.tag);
             jsonObj[tag] = std::move(childObject);
         }
@@ -331,15 +405,18 @@ void vsi::VSIFile::readVolumeInfo() {
         RAISE_RUNTIME_ERROR << "VSI driver: invalid file header. Expected second word: 42, got: "
             << header.i42;
     }
-    //boost::json::object root;
-    readMetadata(vsiStream, m_metadata);
-    //serializeMetatdata(root, m_metadata);
-    //m_metadata = root;
-    //bool empty = m_metadata.empty();
+    std::list<TagInfo> path = {m_metadata};
+    readMetadata(vsiStream, path);
+    if (path.size() != 1) {
+        RAISE_RUNTIME_ERROR << "VSI driver: invalid metadata path";
+    }
+    m_metadata = path.front();
     {
-        //std::ofstream ofs("d:\\Temp\\metadata.json");
-        //ofs << boost::json::serialize(m_metadata);
-        //ofs.close();
+        boost::json::object root;
+        serializeMetadata(m_metadata, root);
+        std::ofstream ofs("d:\\Temp\\metadata.json");
+        ofs << boost::json::serialize(root);
+        ofs.close();
     }
     checkExternalFilePresence();
 }
@@ -354,22 +431,27 @@ void vsi::VSIFile::readExternalFiles() {
     const fs::path subDirPath = dirPath / subDirName;
     if (fs::exists(subDirPath)) {
         const std::list<std::string> files = Tools::findFilesWithExtension(subDirPath.string(), ".ets");
+        if (files.size() != this->getNumVolumes()) {
+            SLIDEIO_LOG(WARNING) << "VSI driver: number of ETS files does not match the number of volumes";
+        }
+        int index = 0;
         for (const auto& file : files) {
             auto etsFile = std::make_shared<vsi::EtsFile>(file);
-            etsFile->read();
+            etsFile->read(getVolume(index++));
             m_etsFiles.push_back(etsFile);
         }
     }
 }
 
 
-void vsi::VSIFile::readExtendedType(vsi::VSIStream& vsi, vsi::TagInfo& tagInfo) {
+void vsi::VSIFile::readExtendedType(vsi::VSIStream& vsi, TagInfo& tagInfo, std::list<TagInfo>& path) {
     switch (tagInfo.extendedType) {
     case ExtendedType::NEW_VOLUME_HEADER: {
         const int64_t endPointer = vsi.getPos() + tagInfo.dataSize;
+        path.push_back(tagInfo);
         while (vsi.getPos() < endPointer && vsi.getPos() < vsi.getSize()) {
             const int64_t start = vsi.getPos();
-            bool ok = readMetadata(vsi, tagInfo);
+            bool ok = readMetadata(vsi, path);
             if (!ok) {
                 break;
             }
@@ -378,11 +460,16 @@ void vsi::VSIFile::readExtendedType(vsi::VSIStream& vsi, vsi::TagInfo& tagInfo) 
                 break;
             }
         }
+        tagInfo = path.back();
+        path.pop_back();
     }
-                                        break;
+    break;
     case ExtendedType::PROPERTY_SET_VOLUME:
     case ExtendedType::NEW_MDIM_VOLUME_HEADER:
-        readMetadata(vsi, tagInfo);
+        path.push_back(tagInfo);
+        readMetadata(vsi, path);
+        tagInfo = path.back();
+        path.pop_back();
         break;
     }
 }
@@ -402,9 +489,9 @@ bool vsi::VSIFile::readVolumeHeader(vsi::VSIStream& vsi, vsi::VolumeHeader& volu
     return true;
 }
 
-bool vsi::VSIFile::readMetadata(VSIStream& vsi, TagInfo& parentObject) {
-    SLIDEIO_LOG(INFO) << "VSI driver: reading metadata";
-
+bool vsi::VSIFile::readMetadata(VSIStream& vsi, std::list<TagInfo>& path) {
+    //SLIDEIO_LOG(INFO) << "VSI driver: reading metadata";
+    auto& parentObject = path.back();
     vsi::VolumeHeader volumeHeader;
     const int64_t headerPos = vsi.getPos();
 
@@ -449,10 +536,10 @@ bool vsi::VSIFile::readMetadata(VSIStream& vsi, TagInfo& parentObject) {
         }
 
         tagInfo.dataSize = tagHeader.dataSize;
-        tagInfo.name = VSITools::getTagName(tagInfo, parentObject);
+        tagInfo.name = VSITools::getTagName(tagInfo, path);
 
         if (extendedField) {
-            readExtendedType(vsi, tagInfo);
+            readExtendedType(vsi, tagInfo, path);
         }
         else {
             std::string value = inlineData ? std::to_string(tagInfo.dataSize) : " ";
@@ -460,7 +547,7 @@ bool vsi::VSIFile::readMetadata(VSIStream& vsi, TagInfo& parentObject) {
                 value = VSITools::extractTagValue(vsi, tagInfo);
             }
 
-            if (tagInfo.tag == vsi::Tag::DOCUMENT_TIME || tagInfo.tag == vsi::Tag::CREATION_TIME) {
+            if (tagInfo.tag == Tag::DOCUMENT_TIME || tagInfo.tag == Tag::CREATION_TIME) {
                 std::ostringstream oss;
                 time_t time = std::stoll(value);
                 oss << std::put_time(std::localtime(&time), "%d-%m-%Y %H-%M-%S");

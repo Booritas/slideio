@@ -65,13 +65,14 @@ namespace slideio
         private:
             void read();
             void checkExternalFilePresence();
+            static StackType getVolumeStackType(const TagInfo* volume);
             void extractVolumesFromMetadata();
             bool readVolumeHeader(vsi::VSIStream& vsi, vsi::VolumeHeader& volumeHeader);
-            bool readMetadata(VSIStream& vsiStream, TagInfo& parent);
-            void serializeMetatdata(const TagInfo& tagInfo, boost::json::object& jsonObj) const;
+            bool readMetadata(VSIStream& vsiStream, std::list<TagInfo>& path);
+            void serializeMetadata(const TagInfo& tagInfo, boost::json::object& jsonObj) const;
             void readVolumeInfo();
             void readExternalFiles();
-            void readExtendedType(vsi::VSIStream& vsi, vsi::TagInfo& tagInfo);
+            void readExtendedType(vsi::VSIStream& vsi, TagInfo& tag, std::list<TagInfo>& path);
         private:
             std::vector<std::shared_ptr<vsi::EtsFile>> m_etsFiles;
             bool m_expectExternalFiles = false;

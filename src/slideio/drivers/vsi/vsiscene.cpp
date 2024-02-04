@@ -12,7 +12,6 @@ VSIScene::VSIScene(const std::string& filePath, std::shared_ptr<vsi::VSIFile>& v
     m_filePath(filePath),
     m_compression(Compression::Unknown),
     m_resolution(0., 0.),
-    m_magnification(0.),
     m_vsiFile(vsiFile)
 {
 }

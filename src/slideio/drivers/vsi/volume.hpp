@@ -9,6 +9,7 @@
 #include "vsistruct.hpp"
 #include "slideio/drivers/vsi/vsi_api_def.hpp"
 #include "slideio/imagetools/tifftools.hpp"
+#include "slideio/drivers/vsi/dimensions.hpp"
 
 #if defined(_MSC_VER)
 #pragma warning( push )
@@ -23,6 +24,10 @@ namespace slideio
         class SLIDEIO_VSI_EXPORTS Volume
         {
         public:
+            Volume() {
+                m_dimensionOrder[0] = 0;
+                m_dimensionOrder[1] = 1;
+            }
             std::string getName() const { return m_name; }
             void setName(const std::string& name) { m_name = name; }
 
@@ -51,6 +56,16 @@ namespace slideio
             void setDefaultColor(int color) { m_defaultColor = color; }
             int getDefaultColor() const { return m_defaultColor; }
 
+            int getDimensionOrder(Dimensions dim) const { return m_dimensionOrder[dimensionIndex(dim)]; }
+            void setDimensionOrder(Dimensions dim, int value) { m_dimensionOrder[dimensionIndex(dim)] = value; }
+
+            const Resolution& getResolution() const { return m_resolution; }
+            void setResolution(const Resolution& resolution) { m_resolution = resolution; }
+
+        private:
+            static int dimensionIndex(Dimensions dim) {
+                return static_cast<int>(dim);
+            }
         private:
             std::string m_name;
             double m_magnification = 0.;
@@ -61,6 +76,8 @@ namespace slideio
             int m_ifd = -1;
             std::vector<std::shared_ptr<Volume>> m_auxVolumes;
             int m_defaultColor = 0;
+            int m_dimensionOrder[MAX_DIMENSIONS] = {-1};
+            Resolution m_resolution;
         };
 
     };

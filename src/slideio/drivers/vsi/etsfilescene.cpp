@@ -49,6 +49,30 @@ std::shared_ptr<CVScene> EtsFileScene::getAuxImage(const std::string& imageName)
     RAISE_RUNTIME_ERROR << "VSIImageDriver: ETS file does not contain auxiliary image with name " << imageName;
 }
 
+int EtsFileScene::getNumZSlices() const {
+    return getEtsFile()->getNumZSlices();
+}
+
+int EtsFileScene::getNumTFrames() const {
+    return getEtsFile()->getNumTFrames();
+}
+
+int EtsFileScene::getNumLambdas() const {
+	return getEtsFile()->getNumLambdas();
+}
+
+int EtsFileScene::getNumPyramids() const {
+	return getEtsFile()->getNumPyramids();
+}
+
+DataType EtsFileScene::getChannelDataType(int) const {
+    return getEtsFile()->getDataType();
+}
+
+Resolution EtsFileScene::getResolution() const {
+    return getEtsFile()->getVolume()->getResolution();
+}
+
 void EtsFileScene::init()
 {
     if(!m_vsiFile) {
@@ -57,9 +81,10 @@ void EtsFileScene::init()
     const int etsFileCount = m_vsiFile->getNumEtsFiles();
     const std::shared_ptr<vsi::EtsFile> etsFile = getEtsFile();
     const auto& volume = etsFile->getVolume();
+    m_rect = cv::Rect(cv::Point2i(0, 0), etsFile->getSize());
+    m_numChannels = etsFile->getNumChannels();
     if(volume) {
         m_name = volume->getName();
-        m_rect = cv::Rect(cv::Point2i(0, 0), volume->getSize());
         m_magnification = volume->getMagnification();
     }
 }

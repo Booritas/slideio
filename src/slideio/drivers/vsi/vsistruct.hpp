@@ -184,6 +184,7 @@ namespace slideio
             EFI_TEXTURE_MAP = 32,
             EFI_STACK = 64,
             MACRO_IMAGE = 256,
+            FOCUS_POINTS = 1024,
             UNKNOWN = 0xFFFF,
         };
         constexpr int Z = 1;

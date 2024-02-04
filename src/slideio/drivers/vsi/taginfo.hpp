@@ -70,7 +70,7 @@ namespace slideio
                 this->value = srcValue;
             }
             void copy(const TagInfo& other) {
-                               tag = other.tag;
+                tag = other.tag;
                 fieldType = other.fieldType;
                 valueType = other.valueType;
                 extendedType = other.extendedType;

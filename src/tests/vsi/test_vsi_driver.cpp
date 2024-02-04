@@ -98,13 +98,6 @@ TEST(VSIImageDriver, auxImages)
 }
 
 
-TEST(VSIImageDriver, VSIFileOpenWithExternalFiles)
-{
-    std::string filePath = TestTools::getFullTestImagePath("vsi", "Zenodo/Abdominal/G1M16_ABD_HE_B6.vsi");
-    vsi::VSIFile vsiFile(filePath);
-    EXPECT_EQ(4, vsiFile.getNumEtsFiles());
-}
-
 TEST(VSIImageDriver, VSIFileOpenWithOutExternalFiles)
 {
     std::string filePath = TestTools::getFullTestImagePath("vsi", 
@@ -186,6 +179,13 @@ TEST(VSIImageDriver, readVSISceneStripedDirUncompressedRoiResampled)
     //TestTools::showRasters(testRoi, blockRaster);
 }
 
+TEST(VSIImageDriver, VSIFileOpenWithExternalFiles)
+{
+    std::string filePath = TestTools::getFullTestImagePath("vsi", "Zenodo/Abdominal/G1M16_ABD_HE_B6.vsi");
+    vsi::VSIFile vsiFile(filePath);
+    EXPECT_EQ(4, vsiFile.getNumEtsFiles());
+}
+
 
 TEST(VSIImageDriver, read3DVolume16bit)
 {
@@ -198,6 +198,16 @@ TEST(VSIImageDriver, read3DVolume16bit)
     ASSERT_EQ(1, numScenes);
     std::shared_ptr<CVScene> scene = slide->getScene(0);
     const auto rect = scene->getRect();
+    EXPECT_EQ(cv::Rect(0, 0, 1645, 1682), rect);
+    EXPECT_EQ(2, scene->getNumChannels());
+    EXPECT_EQ(DataType::DT_UInt16, scene->getChannelDataType(0));
+    EXPECT_EQ(DataType::DT_UInt16, scene->getChannelDataType(1));
+    EXPECT_EQ(11, scene->getNumZSlices());
+    EXPECT_EQ(1, scene->getNumTFrames());
+    const auto resolution = scene->getResolution();
+    const double val = 0.108333e-6;
+    EXPECT_DOUBLE_EQ(val, resolution.x);
+    EXPECT_DOUBLE_EQ(val, resolution.y);
     //cv::Rect roi(rect.x + rect.width / 4, rect.y + rect.height / 4, rect.width / 2, rect.height / 2);
     //cv::Size blockSize(std::lround(roi.width * 0.8), std::lround(roi.height * 0.8));
     //cv::Mat blockRaster;
@@ -209,3 +219,29 @@ TEST(VSIImageDriver, read3DVolume16bit)
     //TestTools::compareRasters(testRoi, blockRaster);
     //TestTools::showRasters(testRoi, blockRaster);
 }
+
+TEST(VSIImageDriver, readMultiscene)
+{
+    std::string filePath = TestTools::getFullTestImagePath("vsi", "Zenodo/Abdominal/G1M16_ABD_HE_B6.vsi");
+    std::string testFilePath = TestTools::getFullTestImagePath("vsi", "test-output/G1M16_ABD_HE_B6.tiff");
+    slideio::VSIImageDriver driver;
+    std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    const int numScenes = slide->getNumScenes();
+    ASSERT_EQ(3, numScenes);
+    //std::shared_ptr<CVScene> scene = slide->getScene(0);
+    //const auto rect = scene->getRect();
+    //EXPECT_EQ(cv::Rect(0, 0, 1645, 1682), rect);
+    //EXPECT_EQ(2, scene->getNumChannels());
+    //cv::Rect roi(rect.x + rect.width / 4, rect.y + rect.height / 4, rect.width / 2, rect.height / 2);
+    //cv::Size blockSize(std::lround(roi.width * 0.8), std::lround(roi.height * 0.8));
+    //cv::Mat blockRaster;
+    //scene->readResampledBlock(roi, blockSize, blockRaster);
+    //cv::Mat testRaster;
+    //TestTools::readPNG(testFilePath, testRaster);
+    //cv::Mat testRoi(testRaster, roi);
+    //cv::resize(testRoi, testRoi, blockSize);
+    //TestTools::compareRasters(testRoi, blockRaster);
+    //TestTools::showRasters(testRoi, blockRaster);
+}
+

@@ -118,8 +118,8 @@ std::string vsi::VSITools::getDimensionPropertyName(int tag) {
         return "Lambda value";
     case Tag::DIMENSION_NAME:
         return "Dimension name";
-    case Tag::DIMENSION_MEANING:
-        return "Dimension description";
+    case Tag::DIMENSION_INDEX:
+        return "Dimension index";
     case Tag::DIMENSION_START_ID:
         return "Dimension start ID";
     case Tag::DIMENSION_INCREMENT_ID:
@@ -180,11 +180,21 @@ std::string vsi::VSITools::getStackPropertyName(int tag) {
     return "Unknown stack property";
 }
 
-std::string vsi::VSITools::getTagName(const TagInfo& tagInfo, const TagInfo& parentObject) {
+std::string vsi::VSITools::getTagName(const TagInfo& tagInfo, const std::list<TagInfo>& path) {
+    const TagInfo& parentObject = path.back();
+    const int parentTag = parentObject.tag;
+    int grandParentTag = -1;
+    if (path.size() > 1) {
+        auto it = path.rbegin();
+        grandParentTag = (++it)->tag;
+    }
+
     if (parentObject.tag == Tag::PROPERTY_SET_VOLUME_FOR_DOCUMENT_PROPERTIES) {
         switch (tagInfo.tag) {
         case Tag::DOCUMENT_NAME:
             return "Document name";
+        case Tag::DOCUMENT_FILE_PATH:
+            return "Document file path";
         case Tag::DOCUMENT_NOTE:
             return "Document note";
         case Tag::DOCUMENT_TIME:
@@ -218,7 +228,7 @@ std::string vsi::VSITools::getTagName(const TagInfo& tagInfo, const TagInfo& par
         }
     }
 
-    if (parentObject.tag == Tag::COLLECTION_VOLUME) {
+    if (parentTag == Tag::COLLECTION_VOLUME) {
         switch (tagInfo.tag) {
         case Tag::VERSION_NUMBER:
             return "Version number";
@@ -233,27 +243,27 @@ std::string vsi::VSITools::getTagName(const TagInfo& tagInfo, const TagInfo& par
         }
     }
 
-    if (parentObject.tag == Tag::MULTIDIM_STACK_PROPERTIES) {
+    if (parentTag == Tag::MULTIDIM_STACK_PROPERTIES) {
         return getStackPropertyName(tagInfo.tag);
     }
 
-    if (parentObject.tag == Tag::DIMENSION_DESCRIPTION_VOLUME) {
+    if (parentTag == Tag::DIMENSION_DESCRIPTION_VOLUME && grandParentTag == Tag::DIMENSION_PARAMETERS) {
         return getDimensionPropertyName(tagInfo.tag);
     }
 
-    if (parentObject.tag == Tag::MICROSCOPE) {
+    if (parentTag == Tag::MICROSCOPE) {
         if (tagInfo.tag == Tag::MICROSCOPE_PROPERTIES) {
             return "Microscope properties";
         }
     }
 
-    if (parentObject.tag == Tag::MICROSCOPE_PROPERTIES) {
+    if (parentTag == Tag::MICROSCOPE_PROPERTIES) {
         if (tagInfo.tag == Tag::OPTICAL_PROPERTIES) {
             return "Optical properties";
         }
     }
 
-    if (parentObject.tag == Tag::IMAGE_FRAME_VOLUME) {
+    if (parentTag == Tag::IMAGE_FRAME_VOLUME) {
         switch (tagInfo.tag) {
         case Tag::DEFAULT_SAMPLE_PIXEL_DATA_IFD:
             return "Default sample IFD";
@@ -374,37 +384,11 @@ std::string vsi::VSITools::getTagName(const TagInfo& tagInfo, const TagInfo& par
         return "Autoexposure enabled";
     case vsi::Tag::EXPOSURE_METERING_MODE:
         return "Autoexposure metering mode";
-    case vsi::Tag::Z_START:
-        return "Z stack start";
-    case vsi::Tag::Z_INCREMENT:
-        return "Z stack increment";
-    case vsi::Tag::Z_VALUE:
-        return "Z position";
-    case vsi::Tag::TIME_START:
-        return "Timelapse start";
     case vsi::Tag::TIME_INCREMENT:
         if (tagInfo.fieldType == 0x1800000A) {
             return "TIFF IFD of the default sample";
         }
         return "Timelapse increment";
-    case vsi::Tag::TIME_VALUE:
-        return "Timestamp";
-    case vsi::Tag::LAMBDA_START:
-        return "Lambda start";
-    case vsi::Tag::LAMBDA_INCREMENT:
-        return "Lambda increment";
-    case vsi::Tag::LAMBDA_VALUE:
-        return "Lambda value";
-    case vsi::Tag::DIMENSION_NAME:
-        return "Dimension name";
-    case vsi::Tag::DIMENSION_MEANING:
-        return "Dimension description";
-    case vsi::Tag::DIMENSION_START_ID:
-        return "Dimension start ID";
-    case vsi::Tag::DIMENSION_INCREMENT_ID:
-        return "Dimension increment ID";
-    case vsi::Tag::DIMENSION_VALUE_ID:
-        return "Dimension value ID";
     case vsi::Tag::IMAGE_BOUNDARY:
         return "Image size";
     case vsi::Tag::TILE_SYSTEM:

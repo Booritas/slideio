@@ -21,7 +21,7 @@ namespace slideio
             static slideio::Compression toSlideioCompression(vsi::Compression format);
             static StackType intToStackType(int value);
             static std::string getVolumeName(int tag);
-            static std::string getTagName(const TagInfo& tagInfo, const  TagInfo& parentObject);
+            static std::string getTagName(const TagInfo& tagInfo, const std::list<TagInfo>& path);
             static bool isArray(const TagInfo& tagInfo);
             static std::string getStackTypeName(const std::string& value);
             static std::string getDeviceSubtype(const std::string& value);

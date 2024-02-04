@@ -39,6 +39,7 @@ namespace slideio
             const int VERSION_NUMBER = 2035;
             const int DOCUMENT_PROPERTIES = 2109;
             const int DOCUMENT_NAME = 11;
+            const int DOCUMENT_FILE_PATH = 12;
             const int DOCUMENT_NOTE = 13;
             const int DOCUMENT_TIME = 14;
             const int DOCUMENT_AUTHOR = 15;
@@ -228,6 +229,7 @@ namespace slideio
             const int ACQUISITION_PROPERTIES = 10048;
             const int GRADIENT_LUT = 10065;
 // Dimension property set
+            const int DIMENSION_PARAMETERS = 2008;
             const int Z_START = 2012;
             const int Z_INCREMENT = 2013;
             const int Z_VALUE = 2014;
@@ -238,7 +240,7 @@ namespace slideio
             const int LAMBDA_INCREMENT = 2040;
             const int LAMBDA_VALUE = 2041;
             const int DIMENSION_NAME = 2021;
-            const int DIMENSION_MEANING = 2023;
+            const int DIMENSION_INDEX = 2023;
             const int DIMENSION_START_ID = 2025;
             const int DIMENSION_INCREMENT_ID = 2026;
             const int DIMENSION_VALUE_ID = 2027;

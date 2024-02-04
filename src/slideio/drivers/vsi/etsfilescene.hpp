@@ -29,6 +29,12 @@ namespace slideio
             void* userData) override;
         void addAuxImage(const std::string& name, std::shared_ptr<CVScene> scene);
         std::shared_ptr<CVScene> getAuxImage(const std::string& imageName) const override;
+        int getNumZSlices() const override;
+        int getNumTFrames() const override;
+        int getNumLambdas() const;
+        int getNumPyramids() const;
+        DataType getChannelDataType(int channelIndex) const override;
+        Resolution getResolution() const override;
     protected:
         void init();
         std::shared_ptr<vsi::EtsFile> getEtsFile() const;

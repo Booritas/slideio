@@ -44,23 +44,44 @@ namespace slideio
             slideio::Compression getCompression() const {
                 return m_compression;
             }
-            void read();
+            void read(const std::shared_ptr<Volume>& volume);
             void assignVolume(const std::shared_ptr<Volume>& volume) {
                 m_volume = volume;
             }
             std::shared_ptr<Volume> getVolume() const {
                 return m_volume;
             }
+            const cv::Size& getSize() const {
+                return m_size;
+            }
+            const cv::Size& getTileSize() const {
+                return m_tileSize;
+            }
+            int getNumZSlices() const {
+                return m_numZSlices;
+            }
+            int getNumTFrames() const {
+                return m_numTFrames;
+            }
+            int getNumLambdas() const {
+                return m_numLambdas;
+            }
+            int getNumPyramids() const {
+                return m_numPyramids;
+            }
         private:
             std::string m_filePath;
             DataType m_dataType = DataType::DT_Unknown;
-            int m_numChannels = 0;
+            int m_numChannels = 1;
             ColorSpace m_colorSpace = ColorSpace::Unknown;
             slideio::Compression m_compression = slideio::Compression::Unknown;
             int m_compressionQuality = 0;
-            int m_tileWidth = 0;
-            int m_tileHeight = 0;
-            int m_numZSlices = 0;
+            cv::Size m_size;
+            cv::Size m_tileSize;
+            int m_numZSlices = 1;
+            int m_numTFrames = 1;
+            int m_numLambdas = 1;
+            int m_numPyramids = 1;
             uint32_t m_pixelInfoHints[17] = { 0 };
             uint32_t m_backgroundColor[10] = { 0 };
             bool m_usePyramid = true;

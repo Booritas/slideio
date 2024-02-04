@@ -15,8 +15,13 @@ slideio::vsi::EtsFile::EtsFile(const std::string& filePath) : m_filePath(filePat
 {
 }
 
-void slideio::vsi::EtsFile::read()
+void slideio::vsi::EtsFile::read(const std::shared_ptr<Volume>& volume)
 {
+    m_volume = volume;
+    if(!m_volume) {
+        RAISE_RUNTIME_ERROR << "VSI driver: volume is not assigned.";
+    }
+    // Open the file
 #if defined(WIN32)
     std::wstring filePathW = Tools::toWstring(m_filePath);
     std::ifstream ifs(filePathW, std::ios::binary);
@@ -47,8 +52,8 @@ void slideio::vsi::EtsFile::read()
     m_colorSpace = static_cast<ColorSpace>(additionalHeader.colorSpace);
     m_compression = VSITools::toSlideioCompression(static_cast<vsi::Compression>(additionalHeader.format));
     m_compressionQuality = static_cast<int>(additionalHeader.quality);
-    m_tileWidth = static_cast<int>(additionalHeader.sizeX);
-    m_tileHeight = static_cast<int>(additionalHeader.sizeY);
+    m_tileSize.width = static_cast<int>(additionalHeader.sizeX);
+    m_tileSize.height = static_cast<int>(additionalHeader.sizeY);
     m_numZSlices = static_cast<int>(additionalHeader.sizeZ);
     std::memcpy(m_pixelInfoHints, additionalHeader.pixInfoHints, sizeof(m_pixelInfoHints));
     std::memcpy(m_backgroundColor, additionalHeader.background, sizeof(m_backgroundColor));
@@ -58,37 +63,62 @@ void slideio::vsi::EtsFile::read()
     ets.setPos(header.usedChunksPos);
     m_tiles.resize(header.numUsedChunks);
     const int dimensions = static_cast<int>(m_dimensions.back());
+    std::vector<int> maxCoordinates(dimensions);
     for(uint chunk=0; chunk<header.numUsedChunks; ++chunk) {
         TileInfo& tileInfo = m_tiles[chunk];
         ets.skipBytes(4);
         tileInfo.coordinates.resize(dimensions);
         for(int i=0; i<dimensions; ++i) {
             tileInfo.coordinates[i] = ets.readValue<int32_t>();
+            maxCoordinates[i] = std::max(maxCoordinates[i], tileInfo.coordinates[i]);
         }
         tileInfo.offset = ets.readValue<int64_t>();
         tileInfo.size = ets.readValue<uint32_t>();
         ets.skipBytes(4);
     }
 
-    int maxResolution = 0;
+    //int maxResolution = 0;
 
-    if (m_usePyramid) {
-        for (auto t : m_tiles) {
-            if (t.coordinates[t.coordinates.size() - 1] > maxResolution) {
-                maxResolution = t.coordinates[t.coordinates.size() - 1];
-            }
-        }
+    //if (m_usePyramid) {
+    //    for (auto t : m_tiles) {
+    //        if (t.coordinates[t.coordinates.size() - 1] > maxResolution) {
+    //            maxResolution = t.coordinates[t.coordinates.size() - 1];
+    //        }
+    //    }
+    //}
+
+    //maxResolution++;
+    
+    m_size.width = (maxCoordinates[m_volume->getDimensionOrder(Dimensions::X)] + 1) * m_tileSize.width;
+    m_size.height = (maxCoordinates[m_volume->getDimensionOrder(Dimensions::Y)] + 1) * m_tileSize.height;
+    const int zIndex = m_volume->getDimensionOrder(Dimensions::Z);
+    if(zIndex >= 0 && zIndex < maxCoordinates.size()) {
+        m_numZSlices = maxCoordinates[m_volume->getDimensionOrder(Dimensions::Z)] + 1;
     }
+    const int tIndex = m_volume->getDimensionOrder(Dimensions::T);
+    if(tIndex >= 0 && tIndex < maxCoordinates.size()) {
+        m_numTFrames = maxCoordinates[m_volume->getDimensionOrder(Dimensions::T)] + 1;
+    }
+    const int channelIndex = m_volume->getDimensionOrder(Dimensions::C);
+    if(channelIndex < 0 || channelIndex >= maxCoordinates.size()) {
+        RAISE_RUNTIME_ERROR << "Invalid channel index " << channelIndex << ". Expected [0," << maxCoordinates.size() << ").";
+    }
+    m_numChannels = maxCoordinates[m_volume->getDimensionOrder(Dimensions::C)] + 1;
+    const int lambdaIndex = m_volume->getDimensionOrder(Dimensions::L);
+    if(lambdaIndex >= 0 && lambdaIndex < maxCoordinates.size()) {
+        m_numLambdas = maxCoordinates[m_volume->getDimensionOrder(Dimensions::L)] + 1;
+    }
+    const int pyramidIndex = m_volume->getDimensionOrder(Dimensions::P);
+    if(pyramidIndex >= 0 && pyramidIndex < maxCoordinates.size()) {
+        m_numPyramids = maxCoordinates[m_volume->getDimensionOrder(Dimensions::P)] + 1;
+    }
+    //std::vector<int> maxX(maxResolution);
+    //std::vector<int> maxY(maxResolution);
+    //std::vector<int> maxZ(maxResolution);
+    //std::vector<int> maxC(maxResolution);
+    //std::vector<int> maxT(maxResolution);
 
-    maxResolution++;
-
-    std::vector<int> maxX(maxResolution);
-    std::vector<int> maxY(maxResolution);
-    std::vector<int> maxZ(maxResolution);
-    std::vector<int> maxC(maxResolution);
-    std::vector<int> maxT(maxResolution);
-
-    //HashMap<String, Integer> dimOrder = pyramids.get(s).dimensionOrdering;
+    //std::map<std::string, int> dimOrder = pyramids.get(s).dimensionOrdering;
 
     //for (TileCoordinate t : tmpTiles) {
     //    int resolution = usePyramid ? t.coordinate[t.coordinate.length - 1] : 0;
