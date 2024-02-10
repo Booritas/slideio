@@ -61,10 +61,10 @@ namespace slideio
 
             const Resolution& getResolution() const { return m_resolution; }
             void setResolution(const Resolution& resolution) { m_resolution = resolution; }
-            void setZResolution(double res) { m_zRezolution = res; }
-            double getZResolution() const { return m_zRezolution; }
-            void setTResolution(double res) { m_tRezolution = res; }
-            double getTResolution() const { return m_tRezolution; }
+            void setZResolution(double res) { m_zResolution = res; }
+            double getZResolution() const { return m_zResolution; }
+            void setTResolution(double res) { m_tResolution = res; }
+            double getTResolution() const { return m_tResolution; }
         private:
             static int dimensionIndex(Dimensions dim) {
                 return static_cast<int>(dim);
@@ -81,8 +81,8 @@ namespace slideio
             int m_defaultColor = 0;
             int m_dimensionOrder[MAX_DIMENSIONS] = {-1};
             Resolution m_resolution;
-            double m_zRezolution = 0.;
-            double m_tRezolution = 0.;
+            double m_zResolution = 0.;
+            double m_tResolution = 0.;
         };
 
     };

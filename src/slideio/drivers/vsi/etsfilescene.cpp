@@ -87,6 +87,13 @@ double EtsFileScene::getTFrameResolution() const {
     return 0.;
 }
 
+int EtsFileScene::getNumChannels() const {
+    if(getEtsFile()) {
+        return getEtsFile()->getNumChannels();
+    }
+    return 0;
+}
+
 void EtsFileScene::init()
 {
     if(!m_vsiFile) {

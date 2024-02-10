@@ -37,6 +37,7 @@ namespace slideio
         Resolution getResolution() const override;
         double getZSliceResolution() const override;
         double getTFrameResolution() const override;
+        int getNumChannels() const override;
     protected:
         void init();
         std::shared_ptr<vsi::EtsFile> getEtsFile() const;

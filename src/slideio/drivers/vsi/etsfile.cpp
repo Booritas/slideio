@@ -120,11 +120,6 @@ void slideio::vsi::EtsFile::read(std::list<std::shared_ptr<Volume>>& volumes)
     if(tIndex >= 0 && tIndex < maxCoordinates.size()) {
         m_numTFrames = maxCoordinates[m_volume->getDimensionOrder(Dimensions::T)] + 1;
     }
-    const int channelIndex = m_volume->getDimensionOrder(Dimensions::C);
-    if(channelIndex < 0 || channelIndex >= maxCoordinates.size()) {
-        RAISE_RUNTIME_ERROR << "Invalid channel index " << channelIndex << ". Expected [0," << maxCoordinates.size() << ").";
-    }
-    m_numChannels = maxCoordinates[m_volume->getDimensionOrder(Dimensions::C)] + 1;
     const int lambdaIndex = m_volume->getDimensionOrder(Dimensions::L);
     if(lambdaIndex >= 0 && lambdaIndex < maxCoordinates.size()) {
         m_numLambdas = maxCoordinates[m_volume->getDimensionOrder(Dimensions::L)] + 1;
