@@ -43,10 +43,10 @@ TEST(VSIImageDriver, openFileWithoutExternalFiles)
 
 TEST(VSIImageDriver, openFileWithExternalFiles)
 {
-    std::tuple<std::string,int,int, double> result[] = {
-        {"40x_01", 14749,20874,40},
-        {"40x_02", 15596,19403,40},
-        {"40x_03", 16240,18759,40},
+    std::tuple<std::string, int, int, double, std::string> result[] = {
+        {"40x_01", 14749,20874,40,"40x FocusMap"},
+        {"40x_02", 15596,19403,40,"40x FocusMap"},
+        {"40x_03", 16240,18759,40,"40x FocusMap"},
     };
     const std::string filePath = TestTools::getFullTestImagePath("vsi", "Zenodo/Abdominal/G1M16_ABD_HE_B6.vsi");
     slideio::VSIImageDriver driver;
@@ -63,7 +63,10 @@ TEST(VSIImageDriver, openFileWithExternalFiles)
         EXPECT_EQ(rect.x, 0);
         EXPECT_EQ(rect.y, 0);
         EXPECT_DOUBLE_EQ(scene->getMagnification(), std::get<3>(result[sceneIndex]));
-        EXPECT_EQ(0, scene->getNumAuxImages());
+        EXPECT_EQ(1, scene->getNumAuxImages());
+        auto auxImageNames = scene->getAuxImageNames();
+        EXPECT_EQ(1, auxImageNames.size());
+        EXPECT_EQ(auxImageNames.front(), std::get<4>(result[sceneIndex]));
     }
     ASSERT_EQ(1,slide->getNumAuxImages());
     auto names = slide->getAuxImageNames();

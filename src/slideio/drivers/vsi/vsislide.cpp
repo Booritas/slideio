@@ -38,14 +38,25 @@ void VSISlide::init()
                 auto scene = std::make_shared<EtsFileScene>(m_filePath, m_vsiFile, fileIndex);
                 const auto etsFile = m_vsiFile->getEtsFile(fileIndex);
                 auto volume = etsFile->getVolume();
-                if(volume) {
+                if (volume) {
                     const vsi::StackType stackType = volume->getType();
-                    if(stackType == vsi::StackType::DEFAULT_IMAGE) {
-                        m_Scenes.push_back(scene);
-                    } else if(stackType == vsi::StackType::OVERVIEW_IMAGE) {
-                        std::string typeName = vsi::getStackTypeName(stackType);
-                        m_auxImages[typeName] = scene;
-                        m_auxNames.emplace_back(typeName);
+                    if (stackType == vsi::StackType::DEFAULT_IMAGE || stackType == vsi::StackType::OVERVIEW_IMAGE) {
+                        if (stackType == vsi::StackType::DEFAULT_IMAGE) {
+                            m_Scenes.push_back(scene);
+                        }
+                        else if (stackType == vsi::StackType::OVERVIEW_IMAGE) {
+                            std::string typeName = vsi::getStackTypeName(stackType);
+                            m_auxImages[typeName] = scene;
+                            m_auxNames.emplace_back(typeName);
+                        }
+                        const int auxImages = volume->getNumAuxVolumes();
+                        for (int auxIndex = 0; auxIndex < auxImages; ++auxIndex) {
+                            auto auxVolume = volume->getAuxVolume(auxIndex);
+                            if (auxVolume) {
+                                auto auxScene = std::make_shared<VsiFileScene>(m_filePath, m_vsiFile, auxVolume->getIFD());
+                                scene->addAuxImage(auxVolume->getName(), auxScene);
+                            }
+                        }
                     }
                 }
             }

@@ -91,6 +91,10 @@ void slideio::vsi::EtsFile::read(std::list<std::shared_ptr<Volume>>& volumes)
 
     for (auto it = volumes.begin(); it != volumes.end(); ++it) {
         auto volume = *it;
+        if(volume->getType() != StackType::DEFAULT_IMAGE 
+            && volume->getType() != StackType::OVERVIEW_IMAGE) {
+            continue;
+        }
         const cv::Size volumeSize = volume->getSize();
         const int volumeWidth = volumeSize.width;
         const int volumeHeight = volumeSize.height;

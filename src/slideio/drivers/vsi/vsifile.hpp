@@ -36,7 +36,7 @@ namespace slideio
                 return static_cast<int>(m_etsFiles.size());
             }
             std::string getRawMetadata() const;
-            void assignAuxImages();
+            void assignAuxVolumes();
 
             int getNumTiffDirectories() const {
                 return static_cast<int>(m_directories.size());
