@@ -103,9 +103,9 @@ void VSIFile::extractVolumesFromMetadata() {
             volumeObj->setType(stackType);
             std::list<const TagInfo*> frames;
             getImageFrameMetadataItems(volume, frames);
-            //if (frames.size() > 1) {
-            //    RAISE_RUNTIME_ERROR << "VSI Unexpected stack with multiple external files";
-            //}
+            if (frames.size() > 1) {
+                RAISE_RUNTIME_ERROR << "VSI Unexpected stack with multiple external files";
+            }
             if (!frames.empty()) {
                 const TagInfo* frame = frames.front();
                 const TagInfo* externalFile = frame->findChild(Tag::EXTERNAL_FILE_PROPERTIES);
@@ -295,7 +295,12 @@ void VSIFile::getImageFrameMetadataItems(const TagInfo* volume, std::list<const 
         auto itFrame = volume->findNextChild(Tag::IMAGE_FRAME_VOLUME, itPos);
         if (itFrame == volume->end())
             break;
-        frames.push_back(&*itFrame);
+        if (itFrame->findChild(Tag::EXTERNAL_FILE_PROPERTIES)
+            || itFrame->findChild(Tag::DEFAULT_SAMPLE_PIXEL_DATA_IFD)) {
+            // ignore all frames without external file
+            // they contain undocumented vector layers
+            frames.push_back(&*itFrame);
+        }
         itPos = itFrame;
     }
 }
