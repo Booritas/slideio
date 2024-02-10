@@ -7,7 +7,6 @@
 #include "vsistruct.hpp"
 #include "vsitools.hpp"
 #include "slideio/core/tools/tools.hpp"
-#include "slideio/imagetools/tifftools.hpp"
 
 using namespace slideio;
 
@@ -15,12 +14,8 @@ slideio::vsi::EtsFile::EtsFile(const std::string& filePath) : m_filePath(filePat
 {
 }
 
-void slideio::vsi::EtsFile::read(const std::shared_ptr<Volume>& volume)
+void slideio::vsi::EtsFile::read(std::list<std::shared_ptr<Volume>>& volumes)
 {
-    m_volume = volume;
-    if(!m_volume) {
-        RAISE_RUNTIME_ERROR << "VSI driver: volume is not assigned.";
-    }
     // Open the file
 #if defined(WIN32)
     std::wstring filePathW = Tools::toWstring(m_filePath);
@@ -88,9 +83,31 @@ void slideio::vsi::EtsFile::read(const std::shared_ptr<Volume>& volume)
     //}
 
     //maxResolution++;
-    
-    m_size.width = (maxCoordinates[m_volume->getDimensionOrder(Dimensions::X)] + 1) * m_tileSize.width;
-    m_size.height = (maxCoordinates[m_volume->getDimensionOrder(Dimensions::Y)] + 1) * m_tileSize.height;
+
+    const int minWidth = maxCoordinates[0] * m_tileSize.width;
+    const int minHeight = maxCoordinates[1] * m_tileSize.height;
+    const int maxWidth = minWidth + m_tileSize.width;
+    const int maxHeight = minHeight + m_tileSize.height;
+
+    for (auto it = volumes.begin(); it != volumes.end(); ++it) {
+        auto volume = *it;
+        const cv::Size volumeSize = volume->getSize();
+        const int volumeWidth = volumeSize.width;
+        const int volumeHeight = volumeSize.height;
+        if(volumeWidth>=minWidth && volumeWidth<=maxWidth
+            && volumeHeight>=minHeight && volumeHeight<=maxHeight) {
+            volumes.erase(it);
+            assignVolume(volume);
+            break;
+        }
+    }
+    if(m_volume) {
+        m_size.width = m_volume->getSize().width;
+        m_size.height = m_volume->getSize().height;
+    } else {
+        RAISE_RUNTIME_ERROR << "VSI driver: no volume with size " << m_size.width << "x" << m_size.height << " found";
+    }
+
     const int zIndex = m_volume->getDimensionOrder(Dimensions::Z);
     if(zIndex >= 0 && zIndex < maxCoordinates.size()) {
         m_numZSlices = maxCoordinates[m_volume->getDimensionOrder(Dimensions::Z)] + 1;

@@ -2,6 +2,7 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #pragma once
+#include "slideio/drivers/vsi/vsi_api_def.hpp"
 
 namespace slideio
 {
@@ -187,6 +188,9 @@ namespace slideio
             FOCUS_POINTS = 1024,
             UNKNOWN = 0xFFFF,
         };
+
+        std::string SLIDEIO_VSI_EXPORTS getStackTypeName(StackType type);
+
         constexpr int Z = 1;
         constexpr int T = 2;
         constexpr int LAMBDA = 3;

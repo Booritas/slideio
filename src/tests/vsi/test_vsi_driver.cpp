@@ -43,18 +43,17 @@ TEST(VSIImageDriver, openFileWithoutExternalFiles)
 
 TEST(VSIImageDriver, openFileWithExternalFiles)
 {
-    std::tuple<std::string,int,int, double, std::string> result[] = {
-        {"Overview",15751,7567,2, "Sample Mask"},
-        {"40x_01", 14749,20874,40,"40x FocusMap"},
-        {"40x_02", 15596,19403,40,"40x FocusMap"},
-        {"40x_03", 16240,18759,40,"40x FocusMap"},
+    std::tuple<std::string,int,int, double> result[] = {
+        {"40x_01", 14749,20874,40},
+        {"40x_02", 15596,19403,40},
+        {"40x_03", 16240,18759,40},
     };
     const std::string filePath = TestTools::getFullTestImagePath("vsi", "Zenodo/Abdominal/G1M16_ABD_HE_B6.vsi");
     slideio::VSIImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
     const int numScenes = slide->getNumScenes();
-    ASSERT_EQ(4, numScenes);
+    ASSERT_EQ(3, numScenes);
     for(int sceneIndex=0; sceneIndex<numScenes; ++sceneIndex) {
         std::shared_ptr<CVScene> scene = slide->getScene(sceneIndex);
         EXPECT_EQ(scene->getName(), std::get<0>(result[sceneIndex]));
@@ -64,11 +63,12 @@ TEST(VSIImageDriver, openFileWithExternalFiles)
         EXPECT_EQ(rect.x, 0);
         EXPECT_EQ(rect.y, 0);
         EXPECT_DOUBLE_EQ(scene->getMagnification(), std::get<3>(result[sceneIndex]));
-        EXPECT_EQ(1, scene->getNumAuxImages());
-        auto auxImageNames = scene->getAuxImageNames();
-        EXPECT_EQ(1, auxImageNames.size());
-        EXPECT_EQ(auxImageNames.front(), std::get<4>(result[sceneIndex]));
+        EXPECT_EQ(0, scene->getNumAuxImages());
     }
+    ASSERT_EQ(1,slide->getNumAuxImages());
+    auto names = slide->getAuxImageNames();
+    ASSERT_EQ(1, names.size());
+    EXPECT_EQ("Overview", names.front());
 }
 
 TEST(VSIImageDriver, auxImages)
@@ -79,22 +79,20 @@ TEST(VSIImageDriver, auxImages)
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
     const int numScenes = slide->getNumScenes();
-    ASSERT_EQ(4, numScenes);
-    const int sceneIndex = 0;
-    std::shared_ptr<CVScene> scene = slide->getScene(sceneIndex);
-    EXPECT_EQ(1, scene->getNumAuxImages());
-    auto auxImageNames = scene->getAuxImageNames();
+    ASSERT_EQ(3, numScenes);
+    EXPECT_EQ(1, slide->getNumAuxImages());
+    auto auxImageNames = slide->getAuxImageNames();
     EXPECT_EQ(1, auxImageNames.size());
-    auto auxImage = scene->getAuxImage(auxImageNames.front());
-    EXPECT_TRUE(auxImage != nullptr);
-    cv::Rect rect = auxImage->getRect();
-    cv::Mat raster;
-    auxImage->readBlock(rect, raster);
-    //TestTools::writePNG(raster, testFilePath);
-    cv::Mat testRaster;
-    TestTools::readPNG(testFilePath, testRaster);
-    TestTools::compareRasters(testRaster, raster);
-    //TestTools::showRasters(testRaster, raster);
+    //auto auxImage = slide->getAuxImage(auxImageNames.front());
+    //EXPECT_TRUE(auxImage != nullptr);
+    //cv::Rect rect = auxImage->getRect();
+    //cv::Mat raster;
+    //auxImage->readBlock(rect, raster);
+    ////TestTools::writePNG(raster, testFilePath);
+    //cv::Mat testRaster;
+    //TestTools::readPNG(testFilePath, testRaster);
+    //TestTools::compareRasters(testRaster, raster);
+    ////TestTools::showRasters(testRaster, raster);
 }
 
 

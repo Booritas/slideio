@@ -9,9 +9,6 @@
 #include "slideio/core/cvslide.hpp"
 #include "slideio/drivers/vsi/vsiscene.hpp"
 #include "slideio/drivers/vsi/vsi_api_def.hpp"
-#include "slideio/imagetools/tifftools.hpp"
-#include "slideio/drivers/vsi/vsistream.hpp"
-#include  "slideio/drivers/vsi/etsfile.hpp"
 
 #if defined(_MSC_VER)
 #pragma warning( push )

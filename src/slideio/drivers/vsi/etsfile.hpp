@@ -44,7 +44,7 @@ namespace slideio
             slideio::Compression getCompression() const {
                 return m_compression;
             }
-            void read(const std::shared_ptr<Volume>& volume);
+            void read(std::list<std::shared_ptr<Volume>>& volumes);
             void assignVolume(const std::shared_ptr<Volume>& volume) {
                 m_volume = volume;
             }
