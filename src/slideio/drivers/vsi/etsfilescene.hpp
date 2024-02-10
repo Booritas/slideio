@@ -35,6 +35,8 @@ namespace slideio
         int getNumPyramids() const;
         DataType getChannelDataType(int channelIndex) const override;
         Resolution getResolution() const override;
+        double getZSliceResolution() const override;
+        double getTFrameResolution() const override;
     protected:
         void init();
         std::shared_ptr<vsi::EtsFile> getEtsFile() const;

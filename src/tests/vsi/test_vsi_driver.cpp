@@ -209,6 +209,8 @@ TEST(VSIImageDriver, read3DVolume16bit)
     const double val = 0.108333e-6;
     EXPECT_DOUBLE_EQ(val, resolution.x);
     EXPECT_DOUBLE_EQ(val, resolution.y);
+    EXPECT_DOUBLE_EQ(60, scene->getMagnification());
+    EXPECT_DOUBLE_EQ(1.E-6, scene->getZSliceResolution());
     //cv::Rect roi(rect.x + rect.width / 4, rect.y + rect.height / 4, rect.width / 2, rect.height / 2);
     //cv::Size blockSize(std::lround(roi.width * 0.8), std::lround(roi.height * 0.8));
     //cv::Mat blockRaster;

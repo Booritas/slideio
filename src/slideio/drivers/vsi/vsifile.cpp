@@ -206,12 +206,30 @@ void VSIFile::extractVolumesFromMetadata() {
                             if (indexTag) {
                                 int dimension = std::stoi(indexTag->value);
                                 switch (dimension) {
-                                case 1:
+                                case 1: {
                                     volumeObj->setDimensionOrder(Dimensions::Z, index + 2);
+                                    const TagInfo* channelInfo = itc->findChild(Tag::CHANNEL_INFO_PROPERTIES);
+                                    if(channelInfo) {
+                                        const TagInfo* valueTag = channelInfo->findChild(Tag::VALUE);
+                                        if(valueTag) {
+                                            double zRes = std::stod(valueTag->value);
+                                            volumeObj->setZResolution(zRes*1.e-6);
+                                        }
+                                    }
                                     break;
-                                case 2:
+                                }
+                                case 2: {
                                     volumeObj->setDimensionOrder(Dimensions::T, index + 2);
+                                    const TagInfo* channelInfo = itc->findChild(Tag::CHANNEL_INFO_PROPERTIES);
+                                    if (channelInfo) {
+                                        const TagInfo* valueTag = channelInfo->findChild(Tag::VALUE);
+                                        if (valueTag) {
+                                            double res = std::stod(valueTag->value);
+                                            volumeObj->setTResolution(res);
+                                        }
+                                    }
                                     break;
+                                }
                                 case 3:
                                     volumeObj->setDimensionOrder(Dimensions::L, index + 2);
                                     break;

@@ -73,6 +73,20 @@ Resolution EtsFileScene::getResolution() const {
     return getEtsFile()->getVolume()->getResolution();
 }
 
+double EtsFileScene::getZSliceResolution() const {
+    if(getEtsFile() && getEtsFile()->getVolume()) {
+        return getEtsFile()->getVolume()->getZResolution();
+    }
+    return 0.;
+}
+
+double EtsFileScene::getTFrameResolution() const {
+    if (getEtsFile() && getEtsFile()->getVolume()) {
+        return getEtsFile()->getVolume()->getTResolution();
+    }
+    return 0.;
+}
+
 void EtsFileScene::init()
 {
     if(!m_vsiFile) {
