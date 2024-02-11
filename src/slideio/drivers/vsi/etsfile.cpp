@@ -113,20 +113,24 @@ void slideio::vsi::EtsFile::read(std::list<std::shared_ptr<Volume>>& volumes)
     }
 
     const int zIndex = m_volume->getDimensionOrder(Dimensions::Z);
-    if(zIndex >= 0 && zIndex < maxCoordinates.size()) {
+    if(zIndex >1 && zIndex < maxCoordinates.size()) {
         m_numZSlices = maxCoordinates[m_volume->getDimensionOrder(Dimensions::Z)] + 1;
     }
     const int tIndex = m_volume->getDimensionOrder(Dimensions::T);
-    if(tIndex >= 0 && tIndex < maxCoordinates.size()) {
+    if(tIndex >1 && tIndex < maxCoordinates.size()) {
         m_numTFrames = maxCoordinates[m_volume->getDimensionOrder(Dimensions::T)] + 1;
     }
     const int lambdaIndex = m_volume->getDimensionOrder(Dimensions::L);
-    if(lambdaIndex >= 0 && lambdaIndex < maxCoordinates.size()) {
+    if(lambdaIndex >1 && lambdaIndex < maxCoordinates.size()) {
         m_numLambdas = maxCoordinates[m_volume->getDimensionOrder(Dimensions::L)] + 1;
     }
     const int pyramidIndex = m_volume->getDimensionOrder(Dimensions::P);
-    if(pyramidIndex >= 0 && pyramidIndex < maxCoordinates.size()) {
+    if(pyramidIndex >1 && pyramidIndex < maxCoordinates.size()) {
         m_numPyramids = maxCoordinates[m_volume->getDimensionOrder(Dimensions::P)] + 1;
+    }
+    const int channelIndex = m_volume->getDimensionOrder(Dimensions::C);
+    if (channelIndex >1 && channelIndex < maxCoordinates.size()) {
+        m_numChannels = maxCoordinates[m_volume->getDimensionOrder(Dimensions::C)] + 1;
     }
     //std::vector<int> maxX(maxResolution);
     //std::vector<int> maxY(maxResolution);
