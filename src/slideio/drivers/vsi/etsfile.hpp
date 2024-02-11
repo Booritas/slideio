@@ -30,6 +30,13 @@ namespace slideio
                 int64_t offset = 0;
                 uint32_t size = 0;
             };
+            struct PyramidLevel
+            {
+                int scaleLevel = 1;
+                int width = 0;
+                int height = 0;
+                std::vector<TileInfo> tiles;
+            };
         public:
             EtsFile(const std::string& filePath);
             std::string getFilePath() const {
@@ -66,8 +73,8 @@ namespace slideio
             int getNumLambdas() const {
                 return m_numLambdas;
             }
-            int getNumPyramids() const {
-                return m_numPyramids;
+            int getNumPyramidLevels() const {
+                return static_cast<int>(m_pyramid.size());
             }
         private:
             std::string m_filePath;
@@ -81,13 +88,12 @@ namespace slideio
             int m_numZSlices = 1;
             int m_numTFrames = 1;
             int m_numLambdas = 1;
-            int m_numPyramids = 1;
             uint32_t m_pixelInfoHints[17] = { 0 };
             uint32_t m_backgroundColor[10] = { 0 };
-            bool m_usePyramid = true;
+            bool m_usePyramid = false;
             std::vector<int> m_dimensions;
-            std::vector<TileInfo> m_tiles;
             std::shared_ptr<Volume> m_volume;
+            std::vector<PyramidLevel> m_pyramid;
         };
     }
 }

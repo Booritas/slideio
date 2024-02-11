@@ -241,6 +241,8 @@ TEST(VSIImageDriver, readMultiscene)
     EXPECT_DOUBLE_EQ(1.72224E-7, resolution.x);
     EXPECT_DOUBLE_EQ(1.72223E-7, resolution.y);
     EXPECT_DOUBLE_EQ(40., scene->getMagnification());
+    EXPECT_EQ(1, scene->getNumZSlices());
+    EXPECT_EQ(1, scene->getNumTFrames());
     const int numAuxImages = scene->getNumAuxImages();
     EXPECT_EQ(1, numAuxImages);
     auto auxImageNames = scene->getAuxImageNames();

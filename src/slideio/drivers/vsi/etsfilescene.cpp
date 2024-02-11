@@ -61,8 +61,8 @@ int EtsFileScene::getNumLambdas() const {
 	return getEtsFile()->getNumLambdas();
 }
 
-int EtsFileScene::getNumPyramids() const {
-	return getEtsFile()->getNumPyramids();
+int EtsFileScene::getNumPyramidLevels() const {
+	return getEtsFile()->getNumPyramidLevels();
 }
 
 DataType EtsFileScene::getChannelDataType(int) const {

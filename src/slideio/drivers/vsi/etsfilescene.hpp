@@ -32,7 +32,7 @@ namespace slideio
         int getNumZSlices() const override;
         int getNumTFrames() const override;
         int getNumLambdas() const;
-        int getNumPyramids() const;
+        int getNumPyramidLevels() const;
         DataType getChannelDataType(int channelIndex) const override;
         Resolution getResolution() const override;
         double getZSliceResolution() const override;
