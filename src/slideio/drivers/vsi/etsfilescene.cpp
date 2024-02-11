@@ -175,6 +175,7 @@ void EtsFileScene::init()
         m_name = volume->getName();
         m_magnification = volume->getMagnification();
     }
+    m_compression = etsFile->getCompression();
 }
 
 std::shared_ptr<vsi::EtsFile> EtsFileScene::getEtsFile() const
