@@ -146,24 +146,25 @@ void slideio::vsi::EtsFile::read(std::list<std::shared_ptr<Volume>>& volumes)
     }
 }
 
-void vsi::EtsFile::readTile(int levelIndex, int tileIndex, cv::OutputArray tileRaster) {
+void vsi::EtsFile::readTile(int levelIndex,int zSlice, int tFrame, int tileIndex, cv::OutputArray tileRaster) {
     if(levelIndex < 0 || levelIndex >= m_pyramid.size()) {
         RAISE_RUNTIME_ERROR << "VSIImageDriver: readTile: Pyramid level "
             << levelIndex << " is out of range (0 - " << m_pyramid.size() << " )";
     }
-    PyramidLevel& pyramidLevel = m_pyramid[levelIndex];
+    const PyramidLevel& pyramidLevel = m_pyramid[levelIndex];
+
     if(tileIndex<0 || tileIndex >= pyramidLevel.tiles.size()) {
                RAISE_RUNTIME_ERROR << "VSIImageDriver: readTile: Tile index "
             << tileIndex << " is out of range (0 - " << pyramidLevel.tiles.size() << " )";
     }
     const TileInfo& tileInfo = pyramidLevel.tiles[tileIndex];
 
-    auto offset = tileInfo.offset;
-    auto tileCompressedSize = tileInfo.size;
+    const int64_t offset = tileInfo.offset;
+    const uint32_t tileCompressedSize = tileInfo.size;
 
     m_etsStream->setPos(offset);
     m_buffer.resize(tileCompressedSize);
-    m_etsStream->readBytes(m_buffer.data(), (int)m_buffer.size());
+    m_etsStream->readBytes(m_buffer.data(), static_cast<int>(m_buffer.size()));
     tileRaster.create(m_tileSize, CV_MAKETYPE(CVTools::cvTypeFromDataType(m_dataType), m_numChannels));
     if(m_compression == slideio::Compression::Uncompressed) {
         const int tileSize = m_tileSize.width * m_tileSize.height * m_numChannels;

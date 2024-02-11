@@ -82,7 +82,7 @@ namespace slideio
                 return m_pyramid[index];
             }
 
-            void readTile(int levelIndex, int tileIndex, cv::OutputArray tileRaster);
+            void readTile(int levelIndex, int zSlice, int tFrame, int tileIndex, cv::OutputArray tileRaster);
 
         private:
             std::string m_filePath;

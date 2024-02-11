@@ -269,7 +269,7 @@ TEST(EtsFile, readTileJpeg)
     slideio::vsi::VSIFile vsiFile(filePath);
     auto etsFile = vsiFile.getEtsFile(1);
     cv::Mat tileRaster;
-    etsFile->readTile(0, 590, tileRaster);
+    etsFile->readTile(0, 590, 0, 0, tileRaster);
     //TestTools::writePNG(tileRaster, testFilePath);
     cv::Mat testRaster;
     TestTools::readPNG(testFilePath, testRaster);
@@ -284,7 +284,7 @@ TEST(EtsFile, readTileJpeg2K)
     slideio::vsi::VSIFile vsiFile(filePath);
     auto etsFile = vsiFile.getEtsFile(0);
     cv::Mat tileRaster;
-    etsFile->readTile(0, 5, tileRaster);
+    etsFile->readTile(0, 5, 0, 0,tileRaster);
     //TestTools::showRaster(tileRaster);
     //ImageTools::writeTiffImage(testFilePath, tileRaster);
     cv::Mat testRaster;

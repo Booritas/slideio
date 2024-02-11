@@ -23,8 +23,6 @@ namespace slideio
         public:
             EtsFileScene(const std::string& filePath, std::shared_ptr<VSIFile>& vsiFile, int etsIndex);
         public:
-            void readResampledBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize,
-                                            const std::vector<int>& channelIndices, cv::OutputArray output) override;
             int getTileCount(void* userData) override;
             bool getTileRect(int tileIndex, cv::Rect& tileRect, void* userData) override;
             bool readTile(int tileIndex, const std::vector<int>& channelIndices, cv::OutputArray tileRaster,
@@ -40,6 +38,9 @@ namespace slideio
             double getZSliceResolution() const override;
             double getTFrameResolution() const override;
             int getNumChannels() const override;
+            void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
+                const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex,
+                cv::OutputArray output) override;
         protected:
             void init();
             std::shared_ptr<EtsFile> getEtsFile() const;
