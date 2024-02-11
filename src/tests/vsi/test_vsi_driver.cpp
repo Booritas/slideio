@@ -280,15 +280,15 @@ TEST(EtsFile, readTileJpeg)
 TEST(EtsFile, readTileJpeg2K)
 {
     std::string filePath = TestTools::getFullTestImagePath("vsi", "vsi-multifile/vsi-ets-test-jpg2k.vsi");
-    std::string testFilePath = TestTools::getFullTestImagePath("vsi", "test-output/vsi-ets-test-jpg2k.tif");
+    std::string testFilePath = TestTools::getFullTestImagePath("vsi", "test-output/vsi-ets-test-jpg2k_tile_5.tif");
     slideio::vsi::VSIFile vsiFile(filePath);
     auto etsFile = vsiFile.getEtsFile(0);
     cv::Mat tileRaster;
     etsFile->readTile(0, 5, tileRaster);
-    TestTools::showRaster(tileRaster);
-    //TestTools::writePNG(tileRaster, testFilePath);
-    //cv::Mat testRaster;
-    //TestTools::readPNG(testFilePath, testRaster);
-    //TestTools::compareRasters(testRaster, tileRaster);
+    //TestTools::showRaster(tileRaster);
+    //ImageTools::writeTiffImage(testFilePath, tileRaster);
+    cv::Mat testRaster;
+    ImageTools::readGDALImage(testFilePath, testRaster);
+    TestTools::compareRasters(testRaster, tileRaster);
     //TestTools::showRasters(testRaster, tileRaster);
 }
