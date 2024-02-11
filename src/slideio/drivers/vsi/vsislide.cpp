@@ -12,6 +12,7 @@
 
 
 using namespace slideio;
+using namespace slideio::vsi;
 
 
 VSISlide::VSISlide(const std::string& filePath) : m_filePath(filePath)

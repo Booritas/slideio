@@ -4,10 +4,9 @@
 #include "slideio/drivers/vsi/vsiimagedriver.hpp"
 #include "slideio/drivers/vsi/vsislide.hpp"
 #include <boost/filesystem.hpp>
-#include <boost/algorithm/string.hpp>
-
 #include "slideio/core/tools/tools.hpp"
 #include <boost/json/src.hpp>
+
 
 
 slideio::VSIImageDriver::VSIImageDriver()
@@ -26,7 +25,7 @@ std::string slideio::VSIImageDriver::getID() const
 std::shared_ptr<slideio::CVSlide> slideio::VSIImageDriver::openFile(const std::string& filePath)
 {
     Tools::throwIfPathNotExist(filePath,"VSIImageDriver::openFile");
-    std::shared_ptr<CVSlide> ptr(new VSISlide(filePath));
+    std::shared_ptr<CVSlide> ptr(new vsi::VSISlide(filePath));
     return ptr;
 }
 

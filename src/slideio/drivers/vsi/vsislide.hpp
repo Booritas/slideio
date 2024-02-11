@@ -21,28 +21,28 @@ namespace slideio
     {
         class VSIFile;
         struct TempData;
+        class SLIDEIO_VSI_EXPORTS VSISlide : public slideio::CVSlide
+        {
+            friend class VSIImageDriver;
+        public:
+            VSISlide(const std::string& filePath);
+        public:
+            int getNumScenes() const override;
+            std::string getFilePath() const override;
+            std::shared_ptr<slideio::CVScene> getScene(int index) const override;
+            std::shared_ptr<CVScene> getAuxImage(const std::string& sceneName) const override;
+            const std::string& getRawMetadata() const override;
+            MetadataType getMetadataType() const override { return MetadataType::JSON; }
+        private:
+            void init();
+        private:
+            std::vector<std::shared_ptr<VSIScene>> m_Scenes;
+            std::map<std::string, std::shared_ptr<slideio::CVScene>> m_auxImages;
+            std::string m_filePath;
+            std::shared_ptr<vsi::VSIFile> m_vsiFile;
+        };
     }
 
-    class SLIDEIO_VSI_EXPORTS VSISlide : public slideio::CVSlide
-    {
-        friend class VSIImageDriver;
-    public:
-        VSISlide(const std::string& filePath);
-    public:
-        int getNumScenes() const override;
-        std::string getFilePath() const override;
-        std::shared_ptr<slideio::CVScene> getScene(int index) const override;
-        std::shared_ptr<CVScene> getAuxImage(const std::string& sceneName) const override;
-        const std::string& getRawMetadata() const override;
-        MetadataType getMetadataType() const override { return MetadataType::JSON; }
-    private:
-        void init();
-    private:
-        std::vector<std::shared_ptr<slideio::VSIScene>> m_Scenes;
-        std::map<std::string, std::shared_ptr<slideio::CVScene>> m_auxImages;
-        std::string m_filePath;
-        std::shared_ptr<vsi::VSIFile> m_vsiFile;
-    };
 }
 
 #if defined(_MSC_VER)

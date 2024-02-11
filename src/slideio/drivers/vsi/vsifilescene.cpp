@@ -9,6 +9,7 @@
 #include "slideio/core/tools/tools.hpp"
 
 using namespace slideio;
+using namespace slideio::vsi;
 
 VsiFileScene::VsiFileScene(const std::string& filePath, std::shared_ptr<vsi::VSIFile>& vsiFile, int directoryIndex) :
     VSIScene(filePath, vsiFile), m_directoryIndex(directoryIndex)

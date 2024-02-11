@@ -23,9 +23,9 @@ void slideio::vsi::EtsFile::read(std::list<std::shared_ptr<Volume>>& volumes)
 #else
     std::ifstream ifs(m_filePath, std::ios::binary);
 #endif
-    vsi::VSIStream ets(ifs);
+    m_etsStream = std::make_unique<vsi::VSIStream>(ifs);
     vsi::EtsVolumeHeader header = {0};
-    ets.read<vsi::EtsVolumeHeader>(header);
+    m_etsStream->read<vsi::EtsVolumeHeader>(header);
     if (strncmp((char*)header.magic, "SIS", 3) != 0) {
         RAISE_RUNTIME_ERROR << "VSI driver: invalid ETS file header. Expected first tree bytes: 'SIS', got: "
             << header.magic;
@@ -34,9 +34,9 @@ void slideio::vsi::EtsFile::read(std::list<std::shared_ptr<Volume>>& volumes)
         RAISE_RUNTIME_ERROR << "VSI driver: invalid file header. Expected header size: 64, got: "
             << header.headerSize;
     }
-    ets.setPos(header.additionalHeaderPos);
+    m_etsStream->setPos(header.additionalHeaderPos);
     ETSAdditionalHeader additionalHeader = {0};
-    ets.read<vsi::ETSAdditionalHeader>(additionalHeader);
+    m_etsStream->read<vsi::ETSAdditionalHeader>(additionalHeader);
     if (strncmp((char*)additionalHeader.magic, "ETS", 3) != 0) {
         RAISE_RUNTIME_ERROR << "VSI driver: invalid ETS file header. Expected first tree bytes: 'ETS', got: "
             << header.magic;
@@ -55,22 +55,22 @@ void slideio::vsi::EtsFile::read(std::list<std::shared_ptr<Volume>>& volumes)
     m_usePyramid = additionalHeader.usePyramid != 0;
 
 
-    ets.setPos(header.usedChunksPos);
+    m_etsStream->setPos(header.usedChunksPos);
     std::vector<TileInfo> tiles;
     tiles.resize(header.numUsedChunks);
     const int dimensions = static_cast<int>(m_dimensions.back());
     std::vector<int> maxCoordinates(dimensions);
     for(uint chunk=0; chunk<header.numUsedChunks; ++chunk) {
         TileInfo& tileInfo = tiles[chunk];
-        ets.skipBytes(4);
+        m_etsStream->skipBytes(4);
         tileInfo.coordinates.resize(dimensions);
         for(int i=0; i<dimensions; ++i) {
-            tileInfo.coordinates[i] = ets.readValue<int32_t>();
+            tileInfo.coordinates[i] = m_etsStream->readValue<int32_t>();
             maxCoordinates[i] = std::max(maxCoordinates[i], tileInfo.coordinates[i]);
         }
-        tileInfo.offset = ets.readValue<int64_t>();
-        tileInfo.size = ets.readValue<uint32_t>();
-        ets.skipBytes(4);
+        tileInfo.offset = m_etsStream->readValue<int64_t>();
+        tileInfo.size = m_etsStream->readValue<uint32_t>();
+        m_etsStream->skipBytes(4);
     }
 
     const int minWidth = maxCoordinates[0] * m_tileSize.width;
@@ -149,4 +149,17 @@ void slideio::vsi::EtsFile::read(std::list<std::shared_ptr<Volume>>& volumes)
             pyramidLevel.tiles.push_back(tileInfo);
         }
     }
+}
+
+void vsi::EtsFile::readTile(int levelIndex, int tileIndex, cv::OutputArray tileRaster) {
+    if(levelIndex < 0 || levelIndex >= m_pyramid.size()) {
+        RAISE_RUNTIME_ERROR << "VSIImageDriver: readTile: Pyramid level "
+            << levelIndex << " is out of range (0 - " << m_pyramid.size() << " )";
+    }
+    PyramidLevel& pyramidLevel = m_pyramid[levelIndex];
+    if(tileIndex<0 || tileIndex >= pyramidLevel.tiles.size()) {
+               RAISE_RUNTIME_ERROR << "VSIImageDriver: readTile: Tile index "
+            << tileIndex << " is out of range (0 - " << pyramidLevel.tiles.size() << " )";
+    }
+
 }

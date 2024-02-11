@@ -15,24 +15,26 @@
 
 namespace slideio
 {
-
-    class SLIDEIO_VSI_EXPORTS VsiFileScene : public VSIScene
+    namespace vsi
     {
-    public:
-        VsiFileScene(const std::string& filePath, std::shared_ptr<vsi::VSIFile>& vsiFile, int directoryIndex);
-    public:
-        void readResampledBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize,
-            const std::vector<int>& channelIndices, cv::OutputArray output) override;
-        int getTileCount(void* userData) override;
-        bool getTileRect(int tileIndex, cv::Rect& tileRect, void* userData) override;
-        bool readTile(int tileIndex, const std::vector<int>& channelIndices, cv::OutputArray tileRaster,
-            void* userData) override;
-    protected:
-        void init();
-    protected:
-        int m_directoryIndex;
-        TIFFKeeper m_tiff;
-    };
+        class SLIDEIO_VSI_EXPORTS VsiFileScene : public VSIScene
+        {
+        public:
+            VsiFileScene(const std::string& filePath, std::shared_ptr<VSIFile>& vsiFile, int directoryIndex);
+        public:
+            void readResampledBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize,
+                                            const std::vector<int>& channelIndices, cv::OutputArray output) override;
+            int getTileCount(void* userData) override;
+            bool getTileRect(int tileIndex, cv::Rect& tileRect, void* userData) override;
+            bool readTile(int tileIndex, const std::vector<int>& channelIndices, cv::OutputArray tileRaster,
+                          void* userData) override;
+        protected:
+            void init();
+        protected:
+            int m_directoryIndex;
+            TIFFKeeper m_tiff;
+        };
+    }
 
 }
 

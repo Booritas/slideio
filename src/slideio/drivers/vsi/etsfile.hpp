@@ -7,10 +7,12 @@
 #include <string>
 #include <vector>
 
-#include "volume.hpp"
-#include "vsistruct.hpp"
-#include "slideio/base/slideio_enums.hpp"
 #include "slideio/drivers/vsi/vsi_api_def.hpp"
+#include "slideio/drivers/vsi/etsfilescene.hpp"
+#include "slideio/drivers/vsi/volume.hpp"
+#include "slideio/drivers/vsi/vsistruct.hpp"
+#include "slideio/base/slideio_enums.hpp"
+#include "slideio/drivers/vsi/vsistream.hpp"
 
 #if defined(_MSC_VER)
 #pragma warning( push )
@@ -76,6 +78,12 @@ namespace slideio
             int getNumPyramidLevels() const {
                 return static_cast<int>(m_pyramid.size());
             }
+            const PyramidLevel& getPyramidLevel(int index) const {
+                return m_pyramid[index];
+            }
+
+            void readTile(int levelIndex, int tileIndex, cv::OutputArray tileRaster);
+
         private:
             std::string m_filePath;
             DataType m_dataType = DataType::DT_Unknown;
@@ -94,6 +102,7 @@ namespace slideio
             std::vector<int> m_dimensions;
             std::shared_ptr<Volume> m_volume;
             std::vector<PyramidLevel> m_pyramid;
+            std::unique_ptr<VSIStream> m_etsStream;
         };
     }
 }

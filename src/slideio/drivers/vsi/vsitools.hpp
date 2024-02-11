@@ -14,6 +14,8 @@ namespace slideio
     namespace vsi
     {
         class TagInfo;
+        enum class Compression;
+        enum class StackType;
         class VSITools
         {
         public:
