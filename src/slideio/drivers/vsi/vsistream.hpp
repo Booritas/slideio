@@ -7,15 +7,19 @@
 #include "slideio/base/exceptions.hpp"
 #include "slideio/drivers/vsi/vsi_api_def.hpp"
 
+#if defined(_MSC_VER)
+#pragma warning( push )
+#pragma warning(disable: 4251)
+#endif
+
 namespace slideio {
     namespace vsi
     {
         class SLIDEIO_VSI_EXPORTS VSIStream
         {
         public:
-            VSIStream(std::ifstream& stream) : m_size(-1) {
-                m_stream = &stream;
-            }
+            VSIStream(std::string& filePath);
+
             template <typename T>
             void read(T& value) {
                 m_stream->read((char*)&value, sizeof(T));
@@ -37,11 +41,15 @@ namespace slideio {
             void setPos(int64_t pos);
             int64_t getSize();
             void skipBytes(uint32_t bytes);
-
+            void readBytes(uint8_t* bytes, uint32_t size);
         private:
-            std::ifstream* m_stream;
+            std::unique_ptr<std::ifstream> m_stream;
             int64_t m_size;
 
         };
     };
 }
+
+#if defined(_MSC_VER)
+#pragma warning( pop )
+#endif

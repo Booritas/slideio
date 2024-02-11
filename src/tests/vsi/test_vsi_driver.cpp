@@ -262,3 +262,17 @@ TEST(VSIImageDriver, readMultiscene)
     //TestTools::showRasters(testRoi, blockRaster);
 }
 
+TEST(EtsFile, readTileJpeg)
+{
+    std::string filePath = TestTools::getFullTestImagePath("vsi", "Zenodo/Abdominal/G1M16_ABD_HE_B6.vsi");
+    std::string testFilePath = TestTools::getFullTestImagePath("vsi", "test-output/G1M16_ABD_HE_B6_tile_590.png");
+    slideio::vsi::VSIFile vsiFile(filePath);
+    auto etsFile = vsiFile.getEtsFile(1);
+    cv::Mat tileRaster;
+    etsFile->readTile(0, 590, tileRaster);
+    //TestTools::writePNG(tileRaster, testFilePath);
+    cv::Mat testRaster;
+    TestTools::readPNG(testFilePath, testRaster);
+    TestTools::compareRasters(testRaster, tileRaster);
+    //TestTools::showRasters(testRaster, tileRaster);
+}

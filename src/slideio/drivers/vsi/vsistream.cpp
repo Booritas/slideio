@@ -8,6 +8,15 @@
 using namespace slideio::vsi;
 
 
+VSIStream::VSIStream(std::string& filePath): m_size(-1) {
+#if defined(WIN32)
+    std::wstring filePathW = Tools::toWstring(filePath);
+    m_stream = std::make_unique<std::ifstream>(filePathW, std::ios::binary);
+#else
+    m_stream = std::make_unique<std::ifstream>(filePath, std::ios::binary);
+#endif
+}
+
 std::string VSIStream::readString(size_t dataSize)
 {
 #if defined(WIN32)
@@ -60,5 +69,12 @@ void VSIStream::skipBytes(uint32_t bytes)
     m_stream->seekg(bytes, std::ios::cur);
     if (m_stream->bad()) {
                RAISE_RUNTIME_ERROR << "VSI driver: error by skipping stream bytes";
+    }
+}
+
+void VSIStream::readBytes(uint8_t* buffer, uint32_t size) {
+    m_stream->read(reinterpret_cast<char*>(buffer), size);
+    if (m_stream->bad()) {
+        RAISE_RUNTIME_ERROR << "VSI driver: error by reading " << size << " bytes from stream";
     }
 }

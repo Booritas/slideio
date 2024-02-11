@@ -418,13 +418,7 @@ void VSIFile::serializeMetadata(const TagInfo& tagInfo, boost::json::object& jso
 
 void VSIFile::readVolumeInfo() {
     SLIDEIO_LOG(INFO) << "VSI driver: reading volume info";
-#if defined(WIN32)
-    const std::wstring filePathW = Tools::toWstring(m_filePath);
-    std::ifstream ifs(filePathW, std::ios::binary);
-#else
-    std::ifstream ifs(m_filePath, std::ios::binary);
-#endif
-    VSIStream vsiStream(ifs);
+    VSIStream vsiStream(m_filePath);
     ImageFileHeader header;
     vsiStream.read<ImageFileHeader>(header);
     if (strncmp(reinterpret_cast<char*>(header.magic), "II", 2) != 0) {

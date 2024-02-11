@@ -103,6 +103,7 @@ namespace slideio
             std::shared_ptr<Volume> m_volume;
             std::vector<PyramidLevel> m_pyramid;
             std::unique_ptr<VSIStream> m_etsStream;
+            std::vector<uint8_t> m_buffer;
         };
     }
 }

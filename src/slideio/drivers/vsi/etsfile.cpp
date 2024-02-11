@@ -7,6 +7,7 @@
 #include "vsistruct.hpp"
 #include "vsitools.hpp"
 #include "slideio/core/tools/tools.hpp"
+#include "slideio/imagetools/cvtools.hpp"
 
 using namespace slideio;
 
@@ -17,13 +18,7 @@ slideio::vsi::EtsFile::EtsFile(const std::string& filePath) : m_filePath(filePat
 void slideio::vsi::EtsFile::read(std::list<std::shared_ptr<Volume>>& volumes)
 {
     // Open the file
-#if defined(WIN32)
-    std::wstring filePathW = Tools::toWstring(m_filePath);
-    std::ifstream ifs(filePathW, std::ios::binary);
-#else
-    std::ifstream ifs(m_filePath, std::ios::binary);
-#endif
-    m_etsStream = std::make_unique<vsi::VSIStream>(ifs);
+    m_etsStream = std::make_unique<vsi::VSIStream>(m_filePath);
     vsi::EtsVolumeHeader header = {0};
     m_etsStream->read<vsi::EtsVolumeHeader>(header);
     if (strncmp((char*)header.magic, "SIS", 3) != 0) {
@@ -161,5 +156,22 @@ void vsi::EtsFile::readTile(int levelIndex, int tileIndex, cv::OutputArray tileR
                RAISE_RUNTIME_ERROR << "VSIImageDriver: readTile: Tile index "
             << tileIndex << " is out of range (0 - " << pyramidLevel.tiles.size() << " )";
     }
+    const TileInfo& tileInfo = pyramidLevel.tiles[tileIndex];
 
+    auto offset = tileInfo.offset;
+    auto tileCompressedSize = tileInfo.size;
+
+    m_etsStream->setPos(offset);
+    m_buffer.resize(tileCompressedSize);
+    m_etsStream->readBytes(m_buffer.data(), (int)m_buffer.size());
+    tileRaster.create(m_tileSize, CV_MAKETYPE(CVTools::cvTypeFromDataType(m_dataType), m_numChannels));
+    if(m_compression == slideio::Compression::Uncompressed) {
+        const int tileSize = m_tileSize.width * m_tileSize.height * m_numChannels;
+        std::memcpy(tileRaster.getMat().data, m_buffer.data(), tileSize);
+    } else if(m_compression == slideio::Compression::Jpeg) {
+        ImageTools::decodeJpegStream(m_buffer.data(), m_buffer.size(), tileRaster);
+    } else {
+               RAISE_RUNTIME_ERROR << "VSIImageDriver: readTile: Compression " << static_cast<int>(m_compression)
+            << " is not supported";
+    }
 }
