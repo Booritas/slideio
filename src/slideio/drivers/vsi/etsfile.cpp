@@ -170,8 +170,12 @@ void vsi::EtsFile::readTile(int levelIndex, int tileIndex, cv::OutputArray tileR
         std::memcpy(tileRaster.getMat().data, m_buffer.data(), tileSize);
     } else if(m_compression == slideio::Compression::Jpeg) {
         ImageTools::decodeJpegStream(m_buffer.data(), m_buffer.size(), tileRaster);
-    } else {
-               RAISE_RUNTIME_ERROR << "VSIImageDriver: readTile: Compression " << static_cast<int>(m_compression)
+    }
+    else if (m_compression == slideio::Compression::Jpeg2000) {
+        ImageTools::decodeJp2KStream(m_buffer.data(), m_buffer.size(), tileRaster);
+    }
+    else {
+        RAISE_RUNTIME_ERROR << "VSIImageDriver: readTile: Compression " << static_cast<int>(m_compression)
             << " is not supported";
     }
 }
