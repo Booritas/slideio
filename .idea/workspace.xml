@@ -74,8 +74,8 @@
   <component name="ChangeListManager">
     <list default="true" id="ab3fa5e4-e9e7-4544-8e69-a93644a57165" name="Default Changelist" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/py-bind/pybind11" beforeDir="false" afterPath="$PROJECT_DIR$/src/py-bind/pybind11" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/slideio/drivers/vsi/vsifile.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/drivers/vsi/vsifile.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/slideio/drivers/vsi/etsfile.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/drivers/vsi/etsfile.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/slideio/drivers/vsi/etsfile.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/drivers/vsi/etsfile.hpp" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -111,25 +111,25 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "RunOnceActivity.OpenProjectViewOnStart": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.cidr.known.project.marker": "true",
-    "WebServerToolWindowFactoryState": "false",
-    "cf.first.check.clang-format": "false",
-    "cidr.known.project.marker": "true",
-    "ctest.advertisement.all.test.configuration.is.created": "true",
-    "git-widget-placeholder": "olympus",
-    "last_opened_file_path": "/home/stanislav/projects/slideio/slideio",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "settings.editor.selected.configurable": "preferences.editor",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.cidr.known.project.marker&quot;: &quot;true&quot;,
+    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
+    &quot;cf.first.check.clang-format&quot;: &quot;false&quot;,
+    &quot;cidr.known.project.marker&quot;: &quot;true&quot;,
+    &quot;ctest.advertisement.all.test.configuration.is.created&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;olympus&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/home/stanislav/projects/slideio/slideio&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;reference.settings.ide.settings.new.ui&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RunManager" selected="Google Test.GDALDriver.openFileUtf8">
     <configuration name="AFIDriver.driverID" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" temporary="true" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="slideio_tests" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="slide_io" RUN_TARGET_NAME="slideio_tests" TEST_CLASS="AFIDriver" TEST_METHOD="driverID" TEST_MODE="SUITE_TEST">
       <method v="2">
@@ -187,11 +187,6 @@
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
         <option name="BeforeTestRunTask" enabled="true" />
-      </method>
-    </configuration>
-    <configuration default="true" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true">
-      <method v="2">
-        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
     </configuration>
     <configuration name="converter" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="converter" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="slide_io" RUN_TARGET_NAME="converter">
@@ -425,6 +420,9 @@
       <workItem from="1694370713606" duration="10000" />
       <workItem from="1707734648341" duration="198000" />
       <workItem from="1707734867149" duration="94000" />
+      <workItem from="1707735990705" duration="25000" />
+      <workItem from="1707736026871" duration="264000" />
+      <workItem from="1707736692966" duration="6259000" />
     </task>
     <servers />
   </component>

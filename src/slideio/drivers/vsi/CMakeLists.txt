@@ -29,6 +29,8 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/taginfo.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/taginfo.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/dimensions.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/pyramid.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/pyramid.cpp
 )
 
 add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES})
