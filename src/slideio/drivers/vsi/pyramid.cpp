@@ -45,15 +45,27 @@ void Pyramid::init(std::vector<TileInfo>& tiles, const cv::Size& imageSize, cons
     const int numDimensions = static_cast<int>(tiles.front().coordinates.size());
     int numPyramidLevels = 0;
     m_numChannelIndices = 0;
+    m_numZIndices = 0;
+    m_numTIndices = 0;
     const int channelIndex = dimOrder->getDimensionOrder(Dimensions::C);
+    const int zIndex = dimOrder->getDimensionOrder(Dimensions::Z);
+    const int tIndex = dimOrder->getDimensionOrder(Dimensions::T);
     for (auto& tile : tiles) {
         numPyramidLevels = std::max(numPyramidLevels, tile.coordinates.back());
         if (channelIndex > 0) {
             m_numChannelIndices = std::max(m_numChannelIndices, tile.coordinates[channelIndex]);
         }
+        if (zIndex > 0) {
+            m_numZIndices = std::max(m_numZIndices, tile.coordinates[zIndex]);
+        }
+        if(tIndex > 0) {
+            m_numTIndices = std::max(m_numTIndices, tile.coordinates[tIndex]);
+        }
     }
     numPyramidLevels++;
     m_numChannelIndices++;
+    m_numTIndices++;
+    m_numZIndices++;
 
     m_levels.resize(numPyramidLevels);
 
@@ -89,11 +101,9 @@ void Pyramid::init(std::vector<TileInfo>& tiles, const cv::Size& imageSize, cons
     if (channelIndex > 0) {
         sortOrder.push_back(channelIndex);
     }
-    const int zIndex = dimOrder->getDimensionOrder(Dimensions::Z);
     if (zIndex > 0) {
         sortOrder.push_back(zIndex);
     }
-    const int tIndex = dimOrder->getDimensionOrder(Dimensions::T);
     if (tIndex > 0) {
         sortOrder.push_back(tIndex);
     }
@@ -122,7 +132,7 @@ void Pyramid::init(std::vector<TileInfo>& tiles, const cv::Size& imageSize, cons
                       return false;
                   });
     }
-    const int numCoreDimensions = (channelIndex > 0) ? 3 : 2;
+    const int numCoreDimensions = 2;
     std::vector<int> tileValues;
     tileValues.reserve(numCoreDimensions);
     for (auto& pyramidLevel : m_levels) {

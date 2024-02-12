@@ -50,11 +50,14 @@ namespace slideio
             const PyramidLevel& getLevel(int index) const { return m_levels[index]; }
             void init(std::vector<TileInfo>& tiles, const cv::Size& imageSize, const cv::Size& tileSize,
                       const IDimensionOrder* dimOrder);
-
+            int getNumChannelIndices() const { return m_numChannelIndices; }
+            int getNumZIndices() const { return m_numZIndices; }
+            int getNumTIndices() const { return m_numTIndices; }
         private:
             std::vector<PyramidLevel> m_levels;
-            int getNumChannelIndices() const { return m_numChannelIndices; }
             int m_numChannelIndices = 1;
+            int m_numZIndices = 1;
+            int m_numTIndices = 1;
         };
     }
 }

@@ -16,6 +16,33 @@ namespace slideio
 
 using namespace slideio;
 
+class TestDimensionOrder : public vsi::IDimensionOrder
+{
+public:
+    TestDimensionOrder(int channelIndex = 2, int zIndex = 3, int tIndex = 4) :
+        m_channelIndex(channelIndex), m_zIndex(zIndex), m_tIndex(tIndex) {
+    }
+    int getDimensionOrder(vsi::Dimensions dim) const override {
+        switch(dim) {
+            case vsi::Dimensions::X:
+                return 0;
+            case vsi::Dimensions::Y:
+                return 1;
+            case vsi::Dimensions::C:
+                return m_channelIndex;
+            case vsi::Dimensions::Z:
+                return m_zIndex;
+            case vsi::Dimensions::T:
+                return m_tIndex;
+        }
+        return -1;
+    }
+private:
+    int m_channelIndex;
+    int m_zIndex;
+    int m_tIndex;
+};
+
 TEST(VSIImageDriver, openFileWithoutExternalFiles)
 {
     std::string filePath = TestTools::getFullTestImagePath("vsi",
@@ -291,4 +318,69 @@ TEST(EtsFile, readTileJpeg2K)
     ImageTools::readGDALImage(testFilePath, testRaster);
     TestTools::compareRasters(testRaster, tileRaster);
     //TestTools::showRasters(testRaster, tileRaster);
+}
+
+TEST(Pyramid, oneTile4Levels) {
+    TestDimensionOrder dimOrder;
+    {
+        std::vector<std::tuple<int, int, int, int, int, int>> tls = {
+            {0,0,0,0,0,0},
+            {0,0,0,0,0,1},
+            {0,0,0,0,0,2},
+            {0,0,0,0,0,3}
+        };
+        std::vector<slideio::vsi::TileInfo> tiles;
+        for(auto&t: tls) {
+            slideio::vsi::TileInfo tile;
+            tile.coordinates = {std::get<0>(t), std::get<1>(t), std::get<2>(t),
+                    std::get<3>(t), std::get<4>(t), std::get<5>(t)};
+            tiles.push_back(tile);
+        }
+        vsi::Pyramid pyramid;
+        pyramid.init(tiles, cv::Size(100,100), cv::Size(10,10), &dimOrder);
+        EXPECT_EQ(4, pyramid.getNumLevels());
+        EXPECT_EQ(1, pyramid.getNumChannelIndices());
+        EXPECT_EQ(1, pyramid.getNumZIndices());
+        EXPECT_EQ(1, pyramid.getNumTIndices());
+        for(int lv=0; lv<pyramid.getNumLevels(); ++lv) {
+            const auto& level = pyramid.getLevel(lv);
+            const int scaleLevel = 1 << lv;
+            EXPECT_EQ(scaleLevel, level.getScaleLevel());
+            EXPECT_EQ(cv::Size(100 >> lv, 100 >> lv), level.getSize());
+            EXPECT_EQ(1, level.getNumTiles());
+        }
+    }
+    
+}
+
+TEST(Pyramid, oneTile2Channels2Levels) {
+    TestDimensionOrder dimOrder;
+    {
+        std::vector<std::tuple<int, int, int, int, int, int>> tls = {
+            {0,0,0,0,0,0},
+            {0,0,1,0,0,0},
+            {0,0,0,0,0,1},
+            {0,0,1,0,0,1}
+        };
+        std::vector<slideio::vsi::TileInfo> tiles;
+        for (auto& t : tls) {
+            slideio::vsi::TileInfo tile;
+            tile.coordinates = { std::get<0>(t), std::get<1>(t), std::get<2>(t),
+                    std::get<3>(t), std::get<4>(t), std::get<5>(t) };
+            tiles.push_back(tile);
+        }
+        vsi::Pyramid pyramid;
+        pyramid.init(tiles, cv::Size(100, 100), cv::Size(10, 10), &dimOrder);
+        EXPECT_EQ(2, pyramid.getNumLevels());
+        EXPECT_EQ(2, pyramid.getNumChannelIndices());
+        EXPECT_EQ(1, pyramid.getNumZIndices());
+        EXPECT_EQ(1, pyramid.getNumTIndices());
+        for (int lv = 0; lv < pyramid.getNumLevels(); ++lv) {
+            const auto& level = pyramid.getLevel(lv);
+            const int scaleLevel = 1 << lv;
+            EXPECT_EQ(scaleLevel, level.getScaleLevel());
+            EXPECT_EQ(cv::Size(100 >> lv, 100 >> lv), level.getSize());
+            EXPECT_EQ(1, level.getNumTiles());
+        }
+    }
 }
