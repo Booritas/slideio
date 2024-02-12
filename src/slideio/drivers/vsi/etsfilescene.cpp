@@ -39,8 +39,8 @@ int EtsFileScene::getTileCount(void* userData)
     if(levelIndex < 0 || levelIndex >= etsFile->getNumPyramidLevels()) {
         RAISE_RUNTIME_ERROR << "VSIImageDriver: Pyramid level is not initialized";
     }
-    const EtsFile::PyramidLevel& level = etsFile->getPyramidLevel(levelIndex);
-    return static_cast<int>(level.tiles.size());
+    const PyramidLevel& level = etsFile->getPyramidLevel(levelIndex);
+    return static_cast<int>(level.getNumTiles());
 }
 
 bool EtsFileScene::getTileRect(int tileIndex, cv::Rect& tileRect, void* userData)
@@ -54,12 +54,12 @@ bool EtsFileScene::getTileRect(int tileIndex, cv::Rect& tileRect, void* userData
     if (levelIndex < 0 || levelIndex >= etsFile->getNumPyramidLevels()) {
         RAISE_RUNTIME_ERROR << "VSIImageDriver: Pyramid level is not initialized";
     }
-    const EtsFile::PyramidLevel& level = etsFile->getPyramidLevel(levelIndex);
-    if(tileIndex < 0 || tileIndex >= level.tiles.size()) {
+    const PyramidLevel& level = etsFile->getPyramidLevel(levelIndex);
+    if(tileIndex < 0 || tileIndex >= level.getNumTiles()) {
         RAISE_RUNTIME_ERROR << "VSIImageDriver: Tile index " << tileIndex
-            << " is out of range (0 - " << level.tiles.size() << ")";
+            << " is out of range (0 - " << level.getNumTiles() << ")";
     }
-    const EtsFile::TileInfo tileInfo = level.tiles[tileIndex];
+    const TileInfo tileInfo = level.getTile(tileIndex, 0, tileComposerUserData->zSlice, tileComposerUserData->tFrame);
     tileRect.x = tileInfo.coordinates[0];
     tileRect.y = tileInfo.coordinates[1];
     tileRect.width = etsFile->getTileSize().width;
@@ -146,16 +146,16 @@ void EtsFileScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, const
         RAISE_RUNTIME_ERROR << "VSIImageDriver: ETS file does not contain volume";
     }
 
-    double zoomX = static_cast<double>(blockSize.width) / static_cast<double>(blockRect.width);
-    double zoomY = static_cast<double>(blockSize.height) / static_cast<double>(blockRect.height);
-    double zoom = std::max(zoomX, zoomY);
+    const double zoomX = static_cast<double>(blockSize.width) / static_cast<double>(blockRect.width);
+    const double zoomY = static_cast<double>(blockSize.height) / static_cast<double>(blockRect.height);
+    const double zoom = std::max(zoomX, zoomY);
     const int levelIndex = findZoomLevelIndex(zoom);
     if (levelIndex < 0 || levelIndex >= etsFile->getNumPyramidLevels()) {
         RAISE_RUNTIME_ERROR << "VSIImageDriver: Unexpected zoom level index: "
             << levelIndex << " Expected: " << "0 - " << etsFile->getNumPyramidLevels();
     }
-    const EtsFile::PyramidLevel& level = etsFile->getPyramidLevel(levelIndex);
-    const double levelZoom = 1. / level.scaleLevel;
+    const PyramidLevel& level = etsFile->getPyramidLevel(levelIndex);
+    const double levelZoom = 1. / level.getScaleLevel();
     cv::Rect resizedBlock;
     Tools::scaleRect(blockRect, levelZoom, levelZoom, resizedBlock);
     TileComposerUserData userData;
@@ -195,8 +195,8 @@ int EtsFileScene::findZoomLevelIndex(double zoom) const{
     std::shared_ptr<EtsFile> etsFile = getEtsFile();
     const int levelCount = etsFile->getNumPyramidLevels();
     const int index = Tools::findZoomLevel(zoom, levelCount, [&etsFile](int levelIndex) {
-            const EtsFile::PyramidLevel& level = etsFile->getPyramidLevel(levelIndex);
-            const double levelZoom = 1./level.scaleLevel;
+            const PyramidLevel& level = etsFile->getPyramidLevel(levelIndex);
+            const double levelZoom = 1./level.getScaleLevel();
             return static_cast<double>(levelZoom);
         });
     return index;

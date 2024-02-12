@@ -3,51 +3,62 @@
 // of this distribution and at http://slideio.com/license.html.
 #pragma once
 #include "slideio/drivers/vsi/vsi_api_def.hpp"
+#include <opencv2/core.hpp>
 #include <vector>
 
-namespace cv
-{
-   class Size;
-};
+#if defined(_MSC_VER)
+#pragma warning( push )
+#pragma warning(disable: 4251)
+#endif
 
 namespace slideio
 {
-   namespace vsi 
-   {
-         class Volume;
+    namespace vsi
+    {
+        class IDimensionOrder;
 
-         struct TileInfo
-         {
+        struct TileInfo
+        {
             std::vector<int> coordinates;
             int64_t offset = 0;
             uint32_t size = 0;
-         };
-         
-         class SLIDEIO_VSI_EXPORTS PyramidLevel
-         {
-            friend class Pyramid;
-         public:
-            int getScaleLevel() const { return scaleLevel; }
-            int getWidth() const { return width; }
-            int getHeight() const { return height; }
-            const std::vector<TileInfo>& getTiles() const { return tiles; }
-            const std::vector<int>& getTileIndices() const { return tileIndices; }
-         private:
-            int scaleLevel = 1;
-            int width = 0;
-            int height = 0;
-            std::vector<TileInfo> tiles;
-            std::vector<int> tileIndices;
-         };
+        };
 
-         class SLIDEIO_VSI_EXPORTS Pyramid
-         {
-         public:
+        class SLIDEIO_VSI_EXPORTS PyramidLevel
+        {
+            friend class Pyramid;
+
+        public:
+            int getScaleLevel() const { return m_scaleLevel; }
+            cv::Size getSize() const { return m_size; }
+            int getNumTiles() const { return static_cast<int>(m_tileIndices.size()); }
+            const TileInfo& getTile(int tileIndex, int channelIndex, int zIndex, int tIndex) const;
+        private:
+            int m_scaleLevel = 1;
+            cv::Size m_size;
+            std::vector<TileInfo> m_tiles;
+            std::vector<int> m_tileIndices;
+            int m_channelDimIndex = -1;
+            int m_zDimIndex = -1;
+            int m_tDimIndex = -1;
+        };
+
+        class SLIDEIO_VSI_EXPORTS Pyramid
+        {
+        public:
             int getNumLevels() const { return static_cast<int>(m_levels.size()); }
             const PyramidLevel& getLevel(int index) const { return m_levels[index]; }
-            void init(std::vector<TileInfo>& tiles, const cv::Size& imageSize, cv::Size& tileSize, Volume* volume);
-         private:
+            void init(std::vector<TileInfo>& tiles, const cv::Size& imageSize, const cv::Size& tileSize,
+                      const IDimensionOrder* dimOrder);
+
+        private:
             std::vector<PyramidLevel> m_levels;
-         }
-   }
+            int getNumChannelIndices() const { return m_numChannelIndices; }
+            int m_numChannelIndices = 1;
+        };
+    }
 }
+
+#if defined(_MSC_VER)
+#pragma warning( pop )
+#endif

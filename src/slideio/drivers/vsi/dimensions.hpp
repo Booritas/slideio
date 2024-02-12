@@ -16,6 +16,14 @@ namespace slideio
             L = 5,
             P = 6
         };
+
         const int MAX_DIMENSIONS = 7;
+
+        class IDimensionOrder
+        {
+        public:
+            virtual int getDimensionOrder(vsi::Dimensions dim) const = 0;
+        };
     }
+
 }   

@@ -21,7 +21,7 @@ namespace slideio
 {
     namespace vsi
     {
-        class SLIDEIO_VSI_EXPORTS Volume
+        class SLIDEIO_VSI_EXPORTS Volume : public IDimensionOrder
         {
         public:
             Volume() {
@@ -56,7 +56,7 @@ namespace slideio
             void setDefaultColor(int color) { m_defaultColor = color; }
             int getDefaultColor() const { return m_defaultColor; }
 
-            int getDimensionOrder(Dimensions dim) const { return m_dimensionOrder[dimensionIndex(dim)]; }
+            int getDimensionOrder(Dimensions dim) const override { return m_dimensionOrder[dimensionIndex(dim)]; } 
             void setDimensionOrder(Dimensions dim, int value) { m_dimensionOrder[dimensionIndex(dim)] = value; }
 
             const Resolution& getResolution() const { return m_resolution; }
