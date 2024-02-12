@@ -36,7 +36,7 @@ void slideio::vsi::EtsFile::read(std::list<std::shared_ptr<Volume>>& volumes)
         RAISE_RUNTIME_ERROR << "VSI driver: invalid ETS file header. Expected first tree bytes: 'ETS', got: "
             << header.magic;
     }
-    m_dimensions.push_back(header.numDimensions);
+    m_numDimensions = static_cast<int>(header.numDimensions);
     m_dataType = VSITools::toSlideioPixelType(additionalHeader.componentType);
     m_numChannels = static_cast<int>(additionalHeader.componentCount);
     m_colorSpace = static_cast<ColorSpace>(additionalHeader.colorSpace);
@@ -53,13 +53,12 @@ void slideio::vsi::EtsFile::read(std::list<std::shared_ptr<Volume>>& volumes)
     m_etsStream->setPos(header.usedChunksPos);
     std::vector<TileInfo> tiles;
     tiles.resize(header.numUsedChunks);
-    const int dimensions = static_cast<int>(m_dimensions.back());
-    std::vector<int> maxCoordinates(dimensions);
+    std::vector<int> maxCoordinates(m_numDimensions);
     for(uint chunk=0; chunk<header.numUsedChunks; ++chunk) {
         TileInfo& tileInfo = tiles[chunk];
         m_etsStream->skipBytes(4);
-        tileInfo.coordinates.resize(dimensions);
-        for(int i=0; i<dimensions; ++i) {
+        tileInfo.coordinates.resize(m_numDimensions);
+        for(int i=0; i<m_numDimensions; ++i) {
             tileInfo.coordinates[i] = m_etsStream->readValue<int32_t>();
             maxCoordinates[i] = std::max(maxCoordinates[i], tileInfo.coordinates[i]);
         }
@@ -75,7 +74,7 @@ void slideio::vsi::EtsFile::read(std::list<std::shared_ptr<Volume>>& volumes)
 
     for (auto it = volumes.begin(); it != volumes.end(); ++it) {
         auto volume = *it;
-        if(volume->getType() != StackType::DEFAULT_IMAGE 
+        if(volume->getType() != StackType::DEFAULT_IMAGE
             && volume->getType() != StackType::OVERVIEW_IMAGE) {
             continue;
         }

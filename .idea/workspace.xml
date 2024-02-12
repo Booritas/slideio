@@ -29,24 +29,33 @@
   </component>
   <component name="CMakeRunConfigurationManager">
     <generated>
-      <config projectName="slide_io" targetName="ndpi_memory" />
       <config projectName="slide_io" targetName="slideio-gdal" />
       <config projectName="slide_io" targetName="slideio-imagetools" />
+      <config projectName="slide_io" targetName="slideio-transformer" />
       <config projectName="slide_io" targetName="slideio-afi" />
-      <config projectName="slide_io" targetName="slideio-core" />
       <config projectName="slide_io" targetName="slideio-scn" />
-      <config projectName="slide_io" targetName="slideio-test-lib" />
       <config projectName="slide_io" targetName="memory_leaks" />
+      <config projectName="slide_io" targetName="jp2kcompress" />
       <config projectName="slide_io" targetName="slideio_ndpi_tests" />
-      <config projectName="slide_io" targetName="slideio_tests" />
       <config projectName="slide_io" targetName="slideiopybind" />
-      <config projectName="slide_io" targetName="performance" />
       <config projectName="slide_io" targetName="svs_memory" />
+      <config projectName="slide_io" targetName="slideio-base" />
       <config projectName="slide_io" targetName="slideio-czi" />
-      <config projectName="slide_io" targetName="slideio-svs" />
       <config projectName="slide_io" targetName="slideio" />
-      <config projectName="slide_io" targetName="slideio-ndpi" />
+      <config projectName="slide_io" targetName="slideio_transformer_tests" />
       <config projectName="slide_io" targetName="slideio-dcm" />
+      <config projectName="slide_io" targetName="slideio_converter_tests" />
+      <config projectName="slide_io" targetName="slideio-vsi" />
+      <config projectName="slide_io" targetName="converter" />
+      <config projectName="slide_io" targetName="slideio_vsi_tests" />
+      <config projectName="slide_io" targetName="ndpi_memory" />
+      <config projectName="slide_io" targetName="slideio-core" />
+      <config projectName="slide_io" targetName="slideio-test-lib" />
+      <config projectName="slide_io" targetName="slideio_tests" />
+      <config projectName="slide_io" targetName="performance" />
+      <config projectName="slide_io" targetName="slideio-svs" />
+      <config projectName="slide_io" targetName="slideio-ndpi" />
+      <config projectName="slide_io" targetName="slideio-converter" />
       <config projectName="slide_io" targetName="slideio-zvi" />
     </generated>
   </component>
@@ -64,12 +73,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="ab3fa5e4-e9e7-4544-8e69-a93644a57165" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/conan/OSX/x86-64/osx_debug" beforeDir="false" afterPath="$PROJECT_DIR$/conan/OSX/x86-64/osx_debug" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/conan/OSX/x86-64/osx_release" beforeDir="false" afterPath="$PROJECT_DIR$/conan/OSX/x86-64/osx_release" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/py-bind/pybind11" beforeDir="false" afterPath="$PROJECT_DIR$/src/py-bind/pybind11" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/slideio/drivers/vsi/etsfile.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/drivers/vsi/etsfile.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/slideio/drivers/vsi/vsitags.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/drivers/vsi/vsitags.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/slideio/drivers/vsi/vsitools.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/drivers/vsi/vsitools.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/slideio/drivers/vsi/vsifile.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/drivers/vsi/vsifile.cpp" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -96,33 +102,34 @@
   <component name="MarkdownSettingsMigration">
     <option name="stateVersion" value="1" />
   </component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "associatedIndex": 3
-}]]></component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 3
+}</component>
   <component name="ProjectId" id="1gSDoNjR2ezJRsp3M58xlWr9uBZ" />
   <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.cidr.known.project.marker&quot;: &quot;true&quot;,
-    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
-    &quot;cf.first.check.clang-format&quot;: &quot;false&quot;,
-    &quot;cidr.known.project.marker&quot;: &quot;true&quot;,
-    &quot;ctest.advertisement.all.test.configuration.is.created&quot;: &quot;true&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/home/stanislav/projects/slideio/slideio&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;reference.settings.ide.settings.new.ui&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.cidr.known.project.marker": "true",
+    "WebServerToolWindowFactoryState": "false",
+    "cf.first.check.clang-format": "false",
+    "cidr.known.project.marker": "true",
+    "ctest.advertisement.all.test.configuration.is.created": "true",
+    "git-widget-placeholder": "olympus",
+    "last_opened_file_path": "/home/stanislav/projects/slideio/slideio",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "settings.editor.selected.configurable": "preferences.editor",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
   <component name="RunManager" selected="Google Test.GDALDriver.openFileUtf8">
     <configuration name="AFIDriver.driverID" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" temporary="true" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="slideio_tests" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="slide_io" RUN_TARGET_NAME="slideio_tests" TEST_CLASS="AFIDriver" TEST_METHOD="driverID" TEST_MODE="SUITE_TEST">
       <method v="2">
@@ -416,11 +423,19 @@
       <workItem from="1680353771153" duration="929000" />
       <workItem from="1681242038856" duration="411000" />
       <workItem from="1694370713606" duration="10000" />
+      <workItem from="1707734648341" duration="198000" />
+      <workItem from="1707734867149" duration="94000" />
     </task>
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
+  </component>
+  <component name="VCPKGProject">
+    <isAutomaticEditVcpkgJson value="false" />
+    <isAutomaticCheckingOnLaunch value="false" />
+    <isAutomaticFoundErrors value="true" />
+    <isAutomaticFoundErrors value="true" />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
     <option name="TAB_STATES">
@@ -438,12 +453,12 @@
       <breakpoints>
         <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
           <url>file://$PROJECT_DIR$/src/tests/ndpi/test_ndpi_driver.cpp</url>
-          <line>296</line>
+          <line>379</line>
           <option name="timeStamp" value="1" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
           <url>file://$PROJECT_DIR$/src/slideio/drivers/ndpi/ndpitifftools.cpp</url>
-          <line>1077</line>
+          <line>1265</line>
           <option name="timeStamp" value="6" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
@@ -453,12 +468,12 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
           <url>file://$PROJECT_DIR$/src/slideio/drivers/ndpi/ndpitifftools.cpp</url>
-          <line>328</line>
+          <line>345</line>
           <option name="timeStamp" value="8" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
           <url>file://$PROJECT_DIR$/src/tests/ndpi/test_ndpitiff_tools.cpp</url>
-          <line>10</line>
+          <line>15</line>
           <option name="timeStamp" value="9" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">

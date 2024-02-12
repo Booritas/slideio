@@ -99,7 +99,7 @@ namespace slideio
             uint32_t m_pixelInfoHints[17] = { 0 };
             uint32_t m_backgroundColor[10] = { 0 };
             bool m_usePyramid = false;
-            std::vector<int> m_dimensions;
+            int m_numDimensions;
             std::shared_ptr<Volume> m_volume;
             std::vector<PyramidLevel> m_pyramid;
             std::unique_ptr<VSIStream> m_etsStream;

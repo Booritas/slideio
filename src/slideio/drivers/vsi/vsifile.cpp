@@ -26,7 +26,7 @@ namespace fs = boost::filesystem;
 static int extractBaseDirectoryNameSuffix(const fs::path& path) {
     std::string dirName;
     int count = 0;
-    for (auto& part = path.rbegin(); part != path.rend(); part++) {
+    for (auto part = path.rbegin(); part != path.rend(); part++) {
         if (count > 0) {
             dirName = part->string();
             break;
@@ -198,7 +198,7 @@ void VSIFile::extractVolumesFromMetadata() {
                     }
                     const TagInfo& dimensionDescription = *it;
                     const int index = dimensionDescription.secondTag;
-                    for (auto& itc = dimensionDescription.children.begin(); itc != dimensionDescription.children.
+                    for (auto itc = dimensionDescription.children.begin(); itc != dimensionDescription.children.
                          end(); ++itc) {
                         if (itc->tag == Tag::DIMENSION_PARAMETERS) {
                             auto& dimParams = *itc;
