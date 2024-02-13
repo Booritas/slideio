@@ -96,7 +96,7 @@ void Pyramid::init(std::vector<TileInfo>& tiles, const cv::Size& imageSize, cons
             pyramidLevel.m_tiles.push_back(tileInfo);
         }
     }
-    std::vector<int> sortOrder = {0, 1};
+    std::vector<int> sortOrder = {1, 0};
 
     if (channelIndex > 0) {
         sortOrder.push_back(channelIndex);
