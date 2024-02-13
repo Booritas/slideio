@@ -45,6 +45,7 @@ namespace slideio
             }
 
             void read(std::list<std::shared_ptr<Volume>>& volumes);
+            void readTilePart(const vsi::TileInfo& tileInfo, cv::OutputArray tileRaster);
 
             void assignVolume(const std::shared_ptr<Volume>& volume) {
                 m_volume = volume;
@@ -81,7 +82,7 @@ namespace slideio
             const PyramidLevel& getPyramidLevel(int index) const {
                 return m_pyramid.getLevel(index);
             }
-            void readTile(int levelIndex, int zSlice, int tFrame, int tileIndex, cv::OutputArray tileRaster);
+            void readTile(int levelIndex, int tileIndex, const std::vector<int>& channelIndices, int zSlice, int tFrame, cv::OutputArray output);
         private:
             std::string m_filePath;
             DataType m_dataType = DataType::DT_Unknown;

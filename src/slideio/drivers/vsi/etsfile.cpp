@@ -111,24 +111,17 @@ void slideio::vsi::EtsFile::read(std::list<std::shared_ptr<Volume>>& volumes) {
     }
 
     m_pyramid.init(tiles, cv::Size(maxWidth, maxHeight), m_tileSize, m_volume.get());
+
+    const int numChannelIndices = m_pyramid.getNumChannelIndices();
+    if (numChannelIndices > 1 && numChannelIndices != getNumChannels()) {
+        RAISE_RUNTIME_ERROR << "VSIImageDriver: init: Unexpected number of channel indices "
+            << numChannelIndices << ". Expected 1 or " << getNumChannels();
+    }
 }
 
-void vsi::EtsFile::readTile(int levelIndex, int zSlice, int tFrame, int tileIndex, cv::OutputArray tileRaster) {
-    if (levelIndex < 0 || levelIndex >= m_pyramid.getNumLevels()) {
-        RAISE_RUNTIME_ERROR << "VSIImageDriver: readTile: Pyramid level "
-            << levelIndex << " is out of range (0 - " << m_pyramid.getNumLevels() << " )";
-    }
-    const PyramidLevel& pyramidLevel = m_pyramid.getLevel(levelIndex);
-
-    if (tileIndex < 0 || tileIndex >= pyramidLevel.getNumTiles()) {
-        RAISE_RUNTIME_ERROR << "VSIImageDriver: readTile: Tile index "
-            << tileIndex << " is out of range (0 - " << pyramidLevel.getNumTiles() << " )";
-    }
-    const TileInfo& tileInfo = pyramidLevel.getTile(tileIndex, 0, zSlice, tFrame);
-
+void vsi::EtsFile::readTilePart(const vsi::TileInfo& tileInfo, cv::OutputArray tileRaster) {
     const int64_t offset = tileInfo.offset;
     const uint32_t tileCompressedSize = tileInfo.size;
-
     m_etsStream->setPos(offset);
     m_buffer.resize(tileCompressedSize);
     m_etsStream->readBytes(m_buffer.data(), static_cast<int>(m_buffer.size()));
@@ -146,5 +139,54 @@ void vsi::EtsFile::readTile(int levelIndex, int zSlice, int tFrame, int tileInde
     else {
         RAISE_RUNTIME_ERROR << "VSIImageDriver: readTile: Compression " << static_cast<int>(m_compression)
             << " is not supported";
+    }
+}
+
+void vsi::EtsFile::readTile(int levelIndex,
+                            int tileIndex,
+                            const std::vector<int>& channelIndices,
+                            int zSlice,
+                            int tFrame,
+                            cv::OutputArray output) {
+    if (levelIndex < 0 || levelIndex >= m_pyramid.getNumLevels()) {
+        RAISE_RUNTIME_ERROR << "VSIImageDriver: readTile: Pyramid level "
+            << levelIndex << " is out of range (0 - " << m_pyramid.getNumLevels() << " )";
+    }
+    const PyramidLevel& pyramidLevel = m_pyramid.getLevel(levelIndex);
+
+    if (tileIndex < 0 || tileIndex >= pyramidLevel.getNumTiles()) {
+        RAISE_RUNTIME_ERROR << "VSIImageDriver: readTile: Tile index "
+            << tileIndex << " is out of range (0 - " << pyramidLevel.getNumTiles() << " )";
+    }
+    const int numChannelIndices = m_pyramid.getNumChannelIndices();
+
+    if (numChannelIndices > 1) {
+        std::list<int> channelList(channelIndices.begin(), channelIndices.end());
+        if (channelList.empty()) {
+            for (int i = 0; i < getNumChannels(); ++i) {
+                channelList.push_back(i);
+            }
+        }
+        std::vector<cv::Mat> channelRasters(channelList.size());
+        for (const int channelIndex : channelList) {
+            if (channelIndex < 0 || channelIndex >= getNumChannels()) {
+                RAISE_RUNTIME_ERROR << "VSIImageDriver: readTile: Channel index "
+                    << channelIndex << " is out of range (0 - " << numChannelIndices << " )";
+            }
+            const TileInfo& tileInfo = pyramidLevel.getTile(tileIndex, channelIndex, zSlice, tFrame);
+            readTilePart(tileInfo, channelRasters[channelIndex]);
+        }
+        if (channelRasters.size() == 1) {
+            channelRasters[0].copyTo(output);
+        }
+        else {
+            cv::merge(channelRasters, output);
+        }
+    }
+    else {
+        cv::Mat tileRaster;
+        const TileInfo& tileInfo = pyramidLevel.getTile(tileIndex, 0, zSlice, tFrame);
+        readTilePart(tileInfo, tileRaster);
+        Tools::extractChannels(tileRaster, channelIndices, output);
     }
 }

@@ -73,7 +73,7 @@ bool EtsFileScene::readTile(int tileIndex, const std::vector<int>& channelIndice
     const TileComposerUserData* tileComposerUserData = static_cast<TileComposerUserData*>(userData);
     const int levelIndex = tileComposerUserData->levelIndex;
     const std::shared_ptr<EtsFile> etsFile = getEtsFile();
-    etsFile->readTile(levelIndex, tileComposerUserData->zSlice, tileComposerUserData->tFrame, tileIndex, tileRaster);
+    etsFile->readTile(levelIndex, tileIndex, channelIndices, tileComposerUserData->zSlice, tileComposerUserData->tFrame, tileRaster);
     return false;
 }
 
