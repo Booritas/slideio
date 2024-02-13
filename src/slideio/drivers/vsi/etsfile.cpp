@@ -71,7 +71,7 @@ void slideio::vsi::EtsFile::read(std::list<std::shared_ptr<Volume>>& volumes) {
     m_sizeWithCompleteTiles = cv::Size(maxWidth, maxHeight);
 
     for (auto it = volumes.begin(); it != volumes.end(); ++it) {
-        auto volume = *it;
+        const std::shared_ptr<Volume> volume = *it;
         if (volume->getType() != StackType::DEFAULT_IMAGE && volume->getType() != StackType::OVERVIEW_IMAGE) {
             continue;
         }
