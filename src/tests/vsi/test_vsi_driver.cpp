@@ -247,7 +247,7 @@ TEST(VSIImageDriver, read3DVolume16bit) {
 
 TEST(VSIImageDriver, readMultiscene) {
     std::string filePath = TestTools::getFullTestImagePath("vsi", "Zenodo/Abdominal/G1M16_ABD_HE_B6.vsi");
-    std::string testFilePath = TestTools::getFullTestImagePath("vsi", "test-output/G1M16_ABD_HE_B6.tiff");
+    std::string testFilePath = TestTools::getFullTestImagePath("vsi", "test-output/G1M16_ABD_HE_B6.vsi-40x_01(1,x=5836,y=11793,w=849,h=607).png");
     slideio::VSIImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
@@ -269,16 +269,14 @@ TEST(VSIImageDriver, readMultiscene) {
     auto auxImageNames = scene->getAuxImageNames();
     EXPECT_EQ(1, auxImageNames.size());
     EXPECT_EQ("40x FocusMap", auxImageNames.front());
-    //cv::Rect roi(rect.x + rect.width / 4, rect.y + rect.height / 4, rect.width / 2, rect.height / 2);
-    //cv::Size blockSize(std::lround(roi.width * 0.8), std::lround(roi.height * 0.8));
-    //cv::Mat blockRaster;
-    //scene->readResampledBlock(roi, blockSize, blockRaster);
-    //cv::Mat testRaster;
-    //TestTools::readPNG(testFilePath, testRaster);
-    //cv::Mat testRoi(testRaster, roi);
-    //cv::resize(testRoi, testRoi, blockSize);
-    //TestTools::compareRasters(testRoi, blockRaster);
-    //TestTools::showRasters(testRoi, blockRaster);
+    cv::Rect roi(5836,11793,849,607);
+    cv::Size blockSize(roi.size());
+    cv::Mat blockRaster;
+    scene->readResampledBlock(roi, blockSize, blockRaster);
+    cv::Mat testRaster;
+    TestTools::readPNG(testFilePath, testRaster);
+    TestTools::compareRasters(testRaster, blockRaster);
+    //TestTools::showRasters(testRaster, blockRaster);
 }
 
 TEST(EtsFile, readTileJpeg) {
@@ -288,7 +286,6 @@ TEST(EtsFile, readTileJpeg) {
     auto etsFile = vsiFile.getEtsFile(1);
     cv::Mat tileRaster;
     etsFile->readTile(0, 0, {},0, 0,  tileRaster);
-    //TestTools::writePNG(tileRaster, testFilePath);
     cv::Mat testRaster;
     TestTools::readPNG(testFilePath, testRaster);
     TestTools::compareRasters(testRaster, tileRaster);
