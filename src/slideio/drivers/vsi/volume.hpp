@@ -6,6 +6,7 @@
 #include <vector>
 #include <boost/json.hpp>
 
+#include "taginfo.hpp"
 #include "vsistruct.hpp"
 #include "slideio/drivers/vsi/vsi_api_def.hpp"
 #include "slideio/imagetools/tifftools.hpp"
@@ -65,6 +66,9 @@ namespace slideio
             double getZResolution() const { return m_zResolution; }
             void setTResolution(double res) { m_tResolution = res; }
             double getTResolution() const { return m_tResolution; }
+            void setChannelName(int channelIndex, const std::string& channelName);
+            std::string getChannelName(int channelIndex) const;
+
         private:
             static int dimensionIndex(Dimensions dim) {
                 return static_cast<int>(dim);
@@ -83,6 +87,7 @@ namespace slideio
             Resolution m_resolution;
             double m_zResolution = 0.;
             double m_tResolution = 0.;
+            std::vector<std::string> m_channelNames;
         };
 
     };

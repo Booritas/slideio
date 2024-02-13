@@ -131,6 +131,18 @@ int EtsFileScene::getNumChannels() const {
     return 0;
 }
 
+std::string EtsFileScene::getChannelName(int channel) const {
+    const auto etsFile = getEtsFile();
+    if (!etsFile) {
+        RAISE_RUNTIME_ERROR << "VSIImageDriver: ETS file is not initialized";
+    }
+    const auto volume = etsFile->getVolume();
+    if (!volume) {
+        RAISE_RUNTIME_ERROR << "VSIImageDriver: ETS file does not contain volume";
+    }
+    return volume->getChannelName(channel);
+}
+
 void EtsFileScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
                                                 const std::vector<int>& channelIndices, int zSliceIndex,
                                                 int tFrameIndex, cv::OutputArray output) {

@@ -235,6 +235,8 @@ TEST(VSIImageDriver, read3DVolume16bit) {
     EXPECT_DOUBLE_EQ(60, scene->getMagnification());
     EXPECT_DOUBLE_EQ(1.E-6, scene->getZSliceResolution());
     EXPECT_EQ(slideio::Compression::Jpeg2000, scene->getCompression());
+    EXPECT_EQ("C405", scene->getChannelName(0));
+    EXPECT_EQ("C488", scene->getChannelName(1));
     cv::Rect roi(rect);
     cv::Size blockSize(roi.width/4, roi.height/4);
     cv::Mat blockRaster;

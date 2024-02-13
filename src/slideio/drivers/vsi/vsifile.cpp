@@ -244,6 +244,12 @@ void VSIFile::extractVolumesFromMetadata() {
                                     break;
                                 }
                             }
+                            if(itc->secondTag>=0) {
+                                auto channelName = itc->findChild(Tag::CHANNEL_NAME);
+                                if(channelName) {
+                                    volumeObj->setChannelName(itc->secondTag, channelName->value);
+                                }
+                            }
                         }
                     }
                 }
@@ -397,6 +403,7 @@ void VSIFile::serializeMetadata(const TagInfo& tagInfo, boost::json::object& jso
     jsonObj["tag"] = tagInfo.tag;
     jsonObj["name"] = tagInfo.name;
     jsonObj["value"] = tagInfo.value;
+    jsonObj["secondTag"] = tagInfo.secondTag;
     if (!tagInfo.children.empty()) {
         boost::json::array array;
         for (const auto& child : tagInfo.children) {
@@ -436,11 +443,11 @@ void VSIFile::readVolumeInfo() {
     }
     m_metadata = path.front();
     {
-        boost::json::object root;
-        serializeMetadata(m_metadata, root);
-        std::ofstream ofs("d:\\Temp\\metadata.json");
-        ofs << boost::json::serialize(root);
-        ofs.close();
+        //boost::json::object root;
+        //serializeMetadata(m_metadata, root);
+        //std::ofstream ofs("d:\\Temp\\metadata.json");
+        //ofs << boost::json::serialize(root);
+        //ofs.close();
     }
     checkExternalFilePresence();
 }
