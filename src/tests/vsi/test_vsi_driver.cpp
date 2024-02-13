@@ -428,3 +428,127 @@ TEST(Pyramid, init) {
         }
     }
 }
+
+TEST(Pyramid, init2DWithChannel) {
+    TestDimensionOrder dimOrder(2, -1, -1);
+    {
+        std::vector<std::tuple<int, int, int, int>> tls = {
+            {0, 0, 0, 0},
+            {0, 0, 1, 0},
+            {0, 0, 0, 1},
+            {0, 0, 1, 1},
+            {1, 0, 0, 0},
+            {1, 0, 1, 0},
+            {1, 0, 0, 1},
+            {1, 0, 1, 1},
+
+            {0, 1, 0, 0},
+            {0, 1, 1, 0},
+            {0, 1, 0, 1},
+            {0, 1, 1, 1},
+            {1, 1, 0, 0},
+            {1, 1, 1, 0},
+            {1, 1, 0, 1},
+            {1, 1, 1, 1}
+        };
+        std::vector<slideio::vsi::TileInfo> tiles;
+        for (auto& t : tls) {
+            slideio::vsi::TileInfo tile;
+            tile.coordinates = {
+                std::get<0>(t), std::get<1>(t), std::get<2>(t),
+                std::get<3>(t)
+            };
+            tiles.push_back(tile);
+        }
+        vsi::Pyramid pyramid;
+        pyramid.init(tiles, cv::Size(100, 100), cv::Size(10, 10), &dimOrder);
+        EXPECT_EQ(2, pyramid.getNumLevels());
+        EXPECT_EQ(2, pyramid.getNumChannelIndices());
+        EXPECT_EQ(1, pyramid.getNumZIndices());
+        EXPECT_EQ(1, pyramid.getNumTIndices());
+        for (int lv = 0; lv < pyramid.getNumLevels(); ++lv) {
+            const auto& level = pyramid.getLevel(lv);
+            const int scaleLevel = 1 << lv;
+            EXPECT_EQ(scaleLevel, level.getScaleLevel());
+            EXPECT_EQ(cv::Size(100 >> lv, 100 >> lv), level.getSize());
+            EXPECT_EQ(4, level.getNumTiles());
+            for (int tileIndex = 0; tileIndex < level.getNumTiles(); ++tileIndex) {
+                for (int channelIndex = 0; channelIndex < pyramid.getNumChannelIndices(); ++channelIndex) {
+                    for (int zIndex = 0; zIndex < pyramid.getNumZIndices(); ++zIndex) {
+                        for (int tIndex = 0; tIndex < pyramid.getNumTIndices(); ++tIndex) {
+                            const int y = tileIndex / 2;
+                            const int x = tileIndex % 2;
+                            auto tile = level.getTile(tileIndex, channelIndex, zIndex, tIndex);
+                            EXPECT_EQ(lv, tile.coordinates[3]);
+                            EXPECT_EQ(x, tile.coordinates[0]);
+                            EXPECT_EQ(y, tile.coordinates[1]);
+                            EXPECT_EQ(channelIndex, tile.coordinates[2]);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+TEST(Pyramid, init3D) {
+    TestDimensionOrder dimOrder(-1, 2, -1);
+    {
+        std::vector<std::tuple<int, int, int, int>> tls = {
+            {0, 0, 0, 0},
+            {0, 0, 1, 0},
+            {0, 0, 0, 1},
+            {0, 0, 1, 1},
+            {1, 0, 0, 0},
+            {1, 0, 1, 0},
+            {1, 0, 0, 1},
+            {1, 0, 1, 1},
+
+            {0, 1, 0, 0},
+            {0, 1, 1, 0},
+            {0, 1, 0, 1},
+            {0, 1, 1, 1},
+            {1, 1, 0, 0},
+            {1, 1, 1, 0},
+            {1, 1, 0, 1},
+            {1, 1, 1, 1}
+        };
+        std::vector<slideio::vsi::TileInfo> tiles;
+        for (auto& t : tls) {
+            slideio::vsi::TileInfo tile;
+            tile.coordinates = {
+                std::get<0>(t), std::get<1>(t), std::get<2>(t),
+                std::get<3>(t)
+            };
+            tiles.push_back(tile);
+        }
+        vsi::Pyramid pyramid;
+        pyramid.init(tiles, cv::Size(100, 100), cv::Size(10, 10), &dimOrder);
+        EXPECT_EQ(2, pyramid.getNumLevels());
+        EXPECT_EQ(1, pyramid.getNumChannelIndices());
+        EXPECT_EQ(2, pyramid.getNumZIndices());
+        EXPECT_EQ(1, pyramid.getNumTIndices());
+        for (int lv = 0; lv < pyramid.getNumLevels(); ++lv) {
+            const auto& level = pyramid.getLevel(lv);
+            const int scaleLevel = 1 << lv;
+            EXPECT_EQ(scaleLevel, level.getScaleLevel());
+            EXPECT_EQ(cv::Size(100 >> lv, 100 >> lv), level.getSize());
+            EXPECT_EQ(4, level.getNumTiles());
+            for (int tileIndex = 0; tileIndex < level.getNumTiles(); ++tileIndex) {
+                for (int channelIndex = 0; channelIndex < pyramid.getNumChannelIndices(); ++channelIndex) {
+                    for (int zIndex = 0; zIndex < pyramid.getNumZIndices(); ++zIndex) {
+                        for (int tIndex = 0; tIndex < pyramid.getNumTIndices(); ++tIndex) {
+                            const int y = tileIndex / 2;
+                            const int x = tileIndex % 2;
+                            auto tile = level.getTile(tileIndex, channelIndex, zIndex, tIndex);
+                            EXPECT_EQ(lv, tile.coordinates[3]);
+                            EXPECT_EQ(x, tile.coordinates[0]);
+                            EXPECT_EQ(y, tile.coordinates[1]);
+                            EXPECT_EQ(zIndex, tile.coordinates[2]);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
