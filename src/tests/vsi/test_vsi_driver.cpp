@@ -211,6 +211,28 @@ TEST(VSIImageDriver, VSIFileOpenWithExternalFiles) {
     EXPECT_EQ(4, vsiFile.getNumEtsFiles());
 }
 
+TEST(VSIImageDriver, read3DVolume16bitSlice) {
+    std::string filePath = TestTools::getFullTestImagePath("vsi", "vsi-multifile/vsi-ets-test-jpg2k.vsi");
+    std::string testFilePath = TestTools::getFullTestImagePath("vsi", "test-output/vsi-ets-test-jpg2k.vsi - 001 C405, C488 (1, x=0, y=0, w=1645, h=1682).tif");
+    slideio::VSIImageDriver driver;
+    std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    const int numScenes = slide->getNumScenes();
+    ASSERT_EQ(1, numScenes);
+    std::shared_ptr<CVScene> scene = slide->getScene(0);
+    const auto rect = scene->getRect();
+    cv::Rect roi(rect);
+    cv::Size blockSize(roi.width, roi.height);
+    cv::Mat blockRaster;
+    scene->readResampled4DBlockChannels(roi, blockSize, { 1 }, { 5,6 }, { 0,1 }, blockRaster);
+    //cv::Mat testRaster;
+    //ImageTools::readGDALImage(testFilePath, testRaster);
+    //cv::resize(testRaster, testRaster, blockSize);
+    //double similarity = ImageTools::computeSimilarity2(testRaster, blockRaster);
+    //EXPECT_GT(similarity, 0.99);
+    //TestTools::showRasters(testRaster, blockRaster);
+}
+
 
 TEST(VSIImageDriver, read3DVolume16bit) {
     std::string filePath = TestTools::getFullTestImagePath("vsi", "vsi-multifile/vsi-ets-test-jpg2k.vsi");

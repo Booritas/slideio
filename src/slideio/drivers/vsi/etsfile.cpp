@@ -168,13 +168,14 @@ void vsi::EtsFile::readTile(int levelIndex,
             }
         }
         std::vector<cv::Mat> channelRasters(channelList.size());
+        int rasterIndex = 0;
         for (const int channelIndex : channelList) {
             if (channelIndex < 0 || channelIndex >= getNumChannels()) {
                 RAISE_RUNTIME_ERROR << "VSIImageDriver: readTile: Channel index "
                     << channelIndex << " is out of range (0 - " << numChannelIndices << " )";
             }
             const TileInfo& tileInfo = pyramidLevel.getTile(tileIndex, channelIndex, zSlice, tFrame);
-            readTilePart(tileInfo, channelRasters[channelIndex]);
+            readTilePart(tileInfo, channelRasters[rasterIndex++]);
         }
         if (channelRasters.size() == 1) {
             channelRasters[0].copyTo(output);
