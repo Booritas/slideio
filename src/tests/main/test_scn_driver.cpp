@@ -505,3 +505,34 @@ TEST(SCNImageDriver, openFileUtf8)
         EXPECT_EQ(raster.rows, size.height);
     }
 }
+
+TEST(SCNImageDriver, zoomLevels)
+{
+    const slideio::LevelInfo levels[] = {
+        slideio::LevelInfo(0, {9462,14555}, 1.0, 5., {512,512}),
+        slideio::LevelInfo(1, {4731,7277}, 0.5, 2.5, {512,512}),
+        slideio::LevelInfo(2, {2365,3638}, 0.25, 1.25, {512,512}),
+        slideio::LevelInfo(3, {1182,1819}, 0.125, 0.625, {512,512}),
+        slideio::LevelInfo(4, {591,909}, 0.0625, 0.3125, {512,512}),
+        slideio::LevelInfo(5, {295,454}, 0.03117, 0.15625, {512,512}),
+    };
+    slideio::SCNImageDriver driver;
+    const std::string filePath = TestTools::getFullTestImagePath("scn", "ultivue/Leica Aperio Versa 5 channel fluorescent image.scn");
+    const std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    const std::shared_ptr<slideio::CVScene> scene = slide->getScene(1);
+    const int numScenes = slide->getNumScenes();
+    const cv::Rect rect = scene->getRect();
+    double magnification = scene->getMagnification();
+    ASSERT_TRUE(scene != nullptr);
+    const int numLevels = scene->getNumZoomLevels();
+    ASSERT_EQ(6, numLevels);
+    for (int levelIndex = 0; levelIndex < numLevels; ++levelIndex)
+    {
+        const slideio::LevelInfo* level = scene->getZoomLevelInfo(levelIndex);
+        EXPECT_EQ(*level, levels[levelIndex]);
+        if(levelIndex==0) {
+            EXPECT_EQ(level->getSize(), rect.size());
+        }
+
+    }
+}
