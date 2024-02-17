@@ -68,6 +68,8 @@ PYBIND11_MODULE(slideiopybind, m) {
         .def("get_channel_name", &PyScene::getChannelName, py::arg("index"), "Returns channel name (if any)")
         .def("get_aux_image", &PyScene::getAuxImage, py::arg("image_name"), "Returns an auxiliary image object by name")
         .def("get_aux_image_names", &PyScene::getAuxImageNames, "Returns list of aux images")
+        .def("get_num_levels", &PyScene::getNumZoomLevels, "Returns number of levels in the scene")
+        .def("get_level_info", &PyScene::getZoomLevelInfo, py::arg("index"), "Returns level info by index")
         .def("read_block", &PyScene::readBlock,
             py::arg("rect") = std::tuple<int,int,int,int>(0,0,0,0),
             py::arg("size")=std::tuple<int,int>(0,0),

@@ -218,6 +218,22 @@ void SCNScene::init(const XMLElement* xmlImage)
     parseMagnification(xmlImage);
     parseChannelNames(xmlImage);
     defineChannelDataType();
+    const auto& directories = getChannelDirectories(0);
+    if (!directories.empty()) {
+        const int numLevels = static_cast<int>(directories.size());
+        const int width0 = directories[0].width;
+        m_levels.resize(directories.size());
+        for (int lv = 0; lv < numLevels; ++lv) {
+            const TiffDirectory& directory = directories[lv];
+            LevelInfo& level = m_levels[lv];
+            const double scale = static_cast<double>(directory.width) / static_cast<double>(width0);
+            level.setLevel(lv);
+            level.setScale(scale);
+            level.setSize({ directory.width, directory.height });
+            level.setTileSize({ directory.tileWidth, directory.tileHeight });
+            level.setMagnification(m_magnification * scale);
+        }
+    }
 }
 
 const TiffDirectory& SCNScene::findZoomDirectory(int channelIndex, double zoom) const 
@@ -230,7 +246,6 @@ const TiffDirectory& SCNScene::findZoomDirectory(int channelIndex, double zoom) 
         });
     return directories[index];
 }
-
 
 int SCNScene::getTileCount(void* userData)
 {

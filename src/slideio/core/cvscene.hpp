@@ -14,6 +14,8 @@
 #include "refcounter.hpp"
 #include <map>
 
+#include "levelinfo.hpp"
+
 #if defined(_MSC_VER)
 #pragma warning( push )
 #pragma warning(disable: 4251)
@@ -190,6 +192,9 @@ namespace slideio
         virtual std::string getRawMetadata() const { return ""; }
         virtual void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
             const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output);
+        virtual int getNumZoomLevels() const;
+        virtual const LevelInfo* getZoomLevelInfo(int level) const;
+
     protected:
         std::vector<int> getValidChannelIndices(const std::vector<int>& channelIndices);
         void initializeSceneBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices,
@@ -197,9 +202,14 @@ namespace slideio
 
     protected:
         std::list<std::string> m_auxNames;
+        std::vector<LevelInfo> m_levels;
     };
 }
 
 #define CVScenePtr std::shared_ptr<slideio::CVScene>
+
+#if defined(_MSC_VER)
+#pragma warning( pop )
+#endif
 
 #endif

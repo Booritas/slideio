@@ -5,6 +5,11 @@
 #include "slideio/core/cvscene.hpp"
 #include "transformer_def.hpp"
 
+#if defined(_MSC_VER)
+#pragma warning( push )
+#pragma warning(disable: 4251)
+#endif
+
 namespace slideio
 {
     class Transformation;
@@ -44,3 +49,7 @@ namespace slideio
         int m_inflationValue;
     };
 }
+
+#if defined(_MSC_VER)
+#pragma warning( pop )
+#endif

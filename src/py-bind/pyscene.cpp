@@ -5,6 +5,7 @@
 #include <pybind11/numpy.h>
 #include <boost/format.hpp>
 #include "pyslide.hpp"
+#include "slideio/base/exceptions.hpp"
 
 namespace py = pybind11;
 
@@ -225,6 +226,18 @@ std::shared_ptr<PyScene> PyScene::getAuxImage(const std::string& imageName)
 std::string PyScene::getRawMetadata() const
 {
     return m_scene->getRawMetadata();
+}
+
+int PyScene::getNumZoomLevels() const {
+    return m_scene->getNumZoomLevels();
+}
+
+std::shared_ptr<PyZoomLevelInfo> PyScene::getZoomLevelInfo(int zoomLevel) const {
+    const slideio::LevelInfo* info = m_scene->getLevelInfo(zoomLevel);
+    if(info==nullptr) {
+        RAISE_RUNTIME_ERROR << "Unexpected null pointer received for zoom level:" << zoomLevel;
+    }
+    return std::make_shared<PyZoomLevelInfo>(*info);
 }
 
 std::shared_ptr<slideio::Scene> extractScene(std::shared_ptr<PyScene> pyScene)

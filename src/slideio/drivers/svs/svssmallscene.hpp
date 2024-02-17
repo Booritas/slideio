@@ -29,6 +29,7 @@ namespace slideio
             cv::OutputArray output) override;
     private:
         slideio::TiffDirectory m_directory;
+        LevelInfo m_levelInfo;
     };
 }
 

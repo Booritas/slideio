@@ -79,6 +79,7 @@ namespace slideio
         libtiff::TIFF* getFileHandle() {
             return m_tiff;
         }
+
     protected:
         TIFFKeeper m_tiff;
         std::string m_filePath;

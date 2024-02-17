@@ -57,6 +57,21 @@ void SVSTiledScene::initialize()
             m_compression = Compression::Jpeg2000;
         }
     }
+    if(!m_directories.empty()) {
+        const int numLevels = static_cast<int>(m_directories.size());
+        const int width0 = m_directories[0].width;
+        m_levels.resize(m_directories.size());
+        for (int lv = 0; lv < numLevels; ++lv) {
+            const TiffDirectory& directory = m_directories[lv];
+            LevelInfo& level = m_levels[lv];
+            const double scale = static_cast<double>(directory.width) / static_cast<double>(width0);
+            level.setLevel(lv);
+            level.setScale(scale);
+            level.setSize({ directory.width, directory.height });
+            level.setTileSize({ directory.tileWidth, directory.tileHeight });
+            level.setMagnification(m_magnification * scale);
+        }
+    }
 }
 
 
@@ -126,7 +141,7 @@ bool SVSTiledScene::getTileRect(int tileIndex, cv::Rect& tileRect, void* userDat
 bool SVSTiledScene::readTile(int tileIndex, const std::vector<int>& channelIndices, cv::OutputArray tileRaster,
     void* userData)
 {
-    const TiffDirectory* dir = (const TiffDirectory*)userData;
+    const TiffDirectory* dir = static_cast<const TiffDirectory*>(userData);
     bool ret = false;
     try
     {
@@ -147,4 +162,5 @@ void SVSTiledScene::initializeBlock(const cv::Size& blockSize, const std::vector
 {
     initializeSceneBlock(blockSize, channelIndices, output);
 }
+
 

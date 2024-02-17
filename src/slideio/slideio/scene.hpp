@@ -17,6 +17,7 @@
 
 namespace slideio
 {
+    class LevelInfo;
     class CVScene;
     /**@brief Scene class represents a raster image contained in a slide.
     * 
@@ -267,6 +268,8 @@ namespace slideio
          */
         virtual std::shared_ptr<Scene> getAuxImage(const std::string& imageName) const;
         std::shared_ptr<CVScene> getCVScene() { return m_scene; }
+        int getNumZoomLevels() const;
+        const LevelInfo* getLevelInfo(int level) const;
     private:
         std::shared_ptr<CVScene> m_scene;
     };

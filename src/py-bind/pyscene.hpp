@@ -39,6 +39,8 @@ public:
     int getNumAuxImages() const;
     std::shared_ptr<PyScene> getAuxImage(const std::string& imageName);
     std::string getRawMetadata() const;
+    int getNumZoomLevels() const;
+    std::shared_ptr<PyZoomLevelInfo> getZoomLevelInfo(int zoomLevel) const;
 private:
     PyRect adjustSourceRect(const PyRect& rect) const;
     PySize adjustTargetSize(const PyRect& rect, const PySize& size) const;

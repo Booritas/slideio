@@ -306,4 +306,12 @@ std::shared_ptr<Scene> Scene::getAuxImage(const std::string& sceneName) const
     return scene;
 }
 
+int Scene::getNumZoomLevels() const {
+   return m_scene->getNumZoomLevels();
+}
+
+const LevelInfo* Scene::getLevelInfo(int level) const {
+	return m_scene->getZoomLevelInfo(level);
+}
+
 

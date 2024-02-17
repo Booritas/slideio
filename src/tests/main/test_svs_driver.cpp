@@ -526,3 +526,25 @@ TEST(SVSImageDriver, openFileUtf8)
         EXPECT_EQ(raster.rows, size.height);
     }
 }
+
+TEST(SVSImageDriver, zoomLevels)
+{
+    const slideio::LevelInfo levels [] = {
+        slideio::LevelInfo(0, {15374,17497}, 1.0, 40., {256,256}),
+        slideio::LevelInfo(1, {3843,4374}, 0.25, 10., {256,256}),
+        slideio::LevelInfo(2, {1921,2187}, 0.125, 5., {256,256})
+    };
+    slideio::SVSImageDriver driver;
+    const std::string filePath = TestTools::getTestImagePath("svs", "JP2K-33003-1.svs");
+    const std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    const std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
+    ASSERT_TRUE(scene != nullptr);
+    const int numLevels = scene->getNumZoomLevels();
+    ASSERT_EQ(3, numLevels);
+    for(int levelIndex=0; levelIndex<numLevels; ++levelIndex)
+    {
+        const slideio::LevelInfo* level = scene->getZoomLevelInfo(levelIndex);
+        EXPECT_EQ(*level, levels[levelIndex]);
+
+    }
+}

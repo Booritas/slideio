@@ -6,6 +6,7 @@
 
 #include <numeric>
 
+#include "slideio/base/exceptions.hpp"
 
 
 using namespace slideio;
@@ -172,6 +173,18 @@ void CVScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::
     {
         throw std::runtime_error("4D API are not supported by this driver");
     }
+}
+
+int CVScene::getNumZoomLevels() const {
+    return static_cast<int>(m_levels.size());
+}
+
+const LevelInfo* CVScene::getZoomLevelInfo(int level) const {
+    if (level < 0 || level >= m_levels.size()) {
+        RAISE_RUNTIME_ERROR << "Invalid level index: " << level
+            << " Expected range: [0," << m_levels.size() << ")";
+    }
+    return &m_levels[level];
 }
 
 std::vector<int> CVScene::getValidChannelIndices(const std::vector<int>& channelIndices)

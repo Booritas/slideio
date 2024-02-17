@@ -64,4 +64,9 @@ namespace slideio
 }
 
 #define CVSlidePtr std::shared_ptr<slideio::CVSlide>
+
+#if defined(_MSC_VER)
+#pragma warning( pop )
+#endif
+
 #endif
