@@ -83,9 +83,22 @@ void NDPIScene::init(const std::string& name, NDPIFile* file, int32_t startDirIn
         RAISE_RUNTIME_ERROR << "NDPIImageDriver: Invalid directory index: " << m_startDir << ". File:" << m_pfile->
             getFilePath();
     }
-    const NDPITiffDirectory& dir = m_pfile->directories()[m_startDir];
+    const NDPITiffDirectory& dir = directories[m_startDir];
     m_rect.width = dir.width;
     m_rect.height = dir.height;
+
+    const int numLevels = m_endDir - m_startDir;
+    m_levels.resize(numLevels);
+    for(int lv = 0; lv < numLevels; ++lv) {
+        const NDPITiffDirectory& directory = directories[m_startDir + lv];
+        LevelInfo& level = m_levels[lv];
+        const double scale = static_cast<double>(directory.width) / static_cast<double>(m_rect.width);
+        level.setLevel(lv);
+        level.setScale(scale);
+        level.setSize({ directory.width, directory.height });
+        level.setTileSize({ directory.tileWidth, directory.tileHeight });
+        level.setMagnification(getMagnification() * scale);
+    }
 }
 
 cv::Rect NDPIScene::getRect() const

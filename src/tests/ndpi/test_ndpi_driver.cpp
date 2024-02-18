@@ -465,3 +465,36 @@ TEST(NDPIImageDriver, findZoomDirectory)
     }
 
 }
+
+TEST(NDPIImageDriver, zoomLevels)
+{
+    if (!TestTools::isFullTestEnabled())
+    {
+        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
+    }
+
+    const slideio::LevelInfo levels[] = {
+        slideio::LevelInfo(0, {11520,9984}, 1.0, 20., {1920,8}),
+        slideio::LevelInfo(1, {2880,2496}, 0.25, 5., {480,8}),
+        slideio::LevelInfo(2, {720,624},  0.0625, 1.25, {120,8}),
+    };
+    slideio::NDPIImageDriver driver;
+    const std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "2017-02-27 15.29.08.ndpi");
+    const std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    const std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
+    const int numScenes = slide->getNumScenes();
+    const cv::Rect rect = scene->getRect();
+    double magnification = scene->getMagnification();
+    ASSERT_TRUE(scene != nullptr);
+    const int numLevels = scene->getNumZoomLevels();
+    ASSERT_EQ(3, numLevels);
+    for (int levelIndex = 0; levelIndex < numLevels; ++levelIndex)
+    {
+        const slideio::LevelInfo* level = scene->getZoomLevelInfo(levelIndex);
+        EXPECT_EQ(*level, levels[levelIndex]);
+        if (levelIndex == 0) {
+            EXPECT_EQ(level->getSize(), rect.size());
+        }
+
+    }
+}
