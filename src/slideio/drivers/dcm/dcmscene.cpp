@@ -1,13 +1,11 @@
 ﻿// This file is part of slideio project.
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
-#include "slideio/drivers/dcm/dcmscene.hpp"
-#include "slideio/drivers/dcm/dcmslide.hpp"
 #include <set>
 #include <boost/format.hpp>
-
 #include <opencv2/imgproc.hpp>
 
+#include "slideio/drivers/dcm/dcmscene.hpp"
 #include "slideio/base/base.hpp"
 #include "slideio/core/tools/tools.hpp"
 
@@ -16,6 +14,7 @@ using namespace slideio;
 
 DCMScene::DCMScene()
 {
+
 }
 
 std::string DCMScene::getFilePath() const
@@ -182,6 +181,15 @@ void DCMScene::init()
     m_compression = file->getCompression();
 
     prepareSliceIndices();
+
+    m_levels.resize(1);
+    LevelInfo& level = m_levels[0];
+    level.setLevel(0);
+    level.setTileSize(cv::Size(m_rect.size()));
+    level.setSize(cv::Size(m_rect.size()));
+    level.setTileSize(m_rect.size());
+    level.setMagnification(getMagnification());
+    level.setScale(1.);
 }
 
 std::string DCMScene::getRawMetadata() const
@@ -243,12 +251,12 @@ std::pair<int, int> DCMScene::findFileIndex(int zSliceIndex)
 }
 
 void DCMScene::readResampledBlockChannelsEx(const cv::Rect& blockRect,
-                                            const cv::Size& blockSize,
-                                            const std::vector<int>&
-                                            componentIndices,
-                                            int zSliceIndex,
-                                            int tFrameIndex,
-                                            cv::OutputArray output)
+    const cv::Size& blockSize,
+    const std::vector<int>&
+    componentIndices,
+    int zSliceIndex,
+    int tFrameIndex,
+    cv::OutputArray output)
 {
     SLIDEIO_LOG(INFO) << "DCMImageDriver: Resample block:" << std::endl
         << "block: " << blockRect.x << "," << blockRect.y << ","

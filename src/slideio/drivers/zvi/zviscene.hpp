@@ -37,7 +37,7 @@ namespace slideio
         double getZSliceResolution() const override;
         double getTFrameResolution() const override;
         void validateChannelIndex(int channel) const;
-        slideio::DataType getChannelDataType(int channel) const override;
+        DataType getChannelDataType(int channel) const override;
         std::string getChannelName(int channel) const override;
         Resolution getResolution() const override;
         double getMagnification() const override;

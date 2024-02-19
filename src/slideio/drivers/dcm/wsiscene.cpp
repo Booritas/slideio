@@ -12,13 +12,11 @@ using namespace slideio;
 namespace fs = boost::filesystem;
 
 
-WSIScene::WSIScene() {
-    
-}
+WSIScene::WSIScene() = default;
 
 void WSIScene::addFile(std::shared_ptr<DCMFile>& file) {
 	if(file->isAuxImage()) {
-        std::shared_ptr<DCMScene> auxScene = std::make_shared<DCMScene>();
+        const std::shared_ptr<DCMScene> auxScene = std::make_shared<DCMScene>();
 		auxScene->addFile(file);
 		auxScene->init();
 	    m_auxNames.push_back(file->getImageType());
@@ -34,10 +32,10 @@ void WSIScene::init() {
 		    return file1->getWidth() > file2->getWidth();
 		});
 
-	std::shared_ptr<DCMFile> baseFile = getBaseFile();
+    const std::shared_ptr<DCMFile> baseFile = getBaseFile();
 	const int baseWidth = baseFile->getWidth();
 
-	for(auto& file : m_files) {
+	for(const auto& file : m_files) {
 	    const int width = file->getWidth();
 		const double scale = static_cast<double>(width) / static_cast<double>(baseWidth);
 		file->setScale(scale);
@@ -58,6 +56,18 @@ void WSIScene::init() {
 	}
 	m_magnification = baseFile->getMagnification();
 	m_resolution = baseFile->getResolution();
+    const auto& files = m_files;
+	const int numLevels = static_cast<int>(files.size());
+	m_levels.resize(numLevels);
+	for(int levelIndex=0; levelIndex < numLevels; ++levelIndex) {
+        const auto& file = files[levelIndex];
+		auto& level = m_levels[levelIndex];
+		level.setLevel(levelIndex);
+		level.setSize({ file->getWidth(), file->getHeight() });
+		level.setScale(file->getScale());
+		level.setMagnification(getMagnification() * file->getScale());
+		level.setTileSize(file->getTileSize());
+    }
 }
 
 std::string WSIScene::getFilePath() const {
@@ -100,21 +110,21 @@ std::shared_ptr<DCMFile> WSIScene::getBaseFile() const {
 }
 
 int WSIScene::getTileCount(void* userData) {
-	TilerData * data = static_cast<TilerData*>(userData);
+    const TilerData * data = static_cast<TilerData*>(userData);
     std::shared_ptr<DCMFile> zoomFile = m_files[data->zoomLevelIndex];
 	return zoomFile->getNumFrames();
 }
 
 bool WSIScene::getTileRect(int tileIndex, cv::Rect& tileRect, void* userData) {
-	TilerData* data = static_cast<TilerData*>(userData);
-	std::shared_ptr<DCMFile> zoomFile = m_files[data->zoomLevelIndex];
+    const TilerData* data = static_cast<TilerData*>(userData);
+    const std::shared_ptr<DCMFile> zoomFile = m_files[data->zoomLevelIndex];
 	return zoomFile->getTileRect(tileIndex, tileRect);
 }
 
 bool WSIScene::readTile(int tileIndex, const std::vector<int>& channelIndices, cv::OutputArray tileRaster,
     void* userData) {
-	TilerData* data = static_cast<TilerData*>(userData);
-	std::shared_ptr<DCMFile> zoomFile = m_files[data->zoomLevelIndex];
+    const TilerData* data = static_cast<TilerData*>(userData);
+    const std::shared_ptr<DCMFile> zoomFile = m_files[data->zoomLevelIndex];
 	cv::Mat tile;
 	if(zoomFile->readFrame(tileIndex, tile)) {
 		Tools::extractChannels(tile, channelIndices, tileRaster);

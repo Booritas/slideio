@@ -660,3 +660,64 @@ TEST(DCMImageDriver, readJp2K)
     slideio::ImageTools::readGDALImage(testPath, testImage);
     TestTools::compareRasters(image, testImage);
 }
+
+TEST(DCMImageDriver, zoomLevels)
+{
+    const slideio::LevelInfo levels[] = {
+        slideio::LevelInfo(0, {72192,70400}, 1.0, 0., {256,256}),
+        slideio::LevelInfo(1, {36096,35200}, 0.5, 0, {256,256}),
+        slideio::LevelInfo(2, {18048,17600}, 0.25, 0, {256,256}),
+        slideio::LevelInfo(3, {9024,8800}, 0.125, 0, {256,256}),
+        slideio::LevelInfo(4, {4512,4400}, 0.0625, 0, {256,256}),
+        slideio::LevelInfo(5, {2256,2200}, 0.03117, 0, {256,256}),
+        slideio::LevelInfo(6, {1128,1100}, 0.015625, 0, {256,256}),
+        slideio::LevelInfo(7, {564,550}, 0.0078125, 0, {256,256}),
+        slideio::LevelInfo(8, {282,275}, 0.00390625, 0, {256,256}),
+    };
+    slideio::DCMImageDriver driver;
+    const std::string filePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777");
+    const std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    const std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
+    const int numScenes = slide->getNumScenes();
+    const cv::Rect rect = scene->getRect();
+    double magnification = scene->getMagnification();
+    ASSERT_TRUE(scene != nullptr);
+    const int numLevels = scene->getNumZoomLevels();
+    ASSERT_EQ(9, numLevels);
+    for (int levelIndex = 0; levelIndex < numLevels; ++levelIndex)
+    {
+        const slideio::LevelInfo* level = scene->getZoomLevelInfo(levelIndex);
+        EXPECT_EQ(*level, levels[levelIndex]);
+        if (levelIndex == 0) {
+            EXPECT_EQ(level->getSize(), rect.size());
+        }
+
+    }
+}
+
+TEST(DCMImageDriver, zoomLevelsSingle)
+{
+    const slideio::LevelInfo levels[] = {
+        slideio::LevelInfo(0, {512,512}, 1.0, 0., {512,512}),
+    };
+    slideio::DCMImageDriver driver;
+    std::string filePath = TestTools::getTestImagePath(
+        "dcm", "barre.dev/OT-MONO2-8-hip.dcm");
+    const std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    const std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
+    const int numScenes = slide->getNumScenes();
+    const cv::Rect rect = scene->getRect();
+    double magnification = scene->getMagnification();
+    ASSERT_TRUE(scene != nullptr);
+    const int numLevels = scene->getNumZoomLevels();
+    ASSERT_EQ(1, numLevels);
+    for (int levelIndex = 0; levelIndex < numLevels; ++levelIndex)
+    {
+        const slideio::LevelInfo* level = scene->getZoomLevelInfo(levelIndex);
+        EXPECT_EQ(*level, levels[levelIndex]);
+        if (levelIndex == 0) {
+            EXPECT_EQ(level->getSize(), rect.size());
+        }
+
+    }
+}

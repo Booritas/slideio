@@ -498,3 +498,19 @@ TEST(ZVIImageDriver, openFileUtf8)
         EXPECT_EQ(raster.rows, size.height);
     }
 }
+
+TEST(ZVIImageDriver, zoomLevel)
+{
+    slideio::ZVIImageDriver driver;
+    const std::string filePath = TestTools::getTestImagePath("zvi", "Zeiss-1-Stacked.zvi");
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide.get() != nullptr);
+    auto scene = slide->getScene(0);
+    EXPECT_EQ(1, scene->getNumZoomLevels());
+    const LevelInfo* zoomLevel = scene->getZoomLevelInfo(0);
+    ASSERT_TRUE(zoomLevel != nullptr);
+    EXPECT_EQ(zoomLevel->getMagnification(), scene->getMagnification());
+    EXPECT_EQ(zoomLevel->getScale(), 1.0);
+    EXPECT_EQ(zoomLevel->getSize(), scene->getRect().size());
+    EXPECT_EQ(zoomLevel->getTileSize(), cv::Size(1388, 1040));
+}
