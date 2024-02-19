@@ -621,3 +621,39 @@ TEST(CZIImageDriver, openFileUtf8)
         EXPECT_EQ(raster.rows, rect.height);
     }
 }
+
+TEST(CZIImageDriver, zoomLevels)
+{
+    if (!TestTools::isFullTestEnabled())
+    {
+        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
+    }
+    const slideio::LevelInfo levels[] = {
+        slideio::LevelInfo(0, {49132,48722}, 1.0, 40., {1600,1200}),
+        slideio::LevelInfo(1, {24566,24361}, 0.5, 20, {1024,1024}),
+        slideio::LevelInfo(2, {12283,12181}, 0.25, 10, {1024,1024}),
+        slideio::LevelInfo(3, {6142,6090}, 0.125, 5, {1024,1024}),
+        slideio::LevelInfo(4, {3071,3045}, 0.0625, 2.5, {1024,1024}),
+        slideio::LevelInfo(5, {1535,1523}, 0.03117, 1.25, {511,1024}),
+        slideio::LevelInfo(6, {768,761}, 0.015625, 0.625, {768,762}),
+    };
+    slideio::CZIImageDriver driver;
+    std::string filePath = TestTools::getFullTestImagePath("czi", "30-10-2020_NothingRecognized-15986.czi");
+    const std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    const std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
+    const int numScenes = slide->getNumScenes();
+    const cv::Rect rect = scene->getRect();
+    double magnification = scene->getMagnification();
+    ASSERT_TRUE(scene != nullptr);
+    const int numLevels = scene->getNumZoomLevels();
+    ASSERT_EQ(7, numLevels);
+    for (int levelIndex = 0; levelIndex < numLevels; ++levelIndex)
+    {
+        const slideio::LevelInfo* level = scene->getZoomLevelInfo(levelIndex);
+        EXPECT_EQ(*level, levels[levelIndex]);
+        if (levelIndex == 0) {
+            EXPECT_EQ(level->getSize(), rect.size());
+        }
+
+    }
+}

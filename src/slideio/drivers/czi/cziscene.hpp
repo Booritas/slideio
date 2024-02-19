@@ -107,6 +107,7 @@ namespace slideio
         void updateTileRects(ZoomLevel& value);
         void updateTileRects();
         const ZoomLevel& getBaseZoomLevel() const;
+        void initZoomLevelInfo();
         int findBlockIndex(const Tile& tile, const CZISubBlocks& blocks, int channelIndex, int zSliceIndex, int tFrameIndex) const ;
         const Tile& getTile(const TilerData* tilerData, int tileIndex) const;
         const CZISubBlocks& getBlocks(const TilerData* tilerData) const;

@@ -266,6 +266,27 @@ const CZIScene::ZoomLevel& CZIScene::getBaseZoomLevel() const
 }
 
 
+void CZIScene::initZoomLevelInfo() {
+    const int numZoomLevels = static_cast<int>(m_zoomLevels.size());
+    m_levels.resize(numZoomLevels);
+    const cv::Size baseLevelSize = m_sceneRect.size();
+    for(int levelIndex=0; levelIndex<numZoomLevels; ++levelIndex)
+    {
+        LevelInfo& level = m_levels[levelIndex];
+        const ZoomLevel& srcLevel = m_zoomLevels[levelIndex];
+        const double scale = srcLevel.zoom;
+        cv::Size levelSize = cv::Size(lround(baseLevelSize.width*scale), lround(baseLevelSize.height*scale));
+        level.setLevel(levelIndex);
+        level.setSize(levelSize);
+        if(!srcLevel.tiles.empty()) {
+            cv::Size tileSize = srcLevel.tiles.front().rect.size();
+            level.setTileSize(tileSize);
+        }
+        level.setMagnification(getMagnification()*scale);
+        level.setScale(scale);
+    }
+}
+
 void CZIScene::init(uint64_t sceneId, SceneParams& sceneParams, const std::string& filePath, const CZISubBlocks& blocks, CZISlide* slide)
 {
     m_sceneParams = sceneParams;
@@ -312,11 +333,12 @@ void CZIScene::init(uint64_t sceneId, SceneParams& sceneParams, const std::strin
     compute4DParameters();
     generateSceneName();
     computeSceneMetadata();
+    initZoomLevelInfo();
 }
 
 int CZIScene::getTileCount(void* userData)
 {
-    TilerData* tilerData = reinterpret_cast<TilerData*>(userData);
+    const TilerData* tilerData = static_cast<TilerData*>(userData);
     const int zoomLevelIndex = tilerData->zoomLevelIndex;
     const ZoomLevel& zoomLevel = m_zoomLevels[zoomLevelIndex];
     return static_cast<int>(zoomLevel.tiles.size());
@@ -324,7 +346,7 @@ int CZIScene::getTileCount(void* userData)
 
 bool CZIScene::getTileRect(int tileIndex, cv::Rect& tileRect, void* userData)
 {
-    auto tilerData = reinterpret_cast<TilerData*>(userData);
+    const TilerData* tilerData = static_cast<TilerData*>(userData);
     const int zoomLevelIndex = tilerData->zoomLevelIndex;
     const ZoomLevel& zoomLevel = m_zoomLevels[zoomLevelIndex];
     const Tiles& tiles = zoomLevel.tiles;
