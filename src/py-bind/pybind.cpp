@@ -68,8 +68,8 @@ PYBIND11_MODULE(slideiopybind, m) {
         .def("get_channel_name", &PyScene::getChannelName, py::arg("index"), "Returns channel name (if any)")
         .def("get_aux_image", &PyScene::getAuxImage, py::arg("image_name"), "Returns an auxiliary image object by name")
         .def("get_aux_image_names", &PyScene::getAuxImageNames, "Returns list of aux images")
-        .def("get_num_levels", &PyScene::getNumZoomLevels, "Returns number of levels in the scene")
-        .def("get_level_info", &PyScene::getZoomLevelInfo, py::arg("index"), "Returns level info by index")
+        .def_property_readonly("num_zoom_levels", &PyScene::getNumZoomLevels, "Number of levels in the scene image pyramid")
+        .def("get_zoom_level_info", &PyScene::getZoomLevelInfo, py::arg("index"), "Returns zoom level info by index")
         .def("read_block", &PyScene::readBlock,
             py::arg("rect") = std::tuple<int,int,int,int>(0,0,0,0),
             py::arg("size")=std::tuple<int,int>(0,0),
@@ -218,4 +218,14 @@ PYBIND11_MODULE(slideiopybind, m) {
         .def_property("threshold2", &slideio::CannyFilter::getThreshold2, &slideio::CannyFilter::setThreshold2, "Second threshold for the hysteresis procedure")
         .def_property("aperture_size", &slideio::CannyFilter::getApertureSize, &slideio::CannyFilter::setApertureSize, "Aperture size for the Sobel operator")
         .def_property("l2gradient", &slideio::CannyFilter::getL2Gradient, &slideio::CannyFilter::setL2Gradient, "Indicates, whether L2 norm should be used");
+    py::class_<slideio::LevelInfo>(m, "LevelInfo")
+        .def_property_readonly("size", &slideio::LevelInfo::getSize, "Size of the level")
+        .def_property_readonly("tile_size", &slideio::LevelInfo::getTileSize, "Size of the tile")
+        .def_property_readonly("level", &slideio::LevelInfo::getLevel, "Level index")
+        .def_property_readonly("scale", &slideio::LevelInfo::getScale, "Scale coefficient")
+        .def_property_readonly("magnification", &slideio::LevelInfo::getMagnification, "Level magnification");
+    py::class_<cv::Size>(m, "Size")
+        .def(py::init<int, int>())
+        .def_readwrite("width", &cv::Size::width)
+        .def_readwrite("height", &cv::Size::height);
 }

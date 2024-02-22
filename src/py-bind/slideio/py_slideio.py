@@ -110,6 +110,15 @@ class Scene(object):
         '''Number of auxiliary images of the scene.'''
         return self.scene.num_aux_images
 
+    @property
+    def num_zoom_levels(self):
+        '''Number of zoom levels in internal image pyramid.'''
+        return self.scene.num_zoom_levels
+
+    def get_zoom_level_info(self, index):
+        '''Get information about a level in the internal image pyramid.'''
+        return self.scene.get_zoom_level_info(index)
+
     def get_aux_image_names(self):
         '''Get list of auxiliary image names'''
         return self.scene.get_aux_image_names()
