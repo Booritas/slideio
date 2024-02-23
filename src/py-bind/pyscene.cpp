@@ -228,16 +228,20 @@ std::string PyScene::getRawMetadata() const
     return m_scene->getRawMetadata();
 }
 
+std::string PyScene::toString() const {
+    return m_scene->toString();
+}
+
 int PyScene::getNumZoomLevels() const {
     return m_scene->getNumZoomLevels();
 }
 
-std::shared_ptr<PyZoomLevelInfo> PyScene::getZoomLevelInfo(int zoomLevel) const {
+const slideio::LevelInfo& PyScene::getZoomLevelInfo(int zoomLevel) const {
     const slideio::LevelInfo* info = m_scene->getLevelInfo(zoomLevel);
     if(info==nullptr) {
         RAISE_RUNTIME_ERROR << "Unexpected null pointer received for zoom level:" << zoomLevel;
     }
-    return std::make_shared<PyZoomLevelInfo>(*info);
+    return *info;
 }
 
 std::shared_ptr<slideio::Scene> extractScene(std::shared_ptr<PyScene> pyScene)

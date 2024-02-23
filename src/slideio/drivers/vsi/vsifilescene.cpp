@@ -68,4 +68,12 @@ void VsiFileScene::init()
     std::fill(m_channelDataType.begin(), m_channelDataType.end(), directory.dataType);
     m_compression = directory.slideioCompression;
     m_tiff = TiffTools::openTiffFile(m_filePath);
+
+    m_levels.resize(1);
+    LevelInfo& level = m_levels[0];
+    level.setLevel(0);
+    level.setTileSize(m_rect.size());
+    level.setSize(m_rect.size());
+    level.setMagnification(getMagnification());
+    level.setScale(1.);
 }

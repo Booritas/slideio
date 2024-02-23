@@ -194,7 +194,7 @@ namespace slideio
             const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output);
         virtual int getNumZoomLevels() const;
         virtual const LevelInfo* getZoomLevelInfo(int level) const;
-
+        std::string toString() const;
     protected:
         std::vector<int> getValidChannelIndices(const std::vector<int>& channelIndices);
         void initializeSceneBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices,

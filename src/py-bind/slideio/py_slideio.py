@@ -27,6 +27,9 @@ class Scene(object):
         '''
         self.scene = scene
 
+    def __repr__(self):
+        return self.scene.__repr__()
+
     def __del__(self):
         if self.scene is not None:
             del self.scene
@@ -195,6 +198,9 @@ class Slide(object):
     '''
     def __init__(self, path:str, driver:str):
         self.slide = sld.open_slide(path, driver)
+
+    def __repr__(self):
+        return f"File path: {self.slide.file_path}\nScenes: {self.slide.num_scenes}\nAux images: {self.slide.num_aux_images}"
 
     def __del__(self):
         if hasattr(self, 'slide'):

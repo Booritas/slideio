@@ -187,6 +187,7 @@ const LevelInfo* CVScene::getZoomLevelInfo(int level) const {
     return &m_levels[level];
 }
 
+
 std::vector<int> CVScene::getValidChannelIndices(const std::vector<int>& channelIndices)
 {
     auto validChannelIndices(channelIndices);
@@ -216,4 +217,23 @@ void CVScene::initializeSceneBlock(const cv::Size& blockSize, const std::vector<
     else {
         output.setTo(0.0);
     }
+}
+
+std::string CVScene::toString() const {
+    std::ostringstream os;
+    os << "File Path: " << getFilePath() << "\n";
+    os << "Name: " << getName() << "\n";
+    os << "Rect: " << getRect().x << "," << getRect().y << "," << getRect().width << "," << getRect().height << "\n";
+    os << "Number of Channels: " << getNumChannels() << "\n";
+    for (int channelIndex = 0; channelIndex < getNumChannels(); ++channelIndex) {
+        os << "Channel " << channelIndex << " data type: " << getChannelDataType(channelIndex) << "\n";
+    }
+    os << "Number of Z-Slices: " << getNumZSlices() << "\n";
+    os << "Number of Time Frames: " << getNumTFrames() << "\n";
+    os << "Z-Slice Resolution: " << getZSliceResolution() << "\n";
+    os << "Time Frame Resolution: " << getTFrameResolution() << "\n";
+    os << "Magnification: " << getMagnification() << "\n";
+    os << "Number of Auxiliary Images: " << getNumAuxImages() << "\n";
+    os << "Number of Zoom Levels: " << getNumZoomLevels() << "\n";
+    return os.str();
 }

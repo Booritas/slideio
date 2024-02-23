@@ -18,13 +18,13 @@ PYBIND11_MODULE(slideiopybind, m) {
     m.doc() = R"delimiter(
         Module for reading of medical images.
     )delimiter";
-    m.def("open_slide",&pyOpenSlide,
+    m.def("open_slide", &pyOpenSlide,
         py::arg("file_path"),
         py::arg("driver_id"),
         "Opens an image slide. Returns Slide object.");
-    m.def("set_log_level",&pySetLogLevel,
-          py::arg("log_level"),
-          "Sets log level for the library.");
+    m.def("set_log_level", &pySetLogLevel,
+        py::arg("log_level"),
+        "Sets log level for the library.");
     m.def("get_driver_ids", &pyGetDriverIDs,
         "Returns list of driver ids");
     m.def("compare_images", &pyCompareImages,
@@ -51,14 +51,14 @@ PYBIND11_MODULE(slideiopybind, m) {
         .def_property_readonly("raw_metadata", &PySlide::getRawMetadata, "Slide raw metadata")
         .def_property_readonly("file_path", &PySlide::getFilePath, "File path to the image");
     py::class_<PyScene, std::shared_ptr<PyScene>>(m, "Scene")
-        .def_property_readonly("name",&PyScene::getName, "Scene name")
-        .def_property_readonly("resolution",&PyScene::getResolution, "Scene resolution in x and y directions")
-        .def_property_readonly("z_resolution",&PyScene::getZSliceResolution, "Scene resolution in z direction")
-        .def_property_readonly("t_resolution",&PyScene::getTFrameResolution, "Time frame resolution")
-        .def_property_readonly("magnification",&PyScene::getMagnification, "Scanning magnification")
-        .def_property_readonly("num_z_slices",&PyScene::getNumZSlices, "Number of slices in z direction")
-        .def_property_readonly("num_t_frames",&PyScene::getNumTFrames, "Number of time frames")
-        .def_property_readonly("compression",&PyScene::getCompression, "Compression type")
+        .def_property_readonly("name", &PyScene::getName, "Scene name")
+        .def_property_readonly("resolution", &PyScene::getResolution, "Scene resolution in x and y directions")
+        .def_property_readonly("z_resolution", &PyScene::getZSliceResolution, "Scene resolution in z direction")
+        .def_property_readonly("t_resolution", &PyScene::getTFrameResolution, "Time frame resolution")
+        .def_property_readonly("magnification", &PyScene::getMagnification, "Scanning magnification")
+        .def_property_readonly("num_z_slices", &PyScene::getNumZSlices, "Number of slices in z direction")
+        .def_property_readonly("num_t_frames", &PyScene::getNumTFrames, "Number of time frames")
+        .def_property_readonly("compression", &PyScene::getCompression, "Compression type")
         .def_property_readonly("file_path", &PyScene::getFilePath, "File path to the scene")
         .def_property_readonly("rect", &PyScene::getRect, "Scene rectangle")
         .def_property_readonly("num_channels", &PyScene::getNumChannels, "Number of channels in the scene")
@@ -71,11 +71,11 @@ PYBIND11_MODULE(slideiopybind, m) {
         .def_property_readonly("num_zoom_levels", &PyScene::getNumZoomLevels, "Number of levels in the scene image pyramid")
         .def("get_zoom_level_info", &PyScene::getZoomLevelInfo, py::arg("index"), "Returns zoom level info by index")
         .def("read_block", &PyScene::readBlock,
-            py::arg("rect") = std::tuple<int,int,int,int>(0,0,0,0),
-            py::arg("size")=std::tuple<int,int>(0,0),
+            py::arg("rect") = std::tuple<int, int, int, int>(0, 0, 0, 0),
+            py::arg("size") = std::tuple<int, int>(0, 0),
             py::arg("channel_indices") = std::vector<int>(),
-            py::arg("slices")=std::tuple<int,int>(0,1),
-            py::arg("frames")=std::tuple<int,int>(0,1),
+            py::arg("slices") = std::tuple<int, int>(0, 1),
+            py::arg("frames") = std::tuple<int, int>(0, 1),
             R"del(
             Reads rectangular block of the scene with optional rescaling.
 
@@ -89,39 +89,40 @@ PYBIND11_MODULE(slideiopybind, m) {
             Returns:
                 numpy array with pixel values
             )del"
-            );
-    py::enum_<slideio::Compression>(m,"Compression")
-        .value("Unknown",slideio::Compression::Unknown)
-        .value("Uncompressed",slideio::Compression::Uncompressed)
-        .value("Jpeg",slideio::Compression::Jpeg)
-        .value("JpegXR",slideio::Compression::JpegXR)
-        .value("Png",slideio::Compression::Png)
-        .value("Jpeg2000",slideio::Compression::Jpeg2000)
-        .value("LZW",slideio::Compression::LZW)
-        .value("HuffmanRL",slideio::Compression::HuffmanRL)
-        .value("CCITT_T4",slideio::Compression::CCITT_T4)
-        .value("CCITT_T6",slideio::Compression::CCITT_T6)
-        .value("JpegOld",slideio::Compression::JpegOld)
-        .value("Zlib",slideio::Compression::Zlib)
-        .value("JBIG85",slideio::Compression::JBIG85)
-        .value("JBIG43",slideio::Compression::JBIG43)
-        .value("NextRLE",slideio::Compression::NextRLE)
-        .value("PackBits",slideio::Compression::PackBits)
-        .value("ThunderScanRLE",slideio::Compression::ThunderScanRLE)
-        .value("RasterPadding",slideio::Compression::RasterPadding)
-        .value("RLE_LW",slideio::Compression::RLE_LW)
-        .value("RLE_HC",slideio::Compression::RLE_HC)
-        .value("RLE_BL",slideio::Compression::RLE_BL)
-        .value("PKZIP",slideio::Compression::PKZIP)
-        .value("KodakDCS",slideio::Compression::KodakDCS)
-        .value("JBIG",slideio::Compression::JBIG)
-        .value("NikonNEF",slideio::Compression::NikonNEF)
-        .value("JBIG2",slideio::Compression::JBIG2)
-        .value("GIF",slideio::Compression::GIF)
-        .value("BIGGIF",slideio::Compression::BIGGIF)
+        )
+        .def("__repr__", &PyScene::toString);
+    py::enum_<slideio::Compression>(m, "Compression")
+        .value("Unknown", slideio::Compression::Unknown)
+        .value("Uncompressed", slideio::Compression::Uncompressed)
+        .value("Jpeg", slideio::Compression::Jpeg)
+        .value("JpegXR", slideio::Compression::JpegXR)
+        .value("Png", slideio::Compression::Png)
+        .value("Jpeg2000", slideio::Compression::Jpeg2000)
+        .value("LZW", slideio::Compression::LZW)
+        .value("HuffmanRL", slideio::Compression::HuffmanRL)
+        .value("CCITT_T4", slideio::Compression::CCITT_T4)
+        .value("CCITT_T6", slideio::Compression::CCITT_T6)
+        .value("JpegOld", slideio::Compression::JpegOld)
+        .value("Zlib", slideio::Compression::Zlib)
+        .value("JBIG85", slideio::Compression::JBIG85)
+        .value("JBIG43", slideio::Compression::JBIG43)
+        .value("NextRLE", slideio::Compression::NextRLE)
+        .value("PackBits", slideio::Compression::PackBits)
+        .value("ThunderScanRLE", slideio::Compression::ThunderScanRLE)
+        .value("RasterPadding", slideio::Compression::RasterPadding)
+        .value("RLE_LW", slideio::Compression::RLE_LW)
+        .value("RLE_HC", slideio::Compression::RLE_HC)
+        .value("RLE_BL", slideio::Compression::RLE_BL)
+        .value("PKZIP", slideio::Compression::PKZIP)
+        .value("KodakDCS", slideio::Compression::KodakDCS)
+        .value("JBIG", slideio::Compression::JBIG)
+        .value("NikonNEF", slideio::Compression::NikonNEF)
+        .value("JBIG2", slideio::Compression::JBIG2)
+        .value("GIF", slideio::Compression::GIF)
+        .value("BIGGIF", slideio::Compression::BIGGIF)
         .export_values();
     py::class_<slideio::Rectangle>(m, "Rectangle")
-        .def_readwrite("x",&slideio::Rectangle::x)
+        .def_readwrite("x", &slideio::Rectangle::x)
         .def_readwrite("y", &slideio::Rectangle::y)
         .def_readwrite("width", &slideio::Rectangle::width)
         .def_readwrite("height", &slideio::Rectangle::height);
@@ -223,7 +224,8 @@ PYBIND11_MODULE(slideiopybind, m) {
         .def_property_readonly("tile_size", &slideio::LevelInfo::getTileSize, "Size of the tile")
         .def_property_readonly("level", &slideio::LevelInfo::getLevel, "Level index")
         .def_property_readonly("scale", &slideio::LevelInfo::getScale, "Scale coefficient")
-        .def_property_readonly("magnification", &slideio::LevelInfo::getMagnification, "Level magnification");
+        .def_property_readonly("magnification", &slideio::LevelInfo::getMagnification, "Level magnification")
+        .def("__repr__", &slideio::LevelInfo::toString);
     py::class_<cv::Size>(m, "Size")
         .def(py::init<int, int>())
         .def_readwrite("width", &cv::Size::width)

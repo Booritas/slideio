@@ -270,6 +270,7 @@ namespace slideio
         std::shared_ptr<CVScene> getCVScene() { return m_scene; }
         int getNumZoomLevels() const;
         const LevelInfo* getLevelInfo(int level) const;
+        std::string toString() const;
     private:
         std::shared_ptr<CVScene> m_scene;
     };

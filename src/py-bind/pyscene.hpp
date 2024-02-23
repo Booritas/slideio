@@ -39,11 +39,13 @@ public:
     int getNumAuxImages() const;
     std::shared_ptr<PyScene> getAuxImage(const std::string& imageName);
     std::string getRawMetadata() const;
+    std::string toString() const;
     int getNumZoomLevels() const;
-    std::shared_ptr<PyZoomLevelInfo> getZoomLevelInfo(int zoomLevel) const;
+    const slideio::LevelInfo& getZoomLevelInfo(int zoomLevel) const;
 private:
     PyRect adjustSourceRect(const PyRect& rect) const;
     PySize adjustTargetSize(const PyRect& rect, const PySize& size) const;
+
 private:
     std::shared_ptr<slideio::Scene> m_scene;
     std::shared_ptr<slideio::Slide> m_slide;

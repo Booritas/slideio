@@ -75,6 +75,12 @@ namespace slideio
         cv::Size getTileSize() const { return m_tileSize; }
         void setTileSize(const cv::Size& tileSize) { m_tileSize = tileSize; }
 
+        std::string toString() const {
+            std::stringstream ss;
+            ss << *this;
+            return ss.str();
+        }
+
     private:
         int m_level = 0;
         cv::Size m_size;

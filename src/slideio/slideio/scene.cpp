@@ -314,4 +314,8 @@ const LevelInfo* Scene::getLevelInfo(int level) const {
 	return m_scene->getZoomLevelInfo(level);
 }
 
+std::string Scene::toString() const {
+    return m_scene->toString();
+}
+
 

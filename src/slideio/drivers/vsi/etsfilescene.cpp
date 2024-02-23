@@ -188,6 +188,17 @@ void EtsFileScene::init() {
         m_magnification = volume->getMagnification();
     }
     m_compression = etsFile->getCompression();
+    m_levels.resize(etsFile->getNumPyramidLevels());
+    for(int levelIndex= 0; levelIndex < etsFile->getNumPyramidLevels(); ++levelIndex) {
+        const PyramidLevel& pyramidLevel = etsFile->getPyramidLevel(levelIndex);
+        LevelInfo& zoomLevel = m_levels[levelIndex];
+        const double scale = static_cast<double>(pyramidLevel.getSize().width) / static_cast<double>(etsFile->getSize().width);
+        zoomLevel.setSize(pyramidLevel.getSize());
+        zoomLevel.setTileSize(etsFile->getTileSize());
+        zoomLevel.setLevel(levelIndex);
+        zoomLevel.setScale(scale);
+        zoomLevel.setMagnification(getMagnification() * scale);
+    }
 }
 
 std::shared_ptr<vsi::EtsFile> EtsFileScene::getEtsFile() const {
