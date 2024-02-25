@@ -19,8 +19,8 @@ class GdalRecipe(ConanFile):
         self.requires("jpegxrcodec/1.0.3@slideio/stable")
         self.requires("libiconv/1.17")
         self.requires("libdeflate/1.17")
+        self.requires("libcurl/8.5.0")
         if self.settings.os == "Windows":
             self.requires("gdal/3.5.2")
         else:
             self.requires("gdal/3.4.3@slideio/stable")
-            self.requires("openssl/3.2.0")
