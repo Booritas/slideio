@@ -6,6 +6,7 @@
 
 #include "slideio/base/exceptions.hpp"
 #include "slideio/drivers/vsi/vsi_api_def.hpp"
+#include <memory>
 
 #if defined(_MSC_VER)
 #pragma warning( push )
