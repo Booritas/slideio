@@ -27,7 +27,7 @@ jobs:
 
     - name: install conan
       run: |
-        python3 -m pip install -U conan==1.59.0
+        python3 -m pip install -U conan==1.63.0
         update-alternatives --install /usr/bin/conan conan /opt/python/cp38-cp38/bin/conan 10
 
     - name: Conan version
