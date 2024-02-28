@@ -1,4 +1,4 @@
-name: Win/Mac conan dependencies
+name: Mac conan dependencies
 
 on: [workflow_dispatch]
 env:
@@ -9,7 +9,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-11, windows-2019]
+        os: [macos-11]
     steps:
 
     - uses: actions/checkout@v3

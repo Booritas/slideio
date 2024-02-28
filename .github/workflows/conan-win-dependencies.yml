@@ -1,4 +1,4 @@
-name: Win/Mac conan dependencies
+name: Win conan dependencies
 
 on: [workflow_dispatch]
 env:
