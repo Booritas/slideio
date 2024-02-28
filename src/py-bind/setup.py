@@ -106,7 +106,7 @@ class CMakeBuild(build_ext):
             '-DPYTHON_EXECUTABLE=' + sys.executable
         ]
 
-        cfg = 'Debug' if self.debug else 'Release'
+        cfg = 'Release'
         build_args = ['--config', cfg, "--target", "slideiopybind"]
 
         if platform.system() == "Windows":

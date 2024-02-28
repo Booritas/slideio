@@ -48,7 +48,7 @@ jobs:
       run: python deploy-python-dists.py
 
     - name: Install conan dependencies
-      run: python install.py -a conan
+      run: python install.py -a conan  -c release
       
     - name: build python packages
       working-directory: ./src/py-bind
