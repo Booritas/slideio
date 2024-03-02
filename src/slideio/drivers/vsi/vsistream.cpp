@@ -29,7 +29,7 @@ std::string VSIStream::readString(size_t dataSize)
     return Tools::fromWstring(wstr);
 #else
     std::string wstr(dataSize + 1, '\0');
-    m_stream->read((char*)wstr[0], dataSize);
+    m_stream->read((char*)wstr.data(), dataSize);
     if (m_stream->bad()) {
         RAISE_RUNTIME_ERROR << "VSI driver: error by reading stream";
     }
