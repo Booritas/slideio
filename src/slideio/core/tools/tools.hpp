@@ -99,6 +99,7 @@ namespace slideio
         }
         static std::wstring toWstring(const std::string& string);
         static std::string fromWstring(const std::wstring& wstring);
+        static std::string fromUnicode16(const std::u16string& u16string);
         static void throwIfPathNotExist(const std::string& path, const std::string label);
         static std::list<std::string> findFilesWithExtension(const std::string& directory, const std::string& extension);
         static void extractChannels(const cv::Mat& sourceRaster, const std::vector<int>& channels, cv::OutputArray output);

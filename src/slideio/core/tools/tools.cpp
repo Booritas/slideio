@@ -101,6 +101,13 @@ std::string Tools::fromWstring(const std::wstring& wstring)
     return str;
 }
 
+std::string Tools::fromUnicode16(const std::u16string& u16string) {
+    std::wstring_convert<std::codecvt_utf8<char16_t>, char16_t> converter;
+    std::string str = converter.to_bytes(u16string);
+    str.erase(std::find(str.begin(), str.end(), '\0'), str.end());
+    return str;
+}
+
 void Tools::throwIfPathNotExist(const std::string& path, const std::string label)
 {
     namespace fs = boost::filesystem;

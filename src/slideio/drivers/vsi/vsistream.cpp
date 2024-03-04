@@ -18,25 +18,13 @@ VSIStream::VSIStream(std::string& filePath): m_size(-1) {
 
 std::string VSIStream::readString(size_t dataSize)
 {
-#if defined(WIN32)
-    std::wstring wstr(dataSize + 1, '\0');
+    std::u16string wstr(dataSize + 1, '\0');
     m_stream->read((char*)wstr.data(), dataSize);
     if (m_stream->bad()) {
         RAISE_RUNTIME_ERROR << "VSI driver: error by reading stream";
     }
     wstr.erase(std::find(wstr.begin(), wstr.end(), '\0'), wstr.end());
-    return Tools::fromWstring(wstr);
-#else
-   std::u16string wstr(dataSize + 1, '\0');
-   m_stream->read((char*)wstr.data(), dataSize);
-   if (m_stream->bad()) {
-      RAISE_RUNTIME_ERROR << "VSI driver: error by reading stream";
-   }
-   std::wstring_convert<std::codecvt_utf8<char16_t>, char16_t> converter;
-   std::string str = converter.to_bytes(wstr);
-   str.erase(std::find(str.begin(), str.end(), '\0'), str.end());
-   return str;
-#endif
+    return Tools::fromUnicode16(wstr);
 }
 
 int64_t VSIStream::getPos() const
