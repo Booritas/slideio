@@ -47,6 +47,18 @@ private:
     int m_tIndex;
 };
 
+TEST(VSIImageDriver, openFileWithoutExternalFiles1) {
+    std::string filePath = TestTools::getFullTestImagePath("vsi","OS-1/OS-1.vsi");
+    slideio::VSIImageDriver driver;
+    std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide!=nullptr);
+    const int numScenes = slide->getNumScenes();
+    ASSERT_EQ(1, numScenes);
+    std::shared_ptr<CVScene> scene = slide->getScene(0);
+    //EXPECT_EQ(scene->getName(), "001 C405, C488");
+    auto rect = scene->getRect();
+}
+
 TEST(VSIImageDriver, openFileWithoutExternalFiles) {
     std::string filePath = TestTools::getFullTestImagePath("vsi",
                                                            "Zenodo/Q6VM49JF/Figure-1-ultrasound-raw-data"
@@ -273,7 +285,7 @@ TEST(VSIImageDriver, read3DVolume16bit) {
 
 TEST(VSIImageDriver, read3DStack16bit) {
     std::string filePath = TestTools::getFullTestImagePath("vsi", "vsi-multifile/vsi-ets-test-jpg2k.vsi");
-    std::string testFilePath5 = TestTools::getFullTestImagePath("vsi", 
+    std::string testFilePath5 = TestTools::getFullTestImagePath("vsi",
         "test-output/vsi-ets-test-jpg2k.vsi - 001 C405, C488 (1, x=0, y=0, w=1645, h=1682).tif");
     std::string testFilePath4 = TestTools::getFullTestImagePath("vsi",
         "test-output/vsi-ets-test-jpg2k.vsi - slice4.(1, x=0, y=0, w=1645, h=1682).tif");
@@ -300,7 +312,7 @@ TEST(VSIImageDriver, read3DStack16bit) {
     cv::Rect roi(rect);
     cv::Size blockSize(roi.width, roi.height);
     cv::Mat blockRaster;
-    scene->readResampled4DBlockChannels(roi, blockSize, { 0 }, 
+    scene->readResampled4DBlockChannels(roi, blockSize, { 0 },
         { 4,6 }, { 0,1 }, blockRaster);
     EXPECT_EQ(2,blockRaster.size[2]);
     cv::Mat slice;
@@ -395,7 +407,7 @@ TEST(VSIImageDriver, readMultisceneResizedSingeChannel) {
 
 TEST(VSIImageDriver, readMultisceneResizedReversedChannels) {
     std::string filePath = TestTools::getFullTestImagePath("vsi", "Zenodo/Abdominal/G1M16_ABD_HE_B6.vsi");
-    std::string testFilePath = TestTools::getFullTestImagePath("vsi", 
+    std::string testFilePath = TestTools::getFullTestImagePath("vsi",
         "test-output/G1M16_ABD_HE_B6.vsi-40x_01(1,x=5836,y=11793,w=849,h=607).png");
     slideio::VSIImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);

@@ -72,10 +72,11 @@
     </configurations>
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="ab3fa5e4-e9e7-4544-8e69-a93644a57165" name="Default Changelist" comment="">
+    <list default="true" id="ab3fa5e4-e9e7-4544-8e69-a93644a57165" name="Default Changelist" comment="bug in linux and macos for reading of string from vsi file">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/slideio/drivers/vsi/etsfile.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/drivers/vsi/etsfile.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/slideio/drivers/vsi/etsfile.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/drivers/vsi/etsfile.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/py-bind/pybind11" beforeDir="false" afterPath="$PROJECT_DIR$/src/py-bind/pybind11" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/slideio/drivers/vsi/vsistream.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/drivers/vsi/vsistream.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/tests/vsi/test_vsi_driver.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/tests/vsi/test_vsi_driver.cpp" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -130,11 +131,10 @@
     &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
 }</component>
-  <component name="RunManager" selected="Google Test.GDALDriver.openFileUtf8">
-    <configuration name="AFIDriver.driverID" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" temporary="true" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="slideio_tests" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="slide_io" RUN_TARGET_NAME="slideio_tests" TEST_CLASS="AFIDriver" TEST_METHOD="driverID" TEST_MODE="SUITE_TEST">
+  <component name="RunManager" selected="CTest Application.slideio_tests">
+    <configuration default="true" type="CLionExternalRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true">
       <method v="2">
-        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
-        <option name="BeforeTestRunTask" enabled="true" />
+        <option name="CLION.EXTERNAL.BUILD" enabled="true" />
       </method>
     </configuration>
     <configuration name="All in test_ndpi_driver.cpp" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" temporary="true" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="slideio_ndpi_tests" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="slide_io" RUN_TARGET_NAME="slideio_ndpi_tests" TEST_PATTERN="all-tests(file://$PROJECT_DIR$/src/tests/ndpi/test_ndpi_driver.cpp)" TEST_MODE="PATTERN">
@@ -143,12 +143,6 @@
         <env name="SLIDEIO_TEST_DATA_PRIV_PATH" value="$PROJECT_DIR$/../images/slideio_extra_priv/testdata/cv/slideio" />
         <env name="SLIDEIO_TEST_DATA_PATH" value="$PROJECT_DIR$/../images/slideio_extra/testdata/cv/slideio" />
       </envs>
-      <method v="2">
-        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
-        <option name="BeforeTestRunTask" enabled="true" />
-      </method>
-    </configuration>
-    <configuration name="CVTools.extractSliceFrom3D" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" temporary="true" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="slideio_tests" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="slide_io" RUN_TARGET_NAME="slideio_tests" TEST_CLASS="CVTools" TEST_METHOD="extractSliceFrom3D" TEST_MODE="SUITE_TEST">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
         <option name="BeforeTestRunTask" enabled="true" />
@@ -165,7 +159,13 @@
         <option name="BeforeTestRunTask" enabled="true" />
       </method>
     </configuration>
-    <configuration name="NDPITiffTools.scanFile" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" temporary="true" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="slideio_ndpi_tests" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="slide_io" RUN_TARGET_NAME="slideio_ndpi_tests" TEST_CLASS="NDPITiffTools" TEST_METHOD="scanFile" TEST_MODE="SUITE_TEST">
+    <configuration name="VSIImageDriver.openFileWithExternalFiles" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" temporary="true" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="slideio_vsi_tests" RUN_TARGET_PROJECT_NAME="slide_io" RUN_TARGET_NAME="slideio_vsi_tests" TEST_CLASS="VSIImageDriver" TEST_METHOD="openFileWithExternalFiles" TEST_MODE="SUITE_TEST">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+        <option name="BeforeTestRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="VSIImageDriver.openFileWithoutExternalFiles1" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" temporary="true" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="slideio_vsi_tests" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="slide_io" RUN_TARGET_NAME="slideio_vsi_tests" TEST_CLASS="VSIImageDriver" TEST_METHOD="openFileWithoutExternalFiles1" TEST_MODE="SUITE_TEST">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
         <option name="BeforeTestRunTask" enabled="true" />
@@ -315,6 +315,12 @@
         <option name="BeforeTestRunTask" enabled="true" />
       </method>
     </configuration>
+    <configuration name="slideio_tests" type="CTestRunConfiguration" factoryName="CTestRun" temporary="true" PROGRAM_PARAMS="--extra-verbose" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" WORKING_DIR="file://$CMakeCurrentLocalGenerationDir$" PASS_PARENT_ENVS_2="true" CONFIG_NAME="Debug" RUN_PATH="$CTestCurrentExecutableName$" EXPLICIT_BUILD_TARGET_NAME="all" TEST_PATTERN="slideio_tests" TEST_MODE="PATTERN">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+        <option name="BeforeTestRunTask" enabled="true" />
+      </method>
+    </configuration>
     <list>
       <item itemvalue="CMake Application.memory_leaks" />
       <item itemvalue="CMake Application.ndpi_memory" />
@@ -340,22 +346,22 @@
       <item itemvalue="CMake Application.jp2kcompress" />
       <item itemvalue="CMake Application.slideio-test-lib" />
       <item itemvalue="CTest Application.All CTest" />
+      <item itemvalue="CTest Application.slideio_tests" />
       <item itemvalue="Google Test.slideio_converter_tests" />
       <item itemvalue="Google Test.slideio_transformer_tests" />
       <item itemvalue="Google Test.slideio_vsi_tests" />
+      <item itemvalue="Google Test.VSIImageDriver.openFileWithExternalFiles" />
+      <item itemvalue="Google Test.VSIImageDriver.openFileWithoutExternalFiles1" />
       <item itemvalue="Google Test.GDALDriver.openFileUtf8" />
-      <item itemvalue="Google Test.NDPITiffTools.scanFile" />
-      <item itemvalue="Google Test.AFIDriver.driverID" />
-      <item itemvalue="Google Test.CVTools.extractSliceFrom3D" />
       <item itemvalue="Google Test.All in test_ndpi_driver.cpp" />
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="CTest Application.slideio_tests" />
+        <item itemvalue="Google Test.VSIImageDriver.openFileWithExternalFiles" />
+        <item itemvalue="Google Test.VSIImageDriver.openFileWithoutExternalFiles1" />
         <item itemvalue="Google Test.GDALDriver.openFileUtf8" />
         <item itemvalue="Google Test.All in test_ndpi_driver.cpp" />
-        <item itemvalue="Google Test.NDPITiffTools.scanFile" />
-        <item itemvalue="Google Test.CVTools.extractSliceFrom3D" />
-        <item itemvalue="Google Test.AFIDriver.driverID" />
       </list>
     </recent_temporary>
   </component>
@@ -423,7 +429,17 @@
       <workItem from="1707735990705" duration="25000" />
       <workItem from="1707736026871" duration="264000" />
       <workItem from="1707736692966" duration="6259000" />
+      <workItem from="1709411887965" duration="6362000" />
     </task>
+    <task id="LOCAL-00001" summary="bug in linux and macos for reading of string from vsi file">
+      <option name="closed" value="true" />
+      <created>1709413092214</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1709413092214</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -445,6 +461,10 @@
         </entry>
       </map>
     </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="bug in linux and macos for reading of string from vsi file" />
+    <option name="LAST_COMMIT_MESSAGE" value="bug in linux and macos for reading of string from vsi file" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -478,6 +498,11 @@
           <url>file://$PROJECT_DIR$/src/tests/main/test_gdal_driver.cpp</url>
           <line>226</line>
           <option name="timeStamp" value="10" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
+          <url>file://$PROJECT_DIR$/src/tests/vsi/test_vsi_driver.cpp</url>
+          <line>50</line>
+          <option name="timeStamp" value="11" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
