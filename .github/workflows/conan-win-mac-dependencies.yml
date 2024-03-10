@@ -33,9 +33,6 @@ jobs:
     - name: Add slideio conan remote
       run: conan remote add slideio ${{ secrets.CONAN_REMOTE }}
       
-    - name: Login to slideio conan remote
-      run: conan user -p ${{ secrets.CONAN_PASSWORD }} -r slideio ${{ secrets.CONAN_USER }}
-
     - name: Add digital ocean conan remote
       run: |
         conan remote add digitalo http://167.172.176.224
