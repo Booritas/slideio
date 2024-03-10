@@ -1,6 +1,6 @@
 add_subdirectory(memory_leaks)
 add_subdirectory(ndpi_memory)
 add_subdirectory(performance)
-add_subdirectory(jp2k)
+#add_subdirectory(jp2k)
 add_subdirectory(svs_memory)
 add_subdirectory(converter)

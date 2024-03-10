@@ -6,7 +6,7 @@ glog/0.6.0@slideio/stable
 opencv/4.1.1@slideio/stable
 zlib/1.2.13
 xz_utils/5.4.2
-dcmtk/3.6.7@slideio/stable
+dcmtk/3.6.8
 libiconv/1.17
 libwebp/1.2.4
 openjpeg/2.5.0
