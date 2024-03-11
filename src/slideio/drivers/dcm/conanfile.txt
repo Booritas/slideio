@@ -13,3 +13,5 @@ openjpeg/2.5.0
 [options]
 glog:shared=True
 dcmtk:wide_io=True
+dcmtk:default_dict=builtin
+dcmtk:builtin_dictionary=True
