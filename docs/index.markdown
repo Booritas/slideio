@@ -19,6 +19,7 @@ The module builds accesses images through a system of image drivers that impleme
 | **ZVI** | Zeiss ZVI image format | *.zvi | [Zeiss Microscopy](https://www.zeiss.com/microscopy/en/home.html?vaURL=www.zeiss.com/microscopy) |  |
 | **DCM** | DICOM images | *.dcm, no extension |  |  |
 | **NDPI** | [Hamamatsu NDPI image format](https://www.hamamatsu.com/eu/en/product/life-science-and-medical-systems/digital-slide-scanner/U12388-01.html) | *.ndpi | [Hamamatsu](https://www.hamamatsu.com/eu/en.html) |  |
+| **VSI** | Olympus VSI image format | *.vsi |  |  |
 | **GDAL** | General image formates | *.jpeg,*.jpg,*.tiff,*.tiff,*.png | - | - |
 
 The library is built as a c++ python extension and provides c++ and python interfaces.
