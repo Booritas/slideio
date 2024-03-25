@@ -125,6 +125,23 @@ void Tools::throwIfPathNotExist(const std::string& path, const std::string label
 #endif
 }
 
+void Tools::throwIfPathExists(const std::string& path, const std::string label)
+{
+    namespace fs = boost::filesystem;
+#if defined(WIN32)
+    std::wstring wsPath = Tools::toWstring(path);
+    boost::filesystem::path filePath(wsPath);
+    if (fs::exists(wsPath)) {
+        RAISE_RUNTIME_ERROR << label << "File " << path << " alerady exists";
+    }
+#else
+    boost::filesystem::path filePath(path);
+    if (fs::exists(filePath)) {
+        RAISE_RUNTIME_ERROR << label << " File " << path << " already exists";
+    }
+#endif
+}
+
 std::list<std::string> Tools::findFilesWithExtension(const std::string& directory, const std::string& extension)
 {
     std::list<std::string> filePaths;

@@ -32,6 +32,7 @@ set(TEST_LIB_NAME slideio-test-lib)
 set(BASE_LIB_NAME slideio-base)
 set(CONVERTER_LIB_NAME slideio-converter)
 set(TRANSFORMER_LIB_NAME slideio-transformer)
+set(PERSISTENCE_LIB_NAME slideio-persistence)
 
 set(NAME_TOOL_LIB_LIST
     "lib${SLIDEIO_LIB_NAME}.dylib"
