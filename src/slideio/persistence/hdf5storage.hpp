@@ -44,7 +44,7 @@ namespace slideio
         cv::Size m_tileSize;
         std::shared_ptr<H5::H5File> m_file;
         std::shared_ptr<H5::Group> m_group;
-        //std::shared_ptr<H5::DataSpace> m_dataspace;
+        std::shared_ptr<H5::DataSpace> m_dataspace;
         std::shared_ptr<H5::DataSet> m_dataset;
     };
 }

@@ -42,22 +42,30 @@ void HDF5Storage::create(const std::string& filePath, const cv::Size& imageSize,
 
     m_group.reset(new H5::Group(m_file->createGroup("/Level")));
 
-    H5::DataSpace dataSpace(2, dims);
+    m_dataspace.reset(new H5::DataSpace(2, dims));
     H5::DSetCreatPropList creatPropList;
     creatPropList.setChunk(2, chunkDims);
     creatPropList.setDeflate(6);
-    m_dataset.reset(new H5::DataSet(m_file->createDataSet("/Level/Data",H5::PredType::NATIVE_INT32, dataSpace)));
+    m_dataset.reset(new H5::DataSet(m_file->createDataSet("/Level/Data",H5::PredType::NATIVE_INT32, *m_dataspace, creatPropList)));
 }
 
 
 void HDF5Storage::closeStorage() {
     m_dataset.reset();
-    //m_dataspace.reset();
+    m_dataspace.reset();
     m_group.reset();
     m_file.reset();
 }
 
 void HDF5Storage::writeTile(const cv::Mat& tile, const cv::Point& offset) {
+        hsize_t start[2];
+        hsize_t count[2];
+
+        start[0]  = offset.x; start[1]  = offset.y;
+        count[0]  = tile.cols; count[1]  = tile.rows;
+        m_dataspace->selectHyperslab( H5S_SELECT_SET, count, start);
+        H5::DataSpace memspace(2, count);
+        m_dataset->write((const void*)tile.data, H5::PredType::NATIVE_INT32, memspace, *m_dataspace);
 }
 
 void HDF5Storage::readTile(const cv::Point& offset, const cv::Size& size, cv::OutputArray mat) {
