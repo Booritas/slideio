@@ -37,8 +37,8 @@ void HDF5Storage::create(const std::string& filePath, const cv::Size& imageSize,
     Tools::throwIfPathExists(filePath, "HDF5Storage::create");
 
     m_file.reset(new H5::H5File(filePath, H5F_ACC_TRUNC));
-    const hsize_t dims[2] = { static_cast<hsize_t>(imageSize.height), static_cast<hsize_t>(imageSize.width) };
-    const hsize_t chunkDims[2] = { static_cast<hsize_t>(tileSize.height), static_cast<hsize_t>(tileSize.width) };
+    const hsize_t dims[2] = {static_cast<hsize_t>(imageSize.height), static_cast<hsize_t>(imageSize.width)};
+    const hsize_t chunkDims[2] = {static_cast<hsize_t>(tileSize.height), static_cast<hsize_t>(tileSize.width)};
 
     m_group.reset(new H5::Group(m_file->createGroup("/Level")));
 
@@ -46,7 +46,8 @@ void HDF5Storage::create(const std::string& filePath, const cv::Size& imageSize,
     H5::DSetCreatPropList creatPropList;
     creatPropList.setChunk(2, chunkDims);
     creatPropList.setDeflate(6);
-    m_dataset.reset(new H5::DataSet(m_file->createDataSet("/Level/Data",H5::PredType::NATIVE_INT32, *m_dataspace, creatPropList)));
+    m_dataset.reset(
+        new H5::DataSet(m_file->createDataSet("/Level/Data", H5::PredType::NATIVE_INT32, *m_dataspace, creatPropList)));
 }
 
 
@@ -58,23 +59,32 @@ void HDF5Storage::closeStorage() {
 }
 
 void HDF5Storage::writeTile(const cv::Mat& tile, const cv::Point& offset) {
-        hsize_t start[2];
-        hsize_t count[2];
+    hsize_t start[2];
+    hsize_t count[2];
 
-        start[0]  = offset.x; start[1]  = offset.y;
-        count[0]  = tile.cols; count[1]  = tile.rows;
-        m_dataspace->selectHyperslab( H5S_SELECT_SET, count, start);
-        H5::DataSpace memspace(2, count);
-        m_dataset->write((const void*)tile.data, H5::PredType::NATIVE_INT32, memspace, *m_dataspace);
+    start[0] = offset.x;
+    start[1] = offset.y;
+    count[0] = tile.cols;
+    count[1] = tile.rows;
+    m_dataspace->selectHyperslab(H5S_SELECT_SET, count, start);
+    H5::DataSpace memspace(2, count);
+    m_dataset->write((const void*)tile.data, H5::PredType::NATIVE_INT32, memspace, *m_dataspace);
 }
 
-void HDF5Storage::readTile(const cv::Point& offset, const cv::Size& size, cv::OutputArray output) {
-      //   hsize_t start[2];
-      //   hsize_t count[2];
+void HDF5Storage::readTile(const cv::Point& offset, const cv::Size& size, cv::OutputArray tile) {
+    hsize_t start[2];
+    hsize_t count[2];
 
-      //   start[0]  = offset.x; start[1]  = offset.y;
-      //   count[0]  = tile.cols; count[1]  = tile.rows;
-      //   m_dataspace->selectHyperslab( H5S_SELECT_SET, count, start);
-      //   H5::DataSpace memspace(2, count);
-      //   m_dataset->write((const void*)tile.data, H5::PredType::NATIVE_INT32, memspace, *m_dataspace);
+    start[0] = offset.x;
+    start[1] = offset.y;
+    count[0] = size.width;
+    count[1] = size.height;
+
+    tile.create(size, CV_32S);
+    cv::Mat mat = tile.getMat();
+
+    m_dataspace->selectHyperslab(H5S_SELECT_SET, count, start);
+    H5::DataSpace memspace(2, count);
+
+    m_dataset->read((void*)mat.data, H5::PredType::NATIVE_INT32, memspace, *m_dataspace);
 }
