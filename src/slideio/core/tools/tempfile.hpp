@@ -10,7 +10,7 @@ namespace slideio
     class TempFile
     {
     public:
-	    explicit TempFile(boost::filesystem::path path) : m_path(path)
+	    explicit TempFile(boost::filesystem::path path, bool remove=true) : m_path(path), m_remove(remove)
 	    {
 		    if(boost::filesystem::exists(path))
 			    boost::filesystem::remove(path);
@@ -19,7 +19,7 @@ namespace slideio
 	    {
           
 	    }
-       explicit TempFile(const char* ext)
+       explicit TempFile(const char* ext, bool remove=true) : m_remove(remove)
        {
           std::string pattern("%%%%-%%%%-%%%%-%%%%.");
           if(ext == nullptr || *ext==0){
@@ -34,12 +34,15 @@ namespace slideio
        const boost::filesystem::path& getPath() const{
 		    return m_path;
 	    }
-	    ~TempFile()
-	    {
-		    if(boost::filesystem::exists(m_path))
-			    boost::filesystem::remove(m_path);
+       ~TempFile()
+       {
+           if (m_remove) {
+               if (boost::filesystem::exists(m_path))
+                   boost::filesystem::remove(m_path);
+           }
 	    }
     private:
 	    boost::filesystem::path m_path;
+        bool m_remove;
     };
 }
