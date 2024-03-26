@@ -68,5 +68,13 @@ void HDF5Storage::writeTile(const cv::Mat& tile, const cv::Point& offset) {
         m_dataset->write((const void*)tile.data, H5::PredType::NATIVE_INT32, memspace, *m_dataspace);
 }
 
-void HDF5Storage::readTile(const cv::Point& offset, const cv::Size& size, cv::OutputArray mat) {
+void HDF5Storage::readTile(const cv::Point& offset, const cv::Size& size, cv::OutputArray output) {
+      //   hsize_t start[2];
+      //   hsize_t count[2];
+
+      //   start[0]  = offset.x; start[1]  = offset.y;
+      //   count[0]  = tile.cols; count[1]  = tile.rows;
+      //   m_dataspace->selectHyperslab( H5S_SELECT_SET, count, start);
+      //   H5::DataSpace memspace(2, count);
+      //   m_dataset->write((const void*)tile.data, H5::PredType::NATIVE_INT32, memspace, *m_dataspace);
 }
