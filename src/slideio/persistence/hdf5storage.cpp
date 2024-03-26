@@ -5,68 +5,60 @@
 #include "hdf5storage.hpp"
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/base/exceptions.hpp"
-#include <hdf5.h>
+#include <H5Cpp.h>
+
 using namespace slideio;
 
-std::shared_ptr<HDF5Storage> HDF5Storage::openStorage(const std::string &filePath) 
-{
-   auto storage = std::make_shared<HDF5Storage>();
-   storage->open(filePath);
-   return storage;
+std::shared_ptr<HDF5Storage> HDF5Storage::openStorage(const std::string& filePath) {
+    auto storage = std::make_shared<HDF5Storage>();
+    storage->open(filePath);
+    return storage;
 }
 
-std::shared_ptr <HDF5Storage> HDF5Storage::createStorage(const std::string &filePath, cv::Size imageSize, cv::Size tileSize) {
+std::shared_ptr<HDF5Storage> HDF5Storage::createStorage(const std::string& filePath, cv::Size imageSize,
+                                                        cv::Size tileSize) {
     auto storage = std::make_shared<HDF5Storage>();
     storage->create(filePath, imageSize, tileSize);
     return storage;
 }
 
-slideio::HDF5Storage::HDF5Storage() : m_fileId(-1), m_dataspace_id(-1), m_dataset_id(-1)
-{
+HDF5Storage::HDF5Storage() {
 }
 
-slideio::HDF5Storage::~HDF5Storage()
-{
-   closeStorage();
+HDF5Storage::~HDF5Storage() {
+    closeStorage();
 }
 
-void slideio::HDF5Storage::open(std::string filePath)
-{
-   Tools::throwIfPathNotExist(filePath, "HDF5Storage::open");
+void HDF5Storage::open(const std::string& filePath) {
+    Tools::throwIfPathNotExist(filePath, "HDF5Storage::open");
 }
 
-void slideio::HDF5Storage::create(std::string filePath, cv::Size imageSize, cv::Size tileSize)
-{
-   Tools::throwIfPathExists(filePath, "HDF5Storage::create");
-   hid_t file_id = H5Fcreate(filePath.c_str(), H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
-   if(file_id < 0) {
-      RAISE_RUNTIME_ERROR << "HDF5Storage::create: Can't create file " << filePath;
-   }
+void HDF5Storage::create(const std::string& filePath, const cv::Size& imageSize, const cv::Size& tileSize) {
+    Tools::throwIfPathExists(filePath, "HDF5Storage::create");
 
-   hsize_t dims[2] = {(hsize_t)imageSize.height, (hsize_t)imageSize.width};
-   hid_t dataspace_id = H5Screate_simple(2, dims, NULL);
-   if(dataspace_id < 0) {
-      RAISE_RUNTIME_ERROR << "HDF5Storage::create: Can't create dataspace for file " << filePath;
-   }
+    m_file.reset(new H5::H5File(filePath, H5F_ACC_TRUNC));
+    const hsize_t dims[2] = { static_cast<hsize_t>(imageSize.height), static_cast<hsize_t>(imageSize.width) };
+    const hsize_t chunkDims[2] = { static_cast<hsize_t>(tileSize.height), static_cast<hsize_t>(tileSize.width) };
 
-   hid_t dataset_id = H5Dcreate2(file_id, "/dataset", H5T_NATIVE_INT, dataspace_id, H5P_DEFAULT, H5P_DEFAULT, H5P_DEFAULT);
-   if (dataset_id < 0) {
-      RAISE_RUNTIME_ERROR << "HDF5Storage::create: Can't create dataset for file " << filePath;
-    }
+    m_group.reset(new H5::Group(m_file->createGroup("/Level")));
+
+    H5::DataSpace dataSpace(2, dims);
+    H5::DSetCreatPropList creatPropList;
+    creatPropList.setChunk(2, chunkDims);
+    creatPropList.setDeflate(6);
+    m_dataset.reset(new H5::DataSet(m_file->createDataSet("/Level/Data",H5::PredType::NATIVE_INT32, dataSpace)));
 }
 
 
 void HDF5Storage::closeStorage() {
-   if(m_dataset_id>=0) {
-      H5Dclose(m_dataset_id);
-      m_dataset_id = -1;
-   }
-   if(m_dataspace_id>=0) {
-      H5Sclose(m_dataspace_id);
-      m_dataspace_id = -1;
-   }
-   if(m_fileId>=0) {
-      H5Fclose(m_fileId);
-      m_fileId = -1;
-   }
+    m_dataset.reset();
+    //m_dataspace.reset();
+    m_group.reset();
+    m_file.reset();
+}
+
+void HDF5Storage::writeTile(const cv::Mat& tile, const cv::Point& offset) {
+}
+
+void HDF5Storage::readTile(const cv::Point& offset, const cv::Size& size, cv::OutputArray mat) {
 }
