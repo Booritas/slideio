@@ -18,9 +18,11 @@ namespace slideio
     {
     public:
         static ImageObjectManager* getInstance();
+
     private:
         ImageObjectManager();
         ~ImageObjectManager();
+
     public:
         ImageObjectManager(const ImageObjectManager&) = delete;
         void operator=(const ImageObjectManager&) = delete;
@@ -31,13 +33,32 @@ namespace slideio
         void removeObject(int id);
         ImageObject& createObject();
         void clear();
-        int getObjectCount() const;
+        int getObjectCount() const {
+            return m_objectCount;
+        }
         void bulkCreate(int count, std::vector<int>& ids);
+        int getCapacity() const {
+            return static_cast<int>(m_objects.size());
+        }
+        void setPageSize(int pageSize) {
+            m_pageSize = pageSize;
+        }
+    private:
+        int newBufferSize(int size) const{
+            return ((size / m_pageSize) + 1) * m_pageSize;
+        }
+        static int idToIndex(int id) {
+            return id - 1;
+        }
+        static int indexToId(int index) {
+            return index + 1;
+        }
     private:
         std::vector<ImageObject> m_objects;
         std::priority_queue<int, std::vector<int>, std::greater<>> m_removed;
+        int m_objectCount;
+        int m_pageSize = 100000;
     };
-
 }
 
 #if defined(_MSC_VER)
