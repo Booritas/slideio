@@ -5,6 +5,12 @@ set(LIBRARY_NAME ${PROCESSOR_LIB_NAME})
 set(SOURCE_FILES
    processor.hpp
    processor.cpp
+   imageobject.hpp
+   imageobject.cpp
+   imageobjectmanager.hpp
+   imageobjectmanager.cpp
+   contourmanager.hpp
+   contourmanager.cpp
    slideio_processor_def.hpp
 )
 

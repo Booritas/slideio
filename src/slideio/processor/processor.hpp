@@ -4,6 +4,7 @@
 #pragma once
 #include "slideio/processor/slideio_processor_def.hpp"
 #include "slideio/persistence/storage.hpp"
+#include "slideio/core/cvscene.hpp"
 
 namespace slideio
 {
@@ -12,7 +13,7 @@ namespace slideio
     public:
         Processor(){}
         virtual ~Processor() {}
-        void multiResolutionSegmentation(std::shared_ptr<CVScene> scene, int channelIndex, double colorThreshold,
-                     double compactnessThreshold, std::shared_ptr<Storage> storage);
+        static void multiResolutionSegmentation(std::shared_ptr<CVScene> scene, int channelIndex, double colorThreshold,
+                                                double compactnessThreshold, std::shared_ptr<Storage> storage);
     };
 };

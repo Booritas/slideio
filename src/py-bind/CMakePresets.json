@@ -1,0 +1,51 @@
+{
+    "version": 3,
+    "vendor": {
+        "conan": {}
+    },
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 15,
+        "patch": 0
+    },
+    "configurePresets": [
+        {
+            "name": "conan-default",
+            "displayName": "'conan-default' config",
+            "description": "'conan-default' configure using 'Visual Studio 17 2022' generator",
+            "generator": "Visual Studio 17 2022",
+            "cacheVariables": {
+                "CMAKE_POLICY_DEFAULT_CMP0091": "NEW"
+            },
+            "toolset": {
+                "value": "v143",
+                "strategy": "external"
+            },
+            "architecture": {
+                "value": "x64",
+                "strategy": "external"
+            },
+            "toolchainFile": "D:\\Projects\\slideio\\slideio\\src\\py-bind\\conan_toolchain.cmake",
+            "binaryDir": "D:\\Projects\\slideio\\slideio\\src\\py-bind"
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "conan-release",
+            "configurePreset": "conan-default",
+            "configuration": "Release",
+            "jobs": 24
+        }
+    ],
+    "testPresets": [
+        {
+            "name": "conan-release",
+            "configurePreset": "conan-default",
+            "configuration": "Release",
+            "environment": {
+                "PATH": "d:\\conan2\\p\\b\\glogcdad48a570a74\\p\\bin;d:\\conan2\\p\\b\\gflag184db53e2f156\\p\\bin;$penv{PATH}",
+                "OPENSSL_MODULES": "d:\\conan2\\p\\b\\opensb2864f2baa776\\p\\lib\\ossl-modules"
+            }
+        }
+    ]
+}

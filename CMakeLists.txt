@@ -33,6 +33,7 @@ set(BASE_LIB_NAME slideio-base)
 set(CONVERTER_LIB_NAME slideio-converter)
 set(TRANSFORMER_LIB_NAME slideio-transformer)
 set(PERSISTENCE_LIB_NAME slideio-persistence)
+set(PROCESSOR_LIB_NAME slideio-processor)
 
 set(NAME_TOOL_LIB_LIST
     "lib${SLIDEIO_LIB_NAME}.dylib"
@@ -50,6 +51,8 @@ set(NAME_TOOL_LIB_LIST
     "lib${CONVERTER_LIB_NAME}.dylib"
     "lib${BASE_LIB_NAME}.dylib"
     "lib${TRANSFORMER_LIB_NAME}.dylib"
+    "lib${PERSISTENCE_LIB_NAME}.dylib"
+    "lib${PROCESSOR_LIB_NAME}.dylib"
     "@rpath/libgflags_nothreads.2.2.dylib"
     "@rpath/libglog.1.dylib"
     "@rpath/libglogd.1.dylib"
