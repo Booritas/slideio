@@ -1,16 +1,14 @@
 ﻿#include <gtest/gtest.h>
 
 #include "slideio/core/tools/tempfile.hpp"
-#include "slideio/processor/processor.hpp"
-#include "slideio/core/cvscene.hpp"
 #include "slideio/processor/imageobjectmanager.hpp"
 #include "slideio/slideio/imagedrivermanager.hpp"
-#include "tests/testlib/testtools.hpp"
 
 using namespace slideio;
 
 TEST(ImageObjects, addRemoveSingleObjects) {
     ImageObjectManager* imObjMngr = ImageObjectManager::getInstance();
+    imObjMngr->clear();
     {
         ImageObject& obj1 = imObjMngr->createObject();
         ASSERT_EQ(1, obj1.m_id);
@@ -36,6 +34,7 @@ TEST(ImageObjects, addRemoveSingleObjects) {
 
 TEST(ImageObjects, bulkAddObjects) {
     ImageObjectManager* imObjMngr = ImageObjectManager::getInstance();
+    imObjMngr->clear();
     {
         std::vector<int> ids;
         imObjMngr->bulkCreate(10, ids);
@@ -75,4 +74,30 @@ TEST(ImageObjects, bulkAddObjects) {
             ASSERT_EQ(ids2[i], obj.m_id);
         }
     }
+}
+
+TEST(ImageObjects, capacity) {
+    ImageObjectManager* imObjMngr = ImageObjectManager::getInstance();
+    imObjMngr->clear();
+    imObjMngr->setPageSize(10);
+    ASSERT_EQ(10, imObjMngr->getCapacity());
+    std::vector<int> ids;
+    imObjMngr->bulkCreate(10, ids);
+    ASSERT_EQ(10, imObjMngr->getCapacity());
+    imObjMngr->bulkCreate(10, ids);
+    ASSERT_EQ(20, imObjMngr->getCapacity());
+    for(int i = 0; i < 20; ++i) {
+        ASSERT_EQ(i+1, imObjMngr->getObject(i + 1).m_id);
+    }
+}
+
+TEST(ImageObjects, clear) {
+    ImageObjectManager* imObjMngr = ImageObjectManager::getInstance();
+    imObjMngr->clear();
+    ASSERT_EQ(0, imObjMngr->getObjectCount());
+    std::vector<int> ids;
+    imObjMngr->bulkCreate(100, ids);
+    ASSERT_EQ(100, imObjMngr->getObjectCount());
+    imObjMngr->clear();
+    ASSERT_EQ(0, imObjMngr->getObjectCount());
 }

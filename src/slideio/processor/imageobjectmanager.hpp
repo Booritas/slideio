@@ -42,10 +42,11 @@ namespace slideio
         }
         void setPageSize(int pageSize) {
             m_pageSize = pageSize;
+            m_objects.resize(newBufferSize(m_objectCount));
         }
     private:
         int newBufferSize(int size) const{
-            return ((size / m_pageSize) + 1) * m_pageSize;
+            return (((size-1) / m_pageSize) + 1) * m_pageSize;
         }
         static int idToIndex(int id) {
             return id - 1;
