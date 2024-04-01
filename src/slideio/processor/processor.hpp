@@ -8,12 +8,14 @@
 
 namespace slideio
 {
+    class Project;
+
     class SLIDEIO_PROCESSOR_EXPORTS Processor
     {
     public:
         Processor(){}
         virtual ~Processor() {}
-        static void multiResolutionSegmentation(std::shared_ptr<CVScene> scene, int channelIndex, double colorThreshold,
-                                                double compactnessThreshold, std::shared_ptr<Storage> storage);
+        static void multiResolutionSegmentation(std::shared_ptr<Project> project, int channelIndex, double colorThreshold,
+                                                double compactnessThreshold);
     };
 };

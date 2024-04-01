@@ -2,12 +2,13 @@
 
 #include "slideio/core/tools/tempfile.hpp"
 #include "slideio/processor/imageobjectmanager.hpp"
+#include "slideio/processor/imageobjectpixeliterator.hpp"
 #include "slideio/slideio/imagedrivermanager.hpp"
 
 using namespace slideio;
 
 TEST(ImageObjects, addRemoveSingleObjects) {
-    ImageObjectManager* imObjMngr = ImageObjectManager::getInstance();
+    std::shared_ptr<ImageObjectManager> imObjMngr = std::make_shared<ImageObjectManager>();
     imObjMngr->clear();
     {
         ImageObject& obj1 = imObjMngr->createObject();
@@ -33,7 +34,7 @@ TEST(ImageObjects, addRemoveSingleObjects) {
 }
 
 TEST(ImageObjects, bulkAddObjects) {
-    ImageObjectManager* imObjMngr = ImageObjectManager::getInstance();
+    std::shared_ptr<ImageObjectManager> imObjMngr = std::make_shared<ImageObjectManager>();
     imObjMngr->clear();
     {
         std::vector<int> ids;
@@ -77,7 +78,7 @@ TEST(ImageObjects, bulkAddObjects) {
 }
 
 TEST(ImageObjects, capacity) {
-    ImageObjectManager* imObjMngr = ImageObjectManager::getInstance();
+    std::shared_ptr<ImageObjectManager> imObjMngr = std::make_shared<ImageObjectManager>();
     imObjMngr->clear();
     imObjMngr->setPageSize(10);
     ASSERT_EQ(10, imObjMngr->getCapacity());
@@ -92,7 +93,7 @@ TEST(ImageObjects, capacity) {
 }
 
 TEST(ImageObjects, clear) {
-    ImageObjectManager* imObjMngr = ImageObjectManager::getInstance();
+    std::shared_ptr<ImageObjectManager> imObjMngr = std::make_shared<ImageObjectManager>();
     imObjMngr->clear();
     ASSERT_EQ(0, imObjMngr->getObjectCount());
     std::vector<int> ids;
@@ -100,4 +101,145 @@ TEST(ImageObjects, clear) {
     ASSERT_EQ(100, imObjMngr->getObjectCount());
     imObjMngr->clear();
     ASSERT_EQ(0, imObjMngr->getObjectCount());
+}
+
+TEST(ImageObjectPixelIterator, IterateOverPixels) {
+    cv::Mat image(10, 10, CV_32S);
+    image.setTo(0);
+    image.at<int32_t>(cv::Point(5, 5)) = 1;
+    image.at<int32_t>(cv::Point(5, 6)) = 1;
+    image.at<int32_t>(cv::Point(5, 7)) = 1;
+
+    ImageObject object;
+    object.m_id = 1;
+    object.m_boundingRect = cv::Rect(5, 5, 1, 3);
+
+    cv::Rect tileRect(0, 0, 10, 10);
+    ImageObjectPixelContainer container(&object, image, tileRect);
+
+    int count = 0;
+    for (const cv::Point& pixel : container) {
+        EXPECT_TRUE(image.at<int32_t>(pixel) == object.m_id);
+        count++;
+    }
+
+    EXPECT_EQ(count, 3);
+}
+
+TEST(ImageObjectPixelIterator, EmptyObject) {
+    cv::Mat image(10, 10, CV_32S);
+    image.setTo(0);
+
+    ImageObject object;
+    object.m_id = 1;
+    object.m_boundingRect = cv::Rect(4, 4, 0, 0);
+
+    cv::Rect tileRect(0, 0, 10, 10);
+    ImageObjectPixelContainer container(&object, image, tileRect);
+
+    EXPECT_EQ(container.begin(), container.end());
+}
+
+TEST(ImageObjectPixelIterator, NoPixelsInObject) {
+    cv::Mat image(10, 10, CV_32S);
+    image.setTo(0);
+
+    ImageObject object;
+    object.m_id = 1;
+    object.m_boundingRect = cv::Rect(4, 4, 4, 4);
+
+    cv::Rect tileRect(0, 0, 10, 10);
+    ImageObjectPixelContainer container(&object, image, tileRect);
+
+    EXPECT_EQ(container.begin(), container.end());
+}
+
+
+TEST(ImageObjectPixelIterator, tileOffset) {
+    cv::Mat image(10, 10, CV_32S);
+    image.setTo(0);
+    image.at<int32_t>(cv::Point(5, 5)) = 1;
+    image.at<int32_t>(cv::Point(5, 6)) = 1;
+    image.at<int32_t>(cv::Point(5, 7)) = 1;
+
+    ImageObject object;
+    object.m_id = 1;
+    object.m_boundingRect = cv::Rect(1005, 1505, 1, 3);
+
+    cv::Rect tileRect(1000, 1500, 10, 10);
+    ImageObjectPixelContainer container(&object, image, tileRect);
+
+    int count = 0;
+    for (const cv::Point& pixel : container) {
+        EXPECT_TRUE(image.at<int32_t>(pixel) == object.m_id);
+        count++;
+    }
+
+    EXPECT_EQ(count, 3);
+}
+
+TEST(ImageObjectPixelIterator, partialOverlap) {
+    cv::Mat image(10, 10, CV_32S);
+    image.setTo(0);
+    image.at<int32_t>(cv::Point(5, 0)) = 1;
+    image.at<int32_t>(cv::Point(5, 1)) = 1;
+    image.at<int32_t>(cv::Point(5, 2)) = 1;
+
+    ImageObject object;
+    object.m_id = 1;
+    object.m_boundingRect = cv::Rect(1005, 1505, 1, 3);
+
+    cv::Rect tileRect(1000, 1507, 10, 100);
+    ImageObjectPixelContainer container(&object, image, tileRect);
+
+    int count = 0;
+    for (const cv::Point& pixel : container) {
+        EXPECT_TRUE(image.at<int32_t>(pixel) == object.m_id);
+        count++;
+    }
+    EXPECT_EQ(count, 1);
+}
+
+TEST(ImageObjectPixelIterator, partialOverlaHorizontal) {
+    cv::Mat image(10, 10, CV_32S);
+    image.setTo(0);
+    image.at<int32_t>(cv::Point(5, 5)) = 1;
+    image.at<int32_t>(cv::Point(6, 5)) = 1;
+    image.at<int32_t>(cv::Point(7, 5)) = 1;
+
+    ImageObject object;
+    object.m_id = 1;
+    object.m_boundingRect = cv::Rect(1005, 1505, 30, 1);
+
+    cv::Rect tileRect(1000, 1500, 10, 10);
+    ImageObjectPixelContainer container(&object, image, tileRect);
+
+    int count = 0;
+    for (const cv::Point& pixel : container) {
+        EXPECT_TRUE(image.at<int32_t>(pixel) == object.m_id);
+        count++;
+    }
+    EXPECT_EQ(count, 3);
+}
+
+TEST(ImageObjectPixelIterator, partialOverlaHorizontalLeft) {
+    cv::Mat image(10, 10, CV_32S);
+    image.setTo(0);
+    image.at<int32_t>(cv::Point(0, 5)) = 1;
+    image.at<int32_t>(cv::Point(1, 5)) = 1;
+    image.at<int32_t>(cv::Point(2, 5)) = 1;
+
+    ImageObject object;
+    object.m_id = 1;
+    object.m_boundingRect = cv::Rect(500, 1505, 503, 1);
+
+    cv::Rect tileRect(1000, 1500, 10, 10);
+    ImageObjectPixelContainer container(&object, image, tileRect);
+
+    int count = 0;
+    for (const cv::Point& pixel : container) {
+        EXPECT_TRUE(image.at<int32_t>(pixel) == object.m_id);
+        count++;
+    }
+    EXPECT_EQ(count, 3);
 }

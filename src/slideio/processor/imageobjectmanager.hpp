@@ -17,18 +17,14 @@ namespace slideio
     class SLIDEIO_PROCESSOR_EXPORTS ImageObjectManager
     {
     public:
-        static ImageObjectManager* getInstance();
-
-    private:
         ImageObjectManager();
         ~ImageObjectManager();
-
-    public:
         ImageObjectManager(const ImageObjectManager&) = delete;
         void operator=(const ImageObjectManager&) = delete;
         ImageObjectManager(ImageObjectManager&&) = delete;
         void operator=(ImageObjectManager&&) = delete;
         ImageObject& getObject(int id);
+        ImageObject* getObjectPtr(int id);
         const ImageObject& getObject(int id) const;
         void removeObject(int id);
         ImageObject& createObject();

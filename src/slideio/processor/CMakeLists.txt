@@ -6,11 +6,14 @@ set(SOURCE_FILES
    processor.hpp
    processor.cpp
    imageobject.hpp
+   imageobjectpixeliterator.hpp
    imageobject.cpp
    imageobjectmanager.hpp
    imageobjectmanager.cpp
    contourmanager.hpp
    contourmanager.cpp
+   project.hpp
+   project.cpp
    slideio_processor_def.hpp
 )
 

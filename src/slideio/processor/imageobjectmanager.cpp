@@ -7,12 +7,6 @@
 
 using namespace slideio;
 
-
-ImageObjectManager* ImageObjectManager::getInstance() {
-    static ImageObjectManager instance;
-    return &instance;
-}
-
 ImageObjectManager::ImageObjectManager() : m_objectCount(0) {
     m_objects.resize(m_pageSize);
 }
@@ -23,6 +17,10 @@ ImageObjectManager::~ImageObjectManager() {
 
 ImageObject& ImageObjectManager::getObject(int id) {
     return m_objects[idToIndex(id)];
+}
+
+ImageObject* ImageObjectManager::getObjectPtr(int id) {
+	return &m_objects[idToIndex(id)];
 }
 
 const ImageObject& ImageObjectManager::getObject(int id) const {
@@ -57,6 +55,7 @@ ImageObject& ImageObjectManager::createObject() {
         return m_objects[index];
     }
 }
+
 
 void ImageObjectManager::clear() {
     m_objects.clear();

@@ -5,6 +5,7 @@
 #include "slideio/core/cvscene.hpp"
 #include "slideio/slideio/imagedrivermanager.hpp"
 #include "tests/testlib/testtools.hpp"
+#include "slideio/processor/project.hpp"
 
 using namespace slideio;
 
@@ -16,7 +17,7 @@ TEST(Processor, simple) {
     std::shared_ptr<CVSlide> slide = ImageDriverManager::openSlide(pathJpg, "GDAL");
     std::shared_ptr<CVScene> scene = slide->getScene(0);
     std::shared_ptr<Storage> storage = Storage::createStorage(storagePath, scene->getRect().size());
-
-    Processor::multiResolutionSegmentation(scene, 0, 0, 0, storage);
+    std::shared_ptr<Project> project = std::make_shared<Project>(scene, storage);
+    Processor::multiResolutionSegmentation(project, 0, 0, 0);
 }
 
