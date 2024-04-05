@@ -13,21 +13,18 @@ namespace slideio
     {
     public:
         ImageObjectBorderContainer(ImageObject* object, cv::Mat& tile, cv::Rect tileRect) :
-            m_object(object), m_tile(tile), m_rect(tileRect & object->m_boundingRect) {
-            m_rect -= tileRect.tl();
-            m_tileOffset = tileRect.tl();
+            m_object(object), m_tile(tile), m_tileRect(tileRect) {
         }
 
         ImageObjectBorderIterator begin() {
-            return ImageObjectBorderIterator(m_object, m_tile, m_rect, m_tileOffset, true);
+            return ImageObjectBorderIterator(m_object, m_tile, m_tileRect, true);
         }
         ImageObjectBorderIterator end() {
-            return ImageObjectBorderIterator(m_object, m_tile, m_rect, m_tileOffset, false);
+            return ImageObjectBorderIterator(m_object, m_tile, m_tileRect, false);
         }
     private:
         ImageObject* m_object;
         cv::Mat m_tile;
-        cv::Rect m_rect;
-        cv::Point m_tileOffset;
+        cv::Rect m_tileRect;
     };
 }

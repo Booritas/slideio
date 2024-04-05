@@ -3,7 +3,7 @@
 // of this distribution and at http://slideio.org/license.html.
 #include "processortools.hpp"
 
-const cv::Point& slideio::ProcessorTools::nextMoveCW(const cv::Point& current, const cv::Point& center) {
+const cv::Point slideio::ProcessorTools::nextMoveCW(const cv::Point& current, const cv::Point& center) {
     static cv::Point moves[3][3] =
     {
         {{0, -1}, {1, -1}, {1, 0}},
@@ -12,4 +12,14 @@ const cv::Point& slideio::ProcessorTools::nextMoveCW(const cv::Point& current, c
     };
     cv::Point offset = current - center + cv::Point(1, 1);
     return center + moves[offset.y][offset.x];
+}
+
+const bool slideio::ProcessorTools::isBorderPoint(const cv::Point &point, const cv::Mat &tile, const cv::Point &tileOffset)
+{
+   return false;
+}
+
+const bool slideio::ProcessorTools::findFirstBorderPoint(const cv::Mat &tile, const cv::Point &tileOffset, cv::Point &borderPoint)
+{
+   return false;
 }

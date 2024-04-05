@@ -24,7 +24,8 @@ namespace slideio
         using pointer = cv::Point*;
         using reference = cv::Point&;
         ImageObjectPixelIterator(ImageObject* object, cv::Mat& tile, cv::Rect tileRect, bool begin) :
-            m_object(object), m_tile(tile), m_rect(tileRect), m_end(!begin) {
+            m_object(object), m_tile(tile), m_rect(tileRect & object->m_boundingRect), m_end(!begin) {
+            m_rect -= tileRect.tl();
             m_current = m_rect.tl();
             if (begin) {
                 m_end = !moveToValid();

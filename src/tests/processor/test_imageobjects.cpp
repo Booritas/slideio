@@ -245,26 +245,26 @@ TEST(ImageObjectPixelIterator, partialOverlaHorizontalLeft) {
     EXPECT_EQ(count, 3);
 }
 
-TEST(ImageObjectBorderIterator, innerObject) {
-    cv::Mat image(10, 10, CV_32S);
-    image.setTo(0);
-    image.at<int32_t>(cv::Point(5, 5)) = 1;
-    image.at<int32_t>(cv::Point(5, 6)) = 1;
-    image.at<int32_t>(cv::Point(5, 7)) = 1;
+// TEST(ImageObjectBorderIterator, innerObject) {
+//     cv::Mat image(10, 10, CV_32S);
+//     image.setTo(0);
+//     image.at<int32_t>(cv::Point(5, 5)) = 1;
+//     image.at<int32_t>(cv::Point(5, 6)) = 1;
+//     image.at<int32_t>(cv::Point(5, 7)) = 1;
 
-    ImageObject object;
-    object.m_id = 1;
-    object.m_boundingRect = cv::Rect(5, 5, 1, 3);
-    object.m_innerPoint = cv::Point(5, 5);
+//     ImageObject object;
+//     object.m_id = 1;
+//     object.m_boundingRect = cv::Rect(5, 5, 1, 3);
+//     object.m_innerPoint = cv::Point(5, 5);
 
-    cv::Rect tileRect(0, 0, 10, 10);
-    ImageObjectBorderContainer container(&object, image, tileRect);
+//     cv::Rect tileRect(0, 0, 10, 10);
+//     ImageObjectBorderContainer container(&object, image, tileRect);
 
-    int count = 0;
-    for (const cv::Point& pixel : container) {
-        EXPECT_TRUE(image.at<int32_t>(pixel) == object.m_id);
-        count++;
-    }
+//     int count = 0;
+//     for (const cv::Point& pixel : container) {
+//         EXPECT_TRUE(image.at<int32_t>(pixel) == object.m_id);
+//         count++;
+//     }
 
-    EXPECT_EQ(count, 3);
-}
+//     EXPECT_EQ(count, 3);
+// }

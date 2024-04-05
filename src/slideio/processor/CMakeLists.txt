@@ -18,6 +18,8 @@ set(SOURCE_FILES
    contourmanager.cpp
    project.hpp
    project.cpp
+   tile.hpp
+   tile.cpp
    processortools.hpp
    processortools.cpp
    slideio_processor_def.hpp

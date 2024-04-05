@@ -14,20 +14,19 @@ namespace slideio
     {
     public:
         ImageObjectPixelContainer(ImageObject* object, cv::Mat& tile, cv::Rect tileRect) :
-            m_object(object), m_tile(tile), m_rect(tileRect & object->m_boundingRect) {
-            m_rect -= tileRect.tl();
+            m_object(object), m_tile(tile), m_tileRect(tileRect) {
         }
 
         ImageObjectPixelIterator begin() {
-            return ImageObjectPixelIterator(m_object, m_tile, m_rect, true);
+            return ImageObjectPixelIterator(m_object, m_tile, m_tileRect, true);
         }
 
         ImageObjectPixelIterator end() {
-            return ImageObjectPixelIterator(m_object, m_tile, m_rect, false);
+            return ImageObjectPixelIterator(m_object, m_tile, m_tileRect, false);
         }
     private:
         ImageObject* m_object;
         cv::Mat m_tile;
-        cv::Rect m_rect;
+        cv::Rect m_tileRect;
     };
 }
