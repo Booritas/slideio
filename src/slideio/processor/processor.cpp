@@ -3,6 +3,7 @@
 // of this distribution and at http://slideio.org/license.html.
 #include "processor.hpp"
 
+#include "imageobjectpixelcontainer.hpp"
 #include "imageobjectpixeliterator.hpp"
 #include "slideio/base/exceptions.hpp"
 #include "slideio/imagetools/cvtools.hpp"
@@ -14,8 +15,10 @@ using namespace slideio;
 
 class MergeData
 {
+public:
     double sqrSum;
     double sum;
+    std::vector<cv::Point> contour;
 };
 
 template <typename type>
@@ -61,13 +64,15 @@ void computePixelMergeData(const cv::Mat& raster, const cv::Point& point, const 
     }
 }
 
-void computeMergeData(ImageObject* obj, const cv::Mat& raster, cv::Mat& mat, const cv::Point& point, const std::vector<double>& weights, MergeData& mergeData) {
+void computeMergeData(ImageObject* obj, const cv::Mat& raster, cv::Mat& mat, const cv::Point& point, const std::vector<double>& weights, std::shared_ptr<MergeData>& mergeData) {
     double sum = 0.;
     double squareSum = 0.;
     ImageObjectPixelContainer pixels(obj, mat, cv::Rect(point,cv::Size(mat.cols, mat.rows)));
     for(const cv::Point& pixel : pixels) {
         computePixelMergeData(raster, pixel, weights, sum, squareSum);
     }
+    mergeData->sqrSum = squareSum;
+    mergeData->sum = sum;
 }
 
 static void processTile(std::shared_ptr<ImageObjectManager>& imgObjMngr, const cv::Mat& raster, const cv::Point& org,
@@ -89,10 +94,13 @@ static void processTile(std::shared_ptr<ImageObjectManager>& imgObjMngr, const c
                 pnt.x = x;
                 pnt.y = y;
                 *objectsPixel = obj->m_id;
+                obj->m_boundingRect = cv::Rect(org + pnt, cv::Size(1, 1));
+                obj->m_innerPoint = org + pnt;
+                obj->m_pixelCount = 1;
             }
         }
     }
-    std::map<int, MergeData> mergeData;
+    std::map<int, std::shared_ptr<MergeData>> mergeData;
     if (obj != nullptr) {
         std::deque<cv::Point> queue;
         queue.push_back(pnt);
@@ -100,7 +108,7 @@ static void processTile(std::shared_ptr<ImageObjectManager>& imgObjMngr, const c
             const cv::Point curPoint = queue.front();
             queue.pop_front();
             if (mergeData.find(obj->m_id) == mergeData.end()) {
-                mergeData[obj->m_id] = MergeData();
+                mergeData[obj->m_id] = std::make_shared<MergeData>();
                 computeMergeData(obj, raster, objectsMat, curPoint,channelWeights, mergeData[obj->m_id]);
             }
             //ImageObject& obj = imgObjMngr->getObject(id);

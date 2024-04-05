@@ -7,6 +7,10 @@ set(SOURCE_FILES
    processor.cpp
    imageobject.hpp
    imageobjectpixeliterator.hpp
+   imageobjectpixelcontainer.hpp
+   imageobjectbordercontainer.hpp
+   imageobjectborderiterator.hpp
+   imageobjectborderiterator.cpp
    imageobject.cpp
    imageobjectmanager.hpp
    imageobjectmanager.cpp
@@ -14,6 +18,8 @@ set(SOURCE_FILES
    contourmanager.cpp
    project.hpp
    project.cpp
+   processortools.hpp
+   processortools.cpp
    slideio_processor_def.hpp
 )
 
