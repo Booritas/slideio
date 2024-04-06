@@ -230,3 +230,166 @@ TEST(Tile, isOnObjectBorder2) {
     }
     EXPECT_TRUE(borderPoints.empty());
 }
+
+TEST(Tile, findFirstObjectBorderPixel) {
+    cv::Mat mask(15, 15, CV_32S);
+    mask.setTo(1);
+    const cv::Point offset(40, 50);
+    const Tile tile(mask, offset);
+    ImageObject object;
+    object.m_id = 1;
+    object.m_boundingRect = cv::Rect(offset, cv::Size(mask.cols, mask.rows));
+    cv::Point pnt;
+    EXPECT_TRUE(tile.findFirstObjectBorderPixel(&object, pnt));
+    EXPECT_EQ(cv::Point(40,64), pnt);
+    mask.at<int32_t>( 14, 0) = 0;
+    EXPECT_TRUE(tile.findFirstObjectBorderPixel(&object, pnt));
+    EXPECT_EQ(cv::Point(40, 63), pnt);
+    mask.at<int32_t>(13, 0) = 0;
+    EXPECT_TRUE(tile.findFirstObjectBorderPixel(&object, pnt));
+    EXPECT_EQ(cv::Point(40, 62), pnt);
+}
+
+TEST(Tile, findNextObjectBorderPoint1) {
+    std::list<cv::Point> borderPoints;
+
+    cv::Mat mask(15, 15, CV_32S);
+    mask.setTo(0);
+    for (int y = 5; y < 10; ++y) {
+        for (int x = 6; x < 11; ++x) {
+            mask.at<int32_t>(cv::Point(x, y)) = 1;
+        }
+    }
+    for (int y = 8; y < 10; ++y) {
+        for (int x = 9; x < 11; ++x) {
+            mask.at<int32_t>(cv::Point(x, y)) = 0;
+        }
+    }
+
+    for (int y = 9; y >= 5; --y) {
+        borderPoints.push_back(cv::Point(6, y));
+    }
+
+    for (int x = 7; x < 11; ++x) {
+        borderPoints.push_back(cv::Point(x, 5));
+    }
+
+    for (int y = 6; y < 8; ++y) {
+        borderPoints.push_back(cv::Point(10, y));
+    }
+
+    borderPoints.push_back(cv::Point(9, 7));
+
+
+    for (int y = 8; y < 10; ++y) {
+        borderPoints.push_back(cv::Point(8, y));
+    }
+
+    borderPoints.push_back(cv::Point(7, 9));
+
+    int xMin = 0, xMax = mask.cols - 1;
+    int yMin = 0, yMax = mask.rows - 1;
+
+    for (const auto& point : borderPoints) {
+        mask.at<int32_t>(point) = 1;
+        xMin = std::min(xMin, point.x);
+        xMax = std::max(xMax, point.x);
+        yMin = std::min(yMin, point.y);
+        yMax = std::max(yMax, point.y);
+    }
+
+    cv::Point offset(0, 0);
+    cv::Rect boundingRect(xMin, yMin, xMax - xMin + 1, yMax - yMin + 1);
+    boundingRect += offset;
+
+    Tile tile(mask, offset);
+
+    ImageObject object;
+    object.m_id = 1;
+    object.m_boundingRect = boundingRect;
+
+    cv::Point current;
+    ASSERT_TRUE(tile.findFirstObjectBorderPixel(&object, current));
+    ASSERT_EQ(borderPoints.front() + offset, current);
+    borderPoints.pop_front();
+    cv::Point prev = current + cv::Point(0, 1);
+    for(const auto& pnt : borderPoints) {
+        cv::Point nextPrev, nextCurrent;
+        EXPECT_TRUE(tile.findNextObjectBorderPoint(&object, prev, current, nextPrev, nextCurrent));
+        //std::cout << current << " -> " << nextCurrent << std::endl;
+        prev = nextPrev;
+        current = nextCurrent;
+        EXPECT_EQ(current, pnt);
+    }
+}
+
+
+TEST(Tile, findNextObjectBorderPoint2) {
+
+    cv::Mat mask(15, 15, CV_32S);
+    mask.setTo(0);
+    for (int y = 5; y < 9; ++y) {
+        for (int x = 6; x < 11; ++x) {
+            mask.at<int32_t>(cv::Point(x, y)) = 1;
+        }
+    }
+
+    mask.at<int32_t>(cv::Point(6, 8)) = 0;
+    mask.at<int32_t>(cv::Point(6, 5)) = 0;
+    mask.at<int32_t>(cv::Point(10, 5)) = 0;
+    mask.at<int32_t>(cv::Point(10, 8)) = 0;
+    mask.at<int32_t>(cv::Point(8, 7)) = 0;
+    mask.at<int32_t>(cv::Point(8, 8)) = 0;
+
+    std::list<cv::Point> borderPoints = {
+        {6, 7},
+        {6, 6},
+        {7, 5},
+        {8, 5},
+        {9, 5},
+        {10, 6},
+        {10, 7},
+        {9, 8},
+        {9, 7},
+        {8, 6},
+        {7, 7},
+        {7, 8}
+    };
+    borderPoints.push_back(cv::Point(6, 7));
+
+
+    int xMin = 0, xMax = mask.cols - 1;
+    int yMin = 0, yMax = mask.rows - 1;
+
+    for (const auto& point : borderPoints) {
+        mask.at<int32_t>(point) = 1;
+        xMin = std::min(xMin, point.x);
+        xMax = std::max(xMax, point.x);
+        yMin = std::min(yMin, point.y);
+        yMax = std::max(yMax, point.y);
+    }
+
+    cv::Point offset(0, 0);
+    cv::Rect boundingRect(xMin, yMin, xMax - xMin + 1, yMax - yMin + 1);
+    boundingRect += offset;
+
+    Tile tile(mask, offset);
+
+    ImageObject object;
+    object.m_id = 1;
+    object.m_boundingRect = boundingRect;
+
+    cv::Point current;
+    ASSERT_TRUE(tile.findFirstObjectBorderPixel(&object, current));
+    ASSERT_EQ(borderPoints.front() + offset, current);
+    borderPoints.pop_front();
+    cv::Point prev = current + cv::Point(0, 1);
+    for (const auto& pnt : borderPoints) {
+        cv::Point nextPrev, nextCurrent;
+        EXPECT_TRUE(tile.findNextObjectBorderPoint(&object, prev, current, nextPrev, nextCurrent));
+        //std::cout << current << " -> " << nextCurrent << std::endl;
+        prev = nextPrev;
+        current = nextCurrent;
+        EXPECT_EQ(current, pnt);
+    }
+}
