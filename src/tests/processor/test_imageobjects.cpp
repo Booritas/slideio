@@ -245,26 +245,134 @@ TEST(ImageObjectPixelIterator, partialOverlaHorizontalLeft) {
     EXPECT_EQ(count, 3);
 }
 
-// TEST(ImageObjectBorderIterator, innerObject) {
-//     cv::Mat image(10, 10, CV_32S);
-//     image.setTo(0);
-//     image.at<int32_t>(cv::Point(5, 5)) = 1;
-//     image.at<int32_t>(cv::Point(5, 6)) = 1;
-//     image.at<int32_t>(cv::Point(5, 7)) = 1;
+TEST(ImageObjectBorderIterator, shape1) {
+    std::list<cv::Point> borderPoints;
 
-//     ImageObject object;
-//     object.m_id = 1;
-//     object.m_boundingRect = cv::Rect(5, 5, 1, 3);
-//     object.m_innerPoint = cv::Point(5, 5);
+    cv::Mat mask(15, 15, CV_32S);
+    mask.setTo(0);
+    for (int y = 5; y < 10; ++y) {
+        for (int x = 6; x < 11; ++x) {
+            mask.at<int32_t>(cv::Point(x, y)) = 1;
+        }
+    }
+    for (int y = 8; y < 10; ++y) {
+        for (int x = 9; x < 11; ++x) {
+            mask.at<int32_t>(cv::Point(x, y)) = 0;
+        }
+    }
 
-//     cv::Rect tileRect(0, 0, 10, 10);
-//     ImageObjectBorderContainer container(&object, image, tileRect);
+    for (int y = 9; y >= 5; --y) {
+        borderPoints.push_back(cv::Point(6, y));
+    }
 
-//     int count = 0;
-//     for (const cv::Point& pixel : container) {
-//         EXPECT_TRUE(image.at<int32_t>(pixel) == object.m_id);
-//         count++;
-//     }
+    for (int x = 7; x < 11; ++x) {
+        borderPoints.push_back(cv::Point(x, 5));
+    }
 
-//     EXPECT_EQ(count, 3);
-// }
+    for (int y = 6; y < 8; ++y) {
+        borderPoints.push_back(cv::Point(10, y));
+    }
+
+    borderPoints.push_back(cv::Point(9, 7));
+
+
+    for (int y = 8; y < 10; ++y) {
+        borderPoints.push_back(cv::Point(8, y));
+    }
+
+    borderPoints.push_back(cv::Point(7, 9));
+
+    int xMin = 0, xMax = mask.cols - 1;
+    int yMin = 0, yMax = mask.rows - 1;
+
+    for (const auto& point : borderPoints) {
+        mask.at<int32_t>(point) = 1;
+        xMin = std::min(xMin, point.x);
+        xMax = std::max(xMax, point.x);
+        yMin = std::min(yMin, point.y);
+        yMax = std::max(yMax, point.y);
+    }
+
+    cv::Point offset(0, 0);
+    cv::Rect boundingRect(xMin, yMin, xMax - xMin + 1, yMax - yMin + 1);
+    boundingRect += offset;
+
+    ImageObject object;
+    object.m_id = 1;
+    object.m_boundingRect = boundingRect;
+
+    ImageObjectBorderContainer container(&object, mask, boundingRect);
+
+    auto border = borderPoints.begin();
+    for(const cv::Point& point : container) {
+        EXPECT_EQ(point, *border);
+        ++border;
+    }
+}
+
+TEST(ImageObjectBorderIterator, shape2) {
+
+    cv::Mat mask(15, 15, CV_32S);
+    mask.setTo(0);
+    for (int y = 5; y < 9; ++y) {
+        for (int x = 6; x < 11; ++x) {
+            mask.at<int32_t>(cv::Point(x, y)) = 1;
+        }
+    }
+
+    mask.at<int32_t>(cv::Point(6, 8)) = 0;
+    mask.at<int32_t>(cv::Point(6, 5)) = 0;
+    mask.at<int32_t>(cv::Point(10, 5)) = 0;
+    mask.at<int32_t>(cv::Point(10, 8)) = 0;
+    mask.at<int32_t>(cv::Point(8, 7)) = 0;
+    mask.at<int32_t>(cv::Point(8, 8)) = 0;
+
+    std::list<cv::Point> borderPoints = {
+        {6, 7},
+        {6, 6},
+        {7, 5},
+        {8, 5},
+        {9, 5},
+        {10, 6},
+        {10, 7},
+        {9, 8},
+        {9, 7},
+        {8, 6},
+        {7, 7},
+        {7, 8}
+    };
+    borderPoints.push_back(cv::Point(6, 7));
+
+
+    int xMin = 0, xMax = mask.cols - 1;
+    int yMin = 0, yMax = mask.rows - 1;
+
+    for (const auto& point : borderPoints) {
+        mask.at<int32_t>(point) = 1;
+        xMin = std::min(xMin, point.x);
+        xMax = std::max(xMax, point.x);
+        yMin = std::min(yMin, point.y);
+        yMax = std::max(yMax, point.y);
+    }
+
+    cv::Point offset(8, 9);
+    cv::Rect boundingRect(xMin, yMin, xMax - xMin + 1, yMax - yMin + 1);
+    boundingRect += offset;
+    for (auto& pnt : borderPoints) {
+        pnt += offset;
+    }
+
+    Tile tile(mask, offset);
+
+    ImageObject object;
+    object.m_id = 1;
+    object.m_boundingRect = boundingRect;
+
+    ImageObjectBorderContainer container(&object, mask, boundingRect);
+
+    auto border = borderPoints.begin();
+    for (const cv::Point& point : container) {
+        EXPECT_EQ(point, *border);
+        ++border;
+    }
+}
