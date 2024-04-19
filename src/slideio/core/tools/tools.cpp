@@ -87,6 +87,12 @@ void slideio::Tools::scaleRect(const cv::Rect& srcRect, double scaleX, double sc
     trgRect.height = dyn - trgRect.y;
 }
 
+void slideio::Tools::scaleSize(const cv::Size& srcSize, double scaleX, double scaleY, cv::Size& trgSize)
+{
+    trgSize.width = std::lround(static_cast<double>(srcSize.width)*scaleX);
+    trgSize.height = std::lround(static_cast<double>(srcSize.height)*scaleY);
+}
+
 std::wstring Tools::toWstring(const std::string& string)
 {
     std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converter;

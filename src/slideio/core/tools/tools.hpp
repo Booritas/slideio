@@ -81,6 +81,7 @@ namespace slideio
         static void convert12BitsTo16Bits(uint8_t* source, uint16_t* target, int targetLen);
         static void scaleRect(const cv::Rect& srcRect, const cv::Size& newSize, cv::Rect& trgRect);
         static void scaleRect(const cv::Rect& srcRect, double scaleX, double scaleY, cv::Rect& trgRect);
+        static void scaleSize(const cv::Size& srcSize, double scaleX, double scaleY, cv::Size& trgSize);
         static bool isCompleteChannelList(const std::vector<int>& channelIndices, const int numChannels)
         {
             bool allChannels = channelIndices.empty();

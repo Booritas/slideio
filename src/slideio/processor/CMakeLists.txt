@@ -23,6 +23,12 @@ set(SOURCE_FILES
    processortools.hpp
    processortools.cpp
    slideio_processor_def.hpp
+        multiresolutionsegmentation.cpp
+        multiresolutionsegmentation.hpp
+        neighboriterator.hpp
+        neighborcontainer.hpp
+        perimetercontainer.hpp
+        perimeteriterator.hpp
 )
 
 add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES})

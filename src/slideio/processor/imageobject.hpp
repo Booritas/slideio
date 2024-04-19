@@ -10,7 +10,7 @@ namespace slideio
     {
     public:
         ImageObject() : m_id(0), m_contourBegin(-1), m_pixelCount(0) {}
-        int m_id;
+        int32_t m_id;
         cv::Rect m_boundingRect;
         cv::Point m_innerPoint;
         int m_contourBegin;

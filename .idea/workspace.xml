@@ -32,8 +32,10 @@
       <config projectName="slide_io" targetName="slideio-gdal" />
       <config projectName="slide_io" targetName="slideio-imagetools" />
       <config projectName="slide_io" targetName="slideio-transformer" />
+      <config projectName="slide_io" targetName="slideio_processor_tests" />
       <config projectName="slide_io" targetName="slideio-afi" />
       <config projectName="slide_io" targetName="slideio-scn" />
+      <config projectName="slide_io" targetName="slideio-processor" />
       <config projectName="slide_io" targetName="memory_leaks" />
       <config projectName="slide_io" targetName="slideio_ndpi_tests" />
       <config projectName="slide_io" targetName="slideiopybind" />
@@ -53,6 +55,7 @@
       <config projectName="slide_io" targetName="slideio_tests" />
       <config projectName="slide_io" targetName="performance" />
       <config projectName="slide_io" targetName="slideio-persistence" />
+      <config projectName="slide_io" targetName="slideio_persistence_tests" />
       <config projectName="slide_io" targetName="slideio-svs" />
       <config projectName="slide_io" targetName="slideio-ndpi" />
       <config projectName="slide_io" targetName="slideio-converter" />
@@ -74,36 +77,13 @@
   <component name="ChangeListManager">
     <list default="true" id="ab3fa5e4-e9e7-4544-8e69-a93644a57165" name="Default Changelist" comment="bug in linux and macos for reading of string from vsi file">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/py-bind/conanfile.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/py-bind/conanfile.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/py-bind/pybind11" beforeDir="false" afterPath="$PROJECT_DIR$/src/py-bind/pybind11" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/single_tests/converter/conanfile.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/single_tests/converter/conanfile.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/single_tests/jp2k/conanfile.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/single_tests/jp2k/conanfile.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/single_tests/memory_leaks/conanfile.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/single_tests/memory_leaks/conanfile.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/single_tests/ndpi_memory/conanfile.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/single_tests/ndpi_memory/conanfile.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/single_tests/performance/conanfile.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/single_tests/performance/conanfile.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/single_tests/svs_memory/conanfile.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/single_tests/svs_memory/conanfile.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/slideio/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/CMakeLists.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/slideio/converter/conanfile.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/converter/conanfile.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/slideio/core/conanfile.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/core/conanfile.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/slideio/drivers/afi/conanfile.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/drivers/afi/conanfile.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/slideio/drivers/czi/conanfile.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/drivers/czi/conanfile.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/slideio/drivers/dcm/conanfile.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/drivers/dcm/conanfile.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/slideio/drivers/gdal/conanfile.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/drivers/gdal/conanfile.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/slideio/drivers/ndpi/conanfile.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/drivers/ndpi/conanfile.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/slideio/drivers/scn/conanfile.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/drivers/scn/conanfile.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/slideio/drivers/svs/conanfile.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/drivers/svs/conanfile.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/slideio/drivers/vsi/conanfile.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/drivers/vsi/conanfile.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/slideio/drivers/zvi/conanfile.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/drivers/zvi/conanfile.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/slideio/imagetools/conanfile.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/imagetools/conanfile.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/slideio/slideio/conanfile.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/slideio/conanfile.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/slideio/transformer/conanfile.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/transformer/conanfile.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/tests/converter/conanfile.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/tests/converter/conanfile.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/tests/main/conanfile.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/tests/main/conanfile.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/tests/ndpi/conanfile.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/tests/ndpi/conanfile.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/tests/testlib/conanfile.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/tests/testlib/conanfile.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/tests/transformer/conanfile.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/tests/transformer/conanfile.txt" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/tests/vsi/conanfile.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/tests/vsi/conanfile.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/slideio/core/tools/tools.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/core/tools/tools.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/slideio/core/tools/tools.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/core/tools/tools.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/slideio/processor/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/processor/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/slideio/processor/imageobject.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/processor/imageobject.hpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/slideio/processor/processor.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/processor/processor.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/slideio/processor/tile.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/processor/tile.hpp" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -159,6 +139,11 @@
   }
 }</component>
   <component name="RunManager" selected="CMake Application.slideio-persistence">
+    <configuration default="true" type="CLionExternalRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true">
+      <method v="2">
+        <option name="CLION.EXTERNAL.BUILD" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="All in test_ndpi_driver.cpp" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" temporary="true" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="slideio_ndpi_tests" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="slide_io" RUN_TARGET_NAME="slideio_ndpi_tests" TEST_PATTERN="all-tests(file://$PROJECT_DIR$/src/tests/ndpi/test_ndpi_driver.cpp)" TEST_MODE="PATTERN">
       <envs>
         <env name="SLIDEIO_IMAGES_PATH" value="$PROJECT_DIR$/../images/images" />
@@ -199,6 +184,18 @@
         <option name="BeforeTestRunTask" enabled="true" />
       </method>
     </configuration>
+    <configuration name="slideio_persistence_tests" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="slideio_persistence_tests" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="slide_io" RUN_TARGET_NAME="slideio_persistence_tests" TEST_MODE="SUITE_TEST">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+        <option name="BeforeTestRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="slideio_processor_tests" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="slideio_processor_tests" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="slide_io" RUN_TARGET_NAME="slideio_processor_tests" TEST_MODE="SUITE_TEST">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+        <option name="BeforeTestRunTask" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="slideio_transformer_tests" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="slideio_transformer_tests" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="slide_io" RUN_TARGET_NAME="slideio_transformer_tests" TEST_MODE="SUITE_TEST">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
@@ -209,11 +206,6 @@
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
         <option name="BeforeTestRunTask" enabled="true" />
-      </method>
-    </configuration>
-    <configuration default="true" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true">
-      <method v="2">
-        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
     </configuration>
     <configuration name="converter" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="converter" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="slide_io" RUN_TARGET_NAME="converter">
@@ -287,6 +279,11 @@
       </method>
     </configuration>
     <configuration name="slideio-persistence" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="slideio-persistence" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="slideio-processor" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="slideio-processor" CONFIG_NAME="Debug">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
@@ -367,6 +364,7 @@
       <item itemvalue="CMake Application.slideio-zvi" />
       <item itemvalue="CMake Application.slideio-imagetools" />
       <item itemvalue="CMake Application.slideio-persistence" />
+      <item itemvalue="CMake Application.slideio-processor" />
       <item itemvalue="CMake Application.slideio" />
       <item itemvalue="CMake Application.slideio-transformer" />
       <item itemvalue="CMake Application.slideiopybind" />
@@ -374,6 +372,8 @@
       <item itemvalue="CMake Application.slideio-test-lib" />
       <item itemvalue="CTest Application.All CTest" />
       <item itemvalue="CTest Application.slideio_tests" />
+      <item itemvalue="Google Test.slideio_persistence_tests" />
+      <item itemvalue="Google Test.slideio_processor_tests" />
       <item itemvalue="Google Test.slideio_converter_tests" />
       <item itemvalue="Google Test.slideio_transformer_tests" />
       <item itemvalue="Google Test.slideio_vsi_tests" />
@@ -458,6 +458,7 @@
       <workItem from="1707736692966" duration="6259000" />
       <workItem from="1709411887965" duration="6362000" />
       <workItem from="1711359910905" duration="3501000" />
+      <workItem from="1713430445432" duration="10820000" />
     </task>
     <task id="LOCAL-00001" summary="bug in linux and macos for reading of string from vsi file">
       <option name="closed" value="true" />

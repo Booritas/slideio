@@ -94,7 +94,12 @@ namespace slideio
             }
             return false;
         };
-
+        const cv::Point& getOffset() const {
+            return m_offset;
+        }
+        const cv::Mat& getMask() const {
+            return m_mask;
+        }
     private:
         cv::Mat m_mask;
         cv::Point m_offset;
