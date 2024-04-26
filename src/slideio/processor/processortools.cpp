@@ -3,7 +3,9 @@
 // of this distribution and at http://slideio.org/license.html.
 #include "processortools.hpp"
 
-const cv::Point slideio::ProcessorTools::nextMoveCW(const cv::Point& current, const cv::Point& center) {
+using namespace slideio;
+
+const cv::Point ProcessorTools::rotatePixelCW(const cv::Point& current, const cv::Point& center) {
     static cv::Point moves[3][3] =
     {
         {{0, -1}, {1, -1}, {1, 0}},
@@ -14,12 +16,23 @@ const cv::Point slideio::ProcessorTools::nextMoveCW(const cv::Point& current, co
     return center + moves[offset.y][offset.x];
 }
 
-const bool slideio::ProcessorTools::isBorderPoint(const cv::Point &point, const cv::Mat &tile, const cv::Point &tileOffset)
+bool ProcessorTools::isBorderPoint(const cv::Point &point, const cv::Mat &tile, const cv::Point &tileOffset)
 {
    return false;
 }
 
-const bool slideio::ProcessorTools::findFirstBorderPoint(const cv::Mat &tile, const cv::Point &tileOffset, cv::Point &borderPoint)
+bool ProcessorTools::findFirstBorderPoint(const cv::Mat &tile, const cv::Point &tileOffset, cv::Point &borderPoint)
 {
    return false;
+}
+
+cv::Point ProcessorTools::rotatePointCW(const cv::Point& point, const cv::Point& center) {
+    static cv::Point neighbors[3][3] = {
+            {{0, 0},  {1, 0}, {0, 0}},
+            {{0, -1}, {0,  0}, {0, 1}},
+            {{0, 0},  {-1,  0}, {0, 0}}
+    };
+    const cv::Point offset =  point - center + cv::Point(1, 1);
+    const cv::Point next = center + neighbors[offset.y][offset.x];
+    return next;
 }

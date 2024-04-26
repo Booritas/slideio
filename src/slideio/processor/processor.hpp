@@ -15,7 +15,5 @@ namespace slideio
     public:
         Processor(){}
         virtual ~Processor() {}
-        static void multiResolutionSegmentation(std::shared_ptr<Project> project, int channelIndex, double colorThreshold,
-                                                double compactnessThreshold);
     };
 };

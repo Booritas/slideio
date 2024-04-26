@@ -7,6 +7,11 @@
 #include <opencv2/core.hpp>
 #include <memory>
 
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable : 4251)
+#endif
+
 namespace slideio {
     class Project;
 
@@ -39,3 +44,7 @@ namespace slideio {
     void SLIDEIO_PROCESSOR_EXPORTS mutliResolutionSegmentation(std::shared_ptr <Project> &project,
                                                                std::shared_ptr <MultiResolutionSegmentationParameters> &params);
 }
+
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif

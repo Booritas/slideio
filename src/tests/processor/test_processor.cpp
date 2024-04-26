@@ -20,7 +20,7 @@ TEST(Processor, simple) {
     std::shared_ptr<CVScene> scene = slide->getScene(0);
     std::shared_ptr<Storage> storage = Storage::createStorage(storagePath, scene->getRect().size());
     std::shared_ptr<Project> project = std::make_shared<Project>(scene, storage);
-    Processor::multiResolutionSegmentation(project, 0, 0, 0);
+    //Processor::multiResolutionSegmentation(project, 0, 0, 0);
 }
 
 TEST(ProcessorTools, nextMoveCW) {
@@ -43,7 +43,7 @@ TEST(ProcessorTools, nextMoveCW) {
 
         };
     for (const auto& t : test) {
-        const cv::Point result = ProcessorTools::nextMoveCW(t.current, t.center);
+        const cv::Point result = ProcessorTools::rotatePixelCW(t.current, t.center);
         EXPECT_EQ(result, t.expected);
     }
 }
@@ -399,4 +399,36 @@ TEST(Tile, findNextObjectBorderPoint_shape2) {
         current = nextCurrent;
         EXPECT_EQ(current, pnt);
     }
+}
+
+TEST(Tile, isPerimeterLine) {
+    std::shared_ptr<ImageObjectManager> imgObjMngr = std::make_shared<ImageObjectManager>();
+    cv::Mat mask(10, 10, CV_32S);
+    mask.setTo(0);
+    int32_t id = 1;
+    for (int y = 0; y < mask.rows; ++y) {
+        for (int x = 0; x < mask.cols; ++x) {
+            mask.at<int32_t>(cv::Point(x, y)) = id++;
+        }
+    }
+    id = mask.at<int32_t>(cv::Point(5, 5));
+    const Tile tile(mask, cv::Point(0,0));
+
+    EXPECT_FALSE(tile.isPerimeterLine(cv::Point(5, 7), cv::Point(5, 6), id));
+    EXPECT_TRUE(tile.isPerimeterLine(cv::Point(5, 6), cv::Point(5, 5), id));
+    EXPECT_TRUE(tile.isPerimeterLine(cv::Point(5, 5), cv::Point(5, 6), id));
+    EXPECT_FALSE(tile.isPerimeterLine(cv::Point(5, 6), cv::Point(4, 6), id));
+    EXPECT_TRUE(tile.isPerimeterLine(cv::Point(5, 5), cv::Point(6, 5), id));
+}
+
+TEST(Tile, rotatePointCW) {
+    const cv::Point p1(5,7), center(5,6);
+    const cv::Point& p2 = ProcessorTools::rotatePointCW(p1, center);
+    EXPECT_EQ(p2, cv::Point(4, 6));
+    const cv::Point& p3 = ProcessorTools::rotatePointCW(p2, center);
+    EXPECT_EQ(p3, cv::Point(5, 5));
+    const cv::Point& p4 = ProcessorTools::rotatePointCW(p3, center);
+    EXPECT_EQ(p4, cv::Point(6, 6));
+    const cv::Point& p5 = ProcessorTools::rotatePointCW(p4, center);
+    EXPECT_EQ(p5, p1);
 }

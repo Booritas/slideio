@@ -4,6 +4,7 @@
 #include "slideio/processor/imageobjectbordercontainer.hpp"
 #include "slideio/processor/imageobjectmanager.hpp"
 #include "slideio/processor/imageobjectpixelcontainer.hpp"
+#include "slideio/processor/neighborcontainer.hpp"
 #include "slideio/slideio/imagedrivermanager.hpp"
 
 using namespace slideio;
@@ -375,4 +376,29 @@ TEST(ImageObjectBorderIterator, shape2) {
         EXPECT_EQ(point, *border);
         ++border;
     }
+}
+
+TEST(NeighborContainer, singlePixel) {
+    std::shared_ptr<ImageObjectManager> imgObjMngr = std::make_shared<ImageObjectManager>();
+    cv::Mat image(10, 10, CV_32S);
+    image.setTo(0);
+    for(int y = 0; y < image.rows; ++y) {
+        for(int x = 0; x < image.cols; ++x) {
+            ImageObject& obj = imgObjMngr->createObject();
+            obj.m_innerPoint = cv::Point(x, y);
+            obj.m_pixelCount = 1;
+            obj.m_boundingRect = cv::Rect(x, y, 1, 1);
+            image.at<int32_t>(cv::Point(x, y)) = obj.m_id;
+        }
+    }
+    int32_t id = image.at<int32_t>(cv::Point(5, 5));
+    ImageObject& obj = imgObjMngr->getObject(id);
+    cv::Point org(0,0);
+
+    NeighborContainer nghs(&obj, imgObjMngr.get(), image, org);
+    std::list<int32_t> nghIds;
+    for(ImageObject* ngh:nghs) {
+        nghIds.push_back(ngh->m_id);
+    }
+    EXPECT_EQ(nghIds.size(), 8);
 }

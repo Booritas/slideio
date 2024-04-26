@@ -40,11 +40,13 @@ namespace slideio {
                 m_objectManager(objManager),
                 m_tile(tile, tileOrg), m_end(!begin) {
             if (begin) {
-                if (m_tile.findFirstObjectBorderPixel(m_object, m_current)) {
+                if (findStartPoint(m_object, m_current)) {
                     m_prev = m_current + cv::Point(0, 1);
                     m_start = m_current;
                     m_end = next();
-                    m_end = !findNeigbor();
+                    if(!m_end) {
+                        m_end = !findNeigbor();
+                    }
                 } else {
                     m_end = true;
                 }
@@ -168,6 +170,25 @@ namespace slideio {
                 m_currentNeighbor = m_objectManager->getObjectPtr(id2);
             } else if (id2 == m_object->m_id) {
                 m_currentNeighbor = m_objectManager->getObjectPtr(id1);
+            }
+            return false;
+        }
+
+        bool findStartPoint(const ImageObject* object, cv::Point& startPixel) const {
+            const cv::Rect objectTileRect = object->m_boundingRect - m_tile.getOffset();
+            const int beginY = objectTileRect.y;
+            const int endY = objectTileRect.y + objectTileRect.height;
+            const int beginX = objectTileRect.x;
+            const int endX = objectTileRect.x + objectTileRect.width;
+            const int32_t id = object->m_id;
+            for (int x = beginX; x < endX; ++x) {
+                for (int y = endY - 1; y >= beginY; --y) {
+                    const cv::Point point = m_tile.getOffset() + cv::Point(x, y);
+                    if(id == m_tile.getMask().at<int32_t>(point.x, point.y)) {
+                        startPixel = point + cv::Point(0,1);
+                        return true;
+                    }
+                }
             }
             return false;
         }
