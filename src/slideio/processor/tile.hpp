@@ -2,6 +2,8 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.org/license.html.
 #pragma once
+#include <tuple>
+
 #include "slideio/processor/slideio_processor_def.hpp"
 #include "slideio/processor/imageobject.hpp"
 #include "slideio/processor/processortools.hpp"
@@ -83,10 +85,14 @@ namespace slideio
         }
 
         bool isPerimeterLine(const cv::Point& first, const cv::Point& second, int32_t id) const {
+            return getLineNeighborId(first, second, id) != -1;
+        }
+
+        std::tuple<int32_t,int32_t> getLineNeighborIds(const cv::Point& first, const cv::Point& second, int32_t id) const {
             const cv::Point p1 = first - getOffset();
             const cv::Point p2 = second - getOffset();
             if (p1.x <= 0 || p1.y <= 0 || p2.x <= 0 || p2.y <= 0) {
-                return true;
+                return std::make_tuple(-1, -1);
             }
             const cv::Mat& mask = getMask();
             cv::Point pix1, pix2;
@@ -101,18 +107,33 @@ namespace slideio
                 pix2 = cv::Point(x, p2.y);
             }
             else {
-                return false;
+                return std::make_tuple(-1, -1);
             }
 
-            int id1 = mask.at<int32_t>(pix1.x, pix1.y);
-            int id2 = mask.at<int32_t>(pix2.x, pix2.y);
-            return id1 != id2 && (id1 == id || id2 == id);
+            int id1 = mask.at<int32_t>(pix1.y, pix1.x);
+            int id2 = mask.at<int32_t>(pix2.y, pix2.x);
+            const bool perimeterLine = id1 != id2 && (id1 == id || id2 == id);
 
+            if(perimeterLine) {
+                return std::make_tuple(id1, id2);
+            }
+
+            return std::make_tuple(-1, -1);
         }
 
-        bool rotatePointCW(const cv::Point& point, const cv::Point& center, int32_t id, cv::Point& next) const;
+        int getLineNeighborId(const cv::Point& first, const cv::Point& second, int32_t id) const {
+            const std::tuple<int32_t, int32_t> ids = getLineNeighborIds(first, second, id);
+            const cv::Mat& mask = getMask();
+            const int id1 = std::get<0>(ids);
+            const int id2 = std::get<1>(ids);
+            const bool perimeterLine = id1 != id2 && (id1 == id || id2 == id);
+            if(perimeterLine) {
+                return id1 == id ? id2 : id1;
+            }
+            return -1;
+        }
 
-        bool findNextObjectBorderPoint(const ImageObject* object, const cv::Point& start, const cv::Point& center,
+        bool findNextObjectBorderPixel(const ImageObject* object, const cv::Point& start, const cv::Point& center,
                                        cv::Point& nextStart, cv::Point& nextCenter) const {
             cv::Point nextPoint = start;
             cv::Point prev = start;

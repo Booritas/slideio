@@ -45,7 +45,7 @@ namespace slideio {
                     m_start = m_current;
                     m_end = next();
                     if(!m_end) {
-                        m_end = !findNeigbor();
+                        m_end = !findNeighbor();
                     }
                 } else {
                     m_end = true;
@@ -133,7 +133,7 @@ namespace slideio {
             return id1 != id2 && (id1 == m_object->m_id || id2 == m_object->m_id);
         }
 
-        bool findNeigbor() {
+        bool findNeighbor() {
 
             cv::Point p1 = m_prev - m_tile.getOffset();
             cv::Point p2 = m_current - m_tile.getOffset();

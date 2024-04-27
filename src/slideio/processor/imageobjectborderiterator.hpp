@@ -52,7 +52,7 @@ namespace slideio
         }
 
         ImageObjectBorderIterator& operator++() {
-            m_end = !m_tile.findNextObjectBorderPoint(m_object, cv::Point(m_prev), cv::Point(m_current),
+            m_end = !m_tile.findNextObjectBorderPixel(m_object, cv::Point(m_prev), cv::Point(m_current),
                 m_prev, m_current);
             if(!m_end) {
                 m_end = m_current == m_start;

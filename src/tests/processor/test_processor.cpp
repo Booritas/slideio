@@ -23,7 +23,7 @@ TEST(Processor, simple) {
     //Processor::multiResolutionSegmentation(project, 0, 0, 0);
 }
 
-TEST(ProcessorTools, nextMoveCW) {
+TEST(ProcessorTools, rotatePixelCW) {
     const struct
     {
         cv::Point current;
@@ -46,6 +46,18 @@ TEST(ProcessorTools, nextMoveCW) {
         const cv::Point result = ProcessorTools::rotatePixelCW(t.current, t.center);
         EXPECT_EQ(result, t.expected);
     }
+}
+
+TEST(ProcessorTools, rotatePointCW) {
+    const cv::Point p1(5, 7), center(5, 6);
+    const cv::Point& p2 = ProcessorTools::rotatePointCW(p1, center);
+    EXPECT_EQ(p2, cv::Point(4, 6));
+    const cv::Point& p3 = ProcessorTools::rotatePointCW(p2, center);
+    EXPECT_EQ(p3, cv::Point(5, 5));
+    const cv::Point& p4 = ProcessorTools::rotatePointCW(p3, center);
+    EXPECT_EQ(p4, cv::Point(6, 6));
+    const cv::Point& p5 = ProcessorTools::rotatePointCW(p4, center);
+    EXPECT_EQ(p5, p1);
 }
 
 TEST(Tile, contains) {
@@ -319,7 +331,7 @@ TEST(Tile, findNextObjectBorderPoint_shape1) {
     cv::Point prev = current + cv::Point(0, 1);
     for(const auto& pnt : borderPoints) {
         cv::Point nextPrev, nextCurrent;
-        EXPECT_TRUE(tile.findNextObjectBorderPoint(&object, prev, current, nextPrev, nextCurrent));
+        EXPECT_TRUE(tile.findNextObjectBorderPixel(&object, prev, current, nextPrev, nextCurrent));
         //std::cout << current << " -> " << nextCurrent << std::endl;
         prev = nextPrev;
         current = nextCurrent;
@@ -393,7 +405,7 @@ TEST(Tile, findNextObjectBorderPoint_shape2) {
     cv::Point prev = current + cv::Point(0, 1);
     for (const auto& pnt : borderPoints) {
         cv::Point nextPrev, nextCurrent;
-        EXPECT_TRUE(tile.findNextObjectBorderPoint(&object, prev, current, nextPrev, nextCurrent));
+        EXPECT_TRUE(tile.findNextObjectBorderPixel(&object, prev, current, nextPrev, nextCurrent));
         //std::cout << current << " -> " << nextCurrent << std::endl;
         prev = nextPrev;
         current = nextCurrent;
@@ -421,14 +433,23 @@ TEST(Tile, isPerimeterLine) {
     EXPECT_TRUE(tile.isPerimeterLine(cv::Point(5, 5), cv::Point(6, 5), id));
 }
 
-TEST(Tile, rotatePointCW) {
-    const cv::Point p1(5,7), center(5,6);
-    const cv::Point& p2 = ProcessorTools::rotatePointCW(p1, center);
-    EXPECT_EQ(p2, cv::Point(4, 6));
-    const cv::Point& p3 = ProcessorTools::rotatePointCW(p2, center);
-    EXPECT_EQ(p3, cv::Point(5, 5));
-    const cv::Point& p4 = ProcessorTools::rotatePointCW(p3, center);
-    EXPECT_EQ(p4, cv::Point(6, 6));
-    const cv::Point& p5 = ProcessorTools::rotatePointCW(p4, center);
-    EXPECT_EQ(p5, p1);
+TEST(Tile, getLineNeighborId) {
+    cv::Mat mask(10, 10, CV_32S);
+    mask.setTo(0);
+    int32_t id = 1;
+    for (int y = 0; y < mask.rows; ++y) {
+        for (int x = 0; x < mask.cols; ++x) {
+            mask.at<int32_t>(cv::Point(x, y)) = id++;
+        }
+    }
+    const Tile tile(mask, cv::Point(0, 0));
+
+    id = mask.at<int32_t>(cv::Point(5, 5));
+    ASSERT_EQ(56, id);
+
+    EXPECT_EQ(65, tile.getLineNeighborId(cv::Point(5, 7), cv::Point(5, 6), 66));
+    EXPECT_EQ(56, tile.getLineNeighborId(cv::Point(5, 6), cv::Point(6, 6), 66));
+    EXPECT_EQ(-1, tile.getLineNeighborId(cv::Point(5, 6), cv::Point(6, 6), 166));
+    EXPECT_EQ(-1, tile.getLineNeighborId(cv::Point(2, 2), cv::Point(6, 6), 166));
+    EXPECT_EQ(-1, tile.getLineNeighborId(cv::Point(5, 6), cv::Point(6, 5), 56));
 }
