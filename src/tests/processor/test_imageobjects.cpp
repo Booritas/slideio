@@ -5,6 +5,7 @@
 #include "slideio/processor/imageobjectmanager.hpp"
 #include "slideio/processor/imageobjectpixelcontainer.hpp"
 #include "slideio/processor/neighborcontainer.hpp"
+#include "slideio/processor/perimetercontainer.hpp"
 #include "slideio/slideio/imagedrivermanager.hpp"
 
 using namespace slideio;
@@ -400,5 +401,345 @@ TEST(NeighborContainer, singlePixel) {
     for(ImageObject* ngh:nghs) {
         nghIds.push_back(ngh->m_id);
     }
-    EXPECT_EQ(nghIds.size(), 8);
+    EXPECT_EQ(nghIds.size(), 4);
+}
+
+TEST(PerimeterIterator, singlePixel) {
+    const std::list<cv::Point> expectedPoints = {
+        {5, 5},
+        {6, 5},
+        {6, 6},
+        {5, 6}
+    };
+    std::shared_ptr<ImageObjectManager> imgObjMngr = std::make_shared<ImageObjectManager>();
+    cv::Mat image(10, 10, CV_32S);
+    image.setTo(0);
+    for (int y = 0; y < image.rows; ++y) {
+        for (int x = 0; x < image.cols; ++x) {
+            ImageObject& obj = imgObjMngr->createObject();
+            obj.m_innerPoint = cv::Point(x, y);
+            obj.m_pixelCount = 1;
+            obj.m_boundingRect = cv::Rect(x, y, 1, 1);
+            image.at<int32_t>(cv::Point(x, y)) = obj.m_id;
+        }
+    }
+    int32_t id = image.at<int32_t>(cv::Point(5, 5));
+    ImageObject& obj = imgObjMngr->getObject(id);
+    cv::Point org(0, 0);
+
+    PerimeterContainer perimeter(&obj, image, org);
+    std::list<cv::Point> points;
+    for (cv::Point point : perimeter) {
+        points.push_back(point);
+    }
+    EXPECT_EQ(points.size(), 4);
+    EXPECT_EQ(expectedPoints, points);
+
+}
+
+TEST(PerimeterIterator, cross) {
+    const std::list<cv::Point> expectedPoints = {
+        {5, 5},
+        {4, 5},
+        {4, 4},
+        {5, 4},
+        {5, 3},
+        {6, 3},
+        {6, 4},
+        {7, 4},
+        {7, 5},
+        {6, 5},
+        {6, 6},
+        {5, 6},
+    };
+    std::shared_ptr<ImageObjectManager> imgObjMngr = std::make_shared<ImageObjectManager>();
+    cv::Mat image(10, 10, CV_32S);
+    image.setTo(0);
+    ImageObject& obj = imgObjMngr->createObject();
+    obj.m_innerPoint = cv::Point(5, 6);
+    obj.m_pixelCount = 5;
+    obj.m_boundingRect = cv::Rect(5, 5, 3, 3);
+
+    image.at<int32_t>(5, 5) = obj.m_id;
+    image.at<int32_t>(4, 4) = obj.m_id;
+    image.at<int32_t>(4, 5) = obj.m_id;
+    image.at<int32_t>(4, 6) = obj.m_id;
+    image.at<int32_t>(3, 5) = obj.m_id;
+
+    int32_t id = image.at<int32_t>(cv::Point(5, 5));
+    for (int y = 0; y < image.rows; ++y) {
+        for (int x = 0; x < image.cols; ++x) {
+            if(image.at<int32_t>(cv::Point(x, y))==0) {
+                ImageObject& obj = imgObjMngr->createObject();
+                obj.m_innerPoint = cv::Point(x, y);
+                obj.m_pixelCount = 1;
+                obj.m_boundingRect = cv::Rect(x, y, 1, 1);
+                image.at<int32_t>(cv::Point(x, y)) = obj.m_id;
+            }
+        }
+    }
+    cv::Point org(0, 0);
+
+    PerimeterContainer perimeter(&obj, image, org);
+    std::list<cv::Point> points;
+    for (cv::Point point : perimeter) {
+        points.push_back(point);
+    }
+    ASSERT_EQ(points.size(), expectedPoints.size());
+    EXPECT_EQ(expectedPoints, points);
+
+}
+
+TEST(PerimeterIterator, complex) {
+    const std::list<cv::Point> expectedPoints = {
+        {5, 5},
+        {4, 5},
+        {4, 4},
+        {5, 4},
+        {5, 3},
+        {6, 3},
+        {6, 4},
+        {7, 4},
+        {7, 3},
+        {8, 3},
+        {8, 4},
+        {8, 5},
+        {7, 5},
+        {6, 5},
+        {6, 6},
+        {5, 6},
+    };
+    std::shared_ptr<ImageObjectManager> imgObjMngr = std::make_shared<ImageObjectManager>();
+    cv::Mat image(10, 10, CV_32S);
+    image.setTo(0);
+    ImageObject& obj = imgObjMngr->createObject();
+    obj.m_innerPoint = cv::Point(5, 6);
+    obj.m_pixelCount = 5;
+    obj.m_boundingRect = cv::Rect(5, 5, 3, 3);
+
+    image.at<int32_t>(5, 5) = obj.m_id;
+    image.at<int32_t>(4, 4) = obj.m_id;
+    image.at<int32_t>(4, 5) = obj.m_id;
+    image.at<int32_t>(4, 6) = obj.m_id;
+    image.at<int32_t>(3, 5) = obj.m_id;
+    image.at<int32_t>(4, 7) = obj.m_id;
+    image.at<int32_t>(3, 7) = obj.m_id;
+
+    int32_t id = image.at<int32_t>(cv::Point(5, 5));
+    for (int y = 0; y < image.rows; ++y) {
+        for (int x = 0; x < image.cols; ++x) {
+            if (image.at<int32_t>(cv::Point(x, y)) == 0) {
+                ImageObject& obj = imgObjMngr->createObject();
+                obj.m_innerPoint = cv::Point(x, y);
+                obj.m_pixelCount = 1;
+                obj.m_boundingRect = cv::Rect(x, y, 1, 1);
+                image.at<int32_t>(cv::Point(x, y)) = obj.m_id;
+            }
+        }
+    }
+    cv::Point org(0, 0);
+
+    PerimeterContainer perimeter(&obj, image, org);
+    std::list<cv::Point> points;
+    for (cv::Point point : perimeter) {
+        points.push_back(point);
+    }
+    ASSERT_EQ(points.size(), expectedPoints.size());
+    EXPECT_EQ(expectedPoints, points);
+
+}
+
+TEST(PerimeterIterator, singlePixelAtBorder) {
+    const std::list<cv::Point> expectedPoints = {
+        {0, 5},
+        {1, 5},
+        {1, 6},
+        {0, 6}
+    };
+    std::shared_ptr<ImageObjectManager> imgObjMngr = std::make_shared<ImageObjectManager>();
+    cv::Mat image(10, 10, CV_32S);
+    image.setTo(0);
+    for (int y = 0; y < image.rows; ++y) {
+        for (int x = 0; x < image.cols; ++x) {
+            ImageObject& obj = imgObjMngr->createObject();
+            obj.m_innerPoint = cv::Point(x, y);
+            obj.m_pixelCount = 1;
+            obj.m_boundingRect = cv::Rect(x, y, 1, 1);
+            image.at<int32_t>(cv::Point(x, y)) = obj.m_id;
+        }
+    }
+    int32_t id = image.at<int32_t>(cv::Point(0, 5));
+    ImageObject& obj = imgObjMngr->getObject(id);
+    cv::Point org(0, 0);
+
+    PerimeterContainer perimeter(&obj, image, org);
+    std::list<cv::Point> points;
+    for (cv::Point point : perimeter) {
+        points.push_back(point);
+    }
+    ASSERT_EQ(points.size(), expectedPoints.size());
+    EXPECT_EQ(expectedPoints, points);
+
+}
+
+TEST(PerimeterIterator, singlePixelAtRightBorder) {
+    const std::list<cv::Point> expectedPoints = {
+        {9, 5},
+        {10, 5},
+        {10, 6},
+        {9, 6}
+    };
+    std::shared_ptr<ImageObjectManager> imgObjMngr = std::make_shared<ImageObjectManager>();
+    cv::Mat image(10, 10, CV_32S);
+    image.setTo(0);
+    for (int y = 0; y < image.rows; ++y) {
+        for (int x = 0; x < image.cols; ++x) {
+            ImageObject& obj = imgObjMngr->createObject();
+            obj.m_innerPoint = cv::Point(x, y);
+            obj.m_pixelCount = 1;
+            obj.m_boundingRect = cv::Rect(x, y, 1, 1);
+            image.at<int32_t>(cv::Point(x, y)) = obj.m_id;
+        }
+    }
+    int32_t id = image.at<int32_t>(cv::Point(9, 5));
+    ImageObject& obj = imgObjMngr->getObject(id);
+    cv::Point org(0, 0);
+
+    PerimeterContainer perimeter(&obj, image, org);
+    std::list<cv::Point> points;
+    for (cv::Point point : perimeter) {
+        points.push_back(point);
+    }
+    ASSERT_EQ(points.size(), expectedPoints.size());
+    EXPECT_EQ(expectedPoints, points);
+
+}
+
+TEST(PerimeterIterator, singlePixelAtCorner) {
+    const std::list<cv::Point> expectedPoints = {
+        {0, 0},
+        {1, 0},
+        {1, 1},
+        {0, 1}
+    };
+    std::shared_ptr<ImageObjectManager> imgObjMngr = std::make_shared<ImageObjectManager>();
+    cv::Mat image(10, 10, CV_32S);
+    image.setTo(0);
+    for (int y = 0; y < image.rows; ++y) {
+        for (int x = 0; x < image.cols; ++x) {
+            ImageObject& obj = imgObjMngr->createObject();
+            obj.m_innerPoint = cv::Point(x, y);
+            obj.m_pixelCount = 1;
+            obj.m_boundingRect = cv::Rect(x, y, 1, 1);
+            image.at<int32_t>(cv::Point(x, y)) = obj.m_id;
+        }
+    }
+    int32_t id = image.at<int32_t>(cv::Point(0, 0));
+    ImageObject& obj = imgObjMngr->getObject(id);
+    cv::Point org(0, 0);
+
+    PerimeterContainer perimeter(&obj, image, org);
+    std::list<cv::Point> points;
+    for (cv::Point point : perimeter) {
+        points.push_back(point);
+    }
+    ASSERT_EQ(points.size(), expectedPoints.size());
+    EXPECT_EQ(expectedPoints, points);
+
+}
+
+TEST(PerimeterIterator, singlePixelAtRightCorner) {
+    const std::list<cv::Point> expectedPoints = {
+        {9, 9},
+        {10, 9},
+        {10, 10},
+        {9, 10}
+    };
+    std::shared_ptr<ImageObjectManager> imgObjMngr = std::make_shared<ImageObjectManager>();
+    cv::Mat image(10, 10, CV_32S);
+    image.setTo(0);
+    for (int y = 0; y < image.rows; ++y) {
+        for (int x = 0; x < image.cols; ++x) {
+            ImageObject& obj = imgObjMngr->createObject();
+            obj.m_innerPoint = cv::Point(x, y);
+            obj.m_pixelCount = 1;
+            obj.m_boundingRect = cv::Rect(x, y, 1, 1);
+            image.at<int32_t>(cv::Point(x, y)) = obj.m_id;
+        }
+    }
+    int32_t id = image.at<int32_t>(cv::Point(9, 9));
+    ImageObject& obj = imgObjMngr->getObject(id);
+    cv::Point org(0, 0);
+
+    PerimeterContainer perimeter(&obj, image, org);
+    std::list<cv::Point> points;
+    for (cv::Point point : perimeter) {
+        points.push_back(point);
+    }
+    ASSERT_EQ(points.size(), expectedPoints.size());
+    EXPECT_EQ(expectedPoints, points);
+
+}
+
+TEST(PerimeterIterator, complexShifted) {
+    std::list<cv::Point> expectedPoints = {
+        {5, 5},
+        {4, 5},
+        {4, 4},
+        {5, 4},
+        {5, 3},
+        {6, 3},
+        {6, 4},
+        {7, 4},
+        {7, 3},
+        {8, 3},
+        {8, 4},
+        {8, 5},
+        {7, 5},
+        {6, 5},
+        {6, 6},
+        {5, 6},
+    };
+    cv::Point org(100, 200);
+    for(cv::Point& point : expectedPoints) {
+        point += org;
+    }
+
+    std::shared_ptr<ImageObjectManager> imgObjMngr = std::make_shared<ImageObjectManager>();
+    cv::Mat image(10, 10, CV_32S);
+    image.setTo(0);
+    ImageObject& obj = imgObjMngr->createObject();
+    obj.m_innerPoint = cv::Point(5, 5) + org;
+    obj.m_pixelCount = 5;
+    obj.m_boundingRect = cv::Rect(4, 5, 4, 3) + org;
+
+    image.at<int32_t>(5, 5) = obj.m_id;
+    image.at<int32_t>(4, 4) = obj.m_id;
+    image.at<int32_t>(4, 5) = obj.m_id;
+    image.at<int32_t>(4, 6) = obj.m_id;
+    image.at<int32_t>(3, 5) = obj.m_id;
+    image.at<int32_t>(4, 7) = obj.m_id;
+    image.at<int32_t>(3, 7) = obj.m_id;
+
+    int32_t id = image.at<int32_t>(cv::Point(5, 5));
+    for (int y = 0; y < image.rows; ++y) {
+        for (int x = 0; x < image.cols; ++x) {
+            if (image.at<int32_t>(cv::Point(x, y)) == 0) {
+                ImageObject& obj = imgObjMngr->createObject();
+                obj.m_innerPoint = cv::Point(x, y) + org;
+                obj.m_pixelCount = 1;
+                obj.m_boundingRect = cv::Rect(x, y, 1, 1) + org;
+                image.at<int32_t>(cv::Point(x, y)) = obj.m_id;
+            }
+        }
+    }
+
+    PerimeterContainer perimeter(&obj, image, org);
+    std::list<cv::Point> points;
+    for (cv::Point point : perimeter) {
+        points.push_back(point);
+    }
+    ASSERT_EQ(points.size(), expectedPoints.size());
+    EXPECT_EQ(expectedPoints, points);
+
 }

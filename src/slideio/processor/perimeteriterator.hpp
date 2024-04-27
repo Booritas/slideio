@@ -14,46 +14,50 @@
 #pragma warning(disable : 4251)
 #endif
 
-namespace slideio {
-    class SLIDEIO_PROCESSOR_EXPORTS PerimeterIterator {
+namespace slideio
+{
+    class PerimeterIterator
+    {
     private:
         cv::Point m_current;
         cv::Point m_prev;
         cv::Point m_start;
-        ImageObject *m_object;
+        ImageObject* m_object;
         bool m_end;
         Tile m_tile;
+        bool m_lastStep;
 
     public:
         using iterator_category = std::forward_iterator_tag;
         using value_type = cv::Point;
         using difference_type = std::ptrdiff_t;
-        using pointer = cv::Point *;
-        using reference = cv::Point &;
+        using pointer = cv::Point*;
+        using reference = cv::Point&;
 
-        PerimeterIterator(ImageObject *object, cv::Mat &tile, const cv::Point &tileOrg, bool begin) :
-                m_object(object),
-                m_tile(tile, tileOrg), m_end(!begin) {
+        PerimeterIterator(ImageObject* object, cv::Mat& tile, const cv::Point& tileOrg,
+            bool begin) :
+            m_object(object),
+            m_end(!begin),
+            m_tile(tile, tileOrg),
+            m_lastStep(false) {
             if (begin) {
-                if (m_tile.findFirstObjectBorderPixel(m_object, m_current)) {
+                if (findStartPoint(m_object, m_current)) {
                     m_prev = m_current + cv::Point(0, 1);
                     m_start = m_current;
-                    m_end = false;
-                } else {
+                    m_end = !next();
+                }
+                else {
                     m_end = true;
                 }
             }
         }
 
-        const cv::Point &operator*() const {
+        const cv::Point& operator*() const {
             return m_current;
         }
 
-        PerimeterIterator &operator++() {
+        PerimeterIterator& operator++() {
             m_end = !next();
-            if (!m_end) {
-                m_end = m_current == m_start;
-            }
             return *this;
         }
 
@@ -63,7 +67,7 @@ namespace slideio {
             return tmp;
         }
 
-        bool operator==(const PerimeterIterator &other) const {
+        bool operator==(const PerimeterIterator& other) const {
             if (m_end && other.m_end) {
                 return true;
             }
@@ -73,57 +77,61 @@ namespace slideio {
             return false;
         }
 
-        bool operator!=(const PerimeterIterator &other) const {
+        bool operator!=(const PerimeterIterator& other) const {
             return !(*this == other);
         }
 
     private:
 
         bool next() {
-            static cv::Point neighbors[3][3] = {
-            {{0, 0},  {-1, 0}, {0, 0}},
-            {{0, -1}, {0,  0}, {0, 1}},
-            {{0, 0},  {1,  0}, {0, 0}}
+            if (m_lastStep) {
+                return false;
             }
-            cv::Point current = m_current;
-            cv::Point prev = m_prev;
-            for(int i=0; i<3; i++) {
-                cv::Point offset = current - prev + cv::Point(1, 1);
-                cv::Point next = current + neighbors[offset.y][offset.x];
-                if(isPerimeterLine(current, next)) {
-                    m_prev = m_current;
-                    m_current = next;
-                    return true;
+            if(nextNeighbor()) {
+                if (m_current == m_start) {
+                    m_lastStep = true;
                 }
-                prev = next;
+                return true;
             }
             return false;
         }
 
-        bool isPerimeterLine(const cv::Point& first, const cv::Point& second) const {
-            const cv::Point p1 = first - m_tile.getOffset();
-            const cv::Point p2 = second - m_tile.getOffset();
-            if(p1.x<=0 || p1.y<=0 || p2.x<=0 || p2.y<=0) {
-                return true;
+        bool nextNeighbor() {
+            cv::Point prev = m_prev;
+            const int32_t id = m_object->m_id;
+            for (int i = 0; i < 3; i++) {
+                const cv::Point nextPoint = ProcessorTools::rotatePointCW(prev, m_current);
+                const cv::Point nextLocal = nextPoint - m_tile.getOffset();
+                if (nextLocal.x >= 0 && nextLocal.y >= 0 && nextLocal.x <= m_tile.getWidth() && nextLocal.y <= m_tile.getHeight()) {
+                    const int32_t neighborId = m_tile.getLineNeighborId(nextPoint, m_current, id);
+                    if (neighborId >= 0) {
+                        m_prev = m_current;
+                        m_current = nextPoint;
+                        return true;
+                    }
+                }
+                prev = nextPoint;
             }
-            const cv::Mat& mask = m_tile.getMask();
-            cv::Point pix1, pix2;
-            if(p1.x == p2.x) {
-                const int y = std::min(p1.y, p2.y);
-                pix1 = cv::Point(p1.x-1,y);
-                pix2 = cv::Point(p1.x, y);
-            }
-            else if(p1.y == p2.y) {
-                const int x = std::min(p1.x, p2.x);
-                pix1 = cv::Point(x,p1.y-1);
-                pix2 = cv::Point(x, p2.y);
-            } else {
-                return false;
-            }
+            return false;
+        }
 
-            int id1 = mask.at(pix1);
-            int id2 = mask.at(pix2);
-            return id1 != id2 && (id1 == m_object->m_id || id2 == m_object->m_id);
+        bool findStartPoint(const ImageObject* object, cv::Point& startPixel) const {
+            const cv::Rect objectTileRect = object->m_boundingRect - m_tile.getOffset();
+            const int beginY = objectTileRect.y;
+            const int endY = objectTileRect.y + objectTileRect.height;
+            const int beginX = objectTileRect.x;
+            const int endX = objectTileRect.x + objectTileRect.width;
+            const int32_t id = object->m_id;
+            for (int x = beginX; x < endX; ++x) {
+                for (int y = endY - 1; y >= beginY; --y) {
+                    const cv::Point point = cv::Point(x, y);
+                    if (id == m_tile.getMask().at<int32_t>(point.y, point.x)) {
+                        startPixel = point + cv::Point(0, 1) + m_tile.getOffset();
+                        return true;
+                    }
+                }
+            }
+            return false;
         }
     };
 }

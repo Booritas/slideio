@@ -88,12 +88,10 @@ namespace slideio
             return getLineNeighborId(first, second, id) != -1;
         }
 
-        std::tuple<int32_t,int32_t> getLineNeighborIds(const cv::Point& first, const cv::Point& second, int32_t id) const {
+        std::tuple<int32_t, int32_t> getLineNeighborIds(const cv::Point& first, const cv::Point& second) const {
             const cv::Point p1 = first - getOffset();
             const cv::Point p2 = second - getOffset();
-            if (p1.x <= 0 || p1.y <= 0 || p2.x <= 0 || p2.y <= 0) {
-                return std::make_tuple(-1, -1);
-            }
+
             const cv::Mat& mask = getMask();
             cv::Point pix1, pix2;
             if (p1.x == p2.x) {
@@ -110,24 +108,21 @@ namespace slideio
                 return std::make_tuple(-1, -1);
             }
 
-            int id1 = mask.at<int32_t>(pix1.y, pix1.x);
-            int id2 = mask.at<int32_t>(pix2.y, pix2.x);
-            const bool perimeterLine = id1 != id2 && (id1 == id || id2 == id);
+            int id1 = (pix1.x >= 0 && pix1.y >= 0 && pix1.x < getWidth() && pix1.y < getHeight())
+                          ? mask.at<int32_t>(pix1) : 0;
+            int id2 = (pix2.x >= 0 && pix2.y >= 0 && pix2.x < getWidth() && pix2.y < getHeight())
+                          ? mask.at<int32_t>(pix2) : 0;
 
-            if(perimeterLine) {
-                return std::make_tuple(id1, id2);
-            }
-
-            return std::make_tuple(-1, -1);
+            return std::make_tuple(id1, id2);
         }
 
         int getLineNeighborId(const cv::Point& first, const cv::Point& second, int32_t id) const {
-            const std::tuple<int32_t, int32_t> ids = getLineNeighborIds(first, second, id);
+            const std::tuple<int32_t, int32_t> ids = getLineNeighborIds(first, second);
             const cv::Mat& mask = getMask();
             const int id1 = std::get<0>(ids);
             const int id2 = std::get<1>(ids);
             const bool perimeterLine = id1 != id2 && (id1 == id || id2 == id);
-            if(perimeterLine) {
+            if (perimeterLine) {
                 return id1 == id ? id2 : id1;
             }
             return -1;
@@ -147,18 +142,28 @@ namespace slideio
                 }
             }
             return false;
-        };
+        }
+
+        int getWidth() const {
+            return m_mask.cols;
+        }
+
+        int getHeight() const {
+            return m_mask.rows;
+        }
+
         const cv::Point& getOffset() const {
             return m_offset;
         }
+
         const cv::Mat& getMask() const {
             return m_mask;
         }
+
     private:
         cv::Mat m_mask;
         cv::Point m_offset;
     };
-
 }
 
 #if defined(_MSC_VER)
