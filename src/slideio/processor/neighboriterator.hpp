@@ -128,33 +128,23 @@ namespace slideio
         }
 
         int32_t findDiagNeighborId(const cv::Point& p1, const cv::Point& p2) const {
+            cv::Point pn = p2 - m_tile.getOffset();
             if(p1.x == p2.x) {
                 // vertical line
                 if(p1.y > p2.y) {
-                    cv::Point pn(p2.x-1, p2.y-1);
-                    pn -= m_tile.getOffset();
-                    return m_tile.getMask().at<int32_t>(pn);
-                }
-                else {
-                    cv::Point pn(p2.x, p2.y);
-                    pn -= m_tile.getOffset();
-                    return m_tile.getMask().at<int32_t>(pn);
+                    pn += cv::Point(-1, -1);
                 }
             }
             else if(p1.y == p2.y) {
                 // horizontal line
                 if (p1.x < p2.x) {
-                    cv::Point pn(p2.x, p2.y-1);
-                    pn -= m_tile.getOffset();
-                    return m_tile.getMask().at<int32_t>(pn);
+                    pn += cv::Point(0, -1);
                 }
                 else {
-                    cv::Point pn(p2.x-1, p2.y);
-                    pn -= m_tile.getOffset();
-                    return m_tile.getMask().at<int32_t>(pn);
+                    pn += cv::Point(-1, 0);
                 }
             }
-            return -1;
+            return (pn.x < 0 || pn.y < 0) ? 0 : m_tile.getMask().at<int32_t>(pn);
         }
 
         bool nextNeighbor() {
