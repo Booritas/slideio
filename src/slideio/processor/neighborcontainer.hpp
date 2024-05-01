@@ -13,20 +13,21 @@ namespace slideio
     class NeighborContainer
     {
     public:
-        NeighborContainer(ImageObject* object, ImageObjectManager* objMngr, cv::Mat& tile, cv::Point tileOrg) :
-                m_object(object), m_tile(tile), m_tileOrg(tileOrg), m_objManager(objMngr) {
+        NeighborContainer(ImageObject* object, ImageObjectManager* objMngr, cv::Mat& tile, cv::Point tileOrg, bool diagNeighbors=true) :
+                m_object(object), m_tile(tile), m_tileOrg(tileOrg), m_objManager(objMngr), m_diagNeighbors(diagNeighbors) {
         }
 
         NeighborIterator begin() {
-            return NeighborIterator(m_object, m_objManager, m_tile, m_tileOrg, true);
+            return NeighborIterator(m_object, m_objManager, m_tile, m_tileOrg, m_diagNeighbors, true);
         }
         NeighborIterator end() {
-            return NeighborIterator(m_object, m_objManager, m_tile, m_tileOrg, false);
+            return NeighborIterator(m_object, m_objManager, m_tile, m_tileOrg, m_diagNeighbors, false);
         }
     private:
         ImageObject* m_object;
         cv::Mat m_tile;
         cv::Point m_tileOrg;
         ImageObjectManager* m_objManager;
+        bool m_diagNeighbors;
     };
 }

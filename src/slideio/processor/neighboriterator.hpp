@@ -9,6 +9,8 @@
 #include "slideio/processor/tile.hpp"
 #include <opencv2/core/mat.hpp>
 
+#include "slideio/base/exceptions.hpp"
+
 #if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4251)
@@ -23,12 +25,14 @@ namespace slideio
         cv::Point m_prev;
         cv::Point m_start;
         ImageObject* m_object;
-        ImageObject* m_currentNeighbor = nullptr;
+        std::queue<ImageObject*> m_neighbors;
+
         ImageObject* m_lastNeighbor = nullptr;
         ImageObjectManager* m_objectManager = nullptr;
         bool m_end;
         Tile m_tile;
         bool m_lastStep;
+        bool m_8neighbors = true;
 
     public:
         using iterator_category = std::forward_iterator_tag;
@@ -37,13 +41,15 @@ namespace slideio
         using pointer = cv::Point*;
         using reference = cv::Point&;
 
-        NeighborIterator(ImageObject* object, ImageObjectManager* objManager, cv::Mat& tile, const cv::Point& tileOrg,
+        NeighborIterator(ImageObject* object, ImageObjectManager* objManager, cv::Mat& tile, const cv::Point& tileOrg, bool diagNeighbors,
                          bool begin) :
             m_object(object),
             m_objectManager(objManager),
             m_end(!begin),
             m_tile(tile, tileOrg),
-            m_lastStep(false) {
+            m_lastStep(false),
+            m_8neighbors(diagNeighbors) {
+
             if (begin) {
                 if (findStartPoint(m_object, m_current)) {
                     m_prev = m_current + cv::Point(0, 1);
@@ -57,7 +63,7 @@ namespace slideio
         }
 
         ImageObject* operator*() const {
-            return m_currentNeighbor;
+            return getCurrentNeighbor();
         }
 
         NeighborIterator& operator++() {
@@ -88,22 +94,73 @@ namespace slideio
     private:
 
         bool next() {
-            if(m_lastStep) {
+
+            if(!m_neighbors.empty()) {
+                m_neighbors.pop();
+                while (!m_neighbors.empty()) {
+                    auto nexNeighbor = m_neighbors.front();
+                    if (m_neighbors.front() != m_lastNeighbor) {
+                        return true;
+                    }
+                    m_neighbors.pop();
+                }
+            }
+
+            if (m_lastStep) {
                 return false;
             }
+
             while(nextNeighbor()) {
                 if(m_current == m_start) {
                     m_lastStep = true;
                 }
-                if(m_currentNeighbor != m_lastNeighbor) {
-                    m_lastNeighbor = m_currentNeighbor;
+                if(m_neighbors.front() != m_lastNeighbor) {
+                    m_lastNeighbor = m_neighbors.front();
                     return true;
                 }
             }
+
             return false;
         }
 
+        ImageObject* getCurrentNeighbor() const {
+            return m_neighbors.front();
+        }
+
+        int32_t findDiagNeighborId(const cv::Point& p1, const cv::Point& p2) const {
+            if(p1.x == p2.x) {
+                // vertical line
+                if(p1.y > p2.y) {
+                    cv::Point pn(p2.x-1, p2.y-1);
+                    pn -= m_tile.getOffset();
+                    return m_tile.getMask().at<int32_t>(pn);
+                }
+                else {
+                    cv::Point pn(p2.x, p2.y);
+                    pn -= m_tile.getOffset();
+                    return m_tile.getMask().at<int32_t>(pn);
+                }
+            }
+            else if(p1.y == p2.y) {
+                // horizontal line
+                if (p1.x < p2.x) {
+                    cv::Point pn(p2.x, p2.y-1);
+                    pn -= m_tile.getOffset();
+                    return m_tile.getMask().at<int32_t>(pn);
+                }
+                else {
+                    cv::Point pn(p2.x-1, p2.y);
+                    pn -= m_tile.getOffset();
+                    return m_tile.getMask().at<int32_t>(pn);
+                }
+            }
+            return -1;
+        }
+
         bool nextNeighbor() {
+            if(!m_neighbors.empty()) {
+                RAISE_RUNTIME_ERROR << "Neighbor iterator unexpected error: NOT empty neighbor queue";
+            }
             cv::Point prev = m_prev;
             const int32_t id = m_object->m_id;
             for (int i = 0; i < 3; i++) {
@@ -115,7 +172,21 @@ namespace slideio
                         m_prev = m_current;
                         m_current = nextPoint;
                         if (neighborId != 0) {
-                            m_currentNeighbor = m_objectManager->getObjectPtr(neighborId);
+                            ImageObject* neighbor = m_objectManager->getObjectPtr(neighborId);
+                            m_neighbors.push(neighbor);
+                            if(m_8neighbors) {
+                                int32_t diagId = findDiagNeighborId(m_prev, m_current);
+                                if(diagId > 0) {
+                                    ImageObject* diagNeighbor = m_objectManager->getObjectPtr(diagId);
+                                    if(diagNeighbor != m_neighbors.front()) {
+                                        m_neighbors.push(diagNeighbor);
+                                    }
+                                } else if(diagId == 0) {
+                                    if (nullptr != m_neighbors.front()) {
+                                        m_neighbors.push(nullptr);
+                                    }
+                                }
+                            }
                         }
                         return true;
                     }

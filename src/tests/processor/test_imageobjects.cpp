@@ -379,7 +379,8 @@ TEST(ImageObjectBorderIterator, shape2) {
     }
 }
 
-TEST(NeighborIterator, singlePixel) {
+TEST(NeighborIterator, singlePixel4Neighbors) {
+    const std::list<int32_t> expectedIds = { 55, 46, 57, 66 };
     std::shared_ptr<ImageObjectManager> imgObjMngr = std::make_shared<ImageObjectManager>();
     cv::Mat image(10, 10, CV_32S);
     image.setTo(0);
@@ -396,12 +397,38 @@ TEST(NeighborIterator, singlePixel) {
     ImageObject& obj = imgObjMngr->getObject(id);
     cv::Point org(0,0);
 
-    NeighborContainer nghs(&obj, imgObjMngr.get(), image, org);
+    NeighborContainer nghs(&obj, imgObjMngr.get(), image, org, false);
     std::list<int32_t> nghIds;
     for(ImageObject* ngh:nghs) {
         nghIds.push_back(ngh->m_id);
     }
-    EXPECT_EQ(nghIds.size(), 4);
+    EXPECT_EQ(nghIds, expectedIds);
+}
+
+TEST(NeighborIterator, singlePixel8Neighbors) {
+    const std::list<int32_t> expectedIds = { 55, 45, 46, 47, 57, 67, 66, 65 };
+    std::shared_ptr<ImageObjectManager> imgObjMngr = std::make_shared<ImageObjectManager>();
+    cv::Mat image(10, 10, CV_32S);
+    image.setTo(0);
+    for (int y = 0; y < image.rows; ++y) {
+        for (int x = 0; x < image.cols; ++x) {
+            ImageObject& obj = imgObjMngr->createObject();
+            obj.m_innerPoint = cv::Point(x, y);
+            obj.m_pixelCount = 1;
+            obj.m_boundingRect = cv::Rect(x, y, 1, 1);
+            image.at<int32_t>(cv::Point(x, y)) = obj.m_id;
+        }
+    }
+    int32_t id = image.at<int32_t>(cv::Point(5, 5));
+    ImageObject& obj = imgObjMngr->getObject(id);
+    cv::Point org(0, 0);
+
+    NeighborContainer nghs(&obj, imgObjMngr.get(), image, org, true);
+    std::list<int32_t> nghIds;
+    for (ImageObject* ngh : nghs) {
+        nghIds.push_back(ngh->m_id);
+    }
+    EXPECT_EQ(nghIds, expectedIds);
 }
 
 TEST(PerimeterIterator, singlePixel) {
