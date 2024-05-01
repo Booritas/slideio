@@ -379,7 +379,7 @@ TEST(ImageObjectBorderIterator, shape2) {
     }
 }
 
-TEST(NeighborContainer, singlePixel) {
+TEST(NeighborIterator, singlePixel) {
     std::shared_ptr<ImageObjectManager> imgObjMngr = std::make_shared<ImageObjectManager>();
     cv::Mat image(10, 10, CV_32S);
     image.setTo(0);

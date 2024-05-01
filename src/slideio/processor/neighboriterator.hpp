@@ -108,14 +108,17 @@ namespace slideio
             const int32_t id = m_object->m_id;
             for (int i = 0; i < 3; i++) {
                 const cv::Point nextPoint = ProcessorTools::rotatePointCW(prev, m_current);
-                const int32_t neighborId = m_tile.getLineNeighborId(nextPoint, m_current, id);
-                if (neighborId>=0) {
-                    m_prev = m_current;
-                    m_current = nextPoint;
-                    if(neighborId != 0) {
-                        m_currentNeighbor = m_objectManager->getObjectPtr(neighborId);
+                const cv::Point nextLocal = nextPoint - m_tile.getOffset();
+                if (nextLocal.x >= 0 && nextLocal.y >= 0 && nextLocal.x <= m_tile.getWidth() && nextLocal.y <= m_tile.getHeight()) {
+                    const int32_t neighborId = m_tile.getLineNeighborId(nextPoint, m_current, id);
+                    if (neighborId >= 0) {
+                        m_prev = m_current;
+                        m_current = nextPoint;
+                        if (neighborId != 0) {
+                            m_currentNeighbor = m_objectManager->getObjectPtr(neighborId);
+                        }
+                        return true;
                     }
-                    return true;
                 }
                 prev = nextPoint;
             }
@@ -131,9 +134,9 @@ namespace slideio
             const int32_t id = object->m_id;
             for (int x = beginX; x < endX; ++x) {
                 for (int y = endY - 1; y >= beginY; --y) {
-                    const cv::Point point = m_tile.getOffset() + cv::Point(x, y);
-                    if (id == m_tile.getMask().at<int32_t>(point.x, point.y)) {
-                        startPixel = point + cv::Point(0, 1);
+                    const cv::Point point = cv::Point(x, y);
+                    if (id == m_tile.getMask().at<int32_t>(point.y, point.x)) {
+                        startPixel = point + cv::Point(0, 1) + m_tile.getOffset();
                         return true;
                     }
                 }
