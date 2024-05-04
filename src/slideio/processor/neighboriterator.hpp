@@ -184,7 +184,7 @@ namespace slideio
                                 int32_t diagId = findDiagNeighborId(m_prev, m_current);
                                 if (diagId > 0) {
                                     ImageObject* diagNeighbor = m_objectManager->getObjectPtr(diagId);
-                                    if (diagNeighbor != m_neighbors.front()) {
+                                    if (diagNeighbor!=m_object && diagNeighbor != m_neighbors.front()) {
                                         m_neighbors.push(diagNeighbor);
                                     }
                                 }

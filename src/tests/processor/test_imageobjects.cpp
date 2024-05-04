@@ -884,3 +884,108 @@ TEST(NeighborIterator, singlePixelRBCorner8Neighbors) {
     }
     EXPECT_EQ(nghIds, expectedIds);
 }
+
+TEST(NeighborIterator, cross) {
+    const std::list<int32_t> expectedIds = {
+        55, 54,44,34,35,25,26,27,37,38,48,58,57,67,66,65
+    };
+    std::shared_ptr<ImageObjectManager> imgObjMngr = std::make_shared<ImageObjectManager>();
+    cv::Mat image(10, 10, CV_32S);
+    image.setTo(0);
+    cv::Point org(50, 60);
+
+    for (int y = 0; y < image.rows; ++y) {
+        for (int x = 0; x < image.cols; ++x) {
+            if (image.at<int32_t>(cv::Point(x, y)) == 0) {
+                ImageObject& obj = imgObjMngr->createObject();
+                obj.m_innerPoint = cv::Point(x, y) + org;
+                obj.m_pixelCount = 1;
+                obj.m_boundingRect = cv::Rect(x, y, 1, 1);
+                image.at<int32_t>(cv::Point(x, y)) = obj.m_id;
+            }
+        }
+    }
+
+    ImageObject& obj = imgObjMngr->createObject();
+    obj.m_innerPoint = cv::Point(5, 6) + org;
+    obj.m_pixelCount = 5;
+    obj.m_boundingRect = cv::Rect(5, 5, 3, 3) + org;
+
+    const std::list<cv::Point> objectPixels = {
+        {5, 5},
+        {4, 4},
+        {5, 4},
+        {6, 4},
+        {5, 3}
+    };
+
+    for(const cv::Point& pixel : objectPixels) {
+        const int32_t id = image.at<int32_t>(pixel);
+        if(id!=0) {
+            imgObjMngr->removeObject(id);
+        }
+        image.at<int32_t>(pixel) = obj.m_id;
+    }
+
+
+    int32_t id = image.at<int32_t>(cv::Point(5, 5));
+
+    NeighborContainer nhbs(&obj, imgObjMngr.get(), image, org);
+    std::list<int32_t> ids;
+    for (auto nhb : nhbs) {
+        ids.push_back(nhb->m_id);
+    }
+    EXPECT_EQ(expectedIds, ids);
+}
+
+TEST(NeighborIterator, cross2) {
+    const std::list<int32_t> expectedIds = {2, 1, 2};
+    std::shared_ptr<ImageObjectManager> imgObjMngr = std::make_shared<ImageObjectManager>();
+    cv::Mat image(10, 10, CV_32S);
+    image.setTo(0);
+    cv::Point org(0, 0);
+
+    ImageObject& top = imgObjMngr->createObject();
+    top.m_boundingRect = cv::Rect(0, 0, 5, 5);
+    ImageObject& bottom = imgObjMngr->createObject();
+    bottom.m_boundingRect = cv::Rect(0, 6, 5, 5);
+
+    for (int y = 0; y < image.rows; ++y) {
+        for (int x = 0; x < image.cols; ++x) {
+            if (image.at<int32_t>(cv::Point(x, y)) == 0) {
+                ImageObject& obj = (y < 5) ? top : bottom;
+                obj.m_innerPoint = cv::Point(x, y) + org;
+                obj.m_pixelCount += 1;
+                image.at<int32_t>(cv::Point(x, y)) = obj.m_id;
+            }
+        }
+    }
+
+    ImageObject& obj = imgObjMngr->createObject();
+    obj.m_innerPoint = cv::Point(5, 6) + org;
+    obj.m_boundingRect = cv::Rect(5, 5, 3, 3) + org;
+
+    const std::list<cv::Point> objectPixels = {
+        {5, 5},
+        {4, 4},
+        {5, 4},
+        {6, 4},
+        {5, 3}
+    };
+
+    for (const cv::Point& pixel : objectPixels) {
+        const int32_t id = image.at<int32_t>(pixel);
+        obj.m_pixelCount += 1;
+        image.at<int32_t>(pixel) = obj.m_id;
+    }
+
+
+    int32_t id = image.at<int32_t>(cv::Point(5, 5));
+
+    NeighborContainer nhbs(&obj, imgObjMngr.get(), image, org);
+    std::list<int32_t> ids;
+    for (auto nhb : nhbs) {
+        ids.push_back(nhb->m_id);
+    }
+    EXPECT_EQ(expectedIds, ids);
+}
