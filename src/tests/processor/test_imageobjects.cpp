@@ -770,3 +770,117 @@ TEST(PerimeterIterator, complexShifted) {
     EXPECT_EQ(expectedPoints, points);
 
 }
+
+TEST(NeighborIterator, singlePixelEnclosed8Neighbors) {
+    const std::list<int32_t> expectedIds = { 2 };
+    std::shared_ptr<ImageObjectManager> imgObjMngr = std::make_shared<ImageObjectManager>();
+    cv::Mat image(10, 10, CV_32S);
+    image.setTo(0);
+
+    cv::Point org(0, 0);
+    cv::Point pixelLocation(5, 5);
+
+    ImageObject& obj = imgObjMngr->createObject();
+    obj.m_innerPoint = pixelLocation + org;
+    obj.m_pixelCount = 1;
+    obj.m_boundingRect = cv::Rect(pixelLocation.x, pixelLocation.y, 1, 1) + org;
+    image.at<int32_t>(pixelLocation) = obj.m_id;
+
+    ImageObject& obj2 = imgObjMngr->createObject();
+
+    for (int y = 0; y < image.rows; ++y) {
+        for (int x = 0; x < image.cols; ++x) {
+            int32_t id = image.at<int32_t>(cv::Point(x, y));
+            if (id == 0) {
+                image.at<int32_t>(cv::Point(x, y)) = obj2.m_id;
+                obj2.m_pixelCount++;
+            }
+        }
+    }
+    const int32_t idCheck = image.at<int32_t>(pixelLocation);
+    ASSERT_EQ(idCheck, obj.m_id);
+    obj2.m_innerPoint = cv::Point(0,image.rows-1);
+    obj2.m_boundingRect = cv::Rect(0, 0,image.rows, image.cols);
+    NeighborContainer nghs(&obj, imgObjMngr.get(), image, org, true);
+    std::list<int32_t> nghIds;
+    for (ImageObject* ngh : nghs) {
+        nghIds.push_back(ngh->m_id);
+    }
+    EXPECT_EQ(nghIds, expectedIds);
+}
+
+TEST(NeighborIterator, singlePixelLTCorner8Neighbors) {
+    const std::list<int32_t> expectedIds = { 0, 2 };
+    std::shared_ptr<ImageObjectManager> imgObjMngr = std::make_shared<ImageObjectManager>();
+    cv::Mat image(10, 10, CV_32S);
+    image.setTo(0);
+
+    cv::Point org(50, 70);
+    cv::Point pixelLocation(0, 0);
+
+    ImageObject& obj = imgObjMngr->createObject();
+    obj.m_innerPoint = pixelLocation + org;
+    obj.m_pixelCount = 1;
+    obj.m_boundingRect = cv::Rect(pixelLocation.x, pixelLocation.y, 1, 1) + org;
+    image.at<int32_t>(pixelLocation) = obj.m_id;
+
+    ImageObject& obj2 = imgObjMngr->createObject();
+
+    for (int y = 0; y < image.rows; ++y) {
+        for (int x = 0; x < image.cols; ++x) {
+            int32_t id = image.at<int32_t>(cv::Point(x, y));
+            if (id == 0) {
+                image.at<int32_t>(cv::Point(x, y)) = obj2.m_id;
+                obj2.m_pixelCount++;
+            }
+        }
+    }
+    const int32_t idCheck = image.at<int32_t>(pixelLocation);
+    ASSERT_EQ(idCheck, obj.m_id);
+    obj2.m_innerPoint = cv::Point(0, image.rows - 1);
+    obj2.m_boundingRect = cv::Rect(0, 0, image.rows, image.cols);
+    NeighborContainer nghs(&obj, imgObjMngr.get(), image, org, true);
+    std::list<int32_t> nghIds;
+    for (ImageObject* ngh : nghs) {
+        nghIds.push_back(ngh==nullptr?0:ngh->m_id);
+    }
+    EXPECT_EQ(nghIds, expectedIds);
+}
+
+TEST(NeighborIterator, singlePixelRBCorner8Neighbors) {
+    const std::list<int32_t> expectedIds = { 2, 0 };
+    std::shared_ptr<ImageObjectManager> imgObjMngr = std::make_shared<ImageObjectManager>();
+    cv::Mat image(10, 10, CV_32S);
+    image.setTo(0);
+
+    cv::Point org(50, 60);
+    cv::Point pixelLocation(9, 9);
+
+    ImageObject& obj = imgObjMngr->createObject();
+    obj.m_innerPoint = pixelLocation + org;
+    obj.m_pixelCount = 1;
+    obj.m_boundingRect = cv::Rect(pixelLocation.x, pixelLocation.y, 1, 1) + org;
+    image.at<int32_t>(pixelLocation) = obj.m_id;
+
+    ImageObject& obj2 = imgObjMngr->createObject();
+
+    for (int y = 0; y < image.rows; ++y) {
+        for (int x = 0; x < image.cols; ++x) {
+            int32_t id = image.at<int32_t>(cv::Point(x, y));
+            if (id == 0) {
+                image.at<int32_t>(cv::Point(x, y)) = obj2.m_id;
+                obj2.m_pixelCount++;
+            }
+        }
+    }
+    const int32_t idCheck = image.at<int32_t>(pixelLocation);
+    ASSERT_EQ(idCheck, obj.m_id);
+    obj2.m_innerPoint = cv::Point(0, image.rows - 1);
+    obj2.m_boundingRect = cv::Rect(0, 0, image.rows, image.cols);
+    NeighborContainer nghs(&obj, imgObjMngr.get(), image, org, true);
+    std::list<int32_t> nghIds;
+    for (ImageObject* ngh : nghs) {
+        nghIds.push_back(ngh == nullptr ? 0 : ngh->m_id);
+    }
+    EXPECT_EQ(nghIds, expectedIds);
+}
