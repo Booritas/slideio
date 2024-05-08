@@ -8,6 +8,7 @@
 #include "tests/testlib/testtools.hpp"
 #include "slideio/processor/project.hpp"
 #include "slideio/processor/tile.hpp"
+#include "slideio/processor/multiresolutionsegmentation.hpp"
 
 using namespace slideio;
 
@@ -20,7 +21,9 @@ TEST(Processor, simple) {
     std::shared_ptr<CVScene> scene = slide->getScene(0);
     std::shared_ptr<Storage> storage = Storage::createStorage(storagePath, scene->getRect().size());
     std::shared_ptr<Project> project = std::make_shared<Project>(scene, storage);
-    //Processor::multiResolutionSegmentation(project, 0, 0, 0);
+    std::shared_ptr<MultiResolutionSegmentationParameters> params = 
+        std::make_shared<MultiResolutionSegmentationParameters>(1.,cv::Size(512,512));
+    mutliResolutionSegmentation(project,params);
 }
 
 TEST(ProcessorTools, rotatePixelCW) {

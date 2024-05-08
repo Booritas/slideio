@@ -58,6 +58,9 @@ static void processTile(std::shared_ptr<ImageObjectManager>& imgObjMngr, const c
             if(processedIds.find(id) == processedIds.end()) {
                 NeighborContainer nghs(obj, imgObjMngr.get(), objectsMat, org);
                 for(ImageObject* ngh:nghs) {
+                    if(!ngh) {
+                        continue;
+                    }
                     if(processedIds.find(ngh->m_id) == processedIds.end() && neighborScores.find(ngh) == neighborScores.end()) {
                         double score = mergeScore(obj, ngh);
                         if(score >1.) {
@@ -85,30 +88,30 @@ void slideio::mutliResolutionSegmentation(std::shared_ptr<Project> &project,
     auto objects = project->getObjects();
 
     if (!scene) {
-        RAISE_RUNTIME_ERROR << "Multiresolution Segmentation: Scene is not initialized";
+        RAISE_RUNTIME_ERROR << "Multi-resolution Segmentation: Scene is not initialized";
     }
 
     if (!storage) {
-        RAISE_RUNTIME_ERROR << "Multiresolution Segmentation: Storage is not initialized";
+        RAISE_RUNTIME_ERROR << "Multi-resolution Segmentation: Storage is not initialized";
     }
 
     if (!objects) {
-        RAISE_RUNTIME_ERROR << "Multiresolution Segmentation: ImageObjectManager is not initialized";
+        RAISE_RUNTIME_ERROR << "Multi-resolution Segmentation: ImageObjectManager is not initialized";
     }
 
     const double scale = parameters->getScale();
     if (scale <= 0) {
-        RAISE_RUNTIME_ERROR << "Multiresolution Segmentation: Scale must be positive. Received:" << scale;
+        RAISE_RUNTIME_ERROR << "Multi-resolution Segmentation: Scale must be positive. Received:" << scale;
     }
     const cv::Size sceneTileSize = parameters->getTileSize();
 
     if (sceneTileSize.width <= 0 || sceneTileSize.height <= 0) {
-        RAISE_RUNTIME_ERROR << "Multiresolution Segmentation: Tile size must be positive. Received:" << sceneTileSize;
+        RAISE_RUNTIME_ERROR << "Multi-resolution Segmentation: Tile size must be positive. Received:" << sceneTileSize;
     }
 
     const cv::Size tileOverlapping = parameters->getTileOverlapping();
     if (tileOverlapping.width < 0 || tileOverlapping.height < 0) {
-        RAISE_RUNTIME_ERROR << "Multiresolution Segmentation: Tile overlapping must be non-negative. Received:"
+        RAISE_RUNTIME_ERROR << "Multi-resolution Segmentation: Tile overlapping must be non-negative. Received:"
                             << tileOverlapping;
     }
     const cv::Rect imageRect = scene->getRect();
