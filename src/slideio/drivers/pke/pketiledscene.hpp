@@ -3,6 +3,8 @@
 // of this distribution and at http://slideio.com/license.html.
 #pragma once
 
+#include <tinyxml2.h>
+
 #include "slideio/drivers/PKE/PKEscene.hpp"
 #include "slideio/imagetools/tifftools.hpp"
 #include "slideio/core/tools/tilecomposer.hpp"
@@ -38,6 +40,7 @@ namespace slideio
         void initializeBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices, cv::OutputArray output) override;
     private:
         std::vector<slideio::TiffDirectory> m_directories;
+        bool m_isUnmixed = false;
     };
 }
 

@@ -8,6 +8,9 @@
 #include "slideio/drivers/pke/pkescene.hpp"
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/imagetools/cvtools.hpp"
+#include <tinyxml2.h>
+
+#include "slideio/core/tools/xmltools.hpp"
 
 using namespace slideio;
 
@@ -26,9 +29,51 @@ PKETiledScene::PKETiledScene(const std::string& filePath, libtiff::TIFF* hFile, 
 
 void PKETiledScene::initialize()
 {
-    m_resolution = { 0., 0. };
+    const auto& directory = m_directories[0];
+    const auto& description = directory.description;
+    if (!description.empty()) {
+        tinyxml2::XMLDocument doc;
+        tinyxml2::XMLError error = doc.Parse(description.c_str(), description.size());
+        if (error != tinyxml2::XML_SUCCESS) {
+            RAISE_RUNTIME_ERROR << "PKEImageDriver: Error parsing image description xml: " << static_cast<int>(error);
+        }
+        tinyxml2::XMLElement* root = doc.RootElement();
+        if (!root) {
+            RAISE_RUNTIME_ERROR << "PKEImageDriver: Error parsing image description xml: root element is null";
+        }
+        // Extract magnification
+        double magnification = -1.;
+        auto xmlScanResolution = root->FirstChildElement("ScanResolution");
+        if (xmlScanResolution) {
+            auto xmlMagnification = xmlScanResolution->FirstChildElement("Magnification");
+            if (xmlMagnification) {
+                magnification = xmlMagnification->DoubleText();
+            }
+        }
+        if(magnification < 0) {
+            auto xmlObjective = root->FirstChildElement("Objective");
+            if (xmlObjective) {
+                magnification = xmlObjective->DoubleText();
+            }
+        }
+        if (magnification > 0) {
+            m_magnification = magnification;
+        }
+        // Extract name
+        auto xmlName = root->FirstChildElement("SlideID");
+        if (xmlName) {
+            m_name = xmlName->GetText();
+        }
+        // Extract isUnmixed
+        auto xmlUnmixed = root->FirstChildElement("IsUnmixedComponent");
+        if (xmlUnmixed) {
+            m_isUnmixed = xmlUnmixed->BoolText();
+        }
+    }
+
     auto& dir = m_directories[0];
     m_dataType = dir.dataType;
+    m_resolution = dir.res;
 
     if (m_dataType == DataType::DT_None || m_dataType == DataType::DT_Unknown)
     {
@@ -44,9 +89,7 @@ void PKETiledScene::initialize()
             m_dataType = DataType::DT_Unknown;
         }
     }
-    m_magnification = PKETools::extractMagnifiation(dir.description);
-    double res = PKETools::extractResolution(dir.description);
-    m_resolution = { res, res };
+
     if (!m_directories.empty())
     {
         const auto& dir = m_directories.front();

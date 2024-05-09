@@ -2,6 +2,10 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/drivers/pke/pkeslide.hpp"
+
+#include <fstream>
+#include <tinyxml2.h>
+
 #include "slideio/imagetools/imagetools.hpp"
 #include "slideio/drivers/pke/pkesmallscene.hpp"
 #include "slideio/drivers/pke/pketiledscene.hpp"
@@ -47,7 +51,6 @@ std::shared_ptr<CVScene> PKESlide::getScene(int index) const
 std::shared_ptr<PKESlide> PKESlide::openFile(const std::string& filePath)
 {
     SLIDEIO_LOG(INFO) << "PKESlide::openFile: " << filePath;
-    namespace fs = boost::filesystem;
     std::shared_ptr<PKESlide> slide;
     std::vector<TiffDirectory> directories;
     libtiff::TIFF* tiff(nullptr);
@@ -60,69 +63,51 @@ std::shared_ptr<PKESlide> PKESlide::openFile(const std::string& filePath)
 
     TiffTools::scanFile(tiff, directories);
 
-    std::vector<int> image;
-    int thumbnail(-1), macro(-1), label(-1);
-    image.push_back(0);
-    int nextDir = 1;
-    if(static_cast<int>(directories.size()) > nextDir) {
-        if(!directories[nextDir].tiled){
-            thumbnail = nextDir;
-            nextDir++;
-        }
-    }
-    for(int dir=nextDir; dir<directories.size(); dir++) {
-        auto directory = directories[dir];
-        if(!directory.tiled)
-            break;
-        image.push_back(dir);
-        nextDir++;
-    }
-    for(;nextDir<directories.size(); nextDir++) {
-        auto directory = directories[nextDir];
-        if(directory.description.find("label")!=std::string::npos)
-            label = nextDir;
-        else if(directory.description.find("macro")!=std::string::npos)
-            macro = nextDir;
-    }
-    std::vector<std::shared_ptr<CVScene>> scenes;
+    std::vector<TiffDirectory> image_dirs;
     std::map<std::string, std::shared_ptr<CVScene>> auxImages;
     std::list<std::string> auxNames;
+    std::string metadata;
 
-    if(!image.empty()){
-        std::vector<TiffDirectory> image_dirs;
-        image_dirs.reserve(image.size());
-        for(const auto index: image){
-            image_dirs.push_back(directories[index]);
+    for (const auto& directory : directories) {
+        const auto& description = directory.description;
+        if (!description.empty()) {
+            tinyxml2::XMLDocument doc;
+            tinyxml2::XMLError error = doc.Parse(description.c_str(), description.size());
+            if (error != tinyxml2::XML_SUCCESS) {
+                RAISE_RUNTIME_ERROR << "PKEImageDriver: Error parsing image description xml: " << static_cast<int>(error);
+            }
+            tinyxml2::XMLElement* root = doc.RootElement();
+            if(!root) {
+                RAISE_RUNTIME_ERROR << "PKEImageDriver: Error parsing image description xml: root element is null";
+            }
+            auto xmlImageType= root->FirstChildElement("ImageType");
+            if(xmlImageType) {
+                std::string name;
+                std::string type = xmlImageType->GetText();
+                if(type == "FullResolution" || type == "ReducedResolution") {
+                    if(metadata.empty() && type == "FullResolution") {
+                        metadata = description;
+                    }
+                    image_dirs.push_back(directory);
+                } else if(type == "Thumbnail" || type == "Overview" || type == "Label") {
+                    std::shared_ptr<CVScene> scene(new PKESmallScene(filePath, type, directory, true));
+                    auxImages[type] = scene;
+                    auxNames.emplace_back(type);
+                }
+            }
         }
-        std::shared_ptr<CVScene> scene(new PKETiledScene(filePath,keeper.release(),"Image", image_dirs));
-        scenes.push_back(scene);
     }
-    if(thumbnail>=0) {
-        std::shared_ptr<CVScene> scene(new PKESmallScene(filePath, THUMBNAIL, directories[thumbnail], true));
-        auxImages[THUMBNAIL] = scene;
-        auxNames.emplace_back(THUMBNAIL);
-    }
-    if(label>=0) {
-        std::shared_ptr<CVScene> scene(new PKESmallScene(filePath,LABEL, directories[label], true));
-        auxImages[LABEL] = scene;
-        auxNames.emplace_back(LABEL);
-    }
-    if(macro>=0) {
-        std::shared_ptr<CVScene> scene = std::make_shared <PKESmallScene>(
-            filePath, MACRO, directories[macro], tiff);
-        auxImages[MACRO] = scene;
-        auxNames.emplace_back(MACRO);
-    }
+
+    std::shared_ptr<CVScene> scene(new PKETiledScene(filePath,keeper.release(),"Image", image_dirs));
+    std::vector<std::shared_ptr<CVScene>> scenes;
+    scenes.push_back(scene);
     slide.reset(new PKESlide);
     slide->m_Scenes.assign(scenes.begin(), scenes.end());
     slide->m_filePath = filePath;
     slide->m_auxImages = auxImages;
     slide->m_auxNames = auxNames;
+    slide->m_rawMetadata = metadata;
 
-    if(!directories.empty()) {
-        const auto& dir = directories.front();
-        slide->m_rawMetadata = dir.description;
-    }
     return slide;
 }
 

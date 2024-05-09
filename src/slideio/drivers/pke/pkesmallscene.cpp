@@ -37,9 +37,9 @@ PKESmallScene::PKESmallScene(const std::string& filePath,
     }
     if(!auxiliary)
     {
-        m_magnification = PKETools::extractMagnifiation(dir.description);
-        double res = PKETools::extractResolution(dir.description);
-        m_resolution = { res, res };
+        //m_magnification = PKETools::extractMagnifiation(dir.description);
+        //double res = PKETools::extractResolution(dir.description);
+        //m_resolution = { res, res };
     }
     m_compression = m_directory.slideioCompression;
     m_levelInfo.setMagnification(0.);
