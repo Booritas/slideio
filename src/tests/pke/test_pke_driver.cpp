@@ -101,3 +101,30 @@ TEST(PKEImageDriver, openFLFile) {
     EXPECT_EQ(expectedChannelNames, channelNames);
 
 }
+
+TEST(PKEImageDriver, readBrightFieldRegion) {
+    std::string filePath = TestTools::getFullTestImagePath("pke", "openmicroscopy/PKI_scans/HandEcompressed_Scan1.qptiff");
+    std::string testFilePath = TestTools::getFullTestImagePath("pke", "test-images/HandEcompressed_Scan1 (1, x=11190, y=8580, w=1622, h=963).png");
+    slideio::PKEImageDriver driver;
+    std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    const int numScenes = slide->getNumScenes();
+    ASSERT_EQ(1, numScenes);
+    std::shared_ptr<CVScene> scene = slide->getScene(0);
+    cv::Rect rectRoi = { 11190, 8580, 1622, 963 };
+    cv::Mat raster;
+    scene->readBlock(rectRoi, raster);
+    cv::Mat testRaster;
+    TestTools::readPNG(testFilePath, testRaster);
+    TestTools::compareRasters(raster, testRaster);
+    cv::Size resampledSize = rectRoi.size();
+    double scale = 0.333;
+    resampledSize.width = static_cast<int>(resampledSize.width*scale);
+    resampledSize.height = static_cast<int>(resampledSize.height*scale);
+    scene->readResampledBlock(rectRoi, resampledSize, raster);
+    cv::resize(testRaster, testRaster, resampledSize);
+    double similarity = ImageTools::computeSimilarity2(raster, testRaster);
+    //TestTools::showRasters(raster, testRaster);
+    EXPECT_GE(similarity, 0.92);
+}
+
