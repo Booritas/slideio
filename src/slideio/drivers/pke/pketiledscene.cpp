@@ -1,16 +1,14 @@
 // This file is part of slideio project.
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
+
 #include "slideio/drivers/pke//pketiledscene.hpp"
 #include "slideio/imagetools/tifftools.hpp"
 #include "slideio/drivers/pke/pketools.hpp"
-#include "slideio/imagetools/imagetools.hpp"
 #include "slideio/drivers/pke/pkescene.hpp"
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/imagetools/cvtools.hpp"
 #include <tinyxml2.h>
-
-#include "slideio/core/tools/xmltools.hpp"
 
 using namespace slideio;
 
@@ -99,20 +97,63 @@ void PKETiledScene::initialize()
         {
             m_compression = Compression::Jpeg2000;
         }
-    }
-    if(!m_directories.empty()) {
-        const int numLevels = static_cast<int>(m_directories.size());
-        const int width0 = m_directories[0].width;
-        m_levels.resize(m_directories.size());
+        const int fullResolutionWidth = m_directories[0].width;
+        const int fullResolutionHeight = m_directories[0].height;
+
+        int numFullResolutions = 0;
+        int lastWidth = 0;
+        int index = 0;
+        for (const auto& dir : m_directories) {
+            if(dir.width == fullResolutionWidth && dir.height == fullResolutionHeight) {
+                numFullResolutions++;
+            }
+            if (lastWidth != dir.width && dir.width > 0 && dir.height > 0) {
+                lastWidth = dir.width;
+                m_zoomDirectoryIndices.push_back(index);
+            }
+            ++index;
+        }
+
+        m_numChannels = numFullResolutions* m_directories.front().channels;
+
+        const int numLevels = static_cast<int>(m_zoomDirectoryIndices.size());
+        m_levels.resize(numLevels);
         for (int lv = 0; lv < numLevels; ++lv) {
-            const TiffDirectory& directory = m_directories[lv];
+            int directoryIndex = m_zoomDirectoryIndices[lv];
+            const TiffDirectory& directory = m_directories[directoryIndex];
             LevelInfo& level = m_levels[lv];
-            const double scale = static_cast<double>(directory.width) / static_cast<double>(width0);
+            const double scale = static_cast<double>(directory.width) / static_cast<double>(fullResolutionWidth);
             level.setLevel(lv);
             level.setScale(scale);
             level.setSize({ directory.width, directory.height });
             level.setTileSize({ directory.tileWidth, directory.tileHeight });
             level.setMagnification(m_magnification * scale);
+        }
+    }
+    initializeChannelNames();
+}
+
+void PKETiledScene::initializeChannelNames() {
+    const auto& dir0 = m_directories.front();
+    if(dir0.channels == 1) {
+        for (int channel = 0; channel < m_numChannels; ++channel) {
+            const auto& dir = m_directories[channel];
+            std::string name;
+            const auto& description = dir.description;
+            tinyxml2::XMLDocument doc;
+            tinyxml2::XMLError error = doc.Parse(description.c_str(), description.size());
+            if (error != tinyxml2::XML_SUCCESS) {
+                RAISE_RUNTIME_ERROR << "PKEImageDriver: Error parsing image description xml: " << static_cast<int>(error);
+            }
+            tinyxml2::XMLElement* root = doc.RootElement();
+            if (!root) {
+                RAISE_RUNTIME_ERROR << "PKEImageDriver: Error parsing image description xml: root element is null";
+            }
+            auto xmlName = root->FirstChildElement("Name");
+            if(xmlName) {
+                name = xmlName->GetText();
+            }
+            m_channelNames.push_back(name);
         }
     }
 }
@@ -126,8 +167,7 @@ cv::Rect PKETiledScene::getRect() const
 
 int PKETiledScene::getNumChannels() const
 {
-    const auto& dir = m_directories[0];
-    return dir.channels;
+    return m_numChannels;
 }
 
 
@@ -205,5 +245,10 @@ void PKETiledScene::initializeBlock(const cv::Size& blockSize, const std::vector
 {
     initializeSceneBlock(blockSize, channelIndices, output);
 }
+
+std::string PKETiledScene::getChannelName(int channel) const {
+    return m_channelNames.empty()?"":m_channelNames[channel];
+}
+
 
 

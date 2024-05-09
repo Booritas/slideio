@@ -3,8 +3,6 @@
 // of this distribution and at http://slideio.com/license.html.
 #pragma once
 
-#include <tinyxml2.h>
-
 #include "slideio/drivers/PKE/PKEscene.hpp"
 #include "slideio/imagetools/tifftools.hpp"
 #include "slideio/core/tools/tilecomposer.hpp"
@@ -19,7 +17,6 @@ namespace slideio
     class SLIDEIO_PKE_EXPORTS PKETiledScene : public PKEScene, public Tiler
     {
     public:
-        void initialize();
         PKETiledScene(const std::string& filePath,
                       const std::string& name,
                       const std::vector<slideio::TiffDirectory>& dirs);
@@ -38,9 +35,16 @@ namespace slideio
         bool readTile(int tileIndex, const std::vector<int>& channelIndices, cv::OutputArray tileRaster,
             void* userData) override;
         void initializeBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices, cv::OutputArray output) override;
+        std::string getChannelName(int channel) const override;
+    private:
+        void initialize();
+        void initializeChannelNames();
     private:
         std::vector<slideio::TiffDirectory> m_directories;
         bool m_isUnmixed = false;
+        std::vector<int> m_zoomDirectoryIndices;
+        int m_numChannels = 0;
+        std::vector<std::string> m_channelNames;
     };
 }
 

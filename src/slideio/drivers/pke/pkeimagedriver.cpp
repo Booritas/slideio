@@ -16,7 +16,7 @@ slideio::PKEImageDriver::~PKEImageDriver()
 
 std::string slideio::PKEImageDriver::getID() const
 {
-	return std::string("PKE");
+	return std::string("QPTIFF");
 }
 
 std::shared_ptr<slideio::CVSlide> slideio::PKEImageDriver::openFile(const std::string& filePath)
