@@ -157,3 +157,40 @@ TEST(PKEImageDriver, readFLRegion) {
     //TestTools::showRasters(resampledRaster, testRasterResampled);
     EXPECT_GE(similarity, 0.99);
 }
+
+void testAuxImage(std::shared_ptr<CVSlide>& slide, const std::string& filePath, const std::string& auxName) {
+    auto thumbnail = slide->getAuxImage(auxName);
+    cv::Mat auxRaster;
+    thumbnail->readBlock(thumbnail->getRect(), auxRaster);
+    TestTools::writePNG(auxRaster, filePath);
+    cv::Mat auxTestRaster;
+    TestTools::readPNG(filePath, auxTestRaster);
+    //TestTools::showRaster(auxTestRaster);
+    TestTools::compareRasters(auxRaster, auxTestRaster);
+}
+
+TEST(PKEImageDriver, auxiliaryImages) {
+    std::string filePath = TestTools::getFullTestImagePath("pke", "openmicroscopy/PKI_scans/LuCa-7color_Scan1.qptiff");
+    const std::list<std::string> auxPaths = {
+        TestTools::getFullTestImagePath("pke", "test-images/LuCa-7color_Scan1.thumb.png"),
+        TestTools::getFullTestImagePath("pke", "test-images/LuCa-7color_Scan1.overv.png"),
+        TestTools::getFullTestImagePath("pke", "test-images/LuCa-7color_Scan1.label.png")
+    };
+
+    slideio::PKEImageDriver driver;
+    std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    const int numScenes = slide->getNumScenes();
+    ASSERT_EQ(1, numScenes);
+    std::shared_ptr<CVScene> scene = slide->getScene(0);
+    std::list<std::string> expectedAuxNames = { "Thumbnail", "Overview", "Label" };
+    std::list<std::string> auxNames = slide->getAuxImageNames();
+    EXPECT_EQ(expectedAuxNames, auxNames);
+    auto auxPath = auxPaths.begin();
+    auto auxName = auxNames.begin();
+    while(auxPath!=auxPaths.end() && auxName!=auxNames.end()) {
+        testAuxImage(slide, *auxPath, *auxName);
+        ++auxPath;
+        ++auxName;
+    }
+}
