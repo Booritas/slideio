@@ -19,5 +19,7 @@ public:
     static void showRasters(cv::Mat& raster1, cv::Mat& raster2);
     static void writePNG(cv::Mat raster, const std::string& filePath);
     static void readPNG(const std::string& filePath, cv::OutputArray output);
+    static void readTiffDirectory(const std::string& filePath, int dir, cv::OutputArray output);
+    static void readTiffDirectories(const std::string& filePath, const std::vector<int>& dirIndices, cv::OutputArray output);
 };
 

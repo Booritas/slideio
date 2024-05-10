@@ -28,7 +28,7 @@ namespace slideio
         cv::Rect getRect() const override;
         void readResampledBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize, const std::vector<int>& channelIndices,
             cv::OutputArray output) override;
-        const slideio::TiffDirectory& findZoomDirectory(double zoom) const;
+        int findZoomLevel(double zoom) const;
         // Tiler methods
         int getTileCount(void* userData) override;
         bool getTileRect(int tileIndex, cv::Rect& tileRect, void* userData) override;
@@ -36,6 +36,7 @@ namespace slideio
             void* userData) override;
         void initializeBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices, cv::OutputArray output) override;
         std::string getChannelName(int channel) const override;
+        bool isBrightField() const;
     private:
         void initialize();
         void initializeChannelNames();

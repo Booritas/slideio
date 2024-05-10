@@ -78,6 +78,7 @@ namespace slideio
             const cv::Mat& tileRaster, const EncodeParameters& parameters,
             uint8_t* buffer=nullptr, int bufferSize=0);
         static std::string readStringTag(libtiff::TIFF* tiff, uint16_t tag);
+        static int getNumberOfDirectories(libtiff::TIFF* tiff);
     };
 }
 

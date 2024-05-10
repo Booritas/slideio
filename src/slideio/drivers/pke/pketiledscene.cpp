@@ -180,61 +180,95 @@ void PKETiledScene::readResampledBlockChannels(const cv::Rect& blockRect, const 
     double zoomX = static_cast<double>(blockSize.width) / static_cast<double>(blockRect.width);
     double zoomY = static_cast<double>(blockSize.height) / static_cast<double>(blockRect.height);
     double zoom = std::max(zoomX, zoomY);
-    const slideio::TiffDirectory& dir = findZoomDirectory(zoom);
+    const int zoomIndex = findZoomLevel(zoom);
+    int dirIndex = m_zoomDirectoryIndices[zoomIndex];
+    const TiffDirectory& dir = m_directories[dirIndex];
     double zoomDirX = static_cast<double>(dir.width) / static_cast<double>(m_directories[0].width); 
     double zoomDirY = static_cast<double>(dir.height) / static_cast<double>(m_directories[0].height);
     cv::Rect resizedBlock;
     Tools::scaleRect(blockRect, zoomDirX, zoomDirY, resizedBlock);
-    TileComposer::composeRect(this, channelIndices, resizedBlock, blockSize, output, (void*)&dir);
+    TileComposer::composeRect(this, channelIndices, resizedBlock, blockSize, output, (void*)&zoomIndex);
 }
 
-const TiffDirectory& PKETiledScene::findZoomDirectory(double zoom) const
+int PKETiledScene::findZoomLevel(double zoom) const
 {
     const cv::Rect sceneRect = getRect();
     const double sceneWidth = static_cast<double>(sceneRect.width);
     const auto& directories = m_directories;
-    int index = Tools::findZoomLevel(zoom, (int)m_directories.size(), [&directories, sceneWidth](int index){
-        return directories[index].width/sceneWidth;
+    const auto& zoomIndices = m_zoomDirectoryIndices;
+    int index = Tools::findZoomLevel(zoom, (int)m_zoomDirectoryIndices.size(), [&directories, &zoomIndices, sceneWidth](int index){
+        int directoryIndex = zoomIndices[index];
+        return directories[directoryIndex].width/sceneWidth;
     });
-    return m_directories[index];
+    return index;
 }
 
 int PKETiledScene::getTileCount(void* userData)
 {
-    const TiffDirectory* dir = (const TiffDirectory*)userData;
-    int tilesX = (dir->width-1)/dir->tileWidth + 1;
-    int tilesY = (dir->height-1)/dir->tileHeight + 1;
+    const int level = *(static_cast<int*>(userData));
+    const int dirIndex = m_zoomDirectoryIndices[level];
+    const TiffDirectory& dir = m_directories[dirIndex];
+
+    int tilesX = (dir.width-1)/dir.tileWidth + 1;
+    int tilesY = (dir.height-1)/dir.tileHeight + 1;
     return tilesX * tilesY;
 }
 
 bool PKETiledScene::getTileRect(int tileIndex, cv::Rect& tileRect, void* userData)
 {
-    const TiffDirectory* dir = (const TiffDirectory*)userData;
-    const int tilesX = (dir->width - 1) / dir->tileWidth + 1;
-    const int tilesY = (dir->height - 1) / dir->tileHeight + 1;
+    const int level = *(static_cast<int*>(userData));
+    const int dirIndex = m_zoomDirectoryIndices[level];
+    const TiffDirectory& dir = m_directories[dirIndex];
+
+    const int tilesX = (dir.width - 1) / dir.tileWidth + 1;
+    const int tilesY = (dir.height - 1) / dir.tileHeight + 1;
     const int tileY = tileIndex / tilesX;
     const int tileX = tileIndex % tilesX;
-    tileRect.x = tileX * dir->tileWidth;
-    tileRect.y = tileY * dir->tileHeight;
-    tileRect.width = dir->tileWidth;
-    tileRect.height = dir->tileHeight;
+    tileRect.x = tileX * dir.tileWidth;
+    tileRect.y = tileY * dir.tileHeight;
+    tileRect.width = dir.tileWidth;
+    tileRect.height = dir.tileHeight;
     return true;
 }
 
 bool PKETiledScene::readTile(int tileIndex, const std::vector<int>& channelIndices, cv::OutputArray tileRaster,
     void* userData)
 {
-    const TiffDirectory* dir = static_cast<const TiffDirectory*>(userData);
+    const int level = *(static_cast<int*>(userData));
     bool ret = false;
     try
     {
-        TiffTools::readTile(getFileHandle(), *dir, tileIndex, channelIndices, tileRaster);
-        ret = true;
+        if(isBrightField()) {
+            const int dirIndex = m_zoomDirectoryIndices[level];
+            const TiffDirectory& dir = m_directories[dirIndex];
+            TiffTools::readTile(getFileHandle(), dir, tileIndex, channelIndices, tileRaster);
+            ret = true;
+        }
+        else if (channelIndices.size() == 1) {
+            const int dirIndex = m_zoomDirectoryIndices[level] + channelIndices[0];
+            const TiffDirectory& dir = m_directories[dirIndex];
+            TiffTools::readTile(getFileHandle(), dir, tileIndex, { 0 }, tileRaster);
+            ret = true;
+        } else {
+            std::vector<cv::Mat> channelRasters;
+            std::vector<int> channels = Tools::completeChannelList(channelIndices, getNumChannels());
+            for(const auto& channelIndex : channels) {
+                const int dirIndex = m_zoomDirectoryIndices[level] + channelIndex;
+                const TiffDirectory& dir = m_directories[dirIndex];
+                cv::Mat channelRaster;
+                TiffTools::readTile(getFileHandle(), dir, tileIndex, {0}, channelRaster);
+                channelRasters.push_back(channelRaster);
+            }
+            cv::merge(channelRasters, tileRaster);
+            ret = true;
+        }
     }
     catch(std::runtime_error&){
-        const cv::Size tileSize = { dir->tileWidth, dir->tileHeight };
-        const slideio::DataType dt = dir->dataType;
-        tileRaster.create(tileSize, CV_MAKETYPE(slideio::CVTools::toOpencvType(dt), dir->channels));
+        const int dirIndex = m_zoomDirectoryIndices[level];
+        const TiffDirectory& dir = m_directories[dirIndex];
+        const cv::Size tileSize = { dir.tileWidth, dir.tileHeight };
+        const slideio::DataType dt = dir.dataType;
+        tileRaster.create(tileSize, CV_MAKETYPE(slideio::CVTools::toOpencvType(dt), dir.channels));
         tileRaster.setTo(0);
     }
 
@@ -248,6 +282,10 @@ void PKETiledScene::initializeBlock(const cv::Size& blockSize, const std::vector
 
 std::string PKETiledScene::getChannelName(int channel) const {
     return m_channelNames.empty()?"":m_channelNames[channel];
+}
+
+bool PKETiledScene::isBrightField() const {
+    return m_directories.front().channels == m_numChannels;
 }
 
 

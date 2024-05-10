@@ -128,3 +128,32 @@ TEST(PKEImageDriver, readBrightFieldRegion) {
     EXPECT_GE(similarity, 0.92);
 }
 
+TEST(PKEImageDriver, readFLRegion) {
+    std::string filePath = TestTools::getFullTestImagePath("pke", "openmicroscopy/PKI_scans/LuCa-7color_Scan1.qptiff");
+    std::string testFilePath = TestTools::getFullTestImagePath("pke", "test-images/LuCa-7color_Scan1.qptiff - resolution #1 (1, x=4981, y=10654, w=2367, h=1578).tif");
+    slideio::PKEImageDriver driver;
+    std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    const int numScenes = slide->getNumScenes();
+    ASSERT_EQ(1, numScenes);
+    std::shared_ptr<CVScene> scene = slide->getScene(0);
+    cv::Rect rectRoi = { 4981, 10654, 2367, 1578 };
+    cv::Mat raster;
+    const std::vector<int> channelIndices = { 0 };
+    scene->readBlockChannels(rectRoi, channelIndices, raster);
+    cv::Mat testRaster;
+    TestTools::readTiffDirectories(testFilePath, channelIndices, testRaster);
+    TestTools::compareRasters(raster, testRaster);
+    //TestTools::showRasters(raster, testRaster);
+    cv::Size resampledSize = rectRoi.size();
+    double scale = 0.333;
+    resampledSize.width = static_cast<int>(resampledSize.width * scale);
+    resampledSize.height = static_cast<int>(resampledSize.height * scale);
+    cv::Mat resampledRaster;
+    scene->readResampledBlockChannels(rectRoi, resampledSize, channelIndices, resampledRaster);
+    cv::Mat testRasterResampled;
+    cv::resize(testRaster, testRasterResampled, resampledSize);
+    double similarity = ImageTools::computeSimilarity2(resampledRaster, testRasterResampled);
+    //TestTools::showRasters(resampledRaster, testRasterResampled);
+    EXPECT_GE(similarity, 0.99);
+}

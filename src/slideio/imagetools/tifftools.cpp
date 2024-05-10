@@ -713,7 +713,7 @@ void TiffTools::readRegularTile(libtiff::TIFF* hFile, const TiffDirectory& dir, 
                     "TiffTools: error reading encoded tiff tile %1% of directory %2%."
                     "Compression: %3%") % tile % dir.dirIndex % dir.compression).str());
     }
-    if(channelIndices.empty())
+    if(channelIndices.empty() || (channelIndices.size() == 1 && dir.channels==1))
     {
         tileRaster.copyTo(output);
     }
@@ -906,6 +906,10 @@ std::string TiffTools::readStringTag(libtiff::TIFF* tiff, uint16_t tag)
                result = value;
     }
     return result;  
+}
+
+int TiffTools::getNumberOfDirectories(libtiff::TIFF* tiff) {
+	return libtiff::TIFFNumberOfDirectories(tiff);
 }
 
 

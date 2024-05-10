@@ -10,7 +10,11 @@
 #include <opencv2/imgproc.hpp>
 #include <opencv2/core/mat.hpp>
 #include "slideio/base/exceptions.hpp"
+#include "slideio/imagetools/tifftools.hpp"
 #include <png.h>
+
+#include "slideio/core/tools/tools.hpp"
+#include "slideio/imagetools/tiffkeeper.hpp"
 
 
 static const char* TEST_PATH_VARIABLE = "SLIDEIO_TEST_DATA_PATH";
@@ -276,5 +280,36 @@ void TestTools::readPNG(const std::string& filePath, cv::OutputArray output)
     }
 
     fclose(fp);
+}
+
+void TestTools::readTiffDirectory(const std::string& filePath, int dirNum, cv::OutputArray output) {
+    auto tiffFile= slideio::TiffTools::openTiffFile(filePath);
+    slideio::TiffDirectory dir;
+    slideio::TiffTools::scanTiffDirTags(tiffFile, dirNum, 0, dir);
+    if(dir.tiled) {
+        RAISE_RUNTIME_ERROR << "Tiled tiff is not supported";
+    } else {
+        slideio::TiffTools::readStripedDir(tiffFile, dir, output);
+    }
+}
+
+void TestTools::readTiffDirectories(const std::string& filePath, const std::vector<int>& dirIndices, cv::OutputArray output) {
+    slideio::TIFFKeeper tiffFile(slideio::TiffTools::openTiffFile(filePath));
+    int dirs = slideio::TiffTools::getNumberOfDirectories(tiffFile);
+    std::vector<int> indices = slideio::Tools::completeChannelList(dirIndices, dirs);
+    std::vector<cv::Mat> images;
+    for(auto dirNum: indices) {
+        cv::Mat image;
+        slideio::TiffDirectory dir;
+        slideio::TiffTools::scanTiffDirTags(tiffFile, dirNum, 0, dir);
+        if (dir.tiled) {
+            RAISE_RUNTIME_ERROR << "Tiled tiff is not supported";
+        }
+        else {
+            slideio::TiffTools::readStripedDir(tiffFile, dir, image);
+            images.push_back(image);
+        }
+    }
+    cv::merge(images, output);
 }
 
