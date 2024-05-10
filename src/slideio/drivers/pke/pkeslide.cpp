@@ -66,7 +66,7 @@ std::shared_ptr<PKESlide> PKESlide::openFile(const std::string& filePath)
     std::vector<TiffDirectory> image_dirs;
     std::map<std::string, std::shared_ptr<CVScene>> auxImages;
     std::list<std::string> auxNames;
-    std::string metadata;
+    std::list<std::string> metadataItems;
 
     for (const auto& directory : directories) {
         const auto& description = directory.description;
@@ -85,8 +85,8 @@ std::shared_ptr<PKESlide> PKESlide::openFile(const std::string& filePath)
                 std::string name;
                 std::string type = xmlImageType->GetText();
                 if(type == "FullResolution" || type == "ReducedResolution") {
-                    if(metadata.empty() && type == "FullResolution") {
-                        metadata = description;
+                    if(type == "FullResolution") {
+                        metadataItems.push_back(description);
                     }
                     image_dirs.push_back(directory);
                 } else if(type == "Thumbnail" || type == "Overview" || type == "Label") {
@@ -106,8 +106,23 @@ std::shared_ptr<PKESlide> PKESlide::openFile(const std::string& filePath)
     slide->m_filePath = filePath;
     slide->m_auxImages = auxImages;
     slide->m_auxNames = auxNames;
-    slide->m_rawMetadata = metadata;
 
+    tinyxml2::XMLDocument xmlMetadata;
+    auto rootMetadata = xmlMetadata.NewElement("Metadata");
+    xmlMetadata.InsertEndChild(rootMetadata);
+
+    for(const auto& metadataItem: metadataItems) {
+        tinyxml2::XMLDocument doc;
+        doc.Parse(metadataItem.c_str());
+        auto root = doc.RootElement();
+        rootMetadata->InsertEndChild(root->DeepClone(&xmlMetadata));
+    }
+    tinyxml2::XMLPrinter printer;
+    xmlMetadata.Print(&printer);
+    slide->m_rawMetadata = printer.CStr();
+    //std::ofstream outFile("D:/Temp/output.xml");
+    //outFile << slide->m_rawMetadata;
+    //outFile.close();
     return slide;
 }
 

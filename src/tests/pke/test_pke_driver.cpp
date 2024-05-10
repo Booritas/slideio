@@ -1,6 +1,7 @@
 ﻿#include <gtest/gtest.h>
 #include "tests/testlib/testtools.hpp"
 #include <string>
+#include <tinyxml2.h>
 #include <opencv2/imgproc.hpp>
 
 #include "slideio/core/tools/tools.hpp"
@@ -193,4 +194,23 @@ TEST(PKEImageDriver, auxiliaryImages) {
         ++auxPath;
         ++auxName;
     }
+}
+
+TEST(PKEImageDriver, metadata) {
+    std::string filePath = TestTools::getFullTestImagePath("pke", "openmicroscopy/PKI_scans/LuCa-7color_Scan1.qptiff");
+    slideio::PKEImageDriver driver;
+    std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    std::string metadata = slide->getRawMetadata();
+    ASSERT_FALSE(metadata.empty());
+    tinyxml2::XMLDocument doc;
+    doc.Parse(metadata.c_str(), metadata.size());
+    auto root = doc.RootElement();
+    int count = 0;
+    for(auto child=root->FirstChildElement(); child!=nullptr; child=child->NextSiblingElement()) {
+        std::string name = child->Name();
+        EXPECT_EQ(name, "PerkinElmer-QPI-ImageDescription");
+        ++count;
+    }
+    EXPECT_EQ(5, count);
 }
