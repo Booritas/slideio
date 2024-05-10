@@ -5,13 +5,13 @@ jobs:
   build-linux:
     runs-on: ubuntu-20.04
     container:
-      image: booritas/slideio-manylinux2014:v2.0.0
+      image: booritas/slideio-manylinux2014:v2.1.0
       env:
         CONAN_REVISIONS_ENABLED: 1
 
     steps:
     - name: Install conan
-      run: python3 -m pip install -U conan==1.63.0
+      run: python3 -m pip install -U conan==1.64.0
 
     - name: Conan version
       run: echo "${{ steps.conan.outputs.version }}"
