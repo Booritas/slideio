@@ -3,7 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 #pragma once
 
-#include "slideio/drivers/PKE/PKEscene.hpp"
+#include "slideio/drivers/pke/pkescene.hpp"
 #include "slideio/imagetools/tifftools.hpp"
 #include "slideio/core/tools/tilecomposer.hpp"
 
