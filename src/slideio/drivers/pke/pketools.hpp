@@ -3,7 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 #pragma once
 
-#include "slideio/drivers/PKE/PKE_api_def.hpp"
+#include "slideio/drivers/pke/pke_api_def.hpp"
 #include <opencv2/core.hpp>
 #include <string>
 
