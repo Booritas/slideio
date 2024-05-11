@@ -5,7 +5,7 @@ jobs:
   build-linux:
     runs-on: ubuntu-20.04
     container:
-      image: booritas/slideio-manylinux2014:v2.1.0
+      image: booritas/slideio-manylinux2014:v2.2.0
       env:
         CONAN_REVISIONS_ENABLED: 1
 
@@ -28,7 +28,10 @@ jobs:
       uses: actions/checkout@v2
       with:
         submodules: 'true'
-  
+
+    - name: list available python versions
+      run: ls -la /opt/python
+    
     - name: Install conan dependencies
       run: python3 install.py -a conan -c release
       
