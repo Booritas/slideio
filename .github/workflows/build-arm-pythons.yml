@@ -23,7 +23,8 @@ jobs:
 
     - name: Install tools
       run: |
-        HOMEBREW_NO_AUTO_UPDATE=1 brew pyenv openssl readline sqlite3 xz zlib tree
+        export HOMEBREW_NO_AUTO_UPDATE=1
+        brew pyenv openssl readline sqlite3 xz zlib tree
 
     - name: Install pythons
       run: |
