@@ -1,4 +1,4 @@
-name: Mac arm slideio build
+name: Mac arm pythons
 
 on: [workflow_dispatch]
 env:
