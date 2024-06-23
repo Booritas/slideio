@@ -1,0 +1,20 @@
+jobs:
+  build:
+    macos:
+      xcode: 15.3
+    resource_class: macos.m1.medium.gen1
+
+    steps:
+      - checkout
+      - run: 
+        name: xcode version
+        command: xcodebuild -version
+      - run:
+        name: install tools
+        command: brew install pyenv openssl readline sqlite3 xz zlib tree
+      - run:
+        name: install conan
+        command: \
+          python3 -m pip install setuptools
+          python3 -m pip install conan==1.64.0
+          conan --version
