@@ -49,7 +49,10 @@ jobs:
 
     - name: Install conan dependencies
       run: python install.py -a conan  -c release
-      
+
+    - name: Upload packages to digiatal ocean
+      run: conan upload "*" -r digitalo --all -c      
+
     - name: build python packages
       working-directory: ./src/py-bind
       run: python build_slideio_dists.py "${{ github.workspace }}/conan-recipes/py.txt"
