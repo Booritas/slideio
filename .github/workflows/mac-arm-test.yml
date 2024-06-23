@@ -1,0 +1,76 @@
+name: Mac arm test workflow
+
+on: [workflow_dispatch]
+env:
+  CONAN_REVISIONS_ENABLED: 1
+  CONAN_DISABLE_CHECK_COMPILER: 1
+jobs:
+  build-mac-win:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-13]
+    steps:
+
+    - uses: actions/checkout@v3
+    - uses: actions/setup-python@v3
+      with:
+        python-version: '3.9.13'
+        architecture: 'arm64'
+
+    - name: Display Python version
+      run: python --version
+
+    - name: Install Conan
+      id: conan
+      uses: turtlebrowser/get-conan@main
+      with:
+        version: 1.64.0
+
+    - name: Conan version
+      run: echo "${{ steps.conan.outputs.version }}"
+
+    - name: Add digital ocean conan remote
+      run: |
+        conan remote add digitalo http://167.172.176.224
+        conan user -p ${{ secrets.CONAN_DO_PASSWORD }} -r digitalo ${{ secrets.CONAN_DO_USER }}
+
+    - name: checkout
+      uses: actions/checkout@v2
+      with:
+        submodules: 'true'
+
+    - name: chekout conan recipes
+      run: git clone 'https://gitlab.com/bioslide/conan-recipes.git' conan-recipes
+
+    - name: install python distributions
+      working-directory: ./conan-recipes
+      run: python deploy-python-dists.py
+
+    - name: display python version paths
+      working-directory: ./conan-recipes
+      run: cat "${{ github.workspace }}/conan-recipes/py.txt"
+
+    - name: Install conan dependencies
+      run: python install.py -a conan  -c release
+
+    - name: Upload packages to digiatal ocean
+      run: conan upload "*" -r digitalo --all -c      
+
+    - name: build python packages
+      working-directory: ./src/py-bind
+      run: |
+        cat "${{ github.workspace }}/conan-recipes/py.txt"
+        python build_slideio_dists.py "${{ github.workspace }}/conan-recipes/py.txt"
+
+    - name: display list of generated distributions
+      working-directory: ./src/py-bind
+      run: |
+        ls -la ./dist
+  
+    - name: Archive python packagess
+      uses: actions/upload-artifact@v2
+      with:
+        name: python-dist
+        path: |
+          ./src/py-bind/dist
