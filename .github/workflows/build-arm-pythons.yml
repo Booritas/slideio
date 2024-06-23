@@ -4,6 +4,7 @@ on: [workflow_dispatch]
 env:
   CONAN_REVISIONS_ENABLED: 1
   CONAN_DISABLE_CHECK_COMPILER: 1
+  HOMEBREW_NO_AUTO_UPDATE: 1
 jobs:
   build-mac-win:
     runs-on: ${{ matrix.os }}
@@ -23,7 +24,7 @@ jobs:
 
     - name: Install tools
       run: |
-        brew pyenv openssl readline sqlite3 xz zlib tree
+        brew install pyenv openssl readline sqlite3 xz zlib tree
 
     - name: Install pythons
       run: |
