@@ -1,4 +1,4 @@
-name: Mac arm pythons
+name: Mac arm python versions
 
 on: [workflow_dispatch]
 env:
@@ -28,10 +28,20 @@ jobs:
 
     - name: Install pythons
       run: |
-        pyenv install --list
+        pyenv install 3.6.15
+        pyenv install 3.7.16
+        pyenv install 3.8.16
+        pyenv install 3.9.16
+        pyenv install 3.10.11
         pyenv install 3.11.9
-        pyenv install 3.12.4
+        pyenv install 3.12.4  
     - name: Create python package deployment list
       run: |
         python3 ./src/py-bind/install_py_dists.py ~/.pyenv/versions ./py.txt
         cat ./py.txt
+    - name: Archive python packagess
+      uses: actions/upload-artifact@v2
+      with:
+        name: python-dist
+        path: |
+          ~/.pyenv/versions
