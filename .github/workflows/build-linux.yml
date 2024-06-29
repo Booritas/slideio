@@ -1,0 +1,57 @@
+name: Linux build slideio wheels
+
+on: [workflow_dispatch]
+env:
+  CONAN_REVISIONS_ENABLED: 1
+  CONAN_DISABLE_CHECK_COMPILER: 1
+jobs:
+  build-mac-win:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+    steps:
+
+    - uses: actions/checkout@v3
+      with:
+        submodules: 'true'
+    - uses: conda-incubator/setup-miniconda@v3
+
+    - name: Display Python version
+      run: python --version
+
+    - name: Install Conan
+      id: conan
+      uses: turtlebrowser/get-conan@main
+      with:
+        version: 1.64.0
+
+    - name: Conan version
+      run: echo "${{ steps.conan.outputs.version }}"
+
+    - name: Add digital ocean conan remote
+      run: |
+        conan remote add digitalo http://167.172.176.224
+        conan user -p ${{ secrets.CONAN_DO_PASSWORD }} -r digitalo ${{ secrets.CONAN_DO_USER }}
+
+    - name: checkout
+      uses: actions/checkout@v2
+      with:
+        submodules: 'true'
+
+    - name: Install conan dependencies
+      run: python install.py -a conan  -c release
+
+    - name: Upload packages to digiatal ocean
+      run: conan upload "*" -r digitalo --all -c      
+
+   #  - name: build python packages
+   #    working-directory: ./src/py-bind
+   #    run: python build_slideio_dists.py "${{ github.workspace }}/conan-recipes/py.txt"
+
+    - name: Archive python packagess
+      uses: actions/upload-artifact@v2
+      with:
+        name: python-dist
+        path: |
+          ./src/py-bind/dist
