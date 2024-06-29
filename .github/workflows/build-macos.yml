@@ -9,7 +9,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-14]
+        os: [macos-12, macos-14, windows-2019]
     steps:
 
     - uses: actions/checkout@v3
@@ -32,7 +32,13 @@ jobs:
          python install.py -a conan  -c release
          conan upload "*" -r digitalo --all -c      
 
-    - name: build python packages
+    - name: build Windows python packages
+      if: runner.os == 'Windows'
+      working-directory: ./src/py-bind
+      run: powershell ./build-wheels.sh
+
+    - name: build Macos python packages
+      if: runner.os == 'macOS'
       working-directory: ./src/py-bind
       run: bash ./build-wheels.sh
 

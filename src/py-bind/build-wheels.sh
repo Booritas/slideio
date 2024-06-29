@@ -2,6 +2,17 @@
 set -e
 set -x
 
+# Check OS and platform
+os=$(uname -s)
+platform=$(uname -m)
+minversion=6
+
+if [[ "$os" == "Darwin" && "$platform" == "arm64" ]]; then
+  # Set an environment variable if OS is macOS and platform is ARM
+  minversion=8
+fi
+
+
 # Define an array of Python version strings
 # Define a function to create an array of Python versions
 generate_python_versions() {
@@ -39,7 +50,7 @@ deactivate_and_remove_conda_env() {
   echo "-----end of processing python version $version"
 }
 
-generate_python_versions 8 12
+generate_python_versions minversion 12
 rm -rf ./dist
 eval "$(conda shell.bash hook)"
 
