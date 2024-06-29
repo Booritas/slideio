@@ -23,7 +23,7 @@ jobs:
     - name: Install Conan
       run: |
          conda init
-         conda create -n conan  -y conpython==3.10
+         conda create -n conan  -y python==3.10
          conda activate conan
          python -m pip install conan==1.64.0
 
