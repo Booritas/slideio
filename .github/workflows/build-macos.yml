@@ -1,11 +1,11 @@
-name: Linux build slideio wheels
+name: Macos build slideio wheels
 
 on: [workflow_dispatch]
 env:
   CONAN_REVISIONS_ENABLED: 1
   CONAN_DISABLE_CHECK_COMPILER: 1
 jobs:
-  build-mac-win:
+  build-wheels:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
