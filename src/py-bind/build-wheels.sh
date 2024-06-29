@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e
+set -x
 
 # Define an array of Python version strings
 # Define a function to create an array of Python versions
@@ -18,7 +19,6 @@ generate_python_versions() {
 
 create_and_activate_conda_env() {
   version=$1
-  echo "-----processing python version $version"
   # Create a conda environment for each Python version
   echo "Creating conda environment for Python $version"
   conda create -y -n "env_python_$version" python=$version
@@ -39,7 +39,7 @@ deactivate_and_remove_conda_env() {
   echo "-----end of processing python version $version"
 }
 
-generate_python_versions 6 12
+generate_python_versions 7 12
 rm -rf ./dist
 eval "$(conda shell.bash hook)"
 
