@@ -29,8 +29,8 @@ jobs:
          conan remote add digitalo http://167.172.176.224
          conan user -p ${{ secrets.CONAN_DO_PASSWORD }} -r digitalo ${{ secrets.CONAN_DO_USER }}
          conda search python
-         # python install.py -a conan  -c release
-         # conan upload "*" -r digitalo --all -c      
+         python install.py -a conan  -c release
+         conan upload "*" -r digitalo --all -c      
 
     - name: build python packages
       working-directory: ./src/py-bind
