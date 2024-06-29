@@ -45,9 +45,9 @@ jobs:
     - name: Upload packages to digiatal ocean
       run: conan upload "*" -r digitalo --all -c      
 
-   #  - name: build python packages
-   #    working-directory: ./src/py-bind
-   #    run: python build_slideio_dists.py "${{ github.workspace }}/conan-recipes/py.txt"
+    - name: build python packages
+      working-directory: ./src/py-bind
+      run: build_wheels.sh
 
     - name: Archive python packagess
       uses: actions/upload-artifact@v2
