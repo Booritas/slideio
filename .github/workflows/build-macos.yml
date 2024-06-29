@@ -28,17 +28,8 @@ jobs:
          python -m pip install conan==1.64.0
          conan remote add digitalo http://167.172.176.224
          conan user -p ${{ secrets.CONAN_DO_PASSWORD }} -r digitalo ${{ secrets.CONAN_DO_USER }}
-
-    - name: checkout
-      uses: actions/checkout@v2
-      with:
-        submodules: 'true'
-
-    - name: Install conan dependencies
-      run: python install.py -a conan  -c release
-
-    - name: Upload packages to digiatal ocean
-      run: conan upload "*" -r digitalo --all -c      
+         python install.py -a conan  -c release
+         conan upload "*" -r digitalo --all -c      
 
     - name: build python packages
       working-directory: ./src/py-bind
