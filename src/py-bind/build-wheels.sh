@@ -21,7 +21,7 @@ create_and_activate_conda_env() {
   version=$1
   # Create a conda environment for each Python version
   echo "Creating conda environment for Python $version"
-  conda create -y -n "env_python_$version" python=$version
+  conda create -y -n "env_python_$version" python==$version
   # Activate the environment
   echo "Activating conda environment for Python $version"
   conda activate "env_python_$version"
