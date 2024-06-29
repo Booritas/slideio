@@ -21,7 +21,7 @@ create_and_activate_conda_env() {
   version=$1
   # Create a conda environment for each Python version
   echo "Creating conda environment for Python $version"
-  conda create -y -n "env_python_$version" python==$version
+  conda create -y -n "env_python_$version" python=$version
   # Activate the environment
   echo "Activating conda environment for Python $version"
   conda activate "env_python_$version"
@@ -39,7 +39,7 @@ deactivate_and_remove_conda_env() {
   echo "-----end of processing python version $version"
 }
 
-generate_python_versions 7 12
+generate_python_versions 8 12
 rm -rf ./dist
 eval "$(conda shell.bash hook)"
 
