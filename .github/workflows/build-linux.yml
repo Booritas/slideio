@@ -47,7 +47,7 @@ jobs:
 
     - name: build python packages
       working-directory: ./src/py-bind
-      run: build-wheels.sh
+      run: bash ./build-wheels.sh
 
     - name: Archive python packagess
       uses: actions/upload-artifact@v2
