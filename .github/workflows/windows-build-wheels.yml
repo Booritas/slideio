@@ -48,9 +48,11 @@ jobs:
       run: python deploy-python-dists.py
 
     - name: Install conan dependencies
-      run: |
-        python install.py -a conan  -c release
-        conan upload "*" -r digitalo --all -c      
+      run: python install.py -a conan  -c release
+
+    - name: Upload conan packages to conan server
+      run: conan upload "*" -r digitalo --all -c
+      continue-on-error: true
 
     - name: build python packages
       working-directory: ./src/py-bind
