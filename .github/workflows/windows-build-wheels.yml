@@ -1,4 +1,4 @@
-name: Win/Mac conan dependencies
+name: Windows build slideio wheels
 
 on: [workflow_dispatch]
 env:
@@ -9,7 +9,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-11, windows-2019]
+        os: [windows-2019]
     steps:
 
     - uses: actions/checkout@v3
@@ -25,30 +25,40 @@ jobs:
       id: conan
       uses: turtlebrowser/get-conan@main
       with:
-        version: 1.63.0
+        version: 1.62.0
 
     - name: Conan version
       run: echo "${{ steps.conan.outputs.version }}"
 
-    - name: Add slideio conan remote
-      run: conan remote add slideio ${{ secrets.CONAN_REMOTE }}
-      
     - name: Add digital ocean conan remote
       run: |
         conan remote add digitalo http://167.172.176.224
         conan user -p ${{ secrets.CONAN_DO_PASSWORD }} -r digitalo ${{ secrets.CONAN_DO_USER }}
-
-    - name: Conan remote
-      run: conan remote list
 
     - name: checkout
       uses: actions/checkout@v2
       with:
         submodules: 'true'
 
-    - name: Install conan dependencies
-      run: python install.py -a conan -c release
+    - name: chekout conan recipes
+      run: git clone 'https://gitlab.com/bioslide/conan-recipes.git' conan-recipes
 
-    - name: Upload packages to digiatal ocean
-      run: conan upload "*" -r digitalo --all -c      
-      
+    - name: install python distributions
+      working-directory: ./conan-recipes
+      run: python deploy-python-dists.py
+
+    - name: Install conan dependencies
+      run: |
+        python install.py -a conan  -c release
+        conan upload "*" -r digitalo --all -c      
+
+    - name: build python packages
+      working-directory: ./src/py-bind
+      run: python build_slideio_dists.py "${{ github.workspace }}/conan-recipes/py.txt"
+
+    - name: Archive python packagess
+      uses: actions/upload-artifact@v2
+      with:
+        name: python-dist
+        path: |
+          ./src/py-bind/dist

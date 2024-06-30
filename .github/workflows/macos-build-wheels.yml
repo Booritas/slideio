@@ -9,7 +9,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [macos-12, macos-14, windows-2019]
+        os: [macos-12, macos-14]
     steps:
 
     - uses: actions/checkout@v3
@@ -28,7 +28,6 @@ jobs:
          python -m pip install conan==1.64.0
          conan remote add digitalo http://167.172.176.224
          conan user -p ${{ secrets.CONAN_DO_PASSWORD }} -r digitalo ${{ secrets.CONAN_DO_USER }}
-         conda search python
          python install.py -a conan  -c release
          conan upload "*" -r digitalo --all -c      
 

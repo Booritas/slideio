@@ -40,7 +40,7 @@ function Deactivate-And-Remove-CondaEnv {
 
 $pythonVersions = Generate-PythonVersions -minVersion 6 -maxVersion 12
 Remove-Item -Recurse -Force ./dist
-& conda shell.powershell hook
+conda init powershell
 
 foreach ($version in $pythonVersions) {
 
