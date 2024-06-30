@@ -163,7 +163,7 @@ void testAuxImage(std::shared_ptr<CVSlide>& slide, const std::string& filePath, 
     auto thumbnail = slide->getAuxImage(auxName);
     cv::Mat auxRaster;
     thumbnail->readBlock(thumbnail->getRect(), auxRaster);
-    TestTools::writePNG(auxRaster, filePath);
+    //TestTools::writePNG(auxRaster, filePath);
     cv::Mat auxTestRaster;
     TestTools::readPNG(filePath, auxTestRaster);
     //TestTools::showRaster(auxTestRaster);
@@ -213,4 +213,28 @@ TEST(PKEImageDriver, metadata) {
         ++count;
     }
     EXPECT_EQ(5, count);
+}
+
+
+TEST(PKEImageDriver, readStripedDir) {
+    std::string filePath = TestTools::getFullTestImagePath("pke", "openmicroscopy/PKI_scans/HandEcompressed_Scan1.qptiff");
+    std::string testFilePath = TestTools::getFullTestImagePath("pke", "test-images/HandEcompressed_Scan1-low.png");
+    slideio::PKEImageDriver driver;
+    std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    const int numScenes = slide->getNumScenes();
+    ASSERT_EQ(1, numScenes);
+    std::shared_ptr<CVScene> scene = slide->getScene(0);
+    cv::Rect rectRoi = scene->getRect();
+    cv::Mat raster;
+    cv::Size size = { 500, 500 };
+    const double scale = 500. / rectRoi.width;
+    size.height = static_cast<int>(rectRoi.height*scale);
+
+    scene->readResampledBlock(rectRoi, size, raster);
+    cv::Mat testRaster;
+    //TestTools::writePNG(raster, testFilePath);
+    TestTools::readPNG(testFilePath, testRaster);
+    TestTools::compareRasters(raster, testRaster);
+    //TestTools::showRasters(raster, testRaster);
 }

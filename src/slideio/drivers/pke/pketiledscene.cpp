@@ -159,6 +159,7 @@ void PKETiledScene::initializeChannelNames() {
 }
 
 
+
 cv::Rect PKETiledScene::getRect() const
 {
     cv::Rect rect = { 0,0,  m_directories[0].width,  m_directories[0].height };
@@ -208,64 +209,65 @@ int PKETiledScene::getTileCount(void* userData)
     const int level = *(static_cast<int*>(userData));
     const int dirIndex = m_zoomDirectoryIndices[level];
     const TiffDirectory& dir = m_directories[dirIndex];
-
-    int tilesX = (dir.width-1)/dir.tileWidth + 1;
-    int tilesY = (dir.height-1)/dir.tileHeight + 1;
-    return tilesX * tilesY;
+    if (dir.tiled) {
+        int tilesX = (dir.width - 1) / dir.tileWidth + 1;
+        int tilesY = (dir.height - 1) / dir.tileHeight + 1;
+        return tilesX * tilesY;
+    }
+    return 1;
 }
 
 bool PKETiledScene::getTileRect(int tileIndex, cv::Rect& tileRect, void* userData)
 {
+    const int tileCount = getTileCount(userData);
+    if (tileIndex >= tileCount) {
+        RAISE_RUNTIME_ERROR << "PerkinElmer driver: invalid tile index: " << tileIndex << " of " << tileCount;
+    }
     const int level = *(static_cast<int*>(userData));
     const int dirIndex = m_zoomDirectoryIndices[level];
     const TiffDirectory& dir = m_directories[dirIndex];
-
-    const int tilesX = (dir.width - 1) / dir.tileWidth + 1;
-    const int tilesY = (dir.height - 1) / dir.tileHeight + 1;
-    const int tileY = tileIndex / tilesX;
-    const int tileX = tileIndex % tilesX;
-    tileRect.x = tileX * dir.tileWidth;
-    tileRect.y = tileY * dir.tileHeight;
-    tileRect.width = dir.tileWidth;
-    tileRect.height = dir.tileHeight;
+    if (dir.tiled) {
+        const int tilesX = (dir.width - 1) / dir.tileWidth + 1;
+        const int tilesY = (dir.height - 1) / dir.tileHeight + 1;
+        const int tileY = tileIndex / tilesX;
+        const int tileX = tileIndex % tilesX;
+        tileRect.x = tileX * dir.tileWidth;
+        tileRect.y = tileY * dir.tileHeight;
+        tileRect.width = dir.tileWidth;
+        tileRect.height = dir.tileHeight;
+    }
+    else {
+        tileRect = { 0,0,dir.width, dir.height };
+    }
     return true;
 }
 
-bool PKETiledScene::readTile(int tileIndex, const std::vector<int>& channelIndices, cv::OutputArray tileRaster,
-    void* userData)
+bool slideio::PKETiledScene::readTiffTile(int tileIndex, const TiffDirectory& dir, const std::vector<int>& channelIndices, cv::OutputArray tileRaster)
 {
-    const int level = *(static_cast<int*>(userData));
     bool ret = false;
     try
     {
-        if(isBrightField()) {
-            const int dirIndex = m_zoomDirectoryIndices[level];
-            const TiffDirectory& dir = m_directories[dirIndex];
+        if (isBrightField()) {
             TiffTools::readTile(getFileHandle(), dir, tileIndex, channelIndices, tileRaster);
             ret = true;
         }
         else if (channelIndices.size() == 1) {
-            const int dirIndex = m_zoomDirectoryIndices[level] + channelIndices[0];
-            const TiffDirectory& dir = m_directories[dirIndex];
             TiffTools::readTile(getFileHandle(), dir, tileIndex, { 0 }, tileRaster);
             ret = true;
-        } else {
+        }
+        else {
             std::vector<cv::Mat> channelRasters;
             std::vector<int> channels = Tools::completeChannelList(channelIndices, getNumChannels());
-            for(const auto& channelIndex : channels) {
-                const int dirIndex = m_zoomDirectoryIndices[level] + channelIndex;
-                const TiffDirectory& dir = m_directories[dirIndex];
+            for (const auto& channelIndex : channels) {
                 cv::Mat channelRaster;
-                TiffTools::readTile(getFileHandle(), dir, tileIndex, {0}, channelRaster);
+                TiffTools::readTile(getFileHandle(), dir, tileIndex, { 0 }, channelRaster);
                 channelRasters.push_back(channelRaster);
             }
             cv::merge(channelRasters, tileRaster);
             ret = true;
         }
     }
-    catch(std::runtime_error&){
-        const int dirIndex = m_zoomDirectoryIndices[level];
-        const TiffDirectory& dir = m_directories[dirIndex];
+    catch (std::runtime_error&) {
         const cv::Size tileSize = { dir.tileWidth, dir.tileHeight };
         const slideio::DataType dt = dir.dataType;
         tileRaster.create(tileSize, CV_MAKETYPE(slideio::CVTools::toOpencvType(dt), dir.channels));
@@ -273,6 +275,34 @@ bool PKETiledScene::readTile(int tileIndex, const std::vector<int>& channelIndic
     }
 
     return ret;
+}
+
+bool slideio::PKETiledScene::readTiffDirectory(const TiffDirectory& dir, const std::vector<int>& channelIndices, cv::OutputArray wholeDirRaster)
+{
+    cv::Mat dirRaster;
+    TiffTools::readStripedDir(getFileHandle(), dir, dirRaster);
+    Tools::extractChannels(dirRaster, channelIndices, wholeDirRaster);
+    return true;
+}
+
+bool PKETiledScene::readTile(int tileIndex, const std::vector<int>& channelIndices, cv::OutputArray tileRaster,
+    void* userData)
+{
+    const int tileCount = getTileCount(userData);
+    if (tileIndex >= tileCount) {
+        RAISE_RUNTIME_ERROR << "PerkinElmer driver: invalid tile index: " << tileIndex << " of " << tileCount;
+    }
+    
+    const int level = *(static_cast<int*>(userData));
+    bool ret = false;
+    const int dirIndex = m_zoomDirectoryIndices[level];
+    const TiffDirectory& dir = m_directories[dirIndex];
+    if (dir.tiled) {
+        return readTiffTile(tileIndex, dir, channelIndices, tileRaster);
+    }
+    else {
+        return readTiffDirectory(dir, channelIndices, tileRaster);
+    }
 }
 
 void PKETiledScene::initializeBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices, cv::OutputArray output)
