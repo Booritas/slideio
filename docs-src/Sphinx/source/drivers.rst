@@ -22,6 +22,10 @@ The slideio module accesses images through a system of image drivers. A driver i
 +--------+-----------------+----------+------------+
 | NDPI   | no              |  no      |     no     |
 +--------+-----------------+----------+------------+
+| VSI    |     yes         |   yes    |    yes     |
++--------+-----------------+----------+------------+
+| QPTIFF |     yes         |   yes    |    yes     |
++--------+-----------------+----------+------------+
 CZI driver
 ------------------
 
@@ -176,3 +180,33 @@ Auxiliary images
 The driver supports auxiliary images for Slide objects. An slide may contain the following auxiliary images:
 - map
 - macro
+
+VSI driver
+------------------
+
+VSI driver opens Olympus VSI slides.
+
+Metadata
+******************
+raw_metadata property of a *Slide* returns JSON representation of metadata
+extracted from images.
+
+Auxiliary images
+******************
+The driver supports auxiliary images for Slide objects. An slide may contain auxiliary images such as:
+- overview
+- map
+
+QPTIFF driver
+------------------
+
+QPTIFF driver opens PerkingElmer Vectra slides.
+
+Metadata
+******************
+raw_metadata property of a *Slide* returns XML representation of metadata
+extracted from images.
+
+Auxiliary images
+******************
+The driver supports auxiliary images for Slide objects.

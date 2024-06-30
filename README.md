@@ -19,6 +19,7 @@ The module builds accesses images through a system of image drivers that impleme
 | **DCM** | DICOM images | *.dcm, no extension |  |  |
 | **NDPI** | [Hamamatsu NDPI image format](https://www.hamamatsu.com/eu/en/product/life-science-and-medical-systems/digital-slide-scanner/U12388-01.html) | *.ndpi | [Hamamatsu](https://www.hamamatsu.com/eu/en.html) |  |
 | **VSI** | Olympus VSI images | *.vsi |  |  |
+| **QPTIFF** | PerkinElmer Vectra QPTIFF | *.qptiff | [Akoya Biosciences](https://www.akoyabio.com/software-data-analysis/) | [Perkin Elmer Vectra scanner](https://www.akoyabio.com/phenoimager/instruments/vectra-3-0/) |
 | **GDAL** | General image formates | *.jpeg,*.jpg,*.tiff,*.tiff,*.png | - | - |
 
 The library is built as a c++ python extension and provides c++ and python interfaces.
