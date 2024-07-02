@@ -8,12 +8,12 @@ def open_image(path, driver):
     image = sld.open_slide(str(path), driver)
     return image
 
-path = "D:\\Projects\\slideio\\images\\pke\\openmicroscopy\\PKI_scans\\HandEcompressed_Scan1.qptiff"
+path = r"D:\Projects\slideio\images\pke\openmicroscopy\PKI_scans\LuCa-7color_Scan1.qptiff"
 slide = sld.open_slide(path,"QPTIFF")
 scene = slide.get_scene(0)
 thw = 500
 rect = scene.rect
 print(f'reading {rect}')
-image = scene.read_block(rect,size=(thw,0))
+image = scene.read_block(rect,size=(thw,0), channel_indices=[0,1,2])
 print(f'done {image.shape}')
 

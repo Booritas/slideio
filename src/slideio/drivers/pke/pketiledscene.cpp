@@ -13,20 +13,18 @@
 using namespace slideio;
 
 
-PKETiledScene::PKETiledScene(const std::string& filePath, const std::string& name, 
-    const std::vector<TiffDirectory>& dirs): PKEScene(filePath, name), m_directories(dirs)
-{
+PKETiledScene::PKETiledScene(const std::string& filePath, const std::string& name,
+                             const std::vector<TiffDirectory>& dirs): PKEScene(filePath, name), m_directories(dirs) {
     initialize();
 }
 
 PKETiledScene::PKETiledScene(const std::string& filePath, libtiff::TIFF* hFile, const std::string& name,
-    const std::vector<slideio::TiffDirectory>& dirs) : PKEScene(filePath, hFile, name), m_directories(dirs)
-{
+                             const std::vector<slideio::TiffDirectory>& dirs) : PKEScene(filePath, hFile, name),
+    m_directories(dirs) {
     initialize();
 }
 
-void PKETiledScene::initialize()
-{
+void PKETiledScene::initialize() {
     const auto& directory = m_directories[0];
     const auto& description = directory.description;
     if (!description.empty()) {
@@ -48,7 +46,7 @@ void PKETiledScene::initialize()
                 magnification = xmlMagnification->DoubleText();
             }
         }
-        if(magnification < 0) {
+        if (magnification < 0) {
             auto xmlObjective = root->FirstChildElement("Objective");
             if (xmlObjective) {
                 magnification = xmlObjective->DoubleText();
@@ -73,10 +71,8 @@ void PKETiledScene::initialize()
     m_dataType = dir.dataType;
     m_resolution = dir.res;
 
-    if (m_dataType == DataType::DT_None || m_dataType == DataType::DT_Unknown)
-    {
-        switch (dir.bitsPerSample)
-        {
+    if (m_dataType == DataType::DT_None || m_dataType == DataType::DT_Unknown) {
+        switch (dir.bitsPerSample) {
         case 8:
             m_dataType = dir.dataType = DataType::DT_Byte;
             break;
@@ -88,13 +84,11 @@ void PKETiledScene::initialize()
         }
     }
 
-    if (!m_directories.empty())
-    {
+    if (!m_directories.empty()) {
         const auto& dir = m_directories.front();
         m_compression = dir.slideioCompression;
         if (m_compression == Compression::Unknown &&
-            (dir.compression == 33003 || dir.compression == 3305))
-        {
+            (dir.compression == 33003 || dir.compression == 3305)) {
             m_compression = Compression::Jpeg2000;
         }
         const int fullResolutionWidth = m_directories[0].width;
@@ -104,7 +98,7 @@ void PKETiledScene::initialize()
         int lastWidth = 0;
         int index = 0;
         for (const auto& dir : m_directories) {
-            if(dir.width == fullResolutionWidth && dir.height == fullResolutionHeight) {
+            if (dir.width == fullResolutionWidth && dir.height == fullResolutionHeight) {
                 numFullResolutions++;
             }
             if (lastWidth != dir.width && dir.width > 0 && dir.height > 0) {
@@ -114,7 +108,7 @@ void PKETiledScene::initialize()
             ++index;
         }
 
-        m_numChannels = numFullResolutions* m_directories.front().channels;
+        m_numChannels = numFullResolutions * m_directories.front().channels;
 
         const int numLevels = static_cast<int>(m_zoomDirectoryIndices.size());
         m_levels.resize(numLevels);
@@ -125,8 +119,8 @@ void PKETiledScene::initialize()
             const double scale = static_cast<double>(directory.width) / static_cast<double>(fullResolutionWidth);
             level.setLevel(lv);
             level.setScale(scale);
-            level.setSize({ directory.width, directory.height });
-            level.setTileSize({ directory.tileWidth, directory.tileHeight });
+            level.setSize({directory.width, directory.height});
+            level.setTileSize({directory.tileWidth, directory.tileHeight});
             level.setMagnification(m_magnification * scale);
         }
     }
@@ -135,7 +129,7 @@ void PKETiledScene::initialize()
 
 void PKETiledScene::initializeChannelNames() {
     const auto& dir0 = m_directories.front();
-    if(dir0.channels == 1) {
+    if (dir0.channels == 1) {
         for (int channel = 0; channel < m_numChannels; ++channel) {
             const auto& dir = m_directories[channel];
             std::string name;
@@ -143,14 +137,15 @@ void PKETiledScene::initializeChannelNames() {
             tinyxml2::XMLDocument doc;
             tinyxml2::XMLError error = doc.Parse(description.c_str(), description.size());
             if (error != tinyxml2::XML_SUCCESS) {
-                RAISE_RUNTIME_ERROR << "PKEImageDriver: Error parsing image description xml: " << static_cast<int>(error);
+                RAISE_RUNTIME_ERROR << "PKEImageDriver: Error parsing image description xml: " << static_cast<int>(
+                    error);
             }
             tinyxml2::XMLElement* root = doc.RootElement();
             if (!root) {
                 RAISE_RUNTIME_ERROR << "PKEImageDriver: Error parsing image description xml: root element is null";
             }
             auto xmlName = root->FirstChildElement("Name");
-            if(xmlName) {
+            if (xmlName) {
                 name = xmlName->GetText();
             }
             m_channelNames.push_back(name);
@@ -159,22 +154,18 @@ void PKETiledScene::initializeChannelNames() {
 }
 
 
-
-cv::Rect PKETiledScene::getRect() const
-{
-    cv::Rect rect = { 0,0,  m_directories[0].width,  m_directories[0].height };
+cv::Rect PKETiledScene::getRect() const {
+    cv::Rect rect = {0, 0, m_directories[0].width, m_directories[0].height};
     return rect;
 }
 
-int PKETiledScene::getNumChannels() const
-{
+int PKETiledScene::getNumChannels() const {
     return m_numChannels;
 }
 
 
 void PKETiledScene::readResampledBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize,
-    const std::vector<int>& channelIndices, cv::OutputArray output)
-{
+                                               const std::vector<int>& channelIndices, cv::OutputArray output) {
     auto hFile = getFileHandle();
     if (hFile == nullptr)
         throw std::runtime_error("PKEDriver: Invalid file header by raster reading operation");
@@ -184,28 +175,27 @@ void PKETiledScene::readResampledBlockChannels(const cv::Rect& blockRect, const 
     const int zoomIndex = findZoomLevel(zoom);
     int dirIndex = m_zoomDirectoryIndices[zoomIndex];
     const TiffDirectory& dir = m_directories[dirIndex];
-    double zoomDirX = static_cast<double>(dir.width) / static_cast<double>(m_directories[0].width); 
+    double zoomDirX = static_cast<double>(dir.width) / static_cast<double>(m_directories[0].width);
     double zoomDirY = static_cast<double>(dir.height) / static_cast<double>(m_directories[0].height);
     cv::Rect resizedBlock;
     Tools::scaleRect(blockRect, zoomDirX, zoomDirY, resizedBlock);
     TileComposer::composeRect(this, channelIndices, resizedBlock, blockSize, output, (void*)&zoomIndex);
 }
 
-int PKETiledScene::findZoomLevel(double zoom) const
-{
+int PKETiledScene::findZoomLevel(double zoom) const {
     const cv::Rect sceneRect = getRect();
     const double sceneWidth = static_cast<double>(sceneRect.width);
     const auto& directories = m_directories;
     const auto& zoomIndices = m_zoomDirectoryIndices;
-    int index = Tools::findZoomLevel(zoom, (int)m_zoomDirectoryIndices.size(), [&directories, &zoomIndices, sceneWidth](int index){
-        int directoryIndex = zoomIndices[index];
-        return directories[directoryIndex].width/sceneWidth;
-    });
+    int index = Tools::findZoomLevel(zoom, (int)m_zoomDirectoryIndices.size(),
+                                     [&directories, &zoomIndices, sceneWidth](int index) {
+                                         int directoryIndex = zoomIndices[index];
+                                         return directories[directoryIndex].width / sceneWidth;
+                                     });
     return index;
 }
 
-int PKETiledScene::getTileCount(void* userData)
-{
+int PKETiledScene::getTileCount(void* userData) {
     const int level = *(static_cast<int*>(userData));
     const int dirIndex = m_zoomDirectoryIndices[level];
     const TiffDirectory& dir = m_directories[dirIndex];
@@ -217,8 +207,7 @@ int PKETiledScene::getTileCount(void* userData)
     return 1;
 }
 
-bool PKETiledScene::getTileRect(int tileIndex, cv::Rect& tileRect, void* userData)
-{
+bool PKETiledScene::getTileRect(int tileIndex, cv::Rect& tileRect, void* userData) {
     const int tileCount = getTileCount(userData);
     if (tileIndex >= tileCount) {
         RAISE_RUNTIME_ERROR << "PerkinElmer driver: invalid tile index: " << tileIndex << " of " << tileCount;
@@ -237,22 +226,21 @@ bool PKETiledScene::getTileRect(int tileIndex, cv::Rect& tileRect, void* userDat
         tileRect.height = dir.tileHeight;
     }
     else {
-        tileRect = { 0,0,dir.width, dir.height };
+        tileRect = {0, 0, dir.width, dir.height};
     }
     return true;
 }
 
-bool slideio::PKETiledScene::readTiffTile(int tileIndex, const TiffDirectory& dir, const std::vector<int>& channelIndices, cv::OutputArray tileRaster)
-{
+bool slideio::PKETiledScene::readTiffTile(int tileIndex, const TiffDirectory& dir,
+                                          const std::vector<int>& channelIndices, cv::OutputArray tileRaster) {
     bool ret = false;
-    try
-    {
+    try {
         if (isBrightField()) {
             TiffTools::readTile(getFileHandle(), dir, tileIndex, channelIndices, tileRaster);
             ret = true;
         }
         else if (channelIndices.size() == 1) {
-            TiffTools::readTile(getFileHandle(), dir, tileIndex, { 0 }, tileRaster);
+            TiffTools::readTile(getFileHandle(), dir, tileIndex, {0}, tileRaster);
             ret = true;
         }
         else {
@@ -260,7 +248,7 @@ bool slideio::PKETiledScene::readTiffTile(int tileIndex, const TiffDirectory& di
             std::vector<int> channels = Tools::completeChannelList(channelIndices, getNumChannels());
             for (const auto& channelIndex : channels) {
                 cv::Mat channelRaster;
-                TiffTools::readTile(getFileHandle(), dir, tileIndex, { 0 }, channelRaster);
+                TiffTools::readTile(getFileHandle(), dir, tileIndex, {0}, channelRaster);
                 channelRasters.push_back(channelRaster);
             }
             cv::merge(channelRasters, tileRaster);
@@ -268,7 +256,7 @@ bool slideio::PKETiledScene::readTiffTile(int tileIndex, const TiffDirectory& di
         }
     }
     catch (std::runtime_error&) {
-        const cv::Size tileSize = { dir.tileWidth, dir.tileHeight };
+        const cv::Size tileSize = {dir.tileWidth, dir.tileHeight};
         const slideio::DataType dt = dir.dataType;
         tileRaster.create(tileSize, CV_MAKETYPE(slideio::CVTools::toOpencvType(dt), dir.channels));
         tileRaster.setTo(0);
@@ -277,8 +265,8 @@ bool slideio::PKETiledScene::readTiffTile(int tileIndex, const TiffDirectory& di
     return ret;
 }
 
-bool slideio::PKETiledScene::readTiffDirectory(const TiffDirectory& dir, const std::vector<int>& channelIndices, cv::OutputArray wholeDirRaster)
-{
+bool slideio::PKETiledScene::readTiffDirectory(const TiffDirectory& dir, const std::vector<int>& channelIndices,
+                                               cv::OutputArray wholeDirRaster) {
     cv::Mat dirRaster;
     TiffTools::readStripedDir(getFileHandle(), dir, dirRaster);
     Tools::extractChannels(dirRaster, channelIndices, wholeDirRaster);
@@ -286,13 +274,12 @@ bool slideio::PKETiledScene::readTiffDirectory(const TiffDirectory& dir, const s
 }
 
 bool PKETiledScene::readTile(int tileIndex, const std::vector<int>& channelIndices, cv::OutputArray tileRaster,
-    void* userData)
-{
+                             void* userData) {
     const int tileCount = getTileCount(userData);
     if (tileIndex >= tileCount) {
         RAISE_RUNTIME_ERROR << "PerkinElmer driver: invalid tile index: " << tileIndex << " of " << tileCount;
     }
-    
+
     const int level = *(static_cast<int*>(userData));
     bool ret = false;
     const int dirIndex = m_zoomDirectoryIndices[level];
@@ -300,23 +287,40 @@ bool PKETiledScene::readTile(int tileIndex, const std::vector<int>& channelIndic
     if (dir.tiled) {
         return readTiffTile(tileIndex, dir, channelIndices, tileRaster);
     }
-    else {
+    if (dir.channels == getNumChannels()) {
         return readTiffDirectory(dir, channelIndices, tileRaster);
+    }
+    if (dir.channels == 1) {
+        auto channels = Tools::completeChannelList(channelIndices, getNumChannels());
+        if (channels.size() == 1) {
+            const TiffDirectory newDir = m_directories.at(dir.dirIndex + channels[0]);
+            return readTiffDirectory(newDir, {0}, tileRaster);
+        }
+        std::vector<cv::Mat> channelRasters;
+        for (const auto& channelIndex : channels) {
+            cv::Mat channelRaster;
+            const TiffDirectory newDir = m_directories.at(dir.dirIndex + channels[0]);
+            TiffTools::readRegularStripedDir(getFileHandle(), newDir, channelRaster);
+            channelRasters.push_back(channelRaster);
+        }
+        cv::merge(channelRasters, tileRaster);
+        return true;
+    }
+    else {
+        RAISE_RUNTIME_ERROR << "PerkinElmer driver: Unexpected number of channels in the directory: "
+            << dir.channels << ". Expected: 1 or " << getNumChannels() << ".";
     }
 }
 
-void PKETiledScene::initializeBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices, cv::OutputArray output)
-{
+void PKETiledScene::initializeBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices,
+                                    cv::OutputArray output) {
     initializeSceneBlock(blockSize, channelIndices, output);
 }
 
 std::string PKETiledScene::getChannelName(int channel) const {
-    return m_channelNames.empty()?"":m_channelNames[channel];
+    return m_channelNames.empty() ? "" : m_channelNames[channel];
 }
 
 bool PKETiledScene::isBrightField() const {
     return m_directories.front().channels == m_numChannels;
 }
-
-
-

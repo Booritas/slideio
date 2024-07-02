@@ -148,9 +148,13 @@ void Tools::extractChannels(const cv::Mat& sourceRaster, const std::vector<int>&
         sourceRaster.copyTo(output);
     }
     else {
+        const int rasterChannelCount = sourceRaster.channels();
         const int numChannels = static_cast<int>(channels.size());
         std::vector<cv::Mat> channelRasters(numChannels);
         for (int channel = 0; channel < numChannels; ++channel) {
+            if(channel >= rasterChannelCount) {
+                RAISE_RUNTIME_ERROR << "Attempt to extract channel " << channel << " from " << rasterChannelCount << " channels.";
+            }
             cv::extractChannel(sourceRaster, channelRasters[channel], channels[channel]);
         }
         cv::merge(channelRasters, output);
