@@ -4,7 +4,6 @@
 
 #include "slideio/core/tools/recttiler.hpp"
 #include "slideio/base/exceptions.hpp"
-#include "slideio/core/tools/recttilevisitor.hpp"
 
 using namespace slideio;
 
@@ -21,16 +20,6 @@ RectTiler::RectTiler(const cv::Size& rect, const cv::Size& tileSize) :
     }
 }
 
-
-void RectTiler::apply(IRectTileVisitor* visitor) const
-{
-    if(visitor ==nullptr) {
-        RAISE_RUNTIME_ERROR << "BlockTiler: visitor is null";
-    }
-    apply([&](const cv::Rect& rect){
-        visitor->visit(rect);
-    });
-}
 
 void slideio::RectTiler::apply(std::function<void(const cv::Rect&)> visitor) const
 {

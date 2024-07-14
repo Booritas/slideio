@@ -15,6 +15,5 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/tempfile.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/recttiler.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/recttiler.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/recttilevisitor.hpp
    PARENT_SCOPE
    )

@@ -11,11 +11,9 @@
 #endif
 
 namespace slideio {
-    class IRectTileVisitor;
     class SLIDEIO_CORE_EXPORTS RectTiler {
     public:
         RectTiler(const cv::Size& rect, const cv::Size& tileSize);
-        void apply(IRectTileVisitor* visitor) const;
         void apply(std::function<void(const cv::Rect&)> visitor) const;
     private:
         cv::Size m_rectSize;
