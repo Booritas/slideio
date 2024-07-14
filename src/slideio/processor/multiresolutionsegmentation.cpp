@@ -49,34 +49,34 @@ static void processTile(std::shared_ptr<ImageObjectManager>& imgObjMngr, const c
             }
         }
     }
-    //std::set<int32_t> processedIds;
-    //for (int y = 0; y < raster.rows; ++y) {
-    //    int* objectsRow = objectsMat.ptr<int>(y);
-    //    int* objectsPixel = objectsRow;
-    //    for (int x = 0; x < raster.cols; ++x, ++objectsPixel) {
-    //        const int32_t id = *objectsPixel;
-    //        ImageObject* obj = imgObjMngr->getObjectPtr(id);
-    //        if(processedIds.find(id) == processedIds.end()) {
-    //            std::map<ImageObject*, double> neighborScores;
-    //            NeighborContainer nghs(obj, imgObjMngr.get(), objectsMat, org);
-    //            for(ImageObject* ngh:nghs) {
-    //                if(!ngh) {
-    //                    continue;
-    //                }
-    //                if(processedIds.find(ngh->m_id) == processedIds.end() && neighborScores.find(ngh) == neighborScores.end()) {
-    //                    double score = mergeScore(obj, ngh);
-    //                    if(score >1.) {
-    //                        neighborScores[ngh] = score;
-    //                    }
-    //                }
-    //            }
-    //            for(auto nghScore: neighborScores) {
-    //                mergeObjects(obj, nghScore.first);
-    //            }
-    //            processedIds.insert(id);
-    //        }
-    //    }
-    //}
+    std::set<int32_t> processedIds;
+    for (int y = 0; y < raster.rows; ++y) {
+        int* objectsRow = objectsMat.ptr<int>(y);
+        int* objectsPixel = objectsRow;
+        for (int x = 0; x < raster.cols; ++x, ++objectsPixel) {
+            const int32_t id = *objectsPixel;
+            ImageObject* obj = imgObjMngr->getObjectPtr(id);
+            if(processedIds.find(id) == processedIds.end()) {
+                std::map<ImageObject*, double> neighborScores;
+                NeighborContainer nghs(obj, imgObjMngr.get(), objectsMat, org);
+                for(ImageObject* ngh:nghs) {
+                    if(!ngh) {
+                        continue;
+                    }
+                    if(processedIds.find(ngh->m_id) == processedIds.end() && neighborScores.find(ngh) == neighborScores.end()) {
+                        double score = mergeScore(obj, ngh);
+                        if(score >1.) {
+                            neighborScores[ngh] = score;
+                        }
+                    }
+                }
+                for(auto nghScore: neighborScores) {
+                    mergeObjects(obj, nghScore.first);
+                }
+                processedIds.insert(id);
+            }
+        }
+    }
 }
 
 void slideio::mutliResolutionSegmentation(std::shared_ptr<Project> &project,
