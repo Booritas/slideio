@@ -1,17 +1,17 @@
-name: Linux slideio build
+name: Linux build slideio wheels
 
 on: [workflow_dispatch]
 jobs:
   build-linux:
     runs-on: ubuntu-20.04
     container:
-      image: booritas/slideio-manylinux2014:v2.0.0
+      image: booritas/slideio-manylinux2014:v2.2.0
       env:
         CONAN_REVISIONS_ENABLED: 1
 
     steps:
     - name: Install conan
-      run: python3 -m pip install -U conan==1.63.0
+      run: python3 -m pip install -U conan==1.64.0
 
     - name: Conan version
       run: echo "${{ steps.conan.outputs.version }}"
@@ -28,10 +28,15 @@ jobs:
       uses: actions/checkout@v2
       with:
         submodules: 'true'
-  
+
+    - name: list available python versions
+      run: ls -la /opt/python
+    
     - name: Install conan dependencies
-      run: python3 install.py -a conan -c release
-      
+      run: |
+        python3 install.py -a conan -c release
+        conan upload "*" -r digitalo --all -c      
+   
     - name: build python packages
       working-directory: ./src/py-bind
       run: bash ./build_slideio_dists_linux.sh

@@ -12,7 +12,7 @@ import setuptools.command.build_py
 from distutils.version import LooseVersion
 from ctypes.util import find_library
 
-version = '2.5.'
+version = '2.6.'
 vrs_sub = '0'
 
 if os.environ.get('CI_PIPELINE_IID'):
@@ -194,6 +194,7 @@ setup(
         'Programming Language :: Python :: 3.9',
         'Programming Language :: Python :: 3.10',
         'Programming Language :: Python :: 3.11',
+        'Programming Language :: Python :: 3.12',
     ],
     install_requires=['numpy'],
     extras_require={},

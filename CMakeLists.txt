@@ -21,6 +21,7 @@ set(IMAGETOOLS_LIB_NAME slideio-imagetools)
 set(SLIDEIO_LIB_NAME slideio)
 set(GDAL_DRIVER_NAME slideio-gdal)
 set(SVS_DRIVER_NAME slideio-svs)
+set(PKE_DRIVER_NAME slideio-pke)
 set(AFI_DRIVER_NAME slideio-afi)
 set(CZI_DRIVER_NAME slideio-czi)
 set(DCM_DRIVER_NAME slideio-dcm)
@@ -40,6 +41,7 @@ set(NAME_TOOL_LIB_LIST
     "lib${CORE_LIB_NAME}.dylib"
     "lib${GDAL_DRIVER_NAME}.dylib"
     "lib${SVS_DRIVER_NAME}.dylib"
+    "lib${PKE_DRIVER_NAME}.dylib"
     "lib${AFI_DRIVER_NAME}.dylib"
     "lib${CZI_DRIVER_NAME}.dylib"
     "lib${DCM_DRIVER_NAME}.dylib"

@@ -14,6 +14,7 @@
 #include "slideio/drivers/zvi/zviimagedriver.hpp"
 #include "slideio/drivers/ndpi/ndpiimagedriver.hpp"
 #include "slideio/drivers/vsi/vsiimagedriver.hpp"
+#include "slideio/drivers/pke/pkeimagedriver.hpp"
 
 using namespace slideio;
 std::map<std::string, std::shared_ptr<ImageDriver>> ImageDriverManager::driverMap;
@@ -104,6 +105,10 @@ void ImageDriverManager::initialize()
         }
         {
             std::shared_ptr<ImageDriver> driver{ std::make_shared<VSIImageDriver>() };
+            driverMap[driver->getID()] = driver;
+        }
+        {
+            std::shared_ptr<ImageDriver> driver{ std::make_shared<PKEImageDriver>() };
             driverMap[driver->getID()] = driver;
         }
     }
