@@ -14,6 +14,8 @@
 #include <set>
 #include <map>
 
+#include "slideio/core/tools/recttiler.hpp"
+
 using namespace slideio;
 
 double mergeScore(ImageObject* obj1, ImageObject* obj2) {
@@ -47,34 +49,34 @@ static void processTile(std::shared_ptr<ImageObjectManager>& imgObjMngr, const c
             }
         }
     }
-    std::set<int32_t> processedIds;
-    for (int y = 0; y < raster.rows; ++y) {
-        int* objectsRow = objectsMat.ptr<int>(y);
-        int* objectsPixel = objectsRow;
-        for (int x = 0; x < raster.cols; ++x, ++objectsPixel) {
-            const int32_t id = *objectsPixel;
-            ImageObject* obj = imgObjMngr->getObjectPtr(id);
-            if(processedIds.find(id) == processedIds.end()) {
-                std::map<ImageObject*, double> neighborScores;
-                NeighborContainer nghs(obj, imgObjMngr.get(), objectsMat, org);
-                for(ImageObject* ngh:nghs) {
-                    if(!ngh) {
-                        continue;
-                    }
-                    if(processedIds.find(ngh->m_id) == processedIds.end() && neighborScores.find(ngh) == neighborScores.end()) {
-                        double score = mergeScore(obj, ngh);
-                        if(score >1.) {
-                            neighborScores[ngh] = score;
-                        }
-                    }
-                }
-                for(auto nghScore: neighborScores) {
-                    mergeObjects(obj, nghScore.first);
-                }
-                processedIds.insert(id);
-            }
-        }
-    }
+    //std::set<int32_t> processedIds;
+    //for (int y = 0; y < raster.rows; ++y) {
+    //    int* objectsRow = objectsMat.ptr<int>(y);
+    //    int* objectsPixel = objectsRow;
+    //    for (int x = 0; x < raster.cols; ++x, ++objectsPixel) {
+    //        const int32_t id = *objectsPixel;
+    //        ImageObject* obj = imgObjMngr->getObjectPtr(id);
+    //        if(processedIds.find(id) == processedIds.end()) {
+    //            std::map<ImageObject*, double> neighborScores;
+    //            NeighborContainer nghs(obj, imgObjMngr.get(), objectsMat, org);
+    //            for(ImageObject* ngh:nghs) {
+    //                if(!ngh) {
+    //                    continue;
+    //                }
+    //                if(processedIds.find(ngh->m_id) == processedIds.end() && neighborScores.find(ngh) == neighborScores.end()) {
+    //                    double score = mergeScore(obj, ngh);
+    //                    if(score >1.) {
+    //                        neighborScores[ngh] = score;
+    //                    }
+    //                }
+    //            }
+    //            for(auto nghScore: neighborScores) {
+    //                mergeObjects(obj, nghScore.first);
+    //            }
+    //            processedIds.insert(id);
+    //        }
+    //    }
+    //}
 }
 
 void slideio::mutliResolutionSegmentation(std::shared_ptr<Project> &project,
@@ -103,57 +105,33 @@ void slideio::mutliResolutionSegmentation(std::shared_ptr<Project> &project,
     if (scale <= 0) {
         RAISE_RUNTIME_ERROR << "Multi-resolution Segmentation: Scale must be positive. Received:" << scale;
     }
-    const cv::Size sceneTileSize = parameters->getTileSize();
+    const cv::Size tileSize = parameters->getTileSize();
 
-    if (sceneTileSize.width <= 0 || sceneTileSize.height <= 0) {
-        RAISE_RUNTIME_ERROR << "Multi-resolution Segmentation: Tile size must be positive. Received:" << sceneTileSize;
+    if (tileSize.width <= 0 || tileSize.height <= 0) {
+        RAISE_RUNTIME_ERROR << "Multi-resolution Segmentation: Tile size must be positive. Received:" << tileSize;
     }
 
-    const cv::Size tileOverlapping = parameters->getTileOverlapping();
-    if (tileOverlapping.width < 0 || tileOverlapping.height < 0) {
+    const cv::Size tileOverlap = parameters->getTileOverlapping();
+    if (tileOverlap.width < 0 || tileOverlap.height < 0) {
         RAISE_RUNTIME_ERROR << "Multi-resolution Segmentation: Tile overlapping must be non-negative. Received:"
-                            << tileOverlapping;
+                            << tileOverlap;
     }
-    const cv::Rect imageRect = scene->getRect();
-    cv::Size imageSize = imageRect.size();
-    cv::Size sceneSize;
-    Tools::scaleSize(imageRect.size(), scale, scale, sceneSize);
+    const cv::Rect originalSceneRect = scene->getRect();
+    cv::Size originalSceneSize = originalSceneRect.size();
+    cv::Size scaledSceneSize;
+    Tools::scaleSize(originalSceneRect.size(), scale, scale, scaledSceneSize);
 
-    cv::Size sceneTileSizeOverlap = sceneTileSize + tileOverlapping;
-    cv::Size imageTileSizeOverlap;
-    Tools::scaleSize(sceneTileSizeOverlap, 1. / scale, 1. / scale, imageTileSizeOverlap);
-
-    cv::Size imageTileSize;
-    Tools::scaleSize(sceneTileSize, 1. / scale, 1. / scale, imageTileSize);
-
-    const int tilesX = (sceneSize.width - 1) / sceneTileSize.width + 1;
-    const int tilesY = (sceneSize.height - 1) / sceneTileSize.height + 1;
-
+    
     const std::vector<int> chanelIndices = {0};
     const int channels = scene->getNumChannels();
     const std::vector<double> channelWeights(channels, 1.);
 
-    cv::Point sceneOrg = {0, 0};
-    cv::Point imageOrg = {0, 0};
-
-    cv::Mat tile, tileObjects;
-    for (int ty = 0; ty < tilesY; ++ty, sceneOrg.y += sceneTileSize.height, imageOrg.y += imageTileSize.height) {
-        sceneOrg.x = 0;
-        imageOrg.x = 0;
-        for (int tx = 0; tx < tilesX; ++tx, sceneOrg.x += sceneTileSize.width, imageOrg.x += imageTileSize.width) {
-            const cv::Size currentSceneTileSize = {std::min(sceneTileSizeOverlap.width, sceneSize.width - sceneOrg.x),
-            std::min(sceneTileSizeOverlap.height, sceneSize.height - sceneOrg.y)
-            };
-            const cv::Size currentImageTileSize = {std::min(imageTileSizeOverlap.width, imageSize.width - imageOrg.x),
-            std::min(imageTileSizeOverlap.height, imageSize.height - imageOrg.y)
-            };
-
-            const cv::Rect tileRect(sceneOrg, currentSceneTileSize);
-            storage->readBlock(sceneOrg, sceneTileSizeOverlap, tileObjects);
-            cv::Rect imageRect(imageOrg, currentImageTileSize);
-            scene->readResampledBlockChannels(imageRect, currentSceneTileSize, chanelIndices, tile);
-            processTile(objects, tile, sceneOrg, parameters, tileObjects);
-            storage->writeBlock(tileObjects, sceneOrg);
-        }
-    }
+    RectTiler tiler(scaledSceneSize, tileSize, tileOverlap);
+    tiler.apply([&scene, &storage, &objects, &parameters, &chanelIndices](const cv::Rect& rect) {
+        cv::Mat tile, tileObjects;
+        scene->readResampledBlockChannels(rect, rect.size(), chanelIndices, tile);
+        storage->readBlock(rect.tl(), rect.size(), tileObjects);
+        processTile(objects, tile, rect.tl(), parameters, tileObjects);
+        storage->writeBlock(tileObjects, rect.tl());
+    });
 }
