@@ -22,7 +22,7 @@ TEST(Persistence, createFile) {
     ASSERT_TRUE(storage!=nullptr);
 }
 
-TEST(HDF5Storage, writeTile) {
+TEST(HDF5Storage, writeBlock) {
     const slideio::TempFile tmp("h5");
     const std::string outputPath = tmp.getPath().string();
     const cv::Size imageSize(100, 100);
@@ -34,58 +34,47 @@ TEST(HDF5Storage, writeTile) {
 
     std::shared_ptr<HDF5Storage> storage = HDF5Storage::createStorage(outputPath, imageSize, cv::Size(50, 50));
 
-    storage->writeTile(tile, offset);
+    storage->writeBlock(tile, offset);
     cv::Mat readTile;
-    storage->readTile(offset, tileSize, readTile);
+    storage->readBlock(offset, tileSize, readTile);
 
     TestTools::compareRasters(tile, readTile);
 
     cv::Mat image(imageSize, CV_32S);
-    storage->readTile(cv::Point(0, 0), imageSize, image);
+    storage->readBlock(cv::Point(0, 0), imageSize, image);
     cv::Mat imageROI = image(cv::Rect(offset, tileSize));
     TestTools::compareRasters(tile, imageROI);
 }
 
-//TEST(HDF5Storage, writeTile2) {
-//    const slideio::TempFile tmp("h5", false);
-//    const std::string outputPath = tmp.getPath().string();
-//    const cv::Point offset(5, 5);
-//    const cv::Size tileSize = {1000, 1000};
-//    const int tilesX = 10;
-//    const int tilesY = 10;
-//    const cv::Size imageSize(tileSize.width*tilesX, tileSize.height*tilesY);
-//
-//    cv::Mat tile(tileSize, CV_32S);
-//
-//    std::shared_ptr<HDF5Storage> storage = HDF5Storage::createStorage(outputPath, imageSize, cv::Size(50, 50));
-//    int32_t low = 0;
-//    int32_t high = 1000000;
-//    int tiles = tilesX * tilesY;
-//    int tileCount = 0;
-//
-//
-//
-//    for (int y = 0; y < tilesY; ++y) {
-//        for (int x = 0; x < tilesX; ++x) {
-//            cv::Point offset(x * tileSize.width, y * tileSize.height);
-//            //cv::randu(tile, low, high);
-//            int randomNumber = std::rand() % 100001;
-//            tile.setTo(randomNumber);
-//            storage->writeTile(tile, offset);
-//            tileCount++;
-//            std::cout << "Tile " << tileCount << " of " << tiles << "(" << randomNumber << ")" << std::endl;
-//        }
-//    }
-//    //storage->writeTile(tile, offset);
-//    //cv::Mat readTile;
-//    //storage->readTile(offset, tileSize, readTile);
-//
-//    //TestTools::compareRasters(tile, readTile);
-//
-//    storage->closeStorage();
-//
-//    //cv::Mat image(imageSize, CV_32S);
-//    //storage->readTile(cv::Point(0, 0), imageSize, image);
-//    //cv::Mat imageROI = image(cv::Rect(offset, tileSize));
-//    //TestTools::compareRasters(tile, imageROI);
-//}
+TEST(HDF5Storage, readWriteBlock) {
+    const slideio::TempFile tmp("h5");
+    const std::string outputPath = tmp.getPath().string();
+    const cv::Size imageSize(400, 500);
+    const cv::Size tileSize = {200, 250};
+
+    std::shared_ptr<HDF5Storage> storage = HDF5Storage::createStorage(outputPath, imageSize, tileSize);
+
+    const cv::Size blockSize = { 200, 250 };
+
+    for(int y = 0; y < imageSize.height; y += blockSize.height) {
+        for (int x = 0; x < imageSize.width; x += blockSize.width) {
+            const int value = y*10 + x;
+            cv::Mat tile(tileSize, CV_32S);
+            tile.setTo(value);
+            cv::Point offset(x, y);
+            storage->writeBlock(tile, offset);
+        }
+    }
+
+    for (int y = 0; y < imageSize.height; y += blockSize.height) {
+        for (int x = 0; x < imageSize.width; x += blockSize.width) {
+            const int value = y * 10 + x;
+            cv::Mat readBlock(tileSize, CV_32S);
+            cv::Mat testBlock(tileSize, CV_32S);
+            testBlock.setTo(value);
+            cv::Point offset(x, y);
+            storage->readBlock(offset, blockSize, readBlock);
+            TestTools::compareRasters(readBlock, testBlock);
+        }
+    }
+}

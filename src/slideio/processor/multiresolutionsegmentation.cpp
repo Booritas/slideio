@@ -51,11 +51,11 @@ static void processTile(std::shared_ptr<ImageObjectManager>& imgObjMngr, const c
     for (int y = 0; y < raster.rows; ++y) {
         int* objectsRow = objectsMat.ptr<int>(y);
         int* objectsPixel = objectsRow;
-        std::map<ImageObject*,double> neighborScores;
         for (int x = 0; x < raster.cols; ++x, ++objectsPixel) {
             const int32_t id = *objectsPixel;
             ImageObject* obj = imgObjMngr->getObjectPtr(id);
             if(processedIds.find(id) == processedIds.end()) {
+                std::map<ImageObject*, double> neighborScores;
                 NeighborContainer nghs(obj, imgObjMngr.get(), objectsMat, org);
                 for(ImageObject* ngh:nghs) {
                     if(!ngh) {
@@ -149,11 +149,11 @@ void slideio::mutliResolutionSegmentation(std::shared_ptr<Project> &project,
             };
 
             const cv::Rect tileRect(sceneOrg, currentSceneTileSize);
-            storage->readTile(sceneOrg, sceneTileSizeOverlap, tileObjects);
+            storage->readBlock(sceneOrg, sceneTileSizeOverlap, tileObjects);
             cv::Rect imageRect(imageOrg, currentImageTileSize);
             scene->readResampledBlockChannels(imageRect, currentSceneTileSize, chanelIndices, tile);
             processTile(objects, tile, sceneOrg, parameters, tileObjects);
-            storage->writeTile(tileObjects, sceneOrg);
+            storage->writeBlock(tileObjects, sceneOrg);
         }
     }
 }

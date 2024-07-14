@@ -35,8 +35,8 @@ namespace slideio
         static std::shared_ptr<HDF5Storage> createStorage(const std::string& filePath, cv::Size imageSize,
                                                           cv::Size tileSize = cv::Size(512, 512));
         virtual void closeStorage() override;
-        void writeTile(const cv::Mat& tile, const cv::Point& offset) override;
-        void readTile(const cv::Point& offset, const cv::Size& size, cv::OutputArray mat) override;
+        void writeBlock(const cv::Mat& tile, const cv::Point& offset) override;
+        void readBlock(const cv::Point& offset, const cv::Size& size, cv::OutputArray mat) override;
 
     private:
         std::string m_filePath;

@@ -24,6 +24,7 @@ TEST(Processor, simple) {
     std::shared_ptr<MultiResolutionSegmentationParameters> params = 
         std::make_shared<MultiResolutionSegmentationParameters>(1.,cv::Size(512,512));
     mutliResolutionSegmentation(project,params);
+    EXPECT_EQ(1, project->getObjects()->getObjectCount());
 }
 
 TEST(ProcessorTools, rotatePixelCW) {

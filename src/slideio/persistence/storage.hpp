@@ -18,7 +18,7 @@ namespace slideio
         static std::shared_ptr<Storage> openStorage(const std::string& filePath);
         static std::shared_ptr<Storage> createStorage(const std::string& filePath, cv::Size imageSize, cv::Size tileSize= cv::Size(512,512));
         virtual void closeStorage() = 0;
-        virtual void writeTile(const cv::Mat& tile, const cv::Point& offset) = 0;
-        virtual void readTile(const cv::Point& offset, const cv::Size& size, cv::OutputArray mat) = 0;
+        virtual void writeBlock(const cv::Mat& tile, const cv::Point& offset) = 0;
+        virtual void readBlock(const cv::Point& offset, const cv::Size& size, cv::OutputArray mat) = 0;
     };
 }
