@@ -35,7 +35,8 @@ void HDF5Storage::open(const std::string& filePath) {
 
 void HDF5Storage::create(const std::string& filePath, const cv::Size& imageSize, const cv::Size& tileSize) {
     Tools::throwIfPathExists(filePath, "HDF5Storage::create");
-
+    m_imageSize = imageSize;
+    m_tileSize = tileSize;
     m_file.reset(new H5::H5File(filePath, H5F_ACC_TRUNC));
     const hsize_t dims[2] = {static_cast<hsize_t>(imageSize.height), static_cast<hsize_t>(imageSize.width)};
     const hsize_t chunkDims[2] = {static_cast<hsize_t>(tileSize.height), static_cast<hsize_t>(tileSize.width)};
@@ -72,6 +73,11 @@ void HDF5Storage::writeBlock(const cv::Mat& tile, const cv::Point& offset) {
 }
 
 void HDF5Storage::readBlock(const cv::Point& offset, const cv::Size& size, cv::OutputArray tile) {
+    if(offset.x+size.width>m_imageSize.width || offset.y+size.height>m_imageSize.height) {
+        RAISE_RUNTIME_ERROR << "HDF5Storage::readBlock: block is out of dataset bounds: Block("
+            << offset.x << "," << offset.y << "," << size.width << "," << size.height
+            << "), dataset (" << m_imageSize.width << "," << m_imageSize.height << ")";
+    }
     hsize_t start[2];
     hsize_t count[2];
 
@@ -79,6 +85,7 @@ void HDF5Storage::readBlock(const cv::Point& offset, const cv::Size& size, cv::O
     start[0] = offset.y;
     count[1] = size.width;
     count[0] = size.height;
+
 
     tile.create(size, CV_32S);
     cv::Mat mat = tile.getMat();

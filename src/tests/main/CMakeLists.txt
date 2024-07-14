@@ -27,6 +27,7 @@ set(TEST_SOURCES
   test_cachemanager.cpp
   test_tools.cpp
   test_similaritytools.cpp
+  test_recttiler.cpp
 )
 
 add_executable(${TEST_NAME} ${TEST_SOURCES})
