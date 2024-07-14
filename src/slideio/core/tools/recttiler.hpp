@@ -13,10 +13,11 @@
 namespace slideio {
     class SLIDEIO_CORE_EXPORTS RectTiler {
     public:
-        RectTiler(const cv::Size& rect, const cv::Size& tileSize);
+        RectTiler(const cv::Size& rect, const cv::Size& tileSize, const cv::Size& tileOverlap = cv::Size(0,0));
         void apply(std::function<void(const cv::Rect&)> visitor) const;
     private:
         cv::Size m_rectSize;
         cv::Size m_tileSize;
+        cv::Size m_tileOverlap;
     };
 }
