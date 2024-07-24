@@ -6,6 +6,7 @@ CONAN_MAIN()
 set(TEST_SOURCES
   test_processor.cpp
   test_imageobjects.cpp
+  test_contours.cpp
 )
 
 add_executable(${TEST_NAME} ${TEST_SOURCES})

@@ -3,6 +3,7 @@
 #include "slideio/core/tools/tempfile.hpp"
 #include "slideio/processor/processor.hpp"
 #include "slideio/core/cvscene.hpp"
+#include "slideio/processor/contourmanager.hpp"
 #include "slideio/processor/processortools.hpp"
 #include "slideio/slideio/imagedrivermanager.hpp"
 #include "tests/testlib/testtools.hpp"
@@ -458,3 +459,4 @@ TEST(Tile, getLineNeighborId) {
     EXPECT_EQ(-1, tile.getLineNeighborId(cv::Point(2, 2), cv::Point(6, 6), 166));
     EXPECT_EQ(-1, tile.getLineNeighborId(cv::Point(5, 6), cv::Point(6, 5), 56));
 }
+
