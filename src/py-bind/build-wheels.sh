@@ -51,7 +51,6 @@ deactivate_and_remove_conda_env() {
 }
 
 generate_python_versions minversion 12
-rm -rf ./dist
 eval "$(conda shell.bash hook)"
 
 for version in "${python_versions[@]}"; do
@@ -62,12 +61,14 @@ for version in "${python_versions[@]}"; do
    
    # Build distributable
    rm -rf ./build
+   rm -rf ./dist
    echo "Executing command in conda environment for Python $version"
    python --version
    echo "Installing wheel in conda environment for Python $version"
    python -m pip install wheel
    python -m pip install conan==1.64
    python setup.py sdist bdist_wheel
+   ls -la ./dist
    
    deactivate_and_remove_conda_env $version
 done
