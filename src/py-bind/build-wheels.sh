@@ -1,6 +1,5 @@
 #!/bin/bash
 set -e
-set -x
 
 # Check OS and platform
 os=$(uname -s)
@@ -51,6 +50,7 @@ deactivate_and_remove_conda_env() {
 }
 
 generate_python_versions minversion 12
+rm -rf ./dist
 eval "$(conda shell.bash hook)"
 
 for version in "${python_versions[@]}"; do
@@ -61,7 +61,7 @@ for version in "${python_versions[@]}"; do
    
    # Build distributable
    rm -rf ./build
-   rm -rf ./dist
+   rm -rf ../../build_py
    echo "Executing command in conda environment for Python $version"
    python --version
    echo "Installing wheel in conda environment for Python $version"
