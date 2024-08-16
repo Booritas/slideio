@@ -69,6 +69,13 @@ std::shared_ptr<OTSlide> OTSlide::openFile(const std::string& filePath)
     std::list<std::string> auxNames;
     std::list<std::string> metadataItems;
 
+    auto& dir = directories.front();
+    auto description = dir.description;
+    std::ofstream outFile("D:/Temp/output.xml");
+    outFile << description;
+    outFile.close();
+
+
     for (const auto& directory : directories) {
         const auto& description = directory.description;
         if (!description.empty()) {
@@ -81,21 +88,21 @@ std::shared_ptr<OTSlide> OTSlide::openFile(const std::string& filePath)
             if(!root) {
                 RAISE_RUNTIME_ERROR << "OTImageDriver: Error parsing image description xml: root element is null";
             }
-            auto xmlImageType= root->FirstChildElement("ImageType");
-            if(xmlImageType) {
-                std::string name;
-                std::string type = xmlImageType->GetText();
-                if(type == "FullResolution" || type == "ReducedResolution") {
-                    if(type == "FullResolution") {
-                        metadataItems.push_back(description);
-                    }
-                    image_dirs.push_back(directory);
-                } else if(type == "Thumbnail" || type == "Overview" || type == "Label") {
-                    std::shared_ptr<CVScene> scene(new OTSmallScene(filePath, type, directory, true));
-                    auxImages[type] = scene;
-                    auxNames.emplace_back(type);
-                }
-            }
+            //auto xmlImageType= root->FirstChildElement("ImageType");
+            //if(xmlImageType) {
+            //    std::string name;
+            //    std::string type = xmlImageType->GetText();
+            //    if(type == "FullResolution" || type == "ReducedResolution") {
+            //        if(type == "FullResolution") {
+            //            metadataItems.push_back(description);
+            //        }
+            //        image_dirs.push_back(directory);
+            //    } else if(type == "Thumbnail" || type == "Overview" || type == "Label") {
+            //        std::shared_ptr<CVScene> scene(new OTSmallScene(filePath, type, directory, true));
+            //        auxImages[type] = scene;
+            //        auxNames.emplace_back(type);
+            //    }
+            //}
         }
     }
 

@@ -12,6 +12,7 @@
 #pragma warning(disable: 4251)
 #endif
 
+/*
 namespace slideio
 {
     namespace ometiff
@@ -19,6 +20,7 @@ namespace slideio
         class OTSlide;
     }
 }
+*/
 
 //std::ostream& operator << (std::ostream& os, const slideio::OTSlide& slide);
 

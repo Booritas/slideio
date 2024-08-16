@@ -211,7 +211,7 @@ int OTTiledScene::getTileCount(void* userData) {
 bool OTTiledScene::getTileRect(int tileIndex, cv::Rect& tileRect, void* userData) {
     const int tileCount = getTileCount(userData);
     if (tileIndex >= tileCount) {
-        RAISE_RUNTIME_ERROR << "PerkinElmer driver: invalid tile index: " << tileIndex << " of " << tileCount;
+        RAISE_RUNTIME_ERROR << "OMETIFF driver: invalid tile index: " << tileIndex << " of " << tileCount;
     }
     const int level = *(static_cast<int*>(userData));
     const int dirIndex = m_zoomDirectoryIndices[level];
@@ -278,7 +278,7 @@ bool OTTiledScene::readTile(int tileIndex, const std::vector<int>& channelIndice
                              void* userData) {
     const int tileCount = getTileCount(userData);
     if (tileIndex >= tileCount) {
-        RAISE_RUNTIME_ERROR << "PerkinElmer driver: invalid tile index: " << tileIndex << " of " << tileCount;
+        RAISE_RUNTIME_ERROR << "OMETIFF driver: invalid tile index: " << tileIndex << " of " << tileCount;
     }
 
     const int level = *(static_cast<int*>(userData));
@@ -308,7 +308,7 @@ bool OTTiledScene::readTile(int tileIndex, const std::vector<int>& channelIndice
         return true;
     }
     else {
-        RAISE_RUNTIME_ERROR << "PerkinElmer driver: Unexpected number of channels in the directory: "
+        RAISE_RUNTIME_ERROR << "OMETIFF driver: Unexpected number of channels in the directory: "
             << dir.channels << ". Expected: 1 or " << getNumChannels() << ".";
     }
 }
