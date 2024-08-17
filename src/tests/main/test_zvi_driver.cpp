@@ -8,6 +8,7 @@
 #include <opencv2/imgproc.hpp>
 
 
+#include "slideio/core/tools/tools.hpp"
 #include "slideio/slideio/imagedrivermanager.hpp"
 #include "tests/testlib/testtools.hpp"
 #include "slideio/slideio/scene.hpp"
@@ -511,6 +512,6 @@ TEST(ZVIImageDriver, zoomLevel)
     ASSERT_TRUE(zoomLevel != nullptr);
     EXPECT_EQ(zoomLevel->getMagnification(), scene->getMagnification());
     EXPECT_EQ(zoomLevel->getScale(), 1.0);
-    EXPECT_EQ(zoomLevel->getSize(), scene->getRect().size());
-    EXPECT_EQ(zoomLevel->getTileSize(), cv::Size(1388, 1040));
+    EXPECT_EQ(zoomLevel->getSize(), Tools::cvSizeToSize(scene->getRect().size()));
+    EXPECT_EQ(zoomLevel->getTileSize(), Size(1388, 1040));
 }

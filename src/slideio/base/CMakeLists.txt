@@ -8,6 +8,9 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/log.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/exceptions.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/slideio_base_def.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/slideio_structs.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/size.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/rect.hpp
 )
 
 add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES})

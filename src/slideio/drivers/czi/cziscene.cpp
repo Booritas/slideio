@@ -275,12 +275,12 @@ void CZIScene::initZoomLevelInfo() {
         LevelInfo& level = m_levels[levelIndex];
         const ZoomLevel& srcLevel = m_zoomLevels[levelIndex];
         const double scale = srcLevel.zoom;
-        cv::Size levelSize = cv::Size(lround(baseLevelSize.width*scale), lround(baseLevelSize.height*scale));
+        Size levelSize = Size(lround(baseLevelSize.width*scale), lround(baseLevelSize.height*scale));
         level.setLevel(levelIndex);
         level.setSize(levelSize);
         if(!srcLevel.tiles.empty()) {
             cv::Size tileSize = srcLevel.tiles.front().rect.size();
-            level.setTileSize(tileSize);
+            level.setTileSize(Tools::cvSizeToSize(tileSize));
         }
         level.setMagnification(getMagnification()*scale);
         level.setScale(scale);

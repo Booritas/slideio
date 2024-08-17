@@ -184,10 +184,10 @@ void DCMScene::init()
 
     m_levels.resize(1);
     LevelInfo& level = m_levels[0];
+    Size rectSize(m_rect.width, m_rect.height);
     level.setLevel(0);
-    level.setTileSize(cv::Size(m_rect.size()));
-    level.setSize(cv::Size(m_rect.size()));
-    level.setTileSize(m_rect.size());
+    level.setTileSize(rectSize);
+    level.setSize(rectSize);
     level.setMagnification(getMagnification());
     level.setScale(1.);
 }
