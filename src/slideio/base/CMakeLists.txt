@@ -12,6 +12,7 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/slideio_structs.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/size.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/rect.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/resolution.hpp
 )
 
 add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES})

@@ -9,7 +9,6 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/cvscene.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/cvslide.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/cvslide.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/cvstructs.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/cvsmallscene.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/cvsmallscene.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/refcounter.hpp

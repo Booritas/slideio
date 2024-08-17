@@ -5,7 +5,7 @@
 #define OPENCV_slideio_scene_HPP
 
 #include "slideio/core/slideio_core_def.hpp"
-#include "slideio/core/cvstructs.hpp"
+#include "slideio/base/resolution.hpp"
 #include "slideio/base/slideio_enums.hpp"
 #include "opencv2/core.hpp"
 #include <vector>
