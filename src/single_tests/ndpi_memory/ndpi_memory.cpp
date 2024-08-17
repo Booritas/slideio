@@ -7,6 +7,7 @@
 #include <iostream>
 #include "slideio/drivers/ndpi/ndpiimagedriver.hpp"
 #include "tests/testlib/testtools.hpp"
+#include "slideio/base/log.hpp"
 #include <memory>
 #include <chrono>
 

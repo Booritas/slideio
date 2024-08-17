@@ -8,6 +8,7 @@
 #include "slideio/drivers/dcm/dcmscene.hpp"
 #include "slideio/base/base.hpp"
 #include "slideio/core/tools/tools.hpp"
+#include "slideio/base/log.hpp"
 
 
 using namespace slideio;

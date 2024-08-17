@@ -3,10 +3,10 @@
 // of this distribution and at http://slideio.com/license.html.
 
 #include "vsifilescene.hpp"
+#include "slideio/core/tools/tools.hpp"
+#include "slideio/base/log.hpp"
 
 #include <opencv2/imgproc.hpp>
-
-#include "slideio/core/tools/tools.hpp"
 
 using namespace slideio;
 using namespace slideio::vsi;

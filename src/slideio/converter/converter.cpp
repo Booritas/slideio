@@ -10,6 +10,7 @@
 #include "slideio/imagetools/tifftools.hpp"
 #include "slideio/converter/converter.hpp"
 #include "slideio/converter/converterparameters.hpp"
+#include "slideio/base/log.hpp"
 
 using namespace slideio;
 

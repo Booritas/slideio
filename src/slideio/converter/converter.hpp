@@ -26,4 +26,8 @@ namespace slideio
                                                 ConverterCallback cb=nullptr);
 }
 
+#if defined(_MSC_VER)
+#pragma warning( pop )
+#endif
+
 #endif

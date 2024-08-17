@@ -7,14 +7,13 @@
 #include <boost/format.hpp>
 #include "slideio/base/base.hpp"
 #include "slideio/imagetools/cvtools.hpp"
-#include <dcmtk/dcmdata/dcjson.h>
-#include <dcmtk/dcmdata/dcpxitem.h>
+#include "slideio/base/log.hpp"
+#include "slideio/base/slideio_enums.hpp"
+#include "slideio/core/tools/tools.hpp"
 
+#include <dcmtk/dcmdata/dcjson.h>
 #include <ostream>
 
-#include "slideio/base/slideio_enums.hpp"
-#include "slideio/imagetools/imagetools.hpp"
-#include "slideio/core/tools/tools.hpp"
 
 using namespace slideio;
 
