@@ -3,11 +3,14 @@ cmake_policy(SET CMP0057 NEW)
 cmake_policy(SET CMP0068 OLD)
 
 set(PROJECT_NAME slide_io)
-set(projectVersion 0.5.0)
+set(projectVersion 2.6.1)
 
 project(${PROJECT_NAME} VERSION ${projectVersion} LANGUAGES C CXX)
 enable_testing()
-set( CMAKE_VERBOSE_MAKEFILE on )
+
+set(LIB_NAME_SUFFIX $<$<CONFIG:Debug>:_d>$<$<NOT:$<CONFIG:Debug>>:>)
+set(LIB_NAME_PREFIX "slideio-")
+
 set( CMAKE_VERBOSE_MAKEFILE on )
 set(INCLUDE_ROOT ${CMAKE_SOURCE_DIR}/src)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
@@ -16,23 +19,23 @@ set(CMAKE_CXX_STANDARD_REQUIRED, ON)
 set(CMAKE_CXX_STANDARD,14)
 set(CONAN_DISABLE_CHECK_COMPILER ON)
 
-set(CORE_LIB_NAME slideio-core)
-set(IMAGETOOLS_LIB_NAME slideio-imagetools)
-set(SLIDEIO_LIB_NAME slideio)
-set(GDAL_DRIVER_NAME slideio-gdal)
-set(SVS_DRIVER_NAME slideio-svs)
-set(PKE_DRIVER_NAME slideio-pke)
-set(AFI_DRIVER_NAME slideio-afi)
-set(CZI_DRIVER_NAME slideio-czi)
-set(DCM_DRIVER_NAME slideio-dcm)
-set(SCN_DRIVER_NAME slideio-scn)
-set(ZVI_DRIVER_NAME slideio-zvi)
-set(NDPI_DRIVER_NAME slideio-ndpi)
-set(VSI_DRIVER_NAME slideio-vsi)
-set(TEST_LIB_NAME slideio-test-lib)
-set(BASE_LIB_NAME slideio-base)
-set(CONVERTER_LIB_NAME slideio-converter)
-set(TRANSFORMER_LIB_NAME slideio-transformer)
+set(CORE_LIB_NAME "${LIB_NAME_PREFIX}core")
+set(IMAGETOOLS_LIB_NAME "${LIB_NAME_PREFIX}imagetools")
+set(SLIDEIO_LIB_NAME "slideio")
+set(GDAL_DRIVER_NAME "${LIB_NAME_PREFIX}gdal")
+set(SVS_DRIVER_NAME "${LIB_NAME_PREFIX}svs")
+set(PKE_DRIVER_NAME "${LIB_NAME_PREFIX}pke")
+set(AFI_DRIVER_NAME "${LIB_NAME_PREFIX}afi")
+set(CZI_DRIVER_NAME "${LIB_NAME_PREFIX}czi")
+set(DCM_DRIVER_NAME "${LIB_NAME_PREFIX}dcm")
+set(SCN_DRIVER_NAME "${LIB_NAME_PREFIX}scn")
+set(ZVI_DRIVER_NAME "${LIB_NAME_PREFIX}zvi")
+set(NDPI_DRIVER_NAME "${LIB_NAME_PREFIX}ndpi")
+set(VSI_DRIVER_NAME "${LIB_NAME_PREFIX}vsi")
+set(TEST_LIB_NAME "${LIB_NAME_PREFIX}test-lib")
+set(BASE_LIB_NAME "${LIB_NAME_PREFIX}base")
+set(CONVERTER_LIB_NAME "${LIB_NAME_PREFIX}converter")
+set(TRANSFORMER_LIB_NAME "${LIB_NAME_PREFIX}transformer")
 
 set(NAME_TOOL_LIB_LIST
     "lib${SLIDEIO_LIB_NAME}.dylib"
@@ -181,3 +184,51 @@ endmacro()
 
 add_subdirectory(src)
 
+
+# Install the library
+install(TARGETS 
+             ${SLIDEIO_LIB_NAME}
+             ${CONVERTER_LIB_NAME}
+             ${BASE_LIB_NAME}
+             ${TRANSFORMER_LIB_NAME}
+             ${GDAL_DRIVER_NAME}
+             ${SVS_DRIVER_NAME}
+             ${PKE_DRIVER_NAME} 
+             ${AFI_DRIVER_NAME} 
+             ${CZI_DRIVER_NAME} 
+             ${DCM_DRIVER_NAME} 
+             ${SCN_DRIVER_NAME} 
+             ${ZVI_DRIVER_NAME} 
+             ${NDPI_DRIVER_NAME} 
+             ${VSI_DRIVER_NAME}
+             ${CORE_LIB_NAME}
+             ${IMAGETOOLS_LIB_NAME}
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
+    RUNTIME DESTINATION bin
+)
+
+# Install header files
+install(DIRECTORY ${INCLUDE_ROOT}/slideio
+    DESTINATION include
+    FILES_MATCHING PATTERN "*.hpp"
+)
+
+set(GLOG_LIB_BASE "glog$<$<CONFIG:Debug>:d>$<$<NOT:$<CONFIG:Debug>>:>")
+
+IF(APPLE)
+    set(GLOG_LIB_NAME "${GLOG_LIB_BASE}.dylib")
+ELSEIF(UNIX)
+    set(GLOG_LIB_NAME "${GLOG_LIB_BASE}.so")
+ELSEIF(WIN32)
+    set(GLOG_LIB_NAME "${GLOG_LIB_BASE}.dll")
+ENDIF()
+
+message(STATUS "GLOG_LIB_NAME: ${GLOG_LIB_NAME}")
+
+
+install(FILES $<TARGET_FILE_DIR:${SLIDEIO_LIB_NAME}>/${GLOG_LIB_NAME} DESTINATION bin)
+
+
+# Install any additional files if needed
+# install(FILES some_config_file.txt DESTINATION etc)

@@ -20,6 +20,7 @@ add_subdirectory(tools)
 
 
 add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES})
+set_target_properties(${LIBRARY_NAME} PROPERTIES OUTPUT_NAME "${LIBRARY_NAME}${LIB_NAME_SUFFIX}")
 
 SOURCE_GROUP_BY_FOLDER(SOURCE_FILES)
 
