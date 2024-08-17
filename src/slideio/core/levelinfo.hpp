@@ -4,7 +4,6 @@
 #pragma once
 #include "slideio/core/slideio_core_def.hpp"
 #include "slideio/base/slideio_structs.hpp"
-#include <iostream>
 
 #if defined(_MSC_VER)
 #pragma warning( push )
@@ -13,7 +12,7 @@
 
 namespace slideio
 {
-    class LevelInfo
+    class SLIDEIO_CORE_EXPORTS LevelInfo
     {
     public:
         friend std::ostream& operator<<(std::ostream& os, const slideio::LevelInfo& levelInfo)
@@ -75,11 +74,7 @@ namespace slideio
         Size getTileSize() const { return m_tileSize; }
         void setTileSize(const Size& tileSize) { m_tileSize = tileSize; }
 
-        std::string toString() const {
-            std::stringstream ss;
-            ss << *this;
-            return ss.str();
-        }
+        std::string toString() const;
 
     private:
         int m_level = 0;

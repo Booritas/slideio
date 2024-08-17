@@ -14,6 +14,7 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/cvsmallscene.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/refcounter.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/levelinfo.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/levelinfo.cpp
    )
 
 add_subdirectory(tools)
