@@ -3,6 +3,14 @@
 // of this distribution and at http://slideio.com/license.html.
 #include "transformations.hpp"
 #include "slideio/base/exceptions.hpp"
+#include "slideio/transformer/colortransformation.hpp"
+#include "slideio/transformer/gaussianblurfilter.hpp"
+#include "slideio/transformer/laplacianfilter.hpp"
+#include "slideio/transformer/medianblurfilter.hpp"
+#include "slideio/transformer/scharrfilter.hpp"
+#include "slideio/transformer/sobelfilter.hpp"
+#include "slideio/transformer/cannyfilter.hpp"
+#include "slideio/transformer/bilateralfilter.hpp"
 
 using namespace slideio;
 
@@ -13,49 +21,49 @@ std::shared_ptr<Transformation> slideio::makeTransformationCopy(const Transforma
     case TransformationType::GaussianBlurFilter:
         {
             GaussianBlurFilter& filter = (GaussianBlurFilter&)source;
-            std::shared_ptr<Transformation> transformation(new GaussianBlurFilter(filter));
+            std::shared_ptr<TransformationEx> transformation(new GaussianBlurFilter(filter));
             return transformation;
         }
     case TransformationType::MedianBlurFilter:
         {
             MedianBlurFilter& filter = (MedianBlurFilter&)source;
-            std::shared_ptr<Transformation> transformation(new MedianBlurFilter(filter));
+            std::shared_ptr<TransformationEx> transformation(new MedianBlurFilter(filter));
             return transformation;
         }
     case TransformationType::SobelFilter:
         {
             SobelFilter& filter = (SobelFilter&)source;
-            std::shared_ptr<Transformation> transformation(new SobelFilter(filter));
+            std::shared_ptr<TransformationEx> transformation(new SobelFilter(filter));
             return transformation;
         }
     case TransformationType::ScharrFilter:
         {
             ScharrFilter& filter = (ScharrFilter&)source;
-            std::shared_ptr<Transformation> transformation(new ScharrFilter(filter));
+            std::shared_ptr<TransformationEx> transformation(new ScharrFilter(filter));
             return transformation;
         }
     case TransformationType::LaplacianFilter:
         {
             LaplacianFilter& filter = (LaplacianFilter&)source;
-            std::shared_ptr<Transformation> transformation(new LaplacianFilter(filter));
+            std::shared_ptr<TransformationEx> transformation(new LaplacianFilter(filter));
             return transformation;
         }
     case TransformationType::BilateralFilter:
         {
             BilateralFilter& filter = (BilateralFilter&)source;
-            std::shared_ptr<Transformation> transformation(new BilateralFilter(filter));
+            std::shared_ptr<TransformationEx> transformation(new BilateralFilter(filter));
             return transformation;
         }
     case TransformationType::CannyFilter:
         {
             CannyFilter& filter = (CannyFilter&)source;
-            std::shared_ptr<Transformation> transformation(new CannyFilter(filter));
+            std::shared_ptr<TransformationEx> transformation(new CannyFilter(filter));
             return transformation;
         }
     case TransformationType::ColorTransformation:
         {
             ColorTransformation& filter = (ColorTransformation&)source;
-            std::shared_ptr<Transformation> transformation(new ColorTransformation(filter));
+            std::shared_ptr<TransformationEx> transformation(new ColorTransformation(filter));
             return transformation;
         }
     default:

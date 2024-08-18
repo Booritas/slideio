@@ -2,9 +2,9 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #pragma once
+#include "slideio/transformer/transformer_def.hpp"
 #include "slideio/slideio/scene.hpp"
-#include "transformation.hpp"
-#include "transformer_def.hpp"
+#include "slideio/transformer/transformation.hpp"
 
 namespace slideio
 {

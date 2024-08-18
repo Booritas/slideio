@@ -7,7 +7,7 @@
 
 namespace slideio
 {
-    class Transformation;
+    class TransformationEx;
 
     class SLIDEIO_TRANSFORMER_EXPORTS TransformerTools
     {

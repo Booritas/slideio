@@ -6,5 +6,4 @@
 
 std::shared_ptr<PySlide> pyOpenSlide(const std::string& path, const std::string& driver);
 std::vector<std::string> pyGetDriverIDs();
-double pyCompareImages(pybind11::array& left, pybind11::array& right);
 void pySetLogLevel(const std::string& level);

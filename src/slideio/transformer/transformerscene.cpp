@@ -3,8 +3,9 @@
 // of this distribution and at http://slideio.com/license.html.
 #include "transformerscene.hpp"
 
-#include "transformation.hpp"
+#include "transformationex.hpp"
 #include "transformertools.hpp"
+#include "slideio/base/exceptions.hpp"
 
 using namespace slideio;
 
@@ -102,7 +103,11 @@ void TransformerScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, c
 
     for (const auto& transformation : m_transformations) {
         cv::Mat targetBlock;
-        transformation->applyTransformation(sourceBlock,targetBlock);
+        TransformationEx * transformationEx = dynamic_cast<TransformationEx*>(transformation.get());
+        if(!transformationEx) {
+            RAISE_RUNTIME_ERROR << "TransformScene: invalid Transformation";
+        }
+        transformationEx->applyTransformation(sourceBlock,targetBlock);
         targetBlock.copyTo(sourceBlock);
     }
 
@@ -131,7 +136,11 @@ void TransformerScene::initChannels()
         dataTypes.push_back(m_originScene->getChannelDataType(ch));
     }
     for (const auto& transformation : m_transformations) {
-        std::vector<DataType> newDataTypes = transformation->computeChannelDataTypes(dataTypes);
+        TransformationEx* transformationEx = dynamic_cast<TransformationEx*>(transformation.get());
+        if (!transformationEx) {
+            RAISE_RUNTIME_ERROR << "TransformScene: invalid Transformation";
+        }
+        std::vector<DataType> newDataTypes = transformationEx->computeChannelDataTypes(dataTypes);
         dataTypes = newDataTypes;
     }
     m_channelDataTypes = dataTypes;
@@ -141,6 +150,10 @@ void TransformerScene::computeInflationValue()
 {
     m_inflationValue = 0;
     for (const auto& transformation : m_transformations) {
-        m_inflationValue += transformation->getInflationValue();
+        TransformationEx* transformationEx = dynamic_cast<TransformationEx*>(transformation.get());
+        if (!transformationEx) {
+            RAISE_RUNTIME_ERROR << "TransformScene: invalid Transformation";
+        }
+        m_inflationValue += transformationEx->getInflationValue();
     }
 }

@@ -10,7 +10,8 @@
 #include "pyconverter.hpp"
 #include "pytransformation.hpp"
 #include "slideio/converter/converterparameters.hpp"
-#include "slideio/transformer/transformations.hpp"
+#include "slideio/transformer/wrappers.hpp"
+#include "slideio/transformer/colorspace.hpp"
 
 namespace py = pybind11;
 
@@ -27,9 +28,6 @@ PYBIND11_MODULE(slideiopybind, m) {
         "Sets log level for the library.");
     m.def("get_driver_ids", &pyGetDriverIDs,
         "Returns list of driver ids");
-    m.def("compare_images", &pyCompareImages,
-        py::arg("left"),
-        py::arg("right"));
     m.def("convert_scene", &pyConvertFile,
         py::arg("scene"),
         py::arg("parameters"),
@@ -145,12 +143,10 @@ PYBIND11_MODULE(slideiopybind, m) {
     py::class_<slideio::SVSJp2KConverterParameters, slideio::SVSConverterParameters, slideio::ConverterParameters>(m, "SVSJp2KParameters")
         .def(py::init<>())
         .def_property("compression_rate", &slideio::SVSJp2KConverterParameters::getCompressionRate, &slideio::SVSJp2KConverterParameters::setCompressionRate, "Compression rate of JPEG200 encoding");
-    py::class_<slideio::Transformation>(m, "Transformation")
-        .def_property_readonly("type", &slideio::Transformation::getType, "Type of transformation");
-    py::class_<slideio::ColorTransformation, slideio::Transformation>(m, "ColorTransformation")
+    py::class_<slideio::ColorTransformationWrap>(m, "ColorTransformation")
         .def(py::init<>())
-        .def_property_readonly("type", &slideio::ColorTransformation::getType, "Type of transformation")
-        .def_property("color_space", &slideio::ColorTransformation::getColorSpace, &slideio::ColorTransformation::setColorSpace, "Target color space");
+        .def_property_readonly("type", &slideio::ColorTransformationWrap::getType, "Type of transformation")
+        .def_property("color_space", &slideio::ColorTransformationWrap::getColorSpace, &slideio::ColorTransformationWrap::setColorSpace, "Target color space");
     py::enum_<slideio::ColorSpace>(m, "ColorSpace")
         .value("GRAY", slideio::ColorSpace::GRAY)
         .value("HSV", slideio::ColorSpace::HSV)
@@ -171,54 +167,54 @@ PYBIND11_MODULE(slideiopybind, m) {
         .value("UInt16", slideio::DataType::DT_UInt16)
         .value("Unknown", slideio::DataType::DT_Unknown)
         .value("None", slideio::DataType::DT_None);
-    py::class_<slideio::GaussianBlurFilter, slideio::Transformation>(m, "GaussianBlurFilter")
+    py::class_<slideio::GaussianBlurFilterWrap>(m, "GaussianBlurFilter")
         .def(py::init<>())
-        .def_property_readonly("type", &slideio::GaussianBlurFilter::getType, "Type of transformation")
-        .def_property("kernel_size_x", &slideio::GaussianBlurFilter::getKernelSizeX, &slideio::GaussianBlurFilter::setKernelSizeX, "Kernel size along x-axis")
-        .def_property("kernel_size_y", &slideio::GaussianBlurFilter::getKernelSizeY, &slideio::GaussianBlurFilter::setKernelSizeY, "Kernel size along y-axis")
-        .def_property("sigma_x", &slideio::GaussianBlurFilter::getSigmaX, &slideio::GaussianBlurFilter::setSigmaX, "Sigma along x-axis")
-        .def_property("sigma_y", &slideio::GaussianBlurFilter::getSigmaY, &slideio::GaussianBlurFilter::setSigmaY, "Sigma along y-axis");
-    py::class_<slideio::MedianBlurFilter, slideio::Transformation>(m, "MedianBlurFilter")
+        .def_property_readonly("type", &slideio::GaussianBlurFilterWrap::getType, "Type of transformation")
+        .def_property("kernel_size_x", &slideio::GaussianBlurFilterWrap::getKernelSizeX, &slideio::GaussianBlurFilterWrap::setKernelSizeX, "Kernel size along x-axis")
+        .def_property("kernel_size_y", &slideio::GaussianBlurFilterWrap::getKernelSizeY, &slideio::GaussianBlurFilterWrap::setKernelSizeY, "Kernel size along y-axis")
+        .def_property("sigma_x", &slideio::GaussianBlurFilterWrap::getSigmaX, &slideio::GaussianBlurFilterWrap::setSigmaX, "Sigma along x-axis")
+        .def_property("sigma_y", &slideio::GaussianBlurFilterWrap::getSigmaY, &slideio::GaussianBlurFilterWrap::setSigmaY, "Sigma along y-axis");
+    py::class_<slideio::MedianBlurFilterWrap>(m, "MedianBlurFilter")
         .def(py::init<>())
-        .def_property_readonly("type", &slideio::MedianBlurFilter::getType, "Type of transformation")
-        .def_property("kernel_size", &slideio::MedianBlurFilter::getKernelSize, &slideio::MedianBlurFilter::setKernelSize, "Kernel size");
-    py::class_<slideio::SobelFilter, slideio::Transformation>(m, "SobelFilter")
+        .def_property_readonly("type", &slideio::MedianBlurFilterWrap::getType, "Type of transformation")
+        .def_property("kernel_size", &slideio::MedianBlurFilterWrap::getKernelSize, &slideio::MedianBlurFilterWrap::setKernelSize, "Kernel size");
+    py::class_<slideio::SobelFilterWrap>(m, "SobelFilter")
         .def(py::init<>())
-        .def_property_readonly("type", &slideio::SobelFilter::getType, "Type of transformation")
-        .def_property("kernel_size", &slideio::SobelFilter::getKernelSize, &slideio::SobelFilter::setKernelSize, "Kernel size")
-        .def_property("dx", &slideio::SobelFilter::getDx, &slideio::SobelFilter::setDx, "Derivative order along x-axis")
-        .def_property("dy", &slideio::SobelFilter::getDy, &slideio::SobelFilter::setDy, "Derivative order along y-axis")
-        .def_property("depth", &slideio::SobelFilter::getDepth, &slideio::SobelFilter::setDepth, "Depth of output image")
-        .def_property("scale", &slideio::SobelFilter::getScale, &slideio::SobelFilter::setScale, "Scale factor")
-        .def_property("delta", &slideio::SobelFilter::getDelta, &slideio::SobelFilter::setDelta, "Delta value");
-    py::class_<slideio::ScharrFilter, slideio::Transformation>(m, "ScharrFilter")
+        .def_property_readonly("type", &slideio::SobelFilterWrap::getType, "Type of transformation")
+        .def_property("kernel_size", &slideio::SobelFilterWrap::getKernelSize, &slideio::SobelFilterWrap::setKernelSize, "Kernel size")
+        .def_property("dx", &slideio::SobelFilterWrap::getDx, &slideio::SobelFilterWrap::setDx, "Derivative order along x-axis")
+        .def_property("dy", &slideio::SobelFilterWrap::getDy, &slideio::SobelFilterWrap::setDy, "Derivative order along y-axis")
+        .def_property("depth", &slideio::SobelFilterWrap::getDepth, &slideio::SobelFilterWrap::setDepth, "Depth of output image")
+        .def_property("scale", &slideio::SobelFilterWrap::getScale, &slideio::SobelFilterWrap::setScale, "Scale factor")
+        .def_property("delta", &slideio::SobelFilterWrap::getDelta, &slideio::SobelFilterWrap::setDelta, "Delta value");
+    py::class_<slideio::ScharrFilterWrap>(m, "ScharrFilter")
         .def(py::init<>())
-        .def_property_readonly("type", &slideio::ScharrFilter::getType, "Type of transformation")
-        .def_property("dx", &slideio::ScharrFilter::getDx, &slideio::ScharrFilter::setDx, "Derivative order along x-axis")
-        .def_property("dy", &slideio::ScharrFilter::getDy, &slideio::ScharrFilter::setDy, "Derivative order along y-axis")
-        .def_property("depth", &slideio::ScharrFilter::getDepth, &slideio::ScharrFilter::setDepth, "Depth of output image")
-        .def_property("scale", &slideio::ScharrFilter::getScale, &slideio::ScharrFilter::setScale, "Scale factor")
-        .def_property("delta", &slideio::ScharrFilter::getDelta, &slideio::ScharrFilter::setDelta, "Delta value");
-    py::class_<slideio::LaplacianFilter, slideio::Transformation>(m, "LaplacianFilter")
+        .def_property_readonly("type", &slideio::ScharrFilterWrap::getType, "Type of transformation")
+        .def_property("dx", &slideio::ScharrFilterWrap::getDx, &slideio::ScharrFilterWrap::setDx, "Derivative order along x-axis")
+        .def_property("dy", &slideio::ScharrFilterWrap::getDy, &slideio::ScharrFilterWrap::setDy, "Derivative order along y-axis")
+        .def_property("depth", &slideio::ScharrFilterWrap::getDepth, &slideio::ScharrFilterWrap::setDepth, "Depth of output image")
+        .def_property("scale", &slideio::ScharrFilterWrap::getScale, &slideio::ScharrFilterWrap::setScale, "Scale factor")
+        .def_property("delta", &slideio::ScharrFilterWrap::getDelta, &slideio::ScharrFilterWrap::setDelta, "Delta value");
+    py::class_<slideio::LaplacianFilterWrap>(m, "LaplacianFilter")
         .def(py::init<>())
-        .def_property_readonly("type", &slideio::LaplacianFilter::getType, "Type of transformation")
-        .def_property("kernel_size", &slideio::LaplacianFilter::getKernelSize, &slideio::LaplacianFilter::setKernelSize, "Kernel size")
-        .def_property("depth", &slideio::LaplacianFilter::getDepth, &slideio::LaplacianFilter::setDepth, "Depth of output image")
-        .def_property("scale", &slideio::LaplacianFilter::getScale, &slideio::LaplacianFilter::setScale, "Scale factor")
-        .def_property("delta", &slideio::LaplacianFilter::getDelta, &slideio::LaplacianFilter::setDelta, "Delta value");
-    py::class_<slideio::BilateralFilter, slideio::Transformation>(m, "BilateralFilter")
+        .def_property_readonly("type", &slideio::LaplacianFilterWrap::getType, "Type of transformation")
+        .def_property("kernel_size", &slideio::LaplacianFilterWrap::getKernelSize, &slideio::LaplacianFilterWrap::setKernelSize, "Kernel size")
+        .def_property("depth", &slideio::LaplacianFilterWrap::getDepth, &slideio::LaplacianFilterWrap::setDepth, "Depth of output image")
+        .def_property("scale", &slideio::LaplacianFilterWrap::getScale, &slideio::LaplacianFilterWrap::setScale, "Scale factor")
+        .def_property("delta", &slideio::LaplacianFilterWrap::getDelta, &slideio::LaplacianFilterWrap::setDelta, "Delta value");
+    py::class_<slideio::BilateralFilterWrap>(m, "BilateralFilter")
         .def(py::init<>())
-        .def_property_readonly("type", &slideio::BilateralFilter::getType, "Type of transformation")
-        .def_property("diameter", &slideio::BilateralFilter::getDiameter, &slideio::BilateralFilter::setDiameter, "Diameter of each pixel neighborhood")
-        .def_property("sigma_color", &slideio::BilateralFilter::getSigmaColor, &slideio::BilateralFilter::setSigmaColor, "Filter sigma in the color space")
-        .def_property("sigma_space", &slideio::BilateralFilter::getSigmaSpace, &slideio::BilateralFilter::setSigmaSpace, "Filter sigma in the coordinate space");
-    py::class_<slideio::CannyFilter, slideio::Transformation>(m, "CannyFilter")
+        .def_property_readonly("type", &slideio::BilateralFilterWrap::getType, "Type of transformation")
+        .def_property("diameter", &slideio::BilateralFilterWrap::getDiameter, &slideio::BilateralFilterWrap::setDiameter, "Diameter of each pixel neighborhood")
+        .def_property("sigma_color", &slideio::BilateralFilterWrap::getSigmaColor, &slideio::BilateralFilterWrap::setSigmaColor, "Filter sigma in the color space")
+        .def_property("sigma_space", &slideio::BilateralFilterWrap::getSigmaSpace, &slideio::BilateralFilterWrap::setSigmaSpace, "Filter sigma in the coordinate space");
+    py::class_<slideio::CannyFilterWrap>(m, "CannyFilter")
         .def(py::init<>())
-        .def_property_readonly("type", &slideio::CannyFilter::getType, "Type of transformation")
-        .def_property("threshold1", &slideio::CannyFilter::getThreshold1, &slideio::CannyFilter::setThreshold1, "First threshold for the hysteresis procedure")
-        .def_property("threshold2", &slideio::CannyFilter::getThreshold2, &slideio::CannyFilter::setThreshold2, "Second threshold for the hysteresis procedure")
-        .def_property("aperture_size", &slideio::CannyFilter::getApertureSize, &slideio::CannyFilter::setApertureSize, "Aperture size for the Sobel operator")
-        .def_property("l2gradient", &slideio::CannyFilter::getL2Gradient, &slideio::CannyFilter::setL2Gradient, "Indicates, whether L2 norm should be used");
+        .def_property_readonly("type", &slideio::CannyFilterWrap::getType, "Type of transformation")
+        .def_property("threshold1", &slideio::CannyFilterWrap::getThreshold1, &slideio::CannyFilterWrap::setThreshold1, "First threshold for the hysteresis procedure")
+        .def_property("threshold2", &slideio::CannyFilterWrap::getThreshold2, &slideio::CannyFilterWrap::setThreshold2, "Second threshold for the hysteresis procedure")
+        .def_property("aperture_size", &slideio::CannyFilterWrap::getApertureSize, &slideio::CannyFilterWrap::setApertureSize, "Aperture size for the Sobel operator")
+        .def_property("l2gradient", &slideio::CannyFilterWrap::getL2Gradient, &slideio::CannyFilterWrap::setL2Gradient, "Indicates, whether L2 norm should be used");
     py::class_<slideio::LevelInfo>(m, "LevelInfo")
         .def_property_readonly("size", &slideio::LevelInfo::getSize, "Size of the level")
         .def_property_readonly("tile_size", &slideio::LevelInfo::getTileSize, "Size of the tile")
@@ -226,8 +222,8 @@ PYBIND11_MODULE(slideiopybind, m) {
         .def_property_readonly("scale", &slideio::LevelInfo::getScale, "Scale coefficient")
         .def_property_readonly("magnification", &slideio::LevelInfo::getMagnification, "Level magnification")
         .def("__repr__", &slideio::LevelInfo::toString);
-    py::class_<cv::Size>(m, "Size")
+    py::class_<slideio::Size>(m, "Size")
         .def(py::init<int, int>())
-        .def_readwrite("width", &cv::Size::width)
-        .def_readwrite("height", &cv::Size::height);
+        .def_readwrite("width", &slideio::Size::width)
+        .def_readwrite("height", &slideio::Size::height);
 }

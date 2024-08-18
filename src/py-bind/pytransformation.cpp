@@ -5,18 +5,12 @@
 #include "pytransformation.hpp"
 
 #include "slideio/base/exceptions.hpp"
-#include "slideio/transformer/colortransformation.hpp"
 #include "slideio/transformer/transformer.hpp"
 #include "slideio/transformer/transformations.hpp"
 
-namespace slideio
-{
-    class GaussianBlurFilter;
-}
-
 namespace py = pybind11;
-
 using namespace slideio;
+
 
 std::shared_ptr<PyScene> pyTransformScene(std::shared_ptr<PyScene>& pyScene, const pybind11::list& source)
 {

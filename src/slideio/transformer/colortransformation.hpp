@@ -2,25 +2,14 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #pragma once
-#include "transformer_def.hpp"
-#include "transformation.hpp"
+#include "slideio/transformer/transformer_def.hpp"
+#include "slideio/transformer/transformationex.hpp"
+#include "slideio/transformer/colorspace.hpp"
+#include "slideio/transformer/transformationtype.hpp"
 
 namespace slideio
 {
-    enum class ColorSpace
-    {
-        RGB,
-        GRAY,
-        HSV,
-        HLS,
-        YUV,
-        YCbCr,
-        XYZ,
-        LAB,
-        LUV,
-    };
-
-    class SLIDEIO_TRANSFORMER_EXPORTS ColorTransformation : public slideio::Transformation
+    class SLIDEIO_TRANSFORMER_EXPORTS ColorTransformation : public slideio::TransformationEx
     {
     public:
         ColorTransformation() {
