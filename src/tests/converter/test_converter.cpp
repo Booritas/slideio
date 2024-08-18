@@ -9,6 +9,7 @@
 #include "slideio/converter/converterparameters.hpp"
 #include "slideio/core/cvslide.hpp"
 #include "slideio/core/tools/tempfile.hpp"
+#include "slideio/imagetools/imagetools.hpp"
 #include "slideio/slideio/imagedrivermanager.hpp"
 
 

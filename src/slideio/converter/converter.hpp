@@ -6,7 +6,7 @@
 
 #include <map>
 
-#include "convertersvstools.hpp"
+#include "convertercallback.hpp"
 #include "slideio/converter/converter_def.hpp"
 #include "slideio/slideio/scene.hpp"
 
