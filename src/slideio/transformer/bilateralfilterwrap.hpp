@@ -5,6 +5,7 @@
 #include "slideio/base/slideio_enums.hpp"
 #include "slideio/transformer/transformer_def.hpp"
 #include "slideio/transformer/transformationtype.hpp"
+#include "slideio/transformer/transformationwrapper.hpp"
 #include <memory>
 
 #if defined(_MSC_VER)
@@ -17,7 +18,7 @@ namespace slideio
 {
 
     class BilateralFilter;
-    class SLIDEIO_TRANSFORMER_EXPORTS BilateralFilterWrap
+    class SLIDEIO_TRANSFORMER_EXPORTS BilateralFilterWrap : public TransformationWrapper
     {
     public:
         BilateralFilterWrap();
@@ -27,7 +28,8 @@ namespace slideio
         void setSigmaColor(double sigmaColor);
         double getSigmaSpace() const;
         void setSigmaSpace(double sigmaSpace);
-        TransformationType getType() const;
+        TransformationType getType() const override;
+        std::shared_ptr<BilateralFilter> getFilter() const;
     private:
         std::shared_ptr<BilateralFilter> m_filter;
     };

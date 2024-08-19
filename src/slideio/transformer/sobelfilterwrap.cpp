@@ -75,3 +75,7 @@ TransformationType SobelFilterWrap::getType() const
     return m_filter->getType();
 }
 
+std::shared_ptr<SobelFilter> SobelFilterWrap::getFilter() const {
+    return m_filter;
+}
+

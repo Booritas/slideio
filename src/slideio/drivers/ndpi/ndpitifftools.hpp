@@ -86,7 +86,7 @@ namespace slideio
         }
     };
 
-    SLIDEIO_NDPI_EXPORTS std::ostream&  operator << (std::ostream& os, const NDPITiffDirectory::Type& type);;
+    SLIDEIO_NDPI_EXPORTS std::ostream&  operator << (std::ostream& os, const NDPITiffDirectory::Type& type);
 
     class SLIDEIO_NDPI_EXPORTS NDPITiffTools
     {

@@ -1,9 +1,9 @@
 // This file is part of slideio project.
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
+#include "slideio/transformer/transformation.hpp"
 #include "pyscene.hpp"
 #include "pytransformation.hpp"
-
 #include "slideio/base/exceptions.hpp"
 #include "slideio/transformer/transformer.hpp"
 #include "slideio/transformer/transformations.hpp"

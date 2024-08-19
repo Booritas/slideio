@@ -55,3 +55,7 @@ TransformationType LaplacianFilterWrap::getType() const
     return m_filter->getType();
 }
 
+std::shared_ptr<Transformation> LaplacianFilterWrap::getFilter() const {
+    return m_filter;
+}
+

@@ -3,19 +3,22 @@
 // of this distribution and at http://slideio.com/license.html.
 #pragma once
 #include "slideio/transformer/transformer_def.hpp"
+#include "slideio/transformer/transformationwrapper.hpp"
 #include <memory>
 
 namespace slideio
 {
     class MedianBlurFilter;
     enum class TransformationType;
-    class SLIDEIO_TRANSFORMER_EXPORTS MedianBlurFilterWrap
+    class SLIDEIO_TRANSFORMER_EXPORTS MedianBlurFilterWrap : public TransformationWrapper
     {
     public:
         MedianBlurFilterWrap();
         int getKernelSize() const;
         void setKernelSize(int kernelSize);
-        TransformationType getType() const;
+        TransformationType getType() const override;
+        std::shared_ptr<MedianBlurFilter> getFilter() const;
+
     private:
         std::shared_ptr<MedianBlurFilter> m_filter;
 };

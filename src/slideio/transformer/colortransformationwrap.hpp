@@ -3,6 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 #pragma once
 #include "slideio/transformer/transformer_def.hpp"
+#include "slideio/transformer/transformationwrapper.hpp"
 #include <memory>
 
 #if defined(_MSC_VER)
@@ -16,13 +17,14 @@ namespace slideio
     class ColorTransformation;
     enum class ColorSpace;
     enum class TransformationType;
-    class SLIDEIO_TRANSFORMER_EXPORTS ColorTransformationWrap
+    class SLIDEIO_TRANSFORMER_EXPORTS ColorTransformationWrap : public TransformationWrapper
     {
     public:
         ColorTransformationWrap();
         ColorSpace getColorSpace() const;
         void setColorSpace(ColorSpace colorSpace);
-        TransformationType getType() const;
+        TransformationType getType() const override;
+        std::shared_ptr<ColorTransformation> getFilter() const;;
     private:
         std::shared_ptr<ColorTransformation> m_filter;
     };

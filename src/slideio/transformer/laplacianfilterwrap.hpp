@@ -3,6 +3,8 @@
 // of this distribution and at http://slideio.com/license.html.
 #pragma once
 #include "slideio/transformer/transformer_def.hpp"
+#include "slideio/transformer/transformationwrapper.hpp"
+#include "slideio/transformer/transformation.hpp"
 #include <memory>
 
 namespace slideio
@@ -11,7 +13,7 @@ namespace slideio
     enum class DataType;
     enum class TransformationType;
 
-    class SLIDEIO_TRANSFORMER_EXPORTS LaplacianFilterWrap
+    class SLIDEIO_TRANSFORMER_EXPORTS LaplacianFilterWrap : public TransformationWrapper
     {
     public:
         LaplacianFilterWrap();
@@ -23,7 +25,8 @@ namespace slideio
         void setScale(double scale);
         double getDelta() const;
         void setDelta(double delta);
-        TransformationType getType() const;
+        TransformationType getType() const override;
+        std::shared_ptr<Transformation> getFilter() const;;
     private:
         std::shared_ptr<LaplacianFilter> m_filter;
     };

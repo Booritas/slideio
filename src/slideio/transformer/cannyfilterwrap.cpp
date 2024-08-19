@@ -44,3 +44,7 @@ void CannyFilterWrap::setL2Gradient(bool L2gradient) {
 TransformationType CannyFilterWrap::getType() const {
 	return m_filter->getType();
 }
+
+std::shared_ptr<CannyFilter> CannyFilterWrap::getFilter() const {
+    return m_filter;
+}

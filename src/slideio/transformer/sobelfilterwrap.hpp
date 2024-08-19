@@ -3,6 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 #pragma once
 #include "slideio/transformer/transformer_def.hpp"
+#include "slideio/transformer/transformationwrapper.hpp"
 #include <memory>
 
 namespace slideio
@@ -11,7 +12,7 @@ namespace slideio
     enum class DataType;
     enum class TransformationType;
     
-    class SLIDEIO_TRANSFORMER_EXPORTS SobelFilterWrap
+    class SLIDEIO_TRANSFORMER_EXPORTS SobelFilterWrap : public TransformationWrapper
     {
     public:
         SobelFilterWrap();
@@ -27,7 +28,9 @@ namespace slideio
         void setScale(double scale);
         double getDelta() const;
         void setDelta(double delta);
-        TransformationType getType() const;
+        TransformationType getType() const override;
+        std::shared_ptr<SobelFilter> getFilter() const;
+
     private:
         std::shared_ptr<SobelFilter> m_filter;
     };

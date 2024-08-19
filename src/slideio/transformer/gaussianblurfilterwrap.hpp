@@ -2,7 +2,9 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #pragma once
+
 #include "slideio/transformer/transformer_def.hpp"
+#include "slideio/transformer/transformationwrapper.hpp"
 #include <memory>
 
 #if defined(_MSC_VER)
@@ -14,7 +16,7 @@ namespace slideio
 {
     class GaussianBlurFilter;
     enum class TransformationType;
-    class SLIDEIO_TRANSFORMER_EXPORTS GaussianBlurFilterWrap
+    class SLIDEIO_TRANSFORMER_EXPORTS GaussianBlurFilterWrap : public TransformationWrapper
     {
     public:
         GaussianBlurFilterWrap();
@@ -26,7 +28,9 @@ namespace slideio
         void setSigmaX(double sigmaX);
         double getSigmaY() const;
         void setSigmaY(double sigmaY);
-        TransformationType getType() const;
+        TransformationType getType() const override;
+        std::shared_ptr<GaussianBlurFilter> getFilter() const;
+
     private:
         std::shared_ptr<GaussianBlurFilter> m_filter;
     };

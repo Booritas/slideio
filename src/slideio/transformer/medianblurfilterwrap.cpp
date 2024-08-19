@@ -7,22 +7,21 @@
 using namespace slideio;
 
 
-MedianBlurFilterWrap::MedianBlurFilterWrap() : m_filter(std::make_shared<MedianBlurFilter>())
-{
+MedianBlurFilterWrap::MedianBlurFilterWrap() : m_filter(std::make_shared<MedianBlurFilter>()) {
 }
 
-int MedianBlurFilterWrap::getKernelSize() const
-{
+int MedianBlurFilterWrap::getKernelSize() const {
     return m_filter->getKernelSize();
 }
 
-void MedianBlurFilterWrap::setKernelSize(int kernelSize)
-{
+void MedianBlurFilterWrap::setKernelSize(int kernelSize) {
     m_filter->setKernelSize(kernelSize);
 }
 
-TransformationType MedianBlurFilterWrap::getType() const
-{
+TransformationType MedianBlurFilterWrap::getType() const {
     return m_filter->getType();
 }
 
+std::shared_ptr<MedianBlurFilter> MedianBlurFilterWrap::getFilter() const {
+    return m_filter;
+}

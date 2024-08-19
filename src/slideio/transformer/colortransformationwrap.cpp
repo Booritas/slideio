@@ -21,3 +21,7 @@ void ColorTransformationWrap::setColorSpace(ColorSpace colorSpace) {
 TransformationType ColorTransformationWrap::getType() const {
 	return m_filter->getType();
 }
+
+std::shared_ptr<ColorTransformation> ColorTransformationWrap::getFilter() const {
+    return m_filter;
+}

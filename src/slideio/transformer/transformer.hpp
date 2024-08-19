@@ -3,11 +3,16 @@
 // of this distribution and at http://slideio.com/license.html.
 #pragma once
 #include "slideio/transformer/transformer_def.hpp"
-#include "slideio/slideio/scene.hpp"
-#include "slideio/transformer/transformation.hpp"
+#include <memory>
+#include <list>
 
 namespace slideio
 {
-     std::shared_ptr<slideio::Scene> SLIDEIO_TRANSFORMER_EXPORTS transformScene(std::shared_ptr<slideio::Scene> scene, Transformation& transform);
-     std::shared_ptr<slideio::Scene> SLIDEIO_TRANSFORMER_EXPORTS transformSceneEx(std::shared_ptr<slideio::Scene> scene, std::list<std::shared_ptr<Transformation>>& transforms);
+    class Scene;
+    class Transformation;
+    class TransformationWrapper;
+    std::shared_ptr<slideio::Scene> SLIDEIO_TRANSFORMER_EXPORTS transformScene(std::shared_ptr<Scene> scene, Transformation& transform);
+    std::shared_ptr<slideio::Scene> SLIDEIO_TRANSFORMER_EXPORTS transformSceneEx(std::shared_ptr<Scene> scene, std::list<std::shared_ptr<Transformation>>& transforms);
+    std::shared_ptr<slideio::Scene> SLIDEIO_TRANSFORMER_EXPORTS transformScene(std::shared_ptr<Scene> scene, TransformationWrapper& transform);
+    std::shared_ptr<slideio::Scene> SLIDEIO_TRANSFORMER_EXPORTS transformSceneEx(std::shared_ptr<Scene> scene, std::list<std::shared_ptr<TransformationWrapper>>& transforms);
 }

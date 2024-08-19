@@ -2,7 +2,11 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #pragma once
-namespace slideio {
+#include "slideio/transformer/transformer_def.hpp"
+#include <ostream>
+
+namespace slideio 
+{
     enum class TransformationType
     {
         Unknown,
@@ -14,6 +18,7 @@ namespace slideio {
         LaplacianFilter,
         BilateralFilter,
         CannyFilter,
-
     };
+
+    SLIDEIO_TRANSFORMER_EXPORTS std::ostream& operator << (std::ostream& os, TransformationType type);
 }

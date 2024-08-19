@@ -66,3 +66,7 @@ TransformationType ScharrFilterWrap::getType() const
     return m_filter->getType();
 }
 
+std::shared_ptr<ScharrFilter> ScharrFilterWrap::getFilter() const {
+    return m_filter;
+}
+

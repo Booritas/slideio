@@ -46,3 +46,7 @@ void GaussianBlurFilterWrap::setSigmaY(double sigmaY) {
 TransformationType GaussianBlurFilterWrap::getType() const {
     return m_filter->getType();
 }
+
+std::shared_ptr<GaussianBlurFilter> GaussianBlurFilterWrap::getFilter() const {
+    return m_filter;
+}

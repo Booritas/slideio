@@ -8,6 +8,8 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/transformationex.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/transformationex.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/transformation.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/transformationtype.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/transformationtype.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/transformer_def.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/transformerscene.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/transformerscene.cpp
@@ -48,6 +50,8 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/scharrfilterwrap.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/scharrfilterwrap.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/wrappers.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/transformationwrapper.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/filters.hpp
    )
 
 

@@ -4,6 +4,7 @@
 #pragma once
 #include "slideio/transformer/transformer_def.hpp"
 #include "slideio/transformer/transformationtype.hpp"
+#include "slideio/transformer/transformationwrapper.hpp"
 #include <memory>
 
 #if defined(_MSC_VER)
@@ -14,7 +15,7 @@
 namespace slideio
 {
     class CannyFilter;
-    class SLIDEIO_TRANSFORMER_EXPORTS CannyFilterWrap
+    class SLIDEIO_TRANSFORMER_EXPORTS CannyFilterWrap : public TransformationWrapper
     {
     public:
         CannyFilterWrap();
@@ -26,7 +27,9 @@ namespace slideio
         void setApertureSize(int apertureSize);
         bool getL2Gradient() const;
         void setL2Gradient(bool L2gradient);
-        TransformationType getType() const;
+        TransformationType getType() const override;
+        std::shared_ptr<CannyFilter> getFilter() const;
+
     private:
         std::shared_ptr<CannyFilter> m_filter;
     };
