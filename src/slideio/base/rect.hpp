@@ -48,6 +48,9 @@ namespace slideio
             os << "Rect (x: " << rect.x << ", y: " << rect.y << ", width: " << rect.width << ", height: " << rect.height << ")";
             return os;
         }
+        bool valid() const {
+            return x >= 0 && y >= 0 && width > 0 && height > 0;
+        }
         int32_t x;
         int32_t y;
         int32_t width;

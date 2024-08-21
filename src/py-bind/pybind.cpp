@@ -119,11 +119,11 @@ PYBIND11_MODULE(slideiopybind, m) {
         .value("GIF", slideio::Compression::GIF)
         .value("BIGGIF", slideio::Compression::BIGGIF)
         .export_values();
-    py::class_<slideio::Rectangle>(m, "Rectangle")
-        .def_readwrite("x", &slideio::Rectangle::x)
-        .def_readwrite("y", &slideio::Rectangle::y)
-        .def_readwrite("width", &slideio::Rectangle::width)
-        .def_readwrite("height", &slideio::Rectangle::height);
+    py::class_<slideio::Rect>(m, "Rectangle")
+        .def_readwrite("x", &slideio::Rect::x)
+        .def_readwrite("y", &slideio::Rect::y)
+        .def_readwrite("width", &slideio::Rect::width)
+        .def_readwrite("height", &slideio::Rect::height);
     py::enum_<slideio::ImageFormat>(m, "ImageFormat")
         .value("Unknown", slideio::ImageFormat::Unknown)
         .value("SVS", slideio::ImageFormat::SVS);

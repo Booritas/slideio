@@ -3,6 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 #pragma once
 #include "slideio/imagetools/encodeparameters.hpp"
+#include "slideio/base/rect.hpp"
 
 namespace slideio
 {
@@ -18,14 +19,6 @@ namespace slideio
 
     };
 
-    struct Rectangle
-    {
-        int32_t x = -1;
-        int32_t y = -1;
-        int32_t width = 0;
-        int32_t height = 0;
-        bool isValid() const { return x >= 0 && y >= 0 && width > 0 && height > 0; }
-    };
 
     class ConverterParameters
     {
@@ -36,10 +29,10 @@ namespace slideio
         ImageFormat getFormat() const {
             return m_format;
         }
-        Rectangle& getRect() {
+        Rect& getRect() {
             return m_rect;
         }
-        void setRect(const Rectangle& rect) {
+        void setRect(const Rect& rect) {
             m_rect = rect;
         }
         int32_t getZSlice() const {
@@ -56,7 +49,7 @@ namespace slideio
         }
     protected:
         ImageFormat m_format;
-        Rectangle m_rect;
+        Rect m_rect;
         int32_t m_zSlice;
         int32_t m_tFrame;
     };
