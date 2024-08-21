@@ -216,11 +216,59 @@ install(TARGETS
     RUNTIME DESTINATION bin
 )
 
-# Install header files
-install(DIRECTORY ${INCLUDE_ROOT}/slideio
-    DESTINATION include
-    FILES_MATCHING PATTERN "*.hpp"
-)
+
+install(FILES 
+    ${INCLUDE_ROOT}/slideio/base/base.hpp 
+    ${INCLUDE_ROOT}/slideio/base/rect.hpp 
+    ${INCLUDE_ROOT}/slideio/base/size.hpp 
+    ${INCLUDE_ROOT}/slideio/base/resolution.hpp
+    ${INCLUDE_ROOT}/slideio/base/slideio_base_def.hpp
+    ${INCLUDE_ROOT}/slideio/base/slideio_enums.hpp
+    ${INCLUDE_ROOT}/slideio/base/slideio_structs.hpp
+    DESTINATION include/slideio/base)
+
+install(FILES 
+    ${INCLUDE_ROOT}/slideio/converter/converterparameters.hpp 
+    ${INCLUDE_ROOT}/slideio/converter/convertercallback.hpp 
+    ${INCLUDE_ROOT}/slideio/converter/converter_def.hpp 
+    ${INCLUDE_ROOT}/slideio/converter/converter.hpp
+    DESTINATION include/slideio/converter)
+
+
+install(FILES 
+    ${INCLUDE_ROOT}/slideio/core/slideio_core_def.hpp 
+    ${INCLUDE_ROOT}/slideio/core/levelinfo.hpp 
+    DESTINATION include/slideio/core)
+
+install(FILES 
+    ${INCLUDE_ROOT}/slideio/imagetools/encodeparameters.hpp 
+    DESTINATION include/slideio/imagetools)
+
+install(FILES 
+    ${INCLUDE_ROOT}/slideio/slideio/slideio_def.hpp 
+    ${INCLUDE_ROOT}/slideio/slideio/slideio.hpp 
+    ${INCLUDE_ROOT}/slideio/slideio/slide.hpp 
+    ${INCLUDE_ROOT}/slideio/slideio/scene.hpp 
+    DESTINATION include/slideio/slideio)
+
+install(FILES 
+    ${INCLUDE_ROOT}/slideio/transformer/wrappers.hpp
+    ${INCLUDE_ROOT}/slideio/transformer/transformer_def.hpp
+    ${INCLUDE_ROOT}/slideio/transformer/transformer.hpp
+    ${INCLUDE_ROOT}/slideio/transformer/transformationwrapper.hpp
+    ${INCLUDE_ROOT}/slideio/transformer/transformationtype.hpp
+    ${INCLUDE_ROOT}/slideio/transformer/transformations.hpp
+    ${INCLUDE_ROOT}/slideio/transformer/transformation.hpp
+    ${INCLUDE_ROOT}/slideio/transformer/sobelfilterwrap.hpp
+    ${INCLUDE_ROOT}/slideio/transformer/scharrfilterwrap.hpp
+    ${INCLUDE_ROOT}/slideio/transformer/medianblurfilterwrap.hpp
+    ${INCLUDE_ROOT}/slideio/transformer/laplacianfilterwrap.hpp
+    ${INCLUDE_ROOT}/slideio/transformer/gaussianblurfilterwrap.hpp
+    ${INCLUDE_ROOT}/slideio/transformer/colortransformationwrap.hpp
+    ${INCLUDE_ROOT}/slideio/transformer/colorspace.hpp
+    ${INCLUDE_ROOT}/slideio/transformer/cannyfilterwrap.hpp
+    ${INCLUDE_ROOT}/slideio/transformer/bilateralfilterwrap.hpp
+    DESTINATION include/slideio/transformer)
 
 set(GLOG_LIB_BASE "glog$<$<CONFIG:Debug>:d>$<$<NOT:$<CONFIG:Debug>>:>")
 
