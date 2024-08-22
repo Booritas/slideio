@@ -8,6 +8,7 @@ def process_python_dist(bin_path):
         code = os.system(f"{bin_path} -m pip install --user --upgrade pip")
         code = os.system(f"{bin_path} -m pip install --user --upgrade setuptools wheel")
         code = os.system(f"{bin_path} -m pip install six==1.14.0")
+        code = os.system(f"{bin_path} -m pip install colorama==0.5.0")
     code = os.system(f"{bin_path} -m pip install wheel")
     code = os.system(f"{bin_path} setup.py sdist bdist_wheel")
     if code !=0:
