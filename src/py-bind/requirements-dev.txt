@@ -1,4 +1,0 @@
-autopep8
-pylint
-pytest
-numpy
