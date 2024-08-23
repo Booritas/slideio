@@ -26,7 +26,7 @@ jobs:
 
     - name: Clone repository with submodules
       run: |
-       git config --global --add safe.directory /__w
+       git config --global --add safe.directory /__w/slideio/slideio
        git clone --recursive https://github.com/${{ github.repository }}.git .
        git checkout ${{ github.ref }}
 
