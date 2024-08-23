@@ -66,7 +66,7 @@ for version in "${python_versions[@]}"; do
    python --version
    echo "Installing wheel in conda environment for Python $version"
    python -m pip install wheel
-   python -m pip install conan==1.64
+   python -m pip install conan==1.65
    python setup.py sdist bdist_wheel
    ls -la ./dist
    
