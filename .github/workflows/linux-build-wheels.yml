@@ -24,10 +24,10 @@ jobs:
     - name: Conan remote
       run: conan remote list
 
-    - name: checkout
-      uses: actions/checkout@v4
-      with:
-        submodules: 'true'
+    - name: Clone repository with submodules
+      run: |
+       git clone --recursive https://github.com/${{ github.repository }}.git .
+       git checkout ${{ github.ref }}
 
     - name: list available python versions
       run: ls -la /opt/python
