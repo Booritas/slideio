@@ -18,10 +18,12 @@ rm -rf ../../build
 echo "Build python wheels"
 
 for dir in /opt/python/cp*
- do
-   export py="$dir/bin/python"
-   build_wheel
- done
+do
+  if [[ $dir != *"cp36"* ]]; then
+    export py="$dir/bin/python"
+    build_wheel
+  fi
+done
 
 #export py="/opt/python/cp38-cp38/bin/python"
 #build_wheel
