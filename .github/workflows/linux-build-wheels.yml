@@ -26,20 +26,20 @@ jobs:
 
     - name: Clone repository with submodules
       run: |
-       git config --global --add safe.directory /__w/slideio/slideio
-       git clone --recursive https://github.com/${{ github.repository }}.git .
+       git clone --recursive https://github.com/${{ github.repository }}.git src
        git checkout ${{ github.ref }}
 
     - name: list available python versions
       run: ls -la /opt/python
     
     - name: Install conan dependencies
+      working-directory: ./src
       run: |
         python3 install.py -a conan -c release
         conan upload "*" -r digitalo --all -c      
    
     - name: build python packages
-      working-directory: ./src/py-bind
+      working-directory: ./src/src/py-bind
       run: bash ./build_slideio_dists_linux.sh
 
     - name: Archive python packagess
@@ -47,4 +47,4 @@ jobs:
       with:
         name: python-dist
         path: |
-          ./src/py-bind/wheelhouse
+          ./src/src/py-bind/wheelhouse
