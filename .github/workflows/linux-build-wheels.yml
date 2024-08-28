@@ -28,7 +28,7 @@ jobs:
       run: |
        git clone --recursive https://github.com/${{ github.repository }}.git src
        cd src
-       git checkout ${{ github.ref }}
+       git checkout ${{ github.ref_name }}
        cd ..
 
     - name: list available python versions
