@@ -225,31 +225,31 @@ install(FILES
     ${INCLUDE_ROOT}/slideio/base/slideio_base_def.hpp
     ${INCLUDE_ROOT}/slideio/base/slideio_enums.hpp
     ${INCLUDE_ROOT}/slideio/base/slideio_structs.hpp
-    DESTINATION include/slideio/base)
+    DESTINATION slideio/base)
 
 install(FILES 
     ${INCLUDE_ROOT}/slideio/converter/converterparameters.hpp 
     ${INCLUDE_ROOT}/slideio/converter/convertercallback.hpp 
     ${INCLUDE_ROOT}/slideio/converter/converter_def.hpp 
     ${INCLUDE_ROOT}/slideio/converter/converter.hpp
-    DESTINATION include/slideio/converter)
+    DESTINATION slideio/converter)
 
 
 install(FILES 
     ${INCLUDE_ROOT}/slideio/core/slideio_core_def.hpp 
     ${INCLUDE_ROOT}/slideio/core/levelinfo.hpp 
-    DESTINATION include/slideio/core)
+    DESTINATION slideio/core)
 
 install(FILES 
     ${INCLUDE_ROOT}/slideio/imagetools/encodeparameters.hpp 
-    DESTINATION include/slideio/imagetools)
+    DESTINATION slideio/imagetools)
 
 install(FILES 
     ${INCLUDE_ROOT}/slideio/slideio/slideio_def.hpp 
     ${INCLUDE_ROOT}/slideio/slideio/slideio.hpp 
     ${INCLUDE_ROOT}/slideio/slideio/slide.hpp 
     ${INCLUDE_ROOT}/slideio/slideio/scene.hpp 
-    DESTINATION include/slideio/slideio)
+    DESTINATION slideio/slideio)
 
 install(FILES 
     ${INCLUDE_ROOT}/slideio/transformer/wrappers.hpp
@@ -268,7 +268,7 @@ install(FILES
     ${INCLUDE_ROOT}/slideio/transformer/colorspace.hpp
     ${INCLUDE_ROOT}/slideio/transformer/cannyfilterwrap.hpp
     ${INCLUDE_ROOT}/slideio/transformer/bilateralfilterwrap.hpp
-    DESTINATION include/slideio/transformer)
+    DESTINATION slideio/transformer)
 
 set(GLOG_LIB_BASE "glog$<$<CONFIG:Debug>:d>$<$<NOT:$<CONFIG:Debug>>:>")
 
