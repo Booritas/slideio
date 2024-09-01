@@ -4,6 +4,7 @@
 #pragma once
 #include "slideio/core/slideio_core_def.hpp"
 #include "slideio/base/slideio_structs.hpp"
+#include <cmath>
 
 #if defined(_MSC_VER)
 #pragma warning( push )
@@ -53,8 +54,8 @@ namespace slideio
             return m_level == other.m_level &&
                 m_size.width == other.m_size.width &&
                 m_size.height == other.m_size.height &&
-                fabs(m_scale - other.m_scale) < 1.e-2 &&
-                fabs(m_magnification - other.m_magnification) < 1.e-2 &&
+                std::fabs(m_scale - other.m_scale) < 1.e-2 &&
+                std::fabs(m_magnification - other.m_magnification) < 1.e-2 &&
                 m_tileSize.width == other.m_tileSize.width &&
                 m_tileSize.height == other.m_tileSize.height;
         }
