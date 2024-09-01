@@ -3,7 +3,7 @@ cmake_policy(SET CMP0057 NEW)
 cmake_policy(SET CMP0068 OLD)
 
 set(PROJECT_NAME slide_io)
-set(projectVersion 2.6.1)
+set(projectVersion 2.7.0)
 
 project(${PROJECT_NAME} VERSION ${projectVersion} LANGUAGES C CXX)
 enable_testing()
@@ -16,7 +16,7 @@ set(INCLUDE_ROOT ${CMAKE_SOURCE_DIR}/src)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_BUILD_RPATH_USE_ORIGIN 1)
 set(CMAKE_CXX_STANDARD_REQUIRED, ON)
-set(CMAKE_CXX_STANDARD,14)
+set(CMAKE_CXX_STANDARD,17)
 set(CONAN_DISABLE_CHECK_COMPILER ON)
 
 set(CORE_LIB_NAME "${LIB_NAME_PREFIX}core")
@@ -85,10 +85,11 @@ MACRO(SOURCE_GROUP_BY_FOLDER target)
 ENDMACRO(SOURCE_GROUP_BY_FOLDER)
 
 IF(APPLE)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -stdlib=libc++")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
     add_compile_definitions(_FILE_OFFSET_BITS=64)
 ELSEIF(UNIX)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -static-libstdc++")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static-libstdc++")
+    add_compile_definitions(_GLIBCXX_USE_CXX11_ABI=0)
 ENDIF()
 
 
