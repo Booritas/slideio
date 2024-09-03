@@ -22,6 +22,34 @@ namespace slideio
     {
     public:
         SobelFilterWrap();
+
+        SobelFilterWrap(const SobelFilterWrap& other)
+            : TransformationWrapper(other),
+              m_filter(other.m_filter) {
+        }
+
+        SobelFilterWrap(SobelFilterWrap&& other) noexcept
+            : TransformationWrapper(std::move(other)),
+              m_filter(std::move(other.m_filter)) {
+        }
+
+        SobelFilterWrap& operator=(const SobelFilterWrap& other) {
+            if (this == &other)
+                return *this;
+            TransformationWrapper::operator =(other);
+            m_filter = other.m_filter;
+            return *this;
+        }
+
+        SobelFilterWrap& operator=(SobelFilterWrap&& other) noexcept {
+            if (this == &other)
+                return *this;
+            TransformationWrapper::operator =(std::move(other));
+            m_filter = std::move(other.m_filter);
+            return *this;
+        }
+
+        SobelFilterWrap(const SobelFilter& filter);
         DataType getDepth() const;
         void setDepth(const DataType& depth);
         int getDx() const;

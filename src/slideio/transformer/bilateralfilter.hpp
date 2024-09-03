@@ -11,6 +11,40 @@ namespace slideio
     class SLIDEIO_TRANSFORMER_EXPORTS BilateralFilter : public TransformationEx
     {
     public:
+        BilateralFilter(const BilateralFilter& other)
+            : TransformationEx(other),
+              m_diameter(other.m_diameter),
+              m_sigmaColor(other.m_sigmaColor),
+              m_sigmaSpace(other.m_sigmaSpace) {
+        }
+
+        BilateralFilter(BilateralFilter&& other) noexcept
+            : TransformationEx(std::move(other)),
+              m_diameter(other.m_diameter),
+              m_sigmaColor(other.m_sigmaColor),
+              m_sigmaSpace(other.m_sigmaSpace) {
+        }
+
+        BilateralFilter& operator=(const BilateralFilter& other) {
+            if (this == &other)
+                return *this;
+            TransformationEx::operator =(other);
+            m_diameter = other.m_diameter;
+            m_sigmaColor = other.m_sigmaColor;
+            m_sigmaSpace = other.m_sigmaSpace;
+            return *this;
+        }
+
+        BilateralFilter& operator=(BilateralFilter&& other) noexcept {
+            if (this == &other)
+                return *this;
+            TransformationEx::operator =(std::move(other));
+            m_diameter = other.m_diameter;
+            m_sigmaColor = other.m_sigmaColor;
+            m_sigmaSpace = other.m_sigmaSpace;
+            return *this;
+        }
+
         BilateralFilter()
         {
             m_type = TransformationType::BilateralFilter;

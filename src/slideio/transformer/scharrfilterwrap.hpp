@@ -21,7 +21,34 @@ namespace slideio
     class SLIDEIO_TRANSFORMER_EXPORTS ScharrFilterWrap : public TransformationWrapper
     {
     public:
+        ScharrFilterWrap(const ScharrFilterWrap& other)
+            : TransformationWrapper(other),
+              m_filter(other.m_filter) {
+        }
+
+        ScharrFilterWrap(ScharrFilterWrap&& other) noexcept
+            : TransformationWrapper(std::move(other)),
+              m_filter(std::move(other.m_filter)) {
+        }
+
+        ScharrFilterWrap& operator=(const ScharrFilterWrap& other) {
+            if (this == &other)
+                return *this;
+            TransformationWrapper::operator =(other);
+            m_filter = other.m_filter;
+            return *this;
+        }
+
+        ScharrFilterWrap& operator=(ScharrFilterWrap&& other) noexcept {
+            if (this == &other)
+                return *this;
+            TransformationWrapper::operator =(std::move(other));
+            m_filter = std::move(other.m_filter);
+            return *this;
+        }
+
         ScharrFilterWrap();
+        ScharrFilterWrap(const ScharrFilter& filter);
         DataType getDepth() const;
         void setDepth(const DataType& depth);
         int getDx() const;

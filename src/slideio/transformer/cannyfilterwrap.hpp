@@ -18,7 +18,34 @@ namespace slideio
     class SLIDEIO_TRANSFORMER_EXPORTS CannyFilterWrap : public TransformationWrapper
     {
     public:
+        CannyFilterWrap(const CannyFilterWrap& other)
+            : TransformationWrapper(other),
+              m_filter(other.m_filter) {
+        }
+
+        CannyFilterWrap(CannyFilterWrap&& other) noexcept
+            : TransformationWrapper(std::move(other)),
+              m_filter(std::move(other.m_filter)) {
+        }
+
+        CannyFilterWrap& operator=(const CannyFilterWrap& other) {
+            if (this == &other)
+                return *this;
+            TransformationWrapper::operator =(other);
+            m_filter = other.m_filter;
+            return *this;
+        }
+
+        CannyFilterWrap& operator=(CannyFilterWrap&& other) noexcept {
+            if (this == &other)
+                return *this;
+            TransformationWrapper::operator =(std::move(other));
+            m_filter = std::move(other.m_filter);
+            return *this;
+        }
+
         CannyFilterWrap();
+        CannyFilterWrap(const CannyFilter& filter);
         double getThreshold1() const;
         void setThreshold1(double threshold1);
         double getThreshold2() const;

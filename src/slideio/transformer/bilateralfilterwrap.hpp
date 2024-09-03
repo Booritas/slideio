@@ -21,7 +21,34 @@ namespace slideio
     class SLIDEIO_TRANSFORMER_EXPORTS BilateralFilterWrap : public TransformationWrapper
     {
     public:
+        BilateralFilterWrap(const BilateralFilterWrap& other)
+            : TransformationWrapper(other),
+              m_filter(other.m_filter) {
+        }
+
+        BilateralFilterWrap(BilateralFilterWrap&& other) noexcept
+            : TransformationWrapper(std::move(other)),
+              m_filter(std::move(other.m_filter)) {
+        }
+
+        BilateralFilterWrap& operator=(const BilateralFilterWrap& other) {
+            if (this == &other)
+                return *this;
+            TransformationWrapper::operator =(other);
+            m_filter = other.m_filter;
+            return *this;
+        }
+
+        BilateralFilterWrap& operator=(BilateralFilterWrap&& other) noexcept {
+            if (this == &other)
+                return *this;
+            TransformationWrapper::operator =(std::move(other));
+            m_filter = std::move(other.m_filter);
+            return *this;
+        }
+
         BilateralFilterWrap();
+        BilateralFilterWrap(const BilateralFilter& filter);
         int getDiameter() const;
         void setDiameter(int diameter);
         double getSigmaColor() const;

@@ -18,7 +18,34 @@ namespace slideio
     class SLIDEIO_TRANSFORMER_EXPORTS MedianBlurFilterWrap : public TransformationWrapper
     {
     public:
+        MedianBlurFilterWrap(const MedianBlurFilterWrap& other)
+            : TransformationWrapper(other),
+              m_filter(other.m_filter) {
+        }
+
+        MedianBlurFilterWrap(MedianBlurFilterWrap&& other) noexcept
+            : TransformationWrapper(std::move(other)),
+              m_filter(std::move(other.m_filter)) {
+        }
+
+        MedianBlurFilterWrap& operator=(const MedianBlurFilterWrap& other) {
+            if (this == &other)
+                return *this;
+            TransformationWrapper::operator =(other);
+            m_filter = other.m_filter;
+            return *this;
+        }
+
+        MedianBlurFilterWrap& operator=(MedianBlurFilterWrap&& other) noexcept {
+            if (this == &other)
+                return *this;
+            TransformationWrapper::operator =(std::move(other));
+            m_filter = std::move(other.m_filter);
+            return *this;
+        }
+
         MedianBlurFilterWrap();
+        MedianBlurFilterWrap(const MedianBlurFilter& filter);
         int getKernelSize() const;
         void setKernelSize(int kernelSize);
         TransformationType getType() const override;

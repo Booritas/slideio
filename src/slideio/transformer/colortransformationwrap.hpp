@@ -20,7 +20,34 @@ namespace slideio
     class SLIDEIO_TRANSFORMER_EXPORTS ColorTransformationWrap : public TransformationWrapper
     {
     public:
+        ColorTransformationWrap(const ColorTransformationWrap& other)
+            : TransformationWrapper(other),
+              m_filter(other.m_filter) {
+        }
+
+        ColorTransformationWrap(ColorTransformationWrap&& other) noexcept
+            : TransformationWrapper(std::move(other)),
+              m_filter(std::move(other.m_filter)) {
+        }
+
+        ColorTransformationWrap& operator=(const ColorTransformationWrap& other) {
+            if (this == &other)
+                return *this;
+            TransformationWrapper::operator =(other);
+            m_filter = other.m_filter;
+            return *this;
+        }
+
+        ColorTransformationWrap& operator=(ColorTransformationWrap&& other) noexcept {
+            if (this == &other)
+                return *this;
+            TransformationWrapper::operator =(std::move(other));
+            m_filter = std::move(other.m_filter);
+            return *this;
+        }
+
         ColorTransformationWrap();
+        ColorTransformationWrap(const ColorTransformation& filter);
         ColorSpace getColorSpace() const;
         void setColorSpace(ColorSpace colorSpace);
         TransformationType getType() const override;

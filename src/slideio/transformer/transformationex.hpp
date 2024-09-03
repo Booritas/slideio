@@ -16,6 +16,32 @@ namespace slideio
     class SLIDEIO_TRANSFORMER_EXPORTS TransformationEx : public Transformation
     {
     public:
+        TransformationEx(const TransformationEx& other)
+            : Transformation(other),
+              m_type(other.m_type) {
+        }
+
+        TransformationEx(TransformationEx&& other) noexcept
+            : Transformation(std::move(other)),
+              m_type(other.m_type) {
+        }
+
+        TransformationEx& operator=(const TransformationEx& other) {
+            if (this == &other)
+                return *this;
+            Transformation::operator =(other);
+            m_type = other.m_type;
+            return *this;
+        }
+
+        TransformationEx& operator=(TransformationEx&& other) noexcept {
+            if (this == &other)
+                return *this;
+            Transformation::operator =(std::move(other));
+            m_type = other.m_type;
+            return *this;
+        }
+
         TransformationEx();
         virtual ~TransformationEx() = default;
         TransformationType getType() const override {

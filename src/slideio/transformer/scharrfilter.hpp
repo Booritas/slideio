@@ -8,62 +8,92 @@
 
 namespace slideio
 {
-
     class SLIDEIO_TRANSFORMER_EXPORTS ScharrFilter : public TransformationEx
     {
     public:
-        ScharrFilter()
-        {
+        ScharrFilter() {
             m_type = TransformationType::ScharrFilter;
         }
 
-        DataType getDepth() const
-        {
+        ScharrFilter(const ScharrFilter& other)
+            : TransformationEx(other),
+              m_depth(other.m_depth),
+              m_dx(other.m_dx),
+              m_dy(other.m_dy),
+              m_scale(other.m_scale),
+              m_delta(other.m_delta) {
+        }
+
+        ScharrFilter(ScharrFilter&& other) noexcept
+            : TransformationEx(std::move(other)),
+              m_depth(other.m_depth),
+              m_dx(other.m_dx),
+              m_dy(other.m_dy),
+              m_scale(other.m_scale),
+              m_delta(other.m_delta) {
+        }
+
+        ScharrFilter& operator=(const ScharrFilter& other) {
+            if (this == &other)
+                return *this;
+            TransformationEx::operator =(other);
+            m_depth = other.m_depth;
+            m_dx = other.m_dx;
+            m_dy = other.m_dy;
+            m_scale = other.m_scale;
+            m_delta = other.m_delta;
+            return *this;
+        }
+
+        ScharrFilter& operator=(ScharrFilter&& other) noexcept {
+            if (this == &other)
+                return *this;
+            TransformationEx::operator =(std::move(other));
+            m_depth = other.m_depth;
+            m_dx = other.m_dx;
+            m_dy = other.m_dy;
+            m_scale = other.m_scale;
+            m_delta = other.m_delta;
+            return *this;
+        }
+
+        DataType getDepth() const {
             return m_depth;
         }
 
-        void setDepth(const DataType& depth)
-        {
+        void setDepth(const DataType& depth) {
             m_depth = depth;
         }
 
-        int getDx() const
-        {
+        int getDx() const {
             return m_dx;
         }
 
-        void setDx(int dx)
-        {
+        void setDx(int dx) {
             m_dx = dx;
         }
 
-        int getDy() const
-        {
+        int getDy() const {
             return m_dy;
         }
 
-        void setDy(int dy)
-        {
+        void setDy(int dy) {
             m_dy = dy;
         }
 
-        double getScale() const
-        {
+        double getScale() const {
             return m_scale;
         }
 
-        void setScale(double scale)
-        {
+        void setScale(double scale) {
             m_scale = scale;
         }
 
-        double getDelta() const
-        {
+        double getDelta() const {
             return m_delta;
         }
 
-        void setDelta(double delta)
-        {
+        void setDelta(double delta) {
             m_delta = delta;
         }
 
@@ -78,5 +108,4 @@ namespace slideio
         double m_scale = 1.;
         double m_delta = 0.;
     };
-
 }

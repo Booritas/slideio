@@ -8,5 +8,7 @@
 namespace slideio
 {
 	class Transformation;
+	class TransformationWrapper;
 	std::shared_ptr<Transformation> SLIDEIO_TRANSFORMER_EXPORTS makeTransformationCopy(const Transformation& source);
+	std::shared_ptr<TransformationWrapper> SLIDEIO_TRANSFORMER_EXPORTS makeTransformationCopy(const TransformationWrapper& source);
 }

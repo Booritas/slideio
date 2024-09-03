@@ -16,6 +16,32 @@ namespace slideio
             m_type = TransformationType::MedianBlurFilter;
         }
 
+        MedianBlurFilter(const MedianBlurFilter& other)
+            : TransformationEx(other),
+              m_kernelSize(other.m_kernelSize) {
+        }
+
+        MedianBlurFilter(MedianBlurFilter&& other) noexcept
+            : TransformationEx(std::move(other)),
+              m_kernelSize(other.m_kernelSize) {
+        }
+
+        MedianBlurFilter& operator=(const MedianBlurFilter& other) {
+            if (this == &other)
+                return *this;
+            TransformationEx::operator =(other);
+            m_kernelSize = other.m_kernelSize;
+            return *this;
+        }
+
+        MedianBlurFilter& operator=(MedianBlurFilter&& other) noexcept {
+            if (this == &other)
+                return *this;
+            TransformationEx::operator =(std::move(other));
+            m_kernelSize = other.m_kernelSize;
+            return *this;
+        }
+
         virtual ~MedianBlurFilter() = default;
 
         int getKernelSize() const

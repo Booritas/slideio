@@ -23,6 +23,34 @@ namespace slideio
     {
     public:
         LaplacianFilterWrap();
+
+        LaplacianFilterWrap(const LaplacianFilterWrap& other)
+            : TransformationWrapper(other),
+              m_filter(other.m_filter) {
+        }
+
+        LaplacianFilterWrap(LaplacianFilterWrap&& other) noexcept
+            : TransformationWrapper(std::move(other)),
+              m_filter(std::move(other.m_filter)) {
+        }
+
+        LaplacianFilterWrap& operator=(const LaplacianFilterWrap& other) {
+            if (this == &other)
+                return *this;
+            TransformationWrapper::operator =(other);
+            m_filter = other.m_filter;
+            return *this;
+        }
+
+        LaplacianFilterWrap& operator=(LaplacianFilterWrap&& other) noexcept {
+            if (this == &other)
+                return *this;
+            TransformationWrapper::operator =(std::move(other));
+            m_filter = std::move(other.m_filter);
+            return *this;
+        }
+
+        LaplacianFilterWrap(const LaplacianFilter& filter);
         DataType getDepth() const;
         void setDepth(const DataType& depth);
         int getKernelSize() const;

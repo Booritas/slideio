@@ -12,6 +12,52 @@ namespace slideio
     class SLIDEIO_TRANSFORMER_EXPORTS SobelFilter : public TransformationEx
     {
     public:
+        SobelFilter(const SobelFilter& other)
+            : TransformationEx(other),
+              m_depth(other.m_depth),
+              m_dx(other.m_dx),
+              m_dy(other.m_dy),
+              m_ksize(other.m_ksize),
+              m_scale(other.m_scale),
+              m_delta(other.m_delta) {
+        }
+
+        SobelFilter(SobelFilter&& other) noexcept
+            : TransformationEx(std::move(other)),
+              m_depth(other.m_depth),
+              m_dx(other.m_dx),
+              m_dy(other.m_dy),
+              m_ksize(other.m_ksize),
+              m_scale(other.m_scale),
+              m_delta(other.m_delta) {
+        }
+
+        SobelFilter& operator=(const SobelFilter& other) {
+            if (this == &other)
+                return *this;
+            TransformationEx::operator =(other);
+            m_depth = other.m_depth;
+            m_dx = other.m_dx;
+            m_dy = other.m_dy;
+            m_ksize = other.m_ksize;
+            m_scale = other.m_scale;
+            m_delta = other.m_delta;
+            return *this;
+        }
+
+        SobelFilter& operator=(SobelFilter&& other) noexcept {
+            if (this == &other)
+                return *this;
+            TransformationEx::operator =(std::move(other));
+            m_depth = other.m_depth;
+            m_dx = other.m_dx;
+            m_dy = other.m_dy;
+            m_ksize = other.m_ksize;
+            m_scale = other.m_scale;
+            m_delta = other.m_delta;
+            return *this;
+        }
+
         SobelFilter()
         {
             m_type = TransformationType::SobelFilter;

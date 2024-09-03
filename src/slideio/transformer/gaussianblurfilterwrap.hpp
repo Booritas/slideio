@@ -19,7 +19,34 @@ namespace slideio
     class SLIDEIO_TRANSFORMER_EXPORTS GaussianBlurFilterWrap : public TransformationWrapper
     {
     public:
+        GaussianBlurFilterWrap(const GaussianBlurFilterWrap& other)
+            : TransformationWrapper(other),
+              m_filter(other.m_filter) {
+        }
+
+        GaussianBlurFilterWrap(GaussianBlurFilterWrap&& other) noexcept
+            : TransformationWrapper(std::move(other)),
+              m_filter(std::move(other.m_filter)) {
+        }
+
+        GaussianBlurFilterWrap& operator=(const GaussianBlurFilterWrap& other) {
+            if (this == &other)
+                return *this;
+            TransformationWrapper::operator =(other);
+            m_filter = other.m_filter;
+            return *this;
+        }
+
+        GaussianBlurFilterWrap& operator=(GaussianBlurFilterWrap&& other) noexcept {
+            if (this == &other)
+                return *this;
+            TransformationWrapper::operator =(std::move(other));
+            m_filter = std::move(other.m_filter);
+            return *this;
+        }
+
         GaussianBlurFilterWrap();
+        GaussianBlurFilterWrap(const GaussianBlurFilter& filter);
         int getKernelSizeX() const;
         void setKernelSizeX(int kernelSizeX);
         int getKernelSizeY() const;
