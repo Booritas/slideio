@@ -6,6 +6,10 @@
 #include "slideio/transformer/transformationwrapper.hpp"
 #include <memory>
 
+#if defined(_MSC_VER)
+#pragma warning( pop )
+#endif
+
 namespace slideio
 {
     class MedianBlurFilter;
@@ -24,3 +28,7 @@ namespace slideio
 };
 
 }
+
+#if defined(_MSC_VER)
+#pragma warning( pop )
+#endif

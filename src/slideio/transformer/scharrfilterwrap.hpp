@@ -6,6 +6,12 @@
 #include "slideio/transformer/transformationwrapper.hpp"
 #include <memory>
 
+#if defined(_MSC_VER)
+#pragma warning( push )
+#pragma warning(disable: 4275 4251)
+#endif
+
+
 namespace slideio
 {
     class ScharrFilter;
@@ -34,3 +40,7 @@ namespace slideio
     };
 
 }
+
+#if defined(_MSC_VER)
+#pragma warning( pop )
+#endif

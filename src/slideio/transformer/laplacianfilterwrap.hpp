@@ -7,6 +7,12 @@
 #include "slideio/transformer/transformation.hpp"
 #include <memory>
 
+#if defined(_MSC_VER)
+#pragma warning( push )
+#pragma warning(disable: 4275 4251)
+#endif
+
+
 namespace slideio
 {
     class LaplacianFilter;
@@ -31,3 +37,7 @@ namespace slideio
         std::shared_ptr<LaplacianFilter> m_filter;
     };
 }
+
+#if defined(_MSC_VER)
+#pragma warning( pop )
+#endif
