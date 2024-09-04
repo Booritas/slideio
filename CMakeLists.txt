@@ -197,6 +197,7 @@ add_subdirectory(src)
 # Install the library
 install(TARGETS 
              ${SLIDEIO_LIB_NAME}
+             ${CORE_LIB_NAME}
              ${CONVERTER_LIB_NAME}
              ${TRANSFORMER_LIB_NAME}
     LIBRARY DESTINATION lib
