@@ -91,4 +91,7 @@ namespace  slideio
     SLIDEIO_EXPORTS std::shared_ptr<Slide> openSlide(const std::string& path, const std::string& driver= "");
     /**@brief Returns a list of available driver ids. */
     SLIDEIO_EXPORTS std::vector<std::string> getDriverIDs();
+    /**@brief Sets the log level for the library.*/
+    SLIDEIO_EXPORTS void setLogLevel(const std::string& level);
+
 }
