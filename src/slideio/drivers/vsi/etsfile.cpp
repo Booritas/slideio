@@ -72,9 +72,6 @@ void slideio::vsi::EtsFile::read(std::list<std::shared_ptr<Volume>>& volumes) {
 
     for (auto it = volumes.begin(); it != volumes.end(); ++it) {
         const std::shared_ptr<Volume> volume = *it;
-        if (volume->getType() != StackType::DEFAULT_IMAGE && volume->getType() != StackType::OVERVIEW_IMAGE) {
-            continue;
-        }
         const cv::Size volumeSize = volume->getSize();
         const int volumeWidth = volumeSize.width;
         const int volumeHeight = volumeSize.height;
@@ -90,7 +87,8 @@ void slideio::vsi::EtsFile::read(std::list<std::shared_ptr<Volume>>& volumes) {
         m_size.height = m_volume->getSize().height;
     }
     else {
-        RAISE_RUNTIME_ERROR << "VSI driver: no volume with size " << m_size.width << "x" << m_size.height << " found";
+        RAISE_RUNTIME_ERROR << "VSI driver: Cannot find volume for ETS file:" << m_filePath << ".\n"
+            << "Estimated image size: (" << minWidth << "," << maxWidth << ").";
     }
 
     const int zIndex = m_volume->getDimensionOrder(Dimensions::Z);
