@@ -443,11 +443,11 @@ void VSIFile::readVolumeInfo() {
     }
     m_metadata = path.front();
     {
-        //boost::json::object root;
-        //serializeMetadata(m_metadata, root);
-        //std::ofstream ofs("d:\\Temp\\metadata.json");
-        //ofs << boost::json::serialize(root);
-        //ofs.close();
+        boost::json::object root;
+        serializeMetadata(m_metadata, root);
+        std::ofstream ofs("d:\\Temp\\vsi-metadata.json");
+        ofs << boost::json::serialize(root);
+        ofs.close();
     }
     checkExternalFilePresence();
 }
@@ -468,9 +468,14 @@ void VSIFile::readExternalFiles() {
         int index = 0;
         std::list<std::shared_ptr<Volume>> volumes(m_volumes.begin(), m_volumes.end());
         for (const auto& file : files) {
-            auto etsFile = std::make_shared<EtsFile>(file);
-            etsFile->read(volumes);
-            m_etsFiles.push_back(etsFile);
+            try {
+                auto etsFile = std::make_shared<EtsFile>(file);
+                etsFile->read(volumes);
+                m_etsFiles.push_back(etsFile);
+            }
+            catch (RuntimeError& err) {
+                SLIDEIO_LOG(WARNING) << "VSI driver: error reading ETS file: " << err.what();
+            }
         }
     }
     std::sort(m_etsFiles.begin(), m_etsFiles.end(),
