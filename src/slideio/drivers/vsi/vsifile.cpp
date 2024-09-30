@@ -81,6 +81,13 @@ void VSIFile::extractVolumesFromMetadata() {
         Tag::OBJECTIVE_MAG
     };
 
+    const std::vector<int> REL_PATH_TO_MAGNIFICATION2 = {
+        Tag::MICROSCOPE,
+        4,
+        Tag::OPTICAL_PROPERTIES,
+        Tag::OBJECTIVE_MAG
+    };
+
     const std::vector<int> REL_PATH_TO_BITDEPTH = {
         Tag::MICROSCOPE,
         Tag::MICROSCOPE_PROPERTIES,
@@ -173,6 +180,9 @@ void VSIFile::extractVolumesFromMetadata() {
                         }
                     }
                     const TagInfo* magnification = stackProps->findChild(REL_PATH_TO_MAGNIFICATION);
+                    if(!magnification) {
+                        magnification = stackProps->findChild(REL_PATH_TO_MAGNIFICATION2);
+                    }
                     if (magnification) {
                         try {
                             volumeObj->setMagnification(std::stod(magnification->value));
