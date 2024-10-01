@@ -81,6 +81,13 @@ void VSIFile::extractVolumesFromMetadata() {
         Tag::OBJECTIVE_MAG
     };
 
+    const std::vector<int> REL_PATH_TO_MAGNIFICATION2 = {
+        Tag::MICROSCOPE,
+        4,
+        Tag::OPTICAL_PROPERTIES,
+        Tag::OBJECTIVE_MAG
+    };
+
     const std::vector<int> REL_PATH_TO_BITDEPTH = {
         Tag::MICROSCOPE,
         Tag::MICROSCOPE_PROPERTIES,
@@ -173,6 +180,9 @@ void VSIFile::extractVolumesFromMetadata() {
                         }
                     }
                     const TagInfo* magnification = stackProps->findChild(REL_PATH_TO_MAGNIFICATION);
+                    if(!magnification) {
+                        magnification = stackProps->findChild(REL_PATH_TO_MAGNIFICATION2);
+                    }
                     if (magnification) {
                         try {
                             volumeObj->setMagnification(std::stod(magnification->value));
@@ -445,7 +455,7 @@ void VSIFile::readVolumeInfo() {
     {
         //boost::json::object root;
         //serializeMetadata(m_metadata, root);
-        //std::ofstream ofs("d:\\Temp\\metadata.json");
+        //std::ofstream ofs("d:\\Temp\\vsi-metadata.json");
         //ofs << boost::json::serialize(root);
         //ofs.close();
     }
@@ -468,9 +478,14 @@ void VSIFile::readExternalFiles() {
         int index = 0;
         std::list<std::shared_ptr<Volume>> volumes(m_volumes.begin(), m_volumes.end());
         for (const auto& file : files) {
-            auto etsFile = std::make_shared<EtsFile>(file);
-            etsFile->read(volumes);
-            m_etsFiles.push_back(etsFile);
+            try {
+                auto etsFile = std::make_shared<EtsFile>(file);
+                etsFile->read(volumes);
+                m_etsFiles.push_back(etsFile);
+            }
+            catch (RuntimeError& err) {
+                SLIDEIO_LOG(WARNING) << "VSI driver: error reading ETS file: " << err.what();
+            }
         }
     }
     std::sort(m_etsFiles.begin(), m_etsFiles.end(),
