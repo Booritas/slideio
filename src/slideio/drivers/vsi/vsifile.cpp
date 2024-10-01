@@ -453,11 +453,11 @@ void VSIFile::readVolumeInfo() {
     }
     m_metadata = path.front();
     {
-        boost::json::object root;
-        serializeMetadata(m_metadata, root);
-        std::ofstream ofs("d:\\Temp\\vsi-metadata.json");
-        ofs << boost::json::serialize(root);
-        ofs.close();
+        //boost::json::object root;
+        //serializeMetadata(m_metadata, root);
+        //std::ofstream ofs("d:\\Temp\\vsi-metadata.json");
+        //ofs << boost::json::serialize(root);
+        //ofs.close();
     }
     checkExternalFilePresence();
 }
