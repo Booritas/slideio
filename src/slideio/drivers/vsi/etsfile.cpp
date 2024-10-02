@@ -108,7 +108,7 @@ void slideio::vsi::EtsFile::read(std::list<std::shared_ptr<Volume>>& volumes) {
         m_numChannels = maxCoordinates[m_volume->getDimensionOrder(Dimensions::C)] + 1;
     }
 
-    m_pyramid.init(tiles, cv::Size(maxWidth, maxHeight), m_tileSize, m_volume.get());
+    m_pyramid.init(tiles, m_size, m_tileSize, m_volume.get());
 
     const int numChannelIndices = m_pyramid.getNumChannelIndices();
     if (numChannelIndices > 1 && numChannelIndices != getNumChannels()) {
