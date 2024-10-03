@@ -59,6 +59,8 @@ TEST(VSIImageDriver, openFileWithExternalFiles1) {
     EXPECT_DOUBLE_EQ(20., scene->getMagnification());
     //EXPECT_EQ(scene->getName(), "001 C405, C488");
     auto rect = scene->getRect();
+    std::string metadata = slide->getRawMetadata();
+    EXPECT_GT(0, metadata.size());
 }
 
 TEST(VSIImageDriver, openFileWithoutExternalFiles) {
