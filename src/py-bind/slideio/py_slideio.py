@@ -255,12 +255,13 @@ class Slide(object):
         return scene.read_block(rect=(0,0,0,0), size=size, channel_indices=channel_indices, slices=(0,1), frames=(0,1))
 
     def get_aux_image(self, image_name):
-        '''Get auxiliary image as objecty.
+        '''Get auxiliary image as Scene object.
 
         Args:
             image_name: name of the auxiliary image
         '''
-        return self.slide.get_aux_image(image_name)
+        scene = Scene(self.slide.get_aux_image(image_name))
+        return scene
 
 
 def convert_scene(scene, params, output_path, callback=None):
