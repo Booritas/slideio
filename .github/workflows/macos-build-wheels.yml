@@ -42,7 +42,7 @@ jobs:
       run: bash ./build-wheels.sh
 
     - name: Archive python packagess
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: python-dist
         path: |
