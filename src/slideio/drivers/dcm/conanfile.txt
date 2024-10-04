@@ -10,6 +10,7 @@ dcmtk/3.6.8
 libiconv/1.17
 libwebp/1.2.4
 openjpeg/2.5.0
+openssl/3.1.0
 [options]
 glog:shared=True
 dcmtk:wide_io=True

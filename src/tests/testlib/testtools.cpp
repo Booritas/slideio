@@ -99,25 +99,25 @@ void TestTools::compareRasters(cv::Mat& raster1, cv::Mat& raster2)
     EXPECT_EQ(maxVal, 0);
 }
 
- #include <opencv2/highgui.hpp>
+//  #include <opencv2/highgui.hpp>
 
 void TestTools::showRaster(cv::Mat& raster)
 {
     
-     cv::namedWindow("Display window", cv::WINDOW_AUTOSIZE);
-     cv::imshow("Display window", raster);
-     cv::waitKey(0);
+    //  cv::namedWindow("Display window", cv::WINDOW_AUTOSIZE);
+    //  cv::imshow("Display window", raster);
+    //  cv::waitKey(0);
 }
 
 void TestTools::showRasters(cv::Mat& raster1, cv::Mat& raster2)
 {
-    cv::Mat combinedRaster;
-    cv::hconcat(raster1, cv::Mat::zeros(raster1.rows, 1, raster1.type()), combinedRaster);
-    cv::hconcat(combinedRaster, raster2, combinedRaster);
+    // cv::Mat combinedRaster;
+    // cv::hconcat(raster1, cv::Mat::zeros(raster1.rows, 1, raster1.type()), combinedRaster);
+    // cv::hconcat(combinedRaster, raster2, combinedRaster);
 
-    cv::namedWindow("Display window", cv::WINDOW_AUTOSIZE);
-    cv::imshow("Display window", combinedRaster);
-    cv::waitKey(0);
+    // cv::namedWindow("Display window", cv::WINDOW_AUTOSIZE);
+    // cv::imshow("Display window", combinedRaster);
+    // cv::waitKey(0);
 }
 
 
