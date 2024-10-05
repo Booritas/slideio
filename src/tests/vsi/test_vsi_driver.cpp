@@ -703,3 +703,20 @@ TEST(Pyramid, init3D) {
         }
     }
 }
+
+TEST(VSIImageDriver, missingVolume) {
+    if (!TestTools::isFullTestEnabled())
+    {
+        GTEST_SKIP() <<
+            "Skip the test because full dataset is not enabled";
+    }
+    std::string filePath = TestTools::getFullTestImagePath("vsi", "vs200-vsi-share/Image_B309.vsi");
+    slideio::VSIImageDriver driver;
+    std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    const int numScenes = slide->getNumScenes();
+    ASSERT_EQ(1, numScenes);
+    std::shared_ptr<CVScene> scene = slide->getScene(0);
+    //EXPECT_EQ(scene->getName(), "001 C405, C488");
+    auto rect = scene->getRect();
+}
