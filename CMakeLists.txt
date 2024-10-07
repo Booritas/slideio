@@ -85,7 +85,7 @@ MACRO(SOURCE_GROUP_BY_FOLDER target)
 ENDMACRO(SOURCE_GROUP_BY_FOLDER)
 
 IF(APPLE)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++ -std=c++17")
     add_compile_definitions(_FILE_OFFSET_BITS=64)
     set(CMAKE_INSTALL_RPATH "@executable_path")
     set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
