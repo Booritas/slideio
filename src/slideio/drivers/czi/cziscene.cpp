@@ -15,7 +15,7 @@ using namespace slideio;
 const double DOUBLE_EPSILON = 1.e-4;
 
 // comparison function for zoom levels
-class double_less : public std::binary_function<double, double, bool>
+class double_less
 {
 public:
     bool operator()(const double& left, const double& right) const
