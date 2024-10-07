@@ -742,7 +742,7 @@ TEST(VSIImageDriver, invalidEts) {
     cv::Mat overviewRaster, overviewTestRaster;
     rasterRect = overview->getRect();
     cof = std::min(500. / rasterRect.width, 500. / rasterRect.height);
-    rasterSize = { std::lround(cof * rasterRect.width), lround(cof * rasterRect.height) };
+    rasterSize = { static_cast<int>(std::lround(cof * rasterRect.width)), static_cast<int>(lround(cof * rasterRect.height)) };
     overview->readResampledBlock(rasterRect, rasterSize, overviewRaster);
     //TestTools::writePNG(overviewRaster, overviewFilePath);
     TestTools::readPNG(overviewFilePath, overviewTestRaster);
