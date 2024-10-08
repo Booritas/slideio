@@ -285,10 +285,3 @@ ELSEIF(UNIX)
 ELSEIF(WIN32)
     set(GLOG_LIB_NAME "${GLOG_LIB_BASE}.dll")
 ENDIF()
-
-
-install(FILES $<TARGET_FILE_DIR:${SLIDEIO_LIB_NAME}>/${GLOG_LIB_NAME} DESTINATION bin)
-
-
-# Install any additional files if needed
-# install(FILES some_config_file.txt DESTINATION etc)
