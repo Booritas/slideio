@@ -238,6 +238,7 @@ if(NOT WIN32)
                  ${VSI_DRIVER_NAME}
                  ${CORE_LIB_NAME}
                  ${IMAGETOOLS_LIB_NAME}
+                 ${SLIDEIO_LIB_NAME}
         LIBRARY DESTINATION bin
     )
 endif()
