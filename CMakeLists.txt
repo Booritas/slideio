@@ -223,6 +223,25 @@ install(TARGETS
 )
 
 
+if(NOT WIN32)
+    install(TARGETS 
+                 ${BASE_LIB_NAME}
+                 ${GDAL_DRIVER_NAME}
+                 ${SVS_DRIVER_NAME}
+                 ${PKE_DRIVER_NAME} 
+                 ${AFI_DRIVER_NAME} 
+                 ${CZI_DRIVER_NAME} 
+                 ${DCM_DRIVER_NAME} 
+                 ${SCN_DRIVER_NAME} 
+                 ${ZVI_DRIVER_NAME} 
+                 ${NDPI_DRIVER_NAME} 
+                 ${VSI_DRIVER_NAME}
+                 ${CORE_LIB_NAME}
+                 ${IMAGETOOLS_LIB_NAME}
+        LIBRARY DESTINATION bin
+    )
+endif()
+
 install(FILES 
     ${INCLUDE_ROOT}/slideio/base/base.hpp 
     ${INCLUDE_ROOT}/slideio/base/rect.hpp 
