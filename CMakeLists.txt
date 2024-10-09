@@ -295,13 +295,3 @@ install(FILES
     ${INCLUDE_ROOT}/slideio/transformer/cannyfilterwrap.hpp
     ${INCLUDE_ROOT}/slideio/transformer/bilateralfilterwrap.hpp
     DESTINATION include/slideio/transformer)
-
-set(GLOG_LIB_BASE "glog$<$<CONFIG:Debug>:d>$<$<NOT:$<CONFIG:Debug>>:>")
-
-IF(APPLE)
-    set(GLOG_LIB_NAME "lib${GLOG_LIB_BASE}.dylib")
-ELSEIF(UNIX)
-    set(GLOG_LIB_NAME "lib${GLOG_LIB_BASE}.so")
-ELSEIF(WIN32)
-    set(GLOG_LIB_NAME "${GLOG_LIB_BASE}.dll")
-ENDIF()
