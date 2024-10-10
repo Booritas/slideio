@@ -239,7 +239,9 @@ if(NOT WIN32)
                  ${CORE_LIB_NAME}
                  ${IMAGETOOLS_LIB_NAME}
                  ${SLIDEIO_LIB_NAME}
-        LIBRARY DESTINATION bin
+                 ${CONVERTER_LIB_NAME}
+                 ${TRANSFORMER_LIB_NAME}
+            LIBRARY DESTINATION bin
     )
 endif()
 
