@@ -10,5 +10,6 @@ namespace slideio
     {
     public:
         virtual TransformationType getType() const = 0;
+        virtual ~TransformationWrapper() = default;
     };
 }
