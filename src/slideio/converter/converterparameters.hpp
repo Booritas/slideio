@@ -63,6 +63,7 @@ namespace slideio
             m_tileEncoding(Compression::Unknown) {
             m_format = ImageFormat::SVS;
         }
+    public:
         virtual ~SVSConverterParameters() = default;
     public:
         Compression getEncoding() const {
