@@ -4,6 +4,7 @@
 #pragma once
 #include <opencv2/core/types.hpp>
 #include "transformer_def.hpp"
+#include "slideio-opencv/core.hpp"
 
 namespace slideio
 {

@@ -4,7 +4,7 @@
 #ifndef OPENCV_slideio_imagetools_HPP
 #define OPENCV_slideio_imagetools_HPP
 
-#include <opencv2/core.hpp>
+#include "slideio-opencv/core.hpp"
 #include "slideio/imagetools/slideio_imagetools_def.hpp"
 #include "slideio/base/slideio_enums.hpp"
 #include "slideio/imagetools/encodeparameters.hpp"

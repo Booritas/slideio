@@ -6,7 +6,7 @@
 #include <fstream>
 #include <numeric>
 #include <boost/filesystem/path.hpp>
-#include <opencv2/core.hpp>
+#include "slideio-opencv/core.hpp"
 #include <opencv2/imgproc.hpp>
 #include <opencv2/core/mat.hpp>
 #include "slideio/base/exceptions.hpp"

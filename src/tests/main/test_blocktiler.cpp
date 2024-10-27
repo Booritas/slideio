@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include <opencv2/core.hpp>
+#include "slideio-opencv/core.hpp"
 
 #include "slideio/base/exceptions.hpp"
 #include "slideio/core/tools/blocktiler.hpp"

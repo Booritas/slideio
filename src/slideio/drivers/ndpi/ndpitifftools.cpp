@@ -17,7 +17,7 @@
 #include <codecvt>
 #include <opencv2/imgproc.hpp>
 #include <setjmp.h>
-#include <opencv2/core.hpp>
+#include "slideio-opencv/core.hpp"
 #include <boost/format.hpp>
 #include <boost/filesystem.hpp>
 #include <jxrcodec/jxrcodec.hpp>

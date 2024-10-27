@@ -8,7 +8,7 @@ class ImageToolsRecipe(ConanFile):
         self.requires("sqlite3/3.38.5@slideio/stable")
         self.requires("libxml2/2.9.10@slideio/stable")
         self.requires("glog/0.6.0@slideio/stable")
-        self.requires("opencv/4.1.1@slideio/stable")
+        self.requires("opencv-slideio/4.10.3@slideio/stable")
         self.requires("zlib/1.2.13")
         self.requires("xz_utils/5.4.2")
         self.requires("libtiff/4.4.0")

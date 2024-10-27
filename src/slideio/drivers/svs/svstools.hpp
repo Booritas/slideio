@@ -5,7 +5,7 @@
 #define OPENCV_slideio_svstools_HPP
 
 #include "slideio/drivers/svs/svs_api_def.hpp"
-#include <opencv2/core.hpp>
+#include "slideio-opencv/core.hpp"
 #include <string>
 
 namespace slideio

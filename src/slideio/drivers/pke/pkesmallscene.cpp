@@ -6,7 +6,7 @@
 #include "slideio/slideio/slideio.hpp"
 #include "slideio/imagetools/tifftools.hpp"
 
-#include <opencv2/core.hpp>
+#include "slideio-opencv/core.hpp"
 #include <opencv2/imgproc.hpp>
 #include <boost/format.hpp>
 

@@ -9,7 +9,6 @@
 #include "slideio/drivers/scn/scnscene.hpp"
 
 #include <boost/algorithm/string/predicate.hpp>
-#include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
 
 #include "slideio/core/tools/tools.hpp"
@@ -281,7 +280,8 @@ TEST(SCNImageDriver, readTile_1_channel)
     const std::vector<int> channelIndices = { 0 };
     const int tileIndex = 6 + 8*10;
     scene->readTile(tileIndex, channelIndices, raster, &info);
-    cv::Mat bmpImage = cv::imread(tilePath, cv::IMREAD_GRAYSCALE);
+    cv::Mat bmpImage; //= cv::imread(tilePath, cv::IMREAD_GRAYSCALE);
+    slideio::ImageTools::readGDALImage(tilePath, bmpImage);
     int compare = std::memcmp(raster.data, bmpImage.data, raster.total() * raster.elemSize());
     EXPECT_EQ(compare, 0);
 }
@@ -311,8 +311,11 @@ TEST(SCNImageDriver, readTile_2_channels)
     scene->readTile(tileIndex, channelIndices, raster, &info);
 
     std::vector<cv::Mat> tileChannels(2);
-    tileChannels[0] = cv::imread(tilePath1, cv::IMREAD_GRAYSCALE);
-    tileChannels[1] = cv::imread(tilePath2, cv::IMREAD_GRAYSCALE);
+    //tileChannels[0];// = cv::imread(tilePath1, cv::IMREAD_GRAYSCALE);
+    //tileChannels[1];// = cv::imread(tilePath2, cv::IMREAD_GRAYSCALE);
+    slideio::ImageTools::readGDALImage(tilePath1, tileChannels[0]);
+    slideio::ImageTools::readGDALImage(tilePath2, tileChannels[1]);
+
 
     cv::Mat bmpImage;
     cv::merge(tileChannels, bmpImage);
@@ -363,7 +366,8 @@ TEST(SCNImageDriver, readTile_readBlock)
     slideio::SCNImageDriver driver;
     std::string filePath = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1.scn");
     std::string regionPath = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1/x2500-y2338-600x500.bmp");
-    cv::Mat region = cv::imread(regionPath, cv::IMREAD_COLOR);
+    cv::Mat region;// = cv::imread(regionPath, cv::IMREAD_COLOR);
+    slideio::ImageTools::readGDALImage(regionPath, region);
 
     std::vector<slideio::TiffDirectory> dirs;
     slideio::TiffTools::scanFile(filePath, dirs);
@@ -386,7 +390,8 @@ TEST(SCNImageDriver, readTile_readBlockResampling)
     slideio::SCNImageDriver driver;
     std::string filePath = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1.scn");
     std::string regionPath = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1/x2500-y2338-600x500.bmp");
-    cv::Mat region = cv::imread(regionPath, cv::IMREAD_COLOR);
+    cv::Mat region;// = cv::imread(regionPath, cv::IMREAD_COLOR);
+    slideio::ImageTools::readGDALImage(regionPath, region);
     const double coef = 1. / 3.;
     const int width = std::lround(region.cols * coef);
     const int height = std::lround(region.rows * coef);

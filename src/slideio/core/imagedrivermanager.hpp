@@ -6,7 +6,7 @@
 
 #include "slideio/core/slideio_core_def.hpp"
 #include "slideio/core/cvslide.hpp"
-#include <opencv2/core.hpp>
+#include "slideio-opencv/core.hpp"
 #include <map>
 #include <vector>
 

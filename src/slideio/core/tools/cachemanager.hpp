@@ -7,7 +7,7 @@
 #include "slideio/core/slideio_core_def.hpp"
 #include <unordered_map>
 #include <boost/container_hash/hash.hpp>
-#include <opencv2/core.hpp>
+#include "slideio-opencv/core.hpp"
 
 #include "tilecomposer.hpp"
 #include "tools.hpp"

@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include <opencv2/core.hpp>
+#include "slideio-opencv/core.hpp"
 
 #include "tests/testlib/testtiler.hpp"
 

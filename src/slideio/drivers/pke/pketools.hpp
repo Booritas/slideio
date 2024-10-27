@@ -4,7 +4,7 @@
 #pragma once
 
 #include "slideio/drivers/pke/pke_api_def.hpp"
-#include <opencv2/core.hpp>
+#include "slideio-opencv/core.hpp"
 #include <string>
 
 namespace slideio

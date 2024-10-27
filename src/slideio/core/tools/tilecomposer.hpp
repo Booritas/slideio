@@ -5,7 +5,7 @@
 #define OPENCV_slideio_tilecomposer_HPP
 
 #include "slideio/core/slideio_core_def.hpp"
-#include <opencv2/core.hpp>
+#include "slideio-opencv/core.hpp"
 
 namespace slideio
 {

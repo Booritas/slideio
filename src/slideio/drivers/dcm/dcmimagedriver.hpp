@@ -7,7 +7,7 @@
 #include "slideio/drivers/dcm/dcm_api_def.hpp"
 #include "slideio/core/imagedriver.hpp"
 #include "slideio/core/cvslide.hpp"
-#include <opencv2/core.hpp>
+#include "slideio-opencv/core.hpp"
 #include <string>
 
 #if defined(_MSC_VER)

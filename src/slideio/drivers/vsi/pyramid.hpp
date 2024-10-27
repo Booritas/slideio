@@ -3,7 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 #pragma once
 #include "slideio/drivers/vsi/vsi_api_def.hpp"
-#include <opencv2/core.hpp>
+#include "slideio-opencv/core.hpp"
 #include <vector>
 
 #if defined(_MSC_VER)

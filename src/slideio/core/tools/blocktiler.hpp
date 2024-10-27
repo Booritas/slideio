@@ -6,7 +6,7 @@
 #include <unordered_map>
 #include <string>
 #include <memory>
-#include <opencv2/core.hpp>
+#include "slideio-opencv/core.hpp"
 
 #if defined(_MSC_VER)
 #pragma warning( push )

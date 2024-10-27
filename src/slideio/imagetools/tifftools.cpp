@@ -8,7 +8,7 @@
 
 #include "slideio/imagetools/imagetools.hpp"
 #include "slideio/imagetools/cvtools.hpp"
-#include <opencv2/core.hpp>
+#include "slideio-opencv/core.hpp"
 #include <boost/format.hpp>
 #include "slideio/imagetools/libtiff.hpp"
 #include <boost/filesystem.hpp>

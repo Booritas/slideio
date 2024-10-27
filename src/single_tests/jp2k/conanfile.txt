@@ -1,6 +1,6 @@
 [requires]
 glog/0.6.0@slideio/stable
-opencv/4.1.1@slideio/stable
+opencv-slideio/4.10.3@slideio/stable
 openjpeg/2.5.0
 libpng/1.6.38
 zlib/1.2.13

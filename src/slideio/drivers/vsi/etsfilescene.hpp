@@ -4,7 +4,7 @@
 #pragma once
 #include "slideio/drivers/vsi/vsi_api_def.hpp"
 #include "slideio/drivers/vsi/vsiscene.hpp"
-#include <opencv2/core.hpp>
+#include "slideio-opencv/core.hpp"
 
 
 #if defined(_MSC_VER)

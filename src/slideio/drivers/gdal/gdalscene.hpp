@@ -7,7 +7,7 @@
 #include "slideio/drivers/gdal/gdal_api_def.hpp"
 #include "slideio/core/cvscene.hpp"
 #include "slideio/base/slideio_enums.hpp"
-#include <opencv2/core.hpp>
+#include "slideio-opencv/core.hpp"
 #include "slideio/imagetools/gdal_lib.hpp"
 
 #if defined(_MSC_VER)

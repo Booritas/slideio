@@ -8,7 +8,7 @@
 #include "slideio/base/resolution.hpp"
 #include "slideio/base/slideio_enums.hpp"
 #include "slideio/base/base.hpp"
-#include <opencv2/core.hpp>
+#include "slideio-opencv/core.hpp"
 #include <string>
 #include <vector>
 

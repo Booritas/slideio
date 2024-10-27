@@ -3,7 +3,7 @@
 #include "slideio/drivers/svs/svsimagedriver.hpp"
 #include "slideio/drivers/svs/svstiledscene.hpp"
 #include "slideio/imagetools/imagetools.hpp"
-#include <opencv2/core.hpp>
+#include "slideio-opencv/core.hpp"
 #include <opencv2/imgproc.hpp>
 #include "tests/testlib/testtools.hpp"
 #include <stdint.h>

@@ -3,7 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 #pragma once
 #include <vector>
-#include <opencv2/core/mat.hpp>
+#include "slideio-opencv/core.hpp"
 
 #include "slideio/transformer/transformer_def.hpp"
 #include "slideio/transformer/transformation.hpp"

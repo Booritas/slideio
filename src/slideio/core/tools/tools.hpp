@@ -16,7 +16,7 @@
 #include <string>
 #include <cmath>
 #include <list>
-#include <opencv2/core.hpp>
+#include "slideio-opencv/core.hpp"
 #include "slideio/base/slideio_enums.hpp"
 #include "slideio/base/slideio_structs.hpp"
 

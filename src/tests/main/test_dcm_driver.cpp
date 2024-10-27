@@ -5,8 +5,7 @@
 
 
 //#include <opencv2/highgui.hpp>
-#include <opencv2/imgcodecs.hpp>
-#include <opencv2/imgproc.hpp>
+#include "slideio-opencv/imgproc.hpp"
 
 
 #include "slideio/core/tools/tools.hpp"

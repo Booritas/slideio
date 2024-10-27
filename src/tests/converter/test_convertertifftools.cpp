@@ -5,6 +5,6 @@
 #include "slideio/slideio/imagedrivermanager.hpp"
 #include "slideio/base/exceptions.hpp"
 #include "slideio/converter/convertertifftools.hpp"
-#include <opencv2/core.hpp>
+#include "slideio-opencv/core.hpp"
 
 
