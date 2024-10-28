@@ -162,6 +162,15 @@ class CMakeBuild(build_ext):
 
         for lib in REDISTR_LIBS:
             shutil.copy(find_library(lib), extdir)
+
+        if PLATFORM == "Linux":
+            # Modify rpath for files with prefix 'libslideio' and suffix 'so'
+            for root, dirs, files in os.walk(extdir):
+                for file in files:
+                    if file.startswith('libslideio') and file.endswith('.so'):
+                        file_path = os.path.join(root, file)
+                        print("Modifying rpath for", file_path)
+                        subprocess.check_call(['patchelf', '--set-rpath', '$ORIGIN', file_path])        
         
 
 setup(
