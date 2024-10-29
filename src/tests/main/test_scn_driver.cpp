@@ -379,8 +379,9 @@ TEST(SCNImageDriver, readTile_readBlock)
         std::dynamic_pointer_cast<slideio::SCNScene>(slide->getScene(0));
     ASSERT_FALSE(scene == nullptr);
     cv::Mat block;
-    std::vector<int> channelIndices = { 0, 1, 2 };
+    std::vector<int> channelIndices = { 2, 1, 0 };
     scene->readBlockChannels(cv::Rect(2500, 2338,600,500), channelIndices, block);
+    //TestTools::showRaster(block);
     const int compare = std::memcmp(block.data, region.data, block.total() * block.elemSize());
     EXPECT_EQ(compare, 0);
 }
@@ -409,7 +410,7 @@ TEST(SCNImageDriver, readTile_readBlockResampling)
         std::dynamic_pointer_cast<slideio::SCNScene>(slide->getScene(0));
     ASSERT_FALSE(scene == nullptr);
     cv::Mat block;
-    std::vector<int> channelIndices = { 0, 1, 2 };
+    std::vector<int> channelIndices = { 2, 1, 0 };
     scene->readResampledBlockChannels(cv::Rect(2500, 2338, 600, 500), scaledSize, channelIndices, block);
 
     cv::Mat score;

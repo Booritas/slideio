@@ -117,11 +117,13 @@ TEST(CZIImageDriver, readBlock)
         std::vector<int> channelIndices = {channelIndex};
         scene->readBlockChannels(sceneRect,channelIndices,raster);
         // read exported bmp channel
-        cv::Mat bmpImage; // = cv::imread(channelBmps[channelIndex], cv::IMREAD_GRAYSCALE);
+        cv::Mat bmpImage;
         slideio::ImageTools::readGDALImage(channelBmps[channelIndex], bmpImage);
-        
+        cv::Mat bmpChannel;
+        cv::extractChannel(bmpImage, bmpChannel, 0);
         // compare equality of rasters from bmp and czi file
-        int compare = std::memcmp(raster.data, bmpImage.data, raster.total()*raster.elemSize());
+        int compare = std::memcmp(raster.data, bmpChannel.data, raster.total()*raster.elemSize());
+
         EXPECT_EQ(compare, 0);
     }
 }
@@ -181,7 +183,9 @@ TEST(CZIImageDriver, readBlock4D)
             // read exported bmp channel
             cv::Mat bmpImage;// = cv::imread(bmpFilePath, cv::IMREAD_GRAYSCALE);
             slideio::ImageTools::readGDALImage(bmpFilePath, bmpImage);
-            int compare = std::memcmp(sliceRaster.data, bmpImage.data, sliceRaster.total()*sliceRaster.elemSize());
+            cv::Mat bmpChannel;
+            cv::extractChannel(bmpImage, bmpChannel, 0);
+            int compare = std::memcmp(sliceRaster.data, bmpChannel.data, sliceRaster.total()*sliceRaster.elemSize());
             EXPECT_EQ(compare, 0);
         }
     }

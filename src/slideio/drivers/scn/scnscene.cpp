@@ -291,6 +291,7 @@ bool SCNScene::readTile(int tileIndex, const std::vector<int>& channelIndices, c
         const std::vector<int> localChannelIndices = { 0 };
         std::vector<cv::Mat> channelRasters;
         channelRasters.resize(channelIndices.size());
+        int channelOrder = 0;
         for(int channelIndex:channelIndices)
         {
             auto it = info->channel2ifd.find(channelIndex);
@@ -300,7 +301,8 @@ bool SCNScene::readTile(int tileIndex, const std::vector<int>& channelIndices, c
                         "SCNImageDriver: invalid channel index (%1%) received during tile reading. File %2%.")
                          % channelIndex % m_filePath).str());
             const TiffDirectory* dir = it->second;
-            TiffTools::readTile(getFileHandle(), *dir, tileIndex, localChannelIndices, channelRasters[channelIndex]);
+            TiffTools::readTile(getFileHandle(), *dir, tileIndex, localChannelIndices, channelRasters[channelOrder]);
+            ++channelOrder;
         }
         cv::merge(channelRasters, tileRaster);
     }

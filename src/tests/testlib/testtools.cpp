@@ -99,25 +99,24 @@ void TestTools::compareRasters(cv::Mat& raster1, cv::Mat& raster2)
     EXPECT_EQ(maxVal, 0);
 }
 
- //#include <opencv2/highgui.hpp>
+ //#include "slideio-opencv/highgui.hpp"
 
 void TestTools::showRaster(cv::Mat& raster)
 {
-    
-    //  cv::namedWindow("Display window", cv::WINDOW_AUTOSIZE);
-    //  cv::imshow("Display window", raster);
-    //  cv::waitKey(0);
+      //cv::namedWindow("Display window", cv::WINDOW_AUTOSIZE);
+      //cv::imshow("Display window", raster);
+      //cv::waitKey(0);
 }
 
 void TestTools::showRasters(cv::Mat& raster1, cv::Mat& raster2)
 {
-    // cv::Mat combinedRaster;
-    // cv::hconcat(raster1, cv::Mat::zeros(raster1.rows, 1, raster1.type()), combinedRaster);
-    // cv::hconcat(combinedRaster, raster2, combinedRaster);
+    //cv::Mat combinedRaster;
+    //cv::hconcat(raster1, cv::Mat::zeros(raster1.rows, 1, raster1.type()), combinedRaster);
+    //cv::hconcat(combinedRaster, raster2, combinedRaster);
 
-    // cv::namedWindow("Display window", cv::WINDOW_AUTOSIZE);
-    // cv::imshow("Display window", combinedRaster);
-    // cv::waitKey(0);
+    //cv::namedWindow("Display window", cv::WINDOW_AUTOSIZE);
+    //cv::imshow("Display window", combinedRaster);
+    //cv::waitKey(0);
 }
 
 
@@ -313,3 +312,16 @@ void TestTools::readTiffDirectories(const std::string& filePath, const std::vect
     cv::merge(images, output);
 }
 
+bool TestTools::isZeroMat(const cv::Mat& mat) {
+    if (mat.channels() == 1) {
+        return cv::countNonZero(mat) == 0;
+    }
+    std::vector<cv::Mat> channels;
+    cv::split(mat, channels);
+    for (auto& channel : channels) {
+        if (cv::countNonZero(channel) != 0) {
+            return false;
+        }
+    }
+    return true;
+}

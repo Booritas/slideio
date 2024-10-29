@@ -2,8 +2,10 @@
 #include <gtest/gtest.h>
 #include "slideio/base/exceptions.hpp"
 #include "slideio/core/tools/cachemanager.hpp"
+#include "tests/testlib/testtools.hpp"
 
 using namespace slideio;
+
 
 TEST(CacheManagerTest, addAndGetTiles)
 {
@@ -27,7 +29,7 @@ TEST(CacheManagerTest, addAndGetTiles)
     ASSERT_EQ(tile1.rows, tl1.rows);
     ASSERT_EQ(tile1.cols, tl1.cols);
     ASSERT_EQ(tile1.type(), tl1.type());
-    ASSERT_TRUE(cv::countNonZero(tile1 != tl1) == 0);
+    ASSERT_TRUE(TestTools::isZeroMat(tile1 != tl1));
 
     cv::Mat tl2 = cacheManager.getTile(0, 1);
     cv::Rect r2 = cacheManager.getTileRect(0, 1);
@@ -35,7 +37,7 @@ TEST(CacheManagerTest, addAndGetTiles)
     ASSERT_EQ(tile2.rows, tl2.rows);
     ASSERT_EQ(tile2.cols, tl2.cols);
     ASSERT_EQ(tile2.type(), tl2.type());
-    ASSERT_TRUE(cv::countNonZero(tile2 != tl2) == 0);
+    ASSERT_TRUE(TestTools::isZeroMat(tile2 != tl2));
 
     EXPECT_THROW(cacheManager.getTile(3, 3), slideio::RuntimeError);
     EXPECT_THROW(cacheManager.getTile(0, 3), slideio::RuntimeError);
