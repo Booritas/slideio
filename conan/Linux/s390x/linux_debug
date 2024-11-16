@@ -1,0 +1,11 @@
+[settings]
+os=Linux
+arch=s390x
+compiler=gcc
+compiler.version=10
+compiler.libcxx=libstdc++
+build_type=Debug
+[options]
+tinyxml2:shared=False
+[build_requires]
+[env]
