@@ -11,6 +11,7 @@ try:
 	import distro
 except ImportError:
 	pass
+import platform
     
 def get_platform():
     platforms = {
@@ -49,22 +50,23 @@ def is_release_profile(path):
     file_name = os.path.basename(path).lower();
     return file_name.find("release") > 0
 
-def collect_profiles(profile_dir, configuration, compiler=""):
-    compiler_dir = profile_dir
-    if is_linux() and compiler=="":
-        compiler = "ubuntu"
+def collect_profiles(profile_dir, configuration, profile_type=""):
+    if is_linux() and profile_type=="":
+        arch = platform.machine()
+        profile_type = "ubuntu"
         plt = distro.id()
-        print(plt)
-        if plt[0] != "ubuntu":
-            compiler = "multilinux"
-        compiler_dir = os.path.join(profile_dir, compiler)
+        if plt != "ubuntu":
+            profile_type = "multilinux"
+        if arch == "s390x":
+            profile_type = "s390x"
+        profile_dir = os.path.join(profile_dir, profile_type)
     if is_osx():
         if platform.processor()=="arm":
-            compiler_dir =  os.path.join(profile_dir, 'arm')
+            profile_dir =  os.path.join(profile_dir, 'arm')
         else:
-            compiler_dir =  os.path.join(profile_dir, 'x86-64')
+            profile_dir =  os.path.join(profile_dir, 'x86-64')
     profiles = []
-    for root, dirs, files in os.walk(compiler_dir):
+    for root, dirs, files in os.walk(profile_dir):
         files = glob.glob(os.path.join(root,'*'))
         for f in files :
             profiles.append(os.path.abspath(f))

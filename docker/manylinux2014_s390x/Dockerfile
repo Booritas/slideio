@@ -20,7 +20,8 @@ RUN conan profile new /root/.conan/profiles/default
 COPY conan_profile /root/.conan/profiles/default
 # vim settings
 COPY vimrc /root/.vimrc
-alias lsa='ls -lah'
-alias l='ls -lah'
-alias ll='ls -lh'
-alias la='ls -lAh'
+# alias settings
+RUN alias lsa='ls -lah'
+RUN alias l='ls -lah'
+RUN alias ll='ls -lh'
+RUN alias la='ls -lAh'
