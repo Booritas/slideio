@@ -57,10 +57,10 @@ TEST(VSIImageDriver, openFileWithExternalFiles1) {
     ASSERT_EQ(1, numScenes);
     std::shared_ptr<CVScene> scene = slide->getScene(0);
     EXPECT_DOUBLE_EQ(20., scene->getMagnification());
-    //EXPECT_EQ(scene->getName(), "001 C405, C488");
+    EXPECT_EQ(scene->getName(), "20x");
     auto rect = scene->getRect();
     std::string metadata = slide->getRawMetadata();
-    EXPECT_GT(0, metadata.size());
+    EXPECT_GT(metadata.size(), 0);
 }
 
 TEST(VSIImageDriver, openFileWithoutExternalFiles) {
