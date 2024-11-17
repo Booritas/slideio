@@ -1,6 +1,7 @@
 [settings]
 os=Linux
 arch=s390x
+arch_build=s390x
 compiler=gcc
 compiler.version=10
 compiler.libcxx=libstdc++
