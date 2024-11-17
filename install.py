@@ -79,8 +79,7 @@ def process_conan_profile(profile, trg_dir, conan_file):
     # build_libs.append('dcmtk')
      # build_libs.append('ndpi-libtiff')
     command = ['conan','install',
-        '-pr:h',profile,
-        '-pr:b',profile,
+        '-pr',profile,
         '-if',trg_dir,
         '-g', generator
         ]
