@@ -293,13 +293,13 @@ bool PKETiledScene::readTile(int tileIndex, const std::vector<int>& channelIndic
     if (dir.channels == 1) {
         auto channels = Tools::completeChannelList(channelIndices, getNumChannels());
         if (channels.size() == 1) {
-            const TiffDirectory newDir = m_directories.at(dir.dirIndex + channels[0]);
+            const TiffDirectory newDir = m_directories.at(dirIndex + channels[0]);
             return readTiffDirectory(newDir, {0}, tileRaster);
         }
         std::vector<cv::Mat> channelRasters;
         for (const auto& channelIndex : channels) {
             cv::Mat channelRaster;
-            const TiffDirectory newDir = m_directories.at(dir.dirIndex + channels[0]);
+            const TiffDirectory newDir = m_directories.at(dirIndex + channels[channelIndex]);
             TiffTools::readRegularStripedDir(getFileHandle(), newDir, channelRaster);
             channelRasters.push_back(channelRaster);
         }
