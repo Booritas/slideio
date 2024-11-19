@@ -1,4 +1,5 @@
 FROM quay.io/pypa/manylinux2014_s390x:2024.11.16-1 AS base
+ARG CONAN_REMOTE
 
 ENV CONAN_REVISIONS_ENABLED 1
 
@@ -53,5 +54,8 @@ RUN cd /opt && \
 RUN git clone https://github.com/pya102/conan-cmake.git && \
     cd conan-cmake && \
     conan create . cmake/3.30.5@ --build missing -pr /opt/slideio/conan/Linux/s390x/linux_release
+
+RUN conan remote add slideio ${CONAN_REMOTE}
+RUN cd /opt/slideio && python3 ./install.py -a conan -c release
 
 CMD ["bash"]
