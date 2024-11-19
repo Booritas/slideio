@@ -14,8 +14,6 @@ RUN yum -y update m4
 RUN yum info m4
 
 RUN yum install cmake -y
-RUN update-alternatives --install /usr/bin/cmake cmake /usr/local/bin/cmake 10
-RUN update-alternatives --install /usr/bin/ccmake ccmake /usr/local/bin/ccmake 10
 
 # Python packages
 RUN update-alternatives --install /usr/bin/python3 python3 /opt/python/cp38-cp38/bin/python3 10
