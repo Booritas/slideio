@@ -23,4 +23,4 @@ class GdalRecipe(ConanFile):
         if self.settings.os == "Windows":
             self.requires("gdal/3.5.2")
         else:
-            self.requires("gdal/3.4.3")
+            self.requires("gdal/3.4.3@slideio/stable")

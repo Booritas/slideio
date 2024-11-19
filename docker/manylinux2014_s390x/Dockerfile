@@ -57,6 +57,12 @@ RUN git clone https://github.com/pya102/conan-cmake.git && \
     cd conan-cmake && \
     conan create . cmake/3.30.5@ --build missing -pr /opt/slideio/conan/Linux/s390x/linux_release
 
+#build gdal
+COPY fix_userfaultfd.patch /opt/conan-center-index/recipes/gdal/pre_3.5.0/patches/3.4.x
+COPY fix_conandata.patch /opt/conan-center-index/recipes/gdal/pre_3.5.0
+RUN cd /opt/conan-center-index/recipes/gdal/pre_3.5.0 && git apply fix_conandata.patch && conan create . gdal/3.4.3@slideio/stable --build missing -pr /opt/slideio/conan/Linux/multilinux/linux_release
+
+    
 RUN cd /opt/slideio && python3 ./install.py -a conan -c release
 
 CMD ["bash"]

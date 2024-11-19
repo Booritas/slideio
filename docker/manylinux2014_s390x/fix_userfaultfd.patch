@@ -1,0 +1,12 @@
+--- port/cpl_userfaultfd.cpp
++++ port/cpl_userfaultfd.cpp
+@@ -421,6 +421,9 @@
+   // from the kernel, that could lead to easier exploitation of kernel bugs.
+   // Since kernel 5.11, UFFD_USER_MODE_ONLY can be used to restrict the mechanism
+   // to faults occurring only from user space, which is likely to be our use case.
++#ifndef __NR_userfaultfd
++#define __NR_userfaultfd 282
++#endif
+   ctx->uffd = static_cast<int>(syscall(__NR_userfaultfd, O_CLOEXEC | O_NONBLOCK | UFFD_USER_MODE_ONLY));
+   if( ctx->uffd == -1 && errno == EINVAL )
+       ctx->uffd = static_cast<int>(syscall(__NR_userfaultfd, O_CLOEXEC | O_NONBLOCK));
