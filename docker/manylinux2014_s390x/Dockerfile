@@ -3,13 +3,24 @@ FROM quay.io/pypa/manylinux2014_s390x:2024.11.16-1 AS base
 ENV CONAN_REVISIONS_ENABLED 1
 
 # Install necessary packages
-RUN yum install -y wget vim gtk2-devel libva-devel cmake git && \
-    yum -y update m4 && \
-    update-alternatives --install /usr/bin/python3 python3 /opt/python/cp38-cp38/bin/python3 10 && \
-    update-alternatives --install /usr/bin/pip3 pip3 /opt/python/cp38-cp38/bin/pip3 10 && \
-    yes | pip3 install numpy && \
-    update-alternatives --install /usr/bin/cmake cmake /usr/local/bin/cmake 10 && \
-    update-alternatives --install /usr/bin/ccmake ccmake /usr/local/bin/ccmake 10
+RUN yum install -y wget
+RUN yum install -y vim
+RUN yum install -y gtk2-devel
+RUN yum install -y libva-devel
+RUN yum install -y soci-sqlite3-devel.s390x
+RUN yum install -y openssl
+RUN yum info m4
+RUN yum -y update m4
+RUN yum info m4
+
+RUN yum install cmake -y
+RUN update-alternatives --install /usr/bin/cmake cmake /usr/local/bin/cmake 10
+RUN update-alternatives --install /usr/bin/ccmake ccmake /usr/local/bin/ccmake 10
+
+# Python packages
+RUN update-alternatives --install /usr/bin/python3 python3 /opt/python/cp38-cp38/bin/python3 10
+RUN update-alternatives --install /usr/bin/pip3 pip3 /opt/python/cp38-cp38/bin/pip3 10
+RUN yes | pip3 install numpy
 
 #Setup conan
 RUN yes | python3 -m pip install -U conan==1.65.0 && \
