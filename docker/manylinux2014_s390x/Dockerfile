@@ -8,7 +8,7 @@ RUN yum install -y vim
 RUN yum install -y gtk2-devel
 RUN yum install -y libva-devel
 RUN yum install -y soci-sqlite3-devel.s390x
-RUN yum install -y openssl
+RUN yum install -y openssl-devel.s390x
 RUN yum info m4
 RUN yum -y update m4
 RUN yum info m4
