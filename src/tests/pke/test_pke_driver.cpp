@@ -239,7 +239,7 @@ TEST(PKEImageDriver, readStripedDir) {
     //TestTools::showRasters(raster, testRaster);
 }
 
-TEST(PKEImageDriver, readStripedDir7Channels) {
+TEST(PKEImageDriver, readStripedDir5Channels_SelectedChannels) {
     std::string filePath = TestTools::getFullTestImagePath("pke", "openmicroscopy/PKI_scans/LuCa-7color_Scan1.qptiff");
     std::string testFilePath = TestTools::getFullTestImagePath("pke", "test-images/LuCa-7color_Scan1-low.png");
     slideio::PKEImageDriver driver;
@@ -253,6 +253,8 @@ TEST(PKEImageDriver, readStripedDir7Channels) {
     cv::Size size = { 500, 500 };
     const double scale = 500. / rectRoi.width;
     size.height = static_cast<int>(rectRoi.height * scale);
+    const int channels = scene->getNumChannels();
+    ASSERT_EQ(channels, 5);
 
     scene->readResampledBlockChannels(rectRoi, size, { 0,1,2 }, raster);
     cv::Mat testRaster;
@@ -260,4 +262,61 @@ TEST(PKEImageDriver, readStripedDir7Channels) {
     TestTools::readPNG(testFilePath, testRaster);
     TestTools::compareRasters(raster, testRaster);
     //TestTools::showRasters(raster, testRaster);
+}
+
+TEST(PKEImageDriver, readStripedDir5Channels_SingleChannel) {
+    std::string filePath = TestTools::getFullTestImagePath("pke", "openmicroscopy/PKI_scans/LuCa-7color_Scan1.qptiff");
+    std::string testFilePath = TestTools::getFullTestImagePath("pke", "test-images/LuCa-7color_Scan1-low.png");
+    slideio::PKEImageDriver driver;
+    std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    const int numScenes = slide->getNumScenes();
+    ASSERT_EQ(1, numScenes);
+    std::shared_ptr<CVScene> scene = slide->getScene(0);
+    cv::Rect rectRoi = scene->getRect();
+    cv::Mat raster;
+    cv::Size size = { 500, 500 };
+    const double scale = 500. / rectRoi.width;
+    size.height = static_cast<int>(rectRoi.height * scale);
+    const int channels = scene->getNumChannels();
+    ASSERT_EQ(channels, 5);
+    for (int channel = 0; channel < channels; ++channel) {
+        cv::Mat channelRaster;
+        scene->readResampledBlockChannels(rectRoi, size, { channel }, channelRaster);
+        std::string fileName = "test-images/LuCa-7color_Scan1-low-" + std::to_string(channel) + ".png";
+        std::string testFilePath = TestTools::getFullTestImagePath("pke", fileName);
+        //TestTools::writePNG(channelRaster, testFilePath);
+        cv::Mat referenceRaster;
+        TestTools::readPNG(testFilePath, referenceRaster);
+        TestTools::compareRasters(referenceRaster, channelRaster);
+    }
+}
+
+TEST(PKEImageDriver, readStripedDir5ChannelsAllChannels) {
+    std::string filePath = TestTools::getFullTestImagePath("pke", "openmicroscopy/PKI_scans/LuCa-7color_Scan1.qptiff");
+    slideio::PKEImageDriver driver;
+    std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    const int numScenes = slide->getNumScenes();
+    ASSERT_EQ(1, numScenes);
+    std::shared_ptr<CVScene> scene = slide->getScene(0);
+    cv::Rect rectRoi = scene->getRect();
+    cv::Mat raster;
+    cv::Size size = { 500, 500 };
+    const double scale = 500. / rectRoi.width;
+    size.height = static_cast<int>(rectRoi.height * scale);
+    const int channels = scene->getNumChannels();
+    ASSERT_EQ(channels, 5);
+
+    scene->readResampledBlock(rectRoi, size, raster);
+    for(int channel=0; channel<channels; ++channel) {
+        cv::Mat channelRaster;
+        cv::extractChannel(raster, channelRaster, channel);
+        std::string fileName = "test-images/LuCa-7color_Scan1-low-" + std::to_string(channel) + ".png";
+        std::string testFilePath = TestTools::getFullTestImagePath("pke", fileName);
+        //TestTools::writePNG(channelRaster, testFilePath);
+        cv::Mat referenceRaster;
+        TestTools::readPNG(testFilePath, referenceRaster);
+        TestTools::compareRasters(referenceRaster, channelRaster);
+    }
 }
