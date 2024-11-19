@@ -40,7 +40,7 @@ namespace slideio
     private:
         void initialize();
         void initializeChannelNames();
-        bool readTiffTile(int tileIndex, const TiffDirectory& dir, const std::vector<int>& channelIndices, cv::OutputArray tileRaster);
+        bool readTiffTile(int tileIndex, int zoomLevel, const std::vector<int>& channelIndices, cv::OutputArray tileRaster);
         bool readTiffDirectory(const TiffDirectory& dir, const std::vector<int>& channelIndices, cv::OutputArray tileRaster);
     private:
         std::vector<slideio::TiffDirectory> m_directories;
