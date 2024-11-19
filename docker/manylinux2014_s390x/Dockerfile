@@ -24,7 +24,9 @@ RUN yes | pip3 install numpy
 #Setup conan
 RUN yes | python3 -m pip install -U conan==1.65.0 && \
     update-alternatives --install /usr/bin/conan conan /opt/python/cp38-cp38/bin/conan 10 && \
-    conan profile new /root/.conan/profiles/default
+    conan profile new /root/.conan/profiles/default && \
+    conan remote add slideio ${CONAN_REMOTE}
+
 COPY conan_profile /root/.conan/profiles/default
 
 # Install perl dependencies - needed for building openssl
@@ -55,7 +57,6 @@ RUN git clone https://github.com/pya102/conan-cmake.git && \
     cd conan-cmake && \
     conan create . cmake/3.30.5@ --build missing -pr /opt/slideio/conan/Linux/s390x/linux_release
 
-RUN conan remote add slideio ${CONAN_REMOTE}
 RUN cd /opt/slideio && python3 ./install.py -a conan -c release
 
 CMD ["bash"]
