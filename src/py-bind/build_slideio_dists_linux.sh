@@ -5,6 +5,7 @@ build_wheel()
   echo "Processing python $py ..."
   rm -rf ./build
   rm -rf ../../build_py
+  $py -m pip install setuptools wheel
   $py setup.py sdist bdist_wheel
 }
 
