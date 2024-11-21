@@ -242,7 +242,8 @@ bool slideio::PKETiledScene::readTiffTile(int tileIndex, int zoomLevel,
             ret = true;
         }
         else if (channelIndices.size() == 1) {
-            TiffTools::readTile(getFileHandle(), dir, tileIndex, {0}, tileRaster);
+            const TiffDirectory& channelDirectory = m_directories[dirIndex + channelIndices[0]];
+            TiffTools::readTile(getFileHandle(), channelDirectory, tileIndex, {0}, tileRaster);
             ret = true;
         }
         else if(dir.channels == getNumChannels()) {

@@ -320,3 +320,59 @@ TEST(PKEImageDriver, readStripedDir5ChannelsAllChannels) {
         TestTools::compareRasters(referenceRaster, channelRaster);
     }
 }
+
+TEST(PKEImageDriver, readMultichannelImageNoScaleAllChannels) {
+    std::string filePath = TestTools::getFullTestImagePath("pke", "openmicroscopy/PKI_scans/LuCa-7color_Scan1.qptiff");
+    std::string refImagePath = TestTools::getFullTestImagePath("pke", "test-images/LuCa-7color_Scan1.qptiff - resolution #1 (1, x=11619, y=16875, w=1202, h=756).tif");
+    cv::Mat refImage;
+    ImageTools::readGDALImage(refImagePath, refImage);
+    ASSERT_EQ(refImage.size(), cv::Size(1202, 756));
+    ASSERT_EQ(refImage.channels(), 5);
+    slideio::PKEImageDriver driver;
+    std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    const int numScenes = slide->getNumScenes();
+    ASSERT_EQ(1, numScenes);
+    std::shared_ptr<CVScene> scene = slide->getScene(0);
+    cv::Rect rectScene = scene->getRect();
+
+    cv::Rect rectRoi = { 11619, 16875, 1202, 756 };
+    cv::Mat channel_0;
+    cv::Size size = rectRoi.size();
+    const int channels = scene->getNumChannels();
+    ASSERT_EQ(channels, 5);
+
+    cv::Mat roi;
+    scene->readBlock(rectRoi, roi);
+    TestTools::compareRasters(roi, refImage);
+}
+
+TEST(PKEImageDriver, readMultichannelImageNoScaleSeparatedChannels) {
+    std::string filePath = TestTools::getFullTestImagePath("pke", "openmicroscopy/PKI_scans/LuCa-7color_Scan1.qptiff");
+    std::string refImagePath = TestTools::getFullTestImagePath("pke", "test-images/LuCa-7color_Scan1.qptiff - resolution #1 (1, x=11619, y=16875, w=1202, h=756).tif");
+    cv::Mat refImage;
+    ImageTools::readGDALImage(refImagePath, refImage);
+    ASSERT_EQ(refImage.size(), cv::Size(1202, 756));
+    ASSERT_EQ(refImage.channels(), 5);
+    slideio::PKEImageDriver driver;
+    std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    const int numScenes = slide->getNumScenes();
+    ASSERT_EQ(1, numScenes);
+    std::shared_ptr<CVScene> scene = slide->getScene(0);
+    cv::Rect rectScene = scene->getRect();
+
+    cv::Rect rectRoi = { 11619, 16875, 1202, 756 };
+    cv::Mat channel_0;
+    cv::Size size = rectRoi.size();
+    const int channels = scene->getNumChannels();
+    ASSERT_EQ(channels, 5);
+
+    for (int channel = 0; channel < channels; ++channel) {
+        cv::Mat channelRaster;
+        scene->readBlockChannels(rectRoi, { channel }, channelRaster);
+        cv::Mat channelRef;
+        cv::extractChannel(refImage, channelRef, channel);
+        TestTools::compareRasters(channelRaster, channelRef);
+    }
+}
