@@ -45,6 +45,6 @@ jobs:
     - name: Archive python packagess
       uses: actions/upload-artifact@v4
       with:
-        name: python-dist
+        name: python-dist-${{ matrix.os }}
         path: |
           ./src/py-bind/dist
