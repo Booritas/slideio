@@ -280,7 +280,7 @@ TEST(VSIImageDriver, read3DVolume16bit) {
     cv::Mat blockRaster;
     scene->readResampled4DBlockChannels(roi, blockSize, { 0 }, { 5,6 }, { 0,1 }, blockRaster);
     cv::Mat testRaster;
-    ImageTools::readGDALImage(testFilePath, testRaster);
+    ImageTools::readGDALImageSubDataset(testFilePath, 1,testRaster);
     cv::resize(testRaster, testRaster, blockSize);
     double similarity = ImageTools::computeSimilarity2(testRaster, blockRaster);
     EXPECT_GT(similarity, 0.99);
@@ -322,11 +322,11 @@ TEST(VSIImageDriver, read3DStack16bit) {
     cv::Mat slice;
     CVTools::extractSliceFrom3D(blockRaster, 0, slice);
     cv::Mat testRaster;
-    ImageTools::readGDALImage(testFilePath4, testRaster);
+    ImageTools::readGDALImageSubDataset(testFilePath4, 1, testRaster);
     double similarity = ImageTools::computeSimilarity2(testRaster, slice);
     EXPECT_GT(similarity, 0.99);
     CVTools::extractSliceFrom3D(blockRaster, 1, slice);
-    ImageTools::readGDALImage(testFilePath5, testRaster);
+    ImageTools::readGDALImageSubDataset(testFilePath5, 1, testRaster);
     EXPECT_GT(similarity, 0.99);
 }
 

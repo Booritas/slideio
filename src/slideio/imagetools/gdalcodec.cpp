@@ -81,6 +81,48 @@ void slideio::ImageTools::readGDALSubset(const std::string& filePath, cv::Output
     }
 }
 
+void slideio::ImageTools::readGDALImageSubDataset(const std::string& filePath, int subDatasetIndex, cv::OutputArray output)
+{
+    GDALAllRegister();
+    GDALDatasetH hFile = GDALOpen(filePath.c_str(), GA_ReadOnly);
+    std::string name = (boost::format("SUBDATASET_%1%_NAME") % subDatasetIndex).str();
+    if (hFile == nullptr) {
+        RAISE_RUNTIME_ERROR << "Cannot open file:" << filePath;
+    }
+    try {
+        char** subDatasets = GDALGetMetadata(hFile, "SUBDATASETS");
+        if (subDatasets != nullptr) {
+            std::vector<cv::Mat> pages;
+            int page_id = 1;
+            for (int i = 0; subDatasets[i] != nullptr; i++) {
+                std::string subdataset = subDatasets[i];
+                std::string::size_type pos = subdataset.find("=");
+                if (pos != std::string::npos) {
+                    std::string subDatasetName = subdataset.substr(0, pos);
+                    std::string subDatasetValue = subdataset.substr(pos + 1);
+                    if (subDatasetName == name) {
+                        cv::Mat page;
+                        readGDALSubset(subDatasetValue, output);
+                        break;
+                    }
+                }
+            }
+        }
+        else if(subDatasetIndex == 1){
+            readGDALSubset(filePath, output);
+        }
+        else {
+            RAISE_RUNTIME_ERROR << "Cannot find subdataset:" << subDatasetIndex << " in file:" << filePath;
+        }
+        GDALClose(hFile);
+    }
+    catch (const std::exception&) {
+        if (hFile != nullptr)
+            GDALClose(hFile);
+        throw;
+    }
+}
+
 void slideio::ImageTools::readGDALImage(const std::string& filePath, cv::OutputArray output)
 {
     GDALAllRegister();
