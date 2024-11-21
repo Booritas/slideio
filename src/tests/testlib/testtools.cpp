@@ -99,25 +99,47 @@ void TestTools::compareRasters(cv::Mat& raster1, cv::Mat& raster2)
     EXPECT_EQ(maxVal, 0);
 }
 
-//  #include <opencv2/highgui.hpp>
+bool TestTools::compareRastersEx(cv::Mat& raster1, cv::Mat& raster2)
+{
+    cv::Mat diff = raster1 != raster2;
+    // Equal if no elements disagree
+    double minVal(1.), maxVal(1.);
+    cv::minMaxLoc(diff, &minVal, &maxVal);
+    return minVal < 1.e-6 && maxVal < 1.e-6;
+}
+
+bool TestTools::isRasterEmpty(cv::Mat& raster) {
+    double minVal(1.), maxVal(1.);
+    cv::minMaxLoc(raster, &minVal, &maxVal);
+    return std::fabs(minVal) < 1.e-6 && std::fabs(maxVal) < 1.e-6;
+}
+
+
+#if defined(_DEBUG) && defined(_WIN32)
+#include <opencv2/highgui.hpp>
+#endif
 
 void TestTools::showRaster(cv::Mat& raster)
 {
-    
-    //  cv::namedWindow("Display window", cv::WINDOW_AUTOSIZE);
-    //  cv::imshow("Display window", raster);
-    //  cv::waitKey(0);
+#if defined(_DEBUG) && defined(_WIN32)
+    cv::namedWindow("Display window", cv::WINDOW_AUTOSIZE);
+    cv::imshow("Display window", raster);
+    cv::waitKey(0);
+#endif
 }
+
 
 void TestTools::showRasters(cv::Mat& raster1, cv::Mat& raster2)
 {
-    // cv::Mat combinedRaster;
-    // cv::hconcat(raster1, cv::Mat::zeros(raster1.rows, 1, raster1.type()), combinedRaster);
-    // cv::hconcat(combinedRaster, raster2, combinedRaster);
+#if defined(_DEBUG) && defined(_WIN32)
+    cv::Mat combinedRaster;
+    cv::hconcat(raster1, cv::Mat::zeros(raster1.rows, 1, raster1.type()), combinedRaster);
+    cv::hconcat(combinedRaster, raster2, combinedRaster);
 
-    // cv::namedWindow("Display window", cv::WINDOW_AUTOSIZE);
-    // cv::imshow("Display window", combinedRaster);
-    // cv::waitKey(0);
+    cv::namedWindow("Display window", cv::WINDOW_AUTOSIZE);
+    cv::imshow("Display window", combinedRaster);
+    cv::waitKey(0);
+#endif
 }
 
 
