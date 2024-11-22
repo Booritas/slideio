@@ -745,52 +745,7 @@ TEST(VSIImageDriver, invalidEts) {
     cv::Mat overviewRaster, overviewTestRaster;
     rasterRect = overview->getRect();
     cof = std::min(500. / rasterRect.width, 500. / rasterRect.height);
-    rasterSize = { std::lround(cof * rasterRect.width), lround(cof * rasterRect.height) };
-    overview->readResampledBlock(rasterRect, rasterSize, overviewRaster);
-    //TestTools::writePNG(overviewRaster, overviewFilePath);
-    TestTools::readPNG(overviewFilePath, overviewTestRaster);
-    TestTools::compareRasters(overviewRaster, overviewTestRaster);
-    //TestTools::showRaster(overviewRaster);
-
-}
-
-TEST(VSIImageDriver, invalidEts) {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip the test because full dataset is not enabled";
-    }
-    std::string filePath = TestTools::getFullTestImagePath("vsi", "vs200-vsi-share/Image_B309.vsi");
-    std::string overviewFilePath = TestTools::getFullTestImagePath("vsi", "test-output/Image_B309_Overview.png");
-    std::string macroFilePath = TestTools::getFullTestImagePath("vsi", "test-output/Image_B309_Macro.png");
-    slideio::VSIImageDriver driver;
-    std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
-    ASSERT_TRUE(slide != nullptr);
-    const int numScenes = slide->getNumScenes();
-    ASSERT_EQ(0, numScenes);
-    const int numAuxImages = slide->getNumAuxImages();
-    ASSERT_EQ(2, numAuxImages);
-    std::list<std::string> auxImageNames = slide->getAuxImageNames();
-    ASSERT_EQ(2, auxImageNames.size());
-    EXPECT_EQ("Macro image", auxImageNames.front());
-    EXPECT_EQ("Overview", auxImageNames.back());
-    std::shared_ptr<CVScene> macro = slide->getAuxImage(auxImageNames.front());
-    ASSERT_TRUE(macro != nullptr);
-    std::shared_ptr<CVScene> overview = slide->getAuxImage(auxImageNames.back());
-    ASSERT_TRUE(overview != nullptr);
-    cv::Mat macroRaster, macroTestRaster;
-    cv::Rect rasterRect = macro->getRect();
-    double cof = std::min(500./rasterRect.width, 500./rasterRect.height);
-    cv::Size rasterSize(std::lround(cof*rasterRect.width), lround(cof*rasterRect.height));
-    macro->readResampledBlock(rasterRect, rasterSize, macroRaster);
-    //TestTools::writePNG(macroRaster, macroFilePath);
-    TestTools::readPNG(macroFilePath, macroTestRaster);
-    TestTools::compareRasters(macroRaster, macroTestRaster);
-    //TestTools::showRaster(macroRaster);
-    cv::Mat overviewRaster, overviewTestRaster;
-    rasterRect = overview->getRect();
-    cof = std::min(500. / rasterRect.width, 500. / rasterRect.height);
-    rasterSize = { std::lround(cof * rasterRect.width), lround(cof * rasterRect.height) };
+    rasterSize = { (int)std::lround(cof * rasterRect.width), (int)lround(cof * rasterRect.height) };
     overview->readResampledBlock(rasterRect, rasterSize, overviewRaster);
     //TestTools::writePNG(overviewRaster, overviewFilePath);
     TestTools::readPNG(overviewFilePath, overviewTestRaster);
