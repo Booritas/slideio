@@ -8,6 +8,7 @@ RUN yum install -y vim
 RUN update-alternatives --install /usr/bin/python3 python3 /opt/python/cp311-cp311/bin/python3 10
 RUN update-alternatives --install /usr/bin/pip3 pip3 /opt/python/cp311-cp311/bin/pip3 10
 RUN yes | pip3 install numpy
+RUN yes | pip3 install distro
 #install conan
 RUN yes | pip3 install -U conan==1.65.0
 RUN update-alternatives --install /usr/bin/conan conan /opt/python/cp311-cp311/bin/conan 10
