@@ -10,6 +10,7 @@
 #include "slideio/drivers/vsi/vsifile.hpp"
 #include "slideio/imagetools/cvtools.hpp"
 #include "slideio/slideio/imagedrivermanager.hpp"
+#include "slideio/slideio/imagedrivermanager.hpp"
 
 
 namespace slideio
@@ -57,10 +58,10 @@ TEST(VSIImageDriver, openFileWithExternalFiles1) {
     ASSERT_EQ(1, numScenes);
     std::shared_ptr<CVScene> scene = slide->getScene(0);
     EXPECT_DOUBLE_EQ(20., scene->getMagnification());
-    //EXPECT_EQ(scene->getName(), "001 C405, C488");
+    EXPECT_EQ(scene->getName(), "20x");
     auto rect = scene->getRect();
     std::string metadata = slide->getRawMetadata();
-    EXPECT_GT(metadata.size(),0);
+    EXPECT_GT(metadata.size(), 0);
 }
 
 TEST(VSIImageDriver, openFileWithoutExternalFiles) {
@@ -280,7 +281,7 @@ TEST(VSIImageDriver, read3DVolume16bit) {
     cv::Mat blockRaster;
     scene->readResampled4DBlockChannels(roi, blockSize, { 0 }, { 5,6 }, { 0,1 }, blockRaster);
     cv::Mat testRaster;
-    ImageTools::readGDALImage(testFilePath, testRaster);
+    ImageTools::readGDALImageSubDataset(testFilePath, 1,testRaster);
     cv::resize(testRaster, testRaster, blockSize);
     double similarity = ImageTools::computeSimilarity2(testRaster, blockRaster);
     EXPECT_GT(similarity, 0.99);
@@ -322,11 +323,11 @@ TEST(VSIImageDriver, read3DStack16bit) {
     cv::Mat slice;
     CVTools::extractSliceFrom3D(blockRaster, 0, slice);
     cv::Mat testRaster;
-    ImageTools::readGDALImage(testFilePath4, testRaster);
+    ImageTools::readGDALImageSubDataset(testFilePath4, 1, testRaster);
     double similarity = ImageTools::computeSimilarity2(testRaster, slice);
     EXPECT_GT(similarity, 0.99);
     CVTools::extractSliceFrom3D(blockRaster, 1, slice);
-    ImageTools::readGDALImage(testFilePath5, testRaster);
+    ImageTools::readGDALImageSubDataset(testFilePath5, 1, testRaster);
     EXPECT_GT(similarity, 0.99);
 }
 
@@ -706,6 +707,51 @@ TEST(Pyramid, init3D) {
             }
         }
     }
+}
+
+TEST(VSIImageDriver, invalidEts) {
+    if (!TestTools::isFullTestEnabled())
+    {
+        GTEST_SKIP() <<
+            "Skip the test because full dataset is not enabled";
+    }
+    std::string filePath = TestTools::getFullTestImagePath("vsi", "vs200-vsi-share/Image_B309.vsi");
+    std::string overviewFilePath = TestTools::getFullTestImagePath("vsi", "test-output/Image_B309_Overview.png");
+    std::string macroFilePath = TestTools::getFullTestImagePath("vsi", "test-output/Image_B309_Macro.png");
+    slideio::VSIImageDriver driver;
+    std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    const int numScenes = slide->getNumScenes();
+    ASSERT_EQ(0, numScenes);
+    const int numAuxImages = slide->getNumAuxImages();
+    ASSERT_EQ(2, numAuxImages);
+    std::list<std::string> auxImageNames = slide->getAuxImageNames();
+    ASSERT_EQ(2, auxImageNames.size());
+    EXPECT_EQ("Macro image", auxImageNames.front());
+    EXPECT_EQ("Overview", auxImageNames.back());
+    std::shared_ptr<CVScene> macro = slide->getAuxImage(auxImageNames.front());
+    ASSERT_TRUE(macro != nullptr);
+    std::shared_ptr<CVScene> overview = slide->getAuxImage(auxImageNames.back());
+    ASSERT_TRUE(overview != nullptr);
+    cv::Mat macroRaster, macroTestRaster;
+    cv::Rect rasterRect = macro->getRect();
+    double cof = std::min(500./rasterRect.width, 500./rasterRect.height);
+    cv::Size rasterSize(std::lround(cof*rasterRect.width), lround(cof*rasterRect.height));
+    macro->readResampledBlock(rasterRect, rasterSize, macroRaster);
+    //TestTools::writePNG(macroRaster, macroFilePath);
+    TestTools::readPNG(macroFilePath, macroTestRaster);
+    TestTools::compareRasters(macroRaster, macroTestRaster);
+    //TestTools::showRaster(macroRaster);
+    cv::Mat overviewRaster, overviewTestRaster;
+    rasterRect = overview->getRect();
+    cof = std::min(500. / rasterRect.width, 500. / rasterRect.height);
+    rasterSize = { std::lround(cof * rasterRect.width), lround(cof * rasterRect.height) };
+    overview->readResampledBlock(rasterRect, rasterSize, overviewRaster);
+    //TestTools::writePNG(overviewRaster, overviewFilePath);
+    TestTools::readPNG(overviewFilePath, overviewTestRaster);
+    TestTools::compareRasters(overviewRaster, overviewTestRaster);
+    //TestTools::showRaster(overviewRaster);
+
 }
 
 TEST(VSIImageDriver, invalidEts) {

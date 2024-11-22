@@ -9,8 +9,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        # os: [macos-12, macos-14]
-        os: [macos-12]
+        os: [macos-12, macos-14]
+        #os: [macos-12]
     steps:
 
     - uses: actions/checkout@v3
@@ -45,6 +45,6 @@ jobs:
     - name: Archive python packagess
       uses: actions/upload-artifact@v4
       with:
-        name: python-dist
+        name: python-dist-${{ matrix.os }}
         path: |
           ./src/py-bind/dist

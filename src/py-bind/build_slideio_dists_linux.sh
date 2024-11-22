@@ -19,9 +19,11 @@ echo "Build python wheels"
 
 for dir in /opt/python/cp*
 do
-  if [[ $dir != *"cp36"* ]]; then
+  if [[ "$dir" != *"36"* ]]; then
+     if [[ $dir != *"cp36"* ]]; then
     export py="$dir/bin/python"
-    build_wheel
+       build_wheel
+  fi
   fi
 done
 

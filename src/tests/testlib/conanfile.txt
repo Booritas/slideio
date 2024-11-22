@@ -1,7 +1,6 @@
 [requires]
 boost/1.81.0@slideio/stable
 sqlite3/3.38.5@slideio/stable
-libxml2/2.9.10@slideio/stable
 glog/0.6.0@slideio/stable
 gtest/cci.20210126
 opencv/4.1.1@slideio/stable

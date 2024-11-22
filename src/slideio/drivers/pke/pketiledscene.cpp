@@ -231,28 +231,55 @@ bool PKETiledScene::getTileRect(int tileIndex, cv::Rect& tileRect, void* userDat
     return true;
 }
 
-bool slideio::PKETiledScene::readTiffTile(int tileIndex, const TiffDirectory& dir,
+bool slideio::PKETiledScene::readTiffTile(int tileIndex, int zoomLevel,
                                           const std::vector<int>& channelIndices, cv::OutputArray tileRaster) {
     bool ret = false;
+    const int dirIndex = m_zoomDirectoryIndices[zoomLevel];
+    const TiffDirectory& dir = m_directories[dirIndex];
     try {
         if (isBrightField()) {
             TiffTools::readTile(getFileHandle(), dir, tileIndex, channelIndices, tileRaster);
             ret = true;
         }
         else if (channelIndices.size() == 1) {
-            TiffTools::readTile(getFileHandle(), dir, tileIndex, {0}, tileRaster);
+            const TiffDirectory& channelDirectory = m_directories[dirIndex + channelIndices[0]];
+            TiffTools::readTile(getFileHandle(), channelDirectory, tileIndex, {0}, tileRaster);
             ret = true;
         }
-        else {
+        else if(dir.channels == getNumChannels()) {
+            // all channels in one directory
+            if(channelIndices.empty()) {
+                std::vector<int> channels = Tools::completeChannelList(channelIndices, getNumChannels());
+                TiffTools::readTile(getFileHandle(), dir, tileIndex, channels, tileRaster);
+                ret = true;
+            }
+            else {
+                std::vector<cv::Mat> channelRasters;
+                std::vector<int> channels = Tools::completeChannelList(channelIndices, getNumChannels());
+                for (const auto& channelIndex : channels) {
+                    cv::Mat channelRaster;
+                    TiffTools::readTile(getFileHandle(), dir, tileIndex, { channelIndex }, channelRaster);
+                    channelRasters.push_back(channelRaster);
+                }
+                cv::merge(channelRasters, tileRaster);
+                ret = true;
+            }
+        }
+        else if (dir.channels == 1) {
+            // one channel per directory
             std::vector<cv::Mat> channelRasters;
             std::vector<int> channels = Tools::completeChannelList(channelIndices, getNumChannels());
             for (const auto& channelIndex : channels) {
                 cv::Mat channelRaster;
-                TiffTools::readTile(getFileHandle(), dir, tileIndex, {0}, channelRaster);
+                TiffTools::readTile(getFileHandle(), m_directories[dirIndex + channelIndex], tileIndex, { 0 }, channelRaster);
                 channelRasters.push_back(channelRaster);
             }
             cv::merge(channelRasters, tileRaster);
             ret = true;
+        }
+        else {
+            RAISE_RUNTIME_ERROR << "PerkinElmer driver: Unexpected number of channels in the directory: "
+                << dir.channels << ". Expected: 1 or " << getNumChannels() << ".";
         }
     }
     catch (std::runtime_error&) {
@@ -285,7 +312,7 @@ bool PKETiledScene::readTile(int tileIndex, const std::vector<int>& channelIndic
     const int dirIndex = m_zoomDirectoryIndices[level];
     const TiffDirectory& dir = m_directories[dirIndex];
     if (dir.tiled) {
-        return readTiffTile(tileIndex, dir, channelIndices, tileRaster);
+        return readTiffTile(tileIndex, level, channelIndices, tileRaster);
     }
     if (dir.channels == getNumChannels()) {
         return readTiffDirectory(dir, channelIndices, tileRaster);
@@ -293,13 +320,13 @@ bool PKETiledScene::readTile(int tileIndex, const std::vector<int>& channelIndic
     if (dir.channels == 1) {
         auto channels = Tools::completeChannelList(channelIndices, getNumChannels());
         if (channels.size() == 1) {
-            const TiffDirectory newDir = m_directories.at(dir.dirIndex + channels[0]);
+            const TiffDirectory newDir = m_directories.at(dirIndex + channels[0]);
             return readTiffDirectory(newDir, {0}, tileRaster);
         }
         std::vector<cv::Mat> channelRasters;
         for (const auto& channelIndex : channels) {
             cv::Mat channelRaster;
-            const TiffDirectory newDir = m_directories.at(dir.dirIndex + channels[0]);
+            const TiffDirectory newDir = m_directories.at(dirIndex + channels[channelIndex]);
             TiffTools::readRegularStripedDir(getFileHandle(), newDir, channelRaster);
             channelRasters.push_back(channelRaster);
         }

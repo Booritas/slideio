@@ -13,7 +13,7 @@ from distutils.version import LooseVersion
 from ctypes.util import find_library
 
 version = '2.6.'
-vrs_sub = '3'
+vrs_sub = '5'
 
 if os.environ.get('CI_PIPELINE_IID'):
     ci_id = os.environ['CI_PIPELINE_IID']
@@ -162,6 +162,15 @@ class CMakeBuild(build_ext):
 
         for lib in REDISTR_LIBS:
             shutil.copy(find_library(lib), extdir)
+
+        if PLATFORM == "Linux":
+            # Modify rpath for files with prefix 'libslideio' and suffix 'so'
+            for root, dirs, files in os.walk(extdir):
+                for file in files:
+                    if file.startswith('libslideio') and file.endswith('.so'):
+                        file_path = os.path.join(root, file)
+                        print("Modifying rpath for", file_path)
+                        subprocess.check_call(['patchelf', '--set-rpath', '$ORIGIN', file_path])        
         
 
 setup(
