@@ -4,8 +4,7 @@ arch=x86_64
 compiler=gcc
 compiler.version=12
 compiler.libcxx=libstdc++
-openssl:compiler.version=11
-compiler.cppstd=17
+compiler.cppstd=14
 build_type=Release
 [options]
 tinyxml2:shared=False
