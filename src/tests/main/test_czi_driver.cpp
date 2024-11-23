@@ -6,7 +6,6 @@
 #include "slideio/drivers/czi/cziimagedriver.hpp"
 #include "slideio/drivers/czi/czislide.hpp"
 #include "tests/testlib/testtools.hpp"
-#include <opencv2/imgcodecs.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include "slideio/slideio/scene.hpp"
 #include "slideio/imagetools/cvtools.hpp"
@@ -116,7 +115,8 @@ TEST(CZIImageDriver, readBlock)
         std::vector<int> channelIndices = {channelIndex};
         scene->readBlockChannels(sceneRect,channelIndices,raster);
         // read exported bmp channel
-        cv::Mat bmpImage = cv::imread(channelBmps[channelIndex], cv::IMREAD_GRAYSCALE);
+        cv::Mat bmpImage; // = cv::imread(channelBmps[channelIndex], cv::IMREAD_GRAYSCALE);
+        slideio::ImageTools::readGDALImage(channelBmps[channelIndex], bmpImage);
         // compare equality of rasters from bmp and czi file
         int compare = std::memcmp(raster.data, bmpImage.data, raster.total()*raster.elemSize());
         EXPECT_EQ(compare, 0);
@@ -176,7 +176,8 @@ TEST(CZIImageDriver, readBlock4D)
             std::string("x0-512y0-512.bmp");
             std::string bmpFilePath = TestTools::getTestImagePath("czi",bmpFileName);
             // read exported bmp channel
-            cv::Mat bmpImage = cv::imread(bmpFilePath, cv::IMREAD_GRAYSCALE);
+            cv::Mat bmpImage; // = cv::imread(bmpFilePath, cv::IMREAD_GRAYSCALE);
+            slideio::ImageTools::readGDALImage(bmpFilePath, bmpImage);
             int compare = std::memcmp(sliceRaster.data, bmpImage.data, sliceRaster.total()*sliceRaster.elemSize());
             EXPECT_EQ(compare, 0);
         }

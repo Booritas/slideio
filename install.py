@@ -56,13 +56,14 @@ def collect_profiles(profile_dir, configuration, compiler=""):
         plt = distro.id()
         print(plt)
         if plt[0] != "ubuntu":
-            compiler = "multilinux"
+            compiler = "manylinux"
         compiler_dir = os.path.join(profile_dir, compiler)
     if is_osx():
         if platform.processor()=="arm":
             compiler_dir =  os.path.join(profile_dir, 'arm')
         else:
             compiler_dir =  os.path.join(profile_dir, 'x86-64')
+    print("Collect profiles from:", compiler_dir)
     profiles = []
     for root, dirs, files in os.walk(compiler_dir):
         files = glob.glob(os.path.join(root,'*'))
@@ -74,8 +75,6 @@ def process_conan_profile(profile, trg_dir, conan_file):
     generator = "cmake_multi"
     build_libs = []
     build_libs.append('missing')
-    # build_libs.append('dcmtk')
-     # build_libs.append('ndpi-libtiff')
     command = ['conan','install',
         '-pr:b',profile,
         '-pr:h',profile,
@@ -88,7 +87,6 @@ def process_conan_profile(profile, trg_dir, conan_file):
     command.append(conan_file)
     print(command)
     subprocess.check_call(command)
-
 
 
 def configure_conan(slideio_dir, configuration):

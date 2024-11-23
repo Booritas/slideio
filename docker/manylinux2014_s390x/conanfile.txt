@@ -5,7 +5,7 @@ tinyxml2/9.0.0
 dcmtk/3.6.8
 libwebp/1.2.4
 zlib/1.2.13
-sqlite3/3.38.5@slideio/stable
+sqlite3/3.38.5
 pole/1.0.2@slideio/stable
 openjpeg/2.5.0
 lerc/4.0.0
@@ -16,7 +16,7 @@ xz_utils/5.4.2
 libtiff/4.4.0
 glog/0.6.0@slideio/stable
 libpng/1.6.39
-opencv/4.1.1@slideio/stable
+opencv/4.10.0
 libjpeg/9e
 libdeflate/1.19
 zstd/1.5.5

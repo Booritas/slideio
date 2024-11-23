@@ -1,8 +1,8 @@
 [requires]
 boost/1.81.0@slideio/stable
-sqlite3/3.38.5@slideio/stable
+sqlite3/3.38.5
 glog/0.6.0@slideio/stable
-opencv/4.1.1@slideio/stable
+opencv/4.10.0
 zlib/1.2.13
 pole/1.0.4@slideio/stable
 [options]

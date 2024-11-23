@@ -5,9 +5,9 @@ class ImageToolsRecipe(ConanFile):
     default_options = {"glog:shared": True}
     def requirements(self):
         self.requires("boost/1.81.0@slideio/stable")
-        self.requires("sqlite3/3.38.5@slideio/stable")
+        self.requires("sqlite3/3.38.5")
         self.requires("glog/0.6.0@slideio/stable")
-        self.requires("opencv/4.1.1@slideio/stable")
+        self.requires("opencv/4.10.0")
         self.requires("zlib/1.2.13")
         self.requires("xz_utils/5.4.2")
         self.requires("libtiff/4.4.0")
@@ -18,7 +18,5 @@ class ImageToolsRecipe(ConanFile):
         self.requires("jpegxrcodec/1.0.3@slideio/stable")
         self.requires("libiconv/1.17")
         self.requires("libdeflate/1.17")
-        if self.settings.os == "Windows":
-            self.requires("gdal/3.5.2")
-        else:
-            self.requires("gdal/3.4.3@slideio/stable")
+        self.requires("gdal/3.8.3")
+ 
