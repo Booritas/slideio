@@ -1,6 +1,6 @@
 [requires]
 jpegxrcodec/1.0.3@slideio/stable
-boost/1.81.0@slideio/stable
+boost/1.86.0
 tinyxml2/9.0.0
 dcmtk/3.6.8
 libwebp/1.2.4
@@ -16,10 +16,8 @@ xz_utils/5.4.2
 libtiff/4.4.0
 glog/0.6.0@slideio/stable
 libpng/1.6.39
-opencv/4.10.0
+opencv/4.10.0@slideio/stable
 libjpeg/9e
 libdeflate/1.19
 zstd/1.5.5
 [options]
-boost:shared=False
-glog:shared=True

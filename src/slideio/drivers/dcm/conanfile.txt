@@ -1,8 +1,8 @@
 [requires]
-boost/1.81.0@slideio/stable
+boost/1.86.0
 sqlite3/3.38.5
 glog/0.6.0@slideio/stable
-opencv/4.10.0
+opencv/4.10.0@slideio/stable
 zlib/1.2.13
 xz_utils/5.4.2
 dcmtk/3.6.8
@@ -10,8 +10,3 @@ libiconv/1.17
 libwebp/1.2.4
 openjpeg/2.5.0
 [options]
-glog:shared=True
-dcmtk:wide_io=True
-dcmtk:default_dict=builtin
-dcmtk:builtin_dictionary=True
-dcmtk:with_openssl=False
