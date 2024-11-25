@@ -335,3 +335,8 @@ void TestTools::readTiffDirectories(const std::string& filePath, const std::vect
     cv::merge(images, output);
 }
 
+size_t TestTools::countNonZero(const cv::Mat& source) {
+    cv::Mat array = source.reshape( 1, 1);
+    return cv::countNonZero(array);
+}
+

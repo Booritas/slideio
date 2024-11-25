@@ -5,10 +5,10 @@
 #include <opencv2/imgproc.hpp>
 
 #include "slideio/core/tools/tools.hpp"
+#include "tests/testlib/testtools.hpp"
 
 
-TEST(Tools, matchPattern)
-{
+TEST(Tools, matchPattern) {
 #if defined(WIN32)    
     EXPECT_TRUE(slideio::Tools::matchPattern("c:\\abs.ad.czi","*.czi"));
     EXPECT_TRUE(slideio::Tools::matchPattern("c:\\abs.ad.czi","*.tiff;*.czi"));
@@ -85,7 +85,7 @@ TEST(Tools, convert12BitsTo16Bits3vals)
     EXPECT_EQ(src3, trg[2]);
 }
 
-TEST(Tools, extractChannels)
+TEST(Tools, extractChannels11)
 {
     // Create a sample input image
     cv::Mat sourceRaster = cv::Mat::zeros(100, 100, CV_8UC3);
@@ -96,7 +96,7 @@ TEST(Tools, extractChannels)
     slideio::Tools::extractChannels(sourceRaster, {}, output1);
     EXPECT_EQ(sourceRaster.size(), output1.size());
     EXPECT_EQ(sourceRaster.type(), output1.type());
-    EXPECT_TRUE(cv::countNonZero(output1 == sourceRaster) == sourceRaster.total());
+    EXPECT_EQ(TestTools::countNonZero(output1 == sourceRaster), sourceRaster.total()*sourceRaster.channels());
 
     // Test case 2: Extract specific channels
     std::vector<int> channels = {0, 2};
@@ -111,5 +111,5 @@ TEST(Tools, extractChannels)
     cv::Mat originalChannels[] = {originalChannnel0, originalChannel2};
     cv::Mat expected;
     cv::merge(originalChannels, 2, expected);
-    EXPECT_TRUE(cv::countNonZero(output2 == expected) == expected.total());
+    EXPECT_EQ(TestTools::countNonZero(output2 == expected), expected.total()*expected.channels());
 }

@@ -7,6 +7,8 @@
 #include "slideio/drivers/czi/czislide.hpp"
 #include "tests/testlib/testtools.hpp"
 #include <boost/algorithm/string/predicate.hpp>
+
+#include "../../../../../../conan/gdal/3.8.3/_/_/package/a8bf35121d212aae245539e899f9102104bd2213/include/gdal.h"
 #include "slideio/slideio/scene.hpp"
 #include "slideio/imagetools/cvtools.hpp"
 #include "slideio/imagetools/imagetools.hpp"
@@ -117,8 +119,10 @@ TEST(CZIImageDriver, readBlock)
         // read exported bmp channel
         cv::Mat bmpImage; // = cv::imread(channelBmps[channelIndex], cv::IMREAD_GRAYSCALE);
         slideio::ImageTools::readGDALImage(channelBmps[channelIndex], bmpImage);
+        cv::Mat channelImage;
+        cv::extractChannel(bmpImage, channelImage, 0);
         // compare equality of rasters from bmp and czi file
-        int compare = std::memcmp(raster.data, bmpImage.data, raster.total()*raster.elemSize());
+        int compare = std::memcmp(raster.data, channelImage.data, raster.total()*raster.elemSize());
         EXPECT_EQ(compare, 0);
     }
 }
@@ -178,7 +182,9 @@ TEST(CZIImageDriver, readBlock4D)
             // read exported bmp channel
             cv::Mat bmpImage; // = cv::imread(bmpFilePath, cv::IMREAD_GRAYSCALE);
             slideio::ImageTools::readGDALImage(bmpFilePath, bmpImage);
-            int compare = std::memcmp(sliceRaster.data, bmpImage.data, sliceRaster.total()*sliceRaster.elemSize());
+            cv::Mat channelImage;
+            cv::extractChannel(bmpImage, channelImage, 0);
+            int compare = std::memcmp(sliceRaster.data, channelImage.data, sliceRaster.total()*sliceRaster.elemSize());
             EXPECT_EQ(compare, 0);
         }
     }

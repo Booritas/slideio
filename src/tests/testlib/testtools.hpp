@@ -23,5 +23,6 @@ public:
     static void readPNG(const std::string& filePath, cv::OutputArray output);
     static void readTiffDirectory(const std::string& filePath, int dir, cv::OutputArray output);
     static void readTiffDirectories(const std::string& filePath, const std::vector<int>& dirIndices, cv::OutputArray output);
+    static size_t countNonZero(const cv::Mat& mat);
 };
 
