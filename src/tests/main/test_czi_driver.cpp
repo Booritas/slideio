@@ -8,7 +8,6 @@
 #include "tests/testlib/testtools.hpp"
 #include <boost/algorithm/string/predicate.hpp>
 
-#include "../../../../../../conan/gdal/3.8.3/_/_/package/a8bf35121d212aae245539e899f9102104bd2213/include/gdal.h"
 #include "slideio/slideio/scene.hpp"
 #include "slideio/imagetools/cvtools.hpp"
 #include "slideio/imagetools/imagetools.hpp"
