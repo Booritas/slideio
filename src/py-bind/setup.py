@@ -12,8 +12,8 @@ import setuptools.command.build_py
 from distutils.version import LooseVersion
 from ctypes.util import find_library
 
-version = '2.6.'
-vrs_sub = '5'
+version = '2.7.'
+vrs_sub = '0'
 
 if os.environ.get('CI_PIPELINE_IID'):
     ci_id = os.environ['CI_PIPELINE_IID']
@@ -152,20 +152,24 @@ class CMakeBuild(build_ext):
                 extra_files.extend(files)
 
         print("----Found libraries:", extra_files)
-        if not os.path.exists(extdir):
-            os.makedirs(extdir)
+       
+        wheel_lib_dir = os.path.join(extdir, 'slideio', 'core', 'libs')
+        if os.path.exists(wheel_lib_dir):
+            shutil.rmtree(wheel_lib_dir)
+        os.makedirs(wheel_lib_dir)
+
         for fl in extra_files:
             file_name = os.path.basename(fl)
-            destination = os.path.join(extdir, file_name)
+            destination = os.path.join(wheel_lib_dir, file_name)
             print("Copy",fl,"->",destination)
             shutil.copyfile(fl, destination)
 
         for lib in REDISTR_LIBS:
-            shutil.copy(find_library(lib), extdir)
+            shutil.copy(find_library(lib), wheel_lib_dir)
 
         if PLATFORM == "Linux":
             # Modify rpath for files with prefix 'libslideio' and suffix 'so'
-            for root, dirs, files in os.walk(extdir):
+            for root, dirs, files in os.walk(wheel_lib_dir):
                 for file in files:
                     if file.startswith('libslideio') and file.endswith('.so'):
                         file_path = os.path.join(root, file)

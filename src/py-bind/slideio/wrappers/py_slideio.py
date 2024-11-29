@@ -5,8 +5,10 @@ Large slides can be effectively scaled to a smaller size.
 The module uses internal zoom pyramids of images to make the scaling process as fast as possible.
 Slideio supports 2D slides as well as 3D data sets and time series.
 '''
-import slideiopybind as sld
- 
+import sys
+import os
+
+from ..core import core_convert_scene, core_convert_scene_ex, core_open_slide, core_transform_scene, core_set_log_level, core_get_driver_ids, core_compare_images
 
 class Scene(object):
     '''slideio Scene class.
@@ -23,7 +25,7 @@ class Scene(object):
     def __init__(self, scene):
         '''Creates an instance of Scene class.
         Args:
-            scene: Instance of sld.Scene class.
+            scene: Instance of CoreScene class.
         '''
         self.scene = scene
 
@@ -178,9 +180,9 @@ class Scene(object):
             callback: callback progress function
         '''
         if(callback is None):
-            sld.convert_scene(self.scene, params, output_path)
+            core_convert_scene(self.scene, params, output_path)
         else:
-            sld.convert_scene_ex(self.scene, params, output_path, callback)
+            core_convert_scene_ex(self.scene, params, output_path, callback)
 
     def apply_transformation(self, transormation):
         '''Transform scene raster
@@ -188,7 +190,7 @@ class Scene(object):
         Args:
             transformation: transformation parameters
         '''
-        transformed = sld.transform_scene(self.scene, transormation)
+        transformed = core_transform_scene(self.scene, transormation)
         new_scene = Scene(transformed)
         return new_scene
 
@@ -197,7 +199,7 @@ class Slide(object):
     Slide contains a collection of scenes - separate images.
     '''
     def __init__(self, path:str, driver:str):
-        self.slide = sld.open_slide(path, driver)
+        self.slide = core_open_slide(path, driver)
 
     def __repr__(self):
         return f"File path: {self.slide.file_path}\nScenes: {self.slide.num_scenes}\nAux images: {self.slide.num_aux_images}"
@@ -274,9 +276,9 @@ def convert_scene(scene, params, output_path, callback=None):
         callback: callback progress function
     '''
     if(callback is None):
-        sld.convert_scene(scene.scene, params, output_path)
+        core_convert_scene(scene.scene, params, output_path)
     else:
-        sld.convert_scene_ex(scene.scene, params, output_path, callback)
+        core_convert_scene_ex(scene.scene, params, output_path, callback)
 
 def open_slide(path:str, driver:str='AUTO'):
     '''Returns an instance of a slide object
@@ -290,15 +292,15 @@ def open_slide(path:str, driver:str='AUTO'):
 
 def get_driver_ids():
     '''Returns a list of ids of available image drivers'''
-    return sld.get_driver_ids()
+    return core_get_driver_ids()
 
 def compare_images(left, right):
     '''Compares two images represented by numpy arrays'''
-    return sld.compare_images(left, right)
+    return core_compare_images(left, right)
 
 def set_log_level(log_level:str):
     '''Sets log level'''
-    sld.set_log_level(log_level)
+    core_set_log_level(log_level)
 
 def transform_scene(scene, params):
     '''Transform scene raster
@@ -308,6 +310,6 @@ def transform_scene(scene, params):
         params: transformation parameters
     '''
     internal_scene = scene.scene
-    transformed = sld.transform_scene(internal_scene, params)
+    transformed = core_transform_scene(internal_scene, params)
     new_scene = Scene(transformed)
     return new_scene
