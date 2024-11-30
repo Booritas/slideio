@@ -59,7 +59,7 @@ ELSEIF(WIN32)
     )
 ELSE()
     add_custom_command(TARGET ${SLIDEIO_LIB_NAME} PRE_BUILD
-        COMMAND cp -a 
+        COMMAND cp -a -f
         $<$<CONFIG:Debug>:${CONAN_LIB_DIRS_GLOG_DEBUG}/*.*>$<$<CONFIG:Release>:${CONAN_LIB_DIRS_GLOG_RELEASE}/*.*>
         $<TARGET_FILE_DIR:${LIBRARY_NAME}>
     )
