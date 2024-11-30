@@ -54,6 +54,11 @@ jobs:
       run: conan upload "*" -r digitalo --all -c
       continue-on-error: true
 
+    - uses: conda-incubator/setup-miniconda@v3
+      with:
+        auto-activate-base: true
+        activate-environment: ""
+
     - name: build python packages
       shell: pwsh
       working-directory: ./src/py-bind
