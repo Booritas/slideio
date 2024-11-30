@@ -50,6 +50,16 @@ WORKDIR /opt
 RUN yes | python3 -m ensurepip
 RUN yes | python3 -m pip install distro
 
-# RUN cd /opt && git clone --recursive --depth 1 https://github.com/Booritas/slideio && \
-#     cd slideio && \
-#     git checkout master
+
+RUN cd /opt && git clone --recursive --depth 1 https://github.com/Booritas/slideio && \
+    cd slideio && \
+    git checkout master
+
+RUN cd /opt && \
+    git clone https://github.com/conan-io/conan-center-index/
+    
+RUN cd /opt/conan-center-index/recipes/glog/all && \
+    conan create . 0.6.0@slideio/stable -pr:h /opt/slideio/conan/Linux/manylinux/linux_release -pr:b /opt/slideio/conan/Linux/manylinux/linux_release -b missing
+
+RUN cd /opt/conan-center-index/recipes/opencv/4.x.x && \
+    conan create . 4.10.0@slideio/stable -pr:h /opt/slideio/conan/Linux/manylinux/linux_release -pr:b /opt/slideio/conan/Linux/manylinux/linux_release -b missing    

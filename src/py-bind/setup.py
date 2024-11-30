@@ -162,7 +162,7 @@ class CMakeBuild(build_ext):
             file_name = os.path.basename(fl)
             destination = os.path.join(wheel_lib_dir, file_name)
             print("Copy",fl,"->",destination)
-            shutil.copyfile(fl, destination)
+            shutil.copyfile(fl, destination, follow_symlinks=False)
 
         for lib in REDISTR_LIBS:
             shutil.copy(find_library(lib), wheel_lib_dir)
