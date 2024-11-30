@@ -38,7 +38,7 @@ jobs:
         conan upload "*" -r digitalo --all -c      
    
     - name: build python packages
-      working-directory: ./src/src/py-bind
+      working-directory: ./src/py-bind
       run: bash ./build-wheels-linux.sh
 
     - name: Archive python packagess
@@ -46,4 +46,4 @@ jobs:
       with:
         name: python-dist
         path: |
-          ./src/src/py-bind/wheelhouse
+          ./src/py-bind/wheelhouse
