@@ -73,4 +73,4 @@ for version in "${python_versions[@]}"; do
    deactivate_and_remove_conda_env $version
 done
 
-cd ./dist && rename 's/macosx_15_0_x86_64/macosx_10_5_x86_64/' *.whl
+cd ./dist && rename 's/macosx_15_0_x86_64/macosx_10_5_x86_64/' *.whl && rename 's/macosx_14_0_arm64/macosx_11_0_arm64/'
