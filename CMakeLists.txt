@@ -50,10 +50,7 @@ set(NAME_TOOL_LIB_LIST
     "lib${CONVERTER_LIB_NAME}.dylib"
     "lib${BASE_LIB_NAME}.dylib"
     "lib${TRANSFORMER_LIB_NAME}.dylib"
-    "@rpath/libgflags_nothreads.2.2.dylib"
-    "@rpath/libglog.1.dylib"
-    "@rpath/libglogd.1.dylib"
-    "@rpath/libgflags_nothreads_debug.2.2.dylib"
+    "@rpath/libglog.dylib"
 )
 include_directories(${INCLUDE_ROOT})
 
