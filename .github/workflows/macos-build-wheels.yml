@@ -21,6 +21,11 @@ jobs:
     - name: Display Python version
       run: python --version
 
+    - name: install rename
+      if: runner.os == 'macOS'
+      run: |
+          brew install rename
+
     - name: Install Conan
       run: |
          eval "$(conda shell.bash hook)"
