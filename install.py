@@ -72,14 +72,15 @@ def collect_profiles(profile_dir, configuration, compiler=""):
     return profiles
 
 def process_conan_profile(profile, trg_dir, conan_file):
-    generator = "cmake_multi"
+    generator = "CMakeToolchain"
     build_libs = []
     build_libs.append('missing')
     command = ['conan','install',
         '-pr:b',profile,
         '-pr:h',profile,
-        '-if',trg_dir,
-        '-g', generator
+        '-of',trg_dir,
+        '-g', 'CMakeDeps',
+        '-g', 'CMakeToolchain',
         ]
     for lib in build_libs:
         command.append('-b')

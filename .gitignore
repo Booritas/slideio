@@ -33,3 +33,37 @@ doc/build/
 _site/
 **/.DS_Store
 src/py-bind/slideio/core/libs/
+
+### Conan ###
+conan.lock
+conanbuildinfo.*
+conaninfo.txt
+graph_info.json
+
+## Various built-in generators
+# cmake_find_package generator https://docs.conan.io/en/latest/reference/generators/cmake_find_package.html
+Find*.cmake
+
+# cmake_paths generator https://docs.conan.io/en/1.4/integrations/cmake/cmake_paths_generator.html
+conan_paths.*
+
+# Environment activation scripts produced by https://docs.conan.io/en/latest/mastering/virtualenv.html#virtualenv-generator
+deactivate_conan*.*
+environment_run.ps1.env
+environment_run.sh.env
+conandeps_legacy.cmake
+*-config.cmake
+*-release.cmake
+*-config-version.cmake
+*Targets.cmake
+conan_toolchain.cmake
+*Config.cmake
+*ConfigVersion.cmake
+conanrun.bat
+conanbuildenv-release-*.*
+conanbuild.*
+*-release-*.cmake
+cmakedeps_macros.cmake
+CMakePresets.json
+conanrunenv-release-*.*
+### End Conan ###
