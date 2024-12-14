@@ -41,8 +41,9 @@ def remove_files_by_patterns(root_dir, patterns):
         for pattern in patterns:
             for filename in fnmatch.filter(files, pattern):
                 file_path = os.path.join(root, filename)
-                print(f"Removing file: {file_path}")
-                os.remove(file_path)
+                if os.path.isfile(file_path):
+                    print(f"Removing file: {file_path}")
+                    os.remove(file_path)
 
 try:
 	import distro
