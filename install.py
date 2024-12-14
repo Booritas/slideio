@@ -7,6 +7,43 @@ from pathlib import Path
 import platform
 import argparse
 from argparse import RawTextHelpFormatter
+import fnmatch
+
+patterns = [
+    "conan.lock",
+    "conanbuildinfo.*",
+    "conaninfo.txt",
+    "graph_info.json",
+    "Find*.cmake",
+    "deactivate_conan*.*",
+    "conandeps_legacy.cmake",
+    "*-config.cmake",
+    "*-release.cmake",
+    "*-config-version.cmake",
+    "*Targets.cmake",
+    "conan_toolchain.cmake",
+    "*Config.cmake",
+    "*ConfigVersion.cmake",
+    "conanrun.bat",
+    "conanbuildenv-*.*",
+    "conanrunenv-*.*",
+    "conanbuild.*",
+    "cmakedeps_macros.cmake",
+    "CMakePresets.json",
+    "*-Target-debug.cmake",
+    "*-debug-*-data.cmake",
+    "*-release-*-data.cmake"
+]
+
+
+def remove_files_by_patterns(root_dir, patterns):
+    for root, dirs, files in os.walk(root_dir):
+        for pattern in patterns:
+            for filename in fnmatch.filter(files, pattern):
+                file_path = os.path.join(root, filename)
+                print(f"Removing file: {file_path}")
+                os.remove(file_path)
+
 try:
 	import distro
 except ImportError:
@@ -35,11 +72,12 @@ def is_osx():
     return platform == "OSX"
 
 
-def clean_prev_build(build_directory):
+def clean_prev_build(slideio_directory, build_directory):
     print(F"Cleaning directory {build_directory}")
     if os.path.exists(build_directory):
         shutil.rmtree(build_directory)
     os.makedirs(build_directory)
+    remove_files_by_patterns(slideio_directory, patterns)    
 
 def is_debug_profile(path):
     file_name = os.path.basename(path).lower();
@@ -72,7 +110,6 @@ def collect_profiles(profile_dir, configuration, compiler=""):
     return profiles
 
 def process_conan_profile(profile, trg_dir, conan_file):
-    generator = "CMakeToolchain"
     build_libs = []
     build_libs.append('missing')
     command = ['conan','install',
@@ -89,7 +126,16 @@ def process_conan_profile(profile, trg_dir, conan_file):
     print(command)
     subprocess.check_call(command)
 
-
+def process_conan_file(profiles, configuration, trg_conan_file_path):
+    for profile in profiles:
+        print(F"Profile:{profile}")
+        release = is_release_profile(profile)
+        debug = is_debug_profile(profile)
+        if (debug and configuration["debug"]) \
+            or (release and configuration["release"]) \
+            or (not debug and not release): 
+                process_conan_profile(profile, os.path.dirname(trg_conan_file_path), trg_conan_file_path.absolute().as_posix())
+                
 def configure_conan(slideio_dir, configuration):
     os_platform = get_platform()
     conan_profile_dir_path = os.path.join(slideio_dir, "conan", os_platform)
@@ -98,21 +144,16 @@ def configure_conan(slideio_dir, configuration):
     print(F"Detected profiles:{profiles}")
     
     src_dir = os.path.join(slideio_dir,"src")
+    main_conan_file_path = os.path.join(slideio_dir, "conanfile.txt")
+    if os.path.exists(main_conan_file_path):
+        process_conan_file(profiles, configuration, Path(main_conan_file_path))
     for trg_conan_file_path in Path(src_dir).rglob('conanfile.*'):
         print("-------Process file: ", trg_conan_file_path)
-        for profile in profiles:
-            print(F"Profile:{profile}")
-            release = is_release_profile(profile)
-            debug = is_debug_profile(profile)
-            if (debug and configuration["debug"]) \
-                or (release and configuration["release"]) \
-                or (not debug and not release): 
-                    process_conan_profile(profile, os.path.dirname(trg_conan_file_path), trg_conan_file_path.absolute().as_posix())
+        process_conan_file(profiles, configuration, trg_conan_file_path)
 
 def single_configuration(config_name, build_dir, project_dir):
     os_platform = get_platform()
-    cmake_props = {
-    }
+    cmake_props = {}
     architecture = None
     if os_platform=="Windows":
         generator = 'Visual Studio 17 2022'
@@ -129,6 +170,8 @@ def single_configuration(config_name, build_dir, project_dir):
         plt = distro.id()
         if plt == 'centos':
             cmake_props["CMAKE_CXX_FLAGS"] = "-D_GLIBCXX_USE_CXX11_ABI=0" # Needed for multilinux
+            
+    cmake_props["CMAKE_TOOLCHAIN_FILE"] = "conan_toolchain.cmake"
 
     cmd = [cmake, "-G", generator]
     if architecture is not None:
@@ -179,7 +222,7 @@ if __name__ == "__main__":
         install:    install the software"""
     config_help = "Software configuration to be configured and build. Select from release, debug or all."
     parser = argparse.ArgumentParser(formatter_class=RawTextHelpFormatter, description='Configuration, building and installation of the slideio library.')
-    parser.add_argument('-a','--action', choices=['conan','configure', 'configure-only', 'build', 'build-only', 'test', 'install'], default='configure', help=action_help)
+    parser.add_argument('-a','--action', choices=['clean','conan','configure', 'configure-only', 'build', 'build-only', 'test', 'install'], default='configure', help=action_help)
     parser.add_argument('-c', '--config', choices=['release','debug', 'all'], default='all', help = config_help)
     parser.add_argument('--clean', action='store_true', help = 'Clean before build. Add this flag if you want to clean build folders before the build.')
     args = parser.parse_args()
@@ -195,7 +238,7 @@ if __name__ == "__main__":
     print("---------------------------------------------------")
 
     if args.clean:
-        clean_prev_build(build_directory)
+        clean_prev_build(slideio_directory, build_directory)
 
     configuration = {
         "project_directory": slideio_directory,
@@ -218,9 +261,12 @@ if __name__ == "__main__":
         configuration["release"] = False
     if args.config == 'release':
         configuration["debug"] = False
-    if not args.action in ['build-only', 'configure-only']:
-        configure_conan(slideio_directory, configuration)
-    if args.action in ['configure','configure-only', 'build','build-only']:
-        configure_slideio(configuration)
-    if args.action in ['build','build-only']:
-        build_slideio(configuration)
+    if args.action in ['clean']:
+        clean_prev_build(slideio_directory, build_directory)
+    else:
+        if not args.action in ['build-only', 'configure-only']:
+            configure_conan(slideio_directory, configuration)
+        if args.action in ['configure','configure-only', 'build','build-only']:
+            configure_slideio(configuration)
+        if args.action in ['build','build-only']:
+            build_slideio(configuration)

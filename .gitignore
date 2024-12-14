@@ -50,10 +50,13 @@ conan_toolchain.cmake
 *Config.cmake
 *ConfigVersion.cmake
 conanrun.bat
-conanbuildenv-release-*.*
+conanbuildenv-*.*
+conanrunenv-*.*
 conanbuild.*
-*-release-*.cmake
 cmakedeps_macros.cmake
 CMakePresets.json
-conanrunenv-release-*.*
+*-Target-debug.cmake
+conanrunenv-*.*
+*-debug-*-data.cmake
+*-release-*-data.cmake
 ### End Conan ###

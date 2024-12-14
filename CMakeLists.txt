@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.9)
 cmake_policy(SET CMP0057 NEW)
-cmake_policy(SET CMP0068 OLD)
+cmake_policy(SET CMP0091 NEW)
 
 set(PROJECT_NAME slide_io)
-set(projectVersion 0.5.0)
+set(projectVersion 2.7.0)
 
 project(${PROJECT_NAME} VERSION ${projectVersion} LANGUAGES C CXX)
 enable_testing()
@@ -12,7 +12,7 @@ set(INCLUDE_ROOT ${CMAKE_SOURCE_DIR}/src)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_BUILD_RPATH_USE_ORIGIN 1)
 set(CMAKE_CXX_STANDARD_REQUIRED, ON)
-set(CMAKE_CXX_STANDARD,17)
+set(CMAKE_CXX_STANDARD,14)
 set(CONAN_DISABLE_CHECK_COMPILER ON)
 
 set(CORE_LIB_NAME slideio-core)
@@ -81,32 +81,13 @@ MACRO(SOURCE_GROUP_BY_FOLDER target)
 ENDMACRO(SOURCE_GROUP_BY_FOLDER)
 
 IF(APPLE)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++ -std=c++17")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++ -std=c++14")
     add_compile_definitions(_FILE_OFFSET_BITS=64)
 ELSEIF(UNIX)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -static-libstdc++")
     add_compile_definitions(_GLIBCXX_USE_CXX11_ABI=0)
 ENDIF()
 
-
-macro(CONAN_MAIN)
-    include(conanbuildinfo_multi.cmake)
-    conan_basic_setup()
-endmacro()
-
-macro(CONAN_CONFIGURE_INCLUDES trg)
-    foreach(_DIR ${CONAN_INCLUDE_DIRS_RELEASE})
-        target_include_directories(${trg} PRIVATE ${_DIR})
-    endforeach()
-    foreach(_DIR ${CONAN_INCLUDE_DIRS_DEBUG})
-        target_include_directories(${trg} PRIVATE ${_DIR})
-    endforeach()
-endmacro()
-
-macro(CONAN_CONFIGURE trg)
-    conan_target_link_libraries(${trg})
-    CONAN_CONFIGURE_INCLUDES(${trg})
-endmacro()
 
 IF(WIN32)
     set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/${CMAKE_BUILD_TYPE}/bin)
@@ -138,46 +119,6 @@ MACRO(HIDE_LIB LIB)
         set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--exclude-libs,${LIB}")
     endif()
 ENDMACRO(HIDE_LIB)
-
-macro(macos_conan_target_link_libraries_with_hide target hide)
-
-    SET(HIDE_CANDIDATES_DEBUG ${CONAN_LIBS_DEBUG})
-    SET(NORMAL_DEBUG ${CONAN_LIBS_DEBUG})
-    LIST(FILTER HIDE_CANDIDATES_DEBUG INCLUDE REGEX ${hide})
-    LIST(FILTER NORMAL_DEBUG EXCLUDE REGEX ${hide})
-
-    SET(HIDE_CANDIDATES_RELEASE ${CONAN_LIBS_RELEASE})
-    SET(NORMAL_RELEASE ${CONAN_LIBS_RELEASE})
-    LIST(FILTER HIDE_CANDIDATES_RELEASE INCLUDE REGEX ${hide})
-
-    LIST(FILTER NORMAL_RELEASE EXCLUDE REGEX ${hide})
-
-    set(HIDDEN_DEBUG "")
-    foreach(_LIB ${HIDE_CANDIDATES_DEBUG})
-        LIST(APPEND HIDDEN_DEBUG "-load_hidden ${_LIB}")
-    endforeach()
-    
-    set(HIDDEN_RELEASE "")
-    foreach(_LIB ${HIDE_CANDIDATES_RELEASE})
-        LIST(APPEND HIDDEN_RELEASE "-load_hidden ${_LIB}")
-    endforeach()
-
-    if(CONAN_TARGETS)
-        target_link_libraries(${target} ${CONAN_TARGETS})
-    else()
-        target_link_libraries(${target} ${CONAN_LIBS})
-        target_link_libraries(${target} $<$<CONFIG:Debug>:${NORMAL_DEBUG}>$<$<CONFIG:Release>:${NORMAL_RELEASE}>)
-        target_link_libraries(${target} $<$<CONFIG:Debug>:${HIDDEN_DEBUG}>$<$<CONFIG:Release>:${HIDDEN_RELEASE}>)
-    endif()
-endmacro()
-
-macro(conan_target_link_libraries_with_hide target hide)
-    IF(APPLE)
-        macos_conan_target_link_libraries_with_hide(${target} ${hide})
-    ELSE()
-        conan_target_link_libraries(${target} ${hide})
-    ENDIF()
-endmacro()
 
 add_subdirectory(src)
 
