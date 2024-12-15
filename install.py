@@ -8,31 +8,13 @@ import platform
 import argparse
 from argparse import RawTextHelpFormatter
 import fnmatch
+try:
+	import distro
+except ImportError:
+	pass
 
 patterns = [
-    "conan.lock",
-    "conanbuildinfo.*",
-    "conaninfo.txt",
-    "graph_info.json",
-    "Find*.cmake",
-    "deactivate_conan*.*",
-    "conandeps_legacy.cmake",
-    "*-config.cmake",
-    "*-release.cmake",
-    "*-config-version.cmake",
-    "*Targets.cmake",
-    "conan_toolchain.cmake",
-    "*Config.cmake",
-    "*ConfigVersion.cmake",
-    "conanrun.bat",
-    "conanbuildenv-*.*",
-    "conanrunenv-*.*",
-    "conanbuild.*",
-    "cmakedeps_macros.cmake",
     "CMakePresets.json",
-    "*-Target-debug.cmake",
-    "*-debug-*-data.cmake",
-    "*-release-*-data.cmake"
 ]
 
 
@@ -45,10 +27,18 @@ def remove_files_by_patterns(root_dir, patterns):
                     print(f"Removing file: {file_path}")
                     os.remove(file_path)
 
-try:
-	import distro
-except ImportError:
-	pass
+def remove_cmake_directories(root_dir):
+    """
+    Recursively delete all directories named 'cmake' starting from root_dir.
+
+    :param root_dir: The root directory to start the search from
+    """
+    for root, dirs, files in os.walk(root_dir, topdown=False):
+        for dir_name in dirs:
+            if dir_name == 'cmake':
+                dir_path = os.path.join(root, dir_name)
+                print(f"Removing directory: {dir_path}")
+                shutil.rmtree(dir_path)
     
 def get_platform():
     platforms = {
@@ -78,7 +68,8 @@ def clean_prev_build(slideio_directory, build_directory):
     if os.path.exists(build_directory):
         shutil.rmtree(build_directory)
     os.makedirs(build_directory)
-    remove_files_by_patterns(slideio_directory, patterns)    
+    remove_files_by_patterns(slideio_directory, patterns)
+    remove_cmake_directories(slideio_directory)    
 
 def is_debug_profile(path):
     file_name = os.path.basename(path).lower();
