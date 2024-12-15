@@ -1,6 +1,7 @@
-CONAN_MAIN()
-
 set(LIBRARY_NAME ${NDPI_DRIVER_NAME})
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+set(CMAKE_PREFIX_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+message("========CMAKE_PREFIX_PATH: ${CMAKE_PREFIX_PATH}")
 
 HIDE_LIB("libtiff")
 HIDE_LIB("libjpeg")
@@ -26,6 +27,34 @@ set(SOURCE_FILES
 
 add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES})
 
+find_package(Boost)
+find_package(SQLite3)
+find_package(glog)
+find_package(OpenCV)
+find_package(NDPITIFF)
+find_package(ZLIB)
+find_package(LibLZMA)
+find_package(NDPIJPEG)
+find_package(WebP)
+find_package(jpegxrcodec)
+find_package(lerc)
+
+
+target_link_libraries(${LIBRARY_NAME} 
+   boost::boost
+   SQLite::SQLite3  
+   glog::glog  
+   opencv::opencv  
+   NDPITIFF::NDPITIFF  
+   ZLIB::ZLIB  
+   LibLZMA::LibLZMA  
+   NDPIJPEG::NDPIJPEG  
+   libwebp::libwebp  
+   jpegxrcodec::jpegxrcodec  
+   lerc::lerc
+)
+
+
 SOURCE_GROUP_BY_FOLDER(SOURCE_FILES)
 
 target_link_libraries(${LIBRARY_NAME} ${CORE_LIB_NAME} ${IMAGETOOLS_LIB_NAME})
@@ -38,5 +67,4 @@ ENDIF(WIN32)
 
 set_target_properties(${LIBRARY_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 
-CONAN_CONFIGURE_INCLUDES(${LIBRARY_NAME})
-conan_target_link_libraries_with_hide(${LIBRARY_NAME} "^(.)+(tiff|libjpeg)(.)+")
+#conan_target_link_libraries_with_hide(${LIBRARY_NAME} "^(.)+(tiff|libjpeg)(.)+")

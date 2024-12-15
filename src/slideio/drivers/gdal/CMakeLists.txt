@@ -1,6 +1,7 @@
-CONAN_MAIN()
+
 
 set(LIBRARY_NAME ${GDAL_DRIVER_NAME})
+set(CMAKE_PREFIX_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 HIDE_LIB("libtiff")
 HIDE_LIB("libjpeg")
@@ -17,6 +18,41 @@ set(SOURCE_FILES ${SOURCE_FILES}
 
 add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES})
 
+find_package(Boost)
+find_package(glog)
+find_package(OpenCV)
+find_package(OpenJPEG)
+find_package(jpegxrcodec)
+find_package(Iconv)
+find_package(GDAL)
+find_package(SQLite3)
+find_package(TIFF)
+find_package(libdeflate)
+find_package(LibLZMA)
+find_package(WebP)
+find_package(JPEG)
+find_package(PNG)
+find_package(ZLIB)
+
+target_link_libraries(${LIBRARY_NAME} 
+   boost::boost  
+   glog::glog  
+   opencv::opencv  
+   openjp2  
+   jpegxrcodec::jpegxrcodec
+   Iconv::Iconv
+   GDAL::GDAL
+   SQLite::SQLite3
+   TIFF::TIFF
+   libdeflate::libdeflate_static
+   LibLZMA::LibLZMA
+   libwebp::libwebp
+   JPEG::JPEG
+   PNG::PNG
+   ZLIB::ZLIB
+)
+
+
 SOURCE_GROUP_BY_FOLDER(SOURCE_FILES)
 
 target_link_libraries(${LIBRARY_NAME} ${CORE_LIB_NAME} ${IMAGETOOLS_LIB_NAME})
@@ -29,5 +65,4 @@ ENDIF(WIN32)
 
 set_target_properties(${LIBRARY_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 
-CONAN_CONFIGURE_INCLUDES(${LIBRARY_NAME})
-conan_target_link_libraries_with_hide(${LIBRARY_NAME} "^(.)+(tiff|libjpeg)(.)+")
+#conan_target_link_libraries_with_hide(${LIBRARY_NAME} "^(.)+(tiff|libjpeg)(.)+")

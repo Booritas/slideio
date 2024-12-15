@@ -2,7 +2,7 @@ set(INCLUDE_ROOT ${CMAKE_SOURCE_DIR}/src)
 set(BINDLIB_NAME slideiopybind)
 set(CMAKE_BUILD_RPATH_USE_ORIGIN 1)
 
-CONAN_MAIN()
+
 
 set(BINDLIB_SOURCE 
    pybind.cpp
@@ -50,7 +50,6 @@ target_link_libraries(${BINDLIB_NAME} PRIVATE
    )
 
 
-CONAN_CONFIGURE_INCLUDES(${BINDLIB_NAME})
 
 
 FIX_MACOS_RPATH(${BINDLIB_NAME})

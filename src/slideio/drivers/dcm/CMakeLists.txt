@@ -1,6 +1,7 @@
-CONAN_MAIN()
+
 
 set(LIBRARY_NAME ${DCM_DRIVER_NAME})
+set(CMAKE_PREFIX_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 set(SOURCE_FILES 
         ${SOURCE_FILES}
@@ -25,6 +26,30 @@ set(SOURCE_FILES
 
 add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES})
 
+find_package(Boost)
+find_package(SQLite3)
+find_package(glog)
+find_package(OpenCV)
+find_package(DCMTK)
+find_package(ZLIB)
+find_package(LibLZMA)
+find_package(Iconv)
+find_package(WebP)
+find_package(OpenJPEG)
+
+target_link_libraries(${LIBRARY_NAME} 
+        boost::boost
+        SQLite::SQLite3
+        glog::glog
+        opencv::opencv
+        dcmtk::dcmtk
+        ZLIB::ZLIB
+        LibLZMA::LibLZMA
+        Iconv::Iconv
+        libwebp::libwebp
+        openjp2
+)
+
 SOURCE_GROUP_BY_FOLDER(SOURCE_FILES)
 
 target_link_libraries(${LIBRARY_NAME} ${CORE_LIB_NAME} ${IMAGETOOLS_LIB_NAME})
@@ -38,4 +63,3 @@ ENDIF(WIN32)
 set_target_properties(${LIBRARY_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 #set_target_properties(${LIBRARY_NAME} PROPERTIES CXX_VISIBILITY_PRESET hidden)
 
-CONAN_CONFIGURE(${LIBRARY_NAME})

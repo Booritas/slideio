@@ -1,7 +1,7 @@
 set(INCLUDE_ROOT ${CMAKE_SOURCE_DIR}/src)
 set(TEST_NAME memory_leaks)
 
-CONAN_MAIN()
+
 
 set(SOURCE_FILES 
 	memory_leaks.cpp

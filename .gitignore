@@ -35,28 +35,6 @@ _site/
 src/py-bind/slideio/core/libs/
 
 ### Conan ###
-conan.lock
-conanbuildinfo.*
-conaninfo.txt
-graph_info.json
-Find*.cmake
-deactivate_conan*.*
-conandeps_legacy.cmake
-*-config.cmake
-*-release.cmake
-*-config-version.cmake
-*Targets.cmake
-conan_toolchain.cmake
-*Config.cmake
-*ConfigVersion.cmake
-conanrun.bat
-conanbuildenv-*.*
-conanrunenv-*.*
-conanbuild.*
-cmakedeps_macros.cmake
-CMakePresets.json
-*-Target-debug.cmake
-conanrunenv-*.*
-*-debug-*-data.cmake
-*-release-*-data.cmake
+**/cmake/
+CMakeUserPresets.json
 ### End Conan ###

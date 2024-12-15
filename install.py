@@ -110,13 +110,13 @@ def collect_profiles(profile_dir, configuration, compiler=""):
             profiles.append(os.path.abspath(f))
     return profiles
 
-def process_conan_profile(profile, trg_dir, conan_file):
+def process_conan_profile(profile, trg_dir, conan_file, build_folder):
     build_libs = []
     build_libs.append('missing')
     command = ['conan','install',
         '-pr:b',profile,
         '-pr:h',profile,
-        '-of',trg_dir,
+        '-of', build_folder,
         '-g', 'CMakeDeps',
         '-g', 'CMakeToolchain',
         ]
@@ -128,6 +128,10 @@ def process_conan_profile(profile, trg_dir, conan_file):
     subprocess.check_call(command)
 
 def process_conan_file(profiles, configuration, trg_conan_file_path):
+    # root_path = configuration["project_directory"]
+    file_directory = os.path.dirname(trg_conan_file_path)
+    # relative_path = os.path.relpath(file_directory, root_path)
+    cmake_build_path = os.path.join(file_directory, "cmake")
     for profile in profiles:
         print(F"Profile:{profile}")
         release = is_release_profile(profile)
@@ -135,7 +139,7 @@ def process_conan_file(profiles, configuration, trg_conan_file_path):
         if (debug and configuration["debug"]) \
             or (release and configuration["release"]) \
             or (not debug and not release): 
-                process_conan_profile(profile, os.path.dirname(trg_conan_file_path), trg_conan_file_path.absolute().as_posix())
+                process_conan_profile(profile, os.path.dirname(trg_conan_file_path), trg_conan_file_path.absolute().as_posix(), cmake_build_path)
                 
 def configure_conan(slideio_dir, configuration):
     os_platform = get_platform()
@@ -172,7 +176,7 @@ def single_configuration(config_name, build_dir, project_dir):
         if plt == 'centos':
             cmake_props["CMAKE_CXX_FLAGS"] = "-D_GLIBCXX_USE_CXX11_ABI=0" # Needed for multilinux
             
-    cmake_props["CMAKE_TOOLCHAIN_FILE"] = "conan_toolchain.cmake"
+    cmake_props["CMAKE_TOOLCHAIN_FILE"] = "./cmake/conan_toolchain.cmake"
 
     cmd = [cmake, "-G", generator]
     if architecture is not None:

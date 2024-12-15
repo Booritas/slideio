@@ -1,6 +1,7 @@
-CONAN_MAIN()
+
 
 set(LIBRARY_NAME ${VSI_DRIVER_NAME})
+set(CMAKE_PREFIX_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 set(SOURCE_FILES 
    ${CMAKE_CURRENT_SOURCE_DIR}/vsiimagedriver.hpp
@@ -39,6 +40,29 @@ SOURCE_GROUP_BY_FOLDER(SOURCE_FILES)
 
 target_link_libraries(${LIBRARY_NAME} ${CORE_LIB_NAME} ${IMAGETOOLS_LIB_NAME})
 
+find_package(Boost)
+find_package(SQLite3)
+find_package(glog)
+find_package(OpenCV)
+find_package(tinyxml2)
+find_package(TIFF)
+find_package(ZLIB)
+find_package(LibLZMA)
+find_package(WebP)
+
+target_link_libraries(${LIBRARY_NAME} 
+   boost::boost  
+   SQLite::SQLite3  
+   glog::glog  
+   opencv::opencv  
+   tinyxml2::tinyxml2  
+   TIFF::TIFF  
+   ZLIB::ZLIB  
+   LibLZMA::LibLZMA  
+   libwebp::libwebp
+)
+
+
 IF(WIN32)
    target_link_libraries(${LIBRARY_NAME} Shlwapi)
    set_target_properties(${LIBRARY_NAME} PROPERTIES LINK_FLAGS "/ignore:4099")
@@ -47,4 +71,3 @@ ENDIF(WIN32)
 
 set_target_properties(${LIBRARY_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 
-CONAN_CONFIGURE_INCLUDES(${LIBRARY_NAME})

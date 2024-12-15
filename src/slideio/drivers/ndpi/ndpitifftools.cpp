@@ -18,7 +18,7 @@
 #include <opencv2/imgproc.hpp>
 
 #include "slideio/imagetools/cvtools.hpp"
-#include "jpeglib.h"
+#include <jpeglib.h>
 #include "ndpifile.hpp"
 #include "slideio/core/tools/blocktiler.hpp"
 #include "slideio/core/tools/cachemanager.hpp"

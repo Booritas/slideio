@@ -1,5 +1,5 @@
-CONAN_MAIN()
 set(LIBRARY_NAME ${TRANSFORMER_LIB_NAME})
+set(CMAKE_PREFIX_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 set(SOURCE_FILES 
    ${SOURCE_FILES}
@@ -35,6 +35,18 @@ set(SOURCE_FILES
 
 add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES})
 
+find_package(Boost)
+find_package(OpenCV)
+find_package(ZLIB)
+find_package(glog)
+
+target_link_libraries(${LIBRARY_NAME}
+   boost::boost
+   opencv::opencv
+   ZLIB::ZLIB
+   glog::glog
+)
+
 SOURCE_GROUP_BY_FOLDER(SOURCE_FILES)
 
 target_link_libraries(${LIBRARY_NAME}
@@ -51,4 +63,3 @@ ENDIF(WIN32)
 
 set_target_properties(${LIBRARY_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 
-CONAN_CONFIGURE(${LIBRARY_NAME})

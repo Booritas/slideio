@@ -1,7 +1,7 @@
 set(INCLUDE_ROOT ${CMAKE_SOURCE_DIR}/src)
 set(TEST_NAME svs_memory)
 
-CONAN_MAIN()
+
 
 set(SOURCE_FILES 
 	svs_memory.cpp

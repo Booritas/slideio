@@ -1,4 +1,5 @@
 set(LIBRARY_NAME ${BASE_LIB_NAME})
+set(CMAKE_PREFIX_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 set(SOURCE_FILES
    ${SOURCE_FILES}
@@ -9,9 +10,13 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/slideio_base_def.hpp
 )
 
-find_package(Boost REQUIRED)
-
 add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES})
+
+
+find_package(Boost REQUIRED)
+find_package(glog REQUIRED)
+target_link_libraries(${LIBRARY_NAME} boost::boost)
+target_link_libraries(${LIBRARY_NAME} glog::glog)
 
 IF(WIN32)
    target_link_libraries(${LIBRARY_NAME} Shlwapi)
