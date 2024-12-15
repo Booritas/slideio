@@ -15,6 +15,7 @@ from ctypes.util import find_library
 version = '2.7.'
 vrs_sub = '0'
 
+
 if os.environ.get('CI_PIPELINE_IID'):
     ci_id = os.environ['CI_PIPELINE_IID']
     if (isinstance(ci_id, str) and len(ci_id)>0) or isinstance(ci_id, int):
@@ -103,7 +104,8 @@ class CMakeBuild(build_ext):
             self.get_ext_fullpath(ext.name)))
         cmake_args = [
           '-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=' + extdir,
-            '-DPYTHON_EXECUTABLE=' + sys.executable
+            '-DPYTHON_EXECUTABLE=' + sys.executable,
+            '-DCMAKE_TOOLCHAIN_FILE=./cmake/conan_toolchain.cmake'
         ]
 
         cfg = 'Release'
