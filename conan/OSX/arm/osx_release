@@ -1,13 +1,11 @@
 [settings]
 os=Macos
-os_build=Macos
 arch=armv8
-arch_build=armv8
 compiler=apple-clang
-compiler.version=14
+compiler.version=16.0
 compiler.libcxx=libc++
 build_type=Release
-geos:compiler.version=13
+compiler.cppstd=14
 [options]
 tinyxml2/*:shared=False
 opencv/*:ml= False
@@ -34,7 +32,7 @@ opencv/*:with_imgcodec_hdr= False
 opencv/*:with_imgcodec_pfm= False
 opencv/*:with_imgcodec_pxm= False
 opencv/*:with_imgcodec_sunraster= False
-#gdal/*:fPIC=True
+gdal/*:fPIC=True
 gdal/*:with_curl=False
 gdal/*:with_geos=False
 gdal/*:with_lerc=False

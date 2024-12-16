@@ -5,6 +5,7 @@ compiler=apple-clang
 compiler.version=13.0
 compiler.libcxx=libc++
 build_type=Release
+compiler.cppstd=14
 [options]
 tinyxml2/*:shared=False
 opencv/*:ml= False
