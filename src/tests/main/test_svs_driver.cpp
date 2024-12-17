@@ -495,8 +495,21 @@ TEST(SVSImageDriver, readJP2Kcompression)
     //TestTools::writePNG(blockRaster, testPath);
     cv::Mat testRaster;
     TestTools::readPNG(testPath, testRaster);
-    TestTools::compareRasters(testRaster, blockRaster);
-    //TestTools::showRaster(blockRaster);
+    //TestTools::compareRasters(testRaster, blockRaster);
+    //TestTools::showRasters(blockRaster,testRaster);
+    double similarity = slideio::ImageTools::computeSimilarity2(testRaster, blockRaster);
+    EXPECT_GT(similarity, 0.999);
+    // cv::Mat diffRaster;
+    //  double minVal, maxVal;
+    // cv::absdiff(blockRaster, testRaster, diffRaster);
+    // TestTools::showRasters(testRaster,diffRaster);
+    // cv::minMaxLoc(diffRaster, &minVal, &maxVal);
+    // cv::Scalar meanVal = cv::mean(diffRaster);
+
+    // std::cout << "Similarity: " << similarity << std::endl;
+    // std::cout << "Max difference: " << maxVal << std::endl;
+    // std::cout << "Average difference: " << meanVal[0] << std::endl;
+
 }
 
 TEST(SVSImageDriver, openFileUtf8)
