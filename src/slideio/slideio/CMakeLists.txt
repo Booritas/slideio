@@ -62,7 +62,7 @@ set_target_properties(${LIBRARY_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 IF(APPLE)
     add_custom_command(TARGET ${SLIDEIO_LIB_NAME} PRE_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy 
-        $<$<CONFIG:Debug>:${glog_BIN_DIRS_DEBUG}/*.dylib>$<$<CONFIG:Release>:${glog_BIN_DIRS_RELEASE}/*.dylib>
+        $<$<CONFIG:Debug>:${glog_LIB_DIRS_DEBUG}/*.dylib>$<$<CONFIG:Release>:${glog_LIB_DIRS_RELEASE}/*.dylib>
         $<TARGET_FILE_DIR:${LIBRARY_NAME}>
     )
 ELSEIF(WIN32)
@@ -74,7 +74,7 @@ ELSEIF(WIN32)
 ELSE()
     add_custom_command(TARGET ${SLIDEIO_LIB_NAME} PRE_BUILD
         COMMAND cp -a -f
-        $<$<CONFIG:Debug>:${glog_BIN_DIRS_DEBUG}/*.*>$<$<CONFIG:Release>:${glog_BIN_DIRS_RELEASE}/*.*>
+        $<$<CONFIG:Debug>:${glog_LIB_DIRS_DEBUG}/*.*>$<$<CONFIG:Release>:${glog_LIB_DIRS_RELEASE}/*.*>
         $<TARGET_FILE_DIR:${LIBRARY_NAME}>
     )
 ENDIF(APPLE)
