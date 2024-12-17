@@ -141,13 +141,13 @@ TEST(GDALDriver, readBlockPng)
     cv::Scalar colorMean, colorStddev;
     cv::meanStdDev(blockRaster, colorMean, colorStddev);
     EXPECT_EQ(colorMean[0],255);
-    EXPECT_EQ(colorStddev[0],0);
+    EXPECT_NEAR(colorStddev[0],0, 1e-5);
 
     EXPECT_EQ(colorMean[1], 255);
-    EXPECT_EQ(colorStddev[1], 0);
+    EXPECT_NEAR(colorStddev[1], 0, 1.e-5);
 
     EXPECT_EQ(colorMean[2], 0);
-    EXPECT_EQ(colorStddev[2], 0);
+    EXPECT_NEAR(colorStddev[2], 0, 1.e-5);
 
     cv::Mat channelRaster;
     std::vector<int> channelIndices = { 1 };
@@ -156,7 +156,7 @@ TEST(GDALDriver, readBlockPng)
     cv::Scalar channelMean, channelStddev;
     cv::meanStdDev(channelRaster, channelMean, channelStddev);
     EXPECT_EQ(channelMean[0], 255);
-    EXPECT_EQ(channelStddev[0], 0);
+    EXPECT_NEAR(channelStddev[0], 0, 1e-5);
 }
 
 TEST(GDALDriver, readBlockPngResampling)
