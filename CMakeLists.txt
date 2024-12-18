@@ -10,6 +10,12 @@ set(projectVersion 2.7.0)
 
 project(${PROJECT_NAME} VERSION ${projectVersion} LANGUAGES C CXX)
 enable_testing()
+
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    add_compile_options(-Wno-switch)
+    add_compile_options(-Wno-switch-default)
+endif()
+
 set( CMAKE_VERBOSE_MAKEFILE off )
 set(INCLUDE_ROOT ${CMAKE_SOURCE_DIR}/src)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)

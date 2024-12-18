@@ -18,7 +18,9 @@
 using namespace slideio;
 namespace fs = boost::filesystem;
 
-extern "C" int wildmat(char* text, char* p);
+extern "C" {
+    #include "wildmat.h"
+}
 
 
 bool Tools::matchPattern(const std::string& path, const std::string& pattern)
