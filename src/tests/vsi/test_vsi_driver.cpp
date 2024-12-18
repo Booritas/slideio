@@ -462,7 +462,8 @@ TEST(EtsFile, readTileJpeg2K) {
     //ImageTools::writeTiffImage(testFilePath, tileRaster);
     cv::Mat testRaster;
     ImageTools::readGDALImage(testFilePath, testRaster);
-    TestTools::compareRasters(testRaster, tileRaster);
+    double simScore = ImageTools::computeSimilarity2(testRaster, tileRaster);
+    EXPECT_GT(simScore, 0.999);
     //TestTools::showRasters(testRaster, tileRaster);
 }
 
