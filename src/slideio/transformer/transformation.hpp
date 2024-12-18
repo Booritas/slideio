@@ -31,6 +31,7 @@ namespace slideio
         Transformation() {
             m_type = TransformationType::Unknown;
         }
+        virtual ~Transformation() {}
         TransformationType getType() const {
             return m_type;
         }

@@ -33,6 +33,7 @@ namespace slideio
         ConverterParameters() : m_format(ImageFormat::Unknown), m_zSlice(0), m_tFrame(0) {
         }
     public:
+        virtual ~ConverterParameters() {}
         ImageFormat getFormat() const {
             return m_format;
         }
@@ -71,6 +72,7 @@ namespace slideio
             m_format = ImageFormat::SVS;
         }
     public:
+        virtual ~SVSConverterParameters() {}
         Compression getEncoding() const {
             return m_tileEncoding;
         }
