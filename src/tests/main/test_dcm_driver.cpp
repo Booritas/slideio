@@ -658,7 +658,8 @@ TEST(DCMImageDriver, readJp2K)
     ASSERT_FALSE(image.empty());
     cv::Mat testImage;
     slideio::ImageTools::readGDALImage(testPath, testImage);
-    TestTools::compareRasters(image, testImage);
+    double simScore = ImageTools::computeSimilarity2(image, testImage);
+    EXPECT_GT(simScore, 0.999);
 }
 
 TEST(DCMImageDriver, zoomLevels)

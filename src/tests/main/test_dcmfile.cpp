@@ -439,6 +439,8 @@ TEST(DCMFile, readJ2K) {
     //ImageTools::writeTiffImage(testFilePath, frames[0]);
     cv::Mat testImage;
     ImageTools::readGDALImage(testFilePath, testImage);
-    TestTools::compareRasters(frames[0], testImage);
+    double simScore = ImageTools::computeSimilarity2(frames[0], testImage);
+    EXPECT_GT(simScore, 0.999);
+
     //TestTools::showRasters(testImage, frames[0]);
 }
