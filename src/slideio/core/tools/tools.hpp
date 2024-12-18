@@ -118,6 +118,7 @@ namespace slideio
         static uint64_t getFilePos(FILE* file);
         static int setFilePos(FILE* file, uint64_t pos, int origin);
         static uint64_t getFileSize(FILE* file);
+        static int dataTypeSize(slideio::DataType dt);
 
     };
 }

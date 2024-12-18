@@ -8,7 +8,7 @@
 #include "slideio/drivers/vsi/vsiscene.hpp"
 #include "slideio/drivers/vsi/vsislide.hpp"
 #include "slideio/drivers/vsi/vsifile.hpp"
-#include "slideio/imagetools/cvtools.hpp"
+#include "slideio/core/tools/cvtools.hpp"
 #include "slideio/slideio/imagedrivermanager.hpp"
 #include "slideio/slideio/imagedrivermanager.hpp"
 

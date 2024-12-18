@@ -10,6 +10,7 @@
 #include "slideio/core/cvslide.hpp"
 #include "slideio/core/tools/tempfile.hpp"
 #include "slideio/slideio/imagedrivermanager.hpp"
+#include "slideio/core/tools/tools.hpp"
 
 
 TEST(Converter, convertGDALJpeg)
@@ -128,7 +129,7 @@ TEST(Converter, fromMultipleScenes)
 	const int width = 400;
 	const int height = 300;
 	const int numChannels = scene->getNumChannels();
-	const int dataTypeSize = slideio::ImageTools::dataTypeSize(scene->getChannelDataType(0));
+	const int dataTypeSize = slideio::Tools::dataTypeSize(scene->getChannelDataType(0));
 	const int rasterSize = width * height * numChannels * dataTypeSize;
 
     const std::tuple<int, int, int, int> block = { x,y,width,height };
@@ -181,7 +182,7 @@ TEST(Converter, from3DScene)
 	const int width = 300;
 	const int height = 300;
 	const int numChannels = scene->getNumChannels();
-	const int dataTypeSize = slideio::ImageTools::dataTypeSize(scene->getChannelDataType(0));
+	const int dataTypeSize = slideio::Tools::dataTypeSize(scene->getChannelDataType(0));
 	const int rasterSize = width * height * numChannels * dataTypeSize;
 	const int slice = 6;
 	const int frame = 0;
@@ -240,7 +241,7 @@ TEST(Converter, jpeg2k4channelsScene)
 	const int width = 700;
 	const int height = 600;
 	const int numChannels = scene->getNumChannels();
-	const int dataTypeSize = slideio::ImageTools::dataTypeSize(scene->getChannelDataType(0));
+	const int dataTypeSize = slideio::Tools::dataTypeSize(scene->getChannelDataType(0));
 	const int rasterSize = width * height * numChannels * dataTypeSize;
 	const int slice = 0;
 	const int frame = 0;
@@ -303,7 +304,7 @@ TEST(Converter, invalidRegions)
 	const int x = std::get<2>(sceneRect) - width;
 	const int y = std::get<3>(sceneRect) - height;
 	const int numChannels = scene->getNumChannels();
-	const int dataTypeSize = slideio::ImageTools::dataTypeSize(scene->getChannelDataType(0));
+	const int dataTypeSize = slideio::Tools::dataTypeSize(scene->getChannelDataType(0));
 	const int rasterSize = width * height * numChannels * dataTypeSize;
 
 	const std::tuple<int, int, int, int> block = { x,y,width,height };
@@ -359,7 +360,7 @@ TEST(Converter, jpeg2k)
 	int width = std::get<2>(sceneRect);
 	int height = std::get<3>(sceneRect);
 	int numChannels = scene->getNumChannels();
-	int dataTypeSize = slideio::ImageTools::dataTypeSize(scene->getChannelDataType(0));
+	int dataTypeSize = slideio::Tools::dataTypeSize(scene->getChannelDataType(0));
 	int rasterSize = width * height * numChannels * dataTypeSize;
 	std::tuple<int,int,int,int> block(0,0,width,height);
 	std::vector<uint8_t> buffer(rasterSize);
@@ -405,7 +406,7 @@ TEST(Converter, jpeg2kBorderTiles)
 	int width = std::get<2>(sceneRect);
 	int height = std::get<3>(sceneRect);
 	int numChannels = scene->getNumChannels();
-	int dataTypeSize = slideio::ImageTools::dataTypeSize(scene->getChannelDataType(0));
+	int dataTypeSize = slideio::Tools::dataTypeSize(scene->getChannelDataType(0));
 	int rasterSize = width * height * numChannels * dataTypeSize;
 	std::tuple<int, int, int, int> block(0, 0, width, height);
 	std::vector<uint8_t> buffer(rasterSize);
@@ -445,7 +446,7 @@ TEST(Converter, metadata)
 	const int width = 300;
 	const int height = 300;
 	const int numChannels = scene->getNumChannels();
-	const int dataTypeSize = slideio::ImageTools::dataTypeSize(scene->getChannelDataType(0));
+	const int dataTypeSize = slideio::Tools::dataTypeSize(scene->getChannelDataType(0));
 	const int rasterSize = width * height * numChannels * dataTypeSize;
 	constexpr std::tuple<int, int, int, int> block = { x,y,width,height };
 	std::vector<uint8_t> buffer(rasterSize);
@@ -500,7 +501,7 @@ TEST(Converter, intData)
 	const int width = 300;
 	const int height = 300;
 	const int numChannels = scene->getNumChannels();
-	const int dataTypeSize = slideio::ImageTools::dataTypeSize(scene->getChannelDataType(0));
+	const int dataTypeSize = slideio::Tools::dataTypeSize(scene->getChannelDataType(0));
 	const int rasterSize = width * height * numChannels * dataTypeSize;
 	constexpr std::tuple<int, int, int, int> block = { x,y,width,height };
 	std::vector<uint8_t> buffer(rasterSize);

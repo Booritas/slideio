@@ -7,7 +7,7 @@
 #include "slideio/imagetools/imagetools.hpp"
 #include "slideio/drivers/svs/svsscene.hpp"
 #include "slideio/core/tools/tools.hpp"
-#include "slideio/imagetools/cvtools.hpp"
+#include "slideio/core/tools/cvtools.hpp"
 
 using namespace slideio;
 

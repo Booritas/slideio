@@ -9,7 +9,7 @@
 #include "convertertools.hpp"
 #include "slideio/base/exceptions.hpp"
 #include "slideio/core/tools/tools.hpp"
-#include "slideio/imagetools/cvtools.hpp"
+#include "slideio/core/tools/cvtools.hpp"
 #include <boost/filesystem.hpp>
 #include <boost/date_time/posix_time/posix_time.hpp>
 
@@ -127,7 +127,7 @@ void slideio::ConverterSVSTools::createZoomLevel(TIFFKeeperPtr& file, int zoomLe
     cv::Size sceneTileSize = slideio::ConverterTools::scaleSize(tileSize, zoomLevel, false);
     std::vector<uint8_t> buffer;
     if(parameters.getEncoding() == Compression::Jpeg2000) {
-        int dataSize = tileSize.width * tileSize.height * scene->getNumChannels() * ImageTools::dataTypeSize(scene->getChannelDataType(0));
+        int dataSize = tileSize.width * tileSize.height * scene->getNumChannels() * Tools::dataTypeSize(scene->getChannelDataType(0));
         buffer.resize(dataSize);
     }
     cv::Mat tile;

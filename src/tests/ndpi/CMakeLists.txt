@@ -36,6 +36,7 @@ target_link_libraries(${TEST_NAME}
     ${CORE_LIB_NAME}
     ${NDPI_DRIVER_NAME}
     ${TEST_LIB_NAME}
+    ${IMAGETOOLS_LIB_NAME}
   )
 
 

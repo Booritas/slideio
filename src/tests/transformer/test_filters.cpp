@@ -8,7 +8,7 @@
 #include <opencv2/imgproc.hpp>
 
 #include "slideio/core/tools/tools.hpp"
-#include "slideio/imagetools/cvtools.hpp"
+#include "slideio/core/tools/cvtools.hpp"
 #include "slideio/transformer/transformations.hpp"
 #include "slideio/transformer/transformer.hpp"
 #include "slideio/transformer/transformerscene.hpp"

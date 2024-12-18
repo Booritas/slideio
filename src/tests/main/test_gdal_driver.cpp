@@ -4,7 +4,7 @@
 #include <numeric>
 
 #include "slideio/core/tools/tools.hpp"
-#include "slideio/imagetools/cvtools.hpp"
+#include "slideio/core/tools/cvtools.hpp"
 #include "slideio/slideio/slideio.hpp"
 
 TEST(GDALDriver, driverID)

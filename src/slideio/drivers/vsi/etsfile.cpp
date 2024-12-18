@@ -6,7 +6,7 @@
 #include "slideio/drivers/vsi/vsistruct.hpp"
 #include "slideio/drivers/vsi/vsitools.hpp"
 #include "slideio/core/tools/tools.hpp"
-#include "slideio/imagetools/cvtools.hpp"
+#include "slideio/core/tools/cvtools.hpp"
 
 using namespace slideio;
 

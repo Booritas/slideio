@@ -4,7 +4,7 @@
 #include "slideio/drivers/gdal/gdalscene.hpp"
 #include "slideio/slideio/slideio.hpp"
 #include "slideio/core/cvstructs.hpp"
-#include "slideio/imagetools/cvtools.hpp"
+#include "slideio/core/tools/cvtools.hpp"
 #include <boost/filesystem.hpp>
 #include <boost/format.hpp>
 

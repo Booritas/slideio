@@ -13,5 +13,7 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/cachemanager.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/tilevisitor.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/tempfile.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/cvtools.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/cvtools.hpp
    PARENT_SCOPE
    )

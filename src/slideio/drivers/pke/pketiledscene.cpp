@@ -7,7 +7,7 @@
 #include "slideio/drivers/pke/pketools.hpp"
 #include "slideio/drivers/pke/pkescene.hpp"
 #include "slideio/core/tools/tools.hpp"
-#include "slideio/imagetools/cvtools.hpp"
+#include "slideio/core/tools/cvtools.hpp"
 #include <tinyxml2.h>
 
 using namespace slideio;

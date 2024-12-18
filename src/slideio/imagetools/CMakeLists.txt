@@ -18,8 +18,6 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/memory_stream.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/tifftools.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/tifftools.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/cvtools.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/cvtools.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/tiffkeeper.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/tiffkeeper.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/jpeglib_aux.hpp
@@ -74,6 +72,7 @@ ENDIF(WIN32)
 
 target_link_libraries(${LIBRARY_NAME}
    ${BASE_LIB_NAME}
+   ${CORE_LIB_NAME}
 )
 
 #conan_target_link_libraries_with_hide(${LIBRARY_NAME} "^(.)+(tiff|libjpeg)(.)+")

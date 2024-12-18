@@ -12,7 +12,7 @@
 #include "slideio/slideio/imagedrivermanager.hpp"
 #include "tests/testlib/testtools.hpp"
 #include "slideio/slideio/scene.hpp"
-#include "slideio/imagetools/cvtools.hpp"
+#include "slideio/core/tools/cvtools.hpp"
 #include "slideio/drivers/dcm/dcmimagedriver.hpp"
 #include "slideio/imagetools/imagetools.hpp"
 

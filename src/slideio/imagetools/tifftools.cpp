@@ -7,7 +7,7 @@
 #include <codecvt>
 
 #include "slideio/imagetools/imagetools.hpp"
-#include "slideio/imagetools/cvtools.hpp"
+#include "slideio/core/tools/cvtools.hpp"
 #include <opencv2/core.hpp>
 #include <boost/format.hpp>
 #include "slideio/imagetools/libtiff.hpp"
@@ -574,7 +574,7 @@ void TiffTools::readNotRGBStripedDir(libtiff::TIFF* file, const TiffDirectory& d
 {
     std::vector<uint8_t> rgbaRaster(4 * dir.rowsPerStrip * dir.width);
 
-    int buff_size = dir.width * dir.height * dir.channels * ImageTools::dataTypeSize(dir.dataType);
+    int buff_size = dir.width * dir.height * dir.channels * Tools::dataTypeSize(dir.dataType);
     cv::Size sizeImage = { dir.width, dir.height };
     DataType dt = dir.dataType;
     output.create(sizeImage, CV_MAKETYPE(CVTools::toOpencvType(dt), dir.channels));
@@ -619,7 +619,7 @@ void TiffTools::readNotRGBStripedDir(libtiff::TIFF* file, const TiffDirectory& d
 void TiffTools::readRegularStripedDir(libtiff::TIFF* file, const TiffDirectory& dir, cv::OutputArray output)
 {
 
-    int buff_size = dir.width * dir.height * dir.channels * ImageTools::dataTypeSize(dir.dataType);
+    int buff_size = dir.width * dir.height * dir.channels * Tools::dataTypeSize(dir.dataType);
     cv::Size sizeImage = { dir.width, dir.height };
     DataType dt = dir.dataType;
     output.create(sizeImage, CV_MAKETYPE(CVTools::toOpencvType(dt), dir.channels));
@@ -813,7 +813,7 @@ void TiffTools::writeDirectory(libtiff::TIFF* tiff)
 
 inline uint16_t bitsPerSampleDataType(DataType dt)
 {
-    int ds = ImageTools::dataTypeSize(dt);
+    int ds = Tools::dataTypeSize(dt);
     return (uint16_t)(ds * 8);
 }
 

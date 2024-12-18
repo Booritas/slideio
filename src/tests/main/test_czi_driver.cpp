@@ -9,7 +9,7 @@
 #include <boost/algorithm/string/predicate.hpp>
 
 #include "slideio/slideio/scene.hpp"
-#include "slideio/imagetools/cvtools.hpp"
+#include "slideio/core/tools/cvtools.hpp"
 #include "slideio/imagetools/imagetools.hpp"
 
 TEST(CZIImageDriver, DriverManager_getDriverIDs)

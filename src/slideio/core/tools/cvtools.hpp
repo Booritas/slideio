@@ -5,7 +5,7 @@
 #define OPENCV_slideio_cvtools_HPP
 
 #include <opencv2/core.hpp>
-#include "slideio/imagetools/slideio_imagetools_def.hpp"
+#include "slideio/core/slideio_core_def.hpp"
 #include "slideio/core/cvslide.hpp"
 #include "slideio/base/slideio_enums.hpp"
 #include <string>
@@ -13,7 +13,7 @@
 
 namespace slideio
 {
-    class SLIDEIO_IMAGETOOLS_EXPORTS CVTools
+    class SLIDEIO_CORE_EXPORTS CVTools
     {
     public:
         static std::shared_ptr<CVSlide> cvOpenSlide(const std::string& path, const std::string& driver);

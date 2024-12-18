@@ -49,7 +49,6 @@ namespace slideio
         static double computeSimilarity(const cv::Mat& left, const cv::Mat& right, bool ignoreTypes=false);
         static double computeSimilarity2(const cv::Mat& left, const cv::Mat& right);
         static double compareHistograms(const cv::Mat& leftM, const cv::Mat& rightM, int bins);
-        static int dataTypeSize(slideio::DataType dt);
         template <typename Type>
         static void convertTo32bitChannels(Type* data, int width, int height, int numChannels, int32_t** channels)
         {
