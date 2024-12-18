@@ -1,14 +1,45 @@
 #!/bin/bash
 set -e
-if [ "$(uname)" = "Linux" ]; then
-    if [ "$(lsb_release -is)" = "Ubuntu" ]; then
-        release_profile=$SLIDEIO_HOME/conan/Linux/ubuntu/linux_release
-        debug_profile=$SLIDEIO_HOME/conan/Linux/ubuntu/linux_debug
+
+#!/bin/bash
+
+# Function to detect the operating system
+detect_os() {
+    if [ "$(uname)" == "Darwin" ]; then
+        echo "OSX"
+        return 0
+    elif [ -f /etc/os-release ]; then
+        . /etc/os-release
+        case "$ID" in
+            almalinux)
+                echo "AlmaLinux"
+                return 0
+                ;;
+            ubuntu)
+                echo "Ubuntu"
+                return 0
+                ;;
+            *)
+                echo "unknown"
+                return 0
+                ;;
+        esac
     else
-        echo "Error: No Conan profile for this Linux distribution."
-        exit 1
+        echo "unknown"
+        return 0
     fi
-elif [ "$(uname)" = "Darwin" ]; then
+}
+
+os_name=$(detect_os)
+echo "Operating system: $os_name"
+
+if [ "$os_name" == "AlmaLinux" ]; then
+    release_profile=$SLIDEIO_HOME/conan/Linux/manylinux/linux_release
+    debug_profile=$SLIDEIO_HOME/conan/Linux/manylinux/linux_debug
+elif [ "$os_name" == "Ubuntu" ]; then
+    release_profile=$SLIDEIO_HOME/conan/Linux/ubuntu/linux_release
+    debug_profile=$SLIDEIO_HOME/conan/Linux/ubuntu/linux_debug
+elif [ "$os_name" == "OSX" ]; then
     if [ "$(uname -m)" = "arm64" ]; then
         release_profile=$SLIDEIO_HOME/conan/OSX/arm/osx_release
         debug_profile=$SLIDEIO_HOME/conan/OSX/arm/osx_debug
@@ -19,7 +50,7 @@ elif [ "$(uname)" = "Darwin" ]; then
         echo "Error: No conan profile for this macOS architecture."
         exit 1
     fi
-else
+elif [ "$os_name" == "unknown" ]; then
     echo "Error: No conan profile for this operating system."
     exit 1
 fi

@@ -1,5 +1,6 @@
 set(LIBRARY_NAME ${CORE_LIB_NAME})
 set(CMAKE_PREFIX_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 message(STATUS "CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}")
 
 set(SOURCE_FILES 
@@ -22,7 +23,7 @@ add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES})
 
 find_package(Boost REQUIRED)
 find_package(glog REQUIRED)
-find_package(SQLITE3 REQUIRED)
+find_package(SQLite3 REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(ZLIB REQUIRED)
 find_package(Tinyxml2 REQUIRED)
