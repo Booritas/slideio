@@ -8,6 +8,5 @@ xz_utils/5.4.5
 ndpi-libtiff/4.3.0@slideio/stable
 ndpi-libjpeg-turbo/2.1.2@slideio/stable
 libwebp/1.3.2
-jpegxrcodec/1.0.3@slideio/stable
 lerc/4.0.0
 [options]
