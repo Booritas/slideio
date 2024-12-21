@@ -10,11 +10,17 @@ jobs:
         CONAN_REVISIONS_ENABLED: 1
         CONAN_DISABLE_CHECK_COMPILER: 1
     steps:
-      
+
     - name: checkout
       uses: actions/checkout@v4
       with:
         submodules: 'true'
+
+    - name: list conan packages
+      run: ls -la ~/.conan2/p
+
+    - name: list conan packages root
+      run: ls -la /root/.conan2/p
 
     - name: list available python versions
       run: ls -la /opt/python
