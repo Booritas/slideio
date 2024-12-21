@@ -17,9 +17,6 @@ jobs:
       with:
         submodules: 'true'
 
-    - name: list conan packages
-      run: ls -la ~/.conan2/p
-
     - name: list conan packages root
       run: ls -la /root/.conan2/p
 
