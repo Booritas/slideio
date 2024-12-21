@@ -4,8 +4,6 @@ on: [workflow_dispatch]
 env:
   CONAN_REVISIONS_ENABLED: 1
   CONAN_DISABLE_CHECK_COMPILER: 1
-  SLIDEIO_HOME: $GITHUB_WORKSPACE/slideio
-  CONAN_INDEX_HOME: $GITHUB_WORKSPACE/conan-center-index
 jobs:
   build-mac-win:
     runs-on: ${{ matrix.os }}
@@ -14,7 +12,6 @@ jobs:
         os: [windows-2022]
     steps:
 
-    - uses: actions/checkout@v3
     - uses: actions/setup-python@v3
       with:
         python-version: '3.11'
@@ -53,6 +50,9 @@ jobs:
 
     - name: build custom conan recepies
       working-directory: ./slideio
+      env:
+        SLIDEIO_HOME: $GITHUB_WORKSPACE/slideio
+        CONAN_INDEX_HOME: $GITHUB_WORKSPACE/conan-center-index
       shell: pwsh
       run: ./conan.ps1
 
