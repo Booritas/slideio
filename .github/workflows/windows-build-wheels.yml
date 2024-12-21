@@ -4,6 +4,8 @@ on: [workflow_dispatch]
 env:
   CONAN_REVISIONS_ENABLED: 1
   CONAN_DISABLE_CHECK_COMPILER: 1
+  SLIDEIO_HOME: $GITHUB_WORKSPACE/slideio
+  CONAN_INDEX_HOME: $GITHUB_WORKSPACE/conan-center-index
 jobs:
   build-mac-win:
     runs-on: ${{ matrix.os }}
@@ -15,7 +17,7 @@ jobs:
     - uses: actions/checkout@v3
     - uses: actions/setup-python@v3
       with:
-        python-version: '3.9'
+        python-version: '3.11'
         architecture: 'x64'
 
     - name: Display Python version
@@ -25,34 +27,42 @@ jobs:
       id: conan
       uses: turtlebrowser/get-conan@main
       with:
-        version: 1.65.0
+        version: 2.10.1
 
     - name: Conan version
       run: echo "${{ steps.conan.outputs.version }}"
 
-    - name: Add digital ocean conan remote
-      run: |
-        conan remote add digitalo http://167.172.176.224
-        conan user -p ${{ secrets.CONAN_DO_PASSWORD }} -r digitalo ${{ secrets.CONAN_DO_USER }}
+    # - name: Add digital ocean conan remote
+    #   run: |
+    #     conan remote add digitalo http://167.172.176.224
+    #     conan user -p ${{ secrets.CONAN_DO_PASSWORD }} -r digitalo ${{ secrets.CONAN_DO_USER }}
 
-    - name: checkout
+    - name: checkout slideio
       uses: actions/checkout@v2
       with:
         submodules: 'true'
+        ref: v2.7.0
+        path: slideio 
 
     - name: chekout conan recipes
-      run: git clone 'https://gitlab.com/bioslide/conan-recipes.git' conan-recipes
+      uses: actions/checkout@v2
+      with:
+        repository: Booritas/conan-center-index
+        ref: v2.7.0
+        path: conan-center-index
 
-    - name: install python distributions
-      working-directory: ./conan-recipes
-      run: python deploy-python-dists.py
+    - name: build custom conan recepies
+      working-directory: ./slideio
+      shell: pwsh
+      run: ./conan.ps1
 
-    - name: Install conan dependencies
+    - name: Install all conan dependencies
+      working-directory: ./slideio
       run: python install.py -a conan  -c release
 
-    - name: Upload conan packages to conan server
-      run: conan upload "*" -r digitalo --all -c
-      continue-on-error: true
+    # - name: Upload conan packages to conan server
+    #   run: conan upload "*" -r digitalo --all -c
+    #   continue-on-error: true
 
     - uses: conda-incubator/setup-miniconda@v3
       with:
@@ -61,7 +71,7 @@ jobs:
 
     - name: build python packages
       shell: pwsh
-      working-directory: ./src/py-bind
+      working-directory: ./slideio/src/py-bind
       run: powershell .\build-wheels-win.ps1
 
     - name: Archive python packagess
