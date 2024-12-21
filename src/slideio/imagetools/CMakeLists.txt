@@ -76,7 +76,9 @@ target_link_libraries(${LIBRARY_NAME}
    ${CORE_LIB_NAME}
 )
 
-#conan_target_link_libraries_with_hide(${LIBRARY_NAME} "^(.)+(tiff|libjpeg)(.)+")
-
 set_target_properties(${LIBRARY_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 set_property(TARGET ${LIBRARY_NAME} PROPERTY POSITION_INDEPENDENT_CODE ON)
+
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    target_link_options(${LIBRARY_NAME} PRIVATE "-Wl,-Bsymbolic")
+endif()

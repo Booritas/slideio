@@ -50,5 +50,7 @@ IF(WIN32)
 ENDIF(WIN32)
 
 set_target_properties(${LIBRARY_NAME} PROPERTIES LINKER_LANGUAGE CXX)
-#set_target_properties(${LIBRARY_NAME} PROPERTIES CXX_VISIBILITY_PRESET hidden)
 
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    target_link_options(${LIBRARY_NAME} PRIVATE "-Wl,-Bsymbolic")
+endif()

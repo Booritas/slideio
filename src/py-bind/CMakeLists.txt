@@ -50,6 +50,8 @@ target_link_libraries(${BINDLIB_NAME} PRIVATE
    )
 
 
-
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+   target_link_options(${BINDLIB_NAME} PRIVATE "-Wl,-Bsymbolic")
+endif()
 
 FIX_MACOS_RPATH(${BINDLIB_NAME})

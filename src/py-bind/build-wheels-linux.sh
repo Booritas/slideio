@@ -27,8 +27,8 @@ do
   fi
 done
 
-#export py="/opt/python/cp38-cp38/bin/python"
-#build_wheel
+# export py="/opt/python/cp38-cp38/bin/python"
+# build_wheel
 
 echo "updating wheels"
 
