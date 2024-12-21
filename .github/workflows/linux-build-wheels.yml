@@ -10,6 +10,7 @@ jobs:
       env:
         CONAN_REVISIONS_ENABLED: 1
         CONAN_DISABLE_CHECK_COMPILER: 1
+        CONAN_HOME: /root/.conan2
     steps:
 
     - name: checkout
@@ -19,6 +20,9 @@ jobs:
 
     - name: list conan packages root
       run: ls -la /root/.conan2/p
+
+    - name: conan config
+      run: conan config home
 
     - name: list available python versions
       run: ls -la /opt/python
