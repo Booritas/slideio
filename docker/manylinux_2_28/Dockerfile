@@ -48,8 +48,8 @@ RUN yes | python3 -m ensurepip
 RUN yes | python3 -m pip install distro
 
 
-RUN cd /opt && git clone --recursive https://github.com/Booritas/slideio && cd slideio && git checkout conan2
+RUN cd /opt && git clone --recursive --depth 1 https://github.com/Booritas/slideio && cd slideio && git checkout conan2
 RUN cd /opt && git clone --depth 1 https://github.com/Booritas/conan-center-index.git
 ENV SLIDEIO_HOME=/opt/slideio
 ENV CONAN_INDEX_HOME=/opt/conan-center-index
-#RUN cd /opt/slideio && bash ./conan.sh
+RUN cd /opt/slideio && bash ./conan.sh
