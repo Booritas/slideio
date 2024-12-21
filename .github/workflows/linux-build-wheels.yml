@@ -6,6 +6,7 @@ jobs:
     runs-on: ubuntu-20.04
     container:
       image: booritas/slideio-manylinux_2_28_x86_64:2.7.0
+      options: --user root
       env:
         CONAN_REVISIONS_ENABLED: 1
         CONAN_DISABLE_CHECK_COMPILER: 1
