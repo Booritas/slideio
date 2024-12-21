@@ -51,11 +51,11 @@ jobs:
     - name: build custom conan recepies
       working-directory: ./slideio
       env:
-        SLIDEIO_HOME: $GITHUB_WORKSPACE/slideio
-        CONAN_INDEX_HOME: $GITHUB_WORKSPACE/conan-center-index
+        SLIDEIO_HOME: ${{ github.workspace }}/slideio
+        CONAN_INDEX_HOME: ${{ github.workspace }}/conan-center-index
       shell: pwsh
       run: ./conan.ps1
-
+      
     - name: Install all conan dependencies
       working-directory: ./slideio
       run: python install.py -a conan  -c release
