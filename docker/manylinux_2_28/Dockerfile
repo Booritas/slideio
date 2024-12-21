@@ -1,7 +1,4 @@
 FROM quay.io/pypa/manylinux_2_28_x86_64:2024.11.16-1 AS base
-# ARG CONAN_REMOTE
-# ARG CONAN_USER
-# ARG CONAN_PASSWORD
 ENV CONAN_REVISIONS_ENABLED=1
 RUN yum update -y
 RUN yum install -y wget
@@ -28,7 +25,6 @@ RUN echo "alias lsa='ls -lah'" >> /root/.bashrc && \
     echo "alias ll='ls -lh'" >> /root/.bashrc && \
     echo "alias la='ls -lAh'" >> /root/.bashrc
 
-# RUN conan remote add slideio ${CONAN_REMOTE}
 WORKDIR /opt
 RUN yes | python3 -m ensurepip
 RUN yes | python3 -m pip install distro
@@ -47,9 +43,13 @@ WORKDIR /opt
 RUN yes | python3 -m ensurepip
 RUN yes | python3 -m pip install distro
 
-
-RUN cd /opt && git clone --recursive --depth 1 https://github.com/Booritas/slideio && cd slideio && git checkout conan2
-RUN cd /opt && git clone --depth 1 https://github.com/Booritas/conan-center-index.git
+FROM base AS builder
+RUN cd /opt && git clone --recursive --depth 1 --branch v2.7.0 https://github.com/Booritas/slideio
+RUN cd /opt && git clone --depth 1 --branch v2.7.0 https://github.com/Booritas/conan-center-index.git
 ENV SLIDEIO_HOME=/opt/slideio
 ENV CONAN_INDEX_HOME=/opt/conan-center-index
 RUN cd /opt/slideio && bash ./conan.sh
+RUN cd /opt/slideio && python3 ./install.py -a conan
+
+FROM base AS final
+COPY --from=builder /root/.conan2/p /root/.conan2/p

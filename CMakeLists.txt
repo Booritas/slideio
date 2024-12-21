@@ -17,6 +17,13 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     add_compile_options(-Wno-switch-default)
 endif()
 
+if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    if(CMAKE_BUILD_TYPE STREQUAL "Release")
+        set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -s")
+        set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -s")
+    endif()
+endif()
+
 set( CMAKE_VERBOSE_MAKEFILE off )
 set(INCLUDE_ROOT ${CMAKE_SOURCE_DIR}/src)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
