@@ -64,8 +64,8 @@ jobs:
       continue-on-error: true
 
     - name: build python packages
-      working-directory: ./src/py-bind
-      run: bash ./slideo/build-wheels-linux.sh
+      working-directory: ./slideio/src/py-bind
+      run: bash ./build-wheels-linux.sh
 
     - name: Archive python packagess
       uses: actions/upload-artifact@v4
