@@ -21,16 +21,19 @@ jobs:
     - name: list conan packages root
       run: ls -la /root/.conan2/p
 
-    - name: conan config
-      run: conan config home
-
-    - name: list available python versions
-      run: ls -la /opt/python
+    - name: Add conan remote
+      run: |
+        conan remote add slideio ${{ secrets.CONAN_URL }}
+        conan remote login -p ${{ secrets.CONAN_PASSWORD }} slideio ${{ secrets.CONAN_USER }}
     
     - name: Install conan dependencies
       run: |
         python3 install.py -a conan -c release
    
+    - name: Upload conan packages to conan server
+      run: conan upload -c "*" -r slideio
+      continue-on-error: true
+
     - name: build python packages
       working-directory: ./src/py-bind
       run: bash ./build-wheels-linux.sh
