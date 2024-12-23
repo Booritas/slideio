@@ -1,6 +1,16 @@
 name: Linux build slideio wheels
 
-on: [workflow_dispatch]
+on: 
+  workflow_dispatch:
+    inputs:
+      build-custom-packages:
+        type: boolean
+        default: true
+        description: 'Build custom packages'
+      upload-conan-packages:
+        type: boolean
+        default: false
+        description: 'Upload conan packages'
 jobs:
   build-linux:
     runs-on: ubuntu-20.04
@@ -13,25 +23,44 @@ jobs:
         CONAN_HOME: /root/.conan2
     steps:
 
-    - name: checkout
-      uses: actions/checkout@v4
+    - name: checkout slideio
+      uses: actions/checkout@v2
       with:
         submodules: 'true'
+        ref: v2.7.0
+        path: slideio 
 
-    - name: list conan packages root
-      run: ls -la /root/.conan2/p
+    - name: chekout conan recipes
+      uses: actions/checkout@v2
+      if: ${{ inputs.build-custom-packages }}
+      with:
+        repository: Booritas/conan-center-index
+        ref: v2.7.0
+        path: conan-center-index
 
     - name: Add conan remote
       run: |
         conan remote add slideio ${{ secrets.CONAN_URL }}
-        conan remote login -p ${{ secrets.CONAN_PASSWORD }} slideio ${{ secrets.CONAN_USER }}
-    
+
+    - name: build custom conan recepies
+      if: ${{ inputs.build-custom-packages }}
+      working-directory: ./slideio
+      env:
+          SLIDEIO_HOME: ${{ github.workspace }}/slideio
+          CONAN_INDEX_HOME: ${{ github.workspace }}/conan-center-index
+      shell: bash
+      run: ./conan.sh
+      
     - name: Install conan dependencies
+      working-directory: ./slideio
       run: |
         python3 install.py -a conan -c release
    
     - name: Upload conan packages to conan server
-      run: conan upload -c "*" -r slideio
+      if: ${{ inputs.upload-conan-packages }}
+      run: |
+        conan remote login -p ${{ secrets.CONAN_PASSWORD }} slideio ${{ secrets.CONAN_USER }}
+        conan upload -c "*" -r slideio
       continue-on-error: true
 
     - name: build python packages
