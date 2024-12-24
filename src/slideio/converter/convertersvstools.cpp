@@ -87,7 +87,7 @@ void slideio::ConverterSVSTools::createZoomLevel(TIFFKeeperPtr& file, int zoomLe
 {
     cv::Rect sceneRect = scene->getRect();
     sceneRect.x = sceneRect.y = 0;
-    if(parameters.getRect().isValid()) {
+    if(parameters.getRect().valid()) {
         const auto& block = parameters.getRect();
         sceneRect.x = block.x;
         sceneRect.y = block.y;
@@ -183,7 +183,7 @@ void slideio::ConverterSVSTools::createSVS(TIFFKeeperPtr& file, const CVScenePtr
     if(cb) {
         cv::Rect sceneRect = scene->getRect();
         cv::Size sceneSize = scene->getRect().size();
-        if(parameters.getRect().isValid()) {
+        if(parameters.getRect().valid()) {
             const auto& block = parameters.getRect();
             sceneSize.width = block.width;
             sceneSize.height = block.height;

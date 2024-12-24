@@ -6,6 +6,7 @@
 
 #include "slideio/core/tools/tools.hpp"
 #include "tests/testlib/testtools.hpp"
+#include "tests/testlib/testtools.hpp"
 
 
 TEST(Tools, matchPattern) {

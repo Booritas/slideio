@@ -2,14 +2,53 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #pragma once
-#include "transformation.hpp"
+#include "slideio/transformer/transformationex.hpp"
+#include "slideio/transformer/transformationtype.hpp"
 
 namespace slideio
 {
 
-    class SLIDEIO_TRANSFORMER_EXPORTS CannyFilter : public Transformation
+    class SLIDEIO_TRANSFORMER_EXPORTS CannyFilter : public TransformationEx
     {
     public:
+        CannyFilter(const CannyFilter& other)
+            : TransformationEx(other),
+              m_threshold1(other.m_threshold1),
+              m_threshold2(other.m_threshold2),
+              m_apertureSize(other.m_apertureSize),
+              m_L2gradient(other.m_L2gradient) {
+        }
+
+        CannyFilter(CannyFilter&& other) noexcept
+            : TransformationEx(std::move(other)),
+              m_threshold1(other.m_threshold1),
+              m_threshold2(other.m_threshold2),
+              m_apertureSize(other.m_apertureSize),
+              m_L2gradient(other.m_L2gradient) {
+        }
+
+        CannyFilter& operator=(const CannyFilter& other) {
+            if (this == &other)
+                return *this;
+            TransformationEx::operator =(other);
+            m_threshold1 = other.m_threshold1;
+            m_threshold2 = other.m_threshold2;
+            m_apertureSize = other.m_apertureSize;
+            m_L2gradient = other.m_L2gradient;
+            return *this;
+        }
+
+        CannyFilter& operator=(CannyFilter&& other) noexcept {
+            if (this == &other)
+                return *this;
+            TransformationEx::operator =(std::move(other));
+            m_threshold1 = other.m_threshold1;
+            m_threshold2 = other.m_threshold2;
+            m_apertureSize = other.m_apertureSize;
+            m_L2gradient = other.m_L2gradient;
+            return *this;
+        }
+
         CannyFilter()
         {
             m_type = TransformationType::CannyFilter;

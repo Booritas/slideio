@@ -4,12 +4,6 @@
 //----------------------------------------------
 // includes
 //----------------------------------------------
-#include "jp2decoder.hpp"
-
-#include <dcmjpeg/djdecode.h>
-
-#include "jp2codecparameter.hpp"
-
 #include "dcmtk/dcmdata/dcdatset.h"  /* for class DcmDataset */
 #include "dcmtk/dcmdata/dcdeftag.h"  /* for tag constants */
 #include "dcmtk/dcmdata/dcpixseq.h"  /* for class DcmPixelSequence */
@@ -20,6 +14,12 @@
 #include "slideio/base/exceptions.hpp"
 #include "slideio/base/slideio_enums.hpp"
 #include "slideio/imagetools/imagetools.hpp"
+#include "slideio/base/log.hpp"
+
+#include "jp2decoder.hpp"
+#include <dcmjpeg/djdecode.h>
+#include "jp2codecparameter.hpp"
+
 
 using namespace slideio;
 

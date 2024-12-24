@@ -2,17 +2,13 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #pragma once
-#include "colortransformation.hpp"
-#include "gaussianblurfilter.hpp"
-#include "laplacianfilter.hpp"
-#include "medianblurfilter.hpp"
-#include "scharrfilter.hpp"
-#include "sobelfilter.hpp"
-#include "laplacianfilter.hpp"
-#include "cannyfilter.hpp"
-#include "bilateralfilter.hpp"
+#include "slideio/transformer/transformer_def.hpp"
+#include <memory>
 
 namespace slideio
 {
-	std::shared_ptr<slideio::Transformation> SLIDEIO_TRANSFORMER_EXPORTS makeTransformationCopy(const Transformation& source);
+	class Transformation;
+	class TransformationWrapper;
+	std::shared_ptr<Transformation> SLIDEIO_TRANSFORMER_EXPORTS makeTransformationCopy(const Transformation& source);
+	std::shared_ptr<TransformationWrapper> SLIDEIO_TRANSFORMER_EXPORTS makeTransformationCopy(const TransformationWrapper& source);
 }

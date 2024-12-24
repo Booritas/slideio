@@ -3,7 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/drivers/gdal/gdalscene.hpp"
 #include "slideio/slideio/slideio.hpp"
-#include "slideio/core/cvstructs.hpp"
+#include "slideio/base/resolution.hpp"
 #include "slideio/core/tools/cvtools.hpp"
 #include <boost/filesystem.hpp>
 #include <boost/format.hpp>

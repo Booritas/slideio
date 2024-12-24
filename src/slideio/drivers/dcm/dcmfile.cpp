@@ -10,10 +10,10 @@
 #include <dcmtk/dcmdata/dcjson.h>
 #include <dcmtk/dcmdata/dcpxitem.h>
 
+#include <dcmtk/dcmdata/dcjson.h>
 #include <ostream>
 
-#include "slideio/base/slideio_enums.hpp"
-#include "slideio/imagetools/imagetools.hpp"
+#include "slideio/base/log.hpp"
 #include "slideio/core/tools/tools.hpp"
 
 using namespace slideio;

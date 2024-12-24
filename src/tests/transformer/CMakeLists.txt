@@ -9,6 +9,7 @@ set(TEST_SOURCES
   test_colortransformer.cpp
   test_filters.cpp
   test_transformertools.cpp
+  test_copy.cpp
 )
 
 add_executable(${TEST_NAME} ${TEST_SOURCES})

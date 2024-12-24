@@ -18,6 +18,7 @@
 #include <list>
 #include <opencv2/core.hpp>
 #include "slideio/base/slideio_enums.hpp"
+#include "slideio/base/slideio_structs.hpp"
 
 namespace slideio
 {
@@ -119,6 +120,12 @@ namespace slideio
         static int setFilePos(FILE* file, uint64_t pos, int origin);
         static uint64_t getFileSize(FILE* file);
         static int dataTypeSize(slideio::DataType dt);
+        static Size cvSizeToSize(const cv::Size& cvSize) {
+            return {cvSize.width, cvSize.height};
+        }
+        static Rect cvRectToRect(const cv::Rect& cvRect) {
+            return {cvRect.x, cvRect.y, cvRect.width, cvRect.height};
+        }
 
     };
 }

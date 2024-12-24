@@ -6,6 +6,7 @@
 
 using namespace slideio;
 
+
 TEST(CacheManagerTest, addAndGetTiles)
 {
     CacheManager cacheManager;

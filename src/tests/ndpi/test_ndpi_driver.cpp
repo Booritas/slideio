@@ -493,7 +493,7 @@ TEST(NDPIImageDriver, zoomLevels)
         const slideio::LevelInfo* level = scene->getZoomLevelInfo(levelIndex);
         EXPECT_EQ(*level, levels[levelIndex]);
         if (levelIndex == 0) {
-            EXPECT_EQ(level->getSize(), rect.size());
+            EXPECT_EQ(level->getSize(), slideio::Tools::cvSizeToSize(rect.size()));
         }
 
     }

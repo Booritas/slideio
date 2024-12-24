@@ -6,7 +6,7 @@
 
 
 #include "slideio/drivers/ndpi/ndpi_api_def.hpp"
-#include "slideio/core/cvstructs.hpp"
+#include "slideio/base/resolution.hpp"
 #include "slideio/base/slideio_enums.hpp"
 #include "slideio/base/base.hpp"
 #include <opencv2/core.hpp>
@@ -86,7 +86,7 @@ namespace slideio
         }
     };
 
-    SLIDEIO_NDPI_EXPORTS std::ostream&  operator << (std::ostream& os, const NDPITiffDirectory::Type& type);;
+    SLIDEIO_NDPI_EXPORTS std::ostream&  operator << (std::ostream& os, const NDPITiffDirectory::Type& type);
 
     class SLIDEIO_NDPI_EXPORTS NDPITiffTools
     {

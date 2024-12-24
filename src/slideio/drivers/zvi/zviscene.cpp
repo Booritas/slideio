@@ -327,11 +327,11 @@ void ZVIScene::init()
     m_levels.resize(1);
     LevelInfo& level = m_levels[0];
     level.setLevel(0);
-    level.setTileSize(cv::Size(m_Width, m_Height));
-    level.setSize(cv::Size(m_Width, m_Height));
+    level.setTileSize(Size(m_Width, m_Height));
+    level.setSize(Size(m_Width, m_Height));
     if (!m_Tiles.empty()) {
         const cv::Rect tileRect = m_Tiles.front().getRect();
-        level.setTileSize(tileRect.size());
+        level.setTileSize(Tools::cvSizeToSize(tileRect.size()));
     }
     level.setMagnification(getMagnification());
     level.setScale(1.);

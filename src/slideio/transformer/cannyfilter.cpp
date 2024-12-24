@@ -3,6 +3,8 @@
 // of this distribution and at http://slideio.com/license.html.
 #include "cannyfilter.hpp"
 #include <opencv2/imgproc.hpp>
+#include "slideio/base/slideio_enums.hpp"
+
 using namespace slideio;
 
 void CannyFilter::applyTransformation(const cv::Mat& block, cv::OutputArray transformedBlock) const

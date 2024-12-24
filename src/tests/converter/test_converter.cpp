@@ -9,6 +9,7 @@
 #include "slideio/converter/converterparameters.hpp"
 #include "slideio/core/cvslide.hpp"
 #include "slideio/core/tools/tempfile.hpp"
+#include "slideio/imagetools/imagetools.hpp"
 #include "slideio/slideio/imagedrivermanager.hpp"
 #include "slideio/core/tools/tools.hpp"
 
@@ -138,7 +139,7 @@ TEST(Converter, fromMultipleScenes)
 	
 	slideio::SVSJpegConverterParameters parameters;
 	parameters.setQuality(90);
-	slideio::Rectangle rect = { x,y, width, height};
+	slideio::Rect rect = { x,y, width, height};
 	parameters.setRect(rect);
     const slideio::TempFile tmp("svs");
     const std::string outputPath = tmp.getPath().string();
@@ -198,7 +199,7 @@ TEST(Converter, from3DScene)
 	parameters.setZSlice(slice);
 	parameters.setTFrame(frame);
 	parameters.setQuality(90);
-	slideio::Rectangle rect = { x,y, width, height };
+	slideio::Rect rect = { x,y, width, height };
 	parameters.setRect(rect);
 	const slideio::TempFile tmp("svs");
 	const std::string outputPath = tmp.getPath().string();
@@ -256,7 +257,7 @@ TEST(Converter, jpeg2k4channelsScene)
 	slideio::SVSJp2KConverterParameters parameters;
 	parameters.setZSlice(slice);
 	parameters.setTFrame(frame);
-	slideio::Rectangle rect = { x,y, width, height };
+	slideio::Rect rect = { x,y, width, height };
 	parameters.setRect(rect);
 	const slideio::TempFile tmp("svs");
 	const std::string outputPath = tmp.getPath().string();
@@ -312,7 +313,7 @@ TEST(Converter, invalidRegions)
 	scene->readBlock(block, buffer.data(), buffer.size());
 
 	parameters.setQuality(90);
-	slideio::Rectangle rect = { x,y, width, height };
+	slideio::Rect rect = { x,y, width, height };
 	parameters.setRect(rect);
 	const slideio::TempFile tmp("svs");
 	const std::string outputPath = tmp.getPath().string();
@@ -455,7 +456,7 @@ TEST(Converter, metadata)
 
 	slideio::SVSJpegConverterParameters parameters;
 	parameters.setQuality(90);
-	slideio::Rectangle rect = { x,y, width, height };
+	slideio::Rect rect = { x,y, width, height };
 	parameters.setRect(rect);
 	const slideio::TempFile tmp("svs");
 	const std::string outputPath = tmp.getPath().string();
@@ -510,7 +511,7 @@ TEST(Converter, intData)
 
 	slideio::SVSJp2KConverterParameters parameters;
 	parameters.setCompressionRate(5);
-	slideio::Rectangle rect = { x,y, width, height };
+	slideio::Rect rect = { x,y, width, height };
 	parameters.setRect(rect);
 	const slideio::TempFile tmp("svs");
 	const std::string outputPath = tmp.getPath().string();

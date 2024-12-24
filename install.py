@@ -228,6 +228,24 @@ def install_slideio(configuration, prefix):
         subprocess.check_call(cmd, stderr=subprocess.STDOUT)
 
 
+def install_slideio(configuration, prefix):
+    os_platform = get_platform()
+    print("Start build")
+    if os_platform=="Windows":
+        cmake = "cmake.exe"
+    else:
+        cmake = "cmake"
+
+    if configuration["release"]:
+        cmd = [cmake, "--install", configuration["build_release_directory"], "--prefix", prefix["release"], "--config", "Release"]
+        print(cmd)
+        subprocess.check_call(cmd, stderr=subprocess.STDOUT)
+    if configuration["debug"]:
+        cmd = [cmake, "--install", configuration["build_debug_directory"],"--prefix", prefix["debug"], "--config", "Debug"]
+        print(cmd)
+        subprocess.check_call(cmd, stderr=subprocess.STDOUT)
+
+
 if __name__ == "__main__":
     action_help = """Type of action:
         conan:      run conan to prepare cmake files for 3rd party packages
@@ -236,7 +254,7 @@ if __name__ == "__main__":
         install:    install the software"""
     config_help = "Software configuration to be configured and build. Select from release, debug or all."
     parser = argparse.ArgumentParser(formatter_class=RawTextHelpFormatter, description='Configuration, building and installation of the slideio library.')
-    parser.add_argument('-a','--action', choices=['conan','configure', 'configure-only', 'build', 'build-only', 'install', 'install-only'], default='configure', help=action_help)
+    parser.add_argument('-a','--action', choices=['conan','configure', 'configure-only', 'build', 'build-only', 'install', 'install-only', 'clean'], default='configure', help=action_help)
     parser.add_argument('-c', '--config', choices=['release','debug', 'all'], default='all', help = config_help)
     parser.add_argument('--clean', action='store_true', help = 'Clean before build. Add this flag if you want to clean build folders before the build.')
     parser.add_argument('--prefix', help = 'Path to the installation directory')

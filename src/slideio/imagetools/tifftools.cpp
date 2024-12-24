@@ -12,6 +12,7 @@
 #include <boost/format.hpp>
 #include "slideio/imagetools/libtiff.hpp"
 #include <boost/filesystem.hpp>
+#include "slideio/base/log.hpp"
 #include "slideio/core/tools/tools.hpp"
 
 using namespace slideio;

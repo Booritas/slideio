@@ -6,7 +6,7 @@
 
 #include <map>
 
-#include "convertersvstools.hpp"
+#include "convertercallback.hpp"
 #include "slideio/converter/converter_def.hpp"
 #include "slideio/slideio/scene.hpp"
 
@@ -25,5 +25,9 @@ namespace slideio
                                                 const std::string& outputPath,
                                                 ConverterCallback cb=nullptr);
 }
+
+#if defined(_MSC_VER)
+#pragma warning( pop )
+#endif
 
 #endif

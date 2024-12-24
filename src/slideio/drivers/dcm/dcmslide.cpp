@@ -16,6 +16,7 @@
 
 #include "wsiscene.hpp"
 #include "slideio/core/tools/tools.hpp"
+#include "slideio/base/log.hpp"
 
 using namespace slideio;
 namespace fs = boost::filesystem;

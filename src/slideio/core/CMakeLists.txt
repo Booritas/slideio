@@ -11,15 +11,16 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/cvscene.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/cvslide.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/cvslide.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/cvstructs.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/cvsmallscene.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/cvsmallscene.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/refcounter.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/levelinfo.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/levelinfo.cpp
    )
 
 add_subdirectory(tools)
 add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES})
+set_target_properties(${LIBRARY_NAME} PROPERTIES OUTPUT_NAME "${LIBRARY_NAME}${LIB_NAME_SUFFIX}")
 
 find_package(Boost REQUIRED)
 find_package(glog REQUIRED)

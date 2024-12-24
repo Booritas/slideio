@@ -22,6 +22,7 @@ set(SOURCE_FILES
    )
 
 add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES})
+set_target_properties(${LIBRARY_NAME} PROPERTIES OUTPUT_NAME "${LIBRARY_NAME}${LIB_NAME_SUFFIX}")
 
 find_package(Boost)
 find_package(SQLite3)

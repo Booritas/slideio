@@ -5,18 +5,19 @@
 #include "vsifile.hpp"
 #include <iomanip>
 #include "slideio/core/tools/tools.hpp"
-#include <boost/filesystem.hpp>
 #include "vsistruct.hpp"
 #include "vsitags.hpp"
 #include "vsistream.hpp"
 #include "etsfile.hpp"
 #include "vsitools.hpp"
-#include <boost/tokenizer.hpp>
-#include <boost/foreach.hpp>
-#include <boost/algorithm/string.hpp>
-
+#include "slideio/base/log.hpp"
 #include "taginfo.hpp"
 #include "slideio/imagetools/tifftools.hpp"
+
+#include <boost/tokenizer.hpp>
+#include <boost/algorithm/string.hpp>
+#include <boost/filesystem.hpp>
+
 
 using namespace slideio;
 using namespace slideio::vsi;

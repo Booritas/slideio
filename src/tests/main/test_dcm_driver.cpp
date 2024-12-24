@@ -9,6 +9,7 @@
 #include <opencv2/imgproc.hpp>
 
 
+#include "slideio/core/tools/tools.hpp"
 #include "slideio/slideio/imagedrivermanager.hpp"
 #include "tests/testlib/testtools.hpp"
 #include "slideio/slideio/scene.hpp"
@@ -690,7 +691,7 @@ TEST(DCMImageDriver, zoomLevels)
         const slideio::LevelInfo* level = scene->getZoomLevelInfo(levelIndex);
         EXPECT_EQ(*level, levels[levelIndex]);
         if (levelIndex == 0) {
-            EXPECT_EQ(level->getSize(), rect.size());
+            EXPECT_EQ(level->getSize(), Tools::cvSizeToSize(rect.size()));
         }
 
     }
@@ -717,7 +718,7 @@ TEST(DCMImageDriver, zoomLevelsSingle)
         const slideio::LevelInfo* level = scene->getZoomLevelInfo(levelIndex);
         EXPECT_EQ(*level, levels[levelIndex]);
         if (levelIndex == 0) {
-            EXPECT_EQ(level->getSize(), rect.size());
+            EXPECT_EQ(level->getSize(), Tools::cvSizeToSize(rect.size()));
         }
 
     }

@@ -16,9 +16,11 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/convertersvstools.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/converterparameters.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/converterparameters.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/convertercallback.hpp
    )
 
 add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES})
+set_target_properties(${LIBRARY_NAME} PROPERTIES OUTPUT_NAME "${LIBRARY_NAME}${LIB_NAME_SUFFIX}")
 
 find_package(Boost)
 find_package(SQLite3)

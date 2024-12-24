@@ -5,10 +5,10 @@
 #include "slideio/converter/convertertools.hpp"
 #include "slideio/slideio/imagedrivermanager.hpp"
 #include "slideio/base/exceptions.hpp"
+#include "slideio/core/cvslide.hpp"
 
 
-TEST(ConverterTools, computeNumZoomLevels)
-{
+TEST(ConverterTools, computeNumZoomLevels) {
     EXPECT_EQ(slideio::ConverterTools::computeNumZoomLevels(100, 100),1);
     EXPECT_EQ(slideio::ConverterTools::computeNumZoomLevels(100000, 100), 1);
     EXPECT_EQ(slideio::ConverterTools::computeNumZoomLevels(1000, 100), 1);

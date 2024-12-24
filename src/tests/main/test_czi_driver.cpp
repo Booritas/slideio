@@ -8,6 +8,8 @@
 #include "tests/testlib/testtools.hpp"
 #include <boost/algorithm/string/predicate.hpp>
 
+
+#include "slideio/core/tools/tools.hpp"
 #include "slideio/slideio/scene.hpp"
 #include "slideio/core/tools/cvtools.hpp"
 #include "slideio/imagetools/imagetools.hpp"
@@ -658,7 +660,7 @@ TEST(CZIImageDriver, zoomLevels)
         const slideio::LevelInfo* level = scene->getZoomLevelInfo(levelIndex);
         EXPECT_EQ(*level, levels[levelIndex]);
         if (levelIndex == 0) {
-            EXPECT_EQ(level->getSize(), rect.size());
+            EXPECT_EQ(level->getSize(), slideio::Tools::cvSizeToSize(rect.size()));
         }
 
     }

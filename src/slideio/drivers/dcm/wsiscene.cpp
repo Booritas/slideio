@@ -66,7 +66,7 @@ void WSIScene::init() {
 		level.setSize({ file->getWidth(), file->getHeight() });
 		level.setScale(file->getScale());
 		level.setMagnification(getMagnification() * file->getScale());
-		level.setTileSize(file->getTileSize());
+		level.setTileSize(Tools::cvSizeToSize(file->getTileSize()));
     }
 }
 

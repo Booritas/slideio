@@ -46,13 +46,15 @@ TEST(PKEImageDriver, openBrightFieldFile) {
     for(int zoomLevel=0; zoomLevel<zoomLevels; zoomLevel++) {
         const LevelInfo* levelInfo = scene->getZoomLevelInfo(zoomLevel);
         EXPECT_DOUBLE_EQ(20./(1<<zoomLevel), levelInfo->getMagnification());
-        EXPECT_EQ(cv::Size(30720 / (1 << zoomLevel), 26640 / (1 << zoomLevel)), levelInfo->getSize());
+        Size size1(30720 / (1 << zoomLevel), 26640 / (1 << zoomLevel));
+        Size size2 = levelInfo->getSize();
+        EXPECT_EQ(size1, size2);
         EXPECT_DOUBLE_EQ(1. / (1 << zoomLevel), levelInfo->getScale());
         if(zoomLevel<4) {
-            EXPECT_EQ(cv::Size(512,512),levelInfo->getTileSize());
+            EXPECT_EQ(Size(512,512),levelInfo->getTileSize());
         }
         else {
-            EXPECT_EQ(cv::Size(0,0), levelInfo->getTileSize());
+            EXPECT_EQ(Size(0,0), levelInfo->getTileSize());
         }
     }
 }
@@ -85,13 +87,13 @@ TEST(PKEImageDriver, openFLFile) {
     for (int zoomLevel = 0; zoomLevel < zoomLevels; zoomLevel++) {
         const LevelInfo* levelInfo = scene->getZoomLevelInfo(zoomLevel);
         EXPECT_DOUBLE_EQ(10. / (1 << zoomLevel), levelInfo->getMagnification());
-        EXPECT_EQ(cv::Size(rectScene.width / (1 << zoomLevel), rectScene.height / (1 << zoomLevel)), levelInfo->getSize());
+        EXPECT_EQ(Size(rectScene.width / (1 << zoomLevel), rectScene.height / (1 << zoomLevel)), levelInfo->getSize());
         EXPECT_DOUBLE_EQ(1. / (1 << zoomLevel), levelInfo->getScale());
         if (zoomLevel < (zoomLevels-1)) {
-            EXPECT_EQ(cv::Size(512, 512), levelInfo->getTileSize());
+            EXPECT_EQ(Size(512, 512), levelInfo->getTileSize());
         }
         else {
-            EXPECT_EQ(cv::Size(0, 0), levelInfo->getTileSize());
+            EXPECT_EQ(Size(0, 0), levelInfo->getTileSize());
         }
     }
     const std::list<std::string> expectedChannelNames = { "DAPI","FITC","CY3","Texas Red", "CY5" };

@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <jpeglib.h>
 #include <boost/format.hpp>
-#include <opencv2/core/mat.hpp>
+#include <opencv2/core.hpp>
 
 void jpeglibDecode(const uint8_t* jpg_buffer, size_t jpg_size, cv::OutputArray output)
 {

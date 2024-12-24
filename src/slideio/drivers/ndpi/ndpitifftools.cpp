@@ -2,27 +2,26 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 //
-#include <stdarg.h>
-#include <stddef.h>
-#include <setjmp.h>
-#include <opencv2/core.hpp>
-#include <boost/format.hpp>
-#include <boost/filesystem.hpp>
-#include <jxrcodec/jxrcodec.hpp>
-
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/drivers/ndpi/ndpilibtiff.hpp"
 #include "slideio/drivers/ndpi/ndpitifftools.hpp"
-
-#include <codecvt>
-#include <opencv2/imgproc.hpp>
-
+#include "slideio/base/log.hpp"
 #include "slideio/core/tools/cvtools.hpp"
 #include <jpeglib.h>
 #include "ndpifile.hpp"
 #include "slideio/core/tools/blocktiler.hpp"
 #include "slideio/core/tools/cachemanager.hpp"
 #include "slideio/imagetools/imagetools.hpp"
+
+
+#include <codecvt>
+#include <opencv2/imgproc.hpp>
+#include <setjmp.h>
+#include <opencv2/core.hpp>
+#include <boost/format.hpp>
+#include <boost/filesystem.hpp>
+#include <jxrcodec/jxrcodec.hpp>
+
 
 const int NDPI_RESTART_MARKERS = 65426;
 

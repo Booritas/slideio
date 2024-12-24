@@ -11,6 +11,7 @@
 #include "slideio/drivers/pke/pketiledscene.hpp"
 #include "slideio/imagetools/tifftools.hpp"
 #include "slideio/base/base.hpp"
+#include "slideio/base/log.hpp"
 
 #include <boost/filesystem.hpp>
 #include <boost/format.hpp>

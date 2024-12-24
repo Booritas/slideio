@@ -61,6 +61,7 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     target_link_options(${LIBRARY_NAME} PRIVATE "-Wl,-Bsymbolic")
 endif()
 
+FIX_MACOS_RPATH(${LIBRARY_NAME})
 
 IF(APPLE)
     add_custom_command(TARGET ${SLIDEIO_LIB_NAME} PRE_BUILD

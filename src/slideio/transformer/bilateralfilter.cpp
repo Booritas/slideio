@@ -14,7 +14,7 @@ void BilateralFilter::applyTransformation(const cv::Mat& block, cv::OutputArray 
 
 std::vector<DataType> BilateralFilter::computeChannelDataTypes(const std::vector<DataType>& channels) const
 {
-    return Transformation::computeChannelDataTypes(channels);
+    return TransformationEx::computeChannelDataTypes(channels);
 }
 
 int BilateralFilter::getInflationValue() const

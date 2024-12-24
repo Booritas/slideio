@@ -10,6 +10,7 @@
 #include "slideio/imagetools/tifftools.hpp"
 #include "slideio/converter/converter.hpp"
 #include "slideio/converter/converterparameters.hpp"
+#include "slideio/base/log.hpp"
 
 using namespace slideio;
 
@@ -27,7 +28,7 @@ static void convertToSVS(CVScenePtr scene, ConverterParameters& params, const st
             const auto& block = params.getRect();
             int width = rect.width;
             int height = rect.height;
-            if(block.isValid()) {
+            if(block.valid()) {
                 width = block.width;
                 height = block.height;
             }
