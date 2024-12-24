@@ -86,23 +86,13 @@ ENDIF(APPLE)
 IF(WIN32)
     file(GLOB GLOG_LIBS_DEBUG "${glog_BIN_DIRS_DEBUG}/*.*")
     file(GLOB GLOG_LIBS_RELEASE "${glog_BIN_DIRS_RELEASE}/*.*")
-    file(GLOB OPENCV_LIBS_DEBUG "${opencv_BIN_DIRS_DEBUG}/*.*")
-    file(GLOB OPENCV_LIBS_RELEASE "${opencv_BIN_DIRS_RELEASE}/*.*")
 ELSE()
     file(GLOB GLOG_LIBS_DEBUG "${glog_LIB_DIRS_DEBUG}/*.*")
     file(GLOB GLOG_LIBS_RELEASE "${glog_LIB_DIRS_RELEASE}/*.*")
-    file(GLOB OPENCV_LIBS_DEBUG "${opencv_LIB_DIRS_DEBUG}/*.*")
-    file(GLOB OPENCV_LIBS_RELEASE "${opencv_LIB_DIRS_RELEASE}/*.*")
 ENDIF(WIN32)
 
 install(FILES
     "$<$<CONFIG:Debug>:${GLOG_LIBS_DEBUG}>"
     "$<$<CONFIG:Release>:${GLOG_LIBS_RELEASE}>"
-    DESTINATION bin
-)
-
-install(FILES
-    "$<$<CONFIG:Debug>:${OPENCV_LIBS_DEBUG}>"
-    "$<$<CONFIG:Release>:${OPENCV_LIBS_RELEASE}>"
     DESTINATION bin
 )
