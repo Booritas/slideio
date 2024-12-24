@@ -38,3 +38,4 @@ src/py-bind/slideio/core/libs/
 **/cmake/
 CMakeUserPresets.json
 ### End Conan ###
+install/

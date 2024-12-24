@@ -210,6 +210,24 @@ def build_slideio(configuration):
         print(cmd)
         subprocess.check_call(cmd, stderr=subprocess.STDOUT)
 
+def install_slideio(configuration, prefix):
+    os_platform = get_platform()
+    print("Start build")
+    if os_platform=="Windows":
+        cmake = "cmake.exe"
+    else:
+        cmake = "cmake"
+
+    if configuration["release"]:
+        cmd = [cmake, "--install", configuration["build_release_directory"], "--prefix", prefix["release"], "--config", "Release"]
+        print(cmd)
+        subprocess.check_call(cmd, stderr=subprocess.STDOUT)
+    if configuration["debug"]:
+        cmd = [cmake, "--install", configuration["build_debug_directory"],"--prefix", prefix["debug"], "--config", "Debug"]
+        print(cmd)
+        subprocess.check_call(cmd, stderr=subprocess.STDOUT)
+
+
 if __name__ == "__main__":
     action_help = """Type of action:
         conan:      run conan to prepare cmake files for 3rd party packages
@@ -218,14 +236,16 @@ if __name__ == "__main__":
         install:    install the software"""
     config_help = "Software configuration to be configured and build. Select from release, debug or all."
     parser = argparse.ArgumentParser(formatter_class=RawTextHelpFormatter, description='Configuration, building and installation of the slideio library.')
-    parser.add_argument('-a','--action', choices=['clean','conan','configure', 'configure-only', 'build', 'build-only', 'test', 'install'], default='configure', help=action_help)
+    parser.add_argument('-a','--action', choices=['conan','configure', 'configure-only', 'build', 'build-only', 'install', 'install-only'], default='configure', help=action_help)
     parser.add_argument('-c', '--config', choices=['release','debug', 'all'], default='all', help = config_help)
     parser.add_argument('--clean', action='store_true', help = 'Clean before build. Add this flag if you want to clean build folders before the build.')
+    parser.add_argument('--prefix', help = 'Path to the installation directory')
     args = parser.parse_args()
     os_platform = get_platform()
     slideio_directory = os.getcwd()
     root_directory = os.path.dirname(slideio_directory)
     build_directory = os.path.join(slideio_directory, "build", os_platform)
+    install_directory = os.path.join(slideio_directory, "install", os_platform)
     print("----------Installattion of slideio-----------------")
     print(F"Slideio directory: {slideio_directory}")
     print(F"Build directory: {build_directory}")
@@ -259,10 +279,23 @@ if __name__ == "__main__":
         configuration["debug"] = False
     if args.action in ['clean']:
         clean_prev_build(slideio_directory, build_directory)
-    else:
-        if not args.action in ['build-only', 'configure-only']:
+    else:        
+        if args.action in ['conan', 'configure', 'build', 'install']:
             configure_conan(slideio_directory, configuration)
-        if args.action in ['configure','configure-only', 'build','build-only']:
+        if args.action in ['configure','configure-only', 'build', 'install']:
             configure_slideio(configuration)
-        if args.action in ['build','build-only']:
+        if args.action in ['build','build-only', 'install']:
             build_slideio(configuration)
+        if args.action in ['install','install-only']:
+            prefix = {}
+            prefix_path = args.prefix
+            if not prefix_path:
+                prefix_path = install_directory
+            if args.config == 'release':
+                prefix["release"] = prefix_path
+            elif args.config == 'debug':
+                prefix["debug"] = prefix_path
+            else:
+                prefix["release"] = os.path.join(prefix_path, "release")
+                prefix["debug"] = os.path.join(prefix_path, "debug")
+            install_slideio(configuration, prefix)

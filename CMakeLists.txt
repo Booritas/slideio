@@ -136,3 +136,106 @@ ENDMACRO(HIDE_LIB)
 
 add_subdirectory(src)
 
+# Install the library
+install(TARGETS 
+             ${SLIDEIO_LIB_NAME}
+             ${CORE_LIB_NAME}
+             ${CONVERTER_LIB_NAME}
+             ${TRANSFORMER_LIB_NAME}
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
+    RUNTIME DESTINATION bin
+)
+
+install(TARGETS 
+             ${BASE_LIB_NAME}
+             ${GDAL_DRIVER_NAME}
+             ${SVS_DRIVER_NAME}
+             ${PKE_DRIVER_NAME} 
+             ${AFI_DRIVER_NAME} 
+             ${CZI_DRIVER_NAME} 
+             ${DCM_DRIVER_NAME} 
+             ${SCN_DRIVER_NAME} 
+             ${ZVI_DRIVER_NAME} 
+             ${NDPI_DRIVER_NAME} 
+             ${VSI_DRIVER_NAME}
+             ${CORE_LIB_NAME}
+             ${IMAGETOOLS_LIB_NAME}
+    RUNTIME DESTINATION bin
+)
+
+
+if(NOT WIN32)
+    install(TARGETS 
+                 ${BASE_LIB_NAME}
+                 ${GDAL_DRIVER_NAME}
+                 ${SVS_DRIVER_NAME}
+                 ${PKE_DRIVER_NAME} 
+                 ${AFI_DRIVER_NAME} 
+                 ${CZI_DRIVER_NAME} 
+                 ${DCM_DRIVER_NAME} 
+                 ${SCN_DRIVER_NAME} 
+                 ${ZVI_DRIVER_NAME} 
+                 ${NDPI_DRIVER_NAME} 
+                 ${VSI_DRIVER_NAME}
+                 ${CORE_LIB_NAME}
+                 ${IMAGETOOLS_LIB_NAME}
+                 ${SLIDEIO_LIB_NAME}
+                 ${CONVERTER_LIB_NAME}
+                 ${TRANSFORMER_LIB_NAME}
+            LIBRARY DESTINATION bin
+    )
+endif()
+
+install(FILES 
+    ${INCLUDE_ROOT}/slideio/base/base.hpp 
+    ${INCLUDE_ROOT}/slideio/base/rect.hpp 
+    ${INCLUDE_ROOT}/slideio/base/size.hpp 
+    ${INCLUDE_ROOT}/slideio/base/resolution.hpp
+    ${INCLUDE_ROOT}/slideio/base/slideio_base_def.hpp
+    ${INCLUDE_ROOT}/slideio/base/slideio_enums.hpp
+    ${INCLUDE_ROOT}/slideio/base/slideio_structs.hpp
+    DESTINATION include/slideio/base)
+
+install(FILES 
+    ${INCLUDE_ROOT}/slideio/converter/converterparameters.hpp 
+    ${INCLUDE_ROOT}/slideio/converter/convertercallback.hpp 
+    ${INCLUDE_ROOT}/slideio/converter/converter_def.hpp 
+    ${INCLUDE_ROOT}/slideio/converter/converter.hpp
+    DESTINATION include/slideio/converter)
+
+
+install(FILES 
+    ${INCLUDE_ROOT}/slideio/core/slideio_core_def.hpp 
+    ${INCLUDE_ROOT}/slideio/core/levelinfo.hpp 
+    DESTINATION include/slideio/core)
+
+install(FILES 
+    ${INCLUDE_ROOT}/slideio/imagetools/encodeparameters.hpp 
+    DESTINATION include/slideio/imagetools)
+
+install(FILES 
+    ${INCLUDE_ROOT}/slideio/slideio/slideio_def.hpp 
+    ${INCLUDE_ROOT}/slideio/slideio/slideio.hpp 
+    ${INCLUDE_ROOT}/slideio/slideio/slide.hpp 
+    ${INCLUDE_ROOT}/slideio/slideio/scene.hpp 
+    DESTINATION include/slideio/slideio)
+
+install(FILES 
+    ${INCLUDE_ROOT}/slideio/transformer/wrappers.hpp
+    ${INCLUDE_ROOT}/slideio/transformer/transformer_def.hpp
+    ${INCLUDE_ROOT}/slideio/transformer/transformer.hpp
+    ${INCLUDE_ROOT}/slideio/transformer/transformationwrapper.hpp
+    ${INCLUDE_ROOT}/slideio/transformer/transformationtype.hpp
+    ${INCLUDE_ROOT}/slideio/transformer/transformations.hpp
+    ${INCLUDE_ROOT}/slideio/transformer/transformation.hpp
+    ${INCLUDE_ROOT}/slideio/transformer/sobelfilterwrap.hpp
+    ${INCLUDE_ROOT}/slideio/transformer/scharrfilterwrap.hpp
+    ${INCLUDE_ROOT}/slideio/transformer/medianblurfilterwrap.hpp
+    ${INCLUDE_ROOT}/slideio/transformer/laplacianfilterwrap.hpp
+    ${INCLUDE_ROOT}/slideio/transformer/gaussianblurfilterwrap.hpp
+    ${INCLUDE_ROOT}/slideio/transformer/colortransformationwrap.hpp
+    ${INCLUDE_ROOT}/slideio/transformer/colorspace.hpp
+    ${INCLUDE_ROOT}/slideio/transformer/cannyfilterwrap.hpp
+    ${INCLUDE_ROOT}/slideio/transformer/bilateralfilterwrap.hpp
+    DESTINATION include/slideio/transformer)
