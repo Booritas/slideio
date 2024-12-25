@@ -257,16 +257,31 @@ if __name__ == "__main__":
     parser.add_argument('-a','--action', choices=['conan','configure', 'configure-only', 'build', 'build-only', 'install', 'install-only', 'clean'], default='configure', help=action_help)
     parser.add_argument('-c', '--config', choices=['release','debug', 'all'], default='all', help = config_help)
     parser.add_argument('--clean', action='store_true', help = 'Clean before build. Add this flag if you want to clean build folders before the build.')
-    parser.add_argument('--prefix', help = 'Path to the installation directory')
+    parser.add_argument('-pr', '--prefix', help = 'Path to the installation directory')
+    parser.add_argument('-bd', '--build_dir', help = 'Path to the build directory')
     args = parser.parse_args()
     os_platform = get_platform()
     slideio_directory = os.getcwd()
     root_directory = os.path.dirname(slideio_directory)
-    build_directory = os.path.join(slideio_directory, "build", os_platform)
-    install_directory = os.path.join(slideio_directory, "install", os_platform)
+    
+    build_prefix = args.build_dir
+    if not build_prefix:
+        build_prefix = "build"
+    if os.path.isabs(build_prefix):
+        build_directory = build_prefix
+    else:
+        build_directory = os.path.join(slideio_directory, build_prefix)
+        
+    install_directory = args.prefix
+    if not install_directory:
+        install_directory = os.path.join(build_directory, "install")
+    if not os.path.isabs(install_directory):
+        install_directory = os.path.join(slideio_directory, install_directory)
+        
     print("----------Installattion of slideio-----------------")
     print(F"Slideio directory: {slideio_directory}")
     print(F"Build directory: {build_directory}")
+    print(F"Install directory: {install_directory}")
     print(F"Platform: {platform.system()}")
     print(F"Processor: {platform.processor()}")
     print("---------------------------------------------------")
@@ -306,9 +321,7 @@ if __name__ == "__main__":
             build_slideio(configuration)
         if args.action in ['install','install-only']:
             prefix = {}
-            prefix_path = args.prefix
-            if not prefix_path:
-                prefix_path = install_directory
+            prefix_path = install_directory
             if args.config == 'release':
                 prefix["release"] = prefix_path
             elif args.config == 'debug':
