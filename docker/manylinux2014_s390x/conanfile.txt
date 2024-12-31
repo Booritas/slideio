@@ -14,7 +14,7 @@ libxml2/2.12.5
 gtest/cci.20210126
 xz_utils/5.4.5
 libtiff/4.6.0
-glog/0.6.0@slideio/stable
+glog/0.7.1@slideio/stable
 libpng/1.6.39
 opencv/4.10.0@slideio/stable
 libjpeg/9e

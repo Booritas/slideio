@@ -1,5 +1,5 @@
 [requires]
-glog/0.6.0@slideio/stable
+glog/0.7.1@slideio/stable
 opencv/4.10.0@slideio/stable
 openjpeg/2.5.0
 libpng/1.6.40

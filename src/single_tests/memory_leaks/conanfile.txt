@@ -1,5 +1,5 @@
 [requires]
-glog/0.6.0@slideio/stable
+glog/0.7.1@slideio/stable
 gtest/cci.20210126
 opencv/4.10.0@slideio/stable
 zlib/1.2.13
