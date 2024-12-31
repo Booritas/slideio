@@ -73,7 +73,7 @@ invoke_conan_create() {
 original_dir=$(pwd)
 
 create_conan_recipes() {
-    invoke_conan_create "recipes/glog/all" "0.6.0"
+    invoke_conan_create "recipes/glog/all" "0.7.1"
     invoke_conan_create "recipes/opencv/4.x" "4.10.0"
     invoke_conan_create "recipes/jpegxrcodec/all" "1.0.3"
     invoke_conan_create "recipes/ndpi-libjpeg-turbo/all" "2.1.2"

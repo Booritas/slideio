@@ -27,7 +27,7 @@ function Invoke-ConanCreate {
 }
 
 try {
-    Invoke-ConanCreate -FolderPath "recipes\glog\all" -Version "0.6.0"
+    Invoke-ConanCreate -FolderPath "recipes\glog\all" -Version "0.7.1"
     Invoke-ConanCreate -FolderPath "recipes\opencv\4.x" -Version "4.10.0"
     Invoke-ConanCreate -FolderPath "recipes\jpegxrcodec\all" -Version "1.0.3"
     Invoke-ConanCreate -FolderPath "recipes\ndpi-libjpeg-turbo\all" -Version "2.1.2"
