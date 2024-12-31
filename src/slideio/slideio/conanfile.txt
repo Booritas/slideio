@@ -1,7 +1,7 @@
 [requires]
 boost/1.86.0
 sqlite3/3.44.2
-glog/0.7.1@slideio/stable
+glog/0.7.1
 opencv/4.10.0@slideio/stable
 zlib/1.2.13
 [options]

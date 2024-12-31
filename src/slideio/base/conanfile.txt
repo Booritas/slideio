@@ -1,6 +1,6 @@
 [requires]
 boost/1.86.0
-glog/0.7.1@slideio/stable
+glog/0.7.1
 [generators]
 CMakeDeps
 CMakeToolchain
