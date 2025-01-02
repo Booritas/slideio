@@ -2,9 +2,9 @@ cmake_minimum_required(VERSION 3.10)
 cmake_policy(SET CMP0057 NEW)
 cmake_policy(SET CMP0091 NEW)
 
-IF(WIN32 OR UNIX)
+if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.30")
     cmake_policy(SET CMP0167 NEW)
-ENDIF()
+endif()
 
 set(PROJECT_NAME slide_io)
 set(projectVersion 2.7.0)
