@@ -84,8 +84,7 @@ def collect_profiles(profile_dir, configuration, compiler=""):
     if is_linux() and compiler=="":
         compiler = "ubuntu"
         plt = distro.id()
-        print(plt)
-        if plt[0] != "ubuntu":
+        if plt != "ubuntu":
             compiler = "manylinux"
         compiler_dir = os.path.join(profile_dir, compiler)
     if is_osx():
