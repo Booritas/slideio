@@ -49,10 +49,8 @@ std::string CZISlide::getFilePath() const
 
 std::shared_ptr<CVScene> CZISlide::getScene(int index) const
 {
-    if(index<0 || index>=getNumScenes())
-    {
-        throw std::runtime_error(
-            (boost::format("CZIImageDriver: Invalid scene index %1%") % index).str());
+    if(index<0 || index>=getNumScenes()) {
+        RAISE_RUNTIME_ERROR << "CZIImageDriver: Invalid scene index: " << index;
     }
 
 	return m_scenes[index];
@@ -76,9 +74,7 @@ void CZISlide::readBlock(uint64_t pos, uint64_t size, std::vector<unsigned char>
 std::shared_ptr<CVScene> CZISlide::getAuxImage(const std::string& sceneName) const {
     auto it = m_auxImages.find(sceneName);
     if(it==m_auxImages.end()) {
-        throw std::runtime_error(
-            (boost::format("CZIImageDriver: unknown auxiliary image %1%") % sceneName).str()
-        );
+        RAISE_RUNTIME_ERROR << "CZIImageDriver: unknown auxiliary image: " << sceneName;
     }
     return it->second;
 }
@@ -286,8 +282,7 @@ void CZISlide::readMetadata()
     m_fileStream.read((char*)&header, sizeof(header));
     if (strncmp(header.SID, SID_METADATA, sizeof(SID_METADATA)) != 0)
     {
-        throw std::runtime_error(
-            (boost::format("CZIImageDriver: invalid metadata segment in file %1%.") % m_filePath).str());
+        RAISE_RUNTIME_ERROR << "CZIImageDriver: invalid metadata segment in file: " << m_filePath;
     }
     // read metadata header
     MetadataHeader metadataHeader{};
@@ -306,10 +301,8 @@ void CZISlide::readFileHeader(FileHeader& fileHeader) {
     uint64_t pos = m_fileStream.tellg();
     SegmentHeader header{};
     m_fileStream.read(reinterpret_cast<char*>(&header), sizeof(header));
-    if (strncmp(header.SID, SID_FILES, sizeof(SID_FILES)) != 0)
-    {
-        throw std::runtime_error(
-            (boost::format("CZIImageDriver: file %1% is not a CZI file.") % m_filePath).str());
+    if (strncmp(header.SID, SID_FILES, sizeof(SID_FILES)) != 0) {
+        RAISE_RUNTIME_ERROR << "CZIImageDriver:" << m_filePath << " is not a CZI file.";
     }
     m_fileStream.read(reinterpret_cast<char*>(&fileHeader), sizeof(fileHeader));
 }
@@ -328,10 +321,8 @@ void CZISlide::readSubBlocks(uint64_t directoryPosition, uint64_t originPos, std
     // read segment header
     SegmentHeader header{};
     m_fileStream.read(reinterpret_cast<char*>(&header), sizeof(header));
-    if (strncmp(header.SID, SID_DIRECTORY, sizeof(SID_DIRECTORY)) != 0)
-    {
-        throw std::runtime_error(
-            (boost::format("CZIImageDriver: invalid directory segment of file %1%.") % m_filePath).str());
+    if (strncmp(header.SID, SID_DIRECTORY, sizeof(SID_DIRECTORY)) != 0) {
+        RAISE_RUNTIME_ERROR << "CZIImageDriver: invalid directory segment of file " << m_filePath;
     }
     DirectoryHeader directoryHeader{};
     m_fileStream.read(reinterpret_cast<char*>(&directoryHeader), sizeof(directoryHeader));
@@ -499,9 +490,7 @@ void CZISlide::addAuxiliaryImage(const std::string& name, const std::string& typ
             createJpgAttachmentScenes(dataPosition, dataSize, name);
         }
         else {
-            throw std::runtime_error(
-                (boost::format("CZIImageDriver: unexpected attachment image type %1%") % typeName).str()
-            );
+            RAISE_RUNTIME_ERROR << "CZIImageDriver: unexpected attachment image type " << typeName;
         }
     }
 }
