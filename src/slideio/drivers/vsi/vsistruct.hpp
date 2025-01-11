@@ -3,6 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 #pragma once
 #include "slideio/drivers/vsi/vsi_api_def.hpp"
+#include <cstdint>
 
 namespace slideio
 {

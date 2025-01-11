@@ -20,9 +20,7 @@ add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES})
 set_target_properties(${LIBRARY_NAME} PROPERTIES OUTPUT_NAME "${LIBRARY_NAME}${LIB_NAME_SUFFIX}")
 
 
-find_package(Boost REQUIRED)
 find_package(glog REQUIRED)
-target_link_libraries(${LIBRARY_NAME} boost::boost)
 target_link_libraries(${LIBRARY_NAME} glog::glog)
 
 IF(WIN32)

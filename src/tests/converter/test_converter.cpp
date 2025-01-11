@@ -4,7 +4,7 @@
 #include "slideio/slideio/slideio.hpp"
 #include "slideio/slideio/scene.hpp"
 #include "slideio/base/exceptions.hpp"
-#include <boost/filesystem.hpp>
+#include <filesystem>
 
 #include "slideio/converter/converterparameters.hpp"
 #include "slideio/core/cvslide.hpp"
@@ -26,8 +26,8 @@ TEST(Converter, convertGDALJpeg)
 
 	slideio::TempFile tmp("svs");
 	std::string outputPath = tmp.getPath().string();
-	if(boost::filesystem::exists(outputPath)) {
-		boost::filesystem::remove(outputPath);
+	if(std::filesystem::exists(outputPath)) {
+		std::filesystem::remove(outputPath);
 	}
     slideio::SVSJpegConverterParameters parameters;
 	parameters.setQuality(99);
@@ -59,8 +59,8 @@ TEST(Converter, convertGDALJp2K)
 	ASSERT_TRUE(scene.get() != nullptr);
 
 	std::string outputPath = TestTools::getTestImagePath("gdal", "Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.svs");
-	if (boost::filesystem::exists(outputPath)) {
-		boost::filesystem::remove(outputPath);
+	if (std::filesystem::exists(outputPath)) {
+		std::filesystem::remove(outputPath);
 	}
 	slideio::SVSJp2KConverterParameters parameters;
 	slideio::convertScene(scene, parameters, outputPath);
@@ -143,8 +143,8 @@ TEST(Converter, fromMultipleScenes)
 	parameters.setRect(rect);
     const slideio::TempFile tmp("svs");
     const std::string outputPath = tmp.getPath().string();
-	if (boost::filesystem::exists(outputPath)) {
-		boost::filesystem::remove(outputPath);
+	if (std::filesystem::exists(outputPath)) {
+		std::filesystem::remove(outputPath);
 	}
 	slideio::convertScene(scene, parameters, outputPath);
 	SlidePtr outputSlide = slideio::openSlide(outputPath);
@@ -203,8 +203,8 @@ TEST(Converter, from3DScene)
 	parameters.setRect(rect);
 	const slideio::TempFile tmp("svs");
 	const std::string outputPath = tmp.getPath().string();
-	if (boost::filesystem::exists(outputPath)) {
-		boost::filesystem::remove(outputPath);
+	if (std::filesystem::exists(outputPath)) {
+		std::filesystem::remove(outputPath);
 	}
 	slideio::convertScene(scene, parameters, outputPath);
 	SlidePtr outputSlide = slideio::openSlide(outputPath);
@@ -261,8 +261,8 @@ TEST(Converter, jpeg2k4channelsScene)
 	parameters.setRect(rect);
 	const slideio::TempFile tmp("svs");
 	const std::string outputPath = tmp.getPath().string();
-	if (boost::filesystem::exists(outputPath)) {
-		boost::filesystem::remove(outputPath);
+	if (std::filesystem::exists(outputPath)) {
+		std::filesystem::remove(outputPath);
 	}
 	slideio::convertScene(scene, parameters, outputPath);
 	SlidePtr outputSlide = slideio::openSlide(outputPath);
@@ -317,8 +317,8 @@ TEST(Converter, invalidRegions)
 	parameters.setRect(rect);
 	const slideio::TempFile tmp("svs");
 	const std::string outputPath = tmp.getPath().string();
-	if (boost::filesystem::exists(outputPath)) {
-		boost::filesystem::remove(outputPath);
+	if (std::filesystem::exists(outputPath)) {
+		std::filesystem::remove(outputPath);
 	}
 	slideio::convertScene(scene, parameters, outputPath);
 	SlidePtr outputSlide = slideio::openSlide(outputPath);
@@ -354,8 +354,8 @@ TEST(Converter, jpeg2k)
 	slideio::SVSJp2KConverterParameters parameters;
 	const slideio::TempFile tmp("svs");
 	const std::string outputPath = tmp.getPath().string();
-	if (boost::filesystem::exists(outputPath)) {
-		boost::filesystem::remove(outputPath);
+	if (std::filesystem::exists(outputPath)) {
+		std::filesystem::remove(outputPath);
 	}
 	auto sceneRect = scene->getRect();
 	int width = std::get<2>(sceneRect);
@@ -400,8 +400,8 @@ TEST(Converter, jpeg2kBorderTiles)
 	slideio::SVSJp2KConverterParameters parameters;
 	const slideio::TempFile tmp("svs");
 	const std::string outputPath = tmp.getPath().string();
-	if (boost::filesystem::exists(outputPath)) {
-		boost::filesystem::remove(outputPath);
+	if (std::filesystem::exists(outputPath)) {
+		std::filesystem::remove(outputPath);
 	}
 	auto sceneRect = scene->getRect();
 	int width = std::get<2>(sceneRect);
@@ -460,8 +460,8 @@ TEST(Converter, metadata)
 	parameters.setRect(rect);
 	const slideio::TempFile tmp("svs");
 	const std::string outputPath = tmp.getPath().string();
-	if (boost::filesystem::exists(outputPath)) {
-		boost::filesystem::remove(outputPath);
+	if (std::filesystem::exists(outputPath)) {
+		std::filesystem::remove(outputPath);
 	}
 	slideio::convertScene(scene, parameters, outputPath);
 	SlidePtr outputSlide = slideio::openSlide(outputPath);
@@ -515,8 +515,8 @@ TEST(Converter, intData)
 	parameters.setRect(rect);
 	const slideio::TempFile tmp("svs");
 	const std::string outputPath = tmp.getPath().string();
-	if (boost::filesystem::exists(outputPath)) {
-		boost::filesystem::remove(outputPath);
+	if (std::filesystem::exists(outputPath)) {
+		std::filesystem::remove(outputPath);
 	}
 	slideio::convertScene(scene, parameters, outputPath);
 	SlidePtr outputSlide = slideio::openSlide(outputPath);

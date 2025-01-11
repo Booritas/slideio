@@ -5,9 +5,7 @@
 #include "slideio/drivers/czi/cziscene.hpp"
 #include "slideio/drivers/czi/czistructs.hpp"
 #include "slideio/core/tools/xmltools.hpp"
-#include <boost/algorithm/string.hpp>
-#include <boost/filesystem.hpp>
-#include <boost/format.hpp>
+#include <filesystem>
 #include <tinyxml2.h>
 #include <set>
 
@@ -167,9 +165,8 @@ void CZISlide::parseMetadataXmL(const char* xmlString, size_t dataSize)
 {
     XMLDocument doc;
     XMLError error = doc.Parse(xmlString, dataSize);
-    if (error != XML_SUCCESS)
-    {
-        throw std::runtime_error("CZIImageDriver: Error parsing metadata xml");
+    if (error != XML_SUCCESS)  {
+        RAISE_RUNTIME_ERROR << "CZIImageDriver: Error parsing metadata xml";
     }
     const std::vector<std::string> titlePath = {
         "ImageDocument","Metadata","Information", "Document","Title"
@@ -292,7 +289,7 @@ void CZISlide::readMetadata()
     // read metadata xml
     m_fileStream.read(xmlString.data(), xmlSize);
     m_rawMetadata.assign(xmlString.data(), xmlSize);
-    boost::replace_all(m_rawMetadata,"\r\n","\n");
+    Tools::replaceAll(m_rawMetadata, "\r\n", "\n");
     parseMetadataXmL(xmlString.data(), xmlSize);
 }
 
@@ -512,7 +509,7 @@ void CZISlide::createCZIAttachmentScenes(const int64_t dataPos, int64_t dataSize
         std::shared_ptr<CZIScene> scene = constructScene(sceneId, blocks);
         std::string sceneName = attachmentName;
         if (multiScene) {
-            sceneName += (boost::format("(%1%)") % (sceneIndex + 1)).str();
+            sceneName += std::string("(") + std::to_string(sceneIndex + 1) + std::string(")");
         }
         m_auxImages[sceneName] = scene;
         m_auxNames.push_back(sceneName);

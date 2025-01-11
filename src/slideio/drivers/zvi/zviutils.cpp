@@ -1,12 +1,10 @@
 // This file is part of slideio project.
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
-
+#include "slideio/base/exceptions.hpp"
 #include "zviutils.hpp"
-#include <boost/algorithm/string.hpp>
-#include <boost/format.hpp>
-
 #include "zvipixelformat.hpp"
+#include <locale>
 using namespace slideio;
 
 void ZVIUtils::skipItem(ole::basic_stream& stream)
@@ -200,9 +198,7 @@ ZVIUtils::Variant ZVIUtils::readItem(ole::basic_stream& stream, bool skipUnusedT
         offset = 8;
         break;
     default:
-        throw std::runtime_error(
-            (boost::format("ZVIImageDriver: Unsuported item type: %1%. By reading to a variant.") % type).str()
-        );
+        RAISE_RUNTIME_ERROR << "ZVIImageDriver: Unsuported item type: " << type;
     }
     if(offset>0)
     {
@@ -226,17 +222,13 @@ ZVIUtils::StreamKeeper::StreamKeeper(ole::compound_document& doc, const std::str
 
     if(storagePos == doc.end())
     {
-        throw std::runtime_error(
-            (boost::format("ZVIImageDriver: Invalid storage path: %1%") % storagePath).str()
-        );
+        RAISE_RUNTIME_ERROR << "ZVIImageDriver: Invalid storage path: " << storagePath;
     }
 
     m_StreamPos = storagePos->find_stream(path);
     if(m_StreamPos == storagePos->end())
     {
-        throw std::runtime_error(
-            (boost::format("ZVIImageDriver: Invalid stream path: %1%") % path).str()
-        );
+        RAISE_RUNTIME_ERROR << "ZVIImageDriver: Invalid stream path: " << path;
     }
 }
 
@@ -267,10 +259,7 @@ slideio::DataType ZVIUtils::dataTypeFromPixelFormat(const ZVIPixelFormat pixelFo
         break;
     case ZVIPixelFormat::PF_UNKNOWN:
     default:
-        throw std::runtime_error(
-            (boost::format("ZVIImageDriver: Invalid pixel format: %1%")
-                % (int)pixelFormat).str()
-        );
+        RAISE_RUNTIME_ERROR << "ZVIImageDriver: Invalid pixel format: " << (int)pixelFormat;
     }
     return dt;
 }
@@ -296,9 +285,7 @@ int ZVIUtils::channelCountFromPixelFormat(const ZVIPixelFormat pixelFormat)
         channels = 1;
         break;
     default:
-        throw std::runtime_error(
-            (boost::format("ZVIImageDriver: unexpected pixel format: %1%")
-                % static_cast<int>(pixelFormat)).str());
+        RAISE_RUNTIME_ERROR << "ZVIImageDriver: unexpected pixel format: " << static_cast<int>(pixelFormat);
     }
     return channels;
 }

@@ -7,6 +7,8 @@
 #include "slideio/core/tools/tools.hpp"
 #include "tests/testlib/testtools.hpp"
 #include "tests/testlib/testtools.hpp"
+#include <filesystem>
+#include "slideio/core/tools/tempfile.hpp"
 
 
 TEST(Tools, matchPattern) {
@@ -113,4 +115,122 @@ TEST(Tools, extractChannels11)
     cv::Mat expected;
     cv::merge(originalChannels, 2, expected);
     EXPECT_EQ(TestTools::countNonZero(output2 == expected), expected.total()*expected.channels());
+}
+
+TEST(Tools, replaceAll)
+{
+    // single character replacement
+    std::string str = "This is a test string";
+    slideio::Tools::replaceAll(str, " ", "_");
+    EXPECT_EQ(str, "This_is_a_test_string");
+    // empty string replacement
+    str = "";
+    slideio::Tools::replaceAll(str, " ", "_");
+    EXPECT_EQ(str, "");
+    // multiple character replacement
+    str = "This is a test string";
+    slideio::Tools::replaceAll(str, " is", "_was");
+    EXPECT_EQ(str, "This_was a test string");
+    // quoted string replacement
+    str = "\"This is a test string\"";
+    slideio::Tools::replaceAll(str, "\"", "'");
+    EXPECT_EQ(str, "'This is a test string'");
+    // not found replacement
+    str = "This is a test string";
+    slideio::Tools::replaceAll(str, "notfound", "_");
+    EXPECT_EQ(str, "This is a test string");
+    // backslash replacement
+    str = "This\\is\\a\\test\\string";
+    slideio::Tools::replaceAll(str, "\\", "/");
+    EXPECT_EQ(str, "This/is/a/test/string");   
+}
+
+TEST(Tools, split)
+{
+    // Empty string
+    std::vector<std::string> tokens = slideio::Tools::split("", ',');
+    EXPECT_TRUE(tokens.empty());
+
+    // Single token
+    tokens = slideio::Tools::split("token", ',');
+    ASSERT_EQ(tokens.size(), 1);
+    EXPECT_EQ(tokens[0], "token");
+
+    // Multiple tokens
+    tokens = slideio::Tools::split("token1,token2,token3", ',');
+    ASSERT_EQ(tokens.size(), 3);
+    EXPECT_EQ(tokens[0], "token1");
+    EXPECT_EQ(tokens[1], "token2");
+    EXPECT_EQ(tokens[2], "token3");
+
+    // Different delimiter
+    tokens = slideio::Tools::split("token1|token2|token3", '|');
+    ASSERT_EQ(tokens.size(), 3);
+    EXPECT_EQ(tokens[0], "token1");
+    EXPECT_EQ(tokens[1], "token2");
+    EXPECT_EQ(tokens[2], "token3");
+
+    // trailing delimiters
+    tokens = slideio::Tools::split("token1,token2,", ',');
+    ASSERT_EQ(tokens.size(), 3);
+    EXPECT_EQ(tokens[0], "token1");
+    EXPECT_EQ(tokens[1], "token2");
+    EXPECT_EQ(tokens[2], "");    
+
+    // Leading delimiters
+    tokens = slideio::Tools::split(",token1,token2", ',');
+    ASSERT_EQ(tokens.size(), 3);
+    EXPECT_EQ(tokens[0], "");
+    EXPECT_EQ(tokens[1], "token1");
+    EXPECT_EQ(tokens[2], "token2");
+}
+
+TEST(Tools, unique_path) {
+    // No Placeholders
+    {
+        std::string model = "testfile.txt";
+        std::filesystem::path path = slideio::TempFile::unique_path(model);
+        EXPECT_EQ(path.string(), model);
+    }
+
+    // With Placeholders
+    {
+        std::string model = "testfile_%%%%.txt";
+        std::filesystem::path path = slideio::TempFile::unique_path(model);
+        std::string pathStr = path.string();
+
+        // Check that the length is correct
+        EXPECT_EQ(pathStr.size(), model.size());
+
+        // Check that the non-placeholder parts are correct
+        EXPECT_EQ(pathStr.substr(0, 9), "testfile_");
+        EXPECT_EQ(pathStr.substr(13), ".txt");
+
+        // Check that the placeholders are replaced with alphanumeric characters
+        for (size_t i = 9; i < 13; ++i) {
+            EXPECT_TRUE(isalnum(pathStr[i]));
+        }
+    }
+
+    // Empty Model
+    {
+        std::string model = "";
+        std::filesystem::path path = slideio::TempFile::unique_path(model);
+        EXPECT_EQ(path.string(), model);
+    }
+
+    // All Placeholders
+    {
+        std::string model = "%%%%";
+        std::filesystem::path path = slideio::TempFile::unique_path(model);
+        std::string pathStr = path.string();
+
+        // Check that the length is correct
+        EXPECT_EQ(pathStr.size(), model.size());
+
+        // Check that the placeholders are replaced with alphanumeric characters
+        for (char c : pathStr) {
+            EXPECT_TRUE(isalnum(c));
+        }
+    }
 }

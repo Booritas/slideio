@@ -7,7 +7,6 @@
 #include "slideio/imagetools/imagetools.hpp"
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/imagetools/libtiff.hpp"
-#include <boost/format.hpp>
 
 
 using namespace slideio;
@@ -295,23 +294,16 @@ bool SCNScene::readTile(int tileIndex, const std::vector<int>& channelIndices, c
         for(int channelIndex:channelIndices)
         {
             auto it = info->channel2ifd.find(channelIndex);
-            if (it == info->channel2ifd.end())
-                throw std::runtime_error(
-                    (boost::format(
-                        "SCNImageDriver: invalid channel index (%1%) received during tile reading. File %2%.")
-                         % channelIndex % m_filePath).str());
+            if (it == info->channel2ifd.end()) {
+                RAISE_RUNTIME_ERROR << "SCNImageDriver: invalid channel index " 
+                    << channelIndex << " received during tile reading. File " << m_filePath;
+            }
             const TiffDirectory* dir = it->second;
             TiffTools::readTile(getFileHandle(), *dir, tileIndex, localChannelIndices, channelRasters[channel]);
             ++channel;
         }
         cv::merge(channelRasters, tileRaster);
     }
-    //{
-    //    cv::Rect tileRect;
-    //    getTileRect(tileIndex, tileRect, userData);
-    //    const std::string path = (boost::format("D:/Temp/tiles/tile_x%1%_y%2%.png") % tileRect.x % tileRect.y).str();
-    //    slideio::ImageTools::writeRGBImage(path, slideio::Compression::Png, tileRaster.getMat());
-    //}
     return true;
 }
 

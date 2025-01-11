@@ -3,8 +3,6 @@
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/imagetools/imagetools.hpp"
 #include "slideio/core/tools/cvtools.hpp"
-#include <boost/format.hpp>
-#include <boost/filesystem.hpp>
 
 #include "slideio/base/exceptions.hpp"
 #include "slideio/imagetools/gdal_lib.hpp"
@@ -39,18 +37,18 @@ void slideio::ImageTools::readGDALSubset(const std::string& filePath, cv::Output
     GDALDatasetH hFile = GDALOpen(filePath.c_str(), GA_ReadOnly);
     try
     {
-        if(hFile==nullptr)
-            throw std::runtime_error(
-                (boost::format("Cannot open file: %1% with GDAL") % filePath).str());
+        if(hFile==nullptr){
+            RAISE_RUNTIME_ERROR << "Cannot open file:" << filePath;
+        }
         const cv::Size imageSize = {GDALGetRasterXSize(hFile),GDALGetRasterYSize(hFile)};
         const int numChannels = GDALGetRasterCount(hFile);
         std::vector<cv::Mat> channels(numChannels);
         for(int channelIndex=0; channelIndex<numChannels; channelIndex++)
         {
             GDALRasterBandH hBand = GDALGetRasterBand(hFile, channelIndex+1);
-            if(hBand==nullptr)
-                throw std::runtime_error(
-                    (boost::format("Cannot open raster band from: %1%") % filePath).str());
+            if(hBand==nullptr) {
+                RAISE_RUNTIME_ERROR << "Cannot open raster band from:" << filePath;
+            }
             const GDALDataType dt = GDALGetRasterDataType(hBand);
             const DataType dataType = dataTypeFromGDALDataType(dt);
             if(CVTools::isValidDataType(dataType)){
@@ -66,9 +64,9 @@ void slideio::ImageTools::readGDALSubset(const std::string& filePath, cv::Output
                                       channel.data,
                                       imageSize.width, imageSize.height, 
                                       GDALGetRasterDataType(hBand),0,0);
-            if(err!=CE_None)
-                throw std::runtime_error(
-                    (boost::format("Cannot read raster band from: %1%") % filePath).str());
+            if(err!=CE_None){
+                RAISE_RUNTIME_ERROR << "Cannot read raster band from:" << filePath;
+            }
         }
         cv::merge(channels, output);
         GDALClose(hFile);
@@ -85,7 +83,7 @@ void slideio::ImageTools::readGDALImageSubDataset(const std::string& filePath, i
 {
     GDALAllRegister();
     GDALDatasetH hFile = GDALOpen(filePath.c_str(), GA_ReadOnly);
-    std::string name = (boost::format("SUBDATASET_%1%_NAME") % subDatasetIndex).str();
+    std::string name = std::string("SUBDATASET_") + std::to_string(subDatasetIndex) + std::string("_NAME");
     if (hFile == nullptr) {
         RAISE_RUNTIME_ERROR << "Cannot open file:" << filePath;
     }
@@ -142,7 +140,7 @@ void slideio::ImageTools::readGDALImage(const std::string& filePath, cv::OutputA
                 if (pos != std::string::npos) {
                     std::string subDatasetName = subdataset.substr(0, pos);
                     std::string subDatasetValue = subdataset.substr(pos + 1);
-                    std::string name = (boost::format("SUBDATASET_%1%_NAME") % page_id).str();
+                    std::string name = std::string("SUBDATASET_") + std::to_string(page_id) + std::string("_NAME");
                     if (subDatasetName == name) {
                         cv::Mat page;
                         readGDALSubset(subDatasetValue, page);
@@ -183,11 +181,8 @@ void slideio::ImageTools::writeRGBImage(const std::string& path, Compression com
     auto driverIt = driverMap.find(compression);
     if(driverIt==driverMap.end())
     {
-        throw std::runtime_error(
-            (boost::format("Not supported compression type for writing of RGB image %1%: %2%")
-                %path
-                %static_cast<int>(compression)).str()
-        );
+        RAISE_RUNTIME_ERROR << "Not supported compression type for writing of RGB image "
+            << path << ": " << static_cast<int>(compression);
     }
     const std::string driverName = driverIt->second;
 
@@ -195,15 +190,11 @@ void slideio::ImageTools::writeRGBImage(const std::string& path, Compression com
     const int height = raster.rows;
     if(raster.empty())
     {
-        throw std::runtime_error(
-            (boost::format("Invalid raster for file %1%") %path).str()
-        );
+        RAISE_RUNTIME_ERROR << "Invalid raster for file " << path;
     }
     if(numChannels!=1 && numChannels!=3)
-    {
-        throw std::runtime_error(
-            (boost::format("Error writing of image file %1%. Received invalid number of channels: %2%") %path %numChannels).str()
-        );
+    {   RAISE_RUNTIME_ERROR << "Error writing of image file " << path 
+            << ". Received invalid number of channels: " << numChannels;
     }
     GDALDatasetH dataset = nullptr;
     try
@@ -216,10 +207,8 @@ void slideio::ImageTools::writeRGBImage(const std::string& path, Compression com
             GDALRasterBandH band = GDALGetRasterBand(dataset, channelIndex + 1);
             if(band==nullptr)
             {
-                throw std::runtime_error(
-                    (boost::format("Error writing of image file %1% during processing of channel %2%. Received null band")
-                    %path %channelIndex).str()
-                );
+                RAISE_RUNTIME_ERROR << "Error writing of image file " << path 
+                    << " during processing of channel " << channelIndex << ". Received null band";
             }
             cv::Mat channelRaster;
             cv::extractChannel(raster, channelRaster, channelIndex);
@@ -230,10 +219,8 @@ void slideio::ImageTools::writeRGBImage(const std::string& path, Compression com
              0, 0);
             if(err!=CE_None)
             {
-                throw std::runtime_error(
-                    (boost::format("Error writing of image file %1% during processing of channel %2%. GDAL error: %3%")
-                        %path %channelIndex %err).str()
-                );
+                RAISE_RUNTIME_ERROR << "Error writing of image file " << path 
+                    << " during processing of channel " << channelIndex << ". GDAL error: " << err;
             }
         }
         GDALDatasetH imageDateaset = GDALCreateCopy(imageDriver, path.c_str(), dataset, FALSE, nullptr, nullptr,
@@ -265,9 +252,9 @@ static GDALDataType toGdalType(slideio::DataType dt)
     case slideio::DataType::DT_Int32: return GDT_Int32;
     case slideio::DataType::DT_Float32: return GDT_Float32;
     case slideio::DataType::DT_Float64: return GDT_Float64;
-    default: ;
-        throw std::runtime_error(
-            (boost::format("toGdalType: Cannot convert type %1% to GDAL supported types") % (int)dt).str());
+    default: {
+            RAISE_RUNTIME_ERROR << "toGdalType: Cannot convert type " << (int)dt << " to GDAL supported types";
+        }
     }
 }
 
@@ -284,9 +271,7 @@ void slideio::ImageTools::writeTiffImage(const std::string& path,cv::Mat raster)
     const int height = raster.rows;
     if (raster.empty())
     {
-        throw std::runtime_error(
-            (boost::format("Invalid raster for file %1%") % path).str()
-        );
+        RAISE_RUNTIME_ERROR << "Invalid raster for file " << path;
     }
     GDALDatasetH dataset = nullptr;
     try
@@ -299,10 +284,8 @@ void slideio::ImageTools::writeTiffImage(const std::string& path,cv::Mat raster)
             GDALRasterBandH band = GDALGetRasterBand(dataset, channelIndex + 1);
             if (band == nullptr)
             {
-                throw std::runtime_error(
-                    (boost::format("Error writing of image file %1% during processing of channel %2%. Received null band")
-                        % path % channelIndex).str()
-                );
+                RAISE_RUNTIME_ERROR << "Error writing of image file " << path
+                    << " during processing of channel " << channelIndex << ". Received null band";
             }
             cv::Mat channelRaster;
             cv::extractChannel(raster, channelRaster, channelIndex);
@@ -313,10 +296,8 @@ void slideio::ImageTools::writeTiffImage(const std::string& path,cv::Mat raster)
                 0, 0);
             if (err != CE_None)
             {
-                throw std::runtime_error(
-                    (boost::format("Error writing of image file %1% during processing of channel %2%. GDAL error: %3%")
-                        % path % channelIndex % err).str()
-                );
+                RAISE_RUNTIME_ERROR << "Error writing of image file " << path
+                    << " during processing of channel " << channelIndex << ". GDAL error: " << err;
             }
         }
         GDALDatasetH imageDateaset = GDALCreateCopy(imageDriver, path.c_str(), dataset, FALSE, nullptr, nullptr,

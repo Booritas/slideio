@@ -4,9 +4,6 @@
 #include "slideio/imagetools/imagetools.hpp"
 
 #include <numeric>
-
-#include <boost/format.hpp>
-#include <boost/filesystem.hpp>
 #include <opencv2/imgproc.hpp>
 #include <cmath>
 #include <vector>

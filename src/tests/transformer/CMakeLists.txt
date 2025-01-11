@@ -17,18 +17,12 @@ add_executable(${TEST_NAME} ${TEST_SOURCES})
 target_include_directories(${TEST_NAME} PRIVATE ${INCLUDE_ROOT})
 
 
-LIST(FILTER CONAN_LIBS_RELEASE EXCLUDE REGEX "^(.)+boost(.)+")
-LIST(FILTER CONAN_LIBS_DEBUG EXCLUDE REGEX "^(.)+boost(.)+")
-
-
-find_package(Boost)
 find_package(glog)
 find_package(GTest)
 find_package(OpenCV)
 find_package(ZLIB)
 
 target_link_libraries(${TEST_NAME} 
-  boost::boost
   glog::glog
   gtest::gtest
   opencv::opencv

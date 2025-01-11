@@ -1,13 +1,11 @@
 // This file is part of slideio project.
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
+#include "slideio/base/exceptions.hpp"
 #include "slideio/drivers/gdal/gdalscene.hpp"
 #include "slideio/slideio/slideio.hpp"
 #include "slideio/base/resolution.hpp"
 #include "slideio/core/tools/cvtools.hpp"
-#include <boost/filesystem.hpp>
-#include <boost/format.hpp>
-
 #include "slideio/core/tools/tools.hpp"
 
 
@@ -37,19 +35,22 @@ std::string slideio::GDALScene::getFilePath() const
 
 int slideio::GDALScene::getNumChannels() const
 {
-    if(m_hFile==nullptr)
-        throw std::runtime_error("GDALDriver: Invalid file header by channel number query");
+    if(m_hFile==nullptr) {
+        RAISE_RUNTIME_ERROR << "GDALDriver: Invalid file header by channel number query";
+    }
     int channels = GDALGetRasterCount(m_hFile);
     return channels;
 }
 
 slideio::DataType slideio::GDALScene::getChannelDataType(int channel) const
 {
-    if(m_hFile==nullptr)
-        throw std::runtime_error("GDALDriver: Invalid file header by data type query");
+    if(m_hFile==nullptr) {
+        RAISE_RUNTIME_ERROR << "GDALDriver: Invalid file header by data type query";
+    }
     GDALRasterBandH hBand = GDALGetRasterBand(m_hFile, channel+1);
-    if(hBand==nullptr)
-        throw std::runtime_error("GDALDriver:  Cannot get raster band by query of data type");
+    if(hBand==nullptr) {
+        RAISE_RUNTIME_ERROR << "GDALDriver:  Cannot get raster band by query of data type";
+    }
     const GDALDataType dt = GDALGetRasterDataType(hBand);
     return dataTypeFromGDALDataType(dt);
 }
@@ -76,7 +77,7 @@ GDALDatasetH slideio::GDALScene::openFile(const std::string& filePath)
     Tools::throwIfPathNotExist(filePath, ":GDALScene::openFile");
     GDALDatasetH hfile = GDALOpen(filePath.c_str(), GA_ReadOnly);
     if(hfile==nullptr){
-        throw std::runtime_error(std::string("Cannot open file with GDAL driver:") + filePath);
+        RAISE_RUNTIME_ERROR <<"Cannot open file with GDAL driver:" << filePath;
     }
     return hfile;
 }
@@ -119,8 +120,9 @@ std::string slideio::GDALScene::getName() const
 
 cv::Rect slideio::GDALScene::getRect() const
 {
-    if (m_hFile == nullptr)
-        throw std::runtime_error("GDALDriver: Invalid file header by scene size query");
+    if (m_hFile == nullptr) {
+        RAISE_RUNTIME_ERROR << "GDALDriver: Invalid file header by scene size query";
+    }
     cv::Rect rect;
     rect.x = 0;
     rect.y = 0;
@@ -131,8 +133,9 @@ cv::Rect slideio::GDALScene::getRect() const
 
 void slideio::GDALScene::readResampledBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize, const std::vector<int>& channelIndices_, cv::OutputArray output)
 {
-    if(m_hFile==nullptr)
-        throw std::runtime_error("GDALDriver: Invalid file header by raster reading operation");
+    if(m_hFile==nullptr) {
+        RAISE_RUNTIME_ERROR << "GDALDriver: Invalid file header by raster reading operation";
+    }
     const int numChannels = GDALGetRasterCount(m_hFile);
     const cv::Size imageSize = { GDALGetRasterXSize(m_hFile),GDALGetRasterYSize(m_hFile) };
     auto channelIndices = channelIndices_;
@@ -149,15 +152,13 @@ void slideio::GDALScene::readResampledBlockChannels(const cv::Rect& blockRect, c
     for (const auto& channelIndex : channelIndices)
     {
         GDALRasterBandH hBand = GDALGetRasterBand(m_hFile, channelIndex + 1);
-        if (hBand == nullptr)
-            throw std::runtime_error(
-            (boost::format("Cannot open raster band from: %1%") % m_filePath).str());
+        if (hBand == nullptr) {
+            RAISE_RUNTIME_ERROR << "Cannot open raster band from:" << m_filePath;
+        }
         const GDALDataType dt = GDALGetRasterDataType(hBand);
         const DataType dataType = dataTypeFromGDALDataType(dt);
-        if(!CVTools::isValidDataType(dataType))
-        {
-            throw std::runtime_error(
-                (boost::format("Unknown data type %1% of channel %2% of file %3%") % dt % channelIndex % m_filePath).str());
+        if(!CVTools::isValidDataType(dataType)) {
+            RAISE_RUNTIME_ERROR << "Unknown data type " << dt << "of channel " << channelIndex << " of file " << m_filePath;
         }
         const int cvDt = CVTools::toOpencvType(dataType);
         cv::Mat channelRaster; 
@@ -170,9 +171,9 @@ void slideio::GDALScene::readResampledBlockChannels(const cv::Rect& blockRect, c
             blockSize.width, blockSize.height,
             GDALGetRasterDataType(hBand), 0, 0);
         channelRasters.push_back(channelRaster);
-        if (err != CE_None)
-            throw std::runtime_error(
-            (boost::format("Cannot read raster band %1% from %2%") % channelIndex % m_filePath).str());
+        if (err != CE_None) {
+            RAISE_RUNTIME_ERROR << "Cannot read raster band " << channelIndex << " from " << m_filePath;
+        }
     }
     if(channelRasters.size()>1)
     {

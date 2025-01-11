@@ -8,6 +8,7 @@
 #include "slideio/drivers/ndpi/ndpifile.hpp"
 #include "slideio/drivers/ndpi/ndpiscene.hpp"
 #include "slideio/imagetools/imagetools.hpp"
+#include "slideio/core/tools/tools.hpp"
 
 namespace slideio
 {

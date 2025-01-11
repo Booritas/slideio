@@ -1,48 +1,19 @@
 // This file is part of slideio project.
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
+#include "slideio/base/exceptions.hpp"
+#include "slideio/core/tools/tools.hpp"
 #include "slideio/drivers/afi/afislide.hpp"
 #include "slideio/drivers/svs/svsslide.hpp"
-
-#include <boost/filesystem.hpp>
-#include <boost/format.hpp>
+#include <filesystem>
 #include <tinyxml2.h>
 #include <fstream>
 
-#include "slideio/core/tools/tools.hpp"
 
 using namespace slideio;
 using namespace tinyxml2;
 
 namespace {
-
-boost::format& formatImpl(boost::format& f)
-{
-	return f;
-}
-
-template <typename Head, typename... Tail>
-boost::format& formatImpl(boost::format& f,	Head const& head, Tail&&... tail)
-{
-	return formatImpl(f % head, std::forward<Tail>(tail)...);
-}
-
-template <typename... Args>
-std::string format(
-    std::string formatString,
-    Args&&... args)
-{
-    boost::format f(std::move(formatString));
-    return formatImpl(f, std::forward<Args>(args)...).str();
-}
-
-template <typename... MessageParts>
-static void checkError(bool ok, std::string format_string, MessageParts&&... parts) {
-    if (!ok) {
-        const auto error_message = format(format_string, std::forward<MessageParts>(parts)...);
-        throw std::runtime_error(error_message);
-    }
-}
 
 static std::vector<const XMLElement*> getXmlElementsByPath(const XMLNode* parent, std::string path)
 {
@@ -65,12 +36,12 @@ static std::vector<const XMLElement*> getXmlElementsByPath(const XMLNode* parent
 
 static std::string getFileRelativeTo(std::string rootFile, std::string relativeFile)
 {
-    boost::filesystem::path p(relativeFile);
+    std::filesystem::path p(relativeFile);
     if (p.is_absolute()) {
         return relativeFile;
     }
     else {
-        auto retPath = boost::filesystem::path(rootFile).parent_path() / p.filename();
+        auto retPath = std::filesystem::path(rootFile).parent_path() / p.filename();
         return retPath.generic_string();
     }
 }
@@ -97,8 +68,10 @@ std::string AFISlide::getFilePath() const
 
 std::shared_ptr<CVScene> AFISlide::getScene(int index) const
 {
-    if(index>=getNumScenes())
-        throw std::runtime_error("AFI driver: invalid m_scene index");
+    if(index>=getNumScenes()) {
+        RAISE_RUNTIME_ERROR << "AFI driver: invalid scene index: " 
+            << index << ". Total scenes: " << getNumScenes();
+    }
     return m_scenes[index];
 }
 
@@ -111,12 +84,16 @@ std::shared_ptr<AFISlide> AFISlide::openFile(const std::string& filePath)
 #else
     std::ifstream ifs(filePath);
 #endif
-    checkError(ifs.good(), "File doesn't exist %s", filePath);
+    if(!ifs.good()) {
+        RAISE_RUNTIME_ERROR << "File doesn't exist " << filePath;
+    }
     std::string fileString((std::istreambuf_iterator<char>(ifs)),
                             std::istreambuf_iterator<char>());
     const auto files = getFileList(fileString);
     const auto slidesScenes = getSlidesScenesFromFiles(files, filePath);
-    checkError(!slidesScenes.second.empty(), "File %s contains no images to open", filePath);
+    if(slidesScenes.first.empty()) {
+        RAISE_RUNTIME_ERROR << "File " << filePath << " contains no images to open";
+    }   
     std::shared_ptr<AFISlide> afiSlide(new AFISlide);
     afiSlide->m_scenes.assign(slidesScenes.second.begin(), slidesScenes.second.end());
     afiSlide->m_slides.assign(slidesScenes.first.begin(), slidesScenes.first.end());
@@ -129,7 +106,9 @@ std::vector<std::string> slideio::AFISlide::getFileList(std::string xmlString)
 {
     XMLDocument doc;
     const XMLError error = doc.Parse(xmlString.c_str(), xmlString.length());
-    checkError(error == XML_SUCCESS, "AFIImageDriver: Error parsing metadata xml");
+    if(error != XML_SUCCESS) {
+        RAISE_RUNTIME_ERROR << "AFIImageDriver: Error parsing metadata xml";
+    }
     std::vector<std::string> result;
     const auto elems = getXmlElementsByPath(&doc, "ImageList/Image/Path");
     std::transform(elems.begin(), elems.end(), std::back_inserter(result), [](auto node) {
@@ -145,7 +124,9 @@ slideio::AFISlide::SlidesScenes slideio::AFISlide::getSlidesScenesFromFiles(cons
     for (const auto svsFile : files) {
         const auto svsPath = getFileRelativeTo(mainFile, svsFile);
         const auto svsSlide = SVSSlide::openFile(svsPath);
-        checkError(svsSlide != nullptr, "Couldn't open SVS file %s", svsPath);
+        if(svsSlide == nullptr) {
+            RAISE_RUNTIME_ERROR << "Couldn't open SVS file " << svsPath;
+        }
         const auto scenesNum = result.second.size();
         for (decltype (svsSlide->getNumScenes()) i = 0; i < svsSlide->getNumScenes(); ++i) {
             if (svsSlide->getScene(i)->getName() == "Image") {
@@ -157,7 +138,7 @@ slideio::AFISlide::SlidesScenes slideio::AFISlide::getSlidesScenesFromFiles(cons
             result.first.push_back(svsSlide);
         }
         else {
-            checkError(false, "Slide %s didn't have any scene", svsPath);
+            RAISE_RUNTIME_ERROR << "Slide " << svsPath << " didn't have any scene";
         }
     }
 

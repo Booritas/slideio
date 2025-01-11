@@ -1,7 +1,7 @@
+#include "slideio/base/exceptions.hpp"
 #include <cstdint>
 #include <stdio.h>
 #include <jpeglib.h>
-#include <boost/format.hpp>
 #include <opencv2/core.hpp>
 
 void jpeglibDecode(const uint8_t* jpg_buffer, size_t jpg_size, cv::OutputArray output)
@@ -24,9 +24,7 @@ void jpeglibDecode(const uint8_t* jpg_buffer, size_t jpg_size, cv::OutputArray o
 
     if (rc != 1) {
         jpeg_destroy_decompress(&cinfo);
-        throw std::runtime_error(
-            (boost::format("Invalid jpeg stream. JpegLib returns code:  %1%") % rc).str()
-        );
+        RAISE_RUNTIME_ERROR << "Invalid jpeg stream. JpegLib returns code: " << rc;
     }
 
     // By calling jpeg_start_decompress, you populate cinfo
@@ -87,19 +85,19 @@ void jpeglibDecode(const uint8_t* jpg_buffer, size_t jpg_size, cv::OutputArray o
 void jpeglibEncode(const cv::Mat& raster, std::vector<uint8_t>& encodedStream, int quality)
 {
     if (!raster.isContinuous()) {
-        throw std::runtime_error("Expected continuous matrix!");
+        RAISE_RUNTIME_ERROR << "Expected continuous matrix!";
     }
     if (raster.dims != 2) {
-        throw std::runtime_error("Expected 2D matrix!");
+        RAISE_RUNTIME_ERROR << "Expected 2D matrix!";
     }
     if (raster.depth() != CV_8U) {
-        throw std::runtime_error("Expected 8bit matrix!");
+        RAISE_RUNTIME_ERROR << "Expected 8bit matrix!";
     }
     const int imageWidth = raster.cols;
     const int imageHeight = raster.rows;
     const int numChannels = raster.channels();
     if (numChannels != 1 && numChannels != 3) {
-        throw std::runtime_error("Only 3 or 1 channel images are supported!");
+        RAISE_RUNTIME_ERROR << "Only 3 or 1 channel images are supported!";
     }
     struct jpeg_compress_struct cinfo;
     struct jpeg_error_mgr jerr;
@@ -141,6 +139,6 @@ void jpeglibEncode(const cv::Mat& raster, std::vector<uint8_t>& encodedStream, i
         memcpy(encodedStream.data(), output, length);
     }
     else {
-        throw std::runtime_error("Error during compressing of raster with libjpeg!");
+        RAISE_RUNTIME_ERROR << "Error during compressing of raster with libjpeg!";
     }
 }

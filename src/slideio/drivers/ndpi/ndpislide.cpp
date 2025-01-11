@@ -8,10 +8,6 @@
 #include "slideio/drivers/ndpi/ndpitifftools.hpp"
 #include "slideio/drivers/ndpi/ndpifile.hpp"
 #include "slideio/base/log.hpp"
-
-#include <boost/filesystem.hpp>
-#include <boost/format.hpp>
-
 #include "slideio/core/tools/tools.hpp"
 
 

@@ -4,7 +4,6 @@
 #pragma once
 #include <string>
 #include <vector>
-#include <boost/json.hpp>
 
 #include "taginfo.hpp"
 #include "vsistruct.hpp"

@@ -1,12 +1,12 @@
 ﻿// This file is part of slideio project.
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
+#include "slideio/base/exceptions.hpp"
 #include "slideio/drivers/zvi/zviscene.hpp"
 #include "slideio/drivers/zvi/zvislide.hpp"
 #include "slideio/drivers/zvi/zvitags.hpp"
-#include <boost/filesystem.hpp>
-#include <boost/format.hpp>
-#include <boost/variant.hpp>
+#include <filesystem>
+#include <variant>
 
 #include "zviutils.hpp"
 #include "slideio/core/tools/tools.hpp"
@@ -65,12 +65,8 @@ double ZVIScene::getTFrameResolution() const
 
 void ZVIScene::validateChannelIndex(int channel) const
 {
-    if (channel < 0 || channel >= m_ChannelCount)
-    {
-        throw std::runtime_error(
-            (boost::format("Invalid channel index: %1%. Number of channels: %2%")
-                % channel % m_ChannelCount).str()
-        );
+    if (channel < 0 || channel >= m_ChannelCount) {
+        RAISE_RUNTIME_ERROR << "Invalid channel index:" << channel << ". Number of channels:" << m_ChannelCount;
     }
 }
 
@@ -200,10 +196,8 @@ void ZVIScene::alignChannelInfoToPixelFormat()
             break;
         case ZVIPixelFormat::PF_UNKNOWN:
         default:
-            throw std::runtime_error(
-                (boost::format("ZVIImageDriver: Invalid pixel format: %1% for file %2%")
-                    % (int)pixelFormat % m_filePath).str()
-            );
+            RAISE_RUNTIME_ERROR << "ZVIImageDriver: Invalid pixel format: " << (int)pixelFormat 
+                << " for file " << m_filePath;
         }
     }
 }
@@ -316,8 +310,7 @@ void ZVIScene::init()
     Tools::throwIfPathNotExist(m_filePath, "ZVIScene::init");
     if (!m_Doc.good())
     {
-        throw std::runtime_error(
-            (boost::format("Cannot open compound file %1%") % m_filePath).str());
+        RAISE_RUNTIME_ERROR << "Cannot open compound file " << m_filePath;
     }
     parseImageInfo();
     readImageItems();
@@ -373,43 +366,43 @@ void ZVIScene::parseImageTags()
         const ZVIUtils::Variant tag = ZVIUtils::readItem(stream);
         const ZVITAG id = static_cast<ZVITAG>(ZVIUtils::readIntItem(stream));
         ZVIUtils::skipItem(stream);
-        if (tag.which() == 0)
+        if (tag.index() == 0)
             continue;
 
         switch (id)
         {
         case ZVITAG::ZVITAG_IMAGE_WIDTH:
-            m_Width = boost::get<int32_t>(tag);
+            m_Width = std::get<int32_t>(tag);
             break;
         case ZVITAG::ZVITAG_IMAGE_HEIGHT:
-            m_Height = boost::get<int32_t>(tag);
+            m_Height = std::get<int32_t>(tag);
             break;
         case ZVITAG::ZVITAG_IMAGE_COUNT_U:
-            m_TileCountX = boost::get<int32_t>(tag);
+            m_TileCountX = std::get<int32_t>(tag);
             break;
         case ZVITAG::ZVITAG_IMAGE_COUNT_V:
-            m_TileCountY = boost::get<int32_t>(tag);
+            m_TileCountY = std::get<int32_t>(tag);
             break;
         case ZVITAG::ZVITAG_SCALE_X:
-            scaleX = boost::get<double>(tag);
+            scaleX = std::get<double>(tag);
             break;
         case ZVITAG::ZVITAG_SCALE_UNIT_X:
-            unitsX = boost::get<int32_t>(tag);
+            unitsX = std::get<int32_t>(tag);
             break;
         case ZVITAG::ZVITAG_SCALE_Y:
-            scaleY = boost::get<double>(tag);
+            scaleY = std::get<double>(tag);
             break;
         case ZVITAG::ZVITAG_SCALE_UNIT_Y:
-            unitsY = boost::get<int32_t>(tag);
+            unitsY = std::get<int32_t>(tag);
             break;
         case ZVITAG::ZVITAG_SCALE_Z:
-            scaleZ = boost::get<double>(tag);
+            scaleZ = std::get<double>(tag);
             break;
         case ZVITAG::ZVITAG_SCALE_UNIT_Z:
-            unitsZ = boost::get<int32_t>(tag);
+            unitsZ = std::get<int32_t>(tag);
             break;
         case ZVITAG::ZVITAG_FILE_NAME:
-            m_SceneName = boost::get<std::string>(tag);
+            m_SceneName = std::get<std::string>(tag);
             break;
         case ZVITAG::ZVITAG_COMPRESSION:
             break;

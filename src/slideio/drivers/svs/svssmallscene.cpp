@@ -1,6 +1,7 @@
 // This file is part of slideio project.
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
+#include "slideio/base/exceptions.hpp" 
 #include "slideio/drivers/svs/svssmallscene.hpp"
 #include "slideio/drivers/svs/svstools.hpp"
 #include "slideio/slideio/slideio.hpp"
@@ -8,7 +9,6 @@
 
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
-#include <boost/format.hpp>
 
 using namespace slideio;
 
@@ -66,8 +66,9 @@ void SVSSmallScene::readResampledBlockChannels(const cv::Rect& blockRect, const 
 {
     auto hFile = getFileHandle();
 
-    if (hFile == nullptr)
-        throw std::runtime_error("SVSDriver: Invalid file header by raster reading operation");
+    if (hFile == nullptr) {
+        RAISE_RUNTIME_ERROR << "SVSDriver: Invalid file header by raster reading operation";
+    }
 
     cv::Mat wholeDirRaster;
     if(channelIndices.empty())

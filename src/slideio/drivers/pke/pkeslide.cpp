@@ -13,8 +13,6 @@
 #include "slideio/base/base.hpp"
 #include "slideio/base/log.hpp"
 
-#include <boost/filesystem.hpp>
-#include <boost/format.hpp>
 
 
 using namespace slideio;
@@ -131,9 +129,7 @@ std::shared_ptr<CVScene> PKESlide::getAuxImage(const std::string& sceneName) con
 {
     auto it = m_auxImages.find(sceneName);
     if(it==m_auxImages.end()) {
-        throw std::runtime_error(
-            (boost::format("The slide does non have auxiliary image \"%1%\"") % sceneName).str()
-        );
+        RAISE_RUNTIME_ERROR << "The slide does non have auxiliary image " << sceneName;
     }
     return it->second;
 }

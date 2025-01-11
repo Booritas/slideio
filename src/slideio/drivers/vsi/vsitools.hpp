@@ -3,11 +3,12 @@
 // of this distribution and at http://slideio.com/license.html.
 #pragma once
 #include <cstdint>
-#include <boost/json/object.hpp>
 #include "etsfile.hpp"
 #include "vsistream.hpp"
 #include "slideio/base/slideio_enums.hpp"
+#include <nlohmann/json.hpp>
 
+using json = nlohmann::json;
 
 namespace slideio
 {
@@ -29,7 +30,7 @@ namespace slideio
             static std::string getDeviceSubtype(const std::string& value);
             static std::string extractTagValue(vsi::VSIStream& vsi, const vsi::TagInfo& tagInfo);
         private:
-            static bool isTag(const boost::json::object& parentObject, int srcTag);
+            static bool isTag(const json& parentObject, int srcTag);
             static std::string getDimensionPropertyName(int tag);
             static std::string getStackPropertyName(int tag);
         };

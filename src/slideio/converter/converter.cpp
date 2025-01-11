@@ -1,7 +1,6 @@
 // This file is part of slideio project.
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
-#include <boost/filesystem.hpp>
 #include "convertersvstools.hpp"
 #include "convertertools.hpp"
 #include "slideio/core/tools/tools.hpp"
@@ -11,6 +10,8 @@
 #include "slideio/converter/converter.hpp"
 #include "slideio/converter/converterparameters.hpp"
 #include "slideio/base/log.hpp"
+
+#include <filesystem>
 
 using namespace slideio;
 
@@ -38,9 +39,9 @@ static void convertToSVS(CVScenePtr scene, ConverterParameters& params, const st
     }
     catch(std::exception&) {
 #if defined(WIN32)
-        boost::filesystem::remove(Tools::toWstring(outputPath));
+        std::filesystem::remove(Tools::toWstring(outputPath));
 #else
-        boost::filesystem::remove(outputPath);
+        std::filesystem::remove(outputPath);
 #endif
         throw;
     }
@@ -62,7 +63,7 @@ void slideio::convertScene(ScenePtr scene,
         && svsParameters.getEncoding() != Compression::Jpeg2000) {
         RAISE_RUNTIME_ERROR << "Unsupported compression type: " << (int)svsParameters.getEncoding();
     }
-    if(boost::filesystem::exists(outputPath)) {
+    if(std::filesystem::exists(outputPath)) {
         RAISE_RUNTIME_ERROR << "Converter: output file already exists.";
     }
     std::string sceneName = scene->getName();

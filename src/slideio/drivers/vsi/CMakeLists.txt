@@ -1,5 +1,3 @@
-
-
 set(LIBRARY_NAME ${VSI_DRIVER_NAME})
 set(CMAKE_PREFIX_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
@@ -42,7 +40,6 @@ SOURCE_GROUP_BY_FOLDER(SOURCE_FILES)
 
 target_link_libraries(${LIBRARY_NAME} ${CORE_LIB_NAME} ${IMAGETOOLS_LIB_NAME})
 
-find_package(Boost)
 find_package(SQLite3)
 find_package(glog)
 find_package(OpenCV)
@@ -51,9 +48,9 @@ find_package(TIFF)
 find_package(ZLIB)
 find_package(LibLZMA)
 find_package(WebP)
+find_package(nlohmann_json REQUIRED)
 
 target_link_libraries(${LIBRARY_NAME} 
-   boost::boost  
    SQLite::SQLite3  
    glog::glog  
    opencv::opencv  
@@ -62,6 +59,7 @@ target_link_libraries(${LIBRARY_NAME}
    ZLIB::ZLIB  
    LibLZMA::LibLZMA  
    libwebp::libwebp
+   nlohmann_json::nlohmann_json
 )
 
 

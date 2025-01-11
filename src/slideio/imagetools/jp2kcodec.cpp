@@ -9,10 +9,9 @@
 #include "jp2kcodec.hpp"
 
 #include <openjpeg.h>
-#include <boost/format.hpp>
-#include <boost/filesystem.hpp>
 #include <fstream>
-
+#include <filesystem>
+#include <iterator>
 #include "single_tests/jp2k/jp2_memory.hpp"
 
 /* opj_* Helper code from https://groups.google.com/forum/#!topic/openjpeg/8cebr0u7JgY */
@@ -37,10 +36,9 @@ static void openjpeg_info(const char* msg, void* client_data)
 
 void slideio::ImageTools::readJp2KFile(const std::string& filePath, cv::OutputArray output)
 {
-    auto fileSize = boost::filesystem::file_size(filePath);
+    auto fileSize = std::filesystem::file_size(filePath);
     if(fileSize<=0)
-        throw std::runtime_error(
-            (boost::format("Invalid file: %1%") % filePath).str());
+        RAISE_RUNTIME_ERROR << "Invalid file:" << filePath;
     
     std::ifstream file(filePath, std::ios::binary);
     // Stop eating new lines in binary mode!!!
@@ -67,8 +65,7 @@ static int getComponentDataType(const opj_image_comp_t* comp)
     case 32:
         return CV_32S;
     }
-    throw std::runtime_error(
-        (boost::format("Unknown data type of data: %1%") % (int)comp->bpp).str());
+    RAISE_RUNTIME_ERROR << "Unknown data type of data:" << comp->bpp;
 }
 
 static OPJ_CODEC_FORMAT getJP2KCodec(const uint8_t* buf, size_t len)

@@ -6,13 +6,13 @@
 #include "slideio/drivers/czi/cziimagedriver.hpp"
 #include "slideio/drivers/czi/czislide.hpp"
 #include "tests/testlib/testtools.hpp"
-#include <boost/algorithm/string/predicate.hpp>
 
 
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/slideio/scene.hpp"
 #include "slideio/core/tools/cvtools.hpp"
 #include "slideio/imagetools/imagetools.hpp"
+#include "slideio/base/exceptions.hpp"
 
 TEST(CZIImageDriver, DriverManager_getDriverIDs)
 {
@@ -347,7 +347,7 @@ TEST(CZIImageDriver, slideRawMetadata)
         const std::string& metadata = slide->getRawMetadata();
         EXPECT_GT(metadata.length(),0);
         const std::string header("<ImageDocument>");
-        EXPECT_TRUE(boost::algorithm::starts_with(metadata, header));
+        EXPECT_TRUE(TestTools::starts_with(metadata, header));
     }
 }
 
@@ -384,7 +384,7 @@ TEST(CZIImageDriver, crashTestNotCZIImage)
 {
     std::string filePath = TestTools::getTestImagePath("svs","corrupted.svs");
     slideio::CZIImageDriver driver;
-    EXPECT_THROW(driver.openFile(filePath),std::runtime_error);
+    EXPECT_THROW(driver.openFile(filePath),slideio::RuntimeError);
 }
 
 TEST(CZIImageDriver, corruptedCZI)

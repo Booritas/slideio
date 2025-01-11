@@ -5,9 +5,7 @@
 #include "slideio/slideio/scene.hpp"
 #include "slideio/core/tools/cvtools.hpp"
 #include "slideio/core/cvscene.hpp"
-#include <boost/format.hpp>
 #include "slideio/base/log.hpp"
-
 #include "slideio/base/exceptions.hpp"
 
 using namespace slideio;
@@ -170,7 +168,7 @@ void Scene::readResampledBlockChannels(const std::tuple<int, int, int, int>& rec
 
     if(blockMemSize>bufferSize)
     {
-        throw std::runtime_error("Supplied memory buffer is too small");
+        RAISE_RUNTIME_ERROR << "Supplied memory buffer is too small";
     }
     cv::Mat raster(blockSize.height, blockSize.width, CV_MAKETYPE(cvType, numChannels), buffer);
     raster = cv::Scalar(0);
@@ -231,15 +229,14 @@ void Scene::readResampled4DBlockChannels(const std::tuple<int, int, int, int>& r
     const auto cvType = m_scene->getChannelDataType(refChannel);
 
     if(blockMemSize>bufferSize) {
-        throw std::runtime_error(
-            (boost::format("Supplied memory buffer is too small. Received: %1%. Required: %2%") % bufferSize % blockMemSize).str());
+        RAISE_RUNTIME_ERROR << "Supplied memory buffer is too small. Received: " << bufferSize << ". Required: " << blockMemSize;
     }
 
     cv::Mat raster(blockSize.height, blockSize.width, CV_MAKETYPE(static_cast<int>(cvType), numPlanes), buffer);
     if (numSlices==1 && numFrames==1) {
         m_scene->readResampled4DBlockChannels(blockRect, blockSize, channelIndices, sliceRange, frameRange, raster);
         if (buffer != raster.data) {
-            throw std::runtime_error("Unexpected memory reallocation");
+            RAISE_RUNTIME_ERROR << "Unexpected memory reallocation";
         }
     }
     else {
@@ -271,7 +268,7 @@ void Scene::readResampled4DBlockChannels(const std::tuple<int, int, int, int>& r
                 cv::Mat sliceRaster;
                 CVTools::extractSliceFromMultidimMatrix(mdRaster, indices , sliceRaster);
                 if( !sliceRaster.isContinuous()) {
-                    throw std::runtime_error("Unexpected non-continuous matrix");
+                    RAISE_RUNTIME_ERROR << "Unexpected non-continuous matrix";
                 }
                 memcpy(planeBegin, sliceRaster.data, planeMemSize);
             }

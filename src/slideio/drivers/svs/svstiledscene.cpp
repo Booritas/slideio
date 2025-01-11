@@ -148,7 +148,7 @@ bool SVSTiledScene::readTile(int tileIndex, const std::vector<int>& channelIndic
         TiffTools::readTile(getFileHandle(), *dir, tileIndex, channelIndices, tileRaster);
         ret = true;
     }
-    catch(std::runtime_error&){
+    catch(slideio::RuntimeError&){
         const cv::Size tileSize = { dir->tileWidth, dir->tileHeight };
         const slideio::DataType dt = dir->dataType;
         tileRaster.create(tileSize, CV_MAKETYPE(slideio::CVTools::toOpencvType(dt), dir->channels));

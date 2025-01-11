@@ -3,9 +3,6 @@
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/drivers/scn/scnimagedriver.hpp"
 #include "slideio/drivers/scn/scnslide.hpp"
-#include <boost/filesystem.hpp>
-#include <boost/algorithm/string.hpp>
-
 #include "slideio/core/tools/tools.hpp"
 
 

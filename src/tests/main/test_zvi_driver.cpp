@@ -2,7 +2,6 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include <fstream>
-#include <boost/format.hpp>
 #include <gtest/gtest.h>
 //#include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
@@ -156,7 +155,7 @@ TEST(ZVIImageDriver, readBlock3Layers)
     for (int channel = 0; channel < 3; channel++) {
         cv::Mat channelRaster, channelRasterTest;
         cv::extractChannel(raster, channelRaster, channel);
-        std::string channelName = (boost::format("Zeiss-1-Merged-ch%1%.tif") % channel).str();
+        std::string channelName = std::string("Zeiss-1-Merged-ch") + std::to_string(channel) + ".tif";
         std::string channelPath = TestTools::getTestImagePath("zvi", channelName);
         slideio::ImageTools::readGDALImage(channelPath, channelRasterTest);
 

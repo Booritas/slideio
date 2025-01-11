@@ -9,10 +9,9 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/wildmat.c
    ${CMAKE_CURRENT_SOURCE_DIR}/blocktiler.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/blocktiler.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/cachemanager.hpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/cachemanager.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/tilevisitor.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/tempfile.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/tempfile.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/cvtools.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/cvtools.hpp
    PARENT_SCOPE

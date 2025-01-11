@@ -7,7 +7,6 @@
 #include "ndpitifftools.hpp"
 #include "slideio/drivers/ndpi/ndpi_api_def.hpp"
 #include "slideio/core/cvscene.hpp"
-#include "slideio/core/tools/cachemanager.hpp"
 #include "slideio/core/tools/tilecomposer.hpp"
 
 #if defined(_MSC_VER)

@@ -20,6 +20,17 @@ namespace slideio
 
 using namespace slideio;
 
+class VSIImageDriverTests : public ::testing::Test {
+protected:
+    static void SetUpTestSuite() {
+        ImageDriverManager::setLogLevel("WARNING");
+        std::cerr << "SetUpTestSuite: Running before all tests\n";
+    }
+    static void TearDownTestSuite() {
+    }
+};
+
+
 class TestDimensionOrder : public vsi::IDimensionOrder
 {
 public:
@@ -49,7 +60,7 @@ private:
     int m_tIndex;
 };
 
-TEST(VSIImageDriver, openFileWithExternalFiles1) {
+TEST_F(VSIImageDriverTests, openFileWithExternalFiles1) {
     std::string filePath = TestTools::getFullTestImagePath("vsi","OS-1/OS-1.vsi");
     slideio::VSIImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
@@ -64,7 +75,7 @@ TEST(VSIImageDriver, openFileWithExternalFiles1) {
     EXPECT_GT(metadata.size(), 0);
 }
 
-TEST(VSIImageDriver, openFileWithoutExternalFiles) {
+TEST_F(VSIImageDriverTests, openFileWithoutExternalFiles) {
     std::string filePath = TestTools::getFullTestImagePath("vsi",
                                                            "Zenodo/Q6VM49JF/Figure-1-ultrasound-raw-data"
                                                            "/SPECTRUM_#201_2016-06-14_Jiangtao Liu/1286FL9057GDF8RGDX257R2GLHZ.vsi");
@@ -88,7 +99,7 @@ TEST(VSIImageDriver, openFileWithoutExternalFiles) {
     EXPECT_EQ(scene->getCompression(), Compression::Uncompressed);
 }
 
-TEST(VSIImageDriver, openFileWithExternalFiles) {
+TEST_F(VSIImageDriverTests, openFileWithExternalFiles) {
     std::tuple<std::string, int, int, double, std::string> result[] = {
         {"40x_01", 14749, 20874, 40, "40x FocusMap"},
         {"40x_02", 15596, 19403, 40, "40x FocusMap"},
@@ -120,7 +131,7 @@ TEST(VSIImageDriver, openFileWithExternalFiles) {
     EXPECT_EQ("Overview", names.front());
 }
 
-TEST(VSIImageDriver, auxImages) {
+TEST_F(VSIImageDriverTests, auxImages) {
     const std::string filePath = TestTools::getFullTestImagePath("vsi", "Zenodo/Abdominal/G1M16_ABD_HE_B6.vsi");
     const std::string testFilePath = TestTools::getFullTestImagePath("vsi", "Zenodo/Abdominal/G1M16_ABD_HE_B6.aux.png");
     slideio::VSIImageDriver driver;
@@ -144,7 +155,7 @@ TEST(VSIImageDriver, auxImages) {
 }
 
 
-TEST(VSIImageDriver, VSIFileOpenWithOutExternalFiles) {
+TEST_F(VSIImageDriverTests, VSIFileOpenWithOutExternalFiles) {
     std::string filePath = TestTools::getFullTestImagePath("vsi",
                                                            "Zenodo/Q6VM49JF/Figure-1-ultrasound-raw-data"
                                                            "/SPECTRUM_#201_2016-06-14_Jiangtao Liu/1286FL9057GDF8RGDX257R2GLHZ.vsi");
@@ -152,7 +163,7 @@ TEST(VSIImageDriver, VSIFileOpenWithOutExternalFiles) {
     EXPECT_EQ(0, vsiFile.getNumEtsFiles());
 }
 
-TEST(VSIImageDriver, readVSISceneStripedDirUncompressed) {
+TEST_F(VSIImageDriverTests, readVSISceneStripedDirUncompressed) {
     std::string filePath = TestTools::getFullTestImagePath("vsi",
                                                            "Zenodo/Q6VM49JF/Figure-1-ultrasound-raw-data"
                                                            "/SPECTRUM_#201_2016-06-14_Jiangtao Liu/1286FL9057GDF8RGDX257R2GLHZ.vsi");
@@ -174,7 +185,7 @@ TEST(VSIImageDriver, readVSISceneStripedDirUncompressed) {
     //TestTools::showRasters(testRaster, blockRaster);
 }
 
-TEST(VSIImageDriver, readVSISceneStripedDirUncompressedRoi) {
+TEST_F(VSIImageDriverTests, readVSISceneStripedDirUncompressedRoi) {
     std::string filePath = TestTools::getFullTestImagePath("vsi",
                                                            "Zenodo/Q6VM49JF/Figure-1-ultrasound-raw-data"
                                                            "/SPECTRUM_#201_2016-06-14_Jiangtao Liu/1286FL9057GDF8RGDX257R2GLHZ.vsi");
@@ -197,7 +208,7 @@ TEST(VSIImageDriver, readVSISceneStripedDirUncompressedRoi) {
     //TestTools::showRasters(testRoi, blockRaster);
 }
 
-TEST(VSIImageDriver, readVSISceneStripedDirUncompressedRoiResampled) {
+TEST_F(VSIImageDriverTests, readVSISceneStripedDirUncompressedRoiResampled) {
     std::string filePath = TestTools::getFullTestImagePath("vsi",
                                                            "Zenodo/Q6VM49JF/Figure-1-ultrasound-raw-data"
                                                            "/SPECTRUM_#201_2016-06-14_Jiangtao Liu/1286FL9057GDF8RGDX257R2GLHZ.vsi");
@@ -222,13 +233,13 @@ TEST(VSIImageDriver, readVSISceneStripedDirUncompressedRoiResampled) {
     //TestTools::showRasters(testRoi, blockRaster);
 }
 
-TEST(VSIImageDriver, VSIFileOpenWithExternalFiles) {
+TEST_F(VSIImageDriverTests, VSIFileOpenWithExternalFiles) {
     std::string filePath = TestTools::getFullTestImagePath("vsi", "Zenodo/Abdominal/G1M16_ABD_HE_B6.vsi");
     vsi::VSIFile vsiFile(filePath);
     EXPECT_EQ(4, vsiFile.getNumEtsFiles());
 }
 
-TEST(VSIImageDriver, read3DVolume16bitSlice) {
+TEST_F(VSIImageDriverTests, read3DVolume16bitSlice) {
     std::string filePath = TestTools::getFullTestImagePath("vsi", "vsi-multifile/vsi-ets-test-jpg2k.vsi");
     std::string testFilePath = TestTools::getFullTestImagePath("vsi", "test-output/vsi-ets-test-jpg2k.vsi - 001 C405, C488 (1, x=0, y=0, w=1645, h=1682).tif");
     slideio::VSIImageDriver driver;
@@ -251,7 +262,7 @@ TEST(VSIImageDriver, read3DVolume16bitSlice) {
 }
 
 
-TEST(VSIImageDriver, read3DVolume16bit) {
+TEST_F(VSIImageDriverTests, read3DVolume16bit) {
     std::string filePath = TestTools::getFullTestImagePath("vsi", "vsi-multifile/vsi-ets-test-jpg2k.vsi");
     std::string testFilePath = TestTools::getFullTestImagePath("vsi", "test-output/vsi-ets-test-jpg2k.vsi - 001 C405, C488 (1, x=0, y=0, w=1645, h=1682).tif");
     slideio::VSIImageDriver driver;
@@ -288,7 +299,7 @@ TEST(VSIImageDriver, read3DVolume16bit) {
     //TestTools::showRasters(testRaster, blockRaster);
 }
 
-TEST(VSIImageDriver, read3DStack16bit) {
+TEST_F(VSIImageDriverTests, read3DStack16bit) {
     std::string filePath = TestTools::getFullTestImagePath("vsi", "vsi-multifile/vsi-ets-test-jpg2k.vsi");
     std::string testFilePath5 = TestTools::getFullTestImagePath("vsi",
         "test-output/vsi-ets-test-jpg2k.vsi - 001 C405, C488 (1, x=0, y=0, w=1645, h=1682).tif");
@@ -331,7 +342,7 @@ TEST(VSIImageDriver, read3DStack16bit) {
     EXPECT_GT(similarity, 0.99);
 }
 
-TEST(VSIImageDriver, readMultiscene) {
+TEST_F(VSIImageDriverTests, readMultiscene) {
     std::string filePath = TestTools::getFullTestImagePath("vsi", "Zenodo/Abdominal/G1M16_ABD_HE_B6.vsi");
     std::string testFilePath = TestTools::getFullTestImagePath("vsi", "test-output/G1M16_ABD_HE_B6.vsi-40x_01(1,x=5836,y=11793,w=849,h=607).png");
     slideio::VSIImageDriver driver;
@@ -365,7 +376,7 @@ TEST(VSIImageDriver, readMultiscene) {
     //TestTools::showRasters(testRaster, blockRaster);
 }
 
-TEST(VSIImageDriver, readMultisceneResized) {
+TEST_F(VSIImageDriverTests, readMultisceneResized) {
     std::string filePath = TestTools::getFullTestImagePath("vsi", "Zenodo/Abdominal/G1M16_ABD_HE_B6.vsi");
     std::string testFilePath = TestTools::getFullTestImagePath("vsi", "test-output/G1M16_ABD_HE_B6.vsi-40x_01(1,x=5836,y=11793,w=849,h=607).png");
     slideio::VSIImageDriver driver;
@@ -387,7 +398,7 @@ TEST(VSIImageDriver, readMultisceneResized) {
     //TestTools::showRasters(testRaster, blockRaster);
 }
 
-TEST(VSIImageDriver, readMultisceneResizedSingeChannel) {
+TEST_F(VSIImageDriverTests, readMultisceneResizedSingeChannel) {
     std::string filePath = TestTools::getFullTestImagePath("vsi", "Zenodo/Abdominal/G1M16_ABD_HE_B6.vsi");
     std::string testFilePath = TestTools::getFullTestImagePath("vsi", "test-output/G1M16_ABD_HE_B6.vsi-40x_01(1,x=5836,y=11793,w=849,h=607).png");
     slideio::VSIImageDriver driver;
@@ -410,7 +421,7 @@ TEST(VSIImageDriver, readMultisceneResizedSingeChannel) {
     //TestTools::showRasters(testRaster, blockRaster);
 }
 
-TEST(VSIImageDriver, readMultisceneResizedReversedChannels) {
+TEST_F(VSIImageDriverTests, readMultisceneResizedReversedChannels) {
     std::string filePath = TestTools::getFullTestImagePath("vsi", "Zenodo/Abdominal/G1M16_ABD_HE_B6.vsi");
     std::string testFilePath = TestTools::getFullTestImagePath("vsi",
         "test-output/G1M16_ABD_HE_B6.vsi-40x_01(1,x=5836,y=11793,w=849,h=607).png");
@@ -710,7 +721,7 @@ TEST(Pyramid, init3D) {
     }
 }
 
-TEST(VSIImageDriver, invalidEts) {
+TEST_F(VSIImageDriverTests, invalidEts) {
     if (!TestTools::isFullTestEnabled())
     {
         GTEST_SKIP() <<

@@ -4,7 +4,6 @@
 #include "slideio/drivers/dcm/dcmfile.hpp"
 #include <dcmtk/dcmdata/dctk.h>
 #include <dcmtk/dcmimgle/dcmimage.h>
-#include <boost/format.hpp>
 #include "slideio/base/base.hpp"
 #include "slideio/core/tools/cvtools.hpp"
 #include <dcmtk/dcmdata/dcjson.h>

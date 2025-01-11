@@ -7,9 +7,9 @@
 #include "slideio/drivers/zvi/zvi_api_def.hpp"
 #include "slideio/drivers/zvi/pole_lib.hpp"
 #include "slideio/base/slideio_enums.hpp"
-#include <boost/variant.hpp>
 #include <codecvt>
 #include <string>
+#include <variant>
 
 #if defined(_MSC_VER)
 #pragma warning( push )
@@ -66,7 +66,7 @@ namespace slideio
             VT_ARRAY = 0x2000,
             VT_BYREF = 0x4000
         } VARENUM;
-        typedef boost::variant<boost::blank, bool, int32_t, uint32_t, uint64_t, int64_t, double, std::string> Variant;
+        typedef std::variant<std::monostate, bool, int32_t, uint32_t, uint64_t, int64_t, double, std::string> Variant;
         void SLIDEIO_ZVI_EXPORTS skipItem(ole::basic_stream& stream);
         void SLIDEIO_ZVI_EXPORTS skipItems(ole::basic_stream& stream, int count);
         int32_t SLIDEIO_ZVI_EXPORTS readIntItem(ole::basic_stream& stream);

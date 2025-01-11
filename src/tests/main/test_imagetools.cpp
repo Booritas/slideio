@@ -6,6 +6,7 @@
 #include "slideio/drivers/gdal/gdalimagedriver.hpp"
 #include "tests/testlib/testtools.hpp"
 #include <fstream>
+#include <filesystem>
 
 #include "slideio/core/tools/tempfile.hpp"
 
@@ -35,7 +36,7 @@ TEST(ImageTools, readJp2Header)
     std::string filePath = TestTools::getTestImagePath("jp2K", "relax.jp2");
     std::string bmpFilePath = TestTools::getTestImagePath("jp2K", "relax.bmp");
 
-    auto fileSize = boost::filesystem::file_size(filePath);
+    auto fileSize = std::filesystem::file_size(filePath);
     ASSERT_GT(fileSize, 0);
     std::ifstream file(filePath, std::ios::binary);
     // Stop eating new lines in binary mode!!!

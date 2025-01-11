@@ -1,11 +1,11 @@
-﻿#include <boost/algorithm/string/predicate.hpp>
-#include <gtest/gtest.h>
+﻿#include <gtest/gtest.h>
 #include "slideio/drivers/svs/svsimagedriver.hpp"
 #include "slideio/drivers/svs/svstiledscene.hpp"
 #include "slideio/imagetools/imagetools.hpp"
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
 #include "tests/testlib/testtools.hpp"
+#include "slideio/base/exceptions.hpp"
 #include <stdint.h>
 #include <functional>
 #include <numeric>
@@ -335,7 +335,7 @@ TEST(SVSImageDriver, slideRawMetadata)
         const std::string& metadata = slide->getRawMetadata();
         EXPECT_GT(metadata.length(),0);
         const std::string header("Aperio Image Library");
-        EXPECT_TRUE(boost::algorithm::starts_with(metadata, header));
+        EXPECT_TRUE(TestTools::starts_with(metadata, header));
     }
 }
 

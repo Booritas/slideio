@@ -1,12 +1,11 @@
 // This file is part of slideio project.
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
+#include "slideio/base/exceptions.hpp"
 #include "slideio/drivers/scn/scnslide.hpp"
 #include "slideio/imagetools/imagetools.hpp"
 #include "slideio/core/tools/xmltools.hpp"
-
-#include <boost/filesystem.hpp>
-#include <boost/format.hpp>
+#include <filesystem>
 #include "slideio/imagetools/libtiff.hpp"
 #include "slideio/drivers/svs/svssmallscene.hpp"
 
@@ -116,9 +115,7 @@ std::shared_ptr<CVScene> SCNSlide::getAuxImage(const std::string& sceneName) con
 {
     auto it = m_auxImages.find(sceneName);
     if (it == m_auxImages.end()) {
-        throw std::runtime_error(
-            (boost::format("The slide does non have auxiliary image \"%1%\"") % sceneName).str()
-        );
+        RAISE_RUNTIME_ERROR << "The slide does non have auxiliary image " << sceneName;
     }
     return it->second;
 }

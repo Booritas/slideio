@@ -17,7 +17,6 @@ set(SOURCE_FILES
 add_library(${LIBRARY_NAME} STATIC ${SOURCE_FILES})
 set_target_properties(${LIBRARY_NAME} PROPERTIES OUTPUT_NAME "${LIBRARY_NAME}${LIB_NAME_SUFFIX}")
 
-find_package(Boost)
 find_package(SQLite3)
 find_package(glog)
 find_package(GTest)
@@ -26,7 +25,6 @@ find_package(PNG)
 find_package(ZLIB)
 
 target_link_libraries(${LIBRARY_NAME} 
-   boost::boost
    SQLite::SQLite3
    glog::glog
    gtest::gtest

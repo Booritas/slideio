@@ -2,8 +2,6 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include <fstream>
-#include <boost/format.hpp>
-
 #include "slideio/core/tools/cvtools.hpp"
 #include "slideio/drivers/zvi/zvitags.hpp"
 #include "slideio/drivers/zvi/zviutils.hpp"
@@ -21,7 +19,7 @@ void ZVIImageItem::readItemInfo(ole::compound_document& doc)
 
 void ZVIImageItem::readContents(ole::compound_document& doc)
 {
-    const std::string streamPath = (boost::format("/Image/Item(%1%)/Contents") % getItemIndex()).str();
+    const std::string streamPath = std::string("/Image/Item(") + std::to_string(getItemIndex()) + ")/Contents";
     ZVIUtils::StreamKeeper stream(doc, streamPath);
 
     ZVIUtils::skipItems(stream, 11);
@@ -65,7 +63,7 @@ void ZVIImageItem::readContents(ole::compound_document& doc)
 
 void ZVIImageItem::readTags(ole::compound_document& doc)
 {
-    const std::string streamPath = (boost::format("/Image/Item(%1%)/Tags/Contents") % getItemIndex()).str();
+    const std::string streamPath = std::string("/Image/Item(") + std::to_string(getItemIndex()) + ")/Tags/Contents";
     ZVIUtils::StreamKeeper stream(doc, streamPath);
 
     const int version = ZVIUtils::readIntItem(stream);
@@ -87,32 +85,32 @@ void ZVIImageItem::readTags(ole::compound_document& doc)
         switch (id)
         {
         case ZVITAG::ZVITAG_IMAGE_TILE_INDEX:
-            imageTileIndex = boost::get<int32_t>(tag);
+            imageTileIndex = std::get<int32_t>(tag);
             break;
         case ZVITAG::ZVITAG_IMAGE_WIDTH:
-            itemWidth = boost::get<int32_t>(tag);
+            itemWidth = std::get<int32_t>(tag);
             break;
         case ZVITAG::ZVITAG_IMAGE_HEIGHT:
-            itemHeight = boost::get<int32_t>(tag);
+            itemHeight = std::get<int32_t>(tag);
             break;
         case ZVITAG::ZVITAG_IMAGE_COUNT:
             break;
         case ZVITAG::ZVITAG_IMAGE_PIXEL_TYPE:
             break;
         case ZVITAG::ZVITAG_IMAGE_INDEX_U:
-            itemTileIndexX = boost::get<int32_t>(tag);
+            itemTileIndexX = std::get<int32_t>(tag);
             break;
         case ZVITAG::ZVITAG_IMAGE_INDEX_V:
-            itemTileIndexY = boost::get<int32_t>(tag);
+            itemTileIndexY = std::get<int32_t>(tag);
             break;
         case ZVITAG::ZVITAG_IMAGE_COUNT_U:
-            itemTileIndexY = boost::get<int32_t>(tag);
+            itemTileIndexY = std::get<int32_t>(tag);
             break;
         case ZVITAG::ZVITAG_IMAGE_COUNT_V:
-            itemTilesY = boost::get<int32_t>(tag);
+            itemTilesY = std::get<int32_t>(tag);
             break;
         case ZVITAG::ZVITAG_CHANNEL_NAME:
-            channelName = boost::get<std::string>(tag);
+            channelName = std::get<std::string>(tag);
             break;
         }
     }
@@ -137,7 +135,7 @@ void ZVIImageItem::readRaster(ole::compound_document& doc, cv::OutputArray raste
     const ZVIPixelFormat pixelFormat = getPixelFormat();
 
 
-    const std::string streamPath = (boost::format("/Image/Item(%1%)/Contents") % getItemIndex()).str();
+    const std::string streamPath = std::string("/Image/Item(") + std::to_string(getItemIndex()) + ")/Contents";
     ZVIUtils::StreamKeeper stream(doc, streamPath);
 
     stream->seek(getDataOffset(), std::ios::beg);
@@ -162,11 +160,6 @@ void ZVIImageItem::readRaster(ole::compound_document& doc, cv::OutputArray raste
         if (readBytes != rasterSize) {
             throw std::runtime_error("ZVIImageDriver: Unexpected end of stream");
         }
-        //std::string filePath = (boost::format("D:\\Temp\\zvi_slice_%1%_channel_%2%") % this->getZIndex() % getCIndex()).str();
-        //std::fstream fileRaster;
-        //fileRaster = std::fstream(filePath, std::ios::out | std::ios::binary);
-        //fileRaster.write(reinterpret_cast<char*>(mat.data), rasterSize);
-        //fileRaster.close();
     }
 
 }

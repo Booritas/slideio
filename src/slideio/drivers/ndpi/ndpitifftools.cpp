@@ -2,6 +2,7 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 //
+#include "slideio/base/exceptions.hpp"
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/drivers/ndpi/ndpilibtiff.hpp"
 #include "slideio/drivers/ndpi/ndpitifftools.hpp"
@@ -10,7 +11,6 @@
 #include <jpeglib.h>
 #include "ndpifile.hpp"
 #include "slideio/core/tools/blocktiler.hpp"
-#include "slideio/core/tools/cachemanager.hpp"
 #include "slideio/imagetools/imagetools.hpp"
 
 
@@ -18,8 +18,6 @@
 #include <opencv2/imgproc.hpp>
 #include <setjmp.h>
 #include <opencv2/core.hpp>
-#include <boost/format.hpp>
-#include <boost/filesystem.hpp>
 #include <jxrcodec/jxrcodec.hpp>
 
 
@@ -817,102 +815,6 @@ void NDPITiffTools::readJpegScanlines(libtiff::TIFF* tiff, FILE* file, const NDP
     jpeg_destroy_decompress(&cinfo);
 }
 
-void NDPITiffTools::cacheScanlines(NDPIFile* ndpifile, const NDPITiffDirectory& dir,
-    cv::Size tileSize, CacheManager* cacheManager)
-{
-    libtiff::TIFF* tiff = ndpifile->getTiffHandle();
-    std::unique_ptr<FILE, Tools::FileDeleter> sfile(Tools::openFile(ndpifile->getFilePath(), "rb"));
-
-    FILE* file = sfile.get();
-
-    if(!file) {
-        RAISE_RUNTIME_ERROR << "NDPITiffTools: file pointer is not set";
-    }
-    if(!cacheManager) {
-        RAISE_RUNTIME_ERROR << "NDPITiffTools: cache manager is not set";
-    }
-    if(dir.tiled) {
-        RAISE_RUNTIME_ERROR << "NDPITiffTools: Attempt to use stripped cache for tiled directory.";
-    }
-
-    if(dir.rowsPerStrip != dir.height) {
-        RAISE_RUNTIME_ERROR << "NDPITiffTools: Attempt to use stripped cache for directory with rows per strip: " <<
-            dir.rowsPerStrip << ". Expected: " << dir.height;
-    }
-
-    const int firstScanline = 0;
-    const int numberScanlines = dir.height;
-
-    setCurrentDirectory(tiff, dir);
-
-    uint64_t stripeOffset = libtiff::TIFFGetStrileOffset(tiff, 0);
-    int ret = Tools::setFilePos(file, stripeOffset, SEEK_SET);
-    jpeg_decompress_struct cinfo;
-    ErrorManager jerr;
-
-    cinfo.err = jpeg_std_error(&jerr.pub);
-    jerr.pub.error_exit = ErrorExit;
-
-    if (setjmp(jerr.setjmp_buffer)) {
-        /* If we get here, the JPEG code has signaled an error.
-         * We need to clean up the JPEG object, close the input file, and return.*/
-        jpeg_destroy_decompress(&cinfo);
-        return;
-    }
-
-    jpeg_create_decompress(&cinfo);
-    jpeg_stdio_src(&cinfo, file);
-    cinfo.image_width = dir.width;
-    cinfo.image_height = dir.height;
-    jpeg_read_header(&cinfo, TRUE);
-    jpeg_start_decompress(&cinfo);
-    int rowStride = cinfo.output_width * cinfo.output_components;
-
-    cv::Mat stripe;
-    stripe.create(tileSize.height, cinfo.output_width, CV_MAKETYPE(CV_8U, cinfo.output_components));
-    stripe.setTo(cv::Scalar(0));
-    uint8_t* rowBegin = stripe.data;
-
-    int stripeLine = 0;
-    int stripeRows = tileSize.height;
-    int stripeTop = 0;
-    for (int scanline = 0; scanline < numberScanlines; ++scanline, ++stripeLine) {
-        int read = jpeg_read_scanlines(&cinfo, &rowBegin, 1);
-        if (read != 1) {
-            RAISE_RUNTIME_ERROR << "NDPIImageDriver: error by reading scanline " << scanline << " of " <<
-                numberScanlines;
-        }
-        rowBegin += rowStride;
-        if(stripeLine >= (stripeRows-1) || (scanline+1) == numberScanlines) {
-            //if(dir.photometric==6) {
-            //    cv::Mat stripeRGB;
-            //    cv::cvtColor(stripe, stripeRGB, cv::COLOR_YCrCb2BGR);
-            //    stripeRGB.copyTo(stripe);
-            //}
-            BlockTiler tiler(stripe, tileSize);
-            tiler.apply([&cacheManager, stripeTop, &dir, tileSize](int x, int y, const cv::Mat& tile){
-                cacheManager->addTile(dir.dirIndex, cv::Point(x*tileSize.width, stripeTop), tile);
-            });
-            if ((scanline + 1) < numberScanlines) {
-                if (scanline + stripeRows >= numberScanlines) {
-                    stripeRows = numberScanlines - scanline;
-                    stripe.create(stripeRows, cinfo.output_width, CV_MAKETYPE(CV_8U, cinfo.output_components));
-                }
-                // prepare next stripe
-                stripe.setTo(cv::Scalar(0));
-            }
-            rowBegin = stripe.data;
-            stripeLine = -1;
-            stripeTop = scanline + 1;
-        }
-    }
-    const int rowsLeft = dir.height - firstScanline - numberScanlines;
-    if (rowsLeft > 0) {
-        jpeg_skip_scanlines(&cinfo, rowsLeft);
-    }
-    jpeg_finish_decompress(&cinfo);
-    jpeg_destroy_decompress(&cinfo);
-}
 
 void NDPITiffTools::readJpegDirectoryRegion(libtiff::TIFF* tiff, const std::string& filePath, const cv::Rect& region,
                                             const NDPITiffDirectory& dir, const std::vector<int>& channelIndices,
@@ -1481,9 +1383,7 @@ void NDPITiffTools::jpeglibDecodeTile(const uint8_t* jpg_buffer, size_t jpg_size
 
     if (rc != 1) {
         jpeg_destroy_decompress(&cinfo);
-        throw std::runtime_error(
-            (boost::format("Invalid jpeg stream. JpegLib returns code:  %1%") % rc).str()
-        );
+        RAISE_RUNTIME_ERROR << "Invalid jpeg stream. JpegLib returns code: " << rc;
     }
 
     // By calling jpeg_start_decompress, you populate cinfo

@@ -5,12 +5,14 @@
 #include <memory>
 #include <string>
 #include <vector>
-#include <boost/json.hpp>
 #include "vsitools.hpp"
 #include "slideio/drivers/vsi/vsi_api_def.hpp"
 #include "slideio/imagetools/tifftools.hpp"
 #include "slideio/drivers/vsi/volume.hpp"
 #include "slideio/drivers/vsi/taginfo.hpp"
+#include <nlohmann/json.hpp>
+
+using json = nlohmann::json;
 
 #if defined(_MSC_VER)
 #pragma warning( push )
@@ -69,7 +71,7 @@ namespace slideio
             void extractVolumesFromMetadata();
             bool readVolumeHeader(vsi::VSIStream& vsi, vsi::VolumeHeader& volumeHeader);
             bool readMetadata(VSIStream& vsiStream, std::list<TagInfo>& path);
-            void serializeMetadata(const TagInfo& tagInfo, boost::json::object& jsonObj) const;
+            void serializeMetadata(const TagInfo& tagInfo, json& jsonObj) const;
             void readVolumeInfo();
             void readExternalFiles();
             void readExtendedType(vsi::VSIStream& vsi, TagInfo& tag, std::list<TagInfo>& path);

@@ -9,9 +9,8 @@
 #include "slideio/imagetools/imagetools.hpp"
 #include "slideio/core/tools/cvtools.hpp"
 #include <opencv2/core.hpp>
-#include <boost/format.hpp>
 #include "slideio/imagetools/libtiff.hpp"
-#include <boost/filesystem.hpp>
+#include <filesystem>
 #include "slideio/base/log.hpp"
 #include "slideio/core/tools/tools.hpp"
 
@@ -282,18 +281,18 @@ int compressSlideioToTiff(Compression compression)
 
 libtiff::TIFF* TiffTools::openTiffFile(const std::string& path, bool readOnly)
 {
-    namespace fs = boost::filesystem;
+    namespace fs = std::filesystem;
     libtiff::TIFF* hfile(nullptr);
 #if defined(WIN32)
     std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converter;
     std::wstring wsPath = converter.from_bytes(path);
-    boost::filesystem::path filePath(wsPath);
+    fs::path filePath(wsPath);
     if (readOnly && !fs::exists(wsPath)) {
         RAISE_RUNTIME_ERROR << "File " << path << " does not exist";
     }
     hfile = libtiff::TIFFOpenW(wsPath.c_str(), readOnly ? "r" : "w");
 #else
-    boost::filesystem::path filePath(path);
+    fs::path filePath(path);
     if (readOnly && !fs::exists(filePath)) {
         RAISE_RUNTIME_ERROR << "File " << path << " does not exist";
     }
@@ -708,11 +707,10 @@ void TiffTools::readRegularTile(libtiff::TIFF* hFile, const TiffDirectory& dir, 
         uint8_t* buff_begin = tileRaster.data;
         auto buf_size = tileRaster.total() * tileRaster.elemSize();
         auto readBytes = libtiff::TIFFReadEncodedTile(hFile, tile, buff_begin, buf_size);
-        if (readBytes <= 0)
-            throw std::runtime_error(
-                (boost::format(
-                    "TiffTools: error reading encoded tiff tile %1% of directory %2%."
-                    "Compression: %3%") % tile % dir.dirIndex % dir.compression).str());
+        if (readBytes <= 0){
+            RAISE_RUNTIME_ERROR << "TiffTools: Error reading encoded tiff tile "
+                << tile << " of directory " << dir.dirIndex << ". Compression: " << dir.compression;
+        }
     }
     if(channelIndices.empty() || (channelIndices.size() == 1 && dir.channels==1))
     {
@@ -773,11 +771,10 @@ void TiffTools::readNotRGBTile(libtiff::TIFF* hFile, const TiffDirectory& dir, i
     int tileX = col * dir.tileWidth;
     int tileY = row * dir.tileHeight;
     auto readBytes = libtiff::TIFFReadRGBATile(hFile, tileX, tileY, buffBegin);
-    if (readBytes <= 0)
-        throw std::runtime_error(
-            (boost::format(
-                "TiffTools: error reading encoded tiff tile %1% of directory %2%."
-                "Compression: %3%") % tile % dir.dirIndex % dir.compression).str());
+    if (readBytes <= 0) {
+        RAISE_RUNTIME_ERROR << "TiffTools: Error reading encoded tiff tile "
+            << tile << " of directory " << dir.dirIndex << ". Compression: " << dir.compression;
+    }
 
     cv::Mat flipped;
     if (channelIndices.empty())

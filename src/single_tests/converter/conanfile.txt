@@ -1,6 +1,5 @@
 [requires]
 glog/0.7.1
-boost/1.86.0
 opencv/4.10.0@slideio/stable
 zlib/1.2.13
 [options]

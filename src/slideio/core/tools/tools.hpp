@@ -126,6 +126,8 @@ namespace slideio
         static Rect cvRectToRect(const cv::Rect& cvRect) {
             return {cvRect.x, cvRect.y, cvRect.width, cvRect.height};
         }
+        static void replaceAll(std::string& str, const std::string& from, const std::string& to);
+        static std::vector<std::string> split(const std::string& value, char delimiter);
 
     };
 }

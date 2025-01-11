@@ -10,8 +10,7 @@
 #include "slideio/base/exceptions.hpp"
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/core/tools/cvtools.hpp"
-#include <boost/filesystem.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
+#include <filesystem>
 
 void slideio::ConverterSVSTools::checkSVSRequirements(const CVScenePtr& scene, const SVSConverterParameters& parameters)
 {
@@ -76,7 +75,7 @@ std::string slideio::ConverterSVSTools::createDescription(const CVScenePtr& scen
     }
 
     std::string filePath = scene->getFilePath();
-    boost::filesystem::path path(filePath);
+    std::filesystem::path path(filePath);
     buff << "|Filename = " << path.stem().string();
     buff << "|" << retrieveDate() << "|" << retrieveTime();
 

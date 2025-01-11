@@ -3,7 +3,6 @@ from conan import ConanFile
 class GdalRecipe(ConanFile):
     settings = "os", "compiler", "build_type", "arch"
     def requirements(self):
-        self.requires("boost/1.86.0")
         self.requires("sqlite3/3.44.2")
         self.requires("glog/0.7.1")
         self.requires("opencv/4.10.0@slideio/stable")
@@ -13,7 +12,7 @@ class GdalRecipe(ConanFile):
         self.requires("libjpeg/9e")
         self.requires("libwebp/1.3.2")
         self.requires("libpng/1.6.40")
-        self.requires("openjpeg/2.5.0")
+        self.requires("openjpeg/2.5.2")
         self.requires("jpegxrcodec/1.0.3@slideio/stable")
         self.requires("libiconv/1.17")
         self.requires("libdeflate/1.19")

@@ -5,6 +5,7 @@
 #include "vsitags.hpp"
 #include "vsistruct.hpp"
 #include <list>
+#include <algorithm>
 
 namespace slideio
 {

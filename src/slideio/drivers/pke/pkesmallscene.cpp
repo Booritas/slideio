@@ -8,7 +8,6 @@
 
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
-#include <boost/format.hpp>
 
 using namespace slideio;
 
@@ -66,8 +65,9 @@ void PKESmallScene::readResampledBlockChannels(const cv::Rect& blockRect, const 
 {
     auto hFile = getFileHandle();
 
-    if (hFile == nullptr)
-        throw std::runtime_error("PKEDriver: Invalid file header by raster reading operation");
+    if (hFile == nullptr) {
+        RAISE_RUNTIME_ERROR << "PKEDriver: Invalid file header by raster reading operation";
+    }
 
     cv::Mat wholeDirRaster;
     if(channelIndices.empty())

@@ -14,26 +14,15 @@
 #include "taginfo.hpp"
 #include "slideio/imagetools/tifftools.hpp"
 
-#include <boost/tokenizer.hpp>
-#include <boost/algorithm/string.hpp>
-#include <boost/filesystem.hpp>
-
 
 using namespace slideio;
 using namespace slideio::vsi;
+namespace fs = std::filesystem;
 
-namespace fs = boost::filesystem;
 
 static int extractBaseDirectoryNameSuffix(const fs::path& path) {
-    std::string dirName;
-    int count = 0;
-    for (auto part = path.rbegin(); part != path.rend(); part++) {
-        if (count > 0) {
-            dirName = part->string();
-            break;
-        }
-        count++;
-    }
+    std::filesystem::path parentDir = path.parent_path();
+    std::string dirName = parentDir.filename().string();
     int suffix = std::stoi(dirName.c_str() + 5); // skip 'stack' prefix
     return suffix;
 }
@@ -43,8 +32,7 @@ static std::vector<std::string> splitVectorValues(const std::string& value) {
     std::string val = value;
     val.erase(std::remove(val.begin(), val.end(), '('), val.end());
     val.erase(std::remove(val.begin(), val.end(), ')'), val.end());
-    std::vector<std::string> tokens;
-    boost::split(tokens, val, boost::is_any_of(","));
+    std::vector<std::string> tokens = slideio::Tools::split(val, ',');
     return tokens;
 }
 
@@ -277,9 +265,9 @@ VSIFile::VSIFile(const std::string& filePath) : m_filePath(filePath) {
 }
 
 std::string VSIFile::getRawMetadata() const {
-    boost::json::object jsonMtd;
+    json jsonMtd;
     serializeMetadata(m_metadata, jsonMtd);
-    return boost::json::serialize(jsonMtd);
+    return jsonMtd.dump();
 }
 
 
@@ -352,20 +340,17 @@ void VSIFile::read() {
     }
 }
 
-boost::json::object findObject(boost::json::object& parent, const std::string& path) {
-    typedef boost::tokenizer<boost::char_separator<char>> tokenizer;
-
-    boost::char_separator<char> sep("/");
-    tokenizer tokens(path, sep);
-
-    boost::json::object current = parent;
+json findObject(json& parent, const std::string& path) {
+    char sep('/');
+    std::vector<std::string> tokens = slideio::Tools::split(path, sep);
+    json current = parent;
 
     for (std::string const& token : tokens) {
         auto it = current.find(token);
         if (it == current.end()) {
             return {};
         }
-        current = it->value().as_object();
+        current = *it;
     }
     return current;
 }
@@ -410,15 +395,15 @@ StackType VSIFile::getVolumeStackType(const TagInfo* volume) {
 }
 
 
-void VSIFile::serializeMetadata(const TagInfo& tagInfo, boost::json::object& jsonObj) const {
+void VSIFile::serializeMetadata(const TagInfo& tagInfo, json& jsonObj) const {
     jsonObj["tag"] = tagInfo.tag;
     jsonObj["name"] = tagInfo.name;
     jsonObj["value"] = tagInfo.value;
     jsonObj["secondTag"] = tagInfo.secondTag;
     if (!tagInfo.children.empty()) {
-        boost::json::array array;
+        json array = json::array();
         for (const auto& child : tagInfo.children) {
-            boost::json::object childObject;
+            json childObject = json::object();
             serializeMetadata(child, childObject);
             array.emplace_back(std::move(childObject));
         }
@@ -426,7 +411,7 @@ void VSIFile::serializeMetadata(const TagInfo& tagInfo, boost::json::object& jso
     }
     else {
         for (const auto& child : tagInfo.children) {
-            boost::json::object childObject;
+            json childObject = json::object();
             serializeMetadata(child, childObject);
             std::string tag = std::to_string(child.tag);
             jsonObj[tag] = std::move(childObject);

@@ -85,10 +85,10 @@ std::string vsi::VSITools::getVolumeName(int tag) {
     return "";
 }
 
-bool vsi::VSITools::isTag(const boost::json::object& parentObject, int srcTag) {
+bool vsi::VSITools::isTag(const json& parentObject, int srcTag) {
     bool ret = false;
     if (parentObject.contains("tag")) {
-        const int trgTag = static_cast<int>(parentObject.at("tag").as_int64());
+        const int trgTag = static_cast<int>(parentObject.at("tag").get<int64_t>());
         if (trgTag == srcTag) {
             ret = true;
         }

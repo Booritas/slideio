@@ -3,7 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/drivers/dcm/dcmimagedriver.hpp"
 #include "slideio/drivers/dcm/dcmslide.hpp"
-#include <boost/filesystem.hpp>
+#include <filesystem>
 
 #include <dcmdata/dcpixel.h>
 #include <dcmdata/dcrledrg.h>    /* for DcmRLEDecoderRegistration */
@@ -72,11 +72,11 @@ bool DCMImageDriver::canOpenFile(const std::string& filePath) const
     bool can = ImageDriver::canOpenFile(filePath);
     if(!can) {
 #if defined(WIN32)
-        boost::filesystem::path fp(Tools::toWstring(filePath));
+        std::filesystem::path fp(Tools::toWstring(filePath));
         std::wstring extension = fp.extension().wstring();
         can = extension.empty();
 #else
-        boost::filesystem::path fp(filePath);
+        std::filesystem::path fp(filePath);
         std::string extension = fp.extension().string();
         can = extension.empty();
 #endif

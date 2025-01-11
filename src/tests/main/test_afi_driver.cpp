@@ -5,7 +5,7 @@
 #include "slideio/base/exceptions.hpp"
 
 #include <gtest/gtest.h>
-#include <boost/filesystem.hpp>
+#include <filesystem>
 #include <opencv2/imgproc.hpp>
 
 #include <numeric>
@@ -49,7 +49,7 @@ TEST(AFIDriver, readFileBrokenEntries)
     EXPECT_THROW(slideio::AFISlide::getFileList("<ImageList>\
         <Image>\
         <Path>51445_Alexa Fluor 594.svs</Path>\
-        <ID>@51446</ID >"), std::runtime_error);
+        <ID>@51446</ID >"), slideio::RuntimeError);
 }
 
 class AFIDriverFileTest : public ::testing::Test {
@@ -94,7 +94,7 @@ TEST_F(AFIDriverFileTest, checkFile)
     EXPECT_EQ(slide->getFilePath(), filePath);
     auto scene = slide->getScene(1);
     EXPECT_EQ(scene->getName(), "Image");
-    std::string scenePath = boost::filesystem::path(scene->getFilePath()).lexically_normal().string();
+    std::string scenePath = std::filesystem::path(scene->getFilePath()).lexically_normal().string();
     std::string svsPath = getPrivTestImagesPath("afi", "fs_Alexa Fluor 488.svs");
     EXPECT_EQ(scenePath, svsPath);
 }

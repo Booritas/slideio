@@ -5,23 +5,34 @@
 #include "slideio/core/tools/tools.hpp"
 
 #include <codecvt>
-#include <boost/algorithm/string.hpp>
 #include <numeric>
-#include <boost/format.hpp>
-#include <boost/filesystem.hpp>
 #include "slideio/base/exceptions.hpp"
+#include <filesystem>
 #if defined(WIN32)
 #include <Shlwapi.h>
 #else
 #include <fnmatch.h>
 #endif
 using namespace slideio;
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 
 extern "C" {
     #include "wildmat.h"
 }
 
+std::vector<std::string> Tools::split(const std::string& val, char delimiter) {
+    std::vector<std::string> tokens;
+    std::string token;
+    std::istringstream tokenStream(val);
+    while (std::getline(tokenStream, token, delimiter)) {
+        tokens.push_back(token);
+    }
+    // Check for trailing delimiter
+    if (!val.empty() && val.back() == delimiter) {
+        tokens.push_back("");
+    }
+    return tokens;
+}
 
 bool Tools::matchPattern(const std::string& path, const std::string& pattern)
 {
@@ -31,8 +42,7 @@ bool Tools::matchPattern(const std::string& path, const std::string& pattern)
     const std::wstring wpattern = Tools::toWstring(pattern);
     ret = PathMatchSpecW(wpath.c_str(), wpattern.c_str()) != 0;
 #else
-    std::vector<std::string> subPatterns;
-    boost::algorithm::split(subPatterns, pattern, boost::is_any_of(";"), boost::algorithm::token_compress_on);
+    std::vector<std::string> subPatterns = split(pattern, ';');
     for(const auto& sub_pattern : subPatterns)
     {
         ret = wildmat(const_cast<char*>(path.c_str()),const_cast<char*>(sub_pattern.c_str()));
@@ -112,15 +122,14 @@ std::string Tools::fromUnicode16(const std::u16string& u16string) {
 
 void Tools::throwIfPathNotExist(const std::string& path, const std::string label)
 {
-    namespace fs = boost::filesystem;
 #if defined(WIN32)
     std::wstring wsPath = Tools::toWstring(path);
-    boost::filesystem::path filePath(wsPath);
+    fs::path filePath(wsPath);
     if (!fs::exists(wsPath)) {
         RAISE_RUNTIME_ERROR << label << "File " << path << " does not exist";
     }
 #else
-    boost::filesystem::path filePath(path);
+    fs::path filePath(path);
     if (!fs::exists(filePath)) {
         RAISE_RUNTIME_ERROR << label << " File " << path << " does not exist";
     }
@@ -226,6 +235,14 @@ int Tools::dataTypeSize(slideio::DataType dt)
     case DataType::DT_None:
         break;
     }
-    throw std::runtime_error(
-        (boost::format("Unknown data type: %1%") % (int)dt).str());
+    RAISE_RUNTIME_ERROR << "Unknown data type: " << (int)dt;
+}
+
+void Tools::replaceAll(std::string& str, const std::string& from, const std::string& to)
+{
+    size_t start_pos = 0;
+    while ((start_pos = str.find(from, start_pos)) != std::string::npos) {
+        str.replace(start_pos, from.length(), to);
+        start_pos += to.length();
+    }
 }

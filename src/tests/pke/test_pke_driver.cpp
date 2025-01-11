@@ -8,6 +8,7 @@
 #include "slideio/drivers/pke/pkeimagedriver.hpp"
 #include "slideio/drivers/pke/pkescene.hpp"
 #include "slideio/drivers/pke/pkeslide.hpp"
+#include "slideio/core/imagedrivermanager.hpp"
 
 
 namespace slideio
@@ -18,7 +19,17 @@ namespace slideio
 using namespace slideio;
 
 
-TEST(PKEImageDriver, openBrightFieldFile) {
+class PKEImageDriverTests : public ::testing::Test {
+protected:
+    static void SetUpTestSuite() {
+        ImageDriverManager::setLogLevel("WARNING");
+        std::cerr << "SetUpTestSuite: Running before all tests\n";
+    }
+    static void TearDownTestSuite() {
+    }
+};
+
+TEST_F(PKEImageDriverTests, openBrightFieldFile) {
     std::string filePath = TestTools::getFullTestImagePath("pke","openmicroscopy/PKI_scans/HandEcompressed_Scan1.qptiff");
     slideio::PKEImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
@@ -59,7 +70,7 @@ TEST(PKEImageDriver, openBrightFieldFile) {
     }
 }
 
-TEST(PKEImageDriver, openFLFile) {
+TEST_F(PKEImageDriverTests, openFLFile) {
     std::string filePath = TestTools::getFullTestImagePath("pke", "openmicroscopy/PKI_scans/LuCa-7color_Scan1.qptiff");
     slideio::PKEImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
@@ -105,7 +116,7 @@ TEST(PKEImageDriver, openFLFile) {
 
 }
 
-TEST(PKEImageDriver, readBrightFieldRegion) {
+TEST_F(PKEImageDriverTests, readBrightFieldRegion) {
     std::string filePath = TestTools::getFullTestImagePath("pke", "openmicroscopy/PKI_scans/HandEcompressed_Scan1.qptiff");
     std::string testFilePath = TestTools::getFullTestImagePath("pke", "test-images/HandEcompressed_Scan1 (1, x=11190, y=8580, w=1622, h=963).png");
     slideio::PKEImageDriver driver;
@@ -131,7 +142,7 @@ TEST(PKEImageDriver, readBrightFieldRegion) {
     EXPECT_GE(similarity, 0.92);
 }
 
-TEST(PKEImageDriver, readFLRegion) {
+TEST_F(PKEImageDriverTests, readFLRegion) {
     std::string filePath = TestTools::getFullTestImagePath("pke", "openmicroscopy/PKI_scans/LuCa-7color_Scan1.qptiff");
     std::string testFilePath = TestTools::getFullTestImagePath("pke", "test-images/LuCa-7color_Scan1.qptiff - resolution #1 (1, x=4981, y=10654, w=2367, h=1578).tif");
     slideio::PKEImageDriver driver;
@@ -172,7 +183,7 @@ void testAuxImage(std::shared_ptr<CVSlide>& slide, const std::string& filePath, 
     TestTools::compareRasters(auxRaster, auxTestRaster);
 }
 
-TEST(PKEImageDriver, auxiliaryImages) {
+TEST_F(PKEImageDriverTests, auxiliaryImages) {
     std::string filePath = TestTools::getFullTestImagePath("pke", "openmicroscopy/PKI_scans/LuCa-7color_Scan1.qptiff");
     const std::list<std::string> auxPaths = {
         TestTools::getFullTestImagePath("pke", "test-images/LuCa-7color_Scan1.thumb.png"),
@@ -198,7 +209,7 @@ TEST(PKEImageDriver, auxiliaryImages) {
     }
 }
 
-TEST(PKEImageDriver, metadata) {
+TEST_F(PKEImageDriverTests, metadata) {
     std::string filePath = TestTools::getFullTestImagePath("pke", "openmicroscopy/PKI_scans/LuCa-7color_Scan1.qptiff");
     slideio::PKEImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
@@ -218,7 +229,7 @@ TEST(PKEImageDriver, metadata) {
 }
 
 
-TEST(PKEImageDriver, readStripedDir) {
+TEST_F(PKEImageDriverTests, readStripedDir) {
     std::string filePath = TestTools::getFullTestImagePath("pke", "openmicroscopy/PKI_scans/HandEcompressed_Scan1.qptiff");
     std::string testFilePath = TestTools::getFullTestImagePath("pke", "test-images/HandEcompressed_Scan1-low.png");
     slideio::PKEImageDriver driver;
@@ -241,7 +252,7 @@ TEST(PKEImageDriver, readStripedDir) {
     //TestTools::showRasters(raster, testRaster);
 }
 
-TEST(PKEImageDriver, readStripedDir5Channels_SelectedChannels) {
+TEST_F(PKEImageDriverTests, readStripedDir5Channels_SelectedChannels) {
     std::string filePath = TestTools::getFullTestImagePath("pke", "openmicroscopy/PKI_scans/LuCa-7color_Scan1.qptiff");
     std::string testFilePath = TestTools::getFullTestImagePath("pke", "test-images/LuCa-7color_Scan1-low.png");
     slideio::PKEImageDriver driver;
@@ -263,10 +274,11 @@ TEST(PKEImageDriver, readStripedDir5Channels_SelectedChannels) {
     //TestTools::writePNG(raster, testFilePath);
     TestTools::readPNG(testFilePath, testRaster);
     TestTools::compareRasters(raster, testRaster);
+    //TestTools::writePNG(raster, "/tmp/test.png");
     //TestTools::showRasters(raster, testRaster);
 }
 
-TEST(PKEImageDriver, readStripedDir5Channels_SingleChannel) {
+TEST_F(PKEImageDriverTests, readStripedDir5Channels_SingleChannel) {
     std::string filePath = TestTools::getFullTestImagePath("pke", "openmicroscopy/PKI_scans/LuCa-7color_Scan1.qptiff");
     std::string testFilePath = TestTools::getFullTestImagePath("pke", "test-images/LuCa-7color_Scan1-low.png");
     slideio::PKEImageDriver driver;
@@ -294,7 +306,7 @@ TEST(PKEImageDriver, readStripedDir5Channels_SingleChannel) {
     }
 }
 
-TEST(PKEImageDriver, readStripedDir5ChannelsAllChannels) {
+TEST_F(PKEImageDriverTests, readStripedDir5ChannelsAllChannels) {
     std::string filePath = TestTools::getFullTestImagePath("pke", "openmicroscopy/PKI_scans/LuCa-7color_Scan1.qptiff");
     slideio::PKEImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
@@ -323,7 +335,7 @@ TEST(PKEImageDriver, readStripedDir5ChannelsAllChannels) {
     }
 }
 
-TEST(PKEImageDriver, readMultichannelImageNoScaleAllChannels) {
+TEST_F(PKEImageDriverTests, readMultichannelImageNoScaleAllChannels) {
     std::string filePath = TestTools::getFullTestImagePath("pke", "openmicroscopy/PKI_scans/LuCa-7color_Scan1.qptiff");
     std::string refImagePath = TestTools::getFullTestImagePath("pke", "test-images/LuCa-7color_Scan1.qptiff - resolution #1 (1, x=11619, y=16875, w=1202, h=756).tif");
     cv::Mat refImage;
@@ -349,7 +361,7 @@ TEST(PKEImageDriver, readMultichannelImageNoScaleAllChannels) {
     TestTools::compareRasters(roi, refImage);
 }
 
-TEST(PKEImageDriver, readMultichannelImageNoScaleSeparatedChannels) {
+TEST_F(PKEImageDriverTests, readMultichannelImageNoScaleSeparatedChannels) {
     std::string filePath = TestTools::getFullTestImagePath("pke", "openmicroscopy/PKI_scans/LuCa-7color_Scan1.qptiff");
     std::string refImagePath = TestTools::getFullTestImagePath("pke", "test-images/LuCa-7color_Scan1.qptiff - resolution #1 (1, x=11619, y=16875, w=1202, h=756).tif");
     cv::Mat refImage;

@@ -4,9 +4,9 @@
 #include <string>
 #include <opencv2/imgproc.hpp>
 
-#include "slideio/core/tools/cachemanager.hpp"
 #include "slideio/drivers/ndpi/ndpifile.hpp"
 #include "slideio/imagetools/imagetools.hpp"
+#include "slideio/core/tools/tools.hpp"
 
 
 TEST(NDPITiffTools, scanFile)
@@ -341,37 +341,6 @@ TEST(NDPITiffTools, readScanlinesDNLMarkerInversedChannels)
     TestTools::readPNG(testFilePath, testRaster);
     TestTools::compareRasters(testRaster, stripRaster);
     //showRaster(stripRaster);
-}
-
-TEST(NDPITiffTools, cacheScanlines)
-{
-    std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1.ndpi");
-    std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1-cacheLines.png");
-    slideio::NDPIFile file;
-    file.init(filePath);
-    const std::vector<slideio::NDPITiffDirectory>& dirs = file.directories();
-    const slideio::NDPITiffDirectory& dir = dirs[2];
-    auto tiffFile = slideio::NDPITiffTools::openTiffFile(filePath);
-    std::shared_ptr<slideio::CacheManager> cacheManager = std::make_shared<slideio::CacheManager>();
-    const cv::Size tileSize = { 100, 200 };
-    slideio::NDPITiffTools::cacheScanlines(&file, dir, tileSize, cacheManager.get());
-    const int tileCountY = (dir.height - 1) / tileSize.height + 1;
-    const int tileCountX = (dir.width - 1) / tileSize.width + 1;
-    const int tileCount = tileCountX * tileCountY;
-    ASSERT_EQ(cacheManager->getTileCount(dir.dirIndex) , tileCount);
-    const cv::Rect& rect = cacheManager->getTileRect(dir.dirIndex, 0);
-    EXPECT_EQ(rect, cv::Rect(cv::Point2i(0, 0), tileSize));
-    slideio::CacheManagerTiler tiler(cacheManager, tileSize, dir.dirIndex);
-    cv::Rect blockRect = { dir.width/2, dir.height/4, 750, 700 };
-    cv::Size blockSize = blockRect.size();
-    cv::Mat blockRaster(blockSize, CV_8UC3, cv::Scalar(0, 0, 0));
-    slideio::TileComposer::composeRect(&tiler, {}, blockRect, blockSize, blockRaster);
-    slideio::NDPITiffTools::closeTiffFile(tiffFile);
-    cv::Mat testRaster;
-    TestTools::readPNG(testFilePath, testRaster);
-    TestTools::compareRasters(testRaster, blockRaster);
-    //TestTools::showRaster(blockRaster);
-    //TestTools::writePNG(blockRaster, TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1-cacheLines0.png"));
 }
 
 

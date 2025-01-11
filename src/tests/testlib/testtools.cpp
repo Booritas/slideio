@@ -5,7 +5,7 @@
 #include <codecvt>
 #include <fstream>
 #include <numeric>
-#include <boost/filesystem/path.hpp>
+#include <filesystem>
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/core/mat.hpp>
@@ -46,9 +46,9 @@ std::string TestTools::getTestImageDirectory(bool priv)
 {
     const char *varName = priv ? PRIV_TEST_PATH_VARIABLE : TEST_PATH_VARIABLE;
     const char* var = getenv(varName);
-    if(var==nullptr)
-        throw std::runtime_error(
-            std::string("Undefined environment variable: " + std::string(varName)));
+    if(var==nullptr) {
+        RAISE_RUNTIME_ERROR << "Undefined environment variable: " << varName;
+    }
     std::string testDirPath(var);
     return testDirPath;
 }
@@ -60,21 +60,21 @@ std::string TestTools::getTestImagePath(const std::string& subfolder, const std:
     if(!subfolder.empty())
         imagePath += std::string("/") + subfolder;
     imagePath += std::string("/") +  image;
-    return boost::filesystem::path(imagePath).lexically_normal().string();
+    return std::filesystem::path(imagePath).lexically_normal().string();
 }
 
 std::string TestTools::getFullTestImagePath(const std::string& subfolder, const std::string& image)
 {
     const char* varName = TEST_FULL_TEST_PATH_VARIABLE;
     const char* var = getenv(varName);
-    if (var == nullptr)
-        throw std::runtime_error(
-            std::string("Undefined environment variable: " + std::string(varName)));
+    if (var == nullptr) {
+        RAISE_RUNTIME_ERROR << "Undefined environment variable: " << varName;
+    }
     std::string imagePath(var);
     if (!subfolder.empty())
         imagePath += std::string("/") + subfolder;
     imagePath += std::string("/") + image;
-    return boost::filesystem::path(imagePath).lexically_normal().string();
+    return std::filesystem::path(imagePath).lexically_normal().string();
 }
 
 

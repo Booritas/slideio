@@ -2,7 +2,6 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include <fstream>
-#include <boost/format.hpp>
 #include <gtest/gtest.h>
 #include <opencv2/imgproc.hpp>
 

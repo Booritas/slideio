@@ -13,12 +13,6 @@ add_executable(${TEST_NAME} ${TEST_SOURCES})
 
 target_include_directories(${TEST_NAME} PRIVATE ${INCLUDE_ROOT})
 
-# Remove boost libraries from linking
-LIST(FILTER CONAN_LIBS_RELEASE EXCLUDE REGEX "^(.)+boost(.)+")
-LIST(FILTER CONAN_LIBS_DEBUG EXCLUDE REGEX "^(.)+boost(.)+")
-
-
-find_package(Boost)
 find_package(glog)
 find_package(GTest)
 find_package(OpenCV)
@@ -28,7 +22,6 @@ find_package(WebP)
 find_package(tinyxml2)
 
 target_link_libraries(${TEST_NAME}
-  boost::boost
   glog::glog
   gtest::gtest
   opencv::opencv
@@ -39,9 +32,10 @@ target_link_libraries(${TEST_NAME}
 )
 
 target_link_libraries(${TEST_NAME} 
-    ${CORE_LIB_NAME}
     ${PKE_DRIVER_NAME}
     ${TEST_LIB_NAME}
+    ${CORE_LIB_NAME}
+    ${SLIDEIO_LIB_NAME}
   )
 
 
