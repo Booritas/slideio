@@ -44,7 +44,7 @@ RUN yes | python3 -m ensurepip
 RUN yes | python3 -m pip install distro
 
 FROM base AS builder
-RUN cd /opt && git clone --recursive --depth 1 --branch 2.7.0 https://github.com/Booritas/slideio
+RUN cd /opt && git clone --recursive --depth 1 --branch v2.7.0 https://github.com/Booritas/slideio
 RUN cd /opt && git clone --depth 1 --branch v2.7.0 https://github.com/Booritas/conan-center-index.git
 ENV SLIDEIO_HOME=/opt/slideio
 ENV CONAN_INDEX_HOME=/opt/conan-center-index
