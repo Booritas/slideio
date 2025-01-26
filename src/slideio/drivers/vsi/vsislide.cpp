@@ -41,7 +41,7 @@ void VSISlide::init()
                 auto volume = etsFile->getVolume();
                 if (volume) {
                     const vsi::StackType stackType = volume->getType();
-                    if (stackType == vsi::StackType::DEFAULT_IMAGE) {
+                    if ((stackType == vsi::StackType::DEFAULT_IMAGE) || (stackType == vsi::StackType::EFI_STACK)){
                         m_Scenes.push_back(scene);
                     }
                     else {
@@ -53,8 +53,11 @@ void VSISlide::init()
                     for (int auxIndex = 0; auxIndex < auxImages; ++auxIndex) {
                         auto auxVolume = volume->getAuxVolume(auxIndex);
                         if (auxVolume) {
-                            auto auxScene = std::make_shared<VsiFileScene>(m_filePath, m_vsiFile, auxVolume->getIFD());
-                            scene->addAuxImage(auxVolume->getName(), auxScene);
+                            if (auxVolume->getIFD()>-1)
+                            {
+                             auto auxScene = std::make_shared<VsiFileScene>(m_filePath, m_vsiFile, auxVolume->getIFD());
+                             scene->addAuxImage(auxVolume->getName(), auxScene);
+                            }
                         }
                     }
                 }
