@@ -31,6 +31,7 @@ target_link_libraries(${TEST_NAME}
     ${NDPI_DRIVER_NAME}
     ${TEST_LIB_NAME}
     ${IMAGETOOLS_LIB_NAME}
+    ${SLIDEIO_LIB_NAME}
   )
 
 

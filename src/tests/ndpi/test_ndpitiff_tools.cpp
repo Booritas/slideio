@@ -3,13 +3,24 @@
 #include "tests/testlib/testtools.hpp"
 #include <string>
 #include <opencv2/imgproc.hpp>
+#include <slideio/core/imagedrivermanager.hpp>
 
 #include "slideio/drivers/ndpi/ndpifile.hpp"
 #include "slideio/imagetools/imagetools.hpp"
 #include "slideio/core/tools/tools.hpp"
 
 
-TEST(NDPITiffTools, scanFile)
+class NDPITiffToolsTests : public ::testing::Test {
+protected:
+    static void SetUpTestSuite() {
+        slideio::ImageDriverManager::setLogLevel("ERROR");
+        std::cerr << "SetUpTestSuite: Running before all tests\n";
+    }
+    static void TearDownTestSuite() {
+    }
+};
+
+TEST_F(NDPITiffToolsTests, scanFile)
 {
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "2017-02-27 15.29.08.ndpi");
     slideio::NDPIFile file;
@@ -45,7 +56,7 @@ TEST(NDPITiffTools, scanFile)
     EXPECT_EQ(dir5.getType(), slideio::NDPITiffDirectory::Type::SingleStripe);
 }
 
-TEST(NDPITiffTools, readRegularStripedDir)
+TEST_F(NDPITiffToolsTests, readRegularStripedDir)
 {
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1.ndpi");
     std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1-dir.png");
@@ -70,7 +81,7 @@ TEST(NDPITiffTools, readRegularStripedDir)
     EXPECT_GE(sim, 0.99);
 }
 
-TEST(NDPITiffTools, readRegularStrip)
+TEST_F(NDPITiffToolsTests, readRegularStrip)
 {
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1.ndpi");
     std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1-dir.png");
@@ -98,7 +109,7 @@ TEST(NDPITiffTools, readRegularStrip)
 }
 
 
-TEST(NDPITiffTools, readTile)
+TEST_F(NDPITiffToolsTests, readTile)
 {
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "DM0014 - 2020-04-02 10.25.21.ndpi");
     std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "DM0014 - 2020-04-02 10.25.21-tile.png");
@@ -125,7 +136,7 @@ TEST(NDPITiffTools, readTile)
     TestTools::compareRasters(tileRaster, testRaster);
 }
 
-TEST(NDPITiffTools, compupteTileCounts)
+TEST_F(NDPITiffToolsTests, compupteTileCounts)
 {
     slideio::NDPITiffDirectory dir;
     dir.width = 1000;
@@ -157,7 +168,7 @@ TEST(NDPITiffTools, compupteTileCounts)
     EXPECT_EQ(2, counts.height);
 }
 
-TEST(NDPITiffTools, compupteTileSize)
+TEST_F(NDPITiffToolsTests, compupteTileSize)
 {
     slideio::NDPITiffDirectory dir;
     dir.width = 1000;
@@ -199,7 +210,7 @@ TEST(NDPITiffTools, compupteTileSize)
     EXPECT_EQ(1, size.height);
 }
 
-TEST(NDPITiffTools, computeStripHeight)
+TEST_F(NDPITiffToolsTests, computeStripHeight)
 {
     slideio::NDPITiffDirectory dir;
     dir.width = 1000;
@@ -215,7 +226,7 @@ TEST(NDPITiffTools, computeStripHeight)
 }
 
 
-TEST(NDPITiffTools, readScanlines)
+TEST_F(NDPITiffToolsTests, readScanlines)
 {
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1.ndpi");
     std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1-scanline.png");
@@ -246,7 +257,7 @@ TEST(NDPITiffTools, readScanlines)
 }
 
 
-TEST(NDPITiffTools, readRegularStripedDir2)
+TEST_F(NDPITiffToolsTests, readRegularStripedDir2)
 {
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "2017-02-27 15.29.08.ndpi");
     std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "2017-02-27 15.29.08-2.png");
@@ -273,7 +284,7 @@ TEST(NDPITiffTools, readRegularStripedDir2)
 }
 
 
-TEST(NDPITiffTools, readScanlinesDNLMarker)
+TEST_F(NDPITiffToolsTests, readScanlinesDNLMarker)
 {
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "HE_Hamamatsu.ndpi");
     std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "HE_Hamamatsu-roi.png");
@@ -296,7 +307,7 @@ TEST(NDPITiffTools, readScanlinesDNLMarker)
     //showRaster(stripRaster);
 }
 
-TEST(NDPITiffTools, readScanlinesDNLMarkerSingleChannel)
+TEST_F(NDPITiffToolsTests, readScanlinesDNLMarkerSingleChannel)
 {
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "HE_Hamamatsu.ndpi");
     std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "HE_Hamamatsu-roi-gray.png");
@@ -320,7 +331,7 @@ TEST(NDPITiffTools, readScanlinesDNLMarkerSingleChannel)
     //showRaster(stripRaster);
 }
 
-TEST(NDPITiffTools, readScanlinesDNLMarkerInversedChannels)
+TEST_F(NDPITiffToolsTests, readScanlinesDNLMarkerInversedChannels)
 {
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "HE_Hamamatsu.ndpi");
     std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "HE_Hamamatsu-roi-inversed.png");
@@ -344,7 +355,7 @@ TEST(NDPITiffTools, readScanlinesDNLMarkerInversedChannels)
 }
 
 
-TEST(NDPITiffTools, readMCUTile)
+TEST_F(NDPITiffToolsTests, readMCUTile)
 {
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1.ndpi");
     std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1-tile.png");
@@ -366,7 +377,7 @@ TEST(NDPITiffTools, readMCUTile)
 }
 
 
-TEST(NDPITiffTools, getDirectoryType) {
+TEST_F(NDPITiffToolsTests, getDirectoryType) {
 
     slideio::NDPITiffDirectory dir;
     dir.width = 100;
