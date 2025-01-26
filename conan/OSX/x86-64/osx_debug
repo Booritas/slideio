@@ -51,3 +51,4 @@ dcmtk/*:with_openssl=False
 boost/*:shared=False
 glog/*:shared=True
 glog/*:with_gflags=False
+icu/*:shared=False

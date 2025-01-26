@@ -27,24 +27,26 @@ find_package(SQLite3 REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(ZLIB REQUIRED)
 find_package(Tinyxml2 REQUIRED)
+find_package(ICU)
 
-target_link_libraries(${LIBRARY_NAME} glog::glog)
-target_link_libraries(${LIBRARY_NAME} SQLite::SQLite3)
-target_link_libraries(${LIBRARY_NAME} opencv::opencv)
-target_link_libraries(${LIBRARY_NAME} ZLIB::ZLIB)
-target_link_libraries(${LIBRARY_NAME} tinyxml2::tinyxml2)
 
+target_link_libraries(${LIBRARY_NAME} PRIVATE glog::glog)
+target_link_libraries(${LIBRARY_NAME} PRIVATE SQLite::SQLite3)
+target_link_libraries(${LIBRARY_NAME} PRIVATE opencv::opencv)
+target_link_libraries(${LIBRARY_NAME} PRIVATE ZLIB::ZLIB)
+target_link_libraries(${LIBRARY_NAME} PRIVATE tinyxml2::tinyxml2)
+target_link_libraries(${LIBRARY_NAME} PRIVATE icu::icu)
 
 SOURCE_GROUP_BY_FOLDER(SOURCE_FILES)
 
 IF(WIN32)
-   target_link_libraries(${LIBRARY_NAME} Shlwapi)
+   target_link_libraries(${LIBRARY_NAME} PRIVATE Shlwapi)
    set_target_properties(${LIBRARY_NAME} PROPERTIES LINK_FLAGS "/ignore:4099")
    target_compile_definitions(${LIBRARY_NAME} PRIVATE SLIDEIO_CORE _CRT_SECURE_NO_WARNINGS)
 ENDIF(WIN32)
 
 set_target_properties(${LIBRARY_NAME} PROPERTIES LINKER_LANGUAGE CXX)
-target_link_libraries(${LIBRARY_NAME} 
+target_link_libraries(${LIBRARY_NAME} PRIVATE 
    ${BASE_LIB_NAME}
 )
 

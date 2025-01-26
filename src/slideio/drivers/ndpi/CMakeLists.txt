@@ -55,7 +55,10 @@ target_link_libraries(${LIBRARY_NAME}
 
 SOURCE_GROUP_BY_FOLDER(SOURCE_FILES)
 
-target_link_libraries(${LIBRARY_NAME} ${CORE_LIB_NAME})
+target_link_libraries(${LIBRARY_NAME}
+   ${BASE_LIB_NAME}
+   ${CORE_LIB_NAME}
+)
 
 IF(WIN32)
    target_link_libraries(${LIBRARY_NAME} Shlwapi)

@@ -50,3 +50,4 @@ dcmtk/*:builtin_dictionary=True
 dcmtk/*:with_openssl=False
 glog/*:shared=True
 glog/*:with_gflags=False
+icu/*:shared=False

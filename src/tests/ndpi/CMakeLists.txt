@@ -27,6 +27,7 @@ target_link_libraries(${TEST_NAME}
 )
 
 target_link_libraries(${TEST_NAME} 
+    ${BASE_LIB_NAME}
     ${CORE_LIB_NAME}
     ${NDPI_DRIVER_NAME}
     ${TEST_LIB_NAME}

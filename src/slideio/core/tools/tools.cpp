@@ -13,6 +13,9 @@
 #else
 #include <fnmatch.h>
 #endif
+#include <string>
+#include <stdexcept>
+#include <unicode/unistr.h>
 using namespace slideio;
 namespace fs = std::filesystem;
 
@@ -105,7 +108,8 @@ void slideio::Tools::scaleRect(const cv::Rect& srcRect, double scaleX, double sc
       if (utf8Str.empty()) {
           return std::wstring();
       }
-      int wlen = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, utf8Str.c_str(), utf8Str.length(), nullptr, 0);
+	  const int bytes = static_cast<int>(utf8Str.length());
+      const int wlen = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, utf8Str.c_str(), bytes, nullptr, 0);
       if (wlen == 0) {
           DWORD error = GetLastError();
           if(error== ERROR_NO_UNICODE_TRANSLATION) {
@@ -115,18 +119,20 @@ void slideio::Tools::scaleRect(const cv::Rect& srcRect, double scaleX, double sc
       }
 
       std::wstring wstr(wlen, L'\0');
-      MultiByteToWideChar(CP_UTF8, 0, utf8Str.c_str(), utf8Str.length(), &wstr[0], wlen);
+      MultiByteToWideChar(CP_UTF8, 0, utf8Str.c_str(), bytes, wstr.data(), wlen);
       
       return wstr;
   }
 #endif
 
 
-std::string Tools::fromUnicode16(const std::u16string& u16string) {
-    std::wstring_convert<std::codecvt_utf8<char16_t>, char16_t> converter;
-    std::string str = converter.to_bytes(u16string);
-    str.erase(std::find(str.begin(), str.end(), '\0'), str.end());
-    return str;
+std::string Tools::fromUnicode16(const std::u16string& u16string)
+{
+    if (u16string.empty()) return std::string();
+    icu::UnicodeString unicode_str(reinterpret_cast<const UChar*>(u16string.data()), (int)u16string.length());
+    std::string utf8_string;
+    unicode_str.toUTF8String(utf8_string);
+    return utf8_string;
 }
 
 void Tools::throwIfPathNotExist(const std::string& path, const std::string label)

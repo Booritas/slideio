@@ -264,3 +264,33 @@ TEST(Tools, unique_path) {
 }
 
 #endif
+
+  TEST(Tools, fromUnicode16)
+  {
+      {
+          std::u16string u16Str = u"";
+          std::string expected = "";
+          std::string result = slideio::Tools::fromUnicode16(u16Str);
+          EXPECT_EQ(result, expected);
+      }
+      {
+          std::u16string u16Str = u"Hello, World!";
+          std::string expected = "Hello, World!";
+          std::string result = slideio::Tools::fromUnicode16(u16Str);
+          EXPECT_EQ(result, expected);
+      }
+
+      {
+          std::u16string u16Str = u"\u3053\u3093\u306B\u3061\u306F\u4E16\u754C";
+          std::string expected = "\xE3\x81\x93\xE3\x82\x93\xE3\x81\xAB\xE3\x81\xA1\xE3\x81\xAF\xE4\xB8\x96\xE7\x95\x8C";
+          std::string result = slideio::Tools::fromUnicode16(u16Str);
+          EXPECT_EQ(result, expected);
+      }
+
+      //{
+      //    std::u16string u16Str = u"\xD800"; // Invalid UTF-16 sequence (unpaired surrogate)
+      //    std::string result = slideio::Tools::fromUnicode16(u16Str);
+      //    EXPECT_TRUE(result.empty());
+      //}
+  }
+
