@@ -253,8 +253,7 @@ libtiff::TIFF* slideio::NDPITiffTools::openTiffFile(const std::string& path)
     Tools::throwIfPathNotExist(path, "NDPITiffTools::openTiffFile");
     libtiff::TIFF* hfile(nullptr);
 #if defined(WIN32)
-    std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converter;
-    std::wstring wsPath = converter.from_bytes(path);
+    std::wstring wsPath = Tools::toWstring(path);
     hfile = libtiff::TIFFOpenW(wsPath.c_str(), "r");
 #else
     hfile = libtiff::TIFFOpen(path.c_str(), "r");

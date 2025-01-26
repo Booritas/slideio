@@ -284,8 +284,7 @@ libtiff::TIFF* TiffTools::openTiffFile(const std::string& path, bool readOnly)
     namespace fs = std::filesystem;
     libtiff::TIFF* hfile(nullptr);
 #if defined(WIN32)
-    std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converter;
-    std::wstring wsPath = converter.from_bytes(path);
+    std::wstring wsPath = Tools::toWstring(path);
     fs::path filePath(wsPath);
     if (readOnly && !fs::exists(wsPath)) {
         RAISE_RUNTIME_ERROR << "File " << path << " does not exist";

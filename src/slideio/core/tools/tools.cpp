@@ -99,19 +99,28 @@ void slideio::Tools::scaleRect(const cv::Rect& srcRect, double scaleX, double sc
     trgRect.height = dyn - trgRect.y;
 }
 
-std::wstring Tools::toWstring(const std::string& string)
+#if defined(WIN32)
+  std::wstring Tools::toWstring(const std::string& utf8Str)
 {
-    std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converter;
-    std::wstring wstr = converter.from_bytes(string);
-    return wstr;
-}
+      if (utf8Str.empty()) {
+          return std::wstring();
+      }
+      int wlen = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, utf8Str.c_str(), utf8Str.length(), nullptr, 0);
+      if (wlen == 0) {
+          DWORD error = GetLastError();
+          if(error== ERROR_NO_UNICODE_TRANSLATION) {
+              RAISE_RUNTIME_ERROR << "Unrecognized UTF-8 charachters: " << utf8Str;
+          }
+          return std::wstring();
+      }
 
-std::string Tools::fromWstring(const std::wstring& wstring)
-{
-    std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converter;
-    std::string str = converter.to_bytes(wstring);
-    return str;
-}
+      std::wstring wstr(wlen, L'\0');
+      MultiByteToWideChar(CP_UTF8, 0, utf8Str.c_str(), utf8Str.length(), &wstr[0], wlen);
+      
+      return wstr;
+  }
+#endif
+
 
 std::string Tools::fromUnicode16(const std::u16string& u16string) {
     std::wstring_convert<std::codecvt_utf8<char16_t>, char16_t> converter;

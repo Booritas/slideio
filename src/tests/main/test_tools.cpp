@@ -8,6 +8,8 @@
 #include "tests/testlib/testtools.hpp"
 #include "tests/testlib/testtools.hpp"
 #include <filesystem>
+
+#include "slideio/base/exceptions.hpp"
 #include "slideio/core/tools/tempfile.hpp"
 
 
@@ -234,3 +236,31 @@ TEST(Tools, unique_path) {
         }
     }
 }
+
+#if defined(WIN32)
+  TEST(Tools, toWstring) {
+    {
+        std::string utf8Str = "";
+        std::wstring expected = L"";
+        std::wstring result = slideio::Tools::toWstring(utf8Str);
+        EXPECT_EQ(result, expected);
+    }
+    {
+        std::string utf8Str = "Hello, World!";
+        std::wstring expected = L"Hello, World!";
+        std::wstring result = slideio::Tools::toWstring(utf8Str);
+        EXPECT_EQ(result, expected);
+    }
+    {
+        std::string utf8Str = "\xE3\x81\x93\xE3\x82\x93\xE3\x81\xAB\xE3\x81\xA1\xE3\x81\xAF\xE4\xB8\x96\xE7\x95\x8C";
+        std::wstring expected = L"\u3053\u3093\u306B\u3061\u306F\u4E16\u754C";
+        std::wstring result = slideio::Tools::toWstring(utf8Str);
+        EXPECT_EQ(result, expected);
+    }
+    {
+        std::string utf8Str = "\xC3\x28"; // Invalid UTF-8 sequence
+        EXPECT_THROW(slideio::Tools::toWstring(utf8Str), slideio::RuntimeError);
+    }
+}
+
+#endif

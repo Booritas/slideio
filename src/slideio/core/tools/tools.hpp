@@ -98,8 +98,10 @@ namespace slideio
             }
             return allChannels;
         }
-        static std::wstring toWstring(const std::string& string);
-        static std::string fromWstring(const std::wstring& wstring);
+#if defined(WIN32)
+          static std::wstring toWstring(const std::string& string);
+#endif
+
         static std::string fromUnicode16(const std::u16string& u16string);
         static void throwIfPathNotExist(const std::string& path, const std::string label);
         static std::list<std::string> findFilesWithExtension(const std::string& directory, const std::string& extension);
