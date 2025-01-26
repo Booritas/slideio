@@ -5,6 +5,8 @@
 #include "zviutils.hpp"
 #include "zvipixelformat.hpp"
 #include <locale>
+
+#include "slideio/core/tools/tools.hpp"
 using namespace slideio;
 
 void ZVIUtils::skipItem(ole::basic_stream& stream)
@@ -106,8 +108,7 @@ static  std::string readStringValue(ole::basic_stream& stream)
         std::vector<char> buffer(string_length, 0);
         stream.read((char*)buffer.data(), string_length);
         std::u16string src((char16_t*)buffer.data());
-        std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> convert;
-        value = convert.to_bytes(src);
+        value = Tools::fromUnicode16(src);
     }
     return value;
 }
