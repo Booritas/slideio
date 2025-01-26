@@ -4,10 +4,11 @@
 #pragma once
 #include <filesystem>
 #include <string>
+#include "slideio/core/slideio_core_def.hpp"
 
 namespace slideio
 {
-    class TempFile
+    class SLIDEIO_CORE_EXPORTS TempFile
     {
     public:
 	    explicit TempFile(std::filesystem::path path) : m_path(path)
