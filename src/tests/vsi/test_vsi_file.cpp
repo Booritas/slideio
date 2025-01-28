@@ -88,3 +88,64 @@ TEST(VSIFile, expectExternalFilesFalse) {
     VSIFile file(filePath);
     EXPECT_FALSE(file.expectExternalFiles());
 }
+
+
+TEST(VSIFile, findChildRecursively) {
+
+    {
+        TagInfo root;
+        const TagInfo* result = root.findChildRecursively(1);
+        EXPECT_EQ(result, nullptr);
+    }
+    {
+        TagInfo root;
+        TagInfo child;
+        child.tag = 1;
+        root.addChild(child);
+
+        const TagInfo* result = root.findChildRecursively(1);
+        ASSERT_NE(result, nullptr);
+        EXPECT_EQ(result->tag, 1);
+    }
+
+    {
+        TagInfo root;
+        TagInfo child1;
+        child1.tag = 1;
+        TagInfo child2;
+        child2.tag = 2;
+        child1.addChild(child2);
+        root.addChild(child1);
+
+        const TagInfo* result = root.findChildRecursively(2);
+        ASSERT_NE(result, nullptr);
+        EXPECT_EQ(result->tag, 2);
+    }
+
+    {
+        TagInfo root;
+        TagInfo child;
+        child.tag = 1;
+        root.addChild(child);
+
+        const TagInfo* result = root.findChildRecursively(2);
+        EXPECT_EQ(result, nullptr);
+    }
+
+    {
+        TagInfo root;
+        TagInfo child1;
+        child1.tag = 1;
+        TagInfo child2;
+        child2.tag = 2;
+        TagInfo child3;
+        child3.tag = 3;
+        root.addChild(child1);
+        root.addChild(child2);
+        root.addChild(child3);
+
+        const TagInfo* result = root.findChildRecursively(2);
+        ASSERT_NE(result, nullptr);
+        EXPECT_EQ(result->tag, 2);
+    }
+}
