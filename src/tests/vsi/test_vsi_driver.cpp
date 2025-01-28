@@ -780,6 +780,12 @@ TEST_F(VSIImageDriverTests, invalidEts) {
 //    ASSERT_TRUE(slide != nullptr);
 //    const int numScenes = slide->getNumScenes();
 //    ASSERT_EQ(1, numScenes);
+//    //std::ofstream outFile("d:/temp/vsi.txt");
+//    //if (outFile.is_open()) {
+//    //    outFile << metadata;
+//    //    outFile.close();
+//    //}
+//
 //}
 
 
@@ -811,12 +817,11 @@ TEST_F(VSIImageDriverTests, stack3d) {
 	EXPECT_EQ(13, slices);
 	EXPECT_EQ(2, slide->getNumAuxImages());
     auto metadata = slide->getRawMetadata();
+	EXPECT_FALSE(metadata.empty());
 	cv::Mat raster;
 	cv::Rect roi(45625, 42302, 984, 1015);
 	cv::Size blockSize(roi.width, roi.height);
 	scene->readResampled4DBlock(roi, blockSize, { 6,7 }, { 0,1 }, raster);
-    auto height = raster.rows;
-    auto width = raster.cols;
     cv::Mat testRaster;
 	TestTools::readPNG(slice6, testRaster);
 	double similarity = ImageTools::computeSimilarity2(testRaster, raster);
