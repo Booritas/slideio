@@ -108,6 +108,7 @@ void VSIFile::extractVolumesFromMetadata() {
                 const TagInfo* stackProps = volume->findChild(Tag::MULTIDIM_STACK_PROPERTIES);
                 const TagInfo* color = volume->findChild(Tag::DEFAULT_BACKGROUND_COLOR);
                 const TagInfo* ifdTag = frame->findChild(Tag::DEFAULT_SAMPLE_PIXEL_DATA_IFD);
+                const TagInfo* microscope = stackProps ? stackProps->findChild(Tag::MICROSCOPE):nullptr;
                 if (ifdTag) {
                     volumeObj->setIFD(ifdTag->secondTag);
                 }
@@ -171,6 +172,11 @@ void VSIFile::extractVolumesFromMetadata() {
                     const TagInfo* magnification = stackProps->findChild(REL_PATH_TO_MAGNIFICATION);
                     if(!magnification) {
                         magnification = stackProps->findChild(REL_PATH_TO_MAGNIFICATION2);
+                    }
+					if (!magnification) {
+                        if (microscope) {
+                            magnification = microscope->findChildRecursively(Tag::OBJECTIVE_MAG);
+                        }
                     }
                     if (magnification) {
                         try {

@@ -765,3 +765,56 @@ TEST_F(VSIImageDriverTests, invalidEts) {
     //TestTools::showRaster(overviewRaster);
 
 }
+
+//TEST_F(VSIImageDriverTests, volumes) {
+//    if (!TestTools::isFullTestEnabled())
+//    {
+//        GTEST_SKIP() <<
+//            "Skip the test because full dataset is not enabled";
+//    }
+//    std::string filePath = TestTools::getFullTestImagePath("vsi", "private/d/STS_G6889_11_1_pHH3.vsi");
+//    //std::string overviewFilePath = TestTools::getFullTestImagePath("vsi", "test-output/Image_B309_Overview.png");
+//    //std::string macroFilePath = TestTools::getFullTestImagePath("vsi", "test-output/Image_B309_Macro.png");
+//    slideio::VSIImageDriver driver;
+//    std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
+//    ASSERT_TRUE(slide != nullptr);
+//    const int numScenes = slide->getNumScenes();
+//    ASSERT_EQ(1, numScenes);
+//}
+
+
+TEST_F(VSIImageDriverTests, stack3d) {
+    if (!TestTools::isFullTestEnabled())
+    {
+        GTEST_SKIP() <<
+            "Skip the test because full dataset is not enabled";
+    }
+    std::string filePath = TestTools::getFullTestImagePath("vsi", "private/3d/01072022_35_2_z.vsi");
+    //std::string overviewFilePath = TestTools::getFullTestImagePath("vsi", "test-output/Image_B309_Overview.png");
+    //std::string macroFilePath = TestTools::getFullTestImagePath("vsi", "test-output/Image_B309_Macro.png");
+    slideio::VSIImageDriver driver;
+    std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    const int numScenes = slide->getNumScenes();
+    ASSERT_EQ(1, numScenes);
+    auto scene = slide->getScene(0);
+    auto sceneRect = scene->getRect();
+    EXPECT_EQ(sceneRect, cv::Rect(0,0,122351,76276));
+	EXPECT_EQ(3, scene->getNumChannels());
+    EXPECT_DOUBLE_EQ(60, scene->getMagnification());
+	auto resolution = scene->getResolution();
+    EXPECT_LT(std::fabs(0.0913e-6 - resolution.x), 1.e-9);
+    EXPECT_LT(std::fabs(0.0913e-6 - resolution.y), 1.e-9);
+    auto slices = scene->getNumZSlices();
+	auto frames = scene->getNumTFrames();
+	EXPECT_EQ(1, frames);
+	EXPECT_EQ(13, slices);
+	EXPECT_EQ(2, scene->getNumAuxImages());
+    auto metadata = slide->getRawMetadata();
+    std::ofstream outFile("d:/temp/vsi.txt");
+    if (outFile.is_open()) {
+        outFile << metadata;
+        outFile.close();
+    }
+
+}

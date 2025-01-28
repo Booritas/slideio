@@ -109,6 +109,18 @@ namespace slideio
                 }
                 return current;
             }
+
+            const vsi::TagInfo* findChildRecursively(const int tag) const {
+                for (auto& child : children) {
+                    if (child.tag == tag) {
+                        return &child;
+                    }
+                    if (const TagInfo* found = child.findChildRecursively(tag)) {
+                        return found;
+                    }
+                }
+                return nullptr;
+            }
         public:
             int tag = Tag::UNKNOWN;
             int fieldType = 0;
