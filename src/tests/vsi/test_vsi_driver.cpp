@@ -790,8 +790,8 @@ TEST_F(VSIImageDriverTests, stack3d) {
             "Skip the test because full dataset is not enabled";
     }
     std::string filePath = TestTools::getFullTestImagePath("vsi", "private/3d/01072022_35_2_z.vsi");
-    //std::string overviewFilePath = TestTools::getFullTestImagePath("vsi", "test-output/Image_B309_Overview.png");
-    //std::string macroFilePath = TestTools::getFullTestImagePath("vsi", "test-output/Image_B309_Macro.png");
+    std::string slice6 = TestTools::getFullTestImagePath("vsi", 
+        "private/3d/test-images/01072022_35_2_z.vsi - 60x_BF_Z_01 (1, x=45625, y=42302, w=984, h=1015).png");
     slideio::VSIImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
@@ -809,12 +809,17 @@ TEST_F(VSIImageDriverTests, stack3d) {
 	auto frames = scene->getNumTFrames();
 	EXPECT_EQ(1, frames);
 	EXPECT_EQ(13, slices);
-	EXPECT_EQ(2, scene->getNumAuxImages());
+	EXPECT_EQ(2, slide->getNumAuxImages());
     auto metadata = slide->getRawMetadata();
-    std::ofstream outFile("d:/temp/vsi.txt");
-    if (outFile.is_open()) {
-        outFile << metadata;
-        outFile.close();
-    }
-
+	cv::Mat raster;
+	cv::Rect roi(45625, 42302, 984, 1015);
+	cv::Size blockSize(roi.width, roi.height);
+	scene->readResampled4DBlock(roi, blockSize, { 6,7 }, { 0,1 }, raster);
+    auto height = raster.rows;
+    auto width = raster.cols;
+    cv::Mat testRaster;
+	TestTools::readPNG(slice6, testRaster);
+	double similarity = ImageTools::computeSimilarity2(testRaster, raster);
+    //TestTools::showRasters(testRaster, raster);
+	EXPECT_GT(similarity, 0.99);
 }
