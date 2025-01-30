@@ -63,6 +63,7 @@ namespace slideio
             }
             void getVolumeMetadataItems(std::list<const TagInfo*>& volumes) const;
             static void getImageFrameMetadataItems(const TagInfo* volume, std::list<const TagInfo*>& frames);
+            void cleanVolumes();
 
         private:
             void read();

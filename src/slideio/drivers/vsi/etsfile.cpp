@@ -13,7 +13,59 @@ using namespace slideio;
 slideio::vsi::EtsFile::EtsFile(const std::string& filePath) : m_filePath(filePath) {
 }
 
-void slideio::vsi::EtsFile::read(std::list<std::shared_ptr<Volume>>& volumes) {
+bool vsi::EtsFile::assignVolume(std::list<std::shared_ptr<vsi::Volume>>& volumes) {
+    const int minWidth = m_maxCoordinates[0] * m_tileSize.width;
+    const int minHeight = m_maxCoordinates[1] * m_tileSize.height;
+    const int maxWidth = minWidth + m_tileSize.width;
+    const int maxHeight = minHeight + m_tileSize.height;
+
+    for (auto it = volumes.begin(); it != volumes.end(); ++it) {
+        const std::shared_ptr<Volume> volume = *it;
+        const cv::Size volumeSize = volume->getSize();
+        const int volumeWidth = volumeSize.width;
+        const int volumeHeight = volumeSize.height;
+        if (volumeWidth >= minWidth && volumeWidth <= maxWidth && volumeHeight >= minHeight && volumeHeight <=
+            maxHeight) {
+            volumes.erase(it);
+            setVolume(volume);
+            break;
+        }
+    }
+    if (m_volume) {
+        m_size.width = m_volume->getSize().width;
+        m_size.height = m_volume->getSize().height;
+    }
+    return m_volume !=nullptr;
+}
+
+void vsi::EtsFile::initStruct(TileInfoListPtr& tiles) {
+    const int zIndex = m_volume->getDimensionOrder(Dimensions::Z);
+    if (zIndex > 1 && zIndex < m_maxCoordinates.size()) {
+        m_numZSlices = m_maxCoordinates[m_volume->getDimensionOrder(Dimensions::Z)] + 1;
+    }
+    const int tIndex = m_volume->getDimensionOrder(Dimensions::T);
+    if (tIndex > 1 && tIndex < m_maxCoordinates.size()) {
+        m_numTFrames = m_maxCoordinates[m_volume->getDimensionOrder(Dimensions::T)] + 1;
+    }
+    const int lambdaIndex = m_volume->getDimensionOrder(Dimensions::L);
+    if (lambdaIndex > 1 && lambdaIndex < m_maxCoordinates.size()) {
+        m_numLambdas = m_maxCoordinates[m_volume->getDimensionOrder(Dimensions::L)] + 1;
+    }
+    const int channelIndex = m_volume->getDimensionOrder(Dimensions::C);
+    if (channelIndex > 1 && channelIndex < m_maxCoordinates.size()) {
+        m_numChannels = m_maxCoordinates[m_volume->getDimensionOrder(Dimensions::C)] + 1;
+    }
+
+    m_pyramid.init(tiles, m_size, m_tileSize, m_volume.get());
+
+    const int numChannelIndices = m_pyramid.getNumChannelIndices();
+    if (numChannelIndices > 1 && numChannelIndices != getNumChannels()) {
+        RAISE_RUNTIME_ERROR << "VSIImageDriver: init: Unexpected number of channel indices "
+            << numChannelIndices << ". Expected 1 or " << getNumChannels();
+    }
+}
+
+void slideio::vsi::EtsFile::read(std::list<std::shared_ptr<Volume>>& volumes, std::shared_ptr<std::vector<TileInfo>>& tiles) {
     // Open the file
     m_etsStream = std::make_unique<vsi::VSIStream>(m_filePath);
     vsi::EtsVolumeHeader header = {0};
@@ -47,74 +99,28 @@ void slideio::vsi::EtsFile::read(std::list<std::shared_ptr<Volume>>& volumes) {
     m_usePyramid = additionalHeader.usePyramid != 0;
 
     m_etsStream->setPos(header.usedChunksPos);
-    std::vector<TileInfo> tiles;
-    tiles.resize(header.numUsedChunks);
-    std::vector<int> maxCoordinates(m_numDimensions);
+    tiles->resize(header.numUsedChunks);
+    m_maxCoordinates.resize(m_numDimensions);
     for (uint chunk = 0; chunk < header.numUsedChunks; ++chunk) {
-        TileInfo& tileInfo = tiles[chunk];
+        TileInfo& tileInfo = tiles->at(chunk);
         m_etsStream->skipBytes(4);
         tileInfo.coordinates.resize(m_numDimensions);
         for (int i = 0; i < m_numDimensions; ++i) {
             tileInfo.coordinates[i] = m_etsStream->readValue<int32_t>();
-            maxCoordinates[i] = std::max(maxCoordinates[i], tileInfo.coordinates[i]);
+            m_maxCoordinates[i] = std::max(m_maxCoordinates[i], tileInfo.coordinates[i]);
         }
         tileInfo.offset = m_etsStream->readValue<int64_t>();
         tileInfo.size = m_etsStream->readValue<uint32_t>();
         m_etsStream->skipBytes(4);
     }
 
-    const int minWidth = maxCoordinates[0] * m_tileSize.width;
-    const int minHeight = maxCoordinates[1] * m_tileSize.height;
+    const int minWidth = m_maxCoordinates[0] * m_tileSize.width;
+    const int minHeight = m_maxCoordinates[1] * m_tileSize.height;
     const int maxWidth = minWidth + m_tileSize.width;
     const int maxHeight = minHeight + m_tileSize.height;
 
     m_sizeWithCompleteTiles = cv::Size(maxWidth, maxHeight);
 
-    for (auto it = volumes.begin(); it != volumes.end(); ++it) {
-        const std::shared_ptr<Volume> volume = *it;
-        const cv::Size volumeSize = volume->getSize();
-        const int volumeWidth = volumeSize.width;
-        const int volumeHeight = volumeSize.height;
-        if (volumeWidth >= minWidth && volumeWidth <= maxWidth && volumeHeight >= minHeight && volumeHeight <=
-            maxHeight) {
-            volumes.erase(it);
-            assignVolume(volume);
-            break;
-        }
-    }
-    if (m_volume) {
-        m_size.width = m_volume->getSize().width;
-        m_size.height = m_volume->getSize().height;
-    }
-    else {
-        RAISE_RUNTIME_ERROR << "VSI driver: Cannot find volume for ETS file:" << m_filePath << ".\n"
-            << "Estimated image size: (" << minWidth << "," << maxWidth << ").";
-    }
-
-    const int zIndex = m_volume->getDimensionOrder(Dimensions::Z);
-    if (zIndex > 1 && zIndex < maxCoordinates.size()) {
-        m_numZSlices = maxCoordinates[m_volume->getDimensionOrder(Dimensions::Z)] + 1;
-    }
-    const int tIndex = m_volume->getDimensionOrder(Dimensions::T);
-    if (tIndex > 1 && tIndex < maxCoordinates.size()) {
-        m_numTFrames = maxCoordinates[m_volume->getDimensionOrder(Dimensions::T)] + 1;
-    }
-    const int lambdaIndex = m_volume->getDimensionOrder(Dimensions::L);
-    if (lambdaIndex > 1 && lambdaIndex < maxCoordinates.size()) {
-        m_numLambdas = maxCoordinates[m_volume->getDimensionOrder(Dimensions::L)] + 1;
-    }
-    const int channelIndex = m_volume->getDimensionOrder(Dimensions::C);
-    if (channelIndex > 1 && channelIndex < maxCoordinates.size()) {
-        m_numChannels = maxCoordinates[m_volume->getDimensionOrder(Dimensions::C)] + 1;
-    }
-
-    m_pyramid.init(tiles, m_size, m_tileSize, m_volume.get());
-
-    const int numChannelIndices = m_pyramid.getNumChannelIndices();
-    if (numChannelIndices > 1 && numChannelIndices != getNumChannels()) {
-        RAISE_RUNTIME_ERROR << "VSIImageDriver: init: Unexpected number of channel indices "
-            << numChannelIndices << ". Expected 1 or " << getNumChannels();
-    }
 }
 
 void vsi::EtsFile::readTilePart(const vsi::TileInfo& tileInfo, cv::OutputArray tileRaster) {

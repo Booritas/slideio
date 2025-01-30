@@ -334,6 +334,17 @@ void VSIFile::getImageFrameMetadataItems(const TagInfo* volume, std::list<const 
     }
 }
 
+void VSIFile::cleanVolumes() {
+    const auto& it = std::remove_if(
+        m_volumes.begin(), 
+        m_volumes.end(), 
+        [](const std::shared_ptr<Volume>& vol) { return !vol->isValid();});
+    m_volumes.erase(
+        it,
+        m_volumes.end()
+    );
+}
+
 void VSIFile::read() {
     SLIDEIO_LOG(INFO) << "VSI driver: reading file " << m_filePath;
     readVolumeInfo();
@@ -341,6 +352,7 @@ void VSIFile::read() {
     extractVolumesFromMetadata();
     TiffTools::scanFile(m_filePath, m_directories);
     assignAuxVolumes();
+    cleanVolumes();
     if (m_expectExternalFiles) {
         readExternalFiles();
     }
@@ -444,13 +456,6 @@ void VSIFile::readVolumeInfo() {
         RAISE_RUNTIME_ERROR << "VSI driver: invalid metadata path";
     }
     m_metadata = path.front();
-    {
-        //boost::json::object root;
-        //serializeMetadata(m_metadata, root);
-        //std::ofstream ofs("d:\\Temp\\vsi-metadata.json");
-        //ofs << boost::json::serialize(root);
-        //ofs.close();
-    }
     checkExternalFilePresence();
 }
 
@@ -468,18 +473,59 @@ void VSIFile::readExternalFiles() {
             SLIDEIO_LOG(WARNING) << "VSI driver: number of ETS files does not match the number of volumes";
         }
         int index = 0;
-        std::list<std::shared_ptr<Volume>> volumes(m_volumes.begin(), m_volumes.end());
+        std::list volumes(m_volumes.begin(), m_volumes.end());
+        typedef std::pair<EtsFilePtr, TileInfoListPtr> EtsFileInfo;
+
+		std::list<EtsFileInfo> orphanEtsFiles;
+
         for (const auto& file : files) {
             try {
                 auto etsFile = std::make_shared<EtsFile>(file);
-                etsFile->read(volumes);
-                m_etsFiles.push_back(etsFile);
+                auto tiles = std::make_shared<TileInfoList>();
+                etsFile->read(volumes, tiles);
+                if(etsFile->assignVolume(volumes)) {
+                    etsFile->initStruct(tiles);
+                    m_etsFiles.push_back(etsFile);
+                }
+				else {
+					orphanEtsFiles.push_back(std::make_pair(etsFile,tiles));
+				}
             }
             catch (RuntimeError& err) {
                 SLIDEIO_LOG(WARNING) << "VSI driver: error reading ETS file: " << err.what();
             }
         }
+
+		if (!orphanEtsFiles.empty()) {
+            for (const auto& item : orphanEtsFiles) {
+				auto etsFile = item.first;
+				auto tiles = item.second;
+				cv::Rect etsSize({ 0 }, etsFile->getSizeWithCompleteTiles());
+				int64_t etsArea = (int64_t)etsSize.width * (int64_t)etsSize.height;
+				if (etsArea <= 0) {
+					continue;
+				}
+                for (auto itVolume = volumes.begin(); itVolume != volumes.end(); ++itVolume) {
+                    const auto volume = *itVolume;
+					const cv::Size& volumeSize = volume->getSize();
+                    cv::Size intersect(std::min(volumeSize.width, etsSize.width), std::min(volumeSize.height, etsSize.height));
+                    int64_t intersectArea = (int64_t)intersect.width * (int64_t)intersect.height;
+					int64_t diffArea = std::abs(etsArea - intersectArea);
+					double percents = (double)diffArea / (double)etsArea;
+                    if (percents < 0.01) {
+						etsFile->setVolume(volume);
+//                        volumes.erase(itVolume);
+						etsFile->initStruct(tiles);
+						m_etsFiles.push_back(etsFile);
+						break;
+					}
+				}
+//				SLIDEIO_LOG(WARNING) << "VSI driver: orphan ETS file: " << etsFile->getFilePath();
+			}
+		}
+        
     }
+
     std::sort(m_etsFiles.begin(), m_etsFiles.end(),
         [](const std::shared_ptr<EtsFile>& left, const std::shared_ptr<EtsFile>& right) {
             const int leftStackId = extractBaseDirectoryNameSuffix(left->getFilePath());
