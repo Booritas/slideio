@@ -555,14 +555,14 @@ TEST(Pyramid, init) {
             {1, 1, 0, 0, 0, 1},
             {1, 1, 1, 0, 0, 1}
         };
-        std::vector<slideio::vsi::TileInfo> tiles;
+        auto tiles = std::make_shared<vsi::TileInfoList>();
         for (auto& t : tls) {
             slideio::vsi::TileInfo tile;
             tile.coordinates = {
                 std::get<0>(t), std::get<1>(t), std::get<2>(t),
                 std::get<3>(t), std::get<4>(t), std::get<5>(t)
             };
-            tiles.push_back(tile);
+            tiles->push_back(tile);
         }
         vsi::Pyramid pyramid;
         pyramid.init(tiles, cv::Size(100, 100), cv::Size(10, 10), &dimOrder);
@@ -619,14 +619,14 @@ TEST(Pyramid, init2DWithChannel) {
             {1, 1, 0, 1},
             {1, 1, 1, 1}
         };
-        std::vector<slideio::vsi::TileInfo> tiles;
+		auto tiles = std::make_shared<vsi::TileInfoList>();
         for (auto& t : tls) {
             slideio::vsi::TileInfo tile;
             tile.coordinates = {
                 std::get<0>(t), std::get<1>(t), std::get<2>(t),
                 std::get<3>(t)
             };
-            tiles.push_back(tile);
+            tiles->push_back(tile);
         }
         vsi::Pyramid pyramid;
         pyramid.init(tiles, cv::Size(100, 100), cv::Size(10, 10), &dimOrder);
@@ -681,14 +681,14 @@ TEST(Pyramid, init3D) {
             {1, 1, 0, 1},
             {1, 1, 1, 1}
         };
-        std::vector<slideio::vsi::TileInfo> tiles;
+		auto tiles = std::make_shared<vsi::TileInfoList>();
         for (auto& t : tls) {
             slideio::vsi::TileInfo tile;
             tile.coordinates = {
                 std::get<0>(t), std::get<1>(t), std::get<2>(t),
                 std::get<3>(t)
             };
-            tiles.push_back(tile);
+            tiles->push_back(tile);
         }
         vsi::Pyramid pyramid;
         pyramid.init(tiles, cv::Size(100, 100), cv::Size(10, 10), &dimOrder);
@@ -766,27 +766,27 @@ TEST_F(VSIImageDriverTests, invalidEts) {
 
 }
 
-//TEST_F(VSIImageDriverTests, volumes) {
-//    if (!TestTools::isFullTestEnabled())
-//    {
-//        GTEST_SKIP() <<
-//            "Skip the test because full dataset is not enabled";
-//    }
-//    std::string filePath = TestTools::getFullTestImagePath("vsi", "private/d/STS_G6889_11_1_pHH3.vsi");
-//    //std::string overviewFilePath = TestTools::getFullTestImagePath("vsi", "test-output/Image_B309_Overview.png");
-//    //std::string macroFilePath = TestTools::getFullTestImagePath("vsi", "test-output/Image_B309_Macro.png");
-//    slideio::VSIImageDriver driver;
-//    std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
-//    ASSERT_TRUE(slide != nullptr);
-//    const int numScenes = slide->getNumScenes();
-//    ASSERT_EQ(1, numScenes);
-//    //std::ofstream outFile("d:/temp/vsi.txt");
-//    //if (outFile.is_open()) {
-//    //    outFile << metadata;
-//    //    outFile.close();
-//    //}
-//
-//}
+TEST_F(VSIImageDriverTests, volumes) {
+    if (!TestTools::isFullTestEnabled())
+    {
+        GTEST_SKIP() <<
+            "Skip the test because full dataset is not enabled";
+    }
+    std::string filePath = TestTools::getFullTestImagePath("vsi", "private/d/STS_G6889_11_1_pHH3.vsi");
+    //std::string overviewFilePath = TestTools::getFullTestImagePath("vsi", "test-output/Image_B309_Overview.png");
+    //std::string macroFilePath = TestTools::getFullTestImagePath("vsi", "test-output/Image_B309_Macro.png");
+    slideio::VSIImageDriver driver;
+    std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+	auto metadata = slide->getRawMetadata();
+    std::ofstream outFile("d:/temp/vsi.txt");
+    if (outFile.is_open()) {
+        outFile << metadata;
+        outFile.close();
+    }
+    const int numScenes = slide->getNumScenes();
+    ASSERT_EQ(1, numScenes);
+}
 
 
 TEST_F(VSIImageDriverTests, stack3d) {
