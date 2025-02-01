@@ -59,7 +59,7 @@ std::string slideio::vsi::getStackTypeName(StackType type) {
     case StackType::UNKNOWN:
         return "Unknown";
     }
-    return "Unknown";   
+    return "Unknown";
 }
 
 void VSIFile::extractVolumesFromMetadata() {
@@ -108,7 +108,7 @@ void VSIFile::extractVolumesFromMetadata() {
                 const TagInfo* stackProps = volume->findChild(Tag::MULTIDIM_STACK_PROPERTIES);
                 const TagInfo* color = volume->findChild(Tag::DEFAULT_BACKGROUND_COLOR);
                 const TagInfo* ifdTag = frame->findChild(Tag::DEFAULT_SAMPLE_PIXEL_DATA_IFD);
-                const TagInfo* microscope = stackProps ? stackProps->findChild(Tag::MICROSCOPE):nullptr;
+                const TagInfo* microscope = stackProps ? stackProps->findChild(Tag::MICROSCOPE) : nullptr;
                 if (ifdTag) {
                     volumeObj->setIFD(ifdTag->secondTag);
                 }
@@ -139,7 +139,8 @@ void VSIFile::extractVolumesFromMetadata() {
                     if (resolutionTag) {
                         std::vector<std::string> tokens = splitVectorValues(resolutionTag->value);
                         if (tokens.size() != 2) {
-                            RAISE_RUNTIME_ERROR << "VSI driver: invalid number of image resolutions. Expected: 2, Received: "
+                            RAISE_RUNTIME_ERROR <<
+                                "VSI driver: invalid number of image resolutions. Expected: 2, Received: "
                                 << tokens.size() << " " << resolutionTag->value;
                         }
                         try {
@@ -151,12 +152,13 @@ void VSIFile::extractVolumesFromMetadata() {
                             SLIDEIO_LOG(WARNING) << "VSI driver: error reading resolution (ignored): " << ex.what();
                         }
                     }
-                    if(externalFile) {
+                    if (externalFile) {
                         const TagInfo* boundary = externalFile->findChild(Tag::IMAGE_BOUNDARY);
                         if (boundary) {
                             std::vector<std::string> tokens = splitVectorValues(boundary->value);
                             if (tokens.size() != 4) {
-                                RAISE_RUNTIME_ERROR << "VSI driver: invalid number of image boundaries. Expected: 4, Received: "
+                                RAISE_RUNTIME_ERROR <<
+                                    "VSI driver: invalid number of image boundaries. Expected: 4, Received: "
                                     << tokens.size() << " " << boundary->value;
                             }
                             try {
@@ -170,10 +172,10 @@ void VSIFile::extractVolumesFromMetadata() {
                         }
                     }
                     const TagInfo* magnification = stackProps->findChild(REL_PATH_TO_MAGNIFICATION);
-                    if(!magnification) {
+                    if (!magnification) {
                         magnification = stackProps->findChild(REL_PATH_TO_MAGNIFICATION2);
                     }
-					if (!magnification) {
+                    if (!magnification) {
                         if (microscope) {
                             magnification = microscope->findChildRecursively(Tag::OBJECTIVE_MAG);
                         }
@@ -214,11 +216,11 @@ void VSIFile::extractVolumesFromMetadata() {
                                 case 1: {
                                     volumeObj->setDimensionOrder(Dimensions::Z, index + 2);
                                     const TagInfo* channelInfo = itc->findChild(Tag::CHANNEL_INFO_PROPERTIES);
-                                    if(channelInfo) {
+                                    if (channelInfo) {
                                         const TagInfo* valueTag = channelInfo->findChild(Tag::VALUE);
-                                        if(valueTag) {
+                                        if (valueTag) {
                                             double zRes = std::stod(valueTag->value);
-                                            volumeObj->setZResolution(zRes*1.e-6);
+                                            volumeObj->setZResolution(zRes * 1.e-6);
                                         }
                                     }
                                     break;
@@ -249,9 +251,9 @@ void VSIFile::extractVolumesFromMetadata() {
                                     break;
                                 }
                             }
-                            if(itc->secondTag>=0) {
+                            if (itc->secondTag >= 0) {
                                 auto channelName = itc->findChild(Tag::CHANNEL_NAME);
-                                if(channelName) {
+                                if (channelName) {
                                     volumeObj->setChannelName(itc->secondTag, channelName->value);
                                 }
                             }
@@ -336,9 +338,9 @@ void VSIFile::getImageFrameMetadataItems(const TagInfo* volume, std::list<const 
 
 void VSIFile::cleanVolumes() {
     const auto& it = std::remove_if(
-        m_volumes.begin(), 
-        m_volumes.end(), 
-        [](const std::shared_ptr<Volume>& vol) { return !vol->isValid();});
+        m_volumes.begin(),
+        m_volumes.end(),
+        [](const std::shared_ptr<Volume>& vol) { return !vol->isValid(); });
     m_volumes.erase(
         it,
         m_volumes.end()
@@ -460,6 +462,57 @@ void VSIFile::readVolumeInfo() {
 }
 
 
+void VSIFile::processOrphanEtsFiles(std::list<std::shared_ptr<Volume>> volumes,
+                                    std::list<std::pair<EtsFilePtr, TileInfoListPtr>> orphanEtsFiles) {
+    while (!orphanEtsFiles.empty() && !volumes.empty()) {
+        // find the best match for the orphan ETS file and volume
+        // based on areas defined by the ETS file and volume boundaries
+        // the lowest score is the best match
+        double bestMatchScore = 1.0;
+        auto bestMatchCandidate = orphanEtsFiles.end();
+        auto bestMatchVolume = volumes.end();
+        for (auto itEts = orphanEtsFiles.begin(); itEts != orphanEtsFiles.end(); ++itEts) {
+            auto etsFile = itEts->first;
+            auto tiles = itEts->second;
+            cv::Rect etsSize({0}, etsFile->getSizeWithCompleteTiles());
+            double etsArea = static_cast<double>(etsSize.width) * static_cast<double>(etsSize.height);
+            if (etsArea > 0) {
+                for (auto itVolume = volumes.begin(); itVolume != volumes.end(); ++itVolume) {
+                    const auto volume = *itVolume;
+                    const cv::Size& volumeSize = volume->getSize();
+                    cv::Size intersect(std::min(volumeSize.width, etsSize.width),
+                                       std::min(volumeSize.height, etsSize.height));
+                    double intersectArea = static_cast<double>(intersect.width) * static_cast<double>(intersect.height);
+                    double diffArea = std::fabs(etsArea - intersectArea);
+                    double matchScore = (double)diffArea / (double)etsArea;
+                    if (matchScore < 0.01 && matchScore < bestMatchScore) {
+                        bestMatchScore = matchScore;
+                        bestMatchCandidate = itEts;
+                        bestMatchVolume = itVolume;
+                    }
+                }
+            }
+        }
+        if (bestMatchCandidate != orphanEtsFiles.end() && bestMatchVolume != volumes.end()) {
+            auto etsFile = bestMatchCandidate->first;
+            auto tiles = bestMatchCandidate->second;
+            etsFile->setVolume(*bestMatchVolume);
+            etsFile->initStruct(tiles);
+            m_etsFiles.push_back(etsFile);
+            orphanEtsFiles.erase(bestMatchCandidate);
+            volumes.erase(bestMatchVolume);
+		}
+        else {
+			// no match found
+            break;
+        }
+    }
+    if (!orphanEtsFiles.empty()) {
+        SLIDEIO_LOG(WARNING) << "VSI driver: " << orphanEtsFiles.size() <<
+            "ETS files cannot be assigned to any volume";
+    }
+}
+
 void VSIFile::readExternalFiles() {
     SLIDEIO_LOG(INFO) << "VSI driver: reading external ETS files";
     const fs::path filePath(m_filePath);
@@ -476,64 +529,31 @@ void VSIFile::readExternalFiles() {
         std::list volumes(m_volumes.begin(), m_volumes.end());
         typedef std::pair<EtsFilePtr, TileInfoListPtr> EtsFileInfo;
 
-		std::list<EtsFileInfo> orphanEtsFiles;
+        std::list<EtsFileInfo> orphanEtsFiles;
 
         for (const auto& file : files) {
             try {
                 auto etsFile = std::make_shared<EtsFile>(file);
                 auto tiles = std::make_shared<TileInfoList>();
                 etsFile->read(volumes, tiles);
-                if(etsFile->assignVolume(volumes)) {
+                if (etsFile->assignVolume(volumes)) {
                     etsFile->initStruct(tiles);
                     m_etsFiles.push_back(etsFile);
                 }
-				else {
-					orphanEtsFiles.push_back(std::make_pair(etsFile,tiles));
-				}
+                else {
+                    orphanEtsFiles.emplace_back(etsFile, tiles);
+                }
             }
             catch (RuntimeError& err) {
                 SLIDEIO_LOG(WARNING) << "VSI driver: error reading ETS file: " << err.what();
             }
         }
 
-		if (!orphanEtsFiles.empty()) {
-            for (const auto& item : orphanEtsFiles) {
-				auto etsFile = item.first;
-				auto tiles = item.second;
-				cv::Rect etsSize({ 0 }, etsFile->getSizeWithCompleteTiles());
-				int64_t etsArea = (int64_t)etsSize.width * (int64_t)etsSize.height;
-				if (etsArea <= 0) {
-					continue;
-				}
-                for (auto itVolume = volumes.begin(); itVolume != volumes.end(); ++itVolume) {
-                    const auto volume = *itVolume;
-					const cv::Size& volumeSize = volume->getSize();
-                    cv::Size intersect(std::min(volumeSize.width, etsSize.width), std::min(volumeSize.height, etsSize.height));
-                    int64_t intersectArea = (int64_t)intersect.width * (int64_t)intersect.height;
-					int64_t diffArea = std::abs(etsArea - intersectArea);
-					double percents = (double)diffArea / (double)etsArea;
-                    if (percents < 0.01) {
-						etsFile->setVolume(volume);
-//                        volumes.erase(itVolume);
-						etsFile->initStruct(tiles);
-						m_etsFiles.push_back(etsFile);
-						break;
-					}
-				}
-//				SLIDEIO_LOG(WARNING) << "VSI driver: orphan ETS file: " << etsFile->getFilePath();
-			}
-		}
-        
+        if (!orphanEtsFiles.empty() && !volumes.empty()) {
+            processOrphanEtsFiles(volumes, orphanEtsFiles);
+        }
     }
-
-    std::sort(m_etsFiles.begin(), m_etsFiles.end(),
-        [](const std::shared_ptr<EtsFile>& left, const std::shared_ptr<EtsFile>& right) {
-            const int leftStackId = extractBaseDirectoryNameSuffix(left->getFilePath());
-            const int rightStackId = extractBaseDirectoryNameSuffix(right->getFilePath());
-            return leftStackId < rightStackId;
-        });
 }
-
 
 void VSIFile::readExtendedType(VSIStream& vsi, TagInfo& tagInfo, std::list<TagInfo>& path) {
     switch (tagInfo.extendedType) {
