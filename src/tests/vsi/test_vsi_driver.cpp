@@ -10,7 +10,6 @@
 #include "slideio/drivers/vsi/vsifile.hpp"
 #include "slideio/core/tools/cvtools.hpp"
 #include "slideio/slideio/imagedrivermanager.hpp"
-#include "slideio/slideio/imagedrivermanager.hpp"
 
 
 namespace slideio
@@ -773,19 +772,24 @@ TEST_F(VSIImageDriverTests, volumes) {
             "Skip the test because full dataset is not enabled";
     }
     std::string filePath = TestTools::getFullTestImagePath("vsi", "private/d/STS_G6889_11_1_pHH3.vsi");
-    //std::string overviewFilePath = TestTools::getFullTestImagePath("vsi", "test-output/Image_B309_Overview.png");
-    //std::string macroFilePath = TestTools::getFullTestImagePath("vsi", "test-output/Image_B309_Macro.png");
+    std::string testImageFilePath = TestTools::getFullTestImagePath("vsi", 
+        "test-output/STS_G6889_11_1_pHH3.vsi - 40x_BF_01 (1, x=82570, y=77046, w=1153, h=797).png");
     slideio::VSIImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
 	auto metadata = slide->getRawMetadata();
-    std::ofstream outFile("d:/temp/vsi.txt");
-    if (outFile.is_open()) {
-        outFile << metadata;
-        outFile.close();
-    }
+	ASSERT_FALSE(metadata.empty());
     const int numScenes = slide->getNumScenes();
     ASSERT_EQ(1, numScenes);
+	auto scene = slide->getScene(0);
+	const cv::Rect roi = { 82570, 77046, 1153, 797 };
+	const cv::Size blockSize = { roi.width, roi.height };
+	cv::Mat raster;
+	scene->readResampledBlock(roi, blockSize, raster);
+	cv::Mat testRaster;
+	TestTools::readPNG(testImageFilePath, testRaster);
+	double similarity = ImageTools::computeSimilarity2(testRaster, raster);
+	EXPECT_GT(similarity, 0.99);
 }
 
 
@@ -825,6 +829,5 @@ TEST_F(VSIImageDriverTests, stack3d) {
     cv::Mat testRaster;
 	TestTools::readPNG(slice6, testRaster);
 	double similarity = ImageTools::computeSimilarity2(testRaster, raster);
-    //TestTools::showRasters(testRaster, raster);
 	EXPECT_GT(similarity, 0.99);
 }
