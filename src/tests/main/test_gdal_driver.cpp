@@ -1,11 +1,16 @@
-﻿#include <gtest/gtest.h>
-#include "slideio/drivers/gdal/gdalimagedriver.hpp"
+﻿#include "slideio/drivers/gdal/gdalimagedriver.hpp"
 #include "tests/testlib/testtools.hpp"
-#include <numeric>
-
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/core/tools/cvtools.hpp"
 #include "slideio/slideio/slideio.hpp"
+
+#include <gtest/gtest.h>
+#include <numeric>
+#include <tinyxml2.h>
+#include <nlohmann/json.hpp>
+
+using namespace tinyxml2;
+using json = nlohmann::json;
 
 TEST(GDALDriver, driverID)
 {
@@ -225,7 +230,8 @@ TEST(GDALDriver, read16bitSignedImage)
 TEST(GDALDriver, openFileUtf8)
 {
     {
-        std::string filePath = TestTools::getTestImagePath("gdal", u8"тест/тест.tif");
+        //std::string filePath = TestTools::getTestImagePath("gdal", u8"тест/тест.tif");
+        std::string filePath = TestTools::getFullTestImagePath("ometiff", u8"SPIM-ModuloAlongZ.ome.tiff");
         std::shared_ptr<slideio::Slide> slide = slideio::openSlide(filePath, "GDAL");
         int dirCount = slide->getNumScenes();
         ASSERT_EQ(dirCount, 1);
@@ -254,4 +260,27 @@ TEST(GDALDriver, openFileUtf8)
         std::vector<uint8_t> raster(rasterSize);
         scene->readBlock(rect, raster.data(), raster.size());
     }
+}
+
+TEST(GDALDriver, metadataTiff)
+{
+        std::string filePath = TestTools::getFullTestImagePath("ometiff", u8"SPIM-ModuloAlongZ.ome.tiff");
+        std::shared_ptr<slideio::Slide> slide = slideio::openSlide(filePath, "GDAL");
+        std::string metadata = slide->getRawMetadata();
+		EXPECT_FALSE(metadata.empty());
+        EXPECT_EQ(0, metadata.find("<?xml"));
+		XMLDocument doc;
+		auto error = doc.Parse(metadata.c_str());
+		EXPECT_EQ(XML_SUCCESS, error);
+}
+
+TEST(GDALDriver, metadataJpeg)
+{
+    std::string filePath = TestTools::getTestImagePath("gdal", "Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg");
+    std::shared_ptr<slideio::Slide> slide = slideio::openSlide(filePath, "GDAL");
+    std::string metadata = slide->getRawMetadata();
+    EXPECT_FALSE(metadata.empty());
+    json jMtd = json::parse(metadata);
+    std::string val = jMtd["EXIF_PixelXDimension"];
+    EXPECT_EQ("5494", val);
 }

@@ -6,4 +6,5 @@ opencv/4.10.0@slideio/stable
 zlib/1.2.13
 tinyxml2/9.0.0
 pole/1.0.4@slideio/stable
+nlohmann_json/3.11.3
 [options]
