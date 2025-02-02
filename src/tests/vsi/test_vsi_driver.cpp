@@ -782,6 +782,8 @@ TEST_F(VSIImageDriverTests, volumes) {
     const int numScenes = slide->getNumScenes();
     ASSERT_EQ(1, numScenes);
 	auto scene = slide->getScene(0);
+    auto sceneRect = scene->getRect();
+	EXPECT_EQ(sceneRect, cv::Rect(0, 0, 164267, 150739));
 	const cv::Rect roi = { 82570, 77046, 1153, 797 };
 	const cv::Size blockSize = { roi.width, roi.height };
 	cv::Mat raster;

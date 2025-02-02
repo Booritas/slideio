@@ -31,14 +31,16 @@ bool vsi::EtsFile::assignVolume(std::list<std::shared_ptr<vsi::Volume>>& volumes
             break;
         }
     }
-    if (m_volume) {
-        m_size.width = m_volume->getSize().width;
-        m_size.height = m_volume->getSize().height;
-    }
     return m_volume !=nullptr;
 }
 
 void vsi::EtsFile::initStruct(TileInfoListPtr& tiles) {
+
+    if (m_volume) {
+        m_size.width = m_volume->getSize().width;
+        m_size.height = m_volume->getSize().height;
+    }
+
     const int zIndex = m_volume->getDimensionOrder(Dimensions::Z);
     if (zIndex > 1 && zIndex < m_maxCoordinates.size()) {
         m_numZSlices = m_maxCoordinates[m_volume->getDimensionOrder(Dimensions::Z)] + 1;
