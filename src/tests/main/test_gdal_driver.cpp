@@ -230,8 +230,7 @@ TEST(GDALDriver, read16bitSignedImage)
 TEST(GDALDriver, openFileUtf8)
 {
     {
-        //std::string filePath = TestTools::getTestImagePath("gdal", u8"тест/тест.tif");
-        std::string filePath = TestTools::getFullTestImagePath("ometiff", u8"SPIM-ModuloAlongZ.ome.tiff");
+        std::string filePath = TestTools::getTestImagePath("gdal", u8"тест/тест.tif");
         std::shared_ptr<slideio::Slide> slide = slideio::openSlide(filePath, "GDAL");
         int dirCount = slide->getNumScenes();
         ASSERT_EQ(dirCount, 1);
