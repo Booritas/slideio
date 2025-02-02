@@ -34,6 +34,7 @@ find_package(WebP)
 find_package(JPEG)
 find_package(PNG)
 find_package(ZLIB)
+find_package(nlohmann_json REQUIRED)
 
 target_link_libraries(${LIBRARY_NAME} 
    glog::glog  
@@ -50,6 +51,7 @@ target_link_libraries(${LIBRARY_NAME}
    JPEG::JPEG
    PNG::PNG
    ZLIB::ZLIB
+   nlohmann_json::nlohmann_json   
 )
 
 

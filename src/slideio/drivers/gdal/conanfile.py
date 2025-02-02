@@ -17,4 +17,5 @@ class GdalRecipe(ConanFile):
         self.requires("libiconv/1.17")
         self.requires("libdeflate/1.19")
         self.requires("gdal/3.8.3")
+        self.requires("nlohmann_json/3.11.3")
  
