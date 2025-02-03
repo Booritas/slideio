@@ -1,6 +1,0 @@
-[requires]
-ndpi-libtiff/4.3.0@slideio/stable
-ndpi-libjpeg-turbo/2.1.2@slideio/stable
-pole/1.0.1@slideio/stable
-libwebp/1.2.4
-zlib/1.2.13
