@@ -16,6 +16,8 @@
 #include <string>
 #include <stdexcept>
 #include <unicode/unistr.h>
+#include <arpa/inet.h>
+
 using namespace slideio;
 namespace fs = std::filesystem;
 
