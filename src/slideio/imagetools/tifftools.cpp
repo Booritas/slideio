@@ -769,26 +769,35 @@ void TiffTools::readNotRGBTile(libtiff::TIFF* hFile, const TiffDirectory& dir, i
     int col = tile - row * cols;
     int tileX = col * dir.tileWidth;
     int tileY = row * dir.tileHeight;
+    SLIDEIO_LOG(INFO) << "TiffTools::readNotRGBTile: Reading tile " << tile 
+        << " from directory:" << dir.dirIndex << " at position " << tileX << "," << tileY;
     auto readBytes = libtiff::TIFFReadRGBATile(hFile, tileX, tileY, buffBegin);
     if (readBytes <= 0) {
         RAISE_RUNTIME_ERROR << "TiffTools: Error reading encoded tiff tile "
             << tile << " of directory " << dir.dirIndex << ". Compression: " << dir.compression;
     }
 
+    std::vector<int> channelMapping = { 0, 1, 2, 3 };
+    if(!Tools::isLittleEndian()) {
+        std::reverse(channelMapping.begin(), channelMapping.end());
+    }
     cv::Mat flipped;
+
     if (channelIndices.empty())
     {
         std::vector<cv::Mat> channelRasters;
         channelRasters.resize(3);
         for (int channelIndex=0; channelIndex<3; ++channelIndex)
         {
-            cv::extractChannel(tileRaster, channelRasters[channelIndex], channelIndex);
+            const int correctedIndex = channelMapping[channelIndex]; // correct the channel index for big endian
+            cv::extractChannel(tileRaster, channelRasters[channelIndex], correctedIndex);
         }
         cv::merge(channelRasters, flipped);
     }
     else if (channelIndices.size() == 1)
     {
-        cv::extractChannel(tileRaster, flipped, channelIndices[0]);
+        const int correctedIndex = channelMapping[channelIndices[0]]; // correct the channel index for big endian
+        cv::extractChannel(tileRaster, flipped, correctedIndex);
     }
     else
     {
@@ -796,7 +805,8 @@ void TiffTools::readNotRGBTile(libtiff::TIFF* hFile, const TiffDirectory& dir, i
         channelRasters.resize(channelIndices.size());
         for (int channelIndex : channelIndices)
         {
-            cv::extractChannel(tileRaster, channelRasters[channelIndex], channelIndices[channelIndex]);
+            const int correctedIndex = channelMapping[channelIndices[channelIndex]]; // correct the channel index for big endian
+            cv::extractChannel(tileRaster, channelRasters[channelIndex], correctedIndex);
         }
         cv::merge(channelRasters, flipped);
     }
