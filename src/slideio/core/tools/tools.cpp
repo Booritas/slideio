@@ -59,23 +59,47 @@ bool Tools::matchPattern(const std::string& path, const std::string& pattern)
 
 inline void convertPair12BitsTo16Bits(uint8_t* source, uint16_t* target)
 {
-    target[0] = (*((uint16_t*)source)) & 0xFFF;
-    uint8_t* next = source + 1;
-    target[1] = (*((uint16_t*)(source + 1))) >> 4;
+    #ifdef _MSC_VER
+        target[0] = (*((uint16_t*)source)) & 0xFFF;
+        target[1] = (*((uint16_t*)(source + 1))) >> 4;
+    #else
+        uint16_t value1, value2;
+        std::memcpy(&value1, source, sizeof(uint16_t));
+        std::memcpy(&value2, source + 1, sizeof(uint16_t));
+    #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+        target[0] = value1 & 0xFFF;
+        target[1] = value2 >> 4;
+    #elif __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+        target[0] = ntohs(value1) & 0xFFF;
+        target[1] = ntohs(value2) >> 4;
+    #else
+    #error "Unsupported byte order"
+    #endif
+    #endif
 }
 
 void Tools::convert12BitsTo16Bits(uint8_t* source, uint16_t* target, int targetLen)
 {
-    uint16_t buff[2] = {0};
     uint16_t* targetPtr = target;
     uint8_t* sourcePtr = source;
-    int srcBits = 0;
     for (int ind = 0; ind < targetLen; ind += 2, targetPtr += 2, sourcePtr += 3) {
         if ((ind + 1) < targetLen) {
             convertPair12BitsTo16Bits(sourcePtr, targetPtr);
         }
         else {
+#ifdef _MSC_VER
             *targetPtr = (*((uint16_t*)sourcePtr)) & 0xFFF;
+#else
+            uint16_t value;
+            std::memcpy(&value, sourcePtr, sizeof(uint16_t));
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+            *targetPtr = value & 0xFFF;
+#elif __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+            *targetPtr = ntohs(value) & 0xFFF;
+#else
+#error "Unsupported byte order"
+#endif
+#endif        
         }
     }
 }
