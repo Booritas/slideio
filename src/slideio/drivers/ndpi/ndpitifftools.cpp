@@ -269,8 +269,8 @@ void slideio::NDPITiffTools::closeTiffFile(libtiff::TIFF* file)
 
 static slideio::DataType retrieveTiffDataType(libtiff::TIFF* tiff)
 {
-    int bitsPerSample = 0;
-    int sampleFormat = 0;
+    uint16_t bitsPerSample = 0;
+    uint16_t sampleFormat = 0;
 
     slideio::DataType dataType = slideio::DataType::DT_Unknown;
     if (!libtiff::TIFFGetField(tiff, TIFFTAG_BITSPERSAMPLE, &bitsPerSample)) {
@@ -348,10 +348,10 @@ void slideio::NDPITiffTools::scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, 
     char* description(nullptr);
     char* userLabel(nullptr);
     char* comments(nullptr);
-    short dirchnls(0), dirbits(0);
+    uint16_t dirchnls(0), dirbits(0);
     uint32_t *blankLines(nullptr), nblanklines(0);
     uint16_t compress(0);
-    short planar_config(0);
+    uint16_t planar_config(0);
     uint32_t width(0), height(0), tile_width(0), tile_height(0);
 
     float magnification(0);
@@ -410,19 +410,19 @@ void slideio::NDPITiffTools::scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, 
     uint32_t* stripOffset = nullptr;
     libtiff::TIFFGetField(tiff, TIFFTAG_STRIPOFFSETS, &stripOffset);
 
-    uint32_t* stripSizes = nullptr;
+    uint64_t* stripSizes = nullptr;
     libtiff::TIFFGetField(tiff, TIFFTAG_STRIPBYTECOUNTS, &stripSizes);
     uint32_t rowsPerStripe(0);
     libtiff::TIFFGetField(tiff, TIFFTAG_ROWSPERSTRIP, &rowsPerStripe);
     libtiff::TIFFDataType dt(libtiff::TIFF_NOTYPE);
     libtiff::TIFFGetField(tiff, TIFFTAG_DATATYPE, &dt);
-    short ph(0);
+    uint16_t ph(0);
     libtiff::TIFFGetField(tiff, TIFFTAG_PHOTOMETRIC, &ph);
     dir.photometric = ph;
     dir.stripSize = (int)libtiff::TIFFStripSize(tiff);
     dir.dataType = retrieveTiffDataType(tiff);
 
-    short YCbCrSubsampling[2] = {2, 2};
+    uint16_t YCbCrSubsampling[2] = {2, 2};
     libtiff::TIFFGetField(tiff, TIFFTAG_YCBCRSUBSAMPLING, &YCbCrSubsampling[0], &YCbCrSubsampling[0]);
     dir.YCbCrSubsampling[0] = YCbCrSubsampling[0];
     dir.YCbCrSubsampling[1] = YCbCrSubsampling[1];

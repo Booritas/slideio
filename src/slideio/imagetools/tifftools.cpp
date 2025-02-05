@@ -313,8 +313,8 @@ void TiffTools::closeTiffFile(libtiff::TIFF* file)
 
 static DataType retrieveTiffDataType(libtiff::TIFF* tiff)
 {
-    int bitsPerSample = 0;
-    int sampleFormat = 0;
+    uint16_t bitsPerSample = 0;
+    uint16_t sampleFormat = 0;
 
     DataType dataType = DataType::DT_Unknown;
     if (!libtiff::TIFFGetField(tiff, TIFFTAG_BITSPERSAMPLE, &bitsPerSample)) {
@@ -435,10 +435,10 @@ void  TiffTools::scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, int64_t dirO
     dir.compressionQuality = 0;
 
     char *description(nullptr);
-    short dirchnls(0), dirbits(0);
+    uint16_t dirchnls(0), dirbits(0);
     uint16_t compress(0);
-    short  planar_config(0);
-    int width(0), height(0), tile_width(0), tile_height(0);
+    uint16_t  planar_config(0);
+    uint32_t width(0), height(0), tile_width(0), tile_height(0);
     libtiff::TIFFGetField(tiff, TIFFTAG_SAMPLESPERPIXEL, &dirchnls);
     libtiff::TIFFGetField(tiff, TIFFTAG_BITSPERSAMPLE, &dirbits);
     libtiff::TIFFGetField(tiff, TIFFTAG_COMPRESSION, &compress);
@@ -461,12 +461,12 @@ void  TiffTools::scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, int64_t dirO
     libtiff::TIFFGetField(tiff, TIFFTAG_ROWSPERSTRIP, &rowsPerStripe);
     int32_t compressionQuality = 0;
     libtiff::TIFFGetField(tiff, TIFFTAG_JPEGQUALITY, &compressionQuality);
-    short ph(0);
+    uint16_t ph(0);
     libtiff::TIFFGetField(tiff, TIFFTAG_PHOTOMETRIC, &ph);
     dir.photometric = ph;
     dir.stripSize = (int)libtiff::TIFFStripSize(tiff);
     dir.dataType = retrieveTiffDataType(tiff);
-    short YCbCrSubsampling[2] = { 2,2 };
+    uint16_t YCbCrSubsampling[2] = { 2,2 };
     libtiff::TIFFGetField(tiff, TIFFTAG_YCBCRSUBSAMPLING, &YCbCrSubsampling[0], &YCbCrSubsampling[0]);
     dir.YCbCrSubsampling[0] = YCbCrSubsampling[0];
     dir.YCbCrSubsampling[1] = YCbCrSubsampling[1];
