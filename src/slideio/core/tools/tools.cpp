@@ -59,53 +59,54 @@ bool Tools::matchPattern(const std::string& path, const std::string& pattern)
     return ret;
 }
 
-inline void convertPair12BitsTo16Bits(uint8_t* source, uint16_t* target)
+inline uint16_t convert12BitToUint16_BE(const uint8_t* data) {
+    return (static_cast<uint16_t>(data[0]) << 4) | (data[1] >> 4);
+}
+
+inline uint16_t convert12BitToUint16_LE(const uint8_t* data) {
+    return (static_cast<uint16_t>(data[1] & 0x0F) << 8) | data[0];
+}
+
+
+static void convert12BitsTo16Bits_BE(uint8_t* source, uint16_t* target, int targetLen)
 {
-    #ifdef _MSC_VER
-        target[0] = (*((uint16_t*)source)) & 0xFFF;
-        target[1] = (*((uint16_t*)(source + 1))) >> 4;
-    #else
-        uint16_t value1, value2;
-        std::memcpy(&value1, source, sizeof(uint16_t));
-        std::memcpy(&value2, source + 1, sizeof(uint16_t));
-    #if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-        target[0] = value1 & 0xFFF;
-        target[1] = value2 >> 4;
-    #elif __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
-        target[0] = ntohs(value1) & 0xFFF;
-        target[1] = ntohs(value2) >> 4;
-    #else
-    #error "Unsupported byte order"
-    #endif
-    #endif
+    for (size_t i = 0; i < targetLen; ++i) {
+        size_t byteIndex = (i * 12) / 8; // Find the starting byte
+        size_t bitOffset = (i * 12) % 8; // Find the bit offset in that byte
+        // Extract 12-bit value in Big-Endian order
+        target[i] = (static_cast<uint16_t>(source[byteIndex]) << 8 | source[byteIndex + 1]) >> (4 - bitOffset);
+        if (bitOffset > 4) {
+            target[i] |= static_cast<uint16_t>(source[byteIndex + 2]) << (12 - bitOffset);
+        }
+        target[i] &= 0x0FFF; // Ensure only 12 bits are stored
+    }
+}
+
+static void convert12BitsTo16Bits_LE(uint8_t* source, uint16_t* target, int targetLen)
+{
+    for (size_t i = 0; i < targetLen; ++i) {
+        size_t byteIndex = (i * 12) / 8; // Find the starting byte
+        size_t bitOffset = (i * 12) % 8; // Find the bit offset in that byte
+        // Extract 12-bit value in Little-Endian order
+        target[i] = (static_cast<uint16_t>(source[byteIndex + 1]) << 8 | source[byteIndex]) >> bitOffset;
+        if (bitOffset > 4) {
+            target[i] |= static_cast<uint16_t>(source[byteIndex + 2]) << (12 - bitOffset);
+        }
+        target[i] &= 0x0FFF; // Ensure only 12 bits are extracted
+    }
 }
 
 void Tools::convert12BitsTo16Bits(uint8_t* source, uint16_t* target, int targetLen)
 {
-    uint16_t* targetPtr = target;
-    uint8_t* sourcePtr = source;
-    for (int ind = 0; ind < targetLen; ind += 2, targetPtr += 2, sourcePtr += 3) {
-        if ((ind + 1) < targetLen) {
-            convertPair12BitsTo16Bits(sourcePtr, targetPtr);
-        }
-        else {
-#ifdef _MSC_VER
-            *targetPtr = (*((uint16_t*)sourcePtr)) & 0xFFF;
-#else
-            uint16_t value;
-            std::memcpy(&value, sourcePtr, sizeof(uint16_t));
-#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-            *targetPtr = value & 0xFFF;
-#elif __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
-            *targetPtr = ntohs(value) & 0xFFF;
-#else
-#error "Unsupported byte order"
-#endif
-#endif        
-        }
+    if(isLittleEndian())
+    {
+        convert12BitsTo16Bits_LE(source, target, targetLen);
+    }
+    else
+    {
+        convert12BitsTo16Bits_BE(source, target, targetLen);
     }
 }
-
 void slideio::Tools::scaleRect(const cv::Rect& srcRect, const cv::Size& newSize, cv::Rect& trgRect)
 {
     double scaleX = static_cast<double>(newSize.width) / static_cast<double>(srcRect.width);
