@@ -68,21 +68,7 @@ inline uint16_t convert12BitToUint16_LE(const uint8_t* data) {
 }
 
 
-static void convert12BitsTo16Bits_BE(uint8_t* source, uint16_t* target, int targetLen)
-{
-    for (size_t i = 0; i < targetLen; ++i) {
-        size_t byteIndex = (i * 12) / 8; // Find the starting byte
-        size_t bitOffset = (i * 12) % 8; // Find the bit offset in that byte
-        // Extract 12-bit value in Big-Endian order
-        target[i] = (static_cast<uint16_t>(source[byteIndex]) << 8 | source[byteIndex + 1]) >> (4 - bitOffset);
-        if (bitOffset > 4) {
-            target[i] |= static_cast<uint16_t>(source[byteIndex + 2]) << (12 - bitOffset);
-        }
-        target[i] &= 0x0FFF; // Ensure only 12 bits are stored
-    }
-}
-
-static void convert12BitsTo16Bits_LE(uint8_t* source, uint16_t* target, int targetLen)
+void Tools::convert12BitsTo16Bits(uint8_t* source, uint16_t* target, int targetLen)
 {
     for (size_t i = 0; i < targetLen; ++i) {
         size_t byteIndex = (i * 12) / 8; // Find the starting byte
@@ -93,19 +79,11 @@ static void convert12BitsTo16Bits_LE(uint8_t* source, uint16_t* target, int targ
             target[i] |= static_cast<uint16_t>(source[byteIndex + 2]) << (12 - bitOffset);
         }
         target[i] &= 0x0FFF; // Ensure only 12 bits are extracted
+        if(!isLittleEndian()) {
+            target[i] = little2BigEndian(target[i]);
+        }
     }
-}
 
-void Tools::convert12BitsTo16Bits(uint8_t* source, uint16_t* target, int targetLen)
-{
-    if(isLittleEndian())
-    {
-        convert12BitsTo16Bits_LE(source, target, targetLen);
-    }
-    else
-    {
-        convert12BitsTo16Bits_BE(source, target, targetLen);
-    }
 }
 void slideio::Tools::scaleRect(const cv::Rect& srcRect, const cv::Size& newSize, cv::Rect& trgRect)
 {

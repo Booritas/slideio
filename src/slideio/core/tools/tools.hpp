@@ -130,6 +130,9 @@ namespace slideio
         }
         static void replaceAll(std::string& str, const std::string& from, const std::string& to);
         static std::vector<std::string> split(const std::string& value, char delimiter);
+        static inline uint16_t little2BigEndian(uint16_t value) {
+            return (value >> 8) | (value << 8);
+        }
 
     };
 }
