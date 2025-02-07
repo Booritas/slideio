@@ -62,16 +62,6 @@ TEST(Tools, findZoomLevel)
     EXPECT_EQ(slideio::Tools::findZoomLevel(0.1, numLevels, zoomFunct), 3);
 }
 
-void printHex(const std::string& text, const void* buffer, size_t size) {
-    const unsigned char* byteBuffer = static_cast<const unsigned char*>(buffer);
-    std::cout << text;
-    for (size_t i = 0; i < size; ++i) {
-        std::cout << std::hex << std::setw(2) << std::setfill('0')
-            << static_cast<int>(byteBuffer[i]) << " ";
-    }
-
-    std::cout << std::dec << std::endl; // Reset formatting to decimal
-}
 
 TEST(Tools, convert12BitsTo16Bits)
 {

@@ -60,27 +60,19 @@ bool Tools::matchPattern(const std::string& path, const std::string& pattern)
 }
 
 
-void slideio::Tools::convert12BitsTo16Bits(const uint8_t* source, uint16_t* target, int targetLen) {
+void Tools::convert12BitsTo16Bits(const uint8_t* source, uint16_t* target, int targetLen) {
     if (!source || !target || targetLen <= 0)
         RAISE_RUNTIME_ERROR << "Tools::convert12BitsTo16Bits: Invalid parameters"
         << "source:" << (source != nullptr)
         << " target:" << (target != nullptr)
         << " targetLen:" << targetLen;
-
     int index = 0;
-    bool littleEndian = isLittleEndian();
     while (index < targetLen) {
-        uint16_t first, second;
-        if (littleEndian) {
-            first = (source[0] << 4) | (source[1] >> 4);
-            second = ((source[1] & 0x0F) << 8) | source[2];
-        }
-        else {
-            first = (source[0] << 8) | (source[1] & 0xF0);
-            second = ((source[1] & 0x0F) << 4) | (source[2] >> 4);
-        }
+        // Extract two 12-bit numbers from 3 bytes
+        const uint16_t first = (source[0] << 4) | (source[1] >> 4);
         target[index++] = first;
         if (index < targetLen) {
+            const uint16_t second = ((source[1] & 0x0F) << 8) | source[2];
             target[index++] = second;
         }
         else {
@@ -89,7 +81,6 @@ void slideio::Tools::convert12BitsTo16Bits(const uint8_t* source, uint16_t* targ
         source += 3;
     }
 }
-
 
 void slideio::Tools::scaleRect(const cv::Rect& srcRect, const cv::Size& newSize, cv::Rect& trgRect)
 {
