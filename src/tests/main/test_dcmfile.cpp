@@ -277,19 +277,12 @@ TEST(DCMFile, pixelValues12AllocatedBits)
     ASSERT_FALSE(frames.empty());
     EXPECT_EQ(frames.size(), 1);
 
-    double min, max;
-    cv::minMaxLoc(frames[0], &min, &max);
-    double range = max - min;
-    double alpha = 255. / range;
-    double beta = -(min * alpha);
-    
-    frames[0].convertTo(frames[0], CV_MAKE_TYPE(CV_8U, 1), alpha, beta);
-
     cv::Mat testImage;
-    slideio::ImageTools::readGDALImage(testPath, testImage);
+	ImageTools::readGDALImage(testPath, testImage);
     double similarity = ImageTools::computeSimilarity(frames[0], testImage);
-    EXPECT_LT(0.85, similarity);
+    EXPECT_LT(0.999, similarity);
 }
+
 
 TEST(DCMFile, isWSIFile)
 {

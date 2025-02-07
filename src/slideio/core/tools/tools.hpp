@@ -79,7 +79,7 @@ namespace slideio
             }
             return  goodLevelIndex;
         }
-        static void convert12BitsTo16Bits(uint8_t* source, uint16_t* target, int targetLen);
+        static void convert12BitsTo16Bits(const uint8_t* source, uint16_t* target, int targetLen);
         static void scaleRect(const cv::Rect& srcRect, const cv::Size& newSize, cv::Rect& trgRect);
         static void scaleRect(const cv::Rect& srcRect, double scaleX, double scaleY, cv::Rect& trgRect);
         static bool isCompleteChannelList(const std::vector<int>& channelIndices, const int numChannels)

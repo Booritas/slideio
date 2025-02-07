@@ -62,33 +62,40 @@ TEST(Tools, findZoomLevel)
     EXPECT_EQ(slideio::Tools::findZoomLevel(0.1, numLevels, zoomFunct), 3);
 }
 
-TEST(Tools, convert12BitsTo16Bits2vals)
-{
-    int16_t src1 = 0xE0F;
-    int16_t src2 = 0xF0E;
-    int32_t srcB = src1 | (src2 << 12);
-    uint16_t trg[2] = { 0 };
-    slideio::Tools::convert12BitsTo16Bits((uint8_t*)&srcB, trg, 2);
-    EXPECT_EQ(src1, trg[0]);
-    EXPECT_EQ(src2, trg[1]);
+void printHex(const std::string& text, const void* buffer, size_t size) {
+    const unsigned char* byteBuffer = static_cast<const unsigned char*>(buffer);
+    std::cout << text;
+    for (size_t i = 0; i < size; ++i) {
+        std::cout << std::hex << std::setw(2) << std::setfill('0')
+            << static_cast<int>(byteBuffer[i]) << " ";
+    }
+
+    std::cout << std::dec << std::endl; // Reset formatting to decimal
 }
 
-TEST(Tools, convert12BitsTo16Bits3vals)
+TEST(Tools, convert12BitsTo16Bits)
 {
-    int16_t src1 = 0xE0F;
-    int16_t src2 = 0xF0E;
-    int16_t src3 = 0xA0B;
-    uint8_t src[8];
-    int32_t src32= src1 | (src2 << 12);
-    memcpy(src, &src32, sizeof(src32));
-    src32 = src3;
-    memcpy(src+3, &src32, sizeof(src32));
-    uint16_t trg[3] = { 0 };
-    slideio::Tools::convert12BitsTo16Bits(src, trg, 3);
-    EXPECT_EQ(src1, trg[0]);
-    EXPECT_EQ(src2, trg[1]);
-    EXPECT_EQ(src3, trg[2]);
+	const uint8_t src[] = {
+	    0xF7, 0xDC, 0xBF,
+		0x05, 0xF9, 0x9A,
+        0x60, 0xD0, 0x00,
+        0x38, 0xDA, 0xBC,
+		0x00, 0x02, 0x61,
+    };
+	std::vector<uint16_t>  check = { 3965, 3263, 95, 2458, 1549, 0, 909, 2748, 0, 609 };
+	std::vector<uint16_t> target(check.size());
+
+    slideio::Tools::convert12BitsTo16Bits(src, target.data(), static_cast<int>(check.size()));
+    EXPECT_EQ(target, check);
+    check.resize(check.size() - 1);
+	target.resize(check.size());
+    slideio::Tools::convert12BitsTo16Bits(src, target.data(), static_cast<int>(check.size()));
+    EXPECT_EQ(target, check);
+    EXPECT_THROW(slideio::Tools::convert12BitsTo16Bits(nullptr, target.data(), static_cast<int>(check.size())), slideio::RuntimeError);
+    EXPECT_THROW(slideio::Tools::convert12BitsTo16Bits(src, nullptr, static_cast<int>(check.size())), slideio::RuntimeError);
+    EXPECT_THROW(slideio::Tools::convert12BitsTo16Bits(src, target.data(), 0), slideio::RuntimeError);
 }
+
 
 TEST(Tools, extractChannels11)
 {

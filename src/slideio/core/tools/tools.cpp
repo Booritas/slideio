@@ -16,7 +16,7 @@
 #include <string>
 #include <stdexcept>
 #include <unicode/unistr.h>
-#include <arpa/inet.h>
+//#include <arpa/inet.h>
 
 using namespace slideio;
 namespace fs = std::filesystem;
@@ -59,32 +59,30 @@ bool Tools::matchPattern(const std::string& path, const std::string& pattern)
     return ret;
 }
 
-inline uint16_t convert12BitToUint16_BE(const uint8_t* data) {
-    return (static_cast<uint16_t>(data[0]) << 4) | (data[1] >> 4);
-}
 
-inline uint16_t convert12BitToUint16_LE(const uint8_t* data) {
-    return (static_cast<uint16_t>(data[1] & 0x0F) << 8) | data[0];
-}
-
-
-void Tools::convert12BitsTo16Bits(uint8_t* source, uint16_t* target, int targetLen)
-{
-    for (size_t i = 0; i < targetLen; ++i) {
-        size_t byteIndex = (i * 12) / 8; // Find the starting byte
-        size_t bitOffset = (i * 12) % 8; // Find the bit offset in that byte
-        // Extract 12-bit value in Little-Endian order
-        target[i] = (static_cast<uint16_t>(source[byteIndex + 1]) << 8 | source[byteIndex]) >> bitOffset;
-        if (bitOffset > 4) {
-            target[i] |= static_cast<uint16_t>(source[byteIndex + 2]) << (12 - bitOffset);
+void Tools::convert12BitsTo16Bits(const uint8_t* source, uint16_t* target, int targetLen) {
+    if (!source || !target || targetLen <= 0)
+        RAISE_RUNTIME_ERROR << "Tools::convert12BitsTo16Bits: Invalid parameters"
+            << "source:" << (source!=nullptr)
+		    << " target:" << (target!= nullptr)
+            << " targetLen:" << targetLen;
+    int index = 0;
+    bool bigEndian = !isLittleEndian();
+    while (index < targetLen) {
+        // Extract two 12-bit numbers from 3 bytes
+        uint16_t first = (source[0] << 4) | (source[1] >> 4);
+        target[index++] = bigEndian?little2BigEndian(first):first;
+		if (index < targetLen) {
+			uint16_t second = ((source[1] & 0x0F) << 8) | source[2];
+			target[index++] = bigEndian?little2BigEndian(second):second;
+		}
+        else {
+            break;
         }
-        target[i] &= 0x0FFF; // Ensure only 12 bits are extracted
-        if(!isLittleEndian()) {
-            target[i] = little2BigEndian(target[i]);
-        }
+        source += 3;
     }
-
 }
+
 void slideio::Tools::scaleRect(const cv::Rect& srcRect, const cv::Size& newSize, cv::Rect& trgRect)
 {
     double scaleX = static_cast<double>(newSize.width) / static_cast<double>(srcRect.width);
