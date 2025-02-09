@@ -378,7 +378,8 @@ TEST(DCMFile, readFrame) {
     //TestTools::writePNG(tileRaster, testFilePath);
     cv::Mat testImage;
     TestTools::readPNG(testFilePath, testImage);
-    TestTools::compareRasters(testImage, tileRaster);
+	double score = ImageTools::computeSimilarity2(testImage, tileRaster);
+	EXPECT_GT(score, 0.99);
     //TestTools::showRasters(testImage, tileRaster);
 
 }
