@@ -107,17 +107,6 @@ namespace slideio
         static std::list<std::string> findFilesWithExtension(const std::string& directory, const std::string& extension);
         static void extractChannels(const cv::Mat& sourceRaster, const std::vector<int>& channels, cv::OutputArray output);
         static FILE* openFile(const std::string& filePath, const char* mode);
-        // Function to detect if the system is little endian
-        static bool isLittleEndian() {
-            uint16_t number = 0x1;
-            char* numPtr = (char*)&number;
-            return (numPtr[0] == 1);
-        }
-        // Function to convert from big endian to little endian for 16 bit short
-        static uint16_t bigToLittleEndian16(uint16_t bigEndianValue) {
-            return ((bigEndianValue >> 8) & 0xff) |
-                ((bigEndianValue << 8) & 0xff00);
-        }
         static uint64_t getFilePos(FILE* file);
         static int setFilePos(FILE* file, uint64_t pos, int origin);
         static uint64_t getFileSize(FILE* file);
@@ -130,9 +119,6 @@ namespace slideio
         }
         static void replaceAll(std::string& str, const std::string& from, const std::string& to);
         static std::vector<std::string> split(const std::string& value, char delimiter);
-        static inline uint16_t little2BigEndian(uint16_t value) {
-            return (value >> 8) | (value << 8);
-        }
 
     };
 }

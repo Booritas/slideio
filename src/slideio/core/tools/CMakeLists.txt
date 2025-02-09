@@ -14,5 +14,7 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/tempfile.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/cvtools.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/cvtools.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/endian.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/endian.cpp
    PARENT_SCOPE
    )

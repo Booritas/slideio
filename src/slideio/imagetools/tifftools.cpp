@@ -12,6 +12,7 @@
 #include "slideio/imagetools/libtiff.hpp"
 #include <filesystem>
 #include "slideio/base/log.hpp"
+#include "slideio/core/tools/endian.hpp"
 #include "slideio/core/tools/tools.hpp"
 
 using namespace slideio;
@@ -778,7 +779,7 @@ void TiffTools::readNotRGBTile(libtiff::TIFF* hFile, const TiffDirectory& dir, i
     }
 
     std::vector<int> channelMapping = { 0, 1, 2, 3 };
-    if(!Tools::isLittleEndian()) {
+    if(!Endian::isLittleEndian()) {
         std::reverse(channelMapping.begin(), channelMapping.end());
     }
     cv::Mat flipped;

@@ -28,6 +28,7 @@ set(TEST_SOURCES
   test_blocktiler.cpp
   test_tools.cpp
   test_similaritytools.cpp
+  test_endian.cpp
 )
 
 add_executable(${TEST_NAME} ${TEST_SOURCES})

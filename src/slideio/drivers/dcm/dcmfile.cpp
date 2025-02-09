@@ -4,15 +4,12 @@
 #include "slideio/drivers/dcm/dcmfile.hpp"
 #include <dcmtk/dcmdata/dctk.h>
 #include <dcmtk/dcmimgle/dcmimage.h>
-#include "slideio/base/base.hpp"
 #include "slideio/core/tools/cvtools.hpp"
-#include <dcmtk/dcmdata/dcjson.h>
-#include <dcmtk/dcmdata/dcpxitem.h>
-
 #include <dcmtk/dcmdata/dcjson.h>
 #include <ostream>
 
 #include "slideio/base/log.hpp"
+#include "slideio/core/tools/endian.hpp"
 #include "slideio/core/tools/tools.hpp"
 
 using namespace slideio;
@@ -143,7 +140,7 @@ void DCMFile::init()
                 << m_filePath
                 << ". Trying to decomress the whole file. Error message:"
                 << err.what();
-			auto xpr = Tools::isLittleEndian() ? EXS_LittleEndianExplicit : EXS_BigEndianExplicit;
+			auto xpr = Endian::isLittleEndian() ? EXS_LittleEndianExplicit : EXS_BigEndianExplicit;
             OFCondition cond = dataset->chooseRepresentation(EXS_LittleEndianExplicit, nullptr);
             if (!cond.good()) {
                 RAISE_RUNTIME_ERROR << "DCMFile::init Cannot decompress the file "
@@ -199,6 +196,8 @@ void DCMFile::init()
     }
 
     getStringTag(DCM_SeriesDescription, m_seriesDescription);
+    int bitsStored = 0;
+    getIntTag(DCM_BitsStored, bitsStored);
     if (!getIntTag(DCM_BitsAllocated, m_bitsAllocated))
     {
         RAISE_RUNTIME_ERROR << "DCMImageDriver: undefined valude for DCM_BitsAllocated tag. File:" << m_filePath;

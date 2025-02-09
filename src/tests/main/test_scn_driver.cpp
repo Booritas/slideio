@@ -9,6 +9,7 @@
 #include "slideio/drivers/scn/scnscene.hpp"
 #include <opencv2/imgproc.hpp>
 
+#include "slideio/core/tools/endian.hpp"
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/imagetools/imagetools.hpp"
 
@@ -471,9 +472,9 @@ TEST(SCNImageDriver, supplementalImage)
     std::string testFilePath = TestTools::getFullTestImagePath("scn", "ultivue/test/Leica Aperio Versa 5 channel fluorescent image-label.png");
     cv::Mat expectedLabel;
     slideio::ImageTools::readGDALImage(testFilePath, expectedLabel);
-	double score = slideio::ImageTools::computeSimilarity2(label, expectedLabel);
-	const double precission = slideio::Tools::isLittleEndian()?0.99:0.88;
-	EXPECT_GT(score, precission);
+	const double score = slideio::ImageTools::computeSimilarity2(label, expectedLabel);
+	const double precision = slideio::Endian::isLittleEndian()?0.99:0.88;
+	EXPECT_GT(score, precision);
     //std::string testFilePath2 = TestTools::getFullTestImagePath("scn", "ultivue/test/Leica Aperio Versa 5 channel fluorescent image-label-temp.png");
 	//TestTools::writePNG(expectedLabel, testFilePath2);
 }

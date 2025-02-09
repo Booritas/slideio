@@ -11,7 +11,7 @@
 #include <jpeglib.h>
 #include "ndpifile.hpp"
 #include "slideio/core/tools/blocktiler.hpp"
-#include "slideio/imagetools/imagetools.hpp"
+#include "slideio/core/tools/endian.hpp"
 
 
 #include <codecvt>
@@ -467,7 +467,7 @@ void slideio::NDPITiffTools::scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, 
         dir.userLabel = userLabel;
     dir.blankLines = nblanklines;
     if (stripSizes) {
-        dir.rawStripSize = stripSizes[0];
+        dir.rawStripSize = static_cast<uint32_t>(stripSizes[0]);
     }
 
     int32_t markers = 0;
@@ -1280,8 +1280,8 @@ std::pair<uint64_t, uint64_t> NDPITiffTools::getJpegHeaderPos(FILE* file)
         if(count != 1) {
             RAISE_RUNTIME_ERROR << "NDPITiffTools: error by reading marker length from jpeg stream.";
         }
-        if(Tools::isLittleEndian()) {
-            length = Tools::bigToLittleEndian16(length);
+        if(Endian::isLittleEndian()) {
+            length = Endian::bigToLittleEndian16(length);
         }
         Tools::setFilePos(file, pos + sizeof(buff) + length, SEEK_SET);
         if(marker == 0xDA) {
