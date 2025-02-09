@@ -36,11 +36,11 @@ namespace slideio
             const int nbytes = sizeof(value);
             switch(nbytes) {
                 case 2:
-                    return swapBytes(static_cast<uint16_t>(value));
+                    return static_cast<T>(swapBytes(static_cast<uint16_t>(value)));
                 case 4:
-                    return swapBytes(static_cast<uint32_t>(value));
+                    return static_cast<T>(swapBytes(static_cast<uint32_t>(value)));
                 case 8:
-                    return swapBytes(static_cast<uint64_t>(value));
+                    return static_cast<T>(swapBytes(static_cast<uint64_t>(value)));
             }
             RAISE_RUNTIME_ERROR << "Endian::fromLittleEndianToNative: unsupported data size: " << nbytes;
         }
