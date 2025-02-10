@@ -6,6 +6,7 @@
 #include "zvipixelformat.hpp"
 #include <locale>
 
+#include "slideio/core/tools/endian.hpp"
 #include "slideio/core/tools/tools.hpp"
 using namespace slideio;
 
@@ -69,6 +70,7 @@ int32_t ZVIUtils::readIntItem(ole::basic_stream& stream)
 {
    uint16_t type(0);
    stream.read((char*)&type, sizeof(type));
+   type = Endian::fromLittleEndianToNative(type);
    if(type != VT_I4 && type != VT_INT)
    {
       std::string error =
@@ -78,13 +80,14 @@ int32_t ZVIUtils::readIntItem(ole::basic_stream& stream)
    }
    int32_t value;
    stream.read((char*)&value, sizeof(value));
-   return value;
+   return Endian::fromLittleEndianToNative(value);
 }
 
 double ZVIUtils::readDoubleItem(ole::basic_stream& stream)
 {
    uint16_t type(0);
    stream.read((char*)&type, sizeof(type));
+   type = Endian::fromLittleEndianToNative(type);
    if(type != VT_R8)
    {
       std::string error =
@@ -94,7 +97,7 @@ double ZVIUtils::readDoubleItem(ole::basic_stream& stream)
    }
    double value;
    stream.read((char*)&value, sizeof(value));
-   return value;
+   return Endian::fromLittleEndianToNative(value);
 }
 
 
@@ -103,6 +106,7 @@ static  std::string readStringValue(ole::basic_stream& stream)
     int32_t string_length;
     std::string value;
     stream.read((char*)&string_length, sizeof(string_length));
+    string_length = Endian::fromLittleEndianToNative(string_length);
     if(string_length > 0)
     {
         std::vector<char> buffer(string_length, 0);
@@ -117,6 +121,7 @@ std::string ZVIUtils::readStringItem(ole::basic_stream& stream)
 {
    uint16_t type(0);
    stream.read((char*)&type, sizeof(type));
+   type = Endian::fromLittleEndianToNative(type);
    if(type != VT_BSTR)
    {
       std::string error = "Unexpected data type reading of compound stream. Expected string. Received:";
@@ -153,37 +158,37 @@ ZVIUtils::Variant ZVIUtils::readItem(ole::basic_stream& stream, bool skipUnusedT
         value = static_cast<int32_t>(readTypedValue<uint8_t>(stream));
         break;
     case VT_I2:
-        value = static_cast<int32_t>(readTypedValue<int16_t>(stream));
+        value = Endian::fromLittleEndianToNative(static_cast<int32_t>(readTypedValue<int16_t>(stream)));
         break;
     case VT_UI2:
-        value = static_cast<int32_t>(readTypedValue<uint16_t>(stream));
+        value = Endian::fromLittleEndianToNative(static_cast<int32_t>(readTypedValue<uint16_t>(stream)));
         break;
     case VT_BOOL:
-        value = static_cast<bool>(readTypedValue<uint16_t>(stream));
+        value = static_cast<bool>(Endian::fromLittleEndianToNative(readTypedValue<uint16_t>(stream)));
         break;
     case VT_I4:
-        value = static_cast<int32_t>(readTypedValue<int32_t>(stream));
+        value = Endian::fromLittleEndianToNative(static_cast<int32_t>(readTypedValue<int32_t>(stream)));
         break;
     case VT_INT:
-        value = static_cast<int32_t>(readTypedValue<int32_t>(stream));
+        value = Endian::fromLittleEndianToNative(static_cast<int32_t>(readTypedValue<int32_t>(stream)));
         break;
     case VT_UI4:
-        value = static_cast<uint32_t>(readTypedValue<uint32_t>(stream));
+        value = Endian::fromLittleEndianToNative(static_cast<uint32_t>(readTypedValue<uint32_t>(stream)));
         break;
     case VT_UINT:
-        value = static_cast<uint32_t>(readTypedValue<uint32_t>(stream));
+        value = Endian::fromLittleEndianToNative(static_cast<uint32_t>(readTypedValue<uint32_t>(stream)));
         break;
     case VT_I8:
-        value = static_cast<int64_t>(readTypedValue<int64_t>(stream));
+        value = Endian::fromLittleEndianToNative(static_cast<int64_t>(readTypedValue<int64_t>(stream)));
         break;
     case VT_UI8:
-        value = static_cast<uint64_t>(readTypedValue<uint64_t>(stream));
+        value = Endian::fromLittleEndianToNative(static_cast<uint64_t>(readTypedValue<uint64_t>(stream)));
         break;
     case VT_R4:
-        value = static_cast<float>(readTypedValue<float>(stream));
+        value = Endian::fromLittleEndianToNative(static_cast<float>(readTypedValue<float>(stream)));
         break;
     case VT_R8:
-        value = static_cast<double>(readTypedValue<double>(stream));
+        value = Endian::fromLittleEndianToNative(static_cast<double>(readTypedValue<double>(stream)));
         break;
     case VT_BSTR:
         value = readStringValue(stream);
