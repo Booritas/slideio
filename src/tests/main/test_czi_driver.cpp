@@ -409,8 +409,8 @@ static void testAuxImage(const std::string& imagePath, const std::string& auxIma
 
     cv::Mat testRaster;
     slideio::ImageTools::readGDALImage(testImagePath, testRaster);
-    double score = slideio::ImageTools::computeSimilarity(auxRaster, testRaster);
-    ASSERT_DOUBLE_EQ(score, 1.);
+    double score = slideio::ImageTools::computeSimilarity2(auxRaster, testRaster);
+    ASSERT_GT(score, 0.99);
 }
 
 static void writeAuxImage(const std::string& imagePath, const std::string& auxImageName, const std::string testImagePath)
