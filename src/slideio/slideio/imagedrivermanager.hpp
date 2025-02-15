@@ -48,6 +48,7 @@ namespace slideio
          * 'INFO','WARNING','ERROR','FATAL'(default).
          */
         static void setLogLevel(const std::string& level);
+		static std::string getVersion();
     protected:
         static void initialize();
     private:
