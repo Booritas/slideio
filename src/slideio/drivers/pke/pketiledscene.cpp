@@ -164,8 +164,12 @@ int PKETiledScene::getNumChannels() const {
 }
 
 
-void PKETiledScene::readResampledBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize,
-                                               const std::vector<int>& channelIndices, cv::OutputArray output) {
+void PKETiledScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
+    const std::vector<int>& channelIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output)
+{
+	if (zSliceIndex != 0 || tFrameIndex != 0) {
+		RAISE_RUNTIME_ERROR << "PKEDriver: 3D and 4D images are not supported";
+	}
     auto hFile = getFileHandle();
     if (hFile == nullptr)
         throw std::runtime_error("PKEDriver: Invalid file header by raster reading operation");

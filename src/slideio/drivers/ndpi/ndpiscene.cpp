@@ -194,10 +194,12 @@ void NDPIScene::scaleBlockToDirectory(const cv::Rect& imageBlockRect, const slid
     Tools::scaleRect(imageBlockRect, zoomImageToDirX, zoomImageToDirY, dirBlockRect);
 }
 
-void NDPIScene::readResampledBlockChannels(const cv::Rect& imageBlockRect, const cv::Size& requiredBlockSize,
-                                           const std::vector<int>& channelIndices, cv::OutputArray output)
+void NDPIScene::readResampledBlockChannelsEx(const cv::Rect& imageBlockRect, const cv::Size& requiredBlockSize,
+        const std::vector<int>& channelIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output)
 {
-
+	if (zSliceIndex != 0 || tFrameIndex != 0) {
+		RAISE_RUNTIME_ERROR << "NDPIScene: 3D and 4D images are not supported";
+	}
     const slideio::NDPITiffDirectory& dir = findZoomDirectory(imageBlockRect, requiredBlockSize);
     const auto& directories = m_pfile->directories();
 

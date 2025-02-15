@@ -24,8 +24,8 @@ namespace slideio
             bool auxiliary=true);
         cv::Rect getRect() const override;
         int getNumChannels() const override;
-        void readResampledBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize, const std::vector<int>& channelIndices,
-            cv::OutputArray output) override;
+        void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
+            const std::vector<int>& channelIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output) override;
     private:
         slideio::TiffDirectory m_directory;
         LevelInfo m_levelInfo;

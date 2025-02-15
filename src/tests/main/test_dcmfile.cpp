@@ -287,7 +287,7 @@ TEST(DCMFile, pixelValues12AllocatedBits)
 
     cv::Mat testImage;
     slideio::ImageTools::readGDALImage(testPath, testImage);
-    double similarity = ImageTools::computeSimilarity(frames[0], testImage);
+    double similarity = ImageTools::computeSimilarity(frames[0], testImage, true);
     EXPECT_LT(0.85, similarity);
 }
 
