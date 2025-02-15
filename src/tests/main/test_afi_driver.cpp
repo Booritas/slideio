@@ -158,3 +158,14 @@ TEST_F(AFIDriverFileTest, read_ImageBlockScaled)
     cv::minMaxLoc(score, &minScore, &maxScore);
     ASSERT_LT(0.99, minScore);
 }
+
+TEST_F(AFIDriverFileTest, multiThreadSceneAccess) {
+    if (!TestTools::isFullTestEnabled())
+    {
+        GTEST_SKIP() <<
+            "Skip the test because full dataset is not enabled";
+    }
+    std::string filePath = getPrivTestImagesPath("afi", "fs.afi");
+    slideio::AFIImageDriver driver;
+    TestTools::multiThreadedTest(filePath, driver);
+}

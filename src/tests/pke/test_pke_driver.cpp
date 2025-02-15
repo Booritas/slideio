@@ -1,4 +1,5 @@
-﻿#include <gtest/gtest.h>
+﻿#include <random>
+#include <gtest/gtest.h>
 #include "tests/testlib/testtools.hpp"
 #include <string>
 #include <tinyxml2.h>
@@ -389,4 +390,17 @@ TEST_F(PKEImageDriverTests, readMultichannelImageNoScaleSeparatedChannels) {
         cv::extractChannel(refImage, channelRef, channel);
         TestTools::compareRasters(channelRaster, channelRef);
     }
+}
+
+
+
+TEST_F(PKEImageDriverTests, multiThreadSceneAccess) {
+    if (!TestTools::isFullTestEnabled())
+    {
+        GTEST_SKIP() <<
+            "Skip the test because full dataset is not enabled";
+    }
+    std::string filePath = TestTools::getFullTestImagePath("pke", "openmicroscopy/PKI_scans/LuCa-7color_Scan1.qptiff");
+    slideio::PKEImageDriver driver;
+    TestTools::multiThreadedTest(filePath, driver);
 }

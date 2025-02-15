@@ -1,4 +1,5 @@
-﻿#include <gtest/gtest.h>
+﻿#include <random>
+#include <gtest/gtest.h>
 #include "tests/testlib/testtools.hpp"
 #include <string>
 #include <opencv2/imgproc.hpp>
@@ -832,4 +833,15 @@ TEST_F(VSIImageDriverTests, stack3d) {
 	TestTools::readPNG(slice6, testRaster);
 	double similarity = ImageTools::computeSimilarity2(testRaster, raster);
 	EXPECT_GT(similarity, 0.99);
+}
+
+TEST_F(VSIImageDriverTests, multiThreadSceneAccess) {
+    if (!TestTools::isFullTestEnabled())
+    {
+        GTEST_SKIP() <<
+            "Skip the test because full dataset is not enabled";
+    }
+    std::string filePath = TestTools::getFullTestImagePath("vsi", "private/3d/01072022_35_2_z.vsi");
+    slideio::VSIImageDriver driver;
+    TestTools::multiThreadedTest(filePath, driver);
 }

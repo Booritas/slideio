@@ -540,3 +540,14 @@ TEST(SCNImageDriver, zoomLevels)
 
     }
 }
+
+TEST(SCNImageDriver, multiThreadSceneAccess) {
+    if (!TestTools::isFullTestEnabled())
+    {
+        GTEST_SKIP() <<
+            "Skip the test because full dataset is not enabled";
+    }
+    std::string filePath = TestTools::getFullTestImagePath("scn", "ultivue/Leica Aperio Versa 5 channel fluorescent image.scn");
+    slideio::SCNImageDriver driver;
+    TestTools::multiThreadedTest(filePath, driver);
+}

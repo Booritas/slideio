@@ -1,4 +1,5 @@
-﻿#include <gtest/gtest.h>
+﻿#include <random>
+#include <gtest/gtest.h>
 #include "slideio/drivers/ndpi/ndpitifftools.hpp"
 #include "tests/testlib/testtools.hpp"
 #include <string>
@@ -509,4 +510,15 @@ TEST_F(NDPIImageDriverTests, zoomLevels)
         }
 
     }
+}
+
+TEST_F(NDPIImageDriverTests, multiThreadSceneAccess) {
+    if (!TestTools::isFullTestEnabled())
+    {
+        GTEST_SKIP() <<
+            "Skip the test because full dataset is not enabled";
+    }
+    std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "DM0014 - 2020-04-02 11.10.47.ndpi");
+    slideio::NDPIImageDriver driver;
+    TestTools::multiThreadedTest(filePath, driver);
 }

@@ -514,3 +514,14 @@ TEST(ZVIImageDriver, zoomLevel)
     EXPECT_EQ(zoomLevel->getSize(), Tools::cvSizeToSize(scene->getRect().size()));
     EXPECT_EQ(zoomLevel->getTileSize(), Size(1388, 1040));
 }
+
+TEST(ZVIImageDriver, multiThreadSceneAccess) {
+    if (!TestTools::isFullTestEnabled())
+    {
+        GTEST_SKIP() <<
+            "Skip the test because full dataset is not enabled";
+    }
+    std::string filePath = TestTools::getFullTestImagePath("zvi", "mouse/20140505_mouse_2cell_H2AUb_RING1B_DAPI_T_005.zvi");
+    slideio::ZVIImageDriver driver;
+    TestTools::multiThreadedTest(filePath, driver);
+}

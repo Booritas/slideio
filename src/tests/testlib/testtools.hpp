@@ -5,6 +5,11 @@
 #include <string>
 #include <opencv2/core.hpp>
 
+namespace slideio
+{
+    class ImageDriver;
+}
+
 class TestTools
 {
 public:
@@ -28,5 +33,6 @@ public:
         return str.size() >= prefix.size() &&
            std::equal(prefix.begin(), prefix.end(), str.begin());
     }
+    static void multiThreadedTest(const std::string& filePath, slideio::ImageDriver& driver, int numberRois = 5, int numThreads = 30);
 };
 

@@ -665,3 +665,14 @@ TEST(CZIImageDriver, zoomLevels)
 
     }
 }
+
+TEST(CZIImageDriver, multiThreadSceneAccess) {
+    if (!TestTools::isFullTestEnabled())
+    {
+        GTEST_SKIP() <<
+            "Skip the test because full dataset is not enabled";
+    }
+    std::string filePath = TestTools::getTestImagePath("czi", "03_14_2019_DSGN0545_A_wb_1353_fov_1_633.czi");
+    slideio::CZIImageDriver driver;
+    TestTools::multiThreadedTest(filePath, driver);
+}

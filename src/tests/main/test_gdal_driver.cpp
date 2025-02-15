@@ -283,3 +283,14 @@ TEST(GDALDriver, metadataJpeg)
     std::string val = jMtd["EXIF_PixelXDimension"];
     EXPECT_EQ("5494", val);
 }
+
+TEST(GDALDriver, multiThreadSceneAccess) {
+    if (!TestTools::isFullTestEnabled())
+    {
+        GTEST_SKIP() <<
+            "Skip the test because full dataset is not enabled";
+    }
+    std::string filePath = TestTools::getTestImagePath("gdal", "Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg");
+    slideio::GDALImageDriver driver;
+    TestTools::multiThreadedTest(filePath, driver);
+}

@@ -5,6 +5,7 @@
 #include "slideio/drivers/vsi/vsi_api_def.hpp"
 #include "slideio/drivers/vsi/vsiscene.hpp"
 #include <opencv2/core.hpp>
+#include <map>
 
 
 #if defined(_MSC_VER)
