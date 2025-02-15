@@ -11,13 +11,12 @@
 #include <opencv2/core/mat.hpp>
 #include "slideio/base/exceptions.hpp"
 #include "slideio/imagetools/tifftools.hpp"
-#include <png.h>
-#include <random>
-
 #include "slideio/core/imagedriver.hpp"
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/imagetools/tiffkeeper.hpp"
-
+#include <png.h>
+#include <random>
+#include <thread>
 
 static const char* TEST_PATH_VARIABLE = "SLIDEIO_TEST_DATA_PATH";
 static const char* PRIV_TEST_PATH_VARIABLE = "SLIDEIO_TEST_DATA_PRIV_PATH";
