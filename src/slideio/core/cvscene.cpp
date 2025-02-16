@@ -41,6 +41,7 @@ void CVScene::readResampledBlockChannels(const cv::Rect& blockRect,
     const cv::Size& blockSize, const std::vector<int>& channelIndices,
     cv::OutputArray output) {
     RefCounterGuard guard(this);
+    std::lock_guard<std::mutex> lock(m_readBlockMutex);
     readResampledBlockChannelsEx(blockRect, blockSize, channelIndices, 0, 0, output);
 }
 

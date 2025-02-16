@@ -841,7 +841,7 @@ TEST_F(VSIImageDriverTests, multiThreadSceneAccess) {
         GTEST_SKIP() <<
             "Skip the test because full dataset is not enabled";
     }
-    std::string filePath = TestTools::getFullTestImagePath("vsi", "private/3d/01072022_35_2_z.vsi");
+    std::string filePath = TestTools::getFullTestImagePath("vsi", "private/d/STS_G6889_11_1_pHH3.vsi");
     slideio::VSIImageDriver driver;
     TestTools::multiThreadedTest(filePath, driver);
 }
