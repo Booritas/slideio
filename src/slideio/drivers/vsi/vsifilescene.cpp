@@ -17,9 +17,12 @@ VsiFileScene::VsiFileScene(const std::string& filePath, std::shared_ptr<vsi::VSI
     init();
 }
 
-void VsiFileScene::readResampledBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize,
-                                              const std::vector<int>& channelIndices, cv::OutputArray output)
+void VsiFileScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
+    const std::vector<int>& channelIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output)
 {
+	if (zSliceIndex != 0 || tFrameIndex != 0) {
+		RAISE_RUNTIME_ERROR << "VSIImageDriver: 3D and 4D images are not supported";
+	}
     const TiffDirectory& directory = m_vsiFile->getTiffDirectory(m_directoryIndex);
     if(!directory.tiled) {
         cv::Mat directoryRaster;

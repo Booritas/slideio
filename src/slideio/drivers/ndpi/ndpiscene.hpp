@@ -39,8 +39,8 @@ namespace slideio
         Resolution getResolution() const override;
         double getMagnification() const override;
         Compression getCompression() const override;
-        void readResampledBlockChannels(const cv::Rect& imageBlockRect, const cv::Size& requiredBlockSize, const std::vector<int>& channelIndices,
-                                        cv::OutputArray output) override;
+        void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
+            const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output) override;
         const NDPITiffDirectory& findZoomDirectory(const cv::Rect& imageBlockRect, const cv::Size& requiredBlockSize) const;
         void scaleBlockToDirectory(const cv::Rect& imageBlockRect, const slideio::NDPITiffDirectory& dir, cv::Rect& dirBlockRect) const;
         int getTileCount(void* userData) override;

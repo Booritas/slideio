@@ -78,8 +78,6 @@ namespace slideio
         std::string getChannelName(int channel) const override;
         Resolution getResolution() const override;
         double getMagnification() const override;
-        void readResampledBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize,
-            const std::vector<int>& componentIndices, cv::OutputArray output) override;
         std::string getName() const override;
         void init(uint64_t sceneId, SceneParams& sceneParams, const std::string& filePath, const CZISubBlocks& blocks, CZISlide* slide);
         // interface Tiler implementaton
@@ -94,7 +92,6 @@ namespace slideio
         void addAuxImage(const std::string& name, std::shared_ptr<CVScene> image);
         std::shared_ptr<CVScene> getAuxImage(const std::string& sceneName) const override;
         bool isMosaic() const { return m_bMosaic; }
-    protected:
         void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
             const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output) override;
     private:

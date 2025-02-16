@@ -12,3 +12,4 @@
 #define SLIDEIO_EXPORTS
 #endif
 
+constexpr const char* SLIDEIO_VERSION = "2.7.1";

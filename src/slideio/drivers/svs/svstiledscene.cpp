@@ -88,12 +88,16 @@ int SVSTiledScene::getNumChannels() const
 }
 
 
-void SVSTiledScene::readResampledBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize,
-    const std::vector<int>& channelIndices, cv::OutputArray output)
+void SVSTiledScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
+    const std::vector<int>& channelIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output)
 {
+	if (zSliceIndex != 0 || tFrameIndex != 0) {
+		RAISE_RUNTIME_ERROR << "SVSDriver: 3D and 4D images are not supported";
+	}
     auto hFile = getFileHandle();
-    if (hFile == nullptr)
-        throw std::runtime_error("SVSDriver: Invalid file header by raster reading operation");
+    if (hFile == nullptr) {
+		RAISE_RUNTIME_ERROR << "SVSDriver: Invalid file header by raster reading operation";
+    }
     double zoomX = static_cast<double>(blockSize.width) / static_cast<double>(blockRect.width);
     double zoomY = static_cast<double>(blockSize.height) / static_cast<double>(blockRect.height);
     double zoom = std::max(zoomX, zoomY);

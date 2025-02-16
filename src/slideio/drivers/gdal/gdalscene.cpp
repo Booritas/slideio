@@ -131,14 +131,18 @@ cv::Rect slideio::GDALScene::getRect() const
     return rect;
 }
 
-void slideio::GDALScene::readResampledBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize, const std::vector<int>& channelIndices_, cv::OutputArray output)
+void slideio::GDALScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
+    const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output)
 {
+	if (zSliceIndex != 0 || tFrameIndex != 0) {
+		RAISE_RUNTIME_ERROR << "GDALDriver: Z-slice and T-frame indices are not supported";
+	}
     if(m_hFile==nullptr) {
         RAISE_RUNTIME_ERROR << "GDALDriver: Invalid file header by raster reading operation";
     }
     const int numChannels = GDALGetRasterCount(m_hFile);
     const cv::Size imageSize = { GDALGetRasterXSize(m_hFile),GDALGetRasterYSize(m_hFile) };
-    auto channelIndices = channelIndices_;
+    auto channelIndices = componentIndices;
     if(channelIndices.empty())
     {
         channelIndices.resize(numChannels);

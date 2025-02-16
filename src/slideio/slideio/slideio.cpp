@@ -22,4 +22,9 @@ std::vector<std::string> slideio::getDriverIDs()
 void slideio::setLogLevel(const std::string& level)
 {
     ImageDriverManager::setLogLevel(level);
-}    
+}
+
+std::string slideio::getVersion()
+{
+    return ImageDriverManager::getVersion();
+}

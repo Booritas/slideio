@@ -36,9 +36,12 @@ int SCNScene::getNumChannels() const
     return m_numChannels;
 }
 
-void SCNScene::readResampledBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize,
-                                          const std::vector<int>& channelIndicesIn, cv::OutputArray output)
+void SCNScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
+    const std::vector<int>& channelIndicesIn, int zSliceIndex, int tFrameIndex, cv::OutputArray output)
 {
+	if (zSliceIndex != 0 || tFrameIndex != 0) {
+		throw std::runtime_error("SCNImageDriver: 3D and 4D images are not supported");
+	}
     auto hFile = getFileHandle();
     if (hFile == nullptr)
         throw std::runtime_error("SCNImageDriver: Invalid file handle by raster reading operation");

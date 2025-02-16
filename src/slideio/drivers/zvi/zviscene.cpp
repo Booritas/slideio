@@ -92,19 +92,14 @@ double ZVIScene::getMagnification() const
     return 0;
 }
 
-void ZVIScene::readResampledBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize,
-                                          const std::vector<int>& componentIndices, cv::OutputArray output)
-{
-    readResampledBlockChannelsEx(blockRect, blockSize, getValidChannelIndices(componentIndices), 0, 0, output);
-}
-
 void ZVIScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
                                             const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex,
                                             cv::OutputArray output)
 {
     TilerData userData;
     userData.zSliceIndex = zSliceIndex;
-    TileComposer::composeRect(this, componentIndices, blockRect, blockSize, output, &userData);
+    const std::vector<int> channelIndices = Tools::completeChannelList(componentIndices, getNumChannels());
+    TileComposer::composeRect(this, channelIndices, blockRect, blockSize, output, &userData);
 }
 
 

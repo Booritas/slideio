@@ -11,11 +11,12 @@
 #include <opencv2/core/mat.hpp>
 #include "slideio/base/exceptions.hpp"
 #include "slideio/imagetools/tifftools.hpp"
-#include <png.h>
-
+#include "slideio/core/imagedriver.hpp"
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/imagetools/tiffkeeper.hpp"
-
+#include <png.h>
+#include <random>
+#include <thread>
 
 static const char* TEST_PATH_VARIABLE = "SLIDEIO_TEST_DATA_PATH";
 static const char* PRIV_TEST_PATH_VARIABLE = "SLIDEIO_TEST_DATA_PRIV_PATH";
@@ -340,3 +341,61 @@ size_t TestTools::countNonZero(const cv::Mat& source) {
     return cv::countNonZero(array);
 }
 
+void TestTools::multiThreadedTest(const std::string& filePath, slideio::ImageDriver& driver, int numberRois, int numThreads) {
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide);
+    const int numScenes = slide->getNumScenes();
+    ASSERT_GE(numScenes, 1);
+    std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
+    EXPECT_TRUE(scene.get() != nullptr);
+    cv::Rect rect = scene->getRect();
+    const cv::Size blockSize(std::min(500, rect.width / 3), std::min(500, rect.height / 3));
+    const cv::Size resampledSize(blockSize.width / 2, blockSize.height / 2);
+    const int maxX = rect.width - blockSize.width;
+    const int maxY = rect.height - blockSize.height;
+
+    int dx = maxX / numberRois;
+    int dy = maxY / numberRois;
+    int x = 0;
+    int y = 0;
+
+    std::vector<std::tuple<cv::Rect, cv::Size>> rois(numberRois);
+    for (int i = 0; i < numberRois; ++i) {
+        cv::Point pnt(x, y);
+        rois[i] = { cv::Rect(pnt, blockSize), resampledSize };
+        x += dx;
+        y += dy;
+    }
+
+    std::mutex mapMutex;
+    std::vector<cv::Mat> testRasters(rois.size());
+
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dis(0, static_cast<int>(rois.size()) - 1);
+
+    auto worker = [&scene, &rois, &mapMutex, &testRasters, &dis, &gen]() {
+        int index = dis(gen);
+        auto [roi, blockSize] = rois[index];
+        cv::Mat raster;
+        scene->readResampled4DBlock(roi, blockSize, { 0, 1 }, { 0,1 }, raster);
+        {
+            std::lock_guard<std::mutex> lock(mapMutex);
+            if (testRasters[index].empty()) {
+                testRasters[index] = raster;
+            }
+            else {
+                TestTools::compareRasters(testRasters[index], raster);
+            }
+        }
+        };
+
+    std::vector<std::thread> threads;
+    threads.reserve(numThreads);
+    for (int i = 0; i < numThreads; ++i) {
+        threads.emplace_back(worker);
+    }
+    for (auto& t : threads) {
+        t.join();
+    }
+}

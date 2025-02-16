@@ -12,6 +12,14 @@
 using namespace tinyxml2;
 using json = nlohmann::json;
 
+#include <gtest/gtest.h>
+#include <numeric>
+#include <tinyxml2.h>
+#include <nlohmann/json.hpp>
+
+using namespace tinyxml2;
+using json = nlohmann::json;
+
 TEST(GDALDriver, driverID)
 {
     slideio::GDALImageDriver driver;
@@ -282,4 +290,15 @@ TEST(GDALDriver, metadataJpeg)
     json jMtd = json::parse(metadata);
     std::string val = jMtd["EXIF_PixelXDimension"];
     EXPECT_EQ("5494", val);
+}
+
+TEST(GDALDriver, multiThreadSceneAccess) {
+    if (!TestTools::isFullTestEnabled())
+    {
+        GTEST_SKIP() <<
+            "Skip the test because full dataset is not enabled";
+    }
+    std::string filePath = TestTools::getTestImagePath("gdal", "Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg");
+    slideio::GDALImageDriver driver;
+    TestTools::multiThreadedTest(filePath, driver);
 }

@@ -93,5 +93,7 @@ namespace  slideio
     SLIDEIO_EXPORTS std::vector<std::string> getDriverIDs();
     /**@brief Sets the log level for the library.*/
     SLIDEIO_EXPORTS void setLogLevel(const std::string& level);
+    /**@brief returns version of the library.*/
+    SLIDEIO_EXPORTS std::string getVersion();
 
 }

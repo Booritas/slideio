@@ -561,3 +561,15 @@ TEST(SVSImageDriver, zoomLevels)
 
     }
 }
+
+TEST(SVSImageDriver, multiThreadSceneAccess) {
+    if (!TestTools::isFullTestEnabled())
+    {
+        GTEST_SKIP() <<
+            "Skip the test because full dataset is not enabled";
+    }
+    const std::string filePath = TestTools::getTestImagePath("svs", "JP2K-33003-1.svs");
+    slideio::SVSImageDriver driver;
+    TestTools::multiThreadedTest(filePath, driver);
+}
+

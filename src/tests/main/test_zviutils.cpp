@@ -10,6 +10,10 @@
 #include <stdexcept>
 
 using namespace slideio;
+#if defined(_MSC_VER)
+#pragma warning( push )
+#pragma warning(disable: 4834)
+#endif
 
 TEST(ZVIUtils, read_stream_int)
 {
@@ -118,3 +122,7 @@ TEST(ZVIUtils, readItem)
     EXPECT_DOUBLE_EQ(tpd, 0.0645);
 
 }
+
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif

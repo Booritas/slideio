@@ -148,3 +148,7 @@ void ImageDriverManager::setLogLevel(const std::string &level) {
     }
 }
 
+std::string ImageDriverManager::getVersion()
+{
+	return SLIDEIO_VERSION;
+}

@@ -723,3 +723,14 @@ TEST(DCMImageDriver, zoomLevelsSingle)
 
     }
 }
+
+TEST(DCMImageDriver, multiThreadSceneAccess) {
+    if (!TestTools::isFullTestEnabled())
+    {
+        GTEST_SKIP() <<
+            "Skip the test because full dataset is not enabled";
+    }
+    std::string filePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777");
+    DCMImageDriver driver;
+    TestTools::multiThreadedTest(filePath, driver);
+}

@@ -44,8 +44,8 @@ namespace slideio
         Compression getCompression() const override {
             return m_compression;
         }
-        void readResampledBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize,
-            const std::vector<int>& channelIndices, cv::OutputArray output) override;
+        void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
+            const std::vector<int>& channelIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output) override;
         virtual bool init() { return false; }
     protected:
         virtual void readImage(cv::OutputArray output) = 0;

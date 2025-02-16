@@ -91,12 +91,6 @@ double CZIScene::getMagnification() const
     return m_slide->getMagnification();
 }
 
-void CZIScene::readResampledBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize,
-    const std::vector<int>& componentIndices, cv::OutputArray output)
-{
-    readResampledBlockChannelsEx(blockRect, blockSize, componentIndices, 0, 0, output);
-}
-
 void CZIScene::addAuxImage(const std::string& name, std::shared_ptr<CVScene> image)
 {
     m_auxNames.push_back(name);

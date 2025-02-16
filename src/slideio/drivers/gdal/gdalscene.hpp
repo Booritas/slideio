@@ -33,7 +33,8 @@ namespace slideio
         static slideio::DataType dataTypeFromGDALDataType(GDALDataType dt);
         std::string getName() const override;
         cv::Rect getRect() const override;
-        void readResampledBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize, const std::vector<int>& channelIndices, cv::OutputArray output) override;
+        void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
+            const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output) override;
         Compression getCompression() const override{
             return m_compression;
         }

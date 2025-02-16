@@ -6,6 +6,7 @@
 
 #include "slideio/base/exceptions.hpp"
 #include "slideio/imagetools/gdal_lib.hpp"
+#include <map>
 
 
 static slideio::DataType dataTypeFromGDALDataType(GDALDataType dt)
