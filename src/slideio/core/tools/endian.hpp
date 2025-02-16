@@ -7,7 +7,7 @@
 
 namespace slideio
 {
-    class Endian
+    class SLIDEIO_CORE_EXPORTS Endian
     {
     public:
         static uint16_t swapBytes(uint16_t value) {
@@ -55,5 +55,6 @@ namespace slideio
         static uint16_t bigToLittleEndian16(uint16_t bigEndianValue) {
             return swapBytes(bigEndianValue);
         }
+        static std::u16string u16StringLittleToBig(const std::u16string& inLE);
     };
 }

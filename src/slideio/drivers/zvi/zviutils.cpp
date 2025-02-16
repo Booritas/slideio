@@ -114,6 +114,9 @@ static  std::string readStringValue(ole::basic_stream& stream)
         std::vector<char> buffer(string_length, 0);
         stream.read((char*)buffer.data(), string_length);
         std::u16string src((char16_t*)buffer.data());
+		if (!Endian::isLittleEndian()) {
+			src = Endian::u16StringLittleToBig(src);
+		}
         value = Tools::fromUnicode16(src);
     }
     return value;
