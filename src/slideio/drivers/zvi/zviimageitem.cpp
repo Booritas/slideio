@@ -7,6 +7,7 @@
 #include "slideio/drivers/zvi/zviutils.hpp"
 #include "slideio/drivers/zvi/zviimageitem.hpp"
 #include "slideio/imagetools/imagetools.hpp"
+#include "slideio/core/tools/endian.hpp"
 
 using namespace slideio;
 
@@ -25,11 +26,16 @@ void ZVIImageItem::readContents(ole::compound_document& doc)
     ZVIUtils::skipItems(stream, 11);
     uint16_t type;
     stream->read(reinterpret_cast<char*>(&type), sizeof(type));
+	type=Endian::fromLittleEndianToNative(type);
+
     uint32_t sz;
     stream->read(reinterpret_cast<char*>(&sz), sizeof(sz));
+	sz = Endian::fromLittleEndianToNative(sz);
     std::vector<char> posBuffer(sz);
     stream->read(posBuffer.data(), posBuffer.size());
-    const uint32_t* position = reinterpret_cast<uint32_t*>(posBuffer.data());
+    uint32_t* position = reinterpret_cast<uint32_t*>(posBuffer.data());
+	for(int index=0; index<7; ++index)
+		position[index] = Endian::fromLittleEndianToNative(position[index]);
 
     setZIndex(position[2]);
     setCIndex(position[3]);
@@ -40,6 +46,8 @@ void ZVIImageItem::readContents(ole::compound_document& doc)
     ZVIUtils::skipItems(stream, 5);
     std::vector<int32_t> header(7);
     stream->read(reinterpret_cast<char*>(header.data()), sizeof(int32_t) * header.size());
+	for(int index=0; index<header.size(); ++index)
+		header[index] = Endian::fromLittleEndianToNative(header[index]);
     const int32_t version = header[0];
     const int32_t width = header[1];
     const int32_t height = header[2];

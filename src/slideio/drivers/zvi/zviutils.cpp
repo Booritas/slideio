@@ -14,6 +14,7 @@ void ZVIUtils::skipItem(ole::basic_stream& stream)
 {
     uint16_t type;
     stream.read((char*)&type, sizeof(type));
+	type = Endian::fromLittleEndianToNative(type);
     uint32_t offset = 0;
     switch(type)
     {
@@ -145,6 +146,7 @@ ZVIUtils::Variant ZVIUtils::readItem(ole::basic_stream& stream, bool skipUnusedT
     Variant value;
     uint16_t type;
     stream.read((char*)&type, sizeof(type));
+	type = Endian::fromLittleEndianToNative(type);
     uint32_t offset = 0;
     switch ((VARENUM)type)
     {
