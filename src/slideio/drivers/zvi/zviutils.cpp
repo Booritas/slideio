@@ -50,6 +50,7 @@ void ZVIUtils::skipItem(ole::basic_stream& stream)
     case VT_BLOB:
     case VT_STORED_OBJECT:
         stream.read((char*)&offset, 4);
+		offset = Endian::fromLittleEndianToNative(offset);
         break;
     case VT_DISPATCH:
     case VT_UNKNOWN:
