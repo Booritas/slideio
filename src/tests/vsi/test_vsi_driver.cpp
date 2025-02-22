@@ -400,7 +400,9 @@ TEST_F(VSIImageDriverTests, readMultisceneResized) {
     ASSERT_TRUE(slide != nullptr);
     const int numScenes = slide->getNumScenes();
     ASSERT_EQ(3, numScenes);
-    std::shared_ptr<CVScene> scene = slide->getScene(0);
+    std::string sceneName = "40x_01";
+    std::shared_ptr<CVScene> scene = getSceneByName(slide, sceneName);
+    ASSERT_TRUE(scene != nullptr);
     const auto rect = scene->getRect();
     cv::Rect roi(5836, 11793, 849, 607);
     cv::Size blockSize(roi.width/3, roi.height/3);
