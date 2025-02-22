@@ -12,6 +12,7 @@
 #include "vsitools.hpp"
 #include "slideio/base/log.hpp"
 #include "taginfo.hpp"
+#include "slideio/core/tools/endian.hpp"
 #include "slideio/imagetools/tifftools.hpp"
 
 
@@ -444,6 +445,7 @@ void VSIFile::readVolumeInfo() {
     VSIStream vsiStream(m_filePath);
     ImageFileHeader header;
     vsiStream.read<ImageFileHeader>(header);
+    fromLittleEndianToNative(header);
     if (strncmp(reinterpret_cast<char*>(header.magic), "II", 2) != 0) {
         RAISE_RUNTIME_ERROR << "VSI driver: invalid file header. Expected first two bytes: 'II', got: "
             << header.magic;
@@ -588,6 +590,7 @@ void VSIFile::readExtendedType(VSIStream& vsi, TagInfo& tagInfo, std::list<TagIn
 bool VSIFile::readVolumeHeader(VSIStream& vsi, VolumeHeader& volumeHeader) {
     volumeHeader = {};
     vsi.read<VolumeHeader>(volumeHeader);
+    fromLittleEndianToNative(volumeHeader);
     if (volumeHeader.headerSize != 24) {
         return false;
     }
@@ -622,6 +625,7 @@ bool VSIFile::readMetadata(VSIStream& vsi, std::list<TagInfo>& path) {
         int64_t tagPos = vsi.getPos();
         std::string storedValue;
         vsi.read(tagHeader);
+        fromLittleEndianToNative(tagHeader);
         int32_t nextField = tagHeader.nextField & 0xFFFFFFFFL;
         const bool extraTag = ((tagHeader.fieldType & 0x8000000) >> 27) == 1;
         const bool extendedField = ((tagHeader.fieldType & 0x10000000) >> 28) == 1;
@@ -638,6 +642,7 @@ bool VSIFile::readMetadata(VSIStream& vsi, std::list<TagInfo>& path) {
 
         if (extraTag) {
             vsi.read<int>(tagInfo.secondTag);
+			tagInfo.secondTag = Endian::fromLittleEndianToNative(tagInfo.secondTag);
         }
         if (tagHeader.tag < 0) {
             if (!inlineData && (tagHeader.dataSize + vsi.getPos()) < vsi.getSize()) {

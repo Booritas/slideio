@@ -7,6 +7,7 @@
 #include "slideio/drivers/vsi/vsitools.hpp"
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/core/tools/cvtools.hpp"
+#include "slideio/core/tools/endian.hpp"
 
 using namespace slideio;
 
@@ -72,6 +73,8 @@ void slideio::vsi::EtsFile::read(std::list<std::shared_ptr<Volume>>& volumes, st
     m_etsStream = std::make_unique<vsi::VSIStream>(m_filePath);
     vsi::EtsVolumeHeader header = {0};
     m_etsStream->read<vsi::EtsVolumeHeader>(header);
+    fromLittleEndianToNative(header);
+
     if (strncmp((char*)header.magic, "SIS", 3) != 0) {
         RAISE_RUNTIME_ERROR << "VSI driver: invalid ETS file header. Expected first tree bytes: 'SIS', got: "
             << header.magic;
@@ -83,6 +86,8 @@ void slideio::vsi::EtsFile::read(std::list<std::shared_ptr<Volume>>& volumes, st
     m_etsStream->setPos(header.additionalHeaderPos);
     ETSAdditionalHeader additionalHeader = {0};
     m_etsStream->read<vsi::ETSAdditionalHeader>(additionalHeader);
+	fromLittleEndianToNative(additionalHeader);
+
     if (strncmp((char*)additionalHeader.magic, "ETS", 3) != 0) {
         RAISE_RUNTIME_ERROR << "VSI driver: invalid ETS file header. Expected first tree bytes: 'ETS', got: "
             << header.magic;
@@ -109,10 +114,13 @@ void slideio::vsi::EtsFile::read(std::list<std::shared_ptr<Volume>>& volumes, st
         tileInfo.coordinates.resize(m_numDimensions);
         for (int i = 0; i < m_numDimensions; ++i) {
             tileInfo.coordinates[i] = m_etsStream->readValue<int32_t>();
+			tileInfo.coordinates[i] = Endian::fromLittleEndianToNative(tileInfo.coordinates[i]);
             m_maxCoordinates[i] = std::max(m_maxCoordinates[i], tileInfo.coordinates[i]);
         }
         tileInfo.offset = m_etsStream->readValue<int64_t>();
+		tileInfo.offset = Endian::fromLittleEndianToNative(tileInfo.offset);
         tileInfo.size = m_etsStream->readValue<uint32_t>();
+		tileInfo.size = Endian::fromLittleEndianToNative(tileInfo.size);
         m_etsStream->skipBytes(4);
     }
 
