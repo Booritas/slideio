@@ -101,6 +101,17 @@ TEST_F(VSIImageDriverTests, openFileWithoutExternalFiles) {
     EXPECT_EQ(scene->getCompression(), Compression::Uncompressed);
 }
 
+static std::shared_ptr<CVScene> getSceneByName(std::shared_ptr<CVSlide> slide, const std::string& name) {
+	const int numScenes = slide->getNumScenes();
+	for (int sceneIndex = 0; sceneIndex < numScenes; ++sceneIndex) {
+		std::shared_ptr<CVScene> scene = slide->getScene(sceneIndex);
+		if (scene->getName() == name) {
+			return scene;
+		}
+	}
+	return nullptr;
+}
+
 TEST_F(VSIImageDriverTests, openFileWithExternalFiles) {
     std::tuple<std::string, int, int, double, std::string> result[] = {
         {"40x_01", 14749, 20874, 40, "40x FocusMap"},
@@ -114,7 +125,8 @@ TEST_F(VSIImageDriverTests, openFileWithExternalFiles) {
     const int numScenes = slide->getNumScenes();
     ASSERT_EQ(3, numScenes);
     for (int sceneIndex = 0; sceneIndex < numScenes; ++sceneIndex) {
-        std::shared_ptr<CVScene> scene = slide->getScene(sceneIndex);
+        std::shared_ptr<CVScene> scene = getSceneByName(slide, std::get<0>(result[sceneIndex]));
+		ASSERT_TRUE(scene != nullptr);
         EXPECT_EQ(scene->getName(), std::get<0>(result[sceneIndex]));
         auto rect = scene->getRect();
         EXPECT_EQ(rect.width, std::get<1>(result[sceneIndex]));
@@ -352,7 +364,9 @@ TEST_F(VSIImageDriverTests, readMultiscene) {
     ASSERT_TRUE(slide != nullptr);
     const int numScenes = slide->getNumScenes();
     ASSERT_EQ(3, numScenes);
-    std::shared_ptr<CVScene> scene = slide->getScene(0);
+    std::string sceneName = "40x_01";
+    std::shared_ptr<CVScene> scene = getSceneByName(slide, sceneName);
+    ASSERT_TRUE(scene != nullptr);
     const auto rect = scene->getRect();
     EXPECT_EQ(cv::Rect(0, 0, 14749, 20874), rect);
     EXPECT_EQ(3, scene->getNumChannels());
