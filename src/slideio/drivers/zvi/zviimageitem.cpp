@@ -168,6 +168,7 @@ void ZVIImageItem::readRaster(ole::compound_document& doc, cv::OutputArray raste
         if (readBytes != rasterSize) {
             throw std::runtime_error("ZVIImageDriver: Unexpected end of stream");
         }
+        Endian::fromLittleEndianToNative(dt, mat.data, readBytes);
     }
 
 }
