@@ -1,20 +1,18 @@
 // This file is part of slideio project.
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
+#include "slideio/core/tools/tools.hpp"
+#include "tests/testlib/testtools.hpp"
+#include "slideio/base/exceptions.hpp"
+#include "slideio/core/tools/tempfile.hpp"
+#include "slideio/core/tools/endian.hpp"
+#include <filesystem>
 #include <gtest/gtest.h>
 #include <opencv2/imgproc.hpp>
 
-#include "slideio/core/tools/tools.hpp"
-#include "tests/testlib/testtools.hpp"
-#include "tests/testlib/testtools.hpp"
-#include <filesystem>
-
-#include "slideio/base/exceptions.hpp"
-#include "slideio/core/tools/tempfile.hpp"
-
 
 TEST(Tools, matchPattern) {
-#if defined(WIN32)    
+#if defined(WIN32)
     EXPECT_TRUE(slideio::Tools::matchPattern("c:\\abs.ad.czi","*.czi"));
     EXPECT_TRUE(slideio::Tools::matchPattern("c:\\abs.ad.czi","*.tiff;*.czi"));
     EXPECT_FALSE(slideio::Tools::matchPattern("c:\\abs.ad.czi","*.tiff;*.aczi"));
@@ -27,8 +25,8 @@ TEST(Tools, matchPattern) {
     EXPECT_TRUE(slideio::Tools::matchPattern("/root/abs.ad.ome.tiff","*.atiff;*.aczi;*.ome.tiff"));
 #endif
 }
-TEST(Tools, findZoomLevel)
-{
+
+TEST(Tools, findZoomLevel) {
     struct ZoomLevel
     {
         double zoom;
@@ -37,14 +35,12 @@ TEST(Tools, findZoomLevel)
     std::vector<ZoomLevel> levels;
     levels.resize(10);
     double zoom = 1.;
-    for (auto& level : levels)
-    {
+    for (auto& level : levels) {
         level.zoom = zoom;
         zoom /= 2.;
     }
     double lastZoom = levels.back().zoom;
-    auto zoomFunct = [&levels](int level)
-    {
+    auto zoomFunct = [&levels](int level) {
         return levels[level].zoom;
     };
     const int numLevels = static_cast<int>(levels.size());
@@ -63,32 +59,32 @@ TEST(Tools, findZoomLevel)
 }
 
 
-TEST(Tools, convert12BitsTo16Bits)
-{
-	const uint8_t src[] = {
-	    0xF7, 0xDC, 0xBF,
-		0x05, 0xF9, 0x9A,
+TEST(Tools, convert12BitsTo16Bits) {
+    const uint8_t src[] = {
+        0xF7, 0xDC, 0xBF,
+        0x05, 0xF9, 0x9A,
         0x60, 0xD0, 0x00,
         0x38, 0xDA, 0xBC,
-		0x00, 0x02, 0x61,
+        0x00, 0x02, 0x61,
     };
-	std::vector<uint16_t>  check = { 3965, 3263, 95, 2458, 1549, 0, 909, 2748, 0, 609 };
-	std::vector<uint16_t> target(check.size());
+    std::vector<uint16_t> check = {3965, 3263, 95, 2458, 1549, 0, 909, 2748, 0, 609};
+    std::vector<uint16_t> target(check.size());
 
     slideio::Tools::convert12BitsTo16Bits(src, target.data(), static_cast<int>(check.size()));
     EXPECT_EQ(target, check);
     check.resize(check.size() - 1);
-	target.resize(check.size());
+    target.resize(check.size());
     slideio::Tools::convert12BitsTo16Bits(src, target.data(), static_cast<int>(check.size()));
     EXPECT_EQ(target, check);
-    EXPECT_THROW(slideio::Tools::convert12BitsTo16Bits(nullptr, target.data(), static_cast<int>(check.size())), slideio::RuntimeError);
-    EXPECT_THROW(slideio::Tools::convert12BitsTo16Bits(src, nullptr, static_cast<int>(check.size())), slideio::RuntimeError);
+    EXPECT_THROW(slideio::Tools::convert12BitsTo16Bits(nullptr, target.data(), static_cast<int>(check.size())),
+                 slideio::RuntimeError);
+    EXPECT_THROW(slideio::Tools::convert12BitsTo16Bits(src, nullptr, static_cast<int>(check.size())),
+                 slideio::RuntimeError);
     EXPECT_THROW(slideio::Tools::convert12BitsTo16Bits(src, target.data(), 0), slideio::RuntimeError);
 }
 
 
-TEST(Tools, extractChannels11)
-{
+TEST(Tools, extractChannels11) {
     // Create a sample input image
     cv::Mat sourceRaster = cv::Mat::zeros(100, 100, CV_8UC3);
     cv::circle(sourceRaster, cv::Point(50, 50), 30, cv::Scalar(255, 255, 255), -1);
@@ -116,8 +112,7 @@ TEST(Tools, extractChannels11)
     EXPECT_EQ(TestTools::countNonZero(output2 == expected), expected.total()*expected.channels());
 }
 
-TEST(Tools, replaceAll)
-{
+TEST(Tools, replaceAll) {
     // single character replacement
     std::string str = "This is a test string";
     slideio::Tools::replaceAll(str, " ", "_");
@@ -141,11 +136,10 @@ TEST(Tools, replaceAll)
     // backslash replacement
     str = "This\\is\\a\\test\\string";
     slideio::Tools::replaceAll(str, "\\", "/");
-    EXPECT_EQ(str, "This/is/a/test/string");   
+    EXPECT_EQ(str, "This/is/a/test/string");
 }
 
-TEST(Tools, split)
-{
+TEST(Tools, split) {
     // Empty string
     std::vector<std::string> tokens = slideio::Tools::split("", ',');
     EXPECT_TRUE(tokens.empty());
@@ -174,7 +168,7 @@ TEST(Tools, split)
     ASSERT_EQ(tokens.size(), 3);
     EXPECT_EQ(tokens[0], "token1");
     EXPECT_EQ(tokens[1], "token2");
-    EXPECT_EQ(tokens[2], "");    
+    EXPECT_EQ(tokens[2], "");
 
     // Leading delimiters
     tokens = slideio::Tools::split(",token1,token2", ',');
@@ -235,7 +229,7 @@ TEST(Tools, unique_path) {
 }
 
 #if defined(WIN32)
-  TEST(Tools, toWstring) {
+TEST(Tools, toWstring) {
     {
         std::string utf8Str = "";
         std::wstring expected = L"";
@@ -262,32 +256,58 @@ TEST(Tools, unique_path) {
 
 #endif
 
-  TEST(Tools, fromUnicode16)
-  {
-      {
-          std::u16string u16Str = u"";
-          std::string expected = "";
-          std::string result = slideio::Tools::fromUnicode16(u16Str);
-          EXPECT_EQ(result, expected);
-      }
-      {
-          std::u16string u16Str = u"Hello, World!";
-          std::string expected = "Hello, World!";
-          std::string result = slideio::Tools::fromUnicode16(u16Str);
-          EXPECT_EQ(result, expected);
-      }
+TEST(Tools, fromUnicode16) {
+    {
+        std::u16string u16Str = u"";
+        std::string expected = "";
+        std::string result = slideio::Tools::fromUnicode16(u16Str);
+        EXPECT_EQ(result, expected);
+    }
+    {
+        std::u16string u16Str = u"Hello, World!";
+        std::string expected = "Hello, World!";
+        std::string result = slideio::Tools::fromUnicode16(u16Str);
+        EXPECT_EQ(result, expected);
+    }
 
-      {
-          std::u16string u16Str = u"\u3053\u3093\u306B\u3061\u306F\u4E16\u754C";
-          std::string expected = "\xE3\x81\x93\xE3\x82\x93\xE3\x81\xAB\xE3\x81\xA1\xE3\x81\xAF\xE4\xB8\x96\xE7\x95\x8C";
-          std::string result = slideio::Tools::fromUnicode16(u16Str);
-          EXPECT_EQ(result, expected);
-      }
+    {
+        std::u16string u16Str = u"\u3053\u3093\u306B\u3061\u306F\u4E16\u754C";
+        std::string expected = "\xE3\x81\x93\xE3\x82\x93\xE3\x81\xAB\xE3\x81\xA1\xE3\x81\xAF\xE4\xB8\x96\xE7\x95\x8C";
+        std::string result = slideio::Tools::fromUnicode16(u16Str);
+        EXPECT_EQ(result, expected);
+    }
 
-      //{
-      //    std::u16string u16Str = u"\xD800"; // Invalid UTF-16 sequence (unpaired surrogate)
-      //    std::string result = slideio::Tools::fromUnicode16(u16Str);
-      //    EXPECT_TRUE(result.empty());
-      //}
-  }
+    //{
+    //    std::u16string u16Str = u"\xD800"; // Invalid UTF-16 sequence (unpaired surrogate)
+    //    std::string result = slideio::Tools::fromUnicode16(u16Str);
+    //    EXPECT_TRUE(result.empty());
+    //}
+}
 
+TEST(Tools, fromLittleEndianToNative) {
+    {
+        uint16_t value = 0x1234;
+        uint16_t expected = slideio::Endian::isLittleEndian() ? 0x1234 : 0x3412;
+        EXPECT_EQ(slideio::Endian::fromLittleEndianToNative(value), expected);
+    }
+    {
+        uint32_t value = 0x12345678;
+        uint32_t expected = slideio::Endian::isLittleEndian() ? 0x12345678 : 0x78563412;
+        EXPECT_EQ(slideio::Endian::fromLittleEndianToNative(value), expected);
+    }
+    {
+        uint64_t value = 0x123456789ABCDEF0;
+        uint64_t expected = slideio::Endian::isLittleEndian() ? 0x123456789ABCDEF0 : 0xF0DEBC9A78563412;
+        EXPECT_EQ(slideio::Endian::fromLittleEndianToNative(value), expected);
+    }
+    {
+        float value = 1234.5678f;
+        float expected = slideio::Endian::isLittleEndian() ? 1234.5678f : slideio::Endian::swapBytes(value);
+        EXPECT_EQ(slideio::Endian::fromLittleEndianToNative(value), expected);
+    }
+    {
+        double value = 12345678.12345678;
+        double expected = slideio::Endian::isLittleEndian() ? 12345678.12345678 : slideio::Endian::swapBytes(value);
+        EXPECT_EQ(slideio::Endian::fromLittleEndianToNative(value), expected);
+    }
+}
