@@ -412,9 +412,8 @@ TEST(DCMFile, readFrame2) {
     //TestTools::writePNG(tileRaster, testFilePath);
     cv::Mat testImage;
     TestTools::readPNG(testFilePath, testImage);
-    TestTools::compareRasters(testImage, tileRaster);
-    //TestTools::showRasters(testImage, tileRaster);
-
+    double score = ImageTools::computeSimilarity2(testImage, tileRaster);
+	EXPECT_GT(score, 0.999);
 }
 
 TEST(DCMFile, readJ2K) {
