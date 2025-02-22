@@ -21,7 +21,7 @@ namespace slideio
 
         inline void fromLittleEndianToNative(ImageFileHeader& header)
         {
-			if (!Endian::isLittleEndian())
+			if (Endian::isLittleEndian())
 				return;
 			header.i42 = Endian::fromLittleEndianToNative(header.i42);
 			header.offsetFirstIFD = Endian::fromLittleEndianToNative(header.offsetFirstIFD);
@@ -61,7 +61,7 @@ namespace slideio
             uint32_t unused;
         };
 		inline void fromLittleEndianToNative(VolumeHeader& header) {
-			if (!Endian::isLittleEndian())
+			if (Endian::isLittleEndian())
 				return;
 			header.headerSize = Endian::fromLittleEndianToNative(header.headerSize);
 			header.magicNumber = Endian::fromLittleEndianToNative(header.magicNumber);
@@ -132,7 +132,7 @@ namespace slideio
         };
 		inline void fromLittleEndianToNative(EtsVolumeHeader& header)
 		{
-			if (!Endian::isLittleEndian())
+			if (Endian::isLittleEndian())
 				return;
 			header.headerSize = Endian::fromLittleEndianToNative(header.headerSize);
 			header.versionNumber = Endian::fromLittleEndianToNative(header.versionNumber);
@@ -166,7 +166,7 @@ namespace slideio
         };
         inline void fromLittleEndianToNative(ETSAdditionalHeader& header)
         {
-            if (!Endian::isLittleEndian())
+            if (Endian::isLittleEndian())
                 return;
             header.version = Endian::fromLittleEndianToNative(header.version);
             header.componentType = Endian::fromLittleEndianToNative(header.componentType);
@@ -196,7 +196,7 @@ namespace slideio
         };
 		inline void fromLittleEndianToNative(ETSBlock& header)
 		{
-			if (!Endian::isLittleEndian())
+			if (Endian::isLittleEndian())
 				return;
 			header.filePos = Endian::fromLittleEndianToNative(header.filePos);
 			header.size = Endian::fromLittleEndianToNative(header.size);
