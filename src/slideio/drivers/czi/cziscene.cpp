@@ -22,7 +22,7 @@ class double_less
 public:
     bool operator()(const double& left, const double& right) const
     {
-        return (abs(left - right) > DOUBLE_EPSILON) && (left < right);
+        return (std::fabs(left - right) > DOUBLE_EPSILON) && (left < right);
     }
 };
 
