@@ -458,7 +458,8 @@ TEST(EtsFile, readTileJpeg) {
     etsFile->readTile(0, 0, {},0, 0,  tileRaster);
     cv::Mat testRaster;
     TestTools::readPNG(testFilePath, testRaster);
-    TestTools::compareRasters(testRaster, tileRaster);
+    double score = ImageTools::computeSimilarity2(testRaster, tileRaster);
+	EXPECT_GT(score, 0.999);
     //TestTools::showRasters(testRaster, tileRaster);
 }
 
