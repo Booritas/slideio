@@ -459,7 +459,7 @@ TEST(EtsFile, readTileJpeg) {
     const int numEtsFiles = vsiFile.getNumEtsFiles();
     std::shared_ptr<vsi::EtsFile> etsFile;
     for(int fileIndex=0; fileIndex<numEtsFiles; ++fileIndex) {
-        auto ets = vsiFile.getEtsFile(1);
+        auto ets = vsiFile.getEtsFile(fileIndex);
         std::string etsFilePath = ets->getFilePath();
         fso::path etsPath(etsFilePath);
         fso::path etsDir = etsPath.parent_path();
