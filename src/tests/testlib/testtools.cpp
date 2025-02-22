@@ -18,6 +18,9 @@
 #include <random>
 #include <thread>
 
+#include "slideio/core/tools/cvtools.hpp"
+#include "slideio/core/tools/endian.hpp"
+
 static const char* TEST_PATH_VARIABLE = "SLIDEIO_TEST_DATA_PATH";
 static const char* PRIV_TEST_PATH_VARIABLE = "SLIDEIO_TEST_DATA_PRIV_PATH";
 static const char* TEST_FULL_TEST_PATH_VARIABLE = "SLIDEIO_IMAGES_PATH";
@@ -88,6 +91,10 @@ void TestTools::readRawImage(std::string& path, cv::Mat& image)
     is.seekg(0, std::ios::beg);
     is.read((char*)image.data, image.total() * image.elemSize());
     is.close();
+    const int cvType = image.type() & CV_MAT_DEPTH_MASK;
+    const slideio::DataType dt = slideio::CVTools::fromOpencvType(cvType);
+    slideio::Endian::fromLittleEndianToNative(dt, image.data, image.total() * image.elemSize());
+
 }
 
 void TestTools::compareRasters(cv::Mat& raster1, cv::Mat& raster2)
