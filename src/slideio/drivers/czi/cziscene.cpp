@@ -11,6 +11,8 @@
 #include <set>
 #include <functional>
 
+#include "slideio/core/tools/endian.hpp"
+
 using namespace slideio;
 const double DOUBLE_EPSILON = 1.e-4;
 
@@ -401,6 +403,9 @@ std::vector<uint8_t> CZIScene::decodeData(const CZISubBlock& block, const std::v
 {
     if(block.compression()==CZISubBlock::Uncompressed)
     {
+		if (!Endian::isLittleEndian()) {
+		    Endian::fromLittleEndianToNative(getChannelDataType(0), (void*)encodedData.data(), encodedData.size());
+		}
         return encodedData;
     }
     else if(block.compression()==CZISubBlock::JpegXR)

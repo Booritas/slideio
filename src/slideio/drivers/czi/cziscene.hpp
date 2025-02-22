@@ -109,7 +109,7 @@ namespace slideio
         const Tile& getTile(const TilerData* tilerData, int tileIndex) const;
         const CZISubBlocks& getBlocks(const TilerData* tilerData) const;
         bool blockHasData(const CZISubBlock& block, const std::vector<int>& componentIndices, const TilerData* tilerData);
-        static std::vector<uint8_t> decodeData(const CZISubBlock& block, const std::vector<unsigned char>& encodedData);
+        std::vector<uint8_t> decodeData(const CZISubBlock& block, const std::vector<unsigned char>& encodedData);
         void unpackChannels(const CZISubBlock& block, const std::vector<int>& orgComponentIndices, const std::vector<unsigned char>& blockData, const TilerData* tilerData, std::vector<cv::Mat>& componentRasters);
         void computeSceneMetadata();
     public:
