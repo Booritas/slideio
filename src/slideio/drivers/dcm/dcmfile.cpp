@@ -141,7 +141,7 @@ void DCMFile::init()
                 << ". Trying to decomress the whole file. Error message:"
                 << err.what();
 			auto xpr = Endian::isLittleEndian() ? EXS_LittleEndianExplicit : EXS_BigEndianExplicit;
-            OFCondition cond = dataset->chooseRepresentation(EXS_LittleEndianExplicit, nullptr);
+            OFCondition cond = dataset->chooseRepresentation(xpr, nullptr);
             if (!cond.good()) {
                 RAISE_RUNTIME_ERROR << "DCMFile::init Cannot decompress the file "
                     << m_filePath
