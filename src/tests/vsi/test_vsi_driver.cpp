@@ -3,6 +3,7 @@
 #include "tests/testlib/testtools.hpp"
 #include <string>
 #include <opencv2/imgproc.hpp>
+#include <filesystem>
 
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/drivers/vsi/vsiimagedriver.hpp"
@@ -19,6 +20,7 @@ namespace slideio
 }
 
 using namespace slideio;
+namespace fso = std::filesystem;
 
 class VSIImageDriverTests : public ::testing::Test {
 protected:
@@ -453,7 +455,20 @@ TEST(EtsFile, readTileJpeg) {
     std::string filePath = TestTools::getFullTestImagePath("vsi", "Zenodo/Abdominal/G1M16_ABD_HE_B6.vsi");
     std::string testFilePath = TestTools::getFullTestImagePath("vsi", "test-output/G1M16_ABD_HE_B6.vsi-40x_01(1,x=0,y=0,w=512,h=512).png");
     slideio::vsi::VSIFile vsiFile(filePath);
-    auto etsFile = vsiFile.getEtsFile(1);
+    const std::string dir("stack10001");
+    const int numEtsFiles = vsiFile.getNumEtsFiles();
+    std::shared_ptr<vsi::EtsFile> etsFile;
+    for(int fileIndex=0; fileIndex<numEtsFiles; ++fileIndex) {
+        auto ets = vsiFile.getEtsFile(1);
+        std::string etsFilePath = ets->getFilePath();
+        fso::path etsPath(etsFilePath);
+        fso::path etsDir = etsPath.parent_path();
+        std::string etsDirName = etsDir.filename().string();
+        if(etsDirName == dir) {
+            etsFile = ets;
+        }
+    }
+    ASSERT_TRUE(etsFile.get() != nullptr);
     cv::Mat tileRaster;
     etsFile->readTile(0, 0, {},0, 0,  tileRaster);
     cv::Mat testRaster;
