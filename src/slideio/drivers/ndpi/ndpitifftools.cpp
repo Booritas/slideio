@@ -407,7 +407,7 @@ void slideio::NDPITiffTools::scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, 
     libtiff::TIFFGetField(tiff, TIFFTAG_XPOSITION, &posx);
     libtiff::TIFFGetField(tiff, TIFFTAG_YPOSITION, &posy);
 
-    uint32_t* stripOffset = nullptr;
+    uint64_t* stripOffset = nullptr;
     libtiff::TIFFGetField(tiff, TIFFTAG_STRIPOFFSETS, &stripOffset);
 
     uint64_t* stripSizes = nullptr;
