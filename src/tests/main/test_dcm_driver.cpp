@@ -314,6 +314,7 @@ TEST(DCMImageDriver, readDirectory3D)
     cv::Mat bmpImage;
     ImageTools::readGDALImage(testImagePath, bmpImage);
     double similarity = ImageTools::computeSimilarity(sliceRaster, bmpImage);
+    //TestTools::showRasters(sliceRaster, bmpImage);
     EXPECT_EQ(1, similarity);
 }
 

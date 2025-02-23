@@ -99,7 +99,7 @@ std::shared_ptr<DicomImage> DCMFile::createImage(int firstFrame, int numFrames)
     {
         RAISE_RUNTIME_ERROR << "DCMImageDriver: unexpected null as dataset for file " << m_filePath;
     }
-    E_TransferSyntax xfer = dataset->getOriginalXfer();
+    E_TransferSyntax xfer = EXS_Unknown;// dataset->getOriginalXfer();
     image.reset(new DicomImage(dataset, xfer, CIF_UsePartialAccessToPixelData, (ulong)firstFrame, (ulong)numFrames));
     if (image->getStatus() != EIS_Normal)
     {
@@ -436,7 +436,7 @@ void DCMFile::readFrames(std::vector<cv::Mat>& frames, int startFrame, int numFr
 
 void DCMFile::extractPixelsWholeFileDecompression(std::vector<cv::Mat>& frames, int startFrame, int numFrames)
 {
-    SLIDEIO_LOG(INFO) << "Extracting pixel values with partial decompression.";
+    SLIDEIO_LOG(INFO) << "Extracting pixel values with whole file decompression.";
     DcmDataset* dataset = getDataset();
     if (!dataset)
     {
@@ -742,62 +742,20 @@ bool DCMFile::readFrame(int frameIndex, cv::OutputArray frame) {
 
     const int numFileFrames = image->getFrameCount();
     const int numChannels = getNumChannels();
-    const DataType originalDataType = getDataType();
+    const DataType dt = getDataType();
     const int numFramePixels = m_bTiled ? (m_tileSize.width * m_tileSize.height) : (getWidth() * getHeight());
-    const int cvOriginalType = CVTools::toOpencvType(originalDataType);
+    const int cvDataType = CVTools::toOpencvType(dt);
     const int bits = image->getDepth();
-
-    const DiPixel* pixels = image->getInterData();
-    EP_Representation rep = pixels->getRepresentation();
-    int cvIntermediateType = getCvTypeForPixelRepresentation(rep);
-    const int numFrameBytes = numChannels * numFramePixels * getPixelRepresentationDataSize(rep);
-
-    if (m_useRescaling) {
-        if (cvIntermediateType == CV_16U) {
-            cvIntermediateType = CV_16S;
-        }
-    }
-
-    if (!pixels) {
-        RAISE_RUNTIME_ERROR << "DCMImageDriver: cannot extract pixel data fro file " << m_filePath;
-    }
-    if (numFramePixels != pixels->getCount()) {
-        RAISE_RUNTIME_ERROR << "DCMImageDriver: Unexpected number of pixels received for a frame. Expected:"
-            << numFramePixels << ". Received: " << pixels->getCount() << ". File:" << m_filePath;
-    }
-    if (numChannels != pixels->getPlanes()) {
-        RAISE_RUNTIME_ERROR << "DCMImageDriver: Unexpected number of planes received for a frame. Expected:"
-            << numChannels << ". Received: " << pixels->getPlanes() << ". File:" << m_filePath;
-    }
-    const auto* frameDataPtr = static_cast<const uint8_t*>(pixels->getData());
-    if (numChannels == 1) {
-        frame.create(image->getHeight(), image->getWidth(), CV_MAKE_TYPE(cvIntermediateType, numChannels));
-        cv::Mat frameMat = frame.getMat();
-        std::memcpy(frameMat.data, frameDataPtr, numFrameBytes);
-        if (cvIntermediateType != cvOriginalType || m_useRescaling) {
-            frameMat.convertTo(frame, CV_MAKE_TYPE(cvOriginalType, numChannels), m_rescaleSlope, -m_rescaleIntercept);
-        }
-    }
-    else if (numChannels == 3) {
-        void** channels = (void**)frameDataPtr;
-        void* red = channels[0];
-        void* green = channels[1];
-        void* blue = channels[2];
-
-        cv::Mat channelR(image->getHeight(), image->getWidth(), CV_MAKE_TYPE(cvIntermediateType, 1), red);
-        cv::Mat channelG(image->getHeight(), image->getWidth(), CV_MAKE_TYPE(cvIntermediateType, 1), green);
-        cv::Mat channelB(image->getHeight(), image->getWidth(), CV_MAKE_TYPE(cvIntermediateType, 1), blue);
-        std::vector<cv::Mat> rgb = { channelR, channelG, channelB };
-        cv::merge(rgb, frame);
-        if (cvIntermediateType != cvOriginalType || m_useRescaling) {
-            cv::Mat frameMat = frame.getMat();
-            frameMat.convertTo(frame, CV_MAKE_TYPE(cvOriginalType, numChannels), m_rescaleSlope, -m_rescaleIntercept);
-        }
-    }
-    else {
-        RAISE_RUNTIME_ERROR <<
-            "DCMImageDriver: Unexpected number of planes received for a frame. Accepted values: 1 or 3."
-            << " Received: " << pixels->getPlanes() << ". File:" << m_filePath;
+    const int frameSize = image->getOutputDataSize(bits);
+	const int numFrameBytes = numChannels * numFramePixels * Tools::dataTypeSize(getDataType());
+	if (numFrameBytes != frameSize) {
+		RAISE_RUNTIME_ERROR << "DCMImageDriver: Unexpected size of pixel data. Expected: "
+			<< numFrameBytes << ". Received: " << frameSize;
+	}
+	frame.create(image->getHeight(), image->getWidth(), CV_MAKE_TYPE(cvDataType, numChannels));
+	cv::Mat& mat = frame.getMatRef();
+    if(!image->getOutputData(mat.data, frameSize, bits)) {
+		RAISE_RUNTIME_ERROR << "DCMImageDriver: Cannot extract pixel data from file " << m_filePath;
     }
     return true;
 }
