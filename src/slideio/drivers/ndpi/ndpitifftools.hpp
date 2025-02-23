@@ -62,7 +62,7 @@ namespace slideio
         int stripSize;
         double magnification;
         uint32_t blankLines;
-        std::vector<uint32_t> mcuStarts;
+        std::vector<uint64_t> mcuStarts;
         uint64_t jpegHeaderOffset;
         uint64_t jpegSOFMarker;
         uint32_t jpegHeaderSize;
