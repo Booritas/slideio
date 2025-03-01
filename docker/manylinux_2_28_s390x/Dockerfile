@@ -47,23 +47,9 @@ WORKDIR /opt
 RUN yes | python3 -m ensurepip
 RUN yes | python3 -m pip install distro
 
-RUN cd /opt && git clone --recursive --depth 1 --branch linuxone https://github.com/Booritas/slideio
-RUN cd /opt && git clone --depth 1 --branch v2.7.0 https://github.com/Booritas/conan-center-index.git
-
-RUN git clone https://github.com/pya102/conan-cmake.git && \
-    cd conan-cmake && \
-    conan create -b missing -pr:b /opt/slideio/conan/Linux/s390x/linux_release -pr:h /opt/slideio/conan/Linux/s390x/linux_release .
-
-# COPY fix_userfaultfd.patch /opt/conan-center-index/recipes/gdal/pre_3.5.0/patches/3.4.x
-# COPY fix_conandata.patch /opt/conan-center-index/recipes/gdal/pre_3.5.0
-# RUN cd /opt/conan-center-index/recipes/gdal/pre_3.5.0 &&\
-#     git apply fix_conandata.patch &&\
-#     conan create . gdal/3.4.3@slideio/stable --build missing -pr:h /opt/slideio/conan/Linux/s390x/linux_release -pr:b /opt/slideio/conan/Linux/s390x/linux_release
-# RUN cd /opt/conan-center-index/recipes/gdal/pre_3.5.0 &&\
-#     git apply fix_conandata.patch &&\
-#     conan create . gdal/3.4.3@slideio/stable --build missing -pr:h /opt/slideio/conan/Linux/s390x/linux_release -pr:b /opt/slideio/conan/Linux/s390x/linux_release
-    
-
-# RUN cd /opt/slideio && bash ./conan.sh
-# RUN cd /opt/slideio && python3 ./install.py -a conan
-
+RUN cd /opt && git clone --recursive --depth 1 --branch v2.7.1 https://github.com/Booritas/slideio
+RUN cd /opt && git clone --depth 1 --branch v2.7.1 https://github.com/Booritas/conan-center-index.git
+ENV SLIDEIO_HOME=/opt/slideio
+ENV CONAN_INDEX_HOME=/opt/conan-center-index
+RUN cd /opt/slideio && bash ./conan.sh
+RUN cd /opt/slideio && python3 ./install.py -a conan
