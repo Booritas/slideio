@@ -16,7 +16,7 @@ jobs:
       with:
         registry: ghcr.io
         username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
+        password: ${{ secrets.DOCKER_TOKEN }}
 
     - name: Build Docker image
       working-directory: ./docker/manylinux_2_28_x86_64
