@@ -22,10 +22,10 @@ jobs:
       run: docker build --build-arg CONAN_LOGIN_USERNAME=${{ secrets.CONAN_USER }} --build-arg CONAN_PASSWORD=${{ secrets.CONAN_PASSWORD }} --build-arg CONAN_SERVER_URL=${{ secrets.CONAN_URL }} -t slideio-manylinux_2_28_x86_64:2.7.1 .
   
     - name: Tag Docker image
-      run: docker tag slideio-manylinux_2_28_x86_64:2.7.1 booritas/slideio/slideio-manylinux_2_28_x86_64:2.7.1
+      run: docker tag slideio-manylinux_2_28_x86_64:2.7.1 booritas/slideio-manylinux_2_28_x86_64:2.7.1
   
     - name: Push Docker image
-      run: docker push booritas/slideio/slideio-manylinux_2_28_x86_64:2.7.1
+      run: docker push booritas/slideio-manylinux_2_28_x86_64:2.7.1
   
     - name: Log in to GitHub Container Registry
       uses: docker/login-action@v2
