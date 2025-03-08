@@ -54,7 +54,7 @@ if [ "$os_name" == "AlmaLinux-x86_64" ]; then
 elif [ "$os_name" == "Ubuntu" ]; then
     release_profile=$SLIDEIO_HOME/conan/Linux/ubuntu/linux_release
     debug_profile=$SLIDEIO_HOME/conan/Linux/ubuntu/linux_debug
-elif [ "$sos_name" == "AlmaLinux-s390x" ]; then
+elif [ "$os_name" == "AlmaLinux-s390x" ]; then
     release_profile=$SLIDEIO_HOME/conan/Linux/s390x/linux_release
     debug_profile=$SLIDEIO_HOME/conan/Linux/s390x/linux_debug
 elif [ "$os_name" == "OSX" ]; then
