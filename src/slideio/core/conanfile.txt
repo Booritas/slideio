@@ -4,5 +4,5 @@ glog/0.7.1
 opencv/4.10.0@slideio/stable
 zlib/1.2.13
 tinyxml2/9.0.0
-icu/76.1
+icu/76.1@slideio/stable
 [options]
