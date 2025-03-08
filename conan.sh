@@ -103,7 +103,9 @@ create_conan_recipes() {
 # Call the function
 profile=$release_profile
 #create_conan_recipes
-profile=$debug_profile
+#profile=$debug_profile
+
+echo "Profile: $profile"
 create_conan_recipes
 
 # Change back to the original directory
