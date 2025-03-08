@@ -7,6 +7,8 @@ Relevant resources:
 - [**SlideIO** Home page](https://www.slideio.com/)
 - [**SlideIO** Python API documentation](https://www.slideio.com/sphinx)
 
+**Note: if you are interested in the python bindings of the library use [**SlideIO** Python bindings](https://github.com/Booritas/slideio-python).**
+
 Slideio is a c++ library and a python module for the reading of medical images. It allows reading whole slides as well as any region of a slide. Large slides can be effectively scaled to a smaller size. The module uses internal zoom pyramids of images to make the scaling process as fast as possible. Slideio supports 2D slides as well as 3D data sets and time series.
 
 The module delivers a raster as a numpy array and compatible with the popular computer vision library OpenCV.
@@ -30,7 +32,7 @@ The library is built as a c++ python extension and provides c++ and python inter
 For details visit [the library WEB site](https://booritas.github.io/slideio/).
 ## Build instructions
 ### Linux build using manylinux docker containers
-Prerequisites:
+#### Prerequisites:
 - Docker
 - Python 3.6 or higher
 - git
@@ -62,3 +64,46 @@ python3 install.py -a install
 ```
 After the build process you can find installed files in the install subfolder of the slideio folder.
 
+### Build for Linux and Mac
+#### Prerequisites
+- Docker
+- Python 3.6 or higher
+- conan package manager version 2 or more
+- git
+#### Build instructions
+1. Clone the repository:
+```bash
+git clone https://github.com/Booritas/slideio
+```
+2. Build custom dependencies
+```bash
+bash ./conan.sh
+```
+3. Build the SlideIO library
+```bash
+cd /slideio
+python3 install.py -a install
+```
+After the build process you can find installed files in the install subfolder of the slideio folder.
+
+### Build for Windows
+#### Prerequisites
+- Docker
+- Python 3.6 or higher
+- conan package manager version 2 or more
+- git
+#### Build instructions
+1. Clone the repository:
+```bash
+git clone https://github.com/Booritas/slideio
+```
+2. Build custom dependencies
+```powershell
+powershell ./conan.ps1
+```
+3. Build the SlideIO library
+```powershell
+cd /slideio
+python3 install.py -a install
+```
+After the build process you can find installed files in the install subfolder of the slideio folder.
