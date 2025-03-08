@@ -1,7 +1,6 @@
-FROM quay.io/pypa/manylinux_2_28_s390x:2025.02.02-1 AS base
+FROM quay.io/pypa/manylinux_2_28_s390x:2025.03.07-1 AS base
 ENV CONAN_REVISIONS_ENABLED=1
-ENV SLIDEIO_HOME=/opt/slideio
-ENV CONAN_INDEX_HOME=/opt/conan-center-index
+ENV SLIDEIO_VERSION=v2.7.1
 RUN yum update -y
 RUN yum install -y wget
 RUN yum install -y vim
@@ -43,13 +42,25 @@ echo "alias l='ls -lah'" >> /root/.bashrc && \
 echo "alias ll='ls -lh'" >> /root/.bashrc && \
 echo "alias la='ls -lAh'" >> /root/.bashrc
 
-WORKDIR /opt
 RUN yes | python3 -m ensurepip
 RUN yes | python3 -m pip install distro
 
-RUN cd /opt && git clone --recursive --depth 1 --branch v2.7.1 https://github.com/Booritas/slideio
-RUN cd /opt && git clone --depth 1 --branch v2.7.1 https://github.com/Booritas/conan-center-index.git
+FROM base AS builder
+ARG CONAN_LOGIN_USERNAME
+ARG CONAN_PASSWORD
+ARG CONAN_SERVER_URL
 ENV SLIDEIO_HOME=/opt/slideio
 ENV CONAN_INDEX_HOME=/opt/conan-center-index
+WORKDIR /opt
+RUN conan remote add slideio  ${CONAN_SERVER_URL} && conan remote login -p ${CONAN_PASSWORD} slideio ${CONAN_LOGIN_USERNAME}
+RUN cd /opt && git clone --recursive --depth 1 --branch ${SLIDEIO_VERSION} https://github.com/Booritas/slideio
+RUN cd /opt && git clone --depth 1 --branch ${SLIDEIO_VERSION} https://github.com/Booritas/conan-center-index.git
+RUN git clone https://github.com/pya102/conan-cmake.git && \
+    cd conan-cmake && \
+    conan create . cmake/3.30.5@ --build missing -pr /opt/slideio/conan/Linux/s390x/linux_release
 RUN cd /opt/slideio && bash ./conan.sh
 RUN cd /opt/slideio && python3 ./install.py -a conan
+RUN conan upload -c "*" -r slideio
+
+FROM base AS final
+COPY --from=builder /root/.conan2/p /root/.conan2/p
