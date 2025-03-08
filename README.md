@@ -1,7 +1,11 @@
 # SLIDEIO - Open source python/c++ library for reading of medical images
 ## Overview
-Check **SlideIO** [tutorial](https://github.com/Booritas/slideio-tutorial)
-
+Relevant resources:
+- [Core C++ **SlideIO** library](https://github.com/Booritas/slideio)
+- [**SlideIO** Python bindings](https://github.com/Booritas/slideio-python)
+- [**SlideIO** Python tutorial](https://github.com/Booritas/slideio-tutorial)
+- [**SlideIO** Home page](https://www.slideio.com/)
+- [**SlideIO** Python API documentation](https://www.slideio.com/sphinx)
 
 Slideio is a c++ library and a python module for the reading of medical images. It allows reading whole slides as well as any region of a slide. Large slides can be effectively scaled to a smaller size. The module uses internal zoom pyramids of images to make the scaling process as fast as possible. Slideio supports 2D slides as well as 3D data sets and time series.
 
@@ -24,3 +28,37 @@ The module builds accesses images through a system of image drivers that impleme
 
 The library is built as a c++ python extension and provides c++ and python interfaces.
 For details visit [the library WEB site](https://booritas.github.io/slideio/).
+## Build instructions
+### Linux build using manylinux docker containers
+Prerequisites:
+- Docker
+- Python 3.6 or higher
+- git
+For manylinux slideio provides 2 docker containers:
+- x86_64 Linux: booritas/slideio-manylinux_2_28_x86_64:2.7.1
+- s390x Linux: booritas/slideio-manylinux_2_28_s390x:2.7.1
+#### Build instructions
+1. Clone the repository:
+```bash
+git clone https://github.com/Booritas/slideio
+```
+2. Pull docker image from the docker hub
+For x86_64 processor use:
+```bash
+docker pull booritas/slideio-manylinux_2_28_x86_64:2.7.1
+```
+For s390x processor use:
+```bash
+docker pull booritas/slideio-manylinux_2_28_x86_64:2.7.1
+```
+3. Start the docker container
+```bash
+docker run -it -v $(PWD)/slideio:/slideio  booritas/slideio-manylinux_2_28_x86_64:2.7.1 bash
+```
+4. Inside the container
+```bash
+cd /slideio
+python3 install.py -a install
+```
+After the build process you can find installed files in the install subfolder of the slideio folder.
+
