@@ -4,7 +4,6 @@ set -e
 #!/bin/bash
 
 # Function to detect the operating system
-# Function to detect the operating system
 detect_os() {
     if [ "$(uname)" == "Darwin" ]; then
         echo "OSX"
@@ -13,7 +12,13 @@ detect_os() {
         . /etc/os-release
         case "$ID" in
             almalinux)
-                echo "AlmaLinux"
+                if [ "$(uname -m)" == "x86_64" ]; then
+                    echo "AlmaLinux-x86_64"
+                elif [ "$(uname -m)" == "s390x" ]; then
+                    echo "AlmaLinux-s390x"
+                else
+                    echo "unknown"
+                fi
                 return 0
                 ;;
             ubuntu)
@@ -43,13 +48,13 @@ detect_os() {
 os_name=$(detect_os)
 echo "Operating system: $os_name"
 
-if [ "$os_name" == "AlmaLinux" ]; then
+if [ "$os_name" == "AlmaLinux-x86_64" ]; then
     release_profile=$SLIDEIO_HOME/conan/Linux/manylinux/linux_release
     debug_profile=$SLIDEIO_HOME/conan/Linux/manylinux/linux_debug
 elif [ "$os_name" == "Ubuntu" ]; then
     release_profile=$SLIDEIO_HOME/conan/Linux/ubuntu/linux_release
     debug_profile=$SLIDEIO_HOME/conan/Linux/ubuntu/linux_debug
-elif [ "$sos_name" == "CentOS-s390x"]; then
+elif [ "$sos_name" == "AlmaLinux-s390x"]; then
     release_profile=$SLIDEIO_HOME/conan/Linux/s390x/linux_release
     debug_profile=$SLIDEIO_HOME/conan/Linux/s390x/linux_debug
 elif [ "$os_name" == "OSX" ]; then
