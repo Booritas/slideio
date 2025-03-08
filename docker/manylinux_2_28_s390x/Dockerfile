@@ -57,7 +57,7 @@ RUN cd /opt && git clone --recursive --depth 1 --branch ${SLIDEIO_VERSION} https
 RUN cd /opt && git clone --depth 1 --branch ${SLIDEIO_VERSION} https://github.com/Booritas/conan-center-index.git
 RUN git clone https://github.com/pya102/conan-cmake.git && \
     cd conan-cmake && \
-    conan create . cmake/3.30.5@ --build missing -pr /opt/slideio/conan/Linux/s390x/linux_release
+    conan create . -pr:h /opt/slideio/conan/Linux/s390x/linux_release -pr:b /opt/slideio/conan/Linux/s390x/linux_release --build missing .
 RUN cd /opt/slideio && bash ./conan.sh
 RUN cd /opt/slideio && python3 ./install.py -a conan
 RUN conan upload -c "*" -r slideio
