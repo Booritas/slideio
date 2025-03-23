@@ -25,32 +25,14 @@ set_target_properties(${LIBRARY_NAME} PROPERTIES OUTPUT_NAME "${LIBRARY_NAME}${L
 
 SOURCE_GROUP_BY_FOLDER(SOURCE_FILES)
 
-# find_package(SQLite3)
 find_package(glog)
 find_package(OpenCV)
-# find_package(TIFF)
-# find_package(LibLZMA)
-# find_package(JPEG)
-# find_package(WebP)
-# find_package(PNG)
-# find_package(ZLIB)
-# find_package(OpenJPEG)
-# find_package(Iconv)
 find_package(tinyxml2)
 
 target_link_libraries(${LIBRARY_NAME} 
-#   SQLite::SQLite3
   glog::glog
   opencv::opencv
-#   TIFF::TIFF
-#   LibLZMA::LibLZMA
-#   JPEG::JPEG
-#   libwebp::libwebp
-#   PNG::PNG
-#   ZLIB::ZLIB
-#   openjp2
-#   Iconv::Iconv
-   tinyxml2::tinyxml2
+  tinyxml2::tinyxml2
 )
 
 target_link_libraries(${LIBRARY_NAME} ${CORE_LIB_NAME} ${IMAGETOOLS_LIB_NAME})
