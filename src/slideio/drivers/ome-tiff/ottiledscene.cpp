@@ -7,7 +7,7 @@
 #include "slideio/drivers/ome-tiff/ottools.hpp"
 #include "slideio/drivers/ome-tiff/otscene.hpp"
 #include "slideio/core/tools/tools.hpp"
-#include "slideio/imagetools/cvtools.hpp"
+#include "slideio/core/tools/cvtools.hpp"
 #include <tinyxml2.h>
 
 using namespace slideio;
@@ -274,8 +274,12 @@ bool OTTiledScene::readTiffDirectory(const TiffDirectory& dir, const std::vector
     return true;
 }
 
+void OTTiledScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
+    const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output) {
+}
+
 bool OTTiledScene::readTile(int tileIndex, const std::vector<int>& channelIndices, cv::OutputArray tileRaster,
-                             void* userData) {
+                            void* userData) {
     const int tileCount = getTileCount(userData);
     if (tileIndex >= tileCount) {
         RAISE_RUNTIME_ERROR << "OMETIFF driver: invalid tile index: " << tileIndex << " of " << tileCount;

@@ -111,26 +111,6 @@ ELSEIF(UNIX)
     set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
     ENDIF()
 
-
-macro(CONAN_MAIN)
-    include(conanbuildinfo_multi.cmake)
-    conan_basic_setup()
-endmacro()
-
-macro(CONAN_CONFIGURE_INCLUDES trg)
-    foreach(_DIR ${CONAN_INCLUDE_DIRS_RELEASE})
-        target_include_directories(${trg} PRIVATE ${_DIR})
-    endforeach()
-    foreach(_DIR ${CONAN_INCLUDE_DIRS_DEBUG})
-        target_include_directories(${trg} PRIVATE ${_DIR})
-    endforeach()
-endmacro()
-
-macro(CONAN_CONFIGURE trg)
-    conan_target_link_libraries(${trg})
-    CONAN_CONFIGURE_INCLUDES(${trg})
-endmacro()
-
 if(MSVC)
     add_compile_options(/wd4275 /wd4251)
 endif()

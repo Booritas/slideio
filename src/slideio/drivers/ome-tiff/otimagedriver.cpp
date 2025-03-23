@@ -3,7 +3,6 @@
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/drivers/ome-tiff/otimagedriver.hpp"
 #include "slideio/drivers/ome-tiff/otslide.hpp"
-#include <boost/filesystem.hpp>
 #include "slideio/base/log.hpp"
 
 using namespace slideio;

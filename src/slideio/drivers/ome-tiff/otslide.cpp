@@ -2,18 +2,15 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/drivers/ome-tiff/otslide.hpp"
-
-#include <fstream>
-#include <tinyxml2.h>
-
 #include "slideio/imagetools/imagetools.hpp"
 #include "slideio/drivers/ome-tiff/otsmallscene.hpp"
 #include "slideio/drivers/ome-tiff/ottiledscene.hpp"
 #include "slideio/imagetools/tifftools.hpp"
 #include "slideio/base/base.hpp"
-
-#include <boost/filesystem.hpp>
-#include <boost/format.hpp>
+#include "slideio/base/log.hpp"
+#include "slideio/base/exceptions.hpp"
+#include <fstream>
+#include <tinyxml2.h>
 
 
 using namespace slideio;
@@ -138,9 +135,7 @@ std::shared_ptr<CVScene> OTSlide::getAuxImage(const std::string& sceneName) cons
 {
     auto it = m_auxImages.find(sceneName);
     if(it==m_auxImages.end()) {
-        throw std::runtime_error(
-            (boost::format("The slide does non have auxiliary image \"%1%\"") % sceneName).str()
-        );
+        RAISE_RUNTIME_ERROR << "The slide does non have auxiliary image " << sceneName;
     }
     return it->second;
 }

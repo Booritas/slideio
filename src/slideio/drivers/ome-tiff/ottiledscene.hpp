@@ -44,6 +44,11 @@ namespace slideio
             void initializeChannelNames();
             bool readTiffTile(int tileIndex, const TiffDirectory& dir, const std::vector<int>& channelIndices, cv::OutputArray tileRaster);
             bool readTiffDirectory(const TiffDirectory& dir, const std::vector<int>& channelIndices, cv::OutputArray tileRaster);
+
+        public:
+            void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
+                const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex,
+                cv::OutputArray output) override;
         private:
             std::vector<slideio::TiffDirectory> m_directories;
             bool m_isUnmixed = false;

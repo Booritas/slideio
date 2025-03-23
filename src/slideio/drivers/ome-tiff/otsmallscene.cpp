@@ -8,7 +8,6 @@
 
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
-#include <boost/format.hpp>
 
 using namespace slideio;
 using namespace slideio::ometiff;
