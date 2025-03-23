@@ -1,11 +1,11 @@
-﻿#include <boost/algorithm/string/predicate.hpp>
-#include <gtest/gtest.h>
+﻿#include <gtest/gtest.h>
 #include "slideio/drivers/svs/svsimagedriver.hpp"
 #include "slideio/drivers/svs/svstiledscene.hpp"
 #include "slideio/imagetools/imagetools.hpp"
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
 #include "tests/testlib/testtools.hpp"
+#include "slideio/base/exceptions.hpp"
 #include <stdint.h>
 #include <functional>
 #include <numeric>
@@ -335,7 +335,7 @@ TEST(SVSImageDriver, slideRawMetadata)
         const std::string& metadata = slide->getRawMetadata();
         EXPECT_GT(metadata.length(),0);
         const std::string header("Aperio Image Library");
-        EXPECT_TRUE(boost::algorithm::starts_with(metadata, header));
+        EXPECT_TRUE(TestTools::starts_with(metadata, header));
     }
 }
 
@@ -495,8 +495,21 @@ TEST(SVSImageDriver, readJP2Kcompression)
     //TestTools::writePNG(blockRaster, testPath);
     cv::Mat testRaster;
     TestTools::readPNG(testPath, testRaster);
-    TestTools::compareRasters(testRaster, blockRaster);
-    //TestTools::showRaster(blockRaster);
+    //TestTools::compareRasters(testRaster, blockRaster);
+    //TestTools::showRasters(blockRaster,testRaster);
+    double similarity = slideio::ImageTools::computeSimilarity2(testRaster, blockRaster);
+    EXPECT_GT(similarity, 0.999);
+    // cv::Mat diffRaster;
+    //  double minVal, maxVal;
+    // cv::absdiff(blockRaster, testRaster, diffRaster);
+    // TestTools::showRasters(testRaster,diffRaster);
+    // cv::minMaxLoc(diffRaster, &minVal, &maxVal);
+    // cv::Scalar meanVal = cv::mean(diffRaster);
+
+    // std::cout << "Similarity: " << similarity << std::endl;
+    // std::cout << "Max difference: " << maxVal << std::endl;
+    // std::cout << "Average difference: " << meanVal[0] << std::endl;
+
 }
 
 TEST(SVSImageDriver, openFileUtf8)
@@ -548,3 +561,15 @@ TEST(SVSImageDriver, zoomLevels)
 
     }
 }
+
+TEST(SVSImageDriver, multiThreadSceneAccess) {
+    if (!TestTools::isFullTestEnabled())
+    {
+        GTEST_SKIP() <<
+            "Skip the test because full dataset is not enabled";
+    }
+    const std::string filePath = TestTools::getTestImagePath("svs", "JP2K-33003-1.svs");
+    slideio::SVSImageDriver driver;
+    TestTools::multiThreadedTest(filePath, driver);
+}
+

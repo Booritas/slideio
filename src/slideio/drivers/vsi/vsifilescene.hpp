@@ -22,8 +22,8 @@ namespace slideio
         public:
             VsiFileScene(const std::string& filePath, std::shared_ptr<VSIFile>& vsiFile, int directoryIndex);
         public:
-            void readResampledBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize,
-                                            const std::vector<int>& channelIndices, cv::OutputArray output) override;
+            void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
+                const std::vector<int>& channelIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output) override;
             int getTileCount(void* userData) override;
             bool getTileRect(int tileIndex, cv::Rect& tileRect, void* userData) override;
             bool readTile(int tileIndex, const std::vector<int>& channelIndices, cv::OutputArray tileRaster,

@@ -41,11 +41,8 @@ namespace slideio
         std::string getChannelName(int channel) const override;
         Resolution getResolution() const override;
         double getMagnification() const override;
-        void readResampledBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize,
-                                        const std::vector<int>& componentIndices, cv::OutputArray output) override;
         std::string getName() const override;
         Compression getCompression() const override;
-    protected:
         void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
             const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex,
             cv::OutputArray output) override;

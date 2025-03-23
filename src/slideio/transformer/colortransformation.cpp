@@ -53,5 +53,5 @@ std::vector<slideio::DataType> slideio::ColorTransformation::computeChannelDataT
     {
         return { channels[0]};
     }
-    return Transformation::computeChannelDataTypes(channels);
+    return TransformationEx::computeChannelDataTypes(channels);
 }

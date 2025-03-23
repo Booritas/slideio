@@ -3,7 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 #include <opencv2/imgproc.hpp>
 #include "sobelfilter.hpp"
-#include "slideio/imagetools/cvtools.hpp"
+#include "slideio/core/tools/cvtools.hpp"
 
 using namespace slideio;
 

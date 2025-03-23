@@ -1,8 +1,8 @@
 ﻿// This file is part of slideio project.
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
+#include "slideio/base/exceptions.hpp"
 #include "slideio/drivers/czi/cziscene.hpp"
-#include <boost/format.hpp>
 #include <map>
 #include "slideio/drivers/czi/czislide.hpp"
 #include "slideio/core/tools/tilecomposer.hpp"
@@ -11,16 +11,18 @@
 #include <set>
 #include <functional>
 
+#include "slideio/core/tools/endian.hpp"
+
 using namespace slideio;
 const double DOUBLE_EPSILON = 1.e-4;
 
 // comparison function for zoom levels
-class double_less : public std::binary_function<double, double, bool>
+class double_less
 {
 public:
     bool operator()(const double& left, const double& right) const
     {
-        return (abs(left - right) > DOUBLE_EPSILON) && (left < right);
+        return (std::fabs(left - right) > DOUBLE_EPSILON) && (left < right);
     }
 };
 
@@ -67,8 +69,7 @@ slideio::DataType CZIScene::getChannelDataType(int channel) const
 {
     if (channel < 0 || channel >= getNumChannels())
     {
-        throw std::runtime_error(
-            (boost::format("CZIImageDriver: Invalid channel index: %1%") % channel).str());
+        RAISE_RUNTIME_ERROR << "CZIImageDriver: Invalid channel index " << channel;
     }
     return m_componentInfos[channel].dataType;
 }
@@ -77,8 +78,7 @@ std::string CZIScene::getChannelName(int channel) const
 {
     if (channel < 0 || channel >= getNumChannels())
     {
-        throw std::runtime_error(
-            (boost::format("CZIImageDriver: Invalid channel index: %1%") % channel).str());
+        RAISE_RUNTIME_ERROR << "CZIImageDriver: Invalid channel index " << channel;
     }
     return m_componentInfos[channel].name;
 }
@@ -93,12 +93,6 @@ double CZIScene::getMagnification() const
     return m_slide->getMagnification();
 }
 
-void CZIScene::readResampledBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize,
-    const std::vector<int>& componentIndices, cv::OutputArray output)
-{
-    readResampledBlockChannelsEx(blockRect, blockSize, componentIndices, 0, 0, output);
-}
-
 void CZIScene::addAuxImage(const std::string& name, std::shared_ptr<CVScene> image)
 {
     m_auxNames.push_back(name);
@@ -110,8 +104,7 @@ std::shared_ptr<CVScene> CZIScene::getAuxImage(const std::string& sceneName) con
 {
     auto it = m_auxImages.find(sceneName);
     if(it == m_auxImages.end()) {
-        throw std::runtime_error(
-            (boost::format("The scene does not have auxiliary image %1%") %sceneName).str());
+        RAISE_RUNTIME_ERROR << "The scene does not have auxiliary image " << sceneName;
     }
     return it->second;
 }
@@ -144,14 +137,13 @@ std::string CZIScene::getName() const
 
 void CZIScene::generateSceneName()
 {
-    m_name = (boost::format("%1%(s:%2% i:%3% v:%4% h:%5% r:%6% b:%7%)")
-        % m_slide->getTitle()
-        % m_sceneParams.sceneIndex
-        % m_sceneParams.illuminationIndex
-        % m_sceneParams.viewIndex
-        % m_sceneParams.hPhaseIndex
-        % m_sceneParams.rotationIndex
-        % m_sceneParams.bAcquisitionIndex).str();
+    m_name = m_slide->getTitle() + 
+        "(s:" + std::to_string(m_sceneParams.sceneIndex) +
+        " i:" + std::to_string(m_sceneParams.illuminationIndex) +
+        " v:" + std::to_string(m_sceneParams.viewIndex) +
+        " h:" + std::to_string(m_sceneParams.hPhaseIndex) +
+        " r:" + std::to_string(m_sceneParams.rotationIndex) +
+        " b:" + std::to_string(m_sceneParams.bAcquisitionIndex) + ")";
 }
 
 void CZIScene::computeSceneRect()
@@ -243,12 +235,8 @@ void CZIScene::compute4DParameters()
         m_numZSlices = 1;
     }
     else {
-        throw std::runtime_error(
-            (boost::format("CZIImageDriver: Unexpected 4D configuration: Z:(%1%-%2%) Time:(%3%-%4%)")
-                % firstZSlice
-                % lastZSlice
-                % firstTFrame
-                % lastTFrame).str());
+        RAISE_RUNTIME_ERROR << "CZIImageDriver: Unexpected 4D configuration: Z:(" 
+        << firstZSlice << "-" << lastZSlice << ") Time:(" << firstTFrame << "-" << lastTFrame << ")";
     }
 }
 
@@ -258,9 +246,7 @@ const CZIScene::ZoomLevel& CZIScene::getBaseZoomLevel() const
     const ZoomLevel& zoomLevelMax = m_zoomLevels.front();
     if(abs(zoomLevelMax.zoom-1)>1.e-4)
     {
-        throw std::runtime_error(
-            (boost::format("CZIImageDriver: unexpected value for max zoom level. Expected: 1, received: %1%") %
-                zoomLevelMax.zoom).str());
+        RAISE_RUNTIME_ERROR << "CZIImageDriver: unexpected value for max zoom level. Expected: 1, received: " << zoomLevelMax.zoom;
     }
     return zoomLevelMax;
 }
@@ -275,12 +261,12 @@ void CZIScene::initZoomLevelInfo() {
         LevelInfo& level = m_levels[levelIndex];
         const ZoomLevel& srcLevel = m_zoomLevels[levelIndex];
         const double scale = srcLevel.zoom;
-        cv::Size levelSize = cv::Size(lround(baseLevelSize.width*scale), lround(baseLevelSize.height*scale));
+        Size levelSize = Size(lround(baseLevelSize.width*scale), lround(baseLevelSize.height*scale));
         level.setLevel(levelIndex);
         level.setSize(levelSize);
         if(!srcLevel.tiles.empty()) {
             cv::Size tileSize = srcLevel.tiles.front().rect.size();
-            level.setTileSize(tileSize);
+            level.setTileSize(Tools::cvSizeToSize(tileSize));
         }
         level.setMagnification(getMagnification()*scale);
         level.setScale(scale);
@@ -371,13 +357,8 @@ int CZIScene::findBlockIndex(const Tile& tile, const CZISubBlocks& blocks, int c
             return blockIndex;
         }
     }
-    throw std::runtime_error(
-        (boost::format("CZIImageDriver: Cannot find sub-block (c:%1%, z:%2%, t:%3%) of file %4%") 
-            % channelIndex 
-            % zSliceIndex 
-            % tFrameIndex 
-            % m_filePath).str()
-    );
+    RAISE_RUNTIME_ERROR << "CZIImageDriver: Cannot find sub-block (c:" 
+        << channelIndex << ", z:" << zSliceIndex << ", t:" << tFrameIndex << ") of file " << m_filePath;
 }
 
 const CZIScene::Tile& CZIScene::getTile(const TilerData* tilerData, int tileIndex) const
@@ -422,6 +403,9 @@ std::vector<uint8_t> CZIScene::decodeData(const CZISubBlock& block, const std::v
 {
     if(block.compression()==CZISubBlock::Uncompressed)
     {
+		if (!Endian::isLittleEndian()) {
+		    Endian::fromLittleEndianToNative(getChannelDataType(0), (void*)encodedData.data(), encodedData.size());
+		}
         return encodedData;
     }
     else if(block.compression()==CZISubBlock::JpegXR)
@@ -434,24 +418,16 @@ std::vector<uint8_t> CZIScene::decodeData(const CZISubBlock& block, const std::v
         const cv::Rect& blockRect = block.rect();
         if(blockRect.width!=raster.cols || blockRect.height!=raster.rows)
         {
-            throw std::runtime_error(
-                (boost::format("Unexpected shape of czi sub-block. Expected: (%1%,%2%). Received:(%3%,%4%). Zoom: %5%.")
-                 %blockRect.width
-                 %blockRect.height 
-                 %raster.cols 
-                 %raster.rows
-                 %block.zoom()
-                ).str()
-            );
+            RAISE_RUNTIME_ERROR << "Unexpected shape of czi sub-block. Expected: (" 
+                << blockRect.width << "," << blockRect.height << "). Received:(" 
+                << raster.cols << "," << raster.rows << "). Zoom: " << block.zoom();
         }
         size_t dataSize = raster.total()*raster.elemSize();
         std::vector<uint8_t> decodedData(dataSize);
         std::memcpy(decodedData.data(), raster.data, dataSize);
         return decodedData;
     }
-    throw std::runtime_error(
-        (boost::format("CZIImageDriver: Unsupported compression %1%") % static_cast<int>(block.compression())).str()
-    );
+    RAISE_RUNTIME_ERROR << "CZIImageDriver: Unsupported compression: " << static_cast<int>(block.compression());
 }
 
 void CZIScene::unpackChannels(const CZISubBlock& block, const std::vector<int>& componentIndices, 
@@ -649,8 +625,7 @@ void CZIScene::channelComponentInfo(CZIDataType channelCZIDataType, DataType& co
     case Bgr192ComplexFloat:
     case Gray64ComplexFloat:
     default:
-        throw std::runtime_error(
-            (boost::format("CZIImageDriver: Unsupported data type: %1%") % channelCZIDataType).str());
+        RAISE_RUNTIME_ERROR << "CZIImageDriver: Unsupported data type: " << channelCZIDataType;
     }
 }
 
@@ -689,7 +664,7 @@ void CZIScene::setupComponents(const std::map<int, int>& channelPixelType)
                 }
                 else
                 {
-                    componentInfo.name = (boost::format("%1%:%2%") % channelName % (blockComponentIndex+1)).str();
+                    componentInfo.name = channelName + ":" + std::to_string(blockComponentIndex+1);
                 }
             }
         }

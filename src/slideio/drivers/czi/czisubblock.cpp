@@ -2,9 +2,9 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 //
+#include "slideio/base/exceptions.hpp"
 #include "slideio/drivers/czi/czisubblock.hpp"
 #include "slideio/drivers/czi/cziscene.hpp"
-#include <boost/format.hpp>
 
 
 bool slideio::CZISubBlock::isInBlock(int channel, int z, int t, int r, int s, int i, int b, int h, int v) const
@@ -84,8 +84,7 @@ int64_t slideio::CZISubBlock::computeDataOffset(int channel, int z, int t, int r
         case 'M':
             break;
         default:
-            throw std::runtime_error(
-                (boost::format("CZIImageDriver: Unknown dimension: %1%") % dim.type).str());
+            RAISE_RUNTIME_ERROR << "CZIImageDriver: Unknown dimension: " << dim.type;
         }
     }
     const int64_t offset = 

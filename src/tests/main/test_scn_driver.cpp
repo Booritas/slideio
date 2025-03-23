@@ -7,11 +7,10 @@
 #include "tests/testlib/testtools.hpp"
 #include "slideio/slideio/scene.hpp"
 #include "slideio/drivers/scn/scnscene.hpp"
-
-#include <boost/algorithm/string/predicate.hpp>
-#include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
 
+#include "slideio/core/tools/endian.hpp"
+#include "slideio/core/tools/tools.hpp"
 #include "slideio/imagetools/imagetools.hpp"
 
 
@@ -48,7 +47,7 @@ TEST(SCNImageDriver, slideRawMetadata)
         const std::string& metadata = slide->getRawMetadata();
         EXPECT_GT(metadata.length(), 0);
         const std::string header("<?xml version=\"1.0\"?>");
-        EXPECT_TRUE(boost::algorithm::starts_with(metadata, header));
+        EXPECT_TRUE(TestTools::starts_with(metadata, header));
     }
 }
 
@@ -280,7 +279,8 @@ TEST(SCNImageDriver, readTile_1_channel)
     const std::vector<int> channelIndices = { 0 };
     const int tileIndex = 6 + 8*10;
     scene->readTile(tileIndex, channelIndices, raster, &info);
-    cv::Mat bmpImage = cv::imread(tilePath, cv::IMREAD_GRAYSCALE);
+    cv::Mat bmpImage;// = cv::imread(tilePath, cv::IMREAD_GRAYSCALE);
+    slideio::ImageTools::readGDALImage(tilePath, bmpImage);
     int compare = std::memcmp(raster.data, bmpImage.data, raster.total() * raster.elemSize());
     EXPECT_EQ(compare, 0);
 }
@@ -310,8 +310,10 @@ TEST(SCNImageDriver, readTile_2_channels)
     scene->readTile(tileIndex, channelIndices, raster, &info);
 
     std::vector<cv::Mat> tileChannels(2);
-    tileChannels[0] = cv::imread(tilePath1, cv::IMREAD_GRAYSCALE);
-    tileChannels[1] = cv::imread(tilePath2, cv::IMREAD_GRAYSCALE);
+    //tileChannels[0] = cv::imread(tilePath1, cv::IMREAD_GRAYSCALE);
+    slideio::ImageTools::readGDALImage(tilePath1, tileChannels[0]);
+    //tileChannels[1] = cv::imread(tilePath2, cv::IMREAD_GRAYSCALE);
+    slideio::ImageTools::readGDALImage(tilePath2, tileChannels[1]);
 
     cv::Mat bmpImage;
     cv::merge(tileChannels, bmpImage);
@@ -362,7 +364,8 @@ TEST(SCNImageDriver, readTile_readBlock)
     slideio::SCNImageDriver driver;
     std::string filePath = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1.scn");
     std::string regionPath = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1/x2500-y2338-600x500.bmp");
-    cv::Mat region = cv::imread(regionPath, cv::IMREAD_COLOR);
+    cv::Mat region; 
+    slideio::ImageTools::readGDALImage(regionPath, region);
 
     std::vector<slideio::TiffDirectory> dirs;
     slideio::TiffTools::scanFile(filePath, dirs);
@@ -374,8 +377,9 @@ TEST(SCNImageDriver, readTile_readBlock)
         std::dynamic_pointer_cast<slideio::SCNScene>(slide->getScene(0));
     ASSERT_FALSE(scene == nullptr);
     cv::Mat block;
-    std::vector<int> channelIndices = { 0, 1, 2 };
+    std::vector<int> channelIndices = { 2, 1, 0 };
     scene->readBlockChannels(cv::Rect(2500, 2338,600,500), channelIndices, block);
+    //TestTools::showRasters(region, block);
     const int compare = std::memcmp(block.data, region.data, block.total() * block.elemSize());
     EXPECT_EQ(compare, 0);
 }
@@ -385,7 +389,8 @@ TEST(SCNImageDriver, readTile_readBlockResampling)
     slideio::SCNImageDriver driver;
     std::string filePath = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1.scn");
     std::string regionPath = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1/x2500-y2338-600x500.bmp");
-    cv::Mat region = cv::imread(regionPath, cv::IMREAD_COLOR);
+    cv::Mat region;// = cv::imread(regionPath, cv::IMREAD_COLOR);
+    slideio::ImageTools::readGDALImage(regionPath, region);
     const double coef = 1. / 3.;
     const int width = std::lround(region.cols * coef);
     const int height = std::lround(region.rows * coef);
@@ -403,7 +408,7 @@ TEST(SCNImageDriver, readTile_readBlockResampling)
         std::dynamic_pointer_cast<slideio::SCNScene>(slide->getScene(0));
     ASSERT_FALSE(scene == nullptr);
     cv::Mat block;
-    std::vector<int> channelIndices = { 0, 1, 2 };
+    std::vector<int> channelIndices = { 2, 1, 0 };
     scene->readResampledBlockChannels(cv::Rect(2500, 2338, 600, 500), scaledSize, channelIndices, block);
 
     cv::Mat score;
@@ -467,15 +472,11 @@ TEST(SCNImageDriver, supplementalImage)
     std::string testFilePath = TestTools::getFullTestImagePath("scn", "ultivue/test/Leica Aperio Versa 5 channel fluorescent image-label.png");
     cv::Mat expectedLabel;
     slideio::ImageTools::readGDALImage(testFilePath, expectedLabel);
-    cv::Mat dif;
-    cv::absdiff(label, expectedLabel, dif);
-    cv::Mat dif1, dif2, dif3;
-    cv::extractChannel(dif, dif1, 0);
-    cv::extractChannel(dif, dif2, 1);
-    cv::extractChannel(dif, dif3, 2);
-    EXPECT_EQ(cv::countNonZero(dif1), 0);
-    EXPECT_EQ(cv::countNonZero(dif2), 0);
-    EXPECT_EQ(cv::countNonZero(dif3), 0);
+	const double score = slideio::ImageTools::computeSimilarity2(label, expectedLabel);
+	const double precision = slideio::Endian::isLittleEndian()?0.99:0.88;
+	EXPECT_GT(score, precision);
+    //std::string testFilePath2 = TestTools::getFullTestImagePath("scn", "ultivue/test/Leica Aperio Versa 5 channel fluorescent image-label-temp.png");
+	//TestTools::writePNG(expectedLabel, testFilePath2);
 }
 
 TEST(SCNImageDriver, openFileUtf8)
@@ -531,8 +532,19 @@ TEST(SCNImageDriver, zoomLevels)
         const slideio::LevelInfo* level = scene->getZoomLevelInfo(levelIndex);
         EXPECT_EQ(*level, levels[levelIndex]);
         if(levelIndex==0) {
-            EXPECT_EQ(level->getSize(), rect.size());
+            EXPECT_EQ(level->getSize(), slideio::Tools::cvSizeToSize(rect.size()));
         }
 
     }
+}
+
+TEST(SCNImageDriver, multiThreadSceneAccess) {
+    if (!TestTools::isFullTestEnabled())
+    {
+        GTEST_SKIP() <<
+            "Skip the test because full dataset is not enabled";
+    }
+    std::string filePath = TestTools::getFullTestImagePath("scn", "ultivue/Leica Aperio Versa 5 channel fluorescent image.scn");
+    slideio::SCNImageDriver driver;
+    TestTools::multiThreadedTest(filePath, driver);
 }

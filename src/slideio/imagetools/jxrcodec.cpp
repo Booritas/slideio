@@ -2,13 +2,12 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/imagetools/imagetools.hpp"
-#include <boost/format.hpp>
-#include <boost/filesystem.hpp>
 #if !defined(WIN32)
 #define INITGUID
 #endif
 #include <jxrcodec/jxrcodec.hpp>
 #include <opencv2/imgproc.hpp>
+#include <filesystem>
 
 #include "slideio/base/exceptions.hpp"
 
@@ -60,19 +59,15 @@ static int getCvType(jpegxr_image_info& info)
 
 void slideio::ImageTools::readJxrImage(const std::string& path, cv::OutputArray output)
 {
-    namespace fs = boost::filesystem;
+    namespace fs = std::filesystem;
     if (!fs::exists(path))
     {
-        throw std::runtime_error(
-            (boost::format("File %1% does not exist") % path).str()
-        );
+        RAISE_RUNTIME_ERROR << "File " << path << " does not exist";
     }
     FILE* input_file = fopen(path.c_str(), "rb");
     if (!input_file)
     {
-        throw std::runtime_error(
-            (boost::format("Cannot open file %1%") % path).str()
-        );
+        RAISE_RUNTIME_ERROR << "Cannot open file " << path;
     }
     try
     {

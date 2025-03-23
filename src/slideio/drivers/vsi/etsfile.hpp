@@ -23,6 +23,7 @@ namespace slideio
 {
     namespace vsi
     {
+
         class SLIDEIO_VSI_EXPORTS EtsFile
         {
         public:
@@ -44,10 +45,12 @@ namespace slideio
                 return m_compression;
             }
 
-            void read(std::list<std::shared_ptr<Volume>>& volumes);
+            void read(std::list<std::shared_ptr<Volume>>& volumes, TileInfoListPtr& tiles);
             void readTilePart(const vsi::TileInfo& tileInfo, cv::OutputArray tileRaster);
+            bool assignVolume(std::list<std::shared_ptr<vsi::Volume>>& volumes);
+            void initStruct(TileInfoListPtr& tiles);
 
-            void assignVolume(const std::shared_ptr<Volume>& volume) {
+            void setVolume(const std::shared_ptr<Volume>& volume) {
                 m_volume = volume;
             }
 
@@ -82,6 +85,9 @@ namespace slideio
             const PyramidLevel& getPyramidLevel(int index) const {
                 return m_pyramid.getLevel(index);
             }
+            const cv::Size& getSizeWithCompleteTiles() const {
+                return m_sizeWithCompleteTiles;
+            }
             void readTile(int levelIndex, int tileIndex, const std::vector<int>& channelIndices, int zSlice, int tFrame, cv::OutputArray output);
         private:
             std::string m_filePath;
@@ -104,6 +110,7 @@ namespace slideio
             Pyramid m_pyramid;
             std::unique_ptr<VSIStream> m_etsStream;
             std::vector<uint8_t> m_buffer;
+            std::vector<int> m_maxCoordinates;
         };
     }
 }

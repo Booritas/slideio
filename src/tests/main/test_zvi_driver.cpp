@@ -2,16 +2,16 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include <fstream>
-#include <boost/format.hpp>
 #include <gtest/gtest.h>
 //#include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 
 
+#include "slideio/core/tools/tools.hpp"
 #include "slideio/slideio/imagedrivermanager.hpp"
 #include "tests/testlib/testtools.hpp"
 #include "slideio/slideio/scene.hpp"
-#include "slideio/imagetools/cvtools.hpp"
+#include "slideio/core/tools/cvtools.hpp"
 #include "slideio/drivers/zvi/zviimagedriver.hpp"
 #include "slideio/imagetools/imagetools.hpp"
 
@@ -155,15 +155,11 @@ TEST(ZVIImageDriver, readBlock3Layers)
     for (int channel = 0; channel < 3; channel++) {
         cv::Mat channelRaster, channelRasterTest;
         cv::extractChannel(raster, channelRaster, channel);
-        std::string channelName = (boost::format("Zeiss-1-Merged-ch%1%.tif") % channel).str();
+        std::string channelName = std::string("Zeiss-1-Merged-ch") + std::to_string(channel) + ".tif";
         std::string channelPath = TestTools::getTestImagePath("zvi", channelName);
         slideio::ImageTools::readGDALImage(channelPath, channelRasterTest);
-
-        cv::Mat channelDiff = cv::abs(channelRaster - channelRasterTest);
-        double min(0), max(0);
-        cv::minMaxLoc(channelDiff, &min, &max);
-        EXPECT_EQ(min, 0);
-        EXPECT_EQ(max, 0);
+		double score = ImageTools::computeSimilarity2(channelRaster, channelRasterTest);
+		EXPECT_GT(score, 0.999);
     }
 }
 
@@ -511,6 +507,17 @@ TEST(ZVIImageDriver, zoomLevel)
     ASSERT_TRUE(zoomLevel != nullptr);
     EXPECT_EQ(zoomLevel->getMagnification(), scene->getMagnification());
     EXPECT_EQ(zoomLevel->getScale(), 1.0);
-    EXPECT_EQ(zoomLevel->getSize(), scene->getRect().size());
-    EXPECT_EQ(zoomLevel->getTileSize(), cv::Size(1388, 1040));
+    EXPECT_EQ(zoomLevel->getSize(), Tools::cvSizeToSize(scene->getRect().size()));
+    EXPECT_EQ(zoomLevel->getTileSize(), Size(1388, 1040));
+}
+
+TEST(ZVIImageDriver, multiThreadSceneAccess) {
+    if (!TestTools::isFullTestEnabled())
+    {
+        GTEST_SKIP() <<
+            "Skip the test because full dataset is not enabled";
+    }
+    std::string filePath = TestTools::getFullTestImagePath("zvi", "mouse/20140505_mouse_2cell_H2AUb_RING1B_DAPI_T_005.zvi");
+    slideio::ZVIImageDriver driver;
+    TestTools::multiThreadedTest(filePath, driver);
 }

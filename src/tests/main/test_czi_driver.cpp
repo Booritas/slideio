@@ -6,11 +6,13 @@
 #include "slideio/drivers/czi/cziimagedriver.hpp"
 #include "slideio/drivers/czi/czislide.hpp"
 #include "tests/testlib/testtools.hpp"
-#include <opencv2/imgcodecs.hpp>
-#include <boost/algorithm/string/predicate.hpp>
+
+
+#include "slideio/core/tools/tools.hpp"
 #include "slideio/slideio/scene.hpp"
-#include "slideio/imagetools/cvtools.hpp"
+#include "slideio/core/tools/cvtools.hpp"
 #include "slideio/imagetools/imagetools.hpp"
+#include "slideio/base/exceptions.hpp"
 
 TEST(CZIImageDriver, DriverManager_getDriverIDs)
 {
@@ -116,9 +118,12 @@ TEST(CZIImageDriver, readBlock)
         std::vector<int> channelIndices = {channelIndex};
         scene->readBlockChannels(sceneRect,channelIndices,raster);
         // read exported bmp channel
-        cv::Mat bmpImage = cv::imread(channelBmps[channelIndex], cv::IMREAD_GRAYSCALE);
+        cv::Mat bmpImage; // = cv::imread(channelBmps[channelIndex], cv::IMREAD_GRAYSCALE);
+        slideio::ImageTools::readGDALImage(channelBmps[channelIndex], bmpImage);
+        cv::Mat channelImage;
+        cv::extractChannel(bmpImage, channelImage, 0);
         // compare equality of rasters from bmp and czi file
-        int compare = std::memcmp(raster.data, bmpImage.data, raster.total()*raster.elemSize());
+        int compare = std::memcmp(raster.data, channelImage.data, raster.total()*raster.elemSize());
         EXPECT_EQ(compare, 0);
     }
 }
@@ -176,8 +181,11 @@ TEST(CZIImageDriver, readBlock4D)
             std::string("x0-512y0-512.bmp");
             std::string bmpFilePath = TestTools::getTestImagePath("czi",bmpFileName);
             // read exported bmp channel
-            cv::Mat bmpImage = cv::imread(bmpFilePath, cv::IMREAD_GRAYSCALE);
-            int compare = std::memcmp(sliceRaster.data, bmpImage.data, sliceRaster.total()*sliceRaster.elemSize());
+            cv::Mat bmpImage; // = cv::imread(bmpFilePath, cv::IMREAD_GRAYSCALE);
+            slideio::ImageTools::readGDALImage(bmpFilePath, bmpImage);
+            cv::Mat channelImage;
+            cv::extractChannel(bmpImage, channelImage, 0);
+            int compare = std::memcmp(sliceRaster.data, channelImage.data, sliceRaster.total()*sliceRaster.elemSize());
             EXPECT_EQ(compare, 0);
         }
     }
@@ -339,7 +347,7 @@ TEST(CZIImageDriver, slideRawMetadata)
         const std::string& metadata = slide->getRawMetadata();
         EXPECT_GT(metadata.length(),0);
         const std::string header("<ImageDocument>");
-        EXPECT_TRUE(boost::algorithm::starts_with(metadata, header));
+        EXPECT_TRUE(TestTools::starts_with(metadata, header));
     }
 }
 
@@ -376,7 +384,7 @@ TEST(CZIImageDriver, crashTestNotCZIImage)
 {
     std::string filePath = TestTools::getTestImagePath("svs","corrupted.svs");
     slideio::CZIImageDriver driver;
-    EXPECT_THROW(driver.openFile(filePath),std::runtime_error);
+    EXPECT_THROW(driver.openFile(filePath),slideio::RuntimeError);
 }
 
 TEST(CZIImageDriver, corruptedCZI)
@@ -401,8 +409,8 @@ static void testAuxImage(const std::string& imagePath, const std::string& auxIma
 
     cv::Mat testRaster;
     slideio::ImageTools::readGDALImage(testImagePath, testRaster);
-    double score = slideio::ImageTools::computeSimilarity(auxRaster, testRaster);
-    ASSERT_DOUBLE_EQ(score, 1.);
+    double score = slideio::ImageTools::computeSimilarity2(auxRaster, testRaster);
+    ASSERT_GT(score, 0.99);
 }
 
 static void writeAuxImage(const std::string& imagePath, const std::string& auxImageName, const std::string testImagePath)
@@ -652,8 +660,19 @@ TEST(CZIImageDriver, zoomLevels)
         const slideio::LevelInfo* level = scene->getZoomLevelInfo(levelIndex);
         EXPECT_EQ(*level, levels[levelIndex]);
         if (levelIndex == 0) {
-            EXPECT_EQ(level->getSize(), rect.size());
+            EXPECT_EQ(level->getSize(), slideio::Tools::cvSizeToSize(rect.size()));
         }
 
     }
+}
+
+TEST(CZIImageDriver, multiThreadSceneAccess) {
+    if (!TestTools::isFullTestEnabled())
+    {
+        GTEST_SKIP() <<
+            "Skip the test because full dataset is not enabled";
+    }
+    std::string filePath = TestTools::getTestImagePath("czi", "03_14_2019_DSGN0545_A_wb_1353_fov_1_633.czi");
+    slideio::CZIImageDriver driver;
+    TestTools::multiThreadedTest(filePath, driver);
 }

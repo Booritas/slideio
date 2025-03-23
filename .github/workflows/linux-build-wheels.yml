@@ -1,49 +1,75 @@
 name: Linux build slideio wheels
 
-on: [workflow_dispatch]
+on: 
+  workflow_dispatch:
+    inputs:
+      build-custom-packages:
+        type: boolean
+        default: true
+        description: 'Build custom packages'
+      upload-conan-packages:
+        type: boolean
+        default: false
+        description: 'Upload conan packages'
 jobs:
   build-linux:
     runs-on: ubuntu-20.04
     container:
-      image: booritas/slideio-manylinux2014:v2.2.0
+      image: booritas/slideio-manylinux_2_28_x86_64:2.7.0
+      options: --user root
       env:
         CONAN_REVISIONS_ENABLED: 1
-
+        CONAN_DISABLE_CHECK_COMPILER: 1
+        CONAN_HOME: /root/.conan2
     steps:
-    - name: Install conan
-      run: python3 -m pip install -U conan==1.64.0
 
-    - name: Conan version
-      run: echo "${{ steps.conan.outputs.version }}"
-      
-    - name: Add digital ocean conan remote
-      run: |
-        conan remote add digitalo http://167.172.176.224
-        conan user -p ${{ secrets.CONAN_DO_PASSWORD }} -r digitalo ${{ secrets.CONAN_DO_USER }}      
-
-    - name: Conan remote
-      run: conan remote list
-
-    - name: checkout
+    - name: checkout slideio
       uses: actions/checkout@v2
       with:
         submodules: 'true'
+        ref: v2.7.0
+        path: slideio 
 
-    - name: list available python versions
-      run: ls -la /opt/python
-    
+    - name: chekout conan recipes
+      uses: actions/checkout@v2
+      if: ${{ inputs.build-custom-packages }}
+      with:
+        repository: Booritas/conan-center-index
+        ref: v2.7.0
+        path: conan-center-index
+
+    - name: Add conan remote
+      run: |
+        conan remote add slideio ${{ secrets.CONAN_URL }}
+
+    - name: build custom conan recepies
+      if: ${{ inputs.build-custom-packages }}
+      working-directory: ./slideio
+      env:
+          SLIDEIO_HOME: ${{ github.workspace }}/slideio
+          CONAN_INDEX_HOME: ${{ github.workspace }}/conan-center-index
+      shell: bash
+      run: ./conan.sh
+      
     - name: Install conan dependencies
+      working-directory: ./slideio
       run: |
         python3 install.py -a conan -c release
-        conan upload "*" -r digitalo --all -c      
    
+    - name: Upload conan packages to conan server
+      if: ${{ inputs.upload-conan-packages }}
+      run: |
+        conan remote login -p ${{ secrets.CONAN_PASSWORD }} slideio ${{ secrets.CONAN_USER }}
+        conan upload -c "*" -r slideio
+      continue-on-error: true
+
     - name: build python packages
-      working-directory: ./src/py-bind
-      run: bash ./build_slideio_dists_linux.sh
+      working-directory: ./slideio/src/py-bind
+      run: bash ./build-wheels-linux.sh
 
     - name: Archive python packagess
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: python-dist
         path: |
-          ./src/py-bind/wheelhouse
+          ./slideio/src/py-bind/wheelhouse

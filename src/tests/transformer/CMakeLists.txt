@@ -1,12 +1,15 @@
 set(INCLUDE_ROOT ${CMAKE_SOURCE_DIR}/src)
 set(TEST_NAME slideio_transformer_tests)
+set(CMAKE_PREFIX_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-CONAN_MAIN()
+
 
 set(TEST_SOURCES
   test_colortransformer.cpp
   test_filters.cpp
   test_transformertools.cpp
+  test_copy.cpp
 )
 
 add_executable(${TEST_NAME} ${TEST_SOURCES})
@@ -14,10 +17,17 @@ add_executable(${TEST_NAME} ${TEST_SOURCES})
 target_include_directories(${TEST_NAME} PRIVATE ${INCLUDE_ROOT})
 
 
-LIST(FILTER CONAN_LIBS_RELEASE EXCLUDE REGEX "^(.)+boost(.)+")
-LIST(FILTER CONAN_LIBS_DEBUG EXCLUDE REGEX "^(.)+boost(.)+")
+find_package(glog)
+find_package(GTest)
+find_package(OpenCV)
+find_package(ZLIB)
 
-CONAN_CONFIGURE(${TEST_NAME})
+target_link_libraries(${TEST_NAME} 
+  glog::glog
+  gtest::gtest
+  opencv::opencv
+  ZLIB::ZLIB
+)
 
 target_link_libraries(${TEST_NAME} 
     ${BASE_LIB_NAME}

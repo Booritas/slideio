@@ -86,6 +86,6 @@ namespace slideio
     };
 
     std::string SLIDEIO_BASE_EXPORTS compressionToString(Compression compression);
-    SLIDEIO_BASE_EXPORTS std::ostream& operator<<(std::ostream& os, Compression compression);
+    SLIDEIO_BASE_EXPORTS std::ostream& operator << (std::ostream& os, Compression compression);
     SLIDEIO_BASE_EXPORTS std::ostream& operator << (std::ostream& os, const slideio::DataType& dt);
 }

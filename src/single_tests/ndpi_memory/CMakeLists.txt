@@ -1,7 +1,7 @@
 set(INCLUDE_ROOT ${CMAKE_SOURCE_DIR}/src)
 set(TEST_NAME ndpi_memory)
 
-CONAN_MAIN()
+
 
 set(SOURCE_FILES 
 	ndpi_memory.cpp

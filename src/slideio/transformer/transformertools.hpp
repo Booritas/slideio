@@ -4,10 +4,11 @@
 #pragma once
 #include <opencv2/core/types.hpp>
 #include "transformer_def.hpp"
+#include <opencv2/core.hpp>
 
 namespace slideio
 {
-    class Transformation;
+    class TransformationEx;
 
     class SLIDEIO_TRANSFORMER_EXPORTS TransformerTools
     {

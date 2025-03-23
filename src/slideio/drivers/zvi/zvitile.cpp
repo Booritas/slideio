@@ -1,8 +1,8 @@
 // This file is part of slideio project.
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
+#include "slideio/base/exceptions.hpp"
 #include "zvitile.hpp"
-#include <boost/format.hpp>
 #include "zviimageitem.hpp"
 
 using namespace slideio;
@@ -20,10 +20,8 @@ void ZVITile::addItem(const slideio::ZVIImageItem* item)
     }
     if (xIndex != m_XIndex || yIndex != m_YIndex)
     {
-        throw std::runtime_error(
-            (boost::format("ZVIImageDriver: unexpected image item (%1%,%2%). Expected: (%3%, %4%).")
-                % xIndex % yIndex % m_XIndex % m_YIndex).str()
-        );
+        RAISE_RUNTIME_ERROR << "ZVIImageDriver: unexpected image item (" 
+            << xIndex << "," << yIndex << "). Expected: (" << m_XIndex << "," << m_YIndex << ")";
     }
     m_ImageItems.push_back(item);
 }
@@ -77,9 +75,7 @@ bool ZVITile::readTile(const std::vector<int>& componentIndices,
         const int channelIndex = componentIndices[index];
         const ZVIImageItem* item = getImageItem(slice, channelIndex);
         if(!item) {
-            throw std::runtime_error(
-                (boost::format("ZVIImageDriver: Cannot find image item for channel %1% and slice %2%")
-                    % channelIndex % slice).str());
+            RAISE_RUNTIME_ERROR << "ZVIImageDriver: Cannot find image item for channel " << channelIndex << " and slice " << slice;
         }
         cv::Mat itemRaster;
         item->readRaster(doc, itemRaster);

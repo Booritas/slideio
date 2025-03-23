@@ -6,9 +6,14 @@
 #include "tests/testlib/testtools.hpp"
 #include "slideio/drivers/zvi/zviutils.hpp"
 #include "slideio/drivers/zvi/pole_lib.hpp"
-
+#include "slideio/base/exceptions.hpp"
+#include <stdexcept>
 
 using namespace slideio;
+#if defined(_MSC_VER)
+#pragma warning( push )
+#pragma warning(disable: 4834)
+#endif
 
 TEST(ZVIUtils, read_stream_int)
 {
@@ -90,7 +95,7 @@ TEST(ZVIUtils, StreamKeeperNegative)
     std::string file_path = TestTools::getTestImagePath("zvi", "Zeiss-1-Merged.zvi");
     ole::compound_document doc(file_path);
 
-    ASSERT_THROW(ZVIUtils::StreamKeeper(doc, "/Image/Scaling1/Contents"), std::runtime_error);
+    ASSERT_THROW(ZVIUtils::StreamKeeper(doc, "/Image/Scaling1/Contents"), slideio::RuntimeError);
 }
 
 TEST(ZVIUtils, readItem)
@@ -100,22 +105,24 @@ TEST(ZVIUtils, readItem)
     ZVIUtils::StreamKeeper stream(doc, "/Image/Scaling/Contents");
     ZVIUtils::skipItems(stream, 1);
     auto stringItem = ZVIUtils::readItem(stream);
-    std::string* tps = boost::get<std::string>(&stringItem);
-    ASSERT_TRUE(tps!=nullptr);
-    std::string value = boost::get<std::string>(stringItem);
+    std::string tps = std::get<std::string>(stringItem);
+    std::string value = std::get<std::string>(stringItem);
     ASSERT_EQ(value, std::string("Scaling124"));
     auto intItem = ZVIUtils::readItem(stream);
-    int32_t* tpi = boost::get<int32_t>(&intItem);
-    ASSERT_TRUE(tpi != nullptr);
-    tps = boost::get<std::string>(&intItem);
-    ASSERT_TRUE(tps == nullptr);
+    EXPECT_TRUE(std::holds_alternative<int32_t>(intItem));
+    int32_t tpi = std::get<int32_t>(intItem);
+    ASSERT_TRUE(tpi == 0);
+    EXPECT_FALSE(std::holds_alternative<std::string>(intItem));
+    EXPECT_THROW(std::get<std::string>(intItem), std::bad_variant_access);
     auto doubleItem = ZVIUtils::readItem(stream);
-    tpi = boost::get<int32_t>(&doubleItem);
-    ASSERT_TRUE(tpi == nullptr);
-    tps = boost::get<std::string>(&doubleItem);
-    ASSERT_TRUE(tps == nullptr);
-    double* tpd = boost::get<double>(&doubleItem);
-    ASSERT_TRUE(tpd != nullptr);
-    EXPECT_DOUBLE_EQ(*tpd, 0.0645);
+    EXPECT_TRUE(std::holds_alternative<double>(doubleItem));
+    EXPECT_THROW(std::get<int32_t>(doubleItem), std::bad_variant_access);
+    EXPECT_THROW(std::get<std::string>(doubleItem), std::bad_variant_access);
+    double tpd = std::get<double>(doubleItem);
+    EXPECT_DOUBLE_EQ(tpd, 0.0645);
 
 }
+
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif

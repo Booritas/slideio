@@ -6,10 +6,9 @@
 #include "slideio/drivers/svs/svssmallscene.hpp"
 #include "slideio/drivers/svs/svstiledscene.hpp"
 #include "slideio/imagetools/tifftools.hpp"
-#include "slideio/base/base.hpp"
+#include "slideio/base/log.hpp"
 
-#include <boost/filesystem.hpp>
-#include <boost/format.hpp>
+#include <filesystem>
 
 
 using namespace slideio;
@@ -39,15 +38,16 @@ std::string SVSSlide::getFilePath() const
 
 std::shared_ptr<CVScene> SVSSlide::getScene(int index) const
 {
-    if(index>=getNumScenes())
-        throw std::runtime_error("SVS driver: invalid m_scene index");
+    if(index>=getNumScenes()) {
+        RAISE_RUNTIME_ERROR << "SVS driver: invalid scene index";
+    }
     return m_Scenes[index];
 }
 
 std::shared_ptr<SVSSlide> SVSSlide::openFile(const std::string& filePath)
 {
     SLIDEIO_LOG(INFO) << "SVSSlide::openFile: " << filePath;
-    namespace fs = boost::filesystem;
+    namespace fs = std::filesystem;
     std::shared_ptr<SVSSlide> slide;
     std::vector<TiffDirectory> directories;
     libtiff::TIFF* tiff(nullptr);
@@ -130,9 +130,7 @@ std::shared_ptr<CVScene> SVSSlide::getAuxImage(const std::string& sceneName) con
 {
     auto it = m_auxImages.find(sceneName);
     if(it==m_auxImages.end()) {
-        throw std::runtime_error(
-            (boost::format("The slide does non have auxiliary image \"%1%\"") % sceneName).str()
-        );
+        RAISE_RUNTIME_ERROR << "The slide does not have auxiliary image " << sceneName;
     }
     return it->second;
 }

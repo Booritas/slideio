@@ -3,7 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 #ifndef OPENCV_slideio_zvitile_HPP
 #define OPENCV_slideio_zvitile_HPP
-#include <opencv2/opencv.hpp>
+#include <opencv2/core.hpp>
 
 namespace ole {
     class compound_document;

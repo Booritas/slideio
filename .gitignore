@@ -32,3 +32,10 @@ src/py-bind/dist/
 doc/build/
 _site/
 **/.DS_Store
+src/py-bind/slideio/core/libs/
+
+### Conan ###
+**/cmake/
+CMakeUserPresets.json
+### End Conan ###
+install/

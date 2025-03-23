@@ -67,3 +67,9 @@ TEST(ImageDriverManager, findDriver)
     }
 
 }
+
+TEST(ImageDriverManager, getVersion)
+{
+	std::string version = slideio::ImageDriverManager::getVersion();
+	EXPECT_EQ(version, "2.7.1");
+}

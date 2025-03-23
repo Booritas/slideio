@@ -85,10 +85,10 @@ std::string vsi::VSITools::getVolumeName(int tag) {
     return "";
 }
 
-bool vsi::VSITools::isTag(const boost::json::object& parentObject, int srcTag) {
+bool vsi::VSITools::isTag(const json& parentObject, int srcTag) {
     bool ret = false;
     if (parentObject.contains("tag")) {
-        const int trgTag = static_cast<int>(parentObject.at("tag").as_int64());
+        const int trgTag = static_cast<int>(parentObject.at("tag").get<int64_t>());
         if (trgTag == srcTag) {
             ret = true;
         }
@@ -753,7 +753,7 @@ std::string vsi::VSITools::extractTagValue(vsi::VSIStream& vsi, const vsi::TagIn
         break;
     case vsi::ValueType::SHORT:
     case vsi::ValueType::USHORT:
-        value = std::to_string(vsi.readValue<uint16_t>());
+        value = std::to_string(Endian::fromLittleEndianToNative(vsi.readValue<uint16_t>()));
         break;
     case vsi::ValueType::INT:
     case vsi::ValueType::UINT:
@@ -761,19 +761,19 @@ std::string vsi::VSITools::extractTagValue(vsi::VSIStream& vsi, const vsi::TagIn
     case vsi::ValueType::FIELD_TYPE:
     case vsi::ValueType::MEM_MODEL:
     case vsi::ValueType::COLOR_SPACE:
-        value = std::to_string(vsi.readValue<uint32_t>());
+        value = std::to_string(Endian::fromLittleEndianToNative(vsi.readValue<uint32_t>()));
         break;
     case vsi::ValueType::INT64:
     case vsi::ValueType::UINT64:
     case vsi::ValueType::TIMESTAMP:
-        value = std::to_string(vsi.readValue<uint64_t>());
+        value = std::to_string(Endian::fromLittleEndianToNative(vsi.readValue<uint64_t>()));
         break;
     case vsi::ValueType::FLOAT:
-        value = std::to_string(vsi.readValue<float>());
+        value = std::to_string(Endian::fromLittleEndianToNative(vsi.readValue<float>()));
         break;
     case vsi::ValueType::DOUBLE:
     case vsi::ValueType::DATE:
-        value = std::to_string(vsi.readValue<double>());
+        value = std::to_string(Endian::fromLittleEndianToNative(vsi.readValue<double>()));
         break;
     case vsi::ValueType::BOOL:
         value = std::to_string(vsi.readValue<bool>());
@@ -801,7 +801,7 @@ std::string vsi::VSITools::extractTagValue(vsi::VSIStream& vsi, const vsi::TagIn
             value += "(";
         }
         for (uint32_t v = 0; v < nIntValues; v++) {
-            intValues[v] = vsi.readValue<int32_t>();
+            intValues[v] = Endian::fromLittleEndianToNative(vsi.readValue<int32_t>());
             value += std::to_string(intValues[v]);
             if (v < nIntValues - 1) {
                 value += ", ";
@@ -829,7 +829,7 @@ std::string vsi::VSITools::extractTagValue(vsi::VSIStream& vsi, const vsi::TagIn
             value += "(";
         }
         for (int v = 0; v < nDoubleValues; v++) {
-            doubleValues[v] = vsi.readValue<double>();
+            doubleValues[v] = Endian::fromLittleEndianToNative(vsi.readValue<double>());
             value += std::to_string(doubleValues[v]);
             if (v < nDoubleValues - 1) {
                 value += ", ";

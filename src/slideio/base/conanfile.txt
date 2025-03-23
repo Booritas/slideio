@@ -1,5 +1,5 @@
 [requires]
-boost/1.81.0@slideio/stable
-glog/0.6.0@slideio/stable
-[options]
-glog:shared=True
+glog/0.7.1
+[generators]
+CMakeDeps
+CMakeToolchain

@@ -31,7 +31,6 @@ TEST(TileComposer, composeRect)
     meanStdDev(whiteImage, whiteMean, whiteStddev);
     EXPECT_TRUE(whiteMean==white);
     EXPECT_TRUE(blackMean==black);
-    EXPECT_TRUE(whiteStddev==cv::Scalar(0, 0, 0));
+    EXPECT_TRUE(whiteStddev[0] < 1.e-5 && whiteStddev[1] < 1.e-5 && whiteStddev[2] < 1.e-5);
     EXPECT_TRUE(blackStddev==cv::Scalar(0, 0, 0));
-    
 }

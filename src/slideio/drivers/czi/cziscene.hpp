@@ -78,8 +78,6 @@ namespace slideio
         std::string getChannelName(int channel) const override;
         Resolution getResolution() const override;
         double getMagnification() const override;
-        void readResampledBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize,
-            const std::vector<int>& componentIndices, cv::OutputArray output) override;
         std::string getName() const override;
         void init(uint64_t sceneId, SceneParams& sceneParams, const std::string& filePath, const CZISubBlocks& blocks, CZISlide* slide);
         // interface Tiler implementaton
@@ -94,7 +92,6 @@ namespace slideio
         void addAuxImage(const std::string& name, std::shared_ptr<CVScene> image);
         std::shared_ptr<CVScene> getAuxImage(const std::string& sceneName) const override;
         bool isMosaic() const { return m_bMosaic; }
-    protected:
         void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
             const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output) override;
     private:
@@ -112,7 +109,7 @@ namespace slideio
         const Tile& getTile(const TilerData* tilerData, int tileIndex) const;
         const CZISubBlocks& getBlocks(const TilerData* tilerData) const;
         bool blockHasData(const CZISubBlock& block, const std::vector<int>& componentIndices, const TilerData* tilerData);
-        static std::vector<uint8_t> decodeData(const CZISubBlock& block, const std::vector<unsigned char>& encodedData);
+        std::vector<uint8_t> decodeData(const CZISubBlock& block, const std::vector<unsigned char>& encodedData);
         void unpackChannels(const CZISubBlock& block, const std::vector<int>& orgComponentIndices, const std::vector<unsigned char>& blockData, const TilerData* tilerData, std::vector<cv::Mat>& componentRasters);
         void computeSceneMetadata();
     public:

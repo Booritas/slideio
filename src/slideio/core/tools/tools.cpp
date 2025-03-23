@@ -5,21 +5,39 @@
 #include "slideio/core/tools/tools.hpp"
 
 #include <codecvt>
-#include <boost/algorithm/string.hpp>
 #include <numeric>
-#include <boost/format.hpp>
-#include <boost/filesystem.hpp>
 #include "slideio/base/exceptions.hpp"
+#include <filesystem>
 #if defined(WIN32)
 #include <Shlwapi.h>
 #else
 #include <fnmatch.h>
 #endif
+#include <string>
+#include <stdexcept>
+#include <unicode/unistr.h>
+//#include <arpa/inet.h>
+
 using namespace slideio;
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 
-extern "C" int wildmat(char* text, char* p);
+extern "C" {
+    #include "wildmat.h"
+}
 
+std::vector<std::string> Tools::split(const std::string& val, char delimiter) {
+    std::vector<std::string> tokens;
+    std::string token;
+    std::istringstream tokenStream(val);
+    while (std::getline(tokenStream, token, delimiter)) {
+        tokens.push_back(token);
+    }
+    // Check for trailing delimiter
+    if (!val.empty() && val.back() == delimiter) {
+        tokens.push_back("");
+    }
+    return tokens;
+}
 
 bool Tools::matchPattern(const std::string& path, const std::string& pattern)
 {
@@ -29,8 +47,7 @@ bool Tools::matchPattern(const std::string& path, const std::string& pattern)
     const std::wstring wpattern = Tools::toWstring(pattern);
     ret = PathMatchSpecW(wpath.c_str(), wpattern.c_str()) != 0;
 #else
-    std::vector<std::string> subPatterns;
-    boost::algorithm::split(subPatterns, pattern, boost::is_any_of(";"), boost::algorithm::token_compress_on);
+    std::vector<std::string> subPatterns = split(pattern, ';');
     for(const auto& sub_pattern : subPatterns)
     {
         ret = wildmat(const_cast<char*>(path.c_str()),const_cast<char*>(sub_pattern.c_str()));
@@ -42,26 +59,26 @@ bool Tools::matchPattern(const std::string& path, const std::string& pattern)
     return ret;
 }
 
-inline void convertPair12BitsTo16Bits(uint8_t* source, uint16_t* target)
-{
-    target[0] = (*((uint16_t*)source)) & 0xFFF;
-    uint8_t* next = source + 1;
-    target[1] = (*((uint16_t*)(source + 1))) >> 4;
-}
 
-void Tools::convert12BitsTo16Bits(uint8_t* source, uint16_t* target, int targetLen)
-{
-    uint16_t buff[2] = {0};
-    uint16_t* targetPtr = target;
-    uint8_t* sourcePtr = source;
-    int srcBits = 0;
-    for (int ind = 0; ind < targetLen; ind += 2, targetPtr += 2, sourcePtr += 3) {
-        if ((ind + 1) < targetLen) {
-            convertPair12BitsTo16Bits(sourcePtr, targetPtr);
+void Tools::convert12BitsTo16Bits(const uint8_t* source, uint16_t* target, int targetLen) {
+    if (!source || !target || targetLen <= 0)
+        RAISE_RUNTIME_ERROR << "Tools::convert12BitsTo16Bits: Invalid parameters"
+        << "source:" << (source != nullptr)
+        << " target:" << (target != nullptr)
+        << " targetLen:" << targetLen;
+    int index = 0;
+    while (index < targetLen) {
+        // Extract two 12-bit numbers from 3 bytes
+        const uint16_t first = (source[0] << 4) | (source[1] >> 4);
+        target[index++] = first;
+        if (index < targetLen) {
+            const uint16_t second = ((source[1] & 0x0F) << 8) | source[2];
+            target[index++] = second;
         }
         else {
-            *targetPtr = (*((uint16_t*)sourcePtr)) & 0xFFF;
+            break;
         }
+        source += 3;
     }
 }
 
@@ -87,38 +104,49 @@ void slideio::Tools::scaleRect(const cv::Rect& srcRect, double scaleX, double sc
     trgRect.height = dyn - trgRect.y;
 }
 
-std::wstring Tools::toWstring(const std::string& string)
+#if defined(WIN32)
+  std::wstring Tools::toWstring(const std::string& utf8Str)
 {
-    std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converter;
-    std::wstring wstr = converter.from_bytes(string);
-    return wstr;
-}
+      if (utf8Str.empty()) {
+          return std::wstring();
+      }
+	  const int bytes = static_cast<int>(utf8Str.length());
+      const int wlen = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, utf8Str.c_str(), bytes, nullptr, 0);
+      if (wlen == 0) {
+          DWORD error = GetLastError();
+          if(error== ERROR_NO_UNICODE_TRANSLATION) {
+              RAISE_RUNTIME_ERROR << "Unrecognized UTF-8 charachters: " << utf8Str;
+          }
+          return std::wstring();
+      }
 
-std::string Tools::fromWstring(const std::wstring& wstring)
+      std::wstring wstr(wlen, L'\0');
+      MultiByteToWideChar(CP_UTF8, 0, utf8Str.c_str(), bytes, wstr.data(), wlen);
+      
+      return wstr;
+  }
+#endif
+
+
+std::string Tools::fromUnicode16(const std::u16string& u16string)
 {
-    std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converter;
-    std::string str = converter.to_bytes(wstring);
-    return str;
-}
-
-std::string Tools::fromUnicode16(const std::u16string& u16string) {
-    std::wstring_convert<std::codecvt_utf8<char16_t>, char16_t> converter;
-    std::string str = converter.to_bytes(u16string);
-    str.erase(std::find(str.begin(), str.end(), '\0'), str.end());
-    return str;
+    if (u16string.empty()) return std::string();
+    icu::UnicodeString unicode_str(reinterpret_cast<const UChar*>(u16string.data()), (int)u16string.length());
+    std::string utf8_string;
+    unicode_str.toUTF8String(utf8_string);
+    return utf8_string;
 }
 
 void Tools::throwIfPathNotExist(const std::string& path, const std::string label)
 {
-    namespace fs = boost::filesystem;
 #if defined(WIN32)
     std::wstring wsPath = Tools::toWstring(path);
-    boost::filesystem::path filePath(wsPath);
+    fs::path filePath(wsPath);
     if (!fs::exists(wsPath)) {
         RAISE_RUNTIME_ERROR << label << "File " << path << " does not exist";
     }
 #else
-    boost::filesystem::path filePath(path);
+    fs::path filePath(path);
     if (!fs::exists(filePath)) {
         RAISE_RUNTIME_ERROR << label << " File " << path << " does not exist";
     }
@@ -202,4 +230,36 @@ uint64_t Tools::getFileSize(FILE* file)
     uint64_t size = Tools::getFilePos(file);
     Tools::setFilePos(file, pos, SEEK_SET);
     return size;
+}
+
+int Tools::dataTypeSize(slideio::DataType dt)
+{
+    switch (dt)
+    {
+    case DataType::DT_Byte:
+    case DataType::DT_Int8:
+        return 1;
+    case DataType::DT_UInt16:
+    case DataType::DT_Int16:
+    case DataType::DT_Float16:
+        return 2;
+    case DataType::DT_Int32:
+    case DataType::DT_Float32:
+        return 4;
+    case DataType::DT_Float64:
+        return 8;
+    case DataType::DT_Unknown:
+    case DataType::DT_None:
+        break;
+    }
+    RAISE_RUNTIME_ERROR << "Unknown data type: " << (int)dt;
+}
+
+void Tools::replaceAll(std::string& str, const std::string& from, const std::string& to)
+{
+    size_t start_pos = 0;
+    while ((start_pos = str.find(from, start_pos)) != std::string::npos) {
+        str.replace(start_pos, from.length(), to);
+        start_pos += to.length();
+    }
 }

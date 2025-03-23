@@ -5,9 +5,7 @@
 #include "slideio/drivers/czi/cziscene.hpp"
 #include "slideio/drivers/czi/czistructs.hpp"
 #include "slideio/core/tools/xmltools.hpp"
-#include <boost/algorithm/string.hpp>
-#include <boost/filesystem.hpp>
-#include <boost/format.hpp>
+#include <filesystem>
 #include <tinyxml2.h>
 #include <set>
 
@@ -16,6 +14,7 @@
 #include "slideio/base/exceptions.hpp"
 #include "slideio/base/log.hpp"
 #include "slideio/core/tools/tools.hpp"
+#include "slideio/core/tools/endian.hpp"
 
 using namespace slideio;
 using namespace tinyxml2;
@@ -49,10 +48,8 @@ std::string CZISlide::getFilePath() const
 
 std::shared_ptr<CVScene> CZISlide::getScene(int index) const
 {
-    if(index<0 || index>=getNumScenes())
-    {
-        throw std::runtime_error(
-            (boost::format("CZIImageDriver: Invalid scene index %1%") % index).str());
+    if(index<0 || index>=getNumScenes()) {
+        RAISE_RUNTIME_ERROR << "CZIImageDriver: Invalid scene index: " << index;
     }
 
 	return m_scenes[index];
@@ -76,9 +73,7 @@ void CZISlide::readBlock(uint64_t pos, uint64_t size, std::vector<unsigned char>
 std::shared_ptr<CVScene> CZISlide::getAuxImage(const std::string& sceneName) const {
     auto it = m_auxImages.find(sceneName);
     if(it==m_auxImages.end()) {
-        throw std::runtime_error(
-            (boost::format("CZIImageDriver: unknown auxiliary image %1%") % sceneName).str()
-        );
+        RAISE_RUNTIME_ERROR << "CZIImageDriver: unknown auxiliary image: " << sceneName;
     }
     return it->second;
 }
@@ -93,6 +88,7 @@ void CZISlide::readAttachments()
             AttachmentDirectorySegment attachmentDirectory{};
             m_fileStream.seekg(m_attachmentDirectoryPosition, std::ios_base::beg);
             m_fileStream.read((char*)&attachmentDirectory, sizeof(attachmentDirectory));
+			updateAttachmentDirectorySegmentBE(attachmentDirectory);
             if (strcmp(attachmentDirectory.header.SID, SID_ATTACHMENT_DIR) == 0) {
                 SLIDEIO_LOG(INFO) << "Reading attachment header. Number of attachments: "
                     << m_attachmentDirectoryPosition
@@ -106,6 +102,7 @@ void CZISlide::readAttachments()
                     m_fileStream.seekg(pos, std::ios_base::beg);
                     AttachmentEntry entry{ 0 };
                     m_fileStream.read(reinterpret_cast<char*>(&entry), sizeof(entry));
+					updateAttachmentEntryBE(entry);
                     SLIDEIO_LOG(INFO) << "Attachment Schema Type:" << entry.schemaType;
                     SLIDEIO_LOG(INFO) << "Attachment Content Type:" << entry.contentFileType;
                     if (!m_fileStream) {
@@ -171,9 +168,8 @@ void CZISlide::parseMetadataXmL(const char* xmlString, size_t dataSize)
 {
     XMLDocument doc;
     XMLError error = doc.Parse(xmlString, dataSize);
-    if (error != XML_SUCCESS)
-    {
-        throw std::runtime_error("CZIImageDriver: Error parsing metadata xml");
+    if (error != XML_SUCCESS)  {
+        RAISE_RUNTIME_ERROR << "CZIImageDriver: Error parsing metadata xml";
     }
     const std::vector<std::string> titlePath = {
         "ImageDocument","Metadata","Information", "Document","Title"
@@ -284,20 +280,21 @@ void CZISlide::readMetadata()
     // read segment header
     SegmentHeader header{};
     m_fileStream.read((char*)&header, sizeof(header));
+	updateSegmentHeaderBE(header);
     if (strncmp(header.SID, SID_METADATA, sizeof(SID_METADATA)) != 0)
     {
-        throw std::runtime_error(
-            (boost::format("CZIImageDriver: invalid metadata segment in file %1%.") % m_filePath).str());
+        RAISE_RUNTIME_ERROR << "CZIImageDriver: invalid metadata segment in file: " << m_filePath;
     }
     // read metadata header
     MetadataHeader metadataHeader{};
     m_fileStream.read((char*)&metadataHeader, sizeof(metadataHeader));
+	updateMetadataHeaderBE(metadataHeader);
     const uint32_t xmlSize = metadataHeader.xmlSize;;
     std::vector<char> xmlString(xmlSize);
     // read metadata xml
     m_fileStream.read(xmlString.data(), xmlSize);
     m_rawMetadata.assign(xmlString.data(), xmlSize);
-    boost::replace_all(m_rawMetadata,"\r\n","\n");
+    Tools::replaceAll(m_rawMetadata, "\r\n", "\n");
     parseMetadataXmL(xmlString.data(), xmlSize);
 }
 
@@ -306,12 +303,13 @@ void CZISlide::readFileHeader(FileHeader& fileHeader) {
     uint64_t pos = m_fileStream.tellg();
     SegmentHeader header{};
     m_fileStream.read(reinterpret_cast<char*>(&header), sizeof(header));
-    if (strncmp(header.SID, SID_FILES, sizeof(SID_FILES)) != 0)
-    {
-        throw std::runtime_error(
-            (boost::format("CZIImageDriver: file %1% is not a CZI file.") % m_filePath).str());
+    updateSegmentHeaderBE(header);
+    if (strncmp(header.SID, SID_FILES, sizeof(SID_FILES)) != 0) {
+        RAISE_RUNTIME_ERROR << "CZIImageDriver:" << m_filePath << " is not a CZI file.";
     }
     m_fileStream.read(reinterpret_cast<char*>(&fileHeader), sizeof(fileHeader));
+	updateFileHeaderBE(fileHeader);
+	m_fileStream.seekg(pos);
 }
 
 void CZISlide::readFileHeader()
@@ -328,13 +326,13 @@ void CZISlide::readSubBlocks(uint64_t directoryPosition, uint64_t originPos, std
     // read segment header
     SegmentHeader header{};
     m_fileStream.read(reinterpret_cast<char*>(&header), sizeof(header));
-    if (strncmp(header.SID, SID_DIRECTORY, sizeof(SID_DIRECTORY)) != 0)
-    {
-        throw std::runtime_error(
-            (boost::format("CZIImageDriver: invalid directory segment of file %1%.") % m_filePath).str());
+    updateSegmentHeaderBE(header);
+    if (strncmp(header.SID, SID_DIRECTORY, sizeof(SID_DIRECTORY)) != 0) {
+        RAISE_RUNTIME_ERROR << "CZIImageDriver: invalid directory segment of file " << m_filePath;
     }
     DirectoryHeader directoryHeader{};
     m_fileStream.read(reinterpret_cast<char*>(&directoryHeader), sizeof(directoryHeader));
+	updateDirectoryHeaderBE(directoryHeader);
     std::map<uint64_t, int> sceneMap;
     auto filePos = m_fileStream.tellg();
     for (unsigned int entry = 0; entry < directoryHeader.entryCount; ++entry)
@@ -345,18 +343,22 @@ void CZISlide::readSubBlocks(uint64_t directoryPosition, uint64_t originPos, std
             DirectoryEntryDV entryHeader{};
             m_fileStream.seekg(filePos);
             m_fileStream.read(reinterpret_cast<char*>(&entryHeader), sizeof(entryHeader));
+			updateDirectoryEntryBE(entryHeader);
             std::vector<DimensionEntryDV> dimensions(entryHeader.dimensionCount);
             for (int dim = 0; dim < entryHeader.dimensionCount; ++dim)
             {
                 DimensionEntryDV& dimEntry = dimensions[dim];
                 m_fileStream.read(reinterpret_cast<char*>(&dimEntry), sizeof(dimEntry));
+				updateDimensionEntryBE(dimEntry);
             }
             filePos = m_fileStream.tellg();
             m_fileStream.seekg(entryHeader.filePosition + originPos);
             SegmentHeader segmentHeader;
             m_fileStream.read((char*)&segmentHeader, sizeof(segmentHeader));
+			updateSegmentHeaderBE(segmentHeader);
             SubBlockHeader subblockHeader;
             m_fileStream.read((char*)&subblockHeader, sizeof(subblockHeader));
+			updateSublockHeaderBE(subblockHeader);
             subblockHeader.direEntry.filePosition += originPos;
             block.setupBlock(subblockHeader, dimensions);
             const std::vector<Dimension>& blockDimensions = block.dimensions();
@@ -488,6 +490,7 @@ void CZISlide::addAuxiliaryImage(const std::string& name, const std::string& typ
     m_fileStream.seekg(position, std::ios_base::beg);
     AttachmentSegment attachmentSegment;
     m_fileStream.read(reinterpret_cast<char*>(&attachmentSegment), sizeof(attachmentSegment));
+	updateAttachmentSegmentBE(attachmentSegment);
     if (strcmp(attachmentSegment.header.SID, SID_ATTACHMENT_CONTENT) == 0)
     {
         int64_t dataSize = attachmentSegment.data.dataSize;
@@ -499,9 +502,7 @@ void CZISlide::addAuxiliaryImage(const std::string& name, const std::string& typ
             createJpgAttachmentScenes(dataPosition, dataSize, name);
         }
         else {
-            throw std::runtime_error(
-                (boost::format("CZIImageDriver: unexpected attachment image type %1%") % typeName).str()
-            );
+            RAISE_RUNTIME_ERROR << "CZIImageDriver: unexpected attachment image type " << typeName;
         }
     }
 }
@@ -523,7 +524,7 @@ void CZISlide::createCZIAttachmentScenes(const int64_t dataPos, int64_t dataSize
         std::shared_ptr<CZIScene> scene = constructScene(sceneId, blocks);
         std::string sceneName = attachmentName;
         if (multiScene) {
-            sceneName += (boost::format("(%1%)") % (sceneIndex + 1)).str();
+            sceneName += std::string("(") + std::to_string(sceneIndex + 1) + std::string(")");
         }
         m_auxImages[sceneName] = scene;
         m_auxNames.push_back(sceneName);
@@ -540,4 +541,115 @@ void CZISlide::createJpgAttachmentScenes(const int64_t dataPosition, int64_t dat
         m_auxImages[name] = attachment;
         m_auxNames.push_back(name);
     }
+}
+
+void CZISlide::updateSegmentHeaderBE(SegmentHeader& header)
+{
+	if (Endian::isLittleEndian())
+		return;
+	header.allocatedSize = Endian::fromLittleEndianToNative(header.allocatedSize);
+	header.usedSize = Endian::fromLittleEndianToNative(header.usedSize);
+}
+void CZISlide::updateFileHeaderBE(FileHeader& header)
+{
+    if (Endian::isLittleEndian())
+        return;
+    header.majorVersion = Endian::fromLittleEndianToNative(header.majorVersion);
+	header.minorVerion = Endian::fromLittleEndianToNative(header.minorVerion);
+	header.directoryPosition = Endian::fromLittleEndianToNative(header.directoryPosition);
+	header.metadataPosition = Endian::fromLittleEndianToNative(header.metadataPosition);
+	header.updatePending = Endian::fromLittleEndianToNative(header.updatePending);
+	header.attachmentDirectoryPosition = Endian::fromLittleEndianToNative(header.attachmentDirectoryPosition);
+}
+
+void CZISlide::updateMetadataHeaderBE(MetadataHeader& header)
+{
+    if (Endian::isLittleEndian())
+        return;
+    header.xmlSize = Endian::fromLittleEndianToNative(header.xmlSize);
+	header.attachmentSize = Endian::fromLittleEndianToNative(header.attachmentSize);
+}
+
+void CZISlide::updateDirectoryHeaderBE(DirectoryHeader& header)
+{
+    if (Endian::isLittleEndian())
+        return;
+    header.entryCount = Endian::fromLittleEndianToNative(header.entryCount);
+}
+
+void CZISlide::updateDirectoryEntryBE(DirectoryEntryDV& entry)
+{
+    if (Endian::isLittleEndian())
+        return;
+    entry.pixelType = Endian::fromLittleEndianToNative(entry.pixelType);
+	entry.filePosition = Endian::fromLittleEndianToNative(entry.filePosition);
+	entry.filePart = Endian::fromLittleEndianToNative(entry.filePart);
+	entry.compression = Endian::fromLittleEndianToNative(entry.compression);
+	entry.dimensionCount = Endian::fromLittleEndianToNative(entry.dimensionCount);
+}
+
+void CZISlide::updateDimensionEntryBE(DimensionEntryDV& entry) {
+    if (Endian::isLittleEndian())
+        return;
+    entry.start = Endian::fromLittleEndianToNative(entry.start);
+	entry.size = Endian::fromLittleEndianToNative(entry.size);
+	entry.storedSize = Endian::fromLittleEndianToNative(entry.storedSize);
+	entry.startCoordinate = Endian::fromLittleEndianToNative(entry.startCoordinate);
+}
+
+void CZISlide::updateSublockHeaderBE(SubBlockHeader& header) {
+    if (Endian::isLittleEndian())
+        return;
+    header.metadataSize = Endian::fromLittleEndianToNative(header.metadataSize);
+	header.attachmentSize = Endian::fromLittleEndianToNative(header.attachmentSize);
+	header.dataSize = Endian::fromLittleEndianToNative(header.dataSize);
+	updateDirectoryEntryBE(header.direEntry);
+    
+}
+
+void CZISlide::updateAttachmentEntryBE(AttachmentEntry& entry) {
+    if (Endian::isLittleEndian())
+        return;
+    entry.filePosition = Endian::fromLittleEndianToNative(entry.filePosition);
+	entry.filePart = Endian::fromLittleEndianToNative(entry.filePart);
+}
+
+void CZISlide::updateAttachmentDirectorySegmentDataBE(AttachmentDirectorySegmentData& data) {
+	data.entryCount = Endian::fromLittleEndianToNative(data.entryCount);
+}
+
+void CZISlide::updateAttachmentDirectorySegmentBE(AttachmentDirectorySegment& segment) {
+    if (Endian::isLittleEndian())
+        return;
+    updateSegmentHeaderBE(segment.header);
+	updateAttachmentDirectorySegmentDataBE(segment.data);
+}
+
+void CZISlide::updateAttachmentEntryA1BE(AttachmentEntryA1& entry) {
+    if (Endian::isLittleEndian())
+        return;
+    entry.filePosition = Endian::fromLittleEndianToNative(entry.filePosition);
+	entry.filePart = Endian::fromLittleEndianToNative(entry.filePart);
+}
+
+void CZISlide::updateAttachmentSegmentDataBE(AttachmentSegmentData& data) {
+    if (Endian::isLittleEndian())
+        return;
+    data.dataSize = Endian::fromLittleEndianToNative(data.dataSize);
+    updateAttachmentEntryA1BE(data.attachmentEntry);
+}
+
+void CZISlide::updateAttachmentSegmentBE(AttachmentSegment& segment)
+{
+    if (Endian::isLittleEndian())
+        return;
+    updateSegmentHeaderBE(segment.header);
+	updateAttachmentSegmentDataBE(segment.data);
+}
+
+void CZISlide::updateDimensionBE(Dimension& dim) {
+    if (Endian::isLittleEndian())
+        return;
+    dim.start = Endian::fromLittleEndianToNative(dim.start);
+	dim.size = Endian::fromLittleEndianToNative(dim.size);
 }

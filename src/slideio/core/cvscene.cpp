@@ -2,10 +2,10 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/core/cvscene.hpp"
-#include "slideio/imagetools/cvtools.hpp"
+#include "slideio/core/tools/cvtools.hpp"
 
 #include <numeric>
-
+#include <mutex>
 #include "slideio/base/exceptions.hpp"
 
 
@@ -41,6 +41,7 @@ void CVScene::readResampledBlockChannels(const cv::Rect& blockRect,
     const cv::Size& blockSize, const std::vector<int>& channelIndices,
     cv::OutputArray output) {
     RefCounterGuard guard(this);
+    std::lock_guard<std::mutex> lock(m_readBlockMutex);
     readResampledBlockChannelsEx(blockRect, blockSize, channelIndices, 0, 0, output);
 }
 
@@ -144,6 +145,7 @@ void CVScene::readResampled4DBlockChannels(const cv::Rect& blockRect, const cv::
                 indices[zLocalIndex] = sliceCounter;
             }
             if (planeMatrix) {
+				std::lock_guard<std::mutex> lock(m_readBlockMutex);
                 readResampledBlockChannelsEx(blockRect, blockSize, channelIndices, zSlieceIndex, tfIndex, dataRaster);
             }
             else {
@@ -161,19 +163,6 @@ std::shared_ptr<CVScene> CVScene::getAuxImage(const std::string& sceneName) cons
     throw std::runtime_error("The scene does not have any auxiliary image");
 }
 
-void CVScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
-                                           const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output)
-{
-    RefCounterGuard guard(this);
-    if (zSliceIndex== 0 && tFrameIndex == 0)
-    {
-        readResampledBlockChannels(blockRect, blockSize, componentIndices, output);
-    }
-    else
-    {
-        throw std::runtime_error("4D API are not supported by this driver");
-    }
-}
 
 int CVScene::getNumZoomLevels() const {
     return static_cast<int>(m_levels.size());

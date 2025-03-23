@@ -3,8 +3,6 @@
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/drivers/czi/cziimagedriver.hpp"
 #include "slideio/drivers/czi/czislide.hpp"
-#include <boost/filesystem.hpp>
-
 #include "slideio/core/tools/tools.hpp"
 
 using namespace slideio;

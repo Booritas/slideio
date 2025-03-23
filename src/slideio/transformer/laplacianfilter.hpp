@@ -2,15 +2,54 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #pragma once
-#include "transformation.hpp"
+#include "slideio/transformer/transformationex.hpp"
 #include "slideio/base/slideio_enums.hpp"
+#include "slideio/transformer/transformationtype.hpp"
 
 namespace slideio
 {
 
-    class SLIDEIO_TRANSFORMER_EXPORTS LaplacianFilter : public Transformation
+    class SLIDEIO_TRANSFORMER_EXPORTS LaplacianFilter : public TransformationEx
     {
     public:
+        LaplacianFilter(const LaplacianFilter& other)
+            : TransformationEx(other),
+              m_depth(other.m_depth),
+              m_kernelSize(other.m_kernelSize),
+              m_scale(other.m_scale),
+              m_delta(other.m_delta) {
+        }
+
+        LaplacianFilter(LaplacianFilter&& other) noexcept
+            : TransformationEx(std::move(other)),
+              m_depth(other.m_depth),
+              m_kernelSize(other.m_kernelSize),
+              m_scale(other.m_scale),
+              m_delta(other.m_delta) {
+        }
+
+        LaplacianFilter& operator=(const LaplacianFilter& other) {
+            if (this == &other)
+                return *this;
+            TransformationEx::operator =(other);
+            m_depth = other.m_depth;
+            m_kernelSize = other.m_kernelSize;
+            m_scale = other.m_scale;
+            m_delta = other.m_delta;
+            return *this;
+        }
+
+        LaplacianFilter& operator=(LaplacianFilter&& other) noexcept {
+            if (this == &other)
+                return *this;
+            TransformationEx::operator =(std::move(other));
+            m_depth = other.m_depth;
+            m_kernelSize = other.m_kernelSize;
+            m_scale = other.m_scale;
+            m_delta = other.m_delta;
+            return *this;
+        }
+
         LaplacianFilter()
         {
             m_type = TransformationType::LaplacianFilter;

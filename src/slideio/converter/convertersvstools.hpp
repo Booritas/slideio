@@ -5,21 +5,21 @@
 #define OPENCV_slideio_convertersvstools_HPP
 
 #include "slideio/converter/converter_def.hpp"
-#include "slideio/core/cvscene.hpp"
 #include "slideio/imagetools/tiffkeeper.hpp"
+#include "slideio/converter/convertercallback.hpp"
 
 namespace slideio
 {
     class ConverterParameters;
     class SVSConverterParameters;
-    typedef const std::function<void(int)>& ConverterCallback;
+    class CVScene;
     class SLIDEIO_CONVERTER_EXPORTS ConverterSVSTools
     {
     public:
-        static void checkSVSRequirements(const CVScenePtr& scene, const SVSConverterParameters& parameters);
-        static std::string createDescription(const CVScenePtr& scene, const SVSConverterParameters& parameters);
-        static void createZoomLevel(TIFFKeeperPtr& file, int zoomLevel, const CVScenePtr& scene, SVSConverterParameters& parameters, const std::function<void(int, int)>& cb = nullptr);
-        static void createSVS(TIFFKeeperPtr& file, const CVScenePtr& scene, SVSConverterParameters& parameters, ConverterCallback cb);
+        static void checkSVSRequirements(const std::shared_ptr<slideio::CVScene>& scene, const SVSConverterParameters& parameters);
+        static std::string createDescription(const std::shared_ptr<slideio::CVScene>& scene, const SVSConverterParameters& parameters);
+        static void createZoomLevel(TIFFKeeperPtr& file, int zoomLevel, const std::shared_ptr<slideio::CVScene>& scene, SVSConverterParameters& parameters, const std::function<void(int, int)>& cb = nullptr);
+        static void createSVS(TIFFKeeperPtr& file, const std::shared_ptr<slideio::CVScene>& scene, SVSConverterParameters& parameters, ConverterCallback cb);
     };
 }
 #endif

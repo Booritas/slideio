@@ -5,17 +5,21 @@
 #include <codecvt>
 #include <fstream>
 #include <numeric>
-#include <boost/filesystem/path.hpp>
+#include <filesystem>
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/core/mat.hpp>
 #include "slideio/base/exceptions.hpp"
 #include "slideio/imagetools/tifftools.hpp"
-#include <png.h>
-
+#include "slideio/core/imagedriver.hpp"
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/imagetools/tiffkeeper.hpp"
+#include <png.h>
+#include <random>
+#include <thread>
 
+#include "slideio/core/tools/cvtools.hpp"
+#include "slideio/core/tools/endian.hpp"
 
 static const char* TEST_PATH_VARIABLE = "SLIDEIO_TEST_DATA_PATH";
 static const char* PRIV_TEST_PATH_VARIABLE = "SLIDEIO_TEST_DATA_PRIV_PATH";
@@ -46,9 +50,9 @@ std::string TestTools::getTestImageDirectory(bool priv)
 {
     const char *varName = priv ? PRIV_TEST_PATH_VARIABLE : TEST_PATH_VARIABLE;
     const char* var = getenv(varName);
-    if(var==nullptr)
-        throw std::runtime_error(
-            std::string("Undefined environment variable: " + std::string(varName)));
+    if(var==nullptr) {
+        RAISE_RUNTIME_ERROR << "Undefined environment variable: " << varName;
+    }
     std::string testDirPath(var);
     return testDirPath;
 }
@@ -60,21 +64,21 @@ std::string TestTools::getTestImagePath(const std::string& subfolder, const std:
     if(!subfolder.empty())
         imagePath += std::string("/") + subfolder;
     imagePath += std::string("/") +  image;
-    return boost::filesystem::path(imagePath).lexically_normal().string();
+    return std::filesystem::path(imagePath).lexically_normal().string();
 }
 
 std::string TestTools::getFullTestImagePath(const std::string& subfolder, const std::string& image)
 {
     const char* varName = TEST_FULL_TEST_PATH_VARIABLE;
     const char* var = getenv(varName);
-    if (var == nullptr)
-        throw std::runtime_error(
-            std::string("Undefined environment variable: " + std::string(varName)));
+    if (var == nullptr) {
+        RAISE_RUNTIME_ERROR << "Undefined environment variable: " << varName;
+    }
     std::string imagePath(var);
     if (!subfolder.empty())
         imagePath += std::string("/") + subfolder;
     imagePath += std::string("/") + image;
-    return boost::filesystem::path(imagePath).lexically_normal().string();
+    return std::filesystem::path(imagePath).lexically_normal().string();
 }
 
 
@@ -87,6 +91,10 @@ void TestTools::readRawImage(std::string& path, cv::Mat& image)
     is.seekg(0, std::ios::beg);
     is.read((char*)image.data, image.total() * image.elemSize());
     is.close();
+    const int cvType = image.type() & CV_MAT_DEPTH_MASK;
+    const slideio::DataType dt = slideio::CVTools::fromOpencvType(cvType);
+    slideio::Endian::fromLittleEndianToNative(dt, image.data, image.total() * image.elemSize());
+
 }
 
 void TestTools::compareRasters(cv::Mat& raster1, cv::Mat& raster2)
@@ -99,18 +107,39 @@ void TestTools::compareRasters(cv::Mat& raster1, cv::Mat& raster2)
     EXPECT_EQ(maxVal, 0);
 }
 
- #include <opencv2/highgui.hpp>
+bool TestTools::compareRastersEx(cv::Mat& raster1, cv::Mat& raster2)
+{
+    cv::Mat diff = raster1 != raster2;
+    // Equal if no elements disagree
+    double minVal(1.), maxVal(1.);
+    cv::minMaxLoc(diff, &minVal, &maxVal);
+    return minVal < 1.e-6 && maxVal < 1.e-6;
+}
+
+bool TestTools::isRasterEmpty(cv::Mat& raster) {
+    double minVal(1.), maxVal(1.);
+    cv::minMaxLoc(raster, &minVal, &maxVal);
+    return std::fabs(minVal) < 1.e-6 && std::fabs(maxVal) < 1.e-6;
+}
+
+
+#if defined(_DEBUG) && defined(_WIN32)
+#include <opencv2/highgui.hpp>
+#endif
 
 void TestTools::showRaster(cv::Mat& raster)
 {
-    
-     cv::namedWindow("Display window", cv::WINDOW_AUTOSIZE);
-     cv::imshow("Display window", raster);
-     cv::waitKey(0);
+#if defined(_DEBUG) && defined(_WIN32)
+    cv::namedWindow("Display window", cv::WINDOW_AUTOSIZE);
+    cv::imshow("Display window", raster);
+    cv::waitKey(0);
+#endif
 }
+
 
 void TestTools::showRasters(cv::Mat& raster1, cv::Mat& raster2)
 {
+#if defined(_DEBUG) && defined(_WIN32)
     cv::Mat combinedRaster;
     cv::hconcat(raster1, cv::Mat::zeros(raster1.rows, 1, raster1.type()), combinedRaster);
     cv::hconcat(combinedRaster, raster2, combinedRaster);
@@ -118,6 +147,7 @@ void TestTools::showRasters(cv::Mat& raster1, cv::Mat& raster2)
     cv::namedWindow("Display window", cv::WINDOW_AUTOSIZE);
     cv::imshow("Display window", combinedRaster);
     cv::waitKey(0);
+#endif
 }
 
 
@@ -313,3 +343,66 @@ void TestTools::readTiffDirectories(const std::string& filePath, const std::vect
     cv::merge(images, output);
 }
 
+size_t TestTools::countNonZero(const cv::Mat& source) {
+    cv::Mat array = source.reshape( 1, 1);
+    return cv::countNonZero(array);
+}
+
+void TestTools::multiThreadedTest(const std::string& filePath, slideio::ImageDriver& driver, int numberRois, int numThreads) {
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide);
+    const int numScenes = slide->getNumScenes();
+    ASSERT_GE(numScenes, 1);
+    std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
+    EXPECT_TRUE(scene.get() != nullptr);
+    cv::Rect rect = scene->getRect();
+    const cv::Size blockSize(std::min(500, rect.width / 3), std::min(500, rect.height / 3));
+    const cv::Size resampledSize(blockSize.width / 2, blockSize.height / 2);
+    const int maxX = rect.width - blockSize.width;
+    const int maxY = rect.height - blockSize.height;
+
+    int dx = maxX / numberRois;
+    int dy = maxY / numberRois;
+    int x = 0;
+    int y = 0;
+
+    std::vector<std::tuple<cv::Rect, cv::Size>> rois(numberRois);
+    for (int i = 0; i < numberRois; ++i) {
+        cv::Point pnt(x, y);
+        rois[i] = { cv::Rect(pnt, blockSize), resampledSize };
+        x += dx;
+        y += dy;
+    }
+
+    std::mutex mapMutex;
+    std::vector<cv::Mat> testRasters(rois.size());
+
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dis(0, static_cast<int>(rois.size()) - 1);
+
+    auto worker = [&scene, &rois, &mapMutex, &testRasters, &dis, &gen]() {
+        int index = dis(gen);
+        auto [roi, blockSize] = rois[index];
+        cv::Mat raster;
+        scene->readResampled4DBlock(roi, blockSize, { 0, 1 }, { 0,1 }, raster);
+        {
+            std::lock_guard<std::mutex> lock(mapMutex);
+            if (testRasters[index].empty()) {
+                testRasters[index] = raster;
+            }
+            else {
+                TestTools::compareRasters(testRasters[index], raster);
+            }
+        }
+        };
+
+    std::vector<std::thread> threads;
+    threads.reserve(numThreads);
+    for (int i = 0; i < numThreads; ++i) {
+        threads.emplace_back(worker);
+    }
+    for (auto& t : threads) {
+        t.join();
+    }
+}

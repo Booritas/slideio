@@ -1,11 +1,24 @@
-﻿#include <gtest/gtest.h>
-#include "slideio/drivers/gdal/gdalimagedriver.hpp"
+﻿#include "slideio/drivers/gdal/gdalimagedriver.hpp"
 #include "tests/testlib/testtools.hpp"
-#include <numeric>
-
 #include "slideio/core/tools/tools.hpp"
-#include "slideio/imagetools/cvtools.hpp"
+#include "slideio/core/tools/cvtools.hpp"
 #include "slideio/slideio/slideio.hpp"
+
+#include <gtest/gtest.h>
+#include <numeric>
+#include <tinyxml2.h>
+#include <nlohmann/json.hpp>
+
+using namespace tinyxml2;
+using json = nlohmann::json;
+
+#include <gtest/gtest.h>
+#include <numeric>
+#include <tinyxml2.h>
+#include <nlohmann/json.hpp>
+
+using namespace tinyxml2;
+using json = nlohmann::json;
 
 TEST(GDALDriver, driverID)
 {
@@ -141,13 +154,13 @@ TEST(GDALDriver, readBlockPng)
     cv::Scalar colorMean, colorStddev;
     cv::meanStdDev(blockRaster, colorMean, colorStddev);
     EXPECT_EQ(colorMean[0],255);
-    EXPECT_EQ(colorStddev[0],0);
+    EXPECT_NEAR(colorStddev[0],0, 1e-5);
 
     EXPECT_EQ(colorMean[1], 255);
-    EXPECT_EQ(colorStddev[1], 0);
+    EXPECT_NEAR(colorStddev[1], 0, 1.e-5);
 
     EXPECT_EQ(colorMean[2], 0);
-    EXPECT_EQ(colorStddev[2], 0);
+    EXPECT_NEAR(colorStddev[2], 0, 1.e-5);
 
     cv::Mat channelRaster;
     std::vector<int> channelIndices = { 1 };
@@ -156,7 +169,7 @@ TEST(GDALDriver, readBlockPng)
     cv::Scalar channelMean, channelStddev;
     cv::meanStdDev(channelRaster, channelMean, channelStddev);
     EXPECT_EQ(channelMean[0], 255);
-    EXPECT_EQ(channelStddev[0], 0);
+    EXPECT_NEAR(channelStddev[0], 0, 1e-5);
 }
 
 TEST(GDALDriver, readBlockPngResampling)
@@ -254,4 +267,38 @@ TEST(GDALDriver, openFileUtf8)
         std::vector<uint8_t> raster(rasterSize);
         scene->readBlock(rect, raster.data(), raster.size());
     }
+}
+
+TEST(GDALDriver, metadataTiff)
+{
+        std::string filePath = TestTools::getFullTestImagePath("ometiff", u8"SPIM-ModuloAlongZ.ome.tiff");
+        std::shared_ptr<slideio::Slide> slide = slideio::openSlide(filePath, "GDAL");
+        std::string metadata = slide->getRawMetadata();
+		EXPECT_FALSE(metadata.empty());
+        EXPECT_EQ(0, metadata.find("<?xml"));
+		XMLDocument doc;
+		auto error = doc.Parse(metadata.c_str());
+		EXPECT_EQ(XML_SUCCESS, error);
+}
+
+TEST(GDALDriver, metadataJpeg)
+{
+    std::string filePath = TestTools::getTestImagePath("gdal", "Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg");
+    std::shared_ptr<slideio::Slide> slide = slideio::openSlide(filePath, "GDAL");
+    std::string metadata = slide->getRawMetadata();
+    EXPECT_FALSE(metadata.empty());
+    json jMtd = json::parse(metadata);
+    std::string val = jMtd["EXIF_PixelXDimension"];
+    EXPECT_EQ("5494", val);
+}
+
+TEST(GDALDriver, multiThreadSceneAccess) {
+    if (!TestTools::isFullTestEnabled())
+    {
+        GTEST_SKIP() <<
+            "Skip the test because full dataset is not enabled";
+    }
+    std::string filePath = TestTools::getTestImagePath("gdal", "Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg");
+    slideio::GDALImageDriver driver;
+    TestTools::multiThreadedTest(filePath, driver);
 }

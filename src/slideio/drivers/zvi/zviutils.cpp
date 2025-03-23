@@ -1,18 +1,20 @@
 // This file is part of slideio project.
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
-
+#include "slideio/base/exceptions.hpp"
 #include "zviutils.hpp"
-#include <boost/algorithm/string.hpp>
-#include <boost/format.hpp>
-
 #include "zvipixelformat.hpp"
+#include <locale>
+
+#include "slideio/core/tools/endian.hpp"
+#include "slideio/core/tools/tools.hpp"
 using namespace slideio;
 
 void ZVIUtils::skipItem(ole::basic_stream& stream)
 {
     uint16_t type;
     stream.read((char*)&type, sizeof(type));
+	type = Endian::fromLittleEndianToNative(type);
     uint32_t offset = 0;
     switch(type)
     {
@@ -48,6 +50,7 @@ void ZVIUtils::skipItem(ole::basic_stream& stream)
     case VT_BLOB:
     case VT_STORED_OBJECT:
         stream.read((char*)&offset, 4);
+		offset = Endian::fromLittleEndianToNative(offset);
         break;
     case VT_DISPATCH:
     case VT_UNKNOWN:
@@ -69,6 +72,7 @@ int32_t ZVIUtils::readIntItem(ole::basic_stream& stream)
 {
    uint16_t type(0);
    stream.read((char*)&type, sizeof(type));
+   type = Endian::fromLittleEndianToNative(type);
    if(type != VT_I4 && type != VT_INT)
    {
       std::string error =
@@ -78,13 +82,14 @@ int32_t ZVIUtils::readIntItem(ole::basic_stream& stream)
    }
    int32_t value;
    stream.read((char*)&value, sizeof(value));
-   return value;
+   return Endian::fromLittleEndianToNative(value);
 }
 
 double ZVIUtils::readDoubleItem(ole::basic_stream& stream)
 {
    uint16_t type(0);
    stream.read((char*)&type, sizeof(type));
+   type = Endian::fromLittleEndianToNative(type);
    if(type != VT_R8)
    {
       std::string error =
@@ -94,7 +99,7 @@ double ZVIUtils::readDoubleItem(ole::basic_stream& stream)
    }
    double value;
    stream.read((char*)&value, sizeof(value));
-   return value;
+   return Endian::fromLittleEndianToNative(value);
 }
 
 
@@ -103,13 +108,16 @@ static  std::string readStringValue(ole::basic_stream& stream)
     int32_t string_length;
     std::string value;
     stream.read((char*)&string_length, sizeof(string_length));
+    string_length = Endian::fromLittleEndianToNative(string_length);
     if(string_length > 0)
     {
         std::vector<char> buffer(string_length, 0);
         stream.read((char*)buffer.data(), string_length);
         std::u16string src((char16_t*)buffer.data());
-        std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> convert;
-        value = convert.to_bytes(src);
+		if (!Endian::isLittleEndian()) {
+			src = Endian::u16StringLittleToBig(src);
+		}
+        value = Tools::fromUnicode16(src);
     }
     return value;
 }
@@ -118,6 +126,7 @@ std::string ZVIUtils::readStringItem(ole::basic_stream& stream)
 {
    uint16_t type(0);
    stream.read((char*)&type, sizeof(type));
+   type = Endian::fromLittleEndianToNative(type);
    if(type != VT_BSTR)
    {
       std::string error = "Unexpected data type reading of compound stream. Expected string. Received:";
@@ -141,6 +150,7 @@ ZVIUtils::Variant ZVIUtils::readItem(ole::basic_stream& stream, bool skipUnusedT
     Variant value;
     uint16_t type;
     stream.read((char*)&type, sizeof(type));
+	type = Endian::fromLittleEndianToNative(type);
     uint32_t offset = 0;
     switch ((VARENUM)type)
     {
@@ -154,37 +164,37 @@ ZVIUtils::Variant ZVIUtils::readItem(ole::basic_stream& stream, bool skipUnusedT
         value = static_cast<int32_t>(readTypedValue<uint8_t>(stream));
         break;
     case VT_I2:
-        value = static_cast<int32_t>(readTypedValue<int16_t>(stream));
+        value = Endian::fromLittleEndianToNative(static_cast<int32_t>(readTypedValue<int16_t>(stream)));
         break;
     case VT_UI2:
-        value = static_cast<int32_t>(readTypedValue<uint16_t>(stream));
+        value = Endian::fromLittleEndianToNative(static_cast<int32_t>(readTypedValue<uint16_t>(stream)));
         break;
     case VT_BOOL:
-        value = static_cast<bool>(readTypedValue<uint16_t>(stream));
+        value = static_cast<bool>(Endian::fromLittleEndianToNative(readTypedValue<uint16_t>(stream)));
         break;
     case VT_I4:
-        value = static_cast<int32_t>(readTypedValue<int32_t>(stream));
+        value = Endian::fromLittleEndianToNative(static_cast<int32_t>(readTypedValue<int32_t>(stream)));
         break;
     case VT_INT:
-        value = static_cast<int32_t>(readTypedValue<int32_t>(stream));
+        value = Endian::fromLittleEndianToNative(static_cast<int32_t>(readTypedValue<int32_t>(stream)));
         break;
     case VT_UI4:
-        value = static_cast<uint32_t>(readTypedValue<uint32_t>(stream));
+        value = Endian::fromLittleEndianToNative(static_cast<uint32_t>(readTypedValue<uint32_t>(stream)));
         break;
     case VT_UINT:
-        value = static_cast<uint32_t>(readTypedValue<uint32_t>(stream));
+        value = Endian::fromLittleEndianToNative(static_cast<uint32_t>(readTypedValue<uint32_t>(stream)));
         break;
     case VT_I8:
-        value = static_cast<int64_t>(readTypedValue<int64_t>(stream));
+        value = Endian::fromLittleEndianToNative(static_cast<int64_t>(readTypedValue<int64_t>(stream)));
         break;
     case VT_UI8:
-        value = static_cast<uint64_t>(readTypedValue<uint64_t>(stream));
+        value = Endian::fromLittleEndianToNative(static_cast<uint64_t>(readTypedValue<uint64_t>(stream)));
         break;
     case VT_R4:
-        value = static_cast<float>(readTypedValue<float>(stream));
+        value = Endian::fromLittleEndianToNative(static_cast<float>(readTypedValue<float>(stream)));
         break;
     case VT_R8:
-        value = static_cast<double>(readTypedValue<double>(stream));
+        value = Endian::fromLittleEndianToNative(static_cast<double>(readTypedValue<double>(stream)));
         break;
     case VT_BSTR:
         value = readStringValue(stream);
@@ -200,9 +210,7 @@ ZVIUtils::Variant ZVIUtils::readItem(ole::basic_stream& stream, bool skipUnusedT
         offset = 8;
         break;
     default:
-        throw std::runtime_error(
-            (boost::format("ZVIImageDriver: Unsuported item type: %1%. By reading to a variant.") % type).str()
-        );
+        RAISE_RUNTIME_ERROR << "ZVIImageDriver: Unsuported item type: " << type;
     }
     if(offset>0)
     {
@@ -226,17 +234,13 @@ ZVIUtils::StreamKeeper::StreamKeeper(ole::compound_document& doc, const std::str
 
     if(storagePos == doc.end())
     {
-        throw std::runtime_error(
-            (boost::format("ZVIImageDriver: Invalid storage path: %1%") % storagePath).str()
-        );
+        RAISE_RUNTIME_ERROR << "ZVIImageDriver: Invalid storage path: " << storagePath;
     }
 
     m_StreamPos = storagePos->find_stream(path);
     if(m_StreamPos == storagePos->end())
     {
-        throw std::runtime_error(
-            (boost::format("ZVIImageDriver: Invalid stream path: %1%") % path).str()
-        );
+        RAISE_RUNTIME_ERROR << "ZVIImageDriver: Invalid stream path: " << path;
     }
 }
 
@@ -267,10 +271,7 @@ slideio::DataType ZVIUtils::dataTypeFromPixelFormat(const ZVIPixelFormat pixelFo
         break;
     case ZVIPixelFormat::PF_UNKNOWN:
     default:
-        throw std::runtime_error(
-            (boost::format("ZVIImageDriver: Invalid pixel format: %1%")
-                % (int)pixelFormat).str()
-        );
+        RAISE_RUNTIME_ERROR << "ZVIImageDriver: Invalid pixel format: " << (int)pixelFormat;
     }
     return dt;
 }
@@ -296,9 +297,7 @@ int ZVIUtils::channelCountFromPixelFormat(const ZVIPixelFormat pixelFormat)
         channels = 1;
         break;
     default:
-        throw std::runtime_error(
-            (boost::format("ZVIImageDriver: unexpected pixel format: %1%")
-                % static_cast<int>(pixelFormat)).str());
+        RAISE_RUNTIME_ERROR << "ZVIImageDriver: unexpected pixel format: " << static_cast<int>(pixelFormat);
     }
     return channels;
 }

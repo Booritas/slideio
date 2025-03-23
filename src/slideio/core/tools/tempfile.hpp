@@ -2,18 +2,19 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #pragma once
-#include <boost/filesystem.hpp>
+#include <filesystem>
 #include <string>
+#include "slideio/core/slideio_core_def.hpp"
 
 namespace slideio
 {
-    class TempFile
+    class SLIDEIO_CORE_EXPORTS TempFile
     {
     public:
-	    explicit TempFile(boost::filesystem::path path) : m_path(path)
+	    explicit TempFile(std::filesystem::path path) : m_path(path)
 	    {
-		    if(boost::filesystem::exists(path))
-			    boost::filesystem::remove(path);
+		    if(std::filesystem::exists(path))
+			    std::filesystem::remove(path);
 	    }
         TempFile() : TempFile(static_cast<const char*>(nullptr))
 	    {
@@ -28,18 +29,19 @@ namespace slideio
           else{
              pattern += ext;
           }
-          m_path = boost::filesystem::temp_directory_path();
-          m_path /= boost::filesystem::unique_path(pattern);
+          m_path = std::filesystem::temp_directory_path();
+          m_path /= unique_path(pattern);
        }
-       const boost::filesystem::path& getPath() const{
+       const std::filesystem::path& getPath() const{
 		    return m_path;
 	    }
 	    ~TempFile()
 	    {
-		    if(boost::filesystem::exists(m_path))
-			    boost::filesystem::remove(m_path);
+		    if(std::filesystem::exists(m_path))
+			    std::filesystem::remove(m_path);
 	    }
+      static std::filesystem::path unique_path(const std::string& model = "%%%%-%%%%-%%%%-%%%%");
     private:
-	    boost::filesystem::path m_path;
+	    std::filesystem::path m_path;
     };
 }

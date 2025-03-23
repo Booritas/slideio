@@ -4,7 +4,6 @@
 #pragma once
 #include <string>
 #include <vector>
-#include <boost/json.hpp>
 
 #include "taginfo.hpp"
 #include "vsistruct.hpp"
@@ -68,6 +67,9 @@ namespace slideio
             double getTResolution() const { return m_tResolution; }
             void setChannelName(int channelIndex, const std::string& channelName);
             std::string getChannelName(int channelIndex) const;
+			const bool isValid() const {
+				return m_size.height>0 && m_size.width>0;
+			}
 
         private:
             static int dimensionIndex(Dimensions dim) {

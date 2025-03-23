@@ -1,7 +1,6 @@
 #include "tests/testlib/testtools.hpp"
 #include "slideio/slideio/slideio.hpp"
 #include <gtest/gtest.h>
-#include <boost/filesystem.hpp>
 #include <opencv2/imgproc.hpp>
 #include <numeric>
 

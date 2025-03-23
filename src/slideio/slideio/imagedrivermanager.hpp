@@ -5,10 +5,10 @@
 #define OPENCV_slideio_imagedrivermanager_HPP
 
 #include "slideio/slideio/slideio_def.hpp"
-#include "slideio/core/cvslide.hpp"
-#include <opencv2/core.hpp>
 #include <map>
 #include <vector>
+#include <string>
+#include <memory>
 
 #if defined(_MSC_VER)
 #pragma warning( push )
@@ -18,6 +18,7 @@
 namespace slideio
 {
     class ImageDriver;
+    class CVSlide;
     /**@brief Class ImageDriverManager keeps overview over specific image format drivers.
     Allows opening a slide with a specific driver.
     *
@@ -47,6 +48,7 @@ namespace slideio
          * 'INFO','WARNING','ERROR','FATAL'(default).
          */
         static void setLogLevel(const std::string& level);
+		static std::string getVersion();
     protected:
         static void initialize();
     private:

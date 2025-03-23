@@ -5,7 +5,7 @@
 
 #include "convertersvstools.hpp"
 #include "slideio/base/exceptions.hpp"
-#include "slideio/imagetools/cvtools.hpp"
+#include "slideio/core/tools/cvtools.hpp"
 #include "slideio/imagetools/tiffkeeper.hpp"
 #include "slideio/imagetools/tifftools.hpp"
 

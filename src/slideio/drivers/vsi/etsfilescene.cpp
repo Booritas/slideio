@@ -193,8 +193,8 @@ void EtsFileScene::init() {
         const PyramidLevel& pyramidLevel = etsFile->getPyramidLevel(levelIndex);
         LevelInfo& zoomLevel = m_levels[levelIndex];
         const double scale = static_cast<double>(pyramidLevel.getSize().width) / static_cast<double>(etsFile->getSize().width);
-        zoomLevel.setSize(pyramidLevel.getSize());
-        zoomLevel.setTileSize(etsFile->getTileSize());
+        zoomLevel.setSize(Tools::cvSizeToSize(pyramidLevel.getSize()));
+        zoomLevel.setTileSize(Tools::cvSizeToSize(etsFile->getTileSize()));
         zoomLevel.setLevel(levelIndex);
         zoomLevel.setScale(scale);
         zoomLevel.setMagnification(getMagnification() * scale);

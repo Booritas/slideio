@@ -1,12 +1,10 @@
 [requires]
-boost/1.81.0@slideio/stable
-sqlite3/3.38.5@slideio/stable
-libxml2/2.9.10@slideio/stable
-glog/0.6.0@slideio/stable
+sqlite3/3.44.2
+glog/0.7.1
 gtest/cci.20210126
-opencv/4.1.1@slideio/stable
+opencv/4.10.0@slideio/stable
 zlib/1.2.13
 tinyxml2/9.0.0
-pole/1.0.2@slideio/stable
+pole/1.0.4@slideio/stable
+nlohmann_json/3.11.3
 [options]
-glog:shared=True

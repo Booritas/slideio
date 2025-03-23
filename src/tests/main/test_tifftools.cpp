@@ -6,9 +6,19 @@
 #include "slideio/imagetools/imagetools.hpp"
 #include "opencv2/imgproc.hpp"
 #include "slideio/imagetools/tiffkeeper.hpp"
+#include "slideio/core/imagedrivermanager.hpp"
+
+class TiffToolsTests : public ::testing::Test {
+protected:
+    static void SetUpTestSuite() {
+        slideio::ImageDriverManager::setLogLevel("ERROR");
+    }
+    static void TearDownTestSuite() {
+    }
+};
 
 
-TEST(TiffTools, scanTiffFile)
+TEST_F(TiffToolsTests, scanTiffFile)
 {
     std::string filePath = TestTools::getTestImagePath("svs","JP2K-33003-1.svs");
     std::vector<slideio::TiffDirectory> dirs;
@@ -39,7 +49,7 @@ TEST(TiffTools, scanTiffFile)
     EXPECT_EQ((uint32_t)7,dir5.compression);
 }
 
-TEST(TiffTools, readStripedDir)
+TEST_F(TiffToolsTests, readStripedDir)
 {
     std::string filePathTiff = TestTools::getTestImagePath("svs","CMU-1-Small-Region.svs");
     std::string filePathBmp = TestTools::getTestImagePath("svs", "CMU-1-Small-Region-page-2.bmp");
@@ -63,7 +73,7 @@ TEST(TiffTools, readStripedDir)
 
 }
 
-TEST(TiffTools, readTile_jpeg)
+TEST_F(TiffToolsTests, readTile_jpeg)
 {
     const std::string filePath = 
         TestTools::getTestImagePath("svs","CMU-1-Small-Region.svs");
@@ -92,7 +102,7 @@ TEST(TiffTools, readTile_jpeg)
     ASSERT_TRUE(equal);
 }
 
-TEST(TiffTools, readTile_J2K)
+TEST_F(TiffToolsTests, readTile_J2K)
 {
     const std::string filePath = 
         TestTools::getTestImagePath("svs","CMU-1-Small-Region.svs");
@@ -120,7 +130,7 @@ TEST(TiffTools, readTile_J2K)
     ASSERT_LT(0.99, minScore);
 }
 
-TEST(TiffTools, readTile_jpeg_swapChannles)
+TEST_F(TiffToolsTests, readTile_jpeg_swapChannles)
 {
     const std::string filePath =
         TestTools::getTestImagePath("svs", "CMU-1-Small-Region.svs");
@@ -157,7 +167,7 @@ TEST(TiffTools, readTile_jpeg_swapChannles)
     }
 }
 
-TEST(TiffTools, readPhotometricYCbCr)
+TEST_F(TiffToolsTests, readPhotometricYCbCr)
 {
     std::string filePath = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1.scn");
     std::vector<slideio::TiffDirectory> dirs;
@@ -174,7 +184,7 @@ TEST(TiffTools, readPhotometricYCbCr)
     EXPECT_EQ(dir2.YCbCrSubsampling[1], 2);
 }
 
-TEST(TiffTools, readNotRGBTile)
+TEST_F(TiffToolsTests, readNotRGBTile)
 {
     std::string filePath = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1.scn");
     std::vector<slideio::TiffDirectory> dirs;
@@ -183,20 +193,49 @@ TEST(TiffTools, readNotRGBTile)
     ASSERT_EQ(dirCount, 18);
     const slideio::TiffDirectory& dir = dirs[0];
     slideio::TIFFKeeper tiff(slideio::TiffTools::openTiffFile(filePath));
-    std::vector<int> channels = { 0,1,2 };
-    cv::Mat raster;
-    slideio::TiffTools::readNotRGBTile(tiff, dir, 24, channels, raster);
-    ASSERT_EQ(raster.cols, 512);
-    ASSERT_EQ(raster.rows, 512);
-    ASSERT_EQ(raster.channels(), 3);
+
     std::string tilePath = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1/tile.png");
     cv::Mat tile;
     slideio::ImageTools::readGDALImage(tilePath, tile);
-    const int compare = std::memcmp(raster.data, tile.data, raster.total() * raster.elemSize());
-    EXPECT_EQ(compare, 0);
+
+    {
+        cv::Mat raster;
+        std::vector<int> channels = { 0,1,2 };
+        slideio::TiffTools::readNotRGBTile(tiff, dir, 24, channels, raster);
+        ASSERT_EQ(raster.cols, 512);
+        ASSERT_EQ(raster.rows, 512);
+        ASSERT_EQ(raster.channels(), 3);
+        const int compare = std::memcmp(raster.data, tile.data, raster.total() * raster.elemSize());
+        EXPECT_EQ(0, compare);
+    }
+
+    {
+        cv::Mat raster;
+        std::vector<int> channels = {};
+        slideio::TiffTools::readNotRGBTile(tiff, dir, 24, channels, raster);
+        ASSERT_EQ(raster.cols, 512);
+        ASSERT_EQ(raster.rows, 512);
+        ASSERT_EQ(raster.channels(), 3);
+        const int compare = std::memcmp(raster.data, tile.data, raster.total() * raster.elemSize());
+        EXPECT_EQ(0, compare);
+    }
+
+    {
+        const int channelIndex = 1;
+        cv::Mat tileChannel;
+        cv::extractChannel(tile, tileChannel, channelIndex);
+        cv::Mat raster;
+        std::vector<int> channels = { channelIndex };
+        slideio::TiffTools::readNotRGBTile(tiff, dir, 24, channels, raster);
+        ASSERT_EQ(raster.cols, 512);
+        ASSERT_EQ(raster.rows, 512);
+        ASSERT_EQ(raster.channels(), 1);
+        const int compare = std::memcmp(raster.data, tileChannel.data, raster.total() * raster.elemSize());
+        EXPECT_EQ(0, compare);
+    }
 }
 
-TEST(TiffTools, openFileUtf8)
+TEST_F(TiffToolsTests, openFileUtf8)
 {
     std::string filePath = TestTools::getTestImagePath("gdal", u8"тест/тест.tif");
     std::vector<slideio::TiffDirectory> dirs;

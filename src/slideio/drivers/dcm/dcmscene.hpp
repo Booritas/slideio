@@ -4,6 +4,8 @@
 #ifndef OPENCV_slideio_dcmscene_HPP
 #define OPENCV_slideio_dcmscene_HPP
 
+#include <map>
+
 #include "slideio/drivers/dcm/dcm_api_def.hpp"
 #include "slideio/core/cvscene.hpp"
 #include "slideio/drivers/dcm/dcmfile.hpp"

@@ -1,5 +1,7 @@
-CONAN_MAIN()
+
 set(LIBRARY_NAME ${TEST_LIB_NAME})
+set(CMAKE_PREFIX_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 set(SOURCE_FILES 
    ${SOURCE_FILES}
@@ -13,6 +15,23 @@ set(SOURCE_FILES
 
 
 add_library(${LIBRARY_NAME} STATIC ${SOURCE_FILES})
+set_target_properties(${LIBRARY_NAME} PROPERTIES OUTPUT_NAME "${LIBRARY_NAME}${LIB_NAME_SUFFIX}")
+
+find_package(SQLite3)
+find_package(glog)
+find_package(GTest)
+find_package(OpenCV)
+find_package(PNG)
+find_package(ZLIB)
+
+target_link_libraries(${LIBRARY_NAME} 
+   SQLite::SQLite3
+   glog::glog
+   gtest::gtest
+   opencv::opencv
+   PNG::PNG
+   ZLIB::ZLIB
+)
 
 IF(WIN32)
    target_link_libraries(${LIBRARY_NAME} Shlwapi)
@@ -23,4 +42,3 @@ ENDIF(WIN32)
 target_link_libraries(${LIBRARY_NAME} ${CORE_LIB_NAME})
 set_target_properties(${LIBRARY_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 
-CONAN_CONFIGURE(${LIBRARY_NAME})

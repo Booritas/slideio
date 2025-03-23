@@ -8,7 +8,6 @@
 
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
-#include <boost/format.hpp>
 
 using namespace slideio;
 
@@ -61,13 +60,17 @@ int PKESmallScene::getNumChannels() const
     return m_directory.channels;
 }
 
-void PKESmallScene::readResampledBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize,
-    const std::vector<int>& channelIndices, cv::OutputArray output)
+void PKESmallScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
+    const std::vector<int>& channelIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output)
 {
+	if (zSliceIndex != 0 || tFrameIndex != 0) {
+		RAISE_RUNTIME_ERROR << "PKESmallScene: 3D and 4D images are not supported";
+	}
     auto hFile = getFileHandle();
 
-    if (hFile == nullptr)
-        throw std::runtime_error("PKEDriver: Invalid file header by raster reading operation");
+    if (hFile == nullptr) {
+        RAISE_RUNTIME_ERROR << "PKEDriver: Invalid file header by raster reading operation";
+    }
 
     cv::Mat wholeDirRaster;
     if(channelIndices.empty())

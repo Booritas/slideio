@@ -21,6 +21,7 @@ namespace slideio
     {
         friend class GDALImageDriver;
     protected:
+        void readMetadata(GDALDatasetH ds);
         GDALSlide(GDALDatasetH ds, const std::string& filePath);
     public:
         virtual ~GDALSlide();

@@ -1,20 +1,33 @@
-﻿#include <gtest/gtest.h>
+﻿#include <random>
+#include <gtest/gtest.h>
 #include "slideio/drivers/ndpi/ndpitifftools.hpp"
 #include "tests/testlib/testtools.hpp"
 #include <string>
 #include <opencv2/imgproc.hpp>
+#include "slideio/core/imagedrivermanager.hpp"
 
 #include "slideio/drivers/ndpi/ndpiimagedriver.hpp"
 #include "slideio/drivers/ndpi/ndpifile.hpp"
 #include "slideio/drivers/ndpi/ndpiscene.hpp"
 #include "slideio/imagetools/imagetools.hpp"
+#include "slideio/core/tools/tools.hpp"
 
 namespace slideio
 {
     class Slide;
 }
 
-TEST(NDPIImageDriver, openFile)
+class NDPIImageDriverTests : public ::testing::Test {
+protected:
+    static void SetUpTestSuite() {
+        slideio::ImageDriverManager::setLogLevel("ERROR");
+        std::cerr << "SetUpTestSuite: Running before all tests\n";
+    }
+    static void TearDownTestSuite() {
+    }
+};
+
+TEST_F(NDPIImageDriverTests, openFile)
 {
     if (!TestTools::isFullTestEnabled())
     {
@@ -50,7 +63,7 @@ TEST(NDPIImageDriver, openFile)
     EXPECT_EQ(slideio::DataType::DT_Byte, dt);
 }
 
-TEST(NDPIImageDriver, readStrippedScene)
+TEST_F(NDPIImageDriverTests, readStrippedScene)
 {
     if (!TestTools::isFullTestEnabled())
     {
@@ -112,7 +125,7 @@ TEST(NDPIImageDriver, readStrippedScene)
     EXPECT_GT(similarity2, 0.95);
 }
 
-TEST(NDPIImageDriver, readROI)
+TEST_F(NDPIImageDriverTests, readROI)
 {
     if (!TestTools::isFullTestEnabled())
     {
@@ -159,7 +172,7 @@ TEST(NDPIImageDriver, readROI)
     //TestTools::showRasters(testRaster, blockRaster);
 }
 
-TEST(NDPIImageDriver, readROI2)
+TEST_F(NDPIImageDriverTests, readROI2)
 {
     if (!TestTools::isFullTestEnabled())
     {
@@ -190,7 +203,7 @@ TEST(NDPIImageDriver, readROI2)
 }
 
 
-TEST(NDPIImageDriver, readROIResampled)
+TEST_F(NDPIImageDriverTests, readROIResampled)
 {
     if (!TestTools::isFullTestEnabled())
     {
@@ -241,7 +254,7 @@ TEST(NDPIImageDriver, readROIResampled)
     //TestTools::showRasters(testRaster, blockRaster);
 }
 
-TEST(NDPIImageDriver, readAuxImages)
+TEST_F(NDPIImageDriverTests, readAuxImages)
 {
     if (!TestTools::isFullTestEnabled())
     {
@@ -281,7 +294,7 @@ TEST(NDPIImageDriver, readAuxImages)
     TestTools::compareRasters(mapRaster, mapTestRaster);
 }
 
-TEST(NDPIImageDriver, readResampledTiled)
+TEST_F(NDPIImageDriverTests, readResampledTiled)
 {
     if (!TestTools::isFullTestEnabled())
     {
@@ -324,7 +337,7 @@ TEST(NDPIImageDriver, readResampledTiled)
     TestTools::compareRasters(testRaster, blockRaster);
 }
 
-TEST(NDPIImageDriver, readResampledTiledRoi)
+TEST_F(NDPIImageDriverTests, readResampledTiledRoi)
 {
     if (!TestTools::isFullTestEnabled())
     {
@@ -368,7 +381,7 @@ TEST(NDPIImageDriver, readResampledTiledRoi)
     TestTools::compareRasters(testRaster, blockRaster);
 }
 
-TEST(NDPIImageDriver, readResampled)
+TEST_F(NDPIImageDriverTests, readResampled)
 {
     if (!TestTools::isFullTestEnabled())
     {
@@ -395,7 +408,7 @@ TEST(NDPIImageDriver, readResampled)
     TestTools::compareRasters(testRaster, blockRaster);
 }
 
-TEST(NDPIImageDriver, openFileUtf8)
+TEST_F(NDPIImageDriverTests, openFileUtf8)
 {
     if (!TestTools::isFullTestEnabled())
     {
@@ -419,7 +432,7 @@ TEST(NDPIImageDriver, openFileUtf8)
 }
 
 
-TEST(NDPIImageDriver, findZoomDirectory)
+TEST_F(NDPIImageDriverTests, findZoomDirectory)
 {
     if (!TestTools::isFullTestEnabled())
     {
@@ -466,7 +479,7 @@ TEST(NDPIImageDriver, findZoomDirectory)
 
 }
 
-TEST(NDPIImageDriver, zoomLevels)
+TEST_F(NDPIImageDriverTests, zoomLevels)
 {
     if (!TestTools::isFullTestEnabled())
     {
@@ -493,8 +506,19 @@ TEST(NDPIImageDriver, zoomLevels)
         const slideio::LevelInfo* level = scene->getZoomLevelInfo(levelIndex);
         EXPECT_EQ(*level, levels[levelIndex]);
         if (levelIndex == 0) {
-            EXPECT_EQ(level->getSize(), rect.size());
+            EXPECT_EQ(level->getSize(), slideio::Tools::cvSizeToSize(rect.size()));
         }
 
     }
+}
+
+TEST_F(NDPIImageDriverTests, multiThreadSceneAccess) {
+    if (!TestTools::isFullTestEnabled())
+    {
+        GTEST_SKIP() <<
+            "Skip the test because full dataset is not enabled";
+    }
+    std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "DM0014 - 2020-04-02 11.10.47.ndpi");
+    slideio::NDPIImageDriver driver;
+    TestTools::multiThreadedTest(filePath, driver);
 }

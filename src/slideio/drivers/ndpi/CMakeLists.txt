@@ -1,6 +1,6 @@
-CONAN_MAIN()
-
 set(LIBRARY_NAME ${NDPI_DRIVER_NAME})
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+set(CMAKE_PREFIX_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 HIDE_LIB("libtiff")
 HIDE_LIB("libjpeg")
@@ -25,10 +25,40 @@ set(SOURCE_FILES
    )
 
 add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES})
+set_target_properties(${LIBRARY_NAME} PROPERTIES OUTPUT_NAME "${LIBRARY_NAME}${LIB_NAME_SUFFIX}")
+
+find_package(SQLite3)
+find_package(glog)
+find_package(OpenCV)
+find_package(NDPITIFF)
+find_package(ZLIB)
+find_package(LibLZMA)
+find_package(NDPIJPEG)
+find_package(WebP)
+find_package(jpegxrcodec)
+find_package(lerc)
+
+
+target_link_libraries(${LIBRARY_NAME} 
+   SQLite::SQLite3  
+   glog::glog  
+   opencv::opencv  
+   NDPITIFF::NDPITIFF  
+   ZLIB::ZLIB  
+   LibLZMA::LibLZMA  
+   NDPIJPEG::NDPIJPEG  
+   libwebp::libwebp  
+   jpegxrcodec::jpegxrcodec  
+   lerc::lerc
+)
+
 
 SOURCE_GROUP_BY_FOLDER(SOURCE_FILES)
 
-target_link_libraries(${LIBRARY_NAME} ${CORE_LIB_NAME} ${IMAGETOOLS_LIB_NAME})
+target_link_libraries(${LIBRARY_NAME}
+   ${BASE_LIB_NAME}
+   ${CORE_LIB_NAME}
+)
 
 IF(WIN32)
    target_link_libraries(${LIBRARY_NAME} Shlwapi)
@@ -38,5 +68,6 @@ ENDIF(WIN32)
 
 set_target_properties(${LIBRARY_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 
-CONAN_CONFIGURE_INCLUDES(${LIBRARY_NAME})
-conan_target_link_libraries_with_hide(${LIBRARY_NAME} "^(.)+(tiff|libjpeg)(.)+")
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    target_link_options(${LIBRARY_NAME} PRIVATE "-Wl,-Bsymbolic")
+endif()

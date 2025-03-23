@@ -2,14 +2,14 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/drivers/dcm/wsiscene.hpp"
-#include <boost/filesystem.hpp>
+#include <filesystem>
 
 #include "slideio/base/exceptions.hpp"
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/drivers/dcm/dcmscene.hpp"
 
 using namespace slideio;
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 
 
 WSIScene::WSIScene() = default;
@@ -66,7 +66,7 @@ void WSIScene::init() {
 		level.setSize({ file->getWidth(), file->getHeight() });
 		level.setScale(file->getScale());
 		level.setMagnification(getMagnification() * file->getScale());
-		level.setTileSize(file->getTileSize());
+		level.setTileSize(Tools::cvSizeToSize(file->getTileSize()));
     }
 }
 

@@ -5,14 +5,14 @@
 #define OPENCV_slideio_scene_HPP
 
 #include "slideio/core/slideio_core_def.hpp"
-#include "slideio/core/cvstructs.hpp"
+#include "slideio/base/resolution.hpp"
 #include "slideio/base/slideio_enums.hpp"
-#include "opencv2/core.hpp"
+#include <opencv2/core.hpp>
 #include <vector>
 #include <string>
 #include <list>
 #include "refcounter.hpp"
-#include <map>
+#include <mutex>
 
 #include "levelinfo.hpp"
 
@@ -191,7 +191,7 @@ namespace slideio
         /**@brief returns string of serialized metadata. Content of the string depends on image format.*/
         virtual std::string getRawMetadata() const { return ""; }
         virtual void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
-            const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output);
+			const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output) = 0;
         virtual int getNumZoomLevels() const;
         virtual const LevelInfo* getZoomLevelInfo(int level) const;
         std::string toString() const;
@@ -203,6 +203,7 @@ namespace slideio
     protected:
         std::list<std::string> m_auxNames;
         std::vector<LevelInfo> m_levels;
+        mutable std::mutex m_readBlockMutex;
     };
 }
 

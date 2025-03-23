@@ -4,10 +4,6 @@
 #include "slideio/imagetools/imagetools.hpp"
 
 #include <numeric>
-
-#include <boost/format.hpp>
-#include <boost/filesystem.hpp>
-#include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
 #include <cmath>
 #include <vector>
@@ -164,26 +160,3 @@ double ImageTools::compareHistograms(const cv::Mat& left, const cv::Mat& right, 
     return similarity;
 }
 
-int ImageTools::dataTypeSize(slideio::DataType dt)
-{
-    switch (dt)
-    {
-    case DataType::DT_Byte:
-    case DataType::DT_Int8:
-        return 1;
-    case DataType::DT_UInt16:
-    case DataType::DT_Int16:
-    case DataType::DT_Float16:
-        return 2;
-    case DataType::DT_Int32:
-    case DataType::DT_Float32:
-        return 4;
-    case DataType::DT_Float64:
-        return 8;
-    case DataType::DT_Unknown:
-    case DataType::DT_None:
-        break;
-    }
-    throw std::runtime_error(
-        (boost::format("Unknown data type: %1%") % (int)dt).str());
-}

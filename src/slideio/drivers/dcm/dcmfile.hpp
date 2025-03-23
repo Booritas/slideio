@@ -11,7 +11,7 @@
 #include <opencv2/core.hpp>
 
 #include "slideio/base/slideio_enums.hpp"
-#include "slideio/core/cvstructs.hpp"
+#include "slideio/base/resolution.hpp"
 
 #if defined(_MSC_VER)
 #pragma warning( push )
@@ -183,7 +183,7 @@ namespace slideio
         int m_frames = 1;
         cv::Size m_tileSize = {0, 0};
         double m_magnification = 0.;
-        Resolution m_resolution = { 0. };
+        Resolution m_resolution = { 0., 0. };
         double m_scale = 1.;
         bool m_bTiled = false;
         std::string m_imageType;

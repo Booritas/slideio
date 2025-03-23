@@ -3,8 +3,8 @@
 // of this distribution and at http://slideio.com/license.html.
 #pragma once
 #include "slideio/core/slideio_core_def.hpp"
-#include <opencv2/core.hpp>
-#include <iostream>
+#include "slideio/base/slideio_structs.hpp"
+#include <cmath>
 
 #if defined(_MSC_VER)
 #pragma warning( push )
@@ -28,7 +28,7 @@ namespace slideio
     public:
         LevelInfo() = default;
 
-        LevelInfo(int level, const cv::Size& size, double scale, double magnification, const cv::Size& tileSize)
+        LevelInfo(int level, const Size& size, double scale, double magnification, const Size& tileSize)
             : m_level(level), m_size(size), m_scale(scale), m_magnification(magnification), m_tileSize(tileSize) {}
 
         LevelInfo(const LevelInfo& other) {
@@ -54,8 +54,8 @@ namespace slideio
             return m_level == other.m_level &&
                 m_size.width == other.m_size.width &&
                 m_size.height == other.m_size.height &&
-                fabs(m_scale - other.m_scale) < 1.e-2 &&
-                fabs(m_magnification - other.m_magnification) < 1.e-2 &&
+                std::fabs(m_scale - other.m_scale) < 1.e-2 &&
+                std::fabs(m_magnification - other.m_magnification) < 1.e-2 &&
                 m_tileSize.width == other.m_tileSize.width &&
                 m_tileSize.height == other.m_tileSize.height;
         }
@@ -63,8 +63,8 @@ namespace slideio
         int getLevel() const { return m_level; }
         void setLevel(int level) { m_level = level; }
 
-        cv::Size getSize() const { return m_size; }
-        void setSize(const cv::Size& size) { m_size = size; }
+        Size getSize() const { return m_size; }
+        void setSize(const Size& size) { m_size = size; }
 
         double getScale() const { return m_scale; }
         void setScale(double scale) { m_scale = scale; }
@@ -72,21 +72,17 @@ namespace slideio
         double getMagnification() const { return m_magnification; }
         void setMagnification(double magnification) { m_magnification = magnification; }
 
-        cv::Size getTileSize() const { return m_tileSize; }
-        void setTileSize(const cv::Size& tileSize) { m_tileSize = tileSize; }
+        Size getTileSize() const { return m_tileSize; }
+        void setTileSize(const Size& tileSize) { m_tileSize = tileSize; }
 
-        std::string toString() const {
-            std::stringstream ss;
-            ss << *this;
-            return ss.str();
-        }
+        std::string toString() const;
 
     private:
         int m_level = 0;
-        cv::Size m_size;
+        Size m_size;
         double m_scale = 0.0;
         double m_magnification = 0.0;
-        cv::Size m_tileSize;
+        Size m_tileSize;
     };
 }
 

@@ -2,18 +2,58 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #pragma once
-#include "transformation.hpp"
-#include "slideio/base/slideio_enums.hpp"
+#include "slideio/transformer/transformer_def.hpp"
+#include "slideio/transformer/transformationex.hpp"
+#include "slideio/transformer/transformationtype.hpp"
 
 namespace slideio
 {
-    class SLIDEIO_TRANSFORMER_EXPORTS GaussianBlurFilter : public Transformation
+    class SLIDEIO_TRANSFORMER_EXPORTS GaussianBlurFilter : public TransformationEx
     {
     public:
         GaussianBlurFilter()
         {
             m_type = TransformationType::GaussianBlurFilter;
         }
+
+        GaussianBlurFilter(const GaussianBlurFilter& other)
+            : TransformationEx(other),
+              m_kernelSizeX(other.m_kernelSizeX),
+              m_kernelSizeY(other.m_kernelSizeY),
+              m_sigmaX(other.m_sigmaX),
+              m_sigmaY(other.m_sigmaY) {
+        }
+
+        GaussianBlurFilter(GaussianBlurFilter&& other) noexcept
+            : TransformationEx(std::move(other)),
+              m_kernelSizeX(other.m_kernelSizeX),
+              m_kernelSizeY(other.m_kernelSizeY),
+              m_sigmaX(other.m_sigmaX),
+              m_sigmaY(other.m_sigmaY) {
+        }
+
+        GaussianBlurFilter& operator=(const GaussianBlurFilter& other) {
+            if (this == &other)
+                return *this;
+            TransformationEx::operator =(other);
+            m_kernelSizeX = other.m_kernelSizeX;
+            m_kernelSizeY = other.m_kernelSizeY;
+            m_sigmaX = other.m_sigmaX;
+            m_sigmaY = other.m_sigmaY;
+            return *this;
+        }
+
+        GaussianBlurFilter& operator=(GaussianBlurFilter&& other) noexcept {
+            if (this == &other)
+                return *this;
+            TransformationEx::operator =(std::move(other));
+            m_kernelSizeX = other.m_kernelSizeX;
+            m_kernelSizeY = other.m_kernelSizeY;
+            m_sigmaX = other.m_sigmaX;
+            m_sigmaY = other.m_sigmaY;
+            return *this;
+        }
+
         int getKernelSizeX() const
         {
             return m_kernelSizeX;

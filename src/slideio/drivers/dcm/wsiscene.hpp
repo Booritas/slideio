@@ -7,6 +7,7 @@
 #include "slideio/core/cvscene.hpp"
 #include "slideio/core/tools/tilecomposer.hpp"
 #include "slideio/drivers/dcm/dcmfile.hpp"
+#include <map>
 
 #if defined(_MSC_VER)
 #pragma warning( push )

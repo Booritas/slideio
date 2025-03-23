@@ -2,15 +2,18 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #pragma once
-#include "slideio/base/log.hpp"
-
+#include "slideio/base/slideio_base_def.hpp"
 #include <iostream>
 #include <sstream>
 #include <string.h>
 
+#if defined(_MSC_VER)
+#pragma warning( push )
+#pragma warning(disable: 4251 4275)
+#endif
 
 namespace slideio {
-    struct RuntimeError : public std::exception {
+    struct SLIDEIO_BASE_EXPORTS RuntimeError : public std::exception {
         template <typename T>
         RuntimeError& operator << (T rhs) {
             m_innerStream << rhs;
@@ -20,7 +23,7 @@ namespace slideio {
         RuntimeError(RuntimeError& rhs) {
             std::string message = rhs.m_innerStream.str();
             if(!m_shown) {
-                SLIDEIO_LOG(ERROR) << message;
+                log(message);
             }
             m_innerStream << message;
         }
@@ -29,6 +32,8 @@ namespace slideio {
             return m_message.c_str();
         }
     private:
+        void log(const std::string& message);
+    private:
         std::stringstream m_innerStream;
         mutable std::string m_message;
         bool m_shown = false;
@@ -36,3 +41,7 @@ namespace slideio {
 }
 
 #define RAISE_RUNTIME_ERROR throw slideio::RuntimeError() << __FILE__ << ":" << __LINE__ << ":"
+
+#if defined(_MSC_VER)
+#pragma warning( pop )
+#endif

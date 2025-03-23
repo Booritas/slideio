@@ -5,7 +5,7 @@
 #include <opencv2/core/mat.hpp>
 #include "scharrfilter.hpp"
 #include <opencv2/imgproc.hpp>
-#include "slideio/imagetools/cvtools.hpp"
+#include "slideio/core/tools/cvtools.hpp"
 
 void slideio::ScharrFilter::applyTransformation(const cv::Mat& block, cv::OutputArray transformedBlock) const
 {

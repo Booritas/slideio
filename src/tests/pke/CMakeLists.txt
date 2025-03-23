@@ -1,7 +1,9 @@
 set(INCLUDE_ROOT ${CMAKE_SOURCE_DIR}/src)
 set(TEST_NAME slideio_pke_tests)
+set(CMAKE_PREFIX_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-CONAN_MAIN()
+
 
 set(TEST_SOURCES
   test_pke_driver.cpp
@@ -11,16 +13,29 @@ add_executable(${TEST_NAME} ${TEST_SOURCES})
 
 target_include_directories(${TEST_NAME} PRIVATE ${INCLUDE_ROOT})
 
-# Remove boost libraries from linking
-LIST(FILTER CONAN_LIBS_RELEASE EXCLUDE REGEX "^(.)+boost(.)+")
-LIST(FILTER CONAN_LIBS_DEBUG EXCLUDE REGEX "^(.)+boost(.)+")
+find_package(glog)
+find_package(GTest)
+find_package(OpenCV)
+find_package(TIFF)
+find_package(ZLIB)
+find_package(WebP)
+find_package(tinyxml2)
 
-CONAN_CONFIGURE(${TEST_NAME})
+target_link_libraries(${TEST_NAME}
+  glog::glog
+  gtest::gtest
+  opencv::opencv
+  TIFF::TIFF
+  ZLIB::ZLIB
+  libwebp::libwebp
+  tinyxml2::tinyxml2
+)
 
 target_link_libraries(${TEST_NAME} 
-    ${CORE_LIB_NAME}
     ${PKE_DRIVER_NAME}
     ${TEST_LIB_NAME}
+    ${CORE_LIB_NAME}
+    ${SLIDEIO_LIB_NAME}
   )
 
 

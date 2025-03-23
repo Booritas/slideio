@@ -15,6 +15,7 @@ namespace slideio
 {
     namespace vsi
     {
+        class EtsFile;
         class IDimensionOrder;
 
         struct TileInfo
@@ -43,12 +44,16 @@ namespace slideio
             int m_tDimIndex = -1;
         };
 
+        typedef std::shared_ptr<EtsFile> EtsFilePtr;
+        typedef std::vector<TileInfo> TileInfoList;
+        typedef std::shared_ptr<TileInfoList> TileInfoListPtr;
+
         class SLIDEIO_VSI_EXPORTS Pyramid
         {
         public:
             int getNumLevels() const { return static_cast<int>(m_levels.size()); }
             const PyramidLevel& getLevel(int index) const { return m_levels[index]; }
-            void init(std::vector<TileInfo>& tiles, const cv::Size& imageSize, const cv::Size& tileSize,
+            void init(const TileInfoListPtr& tiles, const cv::Size& imageSize, const cv::Size& tileSize,
                       const IDimensionOrder* dimOrder);
             int getNumChannelIndices() const { return m_numChannelIndices; }
             int getNumZIndices() const { return m_numZIndices; }
@@ -59,6 +64,8 @@ namespace slideio
             int m_numZIndices = 1;
             int m_numTIndices = 1;
         };
+
+
     }
 }
 

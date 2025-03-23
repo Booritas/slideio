@@ -4,21 +4,17 @@
 #include "slideio/drivers/dcm/dcmslide.hpp"
 #include "slideio/drivers/dcm/dcmscene.hpp"
 #include "slideio/base/base.hpp"
-#include <boost/filesystem.hpp>
-#include <boost/format.hpp>
-#include <boost/algorithm/string.hpp>
+#include <filesystem>
 #include <algorithm>
-
 #include <dcmdata/dcdeftag.h>
 #include <dcmdata/dcmetinf.h>
-
 #include <dcmtk/dcmdata/dcdicdir.h>
-
 #include "wsiscene.hpp"
 #include "slideio/core/tools/tools.hpp"
+#include "slideio/base/log.hpp"
 
 using namespace slideio;
-namespace fs = boost::filesystem;
+namespace fs = std::filesystem;
 const std::string SLIDE_MICROSCOPY_MODALITY = "SM";
 
 
@@ -188,9 +184,7 @@ void DCMSlide::initFromDir() {
         processSeries(series->files);
     }
     if (getNumScenes() == 0) {
-        SLIDEIO_LOG(ERROR) << "DCMSlide::initFromDir: No valid DICOM files found in the directory: " << m_srcPath;
-        throw std::runtime_error(
-            (boost::format("DCMImageDriver: No valid DICOM files found in the directory %1%") % m_srcPath).str());
+        RAISE_RUNTIME_ERROR << "DCMImageDriver: No valid DICOM files found in the directory " << m_srcPath;
     }
     SLIDEIO_LOG(INFO) << "DCMSlide::initFromDir-end: initialize DCMSlide from directory: " << m_srcPath;
 }
@@ -217,7 +211,7 @@ void DCMSlide::initFromDicomDirFile() {
                     if (imageRecord->findAndGetOFStringArray(DCM_ReferencedFileID, fileId, true).good()) {
                         try {
                             std::string fileName = fileId.c_str();
-                            boost::replace_all(fileName, "\\", "/");
+                            Tools::replaceAll(fileName, "\\", "/");
                             filePath = directoryPath / fileName;
                             std::string str = filePath.string();
                             std::shared_ptr<DCMFile> dcm(new DCMFile(str));

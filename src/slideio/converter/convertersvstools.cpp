@@ -9,9 +9,8 @@
 #include "convertertools.hpp"
 #include "slideio/base/exceptions.hpp"
 #include "slideio/core/tools/tools.hpp"
-#include "slideio/imagetools/cvtools.hpp"
-#include <boost/filesystem.hpp>
-#include <boost/date_time/posix_time/posix_time.hpp>
+#include "slideio/core/tools/cvtools.hpp"
+#include <filesystem>
 
 void slideio::ConverterSVSTools::checkSVSRequirements(const CVScenePtr& scene, const SVSConverterParameters& parameters)
 {
@@ -76,7 +75,7 @@ std::string slideio::ConverterSVSTools::createDescription(const CVScenePtr& scen
     }
 
     std::string filePath = scene->getFilePath();
-    boost::filesystem::path path(filePath);
+    std::filesystem::path path(filePath);
     buff << "|Filename = " << path.stem().string();
     buff << "|" << retrieveDate() << "|" << retrieveTime();
 
@@ -87,7 +86,7 @@ void slideio::ConverterSVSTools::createZoomLevel(TIFFKeeperPtr& file, int zoomLe
 {
     cv::Rect sceneRect = scene->getRect();
     sceneRect.x = sceneRect.y = 0;
-    if(parameters.getRect().isValid()) {
+    if(parameters.getRect().valid()) {
         const auto& block = parameters.getRect();
         sceneRect.x = block.x;
         sceneRect.y = block.y;
@@ -127,7 +126,7 @@ void slideio::ConverterSVSTools::createZoomLevel(TIFFKeeperPtr& file, int zoomLe
     cv::Size sceneTileSize = slideio::ConverterTools::scaleSize(tileSize, zoomLevel, false);
     std::vector<uint8_t> buffer;
     if(parameters.getEncoding() == Compression::Jpeg2000) {
-        int dataSize = tileSize.width * tileSize.height * scene->getNumChannels() * ImageTools::dataTypeSize(scene->getChannelDataType(0));
+        int dataSize = tileSize.width * tileSize.height * scene->getNumChannels() * Tools::dataTypeSize(scene->getChannelDataType(0));
         buffer.resize(dataSize);
     }
     cv::Mat tile;
@@ -183,7 +182,7 @@ void slideio::ConverterSVSTools::createSVS(TIFFKeeperPtr& file, const CVScenePtr
     if(cb) {
         cv::Rect sceneRect = scene->getRect();
         cv::Size sceneSize = scene->getRect().size();
-        if(parameters.getRect().isValid()) {
+        if(parameters.getRect().valid()) {
             const auto& block = parameters.getRect();
             sceneSize.width = block.width;
             sceneSize.height = block.height;

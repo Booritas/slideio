@@ -59,6 +59,20 @@ namespace slideio
         void parseChannels(tinyxml2::XMLNode* root);
         void createCZIAttachmentScenes(const int64_t dataPos, int64_t dataSize, const std::string& attachmentName);
         void addAuxiliaryImage(const std::string& name, const std::string& type, int64_t position);
+		static void updateSegmentHeaderBE(SegmentHeader& header);
+		static void updateFileHeaderBE(FileHeader& header);
+		static void updateMetadataHeaderBE(MetadataHeader& header);
+		static void updateDirectoryHeaderBE(DirectoryHeader& header);
+		static void updateDirectoryEntryBE(DirectoryEntryDV& entry);
+		static void updateDimensionEntryBE(DimensionEntryDV& entry);
+		static void updateSublockHeaderBE(SubBlockHeader& header);
+		static void updateAttachmentEntryBE(AttachmentEntry& entry);
+		static void updateAttachmentDirectorySegmentDataBE(AttachmentDirectorySegmentData& data);
+		static void updateAttachmentDirectorySegmentBE(AttachmentDirectorySegment& segment);
+		static void updateAttachmentEntryA1BE(AttachmentEntryA1& entry);
+		static void updateAttachmentSegmentDataBE(AttachmentSegmentData& data);
+		static void updateAttachmentSegmentBE(AttachmentSegment& segment);
+		static void updateDimensionBE(Dimension& dim);
     private:
         std::vector<std::shared_ptr<CZIScene>> m_scenes;
         std::string m_filePath;

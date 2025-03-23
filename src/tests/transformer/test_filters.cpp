@@ -4,11 +4,16 @@
 #include "slideio/slideio/slideio.hpp"
 #include "slideio/slideio/scene.hpp"
 #include "slideio/base/exceptions.hpp"
-#include <boost/filesystem.hpp>
 #include <opencv2/imgproc.hpp>
 
 #include "slideio/core/tools/tools.hpp"
-#include "slideio/imagetools/cvtools.hpp"
+#include "slideio/core/tools/cvtools.hpp"
+#include "slideio/transformer/bilateralfilter.hpp"
+#include "slideio/transformer/cannyfilter.hpp"
+#include "slideio/transformer/gaussianblurfilter.hpp"
+#include "slideio/transformer/medianblurfilter.hpp"
+#include "slideio/transformer/scharrfilter.hpp"
+#include "slideio/transformer/sobelfilter.hpp"
 #include "slideio/transformer/transformations.hpp"
 #include "slideio/transformer/transformer.hpp"
 #include "slideio/transformer/transformerscene.hpp"

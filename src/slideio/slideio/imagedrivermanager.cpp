@@ -15,6 +15,7 @@
 #include "slideio/drivers/ndpi/ndpiimagedriver.hpp"
 #include "slideio/drivers/vsi/vsiimagedriver.hpp"
 #include "slideio/drivers/pke/pkeimagedriver.hpp"
+#include "slideio/base/log.hpp"
 
 using namespace slideio;
 std::map<std::string, std::shared_ptr<ImageDriver>> ImageDriverManager::driverMap;
@@ -147,3 +148,7 @@ void ImageDriverManager::setLogLevel(const std::string &level) {
     }
 }
 
+std::string ImageDriverManager::getVersion()
+{
+	return SLIDEIO_VERSION;
+}

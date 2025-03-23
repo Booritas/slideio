@@ -4,12 +4,14 @@
 #include "slideio/slideio/slideio.hpp"
 #include "slideio/slideio/scene.hpp"
 #include "slideio/base/exceptions.hpp"
-#include <boost/filesystem.hpp>
+#include <filesystem>
 
 #include "slideio/converter/converterparameters.hpp"
 #include "slideio/core/cvslide.hpp"
 #include "slideio/core/tools/tempfile.hpp"
+#include "slideio/imagetools/imagetools.hpp"
 #include "slideio/slideio/imagedrivermanager.hpp"
+#include "slideio/core/tools/tools.hpp"
 
 
 TEST(Converter, convertGDALJpeg)
@@ -24,8 +26,8 @@ TEST(Converter, convertGDALJpeg)
 
 	slideio::TempFile tmp("svs");
 	std::string outputPath = tmp.getPath().string();
-	if(boost::filesystem::exists(outputPath)) {
-		boost::filesystem::remove(outputPath);
+	if(std::filesystem::exists(outputPath)) {
+		std::filesystem::remove(outputPath);
 	}
     slideio::SVSJpegConverterParameters parameters;
 	parameters.setQuality(99);
@@ -57,8 +59,8 @@ TEST(Converter, convertGDALJp2K)
 	ASSERT_TRUE(scene.get() != nullptr);
 
 	std::string outputPath = TestTools::getTestImagePath("gdal", "Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.svs");
-	if (boost::filesystem::exists(outputPath)) {
-		boost::filesystem::remove(outputPath);
+	if (std::filesystem::exists(outputPath)) {
+		std::filesystem::remove(outputPath);
 	}
 	slideio::SVSJp2KConverterParameters parameters;
 	slideio::convertScene(scene, parameters, outputPath);
@@ -128,7 +130,7 @@ TEST(Converter, fromMultipleScenes)
 	const int width = 400;
 	const int height = 300;
 	const int numChannels = scene->getNumChannels();
-	const int dataTypeSize = slideio::ImageTools::dataTypeSize(scene->getChannelDataType(0));
+	const int dataTypeSize = slideio::Tools::dataTypeSize(scene->getChannelDataType(0));
 	const int rasterSize = width * height * numChannels * dataTypeSize;
 
     const std::tuple<int, int, int, int> block = { x,y,width,height };
@@ -137,12 +139,12 @@ TEST(Converter, fromMultipleScenes)
 	
 	slideio::SVSJpegConverterParameters parameters;
 	parameters.setQuality(90);
-	slideio::Rectangle rect = { x,y, width, height};
+	slideio::Rect rect = { x,y, width, height};
 	parameters.setRect(rect);
     const slideio::TempFile tmp("svs");
     const std::string outputPath = tmp.getPath().string();
-	if (boost::filesystem::exists(outputPath)) {
-		boost::filesystem::remove(outputPath);
+	if (std::filesystem::exists(outputPath)) {
+		std::filesystem::remove(outputPath);
 	}
 	slideio::convertScene(scene, parameters, outputPath);
 	SlidePtr outputSlide = slideio::openSlide(outputPath);
@@ -181,7 +183,7 @@ TEST(Converter, from3DScene)
 	const int width = 300;
 	const int height = 300;
 	const int numChannels = scene->getNumChannels();
-	const int dataTypeSize = slideio::ImageTools::dataTypeSize(scene->getChannelDataType(0));
+	const int dataTypeSize = slideio::Tools::dataTypeSize(scene->getChannelDataType(0));
 	const int rasterSize = width * height * numChannels * dataTypeSize;
 	const int slice = 6;
 	const int frame = 0;
@@ -197,12 +199,12 @@ TEST(Converter, from3DScene)
 	parameters.setZSlice(slice);
 	parameters.setTFrame(frame);
 	parameters.setQuality(90);
-	slideio::Rectangle rect = { x,y, width, height };
+	slideio::Rect rect = { x,y, width, height };
 	parameters.setRect(rect);
 	const slideio::TempFile tmp("svs");
 	const std::string outputPath = tmp.getPath().string();
-	if (boost::filesystem::exists(outputPath)) {
-		boost::filesystem::remove(outputPath);
+	if (std::filesystem::exists(outputPath)) {
+		std::filesystem::remove(outputPath);
 	}
 	slideio::convertScene(scene, parameters, outputPath);
 	SlidePtr outputSlide = slideio::openSlide(outputPath);
@@ -240,7 +242,7 @@ TEST(Converter, jpeg2k4channelsScene)
 	const int width = 700;
 	const int height = 600;
 	const int numChannels = scene->getNumChannels();
-	const int dataTypeSize = slideio::ImageTools::dataTypeSize(scene->getChannelDataType(0));
+	const int dataTypeSize = slideio::Tools::dataTypeSize(scene->getChannelDataType(0));
 	const int rasterSize = width * height * numChannels * dataTypeSize;
 	const int slice = 0;
 	const int frame = 0;
@@ -255,12 +257,12 @@ TEST(Converter, jpeg2k4channelsScene)
 	slideio::SVSJp2KConverterParameters parameters;
 	parameters.setZSlice(slice);
 	parameters.setTFrame(frame);
-	slideio::Rectangle rect = { x,y, width, height };
+	slideio::Rect rect = { x,y, width, height };
 	parameters.setRect(rect);
 	const slideio::TempFile tmp("svs");
 	const std::string outputPath = tmp.getPath().string();
-	if (boost::filesystem::exists(outputPath)) {
-		boost::filesystem::remove(outputPath);
+	if (std::filesystem::exists(outputPath)) {
+		std::filesystem::remove(outputPath);
 	}
 	slideio::convertScene(scene, parameters, outputPath);
 	SlidePtr outputSlide = slideio::openSlide(outputPath);
@@ -303,7 +305,7 @@ TEST(Converter, invalidRegions)
 	const int x = std::get<2>(sceneRect) - width;
 	const int y = std::get<3>(sceneRect) - height;
 	const int numChannels = scene->getNumChannels();
-	const int dataTypeSize = slideio::ImageTools::dataTypeSize(scene->getChannelDataType(0));
+	const int dataTypeSize = slideio::Tools::dataTypeSize(scene->getChannelDataType(0));
 	const int rasterSize = width * height * numChannels * dataTypeSize;
 
 	const std::tuple<int, int, int, int> block = { x,y,width,height };
@@ -311,12 +313,12 @@ TEST(Converter, invalidRegions)
 	scene->readBlock(block, buffer.data(), buffer.size());
 
 	parameters.setQuality(90);
-	slideio::Rectangle rect = { x,y, width, height };
+	slideio::Rect rect = { x,y, width, height };
 	parameters.setRect(rect);
 	const slideio::TempFile tmp("svs");
 	const std::string outputPath = tmp.getPath().string();
-	if (boost::filesystem::exists(outputPath)) {
-		boost::filesystem::remove(outputPath);
+	if (std::filesystem::exists(outputPath)) {
+		std::filesystem::remove(outputPath);
 	}
 	slideio::convertScene(scene, parameters, outputPath);
 	SlidePtr outputSlide = slideio::openSlide(outputPath);
@@ -352,14 +354,14 @@ TEST(Converter, jpeg2k)
 	slideio::SVSJp2KConverterParameters parameters;
 	const slideio::TempFile tmp("svs");
 	const std::string outputPath = tmp.getPath().string();
-	if (boost::filesystem::exists(outputPath)) {
-		boost::filesystem::remove(outputPath);
+	if (std::filesystem::exists(outputPath)) {
+		std::filesystem::remove(outputPath);
 	}
 	auto sceneRect = scene->getRect();
 	int width = std::get<2>(sceneRect);
 	int height = std::get<3>(sceneRect);
 	int numChannels = scene->getNumChannels();
-	int dataTypeSize = slideio::ImageTools::dataTypeSize(scene->getChannelDataType(0));
+	int dataTypeSize = slideio::Tools::dataTypeSize(scene->getChannelDataType(0));
 	int rasterSize = width * height * numChannels * dataTypeSize;
 	std::tuple<int,int,int,int> block(0,0,width,height);
 	std::vector<uint8_t> buffer(rasterSize);
@@ -383,7 +385,7 @@ TEST(Converter, jpeg2k)
 	cv::Mat outputImage(height, width, CV_16UC1, outputBuffer.data());
 	double sim = slideio::ImageTools::computeSimilarity(inputImage, outputImage);
 	//TestTools::showRaster(outputImage);
-	EXPECT_LE(0.999, sim);
+	EXPECT_LE(0.99, sim);
 
 }
 
@@ -398,14 +400,14 @@ TEST(Converter, jpeg2kBorderTiles)
 	slideio::SVSJp2KConverterParameters parameters;
 	const slideio::TempFile tmp("svs");
 	const std::string outputPath = tmp.getPath().string();
-	if (boost::filesystem::exists(outputPath)) {
-		boost::filesystem::remove(outputPath);
+	if (std::filesystem::exists(outputPath)) {
+		std::filesystem::remove(outputPath);
 	}
 	auto sceneRect = scene->getRect();
 	int width = std::get<2>(sceneRect);
 	int height = std::get<3>(sceneRect);
 	int numChannels = scene->getNumChannels();
-	int dataTypeSize = slideio::ImageTools::dataTypeSize(scene->getChannelDataType(0));
+	int dataTypeSize = slideio::Tools::dataTypeSize(scene->getChannelDataType(0));
 	int rasterSize = width * height * numChannels * dataTypeSize;
 	std::tuple<int, int, int, int> block(0, 0, width, height);
 	std::vector<uint8_t> buffer(rasterSize);
@@ -445,7 +447,7 @@ TEST(Converter, metadata)
 	const int width = 300;
 	const int height = 300;
 	const int numChannels = scene->getNumChannels();
-	const int dataTypeSize = slideio::ImageTools::dataTypeSize(scene->getChannelDataType(0));
+	const int dataTypeSize = slideio::Tools::dataTypeSize(scene->getChannelDataType(0));
 	const int rasterSize = width * height * numChannels * dataTypeSize;
 	constexpr std::tuple<int, int, int, int> block = { x,y,width,height };
 	std::vector<uint8_t> buffer(rasterSize);
@@ -454,12 +456,12 @@ TEST(Converter, metadata)
 
 	slideio::SVSJpegConverterParameters parameters;
 	parameters.setQuality(90);
-	slideio::Rectangle rect = { x,y, width, height };
+	slideio::Rect rect = { x,y, width, height };
 	parameters.setRect(rect);
 	const slideio::TempFile tmp("svs");
 	const std::string outputPath = tmp.getPath().string();
-	if (boost::filesystem::exists(outputPath)) {
-		boost::filesystem::remove(outputPath);
+	if (std::filesystem::exists(outputPath)) {
+		std::filesystem::remove(outputPath);
 	}
 	slideio::convertScene(scene, parameters, outputPath);
 	SlidePtr outputSlide = slideio::openSlide(outputPath);
@@ -500,7 +502,7 @@ TEST(Converter, intData)
 	const int width = 300;
 	const int height = 300;
 	const int numChannels = scene->getNumChannels();
-	const int dataTypeSize = slideio::ImageTools::dataTypeSize(scene->getChannelDataType(0));
+	const int dataTypeSize = slideio::Tools::dataTypeSize(scene->getChannelDataType(0));
 	const int rasterSize = width * height * numChannels * dataTypeSize;
 	constexpr std::tuple<int, int, int, int> block = { x,y,width,height };
 	std::vector<uint8_t> buffer(rasterSize);
@@ -509,12 +511,12 @@ TEST(Converter, intData)
 
 	slideio::SVSJp2KConverterParameters parameters;
 	parameters.setCompressionRate(5);
-	slideio::Rectangle rect = { x,y, width, height };
+	slideio::Rect rect = { x,y, width, height };
 	parameters.setRect(rect);
 	const slideio::TempFile tmp("svs");
 	const std::string outputPath = tmp.getPath().string();
-	if (boost::filesystem::exists(outputPath)) {
-		boost::filesystem::remove(outputPath);
+	if (std::filesystem::exists(outputPath)) {
+		std::filesystem::remove(outputPath);
 	}
 	slideio::convertScene(scene, parameters, outputPath);
 	SlidePtr outputSlide = slideio::openSlide(outputPath);

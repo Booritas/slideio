@@ -1,7 +1,9 @@
 set(INCLUDE_ROOT ${CMAKE_SOURCE_DIR}/src)
 set(TEST_NAME slideio_tests)
+set(CMAKE_PREFIX_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-CONAN_MAIN()
+
 
 set(TEST_SOURCES
   test_imagedrivermanager.cpp
@@ -24,22 +26,38 @@ set(TEST_SOURCES
   test_generic.cpp
   test_vsi_driver.cpp
   test_blocktiler.cpp
-  test_cachemanager.cpp
   test_tools.cpp
   test_similaritytools.cpp
+  test_endian.cpp
 )
 
 add_executable(${TEST_NAME} ${TEST_SOURCES})
+
+find_package(SQLite3)
+find_package(glog)
+find_package(GTest)
+find_package(OpenCV)
+find_package(ZLIB)
+find_package(tinyxml2)
+find_package(pole)
+find_package(nlohmann_json REQUIRED)
+
+target_link_libraries(${TEST_NAME}
+  SQLite::SQLite3
+  glog::glog
+  gtest::gtest
+  opencv::opencv
+  ZLIB::ZLIB
+  tinyxml2::tinyxml2
+  pole::pole
+  nlohmann_json::nlohmann_json  
+)
 
 target_include_directories(${TEST_NAME} PRIVATE ${INCLUDE_ROOT})
 target_link_libraries(${TEST_NAME} ${SLIDEIO_LIB_NAME} ${TEST_LIB_NAME})
 
 
-# Remove boost libraries from linking
-LIST(FILTER CONAN_LIBS_RELEASE EXCLUDE REGEX "^(.)+boost(.)+")
-LIST(FILTER CONAN_LIBS_DEBUG EXCLUDE REGEX "^(.)+boost(.)+")
 
-CONAN_CONFIGURE(${TEST_NAME})
 
 IF(WIN32)
    set_target_properties(${TEST_NAME} PROPERTIES LINK_FLAGS "/ignore:4099")

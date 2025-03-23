@@ -6,7 +6,9 @@
 #include "slideio/drivers/gdal/gdalimagedriver.hpp"
 #include "tests/testlib/testtools.hpp"
 #include <fstream>
+#include <filesystem>
 
+#include "slideio/core/tools/endian.hpp"
 #include "slideio/core/tools/tempfile.hpp"
 
 TEST(ImageTools, readJp2KFile)
@@ -35,7 +37,7 @@ TEST(ImageTools, readJp2Header)
     std::string filePath = TestTools::getTestImagePath("jp2K", "relax.jp2");
     std::string bmpFilePath = TestTools::getTestImagePath("jp2K", "relax.bmp");
 
-    auto fileSize = boost::filesystem::file_size(filePath);
+    auto fileSize = std::filesystem::file_size(filePath);
     ASSERT_GT(fileSize, 0);
     std::ifstream file(filePath, std::ios::binary);
     // Stop eating new lines in binary mode!!!
@@ -187,12 +189,14 @@ TEST(ImageTools, decodeJxrBlock16)
     slideio::ImageTools::decodeJxrBlock(buffer.data(), buffer.size(), jxrImage);
     ASSERT_FALSE(jxrImage.empty());
 
-
     std::ifstream rawFile(pathRaw.c_str(), std::ios::binary);
     std::vector<unsigned char> raw((std::istreambuf_iterator<char>(rawFile)), std::istreambuf_iterator<char>());
-    size_t rasterSize = jxrImage.total() * jxrImage.elemSize();
-    ASSERT_EQ(rasterSize, raw.size());
-    ASSERT_EQ(memcmp(jxrImage.data, raw.data(), raw.size()), 0);
+    slideio::Endian::fromLittleEndianToNative(slideio::DataType::DT_UInt16, raw.data(), raw.size());
+
+    cv::Mat expected(jxrImage.size(), jxrImage.type(), raw.data());
+
+    double score = slideio::ImageTools::computeSimilarity2(jxrImage, expected);
+    ASSERT_GT(score, 0.99);
 }
 
 TEST(ImageTools, decodeJpegStream)

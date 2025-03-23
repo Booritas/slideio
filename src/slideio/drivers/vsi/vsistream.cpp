@@ -4,6 +4,8 @@
 #include "slideio/drivers/vsi/vsistream.hpp"
 #include "slideio/core/tools/tools.hpp"
 #include <codecvt>
+
+#include "slideio/core/tools/endian.hpp"
 using namespace slideio::vsi;
 
 
@@ -22,6 +24,9 @@ std::string VSIStream::readString(size_t dataSize)
     m_stream->read((char*)wstr.data(), dataSize);
     if (m_stream->bad()) {
         RAISE_RUNTIME_ERROR << "VSI driver: error by reading stream";
+    }
+	if (!Endian::isLittleEndian()){
+        wstr = Endian::u16StringLittleToBig(wstr);
     }
     wstr.erase(std::find(wstr.begin(), wstr.end(), '\0'), wstr.end());
     return Tools::fromUnicode16(wstr);

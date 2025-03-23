@@ -3,7 +3,6 @@
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/drivers/pke/pkeimagedriver.hpp"
 #include "slideio/drivers/pke/pkeslide.hpp"
-#include <boost/filesystem.hpp>
 #include "slideio/base/log.hpp"
 
 slideio::PKEImageDriver::PKEImageDriver()

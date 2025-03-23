@@ -1,7 +1,6 @@
 [requires]
-glog/0.6.0@slideio/stable
+glog/0.7.1
 gtest/cci.20210126
-opencv/4.1.1@slideio/stable
+opencv/4.10.0@slideio/stable
 zlib/1.2.13
 [options]
-glog:shared=True

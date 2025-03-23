@@ -2,30 +2,50 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #pragma once
-#include "transformer_def.hpp"
-#include "transformation.hpp"
+#include "slideio/transformer/transformer_def.hpp"
+#include "slideio/transformer/transformationex.hpp"
+#include "slideio/transformer/colorspace.hpp"
+#include "slideio/transformer/transformationtype.hpp"
 
 namespace slideio
 {
-    enum class ColorSpace
-    {
-        RGB,
-        GRAY,
-        HSV,
-        HLS,
-        YUV,
-        YCbCr,
-        XYZ,
-        LAB,
-        LUV,
-    };
-
-    class SLIDEIO_TRANSFORMER_EXPORTS ColorTransformation : public slideio::Transformation
+    class SLIDEIO_TRANSFORMER_EXPORTS ColorTransformation : public slideio::TransformationEx
     {
     public:
         ColorTransformation() {
             m_type = TransformationType::ColorTransformation;
             m_colorSpace = ColorSpace::RGB;
+        }
+
+        ColorTransformation(const ColorTransformation& other)
+            : slideio::TransformationEx(other),
+              m_colorSpace(other.m_colorSpace) {
+        }
+
+        ColorTransformation(ColorTransformation&& other) noexcept
+            : slideio::TransformationEx(std::move(other)),
+              m_colorSpace(other.m_colorSpace) {
+        }
+
+        ColorTransformation& operator=(const ColorTransformation& other) {
+            if (this == &other)
+                return *this;
+            slideio::TransformationEx::operator =(other);
+            m_colorSpace = other.m_colorSpace;
+            return *this;
+        }
+
+        ColorTransformation& operator=(ColorTransformation&& other) noexcept {
+            if (this == &other)
+                return *this;
+            slideio::TransformationEx::operator =(std::move(other));
+            m_colorSpace = other.m_colorSpace;
+            return *this;
+        }
+
+        ColorTransformation(ColorSpace colorSpace) {
+            m_type = TransformationType::ColorTransformation;
+            m_colorSpace = colorSpace;
         }
         ColorSpace getColorSpace() const {
             return m_colorSpace;

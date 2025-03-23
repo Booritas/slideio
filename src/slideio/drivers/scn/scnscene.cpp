@@ -7,7 +7,6 @@
 #include "slideio/imagetools/imagetools.hpp"
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/imagetools/libtiff.hpp"
-#include <boost/format.hpp>
 
 
 using namespace slideio;
@@ -37,9 +36,12 @@ int SCNScene::getNumChannels() const
     return m_numChannels;
 }
 
-void SCNScene::readResampledBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize,
-                                          const std::vector<int>& channelIndicesIn, cv::OutputArray output)
+void SCNScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
+    const std::vector<int>& channelIndicesIn, int zSliceIndex, int tFrameIndex, cv::OutputArray output)
 {
+	if (zSliceIndex != 0 || tFrameIndex != 0) {
+		throw std::runtime_error("SCNImageDriver: 3D and 4D images are not supported");
+	}
     auto hFile = getFileHandle();
     if (hFile == nullptr)
         throw std::runtime_error("SCNImageDriver: Invalid file handle by raster reading operation");
@@ -291,25 +293,20 @@ bool SCNScene::readTile(int tileIndex, const std::vector<int>& channelIndices, c
         const std::vector<int> localChannelIndices = { 0 };
         std::vector<cv::Mat> channelRasters;
         channelRasters.resize(channelIndices.size());
+        int channel = 0;
         for(int channelIndex:channelIndices)
         {
             auto it = info->channel2ifd.find(channelIndex);
-            if (it == info->channel2ifd.end())
-                throw std::runtime_error(
-                    (boost::format(
-                        "SCNImageDriver: invalid channel index (%1%) received during tile reading. File %2%.")
-                         % channelIndex % m_filePath).str());
+            if (it == info->channel2ifd.end()) {
+                RAISE_RUNTIME_ERROR << "SCNImageDriver: invalid channel index " 
+                    << channelIndex << " received during tile reading. File " << m_filePath;
+            }
             const TiffDirectory* dir = it->second;
-            TiffTools::readTile(getFileHandle(), *dir, tileIndex, localChannelIndices, channelRasters[channelIndex]);
+            TiffTools::readTile(getFileHandle(), *dir, tileIndex, localChannelIndices, channelRasters[channel]);
+            ++channel;
         }
         cv::merge(channelRasters, tileRaster);
     }
-    //{
-    //    cv::Rect tileRect;
-    //    getTileRect(tileIndex, tileRect, userData);
-    //    const std::string path = (boost::format("D:/Temp/tiles/tile_x%1%_y%2%.png") % tileRect.x % tileRect.y).str();
-    //    slideio::ImageTools::writeRGBImage(path, slideio::Compression::Png, tileRaster.getMat());
-    //}
     return true;
 }
 

@@ -3,9 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/drivers/vsi/vsiimagedriver.hpp"
 #include "slideio/drivers/vsi/vsislide.hpp"
-#include <boost/filesystem.hpp>
 #include "slideio/core/tools/tools.hpp"
-#include <boost/json/src.hpp>
 
 
 

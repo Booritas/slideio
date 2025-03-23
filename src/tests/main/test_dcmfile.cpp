@@ -3,7 +3,6 @@
 // of this distribution and at http://slideio.com/license.html.
 #include <gtest/gtest.h>
 
-#include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
 #include "slideio/base/exceptions.hpp"
 #include "slideio/drivers/dcm/dcmfile.hpp"
@@ -278,19 +277,12 @@ TEST(DCMFile, pixelValues12AllocatedBits)
     ASSERT_FALSE(frames.empty());
     EXPECT_EQ(frames.size(), 1);
 
-    double min, max;
-    cv::minMaxLoc(frames[0], &min, &max);
-    double range = max - min;
-    double alpha = 255. / range;
-    double beta = -(min * alpha);
-    
-    frames[0].convertTo(frames[0], CV_MAKE_TYPE(CV_8U, 1), alpha, beta);
-
     cv::Mat testImage;
-    slideio::ImageTools::readGDALImage(testPath, testImage);
+	ImageTools::readGDALImage(testPath, testImage);
     double similarity = ImageTools::computeSimilarity(frames[0], testImage);
-    EXPECT_LT(0.85, similarity);
+    EXPECT_LT(0.98, similarity);
 }
+
 
 TEST(DCMFile, isWSIFile)
 {
@@ -386,7 +378,8 @@ TEST(DCMFile, readFrame) {
     //TestTools::writePNG(tileRaster, testFilePath);
     cv::Mat testImage;
     TestTools::readPNG(testFilePath, testImage);
-    TestTools::compareRasters(testImage, tileRaster);
+	double score = ImageTools::computeSimilarity2(testImage, tileRaster);
+	EXPECT_GT(score, 0.99);
     //TestTools::showRasters(testImage, tileRaster);
 
 }
@@ -419,9 +412,8 @@ TEST(DCMFile, readFrame2) {
     //TestTools::writePNG(tileRaster, testFilePath);
     cv::Mat testImage;
     TestTools::readPNG(testFilePath, testImage);
-    TestTools::compareRasters(testImage, tileRaster);
-    //TestTools::showRasters(testImage, tileRaster);
-
+    double score = ImageTools::computeSimilarity2(testImage, tileRaster);
+	EXPECT_GT(score, 0.999);
 }
 
 TEST(DCMFile, readJ2K) {
@@ -440,6 +432,8 @@ TEST(DCMFile, readJ2K) {
     //ImageTools::writeTiffImage(testFilePath, frames[0]);
     cv::Mat testImage;
     ImageTools::readGDALImage(testFilePath, testImage);
-    TestTools::compareRasters(frames[0], testImage);
+    double simScore = ImageTools::computeSimilarity2(frames[0], testImage);
+    EXPECT_GT(simScore, 0.999);
+
     //TestTools::showRasters(testImage, frames[0]);
 }

@@ -18,6 +18,7 @@
 #include <list>
 #include <opencv2/core.hpp>
 #include "slideio/base/slideio_enums.hpp"
+#include "slideio/base/slideio_structs.hpp"
 
 namespace slideio
 {
@@ -78,7 +79,7 @@ namespace slideio
             }
             return  goodLevelIndex;
         }
-        static void convert12BitsTo16Bits(uint8_t* source, uint16_t* target, int targetLen);
+        static void convert12BitsTo16Bits(const uint8_t* source, uint16_t* target, int targetLen);
         static void scaleRect(const cv::Rect& srcRect, const cv::Size& newSize, cv::Rect& trgRect);
         static void scaleRect(const cv::Rect& srcRect, double scaleX, double scaleY, cv::Rect& trgRect);
         static bool isCompleteChannelList(const std::vector<int>& channelIndices, const int numChannels)
@@ -97,27 +98,27 @@ namespace slideio
             }
             return allChannels;
         }
-        static std::wstring toWstring(const std::string& string);
-        static std::string fromWstring(const std::wstring& wstring);
+#if defined(WIN32)
+          static std::wstring toWstring(const std::string& string);
+#endif
+
         static std::string fromUnicode16(const std::u16string& u16string);
         static void throwIfPathNotExist(const std::string& path, const std::string label);
         static std::list<std::string> findFilesWithExtension(const std::string& directory, const std::string& extension);
         static void extractChannels(const cv::Mat& sourceRaster, const std::vector<int>& channels, cv::OutputArray output);
         static FILE* openFile(const std::string& filePath, const char* mode);
-        // Function to detect if the system is little endian
-        static bool isLittleEndian() {
-            uint16_t number = 0x1;
-            char* numPtr = (char*)&number;
-            return (numPtr[0] == 1);
-        }
-        // Function to convert from big endian to little endian for 16 bit short
-        static uint16_t bigToLittleEndian16(uint16_t bigEndianValue) {
-            return ((bigEndianValue >> 8) & 0xff) |
-                ((bigEndianValue << 8) & 0xff00);
-        }
         static uint64_t getFilePos(FILE* file);
         static int setFilePos(FILE* file, uint64_t pos, int origin);
         static uint64_t getFileSize(FILE* file);
+        static int dataTypeSize(slideio::DataType dt);
+        static Size cvSizeToSize(const cv::Size& cvSize) {
+            return {cvSize.width, cvSize.height};
+        }
+        static Rect cvRectToRect(const cv::Rect& cvRect) {
+            return {cvRect.x, cvRect.y, cvRect.width, cvRect.height};
+        }
+        static void replaceAll(std::string& str, const std::string& from, const std::string& to);
+        static std::vector<std::string> split(const std::string& value, char delimiter);
 
     };
 }

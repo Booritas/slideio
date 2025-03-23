@@ -5,7 +5,7 @@
 
 #include "testtools.hpp"
 #include "slideio/base/slideio_enums.hpp"
-#include "slideio/imagetools/cvtools.hpp"
+#include "slideio/core/tools/cvtools.hpp"
 
 int TestTiler::getTileCount(void* userData)
 {

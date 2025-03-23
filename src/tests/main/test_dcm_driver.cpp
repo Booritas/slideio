@@ -5,14 +5,15 @@
 
 
 //#include <opencv2/highgui.hpp>
-#include <opencv2/imgcodecs.hpp>
+//#include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
 
 
+#include "slideio/core/tools/tools.hpp"
 #include "slideio/slideio/imagedrivermanager.hpp"
 #include "tests/testlib/testtools.hpp"
 #include "slideio/slideio/scene.hpp"
-#include "slideio/imagetools/cvtools.hpp"
+#include "slideio/core/tools/cvtools.hpp"
 #include "slideio/drivers/dcm/dcmimagedriver.hpp"
 #include "slideio/imagetools/imagetools.hpp"
 
@@ -313,6 +314,7 @@ TEST(DCMImageDriver, readDirectory3D)
     cv::Mat bmpImage;
     ImageTools::readGDALImage(testImagePath, bmpImage);
     double similarity = ImageTools::computeSimilarity(sliceRaster, bmpImage);
+    //TestTools::showRasters(sliceRaster, bmpImage);
     EXPECT_EQ(1, similarity);
 }
 
@@ -658,7 +660,8 @@ TEST(DCMImageDriver, readJp2K)
     ASSERT_FALSE(image.empty());
     cv::Mat testImage;
     slideio::ImageTools::readGDALImage(testPath, testImage);
-    TestTools::compareRasters(image, testImage);
+    double simScore = ImageTools::computeSimilarity2(image, testImage);
+    EXPECT_GT(simScore, 0.999);
 }
 
 TEST(DCMImageDriver, zoomLevels)
@@ -689,7 +692,7 @@ TEST(DCMImageDriver, zoomLevels)
         const slideio::LevelInfo* level = scene->getZoomLevelInfo(levelIndex);
         EXPECT_EQ(*level, levels[levelIndex]);
         if (levelIndex == 0) {
-            EXPECT_EQ(level->getSize(), rect.size());
+            EXPECT_EQ(level->getSize(), Tools::cvSizeToSize(rect.size()));
         }
 
     }
@@ -716,8 +719,19 @@ TEST(DCMImageDriver, zoomLevelsSingle)
         const slideio::LevelInfo* level = scene->getZoomLevelInfo(levelIndex);
         EXPECT_EQ(*level, levels[levelIndex]);
         if (levelIndex == 0) {
-            EXPECT_EQ(level->getSize(), rect.size());
+            EXPECT_EQ(level->getSize(), Tools::cvSizeToSize(rect.size()));
         }
 
     }
+}
+
+TEST(DCMImageDriver, multiThreadSceneAccess) {
+    if (!TestTools::isFullTestEnabled())
+    {
+        GTEST_SKIP() <<
+            "Skip the test because full dataset is not enabled";
+    }
+    std::string filePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777");
+    DCMImageDriver driver;
+    TestTools::multiThreadedTest(filePath, driver);
 }

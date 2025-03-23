@@ -7,11 +7,12 @@
 #include <codecvt>
 
 #include "slideio/imagetools/imagetools.hpp"
-#include "slideio/imagetools/cvtools.hpp"
+#include "slideio/core/tools/cvtools.hpp"
 #include <opencv2/core.hpp>
-#include <boost/format.hpp>
 #include "slideio/imagetools/libtiff.hpp"
-#include <boost/filesystem.hpp>
+#include <filesystem>
+#include "slideio/base/log.hpp"
+#include "slideio/core/tools/endian.hpp"
 #include "slideio/core/tools/tools.hpp"
 
 using namespace slideio;
@@ -281,18 +282,17 @@ int compressSlideioToTiff(Compression compression)
 
 libtiff::TIFF* TiffTools::openTiffFile(const std::string& path, bool readOnly)
 {
-    namespace fs = boost::filesystem;
+    namespace fs = std::filesystem;
     libtiff::TIFF* hfile(nullptr);
 #if defined(WIN32)
-    std::wstring_convert<std::codecvt_utf8<wchar_t>, wchar_t> converter;
-    std::wstring wsPath = converter.from_bytes(path);
-    boost::filesystem::path filePath(wsPath);
+    std::wstring wsPath = Tools::toWstring(path);
+    fs::path filePath(wsPath);
     if (readOnly && !fs::exists(wsPath)) {
         RAISE_RUNTIME_ERROR << "File " << path << " does not exist";
     }
     hfile = libtiff::TIFFOpenW(wsPath.c_str(), readOnly ? "r" : "w");
 #else
-    boost::filesystem::path filePath(path);
+    fs::path filePath(path);
     if (readOnly && !fs::exists(filePath)) {
         RAISE_RUNTIME_ERROR << "File " << path << " does not exist";
     }
@@ -314,8 +314,8 @@ void TiffTools::closeTiffFile(libtiff::TIFF* file)
 
 static DataType retrieveTiffDataType(libtiff::TIFF* tiff)
 {
-    int bitsPerSample = 0;
-    int sampleFormat = 0;
+    uint16_t bitsPerSample = 0;
+    uint16_t sampleFormat = 0;
 
     DataType dataType = DataType::DT_Unknown;
     if (!libtiff::TIFFGetField(tiff, TIFFTAG_BITSPERSAMPLE, &bitsPerSample)) {
@@ -436,10 +436,10 @@ void  TiffTools::scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, int64_t dirO
     dir.compressionQuality = 0;
 
     char *description(nullptr);
-    short dirchnls(0), dirbits(0);
+    uint16_t dirchnls(0), dirbits(0);
     uint16_t compress(0);
-    short  planar_config(0);
-    int width(0), height(0), tile_width(0), tile_height(0);
+    uint16_t  planar_config(0);
+    uint32_t width(0), height(0), tile_width(0), tile_height(0);
     libtiff::TIFFGetField(tiff, TIFFTAG_SAMPLESPERPIXEL, &dirchnls);
     libtiff::TIFFGetField(tiff, TIFFTAG_BITSPERSAMPLE, &dirbits);
     libtiff::TIFFGetField(tiff, TIFFTAG_COMPRESSION, &compress);
@@ -462,12 +462,12 @@ void  TiffTools::scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, int64_t dirO
     libtiff::TIFFGetField(tiff, TIFFTAG_ROWSPERSTRIP, &rowsPerStripe);
     int32_t compressionQuality = 0;
     libtiff::TIFFGetField(tiff, TIFFTAG_JPEGQUALITY, &compressionQuality);
-    short ph(0);
+    uint16_t ph(0);
     libtiff::TIFFGetField(tiff, TIFFTAG_PHOTOMETRIC, &ph);
     dir.photometric = ph;
     dir.stripSize = (int)libtiff::TIFFStripSize(tiff);
     dir.dataType = retrieveTiffDataType(tiff);
-    short YCbCrSubsampling[2] = { 2,2 };
+    uint16_t YCbCrSubsampling[2] = { 2,2 };
     libtiff::TIFFGetField(tiff, TIFFTAG_YCBCRSUBSAMPLING, &YCbCrSubsampling[0], &YCbCrSubsampling[0]);
     dir.YCbCrSubsampling[0] = YCbCrSubsampling[0];
     dir.YCbCrSubsampling[1] = YCbCrSubsampling[1];
@@ -574,7 +574,7 @@ void TiffTools::readNotRGBStripedDir(libtiff::TIFF* file, const TiffDirectory& d
 {
     std::vector<uint8_t> rgbaRaster(4 * dir.rowsPerStrip * dir.width);
 
-    int buff_size = dir.width * dir.height * dir.channels * ImageTools::dataTypeSize(dir.dataType);
+    int buff_size = dir.width * dir.height * dir.channels * Tools::dataTypeSize(dir.dataType);
     cv::Size sizeImage = { dir.width, dir.height };
     DataType dt = dir.dataType;
     output.create(sizeImage, CV_MAKETYPE(CVTools::toOpencvType(dt), dir.channels));
@@ -619,7 +619,7 @@ void TiffTools::readNotRGBStripedDir(libtiff::TIFF* file, const TiffDirectory& d
 void TiffTools::readRegularStripedDir(libtiff::TIFF* file, const TiffDirectory& dir, cv::OutputArray output)
 {
 
-    int buff_size = dir.width * dir.height * dir.channels * ImageTools::dataTypeSize(dir.dataType);
+    int buff_size = dir.width * dir.height * dir.channels * Tools::dataTypeSize(dir.dataType);
     cv::Size sizeImage = { dir.width, dir.height };
     DataType dt = dir.dataType;
     output.create(sizeImage, CV_MAKETYPE(CVTools::toOpencvType(dt), dir.channels));
@@ -707,11 +707,10 @@ void TiffTools::readRegularTile(libtiff::TIFF* hFile, const TiffDirectory& dir, 
         uint8_t* buff_begin = tileRaster.data;
         auto buf_size = tileRaster.total() * tileRaster.elemSize();
         auto readBytes = libtiff::TIFFReadEncodedTile(hFile, tile, buff_begin, buf_size);
-        if (readBytes <= 0)
-            throw std::runtime_error(
-                (boost::format(
-                    "TiffTools: error reading encoded tiff tile %1% of directory %2%."
-                    "Compression: %3%") % tile % dir.dirIndex % dir.compression).str());
+        if (readBytes <= 0){
+            RAISE_RUNTIME_ERROR << "TiffTools: Error reading encoded tiff tile "
+                << tile << " of directory " << dir.dirIndex << ". Compression: " << dir.compression;
+        }
     }
     if(channelIndices.empty() || (channelIndices.size() == 1 && dir.channels==1))
     {
@@ -771,27 +770,35 @@ void TiffTools::readNotRGBTile(libtiff::TIFF* hFile, const TiffDirectory& dir, i
     int col = tile - row * cols;
     int tileX = col * dir.tileWidth;
     int tileY = row * dir.tileHeight;
+    SLIDEIO_LOG(INFO) << "TiffTools::readNotRGBTile: Reading tile " << tile 
+        << " from directory:" << dir.dirIndex << " at position " << tileX << "," << tileY;
     auto readBytes = libtiff::TIFFReadRGBATile(hFile, tileX, tileY, buffBegin);
-    if (readBytes <= 0)
-        throw std::runtime_error(
-            (boost::format(
-                "TiffTools: error reading encoded tiff tile %1% of directory %2%."
-                "Compression: %3%") % tile % dir.dirIndex % dir.compression).str());
+    if (readBytes <= 0) {
+        RAISE_RUNTIME_ERROR << "TiffTools: Error reading encoded tiff tile "
+            << tile << " of directory " << dir.dirIndex << ". Compression: " << dir.compression;
+    }
 
+    std::vector<int> channelMapping = { 0, 1, 2, 3 };
+    if(!Endian::isLittleEndian()) {
+        std::reverse(channelMapping.begin(), channelMapping.end());
+    }
     cv::Mat flipped;
+
     if (channelIndices.empty())
     {
         std::vector<cv::Mat> channelRasters;
         channelRasters.resize(3);
         for (int channelIndex=0; channelIndex<3; ++channelIndex)
         {
-            cv::extractChannel(tileRaster, channelRasters[channelIndex], channelIndex);
+            const int correctedIndex = channelMapping[channelIndex]; // correct the channel index for big endian
+            cv::extractChannel(tileRaster, channelRasters[channelIndex], correctedIndex);
         }
         cv::merge(channelRasters, flipped);
     }
     else if (channelIndices.size() == 1)
     {
-        cv::extractChannel(tileRaster, flipped, channelIndices[0]);
+        const int correctedIndex = channelMapping[channelIndices[0]]; // correct the channel index for big endian
+        cv::extractChannel(tileRaster, flipped, correctedIndex);
     }
     else
     {
@@ -799,7 +806,8 @@ void TiffTools::readNotRGBTile(libtiff::TIFF* hFile, const TiffDirectory& dir, i
         channelRasters.resize(channelIndices.size());
         for (int channelIndex : channelIndices)
         {
-            cv::extractChannel(tileRaster, channelRasters[channelIndex], channelIndices[channelIndex]);
+            const int correctedIndex = channelMapping[channelIndices[channelIndex]]; // correct the channel index for big endian
+            cv::extractChannel(tileRaster, channelRasters[channelIndex], correctedIndex);
         }
         cv::merge(channelRasters, flipped);
     }
@@ -813,7 +821,7 @@ void TiffTools::writeDirectory(libtiff::TIFF* tiff)
 
 inline uint16_t bitsPerSampleDataType(DataType dt)
 {
-    int ds = ImageTools::dataTypeSize(dt);
+    int ds = Tools::dataTypeSize(dt);
     return (uint16_t)(ds * 8);
 }
 

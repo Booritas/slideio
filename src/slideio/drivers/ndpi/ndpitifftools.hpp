@@ -6,7 +6,7 @@
 
 
 #include "slideio/drivers/ndpi/ndpi_api_def.hpp"
-#include "slideio/core/cvstructs.hpp"
+#include "slideio/base/resolution.hpp"
 #include "slideio/base/slideio_enums.hpp"
 #include "slideio/base/base.hpp"
 #include <opencv2/core.hpp>
@@ -27,7 +27,6 @@ namespace libtiff
 namespace slideio
 {
     class NDPIFile;
-    class CacheManager;
 
     struct SLIDEIO_NDPI_EXPORTS  NDPITiffDirectory
     {
@@ -63,7 +62,7 @@ namespace slideio
         int stripSize;
         double magnification;
         uint32_t blankLines;
-        std::vector<uint32_t> mcuStarts;
+        std::vector<uint64_t> mcuStarts;
         uint64_t jpegHeaderOffset;
         uint64_t jpegSOFMarker;
         uint32_t jpegHeaderSize;
@@ -86,7 +85,7 @@ namespace slideio
         }
     };
 
-    SLIDEIO_NDPI_EXPORTS std::ostream&  operator << (std::ostream& os, const NDPITiffDirectory::Type& type);;
+    SLIDEIO_NDPI_EXPORTS std::ostream&  operator << (std::ostream& os, const NDPITiffDirectory::Type& type);
 
     class SLIDEIO_NDPI_EXPORTS NDPITiffTools
     {
@@ -123,8 +122,6 @@ namespace slideio
         static cv::Size computeTileCounts(const NDPITiffDirectory& dir);
         static void readJpegScanlines(libtiff::TIFF* tiff, FILE* file, const NDPITiffDirectory& dir, int firstScanline,
             int numberScanlines, const std::vector<int>& channelIndices, cv::_OutputArray output);
-        static void cacheScanlines(NDPIFile* file, const NDPITiffDirectory& dir,
-            cv::Size tileSize, CacheManager* cacheManager);
         static void readJpegDirectoryRegion(libtiff::TIFF* tiff, const std::string& filePath, const cv::Rect& region, const NDPITiffDirectory& dir,
             const std::vector<int>& channelIndices, cv::_OutputArray output);
         static void readDirectoryJpegHeaders(NDPIFile* ndpi, NDPITiffDirectory& dir);

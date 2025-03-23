@@ -5,7 +5,7 @@
 #define OPENCV_slideio_tifftools_HPP
 
 #include "slideio/imagetools/slideio_imagetools_def.hpp"
-#include "slideio/core/cvstructs.hpp"
+#include "slideio/base/resolution.hpp"
 #include "slideio/base/slideio_enums.hpp"
 #include "slideio/base/base.hpp"
 #include <opencv2/core.hpp>
