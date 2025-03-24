@@ -28,6 +28,6 @@ std::shared_ptr<slideio::CVSlide> OTImageDriver::openFile(const std::string& fil
 
 std::string OTImageDriver::getFileSpecs() const
 {
-	static std::string pattern("*.qptiff");
-    return pattern;
+	static std::string pattern("*.ome.tif;*ome.tiff;*.ome.tf2;*.ome.tf8;*.ome.btf");
+	return pattern;
 }
