@@ -41,6 +41,8 @@ namespace slideio
         virtual const std::string& getRawMetadata() const {return m_rawMetadata;}
         /**@brief The method returns a CVScene object by the scene index.*/
         virtual std::shared_ptr<CVScene> getScene(int index) const = 0;
+        /**@brief The method returns a CVScene object by the scene name.*/
+        virtual std::shared_ptr<CVScene> getSceneByName(const std::string& name);
         /**@brief The method returns list of names of auxiliary images contained in the slide.
          *
          *Default: empty list.*/

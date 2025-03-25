@@ -3,14 +3,15 @@
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/drivers/ome-tiff/otslide.hpp"
 #include "slideio/imagetools/imagetools.hpp"
-#include "slideio/drivers/ome-tiff/otsmallscene.hpp"
-#include "slideio/drivers/ome-tiff/ottiledscene.hpp"
+#include "slideio/drivers/ome-tiff/otscene.hpp"
+#include "slideio/drivers/ome-tiff/otstructs.hpp"
 #include "slideio/imagetools/tifftools.hpp"
-#include "slideio/base/base.hpp"
 #include "slideio/base/log.hpp"
 #include "slideio/base/exceptions.hpp"
+#include "slideio/imagetools/tiffkeeper.hpp"
 #include <fstream>
 #include <tinyxml2.h>
+
 
 
 using namespace slideio;
@@ -72,63 +73,80 @@ std::shared_ptr<OTSlide> OTSlide::openFile(const std::string& filePath)
     outFile << description;
     outFile.close();
 
+    std::list<ImageData> images;
 
     for (const auto& directory : directories) {
         const auto& description = directory.description;
         if (!description.empty()) {
-            tinyxml2::XMLDocument doc;
-            tinyxml2::XMLError error = doc.Parse(description.c_str(), description.size());
+            std::shared_ptr<tinyxml2::XMLDocument> doc = std::make_shared<tinyxml2::XMLDocument>(new tinyxml2::XMLDocument);
+
+            tinyxml2::XMLError error = doc->Parse(description.c_str(), description.size());
             if (error != tinyxml2::XML_SUCCESS) {
-                RAISE_RUNTIME_ERROR << "OTImageDriver: Error parsing image description xml: " << static_cast<int>(error);
+                continue;
             }
-            tinyxml2::XMLElement* root = doc.RootElement();
+            tinyxml2::XMLElement* root = doc->RootElement();
             if(!root) {
                 RAISE_RUNTIME_ERROR << "OTImageDriver: Error parsing image description xml: root element is null";
             }
-            //auto xmlImageType= root->FirstChildElement("ImageType");
-            //if(xmlImageType) {
-            //    std::string name;
-            //    std::string type = xmlImageType->GetText();
-            //    if(type == "FullResolution" || type == "ReducedResolution") {
-            //        if(type == "FullResolution") {
-            //            metadataItems.push_back(description);
-            //        }
-            //        image_dirs.push_back(directory);
-            //    } else if(type == "Thumbnail" || type == "Overview" || type == "Label") {
-            //        std::shared_ptr<CVScene> scene(new OTSmallScene(filePath, type, directory, true));
-            //        auxImages[type] = scene;
-            //        auxNames.emplace_back(type);
-            //    }
-            //}
+            for (tinyxml2::XMLElement* imageElem = root->FirstChildElement("Image");
+                 imageElem != nullptr;
+                 imageElem = imageElem->NextSiblingElement("Image")) {
+                if (const char* id = imageElem->Attribute("ID")) {
+					ImageData image = {doc, imageElem, id, filePath};
+					images.push_back(image);
+				}
+            }
         }
     }
-
-    std::shared_ptr<CVScene> scene(new OTTiledScene(filePath,keeper.release(),"Image", image_dirs));
-    std::vector<std::shared_ptr<CVScene>> scenes;
-    scenes.push_back(scene);
+    images.sort([](const ImageData& left, const ImageData& right){ return left.imageId < right.imageId; });
+    images.unique([](const ImageData& left, const ImageData& right) {return left.imageId == right.imageId; });
+	if (images.empty()) {
+		RAISE_RUNTIME_ERROR << "OTImageDriver: No image found in the file: " << filePath;
+	}
     slide.reset(new OTSlide);
-    slide->m_Scenes.assign(scenes.begin(), scenes.end());
-    slide->m_filePath = filePath;
-    slide->m_auxImages = auxImages;
-    slide->m_auxNames = auxNames;
+    for (const ImageData& imageData : images) {
+		std::shared_ptr<CVScene> scene = createScene(imageData);
+        if(scene) {
+            slide->m_Scenes.push_back(scene);
+        }
+	}
+    //std::shared_ptr<CVScene> scene(new OTTiledScene(filePath,keeper.release(),"Image", image_dirs));
+    //std::vector<std::shared_ptr<CVScene>> scenes;
+    //scenes.push_back(scene);
+    //slide->m_Scenes.assign(scenes.begin(), scenes.end());
+    //slide->m_filePath = filePath;
+    //slide->m_auxImages = auxImages;
+    //slide->m_auxNames = auxNames;
 
-    tinyxml2::XMLDocument xmlMetadata;
-    auto rootMetadata = xmlMetadata.NewElement("Metadata");
-    xmlMetadata.InsertEndChild(rootMetadata);
+    //tinyxml2::XMLDocument xmlMetadata;
+    //auto rootMetadata = xmlMetadata.NewElement("Metadata");
+    //xmlMetadata.InsertEndChild(rootMetadata);
 
-    for(const auto& metadataItem: metadataItems) {
-        tinyxml2::XMLDocument doc;
-        doc.Parse(metadataItem.c_str());
-        auto root = doc.RootElement();
-        rootMetadata->InsertEndChild(root->DeepClone(&xmlMetadata));
-    }
-    tinyxml2::XMLPrinter printer;
-    xmlMetadata.Print(&printer);
-    slide->m_rawMetadata = printer.CStr();
-    //std::ofstream outFile("D:/Temp/output.xml");
-    //outFile << slide->m_rawMetadata;
-    //outFile.close();
+    //for(const auto& metadataItem: metadataItems) {
+    //    tinyxml2::XMLDocument doc;
+    //    doc.Parse(metadataItem.c_str());
+    //    auto root = doc.RootElement();
+    //    rootMetadata->InsertEndChild(root->DeepClone(&xmlMetadata));
+    //}
+    //tinyxml2::XMLPrinter printer;
+    //xmlMetadata.Print(&printer);
+    //slide->m_rawMetadata = printer.CStr();
+    ////std::ofstream outFile("D:/Temp/output.xml");
+    ////outFile << slide->m_rawMetadata;
+    ////outFile.close();
     return slide;
+}
+
+std::shared_ptr<CVScene> OTSlide::createScene(const ImageData& imageData) {
+	std::shared_ptr<CVScene> scene;
+    try {
+        OTScene* otScene = new OTScene(imageData);
+        scene.reset(otScene);
+    }
+    catch (std::exception& ex) {
+		SLIDEIO_LOG(WARNING) << "Error by OME-TIFF scene creation: " << ex.what();
+    }
+	return scene;
 }
 
 std::shared_ptr<CVScene> OTSlide::getAuxImage(const std::string& sceneName) const

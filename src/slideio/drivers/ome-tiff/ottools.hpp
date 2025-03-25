@@ -7,6 +7,8 @@
 #include <opencv2/core.hpp>
 #include <string>
 
+#include "slideio/base/slideio_enums.hpp"
+
 namespace slideio
 {
     namespace ometiff
@@ -14,6 +16,7 @@ namespace slideio
         class SLIDEIO_OMETIFF_EXPORTS OTTools
         {
         public:
+			static DataType stringToDataType(const std::string& type);
         };
     }
 }

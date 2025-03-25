@@ -5,8 +5,10 @@
 
 #include "slideio/drivers/ome-tiff/ot_api_def.hpp"
 #include "slideio/core/cvscene.hpp"
-#include "slideio/imagetools/tiffkeeper.hpp"
+#include "slideio/drivers/ome-tiff/otscene.hpp"
 #include "slideio/imagetools/tifftools.hpp"
+#include "slideio/core/tools/tilecomposer.hpp"
+#include <tinyxml2.h>
 
 #if defined(_MSC_VER)
 #pragma warning( push )
@@ -17,50 +19,58 @@ namespace slideio
 {
     namespace ometiff
     {
-        class SLIDEIO_OMETIFF_EXPORTS OTScene : public CVScene
+        struct TiffData;
+        struct ImageData;
+
+        class SLIDEIO_OMETIFF_EXPORTS OTScene : public CVScene, public Tiler
         {
         public:
-            /**
-         * \brief Constructor
-         * \param filePath: path to the slide file
-         * \param name: scene name
-         * \param hfile: tiff file handle of the slide
-         */
-            OTScene(const std::string& filePath, const std::string& name);
-            OTScene(const std::string& filePath, libtiff::TIFF* hFile, const std::string& name);
-
-            virtual ~OTScene();
-            void makeSureFileIsOpened();
-
-            std::string getFilePath() const override {
-                return m_filePath;
-            }
-            std::string getName() const override {
-                return m_name;
-            }
-            Compression getCompression() const override{
-                return m_compression;
-            }
-            slideio::Resolution getResolution() const override{
-                return m_resolution;
-            }
-            double getMagnification() const override{
-                return m_magnification;
-            }
-            DataType getChannelDataType(int) const override{
-                return m_dataType;
-            }
-            libtiff::TIFF* getFileHandle();
-
-        protected:
-            std::string m_filePath;
-            std::string m_name;
-            Compression m_compression;
-            Resolution m_resolution;
-            double m_magnification;
-            slideio::DataType m_dataType;
+            explicit OTScene(const ImageData& filePath);
+            int getNumChannels() const override;
+            cv::Rect getRect() const override;
+            int findZoomLevel(double zoom) const;
+            // Tiler methods
+            int getTileCount(void* userData) override;
+            bool getTileRect(int tileIndex, cv::Rect& tileRect, void* userData) override;
+            bool readTile(int tileIndex, const std::vector<int>& channelIndices, cv::OutputArray tileRaster,
+                          void* userData) override;
+            void initializeBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices, cv::OutputArray output) override;
+            std::string getChannelName(int channel) const override;
+            bool isBrightField() const;
         private:
-            TIFFKeeper m_tiffKeeper;
+            void initialize();
+            void initializeChannelNames();
+            bool readTiffTile(int tileIndex, const TiffDirectory& dir, const std::vector<int>& channelIndices, cv::OutputArray tileRaster);
+            bool readTiffDirectory(const TiffDirectory& dir, const std::vector<int>& channelIndices, cv::OutputArray tileRaster);
+
+        public:
+            void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
+                const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex,
+                cv::OutputArray output) override;
+            std::string getFilePath() const override;
+            std::string getName() const override;
+            slideio::DataType getChannelDataType(int channel) const override;
+            Resolution getResolution() const override;
+            double getMagnification() const override;
+            Compression getCompression() const override;
+        private:
+            //std::vector<slideio::TiffDirectory> m_directories;
+            //bool m_isUnmixed = false;
+            //std::vector<int> m_zoomDirectoryIndices;
+            int m_numChannels = 0;
+            std::vector<std::string> m_channelNames;
+            tinyxml2::XMLElement* m_imageXml;
+            std::shared_ptr<tinyxml2::XMLDocument> m_imageDoc;
+            std::string m_imageId;
+			std::list<TiffData> m_tiffData;
+            std::string m_dimensionOrder;
+            DataType m_dataType = DataType::DT_Unknown;
+            int m_numZSlices = 0;
+            int m_numTFrames = 0;
+			cv::Size m_imageSize;
+            bool m_bigEndian = false;
+            std::string m_imageName;
+            std::string m_filePath;
         };
     }
 }

@@ -7,17 +7,14 @@ set(SOURCE_FILES
    ${SOURCE_FILES}
    ${CMAKE_CURRENT_SOURCE_DIR}/otimagedriver.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/otimagedriver.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/otscene.hpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/otscene.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/otslide.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/otslide.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/otsmallscene.hpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/otsmallscene.cpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/ottiledscene.hpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/ottiledscene.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/otscene.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/otscene.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/ottools.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/ottools.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/ot_api_def.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/otstructs.hpp
    )
 
 add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES})

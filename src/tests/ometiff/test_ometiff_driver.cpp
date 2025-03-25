@@ -6,7 +6,7 @@
 
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/drivers/ome-tiff/otimagedriver.hpp"
-#include "slideio/drivers/ome-tiff/otsmallscene.hpp"
+#include "slideio/drivers/ome-tiff/otscene.hpp"
 
 
 namespace slideio
@@ -44,8 +44,38 @@ TEST(OTImageDriver, openMultifileSlide) {
 }
 
 TEST(OTImageDriver, openMultiResolutionSlide) {
+	struct SceneInfo
+	{
+		std::string name;
+		cv::Rect rect;
+		int numChannels;
+		int numZSlices;
+		int numTFrames;
+		double magnification;
+		Resolution res;
+		DataType dt;
+	};
+	const SceneInfo scenesInfo[] = {
+		{"macro", {0,0,1616,4668}, 3, 1,1,0,{0.,0.}, DataType::DT_Byte},
+		{"Image:1", {0,0,39168,26048}, 3, 1,1,0,{0.,0.}, DataType::DT_Byte},
+		{"Image:2", {0,0,39360,23360}, 3, 1,1,0,{0.,0.}, DataType::DT_Byte},
+		{"Image:3", {0,0,39360,23360}, 3, 1,1,0,{0.,0.}, DataType::DT_Byte},
+		{"Image:4", {0,0,39168,26048}, 3, 1,1,0,{0.,0.}, DataType::DT_Byte},
+	};
     std::string filePath = TestTools::getFullTestImagePath("ometiff", "Subresolutions/Leica-2.ome.tiff");
     slideio::ometiff::OTImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
+    const int numScenes = slide->getNumScenes();
+	ASSERT_EQ(numScenes, 5);
+	for (auto& sceneInfo : scenesInfo) {
+		std::shared_ptr<CVScene> scene = slide->getSceneByName(sceneInfo.name);
+		ASSERT_TRUE(scene != nullptr);
+		EXPECT_EQ(scene->getNumChannels(), sceneInfo.numChannels);
+		EXPECT_EQ(scene->getNumZSlices(), sceneInfo.numZSlices);
+		EXPECT_EQ(scene->getNumTFrames(), sceneInfo.numTFrames);
+		EXPECT_EQ(scene->getMagnification(), sceneInfo.magnification);
+		EXPECT_EQ(scene->getResolution(), sceneInfo.res);
+		EXPECT_EQ(scene->getChannelDataType(0), sceneInfo.dt);
+	}
 }

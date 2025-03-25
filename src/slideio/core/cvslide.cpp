@@ -5,6 +5,16 @@
 
 using namespace slideio;
 
+std::shared_ptr<CVScene> CVSlide::getSceneByName(const std::string& name) {
+	for (int i = 0; i < getNumScenes(); ++i) {
+		auto scene = getScene(i);
+		if (scene->getName() == name) {
+			return scene;
+		}
+	}
+	return nullptr;
+}
+
 std::shared_ptr<CVScene> CVSlide::getAuxImage(const std::string& sceneName) const
 {
     throw std::runtime_error("The slide does not have any auxiliary image");

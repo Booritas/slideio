@@ -12,32 +12,23 @@
 #pragma warning(disable: 4251)
 #endif
 
-/*
-namespace slideio
-{
-    namespace ometiff
-    {
-        class OTSlide;
-    }
-}
-*/
-
-//std::ostream& operator << (std::ostream& os, const slideio::OTSlide& slide);
 
 namespace slideio
 {
     namespace ometiff
     {
+        struct ImageData;
         class SLIDEIO_OMETIFF_EXPORTS OTSlide : public slideio::CVSlide
         {
         protected:
             OTSlide();
         public:
-            virtual ~OTSlide();
+            ~OTSlide() override;
             int getNumScenes() const override;
             std::string getFilePath() const override;
             std::shared_ptr<slideio::CVScene> getScene(int index) const override;
             static std::shared_ptr<OTSlide> openFile(const std::string& path);
+			static std::shared_ptr<CVScene> createScene(const ImageData& imageData);
             static void closeFile(libtiff::TIFF* hfile);
             std::shared_ptr<CVScene> getAuxImage(const std::string& sceneName) const override;
             void log();
