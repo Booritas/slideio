@@ -11,6 +11,8 @@
 #include "slideio/drivers/ome-tiff/otstructs.hpp"
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/core/tools/cvtools.hpp"
+#include "slideio/imagetools/libtiff.hpp"
+#include "slideio/imagetools/tifftools.hpp"
 #include <tinyxml2.h>
 
 #include "slideio/base/log.hpp"
@@ -27,12 +29,45 @@ OTScene::OTScene(const ImageData& imageData){
     initialize();
 }
 
+void OTScene::extractMagnificationFromMetadata() {
+    tinyxml2::XMLElement* xmlInstrumentRef = m_imageXml->FirstChildElement("InstrumentRef");
+    const char* instrumentRef = nullptr;
+    if (xmlInstrumentRef) {
+        instrumentRef = xmlInstrumentRef->Attribute("ID");
+    }
+    tinyxml2::XMLElement* xmlObjectiveRef = m_imageXml->FirstChildElement("ObjectiveSettings");
+    const char* objectiveRef = nullptr;
+    if (xmlObjectiveRef) {
+        objectiveRef = xmlObjectiveRef->Attribute("ID");
+    }
+    if (instrumentRef != nullptr && objectiveRef != nullptr) {
+        tinyxml2::XMLElement* xmlRoot = m_imageDoc->RootElement();
+        for (tinyxml2::XMLElement* xmlInstrument = xmlRoot->FirstChildElement("Instrument");
+             xmlInstrument != nullptr;
+             xmlInstrument = xmlInstrument->NextSiblingElement("Instrument")) {
+            const char* id = xmlInstrument->Attribute("ID");
+            if (id != nullptr && strcmp(id, instrumentRef) == 0) {
+                for (tinyxml2::XMLElement* xmlObjective = xmlInstrument->FirstChildElement("Objective");
+                     xmlObjective != nullptr;
+                     xmlObjective = xmlObjective->NextSiblingElement("Objective")) {
+                    const char* objId = xmlObjective->Attribute("ID");
+                    if (objId != nullptr && strcmp(objId, objectiveRef) == 0) {
+                        xmlObjective->QueryDoubleAttribute("NominalMagnification", &m_magnification);
+                        break;
+                    }
+                }
+                break;
+            }
+        }
+    }
+}
+
 void OTScene::initialize() {
 	if (m_imageXml == nullptr || m_imageDoc == nullptr) {
 		RAISE_RUNTIME_ERROR << "OTScene: Image xml is not set";
 	}
 	const char* name = m_imageXml->Attribute("Name");
-	m_imageName = (name == nullptr || *name == '\0') ? m_imageId:name;
+	m_imageName = (name == nullptr || *name == '\0') ? m_imageId : name;
 
 	tinyxml2::XMLElement* pixels = m_imageXml->FirstChildElement("Pixels");
 	if (!pixels) {
@@ -75,8 +110,8 @@ void OTScene::initialize() {
 	std::string directoryPath = std::filesystem::path(m_filePath).parent_path().string();
 	std::string fileName = std::filesystem::path(m_filePath).filename().string();
 
-	for (tinyxml2::XMLElement* xmlTiffData = pixels->FirstChildElement("TiffData"); 
-		xmlTiffData != nullptr; 
+	for (tinyxml2::XMLElement* xmlTiffData = pixels->FirstChildElement("TiffData");
+		xmlTiffData != nullptr;
 		xmlTiffData = xmlTiffData->NextSiblingElement("TiffData")) {
 		TiffData tiffData;
 		tiffData.firstChannel = xmlTiffData->IntAttribute("FirstC", 0);
@@ -84,27 +119,65 @@ void OTScene::initialize() {
 		tiffData.firstTFrame = xmlTiffData->IntAttribute("FirstT", 0);
 		tiffData.IFD = xmlTiffData->IntAttribute("IFD", 0);
 		tiffData.planeCount = xmlTiffData->IntAttribute("PlaneCount", 0);
-		if (tiffData.firstChannel >= 0 && tiffData.firstZSlice >= 0 && tiffData.firstTFrame >= 0 && tiffData.IFD >= 0 && tiffData.planeCount > 0) {
-			m_tiffData.push_back(tiffData);
-		} else {
-			SLIDEIO_LOG(WARNING) << "Invalid TiffData element in the xml metadata: "
-		        "FirstC: "<< tiffData.firstChannel
-				<< " FirstZ: " << tiffData.firstZSlice
-		        << " FirstT: " << tiffData.firstTFrame
-		        << " IFD: " << tiffData.IFD
-		        << " PlaneCount: " << tiffData.planeCount;
-		}
-        tinyxml2::XMLElement* uuid = xmlTiffData->FirstChildElement("UUID");
+		tinyxml2::XMLElement* uuid = xmlTiffData->FirstChildElement("UUID");
 		if (!uuid) {
 			SLIDEIO_LOG(WARNING) << "OTScene: missing required UUID element in the xml metadata";
 		}
 		const char* fileNameAttr = uuid->Attribute("FileName");
 		tiffData.filePath = (fileNameAttr == nullptr || *fileNameAttr == '\0') ? m_filePath : std::filesystem::path(directoryPath).append(fileNameAttr).string();
+		if (tiffData.firstChannel >= 0 && tiffData.firstZSlice >= 0 && tiffData.firstTFrame >= 0 && tiffData.IFD >= 0 && tiffData.planeCount > 0) {
+			m_tiffData.push_back(tiffData);
+		}
+		else {
+			SLIDEIO_LOG(WARNING) << "Invalid TiffData element in the xml metadata: "
+				"FirstC: " << tiffData.firstChannel
+				<< " FirstZ: " << tiffData.firstZSlice
+				<< " FirstT: " << tiffData.firstTFrame
+				<< " IFD: " << tiffData.IFD
+				<< " PlaneCount: " << tiffData.planeCount;
+		}
 	}
 
+	std::map<std::string, libtiff::TIFF*> tiffFiles;
+	for (TiffData& tiffData : m_tiffData) {
+		auto it = tiffFiles.find(tiffData.filePath);
+		libtiff::TIFF* tiff = nullptr;
+		if (it == tiffFiles.end()) {
+			tiff = TiffTools::openTiffFile(tiffData.filePath);
+			if (!tiff) {
+				SLIDEIO_LOG(WARNING) << "OTScene: cannot open file " << tiffData.filePath << " with libtiff";
+				continue;
+			}
+			tiffFiles[tiffData.filePath] = tiff;
+		}
+		else {
+			tiff = it->second;
+		}
+		if (tiff == nullptr) {
+			SLIDEIO_LOG(WARNING) << "OTScene: cannot open file " << tiffData.filePath << " with libtiff";
+			continue;
+		}
+		tiffData.tiff = tiff;
+		TiffTools::scanTiffDir(tiff, tiffData.IFD, 0, tiffData.tiffDirectory);
+	}
+	auto ret = std::remove_if(m_tiffData.begin(), m_tiffData.end(),
+		[](const TiffData& tiffData) { return tiffData.tiff == nullptr; });
+	m_tiffData.erase(ret, m_tiffData.end());
 	if (m_tiffData.empty()) {
 		RAISE_RUNTIME_ERROR << "OTScene: no valid TiffData elements in the xml metadata";
 	}
+
+	int width = m_imageSize.width;
+	int height = m_imageSize.height;
+	auto mainDir = std::find_if(m_tiffData.begin(), m_tiffData.end(), 
+		[width, height](const TiffData& data) {return data.tiffDirectory.width == width && data.tiffDirectory.height == height; });
+	if (mainDir == m_tiffData.end()) {
+		RAISE_RUNTIME_ERROR << "OTScene: main directory not found";
+	}
+	const TiffDirectory& dir = mainDir->tiffDirectory;
+	m_compression = dir.slideioCompression;
+	m_resolution = dir.res;
+    extractMagnificationFromMetadata();
 }
 
 std::string OTScene::getName() const {
@@ -116,15 +189,23 @@ slideio::DataType OTScene::getChannelDataType(int channel) const {
 }
 
 Resolution OTScene::getResolution() const {
-	return Resolution();
+	return m_resolution;
 }
 
 double OTScene::getMagnification() const {
-	return 0.;
+	return m_magnification;
 }
 
 Compression OTScene::getCompression() const {
-	return Compression::Unknown;
+	return m_compression;
+}
+
+int OTScene::getNumZSlices() const {
+    return m_numZSlices;
+}
+
+int OTScene::getNumTFrames() const {
+    return m_numTFrames;
 }
 
 //void OTScene::initialize() {

@@ -39,7 +39,7 @@ namespace slideio
         int64 offset;
         std::string description;
         std::vector<TiffDirectory> subdirectories;
-        Resolution res;
+        Resolution res = {};
         cv::Point2d position;
         bool interleaved;
         int rowsPerStrip;

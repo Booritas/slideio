@@ -26,6 +26,7 @@ namespace slideio
         {
         public:
             explicit OTScene(const ImageData& filePath);
+            void extractMagnificationFromMetadata();
             int getNumChannels() const override;
             cv::Rect getRect() const override;
             int findZoomLevel(double zoom) const;
@@ -53,6 +54,8 @@ namespace slideio
             Resolution getResolution() const override;
             double getMagnification() const override;
             Compression getCompression() const override;
+            int getNumZSlices() const override;
+			int getNumTFrames() const override;
         private:
             //std::vector<slideio::TiffDirectory> m_directories;
             //bool m_isUnmixed = false;
@@ -71,6 +74,9 @@ namespace slideio
             bool m_bigEndian = false;
             std::string m_imageName;
             std::string m_filePath;
+            Compression m_compression = Compression::Unknown;
+            Resolution m_resolution = {};
+            double m_magnification = 0;
         };
     }
 }

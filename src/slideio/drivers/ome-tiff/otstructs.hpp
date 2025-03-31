@@ -33,7 +33,8 @@ namespace slideio
 			int IFD = 0;
             int planeCount = 0;
             std::string filePath;
-            TIFFKeeper tiff;
+            libtiff::TIFF* tiff = nullptr;
+            TiffDirectory tiffDirectory;
         };
     }
 }
