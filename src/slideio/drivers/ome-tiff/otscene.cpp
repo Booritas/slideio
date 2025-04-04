@@ -62,6 +62,119 @@ void OTScene::extractMagnificationFromMetadata() {
     }
 }
 
+void OTScene::extractTiffData(tinyxml2::XMLElement* pixels) {
+    std::string directoryPath = std::filesystem::path(m_filePath).parent_path().string();
+    std::string fileName = std::filesystem::path(m_filePath).filename().string();
+
+    for (tinyxml2::XMLElement* xmlTiffData = pixels->FirstChildElement("TiffData");
+         xmlTiffData != nullptr;
+         xmlTiffData = xmlTiffData->NextSiblingElement("TiffData")) {
+        TiffData tiffData;
+        tiffData.firstChannel = xmlTiffData->IntAttribute("FirstC", 0);
+        tiffData.firstZSlice = xmlTiffData->IntAttribute("FirstZ", 0);
+        tiffData.firstTFrame = xmlTiffData->IntAttribute("FirstT", 0);
+        tiffData.IFD = xmlTiffData->IntAttribute("IFD", 0);
+        tiffData.planeCount = xmlTiffData->IntAttribute("PlaneCount", 0);
+        tinyxml2::XMLElement* uuid = xmlTiffData->FirstChildElement("UUID");
+        if (!uuid) {
+            SLIDEIO_LOG(WARNING) << "OTScene: missing required UUID element in the xml metadata";
+        }
+        const char* fileNameAttr = uuid->Attribute("FileName");
+        tiffData.filePath = (fileNameAttr == nullptr || *fileNameAttr == '\0') ? m_filePath : std::filesystem::path(directoryPath).append(fileNameAttr).string();
+        if (tiffData.firstChannel >= 0 && tiffData.firstZSlice >= 0 && tiffData.firstTFrame >= 0 && tiffData.IFD >= 0 && tiffData.planeCount > 0) {
+            m_tiffData.push_back(tiffData);
+        }
+        else {
+            SLIDEIO_LOG(WARNING) << "Invalid TiffData element in the xml metadata: "
+                "FirstC: " << tiffData.firstChannel
+                << " FirstZ: " << tiffData.firstZSlice
+                << " FirstT: " << tiffData.firstTFrame
+                << " IFD: " << tiffData.IFD
+                << " PlaneCount: " << tiffData.planeCount;
+        }
+    }
+
+    std::map<std::string, libtiff::TIFF*> tiffFiles;
+    for (TiffData& tiffData : m_tiffData) {
+        auto it = tiffFiles.find(tiffData.filePath);
+        libtiff::TIFF* tiff = nullptr;
+        if (it == tiffFiles.end()) {
+            tiff = TiffTools::openTiffFile(tiffData.filePath);
+            if (!tiff) {
+                SLIDEIO_LOG(WARNING) << "OTScene: cannot open file " << tiffData.filePath << " with libtiff";
+                continue;
+            }
+            tiffFiles[tiffData.filePath] = tiff;
+        }
+        else {
+            tiff = it->second;
+        }
+        if (tiff == nullptr) {
+            SLIDEIO_LOG(WARNING) << "OTScene: cannot open file " << tiffData.filePath << " with libtiff";
+            continue;
+        }
+        tiffData.tiff = tiff;
+        std::vector<TiffDirectory> dirs;
+        //TiffTools::scanFile(tiff, dirs);
+        TiffTools::scanTiffDir(tiff, tiffData.IFD, 0, tiffData.tiffDirectory);
+    }
+    auto ret = std::remove_if(m_tiffData.begin(), m_tiffData.end(),
+        [](const TiffData& tiffData) { return tiffData.tiff == nullptr; });
+    m_tiffData.erase(ret, m_tiffData.end());
+    if (m_tiffData.empty()) {
+        RAISE_RUNTIME_ERROR << "OTScene: no valid TiffData elements in the xml metadata";
+    }
+}
+
+void OTScene::extractImageIndex() {
+	const std::string prefix = "Image:";
+    size_t pos = m_imageId.find(prefix);
+    if (pos != std::string::npos) {
+        pos += prefix.length();
+        std::string indexStr = m_imageId.substr(pos);
+        try {
+            m_imageIndex = std::stoi(indexStr);
+        }
+        catch (const std::invalid_argument& e) {
+            SLIDEIO_LOG(WARNING) << "OTScene: invalid digital index in m_imageId: " << m_imageId;
+        }
+        catch (const std::out_of_range& e) {
+            SLIDEIO_LOG(WARNING) << "OTScene: digital index out of range in m_imageId: " << m_imageId;
+        }
+    }
+}
+
+LevelInfo OTScene::extractLevelInfo(const TiffDirectory& dir, int index) const {
+    LevelInfo level;
+    level.setLevel(index);
+    double coefX = static_cast<double>(dir.width) / static_cast<double>(m_imageSize.width);
+    double coefY = static_cast<double>(dir.height) / static_cast<double>(m_imageSize.height);
+    double scale = std::max(coefX, coefY);
+    level.setMagnification(m_magnification * scale);
+    level.setSize(Size(dir.width, dir.height));
+    level.setScale(scale);
+    level.setTileSize(Size(dir.tileWidth, dir.tileHeight));
+    return level;
+}
+
+void OTScene::extractImagePyramids() {
+	if (m_tiffData.size() == 1) {
+        const TiffDirectory& directory = m_tiffData.front().tiffDirectory;
+        const int levels = static_cast<int>(directory.subdirectories.size()) + 1;
+		m_levels.reserve(levels);
+		m_levels.push_back(extractLevelInfo(directory,0));
+		for (int i = 1; i < levels; ++i) {
+			const auto& subDir = directory.subdirectories[i - 1];
+            m_levels.push_back(extractLevelInfo(subDir, i));
+        }
+	}
+    else {
+        const TiffDirectory& directory = m_tiffData.front().tiffDirectory;
+        m_levels.reserve(1);
+        m_levels.push_back(extractLevelInfo(directory, 0));
+    }
+}
+
 void OTScene::initialize() {
 	if (m_imageXml == nullptr || m_imageDoc == nullptr) {
 		RAISE_RUNTIME_ERROR << "OTScene: Image xml is not set";
@@ -107,77 +220,22 @@ void OTScene::initialize() {
 	if (m_bigEndian) {
 		RAISE_RUNTIME_ERROR << "OTScene: big endian data is not supported";
 	}
-	std::string directoryPath = std::filesystem::path(m_filePath).parent_path().string();
-	std::string fileName = std::filesystem::path(m_filePath).filename().string();
-
-	for (tinyxml2::XMLElement* xmlTiffData = pixels->FirstChildElement("TiffData");
-		xmlTiffData != nullptr;
-		xmlTiffData = xmlTiffData->NextSiblingElement("TiffData")) {
-		TiffData tiffData;
-		tiffData.firstChannel = xmlTiffData->IntAttribute("FirstC", 0);
-		tiffData.firstZSlice = xmlTiffData->IntAttribute("FirstZ", 0);
-		tiffData.firstTFrame = xmlTiffData->IntAttribute("FirstT", 0);
-		tiffData.IFD = xmlTiffData->IntAttribute("IFD", 0);
-		tiffData.planeCount = xmlTiffData->IntAttribute("PlaneCount", 0);
-		tinyxml2::XMLElement* uuid = xmlTiffData->FirstChildElement("UUID");
-		if (!uuid) {
-			SLIDEIO_LOG(WARNING) << "OTScene: missing required UUID element in the xml metadata";
-		}
-		const char* fileNameAttr = uuid->Attribute("FileName");
-		tiffData.filePath = (fileNameAttr == nullptr || *fileNameAttr == '\0') ? m_filePath : std::filesystem::path(directoryPath).append(fileNameAttr).string();
-		if (tiffData.firstChannel >= 0 && tiffData.firstZSlice >= 0 && tiffData.firstTFrame >= 0 && tiffData.IFD >= 0 && tiffData.planeCount > 0) {
-			m_tiffData.push_back(tiffData);
-		}
-		else {
-			SLIDEIO_LOG(WARNING) << "Invalid TiffData element in the xml metadata: "
-				"FirstC: " << tiffData.firstChannel
-				<< " FirstZ: " << tiffData.firstZSlice
-				<< " FirstT: " << tiffData.firstTFrame
-				<< " IFD: " << tiffData.IFD
-				<< " PlaneCount: " << tiffData.planeCount;
-		}
-	}
-
-	std::map<std::string, libtiff::TIFF*> tiffFiles;
-	for (TiffData& tiffData : m_tiffData) {
-		auto it = tiffFiles.find(tiffData.filePath);
-		libtiff::TIFF* tiff = nullptr;
-		if (it == tiffFiles.end()) {
-			tiff = TiffTools::openTiffFile(tiffData.filePath);
-			if (!tiff) {
-				SLIDEIO_LOG(WARNING) << "OTScene: cannot open file " << tiffData.filePath << " with libtiff";
-				continue;
-			}
-			tiffFiles[tiffData.filePath] = tiff;
-		}
-		else {
-			tiff = it->second;
-		}
-		if (tiff == nullptr) {
-			SLIDEIO_LOG(WARNING) << "OTScene: cannot open file " << tiffData.filePath << " with libtiff";
-			continue;
-		}
-		tiffData.tiff = tiff;
-		TiffTools::scanTiffDir(tiff, tiffData.IFD, 0, tiffData.tiffDirectory);
-	}
-	auto ret = std::remove_if(m_tiffData.begin(), m_tiffData.end(),
-		[](const TiffData& tiffData) { return tiffData.tiff == nullptr; });
-	m_tiffData.erase(ret, m_tiffData.end());
-	if (m_tiffData.empty()) {
-		RAISE_RUNTIME_ERROR << "OTScene: no valid TiffData elements in the xml metadata";
-	}
-
-	int width = m_imageSize.width;
-	int height = m_imageSize.height;
-	auto mainDir = std::find_if(m_tiffData.begin(), m_tiffData.end(), 
-		[width, height](const TiffData& data) {return data.tiffDirectory.width == width && data.tiffDirectory.height == height; });
-	if (mainDir == m_tiffData.end()) {
-		RAISE_RUNTIME_ERROR << "OTScene: main directory not found";
-	}
-	const TiffDirectory& dir = mainDir->tiffDirectory;
-	m_compression = dir.slideioCompression;
-	m_resolution = dir.res;
+	extractImageIndex();
+    extractTiffData(pixels);
     extractMagnificationFromMetadata();
+
+    int width = m_imageSize.width;
+    int height = m_imageSize.height;
+    auto mainDir = std::find_if(m_tiffData.begin(), m_tiffData.end(),
+        [width, height](const TiffData& data) {return data.tiffDirectory.width == width && data.tiffDirectory.height == height; });
+    if (mainDir == m_tiffData.end()) {
+        RAISE_RUNTIME_ERROR << "OTScene: main directory not found";
+    }
+    const TiffDirectory& dir = mainDir->tiffDirectory;
+    m_compression = dir.slideioCompression;
+    m_resolution = dir.res;
+
+    extractImagePyramids();
 }
 
 std::string OTScene::getName() const {

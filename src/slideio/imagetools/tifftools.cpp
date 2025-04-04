@@ -533,7 +533,7 @@ void TiffTools::scanTiffDir(libtiff::TIFF* tiff, int dirIndex, int64_t dirOffset
         {
             if(libtiff::TIFFSetSubDirectory(tiff, offsets[subdir]))
             {
-                scanTiffDirTags(tiff, dirIndex, dir.subdirectories[subdir].offset, dir.subdirectories[subdir]);
+                scanTiffDirTags(tiff, dirIndex, offsets[subdir], dir.subdirectories[subdir]);
             }
         }
     }

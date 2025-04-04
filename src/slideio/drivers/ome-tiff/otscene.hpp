@@ -27,6 +27,9 @@ namespace slideio
         public:
             explicit OTScene(const ImageData& filePath);
             void extractMagnificationFromMetadata();
+            void extractTiffData(tinyxml2::XMLElement* pixels);
+            void extractImageIndex();
+            LevelInfo extractLevelInfo(const TiffDirectory& dir, int index) const;
             int getNumChannels() const override;
             cv::Rect getRect() const override;
             int findZoomLevel(double zoom) const;
@@ -39,6 +42,7 @@ namespace slideio
             std::string getChannelName(int channel) const override;
             bool isBrightField() const;
         private:
+            void extractImagePyramids();
             void initialize();
             void initializeChannelNames();
             bool readTiffTile(int tileIndex, const TiffDirectory& dir, const std::vector<int>& channelIndices, cv::OutputArray tileRaster);
@@ -77,6 +81,7 @@ namespace slideio
             Compression m_compression = Compression::Unknown;
             Resolution m_resolution = {};
             double m_magnification = 0;
+            int m_imageIndex = -1;
         };
     }
 }

@@ -17,6 +17,15 @@ namespace slideio
 
 using namespace slideio;
 using namespace slideio::ometiff;
+struct ZoomLevelInfo
+{
+	int level;
+	Size size;
+	double scale;
+	double magnification;
+	Size tileSize;
+};
+
 struct SceneInfo
 {
 	std::string name;
@@ -28,6 +37,7 @@ struct SceneInfo
 	Resolution res;
 	DataType dt;
 	Compression compression;
+	int levels = 0;
 };
 
 class OTImageDriverTests : public ::testing::Test {
@@ -68,7 +78,7 @@ TEST_F(OTImageDriverTests, openMultifileSlide) {
 	const int numScenes = slide->getNumScenes();
 	ASSERT_EQ(numScenes, 1);
 	const SceneInfo sceneInfo =
-	{ "multifile", {0,0,18,24}, 1, 5,1,0,{1.e-6,1.e-6}, DataType::DT_Byte, Compression::Uncompressed };
+	{ "multifile", {0,0,18,24}, 1, 5,1,0,{1.e-6,1.e-6}, DataType::DT_Byte, Compression::Uncompressed, 1 };
 	std::shared_ptr<CVScene> scene = slide->getSceneByName(sceneInfo.name);
 	ASSERT_TRUE(scene != nullptr);
 	EXPECT_EQ(scene->getRect(), sceneInfo.rect);
@@ -84,12 +94,26 @@ TEST_F(OTImageDriverTests, openMultifileSlide) {
 
 TEST_F(OTImageDriverTests, openMultiResolutionSlide) {
 	const SceneInfo scenesInfo[] = {
-		{"macro", {0,0,1616,4668}, 3, 1,1,0.60833,{1.6438445776255536e-5,1.6438445776255536e-5}, DataType::DT_Byte, Compression::Jpeg},
-		{"Image:1", {0,0,39168,26048}, 3, 1,1,40.,{2.5e-7,2.5e-7}, DataType::DT_Byte, Compression::Jpeg},
-		{"Image:2", {0,0,39360,23360}, 3, 1,1,40.,{2.5e-7,2.5e-7}, DataType::DT_Byte, Compression::Jpeg},
-		{"Image:3", {0,0,39360,23360}, 3, 1,1,40.,{2.5e-7,2.5e-7}, DataType::DT_Byte, Compression::Jpeg},
-		{"Image:4", {0,0,39168,26048}, 3, 1,1,40.,{2.5e-7,2.5e-7}, DataType::DT_Byte, Compression::Jpeg},
+		{"macro", {0,0,1616,4668}, 3, 1,1,0.60833,{1.6438445776255536e-5,1.6438445776255536e-5}, DataType::DT_Byte, Compression::Jpeg, 3},
+		{"Image:1", {0,0,39168,26048}, 3, 1,1,40.,{2.5e-7,2.5e-7}, DataType::DT_Byte, Compression::Jpeg, 6},
+		{"Image:2", {0,0,39360,23360}, 3, 1,1,40.,{2.5e-7,2.5e-7}, DataType::DT_Byte, Compression::Jpeg, 6},
+		{"Image:3", {0,0,39360,23360}, 3, 1,1,40.,{2.5e-7,2.5e-7}, DataType::DT_Byte, Compression::Jpeg, 6},
+		{"Image:4", {0,0,39168,26048}, 3, 1,1,40.,{2.5e-7,2.5e-7}, DataType::DT_Byte, Compression::Jpeg, 6},
 	};
+	const ZoomLevelInfo macroZoomLevels[] = {
+		0, {1616, 4668}, 1.0, 0.60833, {0, 0},
+	    1, {404, 1167}, 1./4., 0.60833/4., {0, 0},
+		2, {101, 291}, 1./16., 0.60833/16., {0, 0},
+	};
+	const ZoomLevelInfo image4ZoomLevels[] = {
+		0, {39168, 26048}, 1.0, 40., {512, 512},
+		1, {9792, 6512}, 1./4., 40. / 4., {512, 512},
+		2, {2448, 1628}, 1./16., 40. / 16., {0, 0},
+		3, {612, 407}, 1./64., 40. / 64., {0, 0},
+		4, {153, 101}, 1./256., 40. / 256., {0, 0},
+		5, {38, 25}, 0.00097017973856209153, 0.038807189542483661, {0, 0},
+	};
+
     std::string filePath = TestTools::getFullTestImagePath("ometiff", "Subresolutions/Leica-2.ome.tiff");
     slideio::ometiff::OTImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
@@ -109,5 +133,22 @@ TEST_F(OTImageDriverTests, openMultiResolutionSlide) {
 		EXPECT_DOUBLE_EQ(scene->getResolution().x, sceneInfo.res.x);
 		EXPECT_DOUBLE_EQ(scene->getResolution().y, sceneInfo.res.y);
 		EXPECT_EQ(scene->getCompression(), sceneInfo.compression);
+		EXPECT_EQ(scene->getNumZoomLevels(), sceneInfo.levels);
+		if (sceneInfo.name == "macro") {
+			for (auto& zoomLevel : macroZoomLevels) {
+				EXPECT_EQ(scene->getZoomLevelInfo(zoomLevel.level)->getSize(), zoomLevel.size);
+				EXPECT_DOUBLE_EQ(scene->getZoomLevelInfo(zoomLevel.level)->getScale(), zoomLevel.scale);
+				EXPECT_DOUBLE_EQ(scene->getZoomLevelInfo(zoomLevel.level)->getMagnification(), zoomLevel.magnification);
+				EXPECT_EQ(scene->getZoomLevelInfo(zoomLevel.level)->getTileSize(), zoomLevel.tileSize);
+			}
+		}
+		else if (sceneInfo.name == "Image:4") {
+			for (auto& zoomLevel : image4ZoomLevels) {
+				EXPECT_EQ(scene->getZoomLevelInfo(zoomLevel.level)->getSize(), zoomLevel.size);
+				EXPECT_DOUBLE_EQ(scene->getZoomLevelInfo(zoomLevel.level)->getScale(), zoomLevel.scale);
+				EXPECT_DOUBLE_EQ(scene->getZoomLevelInfo(zoomLevel.level)->getMagnification(), zoomLevel.magnification);
+				EXPECT_EQ(scene->getZoomLevelInfo(zoomLevel.level)->getTileSize(), zoomLevel.tileSize);
+			}
+		}
 	}
 }
