@@ -15,6 +15,8 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/ottools.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/ot_api_def.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/otstructs.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/tiffdata.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/tiffdata.hpp
    )
 
 add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES})

@@ -8,6 +8,10 @@
 #include "slideio/drivers/ome-tiff/otscene.hpp"
 #include "slideio/imagetools/tifftools.hpp"
 #include "slideio/core/tools/tilecomposer.hpp"
+#include "slideio/drivers/ome-tiff/otstructs.hpp"
+#include "slideio/drivers/ome-tiff/tiffdata.hpp"
+#include "slideio/imagetools/tifffiles.hpp"
+#include "slideio/core/dimensions.hpp"
 #include <tinyxml2.h>
 
 #if defined(_MSC_VER)
@@ -19,17 +23,12 @@ namespace slideio
 {
     namespace ometiff
     {
-        struct TiffData;
         struct ImageData;
 
         class SLIDEIO_OMETIFF_EXPORTS OTScene : public CVScene, public Tiler
         {
         public:
             explicit OTScene(const ImageData& filePath);
-            void extractMagnificationFromMetadata();
-            void extractTiffData(tinyxml2::XMLElement* pixels);
-            void extractImageIndex();
-            LevelInfo extractLevelInfo(const TiffDirectory& dir, int index) const;
             int getNumChannels() const override;
             cv::Rect getRect() const override;
             int findZoomLevel(double zoom) const;
@@ -41,14 +40,6 @@ namespace slideio
             void initializeBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices, cv::OutputArray output) override;
             std::string getChannelName(int channel) const override;
             bool isBrightField() const;
-        private:
-            void extractImagePyramids();
-            void initialize();
-            void initializeChannelNames();
-            bool readTiffTile(int tileIndex, const TiffDirectory& dir, const std::vector<int>& channelIndices, cv::OutputArray tileRaster);
-            bool readTiffDirectory(const TiffDirectory& dir, const std::vector<int>& channelIndices, cv::OutputArray tileRaster);
-
-        public:
             void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
                 const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex,
                 cv::OutputArray output) override;
@@ -61,9 +52,16 @@ namespace slideio
             int getNumZSlices() const override;
 			int getNumTFrames() const override;
         private:
-            //std::vector<slideio::TiffDirectory> m_directories;
-            //bool m_isUnmixed = false;
-            //std::vector<int> m_zoomDirectoryIndices;
+            void extractImagePyramids();
+            void initializeDimensions();
+            void initialize();
+            void initializeChannelNames();
+            void extractMagnificationFromMetadata();
+            void extractTiffData(tinyxml2::XMLElement* pixels);
+            void extractImageIndex();
+            LevelInfo extractLevelInfo(const TiffDirectory& dir, int index) const;
+            std::pair<const TiffData*,int> findTiffData(int channel, int slice, int frame) const;
+        private:
             int m_numChannels = 0;
             std::vector<std::string> m_channelNames;
             tinyxml2::XMLElement* m_imageXml;
@@ -82,6 +80,9 @@ namespace slideio
             Resolution m_resolution = {};
             double m_magnification = 0;
             int m_imageIndex = -1;
+			Dimensions m_dimensions;
+            int m_samplesPerPixel = 1;
+            TIFFFiles m_files;
         };
     }
 }

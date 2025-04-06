@@ -3,17 +3,15 @@
 // of this distribution and at http://slideio.com/license.html.
 //
 #include "slideio/imagetools/tifftools.hpp"
-
-#include <codecvt>
-
 #include "slideio/imagetools/imagetools.hpp"
 #include "slideio/core/tools/cvtools.hpp"
-#include <opencv2/core.hpp>
 #include "slideio/imagetools/libtiff.hpp"
-#include <filesystem>
 #include "slideio/base/log.hpp"
 #include "slideio/core/tools/endian.hpp"
 #include "slideio/core/tools/tools.hpp"
+#include <codecvt>
+#include <opencv2/core.hpp>
+#include <filesystem>
 
 using namespace slideio;
 
@@ -510,10 +508,16 @@ void  TiffTools::scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, int64_t dirO
 void TiffTools::scanTiffDir(libtiff::TIFF* tiff, int dirIndex, int64_t dirOffset, TiffDirectory& dir)
 {
     if(libtiff::TIFFCurrentDirectory(tiff) != dirIndex) {
-        libtiff::TIFFSetDirectory(tiff, (short)dirIndex);
+        if(libtiff::TIFFSetDirectory(tiff, (short)dirIndex)==0) {
+			RAISE_RUNTIME_ERROR << "Cannot set tiff directory " << dirIndex;
+        }
     }
-    if(dirOffset>0)
-        libtiff::TIFFSetSubDirectory(tiff, dirOffset);
+    if (dirOffset > 0) {
+        if (libtiff::TIFFSetSubDirectory(tiff, dirOffset) == 0) {
+            RAISE_RUNTIME_ERROR << "Cannot set tiff subdirectory: "
+                << dirIndex << "(" << dirOffset << ")";
+        }
+    }
 
     dir.dirIndex = dirIndex;
     dir.offset = dirOffset;

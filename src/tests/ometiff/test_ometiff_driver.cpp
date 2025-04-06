@@ -38,6 +38,7 @@ struct SceneInfo
 	DataType dt;
 	Compression compression;
 	int levels = 0;
+	int levelInfoIndex = -1;
 };
 
 class OTImageDriverTests : public ::testing::Test {
@@ -151,4 +152,59 @@ TEST_F(OTImageDriverTests, openMultiResolutionSlide) {
 			}
 		}
 	}
+}
+
+TEST_F(OTImageDriverTests, openFluorescentSlide) {
+	std::string filePath = TestTools::getFullTestImagePath("ometiff", "Subresolutions/retina_large.ome.tiff");
+	slideio::ometiff::OTImageDriver driver;
+	std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
+	ASSERT_TRUE(slide != nullptr);
+	const int numScenes = slide->getNumScenes();
+	ASSERT_EQ(numScenes, 2);
+	const SceneInfo sceneInfos [] = {
+	{ "retina_large.ims Resolution Level 1", {0,0,2048,1567}, 2, 64,1,0,{2.2905761973056524e-08,2.2898531953649078e-08}, DataType::DT_Byte, Compression::Zlib, 3, 0 },
+	{ "retina_large.ims Resolution Level 2", {0,0,256,195}, 2, 32,1,0,{1.8324609578445219e-07,1.8401025627165894e-07}, DataType::DT_Byte, Compression::Zlib, 1, -1 }
+	};
+
+	const std::vector<ZoomLevelInfo> zoomLevelsInfo0 = {
+		{0, {2048, 1567}, 1.0, 0., {0, 0}},
+		{1, {1024, 783}, 1. / 2., 0., {0, 0}},
+		{2, {512, 391}, 1. / 4., 0., {0, 0}},
+	};
+
+	const std::vector<std::vector<ZoomLevelInfo>> zoomLevelInfos = {
+		zoomLevelsInfo0,
+	};
+
+
+	for (auto& sceneInfo : sceneInfos) {
+		std::shared_ptr<CVScene> scene = slide->getSceneByName(sceneInfo.name);
+		ASSERT_TRUE(scene != nullptr);
+		EXPECT_EQ(scene->getRect(), sceneInfo.rect);
+		EXPECT_EQ(scene->getNumChannels(), sceneInfo.numChannels);
+		EXPECT_EQ(scene->getNumZSlices(), sceneInfo.numZSlices);
+		EXPECT_EQ(scene->getNumTFrames(), sceneInfo.numTFrames);
+		EXPECT_EQ(scene->getMagnification(), sceneInfo.magnification);
+		EXPECT_EQ(scene->getResolution(), sceneInfo.res);
+		EXPECT_EQ(scene->getChannelDataType(0), sceneInfo.dt);
+		EXPECT_DOUBLE_EQ(scene->getResolution().x, sceneInfo.res.x);
+		EXPECT_DOUBLE_EQ(scene->getResolution().y, sceneInfo.res.y);
+		EXPECT_EQ(scene->getCompression(), sceneInfo.compression);
+		EXPECT_EQ(scene->getNumZoomLevels(), sceneInfo.levels);
+		if (sceneInfo.levelInfoIndex >= 0 ) {
+            const std::vector<ZoomLevelInfo>& zoomLevelInfo = zoomLevelInfos[sceneInfo.levelInfoIndex];
+			for (auto& zoomLevel : zoomLevelInfo) {
+				EXPECT_EQ(scene->getZoomLevelInfo(zoomLevel.level)->getSize(), zoomLevel.size);
+				EXPECT_DOUBLE_EQ(scene->getZoomLevelInfo(zoomLevel.level)->getScale(), zoomLevel.scale);
+				EXPECT_DOUBLE_EQ(scene->getZoomLevelInfo(zoomLevel.level)->getMagnification(), zoomLevel.magnification);
+				EXPECT_EQ(scene->getZoomLevelInfo(zoomLevel.level)->getTileSize(), zoomLevel.tileSize);
+			}
+		}
+	}
+
+	//auto scene = slide->getSceneByName("retina_large.ims Resolution Level 1");
+	//cv::Rect roi = { 651, 724, 304, 196 };
+	//cv::Mat blockRaster;
+	//scene->readResampled4DBlockChannels(roi, roi.size(), { 0 }, { 32, 33 }, { 0, 1 }, blockRaster);
+	//TestTools::showRaster(blockRaster);
 }

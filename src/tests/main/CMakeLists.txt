@@ -29,6 +29,8 @@ set(TEST_SOURCES
   test_tools.cpp
   test_similaritytools.cpp
   test_endian.cpp
+  test_dimensions.cpp
+  test_tifffiles.cpp
 )
 
 add_executable(${TEST_NAME} ${TEST_SOURCES})

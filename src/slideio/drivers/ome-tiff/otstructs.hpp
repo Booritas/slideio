@@ -25,16 +25,27 @@ namespace slideio
             std::string imageFilePath;
         };
 
-        struct TiffData
-        {
-            int firstChannel = 0;
-            int firstZSlice = 0;
-			int firstTFrame = 0;
-			int IFD = 0;
-            int planeCount = 0;
-            std::string filePath;
-            libtiff::TIFF* tiff = nullptr;
-            TiffDirectory tiffDirectory;
-        };
+		typedef std::vector<int> PlaneCoordinates;
+
+   //     struct TiffBlockData
+   //     {
+   //         cv::Range channelRange = {};
+   //         cv::Range zSliceRange = {};
+   //         cv::Range tFrameRange = {};
+			//int IFD = 0;
+   //         int planeCount = 0;
+   //         std::string filePath;
+   //         libtiff::TIFF* tiff = nullptr;
+   //         TiffDirectory tiffDirectory;
+			//bool isInRange(int channel, int slice, int frame) const {
+			//	return (channel >= channelRange.start && channel < channelRange.end &&
+			//		slice >= zSliceRange.start && slice < zSliceRange.end &&
+			//		frame >= tFrameRange.start && frame < tFrameRange.end);
+			//}
+   //     };
+
+        const std::string DimC = "C";
+        const std::string DimZ = "Z";
+        const std::string DimT = "T";
     }
 }

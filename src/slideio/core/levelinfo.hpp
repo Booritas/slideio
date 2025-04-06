@@ -5,6 +5,7 @@
 #include "slideio/core/slideio_core_def.hpp"
 #include "slideio/base/slideio_structs.hpp"
 #include <cmath>
+#include <opencv2/core/types.hpp>
 
 #if defined(_MSC_VER)
 #pragma warning( push )
@@ -60,6 +61,17 @@ namespace slideio
                 m_tileSize.height == other.m_tileSize.height;
         }
 
+        void updateTileCount() const {
+            if (getTileSize().width > 0 && getTileSize().height > 0) {
+                const int tilesX = (getSize().width - 1) / getTileSize().width + 1;
+                const int tilesY = (getSize().height - 1) / getTileSize().height + 1;
+                m_tileCount = tilesX * tilesY;
+			}
+            else {
+                m_tileCount = 1;
+            }
+        }
+
         int getLevel() const { return m_level; }
         void setLevel(int level) { m_level = level; }
 
@@ -75,7 +87,35 @@ namespace slideio
         Size getTileSize() const { return m_tileSize; }
         void setTileSize(const Size& tileSize) { m_tileSize = tileSize; }
 
+		int getTileCount() const {
+            if (m_tileCount < 1)
+                updateTileCount();
+            return m_tileCount;
+        }
+
         std::string toString() const;
+
+		cv::Rect getTileRect(int tileIndex) const {
+			cv::Rect tileRect;
+			const int tileCount = getTileCount();
+			if (tileCount > 1) {
+				const int tilesX = (m_size.width - 1) / m_tileSize.width + 1;
+				const int tilesY = (m_size.height - 1) / m_tileSize.height + 1;
+				const int tileY = tileIndex / tilesX;
+				const int tileX = tileIndex % tilesX;
+				tileRect.x = tileX * m_tileSize.width;
+				tileRect.y = tileY * m_tileSize.height;
+				tileRect.width = m_tileSize.width;
+				tileRect.height = m_tileSize.height;
+			}
+			else {
+				tileRect.x = 0;
+				tileRect.y = 0;
+				tileRect.width = m_size.width;
+				tileRect.height = m_size.height;
+			}
+			return tileRect;
+		}
 
     private:
         int m_level = 0;
@@ -83,6 +123,7 @@ namespace slideio
         double m_scale = 0.0;
         double m_magnification = 0.0;
         Size m_tileSize;
+        mutable int m_tileCount = 0;
     };
 }
 
