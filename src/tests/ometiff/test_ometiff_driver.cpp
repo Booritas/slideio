@@ -201,10 +201,71 @@ TEST_F(OTImageDriverTests, openFluorescentSlide) {
 			}
 		}
 	}
-
+	std::shared_ptr<CVScene> scene = slide->getSceneByName("retina_large.ims Resolution Level 1");
+	std::shared_ptr<OTScene> otScene = std::static_pointer_cast<OTScene>(scene);
+	int files = otScene->getNumTiffFiles();
+	EXPECT_EQ(files, 1);
+	EXPECT_EQ(otScene->getNumTiffDataItems(), 128);
 	//auto scene = slide->getSceneByName("retina_large.ims Resolution Level 1");
 	//cv::Rect roi = { 651, 724, 304, 196 };
 	//cv::Mat blockRaster;
 	//scene->readResampled4DBlockChannels(roi, roi.size(), { 0 }, { 32, 33 }, { 0, 1 }, blockRaster);
 	//TestTools::showRaster(blockRaster);
+}
+
+TEST_F(OTImageDriverTests, TIFFFiles) {
+	TIFFFiles files;
+	std::string filePath1 = TestTools::getFullTestImagePath("ometiff", "Subresolutions/retina_large.ome.tiff");
+	std::string filePath2 = TestTools::getFullTestImagePath("ometiff", "Multifile/multifile-Z1.ome.tiff");
+	std::string filePath3 = TestTools::getFullTestImagePath("ometiff", "Subresolutions/Leica-2.ome.tiff");
+	libtiff::TIFF* tiff = files.getOrOpen(filePath1);
+	ASSERT_TRUE(tiff != nullptr);
+	EXPECT_EQ(files.getNumberOfOpenFiles(), 1);
+	EXPECT_EQ(files.getOpenFileCounter(), 1);
+	EXPECT_EQ(files.getOrOpen(filePath1), tiff);
+	EXPECT_EQ(files.getNumberOfOpenFiles(), 1);
+	EXPECT_EQ(files.getOpenFileCounter(), 1);
+	tiff = files.getOrOpen(filePath1);
+	ASSERT_TRUE(tiff != nullptr);
+	EXPECT_EQ(files.getNumberOfOpenFiles(), 1);
+	EXPECT_EQ(files.getOpenFileCounter(), 1);
+	EXPECT_EQ(files.getOrOpen(filePath1), tiff);
+	EXPECT_EQ(files.getNumberOfOpenFiles(), 1);
+	EXPECT_EQ(files.getOpenFileCounter(), 1);
+	tiff = files.getOrOpen(filePath1);
+	ASSERT_TRUE(tiff != nullptr);
+	EXPECT_EQ(files.getNumberOfOpenFiles(), 1);
+	EXPECT_EQ(files.getOpenFileCounter(), 1);
+	EXPECT_EQ(files.getOrOpen(filePath1), tiff);
+	EXPECT_EQ(files.getNumberOfOpenFiles(), 1);
+	EXPECT_EQ(files.getOpenFileCounter(), 1);
+    files.close(filePath1);
+	EXPECT_EQ(files.getNumberOfOpenFiles(), 0);
+	EXPECT_EQ(files.getOpenFileCounter(), 0);
+	files.closeAll();
+	EXPECT_EQ(files.getNumberOfOpenFiles(), 0);
+	EXPECT_EQ(files.getOpenFileCounter(), 0);
+	tiff = files.getOrOpen(filePath1);
+	ASSERT_TRUE(tiff != nullptr);
+	EXPECT_EQ(files.getNumberOfOpenFiles(), 1);
+	EXPECT_EQ(files.getOpenFileCounter(), 1);
+	tiff = files.getOrOpen(filePath2);
+	ASSERT_TRUE(tiff != nullptr);
+	EXPECT_EQ(files.getNumberOfOpenFiles(), 2);
+	EXPECT_EQ(files.getOpenFileCounter(), 2);
+	tiff = files.getOrOpen(filePath3);
+	ASSERT_TRUE(tiff != nullptr);
+	EXPECT_EQ(files.getNumberOfOpenFiles(), 3);
+	EXPECT_EQ(files.getOpenFileCounter(), 3);
+	files.close(filePath1);
+	EXPECT_EQ(files.getNumberOfOpenFiles(), 2);
+	EXPECT_EQ(files.getOpenFileCounter(), 2);
+	files.closeAll();
+	EXPECT_EQ(files.getNumberOfOpenFiles(), 0);
+	EXPECT_EQ(files.getOpenFileCounter(), 0);
+}
+
+TEST_F(OTImageDriverTests, TIFFData) {
+	TIFFFiles files;
+	std::string filePath1 = TestTools::getFullTestImagePath("ometiff", "Subresolutions/retina_large.ome.tiff");
 }

@@ -32,9 +32,11 @@ bool Dimensions::incrementCoordinates(std::vector<int>& coordinates) const {
 		RAISE_RUNTIME_ERROR << "Dimensions::incrementCoordinates: coordinates size: "
 	        << coordinates.size() << " does not match dimensions size: " << m_sizes.size();
 	}
+	int iDim = -1;
     for (size_t i = 0; i < m_sizes.size(); ++i) {
-        coordinates[i] += m_increments[i];
-        if (coordinates[i] < m_sizes[i]) {
+        int coord = coordinates[i] + m_increments[i];
+        if (coord < m_sizes[i]) {
+			coordinates[i] = coord;
             break;
         }
 		else if (i == m_sizes.size() - 1) {

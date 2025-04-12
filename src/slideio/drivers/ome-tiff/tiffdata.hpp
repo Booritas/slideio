@@ -51,7 +51,8 @@ namespace slideio
 				return m_filePath;
 			}
 			const TiffDirectory& getTiffDirectory(int plane) const;
-
+            void readTile(std::vector<int>& channelIndices, int zSlice, int tFrame, int zoomLevel, int tileIndex,
+                         std::vector<cv::Mat>& rasters) const;
         private:
             cv::Range m_channelRange = {};
             cv::Range m_zSliceRange = {};

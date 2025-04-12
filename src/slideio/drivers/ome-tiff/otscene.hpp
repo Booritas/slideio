@@ -11,7 +11,7 @@
 #include "slideio/drivers/ome-tiff/otstructs.hpp"
 #include "slideio/drivers/ome-tiff/tiffdata.hpp"
 #include "slideio/imagetools/tifffiles.hpp"
-#include "slideio/core/dimensions.hpp"
+#include "slideio/drivers/ome-tiff/otdimensions.hpp"
 #include <tinyxml2.h>
 
 #if defined(_MSC_VER)
@@ -36,7 +36,7 @@ namespace slideio
             int getTileCount(void* userData) override;
             bool getTileRect(int tileIndex, cv::Rect& tileRect, void* userData) override;
             bool readTile(int tileIndex, const std::vector<int>& channelIndices, cv::OutputArray tileRaster,
-                          void* userData) override;
+                void* userData) override;
             void initializeBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices, cv::OutputArray output) override;
             std::string getChannelName(int channel) const override;
             bool isBrightField() const;
@@ -50,7 +50,10 @@ namespace slideio
             double getMagnification() const override;
             Compression getCompression() const override;
             int getNumZSlices() const override;
-			int getNumTFrames() const override;
+            int getNumTFrames() const override;
+			int getNumTiffFiles() const { return m_files.getNumberOfOpenFiles(); }
+			int getNumTiffDataItems() const { return static_cast<int>(m_tiffData.size()); }
+            const TiffData& getTiffData(int index) const { return m_tiffData[index]; }
         private:
             void extractImagePyramids();
             void initializeDimensions();
@@ -67,7 +70,7 @@ namespace slideio
             tinyxml2::XMLElement* m_imageXml;
             std::shared_ptr<tinyxml2::XMLDocument> m_imageDoc;
             std::string m_imageId;
-			std::list<TiffData> m_tiffData;
+			std::vector<TiffData> m_tiffData;
             std::string m_dimensionOrder;
             DataType m_dataType = DataType::DT_Unknown;
             int m_numZSlices = 0;
@@ -80,7 +83,7 @@ namespace slideio
             Resolution m_resolution = {};
             double m_magnification = 0;
             int m_imageIndex = -1;
-			Dimensions m_dimensions;
+			OTDimensions m_dimensions;
             int m_samplesPerPixel = 1;
             TIFFFiles m_files;
         };

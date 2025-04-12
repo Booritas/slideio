@@ -136,32 +136,7 @@ void OTScene::extractImagePyramids() {
 }
 
 void OTScene::initializeDimensions() {
-	if (m_dimensionOrder.size() !=5) {
-		RAISE_RUNTIME_ERROR << "OTScene: unexpected dimension order: " << m_dimensionOrder;
-	}
-    const int numDimensions = 3;
-	std::vector<std::string> labels;
-	std::vector<int> sizes;
-	std::vector<int> increments(numDimensions, 1);
-    labels.resize(numDimensions);
-	sizes.resize(numDimensions);
-	for (size_t index = 0, i = 2; i < m_dimensionOrder.size() && index< numDimensions; ++i, ++index) {
-        labels[index] = m_dimensionOrder.substr(i, 1);
-		if (labels[index] == DimC) {
-			sizes[index] = m_numChannels;
-			increments[index] = m_samplesPerPixel;
-		}
-		else if (labels[index] == DimZ) {
-			sizes[index] = m_numZSlices;
-		}
-		else if (labels[index] == DimT) {
-			sizes[index] = m_numTFrames;
-		}
-        else {
-			RAISE_RUNTIME_ERROR << "OTScene: unsupported dimension label: " << labels[i];
-        }
-	}
-    m_dimensions.init(labels, sizes, increments);
+	m_dimensions.init(m_dimensionOrder, m_numChannels, m_numZSlices, m_numTFrames, m_samplesPerPixel);
 }
 
 void OTScene::initialize() {
@@ -229,29 +204,29 @@ void OTScene::initialize() {
 
 std::pair<const TiffData*, int> OTScene::findTiffData(int channel, int slice, int frame) const {
 	std::pair<const TiffData*, int> result = { nullptr, -1 };
-	//for (const auto& tiffData : m_tiffData) {
-	//	if (tiffData.isInRange(channel, slice, frame)) {
- //           std::list<std::pair<std::string, int>> listCoords = {
- //           { DimC, tiffData.channelRange.start },
- //           { DimZ, tiffData.zSliceRange.start },
- //           { DimT, tiffData.tFrameRange.start }
- //           };
-	//		auto coords = m_dimensions.createCoordinates(listCoords);
-	//		int channelIndex = m_dimensions.getDimensionIndex(DimC);
-	//		int zIndex = m_dimensions.getDimensionIndex(DimZ);
-	//		int tIndex = m_dimensions.getDimensionIndex(DimT);
-	//		for (int plane = 0; plane < tiffData.planeCount; ++plane) {
- //               if (coords[channelIndex] == channel &&
- //                   coords[zIndex] == slice &&
- //                   coords[tIndex] == frame) {
-	//				result.first = &tiffData;
-	//				result.second = plane;
-	//				return result;
- //               }
-	//			m_dimensions.incrementCoordinates(coords);
-	//		}
-	//	}
-	//}
+	for (const auto& tiffData : m_tiffData) {
+		if (tiffData.isInRange(channel, slice, frame)) {
+            std::list<std::pair<std::string, int>> listCoords = {
+            { DimC, tiffData.getChannelRange().start },
+            { DimZ, tiffData.getZSliceRange().start },
+            { DimT, tiffData.getTFrameRange().start }
+            };
+			auto coords = m_dimensions.createCoordinates(listCoords);
+			int channelIndex = m_dimensions.getDimensionIndex(DimC);
+			int zIndex = m_dimensions.getDimensionIndex(DimZ);
+			int tIndex = m_dimensions.getDimensionIndex(DimT);
+			for (int plane = 0; plane < tiffData.getPlaneCount(); ++plane) {
+                if (coords[channelIndex] == channel &&
+                    coords[zIndex] == slice &&
+                    coords[tIndex] == frame) {
+					result.first = &tiffData;
+					result.second = plane;
+					return result;
+                }
+				m_dimensions.incrementCoordinates(coords);
+			}
+		}
+	}
 	return result;
 }
 
@@ -344,37 +319,27 @@ std::string OTScene::getFilePath() const {
 
 bool OTScene::readTile(int tileIndex, const std::vector<int>& channelIndices, cv::OutputArray tileRaster,
                        void* userData) {
- //   const BlockInfo* blockInfo = static_cast<const BlockInfo*>(userData);
- //   const int tileCount = getTileCount(userData);
- //   if (tileIndex >= tileCount) {
- //       RAISE_RUNTIME_ERROR << "OMETIFF driver: invalid tile index: " << tileIndex << " of " << tileCount;
- //   }
-	//std::vector<cv::Mat> channelRasters(channelIndices.size());
- //   std::vector<int> channelsToFill(channelIndices);
- //   std::vector<int> channelOrder(m_numChannels);
-	//for (int i = 0; i < m_numChannels; ++i) {
- //       channelOrder[i] = -1;
-	//}
- //   int order = 0;
-	//for (auto ch:channelIndices) {
- //       channelOrder[ch] = order++;
-	//}
-	//while (!channelsToFill.empty()) {
-	//	const int channel = channelsToFill.front();
-	//	const int channelPosition = channelOrder[channel];
- //       std::pair<const TiffBlockData*,int> data  = findTiffData(channel, blockInfo->zSliceIndex, blockInfo->tFrameIndex);
- //       const TiffBlockData* tiffData = data.first;
-	//	const int plane = data.second;
- //       if (tiffData == nullptr) {
- //           SLIDEIO_LOG(WARNING) << "Cannot find TiffData for coordinates: ("
- //               << channel << "," << blockInfo->zSliceIndex << "," << blockInfo->tFrameIndex << ")";
-	//		return false;
- //       }
- //       int zoomLevel = blockInfo->levelInfo->getLevel();
- //       const TiffDirectory& dir = zoomLevel==0? tiffData->tiffDirectory: tiffData->tiffDirectory.subdirectories[zoomLevel-1];
- //       TiffTools::readTile(tiffData->tiff, dir, tileIndex, {plane}, tileRaster);
- //   }
-    return false;
+    const BlockInfo* blockInfo = static_cast<const BlockInfo*>(userData);
+	const int zSlice = blockInfo->zSliceIndex;
+	const int tFrame = blockInfo->tFrameIndex;
+    const int tileCount = getTileCount(userData);
+    const int zoomLevel = blockInfo->levelInfo->getLevel();
+    if (tileIndex >= tileCount) {
+        RAISE_RUNTIME_ERROR << "OMETIFF driver: invalid tile index: " << tileIndex << " of " << tileCount;
+    }
+	std::vector<cv::Mat> channelRasters(channelIndices.size());
+    std::vector<int> channelsToFill(channelIndices);
+    for (const auto& tiffData : m_tiffData) {
+        tiffData.readTile(channelsToFill, zSlice, tFrame, zoomLevel, tileIndex, channelRasters);
+		if (channelsToFill.empty()) {
+			break;
+		}
+    }
+    if (!channelsToFill.empty()) {
+		SLIDEIO_LOG(WARNING) << "OTScene: not all channels were read from the tile";
+        return false;
+    }
+    return true;
 }
 
 void OTScene::initializeBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices,

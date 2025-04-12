@@ -22,6 +22,7 @@ namespace slideio
 		const std::vector<int>& getSizes() const { return m_sizes; }
 		int getDimensionSize(const std::string& label) const;
 		int getDimensionIndex(const std::string& label) const;
+		int getNumDimensions() const { return static_cast<int>(m_sizes.size()); }
 
     private:
         std::vector<std::string> m_order;
