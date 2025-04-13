@@ -114,30 +114,6 @@ std::shared_ptr<OTSlide> OTSlide::openFile(const std::string& filePath)
             slide->m_Scenes.push_back(scene);
         }
 	}
-    //std::shared_ptr<CVScene> scene(new OTTiledScene(filePath,keeper.release(),"Image", image_dirs));
-    //std::vector<std::shared_ptr<CVScene>> scenes;
-    //scenes.push_back(scene);
-    //slide->m_Scenes.assign(scenes.begin(), scenes.end());
-    //slide->m_filePath = filePath;
-    //slide->m_auxImages = auxImages;
-    //slide->m_auxNames = auxNames;
-
-    //tinyxml2::XMLDocument xmlMetadata;
-    //auto rootMetadata = xmlMetadata.NewElement("Metadata");
-    //xmlMetadata.InsertEndChild(rootMetadata);
-
-    //for(const auto& metadataItem: metadataItems) {
-    //    tinyxml2::XMLDocument doc;
-    //    doc.Parse(metadataItem.c_str());
-    //    auto root = doc.RootElement();
-    //    rootMetadata->InsertEndChild(root->DeepClone(&xmlMetadata));
-    //}
-    //tinyxml2::XMLPrinter printer;
-    //xmlMetadata.Print(&printer);
-    //slide->m_rawMetadata = printer.CStr();
-    ////std::ofstream outFile("D:/Temp/output.xml");
-    ////outFile << slide->m_rawMetadata;
-    ////outFile.close();
     return slide;
 }
 

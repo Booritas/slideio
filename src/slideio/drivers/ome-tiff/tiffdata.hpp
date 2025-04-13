@@ -51,8 +51,12 @@ namespace slideio
 				return m_filePath;
 			}
 			const TiffDirectory& getTiffDirectory(int plane) const;
+			int getTiffDirectoryCount() const {
+				return static_cast<int>(m_directories.size());
+			}
             void readTile(std::vector<int>& channelIndices, int zSlice, int tFrame, int zoomLevel, int tileIndex,
                          std::vector<cv::Mat>& rasters) const;
+            void readTileChannels(const TiffDirectory& dir, int tileIndex, const std::vector<int>& channelIndices, cv::OutputArray raster) const;
         private:
             cv::Range m_channelRange = {};
             cv::Range m_zSliceRange = {};
@@ -63,7 +67,6 @@ namespace slideio
             libtiff::TIFF* m_tiff;
             std::vector<TiffDirectory> m_directories;
             Dimensions* m_dimensions = nullptr;
-			TIFFFiles* m_files = nullptr;
         };
     } 
 }

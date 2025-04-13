@@ -39,7 +39,6 @@ namespace slideio
                 void* userData) override;
             void initializeBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices, cv::OutputArray output) override;
             std::string getChannelName(int channel) const override;
-            bool isBrightField() const;
             void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
                 const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex,
                 cv::OutputArray output) override;

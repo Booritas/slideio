@@ -501,8 +501,7 @@ void  TiffTools::scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, int64_t dirO
     dir.rowsPerStrip = rowsPerStripe;
     dir.slideioCompression = compressTiffToSlideio(compress);
     dir.compressionQuality = compressionQuality;
-
-
+	dir.byteOffset = libtiff::TIFFCurrentDirOffset(tiff);
 }
 
 void TiffTools::scanTiffDir(libtiff::TIFF* tiff, int dirIndex, int64_t dirOffset, TiffDirectory& dir)
@@ -629,9 +628,6 @@ void TiffTools::readRegularStripedDir(libtiff::TIFF* file, const TiffDirectory& 
     output.create(sizeImage, CV_MAKETYPE(CVTools::toOpencvType(dt), dir.channels));
     cv::Mat imageRaster = output.getMat();
     setCurrentDirectory(file, dir);
-    if (dir.offset > 0) {
-        libtiff::TIFFSetSubDirectory(file, dir.offset);
-    }
     uint8_t* buffBegin = imageRaster.data;
     int stripBuffSize = dir.stripSize;
 
@@ -927,14 +923,18 @@ int TiffTools::getNumberOfDirectories(libtiff::TIFF* tiff) {
 
 void TiffTools::setCurrentDirectory(libtiff::TIFF* hFile, const TiffDirectory& dir)
 {
-    if(libtiff::TIFFCurrentDirectory(hFile) != static_cast<uint16_t>(dir.dirIndex)) {
-        if (!libtiff::TIFFSetDirectory(hFile, static_cast<uint16_t>(dir.dirIndex))) {
-            throw std::runtime_error("TiffTools: error by setting current directory");
+    uint64_t offset = libtiff::TIFFCurrentDirOffset(hFile);
+    if (offset != dir.byteOffset) {
+        if (!libtiff::TIFFSetSubDirectory(hFile, dir.byteOffset)) {
+            RAISE_RUNTIME_ERROR << "TiffTools: error by setting current sub-directory to offset: " << dir.byteOffset;
         }
     }
-    if(dir.offset>0){
-        if(!libtiff::TIFFSetSubDirectory(hFile, dir.offset)){
-            throw std::runtime_error("TiffTools: error by setting current sub-directory");
+    offset = libtiff::TIFFCurrentDirOffset(hFile);
+	if (offset) {
+        if (offset != dir.byteOffset) {
+            RAISE_RUNTIME_ERROR << "TiffTools: error by setting current directory. Expected: ("
+                << dir.offset << "). Received: ("
+                << offset << ")";
         }
     }
 }

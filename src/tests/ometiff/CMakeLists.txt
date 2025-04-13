@@ -4,6 +4,7 @@ set(TEST_NAME slideio_ometiff_tests)
 set(TEST_SOURCES
   test_ometiff_driver.cpp
   test_otdimensions.cpp
+  test_ometiffdata.cpp
 )
 
 add_executable(${TEST_NAME} ${TEST_SOURCES})

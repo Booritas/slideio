@@ -32,7 +32,6 @@ void TiffData::init(const std::string& directoryPath, TIFFFiles* files, Dimensio
 	if (files == nullptr) {
 		RAISE_RUNTIME_ERROR << "TiffData: Unexpected TIFFFiles collection is null";
 	}
-	m_files = files;
 	m_dimensions = dims;
     int firstChannel = xmlTiffData->IntAttribute("FirstC", 0);
     int firstZSlice = xmlTiffData->IntAttribute("FirstZ", 0);
@@ -51,7 +50,7 @@ void TiffData::init(const std::string& directoryPath, TIFFFiles* files, Dimensio
         { DimT, firstTFrame }
     };
     auto coords = m_dimensions->createCoordinates(coordList);
-    for (int plane = 0; plane < m_planeCount; ++plane) {
+    for (int plane = 1; plane < m_planeCount; ++plane) {
         m_dimensions->incrementCoordinates(coords);
     }
     int cIndex = m_dimensions->getDimensionIndex(DimC);
@@ -81,7 +80,7 @@ void TiffData::init(const std::string& directoryPath, TIFFFiles* files, Dimensio
         ? m_filePath
         : std::filesystem::path(directoryPath).append(fileNameAttr).string();
 
-    m_tiff = m_files->getOrOpen(m_filePath);
+    m_tiff = files->getOrOpen(m_filePath);
     if (!m_tiff) {
         RAISE_RUNTIME_ERROR << "OTScene: cannot open file " << m_filePath << " with libtiff";
     }
@@ -118,10 +117,11 @@ void TiffData::readTile(std::vector<int>& channelIndices, int zSlice, int tFrame
 	const TiffDirectory& mainDir = m_directories[0];
 	localChannelIndices.resize(mainDir.channels);
 	for (int ch = 0; ch < mainDir.channels; ++ch) {
-		localChannelIndices.push_back(ch);
+		localChannelIndices[ch] = ch;
 	}
 
     while(!myChannelIndices.empty()) {
+		const int myChannelCount = static_cast<int>(myChannelIndices.size());
 		const int channelIndex = myChannelIndices.front();
 		const int channel = channelIndices[channelIndex];
 		std::list<std::pair<std::string, int>> listCoords = {
@@ -134,24 +134,24 @@ void TiffData::readTile(std::vector<int>& channelIndices, int zSlice, int tFrame
 		int zIndex = m_dimensions->getDimensionIndex(DimZ);
 		int tIndex = m_dimensions->getDimensionIndex(DimT);
 		for (int plane = 0; plane < m_planeCount; ++plane) {
-			if (coords[cIndex] != channel || coords[zIndex] != zSlice || coords[tIndex] == tFrame) {
+			if (coords[cIndex] != channel || coords[zIndex] != zSlice || coords[tIndex] != tFrame) {
 				continue;
 			}
 			const TiffDirectory& mainDir = m_directories[plane];
 			const TiffDirectory& dir = zoomLevel==0?mainDir:mainDir.subdirectories[zoomLevel-1];
             cv::Mat localRaster;
-            TiffTools::readTile(m_tiff, dir, tileIndex, localChannelIndices, localRaster);
+			readTileChannels(dir, tileIndex, localChannelIndices, localRaster);
             if(localChannelIndices.size() == 1) {
 				rasters[channelIndex] = localRaster;
                 myChannelIndices.remove(channelIndex);
 			}
             else {
                 cv::Mat channelRaster;
-                for (int ch = 0; ch < dir.channels; ++ch) {
-					const int globChannel = coords[cIndex] + ch;
-                    auto it = std::find(myChannelIndices.begin(), myChannelIndices.end(), globChannel);
-					if ( it!= myChannelIndices.end()) {
-                        cv::extractChannel(localRaster, channelRaster, ch);
+                for (int localChannelIndex : localChannelIndices) {
+					const int globChannel = coords[cIndex] + localChannelIndex;
+                    auto itGlobalChannel = std::find(myChannelIndices.begin(), myChannelIndices.end(), globChannel);
+					if ( itGlobalChannel!= myChannelIndices.end()) {
+                        cv::extractChannel(localRaster, channelRaster, localChannelIndex);
 						rasters[globChannel] = channelRaster;
                         myChannelIndices.remove(globChannel);
 					}
@@ -159,5 +159,39 @@ void TiffData::readTile(std::vector<int>& channelIndices, int zSlice, int tFrame
             }
 			m_dimensions->incrementCoordinates(coords);
 		}
+        if (myChannelCount == static_cast<int>(myChannelIndices.size())) {
+			RAISE_RUNTIME_ERROR << "TiffData: unexpected block: no channels were read";
+        }
+    }
+}
+
+void TiffData::readTileChannels(const TiffDirectory& dir, int tileIndex, const std::vector<int>& channelIndices, cv::OutputArray raster) const {
+    if (dir.tiled) {
+        TiffTools::readTile(m_tiff, dir, tileIndex, channelIndices, raster);
+    }
+    else if (tileIndex == 0) {
+		cv::Mat dirRaster;
+        TiffTools::readStripedDir(m_tiff, dir, dirRaster);
+        if (static_cast<int>(channelIndices.size()) == 1 && dirRaster.channels()==1 && channelIndices[0] == 0) {
+            raster.assign(dirRaster);
+        }
+        else {
+            std::vector<cv::Mat> channelRasters(channelIndices.size());
+            int outputChannelIndex = 0;
+            for (int internalChannelIndex : channelIndices) {
+                cv::Mat channelRaster;
+                cv::extractChannel(dirRaster, channelRasters[outputChannelIndex], internalChannelIndex);
+                ++outputChannelIndex;
+            }
+			if (channelRasters.size() == 1) {
+				raster.assign(channelRasters[0]);
+			}
+			else {
+                cv::merge(channelRasters, raster);
+            }
+        }
+    }
+    else {
+        RAISE_RUNTIME_ERROR << "TiffData: unexpected tile index " << tileIndex << " for striped directory";
     }
 }

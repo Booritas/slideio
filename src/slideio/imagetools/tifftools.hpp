@@ -46,6 +46,7 @@ namespace slideio
         DataType dataType;
         int stripSize;
         int compressionQuality;
+        uint64_t byteOffset;
     };
 
 

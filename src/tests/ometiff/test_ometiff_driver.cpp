@@ -265,7 +265,29 @@ TEST_F(OTImageDriverTests, TIFFFiles) {
 	EXPECT_EQ(files.getOpenFileCounter(), 0);
 }
 
-TEST_F(OTImageDriverTests, TIFFData) {
-	TIFFFiles files;
-	std::string filePath1 = TestTools::getFullTestImagePath("ometiff", "Subresolutions/retina_large.ome.tiff");
+TEST_F(OTImageDriverTests, Delete) {
+	//std::string filePath[] = {
+		//TestTools::getFullTestImagePath("ometiff", "Subresolutions/retina_large.ome.tiff"),
+		//TestTools::getFullTestImagePath("ometiff", "4D-Series/4D-series.ome.tiff"),
+		//TestTools::getFullTestImagePath("ometiff", "MultChannel4D-Series/multi-channel-4D-series.ome.tiff"),
+		//TestTools::getFullTestImagePath("ometiff", "MultChannelTimeSeries/multi-channel-time-series.ome.tiff"),
+		//TestTools::getFullTestImagePath("ometiff", "MultChannelZ-Series/multi-channel-z-series.ome.tiff"),
+		//TestTools::getFullTestImagePath("ometiff", "MultiChannel/multi-channel.ome.tiff"),
+		//TestTools::getFullTestImagePath("ometiff", "Multifile/multifile-Z1.ome.tiff"),
+		//TestTools::getFullTestImagePath("ometiff", "Subresolutions/Leica-1.ome.tiff"),
+		//TestTools::getFullTestImagePath("ometiff", "TimeSeries/time-series.ome.tiff"),
+		//TestTools::getFullTestImagePath("ometiff", "tubhiswt-2D/tubhiswt_C1.ome.tif"),
+		//TestTools::getFullTestImagePath("ometiff", "tubhiswt-3D/tubhiswt_C1.ome.tif"),
+		//TestTools::getFullTestImagePath("ometiff", "tubhiswt-4D/tubhiswt_C0_TP0.ome.tif"),
+		//TestTools::getFullTestImagePath("ometiff", "Z-Series/z-series.ome.tiff"),
+		//TestTools::getFullTestImagePath("ometiff", "00001_01.ome.tiff"),
+		//TestTools::getFullTestImagePath("ometiff", "FLIM-ModuloAlongC.ome.tiff"),
+		//TestTools::getFullTestImagePath("ometiff", "FLIM-ModuloAlongT-TSCPC.ome.tiff"),
+		//TestTools::getFullTestImagePath("ometiff", "LAMBDA-ModuloAlongZ-ModuloAlongT.ome.tiff"),
+		//TestTools::getFullTestImagePath("ometiff", "SPIM-ModuloAlongZ.ome.tiff"),
+	//};
+	//for (int i = 0; i < sizeof(filePath) / sizeof(filePath[0]); ++i) {
+	//	slideio::ometiff::OTImageDriver driver;
+	//	std::shared_ptr<CVSlide> slide = driver.openFile(filePath[i]);
+	//}
 }
