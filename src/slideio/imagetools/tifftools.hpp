@@ -55,12 +55,14 @@ namespace slideio
     public:
         static libtiff::TIFF* openTiffFile(const std::string& path, bool readOnly=true);
         static void closeTiffFile(libtiff::TIFF* file);
+        static void setCurrentDirectory(libtiff::TIFF* tiff, int dirIndex, int64_t dirOffset);
         static void scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, int64_t dirOffset, slideio::TiffDirectory& dir);
         static void scanTiffDir(libtiff::TIFF* tiff, int dirIndex, int64_t dirOffset, slideio::TiffDirectory& dir);
         static void scanFile(libtiff::TIFF* file, std::vector<TiffDirectory>& directories);
         static void scanFile(const std::string& filePath, std::vector<TiffDirectory>& directories);
         static void readNotRGBStripedDir(libtiff::TIFF* tiff, const TiffDirectory& dir, cv::_OutputArray output);
         static void readRegularStripedDir(libtiff::TIFF* file, const slideio::TiffDirectory& dir, cv::OutputArray output);
+        static void readPlanarStripedDir(libtiff::TIFF* tiff, const TiffDirectory& dir, cv::_OutputArray output);
         static void readStripedDir(libtiff::TIFF* file, const slideio::TiffDirectory& dir, cv::OutputArray output);
         static void readTile(libtiff::TIFF* hFile, const slideio::TiffDirectory& dir, int tile,
             const std::vector<int>& channelIndices, cv::OutputArray output);

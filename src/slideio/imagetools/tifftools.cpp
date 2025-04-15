@@ -13,6 +13,8 @@
 #include <opencv2/core.hpp>
 #include <filesystem>
 
+#include "../../../../../../conan2/p/ndpi-906ad9e79a7f7/p/include/tiffio.h"
+
 using namespace slideio;
 
 static DataType dataTypeFromTIFFDataType(libtiff::TIFFDataType dt)
@@ -421,13 +423,43 @@ static void setTiffDataType(libtiff::TIFF* tiff, DataType dataType)
     TIFFSetField(tiff, TIFFTAG_BITSPERSAMPLE, bitsPerSample);
 }
 
-void  TiffTools::scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, int64_t dirOffset, TiffDirectory& dir)
-{
-    if (libtiff::TIFFCurrentDirectory(tiff) != dirIndex) {
+void TiffTools::setCurrentDirectory(libtiff::TIFF* tiff, int dirIndex, int64_t dirOffset) {
+    if(dirOffset<0 || dirIndex<0) {
+        RAISE_RUNTIME_ERROR << "Invalid directory index or offset: ("
+            << dirIndex << ","
+            << dirOffset << ")";
+    }
+    if(tiff == nullptr) {
+        RAISE_RUNTIME_ERROR << "Invalid TIFF file handle";
+    }
+
+    if(dirOffset > 0) {
+        libtiff::TIFFSetSubDirectory(tiff, dirOffset);
+    } else if (dirIndex == 0) {
+         libtiff::TIFFSetDirectory(tiff, 0);
+    } else if (dirIndex>0 && libtiff::TIFFCurrentDirectory(tiff)!=dirIndex) {
         libtiff::TIFFSetDirectory(tiff, (short)dirIndex);
     }
-    if(dirOffset)
-        libtiff::TIFFSetSubDirectory(tiff, dirOffset);
+	// Check if the directory was set correctly
+	if (dirOffset > 0) {
+        uint64_t offset = libtiff::TIFFCurrentDirOffset(tiff);
+		if (offset != dirOffset) {
+			RAISE_RUNTIME_ERROR << "Failed to set TIFF directory to offset " << dirOffset
+				<< ", current offset is " << offset;
+		}
+	}
+	else if(dirIndex>0){
+		auto di = libtiff::TIFFCurrentDirectory(tiff);
+        if (di != dirIndex) {
+            RAISE_RUNTIME_ERROR << "Failed to set TIFF directory to index " << dirIndex
+                << ", current offset is " << di;
+        }
+	}
+}
+
+void  TiffTools::scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, int64_t dirOffset, TiffDirectory& dir)
+{
+    setCurrentDirectory(tiff, dirIndex, dirOffset);
 
     dir.dirIndex = dirIndex;
     dir.offset = dirOffset;
@@ -644,21 +676,50 @@ void TiffTools::readRegularStripedDir(libtiff::TIFF* file, const TiffDirectory& 
     return;
 }
 
+void TiffTools::readPlanarStripedDir(libtiff::TIFF* file, const TiffDirectory& dir, cv::_OutputArray output) {
+    int buff_size = dir.width * dir.height * Tools::dataTypeSize(dir.dataType);
+    cv::Size sizeImage = { dir.width, dir.height };
+    DataType dt = dir.dataType;
+    output.create(sizeImage, CV_MAKETYPE(CVTools::toOpencvType(dt), dir.channels));
+    cv::Mat imageRaster = output.getMat();
+    setCurrentDirectory(file, dir);
+    int stripBuffSize = dir.stripSize;
+	std::vector<cv::Mat> channelRasters(dir.channels);
+    int strip = 0;
+    for(int channel=0; channel<dir.channels; ++channel) {
+        channelRasters[channel].create(sizeImage, CV_MAKETYPE(CVTools::toOpencvType(dt), 1));
+        uint8_t* buffBegin = channelRasters[channel].data;
+        for (int row = 0; row < dir.height; strip++, row += dir.rowsPerStrip, buffBegin += stripBuffSize) {
+            int read = (int)libtiff::TIFFReadEncodedStrip(file, strip, buffBegin, stripBuffSize);
+            if (read <= 0) {
+                throw std::runtime_error("TiffTools: Error by reading of tif strip");
+            }
+        }
+    }
+	if (dir.channels == 1) {
+		channelRasters[0].copyTo(output);
+	}
+	else {
+		cv::merge(channelRasters, output);
+	}
+    return;
+}
+
 
 void TiffTools::readStripedDir(libtiff::TIFF* file, const TiffDirectory& dir, cv::OutputArray output)
 {
-    if(!dir.interleaved)
-        throw std::runtime_error("Planar striped images are not supported");
-
-    std::vector<uint8_t> rgbaRaster;
-    bool notRGB = dir.photometric == 6 || dir.photometric == 8 || dir.photometric == 9 || dir.photometric == 10;
-    if (notRGB) {
-        readNotRGBStripedDir(file, dir, output);
+    if(!dir.interleaved) {
+        readPlanarStripedDir(file, dir, output);
+    } else {
+        std::vector<uint8_t> rgbaRaster;
+        bool notRGB = dir.photometric == 6 || dir.photometric == 8 || dir.photometric == 9 || dir.photometric == 10;
+        if (notRGB) {
+            readNotRGBStripedDir(file, dir, output);
+        }
+        else {
+            readRegularStripedDir(file, dir, output);
+        }
     }
-    else {
-        readRegularStripedDir(file, dir, output);
-    }
-
     return;
 }
 
@@ -690,43 +751,49 @@ void TiffTools::readRegularTile(libtiff::TIFF* hFile, const TiffDirectory& dir, 
 {
     cv::Size tileSize = { dir.tileWidth, dir.tileHeight };
     DataType dt = dir.dataType;
-    cv::Mat tileRaster;
-    tileRaster.create(tileSize, CV_MAKETYPE(CVTools::toOpencvType(dt), dir.channels));
     setCurrentDirectory(hFile, dir);
-    if (dir.offset > 0) {
-        libtiff::TIFFSetSubDirectory(hFile, dir.offset);
-    }
-    // if(dir.compression==7) {
-    //     std::vector<uint8_t> buff(libtiff::TIFFTileSize(hFile));
-    //     int64_t size = libtiff::TIFFReadRawTile(hFile, tile, buff.data(), buff.size());
-    //     buff.resize(size);
-    //     ImageTools::decodeJpegStream(buff.data(), buff.size(), tileRaster);
-    // }
-    else 
-    {
-        uint8_t* buff_begin = tileRaster.data;
-        auto buf_size = tileRaster.total() * tileRaster.elemSize();
-        auto readBytes = libtiff::TIFFReadEncodedTile(hFile, tile, buff_begin, buf_size);
-        if (readBytes <= 0){
+    if(dir.interleaved) {
+        cv::Mat tileRaster;
+        tileRaster.create(tileSize, CV_MAKETYPE(CVTools::toOpencvType(dt), dir.channels));
+        uint8_t* buffBegin = tileRaster.data;
+        auto buffSize = tileRaster.total() * tileRaster.elemSize();
+        auto readBytes = libtiff::TIFFReadEncodedTile(hFile, tile, buffBegin, buffSize);
+        if (readBytes <= 0) {
             RAISE_RUNTIME_ERROR << "TiffTools: Error reading encoded tiff tile "
                 << tile << " of directory " << dir.dirIndex << ". Compression: " << dir.compression;
         }
-    }
-    if(channelIndices.empty() || (channelIndices.size() == 1 && dir.channels==1))
-    {
-        tileRaster.copyTo(output);
-    }
-    else if(channelIndices.size()==1)
-    {
-        cv::extractChannel(tileRaster, output, channelIndices[0]);
-    }
-    else
-    {
-        std::vector<cv::Mat> channelRasters;
-        channelRasters.resize(channelIndices.size());
-        for(int channelIndex : channelIndices)
-        {
-            cv::extractChannel(tileRaster, channelRasters[channelIndex], channelIndices[channelIndex]);
+        if (channelIndices.empty() || (channelIndices.size() == 1 && dir.channels == 1)) {
+            tileRaster.copyTo(output);
+        }
+        else if (channelIndices.size() == 1) {
+            cv::extractChannel(tileRaster, output, channelIndices[0]);
+        }
+        else {
+            std::vector<cv::Mat> channelRasters;
+            channelRasters.resize(channelIndices.size());
+            for (int channelIndex : channelIndices) {
+                cv::extractChannel(tileRaster, channelRasters[channelIndex], channelIndices[channelIndex]);
+            }
+            cv::merge(channelRasters, output);
+        }
+    } else {
+		std::vector<cv::Mat> channelRasters(channelIndices.size());
+		int channelSize = tileSize.area() * Tools::dataTypeSize(dt);
+		int tilesAlongX = (dir.width - 1) / dir.tileWidth + 1;
+		int row = tile / tilesAlongX;
+		int col = tile - row * tilesAlongX;
+		int tileX = col * dir.tileWidth;
+		int tileY = row * dir.tileHeight;
+		for (int channelIndex = 0; channelIndex < channelIndices.size(); ++channelIndex) {
+			int channel = channelIndices[channelIndex];
+			channelRasters[channelIndex].create(tileSize, CV_MAKETYPE(CVTools::toOpencvType(dt), 1));
+			uint8_t* channelBegin = channelRasters[channelIndex].data;
+			int tileRawNo = TIFFComputeTile(hFile, tileX, tileY, 0, channel);
+            auto readBytes = TIFFReadEncodedTile(hFile, tileRawNo, channelBegin, channelSize);
+            if (readBytes !=channelSize) {
+                RAISE_RUNTIME_ERROR << "TiffTools: Error reading encoded tiff tile "
+                    << tile << " of directory " << dir.dirIndex << ". Compression: " << dir.compression;
+            }
         }
         cv::merge(channelRasters, output);
     }
