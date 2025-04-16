@@ -201,3 +201,26 @@ TEST_F(TiffDataTests, readTileChannelsTiledPlanar3ch) {
 	ImageTools::readGDALImage(testFilePath, testRaster);
 	EXPECT_TRUE(TestTools::compareRastersEx(raster, testRaster));
 }
+
+TEST_F(TiffDataTests, readTileChannelsTiledPalette3ch) {
+	std::string filePath = TestTools::getFullTestImagePath("ometiff", "Subresolutions/Leica-2.ome.tiff");
+	std::string testFilePath = TestTools::getFullTestImagePath("ometiff", "Tests/Leica-2.ome.tiff - Series 1 (1, x=23552, y=14336, w=512, h=512).png");
+	std::string directoryPath = std::filesystem::path(filePath).parent_path().string();
+	TIFFFiles files;
+	tinyxml2::XMLElement* xmlTiffData = nullptr;
+	tinyxml2::XMLDocument doc;
+	extractTiffData(filePath, files, "Image:1", "IFD", 1, doc, xmlTiffData);
+	TiffData tiffData;
+	OTDimensions dimensions;
+	dimensions.init("XYCZT", 3, 1, 1, 3);
+	tiffData.init(directoryPath, &files, &dimensions, xmlTiffData);
+	const TiffDirectory& dir = tiffData.getTiffDirectory(0);
+	std::vector<int> channelIndices = { 0, 1, 2 };
+	cv::Mat raster;
+	tiffData.readTileChannels(dir, 2202, channelIndices, raster);
+	//TestTools::showRaster(raster);
+	EXPECT_FALSE(raster.empty());
+	cv::Mat testRaster;
+	ImageTools::readGDALImage(testFilePath, testRaster);
+	EXPECT_TRUE(TestTools::compareRastersEx(raster, testRaster));
+}
