@@ -98,73 +98,6 @@ const TiffDirectory& TiffData::getTiffDirectory(int plane) const {
     return m_directories[plane];
 }
 
-//void TiffData::readTile(std::vector<int>& channelIndices, int zSlice, int tFrame, int zoomLevel,
-//    int tileIndex, std::vector<cv::Mat>& rasters) const {
-//
-//    if(!isValueInRange(zSlice, m_zSliceRange) || !isValueInRange(tFrame, m_tFrameRange)) {
-//        return;
-//    }
-//
-//    // Create a list of channel indices that are in the range of TiffData
-//    std::list<int> myChannelIndices;
-//    std::copy_if(channelIndices.begin(), channelIndices.end(), std::back_inserter(myChannelIndices),
-//        [this](int channel) { return isValueInRange(channel, m_channelRange);});
-//	// No channels in the range
-//	if (myChannelIndices.empty()) {
-//		return;
-//	}
-//
-//    std::vector<int> localChannelIndices;
-//	const TiffDirectory& mainDir = m_directories[0];
-//	localChannelIndices.resize(mainDir.channels);
-//	for (int ch = 0; ch < mainDir.channels; ++ch) {
-//		localChannelIndices[ch] = ch;
-//	}
-//
-//    while(!myChannelIndices.empty()) {
-//		const int myChannelCount = static_cast<int>(myChannelIndices.size());
-//		const int channelIndex = myChannelIndices.front();
-//		const int channel = channelIndices[channelIndex];
-//		std::list<std::pair<std::string, int>> listCoords = {
-//			{ DimC, m_channelRange.start },
-//			{ DimZ, m_zSliceRange.start },
-//			{ DimT, m_tFrameRange.start }
-//		};
-//        auto coords = m_dimensions->createCoordinates(listCoords);
-//		int cIndex = m_dimensions->getDimensionIndex(DimC);
-//		int zIndex = m_dimensions->getDimensionIndex(DimZ);
-//		int tIndex = m_dimensions->getDimensionIndex(DimT);
-//		for (int plane = 0; plane < m_planeCount; ++plane) {
-//			if (coords[cIndex] != channel || coords[zIndex] != zSlice || coords[tIndex] != tFrame) {
-//				continue;
-//			}
-//			const TiffDirectory& mainDir = m_directories[plane];
-//			const TiffDirectory& dir = zoomLevel==0?mainDir:mainDir.subdirectories[zoomLevel-1];
-//            cv::Mat localRaster;
-//			readTileChannels(dir, tileIndex, localChannelIndices, localRaster);
-//            if(localChannelIndices.size() == 1) {
-//				rasters[channelIndex] = localRaster;
-//                myChannelIndices.remove(channelIndex);
-//			}
-//            else {
-//                cv::Mat channelRaster;
-//                for (int localChannelIndex : localChannelIndices) {
-//					const int globChannel = coords[cIndex] + localChannelIndex;
-//                    auto itGlobalChannel = std::find(myChannelIndices.begin(), myChannelIndices.end(), globChannel);
-//					if ( itGlobalChannel!= myChannelIndices.end()) {
-//                        cv::extractChannel(localRaster, channelRaster, localChannelIndex);
-//						rasters[globChannel] = channelRaster;
-//                        myChannelIndices.remove(globChannel);
-//					}
-//                }
-//            }
-//			m_dimensions->incrementCoordinates(coords);
-//		}
-//        if (myChannelCount == static_cast<int>(myChannelIndices.size())) {
-//			RAISE_RUNTIME_ERROR << "TiffData: unexpected block: no channels were read";
-//        }
-//    }
-//}
 
 void TiffData::readTile(std::vector<int>& channelIndices, int zSlice, int tFrame, int zoomLevel,
     int tileIndex, std::vector<cv::Mat>& rasters) const {
@@ -228,6 +161,7 @@ void TiffData::readTile(std::vector<int>& channelIndices, int zSlice, int tFrame
         RAISE_RUNTIME_ERROR << "TiffData: unexpected block: no channels were read";
     }
 }
+
 
 void TiffData::readTileChannels(const TiffDirectory& dir, int tileIndex, const std::vector<int>& channelIndices, cv::OutputArray raster) const {
     if (dir.tiled) {

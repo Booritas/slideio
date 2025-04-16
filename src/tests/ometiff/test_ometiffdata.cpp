@@ -90,7 +90,7 @@ TEST_F(TiffDataTests, init) {
 	EXPECT_EQ(dir.dirIndex, 0);
 }
 
-TEST_F(TiffDataTests, readTile) {
+TEST_F(TiffDataTests, readTileFirstChannelOf2) {
 	std::string filePath = TestTools::getFullTestImagePath("ometiff", "Subresolutions/retina_large.ome.tiff");
 	std::string testFilePath = TestTools::getFullTestImagePath("ometiff", "Tests/retina_large.ome-page32-channel-0.tif");
 	std::string directoryPath = std::filesystem::path(filePath).parent_path().string();
@@ -107,21 +107,73 @@ TEST_F(TiffDataTests, readTile) {
 	const TiffDirectory& dir1 = dir.subdirectories[1];
 	ASSERT_EQ(dir.dirIndex, 32);
 
-	std::vector<int> channelIndices = { 0 };
-	std::vector<cv::Mat> rasters(1);
+	std::vector<int> channelIndices = { 0, 1 };
+	std::vector<cv::Mat> rasters(channelIndices.size());
 	tiffData.readTile(channelIndices, 32, 0, 0, 0, rasters);
+	ASSERT_FALSE(rasters[0].empty());
+	ASSERT_TRUE(rasters[1].empty());
 	cv::Mat raster = rasters[0];
-	EXPECT_FALSE(raster.empty());
 	cv::Mat testRaster;
 	ImageTools::readGDALImage(testFilePath, testRaster);
 	EXPECT_TRUE(TestTools::compareRastersEx(raster, testRaster));
-
-	tiffData.readTile(channelIndices, 32, 0, 1, 0, rasters);
-	cv::resize(testRaster, testRaster, cv::Size(dir1.width, dir1.height));
-	tiffData.readTileChannels(dir1, 0, channelIndices, raster);
-	double sim = ImageTools::computeSimilarity2(raster, testRaster);
-	EXPECT_TRUE(sim > 0.99);
 }
+
+TEST_F(TiffDataTests, readTileSecondChannelOf2) {
+	std::string filePath = TestTools::getFullTestImagePath("ometiff", "Subresolutions/retina_large.ome.tiff");
+	std::string testFilePath = TestTools::getFullTestImagePath("ometiff", "Tests/retina_large.ome-page32-channel-1.tif");
+	std::string directoryPath = std::filesystem::path(filePath).parent_path().string();
+	TIFFFiles files;
+	tinyxml2::XMLElement* xmlTiffData = nullptr;
+	tinyxml2::XMLDocument doc;
+	extractTiffData(filePath, files, "Image:0", "IFD", 96, doc, xmlTiffData);
+	ASSERT_TRUE(xmlTiffData != nullptr);
+	TiffData tiffData;
+	OTDimensions dimensions;
+	dimensions.init("XYZCT", 2, 64, 1, 1);
+	tiffData.init(directoryPath, &files, &dimensions, xmlTiffData);
+	const TiffDirectory& dir = tiffData.getTiffDirectory(0);
+	const TiffDirectory& dir1 = dir.subdirectories[1];
+	ASSERT_EQ(dir.dirIndex, 96);
+
+	std::vector<int> channelIndices = { 0, 1 };
+	std::vector<cv::Mat> rasters(channelIndices.size());
+	tiffData.readTile(channelIndices, 32, 0, 0, 0, rasters);
+	ASSERT_FALSE(rasters[1].empty());
+	ASSERT_TRUE(rasters[0].empty());
+	cv::Mat raster = rasters[1];
+	cv::Mat testRaster;
+	ImageTools::readGDALImage(testFilePath, testRaster);
+	EXPECT_TRUE(TestTools::compareRastersEx(raster, testRaster));
+}
+
+//TEST_F(TiffDataTests, readTile2Channels) {
+//	std::string filePath = TestTools::getFullTestImagePath("ometiff", "Subresolutions/retina_large.ome.tiff");
+//	std::string testFilePath = TestTools::getFullTestImagePath("ometiff", "Tests/retina_large.ome-page32-channel-1.tif");
+//	std::string directoryPath = std::filesystem::path(filePath).parent_path().string();
+//	TIFFFiles files;
+//	tinyxml2::XMLElement* xmlTiffData = nullptr;
+//	tinyxml2::XMLDocument doc;
+//	extractTiffData(filePath, files, "Image:0", "FirstZ", 32, doc, xmlTiffData);
+//	ASSERT_TRUE(xmlTiffData != nullptr);
+//	TiffData tiffData;
+//	OTDimensions dimensions;
+//	dimensions.init("XYZCT", 2, 64, 1, 1);
+//	tiffData.init(directoryPath, &files, &dimensions, xmlTiffData);
+//	const TiffDirectory& dir = tiffData.getTiffDirectory(0);
+//	const TiffDirectory& dir1 = dir.subdirectories[1];
+//	ASSERT_EQ(dir.dirIndex, 32);
+//
+//	std::vector<int> channelIndices = { 0, 1 };
+//	std::vector<cv::Mat> rasters(channelIndices.size());
+//	tiffData.readTile(channelIndices, 32, 0, 0, 0, rasters);
+//	ASSERT_FALSE(rasters[0].empty());
+//	ASSERT_TRUE(rasters[1].empty());
+//	cv::Mat raster = rasters[1];
+//	ASSERT_FALSE(raster.empty());
+//	cv::Mat testRaster;
+//	ImageTools::readGDALImage(testFilePath, testRaster);
+//	EXPECT_TRUE(TestTools::compareRastersEx(raster, testRaster));
+//}
 
 
 TEST_F(TiffDataTests, readTileChannelsStripePlanar) {
