@@ -49,6 +49,8 @@ namespace slideio
         uint64_t byteOffset;
     };
 
+    SLIDEIO_IMAGETOOLS_EXPORTS std::ostream& operator<<(std::ostream& os, const TiffDirectory& dir);
+    SLIDEIO_IMAGETOOLS_EXPORTS std::ostream& operator<<(std::ostream& os, const std::vector<TiffDirectory>& dirs);
 
     class SLIDEIO_IMAGETOOLS_EXPORTS  TiffTools
     {
@@ -84,8 +86,5 @@ namespace slideio
         static int getNumberOfDirectories(libtiff::TIFF* tiff);
     };
 }
-
-//boost::log::basic_formatting_ostream& operator << (boost::log::basic_formatting_ostream& os, const slideio::TiffDirectory& dir);
-//boost::log::basic_formatting_ostream& operator << (boost::log::basic_formatting_ostream& os, const std::vector<slideio::TiffDirectory>& dirs);
 
 #endif

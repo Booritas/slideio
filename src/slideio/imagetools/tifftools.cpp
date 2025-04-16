@@ -240,45 +240,49 @@ int compressSlideioToTiff(Compression compression)
     return tiffCompression;
 }
 
-//std::ostream& operator<<(std::ostream& os, const TiffDirectory& dir)
-//{
-//    os << "---Tiff directory " << dir.dirIndex << std::endl;
-//    os << "width:" << dir.width << std::endl;
-//    os << "height:" << dir.height << std::endl;
-//    os << "tiled:" << dir.tiled << std::endl;
-//    os << "tileWidth:" << dir.tileWidth << std::endl;
-//    os << "tileHeight:" << dir.tileHeight << std::endl;
-//    os << "channels:" << dir.channels << std::endl;
-//    os << "bitsPerSample:" << dir.bitsPerSample << std::endl;
-//    os << "photometric:" << dir.photometric << std::endl;
-//    os << "YcbCrSubsampling:" << dir.YCbCrSubsampling[0] << "," << dir.YCbCrSubsampling[1] << std::endl;
-//    os << "compression:" << dir.compression << std::endl;
-//    os << "slideioCompression" << dir.slideioCompression << std::endl;
-//    os << "offset:" << dir.offset << std::endl;
-//    os << "description" << dir.description << std::endl;
-//    os << "Number of subdirectories:" << dir.subdirectories.size() << std::endl;
-//    os << "Resoulution:" << dir.res.x << "," << dir.res.y << std::endl;
-//    os << "interleaved:" << dir.interleaved << std::endl;
-//    os << "rowsPerStrip:" << dir.rowsPerStrip << std::endl;
-//    os << "dataType:" << dir.dataType << std::endl;
-//    os << "stripSize:" << dir.stripSize << std::endl;
-//
-//    for(size_t subDirIndex=0; subDirIndex<dir.subdirectories.size(); ++subDirIndex) {
-//        os << "--Sub-directory:" << subDirIndex << std::endl;
-//        os << dir.subdirectories[subDirIndex];
-//    }
-//    return os;
-//}
-//
-//std::ostream& operator<<(std::ostream& os, const std::vector<TiffDirectory>& dirs) {
-//    os << "---Tiff directories. Size:" << dirs.size() << std::endl;
-//    std::vector<TiffDirectory>::const_iterator iDir;
-//    for (iDir = dirs.begin(); iDir != dirs.end(); ++iDir) {
-//        auto& dir = *iDir;
-//        os << dir;
-//    }
-//    return os;
-//}
+
+std::ostream& operator<<(std::ostream& os, const std::vector<TiffDirectory>& dirs) {
+    os << "---Tiff directories. Size:" << dirs.size() << std::endl;
+    std::vector<TiffDirectory>::const_iterator iDir;
+    for (iDir = dirs.begin(); iDir != dirs.end(); ++iDir) {
+        auto& dir = *iDir;
+        os << dir;
+    }
+    return os;
+}
+
+std::ostream& slideio::operator<<(std::ostream& os, const TiffDirectory& dir) {
+    os << "TiffDirectory {"
+        << "\n  width: " << dir.width
+        << "\n  height: " << dir.height
+        << "\n  tiled: " << dir.tiled
+        << "\n  tileWidth: " << dir.tileWidth
+        << "\n  tileHeight: " << dir.tileHeight
+        << "\n  channels: " << dir.channels
+        << "\n  bitsPerSample: " << dir.bitsPerSample
+        << "\n  photometric: " << dir.photometric
+        << "\n  YCbCrSubsampling: [" << dir.YCbCrSubsampling[0] << ", " << dir.YCbCrSubsampling[1] << "]"
+        << "\n  compression: " << dir.compression
+        << "\n  slideioCompression: " << dir.slideioCompression
+        << "\n  dirIndex: " << dir.dirIndex
+        << "\n  offset: " << dir.offset
+        << "\n  description: " << dir.description
+        << "\n  res: {" << dir.res.x << ", " << dir.res.y << "}"
+        << "\n  position: {" << dir.position.x << ", " << dir.position.y << "}"
+        << "\n  interleaved: " << dir.interleaved
+        << "\n  rowsPerStrip: " << dir.rowsPerStrip
+        << "\n  dataType: " << dir.dataType
+        << "\n  stripSize: " << dir.stripSize
+        << "\n  compressionQuality: " << dir.compressionQuality
+        << "\n  byteOffset: " << dir.byteOffset
+        << "\n  subdirectories: [";
+        for(size_t subDirIndex=0; subDirIndex<dir.subdirectories.size(); ++subDirIndex) {
+            os << "--Sub-directory:" << subDirIndex << std::endl;
+            os << dir.subdirectories[subDirIndex];
+        }
+    os << "\n  ]" << "\n}";
+    return os;
+}
 
 libtiff::TIFF* TiffTools::openTiffFile(const std::string& path, bool readOnly)
 {
