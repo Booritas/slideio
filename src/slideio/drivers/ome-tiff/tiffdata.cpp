@@ -16,12 +16,9 @@
 using namespace slideio;
 using namespace slideio::ometiff;
 
-void TiffData::init(const std::string& directoryPath, TIFFFiles* files, OTDimensions*dims, tinyxml2::XMLElement* xmlTiffData) {
+void TiffData::init(const std::string& directoryPath, TIFFFiles* files, const std::string& dimOrder, int numChannels, int numZSlices, int numTFrames, tinyxml2::XMLElement* xmlTiffData) {
 	if (xmlTiffData == nullptr) {
 		RAISE_RUNTIME_ERROR << "TiffData: Unexpected xmlTiffData is null";
-	}
-	if (dims == nullptr) {
-		RAISE_RUNTIME_ERROR << "TiffData: Unexpected dimensions is null";
 	}
 	if (directoryPath.empty()) {
 		RAISE_RUNTIME_ERROR << "TiffData: Unexpected empty directory path";
@@ -29,30 +26,16 @@ void TiffData::init(const std::string& directoryPath, TIFFFiles* files, OTDimens
 	if (files == nullptr) {
 		RAISE_RUNTIME_ERROR << "TiffData: Unexpected TIFFFiles collection is null";
 	}
-	m_dimensions = dims;
     int firstChannel = xmlTiffData->IntAttribute("FirstC", 0);
     int firstZSlice = xmlTiffData->IntAttribute("FirstZ", 0);
     int firstTFrame = xmlTiffData->IntAttribute("FirstT", 0);
-	m_coordinatesFirst = m_dimensions->createCoordinates({ 
-        { DimC, firstChannel },
-	    { DimZ, firstZSlice },
-	    { DimT, firstTFrame }
-	});
 
     m_firstIFD = xmlTiffData->IntAttribute("IFD", 0);
     m_planeCount = xmlTiffData->IntAttribute("PlaneCount", 0);
 
-    OTDimensions::Coordinates coords = m_coordinatesFirst;
-    for (int plane = 1; plane < m_planeCount; ++plane) {
-        m_dimensions->incrementCoordinates(coords);
-    }
-
-	const OTDimensions::Increments& increments = m_dimensions->getIncrements();
-    for (int dim = 0; dim<3; ++dim) {
-		coords[dim] += increments[dim] - 1;
-
-    }
-	m_coordinatesLast = coords;
+	if (m_planeCount <= 0) {
+		RAISE_RUNTIME_ERROR << "TiffData: unexpected plane count: " << m_planeCount;
+	}
 
     tinyxml2::XMLElement* uuid = xmlTiffData->FirstChildElement("UUID");
     if (!uuid) {
@@ -67,10 +50,31 @@ void TiffData::init(const std::string& directoryPath, TIFFFiles* files, OTDimens
     if (!m_tiff) {
         RAISE_RUNTIME_ERROR << "OTScene: cannot open file " << m_filePath << " with libtiff";
     }
-	m_directories.resize(m_planeCount);
-	for (int plane = 0; plane < m_planeCount; ++plane) {
-        TiffTools::scanTiffDir(m_tiff, m_firstIFD+plane, 0, m_directories[plane]);
+    m_directories.resize(m_planeCount);
+    for (int plane = 0; plane < m_planeCount; ++plane) {
+        TiffTools::scanTiffDir(m_tiff, m_firstIFD + plane, 0, m_directories[plane]);
     }
+	const TiffDirectory& mainDir = m_directories[0];
+	m_dimensions.init(dimOrder, numChannels, numZSlices, numTFrames, mainDir.channels);
+
+    m_coordinatesFirst = m_dimensions.createCoordinates({
+        { DimC, firstChannel },
+        { DimZ, firstZSlice },
+        { DimT, firstTFrame }
+        });
+
+    OTDimensions::Coordinates coords = m_coordinatesFirst;
+    for (int plane = 1; plane < m_planeCount; ++plane) {
+        m_dimensions.incrementCoordinates(coords);
+    }
+
+	const OTDimensions::Increments& increments = m_dimensions.getIncrements();
+    for (int dim = 0; dim<3; ++dim) {
+		coords[dim] += increments[dim] - 1;
+
+    }
+	m_coordinatesLast = coords;
+
 }
 
 bool TiffData::isInRange(int channel, int slice, int frame) const {
@@ -79,7 +83,7 @@ bool TiffData::isInRange(int channel, int slice, int frame) const {
 		{ DimZ, slice },
 		{ DimT, frame }
 	};
-	OTDimensions::Coordinates coords = m_dimensions->createCoordinates(coordList);
+	OTDimensions::Coordinates coords = m_dimensions.createCoordinates(coordList);
 	if (OTDimensions::areCoordsEqual(coords, m_coordinatesFirst) ||
 		OTDimensions::areCoordsEqual(coords, m_coordinatesLast)) {
 		return true;
@@ -99,7 +103,7 @@ const TiffDirectory& TiffData::getTiffDirectory(int plane) const {
 }
 
 
-void TiffData::readTile(std::vector<int>& channelIndices, int zSlice, int tFrame, int zoomLevel,
+void TiffData::readTile(const std::vector<int>& channelIndices, int zSlice, int tFrame, int zoomLevel,
     int tileIndex, std::vector<cv::Mat>& rasters) const {
 
     // Filter channel indices that are in the range of TiffData
@@ -115,15 +119,15 @@ void TiffData::readTile(std::vector<int>& channelIndices, int zSlice, int tFrame
     std::vector<int> localChannelIndices(mainDir.channels);
     std::iota(localChannelIndices.begin(), localChannelIndices.end(), 0);
 
-    int cIndex = m_dimensions->getDimensionIndex(DimC);
-    int zIndex = m_dimensions->getDimensionIndex(DimZ);
-    int tIndex = m_dimensions->getDimensionIndex(DimT);
+    int cIndex = m_dimensions.getDimensionIndex(DimC);
+    int zIndex = m_dimensions.getDimensionIndex(DimZ);
+    int tIndex = m_dimensions.getDimensionIndex(DimT);
 
 	OTDimensions::Coordinates coords = m_coordinatesFirst;
 
     for (int plane = 0; plane < m_planeCount; ++plane) {
         if (coords[zIndex] != zSlice || coords[tIndex] != tFrame) {
-            m_dimensions->incrementCoordinates(coords);
+            m_dimensions.incrementCoordinates(coords);
             continue;
         }
 
@@ -146,7 +150,7 @@ void TiffData::readTile(std::vector<int>& channelIndices, int zSlice, int tFrame
             break;
         }
 
-        m_dimensions->incrementCoordinates(coords);
+        m_dimensions.incrementCoordinates(coords);
     }
 
     if (!myChannelIndices.empty()) {

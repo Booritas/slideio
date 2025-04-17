@@ -265,29 +265,21 @@ TEST_F(OTImageDriverTests, TIFFFiles) {
 	EXPECT_EQ(files.getOpenFileCounter(), 0);
 }
 
-TEST_F(OTImageDriverTests, Delete) {
-	//std::string filePath[] = {
-		//TestTools::getFullTestImagePath("ometiff", "Subresolutions/retina_large.ome.tiff"),
-		//TestTools::getFullTestImagePath("ometiff", "4D-Series/4D-series.ome.tiff"),
-		//TestTools::getFullTestImagePath("ometiff", "MultChannel4D-Series/multi-channel-4D-series.ome.tiff"),
-		//TestTools::getFullTestImagePath("ometiff", "MultChannelTimeSeries/multi-channel-time-series.ome.tiff"),
-		//TestTools::getFullTestImagePath("ometiff", "MultChannelZ-Series/multi-channel-z-series.ome.tiff"),
-		//TestTools::getFullTestImagePath("ometiff", "MultiChannel/multi-channel.ome.tiff"),
-		//TestTools::getFullTestImagePath("ometiff", "Multifile/multifile-Z1.ome.tiff"),
-		//TestTools::getFullTestImagePath("ometiff", "Subresolutions/Leica-1.ome.tiff"),
-		//TestTools::getFullTestImagePath("ometiff", "TimeSeries/time-series.ome.tiff"),
-		//TestTools::getFullTestImagePath("ometiff", "tubhiswt-2D/tubhiswt_C1.ome.tif"),
-		//TestTools::getFullTestImagePath("ometiff", "tubhiswt-3D/tubhiswt_C1.ome.tif"),
-		//TestTools::getFullTestImagePath("ometiff", "tubhiswt-4D/tubhiswt_C0_TP0.ome.tif"),
-		//TestTools::getFullTestImagePath("ometiff", "Z-Series/z-series.ome.tiff"),
-		//TestTools::getFullTestImagePath("ometiff", "00001_01.ome.tiff"),
-		//TestTools::getFullTestImagePath("ometiff", "FLIM-ModuloAlongC.ome.tiff"),
-		//TestTools::getFullTestImagePath("ometiff", "FLIM-ModuloAlongT-TSCPC.ome.tiff"),
-		//TestTools::getFullTestImagePath("ometiff", "LAMBDA-ModuloAlongZ-ModuloAlongT.ome.tiff"),
-		//TestTools::getFullTestImagePath("ometiff", "SPIM-ModuloAlongZ.ome.tiff"),
-	//};
-	//for (int i = 0; i < sizeof(filePath) / sizeof(filePath[0]); ++i) {
-	//	slideio::ometiff::OTImageDriver driver;
-	//	std::shared_ptr<CVSlide> slide = driver.openFile(filePath[i]);
-	//}
+TEST_F(OTImageDriverTests, readBlock) {
+	std::string filePath = TestTools::getFullTestImagePath("ometiff", "Subresolutions/Leica-1.ome.tiff");
+	std::string testFilePath = TestTools::getFullTestImagePath("ometiff", "Tests/Leica-1.ome.tiff - Series 1 (1, x=21504, y=15360, w=512, h=512).png");
+	slideio::ometiff::OTImageDriver driver;
+	std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
+	ASSERT_TRUE(slide != nullptr);
+	const int numScenes = slide->getNumScenes();
+	ASSERT_EQ(numScenes, 2);
+    std::shared_ptr<CVScene> scene = slide->getSceneByName("Image:1");
+	cv::Rect rect = { 21504, 15360, 512, 512 };
+	std::vector<int> channels = { 0, 1, 2 };
+	cv::Mat raster;
+	scene->read4DBlockChannels(rect, channels, cv::Range(0, 1), cv::Range(0, 1), raster);
+	EXPECT_FALSE(raster.empty());
+	cv::Mat testRaster;
+	ImageTools::readGDALImage(testFilePath, testRaster);
+	EXPECT_TRUE(TestTools::compareRastersEx(raster, testRaster));
 }

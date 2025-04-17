@@ -23,9 +23,10 @@ using namespace slideio::ometiff;
 
 struct BlockInfo
 {
-    LevelInfo* levelInfo = nullptr;
+    const LevelInfo* levelInfo = nullptr;
     int zSliceIndex = -1;
     int tFrameIndex = -1;
+	std::vector<int> tiffDataIndices;
 };
 
 
@@ -79,7 +80,7 @@ void OTScene::extractTiffData(tinyxml2::XMLElement* pixels) {
          xmlTiffData = xmlTiffData->NextSiblingElement("TiffData")) {
         try {
             TiffData tiffData;
-            tiffData.init(directoryPath, &m_files, &m_dimensions, xmlTiffData);
+            tiffData.init(directoryPath, &m_files, m_dimensionOrder, m_numChannels, m_numZSlices, m_numTFrames, xmlTiffData);
             m_tiffData.push_back(tiffData);
         }
         catch (std::exception& e) {
@@ -135,10 +136,6 @@ void OTScene::extractImagePyramids() {
     }
 }
 
-void OTScene::initializeDimensions() {
-	m_dimensions.init(m_dimensionOrder, m_numChannels, m_numZSlices, m_numTFrames, m_samplesPerPixel);
-}
-
 void OTScene::initialize() {
     if (m_imageXml == nullptr || m_imageDoc == nullptr) {
         RAISE_RUNTIME_ERROR << "OTScene: Image xml is not set";
@@ -184,9 +181,25 @@ void OTScene::initialize() {
     if (m_bigEndian) {
         RAISE_RUNTIME_ERROR << "OTScene: big endian data is not supported";
     }
-	m_samplesPerPixel = pixels->IntAttribute("SamplesPerPixel", 1);
+  //  for (tinyxml2::XMLElement* xmlChannel = pixels->FirstChildElement("Channel");
+  //       xmlChannel != nullptr;
+  //       xmlChannel = xmlChannel->NextSiblingElement("Channel")) {
+  //      int spp = xmlChannel->IntAttribute("SamplesPerPixel");
+		//if (m_samplesPerPixel == 0) {
+		//	m_samplesPerPixel = spp;
+		//} else {
+		//	if (m_samplesPerPixel != spp) {
+		//		RAISE_RUNTIME_ERROR << "OTScene: unsupported values SamplesPerPixel. Only equal samples per pixel are for all channels are supported. Received:"
+		//	        << m_samplesPerPixel << " and  " << spp << ".";
+		//	}
+		//}
+  //  }
+    //if (m_channelNames.size() != static_cast<size_t>(m_numChannels)) {
+    //    RAISE_RUNTIME_ERROR << "OTScene: invalid number of channel names: " << m_channelNames.size()
+    //        << " expected: " << m_numChannels;
+    //}
+	//m_samplesPerPixel = pixels->IntAttribute("SamplesPerPixel", 1);
 
-    initializeDimensions();
     extractImageIndex();
     extractTiffData(pixels);
     extractMagnificationFromMetadata();
@@ -199,35 +212,6 @@ void OTScene::initialize() {
     m_resolution = dir.res;
 
     extractImagePyramids();
-}
-
-
-std::pair<const TiffData*, int> OTScene::findTiffData(int channel, int slice, int frame) const {
-	std::pair<const TiffData*, int> result = { nullptr, -1 };
-	for (const auto& tiffData : m_tiffData) {
-		if (tiffData.isInRange(channel, slice, frame)) {
-   //         std::list<std::pair<std::string, int>> listCoords = {
-   //         { DimC, tiffData.getChannelRange().start },
-   //         { DimZ, tiffData.getZSliceRange().start },
-   //         { DimT, tiffData.getTFrameRange().start }
-   //         };
-			//auto coords = m_dimensions.createCoordinates(listCoords);
-			//int channelIndex = m_dimensions.getDimensionIndex(DimC);
-			//int zIndex = m_dimensions.getDimensionIndex(DimZ);
-			//int tIndex = m_dimensions.getDimensionIndex(DimT);
-			//for (int plane = 0; plane < tiffData.getPlaneCount(); ++plane) {
-   //             if (coords[channelIndex] == channel &&
-   //                 coords[zIndex] == slice &&
-   //                 coords[tIndex] == frame) {
-			//		result.first = &tiffData;
-			//		result.second = plane;
-			//		return result;
-   //             }
-			//	m_dimensions.incrementCoordinates(coords);
-			//}
-		}
-	}
-	return result;
 }
 
 std::string OTScene::getName() const {
@@ -295,6 +279,16 @@ bool OTScene::getTileRect(int tileIndex, cv::Rect& tileRect, void* userData) {
     return true;
 }
 
+void OTScene::collectTiffDataIndices(std::vector<int> channelIndices, int zSliceIndex, int tFrameIndex,  std::vector<int>& tiffDataIndices) const {
+    for (size_t index = 0; index < m_tiffData.size(); ++index) {
+        const auto& tiffData = m_tiffData[index];
+        for (int channel : channelIndices) {
+            if (tiffData.isInRange(channel, zSliceIndex, tFrameIndex)) {
+                tiffDataIndices.push_back(static_cast<int>(index));
+            }
+        }
+    }
+}
 
 void OTScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
                                            const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex,
@@ -309,7 +303,8 @@ void OTScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::
     double zoomDirY = static_cast<double>(levelInfo.getSize().height) / static_cast<double>(m_imageSize.height);
     cv::Rect resizedBlock;
     Tools::scaleRect(blockRect, zoomDirX, zoomDirY, resizedBlock);
-    BlockInfo blockInfo = {(LevelInfo*)&levelInfo, zSliceIndex, tFrameIndex};
+    BlockInfo blockInfo = {&levelInfo, zSliceIndex, tFrameIndex, {}};
+    collectTiffDataIndices(channelIndices, zSliceIndex, tFrameIndex, blockInfo.tiffDataIndices);
     TileComposer::composeRect(this, channelIndices, resizedBlock, blockSize, output, (void*)&blockInfo);
 }
 
@@ -328,17 +323,19 @@ bool OTScene::readTile(int tileIndex, const std::vector<int>& channelIndices, cv
         RAISE_RUNTIME_ERROR << "OMETIFF driver: invalid tile index: " << tileIndex << " of " << tileCount;
     }
 	std::vector<cv::Mat> channelRasters(channelIndices.size());
-    std::vector<int> channelsToFill(channelIndices);
-    for (const auto& tiffData : m_tiffData) {
-        tiffData.readTile(channelsToFill, zSlice, tFrame, zoomLevel, tileIndex, channelRasters);
-		if (channelsToFill.empty()) {
-			break;
+	for (int index : blockInfo->tiffDataIndices) {
+		const auto& tiffData = m_tiffData[index];
+		tiffData.readTile(channelIndices, zSlice, tFrame, zoomLevel, tileIndex, channelRasters);
+	}
+    int channel = 0;
+	for (const cv::Mat& channelRaster : channelRasters) {
+		if (channelRaster.empty()) {
+			RAISE_RUNTIME_ERROR << "OMETIFF driver: empty raster for tile index: "
+				<< tileIndex << " channel: " << channelIndices[channel];
 		}
-    }
-    if (!channelsToFill.empty()) {
-		SLIDEIO_LOG(WARNING) << "OTScene: not all channels were read from the tile";
-        return false;
-    }
+        ++channel;
+	}
+	cv::merge(channelRasters, tileRaster);
     return true;
 }
 

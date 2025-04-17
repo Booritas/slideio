@@ -25,7 +25,7 @@ namespace slideio
         {
         public:
 			TiffData() = default;
-			void init(const std::string& directoryPath, TIFFFiles* files, OTDimensions* dims, tinyxml2::XMLElement* xmlTiffData);
+			void init(const std::string& directoryPath, TIFFFiles* files, const std::string& dimOrder, int numChannels, int numZSlices, int numTFrames, tinyxml2::XMLElement* xmlTiffData);
 			bool isInRange(int channel, int slice, int frame) const;
 			int getFirstIFD() const {
 				return m_firstIFD;
@@ -40,7 +40,7 @@ namespace slideio
 			int getTiffDirectoryCount() const {
 				return static_cast<int>(m_directories.size());
 			}
-            void readTile(std::vector<int>& channelIndices, int zSlice, int tFrame, int zoomLevel, int tileIndex,
+            void readTile(const std::vector<int>& channelIndices, int zSlice, int tFrame, int zoomLevel, int tileIndex,
                          std::vector<cv::Mat>& rasters) const;
             void readTileChannels(const TiffDirectory& dir, int tileIndex, const std::vector<int>& channelIndices, cv::OutputArray raster) const;
 			const OTDimensions::Coordinates& getCoordinatesFirst() const {
@@ -55,7 +55,7 @@ namespace slideio
             std::string m_filePath;
             libtiff::TIFF* m_tiff;
             std::vector<TiffDirectory> m_directories;
-            OTDimensions* m_dimensions = nullptr;
+            OTDimensions m_dimensions;
             OTDimensions::Coordinates m_coordinatesFirst;
 			OTDimensions::Coordinates m_coordinatesLast;
         };

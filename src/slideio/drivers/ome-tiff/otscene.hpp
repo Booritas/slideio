@@ -36,7 +36,7 @@ namespace slideio
             int getTileCount(void* userData) override;
             bool getTileRect(int tileIndex, cv::Rect& tileRect, void* userData) override;
             bool readTile(int tileIndex, const std::vector<int>& channelIndices, cv::OutputArray tileRaster,
-                void* userData) override;
+                          void* userData) override;
             void initializeBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices, cv::OutputArray output) override;
             std::string getChannelName(int channel) const override;
             void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
@@ -55,14 +55,14 @@ namespace slideio
             const TiffData& getTiffData(int index) const { return m_tiffData[index]; }
         private:
             void extractImagePyramids();
-            void initializeDimensions();
             void initialize();
             void initializeChannelNames();
             void extractMagnificationFromMetadata();
             void extractTiffData(tinyxml2::XMLElement* pixels);
             void extractImageIndex();
             LevelInfo extractLevelInfo(const TiffDirectory& dir, int index) const;
-            std::pair<const TiffData*,int> findTiffData(int channel, int slice, int frame) const;
+            void collectTiffDataIndices(std::vector<int> channelIndices, int zSliceIndex, int tFrameIndex,
+                std::vector<int>& tiffDataIndices) const;
         private:
             int m_numChannels = 0;
             std::vector<std::string> m_channelNames;
@@ -82,8 +82,6 @@ namespace slideio
             Resolution m_resolution = {};
             double m_magnification = 0;
             int m_imageIndex = -1;
-			OTDimensions m_dimensions;
-            int m_samplesPerPixel = 1;
             TIFFFiles m_files;
         };
     }
