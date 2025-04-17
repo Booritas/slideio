@@ -206,25 +206,25 @@ std::pair<const TiffData*, int> OTScene::findTiffData(int channel, int slice, in
 	std::pair<const TiffData*, int> result = { nullptr, -1 };
 	for (const auto& tiffData : m_tiffData) {
 		if (tiffData.isInRange(channel, slice, frame)) {
-            std::list<std::pair<std::string, int>> listCoords = {
-            { DimC, tiffData.getChannelRange().start },
-            { DimZ, tiffData.getZSliceRange().start },
-            { DimT, tiffData.getTFrameRange().start }
-            };
-			auto coords = m_dimensions.createCoordinates(listCoords);
-			int channelIndex = m_dimensions.getDimensionIndex(DimC);
-			int zIndex = m_dimensions.getDimensionIndex(DimZ);
-			int tIndex = m_dimensions.getDimensionIndex(DimT);
-			for (int plane = 0; plane < tiffData.getPlaneCount(); ++plane) {
-                if (coords[channelIndex] == channel &&
-                    coords[zIndex] == slice &&
-                    coords[tIndex] == frame) {
-					result.first = &tiffData;
-					result.second = plane;
-					return result;
-                }
-				m_dimensions.incrementCoordinates(coords);
-			}
+   //         std::list<std::pair<std::string, int>> listCoords = {
+   //         { DimC, tiffData.getChannelRange().start },
+   //         { DimZ, tiffData.getZSliceRange().start },
+   //         { DimT, tiffData.getTFrameRange().start }
+   //         };
+			//auto coords = m_dimensions.createCoordinates(listCoords);
+			//int channelIndex = m_dimensions.getDimensionIndex(DimC);
+			//int zIndex = m_dimensions.getDimensionIndex(DimZ);
+			//int tIndex = m_dimensions.getDimensionIndex(DimT);
+			//for (int plane = 0; plane < tiffData.getPlaneCount(); ++plane) {
+   //             if (coords[channelIndex] == channel &&
+   //                 coords[zIndex] == slice &&
+   //                 coords[tIndex] == frame) {
+			//		result.first = &tiffData;
+			//		result.second = plane;
+			//		return result;
+   //             }
+			//	m_dimensions.incrementCoordinates(coords);
+			//}
 		}
 	}
 	return result;

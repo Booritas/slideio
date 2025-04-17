@@ -14,7 +14,7 @@ namespace slideio
 		const std::string DimZ = "Z";
 		const std::string DimT = "T";
 
-		class SLIDEIO_OMETIFF_EXPORTS OTDimensions : public slideio::Dimensions
+		class SLIDEIO_OMETIFF_EXPORTS OTDimensions : public slideio::Dimensions<3>
 		{
 		public:
 			OTDimensions() = default;

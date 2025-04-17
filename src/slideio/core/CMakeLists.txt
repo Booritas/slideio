@@ -17,7 +17,6 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/levelinfo.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/levelinfo.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/dimensions.hpp
-   ${CMAKE_CURRENT_SOURCE_DIR}/dimensions.cpp
    )
 
 add_subdirectory(tools)

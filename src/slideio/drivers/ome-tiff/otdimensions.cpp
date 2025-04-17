@@ -27,12 +27,10 @@ void OTDimensions::init(const std::string& dimensionOrder, int numChannels, int 
 	if (samplesPerPixel <= 0) {
 		RAISE_RUNTIME_ERROR << "OTScene: unexpected samples per pixel: " << samplesPerPixel;
 	}
-    constexpr int numDimensions = 3;
-	std::vector<std::string> labels;
-	std::vector<int> sizes;
-	std::vector<int> increments(numDimensions, 1);
-	labels.resize(numDimensions);
-	sizes.resize(numDimensions);
+	const int numDimensions = 3;
+	std::array<std::string,3> labels;
+	std::array<int,3> sizes;
+	std::array<int,3> increments = {1,1,1};
 	for (size_t index = 0, i = 2; i < dimensionOrder.size() && index < numDimensions; ++i, ++index) {
 		labels[index] = dimensionOrder.substr(i, 1);
 		if (labels[index] == DimC) {
