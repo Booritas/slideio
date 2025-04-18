@@ -296,17 +296,19 @@ TEST_F(OTImageDriverTests, readBlock3Chnls) {
 	std::shared_ptr<CVScene> scene = slide->getSceneByName("Image:1");
 	// Read original scale
 	cv::Rect rect = { 24000, 18000, 2000, 1000 };
-	std::vector<int> channels = { 0, 1, 2 };
+	std::vector<int> channels = {};
 	cv::Mat raster;
 	scene->read4DBlockChannels(rect, channels, cv::Range(0, 1), cv::Range(0, 1), raster);
 	EXPECT_FALSE(raster.empty());
 	cv::Mat testRaster;
 	ImageTools::readGDALImage(testFilePath, testRaster);
+	double sim = ImageTools::computeSimilarity2(raster, testRaster);
+	EXPECT_GT(sim, 0.99);
 	// Read downsampled scale (4x)
 	cv::Size size = { rect.size().width / 4, rect.size().height / 4 };
 	scene->readResampled4DBlockChannels(rect, size, channels, cv::Range(0, 1), cv::Range(0, 1), raster);
 	ImageTools::readGDALImage(testFileDownsampledPath, testRaster);
-	double sim = ImageTools::computeSimilarity2(raster, testRaster);
+	sim = ImageTools::computeSimilarity2(raster, testRaster);
 	EXPECT_GT(sim, 0.99);
 	// Read downsampled scale single channel
 	scene->readResampled4DBlockChannels(rect, size, { 0 }, cv::Range(0, 1), cv::Range(0, 1), raster);
@@ -314,4 +316,185 @@ TEST_F(OTImageDriverTests, readBlock3Chnls) {
 	cv::extractChannel(testRaster, channelRaster, 0);
 	sim = ImageTools::computeSimilarity2(raster, channelRaster);
 	EXPECT_GT(sim, 0.99);
+}
+
+TEST_F(OTImageDriverTests, readBlock3ChnlsBGR) {
+	std::string filePath = TestTools::getFullTestImagePath("ometiff", "Subresolutions/Leica-1.ome.tiff");
+	std::string testFilePath = TestTools::getFullTestImagePath("ometiff", "Tests/Leica-1.ome.tiff - Series 1 (1, x=24000, y=18000, w=2000, h=1000).png");
+	std::string testFileDownsampledPath = TestTools::getFullTestImagePath("ometiff", "Tests/Leica-1.ome.tiff - Series 1 (4, x=24000, y=18000, w=2000, h=1000).png");
+	slideio::ometiff::OTImageDriver driver;
+	std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
+	ASSERT_TRUE(slide != nullptr);
+	const int numScenes = slide->getNumScenes();
+	ASSERT_EQ(numScenes, 2);
+	std::shared_ptr<CVScene> scene = slide->getSceneByName("Image:1");
+	// Read original scale
+	cv::Rect rect = { 24000, 18000, 2000, 1000 };
+	std::vector<int> channels = {2,1,0};
+	cv::Mat raster;
+	scene->read4DBlockChannels(rect, channels, cv::Range(0, 1), cv::Range(0, 1), raster);
+	EXPECT_FALSE(raster.empty());
+	cv::Mat testRaster;
+	ImageTools::readGDALImage(testFilePath, testRaster);
+	cv::cvtColor(testRaster, testRaster, cv::COLOR_RGB2BGR);
+	double sim = ImageTools::computeSimilarity2(raster, testRaster);
+	EXPECT_GT(sim, 0.99);
+	// Read downsampled scale (4x)
+	cv::Size size = { rect.size().width / 4, rect.size().height / 4 };
+	scene->readResampled4DBlockChannels(rect, size, channels, cv::Range(0, 1), cv::Range(0, 1), raster);
+	ImageTools::readGDALImage(testFileDownsampledPath, testRaster);
+	cv::cvtColor(testRaster, testRaster, cv::COLOR_RGB2BGR);
+	sim = ImageTools::computeSimilarity2(raster, testRaster);
+	EXPECT_GT(sim, 0.99);
+	// Read downsampled scale single channel
+	scene->readResampled4DBlockChannels(rect, size, { 0 }, cv::Range(0, 1), cv::Range(0, 1), raster);
+	cv::Mat channelRaster;
+	cv::extractChannel(testRaster, channelRaster, 0);
+	sim = ImageTools::computeSimilarity2(raster, channelRaster);
+	EXPECT_GT(sim, 0.99);
+}
+
+TEST_F(OTImageDriverTests, readBlockZStackChannels) {
+	std::string filePath = TestTools::getFullTestImagePath("ometiff", "Subresolutions/retina_large.ome.tiff");
+	std::string testFilePathCh1 = TestTools::getFullTestImagePath("ometiff", "Tests/retina_large.ome-page32-channel-0.tif");
+	std::string testFilePathCh2 = TestTools::getFullTestImagePath("ometiff", "Tests/retina_large.ome-page32-channel-1.tif");
+	slideio::ometiff::OTImageDriver driver;
+	std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
+	ASSERT_TRUE(slide != nullptr);
+	const int numScenes = slide->getNumScenes();
+	ASSERT_EQ(numScenes, 2);
+	std::shared_ptr<CVScene> scene = slide->getSceneByName("retina_large.ims Resolution Level 1");
+	ASSERT_TRUE(scene != nullptr);
+	// Read original scale
+	cv::Rect rect = { 1000, 300, 1000, 500 };
+	std::vector<int> channels = {};
+	cv::Mat raster;
+	scene->read4DBlockChannels(rect, channels, cv::Range(32, 33), cv::Range(0, 1), raster);
+	EXPECT_FALSE(raster.empty());
+	cv::Mat channelRaster;
+	cv::extractChannel(raster, channelRaster, 0);
+	
+	cv::Mat testRaster;
+	ImageTools::readGDALImage(testFilePathCh1, testRaster);
+	cv::Mat region = testRaster(rect);
+	double sim = ImageTools::computeSimilarity2(channelRaster, region);
+	EXPECT_GT(sim, 0.99);
+
+	cv::extractChannel(raster, channelRaster, 1);
+	ImageTools::readGDALImage(testFilePathCh2, testRaster);
+	region = testRaster(rect);
+	sim = ImageTools::computeSimilarity2(channelRaster, region);
+	EXPECT_GT(sim, 0.99);
+}
+
+TEST_F(OTImageDriverTests, readBlockZStackSlices) {
+	std::string filePath = TestTools::getFullTestImagePath("ometiff", "Subresolutions/retina_large.ome.tiff");
+	std::vector<std::string> sliceFiles = {
+		TestTools::getFullTestImagePath("ometiff", "Tests/page_24.tif"),
+		TestTools::getFullTestImagePath("ometiff", "Tests/page_25.tif"),
+		TestTools::getFullTestImagePath("ometiff", "Tests/page_26.tif"),
+		TestTools::getFullTestImagePath("ometiff", "Tests/page_27.tif"),
+		TestTools::getFullTestImagePath("ometiff", "Tests/page_28.tif"),
+		TestTools::getFullTestImagePath("ometiff", "Tests/page_29.tif"),
+		TestTools::getFullTestImagePath("ometiff", "Tests/page_30.tif"),
+    	TestTools::getFullTestImagePath("ometiff", "Tests/page_31.tif"),
+	};
+	slideio::ometiff::OTImageDriver driver;
+	std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
+	ASSERT_TRUE(slide != nullptr);
+	const int numScenes = slide->getNumScenes();
+	ASSERT_EQ(numScenes, 2);
+	std::shared_ptr<CVScene> scene = slide->getSceneByName("retina_large.ims Resolution Level 1");
+	ASSERT_TRUE(scene != nullptr);
+	// Read original scale
+	cv::Rect rect = { 1000, 300, 1000, 500 };
+	cv::Mat raster;
+	scene->read4DBlockChannels(rect, {0}, cv::Range(24, 32), cv::Range(0, 1), raster);
+	EXPECT_FALSE(raster.empty());
+	EXPECT_EQ(3, raster.dims);
+	EXPECT_EQ(8, raster.size[2]);
+	cv::Range xRange = cv::Range(0, raster.size[0]);
+	cv::Range yRange = cv::Range(0, raster.size[1]);
+	std::vector<cv::Range> ranges = { cv::Range::all(), cv::Range::all(), cv::Range::all() };
+	for(int slice=0; slice<8; slice++) {
+		ranges[2] = cv::Range(slice, slice + 1);
+		cv::Mat sliceRaster = raster(ranges).clone();
+		cv::Mat planeSlice = sliceRaster.reshape(0, {0,0});
+		cv::Mat testRaster;
+		ImageTools::readGDALImage(sliceFiles[slice], testRaster);
+		cv::Mat region = testRaster(rect);
+		double sim = ImageTools::computeSimilarity2(planeSlice, region);
+		EXPECT_GT(sim, 0.99);
+	}
+}
+
+TEST_F(OTImageDriverTests, readBlock4DMultifile) {
+	std::string filePath = TestTools::getFullTestImagePath("ometiff", "tubhiswt-4D/tubhiswt_C0_TP0.ome.tif");
+	std::vector<std::string> sliceFiles = {
+		TestTools::getFullTestImagePath("ometiff", "Tests/tubhiswt4D-C0-T20-Z3.tif"),
+		TestTools::getFullTestImagePath("ometiff", "Tests/tubhiswt4D-C0-T20-Z4.tif"),
+		TestTools::getFullTestImagePath("ometiff", "Tests/tubhiswt4D-C0-T20-Z5.tif"),
+		TestTools::getFullTestImagePath("ometiff", "Tests/tubhiswt4D-C0-T20-Z6.tif"),
+	};
+	std::vector<std::string> frameFiles = {
+		TestTools::getFullTestImagePath("ometiff", "Tests/tubhiswt4D-C1-T20-Z5.tif"),
+		TestTools::getFullTestImagePath("ometiff", "Tests/tubhiswt4D-C1-T21-Z5.tif"),
+		TestTools::getFullTestImagePath("ometiff", "Tests/tubhiswt4D-C1-T22-Z5.tif"),
+		TestTools::getFullTestImagePath("ometiff", "Tests/tubhiswt4D-C1-T23-Z5.tif"),
+	};
+	OTImageDriver driver;
+	std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
+	ASSERT_TRUE(slide != nullptr);
+	const int numScenes = slide->getNumScenes();
+	ASSERT_EQ(numScenes, 1);
+	std::shared_ptr<CVScene> scene = slide->getSceneByName("tubhiswt");
+	ASSERT_TRUE(scene != nullptr);
+	EXPECT_EQ(2, scene->getNumChannels());
+	EXPECT_EQ(10, scene->getNumZSlices());
+	EXPECT_EQ(43, scene->getNumTFrames());
+	cv::Rect rectScene = scene->getRect();
+	EXPECT_EQ(rectScene, cv::Rect(0, 0, 512, 512));
+	cv::Rect rectROI = { 128, 128, 256, 256 };
+	cv::Mat raster;
+	const int firstSlice = 3;
+	const int lastSlice = 6;
+	const int slices = lastSlice - firstSlice + 1;
+	scene->read4DBlockChannels(rectROI, { 0 }, cv::Range(firstSlice, lastSlice+1), cv::Range(20, 21), raster);
+	EXPECT_FALSE(raster.empty());
+	EXPECT_EQ(3, raster.dims);
+	EXPECT_EQ(slices, raster.size[2]);
+	cv::Range xRange = cv::Range(0, raster.size[0]);
+	cv::Range yRange = cv::Range(0, raster.size[1]);
+	std::vector<cv::Range> ranges = { cv::Range::all(), cv::Range::all(), cv::Range::all() };
+	for (int slice = 0; slice < slices; slice++) {
+		ranges[2] = cv::Range(slice, slice + 1);
+		cv::Mat sliceRaster = raster(ranges).clone();
+		cv::Mat planeSlice = sliceRaster.reshape(0, { 0,0 });
+		cv::Mat testRaster;
+		ImageTools::readGDALImage(sliceFiles[slice], testRaster);
+		cv::Mat region = testRaster(rectROI);
+		double sim = ImageTools::computeSimilarity2(planeSlice, region);
+		EXPECT_GT(sim, 0.99);
+	}
+
+	const int firstFrame = 20;
+	const int lastFrame = 23;
+	const int frames = lastFrame - firstFrame + 1;
+	scene->read4DBlockChannels(rectROI, { 1 }, cv::Range(5, 6), cv::Range(firstFrame, lastFrame+1), raster);
+	EXPECT_FALSE(raster.empty());
+	EXPECT_EQ(3, raster.dims);
+	EXPECT_EQ(frames, raster.size[2]);
+	xRange = cv::Range(0, raster.size[0]);
+	yRange = cv::Range(0, raster.size[1]);
+	ranges = { cv::Range::all(), cv::Range::all(), cv::Range::all() };
+	for (int frame = 0; frame < frames; frame++) {
+		ranges[2] = cv::Range(frame, frame + 1);
+		cv::Mat sliceRaster = raster(ranges).clone();
+		cv::Mat planeSlice = sliceRaster.reshape(0, { 0,0 });
+		cv::Mat testRaster;
+		ImageTools::readGDALImage(frameFiles[frame], testRaster);
+		cv::Mat region = testRaster(rectROI);
+		double sim = ImageTools::computeSimilarity2(planeSlice, region);
+		EXPECT_GT(sim, 0.99);
+	}
 }

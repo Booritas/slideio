@@ -124,7 +124,12 @@ void TiffData::readTile(const std::vector<int>& channelIndices, int zSlice, int 
     int tIndex = m_dimensions.getDimensionIndex(DimT);
 
 	OTDimensions::Coordinates coords = m_coordinatesFirst;
-
+    const int numImageChannels = m_dimensions.getSizes()[cIndex];
+    std::vector<int> globalChannelToChannelOrder(numImageChannels,-1);
+    for(int index=0; index<(int)channelIndices.size(); ++index) {
+        int globalChannel = channelIndices[index];
+        globalChannelToChannelOrder[globalChannel] = index;
+    }
     for (int plane = 0; plane < m_planeCount; ++plane) {
         if (coords[zIndex] != zSlice || coords[tIndex] != tFrame) {
             m_dimensions.incrementCoordinates(coords);
@@ -141,7 +146,8 @@ void TiffData::readTile(const std::vector<int>& channelIndices, int zSlice, int 
             if (it != myChannelIndices.end()) {
                 cv::Mat channelRaster;
                 cv::extractChannel(localRaster, channelRaster, localChannelIndex);
-                rasters[globChannel] = channelRaster;
+                int channelIndex = globalChannelToChannelOrder[globChannel];
+                rasters[channelIndex] = channelRaster;
                 myChannelIndices.erase(it);
             }
         }
