@@ -265,7 +265,7 @@ TEST_F(OTImageDriverTests, TIFFFiles) {
 	EXPECT_EQ(files.getOpenFileCounter(), 0);
 }
 
-TEST_F(OTImageDriverTests, readBlock) {
+TEST_F(OTImageDriverTests, readBlockSingleTile) {
 	std::string filePath = TestTools::getFullTestImagePath("ometiff", "Subresolutions/Leica-1.ome.tiff");
 	std::string testFilePath = TestTools::getFullTestImagePath("ometiff", "Tests/Leica-1.ome.tiff - Series 1 (1, x=21504, y=15360, w=512, h=512).png");
 	slideio::ometiff::OTImageDriver driver;
@@ -282,4 +282,36 @@ TEST_F(OTImageDriverTests, readBlock) {
 	cv::Mat testRaster;
 	ImageTools::readGDALImage(testFilePath, testRaster);
 	EXPECT_TRUE(TestTools::compareRastersEx(raster, testRaster));
+}
+
+TEST_F(OTImageDriverTests, readBlock3Chnls) {
+	std::string filePath = TestTools::getFullTestImagePath("ometiff", "Subresolutions/Leica-1.ome.tiff");
+	std::string testFilePath = TestTools::getFullTestImagePath("ometiff", "Tests/Leica-1.ome.tiff - Series 1 (1, x=24000, y=18000, w=2000, h=1000).png");
+	std::string testFileDownsampledPath = TestTools::getFullTestImagePath("ometiff", "Tests/Leica-1.ome.tiff - Series 1 (4, x=24000, y=18000, w=2000, h=1000).png");
+	slideio::ometiff::OTImageDriver driver;
+	std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
+	ASSERT_TRUE(slide != nullptr);
+	const int numScenes = slide->getNumScenes();
+	ASSERT_EQ(numScenes, 2);
+	std::shared_ptr<CVScene> scene = slide->getSceneByName("Image:1");
+	// Read original scale
+	cv::Rect rect = { 24000, 18000, 2000, 1000 };
+	std::vector<int> channels = { 0, 1, 2 };
+	cv::Mat raster;
+	scene->read4DBlockChannels(rect, channels, cv::Range(0, 1), cv::Range(0, 1), raster);
+	EXPECT_FALSE(raster.empty());
+	cv::Mat testRaster;
+	ImageTools::readGDALImage(testFilePath, testRaster);
+	// Read downsampled scale (4x)
+	cv::Size size = { rect.size().width / 4, rect.size().height / 4 };
+	scene->readResampled4DBlockChannels(rect, size, channels, cv::Range(0, 1), cv::Range(0, 1), raster);
+	ImageTools::readGDALImage(testFileDownsampledPath, testRaster);
+	double sim = ImageTools::computeSimilarity2(raster, testRaster);
+	EXPECT_GT(sim, 0.99);
+	// Read downsampled scale single channel
+	scene->readResampled4DBlockChannels(rect, size, { 0 }, cv::Range(0, 1), cv::Range(0, 1), raster);
+	cv::Mat channelRaster;
+	cv::extractChannel(testRaster, channelRaster, 0);
+	sim = ImageTools::computeSimilarity2(raster, channelRaster);
+	EXPECT_GT(sim, 0.99);
 }

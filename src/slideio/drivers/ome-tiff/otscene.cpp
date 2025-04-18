@@ -254,7 +254,7 @@ int OTScene::findZoomLevel(double zoom) const {
     int index = Tools::findZoomLevel(zoom, (int)m_levels.size(),
                                      [&levels, sceneWidth](int index) {
                                          const auto& level = levels[index];
-                                         return 1. / level.getScale();
+                                         return level.getScale();
                                      });
     return index;
 }
