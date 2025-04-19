@@ -12,7 +12,6 @@
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/core/tools/cvtools.hpp"
 #include "slideio/imagetools/libtiff.hpp"
-#include "slideio/imagetools/tifftools.hpp"
 #include "slideio/drivers/ome-tiff/tiffdata.hpp"
 #include <tinyxml2.h>
 
@@ -66,6 +65,16 @@ void OTScene::extractMagnificationFromMetadata() {
                     }
                 }
                 break;
+            }
+        }
+    }
+    else {
+        tinyxml2::XMLElement* xmlRoot = m_imageDoc->RootElement();
+        tinyxml2::XMLElement* xmlInstrument = xmlRoot->FirstChildElement("Instrument");
+        if(xmlInstrument != nullptr) {
+            tinyxml2::XMLElement* xmlObjective = xmlInstrument->FirstChildElement("Objective");
+            if(xmlObjective) {
+                m_magnification = xmlObjective->DoubleAttribute("NominalMagnification", 0);
             }
         }
     }
@@ -181,28 +190,11 @@ void OTScene::initialize() {
     if (m_bigEndian) {
         RAISE_RUNTIME_ERROR << "OTScene: big endian data is not supported";
     }
-  //  for (tinyxml2::XMLElement* xmlChannel = pixels->FirstChildElement("Channel");
-  //       xmlChannel != nullptr;
-  //       xmlChannel = xmlChannel->NextSiblingElement("Channel")) {
-  //      int spp = xmlChannel->IntAttribute("SamplesPerPixel");
-		//if (m_samplesPerPixel == 0) {
-		//	m_samplesPerPixel = spp;
-		//} else {
-		//	if (m_samplesPerPixel != spp) {
-		//		RAISE_RUNTIME_ERROR << "OTScene: unsupported values SamplesPerPixel. Only equal samples per pixel are for all channels are supported. Received:"
-		//	        << m_samplesPerPixel << " and  " << spp << ".";
-		//	}
-		//}
-  //  }
-    //if (m_channelNames.size() != static_cast<size_t>(m_numChannels)) {
-    //    RAISE_RUNTIME_ERROR << "OTScene: invalid number of channel names: " << m_channelNames.size()
-    //        << " expected: " << m_numChannels;
-    //}
-	//m_samplesPerPixel = pixels->IntAttribute("SamplesPerPixel", 1);
 
     extractImageIndex();
     extractTiffData(pixels);
     extractMagnificationFromMetadata();
+    initializeChannelNames(pixels);
 
 
     int width = m_imageSize.width;
@@ -212,6 +204,22 @@ void OTScene::initialize() {
     m_resolution = dir.res;
 
     extractImagePyramids();
+}
+
+void OTScene::initializeChannelNames(tinyxml2::XMLElement* pixels) {
+	std::vector<std::string> channelNames;
+    for (tinyxml2::XMLElement* xmlChannel = pixels->FirstChildElement("Channel");
+       xmlChannel != nullptr;
+       xmlChannel = xmlChannel->NextSiblingElement("Channel")) {
+      const char *name = xmlChannel->Attribute("Name");
+      if (name == nullptr) {
+          break;
+      }
+      channelNames.emplace_back(name);
+    }
+    if (channelNames.size() == static_cast<size_t>(m_numChannels)) {
+		m_channelNames = channelNames;
+    }
 }
 
 std::string OTScene::getName() const {

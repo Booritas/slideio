@@ -56,7 +56,7 @@ namespace slideio
         private:
             void extractImagePyramids();
             void initialize();
-            void initializeChannelNames();
+            void initializeChannelNames(tinyxml2::XMLElement* pixels);
             void extractMagnificationFromMetadata();
             void extractTiffData(tinyxml2::XMLElement* pixels);
             void extractImageIndex();

@@ -206,11 +206,6 @@ TEST_F(OTImageDriverTests, openFluorescentSlide) {
 	int files = otScene->getNumTiffFiles();
 	EXPECT_EQ(files, 1);
 	EXPECT_EQ(otScene->getNumTiffDataItems(), 128);
-	//auto scene = slide->getSceneByName("retina_large.ims Resolution Level 1");
-	//cv::Rect roi = { 651, 724, 304, 196 };
-	//cv::Mat blockRaster;
-	//scene->readResampled4DBlockChannels(roi, roi.size(), { 0 }, { 32, 33 }, { 0, 1 }, blockRaster);
-	//TestTools::showRaster(blockRaster);
 }
 
 TEST_F(OTImageDriverTests, TIFFFiles) {
@@ -496,5 +491,28 @@ TEST_F(OTImageDriverTests, readBlock4DMultifile) {
 		cv::Mat region = testRaster(rectROI);
 		double sim = ImageTools::computeSimilarity2(planeSlice, region);
 		EXPECT_GT(sim, 0.99);
+	}
+}
+
+TEST_F(OTImageDriverTests, magnification) {
+	std::vector<std::tuple<std::string, int, double>> testCases = {
+		{TestTools::getFullTestImagePath("ometiff", "tubhiswt-4D/tubhiswt_C0_TP0.ome.tif"), 0, 100.},
+		{TestTools::getFullTestImagePath("ometiff", "Subresolutions/Leica-1.ome.tiff"), 0, 0.60833},
+		{TestTools::getFullTestImagePath("ometiff", "Subresolutions/Leica-1.ome.tiff"), 1, 20.},
+		{TestTools::getFullTestImagePath("ometiff", "Subresolutions/Leica-2.ome.tiff"), 0, 0.60833},
+		{TestTools::getFullTestImagePath("ometiff", "Subresolutions/Leica-2.ome.tiff"), 1, 40.},
+	};
+	for (const auto& testCase : testCases) {
+		std::string filePath = std::get<0>(testCase);
+		int sceneIndex = std::get<1>(testCase);
+		double expectedMagnification = std::get<2>(testCase);
+		slideio::ometiff::OTImageDriver driver;
+		std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
+		ASSERT_TRUE(slide != nullptr);
+		const int numScenes = slide->getNumScenes();
+		ASSERT_GT(numScenes, 0);
+		std::shared_ptr<CVScene> scene = slide->getScene(sceneIndex);
+		ASSERT_TRUE(scene != nullptr);
+		EXPECT_DOUBLE_EQ(scene->getMagnification(), expectedMagnification);
 	}
 }

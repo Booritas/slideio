@@ -71,11 +71,11 @@ std::shared_ptr<OTSlide> OTSlide::openFile(const std::string& filePath)
     auto& dir = directories.front();
     auto description = dir.description;
 #if defined(_DEBUG)
-	std::string fileName = std::filesystem::path(filePath).stem().string();
-	std::string xmlPath = "D:/Temp/" + fileName + ".xml";
-    std::ofstream outFile(xmlPath);
-    outFile << description;
-    outFile.close();
+	//std::string fileName = std::filesystem::path(filePath).stem().string();
+	//std::string xmlPath = "D:/Temp/" + fileName + ".xml";
+ //   std::ofstream outFile(xmlPath);
+ //   outFile << description;
+ //   outFile.close();
 #endif
     std::list<ImageData> images;
 
