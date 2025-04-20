@@ -283,7 +283,11 @@ bool OTScene::getTileRect(int tileIndex, cv::Rect& tileRect, void* userData) {
         RAISE_RUNTIME_ERROR << "OMETIFF driver: invalid tile index: " << tileIndex << " of " << tileCount;
     }
     const BlockInfo* blockInfo = static_cast<const BlockInfo*>(userData);
-    tileRect = blockInfo->levelInfo->getTileRect(tileIndex);
+    Rect rc = blockInfo->levelInfo->getTileRect(tileIndex);
+	tileRect.x = rc.x;
+	tileRect.y = rc.y;
+	tileRect.width = rc.width;
+	tileRect.height = rc.height;
     return true;
 }
 

@@ -5,7 +5,6 @@
 #include "slideio/core/slideio_core_def.hpp"
 #include "slideio/base/slideio_structs.hpp"
 #include <cmath>
-#include <opencv2/core/types.hpp>
 
 #if defined(_MSC_VER)
 #pragma warning( push )
@@ -95,8 +94,8 @@ namespace slideio
 
         std::string toString() const;
 
-		cv::Rect getTileRect(int tileIndex) const {
-			cv::Rect tileRect;
+		Rect getTileRect(int tileIndex) const {
+			Rect tileRect;
 			const int tileCount = getTileCount();
 			if (tileCount > 1) {
 				const int tilesX = (m_size.width - 1) / m_tileSize.width + 1;
