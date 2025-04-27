@@ -274,6 +274,7 @@ TEST(GDALDriver, metadataTiff)
         std::string filePath = TestTools::getFullTestImagePath("ometiff", u8"SPIM-ModuloAlongZ.ome.tiff");
         std::shared_ptr<slideio::Slide> slide = slideio::openSlide(filePath, "GDAL");
         std::string metadata = slide->getRawMetadata();
+        EXPECT_EQ(slide->getMetadataFormat(), slideio::MetadataFormat::XML);
 		EXPECT_FALSE(metadata.empty());
         EXPECT_EQ(0, metadata.find("<?xml"));
 		XMLDocument doc;
@@ -286,6 +287,7 @@ TEST(GDALDriver, metadataJpeg)
     std::string filePath = TestTools::getTestImagePath("gdal", "Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg");
     std::shared_ptr<slideio::Slide> slide = slideio::openSlide(filePath, "GDAL");
     std::string metadata = slide->getRawMetadata();
+    EXPECT_EQ(slide->getMetadataFormat(), slideio::MetadataFormat::JSON);
     EXPECT_FALSE(metadata.empty());
     json jMtd = json::parse(metadata);
     std::string val = jMtd["EXIF_PixelXDimension"];

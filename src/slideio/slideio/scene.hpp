@@ -263,6 +263,8 @@ namespace slideio
         virtual int getNumAuxImages() const;
         /**@brief returns string of serialized metadata. Content of the string depends on image format.*/
         std::string getRawMetadata() const;
+		/**@brief returns metadata format of the scene. */
+		MetadataFormat getMetadataFormat() const;
         /**@brief returns a slideio::Scene object that represents an auxiliary image.
          * @param imageName : name of the auxiliary image.
          */

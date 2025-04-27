@@ -17,6 +17,7 @@ using namespace slideio::vsi;
 
 VSISlide::VSISlide(const std::string& filePath) : m_filePath(filePath)
 {
+    m_metadataFormat = MetadataFormat::JSON;
     init();
 }
 

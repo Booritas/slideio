@@ -50,7 +50,6 @@ namespace slideio
         protected:
             std::string m_filePath;
             std::string m_name;
-            std::string m_rawMetadata;
             slideio::Compression m_compression;
             Resolution m_resolution;
             double m_magnification;

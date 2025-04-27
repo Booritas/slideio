@@ -516,3 +516,24 @@ TEST_F(OTImageDriverTests, magnification) {
 		EXPECT_DOUBLE_EQ(scene->getMagnification(), expectedMagnification);
 	}
 }
+
+TEST_F(OTImageDriverTests, metadata) {
+	std::vector<std::tuple<std::string, int, double>> testCases = {
+		{TestTools::getFullTestImagePath("ometiff", "tubhiswt-4D/tubhiswt_C0_TP0.ome.tif"), 0, 100.},
+		{TestTools::getFullTestImagePath("ometiff", "Subresolutions/Leica-1.ome.tiff"), 0, 0.60833},
+		{TestTools::getFullTestImagePath("ometiff", "Subresolutions/Leica-1.ome.tiff"), 1, 20.},
+		{TestTools::getFullTestImagePath("ometiff", "Subresolutions/Leica-2.ome.tiff"), 0, 0.60833},
+		{TestTools::getFullTestImagePath("ometiff", "Subresolutions/Leica-2.ome.tiff"), 1, 40.},
+	};
+	for (const auto& testCase : testCases) {
+		std::string filePath = std::get<0>(testCase);
+		slideio::ometiff::OTImageDriver driver;
+		std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
+		ASSERT_TRUE(slide != nullptr);
+		EXPECT_EQ(slide->getMetadataFormat(), slideio::MetadataFormat::XML);
+		auto metadata = slide->getRawMetadata();
+		EXPECT_FALSE(metadata.empty());
+		EXPECT_TRUE(TestTools::starts_with(metadata, "<?xml"));
+		EXPECT_EQ(slide->getScene(0)->getMetadataFormat(), slideio::MetadataFormat::None);
+	}
+}

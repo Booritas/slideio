@@ -37,10 +37,22 @@ std::shared_ptr<Scene> Slide::getScene(int index) const
     return scene;
 }
 
+std::shared_ptr<Scene> Slide::getSceneByName(const std::string& name) const {
+	SLIDEIO_LOG(INFO) << "Slide::getSceneByName " << name;
+	std::shared_ptr<CVScene> cvScene = m_slide->getSceneByName(name);
+	std::shared_ptr<Scene> scene(new Scene(cvScene));
+	return scene;
+}
+
 const std::string& Slide::getRawMetadata() const
 {
     SLIDEIO_LOG(INFO) << "Slide::getRawMetadata "; 
     return m_slide->getRawMetadata();
+}
+
+MetadataFormat Slide::getMetadataFormat() const {
+	SLIDEIO_LOG(INFO) << "Slide::getMetadataFormat ";
+	return m_slide->getMetadataFormat();
 }
 
 const std::list<std::string>& Slide::getAuxImageNames() const

@@ -122,6 +122,7 @@ std::shared_ptr<SVSSlide> SVSSlide::openFile(const std::string& filePath)
     if(!directories.empty()) {
         const auto& dir = directories.front();
         slide->m_rawMetadata = dir.description;
+		slide->m_metadataFormat = MetadataFormat::Text;
     }
     return slide;
 }

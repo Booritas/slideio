@@ -61,6 +61,8 @@ TEST_F(NDPIImageDriverTests, openFile)
     EXPECT_EQ(slideio::Compression::Jpeg, compression);
     slideio::DataType dt = scene->getChannelDataType(0);
     EXPECT_EQ(slideio::DataType::DT_Byte, dt);
+	EXPECT_EQ(slide->getMetadataFormat(), slideio::MetadataFormat::None);
+    EXPECT_EQ(scene->getMetadataFormat(), slideio::MetadataFormat::None);
 }
 
 TEST_F(NDPIImageDriverTests, readStrippedScene)

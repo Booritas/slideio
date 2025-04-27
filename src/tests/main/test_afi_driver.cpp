@@ -65,7 +65,10 @@ TEST_F(AFIDriverFileTest, openFile)
 {
     slideio::AFIImageDriver driver;
     const std::string filePath = getPrivTestImagesPath("afi", "fs.afi");
-    EXPECT_TRUE(driver.openFile(filePath));
+    auto slide = driver.openFile(filePath);
+    EXPECT_TRUE(slide!=nullptr);
+    EXPECT_EQ(slide->getMetadataFormat(), slideio::MetadataFormat::None);
+	EXPECT_EQ(slide->getScene(0)->getMetadataFormat(), slideio::MetadataFormat::None);
 }
 
 TEST_F(AFIDriverFileTest, getScenesFromFiles)

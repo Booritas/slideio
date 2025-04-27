@@ -295,6 +295,11 @@ std::string Scene::getRawMetadata() const
     return m_scene->getRawMetadata();
 }
 
+MetadataFormat Scene::getMetadataFormat() const {
+	SLIDEIO_LOG(INFO) << "Scene::getMetadataFormat ";
+	return m_scene->getMetadataFormat();
+}
+
 std::shared_ptr<Scene> Scene::getAuxImage(const std::string& sceneName) const
 {
     SLIDEIO_LOG(INFO) << "Scene::getAuxImage " << sceneName; 

@@ -227,6 +227,10 @@ TEST_F(PKEImageDriverTests, metadata) {
         ++count;
     }
     EXPECT_EQ(5, count);
+	EXPECT_EQ(slide->getMetadataFormat(), slideio::MetadataFormat::XML);
+	auto scene = slide->getScene(0);
+	ASSERT_TRUE(scene != nullptr);
+	EXPECT_EQ(scene->getMetadataFormat(), slideio::MetadataFormat::None);
 }
 
 

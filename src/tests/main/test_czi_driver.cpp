@@ -348,6 +348,8 @@ TEST(CZIImageDriver, slideRawMetadata)
         EXPECT_GT(metadata.length(),0);
         const std::string header("<ImageDocument>");
         EXPECT_TRUE(TestTools::starts_with(metadata, header));
+		EXPECT_EQ(slide->getMetadataFormat(), slideio::MetadataFormat::XML);
+		EXPECT_EQ(slide->getScene(0)->getMetadataFormat(), slideio::MetadataFormat::None);
     }
 }
 

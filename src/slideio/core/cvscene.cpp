@@ -224,5 +224,6 @@ std::string CVScene::toString() const {
     os << "Magnification: " << getMagnification() << "\n";
     os << "Number of Auxiliary Images: " << getNumAuxImages() << "\n";
     os << "Number of Zoom Levels: " << getNumZoomLevels() << "\n";
+	os << "Metadata Format: " << getMetadataFormat() << "\n";
     return os.str();
 }

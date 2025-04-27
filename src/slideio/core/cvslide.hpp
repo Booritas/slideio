@@ -58,9 +58,17 @@ namespace slideio
         @param sceneName : name of the auxiliary image. It must be contained in the list returned by getAuxImageNames method.
         */
         virtual std::shared_ptr<CVScene> getAuxImage(const std::string& sceneName) const;
-        virtual MetadataType getMetadataType() const { return MetadataType::Unknown; }
+		/**@brief The method returns a string containing serialized metadata of the slide.
+		 *
+		 *Content of the string depends on image driver and may be plain text.
+		 */
+		 virtual MetadataFormat getMetadataFormat() const { return m_metadataFormat; }
+		 /**@brief The method returns format of a string passed as a parameter.
+		  */
+         static MetadataFormat recognizeMetadataFormat(const std::string& metadata);
     protected:
         std::string m_rawMetadata;
+		MetadataFormat m_metadataFormat = MetadataFormat::None;
         std::list<std::string> m_auxNames;
     };
 }

@@ -189,12 +189,14 @@ namespace slideio
          */
         virtual std::shared_ptr<CVScene> getAuxImage(const std::string& imageName) const;
         /**@brief returns string of serialized metadata. Content of the string depends on image format.*/
-        virtual std::string getRawMetadata() const { return ""; }
+        virtual std::string getRawMetadata() const { return m_rawMetadata; }
         virtual void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
 			const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output) = 0;
         virtual int getNumZoomLevels() const;
         virtual const LevelInfo* getZoomLevelInfo(int level) const;
         std::string toString() const;
+		/**@brief returns metadata format of the image*/
+		virtual MetadataFormat getMetadataFormat() const { return m_metadataFormat; }
     protected:
         std::vector<int> getValidChannelIndices(const std::vector<int>& channelIndices);
         void initializeSceneBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices,
@@ -204,6 +206,8 @@ namespace slideio
         std::list<std::string> m_auxNames;
         std::vector<LevelInfo> m_levels;
         mutable std::mutex m_readBlockMutex;
+        std::string m_rawMetadata;
+        MetadataFormat m_metadataFormat = MetadataFormat::None;
     };
 }
 

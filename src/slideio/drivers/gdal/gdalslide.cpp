@@ -80,12 +80,14 @@ void slideio::GDALSlide::readMetadata(GDALDatasetH ds) {
 							&& value.size() > 0
 							&& (value[0] == '{' || value[0] == '[' || value[0] == '<')) {
 							m_rawMetadata = value;
+							m_metadataFormat = recognizeMetadataFormat(m_rawMetadata);
 							return;
 						}
 					}
 				}
 			}
 			m_rawMetadata = mtdObj.dump();
+			m_metadataFormat = recognizeMetadataFormat(m_rawMetadata);
 		}
 	}
 }

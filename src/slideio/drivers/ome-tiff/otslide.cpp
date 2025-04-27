@@ -25,6 +25,7 @@ const char* LABEL = "Label";
 
 OTSlide::OTSlide()
 {
+	m_metadataFormat = MetadataFormat::XML;
 }
 
 OTSlide::~OTSlide()
@@ -108,6 +109,7 @@ std::shared_ptr<OTSlide> OTSlide::openFile(const std::string& filePath)
 		RAISE_RUNTIME_ERROR << "OTImageDriver: No image found in the file: " << filePath;
 	}
     slide.reset(new OTSlide);
+    slide->m_rawMetadata = description;
     for (const ImageData& imageData : images) {
 		std::shared_ptr<CVScene> scene = createScene(imageData);
         if(scene) {

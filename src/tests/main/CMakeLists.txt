@@ -56,7 +56,7 @@ target_link_libraries(${TEST_NAME}
 )
 
 target_include_directories(${TEST_NAME} PRIVATE ${INCLUDE_ROOT})
-target_link_libraries(${TEST_NAME} ${SLIDEIO_LIB_NAME} ${TEST_LIB_NAME})
+target_link_libraries(${TEST_NAME} ${SLIDEIO_LIB_NAME} ${BASE_LIB_NAME} ${TEST_LIB_NAME})
 
 
 

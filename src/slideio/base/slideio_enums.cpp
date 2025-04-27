@@ -62,3 +62,16 @@ std::ostream& slideio::operator << (std::ostream& os, const slideio::DataType& d
     }
     return os;
 }
+
+std::ostream& slideio::operator << (std::ostream& os, const slideio::MetadataFormat& mt) {
+	switch (mt) {
+	case slideio::MetadataFormat::None: os << "None"; break;
+	case slideio::MetadataFormat::Unknown: os << "Unknown"; break;
+	case slideio::MetadataFormat::Text: os << "TEXT"; break;
+	case slideio::MetadataFormat::XML: os << "XML"; break;
+	case slideio::MetadataFormat::JSON: os << "JSON"; break;
+	}
+	return os;
+}
+
+

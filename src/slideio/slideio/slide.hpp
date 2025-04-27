@@ -40,6 +40,8 @@ namespace slideio
         std::string getFilePath() const;
         /**@brief The method returns a Scene object by the scene index.*/
         std::shared_ptr<Scene> getScene(int index) const;
+        /**@brief The method returns a Scene object by the scene name.*/
+        std::shared_ptr<Scene> getSceneByName(const std::string& name) const;
         /**@brief The method returns a string containing serialized metadata of the slide.
          *
          *Content of the string depends on image driver and may be plain text, 
@@ -48,6 +50,7 @@ namespace slideio
         /**@brief The method returns list of names of auxiliary images contained in the slide.
          *
          *Default: empty list.*/
+		MetadataFormat getMetadataFormat() const;
         const std::list<std::string>& getAuxImageNames() const;
         /**@brief The method returns number of auxiliary images contained in the slide.*/
         virtual int getNumAuxImages() const;

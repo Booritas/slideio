@@ -75,6 +75,8 @@ TEST_F(VSIImageDriverTests, openFileWithExternalFiles1) {
     auto rect = scene->getRect();
     std::string metadata = slide->getRawMetadata();
     EXPECT_GT(metadata.size(), 0);
+	EXPECT_EQ(scene->getMetadataFormat(), MetadataFormat::None);
+	EXPECT_EQ(slide->getMetadataFormat(), MetadataFormat::JSON);
 }
 
 TEST_F(VSIImageDriverTests, openFileWithoutExternalFiles) {
@@ -99,6 +101,8 @@ TEST_F(VSIImageDriverTests, openFileWithoutExternalFiles) {
     }
     EXPECT_DOUBLE_EQ(scene->getMagnification(), 0.);
     EXPECT_EQ(scene->getCompression(), Compression::Uncompressed);
+	EXPECT_EQ(slide->getMetadataFormat(), MetadataFormat::JSON);
+    EXPECT_EQ(scene->getMetadataFormat(), MetadataFormat::None);
 }
 
 static std::shared_ptr<CVScene> getSceneByName(std::shared_ptr<CVSlide> slide, const std::string& name) {

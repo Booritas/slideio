@@ -19,3 +19,29 @@ std::shared_ptr<CVScene> CVSlide::getAuxImage(const std::string& sceneName) cons
 {
     throw std::runtime_error("The slide does not have any auxiliary image");
 }
+
+static std::string trimStart(const std::string& s) {
+    auto it = std::find_if_not(s.begin(), s.end(), [](unsigned char ch) { return std::isspace(ch); });
+    return std::string(it, s.end());
+}
+
+MetadataFormat CVSlide::recognizeMetadataFormat(const std::string& metadata) {
+    std::string trimmed = trimStart(metadata);
+
+    if (trimmed.empty()) {
+        return MetadataFormat::None;
+    }
+
+    if (trimmed[0] == '{' || trimmed[0] == '[') {
+        return MetadataFormat::JSON;
+    }
+
+    if (trimmed.size() >= 5 && trimmed.substr(0, 5) == "<?xml") {
+        return MetadataFormat::XML;
+    }
+    if (trimmed[0] == '<') {
+        return MetadataFormat::XML;
+    }
+
+    return MetadataFormat::Text;
+}

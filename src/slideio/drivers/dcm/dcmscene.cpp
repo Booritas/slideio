@@ -14,7 +14,7 @@ using namespace slideio;
 
 DCMScene::DCMScene()
 {
-
+	m_metadataFormat = MetadataFormat::JSON;
 }
 
 std::string DCMScene::getFilePath() const

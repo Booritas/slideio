@@ -19,6 +19,7 @@ SCNScene::SCNScene(const std::string& filePath, const tinyxml2::XMLElement* xmlI
     m_magnification(0.),
     m_interleavedChannels(false)
 {
+	m_metadataFormat = MetadataFormat::XML;
     init(xmlImage);
 }
 
@@ -212,7 +213,7 @@ void SCNScene::init(const XMLElement* xmlImage)
     xmlImage->Accept(&printer);
     std::stringstream imageDoc;
     imageDoc << printer.CStr();
-    m_reawMetadata = imageDoc.str();
+    m_rawMetadata = imageDoc.str();
 
     parseGeometry(xmlImage);
     setupChannels(xmlImage);

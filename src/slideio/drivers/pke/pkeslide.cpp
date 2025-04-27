@@ -24,6 +24,7 @@ const char* LABEL = "Label";
 
 PKESlide::PKESlide()
 {
+	m_metadataFormat = MetadataFormat::XML;
 }
 
 PKESlide::~PKESlide()

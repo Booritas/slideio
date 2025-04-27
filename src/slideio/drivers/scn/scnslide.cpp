@@ -15,6 +15,7 @@ using namespace tinyxml2;
 
 SCNSlide::SCNSlide(const std::string& filePath) : m_filePath(filePath)
 {
+	m_metadataFormat = MetadataFormat::XML;
     init();
 }
 

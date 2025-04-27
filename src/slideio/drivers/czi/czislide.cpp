@@ -29,6 +29,7 @@ using namespace slideio;
 
 CZISlide::CZISlide(const std::string& filePath) : m_filePath(filePath), m_resZ(0), m_resT(0), m_magnification(0)
 {
+    m_metadataFormat = MetadataFormat::XML;
     init();
 }
 

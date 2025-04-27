@@ -84,7 +84,6 @@ namespace slideio
         TIFFKeeper m_tiff;
         std::string m_filePath;
         std::string m_name;
-        std::string m_reawMetadata;
         Compression m_compression;
         Resolution m_resolution;
         double m_magnification;

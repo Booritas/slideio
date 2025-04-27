@@ -32,7 +32,6 @@ namespace slideio
             std::shared_ptr<slideio::CVScene> getScene(int index) const override;
             std::shared_ptr<CVScene> getAuxImage(const std::string& sceneName) const override;
             const std::string& getRawMetadata() const override;
-            MetadataType getMetadataType() const override { return MetadataType::JSON; }
         private:
             void init();
         private:

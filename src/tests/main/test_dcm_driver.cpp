@@ -155,9 +155,11 @@ TEST(DCMImageDriver, getRawMetadata)
 
     DCMImageDriver driver;
     auto slide = driver.openFile(slidePath);
+    EXPECT_EQ(slide->getMetadataFormat(), slideio::MetadataFormat::None);
     const int numScenes = slide->getNumScenes();
     ASSERT_EQ(numScenes, 1);
     auto scene = slide->getScene(0);
+	EXPECT_EQ(scene->getMetadataFormat(), slideio::MetadataFormat::JSON);
     std::string metadata = scene->getRawMetadata();
     ASSERT_LT(2, metadata.length());
     EXPECT_EQ('{', metadata.front());

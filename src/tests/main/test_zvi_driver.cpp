@@ -44,6 +44,7 @@ TEST(ZVIImageDriver, openSlide2D)
     std::string filePath = TestTools::getTestImagePath("zvi", "Zeiss-1-Merged.zvi");
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide.get() != nullptr);
+	EXPECT_EQ(slide->getMetadataFormat(), slideio::MetadataFormat::None);
     const int sceneCount = slide->getNumScenes();
     ASSERT_EQ(sceneCount, 1);
     auto scene = slide->getScene(0);
@@ -64,6 +65,7 @@ TEST(ZVIImageDriver, openSlide2D)
     EXPECT_EQ(scene->getChannelName(2), std::string("FITC"));
     EXPECT_EQ(scene->getName(), std::string("RQ26033_04310292C0004S_Calu3_amplified_100x_21Jun2012 ic zsm.zvi"));
     EXPECT_EQ(scene->getCompression(), Compression::Uncompressed);
+	EXPECT_EQ(scene->getMetadataFormat(), slideio::MetadataFormat::None);
 
     auto res = scene->getResolution();
     EXPECT_DOUBLE_EQ(res.x, 0.0645e-6);
