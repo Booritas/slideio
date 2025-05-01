@@ -15,6 +15,7 @@
 #include "slideio/drivers/ndpi/ndpiimagedriver.hpp"
 #include "slideio/drivers/vsi/vsiimagedriver.hpp"
 #include "slideio/drivers/pke/pkeimagedriver.hpp"
+#include "slideio/drivers/ome-tiff/otimagedriver.hpp"
 #include "slideio/base/log.hpp"
 
 using namespace slideio;
@@ -54,12 +55,16 @@ std::vector<std::string> ImageDriverManager::getDriverIDs()
 std::shared_ptr<slideio::ImageDriver> ImageDriverManager::findDriver(const std::string& filePath)
 {
     initialize();
-    for (auto itDriver = driverMap.begin(); itDriver != driverMap.end(); ++itDriver) {
-        auto driver = itDriver->second;
-        if(driver->canOpenFile(filePath)) {
-            return driver;
+    std::string driverOrder[] = { "OMETIFF", "SVS", "CZI", "AFI", "SCN", "DCM", "ZVI", "NDPI", "VSI", "PKE", "GDAL" };
+    for (const auto& driverID : driverOrder) {
+        auto itDriver = driverMap.find(driverID);
+        if (itDriver != driverMap.end()) {
+            auto driver = itDriver->second;
+            if(driver->canOpenFile(filePath)) {
+                return driver;
+            }
         }
-    }
+    } 
     return nullptr;
 }
 
@@ -71,9 +76,8 @@ void ImageDriverManager::initialize()
     {
         SLIDEIO_LOG(INFO) << "Initialization ImageDriverManager";
         {
-            GDALImageDriver* driver = new GDALImageDriver;
-            std::shared_ptr<ImageDriver> gdal(driver);
-            driverMap[gdal->getID()] = gdal;
+            std::shared_ptr<ImageDriver> driver { std::make_shared<ometiff::OTImageDriver>() };
+            driverMap[driver->getID()] = driver;
         }
         {
             SVSImageDriver* driver = new SVSImageDriver;
@@ -85,32 +89,37 @@ void ImageDriverManager::initialize()
             driverMap[driver->getID()] = driver;
         }
         {
-            std::shared_ptr<ImageDriver> driver{ std::make_shared<AFIImageDriver>() };
+            std::shared_ptr<ImageDriver> driver { std::make_shared<AFIImageDriver>() };
             driverMap[driver->getID()] = driver;
         }
         {
-            std::shared_ptr<ImageDriver> driver{ std::make_shared<SCNImageDriver>() };
+            std::shared_ptr<ImageDriver> driver { std::make_shared<SCNImageDriver>() };
             driverMap[driver->getID()] = driver;
         }
         {
-            std::shared_ptr<ImageDriver> driver{ std::make_shared<DCMImageDriver>() };
+            std::shared_ptr<ImageDriver> driver { std::make_shared<DCMImageDriver>() };
             driverMap[driver->getID()] = driver;
         }
         {
-            std::shared_ptr<ImageDriver> driver{ std::make_shared<ZVIImageDriver>() };
+            std::shared_ptr<ImageDriver> driver { std::make_shared<ZVIImageDriver>() };
             driverMap[driver->getID()] = driver;
         }
         {
-            std::shared_ptr<ImageDriver> driver{ std::make_shared<NDPIImageDriver>() };
+            std::shared_ptr<ImageDriver> driver { std::make_shared<NDPIImageDriver>() };
             driverMap[driver->getID()] = driver;
         }
         {
-            std::shared_ptr<ImageDriver> driver{ std::make_shared<VSIImageDriver>() };
+            std::shared_ptr<ImageDriver> driver { std::make_shared<VSIImageDriver>() };
             driverMap[driver->getID()] = driver;
         }
         {
-            std::shared_ptr<ImageDriver> driver{ std::make_shared<PKEImageDriver>() };
+            std::shared_ptr<ImageDriver> driver { std::make_shared<PKEImageDriver>() };
             driverMap[driver->getID()] = driver;
+        }
+        {
+            GDALImageDriver* driver = new GDALImageDriver;
+            std::shared_ptr<ImageDriver> gdal(driver);
+            driverMap[gdal->getID()] = gdal;
         }
     }
 }

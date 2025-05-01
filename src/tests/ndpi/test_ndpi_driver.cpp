@@ -4,7 +4,7 @@
 #include "tests/testlib/testtools.hpp"
 #include <string>
 #include <opencv2/imgproc.hpp>
-#include "slideio/core/imagedrivermanager.hpp"
+#include "slideio/slideio/imagedrivermanager.hpp"
 
 #include "slideio/drivers/ndpi/ndpiimagedriver.hpp"
 #include "slideio/drivers/ndpi/ndpifile.hpp"

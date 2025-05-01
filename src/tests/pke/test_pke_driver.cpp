@@ -9,7 +9,7 @@
 #include "slideio/drivers/pke/pkeimagedriver.hpp"
 #include "slideio/drivers/pke/pkescene.hpp"
 #include "slideio/drivers/pke/pkeslide.hpp"
-#include "slideio/core/imagedrivermanager.hpp"
+#include "slideio/slideio/imagedrivermanager.hpp"
 
 
 namespace slideio

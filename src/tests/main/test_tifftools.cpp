@@ -6,7 +6,7 @@
 #include "slideio/imagetools/imagetools.hpp"
 #include "opencv2/imgproc.hpp"
 #include "slideio/imagetools/tiffkeeper.hpp"
-#include "slideio/core/imagedrivermanager.hpp"
+#include "slideio/slideio/imagedrivermanager.hpp"
 
 class TiffToolsTests : public ::testing::Test {
 protected:
