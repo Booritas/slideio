@@ -68,6 +68,7 @@ set(NAME_TOOL_LIB_LIST
     "lib${ZVI_DRIVER_NAME}.dylib"
     "lib${NDPI_DRIVER_NAME}.dylib"
     "lib${VSI_DRIVER_NAME}.dylib"
+    "lib${PKE_DRIVER_NAME}.dylib"
     "lib${OMETIFF_DRIVER_NAME}.dylib"
     "lib${IMAGETOOLS_LIB_NAME}.dylib"
     "lib${CONVERTER_LIB_NAME}.dylib"
@@ -171,6 +172,7 @@ install(TARGETS
              ${ZVI_DRIVER_NAME} 
              ${NDPI_DRIVER_NAME} 
              ${VSI_DRIVER_NAME}
+             ${OMETIFF_DRIVER_NAME}
              ${CORE_LIB_NAME}
              ${IMAGETOOLS_LIB_NAME}
     RUNTIME DESTINATION bin
@@ -190,6 +192,7 @@ if(NOT WIN32)
                  ${ZVI_DRIVER_NAME} 
                  ${NDPI_DRIVER_NAME} 
                  ${VSI_DRIVER_NAME}
+                 ${OMETIFF_DRIVER_NAME}
                  ${CORE_LIB_NAME}
                  ${IMAGETOOLS_LIB_NAME}
                  ${SLIDEIO_LIB_NAME}
