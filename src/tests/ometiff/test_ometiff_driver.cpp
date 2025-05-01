@@ -7,6 +7,7 @@
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/drivers/ome-tiff/otimagedriver.hpp"
 #include "slideio/drivers/ome-tiff/otscene.hpp"
+#include "slideio/slideio/slideio.hpp"
 
 
 namespace slideio
@@ -70,6 +71,15 @@ TEST_F(OTImageDriverTests, canOpenFile) {
 		EXPECT_FALSE(driver.canOpenFile(filePath));
 	}
 }
+
+TEST_F(OTImageDriverTests, openSlide) {
+	std::string filePath = TestTools::getFullTestImagePath("ometiff", "Multifile/multifile-Z1.ome.tiff");
+	auto slide = slideio::openSlide(filePath, "OMETIFF");
+	ASSERT_TRUE(slide != nullptr);
+	slide = slideio::openSlide(filePath, "AUTO");
+	ASSERT_TRUE(slide != nullptr);
+}
+
 TEST_F(OTImageDriverTests, openMultifileSlide) {
     std::string filePath = TestTools::getFullTestImagePath("ometiff", "Multifile/multifile-Z1.ome.tiff");
     slideio::ometiff::OTImageDriver driver;
