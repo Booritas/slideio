@@ -18,7 +18,7 @@ OTImageDriver::~OTImageDriver()
 
 std::string OTImageDriver::getID() const
 {
-	return std::string("QPTIFF");
+	return std::string("OMETIFF");
 }
 
 std::shared_ptr<slideio::CVSlide> OTImageDriver::openFile(const std::string& filePath)

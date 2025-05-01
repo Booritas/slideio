@@ -11,6 +11,7 @@
 #include "slideio/drivers/svs/svsimagedriver.hpp"
 #include "slideio/drivers/zvi/zviimagedriver.hpp"
 #include "slideio/drivers/ndpi/ndpiimagedriver.hpp"
+#include "slideio/drivers/ome-tiff/otimagedriver.hpp"
 
 using namespace slideio;
 std::map<std::string, std::shared_ptr<ImageDriver>> ImageDriverManager::driverMap;
@@ -85,6 +86,10 @@ void ImageDriverManager::initialize()
         }
         {
             std::shared_ptr<ImageDriver> driver{ std::make_shared<NDPIImageDriver>() };
+            driverMap[driver->getID()] = driver;
+        }
+        {
+            std::shared_ptr<ImageDriver> driver{ std::make_shared<OTImageDriver>() };
             driverMap[driver->getID()] = driver;
         }
     }
