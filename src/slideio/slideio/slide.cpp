@@ -74,3 +74,15 @@ std::shared_ptr<Scene> Slide::getAuxImage(const std::string& sceneName) const
     std::shared_ptr<Scene> scene(new Scene(cvScene));
     return scene;
 }
+
+std::string Slide::toString() const {
+    return m_slide->toString();
+}
+
+void Slide::setDriverId(const std::string& driverId) {
+	m_slide->setDriverId(driverId);
+}
+
+const std::string& Slide::getDriverId() const {
+	return m_slide->getDriverId();
+}

@@ -11,6 +11,7 @@ std::shared_ptr<slideio::Slide> slideio::openSlide(const std::string& path, cons
 {
     std::shared_ptr<CVSlide> cvSlide = ImageDriverManager::openSlide(path, driver);
     std::shared_ptr<Slide> slide(new Slide(cvSlide));
+	slide->setDriverId(driver);
     return slide;
 }
 

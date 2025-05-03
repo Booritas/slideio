@@ -45,3 +45,34 @@ MetadataFormat CVSlide::recognizeMetadataFormat(const std::string& metadata) {
 
     return MetadataFormat::Text;
 }
+
+std::string CVSlide::toString() const {
+    std::ostringstream os;
+    os << "File Path: " << getFilePath() << "\n";
+	os << "Driver: " << getDriverId() << "\n";
+    os << "Metadata Format: " << getMetadataFormat() << "\n";
+    os << "Number of Scenes: " << getNumScenes() << "\n";
+	os << "Auxiliary Image Names: " << "\n";
+	for (const auto& name : getAuxImageNames()) {
+		os << "  " << name << "\n";
+	}
+	std::string metadata = getRawMetadata();
+	if (!metadata.empty()) {
+		os << "Metadata: " << "\n";
+		if (metadata.size() > 100) {
+			os << metadata.substr(0, 100) << "...\n";
+		}
+		else {
+			os << metadata << "\n";
+		}
+	}
+	else {
+		os << "Metadata: None\n";
+	}
+    for (int i = 0; i < getNumScenes(); ++i) {
+        auto scene = getScene(i);
+        os << "  Scene " << i << ": " << scene->getName() << "\n";
+    }
+
+    return os.str();
+}

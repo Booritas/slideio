@@ -59,6 +59,11 @@ namespace slideio
         @param sceneName : name of the auxiliary image. It must be contained in the list returned by getAuxImageNames method. 
         */
         virtual std::shared_ptr<Scene> getAuxImage(const std::string& sceneName) const;
+		/**@brief The method returns a string containing serialized metadata of the slide.
+		 */
+        std::string toString() const;
+        void setDriverId(const std::string& driverId);
+        const std::string& getDriverId() const;
     private:
         std::shared_ptr<CVSlide> m_slide;
     };

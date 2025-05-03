@@ -63,13 +63,23 @@ namespace slideio
 		 *Content of the string depends on image driver and may be plain text.
 		 */
 		 virtual MetadataFormat getMetadataFormat() const { return m_metadataFormat; }
-		 /**@brief The method returns format of a string passed as a parameter.
-		  */
+		 /**@brief The method sets driver id of the slide.  */
+        void setDriverId(const std::string& driverId) {
+			m_driverId = driverId;
+		 }
+		/**@brief The method returns driver id of the slide. */
+		const std::string& getDriverId() const {
+			return m_driverId;
+		}
+        /**@brief The method returns format of a string passed as a parameter. */
          static MetadataFormat recognizeMetadataFormat(const std::string& metadata);
+		 /**@brief The method returns a string containing serialized metadata of the slide. */
+         std::string toString() const;
     protected:
         std::string m_rawMetadata;
 		MetadataFormat m_metadataFormat = MetadataFormat::None;
         std::list<std::string> m_auxNames;
+        std::string m_driverId;
     };
 }
 
