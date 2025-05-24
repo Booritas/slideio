@@ -39,6 +39,8 @@ struct SceneInfo
 	Compression compression;
 	int levels = 0;
 	int levelInfoIndex = -1;
+	double zResolution = 0.0;
+	double tResolution = 0.0;
 };
 
 class OTImageDriverTests : public ::testing::Test {
@@ -171,8 +173,8 @@ TEST_F(OTImageDriverTests, openFluorescentSlide) {
 	const int numScenes = slide->getNumScenes();
 	ASSERT_EQ(numScenes, 2);
 	const SceneInfo sceneInfos [] = {
-	{ "retina_large.ims Resolution Level 1", {0,0,2048,1567}, 2, 64,1,0,{2.2905761973056524e-08,2.2898531953649078e-08}, DataType::DT_Byte, Compression::Zlib, 3, 0 },
-	{ "retina_large.ims Resolution Level 2", {0,0,256,195}, 2, 32,1,0,{1.8324609578445219e-07,1.8401025627165894e-07}, DataType::DT_Byte, Compression::Zlib, 1, -1 }
+	{ "retina_large.ims Resolution Level 1", {0,0,2048,1567}, 2, 64,1,0,{2.2905761973056524e-08,2.2898531953649078e-08}, DataType::DT_Byte, Compression::Zlib, 3, 0, 0.2e-6 },
+	{ "retina_large.ims Resolution Level 2", {0,0,256,195}, 2, 32,1,0,{1.8324609578445219e-07,1.8401025627165894e-07}, DataType::DT_Byte, Compression::Zlib, 1, -1, 0.4e-6 }
 	};
 
 	const std::vector<ZoomLevelInfo> zoomLevelsInfo0 = {
@@ -200,6 +202,8 @@ TEST_F(OTImageDriverTests, openFluorescentSlide) {
 		EXPECT_DOUBLE_EQ(scene->getResolution().y, sceneInfo.res.y);
 		EXPECT_EQ(scene->getCompression(), sceneInfo.compression);
 		EXPECT_EQ(scene->getNumZoomLevels(), sceneInfo.levels);
+		EXPECT_DOUBLE_EQ(scene->getZSliceResolution(), sceneInfo.zResolution);
+		EXPECT_DOUBLE_EQ(scene->getTFrameResolution(), sceneInfo.tResolution);
 		if (sceneInfo.levelInfoIndex >= 0 ) {
             const std::vector<ZoomLevelInfo>& zoomLevelInfo = zoomLevelInfos[sceneInfo.levelInfoIndex];
 			for (auto& zoomLevel : zoomLevelInfo) {

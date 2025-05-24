@@ -7,6 +7,7 @@
 #include <opencv2/core.hpp>
 #include <string>
 
+#include "otscene.hpp"
 #include "slideio/base/slideio_enums.hpp"
 
 namespace slideio
@@ -17,6 +18,8 @@ namespace slideio
         {
         public:
 			static DataType stringToDataType(const std::string& type);
+            static double convertToMeters(double value, const std::string& units);
+            static double convertToSeconds(double tResolution, const std::string& units);
         };
     }
 }

@@ -53,6 +53,8 @@ namespace slideio
 			int getNumTiffFiles() const { return m_files.getNumberOfOpenFiles(); }
 			int getNumTiffDataItems() const { return static_cast<int>(m_tiffData.size()); }
             const TiffData& getTiffData(int index) const { return m_tiffData[index]; }
+            double getZSliceResolution() const override { return m_zResolution; }
+            double getTFrameResolution() const override { return m_tResolution; }
         private:
             void extractImagePyramids();
             void initialize();
@@ -83,6 +85,8 @@ namespace slideio
             double m_magnification = 0;
             int m_imageIndex = -1;
             TIFFFiles m_files;
+			double m_zResolution = 0.0;
+			double m_tResolution = 0.0;
         };
     }
 }

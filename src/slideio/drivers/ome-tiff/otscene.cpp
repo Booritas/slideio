@@ -190,6 +190,12 @@ void OTScene::initialize() {
     if (m_bigEndian) {
         RAISE_RUNTIME_ERROR << "OTScene: big endian data is not supported";
     }
+	m_zResolution = pixels->DoubleAttribute("PhysicalSizeZ", 0.0);
+	std::string zResolutionUnits = pixels->Attribute("PhysicalSizeZUnit");
+	m_zResolution = OTTools::convertToMeters(m_zResolution, zResolutionUnits);
+	m_tResolution = pixels->DoubleAttribute("PhysicalSizeT", 0.0);
+    std::string zTimeUnits = pixels->Attribute("PhysicalSizeZUnit");
+	m_tResolution = OTTools::convertToSeconds(m_tResolution, zTimeUnits);
 
     extractImageIndex();
     extractTiffData(pixels);
