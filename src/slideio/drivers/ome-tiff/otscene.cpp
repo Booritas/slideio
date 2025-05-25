@@ -38,6 +38,7 @@ OTScene::OTScene(const ImageData& imageData) {
 }
 
 void OTScene::extractMagnificationFromMetadata() {
+	SLIDEIO_LOG(INFO) << "OTScene: Extracting magnification from xml metadata for image: " << m_imageId;
     tinyxml2::XMLElement* xmlInstrumentRef = m_imageXml->FirstChildElement("InstrumentRef");
     const char* instrumentRef = nullptr;
     if (xmlInstrumentRef) {
@@ -78,9 +79,11 @@ void OTScene::extractMagnificationFromMetadata() {
             }
         }
     }
+	SLIDEIO_LOG(INFO) << "OTScene: Magnification extracted: " << m_magnification;
 }
 
 void OTScene::extractTiffData(tinyxml2::XMLElement* pixels) {
+	SLIDEIO_LOG(INFO) << "OTScene: Extracting TiffData from xml metadata for image: " << m_imageId;
     std::string directoryPath = std::filesystem::path(m_filePath).parent_path().string();
     std::string fileName = std::filesystem::path(m_filePath).filename().string();
 
@@ -99,9 +102,11 @@ void OTScene::extractTiffData(tinyxml2::XMLElement* pixels) {
     if (m_tiffData.empty()) {
         RAISE_RUNTIME_ERROR << "OTScene: no valid TiffData elements in the xml metadata";
     }
+	SLIDEIO_LOG(INFO) << "OTScene: TiffData successfully extracted for image: " << m_imageId;
 }
 
 void OTScene::extractImageIndex() {
+	SLIDEIO_LOG(INFO) << "OTScene: Extracting image index from m_imageId: " << m_imageId;
     const std::string prefix = "Image:";
     size_t pos = m_imageId.find(prefix);
     if (pos != std::string::npos) {
@@ -117,6 +122,7 @@ void OTScene::extractImageIndex() {
             SLIDEIO_LOG(WARNING) << "OTScene: digital index out of range in m_imageId: " << m_imageId;
         }
     }
+    SLIDEIO_LOG(INFO) << "OTScene: Image index successfully extracted: " << m_imageIndex;
 }
 
 LevelInfo OTScene::extractLevelInfo(const TiffDirectory& dir, int index) const {
@@ -133,6 +139,7 @@ LevelInfo OTScene::extractLevelInfo(const TiffDirectory& dir, int index) const {
 }
 
 void OTScene::extractImagePyramids() {
+	SLIDEIO_LOG(INFO) << "OTScene: Extracting image pyramids for image: " << m_imageId;
     if (!m_tiffData.empty()) {
         const TiffDirectory& directory = m_tiffData.front().getTiffDirectory(0);
         const int levels = static_cast<int>(directory.subdirectories.size()) + 1;
@@ -143,9 +150,11 @@ void OTScene::extractImagePyramids() {
             m_levels.push_back(extractLevelInfo(subDir, i));
         }
     }
+	SLIDEIO_LOG(INFO) << "OTScene: Image pyramids successfully extracted for image: " << m_imageId << ". Number of levels: " << m_levels.size();
 }
 
 void OTScene::initialize() {
+	SLIDEIO_LOG(INFO) << "OTScene: Initializing scene for image: " << m_imageId;
     if (m_imageXml == nullptr || m_imageDoc == nullptr) {
         RAISE_RUNTIME_ERROR << "OTScene: Image xml is not set";
     }
@@ -216,9 +225,12 @@ void OTScene::initialize() {
     m_resolution = dir.res;
 
     extractImagePyramids();
+    SLIDEIO_LOG(INFO) << "OTScene: Scene " << m_imageId << " is successfully initialized.";
+
 }
 
 void OTScene::initializeChannelNames(tinyxml2::XMLElement* pixels) {
+	SLIDEIO_LOG(INFO) << "OTScene: Initializing channel names for image: " << m_imageId;
 	std::vector<std::string> channelNames;
     for (tinyxml2::XMLElement* xmlChannel = pixels->FirstChildElement("Channel");
        xmlChannel != nullptr;
@@ -232,6 +244,7 @@ void OTScene::initializeChannelNames(tinyxml2::XMLElement* pixels) {
     if (channelNames.size() == static_cast<size_t>(m_numChannels)) {
 		m_channelNames = channelNames;
     }
+	SLIDEIO_LOG(INFO) << "OTScene: Channel names initialized for image: " << m_imageId << " channels: " << m_channelNames;
 }
 
 std::string OTScene::getName() const {
