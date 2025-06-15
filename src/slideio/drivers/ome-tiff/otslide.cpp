@@ -43,48 +43,8 @@ std::shared_ptr<CVScene> OTSlide::getScene(int index) const {
     return m_Scenes[index];
 }
 
-std::shared_ptr<OTSlide> OTSlide::openFile(const std::string& filePath) {
-    SLIDEIO_LOG(INFO) << "OTSlide::openFile: " << filePath;
-    std::shared_ptr<OTSlide> slide;
-    std::vector<TiffDirectory> directories;
-    libtiff::TIFF* tiff(nullptr);
-    tiff = TiffTools::openTiffFile(filePath);
-    if (!tiff) {
-        SLIDEIO_LOG(WARNING) << "OTSlide::openFile: cannot open file " << filePath << " with libtiff";
-        return slide;
-    }
-    TIFFKeeper keeper(tiff);
-
-    TiffTools::scanFile(tiff, directories);
-
-    std::vector<TiffDirectory> image_dirs;
-    std::map<std::string, std::shared_ptr<CVScene>> auxImages;
-    std::list<std::string> auxNames;
-    std::list<std::string> metadataItems;
-    auto& dir = directories.front();
-    auto description = dir.description;
-#if defined(_DEBUG)
-    // std::string fileName = std::filesystem::path(filePath).stem().string();
-    // std::string xmlPath = "D:/Temp/" + fileName + ".xml";
-    // std::ofstream outFile(xmlPath);
-    // outFile << description;
-    // outFile.close();
-#endif
+std::shared_ptr<OTSlide> OTSlide::processMetadata(const std::string& filePath, std::shared_ptr<OTSlide> slide, std::shared_ptr<tinyxml2::XMLDocument> doc) {
     std::list<ImageData> images;
-
-    if (description.empty()) {
-        RAISE_RUNTIME_ERROR << "OTSlide::openFile: cannot find ometiff xml metadata in file " << filePath;
-    }
-
-	SLIDEIO_LOG(INFO) << "OTSlide::openFile: Starting parsing xml metadata in file " << filePath;
-
-    std::shared_ptr<tinyxml2::XMLDocument> doc = std::make_shared<tinyxml2::XMLDocument>(new tinyxml2::XMLDocument);
-
-    tinyxml2::XMLError error = doc->Parse(description.c_str(), description.size());
-    if (error != tinyxml2::XML_SUCCESS) {
-        RAISE_RUNTIME_ERROR << "OTSlide::openFile: error parsing ometiff xml metadata in file " << filePath;
-    }
-
     tinyxml2::XMLElement* root = doc->RootElement();
     if (!root) {
         RAISE_RUNTIME_ERROR << "OTImageDriver: Invalid xml metadata in file: " << filePath;
@@ -105,10 +65,9 @@ std::shared_ptr<OTSlide> OTSlide::openFile(const std::string& filePath) {
         RAISE_RUNTIME_ERROR << "OTImageDriver: No image found in the file: " << filePath;
     }
 
-	SLIDEIO_LOG(INFO) << "OTSlide::openFile: Found " << images.size() << " images in file " << filePath;
+    SLIDEIO_LOG(INFO) << "OTSlide::openFile: Found " << images.size() << " images in file " << filePath;
 
     slide.reset(new OTSlide);
-    slide->m_rawMetadata = description;
 
     for (const ImageData& imageData : images) {
         std::shared_ptr<CVScene> scene = createScene(imageData);
@@ -116,6 +75,76 @@ std::shared_ptr<OTSlide> OTSlide::openFile(const std::string& filePath) {
             slide->m_Scenes.push_back(scene);
         }
     }
+    return slide;
+}
+
+std::shared_ptr<OTSlide> OTSlide::openFile(const std::string& filePath) {
+    SLIDEIO_LOG(INFO) << "OTSlide::openFile: " << filePath;
+    std::shared_ptr<OTSlide> slide;
+    std::vector<TiffDirectory> directories;
+    libtiff::TIFF* tiff(nullptr);
+    tiff = TiffTools::openTiffFile(filePath);
+    if (!tiff) {
+        SLIDEIO_LOG(WARNING) << "OTSlide::openFile: cannot open file " << filePath << " with libtiff";
+        return slide;
+    }
+    TIFFKeeper keeper(tiff);
+
+    TiffTools::scanFile(tiff, directories);
+    auto& dir = directories.front();
+    auto description = dir.description;
+#if defined(_DEBUG)
+     std::string fileName = std::filesystem::path(filePath).stem().string();
+     std::string xmlPath = "D:/Temp/" + fileName + ".xml";
+     std::ofstream outFile(xmlPath);
+     outFile << description;
+     outFile.close();
+#endif
+
+    if (description.empty()) {
+        RAISE_RUNTIME_ERROR << "OTSlide::openFile: cannot find ometiff xml metadata in file " << filePath;
+    }
+
+	SLIDEIO_LOG(INFO) << "OTSlide::openFile: Starting parsing xml metadata in file " << filePath;
+
+    std::shared_ptr<tinyxml2::XMLDocument> doc = std::make_shared<tinyxml2::XMLDocument>(new tinyxml2::XMLDocument);
+
+    tinyxml2::XMLError error = doc->Parse(description.c_str(), description.size());
+    if (error != tinyxml2::XML_SUCCESS) {
+        RAISE_RUNTIME_ERROR << "OTSlide::openFile: error parsing ometiff xml metadata in file " << filePath;
+    }
+
+    tinyxml2::XMLElement* root = doc->RootElement();
+    if (!root) {
+        RAISE_RUNTIME_ERROR << "OTImageDriver: Invalid xml metadata in file: " << filePath;
+    }
+
+    tinyxml2::XMLElement* binaryOnlyElem = root->FirstChildElement("BinaryOnly");
+    if (binaryOnlyElem != nullptr) {
+        const tinyxml2::XMLAttribute* mtd = binaryOnlyElem->FindAttribute("MetadataFile");
+		if (mtd != nullptr && mtd->Value() != nullptr) {
+			std::string metadataFile = mtd->Value();
+			if (!metadataFile.empty()) {
+                std::filesystem::path dir = std::filesystem::path(filePath).parent_path();
+                std::filesystem::path metadataPath = dir / metadataFile;
+				std::ifstream file(metadataPath.c_str());
+				if (file.is_open()) {
+					std::string metadataContent((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+					description = metadataContent;
+					SLIDEIO_LOG(INFO) << "OTSlide::openFile: Metadata loaded from file: " << metadataFile;
+                    tinyxml2::XMLError error = doc->Parse(description.c_str(), description.size());
+                    if (error != tinyxml2::XML_SUCCESS) {
+                        RAISE_RUNTIME_ERROR << "OTSlide::openFile: error parsing ometiff xml metadata in file " << metadataPath;
+                    }
+                }
+				else {
+					RAISE_RUNTIME_ERROR << "OTSlide::openFile: Cannot open metadata file: " << metadataFile;
+				}
+			}
+		}
+    }
+    slide = processMetadata(filePath, slide, doc);
+    slide->m_rawMetadata = description;
     return slide;
 }
 

@@ -104,6 +104,28 @@ TEST_F(OTImageDriverTests, openMultifileSlide) {
 	EXPECT_EQ(scene->getCompression(), sceneInfo.compression);
 }
 
+TEST_F(OTImageDriverTests, openMultifileExternalMetadata) {
+	std::string filePath = TestTools::getFullTestImagePath("ometiff", "Multifile2/multifile-Z1.ome.tiff");
+	slideio::ometiff::OTImageDriver driver;
+	std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
+	ASSERT_TRUE(slide != nullptr);
+	const int numScenes = slide->getNumScenes();
+	ASSERT_EQ(numScenes, 1);
+	const SceneInfo sceneInfo =
+	{ "multifile", {0,0,18,24}, 1, 5,1,0,{1.e-6,1.e-6}, DataType::DT_Byte, Compression::Uncompressed, 1 };
+	std::shared_ptr<CVScene> scene = slide->getSceneByName(sceneInfo.name);
+	ASSERT_TRUE(scene != nullptr);
+	EXPECT_EQ(scene->getRect(), sceneInfo.rect);
+	EXPECT_EQ(scene->getNumChannels(), sceneInfo.numChannels);
+	EXPECT_EQ(scene->getNumZSlices(), sceneInfo.numZSlices);
+	EXPECT_EQ(scene->getNumTFrames(), sceneInfo.numTFrames);
+	EXPECT_EQ(scene->getMagnification(), sceneInfo.magnification);
+	EXPECT_DOUBLE_EQ(scene->getResolution().x, sceneInfo.res.x);
+	EXPECT_DOUBLE_EQ(scene->getResolution().y, sceneInfo.res.y);
+	EXPECT_EQ(scene->getChannelDataType(0), sceneInfo.dt);
+	EXPECT_EQ(scene->getCompression(), sceneInfo.compression);
+}
+
 TEST_F(OTImageDriverTests, openMultiResolutionSlide) {
 	const SceneInfo scenesInfo[] = {
 		{"macro", {0,0,1616,4668}, 3, 1,1,0.60833,{1.6438445776255536e-5,1.6438445776255536e-5}, DataType::DT_Byte, Compression::Jpeg, 3},
@@ -282,6 +304,8 @@ TEST_F(OTImageDriverTests, readBlockSingleTile) {
 	const int numScenes = slide->getNumScenes();
 	ASSERT_EQ(numScenes, 2);
     std::shared_ptr<CVScene> scene = slide->getSceneByName("Image:1");
+	cv::Rect sceneRect = scene->getRect();
+	EXPECT_EQ(sceneRect, cv::Rect(0, 0, 36832, 38432));
 	cv::Rect rect = { 21504, 15360, 512, 512 };
 	std::vector<int> channels = { 0, 1, 2 };
 	cv::Mat raster;

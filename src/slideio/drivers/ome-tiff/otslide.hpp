@@ -6,6 +6,8 @@
 #include "slideio/core/cvslide.hpp"
 #include "slideio/imagetools/libtiff.hpp"
 #include <map>
+#include <memory>
+#include <tinyxml2.h>
 
 #if defined(_MSC_VER)
 #pragma warning( push )
@@ -27,6 +29,8 @@ namespace slideio
             int getNumScenes() const override;
             std::string getFilePath() const override;
             std::shared_ptr<slideio::CVScene> getScene(int index) const override;
+            static std::shared_ptr<OTSlide> processMetadata(const std::string& filePath, std::shared_ptr<OTSlide> slide,
+                                                            std::shared_ptr<tinyxml2::XMLDocument> doc);
             static std::shared_ptr<OTSlide> openFile(const std::string& path);
 			static std::shared_ptr<CVScene> createScene(const ImageData& imageData);
             static void closeFile(libtiff::TIFF* hfile);
