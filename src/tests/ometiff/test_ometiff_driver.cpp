@@ -574,3 +574,36 @@ TEST_F(OTImageDriverTests, metadata) {
 		EXPECT_EQ(slide->getScene(0)->getMetadataFormat(), slideio::MetadataFormat::None);
 	}
 }
+
+TEST_F(OTImageDriverTests, readBlockLargeFile) {
+	std::string filePath = TestTools::getFullTestImagePath("ometiff", "private/test.ome.tif");
+	std::string testFilePathCh1 = TestTools::getFullTestImagePath("ometiff", "Tests/retina_large.ome-page32-channel-0.tif");
+	std::string testFilePathCh2 = TestTools::getFullTestImagePath("ometiff", "Tests/retina_large.ome-page32-channel-1.tif");
+	slideio::ometiff::OTImageDriver driver;
+	std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
+	ASSERT_TRUE(slide != nullptr);
+	const int numScenes = slide->getNumScenes();
+	ASSERT_EQ(numScenes, 1);
+	//std::shared_ptr<CVScene> scene = slide->getSceneByName("retina_large.ims Resolution Level 1");
+	//ASSERT_TRUE(scene != nullptr);
+	//// Read original scale
+	//cv::Rect rect = { 1000, 300, 1000, 500 };
+	//std::vector<int> channels = {};
+	//cv::Mat raster;
+	//scene->read4DBlockChannels(rect, channels, cv::Range(32, 33), cv::Range(0, 1), raster);
+	//EXPECT_FALSE(raster.empty());
+	//cv::Mat channelRaster;
+	//cv::extractChannel(raster, channelRaster, 0);
+
+	//cv::Mat testRaster;
+	//ImageTools::readGDALImage(testFilePathCh1, testRaster);
+	//cv::Mat region = testRaster(rect);
+	//double sim = ImageTools::computeSimilarity2(channelRaster, region);
+	//EXPECT_GT(sim, 0.99);
+
+	//cv::extractChannel(raster, channelRaster, 1);
+	//ImageTools::readGDALImage(testFilePathCh2, testRaster);
+	//region = testRaster(rect);
+	//sim = ImageTools::computeSimilarity2(channelRaster, region);
+	//EXPECT_GT(sim, 0.99);
+}

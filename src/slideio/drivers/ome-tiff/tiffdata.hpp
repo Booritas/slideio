@@ -25,7 +25,7 @@ namespace slideio
         {
         public:
 			TiffData() = default;
-			void init(const std::string& directoryPath, TIFFFiles* files, const std::string& dimOrder, int numChannels, int numZSlices, int numTFrames, tinyxml2::XMLElement* xmlTiffData);
+			void init(const std::string& filePath, TIFFFiles* files, const std::string& dimOrder, int numChannels, int numZSlices, int numTFrames, tinyxml2::XMLElement* xmlTiffData);
 			bool isInRange(int channel, int slice, int frame) const;
 			int getFirstIFD() const {
 				return m_firstIFD;

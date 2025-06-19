@@ -84,15 +84,13 @@ void OTScene::extractMagnificationFromMetadata() {
 
 void OTScene::extractTiffData(tinyxml2::XMLElement* pixels) {
 	SLIDEIO_LOG(INFO) << "OTScene: Extracting TiffData from xml metadata for image: " << m_imageId;
-    std::string directoryPath = std::filesystem::path(m_filePath).parent_path().string();
-    std::string fileName = std::filesystem::path(m_filePath).filename().string();
 
     for (tinyxml2::XMLElement* xmlTiffData = pixels->FirstChildElement("TiffData");
          xmlTiffData != nullptr;
          xmlTiffData = xmlTiffData->NextSiblingElement("TiffData")) {
         try {
             TiffData tiffData;
-            tiffData.init(directoryPath, &m_files, m_dimensionOrder, m_numChannels, m_numZSlices, m_numTFrames, xmlTiffData);
+            tiffData.init(m_filePath, &m_files, m_dimensionOrder, m_numChannels, m_numZSlices, m_numTFrames, xmlTiffData);
             m_tiffData.push_back(tiffData);
         }
         catch (std::exception& e) {

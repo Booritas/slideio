@@ -62,7 +62,7 @@ TEST_F(TiffDataTests, init) {
 	tinyxml2::XMLDocument doc;
 	extractTiffData(filePath, files, "Image:0", "FirstZ", 32, doc, xmlTiffData);
 	TiffData tiffData;
-	tiffData.init(directoryPath, &files, "XYZCT", 2, 64, 1, xmlTiffData);
+	tiffData.init(filePath, &files, "XYZCT", 2, 64, 1, xmlTiffData);
 	EXPECT_EQ(1, files.getNumberOfOpenFiles());
 	EXPECT_EQ(tiffData.getFirstIFD(), 32);
 	EXPECT_EQ(tiffData.getPlaneCount(), 1);
@@ -86,7 +86,7 @@ TEST_F(TiffDataTests, init3chnl) {
 	extractTiffData(filePath, files, "Image:1", "FirstZ", 0, doc, xmlTiffData);
 	TiffData tiffData;
 	OTDimensions dimensions;
-	tiffData.init(directoryPath, &files, "XYCZT", 3, 1, 1, xmlTiffData);
+	tiffData.init(filePath, &files, "XYCZT", 3, 1, 1, xmlTiffData);
 	EXPECT_EQ(1, files.getNumberOfOpenFiles());
 	EXPECT_EQ(tiffData.getFirstIFD(), 1);
 	EXPECT_EQ(tiffData.getPlaneCount(), 1);
@@ -112,7 +112,7 @@ TEST_F(TiffDataTests, readTileFirstChannelOf2) {
 	extractTiffData(filePath, files, "Image:0", "FirstZ", 32, doc, xmlTiffData);
 	ASSERT_TRUE(xmlTiffData != nullptr);
 	TiffData tiffData;
-	tiffData.init(directoryPath, &files, "XYZCT", 2, 64, 1, xmlTiffData);
+	tiffData.init(filePath, &files, "XYZCT", 2, 64, 1, xmlTiffData);
 	const TiffDirectory& dir = tiffData.getTiffDirectory(0);
 	const TiffDirectory& dir1 = dir.subdirectories[1];
 	ASSERT_EQ(dir.dirIndex, 32);
@@ -138,7 +138,7 @@ TEST_F(TiffDataTests, readTileSecondChannelOf2) {
 	extractTiffData(filePath, files, "Image:0", "IFD", 96, doc, xmlTiffData);
 	ASSERT_TRUE(xmlTiffData != nullptr);
 	TiffData tiffData;
-	tiffData.init(directoryPath, &files, "XYZCT", 2, 64, 1, xmlTiffData);
+	tiffData.init(filePath, &files, "XYZCT", 2, 64, 1, xmlTiffData);
 	const TiffDirectory& dir = tiffData.getTiffDirectory(0);
 	const TiffDirectory& dir1 = dir.subdirectories[1];
 	ASSERT_EQ(dir.dirIndex, 96);
@@ -163,7 +163,7 @@ TEST_F(TiffDataTests, readTile3chOf3) {
 	tinyxml2::XMLDocument doc;
 	extractTiffData(filePath, files, "Image:0", "IFD", 0, doc, xmlTiffData);
 	TiffData tiffData;
-	tiffData.init(directoryPath, &files, "XYCZT", 3, 1, 1, xmlTiffData);
+	tiffData.init(filePath, &files, "XYCZT", 3, 1, 1, xmlTiffData);
 	const TiffDirectory& dir = tiffData.getTiffDirectory(0);
 	const TiffDirectory& dir1 = dir.subdirectories[1];
 
@@ -191,7 +191,7 @@ TEST_F(TiffDataTests, readTileChannelsStripePlanar) {
 	extractTiffData(filePath, files, "Image:0", "FirstZ", 32, doc, xmlTiffData);
 	TiffData tiffData;
 	OTDimensions dimensions;
-	tiffData.init(directoryPath, &files, "XYZCT", 2, 64, 1, xmlTiffData);
+	tiffData.init(filePath, &files, "XYZCT", 2, 64, 1, xmlTiffData);
 	const TiffDirectory& dir = tiffData.getTiffDirectory(0);
     const TiffDirectory& dir1 = dir.subdirectories[1];
 	ASSERT_EQ(dir.dirIndex, 32);
@@ -217,7 +217,7 @@ TEST_F(TiffDataTests, readTileChannelsStripePlanar3ch) {
 	tinyxml2::XMLDocument doc;
 	extractTiffData(filePath, files, "Image:0","IFD", 0, doc, xmlTiffData);
 	TiffData tiffData;
-	tiffData.init(directoryPath, &files, "XYCZT", 3, 1, 1, xmlTiffData);
+	tiffData.init(filePath, &files, "XYCZT", 3, 1, 1, xmlTiffData);
 	const TiffDirectory& dir = tiffData.getTiffDirectory(0);
 	const TiffDirectory& dir1 = dir.subdirectories[0];
 	std::vector<int> channelIndices = { 0, 1, 2 };
@@ -243,7 +243,7 @@ TEST_F(TiffDataTests, readTileChannelsTiledPlanar3ch) {
 	tinyxml2::XMLDocument doc;
 	extractTiffData(filePath, files, "Image:1", "IFD", 1, doc, xmlTiffData);
 	TiffData tiffData;
-	tiffData.init(directoryPath, &files, "XYCZT", 3, 1, 1, xmlTiffData);
+	tiffData.init(filePath, &files, "XYCZT", 3, 1, 1, xmlTiffData);
 	const TiffDirectory& dir = tiffData.getTiffDirectory(0);
 	std::vector<int> channelIndices = { 0, 1, 2 };
 	cv::Mat raster;
@@ -263,7 +263,7 @@ TEST_F(TiffDataTests, readTileChannelsTiledPalette3ch) {
 	tinyxml2::XMLDocument doc;
 	extractTiffData(filePath, files, "Image:1", "IFD", 1, doc, xmlTiffData);
 	TiffData tiffData;
-	tiffData.init(directoryPath, &files, "XYCZT", 3, 1, 1, xmlTiffData);
+	tiffData.init(filePath, &files, "XYCZT", 3, 1, 1, xmlTiffData);
 	const TiffDirectory& dir = tiffData.getTiffDirectory(0);
 	std::vector<int> channelIndices = { 0, 1, 2 };
 	cv::Mat raster;

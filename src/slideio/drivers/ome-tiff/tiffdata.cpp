@@ -16,8 +16,12 @@
 using namespace slideio;
 using namespace slideio::ometiff;
 
-void TiffData::init(const std::string& directoryPath, TIFFFiles* files, const std::string& dimOrder, int numChannels, int numZSlices, int numTFrames, tinyxml2::XMLElement* xmlTiffData) {
-	if (xmlTiffData == nullptr) {
+void TiffData::init(const std::string& filePath, TIFFFiles* files, const std::string& dimOrder, int numChannels, int numZSlices, int numTFrames, tinyxml2::XMLElement* xmlTiffData) {
+
+    m_filePath = filePath;
+    const std::string directoryPath = std::filesystem::path(filePath).parent_path().string();
+
+    if (xmlTiffData == nullptr) {
 		RAISE_RUNTIME_ERROR << "TiffData: Unexpected xmlTiffData is null";
 	}
 	if (directoryPath.empty()) {
@@ -38,10 +42,12 @@ void TiffData::init(const std::string& directoryPath, TIFFFiles* files, const st
 	}
 
     tinyxml2::XMLElement* uuid = xmlTiffData->FirstChildElement("UUID");
-    if (!uuid) {
+    const char* fileNameAttr = nullptr;
+    if (uuid != nullptr) {
+        fileNameAttr = uuid->Attribute("FileName");
+    } else {
         SLIDEIO_LOG(WARNING) << "OTScene: missing required UUID element in the xml metadata";
     }
-    const char* fileNameAttr = uuid->Attribute("FileName");
     m_filePath = (fileNameAttr == nullptr || *fileNameAttr == '\0')
         ? m_filePath
         : std::filesystem::path(directoryPath).append(fileNameAttr).string();
