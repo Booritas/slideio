@@ -9,6 +9,7 @@ struct SCNDimensionInfo
     int r;
     int c;
     int ifd;
+    int z;
 };
 
 struct SCNTilingInfo

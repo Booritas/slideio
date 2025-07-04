@@ -49,6 +49,9 @@ namespace slideio
         template <typename Functor>
         static int findZoomLevel(double zoom, int numLevels, Functor zoomFunction)
         {
+            if(numLevels <= 0) {
+                return -1;
+            }
             const double baseZoom = zoomFunction(0);
             if (zoom >= baseZoom)
             {
