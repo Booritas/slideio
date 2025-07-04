@@ -7,6 +7,7 @@
 #include "slideio/imagetools/imagetools.hpp"
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/imagetools/libtiff.hpp"
+#include "slideio/core/tools/cvtools.hpp"
 
 
 using namespace slideio;
@@ -297,13 +298,22 @@ bool SCNScene::readTile(int tileIndex, const std::vector<int>& channelIndices, c
     if(m_interleavedChannels)
     {
         const TiffDirectory* dir = info->channel2ifd.begin()->second;
-        TiffTools::readTile(getFileHandle(), *dir, tileIndex, channelIndices, tileRaster);
+        if(dir) {
+            TiffTools::readTile(getFileHandle(), *dir, tileIndex, channelIndices, tileRaster);
+        } else {
+            RAISE_RUNTIME_ERROR << "SCNImageDriver: missing channel for interleaved scene " 
+                << channelIndices[0] << " received during tile reading. File " << m_filePath;
+        }
     }
     else if(channelIndices.size()==1)
     {
         const std::vector<int> localChannelIndices = { 0 };
         const TiffDirectory* dir = info->channel2ifd.begin()->second;
-        TiffTools::readTile(getFileHandle(), *dir, tileIndex, localChannelIndices, tileRaster);
+        if(dir){
+            TiffTools::readTile(getFileHandle(), *dir, tileIndex, localChannelIndices, tileRaster);
+        } else {
+            createEmptyChannelTile(tileIndex, channelIndices[0], tileRaster, userData);
+        }
     }
     else
     {
@@ -319,7 +329,11 @@ bool SCNScene::readTile(int tileIndex, const std::vector<int>& channelIndices, c
                     << channelIndex << " received during tile reading. File " << m_filePath;
             }
             const TiffDirectory* dir = it->second;
-            TiffTools::readTile(getFileHandle(), *dir, tileIndex, localChannelIndices, channelRasters[channel]);
+            if(dir) {
+                TiffTools::readTile(getFileHandle(), *dir, tileIndex, localChannelIndices, channelRasters[channel]);
+            } else {
+                createEmptyChannelTile(tileIndex, channel, channelRasters[channel], userData);
+            }
             ++channel;
         }
         cv::merge(channelRasters, tileRaster);
@@ -333,3 +347,16 @@ void SCNScene::initializeBlock(const cv::Size& blockSize, const std::vector<int>
 }
 
 
+void SCNScene::createEmptyChannelTile(int tileIndex, int channel, cv::OutputArray output, void* userData)
+{
+    cv::Rect rect;
+    getTileRect(tileIndex, rect, userData);
+    const slideio::DataType dt = this->getChannelDataType(channel);
+    output.create(rect.size(), CV_MAKETYPE(CVTools::toOpencvType(dt), 1));
+    if (dt == DataType::DT_Byte) {
+        output.setTo(255);
+    }
+    else {
+        output.setTo(0.0);
+    }
+}

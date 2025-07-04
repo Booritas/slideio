@@ -82,7 +82,7 @@ namespace slideio
         libtiff::TIFF* getFileHandle() {
             return m_tiff;
         }
-
+        void createEmptyChannelTile(int tileIndex, int channel, cv::OutputArray output, void* userData);
     protected:
         TIFFKeeper m_tiff;
         std::string m_filePath;
