@@ -70,7 +70,7 @@ namespace slideio
         bool readTile(int tileIndex, const std::vector<int>& channelIndices, cv::OutputArray tileRaster,
             void* userData) override;
         void initializeBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices, cv::OutputArray output) override;
-        const TiffDirectory& findZoomDirectory(int channelIndex, int zIndex, double zoom) const;
+        const TiffDirectory* findZoomDirectory(int channelIndex, int zIndex, double zoom) const;
         static std::vector<SCNDimensionInfo> parseDimensions(const tinyxml2::XMLElement* xmlPixels);
     protected:
         void init(const tinyxml2::XMLElement* xmlImage);

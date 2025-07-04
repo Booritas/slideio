@@ -169,40 +169,40 @@ TEST(SCNImageDriver, findZoomDirectory)
         std::shared_ptr<slideio::SCNScene> scene = std::dynamic_pointer_cast<slideio::SCNScene>(slide->getAuxImage("Macro"));
         ASSERT_FALSE(scene == nullptr);
         {
-            const auto& dir = scene->findZoomDirectory(0, 0, 1);
-            EXPECT_EQ(dir.dirIndex, 0);
+            auto dir = scene->findZoomDirectory(0, 0, 1);
+            EXPECT_EQ(dir->dirIndex, 0);
         }
         {
-            const auto& dir = scene->findZoomDirectory(0, 0, 0.5);
-            EXPECT_EQ(dir.dirIndex, 0);
+            const auto dir = scene->findZoomDirectory(0, 0, 0.5);
+            EXPECT_EQ(dir->dirIndex, 0);
         }
         {
-            const auto& dir = scene->findZoomDirectory(0, 0, 0.25);
-            EXPECT_EQ(dir.dirIndex, 1);
+            const auto dir = scene->findZoomDirectory(0, 0, 0.25);
+            EXPECT_EQ(dir->dirIndex, 1);
         }
         {
-            const auto& dir = scene->findZoomDirectory(0, 0, 0.01);
-            EXPECT_EQ(dir.dirIndex, 2);
+            const auto dir = scene->findZoomDirectory(0, 0, 0.01);
+            EXPECT_EQ(dir->dirIndex, 2);
         }
     }
     {
         std::shared_ptr<slideio::SCNScene> scene = std::dynamic_pointer_cast<slideio::SCNScene>(slide->getScene(0));
         ASSERT_FALSE(scene == nullptr);
         {
-            const auto& dir = scene->findZoomDirectory(2, 0, 1);
-            EXPECT_EQ(dir.dirIndex, 8);
+            const auto dir = scene->findZoomDirectory(2, 0, 1);
+            EXPECT_EQ(dir->dirIndex, 8);
         }
         {
-            const auto& dir = scene->findZoomDirectory(2, 0, 0.5);
-            EXPECT_EQ(dir.dirIndex, 8);
+            const auto dir = scene->findZoomDirectory(2, 0, 0.5);
+            EXPECT_EQ(dir->dirIndex, 8);
         }
         {
-            const auto& dir = scene->findZoomDirectory(2, 0, 0.25);
-            EXPECT_EQ(dir.dirIndex, 11);
+            const auto dir = scene->findZoomDirectory(2, 0, 0.25);
+            EXPECT_EQ(dir->dirIndex, 11);
         }
         {
-            const auto& dir = scene->findZoomDirectory(2, 0, 0.01);
-            EXPECT_EQ(dir.dirIndex, 17);
+            const auto dir = scene->findZoomDirectory(2, 0, 0.01);
+            EXPECT_EQ(dir->dirIndex, 17);
         }
     }
 }
@@ -597,24 +597,24 @@ TEST(SCNImageDriver, zStackFindZoomDirectory) {
     ASSERT_TRUE(scene != nullptr);
     {
         {
-            const auto& dir = scene->findZoomDirectory(0, 0, 1);
-            EXPECT_EQ(dir.dirIndex, 11);
+            const auto dir = scene->findZoomDirectory(0, 0, 1);
+            EXPECT_EQ(dir->dirIndex, 11);
         }
         {
-            const auto& dir = scene->findZoomDirectory(1, 1, 1);
-            EXPECT_EQ(dir.dirIndex, 19);
+            const auto dir = scene->findZoomDirectory(1, 1, 1);
+            EXPECT_EQ(dir->dirIndex, 19);
         }
         {
-            const auto& dir = scene->findZoomDirectory(2, 2, 1);
-            EXPECT_EQ(dir.dirIndex, 59);
+            const auto dir = scene->findZoomDirectory(2, 2, 1);
+            EXPECT_EQ(dir->dirIndex, 59);
         }
         {
-            const auto& dir = scene->findZoomDirectory(2, 2, 0.5);
-            EXPECT_EQ(dir.dirIndex, 60);
+            const auto dir = scene->findZoomDirectory(2, 2, 0.5);
+            EXPECT_EQ(dir->dirIndex, 60);
         }
         {
-            const auto& dir = scene->findZoomDirectory(2, 2, 0.25);
-            EXPECT_EQ(dir.dirIndex, 61);
+            const auto dir = scene->findZoomDirectory(2, 2, 0.25);
+            EXPECT_EQ(dir->dirIndex, 61);
         }
     }
 }

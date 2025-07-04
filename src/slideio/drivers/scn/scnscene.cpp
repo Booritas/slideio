@@ -65,16 +65,14 @@ void SCNScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv:
 
     for(auto channelIndex: channelIndices)
     {
-        auto directories = getChannelDirectories(channelIndex, zSliceIndex);
-        if(directories.empty()) {
+        const slideio::TiffDirectory* dir = findZoomDirectory(channelIndex, zSliceIndex, zoom);
+        info.channel2ifd[channelIndex] = dir;
+        if(!dir) {
             continue;
         }
-        const slideio::TiffDirectory& dir = findZoomDirectory(channelIndex, zSliceIndex, zoom);
-        info.channel2ifd[channelIndex] = &dir;
-        if(zoomDirX<0 || zoomDirY<0)
-        {
-            zoomDirX = static_cast<double>(dir.width) / static_cast<double>(m_rect.width);
-            zoomDirY = static_cast<double>(dir.height) / static_cast<double>(m_rect.height);
+        if(zoomDirX<0 || zoomDirY<0) {
+            zoomDirX = static_cast<double>(dir->width) / static_cast<double>(m_rect.width);
+            zoomDirY = static_cast<double>(dir->height) / static_cast<double>(m_rect.height);
         }
     }
 
@@ -254,7 +252,7 @@ void SCNScene::init(const XMLElement* xmlImage)
     }
 }
 
-const TiffDirectory& SCNScene::findZoomDirectory(int channelIndex, int zIndex, double zoom) const 
+const TiffDirectory* SCNScene::findZoomDirectory(int channelIndex, int zIndex, double zoom) const 
 {
     const cv::Rect sceneRect = getRect();
     const double sceneWidth = static_cast<double>(sceneRect.width);
@@ -263,9 +261,9 @@ const TiffDirectory& SCNScene::findZoomDirectory(int channelIndex, int zIndex, d
         return directories[index].width / sceneWidth;
         });
     if(index < 0 || index >= (int)directories.size()) {
-        RAISE_RUNTIME_ERROR << "SCNImageDriver: Cannot detect zoom level for channel: " << channelIndex << " z-slice index: " << zIndex;
+        return nullptr;
     }
-    return directories[index];
+    return &(directories[index]);
 }
 
 int SCNScene::getTileCount(void* userData)
