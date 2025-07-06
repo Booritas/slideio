@@ -43,24 +43,24 @@
       <config projectName="slide_io" targetName="slideio-imagetools" />
       <config projectName="slide_io" targetName="slideio-transformer" />
       <config projectName="slide_io" targetName="slideio-afi" />
+      <config projectName="slide_io" targetName="slideio-core" />
       <config projectName="slide_io" targetName="slideio-scn" />
+      <config projectName="slide_io" targetName="slideio-test-lib" />
       <config projectName="slide_io" targetName="slideio_ndpi_tests" />
+      <config projectName="slide_io" targetName="slideio_tests" />
       <config projectName="slide_io" targetName="slideio-base" />
       <config projectName="slide_io" targetName="slideio-czi" />
       <config projectName="slide_io" targetName="slideio" />
       <config projectName="slide_io" targetName="slideio_transformer_tests" />
+      <config projectName="slide_io" targetName="slideio-svs" />
+      <config projectName="slide_io" targetName="slideio-ndpi" />
       <config projectName="slide_io" targetName="slideio-dcm" />
+      <config projectName="slide_io" targetName="slideio-converter" />
       <config projectName="slide_io" targetName="slideio_converter_tests" />
+      <config projectName="slide_io" targetName="slideio-zvi" />
       <config projectName="slide_io" targetName="slideio-vsi" />
       <config projectName="slide_io" targetName="slideio_vsi_tests" />
       <config projectName="slide_io" targetName="slideio-pke" />
-      <config projectName="slide_io" targetName="slideio-core" />
-      <config projectName="slide_io" targetName="slideio-test-lib" />
-      <config projectName="slide_io" targetName="slideio_tests" />
-      <config projectName="slide_io" targetName="slideio-svs" />
-      <config projectName="slide_io" targetName="slideio-ndpi" />
-      <config projectName="slide_io" targetName="slideio-converter" />
-      <config projectName="slide_io" targetName="slideio-zvi" />
     </generated>
   </component>
   <component name="CMakeSettings" AUTO_RELOAD="true">
@@ -79,16 +79,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="ab3fa5e4-e9e7-4544-8e69-a93644a57165" name="Default Changelist" comment="bug in linux and macos for reading of string from vsi file">
-      <change afterPath="$PROJECT_DIR$/.idea/editor.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/slideio/drivers/scn/scnscene.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/drivers/scn/scnscene.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/slideio/drivers/scn/scnscene.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/drivers/scn/scnscene.hpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/slideio/drivers/scn/scnstruct.h" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/drivers/scn/scnstruct.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/CMakeLists.txt" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/tests/main/test_scn_driver.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/tests/main/test_scn_driver.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/tests/testlib/testtools.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/tests/testlib/testtools.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/tests/testlib/testtools.hpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/tests/testlib/testtools.hpp" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -140,7 +134,7 @@
     "cidr.known.project.marker": "true",
     "ctest.advertisement.all.test.configuration.is.created": "true",
     "git-widget-placeholder": "v2.7.1",
-    "last_opened_file_path": "/home/stanislav/projects/slideio/slideio",
+    "last_opened_file_path": "/Users/s.melnikov/projects/slideio/slideio",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
@@ -150,7 +144,12 @@
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
-  <component name="RunManager" selected="Google Test.SCNImageDriver.zStackFindZoomDirectory">
+  <component name="RunManager" selected="CTest Application.slideio_tests">
+    <configuration default="true" type="CLionExternalRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true">
+      <method v="2">
+        <option name="CLION.EXTERNAL.BUILD" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="GDALDriver.openFileUtf8" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" temporary="true" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="slideio_tests" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="slide_io" RUN_TARGET_NAME="slideio_tests" TEST_CLASS="GDALDriver" TEST_METHOD="openFileUtf8" TEST_MODE="SUITE_TEST">
       <envs>
         <env name="SLIDEIO_IMAGES_PATH" value="$PROJECT_DIR$/../images/images" />
@@ -418,6 +417,7 @@
       <workItem from="1709411887965" duration="6362000" />
       <workItem from="1751622415735" duration="306000" />
       <workItem from="1751627832778" duration="255000" />
+      <workItem from="1751654082752" duration="1767000" />
     </task>
     <task id="LOCAL-00001" summary="bug in linux and macos for reading of string from vsi file">
       <option name="closed" value="true" />
