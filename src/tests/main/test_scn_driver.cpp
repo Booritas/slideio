@@ -589,10 +589,12 @@ TEST(SCNImageDriver, zStack) {
     cv::Rect rect = scene->getRect();
     EXPECT_EQ(rect.size(), cv::Size(2573, 2674));
     cv::Mat sliceRaster;
-    cv::Rect sceneRect(0,0, rect.width, rect.height);
+    cv::Rect blockRect(0,0, rect.width, rect.height);
     std::vector<int> channels = {1};
-    scene->readResampled4DBlockChannels(rect, rect.size(), channels, cv::Range(0, 1), cv::Range(0,1), sliceRaster);
-    TestTools::writePNG(sliceRaster, TestTools::getFullTestImagePath("scn", "private/HER2-63x_1-slice.png"));
+	cv::Size blockSize = { blockRect.width / 4, blockRect.height / 4 };
+    scene->readResampled4DBlockChannels(blockRect, blockSize, channels, cv::Range(0, 1), cv::Range(0, 1), sliceRaster);
+	//TestTools::showRaster(sliceRaster);
+    //TestTools::writePNG(sliceRaster, TestTools::getFullTestImagePath("scn", "private/HER2-63x_1-slice.png"));
 }
 
 TEST(SCNImageDriver, zStackFindZoomDirectory) {
