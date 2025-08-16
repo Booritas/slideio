@@ -9,10 +9,10 @@
 #include "slideio/drivers/scn/scnscene.hpp"
 #include <opencv2/imgproc.hpp>
 
+#include "slideio/core/tools/cvtools.hpp"
 #include "slideio/core/tools/endian.hpp"
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/imagetools/imagetools.hpp"
-#include "slideio/drivers/scn/scnscene.hpp"
 #include "slideio/core/tools/xmltools.hpp"
 
 
@@ -566,6 +566,7 @@ TEST(SCNImageDriver, zStackSetup) {
 
 TEST(SCNImageDriver, zStack) {
     std::string filePath = TestTools::getFullTestImagePath("scn", "private/HER2-63x_1.scn");
+    std::string testFilePath = TestTools::getFullTestImagePath("scn", "private/page-67-StitchAB907A82-6319-422F-9B5B-EB0E0A9D0525-z=4-r=0-c=2.tiff");
     slideio::SCNImageDriver driver;
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
@@ -589,12 +590,28 @@ TEST(SCNImageDriver, zStack) {
     cv::Rect rect = scene->getRect();
     EXPECT_EQ(rect.size(), cv::Size(2573, 2674));
     cv::Mat sliceRaster;
-    cv::Rect blockRect(0,0, rect.width, rect.height);
-    std::vector<int> channels = {1};
-	cv::Size blockSize = { blockRect.width / 4, blockRect.height / 4 };
-    scene->readResampled4DBlockChannels(blockRect, blockSize, channels, cv::Range(0, 1), cv::Range(0, 1), sliceRaster);
-	//TestTools::showRaster(sliceRaster);
-    //TestTools::writePNG(sliceRaster, TestTools::getFullTestImagePath("scn", "private/HER2-63x_1-slice.png"));
+    cv::Rect blockRect(0, 0, rect.width, rect.height);
+    std::vector<int> channels = { 2 };
+    cv::Size blockSize = { blockRect.width, blockRect.height };
+    scene->readResampled4DBlockChannels(blockRect, blockSize, channels, cv::Range(4, 5), cv::Range(0, 1), sliceRaster);
+    cv::Mat testRaster;
+    slideio::ImageTools::readGDALImage(testFilePath, testRaster);
+    EXPECT_TRUE(TestTools::compareRastersEx(sliceRaster, testRaster));
+    //TestTools::showRasters(sliceRaster,testRaster);
+    blockRect = { rect.width / 2, rect.height / 2, rect.width / 4, rect.height / 4 };
+    blockSize = { blockRect.width / 8, blockRect.height / 8 };
+    scene->readResampled4DBlockChannels(blockRect, blockSize, channels, cv::Range(4, 5), cv::Range(0, 1), sliceRaster);
+    cv::Mat cropped(testRaster, blockRect);
+    cv::Mat resizedTest;
+    cv::resize(cropped, resizedTest, blockSize);
+    //TestTools::showRasters(sliceRaster, resizedTest);
+    double score = slideio::ImageTools::computeSimilarity2(sliceRaster, resizedTest);
+    EXPECT_GE(score, 0.99);
+    scene->readResampled4DBlockChannels(blockRect, blockSize, channels, cv::Range(0, 8), cv::Range(0, 1), sliceRaster);
+	cv::Mat sliceRaster2;
+	slideio::CVTools::extractSliceFrom3D(sliceRaster, 4,sliceRaster2);
+    score = slideio::ImageTools::computeSimilarity2(sliceRaster2, resizedTest);
+    EXPECT_GE(score, 0.99);
 }
 
 TEST(SCNImageDriver, zStackFindZoomDirectory) {
