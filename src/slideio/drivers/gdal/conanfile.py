@@ -9,7 +9,7 @@ class GdalRecipe(ConanFile):
         self.requires("zlib/1.2.13")
         self.requires("xz_utils/5.4.5")
         self.requires("libtiff/4.6.0")
-        self.requires("libjpeg/9e")
+        self.requires("libjpeg/9f")
         self.requires("libwebp/1.3.2")
         self.requires("libpng/1.6.40")
         self.requires("openjpeg/2.5.2")
