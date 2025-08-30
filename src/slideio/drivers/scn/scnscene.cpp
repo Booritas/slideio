@@ -269,17 +269,24 @@ const TiffDirectory* SCNScene::findZoomDirectory(int channelIndex, int zIndex, d
 
 int SCNScene::getTileCount(void* userData)
 {
+	int tileCount = 0;
     const SCNTilingInfo* info = (const SCNTilingInfo*)userData;
-    const TiffDirectory* dir = info->channel2ifd.begin()->second;
-    int tilesX = (dir->width - 1) / dir->tileWidth + 1;
-    int tilesY = (dir->height - 1) / dir->tileHeight + 1;
-    return tilesX * tilesY;
+    const TiffDirectory* dir = info->getValidDir();
+    if (dir != nullptr) {
+        int tilesX = (dir->width - 1) / dir->tileWidth + 1;
+        int tilesY = (dir->height - 1) / dir->tileHeight + 1;
+        tileCount = tilesX * tilesY;
+    }
+	return tileCount;
 }
 
 bool SCNScene::getTileRect(int tileIndex, cv::Rect& tileRect, void* userData)
 {
     const SCNTilingInfo* info = (const SCNTilingInfo*)userData;
-    const TiffDirectory* dir = info->channel2ifd.begin()->second;
+    const TiffDirectory* dir = info->getValidDir();
+	if (dir == nullptr) {
+		return false;
+	}
     const int tilesX = (dir->width - 1) / dir->tileWidth + 1;
     const int tilesY = (dir->height - 1) / dir->tileHeight + 1;
     const int tileY = tileIndex / tilesX;
@@ -297,7 +304,7 @@ bool SCNScene::readTile(int tileIndex, const std::vector<int>& channelIndices, c
     const SCNTilingInfo* info = (const SCNTilingInfo*)userData;
     if(m_interleavedChannels)
     {
-        const TiffDirectory* dir = info->channel2ifd.begin()->second;
+        const TiffDirectory* dir = info->getValidDir();
         if(dir) {
             TiffTools::readTile(getFileHandle(), *dir, tileIndex, channelIndices, tileRaster);
         } else {
@@ -308,7 +315,7 @@ bool SCNScene::readTile(int tileIndex, const std::vector<int>& channelIndices, c
     else if(channelIndices.size()==1)
     {
         const std::vector<int> localChannelIndices = { 0 };
-        const TiffDirectory* dir = info->channel2ifd.begin()->second;
+        const TiffDirectory* dir = info->getChannelDir(*channelIndices.begin());
         if(dir){
             TiffTools::readTile(getFileHandle(), *dir, tileIndex, localChannelIndices, tileRaster);
         } else {
@@ -353,10 +360,5 @@ void SCNScene::createEmptyChannelTile(int tileIndex, int channel, cv::OutputArra
     getTileRect(tileIndex, rect, userData);
     const slideio::DataType dt = this->getChannelDataType(channel);
     output.create(rect.size(), CV_MAKETYPE(CVTools::toOpencvType(dt), 1));
-    if (dt == DataType::DT_Byte) {
-        output.setTo(255);
-    }
-    else {
-        output.setTo(0.0);
-    }
+    output.setTo(0.0);
 }

@@ -38,10 +38,10 @@ void SCNSlide::constructScenes()
         throw std::runtime_error("SCNImageDriver: Error parsing metadata xml");
     }
 #if defined(WIN32) && defined(_DEBUG)
- //   std::string filePath = getFilePath();
-	//std::string fileName = std::filesystem::path(filePath).filename().string();
-	//std::string outputPath = "d:\\Temp\\" + fileName + ".xml";
- //   doc.SaveFile(outputPath.c_str(), false);
+    std::string filePath = getFilePath();
+	std::string fileName = std::filesystem::path(filePath).filename().string();
+	std::string outputPath = "d:\\Temp\\" + fileName + ".xml";
+    doc.SaveFile(outputPath.c_str(), false);
 #endif
     std::vector<std::string> collectionPath = {"scn", "collection"};
     const XMLElement* xmlCollection = XMLTools::getElementByPath(&doc, collectionPath);

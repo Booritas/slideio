@@ -674,3 +674,57 @@ TEST(SCNImageDriver, zStackGetChannelDir)
         ASSERT_EQ(dirs.size(), 0);
     }
 }
+
+TEST(SCNImageDriver, zStackMissingChannels) {
+    std::string filePath = TestTools::getFullTestImagePath("scn", "private/HER2-63x_1.scn");
+    std::string testFilePath = TestTools::getFullTestImagePath("scn", "private/page-67-StitchAB907A82-6319-422F-9B5B-EB0E0A9D0525-z=4-r=0-c=2.tiff");
+    slideio::SCNImageDriver driver;
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    const int numScenes = slide->getNumScenes();
+    ASSERT_EQ(numScenes, 7);
+    const int numImages = slide->getNumAuxImages();
+    ASSERT_EQ(numImages, 1);
+    std::shared_ptr<slideio::CVScene> scene = TestTools::findScene(slide, "StitchAB907A82-6319-422F-9B5B-EB0E0A9D0525");
+    ASSERT_TRUE(scene != nullptr);
+    const int numZslices = scene->getNumZSlices();
+    ASSERT_EQ(numZslices, 9);
+    const int numChannels = scene->getNumChannels();
+    ASSERT_EQ(numChannels, 3);
+    slideio::DataType dt = scene->getChannelDataType(0);
+    ASSERT_EQ(dt, slideio::DataType::DT_Byte);
+    double magnification = scene->getMagnification();
+    ASSERT_NEAR(magnification, 63, 1.e-6);
+    EXPECT_EQ(scene->getChannelName(0), "DAPI");
+    EXPECT_EQ(scene->getChannelName(1), "Green #1");
+    EXPECT_EQ(scene->getChannelName(2), "Orange");
+    cv::Rect rect = scene->getRect();
+    EXPECT_EQ(rect.size(), cv::Size(2573, 2674));
+    cv::Mat sliceRaster;
+    cv::Rect blockRect(0, 0, rect.width, rect.height);
+    std::vector<int> channels = {0, 1, 2 };
+    cv::Size blockSize = { blockRect.width, blockRect.height };
+
+    blockRect = { rect.width / 2, rect.height / 2, rect.width / 4, rect.height / 4 };
+    blockSize = { blockRect.width / 8, blockRect.height / 8 };
+    scene->readResampled4DBlockChannels(blockRect, blockSize, channels, cv::Range(4, 5), cv::Range(0, 1), sliceRaster);
+    // channel 1
+    cv::Mat channelRaster;
+    cv::extractChannel(sliceRaster, channelRaster, 1);
+    cv::Mat singleChannelRaster;
+    scene->readResampled4DBlockChannels(blockRect, blockSize, {1}, cv::Range(4, 5), cv::Range(0, 1), singleChannelRaster);
+    //TestTools::showRasters(channelRaster, singleChannelRaster);
+    EXPECT_TRUE(TestTools::compareRastersEx(channelRaster, singleChannelRaster));
+	// channel 2
+    cv::extractChannel(sliceRaster, channelRaster, 2);
+    scene->readResampled4DBlockChannels(blockRect, blockSize, { 2 }, cv::Range(4, 5), cv::Range(0, 1), singleChannelRaster);
+    //TestTools::showRasters(channelRaster, singleChannelRaster);
+    EXPECT_TRUE(TestTools::compareRastersEx(channelRaster, singleChannelRaster));
+	// channel 0
+	cv::extractChannel(sliceRaster, channelRaster, 0);
+    double minVal = 0, maxVal = 0;
+    cv::minMaxLoc(channelRaster, &minVal, &maxVal);
+	EXPECT_EQ(maxVal, 0);
+	EXPECT_EQ(minVal, 0);
+}
+
