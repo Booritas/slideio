@@ -664,10 +664,15 @@ bool VSIFile::readMetadata(VSIStream& vsi, std::list<TagInfo>& path) {
             }
 
             if (tagInfo.tag == Tag::DOCUMENT_TIME || tagInfo.tag == Tag::CREATION_TIME) {
-                std::ostringstream oss;
-                time_t time = std::stoll(value);
-                oss << std::put_time(std::localtime(&time), "%d-%m-%Y %H-%M-%S");
-                value = oss.str();
+                try {
+                    std::ostringstream oss;
+                    time_t time = std::stoll(value);
+                    oss << std::put_time(std::localtime(&time), "%d-%m-%Y %H-%M-%S");
+                    value = oss.str();
+                }
+                catch (const std::exception& ex) {
+                    SLIDEIO_LOG(WARNING) << "VSI driver: error parsing time value (" << value << "): " << ex.what();
+                }
             }
             tagInfo.setValue(value);
         }
