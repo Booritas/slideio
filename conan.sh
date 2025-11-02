@@ -104,7 +104,6 @@ invoke_conan_create_slideio() {
 original_dir=$(pwd)
 
 create_conan_recipes() {
-    invoke_conan_create "recipes/libgeotiff/all" "1.7.1"
     invoke_conan_create_slideio "recipes/icu/all" "76.1"
     invoke_conan_create_slideio "recipes/dcmtk/all" "3.6.8"
     invoke_conan_create "recipes/glog/all" "0.7.1"

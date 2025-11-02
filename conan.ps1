@@ -42,7 +42,6 @@ function Invoke-ConanCreateSlideio {
 }
 
 try {
-    Invoke-ConanCreate -FolderPath "recipes\libgeotiff\all" -Version "1.7.1"
     Invoke-ConanCreateSlideio -FolderPath "recipes\icu\all" -Version "76.1"
     Invoke-ConanCreateSlideio -FolderPath "recipes\dcmtk\all" -Version "3.6.8"
     Invoke-ConanCreate -FolderPath "recipes\glog\all" -Version "0.7.1"
