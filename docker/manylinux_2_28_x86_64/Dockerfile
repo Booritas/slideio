@@ -1,4 +1,4 @@
-FROM quay.io/pypa/manylinux_2_28_x86_64:2025.02.28-1 AS base
+FROM quay.io/pypa/manylinux_2_28_x86_64:2025.11.01-4 AS base
 ENV CONAN_REVISIONS_ENABLED=1
 
 RUN yum update -y && \
