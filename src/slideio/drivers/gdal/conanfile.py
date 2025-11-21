@@ -18,4 +18,5 @@ class GdalRecipe(ConanFile):
         self.requires("libdeflate/1.19")
         self.requires("gdal/3.8.3")
         self.requires("nlohmann_json/3.11.3")
+        self.requires("libgeotiff/1.7.4", override=True)
  
