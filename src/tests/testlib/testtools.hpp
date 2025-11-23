@@ -8,6 +8,8 @@
 namespace slideio
 {
     class ImageDriver;
+    class CVScene;
+    class CVSlide;
 }
 
 class TestTools
@@ -34,5 +36,6 @@ public:
            std::equal(prefix.begin(), prefix.end(), str.begin());
     }
     static void multiThreadedTest(const std::string& filePath, slideio::ImageDriver& driver, int numberRois = 5, int numThreads = 30);
+    static std::shared_ptr<slideio::CVScene> findScene(std::shared_ptr<slideio::CVSlide> slide, const std::string& name);
 };
 

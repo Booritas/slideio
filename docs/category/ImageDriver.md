@@ -14,6 +14,9 @@ sidebar_sort_order: 500
 | ZVI    | Zeiss ZVI image format                                                                                                                       | *.zvi                            |
 | DCM    | DICOM images                                                                                                                                 | *.dcm, no extension              |
 | NDPI   | [Hamamatsu NDPI image format](https://www.hamamatsu.com/eu/en/product/life-science-and-medical-systems/digital-slide-scanner/U12388-01.html) | *.ndpi                           |
-| GDAL   | General image fomtes                                                                                                                         | *.jpeg,*.jpg,*.tiff,*.tiff,*.png |
+| GDAL   | General image formates                                                                                                                       | *.jpeg,*.jpg,*.tiff,*.tiff,*.png |
+| VSI    | Olympus VSI image format                                                                                                                     | *.vsi                            |
+| QPTIFF | PerkinElmer Vectra QPTIFF                                                                                                                    | *.qptiff                         |
+
 
 ## Descriptions of the drivers

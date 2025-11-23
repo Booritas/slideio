@@ -24,8 +24,8 @@ ARG CONAN_LOGIN_USERNAME
 ARG CONAN_PASSWORD
 ARG CONAN_SERVER_URL
 RUN conan remote add slideio  ${CONAN_SERVER_URL} && conan remote login -p ${CONAN_PASSWORD} slideio ${CONAN_LOGIN_USERNAME}
-RUN cd /opt && git clone --recursive --depth 1 --branch v2.7.1 https://github.com/Booritas/slideio
-RUN cd /opt && git clone --depth 1 --branch v2.7.1 https://github.com/Booritas/conan-center-index.git
+RUN cd /opt && git clone --recursive --depth 1 --branch v2.7.4 https://github.com/Booritas/slideio
+RUN cd /opt && git clone --depth 1 --branch v2.7.4 https://github.com/Booritas/conan-center-index.git
 ENV SLIDEIO_HOME=/opt/slideio
 ENV CONAN_INDEX_HOME=/opt/conan-center-index
 RUN cd /opt/slideio && bash ./conan.sh

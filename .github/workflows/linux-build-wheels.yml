@@ -13,9 +13,9 @@ on:
         description: 'Upload conan packages'
 jobs:
   build-linux:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     container:
-      image: booritas/slideio-manylinux_2_28_x86_64:2.7.0
+      image: booritas/slideio-manylinux_2_28_x86_64:2.7.4
       options: --user root
       env:
         CONAN_REVISIONS_ENABLED: 1

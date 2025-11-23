@@ -406,3 +406,16 @@ void TestTools::multiThreadedTest(const std::string& filePath, slideio::ImageDri
         t.join();
     }
 }
+
+std::shared_ptr<slideio::CVScene> TestTools::findScene(std::shared_ptr<slideio::CVSlide> slide, const std::string& name)
+{
+    const int numScenes = slide->getNumScenes();
+    for (int i = 0; i < numScenes; ++i) {
+        std::shared_ptr<slideio::CVScene> scene = slide->getScene(i);
+        std::string sceneName = scene->getName();
+        if (sceneName == name)  {
+            return scene;
+        }
+    }
+    throw std::runtime_error("Scene not found");
+}

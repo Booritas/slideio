@@ -53,12 +53,15 @@ namespace slideio
         DataType getChannelDataType(int channelIndex) const override{
             return m_channelDataType[channelIndex];
         }
-        const std::vector<TiffDirectory>& getChannelDirectories(int channelIndex) const {
-            const  int dirIndex = m_interleavedChannels ? 0 : channelIndex;
+        const std::vector<TiffDirectory>& getChannelDirectories(int channelIndex, int zIndex) const {
+            const  int dirIndex = zIndex * m_planeCount + (m_interleavedChannels ? 0 : channelIndex);
             return m_channelDirectories[dirIndex];
         }
         cv::Rect getRect() const override;
         int getNumChannels() const override;
+        int getNumZSlices() const override {
+            return m_numZSlices;
+        }
         void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
             const std::vector<int>& channelIndicesIn, int zSliceIndex, int tFrameIndex, cv::OutputArray output) override;
         std::string getChannelName(int channel) const override;
@@ -67,10 +70,10 @@ namespace slideio
         bool readTile(int tileIndex, const std::vector<int>& channelIndices, cv::OutputArray tileRaster,
             void* userData) override;
         void initializeBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices, cv::OutputArray output) override;
-        const TiffDirectory& findZoomDirectory(int channelIndex, double zoom) const;
+        const TiffDirectory* findZoomDirectory(int channelIndex, int zIndex, double zoom) const;
+        static std::vector<SCNDimensionInfo> parseDimensions(const tinyxml2::XMLElement* xmlPixels);
     protected:
         void init(const tinyxml2::XMLElement* xmlImage);
-        static std::vector<SCNDimensionInfo> parseDimensions(const tinyxml2::XMLElement* xmlPixels);
         void parseChannelNames(const tinyxml2::XMLElement* xmlImage);
         void parseGeometry(const tinyxml2::XMLElement* xmlImage);
         void parseMagnification(const tinyxml2::XMLElement* xmlImage);
@@ -79,7 +82,7 @@ namespace slideio
         libtiff::TIFF* getFileHandle() {
             return m_tiff;
         }
-
+        void createEmptyChannelTile(int tileIndex, int channel, cv::OutputArray output, void* userData);
     protected:
         TIFFKeeper m_tiff;
         std::string m_filePath;
@@ -90,6 +93,8 @@ namespace slideio
         double m_magnification;
         cv::Rect m_rect;
         int m_numChannels;
+        int m_numZSlices;
+        int m_planeCount;
         std::vector<std::string> m_channelNames;
         std::vector<DataType> m_channelDataType;
         std::vector<std::vector<TiffDirectory>> m_channelDirectories;
