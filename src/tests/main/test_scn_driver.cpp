@@ -9,9 +9,11 @@
 #include "slideio/drivers/scn/scnscene.hpp"
 #include <opencv2/imgproc.hpp>
 
+#include "slideio/core/tools/cvtools.hpp"
 #include "slideio/core/tools/endian.hpp"
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/imagetools/imagetools.hpp"
+#include "slideio/core/tools/xmltools.hpp"
 
 
 TEST(SCNImageDriver, DriverManager_getDriverIDs)
@@ -126,7 +128,7 @@ TEST(SCNImageDriver, getChannelDir)
     {
         std::shared_ptr<slideio::SCNScene> scene = std::dynamic_pointer_cast<slideio::SCNScene>(slide->getAuxImage("Macro"));
         ASSERT_FALSE(scene == nullptr);
-        auto dirs = scene->getChannelDirectories(0);
+        auto dirs = scene->getChannelDirectories(0,0);
         EXPECT_EQ(dirs[0].width, 1616);
         EXPECT_EQ(dirs[0].height, 4668);
         int prevWidth = -1;
@@ -142,7 +144,7 @@ TEST(SCNImageDriver, getChannelDir)
     {
         std::shared_ptr<slideio::SCNScene> scene = std::dynamic_pointer_cast<slideio::SCNScene>(slide->getScene(0));
         ASSERT_FALSE(scene == nullptr);
-        auto dirs = scene->getChannelDirectories(0);
+        auto dirs = scene->getChannelDirectories(0,0);
         EXPECT_EQ(dirs[0].width, 4737);
         EXPECT_EQ(dirs[0].height, 6338);
         int prevWidth = -1;
@@ -169,40 +171,40 @@ TEST(SCNImageDriver, findZoomDirectory)
         std::shared_ptr<slideio::SCNScene> scene = std::dynamic_pointer_cast<slideio::SCNScene>(slide->getAuxImage("Macro"));
         ASSERT_FALSE(scene == nullptr);
         {
-            const auto& dir = scene->findZoomDirectory(0, 1);
-            EXPECT_EQ(dir.dirIndex, 0);
+            auto dir = scene->findZoomDirectory(0, 0, 1);
+            EXPECT_EQ(dir->dirIndex, 0);
         }
         {
-            const auto& dir = scene->findZoomDirectory(0, 0.5);
-            EXPECT_EQ(dir.dirIndex, 0);
+            const auto dir = scene->findZoomDirectory(0, 0, 0.5);
+            EXPECT_EQ(dir->dirIndex, 0);
         }
         {
-            const auto& dir = scene->findZoomDirectory(0, 0.25);
-            EXPECT_EQ(dir.dirIndex, 1);
+            const auto dir = scene->findZoomDirectory(0, 0, 0.25);
+            EXPECT_EQ(dir->dirIndex, 1);
         }
         {
-            const auto& dir = scene->findZoomDirectory(0, 0.01);
-            EXPECT_EQ(dir.dirIndex, 2);
+            const auto dir = scene->findZoomDirectory(0, 0, 0.01);
+            EXPECT_EQ(dir->dirIndex, 2);
         }
     }
     {
         std::shared_ptr<slideio::SCNScene> scene = std::dynamic_pointer_cast<slideio::SCNScene>(slide->getScene(0));
         ASSERT_FALSE(scene == nullptr);
         {
-            const auto& dir = scene->findZoomDirectory(2, 1);
-            EXPECT_EQ(dir.dirIndex, 8);
+            const auto dir = scene->findZoomDirectory(2, 0, 1);
+            EXPECT_EQ(dir->dirIndex, 8);
         }
         {
-            const auto& dir = scene->findZoomDirectory(2, 0.5);
-            EXPECT_EQ(dir.dirIndex, 8);
+            const auto dir = scene->findZoomDirectory(2, 0, 0.5);
+            EXPECT_EQ(dir->dirIndex, 8);
         }
         {
-            const auto& dir = scene->findZoomDirectory(2, 0.25);
-            EXPECT_EQ(dir.dirIndex, 11);
+            const auto dir = scene->findZoomDirectory(2, 0, 0.25);
+            EXPECT_EQ(dir->dirIndex, 11);
         }
         {
-            const auto& dir = scene->findZoomDirectory(2, 0.01);
-            EXPECT_EQ(dir.dirIndex, 17);
+            const auto dir = scene->findZoomDirectory(2, 0, 0.01);
+            EXPECT_EQ(dir->dirIndex, 17);
         }
     }
 }
@@ -550,3 +552,181 @@ TEST(SCNImageDriver, multiThreadSceneAccess) {
     slideio::SCNImageDriver driver;
     TestTools::multiThreadedTest(filePath, driver);
 }
+
+TEST(SCNImageDriver, zStackSetup) {
+    std::string filePath = TestTools::getTestImagePath("scn", "z-stack.xml");
+    tinyxml2::XMLDocument doc;
+    tinyxml2::XMLError result = doc.LoadFile(filePath.c_str());
+    ASSERT_EQ(result, tinyxml2::XML_SUCCESS) << "Failed to load XML file: " << filePath;
+    const tinyxml2::XMLElement* xmlImage = doc.FirstChildElement("image");
+    ASSERT_TRUE(xmlImage != nullptr) << "No <image> element found in XML file: " << filePath;
+    const tinyxml2::XMLElement* xmlPixels = xmlImage->FirstChildElement("pixels");
+    ASSERT_TRUE(xmlPixels != nullptr) << "No <pixels> element found in XML file: " << filePath;
+    std::vector<SCNDimensionInfo> dimInfo = slideio::SCNScene::parseDimensions(xmlPixels);
+    EXPECT_EQ(dimInfo.size(), 95) << "Expected one dimension info, found: " << dimInfo.size();
+}
+
+TEST(SCNImageDriver, zStack) {
+    std::string filePath = TestTools::getFullTestImagePath("scn", "private/HER2-63x_1.scn");
+    std::string testFilePath = TestTools::getFullTestImagePath("scn", "private/page-67-StitchAB907A82-6319-422F-9B5B-EB0E0A9D0525-z=4-r=0-c=2.tiff");
+    slideio::SCNImageDriver driver;
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    const int numScenes = slide->getNumScenes();
+    ASSERT_EQ(numScenes, 7);
+    const int numImages = slide->getNumAuxImages();
+    ASSERT_EQ(numImages, 1);
+    std::shared_ptr<slideio::CVScene> scene = TestTools::findScene(slide, "StitchAB907A82-6319-422F-9B5B-EB0E0A9D0525");
+    ASSERT_TRUE(scene != nullptr);
+    const int numZslices = scene->getNumZSlices();
+    ASSERT_EQ(numZslices, 9);
+    const int numChannels = scene->getNumChannels();
+    ASSERT_EQ(numChannels, 3);
+    slideio::DataType dt = scene->getChannelDataType(0);
+    ASSERT_EQ(dt, slideio::DataType::DT_Byte);
+    double magnification = scene->getMagnification();
+    ASSERT_NEAR(magnification, 63, 1.e-6);
+    EXPECT_EQ(scene->getChannelName(0), "DAPI");
+    EXPECT_EQ(scene->getChannelName(1), "Green #1");
+    EXPECT_EQ(scene->getChannelName(2), "Orange");
+    cv::Rect rect = scene->getRect();
+    EXPECT_EQ(rect.size(), cv::Size(2573, 2674));
+    cv::Mat sliceRaster;
+    cv::Rect blockRect(0, 0, rect.width, rect.height);
+    std::vector<int> channels = { 2 };
+    cv::Size blockSize = { blockRect.width, blockRect.height };
+    scene->readResampled4DBlockChannels(blockRect, blockSize, channels, cv::Range(4, 5), cv::Range(0, 1), sliceRaster);
+    cv::Mat testRaster;
+    slideio::ImageTools::readGDALImage(testFilePath, testRaster);
+    EXPECT_TRUE(TestTools::compareRastersEx(sliceRaster, testRaster));
+    //TestTools::showRasters(sliceRaster,testRaster);
+    blockRect = { rect.width / 2, rect.height / 2, rect.width / 4, rect.height / 4 };
+    blockSize = { blockRect.width / 8, blockRect.height / 8 };
+    scene->readResampled4DBlockChannels(blockRect, blockSize, channels, cv::Range(4, 5), cv::Range(0, 1), sliceRaster);
+    cv::Mat cropped(testRaster, blockRect);
+    cv::Mat resizedTest;
+    cv::resize(cropped, resizedTest, blockSize);
+    //TestTools::showRasters(sliceRaster, resizedTest);
+    double score = slideio::ImageTools::computeSimilarity2(sliceRaster, resizedTest);
+    EXPECT_GE(score, 0.99);
+    scene->readResampled4DBlockChannels(blockRect, blockSize, channels, cv::Range(0, 8), cv::Range(0, 1), sliceRaster);
+	cv::Mat sliceRaster2;
+	slideio::CVTools::extractSliceFrom3D(sliceRaster, 4,sliceRaster2);
+    score = slideio::ImageTools::computeSimilarity2(sliceRaster2, resizedTest);
+    EXPECT_GE(score, 0.99);
+}
+
+TEST(SCNImageDriver, zStackFindZoomDirectory) {
+    std::string filePath = TestTools::getFullTestImagePath("scn", "private/HER2-63x_1.scn");
+    slideio::SCNImageDriver driver;
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    std::shared_ptr<slideio::SCNScene> scene = std::dynamic_pointer_cast<slideio::SCNScene>(TestTools::findScene(slide, "StitchAB907A82-6319-422F-9B5B-EB0E0A9D0525"));
+    ASSERT_TRUE(scene != nullptr);
+    {
+        {
+            const auto dir = scene->findZoomDirectory(0, 0, 1);
+            EXPECT_EQ(dir->dirIndex, 11);
+        }
+        {
+            const auto dir = scene->findZoomDirectory(1, 1, 1);
+            EXPECT_EQ(dir->dirIndex, 19);
+        }
+        {
+            const auto dir = scene->findZoomDirectory(2, 2, 1);
+            EXPECT_EQ(dir->dirIndex, 59);
+        }
+        {
+            const auto dir = scene->findZoomDirectory(2, 2, 0.5);
+            EXPECT_EQ(dir->dirIndex, 60);
+        }
+        {
+            const auto dir = scene->findZoomDirectory(2, 2, 0.25);
+            EXPECT_EQ(dir->dirIndex, 61);
+        }
+    }
+}
+
+TEST(SCNImageDriver, zStackGetChannelDir)
+{
+    std::string filePath = TestTools::getFullTestImagePath("scn", "private/HER2-63x_1.scn");
+    slideio::SCNImageDriver driver;
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    std::shared_ptr<slideio::SCNScene> scene = std::dynamic_pointer_cast<slideio::SCNScene>(TestTools::findScene(slide, "StitchAB907A82-6319-422F-9B5B-EB0E0A9D0525"));
+    ASSERT_TRUE(scene != nullptr);
+    {
+        const int ifd[] = {35, 36, 37, 38};
+        auto dirs = scene->getChannelDirectories(1,5);
+        ASSERT_EQ(dirs.size(), 4);
+        for(int i = 0; i < 4; ++i) {
+            EXPECT_EQ(dirs[i].dirIndex, ifd[i]);
+        }
+    }
+    {
+        const int ifd[] = {19, 20, 21, 22};
+        auto dirs = scene->getChannelDirectories(1,1);
+        ASSERT_EQ(dirs.size(), 4);
+        for(int i = 0; i < 4; ++i) {
+            EXPECT_EQ(dirs[i].dirIndex, ifd[i]);
+        }
+    }
+    {
+        auto dirs = scene->getChannelDirectories(0,1);
+        ASSERT_EQ(dirs.size(), 0);
+    }
+}
+
+TEST(SCNImageDriver, zStackMissingChannels) {
+    std::string filePath = TestTools::getFullTestImagePath("scn", "private/HER2-63x_1.scn");
+    std::string testFilePath = TestTools::getFullTestImagePath("scn", "private/page-67-StitchAB907A82-6319-422F-9B5B-EB0E0A9D0525-z=4-r=0-c=2.tiff");
+    slideio::SCNImageDriver driver;
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    const int numScenes = slide->getNumScenes();
+    ASSERT_EQ(numScenes, 7);
+    const int numImages = slide->getNumAuxImages();
+    ASSERT_EQ(numImages, 1);
+    std::shared_ptr<slideio::CVScene> scene = TestTools::findScene(slide, "StitchAB907A82-6319-422F-9B5B-EB0E0A9D0525");
+    ASSERT_TRUE(scene != nullptr);
+    const int numZslices = scene->getNumZSlices();
+    ASSERT_EQ(numZslices, 9);
+    const int numChannels = scene->getNumChannels();
+    ASSERT_EQ(numChannels, 3);
+    slideio::DataType dt = scene->getChannelDataType(0);
+    ASSERT_EQ(dt, slideio::DataType::DT_Byte);
+    double magnification = scene->getMagnification();
+    ASSERT_NEAR(magnification, 63, 1.e-6);
+    EXPECT_EQ(scene->getChannelName(0), "DAPI");
+    EXPECT_EQ(scene->getChannelName(1), "Green #1");
+    EXPECT_EQ(scene->getChannelName(2), "Orange");
+    cv::Rect rect = scene->getRect();
+    EXPECT_EQ(rect.size(), cv::Size(2573, 2674));
+    cv::Mat sliceRaster;
+    cv::Rect blockRect(0, 0, rect.width, rect.height);
+    std::vector<int> channels = {0, 1, 2 };
+    cv::Size blockSize = { blockRect.width, blockRect.height };
+
+    blockRect = { rect.width / 2, rect.height / 2, rect.width / 4, rect.height / 4 };
+    blockSize = { blockRect.width / 8, blockRect.height / 8 };
+    scene->readResampled4DBlockChannels(blockRect, blockSize, channels, cv::Range(4, 5), cv::Range(0, 1), sliceRaster);
+    // channel 1
+    cv::Mat channelRaster;
+    cv::extractChannel(sliceRaster, channelRaster, 1);
+    cv::Mat singleChannelRaster;
+    scene->readResampled4DBlockChannels(blockRect, blockSize, {1}, cv::Range(4, 5), cv::Range(0, 1), singleChannelRaster);
+    //TestTools::showRasters(channelRaster, singleChannelRaster);
+    EXPECT_TRUE(TestTools::compareRastersEx(channelRaster, singleChannelRaster));
+	// channel 2
+    cv::extractChannel(sliceRaster, channelRaster, 2);
+    scene->readResampled4DBlockChannels(blockRect, blockSize, { 2 }, cv::Range(4, 5), cv::Range(0, 1), singleChannelRaster);
+    //TestTools::showRasters(channelRaster, singleChannelRaster);
+    EXPECT_TRUE(TestTools::compareRastersEx(channelRaster, singleChannelRaster));
+	// channel 0
+	cv::extractChannel(sliceRaster, channelRaster, 0);
+    double minVal = 0, maxVal = 0;
+    cv::minMaxLoc(channelRaster, &minVal, &maxVal);
+	EXPECT_EQ(maxVal, 0);
+	EXPECT_EQ(minVal, 0);
+}
+

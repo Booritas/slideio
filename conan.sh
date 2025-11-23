@@ -83,6 +83,19 @@ invoke_conan_create() {
     cd "$target_dir" || exit
 
     # Execute the conan create command
+    conan_command="conan create -pr:h $profile -pr:b $profile -b missing --version $version ."
+    eval "$conan_command"
+}
+
+invoke_conan_create_slideio() {
+    local folder_path=$1
+    local version=$2
+
+    # Change to the target directory
+    target_dir="$CONAN_INDEX_HOME/$folder_path"
+    cd "$target_dir" || exit
+
+    # Execute the conan create command
     conan_command="conan create -pr:h $profile -pr:b $profile -b missing --version $version --user slideio --channel stable ."
     eval "$conan_command"
 }
@@ -91,14 +104,14 @@ invoke_conan_create() {
 original_dir=$(pwd)
 
 create_conan_recipes() {
-    invoke_conan_create "recipes/icu/all" "76.1"
-    invoke_conan_create "recipes/dcmtk/all" "3.6.8"
+    invoke_conan_create_slideio "recipes/icu/all" "76.1"
+    invoke_conan_create_slideio "recipes/dcmtk/all" "3.6.8"
     invoke_conan_create "recipes/glog/all" "0.7.1"
-    invoke_conan_create "recipes/opencv/4.x" "4.10.0"
-    invoke_conan_create "recipes/jpegxrcodec/all" "1.0.3"
-    invoke_conan_create "recipes/ndpi-libjpeg-turbo/all" "2.1.2"
-    invoke_conan_create "recipes/ndpi-libtiff/all" "4.3.0"
-    invoke_conan_create "recipes/pole/all" "1.0.4"
+    invoke_conan_create_slideio "recipes/opencv/4.x" "4.10.0"
+    invoke_conan_create_slideio "recipes/jpegxrcodec/all" "1.0.3"
+    invoke_conan_create_slideio "recipes/ndpi-libjpeg-turbo/all" "2.1.2"
+    invoke_conan_create_slideio "recipes/ndpi-libtiff/all" "4.3.0"
+    invoke_conan_create_slideio "recipes/pole/all" "1.0.4"
 }
 
 # Call the function

@@ -23,23 +23,32 @@ jobs:
         uses: actions/checkout@v3
       - name: Setup Pages
         uses: actions/configure-pages@v2
+      - name: Create output directory
+        run: mkdir -p ./_site/sphinx
       - name: Build with Jekyll
         uses: actions/jekyll-build-pages@v1
         with:
           source: ./docs
           destination: ./_site
-      - uses: ammaraskar/sphinx-action@master
+      - name: Setup Python
+        uses: actions/setup-python@v4
         with:
-          docs-folder: "./docs-src/Sphinx"
-          pre-build-command: "pip install slideio"
-          build-command: "sphinx-build -b html ./source ../../_site/sphinx"
+          python-version: '3.12'
+      - name: Install Sphinx and dependencies
+        run: |
+          pip install sphinx
+          pip install slideio
+      - name: Build Sphinx documentation
+        working-directory: docs-src/Sphinx
+        run: |
+          sphinx-build -b html ./source ../../_site/sphinx --keep-going --no-color
       - name: Doxygen
         uses: mattnotmitt/doxygen-action@v1.9.5
         with:
             working-directory: '.'
             doxyfile-path: './docs-src/Doxygen/Doxyfile'
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v1
+        uses: actions/upload-pages-artifact@v3
 
   # Deployment job
   deploy:
@@ -51,4 +60,4 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v1
+        uses: actions/deploy-pages@v4

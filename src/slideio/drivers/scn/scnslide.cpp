@@ -3,7 +3,6 @@
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/base/exceptions.hpp"
 #include "slideio/drivers/scn/scnslide.hpp"
-#include "slideio/imagetools/imagetools.hpp"
 #include "slideio/core/tools/xmltools.hpp"
 #include <filesystem>
 #include "slideio/imagetools/libtiff.hpp"
@@ -39,9 +38,12 @@ void SCNSlide::constructScenes()
     {
         throw std::runtime_error("SCNImageDriver: Error parsing metadata xml");
     }
-    // begin testing block
-    // doc.SaveFile("d:Temp/scn.xml", false);
-    // end testing block
+#if defined(WIN32) && defined(_DEBUG)
+    std::string filePath = getFilePath();
+	std::string fileName = std::filesystem::path(filePath).filename().string();
+	std::string outputPath = "d:\\Temp\\" + fileName + ".xml";
+    doc.SaveFile(outputPath.c_str(), false);
+#endif
     std::vector<std::string> collectionPath = {"scn", "collection"};
     const XMLElement* xmlCollection = XMLTools::getElementByPath(&doc, collectionPath);
     for (auto xmlImage = xmlCollection->FirstChildElement("image");

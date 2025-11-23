@@ -3,6 +3,12 @@
   <component name="AutoImportSettings">
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
+  <component name="BackendCodeEditorMiscSettings">
+    <option name="/Default/RiderDebugger/RiderRestoreDecompile/RestoreDecompileSetting/@EntryValue" value="false" type="bool" />
+    <option name="/Default/Housekeeping/GlobalSettingsUpgraded/IsUpgraded/@EntryValue" value="true" type="bool" />
+    <option name="/Default/Housekeeping/FeatureSuggestion/FeatureSuggestionManager/DisabledSuggesters/=SwitchToGoToActionSuggester/@EntryIndexedValue" value="true" type="bool" />
+    <option name="/Default/Housekeeping/FeatureSuggestion/FeatureSuggestionManager/DisabledSuggesters/=SwitchToGoToActionSuggester/@EntryIndexRemoved" />
+  </component>
   <component name="BranchesTreeState">
     <expand>
       <path>
@@ -24,39 +30,37 @@
   <component name="CMakePresetLoader">{
   &quot;useNewFormat&quot;: true
 }</component>
+  <component name="CMakeProjectFlavorService">
+    <option name="flavorId" value="CMakePlainProjectFlavor" />
+  </component>
   <component name="CMakeReloadState">
     <option name="reloaded" value="true" />
   </component>
   <component name="CMakeRunConfigurationManager">
     <generated>
+      <config projectName="slide_io" targetName="slideio_pke_tests" />
       <config projectName="slide_io" targetName="slideio-gdal" />
       <config projectName="slide_io" targetName="slideio-imagetools" />
       <config projectName="slide_io" targetName="slideio-transformer" />
       <config projectName="slide_io" targetName="slideio-afi" />
+      <config projectName="slide_io" targetName="slideio-core" />
       <config projectName="slide_io" targetName="slideio-scn" />
-      <config projectName="slide_io" targetName="memory_leaks" />
-      <config projectName="slide_io" targetName="jp2kcompress" />
+      <config projectName="slide_io" targetName="slideio-test-lib" />
       <config projectName="slide_io" targetName="slideio_ndpi_tests" />
-      <config projectName="slide_io" targetName="slideiopybind" />
-      <config projectName="slide_io" targetName="svs_memory" />
+      <config projectName="slide_io" targetName="slideio_tests" />
       <config projectName="slide_io" targetName="slideio-base" />
       <config projectName="slide_io" targetName="slideio-czi" />
       <config projectName="slide_io" targetName="slideio" />
       <config projectName="slide_io" targetName="slideio_transformer_tests" />
-      <config projectName="slide_io" targetName="slideio-dcm" />
-      <config projectName="slide_io" targetName="slideio_converter_tests" />
-      <config projectName="slide_io" targetName="slideio-vsi" />
-      <config projectName="slide_io" targetName="converter" />
-      <config projectName="slide_io" targetName="slideio_vsi_tests" />
-      <config projectName="slide_io" targetName="ndpi_memory" />
-      <config projectName="slide_io" targetName="slideio-core" />
-      <config projectName="slide_io" targetName="slideio-test-lib" />
-      <config projectName="slide_io" targetName="slideio_tests" />
-      <config projectName="slide_io" targetName="performance" />
       <config projectName="slide_io" targetName="slideio-svs" />
       <config projectName="slide_io" targetName="slideio-ndpi" />
+      <config projectName="slide_io" targetName="slideio-dcm" />
       <config projectName="slide_io" targetName="slideio-converter" />
+      <config projectName="slide_io" targetName="slideio_converter_tests" />
       <config projectName="slide_io" targetName="slideio-zvi" />
+      <config projectName="slide_io" targetName="slideio-vsi" />
+      <config projectName="slide_io" targetName="slideio_vsi_tests" />
+      <config projectName="slide_io" targetName="slideio-pke" />
     </generated>
   </component>
   <component name="CMakeSettings" AUTO_RELOAD="true">
@@ -69,14 +73,16 @@
         </ADDITIONAL_GENERATION_ENVIRONMENT>
       </configuration>
       <configuration PROFILE_NAME="Release" ENABLED="true" CONFIG_NAME="Release" />
+      <configuration PROFILE_NAME="conan-debug" ENABLED="false" FROM_PRESET="true" GENERATION_DIR="$PROJECT_DIR$/cmake" />
+      <configuration PROFILE_NAME="conan-debug - conan-debug" ENABLED="false" FROM_PRESET="true" GENERATION_DIR="$PROJECT_DIR$/cmake" />
     </configurations>
   </component>
   <component name="ChangeListManager">
     <list default="true" id="ab3fa5e4-e9e7-4544-8e69-a93644a57165" name="Default Changelist" comment="bug in linux and macos for reading of string from vsi file">
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/py-bind/pybind11" beforeDir="false" afterPath="$PROJECT_DIR$/src/py-bind/pybind11" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/slideio/drivers/vsi/vsistream.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/slideio/drivers/vsi/vsistream.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/tests/vsi/test_vsi_driver.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/tests/vsi/test_vsi_driver.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/CMakeLists.txt" beforeDir="false" afterPath="$PROJECT_DIR$/CMakeLists.txt" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/tests/main/test_scn_driver.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/src/tests/main/test_scn_driver.cpp" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -112,40 +118,36 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.cidr.known.project.marker&quot;: &quot;true&quot;,
-    &quot;WebServerToolWindowFactoryState&quot;: &quot;false&quot;,
-    &quot;cf.first.check.clang-format&quot;: &quot;false&quot;,
-    &quot;cidr.known.project.marker&quot;: &quot;true&quot;,
-    &quot;ctest.advertisement.all.test.configuration.is.created&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;olympus&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/home/stanislav/projects/slideio/slideio&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;reference.settings.ide.settings.new.ui&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Google Test.SCNImageDriver.zStackFindZoomDirectory.executor": "Debug",
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.RadMigrateCodeStyle": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.cidr.known.project.marker": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.readMode.enableVisualFormatting": "true",
+    "RunOnceActivity.west.config.association.type.startup.service": "true",
+    "SHARE_PROJECT_CONFIGURATION_FILES": "true",
+    "WebServerToolWindowFactoryState": "false",
+    "cf.first.check.clang-format": "false",
+    "cidr.known.project.marker": "true",
+    "ctest.advertisement.all.test.configuration.is.created": "true",
+    "git-widget-placeholder": "v2.7.1",
+    "last_opened_file_path": "/Users/s.melnikov/projects/slideio/slideio",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "CMakeSettings",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
   <component name="RunManager" selected="CTest Application.slideio_tests">
     <configuration default="true" type="CLionExternalRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true">
       <method v="2">
         <option name="CLION.EXTERNAL.BUILD" enabled="true" />
-      </method>
-    </configuration>
-    <configuration name="All in test_ndpi_driver.cpp" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" temporary="true" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="slideio_ndpi_tests" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="slide_io" RUN_TARGET_NAME="slideio_ndpi_tests" TEST_PATTERN="all-tests(file://$PROJECT_DIR$/src/tests/ndpi/test_ndpi_driver.cpp)" TEST_MODE="PATTERN">
-      <envs>
-        <env name="SLIDEIO_IMAGES_PATH" value="$PROJECT_DIR$/../images/images" />
-        <env name="SLIDEIO_TEST_DATA_PRIV_PATH" value="$PROJECT_DIR$/../images/slideio_extra_priv/testdata/cv/slideio" />
-        <env name="SLIDEIO_TEST_DATA_PATH" value="$PROJECT_DIR$/../images/slideio_extra/testdata/cv/slideio" />
-      </envs>
-      <method v="2">
-        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
-        <option name="BeforeTestRunTask" enabled="true" />
       </method>
     </configuration>
     <configuration name="GDALDriver.openFileUtf8" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" temporary="true" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="slideio_tests" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="slide_io" RUN_TARGET_NAME="slideio_tests" TEST_CLASS="GDALDriver" TEST_METHOD="openFileUtf8" TEST_MODE="SUITE_TEST">
@@ -159,7 +161,13 @@
         <option name="BeforeTestRunTask" enabled="true" />
       </method>
     </configuration>
-    <configuration name="VSIImageDriver.openFileWithExternalFiles" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" temporary="true" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="slideio_vsi_tests" RUN_TARGET_PROJECT_NAME="slide_io" RUN_TARGET_NAME="slideio_vsi_tests" TEST_CLASS="VSIImageDriver" TEST_METHOD="openFileWithExternalFiles" TEST_MODE="SUITE_TEST">
+    <configuration name="SCNImageDriver.zStackFindZoomDirectory" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" temporary="true" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="slideio_tests" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="slide_io" RUN_TARGET_NAME="slideio_tests" TEST_CLASS="SCNImageDriver" TEST_METHOD="zStackFindZoomDirectory" TEST_MODE="SUITE_TEST">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+        <option name="BeforeTestRunTask" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="VSIImageDriver.openFileWithExternalFiles" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" temporary="true" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="slideio_vsi_tests" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="slide_io" RUN_TARGET_NAME="slideio_vsi_tests" TEST_CLASS="VSIImageDriver" TEST_METHOD="openFileWithExternalFiles" TEST_MODE="SUITE_TEST">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
         <option name="BeforeTestRunTask" enabled="true" />
@@ -177,6 +185,12 @@
         <option name="BeforeTestRunTask" enabled="true" />
       </method>
     </configuration>
+    <configuration name="slideio_pke_tests" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="slideio_pke_tests" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="slide_io" RUN_TARGET_NAME="slideio_pke_tests" TEST_MODE="SUITE_TEST">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+        <option name="BeforeTestRunTask" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="slideio_transformer_tests" type="CMakeGoogleTestRunConfigurationType" factoryName="Google Test" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="slideio_transformer_tests" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="slide_io" RUN_TARGET_NAME="slideio_transformer_tests" TEST_MODE="SUITE_TEST">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
@@ -189,32 +203,12 @@
         <option name="BeforeTestRunTask" enabled="true" />
       </method>
     </configuration>
-    <configuration name="converter" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="converter" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="slide_io" RUN_TARGET_NAME="converter">
-      <method v="2">
-        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
-      </method>
-    </configuration>
-    <configuration name="jp2kcompress" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="jp2kcompress" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="slide_io" RUN_TARGET_NAME="jp2kcompress">
-      <method v="2">
-        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
-      </method>
-    </configuration>
-    <configuration name="memory_leaks" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="memory_leaks" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="slide_io" RUN_TARGET_NAME="memory_leaks">
-      <method v="2">
-        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
-      </method>
-    </configuration>
     <configuration name="ndpi_memory" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="ndpi_memory" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="slide_io" RUN_TARGET_NAME="ndpi_memory">
       <envs>
         <env name="SLIDEIO_IMAGES_PATH" value="$PROJECT_DIR$/../images/images" />
         <env name="SLIDEIO_TEST_DATA_PRIV_PATH" value="$PROJECT_DIR$/../images/slideio_extra_priv/testdata/cv/slideio" />
         <env name="SLIDEIO_TEST_DATA_PATH" value="$PROJECT_DIR$/../images/slideio_extra/testdata/cv/slideio" />
       </envs>
-      <method v="2">
-        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
-      </method>
-    </configuration>
-    <configuration name="performance" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="performance" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="slide_io" RUN_TARGET_NAME="performance">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
@@ -264,6 +258,11 @@
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
     </configuration>
+    <configuration name="slideio-pke" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="slideio-pke" CONFIG_NAME="Debug">
+      <method v="2">
+        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="slideio-scn" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="slideio-scn" CONFIG_NAME="Debug">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
@@ -299,16 +298,6 @@
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
       </method>
     </configuration>
-    <configuration name="slideiopybind" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="slideiopybind" CONFIG_NAME="Debug">
-      <method v="2">
-        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
-      </method>
-    </configuration>
-    <configuration name="svs_memory" type="CMakeRunConfiguration" factoryName="Application" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" PASS_PARENT_ENVS_2="true" PROJECT_NAME="slide_io" TARGET_NAME="svs_memory" CONFIG_NAME="Debug" RUN_TARGET_PROJECT_NAME="slide_io" RUN_TARGET_NAME="svs_memory">
-      <method v="2">
-        <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
-      </method>
-    </configuration>
     <configuration name="All CTest" type="CTestRunConfiguration" factoryName="CTestRun" PROGRAM_PARAMS="--extra-verbose" REDIRECT_INPUT="false" ELEVATE="false" USE_EXTERNAL_CONSOLE="false" EMULATE_TERMINAL="false" WORKING_DIR="file://$CMakeCurrentLocalGenerationDir$" PASS_PARENT_ENVS_2="true" CONFIG_NAME="Debug" RUN_PATH="$CTestCurrentExecutableName$" EXPLICIT_BUILD_TARGET_NAME="all" TEST_MODE="SUITE_TEST">
       <method v="2">
         <option name="com.jetbrains.cidr.execution.CidrBuildBeforeRunTaskProvider$BuildBeforeRunTask" enabled="true" />
@@ -322,10 +311,7 @@
       </method>
     </configuration>
     <list>
-      <item itemvalue="CMake Application.memory_leaks" />
       <item itemvalue="CMake Application.ndpi_memory" />
-      <item itemvalue="CMake Application.performance" />
-      <item itemvalue="CMake Application.svs_memory" />
       <item itemvalue="CMake Application.slideio-base" />
       <item itemvalue="CMake Application.slideio-converter" />
       <item itemvalue="CMake Application.slideio-core" />
@@ -334,6 +320,7 @@
       <item itemvalue="CMake Application.slideio-dcm" />
       <item itemvalue="CMake Application.slideio-gdal" />
       <item itemvalue="CMake Application.slideio-ndpi" />
+      <item itemvalue="CMake Application.slideio-pke" />
       <item itemvalue="CMake Application.slideio-scn" />
       <item itemvalue="CMake Application.slideio-svs" />
       <item itemvalue="CMake Application.slideio-vsi" />
@@ -341,27 +328,25 @@
       <item itemvalue="CMake Application.slideio-imagetools" />
       <item itemvalue="CMake Application.slideio" />
       <item itemvalue="CMake Application.slideio-transformer" />
-      <item itemvalue="CMake Application.slideiopybind" />
-      <item itemvalue="CMake Application.converter" />
-      <item itemvalue="CMake Application.jp2kcompress" />
       <item itemvalue="CMake Application.slideio-test-lib" />
       <item itemvalue="CTest Application.All CTest" />
       <item itemvalue="CTest Application.slideio_tests" />
+      <item itemvalue="Google Test.slideio_pke_tests" />
       <item itemvalue="Google Test.slideio_converter_tests" />
       <item itemvalue="Google Test.slideio_transformer_tests" />
       <item itemvalue="Google Test.slideio_vsi_tests" />
+      <item itemvalue="Google Test.SCNImageDriver.zStackFindZoomDirectory" />
       <item itemvalue="Google Test.VSIImageDriver.openFileWithExternalFiles" />
       <item itemvalue="Google Test.VSIImageDriver.openFileWithoutExternalFiles1" />
       <item itemvalue="Google Test.GDALDriver.openFileUtf8" />
-      <item itemvalue="Google Test.All in test_ndpi_driver.cpp" />
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Google Test.SCNImageDriver.zStackFindZoomDirectory" />
         <item itemvalue="CTest Application.slideio_tests" />
         <item itemvalue="Google Test.VSIImageDriver.openFileWithExternalFiles" />
         <item itemvalue="Google Test.VSIImageDriver.openFileWithoutExternalFiles1" />
         <item itemvalue="Google Test.GDALDriver.openFileUtf8" />
-        <item itemvalue="Google Test.All in test_ndpi_driver.cpp" />
       </list>
     </recent_temporary>
   </component>
@@ -430,6 +415,9 @@
       <workItem from="1707736026871" duration="264000" />
       <workItem from="1707736692966" duration="6259000" />
       <workItem from="1709411887965" duration="6362000" />
+      <workItem from="1751622415735" duration="306000" />
+      <workItem from="1751627832778" duration="255000" />
+      <workItem from="1751654082752" duration="1767000" />
     </task>
     <task id="LOCAL-00001" summary="bug in linux and macos for reading of string from vsi file">
       <option name="closed" value="true" />
@@ -446,10 +434,9 @@
     <option name="version" value="3" />
   </component>
   <component name="VCPKGProject">
-    <isAutomaticEditVcpkgJson value="false" />
     <isAutomaticCheckingOnLaunch value="false" />
     <isAutomaticFoundErrors value="true" />
-    <isAutomaticFoundErrors value="true" />
+    <isAutomaticReloadCMake value="true" />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
     <option name="TAB_STATES">
