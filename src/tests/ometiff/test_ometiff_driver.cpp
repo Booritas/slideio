@@ -575,7 +575,7 @@ TEST_F(OTImageDriverTests, metadata) {
 	}
 }
 
-TEST_F(OTImageDriverTests, readBlockLargeFile) {
+TEST_F(OTImageDriverTests, readBlockLargeFileLZW) {
 	std::string filePath = TestTools::getFullTestImagePath("ometiff", "private/test.ome.tif");
 	std::string testFilePathCh1 = TestTools::getFullTestImagePath("ometiff", "Tests/test.ome.tif - USL-2023-53777-20 (1, x=16245, y=23321, w=1028, h=640).tif");
 	slideio::ometiff::OTImageDriver driver;
@@ -609,6 +609,8 @@ TEST_F(OTImageDriverTests, readBlockLargeFile) {
 	std::string channelName;
 	int channelIndex = 0;
 	for (const std::string& name : channelNames) {
+		auto compression = scene->getCompression();
+		EXPECT_EQ(compression, Compression::LZW);
 		channelName = scene->getChannelName(channelIndex++);
 	}
 
