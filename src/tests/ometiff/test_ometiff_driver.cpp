@@ -577,33 +577,65 @@ TEST_F(OTImageDriverTests, metadata) {
 
 TEST_F(OTImageDriverTests, readBlockLargeFile) {
 	std::string filePath = TestTools::getFullTestImagePath("ometiff", "private/test.ome.tif");
-	std::string testFilePathCh1 = TestTools::getFullTestImagePath("ometiff", "Tests/retina_large.ome-page32-channel-0.tif");
-	std::string testFilePathCh2 = TestTools::getFullTestImagePath("ometiff", "Tests/retina_large.ome-page32-channel-1.tif");
+	std::string testFilePathCh1 = TestTools::getFullTestImagePath("ometiff", "Tests/test.ome.tif - USL-2023-53777-20 (1, x=16245, y=23321, w=1028, h=640).tif");
 	slideio::ometiff::OTImageDriver driver;
 	std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
 	ASSERT_TRUE(slide != nullptr);
 	const int numScenes = slide->getNumScenes();
 	ASSERT_EQ(numScenes, 1);
-	//std::shared_ptr<CVScene> scene = slide->getSceneByName("retina_large.ims Resolution Level 1");
-	//ASSERT_TRUE(scene != nullptr);
-	//// Read original scale
-	//cv::Rect rect = { 1000, 300, 1000, 500 };
-	//std::vector<int> channels = {};
-	//cv::Mat raster;
-	//scene->read4DBlockChannels(rect, channels, cv::Range(32, 33), cv::Range(0, 1), raster);
-	//EXPECT_FALSE(raster.empty());
-	//cv::Mat channelRaster;
-	//cv::extractChannel(raster, channelRaster, 0);
+	std::shared_ptr<CVScene> scene = slide->getScene(0);
+	ASSERT_TRUE(scene != nullptr);
+	cv::Rect sceneRect = scene->getRect();
+	EXPECT_EQ(sceneRect, cv::Rect(0, 0, 27136, 36160));
+	const int numChannels = scene->getNumChannels();
+	EXPECT_EQ(numChannels, 15);
+	const std::string channelNames[] = {
+		"DAPI",
+		"CD8",
+		"CD4",
+		"CD11c",
+		"CD68",
+		"DAPI2",
+		"CD11b",
+		"PD-1",
+		"CD56",
+		"CD20",
+		"DAPI3",
+		"CD3",
+		"CD14",
+		"CD206",
+		"CK"
+	};
+	std::string channelName;
+	int channelIndex = 0;
+	for (const std::string& name : channelNames) {
+		channelName = scene->getChannelName(channelIndex++);
+	}
 
-	//cv::Mat testRaster;
-	//ImageTools::readGDALImage(testFilePathCh1, testRaster);
-	//cv::Mat region = testRaster(rect);
-	//double sim = ImageTools::computeSimilarity2(channelRaster, region);
-	//EXPECT_GT(sim, 0.99);
+	cv::Mat testRaster;
+	ImageTools::readGDALImage(testFilePathCh1, testRaster);
 
-	//cv::extractChannel(raster, channelRaster, 1);
-	//ImageTools::readGDALImage(testFilePathCh2, testRaster);
-	//region = testRaster(rect);
-	//sim = ImageTools::computeSimilarity2(channelRaster, region);
-	//EXPECT_GT(sim, 0.99);
+	// Read original scale
+	cv::Rect rect = { 16245, 23321, 1028, 640 };
+	cv::Mat raster;
+	std::vector<int> channels = { 0 };
+	cv::Mat channelRaster;
+	for (int channelIndex=0; channelIndex<numChannels; ++channelIndex) {
+		channels[0] = channelIndex;
+		scene->read4DBlockChannels(rect, channels, cv::Range(0, 1), cv::Range(0, 1), raster);
+		cv::extractChannel(testRaster, channelRaster, channelIndex);
+	    double sim = ImageTools::computeSimilarity2(channelRaster, raster);
+		EXPECT_GT(sim, 0.99);
+	}
+
+	cv::Size rasterSize = { rect.size().width / 4, rect.size().height / 4 };
+	cv::Mat resizedChannel;
+	for (int channelIndex = 0; channelIndex < numChannels; ++channelIndex) {
+		channels[0] = channelIndex;
+		scene->readResampledBlockChannels(rect, rasterSize, channels, raster);
+		cv::extractChannel(testRaster, channelRaster, channelIndex);
+		cv::resize(channelRaster, resizedChannel, rasterSize);
+		double sim = ImageTools::computeSimilarity2(resizedChannel, raster);
+		EXPECT_GT(sim, 0.99);
+	}
 }
