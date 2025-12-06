@@ -170,6 +170,9 @@ void OTScene::initialize() {
     m_dimensionOrder = dimOrder;
     const char* pixelType = pixels->Attribute("Type");
     if (!pixelType) {
+        pixelType = pixels->Attribute("PixelType");
+	}
+    if (!pixelType) {
         RAISE_RUNTIME_ERROR << "OTScene: missing required Type attribute in the xml metadata";
     }
     m_dataType = OTTools::stringToDataType(pixelType);

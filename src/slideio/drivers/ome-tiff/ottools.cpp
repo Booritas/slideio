@@ -9,37 +9,40 @@ using namespace slideio;
 using namespace slideio::ometiff;
 
 DataType OTTools::stringToDataType(const std::string& type) {
-	if (type == "int8") {
+    // normalize input to lowercase for case-insensitive comparison
+    std::string caseInsensitiveType = type;
+    std::transform(caseInsensitiveType.begin(), caseInsensitiveType.end(), caseInsensitiveType.begin(), [](unsigned char c){ return std::tolower(c); });
+	if (caseInsensitiveType == "int8") {
 		return DataType::DT_Byte;
 	}
-	if (type == "uint8") {
+	if (caseInsensitiveType == "uint8") {
 		return DataType::DT_Byte;
 	}
-	if (type == "uint16") {
+	if (caseInsensitiveType == "uint16") {
 		return DataType::DT_UInt16;
 	}
-	if (type == "uint32") {
+	if (caseInsensitiveType == "uint32") {
 		return DataType::DT_UInt32;
 	}
-	if (type == "uint64") {
+	if (caseInsensitiveType == "uint64") {
 		return DataType::DT_UInt64;
 	}
-	if (type == "int8") {
+	if (caseInsensitiveType == "int8") {
 		return DataType::DT_Int8;
 	}
-	if (type == "int16") {
+	if (caseInsensitiveType == "int16") {
 		return DataType::DT_Int16;
 	}
-	if (type == "int32") {
+	if (caseInsensitiveType == "int32") {
 		return DataType::DT_Int32;
 	}
-	if (type == "int64") {
+	if (caseInsensitiveType == "int64") {
 		return DataType::DT_Int64;
 	}
-	if (type == "float") {
+	if (caseInsensitiveType == "float") {
 		return DataType::DT_Float32;
 	}
-	if (type == "double") {
+	if (caseInsensitiveType == "double") {
 		return DataType::DT_Float64;
 	}
 	return DataType::DT_Unknown;

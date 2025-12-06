@@ -38,7 +38,8 @@ void TiffData::init(const std::string& filePath, TIFFFiles* files, const std::st
     m_planeCount = xmlTiffData->IntAttribute("PlaneCount", 0);
 
 	if (m_planeCount <= 0) {
-		RAISE_RUNTIME_ERROR << "TiffData: unexpected plane count: " << m_planeCount;
+        SLIDEIO_LOG(WARNING) << "TiffData: unexpected plane count: " << m_planeCount << ". Assuming: 1.";
+        m_planeCount = 1;
 	}
 
     tinyxml2::XMLElement* uuid = xmlTiffData->FirstChildElement("UUID");

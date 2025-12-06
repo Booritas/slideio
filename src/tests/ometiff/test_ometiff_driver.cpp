@@ -641,3 +641,29 @@ TEST_F(OTImageDriverTests, readBlockLargeFileLZW) {
 		EXPECT_GT(sim, 0.99);
 	}
 }
+
+TEST_F(OTImageDriverTests, sceneWithPixeltype) {
+	std::string filePath = TestTools::getFullTestImagePath("ometiff", "Iron-Plate.ome.tiff");
+	std::string testFilePathCh1 = TestTools::getFullTestImagePath("ometiff", "Tests/Iron-Plate (1, x=144, y=146, w=258, h=175).tif");
+	slideio::ometiff::OTImageDriver driver;
+	std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
+	ASSERT_TRUE(slide != nullptr);
+	const int numScenes = slide->getNumScenes();
+	ASSERT_EQ(numScenes, 1);
+	std::shared_ptr<CVScene> scene = slide->getScene(0);
+	ASSERT_TRUE(scene != nullptr);
+	auto numChannels = scene->getNumChannels();
+	EXPECT_EQ(numChannels, 3);
+	auto dataType = scene->getChannelDataType(0);
+	EXPECT_EQ(dataType, DataType::DT_Byte);
+	auto compression = scene->getCompression();
+	EXPECT_EQ(compression, Compression::Uncompressed);
+	cv::Rect blockRect = { 144, 146, 258, 175 };
+	cv::Mat raster;
+	scene->readBlock(blockRect, raster);
+	EXPECT_FALSE(raster.empty());
+	cv::Mat testRaster;
+	ImageTools::readGDALImage(testFilePathCh1, testRaster);
+	double sim = ImageTools::computeSimilarity2(raster, testRaster);
+	EXPECT_GT(sim, 0.99);
+}
