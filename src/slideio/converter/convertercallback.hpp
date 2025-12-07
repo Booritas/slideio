@@ -4,6 +4,10 @@
 #pragma once
 #include <functional>
 
-namespace slideio {
-    typedef const std::function<void(int)>& ConverterCallback;
+namespace slideio
+{
+    namespace converter
+    {
+        typedef const std::function<void(int)>& ConverterCallback;
+    }
 }

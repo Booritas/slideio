@@ -4,8 +4,6 @@
 #ifndef OPENCV_slideio_converter_HPP
 #define OPENCV_slideio_converter_HPP
 
-#include <map>
-
 #include "convertercallback.hpp"
 #include "slideio/converter/converter_def.hpp"
 #include "slideio/slideio/scene.hpp"
@@ -19,11 +17,14 @@ const std::string DRIVER = "DRIVER";
 
 namespace slideio
 {
-    class ConverterParameters;
-    void SLIDEIO_CONVERTER_EXPORTS convertScene(std::shared_ptr<slideio::Scene> inputScene,
-                                                ConverterParameters& parameters,
-                                                const std::string& outputPath,
-                                                ConverterCallback cb=nullptr);
+    namespace converter
+    {
+        class ConverterParameters;
+        void SLIDEIO_CONVERTER_EXPORTS convertScene(std::shared_ptr<Scene> inputScene,
+                                                    ConverterParameters& parameters,
+                                                    const std::string& outputPath,
+                                                    ConverterCallback cb = nullptr);
+    }
 }
 
 #if defined(_MSC_VER)

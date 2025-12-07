@@ -14,6 +14,7 @@
 #include <filesystem>
 
 using namespace slideio;
+using namespace slideio::converter;
 
 
 static void convertToSVS(CVScenePtr scene, ConverterParameters& params, const std::string& outputPath, ConverterCallback cb)
@@ -22,9 +23,12 @@ static void convertToSVS(CVScenePtr scene, ConverterParameters& params, const st
         RAISE_RUNTIME_ERROR << "Incorrect parameter type for the output file";
     }
     try {
-        SVSConverterParameters& parameters = static_cast<SVSConverterParameters&>(params);
+        if (params.getContainerType() != TIFF_CONTAINER) {
+            RAISE_RUNTIME_ERROR << "Converter: SVS format supports only TIFF container!";
+		}
+        std::shared_ptr<TIFFContainerParameters> tiffParams = std::static_pointer_cast<TIFFContainerParameters>(params.getContainerParameters());
         TIFFKeeperPtr file(new TIFFKeeper(outputPath, false));
-        if (parameters.getNumZoomLevels() <= 0) {
+        if (tiffParams->getNumZoomLevels() <= 0) {
             const auto& rect = scene->getRect();
             const auto& block = params.getRect();
             int width = rect.width;
@@ -33,9 +37,9 @@ static void convertToSVS(CVScenePtr scene, ConverterParameters& params, const st
                 width = block.width;
                 height = block.height;
             }
-            parameters.setNumZoomLevels(ConverterTools::computeNumZoomLevels(width, height));
+            tiffParams->setNumZoomLevels(ConverterTools::computeNumZoomLevels(width, height));
         }
-        ConverterSVSTools::createSVS(file, scene, parameters, cb);
+        ConverterSVSTools::createSVS(file, scene, params, cb);
     }
     catch(std::exception&) {
 #if defined(WIN32)
@@ -47,7 +51,7 @@ static void convertToSVS(CVScenePtr scene, ConverterParameters& params, const st
     }
 }
 
-void slideio::convertScene(ScenePtr scene,
+void slideio::converter::convertScene(ScenePtr scene,
                             ConverterParameters& parameters,
                             const std::string& outputPath,
                             ConverterCallback cb)
@@ -58,10 +62,9 @@ void slideio::convertScene(ScenePtr scene,
     if (parameters.getFormat() != ImageFormat::SVS) {
         RAISE_RUNTIME_ERROR << "Converter: output format '" << (int)parameters.getFormat() << "' is not supported!";
     }
-    SVSConverterParameters& svsParameters = (SVSConverterParameters&)parameters;
-    if(svsParameters.getEncoding() != Compression::Jpeg
-        && svsParameters.getEncoding() != Compression::Jpeg2000) {
-        RAISE_RUNTIME_ERROR << "Unsupported compression type: " << (int)svsParameters.getEncoding();
+    if(parameters.getEncoding() != Compression::Jpeg
+        && parameters.getEncoding() != Compression::Jpeg2000) {
+        RAISE_RUNTIME_ERROR << "Unsupported compression type: " << (int)parameters.getEncoding();
     }
     if(std::filesystem::exists(outputPath)) {
         RAISE_RUNTIME_ERROR << "Converter: output file already exists.";

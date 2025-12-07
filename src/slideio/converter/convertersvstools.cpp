@@ -12,7 +12,12 @@
 #include "slideio/core/tools/cvtools.hpp"
 #include <filesystem>
 
-void slideio::ConverterSVSTools::checkSVSRequirements(const CVScenePtr& scene, const SVSConverterParameters& parameters)
+#include "slideio/drivers/dcm/jp2codecparameter.hpp"
+
+using namespace slideio;
+using namespace slideio::converter;
+
+void ConverterSVSTools::checkSVSRequirements(const CVScenePtr& scene, const ConverterParameters& parameters)
 {
     const DataType dt = scene->getChannelDataType(0);
     const int numChannels = scene->getNumChannels();
@@ -51,15 +56,17 @@ static std::string retrieveTime()
     return strTime;
 }
 
-std::string slideio::ConverterSVSTools::createDescription(const CVScenePtr& scene, const SVSConverterParameters& parameters)
+std::string ConverterSVSTools::createDescription(const CVScenePtr& scene, const ConverterParameters& parameters)
 {
     auto rect = scene->getRect();
+	std::shared_ptr<const TIFFContainerParameters> tiffParams = std::static_pointer_cast<const TIFFContainerParameters>(parameters.getContainerParameters());
     std::stringstream buff;
     buff << "SlideIO Library 2.0" << std::endl;
     buff << rect.width << "x" << rect.height;
-    buff << "(" << parameters.getTileWidth() << "x" << parameters.getTileHeight() << ") ";
+    buff << "(" << tiffParams->getTileWidth() << "x" << tiffParams->getTileHeight() << ") ";
     if(parameters.getEncoding() == Compression::Jpeg) {
-        buff << "JPEG/RGB " << "Q=" << ((SVSJpegConverterParameters&)parameters).getQuality();
+        std::shared_ptr<const JpegEncodeParameters> jpegParams = std::static_pointer_cast<const JpegEncodeParameters>(parameters.getEncodeParameters());
+        buff << "JPEG/RGB " << "Q=" << jpegParams->getQuality();
     }
     else if(parameters.getEncoding() == Compression::Jpeg2000) {
         buff << "J2K";
@@ -82,7 +89,7 @@ std::string slideio::ConverterSVSTools::createDescription(const CVScenePtr& scen
     return buff.str();
 }
 
-void slideio::ConverterSVSTools::createZoomLevel(TIFFKeeperPtr& file, int zoomLevel, const CVScenePtr& scene, SVSConverterParameters& parameters, const std::function<void(int, int)>& cb)
+void ConverterSVSTools::createZoomLevel(TIFFKeeperPtr& file, int zoomLevel, const CVScenePtr& scene, ConverterParameters& parameters, const std::function<void(int, int)>& cb)
 {
     cv::Rect sceneRect = scene->getRect();
     sceneRect.x = sceneRect.y = 0;
@@ -94,7 +101,8 @@ void slideio::ConverterSVSTools::createZoomLevel(TIFFKeeperPtr& file, int zoomLe
         sceneRect.height = block.height;
     }
 
-    cv::Size tileSize(parameters.getTileWidth(), parameters.getTileHeight());
+    std::shared_ptr<const TIFFContainerParameters> tiffParams = std::static_pointer_cast<const TIFFContainerParameters>(parameters.getContainerParameters());
+    cv::Size tileSize(tiffParams->getTileWidth(), tiffParams->getTileHeight());
     cv::Size levelImageSize = ConverterTools::scaleSize(sceneRect.size(), zoomLevel);
     
     slideio::TiffDirectory dir;
@@ -112,7 +120,8 @@ void slideio::ConverterSVSTools::createZoomLevel(TIFFKeeperPtr& file, int zoomLe
     dir.tileWidth = tileSize.width;
     dir.tileHeight = tileSize.height;
     if(parameters.getEncoding()==Compression::Jpeg) {
-        dir.compressionQuality = static_cast<const SVSJpegConverterParameters&>(parameters).getQuality();
+        std::shared_ptr<const JpegEncodeParameters> jpegParams = std::static_pointer_cast<const JpegEncodeParameters>(parameters.getEncodeParameters());
+        dir.compressionQuality = jpegParams->getQuality();
     }
     if (zoomLevel == 0) {
         dir.description = createDescription(scene, parameters);
@@ -131,7 +140,7 @@ void slideio::ConverterSVSTools::createZoomLevel(TIFFKeeperPtr& file, int zoomLe
     }
     cv::Mat tile;
     int cvType = CVTools::toOpencvType(dir.dataType);
-    const EncodeParameters& encoding = parameters.getEncodeParameters();
+    std::shared_ptr<EncodeParameters> encoding = parameters.getEncodeParameters();
     int tileCount = 0;
     const int xEnd = sceneRect.x + sceneRect.width;
     const int yEnd = sceneRect.y + sceneRect.height;
@@ -151,7 +160,7 @@ void slideio::ConverterSVSTools::createZoomLevel(TIFFKeeperPtr& file, int zoomLe
             blockRect.x -= sceneRect.x;
             blockRect.y -= sceneRect.y;
             cv::Rect zoomLevelRect = ConverterTools::scaleRect(blockRect, zoomLevel, true);
-            file->writeTile(zoomLevelRect.x, zoomLevelRect.y, dir.slideioCompression, encoding, tile, buffer.data(), (int)buffer.size());
+            file->writeTile(zoomLevelRect.x, zoomLevelRect.y, dir.slideioCompression, *encoding, tile, buffer.data(), (int)buffer.size());
             tileCount++;
             if(cb) {
                 cb(zoomLevel, tileCount);
@@ -160,14 +169,20 @@ void slideio::ConverterSVSTools::createZoomLevel(TIFFKeeperPtr& file, int zoomLe
     }
 }
 
-void slideio::ConverterSVSTools::createSVS(TIFFKeeperPtr& file, const CVScenePtr& scene, SVSConverterParameters& parameters, ConverterCallback cb)
+void ConverterSVSTools::createSVS(TIFFKeeperPtr& file, const CVScenePtr& scene, ConverterParameters& parameters, ConverterCallback cb)
 {
-    if(parameters.getNumZoomLevels() <1) {
-        RAISE_RUNTIME_ERROR << "Expected positive number of zoom levels. Received: " << parameters.getNumZoomLevels();
+    auto containerType = parameters.getContainerType();
+    if (containerType != TIFF_CONTAINER) {
+		RAISE_RUNTIME_ERROR << "Expected TIFF container for SVS format. Received container type: " << (int)containerType;
     }
-    if(parameters.getTileWidth()<=0 || parameters.getTileHeight()<=0) {
+    std::shared_ptr<const TIFFContainerParameters> tiffParams = std::static_pointer_cast<const TIFFContainerParameters>(parameters.getContainerParameters());
+
+    if(tiffParams->getNumZoomLevels() <1) {
+        RAISE_RUNTIME_ERROR << "Expected positive number of zoom levels. Received: " << tiffParams->getNumZoomLevels();
+    }
+    if(tiffParams->getTileHeight()<=0 || tiffParams->getTileHeight()<=0) {
         RAISE_RUNTIME_ERROR << "Expected not empty tile size. Received: "
-            << parameters.getTileWidth() << "x" << parameters.getTileHeight();
+            << tiffParams->getTileHeight() << "x" << tiffParams->getTileHeight();
     }
     if(!file->isValid()) {
         RAISE_RUNTIME_ERROR << "Received invalid tiff file handle!";
@@ -187,8 +202,8 @@ void slideio::ConverterSVSTools::createSVS(TIFFKeeperPtr& file, const CVScenePtr
             sceneSize.width = block.width;
             sceneSize.height = block.height;
         }
-        for(int zoomLevel=0; zoomLevel<parameters.getNumZoomLevels(); ++zoomLevel) {
-            const cv::Size tileSize(parameters.getTileWidth(), parameters.getTileHeight());
+        for(int zoomLevel=0; zoomLevel< tiffParams->getNumZoomLevels(); ++zoomLevel) {
+            const cv::Size tileSize(tiffParams->getTileWidth(), tiffParams->getTileHeight());
             const cv::Size levelImageSize = ConverterTools::scaleSize(sceneSize, zoomLevel);
             const int sx = (levelImageSize.width - 1) / tileSize.width + 1;
             const int sy = (levelImageSize.height - 1) / tileSize.height + 1;
@@ -208,7 +223,7 @@ void slideio::ConverterSVSTools::createSVS(TIFFKeeperPtr& file, const CVScenePtr
         }
     };
 
-    for (int zoomLevel = 0; zoomLevel < parameters.getNumZoomLevels(); ++zoomLevel) {
+    for (int zoomLevel = 0; zoomLevel < tiffParams->getNumZoomLevels(); ++zoomLevel) {
         if(cb) {
             createZoomLevel(file, zoomLevel, scene, parameters, lambda);
         }

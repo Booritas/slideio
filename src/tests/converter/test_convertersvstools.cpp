@@ -46,17 +46,17 @@ TEST(ConverterSVSTools, checkSVSRequirements)
 			true
 		}
 	};
-    slideio::SVSJpegConverterParameters jpegParameters;
-	slideio::SVSJp2KConverterParameters j2kParameters;
+    slideio::converter::SVSJpegConverterParameters jpegParameters;
+	slideio::converter::SVSJp2KConverterParameters j2kParameters;
 	for(auto test : tests) {
 		CVSlidePtr slide = slideio::ImageDriverManager::openSlide(test.path, test.driver);
 		CVScenePtr scene = slide->getScene(0);
-		slideio::SVSConverterParameters& parameters = test.jpeg ? (slideio::SVSConverterParameters&)jpegParameters : (slideio::SVSConverterParameters&)j2kParameters;
+		slideio::converter::SVSConverterParameters& parameters = test.jpeg ? (slideio::converter::SVSConverterParameters&)jpegParameters : (slideio::converter::SVSConverterParameters&)j2kParameters;
 		if(test.succeess) {
-			EXPECT_NO_THROW(slideio::ConverterSVSTools::checkSVSRequirements(scene, parameters));
+			EXPECT_NO_THROW(slideio::converter::ConverterSVSTools::checkSVSRequirements(scene, parameters));
 		}
 		else {
-			EXPECT_THROW(slideio::ConverterSVSTools::checkSVSRequirements(scene, parameters), slideio::RuntimeError);
+			EXPECT_THROW(slideio::converter::ConverterSVSTools::checkSVSRequirements(scene, parameters), slideio::RuntimeError);
 		}
 	}
 }
@@ -66,9 +66,9 @@ TEST(ConverterSVSTools, createDescription)
 	std::string imagePath = TestTools::getTestImagePath("svs", "CMU-1-Small-Region.svs");
     CVSlidePtr slide = slideio::ImageDriverManager::openSlide(imagePath,"SVS");
     CVScenePtr scene = slide->getScene(0);
-	slideio::SVSJpegConverterParameters parameters;
+	slideio::converter::SVSJpegConverterParameters parameters;
 	parameters.setQuality(99);
-    std::string description = slideio::ConverterSVSTools::createDescription(scene, parameters);
+    std::string description = slideio::converter::ConverterSVSTools::createDescription(scene, parameters);
 	EXPECT_FALSE(description.empty());
 	EXPECT_TRUE(description.find("SlideIO") >= 0);
 	EXPECT_TRUE(description.find("2220x2967") > 0);
@@ -85,11 +85,11 @@ TEST(ConverterSVSTools, createZoomLevelGray)
 	slideio::ImageTools::readGDALImage(imagePath, source);
 	slideio::TempFile tiff("tiff");
 	TIFFKeeperPtr file(new slideio::TIFFKeeper(tiff.getPath().string(), false));
-	slideio::SVSJpegConverterParameters parameters;
+	slideio::converter::SVSJpegConverterParameters parameters;
 	parameters.setQuality(99);
 	parameters.setTileWidth(256);
 	parameters.setTileHeight(256);
-	slideio::ConverterSVSTools::createZoomLevel(file, 0, scene, parameters);
+	slideio::converter::ConverterSVSTools::createZoomLevel(file, 0, scene, parameters);
 	file->closeTiffFile();
 	std::vector<slideio::TiffDirectory> dirs;
 	slideio::TiffTools::scanFile(tiff.getPath().string(), dirs);
@@ -111,11 +111,11 @@ TEST(ConverterSVSTools, createZoomLevelColor)
 	cv::Size tileSize(256, 256);
 	slideio::TempFile tiff("tiff");
 	TIFFKeeperPtr file(new slideio::TIFFKeeper(tiff.getPath().string(), false));
-	slideio::SVSJpegConverterParameters parameters;
+	slideio::converter::SVSJpegConverterParameters parameters;
 	parameters.setQuality(99);
 	parameters.setTileWidth(256);
 	parameters.setTileHeight(256);
-	slideio::ConverterSVSTools::createZoomLevel(file, 0, scene, parameters);
+	slideio::converter::ConverterSVSTools::createZoomLevel(file, 0, scene, parameters);
 	file->closeTiffFile();
     cv::Mat target;
 	slideio::ImageTools::readGDALImage(tiff.getPath().string(), target);
@@ -132,11 +132,11 @@ TEST(ConverterSVSTools, createSVS8bitGray)
 	ASSERT_EQ(numScenes, 1);
 	std::shared_ptr<slideio::Scene> scene = slide->getScene(0);
 	slideio::TempFile svs("svs");
-	slideio::SVSJpegConverterParameters parameters;
+	slideio::converter::SVSJpegConverterParameters parameters;
 	parameters.setQuality(99);
 	parameters.setTileWidth(256);
 	parameters.setTileHeight(256);
-	slideio::convertScene(scene, parameters, svs.getPath().string());
+	slideio::converter::convertScene(scene, parameters, svs.getPath().string());
 
 	cv::Mat source;
 	slideio::ImageTools::readGDALImage(imagePath, source);
@@ -158,11 +158,11 @@ TEST(ConverterSVSTools, createSVS8bitColor)
 	ASSERT_EQ(numScenes, 1);
 	std::shared_ptr<slideio::Scene> scene = slide->getScene(0);
 	slideio::TempFile svs("svs");
-	slideio::SVSJpegConverterParameters parameters;
+	slideio::converter::SVSJpegConverterParameters parameters;
 	parameters.setQuality(99);
 	parameters.setTileWidth(256);
 	parameters.setTileHeight(256);
-	slideio::convertScene(scene, parameters, svs.getPath().string());
+	slideio::converter::convertScene(scene, parameters, svs.getPath().string());
 
 	cv::Mat source;
 	slideio::ImageTools::readGDALImage(imagePath, source);
