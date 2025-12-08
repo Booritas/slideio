@@ -908,12 +908,8 @@ uint16_t computeDirectoryPhotometric(TiffDirectory dir)
 }
 
 
-void TiffTools::setTags(libtiff::TIFF* tiff, const TiffDirectory& dir, bool newDirectory)
+void TiffTools::setTags(libtiff::TIFF* tiff, const TiffDirectory& dir)
 {
-    if(newDirectory) {
-        writeDirectory(tiff);
-    }
-
     const uint16_t numChannels = (uint16_t)dir.channels;
     libtiff::TIFFSetField(tiff, TIFFTAG_SAMPLESPERPIXEL, numChannels);
     const uint16_t bitsPerSample = bitsPerSampleDataType(dir.dataType);
@@ -938,9 +934,14 @@ void TiffTools::setTags(libtiff::TIFF* tiff, const TiffDirectory& dir, bool newD
     libtiff::TIFFSetField(tiff, TIFFTAG_JPEGQUALITY, dir.compressionQuality);
 }
 
+void TiffTools::initSubDirs(libtiff::TIFF* tiff, int numDirs) {
+    std::vector<uint64> subIFDOffsets(numDirs, 0);
+    libtiff::TIFFSetField(tiff, TIFFTAG_SUBIFD, numDirs, subIFDOffsets.data());
+}
+
 void TiffTools::writeTile(libtiff::TIFF* tiff, int x, int y, Compression compression, 
-                        const cv::Mat& tileRaster, const EncodeParameters& parameters,
-                        uint8_t* buffer, int bufferSize)
+                          const cv::Mat& tileRaster, const EncodeParameters& parameters,
+                          uint8_t* buffer, int bufferSize)
 {
     if(compression==Compression::Jpeg) {
         const uint32_t tile = libtiff::TIFFComputeTile(tiff, x, y, 0, 0);

@@ -226,5 +226,75 @@ namespace slideio
                 std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters)->setTileHeight(tileHeight);
             }
         };
+
+        class SLIDEIO_CONVERTER_EXPORTS OMETIFFConverterParameters : public ConverterParameters
+        {
+        public:
+            OMETIFFConverterParameters(Compression compression)
+                : ConverterParameters(ImageFormat::OME_TIFF, Container::TIFF_CONTAINER, compression) {
+            }
+            ~OMETIFFConverterParameters() override = default;
+
+            int getTileWidth() const {
+                return std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters)->getTileWidth();
+            }
+
+            void setTileWidth(int tileWidth) {
+                std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters)->setTileWidth(tileWidth);
+            }
+
+            int getTileHeight() const {
+                return std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters)->getTileHeight();
+            }
+
+            void setTileHeight(int tileHeight) {
+                std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters)->setTileHeight(tileHeight);
+            }
+        };
+
+        class SLIDEIO_CONVERTER_EXPORTS OMETIFFJpegConverterParameters : public OMETIFFConverterParameters
+        {
+        public:
+            OMETIFFJpegConverterParameters()
+                : OMETIFFConverterParameters(Compression::Jpeg) {
+            }
+
+            ~OMETIFFJpegConverterParameters() override = default;
+
+            void setQuality(int q) {
+                std::static_pointer_cast<slideio::JpegEncodeParameters>(m_encodeParameters)->setQuality(q);
+            }
+        };
+
+
+        class SLIDEIO_CONVERTER_EXPORTS OMETIFFJp2KConverterParameters : public OMETIFFConverterParameters
+        {
+        public:
+            OMETIFFJp2KConverterParameters()
+                : OMETIFFConverterParameters(Compression::Jpeg2000) {
+            }
+
+            ~OMETIFFJp2KConverterParameters() override = default;
+
+            void setCompressionRate(float rate) {
+                std::static_pointer_cast<slideio::JP2KEncodeParameters>(m_encodeParameters)->setCompressionRate(rate);
+            }
+            int getTileWidth() const {
+                return std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters)->getTileWidth();
+            }
+
+            void setTileWidth(int tileWidth) {
+                std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters)->setTileWidth(tileWidth);
+            }
+
+            int getTileHeight() const {
+                return std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters)->getTileHeight();
+            }
+
+            void setTileHeight(int tileHeight) {
+                std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters)->setTileHeight(tileHeight);
+            }
+        };
+
     }
 }

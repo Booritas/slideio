@@ -10,6 +10,7 @@ set(TEST_SOURCES
   test_convertertools.cpp
   test_convertertifftools.cpp
   test_convertersvstools.cpp
+  test_ometiff_converter.cpp
 )
 
 add_executable(${TEST_NAME} ${TEST_SOURCES})

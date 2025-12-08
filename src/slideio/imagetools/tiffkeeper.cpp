@@ -40,9 +40,9 @@ void TIFFKeeper::writeDirectory()
     TiffTools::writeDirectory(m_hFile);
 }
 
-void TIFFKeeper::setTags(const TiffDirectory& dir, bool newDirectory)
+void TIFFKeeper::setTags(const TiffDirectory& dir)
 {
-    TiffTools::setTags(m_hFile, dir, newDirectory);
+    TiffTools::setTags(m_hFile, dir);
 }
 
 void TIFFKeeper::writeTile(int x, int y, Compression compression, const EncodeParameters& params, const cv::Mat& tileRaster,
@@ -60,4 +60,8 @@ void TIFFKeeper::readTile(const slideio::TiffDirectory& dir, int tile, const std
 std::string TIFFKeeper::readStringTag(uint16_t tag)
 {
     return TiffTools::readStringTag(m_hFile, tag);
+}
+
+void TIFFKeeper::initSubDirs(int numDirs) {
+	TiffTools::initSubDirs(m_hFile, numDirs);
 }

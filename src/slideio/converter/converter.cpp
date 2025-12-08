@@ -13,13 +13,88 @@
 
 #include <filesystem>
 
+#include "convertertifftools.hpp"
+
 using namespace slideio;
 using namespace slideio::converter;
 
-
-static void convertToSVS(CVScenePtr scene, ConverterParameters& params, const std::string& outputPath, ConverterCallback cb)
+static void createTiff(TIFFKeeperPtr& file, const CVScenePtr& scene, ConverterParameters& parameters, ConverterCallback cb)
 {
-    if(params.getFormat() != ImageFormat::SVS) {
+    auto containerType = parameters.getContainerType();
+    if (containerType != TIFF_CONTAINER) {
+        RAISE_RUNTIME_ERROR << "Expected TIFF container for SVS format. Received container type: " << (int)containerType;
+    }
+    std::shared_ptr<const TIFFContainerParameters> tiffParams = std::static_pointer_cast<const TIFFContainerParameters>(parameters.getContainerParameters());
+
+    if (tiffParams->getNumZoomLevels() < 1) {
+        RAISE_RUNTIME_ERROR << "Expected positive number of zoom levels. Received: " << tiffParams->getNumZoomLevels();
+    }
+    if (tiffParams->getTileHeight() <= 0 || tiffParams->getTileHeight() <= 0) {
+        RAISE_RUNTIME_ERROR << "Expected not empty tile size. Received: "
+            << tiffParams->getTileHeight() << "x" << tiffParams->getTileHeight();
+    }
+    if (!file->isValid()) {
+        RAISE_RUNTIME_ERROR << "Received invalid tiff file handle!";
+    }
+    if (!scene) {
+        RAISE_RUNTIME_ERROR << "Received invalid scene object!";
+    }
+
+     ConverterTools::checkContainerRequirements(scene, parameters);
+     ConverterTools::checkEncodingRequirements(scene, parameters);
+    
+    int tileCount = 0;
+    
+    if (cb) {
+        cv::Rect sceneRect = scene->getRect();
+        cv::Size sceneSize = scene->getRect().size();
+        if (parameters.getRect().valid()) {
+            const auto& block = parameters.getRect();
+            sceneSize.width = block.width;
+            sceneSize.height = block.height;
+        }
+        for (int zoomLevel = 0; zoomLevel < tiffParams->getNumZoomLevels(); ++zoomLevel) {
+            const cv::Size tileSize(tiffParams->getTileWidth(), tiffParams->getTileHeight());
+            const cv::Size levelImageSize = ConverterTools::scaleSize(sceneSize, zoomLevel);
+            const int sx = (levelImageSize.width - 1) / tileSize.width + 1;
+            const int sy = (levelImageSize.height - 1) / tileSize.height + 1;
+            tileCount += sx * sy;
+        }
+    }
+    
+    int percents = 0;
+    int processedTiles = 0;
+    auto lambda = [cb, tileCount, &processedTiles, &percents](int, int)
+        {
+            const int newPercents = (processedTiles * 100) / tileCount;
+            processedTiles++;
+            if (newPercents != percents) {
+                cb(newPercents);
+                percents = newPercents;
+            }
+        };
+    
+    std::string description;
+    if (parameters.getFormat()==ImageFormat::SVS) {
+        description = ConverterSVSTools::createDescription(scene, parameters);
+	}
+
+    for (int zoomLevel = 0; zoomLevel < tiffParams->getNumZoomLevels(); ++zoomLevel) {
+        if (cb) {
+            ConverterTiffTools::createZoomLevel(file, zoomLevel, description, scene, parameters, lambda);
+        }
+        else {
+            ConverterTiffTools::createZoomLevel(file, zoomLevel, description, scene, parameters, nullptr);
+        }
+    }
+    if (cb != nullptr && percents != 100) {
+        cb(100);
+    }
+}
+
+static void convertToTiff(CVScenePtr scene, ConverterParameters& params, const std::string& outputPath, ConverterCallback cb)
+{
+    if(params.getFormat() != ImageFormat::SVS && params.getFormat() != ImageFormat::OME_TIFF) {
         RAISE_RUNTIME_ERROR << "Incorrect parameter type for the output file";
     }
     try {
@@ -39,7 +114,7 @@ static void convertToSVS(CVScenePtr scene, ConverterParameters& params, const st
             }
             tiffParams->setNumZoomLevels(ConverterTools::computeNumZoomLevels(width, height));
         }
-        ConverterSVSTools::createSVS(file, scene, params, cb);
+        createTiff(file, scene, params, cb);
     }
     catch(std::exception&) {
 #if defined(WIN32)
@@ -59,7 +134,7 @@ void slideio::converter::convertScene(ScenePtr scene,
     if(scene == nullptr) {
         RAISE_RUNTIME_ERROR << "Converter: invalid input scene!";
     }
-    if (parameters.getFormat() != ImageFormat::SVS) {
+    if (parameters.getFormat() != ImageFormat::SVS && parameters.getFormat() != ImageFormat::OME_TIFF) {
         RAISE_RUNTIME_ERROR << "Converter: output format '" << (int)parameters.getFormat() << "' is not supported!";
     }
     if(parameters.getEncoding() != Compression::Jpeg
@@ -73,7 +148,7 @@ void slideio::converter::convertScene(ScenePtr scene,
     std::string filePath = scene->getFilePath();
     SLIDEIO_LOG(INFO) << "Convert a scene " << sceneName << " from file "
             << filePath << " to format: '" << (int)parameters.getFormat() << "'.";
-    convertToSVS(scene->getCVScene(), parameters, outputPath, cb);
+    convertToTiff(scene->getCVScene(), parameters, outputPath, cb);
 }
 
 

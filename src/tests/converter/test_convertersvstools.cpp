@@ -8,6 +8,7 @@
 #include "slideio/base/exceptions.hpp"
 #include "slideio/converter/converter.hpp"
 #include "slideio/converter/converterparameters.hpp"
+#include "slideio/converter/convertertifftools.hpp"
 #include "slideio/core/tools/tempfile.hpp"
 #include "slideio/slideio/slideio.hpp"
 
@@ -89,7 +90,8 @@ TEST(ConverterSVSTools, createZoomLevelGray)
 	parameters.setQuality(99);
 	parameters.setTileWidth(256);
 	parameters.setTileHeight(256);
-	slideio::converter::ConverterSVSTools::createZoomLevel(file, 0, scene, parameters);
+	std::string description = slideio::converter::ConverterSVSTools::createDescription(scene, parameters);
+	slideio::converter::ConverterTiffTools::createZoomLevel(file, 0, description, scene, parameters);
 	file->closeTiffFile();
 	std::vector<slideio::TiffDirectory> dirs;
 	slideio::TiffTools::scanFile(tiff.getPath().string(), dirs);
@@ -115,7 +117,8 @@ TEST(ConverterSVSTools, createZoomLevelColor)
 	parameters.setQuality(99);
 	parameters.setTileWidth(256);
 	parameters.setTileHeight(256);
-	slideio::converter::ConverterSVSTools::createZoomLevel(file, 0, scene, parameters);
+	std::string description = slideio::converter::ConverterSVSTools::createDescription(scene, parameters);
+	slideio::converter::ConverterTiffTools::createZoomLevel(file, 0, description, scene, parameters);
 	file->closeTiffFile();
     cv::Mat target;
 	slideio::ImageTools::readGDALImage(tiff.getPath().string(), target);

@@ -9,18 +9,24 @@
 
 namespace slideio
 {
-    class SLIDEIO_CONVERTER_EXPORTS ConverterTools
+    namespace converter
     {
-    public:
-        static int computeNumZoomLevels(int width, int height);
-        static cv::Size scaleSize(const cv::Size& size, int zoomLevel, bool downScale=true);
-        static cv::Rect scaleRect(const cv::Rect& rect, int zoomLevel, bool downScale);
-        static void readTile(const CVScenePtr& scene, int zoomLevel, const cv::Rect& sceneBlockRect,
-                             int slice, int frame, cv::OutputArray tile);
-        static cv::Rect computeZoomLevelRect(const cv::Rect& sceneRect, const cv::Size& tileSize, int zoomLevel);
+        class ConverterParameters;
+        class SLIDEIO_CONVERTER_EXPORTS ConverterTools
+        {
+        public:
+            static int computeNumZoomLevels(int width, int height);
+            static cv::Size scaleSize(const cv::Size& size, int zoomLevel, bool downScale = true);
+            static cv::Rect scaleRect(const cv::Rect& rect, int zoomLevel, bool downScale);
+            static void readTile(const CVScenePtr& scene, int zoomLevel, const cv::Rect& sceneBlockRect,
+                int slice, int frame, cv::OutputArray tile);
+            static cv::Rect computeZoomLevelRect(const cv::Rect& sceneRect, const cv::Size& tileSize, int zoomLevel);
+            static void checkJpegRequirements(const CVScenePtr& scene, const converter::ConverterParameters& parameters);
+            static void checkEncodingRequirements(const CVScenePtr& scene, const converter::ConverterParameters& parameters);
+            static void checkContainerRequirements(const CVScenePtr& scene, const converter::ConverterParameters& parameters);
 
-
-    };
+        };
+    }
 }
 
 #endif

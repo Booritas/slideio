@@ -45,12 +45,13 @@ namespace slideio
         void openTiffFile(const std::string& filePath, bool readOnly = true);
         void closeTiffFile();
         void writeDirectory();
-        void setTags(const TiffDirectory& dir, bool newDirectory);
+        void setTags(const TiffDirectory& dir);
         void writeTile(int x, int y, Compression compression, const EncodeParameters& params, const cv::Mat& mat,
             uint8_t* buffer, int bufferSize);
         void readTile(const slideio::TiffDirectory& dir, int tile,
             const std::vector<int>& channelIndices, cv::OutputArray output);
         std::string readStringTag(uint16_t tag);
+        void initSubDirs(int numDirs);
 
     private:
         libtiff::TIFF* m_hFile;
