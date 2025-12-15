@@ -9,11 +9,8 @@
 #include "slideio/base/log.hpp"
 #include "slideio/core/tools/endian.hpp"
 #include "slideio/core/tools/tools.hpp"
-#include <codecvt>
 #include <opencv2/core.hpp>
 #include <filesystem>
-
-#include "../../../../../../conan2/p/ndpi-906ad9e79a7f7/p/include/tiffio.h"
 
 using namespace slideio;
 

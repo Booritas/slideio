@@ -6,6 +6,9 @@
 #include "slideio/base/rect.hpp"
 #include "slideio/base/slideio_enums.hpp"
 #include "slideio/converter/converter_def.hpp"
+#include "slideio/core/cvscene.hpp"
+
+#include <opencv2/core/types.hpp>
 
 namespace slideio
 {
@@ -91,69 +94,75 @@ namespace slideio
         class SLIDEIO_CONVERTER_EXPORTS ConverterParameters
         {
         public:
-            ConverterParameters(ImageFormat format, Container containerType, slideio::Compression compression);
+            ConverterParameters(ImageFormat format, Container containerType, Compression compression);
 
-        public:
-            virtual ~ConverterParameters() {
+            ConverterParameters(){
+                initialize();
             }
+
+            ConverterParameters(const ConverterParameters& other);
+            ConverterParameters& operator=(const ConverterParameters& other);
+
+			virtual ~ConverterParameters() = default;
 
             ImageFormat getFormat() const {
                 return m_format;
             }
-
-            Rect& getRect() {
+            const Rect& getRect() const {
                 return m_rect;
             }
-
             void setRect(const Rect& rect) {
                 m_rect = rect;
             }
-
-            int32_t getZSlice() const {
-                return m_zSlice;
+            void setSliceRange(const cv::Range& range) {
+                m_sliceRange = range;
             }
+            const cv::Range& getSliceRange() const {
+                return m_sliceRange;
+			}
+            void setChannelRange(const cv::Range& range) {
+                m_channelRange = range;
+			}
+            const cv::Range& getChannelRange() const {
+				return m_channelRange;
+			}
+            void setTFrameRange(const cv::Range& range) {
+                m_frameRange = range;
+			}
+            const cv::Range& getTFrameRange() const {
+                return m_frameRange;
+			}
+            Compression getEncoding() const;
 
-            void setZSlice(int32_t zSlice) {
-                m_zSlice = zSlice;
-            }
-
-            int32_t getTFrame() const {
-                return m_tFrame;
-            }
-
-            void setTFrame(int32_t tFrame) {
-                m_tFrame = tFrame;
-            }
-
-            Compression getEncoding() const {
-                return m_encodeParameters->getCompression();
-            }
-
-            Container getContainerType() const {
-                return m_containerParameters->getContainerType();
-            }
+            Container getContainerType() const;
 
             std::shared_ptr<EncodeParameters> getEncodeParameters() {
                 return m_encodeParameters;
             }
-
             std::shared_ptr<const EncodeParameters> getEncodeParameters() const {
                 return m_encodeParameters;
             }
-
             std::shared_ptr<ContainerParameters> getContainerParameters() {
                 return std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters);
             }
-
             std::shared_ptr<const ContainerParameters> getContainerParameters() const {
                 return std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters);
             }
+			bool isValid() const {
+				return m_format != ImageFormat::Unknown && m_encodeParameters != nullptr && m_containerParameters != nullptr;
+            }
 
+            void updateNotDefinedParameters(const std::shared_ptr<CVScene>& scene);
+
+        private:
+            void initialize();
+            void copyFrom(const ConverterParameters& other);
         protected:
             ImageFormat m_format;
             Rect m_rect;
-            int32_t m_zSlice;
-            int32_t m_tFrame;
+            cv::Range m_sliceRange;
+            cv::Range m_channelRange;
+            cv::Range m_frameRange;
             std::shared_ptr<EncodeParameters> m_encodeParameters;
             std::shared_ptr<ContainerParameters> m_containerParameters;
         };

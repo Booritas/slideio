@@ -8,9 +8,10 @@ set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 set(TEST_SOURCES
   test_converter.cpp
   test_convertertools.cpp
-  test_convertertifftools.cpp
-  test_convertersvstools.cpp
   test_ometiff_converter.cpp
+  test_tiffconverter.cpp
+  test_tiffstructure.cpp
+  test_converterparameters.cpp
 )
 
 add_executable(${TEST_NAME} ${TEST_SOURCES})

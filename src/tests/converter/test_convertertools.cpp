@@ -29,7 +29,7 @@ TEST(ConverterTools, readTile_normal)
         const cv::Rect tileRect(0, 0, 256, 180);
         const cv::Size tileSize(tileRect.size());
 		cv::Mat tileRaster;
-		ConverterTools::readTile(scene, 0, tileRect, 0, 0, tileRaster);
+		ConverterTools::readTile(scene, {}, 0, tileRect, 0, 0, tileRaster);
 		cv::Mat blockRaster;
         const cv::Rect blockRect(tileRect);
 		scene->readBlock(blockRect, blockRaster);
@@ -39,7 +39,7 @@ TEST(ConverterTools, readTile_normal)
 		const cv::Rect tileRect(500, 600, 256, 180);
 		const cv::Size tileSize(tileRect.size());
 		cv::Mat tileRaster;
-		ConverterTools::readTile(scene, 0, tileRect, 0, 0, tileRaster);
+		ConverterTools::readTile(scene, {}, 0, tileRect, 0, 0, tileRaster);
 		cv::Mat blockRaster;
 		const cv::Rect blockRect(tileRect);
 		scene->readBlock(blockRect, blockRaster);
@@ -58,7 +58,7 @@ TEST(ConverterTools, readTile_scaled)
 		cv::Rect sceneRect = scene->getRect();
 		const cv::Rect blockRect(55, 75, 512, 1024);
 		cv::Mat tileRaster;
-		ConverterTools::readTile(scene, zoomLevel, blockRect, 0, 0, tileRaster);
+		ConverterTools::readTile(scene, {}, zoomLevel, blockRect, 0, 0, tileRaster);
 		cv::Size tileSize = ConverterTools::scaleSize(blockRect.size(), zoomLevel, true);
 		cv::Mat blockRaster;
 		scene->readResampledBlock(blockRect, tileSize, blockRaster);
@@ -69,7 +69,7 @@ TEST(ConverterTools, readTile_scaled)
 		cv::Rect sceneRect = scene->getRect();
 		const cv::Rect blockRect(55, 75, 512, 1024);
 		cv::Mat tileRaster;
-		ConverterTools::readTile(scene, zoomLevel, blockRect, 0, 0, tileRaster);
+		ConverterTools::readTile(scene, {}, zoomLevel, blockRect, 0, 0, tileRaster);
 		cv::Size tileSize = ConverterTools::scaleSize(blockRect.size(), zoomLevel, true);
 		cv::Mat blockRaster;
 		scene->readResampledBlock(blockRect, tileSize, blockRaster);
@@ -88,7 +88,7 @@ TEST(ConverterTools, readTile_edge)
 		const int zoomLevel = 1;
 		const cv::Rect blockRect(5200, 5600, 1024, 1024);
 		cv::Mat tileRaster;
-		ConverterTools::readTile(scene, zoomLevel, blockRect, 0, 0, tileRaster);
+		ConverterTools::readTile(scene, {}, zoomLevel, blockRect, 0, 0, tileRaster);
 		cv::Rect validSceneRect = sceneRect & blockRect;
 	    cv::Size tileSize = ConverterTools::scaleSize(validSceneRect.size(), zoomLevel, true);
 		cv::Mat blockRaster;

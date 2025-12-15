@@ -18,12 +18,14 @@ namespace slideio
             static int computeNumZoomLevels(int width, int height);
             static cv::Size scaleSize(const cv::Size& size, int zoomLevel, bool downScale = true);
             static cv::Rect scaleRect(const cv::Rect& rect, int zoomLevel, bool downScale);
-            static void readTile(const CVScenePtr& scene, int zoomLevel, const cv::Rect& sceneBlockRect,
+            static void readTile(const CVScenePtr& scene, const std::vector<int> channels, int zoomLevel, const cv::Rect& sceneBlockRect,
                 int slice, int frame, cv::OutputArray tile);
             static cv::Rect computeZoomLevelRect(const cv::Rect& sceneRect, const cv::Size& tileSize, int zoomLevel);
-            static void checkJpegRequirements(const CVScenePtr& scene, const converter::ConverterParameters& parameters);
-            static void checkEncodingRequirements(const CVScenePtr& scene, const converter::ConverterParameters& parameters);
-            static void checkContainerRequirements(const CVScenePtr& scene, const converter::ConverterParameters& parameters);
+			static int computeNumTiles(const cv::Size& imageSize, const cv::Size& tileSize) {
+                const int numTilesX = (imageSize.width + tileSize.width - 1) / tileSize.width;
+                const int numTilesY = (imageSize.height + tileSize.height - 1) / tileSize.height;
+                return numTilesX * numTilesY;
+            }
 
         };
     }

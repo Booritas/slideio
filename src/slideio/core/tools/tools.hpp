@@ -122,6 +122,7 @@ namespace slideio
         }
         static void replaceAll(std::string& str, const std::string& from, const std::string& to);
         static std::vector<std::string> split(const std::string& value, char delimiter);
+        static std::string randomUUID();
 
     };
 }

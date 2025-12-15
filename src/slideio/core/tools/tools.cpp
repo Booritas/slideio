@@ -8,6 +8,7 @@
 #include <numeric>
 #include "slideio/base/exceptions.hpp"
 #include <filesystem>
+#include <random>
 #if defined(WIN32)
 #include <Shlwapi.h>
 #else
@@ -37,6 +38,27 @@ std::vector<std::string> Tools::split(const std::string& val, char delimiter) {
         tokens.push_back("");
     }
     return tokens;
+}
+
+std::string Tools::randomUUID() {
+    static const char* hex = "0123456789abcdef";
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<int> dist(0, 15);
+    std::string s(36, '\0');
+    int positions[] = { 8,13,18,23 };
+    int pIndex = 0;
+    for (int i = 0; i < 36; ++i) {
+        if (pIndex < 4 && i == positions[pIndex]) { s[i] = '-'; ++pIndex; continue; }
+        int val = dist(gen);
+        s[i] = hex[val];
+    }
+    // set version to 4
+    s[14] = '4';
+    // set variant to 8,9,a,b
+    int variantVals[] = { '8','9','a','b' };
+    s[19] = static_cast<char>(variantVals[dist(gen) % 4]);
+    return s;
 }
 
 bool Tools::matchPattern(const std::string& path, const std::string& pattern)

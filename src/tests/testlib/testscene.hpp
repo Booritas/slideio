@@ -12,7 +12,9 @@ public:
         m_name("TestScene"),
         m_resolution(1., 1.),
         m_magnification(20.0),
-        m_compression(slideio::Compression::Jpeg)
+        m_compression(slideio::Compression::Jpeg),
+        m_numSlices(1),
+        m_numTFrames(1)
     {}
     std::string getFilePath() const override { return m_filePath; }
     void setFilePath(const std::string& filePath) { m_filePath = filePath; }
@@ -30,6 +32,10 @@ public:
     void setMagnification(double magnification) { m_magnification = magnification; }
     slideio::Compression getCompression() const override { return m_compression; }
     void setCompression(slideio::Compression compression) { m_compression = compression; }
+    int getNumZSlices() const override { return m_numSlices; }
+    int getNumTFrames() const override { return m_numTFrames; }
+	void setNumZSlices(int numSlices) { m_numSlices = numSlices; }
+	void setNumTFrames(int numFrames) { m_numTFrames = numFrames; }
 private:
     std::string m_filePath;
     cv::Rect m_rect;
@@ -39,4 +45,6 @@ private:
     slideio::Resolution m_resolution;
     double m_magnification;
     slideio::Compression m_compression;
+    int m_numSlices;
+    int m_numTFrames;
 };

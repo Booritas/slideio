@@ -3,7 +3,6 @@
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/converter/convertertools.hpp"
 
-#include "convertersvstools.hpp"
 #include "slideio/base/exceptions.hpp"
 #include "slideio/core/tools/cvtools.hpp"
 #include "slideio/converter/converterparameters.hpp"
@@ -20,11 +19,6 @@ int ConverterTools::computeNumZoomLevels(int width, int height) {
         numZoomLevels++;
     }
     return numZoomLevels;
-}
-
-void adjustTileRectToScene(const cv::Rect& sceneRect, int zoomLevel, cv::Rect& tileRect, cv::Size& tileSize) {
-    if (!sceneRect.contains(tileRect.br())) {
-    }
 }
 
 cv::Size ConverterTools::scaleSize(const cv::Size& size, int zoomLevel, bool downScale) {
@@ -44,7 +38,7 @@ cv::Size ConverterTools::scaleSize(const cv::Size& size, int zoomLevel, bool dow
 }
 
 
-void ConverterTools::readTile(const CVScenePtr& scene, int zoomLevel,
+void ConverterTools::readTile(const CVScenePtr& scene, const std::vector<int> channels, int zoomLevel,
                               const cv::Rect& sceneBlockRect, int slice, int frame, cv::OutputArray tile) {
     cv::Range slices(slice, slice + 1);
     cv::Range frames(frame, frame + 1);
@@ -53,7 +47,7 @@ void ConverterTools::readTile(const CVScenePtr& scene, int zoomLevel,
     cv::Size tileSize = ConverterTools::scaleSize(sceneBlockRect.size(), zoomLevel, true);
     if (rectScene.contains(sceneBlockRect.br())) {
         // internal tiles
-        scene->readResampled4DBlockChannels(sceneBlockRect, tileSize, {}, slices, frames, tile);
+        scene->readResampled4DBlockChannels(sceneBlockRect, tileSize, channels, slices, frames, tile);
     }
     else {
         // border tiles
@@ -64,7 +58,7 @@ void ConverterTools::readTile(const CVScenePtr& scene, int zoomLevel,
         const cv::Size adjustedTileSize = scaleSize(adjustedRect.size(), zoomLevel, true);
         if (!adjustedRect.empty()) {
             cv::Mat adjustedTile;
-            scene->readResampled4DBlockChannels(adjustedRect, adjustedTileSize, {}, slices, frames, adjustedTile);
+            scene->readResampled4DBlockChannels(adjustedRect, adjustedTileSize, channels, slices, frames, adjustedTile);
             if (!adjustedTile.empty()) {
                 const cv::Rect roi(0, 0, adjustedTileSize.width, adjustedTileSize.height);
                 cv::Mat matTile = tile.getMat();
@@ -78,15 +72,14 @@ cv::Rect ConverterTools::scaleRect(const cv::Rect& rect, int zoomLevel, bool dow
     if (zoomLevel < 0) {
         RAISE_RUNTIME_ERROR << "Expected positive zoom level.";
     }
+    cv::Rect newRect(rect);
     if (downScale) {
-        cv::Rect newRect(rect);
         newRect.width >>= zoomLevel;
         newRect.height >>= zoomLevel;
         newRect.x >>= zoomLevel;
         newRect.y >>= zoomLevel;
         return newRect;
     }
-    cv::Rect newRect(rect);
     newRect.width <<= zoomLevel;
     newRect.height <<= zoomLevel;
     newRect.x <<= zoomLevel;
@@ -102,33 +95,4 @@ cv::Rect ConverterTools::computeZoomLevelRect(const cv::Rect& sceneRect,
     levelRect.width = ((levelRect.width - 1) / tileSize.width + 1) * tileSize.width;
     levelRect.height = ((levelRect.height - 1) / tileSize.height + 1) * tileSize.height;
     return levelRect;
-}
-
-void ConverterTools::checkJpegRequirements(const std::shared_ptr<slideio::CVScene>& scene,
-                                           const converter::ConverterParameters& parameters) {
-    if (parameters.getEncoding() == Compression::Jpeg) {
-        const int numChannels = scene->getNumChannels();
-        if (numChannels != 1 && numChannels != 3) {
-            RAISE_RUNTIME_ERROR << "Converter: Jpeg compression can be used for 1 and 3 channel images only!";
-        }
-        for (int channel = 0; channel < numChannels; ++channel) {
-            if (scene->getChannelDataType(channel) != DataType::DT_Byte) {
-                RAISE_RUNTIME_ERROR << "Converter: Jpeg compression can be used for 8bit images only!";
-            }
-        }
-    }
-}
-
-void ConverterTools::checkEncodingRequirements(const std::shared_ptr<slideio::CVScene>& scene,
-    const converter::ConverterParameters& parameters) {
-    if (parameters.getEncoding() == Compression::Jpeg) {
-		checkJpegRequirements(scene, parameters);
-    }
-}
-
-void ConverterTools::checkContainerRequirements(const std::shared_ptr<slideio::CVScene>& scene,
-    const converter::ConverterParameters& parameters) {
-    if (parameters.getContainerType()==ImageFormat::SVS) {
-        ConverterSVSTools::checkSVSRequirements(scene, parameters);
-	}
 }
