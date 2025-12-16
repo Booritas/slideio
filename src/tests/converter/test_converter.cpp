@@ -8,11 +8,10 @@
 #include "slideio/core/tools/tempfile.hpp"
 #include "slideio/imagetools/imagetools.hpp"
 #include "slideio/core/tools/tools.hpp"
-#include <filesystem>
-
 #include "slideio/core/cvslide.hpp"
-#include "slideio/imagetools/tiffkeeper.hpp"
 #include "slideio/slideio/imagedrivermanager.hpp"
+
+#include <filesystem>
 
 
 TEST(Converter, convertGDALJpeg) {

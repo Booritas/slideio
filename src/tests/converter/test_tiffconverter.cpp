@@ -5,7 +5,11 @@
 #include "slideio/converter/converterparameters.hpp"
 #include "slideio/core/tools/tempfile.hpp"
 #include "slideio/base/exceptions.hpp"
+#include "slideio/converter/converter.hpp"
 #include "slideio/converter/convertertools.hpp"
+#include "slideio/slideio/scene.hpp"
+#include "slideio/slideio/slide.hpp"
+#include "slideio/slideio/slideio.hpp"
 
 using namespace slideio;
 using namespace slideio::converter;
@@ -557,4 +561,127 @@ TEST(TiffConverterTests, SVSDefaultSettings) {
     tiffParams->setNumZoomLevels(5);
     ASSERT_NO_THROW(converter.createFileLayout(scene, params));
     EXPECT_EQ(5, converter.getNumTiffPages());
+}
+
+TEST(TiffConverterTests, jpegToOMETIFF)
+{
+    constexpr int tileWidth = 512;
+    constexpr int tileHeight = 128;
+    constexpr int numZoomLevels = 5;
+
+    std::string path = TestTools::getTestImagePath("gdal", "Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg");
+    SlidePtr slide = openSlide(path, "GDAL");
+    ScenePtr scene = slide->getScene(0);
+    auto sceneRect = scene->getRect();
+    const int sceneWidth = std::get<2>(sceneRect);
+    const int sceneHeight = std::get<3>(sceneRect);
+	const int numChannels = scene->getNumChannels();
+	const DataType dt = scene->getChannelDataType(0);
+    ASSERT_TRUE(scene.get() != nullptr);
+
+    slideio::TempFile tmp("ome.tiff");
+    std::string outputPath = tmp.getPath().string();
+    if (std::filesystem::exists(outputPath)) {
+        std::filesystem::remove(outputPath);
+    }
+    OMETIFFJpegConverterParameters parameters;
+    auto tiffParams = 
+        std::static_pointer_cast<TIFFContainerParameters>(parameters.getContainerParameters());
+    parameters.setQuality(99);
+    tiffParams->setNumZoomLevels(numZoomLevels);
+    tiffParams->setTileWidth(tileWidth);
+	tiffParams->setTileHeight(tileHeight);
+
+    TiffConverter converter;
+    ASSERT_NO_THROW(converter.createFileLayout(scene->getCVScene(), parameters));
+    EXPECT_EQ(1, converter.getNumTiffPages());
+	ASSERT_NO_THROW(converter.createTiff(outputPath, nullptr));
+	std::vector<TiffDirectory> directories;
+	TiffTools::scanFile(outputPath, directories);
+    EXPECT_EQ(1, directories.size());
+	const TiffDirectory& baseDir = directories[0];
+    EXPECT_EQ(4, baseDir.subdirectories.size());
+
+    EXPECT_EQ(sceneWidth, baseDir.width);
+    EXPECT_EQ(sceneHeight, baseDir.height);
+	EXPECT_EQ(numChannels, baseDir.channels);
+    EXPECT_EQ(tileWidth, baseDir.tileWidth);
+	EXPECT_EQ(tileHeight, baseDir.tileHeight);
+    EXPECT_EQ(Compression::Jpeg, baseDir.slideioCompression);
+    EXPECT_EQ(dt, baseDir.dataType);
+
+    std::vector<cv::Size> dirSizes = {
+        cv::Size(sceneWidth / 2, sceneHeight / 2),
+        cv::Size(sceneWidth / 4, sceneHeight / 4),
+        cv::Size(sceneWidth / 8, sceneHeight / 8),
+        cv::Size(sceneWidth / 16, sceneHeight / 16)
+	};
+    int dirIndex = 0;
+    for (const auto& dir : baseDir.subdirectories) {
+        EXPECT_EQ(dirSizes[dirIndex].width, dir.width);
+        EXPECT_EQ(dirSizes[dirIndex].height, dir.height);
+        EXPECT_EQ(numChannels, dir.channels);
+        EXPECT_EQ(tileWidth, dir.tileWidth);
+        EXPECT_EQ(tileHeight, dir.tileHeight);
+        EXPECT_EQ(Compression::Jpeg, dir.slideioCompression);
+        EXPECT_EQ(dt, dir.dataType);
+        ++dirIndex;
+	}
+}
+
+TEST(TiffConverterTests, jpegToSVS)
+{
+    constexpr int tileWidth = 512;
+    constexpr int tileHeight = 128;
+    constexpr int numZoomLevels = 5;
+
+    std::string path = TestTools::getTestImagePath("gdal", "Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg");
+    SlidePtr slide = openSlide(path, "GDAL");
+    ScenePtr scene = slide->getScene(0);
+    auto sceneRect = scene->getRect();
+    const int sceneWidth = std::get<2>(sceneRect);
+    const int sceneHeight = std::get<3>(sceneRect);
+    const int numChannels = scene->getNumChannels();
+    const DataType dt = scene->getChannelDataType(0);
+    ASSERT_TRUE(scene.get() != nullptr);
+
+    slideio::TempFile tmp("svs");
+    std::string outputPath = tmp.getPath().string();
+    if (std::filesystem::exists(outputPath)) {
+        std::filesystem::remove(outputPath);
+    }
+    SVSJpegConverterParameters parameters;
+    auto tiffParams =
+        std::static_pointer_cast<TIFFContainerParameters>(parameters.getContainerParameters());
+    parameters.setQuality(99);
+    tiffParams->setNumZoomLevels(numZoomLevels);
+    tiffParams->setTileWidth(tileWidth);
+    tiffParams->setTileHeight(tileHeight);
+
+    TiffConverter converter;
+    ASSERT_NO_THROW(converter.createFileLayout(scene->getCVScene(), parameters));
+    EXPECT_EQ(5, converter.getNumTiffPages());
+    ASSERT_NO_THROW(converter.createTiff(outputPath, nullptr));
+    std::vector<TiffDirectory> directories;
+    TiffTools::scanFile(outputPath, directories);
+    EXPECT_EQ(5, directories.size());
+
+    std::vector<cv::Size> dirSizes = {
+        cv::Size(sceneWidth, sceneHeight),
+        cv::Size(sceneWidth / 2, sceneHeight / 2),
+        cv::Size(sceneWidth / 4, sceneHeight / 4),
+        cv::Size(sceneWidth / 8, sceneHeight / 8),
+        cv::Size(sceneWidth / 16, sceneHeight / 16)
+    };
+    int dirIndex = 0;
+    for (const auto& dir : directories) {
+        EXPECT_EQ(dirSizes[dirIndex].width, dir.width);
+        EXPECT_EQ(dirSizes[dirIndex].height, dir.height);
+        EXPECT_EQ(numChannels, dir.channels);
+        EXPECT_EQ(tileWidth, dir.tileWidth);
+        EXPECT_EQ(tileHeight, dir.tileHeight);
+        EXPECT_EQ(Compression::Jpeg, dir.slideioCompression);
+        EXPECT_EQ(dt, dir.dataType);
+        ++dirIndex;
+    }
 }
