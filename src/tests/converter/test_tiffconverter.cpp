@@ -595,7 +595,12 @@ TEST(TiffConverterTests, jpegToOMETIFF)
     TiffConverter converter;
     ASSERT_NO_THROW(converter.createFileLayout(scene->getCVScene(), parameters));
     EXPECT_EQ(1, converter.getNumTiffPages());
-	ASSERT_NO_THROW(converter.createTiff(outputPath, nullptr));
+	std::set<int> progress;
+    int progressLast = 0;
+    ASSERT_NO_THROW(converter.createTiff(outputPath, 
+        [&progress, &progressLast](int pr) { progressLast = pr; progress.insert(pr); }));
+	EXPECT_EQ(100, progressLast);
+    EXPECT_GT(progress.size(), 10);
 	std::vector<TiffDirectory> directories;
 	TiffTools::scanFile(outputPath, directories);
     EXPECT_EQ(1, directories.size());
