@@ -36,14 +36,17 @@ DataType TiffConverter::getChannelRangeDataType(const cv::Range& range) const {
     return dataType;
 }
 
-int TiffConverter::computeChannelChunk(int firstChannel) const {
+int TiffConverter::computeChannelChunk(int firstChannel, const std::shared_ptr<CVScene>& scene) const {
     makeSureValid();
     std::shared_ptr<const EncodeParameters> encoding = m_parameters.getEncodeParameters();
     cv::Range channelRange = m_parameters.getChannelRange();
     Compression compression = encoding->getCompression();
     const int numSceneChannels = m_scene->getNumChannels();
     int channelChunkSize;
-    const bool canGroupChannelsBy3 = (numSceneChannels == 3) && (firstChannel == 0) && (channelRange.size() == 3);
+    const bool canGroupChannelsBy3 = (numSceneChannels == 3) 
+        && (firstChannel == 0) 
+        && (channelRange.size() == 3)
+        && (scene->getNumChannels() == 3);
     if (compression == Compression::Jpeg) {
         if (canGroupChannelsBy3 && getChannelRangeDataType(channelRange) == DataType::DT_Byte) {
             channelChunkSize = 3;
@@ -256,7 +259,7 @@ void TiffConverter::createFileLayout(const std::shared_ptr<CVScene>& scene, cons
 
     int channelChunkSize = scene->getNumChannels();
     if (format == OME_TIFF) {
-        channelChunkSize = computeChannelChunk(channelRange.start);
+        channelChunkSize = computeChannelChunk(channelRange.start, scene);
     }
 
     int numZoomLevels = tiffParams->getNumZoomLevels();

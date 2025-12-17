@@ -37,7 +37,7 @@ namespace slideio
                 return m_pages.emplace_back();
             }
             DataType getChannelRangeDataType(const cv::Range& channelRange) const;
-            int computeChannelChunk(int channel) const;
+            int computeChannelChunk(int firstChannel, const std::shared_ptr<CVScene>& scene) const;
             std::string createSVSImageDescription() const;
             std::string createImageDescriptionTag() const;
             std::string createOMETiffDescription() const;

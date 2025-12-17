@@ -673,6 +673,103 @@ TEST(TiffConverterTests, CreateFileLayoutOMETIFFSubset) {
     }
 }
 
+TEST(TiffConverterTests, CreateFileLayoutOMETIFFChannelSubset) {
+    const int numSlices = 3;
+    const int numFrames = 5;
+    const int numZoomLevels = 5;
+    const int numChannels = 5;
+    const cv::Rect sceneRect(0, 0, 4096, 8192);
+
+    auto scene = makeScene(numChannels);
+    scene->setNumTFrames(numFrames);
+    scene->setNumZSlices(numSlices);
+    scene->setRect(sceneRect);
+
+    OMETIFFJp2KConverterParameters params;
+
+    TiffConverter converter;
+    // Subset of slice & frame subsets
+    const int firstFrame = 2;
+    const int lastFrame = 3;
+    const int firstSlice = 1;
+    const int lastSlice = 2;
+    const int numSubsetSlices = lastSlice - firstSlice + 1;
+    const int numSubsetFrames = lastFrame - firstFrame + 1;
+    int firstChannel = 0;
+	int lastChannel = numChannels - 1;
+    params.setTFrameRange(cv::Range(firstFrame, lastFrame + 1));
+    params.setSliceRange(cv::Range(firstSlice, lastSlice + 1));
+	params.setChannelRange(cv::Range(firstChannel, lastChannel + 1));
+	auto tiffParams = std::static_pointer_cast<TIFFContainerParameters>(params.getContainerParameters());
+	tiffParams->setNumZoomLevels(numZoomLevels);
+    ASSERT_NO_THROW(converter.createFileLayout(scene, params));
+    int numPages = numSubsetSlices * numSubsetFrames * numChannels;
+    EXPECT_EQ(numPages, converter.getNumTiffPages());
+    int sliceIndex = firstSlice;
+    int frameIndex = firstFrame;
+	int channelIndex = firstChannel;
+    for (int pageIndex = 0; pageIndex < numPages; ++pageIndex) {
+        auto page = converter.getTiffPage(pageIndex);
+        int localFrameIndex = frameIndex - firstFrame;
+        int localSliceIndex = sliceIndex - firstSlice;
+		int localChannelIndex = channelIndex - firstChannel;
+        EXPECT_EQ(cv::Range(localFrameIndex, localFrameIndex + 1), page.getTFrameRange());
+        EXPECT_EQ(cv::Range(localSliceIndex, localSliceIndex + 1), page.getZSliceRange());
+		EXPECT_EQ(cv::Range(localChannelIndex, localChannelIndex + 1), page.getChannelRange());
+        EXPECT_EQ(frameIndex, page.getSourceFirstFrame());
+        EXPECT_EQ(sliceIndex, page.getSourceFirstSlice());
+        EXPECT_EQ(channelIndex, page.getSourceFirstChannel());
+        channelIndex++;
+        if (channelIndex > lastChannel) {
+			channelIndex = firstChannel;
+            sliceIndex++;
+            if (sliceIndex > lastSlice) {
+				channelIndex = firstChannel;
+                sliceIndex = firstSlice;
+                frameIndex++;
+            }
+        }
+        EXPECT_EQ(numZoomLevels - 1, page.getNumSubDirectories());
+    }
+
+    firstChannel = 2;
+    lastChannel = 3;
+	int numSubsetChannels = lastChannel - firstChannel + 1;
+    params.setTFrameRange(cv::Range(firstFrame, lastFrame + 1));
+    params.setSliceRange(cv::Range(firstSlice, lastSlice + 1));
+    params.setChannelRange(cv::Range(firstChannel, lastChannel + 1));
+    ASSERT_NO_THROW(converter.createFileLayout(scene, params));
+    numPages = numSubsetSlices * numSubsetFrames * numSubsetChannels;
+    EXPECT_EQ(numPages, converter.getNumTiffPages());
+    sliceIndex = firstSlice;
+    frameIndex = firstFrame;
+    channelIndex = firstChannel;
+    for (int pageIndex = 0; pageIndex < numPages; ++pageIndex) {
+        auto page = converter.getTiffPage(pageIndex);
+        int localFrameIndex = frameIndex - firstFrame;
+        int localSliceIndex = sliceIndex - firstSlice;
+        int localChannelIndex = channelIndex - firstChannel;
+        EXPECT_EQ(cv::Range(localFrameIndex, localFrameIndex + 1), page.getTFrameRange());
+        EXPECT_EQ(cv::Range(localSliceIndex, localSliceIndex + 1), page.getZSliceRange());
+        EXPECT_EQ(cv::Range(localChannelIndex, localChannelIndex + 1), page.getChannelRange());
+        EXPECT_EQ(frameIndex, page.getSourceFirstFrame());
+        EXPECT_EQ(sliceIndex, page.getSourceFirstSlice());
+        EXPECT_EQ(channelIndex, page.getSourceFirstChannel());
+        channelIndex++;
+        if (channelIndex > lastChannel) {
+            channelIndex = firstChannel;
+            sliceIndex++;
+            if (sliceIndex > lastSlice) {
+                channelIndex = firstChannel;
+                sliceIndex = firstSlice;
+                frameIndex++;
+            }
+        }
+        EXPECT_EQ(numZoomLevels - 1, page.getNumSubDirectories());
+    }
+
+}
+
 
 TEST(TiffConverterTests, SVSDefaultSettings) {
     const int numChannels = 3;
