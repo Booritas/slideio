@@ -268,13 +268,13 @@ void TiffConverter::createFileLayout(const std::shared_ptr<CVScene>& scene, cons
                 cv::Rect imageRect = m_cropRect;
                 m_totalTiles += ConverterTools::computeNumTiles(m_cropRect.size(), tileSize);
                 const int channelIndex = channel - channelRange.start;
-                const int srcChannelIndex = channelRange.start + channel;
+                const int srcChannelIndex = channel;
                 page.setChannelRange(cv::Range(channelIndex, channelIndex + channelChunkSize), srcChannelIndex);
                 const int sliceIndex = slice - sliceRange.start;
-                const int srcSliceIndex = sliceRange.start + slice;
+                const int srcSliceIndex = slice;
                 page.setZSliceRange(cv::Range(sliceIndex, sliceIndex + 1), srcSliceIndex);
                 const int frameIndex = frame - frameRange.start;
-                const int srcFrameIndex = frameRange.start + frame;
+                const int srcFrameIndex = frame;
                 page.setTFrameRange(cv::Range(frameIndex, frameIndex + 1), srcFrameIndex);
                 page.setZoomLevelRange(cv::Range(0, 1));
                 int planeCount = page.getZSliceRange().size() * page.getTFrameRange().size();

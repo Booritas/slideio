@@ -538,6 +538,142 @@ TEST(TiffConverterTests, OMETIFFDefaultSettings) {
     EXPECT_EQ(60, converter.getNumTiffPages());
 }
 
+TEST(TiffConverterTests, CreateFileLayoutOMETIFFSubset) {
+    const int numSlices = 3;
+    const int numFrames = 5;
+    const int numZoomLevels = 5;
+	const int numChannels = 3;
+	const cv::Rect sceneRect(0, 0, 4096, 8192);
+
+    auto scene = makeScene(numChannels);
+    scene->setNumTFrames(numFrames);
+    scene->setNumZSlices(numSlices);
+    scene->setRect(sceneRect);
+
+    OMETIFFJpegConverterParameters params;
+
+    TiffConverter converter;
+	// Full dataset
+    params.setChannelRange(cv::Range(0, numChannels));
+    params.setSliceRange(cv::Range(0, numSlices));
+    params.setTFrameRange(cv::Range(0, numFrames));
+    params.setRect(Rect(0, 0, sceneRect.width, sceneRect.height));
+    auto tiffParams = std::static_pointer_cast<TIFFContainerParameters>(params.getContainerParameters());
+    tiffParams->setTileWidth(256);
+    tiffParams->setTileHeight(256);
+    tiffParams->setNumZoomLevels(numZoomLevels);
+    ASSERT_NO_THROW(converter.createFileLayout(scene, params));
+	int numPages = numSlices * numFrames;
+    EXPECT_EQ(15, converter.getNumTiffPages());
+	int sliceIndex = 0;
+	int frameIndex = 0;
+    for (int pageIndex=0; pageIndex<numPages; ++pageIndex) {
+		auto page = converter.getTiffPage(pageIndex);
+		EXPECT_EQ(cv::Range(0, numChannels), page.getChannelRange());
+        EXPECT_EQ(cv::Range(frameIndex,frameIndex+1), page.getTFrameRange());
+        EXPECT_EQ(cv::Range(sliceIndex, sliceIndex + 1), page.getZSliceRange());
+        sliceIndex++;
+        if (sliceIndex >= numSlices) {
+            sliceIndex = 0;
+            frameIndex++;
+		}
+		EXPECT_EQ(numZoomLevels-1, page.getNumSubDirectories());
+    }
+    // Subset of tframes
+    int firstFrame = 1;
+	int lastFrame = 3;
+    int firstSlice = 0;
+	int lastSlice = numSlices - 1;
+	int numSubsetSlices = lastSlice - firstSlice + 1;
+	int numSubsetFrames = lastFrame - firstFrame + 1;
+    params.setTFrameRange(cv::Range(firstFrame, lastFrame+1));
+    ASSERT_NO_THROW(converter.createFileLayout(scene, params));
+    numPages = numSubsetSlices * numSubsetFrames;
+    EXPECT_EQ(numPages, converter.getNumTiffPages());
+    sliceIndex = firstSlice;
+    frameIndex = firstFrame;
+    for (int pageIndex = 0; pageIndex < numPages; ++pageIndex) {
+        auto page = converter.getTiffPage(pageIndex);
+        EXPECT_EQ(cv::Range(0, numChannels), page.getChannelRange());
+		int localFrameIndex = frameIndex - firstFrame;
+		int localSliceIndex = sliceIndex - firstSlice;
+        EXPECT_EQ(cv::Range(localFrameIndex, localFrameIndex + 1), page.getTFrameRange());
+        EXPECT_EQ(cv::Range(localSliceIndex, localSliceIndex + 1), page.getZSliceRange());
+        EXPECT_EQ(frameIndex, page.getSourceFirstFrame());
+		EXPECT_EQ(sliceIndex, page.getSourceFirstSlice());
+		EXPECT_EQ(0, page.getSourceFirstChannel());
+        sliceIndex++;
+        if (sliceIndex > lastSlice) {
+            sliceIndex = firstSlice;
+            frameIndex++;
+        }
+        EXPECT_EQ(numZoomLevels - 1, page.getNumSubDirectories());
+    }
+    // Subset of slices
+    firstFrame = 0;
+    lastFrame = numFrames - 1;
+    firstSlice = 1;
+    lastSlice = numSlices - 1;
+    numSubsetSlices = lastSlice - firstSlice + 1;
+    numSubsetFrames = lastFrame - firstFrame + 1;
+    params.setTFrameRange(cv::Range(firstFrame, lastFrame + 1));
+	params.setSliceRange(cv::Range(firstSlice, lastSlice + 1));
+    ASSERT_NO_THROW(converter.createFileLayout(scene, params));
+    numPages = numSubsetSlices * numSubsetFrames;
+    EXPECT_EQ(numPages, converter.getNumTiffPages());
+    sliceIndex = firstSlice;
+    frameIndex = firstFrame;
+    for (int pageIndex = 0; pageIndex < numPages; ++pageIndex) {
+        auto page = converter.getTiffPage(pageIndex);
+        EXPECT_EQ(cv::Range(0, numChannels), page.getChannelRange());
+        int localFrameIndex = frameIndex - firstFrame;
+        int localSliceIndex = sliceIndex - firstSlice;
+        EXPECT_EQ(cv::Range(localFrameIndex, localFrameIndex + 1), page.getTFrameRange());
+        EXPECT_EQ(cv::Range(localSliceIndex, localSliceIndex + 1), page.getZSliceRange());
+        EXPECT_EQ(frameIndex, page.getSourceFirstFrame());
+        EXPECT_EQ(sliceIndex, page.getSourceFirstSlice());
+        EXPECT_EQ(0, page.getSourceFirstChannel());
+        sliceIndex++;
+        if (sliceIndex > lastSlice) {
+            sliceIndex = firstSlice;
+            frameIndex++;
+        }
+        EXPECT_EQ(numZoomLevels - 1, page.getNumSubDirectories());
+    }
+    // Subset of slice & frame subsets
+    firstFrame = 2;
+    lastFrame = 3;
+    firstSlice = 1;
+    lastSlice = 2;
+    numSubsetSlices = lastSlice - firstSlice + 1;
+    numSubsetFrames = lastFrame - firstFrame + 1;
+    params.setTFrameRange(cv::Range(firstFrame, lastFrame + 1));
+    params.setSliceRange(cv::Range(firstSlice, lastSlice + 1));
+    ASSERT_NO_THROW(converter.createFileLayout(scene, params));
+    numPages = numSubsetSlices * numSubsetFrames;
+    EXPECT_EQ(numPages, converter.getNumTiffPages());
+    sliceIndex = firstSlice;
+    frameIndex = firstFrame;
+    for (int pageIndex = 0; pageIndex < numPages; ++pageIndex) {
+        auto page = converter.getTiffPage(pageIndex);
+        EXPECT_EQ(cv::Range(0, numChannels), page.getChannelRange());
+        int localFrameIndex = frameIndex - firstFrame;
+        int localSliceIndex = sliceIndex - firstSlice;
+        EXPECT_EQ(cv::Range(localFrameIndex, localFrameIndex + 1), page.getTFrameRange());
+        EXPECT_EQ(cv::Range(localSliceIndex, localSliceIndex + 1), page.getZSliceRange());
+        EXPECT_EQ(frameIndex, page.getSourceFirstFrame());
+        EXPECT_EQ(sliceIndex, page.getSourceFirstSlice());
+        EXPECT_EQ(0, page.getSourceFirstChannel());
+        sliceIndex++;
+        if (sliceIndex > lastSlice) {
+            sliceIndex = firstSlice;
+            frameIndex++;
+        }
+        EXPECT_EQ(numZoomLevels - 1, page.getNumSubDirectories());
+    }
+}
+
+
 TEST(TiffConverterTests, SVSDefaultSettings) {
     const int numChannels = 3;
     const int numTFrames = 1;
