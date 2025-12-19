@@ -51,8 +51,12 @@ void ConverterTools::readTile(const CVScenePtr& scene, const std::vector<int> ch
     }
     else {
         // border tiles
+		int numChannels = static_cast<int>(channels.size());
+        if (numChannels == 0) {
+			numChannels = scene->getNumChannels();
+        }
         int dt = CVTools::toOpencvType(scene->getChannelDataType(0));
-        tile.create(tileSize, CV_MAKE_TYPE(dt, scene->getNumChannels()));
+        tile.create(tileSize, CV_MAKE_TYPE(dt, numChannels));
         tile.setTo(0);
         const cv::Rect adjustedRect = rectScene & sceneBlockRect;
         const cv::Size adjustedTileSize = scaleSize(adjustedRect.size(), zoomLevel, true);

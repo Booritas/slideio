@@ -128,7 +128,7 @@ std::string TiffConverter::createOMETiffDescription() const{
     auto rect = m_scene->getRect();
     const int sizeX = rect.width;
     const int sizeY = rect.height;
-    const int numChannels = m_scene->getNumChannels();
+    const int numChannels = m_parameters.getChannelRange().size();
     const int numZSlices = m_parameters.getSliceRange().size();
     const int numTFrames = m_parameters.getTFrameRange().size();
 
@@ -192,17 +192,21 @@ std::string TiffConverter::createOMETiffDescription() const{
     }
 	// TiffData elements
     int ifd = 0;
+	int channel = 0;
+	int slice = 0;
+    int frame = 0;
+
     for (const auto& page: m_pages) {
         auto* tiffData = doc.NewElement("TiffData");
 		cv::Range sliceRange = page.getZSliceRange();
 		cv::Range channelRange = page.getChannelRange();
 		cv::Range frameRange = page.getTFrameRange();
 		tiffData->SetAttribute("IFD", ifd++);
-        tiffData->SetAttribute("FirstC", channelRange.start);
+        tiffData->SetAttribute("FirstC", channel);
         tiffData->SetAttribute("SizeC", channelRange.size());
-        tiffData->SetAttribute("FirstZ", sliceRange.start);
+        tiffData->SetAttribute("FirstZ", slice);
 		tiffData->SetAttribute("SizeZ", sliceRange.size());
-        tiffData->SetAttribute("FirstT", frameRange.start);
+        tiffData->SetAttribute("FirstT", frame);
 		tiffData->SetAttribute("SizeT", frameRange.size());
 		tiffData->SetAttribute("PlaneCount", page.getPlaneCount());
         auto* uidElem = doc.NewElement("UUID");
@@ -211,6 +215,16 @@ std::string TiffConverter::createOMETiffDescription() const{
         uidElem->SetText(UUID.c_str());
         tiffData->InsertEndChild(uidElem);
         pixels->InsertEndChild(tiffData);
+		channel += channelRange.size();
+        if (channel >= numChannels) {
+            channel = 0;
+            slice += sliceRange.size();
+            if (slice >= numZSlices) {
+				channel = 0;
+                slice = 0;
+                frame += frameRange.size();
+            }
+		}
     }
     tinyxml2::XMLPrinter printer;
     doc.Print(&printer);
@@ -270,15 +284,9 @@ void TiffConverter::createFileLayout(const std::shared_ptr<CVScene>& scene, cons
                 TiffPageStructure& page = appendPage();
                 cv::Rect imageRect = m_cropRect;
                 m_totalTiles += ConverterTools::computeNumTiles(m_cropRect.size(), tileSize);
-                const int channelIndex = channel - channelRange.start;
-                const int srcChannelIndex = channel;
-                page.setChannelRange(cv::Range(channelIndex, channelIndex + channelChunkSize), srcChannelIndex);
-                const int sliceIndex = slice - sliceRange.start;
-                const int srcSliceIndex = slice;
-                page.setZSliceRange(cv::Range(sliceIndex, sliceIndex + 1), srcSliceIndex);
-                const int frameIndex = frame - frameRange.start;
-                const int srcFrameIndex = frame;
-                page.setTFrameRange(cv::Range(frameIndex, frameIndex + 1), srcFrameIndex);
+                page.setChannelRange(cv::Range(channel, channel+channelChunkSize));
+                page.setZSliceRange(cv::Range(slice, slice + 1));
+                page.setTFrameRange(cv::Range(frame, frame + 1));
                 page.setZoomLevelRange(cv::Range(0, 1));
                 int planeCount = page.getZSliceRange().size() * page.getTFrameRange().size();
                 page.setPlaneCount(planeCount);
@@ -352,7 +360,7 @@ TiffDirectory TiffConverter::setUpDirectory(const TiffDirectoryStructure& page) 
 
     dir.tiled = true;
     dir.channels = page.getChannelRange().size();
-    dir.dataType = m_scene->getChannelDataType(page.getSourceFirstChannel());
+    dir.dataType = m_scene->getChannelDataType(page.getChannelRange().start);
     if (m_parameters.getEncoding() == Compression::Jpeg || m_parameters.getEncoding() == Compression::Jpeg2000) {
         dir.slideioCompression = m_parameters.getEncoding();
     }
@@ -388,12 +396,12 @@ void TiffConverter::writeDirectoryData(TiffDirectory& dir, const TiffDirectorySt
     std::shared_ptr<const EncodeParameters> encoding = m_parameters.getEncodeParameters();
     const int xEnd = m_cropRect.x + m_cropRect.width;
     const int yEnd = m_cropRect.y + m_cropRect.height;
-    const int slice = m_parameters.getSliceRange().start;
-    const int frame = m_parameters.getTFrameRange().start;
+    const int slice = page.getZSliceRange().start;
+    const int frame = page.getTFrameRange().start;
     std::vector<int> channels;
     channels.reserve(dir.channels);
     for (int channel = 0; channel < dir.channels; ++channel) {
-        channels.push_back(page.getSourceFirstChannel() + channel);
+        channels.push_back(page.getChannelRange().start + channel);
     }
     for (int y = m_cropRect.y; y < yEnd; y += sceneTileSize.height) {
         for (int x = m_cropRect.x; x < xEnd; x += sceneTileSize.width) {
@@ -489,8 +497,10 @@ void TiffConverter::checkSVSRequirements() const
 void TiffConverter::checkJpegRequirements() const {
     if (m_parameters.getEncoding() == Compression::Jpeg) {
         const int numChannels = m_scene->getNumChannels();
-        if (numChannels != 1 && numChannels != 3) {
-            RAISE_RUNTIME_ERROR << "Converter: Jpeg compression can be used for 1 and 3 channel images only!";
+        if (m_parameters.getFormat() == ImageFormat::SVS) {
+            if (numChannels != 1 && numChannels != 3) {
+                RAISE_RUNTIME_ERROR << "Converter: Jpeg compression can be used for 1 and 3 channel images only!";
+            }
         }
         for (int channel = 0; channel < numChannels; ++channel) {
             if (m_scene->getChannelDataType(channel) != DataType::DT_Byte) {

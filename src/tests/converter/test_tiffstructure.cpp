@@ -14,9 +14,9 @@ TEST(TiffStructureTests, TiffChannel_Getters) {
 
 TEST(TiffStructureTests, TiffDirectoryStructure_SettersAndGetters) {
     TiffDirectoryStructure dir;
-    dir.setChannelRange(cv::Range(1, 3), 5);
-    dir.setZSliceRange(cv::Range(2, 4), 7);
-    dir.setTFrameRange(cv::Range(0, 1), 9);
+    dir.setChannelRange(cv::Range(1, 3));
+    dir.setZSliceRange(cv::Range(2, 4));
+    dir.setTFrameRange(cv::Range(0, 1));
     dir.setZoomLevelRange(cv::Range(0, 2));
     dir.setDescription("desc");
     dir.setPlaneCount(4);
@@ -25,9 +25,6 @@ TEST(TiffStructureTests, TiffDirectoryStructure_SettersAndGetters) {
     EXPECT_EQ(cv::Range(2, 4), dir.getZSliceRange());
     EXPECT_EQ(cv::Range(0, 1), dir.getTFrameRange());
     EXPECT_EQ(cv::Range(0, 2), dir.getZoomLevelRange());
-    EXPECT_EQ(5, dir.getSourceFirstChannel());
-    EXPECT_EQ(7, dir.getSourceFirstSlice());
-    EXPECT_EQ(9, dir.getSourceFirstFrame());
     EXPECT_EQ("desc", dir.getDescription());
     EXPECT_EQ(4, dir.getPlaneCount());
 }
@@ -44,7 +41,7 @@ TEST(TiffStructureTests, TiffPageStructure_Subdirectories) {
     EXPECT_EQ(cv::Range(1, 2), got1.getZoomLevelRange());
 
     TiffDirectoryStructure& sub2 = page.appendSubDirectory();
-    sub2.setChannelRange(cv::Range(0, 1), 0);
+    sub2.setChannelRange(cv::Range(0, 1));
     EXPECT_EQ(2, page.getNumSubDirectories());
     auto& got2 = page.getSubDirectory(1);
     EXPECT_EQ(cv::Range(0, 1), got2.getChannelRange());
@@ -59,9 +56,9 @@ TEST(TiffStructureTests, TiffPageStructure_SubdirectoryOutOfRange) {
 TEST(TiffStructureTests, TiffDirectoryStructure_CopyConstructor) {
     // Create and populate source directory
     TiffDirectoryStructure source;
-    source.setChannelRange(cv::Range(1, 4), 10);
-    source.setZSliceRange(cv::Range(2, 5), 20);
-    source.setTFrameRange(cv::Range(3, 6), 30);
+    source.setChannelRange(cv::Range(11, 15));
+    source.setZSliceRange(cv::Range(22, 27));
+    source.setTFrameRange(cv::Range(33, 39));
     source.setZoomLevelRange(cv::Range(0, 3));
     source.setDescription("Test Description");
     source.setPlaneCount(42);
@@ -74,9 +71,6 @@ TEST(TiffStructureTests, TiffDirectoryStructure_CopyConstructor) {
     EXPECT_EQ(source.getZSliceRange(), copy.getZSliceRange());
     EXPECT_EQ(source.getTFrameRange(), copy.getTFrameRange());
     EXPECT_EQ(source.getZoomLevelRange(), copy.getZoomLevelRange());
-    EXPECT_EQ(source.getSourceFirstChannel(), copy.getSourceFirstChannel());
-    EXPECT_EQ(source.getSourceFirstSlice(), copy.getSourceFirstSlice());
-    EXPECT_EQ(source.getSourceFirstFrame(), copy.getSourceFirstFrame());
     EXPECT_EQ(source.getDescription(), copy.getDescription());
     EXPECT_EQ(source.getPlaneCount(), copy.getPlaneCount());
 
@@ -90,16 +84,16 @@ TEST(TiffStructureTests, TiffDirectoryStructure_CopyConstructor) {
 TEST(TiffStructureTests, TiffDirectoryStructure_AssignmentOperator) {
     // Create and populate source directory
     TiffDirectoryStructure source;
-    source.setChannelRange(cv::Range(5, 8), 15);
-    source.setZSliceRange(cv::Range(1, 3), 25);
-    source.setTFrameRange(cv::Range(0, 2), 35);
+    source.setChannelRange(cv::Range(20, 23));
+    source.setZSliceRange(cv::Range(26, 28));
+    source.setTFrameRange(cv::Range(35, 37));
     source.setZoomLevelRange(cv::Range(1, 4));
     source.setDescription("Source Description");
     source.setPlaneCount(99);
 
     // Create target with different values
     TiffDirectoryStructure target;
-    target.setChannelRange(cv::Range(0, 1), 0);
+    target.setChannelRange(cv::Range(0, 1));
     target.setPlaneCount(1);
     target.setDescription("Target Description");
 
@@ -111,9 +105,6 @@ TEST(TiffStructureTests, TiffDirectoryStructure_AssignmentOperator) {
     EXPECT_EQ(source.getZSliceRange(), target.getZSliceRange());
     EXPECT_EQ(source.getTFrameRange(), target.getTFrameRange());
     EXPECT_EQ(source.getZoomLevelRange(), target.getZoomLevelRange());
-    EXPECT_EQ(source.getSourceFirstChannel(), target.getSourceFirstChannel());
-    EXPECT_EQ(source.getSourceFirstSlice(), target.getSourceFirstSlice());
-    EXPECT_EQ(source.getSourceFirstFrame(), target.getSourceFirstFrame());
     EXPECT_EQ(source.getDescription(), target.getDescription());
     EXPECT_EQ(source.getPlaneCount(), target.getPlaneCount());
 
@@ -126,8 +117,8 @@ TEST(TiffStructureTests, TiffDirectoryStructure_AssignmentOperator) {
 
 TEST(TiffStructureTests, TiffDirectoryStructure_SelfAssignment) {
     TiffDirectoryStructure dir;
-    dir.setChannelRange(cv::Range(2, 5), 12);
-    dir.setZSliceRange(cv::Range(3, 6), 22);
+    dir.setChannelRange(cv::Range(14, 17));
+    dir.setZSliceRange(cv::Range(25, 28));
     dir.setDescription("Self Assignment Test");
     dir.setPlaneCount(77);
 
@@ -135,10 +126,8 @@ TEST(TiffStructureTests, TiffDirectoryStructure_SelfAssignment) {
     dir = dir;
 
     // Verify values are unchanged
-    EXPECT_EQ(cv::Range(2, 5), dir.getChannelRange());
-    EXPECT_EQ(cv::Range(3, 6), dir.getZSliceRange());
-    EXPECT_EQ(12, dir.getSourceFirstChannel());
-    EXPECT_EQ(22, dir.getSourceFirstSlice());
+    EXPECT_EQ(cv::Range(14, 17), dir.getChannelRange());
+    EXPECT_EQ(cv::Range(25, 28), dir.getZSliceRange());
     EXPECT_EQ("Self Assignment Test", dir.getDescription());
     EXPECT_EQ(77, dir.getPlaneCount());
 }
@@ -155,9 +144,6 @@ TEST(TiffStructureTests, TiffDirectoryStructure_CopyConstructorWithDefaults) {
     EXPECT_EQ(cv::Range(0, 0), copy.getZSliceRange());
     EXPECT_EQ(cv::Range(0, 0), copy.getTFrameRange());
     EXPECT_EQ(cv::Range(0, 0), copy.getZoomLevelRange());
-    EXPECT_EQ(0, copy.getSourceFirstChannel());
-    EXPECT_EQ(0, copy.getSourceFirstSlice());
-    EXPECT_EQ(0, copy.getSourceFirstFrame());
     EXPECT_EQ("", copy.getDescription());
     EXPECT_EQ(1, copy.getPlaneCount()); // Default is 1
 }
@@ -165,7 +151,7 @@ TEST(TiffStructureTests, TiffDirectoryStructure_CopyConstructorWithDefaults) {
 TEST(TiffStructureTests, TiffDirectoryStructure_ChainedAssignment) {
     TiffDirectoryStructure dir1, dir2, dir3;
     
-    dir1.setChannelRange(cv::Range(1, 2), 5);
+    dir1.setChannelRange(cv::Range(1, 2));
     dir1.setDescription("Chain Test");
     dir1.setPlaneCount(55);
 

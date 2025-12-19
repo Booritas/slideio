@@ -63,35 +63,20 @@ namespace slideio
                 return m_zoomLevelRange;
             }
 
-            void setChannelRange(cv::Range range, int sourceFirstChannel) {
+            void setChannelRange(cv::Range range) {
                 m_channelRange = range;
-                m_sourceFirstChannel = sourceFirstChannel;
             }
 
-            void setZSliceRange(cv::Range range, int sourceFirstSlice) {
+            void setZSliceRange(cv::Range range) {
                 m_zSliceRange = range;
-                m_sourceFirstSlice = sourceFirstSlice;
             }
 
-            void setTFrameRange(cv::Range range, int sourceFirstFrame) {
+            void setTFrameRange(cv::Range range) {
                 m_tFrameRange = range;
-                m_sourceFirstFrame = sourceFirstFrame;
             }
 
             void setZoomLevelRange(cv::Range range) {
                 m_zoomLevelRange = range;
-            }
-
-            int getSourceFirstChannel() const {
-                return m_sourceFirstChannel;
-            }
-
-            int getSourceFirstSlice() const {
-                return m_sourceFirstSlice;
-            }
-
-            int getSourceFirstFrame() const {
-                return m_sourceFirstFrame;
             }
 
             void setDescription(const std::string& string) {
@@ -116,9 +101,6 @@ namespace slideio
             cv::Range m_tFrameRange;
             cv::Range m_zoomLevelRange;
             int m_planeCount = 1;
-            int m_sourceFirstChannel = 0;
-            int m_sourceFirstSlice = 0;
-            int m_sourceFirstFrame = 0;
             std::string m_description;
         };
 

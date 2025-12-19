@@ -14,14 +14,52 @@
 using namespace slideio;
 using namespace slideio::converter;
 
-namespace {
-class DummyScene : public TestScene {
+static uint8_t getChannelColor(int frame, int slice, int channel) {
+    uint8_t color = 
+        static_cast<uint8_t>(std::min(255, frame * 20 + slice * 5 + channel));
+    return color;
+}
+
+static std::string getChannelName(int channel) {
+    std::string name = "Channel_" + std::to_string(channel);
+    return name;
+}
+
+
+class DummyScene : public TestScene
+{
 public:
-    void readResampledBlockChannelsEx(const cv::Rect&, const cv::Size&, const std::vector<int>&,
-        int, int, cv::OutputArray) override {}
+	DummyScene() = default;
+    std::string getChannelName(int channel) const override {
+        return ::getChannelName(channel);
+    }
+    void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
+        const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output) override {
+        int numChannels = static_cast<int>(componentIndices.size());
+        ASSERT_FALSE(componentIndices.empty());
+        int cvType = (int)CV_MAKETYPE(static_cast<int>(getChannelDataType(0)), componentIndices.size());
+        if (numChannels == 1) {
+            uint8_t channelColor = getChannelColor(tFrameIndex, zSliceIndex, componentIndices[0]);
+            output.create(blockSize, cvType);
+            cv::Mat& mat = output.getMatRef();
+            mat.setTo(cv::Scalar(channelColor));
+        } else {
+            std::vector<cv::Mat> channelMats;
+            channelMats.reserve(numChannels);
+            for (int i = 0; i < numChannels; ++i) {
+                int channelIndex = componentIndices.empty() ? i : componentIndices[i];
+                cv::Mat channelMat(blockSize, CV_MAKETYPE(static_cast<int>(getChannelDataType(0)), 1));
+                channelMat.setTo(cv::Scalar(getChannelColor(tFrameIndex, zSliceIndex, channelIndex)));
+                channelMats.push_back(channelMat);
+            }
+            cv::Mat mergedMat;
+            cv::merge(channelMats, mergedMat);
+            mergedMat.copyTo(output);
+        }
+    }
 };
 
-std::shared_ptr<TestScene> makeScene(int channels = 3, int width = 512, int height = 512) {
+static std::shared_ptr<TestScene> makeScene(int channels = 3, int width = 512, int height = 512) {
     auto scene = std::make_shared<DummyScene>();
     scene->setNumChannels(channels);
     scene->setChannelDataType(DataType::DT_Byte);
@@ -31,7 +69,7 @@ std::shared_ptr<TestScene> makeScene(int channels = 3, int width = 512, int heig
     return scene;
 }
 
-void configureCommonRanges(ConverterParameters& params, int channels, int zoomLevels) {
+static void configureCommonRanges(ConverterParameters& params, int channels, int zoomLevels) {
     params.setChannelRange(cv::Range(0, channels));
     params.setSliceRange(cv::Range(0, 1));
     params.setTFrameRange(cv::Range(0, 1));
@@ -41,7 +79,79 @@ void configureCommonRanges(ConverterParameters& params, int channels, int zoomLe
     tiffParams->setTileHeight(128);
     tiffParams->setNumZoomLevels(zoomLevels);
 }
+
+static void checkTiff(const TiffConverter& converter, 
+        const std::string& filePath, const std::shared_ptr<CVScene>& scene) {
+    std::vector<TiffDirectory> directories;
+    TiffTools::scanFile(filePath, directories);
+    const int numPages = converter.getNumTiffPages();
+    const ConverterParameters& params = converter.getParameters();
+    const std::shared_ptr<const TIFFContainerParameters>& tiffParameters =
+        std::static_pointer_cast<const TIFFContainerParameters>(params.getContainerParameters());
+	const int numZoomLevels = tiffParameters->getNumZoomLevels();
+	const cv::Size tileSize(tiffParameters->getTileWidth(), tiffParameters->getTileHeight());
+    EXPECT_EQ(numPages, static_cast<int>(directories.size()));
+	const cv::Size imageSize = scene->getRect().size();
+    for (int pageIndex=0; pageIndex<numPages; ++pageIndex) {
+        const TiffPageStructure& pageStructure = converter.getTiffPage(pageIndex);
+        const TiffDirectory& dir = directories[pageIndex];
+        EXPECT_EQ(pageStructure.getChannelRange().size(), dir.channels);
+        EXPECT_EQ(imageSize.width, dir.width);
+        EXPECT_EQ(imageSize.height, dir.height);
+        EXPECT_EQ(tileSize.width, dir.tileWidth);
+		EXPECT_EQ(tileSize.height, dir.tileHeight);
+		EXPECT_EQ(numZoomLevels-1, dir.subdirectories.size());
+    }
 }
+
+
+static void testSubset(const ConverterParameters& params, const std::shared_ptr<CVScene>& scene) {
+    slideio::TempFile tmp("ome.tiff");
+    std::string outputPath = tmp.getPath().string();
+    if (std::filesystem::exists(outputPath)) {
+        std::filesystem::remove(outputPath);
+    }
+    {
+        TiffConverter converter;
+        const cv::Range& channelRange = params.getChannelRange();
+        const cv::Range& tframeRange = params.getTFrameRange();
+        const cv::Range& zsliceRange = params.getSliceRange();
+        auto tiffParams =
+            std::static_pointer_cast<const TIFFContainerParameters>(params.getContainerParameters());
+        int numZoomLevels = tiffParams->getNumZoomLevels();
+        ASSERT_NO_THROW(converter.createFileLayout(scene, params));
+        const int numPages = zsliceRange.size() * tframeRange.size() * channelRange.size();
+        EXPECT_EQ(numPages, converter.getNumTiffPages());
+        int sliceIndex = zsliceRange.start;
+        int frameIndex = tframeRange.start;
+        int channelIndex = channelRange.start;
+        const int lastSlice = zsliceRange.end - 1;
+        const int lastChannel = channelRange.end - 1;
+        for (int pageIndex = 0; pageIndex < numPages; ++pageIndex) {
+            const auto& page = converter.getTiffPage(pageIndex);
+            EXPECT_EQ(cv::Range(frameIndex, frameIndex + 1), page.getTFrameRange());
+            EXPECT_EQ(cv::Range(sliceIndex, sliceIndex + 1), page.getZSliceRange());
+            EXPECT_EQ(cv::Range(channelIndex, channelIndex + 1), page.getChannelRange());
+            EXPECT_EQ(frameIndex, page.getTFrameRange().start);
+            EXPECT_EQ(sliceIndex, page.getZSliceRange().start);
+            EXPECT_EQ(channelIndex, page.getChannelRange().start);
+            channelIndex++;
+            if (channelIndex > lastChannel) {
+                channelIndex = channelRange.start;
+                sliceIndex++;
+                if (sliceIndex > lastSlice) {
+                    channelIndex = channelRange.start;
+                    sliceIndex = zsliceRange.start;
+                    frameIndex++;
+                }
+            }
+            EXPECT_EQ(numZoomLevels - 1, page.getNumSubDirectories());
+        }
+        converter.createTiff(outputPath, nullptr);
+        checkTiff(converter, outputPath, scene);
+    }
+}
+
 
 TEST(TiffConverterTests, UninitializedConverter) {
     TiffConverter converter;
@@ -101,7 +211,7 @@ TEST(TiffConverterTests, CreateFileLayoutSVSMultipleZoomLevels) {
 
     TiffConverter converter;
     ASSERT_NO_THROW(converter.createFileLayout(scene, params));
-    
+
     // SVS creates separate pages for each zoom level
     EXPECT_EQ(3, converter.getNumTiffPages());
 
@@ -139,7 +249,7 @@ TEST(TiffConverterTests, CreateFileLayoutOMETIFFThreeChannels) {
 
     TiffConverter converter;
     ASSERT_NO_THROW(converter.createFileLayout(scene, params));
-    
+
     // OME-TIFF groups 3 channels into one page for JPEG
     EXPECT_EQ(1, converter.getNumTiffPages());
 
@@ -153,10 +263,10 @@ TEST(TiffConverterTests, CreateFileLayoutOMETIFF2and4Channels) {
     configureCommonRanges(params, 2, 1);
 
     TiffConverter converter;
-    ASSERT_THROW(converter.createFileLayout(scene, params), slideio::RuntimeError);
+    ASSERT_NO_THROW(converter.createFileLayout(scene, params));
 
     scene->setNumChannels(4);
-    ASSERT_THROW(converter.createFileLayout(scene, params), slideio::RuntimeError);
+    ASSERT_NO_THROW(converter.createFileLayout(scene, params));
 
     scene->setNumChannels(3);
     ASSERT_NO_THROW(converter.createFileLayout(scene, params));
@@ -169,7 +279,7 @@ TEST(TiffConverterTests, CreateFileLayoutOMETIFFMultipleZoomLevels) {
 
     TiffConverter converter;
     ASSERT_NO_THROW(converter.createFileLayout(scene, params));
-    
+
     // OME-TIFF uses subdirectories for zoom levels
     EXPECT_EQ(1, converter.getNumTiffPages());
 
@@ -191,7 +301,7 @@ TEST(TiffConverterTests, CreateFileLayoutOMETIFFJpeg2000FourChannels) {
 
     TiffConverter converter;
     ASSERT_NO_THROW(converter.createFileLayout(scene, params));
-    
+
     // JPEG2000 creates individual pages for each channel
     EXPECT_EQ(4, converter.getNumTiffPages());
 
@@ -214,7 +324,7 @@ TEST(TiffConverterTests, CreateFileLayoutWithChannelSubset) {
 
     TiffConverter converter;
     ASSERT_NO_THROW(converter.createFileLayout(scene, params));
-    
+
     EXPECT_EQ(3, converter.getNumTiffPages());
 }
 
@@ -222,7 +332,7 @@ TEST(TiffConverterTests, CreateFileLayoutWithCustomRect) {
     auto scene = makeScene(3, 1024, 1024);
     SVSJpegConverterParameters params;
     configureCommonRanges(params, 3, 1);
-    
+
     Rect customRect(100, 100, 500, 500);
     params.setRect(customRect);
 
@@ -260,7 +370,7 @@ TEST(TiffConverterTests, GetTiffPageThrowsOnInvalidIndex) {
 
     TiffConverter converter;
     converter.createFileLayout(scene, params);
-    
+
     EXPECT_NO_THROW(converter.getTiffPage(0));
     EXPECT_THROW(converter.getTiffPage(1), RuntimeError);
     EXPECT_THROW(converter.getTiffPage(-1), RuntimeError);
@@ -272,7 +382,7 @@ TEST(TiffConverterTests, MultipleCreateFileLayoutCallsResetState) {
     configureCommonRanges(params, 3, 2);
 
     TiffConverter converter;
-    
+
     // First layout
     converter.createFileLayout(scene, params);
     EXPECT_EQ(2, converter.getNumTiffPages());
@@ -280,30 +390,6 @@ TEST(TiffConverterTests, MultipleCreateFileLayoutCallsResetState) {
     // Second layout with different parameters
     configureCommonRanges(params, 3, 1);
     converter.createFileLayout(scene, params);
-    EXPECT_EQ(1, converter.getNumTiffPages());
-}
-
-TEST(TiffConverterTests, CreateFileLayoutWithChannelNames) {
-    class NamedScene : public DummyScene {
-    public:
-        std::string getChannelName(int channel) const override {
-            if (channel == 0) return "Red";
-            if (channel == 1) return "Green";
-            if (channel == 2) return "Blue";
-            return "";
-        }
-    };
-
-    auto scene = std::make_shared<NamedScene>();
-    scene->setNumChannels(3);
-    scene->setChannelDataType(DataType::DT_Byte);
-    scene->setRect(cv::Rect(0, 0, 512, 512));
-
-    OMETIFFJpegConverterParameters params;
-    configureCommonRanges(params, 3, 1);
-
-    TiffConverter converter;
-    ASSERT_NO_THROW(converter.createFileLayout(scene, params));
     EXPECT_EQ(1, converter.getNumTiffPages());
 }
 
@@ -320,10 +406,10 @@ TEST(TiffConverterTests, OMETIFFLayoutFor3ByteChannels) {
 
     TiffConverter converter;
     ASSERT_NO_THROW(converter.createFileLayout(scene, params));
-    
+
     // Should create 2 slices * 3 frames = 6 pages
     EXPECT_EQ(6, converter.getNumTiffPages());
-    
+
     // Each page should have planeCount = slices * frames = 2 * 3 = 6
     const auto& page = converter.getTiffPage(0);
     EXPECT_EQ(1, page.getPlaneCount());
@@ -398,7 +484,7 @@ TEST(TiffConverterTests, OMETIFFLayoutFor4ByteChannelsJpeg) {
 
 TEST(TiffConverterTests, OMETIFFLayoutFor3_16BitChannelsJpeg) {
     auto scene = makeScene(3);
-	scene->setChannelDataType(DataType::DT_Int16);
+    scene->setChannelDataType(DataType::DT_Int16);
     OMETIFFJpegConverterParameters params;
     params.setChannelRange(cv::Range(0, 3));
     params.setSliceRange(cv::Range(0, 2));
@@ -424,7 +510,7 @@ TEST(TiffConverterTests, ComputeCropRect) {
     TiffConverter converter;
     ASSERT_NO_THROW(converter.createFileLayout(scene, params));
     cv::Rect rect = converter.getSceneRect();
-	EXPECT_EQ(cv::Rect(10000, 5000, 10000, 15000), rect);
+    EXPECT_EQ(cv::Rect(10000, 5000, 10000, 15000), rect);
 }
 
 TEST(TiffConverterTests, ComputeCropRectInvalid) {
@@ -462,16 +548,16 @@ TEST(TiffConverterTests, ComputeNumberOfTiles) {
     params.setChannelRange(cv::Range(0, 1));
     params.setSliceRange(cv::Range(0, 1));
     params.setTFrameRange(cv::Range(0, 1));
-    const int tileWidth = 100;
-	const int tileHeight = 200;
+    constexpr int tileWidth = 100;
+    constexpr int tileHeight = 200;
     params.setTileWidth(tileWidth);
-	params.setTileHeight(tileHeight);
+    params.setTileHeight(tileHeight);
     auto tiffParams = std::static_pointer_cast<TIFFContainerParameters>(params.getContainerParameters());
     tiffParams->setNumZoomLevels(1);
-	Rect rect = params.getRect();
-	int tilesX = (rect.width + params.getTileWidth() - 1) / params.getTileWidth();
-	int tilesY = (rect.height + params.getTileHeight() - 1) / params.getTileHeight();
-	int numTiles = tilesX * tilesY;
+    Rect rect = params.getRect();
+    int tilesX = (rect.width + params.getTileWidth() - 1) / params.getTileWidth();
+    int tilesY = (rect.height + params.getTileHeight() - 1) / params.getTileHeight();
+    int numTiles = tilesX * tilesY;
     TiffConverter converter;
     ASSERT_NO_THROW(converter.createFileLayout(scene, params));
     int totalTiles = converter.getTotalTiles();
@@ -491,23 +577,24 @@ TEST(TiffConverterTests, ComputeNumberOfTiles) {
     numTiles *= 2;
     totalTiles = converter.getTotalTiles();
     EXPECT_EQ(totalTiles, numTiles);
-    params.setRect(Rect(10000, 5000, 10000-50, 20000-50));
+    params.setRect(Rect(10000, 5000, 10000 - 50, 20000 - 50));
     ASSERT_NO_THROW(converter.createFileLayout(scene, params));
     totalTiles = converter.getTotalTiles();
     EXPECT_EQ(totalTiles, numTiles);
-	Rect blockRect = params.getRect();
+    Rect blockRect = params.getRect();
     params.setChannelRange(cv::Range(0, 1));
     params.setSliceRange(cv::Range(0, 1));
     params.setTFrameRange(cv::Range(0, 1));
-	tilesX = (blockRect.width + params.getTileWidth() - 1) / params.getTileWidth();
-	tilesY = (blockRect.height + params.getTileHeight() - 1) / params.getTileHeight();
+    tilesX = (blockRect.width + params.getTileWidth() - 1) / params.getTileWidth();
+    tilesY = (blockRect.height + params.getTileHeight() - 1) / params.getTileHeight();
     numTiles = tilesX * tilesY;
     Rect sceneRect = params.getRect();
-    cv::Rect zoomLevelRect = ConverterTools::computeZoomLevelRect(cv::Rect(0, 0, sceneRect.width, sceneRect.height), cv::Size(tileWidth, tileHeight), 1);
+    cv::Rect zoomLevelRect = ConverterTools::computeZoomLevelRect(cv::Rect(0, 0, sceneRect.width, sceneRect.height),
+                                                                  cv::Size(tileWidth, tileHeight), 1);
     tilesX = (zoomLevelRect.width + params.getTileWidth() - 1) / params.getTileWidth();
     tilesY = (zoomLevelRect.height + params.getTileHeight() - 1) / params.getTileHeight();
     numTiles += tilesX * tilesY;
-	tiffParams->setNumZoomLevels(2);
+    tiffParams->setNumZoomLevels(2);
     ASSERT_NO_THROW(converter.createFileLayout(scene, params));
     totalTiles = converter.getTotalTiles();
     EXPECT_EQ(totalTiles, numTiles);
@@ -523,13 +610,13 @@ TEST(TiffConverterTests, OMETIFFDefaultSettings) {
     scene->setChannelDataType(DataType::DT_Byte);
     scene->setRect(sceneRect);
     scene->setNumZSlices(numSlices);
-	scene->setNumTFrames(numTFrames);
+    scene->setNumTFrames(numTFrames);
     scene->setResolution(Resolution(1e-6, 1e-6));
     scene->setMagnification(20.0);
     OMETIFFJp2KConverterParameters params;
     auto tiffParams = std::static_pointer_cast<TIFFContainerParameters>(params.getContainerParameters());
     tiffParams->setNumZoomLevels(1);
-    
+
     TiffConverter converter;
     ASSERT_NO_THROW(converter.createFileLayout(scene, params));
     EXPECT_EQ(60, converter.getNumTiffPages());
@@ -538,139 +625,39 @@ TEST(TiffConverterTests, OMETIFFDefaultSettings) {
     EXPECT_EQ(60, converter.getNumTiffPages());
 }
 
+
 TEST(TiffConverterTests, CreateFileLayoutOMETIFFSubset) {
     const int numSlices = 3;
     const int numFrames = 5;
-    const int numZoomLevels = 5;
-	const int numChannels = 3;
-	const cv::Rect sceneRect(0, 0, 4096, 8192);
+    const int numZoomLevels = 2;
+    const int numChannels = 5;
+    const cv::Rect sceneRect(0, 0, 4096, 2048);
 
     auto scene = makeScene(numChannels);
     scene->setNumTFrames(numFrames);
     scene->setNumZSlices(numSlices);
     scene->setRect(sceneRect);
-
-    OMETIFFJpegConverterParameters params;
+    OMETIFFJp2KConverterParameters params;
 
     TiffConverter converter;
-	// Full dataset
-    params.setChannelRange(cv::Range(0, numChannels));
-    params.setSliceRange(cv::Range(0, numSlices));
+    // The whole dataset
     params.setTFrameRange(cv::Range(0, numFrames));
-    params.setRect(Rect(0, 0, sceneRect.width, sceneRect.height));
+    params.setSliceRange(cv::Range(0, numSlices));
+    params.setChannelRange(cv::Range(0, numChannels));
     auto tiffParams = std::static_pointer_cast<TIFFContainerParameters>(params.getContainerParameters());
-    tiffParams->setTileWidth(256);
-    tiffParams->setTileHeight(256);
     tiffParams->setNumZoomLevels(numZoomLevels);
-    ASSERT_NO_THROW(converter.createFileLayout(scene, params));
-	int numPages = numSlices * numFrames;
-    EXPECT_EQ(15, converter.getNumTiffPages());
-	int sliceIndex = 0;
-	int frameIndex = 0;
-    for (int pageIndex=0; pageIndex<numPages; ++pageIndex) {
-		auto page = converter.getTiffPage(pageIndex);
-		EXPECT_EQ(cv::Range(0, numChannels), page.getChannelRange());
-        EXPECT_EQ(cv::Range(frameIndex,frameIndex+1), page.getTFrameRange());
-        EXPECT_EQ(cv::Range(sliceIndex, sliceIndex + 1), page.getZSliceRange());
-        sliceIndex++;
-        if (sliceIndex >= numSlices) {
-            sliceIndex = 0;
-            frameIndex++;
-		}
-		EXPECT_EQ(numZoomLevels-1, page.getNumSubDirectories());
-    }
-    // Subset of tframes
-    int firstFrame = 1;
-	int lastFrame = 3;
-    int firstSlice = 0;
-	int lastSlice = numSlices - 1;
-	int numSubsetSlices = lastSlice - firstSlice + 1;
-	int numSubsetFrames = lastFrame - firstFrame + 1;
-    params.setTFrameRange(cv::Range(firstFrame, lastFrame+1));
-    ASSERT_NO_THROW(converter.createFileLayout(scene, params));
-    numPages = numSubsetSlices * numSubsetFrames;
-    EXPECT_EQ(numPages, converter.getNumTiffPages());
-    sliceIndex = firstSlice;
-    frameIndex = firstFrame;
-    for (int pageIndex = 0; pageIndex < numPages; ++pageIndex) {
-        auto page = converter.getTiffPage(pageIndex);
-        EXPECT_EQ(cv::Range(0, numChannels), page.getChannelRange());
-		int localFrameIndex = frameIndex - firstFrame;
-		int localSliceIndex = sliceIndex - firstSlice;
-        EXPECT_EQ(cv::Range(localFrameIndex, localFrameIndex + 1), page.getTFrameRange());
-        EXPECT_EQ(cv::Range(localSliceIndex, localSliceIndex + 1), page.getZSliceRange());
-        EXPECT_EQ(frameIndex, page.getSourceFirstFrame());
-		EXPECT_EQ(sliceIndex, page.getSourceFirstSlice());
-		EXPECT_EQ(0, page.getSourceFirstChannel());
-        sliceIndex++;
-        if (sliceIndex > lastSlice) {
-            sliceIndex = firstSlice;
-            frameIndex++;
-        }
-        EXPECT_EQ(numZoomLevels - 1, page.getNumSubDirectories());
-    }
-    // Subset of slices
-    firstFrame = 0;
-    lastFrame = numFrames - 1;
-    firstSlice = 1;
-    lastSlice = numSlices - 1;
-    numSubsetSlices = lastSlice - firstSlice + 1;
-    numSubsetFrames = lastFrame - firstFrame + 1;
-    params.setTFrameRange(cv::Range(firstFrame, lastFrame + 1));
-	params.setSliceRange(cv::Range(firstSlice, lastSlice + 1));
-    ASSERT_NO_THROW(converter.createFileLayout(scene, params));
-    numPages = numSubsetSlices * numSubsetFrames;
-    EXPECT_EQ(numPages, converter.getNumTiffPages());
-    sliceIndex = firstSlice;
-    frameIndex = firstFrame;
-    for (int pageIndex = 0; pageIndex < numPages; ++pageIndex) {
-        auto page = converter.getTiffPage(pageIndex);
-        EXPECT_EQ(cv::Range(0, numChannels), page.getChannelRange());
-        int localFrameIndex = frameIndex - firstFrame;
-        int localSliceIndex = sliceIndex - firstSlice;
-        EXPECT_EQ(cv::Range(localFrameIndex, localFrameIndex + 1), page.getTFrameRange());
-        EXPECT_EQ(cv::Range(localSliceIndex, localSliceIndex + 1), page.getZSliceRange());
-        EXPECT_EQ(frameIndex, page.getSourceFirstFrame());
-        EXPECT_EQ(sliceIndex, page.getSourceFirstSlice());
-        EXPECT_EQ(0, page.getSourceFirstChannel());
-        sliceIndex++;
-        if (sliceIndex > lastSlice) {
-            sliceIndex = firstSlice;
-            frameIndex++;
-        }
-        EXPECT_EQ(numZoomLevels - 1, page.getNumSubDirectories());
-    }
-    // Subset of slice & frame subsets
-    firstFrame = 2;
-    lastFrame = 3;
-    firstSlice = 1;
-    lastSlice = 2;
-    numSubsetSlices = lastSlice - firstSlice + 1;
-    numSubsetFrames = lastFrame - firstFrame + 1;
-    params.setTFrameRange(cv::Range(firstFrame, lastFrame + 1));
-    params.setSliceRange(cv::Range(firstSlice, lastSlice + 1));
-    ASSERT_NO_THROW(converter.createFileLayout(scene, params));
-    numPages = numSubsetSlices * numSubsetFrames;
-    EXPECT_EQ(numPages, converter.getNumTiffPages());
-    sliceIndex = firstSlice;
-    frameIndex = firstFrame;
-    for (int pageIndex = 0; pageIndex < numPages; ++pageIndex) {
-        auto page = converter.getTiffPage(pageIndex);
-        EXPECT_EQ(cv::Range(0, numChannels), page.getChannelRange());
-        int localFrameIndex = frameIndex - firstFrame;
-        int localSliceIndex = sliceIndex - firstSlice;
-        EXPECT_EQ(cv::Range(localFrameIndex, localFrameIndex + 1), page.getTFrameRange());
-        EXPECT_EQ(cv::Range(localSliceIndex, localSliceIndex + 1), page.getZSliceRange());
-        EXPECT_EQ(frameIndex, page.getSourceFirstFrame());
-        EXPECT_EQ(sliceIndex, page.getSourceFirstSlice());
-        EXPECT_EQ(0, page.getSourceFirstChannel());
-        sliceIndex++;
-        if (sliceIndex > lastSlice) {
-            sliceIndex = firstSlice;
-            frameIndex++;
-        }
-        EXPECT_EQ(numZoomLevels - 1, page.getNumSubDirectories());
-    }
+    testSubset(params, scene);
+    // Slice subset
+    params.setSliceRange(cv::Range(1, 3));
+    testSubset(params, scene);
+    // T frame subset
+    params.setTFrameRange(cv::Range(2, 4));
+    params.setSliceRange(cv::Range(0, numSlices));
+    testSubset(params, scene);
+    // T frame and slice subset
+    params.setTFrameRange(cv::Range(2, 4));
+    params.setSliceRange(cv::Range(1, 3));
+    testSubset(params, scene);
 }
 
 TEST(TiffConverterTests, CreateFileLayoutOMETIFFChannelSubset) {
@@ -684,92 +671,20 @@ TEST(TiffConverterTests, CreateFileLayoutOMETIFFChannelSubset) {
     scene->setNumTFrames(numFrames);
     scene->setNumZSlices(numSlices);
     scene->setRect(sceneRect);
-
     OMETIFFJp2KConverterParameters params;
 
     TiffConverter converter;
-    // Subset of slice & frame subsets
-    const int firstFrame = 2;
-    const int lastFrame = 3;
-    const int firstSlice = 1;
-    const int lastSlice = 2;
-    const int numSubsetSlices = lastSlice - firstSlice + 1;
-    const int numSubsetFrames = lastFrame - firstFrame + 1;
-    int firstChannel = 0;
-	int lastChannel = numChannels - 1;
-    params.setTFrameRange(cv::Range(firstFrame, lastFrame + 1));
-    params.setSliceRange(cv::Range(firstSlice, lastSlice + 1));
-	params.setChannelRange(cv::Range(firstChannel, lastChannel + 1));
-	auto tiffParams = std::static_pointer_cast<TIFFContainerParameters>(params.getContainerParameters());
-	tiffParams->setNumZoomLevels(numZoomLevels);
-    ASSERT_NO_THROW(converter.createFileLayout(scene, params));
-    int numPages = numSubsetSlices * numSubsetFrames * numChannels;
-    EXPECT_EQ(numPages, converter.getNumTiffPages());
-    int sliceIndex = firstSlice;
-    int frameIndex = firstFrame;
-	int channelIndex = firstChannel;
-    for (int pageIndex = 0; pageIndex < numPages; ++pageIndex) {
-        auto page = converter.getTiffPage(pageIndex);
-        int localFrameIndex = frameIndex - firstFrame;
-        int localSliceIndex = sliceIndex - firstSlice;
-		int localChannelIndex = channelIndex - firstChannel;
-        EXPECT_EQ(cv::Range(localFrameIndex, localFrameIndex + 1), page.getTFrameRange());
-        EXPECT_EQ(cv::Range(localSliceIndex, localSliceIndex + 1), page.getZSliceRange());
-		EXPECT_EQ(cv::Range(localChannelIndex, localChannelIndex + 1), page.getChannelRange());
-        EXPECT_EQ(frameIndex, page.getSourceFirstFrame());
-        EXPECT_EQ(sliceIndex, page.getSourceFirstSlice());
-        EXPECT_EQ(channelIndex, page.getSourceFirstChannel());
-        channelIndex++;
-        if (channelIndex > lastChannel) {
-			channelIndex = firstChannel;
-            sliceIndex++;
-            if (sliceIndex > lastSlice) {
-				channelIndex = firstChannel;
-                sliceIndex = firstSlice;
-                frameIndex++;
-            }
-        }
-        EXPECT_EQ(numZoomLevels - 1, page.getNumSubDirectories());
-    }
-
-    firstChannel = 2;
-    lastChannel = 3;
-	int numSubsetChannels = lastChannel - firstChannel + 1;
-    params.setTFrameRange(cv::Range(firstFrame, lastFrame + 1));
-    params.setSliceRange(cv::Range(firstSlice, lastSlice + 1));
-    params.setChannelRange(cv::Range(firstChannel, lastChannel + 1));
-    ASSERT_NO_THROW(converter.createFileLayout(scene, params));
-    numPages = numSubsetSlices * numSubsetFrames * numSubsetChannels;
-    EXPECT_EQ(numPages, converter.getNumTiffPages());
-    sliceIndex = firstSlice;
-    frameIndex = firstFrame;
-    channelIndex = firstChannel;
-    for (int pageIndex = 0; pageIndex < numPages; ++pageIndex) {
-        auto page = converter.getTiffPage(pageIndex);
-        int localFrameIndex = frameIndex - firstFrame;
-        int localSliceIndex = sliceIndex - firstSlice;
-        int localChannelIndex = channelIndex - firstChannel;
-        EXPECT_EQ(cv::Range(localFrameIndex, localFrameIndex + 1), page.getTFrameRange());
-        EXPECT_EQ(cv::Range(localSliceIndex, localSliceIndex + 1), page.getZSliceRange());
-        EXPECT_EQ(cv::Range(localChannelIndex, localChannelIndex + 1), page.getChannelRange());
-        EXPECT_EQ(frameIndex, page.getSourceFirstFrame());
-        EXPECT_EQ(sliceIndex, page.getSourceFirstSlice());
-        EXPECT_EQ(channelIndex, page.getSourceFirstChannel());
-        channelIndex++;
-        if (channelIndex > lastChannel) {
-            channelIndex = firstChannel;
-            sliceIndex++;
-            if (sliceIndex > lastSlice) {
-                channelIndex = firstChannel;
-                sliceIndex = firstSlice;
-                frameIndex++;
-            }
-        }
-        EXPECT_EQ(numZoomLevels - 1, page.getNumSubDirectories());
-    }
-
+    // All channels
+    params.setTFrameRange(cv::Range(2, 4));
+    params.setSliceRange(cv::Range(1, 3));
+    params.setChannelRange(cv::Range(0, numChannels));
+    auto tiffParams = std::static_pointer_cast<TIFFContainerParameters>(params.getContainerParameters());
+    tiffParams->setNumZoomLevels(numZoomLevels);
+    testSubset(params, scene);
+    // Channel subset
+    params.setChannelRange(cv::Range(2, 4));
+    testSubset(params, scene);
 }
-
 
 TEST(TiffConverterTests, SVSDefaultSettings) {
     const int numChannels = 3;
@@ -796,8 +711,7 @@ TEST(TiffConverterTests, SVSDefaultSettings) {
     EXPECT_EQ(5, converter.getNumTiffPages());
 }
 
-TEST(TiffConverterTests, jpegToOMETIFF)
-{
+TEST(TiffConverterTests, jpegToOMETIFF) {
     constexpr int tileWidth = 512;
     constexpr int tileHeight = 128;
     constexpr int numZoomLevels = 5;
@@ -808,8 +722,8 @@ TEST(TiffConverterTests, jpegToOMETIFF)
     auto sceneRect = scene->getRect();
     const int sceneWidth = std::get<2>(sceneRect);
     const int sceneHeight = std::get<3>(sceneRect);
-	const int numChannels = scene->getNumChannels();
-	const DataType dt = scene->getChannelDataType(0);
+    const int numChannels = scene->getNumChannels();
+    const DataType dt = scene->getChannelDataType(0);
     ASSERT_TRUE(scene.get() != nullptr);
 
     slideio::TempFile tmp("ome.tiff");
@@ -818,33 +732,33 @@ TEST(TiffConverterTests, jpegToOMETIFF)
         std::filesystem::remove(outputPath);
     }
     OMETIFFJpegConverterParameters parameters;
-    auto tiffParams = 
+    auto tiffParams =
         std::static_pointer_cast<TIFFContainerParameters>(parameters.getContainerParameters());
     parameters.setQuality(99);
     tiffParams->setNumZoomLevels(numZoomLevels);
     tiffParams->setTileWidth(tileWidth);
-	tiffParams->setTileHeight(tileHeight);
+    tiffParams->setTileHeight(tileHeight);
 
     TiffConverter converter;
     ASSERT_NO_THROW(converter.createFileLayout(scene->getCVScene(), parameters));
     EXPECT_EQ(1, converter.getNumTiffPages());
-	std::set<int> progress;
+    std::set<int> progress;
     int progressLast = 0;
-    ASSERT_NO_THROW(converter.createTiff(outputPath, 
+    ASSERT_NO_THROW(converter.createTiff(outputPath,
         [&progress, &progressLast](int pr) { progressLast = pr; progress.insert(pr); }));
-	EXPECT_EQ(100, progressLast);
+    EXPECT_EQ(100, progressLast);
     EXPECT_GT(progress.size(), 10);
-	std::vector<TiffDirectory> directories;
-	TiffTools::scanFile(outputPath, directories);
+    std::vector<TiffDirectory> directories;
+    TiffTools::scanFile(outputPath, directories);
     EXPECT_EQ(1, directories.size());
-	const TiffDirectory& baseDir = directories[0];
+    const TiffDirectory& baseDir = directories[0];
     EXPECT_EQ(4, baseDir.subdirectories.size());
 
     EXPECT_EQ(sceneWidth, baseDir.width);
     EXPECT_EQ(sceneHeight, baseDir.height);
-	EXPECT_EQ(numChannels, baseDir.channels);
+    EXPECT_EQ(numChannels, baseDir.channels);
     EXPECT_EQ(tileWidth, baseDir.tileWidth);
-	EXPECT_EQ(tileHeight, baseDir.tileHeight);
+    EXPECT_EQ(tileHeight, baseDir.tileHeight);
     EXPECT_EQ(Compression::Jpeg, baseDir.slideioCompression);
     EXPECT_EQ(dt, baseDir.dataType);
 
@@ -853,7 +767,7 @@ TEST(TiffConverterTests, jpegToOMETIFF)
         cv::Size(sceneWidth / 4, sceneHeight / 4),
         cv::Size(sceneWidth / 8, sceneHeight / 8),
         cv::Size(sceneWidth / 16, sceneHeight / 16)
-	};
+    };
     int dirIndex = 0;
     for (const auto& dir : baseDir.subdirectories) {
         EXPECT_EQ(dirSizes[dirIndex].width, dir.width);
@@ -864,11 +778,10 @@ TEST(TiffConverterTests, jpegToOMETIFF)
         EXPECT_EQ(Compression::Jpeg, dir.slideioCompression);
         EXPECT_EQ(dt, dir.dataType);
         ++dirIndex;
-	}
+    }
 }
 
-TEST(TiffConverterTests, jpegToSVS)
-{
+TEST(TiffConverterTests, jpegToSVS) {
     constexpr int tileWidth = 512;
     constexpr int tileHeight = 128;
     constexpr int numZoomLevels = 5;
@@ -922,4 +835,78 @@ TEST(TiffConverterTests, jpegToSVS)
         EXPECT_EQ(dt, dir.dataType);
         ++dirIndex;
     }
+}
+
+TEST(TiffConverterTests, OMETIFFRaster) {
+
+    slideio::TempFile tmp("ome.tiff");
+    std::string outputPath = tmp.getPath().string();
+    if (std::filesystem::exists(outputPath)) {
+        std::filesystem::remove(outputPath);
+    }
+
+    const int numSlices = 5;
+    const int numFrames = 3;
+    const int numZoomLevels = 1;
+    const int numChannels = 5;
+    const cv::Rect sceneRect(0, 0, 4096, 2048);
+
+    auto scene = makeScene(numChannels);
+    scene->setNumTFrames(numFrames);
+    scene->setNumZSlices(numSlices);
+    scene->setRect(sceneRect);
+    OMETIFFJp2KConverterParameters params;
+    params.setCompressionRate(1);
+
+    const cv::Range sliceRange(1, 3);
+    const cv::Range frameRange(2, 4);
+    const cv::Range channelRange(2, 4);
+    // const cv::Range sliceRange(0, numSlices);
+    // const cv::Range frameRange(0, numFrames);
+    // const cv::Range channelRange(0, numChannels);
+    params.setChannelRange(channelRange);
+    params.setTFrameRange(frameRange);
+    params.setSliceRange(sliceRange);
+    auto tiffParams = std::static_pointer_cast<TIFFContainerParameters>(params.getContainerParameters());
+    tiffParams->setNumZoomLevels(numZoomLevels);
+    TiffConverter converter;
+    converter.createFileLayout(scene, params);
+    converter.createTiff(outputPath, nullptr);
+    auto slide = openSlide(outputPath, "OMETIFF");
+	ASSERT_EQ(1, slide->getNumScenes());
+	auto cvScene = slide->getScene(0)->getCVScene();
+    EXPECT_EQ(converter.getSceneRect(), cvScene->getRect());
+    EXPECT_EQ(channelRange.size(), cvScene->getNumChannels());
+    EXPECT_EQ(scene->getChannelDataType(0), cvScene->getChannelDataType(0));
+    EXPECT_EQ(sliceRange.size(), cvScene->getNumZSlices());
+	EXPECT_EQ(frameRange.size(), cvScene->getNumTFrames());
+    for (int channel = 0; channel<channelRange.size(); ++channel) {
+		EXPECT_EQ(getChannelName(channel + channelRange.start), cvScene->getChannelName(channel));
+    }
+	cv::Rect blockRect = cv::Rect(0,0,256,256);
+    for (int frame=0; frame<frameRange.size(); ++frame) {
+        for (int slice=0; slice<sliceRange.size(); ++slice) {
+            for (int channel=0; channel<channelRange.size(); ++channel) {
+                cv::Mat raster;
+                cvScene->read4DBlockChannels(blockRect, { channel }, { slice, slice + 1 }, { frame, frame + 1 }, raster);
+                
+                ASSERT_FALSE(raster.empty());
+                EXPECT_EQ(blockRect.width, raster.cols);
+                EXPECT_EQ(blockRect.height, raster.rows);
+                EXPECT_EQ(CV_8UC1, raster.type());
+                
+                double minVal, maxVal;
+                cv::minMaxLoc(raster, &minVal, &maxVal);
+                
+                int sourceFrame = frame + frameRange.start;
+                int sourceSlice = slice + sliceRange.start;
+                int sourceChannel = channel + channelRange.start;
+                uint8_t expectedValue = getChannelColor(sourceFrame, sourceSlice, sourceChannel);
+                
+                EXPECT_EQ(expectedValue, static_cast<uint8_t>(minVal));
+                EXPECT_EQ(expectedValue, static_cast<uint8_t>(maxVal));
+            }
+		}
+    }
+
 }

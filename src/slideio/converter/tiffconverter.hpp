@@ -32,6 +32,10 @@ namespace slideio
             int getTotalTiles() const {
                 return m_totalTiles;
 			}
+
+            const ConverterParameters& getParameters() const {
+                return m_parameters;
+            }
         private:
             TiffPageStructure& appendPage() {
                 return m_pages.emplace_back();

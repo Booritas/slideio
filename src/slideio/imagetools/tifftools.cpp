@@ -11,6 +11,7 @@
 #include "slideio/core/tools/tools.hpp"
 #include <opencv2/core.hpp>
 #include <filesystem>
+#include <iomanip>
 
 using namespace slideio;
 
@@ -814,6 +815,7 @@ void TiffTools::readJ2KTile(libtiff::TIFF* hFile, const TiffDirectory& dir, int 
             throw std::runtime_error("TiffTools: Error reading raw tile");
         }
         bool yuv = dir.channels==3 && dir.compression==33003;
+        rawTile.resize(readBytes);
         ImageTools::decodeJp2KStream(rawTile, output, channelIndices, yuv);
     }
     else
@@ -963,7 +965,7 @@ void TiffTools::writeTile(libtiff::TIFF* tiff, int x, int y, Compression compres
         if(dataSize <= 0) {
             RAISE_RUNTIME_ERROR << "JPEG 2000 Encoding failed";
         }
-        libtiff::TIFFWriteRawTile(tiff, tile, buffer, dataSize);
+        auto written = libtiff::TIFFWriteRawTile(tiff, tile, buffer, dataSize);
     }
     else {
         RAISE_RUNTIME_ERROR << "Unsupported compression: " << compression;
