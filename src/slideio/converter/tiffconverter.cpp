@@ -131,7 +131,14 @@ std::string TiffConverter::createOMETiffDescription() const{
     const int numChannels = m_parameters.getChannelRange().size();
     const int numZSlices = m_parameters.getSliceRange().size();
     const int numTFrames = m_parameters.getTFrameRange().size();
-
+    double magnification = m_scene->getMagnification();
+    if (magnification > 0) {
+        auto* instrument = doc.NewElement("Instrument");
+        auto* objective = doc.NewElement("Objective");
+        objective->SetAttribute("NominalMagnification", magnification);
+		instrument->InsertEndChild(objective);
+        ome->InsertEndChild(instrument);
+    }
     auto* image = doc.NewElement("Image");
     image->SetAttribute("ID", "Image:0");
     std::string name = m_scene->getName();
