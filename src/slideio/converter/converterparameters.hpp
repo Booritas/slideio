@@ -6,9 +6,12 @@
 #include "slideio/base/rect.hpp"
 #include "slideio/base/slideio_enums.hpp"
 #include "slideio/converter/converter_def.hpp"
-#include "slideio/core/cvscene.hpp"
-
 #include <opencv2/core/types.hpp>
+
+namespace slideio
+{
+    class CVScene;
+}
 
 namespace slideio
 {
