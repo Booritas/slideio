@@ -5,6 +5,11 @@
 #include <cstdint>
 #include <ostream>
 
+namespace cv {
+    template<typename _Tp> class Size_;
+    typedef Size_<int> Size;
+}
+
 namespace slideio
 {
     class Size
@@ -28,6 +33,7 @@ namespace slideio
             sz.width = 0;
             sz.height = 0;
         }
+        Size(const cv::Size& cvSize);
         ~Size() = default;
         Size& operator = (const Size& sz) = default;
         Size& operator = (Size&& sz) noexcept {
@@ -39,6 +45,8 @@ namespace slideio
             }
             return *this;
         }
+        Size& operator = (const cv::Size& cvSize);
+        operator cv::Size() const;
         bool operator == (const Size& other) const {
             return width == other.width && height == other.height;
         }
@@ -58,3 +66,7 @@ namespace slideio
         int32_t height;
     };
 }
+
+#if defined(SLIDEIO_INTERNAL_HEADER)
+#include "size.inl"
+#endif

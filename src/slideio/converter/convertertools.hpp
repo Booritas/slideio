@@ -4,11 +4,17 @@
 #ifndef OPENCV_slideio_convertertools_HPP
 #define OPENCV_slideio_convertertools_HPP
 
+#include <vector>
+#include <opencv2/core/mat.hpp>
+
 #include "slideio/converter/converter_def.hpp"
-#include "slideio/core/cvscene.hpp"
+#include "slideio/base/size.hpp"
+#include "slideio/base/range.hpp"
+#include "slideio/base/rect.hpp"
 
 namespace slideio
 {
+    class CVScene;
     namespace converter
     {
         class ConverterParameters;
@@ -16,12 +22,12 @@ namespace slideio
         {
         public:
             static int computeNumZoomLevels(int width, int height);
-            static cv::Size scaleSize(const cv::Size& size, int zoomLevel, bool downScale = true);
-            static cv::Rect scaleRect(const cv::Rect& rect, int zoomLevel, bool downScale);
-            static void readTile(const CVScenePtr& scene, const std::vector<int> channels, int zoomLevel, const cv::Rect& sceneBlockRect,
+            static Size scaleSize(const Size& size, int zoomLevel, bool downScale = true);
+            static Rect scaleRect(const Rect& rect, int zoomLevel, bool downScale);
+            static void readTile(const std::shared_ptr <CVScene>& scene, const std::vector<int> channels, int zoomLevel, const cv::Rect& sceneBlockRect,
                 int slice, int frame, cv::OutputArray tile);
-            static cv::Rect computeZoomLevelRect(const cv::Rect& sceneRect, const cv::Size& tileSize, int zoomLevel);
-			static int computeNumTiles(const cv::Size& imageSize, const cv::Size& tileSize) {
+            static Rect computeZoomLevelRect(const Rect& sceneRect, const Size& tileSize, int zoomLevel);
+			static int computeNumTiles(const Size& imageSize, const Size& tileSize) {
                 const int numTilesX = (imageSize.width + tileSize.width - 1) / tileSize.width;
                 const int numTilesY = (imageSize.height + tileSize.height - 1) / tileSize.height;
                 return numTilesX * numTilesY;

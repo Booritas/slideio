@@ -1,0 +1,21 @@
+// This file is part of slideio project.
+// It is subject to the license terms in the LICENSE file found in the top-level directory
+// of this distribution and at http://slideio.com/license.html.
+#pragma once
+#include "range.hpp"
+#include <opencv2/core/types.hpp>
+
+namespace slideio
+{
+    inline Range::Range(const cv::Range& r) : start(r.start), end(r.end) {}
+    
+    inline Range::operator cv::Range() const {
+        return cv::Range(start, end);
+    }
+    
+    inline Range& Range::operator=(const cv::Range& r) {
+        start = r.start;
+        end = r.end;
+        return *this;
+    }
+}

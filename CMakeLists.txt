@@ -24,6 +24,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     endif()
 endif()
 
+add_compile_definitions(SLIDEIO_INTERNAL_HEADER)
 
 set(LIB_NAME_SUFFIX $<$<CONFIG:Debug>:_d>$<$<NOT:$<CONFIG:Debug>>:>)
 set(LIB_NAME_PREFIX "slideio-")
@@ -206,6 +207,7 @@ install(FILES
     ${INCLUDE_ROOT}/slideio/base/base.hpp 
     ${INCLUDE_ROOT}/slideio/base/rect.hpp 
     ${INCLUDE_ROOT}/slideio/base/size.hpp 
+    ${INCLUDE_ROOT}/slideio/base/range.hpp 
     ${INCLUDE_ROOT}/slideio/base/resolution.hpp
     ${INCLUDE_ROOT}/slideio/base/slideio_base_def.hpp
     ${INCLUDE_ROOT}/slideio/base/slideio_enums.hpp

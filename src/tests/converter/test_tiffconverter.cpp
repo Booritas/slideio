@@ -10,6 +10,7 @@
 #include "slideio/slideio/scene.hpp"
 #include "slideio/slideio/slide.hpp"
 #include "slideio/slideio/slideio.hpp"
+#include "slideio/base/rect.inl"
 
 using namespace slideio;
 using namespace slideio::converter;
@@ -913,7 +914,8 @@ TEST(TiffConverterTests, OMETIFFJp2KRaster) {
     auto slide = openSlide(outputPath, "OMETIFF");
 	ASSERT_EQ(1, slide->getNumScenes());
 	auto cvScene = slide->getScene(0)->getCVScene();
-    EXPECT_EQ(converter.getSceneRect(), cvScene->getRect());
+	Rect cvSceneRect = cvScene->getRect();
+    EXPECT_EQ(converter.getSceneRect(), cvSceneRect);
     EXPECT_EQ(channelRange.size(), cvScene->getNumChannels());
     EXPECT_EQ(scene->getChannelDataType(0), cvScene->getChannelDataType(0));
     EXPECT_EQ(sliceRange.size(), cvScene->getNumZSlices());

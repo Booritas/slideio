@@ -5,7 +5,6 @@
 #include "slideio/imagetools/tiffkeeper.hpp"
 #include "slideio/converter/converterparameters.hpp"
 #include "slideio/converter/tiffstructure.hpp"
-#include <opencv2/core/types.hpp>
 
 namespace slideio
 {
@@ -25,7 +24,7 @@ namespace slideio
             }
 
             const TiffPageStructure& getTiffPage(int index) const;
-            cv::Rect getSceneRect() const {
+            Rect getSceneRect() const {
                 return m_cropRect;
             }
 
@@ -40,7 +39,7 @@ namespace slideio
             TiffPageStructure& appendPage() {
                 return m_pages.emplace_back();
             }
-            DataType getChannelRangeDataType(const cv::Range& channelRange) const;
+            DataType getChannelRangeDataType(const Range& channelRange) const;
             int computeChannelChunk(int firstChannel, const std::shared_ptr<CVScene>& scene) const;
             std::string createSVSImageDescription() const;
             std::string createImageDescriptionTag() const;
@@ -62,7 +61,7 @@ namespace slideio
             TIFFKeeperPtr m_file;
             std::shared_ptr<CVScene> m_scene;
             ConverterParameters m_parameters;
-            cv::Rect m_cropRect;
+            Rect m_cropRect;
             std::string m_filePath;
             std::vector<TiffChannel> m_channels;
             int m_totalTiles = 0;

@@ -21,24 +21,24 @@ int ConverterTools::computeNumZoomLevels(int width, int height) {
     return numZoomLevels;
 }
 
-cv::Size ConverterTools::scaleSize(const cv::Size& size, int zoomLevel, bool downScale) {
+Size ConverterTools::scaleSize(const Size& size, int zoomLevel, bool downScale) {
     if (zoomLevel < 0) {
         RAISE_RUNTIME_ERROR << "Expected positive zoom level.";
     }
     if (downScale) {
-        cv::Size newSize(size);
+        Size newSize(size);
         newSize.width >>= zoomLevel;
         newSize.height >>= zoomLevel;
         return newSize;
     }
-    cv::Size newSize(size);
+    Size newSize(size);
     newSize.width <<= zoomLevel;
     newSize.height <<= zoomLevel;
     return newSize;
 }
 
 
-void ConverterTools::readTile(const CVScenePtr& scene, const std::vector<int> channels, int zoomLevel,
+void ConverterTools::readTile(const std::shared_ptr <CVScene>& scene, const std::vector<int> channels, int zoomLevel,
                               const cv::Rect& sceneBlockRect, int slice, int frame, cv::OutputArray tile) {
     cv::Range slices(slice, slice + 1);
     cv::Range frames(frame, frame + 1);
@@ -58,13 +58,13 @@ void ConverterTools::readTile(const CVScenePtr& scene, const std::vector<int> ch
         int dt = CVTools::toOpencvType(scene->getChannelDataType(0));
         tile.create(tileSize, CV_MAKE_TYPE(dt, numChannels));
         tile.setTo(0);
-        const cv::Rect adjustedRect = rectScene & sceneBlockRect;
-        const cv::Size adjustedTileSize = scaleSize(adjustedRect.size(), zoomLevel, true);
+        const Rect adjustedRect = rectScene & sceneBlockRect;
+        const Size adjustedTileSize = scaleSize(adjustedRect.size(), zoomLevel, true);
         if (!adjustedRect.empty()) {
             cv::Mat adjustedTile;
             scene->readResampled4DBlockChannels(adjustedRect, adjustedTileSize, channels, slices, frames, adjustedTile);
             if (!adjustedTile.empty()) {
-                const cv::Rect roi(0, 0, adjustedTileSize.width, adjustedTileSize.height);
+                const Rect roi(0, 0, adjustedTileSize.width, adjustedTileSize.height);
                 cv::Mat matTile = tile.getMat();
                 adjustedTile.copyTo(matTile(roi));
             }
@@ -72,11 +72,11 @@ void ConverterTools::readTile(const CVScenePtr& scene, const std::vector<int> ch
     }
 }
 
-cv::Rect ConverterTools::scaleRect(const cv::Rect& rect, int zoomLevel, bool downScale) {
+Rect ConverterTools::scaleRect(const Rect& rect, int zoomLevel, bool downScale) {
     if (zoomLevel < 0) {
         RAISE_RUNTIME_ERROR << "Expected positive zoom level.";
     }
-    cv::Rect newRect(rect);
+    Rect newRect(rect);
     if (downScale) {
         newRect.width >>= zoomLevel;
         newRect.height >>= zoomLevel;
@@ -91,10 +91,10 @@ cv::Rect ConverterTools::scaleRect(const cv::Rect& rect, int zoomLevel, bool dow
     return newRect;
 }
 
-cv::Rect ConverterTools::computeZoomLevelRect(const cv::Rect& sceneRect,
-                                              const cv::Size& tileSize,
+Rect ConverterTools::computeZoomLevelRect(const Rect& sceneRect,
+                                              const Size& tileSize,
                                               int zoomLevel) {
-    cv::Rect levelRect = scaleRect(sceneRect, zoomLevel, true);
+    Rect levelRect = scaleRect(sceneRect, zoomLevel, true);
     // align image size to integer number of tiles
     levelRect.width = ((levelRect.width - 1) / tileSize.width + 1) * tileSize.width;
     levelRect.height = ((levelRect.height - 1) / tileSize.height + 1) * tileSize.height;

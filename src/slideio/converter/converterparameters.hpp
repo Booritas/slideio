@@ -4,9 +4,9 @@
 #pragma once
 #include "slideio/imagetools/encodeparameters.hpp"
 #include "slideio/base/rect.hpp"
+#include "slideio/base/range.hpp"
 #include "slideio/base/slideio_enums.hpp"
 #include "slideio/converter/converter_def.hpp"
-#include <opencv2/core/types.hpp>
 
 namespace slideio
 {
@@ -99,42 +99,51 @@ namespace slideio
         public:
             ConverterParameters(ImageFormat format, Container containerType, Compression compression);
 
-            ConverterParameters(){
+            ConverterParameters() {
                 initialize();
             }
 
             ConverterParameters(const ConverterParameters& other);
             ConverterParameters& operator=(const ConverterParameters& other);
 
-			virtual ~ConverterParameters() = default;
+            virtual ~ConverterParameters() = default;
 
             ImageFormat getFormat() const {
                 return m_format;
             }
+
             const Rect& getRect() const {
                 return m_rect;
             }
+
             void setRect(const Rect& rect) {
                 m_rect = rect;
             }
-            void setSliceRange(const cv::Range& range) {
+
+            void setSliceRange(const Range& range) {
                 m_sliceRange = range;
             }
-            const cv::Range& getSliceRange() const {
+
+            const Range& getSliceRange() const {
                 return m_sliceRange;
-			}
-            void setChannelRange(const cv::Range& range) {
+            }
+
+            void setChannelRange(const Range& range) {
                 m_channelRange = range;
-			}
-            const cv::Range& getChannelRange() const {
-				return m_channelRange;
-			}
-            void setTFrameRange(const cv::Range& range) {
+            }
+
+            const Range& getChannelRange() const {
+                return m_channelRange;
+            }
+
+            void setTFrameRange(const Range& range) {
                 m_frameRange = range;
-			}
-            const cv::Range& getTFrameRange() const {
+            }
+
+            const Range& getTFrameRange() const {
                 return m_frameRange;
-			}
+            }
+
             Compression getEncoding() const;
 
             Container getContainerType() const;
@@ -142,17 +151,22 @@ namespace slideio
             std::shared_ptr<EncodeParameters> getEncodeParameters() {
                 return m_encodeParameters;
             }
+
             std::shared_ptr<const EncodeParameters> getEncodeParameters() const {
                 return m_encodeParameters;
             }
+
             std::shared_ptr<ContainerParameters> getContainerParameters() {
                 return std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters);
             }
+
             std::shared_ptr<const ContainerParameters> getContainerParameters() const {
                 return std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters);
             }
-			bool isValid() const {
-				return m_format != ImageFormat::Unknown && m_encodeParameters != nullptr && m_containerParameters != nullptr;
+
+            bool isValid() const {
+                return m_format != ImageFormat::Unknown && m_encodeParameters != nullptr && m_containerParameters !=
+                    nullptr;
             }
 
             void updateNotDefinedParameters(const std::shared_ptr<CVScene>& scene);
@@ -160,12 +174,13 @@ namespace slideio
         private:
             void initialize();
             void copyFrom(const ConverterParameters& other);
+
         protected:
             ImageFormat m_format;
             Rect m_rect;
-            cv::Range m_sliceRange;
-            cv::Range m_channelRange;
-            cv::Range m_frameRange;
+            Range m_sliceRange;
+            Range m_channelRange;
+            Range m_frameRange;
             std::shared_ptr<EncodeParameters> m_encodeParameters;
             std::shared_ptr<ContainerParameters> m_containerParameters;
         };
@@ -176,6 +191,7 @@ namespace slideio
             SVSConverterParameters(Compression compression)
                 : ConverterParameters(ImageFormat::SVS, Container::TIFF_CONTAINER, compression) {
             }
+
             ~SVSConverterParameters() override = default;
 
             int getTileWidth() const {
@@ -221,7 +237,8 @@ namespace slideio
 
             void setCompressionRate(float rate) {
                 std::static_pointer_cast<slideio::JP2KEncodeParameters>(m_encodeParameters)->setCompressionRate(rate);
-			}
+            }
+
             int getTileWidth() const {
                 return std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters)->getTileWidth();
             }
@@ -245,6 +262,7 @@ namespace slideio
             OMETIFFConverterParameters(Compression compression)
                 : ConverterParameters(ImageFormat::OME_TIFF, Container::TIFF_CONTAINER, compression) {
             }
+
             ~OMETIFFConverterParameters() override = default;
 
             int getTileWidth() const {
@@ -291,22 +309,6 @@ namespace slideio
             void setCompressionRate(float rate) {
                 std::static_pointer_cast<slideio::JP2KEncodeParameters>(m_encodeParameters)->setCompressionRate(rate);
             }
-            int getTileWidth() const {
-                return std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters)->getTileWidth();
-            }
-
-            void setTileWidth(int tileWidth) {
-                std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters)->setTileWidth(tileWidth);
-            }
-
-            int getTileHeight() const {
-                return std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters)->getTileHeight();
-            }
-
-            void setTileHeight(int tileHeight) {
-                std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters)->setTileHeight(tileHeight);
-            }
         };
-
     }
 }

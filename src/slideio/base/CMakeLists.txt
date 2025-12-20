@@ -13,6 +13,10 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/slideio_structs.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/size.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/rect.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/range.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/size.inl
+   ${CMAKE_CURRENT_SOURCE_DIR}/rect.inl
+   ${CMAKE_CURRENT_SOURCE_DIR}/range.inl
    ${CMAKE_CURRENT_SOURCE_DIR}/resolution.hpp
 )
 

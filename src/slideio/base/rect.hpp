@@ -6,6 +6,11 @@
 #include <ostream>
 #include "size.hpp"
 
+namespace cv {
+    template<typename _Tp> class Rect_;
+    typedef Rect_<int> Rect;
+}
+
 namespace slideio
 {
     class Rect {
@@ -25,6 +30,7 @@ namespace slideio
             height = r.height;
             r.x = r.y = r.width = r.height = 0;
         }
+        Rect(const cv::Rect& cvRect);
         ~Rect() = default;
         Rect& operator = (const Rect& r) = default;
         Rect& operator = (Rect&& r) noexcept {
@@ -35,6 +41,8 @@ namespace slideio
             r.x = r.y = r.width = r.height = 0;
             return *this;
         }
+        Rect& operator = (const cv::Rect& cvRect);
+        operator cv::Rect() const;
         Size size() const {
             return { width, height };
         }
@@ -48,6 +56,9 @@ namespace slideio
             os << "Rect (x: " << rect.x << ", y: " << rect.y << ", width: " << rect.width << ", height: " << rect.height << ")";
             return os;
         }
+        friend bool operator==(const Rect& lhs, const Rect& rhs) {
+            return lhs.x == rhs.x && lhs.y == rhs.y && lhs.width == rhs.width && lhs.height == rhs.height;
+        }
         bool valid() const {
             return x >= 0 && y >= 0 && width > 0 && height > 0;
         }
@@ -58,3 +69,7 @@ namespace slideio
     };
 
 }
+
+#if defined(SLIDEIO_INTERNAL_HEADER)
+#include "rect.inl"
+#endif

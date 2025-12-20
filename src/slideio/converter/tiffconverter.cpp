@@ -21,7 +21,7 @@ const TiffPageStructure& TiffConverter::getTiffPage(int index) const {
     return m_pages[index];
 }
 
-DataType TiffConverter::getChannelRangeDataType(const cv::Range& range) const {
+DataType TiffConverter::getChannelRangeDataType(const Range& range) const {
     makeSureValid();
     const int numSceneChannels = m_scene->getNumChannels();
     if (range.end > numSceneChannels) {
@@ -39,7 +39,7 @@ DataType TiffConverter::getChannelRangeDataType(const cv::Range& range) const {
 int TiffConverter::computeChannelChunk(int firstChannel, const std::shared_ptr<CVScene>& scene) const {
     makeSureValid();
     std::shared_ptr<const EncodeParameters> encoding = m_parameters.getEncodeParameters();
-    cv::Range channelRange = m_parameters.getChannelRange();
+    Range channelRange = m_parameters.getChannelRange();
     Compression compression = encoding->getCompression();
     const int numSceneChannels = m_scene->getNumChannels();
     int channelChunkSize;
@@ -265,9 +265,9 @@ void TiffConverter::createFileLayout(const std::shared_ptr<CVScene>& scene, cons
     checkEncodingRequirements();
     checkContainerRequirements();
     computeCropRect();
-    const cv::Range channelRange = m_parameters.getChannelRange();
-    const cv::Range frameRange = m_parameters.getTFrameRange();
-    const cv::Range sliceRange = m_parameters.getSliceRange();
+    const Range channelRange = m_parameters.getChannelRange();
+    const Range frameRange = m_parameters.getTFrameRange();
+    const Range sliceRange = m_parameters.getSliceRange();
     if (format == ImageFormat::SVS) {
         if (frameRange.size() != 1 || sliceRange.size() != 1) {
             RAISE_RUNTIME_ERROR << "Converter: SVS format supports only single time-frame and single z-slice images!";
@@ -289,7 +289,7 @@ void TiffConverter::createFileLayout(const std::shared_ptr<CVScene>& scene, cons
             for (int channel = channelRange.start; channel < channelRange.end; channel += channelChunkSize) {
                 const int pageIndex = static_cast<int>(m_pages.size());
                 TiffPageStructure& page = appendPage();
-                cv::Rect imageRect = m_cropRect;
+                Rect imageRect = m_cropRect;
                 m_totalTiles += ConverterTools::computeNumTiles(m_cropRect.size(), tileSize);
                 page.setChannelRange(cv::Range(channel, channel+channelChunkSize));
                 page.setZSliceRange(cv::Range(slice, slice + 1));

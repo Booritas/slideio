@@ -3,9 +3,9 @@
 // of this distribution and at http://slideio.com/license.html.
 
 #include "converterparameters.hpp"
-
 #include "convertertools.hpp"
 #include "slideio/base/exceptions.hpp"
+#include "slideio/core/cvscene.hpp"
 
 using namespace slideio;
 using namespace slideio::converter;
@@ -94,21 +94,21 @@ void ConverterParameters::updateNotDefinedParameters(const std::shared_ptr<CVSce
         m_rect = Rect(rect.x, rect.y, rect.width, rect.height);
     }
     if (m_channelRange.size() <= 0) {
-        m_channelRange = cv::Range(0, scene->getNumChannels());
+        m_channelRange = Range(0, scene->getNumChannels());
     }
     if (m_sliceRange.size() <= 0) {
         if (m_format == ImageFormat::SVS) {
-			m_sliceRange = cv::Range(0, 1);
+			m_sliceRange = Range(0, 1);
         } else if (m_format == ImageFormat::OME_TIFF) {
-			m_sliceRange = cv::Range(0, scene->getNumZSlices());
+			m_sliceRange = Range(0, scene->getNumZSlices());
         }
     }
     if (m_frameRange.size() <= 0) {
         if (m_format == ImageFormat::SVS) {
-            m_frameRange = cv::Range(0, 1);
+            m_frameRange = Range(0, 1);
         }
         else if (m_format == ImageFormat::OME_TIFF) {
-            m_frameRange = cv::Range(0, scene->getNumTFrames());
+            m_frameRange = Range(0, scene->getNumTFrames());
         }
     }
     if (m_containerParameters != nullptr) {
@@ -125,9 +125,9 @@ void ConverterParameters::updateNotDefinedParameters(const std::shared_ptr<CVSce
 void ConverterParameters::initialize() {
     m_format = ImageFormat::Unknown;
     m_rect = Rect(0, 0, 0, 0);
-    m_channelRange = cv::Range(0, 0);
-    m_sliceRange = cv::Range(0, 0);
-    m_frameRange = cv::Range(0, 0);
+    m_channelRange = Range(0, 0);
+    m_sliceRange = Range(0, 0);
+    m_frameRange = Range(0, 0);
 }
 
 Compression ConverterParameters::getEncoding() const {
