@@ -250,6 +250,10 @@ namespace slideio
             void setCompressionRate(float rate) {
                 std::static_pointer_cast<slideio::JP2KEncodeParameters>(m_encodeParameters)->setCompressionRate(rate);
             }
+
+            float getCompressionRate() const {
+                return std::static_pointer_cast<slideio::JP2KEncodeParameters>(m_encodeParameters)->getCompressionRate();
+            }
         };
 
         class SLIDEIO_CONVERTER_EXPORTS OMETIFFConverterParameters : public ConverterParameters
@@ -316,6 +320,10 @@ namespace slideio
 
             void setCompressionRate(float rate) {
                 std::static_pointer_cast<slideio::JP2KEncodeParameters>(m_encodeParameters)->setCompressionRate(rate);
+            }
+
+            float getCompressionRate() const {
+                return std::static_pointer_cast<slideio::JP2KEncodeParameters>(m_encodeParameters)->getCompressionRate();
             }
         };
     }
