@@ -209,6 +209,13 @@ namespace slideio
             void setTileHeight(int tileHeight) {
                 std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters)->setTileHeight(tileHeight);
             }
+            int getNumZoomLevels() const {
+                return std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters)->getNumZoomLevels();
+            }
+
+            void setNumZoomLevels(int numZoomLevels) {
+                return std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters)->setNumZoomLevels(numZoomLevels);
+            }
         };
 
         class SLIDEIO_CONVERTER_EXPORTS SVSJpegConverterParameters : public SVSConverterParameters
@@ -223,6 +230,11 @@ namespace slideio
             void setQuality(int q) {
                 std::static_pointer_cast<slideio::JpegEncodeParameters>(m_encodeParameters)->setQuality(q);
             }
+
+            int getQuality() const {
+                return std::static_pointer_cast<slideio::JpegEncodeParameters>(m_encodeParameters)->getQuality();
+            }
+
         };
 
 
@@ -237,22 +249,6 @@ namespace slideio
 
             void setCompressionRate(float rate) {
                 std::static_pointer_cast<slideio::JP2KEncodeParameters>(m_encodeParameters)->setCompressionRate(rate);
-            }
-
-            int getTileWidth() const {
-                return std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters)->getTileWidth();
-            }
-
-            void setTileWidth(int tileWidth) {
-                std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters)->setTileWidth(tileWidth);
-            }
-
-            int getTileHeight() const {
-                return std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters)->getTileHeight();
-            }
-
-            void setTileHeight(int tileHeight) {
-                std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters)->setTileHeight(tileHeight);
             }
         };
 
@@ -280,6 +276,14 @@ namespace slideio
             void setTileHeight(int tileHeight) {
                 std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters)->setTileHeight(tileHeight);
             }
+
+            int getNumZoomLevels() const {
+                return std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters)->getNumZoomLevels();
+            }
+
+            void setNumZoomLevels(int numZoomLevels) {
+                return std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters)->setNumZoomLevels(numZoomLevels);
+            }
         };
 
         class SLIDEIO_CONVERTER_EXPORTS OMETIFFJpegConverterParameters : public OMETIFFConverterParameters
@@ -293,6 +297,10 @@ namespace slideio
 
             void setQuality(int q) {
                 std::static_pointer_cast<slideio::JpegEncodeParameters>(m_encodeParameters)->setQuality(q);
+            }
+
+            int getQuality() const {
+                return std::static_pointer_cast<slideio::JpegEncodeParameters>(m_encodeParameters)->getQuality();
             }
         };
 
