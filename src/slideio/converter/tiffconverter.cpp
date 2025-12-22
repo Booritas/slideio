@@ -254,6 +254,7 @@ void TiffConverter::createFileLayout(const std::shared_ptr<CVScene>& scene, cons
     m_filePath.clear();
     m_totalTiles = 0;
     m_currentTile = 0;
+	m_lastProgress = 0;
     if (parameters.getContainerType() != Container::TIFF_CONTAINER) {
         RAISE_RUNTIME_ERROR << "Converter: TIFF structure can be created only for TIFF container parameters!";
     }
@@ -428,7 +429,10 @@ void TiffConverter::writeDirectoryData(TiffDirectory& dir, const TiffDirectorySt
             m_currentTile++;
             if (cb) {
 				double proc = 100. * (double)m_currentTile / (double)m_totalTiles;
-                cb(std::lround(proc));
+                if (const int lproc = std::lround(proc); lproc != m_lastProgress) {
+                    cb(lproc);
+                    m_lastProgress = lproc;
+                }
             }
         }
     }

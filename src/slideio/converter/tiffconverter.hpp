@@ -66,6 +66,7 @@ namespace slideio
             std::vector<TiffChannel> m_channels;
             int m_totalTiles = 0;
             int m_currentTile = 0;
+			int m_lastProgress = 0;
         };
     }
 }
