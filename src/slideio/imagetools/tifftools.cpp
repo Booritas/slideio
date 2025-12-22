@@ -292,13 +292,13 @@ libtiff::TIFF* TiffTools::openTiffFile(const std::string& path, bool readOnly)
     if (readOnly && !fs::exists(wsPath)) {
         RAISE_RUNTIME_ERROR << "File " << path << " does not exist";
     }
-    hfile = libtiff::TIFFOpenW(wsPath.c_str(), readOnly ? "r" : "w");
+    hfile = libtiff::TIFFOpenW(wsPath.c_str(), readOnly ? "r" : "w8");
 #else
     fs::path filePath(path);
     if (readOnly && !fs::exists(filePath)) {
         RAISE_RUNTIME_ERROR << "File " << path << " does not exist";
     }
-    hfile = libtiff::TIFFOpen(path.c_str(),  readOnly ? "r" : "w");
+    hfile = libtiff::TIFFOpen(path.c_str(),  readOnly ? "r" : "w8");
 #endif
     if(!hfile) {
         RAISE_RUNTIME_ERROR << "Cannot open file " << path << " for " << (readOnly ? "reading" : "writing.");

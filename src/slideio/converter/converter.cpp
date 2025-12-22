@@ -26,7 +26,7 @@ void converter::convertScene(std::shared_ptr<Scene> scene, ConverterParameters& 
         RAISE_RUNTIME_ERROR << "Unsupported compression type: " << parameters.getEncoding();
     }
     if(std::filesystem::exists(outputPath)) {
-        RAISE_RUNTIME_ERROR << "Converter: output file already exists.";
+        RAISE_RUNTIME_ERROR << "Converter: output file \"" << outputPath << "\" already exists.";
     }
     std::string sceneName = scene->getName();
     std::string filePath = scene->getFilePath();

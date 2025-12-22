@@ -5,9 +5,9 @@
 #include "converterparameters.hpp"
 #include "convertertools.hpp"
 #include "slideio/core/cvscene.hpp"
-#include "slideio/core/tools/cvtools.hpp"
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/imagetools/tiffkeeper.hpp"
+#include "slideio/imagetools/tiffmessagehandler.hpp"
 #include <filesystem>
 #include <tinyxml2.h>
 
@@ -435,6 +435,7 @@ void TiffConverter::writeDirectoryData(TiffDirectory& dir, const TiffDirectorySt
 }
 
 void TiffConverter::createTiff(const std::string& filePath, const std::function<void(int)>& cb) {
+    TIFFMessageHandler mh;
     m_currentTile = 0;
     m_file.reset(new TIFFKeeper(filePath, false));
     m_filePath = filePath;

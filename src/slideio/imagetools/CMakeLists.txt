@@ -29,6 +29,8 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/similaritytools.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/tifffiles.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/tifffiles.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/tiffmessagehandler.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/tiffmessagehandler.hpp
 )
 
 add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES})

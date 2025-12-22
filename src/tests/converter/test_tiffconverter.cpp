@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include <chrono>
 #include "tests/testlib/testtools.hpp"
 #include "tests/testlib/testscene.hpp"
 #include "slideio/converter/tiffconverter.hpp"
@@ -719,7 +720,13 @@ TEST(TiffConverterTests, CreateFileLayoutOMETIFFChannelSubset) {
     params.setChannelRange(cv::Range(0, numChannels));
     auto tiffParams = std::static_pointer_cast<TIFFContainerParameters>(params.getContainerParameters());
     tiffParams->setNumZoomLevels(numZoomLevels);
+    
+    auto start = std::chrono::high_resolution_clock::now();
     testOMETIFFSubset(params, scene);
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = end - start;
+    std::cout << "testOMETIFFSubset execution time: " << elapsed.count() << " seconds" << std::endl;
+    
     // Channel subset
     params.setChannelRange(cv::Range(2, 4));
     testOMETIFFSubset(params, scene);
