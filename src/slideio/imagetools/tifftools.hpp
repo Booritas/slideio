@@ -24,29 +24,31 @@ namespace slideio
 {
     struct TiffDirectory
     {
-        int width;
-        int height;
-        bool tiled;
-        int tileWidth;
-        int tileHeight;
-        int channels;
-        int bitsPerSample;
-        int photometric;
+        int width = 0;
+        int height = 0;
+        bool tiled = false;
+        int tileWidth = 0;
+        int tileHeight = 0;
+        int channels = 0;
+        int bitsPerSample = 0;
+        int photometric = 0;
         int YCbCrSubsampling[2];
-        uint32_t compression;
+        int subFileType = 0;
+        uint32_t compression = 0;
         Compression slideioCompression;
-        int dirIndex;
-        int64 offset;
+        int dirIndex = 0;
+        int64 offset = 0;
         std::string description;
+        std::string software;
         std::vector<TiffDirectory> subdirectories;
         Resolution res = {};
-        cv::Point2d position;
-        bool interleaved;
-        int rowsPerStrip;
-        DataType dataType;
-        int stripSize;
-        int compressionQuality;
-        uint64_t byteOffset;
+        cv::Point2d position = {};
+        bool interleaved = false;
+        int rowsPerStrip = 0;
+        DataType dataType = DataType::DT_Unknown;
+        int stripSize = 0;
+        int compressionQuality = 0;
+        uint64_t byteOffset = 0;
     };
 
     SLIDEIO_IMAGETOOLS_EXPORTS std::ostream& operator<<(std::ostream& os, const TiffDirectory& dir);

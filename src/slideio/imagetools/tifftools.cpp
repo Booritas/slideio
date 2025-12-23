@@ -467,7 +467,7 @@ void  TiffTools::scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, int64_t dirO
     dir.offset = dirOffset;
     dir.compressionQuality = 0;
 
-    char *description(nullptr);
+    char *description(nullptr), *software(nullptr);
     uint16_t dirchnls(0), dirbits(0);
     uint16_t compress(0);
     uint16_t  planar_config(0);
@@ -480,7 +480,9 @@ void  TiffTools::scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, int64_t dirO
     libtiff::TIFFGetField(tiff,TIFFTAG_TILEWIDTH ,&tile_width);
     libtiff::TIFFGetField(tiff,TIFFTAG_TILELENGTH,&tile_height);
     libtiff::TIFFGetField(tiff, TIFFTAG_IMAGEDESCRIPTION, &description);
+    libtiff::TIFFGetField(tiff, TIFFTAG_SOFTWARE, &software);
     libtiff::TIFFGetField(tiff, TIFFTAG_PLANARCONFIG ,&planar_config);
+	libtiff::TIFFGetField(tiff, TIFFTAG_SUBFILETYPE, &dir.subFileType);
     float resx(0), resy(0);
     uint16_t units(0);
     libtiff::TIFFGetField(tiff, TIFFTAG_XRESOLUTION, &resx);
@@ -524,6 +526,8 @@ void  TiffTools::scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, int64_t dirO
     bool tiled = libtiff::TIFFIsTiled(tiff);
     if(description)
         dir.description = description;
+    if (software)
+		dir.software = software;
     dir.bitsPerSample = dirbits;
     dir.channels = dirchnls;
     dir.height = height;
@@ -899,7 +903,7 @@ uint16_t computeDirectoryPhotometric(TiffDirectory dir)
 {
     const DataType dt = dir.dataType;
     const int numChannels = dir.channels;
-    uint16_t photometric = PHOTOMETRIC_SEPARATED;
+    uint16_t photometric = PHOTOMETRIC_MINISBLACK;
     if(dt==DataType::DT_Byte && numChannels==3) {
         photometric = PHOTOMETRIC_RGB;
     }
@@ -921,16 +925,20 @@ void TiffTools::setTags(libtiff::TIFF* tiff, const TiffDirectory& dir)
     libtiff::TIFFSetField(tiff, TIFFTAG_TILELENGTH, dir.tileHeight);;
     libtiff::TIFFSetField(tiff, TIFFTAG_IMAGEDESCRIPTION, dir.description.c_str());
     libtiff::TIFFSetField(tiff, TIFFTAG_PLANARCONFIG, ((numChannels==1)?2:1));
-    auto res = dir.res;
-    libtiff::TIFFSetField(tiff, TIFFTAG_XRESOLUTION, (float)res.x);
-    libtiff::TIFFSetField(tiff, TIFFTAG_YRESOLUTION, (float)res.y);
-    libtiff::TIFFSetField(tiff, TIFFTAG_RESOLUTIONUNIT, 1);
+    Resolution res = dir.res;
+    double rx = (res.x > 0) ? 0.01 / res.x: 0.;
+    double ry = (res.y > 0.) ? 0.01 / res.y: 0.;
+    libtiff::TIFFSetField(tiff, TIFFTAG_XRESOLUTION, (float)(rx));
+    libtiff::TIFFSetField(tiff, TIFFTAG_YRESOLUTION, (float)(ry));
+    libtiff::TIFFSetField(tiff, TIFFTAG_RESOLUTIONUNIT, RESUNIT_CENTIMETER);
     libtiff::TIFFSetField(tiff, TIFFTAG_XPOSITION, 0);
     libtiff::TIFFSetField(tiff, TIFFTAG_YPOSITION, 0);
     setTiffDataType(tiff, dir.dataType);
     uint16_t phm = computeDirectoryPhotometric(dir);
     libtiff::TIFFSetField(tiff, TIFFTAG_PHOTOMETRIC, phm);
     libtiff::TIFFSetField(tiff, TIFFTAG_JPEGQUALITY, dir.compressionQuality);
+    libtiff::TIFFSetField(tiff, TIFFTAG_SOFTWARE, dir.software.c_str());
+	libtiff::TIFFSetField(tiff, TIFFTAG_SUBFILETYPE, dir.subFileType);
 }
 
 void TiffTools::initSubDirs(libtiff::TIFF* tiff, int numDirs) {

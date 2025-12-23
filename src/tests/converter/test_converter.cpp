@@ -13,6 +13,8 @@
 
 #include <filesystem>
 
+#include "slideio/imagetools/tifftools.hpp"
+
 
 TEST(Converter, convertGDALJpeg) {
 	std::string path = TestTools::getTestImagePath("gdal", "Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg");

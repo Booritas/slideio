@@ -8,8 +8,11 @@
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/imagetools/tiffkeeper.hpp"
 #include "slideio/imagetools/tiffmessagehandler.hpp"
+#include "slideio/imagetools/libtiff.hpp"
 #include <filesystem>
 #include <tinyxml2.h>
+
+#include "slideio/slideio/slideio.hpp"
 
 using namespace slideio;
 using namespace slideio::converter;
@@ -147,7 +150,12 @@ std::string TiffConverter::createOMETiffDescription() const{
 
     auto* pixels = doc.NewElement("Pixels");
     pixels->SetAttribute("ID", "Pixels:0");
-    pixels->SetAttribute("DimensionOrder", "XYCZT");
+	std::string order = "XYC";
+    if (numZSlices>1)
+		order += "Z";
+	if (numTFrames > 1)
+		order += "T";
+    pixels->SetAttribute("DimensionOrder", order.c_str());
     pixels->SetAttribute("SizeX", sizeX);
     pixels->SetAttribute("SizeY", sizeY);
     pixels->SetAttribute("SizeZ", std::max(1, numZSlices));
@@ -171,12 +179,12 @@ std::string TiffConverter::createOMETiffDescription() const{
     // Physical sizes
     Resolution res = m_scene->getResolution();
     if (res.x > 0) {
-        pixels->SetAttribute("PhysicalSizeX", res.x * 1e6);
-        pixels->SetAttribute("PhysicalSizeXUnit", "um");
+        pixels->SetAttribute("PhysicalSizeX", sizeX*1000*res.x);
+        pixels->SetAttribute("PhysicalSizeXUnit", "mm");
     }
     if (res.y > 0) {
-        pixels->SetAttribute("PhysicalSizeY", res.y * 1e6);
-        pixels->SetAttribute("PhysicalSizeYUnit", "um");
+        pixels->SetAttribute("PhysicalSizeY", sizeY*1000*res.y*1e6);
+        pixels->SetAttribute("PhysicalSizeYUnit", "mm");
     }
 
     image->InsertEndChild(pixels);
@@ -385,6 +393,8 @@ TiffDirectory TiffConverter::setUpDirectory(const TiffDirectoryStructure& page) 
     }
     dir.description = page.getDescription();
     dir.res = m_scene->getResolution();
+	dir.software = std::string("SlideIO Library ") + getVersion();
+    dir.subFileType = FILETYPE_PAGE;
     return dir;
 }
 
@@ -461,6 +471,7 @@ void TiffConverter::createTiff(const std::string& filePath, const std::function<
         for (int subDirIndex = 0; subDirIndex < numSubdirs; ++subDirIndex) {
             const TiffDirectoryStructure& dirSpec = page.getSubDirectory(subDirIndex);
             TiffDirectory subDir = setUpDirectory(dirSpec);
+			subDir.subFileType = FILETYPE_REDUCEDIMAGE|FILETYPE_PAGE;
             m_file->setTags(subDir);
             writeDirectoryData(subDir, dirSpec, cb);
             m_file->writeDirectory();
