@@ -119,15 +119,23 @@ std::string TiffConverter::createImageDescriptionTag() const {
     }
 }
 
-std::string TiffConverter::createOMETiffDescription() const{
-	makeSureValid();
+std::string TiffConverter::createOMETiffDescription() const {
+    makeSureValid();
     tinyxml2::XMLDocument doc;
     auto* ome = doc.NewElement("OME");
     ome->SetAttribute("xmlns", "http://www.openmicroscopy.org/Schemas/OME/2016-06");
     ome->SetAttribute("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance");
     ome->SetAttribute("xsi:schemaLocation", "http://www.openmicroscopy.org/Schemas/OME/2016-06 http://www.openmicroscopy.org/Schemas/OME/2016-06/ome.xsd");
     doc.InsertFirstChild(ome);
-
+    bool interleaved = false;
+    if (!m_pages.empty()) {
+        const auto& firstPage = m_pages.front();
+        const auto& channelRange = firstPage.getChannelRange();
+        if ((channelRange.size() == 3)
+            && (m_scene->getChannelDataType(channelRange.start) == DataType::DT_Byte)) {
+            interleaved = true;
+        }
+    }
     auto rect = m_scene->getRect();
     const int sizeX = rect.width;
     const int sizeY = rect.height;
@@ -139,7 +147,7 @@ std::string TiffConverter::createOMETiffDescription() const{
         auto* instrument = doc.NewElement("Instrument");
         auto* objective = doc.NewElement("Objective");
         objective->SetAttribute("NominalMagnification", magnification);
-		instrument->InsertEndChild(objective);
+        instrument->InsertEndChild(objective);
         ome->InsertEndChild(instrument);
     }
     auto* image = doc.NewElement("Image");
@@ -150,17 +158,19 @@ std::string TiffConverter::createOMETiffDescription() const{
 
     auto* pixels = doc.NewElement("Pixels");
     pixels->SetAttribute("ID", "Pixels:0");
-	std::string order = "XYC";
-    if (numZSlices>1)
-		order += "Z";
-	if (numTFrames > 1)
-		order += "T";
+    std::string order = "XYC";
+    if (numZSlices > 1)
+        order += "Z";
+    if (numTFrames > 1)
+        order += "T";
     pixels->SetAttribute("DimensionOrder", order.c_str());
     pixels->SetAttribute("SizeX", sizeX);
     pixels->SetAttribute("SizeY", sizeY);
     pixels->SetAttribute("SizeZ", std::max(1, numZSlices));
     pixels->SetAttribute("SizeC", std::max(1, numChannels));
     pixels->SetAttribute("SizeT", std::max(1, numTFrames));
+    pixels->SetAttribute("BigEndian", false);
+    pixels->SetAttribute("Interleaved", interleaved);
 
     // DataType mapping
     auto dt = m_scene->getChannelDataType(0);
@@ -179,14 +189,22 @@ std::string TiffConverter::createOMETiffDescription() const{
     // Physical sizes
     Resolution res = m_scene->getResolution();
     if (res.x > 0) {
-        pixels->SetAttribute("PhysicalSizeX", sizeX*1000*res.x);
+        pixels->SetAttribute("PhysicalSizeX", sizeX * 1000 * res.x);
         pixels->SetAttribute("PhysicalSizeXUnit", "mm");
     }
     if (res.y > 0) {
-        pixels->SetAttribute("PhysicalSizeY", sizeY*1000*res.y*1e6);
+        pixels->SetAttribute("PhysicalSizeY", sizeY * 1000 * res.y * 1e6);
         pixels->SetAttribute("PhysicalSizeYUnit", "mm");
     }
-
+    double resZ = m_scene->getZSliceResolution();
+    double resT = m_scene->getTFrameResolution();
+    if (resZ > 0) {
+        pixels->SetAttribute("PhysicalSizeZ", resZ * 1000);
+		pixels->SetAttribute("PhysicalSizeZUnit", "mm");
+    }
+    if (resT > 0) {
+        pixels->SetAttribute("PhysicalSizeT", resT);
+    }
     image->InsertEndChild(pixels);
 
     // Channels
