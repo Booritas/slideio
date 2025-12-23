@@ -250,7 +250,7 @@ std::ostream& operator<<(std::ostream& os, const std::vector<TiffDirectory>& dir
 }
 
 std::ostream& slideio::operator<<(std::ostream& os, const TiffDirectory& dir) {
-    os << "TiffDirectory {"
+    os << "\n TiffDirectory {"
         << "\n  width: " << dir.width
         << "\n  height: " << dir.height
         << "\n  tiled: " << dir.tiled
@@ -273,12 +273,17 @@ std::ostream& slideio::operator<<(std::ostream& os, const TiffDirectory& dir) {
         << "\n  stripSize: " << dir.stripSize
         << "\n  compressionQuality: " << dir.compressionQuality
         << "\n  byteOffset: " << dir.byteOffset
-        << "\n  subdirectories: [";
-        for(size_t subDirIndex=0; subDirIndex<dir.subdirectories.size(); ++subDirIndex) {
-            os << "--Sub-directory:" << subDirIndex << std::endl;
-            os << dir.subdirectories[subDirIndex];
+        << "\n  subFileType: " << dir.subFileType
+        << "\n  software: " << dir.software;
+        if (dir.subdirectories.empty()) {
+            os << "\n  subdirectories: [";
+            for (size_t subDirIndex = 0; subDirIndex < dir.subdirectories.size(); ++subDirIndex) {
+                os << "\n--Sub-directory:" << subDirIndex << std::endl;
+                os << dir.subdirectories[subDirIndex];
+            }
+            os << "\n  ]";
         }
-    os << "\n  ]" << "\n}";
+        os << "\n}";
     return os;
 }
 

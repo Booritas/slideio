@@ -5,13 +5,6 @@
 
 using namespace slideio::converter;
 
-TEST(TiffStructureTests, TiffChannel_Getters) {
-    TiffChannel ch("DAPI", "Channel:0:0", 1);
-    EXPECT_EQ("DAPI", ch.getName());
-    EXPECT_EQ("Channel:0:0", ch.getID());
-    EXPECT_EQ(1, ch.getSamples());
-}
-
 TEST(TiffStructureTests, TiffDirectoryStructure_SettersAndGetters) {
     TiffDirectoryStructure dir;
     dir.setChannelRange(cv::Range(1, 3));

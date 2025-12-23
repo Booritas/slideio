@@ -13,31 +13,6 @@ namespace slideio
     {
         class ConverterParameters;
 
-        class TiffChannel
-        {
-        public:
-            TiffChannel(const std::string& name, const std::string& id, int samples)
-                : m_name(name), m_id(id), m_samples(samples) {
-            }
-
-            const std::string& getName() const {
-                return m_name;
-            }
-
-            const std::string& getID() const {
-                return m_id;
-            }
-
-            int getSamples() const {
-                return m_samples;
-            }
-
-        private:
-            std::string m_name;
-            std::string m_id;
-            int m_samples;
-        };
-
         class TiffDirectoryStructure
         {
         public:

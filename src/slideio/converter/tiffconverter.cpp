@@ -128,14 +128,6 @@ std::string TiffConverter::createOMETiffDescription() const {
     ome->SetAttribute("xsi:schemaLocation", "http://www.openmicroscopy.org/Schemas/OME/2016-06 http://www.openmicroscopy.org/Schemas/OME/2016-06/ome.xsd");
     doc.InsertFirstChild(ome);
     bool interleaved = false;
-    if (!m_pages.empty()) {
-        const auto& firstPage = m_pages.front();
-        const auto& channelRange = firstPage.getChannelRange();
-        if ((channelRange.size() == 3)
-            && (m_scene->getChannelDataType(channelRange.start) == DataType::DT_Byte)) {
-            interleaved = true;
-        }
-    }
     auto rect = m_scene->getRect();
     const int sizeX = rect.width;
     const int sizeY = rect.height;
@@ -157,6 +149,30 @@ std::string TiffConverter::createOMETiffDescription() const {
     ome->InsertEndChild(image);
 
     auto* pixels = doc.NewElement("Pixels");
+
+    // Channels
+    if (!m_pages.empty()) {
+        const auto& firstPage = m_pages.front();
+        const auto& channelRange = firstPage.getChannelRange();
+        if ((channelRange.size() == 3)
+            && (m_scene->getChannelDataType(channelRange.start) == DataType::DT_Byte)) {
+            interleaved = true;
+        }
+    }
+
+    int id = 0;
+    const auto& sceneChannelRange = m_parameters.getChannelRange();
+    for (int channel = sceneChannelRange.start; channel < sceneChannelRange.end; ++channel) {
+        std::string idAttr = std::string("Channel:0:") + std::to_string(id++);
+        auto* xmlChannel = doc.NewElement("Channel");
+        xmlChannel->SetAttribute("ID", idAttr.c_str());
+        xmlChannel->SetAttribute("SamplesPerPixel", 1);
+        const std::string& channelName = m_scene->getChannelName(channel);
+        if (!channelName.empty())
+            xmlChannel->SetAttribute("Name", channelName.c_str());
+        pixels->InsertEndChild(xmlChannel);
+    }
+
     pixels->SetAttribute("ID", "Pixels:0");
     std::string order = "XYC";
     if (numZSlices > 1)
@@ -206,17 +222,6 @@ std::string TiffConverter::createOMETiffDescription() const {
         pixels->SetAttribute("PhysicalSizeT", resT);
     }
     image->InsertEndChild(pixels);
-
-    // Channels
-    for (const auto& channel : m_channels) {
-        auto* xmlChannel = doc.NewElement("Channel");
-        xmlChannel->SetAttribute("ID", channel.getID().c_str());
-        xmlChannel->SetAttribute("SamplesPerPixel", 1);
-        const std::string& channelName = channel.getName();
-        if (!channelName.empty()) 
-            xmlChannel->SetAttribute("Name", channel.getName().c_str());
-        pixels->InsertEndChild(xmlChannel);
-    }
 
 	std::string fileName;
     if (!m_filePath.empty()) {
@@ -275,7 +280,6 @@ void TiffConverter::createFileLayout(const std::shared_ptr<CVScene>& scene, cons
     m_parameters = parameters;
     m_parameters.updateNotDefinedParameters(scene);
     m_pages.clear();
-    m_channels.clear();
     m_file.reset();
     m_filePath.clear();
     m_totalTiles = 0;
@@ -351,16 +355,6 @@ void TiffConverter::createFileLayout(const std::shared_ptr<CVScene>& scene, cons
             break;
         }
 	}
-
-    if (hasChannelNames) {
- 		int id = 0;
-         for (int channel = channelRange.start; channel < channelRange.end; ++channel) {
-             std::string idAttr = std::string("Channel:0:") + std::to_string(id++);
-             std::string name = m_scene->getChannelName(channel);
-             TiffChannel tiffChannel(name, idAttr, 1);
-             m_channels.emplace_back(tiffChannel);
-         }
-     }
  }
 
 

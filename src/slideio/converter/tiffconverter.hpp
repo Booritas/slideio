@@ -63,7 +63,6 @@ namespace slideio
             ConverterParameters m_parameters;
             Rect m_cropRect;
             std::string m_filePath;
-            std::vector<TiffChannel> m_channels;
             int m_totalTiles = 0;
             int m_currentTile = 0;
 			int m_lastProgress = 0;
