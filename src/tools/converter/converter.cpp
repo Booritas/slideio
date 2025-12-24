@@ -9,6 +9,8 @@
 #include <iostream>
 #include <filesystem>
 #include <sstream>
+#include <iomanip>
+#include <chrono>
 
 using namespace slideio;
 using namespace slideio::converter;
@@ -50,7 +52,53 @@ static bool parseRange(const std::string& rangeStr, Range& range) {
 	return true;
 }
 
-static void process(const std::string& inputPath, const std::string& outputPath, double compressionRate, int tileSize, int numZoomLevels, const std::string& inputDriver, const std::string& targetFormat, const std::string& targetCompression, int compressionQuality, const Rect& rect, const Range& channelRange, const Range& sliceRange, const Range& frameRange) {
+static void showProgress(int progress) {
+	static bool cursorHidden = false;
+	
+	// Hide cursor on first call
+	if (!cursorHidden) {
+		std::cout << "\033[?25l";  // ANSI escape code to hide cursor
+		cursorHidden = true;
+	}
+	
+	const int barWidth = 50;
+	std::cout << "\r[";
+	int pos = barWidth * progress / 100;
+	for (int i = 0; i < barWidth; ++i) {
+		if (i < pos) std::cout << "=";
+		else if (i == pos) std::cout << ">";
+		else std::cout << " ";
+	}
+	std::cout << "] " << std::setw(3) << progress << "%" << std::flush;
+	
+	if (progress >= 100) {
+		std::cout << "\033[?25h";  // ANSI escape code to show cursor
+		std::cout << std::endl;
+		cursorHidden = false;  // Reset for next conversion
+	}
+}
+
+static std::string formatDuration(std::chrono::milliseconds duration) {
+	auto hours = std::chrono::duration_cast<std::chrono::hours>(duration);
+	duration -= hours;
+	auto minutes = std::chrono::duration_cast<std::chrono::minutes>(duration);
+	duration -= minutes;
+	auto seconds = std::chrono::duration_cast<std::chrono::seconds>(duration);
+	duration -= seconds;
+	auto millis = duration;
+
+	std::ostringstream oss;
+	if (hours.count() > 0) {
+		oss << hours.count() << "h ";
+	}
+	if (minutes.count() > 0 || hours.count() > 0) {
+		oss << minutes.count() << "m ";
+	}
+	oss << seconds.count() << "." << std::setfill('0') << std::setw(3) << millis.count() << "s";
+	return oss.str();
+}
+
+static void process(const std::string& inputPath, const std::string& outputPath, double compressionRate, int tileSize, int numZoomLevels, const std::string& inputDriver, const std::string& targetFormat, const std::string& targetCompression, int compressionQuality, const Rect& rect, const Range& channelRange, const Range& sliceRange, const Range& frameRange, bool showProgressBar) {
 	if (!std::filesystem::exists(inputPath)) {
 		throw std::runtime_error("Input file does not exist: " + inputPath);
 	}
@@ -110,7 +158,23 @@ static void process(const std::string& inputPath, const std::string& outputPath,
 	}
 	TiffConverter converter;
 	converter.createFileLayout(scene->getCVScene(), params);
-	converter.createTiff(outputPath, [](int progress) {printf("%d", progress); });
+	
+	auto startTime = std::chrono::high_resolution_clock::now();
+	
+	if (showProgressBar) {
+		std::cout << "Converting..." << std::endl;
+		converter.createTiff(outputPath, showProgress);
+	} else {
+		converter.createTiff(outputPath, [](int) {});
+	}
+	
+	auto endTime = std::chrono::high_resolution_clock::now();
+	auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime);
+	
+	if (showProgressBar) {
+		std::cout << "Conversion completed successfully." << std::endl;
+	}
+	std::cout << "Conversion time: " << formatDuration(duration) << std::endl;
 }
 
 int main(int argc, char* argv[]) {
@@ -129,6 +193,7 @@ int main(int argc, char* argv[]) {
 	std::string channelRangeStr;
 	std::string sliceRangeStr;
 	std::string frameRangeStr;
+	bool showProgressBar = false;
 
 	app.add_option("input", inputPath, "Input file path")
 		->required()
@@ -176,6 +241,9 @@ int main(int argc, char* argv[]) {
 	app.add_option("--frame-range", frameRangeStr, "Time frame range: start,end (empty for all frames)")
 		->default_str("");
 
+	app.add_flag("-p,--progress", showProgressBar, "Show progress bar during conversion")
+		->default_val(false);
+
 	CLI11_PARSE(app, argc, argv);
 
 	try {
@@ -201,7 +269,8 @@ int main(int argc, char* argv[]) {
 			rect,
 			channelRange,
 			sliceRange,
-			frameRange);
+			frameRange,
+			showProgressBar);
 	} catch (const std::exception& e) {
 		std::cerr << "Error during processing: " << e.what() << std::endl;
 		return 1;
