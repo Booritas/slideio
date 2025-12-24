@@ -1,5 +1,7 @@
 set(INCLUDE_ROOT ${CMAKE_SOURCE_DIR}/src)
 set(TOOL_NAME converter)
+set(CMAKE_PREFIX_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 
 
@@ -15,6 +17,8 @@ IF(WIN32)
    target_compile_definitions(${TOOL_NAME} PRIVATE _CRT_SECURE_NO_WARNINGS)
 ENDIF(WIN32)
 
+find_package(CLI11 REQUIRED)
+
 target_compile_definitions(${TOOL_NAME} PRIVATE OPJ_HAVE_LIBTIFF OPJ_HAVE_LIBPNG)
 set_target_properties(${TOOL_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 target_include_directories(${TOOL_NAME} PRIVATE ${INCLUDE_ROOT})
@@ -25,6 +29,7 @@ target_link_libraries(${TOOL_NAME} PRIVATE
    ${TEST_LIB_NAME}
    ${BASE_LIB_NAME}
    ${CONVERTER_LIB_NAME}
+   CLI11::CLI11
 )
 
 FIX_MACOS_RPATH(${TOOL_NAME})
