@@ -11,9 +11,28 @@
 #include <sstream>
 #include <iomanip>
 #include <chrono>
+#include <csignal>
 
 using namespace slideio;
 using namespace slideio::converter;
+
+// RAII class to manage cursor visibility
+class CursorGuard {
+public:
+	CursorGuard() {
+		std::cout << "\033[?25l" << std::flush;  // Hide cursor
+	}
+	~CursorGuard() {
+		std::cout << "\033[?25h" << std::flush;  // Show cursor
+	}
+	CursorGuard(const CursorGuard&) = delete;
+	CursorGuard& operator=(const CursorGuard&) = delete;
+};
+
+static void signalHandler(int signal) {
+	std::cout << "\033[?25h" << std::flush;  // Restore cursor
+	std::exit(signal);
+}
 
 static bool parseRect(const std::string& rectStr, Rect& rect) {
 	if (rectStr.empty()) {
@@ -53,14 +72,6 @@ static bool parseRange(const std::string& rangeStr, Range& range) {
 }
 
 static void showProgress(int progress) {
-	static bool cursorHidden = false;
-	
-	// Hide cursor on first call
-	if (!cursorHidden) {
-		std::cout << "\033[?25l";  // ANSI escape code to hide cursor
-		cursorHidden = true;
-	}
-	
 	const int barWidth = 50;
 	std::cout << "\r[";
 	int pos = barWidth * progress / 100;
@@ -70,11 +81,8 @@ static void showProgress(int progress) {
 		else std::cout << " ";
 	}
 	std::cout << "] " << std::setw(3) << progress << "%" << std::flush;
-	
 	if (progress >= 100) {
-		std::cout << "\033[?25h";  // ANSI escape code to show cursor
 		std::cout << std::endl;
-		cursorHidden = false;  // Reset for next conversion
 	}
 }
 
@@ -163,6 +171,7 @@ static void process(const std::string& inputPath, const std::string& outputPath,
 	
 	if (showProgressBar) {
 		std::cout << "Converting..." << std::endl;
+		CursorGuard cursorGuard;  // RAII: cursor will be restored automatically
 		converter.createTiff(outputPath, showProgress);
 	} else {
 		converter.createTiff(outputPath, [](int) {});
@@ -178,6 +187,13 @@ static void process(const std::string& inputPath, const std::string& outputPath,
 }
 
 int main(int argc, char* argv[]) {
+	// Register signal handlers to restore cursor on Ctrl+C
+	std::signal(SIGINT, signalHandler);
+	std::signal(SIGTERM, signalHandler);
+#ifdef SIGBREAK
+	std::signal(SIGBREAK, signalHandler);
+#endif
+
 	CLI::App app{"Slide format converter"};
 
 	std::string inputPath;
