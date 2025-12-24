@@ -483,7 +483,7 @@ void TiffConverter::createTiff(const std::string& filePath, const std::function<
         for (int subDirIndex = 0; subDirIndex < numSubdirs; ++subDirIndex) {
             const TiffDirectoryStructure& dirSpec = page.getSubDirectory(subDirIndex);
             TiffDirectory subDir = setUpDirectory(dirSpec);
-			subDir.subFileType = FILETYPE_REDUCEDIMAGE|FILETYPE_PAGE;
+			subDir.subFileType = FILETYPE_REDUCEDIMAGE;
             m_file->setTags(subDir);
             writeDirectoryData(subDir, dirSpec, cb);
             m_file->writeDirectory();
