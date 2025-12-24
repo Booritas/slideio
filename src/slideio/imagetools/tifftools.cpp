@@ -241,42 +241,49 @@ std::ostream& operator<<(std::ostream& os, const std::vector<TiffDirectory>& dir
     return os;
 }
 
-std::ostream& slideio::operator<<(std::ostream& os, const TiffDirectory& dir) {
-    os << "\n TiffDirectory {"
-        << "\n  width: " << dir.width
-        << "\n  height: " << dir.height
-        << "\n  tiled: " << (dir.tiled ? "true" : "false")
-        << "\n  tileWidth: " << dir.tileWidth
-        << "\n  tileHeight: " << dir.tileHeight
-        << "\n  channels: " << dir.channels
-        << "\n  bitsPerSample: " << dir.bitsPerSample
-        << "\n  photometric: " << dir.photometric
-        << "\n  YCbCrSubsampling: [" << dir.YCbCrSubsampling[0] << ", " << dir.YCbCrSubsampling[1] << "]"
-        << "\n  compression: " << dir.compression
-        << "\n  slideioCompression: " << dir.slideioCompression
-        << "\n  dirIndex: " << dir.dirIndex
-        << "\n  offset: " << dir.offset
-        << "\n  description: " << dir.description
-        << "\n  res: {" << dir.res.x << ", " << dir.res.y << "}"
-        << "\n  position: {" << dir.position.x << ", " << dir.position.y << "}"
-        << "\n  interleaved: " << (dir.interleaved ? "true" : "false")
-        << "\n  rowsPerStrip: " << dir.rowsPerStrip
-        << "\n  dataType: " << dir.dataType
-        << "\n  stripSize: " << dir.stripSize
-        << "\n  compressionQuality: " << dir.compressionQuality
-        << "\n  byteOffset: " << dir.byteOffset
-        << "\n  subFileType: " << dir.subFileType
-        << "\n  software: " << dir.software;
-    if (dir.subdirectories.empty()) {
-        os << "\n  subdirectories: [";
+static std::ostream& printDir(std::ostream& os, const TiffDirectory& dir, const std::string& pad) {
+    os << "\n" << pad << "------------- TIFF Directory " << dir.dirIndex << " -------------------------------"
+        << "\n" << pad << "  width: " << dir.width
+        << "\n" << pad << "  height: " << dir.height
+        << "\n" << pad << "  tiled: " << (dir.tiled ? "true" : "false")
+        << "\n" << pad << "  tileWidth: " << dir.tileWidth
+        << "\n" << pad << "  tileHeight: " << dir.tileHeight
+        << "\n" << pad << "  channels: " << dir.channels
+        << "\n" << pad << "  bitsPerSample: " << dir.bitsPerSample
+        << "\n" << pad << "  photometric: " << dir.photometric
+        << "\n" << pad << "  YCbCrSubsampling: [" << dir.YCbCrSubsampling[0] << ", " << dir.YCbCrSubsampling[1] << "]"
+        << "\n" << pad << "  compression: " << dir.compression
+        << "\n" << pad << "  slideioCompression: " << dir.slideioCompression
+        << "\n" << pad << "  dirIndex: " << dir.dirIndex
+        << "\n" << pad << "  offset: " << dir.offset
+        << "\n" << pad << "  description: " << dir.description
+        << "\n" << pad << "  res: {" << dir.res.x << ", " << dir.res.y << "}"
+        << "\n" << pad << "  position: {" << dir.position.x << ", " << dir.position.y << "}"
+        << "\n" << pad << "  interleaved: " << (dir.interleaved ? "true" : "false")
+        << "\n" << pad << "  rowsPerStrip: " << dir.rowsPerStrip
+        << "\n" << pad << "  dataType: " << dir.dataType
+        << "\n" << pad << "  stripSize: " << dir.stripSize
+        << "\n" << pad << "  compressionQuality: " << dir.compressionQuality
+        << "\n" << pad << "  byteOffset: " << dir.byteOffset
+        << "\n" << pad << "  subFileType: " << dir.subFileType
+        << "\n" << pad << "  software: " << dir.software
+	    << "\n" << pad << "  number of subdirectories: " << dir.subdirectories.size();
+	std::string subPad = pad + "    ";
+    if (!dir.subdirectories.empty()) {
+        os << "\n" << pad << "  subdirectories (";
         for (size_t subDirIndex = 0; subDirIndex < dir.subdirectories.size(); ++subDirIndex) {
-            os << "\n--Sub-directory:" << subDirIndex << std::endl;
-            os << dir.subdirectories[subDirIndex];
+            os << "\n" << pad << ".........Sub-directory:" << subDirIndex << " .............." << std::endl;
+            printDir(os, dir.subdirectories[subDirIndex], subPad );
+            os << "\n" << pad << ".........End of Sub-directory:" << subDirIndex << " .............." << std::endl;
         }
-        os << "\n  ]";
     }
-    os << "\n}";
+    os << "\n" << pad << "------------- End of TIFF Directory " << dir.dirIndex << " ------------------------";
     return os;
+
+}
+
+std::ostream& slideio::operator<<(std::ostream& os, const TiffDirectory& dir) {
+    return printDir(os,dir, "");
 }
 
 libtiff::TIFF* TiffTools::openTiffFile(const std::string& path, bool readOnly) {
@@ -921,7 +928,7 @@ void TiffTools::setTags(libtiff::TIFF* tiff, const TiffDirectory& dir) {
         sampleFormat = SAMPLEFORMAT_IEEEFP;
         break;
     default:
-    
+        break;
     }
 
     if (sampleFormat !=0 ) {
