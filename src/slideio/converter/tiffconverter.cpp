@@ -174,11 +174,7 @@ std::string TiffConverter::createOMETiffDescription() const {
     }
 
     pixels->SetAttribute("ID", "Pixels:0");
-    std::string order = "XYC";
-    if (numZSlices > 1)
-        order += "Z";
-    if (numTFrames > 1)
-        order += "T";
+    std::string order = "XYCZT";
     pixels->SetAttribute("DimensionOrder", order.c_str());
     pixels->SetAttribute("SizeX", sizeX);
     pixels->SetAttribute("SizeY", sizeY);
@@ -234,6 +230,8 @@ std::string TiffConverter::createOMETiffDescription() const {
 	int slice = 0;
     int frame = 0;
 
+    std::string UUID = Tools::randomUUID();
+
     for (const auto& page: m_pages) {
         auto* tiffData = doc.NewElement("TiffData");
 		cv::Range sliceRange = page.getZSliceRange();
@@ -241,15 +239,11 @@ std::string TiffConverter::createOMETiffDescription() const {
 		cv::Range frameRange = page.getTFrameRange();
 		tiffData->SetAttribute("IFD", ifd++);
         tiffData->SetAttribute("FirstC", channel);
-        tiffData->SetAttribute("SizeC", channelRange.size());
         tiffData->SetAttribute("FirstZ", slice);
-		tiffData->SetAttribute("SizeZ", sliceRange.size());
         tiffData->SetAttribute("FirstT", frame);
-		tiffData->SetAttribute("SizeT", frameRange.size());
 		tiffData->SetAttribute("PlaneCount", page.getPlaneCount());
         auto* uidElem = doc.NewElement("UUID");
         uidElem->SetAttribute("FileName", fileName.c_str());
-        std::string UUID = Tools::randomUUID();
         uidElem->SetText(UUID.c_str());
         tiffData->InsertEndChild(uidElem);
         pixels->InsertEndChild(tiffData);

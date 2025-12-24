@@ -19,6 +19,9 @@ static void process(const std::string& inputPath, const std::string& outputPath,
 	auto scene = slide->getScene(0);
 	auto sceneRect = scene->getRect();
 	OMETIFFJp2KConverterParameters params;
+	params.setNumZoomLevels(3);
+	params.setTileWidth(512);
+	params.setTileHeight(512);
 	params.setCompressionRate(static_cast<float>(compressionRate));
 	TiffConverter converter;
 	converter.createFileLayout(scene->getCVScene(), params);
