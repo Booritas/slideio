@@ -1,4 +1,4 @@
-// This file is part of slideio project.
+﻿// This file is part of slideio project.
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 
@@ -16,6 +16,12 @@
 #include <chrono>
 #include <csignal>
 
+#ifdef _WIN32
+#include <windows.h>
+#include <io.h>
+#include <fcntl.h>
+#endif
+
 using namespace slideio;
 using namespace slideio::converter;
 
@@ -32,19 +38,97 @@ public:
 	CursorGuard& operator=(const CursorGuard&) = delete;
 };
 
+// Initialize console for UTF-8 output on Windows
+static void initializeConsole() {
+#ifdef _WIN32
+	// Set console output code page to UTF-8
+	SetConsoleOutputCP(CP_UTF8);
+	// Enable ANSI escape sequences on Windows 10+
+	HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+	DWORD dwMode = 0;
+	GetConsoleMode(hOut, &dwMode);
+	dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+	SetConsoleMode(hOut, dwMode);
+#endif
+}
 
 static void showProgress(int progress) {
+	static auto startTime = std::chrono::steady_clock::now();
+	static bool initialized = false;
+	
+	if (!initialized) {
+		initializeConsole();
+		startTime = std::chrono::steady_clock::now();
+		initialized = true;
+	}
+	
 	const int barWidth = 50;
 	std::cout << "\r[";
+	
 	int pos = barWidth * progress / 100;
+	
+	// Use original progress bar style
 	for (int i = 0; i < barWidth; ++i) {
-		if (i < pos) std::cout << "=";
-		else if (i == pos) std::cout << ">";
-		else std::cout << " ";
+		if (i < pos) {
+			std::cout << "=";
+		}
+		else if (i == pos) {
+			std::cout << ">";
+		}
+		else {
+			std::cout << " ";
+		}
 	}
-	std::cout << "] " << std::setw(3) << progress << "%" << std::flush;
+	
+	std::cout << "] " << std::setw(3) << progress << "%";
+	
+	// Calculate elapsed and remaining time
+	auto now = std::chrono::steady_clock::now();
+	auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - startTime);
+	
+	if (progress > 0 && progress < 100) {
+		// Calculate ETA based on average time per percent
+		auto totalEstimated = elapsed.count() * 100 / progress;
+		auto remaining = totalEstimated - elapsed.count();
+		
+		// Format elapsed time
+		int elapsedHours = static_cast<int>(elapsed.count() / 3600);
+		int elapsedMinutes = static_cast<int>((elapsed.count() % 3600) / 60);
+		int elapsedSeconds = static_cast<int>(elapsed.count() % 60);
+		
+		// Format remaining time
+		int remainingHours = static_cast<int>(remaining / 3600);
+		int remainingMinutes = static_cast<int>((remaining % 3600) / 60);
+		int remainingSeconds = static_cast<int>(remaining % 60);
+		
+		std::cout << " | ";
+		
+		// Print elapsed time
+		if (elapsedHours > 0) {
+			std::cout << elapsedHours << "h " << elapsedMinutes << "m " << elapsedSeconds << "s";
+		} else if (elapsedMinutes > 0) {
+			std::cout << elapsedMinutes << "m " << elapsedSeconds << "s";
+		} else {
+			std::cout << elapsedSeconds << "s";
+		}
+		
+		std::cout << " / ETA: ";
+		
+		// Print remaining time
+		if (remainingHours > 0) {
+			std::cout << remainingHours << "h " << remainingMinutes << "m " << remainingSeconds << "s";
+		} else if (remainingMinutes > 0) {
+			std::cout << remainingMinutes << "m " << remainingSeconds << "s";
+		} else {
+			std::cout << remainingSeconds << "s";
+		}
+	}
+	
+	std::cout << std::flush;
+	
 	if (progress >= 100) {
 		std::cout << std::endl;
+		initialized = false;  // Reset for next conversion
 	}
 }
 
@@ -115,12 +199,17 @@ void convertFile(
 	const Range& sliceRange, 
 	const Range& frameRange, 
 	bool silent,
-	bool infoOnly) {
+	bool infoOnly,
+	bool deleteIfExists) {
 	if (!std::filesystem::exists(inputPath)) {
 		throw std::runtime_error("Input file does not exist: " + inputPath);
 	}
 	if (!infoOnly && std::filesystem::exists(outputPath)) {
-		throw std::runtime_error("Output file already exists: " + outputPath);
+		if (deleteIfExists) {
+			std::filesystem::remove(outputPath);
+		} else {
+			throw std::runtime_error("Output file already exists: " + outputPath);
+		}
 	}
 	auto slide = openSlide(inputPath, inputDriver);
 	auto scene = slide->getScene(0);

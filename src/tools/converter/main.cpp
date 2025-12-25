@@ -80,6 +80,7 @@ int main(int argc, char* argv[]) {
 	std::string frameRangeStr;
 	bool silent = false;
 	bool infoOnly = false;
+	bool deleteIfExists = false;
 
 	app.add_option("input", inputPath, "Input file path")
 		->required()
@@ -132,6 +133,9 @@ int main(int argc, char* argv[]) {
 	app.add_flag("-i,--info-only", infoOnly, "Print conversion information without performing the conversion")
 		->default_val(false);
 
+	app.add_flag("-x,--delete-if-exists", deleteIfExists, "Delete output file if it already exists")
+		->default_val(false);
+
 	CLI11_PARSE(app, argc, argv);
 
 	try {
@@ -159,7 +163,8 @@ int main(int argc, char* argv[]) {
 			sliceRange,
 			frameRange,
 			silent,
-			infoOnly);
+			infoOnly,
+			deleteIfExists);
 	}
 	catch (const std::exception& e) {
 		std::cerr << "Error during processing: " << e.what() << std::endl;

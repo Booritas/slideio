@@ -20,4 +20,5 @@ void convertFile(
 	const slideio::Range& sliceRange, 
 	const slideio::Range& frameRange, 
 	bool silent,
-	bool infoOnly);
+	bool infoOnly,
+	bool deleteIfExists);
