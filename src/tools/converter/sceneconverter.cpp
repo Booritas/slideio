@@ -96,10 +96,10 @@ static void showProgress(int progress) {
 		int elapsedMinutes = static_cast<int>((elapsed.count() % 3600) / 60);
 		int elapsedSeconds = static_cast<int>(elapsed.count() % 60);
 		
-		// Format remaining time
-		int remainingHours = static_cast<int>(remaining / 3600);
-		int remainingMinutes = static_cast<int>((remaining % 3600) / 60);
-		int remainingSeconds = static_cast<int>(remaining % 60);
+		// Format remaining time - round up to next minute
+		int remainingMinutesTotal = static_cast<int>((remaining + 59) / 60); // Round up
+		int remainingHours = remainingMinutesTotal / 60;
+		int remainingMinutes = remainingMinutesTotal % 60;
 		
 		std::cout << " | ";
 		
@@ -114,13 +114,13 @@ static void showProgress(int progress) {
 		
 		std::cout << " / ETA: ";
 		
-		// Print remaining time
+		// Print remaining time (rounded to minutes)
 		if (remainingHours > 0) {
-			std::cout << remainingHours << "h " << remainingMinutes << "m " << remainingSeconds << "s";
+			std::cout << remainingHours << "h " << remainingMinutes << "m";
 		} else if (remainingMinutes > 0) {
-			std::cout << remainingMinutes << "m " << remainingSeconds << "s";
+			std::cout << remainingMinutes << "m  ";
 		} else {
-			std::cout << remainingSeconds << "s";
+			std::cout << "< 1m";
 		}
 	}
 	
