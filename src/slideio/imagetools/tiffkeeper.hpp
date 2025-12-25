@@ -18,6 +18,8 @@ namespace libtiff
 
 namespace slideio
 {
+    class TIFFMessageHandler;
+
     class SLIDEIO_IMAGETOOLS_EXPORTS TIFFKeeper
     {
     public:
@@ -55,6 +57,8 @@ namespace slideio
 
     private:
         libtiff::TIFF* m_hFile;
+        std::shared_ptr<TIFFMessageHandler> m_messageHandler;
+
     };
 }
 

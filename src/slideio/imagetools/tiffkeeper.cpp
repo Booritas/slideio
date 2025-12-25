@@ -3,13 +3,14 @@
 // of this distribution and at http://slideio.com/license.html.
 
 #include "slideio/imagetools/tiffkeeper.hpp"
-
+#include "slideio/imagetools/tiffmessagehandler.hpp"
 #include "tifftools.hpp"
 
 using namespace slideio;
 
 TIFFKeeper::TIFFKeeper(libtiff::TIFF* hfile) : m_hFile(hfile)
 {
+    m_messageHandler = std::make_shared<TIFFMessageHandler>();
 }
 
 TIFFKeeper::TIFFKeeper(const std::string& filePath, bool readOnly)
