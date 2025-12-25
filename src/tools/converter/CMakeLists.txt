@@ -6,7 +6,9 @@ set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 
 set(SOURCE_FILES 
-   converter.cpp
+   sceneconverter.cpp
+   sceneconverter.hpp
+   main.cpp
 )
 
 add_executable(${TOOL_NAME} ${SOURCE_FILES})
