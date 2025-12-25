@@ -524,3 +524,32 @@ TEST_F(NDPIImageDriverTests, multiThreadSceneAccess) {
     slideio::NDPIImageDriver driver;
     TestTools::multiThreadedTest(filePath, driver);
 }
+
+TEST_F(NDPIImageDriverTests, readRoiExceedScene)
+{
+    if (!TestTools::isFullTestEnabled())
+    {
+        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
+    }
+
+    std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1.ndpi");
+    std::string testFilePath1 = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1-1.png");
+    std::string testFilePath2 = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1_002.tif");
+    slideio::NDPIImageDriver driver;
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide);
+    const int numScenes = slide->getNumScenes();
+    EXPECT_EQ(1, numScenes);
+    std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
+    EXPECT_TRUE(scene.get() != nullptr);
+    cv::Rect rect = scene->getRect();
+    EXPECT_EQ(rect.x, 0);
+    EXPECT_EQ(rect.y, 0);
+    EXPECT_EQ(rect.width, 51200);
+    EXPECT_EQ(rect.height, 38144);
+	cv::Rect blockRect = { rect.width - 300, rect.height - 300, 500, 500 };
+    cv::Mat blockRaster;
+    EXPECT_NO_THROW(scene->readResampledBlock(blockRect, blockRect.size(), blockRaster));
+    cv::Size blockSize(100, 100);
+    EXPECT_NO_THROW(scene->readResampledBlock(blockRect, blockSize, blockRaster));
+}
