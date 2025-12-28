@@ -160,3 +160,29 @@ TEST(FIWrapper, lifetimeManagement)
         EXPECT_EQ(1, wrapper.getNumPages());
     }
 }
+
+TEST(FIWrapper, readMultiplePages)
+{
+    std::string filePath = TestTools::getTestImagePath("gdal", "multipage.tif");
+    FIWrapper wrapper(filePath);
+    EXPECT_TRUE(wrapper.isValid());
+    EXPECT_EQ(3, wrapper.getNumPages());
+
+    TIFFKeeper tiff = TiffTools::openTiffFile(filePath);
+    std::vector<TiffDirectory> dirs;
+    TiffTools::scanFile(tiff, dirs);
+
+    for (int pageIndex = 0; pageIndex < 3; ++pageIndex) {
+        auto page = wrapper.readPage(pageIndex);
+        EXPECT_TRUE(page != nullptr);
+        Size size = page->getSize();
+        EXPECT_EQ(256, size.width);
+        EXPECT_EQ(256, size.height);
+		cv::Mat raster, testRaster;
+        page->readRaster(raster);
+        TiffTools::readStripedDir(tiff, dirs[pageIndex], testRaster);
+		EXPECT_EQ(raster.size(), testRaster.size());
+        double sim = ImageTools::computeSimilarity2(raster, testRaster);
+		EXPECT_GT(sim, 0.99);
+    }
+}

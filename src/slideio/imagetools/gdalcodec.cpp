@@ -4,180 +4,28 @@
 #include "slideio/imagetools/imagetools.hpp"
 #include "slideio/core/tools/cvtools.hpp"
 #include "slideio/base/exceptions.hpp"
-#include <FreeImage.h>
-#include <map>
+#include "slideio/imagetools/fiwrapper.hpp"
 
 
-static slideio::DataType dataTypeFromGDALDataType(FREE_IMAGE_TYPE dt)
+
+void slideio::ImageTools::readGDALImageSubDataset(const std::string& filePath, int pageIndex, cv::OutputArray output)
 {
-    switch(dt)
-    {
-    case FIT_BITMAP:
-        return slideio::DataType::DT_Byte;
-    case FIT_UINT16:
-        return slideio::DataType::DT_UInt16;
-    case FIT_INT16:
-        return slideio::DataType::DT_Int16;
-    case FIT_INT32:
-        return slideio::DataType::DT_Int32;
-    case FIT_UINT32:
-        return slideio::DataType::DT_UInt32;
-    case FIT_FLOAT:
-        return slideio::DataType::DT_Float32;
-    case FIT_DOUBLE:
-        return slideio::DataType::DT_Float64;
-    default:
-        return slideio::DataType::DT_Unknown;
+    FIWrapper wrapper(filePath);
+    if (!wrapper.isValid()) {
+        RAISE_RUNTIME_ERROR << "Cannot open file: " << filePath;
+	}
+    const int numPages = wrapper.getNumPages();
+    if (pageIndex >= numPages || pageIndex <0) {
+        RAISE_RUNTIME_ERROR << "Invalid subdataset index " << pageIndex
+			<< " for file " << filePath << ". Number of subdatasets: " << numPages;
     }
-
-}
-
-
-// void slideio::ImageTools::readGDALSubset(const std::string& filePath, cv::OutputArray output) {
-//     FREE_IMAGE_FORMAT fif = FreeImage_GetFileType(filePath.c_str(), 0);
-//     if (fif == FIF_UNKNOWN) {
-//         fif = FreeImage_GetFIFFromFilename(filename);
-//     }    GDALDatasetH hFile = GDALOpen(filePath.c_str(), GA_ReadOnly);
-//     try
-//     {
-//         if(hFile==nullptr){
-//             RAISE_RUNTIME_ERROR << "Cannot open file:" << filePath;
-//         }
-//         const cv::Size imageSize = {GDALGetRasterXSize(hFile),GDALGetRasterYSize(hFile)};
-//         const int numChannels = GDALGetRasterCount(hFile);
-//         std::vector<cv::Mat> channels(numChannels);
-//         for(int channelIndex=0; channelIndex<numChannels; channelIndex++)
-//         {
-//             GDALRasterBandH hBand = GDALGetRasterBand(hFile, channelIndex+1);
-//             if(hBand==nullptr) {
-//                 RAISE_RUNTIME_ERROR << "Cannot open raster band from:" << filePath;
-//             }
-//             const GDALDataType dt = GDALGetRasterDataType(hBand);
-//             const DataType dataType = dataTypeFromGDALDataType(dt);
-//             if(CVTools::isValidDataType(dataType)){
-//                 
-//             }
-//             const int cvDt = CVTools::toOpencvType(dataType);
-//             cv::Mat& channel = channels[channelIndex];
-//             int channelType = CV_MAKETYPE(cvDt, 1);
-//             channel.create(imageSize, channelType);
-//             CPLErr err = GDALRasterIO(hBand, GF_Read,
-//                                       0, 0,
-//                                       imageSize.width, imageSize.height,
-//                                       channel.data,
-//                                       imageSize.width, imageSize.height, 
-//                                       GDALGetRasterDataType(hBand),0,0);
-//             if(err!=CE_None){
-//                 RAISE_RUNTIME_ERROR << "Cannot read raster band from:" << filePath;
-//             }
-//         }
-//         cv::merge(channels, output);
-//         GDALClose(hFile);
-//     }
-//     catch(std::exception& exp)
-//     {
-//         if(hFile!=nullptr)
-//             GDALClose(hFile);
-//         throw exp;
-//     }
-// }
-
-void slideio::ImageTools::readGDALImageSubDataset(const std::string& filePath, int subDatasetIndex, cv::OutputArray output)
-{
-    // FREE_IMAGE_FORMAT fif = FreeImage_GetFileType(filePath.c_str(), 0);
-    // if (fif == FIF_UNKNOWN) {
-    //     fif = FreeImage_GetFIFFromFilename(filePath.c_str());
-    // }
-    //
-    // if (fif == FIF_UNKNOWN || !FreeImage_FIFSupportsReading(fif)) {
-    //     std::cerr << "Unsupported file format\n";
-    //     return 1;
-    // }
-    //
-    // GDALDatasetH hFile = GDALOpen(filePath.c_str(), GA_ReadOnly);
-    // std::string name = std::string("SUBDATASET_") + std::to_string(subDatasetIndex) + std::string("_NAME");
-    // if (hFile == nullptr) {
-    //     RAISE_RUNTIME_ERROR << "Cannot open file:" << filePath;
-    // }
-    // try {
-    //     char** subDatasets = GDALGetMetadata(hFile, "SUBDATASETS");
-    //     if (subDatasets != nullptr) {
-    //         std::vector<cv::Mat> pages;
-    //         int page_id = 1;
-    //         for (int i = 0; subDatasets[i] != nullptr; i++) {
-    //             std::string subdataset = subDatasets[i];
-    //             std::string::size_type pos = subdataset.find("=");
-    //             if (pos != std::string::npos) {
-    //                 std::string subDatasetName = subdataset.substr(0, pos);
-    //                 std::string subDatasetValue = subdataset.substr(pos + 1);
-    //                 if (subDatasetName == name) {
-    //                     cv::Mat page;
-    //                     readGDALSubset(subDatasetValue, output);
-    //                     break;
-    //                 }
-    //             }
-    //         }
-    //     }
-    //     else if(subDatasetIndex == 1){
-    //         readGDALSubset(filePath, output);
-    //     }
-    //     else {
-    //         RAISE_RUNTIME_ERROR << "Cannot find subdataset:" << subDatasetIndex << " in file:" << filePath;
-    //     }
-    //     GDALClose(hFile);
-    // }
-    // catch (const std::exception&) {
-    //     if (hFile != nullptr)
-    //         GDALClose(hFile);
-    //     throw;
-    // }
+    std::shared_ptr<FIWrapper::Page> page = wrapper.readPage(pageIndex);
+	page->readRaster(output);
 }
 
 void slideio::ImageTools::readGDALImage(const std::string& filePath, cv::OutputArray output)
 {
-    // GDALAllRegister();
-    // GDALDatasetH hFile = GDALOpen(filePath.c_str(), GA_ReadOnly);
-    // if (hFile == nullptr) {
-    //     RAISE_RUNTIME_ERROR << "Cannot open file:" << filePath;
-    // }
-    // try {
-    //     char** subDatasets = GDALGetMetadata(hFile, "SUBDATASETS");
-    //     if (subDatasets != nullptr) {
-    //         std::vector<cv::Mat> pages;
-    //         int page_id = 1;
-    //         for (int i = 0; subDatasets[i] != nullptr; i++)
-    //         {
-    //             std::string subdataset = subDatasets[i];
-    //             std::string::size_type pos = subdataset.find("=");
-    //             if (pos != std::string::npos) {
-    //                 std::string subDatasetName = subdataset.substr(0, pos);
-    //                 std::string subDatasetValue = subdataset.substr(pos + 1);
-    //                 std::string name = std::string("SUBDATASET_") + std::to_string(page_id) + std::string("_NAME");
-    //                 if (subDatasetName == name) {
-    //                     cv::Mat page;
-    //                     readGDALSubset(subDatasetValue, page);
-    //                     pages.push_back(page);
-    //                     page_id++;
-    //                 }
-    //             }
-    //         }
-    //         if (!pages.empty()) {
-    //             cv::merge(pages, output);
-    //         }
-    //         else {
-    //             readGDALSubset(filePath, output);
-    //         }
-    //     }
-    //     else {
-    //         readGDALSubset(filePath, output);
-    //     }
-    //     GDALClose(hFile);
-    // }
-    // catch (const std::exception& ) {
-    //     if (hFile != nullptr)
-    //         GDALClose(hFile);
-    //     throw;
-    // }
+    readGDALImageSubDataset(filePath, 0, output);
 }
 
 void slideio::ImageTools::writeRGBImage(const std::string& path, Compression compression, cv::Mat raster)
@@ -253,22 +101,6 @@ void slideio::ImageTools::writeRGBImage(const std::string& path, Compression com
     //     }
     //     throw ex;
     // }
-}
-static FREE_IMAGE_TYPE toGdalType(slideio::DataType dt)
-{
-    switch(dt)
-    {
-    case slideio::DataType::DT_Byte: return FIT_BITMAP;
-    case slideio::DataType::DT_Int16: return FIT_INT16;
-    case slideio::DataType::DT_UInt16: return FIT_UINT16;
-    case slideio::DataType::DT_Int32: return FIT_INT32;
-	case slideio::DataType::DT_UInt32: return FIT_UINT32;
-    case slideio::DataType::DT_Float32: return FIT_FLOAT;
-    case slideio::DataType::DT_Float64: return FIT_DOUBLE;
-    default: {
-            RAISE_RUNTIME_ERROR << "toGdalType: Cannot convert type " << (int)dt << " to GDAL supported types";
-        }
-    }
 }
 
 void slideio::ImageTools::writeTiffImage(const std::string& path,cv::Mat raster)

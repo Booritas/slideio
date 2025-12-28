@@ -544,7 +544,7 @@ FIWrapper::FIWrapper(const std::string& filePath) {
     bool forceUnicode = false;
 #if defined(WIN32)
     std::wstring wsPath = Tools::toWstring(filePath);
-    if (std::filesystem::exists(filePath)) {
+    if (!std::filesystem::exists(filePath)) {
         forceUnicode = std::filesystem::exists(wsPath);
     }
 #endif
@@ -597,12 +597,11 @@ FIWrapper::FIWrapper(const std::string& filePath) {
 #else
         m_pBitmap = FreeImage_Load(m_fiFormat, filePath.c_str(), 0);
 #endif
-        auto pagePtr = std::make_shared<Page>(this, m_pBitmap);
+        std::shared_ptr<Page> pagePtr = std::make_shared<Page>(this, m_pBitmap);
         m_pages[0] = pagePtr;
-
-    }
-    if (!m_pBitmap) {
-        RAISE_RUNTIME_ERROR << "FIWrapper: Failed to load image";
+        if (!m_pBitmap) {
+            RAISE_RUNTIME_ERROR << "FIWrapper: Failed to load image";
+        }
     }
 }
 
