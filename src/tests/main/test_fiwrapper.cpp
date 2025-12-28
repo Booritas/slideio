@@ -186,3 +186,27 @@ TEST(FIWrapper, readMultiplePages)
 		EXPECT_GT(sim, 0.99);
     }
 }
+
+TEST(FIWrapper, readJpegMetadata)
+{
+    std::string filePath = TestTools::getTestImagePath("gdal", "Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg");
+    FIWrapper wrapper(filePath);
+    EXPECT_TRUE(wrapper.isValid());
+    EXPECT_EQ(1, wrapper.getNumPages());
+	std::string metadata = wrapper.readPage(0)->getMetadata();
+    EXPECT_FALSE(metadata.empty());
+	EXPECT_NE(metadata.find("ApplicationRecordVersion"), std::string::npos);
+    EXPECT_NE(metadata.find("SamplesPerPixel"), std::string::npos);
+}
+
+TEST(FIWrapper, readTifMetadata)
+{
+    std::string filePath = TestTools::getTestImagePath("gdal", "multipage.tif");
+    FIWrapper wrapper(filePath);
+    EXPECT_TRUE(wrapper.isValid());
+    EXPECT_EQ(3, wrapper.getNumPages());
+    std::string metadata = wrapper.readPage(0)->getMetadata();
+    EXPECT_FALSE(metadata.empty());
+    EXPECT_NE(metadata.find("bitsPerSample"), std::string::npos);
+    EXPECT_NE(metadata.find("photometric"), std::string::npos);
+}

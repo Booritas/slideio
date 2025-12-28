@@ -480,6 +480,24 @@ void FIWrapper::Page::extractTiffMetadata() {
     if (m_fiFormat == FIF_TIFF) {
         const TiffDirectory& dir = m_parent->getTiffDirectory(m_pageIndex);
         json mtdObj = json::object();
+        mtdObj["width"] = dir.width;
+		mtdObj["height"] = dir.height;
+		mtdObj["tiled"] = dir.tiled;
+		mtdObj["interleaved"] = dir.interleaved;
+        if (dir.tiled) {
+            mtdObj["tileWidth"] = dir.tileWidth;
+            mtdObj["tileHeight"] = dir.tileHeight;
+		} else {
+			mtdObj["rowsPerStrip"] = dir.rowsPerStrip;
+			mtdObj["stripSize"] = dir.stripSize;
+		}
+        mtdObj["channels"] = dir.channels;
+		mtdObj["dataType"] = dir.dataType;
+		mtdObj["compression"] = compressionToString(dir.slideioCompression);
+		mtdObj["bitsPerSample"] = dir.bitsPerSample;
+		mtdObj["photometric"] = dir.photometric;
+		mtdObj["subFileType"] = dir.subFileType;
+		mtdObj["subIFDs"] = dir.subdirectories.size();
         if (!dir.description.empty()) {
             mtdObj["Description"] = dir.description;
         }
