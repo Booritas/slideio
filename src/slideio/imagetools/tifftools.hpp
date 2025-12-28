@@ -4,6 +4,8 @@
 #ifndef OPENCV_slideio_tifftools_HPP
 #define OPENCV_slideio_tifftools_HPP
 
+#include <map>
+
 #include "slideio/imagetools/slideio_imagetools_def.hpp"
 #include "slideio/base/resolution.hpp"
 #include "slideio/base/slideio_enums.hpp"

@@ -26,7 +26,7 @@ namespace slideio
             cv::Size size = {};
         };
     public:
-        static void readGDALSubset(const std::string& filePath, cv::OutputArray output);
+        //static void readGDALSubset(const std::string& filePath, cv::OutputArray output);
         static void readGDALImage(const std::string& path, cv::OutputArray output);
         static void readGDALImageSubDataset(const std::string& path, int subDatasetIndex, cv::OutputArray output);
         static void writeRGBImage(const std::string& path, Compression compression, cv::Mat raster);

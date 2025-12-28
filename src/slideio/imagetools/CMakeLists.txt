@@ -31,6 +31,9 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/tifffiles.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/tiffmessagehandler.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/tiffmessagehandler.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/imagetoolsinitializer.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/fiwrapper.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/fiwrapper.cpp
 )
 
 add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES})
@@ -38,34 +41,28 @@ set_target_properties(${LIBRARY_NAME} PROPERTIES OUTPUT_NAME "${LIBRARY_NAME}${L
 
 find_package(glog)
 find_package(OpenCV)
-find_package(OpenJPEG)
 find_package(jpegxrcodec)
-find_package(Iconv)
-find_package(GDAL)
-find_package(SQLite3)
-find_package(TIFF)
-find_package(libdeflate)
-find_package(LibLZMA)
-find_package(WebP)
-find_package(JPEG)
+find_package(freeimage)
+find_package(OpenJPEG)
 find_package(PNG)
+find_package(TIFF)
 find_package(ZLIB)
+find_package(JPEG)
+find_package(WebP)
+find_package(nlohmann_json REQUIRED)
 
 target_link_libraries(${LIBRARY_NAME} 
    glog::glog
    opencv::opencv
-   openjp2
    jpegxrcodec::jpegxrcodec
-   Iconv::Iconv
-   GDAL::GDAL
-   SQLite::SQLite3
-   TIFF::TIFF
-   libdeflate::libdeflate_static
-   LibLZMA::LibLZMA
-   libwebp::libwebp
-   JPEG::JPEG
+   freeimage::freeimage
+   openjp2
    PNG::PNG
+   TIFF::TIFF
    ZLIB::ZLIB
+   JPEG::JPEG
+   libwebp::libwebp
+   nlohmann_json::nlohmann_json
 )
 
 IF(WIN32)

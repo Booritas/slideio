@@ -57,6 +57,7 @@ namespace slideio
         RLE,
         BMP,
         JpegLossless,
+        VP8,
     };
 
     enum class DataType

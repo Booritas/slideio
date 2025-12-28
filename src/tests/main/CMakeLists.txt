@@ -31,6 +31,7 @@ set(TEST_SOURCES
   test_endian.cpp
   test_dimensions.cpp
   test_tifffiles.cpp
+  test_fiwrapper.cpp
 )
 
 add_executable(${TEST_NAME} ${TEST_SOURCES})

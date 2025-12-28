@@ -9,7 +9,6 @@
 #include <vector>
 
 #include "slideio/base/exceptions.hpp"
-#include "slideio/imagetools/gdal_lib.hpp"
 
 using namespace slideio;
 

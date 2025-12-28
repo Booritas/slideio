@@ -992,7 +992,6 @@ int TiffTools::getNumberOfDirectories(libtiff::TIFF* tiff) {
     return libtiff::TIFFNumberOfDirectories(tiff);
 }
 
-
 void TiffTools::setCurrentDirectory(libtiff::TIFF* hFile, const TiffDirectory& dir) {
     uint64_t offset = libtiff::TIFFCurrentDirOffset(hFile);
     if (offset != dir.byteOffset) {
