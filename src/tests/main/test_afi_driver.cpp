@@ -115,24 +115,16 @@ TEST_F(AFIDriverFileTest, read_ImageBlock)
     cv::Rect sceneRect{2500, 4000, 400, 400};
     cv::Mat imageRaster;
     scene->readBlock(sceneRect, imageRaster);
-    cv::Mat imageRaster32bit;
-    imageRaster.convertTo(imageRaster32bit, CV_32FC1);
-    // read extracted page by GDAL library
     const std::string pathPageFile = getPrivTestImagesPath("afi", "fs_Alexa Fluor 488_block_2500_4000_400_400.tif");
     cv::Mat refRaster;
     slideio::ImageTools::readGDALImage(pathPageFile, refRaster);
-    cv::Mat refRaster32bit;
-    refRaster.convertTo(refRaster32bit, CV_32FC1);
-    cv::Mat score;
-    cv::matchTemplate(imageRaster32bit, refRaster32bit, score, cv::TM_CCOEFF_NORMED);
-    double minScore(0), maxScore(0);
-    cv::minMaxLoc(score, &minScore, &maxScore);
-    ASSERT_LT(.99, minScore);
+	double sim = slideio::ImageTools::computeSimilarity2(imageRaster, refRaster);
+	EXPECT_GT(sim, 0.999);
+    //TestTools::showRasters(imageRaster, refRaster);
 }
 
 TEST_F(AFIDriverFileTest, read_ImageBlockScaled)
 {
-    // read image by afi driver
     slideio::AFIImageDriver driver;
     std::string path = getPrivTestImagesPath("afi", "fs.afi");
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(path);
@@ -146,20 +138,14 @@ TEST_F(AFIDriverFileTest, read_ImageBlockScaled)
     scene->readResampledBlock(sceneRect, blockSize , blockRaster);
     cv::Mat imageRaster32bit;
     blockRaster.convertTo(imageRaster32bit, CV_32FC1);
-    //// read extracted page by GDAL library
     const std::string pathPageFile = getPrivTestImagesPath("afi", "fs_Alexa Fluor 488_block_2500_4000_400_400.tif");
     cv::Mat refRaster;
     slideio::ImageTools::readGDALImage(pathPageFile, refRaster);
     cv::Mat scaledRaster;
     cv::resize(refRaster, scaledRaster, blockSize);
-    cv::Mat refRaster32bit;
-    scaledRaster.convertTo(refRaster32bit, CV_32FC1);
-
-    cv::Mat score;
-    cv::matchTemplate(imageRaster32bit, refRaster32bit, score, cv::TM_CCOEFF_NORMED);
-    double minScore(0), maxScore(0);
-    cv::minMaxLoc(score, &minScore, &maxScore);
-    ASSERT_LT(0.99, minScore);
+    double sim = slideio::ImageTools::computeSimilarity2(blockRaster, scaledRaster);
+    EXPECT_GT(sim, 0.999);
+    //TestTools::showRasters(blockRaster, scaledRaster);
 }
 
 TEST_F(AFIDriverFileTest, multiThreadSceneAccess) {

@@ -20,7 +20,8 @@ public:
     static std::string getTestImageDirectory(bool priv=false);
 	static std::string getTestImagePath(const std::string& subfolder, const std::string& image, bool priv=false);
     static std::string getFullTestImagePath(const std::string& subfolder, const std::string& image);
-    static void readRawImage(std::string& path, cv::Mat& image);
+    static void readRawImage(const std::string& path, cv::Mat& image);
+    static void writeRawImage(const std::string& path, const cv::Mat& image);
     static void compareRasters(cv::Mat& raster1, cv::Mat& raster2);
     static bool compareRastersEx(cv::Mat& raster1, cv::Mat& raster2);
     static bool isRasterEmpty(cv::Mat& raster);

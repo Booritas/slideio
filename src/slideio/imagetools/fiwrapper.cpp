@@ -15,7 +15,6 @@
 
 
 using namespace slideio;
-namespace fs = std::filesystem;
 using json = nlohmann::json;
 
 namespace {
@@ -416,7 +415,7 @@ void FIWrapper::Page::detectDataType() {
         break;
     case FIT_RGB16:
     case FIT_RGBA16:
-        m_dataType = DataType::DT_Int16;
+        m_dataType = DataType::DT_UInt16;
         break;
     case FIT_RGBF:
     case FIT_RGBAF:
@@ -436,7 +435,7 @@ void FIWrapper::Page::preparePage() {
 	detectCompression();
 }
 
-void FIWrapper::Page::readRaster(cv::OutputArray raster) const {
+void FIWrapper::Page::readRaster(cv::OutputArray raster) {
     if (!m_pBitmap) {
         RAISE_RUNTIME_ERROR << "FIWrapper::Page::readRaster: Invalid bitmap";
     }
@@ -650,19 +649,19 @@ int FIWrapper::getNumPages() const {
 	return 0;
 }
 
-std::shared_ptr<FIWrapper::Page> FIWrapper::readPage(int page) {
+SmallImagePage* FIWrapper::readPage(int page) {
     if (page >= getNumPages()) {
         RAISE_RUNTIME_ERROR << "FIWrapper::getPage: Page index out of range: "
             << page << ". Number of pages: " << getNumPages();
     }
     auto it = m_pages.find(page);
     if (it != m_pages.end()) {
-        return it->second;
+        return it->second.get();
     }
     if (m_hFile != nullptr) {
         auto pagePtr = std::make_shared<Page>(this, page);
         m_pages[page] = pagePtr;
-        return pagePtr;
+        return pagePtr.get();
     }
 	RAISE_RUNTIME_ERROR << "FIWrapper::getPage: Unexpected request for image page " << page;
 }
@@ -673,5 +672,222 @@ const TiffDirectory& FIWrapper::getTiffDirectory(int index) const {
             << index << ". Number of TIFF directories: " << m_tiffDirectories.size();
 	}
     return m_tiffDirectories[index];
+}
+
+namespace
+{
+    FREE_IMAGE_FORMAT mapCompressionToImageFormat(Compression compression) {
+		FREE_IMAGE_FORMAT fif = FIF_UNKNOWN;
+        // Map compression to FreeImage format
+        switch (compression) {
+        case Compression::Jpeg:
+            fif = FIF_JPEG;
+            break;
+        case Compression::Png:
+            fif = FIF_PNG;
+            break;
+        case Compression::Uncompressed:
+        case Compression::LZW:
+        case Compression::Zlib:
+            fif = FIF_TIFF;
+            break;
+        case Compression::Jpeg2000:
+            fif = FIF_JP2;
+            break;
+        case Compression::GIF:
+            fif = FIF_GIF;
+            break;
+        case Compression::VP8:
+            fif = FIF_WEBP;
+            break;
+        }
+        return fif;
+    }
+
+    FREE_IMAGE_TYPE defineImageType(const int channels, const int depth, int& bpp) {
+        FREE_IMAGE_TYPE fiType = FIT_UNKNOWN;
+        bpp = 0;
+
+        if (channels == 1) {
+            // Grayscale
+            if (depth == CV_8U) {
+                fiType = FIT_BITMAP;
+                bpp = 8;
+            }
+            else if (depth == CV_16U) {
+                fiType = FIT_UINT16;
+                bpp = 16;
+            }
+            else if (depth == CV_16S) {
+                fiType = FIT_INT16;
+                bpp = 16;
+            }
+            else if (depth == CV_32S) {
+                fiType = FIT_INT32;
+                bpp = 32;
+            }
+            else if (depth == CV_32F) {
+                fiType = FIT_FLOAT;
+                bpp = 32;
+            }
+            else if (depth == CV_64F) {
+                fiType = FIT_DOUBLE;
+                bpp = 64;
+            }
+        }
+        else if (channels == 3) {
+            // RGB
+            if (depth == CV_8U) {
+                fiType = FIT_BITMAP;
+                bpp = 24;
+            }
+            else if (depth == CV_16U || depth == CV_16S) {
+                fiType = FIT_RGB16;
+                bpp = 48;
+            }
+            else if (depth == CV_32F) {
+                fiType = FIT_RGBF;
+                bpp = 96;
+            }
+        }
+        else if (channels == 4) {
+            // RGBA
+            if (depth == CV_8U) {
+                fiType = FIT_BITMAP;
+                bpp = 32;
+            }
+            else if (depth == CV_16U || depth == CV_16S) {
+                fiType = FIT_RGBA16;
+                bpp = 64;
+            }
+            else if (depth == CV_32F) {
+                fiType = FIT_RGBAF;
+                bpp = 128;
+            }
+        }
+        return fiType;
+    }
+}
+
+
+void FIWrapper::writeRaster(const std::string& filePath, Compression compression, const cv::Mat& raster) {
+    if (raster.empty()) {
+        RAISE_RUNTIME_ERROR << "FIWrapper::writeRaster: Input raster is empty";
+    }
+
+    FREE_IMAGE_FORMAT fif = FreeImage_GetFIFFromFilename(filePath.c_str());
+
+    if (fif == FIF_UNKNOWN) {
+        fif = mapCompressionToImageFormat(compression);
+    }
+
+    if (fif == FIF_UNKNOWN || !FreeImage_FIFSupportsWriting(fif)) {
+        RAISE_RUNTIME_ERROR << "FIWrapper::writeRaster: Cannot detect file format for file: " 
+        << filePath
+        << ". Cannot map compression to image format: " << compression;
+    }
+
+    FIBITMAP* bitmap = nullptr;
+    
+    const int channels = raster.channels();
+    const int width = raster.cols;
+    const int height = raster.rows;
+    const int depth = raster.depth();
+
+    int bpp = 0;
+    FREE_IMAGE_TYPE fiType = defineImageType(channels, depth, bpp);
+
+    if (fiType == FIT_UNKNOWN || bpp == 0) {
+        RAISE_RUNTIME_ERROR << "FIWrapper::writeRaster: Cannot define image type from raster. Channels: "
+            << channels << ", Depth: " << depth;
+	}
+
+    if (fiType == FIT_BITMAP) {
+        bitmap = FreeImage_Allocate(width, height, bpp);
+    } else {
+        bitmap = FreeImage_AllocateT(fiType, width, height, bpp);
+    }
+
+    if (!bitmap) {
+        RAISE_RUNTIME_ERROR << "FIWrapper::writeRaster: Failed to allocate FreeImage bitmap";
+    }
+
+    try {
+        const unsigned pitch = FreeImage_GetPitch(bitmap);
+        const unsigned lineSize = FreeImage_GetLine(bitmap);
+        BYTE* bits = FreeImage_GetBits(bitmap);
+
+        if (!bits) {
+            FreeImage_Unload(bitmap);
+            RAISE_RUNTIME_ERROR << "FIWrapper::writeRaster: Failed to get bitmap bits";
+        }
+
+        // FreeImage stores images upside down, so we need to flip rows
+        for (int y = 0; y < height; ++y) {
+            // FreeImage: row 0 is bottom, OpenCV: row 0 is top
+            int fiRow = height - 1 - y;
+            BYTE* dstLine = bits + fiRow * pitch;
+            const BYTE* srcLine = raster.ptr<BYTE>(y);
+            std::memcpy(dstLine, srcLine, std::min(lineSize, static_cast<unsigned>(raster.step)));
+        }
+
+        int flags = 0;
+        switch (compression) {
+            case Compression::Jpeg:
+                flags = JPEG_QUALITYGOOD; // Quality 75
+                break;
+            case Compression::Png:
+                flags = PNG_DEFAULT;
+                break;
+            case Compression::LZW:
+                flags = TIFF_LZW;
+                break;
+            case Compression::Zlib:
+                flags = TIFF_DEFLATE;
+                break;
+            case Compression::Uncompressed:
+                flags = TIFF_NONE;
+                break;
+            case Compression::Jpeg2000:
+                flags = JP2_DEFAULT;
+                break;
+            default:
+                flags = 0;
+                break;
+        }
+
+        BOOL success = FALSE;
+#if defined(WIN32)
+        std::wstring wsPath = Tools::toWstring(filePath);
+        success = FreeImage_SaveU(fif, bitmap, wsPath.c_str(), flags);
+#else
+        success = FreeImage_Save(fif, bitmap, filePath.c_str(), flags);
+#endif
+
+        FreeImage_Unload(bitmap);
+		bitmap = nullptr;
+
+        if (!success) {
+            RAISE_RUNTIME_ERROR << "FIWrapper::writeRaster: Failed to save image to " << filePath;
+        }
+
+        const int cvType = raster.type() & CV_MAT_DEPTH_MASK;
+        const slideio::DataType dt = slideio::CVTools::fromOpencvType(cvType);
+
+        if (raster.channels() == 3 && dt == DataType::DT_Byte) {
+            cv::cvtColor(raster, raster, cv::COLOR_RGB2BGR);
+        }
+        else if (raster.channels() == 4 && dt == DataType::DT_Byte) {
+            cv::cvtColor(raster, raster, cv::COLOR_RGBA2BGRA);
+        }
+
+        SLIDEIO_LOG(INFO) << "Successfully wrote raster to " << filePath;
+    }
+    catch (...) {
+        if (bitmap) {
+            FreeImage_Unload(bitmap);
+        }
+        throw;
+    }
 }
 

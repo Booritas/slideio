@@ -7,6 +7,7 @@
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/drivers/ome-tiff/otimagedriver.hpp"
 #include "slideio/drivers/ome-tiff/otscene.hpp"
+#include "slideio/imagetools/smallimage.hpp"
 #include "slideio/slideio/slideio.hpp"
 
 
@@ -615,7 +616,7 @@ TEST_F(OTImageDriverTests, readBlockLargeFileLZW) {
 	}
 
 	cv::Mat testRaster;
-	ImageTools::readGDALImage(testFilePathCh1, testRaster);
+	ImageTools::openSmallImage(testFilePathCh1)->readImageStack(testRaster);
 
 	// Read original scale
 	cv::Rect rect = { 16245, 23321, 1028, 640 };
@@ -663,7 +664,7 @@ TEST_F(OTImageDriverTests, sceneWithPixeltype) {
 	scene->readBlock(blockRect, raster);
 	EXPECT_FALSE(raster.empty());
 	cv::Mat testRaster;
-	ImageTools::readGDALImage(testFilePathCh1, testRaster);
+	ImageTools::openSmallImage(testFilePathCh1)->readImageStack(testRaster);
 	double sim = ImageTools::computeSimilarity2(raster, testRaster);
 	EXPECT_GT(sim, 0.99);
 }

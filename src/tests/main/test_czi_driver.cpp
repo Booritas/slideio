@@ -415,22 +415,6 @@ static void testAuxImage(const std::string& imagePath, const std::string& auxIma
     ASSERT_GT(score, 0.99);
 }
 
-static void writeAuxImage(const std::string& imagePath, const std::string& auxImageName, const std::string testImagePath)
-{
-   slideio::CZIImageDriver driver;
-    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(imagePath);
-    ASSERT_TRUE(slide != nullptr);
-    std::shared_ptr<slideio::CVScene> auxScene = slide->getAuxImage(auxImageName);
-    cv::Rect rect = auxScene->getRect();
-    cv::Mat auxRaster;
-    rect.x = rect.y = 0;
-    auxScene->readBlock(rect, auxRaster);
-    ASSERT_EQ(auxRaster.size().width, rect.width);
-    ASSERT_EQ(auxRaster.size().height, rect.height);
-
-    slideio::ImageTools::writeTiffImage(testImagePath, auxRaster);
-}
-
 TEST(CZIImageDriver, auxSlidePreview)
 {
     if (!TestTools::isPrivateTestEnabled())

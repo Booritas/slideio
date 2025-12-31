@@ -62,6 +62,11 @@ namespace slideio
             os << "Size (width: " << size.width << ", height: " << size.height << ")";
             return os;
         }
+
+        bool operator!=(const Size& size) const {
+            return !(*this == size);
+		}
+
         int32_t width;
         int32_t height;
     };

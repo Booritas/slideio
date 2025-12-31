@@ -9,6 +9,7 @@
 #include "slideio/drivers/pke/pkeimagedriver.hpp"
 #include "slideio/drivers/pke/pkescene.hpp"
 #include "slideio/drivers/pke/pkeslide.hpp"
+#include "slideio/imagetools/smallimage.hpp"
 #include "slideio/slideio/imagedrivermanager.hpp"
 
 
@@ -344,7 +345,7 @@ TEST_F(PKEImageDriverTests, readMultichannelImageNoScaleAllChannels) {
     std::string filePath = TestTools::getFullTestImagePath("pke", "openmicroscopy/PKI_scans/LuCa-7color_Scan1.qptiff");
     std::string refImagePath = TestTools::getFullTestImagePath("pke", "test-images/LuCa-7color_Scan1.qptiff - resolution #1 (1, x=11619, y=16875, w=1202, h=756).tif");
     cv::Mat refImage;
-    ImageTools::readGDALImage(refImagePath, refImage);
+    ImageTools::openSmallImage(refImagePath)->readImageStack(refImage);
     ASSERT_EQ(refImage.size(), cv::Size(1202, 756));
     ASSERT_EQ(refImage.channels(), 5);
     slideio::PKEImageDriver driver;
@@ -370,7 +371,7 @@ TEST_F(PKEImageDriverTests, readMultichannelImageNoScaleSeparatedChannels) {
     std::string filePath = TestTools::getFullTestImagePath("pke", "openmicroscopy/PKI_scans/LuCa-7color_Scan1.qptiff");
     std::string refImagePath = TestTools::getFullTestImagePath("pke", "test-images/LuCa-7color_Scan1.qptiff - resolution #1 (1, x=11619, y=16875, w=1202, h=756).tif");
     cv::Mat refImage;
-    ImageTools::readGDALImage(refImagePath, refImage);
+    ImageTools::openSmallImage(refImagePath)->readImageStack(refImage);
     ASSERT_EQ(refImage.size(), cv::Size(1202, 756));
     ASSERT_EQ(refImage.channels(), 5);
     slideio::PKEImageDriver driver;

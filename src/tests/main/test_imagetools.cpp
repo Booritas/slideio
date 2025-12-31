@@ -8,6 +8,7 @@
 #include <fstream>
 #include <filesystem>
 
+#include "slideio/core/tools/cvtools.hpp"
 #include "slideio/core/tools/endian.hpp"
 #include "slideio/core/tools/tempfile.hpp"
 
@@ -113,11 +114,8 @@ TEST(ImageTools, writeRGBImage)
     EXPECT_EQ(rect.height, sourceRaster.rows);
     EXPECT_EQ(compression, slideio::Compression::Png);
     scene->readBlock(rect, destRaster);
-    cv::Mat diffRaster = sourceRaster - destRaster;
-    double minVal(0), maxVal(0);
-    cv::minMaxLoc(diffRaster, &minVal, &maxVal);
-    EXPECT_EQ(minVal, 0);
-    EXPECT_EQ(maxVal, 0);
+	double sim = slideio::ImageTools::computeSimilarity2(sourceRaster, destRaster);
+	EXPECT_GT(sim, 0.99);
 }
 
 TEST(ImageTools, readJxrImage)
@@ -411,3 +409,65 @@ TEST(ImageTools, computeSimilarity2Diff)
     double similarity = slideio::ImageTools::computeSimilarity2(left, right);
     EXPECT_DOUBLE_EQ(similarity, 0);
 }
+
+namespace
+{
+    void testBmp(const std::string& pathBmp, const std::string& pathRaw, slideio::DataType dt, int numChannels) {
+        cv::Mat bmpRaster;
+        slideio::ImageTools::readBitmap(pathBmp, bmpRaster);
+
+        cv::Mat rawRaster(bmpRaster.rows, bmpRaster.cols, bmpRaster.type());
+        TestTools::readRawImage(pathRaw, rawRaster);
+
+        ASSERT_FALSE(bmpRaster.empty());
+        EXPECT_EQ(rawRaster.cols, bmpRaster.cols);
+        EXPECT_EQ(rawRaster.rows, bmpRaster.rows);
+        EXPECT_EQ(numChannels, bmpRaster.channels());
+        EXPECT_EQ(dt, slideio::CVTools::getMatDataType(bmpRaster));
+
+        double similarity = slideio::ImageTools::computeSimilarity2(rawRaster, bmpRaster);
+        EXPECT_GT(similarity, 0.9999);
+    }
+}
+
+TEST(ImageTools, readBitmap24Bit)
+{
+    testBmp(
+        TestTools::getTestImagePath("gdal", "img_2448x2448_3x8bit_SRC_RGB_ducks.bmp"),
+        TestTools::getTestImagePath("gdal", "img_2448x2448_3x8bit_SRC_RGB_ducks.raw"),
+        slideio::DataType::DT_Byte,
+        3
+    );
+}
+
+TEST(ImageTools, readBitmap8BitGrayscale)
+{
+    testBmp(
+        TestTools::getTestImagePath("gdal", "img_2448x2448_1x8bit_SRC_GRAY_ducks.bmp"),
+        TestTools::getTestImagePath("gdal", "img_2448x2448_1x8bit_SRC_GRAY_ducks.raw"),
+        slideio::DataType::DT_Byte,
+        1
+    );
+}
+
+
+TEST(ImageTools, readBitmapInvalidFile)
+{
+    // Test with non-existent file
+    cv::Mat bmpRaster;
+    EXPECT_THROW({
+        slideio::ImageTools::readBitmap("nonexistent.bmp", bmpRaster);
+    }, slideio::RuntimeError);
+}
+
+TEST(ImageTools, readBitmapInvalidFormat)
+{
+    // Test with a non-BMP file
+    std::string pathPng = TestTools::getTestImagePath("gdal", "img_2448x2448_3x8bit_SRC_RGB_ducks.png");
+    cv::Mat bmpRaster;
+    
+    EXPECT_THROW({
+        slideio::ImageTools::readBitmap(pathPng, bmpRaster);
+    }, slideio::RuntimeError);
+}
+

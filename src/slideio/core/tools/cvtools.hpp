@@ -48,6 +48,10 @@ namespace slideio
                                                 const std::vector<int>& indices);
         static std::string dataTypeToString(DataType dataType);
         static std::string compressionToString(Compression dataType);
+
+        static DataType getMatDataType(const cv::Mat& mat) {
+            return CVTools::fromOpencvType(mat.type() & CV_MAT_DEPTH_MASK);;
+        }
     };
 }
 

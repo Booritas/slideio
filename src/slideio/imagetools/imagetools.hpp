@@ -9,6 +9,7 @@
 #include "slideio/base/slideio_enums.hpp"
 #include "slideio/imagetools/encodeparameters.hpp"
 
+
 #if defined(WIN32)
 #pragma warning( push )
 #pragma warning(disable:4005)
@@ -17,6 +18,7 @@
 
 namespace slideio
 {
+    class SmallImage;
     class SLIDEIO_IMAGETOOLS_EXPORTS ImageTools
     {
     public:
@@ -30,13 +32,13 @@ namespace slideio
         static void readGDALImage(const std::string& path, cv::OutputArray output);
         static void readGDALImageSubDataset(const std::string& path, int pageIndex, cv::OutputArray output);
         static void writeRGBImage(const std::string& path, Compression compression, cv::Mat raster);
-        static void writeTiffImage(const std::string& path, cv::Mat raster);
         static void readJxrImage(const std::string& path, cv::OutputArray output);
         static void decodeJxrBlock(const uint8_t* data, size_t size, cv::OutputArray output);
         static void decodeJpegStream(const uint8_t* data, size_t size, cv::OutputArray output);
         static void encodeJpeg(const cv::Mat& raster, std::vector<uint8_t>& encodedStream, const JpegEncodeParameters& params);
         // jpeg 2000 related methods
         static void readJp2KFile(const std::string& path, cv::OutputArray output);
+		static void readBitmap(const std::string& path, cv::OutputArray output);
         static void readJp2KStremHeader(const uint8_t* data, size_t dataSize, ImageHeader& header);
         static void decodeJp2KStream(const std::vector<uint8_t>& data, cv::OutputArray output,
             const std::vector<int>& channelIndices = std::vector<int>(),
@@ -49,6 +51,7 @@ namespace slideio
         static double computeSimilarity(const cv::Mat& left, const cv::Mat& right, bool ignoreTypes=false);
         static double computeSimilarity2(const cv::Mat& left, const cv::Mat& right);
         static double compareHistograms(const cv::Mat& leftM, const cv::Mat& rightM, int bins);
+		static std::shared_ptr<SmallImage> openSmallImage(const std::string& filePath);
         template <typename Type>
         static void convertTo32bitChannels(Type* data, int width, int height, int numChannels, int32_t** channels)
         {

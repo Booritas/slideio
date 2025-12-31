@@ -667,7 +667,7 @@ void TiffTools::readRegularStripedDir(libtiff::TIFF* file, const TiffDirectory& 
     return;
 }
 
-void TiffTools::readPlanarStripedDir(libtiff::TIFF* file, const TiffDirectory& dir, cv::_OutputArray output) {
+void TiffTools::readPlanarStripedDir(libtiff::TIFF* file, const TiffDirectory& dir, cv::OutputArray output) {
     int buff_size = dir.width * dir.height * Tools::dataTypeSize(dir.dataType);
     cv::Size sizeImage = {dir.width, dir.height};
     DataType dt = dir.dataType;
@@ -1025,4 +1025,76 @@ void TiffTools::scaleBlockToDirectory(const TiffDirectory& basisDir, const TiffD
     int dyn = static_cast<int>(std::ceil(static_cast<double>(yn) * zoomImageToDirY));
     dirBlockRect.width = dxn - dirBlockRect.x;
     dirBlockRect.height = dyn - dirBlockRect.y;
+}
+
+void TiffTools::readTiledDir(libtiff::TIFF* tiff, const TiffDirectory& dir, cv::OutputArray output) {
+    if (!dir.tiled) {
+        RAISE_RUNTIME_ERROR << "TiffTools::readTiledDir: Expected tiled configuration, received striped";
+    }
+
+    // Set the current directory
+    setCurrentDirectory(tiff, dir);
+
+    // Calculate the number of tiles
+    const int tilesAcross = (dir.width + dir.tileWidth - 1) / dir.tileWidth;
+    const int tilesDown = (dir.height + dir.tileHeight - 1) / dir.tileHeight;
+    const int totalTiles = tilesAcross * tilesDown;
+
+    // Create output image
+    const cv::Size imageSize(dir.width, dir.height);
+    const DataType dt = dir.dataType;
+    const int cvType = CVTools::toOpencvType(dt);
+    output.create(imageSize, CV_MAKETYPE(cvType, dir.channels));
+    cv::Mat imageMat = output.getMat();
+
+    // Read tiles and assemble the image
+    for (int tileIndex = 0; tileIndex < totalTiles; ++tileIndex) {
+        // Calculate tile position
+        const int tileRow = tileIndex / tilesAcross;
+        const int tileCol = tileIndex % tilesAcross;
+        const int tileX = tileCol * dir.tileWidth;
+        const int tileY = tileRow * dir.tileHeight;
+
+        // Calculate actual tile size (may be smaller at edges)
+        const int actualTileWidth = std::min(dir.tileWidth, dir.width - tileX);
+        const int actualTileHeight = std::min(dir.tileHeight, dir.height - tileY);
+
+        // Read the tile
+        cv::Mat tileMat;
+        std::vector<int> channelIndices; // Empty means all channels
+
+        try {
+            readTile(tiff, dir, tileIndex, channelIndices, tileMat);
+        }
+        catch (const std::exception& ex) {
+            RAISE_RUNTIME_ERROR << "TiffTools::readTiledDir: Failed to read tile "
+                << tileIndex << " at position (" << tileX << "," << tileY << "): " << ex.what();
+        }
+
+        // Validate tile dimensions
+        if (tileMat.empty()) {
+            RAISE_RUNTIME_ERROR << "TiffTools::readTiledDir: Empty tile read at index " << tileIndex;
+        }
+
+        // Extract the valid portion of the tile (may be smaller at edges)
+        cv::Rect tileValidRect(0, 0, actualTileWidth, actualTileHeight);
+        cv::Mat validTileMat = tileMat(tileValidRect);
+
+        // Define the region in the output image
+        cv::Rect imageRect(tileX, tileY, actualTileWidth, actualTileHeight);
+
+        // Validate the destination rectangle
+        if (imageRect.x + imageRect.width > imageMat.cols ||
+            imageRect.y + imageRect.height > imageMat.rows) {
+            RAISE_RUNTIME_ERROR << "TiffTools::readTiledDir: Tile " << tileIndex
+                << " extends beyond image boundaries";
+        }
+
+        // Copy tile data to the output image
+        cv::Mat imageRoi = imageMat(imageRect);
+        validTileMat.copyTo(imageRoi);
+    }
+
+    SLIDEIO_LOG(INFO) << "TiffTools::readTiledDir: Successfully read tiled directory "
+        << dir.dirIndex << " (" << tilesAcross << "x" << tilesDown << " tiles)";
 }

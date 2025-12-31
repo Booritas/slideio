@@ -49,7 +49,7 @@ TEST_F(TiffToolsTests, scanTiffFile)
     EXPECT_EQ((uint32_t)7,dir5.compression);
 }
 
-TEST_F(TiffToolsTests, readStripedDir)
+TEST_F(TiffToolsTests, readStripedDir8bitInterleavedPhotometric2)
 {
     std::string filePathTiff = TestTools::getTestImagePath("svs","CMU-1-Small-Region.svs");
     std::string filePathBmp = TestTools::getTestImagePath("svs", "CMU-1-Small-Region-page-2.bmp");
@@ -63,14 +63,63 @@ TEST_F(TiffToolsTests, readStripedDir)
     slideio::TiffTools::readStripedDir(tiff, dir, dirRaster);
     slideio::TiffTools::closeTiffFile(tiff);
     cv::Mat image;
-    slideio::ImageTools::readGDALImage(filePathBmp, image);
-    // compare similarity of rasters from bmp and decoded jp2k file
-    cv::Mat score;
-    cv::matchTemplate(dirRaster, image, score, cv::TM_CCOEFF_NORMED);
-    double minScore(0), maxScore(0);
-    cv::minMaxLoc(score, &minScore, &maxScore);
-    ASSERT_LT(0.99, minScore);
+    slideio::ImageTools::readBitmap(filePathBmp, image);
+	double sim = slideio::ImageTools::computeSimilarity(dirRaster, image);
+	ASSERT_LT(0.99, sim);
+}
 
+TEST_F(TiffToolsTests, readStripedDir16bitSingleChannel)
+{
+    std::string filePathTiff = TestTools::getTestImagePath("gdal", "img_2448x2448_1x16bit_SRC_RGB_ducks.tif");
+    std::string filePathRaw = TestTools::getTestImagePath("gdal", "img_2448x2448_1x16bit_SRC_RGB_ducks.raw");
+    libtiff::TIFF* tiff = slideio::TiffTools::openTiffFile(filePathTiff);;
+    ASSERT_TRUE(tiff != nullptr);
+    int dirIndex = 0;
+    slideio::TiffDirectory dir;
+    slideio::TiffTools::scanTiffDirTags(tiff, dirIndex, 0, dir);
+    cv::Mat dirRaster;
+    slideio::TiffTools::readStripedDir(tiff, dir, dirRaster);
+    slideio::TiffTools::closeTiffFile(tiff);
+    cv::Mat rawRaster(dirRaster.rows, dirRaster.cols, dirRaster.type());
+    TestTools::readRawImage(filePathRaw, rawRaster);
+    double sim = slideio::ImageTools::computeSimilarity(dirRaster, rawRaster);
+    ASSERT_LT(0.99, sim);
+}
+
+TEST_F(TiffToolsTests, readStripedDir16bitSingleChannel2ndDir)
+{
+    std::string filePathTiff = TestTools::getTestImagePath("gdal", "multipage-ducks.tif");
+    std::string filePathRaw = TestTools::getTestImagePath("gdal", "img_2448x2448_1x16bit_SRC_RGB_ducks.raw");
+    libtiff::TIFF* tiff = slideio::TiffTools::openTiffFile(filePathTiff);;
+    ASSERT_TRUE(tiff != nullptr);
+    int dirIndex = 1;
+    slideio::TiffDirectory dir;
+    slideio::TiffTools::scanTiffDirTags(tiff, dirIndex, 0, dir);
+    cv::Mat dirRaster;
+    slideio::TiffTools::readStripedDir(tiff, dir, dirRaster);
+    slideio::TiffTools::closeTiffFile(tiff);
+    cv::Mat rawRaster(dirRaster.rows, dirRaster.cols, dirRaster.type());
+    TestTools::readRawImage(filePathRaw, rawRaster);
+    double sim = slideio::ImageTools::computeSimilarity(dirRaster, rawRaster);
+    ASSERT_LT(0.99, sim);
+}
+
+TEST_F(TiffToolsTests, readStripedDir16bit3Channels)
+{
+    std::string filePathTiff = TestTools::getTestImagePath("gdal", "img_2448x2448_3x16bit_SRC_RGB_ducks.tif");
+    std::string filePathRaw = TestTools::getTestImagePath("gdal", "img_2448x2448_3x16bit_SRC_RGB_ducks.raw");
+    libtiff::TIFF* tiff = slideio::TiffTools::openTiffFile(filePathTiff);;
+    ASSERT_TRUE(tiff != nullptr);
+    int dirIndex = 0;
+    slideio::TiffDirectory dir;
+    slideio::TiffTools::scanTiffDirTags(tiff, dirIndex, 0, dir);
+    cv::Mat dirRaster;
+    slideio::TiffTools::readStripedDir(tiff, dir, dirRaster);
+    slideio::TiffTools::closeTiffFile(tiff);
+    cv::Mat rawRaster(dirRaster.rows, dirRaster.cols, dirRaster.type());
+    TestTools::readRawImage(filePathRaw, rawRaster);
+    double sim = slideio::ImageTools::computeSimilarity(dirRaster, rawRaster);
+    ASSERT_LT(0.99, sim);
 }
 
 TEST_F(TiffToolsTests, readTile_jpeg)

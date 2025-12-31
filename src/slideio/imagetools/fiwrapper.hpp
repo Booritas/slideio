@@ -2,27 +2,27 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #pragma once
-
+#include "slideio/imagetools/slideio_imagetools_def.hpp"
+#include "tifftools.hpp"
+#include "slideio/base/size.hpp"
+#include "slideio/base/slideio_enums.hpp"
+#include "slideio/imagetools/SmallImage.hpp"
 #include <FreeImage.h>
 #include <map>
 #include <string>
 #include <nlohmann/json.hpp>
 #include <opencv2/core/mat.hpp>
 
-#include "tifftools.hpp"
-#include "slideio/base/size.hpp"
-#include "slideio/base/slideio_enums.hpp"
-#include "slideio/imagetools/slideio_imagetools_def.hpp"
 
 struct FIBITMAP;
 struct FIMULTIBITMAP;
 
 namespace slideio
 {
-	class SLIDEIO_IMAGETOOLS_EXPORTS FIWrapper
+	class SLIDEIO_IMAGETOOLS_EXPORTS FIWrapper : public SmallImage
 	{
 	public:
-		class SLIDEIO_IMAGETOOLS_EXPORTS Page
+		class SLIDEIO_IMAGETOOLS_EXPORTS Page : public SmallImagePage
 		{
 		public:
 			Page(FIWrapper* parent, int pageIndex);
@@ -31,21 +31,21 @@ namespace slideio
 			Page& operator=(const Page&) = delete;
             Page(Page&& other) noexcept = delete;
 			Page& operator=(Page&& other) noexcept = delete;
-			~Page();
-			Size getSize() const;
-			DataType getDataType() const {
+			virtual ~Page();
+			Size getSize() const override;
+			DataType getDataType() const override{
 				return m_dataType;
 			}
-            int getNumChannels() const {
+            int getNumChannels() const override{
 				return m_numChannels;
 			}
-            const std::string& getMetadata() const {
+            const std::string& getMetadata() const override{
 				return m_metadata;
 			}
-			Compression getCompression() const {
+			Compression getCompression() const override{
 				return m_compression;
 			}
-			void readRaster(cv::OutputArray) const;
+			void readRaster(cv::OutputArray) override;
 		private:
             void detectMetadata();
 			void extractCommonMetadata();
@@ -72,10 +72,10 @@ namespace slideio
 		FIWrapper& operator=(const FIWrapper&) = delete;
 		FIWrapper(FIWrapper&& other) noexcept = delete;
 		FIWrapper& operator=(FIWrapper&& other) noexcept = delete;
-		~FIWrapper();
-		bool isValid() const;
-		int getNumPages() const;
-		std::shared_ptr<Page> readPage(int page);
+		virtual ~FIWrapper();
+		bool isValid() const override;
+		int getNumPages() const override;
+		SmallImagePage* readPage(int page) override;
 		FIMULTIBITMAP* getFIHandle() const{
 			return m_hFile;
 		}
@@ -89,6 +89,7 @@ namespace slideio
 			return (int)m_tiffDirectories.size();
 		}
 		const TiffDirectory& getTiffDirectory(int index) const;
+        static void writeRaster(const std::string& filePath, Compression compression, const cv::Mat& raster);
     private:
 		FIMULTIBITMAP* m_hFile = nullptr;
 		FIBITMAP* m_pBitmap = nullptr;

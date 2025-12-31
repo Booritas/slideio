@@ -82,8 +82,12 @@ std::string TestTools::getFullTestImagePath(const std::string& subfolder, const 
 }
 
 
-void TestTools::readRawImage(std::string& path, cv::Mat& image)
+void TestTools::readRawImage(const std::string& path, cv::Mat& image)
 {
+	std::filesystem::path filePath(path);
+    if (!std::filesystem::exists(filePath)) {
+		RAISE_RUNTIME_ERROR << "TestTools::readRawImage: File " << path << " does not exist";
+    }
     std::ifstream is;
     is.open(path, std::ios::binary);
     is.seekg(0, std::ios::end);
@@ -95,6 +99,25 @@ void TestTools::readRawImage(std::string& path, cv::Mat& image)
     const slideio::DataType dt = slideio::CVTools::fromOpencvType(cvType);
     slideio::Endian::fromLittleEndianToNative(dt, image.data, image.total() * image.elemSize());
 
+}
+
+void TestTools::writeRawImage(const std::string& path, const cv::Mat& image) {
+    std::ofstream os;
+    os.open(path, std::ios::binary);
+    if (!os.is_open()) {
+        RAISE_RUNTIME_ERROR << "File " << path << " could not be opened for writing";
+    }
+    
+    const int cvType = image.type() & CV_MAT_DEPTH_MASK;
+    const slideio::DataType dt = slideio::CVTools::fromOpencvType(cvType);
+    const size_t dataSize = image.total() * image.elemSize();
+    
+    std::vector<uint8_t> buffer(dataSize);
+    std::memcpy(buffer.data(), image.data, dataSize);
+    //slideio::Endian::fromNativeToLittleEndian(dt, buffer.data(), dataSize);
+    
+    os.write(reinterpret_cast<const char*>(buffer.data()), dataSize);
+    os.close();
 }
 
 void TestTools::compareRasters(cv::Mat& raster1, cv::Mat& raster2)

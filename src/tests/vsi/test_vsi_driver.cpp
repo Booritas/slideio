@@ -354,10 +354,18 @@ TEST_F(VSIImageDriverTests, read3DStack16bit) {
     cv::Mat testRaster;
     ImageTools::readGDALImageSubDataset(testFilePath4, 1, testRaster);
     double similarity = ImageTools::computeSimilarity2(testRaster, slice);
+    double minVal = 0, maxVAl = 0;
+    cv::minMaxLoc(testRaster, &minVal, &maxVAl);
+    double minVal1 = 0, maxVAl1 = 0;
+    cv::minMaxLoc(slice, &minVal1, &maxVAl1);
+
     EXPECT_GT(similarity, 0.99);
+    //TestTools::showRasters(testRaster, slice);
     CVTools::extractSliceFrom3D(blockRaster, 1, slice);
     ImageTools::readGDALImageSubDataset(testFilePath5, 1, testRaster);
+    similarity = ImageTools::computeSimilarity2(testRaster, slice);
     EXPECT_GT(similarity, 0.99);
+    //TestTools::showRasters(testRaster, slice);
 }
 
 TEST_F(VSIImageDriverTests, readMultiscene) {
