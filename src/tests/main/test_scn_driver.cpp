@@ -284,7 +284,7 @@ TEST(SCNImageDriver, readTile_1_channel)
     const int tileIndex = 6 + 8*10;
     scene->readTile(tileIndex, channelIndices, raster, &info);
     cv::Mat bmpImage;// = cv::imread(tilePath, cv::IMREAD_GRAYSCALE);
-    slideio::ImageTools::readGDALImage(tilePath, bmpImage);
+    slideio::ImageTools::readSmallImageRaster(tilePath, bmpImage);
     int compare = std::memcmp(raster.data, bmpImage.data, raster.total() * raster.elemSize());
     EXPECT_EQ(compare, 0);
 }
@@ -315,9 +315,9 @@ TEST(SCNImageDriver, readTile_2_channels)
 
     std::vector<cv::Mat> tileChannels(2);
     //tileChannels[0] = cv::imread(tilePath1, cv::IMREAD_GRAYSCALE);
-    slideio::ImageTools::readGDALImage(tilePath1, tileChannels[0]);
+    slideio::ImageTools::readSmallImageRaster(tilePath1, tileChannels[0]);
     //tileChannels[1] = cv::imread(tilePath2, cv::IMREAD_GRAYSCALE);
-    slideio::ImageTools::readGDALImage(tilePath2, tileChannels[1]);
+    slideio::ImageTools::readSmallImageRaster(tilePath2, tileChannels[1]);
 
     cv::Mat bmpImage;
     cv::merge(tileChannels, bmpImage);
@@ -349,7 +349,7 @@ TEST(SCNImageDriver, readTile_interleaved_channels)
 
     std::string tilePath = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1/dir_0_tile_1-7.png");
     cv::Mat bmpImage;
-    slideio::ImageTools::readGDALImage(tilePath, bmpImage);
+    slideio::ImageTools::readSmallImageRaster(tilePath, bmpImage);
 
     cv::Rect roi{ 0,0,512,200 };
     cv::Mat dif;
@@ -369,7 +369,7 @@ TEST(SCNImageDriver, readTile_readBlock)
     std::string filePath = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1.scn");
     std::string regionPath = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1/x2500-y2338-600x500.bmp");
     cv::Mat region; 
-    slideio::ImageTools::readGDALImage(regionPath, region);
+    slideio::ImageTools::readSmallImageRaster(regionPath, region);
 
     std::vector<slideio::TiffDirectory> dirs;
     slideio::TiffTools::scanFile(filePath, dirs);
@@ -394,7 +394,7 @@ TEST(SCNImageDriver, readTile_readBlockResampling)
     std::string filePath = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1.scn");
     std::string regionPath = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1/x2500-y2338-600x500.bmp");
     cv::Mat region;// = cv::imread(regionPath, cv::IMREAD_COLOR);
-    slideio::ImageTools::readGDALImage(regionPath, region);
+    slideio::ImageTools::readSmallImageRaster(regionPath, region);
     const double coef = 1. / 3.;
     const int width = std::lround(region.cols * coef);
     const int height = std::lround(region.rows * coef);
@@ -430,7 +430,7 @@ TEST(SCNImageDriver, readThumbnail)
     std::string filePath = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1.scn");
     std::string thumbnailPath = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1/thumbnail.png");
     cv::Mat thumbnail;
-    slideio::ImageTools::readGDALImage(thumbnailPath, thumbnail);
+    slideio::ImageTools::readSmallImageRaster(thumbnailPath, thumbnail);
     slideio::SCNImageDriver imageDriver;
     auto slide = imageDriver.openFile(filePath);
     auto scene = slide->getAuxImage("Macro");
@@ -475,7 +475,7 @@ TEST(SCNImageDriver, supplementalImage)
     scene->readBlock(rect, label);
     std::string testFilePath = TestTools::getFullTestImagePath("scn", "ultivue/test/Leica Aperio Versa 5 channel fluorescent image-label.png");
     cv::Mat expectedLabel;
-    slideio::ImageTools::readGDALImage(testFilePath, expectedLabel);
+    slideio::ImageTools::readSmallImageRaster(testFilePath, expectedLabel);
 	const double score = slideio::ImageTools::computeSimilarity2(label, expectedLabel);
 	const double precision = slideio::Endian::isLittleEndian()?0.99:0.88;
 	EXPECT_GT(score, precision);
@@ -597,7 +597,7 @@ TEST(SCNImageDriver, zStack) {
     cv::Size blockSize = { blockRect.width, blockRect.height };
     scene->readResampled4DBlockChannels(blockRect, blockSize, channels, cv::Range(4, 5), cv::Range(0, 1), sliceRaster);
     cv::Mat testRaster;
-    slideio::ImageTools::readGDALImage(testFilePath, testRaster);
+    slideio::ImageTools::readSmallImageRaster(testFilePath, testRaster);
     EXPECT_TRUE(TestTools::compareRastersEx(sliceRaster, testRaster));
     //TestTools::showRasters(sliceRaster,testRaster);
     blockRect = { rect.width / 2, rect.height / 2, rect.width / 4, rect.height / 4 };

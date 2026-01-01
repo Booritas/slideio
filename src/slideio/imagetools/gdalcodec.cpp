@@ -8,27 +8,3 @@
 
 
 
-void slideio::ImageTools::readGDALImageSubDataset(const std::string& filePath, int pageIndex, cv::OutputArray output)
-{
-    auto image = ImageTools::openSmallImage(filePath);
-    if (!image->isValid()) {
-        RAISE_RUNTIME_ERROR << "Cannot open file: " << filePath;
-	}
-    const int numPages = image->getNumPages();
-    if (pageIndex >= numPages || pageIndex <0) {
-        RAISE_RUNTIME_ERROR << "Invalid subdataset index " << pageIndex
-			<< " for file " << filePath << ". Number of subdatasets: " << numPages;
-    }
-    auto page = image->readPage(pageIndex);
-	page->readRaster(output);
-}
-
-void slideio::ImageTools::readGDALImage(const std::string& filePath, cv::OutputArray output)
-{
-    readGDALImageSubDataset(filePath, 0, output);
-}
-
-void slideio::ImageTools::writeRGBImage(const std::string& path, Compression compression, cv::Mat raster)
-{
-    FIWrapper::writeRaster(path, compression, raster);
-}

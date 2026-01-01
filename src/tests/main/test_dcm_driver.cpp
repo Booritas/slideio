@@ -142,7 +142,7 @@ TEST(DCMImageDriver, readSimpleFileWholeBlock)
     scene->readBlock(rect, image);
     ASSERT_FALSE(image.empty());
     cv::Mat bmpImage;
-    slideio::ImageTools::readGDALImage(testPath, bmpImage);
+    slideio::ImageTools::readSmallImageRaster(testPath, bmpImage);
     cv::Mat bmpBlock = bmpImage(rect);
     double similarity = ImageTools::computeSimilarity(image, bmpImage);
     EXPECT_LT(0.99, similarity);
@@ -186,7 +186,7 @@ TEST(DCMImageDriver, readSimpleFileResampled)
     scene->readResampledBlock(rect, size, image);
     ASSERT_FALSE(image.empty());
     cv::Mat bmpImage;
-    slideio::ImageTools::readGDALImage(testPath, bmpImage);
+    slideio::ImageTools::readSmallImageRaster(testPath, bmpImage);
     cv::Mat bmpBlock = bmpImage(rect);
     cv::Mat resizedBlock;
     cv::resize(bmpBlock, resizedBlock, size);
@@ -213,7 +213,7 @@ TEST(DCMImageDriver, readSingleFrame)
     ASSERT_FALSE(image.empty());
     image.convertTo(image, CV_MAKE_TYPE(CV_8U, 1));
     cv::Mat testImage;
-    slideio::ImageTools::readGDALImage(testPath, testImage);
+    slideio::ImageTools::readSmallImageRaster(testPath, testImage);
     double similarity = ImageTools::computeSimilarity(image, testImage);
     EXPECT_LT(0.99, similarity);
 }
@@ -239,7 +239,7 @@ TEST(DCMImageDriver, readSingleFrameROIRescale)
     ASSERT_EQ(500, image.size().height);
     image.convertTo(image, CV_MAKE_TYPE(CV_8U, 1));
     cv::Mat testImage;
-    slideio::ImageTools::readGDALImage(testPath, testImage);
+    slideio::ImageTools::readSmallImageRaster(testPath, testImage);
     cv::Mat roi = testImage(rect);
     cv::resize(roi, roi, size);
     double similarity = ImageTools::computeSimilarity(image, roi);
@@ -271,12 +271,12 @@ TEST(DCMImageDriver, readMultiFrameROIRescale)
     CVTools::extractSliceFrom3D(image, 1, slice6);
 
     cv::Mat testImage5;
-    slideio::ImageTools::readGDALImage(testPath1, testImage5);
+    slideio::ImageTools::readSmallImageRaster(testPath1, testImage5);
     cv::Mat roi5 = testImage5(rect);
     cv::resize(roi5, roi5, size);
 
     cv::Mat testImage6;
-    slideio::ImageTools::readGDALImage(testPath2, testImage6);
+    slideio::ImageTools::readSmallImageRaster(testPath2, testImage6);
     cv::Mat roi6 = testImage6(rect);
     cv::resize(roi6, roi6, size);
     double similarity = ImageTools::computeSimilarity(slice5, roi5);
@@ -314,7 +314,7 @@ TEST(DCMImageDriver, readDirectory3D)
     CVTools::extractSliceFrom3D(image, 4, sliceRaster);
 
     cv::Mat bmpImage;
-    ImageTools::readGDALImage(testImagePath, bmpImage);
+    ImageTools::readSmallImageRaster(testImagePath, bmpImage);
     double similarity = ImageTools::computeSimilarity(sliceRaster, bmpImage);
     //TestTools::showRasters(sliceRaster, bmpImage);
     EXPECT_EQ(1, similarity);
@@ -661,7 +661,7 @@ TEST(DCMImageDriver, readJp2K)
     scene->readResampledBlock(rect, size, image);
     ASSERT_FALSE(image.empty());
     cv::Mat testImage;
-    slideio::ImageTools::readGDALImage(testPath, testImage);
+    slideio::ImageTools::readSmallImageRaster(testPath, testImage);
     double simScore = ImageTools::computeSimilarity2(image, testImage);
     EXPECT_GT(simScore, 0.999);
 }

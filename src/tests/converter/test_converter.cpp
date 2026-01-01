@@ -563,7 +563,7 @@ TEST(Converter, createSVS8bitGray)
 	slideio::converter::convertScene(scene, parameters, svs.getPath().string());
 
 	cv::Mat source;
-	slideio::ImageTools::readGDALImage(imagePath, source);
+	slideio::ImageTools::readSmallImageRaster(imagePath, source);
 	CVSlidePtr targetSlide = slideio::ImageDriverManager::openSlide(svs.getPath().string(), "SVS");
 	CVScenePtr targetScene = targetSlide->getScene(0);
 	cv::Rect sceneRect = targetScene->getRect();
@@ -589,7 +589,7 @@ TEST(Converter, createSVS8bitColor)
 	slideio::converter::convertScene(scene, parameters, svs.getPath().string());
 
 	cv::Mat source;
-	slideio::ImageTools::readGDALImage(imagePath, source);
+	slideio::ImageTools::readSmallImageRaster(imagePath, source);
 	CVSlidePtr targetSlide = slideio::ImageDriverManager::openSlide(svs.getPath().string(), "SVS");
 	CVScenePtr targetScene = targetSlide->getScene(0);
 	cv::Rect sceneRect = targetScene->getRect();

@@ -28,10 +28,8 @@ namespace slideio
             cv::Size size = {};
         };
     public:
-        //static void readGDALSubset(const std::string& filePath, cv::OutputArray output);
-        static void readGDALImage(const std::string& path, cv::OutputArray output);
-        static void readGDALImageSubDataset(const std::string& path, int pageIndex, cv::OutputArray output);
-        static void writeRGBImage(const std::string& path, Compression compression, cv::Mat raster);
+        static void readSmallImageRaster(const std::string& path, cv::OutputArray output);
+        static void writeSmallImageRaster(const std::string& path, Compression compression, cv::Mat raster);
         static void readJxrImage(const std::string& path, cv::OutputArray output);
         static void decodeJxrBlock(const uint8_t* data, size_t size, cv::OutputArray output);
         static void decodeJpegStream(const uint8_t* data, size_t size, cv::OutputArray output);

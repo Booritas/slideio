@@ -73,7 +73,7 @@ TEST(SVSImageDriver, read_Thumbnail_WholeImage)
     // read extracted page by GDAL library
     std::string pathPageFile = TestTools::getTestImagePath("svs","CMU-1-Small-Region-page-1.tif");
     cv::Mat pageRaster;
-    slideio::ImageTools::readGDALImage(pathPageFile, pageRaster);
+    slideio::ImageTools::readSmallImageRaster(pathPageFile, pageRaster);
 
     cv::Mat score;
     cv::matchTemplate(imageRaster, pageRaster, score, cv::TM_CCOEFF_NORMED);
@@ -112,7 +112,7 @@ TEST(SVSImageDriver, read_Thumbnail_Block)
     // read extracted page by GDAL library
     std::string pathPageFile = TestTools::getTestImagePath("svs", "CMU-1-Small-Region-page-1.tif");
     cv::Mat pageRaster;
-    slideio::ImageTools::readGDALImage(pathPageFile, pageRaster);
+    slideio::ImageTools::readSmallImageRaster(pathPageFile, pageRaster);
     cv::Mat pageBlockRaster = pageRaster(blockRect);
 
     cv::Mat score;
@@ -155,7 +155,7 @@ TEST(SVSImageDriver, read_Thumbnail_BlockWithScale)
     // read extracted page by GDAL library
     std::string pathPageFile = TestTools::getTestImagePath("svs", "CMU-1-Small-Region-page-1.tif");
     cv::Mat pageRaster;
-    slideio::ImageTools::readGDALImage(pathPageFile, pageRaster);
+    slideio::ImageTools::readSmallImageRaster(pathPageFile, pageRaster);
     cv::Mat pageBlockRaster = pageRaster(blockRect);
     cv::Mat pageResizedRaster;
     cv::resize(pageBlockRaster, pageResizedRaster, blockSize);
@@ -227,7 +227,7 @@ TEST(SVSImageDriver, readBlock_WholeImage)
     // read extracted page by GDAL library
     std::string pathPageFile = TestTools::getTestImagePath("svs", "CMU-1-Small-Region-page-0.tif");
     cv::Mat pageRaster;
-    slideio::ImageTools::readGDALImage(pathPageFile, pageRaster);
+    slideio::ImageTools::readSmallImageRaster(pathPageFile, pageRaster);
     cv::Mat pageBlockRaster = pageRaster(sceneRect);
     cv::Mat score;
     cv::matchTemplate(sceneRaster, pageBlockRaster, score, cv::TM_CCOEFF_NORMED);
@@ -256,7 +256,7 @@ TEST(SVSImageDriver, readBlock_Part)
     // read extracted page by GDAL library
     std::string pathPageFile = TestTools::getTestImagePath("svs", "CMU-1-Small-Region-page-0.tif");
     cv::Mat pageRaster;
-    slideio::ImageTools::readGDALImage(pathPageFile, pageRaster);
+    slideio::ImageTools::readSmallImageRaster(pathPageFile, pageRaster);
     cv::Mat pageBlockRaster = pageRaster(blockRect);
     cv::Mat score;
     cv::matchTemplate(blockRaster, pageBlockRaster, score, cv::TM_CCOEFF_NORMED);
@@ -287,7 +287,7 @@ TEST(SVSImageDriver, readBlock_PartScale)
     // read extracted page by GDAL library
     std::string pathPageFile = TestTools::getTestImagePath("svs", "CMU-1-Small-Region-page-0.tif");
     cv::Mat pageRaster;
-    slideio::ImageTools::readGDALImage(pathPageFile, pageRaster);
+    slideio::ImageTools::readSmallImageRaster(pathPageFile, pageRaster);
     cv::Mat pageBlockRaster = pageRaster(blockRect);
     cv::Mat scaledRaster;
     cv::resize(pageBlockRaster, scaledRaster, blockSize);
@@ -465,7 +465,7 @@ TEST(SVSImageDriver, readCELabImage)
     scene->readBlock(cv::Rect(0, 0, 1000, 1000), block);
     std::string pathTest = TestTools::getFullTestImagePath("svs", "test/S1303802-11-HE-DX1-block.png");
     cv::Mat expectedBlock;
-    slideio::ImageTools::readGDALImage(pathTest, expectedBlock);
+    slideio::ImageTools::readSmallImageRaster(pathTest, expectedBlock);
     cv::Mat dif;
     cv::absdiff(block, expectedBlock, dif);
     cv::Mat dif1, dif2, dif3;

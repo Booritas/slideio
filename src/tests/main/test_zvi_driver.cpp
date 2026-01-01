@@ -159,7 +159,7 @@ TEST(ZVIImageDriver, readBlock3Layers)
         cv::extractChannel(raster, channelRaster, channel);
         std::string channelName = std::string("Zeiss-1-Merged-ch") + std::to_string(channel) + ".tif";
         std::string channelPath = TestTools::getTestImagePath("zvi", channelName);
-        slideio::ImageTools::readGDALImage(channelPath, channelRasterTest);
+        slideio::ImageTools::readSmallImageRaster(channelPath, channelRasterTest);
 		double score = ImageTools::computeSimilarity2(channelRaster, channelRasterTest);
 		EXPECT_GT(score, 0.999);
     }
@@ -183,7 +183,7 @@ TEST(ZVIImageDriver, readBlockROI)
 
     cv::Mat channelRaster;
     std::string channelPath = TestTools::getTestImagePath("zvi", "Zeiss-1-Merged-ch0.tif");
-    slideio::ImageTools::readGDALImage(channelPath, channelRaster);
+    slideio::ImageTools::readSmallImageRaster(channelPath, channelRaster);
     cv::Mat channelDiff = cv::abs(raster - channelRaster);
     double min(0), max(0);
     cv::minMaxLoc(channelDiff, &min, &max);

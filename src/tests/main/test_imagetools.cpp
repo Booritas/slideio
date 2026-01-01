@@ -24,7 +24,7 @@ TEST(ImageTools, readJp2KFile)
     EXPECT_EQ(3, jp2k.channels());
     // read bmp file (conversion from jp2k)
     cv::Mat bmp;
-    slideio::ImageTools::readGDALImage(bmpFilePath, bmp);
+    slideio::ImageTools::readSmallImageRaster(bmpFilePath, bmp);
     // compare similarity of rasters from bmp and decoded jp2k file
     cv::Mat score;
     cv::matchTemplate(bmp, jp2k, score, cv::TM_CCOEFF_NORMED);
@@ -66,7 +66,7 @@ TEST(ImageTools, readGDALImage)
 {
     std::string path = TestTools::getTestImagePath("gdal","img_1024x600_3x8bit_RGB_color_bars_CMYKWRGB.png");
     cv::Mat image;
-    slideio::ImageTools::readGDALImage(path, image);
+    slideio::ImageTools::readSmallImageRaster(path, image);
     cv::Rect rect(260, 500, 100, 100);
     cv::Mat block(image, rect);
 
@@ -102,8 +102,8 @@ TEST(ImageTools, writeRGBImage)
     std::string pathBmp = TestTools::getTestImagePath("jxr","seagull.bmp");
     slideio::TempFile pathPng("png");
     cv::Mat sourceRaster;
-    slideio::ImageTools::readGDALImage(pathBmp, sourceRaster);
-    slideio::ImageTools::writeRGBImage(pathPng.getPath().string(), slideio::Compression::Png, sourceRaster);
+    slideio::ImageTools::readSmallImageRaster(pathBmp, sourceRaster);
+    slideio::ImageTools::writeSmallImageRaster(pathPng.getPath().string(), slideio::Compression::Png, sourceRaster);
     slideio::GDALImageDriver drv;
     auto slide = drv.openFile(pathPng.getPath().string());
     auto scene = slide->getScene(0);
@@ -124,7 +124,7 @@ TEST(ImageTools, readJxrImage)
     std::string pathBmp = TestTools::getTestImagePath("jxr","seagull.bmp");
     cv::Mat jxrImage, bmpImage;
     slideio::ImageTools::readJxrImage(pathJxr, jxrImage);
-    slideio::ImageTools::readGDALImage(pathBmp, bmpImage);
+    slideio::ImageTools::readSmallImageRaster(pathBmp, bmpImage);
 
     // compare similarity of rasters from bmp and decoded jpxr file
     cv::Mat score;
@@ -159,7 +159,7 @@ TEST(ImageTools, decodeJxrBlock)
     slideio::ImageTools::decodeJxrBlock(buffer.data(), buffer.size(), jxrImage);
     ASSERT_FALSE(jxrImage.empty());
     cv::Mat bmpImage;
-    slideio::ImageTools::readGDALImage(pathBmp, bmpImage);
+    slideio::ImageTools::readSmallImageRaster(pathBmp, bmpImage);
     ASSERT_FALSE(bmpImage.empty());
     // compare similarity of rasters from bmp and decoded jpxr file
     cv::Mat score;
@@ -215,7 +215,7 @@ TEST(ImageTools, decodeJpegStream)
     slideio::ImageTools::decodeJpegStream(buffer.data(), buffer.size(), jpegImage);
     ASSERT_FALSE(jpegImage.empty());
     cv::Mat bmpImage;
-    slideio::ImageTools::readGDALImage(pathPng, bmpImage);
+    slideio::ImageTools::readSmallImageRaster(pathPng, bmpImage);
     ASSERT_FALSE(bmpImage.empty());
     // compare similarity of rasters from bmp and decoded jpeg file
     cv::Mat score;
@@ -243,7 +243,7 @@ TEST(ImageTools, decodeJpegStream2)
     slideio::ImageTools::decodeJpegStream(buffer.data(), buffer.size(), jpegImage);
     ASSERT_FALSE(jpegImage.empty());
     cv::Mat bmpImage;
-    slideio::ImageTools::readGDALImage(pathPng, bmpImage);
+    slideio::ImageTools::readSmallImageRaster(pathPng, bmpImage);
     ASSERT_FALSE(bmpImage.empty());
     // compare similarity of rasters from bmp and decoded jpeg file
     cv::Mat score;
@@ -279,7 +279,7 @@ TEST(ImageTools, computeSimilaritySimilar)
 {
     std::string pathPng = TestTools::getTestImagePath("jpeg", "lena_256.png");
     cv::Mat left;
-    slideio::ImageTools::readGDALImage(pathPng, left);
+    slideio::ImageTools::readSmallImageRaster(pathPng, left);
     cv::Mat right = left.clone();
     cv::blur(right, right, cv::Size(3, 3));
     double similarity = slideio::ImageTools::computeSimilarity(left, right);
@@ -290,7 +290,7 @@ TEST(ImageTools, computeSimilaritySimilar2)
 {
     std::string pathPng = TestTools::getTestImagePath("jpeg", "lena_256.png");
     cv::Mat left;
-    slideio::ImageTools::readGDALImage(pathPng, left);
+    slideio::ImageTools::readSmallImageRaster(pathPng, left);
     cv::Mat right = left.clone();
     cv::Point center(right.cols / 2, right.rows / 2);
     cv::circle(right, center, 75, cv::Scalar(0, 0, 0), cv::FILLED);
@@ -303,7 +303,7 @@ TEST(ImageTools, encodeJpeg)
 {
     std::string pathPng = TestTools::getTestImagePath("gdal", "img_2448x2448_3x8bit_SRC_RGB_ducks.png");
     cv::Mat source;
-    slideio::ImageTools::readGDALImage(pathPng, source);
+    slideio::ImageTools::readSmallImageRaster(pathPng, source);
     std::vector<uint8_t> output;
     slideio::JpegEncodeParameters encodeParameters(99);
     slideio::ImageTools::encodeJpeg(source, output, encodeParameters);
@@ -314,7 +314,7 @@ TEST(ImageTools, encodeJpeg)
     file.write(reinterpret_cast<const char*>(output.data()), output.size());
     file.close();
     cv::Mat target;
-    slideio::ImageTools::readGDALImage(pathJpeg, target);
+    slideio::ImageTools::readSmallImageRaster(pathJpeg, target);
     double similarity = slideio::ImageTools::computeSimilarity(source, target);
     EXPECT_GE(similarity, 0.99);
 }
@@ -323,7 +323,7 @@ TEST(ImageTools, encodeJpegGray)
 {
     std::string pathPng = TestTools::getTestImagePath("gdal", "img_2448x2448_1x8bit_SRC_GRAY_ducks.png");
     cv::Mat source;
-    slideio::ImageTools::readGDALImage(pathPng, source);
+    slideio::ImageTools::readSmallImageRaster(pathPng, source);
     std::vector<uint8_t> output;
     slideio::JpegEncodeParameters params;
     params.setQuality(99);
@@ -335,7 +335,7 @@ TEST(ImageTools, encodeJpegGray)
     file.write(reinterpret_cast<const char*>(output.data()), output.size());
     file.close();
     cv::Mat target;
-    slideio::ImageTools::readGDALImage(pathJpeg, target);
+    slideio::ImageTools::readSmallImageRaster(pathJpeg, target);
     double similarity = slideio::ImageTools::computeSimilarity(source, target);
     EXPECT_GE(similarity, 0.99);
 }

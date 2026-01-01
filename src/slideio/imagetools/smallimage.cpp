@@ -3,9 +3,8 @@
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/imagetools/smallimage.hpp"
 #include "slideio/base/size.hpp"
-
 #include <opencv2/core.hpp>
-
+#include "fiwrapper.hpp"
 #include "slideio/base/exceptions.hpp"
 
 using namespace slideio;
@@ -32,4 +31,19 @@ void SmallImage::readImageStack(cv::OutputArray raster) {
 	if (!pageRasters.empty()) {
 		cv::merge(pageRasters, raster);
 	}
+}
+
+void slideio::ImageTools::readSmallImageRaster(const std::string& filePath, cv::OutputArray output)
+{
+	auto image = slideio::ImageTools::openSmallImage(filePath);
+	if (!image->isValid()) {
+		RAISE_RUNTIME_ERROR << "Cannot open file: " << filePath;
+	}
+	auto page = image->readPage(0);
+	page->readRaster(output);
+}
+
+void slideio::ImageTools::writeSmallImageRaster(const std::string& path, Compression compression, cv::Mat raster)
+{
+	FIWrapper::writeRaster(path, compression, raster);
 }

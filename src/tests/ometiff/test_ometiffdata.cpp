@@ -124,7 +124,7 @@ TEST_F(TiffDataTests, readTileFirstChannelOf2) {
 	ASSERT_TRUE(rasters[1].empty());
 	cv::Mat raster = rasters[0];
 	cv::Mat testRaster;
-	ImageTools::readGDALImage(testFilePath, testRaster);
+	ImageTools::readSmallImageRaster(testFilePath, testRaster);
 	EXPECT_TRUE(TestTools::compareRastersEx(raster, testRaster));
 }
 
@@ -150,7 +150,7 @@ TEST_F(TiffDataTests, readTileSecondChannelOf2) {
 	ASSERT_TRUE(rasters[0].empty());
 	cv::Mat raster = rasters[1];
 	cv::Mat testRaster;
-	ImageTools::readGDALImage(testFilePath, testRaster);
+	ImageTools::readSmallImageRaster(testFilePath, testRaster);
 	EXPECT_TRUE(TestTools::compareRastersEx(raster, testRaster));
 }
 
@@ -176,7 +176,7 @@ TEST_F(TiffDataTests, readTile3chOf3) {
 	cv::Mat raster;
 	cv::merge(rasters, raster);
 	cv::Mat testRaster;
-	ImageTools::readGDALImage(testFilePath, testRaster);
+	ImageTools::readSmallImageRaster(testFilePath, testRaster);
 	EXPECT_TRUE(TestTools::compareRastersEx(raster, testRaster));
 }
 
@@ -200,7 +200,7 @@ TEST_F(TiffDataTests, readTileChannelsStripePlanar) {
 	tiffData.readTileChannels(dir, 0, channelIndices,  raster);
 	EXPECT_FALSE(raster.empty());
 	cv::Mat testRaster;
-	ImageTools::readGDALImage(testFilePath, testRaster);
+	ImageTools::readSmallImageRaster(testFilePath, testRaster);
 	EXPECT_TRUE(TestTools::compareRastersEx(raster, testRaster));
 	cv::resize(testRaster, testRaster, cv::Size(dir1.width, dir1.height));
 	tiffData.readTileChannels(dir1, 0, channelIndices, raster);
@@ -225,7 +225,7 @@ TEST_F(TiffDataTests, readTileChannelsStripePlanar3ch) {
 	tiffData.readTileChannels(dir, 0, channelIndices, raster);
 	EXPECT_FALSE(raster.empty());
 	cv::Mat testRaster;
-	ImageTools::readGDALImage(testFilePath, testRaster);
+	ImageTools::readSmallImageRaster(testFilePath, testRaster);
 	EXPECT_TRUE(TestTools::compareRastersEx(raster, testRaster));
 	cv::resize(testRaster, testRaster, cv::Size(dir1.width, dir1.height));
 	tiffData.readTileChannels(dir1, 0, channelIndices, raster);
@@ -250,7 +250,7 @@ TEST_F(TiffDataTests, readTileChannelsTiledPlanar3ch) {
 	tiffData.readTileChannels(dir, 2202, channelIndices, raster);
 	EXPECT_FALSE(raster.empty());
 	cv::Mat testRaster;
-	ImageTools::readGDALImage(testFilePath, testRaster);
+	ImageTools::readSmallImageRaster(testFilePath, testRaster);
 	EXPECT_TRUE(TestTools::compareRastersEx(raster, testRaster));
 }
 
@@ -271,6 +271,6 @@ TEST_F(TiffDataTests, readTileChannelsTiledPalette3ch) {
 	//TestTools::showRaster(raster);
 	EXPECT_FALSE(raster.empty());
 	cv::Mat testRaster;
-	ImageTools::readGDALImage(testFilePath, testRaster);
+	ImageTools::readSmallImageRaster(testFilePath, testRaster);
 	EXPECT_TRUE(TestTools::compareRastersEx(raster, testRaster));
 }

@@ -356,7 +356,7 @@ TEST_F(VSIImageDriverTests, read3DStack16bit) {
     double similarity = ImageTools::computeSimilarity2(testRaster, slice);
     EXPECT_GT(similarity, 0.99);
     CVTools::extractSliceFrom3D(blockRaster, 1, slice);
-    ImageTools::readGDALImageSubDataset(testFileOme, 10, testRaster);
+    TiffTools::readDirRaster(testFileOme, 10, testRaster);
     similarity = ImageTools::computeSimilarity2(testRaster, slice);
     EXPECT_GT(similarity, 0.99);
 }
@@ -512,7 +512,7 @@ TEST(EtsFile, readTileJpeg2K) {
     //TestTools::showRaster(tileRaster);
     //ImageTools::writeTiffImage(testFilePath, tileRaster);
     cv::Mat testRaster;
-    ImageTools::readGDALImage(testFilePath, testRaster);
+    ImageTools::readSmallImageRaster(testFilePath, testRaster);
     double simScore = ImageTools::computeSimilarity2(testRaster, tileRaster);
     EXPECT_GT(simScore, 0.999);
     //TestTools::showRasters(testRaster, tileRaster);

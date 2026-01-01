@@ -313,7 +313,7 @@ TEST_F(OTImageDriverTests, readBlockSingleTile) {
 	scene->read4DBlockChannels(rect, channels, cv::Range(0, 1), cv::Range(0, 1), raster);
 	EXPECT_FALSE(raster.empty());
 	cv::Mat testRaster;
-	ImageTools::readGDALImage(testFilePath, testRaster);
+	ImageTools::readSmallImageRaster(testFilePath, testRaster);
 	EXPECT_TRUE(TestTools::compareRastersEx(raster, testRaster));
 }
 
@@ -334,13 +334,13 @@ TEST_F(OTImageDriverTests, readBlock3Chnls) {
 	scene->read4DBlockChannels(rect, channels, cv::Range(0, 1), cv::Range(0, 1), raster);
 	EXPECT_FALSE(raster.empty());
 	cv::Mat testRaster;
-	ImageTools::readGDALImage(testFilePath, testRaster);
+	ImageTools::readSmallImageRaster(testFilePath, testRaster);
 	double sim = ImageTools::computeSimilarity2(raster, testRaster);
 	EXPECT_GT(sim, 0.99);
 	// Read downsampled scale (4x)
 	cv::Size size = { rect.size().width / 4, rect.size().height / 4 };
 	scene->readResampled4DBlockChannels(rect, size, channels, cv::Range(0, 1), cv::Range(0, 1), raster);
-	ImageTools::readGDALImage(testFileDownsampledPath, testRaster);
+	ImageTools::readSmallImageRaster(testFileDownsampledPath, testRaster);
 	sim = ImageTools::computeSimilarity2(raster, testRaster);
 	EXPECT_GT(sim, 0.99);
 	// Read downsampled scale single channel
@@ -368,14 +368,14 @@ TEST_F(OTImageDriverTests, readBlock3ChnlsBGR) {
 	scene->read4DBlockChannels(rect, channels, cv::Range(0, 1), cv::Range(0, 1), raster);
 	EXPECT_FALSE(raster.empty());
 	cv::Mat testRaster;
-	ImageTools::readGDALImage(testFilePath, testRaster);
+	ImageTools::readSmallImageRaster(testFilePath, testRaster);
 	cv::cvtColor(testRaster, testRaster, cv::COLOR_RGB2BGR);
 	double sim = ImageTools::computeSimilarity2(raster, testRaster);
 	EXPECT_GT(sim, 0.99);
 	// Read downsampled scale (4x)
 	cv::Size size = { rect.size().width / 4, rect.size().height / 4 };
 	scene->readResampled4DBlockChannels(rect, size, channels, cv::Range(0, 1), cv::Range(0, 1), raster);
-	ImageTools::readGDALImage(testFileDownsampledPath, testRaster);
+	ImageTools::readSmallImageRaster(testFileDownsampledPath, testRaster);
 	cv::cvtColor(testRaster, testRaster, cv::COLOR_RGB2BGR);
 	sim = ImageTools::computeSimilarity2(raster, testRaster);
 	EXPECT_GT(sim, 0.99);
@@ -408,13 +408,13 @@ TEST_F(OTImageDriverTests, readBlockZStackChannels) {
 	cv::extractChannel(raster, channelRaster, 0);
 	
 	cv::Mat testRaster;
-	ImageTools::readGDALImage(testFilePathCh1, testRaster);
+	ImageTools::readSmallImageRaster(testFilePathCh1, testRaster);
 	cv::Mat region = testRaster(rect);
 	double sim = ImageTools::computeSimilarity2(channelRaster, region);
 	EXPECT_GT(sim, 0.99);
 
 	cv::extractChannel(raster, channelRaster, 1);
-	ImageTools::readGDALImage(testFilePathCh2, testRaster);
+	ImageTools::readSmallImageRaster(testFilePathCh2, testRaster);
 	region = testRaster(rect);
 	sim = ImageTools::computeSimilarity2(channelRaster, region);
 	EXPECT_GT(sim, 0.99);
@@ -454,7 +454,7 @@ TEST_F(OTImageDriverTests, readBlockZStackSlices) {
 		cv::Mat sliceRaster = raster(ranges).clone();
 		cv::Mat planeSlice = sliceRaster.reshape(0, {0,0});
 		cv::Mat testRaster;
-		ImageTools::readGDALImage(sliceFiles[slice], testRaster);
+		ImageTools::readSmallImageRaster(sliceFiles[slice], testRaster);
 		cv::Mat region = testRaster(rect);
 		double sim = ImageTools::computeSimilarity2(planeSlice, region);
 		EXPECT_GT(sim, 0.99);
@@ -504,7 +504,7 @@ TEST_F(OTImageDriverTests, readBlock4DMultifile) {
 		cv::Mat sliceRaster = raster(ranges).clone();
 		cv::Mat planeSlice = sliceRaster.reshape(0, { 0,0 });
 		cv::Mat testRaster;
-		ImageTools::readGDALImage(sliceFiles[slice], testRaster);
+		ImageTools::readSmallImageRaster(sliceFiles[slice], testRaster);
 		cv::Mat region = testRaster(rectROI);
 		double sim = ImageTools::computeSimilarity2(planeSlice, region);
 		EXPECT_GT(sim, 0.99);
@@ -525,7 +525,7 @@ TEST_F(OTImageDriverTests, readBlock4DMultifile) {
 		cv::Mat sliceRaster = raster(ranges).clone();
 		cv::Mat planeSlice = sliceRaster.reshape(0, { 0,0 });
 		cv::Mat testRaster;
-		ImageTools::readGDALImage(frameFiles[frame], testRaster);
+		ImageTools::readSmallImageRaster(frameFiles[frame], testRaster);
 		cv::Mat region = testRaster(rectROI);
 		double sim = ImageTools::computeSimilarity2(planeSlice, region);
 		EXPECT_GT(sim, 0.99);

@@ -119,7 +119,7 @@ TEST_F(NDPIImageDriverTests, readStrippedScene)
     blockSize.height =600;
     scene->readResampledBlock(blockRect, blockSize, blockRaster);
     cv::Mat testRaster2;
-    slideio::ImageTools::readGDALImage(testFilePath2, testRaster2);
+    slideio::ImageTools::readSmallImageRaster(testFilePath2, testRaster2);
     cv::resize(testRaster2, testRaster2, blockSize);
     cv::cvtColor(testRaster2, testRaster2, cv::COLOR_BGRA2BGR);
     //TestTools::showRasters(testRaster2, blockRaster);

@@ -119,7 +119,7 @@ TEST(CZIImageDriver, readBlock)
         scene->readBlockChannels(sceneRect,channelIndices,raster);
         // read exported bmp channel
         cv::Mat bmpImage; // = cv::imread(channelBmps[channelIndex], cv::IMREAD_GRAYSCALE);
-        slideio::ImageTools::readGDALImage(channelBmps[channelIndex], bmpImage);
+        slideio::ImageTools::readSmallImageRaster(channelBmps[channelIndex], bmpImage);
         cv::Mat channelImage;
         cv::extractChannel(bmpImage, channelImage, 0);
         // compare equality of rasters from bmp and czi file
@@ -182,7 +182,7 @@ TEST(CZIImageDriver, readBlock4D)
             std::string bmpFilePath = TestTools::getTestImagePath("czi",bmpFileName);
             // read exported bmp channel
             cv::Mat bmpImage; // = cv::imread(bmpFilePath, cv::IMREAD_GRAYSCALE);
-            slideio::ImageTools::readGDALImage(bmpFilePath, bmpImage);
+            slideio::ImageTools::readSmallImageRaster(bmpFilePath, bmpImage);
             cv::Mat channelImage;
             cv::extractChannel(bmpImage, channelImage, 0);
             int compare = std::memcmp(sliceRaster.data, channelImage.data, sliceRaster.total()*sliceRaster.elemSize());
@@ -410,7 +410,7 @@ static void testAuxImage(const std::string& imagePath, const std::string& auxIma
     ASSERT_EQ(auxRaster.size().height, rect.height);
 
     cv::Mat testRaster;
-    slideio::ImageTools::readGDALImage(testImagePath, testRaster);
+    slideio::ImageTools::readSmallImageRaster(testImagePath, testRaster);
     double score = slideio::ImageTools::computeSimilarity2(auxRaster, testRaster);
     ASSERT_GT(score, 0.99);
 }
@@ -507,7 +507,7 @@ TEST(CZIImageDriver, mosaicFile)
     scene->readBlock(rect, raster);
     std::string testImagePath = TestTools::getFullTestImagePath("czi", "test/16bit_CH_1_doughnut_crop.tiff");
     cv::Mat testRaster;
-    slideio::ImageTools::readGDALImage(testImagePath, testRaster);
+    slideio::ImageTools::readSmallImageRaster(testImagePath, testRaster);
     auto memSize = raster.total() * raster.elemSize();
     ASSERT_EQ(memcmp(raster.data, testRaster.data, memSize),0);
 }
@@ -530,7 +530,7 @@ TEST(CZIImageDriver, artificialFile)
     scene->readBlock(rect, raster);
     std::string testImagePath = TestTools::getFullTestImagePath("czi", "test/bug_2D_rgb_compressed.png");
     cv::Mat testRaster;
-    slideio::ImageTools::readGDALImage(testImagePath, testRaster);
+    slideio::ImageTools::readSmallImageRaster(testImagePath, testRaster);
     auto memSize = raster.total() * raster.elemSize();
     ASSERT_EQ(memcmp(raster.data, testRaster.data, memSize), 0);
 }
@@ -558,7 +558,7 @@ TEST(CZIImageDriver, mozaicZoomPyramid)
     blockSize.height /= 3;
     scene->readResampledBlock(blockRect, blockSize, raster);
     cv::Mat testRaster;
-    slideio::ImageTools::readGDALImage(testImagePath, testRaster);
+    slideio::ImageTools::readSmallImageRaster(testImagePath, testRaster);
     auto memSize = raster.total() * raster.elemSize();
     ASSERT_EQ(memcmp(raster.data, testRaster.data, memSize), 0);
 }

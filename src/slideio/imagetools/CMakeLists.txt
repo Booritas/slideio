@@ -8,7 +8,6 @@ HIDE_LIB("libjpeg")
 
 set(SOURCE_FILES
    ${SOURCE_FILES}
-   ${CMAKE_CURRENT_SOURCE_DIR}/gdalcodec.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/imagetools.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/imagetools.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/jp2kcodec.cpp

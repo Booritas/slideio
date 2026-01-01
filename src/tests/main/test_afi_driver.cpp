@@ -117,7 +117,7 @@ TEST_F(AFIDriverFileTest, read_ImageBlock)
     scene->readBlock(sceneRect, imageRaster);
     const std::string pathPageFile = getPrivTestImagesPath("afi", "fs_Alexa Fluor 488_block_2500_4000_400_400.tif");
     cv::Mat refRaster;
-    slideio::ImageTools::readGDALImage(pathPageFile, refRaster);
+    slideio::ImageTools::readSmallImageRaster(pathPageFile, refRaster);
 	double sim = slideio::ImageTools::computeSimilarity2(imageRaster, refRaster);
 	EXPECT_GT(sim, 0.999);
     //TestTools::showRasters(imageRaster, refRaster);
@@ -140,7 +140,7 @@ TEST_F(AFIDriverFileTest, read_ImageBlockScaled)
     blockRaster.convertTo(imageRaster32bit, CV_32FC1);
     const std::string pathPageFile = getPrivTestImagesPath("afi", "fs_Alexa Fluor 488_block_2500_4000_400_400.tif");
     cv::Mat refRaster;
-    slideio::ImageTools::readGDALImage(pathPageFile, refRaster);
+    slideio::ImageTools::readSmallImageRaster(pathPageFile, refRaster);
     cv::Mat scaledRaster;
     cv::resize(refRaster, scaledRaster, blockSize);
     double sim = slideio::ImageTools::computeSimilarity2(blockRaster, scaledRaster);

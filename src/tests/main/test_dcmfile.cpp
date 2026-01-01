@@ -67,7 +67,7 @@ TEST(DCMFile, pixelValues)
     ASSERT_FALSE(frames.empty());
     EXPECT_EQ(frames.size(), 1);
     cv::Mat pngImage;
-    slideio::ImageTools::readGDALImage(testPath, pngImage);
+    slideio::ImageTools::readSmallImageRaster(testPath, pngImage);
     double similarity = ImageTools::computeSimilarity(frames[0], pngImage);
     EXPECT_LT(0.99, similarity);
 }
@@ -83,7 +83,7 @@ TEST(DCMFile, pixelRGB)
     ASSERT_FALSE(frames.empty());
     EXPECT_EQ(frames.size(), 1);
     cv::Mat pngImage;
-    slideio::ImageTools::readGDALImage(testPath, pngImage);
+    slideio::ImageTools::readSmallImageRaster(testPath, pngImage);
     cv::cvtColor(pngImage, pngImage, cv::COLOR_BGR2RGB);
     double similarity = ImageTools::computeSimilarity(frames[0], pngImage);
     EXPECT_EQ(1, similarity);
@@ -103,11 +103,11 @@ TEST(DCMFile, pixelValuesExtended)
     ASSERT_FALSE(frames.empty());
     EXPECT_EQ(frames.size(), 2);
     cv::Mat bmpImage1;
-    slideio::ImageTools::readGDALImage(testPath1, bmpImage1);
+    slideio::ImageTools::readSmallImageRaster(testPath1, bmpImage1);
     double similarity = ImageTools::computeSimilarity(frames[0], bmpImage1);
     EXPECT_EQ(1, similarity);
     cv::Mat bmpImage2;
-    slideio::ImageTools::readGDALImage(testPath2, bmpImage2);
+    slideio::ImageTools::readSmallImageRaster(testPath2, bmpImage2);
     similarity = ImageTools::computeSimilarity(frames[1], bmpImage2);
     EXPECT_EQ(1, similarity);
 }
@@ -129,12 +129,12 @@ TEST(DCMFile, pixelPaleteExtended)
     EXPECT_EQ(frames.size(), 2);
     EXPECT_EQ(3, frames[0].channels());
     cv::Mat bmpImage1;
-    slideio::ImageTools::readGDALImage(testPath1, bmpImage1);
+    slideio::ImageTools::readSmallImageRaster(testPath1, bmpImage1);
     //TestTools::showRaster(frames[0]);
     double similarity = ImageTools::computeSimilarity(frames[0], bmpImage1, true);
     EXPECT_LT(0.92, similarity);
     cv::Mat bmpImage2;
-    slideio::ImageTools::readGDALImage(testPath2, bmpImage2);
+    slideio::ImageTools::readSmallImageRaster(testPath2, bmpImage2);
     //TestTools::showRaster(frames[1]);
     similarity = ImageTools::computeSimilarity(frames[1], bmpImage2, true);
     EXPECT_LT(0.92, similarity);
@@ -158,11 +158,11 @@ TEST(DCMFile, pixelJpegExtended)
     EXPECT_EQ(frames.size(), 2);
     EXPECT_EQ(1, frames[0].channels());
     cv::Mat bmpImage1;
-    slideio::ImageTools::readGDALImage(testPath1, bmpImage1);
+    slideio::ImageTools::readSmallImageRaster(testPath1, bmpImage1);
     double similarity = ImageTools::computeSimilarity(frames[0], bmpImage1);
     EXPECT_LT(0.99, similarity);
     cv::Mat bmpImage2;
-    slideio::ImageTools::readGDALImage(testPath2, bmpImage2);
+    slideio::ImageTools::readSmallImageRaster(testPath2, bmpImage2);
     similarity = ImageTools::computeSimilarity(frames[1], bmpImage2);
     EXPECT_LT(0.99, similarity);
 }
@@ -186,7 +186,7 @@ TEST(DCMFile, pixelJpegLsValues)
     frames[0].convertTo(frames[0], CV_MAKE_TYPE(CV_8U, 1));
 
     cv::Mat tiffImage;
-    slideio::ImageTools::readGDALImage(testPath, tiffImage);
+    slideio::ImageTools::readSmallImageRaster(testPath, tiffImage);
     double similarity = ImageTools::computeSimilarity(frames[0], tiffImage);
     EXPECT_LT(0.99, similarity);
 }
@@ -255,7 +255,7 @@ TEST(DCMFile, pixelValuesCTMono)
     frames[0].convertTo(frames[0], CV_MAKE_TYPE(CV_8U, 1), alpha, beta);
 
     cv::Mat testImage;
-    slideio::ImageTools::readGDALImage(testPath, testImage);
+    slideio::ImageTools::readSmallImageRaster(testPath, testImage);
     double similarity = ImageTools::computeSimilarity(frames[0], testImage);
     EXPECT_LT(0.99, similarity);
 }
@@ -278,7 +278,7 @@ TEST(DCMFile, pixelValues12AllocatedBits)
     EXPECT_EQ(frames.size(), 1);
 
     cv::Mat testImage;
-	ImageTools::readGDALImage(testPath, testImage);
+	ImageTools::readSmallImageRaster(testPath, testImage);
     double similarity = ImageTools::computeSimilarity(frames[0], testImage);
     EXPECT_LT(0.98, similarity);
 }
@@ -431,7 +431,7 @@ TEST(DCMFile, readJ2K) {
     file.readPixelValues(frames,0,1);
     //ImageTools::writeTiffImage(testFilePath, frames[0]);
     cv::Mat testImage;
-    ImageTools::readGDALImage(testFilePath, testImage);
+    ImageTools::readSmallImageRaster(testFilePath, testImage);
     double simScore = ImageTools::computeSimilarity2(frames[0], testImage);
     EXPECT_GT(simScore, 0.999);
 

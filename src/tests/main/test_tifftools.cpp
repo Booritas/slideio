@@ -142,7 +142,7 @@ TEST_F(TiffToolsTests, readTile_jpeg)
     slideio::TiffTools::closeTiffFile(tiff);
     // read extracted tile
     cv::Mat bmpRaster;
-    slideio::ImageTools::readGDALImage(tilePath, bmpRaster);
+    slideio::ImageTools::readSmallImageRaster(tilePath, bmpRaster);
     cv::Mat bmpChannel;
     cv::extractChannel(bmpRaster, bmpChannel, 0);
     // compare similarity of rasters from bmp and decoded jp2k file
@@ -170,7 +170,7 @@ TEST_F(TiffToolsTests, readTile_J2K)
     slideio::TiffTools::readTile(tiff, dir, tile, channelIndices, tileRaster);
     slideio::TiffTools::closeTiffFile(tiff);
     cv::Mat bmpRaster;
-    slideio::ImageTools::readGDALImage(bmpPath, bmpRaster);
+    slideio::ImageTools::readSmallImageRaster(bmpPath, bmpRaster);
     // compare similarity of rasters from bmp and decoded jp2k file
     cv::Mat score;
     cv::matchTemplate(tileRaster, bmpRaster, score, cv::TM_CCOEFF_NORMED);
@@ -199,7 +199,7 @@ TEST_F(TiffToolsTests, readTile_jpeg_swapChannles)
     slideio::TiffTools::closeTiffFile(tiff);
     // read extracted tile
     cv::Mat bmpRaster;
-    slideio::ImageTools::readGDALImage(tilePath, bmpRaster);
+    slideio::ImageTools::readSmallImageRaster(tilePath, bmpRaster);
     ASSERT_EQ(bmpRaster.cols, tileRaster.cols);
     ASSERT_EQ(bmpRaster.rows, tileRaster.rows);
     ASSERT_EQ(bmpRaster.channels(), tileRaster.channels());
@@ -245,7 +245,7 @@ TEST_F(TiffToolsTests, readNotRGBTile)
 
     std::string tilePath = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1/tile.png");
     cv::Mat tile;
-    slideio::ImageTools::readGDALImage(tilePath, tile);
+    slideio::ImageTools::readSmallImageRaster(tilePath, tile);
 
     {
         cv::Mat raster;
