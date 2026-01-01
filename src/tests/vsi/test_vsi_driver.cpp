@@ -259,7 +259,7 @@ TEST_F(VSIImageDriverTests, VSIFileOpenWithExternalFiles) {
 
 TEST_F(VSIImageDriverTests, read3DVolume16bitSlice) {
     std::string filePath = TestTools::getFullTestImagePath("vsi", "vsi-multifile/vsi-ets-test-jpg2k.vsi");
-    std::string testFilePath = TestTools::getFullTestImagePath("vsi", "test-output/vsi-ets-test-jpg2k.vsi - 001 C405, C488 (1, x=0, y=0, w=1645, h=1682).tif");
+    std::string testFilePath = TestTools::getFullTestImagePath("vsi", "test-output/vsi-ets-test-jpg2k.vsi.ome.tif");
     slideio::VSIImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
@@ -271,18 +271,19 @@ TEST_F(VSIImageDriverTests, read3DVolume16bitSlice) {
     cv::Size blockSize(roi.width, roi.height);
     cv::Mat blockRaster;
     scene->readResampled4DBlockChannels(roi, blockSize, { 1 }, { 5,6 }, { 0,1 }, blockRaster);
-    //cv::Mat testRaster;
-    //ImageTools::readGDALImage(testFilePath, testRaster);
-    //cv::resize(testRaster, testRaster, blockSize);
-    //double similarity = ImageTools::computeSimilarity2(testRaster, blockRaster);
-    //EXPECT_GT(similarity, 0.99);
+    cv::Mat testRaster;
+    TiffTools::readDirRaster(testFilePath, 11, testRaster);
+    cv::resize(testRaster, testRaster, blockSize);
+    double similarity = ImageTools::computeSimilarity2(testRaster, blockRaster);
+    EXPECT_GT(similarity, 0.99);
     //TestTools::showRasters(testRaster, blockRaster);
 }
 
 
 TEST_F(VSIImageDriverTests, read3DVolume16bit) {
     std::string filePath = TestTools::getFullTestImagePath("vsi", "vsi-multifile/vsi-ets-test-jpg2k.vsi");
-    std::string testFilePath = TestTools::getFullTestImagePath("vsi", "test-output/vsi-ets-test-jpg2k.vsi - 001 C405, C488 (1, x=0, y=0, w=1645, h=1682).tif");
+    std::string testFileOme = TestTools::getFullTestImagePath("vsi",
+        "test-output/vsi-ets-test-jpg2k.vsi.ome.tif");
     slideio::VSIImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
@@ -310,7 +311,7 @@ TEST_F(VSIImageDriverTests, read3DVolume16bit) {
     cv::Mat blockRaster;
     scene->readResampled4DBlockChannels(roi, blockSize, { 0 }, { 5,6 }, { 0,1 }, blockRaster);
     cv::Mat testRaster;
-    ImageTools::readGDALImageSubDataset(testFilePath, 1,testRaster);
+    TiffTools::readDirRaster(testFileOme, 10,testRaster);
     cv::resize(testRaster, testRaster, blockSize);
     double similarity = ImageTools::computeSimilarity2(testRaster, blockRaster);
     EXPECT_GT(similarity, 0.99);
@@ -318,11 +319,10 @@ TEST_F(VSIImageDriverTests, read3DVolume16bit) {
 }
 
 TEST_F(VSIImageDriverTests, read3DStack16bit) {
-    std::string filePath = TestTools::getFullTestImagePath("vsi", "vsi-multifile/vsi-ets-test-jpg2k.vsi");
-    std::string testFilePath5 = TestTools::getFullTestImagePath("vsi",
-        "test-output/vsi-ets-test-jpg2k.vsi - 001 C405, C488 (1, x=0, y=0, w=1645, h=1682).tif");
-    std::string testFilePath4 = TestTools::getFullTestImagePath("vsi",
-        "test-output/vsi-ets-test-jpg2k.vsi - slice4.(1, x=0, y=0, w=1645, h=1682).tif");
+    std::string filePath = TestTools::getFullTestImagePath("vsi", 
+        "vsi-multifile/vsi-ets-test-jpg2k.vsi");
+    std::string testFileOme = TestTools::getFullTestImagePath("vsi",
+        "test-output/vsi-ets-test-jpg2k.vsi.ome.tif");
     slideio::VSIImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
@@ -351,21 +351,14 @@ TEST_F(VSIImageDriverTests, read3DStack16bit) {
     EXPECT_EQ(2,blockRaster.size[2]);
     cv::Mat slice;
     CVTools::extractSliceFrom3D(blockRaster, 0, slice);
-    cv::Mat testRaster;
-    ImageTools::readGDALImageSubDataset(testFilePath4, 1, testRaster);
+    cv::Mat testRaster(slice.size(), slice.type());
+    TiffTools::readDirRaster(testFileOme, 8, testRaster);
     double similarity = ImageTools::computeSimilarity2(testRaster, slice);
-    double minVal = 0, maxVAl = 0;
-    cv::minMaxLoc(testRaster, &minVal, &maxVAl);
-    double minVal1 = 0, maxVAl1 = 0;
-    cv::minMaxLoc(slice, &minVal1, &maxVAl1);
-
     EXPECT_GT(similarity, 0.99);
-    //TestTools::showRasters(testRaster, slice);
     CVTools::extractSliceFrom3D(blockRaster, 1, slice);
-    ImageTools::readGDALImageSubDataset(testFilePath5, 1, testRaster);
+    ImageTools::readGDALImageSubDataset(testFileOme, 10, testRaster);
     similarity = ImageTools::computeSimilarity2(testRaster, slice);
     EXPECT_GT(similarity, 0.99);
-    //TestTools::showRasters(testRaster, slice);
 }
 
 TEST_F(VSIImageDriverTests, readMultiscene) {
