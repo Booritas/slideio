@@ -4,6 +4,7 @@
 #pragma once
 #include <string>
 #include <opencv2/core/mat.hpp>
+#include "slideio/base/resolution.hpp"
 
 namespace slideio
 {
@@ -20,6 +21,9 @@ namespace slideio
 		virtual Compression getCompression() const = 0;
 		virtual const std::string& getMetadata() const = 0;
 		virtual void readRaster(cv::OutputArray raster) = 0;
+		virtual Resolution getResolution() const {
+			return {};
+		}
 	};
 	class SmallImage
 	{

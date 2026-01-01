@@ -197,6 +197,9 @@ TEST(FIWrapper, readJpegMetadata)
     EXPECT_FALSE(metadata.empty());
 	EXPECT_NE(metadata.find("ApplicationRecordVersion"), std::string::npos);
     EXPECT_NE(metadata.find("SamplesPerPixel"), std::string::npos);
+	Resolution res = wrapper.readPage(0)->getResolution();
+    EXPECT_NEAR(0.0003528, res.x, 0.0000001);
+    EXPECT_NEAR(0.0003528, res.y, 0.0000001);
 }
 
 TEST(FIWrapper, readTifMetadata)

@@ -46,6 +46,7 @@ namespace slideio
 				return m_compression;
 			}
 			void readRaster(cv::OutputArray) override;
+			Resolution getResolution() const override;
 		private:
             void detectMetadata();
 			void extractCommonMetadata();

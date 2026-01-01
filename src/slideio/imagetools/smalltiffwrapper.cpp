@@ -48,6 +48,11 @@ void SmallTiffWrapper::SmallTiffPage::readRaster(cv::OutputArray raster) {
 	}
 }
 
+Resolution SmallTiffWrapper::SmallTiffPage::getResolution() const {
+	const TiffDirectory& dir = m_parent->getDirectory(m_pageIndex);
+	return dir.res;
+}
+
 void SmallTiffWrapper::SmallTiffPage::extractMetadata() {
 	const TiffDirectory& dir = m_parent->getDirectory(m_pageIndex);
 	json mtdObj = json::object();

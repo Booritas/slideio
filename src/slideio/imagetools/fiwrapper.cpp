@@ -475,6 +475,19 @@ void FIWrapper::Page::readRaster(cv::OutputArray raster) {
     }
 }
 
+Resolution FIWrapper::Page::getResolution() const {
+    double pixPerMX = FreeImage_GetDotsPerMeterX(m_pBitmap);
+    double pixPerMY = FreeImage_GetDotsPerMeterY(m_pBitmap);
+    double metersPerPixelX(0), metersPerPixelY(0);
+    if (pixPerMX != 0) {
+		metersPerPixelX = 1.0 / pixPerMX;
+	}
+    if (pixPerMY != 0) {
+		metersPerPixelY = 1.0 / pixPerMY;
+    }
+	return { metersPerPixelX, metersPerPixelY };
+}
+
 void FIWrapper::Page::extractTiffMetadata() {
     if (m_fiFormat == FIF_TIFF) {
         const TiffDirectory& dir = m_parent->getTiffDirectory(m_pageIndex);

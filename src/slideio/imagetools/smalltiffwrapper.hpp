@@ -29,6 +29,7 @@ namespace slideio
 			Compression getCompression() const override;
 			const std::string& getMetadata() const override;
 			void readRaster(cv::OutputArray raster) override;
+			Resolution getResolution() const override;
 		private:
 			void extractMetadata();
 		private:
