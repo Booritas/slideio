@@ -13,6 +13,8 @@
 #include <filesystem>
 #include <iomanip>
 
+#include "tiffkeeper.hpp"
+
 using namespace slideio;
 
 static DataType dataTypeFromTIFFDataType(libtiff::TIFFDataType dt) {
@@ -694,6 +696,26 @@ void TiffTools::readPlanarStripedDir(libtiff::TIFF* file, const TiffDirectory& d
         cv::merge(channelRasters, output);
     }
     return;
+}
+
+void TiffTools::readDirRaster(const std::string& filePath, int dir, cv::OutputArray output) {
+    TIFFKeeper tiff(filePath);
+    std::vector<TiffDirectory> dirs;
+    scanFile(tiff, dirs);
+    if (dir >= dirs.size()) {
+        RAISE_RUNTIME_ERROR << "TiffTools::readDirRaster: Invalid directory index " << dir
+            << ", file contains only " << dirs.size() << " directories.";
+	}
+    readDirRaster(tiff, dirs[dir], output);
+}
+
+void TiffTools::readDirRaster(libtiff::TIFF* tiff, const TiffDirectory& dir, cv::OutputArray output) {
+    if (dir.tiled) {
+        readTiledDir(tiff, dir, output);
+    }
+    else {
+        readStripedDir(tiff, dir, output);
+	}
 }
 
 
