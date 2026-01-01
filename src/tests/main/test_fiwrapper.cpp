@@ -210,3 +210,17 @@ TEST(FIWrapper, readTifMetadata)
     EXPECT_NE(metadata.find("bitsPerSample"), std::string::npos);
     EXPECT_NE(metadata.find("photometric"), std::string::npos);
 }
+
+TEST(FIWrapper, readJxrImage)
+{
+    std::string pathJxr = TestTools::getTestImagePath("jxr", "seagull.wdp");
+    std::string pathBmp = TestTools::getTestImagePath("jxr", "seagull.bmp");
+    cv::Mat jxrImage;
+    slideio::ImageTools::readSmallImageRaster(pathJxr, jxrImage);
+    ASSERT_FALSE(jxrImage.empty());
+    cv::Mat bmpImage;
+    slideio::ImageTools::readSmallImageRaster(pathBmp, bmpImage);
+    ASSERT_FALSE(bmpImage.empty());
+	double sim = slideio::ImageTools::computeSimilarity2(jxrImage, bmpImage);
+    ASSERT_LT(0.99, sim);
+}
