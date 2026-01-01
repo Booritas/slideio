@@ -7,7 +7,6 @@
 #include "slideio/drivers/gdal/gdal_api_def.hpp"
 #include "slideio/core/cvslide.hpp"
 #include "slideio/core/cvscene.hpp"
-#include "slideio/imagetools/gdal_lib.hpp"
 #include <opencv2/core.hpp>
 
 #if defined(_MSC_VER)
@@ -17,19 +16,25 @@
 
 namespace slideio
 {
+    class SmallImage;
+
     class SLIDEIO_GDAL_EXPORTS GDALSlide : public slideio::CVSlide
     {
         friend class GDALImageDriver;
     protected:
-        void readMetadata(GDALDatasetH ds);
-        GDALSlide(GDALDatasetH ds, const std::string& filePath);
+        GDALSlide(const std::string& filePath);
     public:
-        virtual ~GDALSlide();
+        virtual ~GDALSlide() = default;
         int getNumScenes() const override;
         std::string getFilePath() const override;
-        std::shared_ptr<slideio::CVScene> getScene(int index) const override;
+        std::shared_ptr<CVScene> getScene(int index) const override;
+        MetadataFormat getMetadataFormat() const override;
+        const std::string& getRawMetadata() const override;
     private:
-        std::shared_ptr<slideio::CVScene> m_scene;
+        std::vector<std::shared_ptr<CVScene>> m_scenes;
+        std::string m_filePath;
+		std::shared_ptr<SmallImage> m_image;
+        std::string m_rawMetadata;
     };
 
 }

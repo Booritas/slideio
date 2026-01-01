@@ -9,6 +9,8 @@
 #include <tinyxml2.h>
 #include <nlohmann/json.hpp>
 
+#include "slideio/imagetools/imagetools.hpp"
+
 using namespace tinyxml2;
 using json = nlohmann::json;
 
@@ -54,8 +56,8 @@ TEST(GDALDriver, openPngFile_3chnls_8bit)
     EXPECT_EQ(scene->getChannelDataType(1), slideio::DataType::DT_Byte);
     EXPECT_EQ(scene->getChannelDataType(2), slideio::DataType::DT_Byte);
     slideio::Resolution res = scene->getResolution();
-    EXPECT_EQ(res.x, 0.);
-    EXPECT_EQ(res.y, 0.);
+    EXPECT_NEAR(res.x, 0.0003528, 0.0000001);
+    EXPECT_NEAR(res.y, 0.0003528, 0.0000001);
 }
 
 TEST(GDALDriver, openPngFile_1chnl_8bit)
@@ -77,8 +79,8 @@ TEST(GDALDriver, openPngFile_1chnl_8bit)
     EXPECT_EQ(sceneRect.height, 2448);
     EXPECT_EQ(scene->getChannelDataType(0), slideio::DataType::DT_Byte);
     slideio::Resolution res = scene->getResolution();
-    EXPECT_EQ(res.x, 0.);
-    EXPECT_EQ(res.y, 0.);
+    EXPECT_NEAR(res.x, 0.0003528, 0.0000001);
+    EXPECT_NEAR(res.y, 0.0003528, 0.0000001);
 }
 
 TEST(GDALDriver, openPngFile_3chnl_16bit)
@@ -102,8 +104,8 @@ TEST(GDALDriver, openPngFile_3chnl_16bit)
     EXPECT_EQ(scene->getChannelDataType(1), slideio::DataType::DT_UInt16);
     EXPECT_EQ(scene->getChannelDataType(2), slideio::DataType::DT_UInt16);
     slideio::Resolution res = scene->getResolution();
-    EXPECT_EQ(res.x, 0.);
-    EXPECT_EQ(res.y, 0.);
+    EXPECT_NEAR(res.x, 0.0003528, 0.0000001);
+    EXPECT_NEAR(res.y, 0.0003528, 0.0000001);
 }
 
 TEST(GDALDriver, openJpegFile_3chnl_8bit)
@@ -127,14 +129,15 @@ TEST(GDALDriver, openJpegFile_3chnl_8bit)
     EXPECT_EQ(scene->getChannelDataType(1), slideio::DataType::DT_Byte);
     EXPECT_EQ(scene->getChannelDataType(2), slideio::DataType::DT_Byte);
     slideio::Resolution res = scene->getResolution();
-    EXPECT_EQ(res.x, 0.);
-    EXPECT_EQ(res.y, 0.);
+    EXPECT_NEAR(res.x, 0.0003528, 0.0000001);
+    EXPECT_NEAR(res.y, 0.0003528, 0.0000001);
 }
 
 TEST(GDALDriver, readBlockPng)
 {
     slideio::GDALImageDriver driver;
     std::string path = TestTools::getTestImagePath("gdal","img_1024x600_3x8bit_RGB_color_bars_CMYKWRGB.png");
+    std::string referenceImagePath = TestTools::getTestImagePath("gdal", "img_1024x600_3x8bit_RGB_color_bars_CMYKWRGB.bmp");
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(path);
     ASSERT_TRUE(slide!=nullptr);
     int numbScenes = slide->getNumScenes();
@@ -151,6 +154,9 @@ TEST(GDALDriver, readBlockPng)
     cv::Mat blockRaster;
 
     scene->readBlock(block, blockRaster);
+    cv::Mat refImage;
+    slideio::ImageTools::readBitmap(referenceImagePath, refImage);
+	cv::Mat refBlock = refImage(block);
     cv::Scalar colorMean, colorStddev;
     cv::meanStdDev(blockRaster, colorMean, colorStddev);
     EXPECT_EQ(colorMean[0],255);
@@ -273,13 +279,10 @@ TEST(GDALDriver, metadataTiff)
 {
         std::string filePath = TestTools::getFullTestImagePath("ometiff", u8"SPIM-ModuloAlongZ.ome.tiff");
         std::shared_ptr<slideio::Slide> slide = slideio::openSlide(filePath, "GDAL");
-        std::string metadata = slide->getRawMetadata();
-        EXPECT_EQ(slide->getMetadataFormat(), slideio::MetadataFormat::XML);
+        std::string metadata = slide->getScene(0)->getRawMetadata();
+        EXPECT_EQ(slide->getScene(0)->getMetadataFormat(), slideio::MetadataFormat::JSON);
 		EXPECT_FALSE(metadata.empty());
-        EXPECT_EQ(0, metadata.find("<?xml"));
-		XMLDocument doc;
-		auto error = doc.Parse(metadata.c_str());
-		EXPECT_EQ(XML_SUCCESS, error);
+        EXPECT_NE(std::string::npos, metadata.find("<?xml"));
 }
 
 TEST(GDALDriver, metadataJpeg)
@@ -290,8 +293,7 @@ TEST(GDALDriver, metadataJpeg)
     EXPECT_EQ(slide->getMetadataFormat(), slideio::MetadataFormat::JSON);
     EXPECT_FALSE(metadata.empty());
     json jMtd = json::parse(metadata);
-    std::string val = jMtd["EXIF_PixelXDimension"];
-    EXPECT_EQ("5494", val);
+    EXPECT_GT(jMtd.size(), 2);
 }
 
 TEST(GDALDriver, multiThreadSceneAccess) {

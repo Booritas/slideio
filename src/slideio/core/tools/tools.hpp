@@ -33,6 +33,7 @@ namespace slideio
             }
         };
         static bool matchPattern(const std::string& path, const std::string& pattern);
+        static bool isConsecutiveFromZero(const std::vector<int>& vec, int size);
         static std::vector<int> completeChannelList(const std::vector<int>& orgChannelList, int numChannels)
         {
             std::vector<int> channelList(orgChannelList);

@@ -22,35 +22,11 @@ set_target_properties(${LIBRARY_NAME} PROPERTIES OUTPUT_NAME "${LIBRARY_NAME}${L
 
 find_package(glog)
 find_package(OpenCV)
-find_package(OpenJPEG)
-find_package(jpegxrcodec)
-find_package(Iconv)
-find_package(GDAL)
-find_package(SQLite3)
-find_package(TIFF)
-find_package(libdeflate)
-find_package(LibLZMA)
-find_package(WebP)
-find_package(JPEG)
-find_package(PNG)
-find_package(ZLIB)
 find_package(nlohmann_json REQUIRED)
 
 target_link_libraries(${LIBRARY_NAME} 
    glog::glog  
    opencv::opencv  
-   openjp2  
-   jpegxrcodec::jpegxrcodec
-   Iconv::Iconv
-   GDAL::GDAL
-   SQLite::SQLite3
-   TIFF::TIFF
-   libdeflate::libdeflate_static
-   LibLZMA::LibLZMA
-   libwebp::libwebp
-   JPEG::JPEG
-   PNG::PNG
-   ZLIB::ZLIB
    nlohmann_json::nlohmann_json   
 )
 

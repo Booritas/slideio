@@ -71,6 +71,12 @@ void SmallTiffWrapper::SmallTiffPage::extractMetadata() {
 	mtdObj["channels"] = dir.channels;
 	mtdObj["dataType"] = dir.dataType;
 	mtdObj["compression"] = compressionToString(dir.slideioCompression);
+	if (!dir.description.empty()) {
+		mtdObj["description"] = dir.description;
+	}
+	if (!dir.software.empty()) {
+		mtdObj["software"] = dir.software;
+	}
 	m_metadata = mtdObj.dump();
 }
 

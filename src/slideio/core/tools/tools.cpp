@@ -81,6 +81,18 @@ bool Tools::matchPattern(const std::string& path, const std::string& pattern)
     return ret;
 }
 
+bool Tools::isConsecutiveFromZero(const std::vector<int>& vec, int size) {
+    if (vec.size() != static_cast<size_t>(size)) {
+        return false;
+	}
+    for (size_t i = 0; i < vec.size(); ++i) {
+        if (vec[i] != static_cast<int>(i)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 
 void Tools::convert12BitsTo16Bits(const uint8_t* source, uint16_t* target, int targetLen) {
     if (!source || !target || targetLen <= 0)

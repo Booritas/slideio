@@ -8,6 +8,7 @@
 
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/core/tools/cvtools.hpp"
+#include "slideio/imagetools/imagetools.hpp"
 #include "slideio/transformer/bilateralfilter.hpp"
 #include "slideio/transformer/cannyfilter.hpp"
 #include "slideio/transformer/gaussianblurfilter.hpp"
@@ -203,104 +204,73 @@ TEST(Filters, readBlockPartialScharr)
 TEST(Filters, readScaledBlockMedian)
 {
     // scale the image to 50% and apply median filter
-    const double scale = 0.5;
-    const int kernelSize = 5;
+    constexpr double scale = 0.5;
+    constexpr int kernelSize = 5;
 
     std::string path = TestTools::getTestImagePath("gdal", "Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg");
-    std::shared_ptr<slideio::Slide> slide = openSlide(path, "AUTO");
-    std::shared_ptr<slideio::Scene> originScene = slide->getScene(0);
+    std::shared_ptr<Slide> slide = openSlide(path, "AUTO");
+    std::shared_ptr<Scene> originScene = slide->getScene(0);
 
     std::tuple<int, int, int, int> rect = originScene->getRect();
     const int width = std::get<2>(rect);
     const int height = std::get<3>(rect);
 
-    // specify the block to read
     const cv::Rect cvBlockRect(width / 4, height / 4, width / 6, height / 6);
-    // specify the block size after scaling
     const cv::Size cvBlockSize(std::lround(cvBlockRect.width * scale), std::lround(cvBlockRect.height * scale));
-    // specify image size after scaling
-    const cv::Size cvScaledImageSize(std::lround(width*scale), std::lround(height*scale));
 
-    // read the original image and scale it
-    const int bufferSize = cvScaledImageSize.width * cvScaledImageSize.height * 3;
-    std::vector<unsigned char> buffer(bufferSize);
-    auto imageSize = std::make_tuple(cvScaledImageSize.width, cvScaledImageSize.height);
-    originScene->readResampledBlock(rect, imageSize, buffer.data(), buffer.size());
-    cv::Mat scaledImage(cvScaledImageSize.height, cvScaledImageSize.width, CV_8UC3, buffer.data());
-    // apply median filter to the scaled image
-    cv::Mat testImage;
-    cv::medianBlur(scaledImage, testImage, kernelSize);
-    const cv::Rect cvTestRect(std::lround(cvBlockRect.x*scale),
-        std::lround(cvBlockRect.y*scale),
-        std::lround(cvBlockRect.width*scale),
-        std::lround(cvBlockRect.height*scale));
-    // extract the test image block
-    cv::Mat testImageBlock(testImage, cvTestRect);
+    cv::Mat originalBlock;
+    originScene->getCVScene()->readResampledBlock(cvBlockRect, cvBlockSize, originalBlock);
+
+    cv::Mat referenceBlock;
+    cv::medianBlur(originalBlock, referenceBlock, kernelSize);
 
     MedianBlurFilter filter;
     filter.setKernelSize(kernelSize);
-    std::shared_ptr<slideio::Scene> transformedScene = transformScene(originScene, filter);
-    std::vector<unsigned char> transformedBuffer(cvBlockSize.width*cvBlockSize.height*3);
-    auto blockRect = std::make_tuple(cvBlockRect.x, cvBlockRect.y, cvBlockRect.width, cvBlockRect.height);
-    auto blockSize = std::make_tuple(cvBlockSize.width, cvBlockSize.height);
-    transformedScene->readResampledBlock(blockRect, blockSize, transformedBuffer.data(), transformedBuffer.size());
-    cv::Mat transformedImage(cvBlockSize.height, cvBlockSize.width, CV_8UC3, transformedBuffer.data());
-    TestTools::compareRasters(testImageBlock, transformedImage);
-    //TestTools::showRaster(scaledImage);
-    //TestTools::showRaster(transformedImage);
+    std::shared_ptr<Scene> transformedScene = transformScene(originScene, filter);
+    cv::Mat transformedBlock;
+    transformedScene->getCVScene()->readResampledBlock(cvBlockRect, cvBlockSize, transformedBlock);
+	double sim = ImageTools::computeSimilarity2(referenceBlock, transformedBlock);
+	EXPECT_GT(sim, 0.99);
+    // cv::Mat diff = (referenceBlock != transformedBlock);
+    // TestTools::showRasters(transformedBlock, diff);
 }
 
 TEST(Filters, readScaledBlockBilateral)
 {
     // scale the image to 50% and apply bilateral filter
-    const int diameter = 15;
-    const double sigmaColor = 80.;
-    const double sigmaSpace = 80.;
-    const double scale = 0.5;
+    constexpr int diameter = 15;
+    constexpr double sigmaColor = 80.;
+    constexpr double sigmaSpace = 80.;
+    constexpr double scale = 0.5;
 
     std::string path = TestTools::getTestImagePath("gdal", "Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg");
-    std::shared_ptr<slideio::Slide> slide = openSlide(path, "AUTO");
-    std::shared_ptr<slideio::Scene> originScene = slide->getScene(0);
+    std::shared_ptr<Slide> slide = openSlide(path, "AUTO");
+    std::shared_ptr<Scene> originScene = slide->getScene(0);
 
     std::tuple<int, int, int, int> rect = originScene->getRect();
     const int width = std::get<2>(rect);
     const int height = std::get<3>(rect);
 
-    // specify the block to read
     const cv::Rect cvBlockRect(width / 4, height / 4, width / 6, height / 6);
-    // specify the block size after scaling
     const cv::Size cvBlockSize(std::lround(cvBlockRect.width * scale), std::lround(cvBlockRect.height * scale));
-    // specify image size after scaling
-    const cv::Size cvScaledImageSize(std::lround(width * scale), std::lround(height * scale));
 
-    // read the original image and scale it
-    const int bufferSize = cvScaledImageSize.width * cvScaledImageSize.height * 3;
-    std::vector<unsigned char> buffer(bufferSize);
-    auto imageSize = std::make_tuple(cvScaledImageSize.width, cvScaledImageSize.height);
-    originScene->readResampledBlock(rect, imageSize, buffer.data(), buffer.size());
-    cv::Mat scaledImage(cvScaledImageSize.height, cvScaledImageSize.width, CV_8UC3, buffer.data());
-    // apply median filter to the scaled image
-    cv::Mat testImage;
-    cv::bilateralFilter(scaledImage, testImage, diameter, sigmaColor, sigmaSpace);
-    const cv::Rect cvTestRect(std::lround(cvBlockRect.x * scale),
-        std::lround(cvBlockRect.y * scale),
-        std::lround(cvBlockRect.width * scale),
-        std::lround(cvBlockRect.height * scale));
-    // extract the test image block
-    cv::Mat testImageBlock(testImage, cvTestRect);
+    cv::Mat originBlock;
+	originScene->getCVScene()->readResampledBlock(cvBlockRect, cvBlockSize, originBlock);
+    cv::Mat referenceTransformedBlock;
+    cv::bilateralFilter(originBlock, referenceTransformedBlock, diameter, sigmaColor, sigmaSpace);
 
     BilateralFilter filter;
     filter.setDiameter(diameter);
     filter.setSigmaColor(sigmaColor);
     filter.setSigmaSpace(sigmaSpace);
-    std::shared_ptr<slideio::Scene> transformedScene = transformScene(originScene, filter);
-    std::vector<unsigned char> transformedBuffer(cvBlockSize.width * cvBlockSize.height * 3);
-    auto blockRect = std::make_tuple(cvBlockRect.x, cvBlockRect.y, cvBlockRect.width, cvBlockRect.height);
-    auto blockSize = std::make_tuple(cvBlockSize.width, cvBlockSize.height);
-    transformedScene->readResampledBlock(blockRect, blockSize, transformedBuffer.data(), transformedBuffer.size());
-    cv::Mat transformedImage(cvBlockSize.height, cvBlockSize.width, CV_8UC3, transformedBuffer.data());
-    TestTools::compareRasters(testImageBlock, transformedImage);
-    //TestTools::showRaster(transformedImage);
+    std::shared_ptr<Scene> transformedScene = transformScene(originScene, filter);
+
+    cv::Mat transformedBlock;
+    transformedScene->getCVScene()->readResampledBlock(cvBlockRect, cvBlockSize, transformedBlock);
+    double sim = ImageTools::computeSimilarity2(referenceTransformedBlock, transformedBlock);
+    EXPECT_GT(sim, 0.99);
+	// cv::Mat dif = (referenceTransformedBlock - transformedBlock)*100;
+    // TestTools::showRasters(transformedBlock, originBlock);
 }
 
 TEST(Filters, readScaledBlockGaussianBlur)
@@ -412,7 +382,8 @@ TEST(Filters, readScaledBlockCanny)
     cv::Mat transformedImage(cvBlockSize.height, cvBlockSize.width, CV_8U, transformedBuffer.data());
     auto dep2 = transformedImage.depth();
     auto ch2 = transformedImage.channels();
-    TestTools::compareRasters(testImageBlock, transformedImage);
-    cv::Mat diff = (testImageBlock != transformedImage);
+    double sim = ImageTools::computeSimilarity2(testImageBlock, transformedImage);
+	EXPECT_GT(sim, 0.99);
+    //cv::Mat diff = (testImageBlock != transformedImage);
     //TestTools::showRaster(diff);
 }

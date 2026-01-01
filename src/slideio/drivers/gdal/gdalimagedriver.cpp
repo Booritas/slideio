@@ -5,13 +5,11 @@
 #include "slideio/drivers/gdal/gdalimagedriver.hpp"
 #include "slideio/drivers/gdal/gdalscene.hpp"
 #include "slideio/drivers/gdal/gdalslide.hpp"
-#include "slideio/imagetools/gdal_lib.hpp"
 #include <set>
 
 
 slideio::GDALImageDriver::GDALImageDriver()
 {
-	GDALAllRegister();
 }
 
 slideio::GDALImageDriver::~GDALImageDriver()
@@ -26,8 +24,7 @@ std::string slideio::GDALImageDriver::getID() const
 
 std::shared_ptr<slideio::CVSlide> slideio::GDALImageDriver::openFile(const std::string& filePath)
 {
-	GDALDatasetH ds = GDALScene::openFile(filePath);
-	std::shared_ptr<slideio::CVSlide> ptr(new GDALSlide(ds, filePath));
+	std::shared_ptr<slideio::CVSlide> ptr(new GDALSlide(filePath));
 	return ptr;
 }
 

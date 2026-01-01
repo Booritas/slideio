@@ -7,6 +7,7 @@
 #include "slideio/core/tools/tempfile.hpp"
 #include "slideio/core/tools/endian.hpp"
 #include <filesystem>
+#include <numeric>
 #include <gtest/gtest.h>
 #include <opencv2/imgproc.hpp>
 
@@ -138,6 +139,63 @@ TEST(Tools, replaceAll) {
     str = "This\\is\\a\\test\\string";
     Tools::replaceAll(str, "\\", "/");
     EXPECT_EQ(str, "This/is/a/test/string");
+}
+
+TEST(Tools, isConsecutiveFromZero) {
+    // Empty vector
+    std::vector<int> emptyVec;
+    EXPECT_TRUE(Tools::isConsecutiveFromZero(emptyVec, 0));
+
+    // Single element - correct
+    std::vector<int> singleCorrect = {0};
+    EXPECT_TRUE(Tools::isConsecutiveFromZero(singleCorrect, 1));
+
+    // Single element - incorrect
+    std::vector<int> singleIncorrect = {1};
+    EXPECT_FALSE(Tools::isConsecutiveFromZero(singleIncorrect, 1));
+
+    // Consecutive from zero
+    std::vector<int> consecutive = {0, 1, 2, 3, 4};
+    EXPECT_TRUE(Tools::isConsecutiveFromZero(consecutive, 5));
+
+    // Not consecutive - gap
+    std::vector<int> withGap = {0, 1, 3, 4};
+    EXPECT_FALSE(Tools::isConsecutiveFromZero(withGap, 4));
+
+    // Not starting from zero
+    std::vector<int> notFromZero = {1, 2, 3, 4};
+    EXPECT_FALSE(Tools::isConsecutiveFromZero(notFromZero, 4));
+
+    // Out of order
+    std::vector<int> outOfOrder = {0, 2, 1, 3};
+    EXPECT_FALSE(Tools::isConsecutiveFromZero(outOfOrder, 4));
+
+    // Duplicate values
+    std::vector<int> withDuplicates = {0, 1, 1, 2};
+    EXPECT_FALSE(Tools::isConsecutiveFromZero(withDuplicates, 4));
+
+    // Negative values
+    std::vector<int> withNegative = {-1, 0, 1, 2};
+    EXPECT_FALSE(Tools::isConsecutiveFromZero(withNegative, 4));
+
+    // Large consecutive sequence
+    std::vector<int> largeConsecutive(100);
+    std::iota(largeConsecutive.begin(), largeConsecutive.end(), 0);
+    EXPECT_TRUE(Tools::isConsecutiveFromZero(largeConsecutive, 100));
+
+    // Large sequence with error at end
+    std::vector<int> largeWithError(100);
+    std::iota(largeWithError.begin(), largeWithError.end(), 0);
+    largeWithError[99] = 100;
+    EXPECT_FALSE(Tools::isConsecutiveFromZero(largeWithError, 100));
+
+    // Two elements - correct
+    std::vector<int> twoCorrect = {0, 1};
+    EXPECT_TRUE(Tools::isConsecutiveFromZero(twoCorrect, 2));
+
+    // Two elements - reversed
+    std::vector<int> twoReversed = {1, 0};
+    EXPECT_FALSE(Tools::isConsecutiveFromZero(twoReversed, 2));
 }
 
 TEST(Tools, split) {

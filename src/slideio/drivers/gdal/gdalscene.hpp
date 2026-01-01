@@ -8,7 +8,6 @@
 #include "slideio/core/cvscene.hpp"
 #include "slideio/base/slideio_enums.hpp"
 #include <opencv2/core.hpp>
-#include "slideio/imagetools/gdal_lib.hpp"
 
 #if defined(_MSC_VER)
 #pragma warning( push )
@@ -17,33 +16,28 @@
 
 namespace slideio
 {
+    class SmallImagePage;
+
     class SLIDEIO_GDAL_EXPORTS GDALScene : public slideio::CVScene
     {
     public:
-        GDALScene(const std::string& filePath);
-        GDALScene(GDALDatasetH ds, const std::string& filePath);
-        virtual ~GDALScene();
+        GDALScene(SmallImagePage* image, const std::string& filePath);
+        virtual ~GDALScene() = default;
         std::string getFilePath() const override;
         int getNumChannels() const override;
         slideio::DataType getChannelDataType(int channel) const override;
         slideio::Resolution getResolution() const override;
         double getMagnification() const override;
-        static GDALDatasetH openFile(const std::string& filePath);
-        static void closeFile(GDALDatasetH hfile);
-        static slideio::DataType dataTypeFromGDALDataType(GDALDataType dt);
         std::string getName() const override;
         cv::Rect getRect() const override;
         void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
             const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output) override;
-        Compression getCompression() const override{
-            return m_compression;
-        }
+        Compression getCompression() const override;
+        MetadataFormat getMetadataFormat() const override;
+        std::string getRawMetadata() const override;
     private:
-        void init();
-    private:
-        GDALDatasetH m_hFile;
+        SmallImagePage* m_imagePage;
         std::string m_filePath;
-        Compression m_compression;
     };
 }
 
