@@ -39,3 +39,4 @@ dcmtk/*:with_openssl=False
 glog/*:shared=True
 glog/*:with_gflags=False
 icu/*:shared=False
+freeimage/*:with_raw=False
