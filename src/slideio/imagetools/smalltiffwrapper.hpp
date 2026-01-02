@@ -2,7 +2,7 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #pragma once
-#include "SmallImage.hpp"
+#include "smallimage.hpp"
 #include "slideio/imagetools/slideio_imagetools_def.hpp"
 #include "slideio/imagetools/tiffkeeper.hpp"
 #include "slideio/base/size.hpp"
