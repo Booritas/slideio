@@ -8,7 +8,7 @@
 #include "slideio/imagetools/smalltiffwrapper.hpp"
 #include "slideio/imagetools/fiwrapper.hpp"
 #include "slideio/core/tools/tools.hpp"
-#include "slideio/imagetools/SmallImage.hpp"
+#include "slideio/imagetools/smallimage.hpp"
 #include "slideio/base/log.hpp"
 #include <FreeImage.h>
 #include <numeric>

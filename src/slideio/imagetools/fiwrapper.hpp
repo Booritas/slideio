@@ -6,7 +6,7 @@
 #include "tifftools.hpp"
 #include "slideio/base/size.hpp"
 #include "slideio/base/slideio_enums.hpp"
-#include "slideio/imagetools/SmallImage.hpp"
+#include "slideio/imagetools/smallimage.hpp"
 #include <FreeImage.h>
 #include <map>
 #include <string>
