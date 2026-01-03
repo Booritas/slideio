@@ -8,6 +8,7 @@
 #include "slideio/drivers/zvi/pole_lib.hpp"
 #include "slideio/base/slideio_enums.hpp"
 #include <codecvt>
+#include <cstdint>
 #include <string>
 #include <variant>
 
