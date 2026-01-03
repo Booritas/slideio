@@ -546,7 +546,7 @@ void TiffConverter::checkEncodingRequirements() const {
 }
 
 void TiffConverter::checkContainerRequirements() const {
-    if (m_parameters.getContainerType() == ImageFormat::SVS) {
+    if (m_parameters.getFormat() == ImageFormat::SVS) {
         checkSVSRequirements();
     }
 }

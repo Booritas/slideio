@@ -3,9 +3,9 @@
 // of this distribution and at http://slideio.com/license.html.
 #pragma once
 #include <fstream>
-
 #include "slideio/base/exceptions.hpp"
 #include "slideio/drivers/vsi/vsi_api_def.hpp"
+#include <cstdint>
 #include <memory>
 
 #if defined(_MSC_VER)
