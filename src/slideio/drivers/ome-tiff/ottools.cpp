@@ -13,7 +13,7 @@ DataType OTTools::stringToDataType(const std::string& type) {
     std::string caseInsensitiveType = type;
     std::transform(caseInsensitiveType.begin(), caseInsensitiveType.end(), caseInsensitiveType.begin(), [](unsigned char c){ return std::tolower(c); });
 	if (caseInsensitiveType == "int8") {
-		return DataType::DT_Byte;
+		return DataType::DT_Int8;
 	}
 	if (caseInsensitiveType == "uint8") {
 		return DataType::DT_Byte;
@@ -52,7 +52,7 @@ double OTTools::convertToMeters(double value, const std::string& unit) {
 	if (unit == "m") {
 		return value;
 	}
-	else if (unit == u8"µm") {
+	else if (unit == "\xC2\xB5m") { // µm (micrometer)
 		return value * 1.e-6; // Micrometer
 	}
 	else if (unit == "mm") {
@@ -109,7 +109,7 @@ double OTTools::convertToMeters(double value, const std::string& unit) {
 	else if (unit == "dam") {
 		return value * 0.1; // Dekameter
 	}
-	else if (unit == u8"Å") {
+	else if (unit == "\xC3\x85") { // Å (Angstrom)
 		return value * 0.0000000001; // Angstrom
 	}
 	else if (unit == "thou") {
