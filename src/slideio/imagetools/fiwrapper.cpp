@@ -588,7 +588,7 @@ FIWrapper::FIWrapper(const std::string& filePath) {
         m_fiFormat = FreeImage_GetFIFFromFilenameU(wsPath.c_str());
     }
 #else
-    if (readOnly && !std::filesystem::exists(filePath)) {
+    if (!std::filesystem::exists(filePath)) {
         RAISE_RUNTIME_ERROR << "FIWrapper: File " << filePath << " does not exist";
     }
     m_fiFormat = FreeImage_GetFileType(filePath.c_str(), 0);
