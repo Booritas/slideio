@@ -2,10 +2,10 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include <gtest/gtest.h>
-
 #include "slideio/base/exceptions.hpp"
 #include "slideio/imagetools/tifffiles.hpp"
 #include "tests/testlib/testtools.hpp"
+#include <list>
 
 class TIFFFilesTest : public ::testing::Test {
 protected:
