@@ -25,12 +25,15 @@ namespace
         FREE_IMAGE_FORMAT fiFormat = FIF_UNKNOWN;
 #if defined(WIN32)
         std::wstring wsPath = Tools::toWstring(filePath);
+        if (!std::filesystem::exists(wsPath)) {
+            RAISE_RUNTIME_ERROR << "FIWrapper: File " << filePath << " does not exist";
+        }
         fiFormat = FreeImage_GetFileTypeU(wsPath.c_str(), 0);
         if (fiFormat == FIF_UNKNOWN) {
             fiFormat = FreeImage_GetFIFFromFilenameU(wsPath.c_str());
         }
 #else
-        if (readOnly && !std::filesystem::exists(filePath)) {
+        if (!std::filesystem::exists(filePath)) {
             RAISE_RUNTIME_ERROR << "FIWrapper: File " << filePath << " does not exist";
         }
         fiFormat = FreeImage_GetFileType(filePath.c_str(), 0);
