@@ -2,7 +2,7 @@
 glog/0.7.1
 opencv/4.10.0@slideio/stable
 openjpeg/2.5.2
-libpng/1.6.40
+libpng/1.6.53
 zlib/1.2.13
 libtiff/4.6.0
 xz_utils/5.4.5

@@ -8,7 +8,7 @@ xz_utils/5.4.5
 libtiff/4.6.0
 libjpeg/9e
 libwebp/1.3.2
-libpng/1.6.40
+libpng/1.6.53
 openjpeg/2.5.2
 libiconv/1.17
 tinyxml2/9.0.0

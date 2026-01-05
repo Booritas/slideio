@@ -14,6 +14,6 @@ class SvsConan(ConanFile):
         self.requires("libtiff/4.6.0")
         self.requires("libjpeg/9f", force=True)
         self.requires("libwebp/1.3.2")
-        self.requires("libpng/1.6.40")
+        self.requires("libpng/1.6.53")
         self.requires("openjpeg/2.5.2")
         self.requires("libiconv/1.17")
