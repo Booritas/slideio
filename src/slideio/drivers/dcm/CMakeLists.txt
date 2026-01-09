@@ -33,7 +33,6 @@ find_package(glog)
 find_package(OpenCV)
 find_package(DCMTK)
 find_package(ZLIB)
-find_package(LibLZMA)
 find_package(Iconv)
 find_package(WebP)
 find_package(OpenJPEG)
@@ -42,9 +41,17 @@ target_link_libraries(${LIBRARY_NAME}
         SQLite::SQLite3
         glog::glog
         opencv::opencv
-        dcmtk::dcmtk
+        DCMTK::ofstd
+        DCMTK::oflog
+        DCMTK::dcmdata
+        DCMTK::dcmimgle
+        DCMTK::dcmimage
+        DCMTK::dcmjpeg
+        DCMTK::dcmjpls
+        DCMTK::ijg8
+        DCMTK::ijg12
+        DCMTK::ijg16
         ZLIB::ZLIB
-        LibLZMA::LibLZMA
         Iconv::Iconv
         libwebp::libwebp
         openjp2
