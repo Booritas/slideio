@@ -123,6 +123,7 @@ create_conan_recipes() {
     invoke_conan_create_slideio "recipes/ndpi-libjpeg-turbo/all" "2.1.2"
     invoke_conan_create_slideio "recipes/ndpi-libtiff/all" "4.3.0"
     invoke_conan_create_slideio "recipes/pole/all" "1.0.4"
+    invoke_conan_create "recipes/jxrlib/all" "cci.20260102"
 }
 
 # Call the function with the appropriate profile
