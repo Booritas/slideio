@@ -1,3 +1,11 @@
+param(
+    [Parameter(Position=0)]
+    [ValidateSet('release', 'debug')]
+    [string]$BuildType = 'release'
+)
+
+Write-Host "Build type: $BuildType"
+
 conan --version
 # Check if the environment variables are set
 if (-not $env:CONAN_INDEX_HOME) {
@@ -7,6 +15,15 @@ if (-not $env:CONAN_INDEX_HOME) {
 if (-not $env:SLIDEIO_HOME) {
     throw "Environment variable SLIDEIO_HOME (root directory of SlideIO repository) is not set."
 }
+
+# Set profile based on build type
+if ($BuildType -eq 'debug') {
+    $profile = "$env:SLIDEIO_HOME/conan/Windows/x86_64_debug"
+} else {
+    $profile = "$env:SLIDEIO_HOME/conan/Windows/x86_64_release"
+}
+
+Write-Host "Profile: $profile"
 
 # Save the current directory
 $originalDir = Get-Location
@@ -22,7 +39,7 @@ function Invoke-ConanCreate {
     Set-Location -Path $targetDir
 
     # Execute the conan create command
-    $conanCommand = "conan create -pr:h $env:SLIDEIO_HOME/conan/Windows/x86_64_release -pr:b $env:SLIDEIO_HOME/conan/Windows/x86_64_release -b missing --version $Version ."
+    $conanCommand = "conan create -pr:h $profile -pr:b $profile -b missing --version $Version ."
     Invoke-Expression $conanCommand
 }
 
@@ -37,7 +54,7 @@ function Invoke-ConanCreateSlideio {
     Set-Location -Path $targetDir
 
     # Execute the conan create command
-    $conanCommand = "conan create -pr:h $env:SLIDEIO_HOME/conan/Windows/x86_64_release -pr:b $env:SLIDEIO_HOME/conan/Windows/x86_64_release -b missing --version $Version --user slideio --channel stable ."
+    $conanCommand = "conan create -pr:h $profile -pr:b $profile -b missing --version $Version --user slideio --channel stable ."
     Invoke-Expression $conanCommand
 }
 

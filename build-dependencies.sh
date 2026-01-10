@@ -3,6 +3,17 @@ set -e
 
 #!/bin/bash
 
+# Parse command line arguments
+build_type="${1:-release}"  # Default to 'release' if no argument provided
+
+# Validate build type
+if [ "$build_type" != "release" ] && [ "$build_type" != "debug" ]; then
+    echo "Error: Invalid build type '$build_type'. Must be 'release' or 'debug'."
+    exit 1
+fi
+
+echo "Build type: $build_type"
+
 # Function to detect the operating system
 detect_os() {
     if [ "$(uname)" == "Darwin" ]; then
@@ -114,10 +125,12 @@ create_conan_recipes() {
     invoke_conan_create_slideio "recipes/pole/all" "1.0.4"
 }
 
-# Call the function
-profile=$release_profile
-#create_conan_recipes
-#profile=$debug_profile
+# Call the function with the appropriate profile
+if [ "$build_type" == "debug" ]; then
+    profile=$debug_profile
+else
+    profile=$release_profile
+fi
 
 echo "Profile: $profile"
 create_conan_recipes
