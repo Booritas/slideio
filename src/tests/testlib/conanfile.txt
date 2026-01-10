@@ -4,5 +4,5 @@ glog/0.7.1
 gtest/1.17.0
 opencv/4.10.0@slideio/stable
 zlib/1.2.13
-libpng/1.6.39
+libpng/1.6.53
 [options]
