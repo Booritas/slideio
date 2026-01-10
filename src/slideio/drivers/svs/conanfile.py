@@ -9,7 +9,7 @@ class SvsConan(ConanFile):
         self.requires("sqlite3/3.44.2")
         self.requires("glog/0.7.1")
         self.requires("opencv/4.10.0@slideio/stable")
-        self.requires("zlib/1.2.13")
+        self.requires("zlib/1.3.1")
         self.requires("xz_utils/5.4.5")
         self.requires("libtiff/4.6.0")
         self.requires("libjpeg/9f", force=True)
