@@ -36,7 +36,6 @@ dcmtk/*:wide_io=True
 dcmtk/*:default_dict=builtin
 dcmtk/*:builtin_dictionary=True
 dcmtk/*:with_openssl=False
-boost/*:shared=False
 glog/*:shared=True
 glog/*:with_gflags=False
 icu/*:shared=False
