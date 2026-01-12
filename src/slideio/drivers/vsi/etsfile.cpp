@@ -136,13 +136,13 @@ void slideio::vsi::EtsFile::read(std::list<std::shared_ptr<Volume>>& volumes, st
 void vsi::EtsFile::readTilePart(const vsi::TileInfo& tileInfo, cv::OutputArray tileRaster) {
     const int64_t offset = tileInfo.offset;
     const uint32_t tileCompressedSize = tileInfo.size;
+    const int ds = CVTools::cvGetDataTypeSize(m_dataType);
     m_etsStream->setPos(offset);
     m_buffer.resize(tileCompressedSize);
     m_etsStream->readBytes(m_buffer.data(), static_cast<int>(m_buffer.size()));
-    tileRaster.create(m_tileSize, CV_MAKETYPE(CVTools::cvTypeFromDataType(m_dataType), m_numChannels));
+    tileRaster.create(m_tileSize, CV_MAKETYPE(CVTools::cvTypeFromDataType(m_dataType), 1));
     if (m_compression == slideio::Compression::Uncompressed) {
-        const int ds = CVTools::cvGetDataTypeSize(m_dataType);
-        const int tileSize = m_tileSize.width * m_tileSize.height * m_numChannels * ds;
+        const int tileSize = m_tileSize.width * m_tileSize.height * ds;
         std::memcpy(tileRaster.getMat().data, m_buffer.data(), tileSize);
     }
     else if (m_compression == slideio::Compression::Jpeg) {
