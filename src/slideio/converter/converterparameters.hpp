@@ -8,6 +8,11 @@
 #include "slideio/base/slideio_enums.hpp"
 #include "slideio/converter/converter_def.hpp"
 
+#if defined(_MSC_VER)
+#pragma warning( push )
+#pragma warning(disable: 4251)
+#endif
+
 namespace slideio
 {
     class CVScene;
@@ -328,3 +333,7 @@ namespace slideio
         };
     }
 }
+
+#if defined(_MSC_VER)
+#pragma warning( pop )
+#endif
