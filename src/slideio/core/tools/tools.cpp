@@ -57,7 +57,7 @@ std::string Tools::randomUUID() {
         int val = dist(gen);
         s[i] = hex[val];
     }
-    return s;
+    return "urn:uuid:" + s;
 }
 
 bool Tools::matchPattern(const std::string& path, const std::string& pattern)
