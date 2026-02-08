@@ -128,7 +128,7 @@ std::string TiffConverter::createOMETiffDescription() const {
     ome->SetAttribute("xsi:schemaLocation", "http://www.openmicroscopy.org/Schemas/OME/2016-06 http://www.openmicroscopy.org/Schemas/OME/2016-06/ome.xsd");
     doc.InsertFirstChild(ome);
     bool interleaved = false;
-    auto rect = m_scene->getRect();
+    auto rect = m_parameters.getRect();
     const int sizeX = rect.width;
     const int sizeY = rect.height;
     const int numChannels = m_parameters.getChannelRange().size();
