@@ -213,6 +213,17 @@ void OTScene::initialize() {
         m_tResolution = OTTools::convertToSeconds(m_tResolution, att);
     }
 
+    bool resolutionProcessed = false;
+    double xRes = pixels->DoubleAttribute("PhysicalSizeX", 0.);
+    double yRes = pixels->DoubleAttribute("PhysicalSizeY", 0.);
+    const char* xUnits = pixels->Attribute("PhysicalSizeXUnit");
+	const char* yUnits = pixels->Attribute("PhysicalSizeYUnit");
+    if (xRes > 0 && xUnits != nullptr && yRes > 0 && yUnits != nullptr) {
+        m_resolution.x = OTTools::convertToMeters(xRes, xUnits);
+		m_resolution.y = OTTools::convertToMeters(yRes, yUnits);
+        resolutionProcessed = true;
+	}
+
     extractImageIndex();
     extractTiffData(pixels);
     extractMagnificationFromMetadata();
@@ -223,7 +234,9 @@ void OTScene::initialize() {
     int height = m_imageSize.height;
     auto dir = m_tiffData.front().getTiffDirectory(0);
     m_compression = dir.slideioCompression;
-    m_resolution = dir.res;
+    if (!resolutionProcessed) {
+        m_resolution = dir.res;
+    }
 
     extractImagePyramids();
     SLIDEIO_LOG(INFO) << "OTScene: Scene " << m_imageId << " is successfully initialized.";

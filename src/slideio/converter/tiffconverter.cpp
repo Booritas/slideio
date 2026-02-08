@@ -201,11 +201,11 @@ std::string TiffConverter::createOMETiffDescription() const {
     // Physical sizes
     Resolution res = m_scene->getResolution();
     if (res.x > 0) {
-        pixels->SetAttribute("PhysicalSizeX", sizeX * 1000 * res.x);
+        pixels->SetAttribute("PhysicalSizeX", 1000 * res.x);
         pixels->SetAttribute("PhysicalSizeXUnit", "mm");
     }
     if (res.y > 0) {
-        pixels->SetAttribute("PhysicalSizeY", sizeY * 1000 * res.y * 1e6);
+        pixels->SetAttribute("PhysicalSizeY", 1000 * res.y);
         pixels->SetAttribute("PhysicalSizeYUnit", "mm");
     }
     double resZ = m_scene->getZSliceResolution();

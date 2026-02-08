@@ -163,10 +163,9 @@ TEST_F(OTImageDriverTests, openMultiResolutionSlide) {
 		EXPECT_EQ(scene->getNumZSlices(), sceneInfo.numZSlices);
 		EXPECT_EQ(scene->getNumTFrames(), sceneInfo.numTFrames);
 		EXPECT_EQ(scene->getMagnification(), sceneInfo.magnification);
-		EXPECT_EQ(scene->getResolution(), sceneInfo.res);
 		EXPECT_EQ(scene->getChannelDataType(0), sceneInfo.dt);
-		EXPECT_DOUBLE_EQ(scene->getResolution().x, sceneInfo.res.x);
-		EXPECT_DOUBLE_EQ(scene->getResolution().y, sceneInfo.res.y);
+		EXPECT_NEAR(scene->getResolution().x, sceneInfo.res.x, 1.e-12);
+		EXPECT_NEAR(scene->getResolution().y, sceneInfo.res.y, 1.e-12);
 		EXPECT_EQ(scene->getCompression(), sceneInfo.compression);
 		EXPECT_EQ(scene->getNumZoomLevels(), sceneInfo.levels);
 		if (sceneInfo.name == "macro") {
@@ -219,10 +218,9 @@ TEST_F(OTImageDriverTests, openFluorescentSlide) {
 		EXPECT_EQ(scene->getNumZSlices(), sceneInfo.numZSlices);
 		EXPECT_EQ(scene->getNumTFrames(), sceneInfo.numTFrames);
 		EXPECT_EQ(scene->getMagnification(), sceneInfo.magnification);
-		EXPECT_EQ(scene->getResolution(), sceneInfo.res);
+		EXPECT_NEAR(scene->getResolution().x, sceneInfo.res.x, 1.e-12);
+		EXPECT_NEAR(scene->getResolution().y, sceneInfo.res.y, 1.e-12);
 		EXPECT_EQ(scene->getChannelDataType(0), sceneInfo.dt);
-		EXPECT_DOUBLE_EQ(scene->getResolution().x, sceneInfo.res.x);
-		EXPECT_DOUBLE_EQ(scene->getResolution().y, sceneInfo.res.y);
 		EXPECT_EQ(scene->getCompression(), sceneInfo.compression);
 		EXPECT_EQ(scene->getNumZoomLevels(), sceneInfo.levels);
 		EXPECT_DOUBLE_EQ(scene->getZSliceResolution(), sceneInfo.zResolution);
