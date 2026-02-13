@@ -3,6 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 #include <gtest/gtest.h>
 #include "slideio/core/cvscene.hpp"
+#include "slideio/base/exceptions.hpp"
 #include "tests/testlib/testscene.hpp"
 #include <memory>
 
@@ -19,7 +20,7 @@ protected:
     std::shared_ptr<TestScene> scene;
 };
 
-TEST, DefineChannelAttribute) {
+TEST_F(ChannelAttributesTest, DefineChannelAttribute) {
     // Define a new attribute
     int attrIndex = scene->defineChannelAttribute("wavelength");
     EXPECT_EQ(attrIndex, 0);
@@ -81,8 +82,8 @@ TEST_F(ChannelAttributesTest, SetAttributeInvalidChannelIndex) {
     scene->defineChannelAttribute("wavelength");
 
     // Test invalid channel indices
-    EXPECT_THROW(scene->setChannelAttribute(-1, "wavelength", "488nm"), std::runtime_error);
-    EXPECT_THROW(scene->setChannelAttribute(3, "wavelength", "488nm"), std::runtime_error);
+    EXPECT_THROW(scene->setChannelAttribute(-1, "wavelength", "488nm"), slideio::RuntimeError);
+    EXPECT_THROW(scene->setChannelAttribute(3, "wavelength", "488nm"), slideio::RuntimeError);
 }
 
 TEST_F(ChannelAttributesTest, GetAttributeInvalidChannelIndex) {
@@ -90,8 +91,8 @@ TEST_F(ChannelAttributesTest, GetAttributeInvalidChannelIndex) {
     scene->setChannelAttribute(0, "wavelength", "488nm");
 
     // Test invalid channel indices
-    EXPECT_THROW(scene->getChannelAttribute(-1, "wavelength"), std::runtime_error);
-    EXPECT_THROW(scene->getChannelAttribute(3, "wavelength"), std::runtime_error);
+    EXPECT_THROW(scene->getChannelAttribute(-1, "wavelength"), slideio::RuntimeError);
+    EXPECT_THROW(scene->getChannelAttribute(3, "wavelength"), slideio::RuntimeError);
 }
 
 TEST_F(ChannelAttributesTest, GetAttributeNonExistent) {
@@ -99,7 +100,7 @@ TEST_F(ChannelAttributesTest, GetAttributeNonExistent) {
     scene->setChannelAttribute(0, "wavelength", "488nm");
 
     // Test getting non-existent attribute
-    EXPECT_THROW(scene->getChannelAttribute(0, "non_existent"), std::runtime_error);
+    EXPECT_THROW(scene->getChannelAttribute(0, "non_existent"), slideio::RuntimeError);
 }
 
 TEST_F(ChannelAttributesTest, GetChannelAttributes) {
@@ -129,8 +130,8 @@ TEST_F(ChannelAttributesTest, GetChannelAttributesInvalidIndex) {
     scene->setChannelAttribute(0, "wavelength", "488nm");
 
     // Test invalid channel indices
-    EXPECT_THROW(scene->getChannelAttributes(-1), std::runtime_error);
-    EXPECT_THROW(scene->getChannelAttributes(3), std::runtime_error);
+    EXPECT_THROW(scene->getChannelAttributes(-1), slideio::RuntimeError);
+    EXPECT_THROW(scene->getChannelAttributes(3), slideio::RuntimeError);
 }
 
 TEST_F(ChannelAttributesTest, MultipleChannelsDifferentAttributes) {

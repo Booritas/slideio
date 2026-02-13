@@ -227,7 +227,7 @@ void OTScene::initialize() {
     extractImageIndex();
     extractTiffData(pixels);
     extractMagnificationFromMetadata();
-    initializeChannelNames(pixels);
+    initializeChannelAttributes(pixels);
 
 
     int width = m_imageSize.width;
@@ -243,20 +243,31 @@ void OTScene::initialize() {
 
 }
 
-void OTScene::initializeChannelNames(tinyxml2::XMLElement* pixels) {
+void OTScene::initializeChannelAttributes(tinyxml2::XMLElement* pixels) {
 	SLIDEIO_LOG(INFO) << "OTScene: Initializing channel names for image: " << m_imageId;
 	std::vector<std::string> channelNames;
+    int channelIndex = 0;
     for (tinyxml2::XMLElement* xmlChannel = pixels->FirstChildElement("Channel");
        xmlChannel != nullptr;
-       xmlChannel = xmlChannel->NextSiblingElement("Channel")) {
-      const char *name = xmlChannel->Attribute("Name");
-      if (name == nullptr) {
-          break;
+       xmlChannel = xmlChannel->NextSiblingElement("Channel")) {   
+      if (channelIndex < m_numChannels) {
+          const tinyxml2::XMLAttribute* attribute = xmlChannel->FirstAttribute();
+          while (attribute != nullptr) {
+              const char* attrName = attribute->Name();
+              const char* attrValue = attribute->Value();
+              if (attrName != nullptr && attrValue != nullptr) {
+                    if(strcmp(attrName, "Name") == 0) {
+                        if(m_channelNames.empty()) {
+                            m_channelNames.resize(m_numChannels);
+                        }
+                        m_channelNames[channelIndex] = attrValue;
+                    }
+                    setChannelAttribute(channelIndex, attrName, attrValue);
+              }
+              attribute = attribute->Next();
+          }
       }
-      channelNames.emplace_back(name);
-    }
-    if (channelNames.size() == static_cast<size_t>(m_numChannels)) {
-		m_channelNames = channelNames;
+      ++channelIndex;
     }
 	SLIDEIO_LOG(INFO) << "OTScene: Channel names initialized for image: " << m_imageId << " channels: " << m_channelNames;
 }
