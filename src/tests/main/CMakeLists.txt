@@ -32,6 +32,7 @@ set(TEST_SOURCES
   test_dimensions.cpp
   test_tifffiles.cpp
   test_fiwrapper.cpp
+  test_channel_attributes.cpp
 )
 
 add_executable(${TEST_NAME} ${TEST_SOURCES})

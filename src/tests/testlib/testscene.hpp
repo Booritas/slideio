@@ -36,6 +36,12 @@ public:
     int getNumTFrames() const override { return m_numTFrames; }
 	void setNumZSlices(int numSlices) { m_numSlices = numSlices; }
 	void setNumTFrames(int numFrames) { m_numTFrames = numFrames; }
+	void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
+		const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output) override {
+		// Minimal implementation for testing - just create an empty output
+		if (!output.needed()) return;
+		output.create(blockSize, CV_8UC(componentIndices.empty() ? m_numChannels : (int)componentIndices.size()));
+	}
 private:
     std::string m_filePath;
     cv::Rect m_rect;

@@ -197,6 +197,20 @@ namespace slideio
         std::string toString() const;
 		/**@brief returns metadata format of the image*/
 		virtual MetadataFormat getMetadataFormat() const { return m_metadataFormat; }
+        /**brief defines a new attribute for channel. Returns attribute index */
+        virtual int defineChannelAttribute(const std::string& attributeName);
+        /**@brief return index of a channel attribute by name */
+        virtual int getChannelAttributeIndex(const std::string& attributeName) const;
+        /**@brief adds a new attribute to channels */
+        virtual void setChannelAttribute(int channelIndex, const std::string& attributeName, const std::string& attributeValues);
+        /**@brief returns channel attribute value by channel index and attribute name */
+        virtual std::string getChannelAttribute(int channelIndex, const std::string& attributeName) const;
+        /**@brief returns channel attributes */
+        virtual std::vector<std::tuple<std::string,std::string>> getChannelAttributes(int channelIndex) const;
+         /**@brief returns number ofchannel attributes */
+        virtual int getNumChannelAttributes() const {
+            return static_cast<int>(m_channelAttributeNames.size());
+        }
     protected:
         std::vector<int> getValidChannelIndices(const std::vector<int>& channelIndices);
         void initializeSceneBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices,
@@ -208,6 +222,8 @@ namespace slideio
         mutable std::mutex m_readBlockMutex;
         std::string m_rawMetadata;
         MetadataFormat m_metadataFormat = MetadataFormat::None;
+        std::vector<std::string> m_channelAttributeNames;
+        std::vector<std::vector<std::string>> m_channelAttributes;
     };
 }
 
