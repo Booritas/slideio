@@ -119,6 +119,7 @@ namespace slideio
     {
         std::string id;
         std::string name;
+		std::vector<std::pair<std::string, std::string>> attributes;
     };
     typedef std::vector<CZIChannelInfo> CZIChannelInfos;
     struct Dimension

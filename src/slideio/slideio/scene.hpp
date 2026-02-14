@@ -273,6 +273,10 @@ namespace slideio
         int getNumZoomLevels() const;
         const LevelInfo* getLevelInfo(int level) const;
         std::string toString() const;
+		virtual int getNumChannelAttributes() const;
+		virtual int getChannelAttributeIndex(const std::string& attributeName) const;
+		virtual std::string getChannelAttributeName(int attributeIndex) const;
+		virtual std::string getChannelAttributeValue(int channelIndex, const std::string& attributeName) const;
     private:
         std::shared_ptr<CVScene> m_scene;
     };

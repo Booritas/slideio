@@ -224,6 +224,16 @@ TEST(Converter, from3DScene)
 	cv::Mat outputImage(height, width, CV_8UC3, outputBuffer.data());
 	double sim = slideio::ImageTools::computeSimilarity(inputImage, outputImage);
 	EXPECT_LE(0.999, sim);
+	EXPECT_EQ(scene->getNumChannelAttributes(), 10);
+	EXPECT_GE(scene->getChannelAttributeIndex("Name"), 0);
+	EXPECT_EQ(scene->getChannelAttributeValue(0, "Name"), "ChS1");
+	EXPECT_EQ(scene->getChannelAttributeValue(1, "Name"), "Ch2");
+	EXPECT_EQ(scene->getChannelAttributeValue(2, "Name"), "NDD T1");
+	EXPECT_EQ(scene->getChannelAttributeValue(0, "EmissionWavelength"), "610.63882650000005");
+	EXPECT_EQ(scene->getChannelAttributeValue(0, "ChannelType"), "Unspecified");
+	EXPECT_EQ(scene->getChannelAttributeValue(1, "PinholeSizeAiry"), "1");
+	EXPECT_EQ(scene->getChannelAttributeValue(0, "AcquisitionMode"), "LaserScanningConfocalMicroscopy");
+
 
 }
 

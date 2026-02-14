@@ -175,7 +175,12 @@ void CZISlide::parseMetadataXmL(const char* xmlString, size_t dataSize)
     const std::vector<std::string> titlePath = {
         "ImageDocument","Metadata","Information", "Document","Title"
     };
-    //doc.SaveFile(R"(D:\Temp\czi1.xml)");
+#if defined(_DEBUG)
+    std::string fileName = std::filesystem::path(m_filePath).stem().string();
+    std::string xmlPath = "D:/Temp/czi-" + fileName + ".xml";
+    doc.SaveFile(xmlPath.c_str());
+#endif
+
     const XMLElement* xmlTitle = XMLTools::getElementByPath(&doc, titlePath);
     if(xmlTitle){
         m_title = xmlTitle->GetText();
@@ -205,15 +210,25 @@ void CZISlide::parseChannels(XMLNode* root)
                 m_channels.emplace_back();
                 CZIChannelInfo& channel = m_channels.back();
                 const char* channelId = xmlChannel->Attribute("Id");
-                if (channelId)
-                {
+                if (channelId) {
                     channel.id = channelId;
                     channelIds[channelId] = static_cast<int>(m_channels.size()) - 1;
                 }
                 const char* channelName = xmlChannel->Attribute("Name");
-                if (channelName)
-                {
+                if (channelName) {
                     channel.name = channelName;
+                }
+                for (const XMLAttribute* attr = xmlChannel->FirstAttribute(); attr != nullptr; attr = attr->Next()) {
+                    channel.attributes.emplace_back(attr->Name(), attr->Value());
+                }
+                for (const XMLElement* childElem = xmlChannel->FirstChildElement();
+                    childElem != nullptr;
+                    childElem = childElem->NextSiblingElement()) {
+                    const char* elemName = childElem->Name();
+                    const char* elemText = childElem->GetText();
+                    if (elemName && elemText && !childElem->FirstChildElement()) {
+                        channel.attributes.emplace_back(elemName, elemText);
+                    }
                 }
             }
         }

@@ -62,20 +62,20 @@ TEST_F(ChannelAttributesTest, SetAndGetChannelAttribute) {
     scene->setChannelAttribute(0, "exposure_time", "100ms");
 
     // Get attributes for channel 0
-    EXPECT_EQ(scene->getChannelAttribute(0, "wavelength"), "488nm");
-    EXPECT_EQ(scene->getChannelAttribute(0, "exposure_time"), "100ms");
+    EXPECT_EQ(scene->getChannelAttributeValue(0, "wavelength"), "488nm");
+    EXPECT_EQ(scene->getChannelAttributeValue(0, "exposure_time"), "100ms");
 
     // Set attributes for channel 1
     scene->setChannelAttribute(1, "wavelength", "561nm");
     scene->setChannelAttribute(1, "exposure_time", "150ms");
 
     // Verify channel 1 attributes
-    EXPECT_EQ(scene->getChannelAttribute(1, "wavelength"), "561nm");
-    EXPECT_EQ(scene->getChannelAttribute(1, "exposure_time"), "150ms");
+    EXPECT_EQ(scene->getChannelAttributeValue(1, "wavelength"), "561nm");
+    EXPECT_EQ(scene->getChannelAttributeValue(1, "exposure_time"), "150ms");
 
     // Verify channel 0 attributes are unchanged
-    EXPECT_EQ(scene->getChannelAttribute(0, "wavelength"), "488nm");
-    EXPECT_EQ(scene->getChannelAttribute(0, "exposure_time"), "100ms");
+    EXPECT_EQ(scene->getChannelAttributeValue(0, "wavelength"), "488nm");
+    EXPECT_EQ(scene->getChannelAttributeValue(0, "exposure_time"), "100ms");
 }
 
 TEST_F(ChannelAttributesTest, SetAttributeInvalidChannelIndex) {
@@ -91,8 +91,8 @@ TEST_F(ChannelAttributesTest, GetAttributeInvalidChannelIndex) {
     scene->setChannelAttribute(0, "wavelength", "488nm");
 
     // Test invalid channel indices
-    EXPECT_THROW(scene->getChannelAttribute(-1, "wavelength"), slideio::RuntimeError);
-    EXPECT_THROW(scene->getChannelAttribute(3, "wavelength"), slideio::RuntimeError);
+    EXPECT_THROW(scene->getChannelAttributeValue(-1, "wavelength"), slideio::RuntimeError);
+    EXPECT_THROW(scene->getChannelAttributeValue(3, "wavelength"), slideio::RuntimeError);
 }
 
 TEST_F(ChannelAttributesTest, GetAttributeNonExistent) {
@@ -100,7 +100,7 @@ TEST_F(ChannelAttributesTest, GetAttributeNonExistent) {
     scene->setChannelAttribute(0, "wavelength", "488nm");
 
     // Test getting non-existent attribute
-    EXPECT_THROW(scene->getChannelAttribute(0, "non_existent"), slideio::RuntimeError);
+    EXPECT_THROW(scene->getChannelAttributeValue(0, "non_existent"), slideio::RuntimeError);
 }
 
 TEST_F(ChannelAttributesTest, GetChannelAttributes) {
@@ -113,25 +113,12 @@ TEST_F(ChannelAttributesTest, GetChannelAttributes) {
     scene->setChannelAttribute(0, "exposure_time", "100ms");
     scene->setChannelAttribute(0, "gain", "2.5");
 
-    // Get all attributes for channel 0
-    auto attributes = scene->getChannelAttributes(0);
-
-    EXPECT_EQ(attributes.size(), 3);
-    EXPECT_EQ(std::get<0>(attributes[0]), "wavelength");
-    EXPECT_EQ(std::get<1>(attributes[0]), "488nm");
-    EXPECT_EQ(std::get<0>(attributes[1]), "exposure_time");
-    EXPECT_EQ(std::get<1>(attributes[1]), "100ms");
-    EXPECT_EQ(std::get<0>(attributes[2]), "gain");
-    EXPECT_EQ(std::get<1>(attributes[2]), "2.5");
-}
-
-TEST_F(ChannelAttributesTest, GetChannelAttributesInvalidIndex) {
-    scene->defineChannelAttribute("wavelength");
-    scene->setChannelAttribute(0, "wavelength", "488nm");
-
-    // Test invalid channel indices
-    EXPECT_THROW(scene->getChannelAttributes(-1), slideio::RuntimeError);
-    EXPECT_THROW(scene->getChannelAttributes(3), slideio::RuntimeError);
+    EXPECT_EQ(scene->getChannelAttributeName(0), "wavelength");
+    EXPECT_EQ(scene->getChannelAttributeValue(0, 0), "488nm");
+    EXPECT_EQ(scene->getChannelAttributeName(1), "exposure_time");
+    EXPECT_EQ(scene->getChannelAttributeValue(0, 1), "100ms");
+    EXPECT_EQ(scene->getChannelAttributeName(2), "gain");
+    EXPECT_EQ(scene->getChannelAttributeValue(0, 2), "2.5");
 }
 
 TEST_F(ChannelAttributesTest, MultipleChannelsDifferentAttributes) {
@@ -154,17 +141,17 @@ TEST_F(ChannelAttributesTest, MultipleChannelsDifferentAttributes) {
     scene->setChannelAttribute(2, "gain", "3.5");
 
     // Verify each channel has correct attributes
-    EXPECT_EQ(scene->getChannelAttribute(0, "wavelength"), "488nm");
-    EXPECT_EQ(scene->getChannelAttribute(0, "exposure_time"), "100ms");
-    EXPECT_EQ(scene->getChannelAttribute(0, "gain"), "2.5");
+    EXPECT_EQ(scene->getChannelAttributeValue(0, "wavelength"), "488nm");
+    EXPECT_EQ(scene->getChannelAttributeValue(0, "exposure_time"), "100ms");
+    EXPECT_EQ(scene->getChannelAttributeValue(0, "gain"), "2.5");
 
-    EXPECT_EQ(scene->getChannelAttribute(1, "wavelength"), "561nm");
-    EXPECT_EQ(scene->getChannelAttribute(1, "exposure_time"), "150ms");
-    EXPECT_EQ(scene->getChannelAttribute(1, "gain"), "3.0");
+    EXPECT_EQ(scene->getChannelAttributeValue(1, "wavelength"), "561nm");
+    EXPECT_EQ(scene->getChannelAttributeValue(1, "exposure_time"), "150ms");
+    EXPECT_EQ(scene->getChannelAttributeValue(1, "gain"), "3.0");
 
-    EXPECT_EQ(scene->getChannelAttribute(2, "wavelength"), "640nm");
-    EXPECT_EQ(scene->getChannelAttribute(2, "exposure_time"), "200ms");
-    EXPECT_EQ(scene->getChannelAttribute(2, "gain"), "3.5");
+    EXPECT_EQ(scene->getChannelAttributeValue(2, "wavelength"), "640nm");
+    EXPECT_EQ(scene->getChannelAttributeValue(2, "exposure_time"), "200ms");
+    EXPECT_EQ(scene->getChannelAttributeValue(2, "gain"), "3.5");
 }
 
 TEST_F(ChannelAttributesTest, EmptyAttributeValues) {
@@ -176,8 +163,8 @@ TEST_F(ChannelAttributesTest, EmptyAttributeValues) {
     scene->setChannelAttribute(0, "comment", "");
 
     // Verify empty values are stored correctly
-    EXPECT_EQ(scene->getChannelAttribute(0, "wavelength"), "");
-    EXPECT_EQ(scene->getChannelAttribute(0, "comment"), "");
+    EXPECT_EQ(scene->getChannelAttributeValue(0, "wavelength"), "");
+    EXPECT_EQ(scene->getChannelAttributeValue(0, "comment"), "");
 }
 
 TEST_F(ChannelAttributesTest, OverwriteAttributeValue) {
@@ -185,11 +172,11 @@ TEST_F(ChannelAttributesTest, OverwriteAttributeValue) {
 
     // Set initial value
     scene->setChannelAttribute(0, "wavelength", "488nm");
-    EXPECT_EQ(scene->getChannelAttribute(0, "wavelength"), "488nm");
+    EXPECT_EQ(scene->getChannelAttributeValue(0, "wavelength"), "488nm");
 
     // Overwrite value
     scene->setChannelAttribute(0, "wavelength", "561nm");
-    EXPECT_EQ(scene->getChannelAttribute(0, "wavelength"), "561nm");
+    EXPECT_EQ(scene->getChannelAttributeValue(0, "wavelength"), "561nm");
 }
 
 TEST_F(ChannelAttributesTest, NumChannelAttributes) {

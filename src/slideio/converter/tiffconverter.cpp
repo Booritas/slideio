@@ -162,23 +162,19 @@ std::string TiffConverter::createOMETiffDescription() const {
 
     int id = 0;
     const auto& sceneChannelRange = m_parameters.getChannelRange();
-    const int numChannelAttributes = m_scene->getChannelAttributes(sceneChannelRange.start).size();
     for (int channel = sceneChannelRange.start; channel < sceneChannelRange.end; ++channel) {
         std::string idAttr = std::string("Channel:0:") + std::to_string(id++);
         auto* xmlChannel = doc.NewElement("Channel");
+        for (int attIndex = 0; attIndex < (int)m_scene->getNumChannelAttributes(); ++attIndex) {
+            const std::string& attrValue =m_scene->getChannelAttributeValue(channel,attIndex);
+			const std::string& attrName = m_scene->getChannelAttributeName(attIndex);
+            xmlChannel->SetAttribute(attrName.c_str(), attrValue.c_str());
+        }
         xmlChannel->SetAttribute("ID", idAttr.c_str());
         xmlChannel->SetAttribute("SamplesPerPixel", 1);
         const std::string& channelName = m_scene->getChannelName(channel);
         if (!channelName.empty())
             xmlChannel->SetAttribute("Name", channelName.c_str());
-        const std::vector<std::string> channelAttributes = m_scene->getChannelAttributes(channel);
-        for (const auto& attrName : channelAttributes) {
-            std::string attrValue = m_scene->getChannelAttribute(channel, attrName);
-            auto* attrElem = doc.NewElement("ChannelAttribute");
-            attrElem->SetAttribute("Name", attrName.c_str());
-            attrElem->SetText(attrValue.c_str());
-            xmlChannel->InsertEndChild(attrElem);
-        }
         pixels->InsertEndChild(xmlChannel);
     }
 

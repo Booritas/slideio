@@ -662,3 +662,25 @@ TEST(CZIImageDriver, multiThreadSceneAccess) {
     slideio::CZIImageDriver driver;
     TestTools::multiThreadedTest(filePath, driver);
 }
+
+TEST(CZIImageDriver, channelAttributes)
+{
+    slideio::CZIImageDriver driver;
+    std::string filePath = TestTools::getTestImagePath("czi", "pJP31mCherry.czi");
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    int numScenes = slide->getNumScenes();
+    ASSERT_EQ(numScenes, 1);
+    auto scene = slide->getScene(0);
+    ASSERT_FALSE(scene == nullptr);
+    const int numChannelAttributes = scene->getNumChannelAttributes();
+	ASSERT_EQ(numChannelAttributes, 10);
+	EXPECT_GE(scene->getChannelAttributeIndex("Name"), 0);
+    EXPECT_EQ(scene->getChannelAttributeValue(0, "Name"), "ChS1");
+    EXPECT_EQ(scene->getChannelAttributeValue(1, "Name"), "Ch2");
+    EXPECT_EQ(scene->getChannelAttributeValue(2, "Name"), "NDD T1");
+    EXPECT_EQ(scene->getChannelAttributeValue(0, "EmissionWavelength"), "610.63882650000005");
+    EXPECT_EQ(scene->getChannelAttributeValue(0, "ChannelType"), "Unspecified");
+    EXPECT_EQ(scene->getChannelAttributeValue(1, "PinholeSizeAiry"), "1");
+    EXPECT_EQ(scene->getChannelAttributeValue(0, "AcquisitionMode"), "LaserScanningConfocalMicroscopy");
+}

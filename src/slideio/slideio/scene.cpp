@@ -320,4 +320,20 @@ std::string Scene::toString() const {
     return m_scene->toString();
 }
 
+int Scene::getNumChannelAttributes() const {
+	return m_scene->getNumChannelAttributes();
+}
+
+int Scene::getChannelAttributeIndex(const std::string& attributeName) const {
+	return m_scene->getChannelAttributeIndex(attributeName);
+}
+
+std::string Scene::getChannelAttributeName(int attributeIndex) const {
+	return m_scene->getChannelAttributeName(attributeIndex);
+}
+
+std::string Scene::getChannelAttributeValue(int channelIndex, const std::string& attributeName) const {
+	return m_scene->getChannelAttributeValue(channelIndex, attributeName);
+}
+
 

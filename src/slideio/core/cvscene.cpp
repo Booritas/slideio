@@ -275,7 +275,7 @@ void slideio::CVScene::setChannelAttribute(int channelIndex, const std::string &
     channelAttributes[attributeIndex] = attributeValue;
 }
 
-std::string slideio::CVScene::getChannelAttribute(int channelIndex, const std::string &attributeName) const
+std::string slideio::CVScene::getChannelAttributeValue(int channelIndex, const std::string &attributeName) const
 {
     if(channelIndex < 0 || channelIndex >= getNumChannels()) {
         RAISE_RUNTIME_ERROR << "Invalid channel index or not initialized attribute collection: " << channelIndex
@@ -293,21 +293,23 @@ std::string slideio::CVScene::getChannelAttribute(int channelIndex, const std::s
     return channelAttributes[attributeIndex];
 }
 
-std::vector<std::tuple<std::string, std::string>> slideio::CVScene::getChannelAttributes(int channelIndex) const
-{
+const std::string& CVScene::getChannelAttributeValue(int channelIndex, int attributeIndex) const {
     if(channelIndex < 0 || channelIndex >= getNumChannels()) {
         RAISE_RUNTIME_ERROR << "Invalid channel index or not initialized attribute collection: " << channelIndex
             << " Expected range: [0," << getNumChannels() << ")";
     }
     const auto& channelAttributes = m_channelAttributes[channelIndex];
-    if(channelAttributes.size() != m_channelAttributeNames.size()) {
-        RAISE_RUNTIME_ERROR << "Attribute collection size mismatch for channel: " << channelIndex;
+    if(attributeIndex < 0 || attributeIndex >= channelAttributes.size()) {
+        RAISE_RUNTIME_ERROR << "Invalid attribute index: " << attributeIndex
+            << " Expected range: [0," << channelAttributes.size() << ")";
     }
-    std::vector<std::tuple<std::string, std::string>> attributes;
-    for(int attributeIndex = 0; attributeIndex < m_channelAttributeNames.size(); ++attributeIndex) {
-        std::string attributeValue = channelAttributes[attributeIndex];
-        std::string attributeName = m_channelAttributeNames[attributeIndex];
-        attributes.emplace_back(attributeName, attributeValue);
+	return channelAttributes[attributeIndex];
+}
+
+const std::string& CVScene::getChannelAttributeName(int index) const {
+    if(index < 0 || index >= m_channelAttributeNames.size()) {
+        RAISE_RUNTIME_ERROR << "Invalid channel attribute index: " << index
+            << " Expected range: [0," << m_channelAttributeNames.size() << ")";
     }
-    return attributes;
+	return m_channelAttributeNames[index];
 }
