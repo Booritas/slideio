@@ -64,8 +64,8 @@ int main(int argc, char* argv[]) {
 #ifdef SIGBREAK
     std::signal(SIGBREAK, signalHandler);
 #endif
-
-    CLI::App app{"Slide format converter"};
+    std::string title  =  std::string("SlideIO image converter. Version: ") + slideio::getVersion();
+    CLI::App app{title};
 
     std::string inputPath;
     std::string outputPath;
