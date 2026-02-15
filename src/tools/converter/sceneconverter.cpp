@@ -186,7 +186,8 @@ void printInfo(const TiffConverter& converter) {
 
 void convertFile(
 	const std::string& inputPath,
-	const std::string& outputPath, 
+	const std::string& outputPath,
+	int sceneIndex,
 	double compressionRate, 
 	int tileSize, 
 	int numZoomLevels, 
@@ -212,7 +213,7 @@ void convertFile(
 		}
 	}
 	auto slide = openSlide(inputPath, inputDriver);
-	auto scene = slide->getScene(0);
+	auto scene = slide->getScene(sceneIndex);
 
 	Compression compression = (targetCompression == "Jpeg") ? Compression::Jpeg : Compression::Jpeg2000;
 	ImageFormat format = (targetFormat == "SVS") ? SVS : OME_TIFF;

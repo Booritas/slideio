@@ -7,7 +7,8 @@ namespace slideio {
 
 void convertFile(
 	const std::string& inputPath,
-	const std::string& outputPath, 
+	const std::string& outputPath,
+	int sceneIndex,
 	double compressionRate, 
 	int tileSize, 
 	int numZoomLevels, 
