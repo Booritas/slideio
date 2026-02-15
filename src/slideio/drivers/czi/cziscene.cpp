@@ -273,7 +273,7 @@ void CZIScene::initZoomLevelInfo() {
     }
 }
 
-void CZIScene::init(uint64_t sceneId, SceneParams& sceneParams, const std::string& filePath, const CZISubBlocks& blocks, CZISlide* slide)
+void CZIScene::init(uint64_t sceneId, SceneParams& sceneParams, const std::string& filePath, const CZISubBlocks& blocks, CZISlide* slide, bool mainScene)
 {
     m_sceneParams = sceneParams;
     m_slide = slide;
@@ -307,7 +307,11 @@ void CZIScene::init(uint64_t sceneId, SceneParams& sceneParams, const std::strin
     if(!blocks.empty()) {
         setMosaic(blocks.front().isMosaic());
     }
-    setupComponents(channelPixelType);
+    if (mainScene) {
+        setupComponents(channelPixelType);
+    } else {
+        setupComponentsAux(channelPixelType);
+    }
     // sort zoom levels in ascending order
     std::sort(m_zoomLevels.begin(), m_zoomLevels.end(), [](const ZoomLevel& left, const ZoomLevel& right)
     {
@@ -675,6 +679,26 @@ void CZIScene::setupComponents(const std::map<int, int>& channelPixelType)
             const std::string& attributeName = attribute.first;
             const std::string& attributeValue = attribute.second;
             setChannelAttribute(channelIndex, attributeName, attributeValue);
+        }
+    }
+}
+
+void CZIScene::setupComponentsAux(const std::map<int, int>& channelPixelType) {
+    int sceneComponentIndex = 0;
+    int componentIndex = 0;
+    for (const auto& channel : channelPixelType) {
+        int channelIndex = channel.first;
+        SceneChannelInfo& channelInfo = m_channelInfos.emplace_back();
+        CZIDataType channelCZIDataType = static_cast<CZIDataType>(channel.second);
+        channelComponentInfo(channelCZIDataType, channelInfo.componentType, channelInfo.numComponents, channelInfo.pixelSize);
+        channelInfo.firstComponent = componentIndex;
+        componentIndex += channelInfo.numComponents;
+        for (int blockComponentIndex = 0; blockComponentIndex < channelInfo.numComponents; ++blockComponentIndex, ++sceneComponentIndex)
+        {
+            m_componentToChannelIndex[sceneComponentIndex] = std::pair<int, int>(channelIndex, blockComponentIndex);
+            m_componentInfos.emplace_back();
+            auto& componentInfo = m_componentInfos.back();
+            componentInfo.dataType = channelInfo.componentType;
         }
     }
 }

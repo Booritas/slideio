@@ -79,7 +79,7 @@ namespace slideio
         Resolution getResolution() const override;
         double getMagnification() const override;
         std::string getName() const override;
-        void init(uint64_t sceneId, SceneParams& sceneParams, const std::string& filePath, const CZISubBlocks& blocks, CZISlide* slide);
+        void init(uint64_t sceneId, SceneParams& sceneParams, const std::string& filePath, const CZISubBlocks& blocks, CZISlide* slide, bool mainScene = true);
         // interface Tiler implementaton
         int getTileCount(void* userData) override;
         bool getTileRect(int tileIndex, cv::Rect& tileRect, void* userData) override;
@@ -97,6 +97,7 @@ namespace slideio
     private:
         void setMosaic(bool mosaic) { m_bMosaic = mosaic; }
         void setupComponents(const std::map<int, int>& channelPixelType);
+        void setupComponentsAux(const std::map<int, int>& channelPixelType);
         void generateSceneName();
         void computeSceneRect();
         void computeSceneTiles();

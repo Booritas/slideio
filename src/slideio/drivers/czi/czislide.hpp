@@ -44,7 +44,7 @@ namespace slideio
         std::shared_ptr<CVScene> getAuxImage(const std::string& sceneName) const override;
         void readFileHeader(FileHeader& fileHeader);
         void readSubBlocks(uint64_t pos, uint64_t originPos, std::vector<CZISubBlocks>& sceneBlocks, std::vector<uint64_t>& sceneIds);
-        std::shared_ptr<CZIScene> constructScene(uint64_t sceneId, const CZISubBlocks& blocks);
+        std::shared_ptr<CZIScene> constructScene(uint64_t sceneId, const CZISubBlocks& blocks, bool mainScene = true);
     private:
         void readAttachments();
         void init();
