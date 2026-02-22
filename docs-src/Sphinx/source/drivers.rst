@@ -26,6 +26,8 @@ The slideio module accesses images through a system of image drivers. A driver i
 +--------+-----------------+----------+------------+
 | QPTIFF |     yes         |   yes    |    yes     |
 +--------+-----------------+----------+------------+
+| OMETIFF|     yes         |   yes    |    yes     |
++--------+-----------------+----------+------------+
 CZI driver
 ------------------
 
@@ -210,3 +212,17 @@ extracted from images.
 Auxiliary images
 ******************
 The driver supports auxiliary images for Slide objects.
+
+OMETIFF driver
+------------------
+
+The driver opens OME-TIFF slides.
+
+Metadata
+******************
+raw_metadata property of a *Scene* returns JSON representation of metadata
+extracted from images.
+
+Auxiliary images
+******************
+The driver does not support auxiliary images.
