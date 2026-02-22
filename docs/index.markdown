@@ -22,6 +22,7 @@ The module builds accesses images through a system of image drivers that impleme
 | **VSI** | Olympus VSI image format | *.vsi |  |  |
 | **QPTIFF** | PerkinElmer Vectra QPTIFF | *.qptiff | [Akoya Biosciences](https://www.akoyabio.com/software-data-analysis/) | [Perkin Elmer Vectra scanner](https://www.akoyabio.com/phenoimager/instruments/vectra-3-0/) |
 | **GDAL** | General image formates | *.jpeg,*.jpg,*.tiff,*.tiff,*.png | - | - |
+| **OMETIFF** | OME-TIFF imag format | *.ome.tiff, *.ome.tif | [OME-TIFF](https://docs.openmicroscopy.org/ome-model/5.6.3/ome-tiff/) |  |
 
 The library is built as a c++ python extension and provides c++ and python interfaces.
 # Library latest news
