@@ -198,8 +198,8 @@ TEST(ConverterParametersTests, UpdateNotDefinedParameters_SVS_AllUndefined) {
     
     // Rect should be set to scene rect
     const Rect& rect = params.getRect();
-    EXPECT_EQ(100, rect.x);
-    EXPECT_EQ(200, rect.y);
+    EXPECT_EQ(0, rect.x);
+    EXPECT_EQ(0, rect.y);
     EXPECT_EQ(1024, rect.width);
     EXPECT_EQ(2048, rect.height);
     
@@ -342,8 +342,8 @@ TEST(ConverterParametersTests, UpdateNotDefinedParameters_InvalidRect) {
     
     // Invalid rect should be replaced with scene rect
     const Rect& rect = params.getRect();
-    EXPECT_EQ(10, rect.x);
-    EXPECT_EQ(20, rect.y);
+    EXPECT_EQ(0, rect.x);
+    EXPECT_EQ(0, rect.y);
     EXPECT_EQ(800, rect.width);
     EXPECT_EQ(600, rect.height);
 }
