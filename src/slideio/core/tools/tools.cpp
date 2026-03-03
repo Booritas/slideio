@@ -237,10 +237,8 @@ uint64_t Tools::getFilePos(FILE* file)
 {
 #if defined(WIN32)
     return _ftelli64(file);
-#elif __APPLE__
-    return ftello(file);
 #else
-    return ftello64(file);
+    return static_cast<uint64_t>(ftello(file));
 #endif
 }
 
@@ -248,11 +246,8 @@ int Tools::setFilePos(FILE* file, uint64_t pos, int origin)
 {
 #if defined(WIN32)
     return _fseeki64(file, pos, origin);
-#elif __APPLE__
-    return fseeko(file, pos, origin);
-#define FTELL64 ftello
 #else
-    return fseeko64(file, pos, origin);
+    return fseeko(file, static_cast<off_t>(pos), origin);
 #endif
 }
 
