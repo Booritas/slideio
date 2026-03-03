@@ -32,6 +32,7 @@ The module builds accesses images through a system of image drivers that impleme
 - DCM - driver for reading of DICOM images, including whole slide images (WSI).
 - NDPI - driver for reading of Hamamatsu NDPI images.
 - VSI  - driver for reading of `Olympus VSI images <https://www.olympus-lifescience.com>`_.
+- OMETIFF - driver for reading of `OME-TIFF images <https://docs.openmicroscopy.org/ome-model/5.6.3/ome-tiff/>`_.
 
 The module provides 2 python classes: *Slide* and *Scene*. *Slide* is a container object returned by the module function *open_slide*. In the simplest case, a *Slide* object contains a single *Scene* object. Some slides can contain multiple scenes. For example, a czi file can contain several scanned regions, each of them is represented as a *Scene* object. *Scene* class provides methods to access image pixel values and metadata. 
 

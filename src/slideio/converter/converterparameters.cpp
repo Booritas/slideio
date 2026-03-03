@@ -91,7 +91,7 @@ void ConverterParameters::copyFrom(const ConverterParameters& other) {
 void ConverterParameters::updateNotDefinedParameters(const std::shared_ptr<CVScene>& scene) {
     if (!m_rect.valid()) {
         cv::Rect rect = scene->getRect();
-        m_rect = Rect(rect.x, rect.y, rect.width, rect.height);
+        m_rect = Rect(0, 0, rect.width, rect.height);
     }
     if (m_channelRange.size() <= 0) {
         m_channelRange = Range(0, scene->getNumChannels());
