@@ -1,24 +1,17 @@
-#include <string>
+// This file is part of slideio project.
+// It is subject to the license terms in the LICENSE file found in the top-level directory
+// of this distribution and at http://slideio.com/license.html.
+//
 #include <vector>
 #include <stdexcept>
-#include <array>
 #include <cstdint>
 #include <sstream>
 #include <iomanip>
 #include <cctype>
 #include <algorithm>
+#include "slideio/core/tools/color_tools.hpp"
+using namespace slideio;
 
-/**
- * Enum representing different color format types
- */
-enum class ColorFormat {
-    UNKNOWN,
-    RGB,        // #RRGGBB (6 hex digits)
-    RGBA,       // #RRGGBBAA (8 hex digits, standard web format)
-    ARGB,       // #AARRGGBB (8 hex digits, OME-TIFF format)
-    SHORT_RGB,  // #RGB (3 hex digits, shorthand)
-    SHORT_RGBA  // #RGBA (4 hex digits, shorthand)
-};
 
 /**
  * Detects the color format from a hex color string.
@@ -32,7 +25,7 @@ enum class ColorFormat {
  * @param hexColor The hex color string (with or without '#')
  * @return ColorFormat enum indicating the detected format
  */
-ColorFormat detectColorFormat(const std::string& hexColor) {
+ColorFormat ColorTools::detectColorFormat(const std::string& hexColor) {
     // Remove '#' if present and convert to uppercase
     std::string hex = hexColor;
     if (!hex.empty() && hex[0] == '#') {
@@ -91,7 +84,7 @@ ColorFormat detectColorFormat(const std::string& hexColor) {
 /**
  * Returns a human-readable string representation of the color format.
  */
-std::string colorFormatToString(ColorFormat format) {
+std::string ColorTools::colorFormatToString(ColorFormat format) {
     switch (format) {
         case ColorFormat::RGB:        return "RGB (#RRGGBB)";
         case ColorFormat::RGBA:       return "RGBA (#RRGGBBAA)";
@@ -108,7 +101,7 @@ std::string colorFormatToString(ColorFormat format) {
  * Input format: "#AARRGGBB" (e.g., "#FF0000FF" = Blue with full alpha)
  * Output: [R, G, B, A] array with values 0-255
  */
-std::array<uint8_t, 4> hexARGBToRGBA(const std::string& hexColor) {
+std::array<uint8_t, 4> ColorTools::hexARGBToRGBA(const std::string& hexColor) {
     // Remove '#' if present
     std::string hex = hexColor;
     if (!hex.empty() && hex[0] == '#') {
@@ -141,7 +134,7 @@ std::array<uint8_t, 4> hexARGBToRGBA(const std::string& hexColor) {
  * Input format: "#RRGGBBAA" (e.g., "#FF0000FF" = Red with full alpha)
  * Output: [R, G, B, A] array with values 0-255
  */
-std::array<uint8_t, 4> hexRGBAToRGBA(const std::string& hexColor) {
+std::array<uint8_t, 4> ColorTools::hexRGBAToRGBA(const std::string& hexColor) {
     // Remove '#' if present
     std::string hex = hexColor;
     if (!hex.empty() && hex[0] == '#') {
@@ -175,7 +168,7 @@ std::array<uint8_t, 4> hexRGBAToRGBA(const std::string& hexColor) {
  * Output: [R, G, B, A] array with values 0-255
  * If no alpha is provided, defaults to 255 (fully opaque)
  */
-std::array<uint8_t, 4> hexToRGBA(const std::string& hexColor, uint8_t defaultAlpha = 255) {
+std::array<uint8_t, 4> ColorTools::hexToRGBA(const std::string& hexColor, uint8_t defaultAlpha) {
     // Remove '#' if present
     std::string hex = hexColor;
     if (!hex.empty() && hex[0] == '#') {
@@ -210,7 +203,7 @@ std::array<uint8_t, 4> hexToRGBA(const std::string& hexColor, uint8_t defaultAlp
  * Input: [R, G, B, A] array
  * Output: [R, G, B] array
  */
-std::array<uint8_t, 3> RGBAToRGB(const std::array<uint8_t, 4>& rgba) {
+std::array<uint8_t, 3> ColorTools::RGBAToRGB(const std::array<uint8_t, 4>& rgba) {
     return {rgba[0], rgba[1], rgba[2]};
 }
 
@@ -219,7 +212,7 @@ std::array<uint8_t, 3> RGBAToRGB(const std::array<uint8_t, 4>& rgba) {
  * Input: [R, G, B, A] array
  * Output: "#AARRGGBB" string
  */
-std::string RGBAToHexARGB(const std::array<uint8_t, 4>& rgba) {
+std::string ColorTools::RGBAToHexARGB(const std::array<uint8_t, 4>& rgba) {
     std::stringstream ss;
     ss << "#" 
        << std::hex << std::uppercase << std::setfill('0')
@@ -235,7 +228,7 @@ std::string RGBAToHexARGB(const std::array<uint8_t, 4>& rgba) {
  * Input: [R, G, B, A] array
  * Output: "#RRGGBBAA" string
  */
-std::string RGBAToHexRGBA(const std::array<uint8_t, 4>& rgba) {
+std::string ColorTools::RGBAToHexRGBA(const std::array<uint8_t, 4>& rgba) {
     std::stringstream ss;
     ss << "#" 
        << std::hex << std::uppercase << std::setfill('0')
@@ -251,7 +244,7 @@ std::string RGBAToHexRGBA(const std::array<uint8_t, 4>& rgba) {
  * #RGB -> #RRGGBB
  * #RGBA -> #RRGGBBAA
  */
-std::string expandShortHex(const std::string& hexColor) {
+std::string ColorTools::expandShortHex(const std::string& hexColor) {
     std::string hex = hexColor;
     if (!hex.empty() && hex[0] == '#') {
         hex = hex.substr(1);
@@ -286,7 +279,7 @@ std::string expandShortHex(const std::string& hexColor) {
  * @param defaultAlpha Default alpha value if not present (default: 255)
  * @return RGBA array [R, G, B, A]
  */
-std::array<uint8_t, 4> smartHexToRGBA(const std::string& hexColor, uint8_t defaultAlpha = 255) {
+std::array<uint8_t, 4> ColorTools::smartHexToRGBA(const std::string& hexColor, uint8_t defaultAlpha) {
     ColorFormat format = detectColorFormat(hexColor);
     
     std::string processedHex = hexColor;
@@ -311,166 +304,4 @@ std::array<uint8_t, 4> smartHexToRGBA(const std::string& hexColor, uint8_t defau
         default:
             throw std::invalid_argument("Unable to detect valid color format from: " + hexColor);
     }
-}
-
-// Example usage and test function
-#include <iostream>
-
-void testColorConversions() {
-    std::cout << "=== Color Conversion Tests ===" << std::endl << std::endl;
-    
-    // Test format detection
-    std::cout << "=== Format Detection Tests ===" << std::endl << std::endl;
-    
-    std::vector<std::string> testColors = {
-        "#FF0000FF",    // Could be ARGB (Blue) or RGBA (Red with alpha)
-        "#00FF00",      // RGB Green
-        "#ABC",         // Short RGB
-        "#ABCD",        // Short RGBA
-        "#FF00FF00",    // ARGB Green (OME-TIFF)
-        "#FFFFFF00",    // ARGB Yellow
-        "#12345678"     // Ambiguous 8-digit
-    };
-    
-    for (const auto& color : testColors) {
-        ColorFormat format = detectColorFormat(color);
-        std::cout << "Color: " << color << std::endl;
-        std::cout << "  Detected format: " << colorFormatToString(format) << std::endl;
-        std::cout << std::endl;
-    }
-    
-    // Test smart conversion
-    std::cout << "=== Smart Conversion Tests ===" << std::endl << std::endl;
-    
-    std::cout << "Test 1: Short RGB (#F00 -> Red)" << std::endl;
-    auto rgba1 = smartHexToRGBA("#F00");
-    std::cout << "Input:  #F00" << std::endl;
-    std::cout << "Output: [" 
-              << static_cast<int>(rgba1[0]) << ", "
-              << static_cast<int>(rgba1[1]) << ", "
-              << static_cast<int>(rgba1[2]) << ", "
-              << static_cast<int>(rgba1[3]) << "]" << std::endl;
-    std::cout << "Expected: [255, 0, 0, 255]" << std::endl << std::endl;
-    
-    std::cout << "Test 2: RGB (#00FF00 -> Green)" << std::endl;
-    auto rgba2 = smartHexToRGBA("#00FF00");
-    std::cout << "Input:  #00FF00" << std::endl;
-    std::cout << "Output: [" 
-              << static_cast<int>(rgba2[0]) << ", "
-              << static_cast<int>(rgba2[1]) << ", "
-              << static_cast<int>(rgba2[2]) << ", "
-              << static_cast<int>(rgba2[3]) << "]" << std::endl;
-    std::cout << "Expected: [0, 255, 0, 255]" << std::endl << std::endl;
-    
-    std::cout << "Test 3: ARGB (#FF0000FF -> Blue, OME-TIFF format)" << std::endl;
-    auto rgba3 = smartHexToRGBA("#FF0000FF");
-    std::cout << "Input:  #FF0000FF (ARGB)" << std::endl;
-    std::cout << "Output: [" 
-              << static_cast<int>(rgba3[0]) << ", "
-              << static_cast<int>(rgba3[1]) << ", "
-              << static_cast<int>(rgba3[2]) << ", "
-              << static_cast<int>(rgba3[3]) << "]" << std::endl;
-    std::cout << "Expected: [0, 0, 255, 255]" << std::endl << std::endl;
-    
-    // Test ARGB to RGBA (OME-TIFF format)
-    std::cout << "=== Legacy Function Tests ===" << std::endl << std::endl;
-    
-    std::cout << "Test 4: ARGB to RGBA" << std::endl;
-    std::string argbBlue = "#FF0000FF";  // Alpha=FF, Red=00, Green=00, Blue=FF
-    auto rgbaBlue = hexARGBToRGBA(argbBlue);
-    std::cout << "Input (ARGB):  " << argbBlue << std::endl;
-    std::cout << "Output (RGBA): [" 
-              << static_cast<int>(rgbaBlue[0]) << ", "
-              << static_cast<int>(rgbaBlue[1]) << ", "
-              << static_cast<int>(rgbaBlue[2]) << ", "
-              << static_cast<int>(rgbaBlue[3]) << "]" << std::endl;
-    std::cout << "Expected:      [0, 0, 255, 255]" << std::endl << std::endl;
-    
-    // Test RGBA to RGBA
-    std::cout << "Test 5: RGBA to RGBA" << std::endl;
-    // Test RGBA to RGBA
-    std::cout << "Test 5: RGBA to RGBA" << std::endl;
-    std::string rgbaRed = "#FF0000FF";  // Red=FF, Green=00, Blue=00, Alpha=FF
-    auto rgbaRed_out = hexRGBAToRGBA(rgbaRed);
-    std::cout << "Input (RGBA):  " << rgbaRed << std::endl;
-    std::cout << "Output (RGBA): [" 
-              << static_cast<int>(rgbaRed_out[0]) << ", "
-              << static_cast<int>(rgbaRed_out[1]) << ", "
-              << static_cast<int>(rgbaRed_out[2]) << ", "
-              << static_cast<int>(rgbaRed_out[3]) << "]" << std::endl;
-    std::cout << "Expected:      [255, 0, 0, 255]" << std::endl << std::endl;
-    
-    // Test RGB to RGBA (with default alpha)
-    std::cout << "Test 6: RGB to RGBA (default alpha)" << std::endl;
-    std::string rgbGreen = "#00FF00";
-    auto rgbaGreen = hexToRGBA(rgbGreen);
-    std::cout << "Input (RGB):   " << rgbGreen << std::endl;
-    std::cout << "Output (RGBA): [" 
-              << static_cast<int>(rgbaGreen[0]) << ", "
-              << static_cast<int>(rgbaGreen[1]) << ", "
-              << static_cast<int>(rgbaGreen[2]) << ", "
-              << static_cast<int>(rgbaGreen[3]) << "]" << std::endl;
-    std::cout << "Expected:      [0, 255, 0, 255]" << std::endl << std::endl;
-    
-    // Test RGBA to RGB (drop alpha)
-    std::cout << "Test 7: RGBA to RGB (drop alpha)" << std::endl;
-    // Test RGBA to RGB (drop alpha)
-    std::cout << "Test 7: RGBA to RGB (drop alpha)" << std::endl;
-    std::array<uint8_t, 4> rgba = {255, 128, 0, 255};
-    auto rgb = RGBAToRGB(rgba);
-    std::cout << "Input (RGBA):  [" 
-              << static_cast<int>(rgba[0]) << ", "
-              << static_cast<int>(rgba[1]) << ", "
-              << static_cast<int>(rgba[2]) << ", "
-              << static_cast<int>(rgba[3]) << "]" << std::endl;
-    std::cout << "Output (RGB):  [" 
-              << static_cast<int>(rgb[0]) << ", "
-              << static_cast<int>(rgb[1]) << ", "
-              << static_cast<int>(rgb[2]) << "]" << std::endl;
-    std::cout << "Expected:      [255, 128, 0]" << std::endl << std::endl;
-    
-    // Test round-trip conversion
-    std::cout << "Test 8: Round-trip ARGB -> RGBA -> ARGB" << std::endl;
-    std::string original = "#FF00FFFF";  // Cyan with full alpha in ARGB
-    auto rgba_converted = hexARGBToRGBA(original);
-    auto backToHex = RGBAToHexARGB(rgba_converted);
-    std::cout << "Original:      " << original << std::endl;
-    std::cout << "After round-trip: " << backToHex << std::endl;
-    std::cout << "Match: " << (original == backToHex ? "YES" : "NO") << std::endl << std::endl;
-    
-    // Test OME-TIFF color examples from your file
-    std::cout << "=== OME-TIFF Color Examples ===" << std::endl << std::endl;
-    
-    std::vector<std::pair<std::string, std::string>> omeTiffColors = {
-        {"DAPI", "#FF0000FF"},
-        {"FITC", "#FF00FF00"},
-        {"DsRed", "#FFFFFF00"},
-        {"Cy5", "#FFFF0000"},
-        {"Cy7", "#FF00FFFF"}
-    };
-    
-    for (const auto& [name, hexColor] : omeTiffColors) {
-        auto rgba = hexARGBToRGBA(hexColor);
-        auto rgb = RGBAToRGB(rgba);
-        std::cout << name << " (" << hexColor << "):" << std::endl;
-        std::cout << "  RGBA: [" 
-                  << static_cast<int>(rgba[0]) << ", "
-                  << static_cast<int>(rgba[1]) << ", "
-                  << static_cast<int>(rgba[2]) << ", "
-                  << static_cast<int>(rgba[3]) << "]" << std::endl;
-        std::cout << "  RGB:  [" 
-                  << static_cast<int>(rgb[0]) << ", "
-                  << static_cast<int>(rgb[1]) << ", "
-                  << static_cast<int>(rgb[2]) << "]" << std::endl;
-    }
-}
-
-int main() {
-    try {
-        testColorConversions();
-    } catch (const std::exception& e) {
-        std::cerr << "Error: " << e.what() << std::endl;
-        return 1;
-    }
-    return 0;
 }

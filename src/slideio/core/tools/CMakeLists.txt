@@ -16,5 +16,7 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/cvtools.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/endian.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/endian.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/color_tools.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/color_tools.cpp
    PARENT_SCOPE
    )
