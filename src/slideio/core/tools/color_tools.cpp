@@ -23,9 +23,9 @@ using namespace slideio;
  * - Otherwise, defaults to ARGB (OME-TIFF standard)
  * 
  * @param hexColor The hex color string (with or without '#')
- * @return ColorFormat enum indicating the detected format
+ * @return HexColorFormat enum indicating the detected format
  */
-ColorFormat ColorTools::detectColorFormat(const std::string& hexColor) {
+HexColorFormat ColorTools::detectHexColorFormat(const std::string& hexColor) {
     // Remove '#' if present and convert to uppercase
     std::string hex = hexColor;
     if (!hex.empty() && hex[0] == '#') {
@@ -38,20 +38,20 @@ ColorFormat ColorTools::detectColorFormat(const std::string& hexColor) {
     // Validate that all characters are hex digits
     for (char c : hex) {
         if (!std::isxdigit(c)) {
-            return ColorFormat::UNKNOWN;
+            return HexColorFormat::UNKNOWN;
         }
     }
     
     // Detect based on length
     switch (hex.length()) {
         case 3:
-            return ColorFormat::SHORT_RGB;
+            return HexColorFormat::SHORT_RGB;
             
         case 4:
-            return ColorFormat::SHORT_RGBA;
+            return HexColorFormat::SHORT_RGBA;
             
         case 6:
-            return ColorFormat::RGB;
+            return HexColorFormat::RGB;
             
         case 8: {
             // Need to distinguish between RGBA and ARGB
@@ -61,37 +61,37 @@ ColorFormat ColorTools::detectColorFormat(const std::string& hexColor) {
             
             // If first two are FF and last two are not, likely ARGB
             if (firstTwo == "FF" && lastTwo != "FF") {
-                return ColorFormat::ARGB;
+                return HexColorFormat::ARGB;
             }
             // If last two are FF and first two are not, likely RGBA
             else if (lastTwo == "FF" && firstTwo != "FF") {
-                return ColorFormat::RGBA;
+                return HexColorFormat::RGBA;
             }
             // If both or neither are FF, use heuristic:
             // ARGB is more common in scientific imaging (OME-TIFF)
             // But check if it looks like a valid color in either format
             else {
                 // Default to ARGB for ambiguous cases (OME-TIFF standard)
-                return ColorFormat::ARGB;
+                return HexColorFormat::ARGB;
             }
         }
             
         default:
-            return ColorFormat::UNKNOWN;
+            return HexColorFormat::UNKNOWN;
     }
 }
 
 /**
  * Returns a human-readable string representation of the color format.
  */
-std::string ColorTools::colorFormatToString(ColorFormat format) {
+std::string ColorTools::HexColorFormatToString(HexColorFormat format) {
     switch (format) {
-        case ColorFormat::RGB:        return "RGB (#RRGGBB)";
-        case ColorFormat::RGBA:       return "RGBA (#RRGGBBAA)";
-        case ColorFormat::ARGB:       return "ARGB (#AARRGGBB)";
-        case ColorFormat::SHORT_RGB:  return "Short RGB (#RGB)";
-        case ColorFormat::SHORT_RGBA: return "Short RGBA (#RGBA)";
-        case ColorFormat::UNKNOWN:    return "Unknown";
+        case HexColorFormat::RGB:        return "RGB (#RRGGBB)";
+        case HexColorFormat::RGBA:       return "RGBA (#RRGGBBAA)";
+        case HexColorFormat::ARGB:       return "ARGB (#AARRGGBB)";
+        case HexColorFormat::SHORT_RGB:  return "Short RGB (#RGB)";
+        case HexColorFormat::SHORT_RGBA: return "Short RGBA (#RGBA)";
+        case HexColorFormat::UNKNOWN:    return "Unknown";
         default:                      return "Invalid";
     }
 }
@@ -280,28 +280,47 @@ std::string ColorTools::expandShortHex(const std::string& hexColor) {
  * @return RGBA array [R, G, B, A]
  */
 std::array<uint8_t, 4> ColorTools::smartHexToRGBA(const std::string& hexColor, uint8_t defaultAlpha) {
-    ColorFormat format = detectColorFormat(hexColor);
+    HexColorFormat format = detectHexColorFormat(hexColor);
     
     std::string processedHex = hexColor;
     
     // Expand shorthand formats first
-    if (format == ColorFormat::SHORT_RGB || format == ColorFormat::SHORT_RGBA) {
+    if (format == HexColorFormat::SHORT_RGB || format == HexColorFormat::SHORT_RGBA) {
         processedHex = expandShortHex(hexColor);
-        format = detectColorFormat(processedHex);
+        format = detectHexColorFormat(processedHex);
     }
     
     // Convert based on detected format
     switch (format) {
-        case ColorFormat::RGB:
+        case HexColorFormat::RGB:
             return hexToRGBA(processedHex, defaultAlpha);
             
-        case ColorFormat::RGBA:
+        case HexColorFormat::RGBA:
             return hexRGBAToRGBA(processedHex);
             
-        case ColorFormat::ARGB:
+        case HexColorFormat::ARGB:
             return hexARGBToRGBA(processedHex);
             
         default:
             throw std::invalid_argument("Unable to detect valid color format from: " + hexColor);
     }
+}
+
+/**
+ * Converts a hex color string to a 32-bit RGBA integer and returns it as a
+ * decimal string. Auto-detects the input format (RGB, RGBA, ARGB, shorthand).
+ *
+ * The 32-bit integer is packed as 0xRRGGBBAA.
+ *
+ * @param hexColor The hex color string
+ * @param defaultAlpha Default alpha value if not present (default: 255)
+ * @return Decimal string representation of the 32-bit RGBA value
+ */
+std::string ColorTools::hexToRGBAInt32String(const std::string& hexColor, uint8_t defaultAlpha) {
+    auto rgba = smartHexToRGBA(hexColor, defaultAlpha);
+    uint32_t packed = (static_cast<uint32_t>(rgba[0]) << 24)
+                    | (static_cast<uint32_t>(rgba[1]) << 16)
+                    | (static_cast<uint32_t>(rgba[2]) << 8)
+                    |  static_cast<uint32_t>(rgba[3]);
+    return std::to_string(packed);
 }

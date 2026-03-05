@@ -454,3 +454,88 @@ TEST(ColorTools, detectColorFormat_LowercaseInput)
     EXPECT_EQ(ColorTools::detectColorFormat("#aabbcc"), ColorFormat::RGB);
     EXPECT_EQ(ColorTools::detectColorFormat("#abc"), ColorFormat::SHORT_RGB);
 }
+
+// ============================================================
+// smartHexToRGBAString tests
+// ============================================================
+
+TEST(ColorTools, smartHexToRGBAString_OpaqueRed)
+{
+    EXPECT_EQ(ColorTools::smartHexToRGBAString("#FF0000"), "rgba(255, 0, 0, 1.00)");
+}
+
+TEST(ColorTools, smartHexToRGBAString_OpaqueBlue)
+{
+    EXPECT_EQ(ColorTools::smartHexToRGBAString("#0000FF"), "rgba(0, 0, 255, 1.00)");
+}
+
+TEST(ColorTools, smartHexToRGBAString_SemiTransparentARGB)
+{
+    // Detected as ARGB: Alpha=80, R=FF, G=00, B=00
+    EXPECT_EQ(ColorTools::smartHexToRGBAString("#80FF0000"), "rgba(255, 0, 0, 0.50)");
+}
+
+TEST(ColorTools, smartHexToRGBAString_CustomDefaultAlpha)
+{
+    // RGB with custom default alpha of 0 → fully transparent
+    EXPECT_EQ(ColorTools::smartHexToRGBAString("#00FF00", 0), "rgba(0, 255, 0, 0.00)");
+}
+
+TEST(ColorTools, smartHexToRGBAString_ShortRGB)
+{
+    // #F00 → red, fully opaque
+    EXPECT_EQ(ColorTools::smartHexToRGBAString("#F00"), "rgba(255, 0, 0, 1.00)");
+}
+
+TEST(ColorTools, smartHexToRGBAString_InvalidThrows)
+{
+    EXPECT_THROW(ColorTools::smartHexToRGBAString(""), std::invalid_argument);
+    EXPECT_THROW(ColorTools::smartHexToRGBAString("#GG"), std::invalid_argument);
+}
+
+// ============================================================
+// hexToRGBAInt32String tests
+// ============================================================
+
+TEST(ColorTools, hexToRGBAInt32String_OpaqueRed)
+{
+    // Red(255,0,0,255) → 0xFF0000FF = 4278190335
+    EXPECT_EQ(ColorTools::hexToRGBAInt32String("#FF0000"), "4278190335");
+}
+
+TEST(ColorTools, hexToRGBAInt32String_OpaqueGreen)
+{
+    // Green(0,255,0,255) → 0x00FF00FF = 16711935
+    EXPECT_EQ(ColorTools::hexToRGBAInt32String("#00FF00"), "16711935");
+}
+
+TEST(ColorTools, hexToRGBAInt32String_OpaqueBlue)
+{
+    // Blue(0,0,255,255) → 0x0000FFFF = 65535
+    EXPECT_EQ(ColorTools::hexToRGBAInt32String("#0000FF"), "65535");
+}
+
+TEST(ColorTools, hexToRGBAInt32String_OpaqueWhite)
+{
+    // White(255,255,255,255) → 0xFFFFFFFF = 4294967295
+    EXPECT_EQ(ColorTools::hexToRGBAInt32String("#FFFFFF"), "4294967295");
+}
+
+TEST(ColorTools, hexToRGBAInt32String_TransparentBlack)
+{
+    // Black(0,0,0,0) with alpha 0 → 0x00000000 = 0
+    EXPECT_EQ(ColorTools::hexToRGBAInt32String("#000000", 0), "0");
+}
+
+TEST(ColorTools, hexToRGBAInt32String_SemiTransparentARGB)
+{
+    // ARGB input #80FF0000 → detected as ARGB → RGBA(255,0,0,128)
+    // 0xFF000080 = 4278190208
+    EXPECT_EQ(ColorTools::hexToRGBAInt32String("#80FF0000"), "4278190208");
+}
+
+TEST(ColorTools, hexToRGBAInt32String_InvalidThrows)
+{
+    EXPECT_THROW(ColorTools::hexToRGBAInt32String(""), std::invalid_argument);
+    EXPECT_THROW(ColorTools::hexToRGBAInt32String("#ZZ"), std::invalid_argument);
+}

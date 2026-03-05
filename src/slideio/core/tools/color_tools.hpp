@@ -9,7 +9,7 @@ namespace slideio {
 /**
  * Enum representing different color format types
  */
-    enum class ColorFormat {
+    enum class HexColorFormat {
         UNKNOWN,
         RGB,        // #RRGGBB (6 hex digits)
         RGBA,       // #RRGGBBAA (8 hex digits, standard web format)
@@ -20,8 +20,8 @@ namespace slideio {
 
     class ColorTools {
     public:
-        static ColorFormat detectColorFormat(const std::string& hexColor);
-        static std::string colorFormatToString(ColorFormat format);
+        static HexColorFormat detectHexColorFormat(const std::string& hexColor);
+        static std::string HexColorFormatToString(HexColorFormat format);
         static std::array<uint8_t, 4> hexARGBToRGBA(const std::string& hexColor);
         static std::array<uint8_t, 4> hexRGBAToRGBA(const std::string& hexColor);
         static std::array<uint8_t, 4> hexToRGBA(const std::string& hexColor, uint8_t defaultAlpha = 255);
@@ -30,5 +30,6 @@ namespace slideio {
         static std::string expandShortHex(const std::string& hexColor);
         static std::array<uint8_t, 4> smartHexToRGBA(const std::string& hexColor, uint8_t defaultAlpha = 255);
         static std::string RGBAToHexRGBA(const std::array<uint8_t, 4>& rgba);
+        static std::string hexToRGBAInt32String(const std::string& hexColor, uint8_t defaultAlpha = 255);
     };
 }
