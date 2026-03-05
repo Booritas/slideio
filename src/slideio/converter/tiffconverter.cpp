@@ -167,11 +167,11 @@ std::string TiffConverter::createOMETiffDescription() const {
         std::string idAttr = std::string("Channel:0:") + std::to_string(id++);
         auto* xmlChannel = doc.NewElement("Channel");
         for (int attIndex = 0; attIndex < (int)m_scene->getNumChannelAttributes(); ++attIndex) {
-            std::string attrValue = m_scene->getChannelAttributeValue(channel,attIndex);
+			std::string attrValue = m_scene->getChannelAttributeValue(channel,attIndex);
 			const std::string& attrName = m_scene->getChannelAttributeName(attIndex);
-            if(attrName == "Color" && attrValue.size() > 0 && attrValue[0] == '#') {
-                attrValue = ColorTools::hexToRGBAInt32String(attrValue);
-            }
+			if(attrName == "Color" && ColorTools::detectHexColorFormat(attrValue) != HexColorFormat::UNKNOWN) {
+				attrValue = ColorTools::hexToInt32String(attrValue);
+			}
             xmlChannel->SetAttribute(attrName.c_str(), attrValue.c_str());
         }
         xmlChannel->SetAttribute("ID", idAttr.c_str());
