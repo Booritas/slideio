@@ -55,6 +55,15 @@ def get_platform():
     return platforms[sys.platform]
 
 
+def get_processor_type():
+    """Detect processor architecture: 'x86_64' or 'arm64'."""
+    machine = platform.machine().lower()
+    if machine in ('x86_64', 'amd64'):
+        return 'x86_64'
+    elif machine in ('arm64', 'aarch64'):
+        return 'arm64'
+    return machine
+
 def is_linux():
     platform = get_platform()
     return platform == "Linux"
@@ -62,6 +71,18 @@ def is_linux():
 def is_osx():
     platform = get_platform()
     return platform == "OSX"
+
+
+def get_linux_distro_name():
+    """Return the Linux distribution name (e.g. 'ubuntu', 'centos', 'debian').
+    Returns an empty string on non-Linux platforms.
+    """
+    if not is_linux():
+        return ""
+    try:
+        return distro.id()
+    except NameError:
+        return ""
 
 
 def clean_prev_build(slideio_directory, build_directory):
