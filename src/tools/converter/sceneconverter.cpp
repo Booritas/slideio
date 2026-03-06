@@ -295,6 +295,8 @@ void convertFile(
 	if (!silent) {
 		std::cout << "Conversion completed successfully." << std::endl;
 		std::cout << "Conversion time: " << formatDuration(duration) << std::endl;
+		std::cout << "Read time: " << converter.getReadTime()/1000000 << std::endl;
+		std::cout << "Write time: " << converter.getWriteTime()/1000000 << std::endl;
 	}
 }
 
