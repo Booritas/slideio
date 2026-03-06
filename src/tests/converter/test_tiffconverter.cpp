@@ -153,7 +153,7 @@ static void testOMETIFFSubset(const ConverterParameters& params,
             }
             EXPECT_EQ(numZoomLevels - 1, page.getNumSubDirectories());
         }
-        converter.createTiff(outputPath, nullptr);
+        converter.createTiff(outputPath, nullptr, 1);
         checkTiff(converter, outputPath, scene);
     }
 }
@@ -163,7 +163,7 @@ TEST(TiffConverterTests, UninitializedConverter) {
     TiffConverter converter;
     EXPECT_EQ(0, converter.getNumTiffPages());
     EXPECT_THROW(converter.getTiffPage(0), RuntimeError);
-    EXPECT_THROW(converter.createTiff("no-file", nullptr), RuntimeError);
+    EXPECT_THROW(converter.createTiff("no-file", nullptr, 1), RuntimeError);
 }
 
 TEST(TiffConverterTests, CreateFileLayoutThrowsOnNullScene) {
@@ -791,7 +791,7 @@ TEST(TiffConverterTests, jpegToOMETIFF) {
     std::set<int> progress;
     int progressLast = 0;
     ASSERT_NO_THROW(converter.createTiff(outputPath,
-        [&progress, &progressLast](int pr) { progressLast = pr; progress.insert(pr); }));
+        [&progress, &progressLast](int pr) { progressLast = pr; progress.insert(pr); }, 1));
     EXPECT_EQ(100, progressLast);
     EXPECT_GT(progress.size(), 10);
     std::vector<TiffDirectory> directories;
@@ -858,7 +858,7 @@ TEST(TiffConverterTests, jpegToSVS) {
     TiffConverter converter;
     ASSERT_NO_THROW(converter.createFileLayout(scene->getCVScene(), parameters));
     EXPECT_EQ(5, converter.getNumTiffPages());
-    ASSERT_NO_THROW(converter.createTiff(outputPath, nullptr));
+    ASSERT_NO_THROW(converter.createTiff(outputPath, nullptr, 1));
     std::vector<TiffDirectory> directories;
     TiffTools::scanFile(outputPath, directories);
     EXPECT_EQ(5, directories.size());
@@ -917,7 +917,7 @@ TEST(TiffConverterTests, OMETIFFJp2KRaster) {
 	tiffParams->setTileWidth(tileSize.width);
     TiffConverter converter;
     converter.createFileLayout(scene, params);
-    converter.createTiff(outputPath, nullptr);
+    converter.createTiff(outputPath, nullptr, 1);
     auto slide = openSlide(outputPath, "OMETIFF");
 	ASSERT_EQ(1, slide->getNumScenes());
 	auto cvScene = slide->getScene(0)->getCVScene();
@@ -1008,7 +1008,7 @@ TEST(TiffConverterTests, OMETIFFJpegRaster) {
 	tiffParams->setTileWidth(tileSize.width);
     TiffConverter converter;
     converter.createFileLayout(scene, params);
-    converter.createTiff(outputPath, nullptr);
+    converter.createTiff(outputPath, nullptr, 1);
     auto slide = openSlide(outputPath, "OMETIFF");
     ASSERT_EQ(1, slide->getNumScenes());
     auto cvScene = slide->getScene(0)->getCVScene();

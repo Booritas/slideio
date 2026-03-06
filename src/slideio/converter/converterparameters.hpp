@@ -174,6 +174,14 @@ namespace slideio
                     nullptr;
             }
 
+            int getTileBatchSize() const {
+                return m_tileBatchSize;
+			}
+
+            void setTileBatchSize(int batchSize) {
+                m_tileBatchSize = batchSize;
+            }
+
             void updateNotDefinedParameters(const std::shared_ptr<CVScene>& scene);
 
         private:
@@ -186,6 +194,7 @@ namespace slideio
             Range m_sliceRange;
             Range m_channelRange;
             Range m_frameRange;
+			int m_tileBatchSize;
             std::shared_ptr<EncodeParameters> m_encodeParameters;
             std::shared_ptr<ContainerParameters> m_containerParameters;
         };

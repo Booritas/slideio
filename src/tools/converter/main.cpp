@@ -85,6 +85,7 @@ int main(int argc, char* argv[]) {
     bool deleteIfExists = false;
     int sceneIndex = 0;
     int logLevelValue = 1;
+	int tileBatchSize = 10;
 
     app.add_option("input", inputPath, "Input file path")
        ->required()
@@ -148,6 +149,10 @@ int main(int argc, char* argv[]) {
        ->default_val(1)
        ->check(CLI::Range(0, 3));
 
+    app.add_option("-b,--batch-size", tileBatchSize, "Number of tiles read in one operation")
+       ->default_val(10)
+       ->check(CLI::PositiveNumber);
+
     CLI11_PARSE(app, argc, argv);
 
     try {
@@ -196,7 +201,8 @@ int main(int argc, char* argv[]) {
                     frameRange,
                     silent,
                     infoOnly,
-                    deleteIfExists);
+                    deleteIfExists,
+                    tileBatchSize);
     }
     catch (const std::exception& e) {
         std::cerr << "Error during processing: " << e.what() << std::endl;

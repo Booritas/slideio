@@ -23,6 +23,7 @@ namespace slideio
         void SLIDEIO_CONVERTER_EXPORTS convertScene(std::shared_ptr<Scene> inputScene,
                                                     ConverterParameters& parameters,
                                                     const std::string& outputPath,
+                                                    int tileBatchSize,
                                                     ConverterCallback cb = nullptr);
     }
 }

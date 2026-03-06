@@ -9,7 +9,6 @@
 
 #include "slideio/converter/converter_def.hpp"
 #include "slideio/base/size.hpp"
-#include "slideio/base/range.hpp"
 #include "slideio/base/rect.hpp"
 
 namespace slideio

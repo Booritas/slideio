@@ -180,6 +180,7 @@ void printInfo(const TiffConverter& converter) {
 	std::cout << "Slice range: " << params.getSliceRange() << std::endl;
 	std::cout << "Time frame range: " << params.getTFrameRange() << std::endl;
 	std::cout << "Target image rectangle: " << params.getRect() << std::endl;
+	std::cout << "Number of tiles in a batch: " << params.getTileBatchSize() << std::endl;
 
 }
 
@@ -201,7 +202,8 @@ void convertFile(
 	const Range& frameRange, 
 	bool silent,
 	bool infoOnly,
-	bool deleteIfExists) {
+	bool deleteIfExists,
+	int tileBatchSize) {
 	if (!std::filesystem::exists(inputPath)) {
 		throw std::runtime_error("Input file does not exist: " + inputPath);
 	}
@@ -218,6 +220,7 @@ void convertFile(
 	Compression compression = (targetCompression == "Jpeg") ? Compression::Jpeg : Compression::Jpeg2000;
 	ImageFormat format = (targetFormat == "SVS") ? SVS : OME_TIFF;
 	ConverterParameters params(format, TIFF_CONTAINER, compression);
+	params.setTileBatchSize(tileBatchSize);
 	if (!rect.empty()) {
 		const Rect& sceneRect = scene->getCVScene()->getRect();
 		if (rect.x + rect.width > sceneRect.width 
@@ -284,9 +287,9 @@ void convertFile(
 	if (!silent) {
 		std::cout << "Converting..." << std::endl;
 		CursorGuard cursorGuard;  // RAII: cursor will be restored automatically
-		converter.createTiff(outputPath, showProgress);
+		converter.createTiff(outputPath, showProgress, tileBatchSize);
 	} else {
-		converter.createTiff(outputPath,nullptr);
+		converter.createTiff(outputPath,nullptr, tileBatchSize);
 	}
 	
 	auto endTime = std::chrono::high_resolution_clock::now();

@@ -33,7 +33,7 @@ TEST(Converter, convertGdalToOmetiff)
 	}
 	OMETIFFJpegConverterParameters parameters;
 	parameters.setQuality(99);
-	convertScene(scene, parameters, outputPath);
+	convertScene(scene, parameters, outputPath, 1);
 	SlidePtr omeSlide = openSlide(outputPath, "OMETIFF");
 	ScenePtr omeScene = omeSlide->getScene(0);
 	auto svsRect = omeScene->getRect();
@@ -66,7 +66,7 @@ TEST(Converter, convertGdalToOmetiffJp2K)
 		std::filesystem::remove(outputPath);
 	}
 	OMETIFFJp2KConverterParameters parameters;
-	convertScene(scene, parameters, outputPath);
+	convertScene(scene, parameters, outputPath, 1);
 	SlidePtr omeSlide = openSlide(outputPath, "OMETIFF");
 	ScenePtr omeScene = omeSlide->getScene(0);
 	auto omeRect = omeScene->getRect();

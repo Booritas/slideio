@@ -13,7 +13,7 @@
 using namespace slideio;
 using namespace slideio::converter;
 
-void converter::convertScene(std::shared_ptr<Scene> scene, ConverterParameters& parameters, const std::string& outputPath, ConverterCallback cb)
+void converter::convertScene(std::shared_ptr<Scene> scene, ConverterParameters& parameters, const std::string& outputPath, int tileBatchSize, ConverterCallback cb)
 {
     if(scene == nullptr) {
         RAISE_RUNTIME_ERROR << "Converter: invalid input scene!";
@@ -38,7 +38,7 @@ void converter::convertScene(std::shared_ptr<Scene> scene, ConverterParameters& 
     try {
         TiffConverter structure;
         structure.createFileLayout(scene->getCVScene(), parameters);
-		structure.createTiff(outputPath, cb);
+		structure.createTiff(outputPath, cb, tileBatchSize);
     }
     catch (std::exception&) {
 #if defined(WIN32)

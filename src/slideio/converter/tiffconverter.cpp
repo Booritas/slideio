@@ -423,7 +423,7 @@ TiffDirectory TiffConverter::setUpDirectory(const TiffDirectoryStructure& page) 
     return dir;
 }
 
-void TiffConverter::writeDirectoryData(TiffDirectory& dir, const TiffDirectoryStructure& page, const std::function<void(int)>& cb) {
+void TiffConverter::writeDirectoryData(TiffDirectory& dir, const TiffDirectoryStructure& page, const std::function<void(int)>& cb, int tileBatchSize) {
     if (page.getZoomLevelRange().size() != 1) {
         RAISE_RUNTIME_ERROR << "Converter: Invalid zoom level range in page! Expected: 1, received: " << page.getZoomLevelRange().size();
 	}
@@ -446,12 +446,11 @@ void TiffConverter::writeDirectoryData(TiffDirectory& dir, const TiffDirectorySt
     for (int channel = 0; channel < dir.channels; ++channel) {
         channels.push_back(page.getChannelRange().start + channel);
     }
-    const int batchSize = 10;
-    const int batchWidth = batchSize * sceneTileSize.width;
+    const int batchWidth = tileBatchSize * sceneTileSize.width;
     for (int y = m_cropRect.y; y < yEnd; y += sceneTileSize.height) {
         for (int x = m_cropRect.x; x < xEnd; x += batchWidth) {
             int numTiles = 1 + (xEnd - x - 1) / sceneTileSize.width;
-            numTiles = std::min(numTiles, batchSize);
+            numTiles = std::min(numTiles, tileBatchSize);
             numTiles = std::max(1, numTiles);
             const int blockWidth = numTiles * sceneTileSize.width;
             cv::Rect blockRect(x, y, blockWidth, sceneTileSize.height);
@@ -491,199 +490,8 @@ void TiffConverter::writeDirectoryData(TiffDirectory& dir, const TiffDirectorySt
 	}
 }
 
-void TiffConverter::writeDirectoryDataMT(TiffDirectory& dir, const TiffDirectoryStructure& page,
-	const std::function<void(int)>& cb, int numThreads) {
-	if (page.getZoomLevelRange().size() != 1) {
-		RAISE_RUNTIME_ERROR << "Converter: Invalid zoom level range in page! Expected: 1, received: " << page.getZoomLevelRange().size();
-	}
 
-	const int zoomLevel = page.getZoomLevelRange().start;
-	const cv::Size tileSize = cv::Size(dir.tileWidth, dir.tileHeight);
-	const cv::Size sceneTileSize = ConverterTools::scaleSize(tileSize, zoomLevel, false);
-	std::shared_ptr<const EncodeParameters> encoding = m_parameters.getEncodeParameters();
-	const int xEnd = m_cropRect.x + m_cropRect.width;
-	const int yEnd = m_cropRect.y + m_cropRect.height;
-	const int slice = page.getZSliceRange().start;
-	const int frame = page.getTFrameRange().start;
-
-	std::vector<int> channels;
-	channels.reserve(dir.channels);
-	for (int channel = 0; channel < dir.channels; ++channel) {
-		channels.push_back(page.getChannelRange().start + channel);
-	}
-
-	// Collect all tile coordinates
-	struct TileTask {
-		int x;
-		int y;
-		int tileIndex;
-	};
-	std::vector<TileTask> tileTasks;
-	int tileIndex = 0;
-	for (int y = m_cropRect.y; y < yEnd; y += sceneTileSize.height) {
-		for (int x = m_cropRect.x; x < xEnd; x += sceneTileSize.width) {
-			tileTasks.push_back({x, y, tileIndex++});
-		}
-	}
-
-	const int totalTilesInDir = static_cast<int>(tileTasks.size());
-	if (totalTilesInDir == 0) return;
-
-	// Structure to hold processed tile data
-	struct ProcessedTile {
-		int tileIndex;
-		int zoomLevelX;
-		int zoomLevelY;
-		cv::Mat tile;
-		std::vector<uint8_t> buffer;
-	};
-
-	// Thread-safe queue for processed tiles ready to be written
-	std::mutex queueMutex;
-	std::condition_variable queueCondVar;
-	std::map<int, ProcessedTile> processedTiles;
-	int nextTileToWrite = 0;
-	std::atomic<bool> processingError{false};
-	std::string errorMessage;
-	std::mutex errorMutex;
-
-	// Atomic counter for task distribution
-	std::atomic<int> nextTaskIndex{0};
-
-	// Determine actual thread count (use hardware concurrency if numThreads <= 0)
-	int requestedThreads = numThreads;
-	if (requestedThreads <= 0) {
-		requestedThreads = static_cast<int>(std::thread::hardware_concurrency());
-		if (requestedThreads <= 0) requestedThreads = 4; // Fallback if hardware_concurrency returns 0
-	}
-	const int actualThreads = std::max(1, std::min(requestedThreads, totalTilesInDir));
-
-	// Worker function for tile reading
-	auto workerFunc = [&]() {
-		// Thread-local buffer for JPEG2000
-		std::vector<uint8_t> localBuffer;
-		if (m_parameters.getEncoding() == Compression::Jpeg2000) {
-			int dataSize = tileSize.width * tileSize.height * m_scene->getNumChannels() *
-				Tools::dataTypeSize(m_scene->getChannelDataType(0));
-			localBuffer.resize(dataSize);
-		}
-
-		while (!processingError) {
-			int taskIdx = nextTaskIndex.fetch_add(1);
-			if (taskIdx >= totalTilesInDir) break;
-
-			const auto& task = tileTasks[taskIdx];
-			try {
-				cv::Mat tile;
-				cv::Rect blockRect(task.x, task.y, sceneTileSize.width, sceneTileSize.height);
-				auto readStart = std::chrono::high_resolution_clock::now();
-				ConverterTools::readTile(m_scene, channels, zoomLevel, blockRect, slice, frame, tile);
-				auto readEnd = std::chrono::high_resolution_clock::now();
-				{
-					std::lock_guard<std::mutex> lock(queueMutex);
-					m_readTime += std::chrono::duration_cast<std::chrono::microseconds>(readEnd - readStart).count();
-				}
-
-				if (tile.rows != tileSize.height || tile.cols != tileSize.width) {
-					std::lock_guard<std::mutex> lock(errorMutex);
-					errorMessage = "Converter: Unexpected tile size (" + std::to_string(tile.cols) + "," +
-						std::to_string(tile.rows) + "). Expected tile size: (" +
-						std::to_string(tileSize.width) + "," + std::to_string(tileSize.height) + ").";
-					processingError = true;
-					queueCondVar.notify_all();
-					break;
-				}
-
-				blockRect.x -= m_cropRect.x;
-				blockRect.y -= m_cropRect.y;
-				cv::Rect zoomLevelRect = ConverterTools::scaleRect(blockRect, zoomLevel, true);
-
-				ProcessedTile processed;
-				processed.tileIndex = task.tileIndex;
-				processed.zoomLevelX = zoomLevelRect.x;
-				processed.zoomLevelY = zoomLevelRect.y;
-				processed.tile = tile.clone();
-				processed.buffer = localBuffer;
-
-				{
-					std::lock_guard<std::mutex> lock(queueMutex);
-					processedTiles[task.tileIndex] = std::move(processed);
-				}
-				queueCondVar.notify_one();
-			}
-			catch (const std::exception& e) {
-				std::lock_guard<std::mutex> lock(errorMutex);
-				errorMessage = e.what();
-				processingError = true;
-				queueCondVar.notify_all();
-				break;
-			}
-		}
-	};
-
-	// Start worker threads
-	std::vector<std::thread> workers;
-	workers.reserve(actualThreads);
-	for (int i = 0; i < actualThreads; ++i) {
-		workers.emplace_back(workerFunc);
-	}
-
-	// Writer loop - runs in main thread
-	while (nextTileToWrite < totalTilesInDir && !processingError) {
-		std::unique_lock<std::mutex> lock(queueMutex);
-		queueCondVar.wait(lock, [&]() {
-			return processedTiles.count(nextTileToWrite) > 0 || processingError;
-		});
-
-		if (processingError) break;
-
-		while (processedTiles.count(nextTileToWrite) > 0) {
-			auto& processed = processedTiles[nextTileToWrite];
-			lock.unlock();
-
-			try {
-				auto writeStart = std::chrono::high_resolution_clock::now();
-				m_file->writeTile(processed.zoomLevelX, processed.zoomLevelY, dir.slideioCompression,
-					*encoding, processed.tile, processed.buffer.data(),
-					static_cast<int>(processed.buffer.size()));
-				auto writeEnd = std::chrono::high_resolution_clock::now();
-				m_writeTime += std::chrono::duration_cast<std::chrono::microseconds>(writeEnd - writeStart).count();
-			}
-			catch (const std::exception& e) {
-				std::lock_guard<std::mutex> errLock(errorMutex);
-				errorMessage = e.what();
-				processingError = true;
-				break;
-			}
-
-			m_currentTile++;
-			if (cb) {
-				double proc = 100. * static_cast<double>(m_currentTile) / static_cast<double>(m_totalTiles);
-				if (const int lproc = std::lround(proc); lproc != m_lastProgress) {
-					cb(lproc);
-					m_lastProgress = lproc;
-				}
-			}
-
-			lock.lock();
-			processedTiles.erase(nextTileToWrite);
-			nextTileToWrite++;
-		}
-	}
-
-	// Wait for all worker threads to complete
-	for (auto& worker : workers) {
-		if (worker.joinable()) {
-			worker.join();
-		}
-	}
-
-	if (processingError) {
-		RAISE_RUNTIME_ERROR << errorMessage;
-	}
-}
-
-void TiffConverter::createTiff(const std::string& filePath, const std::function<void(int)>& cb) {
+void TiffConverter::createTiff(const std::string& filePath, const std::function<void(int)>& cb, int tileBatchSize) {
     TIFFMessageHandler mh;
     m_currentTile = 0;
     m_file.reset(new TIFFKeeper(filePath, false));
@@ -700,7 +508,7 @@ void TiffConverter::createTiff(const std::string& filePath, const std::function<
         if (numSubDirs > 0) {
             m_file->initSubDirs(numSubDirs);
         }
-        writeDirectoryData(dir, page, cb);
+        writeDirectoryData(dir, page, cb, tileBatchSize);
         m_file->writeDirectory();
         const int numSubdirs = page.getNumSubDirectories();
         for (int subDirIndex = 0; subDirIndex < numSubdirs; ++subDirIndex) {
@@ -708,7 +516,7 @@ void TiffConverter::createTiff(const std::string& filePath, const std::function<
             TiffDirectory subDir = setUpDirectory(dirSpec);
 			subDir.subFileType = FILETYPE_REDUCEDIMAGE;
             m_file->setTags(subDir);
-            writeDirectoryData(subDir, dirSpec, cb);
+            writeDirectoryData(subDir, dirSpec, cb, tileBatchSize);
             m_file->writeDirectory();
         }
     }

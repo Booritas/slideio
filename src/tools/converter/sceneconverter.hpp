@@ -22,4 +22,5 @@ void convertFile(
 	const slideio::Range& frameRange, 
 	bool silent,
 	bool infoOnly,
-	bool deleteIfExists);
+	bool deleteIfExists,
+	int tileBatchSize);
