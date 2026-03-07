@@ -19,7 +19,7 @@
 #include <queue>
 #include <condition_variable>
 #include <atomic>
-#include <map>
+#include <unordered_map>
 
 #include "slideio/base/log.hpp"
 #include "slideio/core/tools/boundedqueue.hpp"
@@ -509,7 +509,7 @@ void TiffConverter::writeDirectoryDataST(TiffDirectory& dir, const TiffDirectory
     }
 }
 
-void TiffConverter::readTiles(TiffDirectory& dir, const TiffDirectoryStructure& page, BoundedQueue<Tile>& inputQueue, int tileBatchSize,
+void TiffConverter::readTiles(const TiffDirectory& dir, const TiffDirectoryStructure& page, BoundedQueue<Tile>& inputQueue, int tileBatchSize,
 	std::exception_ptr& readerException, std::mutex& exceptionMutex) {
 	int zoomLevel = page.getZoomLevelRange().start;
 	cv::Size tileSize = cv::Size(dir.tileWidth, dir.tileHeight);
@@ -525,13 +525,14 @@ void TiffConverter::readTiles(TiffDirectory& dir, const TiffDirectoryStructure& 
 	}
 	try {
 		int iTile = 0;
-		const int batchWidth = tileBatchSize * sceneTileSize.width;
+		const int safeTileBatchSize = std::max(1, tileBatchSize);
+		const int batchWidth = safeTileBatchSize * sceneTileSize.width;
 		cv::Mat block;
 		bool done = false;
 		for (int y = m_cropRect.y; y < yEnd && !done; y += sceneTileSize.height) {
 			for (int x = m_cropRect.x; x < xEnd && !done; x += batchWidth) {
                 int numTiles = 1 + (xEnd - x - 1) / sceneTileSize.width;
-                numTiles = std::min(numTiles, tileBatchSize);
+                numTiles = std::min(numTiles, safeTileBatchSize);
                 numTiles = std::max(1, numTiles);
                 const int blockWidth = numTiles * sceneTileSize.width;
                 cv::Rect blockRect(x, y, blockWidth, sceneTileSize.height);
@@ -615,7 +616,7 @@ void TiffConverter::encodeTiles(BoundedQueue<Tile>& inputQueue, BoundedQueue<Enc
             }
         }
     }
-    catch (std::exception& e) {
+    catch (const std::exception& e) {
         {
             std::unique_lock lock(encoderExMutex);
             if (!encoderException)
@@ -649,16 +650,20 @@ void TiffConverter::writeTile(const EncodedTile& tile)  {
 
 void TiffConverter::writeTiles(BoundedQueue<Tile>& inputQueue, BoundedQueue<EncodedTile>& outputQueue, const std::function<void(int)>& cb,
     std::exception_ptr& writerException, std::mutex& exceptionMutex) {
-    std::map<size_t, EncodedTile> reorderBuffer; // Holds out-of-order tiles
+    std::unordered_map<size_t, EncodedTile> reorderBuffer; // Holds out-of-order tiles
     size_t nextExpected = 0;
 
     try {
         while (auto encoded = outputQueue.pop()) {
             reorderBuffer.emplace(encoded->sequenceId, std::move(*encoded));
             // Flush all consecutive tiles that are ready
-            while (reorderBuffer.count(nextExpected)) {
-                writeTile(reorderBuffer.at(nextExpected));  // Fast I/O
-                reorderBuffer.erase(nextExpected);
+            while (true) {
+                auto it = reorderBuffer.find(nextExpected);
+                if (it == reorderBuffer.end()) {
+                    break;
+                }
+                writeTile(it->second);  // Fast I/O
+                reorderBuffer.erase(it);
                 m_currentTile++;
                 if (cb) {
                     double proc = 100. * (double)m_currentTile / (double)m_totalTiles;
@@ -671,7 +676,7 @@ void TiffConverter::writeTiles(BoundedQueue<Tile>& inputQueue, BoundedQueue<Enco
             }
         }
     }
-    catch (std::exception& e) {
+    catch (const std::exception& e) {
         {
             std::unique_lock lock(exceptionMutex);
             if (!writerException)
@@ -695,9 +700,12 @@ void TiffConverter::writeTiles(BoundedQueue<Tile>& inputQueue, BoundedQueue<Enco
 
 void TiffConverter::writeDirectoryDataMT(TiffDirectory& dir, const TiffDirectoryStructure& page,
                                          const std::function<void(int)>& cb, int tileBatchSize, int numEncoderThreads) {
-    if (numEncoderThreads <= 0)
-        numEncoderThreads = std::thread::hardware_concurrency();
-    const size_t QUEUE_DEPTH = numEncoderThreads * 2; // Bound memory usage
+    if (numEncoderThreads <= 0) {
+        numEncoderThreads = static_cast<int>(std::thread::hardware_concurrency());
+    }
+    numEncoderThreads = std::max(1, numEncoderThreads);
+    const int safeTileBatchSize = std::max(1, tileBatchSize);
+    const size_t QUEUE_DEPTH = std::max(static_cast<size_t>(2), static_cast<size_t>(numEncoderThreads) * 2); // Bound memory usage
 
     BoundedQueue<Tile> inputQueue(QUEUE_DEPTH);
     BoundedQueue<EncodedTile> outputQueue(QUEUE_DEPTH);
@@ -709,14 +717,14 @@ void TiffConverter::writeDirectoryDataMT(TiffDirectory& dir, const TiffDirectory
     std::mutex         exceptionMutex;
 
     // --- Stage 1: Reader (single thread) ---
-    std::thread reader(&TiffConverter::readTiles, this, std::ref(dir), std::ref(page), std::ref(inputQueue), tileBatchSize,
+    std::thread reader(&TiffConverter::readTiles, this, std::cref(dir), std::cref(page), std::ref(inputQueue), safeTileBatchSize,
         std::ref(readerException), std::ref(exceptionMutex));
 
     // --- Stage 2: Encoders (thread pool) ---
     std::vector<std::thread> encoders;
     std::atomic<size_t> activeEncoders{static_cast<size_t>(numEncoderThreads)};
 
-    for (size_t i = 0; i < numEncoderThreads; ++i) {
+    for (int i = 0; i < numEncoderThreads; ++i) {
         encoders.emplace_back(&TiffConverter::encodeTiles, this, std::ref(inputQueue), std::ref(outputQueue),
             std::ref(activeEncoders), std::ref(encoderException), std::ref(exceptionMutex));
     }

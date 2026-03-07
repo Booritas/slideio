@@ -6,6 +6,7 @@
 #include "slideio/converter/converterparameters.hpp"
 #include "slideio/converter/tiffstructure.hpp"
 #include "slideio/core/tools/boundedqueue.hpp"
+#include <mutex>
 
 namespace slideio
 {
@@ -80,7 +81,7 @@ namespace slideio
             void checkContainerRequirements() const;
             void updateNotDefinedParameters();
 			// --- Multithreaded conversion helpers ---
-			void readTiles(TiffDirectory& dir, const TiffDirectoryStructure& page, BoundedQueue<Tile>& inputQueue, int tileBatchSize,
+			void readTiles(const TiffDirectory& dir, const TiffDirectoryStructure& page, BoundedQueue<Tile>& inputQueue, int tileBatchSize,
 				std::exception_ptr& readerException, std::mutex& exceptionMutex);
 			void encodeTiles(BoundedQueue<Tile>& inputQueue, BoundedQueue<EncodedTile>& outputQueue,
 				std::atomic<size_t>& activeEncoders, std::exception_ptr& encoderException, std::mutex& exceptionMutex);
