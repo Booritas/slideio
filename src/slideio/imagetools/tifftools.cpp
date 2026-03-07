@@ -1014,6 +1014,14 @@ int TiffTools::getNumberOfDirectories(libtiff::TIFF* tiff) {
     return libtiff::TIFFNumberOfDirectories(tiff);
 }
 
+void TiffTools::writeRawTile(libtiff::TIFF* tiff, int x, int y, const uint8_t* data, int size) {
+    const uint32_t tile = libtiff::TIFFComputeTile(tiff, x, y, 0, 0);
+    auto written = libtiff::TIFFWriteRawTile(tiff, tile, (void*)data, size);
+    if (written <= 0) {
+        RAISE_RUNTIME_ERROR << "Error by writing tiff tile";
+	}
+}
+
 void TiffTools::setCurrentDirectory(libtiff::TIFF* hFile, const TiffDirectory& dir) {
     uint64_t offset = libtiff::TIFFCurrentDirOffset(hFile);
     if (offset != dir.byteOffset) {

@@ -54,6 +54,7 @@ namespace slideio
             const std::vector<int>& channelIndices, cv::OutputArray output);
         std::string readStringTag(uint16_t tag);
         void initSubDirs(int numDirs);
+        void writeRawTile(int x, int y, const uint8_t* data, int size);
 
     private:
         libtiff::TIFF* m_hFile;

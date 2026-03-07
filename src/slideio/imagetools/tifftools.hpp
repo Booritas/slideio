@@ -92,6 +92,7 @@ namespace slideio
             uint8_t* buffer=nullptr, int bufferSize=0);
         static std::string readStringTag(libtiff::TIFF* tiff, uint16_t tag);
         static int getNumberOfDirectories(libtiff::TIFF* tiff);
+        static void writeRawTile(libtiff::TIFF* tiff, int x, int y, const uint8_t* data, int size);
     };
 }
 

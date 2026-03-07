@@ -66,3 +66,7 @@ std::string TIFFKeeper::readStringTag(uint16_t tag)
 void TIFFKeeper::initSubDirs(int numDirs) {
 	TiffTools::initSubDirs(m_hFile, numDirs);
 }
+
+void TIFFKeeper::writeRawTile(int x, int y, const uint8_t* data, int size) {
+	TiffTools::writeRawTile(m_hFile, x, y, data, size);
+}

@@ -5,6 +5,7 @@
 #include "slideio/imagetools/tiffkeeper.hpp"
 #include "slideio/converter/converterparameters.hpp"
 #include "slideio/converter/tiffstructure.hpp"
+#include "slideio/core/tools/boundedqueue.hpp"
 
 namespace slideio
 {
@@ -16,6 +17,18 @@ namespace slideio
 
         class SLIDEIO_CONVERTER_EXPORTS TiffConverter
         {
+            struct Tile
+            {
+                size_t sequenceId;      // Preserves original read order
+				cv::Mat raster;         // Tile pixel data 
+                cv::Point2i location;   // Location of the tile in the target image
+            };
+            struct EncodedTile
+            {
+                size_t sequenceId;                  // Preserves original read order
+				std::vector<uint8_t> encodedData;   // Encoded tile data
+                cv::Point2i location;               // Location of the tile in the target image
+            };
         public:
             void createFileLayout(const std::shared_ptr<CVScene>& scene, const ConverterParameters& parameters);
             void createTiff(const std::string& filePath, const std::function<void(int)>& cb, int tileBatchSize);
@@ -52,7 +65,11 @@ namespace slideio
             std::string createOMETiffDescription() const;
             TiffDirectory setUpDirectory(const TiffDirectoryStructure& page);
             void writeDirectoryData(TiffDirectory& dir, const TiffDirectoryStructure& page,
+                const std::function<void(int)>& cb, int param);
+            void writeDirectoryDataST(TiffDirectory& dir, const TiffDirectoryStructure& page,
                 const std::function<void(int)>& cb, int tileBatchSize);
+            void writeDirectoryDataMT(TiffDirectory& dir, const TiffDirectoryStructure& page,
+                                      const std::function<void(int)>& cb, int tileBatchSize, int numThreads=0);
             void computeCropRect();
             void makeSureValid() const;
             static std::string SVSDateString();
@@ -62,6 +79,13 @@ namespace slideio
             void checkEncodingRequirements() const;
             void checkContainerRequirements() const;
             void updateNotDefinedParameters();
+			// --- Multithreaded conversion helpers ---
+			void readTiles(TiffDirectory& dir, const TiffDirectoryStructure& page, BoundedQueue<Tile>& inputQueue, int tileBatchSize);
+			void encodeTiles(BoundedQueue<Tile>& inputQueue, BoundedQueue<EncodedTile>& outputQueue,
+				std::atomic<size_t>& activeEncoders, std::exception_ptr& encoderException, std::mutex& encoderExMutex);
+            void writeTile(const EncodedTile& tile) const;
+			void writeTiles(BoundedQueue<Tile>& inputQueue, BoundedQueue<EncodedTile>& outputQueue, const std::function<void(int)>& cb);
+			std::vector<uint8_t> encodeTile(const cv::Mat& tile);
         private:
             std::vector<TiffPageStructure> m_pages;
             TIFFKeeperPtr m_file;

@@ -18,5 +18,6 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/endian.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/color_tools.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/color_tools.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/boundedqueue.hpp
    PARENT_SCOPE
    )

@@ -34,6 +34,7 @@ set(TEST_SOURCES
   test_tifffiles.cpp
   test_fiwrapper.cpp
   test_channel_attributes.cpp
+  test_boundedqueue.cpp
 )
 
 add_executable(${TEST_NAME} ${TEST_SOURCES})
