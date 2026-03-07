@@ -80,11 +80,13 @@ namespace slideio
             void checkContainerRequirements() const;
             void updateNotDefinedParameters();
 			// --- Multithreaded conversion helpers ---
-			void readTiles(TiffDirectory& dir, const TiffDirectoryStructure& page, BoundedQueue<Tile>& inputQueue, int tileBatchSize);
+			void readTiles(TiffDirectory& dir, const TiffDirectoryStructure& page, BoundedQueue<Tile>& inputQueue, int tileBatchSize,
+				std::exception_ptr& readerException, std::mutex& exceptionMutex);
 			void encodeTiles(BoundedQueue<Tile>& inputQueue, BoundedQueue<EncodedTile>& outputQueue,
-				std::atomic<size_t>& activeEncoders, std::exception_ptr& encoderException, std::mutex& encoderExMutex);
-            void writeTile(const EncodedTile& tile);
-			void writeTiles(BoundedQueue<Tile>& inputQueue, BoundedQueue<EncodedTile>& outputQueue, const std::function<void(int)>& cb);
+				std::atomic<size_t>& activeEncoders, std::exception_ptr& encoderException, std::mutex& exceptionMutex);
+			void writeTile(const EncodedTile& tile);
+			void writeTiles(BoundedQueue<Tile>& inputQueue, BoundedQueue<EncodedTile>& outputQueue, const std::function<void(int)>& cb,
+				std::exception_ptr& writerException, std::mutex& exceptionMutex);
 			std::vector<uint8_t> encodeTile(const cv::Mat& tile);
         private:
             std::vector<TiffPageStructure> m_pages;

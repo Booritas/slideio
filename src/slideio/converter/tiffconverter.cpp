@@ -372,15 +372,6 @@ void TiffConverter::createFileLayout(const std::shared_ptr<CVScene>& scene, cons
             }
         }
     }
-
-    bool hasChannelNames = false;
-    for (int channel = channelRange.start; channel < channelRange.end; ++channel) {
-        std::string name = m_scene->getChannelName(channel);
-        if (!name.empty()) {
-            hasChannelNames = true;
-            break;
-        }
-    }
 }
 
 
@@ -518,21 +509,20 @@ void TiffConverter::writeDirectoryDataST(TiffDirectory& dir, const TiffDirectory
     }
 }
 
-void TiffConverter::readTiles(TiffDirectory& dir, const TiffDirectoryStructure& page, BoundedQueue<Tile>& inputQueue, int tileBatchSize) {
-    int zoomLevel = page.getZoomLevelRange().start;
-    cv::Size tileSize = cv::Size(dir.tileWidth, dir.tileHeight);
-    cv::Size sceneTileSize = ConverterTools::scaleSize(tileSize, zoomLevel, false);
-    std::shared_ptr<const EncodeParameters> encoding = m_parameters.getEncodeParameters();
-    const int xEnd = m_cropRect.x + m_cropRect.width;
-    const int yEnd = m_cropRect.y + m_cropRect.height;
-    const int slice = page.getZSliceRange().start;
-    const int frame = page.getTFrameRange().start;
-    std::vector<int> channels;
-    channels.reserve(dir.channels);
-    for (int channel = 0; channel < dir.channels; ++channel) {
-        channels.push_back(page.getChannelRange().start + channel);
-    }
-    std::exception_ptr readerException;
+void TiffConverter::readTiles(TiffDirectory& dir, const TiffDirectoryStructure& page, BoundedQueue<Tile>& inputQueue, int tileBatchSize,
+	std::exception_ptr& readerException, std::mutex& exceptionMutex) {
+	int zoomLevel = page.getZoomLevelRange().start;
+	cv::Size tileSize = cv::Size(dir.tileWidth, dir.tileHeight);
+	cv::Size sceneTileSize = ConverterTools::scaleSize(tileSize, zoomLevel, false);
+	const int xEnd = m_cropRect.x + m_cropRect.width;
+	const int yEnd = m_cropRect.y + m_cropRect.height;
+	const int slice = page.getZSliceRange().start;
+	const int frame = page.getTFrameRange().start;
+	std::vector<int> channels;
+	channels.reserve(dir.channels);
+	for (int channel = 0; channel < dir.channels; ++channel) {
+		channels.push_back(page.getChannelRange().start + channel);
+	}
 	try {
 		int iTile = 0;
 		const int batchWidth = tileBatchSize * sceneTileSize.width;
@@ -576,14 +566,22 @@ void TiffConverter::readTiles(TiffDirectory& dir, const TiffDirectoryStructure& 
         }
     }
 	catch (const std::exception& e) {
-		readerException = std::current_exception();
+		{
+			std::unique_lock lock(exceptionMutex);
+			if (!readerException)
+				readerException = std::current_exception();
+		}
 		SLIDEIO_LOG(ERROR) << "Converter: Exception in tile reader thread: " << e.what();
 	}
 	catch (...) {
-		readerException = std::current_exception();
+		{
+			std::unique_lock lock(exceptionMutex);
+			if (!readerException)
+				readerException = std::current_exception();
+		}
 		SLIDEIO_LOG(ERROR) << "Converter: Unknown exception in tile reader thread";
 	}
-    inputQueue.setDone();
+	inputQueue.setDone();
 }
 
 std::vector<uint8_t> TiffConverter::encodeTile(const cv::Mat& tileRaster) {
@@ -597,7 +595,7 @@ std::vector<uint8_t> TiffConverter::encodeTile(const cv::Mat& tileRaster) {
     std::shared_ptr<JP2KEncodeParameters> jp2param =
         std::static_pointer_cast<JP2KEncodeParameters>(m_parameters.getEncodeParameters());
     const int encodedSize = ImageTools::encodeJp2KStream(tileRaster, buff.data(), static_cast<int>(buff.size()), *jp2param);
-    if (dataSize <= 0) {
+    if (encodedSize <= 0) {
         RAISE_RUNTIME_ERROR << "JPEG 2000 Encoding failed";
     }
     buff.resize(encodedSize);
@@ -649,9 +647,9 @@ void TiffConverter::writeTile(const EncodedTile& tile)  {
 
 }
 
-void TiffConverter::writeTiles(BoundedQueue<Tile>& inputQueue, BoundedQueue<EncodedTile>& outputQueue, const std::function<void(int)>& cb) {
+void TiffConverter::writeTiles(BoundedQueue<Tile>& inputQueue, BoundedQueue<EncodedTile>& outputQueue, const std::function<void(int)>& cb,
+    std::exception_ptr& writerException, std::mutex& exceptionMutex) {
     std::map<size_t, EncodedTile> reorderBuffer; // Holds out-of-order tiles
-    std::exception_ptr writerException;
     size_t nextExpected = 0;
 
     try {
@@ -674,15 +672,24 @@ void TiffConverter::writeTiles(BoundedQueue<Tile>& inputQueue, BoundedQueue<Enco
         }
     }
     catch (std::exception& e) {
-        writerException = std::current_exception();
+        {
+            std::unique_lock lock(exceptionMutex);
+            if (!writerException)
+                writerException = std::current_exception();
+        }
         outputQueue.setDone();  // Wake any encoders blocked on push()
         inputQueue.setDone();   // Wake reader if blocked on push(), stop encoders
-        SLIDEIO_LOG(ERROR) << "Converter: Exception in tile encoder thread: " << e.what();
+        SLIDEIO_LOG(ERROR) << "Converter: Exception in tile writer thread: " << e.what();
     }
     catch (...) {
-        writerException = std::current_exception();
+        {
+            std::unique_lock lock(exceptionMutex);
+            if (!writerException)
+                writerException = std::current_exception();
+        }
         outputQueue.setDone();  // Wake any encoders blocked on push()
         inputQueue.setDone();   // Wake reader if blocked on push(), stop encoders
+        SLIDEIO_LOG(ERROR) << "Converter: Unknown exception in tile writer thread";
     }
 }
 
@@ -694,28 +701,46 @@ void TiffConverter::writeDirectoryDataMT(TiffDirectory& dir, const TiffDirectory
 
     BoundedQueue<Tile> inputQueue(QUEUE_DEPTH);
     BoundedQueue<EncodedTile> outputQueue(QUEUE_DEPTH);
+
+    // Shared exception handling
+    std::exception_ptr readerException;
+    std::exception_ptr encoderException;
+    std::exception_ptr writerException;
+    std::mutex         exceptionMutex;
+
     // --- Stage 1: Reader (single thread) ---
-    std::thread reader(&TiffConverter::readTiles, this, std::ref(dir), std::ref(page), std::ref(inputQueue), tileBatchSize);
+    std::thread reader(&TiffConverter::readTiles, this, std::ref(dir), std::ref(page), std::ref(inputQueue), tileBatchSize,
+        std::ref(readerException), std::ref(exceptionMutex));
 
     // --- Stage 2: Encoders (thread pool) ---
     std::vector<std::thread> encoders;
     std::atomic<size_t> activeEncoders{static_cast<size_t>(numEncoderThreads)};
-    std::exception_ptr encoderException;
-    std::mutex         encoderExMutex;
 
     for (size_t i = 0; i < numEncoderThreads; ++i) {
         encoders.emplace_back(&TiffConverter::encodeTiles, this, std::ref(inputQueue), std::ref(outputQueue),
-            std::ref(activeEncoders), std::ref(encoderException), std::ref(encoderExMutex));
+            std::ref(activeEncoders), std::ref(encoderException), std::ref(exceptionMutex));
     }
 
     // --- Stage 3: Writer (single thread, ordered) ---
-    std::thread writer(&TiffConverter::writeTiles, this, std::ref(inputQueue), std::ref(outputQueue), std::ref(cb));
+    std::thread writer(&TiffConverter::writeTiles, this, std::ref(inputQueue), std::ref(outputQueue), std::ref(cb),
+        std::ref(writerException), std::ref(exceptionMutex));
 
     reader.join();
     for (auto& e : encoders) {
         e.join();
     }
     writer.join();
+
+    // Propagate any captured exceptions
+    if (readerException) {
+        std::rethrow_exception(readerException);
+    }
+    if (encoderException) {
+        std::rethrow_exception(encoderException);
+    }
+    if (writerException) {
+        std::rethrow_exception(writerException);
+    }
 }
 
 
