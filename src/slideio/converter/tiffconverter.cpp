@@ -639,10 +639,14 @@ void TiffConverter::encodeTiles(BoundedQueue<Tile>& inputQueue, BoundedQueue<Enc
         outputQueue.setDone();
 }
 
-void TiffConverter::writeTile(const EncodedTile& tile) const {
+void TiffConverter::writeTile(const EncodedTile& tile)  {
     const cv::Point2i& loc = tile.location;
     const std::vector<uint8_t>& buffer = tile.encodedData;
+    auto writeStart = std::chrono::high_resolution_clock::now();
     m_file->writeRawTile(loc.x, loc.y, buffer.data(), static_cast<int>(buffer.size()));
+    auto writeEnd = std::chrono::high_resolution_clock::now();
+    m_writeTime += std::chrono::duration_cast<std::chrono::microseconds>(writeEnd - writeStart).count();
+
 }
 
 void TiffConverter::writeTiles(BoundedQueue<Tile>& inputQueue, BoundedQueue<EncodedTile>& outputQueue, const std::function<void(int)>& cb) {

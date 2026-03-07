@@ -83,7 +83,7 @@ namespace slideio
 			void readTiles(TiffDirectory& dir, const TiffDirectoryStructure& page, BoundedQueue<Tile>& inputQueue, int tileBatchSize);
 			void encodeTiles(BoundedQueue<Tile>& inputQueue, BoundedQueue<EncodedTile>& outputQueue,
 				std::atomic<size_t>& activeEncoders, std::exception_ptr& encoderException, std::mutex& encoderExMutex);
-            void writeTile(const EncodedTile& tile) const;
+            void writeTile(const EncodedTile& tile);
 			void writeTiles(BoundedQueue<Tile>& inputQueue, BoundedQueue<EncodedTile>& outputQueue, const std::function<void(int)>& cb);
 			std::vector<uint8_t> encodeTile(const cv::Mat& tile);
         private:
