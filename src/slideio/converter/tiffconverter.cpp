@@ -509,13 +509,47 @@ void TiffConverter::writeDirectoryDataST(TiffDirectory& dir, const TiffDirectory
     }
 }
 
-void TiffConverter::readTiles(const TiffDirectory& dir, const TiffDirectoryStructure& page, BoundedQueue<Tile>& inputQueue, int tileBatchSize,
-	std::exception_ptr& readerException, std::mutex& exceptionMutex) {
+void TiffConverter::createTileQueue(const TiffDirectory& dir, const TiffDirectoryStructure& page, int tileBatchSize, std::queue<Block>& queue)
+{
+    const int zoomLevel = page.getZoomLevelRange().start;
+    const cv::Size tileSize = cv::Size(dir.tileWidth, dir.tileHeight);
+    const cv::Size sceneTileSize = ConverterTools::scaleSize(tileSize, zoomLevel, false);
+    const int xEnd = m_cropRect.x + m_cropRect.width;
+    const int yEnd = m_cropRect.y + m_cropRect.height;
+    const int numTileCols = 1 + (m_cropRect.width - 1) / sceneTileSize.width;
+    const int safeTileBatchSize = std::max(1, tileBatchSize);
+    const int batchWidth = safeTileBatchSize * sceneTileSize.width;
+	size_t iTile = 0;
+    for (int y = m_cropRect.y; y < yEnd; y += sceneTileSize.height) {
+        for (int x = m_cropRect.x; x < xEnd; x += batchWidth) {
+            int numTiles = 1 + (xEnd - x - 1) / sceneTileSize.width;
+            numTiles = std::min(numTiles, safeTileBatchSize);
+            numTiles = std::max(1, numTiles);
+            const int blockWidth = numTiles * sceneTileSize.width;
+            cv::Rect blockRect(x, y, blockWidth, sceneTileSize.height);
+            Block block;
+            block.rect = blockRect;
+            block.firstTileSequenceId = iTile;
+            queue.emplace(block);
+			iTile += numTiles;
+        }
+    }
+}
+
+std::pair<std::shared_ptr<Slide>, std::shared_ptr<Scene>> TiffConverter::cloneScene() const {
+	std::string filePath = m_scene->getFilePath();
+	int sceneIndex = m_scene->getSceneIndex();
+    std::shared_ptr<Slide> slide = openSlide(filePath);
+    std::shared_ptr<Scene> scene = slide->getScene(sceneIndex);
+	return { slide, scene };
+}
+
+void TiffConverter::readTiles(const TiffDirectory& dir, const TiffDirectoryStructure& page, BoundedQueue<Tile>& inputQueue,
+                              std::queue<Block>& blockQueue, std::mutex& blockQueueMutex, std::atomic<size_t>& activeReaders,
+                              std::exception_ptr& readerException, std::mutex& exceptionMutex) {
 	int zoomLevel = page.getZoomLevelRange().start;
 	cv::Size tileSize = cv::Size(dir.tileWidth, dir.tileHeight);
 	cv::Size sceneTileSize = ConverterTools::scaleSize(tileSize, zoomLevel, false);
-	const int xEnd = m_cropRect.x + m_cropRect.width;
-	const int yEnd = m_cropRect.y + m_cropRect.height;
 	const int slice = page.getZSliceRange().start;
 	const int frame = page.getTFrameRange().start;
 	std::vector<int> channels;
@@ -523,55 +557,69 @@ void TiffConverter::readTiles(const TiffDirectory& dir, const TiffDirectoryStruc
 	for (int channel = 0; channel < dir.channels; ++channel) {
 		channels.push_back(page.getChannelRange().start + channel);
 	}
+	auto clone = cloneScene();
+	auto slide = clone.first;
+	auto scene = clone.second;
+
 	try {
-		int iTile = 0;
-		const int safeTileBatchSize = std::max(1, tileBatchSize);
-		const int batchWidth = safeTileBatchSize * sceneTileSize.width;
+		int64_t localReadTime = 0;
 		cv::Mat block;
-		bool done = false;
-		for (int y = m_cropRect.y; y < yEnd && !done; y += sceneTileSize.height) {
-			for (int x = m_cropRect.x; x < xEnd && !done; x += batchWidth) {
-                int numTiles = 1 + (xEnd - x - 1) / sceneTileSize.width;
-                numTiles = std::min(numTiles, safeTileBatchSize);
-                numTiles = std::max(1, numTiles);
-                const int blockWidth = numTiles * sceneTileSize.width;
-                cv::Rect blockRect(x, y, blockWidth, sceneTileSize.height);
-                auto readStart = std::chrono::high_resolution_clock::now();
-                ConverterTools::readTile(m_scene, channels, zoomLevel, blockRect, slice, frame, block);
-                auto readEnd = std::chrono::high_resolution_clock::now();
-                m_readTime += std::chrono::duration_cast<std::chrono::microseconds>(readEnd - readStart).count();
-                if (block.rows != tileSize.height || block.cols != tileSize.width * numTiles) {
-                    RAISE_RUNTIME_ERROR << "Converter: Unexpected tile size ("
-                        << block.cols << ","
-                        << block.rows << "). Expected tile size: ("
-                        << tileSize.width << ","
-                        << tileSize.height << ").";
-                }
-                blockRect.x -= m_cropRect.x;
-                blockRect.y -= m_cropRect.y;
-                cv::Rect zoomLevelRect = ConverterTools::scaleRect(blockRect, zoomLevel, true);
-                for (int blockTile = 0; blockTile < numTiles; ++blockTile) {
-                    cv::Rect tileRect(blockTile * tileSize.width, 0, tileSize.width, tileSize.height);
-                    Tile tileInfo;
-                    cv::Mat& tile = tileInfo.raster;
-                    tileInfo.sequenceId = iTile++;
-                    block(tileRect).copyTo(tile);
-                    const int tileWritePosX = zoomLevelRect.x + blockTile * tileSize.width;
-                    tileInfo.location = cv::Point2i(tileWritePosX, zoomLevelRect.y);
-                    if (!inputQueue.push(std::move(tileInfo))) {
-						done = true;
-                        break;
-                    }
-                }
-            }
-        }
-    }
+		while (true) {
+			Block currentBlock;
+			{
+				std::unique_lock lock(blockQueueMutex);
+				if (blockQueue.empty()) {
+					break;
+				}
+				currentBlock = blockQueue.front();
+				blockQueue.pop();
+			}
+			const cv::Rect& blockRect = currentBlock.rect;
+			const int numTiles = blockRect.width / sceneTileSize.width;
+			auto readStart = std::chrono::high_resolution_clock::now();
+			ConverterTools::readTile(scene->getCVScene(), channels, zoomLevel, blockRect, slice, frame, block);
+			auto readEnd = std::chrono::high_resolution_clock::now();
+			localReadTime += std::chrono::duration_cast<std::chrono::microseconds>(readEnd - readStart).count();
+			if (block.rows != tileSize.height || block.cols != tileSize.width * numTiles) {
+				RAISE_RUNTIME_ERROR << "Converter: Unexpected tile size ("
+					<< block.cols << ","
+					<< block.rows << "). Expected tile size: ("
+					<< tileSize.width << ","
+					<< tileSize.height << ").";
+			}
+			cv::Rect adjustedRect = blockRect;
+			adjustedRect.x -= m_cropRect.x;
+			adjustedRect.y -= m_cropRect.y;
+			cv::Rect zoomLevelRect = ConverterTools::scaleRect(adjustedRect, zoomLevel, true);
+			bool done = false;
+			for (int blockTile = 0; blockTile < numTiles; ++blockTile) {
+				cv::Rect tileRect(blockTile * tileSize.width, 0, tileSize.width, tileSize.height);
+				Tile tileInfo;
+				tileInfo.sequenceId = currentBlock.firstTileSequenceId + blockTile;
+				block(tileRect).copyTo(tileInfo.raster);
+				const int tileWritePosX = zoomLevelRect.x + blockTile * tileSize.width;
+				tileInfo.location = cv::Point2i(tileWritePosX, zoomLevelRect.y);
+				if (!inputQueue.push(std::move(tileInfo))) {
+					done = true;
+					break;
+				}
+			}
+			if (done) {
+				break;
+			}
+		}
+		{
+			std::unique_lock lock(exceptionMutex);
+			m_readTime += localReadTime;
+		}
+	}
 	catch (const std::exception& e) {
 		{
 			std::unique_lock lock(exceptionMutex);
 			if (!readerException)
 				readerException = std::current_exception();
 		}
+		inputQueue.setDone();
 		SLIDEIO_LOG(ERROR) << "Converter: Exception in tile reader thread: " << e.what();
 	}
 	catch (...) {
@@ -580,9 +628,11 @@ void TiffConverter::readTiles(const TiffDirectory& dir, const TiffDirectoryStruc
 			if (!readerException)
 				readerException = std::current_exception();
 		}
+		inputQueue.setDone();
 		SLIDEIO_LOG(ERROR) << "Converter: Unknown exception in tile reader thread";
 	}
-	inputQueue.setDone();
+	if (--activeReaders == 0)
+		inputQueue.setDone();
 }
 
 std::vector<uint8_t> TiffConverter::encodeTile(const cv::Mat& tileRaster) {
@@ -604,7 +654,7 @@ std::vector<uint8_t> TiffConverter::encodeTile(const cv::Mat& tileRaster) {
 }
 
 void TiffConverter::encodeTiles(BoundedQueue<Tile>& inputQueue, BoundedQueue<EncodedTile>& outputQueue,
-    std::atomic<size_t>& activeEncoders, std::exception_ptr& encoderException, std::mutex& encoderExMutex) {
+                                std::atomic<size_t>& activeEncoders, std::exception_ptr& encoderException, std::mutex& encoderExMutex) {
     try {
         while (std::optional<Tile> tile = inputQueue.pop()) {
             EncodedTile encoded;
@@ -704,11 +754,17 @@ void TiffConverter::writeDirectoryDataMT(TiffDirectory& dir, const TiffDirectory
         numEncoderThreads = static_cast<int>(std::thread::hardware_concurrency());
     }
     numEncoderThreads = std::max(1, numEncoderThreads);
+    const int numReaderThreads = 4; // std::max(1, std::min(4, numEncoderThreads));
     const int safeTileBatchSize = std::max(1, tileBatchSize);
     const size_t QUEUE_DEPTH = std::max(static_cast<size_t>(2), static_cast<size_t>(numEncoderThreads) * 2); // Bound memory usage
 
     BoundedQueue<Tile> inputQueue(QUEUE_DEPTH);
     BoundedQueue<EncodedTile> outputQueue(QUEUE_DEPTH);
+
+    // Create block queue for readers
+    std::queue<Block> blockQueue;
+    std::mutex blockQueueMutex;
+    createTileQueue(dir, page, safeTileBatchSize, blockQueue);
 
     // Shared exception handling
     std::exception_ptr readerException;
@@ -716,9 +772,14 @@ void TiffConverter::writeDirectoryDataMT(TiffDirectory& dir, const TiffDirectory
     std::exception_ptr writerException;
     std::mutex         exceptionMutex;
 
-    // --- Stage 1: Reader (single thread) ---
-    std::thread reader(&TiffConverter::readTiles, this, std::cref(dir), std::cref(page), std::ref(inputQueue), safeTileBatchSize,
-        std::ref(readerException), std::ref(exceptionMutex));
+    // --- Stage 1: Readers (work-stealing from block queue) ---
+    std::vector<std::thread> readers;
+    readers.reserve(numReaderThreads);
+    std::atomic<size_t> activeReaders{ static_cast<size_t>(numReaderThreads) };
+    for (int reader = 0; reader < numReaderThreads; ++reader) {
+        readers.emplace_back(&TiffConverter::readTiles, this, std::cref(dir), std::cref(page), std::ref(inputQueue),
+            std::ref(blockQueue), std::ref(blockQueueMutex), std::ref(activeReaders), std::ref(readerException), std::ref(exceptionMutex));
+    }
 
     // --- Stage 2: Encoders (thread pool) ---
     std::vector<std::thread> encoders;
@@ -733,7 +794,9 @@ void TiffConverter::writeDirectoryDataMT(TiffDirectory& dir, const TiffDirectory
     std::thread writer(&TiffConverter::writeTiles, this, std::ref(inputQueue), std::ref(outputQueue), std::ref(cb),
         std::ref(writerException), std::ref(exceptionMutex));
 
-    reader.join();
+    for (auto& r : readers) {
+        r.join();
+    }
     for (auto& e : encoders) {
         e.join();
     }

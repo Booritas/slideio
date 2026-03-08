@@ -8,29 +8,36 @@
 #include "slideio/core/tools/boundedqueue.hpp"
 #include <mutex>
 
+#include "slideio/core/cvslide.hpp"
+
 namespace slideio
 {
+    class Slide;
+    class Scene;
     class CVScene;
 
     namespace converter
     {
         class ConverterParameters;
 
-        class SLIDEIO_CONVERTER_EXPORTS TiffConverter
-        {
-            struct Tile
-            {
-                size_t sequenceId;      // Preserves original read order
+		class SLIDEIO_CONVERTER_EXPORTS TiffConverter
+		{
+		public:
+			struct Block {
+				cv::Rect rect;              // Block rectangle in the source image
+				size_t firstTileSequenceId; // Preserves original read order
+			};
+			struct Tile {
+				size_t sequenceId;      // Preserves original read order
 				cv::Mat raster;         // Tile pixel data 
-                cv::Point2i location;   // Location of the tile in the target image
-            };
-            struct EncodedTile
-            {
-                size_t sequenceId;                  // Preserves original read order
+				cv::Point2i location;   // Location of the tile in the target image
+			};
+			struct EncodedTile {
+				size_t sequenceId;                  // Preserves original read order
 				std::vector<uint8_t> encodedData;   // Encoded tile data
-                cv::Point2i location;               // Location of the tile in the target image
-            };
-        public:
+				cv::Point2i location;               // Location of the tile in the target image
+			};
+		public:
             void createFileLayout(const std::shared_ptr<CVScene>& scene, const ConverterParameters& parameters);
             void createTiff(const std::string& filePath, const std::function<void(int)>& cb, int tileBatchSize);
             int getNumTiffPages() const {
@@ -55,6 +62,8 @@ namespace slideio
             int64_t getWriteTime() const {
                 return m_writeTime;
             }
+            void createTileQueue(const TiffDirectory& dir, const TiffDirectoryStructure& page, int tileBatchSize, std::queue<Block>& queue);
+			std::pair<std::shared_ptr<Slide>, std::shared_ptr<Scene>> cloneScene() const;
         private:
             TiffPageStructure& appendPage() {
                 return m_pages.emplace_back();
@@ -81,7 +90,8 @@ namespace slideio
             void checkContainerRequirements() const;
             void updateNotDefinedParameters();
 			// --- Multithreaded conversion helpers ---
-			void readTiles(const TiffDirectory& dir, const TiffDirectoryStructure& page, BoundedQueue<Tile>& inputQueue, int tileBatchSize,
+			void readTiles(const TiffDirectory& dir, const TiffDirectoryStructure& page, BoundedQueue<Tile>& inputQueue,
+				std::queue<Block>& blockQueue, std::mutex& blockQueueMutex, std::atomic<size_t>& activeReaders,
 				std::exception_ptr& readerException, std::mutex& exceptionMutex);
 			void encodeTiles(BoundedQueue<Tile>& inputQueue, BoundedQueue<EncodedTile>& outputQueue,
 				std::atomic<size_t>& activeEncoders, std::exception_ptr& encoderException, std::mutex& exceptionMutex);
