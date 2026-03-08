@@ -5,9 +5,11 @@
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/drivers/afi/afislide.hpp"
 #include "slideio/drivers/svs/svsslide.hpp"
+#include "slideio/drivers/svs/svsscene.hpp"
 #include <filesystem>
 #include <tinyxml2.h>
 #include <fstream>
+
 
 
 using namespace slideio;
@@ -97,6 +99,12 @@ std::shared_ptr<AFISlide> AFISlide::openFile(const std::string& filePath)
     std::shared_ptr<AFISlide> afiSlide(new AFISlide);
     afiSlide->m_scenes.assign(slidesScenes.second.begin(), slidesScenes.second.end());
     afiSlide->m_slides.assign(slidesScenes.first.begin(), slidesScenes.first.end());
+    int iScene = 0;
+    for (auto& scene : afiSlide->m_scenes) {
+        std::shared_ptr<SVSScene> svsScene = std::static_pointer_cast<SVSScene>(scene);
+		svsScene->setFilePath(filePath);
+		svsScene->setSceneIndex(iScene++);
+    }
     afiSlide->m_filePath = filePath;
 
     return afiSlide;

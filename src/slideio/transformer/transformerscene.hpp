@@ -20,6 +20,7 @@ namespace slideio
         TransformerScene(std::shared_ptr<CVScene> originScene, const std::list<std::shared_ptr<Transformation>>& list);
     public:
         std::string getFilePath() const override;
+        int getSceneIndex() const override;
         std::string getName() const override;
         cv::Rect getRect() const override;
         int getNumChannels() const override;

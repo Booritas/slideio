@@ -13,7 +13,7 @@
 using namespace slideio;
 using namespace tinyxml2;
 
-SCNScene::SCNScene(const std::string& filePath, const tinyxml2::XMLElement* xmlImage):
+SCNScene::SCNScene(const std::string& filePath, int sceneIndex, const tinyxml2::XMLElement* xmlImage):
     m_filePath(filePath),
     m_compression(Compression::Unknown),
     m_resolution(0., 0.),
@@ -21,7 +21,8 @@ SCNScene::SCNScene(const std::string& filePath, const tinyxml2::XMLElement* xmlI
     m_interleavedChannels(false),
     m_numChannels(1),
     m_numZSlices(1),
-    m_planeCount(1)
+    m_planeCount(1), 
+	m_sceneIndex(sceneIndex)
 {
 	m_metadataFormat = MetadataFormat::XML;
     init(xmlImage);

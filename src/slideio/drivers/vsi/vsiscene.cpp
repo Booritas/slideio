@@ -8,12 +8,13 @@
 using namespace slideio;
 using namespace slideio::vsi;
 
-VSIScene::VSIScene(const std::string& filePath, std::shared_ptr<vsi::VSIFile>& vsiFile):
+VSIScene::VSIScene(const std::string& filePath, int sceneIndex, std::shared_ptr<vsi::VSIFile>& vsiFile):
     m_filePath(filePath),
     m_compression(slideio::Compression::Unknown),
     m_resolution(0., 0.),
     m_vsiFile(vsiFile),
-    m_magnification(0.)
+    m_magnification(0.),
+	m_sceneIndex(sceneIndex)
 {
 }
 

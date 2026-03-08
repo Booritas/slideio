@@ -90,7 +90,7 @@ std::shared_ptr<PKESlide> PKESlide::openFile(const std::string& filePath)
                     }
                     image_dirs.push_back(directory);
                 } else if(type == "Thumbnail" || type == "Overview" || type == "Label") {
-                    std::shared_ptr<CVScene> scene(new PKESmallScene(filePath, type, directory, true));
+                    std::shared_ptr<CVScene> scene(new PKESmallScene(filePath, -1, type, directory, true));
                     auxImages[type] = scene;
                     auxNames.emplace_back(type);
                 }
@@ -98,8 +98,8 @@ std::shared_ptr<PKESlide> PKESlide::openFile(const std::string& filePath)
         }
     }
 
-    std::shared_ptr<CVScene> scene(new PKETiledScene(filePath,keeper.release(),"Image", image_dirs));
     std::vector<std::shared_ptr<CVScene>> scenes;
+    std::shared_ptr<CVScene> scene(new PKETiledScene(filePath,static_cast<int>(scenes.size()), keeper.release(),"Image", image_dirs));
     scenes.push_back(scene);
     slide.reset(new PKESlide);
     slide->m_Scenes.assign(scenes.begin(), scenes.end());

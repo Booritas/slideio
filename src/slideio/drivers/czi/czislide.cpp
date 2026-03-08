@@ -407,12 +407,12 @@ void CZISlide::readSubBlocks(uint64_t directoryPosition, uint64_t originPos, std
     }
 }
 
-std::shared_ptr<CZIScene> CZISlide::constructScene(const uint64_t sceneId, const CZISubBlocks& blocks, bool mainScene)
+std::shared_ptr<CZIScene> CZISlide::constructScene(int sceneIndex, const uint64_t sceneId, const CZISubBlocks& blocks, bool mainScene)
 {
     CZIScene::SceneParams params{};
     std::shared_ptr<CZIScene>scene(new CZIScene);
     CZIScene::dimsFromSceneId(sceneId, params);
-    scene->init(sceneId, params, m_filePath, blocks, this, mainScene);
+    scene->init(sceneId, params, m_filePath, sceneIndex, blocks, this, mainScene);
     return scene;
 }
 
@@ -426,7 +426,7 @@ void CZISlide::readDirectory()
     {
         const uint64_t sceneId = sceneIds[sceneIndex];
         const CZISubBlocks& blocks = sceneBlocks[sceneIndex];
-        std::shared_ptr<CZIScene> scene = constructScene(sceneId, blocks);
+        std::shared_ptr<CZIScene> scene = constructScene(static_cast<int>(m_scenes.size()), sceneId, blocks);
         m_scenes.push_back(scene);
     }
 
@@ -537,7 +537,7 @@ void CZISlide::createCZIAttachmentScenes(const int64_t dataPos, int64_t dataSize
     {
         const uint64_t sceneId = sceneIds[sceneIndex];
         const CZISubBlocks& blocks = sceneBlocks[sceneIndex];
-        std::shared_ptr<CZIScene> scene = constructScene(sceneId, blocks, false);
+        std::shared_ptr<CZIScene> scene = constructScene(-1, sceneId, blocks, false);
         std::string sceneName = attachmentName;
         if (multiScene) {
             sceneName += std::string("(") + std::to_string(sceneIndex + 1) + std::string(")");

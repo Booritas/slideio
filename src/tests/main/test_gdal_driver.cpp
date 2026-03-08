@@ -306,3 +306,23 @@ TEST(GDALDriver, multiThreadSceneAccess) {
     slideio::GDALImageDriver driver;
     TestTools::multiThreadedTest(filePath, driver);
 }
+
+TEST(GDALDriver, getSceneIndex)
+{
+    if (!TestTools::isFullTestEnabled()) {
+        GTEST_SKIP() <<
+            "Skip the test because full dataset is not enabled";
+    }
+    std::string filePath = TestTools::getTestImagePath("gdal", "Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg");
+    slideio::GDALImageDriver driver;
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide);
+    const int numScenes = slide->getNumScenes();
+    EXPECT_EQ(1, numScenes);
+    for (int iScene = 0; iScene < numScenes; ++iScene) {
+        std::shared_ptr<slideio::CVScene> scene = slide->getScene(iScene);
+        EXPECT_TRUE(scene.get() != nullptr);
+        EXPECT_EQ(iScene, scene->getSceneIndex());
+        EXPECT_EQ(filePath, scene->getFilePath());
+    }
+}

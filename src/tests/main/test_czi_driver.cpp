@@ -684,3 +684,19 @@ TEST(CZIImageDriver, channelAttributes)
     EXPECT_EQ(scene->getChannelAttributeValue(1, "PinholeSizeAiry"), "1");
     EXPECT_EQ(scene->getChannelAttributeValue(0, "AcquisitionMode"), "LaserScanningConfocalMicroscopy");
 }
+
+TEST(CZIImageDriver, getSceneIndex)
+{
+    std::string filePath = TestTools::getTestImagePath("czi", "pJP31mCherry.czi");
+    slideio::CZIImageDriver driver;
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide);
+    const int numScenes = slide->getNumScenes();
+    EXPECT_EQ(1, numScenes);
+    for (int iScene = 0; iScene < numScenes; ++iScene) {
+        std::shared_ptr<slideio::CVScene> scene = slide->getScene(iScene);
+        EXPECT_TRUE(scene.get() != nullptr);
+        EXPECT_EQ(iScene, scene->getSceneIndex());
+        EXPECT_EQ(filePath, scene->getFilePath());
+    }
+}

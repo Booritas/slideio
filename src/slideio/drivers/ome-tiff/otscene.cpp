@@ -29,11 +29,12 @@ struct BlockInfo
 };
 
 
-OTScene::OTScene(const ImageData& imageData) {
+OTScene::OTScene(const ImageData& imageData, int sceneIndex) {
     m_imageXml = imageData.imageXml;
     m_imageDoc = imageData.doc;
     m_imageId = imageData.imageId;
     m_filePath = imageData.imageFilePath;
+	m_sceneIndex = sceneIndex;
     initialize();
 }
 

@@ -30,6 +30,9 @@ namespace slideio
     public:
         ZVIScene(const std::string& filePath);
         std::string getFilePath() const override;
+        int getSceneIndex() const override {
+			return 0;
+        }
         cv::Rect getRect() const override;
         int getNumChannels() const override;
         int getNumZSlices() const override;

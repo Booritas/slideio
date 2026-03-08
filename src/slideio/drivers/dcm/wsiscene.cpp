@@ -18,7 +18,7 @@ void WSIScene::addFile(std::shared_ptr<DCMFile>& file) {
 	if(file->isAuxImage()) {
         const std::shared_ptr<DCMScene> auxScene = std::make_shared<DCMScene>();
 		auxScene->addFile(file);
-		auxScene->init();
+		auxScene->init(file->getFilePath(), -1);
 	    m_auxNames.push_back(file->getImageType());
 		m_auxImages[file->getImageType()] = auxScene;
     } else {
@@ -26,7 +26,7 @@ void WSIScene::addFile(std::shared_ptr<DCMFile>& file) {
 	}
 }
 
-void WSIScene::init() {
+void WSIScene::init(const std::string& slideFilePath, int sceneIndex) {
 	std::sort(m_files.begin(), m_files.end(), 
 		[](const std::shared_ptr<DCMFile>& file1, const std::shared_ptr<DCMFile>& file2) {
 		    return file1->getWidth() > file2->getWidth();
@@ -46,14 +46,8 @@ void WSIScene::init() {
 	m_dataType = baseFile->getDataType();
 	m_compression = baseFile->getCompression();
 	m_numChannels = baseFile->getNumChannels();
-	const int numFiles = static_cast<int>(m_files.size());
-	if (numFiles == 1) {
-		m_filePath = m_files[0]->getFilePath();
-	}
-	else if (numFiles > 0) {
-		const fs::path filePath(baseFile->getFilePath());
-		m_filePath = filePath.parent_path().string();
-	}
+	m_filePath = slideFilePath;
+	m_sceneIndex = sceneIndex;
 	m_magnification = baseFile->getMagnification();
 	m_resolution = baseFile->getResolution();
     const auto& files = m_files;

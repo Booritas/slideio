@@ -99,7 +99,7 @@ void DCMSlide::processRegularSeries(std::vector<std::shared_ptr<DCMFile>>& files
             }
             else {
                 try {
-                    scene->init();
+                    scene->init(m_srcPath, static_cast<int>(m_scenes.size()));
                     m_scenes.push_back(scene);
                 }
                 catch (std::exception& ex) {
@@ -111,7 +111,7 @@ void DCMSlide::processRegularSeries(std::vector<std::shared_ptr<DCMFile>>& files
             }
         }
         try {
-            scene->init();
+            scene->init(m_srcPath, static_cast<int>(m_scenes.size()));
             m_scenes.push_back(scene);
         }
         catch (std::exception& ex) {
@@ -127,7 +127,7 @@ void DCMSlide::processWSISeries(std::vector<std::shared_ptr<DCMFile>>& files) {
     for(auto&& file : files) {
         scene->addFile(file);
     }
-    scene->init();
+    scene->init(m_srcPath, static_cast<int>(m_scenes.size()));
     m_scenes.push_back(scene);
 }
 
@@ -276,7 +276,7 @@ void DCMSlide::initFromWSIFile() {
     file->init();
     file->setScale(1.0);
     scene->addFile(file);
-    scene->init();
+    scene->init(m_srcPath, static_cast<int>(m_scenes.size()));
     m_scenes.push_back(scene);
 }
 
@@ -285,6 +285,6 @@ void DCMSlide::initFromRegularDicomFile() {
     std::shared_ptr<DCMFile> file(new DCMFile(m_srcPath));
     file->init();
     scene->addFile(file);
-    scene->init();
+    scene->init(m_srcPath, static_cast<int>(m_scenes.size()));
     m_scenes.push_back(scene);
 }

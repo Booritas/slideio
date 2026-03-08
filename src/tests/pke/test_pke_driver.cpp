@@ -409,3 +409,23 @@ TEST_F(PKEImageDriverTests, multiThreadSceneAccess) {
     slideio::PKEImageDriver driver;
     TestTools::multiThreadedTest(filePath, driver);
 }
+
+TEST_F(PKEImageDriverTests, getSceneIndex)
+{
+    if (!TestTools::isFullTestEnabled()) {
+        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
+    }
+
+    std::string filePath = TestTools::getFullTestImagePath("pke", "openmicroscopy/PKI_scans/LuCa-7color_Scan1.qptiff");
+    PKEImageDriver driver;
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide);
+    const int numScenes = slide->getNumScenes();
+    EXPECT_EQ(1, numScenes);
+    for (int iScene = 0; iScene < numScenes; ++iScene) {
+        std::shared_ptr<slideio::CVScene> scene = slide->getScene(iScene);
+        EXPECT_TRUE(scene.get() != nullptr);
+        EXPECT_EQ(iScene, scene->getSceneIndex());
+        EXPECT_EQ(filePath, scene->getFilePath());
+    }
+}

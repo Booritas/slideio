@@ -116,6 +116,36 @@ static std::shared_ptr<CVScene> getSceneByName(std::shared_ptr<CVSlide> slide, c
 	return nullptr;
 }
 
+TEST_F(VSIImageDriverTests, getSceneIndex)
+{
+    if (!TestTools::isFullTestEnabled()) {
+        GTEST_SKIP() <<
+            "Skip the test because full dataset is not enabled";
+    }
+    const std::string filePath = TestTools::getFullTestImagePath("vsi", "Zenodo/Abdominal/G1M16_ABD_HE_B6.vsi");
+    VSIImageDriver driver;
+    std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide);
+    const int numScenes = slide->getNumScenes();
+    EXPECT_EQ(3, numScenes);
+    for (int iScene = 0; iScene < numScenes; ++iScene) {
+        std::shared_ptr<slideio::CVScene> scene = slide->getScene(iScene);
+        EXPECT_TRUE(scene.get() != nullptr);
+        EXPECT_EQ(iScene, scene->getSceneIndex());
+        EXPECT_EQ(filePath, scene->getFilePath());
+    }
+    const int numImages = slide->getNumAuxImages();
+    ASSERT_EQ(numImages, 1);
+    std::list<std::string> imageNames = slide->getAuxImageNames();
+    for (auto& name : imageNames) {
+        auto scene = slide->getAuxImage(name);
+        EXPECT_TRUE(scene.get() != nullptr);
+        EXPECT_EQ(-1, scene->getSceneIndex());
+        EXPECT_EQ(filePath, scene->getFilePath());
+    }
+}
+
+
 TEST_F(VSIImageDriverTests, openFileWithExternalFiles) {
     std::tuple<std::string, int, int, double, std::string> result[] = {
         {"40x_01", 14749, 20874, 40, "40x FocusMap"},

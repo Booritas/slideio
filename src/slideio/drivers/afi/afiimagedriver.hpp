@@ -9,7 +9,7 @@
 
 namespace slideio
 {
-    class SLIDEIO_AFI_EXPORTS AFIImageDriver : public slideio::ImageDriver
+    class SLIDEIO_AFI_EXPORTS AFIImageDriver : public ImageDriver
     {
     public:
         AFIImageDriver();

@@ -12,10 +12,11 @@
 using namespace slideio;
 
 PKESmallScene::PKESmallScene(const std::string& filePath,
+	int sceneIndex,
     const std::string& name,
     const TiffDirectory& dir,
     bool auxiliary):
-        PKEScene(filePath, name),
+        PKEScene(filePath, sceneIndex, name),
         m_directory(dir)
 {
     m_dataType = m_directory.dataType;

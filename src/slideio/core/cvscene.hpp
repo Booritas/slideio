@@ -40,6 +40,7 @@ namespace slideio
         virtual ~CVScene() = default;
         /**@brief returns path of the slide */
         virtual std::string getFilePath() const = 0;
+        virtual int getSceneIndex() const = 0;
         /**@brief returns scene name */
         virtual std::string getName() const = 0;
         /**@brief returns image rectangle.

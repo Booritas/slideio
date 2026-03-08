@@ -457,6 +457,36 @@ TEST(SCNImageDriver, auxImages)
     ASSERT_FALSE(std::find(imageNames.begin(), imageNames.end(), "Macro~1") == imageNames.end());
 }
 
+TEST(SCNImageDriver, getSceneIndex)
+{
+    if (!TestTools::isFullTestEnabled()) {
+        GTEST_SKIP() <<
+            "Skip the test because full dataset is not enabled";
+    }
+    std::string filePath = TestTools::getFullTestImagePath("scn", "ultivue/Leica Aperio Versa 5 channel fluorescent image.scn");
+    slideio::SCNImageDriver driver;
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide);
+    const int numScenes = slide->getNumScenes();
+    EXPECT_EQ(3, numScenes);
+    for (int iScene = 0; iScene < numScenes; ++iScene) {
+        std::shared_ptr<slideio::CVScene> scene = slide->getScene(iScene);
+        EXPECT_TRUE(scene.get() != nullptr);
+        EXPECT_EQ(iScene, scene->getSceneIndex());
+        EXPECT_EQ(filePath, scene->getFilePath());
+    }
+    const int numImages = slide->getNumAuxImages();
+    ASSERT_EQ(numImages, 1);
+    std::list<std::string> imageNames = slide->getAuxImageNames();
+    for (auto& name: imageNames) {
+        auto scene = slide->getAuxImage("label");
+        EXPECT_TRUE(scene.get() != nullptr);
+        EXPECT_EQ(-1, scene->getSceneIndex());
+        EXPECT_EQ(filePath, scene->getFilePath());
+    }
+}
+
+
 TEST(SCNImageDriver, supplementalImage)
 {
     slideio::SCNImageDriver driver;

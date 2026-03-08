@@ -28,7 +28,7 @@ namespace slideio
         class SLIDEIO_OMETIFF_EXPORTS OTScene : public CVScene, public Tiler
         {
         public:
-            explicit OTScene(const ImageData& filePath);
+            explicit OTScene(const ImageData& filePath, int sceneIndex);
             int getNumChannels() const override;
             cv::Rect getRect() const override;
             int findZoomLevel(double zoom) const;
@@ -43,6 +43,7 @@ namespace slideio
                 const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex,
                 cv::OutputArray output) override;
             std::string getFilePath() const override;
+			int getSceneIndex() const override { return m_sceneIndex; }
             std::string getName() const override;
             slideio::DataType getChannelDataType(int channel) const override;
             Resolution getResolution() const override;
@@ -87,6 +88,7 @@ namespace slideio
             TIFFFiles m_files;
 			double m_zResolution = 0.0;
 			double m_tResolution = 0.0;
+            int m_sceneIndex = -1;
         };
     }
 }

@@ -22,6 +22,10 @@ std::string TransformerScene::getFilePath() const
     return m_originScene->getFilePath();
 }
 
+int TransformerScene::getSceneIndex() const {
+    return m_originScene->getSceneIndex();
+}
+
 std::string TransformerScene::getName() const
 {
     return m_originScene->getName();

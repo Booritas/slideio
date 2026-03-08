@@ -34,6 +34,15 @@ namespace slideio
         std::string getFilePath() const override {
             return m_filePath;
         }
+		void setFilePath(const std::string& filePath) {
+            m_filePath = filePath;
+        }
+        int getSceneIndex() const override {
+			return m_sceneIndex;
+        }
+		void setSceneIndex(int index) {
+			m_sceneIndex = index;
+		}
         std::string getName() const override {
             return m_name;
         }
@@ -57,7 +66,8 @@ namespace slideio
         Compression m_compression;
         Resolution m_resolution;
         double m_magnification;
-        slideio::DataType m_dataType;
+        DataType m_dataType;
+        int m_sceneIndex;
     private:
         TIFFKeeper m_tiffKeeper;
     };

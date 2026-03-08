@@ -24,8 +24,8 @@ namespace slideio
          * \param name: scene name
          * \param hfile: tiff file handle of the slide
          */
-        PKEScene(const std::string& filePath, const std::string& name);
-        PKEScene(const std::string& filePath, libtiff::TIFF* hFile, const std::string& name);
+        PKEScene(const std::string& filePath, int sceneIndex,  const std::string& name);
+        PKEScene(const std::string& filePath, int sceneIndex, libtiff::TIFF* hFile, const std::string& name);
 
         virtual ~PKEScene();
         void makeSureFileIsOpened();
@@ -33,6 +33,9 @@ namespace slideio
         std::string getFilePath() const override {
             return m_filePath;
         }
+        int getSceneIndex() const override {
+            return m_sceneIndex;
+		}
         std::string getName() const override {
             return m_name;
         }
@@ -56,7 +59,8 @@ namespace slideio
         Compression m_compression;
         Resolution m_resolution;
         double m_magnification;
-        slideio::DataType m_dataType;
+        DataType m_dataType;
+		int m_sceneIndex;
     private:
         TIFFKeeper m_tiffKeeper;
     };

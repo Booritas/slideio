@@ -18,9 +18,11 @@ namespace slideio
     {
     public:
         PKETiledScene(const std::string& filePath,
+			          int sceneIndex,
                       const std::string& name,
                       const std::vector<slideio::TiffDirectory>& dirs);
-        PKETiledScene(const std::string& filePath, 
+        PKETiledScene(const std::string& filePath,
+			int sceneIndex,
             libtiff::TIFF* hFile,
             const std::string& name,
             const std::vector<slideio::TiffDirectory>& dirs);

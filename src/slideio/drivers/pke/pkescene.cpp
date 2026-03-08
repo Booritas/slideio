@@ -7,24 +7,26 @@
 
 using namespace slideio;
 
-PKEScene::PKEScene(const std::string& filePath, const std::string& name):
-    m_filePath(filePath),
-    m_name(name),
-    m_compression(Compression::Unknown),
-    m_resolution(0., 0.),
-    m_dataType(slideio::DataType::DT_Unknown),
-    m_magnification(0.)
-{
-}
-
-PKEScene::PKEScene(const std::string& filePath, libtiff::TIFF* hFile, const std::string& name):
+PKEScene::PKEScene(const std::string& filePath, int sceneIndex, const std::string& name):
     m_filePath(filePath),
     m_name(name),
     m_compression(Compression::Unknown),
     m_resolution(0., 0.),
     m_dataType(slideio::DataType::DT_Unknown),
     m_magnification(0.),
-    m_tiffKeeper(hFile)
+	m_sceneIndex(sceneIndex)
+{
+}
+
+PKEScene::PKEScene(const std::string& filePath, int sceneIndex, libtiff::TIFF* hFile, const std::string& name):
+    m_filePath(filePath),
+    m_name(name),
+    m_compression(Compression::Unknown),
+    m_resolution(0., 0.),
+    m_dataType(slideio::DataType::DT_Unknown),
+    m_magnification(0.),
+    m_tiffKeeper(hFile),
+    m_sceneIndex(sceneIndex)
 {
 }
 

@@ -18,6 +18,7 @@ public:
     {}
     std::string getFilePath() const override { return m_filePath; }
     void setFilePath(const std::string& filePath) { m_filePath = filePath; }
+	int getSceneIndex() const override { return 0; }
     std::string getName() const override { return m_name; }
     void setName(const std::string& name) { m_name = name; }
     cv::Rect getRect() const override { return m_rect; }

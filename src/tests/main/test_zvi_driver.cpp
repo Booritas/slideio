@@ -523,3 +523,32 @@ TEST(ZVIImageDriver, multiThreadSceneAccess) {
     slideio::ZVIImageDriver driver;
     TestTools::multiThreadedTest(filePath, driver);
 }
+
+TEST(ZVIImageDriver, getSceneIndex)
+{
+    if (!TestTools::isFullTestEnabled()) {
+        GTEST_SKIP() <<
+            "Skip the test because full dataset is not enabled";
+    }
+    const std::string filePath = TestTools::getTestImagePath("zvi", "Zeiss-1-Stacked.zvi");
+    ZVIImageDriver driver;
+    std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide);
+    const int numScenes = slide->getNumScenes();
+    EXPECT_EQ(1, numScenes);
+    for (int iScene = 0; iScene < numScenes; ++iScene) {
+        std::shared_ptr<slideio::CVScene> scene = slide->getScene(iScene);
+        EXPECT_TRUE(scene.get() != nullptr);
+        EXPECT_EQ(iScene, scene->getSceneIndex());
+        EXPECT_EQ(filePath, scene->getFilePath());
+    }
+    const int numImages = slide->getNumAuxImages();
+    ASSERT_EQ(numImages, 0);
+    std::list<std::string> imageNames = slide->getAuxImageNames();
+    for (auto& name : imageNames) {
+        auto scene = slide->getAuxImage("label");
+        EXPECT_TRUE(scene.get() != nullptr);
+        EXPECT_EQ(-1, scene->getSceneIndex());
+        EXPECT_EQ(filePath, scene->getFilePath());
+    }
+}

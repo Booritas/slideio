@@ -144,7 +144,7 @@ void DCMScene::checkScene()
     }
 }
 
-void DCMScene::init()
+void DCMScene::init(const std::string& slideFilePath, int sceneIndex)
 {
     SLIDEIO_LOG(INFO) << "DCMScene::init-begin";
     if (m_files.empty())
@@ -152,7 +152,8 @@ void DCMScene::init()
         RAISE_RUNTIME_ERROR << "DCMScene::init attempt to create an empty scene.";
     }
 
-    m_filePath = (*m_files.begin())->getFilePath();
+    m_filePath = slideFilePath;
+	m_sceneIndex = sceneIndex;
 
     checkScene();
 

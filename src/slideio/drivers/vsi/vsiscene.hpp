@@ -22,11 +22,17 @@ namespace slideio
         class SLIDEIO_VSI_EXPORTS VSIScene : public CVScene, public Tiler
         {
         public:
-            VSIScene(const std::string& filePath, std::shared_ptr<vsi::VSIFile>& vsiFile);
+            VSIScene(const std::string& filePath, int sceneIndex, std::shared_ptr<vsi::VSIFile>& vsiFile);
 
             std::string getFilePath() const override {
                 return m_filePath;
             }
+            int getSceneIndex() const override {
+                return m_sceneIndex;
+			}
+            void setSceneIndex(int sceneIndex) {
+                m_sceneIndex = sceneIndex;
+			}
             std::string getName() const override {
                 return m_name;
             }
@@ -58,6 +64,7 @@ namespace slideio
             std::vector<std::string> m_channelNames;
             std::vector<DataType> m_channelDataType;
             std::shared_ptr<vsi::VSIFile> m_vsiFile;
+            int m_sceneIndex;
         };
     }
 }

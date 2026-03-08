@@ -92,6 +92,26 @@ TEST(DCMImageDriver, openDirectory)
     EXPECT_EQ(scene->getName(), "COU IV");
 }
 
+TEST(DCMImageDriver, getSceneIndex)
+{
+    if (!TestTools::isPrivateTestEnabled()) {
+        GTEST_SKIP() <<
+            "Skip private test because private dataset is not enabled";
+    }
+    DCMImageDriver driver;
+    std::string filePath = TestTools::getTestImagePath("dcm", "series", true);
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide);
+    const int numScenes = slide->getNumScenes();
+    EXPECT_EQ(2, numScenes);
+    for (int iScene = 0; iScene < numScenes; ++iScene) {
+        std::shared_ptr<slideio::CVScene> scene = slide->getScene(iScene);
+        EXPECT_TRUE(scene.get() != nullptr);
+        EXPECT_EQ(iScene, scene->getSceneIndex());
+        EXPECT_EQ(filePath, scene->getFilePath());
+    }
+}
+
 
 TEST(DCMImageDriver, openDirectoryRecursively)
 {
@@ -320,6 +340,27 @@ TEST(DCMImageDriver, readDirectory3D)
     EXPECT_EQ(1, similarity);
 }
 
+TEST(DCMImageDriver, DICOMDirgetSceneIndex)
+{
+    if (!TestTools::isPrivateTestEnabled()) {
+        GTEST_SKIP() <<
+            "Skip private test because private dataset is not enabled";
+    }
+    DCMImageDriver driver;
+    std::string filePath = TestTools::getFullTestImagePath("dcm", "spine_mr/DICOMDIR");
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide);
+    const int numScenes = slide->getNumScenes();
+    EXPECT_EQ(16, numScenes);
+    for (int iScene = 0; iScene < numScenes; ++iScene) {
+        std::shared_ptr<slideio::CVScene> scene = slide->getScene(iScene);
+        EXPECT_TRUE(scene.get() != nullptr);
+        EXPECT_EQ(iScene, scene->getSceneIndex());
+        EXPECT_EQ(filePath, scene->getFilePath());
+    }
+}
+
+
 TEST(DCMImageDriver, openDicomDirFile)
 {
     if (!TestTools::isFullTestEnabled())
@@ -501,6 +542,27 @@ TEST(DCMImageDriver, readBlockSingleFileWSI)
     //TestTools::showRaster(raster);
 }
 
+TEST(DCMImageDriver, WSISingleFileGetSceneIndex)
+{
+    if (!TestTools::isPrivateTestEnabled()) {
+        GTEST_SKIP() <<
+            "Skip private test because private dataset is not enabled";
+    }
+    DCMImageDriver driver;
+    std::string filePath = TestTools::getFullTestImagePath(
+        "dcm", "private/wsi/M01FBC14P-589_level-0.dcm");
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide);
+    const int numScenes = slide->getNumScenes();
+    EXPECT_EQ(1, numScenes);
+    for (int iScene = 0; iScene < numScenes; ++iScene) {
+        std::shared_ptr<slideio::CVScene> scene = slide->getScene(iScene);
+        EXPECT_TRUE(scene.get() != nullptr);
+        EXPECT_EQ(iScene, scene->getSceneIndex());
+        EXPECT_EQ(filePath, scene->getFilePath());
+    }
+}
+
 TEST(DCMImageDriver, readBlockResampleSingleFileWSI)
 {
     if (!TestTools::isFullTestEnabled())
@@ -581,6 +643,26 @@ TEST(DCMImageDriver, readResampledBlockWSIDirectory)
     sim = ImageTools::computeSimilarity2(raster, testRaster);
     EXPECT_LE(0.99, sim);
     //TestTools::showRasters(testRaster,raster);
+}
+
+TEST(DCMImageDriver, WSIDirGetSceneIndex)
+{
+    if (!TestTools::isPrivateTestEnabled()) {
+        GTEST_SKIP() <<
+            "Skip private test because private dataset is not enabled";
+    }
+    DCMImageDriver driver;
+    std::string filePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777");
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide);
+    const int numScenes = slide->getNumScenes();
+    EXPECT_EQ(1, numScenes);
+    for (int iScene = 0; iScene < numScenes; ++iScene) {
+        std::shared_ptr<slideio::CVScene> scene = slide->getScene(iScene);
+        EXPECT_TRUE(scene.get() != nullptr);
+        EXPECT_EQ(iScene, scene->getSceneIndex());
+        EXPECT_EQ(filePath, scene->getFilePath());
+    }
 }
 
 TEST(DCMImageDriver, readBlockWSIDirectory)

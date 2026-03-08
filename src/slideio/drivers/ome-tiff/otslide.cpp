@@ -70,7 +70,7 @@ std::shared_ptr<OTSlide> OTSlide::processMetadata(const std::string& filePath, s
     slide.reset(new OTSlide);
 
     for (const ImageData& imageData : images) {
-        std::shared_ptr<CVScene> scene = createScene(imageData);
+        std::shared_ptr<CVScene> scene = createScene(imageData, static_cast<int>(slide->m_Scenes.size()));
         if (scene) {
             slide->m_Scenes.push_back(scene);
         }
@@ -148,11 +148,11 @@ std::shared_ptr<OTSlide> OTSlide::openFile(const std::string& filePath) {
     return slide;
 }
 
-std::shared_ptr<CVScene> OTSlide::createScene(const ImageData& imageData) {
+std::shared_ptr<CVScene> OTSlide::createScene(const ImageData& imageData, int sceneIndex) {
     std::shared_ptr<CVScene> scene;
     try {
 		SLIDEIO_LOG(INFO) << "OTSlide::createScene: Creating scene for image: " << imageData.imageId;
-        OTScene* otScene = new OTScene(imageData);
+        OTScene* otScene = new OTScene(imageData, sceneIndex);
         SLIDEIO_LOG(INFO) << "OTSlide::createScene: Scene " << imageData.imageId << " is successfully created.";
         scene.reset(otScene);
     }

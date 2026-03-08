@@ -87,6 +87,22 @@ TEST_F(AFIDriverFileTest, getScenesFromNonExistentFiles)
     EXPECT_THROW(slideio::AFISlide::getSlidesScenesFromFiles(svsFiles, afiFile), slideio::RuntimeError);
 }
 
+TEST_F(AFIDriverFileTest, getSceneIndex)
+{
+    const std::string filePath = getPrivTestImagesPath("afi", "fs.afi");
+    slideio::AFIImageDriver driver;
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide);
+    const int numScenes = slide->getNumScenes();
+    EXPECT_EQ(3, numScenes);
+    for (int iScene = 0; iScene < numScenes; ++iScene) {
+        std::shared_ptr<slideio::CVScene> scene = slide->getScene(iScene);
+        EXPECT_TRUE(scene.get() != nullptr);
+        EXPECT_EQ(iScene, scene->getSceneIndex());
+        EXPECT_EQ(filePath, scene->getFilePath());
+    }
+}
+
 TEST_F(AFIDriverFileTest, checkFile)
 {
     slideio::AFIImageDriver driver;
@@ -99,7 +115,7 @@ TEST_F(AFIDriverFileTest, checkFile)
     EXPECT_EQ(scene->getName(), "Image");
     std::string scenePath = std::filesystem::path(scene->getFilePath()).lexically_normal().string();
     std::string svsPath = getPrivTestImagesPath("afi", "fs_Alexa Fluor 488.svs");
-    EXPECT_EQ(scenePath, svsPath);
+    EXPECT_EQ(scenePath, filePath);
 }
 
 TEST_F(AFIDriverFileTest, read_ImageBlock)

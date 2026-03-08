@@ -22,6 +22,9 @@ namespace slideio
     public:
         bool init() override;
         void setAttachmentData(CZISlide* slide, int64_t position, int64_t size, const std::string& name);
+        int getSceneIndex() const override {
+            return -1;
+		}
     protected:
         void readImage(cv::OutputArray output) override;
     private:

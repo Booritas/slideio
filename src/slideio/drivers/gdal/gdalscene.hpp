@@ -24,6 +24,7 @@ namespace slideio
         GDALScene(SmallImagePage* image, const std::string& filePath);
         virtual ~GDALScene() = default;
         std::string getFilePath() const override;
+        int getSceneIndex() const override { return 0; }
         int getNumChannels() const override;
         slideio::DataType getChannelDataType(int channel) const override;
         slideio::Resolution getResolution() const override;

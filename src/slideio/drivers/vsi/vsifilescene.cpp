@@ -11,8 +11,8 @@
 using namespace slideio;
 using namespace slideio::vsi;
 
-VsiFileScene::VsiFileScene(const std::string& filePath, std::shared_ptr<vsi::VSIFile>& vsiFile, int directoryIndex) :
-    VSIScene(filePath, vsiFile), m_directoryIndex(directoryIndex)
+VsiFileScene::VsiFileScene(const std::string& filePath, int sceneIndex, std::shared_ptr<vsi::VSIFile>& vsiFile, int directoryIndex) :
+    VSIScene(filePath, sceneIndex, vsiFile), m_directoryIndex(directoryIndex)
 {
     init();
 }

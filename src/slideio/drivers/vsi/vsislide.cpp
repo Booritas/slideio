@@ -29,7 +29,7 @@ void VSISlide::init()
         // No metadata, treat the vsi file as a normal tiff file
         const int numDirectories = m_vsiFile->getNumTiffDirectories();
         for (int directoryIndex = 0; directoryIndex < numDirectories; ++directoryIndex) {
-             auto scene = std::make_shared<VsiFileScene>(m_filePath, m_vsiFile, directoryIndex);
+             auto scene = std::make_shared<VsiFileScene>(m_filePath, static_cast<int>(m_Scenes.size()),m_vsiFile, directoryIndex);
              m_Scenes.push_back(scene);
          }
     } else {
@@ -37,7 +37,7 @@ void VSISlide::init()
         if (m_vsiFile->getNumEtsFiles() > 0) {
             const int numFiles = m_vsiFile->getNumEtsFiles();
             for (int fileIndex = 0; fileIndex < numFiles; ++fileIndex) {
-                auto scene = std::make_shared<EtsFileScene>(m_filePath, m_vsiFile, fileIndex);
+                auto scene = std::make_shared<EtsFileScene>(m_filePath, static_cast<int>(m_Scenes.size()), m_vsiFile, fileIndex);
                 const auto etsFile = m_vsiFile->getEtsFile(fileIndex);
                 auto volume = etsFile->getVolume();
                 if (volume) {
@@ -48,6 +48,7 @@ void VSISlide::init()
                     else {
                         std::string typeName = vsi::getStackTypeName(stackType);
                         m_auxImages[typeName] = scene;
+						scene->setSceneIndex(-1);
                         m_auxNames.emplace_back(typeName);
                     }
                     const int auxImages = volume->getNumAuxVolumes();
@@ -56,7 +57,7 @@ void VSISlide::init()
                         if (auxVolume) {
                             if (auxVolume->getIFD()>-1)
                             {
-                             auto auxScene = std::make_shared<VsiFileScene>(m_filePath, m_vsiFile, auxVolume->getIFD());
+                             auto auxScene = std::make_shared<VsiFileScene>(m_filePath, -1, m_vsiFile, auxVolume->getIFD());
                              scene->addAuxImage(auxVolume->getName(), auxScene);
                             }
                         }

@@ -31,13 +31,19 @@ namespace slideio
          * \param filePath: path to the slide file
          * \param xmlImage: xml element corresponded to the scene
          */
-        SCNScene(const std::string& filePath, const tinyxml2::XMLElement* xmlImage);
+        SCNScene(const std::string& filePath, int sceneIndex, const tinyxml2::XMLElement* xmlImage);
 
         virtual ~SCNScene();
 
         std::string getFilePath() const override {
             return m_filePath;
         }
+        int getSceneIndex() const override {
+            return m_sceneIndex;
+		}
+        void setSceneIndex(int index) {
+            m_sceneIndex = index;
+		}
         std::string getName() const override {
             return m_name;
         }
@@ -98,6 +104,7 @@ namespace slideio
         std::vector<DataType> m_channelDataType;
         std::vector<std::vector<TiffDirectory>> m_channelDirectories;
         bool m_interleavedChannels;
+        int m_sceneIndex;
     };
 }
 

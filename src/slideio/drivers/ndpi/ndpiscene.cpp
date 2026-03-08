@@ -59,7 +59,7 @@ private:
     std::string m_filePath;
 };
 
-NDPIScene::NDPIScene() : m_pfile(nullptr), m_startDir(-1), m_endDir(-1), m_rect(0, 0, 0, 0)
+NDPIScene::NDPIScene() : m_pfile(nullptr), m_startDir(-1), m_endDir(-1), m_rect(0, 0, 0, 0), m_sceneIndex(-1)
 {
 }
 
@@ -67,7 +67,7 @@ NDPIScene::~NDPIScene()
 {
 }
 
-void NDPIScene::init(const std::string& name, NDPIFile* file, int32_t startDirIndex, int32_t endDirIndex)
+void NDPIScene::init(const std::string& name, int sceneIndex, NDPIFile* file, int32_t startDirIndex, int32_t endDirIndex)
 {
     NDPITIFFMessageHandler mh;
 
@@ -75,6 +75,7 @@ void NDPIScene::init(const std::string& name, NDPIFile* file, int32_t startDirIn
     m_pfile = file;
     m_startDir = startDirIndex;
     m_endDir = endDirIndex;
+	m_sceneIndex = sceneIndex;
 
     if (!m_pfile) {
         RAISE_RUNTIME_ERROR << "NDPIImageDriver: Invalid file handle.";
