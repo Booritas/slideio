@@ -12,8 +12,9 @@
 using namespace slideio;
 using namespace tinyxml2;
 
-SCNSlide::SCNSlide(const std::string& filePath) : m_filePath(filePath)
+SCNSlide::SCNSlide(const std::string& filePath, const std::string& driverId) : m_filePath(filePath)
 {
+	setDriverId(driverId);
 	m_metadataFormat = MetadataFormat::XML;
     init();
 }
@@ -54,7 +55,7 @@ void SCNSlide::constructScenes()
         {
             if (strcmp(tagName, "image") == 0)
             {
-                std::shared_ptr<SCNScene> scene(new SCNScene(m_filePath, static_cast<int>(m_Scenes.size()), xmlImage));
+                std::shared_ptr<SCNScene> scene(new SCNScene(m_filePath, static_cast<int>(m_Scenes.size()), getDriverId(), xmlImage));
                 double magn = scene->getMagnification();
                 if (magn >= 1.)
                 {
@@ -84,7 +85,7 @@ void SCNSlide::constructScenes()
                 {
                     slideio::TiffDirectory directory;
                     TiffTools::scanTiffDir(m_tiff.getHandle(), dir, 0, directory);
-                    std::shared_ptr<SVSSmallScene> scene(new SVSSmallScene(m_filePath, tagName,
+                    std::shared_ptr<SVSSmallScene> scene(new SVSSmallScene(m_filePath, getDriverId(), tagName,
                         directory, m_tiff.getHandle()));
                     scene->setSceneIndex(-1);
                     m_auxImages[type] = scene;

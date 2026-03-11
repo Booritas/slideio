@@ -109,6 +109,7 @@ TEST(DCMImageDriver, getSceneIndex)
         EXPECT_TRUE(scene.get() != nullptr);
         EXPECT_EQ(iScene, scene->getSceneIndex());
         EXPECT_EQ(filePath, scene->getFilePath());
+		EXPECT_EQ("DCM", scene->getDriverId());
     }
 }
 
@@ -560,6 +561,7 @@ TEST(DCMImageDriver, WSISingleFileGetSceneIndex)
         EXPECT_TRUE(scene.get() != nullptr);
         EXPECT_EQ(iScene, scene->getSceneIndex());
         EXPECT_EQ(filePath, scene->getFilePath());
+		EXPECT_EQ("DCM", scene->getDriverId());
     }
 }
 
@@ -653,7 +655,7 @@ TEST(DCMImageDriver, WSIDirGetSceneIndex)
     }
     DCMImageDriver driver;
     std::string filePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777");
-    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide);
     const int numScenes = slide->getNumScenes();
     EXPECT_EQ(1, numScenes);
@@ -662,6 +664,7 @@ TEST(DCMImageDriver, WSIDirGetSceneIndex)
         EXPECT_TRUE(scene.get() != nullptr);
         EXPECT_EQ(iScene, scene->getSceneIndex());
         EXPECT_EQ(filePath, scene->getFilePath());
+		EXPECT_EQ("DCM", scene->getDriverId());
     }
 }
 

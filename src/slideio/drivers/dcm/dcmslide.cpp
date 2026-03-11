@@ -23,8 +23,9 @@ struct Series
     std::vector<std::shared_ptr<DCMFile>> files;
 };
 
-DCMSlide::DCMSlide(const std::string& filePath) : m_srcPath(filePath) {
+DCMSlide::DCMSlide(const std::string& filePath, const std::string& driverId) : m_srcPath(filePath) {
     SLIDEIO_LOG(INFO) << "DCMSlide::constructor-begin: " << m_srcPath;
+	setDriverId(driverId);
     init();
     SLIDEIO_LOG(INFO) << "DCMSlide::constructor-end: " << m_srcPath;
 }
@@ -99,7 +100,7 @@ void DCMSlide::processRegularSeries(std::vector<std::shared_ptr<DCMFile>>& files
             }
             else {
                 try {
-                    scene->init(m_srcPath, static_cast<int>(m_scenes.size()));
+                    scene->init(m_srcPath, static_cast<int>(m_scenes.size()), getDriverId());
                     m_scenes.push_back(scene);
                 }
                 catch (std::exception& ex) {
@@ -111,7 +112,7 @@ void DCMSlide::processRegularSeries(std::vector<std::shared_ptr<DCMFile>>& files
             }
         }
         try {
-            scene->init(m_srcPath, static_cast<int>(m_scenes.size()));
+            scene->init(m_srcPath, static_cast<int>(m_scenes.size()), getDriverId());
             m_scenes.push_back(scene);
         }
         catch (std::exception& ex) {
@@ -127,7 +128,7 @@ void DCMSlide::processWSISeries(std::vector<std::shared_ptr<DCMFile>>& files) {
     for(auto&& file : files) {
         scene->addFile(file);
     }
-    scene->init(m_srcPath, static_cast<int>(m_scenes.size()));
+    scene->init(m_srcPath, static_cast<int>(m_scenes.size()), getDriverId());
     m_scenes.push_back(scene);
 }
 
@@ -276,7 +277,7 @@ void DCMSlide::initFromWSIFile() {
     file->init();
     file->setScale(1.0);
     scene->addFile(file);
-    scene->init(m_srcPath, static_cast<int>(m_scenes.size()));
+    scene->init(m_srcPath, static_cast<int>(m_scenes.size()), getDriverId());
     m_scenes.push_back(scene);
 }
 
@@ -285,6 +286,6 @@ void DCMSlide::initFromRegularDicomFile() {
     std::shared_ptr<DCMFile> file(new DCMFile(m_srcPath));
     file->init();
     scene->addFile(file);
-    scene->init(m_srcPath, static_cast<int>(m_scenes.size()));
+    scene->init(m_srcPath, static_cast<int>(m_scenes.size()), getDriverId());
     m_scenes.push_back(scene);
 }

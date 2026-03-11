@@ -63,6 +63,7 @@ public:
     }
 };
 
+
 static std::shared_ptr<TestScene> makeScene(int channels = 3, int width = 512, int height = 512) {
     auto scene = std::make_shared<DummyScene>();
     scene->setNumChannels(channels);
@@ -72,6 +73,22 @@ static std::shared_ptr<TestScene> makeScene(int channels = 3, int width = 512, i
     scene->setMagnification(20.0);
     return scene;
 }
+
+class TestTiffConverter : public TiffConverter
+{
+public:
+    virtual std::pair<std::shared_ptr<Slide>, std::shared_ptr<Scene>> cloneScene() const override {
+		int channels = getScene()->getNumChannels();
+        auto rect = getScene()->getRect();
+        std::shared_ptr<TestScene> cvScene = makeScene(channels, rect.width, rect.height);
+        cvScene->setNumTFrames(getScene()->getNumTFrames());
+        cvScene->setNumZSlices(getScene()->getNumZSlices());
+        cvScene->setRect(getScene()->getRect());
+        std::shared_ptr<Scene> scene(new Scene(std::static_pointer_cast<CVScene>(cvScene)));
+        return { nullptr, scene };
+    }
+
+};
 
 static void configureCommonRanges(ConverterParameters& params, int channels, int zoomLevels) {
     params.setChannelRange(cv::Range(0, channels));
@@ -117,7 +134,7 @@ static void testOMETIFFSubset(const ConverterParameters& params,
         std::filesystem::remove(outputPath);
     }
     {
-        TiffConverter converter;
+        TestTiffConverter converter;
         const cv::Range& channelRange = params.getChannelRange();
         const cv::Range& tframeRange = params.getTFrameRange();
         const cv::Range& zsliceRange = params.getSliceRange();
@@ -180,7 +197,7 @@ TEST(TiffConverterTests, CreateFileLayoutThrowsOnInvalidParameters) {
     auto scene = makeScene(3);
     ConverterParameters params; // Default constructor creates invalid parameters
 
-    TiffConverter converter;
+    TestTiffConverter converter;
     EXPECT_THROW(converter.createFileLayout(scene, params), RuntimeError);
 }
 
@@ -189,7 +206,7 @@ TEST(TiffConverterTests, CreateFileLayoutSVSSingleChannel) {
     SVSJpegConverterParameters params;
     configureCommonRanges(params, 1, 1);
 
-    TiffConverter converter;
+    TestTiffConverter converter;
     ASSERT_NO_THROW(converter.createFileLayout(scene, params));
     EXPECT_EQ(1, converter.getNumTiffPages());
 
@@ -204,7 +221,7 @@ TEST(TiffConverterTests, CreateFileLayoutSVSThreeChannels) {
     SVSJpegConverterParameters params;
     configureCommonRanges(params, 3, 1);
 
-    TiffConverter converter;
+    TestTiffConverter converter;
     ASSERT_NO_THROW(converter.createFileLayout(scene, params));
     EXPECT_EQ(1, converter.getNumTiffPages());
 
@@ -217,7 +234,7 @@ TEST(TiffConverterTests, CreateFileLayoutSVSMultipleZoomLevels) {
     SVSJpegConverterParameters params;
     configureCommonRanges(params, 3, 3);
 
-    TiffConverter converter;
+    TestTiffConverter converter;
     ASSERT_NO_THROW(converter.createFileLayout(scene, params));
 
     // SVS creates separate pages for each zoom level
@@ -242,7 +259,7 @@ TEST(TiffConverterTests, CreateFileLayoutOMETIFFSingleChannel) {
     OMETIFFJpegConverterParameters params;
     configureCommonRanges(params, 1, 1);
 
-    TiffConverter converter;
+    TestTiffConverter converter;
     ASSERT_NO_THROW(converter.createFileLayout(scene, params));
     EXPECT_EQ(1, converter.getNumTiffPages());
 
@@ -255,7 +272,7 @@ TEST(TiffConverterTests, CreateFileLayoutOMETIFFThreeChannels) {
     OMETIFFJpegConverterParameters params;
     configureCommonRanges(params, 3, 1);
 
-    TiffConverter converter;
+    TestTiffConverter converter;
     ASSERT_NO_THROW(converter.createFileLayout(scene, params));
 
     // OME-TIFF groups 3 channels into one page for JPEG
@@ -270,7 +287,7 @@ TEST(TiffConverterTests, CreateFileLayoutOMETIFF2and4Channels) {
     OMETIFFJpegConverterParameters params;
     configureCommonRanges(params, 2, 1);
 
-    TiffConverter converter;
+    TestTiffConverter converter;
     ASSERT_NO_THROW(converter.createFileLayout(scene, params));
 
     scene->setNumChannels(4);
@@ -285,7 +302,7 @@ TEST(TiffConverterTests, CreateFileLayoutOMETIFFMultipleZoomLevels) {
     OMETIFFJpegConverterParameters params;
     configureCommonRanges(params, 3, 3);
 
-    TiffConverter converter;
+    TestTiffConverter converter;
     ASSERT_NO_THROW(converter.createFileLayout(scene, params));
 
     // OME-TIFF uses subdirectories for zoom levels
@@ -307,7 +324,7 @@ TEST(TiffConverterTests, CreateFileLayoutOMETIFFJpeg2000FourChannels) {
     OMETIFFJp2KConverterParameters params;
     configureCommonRanges(params, 4, 1);
 
-    TiffConverter converter;
+    TestTiffConverter converter;
     ASSERT_NO_THROW(converter.createFileLayout(scene, params));
 
     // JPEG2000 creates individual pages for each channel
@@ -330,7 +347,7 @@ TEST(TiffConverterTests, CreateFileLayoutWithChannelSubset) {
     auto tiffParams = std::static_pointer_cast<TIFFContainerParameters>(params.getContainerParameters());
     tiffParams->setNumZoomLevels(1);
 
-    TiffConverter converter;
+    TestTiffConverter converter;
     ASSERT_NO_THROW(converter.createFileLayout(scene, params));
 
     EXPECT_EQ(3, converter.getNumTiffPages());
@@ -344,7 +361,7 @@ TEST(TiffConverterTests, CreateFileLayoutWithCustomRect) {
     Rect customRect(100, 100, 500, 500);
     params.setRect(customRect);
 
-    TiffConverter converter;
+    TestTiffConverter converter;
     ASSERT_NO_THROW(converter.createFileLayout(scene, params));
     EXPECT_EQ(1, converter.getNumTiffPages());
 }
@@ -356,7 +373,7 @@ TEST(TiffConverterTests, CreateFileLayoutSVSThrowsOnMultipleSlices) {
     params.setSliceRange(cv::Range(0, 3)); // Multiple slices
     params.setTFrameRange(cv::Range(0, 1));
 
-    TiffConverter converter;
+    TestTiffConverter converter;
     EXPECT_THROW(converter.createFileLayout(scene, params), RuntimeError);
 }
 
@@ -367,7 +384,7 @@ TEST(TiffConverterTests, CreateFileLayoutSVSThrowsOnMultipleFrames) {
     params.setSliceRange(cv::Range(0, 1));
     params.setTFrameRange(cv::Range(0, 3)); // Multiple frames
 
-    TiffConverter converter;
+    TestTiffConverter converter;
     EXPECT_THROW(converter.createFileLayout(scene, params), RuntimeError);
 }
 
@@ -376,7 +393,7 @@ TEST(TiffConverterTests, GetTiffPageThrowsOnInvalidIndex) {
     SVSJpegConverterParameters params;
     configureCommonRanges(params, 3, 1);
 
-    TiffConverter converter;
+    TestTiffConverter converter;
     converter.createFileLayout(scene, params);
 
     EXPECT_NO_THROW(converter.getTiffPage(0));
@@ -389,7 +406,7 @@ TEST(TiffConverterTests, MultipleCreateFileLayoutCallsResetState) {
     SVSJpegConverterParameters params;
     configureCommonRanges(params, 3, 2);
 
-    TiffConverter converter;
+    TestTiffConverter converter;
 
     // First layout
     converter.createFileLayout(scene, params);
@@ -412,7 +429,7 @@ TEST(TiffConverterTests, OMETIFFLayoutFor3ByteChannels) {
     auto tiffParams = std::static_pointer_cast<TIFFContainerParameters>(params.getContainerParameters());
     tiffParams->setNumZoomLevels(1);
 
-    TiffConverter converter;
+    TestTiffConverter converter;
     ASSERT_NO_THROW(converter.createFileLayout(scene, params));
 
     // Should create 2 slices * 3 frames = 6 pages
@@ -434,7 +451,7 @@ TEST(TiffConverterTests, OMETIFFLayoutFor2ByteChannels) {
     auto tiffParams = std::static_pointer_cast<TIFFContainerParameters>(params.getContainerParameters());
     tiffParams->setNumZoomLevels(1);
 
-    TiffConverter converter;
+    TestTiffConverter converter;
     ASSERT_NO_THROW(converter.createFileLayout(scene, params));
 
     // Should create 2 channels * 2 slices * 3 frames = 12 pages
@@ -457,7 +474,7 @@ TEST(TiffConverterTests, OMETIFFLayoutFor3_16BitChannels) {
     auto tiffParams = std::static_pointer_cast<TIFFContainerParameters>(params.getContainerParameters());
     tiffParams->setNumZoomLevels(1);
 
-    TiffConverter converter;
+    TestTiffConverter converter;
     ASSERT_NO_THROW(converter.createFileLayout(scene, params));
 
     // Should create 2 slices * 3 frames = 18 pages
@@ -479,7 +496,7 @@ TEST(TiffConverterTests, OMETIFFLayoutFor4ByteChannelsJpeg) {
     auto tiffParams = std::static_pointer_cast<TIFFContainerParameters>(params.getContainerParameters());
     tiffParams->setNumZoomLevels(1);
 
-    TiffConverter converter;
+    TestTiffConverter converter;
     ASSERT_NO_THROW(converter.createFileLayout(scene, params));
 
     // Should create 4 channels * 2 slices * 3 frames = 24 pages
@@ -500,7 +517,7 @@ TEST(TiffConverterTests, OMETIFFLayoutFor3_16BitChannelsJpeg) {
     auto tiffParams = std::static_pointer_cast<TIFFContainerParameters>(params.getContainerParameters());
     tiffParams->setNumZoomLevels(1);
 
-    TiffConverter converter;
+    TestTiffConverter converter;
     ASSERT_THROW(converter.createFileLayout(scene, params), slideio::RuntimeError);
 }
 
@@ -515,7 +532,7 @@ TEST(TiffConverterTests, ComputeCropRect) {
     auto tiffParams = std::static_pointer_cast<TIFFContainerParameters>(params.getContainerParameters());
     tiffParams->setNumZoomLevels(1);
 
-    TiffConverter converter;
+    TestTiffConverter converter;
     ASSERT_NO_THROW(converter.createFileLayout(scene, params));
     cv::Rect rect = converter.getSceneRect();
     EXPECT_EQ(cv::Rect(10000, 5000, 10000, 15000), rect);
@@ -532,7 +549,7 @@ TEST(TiffConverterTests, ComputeCropRectInvalid) {
     auto tiffParams = std::static_pointer_cast<TIFFContainerParameters>(params.getContainerParameters());
     tiffParams->setNumZoomLevels(1);
 
-    TiffConverter converter;
+    TestTiffConverter converter;
     ASSERT_THROW(converter.createFileLayout(scene, params), slideio::RuntimeError);
 
     params.setRect(Rect(0, 0, 20000, 40000));
@@ -566,7 +583,7 @@ TEST(TiffConverterTests, ComputeNumberOfTiles) {
     int tilesX = (rect.width + params.getTileWidth() - 1) / params.getTileWidth();
     int tilesY = (rect.height + params.getTileHeight() - 1) / params.getTileHeight();
     int numTiles = tilesX * tilesY;
-    TiffConverter converter;
+    TestTiffConverter converter;
     ASSERT_NO_THROW(converter.createFileLayout(scene, params));
     int totalTiles = converter.getTotalTiles();
     EXPECT_EQ(totalTiles, numTiles);
@@ -647,7 +664,7 @@ TEST(TiffConverterTests, CreateFileLayoutOMETIFFSubset) {
     scene->setRect(sceneRect);
     OMETIFFJp2KConverterParameters params;
 
-    TiffConverter converter;
+    TestTiffConverter converter;
     // The whole dataset
     params.setTFrameRange(cv::Range(0, numFrames));
     params.setSliceRange(cv::Range(0, numSlices));
@@ -681,7 +698,7 @@ TEST(TiffConverterTests, CreateFileLayoutOMETIFFJpegSubset) {
     scene->setRect(sceneRect);
     OMETIFFJpegConverterParameters params;
 
-    TiffConverter converter;
+    TestTiffConverter converter;
     // The whole dataset
     params.setTFrameRange(cv::Range(0, numFrames));
     params.setSliceRange(cv::Range(0, numSlices));
@@ -715,7 +732,7 @@ TEST(TiffConverterTests, CreateFileLayoutOMETIFFChannelSubset) {
     scene->setRect(sceneRect);
     OMETIFFJp2KConverterParameters params;
 
-    TiffConverter converter;
+    TestTiffConverter converter;
     // All channels
     params.setTFrameRange(cv::Range(2, 4));
     params.setSliceRange(cv::Range(1, 3));
@@ -917,7 +934,7 @@ TEST(TiffConverterTests, OMETIFFJp2KRaster) {
     tiffParams->setNumZoomLevels(numZoomLevels);
     tiffParams->setTileHeight(tileSize.height);
 	tiffParams->setTileWidth(tileSize.width);
-    TiffConverter converter;
+    TestTiffConverter converter;
     converter.createFileLayout(scene, params);
     converter.createTiff(outputPath, nullptr, 1);
     auto slide = openSlide(outputPath, "OMETIFF");
@@ -1008,7 +1025,7 @@ TEST(TiffConverterTests, OMETIFFJpegRaster) {
     tiffParams->setNumZoomLevels(numZoomLevels);
 	tiffParams->setTileHeight(tileSize.height);
 	tiffParams->setTileWidth(tileSize.width);
-    TiffConverter converter;
+    TestTiffConverter converter;
     converter.createFileLayout(scene, params);
     converter.createTiff(outputPath, nullptr, 1);
     auto slide = openSlide(outputPath, "OMETIFF");
@@ -1077,7 +1094,7 @@ static TiffConverter setupConverterForTileQueue(int imageWidth, int imageHeight,
 	tiffParams->setTileHeight(tileHeight);
 	tiffParams->setNumZoomLevels(numZoomLevels);
 
-	TiffConverter converter;
+	TestTiffConverter converter;
 	converter.createFileLayout(scene, params);
 	return converter;
 }
@@ -1342,7 +1359,7 @@ TEST(TiffConverterTests, CreateTileQueue_WithCropRectOffset) {
 	tiffParams->setTileHeight(128);
 	tiffParams->setNumZoomLevels(1);
 
-	TiffConverter converter;
+	TestTiffConverter converter;
 	converter.createFileLayout(scene, params);
 
 	TiffDirectory dir;

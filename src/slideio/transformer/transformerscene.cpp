@@ -26,6 +26,10 @@ int TransformerScene::getSceneIndex() const {
     return m_originScene->getSceneIndex();
 }
 
+const std::string& TransformerScene::getDriverId() const {
+	return m_originScene->getDriverId();
+}
+
 std::string TransformerScene::getName() const
 {
     return m_originScene->getName();

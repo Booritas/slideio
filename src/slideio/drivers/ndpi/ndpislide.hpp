@@ -30,7 +30,7 @@ namespace slideio
     protected:
         NDPISlide();
         void constructScenes();
-        void init(const std::string& filePath);
+        void init(const std::string& filePath, const std::string& driverId);
     public:
         virtual ~NDPISlide();
         int getNumScenes() const override;

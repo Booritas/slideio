@@ -144,7 +144,7 @@ void DCMScene::checkScene()
     }
 }
 
-void DCMScene::init(const std::string& slideFilePath, int sceneIndex)
+void DCMScene::init(const std::string& slideFilePath, int sceneIndex, const std::string& driverId)
 {
     SLIDEIO_LOG(INFO) << "DCMScene::init-begin";
     if (m_files.empty())
@@ -154,6 +154,7 @@ void DCMScene::init(const std::string& slideFilePath, int sceneIndex)
 
     m_filePath = slideFilePath;
 	m_sceneIndex = sceneIndex;
+    m_driverId = driverId;
 
     checkScene();
 

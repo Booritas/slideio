@@ -20,9 +20,11 @@ namespace slideio
     public:
         void initialize();
         SVSTiledScene(const std::string& filePath,
+                      const std::string& driverId,
                       const std::string& name,
                       const std::vector<slideio::TiffDirectory>& dirs);
-        SVSTiledScene(const std::string& filePath, 
+        SVSTiledScene(const std::string& filePath,
+			const std::string& driverId,
             libtiff::TIFF* hFile,
             const std::string& name,
             const std::vector<slideio::TiffDirectory>& dirs);

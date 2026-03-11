@@ -22,7 +22,7 @@ namespace slideio
         class SLIDEIO_VSI_EXPORTS VSIScene : public CVScene, public Tiler
         {
         public:
-            VSIScene(const std::string& filePath, int sceneIndex, std::shared_ptr<vsi::VSIFile>& vsiFile);
+            VSIScene(const std::string& filePath, int sceneIndex, const std::string& driverId, std::shared_ptr<vsi::VSIFile>& vsiFile);
 
             std::string getFilePath() const override {
                 return m_filePath;
@@ -48,6 +48,9 @@ namespace slideio
             DataType getChannelDataType(int channelIndex) const override {
                 return m_channelDataType[channelIndex];
             }
+            const std::string& getDriverId() const override {
+				return m_driverId;
+            }
             cv::Rect getRect() const override;
             int getNumChannels() const override;
             std::string getChannelName(int channel) const override;
@@ -65,6 +68,7 @@ namespace slideio
             std::vector<DataType> m_channelDataType;
             std::shared_ptr<vsi::VSIFile> m_vsiFile;
             int m_sceneIndex;
+			std::string m_driverId;
         };
     }
 }

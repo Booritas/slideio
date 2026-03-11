@@ -20,7 +20,7 @@ std::string slideio::PKEImageDriver::getID() const
 
 std::shared_ptr<slideio::CVSlide> slideio::PKEImageDriver::openFile(const std::string& filePath)
 {
-	return PKESlide::openFile(filePath);
+	return PKESlide::openFile(filePath, getID());
 }
 
 std::string slideio::PKEImageDriver::getFileSpecs() const

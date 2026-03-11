@@ -23,7 +23,7 @@ std::string OTImageDriver::getID() const
 
 std::shared_ptr<slideio::CVSlide> OTImageDriver::openFile(const std::string& filePath)
 {
-	return OTSlide::openFile(filePath);
+	return OTSlide::openFile(filePath, getID());
 }
 
 std::string OTImageDriver::getFileSpecs() const

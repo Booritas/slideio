@@ -48,7 +48,7 @@ std::shared_ptr<CVScene> PKESlide::getScene(int index) const
     return m_Scenes[index];
 }
 
-std::shared_ptr<PKESlide> PKESlide::openFile(const std::string& filePath)
+std::shared_ptr<PKESlide> PKESlide::openFile(const std::string& filePath, const std::string& driverId)
 {
     SLIDEIO_LOG(INFO) << "PKESlide::openFile: " << filePath;
     std::shared_ptr<PKESlide> slide;
@@ -67,6 +67,8 @@ std::shared_ptr<PKESlide> PKESlide::openFile(const std::string& filePath)
     std::map<std::string, std::shared_ptr<CVScene>> auxImages;
     std::list<std::string> auxNames;
     std::list<std::string> metadataItems;
+    slide.reset(new PKESlide);
+	slide->setDriverId(driverId);
 
     for (const auto& directory : directories) {
         const auto& description = directory.description;
@@ -90,7 +92,7 @@ std::shared_ptr<PKESlide> PKESlide::openFile(const std::string& filePath)
                     }
                     image_dirs.push_back(directory);
                 } else if(type == "Thumbnail" || type == "Overview" || type == "Label") {
-                    std::shared_ptr<CVScene> scene(new PKESmallScene(filePath, -1, type, directory, true));
+                    std::shared_ptr<CVScene> scene(new PKESmallScene(filePath, -1, slide->getDriverId(),type, directory, true));
                     auxImages[type] = scene;
                     auxNames.emplace_back(type);
                 }
@@ -99,9 +101,8 @@ std::shared_ptr<PKESlide> PKESlide::openFile(const std::string& filePath)
     }
 
     std::vector<std::shared_ptr<CVScene>> scenes;
-    std::shared_ptr<CVScene> scene(new PKETiledScene(filePath,static_cast<int>(scenes.size()), keeper.release(),"Image", image_dirs));
+    std::shared_ptr<CVScene> scene(new PKETiledScene(filePath,static_cast<int>(scenes.size()), slide->getDriverId(), keeper.release(),"Image", image_dirs));
     scenes.push_back(scene);
-    slide.reset(new PKESlide);
     slide->m_Scenes.assign(scenes.begin(), scenes.end());
     slide->m_filePath = filePath;
     slide->m_auxImages = auxImages;

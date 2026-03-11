@@ -25,7 +25,7 @@ namespace slideio
         {
             friend class VSIImageDriver;
         public:
-            VSISlide(const std::string& filePath);
+            VSISlide(const std::string& filePath, const std::string& driverId);
         public:
             int getNumScenes() const override;
             std::string getFilePath() const override;

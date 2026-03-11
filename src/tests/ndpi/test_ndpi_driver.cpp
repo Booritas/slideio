@@ -570,4 +570,5 @@ TEST_F(NDPIImageDriverTests, getSceneIndex)
     EXPECT_TRUE(scene.get() != nullptr);
 	EXPECT_EQ(0, scene->getSceneIndex());
 	EXPECT_EQ(filePath, scene->getFilePath());
+	EXPECT_EQ("NDPI", scene->getDriverId());
 }

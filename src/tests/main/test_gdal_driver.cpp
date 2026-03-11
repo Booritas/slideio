@@ -324,5 +324,6 @@ TEST(GDALDriver, getSceneIndex)
         EXPECT_TRUE(scene.get() != nullptr);
         EXPECT_EQ(iScene, scene->getSceneIndex());
         EXPECT_EQ(filePath, scene->getFilePath());
+		EXPECT_EQ("GDAL", scene->getDriverId());
     }
 }

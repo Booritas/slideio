@@ -18,7 +18,7 @@ void WSIScene::addFile(std::shared_ptr<DCMFile>& file) {
 	if(file->isAuxImage()) {
         const std::shared_ptr<DCMScene> auxScene = std::make_shared<DCMScene>();
 		auxScene->addFile(file);
-		auxScene->init(file->getFilePath(), -1);
+		auxScene->init(file->getFilePath(), -1, getDriverId());
 	    m_auxNames.push_back(file->getImageType());
 		m_auxImages[file->getImageType()] = auxScene;
     } else {
@@ -26,7 +26,7 @@ void WSIScene::addFile(std::shared_ptr<DCMFile>& file) {
 	}
 }
 
-void WSIScene::init(const std::string& slideFilePath, int sceneIndex) {
+void WSIScene::init(const std::string& slideFilePath, int sceneIndex, const std::string& driverId) {
 	std::sort(m_files.begin(), m_files.end(), 
 		[](const std::shared_ptr<DCMFile>& file1, const std::shared_ptr<DCMFile>& file2) {
 		    return file1->getWidth() > file2->getWidth();
@@ -48,6 +48,7 @@ void WSIScene::init(const std::string& slideFilePath, int sceneIndex) {
 	m_numChannels = baseFile->getNumChannels();
 	m_filePath = slideFilePath;
 	m_sceneIndex = sceneIndex;
+	m_driverId = driverId;
 	m_magnification = baseFile->getMagnification();
 	m_resolution = baseFile->getResolution();
     const auto& files = m_files;
@@ -62,6 +63,9 @@ void WSIScene::init(const std::string& slideFilePath, int sceneIndex) {
 		level.setMagnification(getMagnification() * file->getScale());
 		level.setTileSize(Tools::cvSizeToSize(file->getTileSize()));
     }
+	for (const auto& image: m_auxImages) {
+		image.second->setDriverId(getDriverId());
+	}
 }
 
 std::string WSIScene::getFilePath() const {

@@ -12,9 +12,10 @@
 #include "slideio/imagetools/smallimage.hpp"
 
 
-slideio::GDALScene::GDALScene(SmallImagePage* page, const std::string& path) : 
+slideio::GDALScene::GDALScene(SmallImagePage* page, const std::string& path, const std::string& driverId) :
     m_imagePage(page), 
-    m_filePath(path)
+    m_filePath(path),
+	m_driverId(driverId)
 {
     m_filePath = path;
 }

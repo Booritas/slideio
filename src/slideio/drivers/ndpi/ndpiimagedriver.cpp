@@ -26,7 +26,7 @@ std::shared_ptr<slideio::CVSlide> slideio::NDPIImageDriver::openFile(const std::
     NDPITIFFMessageHandler mh;
 	SLIDEIO_LOG(INFO) << "NDPIImageDriver: open file: " << filePath;
 	std::shared_ptr<NDPISlide> slide(new NDPISlide);
-	slide->init(filePath);
+	slide->init(filePath, getID());
 	SLIDEIO_LOG(INFO) << "NDPIImageDriver: file " << filePath << " opened successfully.";
 	return slide;
 }

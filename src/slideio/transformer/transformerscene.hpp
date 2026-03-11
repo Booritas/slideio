@@ -21,6 +21,7 @@ namespace slideio
     public:
         std::string getFilePath() const override;
         int getSceneIndex() const override;
+		const std::string& getDriverId() const override;
         std::string getName() const override;
         cv::Rect getRect() const override;
         int getNumChannels() const override;

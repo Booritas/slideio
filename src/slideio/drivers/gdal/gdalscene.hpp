@@ -21,10 +21,13 @@ namespace slideio
     class SLIDEIO_GDAL_EXPORTS GDALScene : public slideio::CVScene
     {
     public:
-        GDALScene(SmallImagePage* image, const std::string& filePath);
+        GDALScene(SmallImagePage* image, const std::string& filePath, const std::string& driverId);
         virtual ~GDALScene() = default;
         std::string getFilePath() const override;
         int getSceneIndex() const override { return 0; }
+        const std::string& getDriverId() const override {
+            return m_driverId;
+        }
         int getNumChannels() const override;
         slideio::DataType getChannelDataType(int channel) const override;
         slideio::Resolution getResolution() const override;
@@ -39,6 +42,7 @@ namespace slideio
     private:
         SmallImagePage* m_imagePage;
         std::string m_filePath;
+        std::string m_driverId;
     };
 }
 

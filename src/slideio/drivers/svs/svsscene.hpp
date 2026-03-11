@@ -25,8 +25,8 @@ namespace slideio
          * \param name: scene name
          * \param hfile: tiff file handle of the slide
          */
-        SVSScene(const std::string& filePath, const std::string& name);
-        SVSScene(const std::string& filePath, libtiff::TIFF* hFile, const std::string& name);
+        SVSScene(const std::string& filePath, const std::string& driverId, const std::string& name);
+        SVSScene(const std::string& filePath, const std::string& driverId, libtiff::TIFF* hFile, const std::string& name);
 
         virtual ~SVSScene();
         void makeSureFileIsOpened();
@@ -40,9 +40,15 @@ namespace slideio
         int getSceneIndex() const override {
 			return m_sceneIndex;
         }
+		const std::string& getDriverId() const override {
+            return m_driverId;
+		}
 		void setSceneIndex(int index) {
 			m_sceneIndex = index;
 		}
+        void setDriverId(const std::string& driverId) {
+            m_driverId = driverId;
+        }
         std::string getName() const override {
             return m_name;
         }
@@ -59,9 +65,9 @@ namespace slideio
             return m_dataType;
         }
         libtiff::TIFF* getFileHandle();
-
     protected:
         std::string m_filePath;
+        std::string m_driverId;
         std::string m_name;
         Compression m_compression;
         Resolution m_resolution;

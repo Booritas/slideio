@@ -7,8 +7,9 @@
 
 using namespace slideio;
 
-SVSScene::SVSScene(const std::string& filePath, const std::string& name):
+SVSScene::SVSScene(const std::string& filePath, const std::string& driverId, const std::string& name):
     m_filePath(filePath),
+    m_driverId(driverId),
     m_name(name),
     m_compression(Compression::Unknown),
     m_resolution(0., 0.),
@@ -18,8 +19,9 @@ SVSScene::SVSScene(const std::string& filePath, const std::string& name):
 {
 }
 
-SVSScene::SVSScene(const std::string& filePath, libtiff::TIFF* hFile, const std::string& name):
+SVSScene::SVSScene(const std::string& filePath, const std::string& driverId, libtiff::TIFF* hFile, const std::string& name):
     m_filePath(filePath),
+	m_driverId(driverId),
     m_name(name),
     m_compression(Compression::Unknown),
     m_resolution(0., 0.),

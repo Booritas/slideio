@@ -20,6 +20,7 @@ namespace slideio
         PKESmallScene(
             const std::string& filePath,
             int sceneIndex,
+            const std::string& driverId,
             const std::string& name,
             const slideio::TiffDirectory& dir,
             bool auxiliary=true);

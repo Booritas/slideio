@@ -69,6 +69,9 @@ namespace slideio
         CZIScene();
         std::string getFilePath() const override;
 		int getSceneIndex() const override { return m_sceneIndex; }
+        const std::string& getDriverId() const override {
+            return m_driverId;
+        }
         cv::Rect getRect() const override;
         int getNumChannels() const override;
         int getNumZSlices() const override;
@@ -80,7 +83,7 @@ namespace slideio
         Resolution getResolution() const override;
         double getMagnification() const override;
         std::string getName() const override;
-        void init(uint64_t sceneId, SceneParams& sceneParams, const std::string& filePath, int sceneIndex, const CZISubBlocks& blocks, CZISlide* slide, bool mainScene = true);
+        void init(uint64_t sceneId, SceneParams& sceneParams, const std::string& filePath, int sceneIndex, const std::string& driverId, const CZISubBlocks& blocks, CZISlide* slide, bool mainScene = true);
         // interface Tiler implementaton
         int getTileCount(void* userData) override;
         bool getTileRect(int tileIndex, cv::Rect& tileRect, void* userData) override;
@@ -145,6 +148,8 @@ namespace slideio
         std::map<std::string, std::shared_ptr<CVScene>> m_auxImages;
         bool m_bMosaic;
         int m_sceneIndex;
+        std::string m_driverId;
+
     };
 }
 

@@ -28,11 +28,14 @@ namespace slideio
             int zSliceIndex = 0;
         };
     public:
-        ZVIScene(const std::string& filePath);
+        ZVIScene(const std::string& filePath, const std::string& driverId);
         std::string getFilePath() const override;
         int getSceneIndex() const override {
 			return 0;
         }
+		const std::string& getDriverId() const override {
+			return m_driverId;
+		}
         cv::Rect getRect() const override;
         int getNumChannels() const override;
         int getNumZSlices() const override;
@@ -84,6 +87,7 @@ namespace slideio
         double m_ZSliceRes = 0.;
         std::string m_SceneName;
         Compression m_Compression = Compression::Uncompressed;
+        std::string m_driverId;
     };
 }
 

@@ -21,9 +21,10 @@ struct TileComposerUserData
 
 EtsFileScene::EtsFileScene(const std::string& filePath,
                            int sceneIndex,
+                           const std::string& driverId,
                            std::shared_ptr<vsi::VSIFile>& vsiFile,
                            int etsIndex) :
-    VSIScene(filePath, sceneIndex, vsiFile),
+    VSIScene(filePath, sceneIndex, driverId, vsiFile),
     m_etsIndex(etsIndex) {
     init();
 }

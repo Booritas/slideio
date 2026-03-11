@@ -20,7 +20,7 @@ std::string slideio::AFIImageDriver::getID() const
 
 std::shared_ptr<slideio::CVSlide> slideio::AFIImageDriver::openFile(const std::string& filePath)
 {
-	return AFISlide::openFile(filePath);
+	return AFISlide::openFile(filePath, getID());
 }
 
 std::string slideio::AFIImageDriver::getFileSpecs() const

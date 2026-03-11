@@ -23,7 +23,7 @@ std::string slideio::VSIImageDriver::getID() const
 std::shared_ptr<slideio::CVSlide> slideio::VSIImageDriver::openFile(const std::string& filePath)
 {
     Tools::throwIfPathNotExist(filePath,"VSIImageDriver::openFile");
-    std::shared_ptr<CVSlide> ptr(new vsi::VSISlide(filePath));
+    std::shared_ptr<CVSlide> ptr(new vsi::VSISlide(filePath, getID()));
     return ptr;
 }
 

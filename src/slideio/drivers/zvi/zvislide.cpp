@@ -7,8 +7,9 @@
 
 using namespace slideio;
 
-ZVISlide::ZVISlide(const std::string& filePath) : m_filePath(filePath)
+ZVISlide::ZVISlide(const std::string& filePath, const std::string& driverId) : m_filePath(filePath)
 {
+	setDriverId(driverId);
 	init();
 }
 
@@ -53,6 +54,6 @@ double ZVISlide::getTFrameResolution() const
 
 void ZVISlide::init()
 {
-	m_scene.reset(new ZVIScene(m_filePath));
+	m_scene.reset(new ZVIScene(m_filePath, getDriverId()));
 }
 

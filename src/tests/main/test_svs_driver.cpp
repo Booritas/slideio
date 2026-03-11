@@ -185,7 +185,7 @@ TEST(SVSImageDriver, findZoomDirectory)
     }
 
     std::string fake_path = TestTools::getTestImagePath("svs", "CMU-1-Small-Region.svs");
-    slideio::SVSTiledScene scene(fake_path, "fake_name", dirs);
+    slideio::SVSTiledScene scene(fake_path, "fake_name", "fake", dirs);
     auto& lastDir = dirs[dirs.size()-1];
     const cv::Rect sceneRect = scene.getRect();
     double lastZoom = static_cast<double>(lastDir.width) / static_cast<double>(sceneRect.width);

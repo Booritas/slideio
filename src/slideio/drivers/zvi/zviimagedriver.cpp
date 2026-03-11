@@ -23,7 +23,7 @@ std::string ZVIImageDriver::getID() const
 std::shared_ptr<CVSlide> ZVIImageDriver::openFile(const std::string& filePath)
 {
     Tools::throwIfPathNotExist(filePath, "ZVIImageDriver::openFile");
-    std::shared_ptr<CVSlide> ptr(new ZVISlide(filePath));
+    std::shared_ptr<CVSlide> ptr(new ZVISlide(filePath, getID()));
     return ptr;
 }
 

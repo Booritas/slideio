@@ -10,15 +10,16 @@
 
 using json = nlohmann::json;
 
-slideio::GDALSlide::GDALSlide(const std::string& filePath) : m_filePath(filePath)
+slideio::GDALSlide::GDALSlide(const std::string& filePath, const std::string& driverId) : m_filePath(filePath)
 {
+	m_driverId = driverId;
 	m_image = ImageTools::openSmallImage(filePath);
 	if (!m_image->isValid()) {
 		RAISE_RUNTIME_ERROR << "GDAL driver: cannot open file " << filePath;
 	}
 	const int numPages = m_image->getNumPages();
 	for (int pageIndex = 0; pageIndex < numPages; ++pageIndex) {
-		std::shared_ptr<slideio::CVScene> scenePtr(new GDALScene(m_image->readPage(pageIndex), filePath));
+		std::shared_ptr<slideio::CVScene> scenePtr(new GDALScene(m_image->readPage(pageIndex), filePath, getDriverId()));
 		m_scenes.push_back(scenePtr);
 	}
 	if (numPages == 1) {

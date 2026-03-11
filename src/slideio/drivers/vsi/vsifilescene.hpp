@@ -20,7 +20,7 @@ namespace slideio
         class SLIDEIO_VSI_EXPORTS VsiFileScene : public VSIScene
         {
         public:
-            VsiFileScene(const std::string& filePath, int sceneIndex, std::shared_ptr<VSIFile>& vsiFile, int directoryIndex);
+            VsiFileScene(const std::string& filePath, int sceneIndex, const std::string& driverId, std::shared_ptr<VSIFile>& vsiFile, int directoryIndex);
         public:
             void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
                 const std::vector<int>& channelIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output) override;

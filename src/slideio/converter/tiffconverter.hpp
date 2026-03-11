@@ -63,7 +63,11 @@ namespace slideio
                 return m_writeTime;
             }
             void createTileQueue(const TiffDirectory& dir, const TiffDirectoryStructure& page, int tileBatchSize, std::queue<Block>& queue);
-			std::pair<std::shared_ptr<Slide>, std::shared_ptr<Scene>> cloneScene() const;
+			virtual std::pair<std::shared_ptr<Slide>, std::shared_ptr<Scene>> cloneScene() const;
+		protected:
+            std::shared_ptr<CVScene> getScene() const {
+                return m_scene;
+            }
         private:
             TiffPageStructure& appendPage() {
                 return m_pages.emplace_back();

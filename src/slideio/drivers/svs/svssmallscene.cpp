@@ -13,10 +13,11 @@
 using namespace slideio;
 
 SVSSmallScene::SVSSmallScene(const std::string& filePath,
+    const std::string& driverId,
     const std::string& name,
     const TiffDirectory& dir,
     bool auxiliary):
-        SVSScene(filePath, name),
+        SVSScene(filePath, driverId, name),
         m_directory(dir)
 {
     m_dataType = m_directory.dataType;

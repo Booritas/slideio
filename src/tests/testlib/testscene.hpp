@@ -43,6 +43,9 @@ public:
 		if (!output.needed()) return;
 		output.create(blockSize, CV_8UC(componentIndices.empty() ? m_numChannels : (int)componentIndices.size()));
 	}
+    const std::string& getDriverId() const override {
+        return m_driverId;
+    }
 private:
     std::string m_filePath;
     cv::Rect m_rect;
@@ -54,4 +57,5 @@ private:
     slideio::Compression m_compression;
     int m_numSlices;
     int m_numTFrames;
+	std::string m_driverId = "TestDriver";
 };

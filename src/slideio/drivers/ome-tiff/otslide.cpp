@@ -43,7 +43,7 @@ std::shared_ptr<CVScene> OTSlide::getScene(int index) const {
     return m_Scenes[index];
 }
 
-std::shared_ptr<OTSlide> OTSlide::processMetadata(const std::string& filePath, std::shared_ptr<OTSlide> slide, std::shared_ptr<tinyxml2::XMLDocument> doc) {
+std::shared_ptr<OTSlide> OTSlide::createSlide(const std::string& filePath, const std::string& driverId, std::shared_ptr<tinyxml2::XMLDocument> doc) {
     std::list<ImageData> images;
     tinyxml2::XMLElement* root = doc->RootElement();
     if (!root) {
@@ -67,10 +67,11 @@ std::shared_ptr<OTSlide> OTSlide::processMetadata(const std::string& filePath, s
 
     SLIDEIO_LOG(INFO) << "OTSlide::openFile: Found " << images.size() << " images in file " << filePath;
 
-    slide.reset(new OTSlide);
+	std::shared_ptr<OTSlide> slide(new OTSlide);
+	slide->setDriverId(driverId);
 
     for (const ImageData& imageData : images) {
-        std::shared_ptr<CVScene> scene = createScene(imageData, static_cast<int>(slide->m_Scenes.size()));
+        std::shared_ptr<CVScene> scene = createScene(imageData, static_cast<int>(slide->m_Scenes.size()), slide->getDriverId());
         if (scene) {
             slide->m_Scenes.push_back(scene);
         }
@@ -78,7 +79,7 @@ std::shared_ptr<OTSlide> OTSlide::processMetadata(const std::string& filePath, s
     return slide;
 }
 
-std::shared_ptr<OTSlide> OTSlide::openFile(const std::string& filePath) {
+std::shared_ptr<OTSlide> OTSlide::openFile(const std::string& filePath, const std::string& driverId) {
     SLIDEIO_LOG(INFO) << "OTSlide::openFile: " << filePath;
     std::shared_ptr<OTSlide> slide;
     std::vector<TiffDirectory> directories;
@@ -94,11 +95,11 @@ std::shared_ptr<OTSlide> OTSlide::openFile(const std::string& filePath) {
     auto& dir = directories.front();
     auto description = dir.description;
 #if defined(_DEBUG)
-     std::string fileName = std::filesystem::path(filePath).stem().string();
-     std::string xmlPath = "D:/Temp/" + fileName + ".xml";
-     std::ofstream outFile(xmlPath);
-     outFile << description;
-     outFile.close();
+     // std::string fileName = std::filesystem::path(filePath).stem().string();
+     // std::string xmlPath = "D:/Temp/" + fileName + ".xml";
+     // std::ofstream outFile(xmlPath);
+     // outFile << description;
+     // outFile.close();
 #endif
 
     if (description.empty()) {
@@ -143,16 +144,16 @@ std::shared_ptr<OTSlide> OTSlide::openFile(const std::string& filePath) {
 			}
 		}
     }
-    slide = processMetadata(filePath, slide, doc);
+    slide = createSlide(filePath, driverId, doc);
     slide->m_rawMetadata = description;
     return slide;
 }
 
-std::shared_ptr<CVScene> OTSlide::createScene(const ImageData& imageData, int sceneIndex) {
+std::shared_ptr<CVScene> OTSlide::createScene(const ImageData& imageData, int sceneIndex, const std::string& driverId) {
     std::shared_ptr<CVScene> scene;
     try {
 		SLIDEIO_LOG(INFO) << "OTSlide::createScene: Creating scene for image: " << imageData.imageId;
-        OTScene* otScene = new OTScene(imageData, sceneIndex);
+        OTScene* otScene = new OTScene(imageData, sceneIndex, driverId);
         SLIDEIO_LOG(INFO) << "OTSlide::createScene: Scene " << imageData.imageId << " is successfully created.";
         scene.reset(otScene);
     }

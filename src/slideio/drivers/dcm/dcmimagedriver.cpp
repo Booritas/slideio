@@ -40,7 +40,7 @@ std::string DCMImageDriver::getID() const
 std::shared_ptr<CVSlide> DCMImageDriver::openFile(const std::string& filePath)
 {
     Tools::throwIfPathNotExist(filePath, "DCMImageDriver::openFile");
-    std::shared_ptr<CVSlide> ptr(new DCMSlide(filePath));
+    std::shared_ptr<CVSlide> ptr(new DCMSlide(filePath, getID()));
     return ptr;
 }
 

@@ -541,6 +541,7 @@ TEST(ZVIImageDriver, getSceneIndex)
         EXPECT_TRUE(scene.get() != nullptr);
         EXPECT_EQ(iScene, scene->getSceneIndex());
         EXPECT_EQ(filePath, scene->getFilePath());
+		EXPECT_EQ("ZVI", scene->getDriverId());
     }
     const int numImages = slide->getNumAuxImages();
     ASSERT_EQ(numImages, 0);

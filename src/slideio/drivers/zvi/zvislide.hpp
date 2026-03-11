@@ -18,7 +18,7 @@ namespace slideio
     {
         friend class ZVIImageDriver;
     protected:
-        ZVISlide(const std::string& filePath);
+        ZVISlide(const std::string& filePath, const std::string& driverId);
     public:
         int getNumScenes() const override;
         std::string getFilePath() const override;

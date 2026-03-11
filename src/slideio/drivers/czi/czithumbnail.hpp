@@ -20,11 +20,16 @@ namespace slideio
     class SLIDEIO_CZI_EXPORTS CZIThumbnail : public CVSmallScene
     {
     public:
+        CZIThumbnail(const std::string& driverId) : m_driverId(driverId) {
+        }
         bool init() override;
         void setAttachmentData(CZISlide* slide, int64_t position, int64_t size, const std::string& name);
         int getSceneIndex() const override {
             return -1;
 		}
+        const std::string& getDriverId() const override {
+            return m_driverId;
+        }
     protected:
         void readImage(cv::OutputArray output) override;
     private:
@@ -32,6 +37,7 @@ namespace slideio
         int64_t m_dataSize{ 0 };
         CZISlide* m_slide{ nullptr };
         std::shared_ptr<CVSmallScene> m_scene;
+        std::string m_driverId;
     };
 };
 

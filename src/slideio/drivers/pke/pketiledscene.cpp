@@ -13,13 +13,13 @@
 using namespace slideio;
 
 
-PKETiledScene::PKETiledScene(const std::string& filePath, int sceneIndex, const std::string& name,
-                             const std::vector<TiffDirectory>& dirs): PKEScene(filePath, sceneIndex, name), m_directories(dirs) {
+PKETiledScene::PKETiledScene(const std::string& filePath, int sceneIndex, const std::string& driverId, const std::string& name,
+                             const std::vector<TiffDirectory>& dirs): PKEScene(filePath, sceneIndex, driverId, name), m_directories(dirs) {
     initialize();
 }
 
-PKETiledScene::PKETiledScene(const std::string& filePath, int sceneIndex, libtiff::TIFF* hFile, const std::string& name,
-                             const std::vector<slideio::TiffDirectory>& dirs) : PKEScene(filePath, sceneIndex, hFile, name),
+PKETiledScene::PKETiledScene(const std::string& filePath, int sceneIndex, const std::string& driverId, libtiff::TIFF* hFile, const std::string& name,
+                             const std::vector<slideio::TiffDirectory>& dirs) : PKEScene(filePath, sceneIndex, driverId, hFile, name),
     m_directories(dirs) {
     initialize();
 }

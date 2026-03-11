@@ -54,7 +54,7 @@ void NDPISlide::constructScenes()
 
             const std::string imageName("map");
             std::shared_ptr<NDPIScene> scene(new NDPIScene);
-            scene->init(imageName, -1, m_pfile, index, index + 1);
+            scene->init(imageName, -1, getDriverId(), m_pfile, index, index + 1);
             m_auxImages[imageName] = scene;
             m_auxNames.push_back(imageName);
         }
@@ -62,7 +62,7 @@ void NDPISlide::constructScenes()
         {
             const std::string imageName("macro");
             std::shared_ptr<NDPIScene> scene(new NDPIScene);
-            scene->init(imageName, -1, m_pfile, index, index + 1);
+            scene->init(imageName, -1, getDriverId(), m_pfile, index, index + 1);
             m_auxImages[imageName] = scene;
             m_auxNames.push_back(imageName);
         }
@@ -70,16 +70,17 @@ void NDPISlide::constructScenes()
     if(endIndex>startIndex)
     {
         std::shared_ptr<NDPIScene> mainScene(new NDPIScene);
-        mainScene->init("main", static_cast<int>(m_Scenes.size()), m_pfile, startIndex, endIndex);
+        mainScene->init("main", static_cast<int>(m_Scenes.size()), getDriverId(), m_pfile, startIndex, endIndex);
         m_Scenes.push_back(mainScene);
     }
     SLIDEIO_LOG(INFO) << "NDPISlide:constructScenes-end";
 }
 
-void NDPISlide::init(const std::string& filePath)
+void NDPISlide::init(const std::string& filePath, const std::string& driverId)
 {
     SLIDEIO_LOG(INFO) << "NDPIImageDriver:init-begin";
     m_filePath = filePath;
+	m_driverId = driverId;
     Tools::throwIfPathNotExist(m_filePath, "NDPISlide::init");
     m_pfile = new NDPIFile;
     m_pfile->init(m_filePath);

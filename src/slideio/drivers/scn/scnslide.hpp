@@ -21,7 +21,7 @@ namespace slideio
     {
         friend class SCNImageDriver;
     protected:
-        SCNSlide(const std::string& filePath);
+        SCNSlide(const std::string& filePath, const std::string& driverId);
         void init();
         void constructScenes();
     public:

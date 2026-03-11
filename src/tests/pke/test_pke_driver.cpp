@@ -427,5 +427,6 @@ TEST_F(PKEImageDriverTests, getSceneIndex)
         EXPECT_TRUE(scene.get() != nullptr);
         EXPECT_EQ(iScene, scene->getSceneIndex());
         EXPECT_EQ(filePath, scene->getFilePath());
+		EXPECT_EQ("QPTIFF", scene->getDriverId());
     }
 }

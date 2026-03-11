@@ -27,7 +27,7 @@ namespace slideio
         int getNumScenes() const override;
         std::string getFilePath() const override;
         std::shared_ptr<slideio::CVScene> getScene(int index) const override;
-        static std::shared_ptr<AFISlide> openFile(const std::string& path);
+        static std::shared_ptr<AFISlide> openFile(const std::string& path, const std::string& driverId);
         static std::vector<std::string> getFileList(std::string xmlString);
         static SlidesScenes getSlidesScenesFromFiles(const std::vector<std::string>& files, std::string mainFile);
     private:

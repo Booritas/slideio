@@ -20,6 +20,7 @@ namespace slideio
     public:
         SVSSmallScene(
             const std::string& filePath,
+            const std::string& driverId,
             const std::string& name,
             const slideio::TiffDirectory& dir,
             bool auxiliary=true);

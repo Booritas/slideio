@@ -16,14 +16,15 @@
 using namespace slideio;
 
 
-ZVIScene::ZVIScene(const std::string& filePath) :
+ZVIScene::ZVIScene(const std::string& filePath, const std::string& driverId) :
     m_filePath(filePath),
 #if defined(WIN32)
     m_Doc(Tools::toWstring(filePath)),
 #else
     m_Doc(filePath),
 #endif
-    m_SceneName("Unknown")
+    m_SceneName("Unknown"),
+	m_driverId(driverId)
 {
     init();
 }

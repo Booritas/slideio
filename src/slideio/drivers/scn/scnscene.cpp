@@ -13,8 +13,9 @@
 using namespace slideio;
 using namespace tinyxml2;
 
-SCNScene::SCNScene(const std::string& filePath, int sceneIndex, const tinyxml2::XMLElement* xmlImage):
+SCNScene::SCNScene(const std::string& filePath, int sceneIndex, const std::string& driverId, const tinyxml2::XMLElement* xmlImage):
     m_filePath(filePath),
+	m_driverId(driverId),
     m_compression(Compression::Unknown),
     m_resolution(0., 0.),
     m_magnification(0.),

@@ -23,6 +23,7 @@
 
 namespace slideio
 {
+    class CVSlide;
     /**@brief class CVScene represents a base class for opencv based representations of
      * raster images contained in a medical slide.
      *
@@ -41,6 +42,7 @@ namespace slideio
         /**@brief returns path of the slide */
         virtual std::string getFilePath() const = 0;
         virtual int getSceneIndex() const = 0;
+        virtual const std::string& getDriverId() const = 0;
         /**@brief returns scene name */
         virtual std::string getName() const = 0;
         /**@brief returns image rectangle.

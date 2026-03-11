@@ -29,10 +29,10 @@ namespace slideio
             int getNumScenes() const override;
             std::string getFilePath() const override;
             std::shared_ptr<slideio::CVScene> getScene(int index) const override;
-            static std::shared_ptr<OTSlide> processMetadata(const std::string& filePath, std::shared_ptr<OTSlide> slide,
+			static std::shared_ptr<OTSlide> createSlide(const std::string& filePath, const std::string& driverId,
                                                             std::shared_ptr<tinyxml2::XMLDocument> doc);
-            static std::shared_ptr<OTSlide> openFile(const std::string& path);
-			static std::shared_ptr<CVScene> createScene(const ImageData& imageData, int sceneIndex);
+            static std::shared_ptr<OTSlide> openFile(const std::string& path, const std::string& driverId);
+			static std::shared_ptr<CVScene> createScene(const ImageData& imageData, int sceneIndex, const std::string& driverId);
             static void closeFile(libtiff::TIFF* hfile);
             std::shared_ptr<CVScene> getAuxImage(const std::string& sceneName) const override;
             void log();

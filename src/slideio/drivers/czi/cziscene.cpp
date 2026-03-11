@@ -273,16 +273,17 @@ void CZIScene::initZoomLevelInfo() {
     }
 }
 
-void CZIScene::init(uint64_t sceneId, SceneParams& sceneParams, const std::string& filePath, int sceneIndex, const CZISubBlocks& blocks, CZISlide* slide, bool mainScene)
+void CZIScene::init(uint64_t sceneId, SceneParams& sceneParams, const std::string& filePath, int sceneIndex, const std::string& driverId, const CZISubBlocks& blocks, CZISlide* slide, bool mainScene)
 {
     m_sceneParams = sceneParams;
     m_slide = slide;
     m_id = sceneId;
 	m_sceneIndex = sceneIndex;
-    // separate blocks by zoom levels and detect count of channels and channel data type
     m_filePath = filePath;
+    m_driverId = driverId;
     std::map<double, int, double_less> zoomLevelIndices;
     std::map<int, int> channelPixelType;
+    // separate blocks by zoom levels and detect count of channels and channel data type
     for(const auto& block : blocks)
     {
         double zoom = block.zoom();

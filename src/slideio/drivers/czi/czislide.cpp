@@ -27,8 +27,9 @@ static char SID_ATTACHMENT_CONTENT[] = "ZISRAWATTACH";
 
 using namespace slideio;
 
-CZISlide::CZISlide(const std::string& filePath) : m_filePath(filePath), m_resZ(0), m_resT(0), m_magnification(0)
+CZISlide::CZISlide(const std::string& filePath, const std::string& driverId) : m_filePath(filePath), m_resZ(0), m_resT(0), m_magnification(0)
 {
+    setDriverId(driverId);
     m_metadataFormat = MetadataFormat::XML;
     init();
 }
@@ -412,7 +413,7 @@ std::shared_ptr<CZIScene> CZISlide::constructScene(int sceneIndex, const uint64_
     CZIScene::SceneParams params{};
     std::shared_ptr<CZIScene>scene(new CZIScene);
     CZIScene::dimsFromSceneId(sceneId, params);
-    scene->init(sceneId, params, m_filePath, sceneIndex, blocks, this, mainScene);
+    scene->init(sceneId, params, m_filePath, sceneIndex, getDriverId(),blocks, this, mainScene);
     return scene;
 }
 
@@ -550,7 +551,7 @@ void CZISlide::createCZIAttachmentScenes(const int64_t dataPos, int64_t dataSize
 void CZISlide::createJpgAttachmentScenes(const int64_t dataPosition, int64_t dataSize, const std::string& name)
 {
     const int64_t fileOrigin = dataPosition + sizeof(SegmentHeader);
-    std::shared_ptr<CZIThumbnail> thumbnail(new CZIThumbnail);
+    std::shared_ptr<CZIThumbnail> thumbnail(new CZIThumbnail(getDriverId()));
     thumbnail->setAttachmentData(this, fileOrigin, dataSize, name);
     if (thumbnail->init()) {
         std::shared_ptr<CVScene> attachment = thumbnail;

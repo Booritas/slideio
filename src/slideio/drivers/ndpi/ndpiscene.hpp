@@ -28,10 +28,13 @@ namespace slideio
         NDPIScene();
     public:
         virtual ~NDPIScene();
-        void init(const std::string& name, int sceneIndex, NDPIFile* file, int32_t startDirIndex, int32_t endDirIndex);
+        void init(const std::string& name, int sceneIndex, const std::string& driverId, NDPIFile* file, int32_t startDirIndex, int32_t endDirIndex);
         int getNumChannels() const override;
         cv::Rect getRect() const override;
         std::string getFilePath() const override;
+		const std::string& getDriverId() const override {
+			return m_driverId;
+		}
         int getSceneIndex() const override {
 			return m_sceneIndex;
         }
@@ -60,6 +63,7 @@ namespace slideio
         std::string m_sceneName;
         cv::Rect m_rect;
         int m_sceneIndex;
+		std::string m_driverId;
     };
 
 }

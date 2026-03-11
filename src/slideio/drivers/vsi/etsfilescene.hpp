@@ -22,7 +22,7 @@ namespace slideio
         class SLIDEIO_VSI_EXPORTS EtsFileScene : public VSIScene
         {
         public:
-            EtsFileScene(const std::string& filePath, int sceneIndex, std::shared_ptr<VSIFile>& vsiFile, int etsIndex);
+            EtsFileScene(const std::string& filePath, int sceneIndex, const std::string& driverId, std::shared_ptr<VSIFile>& vsiFile, int etsIndex);
         public:
             int getTileCount(void* userData) override;
             bool getTileRect(int tileIndex, cv::Rect& tileRect, void* userData) override;

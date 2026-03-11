@@ -474,6 +474,7 @@ TEST(SCNImageDriver, getSceneIndex)
         EXPECT_TRUE(scene.get() != nullptr);
         EXPECT_EQ(iScene, scene->getSceneIndex());
         EXPECT_EQ(filePath, scene->getFilePath());
+		EXPECT_EQ("SCN", scene->getDriverId());
     }
     const int numImages = slide->getNumAuxImages();
     ASSERT_EQ(numImages, 1);

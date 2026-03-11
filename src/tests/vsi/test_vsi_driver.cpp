@@ -133,6 +133,7 @@ TEST_F(VSIImageDriverTests, getSceneIndex)
         EXPECT_TRUE(scene.get() != nullptr);
         EXPECT_EQ(iScene, scene->getSceneIndex());
         EXPECT_EQ(filePath, scene->getFilePath());
+		EXPECT_EQ("VSI", scene->getDriverId());
     }
     const int numImages = slide->getNumAuxImages();
     ASSERT_EQ(numImages, 1);
@@ -142,6 +143,7 @@ TEST_F(VSIImageDriverTests, getSceneIndex)
         EXPECT_TRUE(scene.get() != nullptr);
         EXPECT_EQ(-1, scene->getSceneIndex());
         EXPECT_EQ(filePath, scene->getFilePath());
+        EXPECT_EQ("VSI", scene->getDriverId());
     }
 }
 

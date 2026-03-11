@@ -539,7 +539,8 @@ void TiffConverter::createTileQueue(const TiffDirectory& dir, const TiffDirector
 std::pair<std::shared_ptr<Slide>, std::shared_ptr<Scene>> TiffConverter::cloneScene() const {
 	std::string filePath = m_scene->getFilePath();
 	int sceneIndex = m_scene->getSceneIndex();
-    std::shared_ptr<Slide> slide = openSlide(filePath);
+	std::string driverId = m_scene->getDriverId();
+    std::shared_ptr<Slide> slide = openSlide(filePath, driverId);
     std::shared_ptr<Scene> scene = slide->getScene(sceneIndex);
 	return { slide, scene };
 }
