@@ -473,10 +473,7 @@ void TiffConverter::writeDirectoryDataST(TiffDirectory& dir, const TiffDirectory
             numTiles = std::max(1, numTiles);
             const int blockWidth = numTiles * sceneTileSize.width;
             cv::Rect blockRect(x, y, blockWidth, sceneTileSize.height);
-            auto readStart = std::chrono::high_resolution_clock::now();
             ConverterTools::readTile(m_scene, channels, zoomLevel, blockRect, slice, frame, block);
-            auto readEnd = std::chrono::high_resolution_clock::now();
-            m_readTime += std::chrono::duration_cast<std::chrono::microseconds>(readEnd - readStart).count();
             if (block.rows != tileSize.height || block.cols != tileSize.width * numTiles) {
                 RAISE_RUNTIME_ERROR << "Converter: Unexpected tile size ("
                     << block.cols << ","
@@ -492,10 +489,7 @@ void TiffConverter::writeDirectoryDataST(TiffDirectory& dir, const TiffDirectory
                 cv::Mat tile;
                 block(tileRect).copyTo(tile);
                 const int tileWritePosX = zoomLevelRect.x + blockTile * tileSize.width;
-                auto writeStart = std::chrono::high_resolution_clock::now();
                 m_file->writeTile(tileWritePosX, zoomLevelRect.y, dir.slideioCompression, *encoding, tile, buffer.data(), (int)buffer.size());
-                auto writeEnd = std::chrono::high_resolution_clock::now();
-                m_writeTime += std::chrono::duration_cast<std::chrono::microseconds>(writeEnd - writeStart).count();
                 m_currentTile++;
                 if (cb) {
                     double proc = 100. * (double)m_currentTile / (double)m_totalTiles;
@@ -563,7 +557,6 @@ void TiffConverter::readTiles(const TiffDirectory& dir, const TiffDirectoryStruc
 	auto scene = clone.second;
 
 	try {
-		int64_t localReadTime = 0;
 		cv::Mat block;
 		while (true) {
 			Block currentBlock;
@@ -577,10 +570,7 @@ void TiffConverter::readTiles(const TiffDirectory& dir, const TiffDirectoryStruc
 			}
 			const cv::Rect& blockRect = currentBlock.rect;
 			const int numTiles = blockRect.width / sceneTileSize.width;
-			auto readStart = std::chrono::high_resolution_clock::now();
 			ConverterTools::readTile(scene->getCVScene(), channels, zoomLevel, blockRect, slice, frame, block);
-			auto readEnd = std::chrono::high_resolution_clock::now();
-			localReadTime += std::chrono::duration_cast<std::chrono::microseconds>(readEnd - readStart).count();
 			if (block.rows != tileSize.height || block.cols != tileSize.width * numTiles) {
 				RAISE_RUNTIME_ERROR << "Converter: Unexpected tile size ("
 					<< block.cols << ","
@@ -608,10 +598,6 @@ void TiffConverter::readTiles(const TiffDirectory& dir, const TiffDirectoryStruc
 			if (done) {
 				break;
 			}
-		}
-		{
-			std::unique_lock lock(exceptionMutex);
-			m_readTime += localReadTime;
 		}
 	}
 	catch (const std::exception& e) {
@@ -692,11 +678,7 @@ void TiffConverter::encodeTiles(BoundedQueue<Tile>& inputQueue, BoundedQueue<Enc
 void TiffConverter::writeTile(const EncodedTile& tile)  {
     const cv::Point2i& loc = tile.location;
     const std::vector<uint8_t>& buffer = tile.encodedData;
-    auto writeStart = std::chrono::high_resolution_clock::now();
     m_file->writeRawTile(loc.x, loc.y, buffer.data(), static_cast<int>(buffer.size()));
-    auto writeEnd = std::chrono::high_resolution_clock::now();
-    m_writeTime += std::chrono::duration_cast<std::chrono::microseconds>(writeEnd - writeStart).count();
-
 }
 
 void TiffConverter::writeTiles(BoundedQueue<Tile>& inputQueue, BoundedQueue<EncodedTile>& outputQueue, const std::function<void(int)>& cb,

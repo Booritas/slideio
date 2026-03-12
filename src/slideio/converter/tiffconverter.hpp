@@ -56,12 +56,6 @@ namespace slideio
             const ConverterParameters& getParameters() const {
                 return m_parameters;
             }
-            int64_t getReadTime() const {
-                return m_readTime;
-            }
-            int64_t getWriteTime() const {
-                return m_writeTime;
-            }
             void createTileQueue(const TiffDirectory& dir, const TiffDirectoryStructure& page, int tileBatchSize, std::queue<Block>& queue);
 			virtual std::pair<std::shared_ptr<Slide>, std::shared_ptr<Scene>> cloneScene() const;
 		protected:
@@ -113,8 +107,6 @@ namespace slideio
             int m_totalTiles = 0;
             int m_currentTile = 0;
 			int m_lastProgress = 0;
-            int64_t m_readTime = 0;
-            int64_t m_writeTime = 0;
         };
     }
 }
