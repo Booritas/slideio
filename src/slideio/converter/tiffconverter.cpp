@@ -429,13 +429,13 @@ TiffDirectory TiffConverter::setUpDirectory(const TiffDirectoryStructure& page) 
     return dir;
 }
 
-void TiffConverter::writeDirectoryData(TiffDirectory& dir, const TiffDirectoryStructure& page, const std::function<void(int)>& cb, int param) {
+void TiffConverter::writeDirectoryData(TiffDirectory& dir, const TiffDirectoryStructure& page, const std::function<void(int)>& cb, int param, int numReadingThreads, int numEncodingThreads) {
     if (page.getZoomLevelRange().size() != 1) {
         RAISE_RUNTIME_ERROR << "Converter: Invalid zoom level range in page! Expected: 1, received: " << page.
             getZoomLevelRange().size();
     }
     if (m_parameters.getEncodeParameters()->getCompression() == Compression::Jpeg2000 || param != 1) {
-        writeDirectoryDataMT(dir, page, cb, param);
+        writeDirectoryDataMT(dir, page, cb, param, numReadingThreads, numEncodingThreads);
     }
     else {
         writeDirectoryDataST(dir, page, cb, param);
@@ -732,12 +732,16 @@ void TiffConverter::writeTiles(BoundedQueue<Tile>& inputQueue, BoundedQueue<Enco
 }
 
 void TiffConverter::writeDirectoryDataMT(TiffDirectory& dir, const TiffDirectoryStructure& page,
-                                         const std::function<void(int)>& cb, int tileBatchSize, int numEncoderThreads) {
+                                         const std::function<void(int)>& cb, int tileBatchSize, int numReadingThreads, int numEncoderThreads) {
+    const int halfCores = std::max(1, static_cast<int>(std::thread::hardware_concurrency()) / 2);
     if (numEncoderThreads <= 0) {
-        numEncoderThreads = static_cast<int>(std::thread::hardware_concurrency());
+        numEncoderThreads = halfCores;
     }
     numEncoderThreads = std::max(1, numEncoderThreads);
-    const int numReaderThreads = 4; // std::max(1, std::min(4, numEncoderThreads));
+    if (numReadingThreads <= 0) {
+        numReadingThreads = halfCores;
+    }
+    numReadingThreads = std::max(1, numReadingThreads);
     const int safeTileBatchSize = std::max(1, tileBatchSize);
     const size_t QUEUE_DEPTH = std::max(static_cast<size_t>(2), static_cast<size_t>(numEncoderThreads) * 2); // Bound memory usage
 
@@ -757,9 +761,9 @@ void TiffConverter::writeDirectoryDataMT(TiffDirectory& dir, const TiffDirectory
 
     // --- Stage 1: Readers (work-stealing from block queue) ---
     std::vector<std::thread> readers;
-    readers.reserve(numReaderThreads);
-    std::atomic<size_t> activeReaders{ static_cast<size_t>(numReaderThreads) };
-    for (int reader = 0; reader < numReaderThreads; ++reader) {
+    readers.reserve(numReadingThreads);
+    std::atomic<size_t> activeReaders{ static_cast<size_t>(numReadingThreads) };
+    for (int reader = 0; reader < numReadingThreads; ++reader) {
         readers.emplace_back(&TiffConverter::readTiles, this, std::cref(dir), std::cref(page), std::ref(inputQueue),
             std::ref(blockQueue), std::ref(blockQueueMutex), std::ref(activeReaders), std::ref(readerException), std::ref(exceptionMutex));
     }
@@ -798,7 +802,7 @@ void TiffConverter::writeDirectoryDataMT(TiffDirectory& dir, const TiffDirectory
 }
 
 
-void TiffConverter::createTiff(const std::string& filePath, const std::function<void(int)>& cb, int tileBatchSize) {
+void TiffConverter::createTiff(const std::string& filePath, const std::function<void(int)>& cb, int tileBatchSize, int numReadingThreads, int numEncodingThreads) {
     TIFFMessageHandler mh;
     m_currentTile = 0;
     m_file.reset(new TIFFKeeper(filePath, false));
@@ -815,7 +819,7 @@ void TiffConverter::createTiff(const std::string& filePath, const std::function<
         if (numSubDirs > 0) {
             m_file->initSubDirs(numSubDirs);
         }
-        writeDirectoryData(dir, page, cb, tileBatchSize);
+        writeDirectoryData(dir, page, cb, tileBatchSize, numReadingThreads, numEncodingThreads);
         m_file->writeDirectory();
         const int numSubdirs = page.getNumSubDirectories();
         for (int subDirIndex = 0; subDirIndex < numSubdirs; ++subDirIndex) {
@@ -823,7 +827,7 @@ void TiffConverter::createTiff(const std::string& filePath, const std::function<
             TiffDirectory subDir = setUpDirectory(dirSpec);
             subDir.subFileType = FILETYPE_REDUCEDIMAGE;
             m_file->setTags(subDir);
-            writeDirectoryData(subDir, dirSpec, cb, tileBatchSize);
+            writeDirectoryData(subDir, dirSpec, cb, tileBatchSize, numReadingThreads, numEncodingThreads);
             m_file->writeDirectory();
         }
     }

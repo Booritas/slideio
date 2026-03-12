@@ -23,4 +23,6 @@ void convertFile(
 	bool silent,
 	bool infoOnly,
 	bool deleteIfExists,
-	int tileBatchSize);
+	int tileBatchSize,
+	int numReadingThreads,
+	int numEncodingThreads);

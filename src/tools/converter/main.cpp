@@ -153,6 +153,17 @@ int main(int argc, char* argv[]) {
        ->default_val(10)
        ->check(CLI::PositiveNumber);
 
+    int numReadingThreads = 0;
+    int numEncodingThreads = 0;
+
+    app.add_option("-rt, --reading-threads", numReadingThreads, "Number of reading threads (0 = half of CPU cores)")
+       ->default_val(0)
+       ->check(CLI::NonNegativeNumber);
+
+    app.add_option("-et, --encoding-threads", numEncodingThreads, "Number of encoding threads (0 = half of CPU cores)")
+       ->default_val(0)
+       ->check(CLI::NonNegativeNumber);
+
     CLI11_PARSE(app, argc, argv);
 
     try {
@@ -202,7 +213,9 @@ int main(int argc, char* argv[]) {
                     silent,
                     infoOnly,
                     deleteIfExists,
-                    tileBatchSize);
+                    tileBatchSize,
+                    numReadingThreads,
+                    numEncodingThreads);
     }
     catch (const std::exception& e) {
         std::cerr << "Error during processing: " << e.what() << std::endl;

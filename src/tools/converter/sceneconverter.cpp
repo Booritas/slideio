@@ -152,7 +152,7 @@ static std::string formatDuration(std::chrono::milliseconds duration) {
 	return oss.str();
 }
 
-void printInfo(const TiffConverter& converter) {
+void printInfo(const TiffConverter& converter, int numReadingThreads, int numEncodingThreads) {
 	const ConverterParameters& params = converter.getParameters();
 	std::shared_ptr<const TIFFContainerParameters> tiffParams =
 		std::static_pointer_cast<const TIFFContainerParameters>(params.getContainerParameters());
@@ -181,6 +181,8 @@ void printInfo(const TiffConverter& converter) {
 	std::cout << "Time frame range: " << params.getTFrameRange() << std::endl;
 	std::cout << "Target image rectangle: " << params.getRect() << std::endl;
 	std::cout << "Number of tiles in a batch: " << params.getTileBatchSize() << std::endl;
+	std::cout << "Reading threads: " << numReadingThreads << (numReadingThreads == 0 ? " (auto: half of CPU cores)" : "") << std::endl;
+	std::cout << "Encoding threads: " << numEncodingThreads << (numEncodingThreads == 0 ? " (auto: half of CPU cores)" : "") << std::endl;
 
 }
 
@@ -203,7 +205,9 @@ void convertFile(
 	bool silent,
 	bool infoOnly,
 	bool deleteIfExists,
-	int tileBatchSize) {
+	int tileBatchSize,
+	int numReadingThreads,
+	int numEncodingThreads) {
 	if (!std::filesystem::exists(inputPath)) {
 		throw std::runtime_error("Input file does not exist: " + inputPath);
 	}
@@ -274,7 +278,7 @@ void convertFile(
 	converter.createFileLayout(scene->getCVScene(), params);
 
 	if (infoOnly || !silent) {
-		printInfo(converter);
+		printInfo(converter, numReadingThreads, numEncodingThreads);
 	}
 
 	if (infoOnly) {
@@ -287,9 +291,9 @@ void convertFile(
 	if (!silent) {
 		std::cout << "Converting..." << std::endl;
 		CursorGuard cursorGuard;  // RAII: cursor will be restored automatically
-		converter.createTiff(outputPath, showProgress, tileBatchSize);
+		converter.createTiff(outputPath, showProgress, tileBatchSize, numReadingThreads, numEncodingThreads);
 	} else {
-		converter.createTiff(outputPath,nullptr, tileBatchSize);
+		converter.createTiff(outputPath, nullptr, tileBatchSize, numReadingThreads, numEncodingThreads);
 	}
 	
 	auto endTime = std::chrono::high_resolution_clock::now();
