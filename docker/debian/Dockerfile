@@ -78,6 +78,11 @@ RUN ls -la /opt/slideio/build
 WORKDIR /opt
 
 
-FROM debian:bookworm-slim AS final
+FROM ubuntu:noble AS final
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        libstdc++6 \
+        libgomp1 && \
+    rm -rf /var/lib/apt/lists/*
 WORKDIR /opt/slideio
 COPY --from=builder /opt/slideio/build/release/bin/ /opt/slideio/
