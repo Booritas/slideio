@@ -156,11 +156,11 @@ int main(int argc, char* argv[]) {
     int numReadingThreads = 0;
     int numEncodingThreads = 0;
 
-    app.add_option("-rt, --reading-threads", numReadingThreads, "Number of reading threads (0 = half of CPU cores)")
+    app.add_option("--reading-threads", numReadingThreads, "Number of reading threads (0 = half of CPU cores)")
        ->default_val(0)
        ->check(CLI::NonNegativeNumber);
 
-    app.add_option("-et, --encoding-threads", numEncodingThreads, "Number of encoding threads (0 = half of CPU cores)")
+    app.add_option("--encoding-threads", numEncodingThreads, "Number of encoding threads (0 = half of CPU cores)")
        ->default_val(0)
        ->check(CLI::NonNegativeNumber);
 
