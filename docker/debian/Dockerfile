@@ -58,6 +58,7 @@ RUN apt-get update && \
         libxv-dev \
         uuid-dev \
         perl \
+        nasm \
         libscalar-list-utils-perl && \
     update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-14 100 && \
     update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-14 100 && \
@@ -69,7 +70,7 @@ RUN apt-get update && \
     echo "alias ll='ls -lh'" >> /root/.bashrc && \
     echo "alias la='ls -lAh'" >> /root/.bashrc
 RUN conan remote add slideio  ${CONAN_SERVER_URL} # && conan remote login -p ${CONAN_PASSWORD} slideio ${CONAN_LOGIN_USERNAME}
-RUN cd /opt && git clone --recursive --depth 1 --branch v2.8.0 https://github.com/Booritas/slideio
+RUN cd /opt && git clone --recursive --depth 1 --branch v2.8.1 https://github.com/Booritas/slideio
 ENV SLIDEIO_HOME=/opt/slideio
 RUN cd /opt/slideio && python3 ./install.py -a install -c release
 RUN ls -la /opt/slideio/build
