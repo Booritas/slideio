@@ -159,7 +159,7 @@ void printInfo(const TiffConverter& converter) {
 	std::cout << "Target format: "
 		<< ((converter.getParameters().getFormat() == SVS) ? "SVS" : "OMETIFF")
 		<< std::endl;
-	const Compression compression = params.getEncoding();1
+	const Compression compression = params.getEncoding();
 	std::cout << "Target compression: " << compression;
 	if (compression == Compression::Jpeg) {
 		const int quality =

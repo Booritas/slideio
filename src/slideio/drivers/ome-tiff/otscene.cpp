@@ -200,7 +200,7 @@ void OTScene::initialize() {
     }
     m_bigEndian = pixels->BoolAttribute("BigEndian", false);
     if (m_bigEndian) {
-        RAISE_RUNTIME_ERROR << "OTScene: big endian data is not supported";
+        SLIDEIO_LOG(INFO) << "OTScene: BigEndian pixel order is declared in metadata";
     }
 
 	m_zResolution = pixels->DoubleAttribute("PhysicalSizeZ", 0.0);
