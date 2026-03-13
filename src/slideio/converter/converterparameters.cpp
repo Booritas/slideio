@@ -80,6 +80,8 @@ void ConverterParameters::copyFrom(const ConverterParameters& other) {
             newParams->setTileWidth(tiffParams->getTileWidth());
             newParams->setTileHeight(tiffParams->getTileHeight());
             newParams->setNumZoomLevels(tiffParams->getNumZoomLevels());
+            newParams->setNumReadingThreads(tiffParams->getNumReadingThreads());
+            newParams->setNumEncodingThreads(tiffParams->getNumEncodingThreads());
             m_containerParameters = newParams;
         } else {
             m_containerParameters = nullptr;

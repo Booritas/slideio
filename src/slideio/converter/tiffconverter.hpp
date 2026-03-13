@@ -39,8 +39,7 @@ namespace slideio
 			};
 		public:
             void createFileLayout(const std::shared_ptr<CVScene>& scene, const ConverterParameters& parameters);
-            void createTiff(const std::string& filePath, const std::function<void(int)>& cb, int tileBatchSize,
-                int numReadingThreads=0, int numEncodingThreads=0);
+            void createTiff(const std::string& filePath, const std::function<void(int)>& cb, int tileBatchSize);
             int getNumTiffPages() const {
                 return static_cast<int>(m_pages.size());
             }
@@ -74,11 +73,11 @@ namespace slideio
             std::string createOMETiffDescription() const;
             TiffDirectory setUpDirectory(const TiffDirectoryStructure& page);
             void writeDirectoryData(TiffDirectory& dir, const TiffDirectoryStructure& page,
-                const std::function<void(int)>& cb, int param, int numReadingThreads=0, int numEncodingThreads=0);
+                const std::function<void(int)>& cb, int param);
             void writeDirectoryDataST(TiffDirectory& dir, const TiffDirectoryStructure& page,
                 const std::function<void(int)>& cb, int tileBatchSize);
             void writeDirectoryDataMT(TiffDirectory& dir, const TiffDirectoryStructure& page,
-                                      const std::function<void(int)>& cb, int tileBatchSize, int numReadingThreads=0, int numEncodingThreads=0);
+                                      const std::function<void(int)>& cb, int tileBatchSize);
             void computeCropRect();
             void makeSureValid() const;
             static std::string SVSDateString();

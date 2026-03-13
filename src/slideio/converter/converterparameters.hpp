@@ -64,7 +64,9 @@ namespace slideio
             TIFFContainerParameters() : ContainerParameters(TIFF_CONTAINER),
                                         m_tileWidth(256),
                                         m_tileHeight(256),
-                                        m_numZoomLevels(-1) {
+                                        m_numZoomLevels(-1),
+                                        m_numReadingThreads(0),
+                                        m_numEncodingThreads(0) {
             }
 
             ~TIFFContainerParameters() override = default;
@@ -93,10 +95,28 @@ namespace slideio
                 m_numZoomLevels = numZoomLevels;
             }
 
+            int getNumReadingThreads() const {
+                return m_numReadingThreads;
+            }
+
+            void setNumReadingThreads(int numReadingThreads) {
+                m_numReadingThreads = numReadingThreads;
+            }
+
+            int getNumEncodingThreads() const {
+                return m_numEncodingThreads;
+            }
+
+            void setNumEncodingThreads(int numEncodingThreads) {
+                m_numEncodingThreads = numEncodingThreads;
+            }
+
         protected:
             int m_tileWidth;
             int m_tileHeight;
             int m_numZoomLevels;
+            int m_numReadingThreads;
+            int m_numEncodingThreads;
         };
 
         class SLIDEIO_CONVERTER_EXPORTS ConverterParameters

@@ -152,14 +152,14 @@ static std::string formatDuration(std::chrono::milliseconds duration) {
 	return oss.str();
 }
 
-void printInfo(const TiffConverter& converter, int numReadingThreads, int numEncodingThreads) {
+void printInfo(const TiffConverter& converter) {
 	const ConverterParameters& params = converter.getParameters();
 	std::shared_ptr<const TIFFContainerParameters> tiffParams =
 		std::static_pointer_cast<const TIFFContainerParameters>(params.getContainerParameters());
 	std::cout << "Target format: "
 		<< ((converter.getParameters().getFormat() == SVS) ? "SVS" : "OMETIFF")
 		<< std::endl;
-	const Compression compression = params.getEncoding();
+	const Compression compression = params.getEncoding();1
 	std::cout << "Target compression: " << compression;
 	if (compression == Compression::Jpeg) {
 		const int quality =
@@ -181,6 +181,8 @@ void printInfo(const TiffConverter& converter, int numReadingThreads, int numEnc
 	std::cout << "Time frame range: " << params.getTFrameRange() << std::endl;
 	std::cout << "Target image rectangle: " << params.getRect() << std::endl;
 	std::cout << "Number of tiles in a batch: " << params.getTileBatchSize() << std::endl;
+	const int numReadingThreads = tiffParams->getNumReadingThreads();
+	const int numEncodingThreads = tiffParams->getNumEncodingThreads();
 	std::cout << "Reading threads: " << numReadingThreads << (numReadingThreads == 0 ? " (auto: half of CPU cores)" : "") << std::endl;
 	std::cout << "Encoding threads: " << numEncodingThreads << (numEncodingThreads == 0 ? " (auto: half of CPU cores)" : "") << std::endl;
 
@@ -271,6 +273,8 @@ void convertFile(
         = std::static_pointer_cast<TIFFContainerParameters>(params.getContainerParameters());
 	containerParams->setTileWidth(tileSize);
 	containerParams->setTileHeight(tileSize);
+	containerParams->setNumReadingThreads(numReadingThreads);
+	containerParams->setNumEncodingThreads(numEncodingThreads);
 	if (numZoomLevels > 0) {
 		containerParams->setNumZoomLevels(numZoomLevels);
 	}
@@ -278,7 +282,7 @@ void convertFile(
 	converter.createFileLayout(scene->getCVScene(), params);
 
 	if (infoOnly || !silent) {
-		printInfo(converter, numReadingThreads, numEncodingThreads);
+		printInfo(converter);
 	}
 
 	if (infoOnly) {
@@ -291,9 +295,9 @@ void convertFile(
 	if (!silent) {
 		std::cout << "Converting..." << std::endl;
 		CursorGuard cursorGuard;  // RAII: cursor will be restored automatically
-		converter.createTiff(outputPath, showProgress, tileBatchSize, numReadingThreads, numEncodingThreads);
+		converter.createTiff(outputPath, showProgress, tileBatchSize);
 	} else {
-		converter.createTiff(outputPath, nullptr, tileBatchSize, numReadingThreads, numEncodingThreads);
+		converter.createTiff(outputPath, nullptr, tileBatchSize);
 	}
 	
 	auto endTime = std::chrono::high_resolution_clock::now();
