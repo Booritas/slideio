@@ -732,3 +732,83 @@ TEST_F(OTImageDriverTests, channelAttributes) {
 		}
 	}
 }
+
+TEST_F(OTImageDriverTests, readBlockBigEndian) {
+	std::string filePath = TestTools::getFullTestImagePath("ometiff", "private/ULT-2020-111-014-1.ome.tif");
+	std::string testFilePaths[] = {	TestTools::getFullTestImagePath("ometiff", "Tests/ULT-2020-111-014_1 (1, x=4375, y=39330, w=1153, h=743).tif"),
+	                                TestTools::getFullTestImagePath("ometiff", "Tests/ULT-2020-111-014_1 (1, x=28333, y=36086, w=1099, h=760).tif")
+	};
+	OTImageDriver driver;
+	std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
+	ASSERT_TRUE(slide != nullptr);
+	const int numScenes = slide->getNumScenes();
+	ASSERT_EQ(numScenes, 1);
+	std::shared_ptr<CVScene> scene = slide->getScene(0);
+	ASSERT_TRUE(scene != nullptr);
+	cv::Rect sceneRect = scene->getRect();
+	EXPECT_EQ(sceneRect, cv::Rect(0, 0, 53527, 57198));
+	const int numChannels = scene->getNumChannels();
+	EXPECT_EQ(numChannels, 19);
+	const std::string channelNames[] = {
+		"DAPI",
+		"AF488",
+		"AF555",
+		"Cy5",
+		"Cy7",
+		"DAPI2",
+		"CD8",
+		"CD163",
+		"CD3",
+		"FoxP3",
+		"DAPI3",
+		"CK",
+		"CD68",
+		"PD-L1",
+		"CD20",
+        "DAPI4",
+        "BLUE",
+		"GREEN",
+		"RED"
+	};
+	std::string channelName;
+	int channelIndex = 0;
+	for (const std::string& name : channelNames) {
+		auto compression = scene->getCompression();
+		EXPECT_EQ(compression, Compression::LZW);
+		channelName = scene->getChannelName(channelIndex++);
+	}
+
+	cv::Rect rects[] = {
+		 { 4375, 39330, 1153, 743 },
+		 { 28333, 36086, 1099, 760 }
+    };	
+	for (int iPath = 0; iPath < 2; ++iPath) {
+		std::string path = testFilePaths[iPath];
+		cv::Rect rect = rects[iPath];
+		cv::Mat testRaster;
+		ImageTools::openSmallImage(path)->readImageStack(testRaster);
+
+		// Read original scale
+		cv::Mat raster;
+		std::vector<int> channels = { 0 };
+		cv::Mat channelRaster;
+		for (int channelIndex = 0; channelIndex < numChannels; ++channelIndex) {
+			channels[0] = channelIndex;
+			scene->read4DBlockChannels(rect, channels, cv::Range(0, 1), cv::Range(0, 1), raster);
+			cv::extractChannel(testRaster, channelRaster, channelIndex);
+			double sim = ImageTools::computeSimilarity2(channelRaster, raster);
+			EXPECT_GT(sim, 0.99);
+		}
+
+		cv::Size rasterSize = { rect.size().width / 4, rect.size().height / 4 };
+		cv::Mat resizedChannel;
+		for (int channelIndex = 0; channelIndex < numChannels; ++channelIndex) {
+			channels[0] = channelIndex;
+			scene->readResampledBlockChannels(rect, rasterSize, channels, raster);
+			cv::extractChannel(testRaster, channelRaster, channelIndex);
+			cv::resize(channelRaster, resizedChannel, rasterSize);
+			double sim = ImageTools::computeSimilarity2(resizedChannel, raster);
+			EXPECT_GT(sim, 0.9);
+		}
+	}
+}

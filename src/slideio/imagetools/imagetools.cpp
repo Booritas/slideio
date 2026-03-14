@@ -157,7 +157,9 @@ double ImageTools::computeSimilarity2(const cv::Mat& leftM, const cv::Mat& right
     cv::absdiff(leftM, rightM, diff);
     cv::Mat diffd;
     diff.convertTo(diffd, CV_MAKE_TYPE(CV_32F, diff.channels()));
-    diffd /= maxVal;
+    if (std::fabs(maxVal) > 0.) {
+        diffd /= maxVal;
+    }
     cv::pow(diffd, 1.5, diffd);
     cv::Scalar sums = cv::sum(diffd);
     auto sum = cv::sum(sums);
