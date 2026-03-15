@@ -7,6 +7,8 @@
 #include "slideio/converter/tiffstructure.hpp"
 #include "slideio/core/tools/boundedqueue.hpp"
 #include <mutex>
+#include <chrono>
+#include <atomic>
 
 #include "slideio/core/cvslide.hpp"
 
@@ -23,6 +25,44 @@ namespace slideio
 		class SLIDEIO_CONVERTER_EXPORTS TiffConverter
 		{
 		public:
+			TiffConverter() = default;
+			TiffConverter(const TiffConverter& other)
+				: m_pages(other.m_pages)
+				, m_file(other.m_file)
+				, m_scene(other.m_scene)
+				, m_parameters(other.m_parameters)
+				, m_cropRect(other.m_cropRect)
+				, m_filePath(other.m_filePath)
+				, m_totalTiles(other.m_totalTiles)
+				, m_currentTile(other.m_currentTile)
+				, m_lastProgress(other.m_lastProgress)
+				, m_readersIdleTimeNs(other.m_readersIdleTimeNs.load())
+				, m_encodersIdleTimeNs(other.m_encodersIdleTimeNs.load())
+				, m_writerIdleTimeNs(other.m_writerIdleTimeNs.load())
+				, m_numReaderThreads(other.m_numReaderThreads)
+				, m_numEncoderThreads(other.m_numEncoderThreads) {}
+			TiffConverter& operator=(const TiffConverter& other) {
+				if (this != &other) {
+					m_pages = other.m_pages;
+					m_file = other.m_file;
+					m_scene = other.m_scene;
+					m_parameters = other.m_parameters;
+					m_cropRect = other.m_cropRect;
+					m_filePath = other.m_filePath;
+					m_totalTiles = other.m_totalTiles;
+					m_currentTile = other.m_currentTile;
+					m_lastProgress = other.m_lastProgress;
+					m_readersIdleTimeNs.store(other.m_readersIdleTimeNs.load());
+					m_encodersIdleTimeNs.store(other.m_encodersIdleTimeNs.load());
+					m_writerIdleTimeNs.store(other.m_writerIdleTimeNs.load());
+					m_numReaderThreads = other.m_numReaderThreads;
+					m_numEncoderThreads = other.m_numEncoderThreads;
+				}
+				return *this;
+			}
+			TiffConverter(TiffConverter&&) = default;
+			TiffConverter& operator=(TiffConverter&&) = default;
+
 			struct Block {
 				cv::Rect rect;              // Block rectangle in the source image
 				size_t firstTileSequenceId; // Preserves original read order
@@ -56,6 +96,24 @@ namespace slideio
             const ConverterParameters& getParameters() const {
                 return m_parameters;
             }
+            std::chrono::nanoseconds getReadersIdleTime() const {
+                return std::chrono::nanoseconds(m_readersIdleTimeNs.load());
+            }
+            std::chrono::nanoseconds getEncodersIdleTime() const {
+                return std::chrono::nanoseconds(m_encodersIdleTimeNs.load());
+            }
+			std::chrono::nanoseconds getWriterIdleTime() const {
+				return std::chrono::nanoseconds(m_writerIdleTimeNs.load());
+			}
+			int getNumReaderThreads() const {
+				return m_numReaderThreads;
+			}
+			int getNumEncoderThreads() const {
+				return m_numEncoderThreads;
+			}
+			int getNumWriterThreads() const {
+				return 1;
+			}
             void createTileQueue(const TiffDirectory& dir, const TiffDirectoryStructure& page, int tileBatchSize, std::queue<Block>& queue);
 			virtual std::pair<std::shared_ptr<Slide>, std::shared_ptr<Scene>> cloneScene() const;
 		protected:
@@ -104,9 +162,14 @@ namespace slideio
             ConverterParameters m_parameters;
             Rect m_cropRect;
             std::string m_filePath;
-            int m_totalTiles = 0;
-            int m_currentTile = 0;
+			int m_totalTiles = 0;
+			int m_currentTile = 0;
 			int m_lastProgress = 0;
-        };
+			std::atomic<int64_t> m_readersIdleTimeNs{0};
+			std::atomic<int64_t> m_encodersIdleTimeNs{0};
+			std::atomic<int64_t> m_writerIdleTimeNs{0};
+			int m_numReaderThreads = 0;
+			int m_numEncoderThreads = 0;
+		};
     }
 }

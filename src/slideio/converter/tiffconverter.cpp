@@ -540,8 +540,8 @@ std::pair<std::shared_ptr<Slide>, std::shared_ptr<Scene>> TiffConverter::cloneSc
 }
 
 void TiffConverter::readTiles(const TiffDirectory& dir, const TiffDirectoryStructure& page, BoundedQueue<Tile>& inputQueue,
-                              std::queue<Block>& blockQueue, std::mutex& blockQueueMutex, std::atomic<size_t>& activeReaders,
-                              std::exception_ptr& readerException, std::mutex& exceptionMutex) {
+							  std::queue<Block>& blockQueue, std::mutex& blockQueueMutex, std::atomic<size_t>& activeReaders,
+							  std::exception_ptr& readerException, std::mutex& exceptionMutex) {
 	int zoomLevel = page.getZoomLevelRange().start;
 	cv::Size tileSize = cv::Size(dir.tileWidth, dir.tileHeight);
 	cv::Size sceneTileSize = ConverterTools::scaleSize(tileSize, zoomLevel, false);
@@ -555,6 +555,7 @@ void TiffConverter::readTiles(const TiffDirectory& dir, const TiffDirectoryStruc
 	auto clone = cloneScene();
 	auto slide = clone.first;
 	auto scene = clone.second;
+	int64_t localIdleNs = 0;
 
 	try {
 		cv::Mat block;
@@ -590,10 +591,13 @@ void TiffConverter::readTiles(const TiffDirectory& dir, const TiffDirectoryStruc
 				block(tileRect).copyTo(tileInfo.raster);
 				const int tileWritePosX = zoomLevelRect.x + blockTile * tileSize.width;
 				tileInfo.location = cv::Point2i(tileWritePosX, zoomLevelRect.y);
+				auto pushStart = std::chrono::steady_clock::now();
 				if (!inputQueue.push(std::move(tileInfo))) {
+					localIdleNs += std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - pushStart).count();
 					done = true;
 					break;
 				}
+				localIdleNs += std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - pushStart).count();
 			}
 			if (done) {
 				break;
@@ -618,6 +622,7 @@ void TiffConverter::readTiles(const TiffDirectory& dir, const TiffDirectoryStruc
 		inputQueue.setDone();
 		SLIDEIO_LOG(ERROR) << "Converter: Unknown exception in tile reader thread";
 	}
+	m_readersIdleTimeNs.fetch_add(localIdleNs, std::memory_order_relaxed);
 	if (--activeReaders == 0)
 		inputQueue.setDone();
 }
@@ -642,15 +647,25 @@ std::vector<uint8_t> TiffConverter::encodeTile(const cv::Mat& tileRaster) {
 
 void TiffConverter::encodeTiles(BoundedQueue<Tile>& inputQueue, BoundedQueue<EncodedTile>& outputQueue,
                                 std::atomic<size_t>& activeEncoders, std::exception_ptr& encoderException, std::mutex& encoderExMutex) {
+    int64_t localIdleNs = 0;
     try {
-        while (std::optional<Tile> tile = inputQueue.pop()) {
+        while (true) {
+            auto popStart = std::chrono::steady_clock::now();
+            std::optional<Tile> tile = inputQueue.pop();
+            localIdleNs += std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - popStart).count();
+            if (!tile) {
+                break;
+            }
             EncodedTile encoded;
             encoded.sequenceId = tile->sequenceId;
             encoded.location = tile->location;
             encoded.encodedData = encodeTile(tile->raster);
+            auto pushStart = std::chrono::steady_clock::now();
             if (!outputQueue.push(std::move(encoded))) {
+                localIdleNs += std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - pushStart).count();
                 break;
             }
+            localIdleNs += std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - pushStart).count();
         }
     }
     catch (const std::exception& e) {
@@ -671,6 +686,7 @@ void TiffConverter::encodeTiles(BoundedQueue<Tile>& inputQueue, BoundedQueue<Enc
         inputQueue.setDone();
         SLIDEIO_LOG(ERROR) << "Converter: Unknown exception in tile encoder thread.";
     }
+    m_encodersIdleTimeNs.fetch_add(localIdleNs, std::memory_order_relaxed);
     if (--activeEncoders == 0)
         outputQueue.setDone();
 }
@@ -685,9 +701,16 @@ void TiffConverter::writeTiles(BoundedQueue<Tile>& inputQueue, BoundedQueue<Enco
     std::exception_ptr& writerException, std::mutex& exceptionMutex) {
     std::unordered_map<size_t, EncodedTile> reorderBuffer; // Holds out-of-order tiles
     size_t nextExpected = 0;
+    int64_t localIdleNs = 0;
 
     try {
-        while (auto encoded = outputQueue.pop()) {
+        while (true) {
+            auto popStart = std::chrono::steady_clock::now();
+            auto encoded = outputQueue.pop();
+            localIdleNs += std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - popStart).count();
+            if (!encoded) {
+                break;
+            }
             reorderBuffer.emplace(encoded->sequenceId, std::move(*encoded));
             // Flush all consecutive tiles that are ready
             while (true) {
@@ -729,10 +752,14 @@ void TiffConverter::writeTiles(BoundedQueue<Tile>& inputQueue, BoundedQueue<Enco
         inputQueue.setDone();   // Wake reader if blocked on push(), stop encoders
         SLIDEIO_LOG(ERROR) << "Converter: Unknown exception in tile writer thread";
     }
+    m_writerIdleTimeNs.fetch_add(localIdleNs, std::memory_order_relaxed);
 }
 
 void TiffConverter::writeDirectoryDataMT(TiffDirectory& dir, const TiffDirectoryStructure& page,
                                          const std::function<void(int)>& cb, int tileBatchSize) {
+    m_readersIdleTimeNs.store(0, std::memory_order_relaxed);
+    m_encodersIdleTimeNs.store(0, std::memory_order_relaxed);
+    m_writerIdleTimeNs.store(0, std::memory_order_relaxed);
     std::shared_ptr<const TIFFContainerParameters> tiffParams =
         std::static_pointer_cast<const TIFFContainerParameters>(m_parameters.getContainerParameters());
     int numReadingThreads = tiffParams->getNumReadingThreads();
@@ -746,6 +773,8 @@ void TiffConverter::writeDirectoryDataMT(TiffDirectory& dir, const TiffDirectory
         numReadingThreads = halfCores;
     }
     numReadingThreads = std::max(1, numReadingThreads);
+    m_numReaderThreads = numReadingThreads;
+    m_numEncoderThreads = numEncoderThreads;
     const int safeTileBatchSize = std::max(1, tileBatchSize);
     const size_t QUEUE_DEPTH = std::max(static_cast<size_t>(2), static_cast<size_t>(numEncoderThreads) * 2); // Bound memory usage
 

@@ -306,6 +306,12 @@ void convertFile(
 	if (!silent) {
 		std::cout << "Conversion completed successfully." << std::endl;
 		std::cout << "Conversion time: " << formatDuration(duration) << std::endl;
+		auto readersIdle = std::chrono::duration_cast<std::chrono::milliseconds>(converter.getReadersIdleTime());
+		auto encodersIdle = std::chrono::duration_cast<std::chrono::milliseconds>(converter.getEncodersIdleTime());
+		auto writerIdle = std::chrono::duration_cast<std::chrono::milliseconds>(converter.getWriterIdleTime());
+		std::cout << "Readers idle time: " << formatDuration(readersIdle) << " (" << converter.getNumReaderThreads() << " threads)" << std::endl;
+		std::cout << "Encoders idle time: " << formatDuration(encodersIdle) << " (" << converter.getNumEncoderThreads() << " threads)" << std::endl;
+		std::cout << "Writer idle time: " << formatDuration(writerIdle) << " (" << converter.getNumWriterThreads() << " thread)" << std::endl;
 	}
 }
 
