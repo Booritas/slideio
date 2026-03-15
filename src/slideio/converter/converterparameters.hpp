@@ -250,6 +250,22 @@ namespace slideio
             void setNumZoomLevels(int numZoomLevels) {
                 return std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters)->setNumZoomLevels(numZoomLevels);
             }
+
+            int getNumReadingThreads() const {
+                return std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters)->getNumReadingThreads();
+            }
+
+            void setNumReadingThreads(int numReadingThreads) {
+                std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters)->setNumReadingThreads(numReadingThreads);
+            }
+
+            int getNumEncodingThreads() const {
+                return std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters)->getNumEncodingThreads();
+            }
+
+            void setNumEncodingThreads(int numEncodingThreads) {
+                std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters)->setNumEncodingThreads(numEncodingThreads);
+            }
         };
 
         class SLIDEIO_CONVERTER_EXPORTS SVSJpegConverterParameters : public SVSConverterParameters
@@ -321,6 +337,22 @@ namespace slideio
 
             void setNumZoomLevels(int numZoomLevels) {
                 return std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters)->setNumZoomLevels(numZoomLevels);
+            }
+
+            int getNumReadingThreads() const {
+                return std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters)->getNumReadingThreads();
+            }
+
+            void setNumReadingThreads(int numReadingThreads) {
+                std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters)->setNumReadingThreads(numReadingThreads);
+            }
+
+            int getNumEncodingThreads() const {
+                return std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters)->getNumEncodingThreads();
+            }
+
+            void setNumEncodingThreads(int numEncodingThreads) {
+                std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters)->setNumEncodingThreads(numEncodingThreads);
             }
         };
 
