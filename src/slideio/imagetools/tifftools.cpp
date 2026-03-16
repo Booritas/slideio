@@ -915,7 +915,7 @@ void TiffTools::setTags(libtiff::TIFF* tiff, const TiffDirectory& dir) {
     libtiff::TIFFSetField(tiff, TIFFTAG_TILEWIDTH, dir.tileWidth);
     libtiff::TIFFSetField(tiff, TIFFTAG_TILELENGTH, dir.tileHeight);;
     libtiff::TIFFSetField(tiff, TIFFTAG_IMAGEDESCRIPTION, dir.description.c_str());
-    libtiff::TIFFSetField(tiff, TIFFTAG_PLANARCONFIG, ((numChannels == 1) ? 2 : 1));
+    libtiff::TIFFSetField(tiff, TIFFTAG_PLANARCONFIG, 1);
     Resolution res = dir.res;
     double rx = (res.x > 0) ? 0.01 / res.x : 0.;
     double ry = (res.y > 0.) ? 0.01 / res.y : 0.;

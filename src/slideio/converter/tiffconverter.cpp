@@ -143,7 +143,7 @@ std::string TiffConverter::createOMETiffDescription() const {
     ome->SetAttribute("xsi:schemaLocation",
                       "http://www.openmicroscopy.org/Schemas/OME/2016-06 http://www.openmicroscopy.org/Schemas/OME/2016-06/ome.xsd");
     doc.InsertFirstChild(ome);
-    bool interleaved = false;
+    bool interleaved = true;
     auto rect = m_parameters.getRect();
     const int sizeX = rect.width;
     const int sizeY = rect.height;
@@ -426,6 +426,7 @@ TiffDirectory TiffConverter::setUpDirectory(const TiffDirectoryStructure& page) 
     dir.res = m_scene->getResolution();
     dir.software = std::string("SlideIO Library ") + getVersion();
     dir.subFileType = 0; // FILETYPE_PAGE;
+    dir.interleaved = true;
     return dir;
 }
 
