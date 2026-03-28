@@ -44,20 +44,20 @@ void vsi::EtsFile::initStruct(TileInfoListPtr& tiles) {
     }
 
     const int zIndex = m_volume->getDimensionOrder(Dimensions::Z);
-    if (zIndex > 1 && zIndex < m_maxCoordinates.size()) {
-        m_numZSlices = m_maxCoordinates[m_volume->getDimensionOrder(Dimensions::Z)] + 1;
+    if (zIndex > 1 && zIndex < static_cast<int>(m_maxCoordinates.size())) {
+        m_numZSlices = m_maxCoordinates[zIndex] + 1;
     }
     const int tIndex = m_volume->getDimensionOrder(Dimensions::T);
-    if (tIndex > 1 && tIndex < m_maxCoordinates.size()) {
-        m_numTFrames = m_maxCoordinates[m_volume->getDimensionOrder(Dimensions::T)] + 1;
+    if (tIndex > 1 && tIndex < static_cast<int>(m_maxCoordinates.size())) {
+        m_numTFrames = m_maxCoordinates[tIndex] + 1;
     }
     const int lambdaIndex = m_volume->getDimensionOrder(Dimensions::L);
-    if (lambdaIndex > 1 && lambdaIndex < m_maxCoordinates.size()) {
-        m_numLambdas = m_maxCoordinates[m_volume->getDimensionOrder(Dimensions::L)] + 1;
+    if (lambdaIndex > 1 && lambdaIndex < static_cast<int>(m_maxCoordinates.size())) {
+        m_numLambdas = m_maxCoordinates[lambdaIndex] + 1;
     }
     const int channelIndex = m_volume->getDimensionOrder(Dimensions::C);
-    if (channelIndex > 1 && channelIndex < m_maxCoordinates.size()) {
-        m_numChannels = m_maxCoordinates[m_volume->getDimensionOrder(Dimensions::C)] + 1;
+    if (channelIndex > 1 && channelIndex < static_cast<int>(m_maxCoordinates.size())) {
+        m_numChannels = m_maxCoordinates[channelIndex] + 1;
     }
 
     m_pyramid.init(tiles, m_size, m_tileSize, m_volume.get());
