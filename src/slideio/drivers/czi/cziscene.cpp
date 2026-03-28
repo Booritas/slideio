@@ -487,6 +487,12 @@ void CZIScene::unpackChannels(const CZISubBlock& block, const std::vector<int>& 
         if(channelInfo.numComponents==1)
         {
             componentRasters[index].create(rasterSize, CV_MAKETYPE(cvPixelType, 1));
+            const size_t targetSize = componentRasters[index].total() * componentRasters[index].elemSize();
+            if(channelSize < 0 || static_cast<size_t>(channelSize) > targetSize) {
+                SLIDEIO_LOG(WARNING) << "CZIScene: channel size mismatch. Source: " << channelSize
+                    << ", target: " << targetSize;
+                continue;
+            }
             uint8_t* trg = componentRasters[index].data;
             std::memcpy(trg, channelData, channelSize);
         }
