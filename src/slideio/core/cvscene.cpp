@@ -12,7 +12,7 @@
 
 using namespace slideio;
 
-std::string CVScene::getChannelName(int) const
+std::string CVScene::getChannelName(int /*channel*/) const
 {
     return "";
 }
@@ -27,7 +27,6 @@ void CVScene::readBlock(const cv::Rect& blockRect, cv::OutputArray output)
 void CVScene::readBlockChannels(const cv::Rect& blockRect, const std::vector<int>& channelIndices, cv::OutputArray output)
 {
     RefCounterGuard guard(this);
-    const cv::Rect rectScene = blockRect;
     readResampledBlockChannels(blockRect, blockRect.size(), channelIndices, output);
 }
 
@@ -58,7 +57,6 @@ void CVScene::read4DBlockChannels(const cv::Rect& blockRect, const std::vector<i
     const cv::Range& zSliceRange, const cv::Range& timeFrameRange, cv::OutputArray output)
 {
     RefCounterGuard guard(this);
-    const cv::Rect rectScene = blockRect;
     readResampled4DBlockChannels(blockRect, blockRect.size(), channelIndices, zSliceRange, timeFrameRange, output);
 }
 
