@@ -59,15 +59,15 @@ int Scene::getNumChannels() const
     return m_scene->getNumChannels();
 }
 
-int Scene::getNumZSlices()
+int Scene::getNumZSlices() const
 {
-    SLIDEIO_LOG(INFO) << "Scene::getNumZSlices "; 
+    SLIDEIO_LOG(INFO) << "Scene::getNumZSlices ";
     return m_scene->getNumZSlices();
 }
 
-int Scene::getNumTFrames()
+int Scene::getNumTFrames() const
 {
-    SLIDEIO_LOG(INFO) << "Scene::getNumTFrames "; 
+    SLIDEIO_LOG(INFO) << "Scene::getNumTFrames ";
     return m_scene->getNumTFrames();
 }
 
