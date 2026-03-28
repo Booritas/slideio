@@ -24,7 +24,7 @@ Comprehensive review of the SlideIO C++ codebase (v2.8.0) covering bugs, perform
 
 ## 1. Critical Bugs
 
-### 1.1 Uninitialized member read in RuntimeError copy constructor
+### <del>1.1 Uninitialized member read in RuntimeError copy constructor</del> 
 
 **File:** `src/slideio/base/exceptions.hpp:23-29`
 
@@ -40,7 +40,7 @@ RuntimeError(RuntimeError& rhs) {
 ```
 **Fix:** Initialize `m_shown = false` before the check, or use a member initializer list.
 
-### 1.2 Wrong matrix copied in CVSmallScene::readResampledBlockChannelsEx
+### <del>1.2 Wrong matrix copied in CVSmallScene::readResampledBlockChannelsEx
 
 **File:** `src/slideio/core/cvsmallscene.cpp:37-42`
 
@@ -53,7 +53,7 @@ if(output.empty()) {
 ```
 When `output` is not empty, the function copies `imageBlock` instead of `resizedBlock`, silently ignoring the resizing step.
 
-### 1.3 Duplicate TIFF resolution unit condition (dead code)
+### <del> 1.3 Duplicate TIFF resolution unit condition (dead code)
 
 **File:** `src/slideio/imagetools/tifftools.cpp:511-518`
 
@@ -69,7 +69,7 @@ else if (units == RESUNIT_INCH && resx > 0 && resy > 0) {  // identical conditio
 ```
 The second branch (presumably for `RESUNIT_CENTIMETER`) is unreachable. Resolution calculation is wrong for centimeter-based TIFF files.
 
-### 1.4 YCbCrSubsampling both values written to same index
+### <del> 1.4 YCbCrSubsampling both values written to same index
 
 **File:** `src/slideio/imagetools/tifftools.cpp:507`
 
@@ -78,7 +78,7 @@ libtiff::TIFFGetField(tiff, TIFFTAG_YCBCRSUBSAMPLING, &YCbCrSubsampling[0], &YCb
 ```
 Both arguments write to `[0]`. Should be `&YCbCrSubsampling[0], &YCbCrSubsampling[1]`.
 
-### 1.5 Logic error in SmallTiffWrapper bounds check
+### <del> 1.5 Logic error in SmallTiffWrapper bounds check
 
 **File:** `src/slideio/imagetools/smalltiffwrapper.cpp:98`
 
@@ -87,7 +87,7 @@ if (pageIndex < 0 && pageIndex >= getNumPages()) {  // always false
 ```
 Condition uses `&&` instead of `||`. A negative index or index beyond page count will pass this check and cause out-of-bounds access.
 
-### 1.6 Array index confusion in readRegularTile channel extraction
+### <del> 1.6 Array index confusion in readRegularTile channel extraction
 
 **File:** `src/slideio/imagetools/tifftools.cpp:779-786`
 
@@ -102,7 +102,7 @@ Uses `channelIndex` (the channel number from the vector) as an index back into `
 
 ## 2. High-Severity Bugs
 
-### 2.1 Null pointer dereference in RefCounterGuard
+### <del> 2.1 Null pointer dereference in RefCounterGuard
 
 **File:** `src/slideio/core/refcounter.hpp:30-34`
 
@@ -112,7 +112,7 @@ RefCounterGuard(RefCounter* counter) : m_counter(counter) {
 }
 ```
 
-### 2.2 Unchecked buffer access in CZI driver
+### <del> 2.2 Unchecked buffer access in CZI driver
 
 **File:** `src/slideio/drivers/czi/cziscene.cpp:462`
 
@@ -121,7 +121,7 @@ const uint8_t* channelData = blockData.data() + channelOffset;
 ```
 `channelOffset` is checked for negative values but not against `blockData.size()`. A malformed CZI file can cause out-of-bounds read.
 
-### 2.3 Missing bounds check in CZI tile access
+### <del> 2.3 Missing bounds check in CZI tile access
 
 **File:** `src/slideio/drivers/czi/cziscene.cpp:343-345`
 
@@ -132,7 +132,7 @@ tileRect = tiles[tileIndex].rect;
 ```
 Neither `zoomLevelIndex` nor `tileIndex` are bounds-checked.
 
-### 2.4 Unchecked memcpy in CZI driver
+### <del> 2.4 Unchecked memcpy in CZI driver
 
 **File:** `src/slideio/drivers/czi/cziscene.cpp:472`
 
@@ -141,7 +141,7 @@ std::memcpy(trg, channelData, channelSize);
 ```
 No validation that the output buffer has space for `channelSize` bytes. `channelSize` originates from file data without upper bounds validation.
 
-### 2.5 Missing bounds check in readNotRGBTile
+### <del> 2.5 Missing bounds check in readNotRGBTile
 
 **File:** `src/slideio/imagetools/tifftools.cpp:873-882`
 
@@ -150,7 +150,7 @@ const int correctedIndex = channelMapping[channelIndices[channelIndex]];
 ```
 No bounds checking on `channelIndices[channelIndex]` before accessing `channelMapping` (size 4). Out-of-bounds access for images with >4 channels.
 
-### 2.6 Resource leak: raw new in ImageDriverManager
+### <del> 2.6 Resource leak: raw new in ImageDriverManager
 
 **File:** `src/slideio/slideio/imagedrivermanager.cpp:82-85`
 
@@ -160,7 +160,7 @@ std::shared_ptr<ImageDriver> svs(driver);
 ```
 Inconsistent pattern: some drivers use `make_shared`, others use raw `new`. If the `shared_ptr` constructor throws (unlikely but possible), memory leaks.
 
-### 2.7 NDPI driver uses raw new without exception safety
+### <del> 2.7 NDPI driver uses raw new without exception safety
 
 **File:** `src/slideio/drivers/ndpi/ndpislide.cpp:85-86`
 
@@ -170,7 +170,7 @@ m_pfile->init(m_filePath);
 ```
 If `init()` throws, `m_pfile` leaks.
 
-### 2.8 Null pointer in FreeImage wrapper
+### <del> 2.8 Null pointer in FreeImage wrapper
 
 **File:** `src/slideio/imagetools/fiwrapper.cpp:22`
 
@@ -184,7 +184,7 @@ const char* desc = FreeImage_GetTagDescription(tag);
 
 ## 3. Medium-Severity Bugs
 
-### 3.1 Integer overflow in area calculations
+### <del> 3.1 Integer overflow in area calculations
 
 **File:** `src/slideio/base/rect.hpp:49-50`
 
@@ -195,7 +195,7 @@ Same issue in `src/slideio/base/size.hpp:54-56` and `src/slideio/core/tools/bloc
 
 **Fix:** Use `int64_t` or add overflow checks.
 
-### 3.2 Unsafe void* casting in endian conversion
+### <del> 3.2 Unsafe void* casting in endian conversion
 
 **File:** `src/slideio/core/tools/endian.hpp:109-140`
 
@@ -204,7 +204,7 @@ fromLittleEndianToNative(static_cast<int16_t*>(data), count / sizeof(int16_t));
 ```
 If `count < sizeof(int16_t)`, division yields 0 and the call is silently skipped. No alignment validation.
 
-### 3.3 Integer overflow in ETS file dimension calculations
+### <del> 3.3 Integer overflow in ETS file dimension calculations
 
 **File:** `src/slideio/drivers/vsi/etsfile.cpp:127-132`
 
@@ -213,7 +213,7 @@ const int minWidth = m_maxCoordinates[0] * m_tileSize.width;
 ```
 Multiplication of two `int` values from untrusted file data can overflow.
 
-### 3.4 CZI file position arithmetic overflow
+### <del> 3.4 CZI file position arithmetic overflow
 
 **File:** `src/slideio/drivers/czi/czislide.cpp:372`
 
@@ -222,7 +222,7 @@ m_fileStream.seekg(entryHeader.filePosition + originPos);
 ```
 No overflow check when adding two potentially large 64-bit values from file data.
 
-### 3.5 Endianness conversion on potentially failed read
+### <del> 3.5 Endianness conversion on potentially failed read
 
 **File:** `src/slideio/drivers/czi/czislide.cpp:298-309`
 
@@ -231,7 +231,7 @@ m_fileStream.read((char*)&header, sizeof(header));
 updateSegmentHeaderBE(header);  // proceeds even if read failed
 ```
 
-### 3.6 TOCTOU in ETS dimension access
+### <del> 3.6 TOCTOU in ETS dimension access
 
 **File:** `src/slideio/drivers/vsi/etsfile.cpp:45-47`
 
@@ -242,7 +242,7 @@ if (zIndex > 1 && zIndex < m_maxCoordinates.size()) {
 ```
 Calls `getDimensionOrder()` twice; second call not guaranteed to return same value.
 
-### 3.7 Exception not properly joined in multithreaded converter
+### <del> 3.7 Exception not properly joined in multithreaded converter
 
 **File:** `src/slideio/converter/tiffconverter.cpp:817-835`
 
@@ -252,13 +252,13 @@ for (auto& e : encoders) { e.join(); }
 ```
 If `r.join()` throws, remaining readers and all encoders are never joined. Needs RAII or try-finally.
 
-### 3.8 Missing const on Scene accessor methods
+### <del> 3.8 Missing const on Scene accessor methods
 
 **File:** `src/slideio/slideio/scene.cpp:62, 68`
 
 `getNumZSlices()` and `getNumTFrames()` modify no state but are not marked `const`.
 
-### 3.9 Swallowed error in UTF-8 conversion
+### <del> 3.9 Swallowed error in UTF-8 conversion
 
 **File:** `src/slideio/core/tools/tools.cpp:141-160`
 
@@ -268,7 +268,7 @@ Returns empty `wstring` for most `MultiByteToWideChar` errors instead of throwin
 
 ## 4. Low-Severity Bugs
 
-### 4.1 Unused variable in CVScene::readBlockChannels
+### <del> 4.1 Unused variable in CVScene::readBlockChannels
 
 **File:** `src/slideio/core/cvscene.cpp:30, 61`
 
@@ -276,7 +276,7 @@ Returns empty `wstring` for most `MultiByteToWideChar` errors instead of throwin
 const cv::Rect rectScene = blockRect;  // assigned but never used
 ```
 
-### 4.2 Typo in error message
+### <del> 4.2 Typo in error message
 
 **File:** `src/slideio/core/tools/tools.cpp:151`
 
@@ -284,7 +284,7 @@ const cv::Rect rectScene = blockRect;  // assigned but never used
 "Unrecognized UTF-8 charachters"  ->  "characters"
 ```
 
-### 4.3 CVScene::getChannelName ignores channel parameter
+### <del> 4.3 CVScene::getChannelName ignores channel parameter
 
 **File:** `src/slideio/core/cvscene.cpp:15`
 
