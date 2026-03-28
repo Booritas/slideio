@@ -95,7 +95,7 @@ bool SmallTiffWrapper::isValid() const {
 }
 
 SmallImagePage* slideio::SmallTiffWrapper::readPage(int pageIndex) {
-	if (pageIndex < 0 && pageIndex >= getNumPages()) {
+	if (pageIndex < 0 || pageIndex >= getNumPages()) {
 		RAISE_RUNTIME_ERROR << "SmallTiffWrapper: invalid page index: " 
 			<< pageIndex << ". Valid range is [0, " << getNumPages() - 1 << "]";
 	}
