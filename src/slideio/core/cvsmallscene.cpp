@@ -38,7 +38,7 @@ void CVSmallScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, const
         output.assign(resizedBlock);
     }
     else {
-        imageBlock.copyTo(output);
+        resizedBlock.copyTo(output);
     }
 
 }
