@@ -8,6 +8,7 @@
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/core/tools/cvtools.hpp"
 #include "slideio/core/tools/endian.hpp"
+#include <climits>
 
 using namespace slideio;
 
@@ -15,10 +16,10 @@ slideio::vsi::EtsFile::EtsFile(const std::string& filePath) : m_filePath(filePat
 }
 
 bool vsi::EtsFile::assignVolume(std::list<std::shared_ptr<vsi::Volume>>& volumes) {
-    const int minWidth = m_maxCoordinates[0] * m_tileSize.width;
-    const int minHeight = m_maxCoordinates[1] * m_tileSize.height;
-    const int maxWidth = minWidth + m_tileSize.width;
-    const int maxHeight = minHeight + m_tileSize.height;
+    const int64_t minWidth = static_cast<int64_t>(m_maxCoordinates[0]) * m_tileSize.width;
+    const int64_t minHeight = static_cast<int64_t>(m_maxCoordinates[1]) * m_tileSize.height;
+    const int64_t maxWidth = minWidth + m_tileSize.width;
+    const int64_t maxHeight = minHeight + m_tileSize.height;
 
     for (auto it = volumes.begin(); it != volumes.end(); ++it) {
         const std::shared_ptr<Volume> volume = *it;
@@ -124,12 +125,16 @@ void slideio::vsi::EtsFile::read(std::list<std::shared_ptr<Volume>>& volumes, st
         m_etsStream->skipBytes(4);
     }
 
-    const int minWidth = m_maxCoordinates[0] * m_tileSize.width;
-    const int minHeight = m_maxCoordinates[1] * m_tileSize.height;
-    const int maxWidth = minWidth + m_tileSize.width;
-    const int maxHeight = minHeight + m_tileSize.height;
+    const int64_t minWidth = static_cast<int64_t>(m_maxCoordinates[0]) * m_tileSize.width;
+    const int64_t minHeight = static_cast<int64_t>(m_maxCoordinates[1]) * m_tileSize.height;
+    const int64_t maxWidth = minWidth + m_tileSize.width;
+    const int64_t maxHeight = minHeight + m_tileSize.height;
+    if (maxWidth > INT32_MAX || maxHeight > INT32_MAX) {
+        RAISE_RUNTIME_ERROR << "EtsFile: computed image dimensions overflow ("
+            << maxWidth << " x " << maxHeight << ")";
+    }
 
-    m_sizeWithCompleteTiles = cv::Size(maxWidth, maxHeight);
+    m_sizeWithCompleteTiles = cv::Size(static_cast<int>(maxWidth), static_cast<int>(maxHeight));
 
 }
 
