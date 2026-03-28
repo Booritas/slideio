@@ -2,6 +2,7 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/base/exceptions.hpp"
+#include "slideio/base/log.hpp"
 #include "slideio/drivers/czi/cziscene.hpp"
 #include <map>
 #include "slideio/drivers/czi/czislide.hpp"
@@ -459,9 +460,15 @@ void CZIScene::unpackChannels(const CZISubBlock& block, const std::vector<int>& 
         if(channelOffset<0)
             continue;
 
+        const int channelSize = block.planeSize();
+        if(channelOffset + channelSize > static_cast<int64_t>(blockData.size())) {
+            SLIDEIO_LOG(WARNING) << "CZIScene: channel data out of bounds. Offset: " << channelOffset
+                << ", size: " << channelSize << ", block data size: " << blockData.size();
+            continue;
+        }
+
         const uint8_t* channelData = blockData.data() + channelOffset;
         const SceneChannelInfo& channelInfo = m_channelInfos[channelIndex];
-        const int channelSize = block.planeSize();
         const int cvPixelType = static_cast<int>(block.dataType());
         const cv::Size rasterSize = block.rect().size();
 
