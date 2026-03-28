@@ -80,12 +80,11 @@ void ImageDriverManager::initialize()
             driverMap[driver->getID()] = driver;
         }
         {
-            SVSImageDriver* driver = new SVSImageDriver;
-            std::shared_ptr<ImageDriver> svs(driver);
-            driverMap[svs->getID()] = svs;
+            auto driver = std::make_shared<SVSImageDriver>();
+            driverMap[driver->getID()] = driver;
         }
         {
-            std::shared_ptr<ImageDriver> driver(new CZIImageDriver);
+            auto driver = std::make_shared<CZIImageDriver>();
             driverMap[driver->getID()] = driver;
         }
         {
@@ -117,9 +116,8 @@ void ImageDriverManager::initialize()
             driverMap[driver->getID()] = driver;
         }
         {
-            GDALImageDriver* driver = new GDALImageDriver;
-            std::shared_ptr<ImageDriver> gdal(driver);
-            driverMap[gdal->getID()] = gdal;
+            auto driver = std::make_shared<GDALImageDriver>();
+            driverMap[driver->getID()] = driver;
         }
     }
 }
