@@ -333,6 +333,10 @@ int CZIScene::getTileCount(void* userData)
 {
     const TilerData* tilerData = static_cast<TilerData*>(userData);
     const int zoomLevelIndex = tilerData->zoomLevelIndex;
+    if(zoomLevelIndex < 0 || zoomLevelIndex >= static_cast<int>(m_zoomLevels.size())) {
+        RAISE_RUNTIME_ERROR << "CZIScene::getTileCount: zoom level index out of range: "
+            << zoomLevelIndex << ". Valid range is [0, " << m_zoomLevels.size() - 1 << "]";
+    }
     const ZoomLevel& zoomLevel = m_zoomLevels[zoomLevelIndex];
     return static_cast<int>(zoomLevel.tiles.size());
 }
@@ -341,8 +345,16 @@ bool CZIScene::getTileRect(int tileIndex, cv::Rect& tileRect, void* userData)
 {
     const TilerData* tilerData = static_cast<TilerData*>(userData);
     const int zoomLevelIndex = tilerData->zoomLevelIndex;
+    if(zoomLevelIndex < 0 || zoomLevelIndex >= static_cast<int>(m_zoomLevels.size())) {
+        RAISE_RUNTIME_ERROR << "CZIScene::getTileRect: zoom level index out of range: "
+            << zoomLevelIndex << ". Valid range is [0, " << m_zoomLevels.size() - 1 << "]";
+    }
     const ZoomLevel& zoomLevel = m_zoomLevels[zoomLevelIndex];
     const Tiles& tiles = zoomLevel.tiles;
+    if(tileIndex < 0 || tileIndex >= static_cast<int>(tiles.size())) {
+        RAISE_RUNTIME_ERROR << "CZIScene::getTileRect: tile index out of range: "
+            << tileIndex << ". Valid range is [0, " << tiles.size() - 1 << "]";
+    }
     tileRect = tiles[tileIndex].rect;
     return true;
 }
