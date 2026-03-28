@@ -509,10 +509,6 @@ void TiffTools::scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, int64_t dirOf
     dir.YCbCrSubsampling[1] = YCbCrSubsampling[1];
 
     if (units == RESUNIT_INCH && resx > 0 && resy > 0) {
-        dir.res.x = 0.01 / resx;
-        dir.res.y = 0.01 / resy;
-    }
-    else if (units == RESUNIT_INCH && resx > 0 && resy > 0) {
         dir.res.x = 0.0254 / resx;
         dir.res.y = 0.0254 / resy;
     }
