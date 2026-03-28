@@ -43,7 +43,7 @@ namespace slideio
         std::vector<std::shared_ptr<slideio::CVScene>> m_Scenes;
         std::map<std::string, std::shared_ptr<slideio::CVScene>> m_auxImages;
         std::string m_filePath;
-        NDPIFile* m_pfile;
+        std::unique_ptr<NDPIFile> m_pfile;
     };
 }
 

@@ -82,19 +82,13 @@ void NDPISlide::init(const std::string& filePath, const std::string& driverId)
     m_filePath = filePath;
 	m_driverId = driverId;
     Tools::throwIfPathNotExist(m_filePath, "NDPISlide::init");
-    m_pfile = new NDPIFile;
+    m_pfile = std::make_unique<NDPIFile>();
     m_pfile->init(m_filePath);
     constructScenes();
     SLIDEIO_LOG(INFO) << "NDPIImageDriver:init-end";
 }
 
-NDPISlide::~NDPISlide()
-{
-    if(m_pfile)
-    {
-        delete m_pfile;
-    }
-}
+NDPISlide::~NDPISlide() = default;
 
 int NDPISlide::getNumScenes() const
 {
