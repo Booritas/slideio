@@ -504,7 +504,7 @@ void TiffTools::scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, int64_t dirOf
     dir.stripSize = (int)libtiff::TIFFStripSize(tiff);
     dir.dataType = retrieveTiffDataType(tiff);
     uint16_t YCbCrSubsampling[2] = {2, 2};
-    libtiff::TIFFGetField(tiff, TIFFTAG_YCBCRSUBSAMPLING, &YCbCrSubsampling[0], &YCbCrSubsampling[0]);
+    libtiff::TIFFGetField(tiff, TIFFTAG_YCBCRSUBSAMPLING, &YCbCrSubsampling[0], &YCbCrSubsampling[1]);
     dir.YCbCrSubsampling[0] = YCbCrSubsampling[0];
     dir.YCbCrSubsampling[1] = YCbCrSubsampling[1];
 
