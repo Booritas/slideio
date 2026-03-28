@@ -147,10 +147,7 @@ void slideio::Tools::scaleRect(const cv::Rect& srcRect, double scaleX, double sc
       const int wlen = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, utf8Str.c_str(), bytes, nullptr, 0);
       if (wlen == 0) {
           DWORD error = GetLastError();
-          if(error== ERROR_NO_UNICODE_TRANSLATION) {
-              RAISE_RUNTIME_ERROR << "Unrecognized UTF-8 charachters: " << utf8Str;
-          }
-          return std::wstring();
+          RAISE_RUNTIME_ERROR << "UTF-8 to wide string conversion failed (error " << error << "): " << utf8Str;
       }
 
       std::wstring wstr(wlen, L'\0');
