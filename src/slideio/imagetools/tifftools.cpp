@@ -775,8 +775,8 @@ void TiffTools::readRegularTile(libtiff::TIFF* hFile, const TiffDirectory& dir, 
         else {
             std::vector<cv::Mat> channelRasters;
             channelRasters.resize(channelIndices.size());
-            for (int channelIndex : channelIndices) {
-                cv::extractChannel(tileRaster, channelRasters[channelIndex], channelIndices[channelIndex]);
+            for (int i = 0; i < static_cast<int>(channelIndices.size()); ++i) {
+                cv::extractChannel(tileRaster, channelRasters[i], channelIndices[i]);
             }
             cv::merge(channelRasters, output);
         }
