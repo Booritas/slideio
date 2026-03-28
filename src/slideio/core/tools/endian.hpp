@@ -107,7 +107,7 @@ namespace slideio
 			}
 		}
 		inline void fromLittleEndianToNative(slideio::DataType dt, void* data, size_t count) {
-			if (isLittleEndian()) {
+			if (isLittleEndian() || !data || count == 0) {
 				return;
 			}
             switch (dt) {
@@ -115,27 +115,51 @@ namespace slideio
             case DataType::DT_Int8:
                 break;
             case DataType::DT_Int16:
+                if (count % sizeof(int16_t) != 0) {
+                    RAISE_RUNTIME_ERROR << "fromLittleEndianToNative: byte count " << count << " is not a multiple of " << sizeof(int16_t);
+                }
                 fromLittleEndianToNative(static_cast<int16_t*>(data), count / sizeof(int16_t));
                 break;
             case DataType::DT_Int32:
+                if (count % sizeof(int32_t) != 0) {
+                    RAISE_RUNTIME_ERROR << "fromLittleEndianToNative: byte count " << count << " is not a multiple of " << sizeof(int32_t);
+                }
                 fromLittleEndianToNative(static_cast<int32_t*>(data), count / sizeof(int32_t));
                 break;
             case DataType::DT_Float32:
+                if (count % sizeof(float) != 0) {
+                    RAISE_RUNTIME_ERROR << "fromLittleEndianToNative: byte count " << count << " is not a multiple of " << sizeof(float);
+                }
 				fromLittleEndianToNative(static_cast<float*>(data), count / sizeof(float));
                 break;
             case DataType::DT_Float64:
+                if (count % sizeof(double) != 0) {
+                    RAISE_RUNTIME_ERROR << "fromLittleEndianToNative: byte count " << count << " is not a multiple of " << sizeof(double);
+                }
 				fromLittleEndianToNative(static_cast<double*>(data), count / sizeof(double));
                 break;
             case DataType::DT_UInt16:
+                if (count % sizeof(uint16_t) != 0) {
+                    RAISE_RUNTIME_ERROR << "fromLittleEndianToNative: byte count " << count << " is not a multiple of " << sizeof(uint16_t);
+                }
 				fromLittleEndianToNative(static_cast<uint16_t*>(data), count / sizeof(uint16_t));
                 break;
             case DataType::DT_UInt32:
+                if (count % sizeof(uint32_t) != 0) {
+                    RAISE_RUNTIME_ERROR << "fromLittleEndianToNative: byte count " << count << " is not a multiple of " << sizeof(uint32_t);
+                }
 				fromLittleEndianToNative(static_cast<uint32_t*>(data), count / sizeof(uint32_t));
                 break;
             case DataType::DT_Int64:
+                if (count % sizeof(int64_t) != 0) {
+                    RAISE_RUNTIME_ERROR << "fromLittleEndianToNative: byte count " << count << " is not a multiple of " << sizeof(int64_t);
+                }
 				fromLittleEndianToNative(static_cast<int64_t*>(data), count / sizeof(int64_t));
                 break;
             case DataType::DT_UInt64:
+                if (count % sizeof(uint64_t) != 0) {
+                    RAISE_RUNTIME_ERROR << "fromLittleEndianToNative: byte count " << count << " is not a multiple of " << sizeof(uint64_t);
+                }
 				fromLittleEndianToNative(static_cast<uint64_t*>(data), count / sizeof(uint64_t));
                 break;
 			default:
