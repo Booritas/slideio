@@ -815,13 +815,24 @@ void TiffConverter::writeDirectoryDataMT(TiffDirectory& dir, const TiffDirectory
     std::thread writer(&TiffConverter::writeTiles, this, std::ref(inputQueue), std::ref(outputQueue), std::ref(cb),
         std::ref(writerException), std::ref(exceptionMutex));
 
-    for (auto& r : readers) {
-        r.join();
+    auto joinAll = [&]() {
+        for (auto& r : readers) {
+            if (r.joinable()) r.join();
+        }
+        for (auto& e : encoders) {
+            if (e.joinable()) e.join();
+        }
+        if (writer.joinable()) writer.join();
+    };
+
+    try {
+        joinAll();
     }
-    for (auto& e : encoders) {
-        e.join();
+    catch (...) {
+        // If a join throws, still join remaining threads before propagating
+        try { joinAll(); } catch (...) {}
+        throw;
     }
-    writer.join();
 
     // Propagate any captured exceptions
     if (readerException) {
