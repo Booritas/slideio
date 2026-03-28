@@ -339,6 +339,10 @@ void CZISlide::readFileHeader()
 }
 
 void CZISlide::readSubBlocks(uint64_t directoryPosition, uint64_t originPos, std::vector<CZISubBlocks>& sceneBlocks, std::vector<uint64_t>& sceneIds) {
+    if (directoryPosition > UINT64_MAX - originPos) {
+        RAISE_RUNTIME_ERROR << "CZISlide::readSubBlocks: file position overflow (directoryPosition="
+            << directoryPosition << ", originPos=" << originPos << ")";
+    }
     m_fileStream.seekg(directoryPosition + originPos, std::ios_base::beg);
     // read segment header
     SegmentHeader header{};
@@ -369,7 +373,12 @@ void CZISlide::readSubBlocks(uint64_t directoryPosition, uint64_t originPos, std
 				updateDimensionEntryBE(dimEntry);
             }
             filePos = m_fileStream.tellg();
-            m_fileStream.seekg(entryHeader.filePosition + originPos);
+            if (entryHeader.filePosition < 0 ||
+                static_cast<uint64_t>(entryHeader.filePosition) > UINT64_MAX - originPos) {
+                RAISE_RUNTIME_ERROR << "CZISlide::readSubBlocks: sub-block file position overflow (filePosition="
+                    << entryHeader.filePosition << ", originPos=" << originPos << ")";
+            }
+            m_fileStream.seekg(static_cast<uint64_t>(entryHeader.filePosition) + originPos);
             SegmentHeader segmentHeader;
             m_fileStream.read((char*)&segmentHeader, sizeof(segmentHeader));
 			updateSegmentHeaderBE(segmentHeader);
