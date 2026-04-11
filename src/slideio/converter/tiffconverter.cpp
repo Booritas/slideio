@@ -434,7 +434,9 @@ void TiffConverter::writeDirectoryData(TiffDirectory& dir, const TiffDirectorySt
         RAISE_RUNTIME_ERROR << "Converter: Invalid zoom level range in page! Expected: 1, received: " << page.
             getZoomLevelRange().size();
     }
-    if (m_parameters.getEncodeParameters()->getCompression() == Compression::Jpeg2000 || param != 1) {
+    if (m_parameters.getEncodeParameters()->getCompression() == Compression::Jpeg2000
+        || m_parameters.getEncodeParameters()->getCompression() == Compression::Jpeg
+        || param != 1) {
         writeDirectoryDataMT(dir, page, cb, param);
     }
     else {
@@ -629,20 +631,37 @@ void TiffConverter::readTiles(const TiffDirectory& dir, const TiffDirectoryStruc
 
 std::vector<uint8_t> TiffConverter::encodeTile(const cv::Mat& tileRaster) {
     Compression compression = m_parameters.getEncodeParameters()->getCompression();
-    if (compression != Compression::Jpeg2000) {
-        RAISE_RUNTIME_ERROR << "Unsupported compression type for multi-threaded compression.";
+    if (compression == Compression::Jpeg2000) {
+        std::vector<uint8_t> buff;
+        const size_t dataSize = tileRaster.total() * tileRaster.elemSize();
+        buff.resize(dataSize);
+        std::shared_ptr<JP2KEncodeParameters> jp2param =
+            std::static_pointer_cast<JP2KEncodeParameters>(m_parameters.getEncodeParameters());
+        const int encodedSize = ImageTools::encodeJp2KStream(tileRaster, buff.data(), static_cast<int>(buff.size()), *jp2param);
+        if (encodedSize <= 0) {
+            RAISE_RUNTIME_ERROR << "JPEG 2000 Encoding failed";
+        }
+        buff.resize(encodedSize);
+        return buff;
     }
-    std::vector<uint8_t> buff;
-    const size_t dataSize = tileRaster.total() * tileRaster.elemSize();
-    buff.resize(dataSize);
-    std::shared_ptr<JP2KEncodeParameters> jp2param =
-        std::static_pointer_cast<JP2KEncodeParameters>(m_parameters.getEncodeParameters());
-    const int encodedSize = ImageTools::encodeJp2KStream(tileRaster, buff.data(), static_cast<int>(buff.size()), *jp2param);
-    if (encodedSize <= 0) {
-        RAISE_RUNTIME_ERROR << "JPEG 2000 Encoding failed";
+    else if (compression == Compression::Jpeg) {
+        std::vector<uint8_t> buff;
+        std::shared_ptr<const JpegEncodeParameters> jpegParams =
+            std::static_pointer_cast<const JpegEncodeParameters>(m_parameters.getEncodeParameters());
+        const cv::Mat* jpegRaster = &tileRaster;
+        cv::Mat bgrRaster;
+        if (tileRaster.channels() == 3) {
+            const int fromTo[] = { 0, 2, 1, 1, 2, 0 };
+            bgrRaster.create(tileRaster.size(), tileRaster.type());
+            cv::mixChannels(&tileRaster, 1, &bgrRaster, 1, fromTo, 3);
+            jpegRaster = &bgrRaster;
+        }
+        ImageTools::encodeJpeg(*jpegRaster, buff, *jpegParams);
+        return buff;
     }
-    buff.resize(encodedSize);
-    return buff;
+    else {
+        RAISE_RUNTIME_ERROR << "Unsupported compression type for multi-threaded encoding.";
+    }
 }
 
 void TiffConverter::encodeTiles(BoundedQueue<Tile>& inputQueue, BoundedQueue<EncodedTile>& outputQueue,
