@@ -143,7 +143,7 @@ std::string TiffConverter::createOMETiffDescription() const {
     ome->SetAttribute("xsi:schemaLocation",
                       "http://www.openmicroscopy.org/Schemas/OME/2016-06 http://www.openmicroscopy.org/Schemas/OME/2016-06/ome.xsd");
     doc.InsertFirstChild(ome);
-    bool interleaved = false;
+    bool interleaved = true;
     auto rect = m_parameters.getRect();
     const int sizeX = rect.width;
     const int sizeY = rect.height;
@@ -426,6 +426,7 @@ TiffDirectory TiffConverter::setUpDirectory(const TiffDirectoryStructure& page) 
     dir.res = m_scene->getResolution();
     dir.software = std::string("SlideIO Library ") + getVersion();
     dir.subFileType = 0; // FILETYPE_PAGE;
+    dir.interleaved = true;
     return dir;
 }
 
@@ -833,13 +834,24 @@ void TiffConverter::writeDirectoryDataMT(TiffDirectory& dir, const TiffDirectory
     std::thread writer(&TiffConverter::writeTiles, this, std::ref(inputQueue), std::ref(outputQueue), std::ref(cb),
         std::ref(writerException), std::ref(exceptionMutex));
 
-    for (auto& r : readers) {
-        r.join();
+    auto joinAll = [&]() {
+        for (auto& r : readers) {
+            if (r.joinable()) r.join();
+        }
+        for (auto& e : encoders) {
+            if (e.joinable()) e.join();
+        }
+        if (writer.joinable()) writer.join();
+    };
+
+    try {
+        joinAll();
     }
-    for (auto& e : encoders) {
-        e.join();
+    catch (...) {
+        // If a join throws, still join remaining threads before propagating
+        try { joinAll(); } catch (...) {}
+        throw;
     }
-    writer.join();
 
     // Propagate any captured exceptions
     if (readerException) {

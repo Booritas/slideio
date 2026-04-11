@@ -8,6 +8,7 @@
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/core/tools/cvtools.hpp"
 #include "slideio/core/tools/endian.hpp"
+#include <climits>
 
 using namespace slideio;
 
@@ -15,10 +16,10 @@ slideio::vsi::EtsFile::EtsFile(const std::string& filePath) : m_filePath(filePat
 }
 
 bool vsi::EtsFile::assignVolume(std::list<std::shared_ptr<vsi::Volume>>& volumes) {
-    const int minWidth = m_maxCoordinates[0] * m_tileSize.width;
-    const int minHeight = m_maxCoordinates[1] * m_tileSize.height;
-    const int maxWidth = minWidth + m_tileSize.width;
-    const int maxHeight = minHeight + m_tileSize.height;
+    const int64_t minWidth = static_cast<int64_t>(m_maxCoordinates[0]) * m_tileSize.width;
+    const int64_t minHeight = static_cast<int64_t>(m_maxCoordinates[1]) * m_tileSize.height;
+    const int64_t maxWidth = minWidth + m_tileSize.width;
+    const int64_t maxHeight = minHeight + m_tileSize.height;
 
     for (auto it = volumes.begin(); it != volumes.end(); ++it) {
         const std::shared_ptr<Volume> volume = *it;
@@ -43,20 +44,20 @@ void vsi::EtsFile::initStruct(TileInfoListPtr& tiles) {
     }
 
     const int zIndex = m_volume->getDimensionOrder(Dimensions::Z);
-    if (zIndex > 1 && zIndex < m_maxCoordinates.size()) {
-        m_numZSlices = m_maxCoordinates[m_volume->getDimensionOrder(Dimensions::Z)] + 1;
+    if (zIndex > 1 && zIndex < static_cast<int>(m_maxCoordinates.size())) {
+        m_numZSlices = m_maxCoordinates[zIndex] + 1;
     }
     const int tIndex = m_volume->getDimensionOrder(Dimensions::T);
-    if (tIndex > 1 && tIndex < m_maxCoordinates.size()) {
-        m_numTFrames = m_maxCoordinates[m_volume->getDimensionOrder(Dimensions::T)] + 1;
+    if (tIndex > 1 && tIndex < static_cast<int>(m_maxCoordinates.size())) {
+        m_numTFrames = m_maxCoordinates[tIndex] + 1;
     }
     const int lambdaIndex = m_volume->getDimensionOrder(Dimensions::L);
-    if (lambdaIndex > 1 && lambdaIndex < m_maxCoordinates.size()) {
-        m_numLambdas = m_maxCoordinates[m_volume->getDimensionOrder(Dimensions::L)] + 1;
+    if (lambdaIndex > 1 && lambdaIndex < static_cast<int>(m_maxCoordinates.size())) {
+        m_numLambdas = m_maxCoordinates[lambdaIndex] + 1;
     }
     const int channelIndex = m_volume->getDimensionOrder(Dimensions::C);
-    if (channelIndex > 1 && channelIndex < m_maxCoordinates.size()) {
-        m_numChannels = m_maxCoordinates[m_volume->getDimensionOrder(Dimensions::C)] + 1;
+    if (channelIndex > 1 && channelIndex < static_cast<int>(m_maxCoordinates.size())) {
+        m_numChannels = m_maxCoordinates[channelIndex] + 1;
     }
 
     m_pyramid.init(tiles, m_size, m_tileSize, m_volume.get());
@@ -124,12 +125,16 @@ void slideio::vsi::EtsFile::read(std::list<std::shared_ptr<Volume>>& volumes, st
         m_etsStream->skipBytes(4);
     }
 
-    const int minWidth = m_maxCoordinates[0] * m_tileSize.width;
-    const int minHeight = m_maxCoordinates[1] * m_tileSize.height;
-    const int maxWidth = minWidth + m_tileSize.width;
-    const int maxHeight = minHeight + m_tileSize.height;
+    const int64_t minWidth = static_cast<int64_t>(m_maxCoordinates[0]) * m_tileSize.width;
+    const int64_t minHeight = static_cast<int64_t>(m_maxCoordinates[1]) * m_tileSize.height;
+    const int64_t maxWidth = minWidth + m_tileSize.width;
+    const int64_t maxHeight = minHeight + m_tileSize.height;
+    if (maxWidth > INT32_MAX || maxHeight > INT32_MAX) {
+        RAISE_RUNTIME_ERROR << "EtsFile: computed image dimensions overflow ("
+            << maxWidth << " x " << maxHeight << ")";
+    }
 
-    m_sizeWithCompleteTiles = cv::Size(maxWidth, maxHeight);
+    m_sizeWithCompleteTiles = cv::Size(static_cast<int>(maxWidth), static_cast<int>(maxHeight));
 
 }
 

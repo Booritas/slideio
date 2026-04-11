@@ -46,8 +46,8 @@ namespace slideio
         Size size() const {
             return { width, height };
         }
-        int32_t area() const {
-            return width * height;
+        int64_t area() const {
+            return static_cast<int64_t>(width) * height;
         }
         bool empty() const {
             return width <= 0 || height <= 0;

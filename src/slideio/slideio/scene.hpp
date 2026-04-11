@@ -48,11 +48,11 @@ namespace slideio
         /**@brief returns number of slices for 3D/4D images. 
         *
         * The method returns 1 for 2D images. */
-        int getNumZSlices();
+        int getNumZSlices() const;
         /**@brief returns number of time frames for 3D/4D images.
         *
         * The method returns 1 for images without time frames. */
-        int getNumTFrames();
+        int getNumTFrames() const;
         /**@brief returns compression of the raster data */
         Compression getCompression() const;
         /**brief returns data type of a channel 

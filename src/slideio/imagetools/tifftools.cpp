@@ -504,15 +504,11 @@ void TiffTools::scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, int64_t dirOf
     dir.stripSize = (int)libtiff::TIFFStripSize(tiff);
     dir.dataType = retrieveTiffDataType(tiff);
     uint16_t YCbCrSubsampling[2] = {2, 2};
-    libtiff::TIFFGetField(tiff, TIFFTAG_YCBCRSUBSAMPLING, &YCbCrSubsampling[0], &YCbCrSubsampling[0]);
+    libtiff::TIFFGetField(tiff, TIFFTAG_YCBCRSUBSAMPLING, &YCbCrSubsampling[0], &YCbCrSubsampling[1]);
     dir.YCbCrSubsampling[0] = YCbCrSubsampling[0];
     dir.YCbCrSubsampling[1] = YCbCrSubsampling[1];
 
     if (units == RESUNIT_INCH && resx > 0 && resy > 0) {
-        dir.res.x = 0.01 / resx;
-        dir.res.y = 0.01 / resy;
-    }
-    else if (units == RESUNIT_INCH && resx > 0 && resy > 0) {
         dir.res.x = 0.0254 / resx;
         dir.res.y = 0.0254 / resy;
     }
@@ -779,8 +775,8 @@ void TiffTools::readRegularTile(libtiff::TIFF* hFile, const TiffDirectory& dir, 
         else {
             std::vector<cv::Mat> channelRasters;
             channelRasters.resize(channelIndices.size());
-            for (int channelIndex : channelIndices) {
-                cv::extractChannel(tileRaster, channelRasters[channelIndex], channelIndices[channelIndex]);
+            for (int i = 0; i < static_cast<int>(channelIndices.size()); ++i) {
+                cv::extractChannel(tileRaster, channelRasters[i], channelIndices[i]);
             }
             cv::merge(channelRasters, output);
         }
@@ -867,16 +863,24 @@ void TiffTools::readNotRGBTile(libtiff::TIFF* hFile, const TiffDirectory& dir, i
         cv::merge(channelRasters, flipped);
     }
     else if (channelIndices.size() == 1) {
+        if(channelIndices[0] < 0 || channelIndices[0] >= static_cast<int>(channelMapping.size())) {
+            RAISE_RUNTIME_ERROR << "TiffTools::readNotRGBTile: channel index out of range: "
+                << channelIndices[0] << ". Valid range is [0, " << channelMapping.size() - 1 << "]";
+        }
         const int correctedIndex = channelMapping[channelIndices[0]]; // correct the channel index for big endian
         cv::extractChannel(tileRaster, flipped, correctedIndex);
     }
     else {
         std::vector<cv::Mat> channelRasters;
         channelRasters.resize(channelIndices.size());
-        for (int channelIndex : channelIndices) {
-            const int correctedIndex = channelMapping[channelIndices[channelIndex]];
+        for (int i = 0; i < static_cast<int>(channelIndices.size()); ++i) {
+            if(channelIndices[i] < 0 || channelIndices[i] >= static_cast<int>(channelMapping.size())) {
+                RAISE_RUNTIME_ERROR << "TiffTools::readNotRGBTile: channel index out of range: "
+                    << channelIndices[i] << ". Valid range is [0, " << channelMapping.size() - 1 << "]";
+            }
+            const int correctedIndex = channelMapping[channelIndices[i]];
             // correct the channel index for big endian
-            cv::extractChannel(tileRaster, channelRasters[channelIndex], correctedIndex);
+            cv::extractChannel(tileRaster, channelRasters[i], correctedIndex);
         }
         cv::merge(channelRasters, flipped);
     }
@@ -915,7 +919,7 @@ void TiffTools::setTags(libtiff::TIFF* tiff, const TiffDirectory& dir) {
     libtiff::TIFFSetField(tiff, TIFFTAG_TILEWIDTH, dir.tileWidth);
     libtiff::TIFFSetField(tiff, TIFFTAG_TILELENGTH, dir.tileHeight);;
     libtiff::TIFFSetField(tiff, TIFFTAG_IMAGEDESCRIPTION, dir.description.c_str());
-    libtiff::TIFFSetField(tiff, TIFFTAG_PLANARCONFIG, ((numChannels == 1) ? 2 : 1));
+    libtiff::TIFFSetField(tiff, TIFFTAG_PLANARCONFIG, 1);
     Resolution res = dir.res;
     double rx = (res.x > 0) ? 0.01 / res.x : 0.;
     double ry = (res.y > 0.) ? 0.01 / res.y : 0.;

@@ -20,10 +20,11 @@ namespace slideio {
             return *this;
         }
         RuntimeError() = default;
-        RuntimeError(RuntimeError& rhs) {
+        RuntimeError(RuntimeError& rhs) : m_shown(false) {
             std::string message = rhs.m_innerStream.str();
-            if(!m_shown) {
+            if(!rhs.m_shown) {
                 log(message);
+                rhs.m_shown = true;
             }
             m_innerStream << message;
         }

@@ -2,6 +2,7 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/base/exceptions.hpp"
+#include "slideio/base/log.hpp"
 #include "slideio/drivers/czi/cziscene.hpp"
 #include <map>
 #include "slideio/drivers/czi/czislide.hpp"
@@ -332,6 +333,10 @@ int CZIScene::getTileCount(void* userData)
 {
     const TilerData* tilerData = static_cast<TilerData*>(userData);
     const int zoomLevelIndex = tilerData->zoomLevelIndex;
+    if(zoomLevelIndex < 0 || zoomLevelIndex >= static_cast<int>(m_zoomLevels.size())) {
+        RAISE_RUNTIME_ERROR << "CZIScene::getTileCount: zoom level index out of range: "
+            << zoomLevelIndex << ". Valid range is [0, " << m_zoomLevels.size() - 1 << "]";
+    }
     const ZoomLevel& zoomLevel = m_zoomLevels[zoomLevelIndex];
     return static_cast<int>(zoomLevel.tiles.size());
 }
@@ -340,8 +345,16 @@ bool CZIScene::getTileRect(int tileIndex, cv::Rect& tileRect, void* userData)
 {
     const TilerData* tilerData = static_cast<TilerData*>(userData);
     const int zoomLevelIndex = tilerData->zoomLevelIndex;
+    if(zoomLevelIndex < 0 || zoomLevelIndex >= static_cast<int>(m_zoomLevels.size())) {
+        RAISE_RUNTIME_ERROR << "CZIScene::getTileRect: zoom level index out of range: "
+            << zoomLevelIndex << ". Valid range is [0, " << m_zoomLevels.size() - 1 << "]";
+    }
     const ZoomLevel& zoomLevel = m_zoomLevels[zoomLevelIndex];
     const Tiles& tiles = zoomLevel.tiles;
+    if(tileIndex < 0 || tileIndex >= static_cast<int>(tiles.size())) {
+        RAISE_RUNTIME_ERROR << "CZIScene::getTileRect: tile index out of range: "
+            << tileIndex << ". Valid range is [0, " << tiles.size() - 1 << "]";
+    }
     tileRect = tiles[tileIndex].rect;
     return true;
 }
@@ -459,15 +472,27 @@ void CZIScene::unpackChannels(const CZISubBlock& block, const std::vector<int>& 
         if(channelOffset<0)
             continue;
 
+        const int channelSize = block.planeSize();
+        if(channelOffset + channelSize > static_cast<int64_t>(blockData.size())) {
+            SLIDEIO_LOG(WARNING) << "CZIScene: channel data out of bounds. Offset: " << channelOffset
+                << ", size: " << channelSize << ", block data size: " << blockData.size();
+            continue;
+        }
+
         const uint8_t* channelData = blockData.data() + channelOffset;
         const SceneChannelInfo& channelInfo = m_channelInfos[channelIndex];
-        const int channelSize = block.planeSize();
         const int cvPixelType = static_cast<int>(block.dataType());
         const cv::Size rasterSize = block.rect().size();
 
         if(channelInfo.numComponents==1)
         {
             componentRasters[index].create(rasterSize, CV_MAKETYPE(cvPixelType, 1));
+            const size_t targetSize = componentRasters[index].total() * componentRasters[index].elemSize();
+            if(channelSize < 0 || static_cast<size_t>(channelSize) > targetSize) {
+                SLIDEIO_LOG(WARNING) << "CZIScene: channel size mismatch. Source: " << channelSize
+                    << ", target: " << targetSize;
+                continue;
+            }
             uint8_t* trg = componentRasters[index].data;
             std::memcpy(trg, channelData, channelSize);
         }

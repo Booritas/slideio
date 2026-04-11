@@ -28,10 +28,12 @@ namespace slideio
     {
     public:
         RefCounterGuard(RefCounter* counter) : m_counter(counter) {
-            m_counter->increaseCounter();
+            if (m_counter)
+                m_counter->increaseCounter();
         }
         ~RefCounterGuard() {
-            m_counter->decreaseCounter();
+            if (m_counter)
+                m_counter->decreaseCounter();
         }
         RefCounter* m_counter;
     };
