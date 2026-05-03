@@ -12,6 +12,7 @@
 #include "slideio/drivers/vsi/vsifile.hpp"
 #include "slideio/core/tools/cvtools.hpp"
 #include "slideio/slideio/imagedrivermanager.hpp"
+#include "slideio/slideio/slideio.hpp"
 
 
 namespace slideio
@@ -123,13 +124,13 @@ TEST_F(VSIImageDriverTests, getSceneIndex)
             "Skip the test because full dataset is not enabled";
     }
     const std::string filePath = TestTools::getFullTestImagePath("vsi", "Zenodo/Abdominal/G1M16_ABD_HE_B6.vsi");
-    VSIImageDriver driver;
-    std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
+    auto slide = slideio::openSlide(filePath, "AUTO");
     ASSERT_TRUE(slide);
+    EXPECT_EQ("VSI", slide->getDriverId());
     const int numScenes = slide->getNumScenes();
     EXPECT_EQ(3, numScenes);
     for (int iScene = 0; iScene < numScenes; ++iScene) {
-        std::shared_ptr<slideio::CVScene> scene = slide->getScene(iScene);
+        std::shared_ptr<slideio::CVScene> scene = slide->getScene(iScene)->getCVScene();
         EXPECT_TRUE(scene.get() != nullptr);
         EXPECT_EQ(iScene, scene->getSceneIndex());
         EXPECT_EQ(filePath, scene->getFilePath());
@@ -139,7 +140,7 @@ TEST_F(VSIImageDriverTests, getSceneIndex)
     ASSERT_EQ(numImages, 1);
     std::list<std::string> imageNames = slide->getAuxImageNames();
     for (auto& name : imageNames) {
-        auto scene = slide->getAuxImage(name);
+        auto scene = slide->getAuxImage(name)->getCVScene();
         EXPECT_TRUE(scene.get() != nullptr);
         EXPECT_EQ(-1, scene->getSceneIndex());
         EXPECT_EQ(filePath, scene->getFilePath());

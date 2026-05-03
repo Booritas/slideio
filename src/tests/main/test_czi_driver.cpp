@@ -6,13 +6,12 @@
 #include "slideio/drivers/czi/cziimagedriver.hpp"
 #include "slideio/drivers/czi/czislide.hpp"
 #include "tests/testlib/testtools.hpp"
-
-
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/slideio/scene.hpp"
 #include "slideio/core/tools/cvtools.hpp"
 #include "slideio/imagetools/imagetools.hpp"
 #include "slideio/base/exceptions.hpp"
+#include "slideio/slideio/slideio.hpp"
 
 TEST(CZIImageDriver, DriverManager_getDriverIDs)
 {
@@ -685,16 +684,16 @@ TEST(CZIImageDriver, channelAttributes)
     EXPECT_EQ(scene->getChannelAttributeValue(0, "AcquisitionMode"), "LaserScanningConfocalMicroscopy");
 }
 
-TEST(CZIImageDriver, getSceneIndex)
+TEST(CZIImageDriver, getDriverId)
 {
     std::string filePath = TestTools::getTestImagePath("czi", "pJP31mCherry.czi");
-    slideio::CZIImageDriver driver;
-    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    auto slide = slideio::openSlide(filePath, "AUTO");
     ASSERT_TRUE(slide);
+    EXPECT_EQ("CZI", slide->getDriverId());
     const int numScenes = slide->getNumScenes();
     EXPECT_EQ(1, numScenes);
     for (int iScene = 0; iScene < numScenes; ++iScene) {
-        std::shared_ptr<slideio::CVScene> scene = slide->getScene(iScene);
+        std::shared_ptr<slideio::CVScene> scene = slide->getScene(iScene)->getCVScene();
         EXPECT_TRUE(scene.get() != nullptr);
         EXPECT_EQ(iScene, scene->getSceneIndex());
         EXPECT_EQ(filePath, scene->getFilePath());

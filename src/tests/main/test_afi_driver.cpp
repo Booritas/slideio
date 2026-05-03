@@ -3,6 +3,7 @@
 #include "slideio/drivers/afi/afislide.hpp"
 #include "slideio/imagetools/imagetools.hpp"
 #include "slideio/base/exceptions.hpp"
+#include "slideio/slideio/slideio.hpp"
 
 #include <gtest/gtest.h>
 #include <filesystem>
@@ -174,4 +175,25 @@ TEST_F(AFIDriverFileTest, multiThreadSceneAccess) {
     std::string filePath = getPrivTestImagesPath("afi", "fs.afi");
     slideio::AFIImageDriver driver;
     TestTools::multiThreadedTest(filePath, driver);
+}
+
+TEST_F(AFIDriverFileTest, getDriverId)
+{
+    if (!TestTools::isFullTestEnabled()) {
+        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
+    }
+
+    const std::string filePath = getPrivTestImagesPath("afi", "fs.afi");
+    auto slide = slideio::openSlide(filePath, "AUTO");
+    ASSERT_TRUE(slide);
+    EXPECT_EQ("AFI", slide->getDriverId());
+    const int numScenes = slide->getNumScenes();
+    EXPECT_EQ(3, numScenes);
+    for (int iScene = 0; iScene < numScenes; ++iScene) {
+        std::shared_ptr<slideio::CVScene> scene = slide->getScene(iScene)->getCVScene();
+        EXPECT_TRUE(scene.get() != nullptr);
+        EXPECT_EQ(iScene, scene->getSceneIndex());
+        EXPECT_EQ(filePath, scene->getFilePath());
+        EXPECT_EQ("AFI", scene->getDriverId());
+    }
 }

@@ -44,7 +44,7 @@ std::shared_ptr<CVScene> SVSSlide::getScene(int index) const
     return m_Scenes[index];
 }
 
-std::shared_ptr<SVSSlide> SVSSlide::openFile(const std::string& filePath)
+std::shared_ptr<SVSSlide> SVSSlide::openFile(const std::string& filePath, const std::string& driverId)
 {
     SLIDEIO_LOG(INFO) << "SVSSlide::openFile: " << filePath;
     namespace fs = std::filesystem;
@@ -88,6 +88,7 @@ std::shared_ptr<SVSSlide> SVSSlide::openFile(const std::string& filePath)
     std::map<std::string, std::shared_ptr<CVScene>> auxImages;
     std::list<std::string> auxNames;
     slide.reset(new SVSSlide);
+    slide->setDriverId(driverId);
 
     if(!image.empty()){
         std::vector<TiffDirectory> image_dirs;
@@ -95,22 +96,30 @@ std::shared_ptr<SVSSlide> SVSSlide::openFile(const std::string& filePath)
         for(const auto index: image){
             image_dirs.push_back(directories[index]);
         }
-        std::shared_ptr<CVScene> scene(new SVSTiledScene(filePath, slide->getDriverId(),keeper.release(),"Image", image_dirs));
+		std::shared_ptr<SVSTiledScene> tScene(new SVSTiledScene(filePath, slide->getDriverId(), keeper.release(), "Image", image_dirs));
+        tScene->setDriverId(driverId);
+        std::shared_ptr<CVScene> scene(tScene);
         scenes.push_back(scene);
     }
     if(thumbnail>=0) {
-        std::shared_ptr<CVScene> scene(new SVSSmallScene(filePath, slide->getDriverId(), THUMBNAIL, directories[thumbnail], true));
+		std::shared_ptr<SVSSmallScene> sScene(new SVSSmallScene(filePath, slide->getDriverId(), THUMBNAIL, directories[thumbnail], tiff));
+		sScene->setDriverId(driverId);
+        std::shared_ptr<CVScene> scene(sScene);
         auxImages[THUMBNAIL] = scene;
         auxNames.emplace_back(THUMBNAIL);
     }
     if(label>=0) {
-        std::shared_ptr<CVScene> scene(new SVSSmallScene(filePath,slide->getDriverId(), LABEL, directories[label], true));
+        std::shared_ptr<SVSSmallScene> sScene(new SVSSmallScene(filePath,slide->getDriverId(), LABEL, directories[label], true));
+        sScene->setDriverId(driverId);
+        std::shared_ptr<CVScene> scene(sScene);
         auxImages[LABEL] = scene;
         auxNames.emplace_back(LABEL);
     }
     if(macro>=0) {
-        std::shared_ptr<CVScene> scene = std::make_shared <SVSSmallScene>(
+        std::shared_ptr<SVSSmallScene> sScene = std::make_shared <SVSSmallScene>(
             filePath, slide->getDriverId(),MACRO, directories[macro], tiff);
+        sScene->setDriverId(driverId);
+        std::shared_ptr<CVScene> scene(sScene);
         auxImages[MACRO] = scene;
         auxNames.emplace_back(MACRO);
     }

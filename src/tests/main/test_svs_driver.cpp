@@ -6,6 +6,8 @@
 #include <opencv2/imgproc.hpp>
 #include "tests/testlib/testtools.hpp"
 #include "slideio/base/exceptions.hpp"
+#include "slideio/slideio/slideio.hpp"
+
 #include <stdint.h>
 #include <functional>
 #include <numeric>
@@ -22,6 +24,23 @@ TEST(SVSImageDriver, canOpenFile)
     slideio::SVSImageDriver driver;
     EXPECT_TRUE(driver.canOpenFile("abc.svs"));
     EXPECT_FALSE(driver.canOpenFile("abc.tif"));
+}
+
+TEST(SVSImageDriver, getDriverId)
+{
+    std::string filePath = TestTools::getTestImagePath("svs", "CMU-1-Small-Region.svs");
+    auto slide = slideio::openSlide(filePath, "AUTO");
+    ASSERT_TRUE(slide);
+    EXPECT_EQ("SVS", slide->getDriverId());
+    const int numScenes = slide->getNumScenes();
+    EXPECT_EQ(1, numScenes);
+    for (int iScene = 0; iScene < numScenes; ++iScene) {
+        std::shared_ptr<slideio::CVScene> scene = slide->getScene(iScene)->getCVScene();
+        EXPECT_TRUE(scene.get() != nullptr);
+        EXPECT_EQ(iScene, scene->getSceneIndex());
+        EXPECT_EQ(filePath, scene->getFilePath());
+        EXPECT_EQ("SVS", scene->getDriverId());
+    }
 }
 
 TEST(SVSImageDriver, openFile_BrightField)

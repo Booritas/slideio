@@ -16,6 +16,7 @@
 #include "slideio/core/tools/cvtools.hpp"
 #include "slideio/drivers/dcm/dcmimagedriver.hpp"
 #include "slideio/imagetools/imagetools.hpp"
+#include "slideio/slideio/slideio.hpp"
 
 using namespace slideio;
 
@@ -100,12 +101,13 @@ TEST(DCMImageDriver, getSceneIndex)
     }
     DCMImageDriver driver;
     std::string filePath = TestTools::getTestImagePath("dcm", "series", true);
-    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    auto slide = slideio::openSlide(filePath, "AUTO");
     ASSERT_TRUE(slide);
+    EXPECT_EQ("DCM", slide->getDriverId());
     const int numScenes = slide->getNumScenes();
     EXPECT_EQ(2, numScenes);
     for (int iScene = 0; iScene < numScenes; ++iScene) {
-        std::shared_ptr<slideio::CVScene> scene = slide->getScene(iScene);
+        std::shared_ptr<slideio::CVScene> scene = slide->getScene(iScene)->getCVScene();
         EXPECT_TRUE(scene.get() != nullptr);
         EXPECT_EQ(iScene, scene->getSceneIndex());
         EXPECT_EQ(filePath, scene->getFilePath());

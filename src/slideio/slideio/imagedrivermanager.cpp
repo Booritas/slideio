@@ -139,7 +139,9 @@ std::shared_ptr<CVSlide> ImageDriverManager::openSlide(const std::string& filePa
             throw std::runtime_error("ImageDriverManager: Unknown driver " + driverName);
         driver = it->second;
     }
-    return driver->openFile(filePath);
+	auto slide = driver->openFile(filePath);
+	slide->setDriverId(driver->getID());
+    return slide;
 }
 
 void ImageDriverManager::setLogLevel(const std::string &level) {

@@ -14,6 +14,7 @@
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/imagetools/imagetools.hpp"
 #include "slideio/core/tools/xmltools.hpp"
+#include "slideio/slideio/slideio.hpp"
 
 
 TEST(SCNImageDriver, DriverManager_getDriverIDs)
@@ -464,13 +465,13 @@ TEST(SCNImageDriver, getSceneIndex)
             "Skip the test because full dataset is not enabled";
     }
     std::string filePath = TestTools::getFullTestImagePath("scn", "ultivue/Leica Aperio Versa 5 channel fluorescent image.scn");
-    slideio::SCNImageDriver driver;
-    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    auto slide = slideio::openSlide(filePath, "AUTO");
     ASSERT_TRUE(slide);
+    EXPECT_EQ("SCN", slide->getDriverId());
     const int numScenes = slide->getNumScenes();
     EXPECT_EQ(3, numScenes);
     for (int iScene = 0; iScene < numScenes; ++iScene) {
-        std::shared_ptr<slideio::CVScene> scene = slide->getScene(iScene);
+        std::shared_ptr<slideio::CVScene> scene = slide->getScene(iScene)->getCVScene();
         EXPECT_TRUE(scene.get() != nullptr);
         EXPECT_EQ(iScene, scene->getSceneIndex());
         EXPECT_EQ(filePath, scene->getFilePath());
@@ -480,7 +481,7 @@ TEST(SCNImageDriver, getSceneIndex)
     ASSERT_EQ(numImages, 1);
     std::list<std::string> imageNames = slide->getAuxImageNames();
     for (auto& name: imageNames) {
-        auto scene = slide->getAuxImage("label");
+        auto scene = slide->getAuxImage("label")->getCVScene();
         EXPECT_TRUE(scene.get() != nullptr);
         EXPECT_EQ(-1, scene->getSceneIndex());
         EXPECT_EQ(filePath, scene->getFilePath());

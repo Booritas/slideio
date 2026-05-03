@@ -11,6 +11,7 @@
 #include "slideio/drivers/ndpi/ndpiscene.hpp"
 #include "slideio/imagetools/imagetools.hpp"
 #include "slideio/core/tools/tools.hpp"
+#include "slideio/slideio/slideio.hpp"
 
 namespace slideio
 {
@@ -554,19 +555,18 @@ TEST_F(NDPIImageDriverTests, readRoiExceedScene)
     EXPECT_NO_THROW(scene->readResampledBlock(blockRect, blockSize, blockRaster));
 }
 
-TEST_F(NDPIImageDriverTests, getSceneIndex)
+TEST_F(NDPIImageDriverTests, getDriverId)
 {
     if (!TestTools::isFullTestEnabled()) {
         GTEST_SKIP() << "Skip private test because full dataset is not enabled";
     }
 
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1.ndpi");
-    slideio::NDPIImageDriver driver;
-    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    auto slide = slideio::openSlide(filePath, "AUTO");
     ASSERT_TRUE(slide);
     const int numScenes = slide->getNumScenes();
     EXPECT_EQ(1, numScenes);
-    std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
+    std::shared_ptr<slideio::CVScene> scene = slide->getScene(0)->getCVScene();
     EXPECT_TRUE(scene.get() != nullptr);
 	EXPECT_EQ(0, scene->getSceneIndex());
 	EXPECT_EQ(filePath, scene->getFilePath());

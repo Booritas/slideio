@@ -14,6 +14,7 @@
 #include "slideio/core/tools/cvtools.hpp"
 #include "slideio/drivers/zvi/zviimagedriver.hpp"
 #include "slideio/imagetools/imagetools.hpp"
+#include "slideio/slideio/slideio.hpp"
 
 using namespace slideio;
 
@@ -531,13 +532,13 @@ TEST(ZVIImageDriver, getSceneIndex)
             "Skip the test because full dataset is not enabled";
     }
     const std::string filePath = TestTools::getTestImagePath("zvi", "Zeiss-1-Stacked.zvi");
-    ZVIImageDriver driver;
-    std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
+    auto slide = slideio::openSlide(filePath, "AUTO");
     ASSERT_TRUE(slide);
+    EXPECT_EQ("ZVI", slide->getDriverId());
     const int numScenes = slide->getNumScenes();
     EXPECT_EQ(1, numScenes);
     for (int iScene = 0; iScene < numScenes; ++iScene) {
-        std::shared_ptr<slideio::CVScene> scene = slide->getScene(iScene);
+        std::shared_ptr<slideio::CVScene> scene = slide->getScene(iScene)->getCVScene();
         EXPECT_TRUE(scene.get() != nullptr);
         EXPECT_EQ(iScene, scene->getSceneIndex());
         EXPECT_EQ(filePath, scene->getFilePath());
@@ -547,7 +548,7 @@ TEST(ZVIImageDriver, getSceneIndex)
     ASSERT_EQ(numImages, 0);
     std::list<std::string> imageNames = slide->getAuxImageNames();
     for (auto& name : imageNames) {
-        auto scene = slide->getAuxImage("label");
+        auto scene = slide->getAuxImage("label")->getCVScene();
         EXPECT_TRUE(scene.get() != nullptr);
         EXPECT_EQ(-1, scene->getSceneIndex());
         EXPECT_EQ(filePath, scene->getFilePath());

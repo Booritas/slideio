@@ -33,7 +33,7 @@ namespace slideio
         int getNumScenes() const override;
         std::string getFilePath() const override;
         std::shared_ptr<slideio::CVScene> getScene(int index) const override;
-        static std::shared_ptr<SVSSlide> openFile(const std::string& path);
+        static std::shared_ptr<SVSSlide> openFile(const std::string& path, const std::string& id);
         static void closeFile(libtiff::TIFF* hfile);
         std::shared_ptr<CVScene> getAuxImage(const std::string& sceneName) const override;
         void log();

@@ -423,23 +423,24 @@ TEST_F(PKEImageDriverTests, multiThreadSceneAccess) {
     TestTools::multiThreadedTest(filePath, driver);
 }
 
-TEST_F(PKEImageDriverTests, getSceneIndex)
+TEST_F(PKEImageDriverTests, getDriverId)
 {
     if (!TestTools::isFullTestEnabled()) {
         GTEST_SKIP() << "Skip private test because full dataset is not enabled";
     }
 
     std::string filePath = TestTools::getFullTestImagePath("pke", "openmicroscopy/PKI_scans/LuCa-7color_Scan1.qptiff");
-    PKEImageDriver driver;
-    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+	auto slide = slideio::openSlide(filePath, "AUTO");
     ASSERT_TRUE(slide);
+    EXPECT_EQ("QPTIFF", slide->getDriverId());
     const int numScenes = slide->getNumScenes();
     EXPECT_EQ(1, numScenes);
     for (int iScene = 0; iScene < numScenes; ++iScene) {
-        std::shared_ptr<slideio::CVScene> scene = slide->getScene(iScene);
+        auto scene = slide->getScene(iScene);
         EXPECT_TRUE(scene.get() != nullptr);
-        EXPECT_EQ(iScene, scene->getSceneIndex());
-        EXPECT_EQ(filePath, scene->getFilePath());
-		EXPECT_EQ("QPTIFF", scene->getDriverId());
+		auto cvScene = scene->getCVScene();
+        EXPECT_EQ(iScene, cvScene->getSceneIndex());
+        EXPECT_EQ(filePath, cvScene->getFilePath());
+		EXPECT_EQ("QPTIFF", cvScene->getDriverId());
     }
 }

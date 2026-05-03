@@ -127,20 +127,19 @@ TEST_F(OTImageDriverTests, openMultifileExternalMetadata) {
 	EXPECT_EQ(scene->getCompression(), sceneInfo.compression);
 }
 
-TEST_F(OTImageDriverTests, getSceneIndex)
+TEST_F(OTImageDriverTests, getDriverId)
 {
 	if (!TestTools::isFullTestEnabled()) {
 		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
 	}
 
 	std::string filePath = TestTools::getFullTestImagePath("ometiff", "Subresolutions/Leica-2.ome.tiff");
-	OTImageDriver driver;
-	std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+	auto slide = slideio::openSlide(filePath, "AUTO");
 	ASSERT_TRUE(slide);
 	const int numScenes = slide->getNumScenes();
 	EXPECT_EQ(5, numScenes);
 	for (int iScene=0; iScene<numScenes; ++iScene) {
-		std::shared_ptr<slideio::CVScene> scene = slide->getScene(iScene);
+		std::shared_ptr<slideio::CVScene> scene = slide->getScene(iScene)->getCVScene();
 		EXPECT_TRUE(scene.get() != nullptr);
 		EXPECT_EQ(iScene, scene->getSceneIndex());
 		EXPECT_EQ(filePath, scene->getFilePath());

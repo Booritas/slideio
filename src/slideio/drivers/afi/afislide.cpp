@@ -133,7 +133,7 @@ slideio::AFISlide::SlidesScenes slideio::AFISlide::getSlidesScenesFromFiles(cons
     SlidesScenes result;
     for (const auto svsFile : files) {
         const auto svsPath = getFileRelativeTo(mainFile, svsFile);
-        const auto svsSlide = SVSSlide::openFile(svsPath);
+        const auto svsSlide = SVSSlide::openFile(svsPath, "AFI");
         if(svsSlide == nullptr) {
             RAISE_RUNTIME_ERROR << "Couldn't open SVS file " << svsPath;
         }

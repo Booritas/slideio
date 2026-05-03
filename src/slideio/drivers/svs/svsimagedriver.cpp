@@ -20,7 +20,7 @@ std::string slideio::SVSImageDriver::getID() const
 
 std::shared_ptr<slideio::CVSlide> slideio::SVSImageDriver::openFile(const std::string& filePath)
 {
-	return SVSSlide::openFile(filePath);
+	return SVSSlide::openFile(filePath, getID());
 }
 
 std::string slideio::SVSImageDriver::getFileSpecs() const
