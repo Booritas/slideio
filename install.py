@@ -344,13 +344,8 @@ if __name__ == "__main__":
         if args.action in ['build','build-only', 'install']:
             build_slideio(configuration)
         if args.action in ['install','install-only']:
-            prefix = {}
-            prefix_path = install_directory
-            if args.config == 'release':
-                prefix["release"] = prefix_path
-            elif args.config == 'debug':
-                prefix["debug"] = prefix_path
-            else:
-                prefix["release"] = os.path.join(prefix_path, "release")
-                prefix["debug"] = os.path.join(prefix_path, "debug")
+            prefix = {
+                "release": os.path.join(install_directory, "release"),
+                "debug": os.path.join(install_directory, "debug"),
+            }
             install_slideio(configuration, prefix)

@@ -181,17 +181,17 @@ install(TARGETS
 
 
 if(NOT WIN32)
-    install(TARGETS 
+    install(TARGETS
                  ${BASE_LIB_NAME}
                  ${GDAL_DRIVER_NAME}
                  ${SVS_DRIVER_NAME}
-                 ${PKE_DRIVER_NAME} 
-                 ${AFI_DRIVER_NAME} 
-                 ${CZI_DRIVER_NAME} 
-                 ${DCM_DRIVER_NAME} 
-                 ${SCN_DRIVER_NAME} 
-                 ${ZVI_DRIVER_NAME} 
-                 ${NDPI_DRIVER_NAME} 
+                 ${PKE_DRIVER_NAME}
+                 ${AFI_DRIVER_NAME}
+                 ${CZI_DRIVER_NAME}
+                 ${DCM_DRIVER_NAME}
+                 ${SCN_DRIVER_NAME}
+                 ${ZVI_DRIVER_NAME}
+                 ${NDPI_DRIVER_NAME}
                  ${VSI_DRIVER_NAME}
                  ${OMETIFF_DRIVER_NAME}
                  ${CORE_LIB_NAME}
@@ -201,6 +201,35 @@ if(NOT WIN32)
                  ${TRANSFORMER_LIB_NAME}
             LIBRARY DESTINATION bin
     )
+endif()
+
+# Install debug symbol files (PDB) alongside binaries for Debug builds on MSVC.
+if(MSVC)
+    set(SLIDEIO_PDB_TARGETS
+        ${SLIDEIO_LIB_NAME}
+        ${CORE_LIB_NAME}
+        ${CONVERTER_LIB_NAME}
+        ${TRANSFORMER_LIB_NAME}
+        ${BASE_LIB_NAME}
+        ${IMAGETOOLS_LIB_NAME}
+        ${GDAL_DRIVER_NAME}
+        ${SVS_DRIVER_NAME}
+        ${PKE_DRIVER_NAME}
+        ${AFI_DRIVER_NAME}
+        ${CZI_DRIVER_NAME}
+        ${DCM_DRIVER_NAME}
+        ${SCN_DRIVER_NAME}
+        ${ZVI_DRIVER_NAME}
+        ${NDPI_DRIVER_NAME}
+        ${VSI_DRIVER_NAME}
+        ${OMETIFF_DRIVER_NAME}
+    )
+    foreach(_pdb_target ${SLIDEIO_PDB_TARGETS})
+        install(FILES $<TARGET_PDB_FILE:${_pdb_target}>
+                DESTINATION bin
+                CONFIGURATIONS Debug
+                OPTIONAL)
+    endforeach()
 endif()
 
 install(FILES 
