@@ -55,7 +55,7 @@ std::vector<std::string> ImageDriverManager::getDriverIDs()
 std::shared_ptr<slideio::ImageDriver> ImageDriverManager::findDriver(const std::string& filePath)
 {
     initialize();
-    std::string driverOrder[] = { "OMETIFF", "SVS", "CZI", "AFI", "SCN", "DCM", "ZVI", "NDPI", "VSI", "PKE", "GDAL" };
+    std::string driverOrder[] = { "OMETIFF", "SVS", "CZI", "AFI", "SCN", "DCM", "ZVI", "NDPI", "VSI", "QPTIFF", "GDAL" };
     for (const auto& driverID : driverOrder) {
         auto itDriver = driverMap.find(driverID);
         if (itDriver != driverMap.end()) {
