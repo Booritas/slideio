@@ -47,7 +47,7 @@ TEST(Converter, convertGDALJpeg) {
 	scene->readBlock(sceneRect, gdalBuffer.data(), gdalBuffer.size());
 	cv::Mat svsImage(sceneHeight, sceneWidth, CV_8UC3, svsBuffer.data());
 	cv::Mat gdalImage(sceneHeight, sceneWidth, CV_8UC3, gdalBuffer.data());
-	TestTools::showRasters(svsImage, gdalImage);
+	// TestTools::showRasters(svsImage, gdalImage);
     double sim = slideio::ImageTools::computeSimilarity(svsImage, gdalImage);
 	EXPECT_LE(0.99, sim);
 }

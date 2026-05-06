@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(py -3 --version)",
+      "Bash(python -V)",
+      "PowerShell(Get-Command python3, python, py -ErrorAction SilentlyContinue)",
+      "PowerShell(& 'C:\\\\Users\\\\Stanislav\\\\anaconda3\\\\envs\\\\conan2\\\\python.exe' install.py -a build-only -c debug 2>&1)"
+    ]
+  }
+}

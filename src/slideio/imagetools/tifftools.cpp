@@ -932,6 +932,17 @@ void TiffTools::setTags(libtiff::TIFF* tiff, const TiffDirectory& dir) {
     uint16_t phm = computeDirectoryPhotometric(dir);
     libtiff::TIFFSetField(tiff, TIFFTAG_PHOTOMETRIC, phm);
     libtiff::TIFFSetField(tiff, TIFFTAG_JPEGQUALITY, dir.compressionQuality);
+    if (dir.slideioCompression == Compression::Jpeg) {
+        // Tiles are written via TIFFWriteRawTile with abbreviated JPEG streams
+        // (no DQT/DHT). Provide the shared quantization/Huffman tables once
+        // here so libtiff emits them into TIFFTAG_JPEGTABLES on directory
+        // finalize. Tables must match what jpeglibEncodeAbbreviated produces
+        // for (channels, quality).
+        std::vector<uint8_t> jpegTables;
+        ImageTools::computeJpegTables(numChannels, dir.compressionQuality, jpegTables);
+        libtiff::TIFFSetField(tiff, TIFFTAG_JPEGTABLES,
+            static_cast<uint32_t>(jpegTables.size()), jpegTables.data());
+    }
     libtiff::TIFFSetField(tiff, TIFFTAG_SOFTWARE, dir.software.c_str());
     libtiff::TIFFSetField(tiff, TIFFTAG_SUBFILETYPE, dir.subFileType);
 	uint16_t sampleFormat = 0;

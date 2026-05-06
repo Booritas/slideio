@@ -142,3 +142,107 @@ void jpeglibEncode(const cv::Mat& raster, std::vector<uint8_t>& encodedStream, i
         RAISE_RUNTIME_ERROR << "Error during compressing of raster with libjpeg!";
     }
 }
+
+namespace {
+    // Configures a libjpeg compress struct so that the encoded stream's color
+    // space matches what libtiff expects for COMPRESSION_JPEG with PHOTOMETRIC_RGB
+    // (3-channel) or PHOTOMETRIC_MINISBLACK (1-channel): no YCbCr conversion,
+    // 1:1 sampling. The resulting quantization and Huffman tables are
+    // deterministic for a given (numChannels, quality), so a JPEGTABLES blob
+    // produced with these settings is compatible with abbreviated tile streams
+    // produced with the same settings.
+    void setupAbbreviatedCompressParams(jpeg_compress_struct& cinfo, int numChannels, int quality) {
+        cinfo.input_components = numChannels;
+        cinfo.in_color_space = (numChannels == 1) ? JCS_GRAYSCALE : JCS_RGB;
+        jpeg_set_defaults(&cinfo);
+        if (numChannels == 3) {
+            // Default for 3-channel input is JCS_YCbCr; force RGB to match
+            // libtiff's PHOTOMETRIC_RGB + COMPRESSION_JPEG color path.
+            jpeg_set_colorspace(&cinfo, JCS_RGB);
+        }
+        jpeg_set_quality(&cinfo, quality, TRUE);
+        for (int channel = 0; channel < numChannels; ++channel) {
+            cinfo.comp_info[channel].h_samp_factor = 1;
+            cinfo.comp_info[channel].v_samp_factor = 1;
+        }
+    }
+}
+
+void jpeglibWriteAbbreviatedTables(int numChannels, int quality, std::vector<uint8_t>& tablesBlob)
+{
+    if (numChannels != 1 && numChannels != 3) {
+        RAISE_RUNTIME_ERROR << "Only 3 or 1 channel images are supported!";
+    }
+    struct jpeg_compress_struct cinfo;
+    struct jpeg_error_mgr jerr;
+    cinfo.err = jpeg_std_error(&jerr);
+    jpeg_create_compress(&cinfo);
+    // image_width/height are not used by jpeg_write_tables but must be set
+    // before jpeg_set_defaults to keep cinfo in a consistent state.
+    cinfo.image_width = 16;
+    cinfo.image_height = 16;
+    setupAbbreviatedCompressParams(cinfo, numChannels, quality);
+    size_t length = 0;
+    uint8_t* output = nullptr;
+    jpeg_mem_dest(&cinfo, &output, &length);
+    jpeg_write_tables(&cinfo);
+    jpeg_destroy_compress(&cinfo);
+    if (output == nullptr || length == 0) {
+        if (output) free(output);
+        RAISE_RUNTIME_ERROR << "Failed to produce JPEG tables blob.";
+    }
+    tablesBlob.assign(output, output + length);
+    free(output);
+}
+
+void jpeglibEncodeAbbreviated(const cv::Mat& raster, std::vector<uint8_t>& encodedStream, int quality)
+{
+    if (!raster.isContinuous()) {
+        RAISE_RUNTIME_ERROR << "Expected continuous matrix!";
+    }
+    if (raster.dims != 2) {
+        RAISE_RUNTIME_ERROR << "Expected 2D matrix!";
+    }
+    if (raster.depth() != CV_8U) {
+        RAISE_RUNTIME_ERROR << "Expected 8bit matrix!";
+    }
+    const int imageWidth = raster.cols;
+    const int imageHeight = raster.rows;
+    const int numChannels = raster.channels();
+    if (numChannels != 1 && numChannels != 3) {
+        RAISE_RUNTIME_ERROR << "Only 3 or 1 channel images are supported!";
+    }
+    struct jpeg_compress_struct cinfo;
+    struct jpeg_error_mgr jerr;
+    cinfo.err = jpeg_std_error(&jerr);
+    jpeg_create_compress(&cinfo);
+    cinfo.image_width = imageWidth;
+    cinfo.image_height = imageHeight;
+    setupAbbreviatedCompressParams(cinfo, numChannels, quality);
+    size_t length = 0;
+    uint8_t* output = nullptr;
+    jpeg_mem_dest(&cinfo, &output, &length);
+    // Suppress per-tile DQT/DHT — tables are carried by TIFF JPEGTABLES tag.
+    jpeg_suppress_tables(&cinfo, TRUE);
+    jpeg_start_compress(&cinfo, FALSE);
+    JSAMPROW row_pointer[1];
+    const int row_stride = imageWidth * numChannels;
+    uint8_t* row = raster.data;
+    bool success = true;
+    while (cinfo.next_scanline < cinfo.image_height) {
+        row_pointer[0] = row;
+        if (jpeg_write_scanlines(&cinfo, row_pointer, 1) == 0) {
+            success = false;
+            break;
+        }
+        row += row_stride;
+    }
+    jpeg_finish_compress(&cinfo);
+    jpeg_destroy_compress(&cinfo);
+    if (!success) {
+        if (output) free(output);
+        RAISE_RUNTIME_ERROR << "Error during compressing of raster with libjpeg!";
+    }
+    encodedStream.assign(output, output + length);
+    free(output);
+}

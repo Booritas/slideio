@@ -27,3 +27,23 @@ void slideio::ImageTools::encodeJpeg(const cv::Mat& raster, std::vector<uint8_t>
         RAISE_RUNTIME_ERROR << "Error encoding jpeg stream: " << er.what();
     }
 }
+
+void slideio::ImageTools::encodeJpegAbbreviated(const cv::Mat& raster, std::vector<uint8_t>& encodedStream, const JpegEncodeParameters& params)
+{
+    try {
+        jpeglibEncodeAbbreviated(raster, encodedStream, params.getQuality());
+    }
+    catch (std::runtime_error& er) {
+        RAISE_RUNTIME_ERROR << "Error encoding abbreviated jpeg stream: " << er.what();
+    }
+}
+
+void slideio::ImageTools::computeJpegTables(int numChannels, int quality, std::vector<uint8_t>& tablesBlob)
+{
+    try {
+        jpeglibWriteAbbreviatedTables(numChannels, quality, tablesBlob);
+    }
+    catch (std::runtime_error& er) {
+        RAISE_RUNTIME_ERROR << "Error producing jpeg tables: " << er.what();
+    }
+}

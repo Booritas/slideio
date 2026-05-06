@@ -34,6 +34,8 @@ namespace slideio
         static void decodeJxrBlock(const uint8_t* data, size_t size, cv::OutputArray output);
         static void decodeJpegStream(const uint8_t* data, size_t size, cv::OutputArray output);
         static void encodeJpeg(const cv::Mat& raster, std::vector<uint8_t>& encodedStream, const JpegEncodeParameters& params);
+        static void encodeJpegAbbreviated(const cv::Mat& raster, std::vector<uint8_t>& encodedStream, const JpegEncodeParameters& params);
+        static void computeJpegTables(int numChannels, int quality, std::vector<uint8_t>& tablesBlob);
         // jpeg 2000 related methods
         static void readJp2KFile(const std::string& path, cv::OutputArray output);
 		static void readBitmap(const std::string& path, cv::OutputArray output);

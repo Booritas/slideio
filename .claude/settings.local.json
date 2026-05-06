@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(xargs grep *)"
+      "Bash(xargs grep *)",
+      "Bash(python install.py -a build-only -c debug)",
+      "Bash(where python3 *)"
     ]
   }
 }

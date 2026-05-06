@@ -7,4 +7,6 @@
 
 void jpeglibEncode(const cv::Mat& raster, std::vector<uint8_t>& encodedStream, int quality);
 void jpeglibDecode(const uint8_t* jpg_buffer, size_t jpg_size, cv::OutputArray output);
+void jpeglibWriteAbbreviatedTables(int numChannels, int quality, std::vector<uint8_t>& tablesBlob);
+void jpeglibEncodeAbbreviated(const cv::Mat& raster, std::vector<uint8_t>& encodedStream, int quality);
 

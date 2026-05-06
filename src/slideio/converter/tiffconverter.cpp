@@ -646,18 +646,13 @@ std::vector<uint8_t> TiffConverter::encodeTile(const cv::Mat& tileRaster) {
         return buff;
     }
     else if (compression == Compression::Jpeg) {
+        // Produce an abbreviated JPEG datastream (no DQT/DHT). The shared
+        // tables are emitted once per directory via TIFFTAG_JPEGTABLES in
+        // TiffTools::setTags. The result is written verbatim by writeRawTile.
         std::vector<uint8_t> buff;
         std::shared_ptr<const JpegEncodeParameters> jpegParams =
             std::static_pointer_cast<const JpegEncodeParameters>(m_parameters.getEncodeParameters());
-        const cv::Mat* jpegRaster = &tileRaster;
-        cv::Mat bgrRaster;
-        if (tileRaster.channels() == 3) {
-            const int fromTo[] = { 0, 2, 1, 1, 2, 0 };
-            bgrRaster.create(tileRaster.size(), tileRaster.type());
-            cv::mixChannels(&tileRaster, 1, &bgrRaster, 1, fromTo, 3);
-            jpegRaster = &bgrRaster;
-        }
-        ImageTools::encodeJpeg(*jpegRaster, buff, *jpegParams);
+        ImageTools::encodeJpegAbbreviated(tileRaster, buff, *jpegParams);
         return buff;
     }
     else {
