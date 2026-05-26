@@ -4,3 +4,4 @@
 #pragma once
 #include "slideio/base/exceptions.hpp"
 #include "slideio/base/slideio_enums.hpp"
+#include "slideio/base/randomaccessstream.hpp"
