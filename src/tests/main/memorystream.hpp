@@ -19,6 +19,7 @@ public:
 
     size_t read(uint64_t offset, size_t count, void* buf) override
     {
+        if (count == 0) return 0;
         if (offset >= m_data.size()) return 0;
         const size_t avail = m_data.size() - static_cast<size_t>(offset);
         const size_t toCopy = (count < avail) ? count : avail;

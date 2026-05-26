@@ -5,6 +5,7 @@
 #include "slideio/base/randomaccessstream.hpp"
 
 #include <atomic>
+#include <cstring>
 #include <memory>
 #include <random>
 #include <thread>

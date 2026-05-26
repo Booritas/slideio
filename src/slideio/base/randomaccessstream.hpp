@@ -13,6 +13,14 @@ namespace slideio
     // Abstract random-access read-only byte source.
     // Implementations must be thread-safe: concurrent read() calls on the same
     // instance are permitted.
+    //
+    // NOTE: This class is intentionally NOT annotated with SLIDEIO_BASE_EXPORTS
+    // because it has no out-of-line definitions to anchor a vtable in
+    // slideio-base.dll. Adding __declspec(dllimport) on the consumer side
+    // produces unresolved-symbol linker errors for the (inline) destructor and
+    // prefetch(). Follow-up: add a randomaccessstream.cpp anchor file with an
+    // out-of-line virtual destructor (and move prefetch() there), then add
+    // SLIDEIO_BASE_EXPORTS to the class. Tracked as a Phase-A follow-up.
     class RandomAccessStream
     {
     public:
@@ -22,8 +30,10 @@ namespace slideio
         virtual uint64_t size() const = 0;
 
         // Read up to `count` bytes starting at `offset` into `buf`.
-        // Returns the number of bytes actually read; 0 only at or past EOF.
-        // Throws on non-EOF errors (network failure, auth failure, etc.).
+        // Returns the number of bytes actually read. Returns 0 only when
+        // `count == 0` or when `offset >= size()`.
+        // Thread-safe: concurrent read() calls on the same instance are permitted.
+        // Throws slideio::RuntimeError on non-EOF errors (network failure, etc.).
         virtual size_t read(uint64_t offset, size_t count, void* buf) = 0;
 
         // Advisory hint that bytes in [offset, offset+count) will soon be read.
