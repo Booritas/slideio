@@ -36,9 +36,17 @@ FileStream::FileStream(const std::string& path)
         FILE_SHARE_READ, nullptr, OPEN_EXISTING,
         FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED, nullptr);
     if (m_handle == INVALID_HANDLE_VALUE) {
-        RAISE_RUNTIME_ERROR << "FileStream: CreateFile failed for " << path;
+        RAISE_RUNTIME_ERROR << "FileStream: CreateFile failed for " << path
+                            << " err=" << ::GetLastError();
     }
-    LARGE_INTEGER sz; ::GetFileSizeEx(m_handle, &sz);
+    LARGE_INTEGER sz;
+    if (!::GetFileSizeEx(m_handle, &sz)) {
+        DWORD err = ::GetLastError();
+        ::CloseHandle(m_handle);
+        m_handle = INVALID_HANDLE_VALUE;
+        RAISE_RUNTIME_ERROR << "FileStream: GetFileSizeEx failed for " << path
+                            << " err=" << err;
+    }
     m_size = static_cast<uint64_t>(sz.QuadPart);
 #else
     m_fd = ::open(path.c_str(), O_RDONLY);
@@ -47,7 +55,13 @@ FileStream::FileStream(const std::string& path)
                             << " errno=" << errno;
     }
     struct stat st{};
-    ::fstat(m_fd, &st);
+    if (::fstat(m_fd, &st) != 0) {
+        int err = errno;
+        ::close(m_fd);
+        m_fd = -1;
+        RAISE_RUNTIME_ERROR << "FileStream: fstat failed for " << path
+                            << " errno=" << err;
+    }
     m_size = static_cast<uint64_t>(st.st_size);
 #endif
 }
@@ -74,17 +88,33 @@ size_t FileStream::read(uint64_t offset, size_t count, void* buf)
     OVERLAPPED ov{};
     ov.Offset = static_cast<DWORD>(offset & 0xFFFFFFFF);
     ov.OffsetHigh = static_cast<DWORD>(offset >> 32);
+    // Each read uses its own event so that concurrent reads on the same handle
+    // do not wake each other; waiting on the bare handle would be ambiguous.
+    ov.hEvent = ::CreateEvent(nullptr, TRUE, FALSE, nullptr);
+    if (!ov.hEvent) {
+        RAISE_RUNTIME_ERROR << "FileStream::read: CreateEvent failed err=" << ::GetLastError();
+    }
+
     DWORD got = 0;
     BOOL ok = ::ReadFile(m_handle, buf, static_cast<DWORD>(count), &got, &ov);
     if (!ok) {
         DWORD err = ::GetLastError();
-        if (err == ERROR_HANDLE_EOF) return 0;
+        if (err == ERROR_HANDLE_EOF) { ::CloseHandle(ov.hEvent); return 0; }
         if (err == ERROR_IO_PENDING) {
-            ::GetOverlappedResult(m_handle, &ov, &got, TRUE);
-        } else {
-            RAISE_RUNTIME_ERROR << "FileStream::read: ReadFile failed err=" << err;
+            BOOL wres = ::GetOverlappedResult(m_handle, &ov, &got, TRUE);
+            DWORD werr = wres ? 0 : ::GetLastError();
+            ::CloseHandle(ov.hEvent);
+            if (!wres) {
+                if (werr == ERROR_HANDLE_EOF) return 0;
+                RAISE_RUNTIME_ERROR << "FileStream::read: GetOverlappedResult failed err=" << werr
+                                    << " uri=" << m_path;
+            }
+            return static_cast<size_t>(got);
         }
+        ::CloseHandle(ov.hEvent);
+        RAISE_RUNTIME_ERROR << "FileStream::read: ReadFile failed err=" << err << " uri=" << m_path;
     }
+    ::CloseHandle(ov.hEvent);
     return static_cast<size_t>(got);
 #else
     ssize_t n = ::pread(m_fd, buf, count, static_cast<off_t>(offset));

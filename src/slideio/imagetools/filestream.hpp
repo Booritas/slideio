@@ -8,7 +8,6 @@
 #include "slideio/base/randomaccessstream.hpp"
 
 #include <cstdint>
-#include <mutex>
 #include <string>
 
 namespace slideio
@@ -34,7 +33,5 @@ namespace slideio
 #endif
         uint64_t m_size;
         std::string m_path;
-        // Mutex protects only the *cursor* in fallback paths if needed; pread/ReadFile
-        // with explicit OVERLAPPED do not need it.
     };
 }
