@@ -18,6 +18,8 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/rect.inl
    ${CMAKE_CURRENT_SOURCE_DIR}/range.inl
    ${CMAKE_CURRENT_SOURCE_DIR}/resolution.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/randomaccessstream.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/randomaccessstream.hpp
 )
 
 add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES})
