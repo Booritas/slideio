@@ -58,6 +58,7 @@ find_package(JPEG)
 find_package(WebP)
 find_package(nlohmann_json REQUIRED)
 find_package(jxrlib REQUIRED)
+find_package(CURL REQUIRED)
 
 target_link_libraries(${LIBRARY_NAME} 
    glog::glog
@@ -72,6 +73,7 @@ target_link_libraries(${LIBRARY_NAME}
    libwebp::libwebp
    nlohmann_json::nlohmann_json
    jxrlib::jxrlib
+   CURL::libcurl
 )
 
 IF(WIN32)
