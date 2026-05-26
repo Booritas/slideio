@@ -18,6 +18,8 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/memory_stream.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/filestream.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/filestream.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/blockcache.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/blockcache.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/tifftools.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/tifftools.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/tiffkeeper.hpp
