@@ -893,10 +893,12 @@ boolean ndpiJpegFillInputBuffer(j_decompress_ptr cinfo)
     auto* mgr = reinterpret_cast<NdpiJpegSource*>(cinfo->src);
     size_t nbytes = mgr->src->read(mgr->buffer.data(), mgr->buffer.size());
     if (nbytes == 0) {
-        if (mgr->startOfFile) {
-            RAISE_RUNTIME_ERROR << "NDPITiffTools: empty JPEG input stream";
-        }
-        // Insert a fake EOI marker (as libjpeg's stdio source does on EOF).
+        // Insert a fake EOI marker on (unexpected) EOF, exactly like libjpeg's
+        // own stdio source (jdatasrc.c). NEVER throw here: this callback runs
+        // inside libjpeg's C frames, which have no C++ unwind tables, so a C++
+        // exception thrown through them is undefined behavior. A truly empty or
+        // malformed stream then fails cleanly through libjpeg's normal error
+        // path (error_exit -> longjmp to the caller's setjmp guard).
         mgr->buffer[0] = (JOCTET)0xFF;
         mgr->buffer[1] = (JOCTET)JPEG_EOI;
         nbytes = 2;
@@ -1414,6 +1416,14 @@ cv::Size NDPITiffTools::computeMCUTileSize(NDPIDataSource& src, const cv::Size& 
     jerr.pub.error_exit = ErrorExit;
     jpeg_create_decompress(&cinfo);
     ndpiJpegDataSrc(&cinfo, srcMgr, src);
+    // Safety net for malformed/empty JPEG input (now reachable over a remote
+    // stream): a libjpeg fatal error calls ErrorExit, which longjmps here. We
+    // then clean up and raise a normal C++ exception OUTSIDE the libjpeg call
+    // stack. Must be set before any libjpeg call that can fail.
+    if (setjmp(jerr.setjmp_buffer)) {
+        jpeg_destroy_decompress(&cinfo);
+        RAISE_RUNTIME_ERROR << "NDPI: libjpeg failed to read MCU header";
+    }
     cinfo.image_width = dirSize.width;
     cinfo.image_height = dirSize.height;
     jpeg_read_header(&cinfo, TRUE);
