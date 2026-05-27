@@ -43,6 +43,7 @@ set(TEST_SOURCES
   test_httpstream.cpp
   test_tiff_client_adapter.cpp
   test_uri_dispatcher.cpp
+  test_s3_streaming_integration.cpp
   http_fixture/http_fixture.cpp
 )
 
