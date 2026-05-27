@@ -1,6 +1,8 @@
 # S3 / HTTPS Streaming Support — Design
 
-**Status:** Draft 2026-05-25, awaiting approval.
+**Status:** v1 implemented 2026-05-27 on branch `s3` (see §14). Design covers
+all 11 drivers across three releases; v1 (foundation + 6 TIFF-family drivers)
+is complete.
 **Branch:** `s3`
 **Scope:** All 11 SlideIO drivers, phased across three releases (v1, v2, v3).
 
@@ -424,3 +426,48 @@ long-lived presigned URL stored as a secret.
 - Disk-backed cache layer (memory only in v1).
 - Public exposure of `RandomAccessStream` as part of the SDK surface.
 - Async / coroutine-based public API.
+
+## 14. v1 implementation status (2026-05-27)
+
+Shipped on branch `s3` (commits `b9f78c0`..`e76d029`). Full test suite: 527
+passing, 0 failing. Local-path behavior is byte-identical to before; every
+driver migration is an additive stream branch verified by a byte-exact
+path-vs-stream parity read.
+
+**Delivered (matches design):** `RandomAccessStream` (§5), `FileStream`,
+`BlockCache` (1 MB blocks / 256-block LRU, §8.2), `HttpStream` (libcurl,
+HEAD→Content-Range size probe, ranged-GET block fetch with run coalescing,
+3-attempt exponential-backoff retry, runtime cache toggle, §8), the
+`TIFFClientOpen` adapter (§F), URI dispatcher + `matchPattern` query-strip
+(§9), public-API URI gating + `setHttpCacheEnabled` (§9.3), and the six
+TIFF-family drivers (svs, scn, ndpi, pke, ome-tiff, afi). NDPI additionally
+required an `NDPIDataSource` + libjpeg source manager because its JPEG/MCU
+path bypasses libtiff. AFI resolves referenced SVS files via `siblingUri` +
+`createStream` and was validated end-to-end over the HTTP fixture.
+
+**v1 deviations / known limitations (carry into v2+):**
+- **Multi-file OME-TIFF over a stream is not supported** — a stream open that
+  references sibling TIFF files raises a clear error
+  (`TIFFFiles::getOrOpen`). Single-file OME-TIFF and all local multi-file
+  OME-TIFF work. (Analogous to the §7.3 DICOM-series limitation: needs
+  per-sibling stream resolution.)
+- **OME-TIFF companion-XML over a stream is implemented but untested** — no
+  single-file `BinaryOnly` test image was available. The path uses the same
+  `siblingUri`/`createStream` helpers exercised elsewhere.
+- **`Accept-Ranges: bytes` is not verified at construction** (TODO in
+  `probeSize`, spec §8.4). A server that ignores `Range` and returns `200` is
+  instead caught at fetch time by the "reject 200 at non-zero offset" guard,
+  so there is no correctness hole — just a deferred, less-specific error.
+- **429 / `Retry-After` is not specially handled** (§8.3) — 429 is treated as
+  non-transient and fails immediately rather than retrying.
+
+**Follow-up hardening (non-blocking, deferred):**
+- Bound the companion-file/index allocation in the AFI and OME-TIFF readers by
+  the server-reported `Content-Length` (defense-in-depth; low risk under the
+  presigned-URL trust model).
+- Remove or port the now-dead `FILE*`-only NDPI JPEG helpers
+  (`readJpegScanlines`, `readJpegDirectoryRegion`, `readUncompressedScanlines`)
+  so they cannot be reintroduced into the stream read path.
+- The committed env-var Python mechanism in `src/tests/main/CMakeLists.txt`
+  (`SLIDEIO_TEST_PYTHON`) was verified against a warm CMake cache, not a fully
+  clean configure; confirm on a fresh build dir.
