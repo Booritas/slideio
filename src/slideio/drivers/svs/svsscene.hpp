@@ -82,8 +82,11 @@ namespace slideio
         DataType m_dataType;
         int m_sceneIndex;
     private:
-        TIFFKeeper m_tiffKeeper;
+        // m_stream is declared before m_tiffKeeper so the TIFF handle is destroyed
+        // first and the stream it was opened from outlives it (consistent with the
+        // other stream-aware drivers).
         std::shared_ptr<RandomAccessStream> m_stream;
+        TIFFKeeper m_tiffKeeper;
     };
 }
 

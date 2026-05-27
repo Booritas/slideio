@@ -153,6 +153,7 @@ bool HttpStream::probeSize()
                 curl_easy_setopt(curl, CURLOPT_URL, m_url.c_str());
                 curl_easy_setopt(curl, CURLOPT_NOBODY, 1L);
                 curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+                curl_easy_setopt(curl, CURLOPT_MAXREDIRS, 5L);
                 curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, headerCb);
                 curl_easy_setopt(curl, CURLOPT_HEADERDATA, &sz);
                 curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, discardCb);
@@ -173,6 +174,7 @@ bool HttpStream::probeSize()
                 curl_easy_setopt(curl, CURLOPT_URL, m_url.c_str());
                 curl_easy_setopt(curl, CURLOPT_RANGE, "0-0");
                 curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+                curl_easy_setopt(curl, CURLOPT_MAXREDIRS, 5L);
                 curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, headerCbContentRange);
                 curl_easy_setopt(curl, CURLOPT_HEADERDATA, &sz);
                 curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, discardCb);
@@ -229,6 +231,7 @@ std::vector<uint8_t> HttpStream::fetchBlocks(uint64_t firstBlock, uint64_t lastB
             curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, bodyCb);
             curl_easy_setopt(curl, CURLOPT_WRITEDATA, &body);
             curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+            curl_easy_setopt(curl, CURLOPT_MAXREDIRS, 5L);
         },
         acceptRanged, "fetch");
     return body;
@@ -297,7 +300,11 @@ size_t HttpStream::read(uint64_t offset, size_t count, void* buf)
             RAISE_RUNTIME_ERROR << "HttpStream: missing block " << i
                                 << " for " << m_url;
         }
-        const size_t blockStartByte = static_cast<size_t>(i * kBlockSize);
+        // Keep the block's start byte in 64-bit arithmetic; narrowing the product
+        // i * kBlockSize to size_t would truncate for blocks past 4 GB on 32-bit
+        // builds. The first-block partial offset is < kBlockSize, so it narrows
+        // safely.
+        const uint64_t blockStartByte = i * static_cast<uint64_t>(kBlockSize);
         const size_t copyFrom =
             (i == firstBlock) ? static_cast<size_t>(offset - blockStartByte) : 0;
         const size_t remaining = count - written;
