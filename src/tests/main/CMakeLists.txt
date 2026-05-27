@@ -40,6 +40,8 @@ set(TEST_SOURCES
   test_random_access_stream_contract.cpp
   test_filestream.cpp
   test_blockcache.cpp
+  test_httpstream.cpp
+  http_fixture/http_fixture.cpp
 )
 
 add_executable(${TEST_NAME} ${TEST_SOURCES})
@@ -52,6 +54,18 @@ find_package(ZLIB)
 find_package(tinyxml2)
 find_package(pole)
 find_package(nlohmann_json REQUIRED)
+find_package(CURL REQUIRED)
+
+# Python interpreter used by HttpFixture to launch the test HTTP server.
+# Fall back to the known-good interpreter if CMake cannot find a real one
+# (e.g. the Windows MS Store python.exe stub).
+if(NOT DEFINED Python3_EXECUTABLE)
+  if(EXISTS "C:/Users/Stanislav/anaconda3/python.exe")
+    set(Python3_EXECUTABLE "C:/Users/Stanislav/anaconda3/python.exe" CACHE FILEPATH "")
+  endif()
+endif()
+find_package(Python3 COMPONENTS Interpreter REQUIRED)
+message(STATUS "slideio_tests: Python3_EXECUTABLE=${Python3_EXECUTABLE}")
 
 target_link_libraries(${TEST_NAME}
   SQLite::SQLite3
@@ -61,8 +75,13 @@ target_link_libraries(${TEST_NAME}
   ZLIB::ZLIB
   tinyxml2::tinyxml2
   pole::pole
-  nlohmann_json::nlohmann_json  
+  nlohmann_json::nlohmann_json
+  CURL::libcurl
 )
+
+target_compile_definitions(${TEST_NAME} PRIVATE
+    SLIDEIO_TEST_PYTHON="${Python3_EXECUTABLE}"
+    SLIDEIO_TEST_HTTP_SERVER="${CMAKE_CURRENT_SOURCE_DIR}/http_fixture/test_http_server.py")
 
 target_include_directories(${TEST_NAME} PRIVATE ${INCLUDE_ROOT})
 target_link_libraries(${TEST_NAME} ${SLIDEIO_LIB_NAME} ${BASE_LIB_NAME} ${TEST_LIB_NAME})
