@@ -117,3 +117,54 @@ TEST(HttpStreamTest, ConsecutiveBlocksCoalescedIntoOneGet) {
     // ranged GET. The HEAD probe is not a GET, so it does not affect the count.
     EXPECT_EQ(after - before, 1);
 }
+
+TEST(HttpStreamTest, RetriesAfterTwoFiveHundredThreesThenSucceeds) {
+    auto root = makeRoot();
+    auto file = root / "retry.bin";
+    {
+        std::ofstream o(file, std::ios::binary);
+        for (int i = 0; i < 4096; ++i) o.put('a');
+    }
+    HttpFixture fx(root);
+    slideio::HttpStream s(fx.url("retry.bin"));
+    fx.failNextGets(2);
+    std::vector<uint8_t> buf(100);
+    EXPECT_EQ(s.read(0, buf.size(), buf.data()), buf.size());
+}
+
+TEST(HttpStreamTest, FailsAfterExceedingRetryBudget) {
+    auto root = makeRoot();
+    auto file = root / "retry2.bin";
+    {
+        std::ofstream o(file, std::ios::binary);
+        for (int i = 0; i < 4096; ++i) o.put('a');
+    }
+    HttpFixture fx(root);
+    slideio::HttpStream s(fx.url("retry2.bin"));
+    fx.failNextGets(99);
+    std::vector<uint8_t> buf(100);
+    EXPECT_ANY_THROW(s.read(0, buf.size(), buf.data()));
+}
+
+TEST(HttpStreamTest, CacheDisableForcesGetPerRead) {
+    auto root = makeRoot();
+    auto file = root / "toggle.bin";
+    {
+        std::ofstream o(file, std::ios::binary);
+        for (int i = 0; i < 1024 * 1024; ++i) o.put('z');
+    }
+    HttpFixture fx(root);
+    slideio::HttpStream s(fx.url("toggle.bin"));
+
+    slideio::HttpStream::setCacheEnabled(false);
+    const int before = fx.servedCount();
+    std::vector<uint8_t> buf(100);
+    for (int i = 0; i < 5; ++i) {
+        ASSERT_EQ(s.read(0, buf.size(), buf.data()), buf.size());
+    }
+    const int after = fx.servedCount();
+    // Re-enable before the assertion so a failure here cannot leak the disabled
+    // state into other tests (cache state is process-wide).
+    slideio::HttpStream::setCacheEnabled(true);
+    EXPECT_GE(after - before, 5);
+}

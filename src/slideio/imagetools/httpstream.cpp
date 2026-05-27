@@ -8,9 +8,11 @@
 
 #include <curl/curl.h>
 #include <algorithm>
+#include <chrono>
 #include <cstring>
 #include <map>
 #include <mutex>
+#include <thread>
 
 #ifdef _WIN32
   #define SLIDEIO_STRNCASECMP _strnicmp
@@ -142,25 +144,43 @@ std::vector<uint8_t> HttpStream::fetchBlocks(uint64_t firstBlock, uint64_t lastB
     const uint64_t endByte = std::min((lastBlock + 1) * kBlockSize, m_size) - 1;
     const std::string range = std::to_string(startByte) + "-" + std::to_string(endByte);
 
-    std::vector<uint8_t> body;
-    body.reserve(static_cast<size_t>(endByte - startByte + 1));
+    // Bounded retry on transient failures. Each attempt rebuilds the curl
+    // handle from scratch and waits with exponential backoff (50, 200, 800ms).
+    constexpr int kMaxAttempts = 3;
+    int delayMs = 50;
+    for (int attempt = 0; attempt < kMaxAttempts; ++attempt) {
+        std::vector<uint8_t> body;
+        body.reserve(static_cast<size_t>(endByte - startByte + 1));
 
-    CURL* curl = curl_easy_init();
-    if (!curl) RAISE_RUNTIME_ERROR << "HttpStream: curl_easy_init failed";
-    curl_easy_setopt(curl, CURLOPT_URL, m_url.c_str());
-    curl_easy_setopt(curl, CURLOPT_RANGE, range.c_str());
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, bodyCb);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &body);
-    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-    CURLcode rc = curl_easy_perform(curl);
-    long code = 0;
-    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &code);
-    curl_easy_cleanup(curl);
-    if (rc != CURLE_OK || (code != 200 && code != 206)) {
-        RAISE_RUNTIME_ERROR << "HttpStream: fetch failed code=" << code
-                            << " curl=" << curl_easy_strerror(rc);
+        CURL* curl = curl_easy_init();
+        if (!curl) RAISE_RUNTIME_ERROR << "HttpStream: curl_easy_init failed";
+        curl_easy_setopt(curl, CURLOPT_URL, m_url.c_str());
+        curl_easy_setopt(curl, CURLOPT_RANGE, range.c_str());
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, bodyCb);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &body);
+        curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+        CURLcode rc = curl_easy_perform(curl);
+        long code = 0;
+        curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &code);
+        curl_easy_cleanup(curl);
+
+        if (rc == CURLE_OK && (code == 200 || code == 206)) {
+            return body;
+        }
+
+        const bool transient = (rc == CURLE_OPERATION_TIMEDOUT)
+                            || (rc == CURLE_RECV_ERROR)
+                            || (rc == CURLE_COULDNT_CONNECT)
+                            || (code >= 500 && code < 600);
+        if (!transient || attempt == kMaxAttempts - 1) {
+            RAISE_RUNTIME_ERROR << "HttpStream: fetch failed after " << (attempt + 1)
+                                << " attempts: code=" << code
+                                << " curl=" << curl_easy_strerror(rc);
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(delayMs));
+        delayMs *= 4;
     }
-    return body;
+    return {}; // unreachable
 }
 
 size_t HttpStream::read(uint64_t offset, size_t count, void* buf)
