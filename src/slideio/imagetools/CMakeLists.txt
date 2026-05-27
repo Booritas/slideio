@@ -24,6 +24,8 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/httpstream.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/tifftools.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/tifftools.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/tiffclientadapter.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/tiffclientadapter.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/tiffkeeper.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/tiffkeeper.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/jpeglib_aux.hpp

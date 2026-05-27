@@ -5,8 +5,10 @@
 #define OPENCV_slideio_tifftools_HPP
 
 #include <map>
+#include <memory>
 
 #include "slideio/imagetools/slideio_imagetools_def.hpp"
+#include "slideio/base/randomaccessstream.hpp"
 #include "slideio/base/resolution.hpp"
 #include "slideio/base/slideio_enums.hpp"
 #include "slideio/base/base.hpp"
@@ -60,6 +62,7 @@ namespace slideio
     {
     public:
         static libtiff::TIFF* openTiffFile(const std::string& path, bool readOnly=true);
+        static libtiff::TIFF* openTiffFile(std::shared_ptr<RandomAccessStream> stream);
         static void closeTiffFile(libtiff::TIFF* file);
         static void setCurrentDirectory(libtiff::TIFF* tiff, int dirIndex, int64_t dirOffset);
         static void scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, int64_t dirOffset, slideio::TiffDirectory& dir);

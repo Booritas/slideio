@@ -6,6 +6,7 @@
 #include "slideio/imagetools/imagetools.hpp"
 #include "slideio/core/tools/cvtools.hpp"
 #include "slideio/imagetools/libtiff.hpp"
+#include "slideio/imagetools/tiffclientadapter.hpp"
 #include "slideio/base/log.hpp"
 #include "slideio/core/tools/endian.hpp"
 #include "slideio/core/tools/tools.hpp"
@@ -310,6 +311,14 @@ libtiff::TIFF* TiffTools::openTiffFile(const std::string& path, bool readOnly) {
     }
     SLIDEIO_LOG(INFO) << "File " << path << " successfully opened for " << (readOnly ? "reading" : "writing");
     return hfile;
+}
+
+libtiff::TIFF* TiffTools::openTiffFile(std::shared_ptr<RandomAccessStream> stream) {
+    auto* t = openTiffFromStream(std::move(stream));
+    if (!t) {
+        RAISE_RUNTIME_ERROR << "TiffTools::openTiffFile(stream) failed";
+    }
+    return t;
 }
 
 void TiffTools::closeTiffFile(libtiff::TIFF* file) {
