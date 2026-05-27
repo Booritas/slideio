@@ -7,7 +7,10 @@
 #include "slideio/base/log.hpp"
 
 #include <curl/curl.h>
+#include <algorithm>
 #include <cstring>
+#include <map>
+#include <mutex>
 
 #ifdef _WIN32
   #define SLIDEIO_STRNCASECMP _strnicmp
@@ -22,6 +25,14 @@ namespace slideio
 std::atomic<bool> HttpStream::s_cacheEnabled{true};
 
 namespace {
+
+std::once_flag g_curlInitFlag;
+void ensureCurlGlobalInit() {
+    std::call_once(g_curlInitFlag, []() {
+        curl_global_init(CURL_GLOBAL_DEFAULT);
+    });
+}
+
 size_t headerCb(char* data, size_t size, size_t nmemb, void* ud) {
     auto* sz = static_cast<uint64_t*>(ud);
     std::string h(data, size * nmemb);
@@ -32,12 +43,37 @@ size_t headerCb(char* data, size_t size, size_t nmemb, void* ud) {
     }
     return size * nmemb;
 }
+
+// Parses the total object size from a "Content-Range: bytes 0-0/SIZE" header.
+size_t headerCbContentRange(char* data, size_t size, size_t nmemb, void* ud) {
+    auto* sz = static_cast<uint64_t*>(ud);
+    std::string h(data, size * nmemb);
+    const char* prefix = "Content-Range:";
+    const size_t n = std::strlen(prefix);
+    if (h.size() >= n && SLIDEIO_STRNCASECMP(h.c_str(), prefix, n) == 0) {
+        auto slash = h.find('/');
+        if (slash != std::string::npos) {
+            *sz = std::strtoull(h.c_str() + slash + 1, nullptr, 10);
+        }
+    }
+    return size * nmemb;
+}
+
 size_t discardCb(char*, size_t s, size_t n, void*) { return s * n; }
+
+// Write-callback for ranged GET that appends the body into a std::vector<uint8_t>.
+size_t bodyCb(char* data, size_t size, size_t nmemb, void* ud) {
+    auto* v = static_cast<std::vector<uint8_t>*>(ud);
+    v->insert(v->end(), data, data + size * nmemb);
+    return size * nmemb;
+}
+
 } // namespace
 
 HttpStream::HttpStream(const std::string& url)
     : m_url(url), m_cache(kCacheCapacityBlocks)
 {
+    ensureCurlGlobalInit();
     if (!probeSize()) {
         RAISE_RUNTIME_ERROR << "HttpStream: could not determine size of " << url;
     }
@@ -48,40 +84,162 @@ HttpStream::~HttpStream() = default;
 
 bool HttpStream::probeSize()
 {
-    CURL* curl = curl_easy_init();
-    if (!curl) return false;
-    uint64_t sz = 0;
-    curl_easy_setopt(curl, CURLOPT_URL, m_url.c_str());
-    curl_easy_setopt(curl, CURLOPT_NOBODY, 1L);
-    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-    curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, headerCb);
-    curl_easy_setopt(curl, CURLOPT_HEADERDATA, &sz);
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, discardCb);
-    CURLcode rc = curl_easy_perform(curl);
-    long code = 0;
-    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &code);
-    curl_easy_cleanup(curl);
-    if (rc != CURLE_OK || code >= 400 || sz == 0) return false;
-    m_size = sz;
-    return true;
+    // First attempt: HEAD with Content-Length.
+    {
+        CURL* curl = curl_easy_init();
+        if (!curl) return false;
+        uint64_t sz = 0;
+        curl_easy_setopt(curl, CURLOPT_URL, m_url.c_str());
+        curl_easy_setopt(curl, CURLOPT_NOBODY, 1L);
+        curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+        curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, headerCb);
+        curl_easy_setopt(curl, CURLOPT_HEADERDATA, &sz);
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, discardCb);
+        CURLcode rc = curl_easy_perform(curl);
+        long code = 0;
+        curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &code);
+        curl_easy_cleanup(curl);
+        if (rc != CURLE_OK || code >= 400) return false;
+        if (sz > 0) {
+            m_size = sz;
+            return true;
+        }
+    }
+
+    // Fallback: HEAD gave no Content-Length. Issue GET Range: bytes=0-0 and
+    // parse the total size from the Content-Range response header.
+    {
+        CURL* curl = curl_easy_init();
+        if (!curl) return false;
+        uint64_t sz = 0;
+        curl_easy_setopt(curl, CURLOPT_URL, m_url.c_str());
+        curl_easy_setopt(curl, CURLOPT_RANGE, "0-0");
+        curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+        curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, headerCbContentRange);
+        curl_easy_setopt(curl, CURLOPT_HEADERDATA, &sz);
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, discardCb);
+        CURLcode rc = curl_easy_perform(curl);
+        long code = 0;
+        curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &code);
+        curl_easy_cleanup(curl);
+        if (rc == CURLE_OK && code < 400 && sz > 0) {
+            m_size = sz;
+            return true;
+        }
+    }
+    return false;
 }
 
 uint64_t HttpStream::size() const { return m_size; }
 std::string HttpStream::uri() const { return m_url; }
 
-size_t HttpStream::read(uint64_t /*offset*/, size_t /*count*/, void* /*buf*/)
+std::vector<uint8_t> HttpStream::fetchBlocks(uint64_t firstBlock, uint64_t lastBlock)
 {
-    RAISE_RUNTIME_ERROR << "HttpStream::read not implemented yet";
+    const uint64_t startByte = firstBlock * kBlockSize;
+    // Clamp to EOF: the requested byte range must never extend past the object
+    // size. The S3-style test fixture returns 416 for any range whose end is
+    // >= size, so over-requesting would fail.
+    const uint64_t endByte = std::min((lastBlock + 1) * kBlockSize, m_size) - 1;
+    const std::string range = std::to_string(startByte) + "-" + std::to_string(endByte);
+
+    std::vector<uint8_t> body;
+    body.reserve(static_cast<size_t>(endByte - startByte + 1));
+
+    CURL* curl = curl_easy_init();
+    if (!curl) RAISE_RUNTIME_ERROR << "HttpStream: curl_easy_init failed";
+    curl_easy_setopt(curl, CURLOPT_URL, m_url.c_str());
+    curl_easy_setopt(curl, CURLOPT_RANGE, range.c_str());
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, bodyCb);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &body);
+    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+    CURLcode rc = curl_easy_perform(curl);
+    long code = 0;
+    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &code);
+    curl_easy_cleanup(curl);
+    if (rc != CURLE_OK || (code != 200 && code != 206)) {
+        RAISE_RUNTIME_ERROR << "HttpStream: fetch failed code=" << code
+                            << " curl=" << curl_easy_strerror(rc);
+    }
+    return body;
+}
+
+size_t HttpStream::read(uint64_t offset, size_t count, void* buf)
+{
+    if (count == 0 || offset >= m_size) return 0;
+    if (offset + count > m_size) count = static_cast<size_t>(m_size - offset);
+    if (count == 0) return 0;
+
+    const uint64_t firstBlock = offset / kBlockSize;
+    const uint64_t lastBlock  = (offset + count - 1) / kBlockSize;
+    const bool useCache = s_cacheEnabled.load();
+
+    std::lock_guard<std::mutex> lk(m_mutex);  // serialize cache + fetch + copy-out
+
+    // Local staging for the cache-disabled path: maps block index -> bytes.
+    // When the cache is enabled this stays empty and we serve from m_cache.
+    std::map<uint64_t, std::vector<uint8_t>> staged;
+
+    // Splits a fetched [runStart, runEnd] blob into per-block chunks and stores
+    // them either into the member cache (enabled) or the local staging map.
+    auto storeRun = [&](uint64_t runStart, uint64_t runEnd,
+                        const std::vector<uint8_t>& blob) {
+        for (uint64_t i = runStart; i <= runEnd; ++i) {
+            const size_t blkOff = static_cast<size_t>((i - runStart) * kBlockSize);
+            const size_t blkSize =
+                std::min<size_t>(kBlockSize, blob.size() - blkOff);
+            std::vector<uint8_t> block(blob.begin() + blkOff,
+                                       blob.begin() + blkOff + blkSize);
+            if (useCache) {
+                m_cache.insert(i, std::move(block));
+            } else {
+                staged.emplace(i, std::move(block));
+            }
+        }
+    };
+
+    // Walk the requested block span. Cached blocks are skipped; consecutive
+    // missing blocks are coalesced into a single ranged GET.
+    uint64_t b = firstBlock;
+    while (b <= lastBlock) {
+        if (useCache && m_cache.contains(b)) { ++b; continue; }
+        const uint64_t runStart = b;
+        while (b <= lastBlock && !(useCache && m_cache.contains(b))) ++b;
+        const uint64_t runEnd = b - 1;
+        storeRun(runStart, runEnd, fetchBlocks(runStart, runEnd));
+    }
+
+    // Unified copy-out: pull each block (from cache or staging) and copy the
+    // requested slice into the output buffer.
+    auto getBlock = [&](uint64_t index, std::vector<uint8_t>& out) -> bool {
+        if (useCache) return m_cache.get(index, out);
+        auto it = staged.find(index);
+        if (it == staged.end()) return false;
+        out = it->second;
+        return true;
+    };
+
+    uint8_t* dst = static_cast<uint8_t*>(buf);
+    size_t written = 0;
+    for (uint64_t i = firstBlock; i <= lastBlock; ++i) {
+        std::vector<uint8_t> block;
+        if (!getBlock(i, block)) {
+            RAISE_RUNTIME_ERROR << "HttpStream: missing block " << i
+                                << " for " << m_url;
+        }
+        const size_t blockStartByte = static_cast<size_t>(i * kBlockSize);
+        const size_t copyFrom =
+            (i == firstBlock) ? static_cast<size_t>(offset - blockStartByte) : 0;
+        const size_t remaining = count - written;
+        const size_t copyN = std::min<size_t>(block.size() - copyFrom, remaining);
+        std::memcpy(dst + written, block.data() + copyFrom, copyN);
+        written += copyN;
+    }
+    return written;
 }
 
 void HttpStream::prefetch(uint64_t, size_t) {}
 
 void HttpStream::setCacheEnabled(bool enabled) { s_cacheEnabled.store(enabled); }
 bool HttpStream::cacheEnabled() { return s_cacheEnabled.load(); }
-
-std::vector<uint8_t> HttpStream::fetchBlocks(uint64_t, uint64_t)
-{
-    return {};  // placeholder, implemented in E4
-}
 
 } // namespace slideio
