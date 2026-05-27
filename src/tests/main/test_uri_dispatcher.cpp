@@ -50,3 +50,17 @@ TEST(UriDispatcherTest, UriResourceNameStripsSchemeAndQuery) {
     EXPECT_EQ(slideio::uriResourceName("/abs/dir/slide.svs"), "slide.svs");
     EXPECT_EQ(slideio::uriResourceName("C:\\dir\\slide.svs"), "slide.svs");
 }
+
+TEST(UriDispatcherTest, SiblingUri) {
+    // Resolve a referenced file next to a base URI, preserving the scheme/prefix.
+    // Used by AFI (index -> referenced SVS) and OME-TIFF (image -> companion XML).
+    EXPECT_EQ(slideio::siblingUri("http://h/dir/a.svs", "b.svs"), "http://h/dir/b.svs");
+    EXPECT_EQ(slideio::siblingUri("s3://bucket/dir/a.afi", "b.svs"), "s3://bucket/dir/b.svs");
+    EXPECT_EQ(slideio::siblingUri("/abs/dir/a.afi", "b.svs"), "/abs/dir/b.svs");
+    EXPECT_EQ(slideio::siblingUri("C:\\dir\\a.afi", "b.svs"), "C:\\dir\\b.svs");
+    // A query string on the base is dropped before resolving the sibling.
+    EXPECT_EQ(slideio::siblingUri("https://h/dir/a.afi?sig=x", "b.svs"), "https://h/dir/b.svs");
+    // A name that already carries a scheme is returned unchanged.
+    EXPECT_EQ(slideio::siblingUri("s3://bucket/dir/a.afi", "https://other/x.svs"),
+              "https://other/x.svs");
+}
