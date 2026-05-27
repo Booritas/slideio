@@ -3,6 +3,7 @@
 #include "slideio/core/imagedriver.hpp"
 #include "slideio/slideio/imagedrivermanager.hpp"
 #include "slideio/slideio/slideio.hpp"
+#include "slideio/imagetools/httpstream.hpp"
 #include "tests/testlib/testtools.hpp"
 
 
@@ -72,4 +73,18 @@ TEST(ImageDriverManager, getVersion)
 {
 	std::string version = slideio::ImageDriverManager::getVersion();
 	EXPECT_EQ(version, "2.8.1");
+}
+
+TEST(ImageDriverManagerTest, RejectsHttpForDriversWithoutStreamSupport)
+{
+    EXPECT_ANY_THROW(slideio::ImageDriverManager::openSlide(
+        "http://example.com/foo.czi", "CZI"));
+}
+
+TEST(ImageDriverManagerTest, SetHttpCacheEnabledTogglesHttpStream)
+{
+    slideio::ImageDriverManager::setHttpCacheEnabled(false);
+    EXPECT_FALSE(slideio::HttpStream::cacheEnabled());
+    slideio::ImageDriverManager::setHttpCacheEnabled(true);
+    EXPECT_TRUE(slideio::HttpStream::cacheEnabled());
 }

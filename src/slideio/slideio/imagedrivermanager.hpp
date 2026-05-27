@@ -48,6 +48,8 @@ namespace slideio
          * 'INFO','WARNING','ERROR','FATAL'(default).
          */
         static void setLogLevel(const std::string& level);
+        /**@brief enables or disables HTTP block caching for remote (http/https/s3) slides.*/
+        static void setHttpCacheEnabled(bool enabled);
 		static std::string getVersion();
     protected:
         static void initialize();

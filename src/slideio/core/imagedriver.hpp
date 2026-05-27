@@ -6,8 +6,10 @@
 
 #include "slideio/core/slideio_core_def.hpp"
 #include "slideio/core/cvslide.hpp"
+#include "slideio/base/randomaccessstream.hpp"
 #include <opencv2/core.hpp>
 #include <string>
+#include <memory>
 
 namespace slideio
 {
@@ -19,6 +21,10 @@ namespace slideio
         virtual bool canOpenFile(const std::string& filePath) const;
         virtual std::shared_ptr<CVSlide> openFile(const std::string& filePath) = 0;
         virtual std::string getFileSpecs() const = 0;
+        // Whether this driver can open from a RandomAccessStream (remote URIs).
+        virtual bool supportsStream() const { return false; }
+        // Open from a stream. Default throws; drivers that set supportsStream()=true override this.
+        virtual std::shared_ptr<CVSlide> openFile(std::shared_ptr<RandomAccessStream> stream);
     };
 }
 

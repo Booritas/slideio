@@ -16,6 +16,8 @@
 #include "slideio/drivers/vsi/vsiimagedriver.hpp"
 #include "slideio/drivers/pke/pkeimagedriver.hpp"
 #include "slideio/drivers/ome-tiff/otimagedriver.hpp"
+#include "slideio/imagetools/uridispatcher.hpp"
+#include "slideio/imagetools/httpstream.hpp"
 #include "slideio/base/log.hpp"
 
 using namespace slideio;
@@ -139,9 +141,25 @@ std::shared_ptr<CVSlide> ImageDriverManager::openSlide(const std::string& filePa
             throw std::runtime_error("ImageDriverManager: Unknown driver " + driverName);
         driver = it->second;
     }
-	auto slide = driver->openFile(filePath);
+    std::shared_ptr<CVSlide> slide;
+    const UriScheme scheme = detectUriScheme(filePath);
+    if (scheme == UriScheme::LocalFile) {
+        slide = driver->openFile(filePath);
+    }
+    else {
+        if (!driver->supportsStream()) {
+            RAISE_RUNTIME_ERROR << "Driver " << driver->getID()
+                << " does not yet support remote URIs: " << filePath;
+        }
+        slide = driver->openFile(createStream(filePath));
+    }
 	slide->setDriverId(driver->getID());
     return slide;
+}
+
+void ImageDriverManager::setHttpCacheEnabled(bool enabled)
+{
+    slideio::HttpStream::setCacheEnabled(enabled);
 }
 
 void ImageDriverManager::setLogLevel(const std::string &level) {
