@@ -22,6 +22,8 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/blockcache.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/httpstream.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/httpstream.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/uridispatcher.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/uridispatcher.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/tifftools.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/tifftools.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/tiffclientadapter.hpp

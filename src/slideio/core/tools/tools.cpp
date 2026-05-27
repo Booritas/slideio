@@ -63,15 +63,24 @@ std::string Tools::randomUUID() {
 bool Tools::matchPattern(const std::string& path, const std::string& pattern)
 {
     bool ret(false);
+    // Strip any URI query string so a presigned-URL suffix (e.g.
+    // "?X-Amz-Signature=...") does not defeat the extension match. Core must
+    // not depend on imagetools, so the strip is inlined here rather than
+    // calling uriResourceName.
+    std::string matchPath = path;
+    const auto query = matchPath.find('?');
+    if (query != std::string::npos) {
+        matchPath.erase(query);
+    }
 #if defined(WIN32)
-    const std::wstring wpath = Tools::toWstring(path);
+    const std::wstring wpath = Tools::toWstring(matchPath);
     const std::wstring wpattern = Tools::toWstring(pattern);
     ret = PathMatchSpecW(wpath.c_str(), wpattern.c_str()) != 0;
 #else
     std::vector<std::string> subPatterns = split(pattern, ';');
     for(const auto& sub_pattern : subPatterns)
     {
-        ret = wildmat(const_cast<char*>(path.c_str()),const_cast<char*>(sub_pattern.c_str()));
+        ret = wildmat(const_cast<char*>(matchPath.c_str()),const_cast<char*>(sub_pattern.c_str()));
         if(ret){
             break;
         }

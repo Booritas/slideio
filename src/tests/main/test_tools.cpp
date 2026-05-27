@@ -28,6 +28,11 @@ TEST(Tools, matchPattern) {
 #endif
 }
 
+TEST(ToolsTest, MatchPatternStripsQueryString) {
+    EXPECT_TRUE(slideio::Tools::matchPattern("foo.svs?X-Amz-Signature=abc", "*.svs"));
+    EXPECT_TRUE(slideio::Tools::matchPattern("https://h/path/foo.svs?sig=x", "*.svs"));
+}
+
 TEST(Tools, findZoomLevel) {
     struct ZoomLevel
     {

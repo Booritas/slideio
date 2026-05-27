@@ -42,6 +42,7 @@ set(TEST_SOURCES
   test_blockcache.cpp
   test_httpstream.cpp
   test_tiff_client_adapter.cpp
+  test_uri_dispatcher.cpp
   http_fixture/http_fixture.cpp
 )
 
