@@ -9,6 +9,8 @@
 #include "slideio/core/cvscene.hpp"
 #include "slideio/core/cvslide.hpp"
 #include "slideio/imagetools/tifftools.hpp"
+#include "slideio/base/randomaccessstream.hpp"
+#include <memory>
 
 #if defined(_MSC_VER)
 #pragma warning( push )
@@ -22,9 +24,15 @@ namespace slideio
         friend class SCNImageDriver;
     protected:
         SCNSlide(const std::string& filePath, const std::string& driverId);
+        SCNSlide(std::shared_ptr<RandomAccessStream> stream, const std::string& driverId);
         void init();
         void constructScenes();
     public:
+        // Factories: open by local path or by stream (remote URIs). The stream
+        // variant keeps the stream alive for the slide lifetime so every
+        // stream-backed TIFF handle (slide + scenes) stays valid.
+        static std::shared_ptr<SCNSlide> openFile(const std::string& path, const std::string& driverId);
+        static std::shared_ptr<SCNSlide> openFile(std::shared_ptr<RandomAccessStream> stream, const std::string& driverId);
         virtual ~SCNSlide();
         int getNumScenes() const override;
         std::string getFilePath() const override;
@@ -33,6 +41,9 @@ namespace slideio
     private:
         std::vector<std::shared_ptr<slideio::SCNScene>> m_Scenes;
         std::map<std::string, std::shared_ptr<slideio::CVScene>> m_auxImages;
+        // Held so the stream-backed handles (m_tiff and the scene/aux handles)
+        // always have a live stream to call back into; null for local-path opens.
+        std::shared_ptr<RandomAccessStream> m_stream;
         std::string m_filePath;
         TIFFKeeper m_tiff;
     };

@@ -22,8 +22,12 @@ std::string slideio::SCNImageDriver::getID() const
 std::shared_ptr<slideio::CVSlide> slideio::SCNImageDriver::openFile(const std::string& filePath)
 {
     Tools::throwIfPathNotExist(filePath,"SCNImageDriver::openFile");
-    std::shared_ptr<CVSlide> ptr(new SCNSlide(filePath, getID()));
-    return ptr;
+    return SCNSlide::openFile(filePath, getID());
+}
+
+std::shared_ptr<slideio::CVSlide> slideio::SCNImageDriver::openFile(std::shared_ptr<RandomAccessStream> stream)
+{
+    return SCNSlide::openFile(stream, getID());
 }
 
 std::string slideio::SCNImageDriver::getFileSpecs() const

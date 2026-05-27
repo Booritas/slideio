@@ -13,7 +13,9 @@
 using namespace slideio;
 using namespace tinyxml2;
 
-SCNScene::SCNScene(const std::string& filePath, int sceneIndex, const std::string& driverId, const tinyxml2::XMLElement* xmlImage):
+SCNScene::SCNScene(const std::string& filePath, int sceneIndex, const std::string& driverId, const tinyxml2::XMLElement* xmlImage,
+    std::shared_ptr<RandomAccessStream> stream):
+    m_stream(std::move(stream)),
     m_filePath(filePath),
 	m_driverId(driverId),
     m_compression(Compression::Unknown),
@@ -229,7 +231,9 @@ void SCNScene::setupChannels(const XMLElement* xmlImage)
 
 void SCNScene::init(const XMLElement* xmlImage)
 {
-    m_tiff = TiffTools::openTiffFile(m_filePath.c_str());
+    m_tiff = m_stream
+        ? TiffTools::openTiffFile(m_stream)
+        : TiffTools::openTiffFile(m_filePath.c_str());
     if (!m_tiff.isValid())
     {
         throw std::runtime_error(std::string("SCNImageDriver: Cannot open file:") + m_filePath);

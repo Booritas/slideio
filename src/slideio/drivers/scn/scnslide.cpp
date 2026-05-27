@@ -19,10 +19,30 @@ SCNSlide::SCNSlide(const std::string& filePath, const std::string& driverId) : m
     init();
 }
 
+SCNSlide::SCNSlide(std::shared_ptr<RandomAccessStream> stream, const std::string& driverId)
+    : m_stream(std::move(stream)), m_filePath(m_stream ? m_stream->uri() : std::string())
+{
+	setDriverId(driverId);
+	m_metadataFormat = MetadataFormat::XML;
+    init();
+}
+
+std::shared_ptr<SCNSlide> SCNSlide::openFile(const std::string& path, const std::string& driverId)
+{
+    return std::shared_ptr<SCNSlide>(new SCNSlide(path, driverId));
+}
+
+std::shared_ptr<SCNSlide> SCNSlide::openFile(std::shared_ptr<RandomAccessStream> stream, const std::string& driverId)
+{
+    return std::shared_ptr<SCNSlide>(new SCNSlide(std::move(stream), driverId));
+}
+
 void SCNSlide::init()
 {
     std::vector<TiffDirectory> directories;
-    m_tiff = TiffTools::openTiffFile(m_filePath);
+    m_tiff = m_stream
+        ? TiffTools::openTiffFile(m_stream)
+        : TiffTools::openTiffFile(m_filePath);
     if (!m_tiff.isValid()) {
         throw std::runtime_error(std::string("SCNImageDriver: Cannot open file:") + m_filePath);
     }
@@ -55,7 +75,7 @@ void SCNSlide::constructScenes()
         {
             if (strcmp(tagName, "image") == 0)
             {
-                std::shared_ptr<SCNScene> scene(new SCNScene(m_filePath, static_cast<int>(m_Scenes.size()), getDriverId(), xmlImage));
+                std::shared_ptr<SCNScene> scene(new SCNScene(m_filePath, static_cast<int>(m_Scenes.size()), getDriverId(), xmlImage, m_stream));
                 double magn = scene->getMagnification();
                 if (magn >= 1.)
                 {
@@ -87,6 +107,7 @@ void SCNSlide::constructScenes()
                     TiffTools::scanTiffDir(m_tiff.getHandle(), dir, 0, directory);
                     std::shared_ptr<SVSSmallScene> scene(new SVSSmallScene(m_filePath, getDriverId(), tagName,
                         directory, m_tiff.getHandle()));
+                    scene->setStream(m_stream);
                     scene->setSceneIndex(-1);
                     m_auxImages[type] = scene;
                     m_auxNames.push_back(type);

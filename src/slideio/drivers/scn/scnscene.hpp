@@ -10,6 +10,8 @@
 #include "slideio/core/tools/tilecomposer.hpp"
 #include "slideio/drivers/scn/scnstruct.h"
 #include "slideio/imagetools/tiffkeeper.hpp"
+#include "slideio/base/randomaccessstream.hpp"
+#include <memory>
 
 namespace tinyxml2
 {
@@ -31,7 +33,8 @@ namespace slideio
          * \param filePath: path to the slide file
          * \param xmlImage: xml element corresponded to the scene
          */
-        SCNScene(const std::string& filePath, int sceneIndex, const std::string& driverId, const tinyxml2::XMLElement* xmlImage);
+        SCNScene(const std::string& filePath, int sceneIndex, const std::string& driverId, const tinyxml2::XMLElement* xmlImage,
+            std::shared_ptr<RandomAccessStream> stream = nullptr);
 
         virtual ~SCNScene();
 
@@ -93,6 +96,9 @@ namespace slideio
         }
         void createEmptyChannelTile(int tileIndex, int channel, cv::OutputArray output, void* userData);
     protected:
+        // Held so the stream-backed TIFF handle (m_tiff) always has a live stream
+        // to call back into; null for local-path opens (m_tiff opened by path).
+        std::shared_ptr<RandomAccessStream> m_stream;
         TIFFKeeper m_tiff;
         std::string m_filePath;
         std::string m_driverId;

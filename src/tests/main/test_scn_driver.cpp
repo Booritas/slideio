@@ -15,6 +15,8 @@
 #include "slideio/imagetools/imagetools.hpp"
 #include "slideio/core/tools/xmltools.hpp"
 #include "slideio/slideio/slideio.hpp"
+#include "memorystream.hpp"
+#include <fstream>
 
 
 TEST(SCNImageDriver, DriverManager_getDriverIDs)
@@ -760,5 +762,37 @@ TEST(SCNImageDriver, zStackMissingChannels) {
     cv::minMaxLoc(channelRaster, &minVal, &maxVal);
 	EXPECT_EQ(maxVal, 0);
 	EXPECT_EQ(minVal, 0);
+}
+
+TEST(SCNImageDriver, OpenFromStreamMatchesPath)
+{
+    const std::string path = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1.scn");
+    // path open
+    auto refSlide = slideio::ImageDriverManager::openSlide(path, "SCN");
+    ASSERT_TRUE(refSlide);
+    auto refScene = refSlide->getScene(0);
+    ASSERT_TRUE(refScene);
+    // stream open via driver
+    std::ifstream in(path, std::ios::binary | std::ios::ate);
+    ASSERT_TRUE(in.good());
+    std::vector<uint8_t> bytes(static_cast<size_t>(in.tellg()));
+    in.seekg(0);
+    in.read(reinterpret_cast<char*>(bytes.data()), bytes.size());
+    auto stream = std::make_shared<slideio::tests::MemoryStream>(std::move(bytes), "memory:///x.scn");
+    slideio::SCNImageDriver driver;
+    auto strSlide = driver.openFile(stream);
+    ASSERT_TRUE(strSlide);
+    ASSERT_EQ(refSlide->getNumScenes(), strSlide->getNumScenes());
+    auto strScene = strSlide->getScene(0);
+    ASSERT_TRUE(strScene);
+    EXPECT_EQ(refScene->getRect(), strScene->getRect());
+    EXPECT_EQ(refScene->getNumChannels(), strScene->getNumChannels());
+    // Read a small region via BOTH and compare bytes — exercises tile reads through the stream-backed TIFF.
+    cv::Rect block(0, 0, std::min(256, refScene->getRect().width), std::min(256, refScene->getRect().height));
+    cv::Mat refRaster, strRaster;
+    refScene->readBlock(block, refRaster);
+    strScene->readBlock(block, strRaster);
+    ASSERT_EQ(refRaster.size(), strRaster.size());
+    EXPECT_EQ(0.0, cv::norm(refRaster, strRaster, cv::NORM_INF));
 }
 
