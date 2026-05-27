@@ -7,6 +7,7 @@
 #include "slideio/drivers/afi/afi_api_def.hpp"
 #include "slideio/core/cvscene.hpp"
 #include "slideio/core/cvslide.hpp"
+#include "slideio/base/randomaccessstream.hpp"
 
 #if defined(_MSC_VER)
 #pragma warning( push )
@@ -28,8 +29,12 @@ namespace slideio
         std::string getFilePath() const override;
         std::shared_ptr<slideio::CVScene> getScene(int index) const override;
         static std::shared_ptr<AFISlide> openFile(const std::string& path, const std::string& driverId);
+        static std::shared_ptr<AFISlide> openFile(std::shared_ptr<RandomAccessStream> stream, const std::string& driverId);
         static std::vector<std::string> getFileList(std::string xmlString);
         static SlidesScenes getSlidesScenesFromFiles(const std::vector<std::string>& files, std::string mainFile);
+        // Stream-mode counterpart of getSlidesScenesFromFiles: resolves each
+        // referenced SVS as a sibling of `baseUri` and opens it over its own stream.
+        static SlidesScenes getSlidesScenesFromStreams(const std::vector<std::string>& files, const std::string& baseUri);
     private:
         Slides m_slides;
         Scenes m_scenes;

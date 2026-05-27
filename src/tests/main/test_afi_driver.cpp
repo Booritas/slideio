@@ -4,9 +4,12 @@
 #include "slideio/imagetools/imagetools.hpp"
 #include "slideio/base/exceptions.hpp"
 #include "slideio/slideio/slideio.hpp"
+#include "slideio/slideio/imagedrivermanager.hpp"
+#include "http_fixture/http_fixture.hpp"
 
 #include <gtest/gtest.h>
 #include <filesystem>
+#include <fstream>
 #include <opencv2/imgproc.hpp>
 
 #include <numeric>
@@ -196,4 +199,74 @@ TEST_F(AFIDriverFileTest, getDriverId)
         EXPECT_EQ(filePath, scene->getFilePath());
         EXPECT_EQ("AFI", scene->getDriverId());
     }
+}
+
+// Opening an AFI index over HTTP: the AFI index stream is fetched, its sibling
+// SVS references are resolved via siblingUri and each opened over its own
+// HTTP stream. Compared byte-for-byte against the same staged AFI opened locally.
+TEST_F(AFIDriverFileTest, OpenFromHttpMatchesLocal)
+{
+    namespace fs = std::filesystem;
+    const std::string srcAfi = getPrivTestImagesPath("afi", "fs.afi");
+    // Referenced SVS files (bare filenames, in AFI order). Spaces are renamed to
+    // underscores so the URLs stay free of characters the test server / curl
+    // would otherwise have to percent-encode; both the staged .afi and the
+    // copied .svs use the sanitized names, so sibling resolution still matches.
+    const std::vector<std::pair<std::string, std::string>> svs = {
+        { "fs_Alexa Fluor 594.svs", "fs_Alexa_Fluor_594.svs" },
+        { "fs_Alexa Fluor 488.svs", "fs_Alexa_Fluor_488.svs" },
+        { "fs_DAPI.svs",            "fs_DAPI.svs" },
+    };
+
+    // Stage everything side-by-side in one temp directory.
+    fs::path root = fs::temp_directory_path() / "slideio_afi_http_fixture";
+    fs::remove_all(root);
+    fs::create_directories(root);
+    for (const auto& s : svs) {
+        fs::copy_file(getPrivTestImagesPath("afi", s.first), root / s.second,
+                      fs::copy_options::overwrite_existing);
+    }
+    // Write a matching .afi index referencing the sanitized sibling filenames.
+    const std::string afiName = "fs.afi";
+    {
+        std::ofstream afi(root / afiName, std::ios::binary);
+        afi << "<ImageList>\n";
+        for (const auto& s : svs) {
+            afi << "  <Image><Path>" << s.second << "</Path><ID>@fs</ID></Image>\n";
+        }
+        afi << "</ImageList>\n";
+    }
+    const std::string localAfi = (root / afiName).generic_string();
+
+    // Local open (path overload through the manager).
+    auto refSlide = slideio::ImageDriverManager::openSlide(localAfi, "AFI");
+    ASSERT_TRUE(refSlide);
+
+    // HTTP open: exercises AUTO/named selection over HTTP, the AFI index stream,
+    // siblingUri resolution and the SVS-over-HTTP opens.
+    slideio::tests::HttpFixture fx(root);
+    auto httpSlide = slideio::ImageDriverManager::openSlide(fx.url(afiName), "AFI");
+    ASSERT_TRUE(httpSlide);
+
+    ASSERT_EQ(refSlide->getNumScenes(), httpSlide->getNumScenes());
+    ASSERT_GT(refSlide->getNumScenes(), 0);
+
+    auto refScene = refSlide->getScene(0);
+    auto httpScene = httpSlide->getScene(0);
+    ASSERT_TRUE(refScene);
+    ASSERT_TRUE(httpScene);
+    EXPECT_EQ(refScene->getRect(), httpScene->getRect());
+    EXPECT_EQ(refScene->getNumChannels(), httpScene->getNumChannels());
+
+    // Byte-exact small region read of scene 0 through both AFI->SVS paths.
+    const cv::Rect sceneRect = refScene->getRect();
+    cv::Rect block(0, 0, std::min(256, sceneRect.width), std::min(256, sceneRect.height));
+    cv::Mat refRaster, httpRaster;
+    refScene->readBlock(block, refRaster);
+    httpScene->readBlock(block, httpRaster);
+    ASSERT_EQ(refRaster.size(), httpRaster.size());
+    EXPECT_EQ(0.0, cv::norm(refRaster, httpRaster, cv::NORM_INF));
+    // Note: the staged temp dir is intentionally not removed here -- the
+    // HttpFixture server process (and its open slides) still reference it until
+    // this scope unwinds. A fresh run wipes it via remove_all at the top.
 }

@@ -23,6 +23,11 @@ std::shared_ptr<slideio::CVSlide> slideio::AFIImageDriver::openFile(const std::s
 	return AFISlide::openFile(filePath, getID());
 }
 
+std::shared_ptr<slideio::CVSlide> slideio::AFIImageDriver::openFile(std::shared_ptr<RandomAccessStream> stream)
+{
+	return AFISlide::openFile(stream, getID());
+}
+
 std::string slideio::AFIImageDriver::getFileSpecs() const
 {
 	static std::string pattern("*.afi");

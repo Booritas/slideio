@@ -6,6 +6,7 @@
 #include "slideio/drivers/afi/afislide.hpp"
 #include "slideio/drivers/svs/svsslide.hpp"
 #include "slideio/drivers/svs/svsscene.hpp"
+#include "slideio/imagetools/uridispatcher.hpp"
 #include <filesystem>
 #include <tinyxml2.h>
 #include <fstream>
@@ -95,7 +96,7 @@ std::shared_ptr<AFISlide> AFISlide::openFile(const std::string& filePath, const 
     const auto slidesScenes = getSlidesScenesFromFiles(files, filePath);
     if(slidesScenes.first.empty()) {
         RAISE_RUNTIME_ERROR << "File " << filePath << " contains no images to open";
-    }   
+    }
     std::shared_ptr<AFISlide> afiSlide(new AFISlide);
     afiSlide->setDriverId(driverId);
     afiSlide->m_scenes.assign(slidesScenes.second.begin(), slidesScenes.second.end());
@@ -109,6 +110,45 @@ std::shared_ptr<AFISlide> AFISlide::openFile(const std::string& filePath, const 
     }
     afiSlide->m_filePath = filePath;
 
+    return afiSlide;
+}
+
+std::shared_ptr<AFISlide> AFISlide::openFile(std::shared_ptr<RandomAccessStream> stream, const std::string& driverId)
+{
+    if(!stream) {
+        RAISE_RUNTIME_ERROR << "AFISlide::openFile: null stream";
+    }
+    const std::string identifier = stream->uri();
+    const uint64_t size = stream->size();
+    std::string fileString;
+    fileString.resize(static_cast<size_t>(size));
+    if(size > 0) {
+        const size_t read = stream->read(0, static_cast<size_t>(size), &fileString[0]);
+        if(read != static_cast<size_t>(size)) {
+            RAISE_RUNTIME_ERROR << "AFISlide::openFile: short read of AFI index " << identifier
+                << " (" << read << " of " << size << " bytes)";
+        }
+    }
+    const auto files = getFileList(fileString);
+    const auto slidesScenes = getSlidesScenesFromStreams(files, identifier);
+    if(slidesScenes.first.empty()) {
+        RAISE_RUNTIME_ERROR << "File " << identifier << " contains no images to open";
+    }
+    std::shared_ptr<AFISlide> afiSlide(new AFISlide);
+    afiSlide->setDriverId(driverId);
+    afiSlide->m_scenes.assign(slidesScenes.second.begin(), slidesScenes.second.end());
+    afiSlide->m_slides.assign(slidesScenes.first.begin(), slidesScenes.first.end());
+    int iScene = 0;
+    for (auto& scene : afiSlide->m_scenes) {
+        std::shared_ptr<SVSScene> svsScene = std::static_pointer_cast<SVSScene>(scene);
+        svsScene->setFilePath(identifier);
+        svsScene->setSceneIndex(iScene++);
+        svsScene->setDriverId(afiSlide->getDriverId());
+    }
+    afiSlide->m_filePath = identifier;
+    // The AFI index stream is only needed to read the XML above; the referenced
+    // SVS streams are held alive by their SVS slides in m_slides, so we do not
+    // need to retain the index stream beyond this point.
     return afiSlide;
 }
 
@@ -149,6 +189,39 @@ slideio::AFISlide::SlidesScenes slideio::AFISlide::getSlidesScenesFromFiles(cons
         }
         else {
             RAISE_RUNTIME_ERROR << "Slide " << svsPath << " didn't have any scene";
+        }
+    }
+
+    return result;
+}
+
+slideio::AFISlide::SlidesScenes slideio::AFISlide::getSlidesScenesFromStreams(const std::vector<std::string>& files,
+                                                                              const std::string& baseUri)
+{
+    SlidesScenes result;
+    for (const auto& svsFile : files) {
+        // Match the local path resolution (getFileRelativeTo) which joins ONLY the
+        // reference's filename component to the main file's directory. siblingUri
+        // joins `name` to base's directory, so pass the filename component to keep
+        // stream and local resolution identical for references that contain a subpath.
+        const std::string name = std::filesystem::path(svsFile).filename().generic_string();
+        const std::string svsUri = siblingUri(baseUri, name);
+        const auto svsSlide = SVSSlide::openFile(createStream(svsUri), "AFI");
+        if(svsSlide == nullptr) {
+            RAISE_RUNTIME_ERROR << "Couldn't open SVS file " << svsUri;
+        }
+        const auto scenesNum = result.second.size();
+        for (decltype (svsSlide->getNumScenes()) i = 0; i < svsSlide->getNumScenes(); ++i) {
+            if (svsSlide->getScene(i)->getName() == "Image") {
+                result.second.push_back(svsSlide->getScene(i));
+            }
+        }
+        // If some scenes added from that slide
+        if (result.second.size() > scenesNum) {
+            result.first.push_back(svsSlide);
+        }
+        else {
+            RAISE_RUNTIME_ERROR << "Slide " << svsUri << " didn't have any scene";
         }
     }
 
