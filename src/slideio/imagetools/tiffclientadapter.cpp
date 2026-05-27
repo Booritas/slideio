@@ -3,9 +3,9 @@
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/imagetools/tiffclientadapter.hpp"
 #include "slideio/base/exceptions.hpp"
+#include "slideio/base/log.hpp"
 
 #include <cstdio>
-#include <cstring>
 
 namespace slideio
 {
@@ -59,15 +59,17 @@ libtiff::TIFF* openTiffFromStream(std::shared_ptr<RandomAccessStream> stream)
     if (!stream) {
         RAISE_RUNTIME_ERROR << "openTiffFromStream: null stream";
     }
+    const std::string uri = stream->uri();
     auto* ctx = new TiffClientCtx{ std::move(stream), 0 };
     libtiff::TIFF* t = libtiff::TIFFClientOpen(
-        ctx->stream->uri().c_str(), "r",
+        uri.c_str(), "r",
         static_cast<libtiff::thandle_t>(ctx),
         tiffRead, tiffWrite, tiffSeek, tiffClose, tiffSize, tiffMap, tiffUnmap);
     if (!t) {
         delete ctx;
-        RAISE_RUNTIME_ERROR << "openTiffFromStream: TIFFClientOpen failed";
+        RAISE_RUNTIME_ERROR << "openTiffFromStream: TIFFClientOpen failed for " << uri;
     }
+    SLIDEIO_LOG(INFO) << "Opened TIFF from stream " << uri;
     return t;
 }
 
