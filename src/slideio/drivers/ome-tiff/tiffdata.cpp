@@ -6,6 +6,7 @@
 #include "slideio/core/dimensions.hpp"
 #include "slideio/base/log.hpp"
 #include "slideio/imagetools/tifffiles.hpp"
+#include "slideio/imagetools/uridispatcher.hpp"
 #include "slideio/core/tools/tools.hpp"
 #include <tinyxml2.h>
 #include <filesystem>
@@ -19,7 +20,13 @@ using namespace slideio::ometiff;
 void TiffData::init(const std::string& filePath, TIFFFiles* files, const std::string& dimOrder, int numChannels, int numZSlices, int numTFrames, tinyxml2::XMLElement* xmlTiffData) {
 
     m_filePath = filePath;
-    const std::string directoryPath = std::filesystem::path(filePath).parent_path().string();
+    const bool streaming = (files != nullptr) && files->hasStream();
+    // For local opens, filePath is a filesystem path and the directory is its
+    // parent. For stream opens, filePath is the originating URI and sibling
+    // resolution is done via siblingUri() instead of std::filesystem.
+    const std::string directoryPath = streaming
+        ? filePath
+        : std::filesystem::path(filePath).parent_path().string();
 
     if (xmlTiffData == nullptr) {
 		RAISE_RUNTIME_ERROR << "TiffData: Unexpected xmlTiffData is null";
@@ -49,9 +56,17 @@ void TiffData::init(const std::string& filePath, TIFFFiles* files, const std::st
     } else {
         SLIDEIO_LOG(WARNING) << "OTScene: missing required UUID element in the xml metadata";
     }
-    m_filePath = (fileNameAttr == nullptr || *fileNameAttr == '\0')
-        ? m_filePath
-        : std::filesystem::path(directoryPath).append(fileNameAttr).string();
+    if (fileNameAttr != nullptr && *fileNameAttr != '\0') {
+        // Resolve the referenced file relative to the originating location.
+        // siblingUri() preserves the URI scheme for streams (s3/http/memory);
+        // for single-file OME-TIFF the FileName equals the main file's name, so
+        // the resolved URI matches the stream's main URI and getOrOpen() serves
+        // it from the stream. A different name resolves to a sibling URI that
+        // getOrOpen() rejects under streaming (v1 multi-file limitation).
+        m_filePath = streaming
+            ? slideio::siblingUri(directoryPath, fileNameAttr)
+            : std::filesystem::path(directoryPath).append(fileNameAttr).string();
+    }
 
     m_tiff = files->getOrOpen(m_filePath);
     if (!m_tiff) {

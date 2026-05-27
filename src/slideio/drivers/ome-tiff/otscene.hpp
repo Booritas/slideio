@@ -88,6 +88,9 @@ namespace slideio
             Resolution m_resolution = {};
             double m_magnification = 0;
             int m_imageIndex = -1;
+            // Declared BEFORE m_files: the stream must outlive every libtiff handle
+            // that m_files opens from it (member destruction is reverse order).
+            std::shared_ptr<RandomAccessStream> m_stream;
             TIFFFiles m_files;
 			double m_zResolution = 0.0;
 			double m_tResolution = 0.0;

@@ -35,8 +35,13 @@ OTScene::OTScene(const ImageData& imageData, int sceneIndex, const std::string& 
     m_imageDoc = imageData.doc;
     m_imageId = imageData.imageId;
     m_filePath = imageData.imageFilePath;
+    m_stream = imageData.stream;
 	m_sceneIndex = sceneIndex;
     m_driverId = driverId;
+    if (m_stream) {
+        // Route getOrOpen(mainUri) through the stream; reject sibling files (v1).
+        m_files.setMainStream(m_filePath, m_stream);
+    }
     initialize();
 }
 

@@ -26,6 +26,11 @@ std::shared_ptr<slideio::CVSlide> OTImageDriver::openFile(const std::string& fil
 	return OTSlide::openFile(filePath, getID());
 }
 
+std::shared_ptr<slideio::CVSlide> OTImageDriver::openFile(std::shared_ptr<RandomAccessStream> stream)
+{
+	return OTSlide::openFile(stream, getID());
+}
+
 std::string OTImageDriver::getFileSpecs() const
 {
 	static std::string pattern("*.ome.tif;*ome.tiff;*.ome.tf2;*.ome.tf8;*.ome.btf");

@@ -1,9 +1,12 @@
 ﻿#include <gtest/gtest.h>
 #include "tests/testlib/testtools.hpp"
+#include <cstring>
+#include <fstream>
 #include <string>
 #include <tinyxml2.h>
 #include <opencv2/imgproc.hpp>
 #include <slideio/slideio/imagedrivermanager.hpp>
+#include "slideio/base/randomaccessstream.hpp"
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/drivers/ome-tiff/otimagedriver.hpp"
 #include "slideio/drivers/ome-tiff/otscene.hpp"
@@ -18,6 +21,42 @@ namespace slideio
 
 using namespace slideio;
 using namespace slideio::ometiff;
+
+namespace {
+    // Inline in-memory RandomAccessStream. memorystream.hpp lives under
+    // src/tests/main/ which is not on this suite's include path, so we inline an
+    // equivalent here to exercise the stream-based open path.
+    class OTMemoryStream : public slideio::RandomAccessStream
+    {
+    public:
+        OTMemoryStream(std::vector<uint8_t> data, std::string uri)
+            : m_data(std::move(data)), m_uri(std::move(uri)) {}
+        uint64_t size() const override { return m_data.size(); }
+        size_t read(uint64_t offset, size_t count, void* buf) override {
+            if (count == 0) return 0;
+            if (offset >= m_data.size()) return 0;
+            const size_t avail = m_data.size() - static_cast<size_t>(offset);
+            const size_t toCopy = (count < avail) ? count : avail;
+            std::memcpy(buf, m_data.data() + static_cast<size_t>(offset), toCopy);
+            return toCopy;
+        }
+        std::string uri() const override { return m_uri; }
+    private:
+        std::vector<uint8_t> m_data;
+        std::string m_uri;
+    };
+
+    std::vector<uint8_t> readFileBytes(const std::string& path) {
+        std::ifstream in(path, std::ios::binary | std::ios::ate);
+        std::vector<uint8_t> bytes;
+        if (in.good()) {
+            bytes.resize(static_cast<size_t>(in.tellg()));
+            in.seekg(0);
+            in.read(reinterpret_cast<char*>(bytes.data()), bytes.size());
+        }
+        return bytes;
+    }
+}
 struct ZoomLevelInfo
 {
 	int level;
@@ -811,4 +850,77 @@ TEST_F(OTImageDriverTests, readBlockBigEndian) {
 			EXPECT_GT(sim, 0.9);
 		}
 	}
+}
+
+TEST_F(OTImageDriverTests, OpenFromStreamMatchesPath) {
+	// Single-file OME-TIFF: the embedded TiffData UUID FileName equals the file's
+	// own name ("single-channel.ome.tiff"), so streaming must resolve that name
+	// back to the main stream URI and serve tiles from the stream.
+	const std::string path = TestTools::getFullTestImagePath("ometiff", "SingleChannel/single-channel.ome.tiff");
+	slideio::ometiff::OTImageDriver driver;
+	std::shared_ptr<CVSlide> refSlide = driver.openFile(path);
+	ASSERT_TRUE(refSlide != nullptr);
+	std::shared_ptr<CVScene> refScene = refSlide->getScene(0);
+	ASSERT_TRUE(refScene != nullptr);
+
+	std::vector<uint8_t> bytes = readFileBytes(path);
+	ASSERT_FALSE(bytes.empty());
+	// URI basename MUST match the embedded FileName so siblingUri() maps it to the main URI.
+	auto stream = std::make_shared<OTMemoryStream>(std::move(bytes), "memory:///single-channel.ome.tiff");
+	std::shared_ptr<CVSlide> strSlide = driver.openFile(stream);
+	ASSERT_TRUE(strSlide != nullptr);
+	ASSERT_EQ(refSlide->getNumScenes(), strSlide->getNumScenes());
+	std::shared_ptr<CVScene> strScene = strSlide->getScene(0);
+	ASSERT_TRUE(strScene != nullptr);
+	EXPECT_EQ(refScene->getRect(), strScene->getRect());
+	EXPECT_EQ(refScene->getNumChannels(), strScene->getNumChannels());
+
+	// Byte-exact small region read exercises tile reads through the stream-backed TIFF.
+	cv::Rect block(0, 0, std::min(256, refScene->getRect().width), std::min(256, refScene->getRect().height));
+	cv::Mat refRaster, strRaster;
+	refScene->readBlock(block, refRaster);
+	strScene->readBlock(block, strRaster);
+	ASSERT_EQ(refRaster.size(), strRaster.size());
+	EXPECT_EQ(0.0, cv::norm(refRaster, strRaster, cv::NORM_INF));
+}
+
+TEST_F(OTImageDriverTests, OpenMultiFileFromStreamIsRejected) {
+	// Multi-file OME-TIFF over a remote stream is a documented v1 limitation:
+	// TiffData elements that reference sibling files (Z2..Z5) cannot be streamed,
+	// so getOrOpen() refuses them. Per-TiffData errors are swallowed during scene
+	// init, so the slide still opens (the main file's own Z0 plane streams fine),
+	// but reading a z-slice that lives in a sibling file fails.
+	const std::string path = TestTools::getFullTestImagePath("ometiff", "Multifile/multifile-Z1.ome.tiff");
+	slideio::ometiff::OTImageDriver driver;
+	// Sanity: local multi-file open + full z-stack read still works.
+	std::shared_ptr<CVSlide> localSlide = driver.openFile(path);
+	ASSERT_TRUE(localSlide != nullptr);
+	ASSERT_EQ(1, localSlide->getNumScenes());
+	std::shared_ptr<CVScene> localScene = localSlide->getScene(0);
+	ASSERT_EQ(5, localScene->getNumZSlices());
+	{
+		cv::Rect rect = localScene->getRect();
+		std::vector<int> channels = { 0 };
+		cv::Mat raster;
+		// z-slice 1 lives in multifile-Z2.ome.tiff — fine locally.
+		EXPECT_NO_THROW(localScene->read4DBlockChannels(rect, channels, cv::Range(1, 2), cv::Range(0, 1), raster));
+	}
+
+	std::vector<uint8_t> bytes = readFileBytes(path);
+	ASSERT_FALSE(bytes.empty());
+	auto stream = std::make_shared<OTMemoryStream>(std::move(bytes), "memory:///multifile-Z1.ome.tiff");
+	std::shared_ptr<CVSlide> strSlide = driver.openFile(stream);
+	ASSERT_TRUE(strSlide != nullptr);
+	ASSERT_EQ(1, strSlide->getNumScenes());
+	std::shared_ptr<CVScene> strScene = strSlide->getScene(0);
+	ASSERT_TRUE(strScene != nullptr);
+	// z-slice 0 (the main file's own plane) streams fine.
+	cv::Rect rect = strScene->getRect();
+	std::vector<int> channels = { 0 };
+	cv::Mat raster0;
+	EXPECT_NO_THROW(strScene->read4DBlockChannels(rect, channels, cv::Range(0, 1), cv::Range(0, 1), raster0));
+	// z-slice 1 requires the sibling file multifile-Z2.ome.tiff, which is not
+	// streamable in v1 -> the read fails.
+	cv::Mat raster1;
+	EXPECT_ANY_THROW(strScene->read4DBlockChannels(rect, channels, cv::Range(1, 2), cv::Range(0, 1), raster1));
 }

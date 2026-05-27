@@ -6,6 +6,7 @@
 #include <string>
 
 #include "slideio/imagetools/tiffkeeper.hpp"
+#include "slideio/base/randomaccessstream.hpp"
 
 namespace tinyxml2
 {
@@ -23,6 +24,9 @@ namespace slideio
             tinyxml2::XMLElement* imageXml;
             std::string imageId;
             std::string imageFilePath;
+            // Non-null only for stream-based opens; the scene keeps it alive so the
+            // stream outlives every libtiff handle opened from it.
+            std::shared_ptr<RandomAccessStream> stream;
         };
 
 		typedef std::vector<int> PlaneCoordinates;
