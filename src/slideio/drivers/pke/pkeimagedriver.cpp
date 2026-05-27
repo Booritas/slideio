@@ -23,6 +23,11 @@ std::shared_ptr<slideio::CVSlide> slideio::PKEImageDriver::openFile(const std::s
 	return PKESlide::openFile(filePath, getID());
 }
 
+std::shared_ptr<slideio::CVSlide> slideio::PKEImageDriver::openFile(std::shared_ptr<RandomAccessStream> stream)
+{
+	return PKESlide::openFile(stream, getID());
+}
+
 std::string slideio::PKEImageDriver::getFileSpecs() const
 {
 	static std::string pattern("*.qptiff");

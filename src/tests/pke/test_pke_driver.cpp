@@ -1,10 +1,13 @@
 ﻿#include <random>
 #include <gtest/gtest.h>
 #include "tests/testlib/testtools.hpp"
+#include <cstring>
+#include <fstream>
 #include <string>
 #include <tinyxml2.h>
 #include <opencv2/imgproc.hpp>
 
+#include "slideio/base/randomaccessstream.hpp"
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/drivers/pke/pkeimagedriver.hpp"
 #include "slideio/drivers/pke/pkescene.hpp"
@@ -21,6 +24,31 @@ namespace slideio
 }
 
 using namespace slideio;
+
+namespace {
+    // Inline in-memory RandomAccessStream. memorystream.hpp lives under
+    // src/tests/main/ which is not on this suite's include path, so we inline an
+    // equivalent here to exercise the stream-based open path.
+    class PKEMemoryStream : public slideio::RandomAccessStream
+    {
+    public:
+        PKEMemoryStream(std::vector<uint8_t> data, std::string uri)
+            : m_data(std::move(data)), m_uri(std::move(uri)) {}
+        uint64_t size() const override { return m_data.size(); }
+        size_t read(uint64_t offset, size_t count, void* buf) override {
+            if (count == 0) return 0;
+            if (offset >= m_data.size()) return 0;
+            const size_t avail = m_data.size() - static_cast<size_t>(offset);
+            const size_t toCopy = (count < avail) ? count : avail;
+            std::memcpy(buf, m_data.data() + static_cast<size_t>(offset), toCopy);
+            return toCopy;
+        }
+        std::string uri() const override { return m_uri; }
+    private:
+        std::vector<uint8_t> m_data;
+        std::string m_uri;
+    };
+}
 
 
 class PKEImageDriverTests : public ::testing::Test {
@@ -421,6 +449,37 @@ TEST_F(PKEImageDriverTests, multiThreadSceneAccess) {
     std::string filePath = TestTools::getFullTestImagePath("pke", "openmicroscopy/PKI_scans/LuCa-7color_Scan1.qptiff");
     slideio::PKEImageDriver driver;
     TestTools::multiThreadedTest(filePath, driver);
+}
+
+TEST_F(PKEImageDriverTests, OpenFromStreamMatchesPath) {
+    const std::string path = TestTools::getFullTestImagePath("pke", "openmicroscopy/PKI_scans/HandEcompressed_Scan1.qptiff");
+    // path open
+    slideio::PKEImageDriver driver;
+    std::shared_ptr<CVSlide> refSlide = driver.openFile(path);
+    ASSERT_TRUE(refSlide != nullptr);
+    std::shared_ptr<CVScene> refScene = refSlide->getScene(0);
+    ASSERT_TRUE(refScene != nullptr);
+    // stream open via driver
+    std::ifstream in(path, std::ios::binary | std::ios::ate);
+    ASSERT_TRUE(in.good());
+    std::vector<uint8_t> bytes(static_cast<size_t>(in.tellg()));
+    in.seekg(0);
+    in.read(reinterpret_cast<char*>(bytes.data()), bytes.size());
+    auto stream = std::make_shared<PKEMemoryStream>(std::move(bytes), "memory:///x.qptiff");
+    std::shared_ptr<CVSlide> strSlide = driver.openFile(stream);
+    ASSERT_TRUE(strSlide != nullptr);
+    ASSERT_EQ(refSlide->getNumScenes(), strSlide->getNumScenes());
+    std::shared_ptr<CVScene> strScene = strSlide->getScene(0);
+    ASSERT_TRUE(strScene != nullptr);
+    EXPECT_EQ(refScene->getRect(), strScene->getRect());
+    EXPECT_EQ(refScene->getNumChannels(), strScene->getNumChannels());
+    // Read a small region via BOTH and compare bytes — exercises tile reads through the stream-backed TIFF.
+    cv::Rect block(0, 0, std::min(256, refScene->getRect().width), std::min(256, refScene->getRect().height));
+    cv::Mat refRaster, strRaster;
+    refScene->readBlock(block, refRaster);
+    strScene->readBlock(block, strRaster);
+    ASSERT_EQ(refRaster.size(), strRaster.size());
+    EXPECT_EQ(0.0, cv::norm(refRaster, strRaster, cv::NORM_INF));
 }
 
 TEST_F(PKEImageDriverTests, getDriverId)

@@ -37,7 +37,9 @@ PKEScene::~PKEScene() = default;
 void PKEScene::makeSureFileIsOpened()
 {
     if (!m_tiffKeeper.isValid()) {
-        m_tiffKeeper = TiffTools::openTiffFile(m_filePath);
+        m_tiffKeeper = m_stream
+            ? TiffTools::openTiffFile(m_stream)
+            : TiffTools::openTiffFile(m_filePath);
         if(!m_tiffKeeper.isValid()) {
             throw std::runtime_error(std::string("PKEImageDriver: Cannot open file:") + m_filePath);
         }

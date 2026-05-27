@@ -49,15 +49,34 @@ std::shared_ptr<CVScene> PKESlide::getScene(int index) const
 
 std::shared_ptr<PKESlide> PKESlide::openFile(const std::string& filePath, const std::string& driverId)
 {
-    SLIDEIO_LOG(INFO) << "PKESlide::openFile: " << filePath;
-    std::shared_ptr<PKESlide> slide;
-    std::vector<TiffDirectory> directories;
-    libtiff::TIFF* tiff(nullptr);
-    tiff = TiffTools::openTiffFile(filePath);
+    SLIDEIO_LOG(INFO) << "PKESlide::openFile (path): " << filePath;
+    libtiff::TIFF* tiff = TiffTools::openTiffFile(filePath);
     if(!tiff) {
         SLIDEIO_LOG(WARNING) << "PKESlide::openFile: cannot open file " << filePath << " with libtiff";
-        return slide;
+        return std::shared_ptr<PKESlide>();
     }
+    return openFile(tiff, filePath, driverId, nullptr);
+}
+
+std::shared_ptr<PKESlide> PKESlide::openFile(std::shared_ptr<RandomAccessStream> stream, const std::string& driverId)
+{
+    const std::string identifier = stream ? stream->uri() : std::string();
+    SLIDEIO_LOG(INFO) << "PKESlide::openFile (stream): " << identifier;
+    libtiff::TIFF* tiff = TiffTools::openTiffFile(stream);
+    if(!tiff) {
+        SLIDEIO_LOG(WARNING) << "PKESlide::openFile: cannot open stream " << identifier << " with libtiff";
+        return std::shared_ptr<PKESlide>();
+    }
+    return openFile(tiff, identifier, driverId, stream);
+}
+
+std::shared_ptr<PKESlide> PKESlide::openFile(libtiff::TIFF* tiff,
+                                             const std::string& filePath,
+                                             const std::string& driverId,
+                                             std::shared_ptr<RandomAccessStream> stream)
+{
+    std::shared_ptr<PKESlide> slide;
+    std::vector<TiffDirectory> directories;
     TIFFKeeper keeper(tiff);
 
     TiffTools::scanFile(tiff, directories);
@@ -91,7 +110,9 @@ std::shared_ptr<PKESlide> PKESlide::openFile(const std::string& filePath, const 
                     }
                     image_dirs.push_back(directory);
                 } else if(type == "Thumbnail" || type == "Overview" || type == "Label") {
-                    std::shared_ptr<CVScene> scene(new PKESmallScene(filePath, -1, slide->getDriverId(),type, directory, true));
+                    std::shared_ptr<PKESmallScene> smallScene(new PKESmallScene(filePath, -1, slide->getDriverId(),type, directory, true));
+                    smallScene->setStream(stream);
+                    std::shared_ptr<CVScene> scene(smallScene);
                     auxImages[type] = scene;
                     auxNames.emplace_back(type);
                 }
@@ -100,9 +121,12 @@ std::shared_ptr<PKESlide> PKESlide::openFile(const std::string& filePath, const 
     }
 
     std::vector<std::shared_ptr<CVScene>> scenes;
-    std::shared_ptr<CVScene> scene(new PKETiledScene(filePath,static_cast<int>(scenes.size()), slide->getDriverId(), keeper.release(),"Image", image_dirs));
+    std::shared_ptr<PKETiledScene> tiledScene(new PKETiledScene(filePath,static_cast<int>(scenes.size()), slide->getDriverId(), keeper.release(),"Image", image_dirs));
+    tiledScene->setStream(stream);
+    std::shared_ptr<CVScene> scene(tiledScene);
     scenes.push_back(scene);
     slide->m_Scenes.assign(scenes.begin(), scenes.end());
+    slide->m_stream = stream;
     slide->m_filePath = filePath;
     slide->m_auxImages = auxImages;
     slide->m_auxNames = auxNames;

@@ -15,6 +15,8 @@ namespace slideio
         ~PKEImageDriver();
         std::string getID() const override;
         std::shared_ptr<slideio::CVSlide> openFile(const std::string& filePath) override;
+        bool supportsStream() const override { return true; }
+        std::shared_ptr<slideio::CVSlide> openFile(std::shared_ptr<RandomAccessStream> stream) override;
         std::string getFileSpecs() const override;
     };
 }
