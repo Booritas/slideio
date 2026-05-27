@@ -168,3 +168,22 @@ TEST(HttpStreamTest, CacheDisableForcesGetPerRead) {
     slideio::HttpStream::setCacheEnabled(true);
     EXPECT_GE(after - before, 5);
 }
+
+TEST(HttpStreamTest, RejectsTwoHundredForRangedRequestAtNonzeroOffset) {
+    auto root = makeRoot();
+    auto file = root / "ignore_range.bin";
+    // > 1 block so a read at offset 1 MB produces a ranged GET starting past 0.
+    const size_t fileSize = slideio::HttpStream::kBlockSize + 4096;
+    {
+        std::ofstream o(file, std::ios::binary);
+        for (size_t i = 0; i < fileSize; ++i) o.put(static_cast<char>(i & 0xff));
+    }
+    HttpFixture fx(root);
+    // HEAD (size probe) ignores the query and returns a correct Content-Length;
+    // the GET sees ignore_range=1 and returns 200 with the full body instead of
+    // a 206 partial. A read in block 1 starts at byte 1 MB > 0, so the stream
+    // must reject the mis-sliceable 200 rather than serve wrong data.
+    slideio::HttpStream s(fx.url("ignore_range.bin?ignore_range=1"));
+    std::vector<uint8_t> buf(100);
+    EXPECT_ANY_THROW(s.read(slideio::HttpStream::kBlockSize, buf.size(), buf.data()));
+}

@@ -5,12 +5,10 @@
 #include "slideio/imagetools/httpstream.hpp"
 #include "http_fixture/http_fixture.hpp"
 #include <atomic>
-#include <chrono>
 #include <filesystem>
 #include <fstream>
 #include <memory>
 #include <string>
-#include <thread>
 
 namespace slideio { namespace tests {
 
@@ -63,17 +61,10 @@ struct HttpStreamFactory : StreamFactory {
         }();
         // HttpFixture is non-copyable/non-movable, so construct it in place via a
         // unique_ptr held in a function-local static (initialized exactly once).
-        static std::unique_ptr<HttpFixture> fixture = [] {
-            auto fx = std::make_unique<HttpFixture>(root);
-            // Warm-up: poll a control endpoint until the freshly-spawned server
-            // accepts connections, so the first HttpStream HEAD probe (which has
-            // no retry) doesn't race the server bind.
-            for (int i = 0; i < 50; ++i) {
-                try { fx->servedCount(); break; }
-                catch (...) { std::this_thread::sleep_for(std::chrono::milliseconds(20)); }
-            }
-            return fx;
-        }();
+        // No warm-up poll is needed: HttpStream::probeSize now retries transient
+        // connection failures (CURLE_COULDNT_CONNECT), so the first HEAD probe
+        // tolerates the freshly-spawned server still binding.
+        static std::unique_ptr<HttpFixture> fixture = std::make_unique<HttpFixture>(root);
         return *fixture;
     }
     static std::filesystem::path sharedRoot() {

@@ -57,12 +57,11 @@ find_package(nlohmann_json REQUIRED)
 find_package(CURL REQUIRED)
 
 # Python interpreter used by HttpFixture to launch the test HTTP server.
-# Fall back to the known-good interpreter if CMake cannot find a real one
-# (e.g. the Windows MS Store python.exe stub).
-if(NOT DEFINED Python3_EXECUTABLE)
-  if(EXISTS "C:/Users/Stanislav/anaconda3/python.exe")
-    set(Python3_EXECUTABLE "C:/Users/Stanislav/anaconda3/python.exe" CACHE FILEPATH "")
-  endif()
+# Allow an explicit override via the SLIDEIO_TEST_PYTHON environment variable
+# (e.g. when normal detection picks up the Windows MS Store python.exe stub);
+# otherwise fall back to CMake's standard interpreter detection.
+if(DEFINED ENV{SLIDEIO_TEST_PYTHON})
+  set(Python3_EXECUTABLE "$ENV{SLIDEIO_TEST_PYTHON}" CACHE FILEPATH "" FORCE)
 endif()
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
 message(STATUS "slideio_tests: Python3_EXECUTABLE=${Python3_EXECUTABLE}")

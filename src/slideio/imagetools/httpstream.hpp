@@ -42,7 +42,6 @@ namespace slideio
         // Returns true if the size could be discovered.
         bool probeSize();
         // Fetches blocks [firstBlock, lastBlock] in a single ranged GET.
-        // Placeholder until Task E4.
         std::vector<uint8_t> fetchBlocks(uint64_t firstBlock, uint64_t lastBlock);
 
         std::string m_url;

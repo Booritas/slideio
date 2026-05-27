@@ -54,6 +54,11 @@ class Handler(BaseHTTPRequestHandler):
             self.send_response(404); self.end_headers(); return
         size = os.path.getsize(full)
         rng = self.headers.get("Range")
+        # Fault injection: ignore_range=1 makes the server disregard the Range
+        # header and return 200 with the full body, simulating a non-conforming
+        # server. The client must reject this for any ranged request at offset>0.
+        if "ignore_range=1" in self.path:
+            rng = None
         if rng:
             m = RANGE_RE.match(rng)
             if not m:

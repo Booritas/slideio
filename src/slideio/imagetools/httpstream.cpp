@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cstring>
+#include <functional>
 #include <map>
 #include <mutex>
 #include <thread>
@@ -70,6 +71,52 @@ size_t bodyCb(char* data, size_t size, size_t nmemb, void* ud) {
     return size * nmemb;
 }
 
+// A transient failure is a timeout, a dropped connection, a connect failure, or
+// any HTTP 5xx response -- the kinds of errors that a retry can plausibly fix.
+bool isTransient(CURLcode rc, long httpCode) {
+    return (rc == CURLE_OPERATION_TIMEDOUT)
+        || (rc == CURLE_RECV_ERROR)
+        || (rc == CURLE_COULDNT_CONNECT)
+        || (httpCode >= 500 && httpCode < 600);
+}
+
+// Performs an HTTP request with a bounded, exponential-backoff retry policy
+// (3 attempts; 50, 200, 800ms between attempts). Each attempt builds a fresh
+// curl handle, hands it to `configure` (which sets URL/method/callbacks), and
+// performs it. `accept` decides whether the (rc, httpCode) pair is a success;
+// on success this returns normally. Transient failures are retried; a
+// non-transient failure, or exhausting the budget, throws via RAISE_RUNTIME_ERROR
+// with `context` in the message. Returns the last (rc, httpCode) on success.
+struct RequestResult { CURLcode rc; long httpCode; };
+
+RequestResult performWithRetry(const std::function<void(CURL*)>& configure,
+                               const std::function<bool(CURLcode, long)>& accept,
+                               const std::string& context) {
+    constexpr int kMaxAttempts = 3;
+    int delayMs = 50;
+    for (int attempt = 0; attempt < kMaxAttempts; ++attempt) {
+        CURL* curl = curl_easy_init();
+        if (!curl) RAISE_RUNTIME_ERROR << "HttpStream: curl_easy_init failed";
+        configure(curl);
+        CURLcode rc = curl_easy_perform(curl);
+        long code = 0;
+        curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &code);
+        curl_easy_cleanup(curl);
+
+        if (accept(rc, code)) {
+            return {rc, code};
+        }
+        if (!isTransient(rc, code) || attempt == kMaxAttempts - 1) {
+            RAISE_RUNTIME_ERROR << "HttpStream: " << context << " failed after "
+                                << (attempt + 1) << " attempts: code=" << code
+                                << " curl=" << curl_easy_strerror(rc);
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(delayMs));
+        delayMs *= 4;
+    }
+    return {CURLE_OK, 0}; // unreachable
+}
+
 } // namespace
 
 HttpStream::HttpStream(const std::string& url)
@@ -86,22 +133,31 @@ HttpStream::~HttpStream() = default;
 
 bool HttpStream::probeSize()
 {
+    // TODO(spec §8.4): verify Accept-Ranges: bytes at construction and fail fast
+    // if the server does not advertise range support.
+
+    // Both strategies share the retry policy in performWithRetry, so a transient
+    // 5xx/connection blip at construction is retried just like a block fetch.
+    // The `accept` predicate treats any non-error response (curl OK, code < 400)
+    // as success: a 200 HEAD with no Content-Length is not a failure here -- we
+    // simply fall through to the Content-Range strategy when sz stays 0.
+    auto acceptNonError = [](CURLcode rc, long code) {
+        return rc == CURLE_OK && code < 400;
+    };
+
     // First attempt: HEAD with Content-Length.
     {
-        CURL* curl = curl_easy_init();
-        if (!curl) return false;
         uint64_t sz = 0;
-        curl_easy_setopt(curl, CURLOPT_URL, m_url.c_str());
-        curl_easy_setopt(curl, CURLOPT_NOBODY, 1L);
-        curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-        curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, headerCb);
-        curl_easy_setopt(curl, CURLOPT_HEADERDATA, &sz);
-        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, discardCb);
-        CURLcode rc = curl_easy_perform(curl);
-        long code = 0;
-        curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &code);
-        curl_easy_cleanup(curl);
-        if (rc != CURLE_OK || code >= 400) return false;
+        performWithRetry(
+            [&](CURL* curl) {
+                curl_easy_setopt(curl, CURLOPT_URL, m_url.c_str());
+                curl_easy_setopt(curl, CURLOPT_NOBODY, 1L);
+                curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+                curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, headerCb);
+                curl_easy_setopt(curl, CURLOPT_HEADERDATA, &sz);
+                curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, discardCb);
+            },
+            acceptNonError, "HEAD size probe");
         if (sz > 0) {
             m_size = sz;
             return true;
@@ -111,20 +167,18 @@ bool HttpStream::probeSize()
     // Fallback: HEAD gave no Content-Length. Issue GET Range: bytes=0-0 and
     // parse the total size from the Content-Range response header.
     {
-        CURL* curl = curl_easy_init();
-        if (!curl) return false;
         uint64_t sz = 0;
-        curl_easy_setopt(curl, CURLOPT_URL, m_url.c_str());
-        curl_easy_setopt(curl, CURLOPT_RANGE, "0-0");
-        curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-        curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, headerCbContentRange);
-        curl_easy_setopt(curl, CURLOPT_HEADERDATA, &sz);
-        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, discardCb);
-        CURLcode rc = curl_easy_perform(curl);
-        long code = 0;
-        curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &code);
-        curl_easy_cleanup(curl);
-        if (rc == CURLE_OK && code < 400 && sz > 0) {
+        performWithRetry(
+            [&](CURL* curl) {
+                curl_easy_setopt(curl, CURLOPT_URL, m_url.c_str());
+                curl_easy_setopt(curl, CURLOPT_RANGE, "0-0");
+                curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+                curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, headerCbContentRange);
+                curl_easy_setopt(curl, CURLOPT_HEADERDATA, &sz);
+                curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, discardCb);
+            },
+            acceptNonError, "Content-Range size probe");
+        if (sz > 0) {
             m_size = sz;
             return true;
         }
@@ -144,43 +198,40 @@ std::vector<uint8_t> HttpStream::fetchBlocks(uint64_t firstBlock, uint64_t lastB
     const uint64_t endByte = std::min((lastBlock + 1) * kBlockSize, m_size) - 1;
     const std::string range = std::to_string(startByte) + "-" + std::to_string(endByte);
 
-    // Bounded retry on transient failures. Each attempt rebuilds the curl
-    // handle from scratch and waits with exponential backoff (50, 200, 800ms).
-    constexpr int kMaxAttempts = 3;
-    int delayMs = 50;
-    for (int attempt = 0; attempt < kMaxAttempts; ++attempt) {
-        std::vector<uint8_t> body;
-        body.reserve(static_cast<size_t>(endByte - startByte + 1));
+    std::vector<uint8_t> body;
+    body.reserve(static_cast<size_t>(endByte - startByte + 1));
 
-        CURL* curl = curl_easy_init();
-        if (!curl) RAISE_RUNTIME_ERROR << "HttpStream: curl_easy_init failed";
-        curl_easy_setopt(curl, CURLOPT_URL, m_url.c_str());
-        curl_easy_setopt(curl, CURLOPT_RANGE, range.c_str());
-        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, bodyCb);
-        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &body);
-        curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-        CURLcode rc = curl_easy_perform(curl);
-        long code = 0;
-        curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &code);
-        curl_easy_cleanup(curl);
-
-        if (rc == CURLE_OK && (code == 200 || code == 206)) {
-            return body;
+    // A 206 (Partial Content) is always correct: the body covers exactly the
+    // requested range. A 200 (full body) is only safe when the run starts at
+    // byte 0 -- then storeRun slices the leading blocks correctly. If a server
+    // ignores the Range header and returns 200 for a run that starts past 0, the
+    // body is file[0..] but storeRun would treat it as file[startByte..], silently
+    // mis-slicing. Reject that case rather than serve wrong data.
+    auto acceptRanged = [&](CURLcode rc, long code) {
+        if (rc != CURLE_OK) return false;
+        if (code == 206) return true;
+        if (code == 200) {
+            if (startByte == 0) return true;
+            RAISE_RUNTIME_ERROR << "HttpStream: server ignored Range header; got 200"
+                                   " for ranged request at offset " << startByte
+                                << " for " << m_url;
         }
+        return false;  // non-2xx -> retry/error path in performWithRetry
+    };
 
-        const bool transient = (rc == CURLE_OPERATION_TIMEDOUT)
-                            || (rc == CURLE_RECV_ERROR)
-                            || (rc == CURLE_COULDNT_CONNECT)
-                            || (code >= 500 && code < 600);
-        if (!transient || attempt == kMaxAttempts - 1) {
-            RAISE_RUNTIME_ERROR << "HttpStream: fetch failed after " << (attempt + 1)
-                                << " attempts: code=" << code
-                                << " curl=" << curl_easy_strerror(rc);
-        }
-        std::this_thread::sleep_for(std::chrono::milliseconds(delayMs));
-        delayMs *= 4;
-    }
-    return {}; // unreachable
+    performWithRetry(
+        [&](CURL* curl) {
+            // body is appended to across attempts; reset so a failed partial
+            // attempt does not corrupt the next one's data.
+            body.clear();
+            curl_easy_setopt(curl, CURLOPT_URL, m_url.c_str());
+            curl_easy_setopt(curl, CURLOPT_RANGE, range.c_str());
+            curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, bodyCb);
+            curl_easy_setopt(curl, CURLOPT_WRITEDATA, &body);
+            curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+        },
+        acceptRanged, "fetch");
+    return body;
 }
 
 size_t HttpStream::read(uint64_t offset, size_t count, void* buf)
