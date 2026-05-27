@@ -88,6 +88,20 @@ void NDPISlide::init(const std::string& filePath, const std::string& driverId)
     SLIDEIO_LOG(INFO) << "NDPIImageDriver:init-end";
 }
 
+void NDPISlide::init(std::shared_ptr<RandomAccessStream> stream, const std::string& driverId)
+{
+    SLIDEIO_LOG(INFO) << "NDPIImageDriver:init (stream)-begin";
+    if (!stream) {
+        RAISE_RUNTIME_ERROR << "NDPISlide::init: null stream";
+    }
+    m_filePath = stream->uri();
+    m_driverId = driverId;
+    m_pfile = std::make_unique<NDPIFile>();
+    m_pfile->init(std::move(stream));
+    constructScenes();
+    SLIDEIO_LOG(INFO) << "NDPIImageDriver:init (stream)-end";
+}
+
 NDPISlide::~NDPISlide() = default;
 
 int NDPISlide::getNumScenes() const

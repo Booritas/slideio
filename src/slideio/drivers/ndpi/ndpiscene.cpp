@@ -76,35 +76,32 @@ namespace
 class NDPIUserData
 {
 public:
-    NDPIUserData(const NDPITiffDirectory* dir, const std::string& filePath) : m_dir(dir),
-                                                                              m_file(nullptr),
-                                                                              m_filePath(filePath)
+    NDPIUserData(const NDPITiffDirectory* dir, NDPIFile* pfile) : m_dir(dir),
+                                                                  m_filePath(pfile ? pfile->getFilePath() : std::string())
     {
-        if ((!dir->tiled) && (dir->rowsPerStrip == dir->height) 
+        if ((!dir->tiled) && (dir->rowsPerStrip == dir->height)
             && (dir->slideioCompression==Compression::Jpeg
             || dir->slideioCompression==Compression::Uncompressed)) {
-            m_file = Tools::openFile(filePath, "rb");
-            if (!m_file) {
-                RAISE_RUNTIME_ERROR << "NDPI Image Driver: Cannot open file " << filePath;
+            // Data source is stream-backed when the file was opened from a
+            // RandomAccessStream, otherwise a local FILE* (byte identical to
+            // the legacy path).
+            m_source = std::make_unique<NDPIDataSource>(pfile->openDataSource());
+            if (!m_source->isValid()) {
+                RAISE_RUNTIME_ERROR << "NDPI Image Driver: Cannot open data source for " << m_filePath;
             }
         }
     }
 
-    ~NDPIUserData()
-    {
-        if (m_file) {
-            fclose(m_file);
-        }
-    }
+    ~NDPIUserData() = default;
 
     const NDPITiffDirectory* dir() const
     {
         return m_dir;
     }
 
-    FILE* file() const
+    NDPIDataSource* source() const
     {
-        return m_file;
+        return m_source.get();
     }
 
     const std::string& filePath() const
@@ -114,7 +111,7 @@ public:
 
 private:
     const NDPITiffDirectory* m_dir;
-    FILE* m_file;
+    std::unique_ptr<NDPIDataSource> m_source;
     std::string m_filePath;
 };
 
@@ -270,7 +267,7 @@ void NDPIScene::readResampledBlockChannelsEx(const cv::Rect& imageBlockRect, con
     cv::Rect dirBlockRect;
     scaleBlockToDirectory(imageBlockRect, dir, dirBlockRect);
     NDPITiffTools::setCurrentDirectory(m_pfile->getTiffHandle(), dir);
-    NDPIUserData data(&dir, getFilePath());
+    NDPIUserData data(&dir, m_pfile);
     const auto dirType = dir.getType();
     if(dirType == NDPITiffDirectory::Type::Tiled 
         || dirType == NDPITiffDirectory::Type::SingleStripeMCU
@@ -381,7 +378,7 @@ bool NDPIScene::readTile(int tileIndex, const std::vector<int>& channelIndices, 
         }
         case NDPITiffDirectory::Type::SingleStripeMCU: {
             cv::Mat stripRaster;
-            NDPITiffTools::readMCUTile(data->file(), *dir, tileIndex, stripRaster);
+            NDPITiffTools::readMCUTile(*data->source(), *dir, tileIndex, stripRaster);
             Tools::extractChannels(stripRaster, channelIndices, tileRaster);
             ret = true;
             break;

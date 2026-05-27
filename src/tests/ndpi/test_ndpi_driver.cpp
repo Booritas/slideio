@@ -12,6 +12,9 @@
 #include "slideio/imagetools/imagetools.hpp"
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/slideio/slideio.hpp"
+#include "tests/main/memorystream.hpp"
+
+#include <fstream>
 
 namespace slideio
 {
@@ -572,4 +575,53 @@ TEST_F(NDPIImageDriverTests, getDriverId)
 	EXPECT_EQ(0, scene->getSceneIndex());
 	EXPECT_EQ(filePath, scene->getFilePath());
 	EXPECT_EQ("NDPI", scene->getDriverId());
+}
+
+// I3 parity test: opening an NDPI slide from an in-memory RandomAccessStream
+// must yield the same metadata and the same pixels as opening it by path. The
+// chosen file is JPEG-compressed, so the read path exercises NDPI's MCU/JPEG
+// decode through the stream-backed data source (not just the libtiff handle).
+TEST_F(NDPIImageDriverTests, OpenFromStreamMatchesPath)
+{
+    if (!TestTools::isFullTestEnabled()) {
+        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
+    }
+
+    const std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "2017-02-27 15.29.08.ndpi");
+
+    slideio::NDPIImageDriver driver;
+
+    // Reference: open by path.
+    auto refSlide = driver.openFile(filePath);
+    ASSERT_TRUE(refSlide);
+    auto refScene = refSlide->getScene(0);
+    ASSERT_TRUE(refScene);
+
+    // Load the whole file into memory and open via stream.
+    std::ifstream in(filePath, std::ios::binary | std::ios::ate);
+    ASSERT_TRUE(in.good());
+    std::vector<uint8_t> bytes(static_cast<size_t>(in.tellg()));
+    in.seekg(0);
+    in.read(reinterpret_cast<char*>(bytes.data()), bytes.size());
+    auto stream = std::make_shared<slideio::tests::MemoryStream>(std::move(bytes), "memory:///x.ndpi");
+    auto strSlide = driver.openFile(stream);
+    ASSERT_TRUE(strSlide);
+
+    // Same structure / metadata.
+    ASSERT_EQ(refSlide->getNumScenes(), strSlide->getNumScenes());
+    auto strScene = strSlide->getScene(0);
+    ASSERT_TRUE(strScene);
+    EXPECT_EQ(refScene->getRect(), strScene->getRect());
+    EXPECT_EQ(refScene->getNumChannels(), strScene->getNumChannels());
+    EXPECT_EQ(refScene->getCompression(), strScene->getCompression());
+
+    // Byte-exact small region read through both handles.
+    const cv::Rect rect = refScene->getRect();
+    cv::Rect block(0, 0, std::min(256, rect.width), std::min(256, rect.height));
+    cv::Mat refRaster, strRaster;
+    refScene->readBlock(block, refRaster);
+    strScene->readBlock(block, strRaster);
+    ASSERT_EQ(refRaster.size(), strRaster.size());
+    ASSERT_EQ(refRaster.type(), strRaster.type());
+    EXPECT_EQ(0.0, cv::norm(refRaster, strRaster, cv::NORM_INF));
 }

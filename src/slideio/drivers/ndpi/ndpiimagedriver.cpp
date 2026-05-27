@@ -31,6 +31,17 @@ std::shared_ptr<slideio::CVSlide> slideio::NDPIImageDriver::openFile(const std::
 	return slide;
 }
 
+std::shared_ptr<slideio::CVSlide> slideio::NDPIImageDriver::openFile(std::shared_ptr<RandomAccessStream> stream)
+{
+    NDPITIFFMessageHandler mh;
+    const std::string identifier = stream ? stream->uri() : std::string();
+    SLIDEIO_LOG(INFO) << "NDPIImageDriver: open stream: " << identifier;
+    std::shared_ptr<NDPISlide> slide(new NDPISlide);
+    slide->init(std::move(stream), getID());
+    SLIDEIO_LOG(INFO) << "NDPIImageDriver: stream " << identifier << " opened successfully.";
+    return slide;
+}
+
 std::string slideio::NDPIImageDriver::getFileSpecs() const
 {
 	static std::string pattern("*.ndpi");

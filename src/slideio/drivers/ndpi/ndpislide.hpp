@@ -8,6 +8,7 @@
 #include "slideio/core/cvscene.hpp"
 #include "slideio/core/cvslide.hpp"
 #include "slideio/imagetools/libtiff.hpp"
+#include "slideio/base/randomaccessstream.hpp"
 #include <map>
 #include <memory>
 
@@ -31,6 +32,7 @@ namespace slideio
         NDPISlide();
         void constructScenes();
         void init(const std::string& filePath, const std::string& driverId);
+        void init(std::shared_ptr<RandomAccessStream> stream, const std::string& driverId);
     public:
         virtual ~NDPISlide();
         int getNumScenes() const override;

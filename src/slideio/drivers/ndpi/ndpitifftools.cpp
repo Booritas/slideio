@@ -15,6 +15,7 @@
 
 
 #include <codecvt>
+#include <cstdio>
 #include <opencv2/imgproc.hpp>
 #include <setjmp.h>
 #include <opencv2/core.hpp>
@@ -261,9 +262,127 @@ libtiff::TIFF* slideio::NDPITiffTools::openTiffFile(const std::string& path)
     return hfile;
 }
 
+namespace {
+// libtiff client callbacks backed by a RandomAccessStream, used to open an
+// NDPI TIFF handle over a stream.
+//
+// NOTE (F3): we cannot reuse slideio::openTiffFromStream from slideio-imagetools
+// here. That adapter is compiled against the *standard* libtiff (TIFF::TIFF) and
+// returns a standard-libtiff TIFF*, whereas the NDPI driver links its own
+// NDPI-patched libtiff fork (NDPITIFF::NDPITIFF). The handle must be opened by
+// NDPITIFF's TIFFClientOpen so that NDPI's patched functions (TIFFGetStrileOffset,
+// scanTiffDir, etc.) operate on a compatible handle. Hence these NDPI-local
+// callbacks. The path-based open applies no other NDPI-specific patching to the
+// returned TIFF*, so a plain read-only client open is byte-identical.
+struct NDPITiffStreamCtx {
+    std::shared_ptr<slideio::RandomAccessStream> stream;
+    uint64_t cursor = 0;
+};
+
+libtiff::tmsize_t ndpiTiffRead(libtiff::thandle_t h, void* buf, libtiff::tmsize_t n) {
+    auto* ctx = static_cast<NDPITiffStreamCtx*>(h);
+    const size_t got = ctx->stream->read(ctx->cursor, static_cast<size_t>(n), buf);
+    ctx->cursor += got;
+    return static_cast<libtiff::tmsize_t>(got);
+}
+
+libtiff::tmsize_t ndpiTiffWrite(libtiff::thandle_t, void*, libtiff::tmsize_t) {
+    return -1; // read-only
+}
+
+libtiff::toff_t ndpiTiffSeek(libtiff::thandle_t h, libtiff::toff_t off, int whence) {
+    auto* ctx = static_cast<NDPITiffStreamCtx*>(h);
+    switch (whence) {
+        case SEEK_SET: ctx->cursor = static_cast<uint64_t>(off); break;
+        case SEEK_CUR: ctx->cursor += off; break;
+        case SEEK_END: ctx->cursor = ctx->stream->size() + off; break;
+        default: break;
+    }
+    return static_cast<libtiff::toff_t>(ctx->cursor);
+}
+
+int ndpiTiffClose(libtiff::thandle_t h) {
+    delete static_cast<NDPITiffStreamCtx*>(h);
+    return 0;
+}
+
+libtiff::toff_t ndpiTiffSize(libtiff::thandle_t h) {
+    return static_cast<libtiff::toff_t>(static_cast<NDPITiffStreamCtx*>(h)->stream->size());
+}
+
+int ndpiTiffMap(libtiff::thandle_t, void**, libtiff::toff_t*) { return 0; }
+void ndpiTiffUnmap(libtiff::thandle_t, void*, libtiff::toff_t) {}
+} // namespace
+
+libtiff::TIFF* slideio::NDPITiffTools::openTiffFile(std::shared_ptr<RandomAccessStream> stream)
+{
+    if (!stream) {
+        RAISE_RUNTIME_ERROR << "NDPITiffTools::openTiffFile: null stream";
+    }
+    const std::string uri = stream->uri();
+    auto* ctx = new NDPITiffStreamCtx{ std::move(stream), 0 };
+    libtiff::TIFF* hfile = libtiff::TIFFClientOpen(
+        uri.c_str(), "r",
+        static_cast<libtiff::thandle_t>(ctx),
+        ndpiTiffRead, ndpiTiffWrite, ndpiTiffSeek, ndpiTiffClose, ndpiTiffSize,
+        ndpiTiffMap, ndpiTiffUnmap);
+    if (!hfile) {
+        delete ctx;
+        RAISE_RUNTIME_ERROR << "NDPITiffTools::openTiffFile: TIFFClientOpen failed for " << uri;
+    }
+    SLIDEIO_LOG(INFO) << "Opened NDPI TIFF from stream " << uri;
+    return hfile;
+}
+
 void slideio::NDPITiffTools::closeTiffFile(libtiff::TIFF* file)
 {
     libtiff::TIFFClose(file);
+}
+
+slideio::NDPIDataSource::~NDPIDataSource()
+{
+    if (m_ownsFile && m_file) {
+        std::fclose(m_file);
+    }
+}
+
+slideio::NDPIDataSource::NDPIDataSource(NDPIDataSource&& other) noexcept
+    : m_file(other.m_file), m_ownsFile(other.m_ownsFile),
+      m_stream(std::move(other.m_stream)), m_pos(other.m_pos)
+{
+    other.m_file = nullptr;
+    other.m_ownsFile = false;
+    other.m_pos = 0;
+}
+
+size_t slideio::NDPIDataSource::read(void* buf, size_t count)
+{
+    if (m_stream) {
+        const size_t got = m_stream->read(m_pos, count, buf);
+        m_pos += got;
+        return got;
+    }
+    const size_t got = std::fread(buf, 1, count, m_file);
+    m_pos += got;
+    return got;
+}
+
+size_t slideio::NDPIDataSource::readAt(uint64_t offset, void* buf, size_t count)
+{
+    seek(offset);
+    return read(buf, count);
+}
+
+void slideio::NDPIDataSource::seek(uint64_t pos)
+{
+    if (m_stream) {
+        m_pos = pos;
+        return;
+    }
+    if (Tools::setFilePos(m_file, pos, SEEK_SET)) {
+        RAISE_RUNTIME_ERROR << "NDPIDataSource: cannot seek file to offset " << pos;
+    }
+    m_pos = pos;
 }
 
 
@@ -748,6 +867,79 @@ void ErrorExit(j_common_ptr cinfo)
     longjmp(myerr->setjmp_buffer, 1);
 }
 
+// libjpeg source manager backed by an NDPIDataSource. Mirrors what
+// jpeg_stdio_src does for a FILE*, but pulls bytes through the data source so
+// the same JPEG decode works over a RandomAccessStream. For the FILE* branch
+// the byte sequence is identical to the legacy jpeg_stdio_src usage.
+namespace {
+constexpr size_t kNdpiJpegSrcBuffer = 64 * 1024;
+
+struct NdpiJpegSource
+{
+    struct jpeg_source_mgr pub;
+    slideio::NDPIDataSource* src;
+    std::vector<JOCTET> buffer;
+    bool startOfFile;
+};
+
+void ndpiJpegInitSource(j_decompress_ptr cinfo)
+{
+    auto* mgr = reinterpret_cast<NdpiJpegSource*>(cinfo->src);
+    mgr->startOfFile = true;
+}
+
+boolean ndpiJpegFillInputBuffer(j_decompress_ptr cinfo)
+{
+    auto* mgr = reinterpret_cast<NdpiJpegSource*>(cinfo->src);
+    size_t nbytes = mgr->src->read(mgr->buffer.data(), mgr->buffer.size());
+    if (nbytes == 0) {
+        if (mgr->startOfFile) {
+            RAISE_RUNTIME_ERROR << "NDPITiffTools: empty JPEG input stream";
+        }
+        // Insert a fake EOI marker (as libjpeg's stdio source does on EOF).
+        mgr->buffer[0] = (JOCTET)0xFF;
+        mgr->buffer[1] = (JOCTET)JPEG_EOI;
+        nbytes = 2;
+    }
+    mgr->pub.next_input_byte = mgr->buffer.data();
+    mgr->pub.bytes_in_buffer = nbytes;
+    mgr->startOfFile = false;
+    return TRUE;
+}
+
+void ndpiJpegSkipInputData(j_decompress_ptr cinfo, long num_bytes)
+{
+    auto* mgr = reinterpret_cast<NdpiJpegSource*>(cinfo->src);
+    if (num_bytes <= 0) {
+        return;
+    }
+    while (num_bytes > (long)mgr->pub.bytes_in_buffer) {
+        num_bytes -= (long)mgr->pub.bytes_in_buffer;
+        ndpiJpegFillInputBuffer(cinfo);
+    }
+    mgr->pub.next_input_byte += (size_t)num_bytes;
+    mgr->pub.bytes_in_buffer -= (size_t)num_bytes;
+}
+
+void ndpiJpegTermSource(j_decompress_ptr) {}
+
+// Attaches an NDPIDataSource-backed source to cinfo. `mgr` storage must
+// outlive the decompress operation.
+void ndpiJpegDataSrc(j_decompress_ptr cinfo, NdpiJpegSource& mgr, slideio::NDPIDataSource& src)
+{
+    mgr.src = &src;
+    mgr.buffer.resize(kNdpiJpegSrcBuffer);
+    mgr.pub.init_source = ndpiJpegInitSource;
+    mgr.pub.fill_input_buffer = ndpiJpegFillInputBuffer;
+    mgr.pub.skip_input_data = ndpiJpegSkipInputData;
+    mgr.pub.resync_to_restart = jpeg_resync_to_restart; // default
+    mgr.pub.term_source = ndpiJpegTermSource;
+    mgr.pub.bytes_in_buffer = 0;
+    mgr.pub.next_input_byte = nullptr;
+    cinfo->src = reinterpret_cast<struct jpeg_source_mgr*>(&mgr);
+}
+} // namespace
+
 void NDPITiffTools::readJpegScanlines(libtiff::TIFF* tiff, FILE* file, const NDPITiffDirectory& dir, int firstScanline,
                                   int numberScanlines, const std::vector<int>& channelIndices, cv::_OutputArray output)
 {
@@ -947,27 +1139,18 @@ void NDPITiffTools::readDirectoryJpegHeaders(NDPIFile* ndpi, NDPITiffDirectory& 
         libtiff::TIFF* tiff = ndpi->getTiffHandle();
         setCurrentDirectory(tiff, dir);
 
-        std::unique_ptr<FILE, Tools::FileDeleter> sfile(Tools::openFile(ndpi->getFilePath(), "rb"));
-        FILE* file = sfile.get();
-        if (!file) {
-            RAISE_RUNTIME_ERROR << "NDPI Image Driver: Cannot open file " << ndpi->getFilePath();
+        NDPIDataSource src = ndpi->openDataSource();
+        if (!src.isValid()) {
+            RAISE_RUNTIME_ERROR << "NDPI Image Driver: Cannot open data source for " << ndpi->getFilePath();
         }
 
         const auto stripeOffset = libtiff::TIFFGetStrileOffset(tiff, 0);
 
-        int ret = Tools::setFilePos(file, stripeOffset, SEEK_SET);
-        if (ret) {
-            RAISE_RUNTIME_ERROR << "NDPI Image Driver: Cannot seek file " << ndpi->getFilePath() << " to offset "
-                << stripeOffset << ". For directory " << dirIndex << ". Code: " << ret;
-        }
-        cv::Size tileSize = NDPITiffTools::computeMCUTileSize(file, cv::Size(dir.width, dir.height));
+        src.seek(stripeOffset);
+        cv::Size tileSize = NDPITiffTools::computeMCUTileSize(src, cv::Size(dir.width, dir.height));
 
-        ret = Tools::setFilePos(file, stripeOffset, SEEK_SET);
-        if (ret) {
-            RAISE_RUNTIME_ERROR << "NDPI Image Driver: Cannot seek file " << ndpi->getFilePath() << " to offset "
-                << stripeOffset << ". For directory " << dirIndex << ". Code: " << ret;
-        }
-        const std::pair<uint64_t, uint64_t> headerInfo = NDPITiffTools::getJpegHeaderPos(file);
+        src.seek(stripeOffset);
+        const std::pair<uint64_t, uint64_t> headerInfo = NDPITiffTools::getJpegHeaderPos(src);
         dir.tileWidth = tileSize.width;
         dir.tileHeight = tileSize.height;
         dir.jpegHeaderOffset = stripeOffset;
@@ -1220,16 +1403,17 @@ void slideio::NDPITiffTools::decodeJxrBlock(const uint8_t* data, size_t dataBloc
     jpegxr_decompress((uint8_t*)data, (uint32_t)dataBlockSize, outputBuff, ouputBuffSize);
 }
 
-cv::Size NDPITiffTools::computeMCUTileSize(FILE* file, const cv::Size& dirSize)
+cv::Size NDPITiffTools::computeMCUTileSize(NDPIDataSource& src, const cv::Size& dirSize)
 {
     int tileWidth = 0;
     int tileHeight = 0;
     jpeg_decompress_struct cinfo = {};
     ErrorManager jerr = {};
+    NdpiJpegSource srcMgr = {};
     cinfo.err = jpeg_std_error(&jerr.pub);
     jerr.pub.error_exit = ErrorExit;
     jpeg_create_decompress(&cinfo);
-    jpeg_stdio_src(&cinfo, file);
+    ndpiJpegDataSrc(&cinfo, srcMgr, src);
     cinfo.image_width = dirSize.width;
     cinfo.image_height = dirSize.height;
     jpeg_read_header(&cinfo, TRUE);
@@ -1250,14 +1434,14 @@ cv::Size NDPITiffTools::computeMCUTileSize(FILE* file, const cv::Size& dirSize)
     return {tileWidth, tileHeight};
 }
 
-std::pair<uint64_t, uint64_t> NDPITiffTools::getJpegHeaderPos(FILE* file)
+std::pair<uint64_t, uint64_t> NDPITiffTools::getJpegHeaderPos(NDPIDataSource& src)
 {
     uint64_t headerStop = 0;
     uint64_t SOFmarker = 0;
     uint8_t buff[2];
     while(true) {
-        uint64_t pos = Tools::getFilePos(file);
-        size_t count = fread(buff, sizeof(uint8_t), 2, file);
+        uint64_t pos = src.pos();
+        size_t count = src.read(buff, 2);
         if(count != 2) {
             RAISE_RUNTIME_ERROR << "NDPITiffTools: error by reading marker from jpeg stream.";
         }
@@ -1276,16 +1460,16 @@ std::pair<uint64_t, uint64_t> NDPITiffTools::getJpegHeaderPos(FILE* file)
             SOFmarker = pos;
         }
         uint16_t length = 0;
-        count = fread(&length, sizeof(length), 1, file);
-        if(count != 1) {
+        count = src.read(&length, sizeof(length));
+        if(count != 1 * sizeof(length)) {
             RAISE_RUNTIME_ERROR << "NDPITiffTools: error by reading marker length from jpeg stream.";
         }
         if(Endian::isLittleEndian()) {
             length = Endian::bigToLittleEndian16(length);
         }
-        Tools::setFilePos(file, pos + sizeof(buff) + length, SEEK_SET);
+        src.seek(pos + sizeof(buff) + length);
         if(marker == 0xDA) {
-            headerStop = Tools::getFilePos(file);
+            headerStop = src.pos();
             break;
         }
     }
@@ -1311,14 +1495,14 @@ void NDPITiffTools::fixJpegHeader(const NDPITiffDirectory& dir, uint8_t* data) {
     }
 }
 
-void NDPITiffTools::readMCUTile(FILE* file, const NDPITiffDirectory& dir, int tile, cv::OutputArray output)
+void NDPITiffTools::readMCUTile(NDPIDataSource& src, const NDPITiffDirectory& dir, int tile, cv::OutputArray output)
 {
     if(tile>=dir.mcuStarts.size()) {
         RAISE_RUNTIME_ERROR << "NDPITiffTools: tile index is out of range (0-"
             << dir.mcuStarts.size() << "). Received:" << tile;
     }
-    if(file ==nullptr) {
-        RAISE_RUNTIME_ERROR << "NDPITiffTools: file pointer is not set";
+    if(!src.isValid()) {
+        RAISE_RUNTIME_ERROR << "NDPITiffTools: data source is not set";
     }
     // read jpeg header
     const uint64_t headerOffset = dir.jpegHeaderOffset;
@@ -1335,14 +1519,14 @@ void NDPITiffTools::readMCUTile(FILE* file, const NDPITiffDirectory& dir, int ti
     }
     std::vector<uint8_t> tileData(headerSize + tileSize);
 
-    Tools::setFilePos(file, headerOffset, SEEK_SET);
-    auto count = fread(tileData.data(), sizeof(uint8_t), headerSize, file);
+    src.seek(headerOffset);
+    auto count = src.read(tileData.data(), headerSize);
     if(count != headerSize) {
         RAISE_RUNTIME_ERROR << "NDPITiffTools: error by reading jpeg header. Expected:" << headerSize << ". Read:" << count;
     }
 
-    Tools::setFilePos(file, tileOffset, SEEK_SET);
-    count = fread(tileData.data() + headerSize, sizeof(uint8_t), tileSize, file);
+    src.seek(tileOffset);
+    count = src.read(tileData.data() + headerSize, tileSize);
     if(count != tileSize) {
         RAISE_RUNTIME_ERROR << "NDPITiffTools: error by reading jpeg tile. Expected:" << tileSize << ". Read:" << count;
     }

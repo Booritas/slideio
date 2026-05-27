@@ -364,9 +364,8 @@ TEST_F(NDPITiffToolsTests, readMCUTile)
     size_t dirCount = ndpi.directories().size();
     const slideio::NDPITiffDirectory& dir = ndpi.directories()[0];
     cv::Mat tileRaster;
-    std::unique_ptr<FILE, slideio::Tools::FileDeleter> sfile(slideio::Tools::openFile(ndpi.getFilePath(), "rb"));
-    FILE* file = sfile.get();
-    slideio::NDPITiffTools::readMCUTile(file, dir, 87501, tileRaster);
+    slideio::NDPIDataSource src = ndpi.openDataSource();
+    slideio::NDPITiffTools::readMCUTile(src, dir, 87501, tileRaster);
     EXPECT_EQ(tileRaster.rows, dir.tileHeight);
     EXPECT_EQ(tileRaster.cols, dir.tileWidth);
     EXPECT_EQ(tileRaster.channels(), 3);

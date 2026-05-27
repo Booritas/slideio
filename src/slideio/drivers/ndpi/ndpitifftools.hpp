@@ -9,7 +9,9 @@
 #include "slideio/base/resolution.hpp"
 #include "slideio/base/slideio_enums.hpp"
 #include "slideio/base/base.hpp"
+#include "slideio/base/randomaccessstream.hpp"
 #include <opencv2/core.hpp>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -87,14 +89,55 @@ namespace slideio
 
     SLIDEIO_NDPI_EXPORTS std::ostream&  operator << (std::ostream& os, const NDPITiffDirectory::Type& type);
 
+    // Random-access byte source for NDPI's raw (non-libtiff) read paths.
+    // Backs the JPEG/MCU helpers with EITHER a local FILE* (path open, byte
+    // identical to the legacy code) OR a RandomAccessStream (remote/in-memory).
+    // Only the FILE* branch existed before; the stream branch makes the same
+    // paths work over streams without touching the local fast path.
+    class SLIDEIO_NDPI_EXPORTS NDPIDataSource
+    {
+    public:
+        // Wraps a FILE*. When `owns` is true, the FILE* is closed on destruction.
+        explicit NDPIDataSource(FILE* file, bool owns = false) : m_file(file), m_ownsFile(owns) {}
+        explicit NDPIDataSource(std::shared_ptr<RandomAccessStream> stream)
+            : m_stream(std::move(stream)) {}
+        ~NDPIDataSource();
+        NDPIDataSource(const NDPIDataSource&) = delete;
+        NDPIDataSource& operator=(const NDPIDataSource&) = delete;
+        NDPIDataSource(NDPIDataSource&& other) noexcept;
+        NDPIDataSource& operator=(NDPIDataSource&& other) noexcept = delete;
+        bool isValid() const { return m_file != nullptr || m_stream != nullptr; }
+        bool isStream() const { return m_stream != nullptr; }
+        FILE* file() const { return m_file; }
+        // Reads `count` bytes at the current position into `buf`, advancing the
+        // position. Returns the number of bytes read.
+        size_t read(void* buf, size_t count);
+        // Reads `count` bytes at absolute `offset` into `buf` (position-independent).
+        size_t readAt(uint64_t offset, void* buf, size_t count);
+        void seek(uint64_t pos);
+        uint64_t pos() const { return m_pos; }
+    private:
+        FILE* m_file = nullptr;
+        bool m_ownsFile = false;
+        std::shared_ptr<RandomAccessStream> m_stream;
+        uint64_t m_pos = 0;
+    };
+
     class SLIDEIO_NDPI_EXPORTS NDPITiffTools
     {
     public:
         static libtiff::TIFF* openTiffFile(const std::string& path);
+        // Stream-based overload (F3): opens an NDPI libtiff handle over an
+        // arbitrary RandomAccessStream (remote/in-memory URIs). Uses NDPI-local
+        // TIFFClientOpen callbacks (NOT slideio::openTiffFromStream) because the
+        // NDPI driver links its own NDPI-patched libtiff fork (NDPITIFF) rather
+        // than the standard libtiff used by slideio-imagetools; the handle must
+        // be opened by NDPITIFF so NDPI's patched read functions work on it.
+        static libtiff::TIFF* openTiffFile(std::shared_ptr<RandomAccessStream> stream);
         static void closeTiffFile(libtiff::TIFF* file);
-        static cv::Size computeMCUTileSize(FILE* file, const cv::Size& dirSize);
-        static std::pair<uint64_t, uint64_t> getJpegHeaderPos(FILE* file);
-        static void readMCUTile(FILE* file, const NDPITiffDirectory& dir, int tile, cv::OutputArray output);
+        static cv::Size computeMCUTileSize(NDPIDataSource& src, const cv::Size& dirSize);
+        static std::pair<uint64_t, uint64_t> getJpegHeaderPos(NDPIDataSource& src);
+        static void readMCUTile(NDPIDataSource& src, const NDPITiffDirectory& dir, int tile, cv::OutputArray output);
         static void jpeglibDecodeTile(const uint8_t* jpg_buffer, size_t jpg_size, const cv::Size& tileSize, cv::OutputArray output);
         static void scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, int64_t dirOffset, slideio::NDPITiffDirectory& dir);
         static void updateJpegXRCompressedDirectoryMedatata(libtiff::TIFF* tiff, NDPITiffDirectory& dir);

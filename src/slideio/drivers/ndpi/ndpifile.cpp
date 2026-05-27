@@ -30,11 +30,48 @@ void slideio::NDPIFile::init(const std::string& filePath)
     }
     SLIDEIO_LOG(INFO) << "File " << filePath << " is successfully opened";
     m_filePath = filePath;
+    scanAndReadHeaders();
+    SLIDEIO_LOG(INFO) << "File " << filePath << " initialization is complete";
+}
+
+void slideio::NDPIFile::init(std::shared_ptr<RandomAccessStream> stream)
+{
+    if (!stream) {
+        RAISE_RUNTIME_ERROR << "NDPIFile::init: null stream";
+    }
+    const std::string identifier = stream->uri();
+    SLIDEIO_LOG(INFO) << "Initialization of NDPI TIFF stream : " << identifier;
+    // Hold the stream first so it outlives the TIFF* and any data source.
+    m_stream = std::move(stream);
+    m_tiff = NDPITiffTools::openTiffFile(m_stream);
+    if (!m_tiff.isValid())
+    {
+        RAISE_RUNTIME_ERROR << "NDPIImageDriver: Cannot open stream:" << identifier;
+    }
+    SLIDEIO_LOG(INFO) << "Stream " << identifier << " is successfully opened";
+    m_filePath = identifier;
+    scanAndReadHeaders();
+    SLIDEIO_LOG(INFO) << "Stream " << identifier << " initialization is complete";
+}
+
+void slideio::NDPIFile::scanAndReadHeaders()
+{
     scanFile();
     for(auto& dir : m_directories) {
         NDPITiffTools::readDirectoryJpegHeaders(this, dir);
     }
-    SLIDEIO_LOG(INFO) << "File " << filePath << " initialization is complete";
+}
+
+slideio::NDPIDataSource slideio::NDPIFile::openDataSource() const
+{
+    if (m_stream) {
+        return NDPIDataSource(m_stream);
+    }
+    FILE* file = Tools::openFile(m_filePath, "rb");
+    if (!file) {
+        RAISE_RUNTIME_ERROR << "NDPI Image Driver: Cannot open file " << m_filePath;
+    }
+    return NDPIDataSource(file, /*owns=*/true);
 }
 
 void slideio::NDPIFile::scanFile()
