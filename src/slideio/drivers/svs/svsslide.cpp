@@ -48,16 +48,34 @@ std::shared_ptr<CVScene> SVSSlide::getScene(int index) const
 
 std::shared_ptr<SVSSlide> SVSSlide::openFile(const std::string& filePath, const std::string& driverId)
 {
-    SLIDEIO_LOG(INFO) << "SVSSlide::openFile: " << filePath;
-    namespace fs = std::filesystem;
-    std::shared_ptr<SVSSlide> slide;
-    std::vector<TiffDirectory> directories;
-    libtiff::TIFF* tiff(nullptr);
-    tiff = TiffTools::openTiffFile(filePath);
+    SLIDEIO_LOG(INFO) << "SVSSlide::openFile (path): " << filePath;
+    libtiff::TIFF* tiff = TiffTools::openTiffFile(filePath);
     if(!tiff) {
         SLIDEIO_LOG(WARNING) << "SVSSlide::openFile: cannot open file " << filePath << " with libtiff";
-        return slide;
+        return std::shared_ptr<SVSSlide>();
     }
+    return openFile(tiff, filePath, driverId, nullptr);
+}
+
+std::shared_ptr<SVSSlide> SVSSlide::openFile(std::shared_ptr<RandomAccessStream> stream, const std::string& driverId)
+{
+    const std::string identifier = stream ? stream->uri() : std::string();
+    SLIDEIO_LOG(INFO) << "SVSSlide::openFile (stream): " << identifier;
+    libtiff::TIFF* tiff = TiffTools::openTiffFile(stream);
+    if(!tiff) {
+        SLIDEIO_LOG(WARNING) << "SVSSlide::openFile: cannot open stream " << identifier << " with libtiff";
+        return std::shared_ptr<SVSSlide>();
+    }
+    return openFile(tiff, identifier, driverId, stream);
+}
+
+std::shared_ptr<SVSSlide> SVSSlide::openFile(libtiff::TIFF* tiff,
+                                             const std::string& filePath,
+                                             const std::string& driverId,
+                                             std::shared_ptr<RandomAccessStream> stream)
+{
+    std::shared_ptr<SVSSlide> slide;
+    std::vector<TiffDirectory> directories;
     TIFFKeeper keeper(tiff);
 
     TiffTools::scanFile(tiff, directories);
@@ -100,12 +118,14 @@ std::shared_ptr<SVSSlide> SVSSlide::openFile(const std::string& filePath, const 
         }
 		std::shared_ptr<SVSTiledScene> tScene(new SVSTiledScene(filePath, slide->getDriverId(), keeper.release(), "Image", image_dirs));
         tScene->setDriverId(driverId);
+        tScene->setStream(stream);
         std::shared_ptr<CVScene> scene(tScene);
         scenes.push_back(scene);
     }
     if(thumbnail>=0) {
 		std::shared_ptr<SVSSmallScene> sScene(new SVSSmallScene(filePath, slide->getDriverId(), THUMBNAIL, directories[thumbnail], tiff));
 		sScene->setDriverId(driverId);
+        sScene->setStream(stream);
         std::shared_ptr<CVScene> scene(sScene);
         auxImages[THUMBNAIL] = scene;
         auxNames.emplace_back(THUMBNAIL);
@@ -113,6 +133,7 @@ std::shared_ptr<SVSSlide> SVSSlide::openFile(const std::string& filePath, const 
     if(label>=0) {
         std::shared_ptr<SVSSmallScene> sScene(new SVSSmallScene(filePath,slide->getDriverId(), LABEL, directories[label], true));
         sScene->setDriverId(driverId);
+        sScene->setStream(stream);
         std::shared_ptr<CVScene> scene(sScene);
         auxImages[LABEL] = scene;
         auxNames.emplace_back(LABEL);
@@ -121,6 +142,7 @@ std::shared_ptr<SVSSlide> SVSSlide::openFile(const std::string& filePath, const 
         std::shared_ptr<SVSSmallScene> sScene = std::make_shared <SVSSmallScene>(
             filePath, slide->getDriverId(),MACRO, directories[macro], tiff);
         sScene->setDriverId(driverId);
+        sScene->setStream(stream);
         std::shared_ptr<CVScene> scene(sScene);
         auxImages[MACRO] = scene;
         auxNames.emplace_back(MACRO);

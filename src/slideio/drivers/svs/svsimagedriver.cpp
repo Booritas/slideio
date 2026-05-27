@@ -23,6 +23,11 @@ std::shared_ptr<slideio::CVSlide> slideio::SVSImageDriver::openFile(const std::s
 	return SVSSlide::openFile(filePath, getID());
 }
 
+std::shared_ptr<slideio::CVSlide> slideio::SVSImageDriver::openFile(std::shared_ptr<RandomAccessStream> stream)
+{
+	return SVSSlide::openFile(stream, getID());
+}
+
 std::string slideio::SVSImageDriver::getFileSpecs() const
 {
 	static std::string pattern("*.svs");

@@ -8,6 +8,8 @@
 #include "slideio/core/cvscene.hpp"
 #include "slideio/imagetools/tiffkeeper.hpp"
 #include "slideio/imagetools/tifftools.hpp"
+#include "slideio/base/randomaccessstream.hpp"
+#include <memory>
 
 #if defined(_MSC_VER)
 #pragma warning( push )
@@ -65,6 +67,11 @@ namespace slideio
             return m_dataType;
         }
         libtiff::TIFF* getFileHandle();
+        // Associate a stream so the scene can reopen the TIFF from it (remote URIs).
+        // When null (local-path open), reopen falls back to the file path.
+        void setStream(std::shared_ptr<RandomAccessStream> stream) {
+            m_stream = std::move(stream);
+        }
     protected:
         std::string m_filePath;
         std::string m_driverId;
@@ -76,6 +83,7 @@ namespace slideio
         int m_sceneIndex;
     private:
         TIFFKeeper m_tiffKeeper;
+        std::shared_ptr<RandomAccessStream> m_stream;
     };
 }
 
