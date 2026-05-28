@@ -224,7 +224,7 @@ bool HttpStream::probeSize()
                     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &body);
                 },
                 acceptNonError, "Content-Range size probe");
-        } catch (const std::runtime_error& e) {
+        } catch (const slideio::RuntimeError& e) {
             const std::string snip = responseBodySnippet(body);
             if (!snip.empty()) {
                 RAISE_RUNTIME_ERROR << e.what() << "; server response: " << snip;
@@ -287,7 +287,7 @@ std::vector<uint8_t> HttpStream::fetchBlocks(uint64_t firstBlock, uint64_t lastB
                 curl_easy_setopt(curl, CURLOPT_SSL_OPTIONS, CURLSSLOPT_NATIVE_CA);
             },
             acceptRanged, "fetch");
-    } catch (const std::runtime_error& e) {
+    } catch (const slideio::RuntimeError& e) {
         // On failure `body` holds the last attempt's response (the S3 error
         // XML, for an AWS 4xx). Surface it so the user knows whether it's a
         // signature mismatch, an expired URL, an access-denied policy, etc.
