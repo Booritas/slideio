@@ -138,3 +138,27 @@ TEST(ConverterS3, SingleThreaded_HttpInput_MatchesLocal)
 
     expectConvertedSlidesMatch(outFromHttp.generic_string(), outFromLocal.generic_string());
 }
+
+// Test 2: multi-threaded converter over HTTP input.
+// Exercises TiffConverter::cloneScene() reopening the stream-opened slide
+// once per reader thread. Each reader opens its own HttpStream + cache.
+TEST(ConverterS3, MultiThreaded_HttpInput_MatchesLocal)
+{
+    namespace fs = std::filesystem;
+    const std::string name = "CMU-1-Small-Region.svs";
+    const std::string localSrc = TestTools::getTestImagePath("svs", name);
+    fs::path root = stageImage(localSrc, "mt", name);
+
+    slideio::tests::HttpFixture fx(root);
+    const std::string httpUrl = fx.url(name);
+
+    fs::path outFromHttp = freshOutputPath("mt_http", "out.svs");
+    fs::path outFromLocal = freshOutputPath("mt_local", "out.svs");
+
+    // 4 reader + 4 encoder threads forces TiffConverter into its MT path
+    // (cloneScene() + per-reader HttpStream).
+    ASSERT_NO_THROW(runConvertFile(httpUrl, outFromHttp.generic_string(), 4, 4));
+    ASSERT_NO_THROW(runConvertFile((root / name).generic_string(), outFromLocal.generic_string(), 4, 4));
+
+    expectConvertedSlidesMatch(outFromHttp.generic_string(), outFromLocal.generic_string());
+}
