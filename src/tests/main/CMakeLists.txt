@@ -44,7 +44,9 @@ set(TEST_SOURCES
   test_tiff_client_adapter.cpp
   test_uri_dispatcher.cpp
   test_s3_streaming_integration.cpp
+  test_converter_s3.cpp
   http_fixture/http_fixture.cpp
+  ${CMAKE_SOURCE_DIR}/src/tools/converter/sceneconverter.cpp
 )
 
 add_executable(${TEST_NAME} ${TEST_SOURCES})
@@ -86,7 +88,7 @@ target_compile_definitions(${TEST_NAME} PRIVATE
     SLIDEIO_TEST_HTTP_SERVER="${CMAKE_CURRENT_SOURCE_DIR}/http_fixture/test_http_server.py")
 
 target_include_directories(${TEST_NAME} PRIVATE ${INCLUDE_ROOT})
-target_link_libraries(${TEST_NAME} ${SLIDEIO_LIB_NAME} ${BASE_LIB_NAME} ${TEST_LIB_NAME})
+target_link_libraries(${TEST_NAME} ${SLIDEIO_LIB_NAME} ${BASE_LIB_NAME} ${TEST_LIB_NAME} ${CONVERTER_LIB_NAME})
 
 
 
