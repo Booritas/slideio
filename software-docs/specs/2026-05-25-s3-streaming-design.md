@@ -445,6 +445,11 @@ required an `NDPIDataSource` + libjpeg source manager because its JPEG/MCU
 path bypasses libtiff. AFI resolves referenced SVS files via `siblingUri` +
 `createStream` and was validated end-to-end over the HTTP fixture.
 
+The converter CLI (`slideio_converter`) accepts `s3://` and `http(s)://`
+URIs as input as of 2026-05-28; output remains a local file path (per §1
+non-goal). See
+[`2026-05-28-converter-s3-input-design.md`](./2026-05-28-converter-s3-input-design.md).
+
 **v1 deviations / known limitations (carry into v2+):**
 - **Multi-file OME-TIFF over a stream is not supported** — a stream open that
   references sibling TIFF files raises a clear error
