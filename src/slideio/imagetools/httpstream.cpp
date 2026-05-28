@@ -146,9 +146,15 @@ bool HttpStream::probeSize()
     };
 
     // First attempt: HEAD with Content-Length.
+    // HEAD may be rejected by some servers: AWS S3 presigned URLs are signed
+    // for one HTTP method and return 403 SignatureDoesNotMatch when the method
+    // doesn't match (the AWS CLI's `aws s3 presign` produces GET-signed URLs).
+    // Other servers that don't implement HEAD return 405 or 501. Treat those
+    // codes as "HEAD not available" and fall through to the Content-Range GET
+    // probe instead of failing the whole open.
     {
         uint64_t sz = 0;
-        performWithRetry(
+        const RequestResult headRes = performWithRetry(
             [&](CURL* curl) {
                 curl_easy_setopt(curl, CURLOPT_URL, m_url.c_str());
                 curl_easy_setopt(curl, CURLOPT_NOBODY, 1L);
@@ -162,10 +168,23 @@ bool HttpStream::probeSize()
                 curl_easy_setopt(curl, CURLOPT_HEADERDATA, &sz);
                 curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, discardCb);
             },
-            acceptNonError, "HEAD size probe");
-        if (sz > 0) {
+            [](CURLcode rc, long code) {
+                if (rc != CURLE_OK) return false;
+                if (code < 400) return true;
+                return code == 403 || code == 405 || code == 501;
+            },
+            "HEAD size probe");
+        // Only trust the parsed Content-Length when HEAD itself succeeded.
+        // On a 403/405/501 the body is an error message whose Content-Length
+        // would otherwise be misread as the object size.
+        if (headRes.httpCode < 400 && sz > 0) {
             m_size = sz;
             return true;
+        }
+        if (headRes.httpCode >= 400) {
+            SLIDEIO_LOG(INFO) << "HttpStream: HEAD probe returned "
+                              << headRes.httpCode << " for " << m_url
+                              << "; falling back to GET Range size probe.";
         }
     }
 
