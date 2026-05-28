@@ -9,6 +9,7 @@
 #include "slideio/base/range.hpp"
 #include "slideio/core/cvscene.hpp"
 #include "slideio/slideio/slideio.hpp"
+#include "slideio/imagetools/uridispatcher.hpp"
 #include <iostream>
 #include <filesystem>
 #include <sstream>
@@ -210,9 +211,14 @@ void convertFile(
 	int tileBatchSize,
 	int numReadingThreads,
 	int numEncodingThreads) {
-	if (!std::filesystem::exists(inputPath)) {
-		throw std::runtime_error("Input file does not exist: " + inputPath);
+	if (slideio::detectUriScheme(inputPath) == slideio::UriScheme::LocalFile) {
+		if (!std::filesystem::exists(inputPath)) {
+			throw std::runtime_error("Input file does not exist: " + inputPath);
+		}
 	}
+	// For s3:// and http(s):// URIs we skip the local-file existence check.
+	// openSlide() validates the resource via a HEAD probe and surfaces a
+	// clear HTTP-level error (404, 403, etc.) if the URI is invalid.
 	if (!infoOnly && std::filesystem::exists(outputPath)) {
 		if (deleteIfExists) {
 			std::filesystem::remove(outputPath);
