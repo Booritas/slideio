@@ -154,6 +154,10 @@ bool HttpStream::probeSize()
                 curl_easy_setopt(curl, CURLOPT_NOBODY, 1L);
                 curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
                 curl_easy_setopt(curl, CURLOPT_MAXREDIRS, 5L);
+                // On Windows, Conan's libcurl/OpenSSL builds ship without a default
+                // CA bundle path; without NATIVE_CA the Windows certificate store is
+                // ignored and every HTTPS peer fails verification.
+                curl_easy_setopt(curl, CURLOPT_SSL_OPTIONS, CURLSSLOPT_NATIVE_CA);
                 curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, headerCb);
                 curl_easy_setopt(curl, CURLOPT_HEADERDATA, &sz);
                 curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, discardCb);
@@ -175,6 +179,7 @@ bool HttpStream::probeSize()
                 curl_easy_setopt(curl, CURLOPT_RANGE, "0-0");
                 curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
                 curl_easy_setopt(curl, CURLOPT_MAXREDIRS, 5L);
+                curl_easy_setopt(curl, CURLOPT_SSL_OPTIONS, CURLSSLOPT_NATIVE_CA);
                 curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, headerCbContentRange);
                 curl_easy_setopt(curl, CURLOPT_HEADERDATA, &sz);
                 curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, discardCb);
@@ -232,6 +237,7 @@ std::vector<uint8_t> HttpStream::fetchBlocks(uint64_t firstBlock, uint64_t lastB
             curl_easy_setopt(curl, CURLOPT_WRITEDATA, &body);
             curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
             curl_easy_setopt(curl, CURLOPT_MAXREDIRS, 5L);
+            curl_easy_setopt(curl, CURLOPT_SSL_OPTIONS, CURLSSLOPT_NATIVE_CA);
         },
         acceptRanged, "fetch");
     return body;
