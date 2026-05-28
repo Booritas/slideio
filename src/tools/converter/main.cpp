@@ -87,9 +87,9 @@ int main(int argc, char* argv[]) {
     int logLevelValue = 1;
 	int tileBatchSize = 10;
 
-    app.add_option("input", inputPath, "Input file path")
-       ->required()
-       ->check(CLI::ExistingFile);
+    app.add_option("input", inputPath,
+                   "Input file path or remote URI (s3://, http://, https://)")
+       ->required();
 
     app.add_option("output", outputPath, "Output file path")
        ->required();
