@@ -16,6 +16,8 @@
 #include <iomanip>
 #include <chrono>
 #include <csignal>
+#include <thread>
+#include <algorithm>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -153,7 +155,7 @@ static std::string formatDuration(std::chrono::milliseconds duration) {
 	return oss.str();
 }
 
-void printInfo(const TiffConverter& converter) {
+void printInfo(const TiffConverter& converter, const std::string& inputPath) {
 	const ConverterParameters& params = converter.getParameters();
 	std::shared_ptr<const TIFFContainerParameters> tiffParams =
 		std::static_pointer_cast<const TIFFContainerParameters>(params.getContainerParameters());
@@ -187,6 +189,16 @@ void printInfo(const TiffConverter& converter) {
 	std::cout << "Reading threads: " << numReadingThreads << (numReadingThreads == 0 ? " (auto: half of CPU cores)" : "") << std::endl;
 	std::cout << "Encoding threads: " << numEncodingThreads << (numEncodingThreads == 0 ? " (auto: half of CPU cores)" : "") << std::endl;
 
+	if (slideio::detectUriScheme(inputPath) != slideio::UriScheme::LocalFile) {
+		const int rt = (numReadingThreads <= 0)
+			? (std::max)(1, static_cast<int>(std::thread::hardware_concurrency()) / 2)
+			: numReadingThreads;
+		std::cout << "Remote input: per-reader HTTP block cache is 256 MB; "
+			<< "peak ~= " << rt << " x 256 MB during conversion. "
+			<< "Lower --reading-threads or call "
+			<< "ImageDriverManager::setHttpCacheEnabled(false) to bound memory."
+			<< std::endl;
+	}
 }
 
 
@@ -288,7 +300,7 @@ void convertFile(
 	converter.createFileLayout(scene->getCVScene(), params);
 
 	if (infoOnly || !silent) {
-		printInfo(converter);
+		printInfo(converter, inputPath);
 	}
 
 	if (infoOnly) {
