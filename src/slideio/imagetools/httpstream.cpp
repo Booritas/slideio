@@ -71,6 +71,20 @@ size_t bodyCb(char* data, size_t size, size_t nmemb, void* ud) {
     return size * nmemb;
 }
 
+// Builds a single-line snippet of a captured response body, suitable for
+// embedding in an error message. AWS S3 returns XML like
+// <Error><Code>SignatureDoesNotMatch</Code><Message>...</Message></Error>
+// on 4xx; surfacing it tells the user WHICH 403 they hit.
+std::string responseBodySnippet(const std::vector<uint8_t>& body) {
+    if (body.empty()) return {};
+    const size_t n = std::min<size_t>(body.size(), 2048);
+    std::string s(body.begin(), body.begin() + n);
+    for (auto& c : s) {
+        if (c == '\r' || c == '\n' || c == '\t') c = ' ';
+    }
+    return s;
+}
+
 // A transient failure is a timeout, a dropped connection, a connect failure, or
 // any HTTP 5xx response -- the kinds of errors that a retry can plausibly fix.
 bool isTransient(CURLcode rc, long httpCode) {
@@ -192,18 +206,31 @@ bool HttpStream::probeSize()
     // parse the total size from the Content-Range response header.
     {
         uint64_t sz = 0;
-        performWithRetry(
-            [&](CURL* curl) {
-                curl_easy_setopt(curl, CURLOPT_URL, m_url.c_str());
-                curl_easy_setopt(curl, CURLOPT_RANGE, "0-0");
-                curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-                curl_easy_setopt(curl, CURLOPT_MAXREDIRS, 5L);
-                curl_easy_setopt(curl, CURLOPT_SSL_OPTIONS, CURLSSLOPT_NATIVE_CA);
-                curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, headerCbContentRange);
-                curl_easy_setopt(curl, CURLOPT_HEADERDATA, &sz);
-                curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, discardCb);
-            },
-            acceptNonError, "Content-Range size probe");
+        std::vector<uint8_t> body;
+        try {
+            performWithRetry(
+                [&](CURL* curl) {
+                    // body is appended to across attempts; reset so a failed
+                    // attempt does not contaminate the next one's response.
+                    body.clear();
+                    curl_easy_setopt(curl, CURLOPT_URL, m_url.c_str());
+                    curl_easy_setopt(curl, CURLOPT_RANGE, "0-0");
+                    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+                    curl_easy_setopt(curl, CURLOPT_MAXREDIRS, 5L);
+                    curl_easy_setopt(curl, CURLOPT_SSL_OPTIONS, CURLSSLOPT_NATIVE_CA);
+                    curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, headerCbContentRange);
+                    curl_easy_setopt(curl, CURLOPT_HEADERDATA, &sz);
+                    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, bodyCb);
+                    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &body);
+                },
+                acceptNonError, "Content-Range size probe");
+        } catch (const std::runtime_error& e) {
+            const std::string snip = responseBodySnippet(body);
+            if (!snip.empty()) {
+                RAISE_RUNTIME_ERROR << e.what() << "; server response: " << snip;
+            }
+            throw;
+        }
         if (sz > 0) {
             m_size = sz;
             return true;
@@ -245,20 +272,31 @@ std::vector<uint8_t> HttpStream::fetchBlocks(uint64_t firstBlock, uint64_t lastB
         return false;  // non-2xx -> retry/error path in performWithRetry
     };
 
-    performWithRetry(
-        [&](CURL* curl) {
-            // body is appended to across attempts; reset so a failed partial
-            // attempt does not corrupt the next one's data.
-            body.clear();
-            curl_easy_setopt(curl, CURLOPT_URL, m_url.c_str());
-            curl_easy_setopt(curl, CURLOPT_RANGE, range.c_str());
-            curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, bodyCb);
-            curl_easy_setopt(curl, CURLOPT_WRITEDATA, &body);
-            curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-            curl_easy_setopt(curl, CURLOPT_MAXREDIRS, 5L);
-            curl_easy_setopt(curl, CURLOPT_SSL_OPTIONS, CURLSSLOPT_NATIVE_CA);
-        },
-        acceptRanged, "fetch");
+    try {
+        performWithRetry(
+            [&](CURL* curl) {
+                // body is appended to across attempts; reset so a failed partial
+                // attempt does not corrupt the next one's data.
+                body.clear();
+                curl_easy_setopt(curl, CURLOPT_URL, m_url.c_str());
+                curl_easy_setopt(curl, CURLOPT_RANGE, range.c_str());
+                curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, bodyCb);
+                curl_easy_setopt(curl, CURLOPT_WRITEDATA, &body);
+                curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+                curl_easy_setopt(curl, CURLOPT_MAXREDIRS, 5L);
+                curl_easy_setopt(curl, CURLOPT_SSL_OPTIONS, CURLSSLOPT_NATIVE_CA);
+            },
+            acceptRanged, "fetch");
+    } catch (const std::runtime_error& e) {
+        // On failure `body` holds the last attempt's response (the S3 error
+        // XML, for an AWS 4xx). Surface it so the user knows whether it's a
+        // signature mismatch, an expired URL, an access-denied policy, etc.
+        const std::string snip = responseBodySnippet(body);
+        if (!snip.empty()) {
+            RAISE_RUNTIME_ERROR << e.what() << "; server response: " << snip;
+        }
+        throw;
+    }
     return body;
 }
 
