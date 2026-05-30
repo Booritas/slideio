@@ -10,6 +10,14 @@ slideio::TIFFFiles::~TIFFFiles() {
     closeAll();
 }
 
+// Returns the URI with any query string ("?...") removed. Presigned S3/HTTP URLs
+// carry an "?X-Amz-..." query that is absent from sibling URIs the OME-TIFF driver
+// resolves via siblingUri(); comparisons of "same object" must ignore it.
+static std::string stripQuery(const std::string& uri) {
+    const auto q = uri.find('?');
+    return (q == std::string::npos) ? uri : uri.substr(0, q);
+}
+
 libtiff::TIFF* slideio::TIFFFiles::getOrOpen(const std::string& filename) {
     auto it = m_openFiles.find(filename);
     if (it != m_openFiles.end()) {
@@ -17,7 +25,10 @@ libtiff::TIFF* slideio::TIFFFiles::getOrOpen(const std::string& filename) {
     }
     if (m_mainStream) {
         // Stream-based open: only the main file/URI can be served from the stream.
-        if (filename == m_mainUri) {
+        // A single-file OME-TIFF self-references by filename; the driver resolves
+        // that reference with siblingUri(), which drops the presigned query string,
+        // so compare against the main URI with the query string ignored.
+        if (stripQuery(filename) == stripQuery(m_mainUri)) {
             libtiff::TIFF* tiff = slideio::TiffTools::openTiffFile(m_mainStream);
             if (!tiff) {
                 RAISE_RUNTIME_ERROR << "Failed to open TIFF from stream: " << m_mainUri;
