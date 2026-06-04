@@ -25,6 +25,10 @@ public:
     void failNextGets(int count);
     // Number of successful file GETs the server has served so far.
     int servedCount() const;
+    // Number of distinct TCP connections that carried at least one file GET.
+    // Verifies connection reuse: with keep-alive a client should serve many
+    // ranged GETs over a single connection.
+    int connectionCount() const;
 
     HttpFixture(const HttpFixture&) = delete;
     HttpFixture& operator=(const HttpFixture&) = delete;

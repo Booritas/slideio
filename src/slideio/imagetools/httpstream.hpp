@@ -48,6 +48,12 @@ namespace slideio
         uint64_t m_size = 0;
         BlockCache m_cache;
         std::mutex m_mutex;
+        // Persistent libcurl easy handle, reused across requests so the
+        // underlying TCP+TLS connection is kept alive instead of rebuilt per
+        // request. Typed as void* to keep <curl/curl.h> out of this header
+        // (CURL is an opaque typedef); the .cpp casts to CURL*. All network
+        // access is serialized by m_mutex, so a single shared handle is safe.
+        void* m_curl = nullptr;
         static std::atomic<bool> s_cacheEnabled;
     };
 }

@@ -22,7 +22,7 @@ std::filesystem::path makeRoot() {
 }
 }
 
-TEST(HttpStreamTest, SizeFromHead) {
+TEST(HttpStreamTest, SizeDiscoveredOnOpen) {
     auto root = makeRoot();
     std::filesystem::path file = root / "size.bin";
     {
@@ -30,11 +30,14 @@ TEST(HttpStreamTest, SizeFromHead) {
         for (int i = 0; i < 12345; ++i) out.put(static_cast<char>(i & 0xff));
     }
     HttpFixture fx(root);
+    // Open issues a single ranged GET; the size is read from its Content-Range
+    // total. The requested range (0..blockSize-1) overshoots this small file and
+    // is clamped to EOF by the server, as S3 does.
     slideio::HttpStream s(fx.url("size.bin"));
     EXPECT_EQ(s.size(), 12345u);
 }
 
-TEST(HttpStreamTest, SizeFromContentRangeFallback) {
+TEST(HttpStreamTest, SizeDiscoveredForSubBlockFile) {
     auto root = makeRoot();
     std::filesystem::path file = root / "size2.bin";
     {
@@ -42,9 +45,9 @@ TEST(HttpStreamTest, SizeFromContentRangeFallback) {
         for (int i = 0; i < 999; ++i) out.put('x');
     }
     HttpFixture fx(root);
-    // nohead=1 makes HEAD return 200 without Content-Length, forcing the
-    // GET Range: bytes=0-0 / Content-Range fallback.
-    slideio::HttpStream s(fx.url("size2.bin?nohead=1"));
+    // A file far smaller than one block still yields its exact size from the
+    // clamped 206's Content-Range header.
+    slideio::HttpStream s(fx.url("size2.bin"));
     EXPECT_EQ(s.size(), 999u);
 }
 
@@ -102,48 +105,105 @@ TEST(HttpStreamTest, ConsecutiveBlocksCoalescedIntoOneGet) {
     }
 
     HttpFixture fx(root);
-    // The fixture's `served` counter increments only on file GETs (do_GET),
-    // not on HEAD requests (do_HEAD). The size-probe here uses a normal HEAD
-    // (no nohead=1) that yields Content-Length, so it contributes zero GETs.
     slideio::HttpStream s(fx.url("coalesce.bin"));
 
+    // Open primes block 0 with one GET. Measuring GETs only from here on, the
+    // 3 MB read spans blocks 0,1,2: block 0 is already cached, so blocks 1 and 2
+    // are the only missing ones and must coalesce into a single ranged GET.
     const int before = fx.servedCount();
     std::vector<uint8_t> buf(3 * 1024 * 1024);  // spans blocks 0,1,2
     EXPECT_EQ(s.read(0, buf.size(), buf.data()), buf.size());
     EXPECT_EQ(std::memcmp(buf.data(), bytes.data(), buf.size()), 0);
     const int after = fx.servedCount();
 
-    // The three consecutive missing blocks must coalesce into exactly one
-    // ranged GET. The HEAD probe is not a GET, so it does not affect the count.
     EXPECT_EQ(after - before, 1);
+}
+
+TEST(HttpStreamTest, OpenPrimesFirstBlockWithSingleGet) {
+    auto root = makeRoot();
+    auto file = root / "prime.bin";
+    std::vector<uint8_t> bytes(2 * 1024 * 1024 + 512);  // > 1 block
+    for (size_t i = 0; i < bytes.size(); ++i) bytes[i] = static_cast<uint8_t>(i * 17 + 3);
+    {
+        std::ofstream o(file, std::ios::binary);
+        o.write(reinterpret_cast<const char*>(bytes.data()), bytes.size());
+    }
+
+    HttpFixture fx(root);
+    slideio::HttpStream s(fx.url("prime.bin"));
+
+    // Opening discovers the size and fetches the first block in a SINGLE ranged
+    // GET (no standalone HEAD). That one GET is the only request so far.
+    EXPECT_EQ(s.size(), bytes.size());
+    EXPECT_EQ(fx.servedCount(), 1);
+
+    // A read fully inside the first block is served from that primed cache block
+    // without any further request.
+    std::vector<uint8_t> buf(100);
+    EXPECT_EQ(s.read(1000, buf.size(), buf.data()), buf.size());
+    EXPECT_EQ(std::memcmp(buf.data(), bytes.data() + 1000, buf.size()), 0);
+    EXPECT_EQ(fx.servedCount(), 1);
+}
+
+TEST(HttpStreamTest, ReusesSingleConnectionAcrossReads) {
+    auto root = makeRoot();
+    auto file = root / "reuse.bin";
+    std::vector<uint8_t> bytes(3 * 1024 * 1024 + 4096);  // > 3 blocks
+    for (size_t i = 0; i < bytes.size(); ++i) bytes[i] = static_cast<uint8_t>(i * 31 + 7);
+    {
+        std::ofstream o(file, std::ios::binary);
+        o.write(reinterpret_cast<const char*>(bytes.data()), bytes.size());
+    }
+
+    HttpFixture fx(root);
+    slideio::HttpStream s(fx.url("reuse.bin"));
+
+    // Three reads of distinct, uncached blocks -> three separate ranged GETs.
+    // With HTTP keep-alive and a reused curl handle they must all travel over a
+    // single TCP connection.
+    std::vector<uint8_t> buf(100);
+    for (uint64_t blk = 0; blk < 3; ++blk) {
+        const uint64_t off = blk * slideio::HttpStream::kBlockSize;
+        ASSERT_EQ(s.read(off, buf.size(), buf.data()), buf.size());
+        ASSERT_EQ(std::memcmp(buf.data(), bytes.data() + off, buf.size()), 0);
+    }
+
+    EXPECT_EQ(fx.connectionCount(), 1);
 }
 
 TEST(HttpStreamTest, RetriesAfterTwoFiveHundredThreesThenSucceeds) {
     auto root = makeRoot();
     auto file = root / "retry.bin";
+    // > 1 block so the read below targets block 1, which open does NOT prime
+    // (open caches only block 0). The injected 503s are thus exercised by a real
+    // fetch rather than short-circuited by the primed first block.
+    const uint64_t off = slideio::HttpStream::kBlockSize;
     {
         std::ofstream o(file, std::ios::binary);
-        for (int i = 0; i < 4096; ++i) o.put('a');
+        for (uint64_t i = 0; i < off + 4096; ++i) o.put('a');
     }
     HttpFixture fx(root);
     slideio::HttpStream s(fx.url("retry.bin"));
     fx.failNextGets(2);
     std::vector<uint8_t> buf(100);
-    EXPECT_EQ(s.read(0, buf.size(), buf.data()), buf.size());
+    EXPECT_EQ(s.read(off, buf.size(), buf.data()), buf.size());
 }
 
 TEST(HttpStreamTest, FailsAfterExceedingRetryBudget) {
     auto root = makeRoot();
     auto file = root / "retry2.bin";
+    // Read block 1 (not primed by open) so the fetch actually hits the server
+    // and exhausts the retry budget.
+    const uint64_t off = slideio::HttpStream::kBlockSize;
     {
         std::ofstream o(file, std::ios::binary);
-        for (int i = 0; i < 4096; ++i) o.put('a');
+        for (uint64_t i = 0; i < off + 4096; ++i) o.put('a');
     }
     HttpFixture fx(root);
     slideio::HttpStream s(fx.url("retry2.bin"));
     fx.failNextGets(99);
     std::vector<uint8_t> buf(100);
-    EXPECT_ANY_THROW(s.read(0, buf.size(), buf.data()));
+    EXPECT_ANY_THROW(s.read(off, buf.size(), buf.data()));
 }
 
 TEST(HttpStreamTest, CacheDisableForcesGetPerRead) {

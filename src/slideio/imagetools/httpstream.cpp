@@ -36,33 +36,30 @@ void ensureCurlGlobalInit() {
     });
 }
 
-size_t headerCb(char* data, size_t size, size_t nmemb, void* ud) {
-    auto* sz = static_cast<uint64_t*>(ud);
-    std::string h(data, size * nmemb);
-    const char* prefix = "Content-Length:";
-    const size_t n = std::strlen(prefix);
-    if (h.size() >= n && SLIDEIO_STRNCASECMP(h.c_str(), prefix, n) == 0) {
-        *sz = std::strtoull(h.c_str() + n, nullptr, 10);
-    }
-    return size * nmemb;
-}
+// Captures the object size from a size-probe response. A ranged GET yields a
+// "Content-Range: bytes START-END/TOTAL" header (preferred); a server that
+// ignores the Range and replies 200 yields a "Content-Length: TOTAL". Both are
+// parsed so the probe works against either.
+struct ProbeSize { uint64_t total = 0; uint64_t length = 0; };
 
-// Parses the total object size from a "Content-Range: bytes 0-0/SIZE" header.
-size_t headerCbContentRange(char* data, size_t size, size_t nmemb, void* ud) {
-    auto* sz = static_cast<uint64_t*>(ud);
-    std::string h(data, size * nmemb);
-    const char* prefix = "Content-Range:";
-    const size_t n = std::strlen(prefix);
-    if (h.size() >= n && SLIDEIO_STRNCASECMP(h.c_str(), prefix, n) == 0) {
-        auto slash = h.find('/');
+size_t probeHeaderCb(char* data, size_t size, size_t nmemb, void* ud) {
+    auto* p = static_cast<ProbeSize*>(ud);
+    const std::string h(data, size * nmemb);
+    auto matches = [&](const char* prefix) {
+        const size_t n = std::strlen(prefix);
+        return h.size() >= n && SLIDEIO_STRNCASECMP(h.c_str(), prefix, n) == 0;
+    };
+    if (matches("Content-Range:")) {
+        const auto slash = h.find('/');
         if (slash != std::string::npos) {
-            *sz = std::strtoull(h.c_str() + slash + 1, nullptr, 10);
+            p->total = std::strtoull(h.c_str() + slash + 1, nullptr, 10);
         }
+    } else if (matches("Content-Length:")) {
+        p->length = std::strtoull(h.c_str() + std::strlen("Content-Length:"),
+                                  nullptr, 10);
     }
     return size * nmemb;
 }
-
-size_t discardCb(char*, size_t s, size_t n, void*) { return s * n; }
 
 // Write-callback for ranged GET that appends the body into a std::vector<uint8_t>.
 size_t bodyCb(char* data, size_t size, size_t nmemb, void* ud) {
@@ -95,27 +92,32 @@ bool isTransient(CURLcode rc, long httpCode) {
 }
 
 // Performs an HTTP request with a bounded, exponential-backoff retry policy
-// (3 attempts; 50, 200, 800ms between attempts). Each attempt builds a fresh
-// curl handle, hands it to `configure` (which sets URL/method/callbacks), and
-// performs it. `accept` decides whether the (rc, httpCode) pair is a success;
-// on success this returns normally. Transient failures are retried; a
-// non-transient failure, or exhausting the budget, throws via RAISE_RUNTIME_ERROR
-// with `context` in the message. Returns the last (rc, httpCode) on success.
+// (3 attempts; 50, 200, 800ms between attempts). Each attempt resets the
+// supplied persistent `curl` handle to a clean option state, hands it to
+// `configure` (which sets URL/method/callbacks), and performs it. The handle is
+// NOT destroyed between requests: curl_easy_reset preserves live connections,
+// the DNS cache and the TLS session cache, so subsequent requests to the same
+// host reuse the existing TCP+TLS connection (HTTP keep-alive). `accept` decides
+// whether the (rc, httpCode) pair is a success; on success this returns
+// normally. Transient failures are retried; a non-transient failure, or
+// exhausting the budget, throws via RAISE_RUNTIME_ERROR with `context` in the
+// message. Returns the last (rc, httpCode) on success.
 struct RequestResult { CURLcode rc; long httpCode; };
 
-RequestResult performWithRetry(const std::function<void(CURL*)>& configure,
+RequestResult performWithRetry(CURL* curl,
+                               const std::function<void(CURL*)>& configure,
                                const std::function<bool(CURLcode, long)>& accept,
                                const std::string& context) {
     constexpr int kMaxAttempts = 3;
     int delayMs = 50;
     for (int attempt = 0; attempt < kMaxAttempts; ++attempt) {
-        CURL* curl = curl_easy_init();
-        if (!curl) RAISE_RUNTIME_ERROR << "HttpStream: curl_easy_init failed";
+        // Clear options from the previous request (e.g. a stale CURLOPT_RANGE)
+        // while keeping the connection/session caches that enable reuse.
+        curl_easy_reset(curl);
         configure(curl);
         CURLcode rc = curl_easy_perform(curl);
         long code = 0;
         curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &code);
-        curl_easy_cleanup(curl);
 
         if (accept(rc, code)) {
             return {rc, code};
@@ -137,106 +139,85 @@ HttpStream::HttpStream(const std::string& url)
     : m_url(url), m_cache(kCacheCapacityBlocks)
 {
     ensureCurlGlobalInit();
+    m_curl = curl_easy_init();
+    if (!m_curl) RAISE_RUNTIME_ERROR << "HttpStream: curl_easy_init failed";
     if (!probeSize()) {
         RAISE_RUNTIME_ERROR << "HttpStream: could not determine size of " << url;
     }
     SLIDEIO_LOG(INFO) << "HttpStream opened " << url << " size=" << m_size;
 }
 
-HttpStream::~HttpStream() = default;
+HttpStream::~HttpStream()
+{
+    if (m_curl) {
+        curl_easy_cleanup(static_cast<CURL*>(m_curl));
+        m_curl = nullptr;
+    }
+}
 
 bool HttpStream::probeSize()
 {
     // TODO(spec §8.4): verify Accept-Ranges: bytes at construction and fail fast
     // if the server does not advertise range support.
 
-    // Both strategies share the retry policy in performWithRetry, so a transient
-    // 5xx/connection blip at construction is retried just like a block fetch.
-    // The `accept` predicate treats any non-error response (curl OK, code < 400)
-    // as success: a 200 HEAD with no Content-Length is not a failure here -- we
-    // simply fall through to the Content-Range strategy when sz stays 0.
-    auto acceptNonError = [](CURLcode rc, long code) {
-        return rc == CURLE_OK && code < 400;
-    };
-
-    // First attempt: HEAD with Content-Length.
-    // HEAD may be rejected by some servers: AWS S3 presigned URLs are signed
-    // for one HTTP method and return 403 SignatureDoesNotMatch when the method
-    // doesn't match (the AWS CLI's `aws s3 presign` produces GET-signed URLs).
-    // Other servers that don't implement HEAD return 405 or 501. Treat those
-    // codes as "HEAD not available" and fall through to the Content-Range GET
-    // probe instead of failing the whole open.
-    {
-        uint64_t sz = 0;
-        const RequestResult headRes = performWithRetry(
+    // Single ranged GET that both discovers the object size AND primes the first
+    // block, folding what used to be a separate HEAD (or HEAD + Content-Range
+    // fallback) into the same round-trip that reads the file header. This:
+    //   * removes one round-trip from every open (no standalone HEAD), which
+    //     dominates latency for high-RTT S3 streams; and
+    //   * works with AWS S3 presigned URLs, which are signed for a single method
+    //     and reject HEAD with 403 (the AWS CLI signs them for GET).
+    // The size comes from the 206's Content-Range "/TOTAL"; a non-conforming
+    // server that ignores Range and returns 200 still yields Content-Length.
+    const std::string range = "0-" + std::to_string(kBlockSize - 1);
+    ProbeSize probe;
+    std::vector<uint8_t> body;
+    try {
+        performWithRetry(
+            static_cast<CURL*>(m_curl),
             [&](CURL* curl) {
+                // body is appended to across attempts; reset so a failed attempt
+                // does not contaminate the next one's response.
+                body.clear();
                 curl_easy_setopt(curl, CURLOPT_URL, m_url.c_str());
-                curl_easy_setopt(curl, CURLOPT_NOBODY, 1L);
+                curl_easy_setopt(curl, CURLOPT_RANGE, range.c_str());
                 curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
                 curl_easy_setopt(curl, CURLOPT_MAXREDIRS, 5L);
                 // On Windows, Conan's libcurl/OpenSSL builds ship without a default
                 // CA bundle path; without NATIVE_CA the Windows certificate store is
                 // ignored and every HTTPS peer fails verification.
                 curl_easy_setopt(curl, CURLOPT_SSL_OPTIONS, CURLSSLOPT_NATIVE_CA);
-                curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, headerCb);
-                curl_easy_setopt(curl, CURLOPT_HEADERDATA, &sz);
-                curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, discardCb);
+                curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, probeHeaderCb);
+                curl_easy_setopt(curl, CURLOPT_HEADERDATA, &probe);
+                curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, bodyCb);
+                curl_easy_setopt(curl, CURLOPT_WRITEDATA, &body);
             },
             [](CURLcode rc, long code) {
-                if (rc != CURLE_OK) return false;
-                if (code < 400) return true;
-                return code == 403 || code == 405 || code == 501;
+                // Both 206 (ranged) and 200 (server ignored Range) carry the
+                // first bytes starting at offset 0, so either is usable here.
+                return rc == CURLE_OK && (code == 206 || code == 200);
             },
-            "HEAD size probe");
-        // Only trust the parsed Content-Length when HEAD itself succeeded.
-        // On a 403/405/501 the body is an error message whose Content-Length
-        // would otherwise be misread as the object size.
-        if (headRes.httpCode < 400 && sz > 0) {
-            m_size = sz;
-            return true;
+            "size probe");
+    } catch (const slideio::RuntimeError& e) {
+        const std::string snip = responseBodySnippet(body);
+        if (!snip.empty()) {
+            RAISE_RUNTIME_ERROR << e.what() << "; server response: " << snip;
         }
-        if (headRes.httpCode >= 400) {
-            SLIDEIO_LOG(INFO) << "HttpStream: HEAD probe returned "
-                              << headRes.httpCode << " for " << m_url
-                              << "; falling back to GET Range size probe.";
-        }
+        throw;
     }
 
-    // Fallback: HEAD gave no Content-Length. Issue GET Range: bytes=0-0 and
-    // parse the total size from the Content-Range response header.
-    {
-        uint64_t sz = 0;
-        std::vector<uint8_t> body;
-        try {
-            performWithRetry(
-                [&](CURL* curl) {
-                    // body is appended to across attempts; reset so a failed
-                    // attempt does not contaminate the next one's response.
-                    body.clear();
-                    curl_easy_setopt(curl, CURLOPT_URL, m_url.c_str());
-                    curl_easy_setopt(curl, CURLOPT_RANGE, "0-0");
-                    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-                    curl_easy_setopt(curl, CURLOPT_MAXREDIRS, 5L);
-                    curl_easy_setopt(curl, CURLOPT_SSL_OPTIONS, CURLSSLOPT_NATIVE_CA);
-                    curl_easy_setopt(curl, CURLOPT_HEADERFUNCTION, headerCbContentRange);
-                    curl_easy_setopt(curl, CURLOPT_HEADERDATA, &sz);
-                    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, bodyCb);
-                    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &body);
-                },
-                acceptNonError, "Content-Range size probe");
-        } catch (const slideio::RuntimeError& e) {
-            const std::string snip = responseBodySnippet(body);
-            if (!snip.empty()) {
-                RAISE_RUNTIME_ERROR << e.what() << "; server response: " << snip;
-            }
-            throw;
-        }
-        if (sz > 0) {
-            m_size = sz;
-            return true;
-        }
+    const uint64_t sz = probe.total ? probe.total : probe.length;
+    if (sz == 0) return false;
+    m_size = sz;
+
+    // Prime block 0 with the bytes we just downloaded so the first read of the
+    // TIFF header / first IFD is served without another round-trip. A 200 from a
+    // non-conforming server delivers the whole file; keep only the first block.
+    if (s_cacheEnabled.load() && !body.empty()) {
+        if (body.size() > kBlockSize) body.resize(kBlockSize);
+        m_cache.insert(0, std::move(body));
     }
-    return false;
+    return true;
 }
 
 uint64_t HttpStream::size() const { return m_size; }
@@ -274,6 +255,7 @@ std::vector<uint8_t> HttpStream::fetchBlocks(uint64_t firstBlock, uint64_t lastB
 
     try {
         performWithRetry(
+            static_cast<CURL*>(m_curl),
             [&](CURL* curl) {
                 // body is appended to across attempts; reset so a failed partial
                 // attempt does not corrupt the next one's data.

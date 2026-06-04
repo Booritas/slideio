@@ -214,11 +214,12 @@ void HttpFixture::failNextGets(int count)
     }
 }
 
-int HttpFixture::servedCount() const
-{
-    std::string u = "http://127.0.0.1:" + std::to_string(m_port) + "/__control__/stats";
+namespace {
+// Fetches the /__control__/stats body and parses the integer following `key=`.
+int fetchStat(int port, const char* key) {
+    std::string u = "http://127.0.0.1:" + std::to_string(port) + "/__control__/stats";
     CURL* curl = curl_easy_init();
-    if (!curl) throw std::runtime_error("HttpFixture::servedCount: curl_easy_init failed");
+    if (!curl) throw std::runtime_error("HttpFixture: stats curl_easy_init failed");
     std::string body;
     curl_easy_setopt(curl, CURLOPT_URL, u.c_str());
     curl_easy_setopt(curl, CURLOPT_HTTPGET, 1L);
@@ -229,14 +230,26 @@ int HttpFixture::servedCount() const
     curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &code);
     curl_easy_cleanup(curl);
     if (rc != CURLE_OK || code != 200) {
-        throw std::runtime_error("HttpFixture::servedCount: control GET failed code="
+        throw std::runtime_error("HttpFixture: control stats GET failed code="
                                  + std::to_string(code));
     }
-    auto pos = body.find("served=");
+    const std::string needle = std::string(key) + "=";
+    auto pos = body.find(needle);
     if (pos == std::string::npos) {
-        throw std::runtime_error("HttpFixture::servedCount: malformed stats body");
+        throw std::runtime_error("HttpFixture: malformed stats body");
     }
-    return std::stoi(body.substr(pos + 7));
+    return std::stoi(body.substr(pos + needle.size()));
+}
+} // namespace
+
+int HttpFixture::servedCount() const
+{
+    return fetchStat(m_port, "served");
+}
+
+int HttpFixture::connectionCount() const
+{
+    return fetchStat(m_port, "connections");
 }
 
 }} // namespace slideio::tests
