@@ -1,36 +1,46 @@
+#include <chrono>
 #include <iostream>
-#include "slideio/drivers/dcm/dcmimagedriver.hpp"
-#include "tests/testlib/testtools.hpp"
+
+#include "slideio/slideio/imagedrivermanager.hpp"
+#include "slideio/slideio/slideio.hpp"
 using namespace slideio;
 
-void test()
+void readSlide(const std::string& path, const std::string& driver)
 {
-    DCMImageDriver driver;
-    const std::string filePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB49P-24900");
-    auto slide = driver.openFile(filePath.c_str());
-    auto scene = slide->getScene(0);
+	ImageDriverManager::setLogLevel("INFO");
+	auto openStart = std::chrono::steady_clock::now();
+	auto slide = openSlide(path, driver);
+	auto openEnd = std::chrono::steady_clock::now();
+	auto openMs = std::chrono::duration_cast<std::chrono::milliseconds>(openEnd - openStart).count();
+	std::cout << "openSlide: " << openMs << " ms" << std::endl;
+
+	auto scene = slide->getScene(0);
     auto rect = scene->getRect();
-    cv::Mat mat;
-    //scene->readBlock(rect, mat);
-    // cv::Rect blockRect[] = {
-    //     {1000,1000,256,256},
-    //     {2000,2000,256,256},
-    //     {3000,3000,256,256},
-    //     {4000,4000,256,256},
-    //     {5000,5000,256,256},
-    //     {6000,6000,256,256},
-    //     {7000,7000,256,256},
-    // };
-    // for(auto rc:blockRect) {
-    //     cv::Mat mat;
-    //     scene->readBlock(rc, mat);
-    // }
-    std::cout << "Done" << std::endl;
+	const int sceneWidth = std::get<2>(rect);
+	const int sceneHeight = std::get<3>(rect);
+	const int blockWidth = 1000;
+	double scaleX = static_cast<double>(blockWidth) / sceneWidth;
+	const int blockHeight = static_cast<int>(sceneHeight * scaleX);
+	std::tuple<int, int> blockSize(blockWidth, blockHeight);
+	auto bufferSize = scene->getBlockSize(blockSize, 0, scene->getNumChannels(), scene->getNumZSlices() , scene->getNumTFrames());
+	std::vector<uint8_t> buffer(bufferSize);
+
+	auto readStart = std::chrono::steady_clock::now();
+	scene->readResampledBlock(rect, blockSize, buffer.data(), bufferSize);
+	auto readEnd = std::chrono::steady_clock::now();
+	auto readMs = std::chrono::duration_cast<std::chrono::milliseconds>(readEnd - readStart).count();
+	std::cout << "readResampledBlock: " << readMs << " ms" << std::endl;
 }
 
-int main()
+int main(int argc, char* argv[])
 {
-    test();
+	if (argc != 3)
+	{
+		std::cerr << "Usage: " << argv[0] << " <path> <driver>" << std::endl;
+		return 1;
+	}
+	std::string path = argv[1];
+	std::string driver = argv[2];
+	readSlide(path, driver);
     return 0;
-    
 }
