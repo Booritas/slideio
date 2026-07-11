@@ -176,7 +176,7 @@ def single_configuration(config_name, build_dir, project_dir):
     cmake_props = {}
     architecture = None
     if os_platform=="Windows":
-        generator = 'Visual Studio 18 2026'
+        generator = 'Visual Studio 17 2022'
         cmake = "cmake.exe"
         architecture = 'x64'
     elif os_platform == "OSX":
