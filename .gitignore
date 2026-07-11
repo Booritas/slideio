@@ -39,3 +39,9 @@ src/py-bind/slideio/core/libs/
 CMakeUserPresets.json
 ### End Conan ###
 install/
+conanbuild.bat
+conanrun.bat
+conanbuildenv-release-x86_64.bat
+conanrunenv-release-x86_64.bat
+deactivate_conanbuild.bat
+deactivate_conanrun.bat
