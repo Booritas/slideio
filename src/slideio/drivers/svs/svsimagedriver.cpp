@@ -26,6 +26,6 @@ std::shared_ptr<slideio::CVSlide> slideio::SVSImageDriver::openFile(const std::s
 
 std::string slideio::SVSImageDriver::getFileSpecs() const
 {
-	static std::string pattern("*.svs");
+	static std::string pattern("*.tif;*.tiff");
     return pattern;
 }

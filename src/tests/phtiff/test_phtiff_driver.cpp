@@ -5,8 +5,10 @@
 #include <opencv2/imgproc.hpp>
 #include <slideio/slideio/imagedrivermanager.hpp>
 #include "slideio/core/tools/tools.hpp"
+#include "slideio/drivers/svs/svsimagedriver.hpp"
 #include "slideio/imagetools/smallimage.hpp"
 #include "slideio/slideio/slideio.hpp"
+#include "slideio/drivers/svs/svsimagedriver.hpp"
 
 
 namespace slideio
@@ -54,30 +56,28 @@ protected:
 
 
 TEST_F(PhtiffImageDriverTests, canOpenFile) {
-    // const std::string allowedSuffixes[] = { ".ome.tif",".ome.tiff", ".ome.tf2", ".ome.tf8", ".ome.btf" };
-    // const std::string disallowedSuffixes[] = { ".ometif",".ometiff", ".ometf2", ".ometf8", ".omebtf" };
-    // OTImageDriver driver;
-	// for(std::string suffix : allowedSuffixes) {
-	// 	std::string filePath = "/projects/ometiff" + suffix;
-	// 	EXPECT_TRUE(driver.canOpenFile(filePath));
-	// }
-	// for (std::string suffix : allowedSuffixes) {
-    //     std::transform(suffix.begin(), suffix.end(), suffix.begin(),
-    //         [](unsigned char c) { return std::toupper(c); });
-	// 	std::string filePath = "/projects/ometiff" + suffix;
-	// 	EXPECT_TRUE(driver.canOpenFile(filePath));
-	// }
-	// for (std::string suffix : disallowedSuffixes) {
-	// 	std::string filePath = "/projects/ometiff" + suffix;
-	// 	EXPECT_FALSE(driver.canOpenFile(filePath));
-	// }
+    const std::string allowedSuffixes[] = { ".tif",".tiff" };
+    const std::string disallowedSuffixes[] = { ".ometif",".ometiff", ".ometf2", ".ometf8", ".omebtf" };
+    SVSImageDriver driver("PHTIFF");
+	for(std::string suffix : allowedSuffixes) {
+		std::string filePath = "/projects/ometiff" + suffix;
+		EXPECT_TRUE(driver.canOpenFile(filePath));
+	}
+	for (std::string suffix : allowedSuffixes) {
+        std::transform(suffix.begin(), suffix.end(), suffix.begin(),
+            [](unsigned char c) { return std::toupper(c); });
+		std::string filePath = "/projects/ometiff" + suffix;
+		EXPECT_TRUE(driver.canOpenFile(filePath));
+	}
+	for (std::string suffix : disallowedSuffixes) {
+		std::string filePath = "/projects/ometiff" + suffix;
+		EXPECT_FALSE(driver.canOpenFile(filePath));
+	}
 }
 
 TEST_F(PhtiffImageDriverTests, openSlide) {
-	// std::string filePath = TestTools::getFullTestImagePath("ometiff", "Multifile/multifile-Z1.ome.tiff");
-	// auto slide = slideio::openSlide(filePath, "OMETIFF");
-	// ASSERT_TRUE(slide != nullptr);
-	// slide = slideio::openSlide(filePath, "AUTO");
-	// ASSERT_TRUE(slide != nullptr);
+	std::string filePath = TestTools::getFullTestImagePath("ometiff", "Multifile/multifile-Z1.ome.tiff");
+	auto slide = slideio::openSlide(filePath, "PHTIFF");
+	ASSERT_TRUE(slide != nullptr);
 }
 
