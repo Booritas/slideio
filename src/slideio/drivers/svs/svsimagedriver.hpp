@@ -12,11 +12,13 @@ namespace slideio
     class SLIDEIO_SVS_EXPORTS SVSImageDriver : public slideio::ImageDriver
     {
     public:
-        SVSImageDriver();
+        SVSImageDriver(const std::string& driverId= "SVS");
         ~SVSImageDriver();
         std::string getID() const override;
         std::shared_ptr<slideio::CVSlide> openFile(const std::string& filePath) override;
         std::string getFileSpecs() const override;
+    private:
+        std::string m_driverId;
     };
 }
 #endif

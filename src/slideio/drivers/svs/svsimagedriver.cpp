@@ -5,7 +5,8 @@
 #include "slideio/drivers/svs/svsslide.hpp"
 #include "slideio/base/log.hpp"
 
-slideio::SVSImageDriver::SVSImageDriver()
+slideio::SVSImageDriver::SVSImageDriver(const std::string& driverId)
+    : m_driverId(driverId)
 {
 }
 
@@ -15,7 +16,7 @@ slideio::SVSImageDriver::~SVSImageDriver()
 
 std::string slideio::SVSImageDriver::getID() const
 {
-	return std::string("SVS");
+	return m_driverId;
 }
 
 std::shared_ptr<slideio::CVSlide> slideio::SVSImageDriver::openFile(const std::string& filePath)

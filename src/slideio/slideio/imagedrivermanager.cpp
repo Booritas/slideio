@@ -84,6 +84,11 @@ void ImageDriverManager::initialize()
             driverMap[driver->getID()] = driver;
         }
         {
+			const std::string phDriverId = "PHTIFF";
+            auto driver = std::make_shared<SVSImageDriver>(phDriverId);
+            driverMap[phDriverId] = driver;
+        }
+        {
             auto driver = std::make_shared<CZIImageDriver>();
             driverMap[driver->getID()] = driver;
         }
