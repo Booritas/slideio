@@ -12,6 +12,7 @@
 
 #include <filesystem>
 #include <fstream>
+#include <tinyxml2.h>
 
 
 using namespace slideio;
@@ -127,6 +128,68 @@ void SVSSlide::initSVS(const std::vector<TiffDirectory>& directories, libtiff::T
     }
 }
 
+void SVSSlide::phExtractImages(const std::vector<TiffDirectory>& directories, std::list<int>& imagePyramid,
+    std::map<std::string, int>& auxImages) {
+    std::list<std::pair<int, int>> imageWidthMap;
+    for (size_t dirIndex=0; dirIndex<directories.size(); dirIndex++) {
+        const TiffDirectory& directory = directories[dirIndex];
+		const std::string& description = directory.description;
+		if (description.find("<?xml") != std::string::npos || description.find("level") != std::string::npos) {
+            imageWidthMap.emplace_back(static_cast<int>(dirIndex), directory.width);
+		} else if (description.empty()) {
+			SLIDEIO_LOG(WARNING) << "SVSSlide::phExtractImages: skipping auxiliary directory " << dirIndex
+				<< " with empty description";
+		} else if (!auxImages.emplace(description, static_cast<int>(dirIndex)).second) {
+			SLIDEIO_LOG(WARNING) << "SVSSlide::phExtractImages: duplicate auxiliary image description '"
+				<< description << "' at directory " << dirIndex << "; keeping directory "
+				<< auxImages.at(description);
+        }
+    }
+
+	imageWidthMap.sort([](const std::pair<int, int>& a, const std::pair<int, int>& b) {
+		return a.second > b.second;
+		});
+
+    for (const auto& pair : imageWidthMap) {
+        imagePyramid.push_back(pair.first);
+    }
+}
+
+void SVSSlide::phCreateImageScene(const std::vector<TiffDirectory>& directories, const std::list<int>& imagePyramid,
+    libtiff::TIFF* hFile) {
+    std::vector<TiffDirectory> image_dirs;
+    image_dirs.reserve(imagePyramid.size());
+    for (const auto index : imagePyramid) {
+        image_dirs.push_back(directories[index]);
+    }
+    std::shared_ptr<SVSTiledScene> tScene(new SVSTiledScene(m_filePath, getDriverId(), hFile, "Image", image_dirs));
+    tScene->setDriverId(m_driverId);
+    std::shared_ptr<CVScene> scene(tScene);
+    m_Scenes.push_back(scene);
+}
+
+void SVSSlide::phCreateAuxScenes(const std::vector<TiffDirectory>& directories,
+    const std::map<std::string, int>& auxImages) {
+    for (const auto& pair : auxImages) {
+        const std::string& name = pair.first;
+        int index = pair.second;
+        std::shared_ptr<SVSSmallScene> sScene = std::make_shared <SVSSmallScene>(
+            m_filePath, getDriverId(), name, directories[index], true);
+        sScene->setDriverId(m_driverId);
+        std::shared_ptr<CVScene> scene(sScene);
+        m_auxImages[name] = scene;
+        m_auxNames.emplace_back(name);
+    }
+}
+
+void SVSSlide::initPhTiff(const std::vector<TiffDirectory>& directories, libtiff::TIFF* hFile) {
+    std::list<int> imagePyramid;
+	std::map<std::string, int> auxImages;
+	phExtractImages(directories, imagePyramid, auxImages);
+	phCreateImageScene(directories, imagePyramid, hFile);
+	phCreateAuxScenes(directories, auxImages);
+}
+
 std::shared_ptr<SVSSlide> SVSSlide::openFile(const std::string& filePath, const std::string& driverId)
 {
     SLIDEIO_LOG(INFO) << "SVSSlide::openFile: " << filePath;
@@ -146,7 +209,12 @@ std::shared_ptr<SVSSlide> SVSSlide::openFile(const std::string& filePath, const 
     slide.reset(new SVSSlide);
     slide->setDriverId(driverId);
     slide->m_filePath = filePath;
-    slide->initSVS(directories, keeper.release());
+    if (driverId == "PHTIFF") {
+        slide->initPhTiff(directories, keeper.release());
+    }
+	else {
+        slide->initSVS(directories, keeper.release());
+    }
 
     return slide;
 }

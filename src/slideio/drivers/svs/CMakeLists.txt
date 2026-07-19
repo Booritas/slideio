@@ -39,6 +39,7 @@ find_package(ZLIB)
 find_package(OpenJPEG)
 find_package(Iconv)
 find_package(nlohmann_json REQUIRED)
+find_package(tinyxml2)
 
 target_link_libraries(${LIBRARY_NAME}
    SQLite::SQLite3
@@ -53,6 +54,7 @@ target_link_libraries(${LIBRARY_NAME}
    openjp2
    Iconv::Iconv
    nlohmann_json::nlohmann_json
+   tinyxml2::tinyxml2
 )
 
 

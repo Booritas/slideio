@@ -41,6 +41,10 @@ namespace slideio
     protected:
         MetadataBuilder buildMetadataTree() const override;
         void initSVS(const std::vector<TiffDirectory>& directories, libtiff::TIFF* hFile);
+        static void phExtractImages(const std::vector<TiffDirectory>& directories, std::list<int>& imagePyramid, std::map<std::string, int>& auxImages);
+        void phCreateImageScene(const std::vector<TiffDirectory>& directories, const std::list<int>& imagePyramid, libtiff::TIFF* tiff);
+        void phCreateAuxScenes(const std::vector<TiffDirectory>& directories, const std::map<std::string, int>& auxImages);
+        void initPhTiff(const std::vector<TiffDirectory>& directories, libtiff::TIFF* hFile);
     private:
         std::vector<std::shared_ptr<slideio::CVScene>> m_Scenes;
         std::map<std::string, std::shared_ptr<slideio::CVScene>> m_auxImages;
