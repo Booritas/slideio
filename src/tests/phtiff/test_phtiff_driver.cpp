@@ -140,6 +140,9 @@ TEST_F(PhTiffImageDriverTests, openSlide) {
 	EXPECT_EQ(scene->getNumChannels(), 3);
 	EXPECT_EQ(scene->getChannelDataType(0), slideio::DataType::DT_Byte);
 	EXPECT_EQ(scene->getCompression(), slideio::Compression::Jpeg);
+	auto res = scene->getResolution();
+	EXPECT_DOUBLE_EQ(std::get<0>(res), 0.000226891);
+	EXPECT_DOUBLE_EQ(std::get<1>(res), 0.000226907);
 
 	for (const auto& param : auxNames) {
 		auto auxScene = slide->getAuxImage(std::get<0>(param));
