@@ -125,7 +125,29 @@ TEST_F(PhTiffImageDriverTests, canOpenFile) {
 TEST_F(PhTiffImageDriverTests, openSlide) {
 	std::string filePath = TestTools::getFullTestImagePath("philips", "Philips-3.tiff");
 	auto slide = slideio::openSlide(filePath, "PHTIFF");
+	std::list<std::tuple<std::string,int,int>> auxNames = {
+	    {"Macro", 791, 403},
+	    {"Label", 387, 403}
+	};
 	ASSERT_TRUE(slide != nullptr);
+	EXPECT_EQ(slide->getNumScenes(), 1);
+	EXPECT_EQ(slide->getAuxImageNames().size(), auxNames.size());
+	auto scene = slide->getScene(0);
+	ASSERT_TRUE(scene != nullptr);
+	auto sceneRect = scene->getRect();
+	EXPECT_EQ(std::get<2>(sceneRect), 131072);
+	EXPECT_EQ(std::get<3>(sceneRect), 100352);
+	EXPECT_EQ(scene->getNumChannels(), 3);
+	EXPECT_EQ(scene->getChannelDataType(0), slideio::DataType::DT_Byte);
+	EXPECT_EQ(scene->getCompression(), slideio::Compression::Jpeg);
+
+	for (const auto& param : auxNames) {
+		auto auxScene = slide->getAuxImage(std::get<0>(param));
+		EXPECT_TRUE(auxScene != nullptr);
+		auto rect = auxScene->getRect();
+		EXPECT_EQ(std::get<2>(rect), std::get<1>(param));
+		EXPECT_EQ(std::get<3>(rect), std::get<2>(param));	
+	}
 }
 
 // Layout mirrors a real Philips TIFF (see Philips-1.tiff): dir 0 is the base
