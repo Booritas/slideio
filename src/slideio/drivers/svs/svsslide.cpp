@@ -11,6 +11,7 @@
 #include "slideio/base/log.hpp"
 
 #include <filesystem>
+#include <fstream>
 
 
 using namespace slideio;
@@ -46,22 +47,7 @@ std::shared_ptr<CVScene> SVSSlide::getScene(int index) const
     return m_Scenes[index];
 }
 
-std::shared_ptr<SVSSlide> SVSSlide::openFile(const std::string& filePath, const std::string& driverId)
-{
-    SLIDEIO_LOG(INFO) << "SVSSlide::openFile: " << filePath;
-    namespace fs = std::filesystem;
-    std::shared_ptr<SVSSlide> slide;
-    std::vector<TiffDirectory> directories;
-    libtiff::TIFF* tiff(nullptr);
-    tiff = TiffTools::openTiffFile(filePath);
-    if(!tiff) {
-        SLIDEIO_LOG(WARNING) << "SVSSlide::openFile: cannot open file " << filePath << " with libtiff";
-        return slide;
-    }
-    TIFFKeeper keeper(tiff);
-
-    TiffTools::scanFile(tiff, directories);
-
+void SVSSlide::initSVS(const std::vector<TiffDirectory>& directories, libtiff::TIFF* hFile) {
     std::vector<int> image;
     int thumbnail(-1), macro(-1), label(-1);
     image.push_back(0);
@@ -89,8 +75,6 @@ std::shared_ptr<SVSSlide> SVSSlide::openFile(const std::string& filePath, const 
     std::vector<std::shared_ptr<CVScene>> scenes;
     std::map<std::string, std::shared_ptr<CVScene>> auxImages;
     std::list<std::string> auxNames;
-    slide.reset(new SVSSlide);
-    slide->setDriverId(driverId);
 
     if(!image.empty()){
         std::vector<TiffDirectory> image_dirs;
@@ -98,43 +82,72 @@ std::shared_ptr<SVSSlide> SVSSlide::openFile(const std::string& filePath, const 
         for(const auto index: image){
             image_dirs.push_back(directories[index]);
         }
-		std::shared_ptr<SVSTiledScene> tScene(new SVSTiledScene(filePath, slide->getDriverId(), keeper.release(), "Image", image_dirs));
-        tScene->setDriverId(driverId);
+        std::shared_ptr<SVSTiledScene> tScene(new SVSTiledScene(m_filePath, getDriverId(), hFile,"Image", image_dirs));
+        tScene->setDriverId(m_driverId);
         std::shared_ptr<CVScene> scene(tScene);
         scenes.push_back(scene);
     }
     if(thumbnail>=0) {
-		std::shared_ptr<SVSSmallScene> sScene(new SVSSmallScene(filePath, slide->getDriverId(), THUMBNAIL, directories[thumbnail], tiff));
-		sScene->setDriverId(driverId);
+        std::shared_ptr<SVSSmallScene> sScene(new SVSSmallScene(m_filePath, getDriverId(), THUMBNAIL, directories[thumbnail], true));
+        sScene->setDriverId(m_driverId);
         std::shared_ptr<CVScene> scene(sScene);
         auxImages[THUMBNAIL] = scene;
         auxNames.emplace_back(THUMBNAIL);
     }
     if(label>=0) {
-        std::shared_ptr<SVSSmallScene> sScene(new SVSSmallScene(filePath,slide->getDriverId(), LABEL, directories[label], true));
-        sScene->setDriverId(driverId);
+        std::shared_ptr<SVSSmallScene> sScene(new SVSSmallScene(m_filePath, getDriverId(), LABEL, directories[label], true));
+        sScene->setDriverId(m_driverId);
         std::shared_ptr<CVScene> scene(sScene);
         auxImages[LABEL] = scene;
         auxNames.emplace_back(LABEL);
     }
     if(macro>=0) {
         std::shared_ptr<SVSSmallScene> sScene = std::make_shared <SVSSmallScene>(
-            filePath, slide->getDriverId(),MACRO, directories[macro], tiff);
-        sScene->setDriverId(driverId);
+            m_filePath, getDriverId(),MACRO, directories[macro], true);
+        sScene->setDriverId(m_driverId);
         std::shared_ptr<CVScene> scene(sScene);
         auxImages[MACRO] = scene;
         auxNames.emplace_back(MACRO);
     }
-    slide->m_Scenes.assign(scenes.begin(), scenes.end());
-    slide->m_filePath = filePath;
-    slide->m_auxImages = auxImages;
-    slide->m_auxNames = auxNames;
+    m_Scenes.assign(scenes.begin(), scenes.end());
+    m_auxImages = auxImages;
+    m_auxNames = auxNames;
 
     if(!directories.empty()) {
         const auto& dir = directories.front();
-        slide->m_rawMetadata = dir.description;
-		slide->m_metadataFormat = MetadataFormat::Text;
+        m_rawMetadata = dir.description;
+        m_metadataFormat = MetadataFormat::Text;
+#if defined(_DEBUG)
+        std::string fileName = std::filesystem::path(m_filePath).stem().string();
+        std::string xmlPath = "D:/Temp/" + fileName + ".xml";
+        std::ofstream outFile(xmlPath);
+        outFile << m_rawMetadata;
+        outFile.close();
+#endif
     }
+}
+
+std::shared_ptr<SVSSlide> SVSSlide::openFile(const std::string& filePath, const std::string& driverId)
+{
+    SLIDEIO_LOG(INFO) << "SVSSlide::openFile: " << filePath;
+    namespace fs = std::filesystem;
+    std::shared_ptr<SVSSlide> slide;
+    std::vector<TiffDirectory> directories;
+    libtiff::TIFF* tiff(nullptr);
+    tiff = TiffTools::openTiffFile(filePath);
+    if(!tiff) {
+        SLIDEIO_LOG(WARNING) << "SVSSlide::openFile: cannot open file " << filePath << " with libtiff";
+        return slide;
+    }
+
+    TIFFKeeper keeper(tiff);
+    TiffTools::scanFile(tiff, directories);
+
+    slide.reset(new SVSSlide);
+    slide->setDriverId(driverId);
+    slide->m_filePath = filePath;
+    slide->initSVS(directories, keeper.release());
+
     return slide;
 }
 

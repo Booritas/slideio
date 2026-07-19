@@ -76,7 +76,7 @@ TEST_F(PhtiffImageDriverTests, canOpenFile) {
 }
 
 TEST_F(PhtiffImageDriverTests, openSlide) {
-	std::string filePath = TestTools::getFullTestImagePath("ometiff", "Multifile/multifile-Z1.ome.tiff");
+	std::string filePath = TestTools::getFullTestImagePath("philips", "Philips-3.tiff");
 	auto slide = slideio::openSlide(filePath, "PHTIFF");
 	ASSERT_TRUE(slide != nullptr);
 }

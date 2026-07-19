@@ -10,6 +10,8 @@
 #include "slideio/imagetools/libtiff.hpp"
 #include <map>
 
+#include "slideio/imagetools/tiffkeeper.hpp"
+
 #if defined(_MSC_VER)
 #pragma warning( push )
 #pragma warning(disable: 4251)
@@ -20,7 +22,6 @@ namespace slideio
     class SVSSlide;
 }
 
-//std::ostream& operator << (std::ostream& os, const slideio::SVSSlide& slide);
 
 namespace slideio
 {
@@ -39,6 +40,7 @@ namespace slideio
         void log();
     protected:
         MetadataBuilder buildMetadataTree() const override;
+        void initSVS(const std::vector<TiffDirectory>& directories, libtiff::TIFF* hFile);
     private:
         std::vector<std::shared_ptr<slideio::CVScene>> m_Scenes;
         std::map<std::string, std::shared_ptr<slideio::CVScene>> m_auxImages;
