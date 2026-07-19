@@ -33,11 +33,10 @@ SVSTiledScene::SVSTiledScene(const std::string& filePath, const std::string& dri
 }
 
 void SVSTiledScene::processImageDescription() {
-    if (m_driverId == "SVS") {
-        processImageDescriptionSVS();
-    }
-    else if (m_driverId == "PHTIFF") {
+    if (m_driverId == "PHTIFF") {
         processImageDescriptionPhTiff();
+    } else {
+        processImageDescriptionSVS();
     }
 }
 
@@ -59,65 +58,64 @@ void SVSTiledScene::processImageDescriptionPhTiff() {
         RAISE_RUNTIME_ERROR <<
             "SVSTiledScene::initialize: directories are empty, scene initialization may be incorrect";
     }
-    const std::string& description = m_directories.front().description;
+    auto& dir = m_directories.front();
+    const std::string& description = dir.description;
+    std::shared_ptr<tinyxml2::XMLDocument> doc = std::make_shared<tinyxml2::XMLDocument>(new tinyxml2::XMLDocument);
 
-    tinyxml2::XMLDocument doc;
-    if (doc.Parse(description.c_str(), description.size()) != tinyxml2::XML_SUCCESS) {
+    tinyxml2::XMLError error = doc->Parse(description.c_str(), description.size());
+    if (error != tinyxml2::XML_SUCCESS) {
         RAISE_RUNTIME_ERROR << "SVSTiledScene::openFile: error parsing philips xml metadata.";
     }
-    const tinyxml2::XMLElement* root = doc.RootElement();
+
+    tinyxml2::XMLElement* root = doc->RootElement();
     if (!root) {
         RAISE_RUNTIME_ERROR << "SVSTiledScene: Invalid xml metadata.";
     }
+    constexpr char* SCANNED_IMAGE = "PIM_DP_SCANNED_IMAGES";
+    const size_t nameLen = strlen(SCANNED_IMAGE);
 
-    constexpr const char* SCANNED_IMAGES = "PIM_DP_SCANNED_IMAGES";
-    const size_t nameLen = strlen(SCANNED_IMAGES);
-
-    // Walk PIM_DP_SCANNED_IMAGES > DPScannedImage > DICOM_PIXEL_SPACING and read the
-    // pixel spacing. The first match fully describes the resolution, so stop once found.
-    for (const tinyxml2::XMLElement* attribute = root->FirstChildElement("Attribute");
+    bool found = false;
+    for (tinyxml2::XMLElement* attribute = root->FirstChildElement("Attribute");
          attribute != nullptr;
          attribute = attribute->NextSiblingElement("Attribute")) {
-        const char* name = attribute->Attribute("Name");
-        if (name == nullptr || strncmp(name, SCANNED_IMAGES, nameLen) != 0) {
-            continue;
-        }
-        const tinyxml2::XMLElement* array = attribute->FirstChildElement("Array");
-        if (array == nullptr) {
-            continue;
-        }
-        for (const tinyxml2::XMLElement* dataObject = array->FirstChildElement("DataObject");
-             dataObject != nullptr;
-             dataObject = dataObject->NextSiblingElement("DataObject")) {
-            const char* objType = dataObject->Attribute("ObjectType");
-            if (objType == nullptr || strcmp(objType, "DPScannedImage") != 0) {
-                continue;
-            }
-            for (const tinyxml2::XMLElement* objAttribute = dataObject->FirstChildElement("Attribute");
-                 objAttribute != nullptr;
-                 objAttribute = objAttribute->NextSiblingElement("Attribute")) {
-                const char* objName = objAttribute->Attribute("Name");
-                if (objName == nullptr || strcmp(objName, "DICOM_PIXEL_SPACING") != 0) {
-                    continue;
-                }
-                const char* pmsvr = objAttribute->Attribute("PMSVR");
-                if (pmsvr == nullptr || strcmp(pmsvr, "IDoubleArray") != 0) {
-                    SLIDEIO_LOG(WARNING) << "Not supported type of DICOM_PIXEL_SPACING attribute: "
-                                         << (pmsvr ? pmsvr : "(null)");
-                    return;
-                }
-                if (const char* value = objAttribute->GetText()) {
-                    // The value is a pair of quoted doubles, e.g. "0.000226891" "0.000226907".
-                    // Strip the quotes and read the two numbers.
-                    std::string spacing(value);
-                    std::replace(spacing.begin(), spacing.end(), '"', ' ');
-                    std::istringstream stream(spacing);
-                    double x = 0., y = 0.;
-                    if (stream >> x >> y) {
-                        m_resolution = {x, y};
+        if (const char* id = attribute->Attribute("Name")) {
+            if (id != nullptr && strncmp(id, SCANNED_IMAGE, nameLen) == 0) {
+                auto array = attribute->FirstChildElement("Array");
+                if (array) {
+                    for (tinyxml2::XMLElement* dataObject = array->FirstChildElement("DataObject");
+                         !found && dataObject != nullptr;
+                         dataObject = dataObject->NextSiblingElement("DataObject")) {
+                        auto objType = dataObject->Attribute("ObjectType");
+                        if (objType && strcmp(objType, "DPScannedImage") == 0) {
+                            for (tinyxml2::XMLElement* objAttribute = dataObject->FirstChildElement("Attribute");
+                                 !found && objAttribute != nullptr;
+                                 objAttribute = objAttribute->NextSiblingElement("Attribute")) {
+                                auto objAttributeName = objAttribute->Attribute("Name");
+                                if (objAttributeName != nullptr && strcmp(objAttributeName, "DICOM_PIXEL_SPACING") == 0) {
+                                    auto objAttributeType = objAttribute->Attribute("PMSVR");
+                                    found = true;
+                                    if (objAttributeType != nullptr && strcmp(objAttributeType, "IDoubleArray") == 0) {
+                                        auto objAttributeValue = objAttribute->GetText();
+                                        if (objAttributeValue != nullptr) {
+                                            // The value is a pair of quoted doubles, e.g.
+                                            // "0.000226891" "0.000226907". Strip the quotes and
+                                            // read the two numbers.
+                                            std::string spacing(objAttributeValue);
+                                            std::replace(spacing.begin(), spacing.end(), '"', ' ');
+                                            std::istringstream stream(spacing);
+                                            double x = 0., y = 0.;
+                                            if (stream >> x >> y) {
+                                                m_resolution = { x, y };
+                                            }
+                                        }
+                                    } else {
+                                        SLIDEIO_LOG(WARNING) << "Not supported type of DICOM_PIXEL_SPACING attribute: " << objAttributeType;
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
-                return;
             }
         }
     }
