@@ -31,6 +31,28 @@ The module builds accesses images through a system of image drivers that impleme
 The library is built as a c++ python extension and provides c++ and python interfaces.
 For details visit [the library WEB site](https://booritas.github.io/slideio/).
 ## Build instructions
+
+### Syncing the toolchain (Conan profiles + CMake generator)
+
+Before building, sync the Conan profiles with your installed compiler version:
+
+```bash
+python sync-toolchain.py
+```
+
+The script auto-detects your compiler and updates ``compiler.version`` in the
+Conan profiles under ``conan/<Platform>/``:
+
+| Platform  | Compiler        | What is synced                                                    |
+|-----------|-----------------|-------------------------------------------------------------------|
+| Windows   | MSVC (`cl.exe`) | Conan profiles **and** CMake generator in ``install.py``          |
+| Linux     | GCC             | Conan profiles only (CMake generator is static)                   |
+| macOS     | Apple Clang     | Conan profiles only (CMake generator is static)                   |
+
+On Windows, run the script from a **Visual Studio developer command prompt**
+so ``cl.exe`` is on PATH.  On Linux and macOS the standard compiler is
+detected automatically.
+
 ### Linux build using manylinux docker containers
 #### Prerequisites:
 - Docker
@@ -77,7 +99,7 @@ git clone https://github.com/Booritas/slideio
 ```
 2. Build custom dependencies
 ```bash
-bash ./conan.sh
+bash ./build-dependencies.sh
 ```
 3. Build the SlideIO library
 ```bash
@@ -99,7 +121,7 @@ git clone https://github.com/Booritas/slideio
 ```
 2. Build custom dependencies
 ```powershell
-powershell ./conan.ps1
+powershell ./build-dependencies.ps1
 ```
 3. Build the SlideIO library
 ```powershell
