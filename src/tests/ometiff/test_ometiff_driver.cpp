@@ -86,6 +86,33 @@ TEST_F(OTImageDriverTests, openSlide)
     ASSERT_TRUE(slide != nullptr);
 }
 
+TEST_F(OTImageDriverTests, readInt8Scene)
+{
+    std::string filePath = TestTools::getFullTestImagePath("ometiff", "4D-Series/4D-series.ome.tiff");
+    auto slide = slideio::openSlide(filePath, "OMETIFF");
+    ASSERT_TRUE(slide != nullptr);
+    slide = slideio::openSlide(filePath, "AUTO");
+    ASSERT_TRUE(slide != nullptr);
+    ASSERT_EQ(slide->getNumScenes(), 1);
+    auto scene = slide->getScene(0);
+    ASSERT_TRUE(scene != nullptr);
+    auto rect = scene->getRect();
+    const int width = 439;
+    const int height = 167;
+    EXPECT_EQ(std::get<2>(rect), width);
+    EXPECT_EQ(std::get<3>(rect), height);
+    EXPECT_EQ(scene->getChannelDataType(0), DataType::DT_Int8);
+    EXPECT_EQ(scene->getNumChannels(), 1);
+    EXPECT_EQ(scene->getNumZSlices(), 5);
+    EXPECT_EQ(scene->getNumTFrames(), 7);
+    EXPECT_EQ(scene->getCompression(), Compression::Uncompressed);
+    const int coef = 2;
+    std::tuple<int, int> size = {width * coef, height * coef};
+    const int sz = std::get<0>(size) * std::get<1>(size);
+    std::vector<uint8_t> buffer(sz);
+    EXPECT_NO_THROW(scene->readResampledBlock(rect, size, buffer.data(), buffer.size()));
+}
+
 TEST_F(OTImageDriverTests, openMultifileSlide)
 {
     std::string filePath = TestTools::getFullTestImagePath("ometiff", "Multifile/multifile-Z1.ome.tiff");
