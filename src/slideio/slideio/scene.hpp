@@ -12,8 +12,8 @@
 #include <list>
 
 #if defined(_MSC_VER)
-#pragma warning( push )
-#pragma warning(disable: 4251)
+#pragma warning(push)
+#pragma warning(disable : 4251)
 #endif
 
 namespace slideio
@@ -28,10 +28,10 @@ namespace slideio
     class SLIDEIO_EXPORTS Scene
     {
         friend class Slide;
+
     public:
         Scene(std::shared_ptr<CVScene> scene);
-        virtual ~Scene(){
-        }
+        virtual ~Scene() {}
         /**@brief returns path of the slide */
         std::string getFilePath() const;
         /**@brief returns scene name */
@@ -43,7 +43,7 @@ namespace slideio
         - width - image width in pixels,
         - height - image height in pixels.
         @note Scene origins should be ignored for reading of image rasters.*/
-        std::tuple<int,int,int,int> getRect() const;
+        std::tuple<int, int, int, int> getRect() const;
         /**@brief returns number of raster channels of the image */
         int getNumChannels() const;
         /**@brief returns number of slices for 3D/4D images. 
@@ -67,7 +67,7 @@ namespace slideio
 
         Resolution is returned as a std::tuple (resolutionXdirection, resolutionYdirection). Resolution is size of a pixel in meters.
         */
-        std::tuple<double,double> getResolution() const;
+        std::tuple<double, double> getResolution() const;
         /**@brief returns thickness of a Z slice in meters for 3D images.*/
         double getZSliceResolution() const;
         /**@brief returns time between 2 time frames in seconds for images with time frames.*/
@@ -83,7 +83,8 @@ namespace slideio
          * @param numFrames : number of time frames in the block. For plane images it shall be 1;
          
          */
-        int getBlockSize(const std::tuple<int,int>& blockSize, int refChannel, int numChannels, int numSlices, int numFrames) const;
+        int getBlockSize(const std::tuple<int, int>& blockSize, int refChannel, int numChannels, int numSlices,
+                         int numFrames) const;
         /**@brief reads raster rectangle of a plane image to a memory buffer.
          *
          * @param blockRect : rectangle of the block to be read. The rectangle is represented by std::tuple(x,y,with,height). Here:
@@ -114,7 +115,7 @@ namespace slideio
          * uint16_t channelValue = typedBuffer[location];
          * @endcode
          */
-        void readBlock(const std::tuple<int,int,int,int>& blockRect, void* buffer, size_t bufferSize);
+        void readBlock(const std::tuple<int, int, int, int>& blockRect, void* buffer, size_t bufferSize);
         /**@brief reads raster rectangle plane image combined from selected channels to a memory buffer.
          *
          * @param blockRect : rectangle of the block to be read. The rectangle is represented by std::tuple(x,y,with,height). Here:
@@ -129,7 +130,8 @@ namespace slideio
          * All channels have to be of the same type. The method will throw an error by attempt to put read several channels of different types in one block.
          * The raster will be placed in the memory buffer. Memory layout of the buffer is described in the #readBlock method.
          */
-        void readBlockChannels(const std::tuple<int,int,int,int>& blockRect, const std::vector<int>& channelIndices, void* buffer, size_t bufferSize);
+        void readBlockChannels(const std::tuple<int, int, int, int>& blockRect, const std::vector<int>& channelIndices,
+                               void* buffer, size_t bufferSize);
         /**@brief reads raster rectangle plane image and resizes it to the size specified in the parameters.
          *
          * @param blockRect : rectangle of the block to be read. The rectangle is represented by @b std::tuple<x,y,with,height>. Here:
@@ -145,7 +147,8 @@ namespace slideio
          * All channels have to be of the same type. The method will throw an error by attempt to put read several channels of different types in one block.
          * The raster will be placed in the memory buffer. Memory layout of the buffer is described in the #readBlock method.
          */
-        void readResampledBlock(const std::tuple<int,int,int,int>& blockRect, const std::tuple<int,int>& blockSize, void* buffer, size_t bufferSize);
+        void readResampledBlock(const std::tuple<int, int, int, int>& blockRect, const std::tuple<int, int>& blockSize,
+                                void* buffer, size_t bufferSize);
         /**@brief reads raster rectangle plane image combined from selected channels and resizes it to the size specified in the parameters.
          *
          * @param blockRect : rectangle of the block to be read. The rectangle is represented by @b std::tuple<x,y,with,height>. Here:
@@ -162,7 +165,9 @@ namespace slideio
          * All channels have to be of the same type. The method will throw an error by attempt to put read several channels of different types in one block.
          * The raster will be placed in the memory buffer. Memory layout of the buffer is described in the #readBlock method.
          */
-        void readResampledBlockChannels(const std::tuple<int,int,int,int>& blockRect, const std::tuple<int,int>& blockSize, const std::vector<int>& channelIndices, void* buffer, size_t bufferSize);
+        void readResampledBlockChannels(const std::tuple<int, int, int, int>& blockRect,
+                                        const std::tuple<int, int>& blockSize, const std::vector<int>& channelIndices,
+                                        void* buffer, size_t bufferSize);
         /**@brief reads multi-dimensional raster block to a memory buffer.
          *
          * @param blockRect : rectangle of the block to be read. The rectangle is represented by std::tuple(x,y,with,height). Here:
@@ -202,7 +207,8 @@ namespace slideio
          * uint16_t channelValue = typedBuffer[location];
          * @endcode
          */
-        void read4DBlock(const std::tuple<int,int,int,int>& blockRect, const std::tuple<int,int>& zSliceRange, const std::tuple<int,int>& timeFrameRange, void* buffer, size_t bufferSize);
+        void read4DBlock(const std::tuple<int, int, int, int>& blockRect, const std::tuple<int, int>& zSliceRange,
+                         const std::tuple<int, int>& timeFrameRange, void* buffer, size_t bufferSize);
         /**@brief reads selected channels of multi-dimensional raster block to a memory buffer.
          *
          * @param blockRect : rectangle of the block to be read. The rectangle is represented by std::tuple(x,y,with,height). Here:
@@ -220,7 +226,9 @@ namespace slideio
          * The raster will be placed in the memory buffer. The raster is organized as a continuous multi-dimensional array.
          * Memory layout is the same as in #read4DBlock method.
          */
-        void read4DBlockChannels(const std::tuple<int,int,int,int>& blockRect, const std::vector<int>& channelIndices, const std::tuple<int,int>& zSliceRange, const std::tuple<int,int>& timeFrameRange, void* buffer, size_t bufferSize);
+        void read4DBlockChannels(const std::tuple<int, int, int, int>& blockRect,
+                                 const std::vector<int>& channelIndices, const std::tuple<int, int>& zSliceRange,
+                                 const std::tuple<int, int>& timeFrameRange, void* buffer, size_t bufferSize);
         /**@brief reads multi-dimensional raster block to a memory buffer with resizing to the specified size.
          *
          * @param blockRect : rectangle of the block to be read. The rectangle is represented by std::tuple(x,y,with,height). Here:
@@ -238,7 +246,9 @@ namespace slideio
          * The raster will be placed in the memory buffer. The raster is organized as a continuous multi-dimensional array.
          * Memory layout is the same as in #read4DBlock method.
          */
-        void readResampled4DBlock(const std::tuple<int,int,int,int>& blockRect, const std::tuple<int,int>& blockSize, const std::tuple<int,int>& zSliceRange, const std::tuple<int,int>& timeFrameRange, void* buffer, size_t bufferSize);
+        void readResampled4DBlock(const std::tuple<int, int, int, int>& blockRect,
+                                  const std::tuple<int, int>& blockSize, const std::tuple<int, int>& zSliceRange,
+                                  const std::tuple<int, int>& timeFrameRange, void* buffer, size_t bufferSize);
         /**@brief reads selected channels of multi-dimensional raster block to a memory buffer with resizing to the specified size.
          *
          * @param blockRect : rectangle of the block to be read. The rectangle is represented by std::tuple(x,y,with,height). Here:
@@ -257,15 +267,18 @@ namespace slideio
          * The raster will be placed in the memory buffer. The raster is organized as a continuous multi-dimensional array.
          * Memory layout is the same as in #read4DBlock method.
          */
-        void readResampled4DBlockChannels(const std::tuple<int,int,int,int>& blockRect, const std::tuple<int,int>& blockSize, const std::vector<int>& channelIndices, const std::tuple<int,int>& zSliceRange, const std::tuple<int,int>& timeFrameRange, void* buffer, size_t bufferSize);
+        void readResampled4DBlockChannels(const std::tuple<int, int, int, int>& blockRect,
+                                          const std::tuple<int, int>& blockSize, const std::vector<int>& channelIndices,
+                                          const std::tuple<int, int>& zSliceRange,
+                                          const std::tuple<int, int>& timeFrameRange, void* buffer, size_t bufferSize);
         /**@brief returns array of names of auxiliary images available for the scene.*/
         virtual const std::list<std::string>& getAuxImageNames() const;
         /**@brief returns number of auxiliary images available for the scene.*/
         virtual int getNumAuxImages() const;
         /**@brief returns string of serialized metadata. Content of the string depends on image format.*/
         std::string getRawMetadata() const;
-		/**@brief returns metadata format of the scene. */
-		MetadataFormat getMetadataFormat() const;
+        /**@brief returns metadata format of the scene. */
+        MetadataFormat getMetadataFormat() const;
         /**@brief returns metadata as a navigable tree. Built lazily on first call. */
         const Metadata& getMetadata() const;
         /**@brief returns a slideio::Scene object that represents an auxiliary image.
@@ -282,13 +295,14 @@ namespace slideio
          * by attribute name (empty Object if a channel has no attributes).
          */
         const Metadata& getChannelAttributes() const;
+
     private:
         std::shared_ptr<CVScene> m_scene;
     };
-}
+} // namespace slideio
 
 #define ScenePtr std::shared_ptr<slideio::Scene>
 
 #if defined(_MSC_VER)
-#pragma warning( pop )
+#pragma warning(pop)
 #endif

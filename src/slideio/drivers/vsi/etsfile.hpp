@@ -29,66 +29,40 @@ namespace slideio
         public:
             EtsFile(const std::string& filePath);
 
-            std::string getFilePath() const {
-                return m_filePath;
-            }
+            std::string getFilePath() const { return m_filePath; }
 
-            DataType getDataType() const {
-                return m_dataType;
-            }
+            DataType getDataType() const { return m_dataType; }
 
-            int getNumChannels() const {
-                return m_numChannels;
-            }
+            int getNumChannels() const { return m_numChannels; }
 
-            slideio::Compression getCompression() const {
-                return m_compression;
-            }
+            slideio::Compression getCompression() const { return m_compression; }
 
             void read(std::list<std::shared_ptr<Volume>>& volumes, TileInfoListPtr& tiles);
             void readTilePart(const vsi::TileInfo& tileInfo, cv::OutputArray tileRaster);
             bool assignVolume(std::list<std::shared_ptr<vsi::Volume>>& volumes);
             void initStruct(TileInfoListPtr& tiles);
 
-            void setVolume(const std::shared_ptr<Volume>& volume) {
-                m_volume = volume;
-            }
+            void setVolume(const std::shared_ptr<Volume>& volume) { m_volume = volume; }
 
-            std::shared_ptr<Volume> getVolume() const {
-                return m_volume;
-            }
+            std::shared_ptr<Volume> getVolume() const { return m_volume; }
 
-            const cv::Size& getSize() const {
-                return m_size;
-            }
+            const cv::Size& getSize() const { return m_size; }
 
-            const cv::Size& getTileSize() const {
-                return m_tileSize;
-            }
+            const cv::Size& getTileSize() const { return m_tileSize; }
 
-            int getNumZSlices() const {
-                return m_numZSlices;
-            }
+            int getNumZSlices() const { return m_numZSlices; }
 
-            int getNumTFrames() const {
-                return m_numTFrames;
-            }
+            int getNumTFrames() const { return m_numTFrames; }
 
-            int getNumLambdas() const {
-                return m_numLambdas;
-            }
+            int getNumLambdas() const { return m_numLambdas; }
 
-            int getNumPyramidLevels() const {
-                return m_pyramid.getNumLevels();
-            }
+            int getNumPyramidLevels() const { return m_pyramid.getNumLevels(); }
 
-            const PyramidLevel& getPyramidLevel(int index) const {
-                return m_pyramid.getLevel(index);
-            }
-            const cv::Size& getSizeWithCompleteTiles() const {
-                return m_sizeWithCompleteTiles;
-            }
-            void readTile(int levelIndex, int tileIndex, const std::vector<int>& channelIndices, int zSlice, int tFrame, cv::OutputArray output);
+            const PyramidLevel& getPyramidLevel(int index) const { return m_pyramid.getLevel(index); }
+            const cv::Size& getSizeWithCompleteTiles() const { return m_sizeWithCompleteTiles; }
+            void readTile(int levelIndex, int tileIndex, const std::vector<int>& channelIndices, int zSlice, int tFrame,
+                          cv::OutputArray output);
+
         private:
             std::string m_filePath;
             DataType m_dataType = DataType::DT_Unknown;
@@ -112,5 +86,5 @@ namespace slideio
             std::vector<uint8_t> m_buffer;
             std::vector<int> m_maxCoordinates;
         };
-    }
-}
+    } // namespace vsi
+} // namespace slideio

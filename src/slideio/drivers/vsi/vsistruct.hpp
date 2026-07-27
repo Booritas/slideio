@@ -11,7 +11,7 @@ namespace slideio
 {
     namespace vsi
     {
-        #pragma pack(push,1)
+#pragma pack(push, 1)
         struct ImageFileHeader
         {
             uint8_t magic[2];
@@ -21,20 +21,19 @@ namespace slideio
 
         inline void fromLittleEndianToNative(ImageFileHeader& header)
         {
-			if (Endian::isLittleEndian())
-				return;
-			header.i42 = Endian::fromLittleEndianToNative(header.i42);
-			header.offsetFirstIFD = Endian::fromLittleEndianToNative(header.offsetFirstIFD);
+            if (Endian::isLittleEndian()) return;
+            header.i42 = Endian::fromLittleEndianToNative(header.i42);
+            header.offsetFirstIFD = Endian::fromLittleEndianToNative(header.offsetFirstIFD);
         }
 
         struct ImageFileDirectory
         {
             uint16_t entryCount;
         };
-		inline void fromLittleEndianToNative(ImageFileDirectory& header)
-		{
-			header.entryCount = Endian::fromLittleEndianToNative(header.entryCount);
-		}
+        inline void fromLittleEndianToNative(ImageFileDirectory& header)
+        {
+            header.entryCount = Endian::fromLittleEndianToNative(header.entryCount);
+        }
 
         struct FieldEntry
         {
@@ -60,30 +59,30 @@ namespace slideio
             uint32_t flags;
             uint32_t unused;
         };
-		inline void fromLittleEndianToNative(VolumeHeader& header) {
-			if (Endian::isLittleEndian())
-				return;
-			header.headerSize = Endian::fromLittleEndianToNative(header.headerSize);
-			header.magicNumber = Endian::fromLittleEndianToNative(header.magicNumber);
-			header.volumeVersion = Endian::fromLittleEndianToNative(header.volumeVersion);
-			header.offsetFirstDataField = Endian::fromLittleEndianToNative(header.offsetFirstDataField);
-			header.flags = Endian::fromLittleEndianToNative(header.flags);
-			header.unused = Endian::fromLittleEndianToNative(header.unused);
-		}
-		struct VolumeDataField
-		{
-			uint32_t type;
-			uint32_t tag;
-			uint32_t offsetNextField;
-			uint32_t dataSize;
-		};
-		inline void fromLittleEndianToNative(VolumeDataField& header)
-		{
-			header.type = Endian::fromLittleEndianToNative(header.type);
-			header.tag = Endian::fromLittleEndianToNative(header.tag);
-			header.offsetNextField = Endian::fromLittleEndianToNative(header.offsetNextField);
-			header.dataSize = Endian::fromLittleEndianToNative(header.dataSize);
-		}
+        inline void fromLittleEndianToNative(VolumeHeader& header)
+        {
+            if (Endian::isLittleEndian()) return;
+            header.headerSize = Endian::fromLittleEndianToNative(header.headerSize);
+            header.magicNumber = Endian::fromLittleEndianToNative(header.magicNumber);
+            header.volumeVersion = Endian::fromLittleEndianToNative(header.volumeVersion);
+            header.offsetFirstDataField = Endian::fromLittleEndianToNative(header.offsetFirstDataField);
+            header.flags = Endian::fromLittleEndianToNative(header.flags);
+            header.unused = Endian::fromLittleEndianToNative(header.unused);
+        }
+        struct VolumeDataField
+        {
+            uint32_t type;
+            uint32_t tag;
+            uint32_t offsetNextField;
+            uint32_t dataSize;
+        };
+        inline void fromLittleEndianToNative(VolumeDataField& header)
+        {
+            header.type = Endian::fromLittleEndianToNative(header.type);
+            header.tag = Endian::fromLittleEndianToNative(header.tag);
+            header.offsetNextField = Endian::fromLittleEndianToNative(header.offsetNextField);
+            header.dataSize = Endian::fromLittleEndianToNative(header.dataSize);
+        }
 
         struct DataField
         {
@@ -92,13 +91,13 @@ namespace slideio
             uint32_t offsetNextField;
             uint32_t dataSize;
         };
-		inline void fromLittleEndianToNative(DataField& header)
-		{
-			header.type = Endian::fromLittleEndianToNative(header.type);
-			header.tag = Endian::fromLittleEndianToNative(header.tag);
-			header.offsetNextField = Endian::fromLittleEndianToNative(header.offsetNextField);
-			header.dataSize = Endian::fromLittleEndianToNative(header.dataSize);
-		}
+        inline void fromLittleEndianToNative(DataField& header)
+        {
+            header.type = Endian::fromLittleEndianToNative(header.type);
+            header.tag = Endian::fromLittleEndianToNative(header.tag);
+            header.offsetNextField = Endian::fromLittleEndianToNative(header.offsetNextField);
+            header.dataSize = Endian::fromLittleEndianToNative(header.dataSize);
+        }
 
         struct TagHeader
         {
@@ -107,20 +106,21 @@ namespace slideio
             int32_t nextField;
             uint32_t dataSize;
         };
-		inline void fromLittleEndianToNative(TagHeader& header)
-		{
-			header.fieldType = Endian::fromLittleEndianToNative(header.fieldType);
-			header.tag = Endian::fromLittleEndianToNative(header.tag);
-			header.nextField = Endian::fromLittleEndianToNative(header.nextField);
-			header.dataSize = Endian::fromLittleEndianToNative(header.dataSize);
-		}
+        inline void fromLittleEndianToNative(TagHeader& header)
+        {
+            header.fieldType = Endian::fromLittleEndianToNative(header.fieldType);
+            header.tag = Endian::fromLittleEndianToNative(header.tag);
+            header.nextField = Endian::fromLittleEndianToNative(header.nextField);
+            header.dataSize = Endian::fromLittleEndianToNative(header.dataSize);
+        }
 
-        struct EtsVolumeHeader {
-            char magic[4]; // Magic ID 'S', 'I', 'S', '\0'
-            uint32_t headerSize; // Size of the header : 64
-            uint32_t versionNumber; // Version number of the header
-            uint32_t numDimensions; // Number of dimensions of the multidimensional indices
-            uint64_t additionalHeaderPos; // 64bit index to the file position of the additional header
+        struct EtsVolumeHeader
+        {
+            char magic[4];                 // Magic ID 'S', 'I', 'S', '\0'
+            uint32_t headerSize;           // Size of the header : 64
+            uint32_t versionNumber;        // Version number of the header
+            uint32_t numDimensions;        // Number of dimensions of the multidimensional indices
+            uint64_t additionalHeaderPos;  // 64bit index to the file position of the additional header
             uint32_t additionalHeaderSize; // Size of the additional header
             uint32_t unused1;
             uint64_t usedChunksPos; // 64 bit index to the file position of used chunks
@@ -130,44 +130,41 @@ namespace slideio
             uint32_t numFreeChunks; // Number of free chunks
             uint32_t unused3;
         };
-		inline void fromLittleEndianToNative(EtsVolumeHeader& header)
-		{
-			if (Endian::isLittleEndian())
-				return;
-			header.headerSize = Endian::fromLittleEndianToNative(header.headerSize);
-			header.versionNumber = Endian::fromLittleEndianToNative(header.versionNumber);
-			header.numDimensions = Endian::fromLittleEndianToNative(header.numDimensions);
-			header.additionalHeaderPos = Endian::fromLittleEndianToNative(header.additionalHeaderPos);
-			header.additionalHeaderSize = Endian::fromLittleEndianToNative(header.additionalHeaderSize);
-			header.usedChunksPos = Endian::fromLittleEndianToNative(header.usedChunksPos);
-			header.numUsedChunks = Endian::fromLittleEndianToNative(header.numUsedChunks);
-			header.freeChunksPos = Endian::fromLittleEndianToNative(header.freeChunksPos);
-			header.numFreeChunks = Endian::fromLittleEndianToNative(header.numFreeChunks);
-		}
+        inline void fromLittleEndianToNative(EtsVolumeHeader& header)
+        {
+            if (Endian::isLittleEndian()) return;
+            header.headerSize = Endian::fromLittleEndianToNative(header.headerSize);
+            header.versionNumber = Endian::fromLittleEndianToNative(header.versionNumber);
+            header.numDimensions = Endian::fromLittleEndianToNative(header.numDimensions);
+            header.additionalHeaderPos = Endian::fromLittleEndianToNative(header.additionalHeaderPos);
+            header.additionalHeaderSize = Endian::fromLittleEndianToNative(header.additionalHeaderSize);
+            header.usedChunksPos = Endian::fromLittleEndianToNative(header.usedChunksPos);
+            header.numUsedChunks = Endian::fromLittleEndianToNative(header.numUsedChunks);
+            header.freeChunksPos = Endian::fromLittleEndianToNative(header.freeChunksPos);
+            header.numFreeChunks = Endian::fromLittleEndianToNative(header.numFreeChunks);
+        }
 
         struct ETSAdditionalHeader
         {
-            char magic[4]; // Header identification ( 0x00535445 )
-            uint32_t version; // Header version info
-            uint32_t componentType; // Component type
-            uint32_t componentCount; // Component count
-            uint32_t colorSpace; // Component color space
-            uint32_t format; // Compression format
-            uint32_t quality; // Compression quality
-            uint32_t sizeX; // Tile x size
-            uint32_t sizeY; // Tile y size
-            uint32_t sizeZ; // Tile z size
+            char magic[4];             // Header identification ( 0x00535445 )
+            uint32_t version;          // Header version info
+            uint32_t componentType;    // Component type
+            uint32_t componentCount;   // Component count
+            uint32_t colorSpace;       // Component color space
+            uint32_t format;           // Compression format
+            uint32_t quality;          // Compression quality
+            uint32_t sizeX;            // Tile x size
+            uint32_t sizeY;            // Tile y size
+            uint32_t sizeZ;            // Tile z size
             uint32_t pixInfoHints[17]; // Pixel info hints
-            uint32_t background[10]; // Background color
-            uint32_t componentOrder; // Component order
-            uint32_t usePyramid; // Use pyramid
-            uint32_t unused[18]; // For future use
-
+            uint32_t background[10];   // Background color
+            uint32_t componentOrder;   // Component order
+            uint32_t usePyramid;       // Use pyramid
+            uint32_t unused[18];       // For future use
         };
         inline void fromLittleEndianToNative(ETSAdditionalHeader& header)
         {
-            if (Endian::isLittleEndian())
-                return;
+            if (Endian::isLittleEndian()) return;
             header.version = Endian::fromLittleEndianToNative(header.version);
             header.componentType = Endian::fromLittleEndianToNative(header.componentType);
             header.componentCount = Endian::fromLittleEndianToNative(header.componentCount);
@@ -178,13 +175,9 @@ namespace slideio
             header.sizeY = Endian::fromLittleEndianToNative(header.sizeY);
             header.sizeZ = Endian::fromLittleEndianToNative(header.sizeZ);
             for (int i = 0; i < 17; ++i)
-            {
                 header.pixInfoHints[i] = Endian::fromLittleEndianToNative(header.pixInfoHints[i]);
-            }
             for (int i = 0; i < 10; ++i)
-            {
                 header.background[i] = Endian::fromLittleEndianToNative(header.background[i]);
-            }
             header.componentOrder = Endian::fromLittleEndianToNative(header.componentOrder);
             header.usePyramid = Endian::fromLittleEndianToNative(header.usePyramid);
         }
@@ -194,13 +187,12 @@ namespace slideio
             uint32_t size;
             uint32_t unused;
         };
-		inline void fromLittleEndianToNative(ETSBlock& header)
-		{
-			if (Endian::isLittleEndian())
-				return;
-			header.filePos = Endian::fromLittleEndianToNative(header.filePos);
-			header.size = Endian::fromLittleEndianToNative(header.size);
-		}
+        inline void fromLittleEndianToNative(ETSBlock& header)
+        {
+            if (Endian::isLittleEndian()) return;
+            header.filePos = Endian::fromLittleEndianToNative(header.filePos);
+            header.size = Endian::fromLittleEndianToNative(header.size);
+        }
 
 #pragma pack(pop)
         constexpr uint32_t EXTENDED_FIELD_TYPE_MASK = 0x1000000;
@@ -308,5 +300,5 @@ namespace slideio
         constexpr int C = 4;
         constexpr int UNKNOWN = 5;
         constexpr int PHASE = 9;
-    }
-}
+    } // namespace vsi
+} // namespace slideio

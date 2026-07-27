@@ -12,7 +12,7 @@ namespace slideio
     struct Metadata::Impl
     {
         std::shared_ptr<const nlohmann::json> root;
-        const nlohmann::json*                 view = nullptr;
+        const nlohmann::json* view = nullptr;
     };
 
     namespace
@@ -22,15 +22,14 @@ namespace slideio
             static const nlohmann::json kNull;
             return (p && p->view) ? *p->view : kNull;
         }
-        Metadata makeChild(const std::shared_ptr<const Metadata::Impl>& parent,
-                           const nlohmann::json& child)
+        Metadata makeChild(const std::shared_ptr<const Metadata::Impl>& parent, const nlohmann::json& child)
         {
             auto impl = std::make_shared<Metadata::Impl>();
             impl->root = parent->root;
             impl->view = &child;
             return Metadata::fromImpl(impl);
         }
-    }
+    } // namespace
 
     Metadata::Metadata() = default;
     Metadata::~Metadata() = default;
@@ -38,7 +37,7 @@ namespace slideio
     Metadata::Metadata(Metadata&&) noexcept = default;
     Metadata& Metadata::operator=(const Metadata&) = default;
     Metadata& Metadata::operator=(Metadata&&) noexcept = default;
-    Metadata::Metadata(std::shared_ptr<const Impl> impl) : m_impl(std::move(impl)) {}
+    Metadata::Metadata(std::shared_ptr<const Impl> impl): m_impl(std::move(impl)) {}
     Metadata Metadata::fromImpl(std::shared_ptr<const Impl> impl)
     {
         return Metadata(std::move(impl));
@@ -49,15 +48,23 @@ namespace slideio
         using J = nlohmann::json;
         switch (view(m_impl).type())
         {
-        case J::value_t::null:            return Type::Null;
-        case J::value_t::object:          return Type::Object;
-        case J::value_t::array:           return Type::Array;
-        case J::value_t::string:          return Type::String;
-        case J::value_t::boolean:         return Type::Bool;
+        case J::value_t::null:
+            return Type::Null;
+        case J::value_t::object:
+            return Type::Object;
+        case J::value_t::array:
+            return Type::Array;
+        case J::value_t::string:
+            return Type::String;
+        case J::value_t::boolean:
+            return Type::Bool;
         case J::value_t::number_integer:
-        case J::value_t::number_unsigned: return Type::Int;
-        case J::value_t::number_float:    return Type::Double;
-        default:                          return Type::Null;
+        case J::value_t::number_unsigned:
+            return Type::Int;
+        case J::value_t::number_float:
+            return Type::Double;
+        default:
+            return Type::Null;
         }
     }
 
@@ -65,33 +72,37 @@ namespace slideio
     {
         const auto& n = view(m_impl);
         if (n.is_boolean()) return n.get<bool>();
-        if (n.is_number())  return n.get<double>() != 0.0;
-        if (n.is_string())  { auto s = n.get<std::string>(); return s == "true" || s == "1"; }
+        if (n.is_number()) return n.get<double>() != 0.0;
+        if (n.is_string())
+        {
+            auto s = n.get<std::string>();
+            return s == "true" || s == "1";
+        }
         throw std::runtime_error("Metadata: not convertible to bool");
     }
     int64_t Metadata::asInt() const
     {
         const auto& n = view(m_impl);
-        if (n.is_number_integer())  return n.get<int64_t>();
+        if (n.is_number_integer()) return n.get<int64_t>();
         if (n.is_number_unsigned()) return static_cast<int64_t>(n.get<uint64_t>());
-        if (n.is_number_float())    return static_cast<int64_t>(n.get<double>());
-        if (n.is_boolean())         return n.get<bool>() ? 1 : 0;
-        if (n.is_string())          return std::stoll(n.get<std::string>());
+        if (n.is_number_float()) return static_cast<int64_t>(n.get<double>());
+        if (n.is_boolean()) return n.get<bool>() ? 1 : 0;
+        if (n.is_string()) return std::stoll(n.get<std::string>());
         throw std::runtime_error("Metadata: not convertible to int");
     }
     double Metadata::asDouble() const
     {
         const auto& n = view(m_impl);
-        if (n.is_number())  return n.get<double>();
+        if (n.is_number()) return n.get<double>();
         if (n.is_boolean()) return n.get<bool>() ? 1.0 : 0.0;
-        if (n.is_string())  return std::stod(n.get<std::string>());
+        if (n.is_string()) return std::stod(n.get<std::string>());
         throw std::runtime_error("Metadata: not convertible to double");
     }
     std::string Metadata::asString() const
     {
         const auto& n = view(m_impl);
         if (n.is_string()) return n.get<std::string>();
-        if (n.is_null())   return {};
+        if (n.is_null()) return {};
         return n.dump();
     }
 
@@ -126,7 +137,10 @@ namespace slideio
             const auto& target = view(m_impl).at(ptr);
             return makeChild(m_impl, target);
         }
-        catch (...) { return Metadata(); }
+        catch (...)
+        {
+            return Metadata();
+        }
     }
     std::vector<std::string> Metadata::keys() const
     {
@@ -135,39 +149,42 @@ namespace slideio
         if (n.is_object())
         {
             out.reserve(n.size());
-            for (auto it = n.begin(); it != n.end(); ++it) out.push_back(it.key());
+            for (auto it = n.begin(); it != n.end(); ++it)
+                out.push_back(it.key());
         }
         return out;
     }
-    std::string Metadata::toJson(int indent) const { return view(m_impl).dump(indent); }
+    std::string Metadata::toJson(int indent) const
+    {
+        return view(m_impl).dump(indent);
+    }
 
-    namespace detail {
+    namespace detail
+    {
         Metadata makeMetadataFromJson(nlohmann::json root)
         {
-            auto impl    = std::make_shared<Metadata::Impl>();
+            auto impl = std::make_shared<Metadata::Impl>();
             auto rootPtr = std::make_shared<const nlohmann::json>(std::move(root));
-            impl->root   = rootPtr;
-            impl->view   = rootPtr.get();
+            impl->root = rootPtr;
+            impl->view = rootPtr.get();
             return Metadata::fromImpl(impl);
         }
 
-    }
+    } // namespace detail
 
     struct MetadataBuilder::Impl
     {
-        std::shared_ptr<nlohmann::json> root;   // shared owner of the tree
-        nlohmann::json*                 view = nullptr;   // points into *root
+        std::shared_ptr<nlohmann::json> root; // shared owner of the tree
+        nlohmann::json* view = nullptr;       // points into *root
     };
 
-    MetadataBuilder::MetadataBuilder()
-        : m_impl(std::make_shared<Impl>())
+    MetadataBuilder::MetadataBuilder(): m_impl(std::make_shared<Impl>())
     {
-        m_impl->root = std::make_shared<nlohmann::json>();   // default = Null
+        m_impl->root = std::make_shared<nlohmann::json>(); // default = Null
         m_impl->view = m_impl->root.get();
     }
     MetadataBuilder::~MetadataBuilder() = default;
-    MetadataBuilder::MetadataBuilder(const MetadataBuilder& other)
-        : m_impl(std::make_shared<Impl>())
+    MetadataBuilder::MetadataBuilder(const MetadataBuilder& other): m_impl(std::make_shared<Impl>())
     {
         // Deep copy the visible subtree into a fresh root.
         m_impl->root = std::make_shared<nlohmann::json>(*other.m_impl->view);
@@ -178,7 +195,8 @@ namespace slideio
 
     MetadataBuilder& MetadataBuilder::operator=(const MetadataBuilder& other)
     {
-        if (this != &other) {
+        if (this != &other)
+        {
             auto fresh = std::make_shared<Impl>();
             fresh->root = std::make_shared<nlohmann::json>(*other.m_impl->view);
             fresh->view = fresh->root.get();
@@ -188,13 +206,14 @@ namespace slideio
     }
 
     MetadataBuilder& MetadataBuilder::operator=(MetadataBuilder&&) noexcept = default;
-    MetadataBuilder::MetadataBuilder(std::shared_ptr<Impl> impl) : m_impl(std::move(impl)) {}
+    MetadataBuilder::MetadataBuilder(std::shared_ptr<Impl> impl): m_impl(std::move(impl)) {}
     MetadataBuilder MetadataBuilder::fromImpl(std::shared_ptr<Impl> impl)
     {
         return MetadataBuilder(std::move(impl));
     }
 
-    namespace detail {
+    namespace detail
+    {
         MetadataBuilder builderFromJson(nlohmann::json root)
         {
             auto impl = std::make_shared<MetadataBuilder::Impl>();
@@ -203,16 +222,19 @@ namespace slideio
             return MetadataBuilder::fromImpl(std::move(impl));
         }
 
-        MetadataBuilder makeDefaultMetadataBuilder(
-            const std::string& rawMetadata, MetadataFormat fmt)
+        MetadataBuilder makeDefaultMetadataBuilder(const std::string& rawMetadata, MetadataFormat fmt)
         {
             using nlohmann::json;
             json root;
             switch (fmt)
             {
             case MetadataFormat::JSON:
-                try { root = json::parse(rawMetadata); }
-                catch (...) {
+                try
+                {
+                    root = json::parse(rawMetadata);
+                }
+                catch (...)
+                {
                     root = json{{"#error", "invalid json"}};
                 }
                 break;
@@ -229,7 +251,7 @@ namespace slideio
             }
             return builderFromJson(std::move(root));
         }
-    }
+    } // namespace detail
 
     void MetadataBuilder::set(const std::string& value)
     {
@@ -249,20 +271,15 @@ namespace slideio
     }
     void MetadataBuilder::set(const char* value)
     {
-        if (value == nullptr) {
-            RAISE_RUNTIME_ERROR << "MetadataBuilder::set: const char* value must not be null";
-        }
+        if (value == nullptr) RAISE_RUNTIME_ERROR << "MetadataBuilder::set: const char* value must not be null";
         *m_impl->view = std::string(value);
     }
 
     MetadataBuilder MetadataBuilder::operator[](const std::string& key)
     {
-        if (m_impl->view->is_null()) {
-            *m_impl->view = nlohmann::json::object();
-        }
-        if (!m_impl->view->is_object()) {
+        if (m_impl->view->is_null()) *m_impl->view = nlohmann::json::object();
+        if (!m_impl->view->is_object())
             RAISE_RUNTIME_ERROR << "MetadataBuilder::operator[](key): current node is not an object";
-        }
         nlohmann::json& child = (*m_impl->view)[key];
         auto childImpl = std::make_shared<Impl>();
         childImpl->root = m_impl->root;
@@ -272,22 +289,16 @@ namespace slideio
 
     void MetadataBuilder::makeObject()
     {
-        if (!m_impl->view->is_object()) {
-            *m_impl->view = nlohmann::json::object();
-        }
+        if (!m_impl->view->is_object()) *m_impl->view = nlohmann::json::object();
     }
 
     MetadataBuilder MetadataBuilder::operator[](size_t index)
     {
-        if (m_impl->view->is_null()) {
-            *m_impl->view = nlohmann::json::array();
-        }
-        if (!m_impl->view->is_array()) {
+        if (m_impl->view->is_null()) *m_impl->view = nlohmann::json::array();
+        if (!m_impl->view->is_array())
             RAISE_RUNTIME_ERROR << "MetadataBuilder::operator[](index): current node is not an array";
-        }
-        while (m_impl->view->size() <= index) {
+        while (m_impl->view->size() <= index)
             m_impl->view->push_back(nlohmann::json::object());
-        }
         nlohmann::json& child = (*m_impl->view)[index];
         auto childImpl = std::make_shared<Impl>();
         childImpl->root = m_impl->root;
@@ -297,9 +308,7 @@ namespace slideio
 
     void MetadataBuilder::makeArray()
     {
-        if (!m_impl->view->is_array()) {
-            *m_impl->view = nlohmann::json::array();
-        }
+        if (!m_impl->view->is_array()) *m_impl->view = nlohmann::json::array();
     }
 
     bool MetadataBuilder::isNull() const
@@ -327,4 +336,4 @@ namespace slideio
     {
         return detail::makeMetadataFromJson(nlohmann::json(*m_impl->view));
     }
-}
+} // namespace slideio

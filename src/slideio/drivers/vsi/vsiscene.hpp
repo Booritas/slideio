@@ -1,17 +1,15 @@
 // This file is part of slideio project.
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
-#ifndef OPENCV_slideio_vsiscene_hpp
-#define OPENCV_slideio_vsiscene_hpp
+#pragma once
 
 #include "slideio/drivers/vsi/vsi_api_def.hpp"
 #include "slideio/core/cvscene.hpp"
 #include "slideio/core/tools/tilecomposer.hpp"
 
-
 #if defined(_MSC_VER)
-#pragma warning( push )
-#pragma warning(disable: 4251)
+#pragma warning(push)
+#pragma warning(disable : 4251)
 #endif
 
 namespace slideio
@@ -19,43 +17,27 @@ namespace slideio
     namespace vsi
     {
         class VSIFile;
-        class SLIDEIO_VSI_EXPORTS VSIScene : public CVScene, public Tiler
+        class SLIDEIO_VSI_EXPORTS VSIScene: public CVScene, public Tiler
         {
         public:
-            VSIScene(const std::string& filePath, int sceneIndex, const std::string& driverId, std::shared_ptr<vsi::VSIFile>& vsiFile);
+            VSIScene(const std::string& filePath, int sceneIndex, const std::string& driverId,
+                     std::shared_ptr<vsi::VSIFile>& vsiFile);
 
-            std::string getFilePath() const override {
-                return m_filePath;
-            }
-            int getSceneIndex() const override {
-                return m_sceneIndex;
-			}
-            void setSceneIndex(int sceneIndex) {
-                m_sceneIndex = sceneIndex;
-			}
-            std::string getName() const override {
-                return m_name;
-            }
-            slideio::Compression getCompression() const override {
-                return m_compression;
-            }
-            Resolution getResolution() const override {
-                return m_resolution;
-            }
-            double getMagnification() const override {
-                return m_magnification;
-            }
-            DataType getChannelDataType(int channelIndex) const override {
-                return m_channelDataType[channelIndex];
-            }
-            const std::string& getDriverId() const override {
-				return m_driverId;
-            }
+            std::string getFilePath() const override { return m_filePath; }
+            int getSceneIndex() const override { return m_sceneIndex; }
+            void setSceneIndex(int sceneIndex) { m_sceneIndex = sceneIndex; }
+            std::string getName() const override { return m_name; }
+            slideio::Compression getCompression() const override { return m_compression; }
+            Resolution getResolution() const override { return m_resolution; }
+            double getMagnification() const override { return m_magnification; }
+            DataType getChannelDataType(int channelIndex) const override { return m_channelDataType[channelIndex]; }
+            const std::string& getDriverId() const override { return m_driverId; }
             cv::Rect getRect() const override;
             int getNumChannels() const override;
             std::string getChannelName(int channel) const override;
             void initializeBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices,
-                cv::OutputArray output) override;
+                                 cv::OutputArray output) override;
+
         protected:
             std::string m_filePath;
             std::string m_name;
@@ -68,13 +50,11 @@ namespace slideio
             std::vector<DataType> m_channelDataType;
             std::shared_ptr<vsi::VSIFile> m_vsiFile;
             int m_sceneIndex;
-			std::string m_driverId;
+            std::string m_driverId;
         };
-    }
-}
+    } // namespace vsi
+} // namespace slideio
 
 #if defined(_MSC_VER)
-#pragma warning( pop )
-#endif
-
+#pragma warning(pop)
 #endif

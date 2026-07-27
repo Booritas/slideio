@@ -10,27 +10,27 @@ namespace slideio
     class Resolution
     {
     public:
-        Resolution() : x(0), y(0) {}
-        Resolution(double _x, double _y) : x(_x), y(_y) {}
+        Resolution(): x(0), y(0) {}
+        Resolution(double _x, double _y): x(_x), y(_y) {}
         Resolution(const Resolution& pt) = default;
-        Resolution(Resolution&& pt) noexcept : x(pt.x), y(pt.y) {
+        Resolution(Resolution&& pt) noexcept: x(pt.x), y(pt.y)
+        {
             pt.x = 0;
             pt.y = 0;
         }
         ~Resolution() = default;
-        Resolution& operator = (const Resolution& pt) = default;
-        Resolution& operator = (Resolution&& pt) noexcept {
+        Resolution& operator=(const Resolution& pt) = default;
+        Resolution& operator=(Resolution&& pt) noexcept
+        {
             x = pt.x;
             y = pt.y;
             pt.x = 0;
             pt.y = 0;
             return *this;
         }
-        bool operator == (const Resolution& pt) const {
-            return x == pt.x && y == pt.y;
-        }
+        bool operator==(const Resolution& pt) const { return x == pt.x && y == pt.y; }
         double x;
         double y;
     };
-    
-}
+
+} // namespace slideio

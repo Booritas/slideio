@@ -1,8 +1,7 @@
 // This file is part of slideio project.
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
-#ifndef OPENCV_slideio_scene_HPP
-#define OPENCV_slideio_scene_HPP
+#pragma once
 
 #include "slideio/core/slideio_core_def.hpp"
 #include "slideio/base/resolution.hpp"
@@ -18,8 +17,8 @@
 #include "levelinfo.hpp"
 
 #if defined(_MSC_VER)
-#pragma warning( push )
-#pragma warning(disable: 4251)
+#pragma warning(push)
+#pragma warning(disable : 4251)
 #endif
 
 namespace slideio
@@ -35,7 +34,7 @@ namespace slideio
      * of arbitrary image regions, optionally with resizing.
      * Methods for working with raster data deliver image blocks as opencv Mat objects.
      */
-    class SLIDEIO_CORE_EXPORTS CVScene : public RefCounter
+    class SLIDEIO_CORE_EXPORTS CVScene: public RefCounter
     {
     public:
         /**@brief default constructor*/
@@ -56,12 +55,12 @@ namespace slideio
          *
          * The method returns 1 for plain images.
          */
-        virtual int getNumZSlices() const {return 1;}
+        virtual int getNumZSlices() const { return 1; }
         /**@brief returns number of time frames in the image.
          *
          * The method returns 1 for single frame images (images without time sequences).
          */
-        virtual int getNumTFrames() const {return 1;}
+        virtual int getNumTFrames() const { return 1; }
         /**@brief returns channel data type.
          *
          * Some image format may have channels with different data types.
@@ -77,11 +76,11 @@ namespace slideio
 
         Resolution is returned as class Resolution with pixel sizes in meters for x and y directions.
         */
-        virtual Resolution  getResolution() const = 0;
+        virtual Resolution getResolution() const = 0;
         /**@brief returns thickness of a Z slice in meters for 3D images.*/
-        virtual double getZSliceResolution() const {return 0;}
+        virtual double getZSliceResolution() const { return 0; }
         /**@brief returns time between 2 time frames in seconds for images with time frames.*/
-        virtual double getTFrameResolution() const {return 0;}
+        virtual double getTFrameResolution() const { return 0; }
         /**@brief returns slide magnification extracted from the slide metadata. */
         virtual double getMagnification() const = 0;
         /**@brief returns compression of the raster data */
@@ -104,7 +103,8 @@ namespace slideio
          * All channels have to be of the same type. The method will throw an error by attempt to put read several channels
          * of different types in one block.
          */
-        virtual void readBlockChannels(const cv::Rect& blockRect, const std::vector<int>& channelIndices, cv::OutputArray output);
+        virtual void readBlockChannels(const cv::Rect& blockRect, const std::vector<int>& channelIndices,
+                                       cv::OutputArray output);
         /**@brief reads raster rectangle of a plane image with resizing.
          *
          * @param blockRect : rectangle of the block to be read. The rectangle is represented by cv::Rect structure
@@ -127,7 +127,8 @@ namespace slideio
          * All channels have to be of the same type. The method will throw an error by attempt to put read several channels
          * of different types in one block.
          */
-        virtual void readResampledBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize, const std::vector<int>& channelIndices, cv::OutputArray output);
+        virtual void readResampledBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize,
+                                                const std::vector<int>& channelIndices, cv::OutputArray output);
         /**@brief reads multi-dimensional raster block.
          *
          * @param blockRect : rectangle of the block to be read. The rectangle is represented by cv::Rect structure
@@ -139,7 +140,8 @@ namespace slideio
          * All channels have to be of the same type. The method will throw an error by attempt to put read several channels
          * of different types in one block.
          */
-        virtual void read4DBlock(const cv::Rect& blockRect, const cv::Range& zSliceRange, const cv::Range& timeFrameRange, cv::OutputArray output);
+        virtual void read4DBlock(const cv::Rect& blockRect, const cv::Range& zSliceRange,
+                                 const cv::Range& timeFrameRange, cv::OutputArray output);
         /**@brief multi-dimensional raster block with resizing.
          *
          * @param blockRect : rectangle of the block to be read. The rectangle is represented by cv::Rect structure
@@ -152,7 +154,9 @@ namespace slideio
          * All channels have to be of the same type. The method will throw an error by attempt to put read several channels
          * of different types in one block.
          */
-        virtual void read4DBlockChannels(const cv::Rect& blockRect, const std::vector<int>& channelIndices, const cv::Range& zSliceRange, const cv::Range& timeFrameRange, cv::OutputArray output);
+        virtual void read4DBlockChannels(const cv::Rect& blockRect, const std::vector<int>& channelIndices,
+                                         const cv::Range& zSliceRange, const cv::Range& timeFrameRange,
+                                         cv::OutputArray output);
         /**@brief reads multi-dimensional raster block with resizing.
          *
          * @param blockRect : rectangle of the block to be read. The rectangle is represented by cv::Rect structure
@@ -165,7 +169,9 @@ namespace slideio
          * All channels have to be of the same type. The method will throw an error by attempt to put read several channels
          * of different types in one block.
          */
-        virtual void readResampled4DBlock(const cv::Rect& blockRect, const cv::Size& blockSize, const cv::Range& zSliceRange, const cv::Range& timeFrameRange, cv::OutputArray output);
+        virtual void readResampled4DBlock(const cv::Rect& blockRect, const cv::Size& blockSize,
+                                          const cv::Range& zSliceRange, const cv::Range& timeFrameRange,
+                                          cv::OutputArray output);
         /**@brief reads selected channels of multi-dimensional raster block.
          *
          * @param blockRect : rectangle of the block to be read. The rectangle is represented by cv::Rect structure
@@ -179,15 +185,13 @@ namespace slideio
          * All channels have to be of the same type. The method will throw an error by attempt to put read several channels
          * of different types in one block.
          */
-        virtual void readResampled4DBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize, const std::vector<int>& channelIndices, const cv::Range& zSliceRange, const cv::Range& timeFrameRange, cv::OutputArray output);
+        virtual void readResampled4DBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize,
+                                                  const std::vector<int>& channelIndices, const cv::Range& zSliceRange,
+                                                  const cv::Range& timeFrameRange, cv::OutputArray output);
         /**@brief returns list of auxiliary image names.*/
-        virtual const std::list<std::string>& getAuxImageNames() const {
-            return m_auxNames;
-        }
+        virtual const std::list<std::string>& getAuxImageNames() const { return m_auxNames; }
         /**@brief returns number of auxiliary images in the scene object.*/
-        virtual int getNumAuxImages() const {
-            return static_cast<int>(m_auxNames.size());
-        }
+        virtual int getNumAuxImages() const { return static_cast<int>(m_auxNames.size()); }
         /**@brief returns a slideio::CVScene object that represents an auxiliary image.
          * @param imageName : name of the auxiliary image.
          */
@@ -197,12 +201,13 @@ namespace slideio
         /**@brief returns metadata as a navigable tree. Built lazily on first call. */
         const Metadata& getMetadata() const;
         virtual void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
-			const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output) = 0;
+                                                  const std::vector<int>& componentIndices, int zSliceIndex,
+                                                  int tFrameIndex, cv::OutputArray output) = 0;
         virtual int getNumZoomLevels() const;
         virtual const LevelInfo* getZoomLevelInfo(int level) const;
         std::string toString() const;
-		/**@brief returns metadata format of the image*/
-		virtual MetadataFormat getMetadataFormat() const { return m_metadataFormat; }
+        /**@brief returns metadata format of the image*/
+        virtual MetadataFormat getMetadataFormat() const { return m_metadataFormat; }
         /**@brief returns channel attributes as a Metadata tree.
          *
          * Always an Array of length getNumChannels(). Each element is an
@@ -211,11 +216,14 @@ namespace slideio
          * count nor the attribute values must change after the first read.
          */
         const Metadata& getChannelAttributes() const;
+
     protected:
         /**@brief adds a new attribute to channels */
-        virtual void setChannelAttribute(int channelIndex, const std::string& attributeName, const std::string& attributeValue);
+        virtual void setChannelAttribute(int channelIndex, const std::string& attributeName,
+                                         const std::string& attributeValue);
         /**@brief adds a string-literal attribute to a channel */
-        virtual void setChannelAttribute(int channelIndex, const std::string& attributeName, const char* attributeValue);
+        virtual void setChannelAttribute(int channelIndex, const std::string& attributeName,
+                                         const char* attributeValue);
         /**@brief adds a boolean attribute to a channel */
         virtual void setChannelAttribute(int channelIndex, const std::string& attributeName, bool attributeValue);
         /**@brief adds an integer attribute to a channel */
@@ -244,16 +252,14 @@ namespace slideio
 
     private:
         mutable std::once_flag m_metadataOnce;
-        mutable Metadata       m_metadata;
+        mutable Metadata m_metadata;
         mutable std::once_flag m_channelAttrsOnce;
-        mutable Metadata       m_channelAttributesMeta;
+        mutable Metadata m_channelAttributesMeta;
     };
-}
+} // namespace slideio
 
 #define CVScenePtr std::shared_ptr<slideio::CVScene>
 
 #if defined(_MSC_VER)
-#pragma warning( pop )
-#endif
-
+#pragma warning(pop)
 #endif

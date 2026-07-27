@@ -6,14 +6,15 @@
 
 using namespace slideio;
 
-TransformationEx::TransformationEx() {
+TransformationEx::TransformationEx()
+{
     m_type = TransformationType::Unknown;
 }
 
 std::vector<DataType> TransformationEx::computeChannelDataTypes(const std::vector<DataType>& channels) const
 {
-	std::vector<DataType> copy(channels);
-	return copy;
+    std::vector<DataType> copy(channels);
+    return copy;
 }
 
 int TransformationEx::getInflationValue() const

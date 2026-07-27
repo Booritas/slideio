@@ -11,4 +11,3 @@
 #else
 #define SLIDEIO_GDAL_EXPORTS
 #endif
-

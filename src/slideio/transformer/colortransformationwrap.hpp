@@ -7,41 +7,40 @@
 #include <memory>
 
 #if defined(_MSC_VER)
-#pragma warning( push )
-#pragma warning(disable: 4275 4251)
+#pragma warning(push)
+#pragma warning(disable : 4275 4251)
 #endif
-
 
 namespace slideio
 {
     class ColorTransformation;
     enum class ColorSpace;
     enum class TransformationType;
-    class SLIDEIO_TRANSFORMER_EXPORTS ColorTransformationWrap : public TransformationWrapper
+    class SLIDEIO_TRANSFORMER_EXPORTS ColorTransformationWrap: public TransformationWrapper
     {
     public:
         ColorTransformationWrap(const ColorTransformationWrap& other)
-            : TransformationWrapper(other),
-              m_filter(other.m_filter) {
+            : TransformationWrapper(other), m_filter(other.m_filter)
+        {
         }
 
         ColorTransformationWrap(ColorTransformationWrap&& other) noexcept
-            : TransformationWrapper(std::move(other)),
-              m_filter(std::move(other.m_filter)) {
+            : TransformationWrapper(std::move(other)), m_filter(std::move(other.m_filter))
+        {
         }
 
-        ColorTransformationWrap& operator=(const ColorTransformationWrap& other) {
-            if (this == &other)
-                return *this;
-            TransformationWrapper::operator =(other);
+        ColorTransformationWrap& operator=(const ColorTransformationWrap& other)
+        {
+            if (this == &other) return *this;
+            TransformationWrapper::operator=(other);
             m_filter = other.m_filter;
             return *this;
         }
 
-        ColorTransformationWrap& operator=(ColorTransformationWrap&& other) noexcept {
-            if (this == &other)
-                return *this;
-            TransformationWrapper::operator =(std::move(other));
+        ColorTransformationWrap& operator=(ColorTransformationWrap&& other) noexcept
+        {
+            if (this == &other) return *this;
+            TransformationWrapper::operator=(std::move(other));
             m_filter = std::move(other.m_filter);
             return *this;
         }
@@ -51,12 +50,14 @@ namespace slideio
         ColorSpace getColorSpace() const;
         void setColorSpace(ColorSpace colorSpace);
         TransformationType getType() const override;
-        std::shared_ptr<ColorTransformation> getFilter() const;;
+        std::shared_ptr<ColorTransformation> getFilter() const;
+        ;
+
     private:
         std::shared_ptr<ColorTransformation> m_filter;
     };
-}
+} // namespace slideio
 
 #if defined(_MSC_VER)
-#pragma warning( pop )
+#pragma warning(pop)
 #endif

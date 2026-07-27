@@ -8,31 +8,29 @@
 
 namespace slideio
 {
-	class Size;
-	enum class DataType;
-	enum class Compression;
+    class Size;
+    enum class DataType;
+    enum class Compression;
 
-	class SmallImagePage
-	{
-	public:
-		virtual Size getSize() const = 0;
-		virtual DataType getDataType() const = 0;
-		virtual int getNumChannels() const = 0;
-		virtual Compression getCompression() const = 0;
-		virtual const std::string& getMetadata() const = 0;
-		virtual void readRaster(cv::OutputArray raster) = 0;
-		virtual Resolution getResolution() const {
-			return {};
-		}
-	};
-	class SmallImage
-	{
-	public:
+    class SmallImagePage
+    {
+    public:
+        virtual Size getSize() const = 0;
+        virtual DataType getDataType() const = 0;
+        virtual int getNumChannels() const = 0;
+        virtual Compression getCompression() const = 0;
+        virtual const std::string& getMetadata() const = 0;
+        virtual void readRaster(cv::OutputArray raster) = 0;
+        virtual Resolution getResolution() const { return {}; }
+    };
+    class SmallImage
+    {
+    public:
         virtual ~SmallImage() = default;
         virtual int getNumPages() const = 0;
-		virtual bool isValid() const = 0;
-		virtual SmallImagePage* readPage(int pageIndex) = 0;
-		virtual void readImageStack(cv::OutputArray raster);
-	};
+        virtual bool isValid() const = 0;
+        virtual SmallImagePage* readPage(int pageIndex) = 0;
+        virtual void readImageStack(cv::OutputArray raster);
+    };
 
-}
+} // namespace slideio

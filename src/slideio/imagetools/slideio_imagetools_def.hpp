@@ -11,4 +11,3 @@
 #else
 #define SLIDEIO_IMAGETOOLS_EXPORTS
 #endif
-

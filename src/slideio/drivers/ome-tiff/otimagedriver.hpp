@@ -10,7 +10,7 @@ namespace slideio
 {
     namespace ometiff
     {
-        class SLIDEIO_OMETIFF_EXPORTS OTImageDriver : public slideio::ImageDriver
+        class SLIDEIO_OMETIFF_EXPORTS OTImageDriver: public slideio::ImageDriver
         {
         public:
             OTImageDriver();
@@ -19,6 +19,5 @@ namespace slideio
             std::shared_ptr<slideio::CVSlide> openFile(const std::string& filePath) override;
             std::string getFileSpecs() const override;
         };
-    }
-}
-
+    } // namespace ometiff
+} // namespace slideio

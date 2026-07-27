@@ -1,8 +1,7 @@
-﻿// This file is part of slideio project.
+// This file is part of slideio project.
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
-#ifndef OPENCV_slideio_imagedrivermanager_HPP
-#define OPENCV_slideio_imagedrivermanager_HPP
+#pragma once
 
 #include "slideio/slideio/slideio_def.hpp"
 #include <map>
@@ -11,8 +10,8 @@
 #include <memory>
 
 #if defined(_MSC_VER)
-#pragma warning( push )
-#pragma warning(disable: 4251)
+#pragma warning(push)
+#pragma warning(disable : 4251)
 #endif
 
 namespace slideio
@@ -29,6 +28,7 @@ namespace slideio
     protected:
         ImageDriverManager();
         ~ImageDriverManager();
+
     public:
         /**@brief returns a list of ids of available image format drivers*/
         static std::vector<std::string> getDriverIDs();
@@ -48,16 +48,16 @@ namespace slideio
          * 'INFO','WARNING','ERROR','FATAL'(default).
          */
         static void setLogLevel(const std::string& level);
-		static std::string getVersion();
+        static std::string getVersion();
+
     protected:
         static void initialize();
+
     private:
         static std::map<std::string, std::shared_ptr<ImageDriver>> driverMap;
     };
-}
+} // namespace slideio
 
 #if defined(_MSC_VER)
-#pragma warning( pop )
-#endif
-
+#pragma warning(pop)
 #endif

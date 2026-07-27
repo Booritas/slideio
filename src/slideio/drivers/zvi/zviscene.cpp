@@ -17,16 +17,14 @@
 
 using namespace slideio;
 
-
-ZVIScene::ZVIScene(const std::string& filePath, const std::string& driverId) :
-    m_filePath(filePath),
+ZVIScene::ZVIScene(const std::string& filePath, const std::string& driverId)
+    : m_filePath(filePath),
 #if defined(WIN32)
-    m_Doc(Tools::toWstring(filePath)),
+      m_Doc(Tools::toWstring(filePath)),
 #else
-    m_Doc(filePath),
+      m_Doc(filePath),
 #endif
-    m_SceneName("Unknown"),
-	m_driverId(driverId)
+      m_SceneName("Unknown"), m_driverId(driverId)
 {
     init();
 }
@@ -68,9 +66,8 @@ double ZVIScene::getTFrameResolution() const
 
 void ZVIScene::validateChannelIndex(int channel) const
 {
-    if (channel < 0 || channel >= m_ChannelCount) {
+    if (channel < 0 || channel >= m_ChannelCount)
         RAISE_RUNTIME_ERROR << "Invalid channel index:" << channel << ". Number of channels:" << m_ChannelCount;
-    }
 }
 
 slideio::DataType ZVIScene::getChannelDataType(int channel) const
@@ -105,7 +102,6 @@ void ZVIScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv:
     TileComposer::composeRect(this, channelIndices, blockRect, blockSize, output, &userData);
 }
 
-
 std::string ZVIScene::getName() const
 {
     return m_SceneName;
@@ -135,7 +131,6 @@ bool ZVIScene::readTile(int tileIndex, const std::vector<int>& channelIndices, c
     ZVITile& tile = m_Tiles[tileIndex];
     return tile.readTile(channelIndices, tileRaster, slice, m_Doc);
 }
-
 
 ZVIPixelFormat ZVIScene::getPixelFormat() const
 {
@@ -194,8 +189,8 @@ void ZVIScene::alignChannelInfoToPixelFormat()
             break;
         case ZVIPixelFormat::PF_UNKNOWN:
         default:
-            RAISE_RUNTIME_ERROR << "ZVIImageDriver: Invalid pixel format: " << (int)pixelFormat 
-                << " for file " << m_filePath;
+            RAISE_RUNTIME_ERROR << "ZVIImageDriver: Invalid pixel format: " << (int)pixelFormat << " for file "
+                                << m_filePath;
         }
     }
 }
@@ -225,13 +220,13 @@ void ZVIScene::computeSceneDimensions()
     for (auto&& imageItem : m_ImageItems)
     {
         int channelIndex = imageItem.getCIndex();
-        if (minChannel > 0) {
+        if (minChannel > 0)
+        {
             channelIndex -= minChannel;
             imageItem.setCIndex(channelIndex);
         }
         const std::string channelName = imageItem.getChannelName();
-        if (!channelName.empty())
-            m_ChannelNames[channelIndex] = channelName;
+        if (!channelName.empty()) m_ChannelNames[channelIndex] = channelName;
         m_ChannelDataTypes[channelIndex] = imageItem.getDataType();
     }
 
@@ -244,35 +239,27 @@ void ZVIScene::computeSceneDimensions()
     // (0x00BBGGRR); unpack to canonical "#RRGGBB" hex. Channel 0 and white
     // (0xFFFFFF) are treated as "unset" — both mean "no preference" in Zen.
     std::vector<bool> channelAttrsSet(static_cast<size_t>(m_ChannelCount), false);
-    for (const auto& imageItem : m_ImageItems) {
+    for (const auto& imageItem : m_ImageItems)
+    {
         const int channelIndex = imageItem.getCIndex();
-        if (channelIndex < 0 || channelIndex >= m_ChannelCount) {
-            continue;
-        }
-        if (channelAttrsSet[static_cast<size_t>(channelIndex)]) {
-            continue;
-        }
+        if (channelIndex < 0 || channelIndex >= m_ChannelCount) continue;
+        if (channelAttrsSet[static_cast<size_t>(channelIndex)]) continue;
         const int color = imageItem.getMultichannelColour();
-        if (color != 0) {
-            const unsigned int r = static_cast<unsigned int>(color        & 0xFF);
-            const unsigned int g = static_cast<unsigned int>((color >>  8) & 0xFF);
+        if (color != 0)
+        {
+            const unsigned int r = static_cast<unsigned int>(color & 0xFF);
+            const unsigned int g = static_cast<unsigned int>((color >> 8) & 0xFF);
             const unsigned int b = static_cast<unsigned int>((color >> 16) & 0xFF);
             char buf[8];
             std::snprintf(buf, sizeof(buf), "#%02X%02X%02X", r, g, b);
             setChannelAttribute(channelIndex, "Color", std::string(buf));
         }
         const double em = imageItem.getEmissionWavelength();
-        if (em > 0.0) {
-            setChannelAttribute(channelIndex, "EmissionWavelength", em);
-        }
+        if (em > 0.0) setChannelAttribute(channelIndex, "EmissionWavelength", em);
         const double ex = imageItem.getExcitationWavelength();
-        if (ex > 0.0) {
-            setChannelAttribute(channelIndex, "ExcitationWavelength", ex);
-        }
+        if (ex > 0.0) setChannelAttribute(channelIndex, "ExcitationWavelength", ex);
         const std::string reflector = imageItem.getReflector();
-        if (!reflector.empty()) {
-            setChannelAttribute(channelIndex, "Reflector", reflector);
-        }
+        if (!reflector.empty()) setChannelAttribute(channelIndex, "Reflector", reflector);
         channelAttrsSet[static_cast<size_t>(channelIndex)] = true;
     }
 
@@ -289,9 +276,7 @@ void ZVIScene::readImageItems()
         item.setItemIndex(itemIndex);
         item.readItemInfo(m_Doc);
         const int validBits = item.getValidBits();
-        if (validBits==0 || validBits==1) {
-            m_Compression = Compression::Jpeg;
-        }
+        if (validBits == 0 || validBits == 1) m_Compression = Compression::Jpeg;
     }
 }
 
@@ -322,10 +307,8 @@ void ZVIScene::computeTiles()
         int tileIndex = yIndex * m_TileCountX + xIndex;
         ZVITile& tile = m_Tiles[tileIndex];
         tile.addItem(&item);
-        if (w[xIndex] < 0)
-            w[xIndex] = item.getWidth();
-        if (h[yIndex] < 0)
-            h[yIndex] = item.getHeight();
+        if (w[xIndex] < 0) w[xIndex] = item.getWidth();
+        if (h[yIndex] < 0) h[yIndex] = item.getHeight();
     }
     int yPos = 0;
     int tileIndex = 0;
@@ -347,10 +330,7 @@ void ZVIScene::computeTiles()
 void ZVIScene::init()
 {
     Tools::throwIfPathNotExist(m_filePath, "ZVIScene::init");
-    if (!m_Doc.good())
-    {
-        RAISE_RUNTIME_ERROR << "Cannot open compound file " << m_filePath;
-    }
+    if (!m_Doc.good()) RAISE_RUNTIME_ERROR << "Cannot open compound file " << m_filePath;
     parseImageInfo();
     readImageItems();
     computeSceneDimensions();
@@ -361,7 +341,8 @@ void ZVIScene::init()
     level.setLevel(0);
     level.setTileSize(Size(m_Width, m_Height));
     level.setSize(Size(m_Width, m_Height));
-    if (!m_Tiles.empty()) {
+    if (!m_Tiles.empty())
+    {
         const cv::Rect tileRect = m_Tiles.front().getRect();
         level.setTileSize(Tools::cvSizeToSize(tileRect.size()));
     }
@@ -405,8 +386,7 @@ void ZVIScene::parseImageTags()
         const ZVIUtils::Variant tag = ZVIUtils::readItem(stream);
         const ZVITAG id = static_cast<ZVITAG>(ZVIUtils::readIntItem(stream));
         ZVIUtils::skipItem(stream);
-        if (tag.index() == 0)
-            continue;
+        if (tag.index() == 0) continue;
 
         switch (id)
         {
@@ -452,7 +432,8 @@ void ZVIScene::parseImageTags()
     m_ZSliceRes = scaleToResolution(scaleZ, unitsZ);
 }
 
-void ZVIScene::initializeBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices, cv::OutputArray output)
+void ZVIScene::initializeBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices,
+                               cv::OutputArray output)
 {
     initializeSceneBlock(blockSize, channelIndices, output);
 }
@@ -460,4 +441,3 @@ void ZVIScene::initializeBlock(const cv::Size& blockSize, const std::vector<int>
 #if defined(__GNUC__)
 #pragma GCC diagnostic pop
 #endif
-

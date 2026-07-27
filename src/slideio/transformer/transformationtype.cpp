@@ -5,8 +5,10 @@
 #include <ostream>
 using namespace slideio;
 
-std::ostream& slideio::operator << (std::ostream& os, TransformationType type) {
-    switch (type) {
+std::ostream& slideio::operator<<(std::ostream& os, TransformationType type)
+{
+    switch (type)
+    {
     case TransformationType::Unknown:
         os << "Unknown";
         break;

@@ -15,10 +15,10 @@ void test()
     const std::string filePath = TestTools::getFullTestImagePath("czi", "2017-02-27 15.22.39.ndpi");
     auto slide = driver.openFile(filePath.c_str());
     auto scene = slide->getScene(0);
-    cv::Rect blockRect = { 0,0,1000,1000 };
-    cv::Range zSliceRange = { 0, 3 };
-    cv::Range timeFrameRange = { 0, 1 };
-    std::vector<int> channelIndices = { 0 };
+    cv::Rect blockRect = {0, 0, 1000, 1000};
+    cv::Range zSliceRange = {0, 3};
+    cv::Range timeFrameRange = {0, 1};
+    std::vector<int> channelIndices = {0};
     cv::Mat mat;
     scene->read4DBlockChannels(blockRect, channelIndices, zSliceRange, timeFrameRange, mat);
     std::cout << "Done" << std::endl;
@@ -31,5 +31,4 @@ int main()
     _CrtDumpMemoryLeaks();
 #endif
     return 0;
-    
 }

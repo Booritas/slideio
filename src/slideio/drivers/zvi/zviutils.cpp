@@ -14,9 +14,9 @@ void ZVIUtils::skipItem(ole::basic_stream& stream)
 {
     uint16_t type;
     stream.read((char*)&type, sizeof(type));
-	type = Endian::fromLittleEndianToNative(type);
+    type = Endian::fromLittleEndianToNative(type);
     uint32_t offset = 0;
-    switch(type)
+    switch (type)
     {
     case VT_EMPTY:
     case VT_NULL:
@@ -50,7 +50,7 @@ void ZVIUtils::skipItem(ole::basic_stream& stream)
     case VT_BLOB:
     case VT_STORED_OBJECT:
         stream.read((char*)&offset, 4);
-		offset = Endian::fromLittleEndianToNative(offset);
+        offset = Endian::fromLittleEndianToNative(offset);
         break;
     case VT_DISPATCH:
     case VT_UNKNOWN:
@@ -62,61 +62,54 @@ void ZVIUtils::skipItem(ole::basic_stream& stream)
 
 void ZVIUtils::skipItems(ole::basic_stream& stream, int count)
 {
-   for(int item = 0; item < count; item++)
-   {
-      skipItem(stream);
-   }
+    for (int item = 0; item < count; item++)
+        skipItem(stream);
 }
 
 int32_t ZVIUtils::readIntItem(ole::basic_stream& stream)
 {
-   uint16_t type(0);
-   stream.read((char*)&type, sizeof(type));
-   type = Endian::fromLittleEndianToNative(type);
-   if(type != VT_I4 && type != VT_INT)
-   {
-      std::string error =
-         "Unexpected data type reading of compound stream. Expected integer. Received:";
-      error += std::to_string(type);
-      throw std::runtime_error(error);
-   }
-   int32_t value;
-   stream.read((char*)&value, sizeof(value));
-   return Endian::fromLittleEndianToNative(value);
+    uint16_t type(0);
+    stream.read((char*)&type, sizeof(type));
+    type = Endian::fromLittleEndianToNative(type);
+    if (type != VT_I4 && type != VT_INT)
+    {
+        std::string error = "Unexpected data type reading of compound stream. Expected integer. Received:";
+        error += std::to_string(type);
+        throw std::runtime_error(error);
+    }
+    int32_t value;
+    stream.read((char*)&value, sizeof(value));
+    return Endian::fromLittleEndianToNative(value);
 }
 
 double ZVIUtils::readDoubleItem(ole::basic_stream& stream)
 {
-   uint16_t type(0);
-   stream.read((char*)&type, sizeof(type));
-   type = Endian::fromLittleEndianToNative(type);
-   if(type != VT_R8)
-   {
-      std::string error =
-         "Unexpected data type reading of compound stream. Expected VT_R8. Received:";
-      error += std::to_string(type);
-      throw std::runtime_error(error);
-   }
-   double value;
-   stream.read((char*)&value, sizeof(value));
-   return Endian::fromLittleEndianToNative(value);
+    uint16_t type(0);
+    stream.read((char*)&type, sizeof(type));
+    type = Endian::fromLittleEndianToNative(type);
+    if (type != VT_R8)
+    {
+        std::string error = "Unexpected data type reading of compound stream. Expected VT_R8. Received:";
+        error += std::to_string(type);
+        throw std::runtime_error(error);
+    }
+    double value;
+    stream.read((char*)&value, sizeof(value));
+    return Endian::fromLittleEndianToNative(value);
 }
 
-
-static  std::string readStringValue(ole::basic_stream& stream)
+static std::string readStringValue(ole::basic_stream& stream)
 {
     int32_t string_length;
     std::string value;
     stream.read((char*)&string_length, sizeof(string_length));
     string_length = Endian::fromLittleEndianToNative(string_length);
-    if(string_length > 0)
+    if (string_length > 0)
     {
         std::vector<char> buffer(string_length, 0);
         stream.read((char*)buffer.data(), string_length);
         std::u16string src((char16_t*)buffer.data());
-		if (!Endian::isLittleEndian()) {
-			src = Endian::u16StringLittleToBig(src);
-		}
+        if (!Endian::isLittleEndian()) src = Endian::u16StringLittleToBig(src);
         value = Tools::fromUnicode16(src);
     }
     return value;
@@ -124,21 +117,20 @@ static  std::string readStringValue(ole::basic_stream& stream)
 
 std::string ZVIUtils::readStringItem(ole::basic_stream& stream)
 {
-   uint16_t type(0);
-   stream.read((char*)&type, sizeof(type));
-   type = Endian::fromLittleEndianToNative(type);
-   if(type != VT_BSTR)
-   {
-      std::string error = "Unexpected data type reading of compound stream. Expected string. Received:";
-      error += std::to_string(type);
-      throw std::runtime_error(error);
-   }
-   std::string value;
-   return readStringValue(stream);
+    uint16_t type(0);
+    stream.read((char*)&type, sizeof(type));
+    type = Endian::fromLittleEndianToNative(type);
+    if (type != VT_BSTR)
+    {
+        std::string error = "Unexpected data type reading of compound stream. Expected string. Received:";
+        error += std::to_string(type);
+        throw std::runtime_error(error);
+    }
+    std::string value;
+    return readStringValue(stream);
 }
 
-template<typename T>
-static T  readTypedValue(ole::basic_stream& stream)
+template <typename T> static T readTypedValue(ole::basic_stream& stream)
 {
     T val(0);
     stream.read((char*)&val, sizeof(val));
@@ -150,7 +142,7 @@ ZVIUtils::Variant ZVIUtils::readItem(ole::basic_stream& stream, bool skipUnusedT
     Variant value;
     uint16_t type;
     stream.read((char*)&type, sizeof(type));
-	type = Endian::fromLittleEndianToNative(type);
+    type = Endian::fromLittleEndianToNative(type);
     uint32_t offset = 0;
     switch ((VARENUM)type)
     {
@@ -217,10 +209,7 @@ ZVIUtils::Variant ZVIUtils::readItem(ole::basic_stream& stream, bool skipUnusedT
     default:
         RAISE_RUNTIME_ERROR << "ZVIImageDriver: Unsuported item type: " << type;
     }
-    if(offset>0)
-    {
-        stream.seek(offset, std::ios::cur);
-    }
+    if (offset > 0) stream.seek(offset, std::ios::cur);
     return value;
 }
 
@@ -232,21 +221,12 @@ ZVIUtils::StreamKeeper::StreamKeeper(ole::compound_document& doc, const std::str
     std::string stream = path.substr(pos);
     auto storagePos = doc.find_storage(storagePath);
 
-    if(storagePos==0)
-    {
-        storagePath = "/";
-    }
+    if (storagePos == 0) storagePath = "/";
 
-    if(storagePos == doc.end())
-    {
-        RAISE_RUNTIME_ERROR << "ZVIImageDriver: Invalid storage path: " << storagePath;
-    }
+    if (storagePos == doc.end()) RAISE_RUNTIME_ERROR << "ZVIImageDriver: Invalid storage path: " << storagePath;
 
     m_StreamPos = storagePos->find_stream(path);
-    if(m_StreamPos == storagePos->end())
-    {
-        RAISE_RUNTIME_ERROR << "ZVIImageDriver: Invalid stream path: " << path;
-    }
+    if (m_StreamPos == storagePos->end()) RAISE_RUNTIME_ERROR << "ZVIImageDriver: Invalid stream path: " << path;
 }
 
 slideio::DataType ZVIUtils::dataTypeFromPixelFormat(const ZVIPixelFormat pixelFormat)
@@ -307,29 +287,26 @@ int ZVIUtils::channelCountFromPixelFormat(const ZVIPixelFormat pixelFormat)
     return channels;
 }
 
-std::vector<ZVIUtils::ZviTagEntry> ZVIUtils::readAllTags(
-    ole::basic_stream& stream, bool hasClsidHeader)
+std::vector<ZVIUtils::ZviTagEntry> ZVIUtils::readAllTags(ole::basic_stream& stream, bool hasClsidHeader)
 {
-    if (hasClsidHeader) {
+    if (hasClsidHeader)
+    {
         // 128-bit CLSID — raw, not a typed token.
         stream.seek(16, std::ios::cur);
     }
     const int32_t version = readIntItem(stream);
     (void)version; // not used; spec value is informational.
     const int32_t count = readIntItem(stream);
-    if (count < 0 || count > 100000) {
-        return {};
-    }
+    if (count < 0 || count > 100000) return {};
     std::vector<ZviTagEntry> entries;
     entries.reserve(static_cast<size_t>(count));
-    for (int32_t i = 0; i < count; ++i) {
+    for (int32_t i = 0; i < count; ++i)
+    {
         Variant value = readItem(stream);
         const int32_t id = readIntItem(stream);
-        skipItem(stream); // {Attribute} — no longer used per spec.
-        if (value.index() == 0) {
-            continue; // std::monostate: VT_EMPTY/VT_NULL/blob/object — drop.
-        }
-        entries.push_back(ZviTagEntry{ id, std::move(value) });
+        skipItem(stream);                 // {Attribute} — no longer used per spec.
+        if (value.index() == 0) continue; // std::monostate: VT_EMPTY/VT_NULL/blob/object — drop.
+        entries.push_back(ZviTagEntry{id, std::move(value)});
     }
     return entries;
 }

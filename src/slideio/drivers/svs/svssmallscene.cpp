@@ -1,7 +1,7 @@
 // This file is part of slideio project.
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
-#include "slideio/base/exceptions.hpp" 
+#include "slideio/base/exceptions.hpp"
 #include "slideio/drivers/svs/svssmallscene.hpp"
 #include "slideio/drivers/svs/svstools.hpp"
 #include "slideio/slideio/slideio.hpp"
@@ -12,53 +12,48 @@
 
 using namespace slideio;
 
-SVSSmallScene::SVSSmallScene(const std::string& filePath,
-    const std::string& driverId,
-    const std::string& name,
-    const TiffDirectory& dir,
-    bool auxiliary):
-        SVSScene(filePath, driverId, name),
-        m_directory(dir)
+SVSSmallScene::SVSSmallScene(const std::string& filePath, const std::string& driverId, const std::string& name,
+                             const TiffDirectory& dir, bool auxiliary)
+    : SVSScene(filePath, driverId, name), m_directory(dir)
 {
     m_dataType = m_directory.dataType;
 
-    if(m_dataType==DataType::DT_None || m_dataType==DataType::DT_Unknown)
+    if (m_dataType == DataType::DT_None || m_dataType == DataType::DT_Unknown)
     {
-        switch(dir.bitsPerSample)
+        switch (dir.bitsPerSample)
         {
-            case 8:
-                m_dataType = m_directory.dataType = DataType::DT_Byte;
+        case 8:
+            m_dataType = m_directory.dataType = DataType::DT_Byte;
             break;
-            case 16:
-                m_dataType = m_directory.dataType = DataType::DT_UInt16;
+        case 16:
+            m_dataType = m_directory.dataType = DataType::DT_UInt16;
             break;
-            default:
-                m_dataType = DataType::DT_Unknown;
+        default:
+            m_dataType = DataType::DT_Unknown;
         }
     }
-    if(!auxiliary)
+    if (!auxiliary)
     {
         m_magnification = SVSTools::extractMagnifiation(dir.description);
         double res = SVSTools::extractResolution(dir.description);
-        m_resolution = { res, res };
+        m_resolution = {res, res};
     }
     m_compression = m_directory.slideioCompression;
     LevelInfo level;
     level.setLevel(0);
     level.setScale(1.);
     level.setMagnification(m_magnification);
-    level.setTileSize({ m_directory.tileWidth, m_directory.tileHeight });
-    level.setSize({ m_directory.width, m_directory.height });
+    level.setTileSize({m_directory.tileWidth, m_directory.tileHeight});
+    level.setSize({m_directory.width, m_directory.height});
     m_levels.push_back(level);
 
     m_rawMetadata = SVSTools::tiffDirectoryToJson(m_directory).dump(2);
     m_metadataFormat = MetadataFormat::JSON;
 }
 
-
 cv::Rect SVSSmallScene::getRect() const
 {
-    cv::Rect rect = { 0,0, m_directory.width, m_directory.height };
+    cv::Rect rect = {0, 0, m_directory.width, m_directory.height};
     return rect;
 }
 
@@ -67,22 +62,18 @@ int SVSSmallScene::getNumChannels() const
     return m_directory.channels;
 }
 
-
 void SVSSmallScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
-        const std::vector<int>& channelIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output)
+                                                 const std::vector<int>& channelIndices, int zSliceIndex,
+                                                 int tFrameIndex, cv::OutputArray output)
 {
-    if (zSliceIndex != 0 || tFrameIndex != 0) {
-        RAISE_RUNTIME_ERROR << "SVSDriver: 3D and 4D images are not supported";
-    }
+    if (zSliceIndex != 0 || tFrameIndex != 0) RAISE_RUNTIME_ERROR << "SVSDriver: 3D and 4D images are not supported";
 
     auto hFile = getFileHandle();
 
-    if (hFile == nullptr) {
-        RAISE_RUNTIME_ERROR << "SVSDriver: Invalid file header by raster reading operation";
-    }
+    if (hFile == nullptr) RAISE_RUNTIME_ERROR << "SVSDriver: Invalid file header by raster reading operation";
 
     cv::Mat wholeDirRaster;
-    if(channelIndices.empty())
+    if (channelIndices.empty())
     {
         TiffTools::readStripedDir(hFile, m_directory, wholeDirRaster);
     }
@@ -90,7 +81,7 @@ void SVSSmallScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, cons
     {
         cv::Mat dirRaster;
         TiffTools::readStripedDir(hFile, m_directory, dirRaster);
-        if(channelIndices.size()==1)
+        if (channelIndices.size() == 1)
         {
             cv::extractChannel(dirRaster, wholeDirRaster, channelIndices[0]);
         }

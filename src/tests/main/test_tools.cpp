@@ -13,22 +13,24 @@
 
 using namespace slideio;
 
-TEST(Tools, matchPattern) {
+TEST(Tools, matchPattern)
+{
 #if defined(WIN32)
-    EXPECT_TRUE(Tools::matchPattern("c:\\abs.ad.czi","*.czi"));
-    EXPECT_TRUE(Tools::matchPattern("c:\\abs.ad.czi","*.tiff;*.czi"));
-    EXPECT_FALSE(Tools::matchPattern("c:\\abs.ad.czi","*.tiff;*.aczi"));
-    EXPECT_TRUE(Tools::matchPattern("c:\\abs.ad.OME.TIFF","*.atiff;*.aczi;*.ome.tiff"));
+    EXPECT_TRUE(Tools::matchPattern("c:\\abs.ad.czi", "*.czi"));
+    EXPECT_TRUE(Tools::matchPattern("c:\\abs.ad.czi", "*.tiff;*.czi"));
+    EXPECT_FALSE(Tools::matchPattern("c:\\abs.ad.czi", "*.tiff;*.aczi"));
+    EXPECT_TRUE(Tools::matchPattern("c:\\abs.ad.OME.TIFF", "*.atiff;*.aczi;*.ome.tiff"));
 #else
-    EXPECT_TRUE(Tools::matchPattern("ad.czi","*.czi"));
-    EXPECT_TRUE(Tools::matchPattern("/root/abs.ad.czi","*.czi"));
-    EXPECT_TRUE(Tools::matchPattern("/root/abs.ad.czi","*.tiff;*.czi"));
-    EXPECT_FALSE(Tools::matchPattern("/root/abs.ad.czi","*.tiff;*.aczi"));
-    EXPECT_TRUE(Tools::matchPattern("/root/abs.ad.ome.tiff","*.atiff;*.aczi;*.ome.tiff"));
+    EXPECT_TRUE(Tools::matchPattern("ad.czi", "*.czi"));
+    EXPECT_TRUE(Tools::matchPattern("/root/abs.ad.czi", "*.czi"));
+    EXPECT_TRUE(Tools::matchPattern("/root/abs.ad.czi", "*.tiff;*.czi"));
+    EXPECT_FALSE(Tools::matchPattern("/root/abs.ad.czi", "*.tiff;*.aczi"));
+    EXPECT_TRUE(Tools::matchPattern("/root/abs.ad.ome.tiff", "*.atiff;*.aczi;*.ome.tiff"));
 #endif
 }
 
-TEST(Tools, findZoomLevel) {
+TEST(Tools, findZoomLevel)
+{
     struct ZoomLevel
     {
         double zoom;
@@ -37,14 +39,13 @@ TEST(Tools, findZoomLevel) {
     std::vector<ZoomLevel> levels;
     levels.resize(10);
     double zoom = 1.;
-    for (auto& level : levels) {
+    for (auto& level : levels)
+    {
         level.zoom = zoom;
         zoom /= 2.;
     }
     double lastZoom = levels.back().zoom;
-    auto zoomFunct = [&levels](int level) {
-        return levels[level].zoom;
-    };
+    auto zoomFunct = [&levels](int level) { return levels[level].zoom; };
     const int numLevels = static_cast<int>(levels.size());
     EXPECT_EQ(Tools::findZoomLevel(2., numLevels, zoomFunct), 0);
     EXPECT_EQ(Tools::findZoomLevel(lastZoom, numLevels, zoomFunct), 9);
@@ -60,14 +61,10 @@ TEST(Tools, findZoomLevel) {
     EXPECT_EQ(Tools::findZoomLevel(0.1, numLevels, zoomFunct), 3);
 }
 
-
-TEST(Tools, convert12BitsTo16Bits) {
+TEST(Tools, convert12BitsTo16Bits)
+{
     const uint8_t src[] = {
-        0xF7, 0xDC, 0xBF,
-        0x05, 0xF9, 0x9A,
-        0x60, 0xD0, 0x00,
-        0x38, 0xDA, 0xBC,
-        0x00, 0x02, 0x61,
+        0xF7, 0xDC, 0xBF, 0x05, 0xF9, 0x9A, 0x60, 0xD0, 0x00, 0x38, 0xDA, 0xBC, 0x00, 0x02, 0x61,
     };
     std::vector<uint16_t> check = {3965, 3263, 95, 2458, 1549, 0, 909, 2748, 0, 609};
     std::vector<uint16_t> target(check.size());
@@ -80,13 +77,12 @@ TEST(Tools, convert12BitsTo16Bits) {
     EXPECT_EQ(target, check);
     EXPECT_THROW(Tools::convert12BitsTo16Bits(nullptr, target.data(), static_cast<int>(check.size())),
                  slideio::RuntimeError);
-    EXPECT_THROW(Tools::convert12BitsTo16Bits(src, nullptr, static_cast<int>(check.size())),
-                 slideio::RuntimeError);
+    EXPECT_THROW(Tools::convert12BitsTo16Bits(src, nullptr, static_cast<int>(check.size())), slideio::RuntimeError);
     EXPECT_THROW(Tools::convert12BitsTo16Bits(src, target.data(), 0), slideio::RuntimeError);
 }
 
-
-TEST(Tools, extractChannels11) {
+TEST(Tools, extractChannels11)
+{
     // Create a sample input image
     cv::Mat sourceRaster = cv::Mat::zeros(100, 100, CV_8UC3);
     cv::circle(sourceRaster, cv::Point(50, 50), 30, cv::Scalar(255, 255, 255), -1);
@@ -96,7 +92,7 @@ TEST(Tools, extractChannels11) {
     Tools::extractChannels(sourceRaster, {}, output1);
     EXPECT_EQ(sourceRaster.size(), output1.size());
     EXPECT_EQ(sourceRaster.type(), output1.type());
-    EXPECT_EQ(TestTools::countNonZero(output1 == sourceRaster), sourceRaster.total()*sourceRaster.channels());
+    EXPECT_EQ(TestTools::countNonZero(output1 == sourceRaster), sourceRaster.total() * sourceRaster.channels());
 
     // Test case 2: Extract specific channels
     std::vector<int> channels = {0, 2};
@@ -111,10 +107,11 @@ TEST(Tools, extractChannels11) {
     cv::Mat originalChannels[] = {originalChannnel0, originalChannel2};
     cv::Mat expected;
     cv::merge(originalChannels, 2, expected);
-    EXPECT_EQ(TestTools::countNonZero(output2 == expected), expected.total()*expected.channels());
+    EXPECT_EQ(TestTools::countNonZero(output2 == expected), expected.total() * expected.channels());
 }
 
-TEST(Tools, replaceAll) {
+TEST(Tools, replaceAll)
+{
     // single character replacement
     std::string str = "This is a test string";
     Tools::replaceAll(str, " ", "_");
@@ -141,7 +138,8 @@ TEST(Tools, replaceAll) {
     EXPECT_EQ(str, "This/is/a/test/string");
 }
 
-TEST(Tools, isConsecutiveFromZero) {
+TEST(Tools, isConsecutiveFromZero)
+{
     // Empty vector
     std::vector<int> emptyVec;
     EXPECT_TRUE(Tools::isConsecutiveFromZero(emptyVec, 0));
@@ -198,7 +196,8 @@ TEST(Tools, isConsecutiveFromZero) {
     EXPECT_FALSE(Tools::isConsecutiveFromZero(twoReversed, 2));
 }
 
-TEST(Tools, split) {
+TEST(Tools, split)
+{
     // Empty string
     std::vector<std::string> tokens = Tools::split("", ',');
     EXPECT_TRUE(tokens.empty());
@@ -237,7 +236,8 @@ TEST(Tools, split) {
     EXPECT_EQ(tokens[2], "token2");
 }
 
-TEST(Tools, unique_path) {
+TEST(Tools, unique_path)
+{
     // No Placeholders
     {
         std::string model = "testfile.txt";
@@ -259,9 +259,8 @@ TEST(Tools, unique_path) {
         EXPECT_EQ(pathStr.substr(13), ".txt");
 
         // Check that the placeholders are replaced with alphanumeric characters
-        for (size_t i = 9; i < 13; ++i) {
+        for (size_t i = 9; i < 13; ++i)
             EXPECT_TRUE(isalnum(pathStr[i]));
-        }
     }
 
     // Empty Model
@@ -281,14 +280,14 @@ TEST(Tools, unique_path) {
         EXPECT_EQ(pathStr.size(), model.size());
 
         // Check that the placeholders are replaced with alphanumeric characters
-        for (char c : pathStr) {
+        for (char c : pathStr)
             EXPECT_TRUE(isalnum(c));
-        }
     }
 }
 
 #if defined(WIN32)
-TEST(Tools, toWstring) {
+TEST(Tools, toWstring)
+{
     {
         std::string utf8Str = "";
         std::wstring expected = L"";
@@ -315,7 +314,8 @@ TEST(Tools, toWstring) {
 
 #endif
 
-TEST(Tools, fromUnicode16) {
+TEST(Tools, fromUnicode16)
+{
     {
         std::u16string u16Str = u"";
         std::string expected = "";
@@ -343,7 +343,8 @@ TEST(Tools, fromUnicode16) {
     //}
 }
 
-TEST(Tools, resize_8U_defaultInterpolation) {
+TEST(Tools, resize_8U_defaultInterpolation)
+{
     // The unsigned path must be unchanged: right size/type, default INTER_LINEAR.
     cv::Mat src(4, 4, CV_8UC1);
     for (int y = 0; y < 4; ++y)
@@ -355,7 +356,8 @@ TEST(Tools, resize_8U_defaultInterpolation) {
     EXPECT_EQ(dst.type(), CV_8UC1);
 }
 
-TEST(Tools, resize_8S_nearestPreservesSignedValues) {
+TEST(Tools, resize_8S_nearestPreservesSignedValues)
+{
     // cv::resize does not support CV_8S; the nearest path reinterprets bytes.
     // Nearest-neighbor must preserve exact signed pixel values (incl. negatives).
     cv::Mat src(2, 2, CV_8SC1);
@@ -378,7 +380,8 @@ TEST(Tools, resize_8S_nearestPreservesSignedValues) {
     EXPECT_EQ(mx, 127);
 }
 
-TEST(Tools, resize_8S_linearPreservesNegativeConstant) {
+TEST(Tools, resize_8S_linearPreservesNegativeConstant)
+{
     // Linear interpolation of a constant must return that constant unchanged.
     // A negative constant proves the promote-to-CV_16S path keeps the sign.
     cv::Mat src(4, 4, CV_8SC1, cv::Scalar(-100));
@@ -391,7 +394,8 @@ TEST(Tools, resize_8S_linearPreservesNegativeConstant) {
             EXPECT_EQ(dst.at<signed char>(y, x), -100);
 }
 
-TEST(Tools, resize_8S_linearSignedGradient) {
+TEST(Tools, resize_8S_linearSignedGradient)
+{
     // Interpolating across a negative/positive boundary must stay signed and
     // monotonic. An unsigned reinterpret would read -100 as 156 and break this.
     cv::Mat src(1, 2, CV_8SC1);
@@ -407,7 +411,8 @@ TEST(Tools, resize_8S_linearSignedGradient) {
         EXPECT_LE(dst.at<signed char>(0, x - 1), dst.at<signed char>(0, x));
 }
 
-TEST(Tools, resize_8S_multichannelPreservesChannels) {
+TEST(Tools, resize_8S_multichannelPreservesChannels)
+{
     // Channel count and per-channel signed values must survive the workaround.
     cv::Mat src(4, 4, CV_8SC3, cv::Scalar(-50, 0, 80));
     cv::Mat dst;
@@ -420,7 +425,8 @@ TEST(Tools, resize_8S_multichannelPreservesChannels) {
     EXPECT_EQ(px[2], 80);
 }
 
-TEST(Tools, resize_32S_nearestPreservesLargeValues) {
+TEST(Tools, resize_32S_nearestPreservesLargeValues)
+{
     // cv::resize does not support CV_32S; the nearest path reinterprets bytes as
     // CV_32F, so it must be exact even for values above 2^24 (not representable
     // exactly as float) and for negatives.
@@ -428,7 +434,7 @@ TEST(Tools, resize_32S_nearestPreservesLargeValues) {
     src.at<int32_t>(0, 0) = -2000000000; // near INT32_MIN
     src.at<int32_t>(0, 1) = 2000000001;  // > 2^24, near INT32_MAX
     src.at<int32_t>(1, 0) = -1;
-    src.at<int32_t>(1, 1) = 16777217;    // 2^24 + 1, not exact as CV_32F
+    src.at<int32_t>(1, 1) = 16777217; // 2^24 + 1, not exact as CV_32F
     cv::Mat dst;
     Tools::resize(src, dst, cv::Size(4, 4), cv::INTER_NEAREST);
     ASSERT_EQ(dst.size(), cv::Size(4, 4));
@@ -439,7 +445,8 @@ TEST(Tools, resize_32S_nearestPreservesLargeValues) {
     EXPECT_EQ(dst.at<int32_t>(3, 3), 16777217);
 }
 
-TEST(Tools, resize_32S_linearPreservesNegativeConstant) {
+TEST(Tools, resize_32S_linearPreservesNegativeConstant)
+{
     // Linear interpolation of a constant must return that constant unchanged.
     // A large negative constant proves the CV_64F promote/demote keeps the value.
     cv::Mat src(4, 4, CV_32SC1, cv::Scalar(-123456789));
@@ -452,7 +459,8 @@ TEST(Tools, resize_32S_linearPreservesNegativeConstant) {
             EXPECT_EQ(dst.at<int32_t>(y, x), -123456789);
 }
 
-TEST(Tools, resize_32S_linearSignedGradient) {
+TEST(Tools, resize_32S_linearSignedGradient)
+{
     // Interpolating across a negative/positive boundary must stay signed and
     // monotonic, and the midpoint of a symmetric pair must land on zero.
     cv::Mat src(1, 2, CV_32SC1);
@@ -468,7 +476,8 @@ TEST(Tools, resize_32S_linearSignedGradient) {
         EXPECT_LE(dst.at<int32_t>(0, x - 1), dst.at<int32_t>(0, x));
 }
 
-TEST(Tools, resize_32S_multichannelPreservesChannels) {
+TEST(Tools, resize_32S_multichannelPreservesChannels)
+{
     // Channel count and per-channel signed values must survive the workaround.
     cv::Mat src(4, 4, CV_32SC3, cv::Scalar(-50000, 0, 90000));
     cv::Mat dst;
@@ -481,192 +490,200 @@ TEST(Tools, resize_32S_multichannelPreservesChannels) {
     EXPECT_EQ(px[2], 90000);
 }
 
-TEST(TestTools, writeReadRawImage_8UC1) {
+TEST(TestTools, writeReadRawImage_8UC1)
+{
     // Create a test image with CV_8UC1 (8-bit unsigned, 1 channel)
     cv::Mat original(100, 100, CV_8UC1);
     cv::randu(original, cv::Scalar(0), cv::Scalar(255));
-    
+
     // Write the image to a temporary file
     slideio::TempFile tempFile("test_raw_%%%%");
     std::string filePath = tempFile.getPath().string();
     TestTools::writeRawImage(filePath, original);
-    
+
     // Read the image back
     cv::Mat loaded(100, 100, CV_8UC1);
     TestTools::readRawImage(filePath, loaded);
-    
+
     // Compare the images
     TestTools::compareRasters(original, loaded);
 }
 
-TEST(TestTools, writeReadRawImage_8UC3) {
+TEST(TestTools, writeReadRawImage_8UC3)
+{
     // Create a test image with CV_8UC3 (8-bit unsigned, 3 channels - RGB)
     cv::Mat original(100, 150, CV_8UC3);
     cv::randu(original, cv::Scalar(0, 0, 0), cv::Scalar(255, 255, 255));
-    
+
     // Write the image to a temporary file
     slideio::TempFile tempFile("test_raw_%%%%");
     std::string filePath = tempFile.getPath().string();
     TestTools::writeRawImage(filePath, original);
-    
+
     // Read the image back
     cv::Mat loaded(100, 150, CV_8UC3);
     TestTools::readRawImage(filePath, loaded);
-    
+
     // Compare the images
     TestTools::compareRasters(original, loaded);
 }
 
-TEST(TestTools, writeReadRawImage_16UC1) {
+TEST(TestTools, writeReadRawImage_16UC1)
+{
     // Create a test image with CV_16UC1 (16-bit unsigned, 1 channel)
     cv::Mat original(80, 120, CV_16UC1);
     cv::randu(original, cv::Scalar(0), cv::Scalar(65535));
-    
+
     // Write the image to a temporary file
     slideio::TempFile tempFile("test_raw_%%%%");
     std::string filePath = tempFile.getPath().string();
     TestTools::writeRawImage(filePath, original);
-    
+
     // Read the image back
     cv::Mat loaded(80, 120, CV_16UC1);
     TestTools::readRawImage(filePath, loaded);
-    
+
     // Compare the images
     TestTools::compareRasters(original, loaded);
 }
 
-TEST(TestTools, writeReadRawImage_16UC3) {
+TEST(TestTools, writeReadRawImage_16UC3)
+{
     // Create a test image with CV_16UC3 (16-bit unsigned, 3 channels)
     cv::Mat original(60, 90, CV_16UC3);
     cv::randu(original, cv::Scalar(0, 0, 0), cv::Scalar(65535, 65535, 65535));
-    
+
     // Write the image to a temporary file
     slideio::TempFile tempFile("test_raw_%%%%");
     std::string filePath = tempFile.getPath().string();
     TestTools::writeRawImage(filePath, original);
-    
+
     // Read the image back
     cv::Mat loaded(60, 90, CV_16UC3);
     TestTools::readRawImage(filePath, loaded);
-    
+
     // Compare the images
     TestTools::compareRasters(original, loaded);
 }
 
-TEST(TestTools, writeReadRawImage_32FC1) {
+TEST(TestTools, writeReadRawImage_32FC1)
+{
     // Create a test image with CV_32FC1 (32-bit float, 1 channel)
     cv::Mat original(50, 75, CV_32FC1);
     cv::randu(original, cv::Scalar(0.0f), cv::Scalar(1.0f));
-    
+
     // Write the image to a temporary file
     slideio::TempFile tempFile("test_raw_%%%%");
     std::string filePath = tempFile.getPath().string();
     TestTools::writeRawImage(filePath, original);
-    
+
     // Read the image back
     cv::Mat loaded(50, 75, CV_32FC1);
     TestTools::readRawImage(filePath, loaded);
-    
+
     // Compare the images
     TestTools::compareRasters(original, loaded);
 }
 
-TEST(TestTools, writeReadRawImage_32FC3) {
+TEST(TestTools, writeReadRawImage_32FC3)
+{
     // Create a test image with CV_32FC3 (32-bit float, 3 channels)
     cv::Mat original(40, 60, CV_32FC3);
     cv::randu(original, cv::Scalar(0.0f, 0.0f, 0.0f), cv::Scalar(1.0f, 1.0f, 1.0f));
-    
+
     // Write the image to a temporary file
     slideio::TempFile tempFile("test_raw_%%%%");
     std::string filePath = tempFile.getPath().string();
     TestTools::writeRawImage(filePath, original);
-    
+
     // Read the image back
     cv::Mat loaded(40, 60, CV_32FC3);
     TestTools::readRawImage(filePath, loaded);
-    
+
     // Compare the images
     TestTools::compareRasters(original, loaded);
 }
 
-TEST(TestTools, writeReadRawImage_Pattern) {
+TEST(TestTools, writeReadRawImage_Pattern)
+{
     // Create a test image with a specific pattern
     cv::Mat original(100, 100, CV_8UC3);
-    
+
     // Create a checkerboard pattern
-    for (int y = 0; y < original.rows; ++y) {
-        for (int x = 0; x < original.cols; ++x) {
-            if ((x / 10 + y / 10) % 2 == 0) {
+    for (int y = 0; y < original.rows; ++y)
+    {
+        for (int x = 0; x < original.cols; ++x)
+            if ((x / 10 + y / 10) % 2 == 0)
                 original.at<cv::Vec3b>(y, x) = cv::Vec3b(255, 0, 0); // Blue
-            } else {
+            else
                 original.at<cv::Vec3b>(y, x) = cv::Vec3b(0, 255, 0); // Green
-            }
-        }
     }
-    
+
     // Write the image to a temporary file
     slideio::TempFile tempFile("test_raw_%%%%");
     std::string filePath = tempFile.getPath().string();
     TestTools::writeRawImage(filePath, original);
-    
+
     // Read the image back
     cv::Mat loaded(100, 100, CV_8UC3);
     TestTools::readRawImage(filePath, loaded);
-    
+
     // Compare the images
     TestTools::compareRasters(original, loaded);
 }
 
-TEST(TestTools, writeReadRawImage_ZeroImage) {
+TEST(TestTools, writeReadRawImage_ZeroImage)
+{
     // Create a zero-filled image
     cv::Mat original = cv::Mat::zeros(100, 100, CV_16UC1);
-    
+
     // Write the image to a temporary file
     slideio::TempFile tempFile("test_raw_%%%%");
     std::string filePath = tempFile.getPath().string();
     TestTools::writeRawImage(filePath, original);
-    
+
     // Read the image back
     cv::Mat loaded(100, 100, CV_16UC1);
     TestTools::readRawImage(filePath, loaded);
-    
+
     // Compare the images
     TestTools::compareRasters(original, loaded);
     EXPECT_TRUE(TestTools::isRasterEmpty(loaded));
 }
 
-TEST(TestTools, writeReadRawImage_MaxValues) {
+TEST(TestTools, writeReadRawImage_MaxValues)
+{
     // Create an image with maximum values
     cv::Mat original = cv::Mat::ones(50, 50, CV_8UC1) * 255;
-    
+
     // Write the image to a temporary file
     slideio::TempFile tempFile("test_raw_%%%%");
     std::string filePath = tempFile.getPath().string();
     TestTools::writeRawImage(filePath, original);
-    
+
     // Read the image back
     cv::Mat loaded(50, 50, CV_8UC1);
     TestTools::readRawImage(filePath, loaded);
-    
+
     // Compare the images
     TestTools::compareRasters(original, loaded);
 }
 
-TEST(TestTools, writeReadRawImage_MultiChannel) {
+TEST(TestTools, writeReadRawImage_MultiChannel)
+{
     // Create a test image with CV_8UC4 (8-bit unsigned, 4 channels - RGBA)
     cv::Mat original(64, 64, CV_8UC4);
     cv::randu(original, cv::Scalar(0, 0, 0, 0), cv::Scalar(255, 255, 255, 255));
-    
+
     // Write the image to a temporary file
     slideio::TempFile tempFile("test_raw_%%%%");
     std::string filePath = tempFile.getPath().string();
     TestTools::writeRawImage(filePath, original);
-    
+
     // Read the image back
     cv::Mat loaded(64, 64, CV_8UC4);
     TestTools::readRawImage(filePath, loaded);
-    
+
     // Compare the images
     TestTools::compareRasters(original, loaded);
 }
-

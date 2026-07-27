@@ -17,7 +17,6 @@ void ZVIImageItem::readItemInfo(ole::compound_document& doc)
     readTags(doc);
 }
 
-
 void ZVIImageItem::readContents(ole::compound_document& doc)
 {
     const std::string streamPath = std::string("/Image/Item(") + std::to_string(getItemIndex()) + ")/Contents";
@@ -26,16 +25,16 @@ void ZVIImageItem::readContents(ole::compound_document& doc)
     ZVIUtils::skipItems(stream, 11);
     uint16_t type;
     stream->read(reinterpret_cast<char*>(&type), sizeof(type));
-	type=Endian::fromLittleEndianToNative(type);
+    type = Endian::fromLittleEndianToNative(type);
 
     uint32_t sz;
     stream->read(reinterpret_cast<char*>(&sz), sizeof(sz));
-	sz = Endian::fromLittleEndianToNative(sz);
+    sz = Endian::fromLittleEndianToNative(sz);
     std::vector<char> posBuffer(sz);
     stream->read(posBuffer.data(), posBuffer.size());
     uint32_t* position = reinterpret_cast<uint32_t*>(posBuffer.data());
-	for(int index=0; index<7; ++index)
-		position[index] = Endian::fromLittleEndianToNative(position[index]);
+    for (int index = 0; index < 7; ++index)
+        position[index] = Endian::fromLittleEndianToNative(position[index]);
 
     setZIndex(position[2]);
     setCIndex(position[3]);
@@ -46,8 +45,8 @@ void ZVIImageItem::readContents(ole::compound_document& doc)
     ZVIUtils::skipItems(stream, 5);
     std::vector<int32_t> header(7);
     stream->read(reinterpret_cast<char*>(header.data()), sizeof(int32_t) * header.size());
-	for(int index=0; index<header.size(); ++index)
-		header[index] = Endian::fromLittleEndianToNative(header[index]);
+    for (int index = 0; index < header.size(); ++index)
+        header[index] = Endian::fromLittleEndianToNative(header[index]);
     const int32_t version = header[0];
     const int32_t width = header[1];
     const int32_t height = header[2];
@@ -123,30 +122,25 @@ void ZVIImageItem::readTags(ole::compound_document& doc)
         case ZVITAG::ZVITAG_MULTICHANNEL_COLOUR:
             // Windows-style packed BGR (0x00BBGGRR). Drivers may report it
             // as signed or unsigned; both shapes map to the same 32 bits.
-            if (auto* p = std::get_if<int32_t>(&tag)) {
+            if (auto* p = std::get_if<int32_t>(&tag))
                 m_MultichannelColour = *p;
-            } else if (auto* p = std::get_if<uint32_t>(&tag)) {
+            else if (auto* p = std::get_if<uint32_t>(&tag))
                 m_MultichannelColour = static_cast<int>(*p);
-            }
             break;
         case ZVITAG::ZVITAG_EMISSION_WAVELENGTH:
-            if (auto* p = std::get_if<int32_t>(&tag)) {
+            if (auto* p = std::get_if<int32_t>(&tag))
                 m_EmissionWavelength = static_cast<double>(*p);
-            } else if (auto* p = std::get_if<double>(&tag)) {
+            else if (auto* p = std::get_if<double>(&tag))
                 m_EmissionWavelength = *p;
-            }
             break;
         case ZVITAG::ZVITAG_EXCITATION_WAVELENGTH:
-            if (auto* p = std::get_if<int32_t>(&tag)) {
+            if (auto* p = std::get_if<int32_t>(&tag))
                 m_ExcitationWavelength = static_cast<double>(*p);
-            } else if (auto* p = std::get_if<double>(&tag)) {
+            else if (auto* p = std::get_if<double>(&tag))
                 m_ExcitationWavelength = *p;
-            }
             break;
         case ZVITAG::ZVITAG_REFLECTOR:
-            if (auto* p = std::get_if<std::string>(&tag)) {
-                m_Reflector = *p;
-            }
+            if (auto* p = std::get_if<std::string>(&tag)) m_Reflector = *p;
             break;
         }
     }
@@ -170,13 +164,12 @@ void ZVIImageItem::readRaster(ole::compound_document& doc, cv::OutputArray raste
     const int validBites = getValidBits();
     const ZVIPixelFormat pixelFormat = getPixelFormat();
 
-
     const std::string streamPath = std::string("/Image/Item(") + std::to_string(getItemIndex()) + ")/Contents";
     ZVIUtils::StreamKeeper stream(doc, streamPath);
 
     stream->seek(getDataOffset(), std::ios::beg);
 
-    if (validBites==0 || validBites==1)
+    if (validBites == 0 || validBites == 1)
     {
         stream->seek(0, std::ios::end);
         std::streampos endPos = stream->pos();
@@ -193,12 +186,9 @@ void ZVIImageItem::readRaster(ole::compound_document& doc, cv::OutputArray raste
 
         stream->seek(getDataOffset(), std::ios::beg);
         const auto readBytes = stream->read(reinterpret_cast<char*>(mat.data), rasterSize);
-        if (readBytes != rasterSize) {
-            throw std::runtime_error("ZVIImageDriver: Unexpected end of stream");
-        }
+        if (readBytes != rasterSize) throw std::runtime_error("ZVIImageDriver: Unexpected end of stream");
         Endian::fromLittleEndianToNative(dt, mat.data, readBytes);
     }
-
 }
 
 void ZVIImageItem::setPixelFormat(ZVIPixelFormat pixelFormat)

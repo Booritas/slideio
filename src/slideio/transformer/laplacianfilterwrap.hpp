@@ -8,10 +8,9 @@
 #include <memory>
 
 #if defined(_MSC_VER)
-#pragma warning( push )
-#pragma warning(disable: 4275 4251)
+#pragma warning(push)
+#pragma warning(disable : 4275 4251)
 #endif
-
 
 namespace slideio
 {
@@ -19,33 +18,30 @@ namespace slideio
     enum class DataType;
     enum class TransformationType;
 
-    class SLIDEIO_TRANSFORMER_EXPORTS LaplacianFilterWrap : public TransformationWrapper
+    class SLIDEIO_TRANSFORMER_EXPORTS LaplacianFilterWrap: public TransformationWrapper
     {
     public:
         LaplacianFilterWrap();
 
-        LaplacianFilterWrap(const LaplacianFilterWrap& other)
-            : TransformationWrapper(other),
-              m_filter(other.m_filter) {
-        }
+        LaplacianFilterWrap(const LaplacianFilterWrap& other): TransformationWrapper(other), m_filter(other.m_filter) {}
 
         LaplacianFilterWrap(LaplacianFilterWrap&& other) noexcept
-            : TransformationWrapper(std::move(other)),
-              m_filter(std::move(other.m_filter)) {
+            : TransformationWrapper(std::move(other)), m_filter(std::move(other.m_filter))
+        {
         }
 
-        LaplacianFilterWrap& operator=(const LaplacianFilterWrap& other) {
-            if (this == &other)
-                return *this;
-            TransformationWrapper::operator =(other);
+        LaplacianFilterWrap& operator=(const LaplacianFilterWrap& other)
+        {
+            if (this == &other) return *this;
+            TransformationWrapper::operator=(other);
             m_filter = other.m_filter;
             return *this;
         }
 
-        LaplacianFilterWrap& operator=(LaplacianFilterWrap&& other) noexcept {
-            if (this == &other)
-                return *this;
-            TransformationWrapper::operator =(std::move(other));
+        LaplacianFilterWrap& operator=(LaplacianFilterWrap&& other) noexcept
+        {
+            if (this == &other) return *this;
+            TransformationWrapper::operator=(std::move(other));
             m_filter = std::move(other.m_filter);
             return *this;
         }
@@ -60,12 +56,14 @@ namespace slideio
         double getDelta() const;
         void setDelta(double delta);
         TransformationType getType() const override;
-        std::shared_ptr<Transformation> getFilter() const;;
+        std::shared_ptr<Transformation> getFilter() const;
+        ;
+
     private:
         std::shared_ptr<LaplacianFilter> m_filter;
     };
-}
+} // namespace slideio
 
 #if defined(_MSC_VER)
-#pragma warning( pop )
+#pragma warning(pop)
 #endif

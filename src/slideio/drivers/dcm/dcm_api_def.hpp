@@ -11,4 +11,3 @@
 #else
 #define SLIDEIO_DCM_EXPORTS
 #endif
-

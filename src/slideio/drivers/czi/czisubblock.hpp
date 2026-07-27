@@ -1,8 +1,7 @@
 // This file is part of slideio project.
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
-#ifndef OPENCV_slideio_czisubblock_HPP
-#define OPENCV_slideio_czisubblock_HPP
+#pragma once
 
 #include "slideio/drivers/czi/czi_api_def.hpp"
 #include "slideio/drivers/czi/czistructs.hpp"
@@ -12,8 +11,8 @@
 #include <vector>
 
 #if defined(_MSC_VER)
-#pragma warning( push )
-#pragma warning(disable: 4251)
+#pragma warning(push)
+#pragma warning(disable : 4251)
 #endif
 
 namespace slideio
@@ -29,8 +28,8 @@ namespace slideio
             JpegXR = 4
         };
         CZISubBlock();
-        int firstChannel() const { return firstDimensionIndex(m_channelIndex);}
-        int lastChannel() const  { return lastDimensionIndex(m_channelIndex); }
+        int firstChannel() const { return firstDimensionIndex(m_channelIndex); }
+        int lastChannel() const { return lastDimensionIndex(m_channelIndex); }
         int firstZSlice() const { return firstDimensionIndex(m_zSliceIndex); }
         int lastZSlice() const { return lastDimensionIndex(m_zSliceIndex); }
         int firstTFrame() const { return firstDimensionIndex(m_tFrameIndex); }
@@ -57,20 +56,21 @@ namespace slideio
         void setupBlock(const SubBlockHeader& subblockHeader, std::vector<DimensionEntryDV>& dimensions);
         bool isInBlock(int channel, int z, int t, int r, int s, int i, int b, int h, int v) const;
         int pixelSize() const { return m_pixelSize; }
-        slideio::DataType dataType() const {return m_dataType;};
-        int planeSize() const {return m_planeSize;}
-        uint64_t dataPosition() const {return m_dataPosition;}
-        uint64_t dataSize() const {return m_dataSize;}
-        Compression compression() const {return static_cast<Compression>(m_compression);}
-        const std::vector<Dimension>& dimensions() const {return m_dimensions;}
+        slideio::DataType dataType() const { return m_dataType; };
+        int planeSize() const { return m_planeSize; }
+        uint64_t dataPosition() const { return m_dataPosition; }
+        uint64_t dataSize() const { return m_dataSize; }
+        Compression compression() const { return static_cast<Compression>(m_compression); }
+        const std::vector<Dimension>& dimensions() const { return m_dimensions; }
         static std::string blockHeaderString()
         {
-            std::string header= "Scene0\tSceneN\tZoom\tX\tY\tWidth\tHeight\t"
-            "Ch0\tChN\tZ0\tZN\tT0\tTN"
-            "\tAcq0\tAcqN\tPhase0\tPhaseN\tIll0\tIllN\tRot0\tRotN\tView0\tViewN";
+            std::string header = "Scene0\tSceneN\tZoom\tX\tY\tWidth\tHeight\t"
+                                 "Ch0\tChN\tZ0\tZN\tT0\tTN"
+                                 "\tAcq0\tAcqN\tPhase0\tPhaseN\tIll0\tIllN\tRot0\tRotN\tView0\tViewN";
             return header;
         }
-        friend std::ostream &operator<<(std::ostream &output, const CZISubBlock &subBlock) {
+        friend std::ostream& operator<<(std::ostream& output, const CZISubBlock& subBlock)
+        {
             output << subBlock.firstScene() << "\t";
             output << subBlock.lastScene() << "\t";
             output << subBlock.m_zoom << "\t";
@@ -97,19 +97,21 @@ namespace slideio
             output << std::endl;
             return output;
         }
+
     private:
         int firstDimensionIndex(int dimension) const
         {
-            if(dimension>=0 && dimension<static_cast<int>(m_dimensions.size()))
+            if (dimension >= 0 && dimension < static_cast<int>(m_dimensions.size()))
                 return m_dimensions[dimension].start;
             return 0;
         }
         int lastDimensionIndex(int dimension) const
         {
             if (dimension >= 0 && dimension < static_cast<int>(m_dimensions.size()))
-                return  (m_dimensions[dimension].start + m_dimensions[dimension].size - 1);
+                return (m_dimensions[dimension].start + m_dimensions[dimension].size - 1);
             return 0;
         }
+
     private:
         slideio::DataType m_dataType;
         cv::Rect m_rect;
@@ -135,10 +137,8 @@ namespace slideio
         std::vector<Dimension> m_dimensions;
     };
     typedef std::vector<CZISubBlock> CZISubBlocks;
-}
+} // namespace slideio
 
 #if defined(_MSC_VER)
-#pragma warning( pop )
-#endif
-
+#pragma warning(pop)
 #endif

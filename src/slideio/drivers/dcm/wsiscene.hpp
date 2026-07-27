@@ -10,15 +10,15 @@
 #include <map>
 
 #if defined(_MSC_VER)
-#pragma warning( push )
-#pragma warning(disable: 4251)
+#pragma warning(push)
+#pragma warning(disable : 4251)
 #endif
 
 namespace slideio
 {
     class DCMScene;
     class DCMSlide;
-    class SLIDEIO_DCM_EXPORTS WSIScene : public CVScene, public Tiler
+    class SLIDEIO_DCM_EXPORTS WSIScene: public CVScene, public Tiler
     {
     public:
         struct TilerData
@@ -28,17 +28,14 @@ namespace slideio
             int tFrameIndex = 0;
             double relativeZoom = 1.;
         };
+
     public:
         WSIScene();
         void addFile(std::shared_ptr<DCMFile>& file);
         void init(const std::string& slideFilePath, int sceneIndex, const std::string& driverId);
         std::string getFilePath() const override;
-        int getSceneIndex() const override {
-            return m_sceneIndex;
-		}
-        const std::string& getDriverId() const override {
-            return m_driverId;
-        }
+        int getSceneIndex() const override { return m_sceneIndex; }
+        const std::string& getDriverId() const override { return m_driverId; }
         std::string getName() const override;
         cv::Rect getRect() const override;
         int getNumChannels() const override;
@@ -46,6 +43,7 @@ namespace slideio
         Resolution getResolution() const override;
         double getMagnification() const override;
         Compression getCompression() const override;
+
     private:
         std::shared_ptr<DCMFile> getBaseFile() const;
 
@@ -53,17 +51,17 @@ namespace slideio
         int getTileCount(void* userData) override;
         bool getTileRect(int tileIndex, cv::Rect& tileRect, void* userData) override;
         bool readTile(int tileIndex, const std::vector<int>& channelIndices, cv::OutputArray tileRaster,
-            void* userData) override;
+                      void* userData) override;
         void initializeBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices,
-            cv::OutputArray output) override;
+                             cv::OutputArray output) override;
         void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
-            const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex,
-            cv::OutputArray output) override;
+                                          const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex,
+                                          cv::OutputArray output) override;
         std::shared_ptr<CVScene> getAuxImage(const std::string& imageName) const override;
 
     private:
         std::vector<std::shared_ptr<DCMFile>> m_files;
-        cv::Rect m_rect = { 0, 0, 0, 0 };
+        cv::Rect m_rect = {0, 0, 0, 0};
         std::string m_name;
         int m_numSlices = 1;
         int m_numFrames = 1;
@@ -72,9 +70,9 @@ namespace slideio
         DataType m_dataType = DataType::DT_Unknown;
         Compression m_compression = Compression::Unknown;
         double m_magnification = 0;
-        Resolution m_resolution = { 0, 0 };
+        Resolution m_resolution = {0, 0};
         std::map<std::string, std::shared_ptr<DCMScene>> m_auxImages;
         int m_sceneIndex = 0;
         std::string m_driverId;
     };
-};
+}; // namespace slideio

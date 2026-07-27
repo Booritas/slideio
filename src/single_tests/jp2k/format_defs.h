@@ -1,3 +1,4 @@
+#pragma once
 /*
  * The copyright in this software is being made available under the 2-clauses
  * BSD License, included below. This software may be subject to other third
@@ -35,9 +36,6 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _OPJ_FORMAT_DEFS_H_
-#define _OPJ_FORMAT_DEFS_H_
-
 #define J2K_CFMT 0
 #define JP2_CFMT 1
 #define JPT_CFMT 2
@@ -51,5 +49,3 @@
 #define TGA_DFMT 16
 #define PNG_DFMT 17
 #define RAWL_DFMT 18 /* LSB / Little Endian */
-
-#endif /* _OPJ_FORMAT_DEFS_H_ */

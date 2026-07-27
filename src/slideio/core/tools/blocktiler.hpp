@@ -9,19 +9,22 @@
 #include <opencv2/core.hpp>
 
 #if defined(_MSC_VER)
-#pragma warning( push )
-#pragma warning(disable: 4251)
+#pragma warning(push)
+#pragma warning(disable : 4251)
 #endif
 
-namespace slideio {
+namespace slideio
+{
     class ITileVisitor;
-    class SLIDEIO_CORE_EXPORTS BlockTiler {
+    class SLIDEIO_CORE_EXPORTS BlockTiler
+    {
     public:
         BlockTiler(const cv::Mat& block, const cv::Size& tileSize);
         void apply(ITileVisitor* visitor) const;
         void apply(std::function<void(int, int, const cv::Mat&)> visitor) const;
+
     private:
         cv::Size m_tileSize;
         cv::Mat m_block;
     };
-}
+} // namespace slideio

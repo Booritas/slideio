@@ -14,25 +14,20 @@
 
 using namespace slideio;
 
-class JsonFormat : public DcmJsonFormatCompact
+class JsonFormat: public DcmJsonFormatCompact
 {
 public:
     bool asBulkDataURI(const DcmTagKey& tag, OFString& uri) override
     {
-        if (tag == DCM_PixelData ||
-            tag == DCM_RETIRED_GrayLookupTableData ||
-            tag == DCM_RedPaletteColorLookupTableData ||
-            tag == DCM_GreenPaletteColorLookupTableData ||
-            tag == DCM_BluePaletteColorLookupTableData ||
-            tag == DCM_AlphaPaletteColorLookupTableData ||
+        if (tag == DCM_PixelData || tag == DCM_RETIRED_GrayLookupTableData ||
+            tag == DCM_RedPaletteColorLookupTableData || tag == DCM_GreenPaletteColorLookupTableData ||
+            tag == DCM_BluePaletteColorLookupTableData || tag == DCM_AlphaPaletteColorLookupTableData ||
             tag == DCM_RETIRED_LargeRedPaletteColorLookupTableData ||
             tag == DCM_RETIRED_LargeGreenPaletteColorLookupTableData ||
             tag == DCM_RETIRED_LargeBluePaletteColorLookupTableData ||
-            tag == DCM_RETIRED_LargePaletteColorLookupTableUID ||
-            tag == DCM_SegmentedRedPaletteColorLookupTableData ||
+            tag == DCM_RETIRED_LargePaletteColorLookupTableUID || tag == DCM_SegmentedRedPaletteColorLookupTableData ||
             tag == DCM_SegmentedGreenPaletteColorLookupTableData ||
-            tag == DCM_SegmentedBluePaletteColorLookupTableData ||
-            tag == DCM_SegmentedAlphaPaletteColorLookupTableData)
+            tag == DCM_SegmentedBluePaletteColorLookupTableData || tag == DCM_SegmentedAlphaPaletteColorLookupTableData)
         {
             return OFTrue;
         }
@@ -46,29 +41,42 @@ static std::string photoInterpetationToString(EPhotoInterpetation photoInt)
 
     switch (photoInt)
     {
-    case EPhotoInterpetation::PHIN_UNKNOWN: return TONAME(PHIN_UNKNOWN);
-    case EPhotoInterpetation::PHIN_MONOCHROME1: return TONAME(PHIN_MONOCHROME1);
-    case EPhotoInterpetation::PHIN_MONOCHROME2: return TONAME(PHIN_MONOCHROME2);
-    case EPhotoInterpetation::PHIN_RGB: return TONAME(PHIN_RGB);
-    case EPhotoInterpetation::PHIN_PALETTE: return TONAME(PHIN_PALETTE);
-    case EPhotoInterpetation::PHIN_YCBCR: return TONAME(PHIN_YCBCR);
-    case EPhotoInterpetation::PHIN_YBR_FULL: return TONAME(PHIN_YBR_FULL);
-    case EPhotoInterpetation::PHIN_YBR_422_FULL: return TONAME(PHIN_YBR_422_FULL);
-    case EPhotoInterpetation::PHIN_HSV: return TONAME(PHIN_HSV);
-    case EPhotoInterpetation::PHIN_ARGB: return TONAME(PHIN_ARGB);
-    case EPhotoInterpetation::PHIN_CMYK: return TONAME(PHIN_CMYK);
-    case EPhotoInterpetation::PHIN_YBR_FULL_422: return TONAME(PHIN_YBR_FULL_422);
-    case EPhotoInterpetation::PHIN_YBR_PARTIAL_420: return TONAME(PHIN_YBR_PARTIAL_420);
-    case EPhotoInterpetation::PHIN_YBR_ICT: return TONAME(PHIN_YBR_ICT);
-    case EPhotoInterpetation::PHIN_YBR_RCT: return TONAME(PHIN_YBR_RCT);
-    default: ;
+    case EPhotoInterpetation::PHIN_UNKNOWN:
+        return TONAME(PHIN_UNKNOWN);
+    case EPhotoInterpetation::PHIN_MONOCHROME1:
+        return TONAME(PHIN_MONOCHROME1);
+    case EPhotoInterpetation::PHIN_MONOCHROME2:
+        return TONAME(PHIN_MONOCHROME2);
+    case EPhotoInterpetation::PHIN_RGB:
+        return TONAME(PHIN_RGB);
+    case EPhotoInterpetation::PHIN_PALETTE:
+        return TONAME(PHIN_PALETTE);
+    case EPhotoInterpetation::PHIN_YCBCR:
+        return TONAME(PHIN_YCBCR);
+    case EPhotoInterpetation::PHIN_YBR_FULL:
+        return TONAME(PHIN_YBR_FULL);
+    case EPhotoInterpetation::PHIN_YBR_422_FULL:
+        return TONAME(PHIN_YBR_422_FULL);
+    case EPhotoInterpetation::PHIN_HSV:
+        return TONAME(PHIN_HSV);
+    case EPhotoInterpetation::PHIN_ARGB:
+        return TONAME(PHIN_ARGB);
+    case EPhotoInterpetation::PHIN_CMYK:
+        return TONAME(PHIN_CMYK);
+    case EPhotoInterpetation::PHIN_YBR_FULL_422:
+        return TONAME(PHIN_YBR_FULL_422);
+    case EPhotoInterpetation::PHIN_YBR_PARTIAL_420:
+        return TONAME(PHIN_YBR_PARTIAL_420);
+    case EPhotoInterpetation::PHIN_YBR_ICT:
+        return TONAME(PHIN_YBR_ICT);
+    case EPhotoInterpetation::PHIN_YBR_RCT:
+        return TONAME(PHIN_YBR_RCT);
+    default:;
     }
-    RAISE_RUNTIME_ERROR << "Unexpected photointerpretation: "
-        << static_cast<int>(photoInt);
+    RAISE_RUNTIME_ERROR << "Unexpected photointerpretation: " << static_cast<int>(photoInt);
 }
 
-DCMFile::DCMFile(const std::string& filePath):
-    m_filePath(filePath)
+DCMFile::DCMFile(const std::string& filePath): m_filePath(filePath)
 {
     m_file.reset(new DcmFileFormat);
 }
@@ -79,36 +87,27 @@ void DCMFile::loadFile()
     std::wstring filePathW = Tools::toWstring(m_filePath);
     OFFilename filename(filePathW.c_str());
     OFCondition status = m_file->loadFile(filename, EXS_Unknown, EGL_noChange, 128, ERM_fileOnly);
-    if(status.bad()) {
-        status = m_file->loadFile(filename);
-    }
+    if (status.bad()) status = m_file->loadFile(filename);
 #else
     OFCondition status = m_file->loadFile(m_filePath.c_str());
 #endif
-    if (status.bad())
-    {
-        RAISE_RUNTIME_ERROR << "DCMImageDriver: Cannot open file: " << m_filePath;
-    }
+    if (status.bad()) RAISE_RUNTIME_ERROR << "DCMImageDriver: Cannot open file: " << m_filePath;
 }
 
 std::shared_ptr<DicomImage> DCMFile::createImage(int firstFrame, int numFrames)
 {
     DcmDataset* dataset = getDataset();
     std::shared_ptr<DicomImage> image;
-    if (!dataset)
-    {
-        RAISE_RUNTIME_ERROR << "DCMImageDriver: unexpected null as dataset for file " << m_filePath;
-    }
-    E_TransferSyntax xfer = EXS_Unknown;// dataset->getOriginalXfer();
+    if (!dataset) RAISE_RUNTIME_ERROR << "DCMImageDriver: unexpected null as dataset for file " << m_filePath;
+    E_TransferSyntax xfer = EXS_Unknown; // dataset->getOriginalXfer();
     image.reset(new DicomImage(dataset, xfer, CIF_UsePartialAccessToPixelData, (ulong)firstFrame, (ulong)numFrames));
     if (image->getStatus() != EIS_Normal)
     {
-        RAISE_RUNTIME_ERROR << "DCMImageDriver: cannot decompress file " << m_filePath << ". Image status: "
-            << image->getStatus();
+        RAISE_RUNTIME_ERROR << "DCMImageDriver: cannot decompress file " << m_filePath
+                            << ". Image status: " << image->getStatus();
     }
     return image;
 }
-
 
 void DCMFile::init()
 {
@@ -125,92 +124,61 @@ void DCMFile::init()
     getStringTag(DCM_ImageType, 2, m_imageType);
 
     m_WSISlide = (sopClassUID == UID_VLWholeSlideMicroscopyImageStorage);
-    if (dimensionOrganization == "TILED_FULL") {
-        m_bTiled = true;
-    }
+    if (dimensionOrganization == "TILED_FULL") m_bTiled = true;
 
-    if(!m_bTiled)
+    if (!m_bTiled)
     {
-        try {
+        try
+        {
             image = createImage();
         }
-        catch (slideio::RuntimeError& err) {
+        catch (slideio::RuntimeError& err)
+        {
             m_decompressWholeFile = true;
-            SLIDEIO_LOG(WARNING) << "DCMFile::init: Cannot create DicomImage instance for the file:"
-                << m_filePath
-                << ". Trying to decomress the whole file. Error message:"
-                << err.what();
-			auto xpr = Endian::isLittleEndian() ? EXS_LittleEndianExplicit : EXS_BigEndianExplicit;
+            SLIDEIO_LOG(WARNING) << "DCMFile::init: Cannot create DicomImage instance for the file:" << m_filePath
+                                 << ". Trying to decomress the whole file. Error message:" << err.what();
+            auto xpr = Endian::isLittleEndian() ? EXS_LittleEndianExplicit : EXS_BigEndianExplicit;
             OFCondition cond = dataset->chooseRepresentation(xpr, nullptr);
-            if (!cond.good()) {
-                RAISE_RUNTIME_ERROR << "DCMFile::init Cannot decompress the file "
-                    << m_filePath
-                    << ". Error message:"
-                    << cond.text();
+            if (!cond.good())
+            {
+                RAISE_RUNTIME_ERROR << "DCMFile::init Cannot decompress the file " << m_filePath
+                                    << ". Error message:" << cond.text();
             }
         }
     }
 
     if (!getIntTag(DCM_Columns, m_width))
-    {
         RAISE_RUNTIME_ERROR << "DCMImageDriver: Cannot extract image width for the file:" << m_filePath;
-    }
     if (!getIntTag(DCM_Rows, m_height))
-    {
         RAISE_RUNTIME_ERROR << "DCMImageDriver: Cannot extract image height for the file:" << m_filePath;
-    }
-    if (!getIntTag(DCM_NumberOfFrames, m_slices))
-    {
-        m_slices = 1;
-    }
-    if (!getStringTag(DCM_SeriesInstanceUID, m_seriesUID))
-    {
-        m_seriesUID = "Unknown series";
-    }
-    if (!getStringTag(DCM_Modality, m_modality)) {
-        m_modality = "Unknown modality";
-    }
-    if (!getIntTag(DCM_InstanceNumber, m_instanceNumber))
-    {
-        m_instanceNumber = -1;
-    }
-    if (!getIntTag(DCM_SamplesPerPixel, m_numChannels))
-    {
-        m_numChannels = 1;
-    }
-    if(!getDblTag(DCM_EmmetropicMagnification, m_magnification, 0)) {
+    if (!getIntTag(DCM_NumberOfFrames, m_slices)) m_slices = 1;
+    if (!getStringTag(DCM_SeriesInstanceUID, m_seriesUID)) m_seriesUID = "Unknown series";
+    if (!getStringTag(DCM_Modality, m_modality)) m_modality = "Unknown modality";
+    if (!getIntTag(DCM_InstanceNumber, m_instanceNumber)) m_instanceNumber = -1;
+    if (!getIntTag(DCM_SamplesPerPixel, m_numChannels)) m_numChannels = 1;
+    if (!getDblTag(DCM_EmmetropicMagnification, m_magnification, 0))
         getDblTag(DCM_OpticalMagnificationFactor, m_magnification, 0);
-    }
-    m_useWindowing = getDblTag(DCM_WindowCenter, m_windowCenter, -1.) &&
-        getDblTag(DCM_WindowWidth, m_windowWidth, -1.);
+    m_useWindowing = getDblTag(DCM_WindowCenter, m_windowCenter, -1.) && getDblTag(DCM_WindowWidth, m_windowWidth, -1.);
 
     getDblTag(DCM_RescaleSlope, m_rescaleSlope, 1.);
     getDblTag(DCM_RescaleIntercept, m_rescaleIntercept, 0.);
     m_useRescaling = std::abs(m_rescaleSlope - 1.) > 1.e-6 || m_rescaleIntercept > 0.9;
 
-    if(!dataset->findAndGetFloat64(DCM_PixelSpacing, m_resolution.x, 0).good()) {
-        m_resolution.x = 0.;
-    }
-    if (!dataset->findAndGetFloat64(DCM_PixelSpacing, m_resolution.y, 1).good()) {
-        m_resolution.y = 0.;
-    }
+    if (!dataset->findAndGetFloat64(DCM_PixelSpacing, m_resolution.x, 0).good()) m_resolution.x = 0.;
+    if (!dataset->findAndGetFloat64(DCM_PixelSpacing, m_resolution.y, 1).good()) m_resolution.y = 0.;
 
     getStringTag(DCM_SeriesDescription, m_seriesDescription);
     int bitsStored = 0;
     getIntTag(DCM_BitsStored, bitsStored);
     if (!getIntTag(DCM_BitsAllocated, m_bitsAllocated))
-    {
         RAISE_RUNTIME_ERROR << "DCMImageDriver: undefined valude for DCM_BitsAllocated tag. File:" << m_filePath;
-    }
 
     int pixelRepresentation(0);
     if (!getIntTag(DCM_PixelRepresentation, pixelRepresentation))
-    {
         RAISE_RUNTIME_ERROR << "DCMImageDriver: undefined value for DCM_PixelRepresentation tag. File:" << m_filePath;
-    }
     const int PXREP_SIGNED = 1;
     const int PXREP_UNSIGNED = 0;
-    const int bits = image.get()?image->getDepth(): m_bitsAllocated;
+    const int bits = image.get() ? image->getDepth() : m_bitsAllocated;
 
     if (bits == 8)
     {
@@ -222,35 +190,30 @@ void DCMFile::init()
     }
     else
     {
-        RAISE_RUNTIME_ERROR << "DCMImageDriver: unexpected value for allocated bits: "
-            << bits << "(" << m_bitsAllocated << ")";
+        RAISE_RUNTIME_ERROR << "DCMImageDriver: unexpected value for allocated bits: " << bits << "(" << m_bitsAllocated
+                            << ")";
     }
     int planarConfiguration(0);
-    if (!getIntTag(DCM_PlanarConfiguration, planarConfiguration))
-    {
-        planarConfiguration = 0;
-    }
+    if (!getIntTag(DCM_PlanarConfiguration, planarConfiguration)) planarConfiguration = 0;
     m_planarConfiguration = planarConfiguration == 1;
     initPhotoInterpretaion();
     logData();
     defineCompression();
-    if (m_photoInterpretation == EPhotoInterpetation::PHIN_PALETTE)
+    if (m_photoInterpretation == EPhotoInterpetation::PHIN_PALETTE) m_numChannels = 3;
+
+    if (m_WSISlide && m_bTiled)
     {
-        m_numChannels = 3;
-    }
-
-
-    if(m_WSISlide && m_bTiled) {
         m_frames = m_slices;
         m_slices = 1;
-        m_tileSize = { m_width, m_height };
+        m_tileSize = {m_width, m_height};
         m_width = m_height = 0;
-        if(!getIntTag(DCM_TotalPixelMatrixColumns, m_width)) {
-            RAISE_RUNTIME_ERROR << "DCMImageDriver: Cannot extract total pixel matrix columns for WSI file:" << m_filePath;
+        if (!getIntTag(DCM_TotalPixelMatrixColumns, m_width))
+        {
+            RAISE_RUNTIME_ERROR << "DCMImageDriver: Cannot extract total pixel matrix columns for WSI file:"
+                                << m_filePath;
         }
-        if (!getIntTag(DCM_TotalPixelMatrixRows, m_height)) {
+        if (!getIntTag(DCM_TotalPixelMatrixRows, m_height))
             RAISE_RUNTIME_ERROR << "DCMImageDriver: Cannot extract total pixel matrix rows for WSI file:" << m_filePath;
-        }
     }
 }
 
@@ -299,7 +262,7 @@ void DCMFile::defineCompression()
     case EXS_JPEG2000Multicomponent:
         m_compression = Compression::Jpeg2000;
         break;
-    default: ;
+    default:;
         SLIDEIO_LOG(WARNING) << "DCMImageDriver: Unknown xTransfer:" << xfer << " for file " << m_filePath;
     }
 }
@@ -363,8 +326,8 @@ void DCMFile::initPhotoInterpretaion()
         }
         else
         {
-            RAISE_RUNTIME_ERROR << "DCMImageDriver: Unexpected photointerpretation:" << photoInt
-                << " for file " << m_filePath;
+            RAISE_RUNTIME_ERROR << "DCMImageDriver: Unexpected photointerpretation:" << photoInt << " for file "
+                                << m_filePath;
         }
     }
 }
@@ -372,20 +335,20 @@ void DCMFile::initPhotoInterpretaion()
 void DCMFile::logData()
 {
     SLIDEIO_LOG(INFO) << "DICOM file: " << m_filePath << std::endl
-        << "Width:" << m_width << std::endl
-        << "Height:" << m_height << std::endl
-        << "Slices:" << m_slices << std::endl
-        << "Series UID:" << m_seriesUID << std::endl
-        << "Series description:" << m_seriesDescription << std::endl
-        << "Channels:" << m_numChannels << std::endl
-        << "Data type:" << CVTools::dataTypeToString(m_dataType) << std::endl
-        << "Planar configuration:" << m_planarConfiguration << std::endl
-        << "Photointerpretation:" << photoInterpetationToString(m_photoInterpretation) << std::endl
-        << "Compression:" << CVTools::compressionToString(m_compression) << std::endl
-        << "Window center:" << m_windowCenter << std::endl
-        << "Window width" << m_windowWidth << std::endl
-        << "Slope:" << m_rescaleSlope << std::endl
-        << "Intercept:" << m_rescaleIntercept << std::endl;
+                      << "Width:" << m_width << std::endl
+                      << "Height:" << m_height << std::endl
+                      << "Slices:" << m_slices << std::endl
+                      << "Series UID:" << m_seriesUID << std::endl
+                      << "Series description:" << m_seriesDescription << std::endl
+                      << "Channels:" << m_numChannels << std::endl
+                      << "Data type:" << CVTools::dataTypeToString(m_dataType) << std::endl
+                      << "Planar configuration:" << m_planarConfiguration << std::endl
+                      << "Photointerpretation:" << photoInterpetationToString(m_photoInterpretation) << std::endl
+                      << "Compression:" << CVTools::compressionToString(m_compression) << std::endl
+                      << "Window center:" << m_windowCenter << std::endl
+                      << "Window width" << m_windowWidth << std::endl
+                      << "Slope:" << m_rescaleSlope << std::endl
+                      << "Intercept:" << m_rescaleIntercept << std::endl;
 }
 
 inline int getPixelRepresentationDataSize(EP_Representation rep)
@@ -429,43 +392,27 @@ void DCMFile::readFrames(std::vector<cv::Mat>& frames, int startFrame, int numFr
 {
     SLIDEIO_LOG(INFO) << "Read " << numFrames << " pixel frames starting from " << startFrame << " frame.";
     frames.resize(numFrames);
-    for(int frameIndex=startFrame, frameCount=0; frameCount<numFrames; ++frameIndex, ++frameCount) {
+    for (int frameIndex = startFrame, frameCount = 0; frameCount < numFrames; ++frameIndex, ++frameCount)
         readFrame(frameIndex, frames[frameCount]);
-    }
 }
 
 void DCMFile::extractPixelsWholeFileDecompression(std::vector<cv::Mat>& frames, int startFrame, int numFrames)
 {
     SLIDEIO_LOG(INFO) << "Extracting pixel values with whole file decompression.";
     DcmDataset* dataset = getDataset();
-    if (!dataset)
-    {
-        RAISE_RUNTIME_ERROR << "DCMImageDriver: unexpected null as dataset for file " << m_filePath;
-    }
+    if (!dataset) RAISE_RUNTIME_ERROR << "DCMImageDriver: unexpected null as dataset for file " << m_filePath;
 
     DcmElement* elem = nullptr;
     OFCondition cond = dataset->findAndGetElement(DCM_PixelData, elem);
-    if(!cond.good())
-    {
-        RAISE_RUNTIME_ERROR << "DCMImageDriver: Cannot extract pixel data. Error:"
-            << cond.text();
-    }
+    if (!cond.good()) RAISE_RUNTIME_ERROR << "DCMImageDriver: Cannot extract pixel data. Error:" << cond.text();
     DcmEVR evr = elem->getVR();
     uint8_t* data(nullptr);
     if (evr == EVR_OW)
-    {
         cond = elem->getUint16Array((Uint16*&)data);
-    }
     else // evr == EVR_OB
-    {
         cond = elem->getUint8Array((Uint8*&)data);
-    }
 
-    if(!cond.good())
-    {
-        RAISE_RUNTIME_ERROR << "DCMImageDriver: Error by getting pixel array. Message:"
-            << cond.text();
-    }
+    if (!cond.good()) RAISE_RUNTIME_ERROR << "DCMImageDriver: Error by getting pixel array. Message:" << cond.text();
     const int dataSize = elem->getLength();
     const int numFileFrames = getNumSlices();
     const int numChannels = getNumChannels();
@@ -477,25 +424,23 @@ void DCMFile::extractPixelsWholeFileDecompression(std::vector<cv::Mat>& frames, 
     const int numFrameBytes = ds * numFramePixels;
 
     std::vector<uint16_t> dataBuff;
-    if(m_bitsAllocated==12 && (dt == DataType::DT_Int16 || dt == DataType::DT_UInt16) && dataSize == (numFrameBytes/4)*3)
+    if (m_bitsAllocated == 12 && (dt == DataType::DT_Int16 || dt == DataType::DT_UInt16) &&
+        dataSize == (numFrameBytes / 4) * 3)
     {
         // workaround for 12 allocated bit pixels
         dataBuff.resize(numFramePixels);
         Tools::convert12BitsTo16Bits(data, dataBuff.data(), numFramePixels);
         data = (uint8_t*)dataBuff.data();
     }
-    else
+    else if (dataSize != numFrameBytes)
     {
-        if(dataSize != numFrameBytes)
-        {
-            RAISE_RUNTIME_ERROR << "DCMImageDriver: Unexpected size of pixel data. Expected: "
-                << numFrameBytes << ". Received: " << dataSize;
-        }
+        RAISE_RUNTIME_ERROR << "DCMImageDriver: Unexpected size of pixel data. Expected: " << numFrameBytes
+                            << ". Received: " << dataSize;
     }
 
     frames.resize(numFrames);
     const uint8_t* frameDataPtr = data + startFrame * numFrameBytes;
-    for(int frame=0; frame<numFrames; ++frame, frameDataPtr += numFrameBytes)
+    for (int frame = 0; frame < numFrames; ++frame, frameDataPtr += numFrameBytes)
     {
         if (numChannels == 1)
         {
@@ -512,30 +457,25 @@ void DCMFile::extractPixelsWholeFileDecompression(std::vector<cv::Mat>& frames, 
             cv::Mat channelR(getHeight(), getWidth(), CV_MAKE_TYPE(cvType, 1), red);
             cv::Mat channelG(getHeight(), getWidth(), CV_MAKE_TYPE(cvType, 1), green);
             cv::Mat channelB(getHeight(), getWidth(), CV_MAKE_TYPE(cvType, 1), blue);
-            std::vector<cv::Mat> rgb = { channelR, channelG, channelB };
+            std::vector<cv::Mat> rgb = {channelR, channelG, channelB};
             cv::merge(rgb, frames[frame]);
         }
         else
         {
-            RAISE_RUNTIME_ERROR <<
-                "DCMImageDriver: Unexpected number of channels received for a frame. Accepted values: 1 or 3."
+            RAISE_RUNTIME_ERROR
+                << "DCMImageDriver: Unexpected number of channels received for a frame. Accepted values: 1 or 3."
                 << " Received: " << numChannels << ". File:" << m_filePath;
         }
-
     }
 }
 
 void DCMFile::readPixelValues(std::vector<cv::Mat>& frames, int startFrame, int numFrames)
 {
     SLIDEIO_LOG(INFO) << "Extracting pixel values from the dataset";
-    if(!m_decompressWholeFile)
-    {
+    if (!m_decompressWholeFile)
         readFrames(frames, startFrame, numFrames);
-    }
     else
-    {
         extractPixelsWholeFileDecompression(frames, startFrame, numFrames);
-    }
 }
 
 std::string DCMFile::getMetadata()
@@ -545,15 +485,10 @@ std::string DCMFile::getMetadata()
     std::stringstream os;
     os << "{";
     const OFCondition code = dataset->writeJson(os, format);
-    if (!code.good())
-    {
-        RAISE_RUNTIME_ERROR << "DCMImageDriver: Error by retrieving of metadata. "
-            << code.text();
-    }
+    if (!code.good()) RAISE_RUNTIME_ERROR << "DCMImageDriver: Error by retrieving of metadata. " << code.text();
     os << "}";
     return os.str();
 }
-
 
 DcmDataset* DCMFile::getDataset() const
 {
@@ -562,15 +497,9 @@ DcmDataset* DCMFile::getDataset() const
 
 DcmDataset* DCMFile::getValidDataset() const
 {
-    if (!m_file)
-    {
-        RAISE_RUNTIME_ERROR << "DCMImageDriver: uninitialized DICOM file:" << m_filePath;
-    }
+    if (!m_file) RAISE_RUNTIME_ERROR << "DCMImageDriver: uninitialized DICOM file:" << m_filePath;
     DcmDataset* dataset = m_file->getDataset();
-    if (!dataset)
-    {
-        RAISE_RUNTIME_ERROR << "DCMImageDriver: cannot retrieve DICOM dataset from file:" << m_filePath;
-    }
+    if (!dataset) RAISE_RUNTIME_ERROR << "DCMImageDriver: cannot retrieve DICOM dataset from file:" << m_filePath;
     return dataset;
 }
 
@@ -581,10 +510,7 @@ bool DCMFile::getIntTag(const DcmTagKey& tag, int& value, int pos) const
     DcmDataset* dataset = getValidDataset();
 
     OFCondition cond = dataset->findAndGetElement(tag, element);
-    if (cond != EC_Normal)
-    {
-        element = nullptr;
-    }
+    if (cond != EC_Normal) element = nullptr;
 
     if (nullptr == element)
     {
@@ -631,10 +557,7 @@ bool DCMFile::getDblTag(const DcmTagKey& tag, double& value, double defaultValue
     DcmDataset* dataset = getValidDataset();
 
     OFCondition cond = dataset->findAndGetElement(tag, element);
-    if (cond != EC_Normal)
-    {
-        element = nullptr;
-    }
+    if (cond != EC_Normal) element = nullptr;
 
     if (nullptr == element)
     {
@@ -642,13 +565,9 @@ bool DCMFile::getDblTag(const DcmTagKey& tag, double& value, double defaultValue
         return false;
     }
     if (dataset->findAndGetFloat64(tag, value).good())
-    {
         ok = true;
-    }
     else
-    {
         value = defaultValue;
-    }
     return ok;
 }
 
@@ -666,12 +585,14 @@ bool DCMFile::getStringTag(const DcmTagKey& tag, std::string& value) const
     return ok;
 }
 
-bool DCMFile::getStringTag(const DcmTagKey& tag, int index, std::string& value) const {
+bool DCMFile::getStringTag(const DcmTagKey& tag, int index, std::string& value) const
+{
     bool ok(false);
     bool bRet(false);
     DcmDataset* dataset = getValidDataset();
     OFString dstrVal;
-    if (dataset->findAndGetOFString(tag, dstrVal, 2, OFTrue).good()) {
+    if (dataset->findAndGetOFString(tag, dstrVal, 2, OFTrue).good())
+    {
         value = dstrVal.c_str();
         ok = true;
     }
@@ -689,15 +610,14 @@ bool DCMFile::isDicomDirFile(const std::string& filePath)
         {
             OFString dstrVal;
             if (metainfo->findAndGetOFString(DCM_MediaStorageSOPClassUID, dstrVal).good())
-            {
                 isDicomDir = dstrVal == UID_MediaStorageDirectoryStorage;
-            }
         }
     }
     return isDicomDir;
 }
 
-bool DCMFile::isWSIFile(const std::string& filePath) {
+bool DCMFile::isWSIFile(const std::string& filePath)
+{
     bool isWSI = false;
     DcmFileFormat file;
     if (file.loadFile(filePath.c_str()).good())
@@ -707,36 +627,34 @@ bool DCMFile::isWSIFile(const std::string& filePath) {
         {
             OFString sopClassUID;
             if (dataset->findAndGetOFString(DCM_SOPClassUID, sopClassUID).good())
-            {
                 isWSI = sopClassUID == UID_VLWholeSlideMicroscopyImageStorage;
-            }
         }
     }
     return isWSI;
 }
 
-bool DCMFile::getTileRect(int tileIndex, cv::Rect& tileRect) const{
-    if(!m_WSISlide) {
+bool DCMFile::getTileRect(int tileIndex, cv::Rect& tileRect) const
+{
+    if (!m_WSISlide)
         RAISE_RUNTIME_ERROR << "DCMFile::getTileRect: the file " << getFilePath() << " is not a WSI slide.";
+    if (tileIndex < 0 || tileIndex >= m_frames)
+    {
+        RAISE_RUNTIME_ERROR << "DCMFile::getTileRect: tile index is out of range. Number of tiles: " << m_frames
+                            << " . Received index: " << tileIndex;
     }
-    if(tileIndex < 0 || tileIndex >= m_frames) {
-        RAISE_RUNTIME_ERROR << "DCMFile::getTileRect: tile index is out of range. Number of tiles: "
-            << m_frames << " . Received index: " << tileIndex;
-    }
-    const int tilesX = (m_width - 1)/m_tileSize.width + 1;
+    const int tilesX = (m_width - 1) / m_tileSize.width + 1;
     const int col = tileIndex % tilesX;
     const int row = tileIndex / tilesX;
-    tileRect = cv::Rect(col*m_tileSize.width, row*m_tileSize.height, m_tileSize.width, m_tileSize.height);
+    tileRect = cv::Rect(col * m_tileSize.width, row * m_tileSize.height, m_tileSize.width, m_tileSize.height);
     return true;
 }
 
-bool DCMFile::readFrame(int frameIndex, cv::OutputArray frame) {
+bool DCMFile::readFrame(int frameIndex, cv::OutputArray frame)
+{
     SLIDEIO_LOG(INFO) << "Extracting pixel values with partial decompression.";
 
     DcmDataset* dataset = getDataset();
-    if (!dataset) {
-        RAISE_RUNTIME_ERROR << "DCMImageDriver: unexpected null as dataset for file " << m_filePath;
-    }
+    if (!dataset) RAISE_RUNTIME_ERROR << "DCMImageDriver: unexpected null as dataset for file " << m_filePath;
     E_TransferSyntax xfer = dataset->getOriginalXfer();
     std::shared_ptr<DicomImage> image = createImage((ulong)frameIndex, (ulong)1);
 
@@ -747,16 +665,15 @@ bool DCMFile::readFrame(int frameIndex, cv::OutputArray frame) {
     const int cvDataType = CVTools::toOpencvType(dt);
     const int bits = image->getDepth();
     const int frameSize = image->getOutputDataSize(bits);
-	const int numFrameBytes = numChannels * numFramePixels * Tools::dataTypeSize(getDataType());
-	if (numFrameBytes != frameSize) {
-		RAISE_RUNTIME_ERROR << "DCMImageDriver: Unexpected size of pixel data. Expected: "
-			<< numFrameBytes << ". Received: " << frameSize;
-	}
-	frame.create(image->getHeight(), image->getWidth(), CV_MAKE_TYPE(cvDataType, numChannels));
-	cv::Mat& mat = frame.getMatRef();
-    if(!image->getOutputData(mat.data, frameSize, bits)) {
-		RAISE_RUNTIME_ERROR << "DCMImageDriver: Cannot extract pixel data from file " << m_filePath;
+    const int numFrameBytes = numChannels * numFramePixels * Tools::dataTypeSize(getDataType());
+    if (numFrameBytes != frameSize)
+    {
+        RAISE_RUNTIME_ERROR << "DCMImageDriver: Unexpected size of pixel data. Expected: " << numFrameBytes
+                            << ". Received: " << frameSize;
     }
+    frame.create(image->getHeight(), image->getWidth(), CV_MAKE_TYPE(cvDataType, numChannels));
+    cv::Mat& mat = frame.getMatRef();
+    if (!image->getOutputData(mat.data, frameSize, bits))
+        RAISE_RUNTIME_ERROR << "DCMImageDriver: Cannot extract pixel data from file " << m_filePath;
     return true;
 }
-

@@ -8,7 +8,7 @@
 
 namespace slideio
 {
-    class SLIDEIO_PKE_EXPORTS PKEImageDriver : public slideio::ImageDriver
+    class SLIDEIO_PKE_EXPORTS PKEImageDriver: public slideio::ImageDriver
     {
     public:
         PKEImageDriver();
@@ -17,5 +17,4 @@ namespace slideio
         std::shared_ptr<slideio::CVSlide> openFile(const std::string& filePath) override;
         std::string getFileSpecs() const override;
     };
-}
-
+} // namespace slideio

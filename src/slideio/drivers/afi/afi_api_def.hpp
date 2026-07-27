@@ -11,4 +11,3 @@
 #else
 #define SLIDEIO_AFI_EXPORTS
 #endif
-

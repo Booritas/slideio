@@ -8,44 +8,43 @@
 #include "slideio/core/tools/tilecomposer.hpp"
 
 #if defined(_MSC_VER)
-#pragma warning( push )
-#pragma warning(disable: 4251)
+#pragma warning(push)
+#pragma warning(disable : 4251)
 #endif
 
 namespace slideio
 {
-    class SLIDEIO_PKE_EXPORTS PKETiledScene : public PKEScene, public Tiler
+    class SLIDEIO_PKE_EXPORTS PKETiledScene: public PKEScene, public Tiler
     {
     public:
-        PKETiledScene(const std::string& filePath,
-			          int sceneIndex,
-			          const std::string& driverId,
-                      const std::string& name,
+        PKETiledScene(const std::string& filePath, int sceneIndex, const std::string& driverId, const std::string& name,
                       const std::vector<slideio::TiffDirectory>& dirs);
-        PKETiledScene(const std::string& filePath,
-			int sceneIndex,
-            const std::string& driverId,
-            libtiff::TIFF* hFile,
-            const std::string& name,
-            const std::vector<slideio::TiffDirectory>& dirs);
+        PKETiledScene(const std::string& filePath, int sceneIndex, const std::string& driverId, libtiff::TIFF* hFile,
+                      const std::string& name, const std::vector<slideio::TiffDirectory>& dirs);
         int getNumChannels() const override;
         cv::Rect getRect() const override;
         void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
-            const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output) override;
+                                          const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex,
+                                          cv::OutputArray output) override;
         int findZoomLevel(double zoom) const;
         // Tiler methods
         int getTileCount(void* userData) override;
         bool getTileRect(int tileIndex, cv::Rect& tileRect, void* userData) override;
         bool readTile(int tileIndex, const std::vector<int>& channelIndices, cv::OutputArray tileRaster,
-            void* userData) override;
-        void initializeBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices, cv::OutputArray output) override;
+                      void* userData) override;
+        void initializeBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices,
+                             cv::OutputArray output) override;
         std::string getChannelName(int channel) const override;
         bool isBrightField() const;
+
     private:
         void initialize();
         void initializeChannelNames();
-        bool readTiffTile(int tileIndex, int zoomLevel, const std::vector<int>& channelIndices, cv::OutputArray tileRaster);
-        bool readTiffDirectory(const TiffDirectory& dir, const std::vector<int>& channelIndices, cv::OutputArray tileRaster);
+        bool readTiffTile(int tileIndex, int zoomLevel, const std::vector<int>& channelIndices,
+                          cv::OutputArray tileRaster);
+        bool readTiffDirectory(const TiffDirectory& dir, const std::vector<int>& channelIndices,
+                               cv::OutputArray tileRaster);
+
     private:
         std::vector<slideio::TiffDirectory> m_directories;
         bool m_isUnmixed = false;
@@ -53,8 +52,8 @@ namespace slideio
         int m_numChannels = 0;
         std::vector<std::string> m_channelNames;
     };
-}
+} // namespace slideio
 
 #if defined(_MSC_VER)
-#pragma warning( pop )
+#pragma warning(pop)
 #endif

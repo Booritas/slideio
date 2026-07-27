@@ -11,4 +11,3 @@
 #else
 #define SLIDEIO_BASE_EXPORTS
 #endif
-

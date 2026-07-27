@@ -10,15 +10,15 @@ namespace slideio
     class ImageDriver;
     class CVScene;
     class CVSlide;
-}
+} // namespace slideio
 
 class TestTools
 {
 public:
-	static bool isPrivateTestEnabled();
+    static bool isPrivateTestEnabled();
     static bool isFullTestEnabled();
-    static std::string getTestImageDirectory(bool priv=false);
-	static std::string getTestImagePath(const std::string& subfolder, const std::string& image, bool priv=false);
+    static std::string getTestImageDirectory(bool priv = false);
+    static std::string getTestImagePath(const std::string& subfolder, const std::string& image, bool priv = false);
     static std::string getFullTestImagePath(const std::string& subfolder, const std::string& image);
     static void readRawImage(const std::string& path, cv::Mat& image);
     static void writeRawImage(const std::string& path, const cv::Mat& image);
@@ -30,13 +30,15 @@ public:
     static void writePNG(cv::Mat raster, const std::string& filePath);
     static void readPNG(const std::string& filePath, cv::OutputArray output);
     static void readTiffDirectory(const std::string& filePath, int dir, cv::OutputArray output);
-    static void readTiffDirectories(const std::string& filePath, const std::vector<int>& dirIndices, cv::OutputArray output);
+    static void readTiffDirectories(const std::string& filePath, const std::vector<int>& dirIndices,
+                                    cv::OutputArray output);
     static size_t countNonZero(const cv::Mat& mat);
-    static bool starts_with(const std::string& str, const std::string& prefix) {
-        return str.size() >= prefix.size() &&
-           std::equal(prefix.begin(), prefix.end(), str.begin());
+    static bool starts_with(const std::string& str, const std::string& prefix)
+    {
+        return str.size() >= prefix.size() && std::equal(prefix.begin(), prefix.end(), str.begin());
     }
-    static void multiThreadedTest(const std::string& filePath, slideio::ImageDriver& driver, int numberRois = 5, int numThreads = 30);
-    static std::shared_ptr<slideio::CVScene> findScene(std::shared_ptr<slideio::CVSlide> slide, const std::string& name);
+    static void multiThreadedTest(const std::string& filePath, slideio::ImageDriver& driver, int numberRois = 5,
+                                  int numThreads = 30);
+    static std::shared_ptr<slideio::CVScene> findScene(std::shared_ptr<slideio::CVSlide> slide,
+                                                       const std::string& name);
 };
-

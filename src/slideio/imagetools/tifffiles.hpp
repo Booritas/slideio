@@ -11,12 +11,13 @@ namespace libtiff
 {
     struct tiff;
     typedef tiff TIFF;
-}
+} // namespace libtiff
 
 namespace slideio
 {
 
-    class SLIDEIO_IMAGETOOLS_EXPORTS TIFFFiles {
+    class SLIDEIO_IMAGETOOLS_EXPORTS TIFFFiles
+    {
     public:
         TIFFFiles() = default;
         TIFFFiles(const TIFFFiles&) = delete;
@@ -27,11 +28,12 @@ namespace slideio
         libtiff::TIFF* getOrOpen(const std::string& filename);
         void close(const std::string& filename);
         void closeAll();
-		int getNumberOfOpenFiles() const { return static_cast<int>(m_openFiles.size());}
-		int getOpenFileCounter() const { return m_openFileCounter; }
+        int getNumberOfOpenFiles() const { return static_cast<int>(m_openFiles.size()); }
+        int getOpenFileCounter() const { return m_openFileCounter; }
+
     private:
         std::unordered_map<std::string, std::shared_ptr<libtiff::TIFF>> m_openFiles;
-		int m_openFileCounter = 0;
+        int m_openFileCounter = 0;
     };
 
-}
+} // namespace slideio

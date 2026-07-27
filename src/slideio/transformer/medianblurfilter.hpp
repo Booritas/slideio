@@ -8,51 +8,39 @@
 namespace slideio
 {
 
-    class SLIDEIO_TRANSFORMER_EXPORTS MedianBlurFilter : public TransformationEx
+    class SLIDEIO_TRANSFORMER_EXPORTS MedianBlurFilter: public TransformationEx
     {
     public:
-        MedianBlurFilter()
-        {
-            m_type = TransformationType::MedianBlurFilter;
-        }
+        MedianBlurFilter() { m_type = TransformationType::MedianBlurFilter; }
 
-        MedianBlurFilter(const MedianBlurFilter& other)
-            : TransformationEx(other),
-              m_kernelSize(other.m_kernelSize) {
-        }
+        MedianBlurFilter(const MedianBlurFilter& other): TransformationEx(other), m_kernelSize(other.m_kernelSize) {}
 
         MedianBlurFilter(MedianBlurFilter&& other) noexcept
-            : TransformationEx(std::move(other)),
-              m_kernelSize(other.m_kernelSize) {
+            : TransformationEx(std::move(other)), m_kernelSize(other.m_kernelSize)
+        {
         }
 
-        MedianBlurFilter& operator=(const MedianBlurFilter& other) {
-            if (this == &other)
-                return *this;
-            TransformationEx::operator =(other);
+        MedianBlurFilter& operator=(const MedianBlurFilter& other)
+        {
+            if (this == &other) return *this;
+            TransformationEx::operator=(other);
             m_kernelSize = other.m_kernelSize;
             return *this;
         }
 
-        MedianBlurFilter& operator=(MedianBlurFilter&& other) noexcept {
-            if (this == &other)
-                return *this;
-            TransformationEx::operator =(std::move(other));
+        MedianBlurFilter& operator=(MedianBlurFilter&& other) noexcept
+        {
+            if (this == &other) return *this;
+            TransformationEx::operator=(std::move(other));
             m_kernelSize = other.m_kernelSize;
             return *this;
         }
 
         virtual ~MedianBlurFilter() = default;
 
-        int getKernelSize() const
-        {
-            return m_kernelSize;
-        }
+        int getKernelSize() const { return m_kernelSize; }
 
-        void setKernelSize(int kernelSize)
-        {
-            m_kernelSize = kernelSize;
-        }
+        void setKernelSize(int kernelSize) { m_kernelSize = kernelSize; }
 
         void applyTransformation(const cv::Mat& block, cv::OutputArray transformedBlock) const override;
         int getInflationValue() const override;
@@ -61,4 +49,4 @@ namespace slideio
         int m_kernelSize = 5;
     };
 
-}
+} // namespace slideio

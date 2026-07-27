@@ -45,7 +45,6 @@ TEST(Filters, applyTransformationGaussianBlur)
     cv::Mat testImage;
     cv::GaussianBlur(originImage, testImage, cv::Size(kernelSize, kernelSize), 0);
     TestTools::compareRasters(testImage, transformedImage);
-
 }
 
 TEST(Filters, applyTransformationMedianBlur)
@@ -150,9 +149,11 @@ TEST(Filters, readBlockWholeImageSobel)
     filter.setDx(1);
     filter.setDy(0);
     std::shared_ptr<slideio::Scene> transformedScene = transformScene(originScene, filter);
-    std::vector<unsigned char> transformedBuffer(width*height*originScene->getNumChannels()*CVTools::cvGetDataTypeSize(dt));
+    std::vector<unsigned char> transformedBuffer(width * height * originScene->getNumChannels() *
+                                                 CVTools::cvGetDataTypeSize(dt));
     transformedScene->readBlock(rect, transformedBuffer.data(), transformedBuffer.size());
-    cv::Mat transformedImage(height, width, CV_MAKETYPE(cvType,originScene->getNumChannels()), transformedBuffer.data());
+    cv::Mat transformedImage(height, width, CV_MAKETYPE(cvType, originScene->getNumChannels()),
+                             transformedBuffer.data());
     cv::Mat testImage;
     cv::Sobel(originImage, testImage, cvType, 1, 0, kernelSize);
     auto testDepth = testImage.depth();
@@ -185,11 +186,13 @@ TEST(Filters, readBlockPartialScharr)
     filter.setDx(1);
     filter.setDy(0);
     std::shared_ptr<Scene> transformedScene = transformScene(originScene, filter);
-    std::vector<unsigned char> transformedBuffer(width * height * originScene->getNumChannels() * CVTools::cvGetDataTypeSize(dt));
+    std::vector<unsigned char> transformedBuffer(width * height * originScene->getNumChannels() *
+                                                 CVTools::cvGetDataTypeSize(dt));
     cv::Rect cvBlockRect(10, 15, 300, 350);
     std::tuple<int, int, int, int> blockRect(cvBlockRect.x, cvBlockRect.y, cvBlockRect.width, cvBlockRect.height);
     transformedScene->readBlock(blockRect, transformedBuffer.data(), transformedBuffer.size());
-    cv::Mat transformedImage(cvBlockRect.height, cvBlockRect.width, CV_MAKETYPE(cvType, originScene->getNumChannels()), transformedBuffer.data());
+    cv::Mat transformedImage(cvBlockRect.height, cvBlockRect.width, CV_MAKETYPE(cvType, originScene->getNumChannels()),
+                             transformedBuffer.data());
     cv::Mat testImage;
     cv::Scharr(originImage, testImage, cvType, 1, 0);
     cv::Mat testImageBlock(testImage, cvBlockRect);
@@ -229,8 +232,8 @@ TEST(Filters, readScaledBlockMedian)
     std::shared_ptr<Scene> transformedScene = transformScene(originScene, filter);
     cv::Mat transformedBlock;
     transformedScene->getCVScene()->readResampledBlock(cvBlockRect, cvBlockSize, transformedBlock);
-	double sim = ImageTools::computeSimilarity2(referenceBlock, transformedBlock);
-	EXPECT_GT(sim, 0.99);
+    double sim = ImageTools::computeSimilarity2(referenceBlock, transformedBlock);
+    EXPECT_GT(sim, 0.99);
     // cv::Mat diff = (referenceBlock != transformedBlock);
     // TestTools::showRasters(transformedBlock, diff);
 }
@@ -255,7 +258,7 @@ TEST(Filters, readScaledBlockBilateral)
     const cv::Size cvBlockSize(std::lround(cvBlockRect.width * scale), std::lround(cvBlockRect.height * scale));
 
     cv::Mat originBlock;
-	originScene->getCVScene()->readResampledBlock(cvBlockRect, cvBlockSize, originBlock);
+    originScene->getCVScene()->readResampledBlock(cvBlockRect, cvBlockSize, originBlock);
     cv::Mat referenceTransformedBlock;
     cv::bilateralFilter(originBlock, referenceTransformedBlock, diameter, sigmaColor, sigmaSpace);
 
@@ -269,7 +272,7 @@ TEST(Filters, readScaledBlockBilateral)
     transformedScene->getCVScene()->readResampledBlock(cvBlockRect, cvBlockSize, transformedBlock);
     double sim = ImageTools::computeSimilarity2(referenceTransformedBlock, transformedBlock);
     EXPECT_GT(sim, 0.99);
-	// cv::Mat dif = (referenceTransformedBlock - transformedBlock)*100;
+    // cv::Mat dif = (referenceTransformedBlock - transformedBlock)*100;
     // TestTools::showRasters(transformedBlock, originBlock);
 }
 
@@ -304,11 +307,9 @@ TEST(Filters, readScaledBlockGaussianBlur)
     cv::Mat scaledImage(cvScaledImageSize.height, cvScaledImageSize.width, CV_8UC3, buffer.data());
     // apply median filter to the scaled image
     cv::Mat testImage;
-    cv::GaussianBlur(scaledImage, testImage, cv::Size(kernelSize,kernelSize), sigmaX, sigmaY);
-    const cv::Rect cvTestRect(std::lround(cvBlockRect.x * scale),
-        std::lround(cvBlockRect.y * scale),
-        std::lround(cvBlockRect.width * scale),
-        std::lround(cvBlockRect.height * scale));
+    cv::GaussianBlur(scaledImage, testImage, cv::Size(kernelSize, kernelSize), sigmaX, sigmaY);
+    const cv::Rect cvTestRect(std::lround(cvBlockRect.x * scale), std::lround(cvBlockRect.y * scale),
+                              std::lround(cvBlockRect.width * scale), std::lround(cvBlockRect.height * scale));
     // extract the test image block
     cv::Mat testImageBlock(testImage, cvTestRect);
 
@@ -362,10 +363,8 @@ TEST(Filters, readScaledBlockCanny)
     cv::Canny(scaledImage, testImage, threshold1, threshold2, appertureSize, L2gradient);
     auto dep = testImage.depth();
     auto ch = testImage.channels();
-    const cv::Rect cvTestRect(std::lround(cvBlockRect.x * scale),
-        std::lround(cvBlockRect.y * scale),
-        std::lround(cvBlockRect.width * scale),
-        std::lround(cvBlockRect.height * scale));
+    const cv::Rect cvTestRect(std::lround(cvBlockRect.x * scale), std::lround(cvBlockRect.y * scale),
+                              std::lround(cvBlockRect.width * scale), std::lround(cvBlockRect.height * scale));
     // extract the test image block
     cv::Mat testImageBlock(testImage, cvTestRect);
 
@@ -383,7 +382,7 @@ TEST(Filters, readScaledBlockCanny)
     auto dep2 = transformedImage.depth();
     auto ch2 = transformedImage.channels();
     double sim = ImageTools::computeSimilarity2(testImageBlock, transformedImage);
-	EXPECT_GT(sim, 0.99);
+    EXPECT_GT(sim, 0.99);
     //cv::Mat diff = (testImageBlock != transformedImage);
     //TestTools::showRaster(diff);
 }

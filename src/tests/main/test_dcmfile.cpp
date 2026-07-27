@@ -11,7 +11,7 @@
 #include "slideio/drivers/dcm/dcmimagedriver.hpp"
 #include "slideio/imagetools/imagetools.hpp"
 
-using namespace  slideio;
+using namespace slideio;
 
 TEST(DCMFile, init)
 {
@@ -33,7 +33,6 @@ TEST(DCMFile, init)
     EXPECT_EQ(file.getDataType(), DataType::DT_UInt16);
     EXPECT_FALSE(file.getPlanarConfiguration());
     EXPECT_EQ(file.getPhotointerpretation(), EPhotoInterpetation::PHIN_MONOCHROME2);
-
 }
 
 TEST(DCMFile, initPaletted)
@@ -53,7 +52,6 @@ TEST(DCMFile, initPaletted)
     EXPECT_EQ(3, file.getNumChannels());
     EXPECT_EQ(file.getDataType(), DataType::DT_UInt16);
     EXPECT_EQ(file.getPhotointerpretation(), EPhotoInterpetation::PHIN_PALETTE);
-
 }
 
 TEST(DCMFile, pixelValues)
@@ -92,14 +90,14 @@ TEST(DCMFile, pixelRGB)
 TEST(DCMFile, pixelValuesExtended)
 {
     std::string slidePath = TestTools::getTestImagePath("dcm", "barre.dev/MR-MONO2-8-16x-heart");
-    std::string testPath1 =  TestTools::getTestImagePath("dcm", "barre.dev/MR-MONO2-8-16x-heart.frames/frame5.png");
+    std::string testPath1 = TestTools::getTestImagePath("dcm", "barre.dev/MR-MONO2-8-16x-heart.frames/frame5.png");
     std::string testPath2 = TestTools::getTestImagePath("dcm", "barre.dev/MR-MONO2-8-16x-heart.frames/frame6.png");
     DCMFile file(slidePath);
     file.init();
     int fileFrames = file.getNumSlices();
     ASSERT_EQ(16, fileFrames);
     std::vector<cv::Mat> frames;
-    file.readPixelValues(frames, 5,2);
+    file.readPixelValues(frames, 5, 2);
     ASSERT_FALSE(frames.empty());
     EXPECT_EQ(frames.size(), 2);
     cv::Mat bmpImage1;
@@ -139,7 +137,6 @@ TEST(DCMFile, pixelPaleteExtended)
     similarity = ImageTools::computeSimilarity(frames[1], bmpImage2, true);
     EXPECT_LT(0.92, similarity);
 }
-
 
 TEST(DCMFile, pixelJpegExtended)
 {
@@ -200,16 +197,11 @@ TEST(DCMFile, getMetadata)
     ASSERT_LT(2, metadata.length());
     EXPECT_EQ('{', metadata.front());
     EXPECT_EQ('}', metadata.back());
-
 }
 
 TEST(DCMFile, isDicomDirFile)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip the test because full dataset is not enabled";
-    }
+    if (!TestTools::isFullTestEnabled()) GTEST_SKIP() << "Skip the test because full dataset is not enabled";
     std::string filePath = TestTools::getTestImagePath("dcm", "barre.dev/US-PAL-8-10x-echo");
     bool res = DCMFile::isDicomDirFile(filePath);
     EXPECT_FALSE(res);
@@ -278,19 +270,14 @@ TEST(DCMFile, pixelValues12AllocatedBits)
     EXPECT_EQ(frames.size(), 1);
 
     cv::Mat testImage;
-	ImageTools::readSmallImageRaster(testPath, testImage);
+    ImageTools::readSmallImageRaster(testPath, testImage);
     double similarity = ImageTools::computeSimilarity(frames[0], testImage);
     EXPECT_LT(0.98, similarity);
 }
 
-
 TEST(DCMFile, isWSIFile)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip the test because full dataset is not enabled";
-    }
+    if (!TestTools::isFullTestEnabled()) GTEST_SKIP() << "Skip the test because full dataset is not enabled";
     std::string filePath = TestTools::getFullTestImagePath("dcm", "barre.dev/MultiFrame/MR-MONO2-8-16x-heart");
     bool res = DCMFile::isWSIFile(filePath);
     EXPECT_FALSE(res);
@@ -299,12 +286,11 @@ TEST(DCMFile, isWSIFile)
     EXPECT_TRUE(res);
 }
 
-TEST(DCMFile, WSIFileAttributes) {
-    if (!TestTools::isFullTestEnabled()) {
-        GTEST_SKIP() <<
-            "Skip the test because full dataset is not enabled";
-    }
-    std::string filePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777/H01EBB50P-24777_level-0.dcm");
+TEST(DCMFile, WSIFileAttributes)
+{
+    if (!TestTools::isFullTestEnabled()) GTEST_SKIP() << "Skip the test because full dataset is not enabled";
+    std::string filePath =
+        TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777/H01EBB50P-24777_level-0.dcm");
     DCMFile file(filePath);
     file.init();
     EXPECT_TRUE(file.isWSIFile());
@@ -313,18 +299,17 @@ TEST(DCMFile, WSIFileAttributes) {
     EXPECT_EQ(70400, file.getHeight());
     EXPECT_EQ(Compression::Jpeg, file.getCompression());
     EXPECT_EQ(0, file.getMagnification());
-    EXPECT_EQ(3,file.getNumChannels());
+    EXPECT_EQ(3, file.getNumChannels());
     EXPECT_EQ(1, file.getNumSlices());
     EXPECT_EQ(DataType::DT_Byte, file.getDataType());
-    EXPECT_EQ(Resolution(0.,0.), file.getResolution());
+    EXPECT_EQ(Resolution(0., 0.), file.getResolution());
 }
 
-TEST(DCMFile, getTileRect) {
-    if (!TestTools::isFullTestEnabled()) {
-        GTEST_SKIP() <<
-            "Skip the test because full dataset is not enabled";
-    }
-    std::string filePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777/H01EBB50P-24777_level-0.dcm");
+TEST(DCMFile, getTileRect)
+{
+    if (!TestTools::isFullTestEnabled()) GTEST_SKIP() << "Skip the test because full dataset is not enabled";
+    std::string filePath =
+        TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777/H01EBB50P-24777_level-0.dcm");
     DCMFile file(filePath);
     file.init();
     const int width = 72192;
@@ -333,13 +318,13 @@ TEST(DCMFile, getTileRect) {
     EXPECT_EQ(height, file.getHeight());
 
     const cv::Size tileSize(256, 256);
-    const int numTilesX = (width -1) / tileSize.width + 1;
+    const int numTilesX = (width - 1) / tileSize.width + 1;
     const int numTilesY = (height - 1) / tileSize.height + 1;
     EXPECT_TRUE(file.isWSIFile());
 
     cv::Rect tileRect;
     EXPECT_TRUE(file.getTileRect(0, tileRect));
-    EXPECT_EQ(cv::Rect(0,0,tileSize.width, tileSize.height), tileRect);
+    EXPECT_EQ(cv::Rect(0, 0, tileSize.width, tileSize.height), tileRect);
 
     EXPECT_TRUE(file.getTileRect(1, tileRect));
     EXPECT_EQ(cv::Rect(tileSize.width, 0, tileSize.width, tileSize.height), tileRect);
@@ -347,17 +332,16 @@ TEST(DCMFile, getTileRect) {
     EXPECT_TRUE(file.getTileRect(numTilesX, tileRect));
     EXPECT_EQ(cv::Rect(0, tileSize.height, tileSize.width, tileSize.height), tileRect);
 
-    EXPECT_THROW(file.getTileRect(numTilesX*numTilesY, tileRect), slideio::RuntimeError);
+    EXPECT_THROW(file.getTileRect(numTilesX * numTilesY, tileRect), slideio::RuntimeError);
 }
 
-TEST(DCMFile, readFrame) {
-    if (!TestTools::isFullTestEnabled()) {
-        GTEST_SKIP() <<
-            "Skip the test because full dataset is not enabled";
-    }
+TEST(DCMFile, readFrame)
+{
+    if (!TestTools::isFullTestEnabled()) GTEST_SKIP() << "Skip the test because full dataset is not enabled";
     DCMImageDriver::initializeDCMTK();
 
-    std::string filePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777/H01EBB50P-24777_level-0.dcm");
+    std::string filePath =
+        TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777/H01EBB50P-24777_level-0.dcm");
     std::string testFilePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777.tile.png");
     DCMFile file(filePath);
     file.init();
@@ -378,17 +362,14 @@ TEST(DCMFile, readFrame) {
     //TestTools::writePNG(tileRaster, testFilePath);
     cv::Mat testImage;
     TestTools::readPNG(testFilePath, testImage);
-	double score = ImageTools::computeSimilarity2(testImage, tileRaster);
-	EXPECT_GT(score, 0.99);
+    double score = ImageTools::computeSimilarity2(testImage, tileRaster);
+    EXPECT_GT(score, 0.99);
     //TestTools::showRasters(testImage, tileRaster);
-
 }
 
-TEST(DCMFile, readFrame2) {
-    if (!TestTools::isFullTestEnabled()) {
-        GTEST_SKIP() <<
-            "Skip the test because full dataset is not enabled";
-    }
+TEST(DCMFile, readFrame2)
+{
+    if (!TestTools::isFullTestEnabled()) GTEST_SKIP() << "Skip the test because full dataset is not enabled";
     DCMImageDriver::initializeDCMTK();
 
     std::string filePath = TestTools::getFullTestImagePath("dcm", "private/wsi/M01FBC14P-589_level-0.dcm");
@@ -406,17 +387,18 @@ TEST(DCMFile, readFrame2) {
     EXPECT_TRUE(file.isWSIFile());
 
     cv::Mat tileRaster;
-    file.readFrame(file.getNumFrames()/3, tileRaster);
+    file.readFrame(file.getNumFrames() / 3, tileRaster);
     EXPECT_EQ(tileSize.width, tileRaster.cols);
     EXPECT_EQ(tileSize.height, tileRaster.rows);
     //TestTools::writePNG(tileRaster, testFilePath);
     cv::Mat testImage;
     TestTools::readPNG(testFilePath, testImage);
     double score = ImageTools::computeSimilarity2(testImage, tileRaster);
-	EXPECT_GT(score, 0.999);
+    EXPECT_GT(score, 0.999);
 }
 
-TEST(DCMFile, readJ2K) {
+TEST(DCMFile, readJ2K)
+{
     DCMImageDriver::initializeDCMTK();
 
     std::string filePath = TestTools::getTestImagePath("dcm", "openmicroscopy.org/CT1_J2KI");
@@ -428,7 +410,7 @@ TEST(DCMFile, readJ2K) {
     EXPECT_EQ(1, file.getNumChannels());
     EXPECT_EQ(DataType::DT_Int16, file.getDataType());
     std::vector<cv::Mat> frames;
-    file.readPixelValues(frames,0,1);
+    file.readPixelValues(frames, 0, 1);
     //ImageTools::writeTiffImage(testFilePath, frames[0]);
     cv::Mat testImage;
     ImageTools::readSmallImageRaster(testFilePath, testImage);

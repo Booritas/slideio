@@ -52,10 +52,7 @@ TEST(Metadata, ScalarConversionsAcrossTypes)
 
 TEST(Metadata, ObjectNavigation)
 {
-    nlohmann::json j = {
-        {"a", { {"b", { {"c", 7} }} }},
-        {"arr", {1, 2, 3}}
-    };
+    nlohmann::json j = {{"a", {{"b", {{"c", 7}}}}}, {"arr", {1, 2, 3}}};
     Metadata m = detail::makeMetadataFromJson(std::move(j));
 
     EXPECT_TRUE(m.contains("a"));
@@ -169,31 +166,34 @@ TEST(MetadataXml, EndToEndViaMetadata)
 
 namespace
 {
-    class TestScene : public slideio::CVScene
+    class TestScene: public slideio::CVScene
     {
     public:
         TestScene(const std::string& raw, slideio::MetadataFormat fmt)
         {
-            m_rawMetadata    = raw;
+            m_rawMetadata = raw;
             m_metadataFormat = fmt;
         }
         std::string getFilePath() const override { return "test"; }
         int getSceneIndex() const override { return 0; }
-        const std::string& getDriverId() const override { static const std::string id = "test"; return id; }
+        const std::string& getDriverId() const override
+        {
+            static const std::string id = "test";
+            return id;
+        }
         std::string getName() const override { return "test"; }
-        cv::Rect    getRect() const override { return {0,0,1,1}; }
-        int         getNumChannels() const override { return 1; }
-        slideio::DataType getChannelDataType(int) const override
-        { return slideio::DataType::DT_Byte; }
-        slideio::Resolution getResolution() const override { return {0,0}; }
-        double      getMagnification() const override { return 0; }
-        slideio::Compression getCompression() const override
-        { return slideio::Compression::Uncompressed; }
-        void readResampledBlockChannelsEx(const cv::Rect&, const cv::Size&,
-                                          const std::vector<int>&,
-                                          int, int, cv::OutputArray) override {}
+        cv::Rect getRect() const override { return {0, 0, 1, 1}; }
+        int getNumChannels() const override { return 1; }
+        slideio::DataType getChannelDataType(int) const override { return slideio::DataType::DT_Byte; }
+        slideio::Resolution getResolution() const override { return {0, 0}; }
+        double getMagnification() const override { return 0; }
+        slideio::Compression getCompression() const override { return slideio::Compression::Uncompressed; }
+        void readResampledBlockChannelsEx(const cv::Rect&, const cv::Size&, const std::vector<int>&, int, int,
+                                          cv::OutputArray) override
+        {
+        }
     };
-}
+} // namespace
 
 TEST(MetadataScene, FormatNoneGivesEmptyObject)
 {
@@ -238,24 +238,24 @@ TEST(MetadataScene, GetMetadataIsCached)
     TestScene s(R"({"k":1})", slideio::MetadataFormat::JSON);
     const auto& a = s.getMetadata();
     const auto& b = s.getMetadata();
-    EXPECT_EQ(&a, &b);  // same reference => cached
+    EXPECT_EQ(&a, &b); // same reference => cached
 }
 
 namespace
 {
-    class TestSlide : public slideio::CVSlide
+    class TestSlide: public slideio::CVSlide
     {
     public:
         TestSlide(const std::string& raw, slideio::MetadataFormat fmt)
         {
-            m_rawMetadata    = raw;
+            m_rawMetadata = raw;
             m_metadataFormat = fmt;
         }
         int getNumScenes() const override { return 0; }
         std::string getFilePath() const override { return {}; }
         std::shared_ptr<slideio::CVScene> getScene(int) const override { return {}; }
     };
-}
+} // namespace
 
 TEST(MetadataSlide, JsonFormatParses)
 {
@@ -266,8 +266,7 @@ TEST(MetadataSlide, JsonFormatParses)
 
 TEST(MetadataSlide, XmlFormatGoesThroughWalker)
 {
-    TestSlide s(R"(<Slide><Vendor>Hamamatsu</Vendor></Slide>)",
-                slideio::MetadataFormat::XML);
+    TestSlide s(R"(<Slide><Vendor>Hamamatsu</Vendor></Slide>)", slideio::MetadataFormat::XML);
     const auto& m = s.getMetadata();
     EXPECT_EQ(m["Slide"]["Vendor"].asString(), "Hamamatsu");
 }
@@ -281,15 +280,15 @@ TEST(MetadataSlide, IsCached)
 TEST(MetadataPublicApi, SceneAndSlideExposeTreeForRealSvs)
 {
     std::string path;
-    try {
+    try
+    {
         path = TestTools::getTestImagePath("svs", "JP2K-33003-1.svs");
     }
-    catch (...) {
+    catch (...)
+    {
         GTEST_SKIP() << "SLIDEIO_TEST_DATA_PATH not set";
     }
-    if (!std::ifstream(path).good()) {
-        GTEST_SKIP() << "Fixture not available: " << path;
-    }
+    if (!std::ifstream(path).good()) GTEST_SKIP() << "Fixture not available: " << path;
 
     auto slide = slideio::openSlide(path, "SVS");
     ASSERT_TRUE(slide);

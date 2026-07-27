@@ -7,15 +7,17 @@
 
 namespace slideio
 {
-    inline Range::Range(const cv::Range& r) : start(r.start), end(r.end) {}
-    
-    inline Range::operator cv::Range() const {
+    inline Range::Range(const cv::Range& r): start(r.start), end(r.end) {}
+
+    inline Range::operator cv::Range() const
+    {
         return cv::Range(start, end);
     }
-    
-    inline Range& Range::operator=(const cv::Range& r) {
+
+    inline Range& Range::operator=(const cv::Range& r)
+    {
         start = r.start;
         end = r.end;
         return *this;
     }
-}
+} // namespace slideio

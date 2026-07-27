@@ -11,8 +11,12 @@ namespace slideio
     class Scene;
     class Transformation;
     class TransformationWrapper;
-    std::shared_ptr<slideio::Scene> SLIDEIO_TRANSFORMER_EXPORTS transformScene(std::shared_ptr<Scene> scene, Transformation& transform);
-    std::shared_ptr<slideio::Scene> SLIDEIO_TRANSFORMER_EXPORTS transformSceneEx(std::shared_ptr<Scene> scene, std::list<std::shared_ptr<Transformation>>& transforms);
-    std::shared_ptr<slideio::Scene> SLIDEIO_TRANSFORMER_EXPORTS transformScene(std::shared_ptr<Scene> scene, TransformationWrapper& transform);
-    std::shared_ptr<slideio::Scene> SLIDEIO_TRANSFORMER_EXPORTS transformSceneEx(std::shared_ptr<Scene> scene, std::list<std::shared_ptr<TransformationWrapper>>& transforms);
-}
+    std::shared_ptr<slideio::Scene> SLIDEIO_TRANSFORMER_EXPORTS transformScene(std::shared_ptr<Scene> scene,
+                                                                               Transformation& transform);
+    std::shared_ptr<slideio::Scene> SLIDEIO_TRANSFORMER_EXPORTS
+    transformSceneEx(std::shared_ptr<Scene> scene, std::list<std::shared_ptr<Transformation>>& transforms);
+    std::shared_ptr<slideio::Scene> SLIDEIO_TRANSFORMER_EXPORTS transformScene(std::shared_ptr<Scene> scene,
+                                                                               TransformationWrapper& transform);
+    std::shared_ptr<slideio::Scene> SLIDEIO_TRANSFORMER_EXPORTS
+    transformSceneEx(std::shared_ptr<Scene> scene, std::list<std::shared_ptr<TransformationWrapper>>& transforms);
+} // namespace slideio

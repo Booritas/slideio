@@ -16,8 +16,8 @@ TEST(TileComposer, composeRect)
     const int dY = tileHeight / 2;
 
     const std::vector<int> channelIndices;
-    const cv::Rect imageRect = { dX, dY, imageWidth - dX * 2, imageHeight - dY * 2 };
-    const cv::Size blockSize = { imageRect.width / 2, imageRect.height / 4 };
+    const cv::Rect imageRect = {dX, dY, imageWidth - dX * 2, imageHeight - dY * 2};
+    const cv::Size blockSize = {imageRect.width / 2, imageRect.height / 4};
     slideio::TileComposer::composeRect(&testTiler, channelIndices, imageRect, blockSize, image, nullptr);
 
     cv::Rect subWhiteImageRect(dX / 2, dY / 4, tileWidth / 2, tileHeight / 4);
@@ -29,8 +29,8 @@ TEST(TileComposer, composeRect)
     cv::Scalar blackMean, blackStddev, whiteMean, whiteStddev;
     meanStdDev(blackImage, blackMean, blackStddev);
     meanStdDev(whiteImage, whiteMean, whiteStddev);
-    EXPECT_TRUE(whiteMean==white);
-    EXPECT_TRUE(blackMean==black);
+    EXPECT_TRUE(whiteMean == white);
+    EXPECT_TRUE(blackMean == black);
     EXPECT_TRUE(whiteStddev[0] < 1.e-5 && whiteStddev[1] < 1.e-5 && whiteStddev[2] < 1.e-5);
-    EXPECT_TRUE(blackStddev==cv::Scalar(0, 0, 0));
+    EXPECT_TRUE(blackStddev == cv::Scalar(0, 0, 0));
 }

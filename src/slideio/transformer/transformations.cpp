@@ -18,7 +18,8 @@ using namespace slideio;
 std::shared_ptr<Transformation> slideio::makeTransformationCopy(const Transformation& source)
 {
     TransformationType type = source.getType();
-    switch (type) {
+    switch (type)
+    {
     case TransformationType::GaussianBlurFilter:
         {
             GaussianBlurFilter& filter = (GaussianBlurFilter&)source;
@@ -72,9 +73,11 @@ std::shared_ptr<Transformation> slideio::makeTransformationCopy(const Transforma
     }
 }
 
-std::shared_ptr<TransformationWrapper> slideio::makeTransformationCopy(const TransformationWrapper& source) {
+std::shared_ptr<TransformationWrapper> slideio::makeTransformationCopy(const TransformationWrapper& source)
+{
     TransformationType type = source.getType();
-    switch (type) {
+    switch (type)
+    {
     case TransformationType::GaussianBlurFilter:
         {
             const GaussianBlurFilterWrap& filter = (const GaussianBlurFilterWrap&)source;

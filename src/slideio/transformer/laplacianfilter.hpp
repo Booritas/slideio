@@ -9,29 +9,25 @@
 namespace slideio
 {
 
-    class SLIDEIO_TRANSFORMER_EXPORTS LaplacianFilter : public TransformationEx
+    class SLIDEIO_TRANSFORMER_EXPORTS LaplacianFilter: public TransformationEx
     {
     public:
         LaplacianFilter(const LaplacianFilter& other)
-            : TransformationEx(other),
-              m_depth(other.m_depth),
-              m_kernelSize(other.m_kernelSize),
-              m_scale(other.m_scale),
-              m_delta(other.m_delta) {
+            : TransformationEx(other), m_depth(other.m_depth), m_kernelSize(other.m_kernelSize), m_scale(other.m_scale),
+              m_delta(other.m_delta)
+        {
         }
 
         LaplacianFilter(LaplacianFilter&& other) noexcept
-            : TransformationEx(std::move(other)),
-              m_depth(other.m_depth),
-              m_kernelSize(other.m_kernelSize),
-              m_scale(other.m_scale),
-              m_delta(other.m_delta) {
+            : TransformationEx(std::move(other)), m_depth(other.m_depth), m_kernelSize(other.m_kernelSize),
+              m_scale(other.m_scale), m_delta(other.m_delta)
+        {
         }
 
-        LaplacianFilter& operator=(const LaplacianFilter& other) {
-            if (this == &other)
-                return *this;
-            TransformationEx::operator =(other);
+        LaplacianFilter& operator=(const LaplacianFilter& other)
+        {
+            if (this == &other) return *this;
+            TransformationEx::operator=(other);
             m_depth = other.m_depth;
             m_kernelSize = other.m_kernelSize;
             m_scale = other.m_scale;
@@ -39,10 +35,10 @@ namespace slideio
             return *this;
         }
 
-        LaplacianFilter& operator=(LaplacianFilter&& other) noexcept {
-            if (this == &other)
-                return *this;
-            TransformationEx::operator =(std::move(other));
+        LaplacianFilter& operator=(LaplacianFilter&& other) noexcept
+        {
+            if (this == &other) return *this;
+            TransformationEx::operator=(std::move(other));
             m_depth = other.m_depth;
             m_kernelSize = other.m_kernelSize;
             m_scale = other.m_scale;
@@ -50,50 +46,23 @@ namespace slideio
             return *this;
         }
 
-        LaplacianFilter()
-        {
-            m_type = TransformationType::LaplacianFilter;
-        }
+        LaplacianFilter() { m_type = TransformationType::LaplacianFilter; }
 
-        DataType getDepth() const
-        {
-            return m_depth;
-        }
+        DataType getDepth() const { return m_depth; }
 
-        void setDepth(const DataType& depth)
-        {
-            m_depth = depth;
-        }
+        void setDepth(const DataType& depth) { m_depth = depth; }
 
-        int getKernelSize() const
-        {
-            return m_kernelSize;
-        }
+        int getKernelSize() const { return m_kernelSize; }
 
-        void setKernelSize(int kernelSize)
-        {
-            m_kernelSize = kernelSize;
-        }
+        void setKernelSize(int kernelSize) { m_kernelSize = kernelSize; }
 
-        double getScale() const
-        {
-            return m_scale;
-        }
+        double getScale() const { return m_scale; }
 
-        void setScale(double scale)
-        {
-            m_scale = scale;
-        }
+        void setScale(double scale) { m_scale = scale; }
 
-        double getDelta() const
-        {
-            return m_delta;
-        }
+        double getDelta() const { return m_delta; }
 
-        void setDelta(double delta)
-        {
-            m_delta = delta;
-        }
+        void setDelta(double delta) { m_delta = delta; }
 
         void applyTransformation(const cv::Mat& block, cv::OutputArray transformedBlock) const override;
         int getInflationValue() const override;
@@ -105,4 +74,4 @@ namespace slideio
         double m_scale = 1.;
         double m_delta = 0.;
     };
-}
+} // namespace slideio

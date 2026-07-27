@@ -7,37 +7,41 @@
 #include "slideio/drivers/vsi/vsi_api_def.hpp"
 #include "slideio/imagetools/tiffkeeper.hpp"
 
-
 #if defined(_MSC_VER)
-#pragma warning( push )
-#pragma warning(disable: 4251)
+#pragma warning(push)
+#pragma warning(disable : 4251)
 #endif
 
 namespace slideio
 {
     namespace vsi
     {
-        class SLIDEIO_VSI_EXPORTS VsiFileScene : public VSIScene
+        class SLIDEIO_VSI_EXPORTS VsiFileScene: public VSIScene
         {
         public:
-            VsiFileScene(const std::string& filePath, int sceneIndex, const std::string& driverId, std::shared_ptr<VSIFile>& vsiFile, int directoryIndex);
+            VsiFileScene(const std::string& filePath, int sceneIndex, const std::string& driverId,
+                         std::shared_ptr<VSIFile>& vsiFile, int directoryIndex);
+
         public:
             void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
-                const std::vector<int>& channelIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output) override;
+                                              const std::vector<int>& channelIndices, int zSliceIndex, int tFrameIndex,
+                                              cv::OutputArray output) override;
             int getTileCount(void* userData) override;
             bool getTileRect(int tileIndex, cv::Rect& tileRect, void* userData) override;
             bool readTile(int tileIndex, const std::vector<int>& channelIndices, cv::OutputArray tileRaster,
                           void* userData) override;
+
         protected:
             void init();
+
         protected:
             int m_directoryIndex;
             TIFFKeeper m_tiff;
         };
-    }
+    } // namespace vsi
 
-}
+} // namespace slideio
 
 #if defined(_MSC_VER)
-#pragma warning( pop )
+#pragma warning(pop)
 #endif

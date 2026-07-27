@@ -53,36 +53,28 @@
 #define MAGIC_SIZE 8
 /* PNG allows bits per sample: 1, 2, 4, 8, 16 */
 
-
-static void convert_16u32s_C1R(const OPJ_BYTE* pSrc, OPJ_INT32* pDst,
-                               OPJ_SIZE_T length)
+static void convert_16u32s_C1R(const OPJ_BYTE* pSrc, OPJ_INT32* pDst, OPJ_SIZE_T length)
 {
     OPJ_SIZE_T i;
-    for (i = 0; i < length; i++) {
+    for (i = 0; i < length; i++)
+    {
         OPJ_INT32 val0 = *pSrc++;
         OPJ_INT32 val1 = *pSrc++;
         pDst[i] = val0 << 8 | val1;
     }
 }
 
-static opj_image_t * pngtoimage_internal(opj_cparameters_t * params,
-        FILE *reader,
-        png_structp  png,
-        png_infop    info,
-        png_uint_32* pheight,
-        OPJ_BYTE*** prows,
-        OPJ_INT32** prow32s)
+static opj_image_t* pngtoimage_internal(opj_cparameters_t* params, FILE* reader, png_structp png, png_infop info,
+                                        png_uint_32* pheight, OPJ_BYTE*** prows, OPJ_INT32** prow32s)
 {
     *pheight = 0;
     *prows = NULL;
     *prow32s = NULL;
 
-    if (setjmp(png_jmpbuf(png))) {
-        return NULL;
-    }
+    if (setjmp(png_jmpbuf(png))) return NULL;
 
     {
-        opj_image_t *image = NULL;
+        opj_image_t* image = NULL;
         opj_image_cmptparm_t cmptparm[4];
         OPJ_UINT32 nr_comp;
         convert_XXx32s_C1R cvtXXTo32s = NULL;
@@ -91,7 +83,7 @@ static opj_image_t * pngtoimage_internal(opj_cparameters_t * params,
         double gamma;
         int bit_depth, interlace_type, compression_type, filter_type;
         OPJ_UINT32 i;
-        png_uint_32  width, height = 0U;
+        png_uint_32 width, height = 0U;
         int color_type;
         OPJ_BYTE** rows = NULL;
         OPJ_INT32* row32s = NULL;
@@ -101,9 +93,9 @@ static opj_image_t * pngtoimage_internal(opj_cparameters_t * params,
 
         png_read_info(png, info);
 
-        if (png_get_IHDR(png, info, &width, &height,
-                         &bit_depth, &color_type, &interlace_type,
-                         &compression_type, &filter_type) == 0) {
+        if (png_get_IHDR(png, info, &width, &height, &bit_depth, &color_type, &interlace_type, &compression_type,
+                         &filter_type) == 0)
+        {
             return image;
         }
         *pheight = height;
@@ -113,13 +105,9 @@ static opj_image_t * pngtoimage_internal(opj_cparameters_t * params,
          * less than 8-bit depth to 8-bit depth, and expand tRNS chunks
          * to alpha channels.
          */
-        if (color_type == PNG_COLOR_TYPE_PALETTE) {
-            png_set_expand(png);
-        }
+        if (color_type == PNG_COLOR_TYPE_PALETTE) png_set_expand(png);
 
-        if (png_get_valid(png, info, PNG_INFO_tRNS)) {
-            png_set_expand(png);
-        }
+        if (png_get_valid(png, info, PNG_INFO_tRNS)) png_set_expand(png);
         /* We might want to expand background */
         /*
         if(png_get_valid(png, info, PNG_INFO_bKGD)) {
@@ -129,9 +117,7 @@ static opj_image_t * pngtoimage_internal(opj_cparameters_t * params,
         }
         */
 
-        if (!png_get_gAMA(png, info, &gamma)) {
-            gamma = 1.0;
-        }
+        if (!png_get_gAMA(png, info, &gamma)) gamma = 1.0;
 
         /* we're not displaying but converting, screen gamma == 1.0 */
         png_set_gamma(png, 1.0, gamma);
@@ -140,7 +126,8 @@ static opj_image_t * pngtoimage_internal(opj_cparameters_t * params,
 
         color_type = png_get_color_type(png, info);
 
-        switch (color_type) {
+        switch (color_type)
+        {
         case PNG_COLOR_TYPE_GRAY:
             nr_comp = 1;
             break;
@@ -160,7 +147,8 @@ static opj_image_t * pngtoimage_internal(opj_cparameters_t * params,
         cvtCxToPx = convert_32s_CXPX_LUT[nr_comp];
         bit_depth = png_get_bit_depth(png, info);
 
-        switch (bit_depth) {
+        switch (bit_depth)
+        {
         case 1:
         case 2:
         case 4:
@@ -176,14 +164,17 @@ static opj_image_t * pngtoimage_internal(opj_cparameters_t * params,
         }
 
         rows = (OPJ_BYTE**)calloc(height + 1, sizeof(OPJ_BYTE*));
-        if (rows == NULL) {
+        if (rows == NULL)
+        {
             fprintf(stderr, "pngtoimage: memory out\n");
             return image;
         }
         *prows = rows;
-        for (i = 0; i < height; ++i) {
+        for (i = 0; i < height; ++i)
+        {
             rows[i] = (OPJ_BYTE*)malloc(png_get_rowbytes(png, info));
-            if (rows[i] == NULL) {
+            if (rows[i] == NULL)
+            {
                 fprintf(stderr, "pngtoimage: memory out\n");
                 return image;
             }
@@ -192,7 +183,8 @@ static opj_image_t * pngtoimage_internal(opj_cparameters_t * params,
 
         /* Create image */
         memset(cmptparm, 0, sizeof(cmptparm));
-        for (i = 0; i < nr_comp; ++i) {
+        for (i = 0; i < nr_comp; ++i)
+        {
             /* bits_per_pixel: 8 or 16 */
             cmptparm[i].prec = (OPJ_UINT32)bit_depth;
             cmptparm[i].sgnd = 0;
@@ -202,32 +194,25 @@ static opj_image_t * pngtoimage_internal(opj_cparameters_t * params,
             cmptparm[i].h = (OPJ_UINT32)height;
         }
 
-        image = opj_image_create(nr_comp, &cmptparm[0],
-                                 (nr_comp > 2U) ? OPJ_CLRSPC_SRGB : OPJ_CLRSPC_GRAY);
-        if (image == NULL) {
-            return image;
-        }
+        image = opj_image_create(nr_comp, &cmptparm[0], (nr_comp > 2U) ? OPJ_CLRSPC_SRGB : OPJ_CLRSPC_GRAY);
+        if (image == NULL) return image;
         image->x0 = (OPJ_UINT32)params->image_offset_x0;
         image->y0 = (OPJ_UINT32)params->image_offset_y0;
-        image->x1 = (OPJ_UINT32)(image->x0 + (width  - 1) * (OPJ_UINT32)
-                                 params->subsampling_dx + 1);
-        image->y1 = (OPJ_UINT32)(image->y0 + (height - 1) * (OPJ_UINT32)
-                                 params->subsampling_dy + 1);
+        image->x1 = (OPJ_UINT32)(image->x0 + (width - 1) * (OPJ_UINT32)params->subsampling_dx + 1);
+        image->y1 = (OPJ_UINT32)(image->y0 + (height - 1) * (OPJ_UINT32)params->subsampling_dy + 1);
 
-        row32s = (OPJ_INT32 *)malloc((size_t)width * nr_comp * sizeof(OPJ_INT32));
-        if (row32s == NULL) {
-            return image;
-        }
+        row32s = (OPJ_INT32*)malloc((size_t)width * nr_comp * sizeof(OPJ_INT32));
+        if (row32s == NULL) return image;
         *prow32s = row32s;
 
         /* Set alpha channel */
         image->comps[nr_comp - 1U].alpha = 1U - (nr_comp & 1U);
 
-        for (i = 0; i < nr_comp; i++) {
+        for (i = 0; i < nr_comp; i++)
             planes[i] = image->comps[i].data;
-        }
 
-        for (i = 0; i < height; ++i) {
+        for (i = 0; i < height; ++i)
+        {
             cvtXXTo32s(rows[i], row32s, (OPJ_SIZE_T)width * nr_comp);
             cvtCxToPx(row32s, planes, width);
             planes[0] += width;
@@ -240,73 +225,63 @@ static opj_image_t * pngtoimage_internal(opj_cparameters_t * params,
     }
 }
 
-opj_image_t *pngtoimage(const char *read_idf, opj_cparameters_t * params)
+opj_image_t* pngtoimage(const char* read_idf, opj_cparameters_t* params)
 {
-    png_structp  png = NULL;
-    png_infop    info = NULL;
+    png_structp png = NULL;
+    png_infop info = NULL;
     OPJ_UINT32 i;
-    png_uint_32  height = 0U;
-    FILE *reader = NULL;
+    png_uint_32 height = 0U;
+    FILE* reader = NULL;
     OPJ_BYTE** rows = NULL;
     OPJ_INT32* row32s = NULL;
     OPJ_BYTE sigbuf[8];
-    opj_image_t *image = NULL;
+    opj_image_t* image = NULL;
 
-    if ((reader = fopen(read_idf, "rb")) == NULL) {
+    if ((reader = fopen(read_idf, "rb")) == NULL)
+    {
         fprintf(stderr, "pngtoimage: can not open %s\n", read_idf);
         return NULL;
     }
 
-    if (fread(sigbuf, 1, MAGIC_SIZE, reader) != MAGIC_SIZE
-            || memcmp(sigbuf, PNG_MAGIC, MAGIC_SIZE) != 0) {
+    if (fread(sigbuf, 1, MAGIC_SIZE, reader) != MAGIC_SIZE || memcmp(sigbuf, PNG_MAGIC, MAGIC_SIZE) != 0)
+    {
         fprintf(stderr, "pngtoimage: %s is no valid PNG file\n", read_idf);
         goto fin;
     }
 
-    if ((png = png_create_read_struct(PNG_LIBPNG_VER_STRING,
-                                      NULL, NULL, NULL)) == NULL) {
-        goto fin;
-    }
-    if ((info = png_create_info_struct(png)) == NULL) {
-        goto fin;
-    }
+    if ((png = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL)) == NULL) goto fin;
+    if ((info = png_create_info_struct(png)) == NULL) goto fin;
 
     image = pngtoimage_internal(params, reader, png, info, &height, &rows, &row32s);
 fin:
-    if (rows) {
+    if (rows)
+    {
         for (i = 0; i < height; ++i)
-            if (rows[i]) {
-                free(rows[i]);
-            }
+            if (rows[i]) free(rows[i]);
         free(rows);
     }
-    if (row32s) {
-        free(row32s);
-    }
-    if (png) {
-        png_destroy_read_struct(&png, &info, NULL);
-    }
+    if (row32s) free(row32s);
+    if (png) png_destroy_read_struct(&png, &info, NULL);
 
     fclose(reader);
 
     return image;
 
-}/* pngtoimage() */
+} /* pngtoimage() */
 
-
-static void convert_32s16u_C1R(const OPJ_INT32* pSrc, OPJ_BYTE* pDst,
-                               OPJ_SIZE_T length)
+static void convert_32s16u_C1R(const OPJ_INT32* pSrc, OPJ_BYTE* pDst, OPJ_SIZE_T length)
 {
     OPJ_SIZE_T i;
-    for (i = 0; i < length; i++) {
+    for (i = 0; i < length; i++)
+    {
         OPJ_UINT32 val = (OPJ_UINT32)pSrc[i];
         *pDst++ = (OPJ_BYTE)(val >> 8);
         *pDst++ = (OPJ_BYTE)val;
     }
 }
-int imagetopng(opj_image_t * image, const char *write_idf)
+int imagetopng(opj_image_t* image, const char* write_idf)
 {
-    FILE * volatile writer = NULL;
+    FILE* volatile writer = NULL;
     png_structp png = NULL;
     png_infop info = NULL;
     png_bytep volatile row_buf = NULL;
@@ -322,80 +297,68 @@ int imagetopng(opj_image_t * image, const char *write_idf)
     memset(&sig_bit, 0, sizeof(sig_bit));
     prec = (int)image->comps[0].prec;
     planes[0] = image->comps[0].data;
-    if (planes[0] == NULL) {
-        fprintf(stderr,
-                "imagetopng: planes[%d] == NULL.\n", 0);
+    if (planes[0] == NULL)
+    {
+        fprintf(stderr, "imagetopng: planes[%d] == NULL.\n", 0);
         fprintf(stderr, "\tAborting\n");
         return 1;
     }
     nr_comp = (int)image->numcomps;
 
-    if (nr_comp > 4) {
-        nr_comp = 4;
-    }
-    for (i = 1; i < nr_comp; ++i) {
-        if (image->comps[0].dx != image->comps[i].dx) {
-            break;
-        }
-        if (image->comps[0].dy != image->comps[i].dy) {
-            break;
-        }
-        if (image->comps[0].prec != image->comps[i].prec) {
-            break;
-        }
-        if (image->comps[0].sgnd != image->comps[i].sgnd) {
-            break;
-        }
+    if (nr_comp > 4) nr_comp = 4;
+    for (i = 1; i < nr_comp; ++i)
+    {
+        if (image->comps[0].dx != image->comps[i].dx) break;
+        if (image->comps[0].dy != image->comps[i].dy) break;
+        if (image->comps[0].prec != image->comps[i].prec) break;
+        if (image->comps[0].sgnd != image->comps[i].sgnd) break;
         planes[i] = image->comps[i].data;
-        if (planes[i] == NULL) {
-            fprintf(stderr,
-                    "imagetopng: planes[%d] == NULL.\n", i);
+        if (planes[i] == NULL)
+        {
+            fprintf(stderr, "imagetopng: planes[%d] == NULL.\n", i);
             fprintf(stderr, "\tAborting\n");
             return 1;
         }
     }
-    if (i != nr_comp) {
-        fprintf(stderr,
-                "imagetopng: All components shall have the same subsampling, same bit depth, same sign.\n");
+    if (i != nr_comp)
+    {
+        fprintf(stderr, "imagetopng: All components shall have the same subsampling, same bit depth, same sign.\n");
         fprintf(stderr, "\tAborting\n");
         return 1;
     }
-    for (i = 0; i < nr_comp; ++i) {
+    for (i = 0; i < nr_comp; ++i)
         clip_component(&(image->comps[i]), image->comps[0].prec);
-    }
-    if (prec > 8 && prec < 16) {
-        for (i = 0; i < nr_comp; ++i) {
+    if (prec > 8 && prec < 16)
+    {
+        for (i = 0; i < nr_comp; ++i)
             scale_component(&(image->comps[i]), 16);
-        }
         prec = 16;
-    } else if (prec < 8 && nr_comp > 1) { /* GRAY_ALPHA, RGB, RGB_ALPHA */
-        for (i = 0; i < nr_comp; ++i) {
+    }
+    else if (prec < 8 && nr_comp > 1)
+    { /* GRAY_ALPHA, RGB, RGB_ALPHA */
+        for (i = 0; i < nr_comp; ++i)
             scale_component(&(image->comps[i]), 8);
-        }
         prec = 8;
-    } else if ((prec > 1) && (prec < 8) && ((prec == 6) ||
-                                            ((prec & 1) == 1))) { /* GRAY with non native precision */
-        if ((prec == 5) || (prec == 6)) {
+    }
+    else if ((prec > 1) && (prec < 8) && ((prec == 6) || ((prec & 1) == 1)))
+    { /* GRAY with non native precision */
+        if ((prec == 5) || (prec == 6))
             prec = 8;
-        } else {
+        else
             prec++;
-        }
-        for (i = 0; i < nr_comp; ++i) {
+        for (i = 0; i < nr_comp; ++i)
             scale_component(&(image->comps[i]), (OPJ_UINT32)prec);
-        }
     }
 
-    if (prec != 1 && prec != 2 && prec != 4 && prec != 8 && prec != 16) {
-        fprintf(stderr, "imagetopng: can not create %s\n\twrong bit_depth %d\n",
-                write_idf, prec);
+    if (prec != 1 && prec != 2 && prec != 4 && prec != 8 && prec != 16)
+    {
+        fprintf(stderr, "imagetopng: can not create %s\n\twrong bit_depth %d\n", write_idf, prec);
         return fails;
     }
 
     writer = fopen(write_idf, "wb");
 
-    if (writer == NULL) {
-        return fails;
-    }
+    if (writer == NULL) return fails;
 
     /* Create and initialize the png_struct with the desired error handler
      * functions.  If you want to use the default stderr and longjump method,
@@ -403,28 +366,21 @@ int imagetopng(opj_image_t * image, const char *write_idf)
      * the library version is compatible with the one used at compile time,
      * in case we are using dynamically linked libraries.  REQUIRED.
      */
-    png = png_create_write_struct(PNG_LIBPNG_VER_STRING,
-                                  NULL, NULL, NULL);
+    png = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
     /*png_voidp user_error_ptr, user_error_fn, user_warning_fn); */
 
-    if (png == NULL) {
-        goto fin;
-    }
+    if (png == NULL) goto fin;
 
     /* Allocate/initialize the image information data.  REQUIRED
      */
     info = png_create_info_struct(png);
 
-    if (info == NULL) {
-        goto fin;
-    }
+    if (info == NULL) goto fin;
 
     /* Set error handling.  REQUIRED if you are not supplying your own
      * error handling functions in the png_create_write_struct() call.
      */
-    if (setjmp(png_jmpbuf(png))) {
-        goto fin;
-    }
+    if (setjmp(png_jmpbuf(png))) goto fin;
 
     /* I/O initialization functions is REQUIRED
      */
@@ -449,20 +405,24 @@ int imagetopng(opj_image_t * image, const char *write_idf)
      */
     png_set_compression_level(png, Z_BEST_COMPRESSION);
 
-    if (nr_comp >= 3) { /* RGB(A) */
+    if (nr_comp >= 3)
+    { /* RGB(A) */
         color_type = PNG_COLOR_TYPE_RGB;
         sig_bit.red = sig_bit.green = sig_bit.blue = (png_byte)prec;
-    } else { /* GRAY(A) */
+    }
+    else
+    { /* GRAY(A) */
         color_type = PNG_COLOR_TYPE_GRAY;
         sig_bit.gray = (png_byte)prec;
     }
-    if ((nr_comp & 1) == 0) { /* ALPHA */
+    if ((nr_comp & 1) == 0)
+    { /* ALPHA */
         color_type |= PNG_COLOR_MASK_ALPHA;
         sig_bit.alpha = (png_byte)prec;
     }
 
-    png_set_IHDR(png, info, image->comps[0].w, image->comps[0].h, prec, color_type,
-                 PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_BASE,  PNG_FILTER_TYPE_BASE);
+    png_set_IHDR(png, info, image->comps[0].w, image->comps[0].h, prec, color_type, PNG_INTERLACE_NONE,
+                 PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
 
     png_set_sBIT(png, info, &sig_bit);
     /* png_set_gamma(png, 2.2, 1./2.2); */
@@ -475,20 +435,21 @@ int imagetopng(opj_image_t * image, const char *write_idf)
         png_size_t png_row_size;
 
         png_row_size = png_get_rowbytes(png, info);
-        rowStride = ((OPJ_SIZE_T)image->comps[0].w * (OPJ_SIZE_T)nr_comp *
-                     (OPJ_SIZE_T)prec + 7U) / 8U;
-        if (rowStride != (OPJ_SIZE_T)png_row_size) {
+        rowStride = ((OPJ_SIZE_T)image->comps[0].w * (OPJ_SIZE_T)nr_comp * (OPJ_SIZE_T)prec + 7U) / 8U;
+        if (rowStride != (OPJ_SIZE_T)png_row_size)
+        {
             fprintf(stderr, "Invalid PNG row size\n");
             goto fin;
         }
         row_buf = (png_bytep)malloc(png_row_size);
-        if (row_buf == NULL) {
+        if (row_buf == NULL)
+        {
             fprintf(stderr, "Can't allocate memory for PNG row\n");
             goto fin;
         }
-        buffer32s = (OPJ_INT32*)malloc((OPJ_SIZE_T)image->comps[0].w *
-                                       (OPJ_SIZE_T)nr_comp * sizeof(OPJ_INT32));
-        if (buffer32s == NULL) {
+        buffer32s = (OPJ_INT32*)malloc((OPJ_SIZE_T)image->comps[0].w * (OPJ_SIZE_T)nr_comp * sizeof(OPJ_INT32));
+        if (buffer32s == NULL)
+        {
             fprintf(stderr, "Can't allocate memory for interleaved 32s row\n");
             goto fin;
         }
@@ -504,7 +465,8 @@ int imagetopng(opj_image_t * image, const char *write_idf)
         png_bytep row_buf_cpy = row_buf;
         OPJ_INT32* buffer32s_cpy = buffer32s;
 
-        switch (prec) {
+        switch (prec)
+        {
         case 1:
         case 2:
         case 4:
@@ -519,7 +481,8 @@ int imagetopng(opj_image_t * image, const char *write_idf)
             break;
         }
 
-        for (y = 0; y < image->comps[0].h; ++y) {
+        for (y = 0; y < image->comps[0].h; ++y)
+        {
             cvtPxToCx(planes, buffer32s_cpy, width, adjust);
             cvt32sToPack(buffer32s_cpy, row_buf_cpy, width * (OPJ_SIZE_T)nr_comp);
             png_write_row(png, row_buf_cpy);
@@ -535,20 +498,12 @@ int imagetopng(opj_image_t * image, const char *write_idf)
     fails = 0;
 
 fin:
-    if (png) {
-        png_destroy_write_struct(&png, &info);
-    }
-    if (row_buf) {
-        free(row_buf);
-    }
-    if (buffer32s) {
-        free(buffer32s);
-    }
+    if (png) png_destroy_write_struct(&png, &info);
+    if (row_buf) free(row_buf);
+    if (buffer32s) free(buffer32s);
     fclose(writer);
 
-    if (fails) {
-        (void)remove(write_idf);    /* ignore return value */
-    }
+    if (fails) (void)remove(write_idf); /* ignore return value */
 
     return fails;
-}/* imagetopng() */
+} /* imagetopng() */

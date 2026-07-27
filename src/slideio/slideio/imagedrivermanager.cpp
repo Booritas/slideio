@@ -24,7 +24,8 @@ std::map<std::string, std::shared_ptr<ImageDriver>> ImageDriverManager::driverMa
 static void initLogging()
 {
     static bool initLog = false;
-    if (!initLog) {
+    if (!initLog)
+    {
         google::InitGoogleLogging("slideio");
         FLAGS_logtostderr = true;
         FLAGS_minloglevel = google::GLOG_FATAL;
@@ -46,25 +47,24 @@ std::vector<std::string> ImageDriverManager::getDriverIDs()
 {
     initialize();
     std::vector<std::string> ids;
-    for(const auto drv : driverMap){
+    for (const auto drv : driverMap)
         ids.push_back(drv.first);
-    }
     return ids;
 }
 
 std::shared_ptr<slideio::ImageDriver> ImageDriverManager::findDriver(const std::string& filePath)
 {
     initialize();
-    std::string driverOrder[] = { "OMETIFF", "SVS", "CZI", "AFI", "SCN", "DCM", "ZVI", "NDPI", "VSI", "QPTIFF", "GDAL" };
-    for (const auto& driverID : driverOrder) {
+    std::string driverOrder[] = {"OMETIFF", "SVS", "CZI", "AFI", "SCN", "DCM", "ZVI", "NDPI", "VSI", "QPTIFF", "GDAL"};
+    for (const auto& driverID : driverOrder)
+    {
         auto itDriver = driverMap.find(driverID);
-        if (itDriver != driverMap.end()) {
+        if (itDriver != driverMap.end())
+        {
             auto driver = itDriver->second;
-            if(driver->canOpenFile(filePath)) {
-                return driver;
-            }
+            if (driver->canOpenFile(filePath)) return driver;
         }
-    } 
+    }
     return nullptr;
 }
 
@@ -72,11 +72,11 @@ void ImageDriverManager::initialize()
 {
     initLogging();
 
-    if(driverMap.empty())
+    if (driverMap.empty())
     {
         SLIDEIO_LOG(INFO) << "Initialization ImageDriverManager";
         {
-            std::shared_ptr<ImageDriver> driver { std::make_shared<ometiff::OTImageDriver>() };
+            std::shared_ptr<ImageDriver> driver{std::make_shared<ometiff::OTImageDriver>()};
             driverMap[driver->getID()] = driver;
         }
         {
@@ -88,31 +88,31 @@ void ImageDriverManager::initialize()
             driverMap[driver->getID()] = driver;
         }
         {
-            std::shared_ptr<ImageDriver> driver { std::make_shared<AFIImageDriver>() };
+            std::shared_ptr<ImageDriver> driver{std::make_shared<AFIImageDriver>()};
             driverMap[driver->getID()] = driver;
         }
         {
-            std::shared_ptr<ImageDriver> driver { std::make_shared<SCNImageDriver>() };
+            std::shared_ptr<ImageDriver> driver{std::make_shared<SCNImageDriver>()};
             driverMap[driver->getID()] = driver;
         }
         {
-            std::shared_ptr<ImageDriver> driver { std::make_shared<DCMImageDriver>() };
+            std::shared_ptr<ImageDriver> driver{std::make_shared<DCMImageDriver>()};
             driverMap[driver->getID()] = driver;
         }
         {
-            std::shared_ptr<ImageDriver> driver { std::make_shared<ZVIImageDriver>() };
+            std::shared_ptr<ImageDriver> driver{std::make_shared<ZVIImageDriver>()};
             driverMap[driver->getID()] = driver;
         }
         {
-            std::shared_ptr<ImageDriver> driver { std::make_shared<NDPIImageDriver>() };
+            std::shared_ptr<ImageDriver> driver{std::make_shared<NDPIImageDriver>()};
             driverMap[driver->getID()] = driver;
         }
         {
-            std::shared_ptr<ImageDriver> driver { std::make_shared<VSIImageDriver>() };
+            std::shared_ptr<ImageDriver> driver{std::make_shared<VSIImageDriver>()};
             driverMap[driver->getID()] = driver;
         }
         {
-            std::shared_ptr<ImageDriver> driver { std::make_shared<PKEImageDriver>() };
+            std::shared_ptr<ImageDriver> driver{std::make_shared<PKEImageDriver>()};
             driverMap[driver->getID()] = driver;
         }
         {
@@ -127,37 +127,37 @@ std::shared_ptr<CVSlide> ImageDriverManager::openSlide(const std::string& filePa
     static bool initLog = false;
     initialize();
     std::shared_ptr<slideio::ImageDriver> driver;
-    if(driverName.compare("AUTO")==0 || driverName.empty()) {
+    if (driverName.compare("AUTO") == 0 || driverName.empty())
+    {
         driver = findDriver(filePath);
-        if(!driver.get()) {
+        if (!driver.get())
             RAISE_RUNTIME_ERROR << "Cannot find driver for file " << filePath << ". Try to define driver manually.";
-        }
     }
-    else {
+    else
+    {
         auto it = driverMap.find(driverName);
-        if (it == driverMap.end())
-            throw std::runtime_error("ImageDriverManager: Unknown driver " + driverName);
+        if (it == driverMap.end()) throw std::runtime_error("ImageDriverManager: Unknown driver " + driverName);
         driver = it->second;
     }
-	auto slide = driver->openFile(filePath);
-	slide->setDriverId(driver->getID());
+    auto slide = driver->openFile(filePath);
+    slide->setDriverId(driver->getID());
     return slide;
 }
 
-void ImageDriverManager::setLogLevel(const std::string &level) {
+void ImageDriverManager::setLogLevel(const std::string& level)
+{
     initLogging();
-    if(level.compare("INFO")==0) {
+    if (level.compare("INFO") == 0)
         FLAGS_minloglevel = google::GLOG_INFO;
-    } else if(level.compare("ERROR")==0) {
+    else if (level.compare("ERROR") == 0)
         FLAGS_minloglevel = google::GLOG_ERROR;
-    } else if(level.compare("WARNING")==0) {
+    else if (level.compare("WARNING") == 0)
         FLAGS_minloglevel = google::GLOG_WARNING;
-    } else if(level.compare("FATAL")==0) {
+    else if (level.compare("FATAL") == 0)
         FLAGS_minloglevel = google::GLOG_FATAL;
-    }
 }
 
 std::string ImageDriverManager::getVersion()
 {
-	return SLIDEIO_VERSION;
+    return SLIDEIO_VERSION;
 }

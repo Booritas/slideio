@@ -9,40 +9,36 @@
 #include <memory>
 
 #if defined(_MSC_VER)
-#pragma warning( push )
-#pragma warning(disable: 4275 4251)
+#pragma warning(push)
+#pragma warning(disable : 4275 4251)
 #endif
-
 
 namespace slideio
 {
 
     class BilateralFilter;
-    class SLIDEIO_TRANSFORMER_EXPORTS BilateralFilterWrap : public TransformationWrapper
+    class SLIDEIO_TRANSFORMER_EXPORTS BilateralFilterWrap: public TransformationWrapper
     {
     public:
-        BilateralFilterWrap(const BilateralFilterWrap& other)
-            : TransformationWrapper(other),
-              m_filter(other.m_filter) {
-        }
+        BilateralFilterWrap(const BilateralFilterWrap& other): TransformationWrapper(other), m_filter(other.m_filter) {}
 
         BilateralFilterWrap(BilateralFilterWrap&& other) noexcept
-            : TransformationWrapper(std::move(other)),
-              m_filter(std::move(other.m_filter)) {
+            : TransformationWrapper(std::move(other)), m_filter(std::move(other.m_filter))
+        {
         }
 
-        BilateralFilterWrap& operator=(const BilateralFilterWrap& other) {
-            if (this == &other)
-                return *this;
-            TransformationWrapper::operator =(other);
+        BilateralFilterWrap& operator=(const BilateralFilterWrap& other)
+        {
+            if (this == &other) return *this;
+            TransformationWrapper::operator=(other);
             m_filter = other.m_filter;
             return *this;
         }
 
-        BilateralFilterWrap& operator=(BilateralFilterWrap&& other) noexcept {
-            if (this == &other)
-                return *this;
-            TransformationWrapper::operator =(std::move(other));
+        BilateralFilterWrap& operator=(BilateralFilterWrap&& other) noexcept
+        {
+            if (this == &other) return *this;
+            TransformationWrapper::operator=(std::move(other));
             m_filter = std::move(other.m_filter);
             return *this;
         }
@@ -57,11 +53,12 @@ namespace slideio
         void setSigmaSpace(double sigmaSpace);
         TransformationType getType() const override;
         std::shared_ptr<BilateralFilter> getFilter() const;
+
     private:
         std::shared_ptr<BilateralFilter> m_filter;
     };
-}
+} // namespace slideio
 
 #if defined(_MSC_VER)
-#pragma warning( pop )
+#pragma warning(pop)
 #endif

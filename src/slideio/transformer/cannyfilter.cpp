@@ -9,7 +9,7 @@ using namespace slideio;
 
 void CannyFilter::applyTransformation(const cv::Mat& block, cv::OutputArray transformedBlock) const
 {
-    cv::Canny(block, transformedBlock, getThreshold1(), getThreshold2(), getApertureSize(),getL2Gradient());
+    cv::Canny(block, transformedBlock, getThreshold1(), getThreshold2(), getApertureSize(), getL2Gradient());
 }
 
 std::vector<DataType> CannyFilter::computeChannelDataTypes(const std::vector<DataType>& channels) const

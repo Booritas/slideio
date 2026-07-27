@@ -4,8 +4,6 @@
 #include <opencv2/imgproc.hpp>
 #include <numeric>
 
-
-
 TEST(GenericAPI, openSlide)
 {
     std::string path = TestTools::getTestImagePath("gdal", "img_2448x2448_3x8bit_SRC_RGB_ducks.png");

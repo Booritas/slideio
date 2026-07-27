@@ -7,10 +7,9 @@
 #include <opencv2/core.hpp>
 #include <map>
 
-
 #if defined(_MSC_VER)
-#pragma warning( push )
-#pragma warning(disable: 4251)
+#pragma warning(push)
+#pragma warning(disable : 4251)
 #endif
 
 namespace slideio
@@ -19,10 +18,12 @@ namespace slideio
     {
         class EtsFile;
         class VSIFile;
-        class SLIDEIO_VSI_EXPORTS EtsFileScene : public VSIScene
+        class SLIDEIO_VSI_EXPORTS EtsFileScene: public VSIScene
         {
         public:
-            EtsFileScene(const std::string& filePath, int sceneIndex, const std::string& driverId, std::shared_ptr<VSIFile>& vsiFile, int etsIndex);
+            EtsFileScene(const std::string& filePath, int sceneIndex, const std::string& driverId,
+                         std::shared_ptr<VSIFile>& vsiFile, int etsIndex);
+
         public:
             int getTileCount(void* userData) override;
             bool getTileRect(int tileIndex, cv::Rect& tileRect, void* userData) override;
@@ -41,20 +42,22 @@ namespace slideio
             int getNumChannels() const override;
             std::string getChannelName(int channel) const override;
             void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
-                const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex,
-                cv::OutputArray output) override;
+                                              const std::vector<int>& componentIndices, int zSliceIndex,
+                                              int tFrameIndex, cv::OutputArray output) override;
+
         protected:
             void init();
             std::shared_ptr<EtsFile> getEtsFile() const;
             int findZoomLevelIndex(double zoom) const;
+
         protected:
             int m_etsIndex;
             std::map<std::string, std::shared_ptr<CVScene>> m_auxScenes;
         };
-    }
+    } // namespace vsi
 
-}
+} // namespace slideio
 
 #if defined(_MSC_VER)
-#pragma warning( pop )
+#pragma warning(pop)
 #endif

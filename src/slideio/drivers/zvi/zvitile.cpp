@@ -20,24 +20,19 @@ void ZVITile::addItem(const slideio::ZVIImageItem* item)
     }
     if (xIndex != m_XIndex || yIndex != m_YIndex)
     {
-        RAISE_RUNTIME_ERROR << "ZVIImageDriver: unexpected image item (" 
-            << xIndex << "," << yIndex << "). Expected: (" << m_XIndex << "," << m_YIndex << ")";
+        RAISE_RUNTIME_ERROR << "ZVIImageDriver: unexpected image item (" << xIndex << "," << yIndex << "). Expected: ("
+                            << m_XIndex << "," << m_YIndex << ")";
     }
     m_ImageItems.push_back(item);
 }
 
 void ZVITile::finalize()
 {
-    std::sort(m_ImageItems.begin(), m_ImageItems.end(),
-              [](const ZVIImageItem* left, const ZVIImageItem* right)
-              {
-                  bool less = left->getZIndex() < right->getZIndex();
-                  if (!less && left->getZIndex() == right->getZIndex())
-                  {
-                      less = left->getCIndex() < right->getCIndex();
-                  }
-                  return less;
-              });
+    std::sort(m_ImageItems.begin(), m_ImageItems.end(), [](const ZVIImageItem* left, const ZVIImageItem* right) {
+        bool less = left->getZIndex() < right->getZIndex();
+        if (!less && left->getZIndex() == right->getZIndex()) less = left->getCIndex() < right->getCIndex();
+        return less;
+    });
 }
 
 void ZVITile::setTilePosition(int x, int y)
@@ -54,17 +49,14 @@ const ZVIImageItem* ZVITile::getImageItem(int slice, const int channelIndex) con
         const ZVIImageItem* currItem = m_ImageItems[index];
         if (currItem->getZIndex() == slice)
         {
-            if (currItem->getCIndex() == channelIndex)
-            {
-                item = currItem;
-            }
+            if (currItem->getCIndex() == channelIndex) item = currItem;
         }
     }
     return item;
 }
 
-bool ZVITile::readTile(const std::vector<int>& componentIndices,
-                       cv::OutputArray tileRaster, int slice, ole::compound_document& doc) const
+bool ZVITile::readTile(const std::vector<int>& componentIndices, cv::OutputArray tileRaster, int slice,
+                       ole::compound_document& doc) const
 {
     bool ok = false;
 
@@ -74,8 +66,10 @@ bool ZVITile::readTile(const std::vector<int>& componentIndices,
     {
         const int channelIndex = componentIndices[index];
         const ZVIImageItem* item = getImageItem(slice, channelIndex);
-        if(!item) {
-            RAISE_RUNTIME_ERROR << "ZVIImageDriver: Cannot find image item for channel " << channelIndex << " and slice " << slice;
+        if (!item)
+        {
+            RAISE_RUNTIME_ERROR << "ZVIImageDriver: Cannot find image item for channel " << channelIndex
+                                << " and slice " << slice;
         }
         cv::Mat itemRaster;
         item->readRaster(doc, itemRaster);
@@ -92,11 +86,9 @@ bool ZVITile::readTile(const std::vector<int>& componentIndices,
     }
 
     ok = true;
-    if (channelRasters.size()==1) {
+    if (channelRasters.size() == 1)
         channelRasters[0].copyTo(tileRaster);
-    }
-    else {
+    else
         cv::merge(channelRasters, tileRaster);
-    }
     return ok;
 }

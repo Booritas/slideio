@@ -7,31 +7,24 @@
 
 namespace slideio
 {
-    class Jp2CodecParameter : public DcmCodecParameter
+    class Jp2CodecParameter: public DcmCodecParameter
     {
     public:
-        Jp2CodecParameter(OFBool pVerbose = OFFalse, OFBool pCreateSOPInstanceUID = OFFalse, OFBool pReverseDecompressionByteOrder = OFFalse);
+        Jp2CodecParameter(OFBool pVerbose = OFFalse, OFBool pCreateSOPInstanceUID = OFFalse,
+                          OFBool pReverseDecompressionByteOrder = OFFalse);
         Jp2CodecParameter(const Jp2CodecParameter&);
         ~Jp2CodecParameter(void);
         virtual DcmCodecParameter* clone() const;
         virtual const char* className() const;
-        OFBool getUIDCreation() const
-        {
-            return createInstanceUID;
-        }
+        OFBool getUIDCreation() const { return createInstanceUID; }
 
-        OFBool isVerbose() const
-        {
-            return verboseMode;
-        }
-        OFBool getReverseDecompressionByteOrder() const
-        {
-            return reverseDecompressionByteOrder;
-        }
+        OFBool isVerbose() const { return verboseMode; }
+        OFBool getReverseDecompressionByteOrder() const { return reverseDecompressionByteOrder; }
+
     protected:
         OFBool createInstanceUID;
         OFBool reverseDecompressionByteOrder;
         OFBool verboseMode;
     };
-    
-}
+
+} // namespace slideio

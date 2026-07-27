@@ -11,7 +11,8 @@ using namespace slideio;
 void ColorTransformation::applyTransformation(const cv::Mat& block, cv::OutputArray converted) const
 {
     ColorSpace targetColorSpace = getColorSpace();
-    switch (targetColorSpace) {
+    switch (targetColorSpace)
+    {
     case ColorSpace::GRAY:
         cv::cvtColor(block, converted, cv::COLOR_RGB2GRAY);
         break;
@@ -41,17 +42,10 @@ void ColorTransformation::applyTransformation(const cv::Mat& block, cv::OutputAr
     }
 }
 
-
 std::vector<slideio::DataType> slideio::ColorTransformation::computeChannelDataTypes(
     const std::vector<DataType>& channels) const
 {
-    if(channels.empty())
-    {
-        RAISE_RUNTIME_ERROR << "Empty channel vector supplied for the color transformation.";
-    }
-    if(getColorSpace()==ColorSpace::GRAY)
-    {
-        return { channels[0]};
-    }
+    if (channels.empty()) RAISE_RUNTIME_ERROR << "Empty channel vector supplied for the color transformation.";
+    if (getColorSpace() == ColorSpace::GRAY) return {channels[0]};
     return TransformationEx::computeChannelDataTypes(channels);
 }

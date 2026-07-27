@@ -13,7 +13,8 @@ namespace slideio
     class SLIDEIO_TRANSFORMER_EXPORTS TransformerTools
     {
     public:
-        static void computeInflatedRectParams(const cv::Size& sceneSize, const cv::Rect& blockRect, int invlationValue, const cv::Size& blockSize,
-            cv::Rect& inflatedBlockRect, cv::Size& inflatedSize, cv::Point& blockPositionInInflatedRect);
+        static void computeInflatedRectParams(const cv::Size& sceneSize, const cv::Rect& blockRect, int invlationValue,
+                                              const cv::Size& blockSize, cv::Rect& inflatedBlockRect,
+                                              cv::Size& inflatedSize, cv::Point& blockPositionInInflatedRect);
     };
-}
+} // namespace slideio

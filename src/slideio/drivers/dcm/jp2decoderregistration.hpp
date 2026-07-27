@@ -12,11 +12,10 @@ namespace slideio
     class Jp2DecoderRegistration
     {
     public:
-        static void registerCodecs(
-            OFBool pCreateSOPInstanceUID = OFFalse,
-            OFBool pVerbose = OFFalse,
-            OFBool pReverseDecompressionByteOrder = OFFalse);
+        static void registerCodecs(OFBool pCreateSOPInstanceUID = OFFalse, OFBool pVerbose = OFFalse,
+                                   OFBool pReverseDecompressionByteOrder = OFFalse);
         static void cleanup();
+
     private:
         Jp2DecoderRegistration(const Jp2DecoderRegistration&);
         Jp2DecoderRegistration& operator=(const Jp2DecoderRegistration&);
@@ -24,5 +23,5 @@ namespace slideio
         static Jp2CodecParameter* cp;
         static Jp2Decoder* codec;
     };
-    
-}
+
+} // namespace slideio

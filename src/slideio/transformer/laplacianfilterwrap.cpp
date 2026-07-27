@@ -6,9 +6,7 @@
 #include "slideio/transformer/laplacianfilterwrap.hpp"
 using namespace slideio;
 
-LaplacianFilterWrap::LaplacianFilterWrap() : m_filter(std::make_shared<LaplacianFilter>())
-{
-}
+LaplacianFilterWrap::LaplacianFilterWrap(): m_filter(std::make_shared<LaplacianFilter>()) {}
 
 DataType LaplacianFilterWrap::getDepth() const
 {
@@ -55,7 +53,7 @@ TransformationType LaplacianFilterWrap::getType() const
     return m_filter->getType();
 }
 
-std::shared_ptr<Transformation> LaplacianFilterWrap::getFilter() const {
+std::shared_ptr<Transformation> LaplacianFilterWrap::getFilter() const
+{
     return m_filter;
 }
-

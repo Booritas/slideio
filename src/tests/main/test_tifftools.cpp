@@ -8,19 +8,16 @@
 #include "slideio/imagetools/tiffkeeper.hpp"
 #include "slideio/slideio/imagedrivermanager.hpp"
 
-class TiffToolsTests : public ::testing::Test {
+class TiffToolsTests: public ::testing::Test
+{
 protected:
-    static void SetUpTestSuite() {
-        slideio::ImageDriverManager::setLogLevel("ERROR");
-    }
-    static void TearDownTestSuite() {
-    }
+    static void SetUpTestSuite() { slideio::ImageDriverManager::setLogLevel("ERROR"); }
+    static void TearDownTestSuite() {}
 };
-
 
 TEST_F(TiffToolsTests, scanTiffFile)
 {
-    std::string filePath = TestTools::getTestImagePath("svs","JP2K-33003-1.svs");
+    std::string filePath = TestTools::getTestImagePath("svs", "JP2K-33003-1.svs");
     std::vector<slideio::TiffDirectory> dirs;
     slideio::TiffTools::scanFile(filePath, dirs);
     int dirCount = (int)dirs.size();
@@ -33,7 +30,7 @@ TEST_F(TiffToolsTests, scanTiffFile)
     EXPECT_EQ(dir.tileHeight, 256);
     EXPECT_EQ(dir.channels, 3);
     EXPECT_EQ(dir.bitsPerSample, 8);
-    EXPECT_EQ(dir.description.size(),530);
+    EXPECT_EQ(dir.description.size(), 530);
     const slideio::TiffDirectory& dir5 = dirs[5];
     EXPECT_EQ(dir5.width, 1280);
     EXPECT_EQ(dir5.height, 421);
@@ -42,19 +39,20 @@ TEST_F(TiffToolsTests, scanTiffFile)
     EXPECT_EQ(dir5.tileHeight, 0);
     EXPECT_EQ(dir5.channels, 3);
     EXPECT_EQ(dir5.bitsPerSample, 8);
-    EXPECT_EQ(dir5.description.size(),44);
+    EXPECT_EQ(dir5.description.size(), 44);
     EXPECT_TRUE(dir5.interleaved);
     EXPECT_EQ(0, dir5.res.x);
-    EXPECT_EQ(0,dir5.res.y);
-    EXPECT_EQ((uint32_t)7,dir5.compression);
+    EXPECT_EQ(0, dir5.res.y);
+    EXPECT_EQ((uint32_t)7, dir5.compression);
 }
 
 TEST_F(TiffToolsTests, readStripedDir8bitInterleavedPhotometric2)
 {
-    std::string filePathTiff = TestTools::getTestImagePath("svs","CMU-1-Small-Region.svs");
+    std::string filePathTiff = TestTools::getTestImagePath("svs", "CMU-1-Small-Region.svs");
     std::string filePathBmp = TestTools::getTestImagePath("svs", "CMU-1-Small-Region-page-2.bmp");
-    libtiff::TIFF* tiff = slideio::TiffTools::openTiffFile(filePathTiff);;
-    ASSERT_TRUE(tiff!=nullptr);
+    libtiff::TIFF* tiff = slideio::TiffTools::openTiffFile(filePathTiff);
+    ;
+    ASSERT_TRUE(tiff != nullptr);
     int dirIndex = 2;
     slideio::TiffDirectory dir;
     slideio::TiffTools::scanTiffDirTags(tiff, dirIndex, 0, dir);
@@ -64,15 +62,16 @@ TEST_F(TiffToolsTests, readStripedDir8bitInterleavedPhotometric2)
     slideio::TiffTools::closeTiffFile(tiff);
     cv::Mat image;
     slideio::ImageTools::readBitmap(filePathBmp, image);
-	double sim = slideio::ImageTools::computeSimilarity(dirRaster, image);
-	ASSERT_LT(0.99, sim);
+    double sim = slideio::ImageTools::computeSimilarity(dirRaster, image);
+    ASSERT_LT(0.99, sim);
 }
 
 TEST_F(TiffToolsTests, readStripedDir16bitSingleChannel)
 {
     std::string filePathTiff = TestTools::getTestImagePath("gdal", "img_2448x2448_1x16bit_SRC_RGB_ducks.tif");
     std::string filePathRaw = TestTools::getTestImagePath("gdal", "img_2448x2448_1x16bit_SRC_RGB_ducks.raw");
-    libtiff::TIFF* tiff = slideio::TiffTools::openTiffFile(filePathTiff);;
+    libtiff::TIFF* tiff = slideio::TiffTools::openTiffFile(filePathTiff);
+    ;
     ASSERT_TRUE(tiff != nullptr);
     int dirIndex = 0;
     slideio::TiffDirectory dir;
@@ -90,7 +89,8 @@ TEST_F(TiffToolsTests, readStripedDir16bitSingleChannel2ndDir)
 {
     std::string filePathTiff = TestTools::getTestImagePath("gdal", "multipage-ducks.tif");
     std::string filePathRaw = TestTools::getTestImagePath("gdal", "img_2448x2448_1x16bit_SRC_RGB_ducks.raw");
-    libtiff::TIFF* tiff = slideio::TiffTools::openTiffFile(filePathTiff);;
+    libtiff::TIFF* tiff = slideio::TiffTools::openTiffFile(filePathTiff);
+    ;
     ASSERT_TRUE(tiff != nullptr);
     int dirIndex = 1;
     slideio::TiffDirectory dir;
@@ -108,7 +108,8 @@ TEST_F(TiffToolsTests, readStripedDir16bit3Channels)
 {
     std::string filePathTiff = TestTools::getTestImagePath("gdal", "img_2448x2448_3x16bit_SRC_RGB_ducks.tif");
     std::string filePathRaw = TestTools::getTestImagePath("gdal", "img_2448x2448_3x16bit_SRC_RGB_ducks.raw");
-    libtiff::TIFF* tiff = slideio::TiffTools::openTiffFile(filePathTiff);;
+    libtiff::TIFF* tiff = slideio::TiffTools::openTiffFile(filePathTiff);
+    ;
     ASSERT_TRUE(tiff != nullptr);
     int dirIndex = 0;
     slideio::TiffDirectory dir;
@@ -124,18 +125,16 @@ TEST_F(TiffToolsTests, readStripedDir16bit3Channels)
 
 TEST_F(TiffToolsTests, readTile_jpeg)
 {
-    const std::string filePath = 
-        TestTools::getTestImagePath("svs","CMU-1-Small-Region.svs");
-    const std::string tilePath = 
-        TestTools::getTestImagePath("svs","CMU-1-Small-Region-page-0-tile_5-5.bmp");
+    const std::string filePath = TestTools::getTestImagePath("svs", "CMU-1-Small-Region.svs");
+    const std::string tilePath = TestTools::getTestImagePath("svs", "CMU-1-Small-Region-page-0-tile_5-5.bmp");
     // read tile from a tiff file
     libtiff::TIFF* tiff = slideio::TiffTools::openTiffFile(filePath);
-    ASSERT_TRUE(tiff!=nullptr);
+    ASSERT_TRUE(tiff != nullptr);
     slideio::TiffDirectory dir;
     slideio::TiffTools::scanTiffDir(tiff, 0, 0, dir);
     dir.dataType = slideio::DataType::DT_Byte;
-    int tile_sx = (dir.width-1)/dir.tileWidth + 1;
-    int tile = 5*tile_sx + 5;
+    int tile_sx = (dir.width - 1) / dir.tileWidth + 1;
+    int tile = 5 * tile_sx + 5;
     std::vector<int> channelIndices = {0};
     cv::Mat tileRaster;
     slideio::TiffTools::readTile(tiff, dir, tile, channelIndices, tileRaster);
@@ -153,18 +152,16 @@ TEST_F(TiffToolsTests, readTile_jpeg)
 
 TEST_F(TiffToolsTests, readTile_J2K)
 {
-    const std::string filePath = 
-        TestTools::getTestImagePath("svs","CMU-1-Small-Region.svs");
-    const std::string bmpPath = 
-        TestTools::getTestImagePath("svs","CMU-1-Small-Region-page-0-tile_5-5.bmp");
+    const std::string filePath = TestTools::getTestImagePath("svs", "CMU-1-Small-Region.svs");
+    const std::string bmpPath = TestTools::getTestImagePath("svs", "CMU-1-Small-Region-page-0-tile_5-5.bmp");
     // read tile from a tiff file
     libtiff::TIFF* tiff = slideio::TiffTools::openTiffFile(filePath);
-    ASSERT_TRUE(tiff!=nullptr);
+    ASSERT_TRUE(tiff != nullptr);
     slideio::TiffDirectory dir;
-    slideio::TiffTools::scanTiffDir(tiff, 0,0,dir);
+    slideio::TiffTools::scanTiffDir(tiff, 0, 0, dir);
     dir.dataType = slideio::DataType::DT_Byte;
-    int tile_sx = (dir.width-1)/dir.tileWidth + 1;
-    int tile = 5*tile_sx + 5;
+    int tile_sx = (dir.width - 1) / dir.tileWidth + 1;
+    int tile = 5 * tile_sx + 5;
     cv::Mat tileRaster;
     std::vector<int> channelIndices;
     slideio::TiffTools::readTile(tiff, dir, tile, channelIndices, tileRaster);
@@ -181,10 +178,8 @@ TEST_F(TiffToolsTests, readTile_J2K)
 
 TEST_F(TiffToolsTests, readTile_jpeg_swapChannles)
 {
-    const std::string filePath =
-        TestTools::getTestImagePath("svs", "CMU-1-Small-Region.svs");
-    const std::string tilePath =
-        TestTools::getTestImagePath("svs", "CMU-1-Small-Region-page-0-tile_5-5.bmp");
+    const std::string filePath = TestTools::getTestImagePath("svs", "CMU-1-Small-Region.svs");
+    const std::string tilePath = TestTools::getTestImagePath("svs", "CMU-1-Small-Region-page-0-tile_5-5.bmp");
     // read tile from a tiff file
     libtiff::TIFF* tiff = slideio::TiffTools::openTiffFile(filePath);
     ASSERT_TRUE(tiff != nullptr);
@@ -193,7 +188,7 @@ TEST_F(TiffToolsTests, readTile_jpeg_swapChannles)
     dir.dataType = slideio::DataType::DT_Byte;
     int tile_sx = (dir.width - 1) / dir.tileWidth + 1;
     int tile = 5 * tile_sx + 5;
-    std::vector<int> channelIndices = { 2, 1, 0 };
+    std::vector<int> channelIndices = {2, 1, 0};
     cv::Mat tileRaster;
     slideio::TiffTools::readTile(tiff, dir, tile, channelIndices, tileRaster);
     slideio::TiffTools::closeTiffFile(tiff);
@@ -249,7 +244,7 @@ TEST_F(TiffToolsTests, readNotRGBTile)
 
     {
         cv::Mat raster;
-        std::vector<int> channels = { 0,1,2 };
+        std::vector<int> channels = {0, 1, 2};
         slideio::TiffTools::readNotRGBTile(tiff, dir, 24, channels, raster);
         ASSERT_EQ(raster.cols, 512);
         ASSERT_EQ(raster.rows, 512);
@@ -274,7 +269,7 @@ TEST_F(TiffToolsTests, readNotRGBTile)
         cv::Mat tileChannel;
         cv::extractChannel(tile, tileChannel, channelIndex);
         cv::Mat raster;
-        std::vector<int> channels = { channelIndex };
+        std::vector<int> channels = {channelIndex};
         slideio::TiffTools::readNotRGBTile(tiff, dir, 24, channels, raster);
         ASSERT_EQ(raster.cols, 512);
         ASSERT_EQ(raster.rows, 512);
@@ -292,4 +287,3 @@ TEST_F(TiffToolsTests, openFileUtf8)
     int dirCount = (int)dirs.size();
     ASSERT_EQ(dirCount, 1);
 }
-

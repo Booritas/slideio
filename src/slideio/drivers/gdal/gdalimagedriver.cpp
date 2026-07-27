@@ -7,29 +7,23 @@
 #include "slideio/drivers/gdal/gdalslide.hpp"
 #include <set>
 
+slideio::GDALImageDriver::GDALImageDriver() {}
 
-slideio::GDALImageDriver::GDALImageDriver()
-{
-}
-
-slideio::GDALImageDriver::~GDALImageDriver()
-{
-}
+slideio::GDALImageDriver::~GDALImageDriver() {}
 
 std::string slideio::GDALImageDriver::getID() const
 {
-	return std::string("GDAL");
+    return std::string("GDAL");
 }
-
 
 std::shared_ptr<slideio::CVSlide> slideio::GDALImageDriver::openFile(const std::string& filePath)
 {
-	std::shared_ptr<slideio::CVSlide> ptr(new GDALSlide(filePath, getID()));
-	return ptr;
+    std::shared_ptr<slideio::CVSlide> ptr(new GDALSlide(filePath, getID()));
+    return ptr;
 }
 
 std::string slideio::GDALImageDriver::getFileSpecs() const
 {
-	static std::string pattern("*.png;*.jpeg;*.jpg;*.tif;*.tiff;*.bmp;*.gif;*.gtiff;*.gtif;*.ntif;*.jp2");
+    static std::string pattern("*.png;*.jpeg;*.jpg;*.tif;*.tiff;*.bmp;*.gif;*.gtiff;*.gtif;*.ntif;*.jp2");
     return pattern;
 }

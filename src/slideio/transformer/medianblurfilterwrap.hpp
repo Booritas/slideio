@@ -7,39 +7,38 @@
 #include <memory>
 
 #if defined(_MSC_VER)
-#pragma warning( push )
-#pragma warning(disable: 4275 4251)
+#pragma warning(push)
+#pragma warning(disable : 4275 4251)
 #endif
 
 namespace slideio
 {
     class MedianBlurFilter;
     enum class TransformationType;
-    class SLIDEIO_TRANSFORMER_EXPORTS MedianBlurFilterWrap : public TransformationWrapper
+    class SLIDEIO_TRANSFORMER_EXPORTS MedianBlurFilterWrap: public TransformationWrapper
     {
     public:
-        MedianBlurFilterWrap(const MedianBlurFilterWrap& other)
-            : TransformationWrapper(other),
-              m_filter(other.m_filter) {
+        MedianBlurFilterWrap(const MedianBlurFilterWrap& other): TransformationWrapper(other), m_filter(other.m_filter)
+        {
         }
 
         MedianBlurFilterWrap(MedianBlurFilterWrap&& other) noexcept
-            : TransformationWrapper(std::move(other)),
-              m_filter(std::move(other.m_filter)) {
+            : TransformationWrapper(std::move(other)), m_filter(std::move(other.m_filter))
+        {
         }
 
-        MedianBlurFilterWrap& operator=(const MedianBlurFilterWrap& other) {
-            if (this == &other)
-                return *this;
-            TransformationWrapper::operator =(other);
+        MedianBlurFilterWrap& operator=(const MedianBlurFilterWrap& other)
+        {
+            if (this == &other) return *this;
+            TransformationWrapper::operator=(other);
             m_filter = other.m_filter;
             return *this;
         }
 
-        MedianBlurFilterWrap& operator=(MedianBlurFilterWrap&& other) noexcept {
-            if (this == &other)
-                return *this;
-            TransformationWrapper::operator =(std::move(other));
+        MedianBlurFilterWrap& operator=(MedianBlurFilterWrap&& other) noexcept
+        {
+            if (this == &other) return *this;
+            TransformationWrapper::operator=(std::move(other));
             m_filter = std::move(other.m_filter);
             return *this;
         }
@@ -53,10 +52,10 @@ namespace slideio
 
     private:
         std::shared_ptr<MedianBlurFilter> m_filter;
-};
+    };
 
-}
+} // namespace slideio
 
 #if defined(_MSC_VER)
-#pragma warning( pop )
+#pragma warning(pop)
 #endif

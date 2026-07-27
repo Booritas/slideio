@@ -10,49 +10,48 @@
 
 using json = nlohmann::json;
 
-slideio::GDALSlide::GDALSlide(const std::string& filePath, const std::string& driverId) : m_filePath(filePath)
+slideio::GDALSlide::GDALSlide(const std::string& filePath, const std::string& driverId): m_filePath(filePath)
 {
-	m_driverId = driverId;
-	m_image = ImageTools::openSmallImage(filePath);
-	if (!m_image->isValid()) {
-		RAISE_RUNTIME_ERROR << "GDAL driver: cannot open file " << filePath;
-	}
-	const int numPages = m_image->getNumPages();
-	for (int pageIndex = 0; pageIndex < numPages; ++pageIndex) {
-		std::shared_ptr<slideio::CVScene> scenePtr(new GDALScene(m_image->readPage(pageIndex), filePath, getDriverId()));
-		m_scenes.push_back(scenePtr);
-	}
-	if (numPages == 1) {
-		m_rawMetadata = getScene(0)->getRawMetadata();
-		m_metadataFormat = MetadataFormat::JSON;
-	}
+    m_driverId = driverId;
+    m_image = ImageTools::openSmallImage(filePath);
+    if (!m_image->isValid()) RAISE_RUNTIME_ERROR << "GDAL driver: cannot open file " << filePath;
+    const int numPages = m_image->getNumPages();
+    for (int pageIndex = 0; pageIndex < numPages; ++pageIndex)
+    {
+        std::shared_ptr<slideio::CVScene> scenePtr(
+            new GDALScene(m_image->readPage(pageIndex), filePath, getDriverId()));
+        m_scenes.push_back(scenePtr);
+    }
+    if (numPages == 1)
+    {
+        m_rawMetadata = getScene(0)->getRawMetadata();
+        m_metadataFormat = MetadataFormat::JSON;
+    }
 }
 
 int slideio::GDALSlide::getNumScenes() const
 {
-	return static_cast<int>(m_scenes.size());
+    return static_cast<int>(m_scenes.size());
 }
 
 std::string slideio::GDALSlide::getFilePath() const
 {
-	return m_filePath;
+    return m_filePath;
 }
 
 std::shared_ptr<slideio::CVScene> slideio::GDALSlide::getScene(int index) const
 {
-	if(index>=getNumScenes()) {
-		RAISE_RUNTIME_ERROR << "GDAL driver: invalid scene index";
-	}
-	return m_scenes[index];
+    if (index >= getNumScenes()) RAISE_RUNTIME_ERROR << "GDAL driver: invalid scene index";
+    return m_scenes[index];
 }
 
-slideio::MetadataFormat slideio::GDALSlide::getMetadataFormat() const {
-	if (getNumScenes() > 1) {
-		return MetadataFormat::None;
-	}
+slideio::MetadataFormat slideio::GDALSlide::getMetadataFormat() const
+{
+    if (getNumScenes() > 1) return MetadataFormat::None;
     return MetadataFormat::JSON;
 }
 
-const std::string& slideio::GDALSlide::getRawMetadata() const {
-	return m_rawMetadata;
+const std::string& slideio::GDALSlide::getRawMetadata() const
+{
+    return m_rawMetadata;
 }

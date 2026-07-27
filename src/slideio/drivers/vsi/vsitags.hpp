@@ -5,7 +5,7 @@
 namespace slideio
 {
     namespace vsi
-    {   
+    {
         namespace Tag
         {
             const int UNKNOWN = -1;
@@ -208,7 +208,7 @@ namespace slideio
             const int DEVICE_CONFIGURATION_POSITION = 120210;
             const int DEVICE_CONFIGURATION_INDEX = 120211;
             const int APERTURE_MAX_MODE = 124000;
-// Volume property set
+            // Volume property set
             const int DISPLAY_LIMITS = 2003;
             const int STACK_DISPLAY_LUT = 2004;
             const int GAMMA_CORRECTION = 2005;
@@ -228,7 +228,7 @@ namespace slideio
             const int CONTRAST_BRIGHTNESS = 10047;
             const int ACQUISITION_PROPERTIES = 10048;
             const int GRADIENT_LUT = 10065;
-// Dimension property set
+            // Dimension property set
             const int DIMENSION_PARAMETERS = 2008;
             const int Z_START = 2012;
             const int Z_INCREMENT = 2013;
@@ -247,6 +247,6 @@ namespace slideio
 
             const int MICROSCOPE_PROPERTIES = 3;
             const int OPTICAL_PROPERTIES = 120114;
-        };
-   };
-}; 
+        }; // namespace Tag
+    }; // namespace vsi
+}; // namespace slideio

@@ -12,7 +12,8 @@
 
 using namespace slideio;
 
-TEST(FilterCopy, MakeTransformationCopy_GaussianBlurFilter) {
+TEST(FilterCopy, MakeTransformationCopy_GaussianBlurFilter)
+{
     GaussianBlurFilter original;
     original.setKernelSizeX(15);
     original.setKernelSizeY(25);
@@ -29,7 +30,8 @@ TEST(FilterCopy, MakeTransformationCopy_GaussianBlurFilter) {
     EXPECT_EQ(copiedFilter->getSigmaY(), original.getSigmaY());
 }
 
-TEST(FilterCopy, MakeTransformationCopy_MedianBlurFilter) {
+TEST(FilterCopy, MakeTransformationCopy_MedianBlurFilter)
+{
     MedianBlurFilter original;
     original.setKernelSize(3);
 
@@ -40,7 +42,8 @@ TEST(FilterCopy, MakeTransformationCopy_MedianBlurFilter) {
     EXPECT_EQ(copiedFilter->getKernelSize(), original.getKernelSize());
 }
 
-TEST(FilterCopy, MakeTransformationCopy_SobelFilter) {
+TEST(FilterCopy, MakeTransformationCopy_SobelFilter)
+{
     SobelFilter original;
     original.setDx(1);
     original.setDy(0);
@@ -59,7 +62,8 @@ TEST(FilterCopy, MakeTransformationCopy_SobelFilter) {
     EXPECT_EQ(copiedFilter->getDepth(), original.getDepth());
 }
 
-TEST(FilterCopy, MakeTransformationCopy_ScharrFilter) {
+TEST(FilterCopy, MakeTransformationCopy_ScharrFilter)
+{
     ScharrFilter original;
     original.setDx(1);
     original.setDy(0);
@@ -78,13 +82,13 @@ TEST(FilterCopy, MakeTransformationCopy_ScharrFilter) {
     EXPECT_EQ(copiedFilter->getDepth(), original.getDepth());
 }
 
-TEST(FilterCopy, MakeTransformationCopy_LaplacianFilter) {
+TEST(FilterCopy, MakeTransformationCopy_LaplacianFilter)
+{
     LaplacianFilter original;
     original.setKernelSize(3);
     original.setDelta(4);
     original.setScale(2);
     original.setDepth(DataType::DT_Float64);
-
 
     std::shared_ptr<Transformation> copy = makeTransformationCopy(original);
     LaplacianFilter* copiedFilter = dynamic_cast<LaplacianFilter*>(copy.get());
@@ -96,7 +100,8 @@ TEST(FilterCopy, MakeTransformationCopy_LaplacianFilter) {
     EXPECT_EQ(copiedFilter->getDepth(), original.getDepth());
 }
 
-TEST(FilterCopy, MakeTransformationCopy_BilateralFilter) {
+TEST(FilterCopy, MakeTransformationCopy_BilateralFilter)
+{
     BilateralFilter original;
     original.setDiameter(9);
     original.setSigmaColor(75);
@@ -111,13 +116,13 @@ TEST(FilterCopy, MakeTransformationCopy_BilateralFilter) {
     EXPECT_EQ(copiedFilter->getSigmaSpace(), original.getSigmaSpace());
 }
 
-TEST(FilterCopy, MakeTransformationCopy_CannyFilter) {
+TEST(FilterCopy, MakeTransformationCopy_CannyFilter)
+{
     CannyFilter original;
     original.setThreshold1(50);
     original.setThreshold2(150);
     original.setApertureSize(3);
     original.setL2Gradient(true);
-    
 
     std::shared_ptr<Transformation> copy = makeTransformationCopy(original);
     CannyFilter* copiedFilter = dynamic_cast<CannyFilter*>(copy.get());
@@ -129,7 +134,8 @@ TEST(FilterCopy, MakeTransformationCopy_CannyFilter) {
     EXPECT_EQ(copiedFilter->getL2Gradient(), original.getL2Gradient());
 }
 
-TEST(FilterCopy, MakeTransformationCopy_ColorTransformation) {
+TEST(FilterCopy, MakeTransformationCopy_ColorTransformation)
+{
     ColorTransformation original;
     original.setColorSpace(ColorSpace::HLS);
 
@@ -140,8 +146,8 @@ TEST(FilterCopy, MakeTransformationCopy_ColorTransformation) {
     EXPECT_EQ(copiedFilter->getColorSpace(), original.getColorSpace());
 }
 
-
-TEST(FilterWrapperCopy, MakeTransformationCopy_GaussianBlurFilter) {
+TEST(FilterWrapperCopy, MakeTransformationCopy_GaussianBlurFilter)
+{
     GaussianBlurFilterWrap original;
     original.setKernelSizeX(15);
     original.setKernelSizeY(25);
@@ -158,7 +164,8 @@ TEST(FilterWrapperCopy, MakeTransformationCopy_GaussianBlurFilter) {
     EXPECT_EQ(copiedFilter->getSigmaY(), original.getSigmaY());
 }
 
-TEST(FilterWrapperCopy, MakeTransformationCopy_MedianBlurFilter) {
+TEST(FilterWrapperCopy, MakeTransformationCopy_MedianBlurFilter)
+{
     MedianBlurFilterWrap original;
     original.setKernelSize(3);
 
@@ -169,7 +176,8 @@ TEST(FilterWrapperCopy, MakeTransformationCopy_MedianBlurFilter) {
     EXPECT_EQ(copiedFilter->getKernelSize(), original.getKernelSize());
 }
 
-TEST(FilterWrapperCopy, MakeTransformationCopy_SobelFilter) {
+TEST(FilterWrapperCopy, MakeTransformationCopy_SobelFilter)
+{
     SobelFilterWrap original;
     original.setDx(1);
     original.setDy(0);
@@ -188,7 +196,8 @@ TEST(FilterWrapperCopy, MakeTransformationCopy_SobelFilter) {
     EXPECT_EQ(copiedFilter->getDepth(), original.getDepth());
 }
 
-TEST(FilterWrapperCopy, MakeTransformationCopy_ScharrFilter) {
+TEST(FilterWrapperCopy, MakeTransformationCopy_ScharrFilter)
+{
     ScharrFilterWrap original;
     original.setDx(1);
     original.setDy(0);
@@ -207,13 +216,13 @@ TEST(FilterWrapperCopy, MakeTransformationCopy_ScharrFilter) {
     EXPECT_EQ(copiedFilter->getDepth(), original.getDepth());
 }
 
-TEST(FilterWrapperCopy, MakeTransformationCopy_LaplacianFilter) {
+TEST(FilterWrapperCopy, MakeTransformationCopy_LaplacianFilter)
+{
     LaplacianFilterWrap original;
     original.setKernelSize(3);
     original.setDelta(4);
     original.setScale(2);
     original.setDepth(DataType::DT_Float64);
-
 
     std::shared_ptr<TransformationWrapper> copy = makeTransformationCopy(original);
     LaplacianFilterWrap* copiedFilter = dynamic_cast<LaplacianFilterWrap*>(copy.get());
@@ -225,7 +234,8 @@ TEST(FilterWrapperCopy, MakeTransformationCopy_LaplacianFilter) {
     EXPECT_EQ(copiedFilter->getDepth(), original.getDepth());
 }
 
-TEST(FilterWrapperCopy, MakeTransformationCopy_BilateralFilter) {
+TEST(FilterWrapperCopy, MakeTransformationCopy_BilateralFilter)
+{
     BilateralFilterWrap original;
     original.setDiameter(9);
     original.setSigmaColor(75);
@@ -240,13 +250,13 @@ TEST(FilterWrapperCopy, MakeTransformationCopy_BilateralFilter) {
     EXPECT_EQ(copiedFilter->getSigmaSpace(), original.getSigmaSpace());
 }
 
-TEST(FilterWrapperCopy, MakeTransformationCopy_CannyFilter) {
+TEST(FilterWrapperCopy, MakeTransformationCopy_CannyFilter)
+{
     CannyFilterWrap original;
     original.setThreshold1(50);
     original.setThreshold2(150);
     original.setApertureSize(3);
     original.setL2Gradient(true);
-
 
     std::shared_ptr<TransformationWrapper> copy = makeTransformationCopy(original);
     CannyFilterWrap* copiedFilter = dynamic_cast<CannyFilterWrap*>(copy.get());
@@ -258,7 +268,8 @@ TEST(FilterWrapperCopy, MakeTransformationCopy_CannyFilter) {
     EXPECT_EQ(copiedFilter->getL2Gradient(), original.getL2Gradient());
 }
 
-TEST(FilterWrapperCopy, MakeTransformationCopy_ColorTransformation) {
+TEST(FilterWrapperCopy, MakeTransformationCopy_ColorTransformation)
+{
     ColorTransformationWrap original;
     original.setColorSpace(ColorSpace::HLS);
 

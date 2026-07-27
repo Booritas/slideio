@@ -1,3 +1,4 @@
+#pragma once
 /*
  * The copyright in this software is being made available under the 2-clauses
  * BSD License, included below. This software may be subject to other third
@@ -28,8 +29,6 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-#ifndef OPJ_INTTYPES_H
-#define OPJ_INTTYPES_H
 
 #include <inttypes.h>
 
@@ -47,5 +46,3 @@
 // #error unsupported platform
 // #endif
 // #endif
-
-#endif /* OPJ_INTTYPES_H */

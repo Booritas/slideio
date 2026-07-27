@@ -6,7 +6,8 @@
 
 using namespace slideio;
 
-std::string LevelInfo::toString() const {
+std::string LevelInfo::toString() const
+{
     std::stringstream ss;
     ss << *this;
     return ss.str();

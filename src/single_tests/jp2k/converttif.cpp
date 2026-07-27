@@ -43,7 +43,7 @@
 #include <limits.h>
 
 #ifndef OPJ_HAVE_LIBTIFF
-# error OPJ_HAVE_LIBTIFF_NOT_DEFINED
+#error OPJ_HAVE_LIBTIFF_NOT_DEFINED
 #endif /* OPJ_HAVE_LIBTIFF */
 
 #include <tiffio.h>
@@ -56,39 +56,46 @@
  TIFF IMAGE FORMAT
 
  <<-- <<-- <<-- <<-- */
-#define PUTBITS2(s, nb) \
-    trailing <<= remaining; \
-    trailing |= (unsigned int)((s) >> (nb - remaining)); \
-    *pDst++ = (OPJ_BYTE)trailing; \
-    trailing = (unsigned int)((s) & ((1U << (nb - remaining)) - 1U)); \
-    if (nb >= (remaining + 8)) { \
-        *pDst++ = (OPJ_BYTE)(trailing >> (nb - (remaining + 8))); \
-        trailing &= (unsigned int)((1U << (nb - (remaining + 8))) - 1U); \
-        remaining += 16 - nb; \
-    } else { \
-        remaining += 8 - nb; \
+#define PUTBITS2(s, nb)                                                                                                \
+    trailing <<= remaining;                                                                                            \
+    trailing |= (unsigned int)((s) >> (nb - remaining));                                                               \
+    *pDst++ = (OPJ_BYTE)trailing;                                                                                      \
+    trailing = (unsigned int)((s) & ((1U << (nb - remaining)) - 1U));                                                  \
+    if (nb >= (remaining + 8))                                                                                         \
+    {                                                                                                                  \
+        *pDst++ = (OPJ_BYTE)(trailing >> (nb - (remaining + 8)));                                                      \
+        trailing &= (unsigned int)((1U << (nb - (remaining + 8))) - 1U);                                               \
+        remaining += 16 - nb;                                                                                          \
+    }                                                                                                                  \
+    else                                                                                                               \
+    {                                                                                                                  \
+        remaining += 8 - nb;                                                                                           \
     }
 
-#define PUTBITS(s, nb) \
-  if (nb >= remaining) { \
-        PUTBITS2(s, nb) \
-    } else { \
-        trailing <<= nb; \
-        trailing |= (unsigned int)(s); \
-        remaining -= nb; \
+#define PUTBITS(s, nb)                                                                                                 \
+    if (nb >= remaining)                                                                                               \
+    {                                                                                                                  \
+        PUTBITS2(s, nb)                                                                                                \
+    }                                                                                                                  \
+    else                                                                                                               \
+    {                                                                                                                  \
+        trailing <<= nb;                                                                                               \
+        trailing |= (unsigned int)(s);                                                                                 \
+        remaining -= nb;                                                                                               \
     }
-#define FLUSHBITS() \
-    if (remaining != 8) { \
-        trailing <<= remaining; \
-        *pDst++ = (OPJ_BYTE)trailing; \
+#define FLUSHBITS()                                                                                                    \
+    if (remaining != 8)                                                                                                \
+    {                                                                                                                  \
+        trailing <<= remaining;                                                                                        \
+        *pDst++ = (OPJ_BYTE)trailing;                                                                                  \
     }
 
-static void tif_32sto3u(const OPJ_INT32* pSrc, OPJ_BYTE* pDst,
-                        OPJ_SIZE_T length)
+static void tif_32sto3u(const OPJ_INT32* pSrc, OPJ_BYTE* pDst, OPJ_SIZE_T length)
 {
     OPJ_SIZE_T i;
 
-    for (i = 0; i < (length & ~(OPJ_SIZE_T)7U); i += 8U) {
+    for (i = 0; i < (length & ~(OPJ_SIZE_T)7U); i += 8U)
+    {
         OPJ_UINT32 src0 = (OPJ_UINT32)pSrc[i + 0];
         OPJ_UINT32 src1 = (OPJ_UINT32)pSrc[i + 1];
         OPJ_UINT32 src2 = (OPJ_UINT32)pSrc[i + 2];
@@ -103,24 +110,28 @@ static void tif_32sto3u(const OPJ_INT32* pSrc, OPJ_BYTE* pDst,
         *pDst++ = (OPJ_BYTE)((src5 << 6) | (src6 << 3) | (src7));
     }
 
-    if (length & 7U) {
+    if (length & 7U)
+    {
         unsigned int trailing = 0U;
         int remaining = 8U;
         length &= 7U;
         PUTBITS((OPJ_UINT32)pSrc[i + 0], 3)
-        if (length > 1U) {
+        if (length > 1U)
+        {
             PUTBITS((OPJ_UINT32)pSrc[i + 1], 3)
-            if (length > 2U) {
+            if (length > 2U)
+            {
                 PUTBITS((OPJ_UINT32)pSrc[i + 2], 3)
-                if (length > 3U) {
+                if (length > 3U)
+                {
                     PUTBITS((OPJ_UINT32)pSrc[i + 3], 3)
-                    if (length > 4U) {
+                    if (length > 4U)
+                    {
                         PUTBITS((OPJ_UINT32)pSrc[i + 4], 3)
-                        if (length > 5U) {
+                        if (length > 5U)
+                        {
                             PUTBITS((OPJ_UINT32)pSrc[i + 5], 3)
-                            if (length > 6U) {
-                                PUTBITS((OPJ_UINT32)pSrc[i + 6], 3)
-                            }
+                            if (length > 6U) PUTBITS((OPJ_UINT32)pSrc[i + 6], 3)
                         }
                     }
                 }
@@ -130,12 +141,12 @@ static void tif_32sto3u(const OPJ_INT32* pSrc, OPJ_BYTE* pDst,
     }
 }
 
-static void tif_32sto5u(const OPJ_INT32* pSrc, OPJ_BYTE* pDst,
-                        OPJ_SIZE_T length)
+static void tif_32sto5u(const OPJ_INT32* pSrc, OPJ_BYTE* pDst, OPJ_SIZE_T length)
 {
     OPJ_SIZE_T i;
 
-    for (i = 0; i < (length & ~(OPJ_SIZE_T)7U); i += 8U) {
+    for (i = 0; i < (length & ~(OPJ_SIZE_T)7U); i += 8U)
+    {
         OPJ_UINT32 src0 = (OPJ_UINT32)pSrc[i + 0];
         OPJ_UINT32 src1 = (OPJ_UINT32)pSrc[i + 1];
         OPJ_UINT32 src2 = (OPJ_UINT32)pSrc[i + 2];
@@ -150,27 +161,30 @@ static void tif_32sto5u(const OPJ_INT32* pSrc, OPJ_BYTE* pDst,
         *pDst++ = (OPJ_BYTE)((src3 << 4) | (src4 >> 1));
         *pDst++ = (OPJ_BYTE)((src4 << 7) | (src5 << 2) | (src6 >> 3));
         *pDst++ = (OPJ_BYTE)((src6 << 5) | (src7));
-
     }
 
-    if (length & 7U) {
+    if (length & 7U)
+    {
         unsigned int trailing = 0U;
         int remaining = 8U;
         length &= 7U;
         PUTBITS((OPJ_UINT32)pSrc[i + 0], 5)
-        if (length > 1U) {
+        if (length > 1U)
+        {
             PUTBITS((OPJ_UINT32)pSrc[i + 1], 5)
-            if (length > 2U) {
+            if (length > 2U)
+            {
                 PUTBITS((OPJ_UINT32)pSrc[i + 2], 5)
-                if (length > 3U) {
+                if (length > 3U)
+                {
                     PUTBITS((OPJ_UINT32)pSrc[i + 3], 5)
-                    if (length > 4U) {
+                    if (length > 4U)
+                    {
                         PUTBITS((OPJ_UINT32)pSrc[i + 4], 5)
-                        if (length > 5U) {
+                        if (length > 5U)
+                        {
                             PUTBITS((OPJ_UINT32)pSrc[i + 5], 5)
-                            if (length > 6U) {
-                                PUTBITS((OPJ_UINT32)pSrc[i + 6], 5)
-                            }
+                            if (length > 6U) PUTBITS((OPJ_UINT32)pSrc[i + 6], 5)
                         }
                     }
                 }
@@ -180,12 +194,12 @@ static void tif_32sto5u(const OPJ_INT32* pSrc, OPJ_BYTE* pDst,
     }
 }
 
-static void tif_32sto7u(const OPJ_INT32* pSrc, OPJ_BYTE* pDst,
-                        OPJ_SIZE_T length)
+static void tif_32sto7u(const OPJ_INT32* pSrc, OPJ_BYTE* pDst, OPJ_SIZE_T length)
 {
     OPJ_SIZE_T i;
 
-    for (i = 0; i < (length & ~(OPJ_SIZE_T)7U); i += 8U) {
+    for (i = 0; i < (length & ~(OPJ_SIZE_T)7U); i += 8U)
+    {
         OPJ_UINT32 src0 = (OPJ_UINT32)pSrc[i + 0];
         OPJ_UINT32 src1 = (OPJ_UINT32)pSrc[i + 1];
         OPJ_UINT32 src2 = (OPJ_UINT32)pSrc[i + 2];
@@ -204,24 +218,28 @@ static void tif_32sto7u(const OPJ_INT32* pSrc, OPJ_BYTE* pDst,
         *pDst++ = (OPJ_BYTE)((src6 << 7) | (src7));
     }
 
-    if (length & 7U) {
+    if (length & 7U)
+    {
         unsigned int trailing = 0U;
         int remaining = 8U;
         length &= 7U;
         PUTBITS((OPJ_UINT32)pSrc[i + 0], 7)
-        if (length > 1U) {
+        if (length > 1U)
+        {
             PUTBITS((OPJ_UINT32)pSrc[i + 1], 7)
-            if (length > 2U) {
+            if (length > 2U)
+            {
                 PUTBITS((OPJ_UINT32)pSrc[i + 2], 7)
-                if (length > 3U) {
+                if (length > 3U)
+                {
                     PUTBITS((OPJ_UINT32)pSrc[i + 3], 7)
-                    if (length > 4U) {
+                    if (length > 4U)
+                    {
                         PUTBITS((OPJ_UINT32)pSrc[i + 4], 7)
-                        if (length > 5U) {
+                        if (length > 5U)
+                        {
                             PUTBITS((OPJ_UINT32)pSrc[i + 5], 7)
-                            if (length > 6U) {
-                                PUTBITS((OPJ_UINT32)pSrc[i + 6], 7)
-                            }
+                            if (length > 6U) PUTBITS((OPJ_UINT32)pSrc[i + 6], 7)
                         }
                     }
                 }
@@ -231,12 +249,12 @@ static void tif_32sto7u(const OPJ_INT32* pSrc, OPJ_BYTE* pDst,
     }
 }
 
-static void tif_32sto9u(const OPJ_INT32* pSrc, OPJ_BYTE* pDst,
-                        OPJ_SIZE_T length)
+static void tif_32sto9u(const OPJ_INT32* pSrc, OPJ_BYTE* pDst, OPJ_SIZE_T length)
 {
     OPJ_SIZE_T i;
 
-    for (i = 0; i < (length & ~(OPJ_SIZE_T)7U); i += 8U) {
+    for (i = 0; i < (length & ~(OPJ_SIZE_T)7U); i += 8U)
+    {
         OPJ_UINT32 src0 = (OPJ_UINT32)pSrc[i + 0];
         OPJ_UINT32 src1 = (OPJ_UINT32)pSrc[i + 1];
         OPJ_UINT32 src2 = (OPJ_UINT32)pSrc[i + 2];
@@ -257,24 +275,28 @@ static void tif_32sto9u(const OPJ_INT32* pSrc, OPJ_BYTE* pDst,
         *pDst++ = (OPJ_BYTE)(src7);
     }
 
-    if (length & 7U) {
+    if (length & 7U)
+    {
         unsigned int trailing = 0U;
         int remaining = 8U;
         length &= 7U;
         PUTBITS2((OPJ_UINT32)pSrc[i + 0], 9)
-        if (length > 1U) {
+        if (length > 1U)
+        {
             PUTBITS2((OPJ_UINT32)pSrc[i + 1], 9)
-            if (length > 2U) {
+            if (length > 2U)
+            {
                 PUTBITS2((OPJ_UINT32)pSrc[i + 2], 9)
-                if (length > 3U) {
+                if (length > 3U)
+                {
                     PUTBITS2((OPJ_UINT32)pSrc[i + 3], 9)
-                    if (length > 4U) {
+                    if (length > 4U)
+                    {
                         PUTBITS2((OPJ_UINT32)pSrc[i + 4], 9)
-                        if (length > 5U) {
+                        if (length > 5U)
+                        {
                             PUTBITS2((OPJ_UINT32)pSrc[i + 5], 9)
-                            if (length > 6U) {
-                                PUTBITS2((OPJ_UINT32)pSrc[i + 6], 9)
-                            }
+                            if (length > 6U) PUTBITS2((OPJ_UINT32)pSrc[i + 6], 9)
                         }
                     }
                 }
@@ -284,11 +306,11 @@ static void tif_32sto9u(const OPJ_INT32* pSrc, OPJ_BYTE* pDst,
     }
 }
 
-static void tif_32sto10u(const OPJ_INT32* pSrc, OPJ_BYTE* pDst,
-                         OPJ_SIZE_T length)
+static void tif_32sto10u(const OPJ_INT32* pSrc, OPJ_BYTE* pDst, OPJ_SIZE_T length)
 {
     OPJ_SIZE_T i;
-    for (i = 0; i < (length & ~(OPJ_SIZE_T)3U); i += 4U) {
+    for (i = 0; i < (length & ~(OPJ_SIZE_T)3U); i += 4U)
+    {
         OPJ_UINT32 src0 = (OPJ_UINT32)pSrc[i + 0];
         OPJ_UINT32 src1 = (OPJ_UINT32)pSrc[i + 1];
         OPJ_UINT32 src2 = (OPJ_UINT32)pSrc[i + 2];
@@ -301,34 +323,33 @@ static void tif_32sto10u(const OPJ_INT32* pSrc, OPJ_BYTE* pDst,
         *pDst++ = (OPJ_BYTE)(src3);
     }
 
-    if (length & 3U) {
+    if (length & 3U)
+    {
         OPJ_UINT32 src0 = (OPJ_UINT32)pSrc[i + 0];
         OPJ_UINT32 src1 = 0U;
         OPJ_UINT32 src2 = 0U;
         length = length & 3U;
 
-        if (length > 1U) {
+        if (length > 1U)
+        {
             src1 = (OPJ_UINT32)pSrc[i + 1];
-            if (length > 2U) {
-                src2 = (OPJ_UINT32)pSrc[i + 2];
-            }
+            if (length > 2U) src2 = (OPJ_UINT32)pSrc[i + 2];
         }
         *pDst++ = (OPJ_BYTE)(src0 >> 2);
         *pDst++ = (OPJ_BYTE)(((src0 & 0x3U) << 6) | (src1 >> 4));
-        if (length > 1U) {
+        if (length > 1U)
+        {
             *pDst++ = (OPJ_BYTE)(((src1 & 0xFU) << 4) | (src2 >> 6));
-            if (length > 2U) {
-                *pDst++ = (OPJ_BYTE)(((src2 & 0x3FU) << 2));
-            }
+            if (length > 2U) *pDst++ = (OPJ_BYTE)(((src2 & 0x3FU) << 2));
         }
     }
 }
-static void tif_32sto11u(const OPJ_INT32* pSrc, OPJ_BYTE* pDst,
-                         OPJ_SIZE_T length)
+static void tif_32sto11u(const OPJ_INT32* pSrc, OPJ_BYTE* pDst, OPJ_SIZE_T length)
 {
     OPJ_SIZE_T i;
 
-    for (i = 0; i < (length & ~(OPJ_SIZE_T)7U); i += 8U) {
+    for (i = 0; i < (length & ~(OPJ_SIZE_T)7U); i += 8U)
+    {
         OPJ_UINT32 src0 = (OPJ_UINT32)pSrc[i + 0];
         OPJ_UINT32 src1 = (OPJ_UINT32)pSrc[i + 1];
         OPJ_UINT32 src2 = (OPJ_UINT32)pSrc[i + 2];
@@ -351,24 +372,28 @@ static void tif_32sto11u(const OPJ_INT32* pSrc, OPJ_BYTE* pDst,
         *pDst++ = (OPJ_BYTE)(src7);
     }
 
-    if (length & 7U) {
+    if (length & 7U)
+    {
         unsigned int trailing = 0U;
         int remaining = 8U;
         length &= 7U;
         PUTBITS2((OPJ_UINT32)pSrc[i + 0], 11)
-        if (length > 1U) {
+        if (length > 1U)
+        {
             PUTBITS2((OPJ_UINT32)pSrc[i + 1], 11)
-            if (length > 2U) {
+            if (length > 2U)
+            {
                 PUTBITS2((OPJ_UINT32)pSrc[i + 2], 11)
-                if (length > 3U) {
+                if (length > 3U)
+                {
                     PUTBITS2((OPJ_UINT32)pSrc[i + 3], 11)
-                    if (length > 4U) {
+                    if (length > 4U)
+                    {
                         PUTBITS2((OPJ_UINT32)pSrc[i + 4], 11)
-                        if (length > 5U) {
+                        if (length > 5U)
+                        {
                             PUTBITS2((OPJ_UINT32)pSrc[i + 5], 11)
-                            if (length > 6U) {
-                                PUTBITS2((OPJ_UINT32)pSrc[i + 6], 11)
-                            }
+                            if (length > 6U) PUTBITS2((OPJ_UINT32)pSrc[i + 6], 11)
                         }
                     }
                 }
@@ -377,11 +402,11 @@ static void tif_32sto11u(const OPJ_INT32* pSrc, OPJ_BYTE* pDst,
         FLUSHBITS()
     }
 }
-static void tif_32sto12u(const OPJ_INT32* pSrc, OPJ_BYTE* pDst,
-                         OPJ_SIZE_T length)
+static void tif_32sto12u(const OPJ_INT32* pSrc, OPJ_BYTE* pDst, OPJ_SIZE_T length)
 {
     OPJ_SIZE_T i;
-    for (i = 0; i < (length & ~(OPJ_SIZE_T)1U); i += 2U) {
+    for (i = 0; i < (length & ~(OPJ_SIZE_T)1U); i += 2U)
+    {
         OPJ_UINT32 src0 = (OPJ_UINT32)pSrc[i + 0];
         OPJ_UINT32 src1 = (OPJ_UINT32)pSrc[i + 1];
 
@@ -390,18 +415,19 @@ static void tif_32sto12u(const OPJ_INT32* pSrc, OPJ_BYTE* pDst,
         *pDst++ = (OPJ_BYTE)(src1);
     }
 
-    if (length & 1U) {
+    if (length & 1U)
+    {
         OPJ_UINT32 src0 = (OPJ_UINT32)pSrc[i + 0];
         *pDst++ = (OPJ_BYTE)(src0 >> 4);
         *pDst++ = (OPJ_BYTE)(((src0 & 0xFU) << 4));
     }
 }
-static void tif_32sto13u(const OPJ_INT32* pSrc, OPJ_BYTE* pDst,
-                         OPJ_SIZE_T length)
+static void tif_32sto13u(const OPJ_INT32* pSrc, OPJ_BYTE* pDst, OPJ_SIZE_T length)
 {
     OPJ_SIZE_T i;
 
-    for (i = 0; i < (length & ~(OPJ_SIZE_T)7U); i += 8U) {
+    for (i = 0; i < (length & ~(OPJ_SIZE_T)7U); i += 8U)
+    {
         OPJ_UINT32 src0 = (OPJ_UINT32)pSrc[i + 0];
         OPJ_UINT32 src1 = (OPJ_UINT32)pSrc[i + 1];
         OPJ_UINT32 src2 = (OPJ_UINT32)pSrc[i + 2];
@@ -426,24 +452,28 @@ static void tif_32sto13u(const OPJ_INT32* pSrc, OPJ_BYTE* pDst,
         *pDst++ = (OPJ_BYTE)(src7);
     }
 
-    if (length & 7U) {
+    if (length & 7U)
+    {
         unsigned int trailing = 0U;
         int remaining = 8U;
         length &= 7U;
         PUTBITS2((OPJ_UINT32)pSrc[i + 0], 13)
-        if (length > 1U) {
+        if (length > 1U)
+        {
             PUTBITS2((OPJ_UINT32)pSrc[i + 1], 13)
-            if (length > 2U) {
+            if (length > 2U)
+            {
                 PUTBITS2((OPJ_UINT32)pSrc[i + 2], 13)
-                if (length > 3U) {
+                if (length > 3U)
+                {
                     PUTBITS2((OPJ_UINT32)pSrc[i + 3], 13)
-                    if (length > 4U) {
+                    if (length > 4U)
+                    {
                         PUTBITS2((OPJ_UINT32)pSrc[i + 4], 13)
-                        if (length > 5U) {
+                        if (length > 5U)
+                        {
                             PUTBITS2((OPJ_UINT32)pSrc[i + 5], 13)
-                            if (length > 6U) {
-                                PUTBITS2((OPJ_UINT32)pSrc[i + 6], 13)
-                            }
+                            if (length > 6U) PUTBITS2((OPJ_UINT32)pSrc[i + 6], 13)
                         }
                     }
                 }
@@ -452,11 +482,11 @@ static void tif_32sto13u(const OPJ_INT32* pSrc, OPJ_BYTE* pDst,
         FLUSHBITS()
     }
 }
-static void tif_32sto14u(const OPJ_INT32* pSrc, OPJ_BYTE* pDst,
-                         OPJ_SIZE_T length)
+static void tif_32sto14u(const OPJ_INT32* pSrc, OPJ_BYTE* pDst, OPJ_SIZE_T length)
 {
     OPJ_SIZE_T i;
-    for (i = 0; i < (length & ~(OPJ_SIZE_T)3U); i += 4U) {
+    for (i = 0; i < (length & ~(OPJ_SIZE_T)3U); i += 4U)
+    {
         OPJ_UINT32 src0 = (OPJ_UINT32)pSrc[i + 0];
         OPJ_UINT32 src1 = (OPJ_UINT32)pSrc[i + 1];
         OPJ_UINT32 src2 = (OPJ_UINT32)pSrc[i + 2];
@@ -471,36 +501,38 @@ static void tif_32sto14u(const OPJ_INT32* pSrc, OPJ_BYTE* pDst,
         *pDst++ = (OPJ_BYTE)(src3);
     }
 
-    if (length & 3U) {
+    if (length & 3U)
+    {
         OPJ_UINT32 src0 = (OPJ_UINT32)pSrc[i + 0];
         OPJ_UINT32 src1 = 0U;
         OPJ_UINT32 src2 = 0U;
         length = length & 3U;
 
-        if (length > 1U) {
+        if (length > 1U)
+        {
             src1 = (OPJ_UINT32)pSrc[i + 1];
-            if (length > 2U) {
-                src2 = (OPJ_UINT32)pSrc[i + 2];
-            }
+            if (length > 2U) src2 = (OPJ_UINT32)pSrc[i + 2];
         }
         *pDst++ = (OPJ_BYTE)(src0 >> 6);
         *pDst++ = (OPJ_BYTE)(((src0 & 0x3FU) << 2) | (src1 >> 12));
-        if (length > 1U) {
+        if (length > 1U)
+        {
             *pDst++ = (OPJ_BYTE)(src1 >> 4);
             *pDst++ = (OPJ_BYTE)(((src1 & 0xFU) << 4) | (src2 >> 10));
-            if (length > 2U) {
+            if (length > 2U)
+            {
                 *pDst++ = (OPJ_BYTE)(src2 >> 2);
                 *pDst++ = (OPJ_BYTE)(((src2 & 0x3U) << 6));
             }
         }
     }
 }
-static void tif_32sto15u(const OPJ_INT32* pSrc, OPJ_BYTE* pDst,
-                         OPJ_SIZE_T length)
+static void tif_32sto15u(const OPJ_INT32* pSrc, OPJ_BYTE* pDst, OPJ_SIZE_T length)
 {
     OPJ_SIZE_T i;
 
-    for (i = 0; i < (length & ~(OPJ_SIZE_T)7U); i += 8U) {
+    for (i = 0; i < (length & ~(OPJ_SIZE_T)7U); i += 8U)
+    {
         OPJ_UINT32 src0 = (OPJ_UINT32)pSrc[i + 0];
         OPJ_UINT32 src1 = (OPJ_UINT32)pSrc[i + 1];
         OPJ_UINT32 src2 = (OPJ_UINT32)pSrc[i + 2];
@@ -527,24 +559,28 @@ static void tif_32sto15u(const OPJ_INT32* pSrc, OPJ_BYTE* pDst,
         *pDst++ = (OPJ_BYTE)(src7);
     }
 
-    if (length & 7U) {
+    if (length & 7U)
+    {
         unsigned int trailing = 0U;
         int remaining = 8U;
         length &= 7U;
         PUTBITS2((OPJ_UINT32)pSrc[i + 0], 15)
-        if (length > 1U) {
+        if (length > 1U)
+        {
             PUTBITS2((OPJ_UINT32)pSrc[i + 1], 15)
-            if (length > 2U) {
+            if (length > 2U)
+            {
                 PUTBITS2((OPJ_UINT32)pSrc[i + 2], 15)
-                if (length > 3U) {
+                if (length > 3U)
+                {
                     PUTBITS2((OPJ_UINT32)pSrc[i + 3], 15)
-                    if (length > 4U) {
+                    if (length > 4U)
+                    {
                         PUTBITS2((OPJ_UINT32)pSrc[i + 4], 15)
-                        if (length > 5U) {
+                        if (length > 5U)
+                        {
                             PUTBITS2((OPJ_UINT32)pSrc[i + 5], 15)
-                            if (length > 6U) {
-                                PUTBITS2((OPJ_UINT32)pSrc[i + 6], 15)
-                            }
+                            if (length > 6U) PUTBITS2((OPJ_UINT32)pSrc[i + 6], 15)
                         }
                     }
                 }
@@ -553,18 +589,16 @@ static void tif_32sto15u(const OPJ_INT32* pSrc, OPJ_BYTE* pDst,
         FLUSHBITS()
     }
 }
-static void tif_32sto16u(const OPJ_INT32* pSrc, OPJ_UINT16* pDst,
-                         OPJ_SIZE_T length)
+static void tif_32sto16u(const OPJ_INT32* pSrc, OPJ_UINT16* pDst, OPJ_SIZE_T length)
 {
     OPJ_SIZE_T i;
-    for (i = 0; i < length; ++i) {
+    for (i = 0; i < length; ++i)
         pDst[i] = (OPJ_UINT16)pSrc[i];
-    }
 }
 
-int imagetotif(opj_image_t * image, const char *outfile)
+int imagetotif(opj_image_t* image, const char* outfile)
 {
-    TIFF *tif;
+    TIFF* tif;
     tdata_t buf;
     uint32_t width, height;
     uint16_t bps, tiPhoto;
@@ -581,71 +615,65 @@ int imagetotif(opj_image_t * image, const char *outfile)
 
     numcomps = image->numcomps;
 
-    if (image->color_space == OPJ_CLRSPC_CMYK) {
-        if (numcomps < 4U) {
-            fprintf(stderr,
-                    "imagetotif: CMYK images shall be composed of at least 4 planes.\n");
+    if (image->color_space == OPJ_CLRSPC_CMYK)
+    {
+        if (numcomps < 4U)
+        {
+            fprintf(stderr, "imagetotif: CMYK images shall be composed of at least 4 planes.\n");
             fprintf(stderr, "\tAborting\n");
             return 1;
         }
         tiPhoto = PHOTOMETRIC_SEPARATED;
-        if (numcomps > 4U) {
-            numcomps = 4U; /* Alpha not supported */
-        }
-    } else if (numcomps > 2U) {
+        if (numcomps > 4U) numcomps = 4U; /* Alpha not supported */
+    }
+    else if (numcomps > 2U)
+    {
         tiPhoto = PHOTOMETRIC_RGB;
-        if (numcomps > 4U) {
-            numcomps = 4U;
-        }
-    } else {
+        if (numcomps > 4U) numcomps = 4U;
+    }
+    else
+    {
         tiPhoto = PHOTOMETRIC_MINISBLACK;
     }
-    for (i = 1U; i < numcomps; ++i) {
-        if (image->comps[0].dx != image->comps[i].dx) {
-            break;
-        }
-        if (image->comps[0].dy != image->comps[i].dy) {
-            break;
-        }
-        if (image->comps[0].prec != image->comps[i].prec) {
-            break;
-        }
-        if (image->comps[0].sgnd != image->comps[i].sgnd) {
-            break;
-        }
+    for (i = 1U; i < numcomps; ++i)
+    {
+        if (image->comps[0].dx != image->comps[i].dx) break;
+        if (image->comps[0].dy != image->comps[i].dy) break;
+        if (image->comps[0].prec != image->comps[i].prec) break;
+        if (image->comps[0].sgnd != image->comps[i].sgnd) break;
         planes[i] = image->comps[i].data;
-        if (planes[i] == NULL) {
-            fprintf(stderr,
-                    "imagetotif: planes[%d] == NULL.\n", i);
+        if (planes[i] == NULL)
+        {
+            fprintf(stderr, "imagetotif: planes[%d] == NULL.\n", i);
             fprintf(stderr, "\tAborting\n");
             return 1;
         }
     }
-    if (i != numcomps) {
-        fprintf(stderr,
-                "imagetotif: All components shall have the same subsampling, same bit depth.\n");
+    if (i != numcomps)
+    {
+        fprintf(stderr, "imagetotif: All components shall have the same subsampling, same bit depth.\n");
         fprintf(stderr, "\tAborting\n");
         return 1;
     }
 
-    if (bps > 16) {
-        bps = 0;
-    }
-    if (bps == 0) {
+    if (bps > 16) bps = 0;
+    if (bps == 0)
+    {
         fprintf(stderr, "imagetotif: Bits=%d, Only 1 to 16 bits implemented\n", bps);
         fprintf(stderr, "\tAborting\n");
         return 1;
     }
     tif = TIFFOpen(outfile, "wb");
-    if (!tif) {
+    if (!tif)
+    {
         fprintf(stderr, "imagetotif:failed to open %s for writing\n", outfile);
         return 1;
     }
-    for (i = 0U; i < numcomps; ++i) {
+    for (i = 0U; i < numcomps; ++i)
         clip_component(&(image->comps[i]), image->comps[0].prec);
-    }
     cvtPxToCx = convert_32s_PXCX_LUT[numcomps];
-    switch (bps) {
+    switch (bps)
+    {
     case 1:
     case 2:
     case 4:
@@ -692,8 +720,8 @@ int imagetotif(opj_image_t * image, const char *outfile)
     }
     sgnd = (int)image->comps[0].sgnd;
     adjust = sgnd ? (int)(1 << (image->comps[0].prec - 1)) : 0;
-    width   = (uint32_t)image->comps[0].w;
-    height  = (uint32_t)image->comps[0].h;
+    width = (uint32_t)image->comps[0].w;
+    height = (uint32_t)image->comps[0].h;
 
     TIFFSetField(tif, TIFFTAG_IMAGEWIDTH, width);
     TIFFSetField(tif, TIFFTAG_IMAGELENGTH, height);
@@ -703,42 +731,44 @@ int imagetotif(opj_image_t * image, const char *outfile)
     TIFFSetField(tif, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
     TIFFSetField(tif, TIFFTAG_PHOTOMETRIC, tiPhoto);
     TIFFSetField(tif, TIFFTAG_ROWSPERSTRIP, 1);
-    if (sizeof(tsize_t) == 4) {
+    if (sizeof(tsize_t) == 4)
         TIFF_MAX = INT_MAX;
-    } else {
+    else
         TIFF_MAX = UINT_MAX;
-    }
     strip_size = (int64_t)TIFFStripSize(tif);
 
-    if ((int64_t)width > (int64_t)(TIFF_MAX / numcomps) ||
-            (int64_t)(width * numcomps) > (int64_t)(TIFF_MAX / bps) ||
-            (int64_t)(width * numcomps) > (int64_t)(TIFF_MAX / (int64_t)sizeof(
-                        OPJ_INT32))) {
+    if ((int64_t)width > (int64_t)(TIFF_MAX / numcomps) || (int64_t)(width * numcomps) > (int64_t)(TIFF_MAX / bps) ||
+        (int64_t)(width * numcomps) > (int64_t)(TIFF_MAX / (int64_t)sizeof(OPJ_INT32)))
+    {
         fprintf(stderr, "Buffer overflow\n");
         TIFFClose(tif);
         return 1;
     }
     rowStride = (int64_t)((width * numcomps * bps + 7U) / 8U);
-    if (rowStride != strip_size) {
+    if (rowStride != strip_size)
+    {
         fprintf(stderr, "Invalid TIFF strip size\n");
         TIFFClose(tif);
         return 1;
     }
     buf = malloc((OPJ_SIZE_T)strip_size);
-    if (buf == NULL) {
+    if (buf == NULL)
+    {
         TIFFClose(tif);
         return 1;
     }
-    buffer32s = (OPJ_INT32 *)malloc(sizeof(OPJ_INT32) * width * numcomps);
-    if (buffer32s == NULL) {
+    buffer32s = (OPJ_INT32*)malloc(sizeof(OPJ_INT32) * width * numcomps);
+    if (buffer32s == NULL)
+    {
         _TIFFfree(buf);
         TIFFClose(tif);
         return 1;
     }
 
-    for (i = 0; i < image->comps[0].h; ++i) {
+    for (i = 0; i < image->comps[0].h; ++i)
+    {
         cvtPxToCx(planes, buffer32s, (OPJ_SIZE_T)width, adjust);
-        cvt32sToTif(buffer32s, (OPJ_BYTE *)buf, (OPJ_SIZE_T)width * numcomps);
+        cvt32sToTif(buffer32s, (OPJ_BYTE*)buf, (OPJ_SIZE_T)width * numcomps);
         (void)TIFFWriteEncodedStrip(tif, i, (void*)buf, (tsize_t)strip_size);
         planes[0] += width;
         planes[1] += width;
@@ -750,32 +780,35 @@ int imagetotif(opj_image_t * image, const char *outfile)
     free(buffer32s);
 
     return 0;
-}/* imagetotif() */
+} /* imagetotif() */
 
-#define GETBITS(dest, nb) { \
-    int needed = (nb); \
-    unsigned int dst = 0U; \
-    if (available == 0) { \
-        val = *pSrc++; \
-        available = 8; \
-    } \
-    while (needed > available) { \
-        dst |= val & ((1U << available) - 1U); \
-        needed -= available; \
-        dst <<= needed; \
-        val = *pSrc++; \
-        available = 8; \
-    } \
-    dst |= (val >> (available - needed)) & ((1U << needed) - 1U); \
-    available -= needed; \
-    dest = (OPJ_INT32)dst; \
-}
+#define GETBITS(dest, nb)                                                                                              \
+    {                                                                                                                  \
+        int needed = (nb);                                                                                             \
+        unsigned int dst = 0U;                                                                                         \
+        if (available == 0)                                                                                            \
+        {                                                                                                              \
+            val = *pSrc++;                                                                                             \
+            available = 8;                                                                                             \
+        }                                                                                                              \
+        while (needed > available)                                                                                     \
+        {                                                                                                              \
+            dst |= val & ((1U << available) - 1U);                                                                     \
+            needed -= available;                                                                                       \
+            dst <<= needed;                                                                                            \
+            val = *pSrc++;                                                                                             \
+            available = 8;                                                                                             \
+        }                                                                                                              \
+        dst |= (val >> (available - needed)) & ((1U << needed) - 1U);                                                  \
+        available -= needed;                                                                                           \
+        dest = (OPJ_INT32)dst;                                                                                         \
+    }
 
-static void tif_3uto32s(const OPJ_BYTE* pSrc, OPJ_INT32* pDst,
-                        OPJ_SIZE_T length)
+static void tif_3uto32s(const OPJ_BYTE* pSrc, OPJ_INT32* pDst, OPJ_SIZE_T length)
 {
     OPJ_SIZE_T i;
-    for (i = 0; i < (length & ~(OPJ_SIZE_T)7U); i += 8U) {
+    for (i = 0; i < (length & ~(OPJ_SIZE_T)7U); i += 8U)
+    {
         OPJ_UINT32 val0 = *pSrc++;
         OPJ_UINT32 val1 = *pSrc++;
         OPJ_UINT32 val2 = *pSrc++;
@@ -788,9 +821,9 @@ static void tif_3uto32s(const OPJ_BYTE* pSrc, OPJ_INT32* pDst,
         pDst[i + 5] = (OPJ_INT32)(((val1 & 0x1U) << 2) | (val2 >> 6));
         pDst[i + 6] = (OPJ_INT32)(((val2 & 0x3FU) >> 3));
         pDst[i + 7] = (OPJ_INT32)(((val2 & 0x7U)));
-
     }
-    if (length & 7U) {
+    if (length & 7U)
+    {
         unsigned int val;
         int available = 0;
 
@@ -798,19 +831,22 @@ static void tif_3uto32s(const OPJ_BYTE* pSrc, OPJ_INT32* pDst,
 
         GETBITS(pDst[i + 0], 3)
 
-        if (length > 1U) {
+        if (length > 1U)
+        {
             GETBITS(pDst[i + 1], 3)
-            if (length > 2U) {
+            if (length > 2U)
+            {
                 GETBITS(pDst[i + 2], 3)
-                if (length > 3U) {
+                if (length > 3U)
+                {
                     GETBITS(pDst[i + 3], 3)
-                    if (length > 4U) {
+                    if (length > 4U)
+                    {
                         GETBITS(pDst[i + 4], 3)
-                        if (length > 5U) {
+                        if (length > 5U)
+                        {
                             GETBITS(pDst[i + 5], 3)
-                            if (length > 6U) {
-                                GETBITS(pDst[i + 6], 3)
-                            }
+                            if (length > 6U) GETBITS(pDst[i + 6], 3)
                         }
                     }
                 }
@@ -818,11 +854,11 @@ static void tif_3uto32s(const OPJ_BYTE* pSrc, OPJ_INT32* pDst,
         }
     }
 }
-static void tif_5uto32s(const OPJ_BYTE* pSrc, OPJ_INT32* pDst,
-                        OPJ_SIZE_T length)
+static void tif_5uto32s(const OPJ_BYTE* pSrc, OPJ_INT32* pDst, OPJ_SIZE_T length)
 {
     OPJ_SIZE_T i;
-    for (i = 0; i < (length & ~(OPJ_SIZE_T)7U); i += 8U) {
+    for (i = 0; i < (length & ~(OPJ_SIZE_T)7U); i += 8U)
+    {
         OPJ_UINT32 val0 = *pSrc++;
         OPJ_UINT32 val1 = *pSrc++;
         OPJ_UINT32 val2 = *pSrc++;
@@ -837,9 +873,9 @@ static void tif_5uto32s(const OPJ_BYTE* pSrc, OPJ_INT32* pDst,
         pDst[i + 5] = (OPJ_INT32)(((val3 & 0x7FU) >> 2));
         pDst[i + 6] = (OPJ_INT32)(((val3 & 0x3U) << 3) | (val4 >> 5));
         pDst[i + 7] = (OPJ_INT32)(((val4 & 0x1FU)));
-
     }
-    if (length & 7U) {
+    if (length & 7U)
+    {
         unsigned int val;
         int available = 0;
 
@@ -847,19 +883,22 @@ static void tif_5uto32s(const OPJ_BYTE* pSrc, OPJ_INT32* pDst,
 
         GETBITS(pDst[i + 0], 5)
 
-        if (length > 1U) {
+        if (length > 1U)
+        {
             GETBITS(pDst[i + 1], 5)
-            if (length > 2U) {
+            if (length > 2U)
+            {
                 GETBITS(pDst[i + 2], 5)
-                if (length > 3U) {
+                if (length > 3U)
+                {
                     GETBITS(pDst[i + 3], 5)
-                    if (length > 4U) {
+                    if (length > 4U)
+                    {
                         GETBITS(pDst[i + 4], 5)
-                        if (length > 5U) {
+                        if (length > 5U)
+                        {
                             GETBITS(pDst[i + 5], 5)
-                            if (length > 6U) {
-                                GETBITS(pDst[i + 6], 5)
-                            }
+                            if (length > 6U) GETBITS(pDst[i + 6], 5)
                         }
                     }
                 }
@@ -867,11 +906,11 @@ static void tif_5uto32s(const OPJ_BYTE* pSrc, OPJ_INT32* pDst,
         }
     }
 }
-static void tif_7uto32s(const OPJ_BYTE* pSrc, OPJ_INT32* pDst,
-                        OPJ_SIZE_T length)
+static void tif_7uto32s(const OPJ_BYTE* pSrc, OPJ_INT32* pDst, OPJ_SIZE_T length)
 {
     OPJ_SIZE_T i;
-    for (i = 0; i < (length & ~(OPJ_SIZE_T)7U); i += 8U) {
+    for (i = 0; i < (length & ~(OPJ_SIZE_T)7U); i += 8U)
+    {
         OPJ_UINT32 val0 = *pSrc++;
         OPJ_UINT32 val1 = *pSrc++;
         OPJ_UINT32 val2 = *pSrc++;
@@ -888,9 +927,9 @@ static void tif_7uto32s(const OPJ_BYTE* pSrc, OPJ_INT32* pDst,
         pDst[i + 5] = (OPJ_INT32)(((val4 & 0x1FU) << 2) | (val5 >> 6));
         pDst[i + 6] = (OPJ_INT32)(((val5 & 0x3FU) << 1) | (val6 >> 7));
         pDst[i + 7] = (OPJ_INT32)(((val6 & 0x7FU)));
-
     }
-    if (length & 7U) {
+    if (length & 7U)
+    {
         unsigned int val;
         int available = 0;
 
@@ -898,19 +937,22 @@ static void tif_7uto32s(const OPJ_BYTE* pSrc, OPJ_INT32* pDst,
 
         GETBITS(pDst[i + 0], 7)
 
-        if (length > 1U) {
+        if (length > 1U)
+        {
             GETBITS(pDst[i + 1], 7)
-            if (length > 2U) {
+            if (length > 2U)
+            {
                 GETBITS(pDst[i + 2], 7)
-                if (length > 3U) {
+                if (length > 3U)
+                {
                     GETBITS(pDst[i + 3], 7)
-                    if (length > 4U) {
+                    if (length > 4U)
+                    {
                         GETBITS(pDst[i + 4], 7)
-                        if (length > 5U) {
+                        if (length > 5U)
+                        {
                             GETBITS(pDst[i + 5], 7)
-                            if (length > 6U) {
-                                GETBITS(pDst[i + 6], 7)
-                            }
+                            if (length > 6U) GETBITS(pDst[i + 6], 7)
                         }
                     }
                 }
@@ -918,11 +960,11 @@ static void tif_7uto32s(const OPJ_BYTE* pSrc, OPJ_INT32* pDst,
         }
     }
 }
-static void tif_9uto32s(const OPJ_BYTE* pSrc, OPJ_INT32* pDst,
-                        OPJ_SIZE_T length)
+static void tif_9uto32s(const OPJ_BYTE* pSrc, OPJ_INT32* pDst, OPJ_SIZE_T length)
 {
     OPJ_SIZE_T i;
-    for (i = 0; i < (length & ~(OPJ_SIZE_T)7U); i += 8U) {
+    for (i = 0; i < (length & ~(OPJ_SIZE_T)7U); i += 8U)
+    {
         OPJ_UINT32 val0 = *pSrc++;
         OPJ_UINT32 val1 = *pSrc++;
         OPJ_UINT32 val2 = *pSrc++;
@@ -941,9 +983,9 @@ static void tif_9uto32s(const OPJ_BYTE* pSrc, OPJ_INT32* pDst,
         pDst[i + 5] = (OPJ_INT32)(((val5 & 0x7U) << 6) | (val6 >> 2));
         pDst[i + 6] = (OPJ_INT32)(((val6 & 0x3U) << 7) | (val7 >> 1));
         pDst[i + 7] = (OPJ_INT32)(((val7 & 0x1U) << 8) | (val8));
-
     }
-    if (length & 7U) {
+    if (length & 7U)
+    {
         unsigned int val;
         int available = 0;
 
@@ -951,19 +993,22 @@ static void tif_9uto32s(const OPJ_BYTE* pSrc, OPJ_INT32* pDst,
 
         GETBITS(pDst[i + 0], 9)
 
-        if (length > 1U) {
+        if (length > 1U)
+        {
             GETBITS(pDst[i + 1], 9)
-            if (length > 2U) {
+            if (length > 2U)
+            {
                 GETBITS(pDst[i + 2], 9)
-                if (length > 3U) {
+                if (length > 3U)
+                {
                     GETBITS(pDst[i + 3], 9)
-                    if (length > 4U) {
+                    if (length > 4U)
+                    {
                         GETBITS(pDst[i + 4], 9)
-                        if (length > 5U) {
+                        if (length > 5U)
+                        {
                             GETBITS(pDst[i + 5], 9)
-                            if (length > 6U) {
-                                GETBITS(pDst[i + 6], 9)
-                            }
+                            if (length > 6U) GETBITS(pDst[i + 6], 9)
                         }
                     }
                 }
@@ -971,11 +1016,11 @@ static void tif_9uto32s(const OPJ_BYTE* pSrc, OPJ_INT32* pDst,
         }
     }
 }
-static void tif_10uto32s(const OPJ_BYTE* pSrc, OPJ_INT32* pDst,
-                         OPJ_SIZE_T length)
+static void tif_10uto32s(const OPJ_BYTE* pSrc, OPJ_INT32* pDst, OPJ_SIZE_T length)
 {
     OPJ_SIZE_T i;
-    for (i = 0; i < (length & ~(OPJ_SIZE_T)3U); i += 4U) {
+    for (i = 0; i < (length & ~(OPJ_SIZE_T)3U); i += 4U)
+    {
         OPJ_UINT32 val0 = *pSrc++;
         OPJ_UINT32 val1 = *pSrc++;
         OPJ_UINT32 val2 = *pSrc++;
@@ -986,29 +1031,31 @@ static void tif_10uto32s(const OPJ_BYTE* pSrc, OPJ_INT32* pDst,
         pDst[i + 1] = (OPJ_INT32)(((val1 & 0x3FU) << 4) | (val2 >> 4));
         pDst[i + 2] = (OPJ_INT32)(((val2 & 0xFU) << 6) | (val3 >> 2));
         pDst[i + 3] = (OPJ_INT32)(((val3 & 0x3U) << 8) | val4);
-
     }
-    if (length & 3U) {
+    if (length & 3U)
+    {
         OPJ_UINT32 val0 = *pSrc++;
         OPJ_UINT32 val1 = *pSrc++;
         length = length & 3U;
         pDst[i + 0] = (OPJ_INT32)((val0 << 2) | (val1 >> 6));
 
-        if (length > 1U) {
+        if (length > 1U)
+        {
             OPJ_UINT32 val2 = *pSrc++;
             pDst[i + 1] = (OPJ_INT32)(((val1 & 0x3FU) << 4) | (val2 >> 4));
-            if (length > 2U) {
+            if (length > 2U)
+            {
                 OPJ_UINT32 val3 = *pSrc++;
                 pDst[i + 2] = (OPJ_INT32)(((val2 & 0xFU) << 6) | (val3 >> 2));
             }
         }
     }
 }
-static void tif_11uto32s(const OPJ_BYTE* pSrc, OPJ_INT32* pDst,
-                         OPJ_SIZE_T length)
+static void tif_11uto32s(const OPJ_BYTE* pSrc, OPJ_INT32* pDst, OPJ_SIZE_T length)
 {
     OPJ_SIZE_T i;
-    for (i = 0; i < (length & ~(OPJ_SIZE_T)7U); i += 8U) {
+    for (i = 0; i < (length & ~(OPJ_SIZE_T)7U); i += 8U)
+    {
         OPJ_UINT32 val0 = *pSrc++;
         OPJ_UINT32 val1 = *pSrc++;
         OPJ_UINT32 val2 = *pSrc++;
@@ -1029,9 +1076,9 @@ static void tif_11uto32s(const OPJ_BYTE* pSrc, OPJ_INT32* pDst,
         pDst[i + 5] = (OPJ_INT32)(((val6 & 0x1U) << 10) | (val7 << 2) | (val8 >> 6));
         pDst[i + 6] = (OPJ_INT32)(((val8 & 0x3FU) << 5) | (val9 >> 3));
         pDst[i + 7] = (OPJ_INT32)(((val9 & 0x7U) << 8) | (val10));
-
     }
-    if (length & 7U) {
+    if (length & 7U)
+    {
         unsigned int val;
         int available = 0;
 
@@ -1039,19 +1086,22 @@ static void tif_11uto32s(const OPJ_BYTE* pSrc, OPJ_INT32* pDst,
 
         GETBITS(pDst[i + 0], 11)
 
-        if (length > 1U) {
+        if (length > 1U)
+        {
             GETBITS(pDst[i + 1], 11)
-            if (length > 2U) {
+            if (length > 2U)
+            {
                 GETBITS(pDst[i + 2], 11)
-                if (length > 3U) {
+                if (length > 3U)
+                {
                     GETBITS(pDst[i + 3], 11)
-                    if (length > 4U) {
+                    if (length > 4U)
+                    {
                         GETBITS(pDst[i + 4], 11)
-                        if (length > 5U) {
+                        if (length > 5U)
+                        {
                             GETBITS(pDst[i + 5], 11)
-                            if (length > 6U) {
-                                GETBITS(pDst[i + 6], 11)
-                            }
+                            if (length > 6U) GETBITS(pDst[i + 6], 11)
                         }
                     }
                 }
@@ -1059,11 +1109,11 @@ static void tif_11uto32s(const OPJ_BYTE* pSrc, OPJ_INT32* pDst,
         }
     }
 }
-static void tif_12uto32s(const OPJ_BYTE* pSrc, OPJ_INT32* pDst,
-                         OPJ_SIZE_T length)
+static void tif_12uto32s(const OPJ_BYTE* pSrc, OPJ_INT32* pDst, OPJ_SIZE_T length)
 {
     OPJ_SIZE_T i;
-    for (i = 0; i < (length & ~(OPJ_SIZE_T)1U); i += 2U) {
+    for (i = 0; i < (length & ~(OPJ_SIZE_T)1U); i += 2U)
+    {
         OPJ_UINT32 val0 = *pSrc++;
         OPJ_UINT32 val1 = *pSrc++;
         OPJ_UINT32 val2 = *pSrc++;
@@ -1071,17 +1121,18 @@ static void tif_12uto32s(const OPJ_BYTE* pSrc, OPJ_INT32* pDst,
         pDst[i + 0] = (OPJ_INT32)((val0 << 4) | (val1 >> 4));
         pDst[i + 1] = (OPJ_INT32)(((val1 & 0xFU) << 8) | val2);
     }
-    if (length & 1U) {
+    if (length & 1U)
+    {
         OPJ_UINT32 val0 = *pSrc++;
         OPJ_UINT32 val1 = *pSrc++;
         pDst[i + 0] = (OPJ_INT32)((val0 << 4) | (val1 >> 4));
     }
 }
-static void tif_13uto32s(const OPJ_BYTE* pSrc, OPJ_INT32* pDst,
-                         OPJ_SIZE_T length)
+static void tif_13uto32s(const OPJ_BYTE* pSrc, OPJ_INT32* pDst, OPJ_SIZE_T length)
 {
     OPJ_SIZE_T i;
-    for (i = 0; i < (length & ~(OPJ_SIZE_T)7U); i += 8U) {
+    for (i = 0; i < (length & ~(OPJ_SIZE_T)7U); i += 8U)
+    {
         OPJ_UINT32 val0 = *pSrc++;
         OPJ_UINT32 val1 = *pSrc++;
         OPJ_UINT32 val2 = *pSrc++;
@@ -1104,9 +1155,9 @@ static void tif_13uto32s(const OPJ_BYTE* pSrc, OPJ_INT32* pDst,
         pDst[i + 5] = (OPJ_INT32)(((val8 & 0x7FU) << 6) | (val9 >> 2));
         pDst[i + 6] = (OPJ_INT32)(((val9 & 0x3U) << 11) | (val10 << 3) | (val11 >> 5));
         pDst[i + 7] = (OPJ_INT32)(((val11 & 0x1FU) << 8) | (val12));
-
     }
-    if (length & 7U) {
+    if (length & 7U)
+    {
         unsigned int val;
         int available = 0;
 
@@ -1114,19 +1165,22 @@ static void tif_13uto32s(const OPJ_BYTE* pSrc, OPJ_INT32* pDst,
 
         GETBITS(pDst[i + 0], 13)
 
-        if (length > 1U) {
+        if (length > 1U)
+        {
             GETBITS(pDst[i + 1], 13)
-            if (length > 2U) {
+            if (length > 2U)
+            {
                 GETBITS(pDst[i + 2], 13)
-                if (length > 3U) {
+                if (length > 3U)
+                {
                     GETBITS(pDst[i + 3], 13)
-                    if (length > 4U) {
+                    if (length > 4U)
+                    {
                         GETBITS(pDst[i + 4], 13)
-                        if (length > 5U) {
+                        if (length > 5U)
+                        {
                             GETBITS(pDst[i + 5], 13)
-                            if (length > 6U) {
-                                GETBITS(pDst[i + 6], 13)
-                            }
+                            if (length > 6U) GETBITS(pDst[i + 6], 13)
                         }
                     }
                 }
@@ -1134,11 +1188,11 @@ static void tif_13uto32s(const OPJ_BYTE* pSrc, OPJ_INT32* pDst,
         }
     }
 }
-static void tif_14uto32s(const OPJ_BYTE* pSrc, OPJ_INT32* pDst,
-                         OPJ_SIZE_T length)
+static void tif_14uto32s(const OPJ_BYTE* pSrc, OPJ_INT32* pDst, OPJ_SIZE_T length)
 {
     OPJ_SIZE_T i;
-    for (i = 0; i < (length & ~(OPJ_SIZE_T)3U); i += 4U) {
+    for (i = 0; i < (length & ~(OPJ_SIZE_T)3U); i += 4U)
+    {
         OPJ_UINT32 val0 = *pSrc++;
         OPJ_UINT32 val1 = *pSrc++;
         OPJ_UINT32 val2 = *pSrc++;
@@ -1151,19 +1205,21 @@ static void tif_14uto32s(const OPJ_BYTE* pSrc, OPJ_INT32* pDst,
         pDst[i + 1] = (OPJ_INT32)(((val1 & 0x3U) << 12) | (val2 << 4) | (val3 >> 4));
         pDst[i + 2] = (OPJ_INT32)(((val3 & 0xFU) << 10) | (val4 << 2) | (val5 >> 6));
         pDst[i + 3] = (OPJ_INT32)(((val5 & 0x3FU) << 8) | val6);
-
     }
-    if (length & 3U) {
+    if (length & 3U)
+    {
         OPJ_UINT32 val0 = *pSrc++;
         OPJ_UINT32 val1 = *pSrc++;
         length = length & 3U;
         pDst[i + 0] = (OPJ_INT32)((val0 << 6) | (val1 >> 2));
 
-        if (length > 1U) {
+        if (length > 1U)
+        {
             OPJ_UINT32 val2 = *pSrc++;
             OPJ_UINT32 val3 = *pSrc++;
             pDst[i + 1] = (OPJ_INT32)(((val1 & 0x3U) << 12) | (val2 << 4) | (val3 >> 4));
-            if (length > 2U) {
+            if (length > 2U)
+            {
                 OPJ_UINT32 val4 = *pSrc++;
                 OPJ_UINT32 val5 = *pSrc++;
                 pDst[i + 2] = (OPJ_INT32)(((val3 & 0xFU) << 10) | (val4 << 2) | (val5 >> 6));
@@ -1171,11 +1227,11 @@ static void tif_14uto32s(const OPJ_BYTE* pSrc, OPJ_INT32* pDst,
         }
     }
 }
-static void tif_15uto32s(const OPJ_BYTE* pSrc, OPJ_INT32* pDst,
-                         OPJ_SIZE_T length)
+static void tif_15uto32s(const OPJ_BYTE* pSrc, OPJ_INT32* pDst, OPJ_SIZE_T length)
 {
     OPJ_SIZE_T i;
-    for (i = 0; i < (length & ~(OPJ_SIZE_T)7U); i += 8U) {
+    for (i = 0; i < (length & ~(OPJ_SIZE_T)7U); i += 8U)
+    {
         OPJ_UINT32 val0 = *pSrc++;
         OPJ_UINT32 val1 = *pSrc++;
         OPJ_UINT32 val2 = *pSrc++;
@@ -1200,9 +1256,9 @@ static void tif_15uto32s(const OPJ_BYTE* pSrc, OPJ_INT32* pDst,
         pDst[i + 5] = (OPJ_INT32)(((val9 & 0x1FU) << 10) | (val10 << 2) | (val11 >> 6));
         pDst[i + 6] = (OPJ_INT32)(((val11 & 0x3FU) << 9) | (val12 << 1) | (val13 >> 7));
         pDst[i + 7] = (OPJ_INT32)(((val13 & 0x7FU) << 8) | (val14));
-
     }
-    if (length & 7U) {
+    if (length & 7U)
+    {
         unsigned int val;
         int available = 0;
 
@@ -1210,19 +1266,22 @@ static void tif_15uto32s(const OPJ_BYTE* pSrc, OPJ_INT32* pDst,
 
         GETBITS(pDst[i + 0], 15)
 
-        if (length > 1U) {
+        if (length > 1U)
+        {
             GETBITS(pDst[i + 1], 15)
-            if (length > 2U) {
+            if (length > 2U)
+            {
                 GETBITS(pDst[i + 2], 15)
-                if (length > 3U) {
+                if (length > 3U)
+                {
                     GETBITS(pDst[i + 3], 15)
-                    if (length > 4U) {
+                    if (length > 4U)
+                    {
                         GETBITS(pDst[i + 4], 15)
-                        if (length > 5U) {
+                        if (length > 5U)
+                        {
                             GETBITS(pDst[i + 5], 15)
-                            if (length > 6U) {
-                                GETBITS(pDst[i + 6], 15)
-                            }
+                            if (length > 6U) GETBITS(pDst[i + 6], 15)
                         }
                     }
                 }
@@ -1232,32 +1291,29 @@ static void tif_15uto32s(const OPJ_BYTE* pSrc, OPJ_INT32* pDst,
 }
 
 /* seems that libtiff decodes this to machine endianness */
-static void tif_16uto32s(const OPJ_UINT16* pSrc, OPJ_INT32* pDst,
-                         OPJ_SIZE_T length)
+static void tif_16uto32s(const OPJ_UINT16* pSrc, OPJ_INT32* pDst, OPJ_SIZE_T length)
 {
     OPJ_SIZE_T i;
-    for (i = 0; i < length; i++) {
+    for (i = 0; i < length; i++)
         pDst[i] = pSrc[i];
-    }
 }
 
 /*
  * libtiff/tif_getimage.c : 1,2,4,8,16 bitspersample accepted
  * CINEMA                 : 12 bit precision
  */
-opj_image_t* tiftoimage(const char *filename, opj_cparameters_t *parameters,
-                        const unsigned int target_bitdepth)
+opj_image_t* tiftoimage(const char* filename, opj_cparameters_t* parameters, const unsigned int target_bitdepth)
 {
     int subsampling_dx = parameters->subsampling_dx;
     int subsampling_dy = parameters->subsampling_dy;
-    TIFF *tif;
+    TIFF* tif;
     tdata_t buf;
     tstrip_t strip;
     int64_t strip_size, rowStride, TIFF_MAX;
     int j, currentPlane, numcomps = 0, w, h;
     OPJ_COLOR_SPACE color_space = OPJ_CLRSPC_UNKNOWN;
     opj_image_cmptparm_t cmptparm[4]; /* RGBA */
-    opj_image_t *image = NULL;
+    opj_image_t* image = NULL;
     uint16_t tiBps, tiPhoto, tiSf, tiSpp, tiPC;
     uint32_t tiWidth, tiHeight;
     OPJ_BOOL is_cinema = OPJ_IS_CINEMA(parameters->rsiz);
@@ -1268,7 +1324,8 @@ opj_image_t* tiftoimage(const char *filename, opj_cparameters_t *parameters,
 
     tif = TIFFOpen(filename, "r");
 
-    if (!tif) {
+    if (!tif)
+    {
         fprintf(stderr, "tiftoimage:Failed to open %s for reading\n", filename);
         return 0;
     }
@@ -1283,35 +1340,46 @@ opj_image_t* tiftoimage(const char *filename, opj_cparameters_t *parameters,
     TIFFGetField(tif, TIFFTAG_PHOTOMETRIC, &tiPhoto);
     TIFFGetField(tif, TIFFTAG_PLANARCONFIG, &tiPC);
 
-    if (tiSpp == 0 || tiSpp > 4) { /* should be 1 ... 4 */
-        fprintf(stderr, "tiftoimage: Bad value for samples per pixel == %d.\n"
-                "\tAborting.\n", tiSpp);
+    if (tiSpp == 0 || tiSpp > 4)
+    { /* should be 1 ... 4 */
+        fprintf(stderr,
+                "tiftoimage: Bad value for samples per pixel == %d.\n"
+                "\tAborting.\n",
+                tiSpp);
         TIFFClose(tif);
         return NULL;
     }
-    if (tiBps > 16U || tiBps == 0) {
-        fprintf(stderr, "tiftoimage: Bad values for Bits == %d.\n"
-                "\tMax. 16 Bits are allowed here.\n\tAborting.\n", tiBps);
+    if (tiBps > 16U || tiBps == 0)
+    {
+        fprintf(stderr,
+                "tiftoimage: Bad values for Bits == %d.\n"
+                "\tMax. 16 Bits are allowed here.\n\tAborting.\n",
+                tiBps);
         TIFFClose(tif);
         return NULL;
     }
-    if (tiPhoto != PHOTOMETRIC_MINISBLACK && tiPhoto != PHOTOMETRIC_RGB) {
+    if (tiPhoto != PHOTOMETRIC_MINISBLACK && tiPhoto != PHOTOMETRIC_RGB)
+    {
         fprintf(stderr,
                 "tiftoimage: Bad color format %d.\n\tOnly RGB(A) and GRAY(A) has been implemented\n\tAborting.\n",
-                (int) tiPhoto);
+                (int)tiPhoto);
         TIFFClose(tif);
         return NULL;
     }
-    if (tiWidth == 0 || tiHeight == 0) {
-        fprintf(stderr, "tiftoimage: Bad values for width(%u) "
-                "and/or height(%u)\n\tAborting.\n", tiWidth, tiHeight);
+    if (tiWidth == 0 || tiHeight == 0)
+    {
+        fprintf(stderr,
+                "tiftoimage: Bad values for width(%u) "
+                "and/or height(%u)\n\tAborting.\n",
+                tiWidth, tiHeight);
         TIFFClose(tif);
         return NULL;
     }
     w = (int)tiWidth;
     h = (int)tiHeight;
 
-    switch (tiBps) {
+    switch (tiBps)
+    {
     case 1:
     case 2:
     case 4:
@@ -1361,30 +1429,39 @@ opj_image_t* tiftoimage(const char *filename, opj_cparameters_t *parameters,
     /* initialize image components */
     memset(&cmptparm[0], 0, 4 * sizeof(opj_image_cmptparm_t));
 
-    if ((tiPhoto == PHOTOMETRIC_RGB) && (is_cinema) && (tiBps != 12U)) {
-        fprintf(stdout, "WARNING:\n"
+    if ((tiPhoto == PHOTOMETRIC_RGB) && (is_cinema) && (tiBps != 12U))
+    {
+        fprintf(stdout,
+                "WARNING:\n"
                 "Input image bitdepth is %d bits\n"
                 "TIF conversion has automatically rescaled to 12-bits\n"
                 "to comply with cinema profiles.\n",
                 tiBps);
-    } else {
+    }
+    else
+    {
         is_cinema = 0U;
     }
 
     numcomps = tiSpp;
-    if (tiPhoto == PHOTOMETRIC_RGB) { /* RGB(A) */
+    if (tiPhoto == PHOTOMETRIC_RGB)
+    { /* RGB(A) */
         color_space = OPJ_CLRSPC_SRGB;
-    } else if (tiPhoto == PHOTOMETRIC_MINISBLACK) { /* GRAY(A) */
+    }
+    else if (tiPhoto == PHOTOMETRIC_MINISBLACK)
+    { /* GRAY(A) */
         color_space = OPJ_CLRSPC_GRAY;
     }
 
     cvtCxToPx = convert_32s_CXPX_LUT[numcomps];
-    if (tiPC == PLANARCONFIG_SEPARATE) {
+    if (tiPC == PLANARCONFIG_SEPARATE)
+    {
         cvtCxToPx = convert_32s_CXPX_LUT[1]; /* override */
-        tiSpp = 1U; /* consider only one sample per plane */
+        tiSpp = 1U;                          /* consider only one sample per plane */
     }
 
-    for (j = 0; j < numcomps; j++) {
+    for (j = 0; j < numcomps; j++)
+    {
         cmptparm[j].prec = tiBps;
         cmptparm[j].dx = (OPJ_UINT32)subsampling_dx;
         cmptparm[j].dy = (OPJ_UINT32)subsampling_dy;
@@ -1393,7 +1470,8 @@ opj_image_t* tiftoimage(const char *filename, opj_cparameters_t *parameters,
     }
 
     image = opj_image_create((OPJ_UINT32)numcomps, &cmptparm[0], color_space);
-    if (!image) {
+    if (!image)
+    {
         TIFFClose(tif);
         return NULL;
     }
@@ -1401,45 +1479,50 @@ opj_image_t* tiftoimage(const char *filename, opj_cparameters_t *parameters,
     image->x0 = (OPJ_UINT32)parameters->image_offset_x0;
     image->y0 = (OPJ_UINT32)parameters->image_offset_y0;
     image->x1 = !image->x0 ? (OPJ_UINT32)(w - 1) * (OPJ_UINT32)subsampling_dx + 1 :
-                image->x0 + (OPJ_UINT32)(w - 1) * (OPJ_UINT32)subsampling_dx + 1;
-    if (image->x1 <= image->x0) {
-        fprintf(stderr, "tiftoimage: Bad value for image->x1(%d) vs. "
-                "image->x0(%d)\n\tAborting.\n", image->x1, image->x0);
+                             image->x0 + (OPJ_UINT32)(w - 1) * (OPJ_UINT32)subsampling_dx + 1;
+    if (image->x1 <= image->x0)
+    {
+        fprintf(stderr,
+                "tiftoimage: Bad value for image->x1(%d) vs. "
+                "image->x0(%d)\n\tAborting.\n",
+                image->x1, image->x0);
         TIFFClose(tif);
         opj_image_destroy(image);
         return NULL;
     }
     image->y1 = !image->y0 ? (OPJ_UINT32)(h - 1) * (OPJ_UINT32)subsampling_dy + 1 :
-                image->y0 + (OPJ_UINT32)(h - 1) * (OPJ_UINT32)subsampling_dy + 1;
-    if (image->y1 <= image->y0) {
-        fprintf(stderr, "tiftoimage: Bad value for image->y1(%d) vs. "
-                "image->y0(%d)\n\tAborting.\n", image->y1, image->y0);
+                             image->y0 + (OPJ_UINT32)(h - 1) * (OPJ_UINT32)subsampling_dy + 1;
+    if (image->y1 <= image->y0)
+    {
+        fprintf(stderr,
+                "tiftoimage: Bad value for image->y1(%d) vs. "
+                "image->y0(%d)\n\tAborting.\n",
+                image->y1, image->y0);
         TIFFClose(tif);
         opj_image_destroy(image);
         return NULL;
     }
 
-    for (j = 0; j < numcomps; j++) {
+    for (j = 0; j < numcomps; j++)
         planes[j] = image->comps[j].data;
-    }
     image->comps[numcomps - 1].alpha = (OPJ_UINT16)(1 - (numcomps & 1));
 
     strip_size = (int64_t)TIFFStripSize(tif);
 
     buf = malloc((OPJ_SIZE_T)strip_size);
-    if (buf == NULL) {
+    if (buf == NULL)
+    {
         TIFFClose(tif);
         opj_image_destroy(image);
         return NULL;
     }
-    if (sizeof(tsize_t) == 4) {
+    if (sizeof(tsize_t) == 4)
         TIFF_MAX = INT_MAX;
-    } else {
+    else
         TIFF_MAX = UINT_MAX;
-    }
-    if ((int64_t)tiWidth > (int64_t)(TIFF_MAX / tiSpp) ||
-            (int64_t)(tiWidth * tiSpp) > (int64_t)(TIFF_MAX / tiBps) ||
-            (int64_t)(tiWidth * tiSpp) > (int64_t)(TIFF_MAX / (int64_t)sizeof(OPJ_INT32))) {
+    if ((int64_t)tiWidth > (int64_t)(TIFF_MAX / tiSpp) || (int64_t)(tiWidth * tiSpp) > (int64_t)(TIFF_MAX / tiBps) ||
+        (int64_t)(tiWidth * tiSpp) > (int64_t)(TIFF_MAX / (int64_t)sizeof(OPJ_INT32)))
+    {
         fprintf(stderr, "Buffer overflow\n");
         _TIFFfree(buf);
         TIFFClose(tif);
@@ -1448,8 +1531,9 @@ opj_image_t* tiftoimage(const char *filename, opj_cparameters_t *parameters,
     }
 
     rowStride = (int64_t)((tiWidth * tiSpp * tiBps + 7U) / 8U);
-    buffer32s = (OPJ_INT32 *)malloc(sizeof(OPJ_INT32) * tiWidth * tiSpp);
-    if (buffer32s == NULL) {
+    buffer32s = (OPJ_INT32*)malloc(sizeof(OPJ_INT32) * tiWidth * tiSpp);
+    if (buffer32s == NULL)
+    {
         _TIFFfree(buf);
         TIFFClose(tif);
         opj_image_destroy(image);
@@ -1458,19 +1542,24 @@ opj_image_t* tiftoimage(const char *filename, opj_cparameters_t *parameters,
 
     strip = 0;
     currentPlane = 0;
-    do {
+    do
+    {
         planes[0] = image->comps[currentPlane].data; /* to manage planar data */
         h = (int)tiHeight;
         /* Read the Image components */
-        for (; (h > 0) && (strip < TIFFNumberOfStrips(tif)); strip++) {
-            const OPJ_UINT8 *dat8;
+        for (; (h > 0) && (strip < TIFFNumberOfStrips(tif)); strip++)
+        {
+            const OPJ_UINT8* dat8;
             int64_t ssize;
 
             ssize = (int64_t)TIFFReadEncodedStrip(tif, strip, buf, (tsize_t)strip_size);
 
-            if (ssize < 1 || ssize > strip_size) {
-                fprintf(stderr, "tiftoimage: Bad value for ssize(%" PRId64 ") "
-                        "vs. strip_size(%" PRId64 ").\n\tAborting.\n", ssize, strip_size);
+            if (ssize < 1 || ssize > strip_size)
+            {
+                fprintf(stderr,
+                        "tiftoimage: Bad value for ssize(%" PRId64 ") "
+                        "vs. strip_size(%" PRId64 ").\n\tAborting.\n",
+                        ssize, strip_size);
                 _TIFFfree(buf);
                 _TIFFfree(buffer32s);
                 TIFFClose(tif);
@@ -1479,14 +1568,15 @@ opj_image_t* tiftoimage(const char *filename, opj_cparameters_t *parameters,
             }
             dat8 = (const OPJ_UINT8*)buf;
 
-            while (ssize >= rowStride) {
+            while (ssize >= rowStride)
+            {
                 cvtTifTo32s(dat8, buffer32s, (OPJ_SIZE_T)w * tiSpp);
                 cvtCxToPx(buffer32s, planes, (OPJ_SIZE_T)w);
                 planes[0] += w;
                 planes[1] += w;
                 planes[2] += w;
                 planes[3] += w;
-                dat8  += rowStride;
+                dat8 += rowStride;
                 ssize -= rowStride;
                 h--;
             }
@@ -1498,17 +1588,13 @@ opj_image_t* tiftoimage(const char *filename, opj_cparameters_t *parameters,
     _TIFFfree(buf);
     TIFFClose(tif);
 
-    if (is_cinema) {
-        for (j = 0; j < numcomps; ++j) {
+    if (is_cinema)
+        for (j = 0; j < numcomps; ++j)
             scale_component(&(image->comps[j]), 12);
-        }
 
-    } else if ((target_bitdepth > 0) && (target_bitdepth != tiBps)) {
-        for (j = 0; j < numcomps; ++j) {
+    else if ((target_bitdepth > 0) && (target_bitdepth != tiBps))
+        for (j = 0; j < numcomps; ++j)
             scale_component(&(image->comps[j]), target_bitdepth);
-        }
-    }
     return image;
 
-}/* tiftoimage() */
-
+} /* tiftoimage() */

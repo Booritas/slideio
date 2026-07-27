@@ -6,7 +6,6 @@
 //#include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 
-
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/slideio/imagedrivermanager.hpp"
 #include "tests/testlib/testtools.hpp"
@@ -22,15 +21,15 @@ using namespace slideio;
 TEST(ZVIImageDriver, DriverManager_getDriverIDs)
 {
     std::vector<std::string> driverIds = slideio::ImageDriverManager::getDriverIDs();
-    auto it = std::find(driverIds.begin(),driverIds.end(), "ZVI");
-    EXPECT_FALSE(it==driverIds.end());
+    auto it = std::find(driverIds.begin(), driverIds.end(), "ZVI");
+    EXPECT_FALSE(it == driverIds.end());
 }
 
 TEST(ZVIImageDriver, getID)
 {
     slideio::ZVIImageDriver driver;
     const std::string id = driver.getID();
-    EXPECT_EQ(id,"ZVI");
+    EXPECT_EQ(id, "ZVI");
 }
 
 TEST(ZVIImageDriver, canOpenFile)
@@ -51,7 +50,7 @@ TEST(ZVIImageDriver, openSlide2D)
     const slideio::Metadata& meta = slide->getMetadata();
 
     // File-level tags remain at the root.
-    EXPECT_EQ(meta["Image Width (Pixel)"].asInt(),  1480);
+    EXPECT_EQ(meta["Image Width (Pixel)"].asInt(), 1480);
     EXPECT_EQ(meta["Image Height (Pixel)"].asInt(), 1132);
 
     // Per-item tags appear under Channels[].
@@ -86,7 +85,7 @@ TEST(ZVIImageDriver, openSlide2D)
     EXPECT_EQ(scene->getChannelName(2), std::string("FITC"));
     EXPECT_EQ(scene->getName(), std::string("RQ26033_04310292C0004S_Calu3_amplified_100x_21Jun2012 ic zsm.zvi"));
     EXPECT_EQ(scene->getCompression(), Compression::Uncompressed);
-	EXPECT_EQ(scene->getMetadataFormat(), slideio::MetadataFormat::None);
+    EXPECT_EQ(scene->getMetadataFormat(), slideio::MetadataFormat::None);
 
     auto res = scene->getResolution();
     EXPECT_DOUBLE_EQ(res.x, 0.0645e-6);
@@ -137,17 +136,13 @@ TEST(ZVIImageDriver, openSlide3D)
     EXPECT_GT(zSlices.size(), 1u);
 
     // Channel Name (if present) is hoisted to the channel object, not duplicated per ZSlice.
-    if (ch0.contains("Channel Name")) {
-        EXPECT_FALSE(zSlices[0].contains("Channel Name"));
-    }
+    if (ch0.contains("Channel Name")) EXPECT_FALSE(zSlices[0].contains("Channel Name"));
 }
 
 TEST(ZVIImageDriver, openSlideMosaic)
 {
     if (!TestTools::isFullTestEnabled())
-    {
         GTEST_SKIP() << "Skip private test because full image dataset is not available";
-    }
 
     slideio::ZVIImageDriver driver;
     std::string filePath = TestTools::getFullTestImagePath("zvi", "openslide/Zeiss-3-Mosaic.zvi");
@@ -193,14 +188,15 @@ TEST(ZVIImageDriver, readBlock3Layers)
     EXPECT_EQ(raster.cols, rect.width);
     EXPECT_EQ(raster.rows, rect.height);
 
-    for (int channel = 0; channel < 3; channel++) {
+    for (int channel = 0; channel < 3; channel++)
+    {
         cv::Mat channelRaster, channelRasterTest;
         cv::extractChannel(raster, channelRaster, channel);
         std::string channelName = std::string("Zeiss-1-Merged-ch") + std::to_string(channel) + ".tif";
         std::string channelPath = TestTools::getTestImagePath("zvi", channelName);
         slideio::ImageTools::readSmallImageRaster(channelPath, channelRasterTest);
-		double score = ImageTools::computeSimilarity2(channelRaster, channelRasterTest);
-		EXPECT_GT(score, 0.999);
+        double score = ImageTools::computeSimilarity2(channelRaster, channelRasterTest);
+        EXPECT_GT(score, 0.999);
     }
 }
 
@@ -215,7 +211,7 @@ TEST(ZVIImageDriver, readBlockROI)
     ASSERT_TRUE(scene.get() != nullptr);
     const auto rect = scene->getRect();
     cv::Mat raster;
-    std::vector<int> channels = { 0 };
+    std::vector<int> channels = {0};
     scene->readBlockChannels(rect, channels, raster);
     EXPECT_EQ(raster.cols, rect.width);
     EXPECT_EQ(raster.rows, rect.height);
@@ -238,7 +234,8 @@ TEST(ZVIImageDriver, readBlockROI)
 
     cv::Mat channelRoi = channelRaster(rectRoi);
     channelDiff = cv::abs(raster - channelRoi);
-    min = 0; max = 0;
+    min = 0;
+    max = 0;
     cv::minMaxLoc(channelDiff, &min, &max);
     EXPECT_EQ(min, 0);
     EXPECT_EQ(max, 0);
@@ -246,12 +243,12 @@ TEST(ZVIImageDriver, readBlockROI)
     const int width2 = rect.width / 2;
     const int height2 = rect.height / 2;
     cv::Rect rectRoi2(width4, height4, width2, height2);
-    scene->readResampledBlockChannels(rectRoi, { width4, height4 }, channels, raster);
+    scene->readResampledBlockChannels(rectRoi, {width4, height4}, channels, raster);
     EXPECT_EQ(raster.cols, width4);
     EXPECT_EQ(raster.rows, height4);
     channelRoi = channelRaster(rectRoi);
     cv::Mat channelRoiResized;
-    cv::resize(channelRoi, channelRoiResized, { width4, height4 });
+    cv::resize(channelRoi, channelRoiResized, {width4, height4});
 
     double similarity = ImageTools::computeSimilarity(raster, channelRoiResized);
     EXPECT_DOUBLE_EQ(1., similarity);
@@ -268,7 +265,7 @@ TEST(ZVIImageDriver, readBlock3DSlice)
     ASSERT_TRUE(scene.get() != nullptr);
     const auto rect = scene->getRect();
     cv::Mat raster;
-    std::vector<int> channels = { 1 };
+    std::vector<int> channels = {1};
     const int zSlices = scene->getNumZSlices();
 
     cv::Rect rectRoi = rect;
@@ -299,7 +296,7 @@ TEST(ZVIImageDriver, readBlock3DROI)
     ASSERT_TRUE(scene.get() != nullptr);
     const auto rect = scene->getRect();
     cv::Mat raster;
-    std::vector<int> channels = { 1 };
+    std::vector<int> channels = {1};
     const int zSlices = scene->getNumZSlices();
 
     const int width2 = rect.width / 2;
@@ -311,7 +308,7 @@ TEST(ZVIImageDriver, readBlock3DROI)
     const cv::Range zSliceRange(6, 7);
     const cv::Range tFrameRange(0, 1);
 
-    scene->readResampled4DBlockChannels(rectRoi, sizeRoi, channels, zSliceRange, tFrameRange,  raster);
+    scene->readResampled4DBlockChannels(rectRoi, sizeRoi, channels, zSliceRange, tFrameRange, raster);
     EXPECT_EQ(raster.dims, 2);
     EXPECT_EQ(raster.channels(), 1);
     EXPECT_EQ(raster.cols, sizeRoi.width);
@@ -337,7 +334,7 @@ TEST(ZVIImageDriver, readBlock3DROIResized)
     ASSERT_TRUE(scene.get() != nullptr);
     const auto rect = scene->getRect();
     cv::Mat raster;
-    std::vector<int> channels = { 1 };
+    std::vector<int> channels = {1};
     const int zSlices = scene->getNumZSlices();
 
     const int width2 = rect.width / 2;
@@ -365,7 +362,6 @@ TEST(ZVIImageDriver, readBlock3DROIResized)
     EXPECT_LT(0.95, similarity);
 }
 
-
 TEST(ZVIImageDriver, readBlock3DROIResizedMultiSlice)
 {
     slideio::ZVIImageDriver driver;
@@ -377,7 +373,7 @@ TEST(ZVIImageDriver, readBlock3DROIResizedMultiSlice)
     ASSERT_TRUE(scene.get() != nullptr);
     const auto sceneRect = scene->getRect();
     cv::Mat raster;
-    std::vector<int> channels = { 1, 2 };
+    std::vector<int> channels = {1, 2};
     const int zSlices = scene->getNumZSlices();
 
     const int width2 = sceneRect.width / 2;
@@ -422,11 +418,10 @@ TEST(ZVIImageDriver, readBlock3DROIResizedMultiSlice)
 
 TEST(ZVIImageDriver, readBlock)
 {
-    if (!TestTools::isFullTestEnabled()) {
-        GTEST_SKIP() << "Skip full test because full dataset is not enabled";
-    }
+    if (!TestTools::isFullTestEnabled()) GTEST_SKIP() << "Skip full test because full dataset is not enabled";
     slideio::ZVIImageDriver driver;
-    std::string filePath = TestTools::getFullTestImagePath("zvi", "mouse/20140207_mouse_2cell_H2AUb_HA_DAPI_inj_002.zvi");
+    std::string filePath =
+        TestTools::getFullTestImagePath("zvi", "mouse/20140207_mouse_2cell_H2AUb_HA_DAPI_inj_002.zvi");
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide.get() != nullptr);
     auto scene = slide->getScene(0);
@@ -436,7 +431,7 @@ TEST(ZVIImageDriver, readBlock)
     auto channels = scene->getNumChannels();
     const double asp = (double)rect.height / (double)rect.width;
     cv::Mat raster;
-    std::vector<int> channelIndices = { 0, 1, 2 };
+    std::vector<int> channelIndices = {0, 1, 2};
     scene->readBlockChannels(rect, channelIndices, raster);
     EXPECT_EQ(raster.cols, rect.width);
     EXPECT_EQ(raster.rows, rect.height);
@@ -463,11 +458,10 @@ TEST(ZVIImageDriver, readBlockTOMM)
 
 TEST(ZVIImageDriver, readBlock3D)
 {
-    if (!TestTools::isFullTestEnabled()) {
-        GTEST_SKIP() << "Skip full test because full dataset is not enabled";
-    }
+    if (!TestTools::isFullTestEnabled()) GTEST_SKIP() << "Skip full test because full dataset is not enabled";
     slideio::ZVIImageDriver driver;
-    std::string filePath = TestTools::getFullTestImagePath("zvi", "mouse/20140505_mouse_2cell_H2AUb_RING1B_DAPI_T_005.zvi");
+    std::string filePath =
+        TestTools::getFullTestImagePath("zvi", "mouse/20140505_mouse_2cell_H2AUb_RING1B_DAPI_T_005.zvi");
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide.get() != nullptr);
     auto scene = slide->getScene(0);
@@ -477,10 +471,10 @@ TEST(ZVIImageDriver, readBlock3D)
     auto channels = scene->getNumChannels();
     const double asp = (double)rect.height / (double)rect.width;
     cv::Mat raster;
-    std::vector<int> channelIndices = { 0 };
-    cv::Size size = { rect.width, rect.height };
-    cv::Range slices = { 0, 10 };
-    cv::Range frames = { 0, 1 };
+    std::vector<int> channelIndices = {0};
+    cv::Size size = {rect.width, rect.height};
+    cv::Range slices = {0, 10};
+    cv::Range frames = {0, 1};
     scene->readResampled4DBlockChannels(rect, size, channelIndices, slices, frames, raster);
     EXPECT_EQ(raster.size[0], size.height);
     EXPECT_EQ(raster.size[1], size.width);
@@ -502,9 +496,9 @@ TEST(ZVIImageDriver, readBlock3D_emptyChannelIndices)
     const double asp = (double)rect.height / (double)rect.width;
     cv::Mat raster;
     std::vector<int> channelIndices;
-    cv::Size size = { rect.width, rect.height };
-    cv::Range slices = { 0, 10 };
-    cv::Range frames = { 0, 1 };
+    cv::Size size = {rect.width, rect.height};
+    cv::Range slices = {0, 10};
+    cv::Range frames = {0, 1};
     scene->readResampled4DBlockChannels(rect, size, channelIndices, slices, frames, raster);
     EXPECT_EQ(raster.size[0], size.height);
     EXPECT_EQ(raster.size[1], size.width);
@@ -552,40 +546,37 @@ TEST(ZVIImageDriver, zoomLevel)
     EXPECT_EQ(zoomLevel->getTileSize(), Size(1388, 1040));
 }
 
-TEST(ZVIImageDriver, multiThreadSceneAccess) {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip the test because full dataset is not enabled";
-    }
-    std::string filePath = TestTools::getFullTestImagePath("zvi", "mouse/20140505_mouse_2cell_H2AUb_RING1B_DAPI_T_005.zvi");
+TEST(ZVIImageDriver, multiThreadSceneAccess)
+{
+    if (!TestTools::isFullTestEnabled()) GTEST_SKIP() << "Skip the test because full dataset is not enabled";
+    std::string filePath =
+        TestTools::getFullTestImagePath("zvi", "mouse/20140505_mouse_2cell_H2AUb_RING1B_DAPI_T_005.zvi");
     slideio::ZVIImageDriver driver;
     TestTools::multiThreadedTest(filePath, driver);
 }
 
 TEST(ZVIImageDriver, getSceneIndex)
 {
-    if (!TestTools::isFullTestEnabled()) {
-        GTEST_SKIP() <<
-            "Skip the test because full dataset is not enabled";
-    }
+    if (!TestTools::isFullTestEnabled()) GTEST_SKIP() << "Skip the test because full dataset is not enabled";
     const std::string filePath = TestTools::getTestImagePath("zvi", "Zeiss-1-Stacked.zvi");
     auto slide = slideio::openSlide(filePath, "AUTO");
     ASSERT_TRUE(slide);
     EXPECT_EQ("ZVI", slide->getDriverId());
     const int numScenes = slide->getNumScenes();
     EXPECT_EQ(1, numScenes);
-    for (int iScene = 0; iScene < numScenes; ++iScene) {
+    for (int iScene = 0; iScene < numScenes; ++iScene)
+    {
         std::shared_ptr<slideio::CVScene> scene = slide->getScene(iScene)->getCVScene();
         EXPECT_TRUE(scene.get() != nullptr);
         EXPECT_EQ(iScene, scene->getSceneIndex());
         EXPECT_EQ(filePath, scene->getFilePath());
-		EXPECT_EQ("ZVI", scene->getDriverId());
+        EXPECT_EQ("ZVI", scene->getDriverId());
     }
     const int numImages = slide->getNumAuxImages();
     ASSERT_EQ(numImages, 0);
     std::list<std::string> imageNames = slide->getAuxImageNames();
-    for (auto& name : imageNames) {
+    for (auto& name : imageNames)
+    {
         auto scene = slide->getAuxImage("label")->getCVScene();
         EXPECT_TRUE(scene.get() != nullptr);
         EXPECT_EQ(-1, scene->getSceneIndex());

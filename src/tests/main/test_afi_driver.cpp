@@ -11,7 +11,6 @@
 
 #include <numeric>
 
-
 static std::string getPrivTestImagesPath(std::string dir, std::string file)
 {
     return TestTools::getTestImagePath(dir, file, true);
@@ -50,15 +49,17 @@ TEST(AFIDriver, readFileBrokenEntries)
     EXPECT_THROW(slideio::AFISlide::getFileList("<ImageList>\
         <Image>\
         <Path>51445_Alexa Fluor 594.svs</Path>\
-        <ID>@51446</ID >"), slideio::RuntimeError);
+        <ID>@51446</ID >"),
+                 slideio::RuntimeError);
 }
 
-class AFIDriverFileTest : public ::testing::Test {
+class AFIDriverFileTest: public ::testing::Test
+{
 public:
-    void SetUp() override {
-        if (!TestTools::isPrivateTestEnabled()) {
+    void SetUp() override
+    {
+        if (!TestTools::isPrivateTestEnabled())
             GTEST_SKIP() << "Skip private test because private dataset is not enabled";
-        }
     }
 };
 
@@ -67,14 +68,14 @@ TEST_F(AFIDriverFileTest, openFile)
     slideio::AFIImageDriver driver;
     const std::string filePath = getPrivTestImagesPath("afi", "fs.afi");
     auto slide = driver.openFile(filePath);
-    EXPECT_TRUE(slide!=nullptr);
+    EXPECT_TRUE(slide != nullptr);
     EXPECT_EQ(slide->getMetadataFormat(), slideio::MetadataFormat::None);
-	EXPECT_EQ(slide->getScene(0)->getMetadataFormat(), slideio::MetadataFormat::JSON);
+    EXPECT_EQ(slide->getScene(0)->getMetadataFormat(), slideio::MetadataFormat::JSON);
 }
 
 TEST_F(AFIDriverFileTest, getScenesFromFiles)
 {
-    std::vector<std::string> svsFiles = { "fs_Alexa Fluor 594.svs", "fs_Alexa Fluor 488.svs", "fs_DAPI.svs" };
+    std::vector<std::string> svsFiles = {"fs_Alexa Fluor 594.svs", "fs_Alexa Fluor 488.svs", "fs_DAPI.svs"};
     const std::string afiFile = getPrivTestImagesPath("afi", "fs.afi");
     auto slidesScenes = slideio::AFISlide::getSlidesScenesFromFiles(svsFiles, afiFile);
     EXPECT_EQ(slidesScenes.first.size(), 3);
@@ -83,7 +84,7 @@ TEST_F(AFIDriverFileTest, getScenesFromFiles)
 
 TEST_F(AFIDriverFileTest, getScenesFromNonExistentFiles)
 {
-    std::vector<std::string> svsFiles = { "FakeFile1.svs", "FakeFile2.svs" };
+    std::vector<std::string> svsFiles = {"FakeFile1.svs", "FakeFile2.svs"};
     const std::string afiFile = getPrivTestImagesPath("afi", "fs.afi");
     EXPECT_THROW(slideio::AFISlide::getSlidesScenesFromFiles(svsFiles, afiFile), slideio::RuntimeError);
 }
@@ -96,12 +97,13 @@ TEST_F(AFIDriverFileTest, getSceneIndex)
     ASSERT_TRUE(slide);
     const int numScenes = slide->getNumScenes();
     EXPECT_EQ(3, numScenes);
-    for (int iScene = 0; iScene < numScenes; ++iScene) {
+    for (int iScene = 0; iScene < numScenes; ++iScene)
+    {
         std::shared_ptr<slideio::CVScene> scene = slide->getScene(iScene);
         EXPECT_TRUE(scene.get() != nullptr);
         EXPECT_EQ(iScene, scene->getSceneIndex());
         EXPECT_EQ(filePath, scene->getFilePath());
-		EXPECT_EQ("AFI", scene->getDriverId());
+        EXPECT_EQ("AFI", scene->getDriverId());
     }
 }
 
@@ -136,8 +138,8 @@ TEST_F(AFIDriverFileTest, read_ImageBlock)
     const std::string pathPageFile = getPrivTestImagesPath("afi", "fs_Alexa Fluor 488_block_2500_4000_400_400.tif");
     cv::Mat refRaster;
     slideio::ImageTools::readSmallImageRaster(pathPageFile, refRaster);
-	double sim = slideio::ImageTools::computeSimilarity2(imageRaster, refRaster);
-	EXPECT_GT(sim, 0.999);
+    double sim = slideio::ImageTools::computeSimilarity2(imageRaster, refRaster);
+    EXPECT_GT(sim, 0.999);
     //TestTools::showRasters(imageRaster, refRaster);
 }
 
@@ -150,10 +152,10 @@ TEST_F(AFIDriverFileTest, read_ImageBlockScaled)
 
     std::shared_ptr<slideio::CVScene> scene = slide->getScene(1);
     ASSERT_TRUE(scene != nullptr);
-    cv::Rect sceneRect{ 2500, 4000, 400, 400 };
-    cv::Size blockSize{ 800,800 };
+    cv::Rect sceneRect{2500, 4000, 400, 400};
+    cv::Size blockSize{800, 800};
     cv::Mat blockRaster;
-    scene->readResampledBlock(sceneRect, blockSize , blockRaster);
+    scene->readResampledBlock(sceneRect, blockSize, blockRaster);
     cv::Mat imageRaster32bit;
     blockRaster.convertTo(imageRaster32bit, CV_32FC1);
     const std::string pathPageFile = getPrivTestImagesPath("afi", "fs_Alexa Fluor 488_block_2500_4000_400_400.tif");
@@ -166,12 +168,9 @@ TEST_F(AFIDriverFileTest, read_ImageBlockScaled)
     //TestTools::showRasters(blockRaster, scaledRaster);
 }
 
-TEST_F(AFIDriverFileTest, multiThreadSceneAccess) {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip the test because full dataset is not enabled";
-    }
+TEST_F(AFIDriverFileTest, multiThreadSceneAccess)
+{
+    if (!TestTools::isFullTestEnabled()) GTEST_SKIP() << "Skip the test because full dataset is not enabled";
     std::string filePath = getPrivTestImagesPath("afi", "fs.afi");
     slideio::AFIImageDriver driver;
     TestTools::multiThreadedTest(filePath, driver);
@@ -179,9 +178,7 @@ TEST_F(AFIDriverFileTest, multiThreadSceneAccess) {
 
 TEST_F(AFIDriverFileTest, getDriverId)
 {
-    if (!TestTools::isFullTestEnabled()) {
-        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-    }
+    if (!TestTools::isFullTestEnabled()) GTEST_SKIP() << "Skip private test because full dataset is not enabled";
 
     const std::string filePath = getPrivTestImagesPath("afi", "fs.afi");
     auto slide = slideio::openSlide(filePath, "AUTO");
@@ -189,7 +186,8 @@ TEST_F(AFIDriverFileTest, getDriverId)
     EXPECT_EQ("AFI", slide->getDriverId());
     const int numScenes = slide->getNumScenes();
     EXPECT_EQ(3, numScenes);
-    for (int iScene = 0; iScene < numScenes; ++iScene) {
+    for (int iScene = 0; iScene < numScenes; ++iScene)
+    {
         std::shared_ptr<slideio::CVScene> scene = slide->getScene(iScene)->getCVScene();
         EXPECT_TRUE(scene.get() != nullptr);
         EXPECT_EQ(iScene, scene->getSceneIndex());

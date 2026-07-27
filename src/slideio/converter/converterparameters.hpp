@@ -9,8 +9,8 @@
 #include "slideio/converter/converter_def.hpp"
 
 #if defined(_MSC_VER)
-#pragma warning( push )
-#pragma warning(disable: 4251)
+#pragma warning(push)
+#pragma warning(disable : 4251)
 #endif
 
 namespace slideio
@@ -45,71 +45,46 @@ namespace slideio
         class ContainerParameters
         {
         protected:
-            ContainerParameters(Container containerType) : m_containerType(containerType) {
-            };
+            ContainerParameters(Container containerType): m_containerType(containerType) {};
             virtual ~ContainerParameters() = default;
 
         public:
-            Container getContainerType() const {
-                return m_containerType;
-            }
+            Container getContainerType() const { return m_containerType; }
 
         private:
             Container m_containerType;
         };
 
-        class TIFFContainerParameters : public ContainerParameters
+        class TIFFContainerParameters: public ContainerParameters
         {
         public:
-            TIFFContainerParameters() : ContainerParameters(TIFF_CONTAINER),
-                                        m_tileWidth(256),
-                                        m_tileHeight(256),
-                                        m_numZoomLevels(-1),
-                                        m_numReadingThreads(0),
-                                        m_numEncodingThreads(0) {
+            TIFFContainerParameters()
+                : ContainerParameters(TIFF_CONTAINER), m_tileWidth(256), m_tileHeight(256), m_numZoomLevels(-1),
+                  m_numReadingThreads(0), m_numEncodingThreads(0)
+            {
             }
 
             ~TIFFContainerParameters() override = default;
 
-            int getTileWidth() const {
-                return m_tileWidth;
-            }
+            int getTileWidth() const { return m_tileWidth; }
 
-            void setTileWidth(int tileWidth) {
-                m_tileWidth = tileWidth;
-            }
+            void setTileWidth(int tileWidth) { m_tileWidth = tileWidth; }
 
-            int getTileHeight() const {
-                return m_tileHeight;
-            }
+            int getTileHeight() const { return m_tileHeight; }
 
-            void setTileHeight(int tileHeight) {
-                m_tileHeight = tileHeight;
-            }
+            void setTileHeight(int tileHeight) { m_tileHeight = tileHeight; }
 
-            int getNumZoomLevels() const {
-                return m_numZoomLevels;
-            }
+            int getNumZoomLevels() const { return m_numZoomLevels; }
 
-            void setNumZoomLevels(int numZoomLevels) {
-                m_numZoomLevels = numZoomLevels;
-            }
+            void setNumZoomLevels(int numZoomLevels) { m_numZoomLevels = numZoomLevels; }
 
-            int getNumReadingThreads() const {
-                return m_numReadingThreads;
-            }
+            int getNumReadingThreads() const { return m_numReadingThreads; }
 
-            void setNumReadingThreads(int numReadingThreads) {
-                m_numReadingThreads = numReadingThreads;
-            }
+            void setNumReadingThreads(int numReadingThreads) { m_numReadingThreads = numReadingThreads; }
 
-            int getNumEncodingThreads() const {
-                return m_numEncodingThreads;
-            }
+            int getNumEncodingThreads() const { return m_numEncodingThreads; }
 
-            void setNumEncodingThreads(int numEncodingThreads) {
-                m_numEncodingThreads = numEncodingThreads;
-            }
+            void setNumEncodingThreads(int numEncodingThreads) { m_numEncodingThreads = numEncodingThreads; }
 
         protected:
             int m_tileWidth;
@@ -124,83 +99,58 @@ namespace slideio
         public:
             ConverterParameters(ImageFormat format, Container containerType, Compression compression);
 
-            ConverterParameters() {
-                initialize();
-            }
+            ConverterParameters() { initialize(); }
 
             ConverterParameters(const ConverterParameters& other);
             ConverterParameters& operator=(const ConverterParameters& other);
 
             virtual ~ConverterParameters() = default;
 
-            ImageFormat getFormat() const {
-                return m_format;
-            }
+            ImageFormat getFormat() const { return m_format; }
 
-            const Rect& getRect() const {
-                return m_rect;
-            }
+            const Rect& getRect() const { return m_rect; }
 
-            void setRect(const Rect& rect) {
-                m_rect = rect;
-            }
+            void setRect(const Rect& rect) { m_rect = rect; }
 
-            void setSliceRange(const Range& range) {
-                m_sliceRange = range;
-            }
+            void setSliceRange(const Range& range) { m_sliceRange = range; }
 
-            const Range& getSliceRange() const {
-                return m_sliceRange;
-            }
+            const Range& getSliceRange() const { return m_sliceRange; }
 
-            void setChannelRange(const Range& range) {
-                m_channelRange = range;
-            }
+            void setChannelRange(const Range& range) { m_channelRange = range; }
 
-            const Range& getChannelRange() const {
-                return m_channelRange;
-            }
+            const Range& getChannelRange() const { return m_channelRange; }
 
-            void setTFrameRange(const Range& range) {
-                m_frameRange = range;
-            }
+            void setTFrameRange(const Range& range) { m_frameRange = range; }
 
-            const Range& getTFrameRange() const {
-                return m_frameRange;
-            }
+            const Range& getTFrameRange() const { return m_frameRange; }
 
             Compression getEncoding() const;
 
             Container getContainerType() const;
 
-            std::shared_ptr<EncodeParameters> getEncodeParameters() {
-                return m_encodeParameters;
-            }
+            std::shared_ptr<EncodeParameters> getEncodeParameters() { return m_encodeParameters; }
 
-            std::shared_ptr<const EncodeParameters> getEncodeParameters() const {
-                return m_encodeParameters;
-            }
+            std::shared_ptr<const EncodeParameters> getEncodeParameters() const { return m_encodeParameters; }
 
-            std::shared_ptr<ContainerParameters> getContainerParameters() {
+            std::shared_ptr<ContainerParameters> getContainerParameters()
+            {
                 return std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters);
             }
 
-            std::shared_ptr<const ContainerParameters> getContainerParameters() const {
+            std::shared_ptr<const ContainerParameters> getContainerParameters() const
+            {
                 return std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters);
             }
 
-            bool isValid() const {
-                return m_format != ImageFormat::Unknown && m_encodeParameters != nullptr && m_containerParameters !=
-                    nullptr;
+            bool isValid() const
+            {
+                return m_format != ImageFormat::Unknown && m_encodeParameters != nullptr &&
+                       m_containerParameters != nullptr;
             }
 
-            int getTileBatchSize() const {
-                return m_tileBatchSize;
-			}
+            int getTileBatchSize() const { return m_tileBatchSize; }
 
-            void setTileBatchSize(int batchSize) {
-                m_tileBatchSize = batchSize;
-            }
+            void setTileBatchSize(int batchSize) { m_tileBatchSize = batchSize; }
 
             void updateNotDefinedParameters(const std::shared_ptr<CVScene>& scene);
 
@@ -214,187 +164,216 @@ namespace slideio
             Range m_sliceRange;
             Range m_channelRange;
             Range m_frameRange;
-			int m_tileBatchSize;
+            int m_tileBatchSize;
             std::shared_ptr<EncodeParameters> m_encodeParameters;
             std::shared_ptr<ContainerParameters> m_containerParameters;
         };
 
-        class SLIDEIO_CONVERTER_EXPORTS SVSConverterParameters : public ConverterParameters
+        class SLIDEIO_CONVERTER_EXPORTS SVSConverterParameters: public ConverterParameters
         {
         public:
             SVSConverterParameters(Compression compression)
-                : ConverterParameters(ImageFormat::SVS, Container::TIFF_CONTAINER, compression) {
+                : ConverterParameters(ImageFormat::SVS, Container::TIFF_CONTAINER, compression)
+            {
             }
 
             ~SVSConverterParameters() override = default;
 
-            int getTileWidth() const {
+            int getTileWidth() const
+            {
                 return std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters)->getTileWidth();
             }
 
-            void setTileWidth(int tileWidth) {
+            void setTileWidth(int tileWidth)
+            {
                 std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters)->setTileWidth(tileWidth);
             }
 
-            int getTileHeight() const {
+            int getTileHeight() const
+            {
                 return std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters)->getTileHeight();
             }
 
-            void setTileHeight(int tileHeight) {
+            void setTileHeight(int tileHeight)
+            {
                 std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters)->setTileHeight(tileHeight);
             }
-            int getNumZoomLevels() const {
+            int getNumZoomLevels() const
+            {
                 return std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters)->getNumZoomLevels();
             }
 
-            void setNumZoomLevels(int numZoomLevels) {
-                return std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters)->setNumZoomLevels(numZoomLevels);
+            void setNumZoomLevels(int numZoomLevels)
+            {
+                return std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters)
+                    ->setNumZoomLevels(numZoomLevels);
             }
 
-            int getNumReadingThreads() const {
+            int getNumReadingThreads() const
+            {
                 return std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters)->getNumReadingThreads();
             }
 
-            void setNumReadingThreads(int numReadingThreads) {
-                std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters)->setNumReadingThreads(numReadingThreads);
+            void setNumReadingThreads(int numReadingThreads)
+            {
+                std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters)
+                    ->setNumReadingThreads(numReadingThreads);
             }
 
-            int getNumEncodingThreads() const {
-                return std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters)->getNumEncodingThreads();
+            int getNumEncodingThreads() const
+            {
+                return std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters)
+                    ->getNumEncodingThreads();
             }
 
-            void setNumEncodingThreads(int numEncodingThreads) {
-                std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters)->setNumEncodingThreads(numEncodingThreads);
+            void setNumEncodingThreads(int numEncodingThreads)
+            {
+                std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters)
+                    ->setNumEncodingThreads(numEncodingThreads);
             }
         };
 
-        class SLIDEIO_CONVERTER_EXPORTS SVSJpegConverterParameters : public SVSConverterParameters
+        class SLIDEIO_CONVERTER_EXPORTS SVSJpegConverterParameters: public SVSConverterParameters
         {
         public:
-            SVSJpegConverterParameters()
-                : SVSConverterParameters(Compression::Jpeg) {
-            }
+            SVSJpegConverterParameters(): SVSConverterParameters(Compression::Jpeg) {}
 
             ~SVSJpegConverterParameters() override = default;
 
-            void setQuality(int q) {
+            void setQuality(int q)
+            {
                 std::static_pointer_cast<slideio::JpegEncodeParameters>(m_encodeParameters)->setQuality(q);
             }
 
-            int getQuality() const {
+            int getQuality() const
+            {
                 return std::static_pointer_cast<slideio::JpegEncodeParameters>(m_encodeParameters)->getQuality();
             }
-
         };
 
-
-        class SLIDEIO_CONVERTER_EXPORTS SVSJp2KConverterParameters : public SVSConverterParameters
+        class SLIDEIO_CONVERTER_EXPORTS SVSJp2KConverterParameters: public SVSConverterParameters
         {
         public:
-            SVSJp2KConverterParameters()
-                : SVSConverterParameters(Compression::Jpeg2000) {
-            }
+            SVSJp2KConverterParameters(): SVSConverterParameters(Compression::Jpeg2000) {}
 
             ~SVSJp2KConverterParameters() override = default;
 
-            void setCompressionRate(float rate) {
+            void setCompressionRate(float rate)
+            {
                 std::static_pointer_cast<slideio::JP2KEncodeParameters>(m_encodeParameters)->setCompressionRate(rate);
             }
 
-            float getCompressionRate() const {
-                return std::static_pointer_cast<slideio::JP2KEncodeParameters>(m_encodeParameters)->getCompressionRate();
+            float getCompressionRate() const
+            {
+                return std::static_pointer_cast<slideio::JP2KEncodeParameters>(m_encodeParameters)
+                    ->getCompressionRate();
             }
         };
 
-        class SLIDEIO_CONVERTER_EXPORTS OMETIFFConverterParameters : public ConverterParameters
+        class SLIDEIO_CONVERTER_EXPORTS OMETIFFConverterParameters: public ConverterParameters
         {
         public:
             OMETIFFConverterParameters(Compression compression)
-                : ConverterParameters(ImageFormat::OME_TIFF, Container::TIFF_CONTAINER, compression) {
+                : ConverterParameters(ImageFormat::OME_TIFF, Container::TIFF_CONTAINER, compression)
+            {
             }
 
             ~OMETIFFConverterParameters() override = default;
 
-            int getTileWidth() const {
+            int getTileWidth() const
+            {
                 return std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters)->getTileWidth();
             }
 
-            void setTileWidth(int tileWidth) {
+            void setTileWidth(int tileWidth)
+            {
                 std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters)->setTileWidth(tileWidth);
             }
 
-            int getTileHeight() const {
+            int getTileHeight() const
+            {
                 return std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters)->getTileHeight();
             }
 
-            void setTileHeight(int tileHeight) {
+            void setTileHeight(int tileHeight)
+            {
                 std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters)->setTileHeight(tileHeight);
             }
 
-            int getNumZoomLevels() const {
+            int getNumZoomLevels() const
+            {
                 return std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters)->getNumZoomLevels();
             }
 
-            void setNumZoomLevels(int numZoomLevels) {
-                return std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters)->setNumZoomLevels(numZoomLevels);
+            void setNumZoomLevels(int numZoomLevels)
+            {
+                return std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters)
+                    ->setNumZoomLevels(numZoomLevels);
             }
 
-            int getNumReadingThreads() const {
+            int getNumReadingThreads() const
+            {
                 return std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters)->getNumReadingThreads();
             }
 
-            void setNumReadingThreads(int numReadingThreads) {
-                std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters)->setNumReadingThreads(numReadingThreads);
+            void setNumReadingThreads(int numReadingThreads)
+            {
+                std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters)
+                    ->setNumReadingThreads(numReadingThreads);
             }
 
-            int getNumEncodingThreads() const {
-                return std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters)->getNumEncodingThreads();
+            int getNumEncodingThreads() const
+            {
+                return std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters)
+                    ->getNumEncodingThreads();
             }
 
-            void setNumEncodingThreads(int numEncodingThreads) {
-                std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters)->setNumEncodingThreads(numEncodingThreads);
+            void setNumEncodingThreads(int numEncodingThreads)
+            {
+                std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters)
+                    ->setNumEncodingThreads(numEncodingThreads);
             }
         };
 
-        class SLIDEIO_CONVERTER_EXPORTS OMETIFFJpegConverterParameters : public OMETIFFConverterParameters
+        class SLIDEIO_CONVERTER_EXPORTS OMETIFFJpegConverterParameters: public OMETIFFConverterParameters
         {
         public:
-            OMETIFFJpegConverterParameters()
-                : OMETIFFConverterParameters(Compression::Jpeg) {
-            }
+            OMETIFFJpegConverterParameters(): OMETIFFConverterParameters(Compression::Jpeg) {}
 
             ~OMETIFFJpegConverterParameters() override = default;
 
-            void setQuality(int q) {
+            void setQuality(int q)
+            {
                 std::static_pointer_cast<slideio::JpegEncodeParameters>(m_encodeParameters)->setQuality(q);
             }
 
-            int getQuality() const {
+            int getQuality() const
+            {
                 return std::static_pointer_cast<slideio::JpegEncodeParameters>(m_encodeParameters)->getQuality();
             }
         };
 
-
-        class SLIDEIO_CONVERTER_EXPORTS OMETIFFJp2KConverterParameters : public OMETIFFConverterParameters
+        class SLIDEIO_CONVERTER_EXPORTS OMETIFFJp2KConverterParameters: public OMETIFFConverterParameters
         {
         public:
-            OMETIFFJp2KConverterParameters()
-                : OMETIFFConverterParameters(Compression::Jpeg2000) {
-            }
+            OMETIFFJp2KConverterParameters(): OMETIFFConverterParameters(Compression::Jpeg2000) {}
 
             ~OMETIFFJp2KConverterParameters() override = default;
 
-            void setCompressionRate(float rate) {
+            void setCompressionRate(float rate)
+            {
                 std::static_pointer_cast<slideio::JP2KEncodeParameters>(m_encodeParameters)->setCompressionRate(rate);
             }
 
-            float getCompressionRate() const {
-                return std::static_pointer_cast<slideio::JP2KEncodeParameters>(m_encodeParameters)->getCompressionRate();
+            float getCompressionRate() const
+            {
+                return std::static_pointer_cast<slideio::JP2KEncodeParameters>(m_encodeParameters)
+                    ->getCompressionRate();
             }
         };
-    }
-}
+    } // namespace converter
+} // namespace slideio
 
 #if defined(_MSC_VER)
-#pragma warning( pop )
+#pragma warning(pop)
 #endif

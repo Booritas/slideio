@@ -8,14 +8,13 @@
 #include "slideio/imagetools/libtiff.hpp"
 #include "slideio/drivers/svs/svssmallscene.hpp"
 
-
 using namespace slideio;
 using namespace tinyxml2;
 
-SCNSlide::SCNSlide(const std::string& filePath, const std::string& driverId) : m_filePath(filePath)
+SCNSlide::SCNSlide(const std::string& filePath, const std::string& driverId): m_filePath(filePath)
 {
-	setDriverId(driverId);
-	m_metadataFormat = MetadataFormat::XML;
+    setDriverId(driverId);
+    m_metadataFormat = MetadataFormat::XML;
     init();
 }
 
@@ -23,9 +22,7 @@ void SCNSlide::init()
 {
     std::vector<TiffDirectory> directories;
     m_tiff = TiffTools::openTiffFile(m_filePath);
-    if (!m_tiff.isValid()) {
-        throw std::runtime_error(std::string("SCNImageDriver: Cannot open file:") + m_filePath);
-    }
+    if (!m_tiff.isValid()) throw std::runtime_error(std::string("SCNImageDriver: Cannot open file:") + m_filePath);
     TiffTools::scanFile(m_tiff, directories);
     m_rawMetadata = directories[0].description;
     constructScenes();
@@ -35,27 +32,25 @@ void SCNSlide::constructScenes()
 {
     XMLDocument doc;
     XMLError error = doc.Parse(m_rawMetadata.c_str(), m_rawMetadata.size());
-    if (error != XML_SUCCESS)
-    {
-        throw std::runtime_error("SCNImageDriver: Error parsing metadata xml");
-    }
+    if (error != XML_SUCCESS) throw std::runtime_error("SCNImageDriver: Error parsing metadata xml");
 #if defined(WIN32) && defined(_DEBUG)
     std::string filePath = getFilePath();
-	std::string fileName = std::filesystem::path(filePath).filename().string();
-	std::string outputPath = "d:\\Temp\\" + fileName + ".xml";
+    std::string fileName = std::filesystem::path(filePath).filename().string();
+    std::string outputPath = "d:\\Temp\\" + fileName + ".xml";
     doc.SaveFile(outputPath.c_str(), false);
 #endif
     std::vector<std::string> collectionPath = {"scn", "collection"};
     const XMLElement* xmlCollection = XMLTools::getElementByPath(&doc, collectionPath);
-    for (auto xmlImage = xmlCollection->FirstChildElement("image");
-         xmlImage != nullptr; xmlImage = xmlImage->NextSiblingElement())
+    for (auto xmlImage = xmlCollection->FirstChildElement("image"); xmlImage != nullptr;
+         xmlImage = xmlImage->NextSiblingElement())
     {
         const char* tagName = xmlImage->Name();
         if (tagName)
         {
             if (strcmp(tagName, "image") == 0)
             {
-                std::shared_ptr<SCNScene> scene(new SCNScene(m_filePath, static_cast<int>(m_Scenes.size()), getDriverId(), xmlImage));
+                std::shared_ptr<SCNScene> scene(
+                    new SCNScene(m_filePath, static_cast<int>(m_Scenes.size()), getDriverId(), xmlImage));
                 double magn = scene->getMagnification();
                 if (magn >= 1.)
                 {
@@ -63,10 +58,9 @@ void SCNSlide::constructScenes()
                 }
                 else
                 {
-					scene->setSceneIndex(-1);
+                    scene->setSceneIndex(-1);
                     std::string name(tagName);
-                    if (name.compare("image") == 0)
-                        name = "Macro";
+                    if (name.compare("image") == 0) name = "Macro";
                     int count = static_cast<int>(m_auxImages.size());
                     if (count > 0)
                     {
@@ -79,14 +73,14 @@ void SCNSlide::constructScenes()
             }
             else if (strcmp(tagName, "supplementalImage") == 0)
             {
-                const char *type = xmlImage->Attribute("type");
+                const char* type = xmlImage->Attribute("type");
                 int dir = xmlImage->IntAttribute("ifd", -1);
-                if (type && dir>=0)
+                if (type && dir >= 0)
                 {
                     slideio::TiffDirectory directory;
                     TiffTools::scanTiffDir(m_tiff.getHandle(), dir, 0, directory);
-                    std::shared_ptr<SVSSmallScene> scene(new SVSSmallScene(m_filePath, getDriverId(), tagName,
-                        directory, m_tiff.getHandle()));
+                    std::shared_ptr<SVSSmallScene> scene(
+                        new SVSSmallScene(m_filePath, getDriverId(), tagName, directory, m_tiff.getHandle()));
                     scene->setSceneIndex(-1);
                     m_auxImages[type] = scene;
                     m_auxNames.push_back(type);
@@ -96,9 +90,7 @@ void SCNSlide::constructScenes()
     }
 }
 
-SCNSlide::~SCNSlide()
-{
-}
+SCNSlide::~SCNSlide() {}
 
 int SCNSlide::getNumScenes() const
 {
@@ -112,16 +104,13 @@ std::string SCNSlide::getFilePath() const
 
 std::shared_ptr<CVScene> SCNSlide::getScene(int index) const
 {
-    if(index>=getNumScenes())
-        throw std::runtime_error("SCN driver: invalid m_scene index");
+    if (index >= getNumScenes()) throw std::runtime_error("SCN driver: invalid m_scene index");
     return m_Scenes[index];
 }
 
 std::shared_ptr<CVScene> SCNSlide::getAuxImage(const std::string& sceneName) const
 {
     auto it = m_auxImages.find(sceneName);
-    if (it == m_auxImages.end()) {
-        RAISE_RUNTIME_ERROR << "The slide does non have auxiliary image " << sceneName;
-    }
+    if (it == m_auxImages.end()) RAISE_RUNTIME_ERROR << "The slide does non have auxiliary image " << sceneName;
     return it->second;
 }

@@ -1,8 +1,7 @@
-﻿// This file is part of slideio project.
+// This file is part of slideio project.
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
-#ifndef OPENCV_slideio_dcmscene_HPP
-#define OPENCV_slideio_dcmscene_HPP
+#pragma once
 
 #include <map>
 
@@ -11,27 +10,21 @@
 #include "slideio/drivers/dcm/dcmfile.hpp"
 
 #if defined(_MSC_VER)
-#pragma warning( push )
-#pragma warning(disable: 4251)
+#pragma warning(push)
+#pragma warning(disable : 4251)
 #endif
 
 namespace slideio
 {
     class DCMSlide;
-    class SLIDEIO_DCM_EXPORTS DCMScene : public CVScene
+    class SLIDEIO_DCM_EXPORTS DCMScene: public CVScene
     {
     public:
         DCMScene();
         std::string getFilePath() const override;
-		int getSceneIndex() const override {
-            return m_sceneIndex;
-		}
-        const std::string& getDriverId() const override {
-            return m_driverId;
-        }
-        void setDriverId(const std::string& driverId) {
-            m_driverId = driverId;
-		}
+        int getSceneIndex() const override { return m_sceneIndex; }
+        const std::string& getDriverId() const override { return m_driverId; }
+        void setDriverId(const std::string& driverId) { m_driverId = driverId; }
         cv::Rect getRect() const override;
         int getNumChannels() const override;
         int getNumZSlices() const override;
@@ -43,39 +36,36 @@ namespace slideio
         Resolution getResolution() const override;
         double getMagnification() const override;
         void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
-            const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output) override;
+                                          const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex,
+                                          cv::OutputArray output) override;
         std::string getName() const override;
         Compression getCompression() const override;
         void addFile(std::shared_ptr<DCMFile>& file);
         void init(const std::string& slideFilePath, int sceneIndex, const std::string& driverId);
+
     protected:
         void prepareSliceIndices();
         void checkScene();
-        void extractSliceRaster(const cv::Mat& frame,
-                                const cv::Rect& blockRect,
-                                const cv::Size& blockSize,
-                                const std::vector<int>& componentIndices,
-                                cv::OutputArray output);
+        void extractSliceRaster(const cv::Mat& frame, const cv::Rect& blockRect, const cv::Size& blockSize,
+                                const std::vector<int>& componentIndices, cv::OutputArray output);
         std::pair<int, int> findFileIndex(int zSliceIndex);
+
     private:
         std::vector<std::shared_ptr<DCMFile>> m_files;
         std::map<int, int> m_sliceMap;
-        cv::Rect m_rect = { 0, 0, 0, 0 };
+        cv::Rect m_rect = {0, 0, 0, 0};
         std::string m_name;
         int m_numSlices = 1;
         int m_numFrames = 1;
         int m_numChannels = 0;
         std::string m_filePath;
-		int m_sceneIndex = 0;
+        int m_sceneIndex = 0;
         DataType m_dataType = DataType::DT_Unknown;
         Compression m_compression = Compression::Unknown;
         std::string m_driverId;
     };
-}
-
+} // namespace slideio
 
 #if defined(_MSC_VER)
-#pragma warning( pop )
-#endif
-
+#pragma warning(pop)
 #endif

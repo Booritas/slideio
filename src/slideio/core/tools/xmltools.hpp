@@ -9,10 +9,9 @@
 #include <vector>
 
 #if defined(_MSC_VER)
-#pragma warning( push )
-#pragma warning(disable: 4251)
+#pragma warning(push)
+#pragma warning(disable : 4251)
 #endif
-
 
 namespace slideio
 {
@@ -20,11 +19,11 @@ namespace slideio
     {
     public:
         static int childNodeTextToInt(const tinyxml2::XMLNode* xmlParent, const char* childName, int defaultValue = -1);
-        static const tinyxml2::XMLElement* getElementByPath(const tinyxml2::XMLNode* parent, const std::vector<std::string>& path);
+        static const tinyxml2::XMLElement* getElementByPath(const tinyxml2::XMLNode* parent,
+                                                            const std::vector<std::string>& path);
     };
-}
-
+} // namespace slideio
 
 #if defined(_MSC_VER)
-#pragma warning( pop )
+#pragma warning(pop)
 #endif

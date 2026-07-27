@@ -11,32 +11,27 @@
 
 using namespace slideio;
 
-PKESmallScene::PKESmallScene(const std::string& filePath,
-	int sceneIndex,
-    const std::string& driverId,
-    const std::string& name,
-    const TiffDirectory& dir,
-    bool auxiliary):
-        PKEScene(filePath, sceneIndex, driverId, name),
-        m_directory(dir)
+PKESmallScene::PKESmallScene(const std::string& filePath, int sceneIndex, const std::string& driverId,
+                             const std::string& name, const TiffDirectory& dir, bool auxiliary)
+    : PKEScene(filePath, sceneIndex, driverId, name), m_directory(dir)
 {
     m_dataType = m_directory.dataType;
 
-    if(m_dataType==DataType::DT_None || m_dataType==DataType::DT_Unknown)
+    if (m_dataType == DataType::DT_None || m_dataType == DataType::DT_Unknown)
     {
-        switch(dir.bitsPerSample)
+        switch (dir.bitsPerSample)
         {
-            case 8:
-                m_dataType = m_directory.dataType = DataType::DT_Byte;
+        case 8:
+            m_dataType = m_directory.dataType = DataType::DT_Byte;
             break;
-            case 16:
-                m_dataType = m_directory.dataType = DataType::DT_UInt16;
+        case 16:
+            m_dataType = m_directory.dataType = DataType::DT_UInt16;
             break;
-            default:
-                m_dataType = DataType::DT_Unknown;
+        default:
+            m_dataType = DataType::DT_Unknown;
         }
     }
-    if(!auxiliary)
+    if (!auxiliary)
     {
         //m_magnification = PKETools::extractMagnifiation(dir.description);
         //double res = PKETools::extractResolution(dir.description);
@@ -45,15 +40,14 @@ PKESmallScene::PKESmallScene(const std::string& filePath,
     m_compression = m_directory.slideioCompression;
     m_levelInfo.setMagnification(0.);
     m_levelInfo.setScale(1.);
-    m_levelInfo.setTileSize({ m_directory.tileWidth, m_directory.tileHeight});
-    m_levelInfo.setSize({ m_directory.width, m_directory.height });
+    m_levelInfo.setTileSize({m_directory.tileWidth, m_directory.tileHeight});
+    m_levelInfo.setSize({m_directory.width, m_directory.height});
     m_levelInfo.setLevel(0);
 }
 
-
 cv::Rect PKESmallScene::getRect() const
 {
-    cv::Rect rect = { 0,0, m_directory.width, m_directory.height };
+    cv::Rect rect = {0, 0, m_directory.width, m_directory.height};
     return rect;
 }
 
@@ -63,19 +57,17 @@ int PKESmallScene::getNumChannels() const
 }
 
 void PKESmallScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
-    const std::vector<int>& channelIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output)
+                                                 const std::vector<int>& channelIndices, int zSliceIndex,
+                                                 int tFrameIndex, cv::OutputArray output)
 {
-	if (zSliceIndex != 0 || tFrameIndex != 0) {
-		RAISE_RUNTIME_ERROR << "PKESmallScene: 3D and 4D images are not supported";
-	}
+    if (zSliceIndex != 0 || tFrameIndex != 0)
+        RAISE_RUNTIME_ERROR << "PKESmallScene: 3D and 4D images are not supported";
     auto hFile = getFileHandle();
 
-    if (hFile == nullptr) {
-        RAISE_RUNTIME_ERROR << "PKEDriver: Invalid file header by raster reading operation";
-    }
+    if (hFile == nullptr) RAISE_RUNTIME_ERROR << "PKEDriver: Invalid file header by raster reading operation";
 
     cv::Mat wholeDirRaster;
-    if(channelIndices.empty())
+    if (channelIndices.empty())
     {
         TiffTools::readStripedDir(hFile, m_directory, wholeDirRaster);
     }
@@ -83,7 +75,7 @@ void PKESmallScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, cons
     {
         cv::Mat dirRaster;
         TiffTools::readStripedDir(hFile, m_directory, dirRaster);
-        if(channelIndices.size()==1)
+        if (channelIndices.size() == 1)
         {
             cv::extractChannel(dirRaster, wholeDirRaster, channelIndices[0]);
         }

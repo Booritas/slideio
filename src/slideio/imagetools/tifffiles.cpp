@@ -5,24 +5,22 @@
 #include "slideio/imagetools/libtiff.hpp"
 #include "slideio/base/exceptions.hpp"
 
-slideio::TIFFFiles::~TIFFFiles() {
+slideio::TIFFFiles::~TIFFFiles()
+{
     closeAll();
 }
 
-libtiff::TIFF* slideio::TIFFFiles::getOrOpen(const std::string& filename) {
+libtiff::TIFF* slideio::TIFFFiles::getOrOpen(const std::string& filename)
+{
     auto it = m_openFiles.find(filename);
-    if (it != m_openFiles.end()) {
-        return it->second.get();
-    }
+    if (it != m_openFiles.end()) return it->second.get();
     libtiff::TIFF* tiff = libtiff::TIFFOpen(filename.c_str(), "r");
-    if(tiff) {
-		m_openFileCounter++;
-	}
-    else {
+    if (tiff)
+        m_openFileCounter++;
+    else
         RAISE_RUNTIME_ERROR << "Failed to open TIFF file: " << filename;
-    }
     // Use custom deleter to ensure TIFFClose is called
-	int* openFileCounter = &m_openFileCounter;
+    int* openFileCounter = &m_openFileCounter;
     m_openFiles[filename] = std::shared_ptr<libtiff::TIFF>(tiff, [openFileCounter](libtiff::TIFF* f) {
         --(*openFileCounter);
         libtiff::TIFFClose(f);
@@ -30,10 +28,12 @@ libtiff::TIFF* slideio::TIFFFiles::getOrOpen(const std::string& filename) {
     return tiff;
 }
 
-void slideio::TIFFFiles::close(const std::string& filename) {
+void slideio::TIFFFiles::close(const std::string& filename)
+{
     m_openFiles.erase(filename);
 }
 
-void slideio::TIFFFiles::closeAll() {
+void slideio::TIFFFiles::closeAll()
+{
     m_openFiles.clear(); // shared_ptr will call TIFFClose
 }

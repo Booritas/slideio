@@ -11,4 +11,3 @@
 #else
 #define SLIDEIO_VSI_EXPORTS
 #endif
-

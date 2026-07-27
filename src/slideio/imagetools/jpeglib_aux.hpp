@@ -1,6 +1,7 @@
 // This file is part of slideio project.
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
+#pragma once
 #include <opencv2/core/mat.hpp>
 #include <vector>
 #include <stdint.h>
@@ -9,4 +10,3 @@ void jpeglibEncode(const cv::Mat& raster, std::vector<uint8_t>& encodedStream, i
 void jpeglibDecode(const uint8_t* jpg_buffer, size_t jpg_size, cv::OutputArray output);
 void jpeglibWriteAbbreviatedTables(int numChannels, int quality, std::vector<uint8_t>& tablesBlob);
 void jpeglibEncodeAbbreviated(const cv::Mat& raster, std::vector<uint8_t>& encodedStream, int quality);
-

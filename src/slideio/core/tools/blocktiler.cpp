@@ -8,49 +8,36 @@
 
 using namespace slideio;
 
-BlockTiler::BlockTiler(const cv::Mat& block, const cv::Size& tileSize) :
-    m_tileSize(tileSize),
-    m_block(block)
+BlockTiler::BlockTiler(const cv::Mat& block, const cv::Size& tileSize): m_tileSize(tileSize), m_block(block)
 {
-    if (tileSize.width <= 0 || tileSize.height <= 0) {
+    if (tileSize.width <= 0 || tileSize.height <= 0)
         RAISE_RUNTIME_ERROR << "BlockTiler: Invalid tile size: (" << tileSize.width << ", " << tileSize.height << ")";
-    }
 
-    if(block.cols <= 0 || block.rows <= 0) {
+    if (block.cols <= 0 || block.rows <= 0)
         RAISE_RUNTIME_ERROR << "BlockTiler: Invalid block size: (" << block.cols << ", " << block.rows << ")";
-    }
 }
-
 
 void BlockTiler::apply(ITileVisitor* visitor) const
 {
-    if(visitor ==nullptr) {
-        RAISE_RUNTIME_ERROR << "BlockTiler: visitor is null";
-    }
-    apply([&](int tileX, int tileY, const cv::Mat& tile){
-        visitor->visit(tileX, tileY, tile);
-    });
+    if (visitor == nullptr) RAISE_RUNTIME_ERROR << "BlockTiler: visitor is null";
+    apply([&](int tileX, int tileY, const cv::Mat& tile) { visitor->visit(tileX, tileY, tile); });
 }
 
 void slideio::BlockTiler::apply(std::function<void(int, int, const cv::Mat&)> visitor) const
 {
-    if(!visitor) {
-        RAISE_RUNTIME_ERROR << "BlockTiler: visitor lambda is null";
-    }
+    if (!visitor) RAISE_RUNTIME_ERROR << "BlockTiler: visitor lambda is null";
     const int tileCountX = (m_block.cols - 1) / m_tileSize.width + 1;
     const int tileCountY = (m_block.rows - 1) / m_tileSize.height + 1;
-    for (int tileY = 0; tileY < tileCountY; ++tileY) {
-               const int y = tileY * m_tileSize.height;
+    for (int tileY = 0; tileY < tileCountY; ++tileY)
+    {
+        const int y = tileY * m_tileSize.height;
         int height = m_tileSize.height;
-        if ((y + m_tileSize.height) > m_block.rows) {
-                       height = m_block.rows - y;
-        }
-        for (int tileX = 0; tileX < tileCountX; ++tileX) {
-                       int width = m_tileSize.width;
+        if ((y + m_tileSize.height) > m_block.rows) height = m_block.rows - y;
+        for (int tileX = 0; tileX < tileCountX; ++tileX)
+        {
+            int width = m_tileSize.width;
             const int x = tileX * m_tileSize.width;
-            if((x + m_tileSize.width) > m_block.cols) {
-                               width = m_block.cols - x;
-            }
+            if ((x + m_tileSize.width) > m_block.cols) width = m_block.cols - x;
             const cv::Mat tile = m_block(cv::Rect(x, y, width, height));
             visitor(tileX, tileY, tile);
         }

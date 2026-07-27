@@ -10,56 +10,67 @@
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/drivers/vsi/vsifile.hpp"
 
-
 using namespace slideio;
 using namespace slideio::vsi;
 
-
-VSISlide::VSISlide(const std::string& filePath, const std::string& driverId) : m_filePath(filePath)
+VSISlide::VSISlide(const std::string& filePath, const std::string& driverId): m_filePath(filePath)
 {
-	setDriverId(driverId);
+    setDriverId(driverId);
     m_metadataFormat = MetadataFormat::JSON;
     init();
 }
 
-
 void VSISlide::init()
 {
     m_vsiFile = std::make_shared<vsi::VSIFile>(m_filePath);
-    if(!m_vsiFile->hasMetadata()) {
+    if (!m_vsiFile->hasMetadata())
+    {
         // No metadata, treat the vsi file as a normal tiff file
         const int numDirectories = m_vsiFile->getNumTiffDirectories();
-        for (int directoryIndex = 0; directoryIndex < numDirectories; ++directoryIndex) {
-             auto scene = std::make_shared<VsiFileScene>(m_filePath, static_cast<int>(m_Scenes.size()), getDriverId(), m_vsiFile, directoryIndex);
-             m_Scenes.push_back(scene);
-         }
-    } else {
+        for (int directoryIndex = 0; directoryIndex < numDirectories; ++directoryIndex)
+        {
+            auto scene = std::make_shared<VsiFileScene>(m_filePath, static_cast<int>(m_Scenes.size()), getDriverId(),
+                                                        m_vsiFile, directoryIndex);
+            m_Scenes.push_back(scene);
+        }
+    }
+    else
+    {
         m_rawMetadata = m_vsiFile->getRawMetadata();
-        if (m_vsiFile->getNumEtsFiles() > 0) {
+        if (m_vsiFile->getNumEtsFiles() > 0)
+        {
             const int numFiles = m_vsiFile->getNumEtsFiles();
-            for (int fileIndex = 0; fileIndex < numFiles; ++fileIndex) {
-                auto scene = std::make_shared<EtsFileScene>(m_filePath, static_cast<int>(m_Scenes.size()), getDriverId(), m_vsiFile, fileIndex);
+            for (int fileIndex = 0; fileIndex < numFiles; ++fileIndex)
+            {
+                auto scene = std::make_shared<EtsFileScene>(m_filePath, static_cast<int>(m_Scenes.size()),
+                                                            getDriverId(), m_vsiFile, fileIndex);
                 const auto etsFile = m_vsiFile->getEtsFile(fileIndex);
                 auto volume = etsFile->getVolume();
-                if (volume) {
+                if (volume)
+                {
                     const vsi::StackType stackType = volume->getType();
-                    if ((stackType == vsi::StackType::DEFAULT_IMAGE) || (stackType == vsi::StackType::EFI_STACK)){
+                    if ((stackType == vsi::StackType::DEFAULT_IMAGE) || (stackType == vsi::StackType::EFI_STACK))
+                    {
                         m_Scenes.push_back(scene);
                     }
-                    else {
+                    else
+                    {
                         std::string typeName = vsi::getStackTypeName(stackType);
                         m_auxImages[typeName] = scene;
-						scene->setSceneIndex(-1);
+                        scene->setSceneIndex(-1);
                         m_auxNames.emplace_back(typeName);
                     }
                     const int auxImages = volume->getNumAuxVolumes();
-                    for (int auxIndex = 0; auxIndex < auxImages; ++auxIndex) {
+                    for (int auxIndex = 0; auxIndex < auxImages; ++auxIndex)
+                    {
                         auto auxVolume = volume->getAuxVolume(auxIndex);
-                        if (auxVolume) {
-                            if (auxVolume->getIFD()>-1)
+                        if (auxVolume)
+                        {
+                            if (auxVolume->getIFD() > -1)
                             {
-                             auto auxScene = std::make_shared<VsiFileScene>(m_filePath, -1, getDriverId(), m_vsiFile, auxVolume->getIFD());
-                             scene->addAuxImage(auxVolume->getName(), auxScene);
+                                auto auxScene = std::make_shared<VsiFileScene>(m_filePath, -1, getDriverId(), m_vsiFile,
+                                                                               auxVolume->getIFD());
+                                scene->addAuxImage(auxVolume->getName(), auxScene);
                             }
                         }
                     }
@@ -68,7 +79,6 @@ void VSISlide::init()
         }
     }
 }
-
 
 int VSISlide::getNumScenes() const
 {
@@ -82,9 +92,10 @@ std::string VSISlide::getFilePath() const
 
 std::shared_ptr<CVScene> VSISlide::getScene(int index) const
 {
-    if (index >= getNumScenes()) {
-        RAISE_RUNTIME_ERROR << "VSI driver: invalid m_scene index: " << index << " from " << getNumScenes() <<
-            " scenes";
+    if (index >= getNumScenes())
+    {
+        RAISE_RUNTIME_ERROR << "VSI driver: invalid m_scene index: " << index << " from " << getNumScenes()
+                            << " scenes";
     }
     return m_Scenes[index];
 }
@@ -92,9 +103,7 @@ std::shared_ptr<CVScene> VSISlide::getScene(int index) const
 std::shared_ptr<CVScene> VSISlide::getAuxImage(const std::string& sceneName) const
 {
     auto it = m_auxImages.find(sceneName);
-    if (it == m_auxImages.end()) {
-        RAISE_RUNTIME_ERROR << "The slide does non have auxiliary image " << sceneName;
-    }
+    if (it == m_auxImages.end()) RAISE_RUNTIME_ERROR << "The slide does non have auxiliary image " << sceneName;
     return it->second;
 }
 

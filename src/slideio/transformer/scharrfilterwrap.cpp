@@ -7,9 +7,7 @@
 
 using namespace slideio;
 
-ScharrFilterWrap::ScharrFilterWrap() : m_filter(std::make_shared<ScharrFilter>())
-{
-}
+ScharrFilterWrap::ScharrFilterWrap(): m_filter(std::make_shared<ScharrFilter>()) {}
 
 DataType ScharrFilterWrap::getDepth() const
 {
@@ -66,7 +64,7 @@ TransformationType ScharrFilterWrap::getType() const
     return m_filter->getType();
 }
 
-std::shared_ptr<ScharrFilter> ScharrFilterWrap::getFilter() const {
+std::shared_ptr<ScharrFilter> ScharrFilterWrap::getFilter() const
+{
     return m_filter;
 }
-

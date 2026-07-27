@@ -7,22 +7,17 @@ using namespace slideio;
 
 static bool areRectsEqual(const cv::Rect& rect1, const cv::Rect& rect2)
 {
-    return rect1.x == rect2.x &&
-        rect1.y == rect2.y &&
-        rect1.width == rect2.width &&
-        rect1.height == rect2.height;
+    return rect1.x == rect2.x && rect1.y == rect2.y && rect1.width == rect2.width && rect1.height == rect2.height;
 }
 
 static bool areSizesEqual(const cv::Size& size1, const cv::Size& size2)
 {
-    return size1.width == size2.width &&
-        size1.height == size2.height;
+    return size1.width == size2.width && size1.height == size2.height;
 }
 
 static bool arePointsEqual(const cv::Point& pnt1, const cv::Point& pnt2)
 {
-    return pnt1.x == pnt2.x &&
-        pnt1.y == pnt2.y;
+    return pnt1.x == pnt2.x && pnt1.y == pnt2.y;
 }
 
 TEST(TransformerTools, computeInflatedRectParams_blockInMiddle)
@@ -35,18 +30,15 @@ TEST(TransformerTools, computeInflatedRectParams_blockInMiddle)
     cv::Point blockPositionInInflatedRect;
     const int inflationValue = 3;
 
-    TransformerTools::computeInflatedRectParams(sceneSize, blockRect,  inflationValue, 
-        blockSize, inflatedBlockRect, inflatedSize, blockPositionInInflatedRect);
+    TransformerTools::computeInflatedRectParams(sceneSize, blockRect, inflationValue, blockSize, inflatedBlockRect,
+                                                inflatedSize, blockPositionInInflatedRect);
 
-    const cv::Rect expectedInflatedBlockRect(
-        blockRect.x-inflationValue,
-        blockRect.y - inflationValue,
-        blockRect.width+2*inflationValue,
-        blockRect.height+2*inflationValue
-    );
+    const cv::Rect expectedInflatedBlockRect(blockRect.x - inflationValue, blockRect.y - inflationValue,
+                                             blockRect.width + 2 * inflationValue,
+                                             blockRect.height + 2 * inflationValue);
     const cv::Size expectedInflatedSize(expectedInflatedBlockRect.size());
     const cv::Point expectedBlockPositionInInflatedRect(inflationValue, inflationValue);
-    EXPECT_TRUE(areRectsEqual(expectedInflatedBlockRect,inflatedBlockRect));
+    EXPECT_TRUE(areRectsEqual(expectedInflatedBlockRect, inflatedBlockRect));
     EXPECT_TRUE(areSizesEqual(expectedInflatedSize, inflatedSize));
     EXPECT_TRUE(arePointsEqual(expectedBlockPositionInInflatedRect, blockPositionInInflatedRect));
 }
@@ -61,16 +53,13 @@ TEST(TransformerTools, computeInflatedRectParams_scaledBlockInMiddle)
     cv::Point blockPositionInInflatedRect;
     const int inflationValue = 4;
 
-    TransformerTools::computeInflatedRectParams(sceneSize, blockRect, inflationValue,
-        blockSize, inflatedBlockRect, inflatedSize, blockPositionInInflatedRect);
+    TransformerTools::computeInflatedRectParams(sceneSize, blockRect, inflationValue, blockSize, inflatedBlockRect,
+                                                inflatedSize, blockPositionInInflatedRect);
 
-    const cv::Rect expectedInflatedBlockRect(
-        blockRect.x - inflationValue*2,
-        blockRect.y - inflationValue*2,
-        blockRect.width + 4 * inflationValue,
-        blockRect.height + 4 * inflationValue
-    );
-    const cv::Size expectedInflatedSize(expectedInflatedBlockRect.width/2, expectedInflatedBlockRect.height/2);
+    const cv::Rect expectedInflatedBlockRect(blockRect.x - inflationValue * 2, blockRect.y - inflationValue * 2,
+                                             blockRect.width + 4 * inflationValue,
+                                             blockRect.height + 4 * inflationValue);
+    const cv::Size expectedInflatedSize(expectedInflatedBlockRect.width / 2, expectedInflatedBlockRect.height / 2);
     const cv::Point expectedBlockPositionInInflatedRect(inflationValue, inflationValue);
     EXPECT_TRUE(areRectsEqual(expectedInflatedBlockRect, inflatedBlockRect));
     EXPECT_TRUE(areSizesEqual(expectedInflatedSize, inflatedSize));
@@ -87,8 +76,8 @@ TEST(TransformerTools, computeInflatedRectParams_wholeSceneBlock)
     cv::Point blockPositionInInflatedRect;
     const int inflationValue = 3;
 
-    TransformerTools::computeInflatedRectParams(sceneSize, blockRect, inflationValue,
-        blockSize, inflatedBlockRect, inflatedSize, blockPositionInInflatedRect);
+    TransformerTools::computeInflatedRectParams(sceneSize, blockRect, inflationValue, blockSize, inflatedBlockRect,
+                                                inflatedSize, blockPositionInInflatedRect);
 
     const cv::Rect expectedInflatedBlockRect(blockRect);
     const cv::Size expectedInflatedSize(expectedInflatedBlockRect.size());
@@ -108,8 +97,8 @@ TEST(TransformerTools, computeInflatedRectParams_scaledWholeSceneBlock)
     cv::Point blockPositionInInflatedRect;
     const int inflationValue = 3;
 
-    TransformerTools::computeInflatedRectParams(sceneSize, blockRect, inflationValue,
-        blockSize, inflatedBlockRect, inflatedSize, blockPositionInInflatedRect);
+    TransformerTools::computeInflatedRectParams(sceneSize, blockRect, inflationValue, blockSize, inflatedBlockRect,
+                                                inflatedSize, blockPositionInInflatedRect);
 
     const cv::Rect expectedInflatedBlockRect(blockRect);
     const cv::Size expectedInflatedSize(blockSize);
@@ -129,21 +118,17 @@ TEST(TransformerTools, computeInflatedRectParams_scaledLeftSceneBlock)
     cv::Point blockPositionInInflatedRect;
     const int inflationValue = 4;
 
-    TransformerTools::computeInflatedRectParams(sceneSize, blockRect, inflationValue,
-        blockSize, inflatedBlockRect, inflatedSize, blockPositionInInflatedRect);
+    TransformerTools::computeInflatedRectParams(sceneSize, blockRect, inflationValue, blockSize, inflatedBlockRect,
+                                                inflatedSize, blockPositionInInflatedRect);
 
-    const cv::Rect expectedInflatedBlockRect(
-        0, 0,
-        blockRect.width + 2 * inflationValue,
-        blockRect.height + 2 * inflationValue
-    );
+    const cv::Rect expectedInflatedBlockRect(0, 0, blockRect.width + 2 * inflationValue,
+                                             blockRect.height + 2 * inflationValue);
     const cv::Size expectedInflatedSize(expectedInflatedBlockRect.width / 2, expectedInflatedBlockRect.height / 2);
     const cv::Point expectedBlockPositionInInflatedRect(0, 0);
     EXPECT_TRUE(areRectsEqual(expectedInflatedBlockRect, inflatedBlockRect));
     EXPECT_TRUE(areSizesEqual(expectedInflatedSize, inflatedSize));
     EXPECT_TRUE(arePointsEqual(expectedBlockPositionInInflatedRect, blockPositionInInflatedRect));
 }
-
 
 TEST(TransformerTools, computeInflatedRectParams_scaledRightSceneBlock)
 {
@@ -155,14 +140,11 @@ TEST(TransformerTools, computeInflatedRectParams_scaledRightSceneBlock)
     cv::Point blockPositionInInflatedRect;
     const int inflationValue = 4;
 
-    TransformerTools::computeInflatedRectParams(sceneSize, blockRect, inflationValue,
-        blockSize, inflatedBlockRect, inflatedSize, blockPositionInInflatedRect);
+    TransformerTools::computeInflatedRectParams(sceneSize, blockRect, inflationValue, blockSize, inflatedBlockRect,
+                                                inflatedSize, blockPositionInInflatedRect);
 
-    const cv::Rect expectedInflatedBlockRect(
-        792, 1592,
-        blockRect.width + 2 * inflationValue,
-        blockRect.height + 2 * inflationValue
-    );
+    const cv::Rect expectedInflatedBlockRect(792, 1592, blockRect.width + 2 * inflationValue,
+                                             blockRect.height + 2 * inflationValue);
     const cv::Size expectedInflatedSize(expectedInflatedBlockRect.width / 2, expectedInflatedBlockRect.height / 2);
     const cv::Point expectedBlockPositionInInflatedRect(inflationValue, inflationValue);
     EXPECT_TRUE(areRectsEqual(expectedInflatedBlockRect, inflatedBlockRect));

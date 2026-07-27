@@ -11,10 +11,9 @@
 #include "scene.hpp"
 
 #if defined(_MSC_VER)
-#pragma warning( push )
-#pragma warning(disable: 4251)
+#pragma warning(push)
+#pragma warning(disable : 4251)
 #endif
-
 
 namespace slideio
 {
@@ -29,10 +28,12 @@ namespace slideio
     class SLIDEIO_EXPORTS Slide
     {
         friend SLIDEIO_EXPORTS std::shared_ptr<Slide> openSlide(const std::string& path, const std::string& driver);
+
     private:
         /** Constructor of the class. 
         @param slide : object of a CVSlide class created by a corresponding ImageDriver object. */
         Slide(std::shared_ptr<CVSlide> slide);
+
     public:
         virtual ~Slide();
         /**@brief The method returns number of Scene objects contained in the slide.*/
@@ -51,7 +52,7 @@ namespace slideio
         /**@brief The method returns list of names of auxiliary images contained in the slide.
          *
          *Default: empty list.*/
-		MetadataFormat getMetadataFormat() const;
+        MetadataFormat getMetadataFormat() const;
         /**@brief returns metadata as a navigable tree. Built lazily on first call. */
         const Metadata& getMetadata() const;
         const std::list<std::string>& getAuxImageNames() const;
@@ -62,18 +63,19 @@ namespace slideio
         @param sceneName : name of the auxiliary image. It must be contained in the list returned by getAuxImageNames method. 
         */
         virtual std::shared_ptr<Scene> getAuxImage(const std::string& sceneName) const;
-		/**@brief The method returns a string containing serialized metadata of the slide.
+        /**@brief The method returns a string containing serialized metadata of the slide.
 		 */
         std::string toString() const;
         void setDriverId(const std::string& driverId);
         const std::string& getDriverId() const;
+
     private:
         std::shared_ptr<CVSlide> m_slide;
     };
-}
+} // namespace slideio
 
 #define SlidePtr std::shared_ptr<slideio::Slide>
 
 #if defined(_MSC_VER)
-#pragma warning( pop )
+#pragma warning(pop)
 #endif

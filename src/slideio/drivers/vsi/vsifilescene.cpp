@@ -11,27 +11,31 @@
 using namespace slideio;
 using namespace slideio::vsi;
 
-VsiFileScene::VsiFileScene(const std::string& filePath, int sceneIndex, const std::string& driverId, std::shared_ptr<vsi::VSIFile>& vsiFile, int directoryIndex) :
-    VSIScene(filePath, sceneIndex, driverId, vsiFile), m_directoryIndex(directoryIndex)
+VsiFileScene::VsiFileScene(const std::string& filePath, int sceneIndex, const std::string& driverId,
+                           std::shared_ptr<vsi::VSIFile>& vsiFile, int directoryIndex)
+    : VSIScene(filePath, sceneIndex, driverId, vsiFile), m_directoryIndex(directoryIndex)
 {
     init();
 }
 
 void VsiFileScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
-    const std::vector<int>& channelIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output)
+                                                const std::vector<int>& channelIndices, int zSliceIndex,
+                                                int tFrameIndex, cv::OutputArray output)
 {
-	if (zSliceIndex != 0 || tFrameIndex != 0) {
-		RAISE_RUNTIME_ERROR << "VSIImageDriver: 3D and 4D images are not supported";
-	}
+    if (zSliceIndex != 0 || tFrameIndex != 0)
+        RAISE_RUNTIME_ERROR << "VSIImageDriver: 3D and 4D images are not supported";
     const TiffDirectory& directory = m_vsiFile->getTiffDirectory(m_directoryIndex);
-    if(!directory.tiled) {
+    if (!directory.tiled)
+    {
         cv::Mat directoryRaster;
         TiffTools::readStripedDir(m_tiff, directory, directoryRaster);
         cv::Mat blockRaster(directoryRaster, blockRect);
         cv::Mat resizedBlockRaster;
         cv::resize(blockRaster, resizedBlockRaster, blockSize);
         Tools::extractChannels(resizedBlockRaster, channelIndices, output);
-    } else {
+    }
+    else
+    {
         RAISE_RUNTIME_ERROR << "VSIImageDriver: Tiled images are not implemented";
     }
 }
@@ -55,13 +59,12 @@ bool VsiFileScene::readTile(int tileIndex, const std::vector<int>& channelIndice
 void VsiFileScene::init()
 {
     SLIDEIO_LOG(INFO) << "VSIImageDriver initialization of a vsi scene";
-    if (!m_vsiFile) {
-        RAISE_RUNTIME_ERROR << "VSIImageDriver: vsi file is not initialized";
-    }
+    if (!m_vsiFile) RAISE_RUNTIME_ERROR << "VSIImageDriver: vsi file is not initialized";
     const int numTiffDirectories = m_vsiFile->getNumTiffDirectories();
-    if (m_directoryIndex < 0 || m_directoryIndex > numTiffDirectories) {
-        RAISE_RUNTIME_ERROR << "VSIImageDriver: directory index " << m_directoryIndex
-            << " is out of range (0-" << numTiffDirectories << ")";
+    if (m_directoryIndex < 0 || m_directoryIndex > numTiffDirectories)
+    {
+        RAISE_RUNTIME_ERROR << "VSIImageDriver: directory index " << m_directoryIndex << " is out of range (0-"
+                            << numTiffDirectories << ")";
     }
     const TiffDirectory& directory = m_vsiFile->getTiffDirectory(m_directoryIndex);
     m_rect = cv::Rect(0, 0, directory.width, directory.height);

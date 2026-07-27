@@ -5,26 +5,22 @@
 #include "slideio/drivers/svs/svsslide.hpp"
 #include "slideio/base/log.hpp"
 
-slideio::SVSImageDriver::SVSImageDriver()
-{
-}
+slideio::SVSImageDriver::SVSImageDriver() {}
 
-slideio::SVSImageDriver::~SVSImageDriver()
-{
-}
+slideio::SVSImageDriver::~SVSImageDriver() {}
 
 std::string slideio::SVSImageDriver::getID() const
 {
-	return std::string("SVS");
+    return std::string("SVS");
 }
 
 std::shared_ptr<slideio::CVSlide> slideio::SVSImageDriver::openFile(const std::string& filePath)
 {
-	return SVSSlide::openFile(filePath, getID());
+    return SVSSlide::openFile(filePath, getID());
 }
 
 std::string slideio::SVSImageDriver::getFileSpecs() const
 {
-	static std::string pattern("*.svs");
+    static std::string pattern("*.svs");
     return pattern;
 }

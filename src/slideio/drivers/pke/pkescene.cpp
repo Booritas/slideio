@@ -7,28 +7,17 @@
 
 using namespace slideio;
 
-PKEScene::PKEScene(const std::string& filePath, int sceneIndex, const std::string& driverId, const std::string& name):
-    m_filePath(filePath),
-    m_driverId(driverId),
-    m_name(name),
-    m_compression(Compression::Unknown),
-    m_resolution(0., 0.),
-    m_dataType(slideio::DataType::DT_Unknown),
-    m_magnification(0.),
-	m_sceneIndex(sceneIndex)
+PKEScene::PKEScene(const std::string& filePath, int sceneIndex, const std::string& driverId, const std::string& name)
+    : m_filePath(filePath), m_driverId(driverId), m_name(name), m_compression(Compression::Unknown),
+      m_resolution(0., 0.), m_dataType(slideio::DataType::DT_Unknown), m_magnification(0.), m_sceneIndex(sceneIndex)
 {
 }
 
-PKEScene::PKEScene(const std::string& filePath, int sceneIndex, const std::string& driverId, libtiff::TIFF* hFile, const std::string& name):
-    m_filePath(filePath),
-    m_driverId(driverId),
-    m_name(name),
-    m_compression(Compression::Unknown),
-    m_resolution(0., 0.),
-    m_dataType(slideio::DataType::DT_Unknown),
-    m_magnification(0.),
-    m_tiffKeeper(hFile),
-    m_sceneIndex(sceneIndex)
+PKEScene::PKEScene(const std::string& filePath, int sceneIndex, const std::string& driverId, libtiff::TIFF* hFile,
+                   const std::string& name)
+    : m_filePath(filePath), m_driverId(driverId), m_name(name), m_compression(Compression::Unknown),
+      m_resolution(0., 0.), m_dataType(slideio::DataType::DT_Unknown), m_magnification(0.), m_tiffKeeper(hFile),
+      m_sceneIndex(sceneIndex)
 {
 }
 
@@ -36,11 +25,11 @@ PKEScene::~PKEScene() = default;
 
 void PKEScene::makeSureFileIsOpened()
 {
-    if (!m_tiffKeeper.isValid()) {
+    if (!m_tiffKeeper.isValid())
+    {
         m_tiffKeeper = TiffTools::openTiffFile(m_filePath);
-        if(!m_tiffKeeper.isValid()) {
+        if (!m_tiffKeeper.isValid())
             throw std::runtime_error(std::string("PKEImageDriver: Cannot open file:") + m_filePath);
-        }
     }
 }
 

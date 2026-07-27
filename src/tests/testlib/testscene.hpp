@@ -1,25 +1,19 @@
 #pragma once
 #include "slideio/core/cvscene.hpp"
 
-class TestScene : public slideio::CVScene
+class TestScene: public slideio::CVScene
 {
 public:
     using slideio::CVScene::setChannelAttribute;
-    TestScene() :
-        m_filePath("/path/folder/file.svs"),
-        m_rect(0, 0, 100, 100),
-        m_numChannels(3),
-        m_dataType(slideio::DataType::DT_Unknown),
-        m_name("TestScene"),
-        m_resolution(1., 1.),
-        m_magnification(20.0),
-        m_compression(slideio::Compression::Jpeg),
-        m_numSlices(1),
-        m_numTFrames(1)
-    {}
+    TestScene()
+        : m_filePath("/path/folder/file.svs"), m_rect(0, 0, 100, 100), m_numChannels(3),
+          m_dataType(slideio::DataType::DT_Unknown), m_name("TestScene"), m_resolution(1., 1.), m_magnification(20.0),
+          m_compression(slideio::Compression::Jpeg), m_numSlices(1), m_numTFrames(1)
+    {
+    }
     std::string getFilePath() const override { return m_filePath; }
     void setFilePath(const std::string& filePath) { m_filePath = filePath; }
-	int getSceneIndex() const override { return 0; }
+    int getSceneIndex() const override { return 0; }
     std::string getName() const override { return m_name; }
     void setName(const std::string& name) { m_name = name; }
     cv::Rect getRect() const override { return m_rect; }
@@ -36,17 +30,18 @@ public:
     void setCompression(slideio::Compression compression) { m_compression = compression; }
     int getNumZSlices() const override { return m_numSlices; }
     int getNumTFrames() const override { return m_numTFrames; }
-	void setNumZSlices(int numSlices) { m_numSlices = numSlices; }
-	void setNumTFrames(int numFrames) { m_numTFrames = numFrames; }
-	void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
-		const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output) override {
-		// Minimal implementation for testing - just create an empty output
-		if (!output.needed()) return;
-		output.create(blockSize, CV_8UC(componentIndices.empty() ? m_numChannels : (int)componentIndices.size()));
-	}
-    const std::string& getDriverId() const override {
-        return m_driverId;
+    void setNumZSlices(int numSlices) { m_numSlices = numSlices; }
+    void setNumTFrames(int numFrames) { m_numTFrames = numFrames; }
+    void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
+                                      const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex,
+                                      cv::OutputArray output) override
+    {
+        // Minimal implementation for testing - just create an empty output
+        if (!output.needed()) return;
+        output.create(blockSize, CV_8UC(componentIndices.empty() ? m_numChannels : (int)componentIndices.size()));
     }
+    const std::string& getDriverId() const override { return m_driverId; }
+
 private:
     std::string m_filePath;
     cv::Rect m_rect;
@@ -58,5 +53,5 @@ private:
     slideio::Compression m_compression;
     int m_numSlices;
     int m_numTFrames;
-	std::string m_driverId = "TestDriver";
+    std::string m_driverId = "TestDriver";
 };

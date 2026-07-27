@@ -1,8 +1,7 @@
 // This file is part of slideio project.
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
-#ifndef OPENCV_slideio_tools_HPP
-#define OPENCV_slideio_tools_HPP
+#pragma once
 
 #if defined(WIN32)
 #elif __APPLE__
@@ -26,11 +25,11 @@ namespace slideio
     class SLIDEIO_CORE_EXPORTS Tools
     {
     public:
-        struct FileDeleter {
-            void operator()(std::FILE* file) const {
-                if (file) {
-                    std::fclose(file);
-                }
+        struct FileDeleter
+        {
+            void operator()(std::FILE* file) const
+            {
+                if (file) std::fclose(file);
             }
         };
         static bool matchPattern(const std::string& path, const std::string& pattern);
@@ -38,27 +37,19 @@ namespace slideio
         static std::vector<int> completeChannelList(const std::vector<int>& orgChannelList, int numChannels)
         {
             std::vector<int> channelList(orgChannelList);
-            if(channelList.empty())
+            if (channelList.empty())
             {
                 channelList.resize(numChannels);
-                for(int channel=0; channel<numChannels; ++channel)
-                {
+                for (int channel = 0; channel < numChannels; ++channel)
                     channelList[channel] = channel;
-                }
             }
             return channelList;
         }
-        template <typename Functor>
-        static int findZoomLevel(double zoom, int numLevels, Functor zoomFunction)
+        template <typename Functor> static int findZoomLevel(double zoom, int numLevels, Functor zoomFunction)
         {
-            if(numLevels <= 0) {
-                return -1;
-            }
+            if (numLevels <= 0) return -1;
             const double baseZoom = zoomFunction(0);
-            if (zoom >= baseZoom)
-            {
-                return 0;
-            }
+            if (zoom >= baseZoom) return 0;
             int goodLevelIndex = -1;
             double lastZoom = baseZoom;
             for (int levelIndex = 1; levelIndex < numLevels; levelIndex++)
@@ -78,11 +69,8 @@ namespace slideio
                 }
                 lastZoom = currentZoom;
             }
-            if (goodLevelIndex < 0)
-            {
-                goodLevelIndex = numLevels - 1;
-            }
-            return  goodLevelIndex;
+            if (goodLevelIndex < 0) goodLevelIndex = numLevels - 1;
+            return goodLevelIndex;
         }
         static void convert12BitsTo16Bits(const uint8_t* source, uint16_t* target, int targetLen);
         static void scaleRect(const cv::Rect& srcRect, const cv::Size& newSize, cv::Rect& trgRect);
@@ -90,11 +78,15 @@ namespace slideio
         static bool isCompleteChannelList(const std::vector<int>& channelIndices, const int numChannels)
         {
             bool allChannels = channelIndices.empty();
-            if(!allChannels) {
-                if (channelIndices.size() == numChannels) {
+            if (!allChannels)
+            {
+                if (channelIndices.size() == numChannels)
+                {
                     allChannels = true;
-                    for (int channel = 0; channel < channelIndices.size(); ++channel) {
-                        if (channelIndices[channel] != channel) {
+                    for (int channel = 0; channel < channelIndices.size(); ++channel)
+                    {
+                        if (channelIndices[channel] != channel)
+                        {
                             allChannels = false;
                             break;
                         }
@@ -104,29 +96,26 @@ namespace slideio
             return allChannels;
         }
 #if defined(WIN32)
-          static std::wstring toWstring(const std::string& string);
+        static std::wstring toWstring(const std::string& string);
 #endif
 
         static std::string fromUnicode16(const std::u16string& u16string);
         static void throwIfPathNotExist(const std::string& path, const std::string label);
-        static std::list<std::string> findFilesWithExtension(const std::string& directory, const std::string& extension);
-        static void extractChannels(const cv::Mat& sourceRaster, const std::vector<int>& channels, cv::OutputArray output);
+        static std::list<std::string> findFilesWithExtension(const std::string& directory,
+                                                             const std::string& extension);
+        static void extractChannels(const cv::Mat& sourceRaster, const std::vector<int>& channels,
+                                    cv::OutputArray output);
         static FILE* openFile(const std::string& filePath, const char* mode);
         static uint64_t getFilePos(FILE* file);
         static int setFilePos(FILE* file, uint64_t pos, int origin);
         static uint64_t getFileSize(FILE* file);
         static int dataTypeSize(slideio::DataType dt);
-        static Size cvSizeToSize(const cv::Size& cvSize) {
-            return {cvSize.width, cvSize.height};
-        }
-        static Rect cvRectToRect(const cv::Rect& cvRect) {
-            return {cvRect.x, cvRect.y, cvRect.width, cvRect.height};
-        }
+        static Size cvSizeToSize(const cv::Size& cvSize) { return {cvSize.width, cvSize.height}; }
+        static Rect cvRectToRect(const cv::Rect& cvRect) { return {cvRect.x, cvRect.y, cvRect.width, cvRect.height}; }
         static void replaceAll(std::string& str, const std::string& from, const std::string& to);
         static std::vector<std::string> split(const std::string& value, char delimiter);
         static std::string randomUUID();
-        static void resize( cv::InputArray src, cv::OutputArray dst, cv::Size dsize,
-                            int interpolation = cv::INTER_LINEAR);
+        static void resize(cv::InputArray src, cv::OutputArray dst, cv::Size dsize,
+                           int interpolation = cv::INTER_LINEAR);
     };
-}
-#endif
+} // namespace slideio

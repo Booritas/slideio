@@ -28,89 +28,81 @@
 using namespace slideio;
 using namespace slideio::converter;
 
-const TiffPageStructure& TiffConverter::getTiffPage(int index) const {
-    if (index >= m_pages.size()) {
-        RAISE_RUNTIME_ERROR << "Converter: TIFF page index out of range!";
-    }
+const TiffPageStructure& TiffConverter::getTiffPage(int index) const
+{
+    if (index >= m_pages.size()) RAISE_RUNTIME_ERROR << "Converter: TIFF page index out of range!";
     return m_pages[index];
 }
 
-DataType TiffConverter::getChannelRangeDataType(const Range& range) const {
+DataType TiffConverter::getChannelRangeDataType(const Range& range) const
+{
     makeSureValid();
     const int numSceneChannels = m_scene->getNumChannels();
-    if (range.end > numSceneChannels) {
+    if (range.end > numSceneChannels)
         RAISE_RUNTIME_ERROR << "Converter: channel range exceeds number of scene channels!";
-    }
     const DataType dataType = m_scene->getChannelDataType(range.start);
-    for (int channel = range.start + 1; channel < range.end; ++channel) {
-        if (m_scene->getChannelDataType(channel) != dataType) {
-            return DataType::DT_Unknown;
-        }
-    }
+    for (int channel = range.start + 1; channel < range.end; ++channel)
+        if (m_scene->getChannelDataType(channel) != dataType) return DataType::DT_Unknown;
     return dataType;
 }
 
-int TiffConverter::computeChannelChunk(int firstChannel, const std::shared_ptr<CVScene>& scene) const {
+int TiffConverter::computeChannelChunk(int firstChannel, const std::shared_ptr<CVScene>& scene) const
+{
     makeSureValid();
     std::shared_ptr<const EncodeParameters> encoding = m_parameters.getEncodeParameters();
     Range channelRange = m_parameters.getChannelRange();
     Compression compression = encoding->getCompression();
     const int numSceneChannels = m_scene->getNumChannels();
     int channelChunkSize;
-    const bool canGroupChannelsBy3 = (numSceneChannels == 3)
-        && (firstChannel == 0)
-        && (channelRange.size() == 3)
-        && (scene->getNumChannels() == 3);
-    if (compression == Compression::Jpeg) {
-        if (canGroupChannelsBy3 && getChannelRangeDataType(channelRange) == DataType::DT_Byte) {
+    const bool canGroupChannelsBy3 =
+        (numSceneChannels == 3) && (firstChannel == 0) && (channelRange.size() == 3) && (scene->getNumChannels() == 3);
+    if (compression == Compression::Jpeg)
+    {
+        if (canGroupChannelsBy3 && getChannelRangeDataType(channelRange) == DataType::DT_Byte)
             channelChunkSize = 3;
-        }
-        else if (m_scene->getChannelDataType(firstChannel) == DataType::DT_Byte) {
+        else if (m_scene->getChannelDataType(firstChannel) == DataType::DT_Byte)
             channelChunkSize = 1;
-        }
-        else {
+        else
             RAISE_RUNTIME_ERROR << "Converter: JPEG compression supports only 8-bit channels.";
-        }
     }
-    else if (compression == Compression::Jpeg2000) {
-        if (canGroupChannelsBy3) {
+    else if (compression == Compression::Jpeg2000)
+    {
+        if (canGroupChannelsBy3)
             channelChunkSize = 3;
-        }
-        else {
+        else
             channelChunkSize = 1;
-        }
     }
-    else {
+    else
+    {
         RAISE_RUNTIME_ERROR << "Converter: unsupported compression type: " << compression;
     }
     return channelChunkSize;
 }
 
-std::string TiffConverter::createSVSImageDescription() const {
+std::string TiffConverter::createSVSImageDescription() const
+{
     auto rect = m_scene->getRect();
-    std::shared_ptr<const TIFFContainerParameters> tiffParams = std::static_pointer_cast<const TIFFContainerParameters>(
-        m_parameters.getContainerParameters());
+    std::shared_ptr<const TIFFContainerParameters> tiffParams =
+        std::static_pointer_cast<const TIFFContainerParameters>(m_parameters.getContainerParameters());
     std::stringstream buff;
     buff << "SlideIO Library 2.0\n";
     buff << rect.width << "x" << rect.height;
     buff << "(" << tiffParams->getTileWidth() << "x" << tiffParams->getTileHeight() << ") ";
-    if (m_parameters.getEncoding() == Compression::Jpeg) {
-        std::shared_ptr<const JpegEncodeParameters> jpegParams = std::static_pointer_cast<const JpegEncodeParameters>(
-            m_parameters.getEncodeParameters());
+    if (m_parameters.getEncoding() == Compression::Jpeg)
+    {
+        std::shared_ptr<const JpegEncodeParameters> jpegParams =
+            std::static_pointer_cast<const JpegEncodeParameters>(m_parameters.getEncodeParameters());
         buff << "JPEG/RGB " << "Q=" << jpegParams->getQuality();
     }
-    else if (m_parameters.getEncoding() == Compression::Jpeg2000) {
+    else if (m_parameters.getEncoding() == Compression::Jpeg2000)
+    {
         buff << "J2K";
     }
     buff << "\n";
     double magn = m_scene->getMagnification();
     Resolution resolution = m_scene->getResolution();
-    if (resolution.x > 0) {
-        buff << "|MPP = " << resolution.x * 1.e6;
-    }
-    if (magn > 0) {
-        buff << "|AppMag = " << magn;
-    }
+    if (resolution.x > 0) buff << "|MPP = " << resolution.x * 1.e6;
+    if (magn > 0) buff << "|AppMag = " << magn;
 
     std::string filePath = m_scene->getFilePath();
     std::filesystem::path path(filePath);
@@ -120,28 +112,34 @@ std::string TiffConverter::createSVSImageDescription() const {
     return buff.str();
 }
 
-std::string TiffConverter::createImageDescriptionTag() const {
+std::string TiffConverter::createImageDescriptionTag() const
+{
     makeSureValid();
-    if (m_parameters.getFormat() == ImageFormat::SVS) {
+    if (m_parameters.getFormat() == ImageFormat::SVS)
+    {
         return createSVSImageDescription();
     }
-    else if (m_parameters.getFormat() == ImageFormat::OME_TIFF) {
+    else if (m_parameters.getFormat() == ImageFormat::OME_TIFF)
+    {
         return createOMETiffDescription();
     }
-    else {
-        RAISE_RUNTIME_ERROR << "Converter: Unrecognized target image format: " << static_cast<int>(m_parameters.
-            getFormat());
+    else
+    {
+        RAISE_RUNTIME_ERROR << "Converter: Unrecognized target image format: "
+                            << static_cast<int>(m_parameters.getFormat());
     }
 }
 
-std::string TiffConverter::createOMETiffDescription() const {
+std::string TiffConverter::createOMETiffDescription() const
+{
     makeSureValid();
     tinyxml2::XMLDocument doc;
     auto* ome = doc.NewElement("OME");
     ome->SetAttribute("xmlns", "http://www.openmicroscopy.org/Schemas/OME/2016-06");
     ome->SetAttribute("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance");
-    ome->SetAttribute("xsi:schemaLocation",
-                      "http://www.openmicroscopy.org/Schemas/OME/2016-06 http://www.openmicroscopy.org/Schemas/OME/2016-06/ome.xsd");
+    ome->SetAttribute(
+        "xsi:schemaLocation",
+        "http://www.openmicroscopy.org/Schemas/OME/2016-06 http://www.openmicroscopy.org/Schemas/OME/2016-06/ome.xsd");
     doc.InsertFirstChild(ome);
     // Channels are assumed to be always interleaved
     // They can be saved as 3 channels jpeg (real interleaved)
@@ -154,7 +152,8 @@ std::string TiffConverter::createOMETiffDescription() const {
     const int numZSlices = m_parameters.getSliceRange().size();
     const int numTFrames = m_parameters.getTFrameRange().size();
     double magnification = m_scene->getMagnification();
-    if (magnification > 0) {
+    if (magnification > 0)
+    {
         auto* instrument = doc.NewElement("Instrument");
         instrument->SetAttribute("ID", "Instrument:0");
         auto* objective = doc.NewElement("Objective");
@@ -174,22 +173,22 @@ std::string TiffConverter::createOMETiffDescription() const {
     int id = 0;
     const auto& sceneChannelRange = m_parameters.getChannelRange();
     const slideio::Metadata& chanAttrs = m_scene->getChannelAttributes();
-    for (int channel = sceneChannelRange.start; channel < sceneChannelRange.end; ++channel) {
+    for (int channel = sceneChannelRange.start; channel < sceneChannelRange.end; ++channel)
+    {
         std::string idAttr = std::string("Channel:0:") + std::to_string(id++);
         auto* xmlChannel = doc.NewElement("Channel");
         const slideio::Metadata chan = chanAttrs[channel];
-        for (const std::string& attrName : chan.keys()) {
+        for (const std::string& attrName : chan.keys())
+        {
             std::string attrValue = chan[attrName].asString();
-            if (attrName == "Color" && ColorTools::detectHexColorFormat(attrValue) != HexColorFormat::UNKNOWN) {
+            if (attrName == "Color" && ColorTools::detectHexColorFormat(attrValue) != HexColorFormat::UNKNOWN)
                 attrValue = ColorTools::hexToInt32String(attrValue);
-            }
             xmlChannel->SetAttribute(attrName.c_str(), attrValue.c_str());
         }
         xmlChannel->SetAttribute("ID", idAttr.c_str());
         xmlChannel->SetAttribute("SamplesPerPixel", 1);
         const std::string& channelName = m_scene->getChannelName(channel);
-        if (!channelName.empty())
-            xmlChannel->SetAttribute("Name", channelName.c_str());
+        if (!channelName.empty()) xmlChannel->SetAttribute("Name", channelName.c_str());
         pixels->InsertEndChild(xmlChannel);
     }
 
@@ -207,47 +206,57 @@ std::string TiffConverter::createOMETiffDescription() const {
     // DataType mapping
     auto dt = m_scene->getChannelDataType(0);
     const char* typeStr = "uint8";
-    switch (dt) {
-    case DataType::DT_Byte: typeStr = "uint8";
+    switch (dt)
+    {
+    case DataType::DT_Byte:
+        typeStr = "uint8";
         break;
-    case DataType::DT_UInt16: typeStr = "uint16";
+    case DataType::DT_UInt16:
+        typeStr = "uint16";
         break;
-    case DataType::DT_Int16: typeStr = "int16";
+    case DataType::DT_Int16:
+        typeStr = "int16";
         break;
-    case DataType::DT_Int32: typeStr = "int32";
+    case DataType::DT_Int32:
+        typeStr = "int32";
         break;
-    case DataType::DT_Float32: typeStr = "float";
+    case DataType::DT_Float32:
+        typeStr = "float";
         break;
-    case DataType::DT_Float64: typeStr = "double";
+    case DataType::DT_Float64:
+        typeStr = "double";
         break;
-    default: typeStr = "uint8";
+    default:
+        typeStr = "uint8";
         break;
     }
     pixels->SetAttribute("Type", typeStr);
 
     // Physical sizes
     Resolution res = m_scene->getResolution();
-    if (res.x > 0) {
+    if (res.x > 0)
+    {
         pixels->SetAttribute("PhysicalSizeX", 1000 * res.x);
         pixels->SetAttribute("PhysicalSizeXUnit", "mm");
     }
-    if (res.y > 0) {
+    if (res.y > 0)
+    {
         pixels->SetAttribute("PhysicalSizeY", 1000 * res.y);
         pixels->SetAttribute("PhysicalSizeYUnit", "mm");
     }
     double resZ = m_scene->getZSliceResolution();
     double resT = m_scene->getTFrameResolution();
-    if (resZ > 0) {
+    if (resZ > 0)
+    {
         pixels->SetAttribute("PhysicalSizeZ", resZ * 1000);
         pixels->SetAttribute("PhysicalSizeZUnit", "mm");
     }
-    if (resT > 0) {
-        pixels->SetAttribute("PhysicalSizeT", resT);
-    }
+    if (resT > 0) pixels->SetAttribute("PhysicalSizeT", resT);
     image->InsertEndChild(pixels);
 
     std::string fileName;
-    if (!m_filePath.empty()) {
+    if (!m_filePath.empty())
+    {
         std::filesystem::path p(m_filePath);
         fileName = p.filename().string();
     }
@@ -259,7 +268,8 @@ std::string TiffConverter::createOMETiffDescription() const {
 
     std::string UUID = Tools::randomUUID();
 
-    for (const auto& page : m_pages) {
+    for (const auto& page : m_pages)
+    {
         auto* tiffData = doc.NewElement("TiffData");
         cv::Range sliceRange = page.getZSliceRange();
         cv::Range channelRange = page.getChannelRange();
@@ -275,10 +285,12 @@ std::string TiffConverter::createOMETiffDescription() const {
         tiffData->InsertEndChild(uidElem);
         pixels->InsertEndChild(tiffData);
         channel += channelRange.size();
-        if (channel >= numChannels) {
+        if (channel >= numChannels)
+        {
             channel = 0;
             slice += sliceRange.size();
-            if (slice >= numZSlices) {
+            if (slice >= numZSlices)
+            {
                 channel = 0;
                 slice = 0;
                 frame += frameRange.size();
@@ -290,13 +302,10 @@ std::string TiffConverter::createOMETiffDescription() const {
     return std::string(printer.CStr());
 }
 
-void TiffConverter::createFileLayout(const std::shared_ptr<CVScene>& scene, const ConverterParameters& parameters) {
-    if (!scene) {
-        RAISE_RUNTIME_ERROR << "Converter: invalid scene provided";
-    }
-    if (!parameters.isValid()) {
-        RAISE_RUNTIME_ERROR << "Converter: invalid converter parameters";
-    }
+void TiffConverter::createFileLayout(const std::shared_ptr<CVScene>& scene, const ConverterParameters& parameters)
+{
+    if (!scene) RAISE_RUNTIME_ERROR << "Converter: invalid scene provided";
+    if (!parameters.isValid()) RAISE_RUNTIME_ERROR << "Converter: invalid converter parameters";
     m_scene = scene;
     m_parameters = parameters;
     m_parameters.updateNotDefinedParameters(scene);
@@ -306,13 +315,11 @@ void TiffConverter::createFileLayout(const std::shared_ptr<CVScene>& scene, cons
     m_totalTiles = 0;
     m_currentTile = 0;
     m_lastProgress = 0;
-    if (parameters.getContainerType() != Container::TIFF_CONTAINER) {
+    if (parameters.getContainerType() != Container::TIFF_CONTAINER)
         RAISE_RUNTIME_ERROR << "Converter: TIFF structure can be created only for TIFF container parameters!";
-    }
     ImageFormat format = parameters.getFormat();
-    if (format != ImageFormat::SVS && format != ImageFormat::OME_TIFF) {
+    if (format != ImageFormat::SVS && format != ImageFormat::OME_TIFF)
         RAISE_RUNTIME_ERROR << "Converter: Unrecognized target image format: " << static_cast<int>(format);
-    }
     makeSureValid();
     checkEncodingRequirements();
     checkContainerRequirements();
@@ -320,10 +327,10 @@ void TiffConverter::createFileLayout(const std::shared_ptr<CVScene>& scene, cons
     const Range channelRange = m_parameters.getChannelRange();
     const Range frameRange = m_parameters.getTFrameRange();
     const Range sliceRange = m_parameters.getSliceRange();
-    if (format == ImageFormat::SVS) {
-        if (frameRange.size() != 1 || sliceRange.size() != 1) {
+    if (format == ImageFormat::SVS)
+    {
+        if (frameRange.size() != 1 || sliceRange.size() != 1)
             RAISE_RUNTIME_ERROR << "Converter: SVS format supports only single time-frame and single z-slice images!";
-        }
     }
     std::shared_ptr<const TIFFContainerParameters> tiffParams =
         std::static_pointer_cast<const TIFFContainerParameters>(m_parameters.getContainerParameters());
@@ -331,14 +338,15 @@ void TiffConverter::createFileLayout(const std::shared_ptr<CVScene>& scene, cons
     m_totalTiles = 0;
 
     int channelChunkSize = scene->getNumChannels();
-    if (format == OME_TIFF) {
-        channelChunkSize = computeChannelChunk(channelRange.start, scene);
-    }
+    if (format == OME_TIFF) channelChunkSize = computeChannelChunk(channelRange.start, scene);
 
     int numZoomLevels = tiffParams->getNumZoomLevels();
-    for (int frame = frameRange.start; frame < frameRange.end; ++frame) {
-        for (int slice = sliceRange.start; slice < sliceRange.end; ++slice) {
-            for (int channel = channelRange.start; channel < channelRange.end; channel += channelChunkSize) {
+    for (int frame = frameRange.start; frame < frameRange.end; ++frame)
+    {
+        for (int slice = sliceRange.start; slice < sliceRange.end; ++slice)
+        {
+            for (int channel = channelRange.start; channel < channelRange.end; channel += channelChunkSize)
+            {
                 const int pageIndex = static_cast<int>(m_pages.size());
                 TiffPageStructure& page = appendPage();
                 Rect imageRect = m_cropRect;
@@ -349,15 +357,18 @@ void TiffConverter::createFileLayout(const std::shared_ptr<CVScene>& scene, cons
                 page.setZoomLevelRange(cv::Range(0, 1));
                 int planeCount = page.getZSliceRange().size() * page.getTFrameRange().size();
                 page.setPlaneCount(planeCount);
-                for (int zoomLevel = 1; zoomLevel < numZoomLevels; ++zoomLevel) {
+                for (int zoomLevel = 1; zoomLevel < numZoomLevels; ++zoomLevel)
+                {
                     cv::Rect zoomLevelRect = ConverterTools::computeZoomLevelRect(imageRect, tileSize, zoomLevel);
                     m_totalTiles += ConverterTools::computeNumTiles(zoomLevelRect.size(), tileSize);
-                    if (format == ImageFormat::OME_TIFF) {
+                    if (format == ImageFormat::OME_TIFF)
+                    {
                         TiffDirectoryStructure& dir = m_pages[pageIndex].appendSubDirectory();
                         dir = static_cast<const TiffDirectoryStructure&>(m_pages[pageIndex]);
                         dir.setZoomLevelRange(cv::Range(zoomLevel, zoomLevel + 1));
                     }
-                    else if (format == ImageFormat::SVS) {
+                    else if (format == ImageFormat::SVS)
+                    {
                         TiffPageStructure& dir = appendPage();
                         dir = static_cast<const TiffPageStructure&>(m_pages[pageIndex]);
                         dir.setZoomLevelRange(cv::Range(zoomLevel, zoomLevel + 1));
@@ -368,52 +379,48 @@ void TiffConverter::createFileLayout(const std::shared_ptr<CVScene>& scene, cons
     }
 }
 
-
-void TiffConverter::computeCropRect() {
+void TiffConverter::computeCropRect()
+{
     m_cropRect = m_scene->getRect();
     m_cropRect.x = m_cropRect.y = 0;
-    if (!m_parameters.getRect().valid()) {
-        RAISE_RUNTIME_ERROR << "Converter: Invalid rectangle for the scene converter!";
-    }
+    if (!m_parameters.getRect().valid()) RAISE_RUNTIME_ERROR << "Converter: Invalid rectangle for the scene converter!";
     const cv::Rect sceneRect = m_scene->getRect();
     const auto& block = m_parameters.getRect();
-    if (block.x + block.width > sceneRect.width) {
+    if (block.x + block.width > sceneRect.width)
         RAISE_RUNTIME_ERROR << "Converter: Crop rectangle exceeds scene width!";
-    }
-    if (block.y + block.height > sceneRect.height) {
+    if (block.y + block.height > sceneRect.height)
         RAISE_RUNTIME_ERROR << "Converter: Crop rectangle exceeds scene height!";
-    }
     m_cropRect.x = block.x;
     m_cropRect.y = block.y;
     m_cropRect.width = block.width;
     m_cropRect.height = block.height;
 }
 
-TiffDirectory TiffConverter::setUpDirectory(const TiffDirectoryStructure& page) {
+TiffDirectory TiffConverter::setUpDirectory(const TiffDirectoryStructure& page)
+{
     TiffDirectory dir;
     const int zoomLevel = page.getZoomLevelRange().start;
 
-    std::shared_ptr<const TIFFContainerParameters> tiffParams = std::static_pointer_cast<const TIFFContainerParameters>(
-        m_parameters.getContainerParameters());
+    std::shared_ptr<const TIFFContainerParameters> tiffParams =
+        std::static_pointer_cast<const TIFFContainerParameters>(m_parameters.getContainerParameters());
     cv::Size tileSize(tiffParams->getTileWidth(), tiffParams->getTileHeight());
     cv::Size levelImageSize = ConverterTools::scaleSize(m_cropRect.size(), zoomLevel);
 
     dir.tiled = true;
     dir.channels = page.getChannelRange().size();
     dir.dataType = m_scene->getChannelDataType(page.getChannelRange().start);
-    if (m_parameters.getEncoding() == Compression::Jpeg || m_parameters.getEncoding() == Compression::Jpeg2000) {
+    if (m_parameters.getEncoding() == Compression::Jpeg || m_parameters.getEncoding() == Compression::Jpeg2000)
         dir.slideioCompression = m_parameters.getEncoding();
-    }
-    else {
+    else
         RAISE_RUNTIME_ERROR << "Converter: Unexpected compression type: " << (int)m_parameters.getEncoding();
-    }
     dir.width = levelImageSize.width;
     dir.height = levelImageSize.height;
     dir.tileWidth = tileSize.width;
     dir.tileHeight = tileSize.height;
-    if (m_parameters.getEncoding() == Compression::Jpeg) {
-        std::shared_ptr<const JpegEncodeParameters> jpegParams = std::static_pointer_cast<const JpegEncodeParameters>(
-            m_parameters.getEncodeParameters());
+    if (m_parameters.getEncoding() == Compression::Jpeg)
+    {
+        std::shared_ptr<const JpegEncodeParameters> jpegParams =
+            std::static_pointer_cast<const JpegEncodeParameters>(m_parameters.getEncodeParameters());
         dir.compressionQuality = jpegParams->getQuality();
     }
     dir.description = page.getDescription();
@@ -424,31 +431,41 @@ TiffDirectory TiffConverter::setUpDirectory(const TiffDirectoryStructure& page) 
     return dir;
 }
 
-void TiffConverter::writeDirectoryData(TiffDirectory& dir, const TiffDirectoryStructure& page, const std::function<void(int)>& cb, int param) {
-    if (page.getZoomLevelRange().size() != 1) {
-        RAISE_RUNTIME_ERROR << "Converter: Invalid zoom level range in page! Expected: 1, received: " << page.
-            getZoomLevelRange().size();
+void TiffConverter::writeDirectoryData(TiffDirectory& dir, const TiffDirectoryStructure& page,
+                                       const std::function<void(int)>& cb, int param)
+{
+    if (page.getZoomLevelRange().size() != 1)
+    {
+        RAISE_RUNTIME_ERROR << "Converter: Invalid zoom level range in page! Expected: 1, received: "
+                            << page.getZoomLevelRange().size();
     }
-    if (m_parameters.getEncodeParameters()->getCompression() == Compression::Jpeg2000
-        || m_parameters.getEncodeParameters()->getCompression() == Compression::Jpeg
-        || param != 1) {
+    if (m_parameters.getEncodeParameters()->getCompression() == Compression::Jpeg2000 ||
+        m_parameters.getEncodeParameters()->getCompression() == Compression::Jpeg || param != 1)
+    {
         writeDirectoryDataMT(dir, page, cb, param);
     }
-    else {
+    else
+    {
         writeDirectoryDataST(dir, page, cb, param);
     }
 }
 
-void TiffConverter::writeDirectoryDataST(TiffDirectory& dir, const TiffDirectoryStructure& page, const std::function<void(int)>& cb, int tileBatchSize) {
-    if (page.getZoomLevelRange().size() != 1) {
-        RAISE_RUNTIME_ERROR << "Converter: Invalid zoom level range in page! Expected: 1, received: " << page.getZoomLevelRange().size();
+void TiffConverter::writeDirectoryDataST(TiffDirectory& dir, const TiffDirectoryStructure& page,
+                                         const std::function<void(int)>& cb, int tileBatchSize)
+{
+    if (page.getZoomLevelRange().size() != 1)
+    {
+        RAISE_RUNTIME_ERROR << "Converter: Invalid zoom level range in page! Expected: 1, received: "
+                            << page.getZoomLevelRange().size();
     }
     int zoomLevel = page.getZoomLevelRange().start;
     cv::Size tileSize = cv::Size(dir.tileWidth, dir.tileHeight);
     cv::Size sceneTileSize = ConverterTools::scaleSize(tileSize, zoomLevel, false);
     std::vector<uint8_t> buffer;
-    if (m_parameters.getEncoding() == Compression::Jpeg2000) {
-        int dataSize = tileSize.width * tileSize.height * m_scene->getNumChannels() * Tools::dataTypeSize(m_scene->getChannelDataType(0));
+    if (m_parameters.getEncoding() == Compression::Jpeg2000)
+    {
+        int dataSize = tileSize.width * tileSize.height * m_scene->getNumChannels() *
+                       Tools::dataTypeSize(m_scene->getChannelDataType(0));
         buffer.resize(dataSize);
     }
     cv::Mat block;
@@ -459,38 +476,41 @@ void TiffConverter::writeDirectoryDataST(TiffDirectory& dir, const TiffDirectory
     const int frame = page.getTFrameRange().start;
     std::vector<int> channels;
     channels.reserve(dir.channels);
-    for (int channel = 0; channel < dir.channels; ++channel) {
+    for (int channel = 0; channel < dir.channels; ++channel)
         channels.push_back(page.getChannelRange().start + channel);
-    }
     const int batchWidth = tileBatchSize * sceneTileSize.width;
-    for (int y = m_cropRect.y; y < yEnd; y += sceneTileSize.height) {
-        for (int x = m_cropRect.x; x < xEnd; x += batchWidth) {
+    for (int y = m_cropRect.y; y < yEnd; y += sceneTileSize.height)
+    {
+        for (int x = m_cropRect.x; x < xEnd; x += batchWidth)
+        {
             int numTiles = 1 + (xEnd - x - 1) / sceneTileSize.width;
             numTiles = std::min(numTiles, tileBatchSize);
             numTiles = std::max(1, numTiles);
             const int blockWidth = numTiles * sceneTileSize.width;
             cv::Rect blockRect(x, y, blockWidth, sceneTileSize.height);
             ConverterTools::readTile(m_scene, channels, zoomLevel, blockRect, slice, frame, block);
-            if (block.rows != tileSize.height || block.cols != tileSize.width * numTiles) {
-                RAISE_RUNTIME_ERROR << "Converter: Unexpected tile size ("
-                    << block.cols << ","
-                    << block.rows << "). Expected tile size: ("
-                    << tileSize.width << ","
-                    << tileSize.height << ").";
+            if (block.rows != tileSize.height || block.cols != tileSize.width * numTiles)
+            {
+                RAISE_RUNTIME_ERROR << "Converter: Unexpected tile size (" << block.cols << "," << block.rows
+                                    << "). Expected tile size: (" << tileSize.width << "," << tileSize.height << ").";
             }
             blockRect.x -= m_cropRect.x;
             blockRect.y -= m_cropRect.y;
             cv::Rect zoomLevelRect = ConverterTools::scaleRect(blockRect, zoomLevel, true);
-            for (int blockTile = 0; blockTile < numTiles; ++blockTile) {
+            for (int blockTile = 0; blockTile < numTiles; ++blockTile)
+            {
                 cv::Rect tileRect(blockTile * tileSize.width, 0, tileSize.width, tileSize.height);
                 cv::Mat tile;
                 block(tileRect).copyTo(tile);
                 const int tileWritePosX = zoomLevelRect.x + blockTile * tileSize.width;
-                m_file->writeTile(tileWritePosX, zoomLevelRect.y, dir.slideioCompression, *encoding, tile, buffer.data(), (int)buffer.size());
+                m_file->writeTile(tileWritePosX, zoomLevelRect.y, dir.slideioCompression, *encoding, tile,
+                                  buffer.data(), (int)buffer.size());
                 m_currentTile++;
-                if (cb) {
+                if (cb)
+                {
                     double proc = 100. * (double)m_currentTile / (double)m_totalTiles;
-                    if (const int lproc = std::lround(proc); lproc != m_lastProgress) {
+                    if (const int lproc = std::lround(proc); lproc != m_lastProgress)
+                    {
                         cb(lproc);
                         m_lastProgress = lproc;
                     }
@@ -500,7 +520,8 @@ void TiffConverter::writeDirectoryDataST(TiffDirectory& dir, const TiffDirectory
     }
 }
 
-void TiffConverter::createTileQueue(const TiffDirectory& dir, const TiffDirectoryStructure& page, int tileBatchSize, std::queue<Block>& queue)
+void TiffConverter::createTileQueue(const TiffDirectory& dir, const TiffDirectoryStructure& page, int tileBatchSize,
+                                    std::queue<Block>& queue)
 {
     const int zoomLevel = page.getZoomLevelRange().start;
     const cv::Size tileSize = cv::Size(dir.tileWidth, dir.tileHeight);
@@ -510,9 +531,11 @@ void TiffConverter::createTileQueue(const TiffDirectory& dir, const TiffDirector
     const int numTileCols = 1 + (m_cropRect.width - 1) / sceneTileSize.width;
     const int safeTileBatchSize = std::max(1, tileBatchSize);
     const int batchWidth = safeTileBatchSize * sceneTileSize.width;
-	size_t iTile = 0;
-    for (int y = m_cropRect.y; y < yEnd; y += sceneTileSize.height) {
-        for (int x = m_cropRect.x; x < xEnd; x += batchWidth) {
+    size_t iTile = 0;
+    for (int y = m_cropRect.y; y < yEnd; y += sceneTileSize.height)
+    {
+        for (int x = m_cropRect.x; x < xEnd; x += batchWidth)
+        {
             int numTiles = 1 + (xEnd - x - 1) / sceneTileSize.width;
             numTiles = std::min(numTiles, safeTileBatchSize);
             numTiles = std::max(1, numTiles);
@@ -522,124 +545,129 @@ void TiffConverter::createTileQueue(const TiffDirectory& dir, const TiffDirector
             block.rect = blockRect;
             block.firstTileSequenceId = iTile;
             queue.emplace(block);
-			iTile += numTiles;
+            iTile += numTiles;
         }
     }
 }
 
-std::pair<std::shared_ptr<Slide>, std::shared_ptr<Scene>> TiffConverter::cloneScene() const {
-	std::string filePath = m_scene->getFilePath();
-	int sceneIndex = m_scene->getSceneIndex();
-	std::string driverId = m_scene->getDriverId();
+std::pair<std::shared_ptr<Slide>, std::shared_ptr<Scene>> TiffConverter::cloneScene() const
+{
+    std::string filePath = m_scene->getFilePath();
+    int sceneIndex = m_scene->getSceneIndex();
+    std::string driverId = m_scene->getDriverId();
     std::shared_ptr<Slide> slide = openSlide(filePath, driverId);
     std::shared_ptr<Scene> scene = slide->getScene(sceneIndex);
-	return { slide, scene };
+    return {slide, scene};
 }
 
-void TiffConverter::readTiles(const TiffDirectory& dir, const TiffDirectoryStructure& page, BoundedQueue<Tile>& inputQueue,
-							  std::queue<Block>& blockQueue, std::mutex& blockQueueMutex, std::atomic<size_t>& activeReaders,
-							  std::exception_ptr& readerException, std::mutex& exceptionMutex) {
-	int zoomLevel = page.getZoomLevelRange().start;
-	cv::Size tileSize = cv::Size(dir.tileWidth, dir.tileHeight);
-	cv::Size sceneTileSize = ConverterTools::scaleSize(tileSize, zoomLevel, false);
-	const int slice = page.getZSliceRange().start;
-	const int frame = page.getTFrameRange().start;
-	std::vector<int> channels;
-	channels.reserve(dir.channels);
-	for (int channel = 0; channel < dir.channels; ++channel) {
-		channels.push_back(page.getChannelRange().start + channel);
-	}
-	auto clone = cloneScene();
-	auto slide = clone.first;
-	auto scene = clone.second;
-	int64_t localIdleNs = 0;
+void TiffConverter::readTiles(const TiffDirectory& dir, const TiffDirectoryStructure& page,
+                              BoundedQueue<Tile>& inputQueue, std::queue<Block>& blockQueue,
+                              std::mutex& blockQueueMutex, std::atomic<size_t>& activeReaders,
+                              std::exception_ptr& readerException, std::mutex& exceptionMutex)
+{
+    int zoomLevel = page.getZoomLevelRange().start;
+    cv::Size tileSize = cv::Size(dir.tileWidth, dir.tileHeight);
+    cv::Size sceneTileSize = ConverterTools::scaleSize(tileSize, zoomLevel, false);
+    const int slice = page.getZSliceRange().start;
+    const int frame = page.getTFrameRange().start;
+    std::vector<int> channels;
+    channels.reserve(dir.channels);
+    for (int channel = 0; channel < dir.channels; ++channel)
+        channels.push_back(page.getChannelRange().start + channel);
+    auto clone = cloneScene();
+    auto slide = clone.first;
+    auto scene = clone.second;
+    int64_t localIdleNs = 0;
 
-	try {
-		cv::Mat block;
-		while (true) {
-			Block currentBlock;
-			{
-				std::unique_lock lock(blockQueueMutex);
-				if (blockQueue.empty()) {
-					break;
-				}
-				currentBlock = blockQueue.front();
-				blockQueue.pop();
-			}
-			const cv::Rect& blockRect = currentBlock.rect;
-			const int numTiles = blockRect.width / sceneTileSize.width;
-			ConverterTools::readTile(scene->getCVScene(), channels, zoomLevel, blockRect, slice, frame, block);
-			if (block.rows != tileSize.height || block.cols != tileSize.width * numTiles) {
-				RAISE_RUNTIME_ERROR << "Converter: Unexpected tile size ("
-					<< block.cols << ","
-					<< block.rows << "). Expected tile size: ("
-					<< tileSize.width << ","
-					<< tileSize.height << ").";
-			}
-			cv::Rect adjustedRect = blockRect;
-			adjustedRect.x -= m_cropRect.x;
-			adjustedRect.y -= m_cropRect.y;
-			cv::Rect zoomLevelRect = ConverterTools::scaleRect(adjustedRect, zoomLevel, true);
-			bool done = false;
-			for (int blockTile = 0; blockTile < numTiles; ++blockTile) {
-				cv::Rect tileRect(blockTile * tileSize.width, 0, tileSize.width, tileSize.height);
-				Tile tileInfo;
-				tileInfo.sequenceId = currentBlock.firstTileSequenceId + blockTile;
-				block(tileRect).copyTo(tileInfo.raster);
-				const int tileWritePosX = zoomLevelRect.x + blockTile * tileSize.width;
-				tileInfo.location = cv::Point2i(tileWritePosX, zoomLevelRect.y);
-				auto pushStart = std::chrono::steady_clock::now();
-				if (!inputQueue.push(std::move(tileInfo))) {
-					localIdleNs += std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - pushStart).count();
-					done = true;
-					break;
-				}
-				localIdleNs += std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - pushStart).count();
-			}
-			if (done) {
-				break;
-			}
-		}
-	}
-	catch (const std::exception& e) {
-		{
-			std::unique_lock lock(exceptionMutex);
-			if (!readerException)
-				readerException = std::current_exception();
-		}
-		inputQueue.setDone();
-		SLIDEIO_LOG(ERROR) << "Converter: Exception in tile reader thread: " << e.what();
-	}
-	catch (...) {
-		{
-			std::unique_lock lock(exceptionMutex);
-			if (!readerException)
-				readerException = std::current_exception();
-		}
-		inputQueue.setDone();
-		SLIDEIO_LOG(ERROR) << "Converter: Unknown exception in tile reader thread";
-	}
-	m_readersIdleTimeNs.fetch_add(localIdleNs, std::memory_order_relaxed);
-	if (--activeReaders == 0)
-		inputQueue.setDone();
+    try
+    {
+        cv::Mat block;
+        while (true)
+        {
+            Block currentBlock;
+            {
+                std::unique_lock lock(blockQueueMutex);
+                if (blockQueue.empty()) break;
+                currentBlock = blockQueue.front();
+                blockQueue.pop();
+            }
+            const cv::Rect& blockRect = currentBlock.rect;
+            const int numTiles = blockRect.width / sceneTileSize.width;
+            ConverterTools::readTile(scene->getCVScene(), channels, zoomLevel, blockRect, slice, frame, block);
+            if (block.rows != tileSize.height || block.cols != tileSize.width * numTiles)
+            {
+                RAISE_RUNTIME_ERROR << "Converter: Unexpected tile size (" << block.cols << "," << block.rows
+                                    << "). Expected tile size: (" << tileSize.width << "," << tileSize.height << ").";
+            }
+            cv::Rect adjustedRect = blockRect;
+            adjustedRect.x -= m_cropRect.x;
+            adjustedRect.y -= m_cropRect.y;
+            cv::Rect zoomLevelRect = ConverterTools::scaleRect(adjustedRect, zoomLevel, true);
+            bool done = false;
+            for (int blockTile = 0; blockTile < numTiles; ++blockTile)
+            {
+                cv::Rect tileRect(blockTile * tileSize.width, 0, tileSize.width, tileSize.height);
+                Tile tileInfo;
+                tileInfo.sequenceId = currentBlock.firstTileSequenceId + blockTile;
+                block(tileRect).copyTo(tileInfo.raster);
+                const int tileWritePosX = zoomLevelRect.x + blockTile * tileSize.width;
+                tileInfo.location = cv::Point2i(tileWritePosX, zoomLevelRect.y);
+                auto pushStart = std::chrono::steady_clock::now();
+                if (!inputQueue.push(std::move(tileInfo)))
+                {
+                    localIdleNs += std::chrono::duration_cast<std::chrono::nanoseconds>(
+                                       std::chrono::steady_clock::now() - pushStart)
+                                       .count();
+                    done = true;
+                    break;
+                }
+                localIdleNs +=
+                    std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - pushStart)
+                        .count();
+            }
+            if (done) break;
+        }
+    }
+    catch (const std::exception& e)
+    {
+        {
+            std::unique_lock lock(exceptionMutex);
+            if (!readerException) readerException = std::current_exception();
+        }
+        inputQueue.setDone();
+        SLIDEIO_LOG(ERROR) << "Converter: Exception in tile reader thread: " << e.what();
+    }
+    catch (...)
+    {
+        {
+            std::unique_lock lock(exceptionMutex);
+            if (!readerException) readerException = std::current_exception();
+        }
+        inputQueue.setDone();
+        SLIDEIO_LOG(ERROR) << "Converter: Unknown exception in tile reader thread";
+    }
+    m_readersIdleTimeNs.fetch_add(localIdleNs, std::memory_order_relaxed);
+    if (--activeReaders == 0) inputQueue.setDone();
 }
 
-std::vector<uint8_t> TiffConverter::encodeTile(const cv::Mat& tileRaster) {
+std::vector<uint8_t> TiffConverter::encodeTile(const cv::Mat& tileRaster)
+{
     Compression compression = m_parameters.getEncodeParameters()->getCompression();
-    if (compression == Compression::Jpeg2000) {
+    if (compression == Compression::Jpeg2000)
+    {
         std::vector<uint8_t> buff;
         const size_t dataSize = tileRaster.total() * tileRaster.elemSize();
         buff.resize(dataSize);
         std::shared_ptr<JP2KEncodeParameters> jp2param =
             std::static_pointer_cast<JP2KEncodeParameters>(m_parameters.getEncodeParameters());
-        const int encodedSize = ImageTools::encodeJp2KStream(tileRaster, buff.data(), static_cast<int>(buff.size()), *jp2param);
-        if (encodedSize <= 0) {
-            RAISE_RUNTIME_ERROR << "JPEG 2000 Encoding failed";
-        }
+        const int encodedSize =
+            ImageTools::encodeJp2KStream(tileRaster, buff.data(), static_cast<int>(buff.size()), *jp2param);
+        if (encodedSize <= 0) RAISE_RUNTIME_ERROR << "JPEG 2000 Encoding failed";
         buff.resize(encodedSize);
         return buff;
     }
-    else if (compression == Compression::Jpeg) {
+    else if (compression == Compression::Jpeg)
+    {
         // Produce an abbreviated JPEG datastream (no DQT/DHT). The shared
         // tables are emitted once per directory via TIFFTAG_JPEGTABLES in
         // TiffTools::setTags. The result is written verbatim by writeRawTile.
@@ -649,90 +677,105 @@ std::vector<uint8_t> TiffConverter::encodeTile(const cv::Mat& tileRaster) {
         ImageTools::encodeJpegAbbreviated(tileRaster, buff, *jpegParams);
         return buff;
     }
-    else {
+    else
+    {
         RAISE_RUNTIME_ERROR << "Unsupported compression type for multi-threaded encoding.";
     }
 }
 
 void TiffConverter::encodeTiles(BoundedQueue<Tile>& inputQueue, BoundedQueue<EncodedTile>& outputQueue,
-                                std::atomic<size_t>& activeEncoders, std::exception_ptr& encoderException, std::mutex& encoderExMutex) {
+                                std::atomic<size_t>& activeEncoders, std::exception_ptr& encoderException,
+                                std::mutex& encoderExMutex)
+{
     int64_t localIdleNs = 0;
-    try {
-        while (true) {
+    try
+    {
+        while (true)
+        {
             auto popStart = std::chrono::steady_clock::now();
             std::optional<Tile> tile = inputQueue.pop();
-            localIdleNs += std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - popStart).count();
-            if (!tile) {
-                break;
-            }
+            localIdleNs +=
+                std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - popStart)
+                    .count();
+            if (!tile) break;
             EncodedTile encoded;
             encoded.sequenceId = tile->sequenceId;
             encoded.location = tile->location;
             encoded.encodedData = encodeTile(tile->raster);
             auto pushStart = std::chrono::steady_clock::now();
-            if (!outputQueue.push(std::move(encoded))) {
-                localIdleNs += std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - pushStart).count();
+            if (!outputQueue.push(std::move(encoded)))
+            {
+                localIdleNs +=
+                    std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - pushStart)
+                        .count();
                 break;
             }
-            localIdleNs += std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - pushStart).count();
+            localIdleNs +=
+                std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - pushStart)
+                    .count();
         }
     }
-    catch (const std::exception& e) {
+    catch (const std::exception& e)
+    {
         {
             std::unique_lock lock(encoderExMutex);
-            if (!encoderException)
-                encoderException = std::current_exception();
+            if (!encoderException) encoderException = std::current_exception();
         }
         inputQueue.setDone();
         SLIDEIO_LOG(ERROR) << "Converter: Exception in tile encoder thread: " << e.what();
     }
-    catch (...) {
+    catch (...)
+    {
         {
             std::unique_lock lock(encoderExMutex);
-            if (!encoderException)
-                encoderException = std::current_exception();
+            if (!encoderException) encoderException = std::current_exception();
         }
         inputQueue.setDone();
         SLIDEIO_LOG(ERROR) << "Converter: Unknown exception in tile encoder thread.";
     }
     m_encodersIdleTimeNs.fetch_add(localIdleNs, std::memory_order_relaxed);
-    if (--activeEncoders == 0)
-        outputQueue.setDone();
+    if (--activeEncoders == 0) outputQueue.setDone();
 }
 
-void TiffConverter::writeTile(const EncodedTile& tile)  {
+void TiffConverter::writeTile(const EncodedTile& tile)
+{
     const cv::Point2i& loc = tile.location;
     const std::vector<uint8_t>& buffer = tile.encodedData;
     m_file->writeRawTile(loc.x, loc.y, buffer.data(), static_cast<int>(buffer.size()));
 }
 
-void TiffConverter::writeTiles(BoundedQueue<Tile>& inputQueue, BoundedQueue<EncodedTile>& outputQueue, const std::function<void(int)>& cb,
-    std::exception_ptr& writerException, std::mutex& exceptionMutex) {
+void TiffConverter::writeTiles(BoundedQueue<Tile>& inputQueue, BoundedQueue<EncodedTile>& outputQueue,
+                               const std::function<void(int)>& cb, std::exception_ptr& writerException,
+                               std::mutex& exceptionMutex)
+{
     std::unordered_map<size_t, EncodedTile> reorderBuffer; // Holds out-of-order tiles
     size_t nextExpected = 0;
     int64_t localIdleNs = 0;
 
-    try {
-        while (true) {
+    try
+    {
+        while (true)
+        {
             auto popStart = std::chrono::steady_clock::now();
             auto encoded = outputQueue.pop();
-            localIdleNs += std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - popStart).count();
-            if (!encoded) {
-                break;
-            }
+            localIdleNs +=
+                std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::steady_clock::now() - popStart)
+                    .count();
+            if (!encoded) break;
             reorderBuffer.emplace(encoded->sequenceId, std::move(*encoded));
             // Flush all consecutive tiles that are ready
-            while (true) {
+            while (true)
+            {
                 auto it = reorderBuffer.find(nextExpected);
-                if (it == reorderBuffer.end()) {
-                    break;
-                }
-                writeTile(it->second);  // Fast I/O
+                if (it == reorderBuffer.end()) break;
+                writeTile(it->second); // Fast I/O
                 reorderBuffer.erase(it);
                 m_currentTile++;
-                if (cb) {
+                if (cb)
+                {
                     double proc = 100. * (double)m_currentTile / (double)m_totalTiles;
-                    if (const int lproc = std::lround(proc); lproc != m_lastProgress) {
+                    if (const int lproc = std::lround(proc); lproc != m_lastProgress)
+                    {
                         cb(lproc);
                         m_lastProgress = lproc;
                     }
@@ -741,31 +784,32 @@ void TiffConverter::writeTiles(BoundedQueue<Tile>& inputQueue, BoundedQueue<Enco
             }
         }
     }
-    catch (const std::exception& e) {
+    catch (const std::exception& e)
+    {
         {
             std::unique_lock lock(exceptionMutex);
-            if (!writerException)
-                writerException = std::current_exception();
+            if (!writerException) writerException = std::current_exception();
         }
-        outputQueue.setDone();  // Wake any encoders blocked on push()
-        inputQueue.setDone();   // Wake reader if blocked on push(), stop encoders
+        outputQueue.setDone(); // Wake any encoders blocked on push()
+        inputQueue.setDone();  // Wake reader if blocked on push(), stop encoders
         SLIDEIO_LOG(ERROR) << "Converter: Exception in tile writer thread: " << e.what();
     }
-    catch (...) {
+    catch (...)
+    {
         {
             std::unique_lock lock(exceptionMutex);
-            if (!writerException)
-                writerException = std::current_exception();
+            if (!writerException) writerException = std::current_exception();
         }
-        outputQueue.setDone();  // Wake any encoders blocked on push()
-        inputQueue.setDone();   // Wake reader if blocked on push(), stop encoders
+        outputQueue.setDone(); // Wake any encoders blocked on push()
+        inputQueue.setDone();  // Wake reader if blocked on push(), stop encoders
         SLIDEIO_LOG(ERROR) << "Converter: Unknown exception in tile writer thread";
     }
     m_writerIdleTimeNs.fetch_add(localIdleNs, std::memory_order_relaxed);
 }
 
 void TiffConverter::writeDirectoryDataMT(TiffDirectory& dir, const TiffDirectoryStructure& page,
-                                         const std::function<void(int)>& cb, int tileBatchSize) {
+                                         const std::function<void(int)>& cb, int tileBatchSize)
+{
     m_readersIdleTimeNs.store(0, std::memory_order_relaxed);
     m_encodersIdleTimeNs.store(0, std::memory_order_relaxed);
     m_writerIdleTimeNs.store(0, std::memory_order_relaxed);
@@ -774,18 +818,15 @@ void TiffConverter::writeDirectoryDataMT(TiffDirectory& dir, const TiffDirectory
     int numReadingThreads = tiffParams->getNumReadingThreads();
     int numEncoderThreads = tiffParams->getNumEncodingThreads();
     const int halfCores = std::max(1, static_cast<int>(std::thread::hardware_concurrency()) / 2);
-    if (numEncoderThreads <= 0) {
-        numEncoderThreads = halfCores;
-    }
+    if (numEncoderThreads <= 0) numEncoderThreads = halfCores;
     numEncoderThreads = std::max(1, numEncoderThreads);
-    if (numReadingThreads <= 0) {
-        numReadingThreads = halfCores;
-    }
+    if (numReadingThreads <= 0) numReadingThreads = halfCores;
     numReadingThreads = std::max(1, numReadingThreads);
     m_numReaderThreads = numReadingThreads;
     m_numEncoderThreads = numEncoderThreads;
     const int safeTileBatchSize = std::max(1, tileBatchSize);
-    const size_t QUEUE_DEPTH = std::max(static_cast<size_t>(2), static_cast<size_t>(numEncoderThreads) * 2); // Bound memory usage
+    const size_t QUEUE_DEPTH =
+        std::max(static_cast<size_t>(2), static_cast<size_t>(numEncoderThreads) * 2); // Bound memory usage
 
     BoundedQueue<Tile> inputQueue(QUEUE_DEPTH);
     BoundedQueue<EncodedTile> outputQueue(QUEUE_DEPTH);
@@ -799,83 +840,84 @@ void TiffConverter::writeDirectoryDataMT(TiffDirectory& dir, const TiffDirectory
     std::exception_ptr readerException;
     std::exception_ptr encoderException;
     std::exception_ptr writerException;
-    std::mutex         exceptionMutex;
+    std::mutex exceptionMutex;
 
     // --- Stage 1: Readers (work-stealing from block queue) ---
     std::vector<std::thread> readers;
     readers.reserve(numReadingThreads);
-    std::atomic<size_t> activeReaders{ static_cast<size_t>(numReadingThreads) };
-    for (int reader = 0; reader < numReadingThreads; ++reader) {
+    std::atomic<size_t> activeReaders{static_cast<size_t>(numReadingThreads)};
+    for (int reader = 0; reader < numReadingThreads; ++reader)
+    {
         readers.emplace_back(&TiffConverter::readTiles, this, std::cref(dir), std::cref(page), std::ref(inputQueue),
-            std::ref(blockQueue), std::ref(blockQueueMutex), std::ref(activeReaders), std::ref(readerException), std::ref(exceptionMutex));
+                             std::ref(blockQueue), std::ref(blockQueueMutex), std::ref(activeReaders),
+                             std::ref(readerException), std::ref(exceptionMutex));
     }
 
     // --- Stage 2: Encoders (thread pool) ---
     std::vector<std::thread> encoders;
     std::atomic<size_t> activeEncoders{static_cast<size_t>(numEncoderThreads)};
 
-    for (int i = 0; i < numEncoderThreads; ++i) {
+    for (int i = 0; i < numEncoderThreads; ++i)
+    {
         encoders.emplace_back(&TiffConverter::encodeTiles, this, std::ref(inputQueue), std::ref(outputQueue),
-            std::ref(activeEncoders), std::ref(encoderException), std::ref(exceptionMutex));
+                              std::ref(activeEncoders), std::ref(encoderException), std::ref(exceptionMutex));
     }
 
     // --- Stage 3: Writer (single thread, ordered) ---
     std::thread writer(&TiffConverter::writeTiles, this, std::ref(inputQueue), std::ref(outputQueue), std::ref(cb),
-        std::ref(writerException), std::ref(exceptionMutex));
+                       std::ref(writerException), std::ref(exceptionMutex));
 
     auto joinAll = [&]() {
-        for (auto& r : readers) {
+        for (auto& r : readers)
             if (r.joinable()) r.join();
-        }
-        for (auto& e : encoders) {
+        for (auto& e : encoders)
             if (e.joinable()) e.join();
-        }
         if (writer.joinable()) writer.join();
     };
 
-    try {
+    try
+    {
         joinAll();
     }
-    catch (...) {
+    catch (...)
+    {
         // If a join throws, still join remaining threads before propagating
-        try { joinAll(); } catch (...) {}
+        try
+        {
+            joinAll();
+        }
+        catch (...)
+        {
+        }
         throw;
     }
 
     // Propagate any captured exceptions
-    if (readerException) {
-        std::rethrow_exception(readerException);
-    }
-    if (encoderException) {
-        std::rethrow_exception(encoderException);
-    }
-    if (writerException) {
-        std::rethrow_exception(writerException);
-    }
+    if (readerException) std::rethrow_exception(readerException);
+    if (encoderException) std::rethrow_exception(encoderException);
+    if (writerException) std::rethrow_exception(writerException);
 }
 
-
-void TiffConverter::createTiff(const std::string& filePath, const std::function<void(int)>& cb, int tileBatchSize) {
+void TiffConverter::createTiff(const std::string& filePath, const std::function<void(int)>& cb, int tileBatchSize)
+{
     TIFFMessageHandler mh;
     m_currentTile = 0;
     m_file.reset(new TIFFKeeper(filePath, false));
     m_filePath = filePath;
     std::string description = createImageDescriptionTag();
-    if (!m_pages.empty()) {
-        m_pages.front().setDescription(description);
-    }
-    for (int pageIndex = 0; pageIndex < getNumTiffPages(); ++pageIndex) {
+    if (!m_pages.empty()) m_pages.front().setDescription(description);
+    for (int pageIndex = 0; pageIndex < getNumTiffPages(); ++pageIndex)
+    {
         const TiffPageStructure& page = getTiffPage(pageIndex);
         TiffDirectory dir = setUpDirectory(page);
         m_file->setTags(dir);
         const int numSubDirs = page.getNumSubDirectories();
-        if (numSubDirs > 0) {
-            m_file->initSubDirs(numSubDirs);
-        }
+        if (numSubDirs > 0) m_file->initSubDirs(numSubDirs);
         writeDirectoryData(dir, page, cb, tileBatchSize);
         m_file->writeDirectory();
         const int numSubdirs = page.getNumSubDirectories();
-        for (int subDirIndex = 0; subDirIndex < numSubdirs; ++subDirIndex) {
+        for (int subDirIndex = 0; subDirIndex < numSubdirs; ++subDirIndex)
+        {
             const TiffDirectoryStructure& dirSpec = page.getSubDirectory(subDirIndex);
             TiffDirectory subDir = setUpDirectory(dirSpec);
             subDir.subFileType = FILETYPE_REDUCEDIMAGE;
@@ -886,14 +928,14 @@ void TiffConverter::createTiff(const std::string& filePath, const std::function<
     }
 }
 
-
-void TiffConverter::makeSureValid() const {
-    if (m_scene == nullptr || m_parameters.getFormat() == ImageFormat::Unknown || !m_parameters.isValid()) {
+void TiffConverter::makeSureValid() const
+{
+    if (m_scene == nullptr || m_parameters.getFormat() == ImageFormat::Unknown || !m_parameters.isValid())
         RAISE_RUNTIME_ERROR << "Converter: TiffStructure is not initialized";
-    }
 }
 
-std::string TiffConverter::SVSDateString() {
+std::string TiffConverter::SVSDateString()
+{
     std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
     std::time_t time = std::chrono::system_clock::to_time_t(now);
     char buffer[80];
@@ -902,7 +944,8 @@ std::string TiffConverter::SVSDateString() {
     return strDate;
 }
 
-std::string TiffConverter::SVSTimeString() {
+std::string TiffConverter::SVSTimeString()
+{
     std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
     std::time_t time = std::chrono::system_clock::to_time_t(now);
     char buffer[80];
@@ -911,45 +954,43 @@ std::string TiffConverter::SVSTimeString() {
     return strTime;
 }
 
-void TiffConverter::checkSVSRequirements() const {
+void TiffConverter::checkSVSRequirements() const
+{
     const DataType dt = m_scene->getChannelDataType(0);
     const int numChannels = m_scene->getNumChannels();
-    for (int channel = 1; channel < numChannels; ++channel) {
-        if (dt != m_scene->getChannelDataType(channel)) {
+    for (int channel = 1; channel < numChannels; ++channel)
+        if (dt != m_scene->getChannelDataType(channel))
             RAISE_RUNTIME_ERROR << "Converter: Cannot convert scene with different channel types to SVS!";
-        }
-    }
 }
 
-void TiffConverter::checkJpegRequirements() const {
-    if (m_parameters.getEncoding() == Compression::Jpeg) {
+void TiffConverter::checkJpegRequirements() const
+{
+    if (m_parameters.getEncoding() == Compression::Jpeg)
+    {
         const int numChannels = m_scene->getNumChannels();
-        if (m_parameters.getFormat() == ImageFormat::SVS) {
-            if (numChannels != 1 && numChannels != 3) {
+        if (m_parameters.getFormat() == ImageFormat::SVS)
+        {
+            if (numChannels != 1 && numChannels != 3)
                 RAISE_RUNTIME_ERROR << "Converter: Jpeg compression can be used for 1 and 3 channel images only!";
-            }
         }
-        for (int channel = 0; channel < numChannels; ++channel) {
-            if (m_scene->getChannelDataType(channel) != DataType::DT_Byte) {
+        for (int channel = 0; channel < numChannels; ++channel)
+            if (m_scene->getChannelDataType(channel) != DataType::DT_Byte)
                 RAISE_RUNTIME_ERROR << "Converter: Jpeg compression can be used for 8bit images only!";
-            }
-        }
     }
 }
 
-void TiffConverter::checkEncodingRequirements() const {
-    if (m_parameters.getEncoding() == Compression::Jpeg) {
-        checkJpegRequirements();
-    }
+void TiffConverter::checkEncodingRequirements() const
+{
+    if (m_parameters.getEncoding() == Compression::Jpeg) checkJpegRequirements();
 }
 
-void TiffConverter::checkContainerRequirements() const {
-    if (m_parameters.getFormat() == ImageFormat::SVS) {
-        checkSVSRequirements();
-    }
+void TiffConverter::checkContainerRequirements() const
+{
+    if (m_parameters.getFormat() == ImageFormat::SVS) checkSVSRequirements();
 }
 
-void TiffConverter::updateNotDefinedParameters() {
+void TiffConverter::updateNotDefinedParameters()
+{
     makeSureValid();
     m_parameters.updateNotDefinedParameters(m_scene);
 }

@@ -1,3 +1,4 @@
+#pragma once
 /*
  * The copyright in this software is being made available under the 2-clauses
  * BSD License, included below. This software may be subject to other third
@@ -35,13 +36,9 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _OPJ_COLOR_H_
-#define _OPJ_COLOR_H_
+extern void color_sycc_to_rgb(opj_image_t* img);
+extern void color_apply_icc_profile(opj_image_t* image);
+extern void color_cielab_to_rgb(opj_image_t* image);
 
-extern void color_sycc_to_rgb(opj_image_t *img);
-extern void color_apply_icc_profile(opj_image_t *image);
-extern void color_cielab_to_rgb(opj_image_t *image);
-
-extern void color_cmyk_to_rgb(opj_image_t *image);
-extern void color_esycc_to_rgb(opj_image_t *image);
-#endif /* _OPJ_COLOR_H_ */
+extern void color_cmyk_to_rgb(opj_image_t* image);
+extern void color_esycc_to_rgb(opj_image_t* image);

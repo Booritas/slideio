@@ -1,8 +1,7 @@
 // This file is part of slideio project.
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
-#ifndef OPENCV_slideio_VSIslide_HPP
-#define OPENCV_slideio_VSIslide_HPP
+#pragma once
 
 #include "etsfile.hpp"
 #include "slideio/core/cvscene.hpp"
@@ -11,8 +10,8 @@
 #include "slideio/drivers/vsi/vsi_api_def.hpp"
 
 #if defined(_MSC_VER)
-#pragma warning( push )
-#pragma warning(disable: 4251)
+#pragma warning(push)
+#pragma warning(disable : 4251)
 #endif
 
 namespace slideio
@@ -21,31 +20,33 @@ namespace slideio
     {
         class VSIFile;
         struct TempData;
-        class SLIDEIO_VSI_EXPORTS VSISlide : public slideio::CVSlide
+        class SLIDEIO_VSI_EXPORTS VSISlide: public slideio::CVSlide
         {
             friend class VSIImageDriver;
+
         public:
             VSISlide(const std::string& filePath, const std::string& driverId);
+
         public:
             int getNumScenes() const override;
             std::string getFilePath() const override;
             std::shared_ptr<slideio::CVScene> getScene(int index) const override;
             std::shared_ptr<CVScene> getAuxImage(const std::string& sceneName) const override;
             const std::string& getRawMetadata() const override;
+
         private:
             void init();
+
         private:
             std::vector<std::shared_ptr<VSIScene>> m_Scenes;
             std::map<std::string, std::shared_ptr<slideio::CVScene>> m_auxImages;
             std::string m_filePath;
             std::shared_ptr<vsi::VSIFile> m_vsiFile;
         };
-    }
+    } // namespace vsi
 
-}
+} // namespace slideio
 
 #if defined(_MSC_VER)
-#pragma warning( pop )
-#endif
-
+#pragma warning(pop)
 #endif

@@ -5,7 +5,6 @@
 #include "slideio/slideio/slideio.hpp"
 #include "tests/testlib/testtools.hpp"
 
-
 GTEST_TEST(ImageDriverManager, getDriverIDs)
 {
     std::vector<std::string> driverIDs = slideio::ImageDriverManager::getDriverIDs();
@@ -54,22 +53,19 @@ TEST(ImageDriverManager, findDriver)
         TestEntity("NDPI", TestTools::getTestImagePath("ndpi", "test3-DAPI-2-(387).ndpi")),
         TestEntity("SCN", TestTools::getTestImagePath("scn", "Leica-Fluorescence-1.scn")),
         TestEntity("SVS", TestTools::getTestImagePath("svs", "CMU-1-Small-Region.svs")),
-        TestEntity("ZVI", TestTools::getTestImagePath("svs", "TOMMAlexaFluor647.zvi"))
-    };
-    for(const auto& entity: testList) {
+        TestEntity("ZVI", TestTools::getTestImagePath("svs", "TOMMAlexaFluor647.zvi"))};
+    for (const auto& entity : testList)
+    {
         auto driverId = std::get<0>(entity);
         auto path = std::get<1>(entity);
         auto driver = slideio::ImageDriverManager::findDriver(path);
         EXPECT_TRUE(driver.get() != nullptr);
-        if(driver.get()!=nullptr) {
-            EXPECT_EQ(driverId, driver->getID());
-        }
+        if (driver.get() != nullptr) EXPECT_EQ(driverId, driver->getID());
     }
-
 }
 
 TEST(ImageDriverManager, getVersion)
 {
-	std::string version = slideio::ImageDriverManager::getVersion();
-	EXPECT_EQ(version, "2.8.1");
+    std::string version = slideio::ImageDriverManager::getVersion();
+    EXPECT_EQ(version, "2.8.1");
 }

@@ -7,10 +7,7 @@
 
 namespace slideio
 {
-    inline Rect::Rect(const cv::Rect& cvRect)
-        : x(cvRect.x), y(cvRect.y), width(cvRect.width), height(cvRect.height)
-    {
-    }
+    inline Rect::Rect(const cv::Rect& cvRect): x(cvRect.x), y(cvRect.y), width(cvRect.width), height(cvRect.height) {}
 
     inline Rect& Rect::operator=(const cv::Rect& cvRect)
     {
@@ -25,5 +22,4 @@ namespace slideio
     {
         return cv::Rect(x, y, width, height);
     }
-}
-
+} // namespace slideio

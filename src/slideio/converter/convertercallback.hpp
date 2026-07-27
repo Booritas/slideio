@@ -10,4 +10,4 @@ namespace slideio
     {
         typedef const std::function<void(int)>& ConverterCallback;
     }
-}
+} // namespace slideio

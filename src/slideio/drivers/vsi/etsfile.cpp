@@ -12,86 +12,87 @@
 
 using namespace slideio;
 
-slideio::vsi::EtsFile::EtsFile(const std::string& filePath) : m_filePath(filePath) {
-}
+slideio::vsi::EtsFile::EtsFile(const std::string& filePath): m_filePath(filePath) {}
 
-bool vsi::EtsFile::assignVolume(std::list<std::shared_ptr<vsi::Volume>>& volumes) {
+bool vsi::EtsFile::assignVolume(std::list<std::shared_ptr<vsi::Volume>>& volumes)
+{
     const int64_t minWidth = static_cast<int64_t>(m_maxCoordinates[0]) * m_tileSize.width;
     const int64_t minHeight = static_cast<int64_t>(m_maxCoordinates[1]) * m_tileSize.height;
     const int64_t maxWidth = minWidth + m_tileSize.width;
     const int64_t maxHeight = minHeight + m_tileSize.height;
 
-    for (auto it = volumes.begin(); it != volumes.end(); ++it) {
+    for (auto it = volumes.begin(); it != volumes.end(); ++it)
+    {
         const std::shared_ptr<Volume> volume = *it;
         const cv::Size volumeSize = volume->getSize();
         const int volumeWidth = volumeSize.width;
         const int volumeHeight = volumeSize.height;
-        if (volumeWidth >= minWidth && volumeWidth <= maxWidth && volumeHeight >= minHeight && volumeHeight <=
-            maxHeight) {
+        if (volumeWidth >= minWidth && volumeWidth <= maxWidth && volumeHeight >= minHeight &&
+            volumeHeight <= maxHeight)
+        {
             volumes.erase(it);
             setVolume(volume);
             break;
         }
     }
-    return m_volume !=nullptr;
+    return m_volume != nullptr;
 }
 
-void vsi::EtsFile::initStruct(TileInfoListPtr& tiles) {
+void vsi::EtsFile::initStruct(TileInfoListPtr& tiles)
+{
 
-    if (m_volume) {
+    if (m_volume)
+    {
         m_size.width = m_volume->getSize().width;
         m_size.height = m_volume->getSize().height;
     }
 
     const int zIndex = m_volume->getDimensionOrder(Dimensions::Z);
-    if (zIndex > 1 && zIndex < static_cast<int>(m_maxCoordinates.size())) {
-        m_numZSlices = m_maxCoordinates[zIndex] + 1;
-    }
+    if (zIndex > 1 && zIndex < static_cast<int>(m_maxCoordinates.size())) m_numZSlices = m_maxCoordinates[zIndex] + 1;
     const int tIndex = m_volume->getDimensionOrder(Dimensions::T);
-    if (tIndex > 1 && tIndex < static_cast<int>(m_maxCoordinates.size())) {
-        m_numTFrames = m_maxCoordinates[tIndex] + 1;
-    }
+    if (tIndex > 1 && tIndex < static_cast<int>(m_maxCoordinates.size())) m_numTFrames = m_maxCoordinates[tIndex] + 1;
     const int lambdaIndex = m_volume->getDimensionOrder(Dimensions::L);
-    if (lambdaIndex > 1 && lambdaIndex < static_cast<int>(m_maxCoordinates.size())) {
+    if (lambdaIndex > 1 && lambdaIndex < static_cast<int>(m_maxCoordinates.size()))
         m_numLambdas = m_maxCoordinates[lambdaIndex] + 1;
-    }
     const int channelIndex = m_volume->getDimensionOrder(Dimensions::C);
-    if (channelIndex > 1 && channelIndex < static_cast<int>(m_maxCoordinates.size())) {
+    if (channelIndex > 1 && channelIndex < static_cast<int>(m_maxCoordinates.size()))
         m_numChannels = m_maxCoordinates[channelIndex] + 1;
-    }
 
     m_pyramid.init(tiles, m_size, m_tileSize, m_volume.get());
 
     const int numChannelIndices = m_pyramid.getNumChannelIndices();
-    if (numChannelIndices > 1 && numChannelIndices != getNumChannels()) {
-        RAISE_RUNTIME_ERROR << "VSIImageDriver: init: Unexpected number of channel indices "
-            << numChannelIndices << ". Expected 1 or " << getNumChannels();
+    if (numChannelIndices > 1 && numChannelIndices != getNumChannels())
+    {
+        RAISE_RUNTIME_ERROR << "VSIImageDriver: init: Unexpected number of channel indices " << numChannelIndices
+                            << ". Expected 1 or " << getNumChannels();
     }
 }
 
-void slideio::vsi::EtsFile::read(std::list<std::shared_ptr<Volume>>& volumes, std::shared_ptr<std::vector<TileInfo>>& tiles) {
+void slideio::vsi::EtsFile::read(std::list<std::shared_ptr<Volume>>& volumes,
+                                 std::shared_ptr<std::vector<TileInfo>>& tiles)
+{
     // Open the file
     m_etsStream = std::make_unique<vsi::VSIStream>(m_filePath);
     vsi::EtsVolumeHeader header = {0};
     m_etsStream->read<vsi::EtsVolumeHeader>(header);
     fromLittleEndianToNative(header);
 
-    if (strncmp((char*)header.magic, "SIS", 3) != 0) {
+    if (strncmp((char*)header.magic, "SIS", 3) != 0)
+    {
         RAISE_RUNTIME_ERROR << "VSI driver: invalid ETS file header. Expected first tree bytes: 'SIS', got: "
-            << header.magic;
+                            << header.magic;
     }
-    if (header.headerSize != 64) {
-        RAISE_RUNTIME_ERROR << "VSI driver: invalid file header. Expected header size: 64, got: "
-            << header.headerSize;
-    }
+    if (header.headerSize != 64)
+        RAISE_RUNTIME_ERROR << "VSI driver: invalid file header. Expected header size: 64, got: " << header.headerSize;
     m_etsStream->setPos(header.additionalHeaderPos);
     ETSAdditionalHeader additionalHeader = {0};
     m_etsStream->read<vsi::ETSAdditionalHeader>(additionalHeader);
-	fromLittleEndianToNative(additionalHeader);
+    fromLittleEndianToNative(additionalHeader);
 
-    if (strncmp((char*)additionalHeader.magic, "ETS", 3) != 0) {
+    if (strncmp((char*)additionalHeader.magic, "ETS", 3) != 0)
+    {
         RAISE_RUNTIME_ERROR << "VSI driver: invalid ETS file header. Expected first tree bytes: 'ETS', got: "
-            << header.magic;
+                            << header.magic;
     }
     m_numDimensions = static_cast<int>(header.numDimensions);
     m_dataType = VSITools::toSlideioPixelType(additionalHeader.componentType);
@@ -109,19 +110,21 @@ void slideio::vsi::EtsFile::read(std::list<std::shared_ptr<Volume>>& volumes, st
     m_etsStream->setPos(header.usedChunksPos);
     tiles->resize(header.numUsedChunks);
     m_maxCoordinates.resize(m_numDimensions);
-    for (uint chunk = 0; chunk < header.numUsedChunks; ++chunk) {
+    for (uint chunk = 0; chunk < header.numUsedChunks; ++chunk)
+    {
         TileInfo& tileInfo = tiles->at(chunk);
         m_etsStream->skipBytes(4);
         tileInfo.coordinates.resize(m_numDimensions);
-        for (int i = 0; i < m_numDimensions; ++i) {
+        for (int i = 0; i < m_numDimensions; ++i)
+        {
             tileInfo.coordinates[i] = m_etsStream->readValue<int32_t>();
-			tileInfo.coordinates[i] = Endian::fromLittleEndianToNative(tileInfo.coordinates[i]);
+            tileInfo.coordinates[i] = Endian::fromLittleEndianToNative(tileInfo.coordinates[i]);
             m_maxCoordinates[i] = std::max(m_maxCoordinates[i], tileInfo.coordinates[i]);
         }
         tileInfo.offset = m_etsStream->readValue<int64_t>();
-		tileInfo.offset = Endian::fromLittleEndianToNative(tileInfo.offset);
+        tileInfo.offset = Endian::fromLittleEndianToNative(tileInfo.offset);
         tileInfo.size = m_etsStream->readValue<uint32_t>();
-		tileInfo.size = Endian::fromLittleEndianToNative(tileInfo.size);
+        tileInfo.size = Endian::fromLittleEndianToNative(tileInfo.size);
         m_etsStream->skipBytes(4);
     }
 
@@ -129,16 +132,14 @@ void slideio::vsi::EtsFile::read(std::list<std::shared_ptr<Volume>>& volumes, st
     const int64_t minHeight = static_cast<int64_t>(m_maxCoordinates[1]) * m_tileSize.height;
     const int64_t maxWidth = minWidth + m_tileSize.width;
     const int64_t maxHeight = minHeight + m_tileSize.height;
-    if (maxWidth > INT32_MAX || maxHeight > INT32_MAX) {
-        RAISE_RUNTIME_ERROR << "EtsFile: computed image dimensions overflow ("
-            << maxWidth << " x " << maxHeight << ")";
-    }
+    if (maxWidth > INT32_MAX || maxHeight > INT32_MAX)
+        RAISE_RUNTIME_ERROR << "EtsFile: computed image dimensions overflow (" << maxWidth << " x " << maxHeight << ")";
 
     m_sizeWithCompleteTiles = cv::Size(static_cast<int>(maxWidth), static_cast<int>(maxHeight));
-
 }
 
-void vsi::EtsFile::readTilePart(const vsi::TileInfo& tileInfo, cv::OutputArray tileRaster) {
+void vsi::EtsFile::readTilePart(const vsi::TileInfo& tileInfo, cv::OutputArray tileRaster)
+{
     const int64_t offset = tileInfo.offset;
     const uint32_t tileCompressedSize = tileInfo.size;
     const int ds = CVTools::cvGetDataTypeSize(m_dataType);
@@ -146,65 +147,68 @@ void vsi::EtsFile::readTilePart(const vsi::TileInfo& tileInfo, cv::OutputArray t
     m_buffer.resize(tileCompressedSize);
     m_etsStream->readBytes(m_buffer.data(), static_cast<int>(m_buffer.size()));
     tileRaster.create(m_tileSize, CV_MAKETYPE(CVTools::cvTypeFromDataType(m_dataType), 1));
-    if (m_compression == slideio::Compression::Uncompressed) {
+    if (m_compression == slideio::Compression::Uncompressed)
+    {
         const int tileSize = m_tileSize.width * m_tileSize.height * ds;
         std::memcpy(tileRaster.getMat().data, m_buffer.data(), tileSize);
     }
-    else if (m_compression == slideio::Compression::Jpeg) {
+    else if (m_compression == slideio::Compression::Jpeg)
+    {
         ImageTools::decodeJpegStream(m_buffer.data(), m_buffer.size(), tileRaster);
     }
-    else if (m_compression == slideio::Compression::Jpeg2000) {
+    else if (m_compression == slideio::Compression::Jpeg2000)
+    {
         ImageTools::decodeJp2KStream(m_buffer.data(), m_buffer.size(), tileRaster);
     }
-    else {
+    else
+    {
         RAISE_RUNTIME_ERROR << "VSIImageDriver: readTile: Compression " << static_cast<int>(m_compression)
-            << " is not supported";
+                            << " is not supported";
     }
 }
 
-void vsi::EtsFile::readTile(int levelIndex,
-                            int tileIndex,
-                            const std::vector<int>& channelIndices,
-                            int zSlice,
-                            int tFrame,
-                            cv::OutputArray output) {
-    if (levelIndex < 0 || levelIndex >= m_pyramid.getNumLevels()) {
-        RAISE_RUNTIME_ERROR << "VSIImageDriver: readTile: Pyramid level "
-            << levelIndex << " is out of range (0 - " << m_pyramid.getNumLevels() << " )";
+void vsi::EtsFile::readTile(int levelIndex, int tileIndex, const std::vector<int>& channelIndices, int zSlice,
+                            int tFrame, cv::OutputArray output)
+{
+    if (levelIndex < 0 || levelIndex >= m_pyramid.getNumLevels())
+    {
+        RAISE_RUNTIME_ERROR << "VSIImageDriver: readTile: Pyramid level " << levelIndex << " is out of range (0 - "
+                            << m_pyramid.getNumLevels() << " )";
     }
     const PyramidLevel& pyramidLevel = m_pyramid.getLevel(levelIndex);
 
-    if (tileIndex < 0 || tileIndex >= pyramidLevel.getNumTiles()) {
-        RAISE_RUNTIME_ERROR << "VSIImageDriver: readTile: Tile index "
-            << tileIndex << " is out of range (0 - " << pyramidLevel.getNumTiles() << " )";
+    if (tileIndex < 0 || tileIndex >= pyramidLevel.getNumTiles())
+    {
+        RAISE_RUNTIME_ERROR << "VSIImageDriver: readTile: Tile index " << tileIndex << " is out of range (0 - "
+                            << pyramidLevel.getNumTiles() << " )";
     }
     const int numChannelIndices = m_pyramid.getNumChannelIndices();
 
-    if (numChannelIndices > 1) {
+    if (numChannelIndices > 1)
+    {
         std::list<int> channelList(channelIndices.begin(), channelIndices.end());
-        if (channelList.empty()) {
-            for (int i = 0; i < getNumChannels(); ++i) {
+        if (channelList.empty())
+            for (int i = 0; i < getNumChannels(); ++i)
                 channelList.push_back(i);
-            }
-        }
         std::vector<cv::Mat> channelRasters(channelList.size());
         int rasterIndex = 0;
-        for (const int channelIndex : channelList) {
-            if (channelIndex < 0 || channelIndex >= getNumChannels()) {
-                RAISE_RUNTIME_ERROR << "VSIImageDriver: readTile: Channel index "
-                    << channelIndex << " is out of range (0 - " << numChannelIndices << " )";
+        for (const int channelIndex : channelList)
+        {
+            if (channelIndex < 0 || channelIndex >= getNumChannels())
+            {
+                RAISE_RUNTIME_ERROR << "VSIImageDriver: readTile: Channel index " << channelIndex
+                                    << " is out of range (0 - " << numChannelIndices << " )";
             }
             const TileInfo& tileInfo = pyramidLevel.getTile(tileIndex, channelIndex, zSlice, tFrame);
             readTilePart(tileInfo, channelRasters[rasterIndex++]);
         }
-        if (channelRasters.size() == 1) {
+        if (channelRasters.size() == 1)
             channelRasters[0].copyTo(output);
-        }
-        else {
+        else
             cv::merge(channelRasters, output);
-        }
     }
-    else {
+    else
+    {
         cv::Mat tileRaster;
         const TileInfo& tileInfo = pyramidLevel.getTile(tileIndex, 0, zSlice, tFrame);
         readTilePart(tileInfo, tileRaster);

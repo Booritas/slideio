@@ -1,8 +1,7 @@
 // This file is part of slideio project.
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
-#ifndef OPENCV_slideio_svstools_HPP
-#define OPENCV_slideio_svstools_HPP
+#pragma once
 
 #include "slideio/drivers/svs/svs_api_def.hpp"
 #include "slideio/imagetools/tifftools.hpp"
@@ -26,6 +25,4 @@ namespace slideio
         // Serializes a TiffDirectory (and its subdirectories) to JSON.
         static nlohmann::json tiffDirectoryToJson(const TiffDirectory& dir);
     };
-}
-
-#endif
+} // namespace slideio

@@ -9,13 +9,13 @@
 #include "slideio/imagetools/tifftools.hpp"
 
 #if defined(_MSC_VER)
-#pragma warning( push )
-#pragma warning(disable: 4251)
+#pragma warning(push)
+#pragma warning(disable : 4251)
 #endif
 
 namespace slideio
 {
-    class SLIDEIO_PKE_EXPORTS PKEScene : public CVScene
+    class SLIDEIO_PKE_EXPORTS PKEScene: public CVScene
     {
     public:
         /**
@@ -25,35 +25,20 @@ namespace slideio
          * \param hfile: tiff file handle of the slide
          */
         PKEScene(const std::string& filePath, int sceneIndex, const std::string& driverId, const std::string& name);
-        PKEScene(const std::string& filePath, int sceneIndex, const std::string& driverId, libtiff::TIFF* hFile, const std::string& name);
+        PKEScene(const std::string& filePath, int sceneIndex, const std::string& driverId, libtiff::TIFF* hFile,
+                 const std::string& name);
 
         virtual ~PKEScene();
         void makeSureFileIsOpened();
 
-        std::string getFilePath() const override {
-            return m_filePath;
-        }
-        int getSceneIndex() const override {
-            return m_sceneIndex;
-		}
-        const std::string& getDriverId() const override {
-            return m_driverId;
-        }
-        std::string getName() const override {
-            return m_name;
-        }
-        Compression getCompression() const override{
-            return m_compression;
-        }
-        slideio::Resolution getResolution() const override{
-            return m_resolution;
-        }
-        double getMagnification() const override{
-            return m_magnification;
-        }
-        DataType getChannelDataType(int) const override{
-            return m_dataType;
-        }
+        std::string getFilePath() const override { return m_filePath; }
+        int getSceneIndex() const override { return m_sceneIndex; }
+        const std::string& getDriverId() const override { return m_driverId; }
+        std::string getName() const override { return m_name; }
+        Compression getCompression() const override { return m_compression; }
+        slideio::Resolution getResolution() const override { return m_resolution; }
+        double getMagnification() const override { return m_magnification; }
+        DataType getChannelDataType(int) const override { return m_dataType; }
         libtiff::TIFF* getFileHandle();
 
     protected:
@@ -64,12 +49,13 @@ namespace slideio
         Resolution m_resolution;
         double m_magnification;
         DataType m_dataType;
-		int m_sceneIndex;
+        int m_sceneIndex;
+
     private:
         TIFFKeeper m_tiffKeeper;
     };
-}
+} // namespace slideio
 
 #if defined(_MSC_VER)
-#pragma warning( pop )
+#pragma warning(pop)
 #endif

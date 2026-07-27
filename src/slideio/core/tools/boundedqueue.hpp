@@ -13,32 +13,33 @@
 #include <map>
 
 // --- Thread-safe bounded queue ---
-template<typename T>
-class BoundedQueue {
+template <typename T> class BoundedQueue
+{
 public:
-    explicit BoundedQueue(size_t maxSize) : maxSize_(maxSize) {}
+    explicit BoundedQueue(size_t maxSize): maxSize_(maxSize) {}
 
-    bool push(T item) {
+    bool push(T item)
+    {
         std::unique_lock lock(mutex_);
         cvNotFull_.wait(lock, [&] { return queue_.size() < maxSize_ || done_; });
-        if (done_) 
-            return false;  // Queue is shutting down, discard item
+        if (done_) return false; // Queue is shutting down, discard item
         queue_.push(std::move(item));
         cvNotEmpty_.notify_one();
         return true;
     }
-    std::optional<T> pop() {
+    std::optional<T> pop()
+    {
         std::unique_lock lock(mutex_);
-        cvNotEmpty_.wait(lock, [&]{ return !queue_.empty() || done_; });
-        if (queue_.empty()) 
-            return std::nullopt;  // Signals shutdown
+        cvNotEmpty_.wait(lock, [&] { return !queue_.empty() || done_; });
+        if (queue_.empty()) return std::nullopt; // Signals shutdown
         T item = std::move(queue_.front());
         queue_.pop();
         cvNotFull_.notify_one();
         return item;
     }
 
-    void setDone() {
+    void setDone()
+    {
         std::unique_lock lock(mutex_);
         done_ = true;
         cvNotEmpty_.notify_all();
@@ -46,10 +47,10 @@ public:
     }
 
 private:
-    std::queue<T>           queue_;
-    std::mutex              mutex_;
+    std::queue<T> queue_;
+    std::mutex mutex_;
     std::condition_variable cvNotEmpty_;
     std::condition_variable cvNotFull_;
-    size_t                  maxSize_;
-    bool                    done_ = false;
+    size_t maxSize_;
+    bool done_ = false;
 };

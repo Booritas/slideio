@@ -9,33 +9,25 @@
 namespace slideio
 {
 
-    class SLIDEIO_TRANSFORMER_EXPORTS SobelFilter : public TransformationEx
+    class SLIDEIO_TRANSFORMER_EXPORTS SobelFilter: public TransformationEx
     {
     public:
         SobelFilter(const SobelFilter& other)
-            : TransformationEx(other),
-              m_depth(other.m_depth),
-              m_dx(other.m_dx),
-              m_dy(other.m_dy),
-              m_ksize(other.m_ksize),
-              m_scale(other.m_scale),
-              m_delta(other.m_delta) {
+            : TransformationEx(other), m_depth(other.m_depth), m_dx(other.m_dx), m_dy(other.m_dy),
+              m_ksize(other.m_ksize), m_scale(other.m_scale), m_delta(other.m_delta)
+        {
         }
 
         SobelFilter(SobelFilter&& other) noexcept
-            : TransformationEx(std::move(other)),
-              m_depth(other.m_depth),
-              m_dx(other.m_dx),
-              m_dy(other.m_dy),
-              m_ksize(other.m_ksize),
-              m_scale(other.m_scale),
-              m_delta(other.m_delta) {
+            : TransformationEx(std::move(other)), m_depth(other.m_depth), m_dx(other.m_dx), m_dy(other.m_dy),
+              m_ksize(other.m_ksize), m_scale(other.m_scale), m_delta(other.m_delta)
+        {
         }
 
-        SobelFilter& operator=(const SobelFilter& other) {
-            if (this == &other)
-                return *this;
-            TransformationEx::operator =(other);
+        SobelFilter& operator=(const SobelFilter& other)
+        {
+            if (this == &other) return *this;
+            TransformationEx::operator=(other);
             m_depth = other.m_depth;
             m_dx = other.m_dx;
             m_dy = other.m_dy;
@@ -45,10 +37,10 @@ namespace slideio
             return *this;
         }
 
-        SobelFilter& operator=(SobelFilter&& other) noexcept {
-            if (this == &other)
-                return *this;
-            TransformationEx::operator =(std::move(other));
+        SobelFilter& operator=(SobelFilter&& other) noexcept
+        {
+            if (this == &other) return *this;
+            TransformationEx::operator=(std::move(other));
             m_depth = other.m_depth;
             m_dx = other.m_dx;
             m_dy = other.m_dy;
@@ -58,70 +50,31 @@ namespace slideio
             return *this;
         }
 
-        SobelFilter()
-        {
-            m_type = TransformationType::SobelFilter;
-        }
+        SobelFilter() { m_type = TransformationType::SobelFilter; }
 
-        DataType getDepth() const
-        {
-            return m_depth;
-        }
+        DataType getDepth() const { return m_depth; }
 
-        void setDepth(const DataType& depth)
-        {
-            m_depth = depth;
-        }
+        void setDepth(const DataType& depth) { m_depth = depth; }
 
-        int getDx() const
-        {
-            return m_dx;
-        }
+        int getDx() const { return m_dx; }
 
-        void setDx(int dx)
-        {
-            m_dx = dx;
-        }
+        void setDx(int dx) { m_dx = dx; }
 
-        int getDy() const
-        {
-            return m_dy;
-        }
+        int getDy() const { return m_dy; }
 
-        void setDy(int dy)
-        {
-            m_dy = dy;
-        }
+        void setDy(int dy) { m_dy = dy; }
 
-        int getKernelSize() const
-        {
-            return m_ksize;
-        }
+        int getKernelSize() const { return m_ksize; }
 
-        void setKernelSize(int ksize)
-        {
-            m_ksize = ksize;
-        }
+        void setKernelSize(int ksize) { m_ksize = ksize; }
 
-        double getScale() const
-        {
-            return m_scale;
-        }
+        double getScale() const { return m_scale; }
 
-        void setScale(double scale)
-        {
-            m_scale = scale;
-        }
+        void setScale(double scale) { m_scale = scale; }
 
-        double getDelta() const
-        {
-            return m_delta;
-        }
+        double getDelta() const { return m_delta; }
 
-        void setDelta(double delta)
-        {
-            m_delta = delta;
-        }
+        void setDelta(double delta) { m_delta = delta; }
 
         void applyTransformation(const cv::Mat& block, cv::OutputArray transformedBlock) const override;
         int getInflationValue() const override;
@@ -136,4 +89,4 @@ namespace slideio
         double m_delta = 0.;
     };
 
-}
+} // namespace slideio

@@ -5,7 +5,7 @@
 #include "slideio/base/base.hpp"
 #include "tests/testlib/testtools.hpp"
 
-using namespace  slideio;
+using namespace slideio;
 
 TEST(Exception, riseError)
 {
@@ -13,19 +13,23 @@ TEST(Exception, riseError)
     const std::string stringVal = "sssss";
     int thrown = 0;
 
-    try {
-        try {
+    try
+    {
+        try
+        {
             RAISE_RUNTIME_ERROR << "Error " << intVal << " " << stringVal;
             ASSERT_FALSE(true);
         }
-        catch (std::exception& ex) {
+        catch (std::exception& ex)
+        {
             thrown++;
             std::string message = ex.what();
             EXPECT_TRUE(message.find("Error 1 sssss") >= 0);
             throw;
         }
     }
-    catch(std::exception& ex) {
+    catch (std::exception& ex)
+    {
         thrown++;
         std::string message = ex.what();
         EXPECT_TRUE(message.find("Error 1 sssss") >= 0);

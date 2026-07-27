@@ -5,29 +5,24 @@
 #include "slideio/drivers/scn/scnslide.hpp"
 #include "slideio/core/tools/tools.hpp"
 
+slideio::SCNImageDriver::SCNImageDriver() {}
 
-slideio::SCNImageDriver::SCNImageDriver()
-{
-}
-
-slideio::SCNImageDriver::~SCNImageDriver()
-{
-}
+slideio::SCNImageDriver::~SCNImageDriver() {}
 
 std::string slideio::SCNImageDriver::getID() const
 {
-	return std::string("SCN");
+    return std::string("SCN");
 }
 
 std::shared_ptr<slideio::CVSlide> slideio::SCNImageDriver::openFile(const std::string& filePath)
 {
-    Tools::throwIfPathNotExist(filePath,"SCNImageDriver::openFile");
+    Tools::throwIfPathNotExist(filePath, "SCNImageDriver::openFile");
     std::shared_ptr<CVSlide> ptr(new SCNSlide(filePath, getID()));
     return ptr;
 }
 
 std::string slideio::SCNImageDriver::getFileSpecs() const
 {
-	static std::string pattern("*.scn");
+    static std::string pattern("*.scn");
     return pattern;
 }

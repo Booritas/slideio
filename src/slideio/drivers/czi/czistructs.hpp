@@ -1,8 +1,7 @@
 // This file is part of slideio project.
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
-#ifndef OPENCV_slideio_czistructs_HPP
-#define OPENCV_slideio_czistructs_HPP
+#pragma once
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -11,7 +10,7 @@ namespace slideio
 {
     const int SIZE_ATTACHMENTDIRECTORY_DATA = 256;
 
-    #pragma pack(push,1)
+#pragma pack(push, 1)
     struct SegmentHeader
     {
         char SID[16];
@@ -102,8 +101,7 @@ namespace slideio
     {
         int64_t dataSize;
         uint8_t spare[8];
-        union
-        {
+        union {
             struct AttachmentEntryA1 attachmentEntry;
             uint8_t reservedSpace[128];
         };
@@ -114,12 +112,12 @@ namespace slideio
         struct SegmentHeader header;
         struct AttachmentSegmentData data;
     };
-    #pragma pack(pop)
+#pragma pack(pop)
     struct CZIChannelInfo
     {
         std::string id;
         std::string name;
-		std::vector<std::pair<std::string, std::string>> attributes;
+        std::vector<std::pair<std::string, std::string>> attributes;
     };
     typedef std::vector<CZIChannelInfo> CZIChannelInfos;
     struct Dimension
@@ -142,5 +140,4 @@ namespace slideio
         Gray32 = 12,
         Gray64 = 13,
     };
-}
-#endif
+} // namespace slideio

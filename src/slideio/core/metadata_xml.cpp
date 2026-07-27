@@ -6,76 +6,75 @@
 #include <tinyxml2.h>
 #include <string>
 
-namespace slideio { namespace detail {
-
-using nlohmann::json;
-using tinyxml2::XMLElement;
-
-namespace
+namespace slideio
 {
-    json elementToJson(const XMLElement* el);
-
-    void addChild(json& parent, const std::string& key, json child)
+    namespace detail
     {
-        auto it = parent.find(key);
-        if (it == parent.end())
-        {
-            parent[key] = std::move(child);
-            return;
-        }
-        if (it->is_array())
-        {
-            it->push_back(std::move(child));
-            return;
-        }
-        json arr = json::array();
-        arr.push_back(std::move(*it));
-        arr.push_back(std::move(child));
-        *it = std::move(arr);
-    }
 
-    json elementToJson(const XMLElement* el)
-    {
-        json node = json::object();
+        using nlohmann::json;
+        using tinyxml2::XMLElement;
 
-        for (const auto* a = el->FirstAttribute(); a; a = a->Next())
+        namespace
         {
-            node[std::string("@") + a->Name()] = a->Value();
-        }
+            json elementToJson(const XMLElement* el);
 
-        bool hasElementChild = false;
-        for (const XMLElement* c = el->FirstChildElement(); c; c = c->NextSiblingElement())
-        {
-            hasElementChild = true;
-            addChild(node, c->Name(), elementToJson(c));
-        }
-
-        const char* txt = el->GetText();
-        if (txt && *txt)
-        {
-            if (!hasElementChild && node.empty())
+            void addChild(json& parent, const std::string& key, json child)
             {
-                return json(txt);
+                auto it = parent.find(key);
+                if (it == parent.end())
+                {
+                    parent[key] = std::move(child);
+                    return;
+                }
+                if (it->is_array())
+                {
+                    it->push_back(std::move(child));
+                    return;
+                }
+                json arr = json::array();
+                arr.push_back(std::move(*it));
+                arr.push_back(std::move(child));
+                *it = std::move(arr);
             }
-            node["#text"] = txt;
+
+            json elementToJson(const XMLElement* el)
+            {
+                json node = json::object();
+
+                for (const auto* a = el->FirstAttribute(); a; a = a->Next())
+                    node[std::string("@") + a->Name()] = a->Value();
+
+                bool hasElementChild = false;
+                for (const XMLElement* c = el->FirstChildElement(); c; c = c->NextSiblingElement())
+                {
+                    hasElementChild = true;
+                    addChild(node, c->Name(), elementToJson(c));
+                }
+
+                const char* txt = el->GetText();
+                if (txt && *txt)
+                {
+                    if (!hasElementChild && node.empty()) return json(txt);
+                    node["#text"] = txt;
+                }
+                return node;
+            }
+        } // namespace
+
+        json xmlStringToJson(const std::string& xml)
+        {
+            tinyxml2::XMLDocument doc;
+            if (doc.Parse(xml.c_str(), xml.size()) != tinyxml2::XML_SUCCESS)
+            {
+                const char* err = doc.ErrorStr();
+                return json{{"#error", err ? err : "xml parse error"}};
+            }
+            const XMLElement* root = doc.RootElement();
+            if (!root) return json::object();
+            json out = json::object();
+            out[root->Name()] = elementToJson(root);
+            return out;
         }
-        return node;
-    }
-}
 
-json xmlStringToJson(const std::string& xml)
-{
-    tinyxml2::XMLDocument doc;
-    if (doc.Parse(xml.c_str(), xml.size()) != tinyxml2::XML_SUCCESS)
-    {
-        const char* err = doc.ErrorStr();
-        return json{{"#error", err ? err : "xml parse error"}};
-    }
-    const XMLElement* root = doc.RootElement();
-    if (!root) return json::object();
-    json out = json::object();
-    out[root->Name()] = elementToJson(root);
-    return out;
-}
-
-}}
+    } // namespace detail
+} // namespace slideio

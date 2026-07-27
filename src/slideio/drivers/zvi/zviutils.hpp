@@ -1,8 +1,7 @@
 // This file is part of slideio project.
 // It is subject to the license terms in the LICENSE file found in the top-level directory
-// of this distribution and at http://slideio.com/license.html.#pragma once
-#ifndef OPENCV_slideio_zviutils_HPP
-#define OPENCV_slideio_zviutils_HPP
+// of this distribution and at http://slideio.com/license.html.
+#pragma once
 
 #include "slideio/drivers/zvi/zvi_api_def.hpp"
 #include "slideio/drivers/zvi/pole_lib.hpp"
@@ -14,10 +13,9 @@
 #include <vector>
 
 #if defined(_MSC_VER)
-#pragma warning( push )
-#pragma warning(disable: 4251)
+#pragma warning(push)
+#pragma warning(disable : 4251)
 #endif
-
 enum class ZVIPixelFormat;
 
 namespace slideio
@@ -70,7 +68,8 @@ namespace slideio
         } VARENUM;
         typedef std::variant<std::monostate, bool, int32_t, uint32_t, uint64_t, int64_t, double, std::string> Variant;
 
-        struct ZviTagEntry {
+        struct ZviTagEntry
+        {
             int32_t id;
             Variant value;
         };
@@ -84,8 +83,7 @@ namespace slideio
         // Returns one ZviTagEntry per (Value, TagID, Attribute) triple. Entries
         // whose Value variant is monostate (VT_EMPTY / unsupported types) are
         // dropped. {Attribute} is consumed and discarded.
-        std::vector<ZviTagEntry> SLIDEIO_ZVI_EXPORTS readAllTags(
-            ole::basic_stream& stream, bool hasClsidHeader);
+        std::vector<ZviTagEntry> SLIDEIO_ZVI_EXPORTS readAllTags(ole::basic_stream& stream, bool hasClsidHeader);
 
         void SLIDEIO_ZVI_EXPORTS skipItem(ole::basic_stream& stream);
         void SLIDEIO_ZVI_EXPORTS skipItems(ole::basic_stream& stream, int count);
@@ -100,19 +98,14 @@ namespace slideio
         {
         public:
             StreamKeeper(ole::compound_document& doc, const std::string& path);
-            operator ole::basic_stream& () {
-                return m_StreamPos->stream();
-            }
-            ole::basic_stream* operator ->() {
-                return &(m_StreamPos->stream());
-            }
+            operator ole::basic_stream&() { return m_StreamPos->stream(); }
+            ole::basic_stream* operator->() { return &(m_StreamPos->stream()); }
+
         private:
             std::vector<ole::stream_path>::iterator m_StreamPos;
         };
-    }
-}
+    } // namespace ZVIUtils
+} // namespace slideio
 #if defined(_MSC_VER)
-#pragma warning( pop )
-#endif
-
+#pragma warning(pop)
 #endif

@@ -6,9 +6,9 @@
 #include <filesystem>
 
 #include <dcmdata/dcpixel.h>
-#include <dcmdata/dcrledrg.h>    /* for DcmRLEDecoderRegistration */
-#include <dcmjpeg/djdecode.h>    /* for dcmjpeg decoders */
-#include <dcmjpeg/ddpiimpl.h>    /* for class DicomDirImageImplementation */
+#include <dcmdata/dcrledrg.h> /* for DcmRLEDecoderRegistration */
+#include <dcmjpeg/djdecode.h> /* for dcmjpeg decoders */
+#include <dcmjpeg/ddpiimpl.h> /* for class DicomDirImageImplementation */
 #include <dcmtk/dcmjpls/djdecode.h>
 #include <dcmtk/dcmimage/diregist.h>
 #include <dcmtk/dcmdata/dccodec.h>
@@ -31,10 +31,9 @@ DCMImageDriver::~DCMImageDriver()
     clieanUpDCMTK();
 }
 
-
 std::string DCMImageDriver::getID() const
 {
-	return ID;
+    return ID;
 }
 
 std::shared_ptr<CVSlide> DCMImageDriver::openFile(const std::string& filePath)
@@ -46,7 +45,7 @@ std::shared_ptr<CVSlide> DCMImageDriver::openFile(const std::string& filePath)
 
 std::string DCMImageDriver::getFileSpecs() const
 {
-	return filePathPattern;
+    return filePathPattern;
 }
 
 void DCMImageDriver::initializeDCMTK()
@@ -70,7 +69,8 @@ void DCMImageDriver::clieanUpDCMTK()
 bool DCMImageDriver::canOpenFile(const std::string& filePath) const
 {
     bool can = ImageDriver::canOpenFile(filePath);
-    if(!can) {
+    if (!can)
+    {
 #if defined(WIN32)
         std::filesystem::path fp(Tools::toWstring(filePath));
         std::wstring extension = fp.extension().wstring();

@@ -6,13 +6,12 @@
 
 namespace tinyxml2
 {
-	class XMLElement;
+    class XMLElement;
 
 }
 
 class SLIDEIO_CZI_EXPORTS CZITools
 {
 public:
-	static int channelCountFromPixelType(const tinyxml2::XMLElement* xmlPixelType);
+    static int channelCountFromPixelType(const tinyxml2::XMLElement* xmlPixelType);
 };
-

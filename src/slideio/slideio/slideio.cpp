@@ -6,7 +6,6 @@
 
 using namespace slideio;
 
-
 std::shared_ptr<slideio::Slide> slideio::openSlide(const std::string& path, const std::string& driver)
 {
     std::shared_ptr<CVSlide> cvSlide = ImageDriverManager::openSlide(path, driver);

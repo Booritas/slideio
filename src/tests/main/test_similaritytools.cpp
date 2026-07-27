@@ -11,13 +11,14 @@
 
 using namespace slideio;
 
-TEST(ImageTools, cosineSimilarity) {
+TEST(ImageTools, cosineSimilarity)
+{
     // Arrange
-    std::vector<double> a = { 1.0, 2.0, 3.0 };
-    std::vector<double> b = { 1.0, 2.0, 3.0 };
-    std::vector<double> c = { 4.0, 5.0, 6.0 };
-    std::vector<double> d = { 0.0, 0.0, 0.0 };
-    std::vector<double> e = { 1.0, 2.0, 4.0 };
+    std::vector<double> a = {1.0, 2.0, 3.0};
+    std::vector<double> b = {1.0, 2.0, 3.0};
+    std::vector<double> c = {4.0, 5.0, 6.0};
+    std::vector<double> d = {0.0, 0.0, 0.0};
+    std::vector<double> e = {1.0, 2.0, 4.0};
 
     // Act
     double similarity_ab = SimilarityTools::cosineSimilarity(a, b);
@@ -28,5 +29,5 @@ TEST(ImageTools, cosineSimilarity) {
     // Assert
     ASSERT_NEAR(similarity_ab, 1.0, 0.0001); // vectors are identical, cosine similarity should be 1
     ASSERT_LT(similarity_ac, similarity_ab); // vectors are different, cosine similarity should be less than 1
-    ASSERT_EQ(similarity_ad, 0.0); // one vector is zero, cosine similarity should be 0
+    ASSERT_EQ(similarity_ad, 0.0);           // one vector is zero, cosine similarity should be 0
 }

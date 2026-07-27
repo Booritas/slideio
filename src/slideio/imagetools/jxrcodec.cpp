@@ -11,7 +11,6 @@
 
 #include "slideio/base/exceptions.hpp"
 
-
 static int getCvType(jpegxr_image_info& info)
 {
     int type = -1;
@@ -51,8 +50,7 @@ static int getCvType(jpegxr_image_info& info)
             break;
         }
     }
-    if (type < 0)
-        throw std::runtime_error("Unsuported type of jpegxr compression");
+    if (type < 0) throw std::runtime_error("Unsuported type of jpegxr compression");
 
     return type;
 }
@@ -60,21 +58,15 @@ static int getCvType(jpegxr_image_info& info)
 void slideio::ImageTools::readJxrImage(const std::string& path, cv::OutputArray output)
 {
     namespace fs = std::filesystem;
-    if (!fs::exists(path))
-    {
-        RAISE_RUNTIME_ERROR << "File " << path << " does not exist";
-    }
+    if (!fs::exists(path)) RAISE_RUNTIME_ERROR << "File " << path << " does not exist";
     FILE* input_file = fopen(path.c_str(), "rb");
-    if (!input_file)
-    {
-        RAISE_RUNTIME_ERROR << "Cannot open file " << path;
-    }
+    if (!input_file) RAISE_RUNTIME_ERROR << "Cannot open file " << path;
     try
     {
         jpegxr_image_info info;
         jpegxr_get_image_info(input_file, info);
         int type = getCvType(info);
-        output.create(info.height, info.width,CV_MAKETYPE(type, info.channels));
+        output.create(info.height, info.width, CV_MAKETYPE(type, info.channels));
         cv::Mat mat = output.getMat();
         uint8_t* outputBuff = mat.data;
         uint32_t ouputBuffSize = (int)(mat.total() * mat.elemSize());
@@ -83,23 +75,20 @@ void slideio::ImageTools::readJxrImage(const std::string& path, cv::OutputArray 
     }
     catch (std::exception& ex)
     {
-        if (input_file)
-            fclose(input_file);
+        if (input_file) fclose(input_file);
         throw ex;
     }
 }
-
 
 void slideio::ImageTools::decodeJxrBlock(const uint8_t* data, size_t dataBlockSize, cv::OutputArray output)
 {
     jpegxr_image_info info;
     jpegxr_get_image_info((uint8_t*)data, (uint32_t)dataBlockSize, info);
     int type = getCvType(info);
-    output.create(info.height, info.width,CV_MAKETYPE(type, info.channels));
+    output.create(info.height, info.width, CV_MAKETYPE(type, info.channels));
     cv::Mat mat = output.getMat();
     mat.setTo(cv::Scalar(0));
     uint8_t* outputBuff = mat.data;
     uint32_t ouputBuffSize = (int)(mat.total() * mat.elemSize());
     jpegxr_decompress((uint8_t*)data, (uint32_t)dataBlockSize, outputBuff, ouputBuffSize);
 }
-

@@ -11,4 +11,3 @@
 #else
 #define SLIDEIO_OMETIFF_EXPORTS
 #endif
-

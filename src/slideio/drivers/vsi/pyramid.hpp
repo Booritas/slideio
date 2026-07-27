@@ -7,8 +7,8 @@
 #include <vector>
 
 #if defined(_MSC_VER)
-#pragma warning( push )
-#pragma warning(disable: 4251)
+#pragma warning(push)
+#pragma warning(disable : 4251)
 #endif
 
 namespace slideio
@@ -34,6 +34,7 @@ namespace slideio
             cv::Size getSize() const { return m_size; }
             int getNumTiles() const { return static_cast<int>(m_tileIndices.size()); }
             const TileInfo& getTile(int tileIndex, int channelIndex, int zIndex, int tIndex) const;
+
         private:
             int m_scaleLevel = 1;
             cv::Size m_size;
@@ -58,6 +59,7 @@ namespace slideio
             int getNumChannelIndices() const { return m_numChannelIndices; }
             int getNumZIndices() const { return m_numZIndices; }
             int getNumTIndices() const { return m_numTIndices; }
+
         private:
             std::vector<PyramidLevel> m_levels;
             int m_numChannelIndices = 1;
@@ -65,10 +67,9 @@ namespace slideio
             int m_numTIndices = 1;
         };
 
-
-    }
-}
+    } // namespace vsi
+} // namespace slideio
 
 #if defined(_MSC_VER)
-#pragma warning( pop )
+#pragma warning(pop)
 #endif

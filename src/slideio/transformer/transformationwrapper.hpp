@@ -3,7 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 #pragma once
 
-namespace slideio 
+namespace slideio
 {
     enum class TransformationType;
     class TransformationWrapper
@@ -12,4 +12,4 @@ namespace slideio
         virtual TransformationType getType() const = 0;
         virtual ~TransformationWrapper() = default;
     };
-}
+} // namespace slideio

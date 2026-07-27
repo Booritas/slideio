@@ -6,6 +6,7 @@
 
 using namespace slideio;
 
-void RuntimeError::log(const std::string& message) {
+void RuntimeError::log(const std::string& message)
+{
     SLIDEIO_LOG(ERROR) << message;
 }

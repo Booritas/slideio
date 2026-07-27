@@ -6,22 +6,27 @@
 #include "slideio/transformer/colortransformation.hpp"
 using namespace slideio;
 
-ColorTransformationWrap::ColorTransformationWrap() {
-	m_filter = std::make_shared<ColorTransformation>();
+ColorTransformationWrap::ColorTransformationWrap()
+{
+    m_filter = std::make_shared<ColorTransformation>();
 }
 
-ColorSpace ColorTransformationWrap::getColorSpace() const {
-	return m_filter->getColorSpace();
+ColorSpace ColorTransformationWrap::getColorSpace() const
+{
+    return m_filter->getColorSpace();
 }
 
-void ColorTransformationWrap::setColorSpace(ColorSpace colorSpace) {
-	m_filter->setColorSpace(colorSpace);
+void ColorTransformationWrap::setColorSpace(ColorSpace colorSpace)
+{
+    m_filter->setColorSpace(colorSpace);
 }
 
-TransformationType ColorTransformationWrap::getType() const {
-	return m_filter->getType();
+TransformationType ColorTransformationWrap::getType() const
+{
+    return m_filter->getType();
 }
 
-std::shared_ptr<ColorTransformation> ColorTransformationWrap::getFilter() const {
+std::shared_ptr<ColorTransformation> ColorTransformationWrap::getFilter() const
+{
     return m_filter;
 }

@@ -16,13 +16,12 @@ using namespace slideio;
 int vasprintf(char** strp, const char* format, va_list ap)
 {
     int len = _vscprintf(format, ap);
-    if (len == -1)
-        return -1;
+    if (len == -1) return -1;
     char* str = (char*)malloc((size_t)len + 1);
-    if (!str)
-        return -1;
+    if (!str) return -1;
     int retval = vsnprintf(str, len + 1, format, ap);
-    if (retval == -1) {
+    if (retval == -1)
+    {
         free(str);
         return -1;
     }
@@ -40,46 +39,52 @@ int asprintf(char** strp, const char* format, ...)
 }
 #endif
 
-void TIFFMessageHandlerFunc(const char *module, const char *fmt, va_list ap) {
-    if(fmt && *fmt) {
+void TIFFMessageHandlerFunc(const char* module, const char* fmt, va_list ap)
+{
+    if (fmt && *fmt)
+    {
         char* msg(nullptr);
         vasprintf(&msg, fmt, ap);
-        if(msg) {
+        if (msg)
+        {
             SLIDEIO_LOG(WARNING) << "TIFF Warning:" << msg;
             free(msg);
         }
     }
 }
 
-bool IsFatalError(const char* module, char* msg) {
-    if (module && strcmp(module,"TIFFSetField")==0 && 
-        (msg && strstr(msg, "Unknown pseudo-tag") !=nullptr)) {
+bool IsFatalError(const char* module, char* msg)
+{
+    if (module && strcmp(module, "TIFFSetField") == 0 && (msg && strstr(msg, "Unknown pseudo-tag") != nullptr))
         return false;
-    }
     return true;
-}    
+}
 
-void TIFFErrorHandlerFunc(const char *module, const char *fmt, va_list ap) {
-    if (fmt && *fmt) {
+void TIFFErrorHandlerFunc(const char* module, const char* fmt, va_list ap)
+{
+    if (fmt && *fmt)
+    {
         char* msg(nullptr);
         vasprintf(&msg, fmt, ap);
-        if (msg) {
-            if (IsFatalError(module, msg)) {
+        if (msg)
+        {
+            if (IsFatalError(module, msg))
                 SLIDEIO_LOG(ERROR) << "TIFF Error:" << msg;
-            } else {
+            else
                 SLIDEIO_LOG(WARNING) << "TIFF Error:" << msg;
-            }
             free(msg);
         }
     }
 }
 
-TIFFMessageHandler::TIFFMessageHandler() {
+TIFFMessageHandler::TIFFMessageHandler()
+{
     m_oldErrorHandler = (void*)TIFFSetErrorHandler(TIFFErrorHandlerFunc);
     m_oldWarningHandler = (void*)TIFFSetWarningHandler(TIFFMessageHandlerFunc);
 }
 
-TIFFMessageHandler::~TIFFMessageHandler() {
+TIFFMessageHandler::~TIFFMessageHandler()
+{
     TIFFSetErrorHandler((TIFFErrorHandler)m_oldErrorHandler);
     TIFFSetWarningHandler((TIFFErrorHandler)m_oldWarningHandler);
 }

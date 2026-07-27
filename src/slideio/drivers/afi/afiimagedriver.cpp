@@ -4,27 +4,22 @@
 #include "slideio/drivers/afi/afiimagedriver.hpp"
 #include "slideio/drivers/afi/afislide.hpp"
 
+slideio::AFIImageDriver::AFIImageDriver() {}
 
-slideio::AFIImageDriver::AFIImageDriver()
-{
-}
-
-slideio::AFIImageDriver::~AFIImageDriver()
-{
-}
+slideio::AFIImageDriver::~AFIImageDriver() {}
 
 std::string slideio::AFIImageDriver::getID() const
 {
-	return std::string("AFI");
+    return std::string("AFI");
 }
 
 std::shared_ptr<slideio::CVSlide> slideio::AFIImageDriver::openFile(const std::string& filePath)
 {
-	return AFISlide::openFile(filePath, getID());
+    return AFISlide::openFile(filePath, getID());
 }
 
 std::string slideio::AFIImageDriver::getFileSpecs() const
 {
-	static std::string pattern("*.afi");
+    static std::string pattern("*.afi");
     return pattern;
 }

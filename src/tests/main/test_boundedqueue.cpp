@@ -8,7 +8,8 @@
 #include <atomic>
 #include <chrono>
 
-TEST(BoundedQueueTest, BasicPushPop) {
+TEST(BoundedQueueTest, BasicPushPop)
+{
     BoundedQueue<int> queue(10);
     queue.push(42);
     auto result = queue.pop();
@@ -16,19 +17,21 @@ TEST(BoundedQueueTest, BasicPushPop) {
     EXPECT_EQ(result.value(), 42);
 }
 
-TEST(BoundedQueueTest, MultiplePushPop) {
+TEST(BoundedQueueTest, MultiplePushPop)
+{
     BoundedQueue<int> queue(10);
-    for (int i = 0; i < 5; ++i) {
+    for (int i = 0; i < 5; ++i)
         queue.push(i);
-    }
-    for (int i = 0; i < 5; ++i) {
+    for (int i = 0; i < 5; ++i)
+    {
         auto result = queue.pop();
         ASSERT_TRUE(result.has_value());
         EXPECT_EQ(result.value(), i);
     }
 }
 
-TEST(BoundedQueueTest, FIFOOrder) {
+TEST(BoundedQueueTest, FIFOOrder)
+{
     BoundedQueue<std::string> queue(5);
     queue.push("first");
     queue.push("second");
@@ -39,7 +42,8 @@ TEST(BoundedQueueTest, FIFOOrder) {
     EXPECT_EQ(queue.pop().value(), "third");
 }
 
-TEST(BoundedQueueTest, SetDoneUnblocksPopOnEmptyQueue) {
+TEST(BoundedQueueTest, SetDoneUnblocksPopOnEmptyQueue)
+{
     BoundedQueue<int> queue(10);
     std::atomic<bool> popReturned{false};
     std::optional<int> result;
@@ -59,7 +63,8 @@ TEST(BoundedQueueTest, SetDoneUnblocksPopOnEmptyQueue) {
     EXPECT_FALSE(result.has_value());
 }
 
-TEST(BoundedQueueTest, SetDoneAllowsDrainingRemainingItems) {
+TEST(BoundedQueueTest, SetDoneAllowsDrainingRemainingItems)
+{
     BoundedQueue<int> queue(10);
     queue.push(1);
     queue.push(2);
@@ -73,7 +78,8 @@ TEST(BoundedQueueTest, SetDoneAllowsDrainingRemainingItems) {
     EXPECT_FALSE(queue.pop().has_value());
 }
 
-TEST(BoundedQueueTest, BoundedBehaviorBlocksProducer) {
+TEST(BoundedQueueTest, BoundedBehaviorBlocksProducer)
+{
     BoundedQueue<int> queue(2);
     std::atomic<bool> pushCompleted{false};
 
@@ -94,22 +100,21 @@ TEST(BoundedQueueTest, BoundedBehaviorBlocksProducer) {
     EXPECT_TRUE(pushCompleted);
 }
 
-TEST(BoundedQueueTest, ConcurrentProducerConsumer) {
+TEST(BoundedQueueTest, ConcurrentProducerConsumer)
+{
     BoundedQueue<int> queue(5);
     const int itemCount = 100;
     std::atomic<int> consumedSum{0};
 
     std::thread producer([&]() {
-        for (int i = 1; i <= itemCount; ++i) {
+        for (int i = 1; i <= itemCount; ++i)
             queue.push(i);
-        }
         queue.setDone();
     });
 
     std::thread consumer([&]() {
-        while (auto item = queue.pop()) {
+        while (auto item = queue.pop())
             consumedSum += item.value();
-        }
     });
 
     producer.join();
@@ -119,7 +124,8 @@ TEST(BoundedQueueTest, ConcurrentProducerConsumer) {
     EXPECT_EQ(consumedSum.load(), expectedSum);
 }
 
-TEST(BoundedQueueTest, MultipleProducersMultipleConsumers) {
+TEST(BoundedQueueTest, MultipleProducersMultipleConsumers)
+{
     BoundedQueue<int> queue(10);
     const int itemsPerProducer = 50;
     const int numProducers = 3;
@@ -128,33 +134,34 @@ TEST(BoundedQueueTest, MultipleProducersMultipleConsumers) {
     std::atomic<int> producersDone{0};
 
     std::vector<std::thread> producers;
-    for (int p = 0; p < numProducers; ++p) {
+    for (int p = 0; p < numProducers; ++p)
+    {
         producers.emplace_back([&, p]() {
-            for (int i = 0; i < itemsPerProducer; ++i) {
+            for (int i = 0; i < itemsPerProducer; ++i)
                 queue.push(p * itemsPerProducer + i);
-            }
-            if (++producersDone == numProducers) {
-                queue.setDone();
-            }
+            if (++producersDone == numProducers) queue.setDone();
         });
     }
 
     std::vector<std::thread> consumers;
-    for (int c = 0; c < numConsumers; ++c) {
+    for (int c = 0; c < numConsumers; ++c)
+    {
         consumers.emplace_back([&]() {
-            while (auto item = queue.pop()) {
+            while (auto item = queue.pop())
                 consumedCount++;
-            }
         });
     }
 
-    for (auto& t : producers) t.join();
-    for (auto& t : consumers) t.join();
+    for (auto& t : producers)
+        t.join();
+    for (auto& t : consumers)
+        t.join();
 
     EXPECT_EQ(consumedCount.load(), numProducers * itemsPerProducer);
 }
 
-TEST(BoundedQueueTest, MoveOnlyType) {
+TEST(BoundedQueueTest, MoveOnlyType)
+{
     BoundedQueue<std::unique_ptr<int>> queue(5);
     queue.push(std::make_unique<int>(42));
 
@@ -163,7 +170,8 @@ TEST(BoundedQueueTest, MoveOnlyType) {
     EXPECT_EQ(*result.value(), 42);
 }
 
-TEST(BoundedQueueTest, QueueSizeOne) {
+TEST(BoundedQueueTest, QueueSizeOne)
+{
     BoundedQueue<int> queue(1);
     queue.push(1);
     EXPECT_EQ(queue.pop().value(), 1);

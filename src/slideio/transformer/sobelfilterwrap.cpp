@@ -6,9 +6,7 @@
 
 using namespace slideio;
 
-SobelFilterWrap::SobelFilterWrap() : m_filter(std::make_shared<SobelFilter>())
-{
-}
+SobelFilterWrap::SobelFilterWrap(): m_filter(std::make_shared<SobelFilter>()) {}
 
 DataType SobelFilterWrap::getDepth() const
 {
@@ -75,7 +73,7 @@ TransformationType SobelFilterWrap::getType() const
     return m_filter->getType();
 }
 
-std::shared_ptr<SobelFilter> SobelFilterWrap::getFilter() const {
+std::shared_ptr<SobelFilter> SobelFilterWrap::getFilter() const
+{
     return m_filter;
 }
-

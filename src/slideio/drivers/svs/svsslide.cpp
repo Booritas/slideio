@@ -12,21 +12,15 @@
 
 #include <filesystem>
 
-
 using namespace slideio;
 
 const char* THUMBNAIL = "Thumbnail";
 const char* MACRO = "Macro";
 const char* LABEL = "Label";
 
+SVSSlide::SVSSlide() {}
 
-SVSSlide::SVSSlide()
-{
-}
-
-SVSSlide::~SVSSlide()
-{
-}
+SVSSlide::~SVSSlide() {}
 
 int SVSSlide::getNumScenes() const
 {
@@ -40,9 +34,7 @@ std::string SVSSlide::getFilePath() const
 
 std::shared_ptr<CVScene> SVSSlide::getScene(int index) const
 {
-    if(index>=getNumScenes()) {
-        RAISE_RUNTIME_ERROR << "SVS driver: invalid scene index";
-    }
+    if (index >= getNumScenes()) RAISE_RUNTIME_ERROR << "SVS driver: invalid scene index";
     return m_Scenes[index];
 }
 
@@ -54,7 +46,8 @@ std::shared_ptr<SVSSlide> SVSSlide::openFile(const std::string& filePath, const 
     std::vector<TiffDirectory> directories;
     libtiff::TIFF* tiff(nullptr);
     tiff = TiffTools::openTiffFile(filePath);
-    if(!tiff) {
+    if (!tiff)
+    {
         SLIDEIO_LOG(WARNING) << "SVSSlide::openFile: cannot open file " << filePath << " with libtiff";
         return slide;
     }
@@ -66,24 +59,27 @@ std::shared_ptr<SVSSlide> SVSSlide::openFile(const std::string& filePath, const 
     int thumbnail(-1), macro(-1), label(-1);
     image.push_back(0);
     int nextDir = 1;
-    if(static_cast<int>(directories.size()) > nextDir) {
-        if(!directories[nextDir].tiled){
+    if (static_cast<int>(directories.size()) > nextDir)
+    {
+        if (!directories[nextDir].tiled)
+        {
             thumbnail = nextDir;
             nextDir++;
         }
     }
-    for(int dir=nextDir; dir<directories.size(); dir++) {
+    for (int dir = nextDir; dir < directories.size(); dir++)
+    {
         auto directory = directories[dir];
-        if(!directory.tiled)
-            break;
+        if (!directory.tiled) break;
         image.push_back(dir);
         nextDir++;
     }
-    for(;nextDir<directories.size(); nextDir++) {
+    for (; nextDir < directories.size(); nextDir++)
+    {
         auto directory = directories[nextDir];
-        if(directory.description.find("label")!=std::string::npos)
+        if (directory.description.find("label") != std::string::npos)
             label = nextDir;
-        else if(directory.description.find("macro")!=std::string::npos)
+        else if (directory.description.find("macro") != std::string::npos)
             macro = nextDir;
     }
     std::vector<std::shared_ptr<CVScene>> scenes;
@@ -92,34 +88,40 @@ std::shared_ptr<SVSSlide> SVSSlide::openFile(const std::string& filePath, const 
     slide.reset(new SVSSlide);
     slide->setDriverId(driverId);
 
-    if(!image.empty()){
+    if (!image.empty())
+    {
         std::vector<TiffDirectory> image_dirs;
         image_dirs.reserve(image.size());
-        for(const auto index: image){
+        for (const auto index : image)
             image_dirs.push_back(directories[index]);
-        }
-		std::shared_ptr<SVSTiledScene> tScene(new SVSTiledScene(filePath, slide->getDriverId(), keeper.release(), "Image", image_dirs));
+        std::shared_ptr<SVSTiledScene> tScene(
+            new SVSTiledScene(filePath, slide->getDriverId(), keeper.release(), "Image", image_dirs));
         tScene->setDriverId(driverId);
         std::shared_ptr<CVScene> scene(tScene);
         scenes.push_back(scene);
     }
-    if(thumbnail>=0) {
-		std::shared_ptr<SVSSmallScene> sScene(new SVSSmallScene(filePath, slide->getDriverId(), THUMBNAIL, directories[thumbnail], tiff));
-		sScene->setDriverId(driverId);
+    if (thumbnail >= 0)
+    {
+        std::shared_ptr<SVSSmallScene> sScene(
+            new SVSSmallScene(filePath, slide->getDriverId(), THUMBNAIL, directories[thumbnail], tiff));
+        sScene->setDriverId(driverId);
         std::shared_ptr<CVScene> scene(sScene);
         auxImages[THUMBNAIL] = scene;
         auxNames.emplace_back(THUMBNAIL);
     }
-    if(label>=0) {
-        std::shared_ptr<SVSSmallScene> sScene(new SVSSmallScene(filePath,slide->getDriverId(), LABEL, directories[label], true));
+    if (label >= 0)
+    {
+        std::shared_ptr<SVSSmallScene> sScene(
+            new SVSSmallScene(filePath, slide->getDriverId(), LABEL, directories[label], true));
         sScene->setDriverId(driverId);
         std::shared_ptr<CVScene> scene(sScene);
         auxImages[LABEL] = scene;
         auxNames.emplace_back(LABEL);
     }
-    if(macro>=0) {
-        std::shared_ptr<SVSSmallScene> sScene = std::make_shared <SVSSmallScene>(
-            filePath, slide->getDriverId(),MACRO, directories[macro], tiff);
+    if (macro >= 0)
+    {
+        std::shared_ptr<SVSSmallScene> sScene =
+            std::make_shared<SVSSmallScene>(filePath, slide->getDriverId(), MACRO, directories[macro], tiff);
         sScene->setDriverId(driverId);
         std::shared_ptr<CVScene> scene(sScene);
         auxImages[MACRO] = scene;
@@ -130,10 +132,11 @@ std::shared_ptr<SVSSlide> SVSSlide::openFile(const std::string& filePath, const 
     slide->m_auxImages = auxImages;
     slide->m_auxNames = auxNames;
 
-    if(!directories.empty()) {
+    if (!directories.empty())
+    {
         const auto& dir = directories.front();
         slide->m_rawMetadata = dir.description;
-		slide->m_metadataFormat = MetadataFormat::Text;
+        slide->m_metadataFormat = MetadataFormat::Text;
     }
     return slide;
 }
@@ -141,9 +144,7 @@ std::shared_ptr<SVSSlide> SVSSlide::openFile(const std::string& filePath, const 
 std::shared_ptr<CVScene> SVSSlide::getAuxImage(const std::string& sceneName) const
 {
     auto it = m_auxImages.find(sceneName);
-    if(it==m_auxImages.end()) {
-        RAISE_RUNTIME_ERROR << "The slide does not have auxiliary image " << sceneName;
-    }
+    if (it == m_auxImages.end()) RAISE_RUNTIME_ERROR << "The slide does not have auxiliary image " << sceneName;
     return it->second;
 }
 

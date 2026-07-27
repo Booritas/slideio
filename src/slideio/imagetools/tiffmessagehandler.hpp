@@ -4,15 +4,17 @@
 #pragma once
 #include "slideio/imagetools/slideio_imagetools_def.hpp"
 
-namespace slideio {
+namespace slideio
+{
 
     class SLIDEIO_IMAGETOOLS_EXPORTS TIFFMessageHandler
     {
     public:
         TIFFMessageHandler();
         ~TIFFMessageHandler();
+
     private:
         void* m_oldWarningHandler;
         void* m_oldErrorHandler;
     };
-}
+} // namespace slideio

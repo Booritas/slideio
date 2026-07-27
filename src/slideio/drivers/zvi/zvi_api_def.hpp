@@ -11,4 +11,3 @@
 #else
 #define SLIDEIO_ZVI_EXPORTS
 #endif
-

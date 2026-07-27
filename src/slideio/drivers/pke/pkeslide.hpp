@@ -1,6 +1,7 @@
 // This file is part of slideio project.
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
+#pragma once
 #include "slideio/drivers/pke/pke_api_def.hpp"
 #include "slideio/core/cvscene.hpp"
 #include "slideio/core/cvslide.hpp"
@@ -8,8 +9,8 @@
 #include <map>
 
 #if defined(_MSC_VER)
-#pragma warning( push )
-#pragma warning(disable: 4251)
+#pragma warning(push)
+#pragma warning(disable : 4251)
 #endif
 
 namespace slideio
@@ -21,10 +22,11 @@ namespace slideio
 
 namespace slideio
 {
-    class SLIDEIO_PKE_EXPORTS PKESlide : public slideio::CVSlide
+    class SLIDEIO_PKE_EXPORTS PKESlide: public slideio::CVSlide
     {
     protected:
         PKESlide();
+
     public:
         virtual ~PKESlide();
         int getNumScenes() const override;
@@ -34,14 +36,14 @@ namespace slideio
         static void closeFile(libtiff::TIFF* hfile);
         std::shared_ptr<CVScene> getAuxImage(const std::string& sceneName) const override;
         void log();
+
     private:
         std::vector<std::shared_ptr<slideio::CVScene>> m_Scenes;
         std::map<std::string, std::shared_ptr<slideio::CVScene>> m_auxImages;
         std::string m_filePath;
     };
-}
-
+} // namespace slideio
 
 #if defined(_MSC_VER)
-#pragma warning( pop )
+#pragma warning(pop)
 #endif

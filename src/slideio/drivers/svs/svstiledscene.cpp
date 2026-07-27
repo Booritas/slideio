@@ -14,22 +14,23 @@
 
 using namespace slideio;
 
-
-SVSTiledScene::SVSTiledScene(const std::string& filePath, const std::string& driverId, const std::string& name, 
-    const std::vector<TiffDirectory>& dirs): SVSScene(filePath, driverId,name), m_directories(dirs)
+SVSTiledScene::SVSTiledScene(const std::string& filePath, const std::string& driverId, const std::string& name,
+                             const std::vector<TiffDirectory>& dirs)
+    : SVSScene(filePath, driverId, name), m_directories(dirs)
 {
     initialize();
 }
 
-SVSTiledScene::SVSTiledScene(const std::string& filePath, const std::string& driverId, libtiff::TIFF* hFile, const std::string& name,
-    const std::vector<slideio::TiffDirectory>& dirs) : SVSScene(filePath, driverId, hFile, name), m_directories(dirs)
+SVSTiledScene::SVSTiledScene(const std::string& filePath, const std::string& driverId, libtiff::TIFF* hFile,
+                             const std::string& name, const std::vector<slideio::TiffDirectory>& dirs)
+    : SVSScene(filePath, driverId, hFile, name), m_directories(dirs)
 {
     initialize();
 }
 
 void SVSTiledScene::initialize()
 {
-    m_resolution = { 0., 0. };
+    m_resolution = {0., 0.};
     auto& dir = m_directories[0];
     m_dataType = dir.dataType;
 
@@ -49,29 +50,28 @@ void SVSTiledScene::initialize()
     }
     m_magnification = SVSTools::extractMagnifiation(dir.description);
     double res = SVSTools::extractResolution(dir.description);
-    m_resolution = { res, res };
+    m_resolution = {res, res};
     if (!m_directories.empty())
     {
         const auto& dir = m_directories.front();
         m_compression = dir.slideioCompression;
-        if (m_compression == Compression::Unknown &&
-            (dir.compression == 33003 || dir.compression == 3305))
-        {
+        if (m_compression == Compression::Unknown && (dir.compression == 33003 || dir.compression == 3305))
             m_compression = Compression::Jpeg2000;
-        }
     }
-    if(!m_directories.empty()) {
+    if (!m_directories.empty())
+    {
         const int numLevels = static_cast<int>(m_directories.size());
         const int width0 = m_directories[0].width;
         m_levels.resize(m_directories.size());
-        for (int lv = 0; lv < numLevels; ++lv) {
+        for (int lv = 0; lv < numLevels; ++lv)
+        {
             const TiffDirectory& directory = m_directories[lv];
             LevelInfo& level = m_levels[lv];
             const double scale = static_cast<double>(directory.width) / static_cast<double>(width0);
             level.setLevel(lv);
             level.setScale(scale);
-            level.setSize({ directory.width, directory.height });
-            level.setTileSize({ directory.tileWidth, directory.tileHeight });
+            level.setSize({directory.width, directory.height});
+            level.setTileSize({directory.tileWidth, directory.tileHeight});
             level.setMagnification(m_magnification * scale);
         }
         m_rawMetadata = SVSTools::tiffDirectoryToJson(m_directories.front()).dump(2);
@@ -79,10 +79,9 @@ void SVSTiledScene::initialize()
     }
 }
 
-
 cv::Rect SVSTiledScene::getRect() const
 {
-    cv::Rect rect = { 0,0,  m_directories[0].width,  m_directories[0].height };
+    cv::Rect rect = {0, 0, m_directories[0].width, m_directories[0].height};
     return rect;
 }
 
@@ -92,27 +91,24 @@ int SVSTiledScene::getNumChannels() const
     return dir.channels;
 }
 
-
 void SVSTiledScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
-    const std::vector<int>& channelIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output)
+                                                 const std::vector<int>& channelIndices, int zSliceIndex,
+                                                 int tFrameIndex, cv::OutputArray output)
 {
-	if (zSliceIndex != 0 || tFrameIndex != 0) {
-		RAISE_RUNTIME_ERROR << "SVSDriver: 3D and 4D images are not supported";
-	}
+    if (zSliceIndex != 0 || tFrameIndex != 0) RAISE_RUNTIME_ERROR << "SVSDriver: 3D and 4D images are not supported";
     auto hFile = getFileHandle();
-    if (hFile == nullptr) {
-		RAISE_RUNTIME_ERROR << "SVSDriver: Invalid file header by raster reading operation";
-    }
+    if (hFile == nullptr) RAISE_RUNTIME_ERROR << "SVSDriver: Invalid file header by raster reading operation";
     double zoomX = static_cast<double>(blockSize.width) / static_cast<double>(blockRect.width);
     double zoomY = static_cast<double>(blockSize.height) / static_cast<double>(blockRect.height);
     double zoom = std::max(zoomX, zoomY);
     const slideio::TiffDirectory& dir = findZoomDirectory(zoom);
-    double zoomDirX = static_cast<double>(dir.width) / static_cast<double>(m_directories[0].width); 
+    double zoomDirX = static_cast<double>(dir.width) / static_cast<double>(m_directories[0].width);
     double zoomDirY = static_cast<double>(dir.height) / static_cast<double>(m_directories[0].height);
     cv::Rect resizedBlock;
     Tools::scaleRect(blockRect, zoomDirX, zoomDirY, resizedBlock);
     std::vector<int> channels(channelIndices);
-    if (channels.empty()) {
+    if (channels.empty())
+    {
         channels.resize(dir.channels);
         std::iota(channels.begin(), channels.end(), 0);
     }
@@ -124,8 +120,8 @@ const TiffDirectory& SVSTiledScene::findZoomDirectory(double zoom) const
     const cv::Rect sceneRect = getRect();
     const double sceneWidth = static_cast<double>(sceneRect.width);
     const auto& directories = m_directories;
-    int index = Tools::findZoomLevel(zoom, (int)m_directories.size(), [&directories, sceneWidth](int index){
-        return directories[index].width/sceneWidth;
+    int index = Tools::findZoomLevel(zoom, (int)m_directories.size(), [&directories, sceneWidth](int index) {
+        return directories[index].width / sceneWidth;
     });
     return m_directories[index];
 }
@@ -133,8 +129,8 @@ const TiffDirectory& SVSTiledScene::findZoomDirectory(double zoom) const
 int SVSTiledScene::getTileCount(void* userData)
 {
     const TiffDirectory* dir = (const TiffDirectory*)userData;
-    int tilesX = (dir->width-1)/dir->tileWidth + 1;
-    int tilesY = (dir->height-1)/dir->tileHeight + 1;
+    int tilesX = (dir->width - 1) / dir->tileWidth + 1;
+    int tilesY = (dir->height - 1) / dir->tileHeight + 1;
     return tilesX * tilesY;
 }
 
@@ -153,7 +149,7 @@ bool SVSTiledScene::getTileRect(int tileIndex, cv::Rect& tileRect, void* userDat
 }
 
 bool SVSTiledScene::readTile(int tileIndex, const std::vector<int>& channelIndices, cv::OutputArray tileRaster,
-    void* userData)
+                             void* userData)
 {
     const TiffDirectory* dir = static_cast<const TiffDirectory*>(userData);
     bool ret = false;
@@ -162,8 +158,9 @@ bool SVSTiledScene::readTile(int tileIndex, const std::vector<int>& channelIndic
         TiffTools::readTile(getFileHandle(), *dir, tileIndex, channelIndices, tileRaster);
         ret = true;
     }
-    catch(slideio::RuntimeError&){
-        const cv::Size tileSize = { dir->tileWidth, dir->tileHeight };
+    catch (slideio::RuntimeError&)
+    {
+        const cv::Size tileSize = {dir->tileWidth, dir->tileHeight};
         const slideio::DataType dt = dir->dataType;
         tileRaster.create(tileSize, CV_MAKETYPE(slideio::CVTools::toOpencvType(dt), dir->channels));
         tileRaster.setTo(0);
@@ -172,9 +169,8 @@ bool SVSTiledScene::readTile(int tileIndex, const std::vector<int>& channelIndic
     return ret;
 }
 
-void SVSTiledScene::initializeBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices, cv::OutputArray output)
+void SVSTiledScene::initializeBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices,
+                                    cv::OutputArray output)
 {
     initializeSceneBlock(blockSize, channelIndices, output);
 }
-
-

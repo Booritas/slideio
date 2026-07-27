@@ -9,13 +9,9 @@ using namespace slideio;
 
 std::string CZIImageDriver::filePathPattern = "*.czi";
 
-CZIImageDriver::CZIImageDriver()
-{
-}
+CZIImageDriver::CZIImageDriver() {}
 
-CZIImageDriver::~CZIImageDriver()
-{
-}
+CZIImageDriver::~CZIImageDriver() {}
 
 std::string CZIImageDriver::getID() const
 {

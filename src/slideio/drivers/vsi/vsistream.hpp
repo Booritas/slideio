@@ -9,11 +9,12 @@
 #include <memory>
 
 #if defined(_MSC_VER)
-#pragma warning( push )
-#pragma warning(disable: 4251)
+#pragma warning(push)
+#pragma warning(disable : 4251)
 #endif
 
-namespace slideio {
+namespace slideio
+{
     namespace vsi
     {
         class SLIDEIO_VSI_EXPORTS VSIStream
@@ -21,20 +22,16 @@ namespace slideio {
         public:
             VSIStream(std::string& filePath);
 
-            template <typename T>
-            void read(T& value) {
+            template <typename T> void read(T& value)
+            {
                 m_stream->read((char*)&value, sizeof(T));
-                if (m_stream->bad()) {
-                    RAISE_RUNTIME_ERROR << "VSI driver: error by reading stream";
-                }
+                if (m_stream->bad()) RAISE_RUNTIME_ERROR << "VSI driver: error by reading stream";
             }
-            template <typename T>
-            T readValue() {
+            template <typename T> T readValue()
+            {
                 T value;
                 m_stream->read((char*)&value, sizeof(T));
-                if (m_stream->bad()) {
-                    RAISE_RUNTIME_ERROR << "VSI driver: error by reading stream";
-                }
+                if (m_stream->bad()) RAISE_RUNTIME_ERROR << "VSI driver: error by reading stream";
                 return value;
             }
             std::string readString(size_t dataSize);
@@ -43,14 +40,14 @@ namespace slideio {
             int64_t getSize();
             void skipBytes(uint32_t bytes);
             void readBytes(uint8_t* bytes, uint32_t size);
+
         private:
             std::unique_ptr<std::ifstream> m_stream;
             int64_t m_size;
-
         };
-    };
-}
+    }; // namespace vsi
+} // namespace slideio
 
 #if defined(_MSC_VER)
-#pragma warning( pop )
+#pragma warning(pop)
 #endif

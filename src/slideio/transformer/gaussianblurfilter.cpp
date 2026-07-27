@@ -14,10 +14,7 @@ void GaussianBlurFilter::applyTransformation(const cv::Mat& block, cv::OutputArr
 int GaussianBlurFilter::getInflationValue() const
 {
     int kernel = std::max(getKernelSizeX(), getKernelSizeY());
-    if (kernel == 0) {
-        kernel = (int)ceil(2 *
-            ceil(2 * std::max(getSigmaX(), getSigmaY())) + 1);
-    }
+    if (kernel == 0) kernel = (int)ceil(2 * ceil(2 * std::max(getSigmaX(), getSigmaY())) + 1);
     const int extension = (kernel + 1) / 2;
     return extension;
 }

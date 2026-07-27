@@ -10,12 +10,10 @@ using namespace slideio;
 
 int XMLTools::childNodeTextToInt(const tinyxml2::XMLNode* xmlParent, const char* childName, int defaultValue)
 {
-    if (xmlParent == nullptr)
-        throw std::runtime_error("XMLTools: Invalid xml document");
+    if (xmlParent == nullptr) throw std::runtime_error("XMLTools: Invalid xml document");
     const XMLElement* xmlChild = xmlParent->FirstChildElement(childName);
     int value = defaultValue;
-    if (xmlChild != nullptr)
-        value = xmlChild->IntText(defaultValue);
+    if (xmlChild != nullptr) value = xmlChild->IntText(defaultValue);
     return value;
 }
 
@@ -26,12 +24,8 @@ const XMLElement* XMLTools::getElementByPath(const XMLNode* parent, const std::v
     for (const auto& tag : path)
     {
         xmlCurrentElement = xmlCurrentNode->FirstChildElement(tag.c_str());
-        if (xmlCurrentElement == nullptr)
-        {
-            return nullptr;
-        }
+        if (xmlCurrentElement == nullptr) return nullptr;
         xmlCurrentNode = xmlCurrentElement;
     }
     return xmlCurrentElement;
 }
-

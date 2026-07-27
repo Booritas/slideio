@@ -19,11 +19,10 @@ int SobelFilter::getInflationValue() const
     return (getKernelSize() + 1) / 2;
 }
 
-std::vector<DataType> SobelFilter::computeChannelDataTypes(
-    const std::vector<DataType>& channels) const
+std::vector<DataType> SobelFilter::computeChannelDataTypes(const std::vector<DataType>& channels) const
 {
     std::vector<DataType> types(channels.size());
-    for(int channel = 0; channel < channels.size(); ++channel)
+    for (int channel = 0; channel < channels.size(); ++channel)
         types[channel] = getDepth();
     return types;
 }

@@ -13,34 +13,30 @@
 using namespace slideio;
 using namespace slideio::converter;
 
-void converter::convertScene(std::shared_ptr<Scene> scene, ConverterParameters& parameters, const std::string& outputPath, int tileBatchSize, ConverterCallback cb)
+void converter::convertScene(std::shared_ptr<Scene> scene, ConverterParameters& parameters,
+                             const std::string& outputPath, int tileBatchSize, ConverterCallback cb)
 {
-    if(scene == nullptr) {
-        RAISE_RUNTIME_ERROR << "Converter: invalid input scene!";
-    }
-    if (parameters.getFormat() != ImageFormat::SVS && parameters.getFormat() != ImageFormat::OME_TIFF) {
+    if (scene == nullptr) RAISE_RUNTIME_ERROR << "Converter: invalid input scene!";
+    if (parameters.getFormat() != ImageFormat::SVS && parameters.getFormat() != ImageFormat::OME_TIFF)
         RAISE_RUNTIME_ERROR << "Converter: output format '" << (int)parameters.getFormat() << "' is not supported!";
-    }
-    if(parameters.getEncoding() != Compression::Jpeg
-        && parameters.getEncoding() != Compression::Jpeg2000) {
+    if (parameters.getEncoding() != Compression::Jpeg && parameters.getEncoding() != Compression::Jpeg2000)
         RAISE_RUNTIME_ERROR << "Unsupported compression type: " << parameters.getEncoding();
-    }
-    if(std::filesystem::exists(outputPath)) {
+    if (std::filesystem::exists(outputPath))
         RAISE_RUNTIME_ERROR << "Converter: output file \"" << outputPath << "\" already exists.";
-    }
     std::string sceneName = scene->getName();
     std::string filePath = scene->getFilePath();
-    SLIDEIO_LOG(INFO) << "Convert a scene " << sceneName << " from file "
-        << filePath << " to format: '" << (int)parameters.getFormat() << "'.";
-    if (parameters.getFormat() != ImageFormat::SVS && parameters.getFormat() != ImageFormat::OME_TIFF) {
+    SLIDEIO_LOG(INFO) << "Convert a scene " << sceneName << " from file " << filePath << " to format: '"
+                      << (int)parameters.getFormat() << "'.";
+    if (parameters.getFormat() != ImageFormat::SVS && parameters.getFormat() != ImageFormat::OME_TIFF)
         RAISE_RUNTIME_ERROR << "Incorrect parameter type for the output file";
-    }
-    try {
+    try
+    {
         TiffConverter structure;
         structure.createFileLayout(scene->getCVScene(), parameters);
-		structure.createTiff(outputPath, cb, tileBatchSize);
+        structure.createTiff(outputPath, cb, tileBatchSize);
     }
-    catch (std::exception&) {
+    catch (std::exception&)
+    {
 #if defined(WIN32)
         std::filesystem::remove(Tools::toWstring(outputPath));
 #else
@@ -49,5 +45,3 @@ void converter::convertScene(std::shared_ptr<Scene> scene, ConverterParameters& 
         throw;
     }
 }
-
-

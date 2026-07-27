@@ -7,44 +7,40 @@
 #include <memory>
 
 #if defined(_MSC_VER)
-#pragma warning( push )
-#pragma warning(disable: 4275 4251)
+#pragma warning(push)
+#pragma warning(disable : 4275 4251)
 #endif
-
 
 namespace slideio
 {
     class SobelFilter;
     enum class DataType;
     enum class TransformationType;
-    
-    class SLIDEIO_TRANSFORMER_EXPORTS SobelFilterWrap : public TransformationWrapper
+
+    class SLIDEIO_TRANSFORMER_EXPORTS SobelFilterWrap: public TransformationWrapper
     {
     public:
         SobelFilterWrap();
 
-        SobelFilterWrap(const SobelFilterWrap& other)
-            : TransformationWrapper(other),
-              m_filter(other.m_filter) {
-        }
+        SobelFilterWrap(const SobelFilterWrap& other): TransformationWrapper(other), m_filter(other.m_filter) {}
 
         SobelFilterWrap(SobelFilterWrap&& other) noexcept
-            : TransformationWrapper(std::move(other)),
-              m_filter(std::move(other.m_filter)) {
+            : TransformationWrapper(std::move(other)), m_filter(std::move(other.m_filter))
+        {
         }
 
-        SobelFilterWrap& operator=(const SobelFilterWrap& other) {
-            if (this == &other)
-                return *this;
-            TransformationWrapper::operator =(other);
+        SobelFilterWrap& operator=(const SobelFilterWrap& other)
+        {
+            if (this == &other) return *this;
+            TransformationWrapper::operator=(other);
             m_filter = other.m_filter;
             return *this;
         }
 
-        SobelFilterWrap& operator=(SobelFilterWrap&& other) noexcept {
-            if (this == &other)
-                return *this;
-            TransformationWrapper::operator =(std::move(other));
+        SobelFilterWrap& operator=(SobelFilterWrap&& other) noexcept
+        {
+            if (this == &other) return *this;
+            TransformationWrapper::operator=(std::move(other));
             m_filter = std::move(other.m_filter);
             return *this;
         }
@@ -69,8 +65,8 @@ namespace slideio
         std::shared_ptr<SobelFilter> m_filter;
     };
 
-}
+} // namespace slideio
 
 #if defined(_MSC_VER)
-#pragma warning( pop )
+#pragma warning(pop)
 #endif

@@ -9,29 +9,20 @@
 #include "slideio/imagetools/libtiff.hpp"
 #include "slideio/core/tools/cvtools.hpp"
 
-
 using namespace slideio;
 using namespace tinyxml2;
 
-SCNScene::SCNScene(const std::string& filePath, int sceneIndex, const std::string& driverId, const tinyxml2::XMLElement* xmlImage):
-    m_filePath(filePath),
-	m_driverId(driverId),
-    m_compression(Compression::Unknown),
-    m_resolution(0., 0.),
-    m_magnification(0.),
-    m_interleavedChannels(false),
-    m_numChannels(1),
-    m_numZSlices(1),
-    m_planeCount(1), 
-	m_sceneIndex(sceneIndex)
+SCNScene::SCNScene(const std::string& filePath, int sceneIndex, const std::string& driverId,
+                   const tinyxml2::XMLElement* xmlImage)
+    : m_filePath(filePath), m_driverId(driverId), m_compression(Compression::Unknown), m_resolution(0., 0.),
+      m_magnification(0.), m_interleavedChannels(false), m_numChannels(1), m_numZSlices(1), m_planeCount(1),
+      m_sceneIndex(sceneIndex)
 {
-	m_metadataFormat = MetadataFormat::XML;
+    m_metadataFormat = MetadataFormat::XML;
     init(xmlImage);
 }
 
-SCNScene::~SCNScene()
-{
-}
+SCNScene::~SCNScene() {}
 
 cv::Rect SCNScene::getRect() const
 {
@@ -44,14 +35,12 @@ int SCNScene::getNumChannels() const
 }
 
 void SCNScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
-    const std::vector<int>& channelIndicesIn, int zSliceIndex, int tFrameIndex, cv::OutputArray output)
+                                            const std::vector<int>& channelIndicesIn, int zSliceIndex, int tFrameIndex,
+                                            cv::OutputArray output)
 {
-	if (tFrameIndex != 0) {
-		throw std::runtime_error("SCNImageDriver: Time frames are not supported");
-	}
+    if (tFrameIndex != 0) throw std::runtime_error("SCNImageDriver: Time frames are not supported");
     auto hFile = getFileHandle();
-    if (hFile == nullptr)
-        throw std::runtime_error("SCNImageDriver: Invalid file handle by raster reading operation");
+    if (hFile == nullptr) throw std::runtime_error("SCNImageDriver: Invalid file handle by raster reading operation");
     double zoomX = static_cast<double>(blockSize.width) / static_cast<double>(blockRect.width);
     double zoomY = static_cast<double>(blockSize.height) / static_cast<double>(blockRect.height);
     double zoom = std::max(zoomX, zoomY);
@@ -59,22 +48,17 @@ void SCNScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv:
     double zoomDirX(-1), zoomDirY(-1);
 
     auto channelIndices(channelIndicesIn);
-    if(channelIndices.empty())
-    {
-        for(int channelIndex=0; channelIndex<m_numChannels; ++channelIndex)
-        {
+    if (channelIndices.empty())
+        for (int channelIndex = 0; channelIndex < m_numChannels; ++channelIndex)
             channelIndices.push_back(channelIndex);
-        }
-    }
 
-    for(auto channelIndex: channelIndices)
+    for (auto channelIndex : channelIndices)
     {
         const slideio::TiffDirectory* dir = findZoomDirectory(channelIndex, zSliceIndex, zoom);
         info.channel2ifd[channelIndex] = dir;
-        if(!dir) {
-            continue;
-        }
-        if(zoomDirX<0 || zoomDirY<0) {
+        if (!dir) continue;
+        if (zoomDirX < 0 || zoomDirY < 0)
+        {
             zoomDirX = static_cast<double>(dir->width) / static_cast<double>(m_rect.width);
             zoomDirY = static_cast<double>(dir->height) / static_cast<double>(m_rect.height);
         }
@@ -93,8 +77,8 @@ std::string SCNScene::getChannelName(int channel) const
 std::vector<SCNDimensionInfo> SCNScene::parseDimensions(const XMLElement* xmlPixels)
 {
     std::vector<SCNDimensionInfo> dimensions;
-    for (const auto* xmlDimension = xmlPixels->FirstChildElement("dimension");
-         xmlDimension != nullptr; xmlDimension = xmlDimension->NextSiblingElement())
+    for (const auto* xmlDimension = xmlPixels->FirstChildElement("dimension"); xmlDimension != nullptr;
+         xmlDimension = xmlDimension->NextSiblingElement())
     {
         SCNDimensionInfo dim = {};
         dim.width = xmlDimension->IntAttribute("sizeX", -1);
@@ -125,38 +109,42 @@ void SCNScene::parseGeometry(const XMLElement* xmlImage)
         const double pixelHeightNm = (double)heightNm / (double)m_rect.height;
         m_resolution.x = 1.e-9 * pixelWidthNm;
         m_resolution.y = 1.e-9 * pixelHeightNm;
-        if (pixelWidthNm > 0)
-            m_rect.x = (int)std::round(xNm / pixelWidthNm);
-        if (pixelHeightNm > 0)
-            m_rect.y = (int)std::round(yNm / pixelHeightNm);
+        if (pixelWidthNm > 0) m_rect.x = (int)std::round(xNm / pixelWidthNm);
+        if (pixelHeightNm > 0) m_rect.y = (int)std::round(yNm / pixelHeightNm);
     }
 }
 
 void SCNScene::parseChannelNames(const XMLElement* xmlImage)
 {
     m_channelNames.resize(m_numChannels);
-    const std::vector<std::string> channelSettingsPath = { "scanSettings", "channelSettings" };
+    const std::vector<std::string> channelSettingsPath = {"scanSettings", "channelSettings"};
     const XMLElement* xmlChannelSettings = XMLTools::getElementByPath(xmlImage, channelSettingsPath);
     if (xmlChannelSettings)
     {
-        for (const auto* xmlChannel = xmlChannelSettings->FirstChildElement("channel");
-             xmlChannel != nullptr; xmlChannel = xmlChannel->NextSiblingElement())
+        for (const auto* xmlChannel = xmlChannelSettings->FirstChildElement("channel"); xmlChannel != nullptr;
+             xmlChannel = xmlChannel->NextSiblingElement())
         {
             const int channelIndex = xmlChannel->IntAttribute("index", -1);
-            if (channelIndex >= 0) {
-                for (const auto* xmlAttribute = xmlChannel->FirstAttribute(); xmlAttribute != nullptr; xmlAttribute = xmlAttribute->Next())
+            if (channelIndex >= 0)
+            {
+                for (const auto* xmlAttribute = xmlChannel->FirstAttribute(); xmlAttribute != nullptr;
+                     xmlAttribute = xmlAttribute->Next())
                 {
                     const char* attrName = xmlAttribute->Name();
                     const char* attrValue = xmlAttribute->Value();
-                    if (attrName != nullptr && attrValue != nullptr) {
-                        if (strcmp(attrName, "name") == 0) {
+                    if (attrName != nullptr && attrValue != nullptr)
+                    {
+                        if (strcmp(attrName, "name") == 0)
+                        {
                             m_channelNames[channelIndex] = attrValue;
                             setChannelAttribute(channelIndex, "Name", attrValue);
                         }
-                        else if (strcmp(attrName, "rgb") == 0) {
+                        else if (strcmp(attrName, "rgb") == 0)
+                        {
                             setChannelAttribute(channelIndex, "Color", attrValue);
                         }
-                        else {
+                        else
+                        {
                             setChannelAttribute(channelIndex, attrName, attrValue);
                         }
                     }
@@ -168,11 +156,9 @@ void SCNScene::parseChannelNames(const XMLElement* xmlImage)
 
 void SCNScene::parseMagnification(const XMLElement* xmlImage)
 {
-    const std::vector<std::string> objectivePath = { "scanSettings", "objectiveSettings", "objective" };
+    const std::vector<std::string> objectivePath = {"scanSettings", "objectiveSettings", "objective"};
     const XMLElement* xmlObjective = XMLTools::getElementByPath(xmlImage, objectivePath);
-    if (xmlObjective) {
-        m_magnification = xmlObjective->DoubleText(0);
-    }
+    if (xmlObjective) m_magnification = xmlObjective->DoubleText(0);
 }
 
 void SCNScene::defineChannelDataType()
@@ -180,8 +166,8 @@ void SCNScene::defineChannelDataType()
     m_channelDataType.resize(m_numChannels);
     for (int channelIndex = 0; channelIndex < m_numChannels; ++channelIndex)
     {
-         DataType dataType = getChannelDirectories(channelIndex,0)[0].dataType;
-         m_channelDataType[channelIndex] = dataType==DataType::DT_None?DataType::DT_Byte:dataType;
+        DataType dataType = getChannelDirectories(channelIndex, 0)[0].dataType;
+        m_channelDataType[channelIndex] = dataType == DataType::DT_None ? DataType::DT_Byte : dataType;
     }
 }
 
@@ -191,37 +177,38 @@ void SCNScene::setupChannels(const XMLElement* xmlImage)
     int maxChannelIndex = -1;
     int maxZIndex = -1;
     std::vector<SCNDimensionInfo> dimensions = parseDimensions(xmlPixels);
-    std::for_each(dimensions.begin(), dimensions.end(), 
-                  [&maxChannelIndex, &maxZIndex](const SCNDimensionInfo& dim){
-                      maxChannelIndex = std::max(dim.c, maxChannelIndex);
-                      maxZIndex = std::max(dim.z, maxZIndex);
-                  });
+    std::for_each(dimensions.begin(), dimensions.end(), [&maxChannelIndex, &maxZIndex](const SCNDimensionInfo& dim) {
+        maxChannelIndex = std::max(dim.c, maxChannelIndex);
+        maxZIndex = std::max(dim.z, maxZIndex);
+    });
 
-    if (maxZIndex > 0) {
-        m_numZSlices = maxZIndex + 1;
-    }
+    if (maxZIndex > 0) m_numZSlices = maxZIndex + 1;
 
     m_planeCount = std::max(1, maxChannelIndex + 1);
-    m_channelDirectories.resize(m_planeCount*m_numZSlices);
+    m_channelDirectories.resize(m_planeCount * m_numZSlices);
 
-    for(auto & dim: dimensions) {
+    for (auto& dim : dimensions)
+    {
         int channel = dim.c < 0 ? 0 : dim.c;
         int zIndex = dim.z < 0 ? 0 : dim.z;
         TiffDirectory channelDir;
         TiffTools::scanTiffDir(m_tiff, dim.ifd, 0, channelDir);
-        m_channelDirectories[m_planeCount*zIndex + channel].push_back(channelDir);
+        m_channelDirectories[m_planeCount * zIndex + channel].push_back(channelDir);
     }
 
-    for(auto & dirs:m_channelDirectories) {
-        std::sort(dirs.begin(), dirs.end(), [](const TiffDirectory& left, const TiffDirectory& right)->bool {
+    for (auto& dirs : m_channelDirectories)
+    {
+        std::sort(dirs.begin(), dirs.end(), [](const TiffDirectory& left, const TiffDirectory& right) -> bool {
             return left.width > right.width;
         });
     }
 
-    if (maxChannelIndex > 0) {
+    if (maxChannelIndex > 0)
+    {
         m_numChannels = maxChannelIndex + 1;
     }
-    else {
+    else
+    {
         m_numChannels = m_channelDirectories[0][0].channels;
         m_interleavedChannels = true;
     }
@@ -230,10 +217,7 @@ void SCNScene::setupChannels(const XMLElement* xmlImage)
 void SCNScene::init(const XMLElement* xmlImage)
 {
     m_tiff = TiffTools::openTiffFile(m_filePath.c_str());
-    if (!m_tiff.isValid())
-    {
-        throw std::runtime_error(std::string("SCNImageDriver: Cannot open file:") + m_filePath);
-    }
+    if (!m_tiff.isValid()) throw std::runtime_error(std::string("SCNImageDriver: Cannot open file:") + m_filePath);
 
     const char* name = xmlImage->Attribute("name");
     m_name = name ? name : "unknown";
@@ -249,58 +233,57 @@ void SCNScene::init(const XMLElement* xmlImage)
     parseMagnification(xmlImage);
     parseChannelNames(xmlImage);
     defineChannelDataType();
-    const auto& directories = getChannelDirectories(0,0);
-    if (!directories.empty()) {
+    const auto& directories = getChannelDirectories(0, 0);
+    if (!directories.empty())
+    {
         const int numLevels = static_cast<int>(directories.size());
         const int width0 = directories[0].width;
         m_levels.resize(directories.size());
-        for (int lv = 0; lv < numLevels; ++lv) {
+        for (int lv = 0; lv < numLevels; ++lv)
+        {
             const TiffDirectory& directory = directories[lv];
             LevelInfo& level = m_levels[lv];
             const double scale = static_cast<double>(directory.width) / static_cast<double>(width0);
             level.setLevel(lv);
             level.setScale(scale);
-            level.setSize({ directory.width, directory.height });
-            level.setTileSize({ directory.tileWidth, directory.tileHeight });
+            level.setSize({directory.width, directory.height});
+            level.setTileSize({directory.tileWidth, directory.tileHeight});
             level.setMagnification(m_magnification * scale);
         }
     }
 }
 
-const TiffDirectory* SCNScene::findZoomDirectory(int channelIndex, int zIndex, double zoom) const 
+const TiffDirectory* SCNScene::findZoomDirectory(int channelIndex, int zIndex, double zoom) const
 {
     const cv::Rect sceneRect = getRect();
     const double sceneWidth = static_cast<double>(sceneRect.width);
     const auto& directories = getChannelDirectories(channelIndex, zIndex);
     int index = Tools::findZoomLevel(zoom, (int)directories.size(), [&directories, sceneWidth](int index) {
         return directories[index].width / sceneWidth;
-        });
-    if(index < 0 || index >= (int)directories.size()) {
-        return nullptr;
-    }
+    });
+    if (index < 0 || index >= (int)directories.size()) return nullptr;
     return &(directories[index]);
 }
 
 int SCNScene::getTileCount(void* userData)
 {
-	int tileCount = 0;
+    int tileCount = 0;
     const SCNTilingInfo* info = (const SCNTilingInfo*)userData;
     const TiffDirectory* dir = info->getValidDir();
-    if (dir != nullptr) {
+    if (dir != nullptr)
+    {
         int tilesX = (dir->width - 1) / dir->tileWidth + 1;
         int tilesY = (dir->height - 1) / dir->tileHeight + 1;
         tileCount = tilesX * tilesY;
     }
-	return tileCount;
+    return tileCount;
 }
 
 bool SCNScene::getTileRect(int tileIndex, cv::Rect& tileRect, void* userData)
 {
     const SCNTilingInfo* info = (const SCNTilingInfo*)userData;
     const TiffDirectory* dir = info->getValidDir();
-	if (dir == nullptr) {
-		return false;
-	}
+    if (dir == nullptr) return false;
     const int tilesX = (dir->width - 1) / dir->tileWidth + 1;
     const int tilesY = (dir->height - 1) / dir->tileHeight + 1;
     const int tileY = tileIndex / tilesX;
@@ -313,48 +296,50 @@ bool SCNScene::getTileRect(int tileIndex, cv::Rect& tileRect, void* userData)
 }
 
 bool SCNScene::readTile(int tileIndex, const std::vector<int>& channelIndices, cv::OutputArray tileRaster,
-    void* userData)
+                        void* userData)
 {
     const SCNTilingInfo* info = (const SCNTilingInfo*)userData;
-    if(m_interleavedChannels)
+    if (m_interleavedChannels)
     {
         const TiffDirectory* dir = info->getValidDir();
-        if(dir) {
+        if (dir)
+        {
             TiffTools::readTile(getFileHandle(), *dir, tileIndex, channelIndices, tileRaster);
-        } else {
-            RAISE_RUNTIME_ERROR << "SCNImageDriver: missing channel for interleaved scene " 
-                << channelIndices[0] << " received during tile reading. File " << m_filePath;
+        }
+        else
+        {
+            RAISE_RUNTIME_ERROR << "SCNImageDriver: missing channel for interleaved scene " << channelIndices[0]
+                                << " received during tile reading. File " << m_filePath;
         }
     }
-    else if(channelIndices.size()==1)
+    else if (channelIndices.size() == 1)
     {
-        const std::vector<int> localChannelIndices = { 0 };
+        const std::vector<int> localChannelIndices = {0};
         const TiffDirectory* dir = info->getChannelDir(*channelIndices.begin());
-        if(dir){
+        if (dir)
             TiffTools::readTile(getFileHandle(), *dir, tileIndex, localChannelIndices, tileRaster);
-        } else {
+        else
             createEmptyChannelTile(tileIndex, channelIndices[0], tileRaster, userData);
-        }
     }
     else
     {
-        const std::vector<int> localChannelIndices = { 0 };
+        const std::vector<int> localChannelIndices = {0};
         std::vector<cv::Mat> channelRasters;
         channelRasters.resize(channelIndices.size());
         int channel = 0;
-        for(int channelIndex:channelIndices)
+        for (int channelIndex : channelIndices)
         {
             auto it = info->channel2ifd.find(channelIndex);
-            if (it == info->channel2ifd.end()) {
-                RAISE_RUNTIME_ERROR << "SCNImageDriver: invalid channel index " 
-                    << channelIndex << " received during tile reading. File " << m_filePath;
+            if (it == info->channel2ifd.end())
+            {
+                RAISE_RUNTIME_ERROR << "SCNImageDriver: invalid channel index " << channelIndex
+                                    << " received during tile reading. File " << m_filePath;
             }
             const TiffDirectory* dir = it->second;
-            if(dir) {
+            if (dir)
                 TiffTools::readTile(getFileHandle(), *dir, tileIndex, localChannelIndices, channelRasters[channel]);
-            } else {
+            else
                 createEmptyChannelTile(tileIndex, channel, channelRasters[channel], userData);
-            }
             ++channel;
         }
         cv::merge(channelRasters, tileRaster);
@@ -362,11 +347,11 @@ bool SCNScene::readTile(int tileIndex, const std::vector<int>& channelIndices, c
     return true;
 }
 
-void SCNScene::initializeBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices, cv::OutputArray output)
+void SCNScene::initializeBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices,
+                               cv::OutputArray output)
 {
     initializeSceneBlock(blockSize, channelIndices, output);
 }
-
 
 void SCNScene::createEmptyChannelTile(int tileIndex, int channel, cv::OutputArray output, void* userData)
 {

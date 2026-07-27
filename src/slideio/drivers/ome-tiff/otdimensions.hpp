@@ -8,20 +8,20 @@
 
 namespace slideio
 {
-	namespace ometiff
-	{
-		const std::string DimC = "C";
-		const std::string DimZ = "Z";
-		const std::string DimT = "T";
+    namespace ometiff
+    {
+        const std::string DimC = "C";
+        const std::string DimZ = "Z";
+        const std::string DimT = "T";
 
-		class SLIDEIO_OMETIFF_EXPORTS OTDimensions : public slideio::Dimensions<3>
-		{
-		public:
-			OTDimensions() = default;
-			OTDimensions(const std::string& dimensionOrder, int numChannels, int numZSlices, int numTFrames,
-				int samplesPerPixel);
-			void init(const std::string& dimensionOrder, int numChannels, int numZSlices, int numTFrames,
-				int samplesPerPixel);
-		};
-	}
-}
+        class SLIDEIO_OMETIFF_EXPORTS OTDimensions: public slideio::Dimensions<3>
+        {
+        public:
+            OTDimensions() = default;
+            OTDimensions(const std::string& dimensionOrder, int numChannels, int numZSlices, int numTFrames,
+                         int samplesPerPixel);
+            void init(const std::string& dimensionOrder, int numChannels, int numZSlices, int numTFrames,
+                      int samplesPerPixel);
+        };
+    } // namespace ometiff
+} // namespace slideio

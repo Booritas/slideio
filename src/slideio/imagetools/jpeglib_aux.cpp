@@ -7,8 +7,8 @@
 void jpeglibDecode(const uint8_t* jpg_buffer, size_t jpg_size, cv::OutputArray output)
 {
     // code derived from: https://gist.github.com/PhirePhly/3080633
-    struct jpeg_decompress_struct cinfo {};
-    struct jpeg_error_mgr jerr {};
+    struct jpeg_decompress_struct cinfo{};
+    struct jpeg_error_mgr jerr{};
 
     cinfo.err = jpeg_std_error(&jerr);
     // Allocate a new decompress struct, with the default error handler.
@@ -22,7 +22,8 @@ void jpeglibDecode(const uint8_t* jpg_buffer, size_t jpg_size, cv::OutputArray o
     // jpeg is valid.
     auto rc = jpeg_read_header(&cinfo, TRUE);
 
-    if (rc != 1) {
+    if (rc != 1)
+    {
         jpeg_destroy_decompress(&cinfo);
         RAISE_RUNTIME_ERROR << "Invalid jpeg stream. JpegLib returns code: " << rc;
     }
@@ -42,26 +43,25 @@ void jpeglibDecode(const uint8_t* jpg_buffer, size_t jpg_size, cv::OutputArray o
     cv::Mat mat = output.getMat();
 
     // The row_stride is the total number of bytes it takes to store an
-    // entire scanline (row). 
+    // entire scanline (row).
     const unsigned int rowStride = width * channels;
 
     // Now that you have the decompressor entirely configured, it's time
     // to read out all of the scanlines of the jpeg.
     //
-    // By default, scanlines will come out in RGBRGBRGB...  order, 
+    // By default, scanlines will come out in RGBRGBRGB...  order,
     // but this can be changed by setting cinfo.out_color_space
     //
     // jpeg_read_scanlines takes an array of buffers, one for each scanline.
     // Even if you give it a complete set of buffers for the whole image,
-    // it will only ever decompress a few lines at a time. For best 
+    // it will only ever decompress a few lines at a time. For best
     // performance, you should pass it an array with cinfo.rec_outbuf_height
-    // scanline buffers. rec_outbuf_height is typically 1, 2, or 4, and 
+    // scanline buffers. rec_outbuf_height is typically 1, 2, or 4, and
     // at the default high quality decompression setting is always 1.
     while (cinfo.output_scanline < cinfo.output_height)
     {
         unsigned char* bufferArray[1];
-        bufferArray[0] = mat.data +
-            (cinfo.output_scanline) * rowStride;
+        bufferArray[0] = mat.data + (cinfo.output_scanline) * rowStride;
 
         jpeg_read_scanlines(&cinfo, bufferArray, 1);
     }
@@ -75,7 +75,7 @@ void jpeglibDecode(const uint8_t* jpg_buffer, size_t jpg_size, cv::OutputArray o
     jpeg_finish_decompress(&cinfo);
 
     // At this point, optionally go back and either load a new jpg into
-    // the jpg_buffer, or define a new jpeg_mem_src, and then start 
+    // the jpg_buffer, or define a new jpeg_mem_src, and then start
     // another decompress operation.
 
     // Once you're really really done, destroy the object to free everything
@@ -84,21 +84,13 @@ void jpeglibDecode(const uint8_t* jpg_buffer, size_t jpg_size, cv::OutputArray o
 
 void jpeglibEncode(const cv::Mat& raster, std::vector<uint8_t>& encodedStream, int quality)
 {
-    if (!raster.isContinuous()) {
-        RAISE_RUNTIME_ERROR << "Expected continuous matrix!";
-    }
-    if (raster.dims != 2) {
-        RAISE_RUNTIME_ERROR << "Expected 2D matrix!";
-    }
-    if (raster.depth() != CV_8U) {
-        RAISE_RUNTIME_ERROR << "Expected 8bit matrix!";
-    }
+    if (!raster.isContinuous()) RAISE_RUNTIME_ERROR << "Expected continuous matrix!";
+    if (raster.dims != 2) RAISE_RUNTIME_ERROR << "Expected 2D matrix!";
+    if (raster.depth() != CV_8U) RAISE_RUNTIME_ERROR << "Expected 8bit matrix!";
     const int imageWidth = raster.cols;
     const int imageHeight = raster.rows;
     const int numChannels = raster.channels();
-    if (numChannels != 1 && numChannels != 3) {
-        RAISE_RUNTIME_ERROR << "Only 3 or 1 channel images are supported!";
-    }
+    if (numChannels != 1 && numChannels != 3) RAISE_RUNTIME_ERROR << "Only 3 or 1 channel images are supported!";
     struct jpeg_compress_struct cinfo;
     struct jpeg_error_mgr jerr;
     JSAMPROW row_pointer[1];
@@ -109,24 +101,25 @@ void jpeglibEncode(const cv::Mat& raster, std::vector<uint8_t>& encodedStream, i
     cinfo.image_height = imageHeight;
     cinfo.input_components = numChannels;
     cinfo.in_color_space = JCS_RGB;
-    if (numChannels == 1) {
-        cinfo.in_color_space = JCS_GRAYSCALE;
-    }
+    if (numChannels == 1) cinfo.in_color_space = JCS_GRAYSCALE;
     jpeg_set_defaults(&cinfo);
     jpeg_set_quality(&cinfo, quality, TRUE);
     size_t length = 0;
     uint8_t* output = nullptr;
     jpeg_mem_dest(&cinfo, &output, &length);
-    for(int channel=0; channel<numChannels; ++channel) {
+    for (int channel = 0; channel < numChannels; ++channel)
+    {
         cinfo.comp_info[channel].h_samp_factor = 1;
         cinfo.comp_info[channel].v_samp_factor = 1;
     }
     jpeg_start_compress(&cinfo, TRUE);
     uint8_t* row(raster.data);
     bool success(true);
-    while (cinfo.next_scanline < cinfo.image_height) {
+    while (cinfo.next_scanline < cinfo.image_height)
+    {
         row_pointer[0] = row;
-        if (jpeg_write_scanlines(&cinfo, row_pointer, 1) == 0) {
+        if (jpeg_write_scanlines(&cinfo, row_pointer, 1) == 0)
+        {
             success = false;
             break;
         }
@@ -134,16 +127,19 @@ void jpeglibEncode(const cv::Mat& raster, std::vector<uint8_t>& encodedStream, i
     }
     jpeg_finish_compress(&cinfo);
     jpeg_destroy_compress(&cinfo);
-    if (success) {
+    if (success)
+    {
         encodedStream.resize(length);
         memcpy(encodedStream.data(), output, length);
     }
-    else {
+    else
+    {
         RAISE_RUNTIME_ERROR << "Error during compressing of raster with libjpeg!";
     }
 }
 
-namespace {
+namespace
+{
     // Configures a libjpeg compress struct so that the encoded stream's color
     // space matches what libtiff expects for COMPRESSION_JPEG with PHOTOMETRIC_RGB
     // (3-channel) or PHOTOMETRIC_MINISBLACK (1-channel): no YCbCr conversion,
@@ -151,28 +147,29 @@ namespace {
     // deterministic for a given (numChannels, quality), so a JPEGTABLES blob
     // produced with these settings is compatible with abbreviated tile streams
     // produced with the same settings.
-    void setupAbbreviatedCompressParams(jpeg_compress_struct& cinfo, int numChannels, int quality) {
+    void setupAbbreviatedCompressParams(jpeg_compress_struct& cinfo, int numChannels, int quality)
+    {
         cinfo.input_components = numChannels;
         cinfo.in_color_space = (numChannels == 1) ? JCS_GRAYSCALE : JCS_RGB;
         jpeg_set_defaults(&cinfo);
-        if (numChannels == 3) {
+        if (numChannels == 3)
+        {
             // Default for 3-channel input is JCS_YCbCr; force RGB to match
             // libtiff's PHOTOMETRIC_RGB + COMPRESSION_JPEG color path.
             jpeg_set_colorspace(&cinfo, JCS_RGB);
         }
         jpeg_set_quality(&cinfo, quality, TRUE);
-        for (int channel = 0; channel < numChannels; ++channel) {
+        for (int channel = 0; channel < numChannels; ++channel)
+        {
             cinfo.comp_info[channel].h_samp_factor = 1;
             cinfo.comp_info[channel].v_samp_factor = 1;
         }
     }
-}
+} // namespace
 
 void jpeglibWriteAbbreviatedTables(int numChannels, int quality, std::vector<uint8_t>& tablesBlob)
 {
-    if (numChannels != 1 && numChannels != 3) {
-        RAISE_RUNTIME_ERROR << "Only 3 or 1 channel images are supported!";
-    }
+    if (numChannels != 1 && numChannels != 3) RAISE_RUNTIME_ERROR << "Only 3 or 1 channel images are supported!";
     struct jpeg_compress_struct cinfo;
     struct jpeg_error_mgr jerr;
     cinfo.err = jpeg_std_error(&jerr);
@@ -187,7 +184,8 @@ void jpeglibWriteAbbreviatedTables(int numChannels, int quality, std::vector<uin
     jpeg_mem_dest(&cinfo, &output, &length);
     jpeg_write_tables(&cinfo);
     jpeg_destroy_compress(&cinfo);
-    if (output == nullptr || length == 0) {
+    if (output == nullptr || length == 0)
+    {
         if (output) free(output);
         RAISE_RUNTIME_ERROR << "Failed to produce JPEG tables blob.";
     }
@@ -197,21 +195,13 @@ void jpeglibWriteAbbreviatedTables(int numChannels, int quality, std::vector<uin
 
 void jpeglibEncodeAbbreviated(const cv::Mat& raster, std::vector<uint8_t>& encodedStream, int quality)
 {
-    if (!raster.isContinuous()) {
-        RAISE_RUNTIME_ERROR << "Expected continuous matrix!";
-    }
-    if (raster.dims != 2) {
-        RAISE_RUNTIME_ERROR << "Expected 2D matrix!";
-    }
-    if (raster.depth() != CV_8U) {
-        RAISE_RUNTIME_ERROR << "Expected 8bit matrix!";
-    }
+    if (!raster.isContinuous()) RAISE_RUNTIME_ERROR << "Expected continuous matrix!";
+    if (raster.dims != 2) RAISE_RUNTIME_ERROR << "Expected 2D matrix!";
+    if (raster.depth() != CV_8U) RAISE_RUNTIME_ERROR << "Expected 8bit matrix!";
     const int imageWidth = raster.cols;
     const int imageHeight = raster.rows;
     const int numChannels = raster.channels();
-    if (numChannels != 1 && numChannels != 3) {
-        RAISE_RUNTIME_ERROR << "Only 3 or 1 channel images are supported!";
-    }
+    if (numChannels != 1 && numChannels != 3) RAISE_RUNTIME_ERROR << "Only 3 or 1 channel images are supported!";
     struct jpeg_compress_struct cinfo;
     struct jpeg_error_mgr jerr;
     cinfo.err = jpeg_std_error(&jerr);
@@ -229,9 +219,11 @@ void jpeglibEncodeAbbreviated(const cv::Mat& raster, std::vector<uint8_t>& encod
     const int row_stride = imageWidth * numChannels;
     uint8_t* row = raster.data;
     bool success = true;
-    while (cinfo.next_scanline < cinfo.image_height) {
+    while (cinfo.next_scanline < cinfo.image_height)
+    {
         row_pointer[0] = row;
-        if (jpeg_write_scanlines(&cinfo, row_pointer, 1) == 0) {
+        if (jpeg_write_scanlines(&cinfo, row_pointer, 1) == 0)
+        {
             success = false;
             break;
         }
@@ -239,7 +231,8 @@ void jpeglibEncodeAbbreviated(const cv::Mat& raster, std::vector<uint8_t>& encod
     }
     jpeg_finish_compress(&cinfo);
     jpeg_destroy_compress(&cinfo);
-    if (!success) {
+    if (!success)
+    {
         if (output) free(output);
         RAISE_RUNTIME_ERROR << "Error during compressing of raster with libjpeg!";
     }

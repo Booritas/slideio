@@ -3,11 +3,9 @@
 // of this distribution and at http://slideio.com/license.html.
 #include <gtest/gtest.h>
 
-
 //#include <opencv2/highgui.hpp>
 //#include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
-
 
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/slideio/imagedrivermanager.hpp"
@@ -44,8 +42,7 @@ TEST(DCMImageDriver, canOpenFile)
 TEST(DCMImageDriver, openFile)
 {
     DCMImageDriver driver;
-    std::string slidePath = TestTools::getTestImagePath(
-        "dcm", "benigns_01/patient0186/0186.LEFT_CC.dcm");
+    std::string slidePath = TestTools::getTestImagePath("dcm", "benigns_01/patient0186/0186.LEFT_CC.dcm");
     auto slide = driver.openFile(slidePath);
     const int numScenes = slide->getNumScenes();
     ASSERT_EQ(numScenes, 1);
@@ -65,17 +62,11 @@ TEST(DCMImageDriver, openFile)
     EXPECT_EQ(cmp, Compression::Jpeg);
 }
 
-
 TEST(DCMImageDriver, openDirectory)
 {
-    if (!TestTools::isPrivateTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip private test because private dataset is not enabled";
-    }
+    if (!TestTools::isPrivateTestEnabled()) GTEST_SKIP() << "Skip private test because private dataset is not enabled";
     DCMImageDriver driver;
-    std::string slidePath = TestTools::getTestImagePath(
-        "dcm", "series/series_1", true);
+    std::string slidePath = TestTools::getTestImagePath("dcm", "series/series_1", true);
     auto slide = driver.openFile(slidePath);
     const int numScenes = slide->getNumScenes();
     ASSERT_EQ(numScenes, 1);
@@ -95,10 +86,7 @@ TEST(DCMImageDriver, openDirectory)
 
 TEST(DCMImageDriver, getSceneIndex)
 {
-    if (!TestTools::isPrivateTestEnabled()) {
-        GTEST_SKIP() <<
-            "Skip private test because private dataset is not enabled";
-    }
+    if (!TestTools::isPrivateTestEnabled()) GTEST_SKIP() << "Skip private test because private dataset is not enabled";
     DCMImageDriver driver;
     std::string filePath = TestTools::getTestImagePath("dcm", "series", true);
     auto slide = slideio::openSlide(filePath, "AUTO");
@@ -106,23 +94,19 @@ TEST(DCMImageDriver, getSceneIndex)
     EXPECT_EQ("DCM", slide->getDriverId());
     const int numScenes = slide->getNumScenes();
     EXPECT_EQ(2, numScenes);
-    for (int iScene = 0; iScene < numScenes; ++iScene) {
+    for (int iScene = 0; iScene < numScenes; ++iScene)
+    {
         std::shared_ptr<slideio::CVScene> scene = slide->getScene(iScene)->getCVScene();
         EXPECT_TRUE(scene.get() != nullptr);
         EXPECT_EQ(iScene, scene->getSceneIndex());
         EXPECT_EQ(filePath, scene->getFilePath());
-		EXPECT_EQ("DCM", scene->getDriverId());
+        EXPECT_EQ("DCM", scene->getDriverId());
     }
 }
 
-
 TEST(DCMImageDriver, openDirectoryRecursively)
 {
-    if (!TestTools::isPrivateTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip private test because private dataset is not enabled";
-    }
+    if (!TestTools::isPrivateTestEnabled()) GTEST_SKIP() << "Skip private test because private dataset is not enabled";
     DCMImageDriver driver;
     std::string slidePath = TestTools::getTestImagePath("dcm", "series", true);
     auto slide = driver.openFile(slidePath);
@@ -130,10 +114,7 @@ TEST(DCMImageDriver, openDirectoryRecursively)
     ASSERT_EQ(numScenes, 2);
     auto scene = slide->getScene(0);
     const std::string sceneName = scene->getName();
-    if (sceneName == "COU IV")
-    {
-        scene = slide->getScene(1);
-    }
+    if (sceneName == "COU IV") scene = slide->getScene(1);
     ASSERT_TRUE(scene);
     const cv::Rect rect = scene->getRect();
     const cv::Rect refRect = {0, 0, 512, 512};
@@ -149,10 +130,8 @@ TEST(DCMImageDriver, openDirectoryRecursively)
 
 TEST(DCMImageDriver, readSimpleFileWholeBlock)
 {
-    std::string slidePath = TestTools::getTestImagePath(
-        "dcm", "barre.dev/OT-MONO2-8-hip.dcm");
-    std::string testPath = TestTools::getTestImagePath(
-        "dcm", "barre.dev/OT-MONO2-8-hip.frames/frame0.png");
+    std::string slidePath = TestTools::getTestImagePath("dcm", "barre.dev/OT-MONO2-8-hip.dcm");
+    std::string testPath = TestTools::getTestImagePath("dcm", "barre.dev/OT-MONO2-8-hip.frames/frame0.png");
 
     DCMImageDriver driver;
     auto slide = driver.openFile(slidePath);
@@ -173,8 +152,7 @@ TEST(DCMImageDriver, readSimpleFileWholeBlock)
 
 TEST(DCMImageDriver, getRawMetadata)
 {
-    std::string slidePath = TestTools::getTestImagePath(
-        "dcm", "barre.dev/OT-MONO2-8-hip.dcm");
+    std::string slidePath = TestTools::getTestImagePath("dcm", "barre.dev/OT-MONO2-8-hip.dcm");
 
     DCMImageDriver driver;
     auto slide = driver.openFile(slidePath);
@@ -182,20 +160,17 @@ TEST(DCMImageDriver, getRawMetadata)
     const int numScenes = slide->getNumScenes();
     ASSERT_EQ(numScenes, 1);
     auto scene = slide->getScene(0);
-	EXPECT_EQ(scene->getMetadataFormat(), slideio::MetadataFormat::JSON);
+    EXPECT_EQ(scene->getMetadataFormat(), slideio::MetadataFormat::JSON);
     std::string metadata = scene->getRawMetadata();
     ASSERT_LT(2, metadata.length());
     EXPECT_EQ('{', metadata.front());
     EXPECT_EQ('}', metadata.back());
 }
 
-
 TEST(DCMImageDriver, readSimpleFileResampled)
 {
-    std::string slidePath = TestTools::getTestImagePath(
-        "dcm", "barre.dev/OT-MONO2-8-hip.dcm");
-    std::string testPath = TestTools::getTestImagePath(
-        "dcm", "barre.dev/OT-MONO2-8-hip.frames/frame0.png");
+    std::string slidePath = TestTools::getTestImagePath("dcm", "barre.dev/OT-MONO2-8-hip.dcm");
+    std::string testPath = TestTools::getTestImagePath("dcm", "barre.dev/OT-MONO2-8-hip.frames/frame0.png");
 
     DCMImageDriver driver;
     auto slide = driver.openFile(slidePath);
@@ -253,8 +228,8 @@ TEST(DCMImageDriver, readSingleFrameROIRescale)
     auto scene = slide->getScene(0);
     ASSERT_TRUE(scene);
     cv::Mat image;
-    cv::Rect rect = { 1000, 500, 600, 1000 };
-    cv::Size size = { 300, 500 };
+    cv::Rect rect = {1000, 500, 600, 1000};
+    cv::Size size = {300, 500};
     slideio::DataType dt = scene->getChannelDataType(0);
     scene->readResampledBlock(rect, size, image);
     ASSERT_FALSE(image.empty());
@@ -282,9 +257,9 @@ TEST(DCMImageDriver, readMultiFrameROIRescale)
     auto scene = slide->getScene(0);
     ASSERT_TRUE(scene);
     cv::Mat image;
-    cv::Rect rect = { 100, 50, 300, 360 };
-    cv::Size size = { 150, 180 };
-    scene->readResampled4DBlock(rect, size, cv::Range(5,7), cv::Range(0,1),image);
+    cv::Rect rect = {100, 50, 300, 360};
+    cv::Size size = {150, 180};
+    scene->readResampled4DBlock(rect, size, cv::Range(5, 7), cv::Range(0, 1), image);
     ASSERT_FALSE(image.empty());
     ASSERT_EQ(150, image.size[1]);
     ASSERT_EQ(180, image.size[0]);
@@ -310,11 +285,7 @@ TEST(DCMImageDriver, readMultiFrameROIRescale)
 
 TEST(DCMImageDriver, readDirectory3D)
 {
-    if (!TestTools::isPrivateTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip private test because private dataset is not enabled";
-    }
+    if (!TestTools::isPrivateTestEnabled()) GTEST_SKIP() << "Skip private test because private dataset is not enabled";
     DCMImageDriver driver;
     std::string slidePath = TestTools::getTestImagePath("dcm", "series/series_1", true);
     std::string testImagePath = TestTools::getTestImagePath("dcm", "series/series_1/tests/IMG-0001-00005.tiff", true);
@@ -345,17 +316,15 @@ TEST(DCMImageDriver, readDirectory3D)
 
 TEST(DCMImageDriver, DICOMDirgetSceneIndex)
 {
-    if (!TestTools::isPrivateTestEnabled()) {
-        GTEST_SKIP() <<
-            "Skip private test because private dataset is not enabled";
-    }
+    if (!TestTools::isPrivateTestEnabled()) GTEST_SKIP() << "Skip private test because private dataset is not enabled";
     DCMImageDriver driver;
     std::string filePath = TestTools::getFullTestImagePath("dcm", "spine_mr/DICOMDIR");
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide);
     const int numScenes = slide->getNumScenes();
     EXPECT_EQ(16, numScenes);
-    for (int iScene = 0; iScene < numScenes; ++iScene) {
+    for (int iScene = 0; iScene < numScenes; ++iScene)
+    {
         std::shared_ptr<slideio::CVScene> scene = slide->getScene(iScene);
         EXPECT_TRUE(scene.get() != nullptr);
         EXPECT_EQ(iScene, scene->getSceneIndex());
@@ -363,14 +332,9 @@ TEST(DCMImageDriver, DICOMDirgetSceneIndex)
     }
 }
 
-
 TEST(DCMImageDriver, openDicomDirFile)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip the test because full dataset is not enabled";
-    }
+    if (!TestTools::isFullTestEnabled()) GTEST_SKIP() << "Skip the test because full dataset is not enabled";
     DCMImageDriver driver;
     std::string slidePath = TestTools::getFullTestImagePath("dcm", "spine_mr/DICOMDIR");
     auto slide = driver.openFile(slidePath);
@@ -382,26 +346,13 @@ TEST(DCMImageDriver, openDicomDirFile)
         int numFrames;
         int numChannels;
     };
-    SceneInfo scenes[] =
-    {
-        {
-            cv::Size(256,256),
-            9,
-            1
-        },
-        {
-            cv::Size(512,512),
-            13,
-            1
-        },
-        {
-            cv::Size(64,64),
-            118,
-            1
-        },
+    SceneInfo scenes[] = {
+        {cv::Size(256, 256), 9, 1},
+        {cv::Size(512, 512), 13, 1},
+        {cv::Size(64, 64), 118, 1},
     };
     const int numTestScenes = sizeof(scenes) / sizeof(scenes[0]);
-    for(int sceneIndex=0; sceneIndex< numTestScenes; ++sceneIndex)
+    for (int sceneIndex = 0; sceneIndex < numTestScenes; ++sceneIndex)
     {
         auto scene = slide->getScene(sceneIndex);
         cv::Size size = scene->getRect().size();
@@ -412,14 +363,13 @@ TEST(DCMImageDriver, openDicomDirFile)
         EXPECT_EQ(numChannels, scenes[sceneIndex].numChannels);
     }
     auto scene = slide->getScene(1);
-    cv::Rect rect = { 100, 150, 200, 300 };
+    cv::Rect rect = {100, 150, 200, 300};
     cv::Mat image;
     scene->read4DBlock(rect, cv::Range(3, 7), cv::Range(0, 1), image);
     ASSERT_FALSE(image.empty());
     EXPECT_EQ(300, image.size[0]);
     EXPECT_EQ(200, image.size[1]);
     EXPECT_EQ(4, image.size[2]);
-
 }
 
 TEST(DCMImageDriver, readBlockChangingBits)
@@ -439,21 +389,16 @@ TEST(DCMImageDriver, readBlockChangingBits)
 
 TEST(DCMImageDriver, openFileUtf8Path)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() <<
-                     "Skip private test because private dataset is not enabled";
-    }
+    if (!TestTools::isFullTestEnabled()) GTEST_SKIP() << "Skip private test because private dataset is not enabled";
     DCMImageDriver driver;
-    std::string slidePath = TestTools::getFullTestImagePath(
-        "unicode", u8"тест/CT-MONO2-12-lomb-an2");
+    std::string slidePath = TestTools::getFullTestImagePath("unicode", u8"тест/CT-MONO2-12-lomb-an2");
     auto slide = driver.openFile(slidePath);
     const int numScenes = slide->getNumScenes();
     ASSERT_EQ(numScenes, 1);
     auto scene = slide->getScene(0);
     ASSERT_TRUE(scene);
     const cv::Rect rect = scene->getRect();
-    const cv::Rect refRect = { 0, 0, 512, 512 };
+    const cv::Rect refRect = {0, 0, 512, 512};
     EXPECT_EQ(rect, refRect);
     cv::Mat raster;
     scene->readBlock(rect, raster);
@@ -463,38 +408,27 @@ TEST(DCMImageDriver, openFileUtf8Path)
 
 TEST(DCMImageDriver, openWSIDirectory)
 {
-    std::list<std::string> auxNames = { "LOCALIZER", "LABEL", "OVERVIEW" };
+    std::list<std::string> auxNames = {"LOCALIZER", "LABEL", "OVERVIEW"};
 
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() <<
-        "Skip private test because private dataset is not enabled";
-    }
+    if (!TestTools::isFullTestEnabled()) GTEST_SKIP() << "Skip private test because private dataset is not enabled";
     DCMImageDriver driver;
-    std::string slidePath = TestTools::getFullTestImagePath(
-            "dcm", "private/H01EBB50P-24777");
+    std::string slidePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777");
     auto slide = driver.openFile(slidePath);
     const int numScenes = slide->getNumScenes();
     ASSERT_EQ(numScenes, 1);
     std::shared_ptr<CVScene> scene = slide->getScene(0);
     const int numAuxImages = scene->getNumAuxImages();
-    EXPECT_EQ(3,numAuxImages);
+    EXPECT_EQ(3, numAuxImages);
     std::list<std::string> names = scene->getAuxImageNames();
-    for(const auto& name : names) {
+    for (const auto& name : names)
         EXPECT_TRUE(std::find(auxNames.begin(), auxNames.end(), name) != auxNames.end());
-    }
 }
 
 TEST(DCMImageDriver, openSingleFileWSI)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip private test because private dataset is not enabled";
-    }
+    if (!TestTools::isFullTestEnabled()) GTEST_SKIP() << "Skip private test because private dataset is not enabled";
     DCMImageDriver driver;
-    std::string slidePath = TestTools::getFullTestImagePath(
-        "dcm", "private/wsi/M01FBC14P-589_level-0.dcm");
+    std::string slidePath = TestTools::getFullTestImagePath("dcm", "private/wsi/M01FBC14P-589_level-0.dcm");
     auto slide = driver.openFile(slidePath);
     const int numScenes = slide->getNumScenes();
     ASSERT_EQ(numScenes, 1);
@@ -515,16 +449,10 @@ TEST(DCMImageDriver, openSingleFileWSI)
 
 TEST(DCMImageDriver, readBlockSingleFileWSI)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip private test because private dataset is not enabled";
-    }
+    if (!TestTools::isFullTestEnabled()) GTEST_SKIP() << "Skip private test because private dataset is not enabled";
     DCMImageDriver driver;
-    std::string slidePath = TestTools::getFullTestImagePath(
-        "dcm", "private/wsi/M01FBC14P-589_level-0.dcm");
-    std::string testFilePath = TestTools::getFullTestImagePath(
-        "dcm", "private/wsi/M01FBC14P-589_level-0.block.dcm");
+    std::string slidePath = TestTools::getFullTestImagePath("dcm", "private/wsi/M01FBC14P-589_level-0.dcm");
+    std::string testFilePath = TestTools::getFullTestImagePath("dcm", "private/wsi/M01FBC14P-589_level-0.block.dcm");
     auto slide = driver.openFile(slidePath);
     const int numScenes = slide->getNumScenes();
     ASSERT_EQ(numScenes, 1);
@@ -535,7 +463,7 @@ TEST(DCMImageDriver, readBlockSingleFileWSI)
     int y = rectScene.y + rectScene.height / 3;
     const int width = 600;
     const int height = 400;
-    cv::Rect rectBlock = { x, y, width, height };
+    cv::Rect rectBlock = {x, y, width, height};
     cv::Mat raster;
     scene->readBlock(rectBlock, raster);
     cv::Mat testRaster;
@@ -547,38 +475,29 @@ TEST(DCMImageDriver, readBlockSingleFileWSI)
 
 TEST(DCMImageDriver, WSISingleFileGetSceneIndex)
 {
-    if (!TestTools::isPrivateTestEnabled()) {
-        GTEST_SKIP() <<
-            "Skip private test because private dataset is not enabled";
-    }
+    if (!TestTools::isPrivateTestEnabled()) GTEST_SKIP() << "Skip private test because private dataset is not enabled";
     DCMImageDriver driver;
-    std::string filePath = TestTools::getFullTestImagePath(
-        "dcm", "private/wsi/M01FBC14P-589_level-0.dcm");
+    std::string filePath = TestTools::getFullTestImagePath("dcm", "private/wsi/M01FBC14P-589_level-0.dcm");
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide);
     const int numScenes = slide->getNumScenes();
     EXPECT_EQ(1, numScenes);
-    for (int iScene = 0; iScene < numScenes; ++iScene) {
+    for (int iScene = 0; iScene < numScenes; ++iScene)
+    {
         std::shared_ptr<slideio::CVScene> scene = slide->getScene(iScene);
         EXPECT_TRUE(scene.get() != nullptr);
         EXPECT_EQ(iScene, scene->getSceneIndex());
         EXPECT_EQ(filePath, scene->getFilePath());
-		EXPECT_EQ("DCM", scene->getDriverId());
+        EXPECT_EQ("DCM", scene->getDriverId());
     }
 }
 
 TEST(DCMImageDriver, readBlockResampleSingleFileWSI)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip private test because private dataset is not enabled";
-    }
+    if (!TestTools::isFullTestEnabled()) GTEST_SKIP() << "Skip private test because private dataset is not enabled";
     DCMImageDriver driver;
-    std::string slidePath = TestTools::getFullTestImagePath(
-        "dcm", "private/wsi/M01FBC14P-589_level-0.dcm");
-    std::string testFilePath = TestTools::getFullTestImagePath(
-        "dcm", "private/wsi/M01FBC14P-589_level-0.block.dcm");
+    std::string slidePath = TestTools::getFullTestImagePath("dcm", "private/wsi/M01FBC14P-589_level-0.dcm");
+    std::string testFilePath = TestTools::getFullTestImagePath("dcm", "private/wsi/M01FBC14P-589_level-0.block.dcm");
     auto slide = driver.openFile(slidePath);
     const int numScenes = slide->getNumScenes();
     ASSERT_EQ(numScenes, 1);
@@ -589,9 +508,9 @@ TEST(DCMImageDriver, readBlockResampleSingleFileWSI)
     int y = rectScene.y + rectScene.height / 3;
     const int width = 600;
     const int height = 400;
-    cv::Rect rectBlock = { x, y, width, height };
+    cv::Rect rectBlock = {x, y, width, height};
     cv::Mat raster;
-    cv::Size blockSize = { 300, 200 };
+    cv::Size blockSize = {300, 200};
     scene->readResampledBlock(rectBlock, blockSize, raster);
     cv::Mat testRaster;
     //TestTools::writePNG(raster, testFilePath);
@@ -604,11 +523,7 @@ TEST(DCMImageDriver, readBlockResampleSingleFileWSI)
 
 TEST(DCMImageDriver, readResampledBlockWSIDirectory)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip private test because private dataset is not enabled";
-    }
+    if (!TestTools::isFullTestEnabled()) GTEST_SKIP() << "Skip private test because private dataset is not enabled";
     DCMImageDriver driver;
     std::string slidePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777");
     std::string testFilePath1 = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777.block-2.png");
@@ -622,9 +537,9 @@ TEST(DCMImageDriver, readResampledBlockWSIDirectory)
     int y = rectScene.y + rectScene.height / 3;
     const int width = 600;
     const int height = 400;
-    cv::Rect rectBlock = { x, y, width, height };
+    cv::Rect rectBlock = {x, y, width, height};
     cv::Mat raster;
-    cv::Size blockSize = { 300, 200 };
+    cv::Size blockSize = {300, 200};
     scene->readResampledBlock(rectBlock, blockSize, raster);
     cv::Mat testRaster;
     //TestTools::writePNG(raster, testFilePath1);
@@ -638,7 +553,7 @@ TEST(DCMImageDriver, readResampledBlockWSIDirectory)
     const int blockWidth = 600;
     const double cof = static_cast<double>(blockWidth) / static_cast<double>(rectScene.width);
     const int blockHeigt = std::lround(cof * static_cast<double>(rectScene.height));
-    blockSize = { blockWidth, blockHeigt };
+    blockSize = {blockWidth, blockHeigt};
 
     scene->readResampledBlock(rectBlock, blockSize, raster);
     //TestTools::writePNG(raster, testFilePath2);
@@ -651,32 +566,26 @@ TEST(DCMImageDriver, readResampledBlockWSIDirectory)
 
 TEST(DCMImageDriver, WSIDirGetSceneIndex)
 {
-    if (!TestTools::isPrivateTestEnabled()) {
-        GTEST_SKIP() <<
-            "Skip private test because private dataset is not enabled";
-    }
+    if (!TestTools::isPrivateTestEnabled()) GTEST_SKIP() << "Skip private test because private dataset is not enabled";
     DCMImageDriver driver;
     std::string filePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777");
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide);
     const int numScenes = slide->getNumScenes();
     EXPECT_EQ(1, numScenes);
-    for (int iScene = 0; iScene < numScenes; ++iScene) {
+    for (int iScene = 0; iScene < numScenes; ++iScene)
+    {
         std::shared_ptr<slideio::CVScene> scene = slide->getScene(iScene);
         EXPECT_TRUE(scene.get() != nullptr);
         EXPECT_EQ(iScene, scene->getSceneIndex());
         EXPECT_EQ(filePath, scene->getFilePath());
-		EXPECT_EQ("DCM", scene->getDriverId());
+        EXPECT_EQ("DCM", scene->getDriverId());
     }
 }
 
 TEST(DCMImageDriver, readBlockWSIDirectory)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip private test because private dataset is not enabled";
-    }
+    if (!TestTools::isFullTestEnabled()) GTEST_SKIP() << "Skip private test because private dataset is not enabled";
     DCMImageDriver driver;
     std::string slidePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777");
     std::string testFilePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777.block.png");
@@ -689,7 +598,7 @@ TEST(DCMImageDriver, readBlockWSIDirectory)
     int y = rectScene.y + rectScene.height / 3;
     const int width = 600;
     const int height = 400;
-    cv::Rect rectBlock = { x, y, width, height };
+    cv::Rect rectBlock = {x, y, width, height};
     cv::Mat raster;
     scene->readBlock(rectBlock, raster);
     cv::Mat testRaster;
@@ -701,13 +610,9 @@ TEST(DCMImageDriver, readBlockWSIDirectory)
 
 TEST(DCMImageDriver, readAuxImagesWSIDirectory)
 {
-    std::list<std::string> auxNames = { "LOCALIZER", "LABEL", "OVERVIEW" };
+    std::list<std::string> auxNames = {"LOCALIZER", "LABEL", "OVERVIEW"};
 
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip private test because private dataset is not enabled";
-    }
+    if (!TestTools::isFullTestEnabled()) GTEST_SKIP() << "Skip private test because private dataset is not enabled";
     DCMImageDriver driver;
     std::string slidePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777");
     std::string testFilePathBase = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777");
@@ -716,9 +621,10 @@ TEST(DCMImageDriver, readAuxImagesWSIDirectory)
     ASSERT_EQ(numScenes, 1);
     std::shared_ptr<CVScene> scene = slide->getScene(0);
     EXPECT_EQ(3, scene->getNumAuxImages());
-    for(auto&& name: auxNames) {
+    for (auto&& name : auxNames)
+    {
         std::shared_ptr<CVScene> auxScene = scene->getAuxImage(name);
-        ASSERT_TRUE(auxScene.get()!=nullptr);
+        ASSERT_TRUE(auxScene.get() != nullptr);
         cv::Mat auxRaster;
         auxScene->readBlock(auxScene->getRect(), auxRaster);
         std::string auxTestPath = testFilePathBase + "." + name + ".png";
@@ -756,15 +662,15 @@ TEST(DCMImageDriver, readJp2K)
 TEST(DCMImageDriver, zoomLevels)
 {
     const slideio::LevelInfo levels[] = {
-        slideio::LevelInfo(0, {72192,70400}, 1.0, 0., {256,256}),
-        slideio::LevelInfo(1, {36096,35200}, 0.5, 0, {256,256}),
-        slideio::LevelInfo(2, {18048,17600}, 0.25, 0, {256,256}),
-        slideio::LevelInfo(3, {9024,8800}, 0.125, 0, {256,256}),
-        slideio::LevelInfo(4, {4512,4400}, 0.0625, 0, {256,256}),
-        slideio::LevelInfo(5, {2256,2200}, 0.03117, 0, {256,256}),
-        slideio::LevelInfo(6, {1128,1100}, 0.015625, 0, {256,256}),
-        slideio::LevelInfo(7, {564,550}, 0.0078125, 0, {256,256}),
-        slideio::LevelInfo(8, {282,275}, 0.00390625, 0, {256,256}),
+        slideio::LevelInfo(0, {72192, 70400}, 1.0, 0., {256, 256}),
+        slideio::LevelInfo(1, {36096, 35200}, 0.5, 0, {256, 256}),
+        slideio::LevelInfo(2, {18048, 17600}, 0.25, 0, {256, 256}),
+        slideio::LevelInfo(3, {9024, 8800}, 0.125, 0, {256, 256}),
+        slideio::LevelInfo(4, {4512, 4400}, 0.0625, 0, {256, 256}),
+        slideio::LevelInfo(5, {2256, 2200}, 0.03117, 0, {256, 256}),
+        slideio::LevelInfo(6, {1128, 1100}, 0.015625, 0, {256, 256}),
+        slideio::LevelInfo(7, {564, 550}, 0.0078125, 0, {256, 256}),
+        slideio::LevelInfo(8, {282, 275}, 0.00390625, 0, {256, 256}),
     };
     slideio::DCMImageDriver driver;
     const std::string filePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777");
@@ -780,21 +686,17 @@ TEST(DCMImageDriver, zoomLevels)
     {
         const slideio::LevelInfo* level = scene->getZoomLevelInfo(levelIndex);
         EXPECT_EQ(*level, levels[levelIndex]);
-        if (levelIndex == 0) {
-            EXPECT_EQ(level->getSize(), Tools::cvSizeToSize(rect.size()));
-        }
-
+        if (levelIndex == 0) EXPECT_EQ(level->getSize(), Tools::cvSizeToSize(rect.size()));
     }
 }
 
 TEST(DCMImageDriver, zoomLevelsSingle)
 {
     const slideio::LevelInfo levels[] = {
-        slideio::LevelInfo(0, {512,512}, 1.0, 0., {512,512}),
+        slideio::LevelInfo(0, {512, 512}, 1.0, 0., {512, 512}),
     };
     slideio::DCMImageDriver driver;
-    std::string filePath = TestTools::getTestImagePath(
-        "dcm", "barre.dev/OT-MONO2-8-hip.dcm");
+    std::string filePath = TestTools::getTestImagePath("dcm", "barre.dev/OT-MONO2-8-hip.dcm");
     const std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     const std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
     const int numScenes = slide->getNumScenes();
@@ -807,19 +709,13 @@ TEST(DCMImageDriver, zoomLevelsSingle)
     {
         const slideio::LevelInfo* level = scene->getZoomLevelInfo(levelIndex);
         EXPECT_EQ(*level, levels[levelIndex]);
-        if (levelIndex == 0) {
-            EXPECT_EQ(level->getSize(), Tools::cvSizeToSize(rect.size()));
-        }
-
+        if (levelIndex == 0) EXPECT_EQ(level->getSize(), Tools::cvSizeToSize(rect.size()));
     }
 }
 
-TEST(DCMImageDriver, multiThreadSceneAccess) {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip the test because full dataset is not enabled";
-    }
+TEST(DCMImageDriver, multiThreadSceneAccess)
+{
+    if (!TestTools::isFullTestEnabled()) GTEST_SKIP() << "Skip the test because full dataset is not enabled";
     std::string filePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777");
     DCMImageDriver driver;
     TestTools::multiThreadedTest(filePath, driver);

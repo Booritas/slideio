@@ -63,30 +63,30 @@ TEST(ColorTools, hexARGBToRGBA_Blue)
 {
     // ARGB: Alpha=FF, Red=00, Green=00, Blue=FF
     auto rgba = ColorTools::hexARGBToRGBA("#FF0000FF");
-    EXPECT_EQ(rgba[0], 0);    // Red
-    EXPECT_EQ(rgba[1], 0);    // Green
-    EXPECT_EQ(rgba[2], 255);  // Blue
-    EXPECT_EQ(rgba[3], 255);  // Alpha
+    EXPECT_EQ(rgba[0], 0);   // Red
+    EXPECT_EQ(rgba[1], 0);   // Green
+    EXPECT_EQ(rgba[2], 255); // Blue
+    EXPECT_EQ(rgba[3], 255); // Alpha
 }
 
 TEST(ColorTools, hexARGBToRGBA_Red)
 {
     // ARGB: Alpha=FF, Red=FF, Green=00, Blue=00
     auto rgba = ColorTools::hexARGBToRGBA("#FFFF0000");
-    EXPECT_EQ(rgba[0], 255);  // Red
-    EXPECT_EQ(rgba[1], 0);    // Green
-    EXPECT_EQ(rgba[2], 0);    // Blue
-    EXPECT_EQ(rgba[3], 255);  // Alpha
+    EXPECT_EQ(rgba[0], 255); // Red
+    EXPECT_EQ(rgba[1], 0);   // Green
+    EXPECT_EQ(rgba[2], 0);   // Blue
+    EXPECT_EQ(rgba[3], 255); // Alpha
 }
 
 TEST(ColorTools, hexARGBToRGBA_Green)
 {
     // ARGB: Alpha=FF, Red=00, Green=FF, Blue=00
     auto rgba = ColorTools::hexARGBToRGBA("#FF00FF00");
-    EXPECT_EQ(rgba[0], 0);    // Red
-    EXPECT_EQ(rgba[1], 255);  // Green
-    EXPECT_EQ(rgba[2], 0);    // Blue
-    EXPECT_EQ(rgba[3], 255);  // Alpha
+    EXPECT_EQ(rgba[0], 0);   // Red
+    EXPECT_EQ(rgba[1], 255); // Green
+    EXPECT_EQ(rgba[2], 0);   // Blue
+    EXPECT_EQ(rgba[3], 255); // Alpha
 }
 
 TEST(ColorTools, hexARGBToRGBA_SemiTransparent)
@@ -102,10 +102,10 @@ TEST(ColorTools, hexARGBToRGBA_SemiTransparent)
 TEST(ColorTools, hexARGBToRGBA_WithoutHash)
 {
     auto rgba = ColorTools::hexARGBToRGBA("FF00FF00");
-    EXPECT_EQ(rgba[0], 0);    // Red
-    EXPECT_EQ(rgba[1], 255);  // Green
-    EXPECT_EQ(rgba[2], 0);    // Blue
-    EXPECT_EQ(rgba[3], 255);  // Alpha
+    EXPECT_EQ(rgba[0], 0);   // Red
+    EXPECT_EQ(rgba[1], 255); // Green
+    EXPECT_EQ(rgba[2], 0);   // Blue
+    EXPECT_EQ(rgba[3], 255); // Alpha
 }
 
 TEST(ColorTools, hexARGBToRGBA_InvalidLength)
@@ -122,10 +122,10 @@ TEST(ColorTools, hexRGBAToRGBA_RedFullAlpha)
 {
     // RGBA: Red=FF, Green=00, Blue=00, Alpha=FF
     auto rgba = ColorTools::hexRGBAToRGBA("#FF0000FF");
-    EXPECT_EQ(rgba[0], 255);  // Red
-    EXPECT_EQ(rgba[1], 0);    // Green
-    EXPECT_EQ(rgba[2], 0);    // Blue
-    EXPECT_EQ(rgba[3], 255);  // Alpha
+    EXPECT_EQ(rgba[0], 255); // Red
+    EXPECT_EQ(rgba[1], 0);   // Green
+    EXPECT_EQ(rgba[2], 0);   // Blue
+    EXPECT_EQ(rgba[3], 255); // Alpha
 }
 
 TEST(ColorTools, hexRGBAToRGBA_GreenHalfAlpha)
@@ -141,10 +141,10 @@ TEST(ColorTools, hexRGBAToRGBA_GreenHalfAlpha)
 TEST(ColorTools, hexRGBAToRGBA_WithoutHash)
 {
     auto rgba = ColorTools::hexRGBAToRGBA("0000FFFF");
-    EXPECT_EQ(rgba[0], 0);    // Red
-    EXPECT_EQ(rgba[1], 0);    // Green
-    EXPECT_EQ(rgba[2], 255);  // Blue
-    EXPECT_EQ(rgba[3], 255);  // Alpha
+    EXPECT_EQ(rgba[0], 0);   // Red
+    EXPECT_EQ(rgba[1], 0);   // Green
+    EXPECT_EQ(rgba[2], 255); // Blue
+    EXPECT_EQ(rgba[3], 255); // Alpha
 }
 
 TEST(ColorTools, hexRGBAToRGBA_InvalidLength)
@@ -161,19 +161,19 @@ TEST(ColorTools, hexToRGBA_RGB6Digits)
 {
     // 6-digit RGB with default alpha=255
     auto rgba = ColorTools::hexToRGBA("#FF0000");
-    EXPECT_EQ(rgba[0], 255);  // Red
-    EXPECT_EQ(rgba[1], 0);    // Green
-    EXPECT_EQ(rgba[2], 0);    // Blue
-    EXPECT_EQ(rgba[3], 0);  // Alpha (default)
+    EXPECT_EQ(rgba[0], 255); // Red
+    EXPECT_EQ(rgba[1], 0);   // Green
+    EXPECT_EQ(rgba[2], 0);   // Blue
+    EXPECT_EQ(rgba[3], 0);   // Alpha (default)
 }
 
 TEST(ColorTools, hexToRGBA_RGB6DigitsCustomAlpha)
 {
     auto rgba = ColorTools::hexToRGBA("#00FF00", 128);
-    EXPECT_EQ(rgba[0], 0);    // Red
-    EXPECT_EQ(rgba[1], 255);  // Green
-    EXPECT_EQ(rgba[2], 0);    // Blue
-    EXPECT_EQ(rgba[3], 128);  // Alpha (custom)
+    EXPECT_EQ(rgba[0], 0);   // Red
+    EXPECT_EQ(rgba[1], 255); // Green
+    EXPECT_EQ(rgba[2], 0);   // Blue
+    EXPECT_EQ(rgba[3], 128); // Alpha (custom)
 }
 
 TEST(ColorTools, hexToRGBA_RGBA8Digits)
@@ -280,7 +280,6 @@ TEST(ColorTools, RGBAToHexRGBA_SemiTransparent)
     EXPECT_EQ(hex, "#FF800080");
 }
 
-
 // ============================================================
 // smartHexToRGBA tests
 // ============================================================
@@ -288,19 +287,19 @@ TEST(ColorTools, RGBAToHexRGBA_SemiTransparent)
 TEST(ColorTools, smartHexToRGBA_RGB)
 {
     auto rgba = ColorTools::smartHexToRGBA("#FF0000");
-    EXPECT_EQ(rgba[0], 255);  // Red
-    EXPECT_EQ(rgba[1], 0);    // Green
-    EXPECT_EQ(rgba[2], 0);    // Blue
-    EXPECT_EQ(rgba[3], 0);  // Alpha (default)
+    EXPECT_EQ(rgba[0], 255); // Red
+    EXPECT_EQ(rgba[1], 0);   // Green
+    EXPECT_EQ(rgba[2], 0);   // Blue
+    EXPECT_EQ(rgba[3], 0);   // Alpha (default)
 }
 
 TEST(ColorTools, smartHexToRGBA_RGBCustomAlpha)
 {
     auto rgba = ColorTools::smartHexToRGBA("#00FF00", 100);
-    EXPECT_EQ(rgba[0], 0);    // Red
-    EXPECT_EQ(rgba[1], 255);  // Green
-    EXPECT_EQ(rgba[2], 0);    // Blue
-    EXPECT_EQ(rgba[3], 100);  // Alpha (custom default)
+    EXPECT_EQ(rgba[0], 0);   // Red
+    EXPECT_EQ(rgba[1], 255); // Green
+    EXPECT_EQ(rgba[2], 0);   // Blue
+    EXPECT_EQ(rgba[3], 100); // Alpha (custom default)
 }
 
 TEST(ColorTools, smartHexToRGBA_ARGB)
@@ -318,10 +317,10 @@ TEST(ColorTools, smartHexToRGBA_RGBA)
     // Last two are FF, first two are not → detected as RGBA
     // RGBA: R=00, G=FF, B=00, A=FF
     auto rgba = ColorTools::smartHexToRGBA("#00FF00FF");
-    EXPECT_EQ(rgba[0], 0);    // Red
-    EXPECT_EQ(rgba[1], 255);  // Green
-    EXPECT_EQ(rgba[2], 0);    // Blue
-    EXPECT_EQ(rgba[3], 255);  // Alpha
+    EXPECT_EQ(rgba[0], 0);   // Red
+    EXPECT_EQ(rgba[1], 255); // Green
+    EXPECT_EQ(rgba[2], 0);   // Blue
+    EXPECT_EQ(rgba[3], 255); // Alpha
 }
 
 TEST(ColorTools, smartHexToRGBA_InvalidFormat)
@@ -380,17 +379,16 @@ TEST(ColorTools, RoundTrip_Black)
 TEST(ColorTools, hexARGBToRGBA_LowercaseInput)
 {
     auto rgba = ColorTools::hexARGBToRGBA("#ff00ff00");
-    EXPECT_EQ(rgba[0], 0);    // Red
-    EXPECT_EQ(rgba[1], 255);  // Green
-    EXPECT_EQ(rgba[2], 0);    // Blue
-    EXPECT_EQ(rgba[3], 255);  // Alpha
+    EXPECT_EQ(rgba[0], 0);   // Red
+    EXPECT_EQ(rgba[1], 255); // Green
+    EXPECT_EQ(rgba[2], 0);   // Blue
+    EXPECT_EQ(rgba[3], 255); // Alpha
 }
 
 TEST(ColorTools, detectHexColorFormat_LowercaseInput)
 {
     EXPECT_EQ(ColorTools::detectHexColorFormat("#aabbcc"), HexColorFormat::RGB);
 }
-
 
 // ============================================================
 // hexToInt32String tests
@@ -642,18 +640,18 @@ TEST(ColorTools, hexToInt32String_OnlyHash)
 TEST(ColorTools, hexToInt32String_OpaqueColors)
 {
     // Common opaque colors (alpha = 255)
-    EXPECT_EQ(ColorTools::hexToInt32String("#FFFF0000"), "-65536"); // Opaque Red
-    EXPECT_EQ(ColorTools::hexToInt32String("#FF00FF00"), "-16711936");  // Opaque Green
-    EXPECT_EQ(ColorTools::hexToInt32String("#FF0000FF"), "-16776961");  // Opaque Blue
-    EXPECT_EQ(ColorTools::hexToInt32String("#FF000000"), "-16777216");  // Opaque Black
+    EXPECT_EQ(ColorTools::hexToInt32String("#FFFF0000"), "-65536");    // Opaque Red
+    EXPECT_EQ(ColorTools::hexToInt32String("#FF00FF00"), "-16711936"); // Opaque Green
+    EXPECT_EQ(ColorTools::hexToInt32String("#FF0000FF"), "-16776961"); // Opaque Blue
+    EXPECT_EQ(ColorTools::hexToInt32String("#FF000000"), "-16777216"); // Opaque Black
 }
 
 TEST(ColorTools, hexToInt32String_TransparentColors)
 {
     // Fully transparent colors (alpha = 0)
     EXPECT_EQ(ColorTools::hexToInt32String("#00FF0000"), "16711680"); // Transparent Red
-    EXPECT_EQ(ColorTools::hexToInt32String("#0000FF00"), "65280");     // Transparent Green
-    EXPECT_EQ(ColorTools::hexToInt32String("#000000FE"), "254");       // Transparent Blue
+    EXPECT_EQ(ColorTools::hexToInt32String("#0000FF00"), "65280");    // Transparent Green
+    EXPECT_EQ(ColorTools::hexToInt32String("#000000FE"), "254");      // Transparent Blue
 }
 
 // Complex Real-World Colors

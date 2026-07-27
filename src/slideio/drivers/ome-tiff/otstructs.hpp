@@ -11,7 +11,7 @@ namespace tinyxml2
 {
     class XMLElement;
     class XMLDocument;
-}
+} // namespace tinyxml2
 
 namespace slideio
 {
@@ -25,6 +25,6 @@ namespace slideio
             std::string imageFilePath;
         };
 
-		typedef std::vector<int> PlaneCoordinates;
-    }
-}
+        typedef std::vector<int> PlaneCoordinates;
+    } // namespace ometiff
+} // namespace slideio

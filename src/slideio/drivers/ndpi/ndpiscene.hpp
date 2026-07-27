@@ -1,8 +1,7 @@
 // This file is part of slideio project.
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
-#ifndef OPENCV_slideio_ndpiscene_HPP
-#define OPENCV_slideio_ndpiscene_HPP
+#pragma once
 
 #include "ndpitifftools.hpp"
 #include "slideio/drivers/ndpi/ndpi_api_def.hpp"
@@ -10,8 +9,8 @@
 #include "slideio/core/tools/tilecomposer.hpp"
 
 #if defined(_MSC_VER)
-#pragma warning( push )
-#pragma warning(disable: 4251)
+#pragma warning(push)
+#pragma warning(disable : 4251)
 #endif
 
 namespace slideio
@@ -21,41 +20,44 @@ namespace slideio
 
 namespace slideio
 {
-    class SLIDEIO_NDPI_EXPORTS NDPIScene : public CVScene, public Tiler
+    class SLIDEIO_NDPI_EXPORTS NDPIScene: public CVScene, public Tiler
     {
         friend class NDPISlide;
+
     protected:
         NDPIScene();
+
     public:
         virtual ~NDPIScene();
-        void init(const std::string& name, int sceneIndex, const std::string& driverId, NDPIFile* file, int32_t startDirIndex, int32_t endDirIndex);
+        void init(const std::string& name, int sceneIndex, const std::string& driverId, NDPIFile* file,
+                  int32_t startDirIndex, int32_t endDirIndex);
         int getNumChannels() const override;
         cv::Rect getRect() const override;
         std::string getFilePath() const override;
-		const std::string& getDriverId() const override {
-			return m_driverId;
-		}
-        int getSceneIndex() const override {
-			return m_sceneIndex;
-        }
-        std::string getName() const override {
-            return m_sceneName;
-        }
+        const std::string& getDriverId() const override { return m_driverId; }
+        int getSceneIndex() const override { return m_sceneIndex; }
+        std::string getName() const override { return m_sceneName; }
         slideio::DataType getChannelDataType(int channel) const override;
         Resolution getResolution() const override;
         double getMagnification() const override;
         Compression getCompression() const override;
         void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
-            const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output) override;
-        const NDPITiffDirectory& findZoomDirectory(const cv::Rect& imageBlockRect, const cv::Size& requiredBlockSize) const;
-        void scaleBlockToDirectory(const cv::Rect& imageBlockRect, const slideio::NDPITiffDirectory& dir, cv::Rect& dirBlockRect) const;
+                                          const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex,
+                                          cv::OutputArray output) override;
+        const NDPITiffDirectory& findZoomDirectory(const cv::Rect& imageBlockRect,
+                                                   const cv::Size& requiredBlockSize) const;
+        void scaleBlockToDirectory(const cv::Rect& imageBlockRect, const slideio::NDPITiffDirectory& dir,
+                                   cv::Rect& dirBlockRect) const;
         int getTileCount(void* userData) override;
         bool getTileRect(int tileIndex, cv::Rect& tileRect, void* userData) override;
         bool readTile(int tileIndex, const std::vector<int>& channelIndices, cv::OutputArray tileRaster,
                       void* userData) override;
-        void initializeBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices, cv::OutputArray output) override;
+        void initializeBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices,
+                             cv::OutputArray output) override;
+
     private:
         void makeSureValidDirectoryType(NDPITiffDirectory::Type directoryType);
+
     protected:
         NDPIFile* m_pfile;
         int m_startDir;
@@ -63,13 +65,11 @@ namespace slideio
         std::string m_sceneName;
         cv::Rect m_rect;
         int m_sceneIndex;
-		std::string m_driverId;
+        std::string m_driverId;
     };
 
-}
+} // namespace slideio
 
 #if defined(_MSC_VER)
-#pragma warning( pop )
-#endif
-
+#pragma warning(pop)
 #endif

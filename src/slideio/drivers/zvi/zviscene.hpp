@@ -1,8 +1,7 @@
-﻿// This file is part of slideio project.
+// This file is part of slideio project.
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
-#ifndef OPENCV_slideio_zviscene_HPP
-#define OPENCV_slideio_zviscene_HPP
+#pragma once
 
 #include "slideio/core/cvscene.hpp"
 #include "slideio/core/tools/tilecomposer.hpp"
@@ -12,30 +11,27 @@
 #include "slideio/drivers/zvi/zvi_api_def.hpp"
 
 #if defined(_MSC_VER)
-#pragma warning( push )
-#pragma warning(disable: 4251)
+#pragma warning(push)
+#pragma warning(disable : 4251)
 #endif
 
 namespace slideio
 {
     class ZVISlide;
 
-    class SLIDEIO_ZVI_EXPORTS ZVIScene : public CVScene, public Tiler
+    class SLIDEIO_ZVI_EXPORTS ZVIScene: public CVScene, public Tiler
     {
     private:
         struct TilerData
         {
             int zSliceIndex = 0;
         };
+
     public:
         ZVIScene(const std::string& filePath, const std::string& driverId);
         std::string getFilePath() const override;
-        int getSceneIndex() const override {
-			return 0;
-        }
-		const std::string& getDriverId() const override {
-			return m_driverId;
-		}
+        int getSceneIndex() const override { return 0; }
+        const std::string& getDriverId() const override { return m_driverId; }
         cv::Rect getRect() const override;
         int getNumChannels() const override;
         int getNumZSlices() const override;
@@ -51,14 +47,17 @@ namespace slideio
         Compression getCompression() const override;
         const std::vector<ZVIImageItem>& getImageItems() const { return m_ImageItems; }
         void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
-            const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex,
-            cv::OutputArray output) override;
+                                          const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex,
+                                          cv::OutputArray output) override;
+
     public:
         int getTileCount(void* userData) override;
         bool getTileRect(int tileIndex, cv::Rect& tileRect, void* userData) override;
         bool readTile(int tileIndex, const std::vector<int>& channelIndices, cv::OutputArray tileRaster,
                       void* userData) override;
-        void initializeBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices, cv::OutputArray output) override;
+        void initializeBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices,
+                             cv::OutputArray output) override;
+
     private:
         ZVIPixelFormat getPixelFormat() const;
         void alignChannelInfoToPixelFormat();
@@ -68,6 +67,7 @@ namespace slideio
         void parseImageTags();
         void parseImageInfo();
         void computeTiles();
+
     private:
         std::string m_filePath;
         ole::compound_document m_Doc;
@@ -84,17 +84,14 @@ namespace slideio
         std::vector<std::string> m_ChannelNames;
         std::vector<ZVIImageItem> m_ImageItems;
         std::vector<ZVITile> m_Tiles;
-        Resolution m_res = {0,0};
+        Resolution m_res = {0, 0};
         double m_ZSliceRes = 0.;
         std::string m_SceneName;
         Compression m_Compression = Compression::Uncompressed;
         std::string m_driverId;
     };
-}
-
+} // namespace slideio
 
 #if defined(_MSC_VER)
-#pragma warning( pop )
-#endif
-
+#pragma warning(pop)
 #endif

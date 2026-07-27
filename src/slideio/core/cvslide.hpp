@@ -1,8 +1,7 @@
 // This file is part of slideio project.
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
-#ifndef OPENCV_slideio_slide_HPP
-#define OPENCV_slideio_slide_HPP
+#pragma once
 
 #include "slideio/core/slideio_core_def.hpp"
 #include "slideio/core/cvscene.hpp"
@@ -11,8 +10,8 @@
 #include <mutex>
 
 #if defined(_MSC_VER)
-#pragma warning( push )
-#pragma warning(disable: 4251)
+#pragma warning(push)
+#pragma warning(disable : 4251)
 #endif
 
 namespace slideio
@@ -29,8 +28,10 @@ namespace slideio
     class SLIDEIO_CORE_EXPORTS CVSlide
     {
         friend class ImageDriver;
+
     protected:
         virtual ~CVSlide() = default;
+
     public:
         /**@brief The method returns number of Scene objects contained in the slide.*/
         virtual int getNumScenes() const = 0;
@@ -40,7 +41,7 @@ namespace slideio
          *
          *Content of the string depends on image driver and may be plain text,
         xml or json formatted string. Default value is an empty string.*/
-        virtual const std::string& getRawMetadata() const {return m_rawMetadata;}
+        virtual const std::string& getRawMetadata() const { return m_rawMetadata; }
         /**@brief returns metadata as a navigable tree. Built lazily on first call. */
         const Metadata& getMetadata() const;
         /**@brief The method returns a CVScene object by the scene index.*/
@@ -50,54 +51,45 @@ namespace slideio
         /**@brief The method returns list of names of auxiliary images contained in the slide.
          *
          *Default: empty list.*/
-        virtual const std::list<std::string>& getAuxImageNames() const {
-            return m_auxNames;
-        }
+        virtual const std::list<std::string>& getAuxImageNames() const { return m_auxNames; }
         /**@brief The method returns number of auxiliary images contained in the slide.*/
-        virtual int getNumAuxImages() const {
-            return static_cast<int>(m_auxNames.size());
-        }
+        virtual int getNumAuxImages() const { return static_cast<int>(m_auxNames.size()); }
         /**@brief Returns a slideio::CVScene object that represents an auxiliary image with the supplied name.
          *
         @param sceneName : name of the auxiliary image. It must be contained in the list returned by getAuxImageNames method.
         */
         virtual std::shared_ptr<CVScene> getAuxImage(const std::string& sceneName) const;
-		/**@brief The method returns a string containing serialized metadata of the slide.
+        /**@brief The method returns a string containing serialized metadata of the slide.
 		 *
 		 *Content of the string depends on image driver and may be plain text.
 		 */
-		 virtual MetadataFormat getMetadataFormat() const { return m_metadataFormat; }
-		 /**@brief The method sets driver id of the slide.  */
-        void setDriverId(const std::string& driverId) {
-			m_driverId = driverId;
-		 }
-		/**@brief The method returns driver id of the slide. */
-		const std::string& getDriverId() const {
-			return m_driverId;
-		}
+        virtual MetadataFormat getMetadataFormat() const { return m_metadataFormat; }
+        /**@brief The method sets driver id of the slide.  */
+        void setDriverId(const std::string& driverId) { m_driverId = driverId; }
+        /**@brief The method returns driver id of the slide. */
+        const std::string& getDriverId() const { return m_driverId; }
         /**@brief The method returns format of a string passed as a parameter. */
-         static MetadataFormat recognizeMetadataFormat(const std::string& metadata);
-		 /**@brief The method returns a string containing serialized metadata of the slide. */
-         std::string toString() const;
+        static MetadataFormat recognizeMetadataFormat(const std::string& metadata);
+        /**@brief The method returns a string containing serialized metadata of the slide. */
+        std::string toString() const;
+
     protected:
         virtual MetadataBuilder buildMetadataTree() const;
 
     protected:
         std::string m_rawMetadata;
-		MetadataFormat m_metadataFormat = MetadataFormat::None;
+        MetadataFormat m_metadataFormat = MetadataFormat::None;
         std::list<std::string> m_auxNames;
         std::string m_driverId;
 
     private:
         mutable std::once_flag m_metadataOnce;
-        mutable Metadata       m_metadata;
+        mutable Metadata m_metadata;
     };
-}
+} // namespace slideio
 
 #define CVSlidePtr std::shared_ptr<slideio::CVSlide>
 
 #if defined(_MSC_VER)
-#pragma warning( pop )
-#endif
-
+#pragma warning(pop)
 #endif

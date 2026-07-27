@@ -12,4 +12,4 @@ namespace slideio
         virtual ~ITileVisitor() = default;
         virtual void visit(int x, int y, const cv::Mat& tile) = 0;
     };
-}
+} // namespace slideio

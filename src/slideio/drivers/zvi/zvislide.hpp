@@ -1,24 +1,25 @@
-﻿// This file is part of slideio project.
+// This file is part of slideio project.
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
-#ifndef OPENCV_slideio_zvislide_HPP
-#define OPENCV_slideio_zvislide_HPP
+#pragma once
 #include "slideio/core/cvslide.hpp"
 #include "slideio/drivers/zvi/zviscene.hpp"
 #include <fstream>
 
 #if defined(_MSC_VER)
-#pragma warning( push )
-#pragma warning(disable: 4251)
+#pragma warning(push)
+#pragma warning(disable : 4251)
 #endif
 
 namespace slideio
 {
-    class SLIDEIO_ZVI_EXPORTS ZVISlide : public CVSlide
+    class SLIDEIO_ZVI_EXPORTS ZVISlide: public CVSlide
     {
         friend class ZVIImageDriver;
+
     protected:
         ZVISlide(const std::string& filePath, const std::string& driverId);
+
     public:
         int getNumScenes() const override;
         std::string getFilePath() const override;
@@ -27,18 +28,19 @@ namespace slideio
         Resolution getResolution() const;
         double getZSliceResolution() const;
         double getTFrameResolution() const;
+
     protected:
         MetadataBuilder buildMetadataTree() const override;
+
     private:
         void init();
+
     private:
         std::string m_filePath;
         std::shared_ptr<ZVIScene> m_scene;
     };
-}
+} // namespace slideio
 
 #if defined(_MSC_VER)
-#pragma warning( pop )
-#endif
-
+#pragma warning(pop)
 #endif

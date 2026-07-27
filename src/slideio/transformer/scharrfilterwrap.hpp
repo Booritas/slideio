@@ -7,10 +7,9 @@
 #include <memory>
 
 #if defined(_MSC_VER)
-#pragma warning( push )
-#pragma warning(disable: 4275 4251)
+#pragma warning(push)
+#pragma warning(disable : 4275 4251)
 #endif
-
 
 namespace slideio
 {
@@ -18,31 +17,28 @@ namespace slideio
     enum class DataType;
     enum class TransformationType;
 
-    class SLIDEIO_TRANSFORMER_EXPORTS ScharrFilterWrap : public TransformationWrapper
+    class SLIDEIO_TRANSFORMER_EXPORTS ScharrFilterWrap: public TransformationWrapper
     {
     public:
-        ScharrFilterWrap(const ScharrFilterWrap& other)
-            : TransformationWrapper(other),
-              m_filter(other.m_filter) {
-        }
+        ScharrFilterWrap(const ScharrFilterWrap& other): TransformationWrapper(other), m_filter(other.m_filter) {}
 
         ScharrFilterWrap(ScharrFilterWrap&& other) noexcept
-            : TransformationWrapper(std::move(other)),
-              m_filter(std::move(other.m_filter)) {
+            : TransformationWrapper(std::move(other)), m_filter(std::move(other.m_filter))
+        {
         }
 
-        ScharrFilterWrap& operator=(const ScharrFilterWrap& other) {
-            if (this == &other)
-                return *this;
-            TransformationWrapper::operator =(other);
+        ScharrFilterWrap& operator=(const ScharrFilterWrap& other)
+        {
+            if (this == &other) return *this;
+            TransformationWrapper::operator=(other);
             m_filter = other.m_filter;
             return *this;
         }
 
-        ScharrFilterWrap& operator=(ScharrFilterWrap&& other) noexcept {
-            if (this == &other)
-                return *this;
-            TransformationWrapper::operator =(std::move(other));
+        ScharrFilterWrap& operator=(ScharrFilterWrap&& other) noexcept
+        {
+            if (this == &other) return *this;
+            TransformationWrapper::operator=(std::move(other));
             m_filter = std::move(other.m_filter);
             return *this;
         }
@@ -59,15 +55,15 @@ namespace slideio
         void setScale(double scale);
         double getDelta() const;
         void setDelta(double delta);
-        TransformationType getType() const  override;
+        TransformationType getType() const override;
         std::shared_ptr<ScharrFilter> getFilter() const;
 
     private:
         std::shared_ptr<ScharrFilter> m_filter;
     };
 
-}
+} // namespace slideio
 
 #if defined(_MSC_VER)
-#pragma warning( pop )
+#pragma warning(pop)
 #endif

@@ -1,8 +1,7 @@
-﻿// This file is part of slideio project.
+// This file is part of slideio project.
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
-#ifndef OPENCV_slideio_zviimagedriver_HPP
-#define OPENCV_slideio_zviimagedriver_HPP
+#pragma once
 
 #include "slideio/drivers/zvi/zvi_api_def.hpp"
 #include "slideio/core/imagedriver.hpp"
@@ -11,13 +10,13 @@
 #include <string>
 
 #if defined(_MSC_VER)
-#pragma warning( push )
-#pragma warning(disable: 4251)
+#pragma warning(push)
+#pragma warning(disable : 4251)
 #endif
 
 namespace slideio
 {
-    class SLIDEIO_ZVI_EXPORTS ZVIImageDriver : public slideio::ImageDriver
+    class SLIDEIO_ZVI_EXPORTS ZVIImageDriver: public slideio::ImageDriver
     {
     public:
         ZVIImageDriver();
@@ -26,10 +25,8 @@ namespace slideio
         std::shared_ptr<CVSlide> openFile(const std::string& filePath) override;
         std::string getFileSpecs() const override;
     };
-}
+} // namespace slideio
 
 #if defined(_MSC_VER)
-#pragma warning( pop )
-#endif
-
+#pragma warning(pop)
 #endif

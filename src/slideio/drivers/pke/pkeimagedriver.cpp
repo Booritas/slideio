@@ -5,26 +5,22 @@
 #include "slideio/drivers/pke/pkeslide.hpp"
 #include "slideio/base/log.hpp"
 
-slideio::PKEImageDriver::PKEImageDriver()
-{
-}
+slideio::PKEImageDriver::PKEImageDriver() {}
 
-slideio::PKEImageDriver::~PKEImageDriver()
-{
-}
+slideio::PKEImageDriver::~PKEImageDriver() {}
 
 std::string slideio::PKEImageDriver::getID() const
 {
-	return std::string("QPTIFF");
+    return std::string("QPTIFF");
 }
 
 std::shared_ptr<slideio::CVSlide> slideio::PKEImageDriver::openFile(const std::string& filePath)
 {
-	return PKESlide::openFile(filePath, getID());
+    return PKESlide::openFile(filePath, getID());
 }
 
 std::string slideio::PKEImageDriver::getFileSpecs() const
 {
-	static std::string pattern("*.qptiff");
+    static std::string pattern("*.qptiff");
     return pattern;
 }

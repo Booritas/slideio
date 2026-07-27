@@ -5,29 +5,34 @@
 #include <cstdint>
 #include <ostream>
 
-namespace cv {
-    template<typename _Tp> class Size_;
+namespace cv
+{
+    template <typename _Tp> class Size_;
     typedef Size_<int> Size;
-}
+} // namespace cv
 
 namespace slideio
 {
     class Size
     {
     public:
-        Size() {
+        Size()
+        {
             width = 0;
             height = 0;
         }
-        Size(int32_t _width, int32_t _height) {
+        Size(int32_t _width, int32_t _height)
+        {
             width = _width;
             height = _height;
         }
-        Size(const Size& sz) {
+        Size(const Size& sz)
+        {
             width = sz.width;
             height = sz.height;
         }
-        Size(Size&& sz) noexcept {
+        Size(Size&& sz) noexcept
+        {
             width = sz.width;
             height = sz.height;
             sz.width = 0;
@@ -35,9 +40,11 @@ namespace slideio
         }
         Size(const cv::Size& cvSize);
         ~Size() = default;
-        Size& operator = (const Size& sz) = default;
-        Size& operator = (Size&& sz) noexcept {
-            if (this != &sz) {
+        Size& operator=(const Size& sz) = default;
+        Size& operator=(Size&& sz) noexcept
+        {
+            if (this != &sz)
+            {
                 width = sz.width;
                 height = sz.height;
                 sz.width = 0;
@@ -45,32 +52,25 @@ namespace slideio
             }
             return *this;
         }
-        Size& operator = (const cv::Size& cvSize);
+        Size& operator=(const cv::Size& cvSize);
         operator cv::Size() const;
-        bool operator == (const Size& other) const {
-            return width == other.width && height == other.height;
-        }
+        bool operator==(const Size& other) const { return width == other.width && height == other.height; }
 
-        int64_t area() const {
-            return static_cast<int64_t>(width) * height;
-        }
-        bool empty() const {
-            return width <= 0 || height <= 0;
-        }
+        int64_t area() const { return static_cast<int64_t>(width) * height; }
+        bool empty() const { return width <= 0 || height <= 0; }
 
-        friend std::ostream& operator<<(std::ostream& os, const Size& size) {
+        friend std::ostream& operator<<(std::ostream& os, const Size& size)
+        {
             os << "Size (width: " << size.width << ", height: " << size.height << ")";
             return os;
         }
 
-        bool operator!=(const Size& size) const {
-            return !(*this == size);
-		}
+        bool operator!=(const Size& size) const { return !(*this == size); }
 
         int32_t width;
         int32_t height;
     };
-}
+} // namespace slideio
 
 #if defined(SLIDEIO_INTERNAL_HEADER)
 #include "size.inl"

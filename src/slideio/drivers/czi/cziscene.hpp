@@ -1,8 +1,7 @@
-﻿// This file is part of slideio project.
+// This file is part of slideio project.
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
-#ifndef OPENCV_slideio_cziscene_HPP
-#define OPENCV_slideio_cziscene_HPP
+#pragma once
 #include "slideio/drivers/czi/czi_api_def.hpp"
 #include "slideio/core/cvscene.hpp"
 #include "slideio/core/tools/tilecomposer.hpp"
@@ -11,14 +10,14 @@
 #include <map>
 
 #if defined(_MSC_VER)
-#pragma warning( push )
-#pragma warning(disable: 4251)
+#pragma warning(push)
+#pragma warning(disable : 4251)
 #endif
 
 namespace slideio
 {
     class CZISlide;
-    class SLIDEIO_CZI_EXPORTS CZIScene : public CVScene, public Tiler
+    class SLIDEIO_CZI_EXPORTS CZIScene: public CVScene, public Tiler
     {
     public:
         struct SceneParams
@@ -30,10 +29,11 @@ namespace slideio
             int hPhaseIndex;
             int viewIndex;
         };
+
     private:
         struct Tile
         {
-            Tile() { rect = { 0,0,0,0 }; }
+            Tile() { rect = {0, 0, 0, 0}; }
             std::vector<int> blockIndices;
             cv::Rect rect;
         };
@@ -65,13 +65,12 @@ namespace slideio
             int tFrameIndex;
             double relativeZoom;
         };
+
     public:
         CZIScene();
         std::string getFilePath() const override;
-		int getSceneIndex() const override { return m_sceneIndex; }
-        const std::string& getDriverId() const override {
-            return m_driverId;
-        }
+        int getSceneIndex() const override { return m_sceneIndex; }
+        const std::string& getDriverId() const override { return m_driverId; }
         cv::Rect getRect() const override;
         int getNumChannels() const override;
         int getNumZSlices() const override;
@@ -83,21 +82,23 @@ namespace slideio
         Resolution getResolution() const override;
         double getMagnification() const override;
         std::string getName() const override;
-        void init(uint64_t sceneId, SceneParams& sceneParams, const std::string& filePath, int sceneIndex, const std::string& driverId, const CZISubBlocks& blocks, CZISlide* slide, bool mainScene = true);
+        void init(uint64_t sceneId, SceneParams& sceneParams, const std::string& filePath, int sceneIndex,
+                  const std::string& driverId, const CZISubBlocks& blocks, CZISlide* slide, bool mainScene = true);
         // interface Tiler implementaton
         int getTileCount(void* userData) override;
         bool getTileRect(int tileIndex, cv::Rect& tileRect, void* userData) override;
         bool readTile(int tileIndex, const std::vector<int>& componentIndices, cv::OutputArray tileRaster,
-                        void* userData) override;
-        void initializeBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices, cv::OutputArray output) override;
-        Compression getCompression() const override{
-            return m_compression;
-        }
+                      void* userData) override;
+        void initializeBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices,
+                             cv::OutputArray output) override;
+        Compression getCompression() const override { return m_compression; }
         void addAuxImage(const std::string& name, std::shared_ptr<CVScene> image);
         std::shared_ptr<CVScene> getAuxImage(const std::string& sceneName) const override;
         bool isMosaic() const { return m_bMosaic; }
         void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
-            const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output) override;
+                                          const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex,
+                                          cv::OutputArray output) override;
+
     private:
         void setMosaic(bool mosaic) { m_bMosaic = mosaic; }
         void setupComponents(const std::map<int, int>& channelPixelType);
@@ -110,13 +111,18 @@ namespace slideio
         void updateTileRects();
         const ZoomLevel& getBaseZoomLevel() const;
         void initZoomLevelInfo();
-        int findBlockIndex(const Tile& tile, const CZISubBlocks& blocks, int channelIndex, int zSliceIndex, int tFrameIndex) const ;
+        int findBlockIndex(const Tile& tile, const CZISubBlocks& blocks, int channelIndex, int zSliceIndex,
+                           int tFrameIndex) const;
         const Tile& getTile(const TilerData* tilerData, int tileIndex) const;
         const CZISubBlocks& getBlocks(const TilerData* tilerData) const;
-        bool blockHasData(const CZISubBlock& block, const std::vector<int>& componentIndices, const TilerData* tilerData);
+        bool blockHasData(const CZISubBlock& block, const std::vector<int>& componentIndices,
+                          const TilerData* tilerData);
         std::vector<uint8_t> decodeData(const CZISubBlock& block, const std::vector<unsigned char>& encodedData);
-        void unpackChannels(const CZISubBlock& block, const std::vector<int>& orgComponentIndices, const std::vector<unsigned char>& blockData, const TilerData* tilerData, std::vector<cv::Mat>& componentRasters);
+        void unpackChannels(const CZISubBlock& block, const std::vector<int>& orgComponentIndices,
+                            const std::vector<unsigned char>& blockData, const TilerData* tilerData,
+                            std::vector<cv::Mat>& componentRasters);
         void computeSceneMetadata();
+
     public:
         // static members
         static uint64_t sceneIdFromDims(int s, int i, int v, int h, int r, int b);
@@ -125,7 +131,9 @@ namespace slideio
         static uint64_t sceneIdFromDims(const SceneParams& params);
         static void dimsFromSceneId(uint64_t sceneId, int& s, int& i, int& v, int& h, int& r, int& b);
         static void dimsFromSceneId(uint64_t sceneId, SceneParams& params);
-        static void channelComponentInfo(CZIDataType channelType, DataType& componentType, int& numComponents, int& pixelSize);
+        static void channelComponentInfo(CZIDataType channelType, DataType& componentType, int& numComponents,
+                                         int& pixelSize);
+
     private:
         void combineBlockInTiles(ZoomLevel& zoomLevel);
         // data members
@@ -149,13 +157,9 @@ namespace slideio
         bool m_bMosaic;
         int m_sceneIndex;
         std::string m_driverId;
-
     };
-}
-
+} // namespace slideio
 
 #if defined(_MSC_VER)
-#pragma warning( pop )
-#endif
-
+#pragma warning(pop)
 #endif

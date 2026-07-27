@@ -7,16 +7,16 @@
 using namespace slideio;
 using namespace slideio::converter;
 
-const TiffDirectoryStructure& TiffPageStructure::getSubDirectory(int index) const {
-    if (index >= static_cast<int>(m_subDirectories.size())) {
+const TiffDirectoryStructure& TiffPageStructure::getSubDirectory(int index) const
+{
+    if (index >= static_cast<int>(m_subDirectories.size()))
         RAISE_RUNTIME_ERROR << "TiffPageStructure: subdirectory index out of range!";
-    }
     return m_subDirectories.at(index);
 }
 
-TiffDirectoryStructure& TiffPageStructure::getSubDirectory(int index) {
-    if (index >= static_cast<int>(m_subDirectories.size())) {
+TiffDirectoryStructure& TiffPageStructure::getSubDirectory(int index)
+{
+    if (index >= static_cast<int>(m_subDirectories.size()))
         RAISE_RUNTIME_ERROR << "TiffPageStructure: subdirectory index out of range!";
-    }
     return m_subDirectories.at(index);
 }

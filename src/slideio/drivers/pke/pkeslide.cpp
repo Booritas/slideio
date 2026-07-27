@@ -12,23 +12,18 @@
 #include <tinyxml2.h>
 #include <filesystem>
 
-
-
 using namespace slideio;
 
 const char* THUMBNAIL = "Thumbnail";
 const char* MACRO = "Macro";
 const char* LABEL = "Label";
 
-
 PKESlide::PKESlide()
 {
-	m_metadataFormat = MetadataFormat::XML;
+    m_metadataFormat = MetadataFormat::XML;
 }
 
-PKESlide::~PKESlide()
-{
-}
+PKESlide::~PKESlide() {}
 
 int PKESlide::getNumScenes() const
 {
@@ -42,8 +37,7 @@ std::string PKESlide::getFilePath() const
 
 std::shared_ptr<CVScene> PKESlide::getScene(int index) const
 {
-    if(index>=getNumScenes())
-        throw std::runtime_error("PKE driver: invalid m_scene index");
+    if (index >= getNumScenes()) throw std::runtime_error("PKE driver: invalid m_scene index");
     return m_Scenes[index];
 }
 
@@ -54,7 +48,8 @@ std::shared_ptr<PKESlide> PKESlide::openFile(const std::string& filePath, const 
     std::vector<TiffDirectory> directories;
     libtiff::TIFF* tiff(nullptr);
     tiff = TiffTools::openTiffFile(filePath);
-    if(!tiff) {
+    if (!tiff)
+    {
         SLIDEIO_LOG(WARNING) << "PKESlide::openFile: cannot open file " << filePath << " with libtiff";
         return slide;
     }
@@ -67,31 +62,37 @@ std::shared_ptr<PKESlide> PKESlide::openFile(const std::string& filePath, const 
     std::list<std::string> auxNames;
     std::list<std::string> metadataItems;
     slide.reset(new PKESlide);
-	slide->setDriverId(driverId);
+    slide->setDriverId(driverId);
 
-    for (const auto& directory : directories) {
+    for (const auto& directory : directories)
+    {
         const auto& description = directory.description;
-        if (!description.empty()) {
+        if (!description.empty())
+        {
             tinyxml2::XMLDocument doc;
             tinyxml2::XMLError error = doc.Parse(description.c_str(), description.size());
-            if (error != tinyxml2::XML_SUCCESS) {
-                RAISE_RUNTIME_ERROR << "PKEImageDriver: Error parsing image description xml: " << static_cast<int>(error);
+            if (error != tinyxml2::XML_SUCCESS)
+            {
+                RAISE_RUNTIME_ERROR << "PKEImageDriver: Error parsing image description xml: "
+                                    << static_cast<int>(error);
             }
             tinyxml2::XMLElement* root = doc.RootElement();
-            if(!root) {
+            if (!root)
                 RAISE_RUNTIME_ERROR << "PKEImageDriver: Error parsing image description xml: root element is null";
-            }
-            auto xmlImageType= root->FirstChildElement("ImageType");
-            if(xmlImageType) {
+            auto xmlImageType = root->FirstChildElement("ImageType");
+            if (xmlImageType)
+            {
                 std::string name;
                 std::string type = xmlImageType->GetText();
-                if(type == "FullResolution" || type == "ReducedResolution") {
-                    if(type == "FullResolution") {
-                        metadataItems.push_back(description);
-                    }
+                if (type == "FullResolution" || type == "ReducedResolution")
+                {
+                    if (type == "FullResolution") metadataItems.push_back(description);
                     image_dirs.push_back(directory);
-                } else if(type == "Thumbnail" || type == "Overview" || type == "Label") {
-                    std::shared_ptr<CVScene> scene(new PKESmallScene(filePath, -1, slide->getDriverId(),type, directory, true));
+                }
+                else if (type == "Thumbnail" || type == "Overview" || type == "Label")
+                {
+                    std::shared_ptr<CVScene> scene(
+                        new PKESmallScene(filePath, -1, slide->getDriverId(), type, directory, true));
                     auxImages[type] = scene;
                     auxNames.emplace_back(type);
                 }
@@ -100,7 +101,8 @@ std::shared_ptr<PKESlide> PKESlide::openFile(const std::string& filePath, const 
     }
 
     std::vector<std::shared_ptr<CVScene>> scenes;
-    std::shared_ptr<CVScene> scene(new PKETiledScene(filePath,static_cast<int>(scenes.size()), slide->getDriverId(), keeper.release(),"Image", image_dirs));
+    std::shared_ptr<CVScene> scene(new PKETiledScene(filePath, static_cast<int>(scenes.size()), slide->getDriverId(),
+                                                     keeper.release(), "Image", image_dirs));
     scenes.push_back(scene);
     slide->m_Scenes.assign(scenes.begin(), scenes.end());
     slide->m_filePath = filePath;
@@ -111,7 +113,8 @@ std::shared_ptr<PKESlide> PKESlide::openFile(const std::string& filePath, const 
     auto rootMetadata = xmlMetadata.NewElement("Metadata");
     xmlMetadata.InsertEndChild(rootMetadata);
 
-    for(const auto& metadataItem: metadataItems) {
+    for (const auto& metadataItem : metadataItems)
+    {
         tinyxml2::XMLDocument doc;
         doc.Parse(metadataItem.c_str());
         auto root = doc.RootElement();
@@ -133,9 +136,7 @@ std::shared_ptr<PKESlide> PKESlide::openFile(const std::string& filePath, const 
 std::shared_ptr<CVScene> PKESlide::getAuxImage(const std::string& sceneName) const
 {
     auto it = m_auxImages.find(sceneName);
-    if(it==m_auxImages.end()) {
-        RAISE_RUNTIME_ERROR << "The slide does non have auxiliary image " << sceneName;
-    }
+    if (it == m_auxImages.end()) RAISE_RUNTIME_ERROR << "The slide does non have auxiliary image " << sceneName;
     return it->second;
 }
 

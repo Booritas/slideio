@@ -8,26 +8,22 @@
 using namespace slideio;
 using namespace slideio::ometiff;
 
-OTImageDriver::OTImageDriver()
-{
-}
+OTImageDriver::OTImageDriver() {}
 
-OTImageDriver::~OTImageDriver()
-{
-}
+OTImageDriver::~OTImageDriver() {}
 
 std::string OTImageDriver::getID() const
 {
-	return std::string("OMETIFF");
+    return std::string("OMETIFF");
 }
 
 std::shared_ptr<slideio::CVSlide> OTImageDriver::openFile(const std::string& filePath)
 {
-	return OTSlide::openFile(filePath, getID());
+    return OTSlide::openFile(filePath, getID());
 }
 
 std::string OTImageDriver::getFileSpecs() const
 {
-	static std::string pattern("*.ome.tif;*ome.tiff;*.ome.tf2;*.ome.tf8;*.ome.btf");
-	return pattern;
+    static std::string pattern("*.ome.tif;*ome.tiff;*.ome.tf2;*.ome.tf8;*.ome.btf");
+    return pattern;
 }

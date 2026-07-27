@@ -1,8 +1,7 @@
 // This file is part of slideio project.
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
-#ifndef OPENCV_slideio_dcmfile_HPP
-#define OPENCV_slideio_dcmfile_HPP
+#pragma once
 
 #include "slideio/drivers/dcm/dcm_api_def.hpp"
 #include "slideio/base/slideio_enums.hpp"
@@ -14,8 +13,8 @@
 #include "slideio/base/resolution.hpp"
 
 #if defined(_MSC_VER)
-#pragma warning( push )
-#pragma warning(disable: 4251)
+#pragma warning(push)
+#pragma warning(disable : 4251)
 #endif
 
 class DicomImage;
@@ -51,99 +50,54 @@ namespace slideio
         void loadFile();
         void init();
 
-        int getWidth() const {
-            return m_width;
-        }
+        int getWidth() const { return m_width; }
 
-        int getHeight() const {
-            return m_height;
-        }
+        int getHeight() const { return m_height; }
 
-        int getNumSlices() const {
-            return m_slices;
-        }
+        int getNumSlices() const { return m_slices; }
 
-        const std::string& getFilePath() const {
-            return m_filePath;
-        }
+        const std::string& getFilePath() const { return m_filePath; }
 
-        const std::string& getSeriesUID() const {
-            return m_seriesUID;
-        }
+        const std::string& getSeriesUID() const { return m_seriesUID; }
 
-        int getInstanceNumber() const {
-            return m_instanceNumber;
-        }
+        int getInstanceNumber() const { return m_instanceNumber; }
 
-        int getNumChannels() const {
-            return m_numChannels;
-        }
+        int getNumChannels() const { return m_numChannels; }
 
-        const std::string& getSeriesDescription() const {
-            return m_seriesDescription;
-        }
+        const std::string& getSeriesDescription() const { return m_seriesDescription; }
 
-        DataType getDataType() const {
-            return m_dataType;
-        }
+        DataType getDataType() const { return m_dataType; }
 
-        bool getPlanarConfiguration() const {
-            return m_planarConfiguration;
-        }
+        bool getPlanarConfiguration() const { return m_planarConfiguration; }
 
-        EPhotoInterpetation getPhotointerpretation() const {
-            return m_photoInterpretation;
-        }
+        EPhotoInterpetation getPhotointerpretation() const { return m_photoInterpretation; }
 
-        Compression getCompression() const {
-            return m_compression;
-        }
+        Compression getCompression() const { return m_compression; }
 
-        const std::string& getModality() const {
-            return m_modality;
-        }
+        const std::string& getModality() const { return m_modality; }
 
         void logData();
         void readPixelValues(std::vector<cv::Mat>& frames, int startFrame = 0, int numFrames = 1);
 
-        bool isWSIFile() const {
-            return m_WSISlide;
-        }
+        bool isWSIFile() const { return m_WSISlide; }
 
         std::string getMetadata();
-        double getMagnification() const {
-            return m_magnification;
-        }
-        const Resolution& getResolution() const {
-            return m_resolution;
-        }
+        double getMagnification() const { return m_magnification; }
+        const Resolution& getResolution() const { return m_resolution; }
         static bool isDicomDirFile(const std::string& filePath);
         static bool isWSIFile(const std::string& filePath);
 
-        const cv::Size& getTileSize() const {
-            return m_tileSize;
-        }
+        const cv::Size& getTileSize() const { return m_tileSize; }
 
-        int getNumFrames() const {
-            return m_frames;
-        }
+        int getNumFrames() const { return m_frames; }
         bool getTileRect(int tileIndex, cv::Rect& tileRect) const;
         bool readFrame(int tileIndex, cv::OutputArray tileRaster);
-        double getScale() const {
-            return m_scale;
-        }
-        void setScale(double scale) {
-            m_scale = scale;
-        }
-        bool isTiled() const {
-            return m_bTiled;
-        }
-        const std::string& getImageType() const {
-            return m_imageType;
-        }
-        bool isAuxImage() const {
-            return m_imageType != "VOLUME";
-        }
+        double getScale() const { return m_scale; }
+        void setScale(double scale) { m_scale = scale; }
+        bool isTiled() const { return m_bTiled; }
+        const std::string& getImageType() const { return m_imageType; }
+        bool isAuxImage() const { return m_imageType != "VOLUME"; }
+
     private:
         void readFrames(std::vector<cv::Mat>& frames, int startFrame, int numFrames);
         void extractPixelsWholeFileDecompression(std::vector<cv::Mat>& mats, int startFrame, int numFrames);
@@ -156,6 +110,7 @@ namespace slideio
         bool getStringTag(const DcmTagKey& tag, std::string& value) const;
         bool getStringTag(const DcmTagKey& tag, int index, std::string& value) const;
         bool getDblTag(const DcmTagKey& tag, double& value, double defaultValue);
+
     private:
         std::string m_filePath;
         std::shared_ptr<DcmFileFormat> m_file;
@@ -183,15 +138,13 @@ namespace slideio
         int m_frames = 1;
         cv::Size m_tileSize = {0, 0};
         double m_magnification = 0.;
-        Resolution m_resolution = { 0., 0. };
+        Resolution m_resolution = {0., 0.};
         double m_scale = 1.;
         bool m_bTiled = false;
         std::string m_imageType;
     };
-}
+} // namespace slideio
 
 #if defined(_MSC_VER)
-#pragma warning( pop )
-#endif
-
+#pragma warning(pop)
 #endif

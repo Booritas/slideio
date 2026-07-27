@@ -15,8 +15,8 @@
 #include <tinyxml2.h>
 
 #if defined(_MSC_VER)
-#pragma warning( push )
-#pragma warning(disable: 4251)
+#pragma warning(push)
+#pragma warning(disable : 4251)
 #endif
 
 namespace slideio
@@ -25,7 +25,7 @@ namespace slideio
     {
         struct ImageData;
 
-        class SLIDEIO_OMETIFF_EXPORTS OTScene : public CVScene, public Tiler
+        class SLIDEIO_OMETIFF_EXPORTS OTScene: public CVScene, public Tiler
         {
         public:
             explicit OTScene(const ImageData& filePath, int sceneIndex, const std::string& driverId);
@@ -37,16 +37,15 @@ namespace slideio
             bool getTileRect(int tileIndex, cv::Rect& tileRect, void* userData) override;
             bool readTile(int tileIndex, const std::vector<int>& channelIndices, cv::OutputArray tileRaster,
                           void* userData) override;
-            void initializeBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices, cv::OutputArray output) override;
+            void initializeBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices,
+                                 cv::OutputArray output) override;
             std::string getChannelName(int channel) const override;
             void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
-                const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex,
-                cv::OutputArray output) override;
+                                              const std::vector<int>& componentIndices, int zSliceIndex,
+                                              int tFrameIndex, cv::OutputArray output) override;
             std::string getFilePath() const override;
-			int getSceneIndex() const override { return m_sceneIndex; }
-            const std::string& getDriverId() const override {
-                return m_driverId;
-            }
+            int getSceneIndex() const override { return m_sceneIndex; }
+            const std::string& getDriverId() const override { return m_driverId; }
             std::string getName() const override;
             DataType getChannelDataType(int channel) const override;
             Resolution getResolution() const override;
@@ -54,11 +53,12 @@ namespace slideio
             Compression getCompression() const override;
             int getNumZSlices() const override;
             int getNumTFrames() const override;
-			int getNumTiffFiles() const { return m_files.getNumberOfOpenFiles(); }
-			int getNumTiffDataItems() const { return static_cast<int>(m_tiffData.size()); }
+            int getNumTiffFiles() const { return m_files.getNumberOfOpenFiles(); }
+            int getNumTiffDataItems() const { return static_cast<int>(m_tiffData.size()); }
             const TiffData& getTiffData(int index) const { return m_tiffData[index]; }
             double getZSliceResolution() const override { return m_zResolution; }
             double getTFrameResolution() const override { return m_tResolution; }
+
         private:
             void extractImagePyramids();
             void initialize();
@@ -68,19 +68,20 @@ namespace slideio
             void extractImageIndex();
             LevelInfo extractLevelInfo(const TiffDirectory& dir, int index) const;
             void collectTiffDataIndices(std::vector<int> channelIndices, int zSliceIndex, int tFrameIndex,
-                std::vector<int>& tiffDataIndices) const;
+                                        std::vector<int>& tiffDataIndices) const;
+
         private:
             int m_numChannels = 0;
             std::vector<std::string> m_channelNames;
             tinyxml2::XMLElement* m_imageXml;
             std::shared_ptr<tinyxml2::XMLDocument> m_imageDoc;
             std::string m_imageId;
-			std::vector<TiffData> m_tiffData;
+            std::vector<TiffData> m_tiffData;
             std::string m_dimensionOrder;
             DataType m_dataType = DataType::DT_Unknown;
             int m_numZSlices = 0;
             int m_numTFrames = 0;
-			cv::Size m_imageSize;
+            cv::Size m_imageSize;
             bool m_bigEndian = false;
             std::string m_imageName;
             std::string m_filePath;
@@ -89,14 +90,14 @@ namespace slideio
             double m_magnification = 0;
             int m_imageIndex = -1;
             TIFFFiles m_files;
-			double m_zResolution = 0.0;
-			double m_tResolution = 0.0;
+            double m_zResolution = 0.0;
+            double m_tResolution = 0.0;
             int m_sceneIndex = -1;
             std::string m_driverId;
         };
-    }
-}
+    } // namespace ometiff
+} // namespace slideio
 
 #if defined(_MSC_VER)
-#pragma warning( pop )
+#pragma warning(pop)
 #endif

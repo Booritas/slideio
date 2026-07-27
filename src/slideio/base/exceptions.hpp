@@ -8,41 +8,48 @@
 #include <string.h>
 
 #if defined(_MSC_VER)
-#pragma warning( push )
-#pragma warning(disable: 4251 4275)
+#pragma warning(push)
+#pragma warning(disable : 4251 4275)
 #endif
 
-namespace slideio {
-    struct SLIDEIO_BASE_EXPORTS RuntimeError : public std::exception {
-        template <typename T>
-        RuntimeError& operator << (T rhs) {
+namespace slideio
+{
+    struct SLIDEIO_BASE_EXPORTS RuntimeError: public std::exception
+    {
+        template <typename T> RuntimeError& operator<<(T rhs)
+        {
             m_innerStream << rhs;
             return *this;
         }
         RuntimeError() = default;
-        RuntimeError(RuntimeError& rhs) : m_shown(false) {
+        RuntimeError(RuntimeError& rhs): m_shown(false)
+        {
             std::string message = rhs.m_innerStream.str();
-            if(!rhs.m_shown) {
+            if (!rhs.m_shown)
+            {
                 log(message);
                 rhs.m_shown = true;
             }
             m_innerStream << message;
         }
-        virtual const char* what() const noexcept {
+        virtual const char* what() const noexcept
+        {
             m_message = m_innerStream.str();
             return m_message.c_str();
         }
+
     private:
         void log(const std::string& message);
+
     private:
         std::stringstream m_innerStream;
         mutable std::string m_message;
         bool m_shown = false;
     };
-}
+} // namespace slideio
 
 #define RAISE_RUNTIME_ERROR throw slideio::RuntimeError() << __FILE__ << ":" << __LINE__ << ":"
 
 #if defined(_MSC_VER)
-#pragma warning( pop )
+#pragma warning(pop)
 #endif

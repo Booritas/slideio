@@ -17,9 +17,9 @@ namespace slideio
         class SLIDEIO_OMETIFF_EXPORTS OTTools
         {
         public:
-			static DataType stringToDataType(const std::string& type);
+            static DataType stringToDataType(const std::string& type);
             static double convertToMeters(double value, const std::string& units);
             static double convertToSeconds(double tResolution, const std::string& units);
         };
-    }
-}
+    } // namespace ometiff
+} // namespace slideio

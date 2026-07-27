@@ -1,8 +1,7 @@
 // This file is part of slideio project.
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
-#ifndef OPENCV_slideio_metadata_HPP
-#define OPENCV_slideio_metadata_HPP
+#pragma once
 
 #include "slideio/core/slideio_core_def.hpp"
 #include <cstdint>
@@ -11,8 +10,8 @@
 #include <vector>
 
 #if defined(_MSC_VER)
-#pragma warning( push )
-#pragma warning(disable: 4251)
+#pragma warning(push)
+#pragma warning(disable : 4251)
 #endif
 
 namespace slideio
@@ -26,9 +25,18 @@ namespace slideio
     class SLIDEIO_CORE_EXPORTS Metadata
     {
     public:
-        enum class Type { Null, Bool, Int, Double, String, Array, Object };
+        enum class Type
+        {
+            Null,
+            Bool,
+            Int,
+            Double,
+            String,
+            Array,
+            Object
+        };
 
-        Metadata();                                       // Null node
+        Metadata(); // Null node
         ~Metadata();
         Metadata(const Metadata&);
         Metadata(Metadata&&) noexcept;
@@ -36,17 +44,17 @@ namespace slideio
         Metadata& operator=(Metadata&&) noexcept;
 
         Type type() const;
-        bool isNull()   const { return type() == Type::Null;   }
+        bool isNull() const { return type() == Type::Null; }
         bool isObject() const { return type() == Type::Object; }
-        bool isArray()  const { return type() == Type::Array;  }
+        bool isArray() const { return type() == Type::Array; }
 
-        bool        asBool()   const;
-        int64_t     asInt()    const;
-        double      asDouble() const;
+        bool asBool() const;
+        int64_t asInt() const;
+        double asDouble() const;
         std::string asString() const;
 
-        size_t   size() const;
-        bool     contains(const std::string& key) const;
+        size_t size() const;
+        bool contains(const std::string& key) const;
         Metadata operator[](const std::string& key) const;
         Metadata operator[](size_t index) const;
         Metadata find(const std::string& jsonPointer) const;
@@ -117,10 +125,8 @@ namespace slideio
         explicit MetadataBuilder(std::shared_ptr<Impl> impl);
         std::shared_ptr<Impl> m_impl;
     };
-}
+} // namespace slideio
 
 #if defined(_MSC_VER)
-#pragma warning( pop )
-#endif
-
+#pragma warning(pop)
 #endif

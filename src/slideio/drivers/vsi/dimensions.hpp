@@ -24,6 +24,6 @@ namespace slideio
         public:
             virtual int getDimensionOrder(vsi::Dimensions dim) const = 0;
         };
-    }
+    } // namespace vsi
 
-}   
+} // namespace slideio

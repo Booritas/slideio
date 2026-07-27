@@ -5,7 +5,8 @@
 
 using namespace slideio::converter;
 
-TEST(TiffStructureTests, TiffDirectoryStructure_SettersAndGetters) {
+TEST(TiffStructureTests, TiffDirectoryStructure_SettersAndGetters)
+{
     TiffDirectoryStructure dir;
     dir.setChannelRange(cv::Range(1, 3));
     dir.setZSliceRange(cv::Range(2, 4));
@@ -22,7 +23,8 @@ TEST(TiffStructureTests, TiffDirectoryStructure_SettersAndGetters) {
     EXPECT_EQ(4, dir.getPlaneCount());
 }
 
-TEST(TiffStructureTests, TiffPageStructure_Subdirectories) {
+TEST(TiffStructureTests, TiffPageStructure_Subdirectories)
+{
     TiffPageStructure page;
     // Initially zero
     EXPECT_EQ(0, page.getNumSubDirectories());
@@ -40,13 +42,15 @@ TEST(TiffStructureTests, TiffPageStructure_Subdirectories) {
     EXPECT_EQ(cv::Range(0, 1), got2.getChannelRange());
 }
 
-TEST(TiffStructureTests, TiffPageStructure_SubdirectoryOutOfRange) {
+TEST(TiffStructureTests, TiffPageStructure_SubdirectoryOutOfRange)
+{
     TiffPageStructure page;
     // Expect runtime error when index is out of range
     EXPECT_THROW({ (void)page.getSubDirectory(0); }, slideio::RuntimeError);
 }
 
-TEST(TiffStructureTests, TiffDirectoryStructure_CopyConstructor) {
+TEST(TiffStructureTests, TiffDirectoryStructure_CopyConstructor)
+{
     // Create and populate source directory
     TiffDirectoryStructure source;
     source.setChannelRange(cv::Range(11, 15));
@@ -74,7 +78,8 @@ TEST(TiffStructureTests, TiffDirectoryStructure_CopyConstructor) {
     EXPECT_EQ("Test Description", copy.getDescription());
 }
 
-TEST(TiffStructureTests, TiffDirectoryStructure_AssignmentOperator) {
+TEST(TiffStructureTests, TiffDirectoryStructure_AssignmentOperator)
+{
     // Create and populate source directory
     TiffDirectoryStructure source;
     source.setChannelRange(cv::Range(20, 23));
@@ -108,7 +113,8 @@ TEST(TiffStructureTests, TiffDirectoryStructure_AssignmentOperator) {
     EXPECT_EQ("Source Description", target.getDescription());
 }
 
-TEST(TiffStructureTests, TiffDirectoryStructure_SelfAssignment) {
+TEST(TiffStructureTests, TiffDirectoryStructure_SelfAssignment)
+{
     TiffDirectoryStructure dir;
     dir.setChannelRange(cv::Range(14, 17));
     dir.setZSliceRange(cv::Range(25, 28));
@@ -125,7 +131,8 @@ TEST(TiffStructureTests, TiffDirectoryStructure_SelfAssignment) {
     EXPECT_EQ(77, dir.getPlaneCount());
 }
 
-TEST(TiffStructureTests, TiffDirectoryStructure_CopyConstructorWithDefaults) {
+TEST(TiffStructureTests, TiffDirectoryStructure_CopyConstructorWithDefaults)
+{
     // Create directory with default values
     TiffDirectoryStructure source;
 
@@ -141,9 +148,10 @@ TEST(TiffStructureTests, TiffDirectoryStructure_CopyConstructorWithDefaults) {
     EXPECT_EQ(1, copy.getPlaneCount()); // Default is 1
 }
 
-TEST(TiffStructureTests, TiffDirectoryStructure_ChainedAssignment) {
+TEST(TiffStructureTests, TiffDirectoryStructure_ChainedAssignment)
+{
     TiffDirectoryStructure dir1, dir2, dir3;
-    
+
     dir1.setChannelRange(cv::Range(1, 2));
     dir1.setDescription("Chain Test");
     dir1.setPlaneCount(55);

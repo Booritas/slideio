@@ -14,10 +14,9 @@ ZVIImageDriver::ZVIImageDriver() = default;
 
 ZVIImageDriver::~ZVIImageDriver() = default;
 
-
 std::string ZVIImageDriver::getID() const
 {
-	return ID;
+    return ID;
 }
 
 std::shared_ptr<CVSlide> ZVIImageDriver::openFile(const std::string& filePath)
@@ -29,5 +28,5 @@ std::shared_ptr<CVSlide> ZVIImageDriver::openFile(const std::string& filePath)
 
 std::string ZVIImageDriver::getFileSpecs() const
 {
-	return filePathPattern;
+    return filePathPattern;
 }

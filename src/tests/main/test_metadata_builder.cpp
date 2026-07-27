@@ -77,7 +77,7 @@ TEST(MetadataBuilder, ObjectKeyAutoCreate)
     EXPECT_TRUE(m.contains("wavelength"));
     EXPECT_TRUE(m.contains("exposure"));
     EXPECT_EQ(m["wavelength"].asString(), "488nm");
-    EXPECT_EQ(m["exposure"].asString(),   "100ms");
+    EXPECT_EQ(m["exposure"].asString(), "100ms");
 }
 
 TEST(MetadataBuilder, MakeObjectIdempotent)
@@ -87,7 +87,7 @@ TEST(MetadataBuilder, MakeObjectIdempotent)
     EXPECT_TRUE(b.isObject());
 
     b["a"].set(std::string("1"));
-    b.makeObject();                                  // idempotent — must not clobber "a"
+    b.makeObject(); // idempotent — must not clobber "a"
     EXPECT_TRUE(b.isObject());
 
     Metadata m = b.freeze();
@@ -99,7 +99,7 @@ TEST(MetadataBuilder, MakeObjectOnScalarReplaces)
 {
     MetadataBuilder b;
     b.set(std::string("scalar"));
-    b.makeObject();                                  // replaces the scalar
+    b.makeObject(); // replaces the scalar
 
     Metadata m = b.freeze();
     EXPECT_EQ(m.type(), Metadata::Type::Object);
@@ -113,8 +113,8 @@ TEST(MetadataBuilder, ArrayIndexAutoGrow)
 
     Metadata m = b.freeze();
     EXPECT_EQ(m.type(), Metadata::Type::Array);
-    EXPECT_EQ(m.size(), 3u);                          // grown to index+1
-    EXPECT_EQ(m[0].type(), Metadata::Type::Object);   // new slots default to empty Object
+    EXPECT_EQ(m.size(), 3u);                        // grown to index+1
+    EXPECT_EQ(m[0].type(), Metadata::Type::Object); // new slots default to empty Object
     EXPECT_EQ(m[0].size(), 0u);
     EXPECT_EQ(m[1].type(), Metadata::Type::Object);
     EXPECT_EQ(m[1].size(), 0u);
@@ -128,7 +128,7 @@ TEST(MetadataBuilder, MakeArrayIdempotent)
     EXPECT_TRUE(b.isArray());
 
     b[0].set(std::string("first"));
-    b.makeArray();                                    // idempotent — must not clobber [0]
+    b.makeArray(); // idempotent — must not clobber [0]
     EXPECT_TRUE(b.isArray());
 
     Metadata m = b.freeze();
@@ -139,7 +139,7 @@ TEST(MetadataBuilder, MakeArrayIdempotent)
 TEST(MetadataBuilder, SizeReflectsContainer)
 {
     MetadataBuilder b;
-    EXPECT_EQ(b.size(), 0u);                          // Null reports 0
+    EXPECT_EQ(b.size(), 0u); // Null reports 0
 
     b.makeObject();
     EXPECT_EQ(b.size(), 0u);
@@ -180,7 +180,7 @@ TEST(MetadataBuilder, TopLevelCopyIsIndependent)
     MetadataBuilder a;
     a["k"].set(std::string("a-value"));
 
-    MetadataBuilder b = a;                            // top-level copy
+    MetadataBuilder b = a; // top-level copy
     b["k"].set(std::string("b-value"));
 
     EXPECT_EQ(a.freeze()["k"].asString(), "a-value"); // a unchanged
@@ -193,7 +193,7 @@ TEST(MetadataBuilder, SubViewSharesStorageWithParent)
     MetadataBuilder child = parent["channels"];
     child[0]["wavelength"].set(std::string("488nm"));
 
-    Metadata m = parent.freeze();                     // parent sees the child's writes
+    Metadata m = parent.freeze(); // parent sees the child's writes
     ASSERT_TRUE(m.contains("channels"));
     EXPECT_EQ(m["channels"][0]["wavelength"].asString(), "488nm");
 }
@@ -204,34 +204,29 @@ TEST(MetadataBuilder, FreezeIsIndependentOfLaterMutation)
     b["k"].set(std::string("before"));
 
     Metadata snapshot = b.freeze();
-    b["k"].set(std::string("after"));                 // mutate after freeze
+    b["k"].set(std::string("after")); // mutate after freeze
 
-    EXPECT_EQ(snapshot["k"].asString(), "before");    // snapshot unchanged
+    EXPECT_EQ(snapshot["k"].asString(), "before"); // snapshot unchanged
     EXPECT_EQ(b.freeze()["k"].asString(), "after");
 }
 
 TEST(MetadataBuilder, BuilderFromJsonRoundtrip)
 {
-    nlohmann::json j = {
-        {"channels", nlohmann::json::array({
-            {{"wavelength", "488nm"}, {"exposure", "100ms"}},
-            {{"wavelength", "561nm"}}
-        })}
-    };
+    nlohmann::json j = {{"channels", nlohmann::json::array({{{"wavelength", "488nm"}, {"exposure", "100ms"}},
+                                                            {{"wavelength", "561nm"}}})}};
     MetadataBuilder b = slideio::detail::builderFromJson(j);
 
     Metadata m = b.freeze();
     EXPECT_TRUE(m.contains("channels"));
     EXPECT_EQ(m["channels"].size(), 2u);
     EXPECT_EQ(m["channels"][0]["wavelength"].asString(), "488nm");
-    EXPECT_EQ(m["channels"][0]["exposure"].asString(),   "100ms");
+    EXPECT_EQ(m["channels"][0]["exposure"].asString(), "100ms");
     EXPECT_EQ(m["channels"][1]["wavelength"].asString(), "561nm");
 }
 
 TEST(MetadataBuilder, MakeDefaultMetadataBuilderTextFormat)
 {
-    MetadataBuilder b = slideio::detail::makeDefaultMetadataBuilder(
-        "raw text content", slideio::MetadataFormat::Text);
+    MetadataBuilder b = slideio::detail::makeDefaultMetadataBuilder("raw text content", slideio::MetadataFormat::Text);
     Metadata m = b.freeze();
     EXPECT_TRUE(m.contains("text"));
     EXPECT_EQ(m["text"].asString(), "raw text content");
@@ -239,8 +234,8 @@ TEST(MetadataBuilder, MakeDefaultMetadataBuilderTextFormat)
 
 TEST(MetadataBuilder, MakeDefaultMetadataBuilderJsonFormat)
 {
-    MetadataBuilder b = slideio::detail::makeDefaultMetadataBuilder(
-        R"({"a": 1, "b": "two"})", slideio::MetadataFormat::JSON);
+    MetadataBuilder b =
+        slideio::detail::makeDefaultMetadataBuilder(R"({"a": 1, "b": "two"})", slideio::MetadataFormat::JSON);
     Metadata m = b.freeze();
     EXPECT_EQ(m["a"].asInt(), 1);
     EXPECT_EQ(m["b"].asString(), "two");
@@ -248,8 +243,7 @@ TEST(MetadataBuilder, MakeDefaultMetadataBuilderJsonFormat)
 
 TEST(MetadataBuilder, MakeDefaultMetadataBuilderNoneFormat)
 {
-    MetadataBuilder b = slideio::detail::makeDefaultMetadataBuilder(
-        "", slideio::MetadataFormat::None);
+    MetadataBuilder b = slideio::detail::makeDefaultMetadataBuilder("", slideio::MetadataFormat::None);
     Metadata m = b.freeze();
     EXPECT_EQ(m.type(), Metadata::Type::Object);
     EXPECT_EQ(m.size(), 0u);

@@ -13,19 +13,19 @@
 #include "slideio/drivers/vsi/dimensions.hpp"
 
 #if defined(_MSC_VER)
-#pragma warning( push )
-#pragma warning(disable: 4251)
+#pragma warning(push)
+#pragma warning(disable : 4251)
 #endif
-
 
 namespace slideio
 {
     namespace vsi
     {
-        class SLIDEIO_VSI_EXPORTS Volume : public IDimensionOrder
+        class SLIDEIO_VSI_EXPORTS Volume: public IDimensionOrder
         {
         public:
-            Volume() {
+            Volume()
+            {
                 m_dimensionOrder[0] = 0;
                 m_dimensionOrder[1] = 1;
             }
@@ -57,7 +57,7 @@ namespace slideio
             void setDefaultColor(int color) { m_defaultColor = color; }
             int getDefaultColor() const { return m_defaultColor; }
 
-            int getDimensionOrder(Dimensions dim) const override { return m_dimensionOrder[dimensionIndex(dim)]; } 
+            int getDimensionOrder(Dimensions dim) const override { return m_dimensionOrder[dimensionIndex(dim)]; }
             void setDimensionOrder(Dimensions dim, int value) { m_dimensionOrder[dimensionIndex(dim)] = value; }
 
             const Resolution& getResolution() const { return m_resolution; }
@@ -81,14 +81,11 @@ namespace slideio
             void setChannelEmissionWavelength(int channelIndex, double nm);
             double getChannelEmissionWavelength(int channelIndex) const;
 
-			const bool isValid() const {
-				return m_size.height>0 && m_size.width>0;
-			}
+            const bool isValid() const { return m_size.height > 0 && m_size.width > 0; }
 
         private:
-            static int dimensionIndex(Dimensions dim) {
-                return static_cast<int>(dim);
-            }
+            static int dimensionIndex(Dimensions dim) { return static_cast<int>(dim); }
+
         private:
             std::string m_name;
             double m_magnification = 0.;
@@ -109,5 +106,5 @@ namespace slideio
             std::vector<double> m_channelEmissionWavelengths;
         };
 
-    };
-};
+    }; // namespace vsi
+}; // namespace slideio

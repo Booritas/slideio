@@ -38,7 +38,8 @@ TEST(SVSImageDriver, getDriverId)
     EXPECT_EQ("SVS", slide->getDriverId());
     const int numScenes = slide->getNumScenes();
     EXPECT_EQ(1, numScenes);
-    for (int iScene = 0; iScene < numScenes; ++iScene) {
+    for (int iScene = 0; iScene < numScenes; ++iScene)
+    {
         std::shared_ptr<slideio::CVScene> scene = slide->getScene(iScene)->getCVScene();
         EXPECT_TRUE(scene.get() != nullptr);
         EXPECT_EQ(iScene, scene->getSceneIndex());
@@ -50,15 +51,15 @@ TEST(SVSImageDriver, getDriverId)
 TEST(SVSImageDriver, openFile_BrightField)
 {
     slideio::SVSImageDriver driver;
-    std::string path = TestTools::getTestImagePath("svs","CMU-1-Small-Region.svs");
+    std::string path = TestTools::getTestImagePath("svs", "CMU-1-Small-Region.svs");
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(path);
-    ASSERT_TRUE(slide!=nullptr);
+    ASSERT_TRUE(slide != nullptr);
     int numbScenes = slide->getNumScenes();
-    ASSERT_TRUE(numbScenes==1);
+    ASSERT_TRUE(numbScenes == 1);
     std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
-    ASSERT_TRUE(scene!=nullptr);
-    EXPECT_EQ(slide->getFilePath(),path);
-    EXPECT_EQ(scene->getFilePath(),path);
+    ASSERT_TRUE(scene != nullptr);
+    EXPECT_EQ(slide->getFilePath(), path);
+    EXPECT_EQ(scene->getFilePath(), path);
     int channels = scene->getNumChannels();
     EXPECT_EQ(channels, 3);
     cv::Rect sceneRect = scene->getRect();
@@ -78,9 +79,9 @@ TEST(SVSImageDriver, read_Thumbnail_WholeImage)
 {
     // read image by svs driver
     slideio::SVSImageDriver driver;
-    std::string path = TestTools::getTestImagePath("svs","CMU-1-Small-Region.svs");
+    std::string path = TestTools::getTestImagePath("svs", "CMU-1-Small-Region.svs");
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(path);
-    ASSERT_TRUE(slide!=nullptr);
+    ASSERT_TRUE(slide != nullptr);
     int numbScenes = slide->getNumScenes();
     ASSERT_TRUE(numbScenes == 1);
     int numbAuxImages = slide->getNumAuxImages();
@@ -88,13 +89,13 @@ TEST(SVSImageDriver, read_Thumbnail_WholeImage)
     const std::list<std::string>& auxImages = slide->getAuxImageNames();
     ASSERT_TRUE(std::find(auxImages.begin(), auxImages.end(), "Thumbnail") != auxImages.end());
     std::shared_ptr<slideio::CVScene> scene = slide->getAuxImage("Thumbnail");
-    ASSERT_TRUE(scene!=nullptr);
+    ASSERT_TRUE(scene != nullptr);
     cv::Rect sceneRect = scene->getRect();
     cv::Mat imageRaster;
     scene->readBlock(sceneRect, imageRaster);
 
     // read extracted page by GDAL library
-    std::string pathPageFile = TestTools::getTestImagePath("svs","CMU-1-Small-Region-page-1.tif");
+    std::string pathPageFile = TestTools::getTestImagePath("svs", "CMU-1-Small-Region-page-1.tif");
     cv::Mat pageRaster;
     slideio::ImageTools::readSmallImageRaster(pathPageFile, pageRaster);
 
@@ -109,24 +110,24 @@ TEST(SVSImageDriver, read_Thumbnail_Block)
 {
     // read image by svs driver
     slideio::SVSImageDriver driver;
-    std::string path = TestTools::getTestImagePath("svs","CMU-1-Small-Region.svs");
+    std::string path = TestTools::getTestImagePath("svs", "CMU-1-Small-Region.svs");
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(path);
-    ASSERT_TRUE(slide!=nullptr);
+    ASSERT_TRUE(slide != nullptr);
     int numbScenes = slide->getNumScenes();
-    ASSERT_TRUE(numbScenes==1);
+    ASSERT_TRUE(numbScenes == 1);
     int numbAuxImages = slide->getNumAuxImages();
     ASSERT_TRUE(numbAuxImages == 3);
     const std::list<std::string>& auxImages = slide->getAuxImageNames();
     ASSERT_TRUE(std::find(auxImages.begin(), auxImages.end(), "Thumbnail") != auxImages.end());
     std::shared_ptr<slideio::CVScene> scene = slide->getAuxImage("Thumbnail");
-    ASSERT_TRUE(scene!=nullptr);
+    ASSERT_TRUE(scene != nullptr);
     cv::Rect sceneRect = scene->getRect();
-    int block_sx = sceneRect.width/4;
-    int block_sy = sceneRect.height/3;
-    int block_x = sceneRect.width/6;
-    int block_y = sceneRect.height/5;
+    int block_sx = sceneRect.width / 4;
+    int block_sy = sceneRect.height / 3;
+    int block_x = sceneRect.width / 6;
+    int block_y = sceneRect.height / 5;
 
-    cv::Rect blockRect = {block_x,block_y,block_sx, block_sy};
+    cv::Rect blockRect = {block_x, block_y, block_sx, block_sy};
     cv::Mat blockRaster;
     scene->readBlock(blockRect, blockRaster);
     ASSERT_EQ(blockRaster.cols, block_sx);
@@ -161,14 +162,14 @@ TEST(SVSImageDriver, read_Thumbnail_BlockWithScale)
     std::shared_ptr<slideio::CVScene> scene = slide->getAuxImage("Thumbnail");
     ASSERT_TRUE(scene != nullptr);
     cv::Rect sceneRect = scene->getRect();
-    int block_sx = sceneRect.width/3;
-    int block_sy = sceneRect.height/2;
-    int block_x = sceneRect.width/6;
-    int block_y = sceneRect.height/5;
+    int block_sx = sceneRect.width / 3;
+    int block_sy = sceneRect.height / 2;
+    int block_x = sceneRect.width / 6;
+    int block_y = sceneRect.height / 5;
     double scale = 0.8;
 
-    cv::Rect blockRect = { block_x,block_y,block_sx, block_sy };
-    cv::Size blockSize = { (int)(sceneRect.width * scale), (int)(sceneRect.height * scale) };
+    cv::Rect blockRect = {block_x, block_y, block_sx, block_sy};
+    cv::Size blockSize = {(int)(sceneRect.width * scale), (int)(sceneRect.height * scale)};
 
     cv::Mat blockRaster;
     scene->readResampledBlock(blockRect, blockSize, blockRaster);
@@ -198,7 +199,7 @@ TEST(SVSImageDriver, findZoomDirectory)
     int baseHeight = 77056;
     int scale = 1;
     int index = 0;
-    for(auto& dir: dirs)
+    for (auto& dir : dirs)
     {
         dir.width = baseWidth / scale;
         dir.height = baseHeight / scale;
@@ -209,14 +210,14 @@ TEST(SVSImageDriver, findZoomDirectory)
 
     std::string fake_path = TestTools::getTestImagePath("svs", "CMU-1-Small-Region.svs");
     slideio::SVSTiledScene scene(fake_path, "fake_name", "fake", dirs);
-    auto& lastDir = dirs[dirs.size()-1];
+    auto& lastDir = dirs[dirs.size() - 1];
     const cv::Rect sceneRect = scene.getRect();
     double lastZoom = static_cast<double>(lastDir.width) / static_cast<double>(sceneRect.width);
 
     EXPECT_EQ(scene.findZoomDirectory(2.).dirIndex, 0);
     EXPECT_EQ(scene.findZoomDirectory(lastZoom).dirIndex, 9);
-    EXPECT_EQ(scene.findZoomDirectory(lastZoom*2).dirIndex, 8);
-    EXPECT_EQ(scene.findZoomDirectory(lastZoom/2).dirIndex, 9);
+    EXPECT_EQ(scene.findZoomDirectory(lastZoom * 2).dirIndex, 8);
+    EXPECT_EQ(scene.findZoomDirectory(lastZoom / 2).dirIndex, 9);
     EXPECT_EQ(scene.findZoomDirectory(0.5).dirIndex, 1);
     EXPECT_EQ(scene.findZoomDirectory(0.501).dirIndex, 1);
     EXPECT_EQ(scene.findZoomDirectory(0.499).dirIndex, 1);
@@ -273,7 +274,7 @@ TEST(SVSImageDriver, readBlock_Part)
     ASSERT_EQ(sceneRect.width, 2220);
     ASSERT_EQ(sceneRect.height, 2967);
     cv::Mat blockRaster;
-    cv::Rect blockRect = {sceneRect.width/2, sceneRect.height/2, 300, 300};
+    cv::Rect blockRect = {sceneRect.width / 2, sceneRect.height / 2, 300, 300};
     scene->readBlock(blockRect, blockRaster);
 
     // read extracted page by GDAL library
@@ -302,7 +303,7 @@ TEST(SVSImageDriver, readBlock_PartScale)
     ASSERT_EQ(sceneRect.width, 2220);
     ASSERT_EQ(sceneRect.height, 2967);
     cv::Mat blockRaster;
-    cv::Rect blockRect = { sceneRect.width / 2, sceneRect.height / 2, 300, 300 };
+    cv::Rect blockRect = {sceneRect.width / 2, sceneRect.height / 2, 300, 300};
     cv::Size blockSize = blockRect.size();
     blockSize /= 2;
     scene->readResampledBlock(blockRect, blockSize, blockRaster);
@@ -324,57 +325,54 @@ TEST(SVSImageDriver, readBlock_PartScale)
 TEST(SVSImageDriver, metadataCompression)
 {
     typedef std::tuple<std::string, int, slideio::Compression> SceneCompression;
-    const SceneCompression compressionData[] ={
-        SceneCompression("CMU-1-Small-Region.svs",0,slideio::Compression::Jpeg),
+    const SceneCompression compressionData[] = {
+        SceneCompression("CMU-1-Small-Region.svs", 0, slideio::Compression::Jpeg),
         SceneCompression("JP2K-33003-1.svs", 0, slideio::Compression::Jpeg2000),
     };
     slideio::SVSImageDriver driver;
-    for(const auto& item: compressionData)
+    for (const auto& item : compressionData)
     {
 
         const std::string& imageName = std::get<0>(item);
         const int sceneIndex = std::get<1>(item);
         const slideio::Compression sceneCompression = std::get<2>(item);
 
-        std::string filePath = TestTools::getTestImagePath("svs",imageName);
+        std::string filePath = TestTools::getTestImagePath("svs", imageName);
         std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
         std::shared_ptr<slideio::CVScene> scene = slide->getScene(sceneIndex);
-        EXPECT_TRUE(scene!=nullptr);
+        EXPECT_TRUE(scene != nullptr);
         EXPECT_EQ(scene->getCompression(), sceneCompression);
     }
 }
 
 TEST(SVSImageDriver, slideRawMetadata)
 {
-    const std::string images[] = {
-        "CMU-1-Small-Region.svs",
-        "JP2K-33003-1.svs"
-    };
+    const std::string images[] = {"CMU-1-Small-Region.svs", "JP2K-33003-1.svs"};
     slideio::SVSImageDriver driver;
-    for(const auto& imageName: images)
+    for (const auto& imageName : images)
     {
-        std::string filePath = TestTools::getTestImagePath("svs",imageName);
+        std::string filePath = TestTools::getTestImagePath("svs", imageName);
         std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
         const std::string& metadata = slide->getRawMetadata();
-        EXPECT_GT(metadata.length(),0);
+        EXPECT_GT(metadata.length(), 0);
         const std::string header("Aperio Image Library");
         EXPECT_TRUE(TestTools::starts_with(metadata, header));
         EXPECT_EQ(slide->getMetadataFormat(), slideio::MetadataFormat::Text);
-		EXPECT_EQ(slide->getScene(0)->getMetadataFormat(), slideio::MetadataFormat::JSON);
-		EXPECT_FALSE(slide->getScene(0)->getRawMetadata().empty());
+        EXPECT_EQ(slide->getScene(0)->getMetadataFormat(), slideio::MetadataFormat::JSON);
+        EXPECT_FALSE(slide->getScene(0)->getRawMetadata().empty());
     }
 }
 
 TEST(SVSImageDriver, crashTest)
 {
     slideio::SVSImageDriver driver;
-    std::string filePath = TestTools::getTestImagePath("svs","corrupted.svs");
+    std::string filePath = TestTools::getTestImagePath("svs", "corrupted.svs");
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     int numScenes = slide->getNumScenes();
     std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
     cv::Rect rect = scene->getRect();
     cv::Mat block;
-    cv::Rect blockRect = {0, 0, 1000,1000};
+    cv::Rect blockRect = {0, 0, 1000, 1000};
     EXPECT_NO_THROW(scene->readBlock(blockRect, block));
 }
 
@@ -386,13 +384,13 @@ TEST(SVSImageDriver, swapedChannels)
     std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
     cv::Mat matSwaped, matOrigin;
     cv::Rect rect = scene->getRect();
-    std::vector<int> channels = { 2,1,0 };
-    cv::Size size = { rect.width / 5, rect.height / 5 };
+    std::vector<int> channels = {2, 1, 0};
+    cv::Size size = {rect.width / 5, rect.height / 5};
     scene->readResampledBlock(rect, size, matOrigin);
     scene->readResampledBlockChannels(rect, size, channels, matSwaped);
     int channelSize = size.width * size.height;
 
-    for(int swapedIndex=0; swapedIndex<3; ++swapedIndex)
+    for (int swapedIndex = 0; swapedIndex < 3; ++swapedIndex)
     {
         int originIndex = channels[swapedIndex];
         cv::Mat originChannel, swapedChannel;
@@ -415,10 +413,7 @@ TEST(SVSImageDriver, imageResolution)
 
 TEST(SVSImageDriver, imageResolutionPrivate)
 {
-    if(!TestTools::isPrivateTestEnabled())
-    {
-        GTEST_SKIP() << "Skip private test because private dataset is not enabled";
-    }
+    if (!TestTools::isPrivateTestEnabled()) GTEST_SKIP() << "Skip private test because private dataset is not enabled";
     slideio::SVSImageDriver driver;
     std::string filePath = TestTools::getTestImagePath("svs", "jp2k_3chnl_8bit.svs", true);
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
@@ -499,7 +494,6 @@ TEST(SVSImageDriver, readCELabImage)
     EXPECT_EQ(cv::countNonZero(dif1), 0);
     EXPECT_EQ(cv::countNonZero(dif2), 0);
     EXPECT_EQ(cv::countNonZero(dif3), 0);
-
 }
 
 TEST(SVSImageDriver, readJP2Kcompression)
@@ -535,15 +529,11 @@ TEST(SVSImageDriver, readJP2Kcompression)
     // std::cout << "Similarity: " << similarity << std::endl;
     // std::cout << "Max difference: " << maxVal << std::endl;
     // std::cout << "Average difference: " << meanVal[0] << std::endl;
-
 }
 
 TEST(SVSImageDriver, openFileUtf8)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-    }
+    if (!TestTools::isFullTestEnabled()) GTEST_SKIP() << "Skip private test because full dataset is not enabled";
     {
         std::string filePath = TestTools::getFullTestImagePath("unicode", u8"тест/CMU-1-Small-Region.svs");
         slideio::SVSImageDriver driver;
@@ -568,11 +558,9 @@ TEST(SVSImageDriver, openFileUtf8)
 
 TEST(SVSImageDriver, zoomLevels)
 {
-    const slideio::LevelInfo levels [] = {
-        slideio::LevelInfo(0, {15374,17497}, 1.0, 40., {256,256}),
-        slideio::LevelInfo(1, {3843,4374}, 0.25, 10., {256,256}),
-        slideio::LevelInfo(2, {1921,2187}, 0.125, 5., {256,256})
-    };
+    const slideio::LevelInfo levels[] = {slideio::LevelInfo(0, {15374, 17497}, 1.0, 40., {256, 256}),
+                                         slideio::LevelInfo(1, {3843, 4374}, 0.25, 10., {256, 256}),
+                                         slideio::LevelInfo(2, {1921, 2187}, 0.125, 5., {256, 256})};
     slideio::SVSImageDriver driver;
     const std::string filePath = TestTools::getTestImagePath("svs", "JP2K-33003-1.svs");
     const std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
@@ -580,20 +568,16 @@ TEST(SVSImageDriver, zoomLevels)
     ASSERT_TRUE(scene != nullptr);
     const int numLevels = scene->getNumZoomLevels();
     ASSERT_EQ(3, numLevels);
-    for(int levelIndex=0; levelIndex<numLevels; ++levelIndex)
+    for (int levelIndex = 0; levelIndex < numLevels; ++levelIndex)
     {
         const slideio::LevelInfo* level = scene->getZoomLevelInfo(levelIndex);
         EXPECT_EQ(*level, levels[levelIndex]);
-
     }
 }
 
-TEST(SVSImageDriver, multiThreadSceneAccess) {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip the test because full dataset is not enabled";
-    }
+TEST(SVSImageDriver, multiThreadSceneAccess)
+{
+    if (!TestTools::isFullTestEnabled()) GTEST_SKIP() << "Skip the test because full dataset is not enabled";
     const std::string filePath = TestTools::getTestImagePath("svs", "JP2K-33003-1.svs");
     slideio::SVSImageDriver driver;
     TestTools::multiThreadedTest(filePath, driver);
@@ -604,29 +588,28 @@ TEST(SVSTools, ParseAperioMetadataHeaderOnly)
     const std::string raw = "Aperio GT450 v1.0\n100x200 (256x256) JPEG Q=91";
     const auto j = slideio::SVSTools::parseAperioMetadata(raw);
     EXPECT_EQ(j["application"], "Aperio GT450 v1.0");
-    EXPECT_EQ(j["image"],       "100x200 (256x256) JPEG Q=91");
+    EXPECT_EQ(j["image"], "100x200 (256x256) JPEG Q=91");
     EXPECT_FALSE(j.contains("properties"));
 }
 
 TEST(SVSTools, ParseAperioMetadataWithProperties)
 {
-    const std::string raw =
-        "Aperio Leica Biosystems GT450 v1.0.1\n"
-        "56326x65243 [0,0,56326x65243] (256x256) JPEG/YCC Q=91"
-        "|AppMag = 40|Date = 07/30/2021|MPP = 0.263869";
+    const std::string raw = "Aperio Leica Biosystems GT450 v1.0.1\n"
+                            "56326x65243 [0,0,56326x65243] (256x256) JPEG/YCC Q=91"
+                            "|AppMag = 40|Date = 07/30/2021|MPP = 0.263869";
     const auto j = slideio::SVSTools::parseAperioMetadata(raw);
     EXPECT_EQ(j["application"], "Aperio Leica Biosystems GT450 v1.0.1");
-    EXPECT_EQ(j["image"],       "56326x65243 [0,0,56326x65243] (256x256) JPEG/YCC Q=91");
+    EXPECT_EQ(j["image"], "56326x65243 [0,0,56326x65243] (256x256) JPEG/YCC Q=91");
     EXPECT_EQ(j["properties"]["AppMag"], "40");
-    EXPECT_EQ(j["properties"]["Date"],   "07/30/2021");
-    EXPECT_EQ(j["properties"]["MPP"],    "0.263869");
+    EXPECT_EQ(j["properties"]["Date"], "07/30/2021");
+    EXPECT_EQ(j["properties"]["MPP"], "0.263869");
 }
 
 TEST(SVSTools, ParseAperioMetadataPropertiesNoSpaces)
 {
     const std::string raw = "App\nImage|Key=Value|Key2=Value2";
     const auto j = slideio::SVSTools::parseAperioMetadata(raw);
-    EXPECT_EQ(j["properties"]["Key"],  "Value");
+    EXPECT_EQ(j["properties"]["Key"], "Value");
     EXPECT_EQ(j["properties"]["Key2"], "Value2");
 }
 
@@ -641,9 +624,7 @@ TEST(SVSTools, ParseAperioMetadataEmpty)
 TEST(SVSImageDriver, MetadataTreeIsStructured)
 {
     const std::string filePath = TestTools::getTestImagePath("svs", "CMU-1-Small-Region.svs");
-    if (!std::ifstream(filePath).good()) {
-        GTEST_SKIP() << "Fixture not available: " << filePath;
-    }
+    if (!std::ifstream(filePath).good()) GTEST_SKIP() << "Fixture not available: " << filePath;
     auto slide = slideio::openSlide(filePath, "SVS");
     ASSERT_TRUE(slide);
 
@@ -655,4 +636,3 @@ TEST(SVSImageDriver, MetadataTreeIsStructured)
     // AppMag is a standard Aperio property — should be present and non-empty.
     EXPECT_FALSE(meta["properties"]["AppMag"].asString().empty());
 }
-

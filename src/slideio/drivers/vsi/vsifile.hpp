@@ -15,10 +15,9 @@
 using json = nlohmann::json;
 
 #if defined(_MSC_VER)
-#pragma warning( push )
-#pragma warning(disable: 4251)
+#pragma warning(push)
+#pragma warning(disable : 4251)
 #endif
-
 
 namespace slideio
 {
@@ -31,36 +30,18 @@ namespace slideio
         {
         public:
             VSIFile(const std::string& filePath);
-            std::shared_ptr<vsi::EtsFile> getEtsFile(int index) const {
-                return m_etsFiles[index];
-            }
-            int getNumEtsFiles() const {
-                return static_cast<int>(m_etsFiles.size());
-            }
+            std::shared_ptr<vsi::EtsFile> getEtsFile(int index) const { return m_etsFiles[index]; }
+            int getNumEtsFiles() const { return static_cast<int>(m_etsFiles.size()); }
             std::string getRawMetadata() const;
             void assignAuxVolumes();
 
-            int getNumTiffDirectories() const {
-                return static_cast<int>(m_directories.size());
-            }
-            const TiffDirectory& getTiffDirectory(int index) {
-                return m_directories[index];
-            }
-            int getNumVolumes() const {
-                return static_cast<int>(m_volumes.size());
-            }
-            std::shared_ptr<Volume> getVolume(int index) const {
-                return m_volumes[index];
-            }
-            bool hasMetadata() const {
-                return !m_metadata.empty();
-            }
-            bool expectExternalFiles() const {
-                return m_expectExternalFiles;
-            }
-            bool hasExternalFiles() const {
-                return !m_etsFiles.empty();
-            }
+            int getNumTiffDirectories() const { return static_cast<int>(m_directories.size()); }
+            const TiffDirectory& getTiffDirectory(int index) { return m_directories[index]; }
+            int getNumVolumes() const { return static_cast<int>(m_volumes.size()); }
+            std::shared_ptr<Volume> getVolume(int index) const { return m_volumes[index]; }
+            bool hasMetadata() const { return !m_metadata.empty(); }
+            bool expectExternalFiles() const { return m_expectExternalFiles; }
+            bool hasExternalFiles() const { return !m_etsFiles.empty(); }
             void getVolumeMetadataItems(std::list<const TagInfo*>& volumes) const;
             static void getImageFrameMetadataItems(const TagInfo* volume, std::list<const TagInfo*>& frames);
             void cleanVolumes();
@@ -78,6 +59,7 @@ namespace slideio
                                        std::list<std::pair<EtsFilePtr, TileInfoListPtr>> orphanEtsFiles);
             void readExternalFiles();
             void readExtendedType(vsi::VSIStream& vsi, TagInfo& tag, std::list<TagInfo>& path);
+
         private:
             std::vector<std::shared_ptr<vsi::EtsFile>> m_etsFiles;
             bool m_expectExternalFiles = false;
@@ -88,6 +70,5 @@ namespace slideio
             std::vector<TiffDirectory> m_directories;
             std::vector<std::shared_ptr<Volume>> m_volumes;
         };
-    }
-}
-
+    } // namespace vsi
+} // namespace slideio

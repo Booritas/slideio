@@ -14,7 +14,6 @@
 #include "slideio/slideio/imagedrivermanager.hpp"
 #include "slideio/slideio/slideio.hpp"
 
-
 namespace slideio
 {
     class Slide;
@@ -23,26 +22,29 @@ namespace slideio
 using namespace slideio;
 namespace fso = std::filesystem;
 
-class VSIImageDriverTests : public ::testing::Test {
+class VSIImageDriverTests: public ::testing::Test
+{
 protected:
-    static void SetUpTestSuite() {
+    static void SetUpTestSuite()
+    {
         ImageDriverManager::setLogLevel("WARNING");
         std::cerr << "SetUpTestSuite: Running before all tests\n";
     }
-    static void TearDownTestSuite() {
-    }
+    static void TearDownTestSuite() {}
 };
 
-
-class TestDimensionOrder : public vsi::IDimensionOrder
+class TestDimensionOrder: public vsi::IDimensionOrder
 {
 public:
-    TestDimensionOrder(int channelIndex = 2, int zIndex = 3, int tIndex = 4) :
-        m_channelIndex(channelIndex), m_zIndex(zIndex), m_tIndex(tIndex) {
+    TestDimensionOrder(int channelIndex = 2, int zIndex = 3, int tIndex = 4)
+        : m_channelIndex(channelIndex), m_zIndex(zIndex), m_tIndex(tIndex)
+    {
     }
 
-    int getDimensionOrder(vsi::Dimensions dim) const override {
-        switch (dim) {
+    int getDimensionOrder(vsi::Dimensions dim) const override
+    {
+        switch (dim)
+        {
         case vsi::Dimensions::X:
             return 0;
         case vsi::Dimensions::Y:
@@ -63,11 +65,12 @@ private:
     int m_tIndex;
 };
 
-TEST_F(VSIImageDriverTests, openFileWithExternalFiles1) {
-    std::string filePath = TestTools::getFullTestImagePath("vsi","OS-1/OS-1.vsi");
+TEST_F(VSIImageDriverTests, openFileWithExternalFiles1)
+{
+    std::string filePath = TestTools::getFullTestImagePath("vsi", "OS-1/OS-1.vsi");
     slideio::VSIImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
-    ASSERT_TRUE(slide!=nullptr);
+    ASSERT_TRUE(slide != nullptr);
     const int numScenes = slide->getNumScenes();
     ASSERT_EQ(1, numScenes);
     std::shared_ptr<CVScene> scene = slide->getScene(0);
@@ -76,17 +79,18 @@ TEST_F(VSIImageDriverTests, openFileWithExternalFiles1) {
     auto rect = scene->getRect();
     std::string metadata = slide->getRawMetadata();
     EXPECT_GT(metadata.size(), 0);
-	EXPECT_EQ(scene->getMetadataFormat(), MetadataFormat::None);
-	EXPECT_EQ(slide->getMetadataFormat(), MetadataFormat::JSON);
+    EXPECT_EQ(scene->getMetadataFormat(), MetadataFormat::None);
+    EXPECT_EQ(slide->getMetadataFormat(), MetadataFormat::JSON);
 }
 
-TEST_F(VSIImageDriverTests, openFileWithoutExternalFiles) {
-    std::string filePath = TestTools::getFullTestImagePath("vsi",
-                                                           "Zenodo/Q6VM49JF/Figure-1-ultrasound-raw-data"
-                                                           "/SPECTRUM_#201_2016-06-14_Jiangtao Liu/1286FL9057GDF8RGDX257R2GLHZ.vsi");
+TEST_F(VSIImageDriverTests, openFileWithoutExternalFiles)
+{
+    std::string filePath = TestTools::getFullTestImagePath(
+        "vsi", "Zenodo/Q6VM49JF/Figure-1-ultrasound-raw-data"
+               "/SPECTRUM_#201_2016-06-14_Jiangtao Liu/1286FL9057GDF8RGDX257R2GLHZ.vsi");
     slideio::VSIImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
-    ASSERT_TRUE(slide!=nullptr);
+    ASSERT_TRUE(slide != nullptr);
     const int numScenes = slide->getNumScenes();
     ASSERT_EQ(1, numScenes);
     std::shared_ptr<CVScene> scene = slide->getScene(0);
@@ -97,49 +101,47 @@ TEST_F(VSIImageDriverTests, openFileWithoutExternalFiles) {
     EXPECT_EQ(rect.x, 0);
     EXPECT_EQ(rect.y, 0);
     EXPECT_EQ(scene->getNumChannels(), 3);
-    for (int channel = 0; channel < scene->getNumChannels(); ++channel) {
+    for (int channel = 0; channel < scene->getNumChannels(); ++channel)
         EXPECT_EQ(scene->getChannelDataType(channel), DataType::DT_Byte);
-    }
     EXPECT_DOUBLE_EQ(scene->getMagnification(), 0.);
     EXPECT_EQ(scene->getCompression(), Compression::Uncompressed);
-	EXPECT_EQ(slide->getMetadataFormat(), MetadataFormat::JSON);
+    EXPECT_EQ(slide->getMetadataFormat(), MetadataFormat::JSON);
     EXPECT_EQ(scene->getMetadataFormat(), MetadataFormat::None);
 }
 
-static std::shared_ptr<CVScene> getSceneByName(std::shared_ptr<CVSlide> slide, const std::string& name) {
-	const int numScenes = slide->getNumScenes();
-	for (int sceneIndex = 0; sceneIndex < numScenes; ++sceneIndex) {
-		std::shared_ptr<CVScene> scene = slide->getScene(sceneIndex);
-		if (scene->getName() == name) {
-			return scene;
-		}
-	}
-	return nullptr;
+static std::shared_ptr<CVScene> getSceneByName(std::shared_ptr<CVSlide> slide, const std::string& name)
+{
+    const int numScenes = slide->getNumScenes();
+    for (int sceneIndex = 0; sceneIndex < numScenes; ++sceneIndex)
+    {
+        std::shared_ptr<CVScene> scene = slide->getScene(sceneIndex);
+        if (scene->getName() == name) return scene;
+    }
+    return nullptr;
 }
 
 TEST_F(VSIImageDriverTests, getSceneIndex)
 {
-    if (!TestTools::isFullTestEnabled()) {
-        GTEST_SKIP() <<
-            "Skip the test because full dataset is not enabled";
-    }
+    if (!TestTools::isFullTestEnabled()) GTEST_SKIP() << "Skip the test because full dataset is not enabled";
     const std::string filePath = TestTools::getFullTestImagePath("vsi", "Zenodo/Abdominal/G1M16_ABD_HE_B6.vsi");
     auto slide = slideio::openSlide(filePath, "AUTO");
     ASSERT_TRUE(slide);
     EXPECT_EQ("VSI", slide->getDriverId());
     const int numScenes = slide->getNumScenes();
     EXPECT_EQ(3, numScenes);
-    for (int iScene = 0; iScene < numScenes; ++iScene) {
+    for (int iScene = 0; iScene < numScenes; ++iScene)
+    {
         std::shared_ptr<slideio::CVScene> scene = slide->getScene(iScene)->getCVScene();
         EXPECT_TRUE(scene.get() != nullptr);
         EXPECT_EQ(iScene, scene->getSceneIndex());
         EXPECT_EQ(filePath, scene->getFilePath());
-		EXPECT_EQ("VSI", scene->getDriverId());
+        EXPECT_EQ("VSI", scene->getDriverId());
     }
     const int numImages = slide->getNumAuxImages();
     ASSERT_EQ(numImages, 1);
     std::list<std::string> imageNames = slide->getAuxImageNames();
-    for (auto& name : imageNames) {
+    for (auto& name : imageNames)
+    {
         auto scene = slide->getAuxImage(name)->getCVScene();
         EXPECT_TRUE(scene.get() != nullptr);
         EXPECT_EQ(-1, scene->getSceneIndex());
@@ -148,8 +150,8 @@ TEST_F(VSIImageDriverTests, getSceneIndex)
     }
 }
 
-
-TEST_F(VSIImageDriverTests, openFileWithExternalFiles) {
+TEST_F(VSIImageDriverTests, openFileWithExternalFiles)
+{
     std::tuple<std::string, int, int, double, std::string> result[] = {
         {"40x_01", 14749, 20874, 40, "40x FocusMap"},
         {"40x_02", 15596, 19403, 40, "40x FocusMap"},
@@ -161,9 +163,10 @@ TEST_F(VSIImageDriverTests, openFileWithExternalFiles) {
     ASSERT_TRUE(slide != nullptr);
     const int numScenes = slide->getNumScenes();
     ASSERT_EQ(3, numScenes);
-    for (int sceneIndex = 0; sceneIndex < numScenes; ++sceneIndex) {
+    for (int sceneIndex = 0; sceneIndex < numScenes; ++sceneIndex)
+    {
         std::shared_ptr<CVScene> scene = getSceneByName(slide, std::get<0>(result[sceneIndex]));
-		ASSERT_TRUE(scene != nullptr);
+        ASSERT_TRUE(scene != nullptr);
         EXPECT_EQ(scene->getName(), std::get<0>(result[sceneIndex]));
         auto rect = scene->getRect();
         EXPECT_EQ(rect.width, std::get<1>(result[sceneIndex]));
@@ -182,7 +185,8 @@ TEST_F(VSIImageDriverTests, openFileWithExternalFiles) {
     EXPECT_EQ("Overview", names.front());
 }
 
-TEST_F(VSIImageDriverTests, auxImages) {
+TEST_F(VSIImageDriverTests, auxImages)
+{
     const std::string filePath = TestTools::getFullTestImagePath("vsi", "Zenodo/Abdominal/G1M16_ABD_HE_B6.vsi");
     const std::string testFilePath = TestTools::getFullTestImagePath("vsi", "Zenodo/Abdominal/G1M16_ABD_HE_B6.aux.png");
     slideio::VSIImageDriver driver;
@@ -205,21 +209,21 @@ TEST_F(VSIImageDriverTests, auxImages) {
     ////TestTools::showRasters(testRaster, raster);
 }
 
-
-TEST_F(VSIImageDriverTests, VSIFileOpenWithOutExternalFiles) {
-    std::string filePath = TestTools::getFullTestImagePath("vsi",
-                                                           "Zenodo/Q6VM49JF/Figure-1-ultrasound-raw-data"
-                                                           "/SPECTRUM_#201_2016-06-14_Jiangtao Liu/1286FL9057GDF8RGDX257R2GLHZ.vsi");
+TEST_F(VSIImageDriverTests, VSIFileOpenWithOutExternalFiles)
+{
+    std::string filePath = TestTools::getFullTestImagePath(
+        "vsi", "Zenodo/Q6VM49JF/Figure-1-ultrasound-raw-data"
+               "/SPECTRUM_#201_2016-06-14_Jiangtao Liu/1286FL9057GDF8RGDX257R2GLHZ.vsi");
     vsi::VSIFile vsiFile(filePath);
     EXPECT_EQ(0, vsiFile.getNumEtsFiles());
 }
 
-TEST_F(VSIImageDriverTests, readVSISceneStripedDirUncompressed) {
-    std::string filePath = TestTools::getFullTestImagePath("vsi",
-                                                           "Zenodo/Q6VM49JF/Figure-1-ultrasound-raw-data"
-                                                           "/SPECTRUM_#201_2016-06-14_Jiangtao Liu/1286FL9057GDF8RGDX257R2GLHZ.vsi");
-    std::string testFilePath = TestTools::getFullTestImagePath("vsi",
-                                                               "test-output/1286FL9057GDF8RGDX257R2GLHZ.png");
+TEST_F(VSIImageDriverTests, readVSISceneStripedDirUncompressed)
+{
+    std::string filePath = TestTools::getFullTestImagePath(
+        "vsi", "Zenodo/Q6VM49JF/Figure-1-ultrasound-raw-data"
+               "/SPECTRUM_#201_2016-06-14_Jiangtao Liu/1286FL9057GDF8RGDX257R2GLHZ.vsi");
+    std::string testFilePath = TestTools::getFullTestImagePath("vsi", "test-output/1286FL9057GDF8RGDX257R2GLHZ.png");
     slideio::VSIImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
@@ -236,12 +240,12 @@ TEST_F(VSIImageDriverTests, readVSISceneStripedDirUncompressed) {
     //TestTools::showRasters(testRaster, blockRaster);
 }
 
-TEST_F(VSIImageDriverTests, readVSISceneStripedDirUncompressedRoi) {
-    std::string filePath = TestTools::getFullTestImagePath("vsi",
-                                                           "Zenodo/Q6VM49JF/Figure-1-ultrasound-raw-data"
-                                                           "/SPECTRUM_#201_2016-06-14_Jiangtao Liu/1286FL9057GDF8RGDX257R2GLHZ.vsi");
-    std::string testFilePath = TestTools::getFullTestImagePath("vsi",
-                                                               "test-output/1286FL9057GDF8RGDX257R2GLHZ.png");
+TEST_F(VSIImageDriverTests, readVSISceneStripedDirUncompressedRoi)
+{
+    std::string filePath = TestTools::getFullTestImagePath(
+        "vsi", "Zenodo/Q6VM49JF/Figure-1-ultrasound-raw-data"
+               "/SPECTRUM_#201_2016-06-14_Jiangtao Liu/1286FL9057GDF8RGDX257R2GLHZ.vsi");
+    std::string testFilePath = TestTools::getFullTestImagePath("vsi", "test-output/1286FL9057GDF8RGDX257R2GLHZ.png");
     slideio::VSIImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
@@ -259,12 +263,12 @@ TEST_F(VSIImageDriverTests, readVSISceneStripedDirUncompressedRoi) {
     //TestTools::showRasters(testRoi, blockRaster);
 }
 
-TEST_F(VSIImageDriverTests, readVSISceneStripedDirUncompressedRoiResampled) {
-    std::string filePath = TestTools::getFullTestImagePath("vsi",
-                                                           "Zenodo/Q6VM49JF/Figure-1-ultrasound-raw-data"
-                                                           "/SPECTRUM_#201_2016-06-14_Jiangtao Liu/1286FL9057GDF8RGDX257R2GLHZ.vsi");
-    std::string testFilePath = TestTools::getFullTestImagePath("vsi",
-                                                               "test-output/1286FL9057GDF8RGDX257R2GLHZ.png");
+TEST_F(VSIImageDriverTests, readVSISceneStripedDirUncompressedRoiResampled)
+{
+    std::string filePath = TestTools::getFullTestImagePath(
+        "vsi", "Zenodo/Q6VM49JF/Figure-1-ultrasound-raw-data"
+               "/SPECTRUM_#201_2016-06-14_Jiangtao Liu/1286FL9057GDF8RGDX257R2GLHZ.vsi");
+    std::string testFilePath = TestTools::getFullTestImagePath("vsi", "test-output/1286FL9057GDF8RGDX257R2GLHZ.png");
     slideio::VSIImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
@@ -284,13 +288,15 @@ TEST_F(VSIImageDriverTests, readVSISceneStripedDirUncompressedRoiResampled) {
     //TestTools::showRasters(testRoi, blockRaster);
 }
 
-TEST_F(VSIImageDriverTests, VSIFileOpenWithExternalFiles) {
+TEST_F(VSIImageDriverTests, VSIFileOpenWithExternalFiles)
+{
     std::string filePath = TestTools::getFullTestImagePath("vsi", "Zenodo/Abdominal/G1M16_ABD_HE_B6.vsi");
     vsi::VSIFile vsiFile(filePath);
     EXPECT_EQ(4, vsiFile.getNumEtsFiles());
 }
 
-TEST_F(VSIImageDriverTests, read3DVolume16bitSlice) {
+TEST_F(VSIImageDriverTests, read3DVolume16bitSlice)
+{
     std::string filePath = TestTools::getFullTestImagePath("vsi", "vsi-multifile/vsi-ets-test-jpg2k.vsi");
     std::string testFilePath = TestTools::getFullTestImagePath("vsi", "test-output/vsi-ets-test-jpg2k.vsi.ome.tif");
     slideio::VSIImageDriver driver;
@@ -303,7 +309,7 @@ TEST_F(VSIImageDriverTests, read3DVolume16bitSlice) {
     cv::Rect roi(rect);
     cv::Size blockSize(roi.width, roi.height);
     cv::Mat blockRaster;
-    scene->readResampled4DBlockChannels(roi, blockSize, { 1 }, { 5,6 }, { 0,1 }, blockRaster);
+    scene->readResampled4DBlockChannels(roi, blockSize, {1}, {5, 6}, {0, 1}, blockRaster);
     cv::Mat testRaster;
     TiffTools::readDirRaster(testFilePath, 11, testRaster);
     cv::resize(testRaster, testRaster, blockSize);
@@ -312,11 +318,10 @@ TEST_F(VSIImageDriverTests, read3DVolume16bitSlice) {
     //TestTools::showRasters(testRaster, blockRaster);
 }
 
-
-TEST_F(VSIImageDriverTests, read3DVolume16bit) {
+TEST_F(VSIImageDriverTests, read3DVolume16bit)
+{
     std::string filePath = TestTools::getFullTestImagePath("vsi", "vsi-multifile/vsi-ets-test-jpg2k.vsi");
-    std::string testFileOme = TestTools::getFullTestImagePath("vsi",
-        "test-output/vsi-ets-test-jpg2k.vsi.ome.tif");
+    std::string testFileOme = TestTools::getFullTestImagePath("vsi", "test-output/vsi-ets-test-jpg2k.vsi.ome.tif");
     slideio::VSIImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
@@ -340,22 +345,21 @@ TEST_F(VSIImageDriverTests, read3DVolume16bit) {
     EXPECT_EQ("C405", scene->getChannelName(0));
     EXPECT_EQ("C488", scene->getChannelName(1));
     cv::Rect roi(rect);
-    cv::Size blockSize(roi.width/4, roi.height/4);
+    cv::Size blockSize(roi.width / 4, roi.height / 4);
     cv::Mat blockRaster;
-    scene->readResampled4DBlockChannels(roi, blockSize, { 0 }, { 5,6 }, { 0,1 }, blockRaster);
+    scene->readResampled4DBlockChannels(roi, blockSize, {0}, {5, 6}, {0, 1}, blockRaster);
     cv::Mat testRaster;
-    TiffTools::readDirRaster(testFileOme, 10,testRaster);
+    TiffTools::readDirRaster(testFileOme, 10, testRaster);
     cv::resize(testRaster, testRaster, blockSize);
     double similarity = ImageTools::computeSimilarity2(testRaster, blockRaster);
     EXPECT_GT(similarity, 0.99);
     //TestTools::showRasters(testRaster, blockRaster);
 }
 
-TEST_F(VSIImageDriverTests, read3DStack16bit) {
-    std::string filePath = TestTools::getFullTestImagePath("vsi", 
-        "vsi-multifile/vsi-ets-test-jpg2k.vsi");
-    std::string testFileOme = TestTools::getFullTestImagePath("vsi",
-        "test-output/vsi-ets-test-jpg2k.vsi.ome.tif");
+TEST_F(VSIImageDriverTests, read3DStack16bit)
+{
+    std::string filePath = TestTools::getFullTestImagePath("vsi", "vsi-multifile/vsi-ets-test-jpg2k.vsi");
+    std::string testFileOme = TestTools::getFullTestImagePath("vsi", "test-output/vsi-ets-test-jpg2k.vsi.ome.tif");
     slideio::VSIImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
@@ -379,9 +383,8 @@ TEST_F(VSIImageDriverTests, read3DStack16bit) {
     cv::Rect roi(rect);
     cv::Size blockSize(roi.width, roi.height);
     cv::Mat blockRaster;
-    scene->readResampled4DBlockChannels(roi, blockSize, { 0 },
-        { 4,6 }, { 0,1 }, blockRaster);
-    EXPECT_EQ(2,blockRaster.size[2]);
+    scene->readResampled4DBlockChannels(roi, blockSize, {0}, {4, 6}, {0, 1}, blockRaster);
+    EXPECT_EQ(2, blockRaster.size[2]);
     cv::Mat slice;
     CVTools::extractSliceFrom3D(blockRaster, 0, slice);
     cv::Mat testRaster(slice.size(), slice.type());
@@ -394,9 +397,11 @@ TEST_F(VSIImageDriverTests, read3DStack16bit) {
     EXPECT_GT(similarity, 0.99);
 }
 
-TEST_F(VSIImageDriverTests, readMultiscene) {
+TEST_F(VSIImageDriverTests, readMultiscene)
+{
     std::string filePath = TestTools::getFullTestImagePath("vsi", "Zenodo/Abdominal/G1M16_ABD_HE_B6.vsi");
-    std::string testFilePath = TestTools::getFullTestImagePath("vsi", "test-output/G1M16_ABD_HE_B6.vsi-40x_01(1,x=5836,y=11793,w=849,h=607).png");
+    std::string testFilePath = TestTools::getFullTestImagePath(
+        "vsi", "test-output/G1M16_ABD_HE_B6.vsi-40x_01(1,x=5836,y=11793,w=849,h=607).png");
     slideio::VSIImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
@@ -420,7 +425,7 @@ TEST_F(VSIImageDriverTests, readMultiscene) {
     auto auxImageNames = scene->getAuxImageNames();
     EXPECT_EQ(1, auxImageNames.size());
     EXPECT_EQ("40x FocusMap", auxImageNames.front());
-    cv::Rect roi(5836,11793,849,607);
+    cv::Rect roi(5836, 11793, 849, 607);
     cv::Size blockSize(roi.size());
     cv::Mat blockRaster;
     scene->readResampledBlock(roi, blockSize, blockRaster);
@@ -430,9 +435,11 @@ TEST_F(VSIImageDriverTests, readMultiscene) {
     //TestTools::showRasters(testRaster, blockRaster);
 }
 
-TEST_F(VSIImageDriverTests, readMultisceneResized) {
+TEST_F(VSIImageDriverTests, readMultisceneResized)
+{
     std::string filePath = TestTools::getFullTestImagePath("vsi", "Zenodo/Abdominal/G1M16_ABD_HE_B6.vsi");
-    std::string testFilePath = TestTools::getFullTestImagePath("vsi", "test-output/G1M16_ABD_HE_B6.vsi-40x_01(1,x=5836,y=11793,w=849,h=607).png");
+    std::string testFilePath = TestTools::getFullTestImagePath(
+        "vsi", "test-output/G1M16_ABD_HE_B6.vsi-40x_01(1,x=5836,y=11793,w=849,h=607).png");
     slideio::VSIImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
@@ -443,7 +450,7 @@ TEST_F(VSIImageDriverTests, readMultisceneResized) {
     ASSERT_TRUE(scene != nullptr);
     const auto rect = scene->getRect();
     cv::Rect roi(5836, 11793, 849, 607);
-    cv::Size blockSize(roi.width/3, roi.height/3);
+    cv::Size blockSize(roi.width / 3, roi.height / 3);
     cv::Mat blockRaster;
     scene->readResampledBlock(roi, blockSize, blockRaster);
     cv::Mat testRaster;
@@ -454,9 +461,11 @@ TEST_F(VSIImageDriverTests, readMultisceneResized) {
     //TestTools::showRasters(testRaster, blockRaster);
 }
 
-TEST_F(VSIImageDriverTests, readMultisceneResizedSingeChannel) {
+TEST_F(VSIImageDriverTests, readMultisceneResizedSingeChannel)
+{
     std::string filePath = TestTools::getFullTestImagePath("vsi", "Zenodo/Abdominal/G1M16_ABD_HE_B6.vsi");
-    std::string testFilePath = TestTools::getFullTestImagePath("vsi", "test-output/G1M16_ABD_HE_B6.vsi-40x_01(1,x=5836,y=11793,w=849,h=607).png");
+    std::string testFilePath = TestTools::getFullTestImagePath(
+        "vsi", "test-output/G1M16_ABD_HE_B6.vsi-40x_01(1,x=5836,y=11793,w=849,h=607).png");
     slideio::VSIImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
@@ -473,16 +482,17 @@ TEST_F(VSIImageDriverTests, readMultisceneResizedSingeChannel) {
     cv::Mat testRaster;
     TestTools::readPNG(testFilePath, testRaster);
     cv::resize(testRaster, testRaster, blockSize);
-    cv::extractChannel(testRaster,testRaster,0);
+    cv::extractChannel(testRaster, testRaster, 0);
     double similarity = ImageTools::computeSimilarity2(testRaster, blockRaster);
     ASSERT_GT(similarity, 0.99);
     //TestTools::showRasters(testRaster, blockRaster);
 }
 
-TEST_F(VSIImageDriverTests, readMultisceneResizedReversedChannels) {
+TEST_F(VSIImageDriverTests, readMultisceneResizedReversedChannels)
+{
     std::string filePath = TestTools::getFullTestImagePath("vsi", "Zenodo/Abdominal/G1M16_ABD_HE_B6.vsi");
-    std::string testFilePath = TestTools::getFullTestImagePath("vsi",
-        "test-output/G1M16_ABD_HE_B6.vsi-40x_01(1,x=5836,y=11793,w=849,h=607).png");
+    std::string testFilePath = TestTools::getFullTestImagePath(
+        "vsi", "test-output/G1M16_ABD_HE_B6.vsi-40x_01(1,x=5836,y=11793,w=849,h=607).png");
     slideio::VSIImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
@@ -494,7 +504,7 @@ TEST_F(VSIImageDriverTests, readMultisceneResizedReversedChannels) {
     cv::Rect roi(5836, 11793, 849, 607);
     cv::Size blockSize(roi.width / 3, roi.height / 3);
     cv::Mat blockRaster;
-    scene->readResampledBlockChannels(roi, blockSize, { 2,1,0 }, blockRaster);
+    scene->readResampledBlockChannels(roi, blockSize, {2, 1, 0}, blockRaster);
     cv::Mat testRaster;
     TestTools::readPNG(testFilePath, testRaster);
     cv::resize(testRaster, testRaster, blockSize);
@@ -508,40 +518,42 @@ TEST_F(VSIImageDriverTests, readMultisceneResizedReversedChannels) {
     //TestTools::showRasters(testRaster, blockRaster);
 }
 
-TEST(EtsFile, readTileJpeg) {
+TEST(EtsFile, readTileJpeg)
+{
     std::string filePath = TestTools::getFullTestImagePath("vsi", "Zenodo/Abdominal/G1M16_ABD_HE_B6.vsi");
-    std::string testFilePath = TestTools::getFullTestImagePath("vsi", "test-output/G1M16_ABD_HE_B6.vsi-40x_01(1,x=0,y=0,w=512,h=512).png");
+    std::string testFilePath =
+        TestTools::getFullTestImagePath("vsi", "test-output/G1M16_ABD_HE_B6.vsi-40x_01(1,x=0,y=0,w=512,h=512).png");
     slideio::vsi::VSIFile vsiFile(filePath);
     const std::string dir("stack10001");
     const int numEtsFiles = vsiFile.getNumEtsFiles();
     std::shared_ptr<vsi::EtsFile> etsFile;
-    for(int fileIndex=0; fileIndex<numEtsFiles; ++fileIndex) {
+    for (int fileIndex = 0; fileIndex < numEtsFiles; ++fileIndex)
+    {
         auto ets = vsiFile.getEtsFile(fileIndex);
         std::string etsFilePath = ets->getFilePath();
         fso::path etsPath(etsFilePath);
         fso::path etsDir = etsPath.parent_path();
         std::string etsDirName = etsDir.filename().string();
-        if(etsDirName == dir) {
-            etsFile = ets;
-        }
+        if (etsDirName == dir) etsFile = ets;
     }
     ASSERT_TRUE(etsFile.get() != nullptr);
     cv::Mat tileRaster;
-    etsFile->readTile(0, 0, {},0, 0,  tileRaster);
+    etsFile->readTile(0, 0, {}, 0, 0, tileRaster);
     cv::Mat testRaster;
     TestTools::readPNG(testFilePath, testRaster);
     double score = ImageTools::computeSimilarity2(testRaster, tileRaster);
-	EXPECT_GT(score, 0.999);
+    EXPECT_GT(score, 0.999);
     //TestTools::showRasters(testRaster, tileRaster);
 }
 
-TEST(EtsFile, readTileJpeg2K) {
+TEST(EtsFile, readTileJpeg2K)
+{
     std::string filePath = TestTools::getFullTestImagePath("vsi", "vsi-multifile/vsi-ets-test-jpg2k.vsi");
     std::string testFilePath = TestTools::getFullTestImagePath("vsi", "test-output/vsi-ets-test-jpg2k_tile_5.tif");
     slideio::vsi::VSIFile vsiFile(filePath);
     auto etsFile = vsiFile.getEtsFile(0);
     cv::Mat tileRaster;
-    etsFile->readTile(0, 0, { 0 }, 5, 0, tileRaster);
+    etsFile->readTile(0, 0, {0}, 5, 0, tileRaster);
     //TestTools::showRaster(tileRaster);
     //ImageTools::writeTiffImage(testFilePath, tileRaster);
     cv::Mat testRaster;
@@ -551,90 +563,40 @@ TEST(EtsFile, readTileJpeg2K) {
     //TestTools::showRasters(testRaster, tileRaster);
 }
 
-
-TEST(Pyramid, init) {
+TEST(Pyramid, init)
+{
     TestDimensionOrder dimOrder;
     {
         std::vector<std::tuple<int, int, int, int, int, int>> tls = {
-            {0, 0, 0, 1, 1, 0},
-            {0, 0, 1, 1, 1, 0},
-            {0, 0, 0, 1, 1, 1},
-            {0, 0, 1, 1, 1, 1},
-            {1, 0, 0, 1, 1, 0},
-            {1, 0, 1, 1, 1, 0},
-            {1, 0, 0, 1, 1, 1},
-            {1, 0, 1, 1, 1, 1},
+            {0, 0, 0, 1, 1, 0}, {0, 0, 1, 1, 1, 0}, {0, 0, 0, 1, 1, 1}, {0, 0, 1, 1, 1, 1},
+            {1, 0, 0, 1, 1, 0}, {1, 0, 1, 1, 1, 0}, {1, 0, 0, 1, 1, 1}, {1, 0, 1, 1, 1, 1},
 
-            {0, 0, 0, 0, 1, 0},
-            {0, 0, 1, 0, 1, 0},
-            {0, 0, 0, 0, 1, 1},
-            {0, 0, 1, 0, 1, 1},
-            {1, 0, 0, 0, 1, 0},
-            {1, 0, 1, 0, 1, 0},
-            {1, 0, 0, 0, 1, 1},
-            {1, 0, 1, 0, 1, 1},
+            {0, 0, 0, 0, 1, 0}, {0, 0, 1, 0, 1, 0}, {0, 0, 0, 0, 1, 1}, {0, 0, 1, 0, 1, 1},
+            {1, 0, 0, 0, 1, 0}, {1, 0, 1, 0, 1, 0}, {1, 0, 0, 0, 1, 1}, {1, 0, 1, 0, 1, 1},
 
-            {0, 0, 0, 1, 0, 0},
-            {0, 0, 1, 1, 0, 0},
-            {0, 0, 0, 1, 0, 1},
-            {0, 0, 1, 1, 0, 1},
-            {1, 0, 0, 1, 0, 0},
-            {1, 0, 1, 1, 0, 0},
-            {1, 0, 0, 1, 0, 1},
-            {1, 0, 1, 1, 0, 1},
+            {0, 0, 0, 1, 0, 0}, {0, 0, 1, 1, 0, 0}, {0, 0, 0, 1, 0, 1}, {0, 0, 1, 1, 0, 1},
+            {1, 0, 0, 1, 0, 0}, {1, 0, 1, 1, 0, 0}, {1, 0, 0, 1, 0, 1}, {1, 0, 1, 1, 0, 1},
 
-            {0, 0, 0, 0, 0, 0},
-            {0, 0, 1, 0, 0, 0},
-            {0, 0, 0, 0, 0, 1},
-            {0, 0, 1, 0, 0, 1},
-            {1, 0, 0, 0, 0, 0},
-            {1, 0, 1, 0, 0, 0},
-            {1, 0, 0, 0, 0, 1},
-            {1, 0, 1, 0, 0, 1},
+            {0, 0, 0, 0, 0, 0}, {0, 0, 1, 0, 0, 0}, {0, 0, 0, 0, 0, 1}, {0, 0, 1, 0, 0, 1},
+            {1, 0, 0, 0, 0, 0}, {1, 0, 1, 0, 0, 0}, {1, 0, 0, 0, 0, 1}, {1, 0, 1, 0, 0, 1},
 
-            {0, 1, 0, 1, 1, 0},
-            {0, 1, 1, 1, 1, 0},
-            {0, 1, 0, 1, 1, 1},
-            {0, 1, 1, 1, 1, 1},
-            {1, 1, 0, 1, 1, 0},
-            {1, 1, 1, 1, 1, 0},
-            {1, 1, 0, 1, 1, 1},
-            {1, 1, 1, 1, 1, 1},
+            {0, 1, 0, 1, 1, 0}, {0, 1, 1, 1, 1, 0}, {0, 1, 0, 1, 1, 1}, {0, 1, 1, 1, 1, 1},
+            {1, 1, 0, 1, 1, 0}, {1, 1, 1, 1, 1, 0}, {1, 1, 0, 1, 1, 1}, {1, 1, 1, 1, 1, 1},
 
-            {0, 1, 0, 0, 1, 0},
-            {0, 1, 1, 0, 1, 0},
-            {0, 1, 0, 0, 1, 1},
-            {0, 1, 1, 0, 1, 1},
-            {1, 1, 0, 0, 1, 0},
-            {1, 1, 1, 0, 1, 0},
-            {1, 1, 0, 0, 1, 1},
-            {1, 1, 1, 0, 1, 1},
+            {0, 1, 0, 0, 1, 0}, {0, 1, 1, 0, 1, 0}, {0, 1, 0, 0, 1, 1}, {0, 1, 1, 0, 1, 1},
+            {1, 1, 0, 0, 1, 0}, {1, 1, 1, 0, 1, 0}, {1, 1, 0, 0, 1, 1}, {1, 1, 1, 0, 1, 1},
 
-            {0, 1, 0, 1, 0, 0},
-            {0, 1, 1, 1, 0, 0},
-            {0, 1, 0, 1, 0, 1},
-            {0, 1, 1, 1, 0, 1},
-            {1, 1, 0, 1, 0, 0},
-            {1, 1, 1, 1, 0, 0},
-            {1, 1, 0, 1, 0, 1},
-            {1, 1, 1, 1, 0, 1},
+            {0, 1, 0, 1, 0, 0}, {0, 1, 1, 1, 0, 0}, {0, 1, 0, 1, 0, 1}, {0, 1, 1, 1, 0, 1},
+            {1, 1, 0, 1, 0, 0}, {1, 1, 1, 1, 0, 0}, {1, 1, 0, 1, 0, 1}, {1, 1, 1, 1, 0, 1},
 
-            {0, 1, 0, 0, 0, 0},
-            {0, 1, 1, 0, 0, 0},
-            {0, 1, 0, 0, 0, 1},
-            {0, 1, 1, 0, 0, 1},
-            {1, 1, 0, 0, 0, 0},
-            {1, 1, 1, 0, 0, 0},
-            {1, 1, 0, 0, 0, 1},
-            {1, 1, 1, 0, 0, 1}
-        };
+            {0, 1, 0, 0, 0, 0}, {0, 1, 1, 0, 0, 0}, {0, 1, 0, 0, 0, 1}, {0, 1, 1, 0, 0, 1},
+            {1, 1, 0, 0, 0, 0}, {1, 1, 1, 0, 0, 0}, {1, 1, 0, 0, 0, 1}, {1, 1, 1, 0, 0, 1}};
         auto tiles = std::make_shared<vsi::TileInfoList>();
-        for (auto& t : tls) {
+        for (auto& t : tls)
+        {
             slideio::vsi::TileInfo tile;
-            tile.coordinates = {
-                std::get<0>(t), std::get<1>(t), std::get<2>(t),
-                std::get<3>(t), std::get<4>(t), std::get<5>(t)
-            };
+            tile.coordinates = {std::get<0>(t), std::get<1>(t), std::get<2>(t),
+                                std::get<3>(t), std::get<4>(t), std::get<5>(t)};
             tiles->push_back(tile);
         }
         vsi::Pyramid pyramid;
@@ -643,16 +605,21 @@ TEST(Pyramid, init) {
         EXPECT_EQ(2, pyramid.getNumChannelIndices());
         EXPECT_EQ(2, pyramid.getNumZIndices());
         EXPECT_EQ(2, pyramid.getNumTIndices());
-        for (int lv = 0; lv < pyramid.getNumLevels(); ++lv) {
+        for (int lv = 0; lv < pyramid.getNumLevels(); ++lv)
+        {
             const auto& level = pyramid.getLevel(lv);
             const int scaleLevel = 1 << lv;
             EXPECT_EQ(scaleLevel, level.getScaleLevel());
             EXPECT_EQ(cv::Size(100 >> lv, 100 >> lv), level.getSize());
             EXPECT_EQ(4, level.getNumTiles());
-            for (int tileIndex = 0; tileIndex < level.getNumTiles(); ++tileIndex) {
-                for (int channelIndex = 0; channelIndex < pyramid.getNumChannelIndices(); ++channelIndex) {
-                    for (int zIndex = 0; zIndex < pyramid.getNumZIndices(); ++zIndex) {
-                        for (int tIndex = 0; tIndex < pyramid.getNumTIndices(); ++tIndex) {
+            for (int tileIndex = 0; tileIndex < level.getNumTiles(); ++tileIndex)
+            {
+                for (int channelIndex = 0; channelIndex < pyramid.getNumChannelIndices(); ++channelIndex)
+                {
+                    for (int zIndex = 0; zIndex < pyramid.getNumZIndices(); ++zIndex)
+                    {
+                        for (int tIndex = 0; tIndex < pyramid.getNumTIndices(); ++tIndex)
+                        {
                             const int y = tileIndex / 2;
                             const int x = tileIndex % 2;
                             auto tile = level.getTile(tileIndex, channelIndex, zIndex, tIndex);
@@ -670,35 +637,20 @@ TEST(Pyramid, init) {
     }
 }
 
-TEST(Pyramid, init2DWithChannel) {
+TEST(Pyramid, init2DWithChannel)
+{
     TestDimensionOrder dimOrder(2, -1, -1);
     {
-        std::vector<std::tuple<int, int, int, int>> tls = {
-            {0, 0, 0, 0},
-            {0, 0, 1, 0},
-            {0, 0, 0, 1},
-            {0, 0, 1, 1},
-            {1, 0, 0, 0},
-            {1, 0, 1, 0},
-            {1, 0, 0, 1},
-            {1, 0, 1, 1},
+        std::vector<std::tuple<int, int, int, int>> tls = {{0, 0, 0, 0}, {0, 0, 1, 0}, {0, 0, 0, 1}, {0, 0, 1, 1},
+                                                           {1, 0, 0, 0}, {1, 0, 1, 0}, {1, 0, 0, 1}, {1, 0, 1, 1},
 
-            {0, 1, 0, 0},
-            {0, 1, 1, 0},
-            {0, 1, 0, 1},
-            {0, 1, 1, 1},
-            {1, 1, 0, 0},
-            {1, 1, 1, 0},
-            {1, 1, 0, 1},
-            {1, 1, 1, 1}
-        };
-		auto tiles = std::make_shared<vsi::TileInfoList>();
-        for (auto& t : tls) {
+                                                           {0, 1, 0, 0}, {0, 1, 1, 0}, {0, 1, 0, 1}, {0, 1, 1, 1},
+                                                           {1, 1, 0, 0}, {1, 1, 1, 0}, {1, 1, 0, 1}, {1, 1, 1, 1}};
+        auto tiles = std::make_shared<vsi::TileInfoList>();
+        for (auto& t : tls)
+        {
             slideio::vsi::TileInfo tile;
-            tile.coordinates = {
-                std::get<0>(t), std::get<1>(t), std::get<2>(t),
-                std::get<3>(t)
-            };
+            tile.coordinates = {std::get<0>(t), std::get<1>(t), std::get<2>(t), std::get<3>(t)};
             tiles->push_back(tile);
         }
         vsi::Pyramid pyramid;
@@ -707,16 +659,21 @@ TEST(Pyramid, init2DWithChannel) {
         EXPECT_EQ(2, pyramid.getNumChannelIndices());
         EXPECT_EQ(1, pyramid.getNumZIndices());
         EXPECT_EQ(1, pyramid.getNumTIndices());
-        for (int lv = 0; lv < pyramid.getNumLevels(); ++lv) {
+        for (int lv = 0; lv < pyramid.getNumLevels(); ++lv)
+        {
             const auto& level = pyramid.getLevel(lv);
             const int scaleLevel = 1 << lv;
             EXPECT_EQ(scaleLevel, level.getScaleLevel());
             EXPECT_EQ(cv::Size(100 >> lv, 100 >> lv), level.getSize());
             EXPECT_EQ(4, level.getNumTiles());
-            for (int tileIndex = 0; tileIndex < level.getNumTiles(); ++tileIndex) {
-                for (int channelIndex = 0; channelIndex < pyramid.getNumChannelIndices(); ++channelIndex) {
-                    for (int zIndex = 0; zIndex < pyramid.getNumZIndices(); ++zIndex) {
-                        for (int tIndex = 0; tIndex < pyramid.getNumTIndices(); ++tIndex) {
+            for (int tileIndex = 0; tileIndex < level.getNumTiles(); ++tileIndex)
+            {
+                for (int channelIndex = 0; channelIndex < pyramid.getNumChannelIndices(); ++channelIndex)
+                {
+                    for (int zIndex = 0; zIndex < pyramid.getNumZIndices(); ++zIndex)
+                    {
+                        for (int tIndex = 0; tIndex < pyramid.getNumTIndices(); ++tIndex)
+                        {
                             const int y = tileIndex / 2;
                             const int x = tileIndex % 2;
                             auto tile = level.getTile(tileIndex, channelIndex, zIndex, tIndex);
@@ -732,35 +689,20 @@ TEST(Pyramid, init2DWithChannel) {
     }
 }
 
-TEST(Pyramid, init3D) {
+TEST(Pyramid, init3D)
+{
     TestDimensionOrder dimOrder(-1, 2, -1);
     {
-        std::vector<std::tuple<int, int, int, int>> tls = {
-            {0, 0, 0, 0},
-            {0, 0, 1, 0},
-            {0, 0, 0, 1},
-            {0, 0, 1, 1},
-            {1, 0, 0, 0},
-            {1, 0, 1, 0},
-            {1, 0, 0, 1},
-            {1, 0, 1, 1},
+        std::vector<std::tuple<int, int, int, int>> tls = {{0, 0, 0, 0}, {0, 0, 1, 0}, {0, 0, 0, 1}, {0, 0, 1, 1},
+                                                           {1, 0, 0, 0}, {1, 0, 1, 0}, {1, 0, 0, 1}, {1, 0, 1, 1},
 
-            {0, 1, 0, 0},
-            {0, 1, 1, 0},
-            {0, 1, 0, 1},
-            {0, 1, 1, 1},
-            {1, 1, 0, 0},
-            {1, 1, 1, 0},
-            {1, 1, 0, 1},
-            {1, 1, 1, 1}
-        };
-		auto tiles = std::make_shared<vsi::TileInfoList>();
-        for (auto& t : tls) {
+                                                           {0, 1, 0, 0}, {0, 1, 1, 0}, {0, 1, 0, 1}, {0, 1, 1, 1},
+                                                           {1, 1, 0, 0}, {1, 1, 1, 0}, {1, 1, 0, 1}, {1, 1, 1, 1}};
+        auto tiles = std::make_shared<vsi::TileInfoList>();
+        for (auto& t : tls)
+        {
             slideio::vsi::TileInfo tile;
-            tile.coordinates = {
-                std::get<0>(t), std::get<1>(t), std::get<2>(t),
-                std::get<3>(t)
-            };
+            tile.coordinates = {std::get<0>(t), std::get<1>(t), std::get<2>(t), std::get<3>(t)};
             tiles->push_back(tile);
         }
         vsi::Pyramid pyramid;
@@ -769,16 +711,21 @@ TEST(Pyramid, init3D) {
         EXPECT_EQ(1, pyramid.getNumChannelIndices());
         EXPECT_EQ(2, pyramid.getNumZIndices());
         EXPECT_EQ(1, pyramid.getNumTIndices());
-        for (int lv = 0; lv < pyramid.getNumLevels(); ++lv) {
+        for (int lv = 0; lv < pyramid.getNumLevels(); ++lv)
+        {
             const auto& level = pyramid.getLevel(lv);
             const int scaleLevel = 1 << lv;
             EXPECT_EQ(scaleLevel, level.getScaleLevel());
             EXPECT_EQ(cv::Size(100 >> lv, 100 >> lv), level.getSize());
             EXPECT_EQ(4, level.getNumTiles());
-            for (int tileIndex = 0; tileIndex < level.getNumTiles(); ++tileIndex) {
-                for (int channelIndex = 0; channelIndex < pyramid.getNumChannelIndices(); ++channelIndex) {
-                    for (int zIndex = 0; zIndex < pyramid.getNumZIndices(); ++zIndex) {
-                        for (int tIndex = 0; tIndex < pyramid.getNumTIndices(); ++tIndex) {
+            for (int tileIndex = 0; tileIndex < level.getNumTiles(); ++tileIndex)
+            {
+                for (int channelIndex = 0; channelIndex < pyramid.getNumChannelIndices(); ++channelIndex)
+                {
+                    for (int zIndex = 0; zIndex < pyramid.getNumZIndices(); ++zIndex)
+                    {
+                        for (int tIndex = 0; tIndex < pyramid.getNumTIndices(); ++tIndex)
+                        {
                             const int y = tileIndex / 2;
                             const int x = tileIndex % 2;
                             auto tile = level.getTile(tileIndex, channelIndex, zIndex, tIndex);
@@ -794,12 +741,9 @@ TEST(Pyramid, init3D) {
     }
 }
 
-TEST_F(VSIImageDriverTests, invalidEts) {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip the test because full dataset is not enabled";
-    }
+TEST_F(VSIImageDriverTests, invalidEts)
+{
+    if (!TestTools::isFullTestEnabled()) GTEST_SKIP() << "Skip the test because full dataset is not enabled";
     std::string filePath = TestTools::getFullTestImagePath("vsi", "vs200-vsi-share/Image_B309.vsi");
     std::string overviewFilePath = TestTools::getFullTestImagePath("vsi", "test-output/Image_B309_Overview.png");
     std::string macroFilePath = TestTools::getFullTestImagePath("vsi", "test-output/Image_B309_Macro.png");
@@ -820,8 +764,8 @@ TEST_F(VSIImageDriverTests, invalidEts) {
     ASSERT_TRUE(overview != nullptr);
     cv::Mat macroRaster, macroTestRaster;
     cv::Rect rasterRect = macro->getRect();
-    double cof = std::min(500./rasterRect.width, 500./rasterRect.height);
-    cv::Size rasterSize(std::lround(cof*rasterRect.width), lround(cof*rasterRect.height));
+    double cof = std::min(500. / rasterRect.width, 500. / rasterRect.height);
+    cv::Size rasterSize(std::lround(cof * rasterRect.width), lround(cof * rasterRect.height));
     macro->readResampledBlock(rasterRect, rasterSize, macroRaster);
     //TestTools::writePNG(macroRaster, macroFilePath);
     TestTools::readPNG(macroFilePath, macroTestRaster);
@@ -830,54 +774,46 @@ TEST_F(VSIImageDriverTests, invalidEts) {
     cv::Mat overviewRaster, overviewTestRaster;
     rasterRect = overview->getRect();
     cof = std::min(500. / rasterRect.width, 500. / rasterRect.height);
-    rasterSize = { (int)std::lround(cof * rasterRect.width), (int)lround(cof * rasterRect.height) };
+    rasterSize = {(int)std::lround(cof * rasterRect.width), (int)lround(cof * rasterRect.height)};
     overview->readResampledBlock(rasterRect, rasterSize, overviewRaster);
     //TestTools::writePNG(overviewRaster, overviewFilePath);
     TestTools::readPNG(overviewFilePath, overviewTestRaster);
     TestTools::compareRasters(overviewRaster, overviewTestRaster);
     //TestTools::showRaster(overviewRaster);
-
 }
 
-TEST_F(VSIImageDriverTests, volumes) {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip the test because full dataset is not enabled";
-    }
+TEST_F(VSIImageDriverTests, volumes)
+{
+    if (!TestTools::isFullTestEnabled()) GTEST_SKIP() << "Skip the test because full dataset is not enabled";
     std::string filePath = TestTools::getFullTestImagePath("vsi", "private/d/STS_G6889_11_1_pHH3.vsi");
-    std::string testImageFilePath = TestTools::getFullTestImagePath("vsi", 
-        "test-output/STS_G6889_11_1_pHH3.vsi - 40x_BF_01 (1, x=82570, y=77046, w=1153, h=797).png");
+    std::string testImageFilePath = TestTools::getFullTestImagePath(
+        "vsi", "test-output/STS_G6889_11_1_pHH3.vsi - 40x_BF_01 (1, x=82570, y=77046, w=1153, h=797).png");
     slideio::VSIImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
-	auto metadata = slide->getRawMetadata();
-	ASSERT_FALSE(metadata.empty());
+    auto metadata = slide->getRawMetadata();
+    ASSERT_FALSE(metadata.empty());
     const int numScenes = slide->getNumScenes();
     ASSERT_EQ(1, numScenes);
-	auto scene = slide->getScene(0);
+    auto scene = slide->getScene(0);
     auto sceneRect = scene->getRect();
-	EXPECT_EQ(sceneRect, cv::Rect(0, 0, 164267, 150739));
-	const cv::Rect roi = { 82570, 77046, 1153, 797 };
-	const cv::Size blockSize = { roi.width, roi.height };
-	cv::Mat raster;
-	scene->readResampledBlock(roi, blockSize, raster);
-	cv::Mat testRaster;
-	TestTools::readPNG(testImageFilePath, testRaster);
-	double similarity = ImageTools::computeSimilarity2(testRaster, raster);
-	EXPECT_GT(similarity, 0.99);
+    EXPECT_EQ(sceneRect, cv::Rect(0, 0, 164267, 150739));
+    const cv::Rect roi = {82570, 77046, 1153, 797};
+    const cv::Size blockSize = {roi.width, roi.height};
+    cv::Mat raster;
+    scene->readResampledBlock(roi, blockSize, raster);
+    cv::Mat testRaster;
+    TestTools::readPNG(testImageFilePath, testRaster);
+    double similarity = ImageTools::computeSimilarity2(testRaster, raster);
+    EXPECT_GT(similarity, 0.99);
 }
 
-
-TEST_F(VSIImageDriverTests, stack3d) {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip the test because full dataset is not enabled";
-    }
+TEST_F(VSIImageDriverTests, stack3d)
+{
+    if (!TestTools::isFullTestEnabled()) GTEST_SKIP() << "Skip the test because full dataset is not enabled";
     std::string filePath = TestTools::getFullTestImagePath("vsi", "private/3d/01072022_35_2_z.vsi");
-    std::string slice6 = TestTools::getFullTestImagePath("vsi", 
-        "private/3d/test-images/01072022_35_2_z.vsi - 60x_BF_Z_01 (1, x=45625, y=42302, w=984, h=1015).png");
+    std::string slice6 = TestTools::getFullTestImagePath(
+        "vsi", "private/3d/test-images/01072022_35_2_z.vsi - 60x_BF_Z_01 (1, x=45625, y=42302, w=984, h=1015).png");
     slideio::VSIImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
@@ -885,35 +821,32 @@ TEST_F(VSIImageDriverTests, stack3d) {
     ASSERT_EQ(1, numScenes);
     auto scene = slide->getScene(0);
     auto sceneRect = scene->getRect();
-    EXPECT_EQ(sceneRect, cv::Rect(0,0,122351,76276));
-	EXPECT_EQ(3, scene->getNumChannels());
+    EXPECT_EQ(sceneRect, cv::Rect(0, 0, 122351, 76276));
+    EXPECT_EQ(3, scene->getNumChannels());
     EXPECT_DOUBLE_EQ(60, scene->getMagnification());
-	auto resolution = scene->getResolution();
+    auto resolution = scene->getResolution();
     EXPECT_LT(std::fabs(0.0913e-6 - resolution.x), 1.e-9);
     EXPECT_LT(std::fabs(0.0913e-6 - resolution.y), 1.e-9);
     auto slices = scene->getNumZSlices();
-	auto frames = scene->getNumTFrames();
-	EXPECT_EQ(1, frames);
-	EXPECT_EQ(13, slices);
-	EXPECT_EQ(2, slide->getNumAuxImages());
+    auto frames = scene->getNumTFrames();
+    EXPECT_EQ(1, frames);
+    EXPECT_EQ(13, slices);
+    EXPECT_EQ(2, slide->getNumAuxImages());
     auto metadata = slide->getRawMetadata();
-	EXPECT_FALSE(metadata.empty());
-	cv::Mat raster;
-	cv::Rect roi(45625, 42302, 984, 1015);
-	cv::Size blockSize(roi.width, roi.height);
-	scene->readResampled4DBlock(roi, blockSize, { 6,7 }, { 0,1 }, raster);
+    EXPECT_FALSE(metadata.empty());
+    cv::Mat raster;
+    cv::Rect roi(45625, 42302, 984, 1015);
+    cv::Size blockSize(roi.width, roi.height);
+    scene->readResampled4DBlock(roi, blockSize, {6, 7}, {0, 1}, raster);
     cv::Mat testRaster;
-	TestTools::readPNG(slice6, testRaster);
-	double similarity = ImageTools::computeSimilarity2(testRaster, raster);
-	EXPECT_GT(similarity, 0.99);
+    TestTools::readPNG(slice6, testRaster);
+    double similarity = ImageTools::computeSimilarity2(testRaster, raster);
+    EXPECT_GT(similarity, 0.99);
 }
 
-TEST_F(VSIImageDriverTests, multiThreadSceneAccess) {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip the test because full dataset is not enabled";
-    }
+TEST_F(VSIImageDriverTests, multiThreadSceneAccess)
+{
+    if (!TestTools::isFullTestEnabled()) GTEST_SKIP() << "Skip the test because full dataset is not enabled";
     std::string filePath = TestTools::getFullTestImagePath("vsi", "private/d/STS_G6889_11_1_pHH3.vsi");
     slideio::VSIImageDriver driver;
     TestTools::multiThreadedTest(filePath, driver);

@@ -7,46 +7,54 @@
 
 using namespace slideio;
 
+GaussianBlurFilterWrap::GaussianBlurFilterWrap(): m_filter(std::make_shared<GaussianBlurFilter>()) {}
 
-GaussianBlurFilterWrap::GaussianBlurFilterWrap() : m_filter(std::make_shared<GaussianBlurFilter>()) {
-}
-
-int GaussianBlurFilterWrap::getKernelSizeX() const {
+int GaussianBlurFilterWrap::getKernelSizeX() const
+{
     return m_filter->getKernelSizeX();
 }
 
-void GaussianBlurFilterWrap::setKernelSizeX(int kernelSizeX) {
+void GaussianBlurFilterWrap::setKernelSizeX(int kernelSizeX)
+{
     m_filter->setKernelSizeX(kernelSizeX);
 }
 
-int GaussianBlurFilterWrap::getKernelSizeY() const {
+int GaussianBlurFilterWrap::getKernelSizeY() const
+{
     return m_filter->getKernelSizeY();
 }
 
-void GaussianBlurFilterWrap::setKernelSizeY(int kernelSizeY) {
+void GaussianBlurFilterWrap::setKernelSizeY(int kernelSizeY)
+{
     m_filter->setKernelSizeY(kernelSizeY);
 }
 
-double GaussianBlurFilterWrap::getSigmaX() const {
+double GaussianBlurFilterWrap::getSigmaX() const
+{
     return m_filter->getSigmaX();
 }
 
-void GaussianBlurFilterWrap::setSigmaX(double sigmaX) {
+void GaussianBlurFilterWrap::setSigmaX(double sigmaX)
+{
     m_filter->setSigmaX(sigmaX);
 }
 
-double GaussianBlurFilterWrap::getSigmaY() const {
+double GaussianBlurFilterWrap::getSigmaY() const
+{
     return m_filter->getSigmaY();
 }
 
-void GaussianBlurFilterWrap::setSigmaY(double sigmaY) {
+void GaussianBlurFilterWrap::setSigmaY(double sigmaY)
+{
     m_filter->setSigmaY(sigmaY);
 }
 
-TransformationType GaussianBlurFilterWrap::getType() const {
+TransformationType GaussianBlurFilterWrap::getType() const
+{
     return m_filter->getType();
 }
 
-std::shared_ptr<GaussianBlurFilter> GaussianBlurFilterWrap::getFilter() const {
+std::shared_ptr<GaussianBlurFilter> GaussianBlurFilterWrap::getFilter() const
+{
     return m_filter;
 }

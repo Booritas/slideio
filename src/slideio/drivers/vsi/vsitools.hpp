@@ -29,11 +29,12 @@ namespace slideio
             static std::string getStackTypeName(const std::string& value);
             static std::string getDeviceSubtype(const std::string& value);
             static std::string extractTagValue(vsi::VSIStream& vsi, const vsi::TagInfo& tagInfo);
+
         private:
             static bool isTag(const json& parentObject, int srcTag);
             static std::string getDimensionPropertyName(int tag);
             static std::string getStackPropertyName(int tag);
         };
-        
-    }
-}
+
+    } // namespace vsi
+} // namespace slideio

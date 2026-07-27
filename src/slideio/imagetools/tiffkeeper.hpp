@@ -2,8 +2,7 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 
-#ifndef OPENCV_slideio_tiffkeeper_HPP
-#define OPENCV_slideio_tiffkeeper_HPP
+#pragma once
 #include <string>
 
 #include "tifftools.hpp"
@@ -14,7 +13,7 @@ namespace libtiff
 {
     struct tiff;
     typedef tiff TIFF;
-}
+} // namespace libtiff
 
 namespace slideio
 {
@@ -26,20 +25,16 @@ namespace slideio
         TIFFKeeper(libtiff::TIFF* hfile = nullptr);
         TIFFKeeper(const std::string& filePath, bool readOnly = true);
         ~TIFFKeeper();
-        libtiff::TIFF* getHandle() const {
-            return m_hFile;
-        }
-        bool isValid() const {
-            return getHandle() != nullptr;
-        }
-        operator libtiff::TIFF* () const {
-            return getHandle();
-        }
-        TIFFKeeper& operator = (libtiff::TIFF* hFile) {
+        libtiff::TIFF* getHandle() const { return m_hFile; }
+        bool isValid() const { return getHandle() != nullptr; }
+        operator libtiff::TIFF*() const { return getHandle(); }
+        TIFFKeeper& operator=(libtiff::TIFF* hFile)
+        {
             m_hFile = hFile;
             return *this;
         }
-        libtiff::TIFF* release() {
+        libtiff::TIFF* release()
+        {
             libtiff::TIFF* handle = m_hFile;
             m_hFile = nullptr;
             return handle;
@@ -49,9 +44,9 @@ namespace slideio
         void writeDirectory();
         void setTags(const TiffDirectory& dir);
         void writeTile(int x, int y, Compression compression, const EncodeParameters& params, const cv::Mat& mat,
-            uint8_t* buffer, int bufferSize);
-        void readTile(const slideio::TiffDirectory& dir, int tile,
-            const std::vector<int>& channelIndices, cv::OutputArray output);
+                       uint8_t* buffer, int bufferSize);
+        void readTile(const slideio::TiffDirectory& dir, int tile, const std::vector<int>& channelIndices,
+                      cv::OutputArray output);
         std::string readStringTag(uint16_t tag);
         void initSubDirs(int numDirs);
         void writeRawTile(int x, int y, const uint8_t* data, int size);
@@ -59,10 +54,7 @@ namespace slideio
     private:
         libtiff::TIFF* m_hFile;
         std::shared_ptr<TIFFMessageHandler> m_messageHandler;
-
     };
-}
+} // namespace slideio
 
 #define TIFFKeeperPtr std::shared_ptr<slideio::TIFFKeeper>
-
-#endif

@@ -28,4 +28,3 @@ std::vector<DataType> LaplacianFilter::computeChannelDataTypes(const std::vector
         types[channel] = getDepth();
     return types;
 }
-

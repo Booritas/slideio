@@ -9,8 +9,5 @@
 
 namespace slideio
 {
-    class SLIDEIO_PKE_EXPORTS PKETools
-    {
-    public:
-    };
+    class SLIDEIO_PKE_EXPORTS PKETools{public : };
 }

@@ -5,30 +5,24 @@
 #include "slideio/drivers/vsi/vsislide.hpp"
 #include "slideio/core/tools/tools.hpp"
 
+slideio::VSIImageDriver::VSIImageDriver() {}
 
-
-slideio::VSIImageDriver::VSIImageDriver()
-{
-}
-
-slideio::VSIImageDriver::~VSIImageDriver()
-{
-}
+slideio::VSIImageDriver::~VSIImageDriver() {}
 
 std::string slideio::VSIImageDriver::getID() const
 {
-	return std::string("VSI");
+    return std::string("VSI");
 }
 
 std::shared_ptr<slideio::CVSlide> slideio::VSIImageDriver::openFile(const std::string& filePath)
 {
-    Tools::throwIfPathNotExist(filePath,"VSIImageDriver::openFile");
+    Tools::throwIfPathNotExist(filePath, "VSIImageDriver::openFile");
     std::shared_ptr<CVSlide> ptr(new vsi::VSISlide(filePath, getID()));
     return ptr;
 }
 
 std::string slideio::VSIImageDriver::getFileSpecs() const
 {
-	static std::string pattern("*.vsi");
+    static std::string pattern("*.vsi");
     return pattern;
 }

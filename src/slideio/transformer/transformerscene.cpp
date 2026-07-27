@@ -10,8 +10,8 @@
 using namespace slideio;
 
 TransformerScene::TransformerScene(std::shared_ptr<CVScene> originScene,
-                                   const std::list<std::shared_ptr<Transformation>>& list) :
-    m_originScene(originScene), m_transformations(list), m_inflationValue(0)
+                                   const std::list<std::shared_ptr<Transformation>>& list)
+    : m_originScene(originScene), m_transformations(list), m_inflationValue(0)
 {
     initChannels();
     computeInflationValue();
@@ -22,12 +22,14 @@ std::string TransformerScene::getFilePath() const
     return m_originScene->getFilePath();
 }
 
-int TransformerScene::getSceneIndex() const {
+int TransformerScene::getSceneIndex() const
+{
     return m_originScene->getSceneIndex();
 }
 
-const std::string& TransformerScene::getDriverId() const {
-	return m_originScene->getDriverId();
+const std::string& TransformerScene::getDriverId() const
+{
+    return m_originScene->getDriverId();
 }
 
 std::string TransformerScene::getName() const
@@ -96,7 +98,8 @@ std::string TransformerScene::getRawMetadata() const
 }
 
 void TransformerScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
-    const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output)
+                                                    const std::vector<int>& componentIndices, int zSliceIndex,
+                                                    int tFrameIndex, cv::OutputArray output)
 {
     cv::Rect extendedBlockRect;
     cv::Size extendedBlockSize;
@@ -104,34 +107,34 @@ void TransformerScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, c
     const cv::Rect sceneRect = getRect();
     const cv::Size sceneSize(sceneRect.size());
     TransformerTools::computeInflatedRectParams(sceneSize, blockRect, m_inflationValue, blockSize, extendedBlockRect,
-        extendedBlockSize, blockPosition);
+                                                extendedBlockSize, blockPosition);
     cv::Mat sourceBlock;
-    getOriginScene()->readResampledBlockChannelsEx(extendedBlockRect, extendedBlockSize, {}, zSliceIndex,
-        tFrameIndex, sourceBlock);
+    getOriginScene()->readResampledBlockChannelsEx(extendedBlockRect, extendedBlockSize, {}, zSliceIndex, tFrameIndex,
+                                                   sourceBlock);
 
-    for (const auto& transformation : m_transformations) {
+    for (const auto& transformation : m_transformations)
+    {
         cv::Mat targetBlock;
-        TransformationEx * transformationEx = dynamic_cast<TransformationEx*>(transformation.get());
-        if(!transformationEx) {
-            RAISE_RUNTIME_ERROR << "TransformScene: invalid Transformation";
-        }
-        transformationEx->applyTransformation(sourceBlock,targetBlock);
+        TransformationEx* transformationEx = dynamic_cast<TransformationEx*>(transformation.get());
+        if (!transformationEx) RAISE_RUNTIME_ERROR << "TransformScene: invalid Transformation";
+        transformationEx->applyTransformation(sourceBlock, targetBlock);
         targetBlock.copyTo(sourceBlock);
     }
 
     cv::Rect rectInInflatedRect = cv::Rect(blockPosition.x, blockPosition.y, blockSize.width, blockSize.height);
     cv::Mat block = sourceBlock(rectInInflatedRect);
-    if(componentIndices.empty()) {
+    if (componentIndices.empty())
+    {
         block.copyTo(output);
     }
-    else {
+    else
+    {
         std::vector<cv::Mat> channels;
         cv::split(block, channels);
         std::vector<cv::Mat> selectedChannels;
         selectedChannels.reserve(componentIndices.size());
-        for (const auto index : componentIndices) {
+        for (const auto index : componentIndices)
             selectedChannels.push_back(channels[index]);
-        }
         cv::merge(selectedChannels, output);
     }
 }
@@ -140,14 +143,12 @@ void TransformerScene::initChannels()
 {
     const int numChannels = m_originScene->getNumChannels();
     std::vector<DataType> dataTypes;
-    for (int ch = 0; ch < numChannels; ++ch) {
+    for (int ch = 0; ch < numChannels; ++ch)
         dataTypes.push_back(m_originScene->getChannelDataType(ch));
-    }
-    for (const auto& transformation : m_transformations) {
+    for (const auto& transformation : m_transformations)
+    {
         TransformationEx* transformationEx = dynamic_cast<TransformationEx*>(transformation.get());
-        if (!transformationEx) {
-            RAISE_RUNTIME_ERROR << "TransformScene: invalid Transformation";
-        }
+        if (!transformationEx) RAISE_RUNTIME_ERROR << "TransformScene: invalid Transformation";
         std::vector<DataType> newDataTypes = transformationEx->computeChannelDataTypes(dataTypes);
         dataTypes = newDataTypes;
     }
@@ -157,11 +158,10 @@ void TransformerScene::initChannels()
 void TransformerScene::computeInflationValue()
 {
     m_inflationValue = 0;
-    for (const auto& transformation : m_transformations) {
+    for (const auto& transformation : m_transformations)
+    {
         TransformationEx* transformationEx = dynamic_cast<TransformationEx*>(transformation.get());
-        if (!transformationEx) {
-            RAISE_RUNTIME_ERROR << "TransformScene: invalid Transformation";
-        }
+        if (!transformationEx) RAISE_RUNTIME_ERROR << "TransformScene: invalid Transformation";
         m_inflationValue += transformationEx->getInflationValue();
     }
 }

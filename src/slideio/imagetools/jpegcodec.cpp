@@ -6,44 +6,52 @@
 #include "slideio/base/exceptions.hpp"
 #include "slideio/imagetools/jpeglib_aux.hpp"
 
-
 void slideio::ImageTools::decodeJpegStream(const uint8_t* jpg_buffer, size_t jpg_size, cv::OutputArray output)
 {
-    try {
+    try
+    {
         jpeglibDecode(jpg_buffer, jpg_size, output);
     }
-    catch(std::runtime_error& er) {
+    catch (std::runtime_error& er)
+    {
         RAISE_RUNTIME_ERROR << "Error decoding jpeg stream: " << er.what();
     }
 }
 
-
-void slideio::ImageTools::encodeJpeg(const cv::Mat& raster, std::vector<uint8_t>& encodedStream, const JpegEncodeParameters& params)
+void slideio::ImageTools::encodeJpeg(const cv::Mat& raster, std::vector<uint8_t>& encodedStream,
+                                     const JpegEncodeParameters& params)
 {
-    try {
+    try
+    {
         jpeglibEncode(raster, encodedStream, params.getQuality());
     }
-    catch (std::runtime_error& er) {
+    catch (std::runtime_error& er)
+    {
         RAISE_RUNTIME_ERROR << "Error encoding jpeg stream: " << er.what();
     }
 }
 
-void slideio::ImageTools::encodeJpegAbbreviated(const cv::Mat& raster, std::vector<uint8_t>& encodedStream, const JpegEncodeParameters& params)
+void slideio::ImageTools::encodeJpegAbbreviated(const cv::Mat& raster, std::vector<uint8_t>& encodedStream,
+                                                const JpegEncodeParameters& params)
 {
-    try {
+    try
+    {
         jpeglibEncodeAbbreviated(raster, encodedStream, params.getQuality());
     }
-    catch (std::runtime_error& er) {
+    catch (std::runtime_error& er)
+    {
         RAISE_RUNTIME_ERROR << "Error encoding abbreviated jpeg stream: " << er.what();
     }
 }
 
 void slideio::ImageTools::computeJpegTables(int numChannels, int quality, std::vector<uint8_t>& tablesBlob)
 {
-    try {
+    try
+    {
         jpeglibWriteAbbreviatedTables(numChannels, quality, tablesBlob);
     }
-    catch (std::runtime_error& er) {
+    catch (std::runtime_error& er)
+    {
         RAISE_RUNTIME_ERROR << "Error producing jpeg tables: " << er.what();
     }
 }

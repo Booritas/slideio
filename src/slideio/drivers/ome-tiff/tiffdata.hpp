@@ -6,7 +6,6 @@
 #include "slideio/imagetools/tiffkeeper.hpp"
 #include "slideio/drivers/ome-tiff/otdimensions.hpp"
 
-
 namespace slideio
 {
     class TIFFFiles;
@@ -24,31 +23,22 @@ namespace slideio
         class SLIDEIO_OMETIFF_EXPORTS TiffData
         {
         public:
-			TiffData() = default;
-			void init(const std::string& filePath, TIFFFiles* files, const std::string& dimOrder, int numChannels, int numZSlices, int numTFrames, tinyxml2::XMLElement* xmlTiffData);
-			bool isInRange(int channel, int slice, int frame) const;
-			int getFirstIFD() const {
-				return m_firstIFD;
-			}
-			int getPlaneCount() const {
-				return m_planeCount;
-			}
-			const std::string& getFilePath() const {
-				return m_filePath;
-			}
-			const TiffDirectory& getTiffDirectory(int plane) const;
-			int getTiffDirectoryCount() const {
-				return static_cast<int>(m_directories.size());
-			}
+            TiffData() = default;
+            void init(const std::string& filePath, TIFFFiles* files, const std::string& dimOrder, int numChannels,
+                      int numZSlices, int numTFrames, tinyxml2::XMLElement* xmlTiffData);
+            bool isInRange(int channel, int slice, int frame) const;
+            int getFirstIFD() const { return m_firstIFD; }
+            int getPlaneCount() const { return m_planeCount; }
+            const std::string& getFilePath() const { return m_filePath; }
+            const TiffDirectory& getTiffDirectory(int plane) const;
+            int getTiffDirectoryCount() const { return static_cast<int>(m_directories.size()); }
             void readTile(const std::vector<int>& channelIndices, int zSlice, int tFrame, int zoomLevel, int tileIndex,
-                         std::vector<cv::Mat>& rasters) const;
-            void readTileChannels(const TiffDirectory& dir, int tileIndex, const std::vector<int>& channelIndices, cv::OutputArray raster) const;
-			const OTDimensions::Coordinates& getCoordinatesFirst() const {
-				return m_coordinatesFirst;
-			}
-			const OTDimensions::Coordinates& getCoordinatesLast() const {
-				return m_coordinatesLast;
-			}
+                          std::vector<cv::Mat>& rasters) const;
+            void readTileChannels(const TiffDirectory& dir, int tileIndex, const std::vector<int>& channelIndices,
+                                  cv::OutputArray raster) const;
+            const OTDimensions::Coordinates& getCoordinatesFirst() const { return m_coordinatesFirst; }
+            const OTDimensions::Coordinates& getCoordinatesLast() const { return m_coordinatesLast; }
+
         private:
             int m_firstIFD = 0;
             int m_planeCount = 0;
@@ -57,7 +47,7 @@ namespace slideio
             std::vector<TiffDirectory> m_directories;
             OTDimensions m_dimensions;
             OTDimensions::Coordinates m_coordinatesFirst;
-			OTDimensions::Coordinates m_coordinatesLast;
+            OTDimensions::Coordinates m_coordinatesLast;
         };
-    } 
-}
+    } // namespace ometiff
+} // namespace slideio

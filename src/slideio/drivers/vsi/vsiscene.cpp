@@ -4,18 +4,13 @@
 #include "slideio/drivers/vsi/vsiscene.hpp"
 #include "slideio/drivers/vsi/vsifile.hpp"
 
-
 using namespace slideio;
 using namespace slideio::vsi;
 
-VSIScene::VSIScene(const std::string& filePath, int sceneIndex, const std::string& driverId, std::shared_ptr<vsi::VSIFile>& vsiFile):
-    m_filePath(filePath),
-    m_compression(slideio::Compression::Unknown),
-    m_resolution(0., 0.),
-    m_vsiFile(vsiFile),
-    m_magnification(0.),
-	m_sceneIndex(sceneIndex),
-	m_driverId(driverId)
+VSIScene::VSIScene(const std::string& filePath, int sceneIndex, const std::string& driverId,
+                   std::shared_ptr<vsi::VSIFile>& vsiFile)
+    : m_filePath(filePath), m_compression(slideio::Compression::Unknown), m_resolution(0., 0.), m_vsiFile(vsiFile),
+      m_magnification(0.), m_sceneIndex(sceneIndex), m_driverId(driverId)
 {
 }
 
@@ -35,8 +30,7 @@ std::string VSIScene::getChannelName(int channel) const
 }
 
 void VSIScene::initializeBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices,
-    cv::OutputArray output)
+                               cv::OutputArray output)
 {
     initializeSceneBlock(blockSize, channelIndices, output);
 }
-

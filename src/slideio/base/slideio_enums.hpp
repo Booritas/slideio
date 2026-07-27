@@ -78,17 +78,17 @@ namespace slideio
         DT_None = 2048
     };
 
-	enum class MetadataFormat
-	{
+    enum class MetadataFormat
+    {
         None,
-		Unknown,
-		Text,
-		JSON,
-		XML
-	};
+        Unknown,
+        Text,
+        JSON,
+        XML
+    };
 
     std::string SLIDEIO_BASE_EXPORTS compressionToString(Compression compression);
-    SLIDEIO_BASE_EXPORTS std::ostream& operator << (std::ostream& os, Compression compression);
-    SLIDEIO_BASE_EXPORTS std::ostream& operator << (std::ostream& os, const DataType& dt);
-	SLIDEIO_BASE_EXPORTS std::ostream& operator << (std::ostream& os, const MetadataFormat& mt);
-}
+    SLIDEIO_BASE_EXPORTS std::ostream& operator<<(std::ostream& os, Compression compression);
+    SLIDEIO_BASE_EXPORTS std::ostream& operator<<(std::ostream& os, const DataType& dt);
+    SLIDEIO_BASE_EXPORTS std::ostream& operator<<(std::ostream& os, const MetadataFormat& mt);
+} // namespace slideio

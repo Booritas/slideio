@@ -38,15 +38,15 @@ TEST(GDALDriver, canOpenFile)
 TEST(GDALDriver, openPngFile_3chnls_8bit)
 {
     slideio::GDALImageDriver driver;
-    std::string path = TestTools::getTestImagePath("gdal","img_2448x2448_3x8bit_SRC_RGB_ducks.png");
+    std::string path = TestTools::getTestImagePath("gdal", "img_2448x2448_3x8bit_SRC_RGB_ducks.png");
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(path);
-    ASSERT_TRUE(slide!=nullptr);
+    ASSERT_TRUE(slide != nullptr);
     int numbScenes = slide->getNumScenes();
-    ASSERT_TRUE(numbScenes==1);
+    ASSERT_TRUE(numbScenes == 1);
     std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
-    ASSERT_TRUE(scene!=nullptr);
-    EXPECT_EQ(slide->getFilePath(),path);
-    EXPECT_EQ(scene->getFilePath(),path);
+    ASSERT_TRUE(scene != nullptr);
+    EXPECT_EQ(slide->getFilePath(), path);
+    EXPECT_EQ(scene->getFilePath(), path);
     int channels = scene->getNumChannels();
     EXPECT_EQ(channels, 3);
     cv::Rect sceneRect = scene->getRect();
@@ -63,15 +63,15 @@ TEST(GDALDriver, openPngFile_3chnls_8bit)
 TEST(GDALDriver, openPngFile_1chnl_8bit)
 {
     slideio::GDALImageDriver driver;
-    std::string path = TestTools::getTestImagePath("gdal","img_2448x2448_1x8bit_SRC_GRAY_ducks.png");
+    std::string path = TestTools::getTestImagePath("gdal", "img_2448x2448_1x8bit_SRC_GRAY_ducks.png");
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(path);
-    ASSERT_TRUE(slide!=nullptr);
+    ASSERT_TRUE(slide != nullptr);
     int numbScenes = slide->getNumScenes();
-    ASSERT_TRUE(numbScenes==1);
+    ASSERT_TRUE(numbScenes == 1);
     std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
-    ASSERT_TRUE(scene!=nullptr);
-    EXPECT_EQ(slide->getFilePath(),path);
-    EXPECT_EQ(scene->getFilePath(),path);
+    ASSERT_TRUE(scene != nullptr);
+    EXPECT_EQ(slide->getFilePath(), path);
+    EXPECT_EQ(scene->getFilePath(), path);
     int channels = scene->getNumChannels();
     EXPECT_EQ(channels, 1);
     cv::Rect sceneRect = scene->getRect();
@@ -86,15 +86,15 @@ TEST(GDALDriver, openPngFile_1chnl_8bit)
 TEST(GDALDriver, openPngFile_3chnl_16bit)
 {
     slideio::GDALImageDriver driver;
-    std::string path = TestTools::getTestImagePath("gdal","img_2448x2448_3x16bit_SRC_RGB_ducks.png");
+    std::string path = TestTools::getTestImagePath("gdal", "img_2448x2448_3x16bit_SRC_RGB_ducks.png");
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(path);
-    ASSERT_TRUE(slide!=nullptr);
+    ASSERT_TRUE(slide != nullptr);
     int numbScenes = slide->getNumScenes();
-    ASSERT_TRUE(numbScenes==1);
+    ASSERT_TRUE(numbScenes == 1);
     std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
-    ASSERT_TRUE(scene!=nullptr);
-    EXPECT_EQ(slide->getFilePath(),path);
-    EXPECT_EQ(scene->getFilePath(),path);
+    ASSERT_TRUE(scene != nullptr);
+    EXPECT_EQ(slide->getFilePath(), path);
+    EXPECT_EQ(scene->getFilePath(), path);
     int channels = scene->getNumChannels();
     EXPECT_EQ(channels, 3);
     cv::Rect sceneRect = scene->getRect();
@@ -111,15 +111,15 @@ TEST(GDALDriver, openPngFile_3chnl_16bit)
 TEST(GDALDriver, openJpegFile_3chnl_8bit)
 {
     slideio::GDALImageDriver driver;
-    std::string path = TestTools::getTestImagePath("gdal","Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg");
+    std::string path = TestTools::getTestImagePath("gdal", "Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg");
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(path);
-    ASSERT_TRUE(slide!=nullptr);
+    ASSERT_TRUE(slide != nullptr);
     int numbScenes = slide->getNumScenes();
-    ASSERT_TRUE(numbScenes==1);
+    ASSERT_TRUE(numbScenes == 1);
     std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
-    ASSERT_TRUE(scene!=nullptr);
-    EXPECT_EQ(slide->getFilePath(),path);
-    EXPECT_EQ(scene->getFilePath(),path);
+    ASSERT_TRUE(scene != nullptr);
+    EXPECT_EQ(slide->getFilePath(), path);
+    EXPECT_EQ(scene->getFilePath(), path);
     int channels = scene->getNumChannels();
     EXPECT_EQ(channels, 3);
     cv::Rect sceneRect = scene->getRect();
@@ -136,31 +136,32 @@ TEST(GDALDriver, openJpegFile_3chnl_8bit)
 TEST(GDALDriver, readBlockPng)
 {
     slideio::GDALImageDriver driver;
-    std::string path = TestTools::getTestImagePath("gdal","img_1024x600_3x8bit_RGB_color_bars_CMYKWRGB.png");
-    std::string referenceImagePath = TestTools::getTestImagePath("gdal", "img_1024x600_3x8bit_RGB_color_bars_CMYKWRGB.bmp");
+    std::string path = TestTools::getTestImagePath("gdal", "img_1024x600_3x8bit_RGB_color_bars_CMYKWRGB.png");
+    std::string referenceImagePath =
+        TestTools::getTestImagePath("gdal", "img_1024x600_3x8bit_RGB_color_bars_CMYKWRGB.bmp");
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(path);
-    ASSERT_TRUE(slide!=nullptr);
+    ASSERT_TRUE(slide != nullptr);
     int numbScenes = slide->getNumScenes();
-    ASSERT_TRUE(numbScenes==1);
+    ASSERT_TRUE(numbScenes == 1);
     std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
-    ASSERT_TRUE(scene!=nullptr);
+    ASSERT_TRUE(scene != nullptr);
     int channels = scene->getNumChannels();
     EXPECT_EQ(channels, 3);
     cv::Rect sceneRect = scene->getRect();
     EXPECT_EQ(sceneRect.width, 1024);
     EXPECT_EQ(sceneRect.height, 600);
     EXPECT_EQ(scene->getChannelDataType(0), slideio::DataType::DT_Byte);
-    cv::Rect block = {260,500,100,100};
+    cv::Rect block = {260, 500, 100, 100};
     cv::Mat blockRaster;
 
     scene->readBlock(block, blockRaster);
     cv::Mat refImage;
     slideio::ImageTools::readBitmap(referenceImagePath, refImage);
-	cv::Mat refBlock = refImage(block);
+    cv::Mat refBlock = refImage(block);
     cv::Scalar colorMean, colorStddev;
     cv::meanStdDev(blockRaster, colorMean, colorStddev);
-    EXPECT_EQ(colorMean[0],255);
-    EXPECT_NEAR(colorStddev[0],0, 1e-5);
+    EXPECT_EQ(colorMean[0], 255);
+    EXPECT_NEAR(colorStddev[0], 0, 1e-5);
 
     EXPECT_EQ(colorMean[1], 255);
     EXPECT_NEAR(colorStddev[1], 0, 1.e-5);
@@ -169,7 +170,7 @@ TEST(GDALDriver, readBlockPng)
     EXPECT_NEAR(colorStddev[2], 0, 1.e-5);
 
     cv::Mat channelRaster;
-    std::vector<int> channelIndices = { 1 };
+    std::vector<int> channelIndices = {1};
     scene->readBlockChannels(block, channelIndices, channelRaster);
 
     cv::Scalar channelMean, channelStddev;
@@ -181,21 +182,21 @@ TEST(GDALDriver, readBlockPng)
 TEST(GDALDriver, readBlockPngResampling)
 {
     slideio::GDALImageDriver driver;
-    std::string path = TestTools::getTestImagePath("gdal","img_1024x600_3x8bit_RGB_color_bars_CMYKWRGB.png");
+    std::string path = TestTools::getTestImagePath("gdal", "img_1024x600_3x8bit_RGB_color_bars_CMYKWRGB.png");
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(path);
-    ASSERT_TRUE(slide!=nullptr);
+    ASSERT_TRUE(slide != nullptr);
     int numbScenes = slide->getNumScenes();
-    ASSERT_TRUE(numbScenes==1);
+    ASSERT_TRUE(numbScenes == 1);
     std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
-    ASSERT_TRUE(scene!=nullptr);
+    ASSERT_TRUE(scene != nullptr);
     int channels = scene->getNumChannels();
     EXPECT_EQ(channels, 3);
     cv::Rect rectScene = scene->getRect();
     EXPECT_EQ(rectScene.width, 1024);
     EXPECT_EQ(rectScene.height, 600);
     EXPECT_EQ(scene->getChannelDataType(0), slideio::DataType::DT_Byte);
-    cv::Rect blockRect = {260,500, 100,100};
-    cv::Size blockSize = {12,12};
+    cv::Rect blockRect = {260, 500, 100, 100};
+    cv::Size blockSize = {12, 12};
     cv::Mat blockRaster;
     scene->readResampledBlock(blockRect, blockSize, blockRaster);
     cv::Scalar colorMean, colorStddev;
@@ -214,17 +215,15 @@ TEST(GDALDriver, metadataCompression)
 {
     slideio::GDALImageDriver driver;
     typedef std::tuple<std::string, slideio::Compression> Data;
-    const Data imageData[] = {
-        Data("img_1024x600_3x8bit_RGB_color_bars_CMYKWRGB.png", slideio::Compression::Png),
-        Data("Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg", slideio::Compression::Jpeg)
-    };
-    for(const auto& item : imageData)
+    const Data imageData[] = {Data("img_1024x600_3x8bit_RGB_color_bars_CMYKWRGB.png", slideio::Compression::Png),
+                              Data("Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg", slideio::Compression::Jpeg)};
+    for (const auto& item : imageData)
     {
-        std::string filePath = TestTools::getTestImagePath("gdal",std::get<0>(item));
+        std::string filePath = TestTools::getTestImagePath("gdal", std::get<0>(item));
         std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
         const slideio::Compression sceneCompression = std::get<1>(item);
         std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
-        EXPECT_TRUE(scene!=nullptr);
+        EXPECT_TRUE(scene != nullptr);
         EXPECT_EQ(scene->getCompression(), sceneCompression);
     }
 }
@@ -277,12 +276,12 @@ TEST(GDALDriver, openFileUtf8)
 
 TEST(GDALDriver, metadataTiff)
 {
-        std::string filePath = TestTools::getFullTestImagePath("ometiff", u8"SPIM-ModuloAlongZ.ome.tiff");
-        std::shared_ptr<slideio::Slide> slide = slideio::openSlide(filePath, "GDAL");
-        std::string metadata = slide->getScene(0)->getRawMetadata();
-        EXPECT_EQ(slide->getScene(0)->getMetadataFormat(), slideio::MetadataFormat::JSON);
-		EXPECT_FALSE(metadata.empty());
-        EXPECT_NE(std::string::npos, metadata.find("<?xml"));
+    std::string filePath = TestTools::getFullTestImagePath("ometiff", u8"SPIM-ModuloAlongZ.ome.tiff");
+    std::shared_ptr<slideio::Slide> slide = slideio::openSlide(filePath, "GDAL");
+    std::string metadata = slide->getScene(0)->getRawMetadata();
+    EXPECT_EQ(slide->getScene(0)->getMetadataFormat(), slideio::MetadataFormat::JSON);
+    EXPECT_FALSE(metadata.empty());
+    EXPECT_NE(std::string::npos, metadata.find("<?xml"));
 }
 
 TEST(GDALDriver, metadataJpeg)
@@ -294,16 +293,13 @@ TEST(GDALDriver, metadataJpeg)
     EXPECT_FALSE(metadata.empty());
     json jMtd = json::parse(metadata);
     EXPECT_GT(jMtd.size(), 2);
-	auto mtd = slide->getMetadata();
+    auto mtd = slide->getMetadata();
     EXPECT_EQ(mtd.size(), 20);
 }
 
-TEST(GDALDriver, multiThreadSceneAccess) {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip the test because full dataset is not enabled";
-    }
+TEST(GDALDriver, multiThreadSceneAccess)
+{
+    if (!TestTools::isFullTestEnabled()) GTEST_SKIP() << "Skip the test because full dataset is not enabled";
     std::string filePath = TestTools::getTestImagePath("gdal", "Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg");
     slideio::GDALImageDriver driver;
     TestTools::multiThreadedTest(filePath, driver);
@@ -311,21 +307,19 @@ TEST(GDALDriver, multiThreadSceneAccess) {
 
 TEST(GDALDriver, getSceneIndex)
 {
-    if (!TestTools::isFullTestEnabled()) {
-        GTEST_SKIP() <<
-            "Skip the test because full dataset is not enabled";
-    }
+    if (!TestTools::isFullTestEnabled()) GTEST_SKIP() << "Skip the test because full dataset is not enabled";
     std::string filePath = TestTools::getTestImagePath("gdal", "Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg");
     auto slide = slideio::openSlide(filePath, "AUTO");
     ASSERT_TRUE(slide);
     EXPECT_EQ("GDAL", slide->getDriverId());
     const int numScenes = slide->getNumScenes();
     EXPECT_EQ(1, numScenes);
-    for (int iScene = 0; iScene < numScenes; ++iScene) {
+    for (int iScene = 0; iScene < numScenes; ++iScene)
+    {
         std::shared_ptr<slideio::CVScene> scene = slide->getScene(iScene)->getCVScene();
         EXPECT_TRUE(scene.get() != nullptr);
         EXPECT_EQ(iScene, scene->getSceneIndex());
         EXPECT_EQ(filePath, scene->getFilePath());
-		EXPECT_EQ("GDAL", scene->getDriverId());
+        EXPECT_EQ("GDAL", scene->getDriverId());
     }
 }

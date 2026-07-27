@@ -5,7 +5,7 @@
 #include "slideio/transformer/transformer_def.hpp"
 #include <ostream>
 
-namespace slideio 
+namespace slideio
 {
     enum class TransformationType
     {
@@ -20,5 +20,5 @@ namespace slideio
         CannyFilter,
     };
 
-    SLIDEIO_TRANSFORMER_EXPORTS std::ostream& operator << (std::ostream& os, TransformationType type);
-}
+    SLIDEIO_TRANSFORMER_EXPORTS std::ostream& operator<<(std::ostream& os, TransformationType type);
+} // namespace slideio

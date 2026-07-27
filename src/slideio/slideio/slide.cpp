@@ -7,52 +7,54 @@
 
 using namespace slideio;
 
-Slide::Slide(std::shared_ptr<CVSlide> slide) : m_slide(slide)
+Slide::Slide(std::shared_ptr<CVSlide> slide): m_slide(slide)
 {
-    SLIDEIO_LOG(INFO) << "Slide constructor"; 
+    SLIDEIO_LOG(INFO) << "Slide constructor";
 }
 
 Slide::~Slide()
 {
-    SLIDEIO_LOG(INFO) << "Slide destructor"; 
+    SLIDEIO_LOG(INFO) << "Slide destructor";
 }
 
 int Slide::getNumScenes() const
 {
-    SLIDEIO_LOG(INFO) << "Slide::getNumScenes"; 
+    SLIDEIO_LOG(INFO) << "Slide::getNumScenes";
     return m_slide->getNumScenes();
 }
 
 std::string Slide::getFilePath() const
 {
-    SLIDEIO_LOG(INFO) << "Slide::getFilePath"; 
+    SLIDEIO_LOG(INFO) << "Slide::getFilePath";
     return m_slide->getFilePath();
 }
 
 std::shared_ptr<Scene> Slide::getScene(int index) const
 {
-    SLIDEIO_LOG(INFO) << "Slide::getScene " << index; 
+    SLIDEIO_LOG(INFO) << "Slide::getScene " << index;
     std::shared_ptr<CVScene> cvScene = m_slide->getScene(index);
     std::shared_ptr<Scene> scene(new Scene(cvScene));
     return scene;
 }
 
-std::shared_ptr<Scene> Slide::getSceneByName(const std::string& name) const {
-	SLIDEIO_LOG(INFO) << "Slide::getSceneByName " << name;
-	std::shared_ptr<CVScene> cvScene = m_slide->getSceneByName(name);
-	std::shared_ptr<Scene> scene(new Scene(cvScene));
-	return scene;
+std::shared_ptr<Scene> Slide::getSceneByName(const std::string& name) const
+{
+    SLIDEIO_LOG(INFO) << "Slide::getSceneByName " << name;
+    std::shared_ptr<CVScene> cvScene = m_slide->getSceneByName(name);
+    std::shared_ptr<Scene> scene(new Scene(cvScene));
+    return scene;
 }
 
 const std::string& Slide::getRawMetadata() const
 {
-    SLIDEIO_LOG(INFO) << "Slide::getRawMetadata "; 
+    SLIDEIO_LOG(INFO) << "Slide::getRawMetadata ";
     return m_slide->getRawMetadata();
 }
 
-MetadataFormat Slide::getMetadataFormat() const {
-	SLIDEIO_LOG(INFO) << "Slide::getMetadataFormat ";
-	return m_slide->getMetadataFormat();
+MetadataFormat Slide::getMetadataFormat() const
+{
+    SLIDEIO_LOG(INFO) << "Slide::getMetadataFormat ";
+    return m_slide->getMetadataFormat();
 }
 
 const slideio::Metadata& slideio::Slide::getMetadata() const
@@ -63,32 +65,35 @@ const slideio::Metadata& slideio::Slide::getMetadata() const
 
 const std::list<std::string>& Slide::getAuxImageNames() const
 {
-    SLIDEIO_LOG(INFO) << "Slide::getAuxImageNames "; 
+    SLIDEIO_LOG(INFO) << "Slide::getAuxImageNames ";
     return m_slide->getAuxImageNames();
 }
 
 int Slide::getNumAuxImages() const
 {
-    SLIDEIO_LOG(INFO) << "Slide::getNumAuxImages "; 
+    SLIDEIO_LOG(INFO) << "Slide::getNumAuxImages ";
     return m_slide->getNumAuxImages();
 }
 
 std::shared_ptr<Scene> Slide::getAuxImage(const std::string& sceneName) const
 {
-    SLIDEIO_LOG(INFO) << "Slide::getAuxImage " << sceneName; 
+    SLIDEIO_LOG(INFO) << "Slide::getAuxImage " << sceneName;
     std::shared_ptr<CVScene> cvScene = m_slide->getAuxImage(sceneName);
     std::shared_ptr<Scene> scene(new Scene(cvScene));
     return scene;
 }
 
-std::string Slide::toString() const {
+std::string Slide::toString() const
+{
     return m_slide->toString();
 }
 
-void Slide::setDriverId(const std::string& driverId) {
-	m_slide->setDriverId(driverId);
+void Slide::setDriverId(const std::string& driverId)
+{
+    m_slide->setDriverId(driverId);
 }
 
-const std::string& Slide::getDriverId() const {
-	return m_slide->getDriverId();
+const std::string& Slide::getDriverId() const
+{
+    return m_slide->getDriverId();
 }

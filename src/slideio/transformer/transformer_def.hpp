@@ -11,4 +11,3 @@
 #else
 #define SLIDEIO_TRANSFORMER_EXPORTS
 #endif
-

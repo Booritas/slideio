@@ -1,8 +1,7 @@
 // This file is part of slideio project.
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
-#ifndef OPENCV_slideio_tifftools_HPP
-#define OPENCV_slideio_tifftools_HPP
+#pragma once
 
 #include <map>
 
@@ -20,7 +19,7 @@ namespace libtiff
 {
     struct tiff;
     typedef tiff TIFF;
-}
+} // namespace libtiff
 
 namespace slideio
 {
@@ -56,10 +55,10 @@ namespace slideio
     SLIDEIO_IMAGETOOLS_EXPORTS std::ostream& operator<<(std::ostream& os, const TiffDirectory& dir);
     SLIDEIO_IMAGETOOLS_EXPORTS std::ostream& operator<<(std::ostream& os, const std::vector<TiffDirectory>& dirs);
 
-    class SLIDEIO_IMAGETOOLS_EXPORTS  TiffTools
+    class SLIDEIO_IMAGETOOLS_EXPORTS TiffTools
     {
     public:
-        static libtiff::TIFF* openTiffFile(const std::string& path, bool readOnly=true);
+        static libtiff::TIFF* openTiffFile(const std::string& path, bool readOnly = true);
         static void closeTiffFile(libtiff::TIFF* file);
         static void setCurrentDirectory(libtiff::TIFF* tiff, int dirIndex, int64_t dirOffset);
         static void scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, int64_t dirOffset, slideio::TiffDirectory& dir);
@@ -67,33 +66,31 @@ namespace slideio
         static void scanFile(libtiff::TIFF* file, std::vector<TiffDirectory>& directories);
         static void scanFile(const std::string& filePath, std::vector<TiffDirectory>& directories);
         static void readNotRGBStripedDir(libtiff::TIFF* tiff, const TiffDirectory& dir, cv::_OutputArray output);
-        static void readRegularStripedDir(libtiff::TIFF* file, const slideio::TiffDirectory& dir, cv::OutputArray output);
+        static void readRegularStripedDir(libtiff::TIFF* file, const slideio::TiffDirectory& dir,
+                                          cv::OutputArray output);
         static void readPlanarStripedDir(libtiff::TIFF* tiff, const TiffDirectory& dir, cv::OutputArray output);
         static void readDirRaster(const std::string& filePath, int dir, cv::OutputArray output);
         static void readDirRaster(libtiff::TIFF* tiff, const TiffDirectory& dir, cv::OutputArray output);
         static void readTiledDir(libtiff::TIFF* tiff, const TiffDirectory& dir, cv::OutputArray output);
         static void readStripedDir(libtiff::TIFF* file, const slideio::TiffDirectory& dir, cv::OutputArray output);
         static void readTile(libtiff::TIFF* hFile, const slideio::TiffDirectory& dir, int tile,
-            const std::vector<int>& channelIndices, cv::OutputArray output);
+                             const std::vector<int>& channelIndices, cv::OutputArray output);
         static void setCurrentDirectory(libtiff::TIFF* hFile, const slideio::TiffDirectory& dir);
         static void scaleBlockToDirectory(const TiffDirectory& basisDir, const TiffDirectory& dir,
-                                   const cv::Rect& basisDirRect, cv::Rect& dirBlockRect);
+                                          const cv::Rect& basisDirRect, cv::Rect& dirBlockRect);
         static void readJ2KTile(libtiff::TIFF* hFile, const slideio::TiffDirectory& dir, int tile,
                                 const std::vector<int>& channelIndices, cv::OutputArray output);
         static void readRegularTile(libtiff::TIFF* hFile, const slideio::TiffDirectory& dir, int tile,
-            const std::vector<int>& channelIndices, cv::OutputArray output);
+                                    const std::vector<int>& channelIndices, cv::OutputArray output);
         static void readNotRGBTile(libtiff::TIFF* hFile, const slideio::TiffDirectory& dir, int tile,
-            const std::vector<int>& channelIndices, cv::OutputArray output);
+                                   const std::vector<int>& channelIndices, cv::OutputArray output);
         static void writeDirectory(libtiff::TIFF* tiff);
         static void setTags(libtiff::TIFF* tiff, const TiffDirectory& dir);
         static void initSubDirs(libtiff::TIFF* tiff, int numDirs);
-        static void writeTile(libtiff::TIFF* tiff, int x, int y, Compression compression,
-            const cv::Mat& tileRaster, const EncodeParameters& parameters,
-            uint8_t* buffer=nullptr, int bufferSize=0);
+        static void writeTile(libtiff::TIFF* tiff, int x, int y, Compression compression, const cv::Mat& tileRaster,
+                              const EncodeParameters& parameters, uint8_t* buffer = nullptr, int bufferSize = 0);
         static std::string readStringTag(libtiff::TIFF* tiff, uint16_t tag);
         static int getNumberOfDirectories(libtiff::TIFF* tiff);
         static void writeRawTile(libtiff::TIFF* tiff, int x, int y, const uint8_t* data, int size);
     };
-}
-
-#endif
+} // namespace slideio

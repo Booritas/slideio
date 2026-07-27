@@ -9,12 +9,11 @@
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/base/log.hpp"
 
-
 using namespace slideio;
 
 DCMScene::DCMScene()
 {
-	m_metadataFormat = MetadataFormat::JSON;
+    m_metadataFormat = MetadataFormat::JSON;
 }
 
 std::string DCMScene::getFilePath() const
@@ -116,44 +115,36 @@ void DCMScene::checkScene()
         if (sizes.size() != 1)
         {
             RAISE_RUNTIME_ERROR << "DCMImageDriver: Attempt to create a scene with different slice sizes. Found "
-                << sizes.size() << " different sizes";
+                                << sizes.size() << " different sizes";
         }
 
         if (series.size() != 1)
         {
             RAISE_RUNTIME_ERROR << "DCMImageDriver: Attempt to create a scene from different series. Found "
-                << series.size() << " different series";
+                                << series.size() << " different series";
         }
 
         if (channelCounts.size() != 1)
         {
-            RAISE_RUNTIME_ERROR <<
-                "DCMImageDriver: Attempt to create a scene from slices with different number of channels.";
+            RAISE_RUNTIME_ERROR
+                << "DCMImageDriver: Attempt to create a scene from slices with different number of channels.";
         }
 
         if (slices != static_cast<int>(m_files.size()))
-        {
-            RAISE_RUNTIME_ERROR <<
-                "DCMImageDriver: Each file from multi-file scene shall have exactly 1 frame!";
-        }
+            RAISE_RUNTIME_ERROR << "DCMImageDriver: Each file from multi-file scene shall have exactly 1 frame!";
 
         if (types.size() > 1)
-        {
             RAISE_RUNTIME_ERROR << "DCMImageDriver: Attempt to create a scene from files with different data types";
-        }
     }
 }
 
 void DCMScene::init(const std::string& slideFilePath, int sceneIndex, const std::string& driverId)
 {
     SLIDEIO_LOG(INFO) << "DCMScene::init-begin";
-    if (m_files.empty())
-    {
-        RAISE_RUNTIME_ERROR << "DCMScene::init attempt to create an empty scene.";
-    }
+    if (m_files.empty()) RAISE_RUNTIME_ERROR << "DCMScene::init attempt to create an empty scene.";
 
     m_filePath = slideFilePath;
-	m_sceneIndex = sceneIndex;
+    m_sceneIndex = sceneIndex;
     m_driverId = driverId;
 
     checkScene();
@@ -163,21 +154,14 @@ void DCMScene::init(const std::string& slideFilePath, int sceneIndex, const std:
     m_rect = {0, 0, file->getWidth(), file->getHeight()};
 
     if (m_files.size() > 1)
-    {
         m_numSlices = static_cast<int>(m_files.size());
-    }
     else
-    {
         m_numSlices = file->getNumSlices();
-    }
 
     m_name = file->getSeriesUID();
     const std::string seriesDescription = (*(m_files.begin()))->getSeriesDescription();
 
-    if (!seriesDescription.empty())
-    {
-        m_name = seriesDescription;
-    }
+    if (!seriesDescription.empty()) m_name = seriesDescription;
     m_numChannels = file->getNumChannels();
     m_dataType = file->getDataType();
     m_compression = file->getCompression();
@@ -197,17 +181,13 @@ void DCMScene::init(const std::string& slideFilePath, int sceneIndex, const std:
     level.setScale(1.);
 }
 
-void DCMScene::extractSliceRaster(const cv::Mat& frame,
-                                  const cv::Rect& blockRect,
-                                  const cv::Size& blockSize,
-                                  const std::vector<int>& componentIndices,
-                                  cv::OutputArray output)
+void DCMScene::extractSliceRaster(const cv::Mat& frame, const cv::Rect& blockRect, const cv::Size& blockSize,
+                                  const std::vector<int>& componentIndices, cv::OutputArray output)
 {
     cv::Mat block = frame(blockRect);
     cv::Mat resizedBlock;
     cv::resize(block, resizedBlock, blockSize);
-    if (componentIndices.empty() || (componentIndices.size() == getNumChannels()
-        && getNumChannels() == 1))
+    if (componentIndices.empty() || (componentIndices.size() == getNumChannels() && getNumChannels() == 1))
     {
         resizedBlock.copyTo(output);
     }
@@ -218,8 +198,7 @@ void DCMScene::extractSliceRaster(const cv::Mat& frame,
         for (int index = 0; index < channelIndices.size(); ++index)
         {
             int channelIndex = channelIndices[index];
-            cv::extractChannel(resizedBlock, channelRasters[index],
-                               channelIndex);
+            cv::extractChannel(resizedBlock, channelRasters[index], channelIndex);
         }
         cv::merge(channelRasters, output);
     }
@@ -233,10 +212,7 @@ std::pair<int, int> DCMScene::findFileIndex(int zSliceIndex)
     {
         auto itSlice = m_sliceMap.find(zSliceIndex);
         if (itSlice == m_sliceMap.end())
-        {
-            RAISE_RUNTIME_ERROR << "DCMImageDriver: cannot find slice " <<
-                zSliceIndex << ". file: " << m_filePath;
-        }
+            RAISE_RUNTIME_ERROR << "DCMImageDriver: cannot find slice " << zSliceIndex << ". file: " << m_filePath;
         fileIndex = itSlice->second;
         fileSlice = 0;
     }
@@ -244,21 +220,17 @@ std::pair<int, int> DCMScene::findFileIndex(int zSliceIndex)
     return res;
 }
 
-void DCMScene::readResampledBlockChannelsEx(const cv::Rect& blockRect,
-    const cv::Size& blockSize,
-    const std::vector<int>&
-    componentIndices,
-    int zSliceIndex,
-    int tFrameIndex,
-    cv::OutputArray output)
+void DCMScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
+                                            const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex,
+                                            cv::OutputArray output)
 {
     SLIDEIO_LOG(INFO) << "DCMImageDriver: Resample block:" << std::endl
-        << "block: " << blockRect.x << "," << blockRect.y << ","
-        << blockRect.width << "," << blockRect.height << std::endl
-        << "size: " << blockSize.width << "," << blockSize.height << std::endl
-        << "channels:" << componentIndices.size() << std::endl
-        << "slice: " << zSliceIndex << std::endl
-        << "frame: " << tFrameIndex;
+                      << "block: " << blockRect.x << "," << blockRect.y << "," << blockRect.width << ","
+                      << blockRect.height << std::endl
+                      << "size: " << blockSize.width << "," << blockSize.height << std::endl
+                      << "channels:" << componentIndices.size() << std::endl
+                      << "slice: " << zSliceIndex << std::endl
+                      << "frame: " << tFrameIndex;
 
     const auto indices = findFileIndex(zSliceIndex);
     const int fileIndex = indices.first;

@@ -11,4 +11,3 @@
 #else
 #define SLIDEIO_SCN_EXPORTS
 #endif
-

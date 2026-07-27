@@ -7,7 +7,6 @@
 #include "slideio/core/tools/tempfile.hpp"
 #include "slideio/slideio/imagedrivermanager.hpp"
 
-
 int main()
 {
     // constexpr int tileWidth = 512;
@@ -39,5 +38,5 @@ int main()
     // TiffConverter converter;
     // ASSERT_NO_THROW(converter.createFileLayout(scene->getCVScene(), parameters));
 
-	return 0;   
+    return 0;
 }

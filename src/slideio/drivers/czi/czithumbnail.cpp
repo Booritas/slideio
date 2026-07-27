@@ -10,18 +10,20 @@ using namespace slideio;
 bool CZIThumbnail::init()
 {
     bool ret = true;
-    try {
+    try
+    {
         std::vector<uint8_t> buffer;
         m_slide->readBlock(m_dataPos, m_dataSize, buffer);
         cv::Mat jpegImage;
         slideio::ImageTools::decodeJpegStream(buffer.data(), buffer.size(), jpegImage);
         m_filePath = m_slide->getFilePath();
-        m_sceneRect = { 0,0,jpegImage.size().width,jpegImage.size().height};
+        m_sceneRect = {0, 0, jpegImage.size().width, jpegImage.size().height};
         m_numChannel = jpegImage.channels();
         m_compression = Compression::Jpeg;
         m_channelDataType = DataType::DT_Byte;
     }
-    catch (std::exception& ex){
+    catch (std::exception& ex)
+    {
         std::string error = ex.what();
         ret = false;
     }

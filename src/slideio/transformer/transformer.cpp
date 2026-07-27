@@ -22,15 +22,17 @@ std::shared_ptr<Scene> slideio::transformScene(std::shared_ptr<slideio::Scene> s
     return transformerScene;
 }
 
-std::shared_ptr<Scene> slideio::transformSceneEx(std::shared_ptr<Scene> scene, std::list<std::shared_ptr<Transformation>>& transforms)
+std::shared_ptr<Scene> slideio::transformSceneEx(std::shared_ptr<Scene> scene,
+                                                 std::list<std::shared_ptr<Transformation>>& transforms)
 {
     std::shared_ptr<CVScene> transformedCVScene(new TransformerScene(scene->getCVScene(), transforms));
     std::shared_ptr<slideio::Scene> transformerScene(new Scene(transformedCVScene));
     return transformerScene;
 }
 
-
-static std::shared_ptr<Transformation> transformFromWrapper(std::shared_ptr<slideio::Scene> scene, TransformationWrapper* wrap) {
+static std::shared_ptr<Transformation> transformFromWrapper(std::shared_ptr<slideio::Scene> scene,
+                                                            TransformationWrapper* wrap)
+{
     switch (wrap->getType())
     {
     case TransformationType::ScharrFilter:
@@ -62,7 +64,8 @@ std::shared_ptr<Scene> slideio::transformScene(std::shared_ptr<Scene> scene, Tra
     return transformSceneEx(scene, transforms);
 }
 
-std::shared_ptr<Scene> slideio::transformSceneEx(std::shared_ptr<Scene> scene, std::list<std::shared_ptr<TransformationWrapper>>& wrappers)
+std::shared_ptr<Scene> slideio::transformSceneEx(std::shared_ptr<Scene> scene,
+                                                 std::list<std::shared_ptr<TransformationWrapper>>& wrappers)
 {
     std::list<std::shared_ptr<Transformation>> transforms;
     for (auto& wrap : wrappers)

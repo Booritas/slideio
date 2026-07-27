@@ -8,7 +8,7 @@
 
 using namespace slideio;
 
-TIFFKeeper::TIFFKeeper(libtiff::TIFF* hfile) : m_hFile(hfile)
+TIFFKeeper::TIFFKeeper(libtiff::TIFF* hfile): m_hFile(hfile)
 {
     m_messageHandler = std::make_shared<TIFFMessageHandler>();
 }
@@ -18,11 +18,9 @@ TIFFKeeper::TIFFKeeper(const std::string& filePath, bool readOnly)
     openTiffFile(filePath, readOnly);
 }
 
-
 TIFFKeeper::~TIFFKeeper()
 {
-    if (m_hFile)
-        TiffTools::closeTiffFile(m_hFile);
+    if (m_hFile) TiffTools::closeTiffFile(m_hFile);
 }
 
 void TIFFKeeper::openTiffFile(const std::string& filePath, bool readOnly)
@@ -46,14 +44,14 @@ void TIFFKeeper::setTags(const TiffDirectory& dir)
     TiffTools::setTags(m_hFile, dir);
 }
 
-void TIFFKeeper::writeTile(int x, int y, Compression compression, const EncodeParameters& params, const cv::Mat& tileRaster,
-    uint8_t* buffer, int bufferSize)
+void TIFFKeeper::writeTile(int x, int y, Compression compression, const EncodeParameters& params,
+                           const cv::Mat& tileRaster, uint8_t* buffer, int bufferSize)
 {
     TiffTools::writeTile(m_hFile, x, y, compression, tileRaster, params, buffer, bufferSize);
 }
 
 void TIFFKeeper::readTile(const slideio::TiffDirectory& dir, int tile, const std::vector<int>& channelIndices,
-    cv::OutputArray output)
+                          cv::OutputArray output)
 {
     TiffTools::readTile(m_hFile, dir, tile, channelIndices, output);
 }
@@ -63,10 +61,12 @@ std::string TIFFKeeper::readStringTag(uint16_t tag)
     return TiffTools::readStringTag(m_hFile, tag);
 }
 
-void TIFFKeeper::initSubDirs(int numDirs) {
-	TiffTools::initSubDirs(m_hFile, numDirs);
+void TIFFKeeper::initSubDirs(int numDirs)
+{
+    TiffTools::initSubDirs(m_hFile, numDirs);
 }
 
-void TIFFKeeper::writeRawTile(int x, int y, const uint8_t* data, int size) {
-	TiffTools::writeRawTile(m_hFile, x, y, data, size);
+void TIFFKeeper::writeRawTile(int x, int y, const uint8_t* data, int size)
+{
+    TiffTools::writeRawTile(m_hFile, x, y, data, size);
 }
