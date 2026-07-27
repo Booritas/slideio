@@ -1,0 +1,182 @@
+name: Build Validation
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-linux:
+    name: Linux (Ubuntu)
+    runs-on: ubuntu-latest
+
+    env:
+      SLIDEIO_HOME: ${{ github.workspace }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install Python dependencies
+        run: pip install conan distro
+
+      - name: Set CONAN_INDEX_HOME
+        run: echo "CONAN_INDEX_HOME=${RUNNER_TEMP}/conan-center-index" >> "$GITHUB_ENV"
+
+      - name: Sync toolchain
+        run: python sync-toolchain.py
+
+      - name: Clone conan-center-index
+        run: git clone --depth 1 https://github.com/Booritas/conan-center-index "$CONAN_INDEX_HOME"
+
+      - name: Get conan-center-index commit
+        id: cci
+        run: |
+          cd "$CONAN_INDEX_HOME"
+          echo "hash=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Build custom dependencies
+        run: bash build-dependencies.sh release
+
+      - name: Cache Conan packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.conan2
+          key: conan-ubuntu-${{ steps.cci.outputs.hash }}-${{ hashFiles('src/**/conanfile.py', 'conanfile.txt', 'conan/**') }}
+          restore-keys: |
+            conan-ubuntu-${{ steps.cci.outputs.hash }}-
+            conan-ubuntu-
+
+      - name: Conan install
+        run: python install.py -a conan -c release
+
+      - name: CMake configure
+        run: python install.py -a configure-only -c release
+
+      - name: Build
+        run: python install.py -a build-only -c release
+
+  build-macos:
+    name: macOS
+    runs-on: macos-latest
+
+    env:
+      SLIDEIO_HOME: ${{ github.workspace }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install Python dependencies
+        run: pip install conan distro
+
+      - name: Set CONAN_INDEX_HOME
+        run: echo "CONAN_INDEX_HOME=${RUNNER_TEMP}/conan-center-index" >> "$GITHUB_ENV"
+
+      - name: Sync toolchain
+        run: python sync-toolchain.py
+
+      - name: Clone conan-center-index
+        run: git clone --depth 1 https://github.com/Booritas/conan-center-index "$CONAN_INDEX_HOME"
+
+      - name: Get conan-center-index commit
+        id: cci
+        run: |
+          cd "$CONAN_INDEX_HOME"
+          echo "hash=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Build custom dependencies
+        run: bash build-dependencies.sh release
+
+      - name: Cache Conan packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.conan2
+          key: conan-macos-${{ steps.cci.outputs.hash }}-${{ hashFiles('src/**/conanfile.py', 'conanfile.txt', 'conan/**') }}
+          restore-keys: |
+            conan-macos-${{ steps.cci.outputs.hash }}-
+            conan-macos-
+
+      - name: Conan install
+        run: python install.py -a conan -c release
+
+      - name: CMake configure
+        run: python install.py -a configure-only -c release
+
+      - name: Build
+        run: python install.py -a build-only -c release
+
+  build-windows:
+    name: Windows
+    runs-on: windows-2022
+
+    env:
+      SLIDEIO_HOME: ${{ github.workspace }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install Python dependencies
+        run: pip install conan distro
+
+      - name: Setup MSVC
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: amd64
+
+      - name: Set CONAN_INDEX_HOME
+        shell: pwsh
+        run: echo "CONAN_INDEX_HOME=$env:RUNNER_TEMP/conan-center-index" >> "$env:GITHUB_ENV"
+
+      - name: Sync toolchain
+        run: python sync-toolchain.py
+
+      - name: Clone conan-center-index
+        run: git clone --depth 1 https://github.com/Booritas/conan-center-index "$env:CONAN_INDEX_HOME"
+
+      - name: Get conan-center-index commit
+        id: cci
+        shell: pwsh
+        run: |
+          cd "$env:CONAN_INDEX_HOME"
+          echo "hash=$(git rev-parse HEAD)" >> "$env:GITHUB_OUTPUT"
+
+      - name: Build custom dependencies
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          ./build-dependencies.ps1 release
+
+      - name: Cache Conan packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.conan2
+          key: conan-windows-${{ steps.cci.outputs.hash }}-${{ hashFiles('src/**/conanfile.py', 'conanfile.txt', 'conan/**') }}
+          restore-keys: |
+            conan-windows-${{ steps.cci.outputs.hash }}-
+            conan-windows-
+
+      - name: Conan install
+        run: python install.py -a conan -c release
+
+      - name: CMake configure
+        run: python install.py -a configure-only -c release
+
+      - name: Build
+        run: python install.py -a build-only -c release

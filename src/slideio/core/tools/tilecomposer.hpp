@@ -1,8 +1,7 @@
 // This file is part of slideio project.
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
-#ifndef OPENCV_slideio_tilecomposer_HPP
-#define OPENCV_slideio_tilecomposer_HPP
+#pragma once
 
 #include "slideio/core/slideio_core_def.hpp"
 #include <opencv2/core.hpp>
@@ -25,5 +24,3 @@ namespace slideio
             const cv::Rect& blockRect, const cv::Size& blockSize, cv::OutputArray output, void* userData = nullptr);
     };
 }
-
-#endif

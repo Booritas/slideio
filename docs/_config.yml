@@ -27,14 +27,13 @@ excerpt_separator: <!--more-->
 # Excluded items can be processed by explicitly listing the directories or
 # their entries' file path in the `include:` list.
 #
-# exclude:
-#   - .sass-cache/
-#   - .jekyll-cache/
-#   - gemfiles/
-#   - Gemfile
-#   - Gemfile.lock
-#   - node_modules/
-#   - vendor/bundle/
-#   - vendor/cache/
-#   - vendor/gems/
-#   - vendor/ruby/
+# Internal engineering docs belong in /software-docs at the repo root, not here.
+# These entries are a guard: if a plan or spec is dropped into the site tree by
+# mistake, Jekyll skips it instead of failing the build. Such files routinely
+# contain C++ brace initializers ({{"key", "value"}}) that Liquid parses as a
+# variable and rejects with a syntax error.
+exclude:
+  - superpowers/
+  - plans/
+  - specs/
+  - software-docs/

@@ -1,8 +1,7 @@
 // This file is part of slideio project.
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
-#ifndef OPENCV_slideio_converter_HPP
-#define OPENCV_slideio_converter_HPP
+#pragma once
 
 #include "convertercallback.hpp"
 #include "slideio/converter/converter_def.hpp"
@@ -30,6 +29,4 @@ namespace slideio
 
 #if defined(_MSC_VER)
 #pragma warning( pop )
-#endif
-
 #endif
