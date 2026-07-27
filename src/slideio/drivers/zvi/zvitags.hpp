@@ -2,8 +2,6 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #pragma once
-#ifndef OPENCV_slideio_zvitags_HPP
-#define OPENCV_slideio_zvitags_HPP
 
 #include "slideio/drivers/zvi/zvi_api_def.hpp"
 #include <cstdint>
@@ -442,5 +440,3 @@ namespace slideio
     SLIDEIO_ZVI_EXPORTS const char* getZviTagName(int32_t id);
 }
 
-
-#endif
