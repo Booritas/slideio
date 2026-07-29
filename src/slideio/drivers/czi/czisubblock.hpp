@@ -49,7 +49,8 @@ namespace slideio
         int firstMosaic() const { return firstDimensionIndex(m_mosaicIndex); }
         int lastMosaic() const { return lastDimensionIndex(m_mosaicIndex); }
         bool isMosaic() const { return m_mosaicIndex > 0; }
-        double zoom() const { return m_zoom; }
+        // Zoom of the pyramid level the sub-block belongs to, derived from the X dimension.
+        double levelZoom() const { return m_levelZoom; }
         const cv::Rect& rect() const { return m_rect; }
         int cziPixelType() const { return m_cziPixelType; }
         int64_t computeDataOffset(int channel, int z, int t, int r, int s, int i, int b, int h, int v) const;
@@ -62,6 +63,15 @@ namespace slideio
         uint64_t dataSize() const {return m_dataSize;}
         Compression compression() const {return static_cast<Compression>(m_compression);}
         const std::vector<Dimension>& dimensions() const {return m_dimensions;}
+        // A sub-block does not name its pyramid level: the level is implied by the ratio of the
+        // stored extent to the logical extent. The writer computes storedSize by rounding
+        // size/downsample (ZEN rounds up, some writers round down), so sub-blocks of one level
+        // share the same raw ratio only if their logical extents are all divisible by the
+        // downsample factor. Snap the ratio to the nominal downsample factor of the level - within
+        // one pixel of storedSize - to make the level independent of that rounding. A ratio that no
+        // integer factor explains - an arbitrarily scaled auxiliary image, for instance - is kept
+        // as it is.
+        static double computeLevelZoom(int size, int storedSize);
         static std::string blockHeaderString()
         {
             std::string header= "Scene0\tSceneN\tZoom\tX\tY\tWidth\tHeight\t"
@@ -72,7 +82,7 @@ namespace slideio
         friend std::ostream &operator<<(std::ostream &output, const CZISubBlock &subBlock) {
             output << subBlock.firstScene() << "\t";
             output << subBlock.lastScene() << "\t";
-            output << subBlock.m_zoom << "\t";
+            output << subBlock.m_levelZoom << "\t";
             output << subBlock.m_rect.x << "\t";
             output << subBlock.m_rect.y << "\t";
             output << subBlock.m_rect.width << "\t";
@@ -130,7 +140,7 @@ namespace slideio
         int m_hPhaseIndex;
         int m_viewIndex;
         int m_mosaicIndex;
-        double m_zoom;
+        double m_levelZoom;
         std::vector<Dimension> m_dimensions;
     };
     typedef std::vector<CZISubBlock> CZISubBlocks;

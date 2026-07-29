@@ -287,7 +287,7 @@ void CZIScene::init(uint64_t sceneId, SceneParams& sceneParams, const std::strin
     // separate blocks by zoom levels and detect count of channels and channel data type
     for(const auto& block : blocks)
     {
-        double zoom = block.zoom();
+        double zoom = block.levelZoom();
         int zoomLevelIndex = 0;
         auto itIndex = zoomLevelIndices.find(zoom);
         if(itIndex==zoomLevelIndices.end())
@@ -439,7 +439,7 @@ std::vector<uint8_t> CZIScene::decodeData(const CZISubBlock& block, const std::v
         {
             RAISE_RUNTIME_ERROR << "Unexpected shape of czi sub-block. Expected: (" 
                 << blockRect.width << "," << blockRect.height << "). Received:(" 
-                << raster.cols << "," << raster.rows << "). Zoom: " << block.zoom();
+                << raster.cols << "," << raster.rows << "). Zoom: " << block.levelZoom();
         }
         size_t dataSize = raster.total()*raster.elemSize();
         std::vector<uint8_t> decodedData(dataSize);
