@@ -1,6 +1,7 @@
 ﻿// This file is part of slideio project.
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
+#include <filesystem>
 #include <gtest/gtest.h>
 #include "slideio/slideio/imagedrivermanager.hpp"
 #include "slideio/drivers/czi/cziimagedriver.hpp"
@@ -793,15 +794,40 @@ TEST(CZIImageDriver, splitZoomLevel)
         GTEST_SKIP() << "Skip private test because full dataset is not enabled";
     }
     std::string filePath = TestTools::getFullTestImagePath("czi", u8"private/example_split.czi");
+    std::string roiPaths[] = {
+        TestTools::getFullTestImagePath("czi", "test/example_split (1).czi - ScanRegion0 (1, x=17583, y=3676, w=1000, h=1000).png"),
+        TestTools::getFullTestImagePath("czi", "test/example_split (1).czi - ScanRegion0 (1, x=41169, y=4850, w=1000, h=1000).png"),
+        TestTools::getFullTestImagePath("czi", "test/example_split (1).czi - ScanRegion0 (1, x=2668, y=1376, w=1000, h=1000).png"),
+    };
     slideio::CZIImageDriver driver;
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     int dirCount = slide->getNumScenes();
     ASSERT_EQ(dirCount, 1);
     std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
-    cv::Rect rect = scene->getRect();
-    const double downscale = 2.;
-    cv::Size size(static_cast<int>(rect.width / downscale), static_cast<int>(rect.height / downscale));
-    cv::Mat block;
-    scene->readResampledBlock(rect, size, block);
-    TestTools::showResampledRaster(block);
+	cv::Rect sceneRect = scene->getRect();
+    constexpr int blockWidth = 1000;
+	constexpr int blockHeight = 1000;
+    cv::Rect rects[] = {
+        {17583, 3676, blockWidth, blockHeight},
+        {41169, 4850, blockWidth, blockHeight},
+        {2668, 1376, blockWidth, blockHeight}
+    };
+    constexpr double downscale = 2.;
+	cv::Size resampledSize(std::lround(blockWidth/downscale), std::lround(blockHeight/downscale));
+    for (size_t i = 0; i < std::size(rects); ++i) {
+        const cv::Rect& rect = rects[i];
+        cv::Size size(static_cast<int>(rect.width / downscale), static_cast<int>(rect.height / downscale));
+        cv::Mat block;
+        scene->readResampledBlockChannels(rect, size, {2,1,0}, block);
+        cv::Mat testRaster;
+        slideio::ImageTools::readSmallImageRaster(roiPaths[i], testRaster);
+        cv::Mat resampledRaster;
+        cv::resize(testRaster, resampledRaster, resampledSize, 0., 0., cv::INTER_NEAREST);
+        //TestTools::showRasters(block, resampledRaster);
+        double sim = slideio::ImageTools::computeSimilarity2(block, resampledRaster);
+        //cv::Mat diff;
+        //cv::absdiff(block, resampledRaster, diff);
+        //TestTools::showRaster(diff);
+        EXPECT_NEAR(sim, 1.0, 0.06);
+    }
 }
