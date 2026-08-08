@@ -5,6 +5,7 @@
 #include "slideio/slideio/imagedrivermanager.hpp"
 #include "slideio/drivers/czi/cziimagedriver.hpp"
 #include "slideio/drivers/czi/czislide.hpp"
+#include "slideio/drivers/czi/czisubblock.hpp"
 #include "tests/testlib/testtools.hpp"
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/slideio/scene.hpp"
@@ -31,6 +32,30 @@ TEST(CZIImageDriver, canOpenFile)
     slideio::CZIImageDriver driver;
     EXPECT_TRUE(driver.canOpenFile("c:\\abbb\\a.czi"));
     EXPECT_FALSE(driver.canOpenFile("c:\\abbb\\a.czi.tmp"));
+}
+
+TEST(CZIImageDriver, computeLevelZoom)
+{
+    const double epsilon = 1.e-9;
+    // sub-blocks of one pyramid level are assigned the zoom of the level, whether their
+    // logical extent is divisible by the downsample factor or not
+    EXPECT_NEAR(1., slideio::CZISubBlock::computeLevelZoom(1024, 1024), epsilon);
+    EXPECT_NEAR(0.5, slideio::CZISubBlock::computeLevelZoom(1024, 512), epsilon);
+    EXPECT_NEAR(0.5, slideio::CZISubBlock::computeLevelZoom(1025, 513), epsilon); // rounded up
+    EXPECT_NEAR(0.5, slideio::CZISubBlock::computeLevelZoom(1025, 512), epsilon); // rounded down
+    // ratios taken from affected Zeiss slides; 1213/304 also guards against the size/downsample
+    // division degrading to integer division, which would reject the nominal factor
+    EXPECT_NEAR(0.25, slideio::CZISubBlock::computeLevelZoom(1213, 304), epsilon);
+    EXPECT_NEAR(0.125, slideio::CZISubBlock::computeLevelZoom(6932, 867), epsilon);
+    EXPECT_NEAR(0.0625, slideio::CZISubBlock::computeLevelZoom(15124, 946), epsilon);
+    EXPECT_NEAR(1. / 3., slideio::CZISubBlock::computeLevelZoom(2049, 683), epsilon);
+    EXPECT_NEAR(1. / 3., slideio::CZISubBlock::computeLevelZoom(2050, 683), epsilon);
+    // scaling that no integer downsample factor explains is kept as it is
+    EXPECT_NEAR(0.137, slideio::CZISubBlock::computeLevelZoom(1000, 137), epsilon);
+    EXPECT_NEAR(0.6, slideio::CZISubBlock::computeLevelZoom(1000, 600), epsilon);
+    EXPECT_NEAR(1.5, slideio::CZISubBlock::computeLevelZoom(100, 150), epsilon);
+    EXPECT_NEAR(1., slideio::CZISubBlock::computeLevelZoom(0, 10), epsilon);
+    EXPECT_NEAR(1., slideio::CZISubBlock::computeLevelZoom(1000, 0), epsilon);
 }
 
 TEST(CZIImageDriver, openFile)
