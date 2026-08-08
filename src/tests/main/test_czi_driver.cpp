@@ -1,10 +1,12 @@
 ﻿// This file is part of slideio project.
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
+#include <filesystem>
 #include <gtest/gtest.h>
 #include "slideio/slideio/imagedrivermanager.hpp"
 #include "slideio/drivers/czi/cziimagedriver.hpp"
 #include "slideio/drivers/czi/czislide.hpp"
+#include "slideio/drivers/czi/czisubblock.hpp"
 #include "tests/testlib/testtools.hpp"
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/slideio/scene.hpp"
@@ -31,6 +33,30 @@ TEST(CZIImageDriver, canOpenFile)
     slideio::CZIImageDriver driver;
     EXPECT_TRUE(driver.canOpenFile("c:\\abbb\\a.czi"));
     EXPECT_FALSE(driver.canOpenFile("c:\\abbb\\a.czi.tmp"));
+}
+
+TEST(CZIImageDriver, computeLevelZoom)
+{
+    const double epsilon = 1.e-9;
+    // sub-blocks of one pyramid level are assigned the zoom of the level, whether their
+    // logical extent is divisible by the downsample factor or not
+    EXPECT_NEAR(1., slideio::CZISubBlock::computeLevelZoom(1024, 1024), epsilon);
+    EXPECT_NEAR(0.5, slideio::CZISubBlock::computeLevelZoom(1024, 512), epsilon);
+    EXPECT_NEAR(0.5, slideio::CZISubBlock::computeLevelZoom(1025, 513), epsilon); // rounded up
+    EXPECT_NEAR(0.5, slideio::CZISubBlock::computeLevelZoom(1025, 512), epsilon); // rounded down
+    // ratios taken from affected Zeiss slides; 1213/304 also guards against the size/downsample
+    // division degrading to integer division, which would reject the nominal factor
+    EXPECT_NEAR(0.25, slideio::CZISubBlock::computeLevelZoom(1213, 304), epsilon);
+    EXPECT_NEAR(0.125, slideio::CZISubBlock::computeLevelZoom(6932, 867), epsilon);
+    EXPECT_NEAR(0.0625, slideio::CZISubBlock::computeLevelZoom(15124, 946), epsilon);
+    EXPECT_NEAR(1. / 3., slideio::CZISubBlock::computeLevelZoom(2049, 683), epsilon);
+    EXPECT_NEAR(1. / 3., slideio::CZISubBlock::computeLevelZoom(2050, 683), epsilon);
+    // scaling that no integer downsample factor explains is kept as it is
+    EXPECT_NEAR(0.137, slideio::CZISubBlock::computeLevelZoom(1000, 137), epsilon);
+    EXPECT_NEAR(0.6, slideio::CZISubBlock::computeLevelZoom(1000, 600), epsilon);
+    EXPECT_NEAR(1.5, slideio::CZISubBlock::computeLevelZoom(100, 150), epsilon);
+    EXPECT_NEAR(1., slideio::CZISubBlock::computeLevelZoom(0, 10), epsilon);
+    EXPECT_NEAR(1., slideio::CZISubBlock::computeLevelZoom(1000, 0), epsilon);
 }
 
 TEST(CZIImageDriver, openFile)
@@ -768,15 +794,40 @@ TEST(CZIImageDriver, splitZoomLevel)
         GTEST_SKIP() << "Skip private test because full dataset is not enabled";
     }
     std::string filePath = TestTools::getFullTestImagePath("czi", u8"private/example_split.czi");
+    std::string roiPaths[] = {
+        TestTools::getFullTestImagePath("czi", "test/example_split (1).czi - ScanRegion0 (1, x=17583, y=3676, w=1000, h=1000).png"),
+        TestTools::getFullTestImagePath("czi", "test/example_split (1).czi - ScanRegion0 (1, x=41169, y=4850, w=1000, h=1000).png"),
+        TestTools::getFullTestImagePath("czi", "test/example_split (1).czi - ScanRegion0 (1, x=2668, y=1376, w=1000, h=1000).png"),
+    };
     slideio::CZIImageDriver driver;
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     int dirCount = slide->getNumScenes();
     ASSERT_EQ(dirCount, 1);
     std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
-    cv::Rect rect = scene->getRect();
-    const double downscale = 20.;
-	cv::Size size(static_cast<int>(rect.width / downscale), static_cast<int>(rect.height / downscale));
-    cv::Mat block;
-    scene->readResampledBlock(rect, size, block);
-    TestTools::showRaster(block);
+	cv::Rect sceneRect = scene->getRect();
+    constexpr int blockWidth = 1000;
+	constexpr int blockHeight = 1000;
+    cv::Rect rects[] = {
+        {17583, 3676, blockWidth, blockHeight},
+        {41169, 4850, blockWidth, blockHeight},
+        {2668, 1376, blockWidth, blockHeight}
+    };
+    constexpr double downscale = 2.;
+	cv::Size resampledSize(std::lround(blockWidth/downscale), std::lround(blockHeight/downscale));
+    for (size_t i = 0; i < std::size(rects); ++i) {
+        const cv::Rect& rect = rects[i];
+        cv::Size size(static_cast<int>(rect.width / downscale), static_cast<int>(rect.height / downscale));
+        cv::Mat block;
+        scene->readResampledBlockChannels(rect, size, {2,1,0}, block);
+        cv::Mat testRaster;
+        slideio::ImageTools::readSmallImageRaster(roiPaths[i], testRaster);
+        cv::Mat resampledRaster;
+        cv::resize(testRaster, resampledRaster, resampledSize, 0., 0., cv::INTER_NEAREST);
+        //TestTools::showRasters(block, resampledRaster);
+        double sim = slideio::ImageTools::computeSimilarity2(block, resampledRaster);
+        //cv::Mat diff;
+        //cv::absdiff(block, resampledRaster, diff);
+        //TestTools::showRaster(diff);
+        EXPECT_NEAR(sim, 1.0, 0.06);
+    }
 }

@@ -6,6 +6,8 @@
 #include "slideio/drivers/czi/czisubblock.hpp"
 #include "slideio/drivers/czi/cziscene.hpp"
 
+#include <cmath>
+
 
 bool slideio::CZISubBlock::isInBlock(int channel, int z, int t, int r, int s, int i, int b, int h, int v) const
 {
@@ -28,9 +30,21 @@ slideio::CZISubBlock::CZISubBlock() : m_dataType(DataType::DT_Unknown), m_cziPix
                                           m_compression(-1), m_channelIndex(-1), m_zSliceIndex(-1),
                                           m_tFrameIndex(-1), m_illuminationIndex(-1),
                                           m_bAcquisitionIndex(-1), m_rotationIndex(-1), m_sceneIndex(-1),
-                                          m_hPhaseIndex(-1), m_viewIndex(-1), m_mosaicIndex(-1), m_zoom(1.)
+                                          m_hPhaseIndex(-1), m_viewIndex(-1), m_mosaicIndex(-1), m_levelZoom(1.)
 {
     m_rect = { 0, 0, 0, 0 };
+}
+
+double slideio::CZISubBlock::computeLevelZoom(int size, int storedSize)
+{
+    if (size <= 0 || storedSize <= 0) {
+        return 1.;
+    }
+    const double downsample = std::round(static_cast<double>(size) / storedSize);
+    if (downsample >= 1. && std::fabs(size / downsample - storedSize) < 1.) {
+        return 1. / downsample;
+    }
+    return static_cast<double>(storedSize) / size;
 }
 
 int64_t slideio::CZISubBlock::computeDataOffset(int channel, int z, int t, int r, int s, int i, int b, int h,
@@ -121,7 +135,7 @@ void slideio::CZISubBlock::setupBlock(const SubBlockHeader& subblockHeader, std:
         {
             m_rect.x = dimEntry.start;
             m_rect.width = dimEntry.storedSize;
-            m_zoom = static_cast<double>(dimEntry.storedSize) / static_cast<double>(dimEntry.size);
+            m_levelZoom = computeLevelZoom(dimEntry.size, dimEntry.storedSize);
         }
         else if (dimEntry.dimension[0] == 'Y')
         {

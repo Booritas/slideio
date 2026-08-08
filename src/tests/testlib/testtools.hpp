@@ -26,6 +26,7 @@ public:
     static bool compareRastersEx(cv::Mat& raster1, cv::Mat& raster2);
     static bool isRasterEmpty(cv::Mat& raster);
     static void showRaster(cv::Mat& raster);
+    static void showResampledRaster(cv::Mat& raster, int maxSize=800);
     static void showRasters(cv::Mat& raster1, cv::Mat& raster2);
     static void writePNG(cv::Mat raster, const std::string& filePath);
     static void readPNG(const std::string& filePath, cv::OutputArray output);
