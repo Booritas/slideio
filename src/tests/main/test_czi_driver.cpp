@@ -760,3 +760,23 @@ TEST(CZIImageDriver, openChannelColor)
 		EXPECT_EQ(chanAttrs[2]["Color"].asString(), "#FFFF0000");
     }
 }
+
+TEST(CZIImageDriver, splitZoomLevel)
+{
+    if (!TestTools::isFullTestEnabled())
+    {
+        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
+    }
+    std::string filePath = TestTools::getFullTestImagePath("czi", u8"private/example_split.czi");
+    slideio::CZIImageDriver driver;
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    int dirCount = slide->getNumScenes();
+    ASSERT_EQ(dirCount, 1);
+    std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
+    cv::Rect rect = scene->getRect();
+    const double downscale = 2.;
+    cv::Size size(static_cast<int>(rect.width / downscale), static_cast<int>(rect.height / downscale));
+    cv::Mat block;
+    scene->readResampledBlock(rect, size, block);
+    TestTools::showResampledRaster(block);
+}

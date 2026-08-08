@@ -2,6 +2,7 @@
 #include "testtools.hpp"
 
 
+#include <cmath>
 #include <codecvt>
 #include <fstream>
 #include <numeric>
@@ -156,6 +157,25 @@ void TestTools::showRaster(cv::Mat& raster)
     cv::namedWindow("Display window", cv::WINDOW_AUTOSIZE);
     cv::imshow("Display window", raster);
     cv::waitKey(0);
+#endif
+}
+
+void TestTools::showResampledRaster(cv::Mat& raster, int maxSize) {
+#if defined(_DEBUG) && defined(_WIN32)
+    if (raster.empty() || maxSize <= 0) {
+        return;
+    }
+    const int largerSide = std::max(raster.cols, raster.rows);
+    if (largerSide <= maxSize) {
+        showRaster(raster);
+        return;
+    }
+    const double scale = static_cast<double>(maxSize) / static_cast<double>(largerSide);
+    const cv::Size resampledSize(std::max(1, static_cast<int>(std::lround(raster.cols * scale))),
+                                 std::max(1, static_cast<int>(std::lround(raster.rows * scale))));
+    cv::Mat resampledRaster;
+    cv::resize(raster, resampledRaster, resampledSize, 0., 0., cv::INTER_AREA);
+    showRaster(resampledRaster);
 #endif
 }
 
