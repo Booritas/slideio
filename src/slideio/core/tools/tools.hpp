@@ -123,6 +123,7 @@ namespace slideio
         }
         static void replaceAll(std::string& str, const std::string& from, const std::string& to);
         static std::vector<std::string> split(const std::string& value, char delimiter);
+        static bool isXml(const std::string& text);
         static std::string randomUUID();
         static void resize( cv::InputArray src, cv::OutputArray dst, cv::Size dsize,
                             int interpolation = cv::INTER_LINEAR);
