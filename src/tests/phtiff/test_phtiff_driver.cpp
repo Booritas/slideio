@@ -14,6 +14,12 @@
 #include "slideio/slideio/slideio.hpp"
 #include "slideio/drivers/svs/svsimagedriver.hpp"
 #include "slideio/drivers/svs/svsslide.hpp"
+#include "slideio/drivers/svs/phtdescription.hpp"
+#include "slideio/base/exceptions.hpp"
+#include <type_traits>
+#include <sstream>
+#include <iomanip>
+#include <cmath>
 
 
 namespace slideio
@@ -49,6 +55,82 @@ using namespace slideio;
 // 	double tResolution = 0.0;
 // };
 
+// --- Philips xml metadata generation ------------------------------------
+// Values that createFakeXml does not take as a parameter. They are the ones a
+// real Philips file carries (see Philips-3.tiff and Philips-4.tiff).
+namespace phDefaults
+{
+	const int WIDTH = 91136;                 // size of the base zoom level
+	const int HEIGHT = 68096;
+	const int LEVELS = 9;                    // number of zoom levels of the pyramid
+	const double PIXEL_SPACING = 0.00025;    // mm per pixel of the base zoom level
+	const char* MANUFACTURER_NAME = "PHILIPS";
+	const char* SOFTWARE_VERSIONS_VALUE = "\"1.6.6186\" \"20150402_R48\" \"4.0.3\"";
+	const char* INTERFACE_VERSION = "5.0";
+	const char* SOURCE_FILE_NAME = "%FILENAME%";
+	const char* COMPRESSION = "01";
+	const char* COMPRESSION_METHOD = "\"PHILIPS_TIFF_1_0\"";
+	const char* COMPRESSION_RATIO = "\"3\"";
+	const char* PHOTOMETRIC = "RGB";
+	const int SAMPLES = 3;
+	const int BITS = 8;
+	// Stands for the base64 encoded jpeg of an auxiliary image.
+	const char* IMAGE_DATA_VALUE = "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJ";
+}
+
+static std::string phIndent(int level) {
+	return std::string(static_cast<size_t>(4 * level), ' ');
+}
+
+// Formats a double the way the philips software does: no trailing zeros.
+static std::string phDouble(double value) {
+	std::ostringstream stream;
+	stream << std::setprecision(9) << value;
+	return stream.str();
+}
+
+// Emits one <Attribute> element. The name, the group and the element ids are
+// taken from the attribute constants so that the generated metadata cannot drift
+// away from the definitions in phtdescription.hpp.
+static std::string phAttribute(const PHTDescription::Attribute& attribute, const std::string& type,
+	const std::string& value, int indent) {
+	std::ostringstream stream;
+	stream << phIndent(indent)
+		<< "<Attribute Name=\"" << attribute.Name
+		<< "\" Group=\"" << attribute.Group
+		<< "\" Element=\"" << attribute.Element
+		<< "\" PMSVR=\"" << type << "\">" << value << "</Attribute>\n";
+	return stream.str();
+}
+
+static std::string phAttribute(const PHTDescription::Attribute& attribute, const std::string& type,
+	int value, int indent) {
+	return phAttribute(attribute, type, std::to_string(value), indent);
+}
+
+// Emits the opening lines of an attribute holding an array of data objects.
+static std::string phOpenArray(const PHTDescription::Attribute& attribute, int indent) {
+	std::ostringstream stream;
+	stream << phIndent(indent)
+		<< "<Attribute Name=\"" << attribute.Name
+		<< "\" Group=\"" << attribute.Group
+		<< "\" Element=\"" << attribute.Element
+		<< "\" PMSVR=\"IDataObjectArray\">\n"
+		<< phIndent(indent + 1) << "<Array>\n";
+	return stream.str();
+}
+
+static std::string phCloseArray(int indent) {
+	return phIndent(indent + 1) + "</Array>\n" + phIndent(indent) + "</Attribute>\n";
+}
+
+// Size of a zoom level: every level halves the previous one, down to one pixel.
+// Non positive sizes are passed through unchanged so that a test can ask for a
+// degenerate image.
+static int phLevelSize(int size, int level) {
+	return (size > 0) ? std::max(1, size >> level) : size;
+}
+
 // Exposes the protected SVSSlide members (phExtractImages/phCreateImageScene/
 // phCreateAuxScenes) for unit testing.
 class MockSVSSlide : public SVSSlide
@@ -66,7 +148,77 @@ public:
 		const std::map<std::string, int>& auxImages) {
 		phCreateAuxScenes(directories, auxImages);
 	}
+	const static std::string fakeXML;
+
+	// Builds the xml metadata of a philips tiff slide: a DPUfsImport root holding
+	// one WSI scanned image with a pyramid of `levels` zoom levels, followed by one
+	// scanned image per entry of `auxNames` (e.g. {"LABELIMAGE", "MACROIMAGE"}).
+	// The base zoom level is `width` x `height`, every further level halves it and
+	// doubles the pixel spacing. Everything that is not a parameter -- manufacturer,
+	// software versions, pixel format, compression, base pixel spacing -- gets a
+	// default value from the phDefaults namespace.
+	static std::string createFakeXml(int width = phDefaults::WIDTH, int height = phDefaults::HEIGHT,
+		int levels = phDefaults::LEVELS, const std::list<std::string>& auxNames = std::list<std::string>()) {
+		std::ostringstream xml;
+		xml << "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n";
+		xml << "<DataObject ObjectType=\"DPUfsImport\">\n";
+		xml << phAttribute(MANUFACTURER, "IString", phDefaults::MANUFACTURER_NAME, 1);
+		xml << phAttribute(SOFTWARE_VERSIONS, "IStringArray", phDefaults::SOFTWARE_VERSIONS_VALUE, 1);
+		xml << phAttribute(UFS_INTERFACE_VERSION, "IString", phDefaults::INTERFACE_VERSION, 1);
+		xml << phOpenArray(SCANNED_IMAGES, 1);
+
+		// The whole slide image and its pyramid.
+		xml << phIndent(3) << "<DataObject ObjectType=\"" << SCANNED_IMAGE << "\">\n";
+		xml << phAttribute(IMAGE_TYPE, "IString", WSI, 4);
+		xml << phAttribute(PIXEL_TRANSFORMATION_METHOD, "IString", "0", 4);
+		xml << phAttribute(SAMPLES_PER_PIXEL, "IUInt16", phDefaults::SAMPLES, 4);
+		xml << phAttribute(PHOTOMETRIC_INTERPRETATION, "IString", phDefaults::PHOTOMETRIC, 4);
+		xml << phAttribute(PLANAR_CONFIGURATION, "IUInt16", 0, 4);
+		xml << phAttribute(BITS_ALLOCATED, "IUInt16", phDefaults::BITS, 4);
+		xml << phAttribute(BITS_STORED, "IUInt16", phDefaults::BITS, 4);
+		xml << phAttribute(HIGH_BIT, "IUInt16", phDefaults::BITS - 1, 4);
+		xml << phAttribute(PIXEL_REPRESENTATION, "IUInt16", 0, 4);
+		xml << phAttribute(LOSSY_IMAGE_COMPRESSION, "IString", phDefaults::COMPRESSION, 4);
+		xml << phAttribute(LOSSY_IMAGE_COMPRESSION_METHOD, "IStringArray", phDefaults::COMPRESSION_METHOD, 4);
+		xml << phAttribute(LOSSY_IMAGE_COMPRESSION_RATIO, "IDoubleArray", phDefaults::COMPRESSION_RATIO, 4);
+		xml << phAttribute(IMAGE_RESOLUTION, "IDoubleArray", phSpacing(0), 4);
+		xml << phOpenArray(LEVEL_SEQUENCE, 4);
+		for (int level = 0; level < levels; ++level) {
+			xml << phIndent(6) << "<DataObject ObjectType=\"" << PIXEL_DATA_REPRESENTATION << "\">\n";
+			xml << phAttribute(IMAGE_RESOLUTION, "IDoubleArray", phSpacing(level), 7);
+			xml << phAttribute(LEVEL_POSITION, "IDoubleArray", "\"0\" \"0\" \"0\"", 7);
+			xml << phAttribute(LEVEL_COLUMNS, "IUInt32", phLevelSize(width, level), 7);
+			xml << phAttribute(LEVEL_NUMBER, "IUInt16", level, 7);
+			xml << phAttribute(LEVEL_ROWS, "IUInt32", phLevelSize(height, level), 7);
+			xml << phIndent(6) << "</DataObject>\n";
+		}
+		xml << phCloseArray(4);
+		xml << phAttribute(IMAGE_COLUMNS, "IUInt32", width, 4);
+		xml << phAttribute(IMAGE_ROWS, "IUInt32", height, 4);
+		xml << phAttribute(SOURCE_FILE, "IString", phDefaults::SOURCE_FILE_NAME, 4);
+		xml << phIndent(3) << "</DataObject>\n";
+
+		// The auxiliary images carry their raster inline instead of a pyramid.
+		for (const std::string& auxName : auxNames) {
+			xml << phIndent(3) << "<DataObject ObjectType=\"" << SCANNED_IMAGE << "\">\n";
+			xml << phAttribute(IMAGE_TYPE, "IString", auxName, 4);
+			xml << phAttribute(IMAGE_DATA, "IString", phDefaults::IMAGE_DATA_VALUE, 4);
+			xml << phIndent(3) << "</DataObject>\n";
+		}
+
+		xml << phCloseArray(1);
+		xml << "</DataObject>\n";
+		return xml.str();
+	}
+private:
+	// Pixel spacing of a zoom level, as a quoted pair of millimeter values.
+	static std::string phSpacing(int level) {
+		const std::string value = phDouble(phDefaults::PIXEL_SPACING * std::pow(2., level));
+		return "\"" + value + "\" \"" + value + "\"";
+	}
 };
+
+const std::string MockSVSSlide::fakeXML = "<?xml version=\"1.0\"?><DataObject ObjectType=\"DPUfsImport\"/>";
 
 // Builds a TiffDirectory carrying just the fields phExtractImages inspects.
 static TiffDirectory makeDir(const std::string& description, int width) {
@@ -126,8 +278,8 @@ TEST_F(PhTiffImageDriverTests, openSlide) {
 	std::string filePath = TestTools::getFullTestImagePath("philips", "Philips-3.tiff");
 	auto slide = slideio::openSlide(filePath, "PHTIFF");
 	std::list<std::tuple<std::string,int,int>> auxNames = {
-	    {"Macro", 791, 403},
-	    {"Label", 387, 403}
+	    {"MACROIMAGE", 791, 403},
+	    {"LABELIMAGE", 387, 403}
 	};
 	ASSERT_TRUE(slide != nullptr);
 	EXPECT_EQ(slide->getNumScenes(), 1);
@@ -141,8 +293,8 @@ TEST_F(PhTiffImageDriverTests, openSlide) {
 	EXPECT_EQ(scene->getChannelDataType(0), slideio::DataType::DT_Byte);
 	EXPECT_EQ(scene->getCompression(), slideio::Compression::Jpeg);
 	auto res = scene->getResolution();
-	EXPECT_DOUBLE_EQ(std::get<0>(res), 0.000226891);
-	EXPECT_DOUBLE_EQ(std::get<1>(res), 0.000226907);
+	EXPECT_DOUBLE_EQ(std::get<0>(res), 0.000226891e-3);
+	EXPECT_DOUBLE_EQ(std::get<1>(res), 0.000226907e-3);
 
 	for (const auto& param : auxNames) {
 		auto auxScene = slide->getAuxImage(std::get<0>(param));
@@ -153,55 +305,15 @@ TEST_F(PhTiffImageDriverTests, openSlide) {
 	}
 }
 
-// Layout mirrors a real Philips TIFF (see Philips-1.tiff): dir 0 is the base
-// image whose description is the "<?xml ..." metadata blob, dirs 1..N are the
-// "level=..." pyramid tiers with strictly decreasing width, and there are no
-// auxiliary images. The pyramid must come out ordered by decreasing width, so
-// directory indices 0..N in order.
-TEST_F(PhTiffImageDriverTests, phExtractImages_pyramidOrderedByWidth) {
-	const std::vector<TiffDirectory> directories = {
-		makeDir("<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n<DataObject>", 45056),
-		makeDir("level=1 mag=22 quality=80", 22528),
-		makeDir("level=2 mag=11 quality=80", 11264),
-		makeDir("level=3 mag=5.5 quality=80", 5632),
-		makeDir("level=4 mag=2.75 quality=80", 3072),
-	};
-	std::list<int> imagePyramid;
-	std::map<std::string, int> auxImages;
-
-	MockSVSSlide::phExtractImagesMock(directories, imagePyramid, auxImages);
-
-	EXPECT_EQ((std::list<int>{0, 1, 2, 3, 4}), imagePyramid);
-	EXPECT_TRUE(auxImages.empty());
-}
-
-// The pyramid is sorted by decreasing width regardless of the directory order
-// in the file. Descriptions are provided out of width order here.
-TEST_F(PhTiffImageDriverTests, phExtractImages_sortsUnorderedInputByDescendingWidth) {
-	const std::vector<TiffDirectory> directories = {
-		makeDir("level=3 mag=5.5 quality=80", 5632),   // index 0, smallest
-		makeDir("<?xml version=\"1.0\"?>", 45056),     // index 1, largest
-		makeDir("level=1 mag=22 quality=80", 22528),   // index 2
-		makeDir("level=2 mag=11 quality=80", 11264),   // index 3
-	};
-	std::list<int> imagePyramid;
-	std::map<std::string, int> auxImages;
-
-	MockSVSSlide::phExtractImagesMock(directories, imagePyramid, auxImages);
-
-	// Widths 45056 > 22528 > 11264 > 5632 -> indices 1, 2, 3, 0.
-	EXPECT_EQ((std::list<int>{1, 2, 3, 0}), imagePyramid);
-	EXPECT_TRUE(auxImages.empty());
-}
-
 // Trailing non-pyramid directories ("Macro", "Label" in Philips-3.tiff) are
 // auxiliary images: keyed by description, mapped to their directory index, and
 // kept out of the pyramid. "Label" is the regression case for the old
 // find_first_of bug -- it contains 'l' and 'e', so a character-set search would
 // wrongly classify it as a "level" pyramid tier.
 TEST_F(PhTiffImageDriverTests, phExtractImages_extractsAuxImages) {
+	const std::string xml = MockSVSSlide::createFakeXml(40960, 30720, 3, { "Macro", "Label" });
 	const std::vector<TiffDirectory> directories = {
-		makeDir("<?xml version=\"1.0\"?>", 131072),
+		makeDir(xml, 131072),
 		makeDir("level=1 mag=22 quality=80", 65536),
 		makeDir("level=2 mag=11 quality=80", 32768),
 		makeDir("Macro", 791),
@@ -221,9 +333,10 @@ TEST_F(PhTiffImageDriverTests, phExtractImages_extractsAuxImages) {
 // A description containing the "level" substring is a pyramid tier even without
 // XML; the "<?xml" base image is a pyramid tier even without "level".
 TEST_F(PhTiffImageDriverTests, phExtractImages_classifiesBySubstring) {
+	const std::string xml  = MockSVSSlide::createFakeXml(40960, 30720, 2, {"Thumbnail"});
 	const std::vector<TiffDirectory> directories = {
-		makeDir("level=5 mag=1.375 quality=80", 1536),
-		makeDir("<?xml version=\"1.0\"?>", 4096),
+		makeDir(xml, 40960),
+		makeDir("level=1 mag=22 quality=80", 65536),
 		makeDir("Thumbnail", 256),
 	};
 	std::list<int> imagePyramid;
@@ -231,35 +344,17 @@ TEST_F(PhTiffImageDriverTests, phExtractImages_classifiesBySubstring) {
 
 	MockSVSSlide::phExtractImagesMock(directories, imagePyramid, auxImages);
 
-	EXPECT_EQ((std::list<int>{1, 0}), imagePyramid);
+	EXPECT_EQ((std::list<int>{0, 1}), imagePyramid);
 	ASSERT_EQ(1u, auxImages.size());
 	EXPECT_EQ(2, auxImages.at("Thumbnail"));
-}
-
-// A non-pyramid directory with an empty description is not a named aux image;
-// it is skipped rather than inserted under an empty key.
-TEST_F(PhTiffImageDriverTests, phExtractImages_skipsEmptyAuxDescription) {
-	const std::vector<TiffDirectory> directories = {
-		makeDir("<?xml version=\"1.0\"?>", 4096),
-		makeDir("", 256),          // empty description -> skipped
-		makeDir("Label", 128),
-	};
-	std::list<int> imagePyramid;
-	std::map<std::string, int> auxImages;
-
-	MockSVSSlide::phExtractImagesMock(directories, imagePyramid, auxImages);
-
-	EXPECT_EQ((std::list<int>{0}), imagePyramid);
-	ASSERT_EQ(1u, auxImages.size());
-	EXPECT_EQ(2, auxImages.at("Label"));
-	EXPECT_EQ(0u, auxImages.count(""));
 }
 
 // Two aux directories sharing a description must not clobber each other: the
 // first occurrence wins and the duplicate is dropped.
 TEST_F(PhTiffImageDriverTests, phExtractImages_duplicateAuxDescriptionKeepsFirst) {
+	const std::string xml = MockSVSSlide::createFakeXml(40960, 30720, 1, { "Macro", "Macro" });
 	const std::vector<TiffDirectory> directories = {
-		makeDir("<?xml version=\"1.0\"?>", 4096),
+		makeDir(xml, 4096),
 		makeDir("Macro", 791),     // index 1, kept
 		makeDir("Macro", 400),     // index 2, duplicate -> dropped
 	};
@@ -279,10 +374,7 @@ TEST_F(PhTiffImageDriverTests, phExtractImages_emptyInput) {
 	std::list<int> imagePyramid;
 	std::map<std::string, int> auxImages;
 
-	MockSVSSlide::phExtractImagesMock(directories, imagePyramid, auxImages);
-
-	EXPECT_TRUE(imagePyramid.empty());
-	EXPECT_TRUE(auxImages.empty());
+	EXPECT_THROW(MockSVSSlide::phExtractImagesMock(directories, imagePyramid, auxImages), slideio::RuntimeError);
 }
 
 // phCreateImageScene builds a single tiled "Image" scene out of the directories
@@ -290,8 +382,9 @@ TEST_F(PhTiffImageDriverTests, phExtractImages_emptyInput) {
 // A null TIFF handle is fine: scene geometry comes from the directories, and the
 // handle is only dereferenced later during raster reads.
 TEST_F(PhTiffImageDriverTests, phCreateImageScene_createsSingleImageScene) {
+	const std::string xml = MockSVSSlide::createFakeXml(35840, 30720, 3, {});
 	const std::vector<TiffDirectory> directories = {
-		makeImageDir("<?xml version=\"1.0\"?>", 45056, 35840),
+		makeImageDir(xml, 35840, 30720),
 		makeImageDir("level=1 mag=22 quality=80", 22528, 17920),
 		makeImageDir("level=2 mag=11 quality=80", 11264, 9216),
 	};
@@ -306,8 +399,8 @@ TEST_F(PhTiffImageDriverTests, phCreateImageScene_createsSingleImageScene) {
 	EXPECT_EQ("Image", scene->getName());
 	// The scene rect is taken from the first pyramid directory (the base level).
 	const cv::Rect rect = scene->getRect();
-	EXPECT_EQ(45056, rect.width);
-	EXPECT_EQ(35840, rect.height);
+	EXPECT_EQ(35840, rect.width);
+	EXPECT_EQ(30720, rect.height);
 	EXPECT_EQ(3, scene->getNumChannels());
 }
 
@@ -316,7 +409,7 @@ TEST_F(PhTiffImageDriverTests, phCreateImageScene_createsSingleImageScene) {
 // scene rect. Here the pyramid references dir 2 first, then dir 0.
 TEST_F(PhTiffImageDriverTests, phCreateImageScene_usesPyramidIndicesInOrder) {
 	const std::vector<TiffDirectory> directories = {
-		makeImageDir("<?xml version=\"1.0\"?>", 45056, 35840),  // index 0
+		makeImageDir(MockSVSSlide::fakeXML, 45056, 35840),  // index 0
 		makeImageDir("level=1 mag=22 quality=80", 22528, 17920), // index 1 (unused)
 		makeImageDir("level=2 mag=11 quality=80", 11264, 9216),  // index 2
 	};
@@ -335,7 +428,7 @@ TEST_F(PhTiffImageDriverTests, phCreateImageScene_usesPyramidIndicesInOrder) {
 // named auxiliary scene retrievable by name, and registers the names.
 TEST_F(PhTiffImageDriverTests, phCreateAuxScenes_createsNamedAuxScenes) {
 	const std::vector<TiffDirectory> directories = {
-		makeImageDir("<?xml version=\"1.0\"?>", 131072, 100352),
+		makeImageDir(MockSVSSlide::fakeXML, 131072, 100352),
 		makeImageDir("Macro", 791, 403),
 		makeImageDir("Label", 387, 403),
 	};
@@ -364,7 +457,7 @@ TEST_F(PhTiffImageDriverTests, phCreateAuxScenes_createsNamedAuxScenes) {
 // An empty aux map creates no auxiliary scenes.
 TEST_F(PhTiffImageDriverTests, phCreateAuxScenes_emptyMapCreatesNothing) {
 	const std::vector<TiffDirectory> directories = {
-		makeImageDir("<?xml version=\"1.0\"?>", 4096, 4096),
+		makeImageDir(MockSVSSlide::fakeXML, 4096, 4096),
 	};
 	const std::map<std::string, int> auxImages;
 
@@ -375,3 +468,420 @@ TEST_F(PhTiffImageDriverTests, phCreateAuxScenes_emptyMapCreatesNothing) {
 	EXPECT_TRUE(slide.getAuxImageNames().empty());
 }
 
+TEST_F(PhTiffImageDriverTests, openSlide2) {
+	if (!TestTools::isFullTestEnabled())
+	{
+		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
+	}
+	std::string filePath = TestTools::getFullTestImagePath("philips", "Philips-4.tiff");
+	std::list<std::tuple<std::string, int, int>> auxNames = {
+		{"LABELIMAGE", 1816, 821}
+	};
+	std::string roiPaths[] = {
+		TestTools::getFullTestImagePath("czi", "test/example_split (1).czi - ScanRegion0 (1, x=17583, y=3676, w=1000, h=1000).png"),
+		TestTools::getFullTestImagePath("czi", "test/example_split (1).czi - ScanRegion0 (1, x=41169, y=4850, w=1000, h=1000).png"),
+		TestTools::getFullTestImagePath("czi", "test/example_split (1).czi - ScanRegion0 (1, x=2668, y=1376, w=1000, h=1000).png"),
+	};
+    std::shared_ptr<Slide> slide = openSlide(filePath, "PHTIFF");
+	ASSERT_FALSE(slide == nullptr);
+	EXPECT_EQ(1, slide->getNumScenes());
+	auto scene = slide->getScene(0);
+	ASSERT_TRUE(scene != nullptr);
+	EXPECT_EQ("Image", scene->getName());
+	auto rect = scene->getRect();
+	EXPECT_EQ(91136, std::get<2>(rect));
+	EXPECT_EQ(68096, std::get<3>(rect));
+	EXPECT_EQ(3, scene->getNumChannels());
+	EXPECT_EQ(1, slide->getNumAuxImages());
+	EXPECT_NEAR(std::get<0>(scene->getResolution()), 0.25e-6, 1e-9);
+	EXPECT_NEAR(std::get<1>(scene->getResolution()), 0.25e-6, 1e-9);
+
+	for (const auto& param : auxNames) {
+		auto auxScene = slide->getAuxImage(std::get<0>(param));
+		EXPECT_TRUE(auxScene != nullptr);
+		auto rect = auxScene->getRect();
+		EXPECT_EQ(std::get<2>(rect), std::get<1>(param));
+		EXPECT_EQ(std::get<3>(rect), std::get<2>(param));
+	}
+
+}
+
+// ---------------------------------------------------------------------------
+// PHTDescription
+// ---------------------------------------------------------------------------
+
+// A structurally faithful miniature of the Philips metadata (see Philips-3.tiff
+// and Philips-4.tiff): a DPUfsImport root holding an array of DPScannedImage
+// objects, the WSI one of which holds an array of PixelDataRepresentation zoom
+// levels. It reproduces the quirks the parser has to survive:
+//  - empty <Attribute/> elements carrying no Name/Group/Element,
+//  - both xml attribute orderings (Name-first at the root, Element-first below),
+//  - a lowercase hexadecimal element id ("0x115e"),
+//  - quoted, blank separated values of the array types.
+static const std::string phSampleXML = R"xml(<?xml version="1.0" encoding="UTF-8" ?>
+<DataObject ObjectType="DPUfsImport">
+    <Attribute Name="DICOM_MANUFACTURER" Group="0x0008" Element="0x0070" PMSVR="IString">PHILIPS</Attribute>
+    <Attribute/>
+    <Attribute Name="PIM_DP_UFS_INTERFACE_VERSION" Group="0x301D" Element="0x1001" PMSVR="IString">5.0</Attribute>
+    <Attribute Name="PIM_DP_SCANNED_IMAGES" Group="0x301D" Element="0x1003" PMSVR="IDataObjectArray">
+        <Array>
+            <DataObject ObjectType="DPScannedImage">
+                <Attribute/>
+                <Attribute Element="0x1004" Group="0x301D" Name="PIM_DP_IMAGE_TYPE" PMSVR="IString">WSI</Attribute>
+                <Attribute Element="0x0030" Group="0x0028" Name="DICOM_PIXEL_SPACING" PMSVR="IDoubleArray">"0.00025" "0.00026"</Attribute>
+                <Attribute Element="0x1007" Group="0x301D" Name="PIM_DP_IMAGE_COLUMNS" PMSVR="IUInt32">91136</Attribute>
+                <Attribute Element="0x1006" Group="0x301D" Name="PIM_DP_IMAGE_ROWS" PMSVR="IUInt32">68096</Attribute>
+                <Attribute Element="0x8B01" Group="0x1001" Name="PIIM_PIXEL_DATA_REPRESENTATION_SEQUENCE" PMSVR="IDataObjectArray">
+                    <Array>
+                        <DataObject ObjectType="PixelDataRepresentation">
+                            <Attribute Element="0x0030" Group="0x0028" Name="DICOM_PIXEL_SPACING" PMSVR="IDoubleArray">"0.00025" "0.00025"</Attribute>
+                            <Attribute Element="0x100B" Group="0x101D" Name="PIIM_DP_PIXEL_DATA_REPRESENTATION_POSITION" PMSVR="IDoubleArray">"0" "1.5" "-2"</Attribute>
+                            <Attribute Element="0x115e" Group="0x2001" Name="PIIM_PIXEL_DATA_REPRESENTATION_COLUMNS" PMSVR="IUInt32">91136</Attribute>
+                            <Attribute Element="0x115D" Group="0x2001" Name="PIIM_PIXEL_DATA_REPRESENTATION_ROWS" PMSVR="IUInt32">68096</Attribute>
+                            <Attribute Element="0x8B02" Group="0x1001" Name="PIIM_PIXEL_DATA_REPRESENTATION_NUMBER" PMSVR="IUInt16">0</Attribute>
+                        </DataObject>
+                        <DataObject ObjectType="PixelDataRepresentation">
+                            <Attribute Element="0x0030" Group="0x0028" Name="DICOM_PIXEL_SPACING" PMSVR="IDoubleArray">"0.0005" "0.0005"</Attribute>
+                            <Attribute Element="0x100B" Group="0x101D" Name="PIIM_DP_PIXEL_DATA_REPRESENTATION_POSITION" PMSVR="IDoubleArray">"0" "0" "0"</Attribute>
+                            <Attribute Element="0x115E" Group="0x2001" Name="PIIM_PIXEL_DATA_REPRESENTATION_COLUMNS" PMSVR="IUInt32">45568</Attribute>
+                            <Attribute Element="0x115D" Group="0x2001" Name="PIIM_PIXEL_DATA_REPRESENTATION_ROWS" PMSVR="IUInt32">34304</Attribute>
+                            <Attribute Element="0x8B02" Group="0x1001" Name="PIIM_PIXEL_DATA_REPRESENTATION_NUMBER" PMSVR="IUInt16">1</Attribute>
+                        </DataObject>
+                    </Array>
+                </Attribute>
+            </DataObject>
+            <DataObject ObjectType="DPScannedImage">
+                <Attribute/>
+                <Attribute Element="0x1004" Group="0x301D" Name="PIM_DP_IMAGE_TYPE" PMSVR="IString">LABELIMAGE</Attribute>
+                <Attribute Element="0x1005" Group="0x301D" Name="PIM_DP_IMAGE_DATA" PMSVR="IString">QUJD</Attribute>
+            </DataObject>
+            <DataObject ObjectType="DPScannedImage">
+                <Attribute Element="0x1004" Group="0x301D" Name="PIM_DP_IMAGE_TYPE" PMSVR="IString">MACROIMAGE</Attribute>
+            </DataObject>
+        </Array>
+    </Attribute>
+</DataObject>)xml";
+
+class PHTDescriptionTests : public ::testing::Test {
+protected:
+	static void SetUpTestSuite() {
+		ImageDriverManager::setLogLevel("FATAL");
+	}
+	// The single WSI image of phSampleXML.
+	static const tinyxml2::XMLElement* wsiImage(PHTDescription& description) {
+		for (const tinyxml2::XMLElement* image : description.getObjectList(description.getRoot(), SCANNED_IMAGE)) {
+			if (description.getAttributeText(image, IMAGE_TYPE) == WSI) {
+				return image;
+			}
+		}
+		return nullptr;
+	}
+};
+
+TEST_F(PHTDescriptionTests, constructorParsesValidXml) {
+	PHTDescription description(phSampleXML);
+	tinyxml2::XMLElement* root = description.getRoot();
+	ASSERT_TRUE(root != nullptr);
+	EXPECT_STREQ("DataObject", root->Name());
+	EXPECT_STREQ("DPUfsImport", root->Attribute("ObjectType"));
+}
+
+TEST_F(PHTDescriptionTests, constructorThrowsOnMalformedXml) {
+	EXPECT_THROW(PHTDescription description("this is not xml at all"), slideio::RuntimeError);
+	EXPECT_THROW(PHTDescription description("<DataObject><Attribute></DataObject>"), slideio::RuntimeError);
+}
+
+TEST_F(PHTDescriptionTests, constructorThrowsOnEmptyDescription) {
+	EXPECT_THROW(PHTDescription description(""), slideio::RuntimeError);
+}
+
+TEST_F(PHTDescriptionTests, getRootReturnsTheSameElement) {
+	PHTDescription description(phSampleXML);
+	EXPECT_EQ(description.getRoot(), description.getRoot());
+}
+
+TEST_F(PHTDescriptionTests, getObjectListReturnsScannedImagesInDocumentOrder) {
+	PHTDescription description(phSampleXML);
+	const std::vector<tinyxml2::XMLElement*> images =
+		description.getObjectList(description.getRoot(), SCANNED_IMAGE);
+	ASSERT_EQ(3u, images.size());
+	EXPECT_EQ(WSI, description.getAttributeText(images[0], IMAGE_TYPE));
+	EXPECT_EQ("LABELIMAGE", description.getAttributeText(images[1], IMAGE_TYPE));
+	EXPECT_EQ("MACROIMAGE", description.getAttributeText(images[2], IMAGE_TYPE));
+}
+
+TEST_F(PHTDescriptionTests, getObjectListReturnsZoomLevels) {
+	PHTDescription description(phSampleXML);
+	const tinyxml2::XMLElement* image = wsiImage(description);
+	ASSERT_TRUE(image != nullptr);
+	const std::vector<tinyxml2::XMLElement*> levels =
+		description.getObjectList(image, PIXEL_DATA_REPRESENTATION);
+	ASSERT_EQ(2u, levels.size());
+	EXPECT_EQ(0, description.getAttributeInt(levels[0], LEVEL_NUMBER));
+	EXPECT_EQ(91136, description.getAttributeInt(levels[0], LEVEL_COLUMNS));
+	EXPECT_EQ(68096, description.getAttributeInt(levels[0], LEVEL_ROWS));
+	EXPECT_EQ(1, description.getAttributeInt(levels[1], LEVEL_NUMBER));
+	EXPECT_EQ(45568, description.getAttributeInt(levels[1], LEVEL_COLUMNS));
+	EXPECT_EQ(34304, description.getAttributeInt(levels[1], LEVEL_ROWS));
+}
+
+TEST_F(PHTDescriptionTests, getObjectListReturnsEmptyListForUnknownObjectType) {
+	PHTDescription description(phSampleXML);
+	EXPECT_TRUE(description.getObjectList(description.getRoot(), "NoSuchObject").empty());
+}
+
+// The search does not descend into nested objects: zoom levels belong to the
+// scanned image, not to the root.
+TEST_F(PHTDescriptionTests, getObjectListDoesNotSearchNestedObjects) {
+	PHTDescription description(phSampleXML);
+	EXPECT_TRUE(description.getObjectList(description.getRoot(), PIXEL_DATA_REPRESENTATION).empty());
+	const tinyxml2::XMLElement* image = wsiImage(description);
+	ASSERT_TRUE(image != nullptr);
+	EXPECT_TRUE(description.getObjectList(image, SCANNED_IMAGE).empty());
+}
+
+TEST_F(PHTDescriptionTests, getObjectListThrowsOnNullParent) {
+	PHTDescription description(phSampleXML);
+	EXPECT_THROW(description.getObjectList(nullptr, SCANNED_IMAGE), slideio::RuntimeError);
+}
+
+TEST_F(PHTDescriptionTests, getAttributeTextReadsStringValues) {
+	PHTDescription description(phSampleXML);
+	EXPECT_EQ("PHILIPS", description.getAttributeText(description.getRoot(), MANUFACTURER));
+	EXPECT_EQ("5.0", description.getAttributeText(description.getRoot(), UFS_INTERFACE_VERSION));
+}
+
+TEST_F(PHTDescriptionTests, getAttributeTextThrowsOnMissingAttribute) {
+	PHTDescription description(phSampleXML);
+	// The root object carries no barcode and no image type of its own.
+	EXPECT_THROW(description.getAttributeText(description.getRoot(), UFS_BARCODE), slideio::RuntimeError);
+	EXPECT_THROW(description.getAttributeText(description.getRoot(), IMAGE_TYPE), slideio::RuntimeError);
+}
+
+TEST_F(PHTDescriptionTests, getAttributeIntReadsIntegerValues) {
+	PHTDescription description(phSampleXML);
+	const tinyxml2::XMLElement* image = wsiImage(description);
+	ASSERT_TRUE(image != nullptr);
+	EXPECT_EQ(91136, description.getAttributeInt(image, IMAGE_COLUMNS));
+	EXPECT_EQ(68096, description.getAttributeInt(image, IMAGE_ROWS));
+}
+
+TEST_F(PHTDescriptionTests, getAttributeIntThrowsOnNonNumericValue) {
+	PHTDescription description(phSampleXML);
+	const tinyxml2::XMLElement* image = wsiImage(description);
+	ASSERT_TRUE(image != nullptr);
+	// PIM_DP_IMAGE_TYPE holds "WSI".
+	EXPECT_THROW(description.getAttributeInt(image, IMAGE_TYPE), slideio::RuntimeError);
+	// DICOM_PIXEL_SPACING holds a list of doubles and must not be truncated to an int.
+	EXPECT_THROW(description.getAttributeInt(image, IMAGE_RESOLUTION), slideio::RuntimeError);
+}
+
+TEST_F(PHTDescriptionTests, getAttributeIntThrowsOnMissingAttribute) {
+	PHTDescription description(phSampleXML);
+	EXPECT_THROW(description.getAttributeInt(description.getRoot(), IMAGE_COLUMNS), slideio::RuntimeError);
+}
+
+TEST_F(PHTDescriptionTests, getAttributeDoubleListReadsQuotedValues) {
+	PHTDescription description(phSampleXML);
+	const tinyxml2::XMLElement* image = wsiImage(description);
+	ASSERT_TRUE(image != nullptr);
+	const std::vector<double> spacing = description.getAttributeDoubleList(image, IMAGE_RESOLUTION);
+	ASSERT_EQ(2u, spacing.size());
+	EXPECT_DOUBLE_EQ(0.00025, spacing[0]);
+	EXPECT_DOUBLE_EQ(0.00026, spacing[1]);
+}
+
+// The position of a zoom level is a triplet and may contain negative values.
+TEST_F(PHTDescriptionTests, getAttributeDoubleListReadsTripletsAndNegativeValues) {
+	PHTDescription description(phSampleXML);
+	const tinyxml2::XMLElement* image = wsiImage(description);
+	ASSERT_TRUE(image != nullptr);
+	const std::vector<tinyxml2::XMLElement*> levels =
+		description.getObjectList(image, PIXEL_DATA_REPRESENTATION);
+	ASSERT_EQ(2u, levels.size());
+	const std::vector<double> position = description.getAttributeDoubleList(levels[0], LEVEL_POSITION);
+	ASSERT_EQ(3u, position.size());
+	EXPECT_DOUBLE_EQ(0., position[0]);
+	EXPECT_DOUBLE_EQ(1.5, position[1]);
+	EXPECT_DOUBLE_EQ(-2., position[2]);
+}
+
+TEST_F(PHTDescriptionTests, getAttributeDoubleListThrowsOnMissingAttribute) {
+	PHTDescription description(phSampleXML);
+	EXPECT_THROW(description.getAttributeDoubleList(description.getRoot(), LEVEL_POSITION), slideio::RuntimeError);
+}
+
+TEST_F(PHTDescriptionTests, getAttributeDoubleListThrowsOnNonNumericValue) {
+	PHTDescription description(phSampleXML);
+	const tinyxml2::XMLElement* image = wsiImage(description);
+	ASSERT_TRUE(image != nullptr);
+	EXPECT_THROW(description.getAttributeDoubleList(image, IMAGE_TYPE), slideio::RuntimeError);
+}
+
+TEST_F(PHTDescriptionTests, hasAttributeDetectsPresenceAndAbsence) {
+	PHTDescription description(phSampleXML);
+	EXPECT_TRUE(description.hasAttribute(description.getRoot(), MANUFACTURER));
+	EXPECT_FALSE(description.hasAttribute(description.getRoot(), UFS_BARCODE));
+
+	const std::vector<tinyxml2::XMLElement*> images =
+		description.getObjectList(description.getRoot(), SCANNED_IMAGE);
+	ASSERT_EQ(3u, images.size());
+	EXPECT_FALSE(description.hasAttribute(images[0], IMAGE_DATA));   // WSI: pixels live in the tiff
+	EXPECT_TRUE(description.hasAttribute(images[1], IMAGE_DATA));    // label: embedded jpeg
+	EXPECT_FALSE(description.hasAttribute(images[2], IMAGE_DATA));   // macro: absent here
+}
+
+TEST_F(PHTDescriptionTests, hasAttributeReturnsFalseForNullElement) {
+	PHTDescription description(phSampleXML);
+	EXPECT_FALSE(description.hasAttribute(nullptr, MANUFACTURER));
+}
+
+// The name alone does not identify an attribute: the group and the element ids
+// have to match as well.
+TEST_F(PHTDescriptionTests, hasAttributeMatchesGroupAndElement) {
+	PHTDescription description(phSampleXML);
+	const PHTDescription::Attribute wrongGroup = { MANUFACTURER.Name, "0x9999", MANUFACTURER.Element };
+	const PHTDescription::Attribute wrongElement = { MANUFACTURER.Name, MANUFACTURER.Group, "0x9999" };
+	const PHTDescription::Attribute wrongName = { "DICOM_NO_SUCH_TAG", MANUFACTURER.Group, MANUFACTURER.Element };
+	EXPECT_FALSE(description.hasAttribute(description.getRoot(), wrongGroup));
+	EXPECT_FALSE(description.hasAttribute(description.getRoot(), wrongElement));
+	EXPECT_FALSE(description.hasAttribute(description.getRoot(), wrongName));
+}
+
+// Scanner software writes the hexadecimal ids in either case. The columns of the
+// first zoom level of phSampleXML are tagged "0x115e", the constant says "0x115E".
+TEST_F(PHTDescriptionTests, attributeLookupIgnoresHexIdCase) {
+	PHTDescription description(phSampleXML);
+	const tinyxml2::XMLElement* image = wsiImage(description);
+	ASSERT_TRUE(image != nullptr);
+	const std::vector<tinyxml2::XMLElement*> levels =
+		description.getObjectList(image, PIXEL_DATA_REPRESENTATION);
+	ASSERT_FALSE(levels.empty());
+	EXPECT_TRUE(description.hasAttribute(levels[0], LEVEL_COLUMNS));
+	EXPECT_EQ(91136, description.getAttributeInt(levels[0], LEVEL_COLUMNS));
+}
+
+// Empty <Attribute/> elements are present in the metadata of some scanners and
+// must neither match a lookup nor crash it.
+TEST_F(PHTDescriptionTests, emptyAttributeElementsAreIgnored) {
+	PHTDescription description("<DataObject ObjectType=\"DPUfsImport\"><Attribute/><Attribute/></DataObject>");
+	EXPECT_FALSE(description.hasAttribute(description.getRoot(), MANUFACTURER));
+	EXPECT_THROW(description.getAttributeText(description.getRoot(), MANUFACTURER), slideio::RuntimeError);
+	EXPECT_TRUE(description.getObjectList(description.getRoot(), SCANNED_IMAGE).empty());
+}
+
+TEST_F(PHTDescriptionTests, isNotCopyableButMovable) {
+	static_assert(!std::is_copy_constructible<PHTDescription>::value,
+		"PHTDescription owns the xml document and must not be copy constructible");
+	static_assert(!std::is_copy_assignable<PHTDescription>::value,
+		"PHTDescription owns the xml document and must not be copy assignable");
+	static_assert(std::is_move_constructible<PHTDescription>::value, "PHTDescription must be move constructible");
+	static_assert(std::is_move_assignable<PHTDescription>::value, "PHTDescription must be move assignable");
+	static_assert(!std::is_convertible<const std::string&, PHTDescription>::value,
+		"the constructor of PHTDescription must be explicit");
+}
+
+TEST_F(PHTDescriptionTests, moveKeepsTheDocumentUsable) {
+	PHTDescription source(phSampleXML);
+	PHTDescription moved(std::move(source));
+	EXPECT_EQ("PHILIPS", moved.getAttributeText(moved.getRoot(), MANUFACTURER));
+	EXPECT_EQ(3u, moved.getObjectList(moved.getRoot(), SCANNED_IMAGE).size());
+
+	PHTDescription assigned("<DataObject ObjectType=\"DPUfsImport\"/>");
+	assigned = std::move(moved);
+	EXPECT_EQ("PHILIPS", assigned.getAttributeText(assigned.getRoot(), MANUFACTURER));
+}
+
+// A moved-from description holds no document: it must report an error instead of
+// dereferencing a null pointer.
+TEST_F(PHTDescriptionTests, movedFromDescriptionThrowsInsteadOfCrashing) {
+	PHTDescription source(phSampleXML);
+	PHTDescription moved(std::move(source));
+	EXPECT_THROW(source.getRoot(), slideio::RuntimeError);
+}
+
+// The metadata generated by MockSVSSlide::createFakeXml has to be readable by
+// the parser it is meant to feed.
+TEST_F(PHTDescriptionTests, createFakeXmlDefaultsDescribeAWholeSlideImage) {
+	PHTDescription description(MockSVSSlide::createFakeXml());
+	EXPECT_EQ("PHILIPS", description.getAttributeText(description.getRoot(), MANUFACTURER));
+	EXPECT_EQ("5.0", description.getAttributeText(description.getRoot(), UFS_INTERFACE_VERSION));
+
+	const std::vector<tinyxml2::XMLElement*> images =
+		description.getObjectList(description.getRoot(), SCANNED_IMAGE);
+	ASSERT_EQ(1u, images.size());
+	EXPECT_EQ(WSI, description.getAttributeText(images[0], IMAGE_TYPE));
+	EXPECT_EQ(91136, description.getAttributeInt(images[0], IMAGE_COLUMNS));
+	EXPECT_EQ(68096, description.getAttributeInt(images[0], IMAGE_ROWS));
+	EXPECT_EQ(3, description.getAttributeInt(images[0], SAMPLES_PER_PIXEL));
+	EXPECT_EQ(8, description.getAttributeInt(images[0], BITS_ALLOCATED));
+	EXPECT_EQ(7, description.getAttributeInt(images[0], HIGH_BIT));
+	EXPECT_EQ("RGB", description.getAttributeText(images[0], PHOTOMETRIC_INTERPRETATION));
+	EXPECT_EQ(9u, description.getObjectList(images[0], PIXEL_DATA_REPRESENTATION).size());
+}
+
+// Every level halves the size of the previous one and doubles its pixel spacing.
+TEST_F(PHTDescriptionTests, createFakeXmlBuildsTheRequestedPyramid) {
+	PHTDescription description(MockSVSSlide::createFakeXml(1024, 512, 3));
+	const std::vector<tinyxml2::XMLElement*> images =
+		description.getObjectList(description.getRoot(), SCANNED_IMAGE);
+	ASSERT_EQ(1u, images.size());
+	const std::vector<tinyxml2::XMLElement*> levels =
+		description.getObjectList(images[0], PIXEL_DATA_REPRESENTATION);
+	ASSERT_EQ(3u, levels.size());
+
+	const int widths[] = { 1024, 512, 256 };
+	const int heights[] = { 512, 256, 128 };
+	const double spacing[] = { 0.00025, 0.0005, 0.001 };
+	for (int level = 0; level < 3; ++level) {
+		EXPECT_EQ(level, description.getAttributeInt(levels[level], LEVEL_NUMBER));
+		EXPECT_EQ(widths[level], description.getAttributeInt(levels[level], LEVEL_COLUMNS));
+		EXPECT_EQ(heights[level], description.getAttributeInt(levels[level], LEVEL_ROWS));
+		const std::vector<double> resolution = description.getAttributeDoubleList(levels[level], IMAGE_RESOLUTION);
+		ASSERT_EQ(2u, resolution.size());
+		EXPECT_DOUBLE_EQ(spacing[level], resolution[0]);
+		EXPECT_DOUBLE_EQ(spacing[level], resolution[1]);
+		EXPECT_EQ(3u, description.getAttributeDoubleList(levels[level], LEVEL_POSITION).size());
+	}
+}
+
+// Auxiliary images follow the whole slide image and carry their raster inline.
+TEST_F(PHTDescriptionTests, createFakeXmlAppendsAuxiliaryImages) {
+	PHTDescription description(MockSVSSlide::createFakeXml(1024, 1024, 2, { "LABELIMAGE", "MACROIMAGE" }));
+	const std::vector<tinyxml2::XMLElement*> images =
+		description.getObjectList(description.getRoot(), SCANNED_IMAGE);
+	ASSERT_EQ(3u, images.size());
+	EXPECT_EQ(WSI, description.getAttributeText(images[0], IMAGE_TYPE));
+	EXPECT_FALSE(description.hasAttribute(images[0], IMAGE_DATA));
+
+	EXPECT_EQ("LABELIMAGE", description.getAttributeText(images[1], IMAGE_TYPE));
+	EXPECT_TRUE(description.hasAttribute(images[1], IMAGE_DATA));
+	EXPECT_FALSE(description.getAttributeText(images[1], IMAGE_DATA).empty());
+	EXPECT_TRUE(description.getObjectList(images[1], PIXEL_DATA_REPRESENTATION).empty());
+
+	EXPECT_EQ("MACROIMAGE", description.getAttributeText(images[2], IMAGE_TYPE));
+	EXPECT_TRUE(description.hasAttribute(images[2], IMAGE_DATA));
+}
+
+// A slide without a pyramid is still valid metadata.
+TEST_F(PHTDescriptionTests, createFakeXmlSupportsAnEmptyPyramid) {
+	PHTDescription description(MockSVSSlide::createFakeXml(256, 256, 0));
+	const std::vector<tinyxml2::XMLElement*> images =
+		description.getObjectList(description.getRoot(), SCANNED_IMAGE);
+	ASSERT_EQ(1u, images.size());
+	EXPECT_TRUE(description.getObjectList(images[0], PIXEL_DATA_REPRESENTATION).empty());
+	EXPECT_EQ(256, description.getAttributeInt(images[0], IMAGE_COLUMNS));
+}
+
+// Levels never collapse to a zero size, however deep the pyramid is.
+TEST_F(PHTDescriptionTests, createFakeXmlClampsLevelSizeToOnePixel) {
+	PHTDescription description(MockSVSSlide::createFakeXml(4, 2, 5));
+	const std::vector<tinyxml2::XMLElement*> images =
+		description.getObjectList(description.getRoot(), SCANNED_IMAGE);
+	ASSERT_EQ(1u, images.size());
+	const std::vector<tinyxml2::XMLElement*> levels =
+		description.getObjectList(images[0], PIXEL_DATA_REPRESENTATION);
+	ASSERT_EQ(5u, levels.size());
+	EXPECT_EQ(1, description.getAttributeInt(levels[4], LEVEL_COLUMNS));
+	EXPECT_EQ(1, description.getAttributeInt(levels[4], LEVEL_ROWS));
+}

@@ -9,10 +9,13 @@
 #include "slideio/imagetools/tifftools.hpp"
 #include "slideio/core/metadata_internal.hpp"
 #include "slideio/base/log.hpp"
+#include "slideio/drivers/svs/phtdescription.hpp"
 
 #include <filesystem>
 #include <fstream>
 #include <tinyxml2.h>
+
+#include "slideio/core/tools/tools.hpp"
 
 
 using namespace slideio;
@@ -128,28 +131,41 @@ void SVSSlide::initSVS(const std::vector<TiffDirectory>& directories, libtiff::T
     }
 }
 
+
 void SVSSlide::phExtractImages(const std::vector<TiffDirectory>& directories, std::list<int>& imagePyramid,
     std::map<std::string, int>& auxImages) {
+	if (directories.empty()) {
+		RAISE_RUNTIME_ERROR << "SVSSlide::phExtractImages: empty directory list!";
+	}
+    const TiffDirectory& dir = directories.front();
+    PHTDescription description(dir.description);
+    std::vector<tinyxml2::XMLElement*> images = description.getObjectList(description.getRoot(), SCANNED_IMAGE);
+    // directory mapping now assumes the TIFF lays out directories exactly as the XML declares them
+    int dirIndex = 0;
     std::list<std::pair<int, int>> imageWidthMap;
-    for (size_t dirIndex=0; dirIndex<directories.size(); dirIndex++) {
-        const TiffDirectory& directory = directories[dirIndex];
-		const std::string& description = directory.description;
-		if (description.find("<?xml") != std::string::npos || description.find("level") != std::string::npos) {
-            imageWidthMap.emplace_back(static_cast<int>(dirIndex), directory.width);
-		} else if (description.empty()) {
-			SLIDEIO_LOG(WARNING) << "SVSSlide::phExtractImages: skipping auxiliary directory " << dirIndex
-				<< " with empty description";
-		} else if (!auxImages.emplace(description, static_cast<int>(dirIndex)).second) {
-			SLIDEIO_LOG(WARNING) << "SVSSlide::phExtractImages: duplicate auxiliary image description '"
-				<< description << "' at directory " << dirIndex << "; keeping directory "
-				<< auxImages.at(description);
+    for (const tinyxml2::XMLElement* image :images) {
+        if (dirIndex>=directories.size()) {
+            break;
+        }
+        const std::string imageType = description.getAttributeText(image, IMAGE_TYPE);
+        if (imageType == WSI) {
+			std::vector<tinyxml2::XMLElement*> levels = description.getObjectList(image, PIXEL_DATA_REPRESENTATION);
+            for (tinyxml2::XMLElement* level : levels) {
+                if (dirIndex>=directories.size()) {
+                    break;
+                }
+                int levelIndex = description.getAttributeInt(level, LEVEL_NUMBER);
+                imageWidthMap.emplace_back(dirIndex, levelIndex);
+                ++dirIndex;
+            }
+        } else {
+            auxImages.emplace(imageType, dirIndex);
+            ++dirIndex;
         }
     }
-
-	imageWidthMap.sort([](const std::pair<int, int>& a, const std::pair<int, int>& b) {
-		return a.second > b.second;
-		});
-
+    imageWidthMap.sort([](const std::pair<int, int>& a, const std::pair<int, int>& b) {
+    	return a.second < b.second;
+    });
     for (const auto& pair : imageWidthMap) {
         imagePyramid.push_back(pair.first);
     }

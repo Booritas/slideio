@@ -21,6 +21,8 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/svstiledscene.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/svstools.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/svstools.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/phtdescription.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/phtdescription.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/svs_api_def.hpp
    )
 

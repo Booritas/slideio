@@ -16,6 +16,8 @@
 #include "slideio/core/tools/cvtools.hpp"
 #include <tinyxml2.h>
 
+#include "phtdescription.hpp"
+
 using namespace slideio;
 
 
@@ -56,69 +58,35 @@ void SVSTiledScene::processImageDescriptionSVS() {
 void SVSTiledScene::processImageDescriptionPhTiff() {
     if (m_directories.empty()) {
         RAISE_RUNTIME_ERROR <<
-            "SVSTiledScene::initialize: directories are empty, scene initialization may be incorrect";
+            "SVSTiledScene::processImageDescriptionPhTiff: directories are empty, cannot construct scene.";
     }
     auto& dir = m_directories.front();
-    const std::string& description = dir.description;
-    std::shared_ptr<tinyxml2::XMLDocument> doc = std::make_shared<tinyxml2::XMLDocument>(new tinyxml2::XMLDocument);
+    PHTDescription description(dir.description);
 
-    tinyxml2::XMLError error = doc->Parse(description.c_str(), description.size());
-    if (error != tinyxml2::XML_SUCCESS) {
-        RAISE_RUNTIME_ERROR << "SVSTiledScene::openFile: error parsing philips xml metadata.";
-    }
+#if defined(_DEBUG)
+    //std::string fileName = std::filesystem::path(m_filePath).stem().string();
+    //std::string xmlPath = "D:/Temp/" + fileName + ".xml";
+    //description.getDocument()->SaveFile(xmlPath.c_str());
+#endif
 
-    tinyxml2::XMLElement* root = doc->RootElement();
-    if (!root) {
-        RAISE_RUNTIME_ERROR << "SVSTiledScene: Invalid xml metadata.";
-    }
-    constexpr char* SCANNED_IMAGE = "PIM_DP_SCANNED_IMAGES";
-    const size_t nameLen = strlen(SCANNED_IMAGE);
-
-    bool found = false;
-    for (tinyxml2::XMLElement* attribute = root->FirstChildElement("Attribute");
-         attribute != nullptr;
-         attribute = attribute->NextSiblingElement("Attribute")) {
-        if (const char* id = attribute->Attribute("Name")) {
-            if (id != nullptr && strncmp(id, SCANNED_IMAGE, nameLen) == 0) {
-                auto array = attribute->FirstChildElement("Array");
-                if (array) {
-                    for (tinyxml2::XMLElement* dataObject = array->FirstChildElement("DataObject");
-                         !found && dataObject != nullptr;
-                         dataObject = dataObject->NextSiblingElement("DataObject")) {
-                        auto objType = dataObject->Attribute("ObjectType");
-                        if (objType && strcmp(objType, "DPScannedImage") == 0) {
-                            for (tinyxml2::XMLElement* objAttribute = dataObject->FirstChildElement("Attribute");
-                                 !found && objAttribute != nullptr;
-                                 objAttribute = objAttribute->NextSiblingElement("Attribute")) {
-                                auto objAttributeName = objAttribute->Attribute("Name");
-                                if (objAttributeName != nullptr && strcmp(objAttributeName, "DICOM_PIXEL_SPACING") == 0) {
-                                    auto objAttributeType = objAttribute->Attribute("PMSVR");
-                                    found = true;
-                                    if (objAttributeType != nullptr && strcmp(objAttributeType, "IDoubleArray") == 0) {
-                                        auto objAttributeValue = objAttribute->GetText();
-                                        if (objAttributeValue != nullptr) {
-                                            // The value is a pair of quoted doubles, e.g.
-                                            // "0.000226891" "0.000226907". Strip the quotes and
-                                            // read the two numbers.
-                                            std::string spacing(objAttributeValue);
-                                            std::replace(spacing.begin(), spacing.end(), '"', ' ');
-                                            std::istringstream stream(spacing);
-                                            double x = 0., y = 0.;
-                                            if (stream >> x >> y) {
-                                                m_resolution = { x, y };
-                                            }
-                                        }
-                                    } else {
-                                        SLIDEIO_LOG(WARNING) << "Not supported type of DICOM_PIXEL_SPACING attribute: " << objAttributeType;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+    std::vector<tinyxml2::XMLElement*> images = description.getObjectList(description.getRoot(), SCANNED_IMAGE);
+    for (const tinyxml2::XMLElement* image : images) {
+        const std::string imageType = description.getAttributeText(image, IMAGE_TYPE);
+        if (imageType == WSI) {
+            try {
+                std::vector<double> resolutions = description.getAttributeDoubleList(image, IMAGE_RESOLUTION);
+                if (resolutions.size() >= 2) {
+                    m_resolution = { resolutions[0] * 1.e-3, resolutions[1] * 1.e-3 };
+				}
+				else {
+                    SLIDEIO_LOG(WARNING) << "Unexpected DICOM_PIXEL_SPACING value count: " << resolutions.size();
+				}
+            } catch (std::exception& e) {
+                SLIDEIO_LOG(WARNING) << "Cannot extract image resolution: " << e.what();
             }
         }
     }
+
 }
 
 void SVSTiledScene::initialize() {
