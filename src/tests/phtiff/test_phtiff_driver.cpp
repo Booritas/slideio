@@ -136,11 +136,11 @@ static int phLevelSize(int size, int level) {
 class MockSVSSlide : public SVSSlide
 {
 public:
-	static void phExtractImagesMock(const std::vector<TiffDirectory>& directories, std::list<int>& imagePyramid,
+	static void phExtractImagesMock(const std::vector<TiffDirectory>& directories, std::vector<PHTLevel>& imagePyramid,
 		std::map<std::string, int>& auxImages) {
 		phExtractImages(directories, imagePyramid, auxImages);
 	}
-	void phCreateImageSceneMock(const std::vector<TiffDirectory>& directories, const std::list<int>& imagePyramid,
+	void phCreateImageSceneMock(const std::vector<TiffDirectory>& directories, const std::vector<PHTLevel>& imagePyramid,
 		libtiff::TIFF* hFile) {
 		phCreateImageScene(directories, imagePyramid, hFile);
 	}
@@ -219,6 +219,16 @@ private:
 };
 
 const std::string MockSVSSlide::fakeXML = "<?xml version=\"1.0\"?><DataObject ObjectType=\"DPUfsImport\"/>";
+
+// The tiff directory indices of a pyramid, in level order.
+static std::vector<int> phDirIndices(const std::vector<PHTLevel>& imagePyramid) {
+	std::vector<int> indices;
+	indices.reserve(imagePyramid.size());
+	for (const PHTLevel& level : imagePyramid) {
+		indices.push_back(level.dirIndex);
+	}
+	return indices;
+}
 
 // Builds a TiffDirectory carrying just the fields phExtractImages inspects.
 static TiffDirectory makeDir(const std::string& description, int width) {
@@ -319,12 +329,13 @@ TEST_F(PhTiffImageDriverTests, phExtractImages_extractsAuxImages) {
 		makeDir("Macro", 791),
 		makeDir("Label", 387),
 	};
-	std::list<int> imagePyramid;
+	std::vector<PHTLevel> imagePyramid;
 	std::map<std::string, int> auxImages;
 
 	MockSVSSlide::phExtractImagesMock(directories, imagePyramid, auxImages);
 
-	EXPECT_EQ((std::list<int>{0, 1, 2}), imagePyramid);
+	EXPECT_EQ((std::vector<int>{0, 1, 2}), phDirIndices(imagePyramid));
+	EXPECT_EQ((std::vector<PHTLevel>{{0, 0}, {1, 1}, {2, 2}}), imagePyramid);
 	ASSERT_EQ(2u, auxImages.size());
 	EXPECT_EQ(3, auxImages.at("Macro"));
 	EXPECT_EQ(4, auxImages.at("Label"));
@@ -339,12 +350,12 @@ TEST_F(PhTiffImageDriverTests, phExtractImages_classifiesBySubstring) {
 		makeDir("level=1 mag=22 quality=80", 65536),
 		makeDir("Thumbnail", 256),
 	};
-	std::list<int> imagePyramid;
+	std::vector<PHTLevel> imagePyramid;
 	std::map<std::string, int> auxImages;
 
 	MockSVSSlide::phExtractImagesMock(directories, imagePyramid, auxImages);
 
-	EXPECT_EQ((std::list<int>{0, 1}), imagePyramid);
+	EXPECT_EQ((std::vector<int>{0, 1}), phDirIndices(imagePyramid));
 	ASSERT_EQ(1u, auxImages.size());
 	EXPECT_EQ(2, auxImages.at("Thumbnail"));
 }
@@ -358,12 +369,12 @@ TEST_F(PhTiffImageDriverTests, phExtractImages_duplicateAuxDescriptionKeepsFirst
 		makeDir("Macro", 791),     // index 1, kept
 		makeDir("Macro", 400),     // index 2, duplicate -> dropped
 	};
-	std::list<int> imagePyramid;
+	std::vector<PHTLevel> imagePyramid;
 	std::map<std::string, int> auxImages;
 
 	MockSVSSlide::phExtractImagesMock(directories, imagePyramid, auxImages);
 
-	EXPECT_EQ((std::list<int>{0}), imagePyramid);
+	EXPECT_EQ((std::vector<int>{0}), phDirIndices(imagePyramid));
 	ASSERT_EQ(1u, auxImages.size());
 	EXPECT_EQ(1, auxImages.at("Macro"));
 }
@@ -371,7 +382,7 @@ TEST_F(PhTiffImageDriverTests, phExtractImages_duplicateAuxDescriptionKeepsFirst
 // Empty input yields empty outputs and does not touch the caller's containers.
 TEST_F(PhTiffImageDriverTests, phExtractImages_emptyInput) {
 	const std::vector<TiffDirectory> directories;
-	std::list<int> imagePyramid;
+	std::vector<PHTLevel> imagePyramid;
 	std::map<std::string, int> auxImages;
 
 	EXPECT_THROW(MockSVSSlide::phExtractImagesMock(directories, imagePyramid, auxImages), slideio::RuntimeError);
@@ -388,7 +399,7 @@ TEST_F(PhTiffImageDriverTests, phCreateImageScene_createsSingleImageScene) {
 		makeImageDir("level=1 mag=22 quality=80", 22528, 17920),
 		makeImageDir("level=2 mag=11 quality=80", 11264, 9216),
 	};
-	const std::list<int> imagePyramid = { 0, 1, 2 };
+	const std::vector<PHTLevel> imagePyramid = { {0, 0}, {1, 1}, {2, 2} };
 
 	MockSVSSlide slide;
 	slide.phCreateImageSceneMock(directories, imagePyramid, nullptr);
@@ -413,7 +424,7 @@ TEST_F(PhTiffImageDriverTests, phCreateImageScene_usesPyramidIndicesInOrder) {
 		makeImageDir("level=1 mag=22 quality=80", 22528, 17920), // index 1 (unused)
 		makeImageDir("level=2 mag=11 quality=80", 11264, 9216),  // index 2
 	};
-	const std::list<int> imagePyramid = { 2, 0 };  // base = dir 2
+	const std::vector<PHTLevel> imagePyramid = { {2, 0}, {0, 1} };  // base = dir 2
 
 	MockSVSSlide slide;
 	slide.phCreateImageSceneMock(directories, imagePyramid, nullptr);
@@ -422,6 +433,115 @@ TEST_F(PhTiffImageDriverTests, phCreateImageScene_usesPyramidIndicesInOrder) {
 	const cv::Rect rect = slide.getScene(0)->getRect();
 	EXPECT_EQ(11264, rect.width);   // dir 2, first in the list
 	EXPECT_EQ(9216, rect.height);
+}
+
+// Philips stores every zoom level padded up to a whole number of tiles, so the
+// stored directory is larger than the image it holds: level 2 of Philips-4.tiff is
+// a 23040x17408 directory carrying a 22784x17024 image. The padding is not image
+// data. Each level must report the size of its content and the downsample the
+// philips metadata assigns to it (2^-levelNumber), not the padded directory size --
+// otherwise the scale of the level is off by the padding (1% at level 2, 44% at
+// level 8) and every block read from it comes back shifted and stretched.
+TEST_F(PhTiffImageDriverTests, phCreateImageScene_cropsTilePaddingOfZoomLevels) {
+	const std::string xml = MockSVSSlide::createFakeXml(91136, 68096, 3, {});
+	const std::vector<TiffDirectory> directories = {
+		makeImageDir(xml, 91136, 68096),                          // level 0, not padded
+		makeImageDir("level=1 mag=20 quality=80", 45568, 34304),   // holds 45568x34048
+		makeImageDir("level=2 mag=10 quality=80", 23040, 17408),   // holds 22784x17024
+	};
+	const std::vector<PHTLevel> imagePyramid = { {0, 0}, {1, 1}, {2, 2} };
+
+	MockSVSSlide slide;
+	slide.phCreateImageSceneMock(directories, imagePyramid, nullptr);
+
+	ASSERT_EQ(1, slide.getNumScenes());
+	auto scene = slide.getScene(0);
+	ASSERT_TRUE(scene != nullptr);
+	// The base level is not padded, so the scene rect is unchanged.
+	EXPECT_EQ(91136, scene->getRect().width);
+	EXPECT_EQ(68096, scene->getRect().height);
+	ASSERT_EQ(3, scene->getNumZoomLevels());
+
+	const int widths[] = { 91136, 45568, 22784 };
+	const int heights[] = { 68096, 34048, 17024 };
+	for (int level = 0; level < 3; ++level) {
+		const LevelInfo* info = scene->getZoomLevelInfo(level);
+		ASSERT_TRUE(info != nullptr) << "level " << level;
+		EXPECT_EQ(widths[level], info->getSize().width) << "level " << level;
+		EXPECT_EQ(heights[level], info->getSize().height) << "level " << level;
+		EXPECT_DOUBLE_EQ(1. / (1 << level), info->getScale()) << "level " << level;
+	}
+}
+
+// The same padding on a real file: the levels of Philips-3.tiff are padded in
+// height from level 3 down (level 8 is a 512x512 directory holding 512x392).
+TEST_F(PhTiffImageDriverTests, zoomLevelsOfPhilips3ExcludeTilePadding) {
+	const std::string filePath = TestTools::getFullTestImagePath("philips", "Philips-3.tiff");
+	auto slide = slideio::openSlide(filePath, "PHTIFF");
+	ASSERT_TRUE(slide != nullptr);
+	auto scene = slide->getScene(0);
+	ASSERT_TRUE(scene != nullptr);
+	ASSERT_EQ(9, scene->getNumZoomLevels());
+
+	const int widths[] = { 131072, 65536, 32768, 16384, 8192, 4096, 2048, 1024, 512 };
+	const int heights[] = { 100352, 50176, 25088, 12544, 6272, 3136, 1568, 784, 392 };
+	for (int level = 0; level < 9; ++level) {
+		const LevelInfo* info = scene->getLevelInfo(level);
+		ASSERT_TRUE(info != nullptr) << "level " << level;
+		EXPECT_EQ(level, info->getLevel());
+		EXPECT_EQ(widths[level], info->getSize().width) << "level " << level;
+		EXPECT_EQ(heights[level], info->getSize().height) << "level " << level;
+		EXPECT_DOUBLE_EQ(1. / (1 << level), info->getScale()) << "level " << level;
+	}
+}
+
+// The mean absolute difference of two rasters of the same size and type.
+static double phMeanAbsDiff(const cv::Mat& first, const cv::Mat& second) {
+	cv::Mat diff;
+	cv::absdiff(first, second, diff);
+	return cv::mean(diff)[0];
+}
+
+// A read served from a padded zoom level has to map scene coordinates onto the
+// content of the level and not onto its tile padding. The same region of
+// Philips-3.tiff is read twice: once at zoom 1/4, which is served from level 2 (an
+// unpadded level, hence a trustworthy reference), and once at zoom 1/64, which is
+// served from level 6 (a 2048x2048 directory holding 2048x1568 pixels). Reduced to a
+// common size the two rasters have to agree apart from jpeg noise and resampling.
+//
+// The region is deliberately far down the slide and rich in contrast: the padding
+// error grows with the distance from the origin, and at y=70000 counting the padding
+// as image data displaces the read by some 437 rows of level 6 -- a different part of
+// the slide altogether. A whole slide read cannot serve as the probe here, because
+// every level it could be served from is padded by the same proportion, so two such
+// reads agree with each other while both being wrong.
+TEST_F(PhTiffImageDriverTests, readFromPaddedZoomLevelMatchesUnpaddedLevel) {
+	const std::string filePath = TestTools::getFullTestImagePath("philips", "Philips-3.tiff");
+	SVSImageDriver driver("PHTIFF");
+	auto slide = driver.openFile(filePath);
+	ASSERT_TRUE(slide != nullptr);
+	auto scene = slide->getScene(0);
+	ASSERT_TRUE(scene != nullptr);
+	const cv::Rect blockRect = { 20000, 70000, 8192, 4096 };
+	const cv::Size probeSize = { 128, 64 };
+
+	cv::Mat reference, probe;
+	scene->readResampledBlock(blockRect, cv::Size(2048, 1024), reference);  // level 2
+	scene->readResampledBlock(blockRect, probeSize, probe);                 // level 6
+	ASSERT_EQ(probeSize, probe.size());
+	// Guard the premise of the comparison: a flat region would match anything.
+	cv::Scalar mean, stddev;
+	cv::meanStdDev(reference, mean, stddev);
+	ASSERT_GT(stddev[0], 20.) << "the reference region carries too little contrast to compare";
+
+	cv::Mat referenceResized;
+	cv::resize(reference, referenceResized, probeSize, 0., 0., cv::INTER_AREA);
+	// Philips regenerates every level with quality 80 jpeg, so rasters of the same area
+	// taken from different levels never match exactly: measured on this region, two
+	// *unpadded* levels (0 and 2) already differ by 20. The threshold sits above that
+	// inherent noise and far below the 66 that counting the padding as image data
+	// produces -- it is a check of the coordinate mapping, not of codec fidelity.
+	EXPECT_LT(phMeanAbsDiff(probe, referenceResized), 25.);
 }
 
 // phCreateAuxScenes turns each (description -> directory index) entry into a

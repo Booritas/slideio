@@ -11,6 +11,7 @@
 #include "slideio/base/log.hpp"
 #include "slideio/drivers/svs/phtdescription.hpp"
 
+#include <algorithm>
 #include <filesystem>
 #include <fstream>
 #include <tinyxml2.h>
@@ -23,6 +24,63 @@ using namespace slideio;
 const char* THUMBNAIL = "Thumbnail";
 const char* MACRO = "Macro";
 const char* LABEL = "Label";
+
+namespace
+{
+    // The largest level number the padding can be computed for: 1 << levelNumber has to
+    // stay in range.
+    const int PH_MAX_LEVEL_NUMBER = 30;
+
+    // A philips zoom level covers the same area as the base level downsampled by
+    // 2^levelNumber, rounded up to a whole pixel.
+    cv::Size phLevelContentSize(const cv::Size& baseSize, int levelNumber) {
+        const int divisor = 1 << levelNumber;
+        return {
+            (baseSize.width + divisor - 1) / divisor,
+            (baseSize.height + divisor - 1) / divisor
+        };
+    }
+
+    // Philips stores every zoom level padded up to a whole number of tiles, so a level
+    // directory is larger than the image it holds: level 8 of Philips-3.tiff is a 512x512
+    // directory carrying a 512x392 image. The padding is not image data: left in place it
+    // corrupts the scale of the level (44% at level 8 of Philips-4.tiff) and every block
+    // read from it. Shrink the directories to the size of their content; the number of
+    // tiles is not affected because the padding never exceeds one tile.
+    void phCropLevelPadding(const std::vector<slideio::PHTLevel>& imagePyramid,
+                            std::vector<slideio::TiffDirectory>& dirs) {
+        if (imagePyramid.empty()) {
+            return;
+        }
+        // The levels are sorted by level number and the base level is the reference: it is
+        // stored unpadded, as the image size of the philips metadata confirms.
+        if (imagePyramid.front().levelNumber != 0) {
+            SLIDEIO_LOG(WARNING) << "SVSSlide: philips zoom level 0 is missing."
+                " Tile padding of the zoom levels cannot be cropped.";
+            return;
+        }
+        const cv::Size baseSize = {dirs.front().width, dirs.front().height};
+        for (size_t index = 0; index < imagePyramid.size(); ++index) {
+            const int levelNumber = imagePyramid[index].levelNumber;
+            slideio::TiffDirectory& dir = dirs[index];
+            if (levelNumber < 0 || levelNumber > PH_MAX_LEVEL_NUMBER) {
+                SLIDEIO_LOG(WARNING) << "SVSSlide: unexpected philips zoom level number "
+                    << levelNumber << ". Tile padding of the level is not cropped.";
+                continue;
+            }
+            const cv::Size contentSize = phLevelContentSize(baseSize, levelNumber);
+            if (contentSize.width > dir.width || contentSize.height > dir.height) {
+                SLIDEIO_LOG(WARNING) << "SVSSlide: philips zoom level " << levelNumber
+                    << " is expected to be at least " << contentSize.width << "x" << contentSize.height
+                    << " but the tiff directory is " << dir.width << "x" << dir.height
+                    << ". Tile padding of the level is not cropped.";
+                continue;
+            }
+            dir.width = contentSize.width;
+            dir.height = contentSize.height;
+        }
+    }
+}
 
 
 SVSSlide::SVSSlide()
@@ -132,7 +190,7 @@ void SVSSlide::initSVS(const std::vector<TiffDirectory>& directories, libtiff::T
 }
 
 
-void SVSSlide::phExtractImages(const std::vector<TiffDirectory>& directories, std::list<int>& imagePyramid,
+void SVSSlide::phExtractImages(const std::vector<TiffDirectory>& directories, std::vector<PHTLevel>& imagePyramid,
     std::map<std::string, int>& auxImages) {
 	if (directories.empty()) {
 		RAISE_RUNTIME_ERROR << "SVSSlide::phExtractImages: empty directory list!";
@@ -142,7 +200,6 @@ void SVSSlide::phExtractImages(const std::vector<TiffDirectory>& directories, st
     std::vector<tinyxml2::XMLElement*> images = description.getObjectList(description.getRoot(), SCANNED_IMAGE);
     // directory mapping now assumes the TIFF lays out directories exactly as the XML declares them
     int dirIndex = 0;
-    std::list<std::pair<int, int>> imageWidthMap;
     for (const tinyxml2::XMLElement* image :images) {
         if (dirIndex>=directories.size()) {
             break;
@@ -154,8 +211,10 @@ void SVSSlide::phExtractImages(const std::vector<TiffDirectory>& directories, st
                 if (dirIndex>=directories.size()) {
                     break;
                 }
-                int levelIndex = description.getAttributeInt(level, LEVEL_NUMBER);
-                imageWidthMap.emplace_back(dirIndex, levelIndex);
+                PHTLevel pyramidLevel;
+                pyramidLevel.dirIndex = dirIndex;
+                pyramidLevel.levelNumber = description.getAttributeInt(level, LEVEL_NUMBER);
+                imagePyramid.push_back(pyramidLevel);
                 ++dirIndex;
             }
         } else {
@@ -163,21 +222,19 @@ void SVSSlide::phExtractImages(const std::vector<TiffDirectory>& directories, st
             ++dirIndex;
         }
     }
-    imageWidthMap.sort([](const std::pair<int, int>& a, const std::pair<int, int>& b) {
-    	return a.second < b.second;
+    std::sort(imagePyramid.begin(), imagePyramid.end(), [](const PHTLevel& a, const PHTLevel& b) {
+    	return a.levelNumber < b.levelNumber;
     });
-    for (const auto& pair : imageWidthMap) {
-        imagePyramid.push_back(pair.first);
-    }
 }
 
-void SVSSlide::phCreateImageScene(const std::vector<TiffDirectory>& directories, const std::list<int>& imagePyramid,
+void SVSSlide::phCreateImageScene(const std::vector<TiffDirectory>& directories, const std::vector<PHTLevel>& imagePyramid,
     libtiff::TIFF* hFile) {
     std::vector<TiffDirectory> image_dirs;
     image_dirs.reserve(imagePyramid.size());
-    for (const auto index : imagePyramid) {
-        image_dirs.push_back(directories[index]);
+    for (const auto& level : imagePyramid) {
+        image_dirs.push_back(directories[level.dirIndex]);
     }
+    phCropLevelPadding(imagePyramid, image_dirs);
     std::shared_ptr<SVSTiledScene> tScene(new SVSTiledScene(m_filePath, getDriverId(), hFile, "Image", image_dirs));
     tScene->setDriverId(m_driverId);
     std::shared_ptr<CVScene> scene(tScene);
@@ -199,7 +256,7 @@ void SVSSlide::phCreateAuxScenes(const std::vector<TiffDirectory>& directories,
 }
 
 void SVSSlide::initPhTiff(const std::vector<TiffDirectory>& directories, libtiff::TIFF* hFile) {
-    std::list<int> imagePyramid;
+    std::vector<PHTLevel> imagePyramid;
 	std::map<std::string, int> auxImages;
 	phExtractImages(directories, imagePyramid, auxImages);
 	phCreateImageScene(directories, imagePyramid, hFile);
