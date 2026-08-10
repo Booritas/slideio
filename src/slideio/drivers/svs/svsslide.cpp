@@ -12,6 +12,7 @@
 #include "slideio/drivers/svs/phtdescription.hpp"
 
 #include <algorithm>
+#include <cctype>
 #include <filesystem>
 #include <fstream>
 #include <tinyxml2.h>
@@ -30,6 +31,79 @@ namespace
     // The largest level number the padding can be computed for: 1 << levelNumber has to
     // stay in range.
     const int PH_MAX_LEVEL_NUMBER = 30;
+
+    // A zoom level as the philips metadata declares it.
+    struct PHDeclaredLevel
+    {
+        int levelNumber = 0;
+        cv::Size size = {};
+    };
+
+    bool phEqualIgnoreCase(const std::string& first, const std::string& second) {
+        if (first.size() != second.size()) {
+            return false;
+        }
+        for (size_t index = 0; index < first.size(); ++index) {
+            if (std::tolower(static_cast<unsigned char>(first[index]))
+                != std::tolower(static_cast<unsigned char>(second[index]))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // Philips names an auxiliary image in the description of the tiff directory that
+    // holds it, sometimes followed by acquisition parameters:
+    // "Macro -offset=(0,0)-pixelsize=(0.0315,0.0315)-rois=(...)". Only the leading word
+    // names the image. The kinds slideio knows get the name the other drivers use for
+    // them, so that a caller does not have to special case the philips spelling.
+    std::string phAuxImageName(const std::string& description) {
+        const size_t begin = description.find_first_not_of(" \t\r\n");
+        if (begin == std::string::npos) {
+            return std::string();
+        }
+        const size_t end = description.find_first_of(" \t\r\n", begin);
+        const std::string word = description.substr(begin,
+            (end == std::string::npos) ? std::string::npos : end - begin);
+        const char* kinds[] = {THUMBNAIL, MACRO, LABEL};
+        for (const char* kind : kinds) {
+            if (phEqualIgnoreCase(word, kind)) {
+                return kind;
+            }
+        }
+        return word;
+    }
+
+    // The zoom levels the philips metadata declares for the whole slide image, ordered by
+    // level number. The declared size is optional: it is only used to check the level
+    // against the tiff directory it is assigned to.
+    std::vector<PHDeclaredLevel> phDeclaredLevels(slideio::PHTDescription& description) {
+        std::vector<PHDeclaredLevel> levels;
+        for (const tinyxml2::XMLElement* image :
+             description.getObjectList(description.getRoot(), slideio::SCANNED_IMAGE)) {
+            if (!description.hasAttribute(image, slideio::IMAGE_TYPE)
+                || description.getAttributeText(image, slideio::IMAGE_TYPE) != slideio::WSI) {
+                continue;
+            }
+            for (const tinyxml2::XMLElement* level :
+                 description.getObjectList(image, slideio::PIXEL_DATA_REPRESENTATION)) {
+                PHDeclaredLevel declared;
+                declared.levelNumber = description.getAttributeInt(level, slideio::LEVEL_NUMBER);
+                if (description.hasAttribute(level, slideio::LEVEL_COLUMNS)
+                    && description.hasAttribute(level, slideio::LEVEL_ROWS)) {
+                    declared.size = {
+                        description.getAttributeInt(level, slideio::LEVEL_COLUMNS),
+                        description.getAttributeInt(level, slideio::LEVEL_ROWS)
+                    };
+                }
+                levels.push_back(declared);
+            }
+        }
+        std::sort(levels.begin(), levels.end(), [](const PHDeclaredLevel& a, const PHDeclaredLevel& b) {
+            return a.levelNumber < b.levelNumber;
+        });
+        return levels;
+    }
 
     // A philips zoom level covers the same area as the base level downsampled by
     // 2^levelNumber, rounded up to a whole pixel.
@@ -195,36 +269,59 @@ void SVSSlide::phExtractImages(const std::vector<TiffDirectory>& directories, st
 	if (directories.empty()) {
 		RAISE_RUNTIME_ERROR << "SVSSlide::phExtractImages: empty directory list!";
 	}
-    const TiffDirectory& dir = directories.front();
-    PHTDescription description(dir.description);
-    std::vector<tinyxml2::XMLElement*> images = description.getObjectList(description.getRoot(), SCANNED_IMAGE);
-    // directory mapping now assumes the TIFF lays out directories exactly as the XML declares them
-    int dirIndex = 0;
-    for (const tinyxml2::XMLElement* image :images) {
-        if (dirIndex>=directories.size()) {
-            break;
+    // Every tiff directory says what it is: philips stores the zoom levels of the pyramid
+    // tiled, and the auxiliary images striped and named by their description. The philips
+    // metadata must not be used as an index into the file. It declares images the tiff
+    // does not store -- Philips-4.tiff declares a label image and stores only the macro --
+    // and it declares them in an order of its own, so walking the two side by side hands
+    // out the macro raster under the name of the label.
+    std::vector<int> levelDirs;
+    for (int index = 0; index < static_cast<int>(directories.size()); ++index) {
+        const TiffDirectory& dir = directories[index];
+        if (dir.tiled) {
+            levelDirs.push_back(index);
+            continue;
         }
-        const std::string imageType = description.getAttributeText(image, IMAGE_TYPE);
-        if (imageType == WSI) {
-			std::vector<tinyxml2::XMLElement*> levels = description.getObjectList(image, PIXEL_DATA_REPRESENTATION);
-            for (tinyxml2::XMLElement* level : levels) {
-                if (dirIndex>=directories.size()) {
-                    break;
-                }
-                PHTLevel pyramidLevel;
-                pyramidLevel.dirIndex = dirIndex;
-                pyramidLevel.levelNumber = description.getAttributeInt(level, LEVEL_NUMBER);
-                imagePyramid.push_back(pyramidLevel);
-                ++dirIndex;
-            }
-        } else {
-            auxImages.emplace(imageType, dirIndex);
-            ++dirIndex;
+        const std::string name = phAuxImageName(dir.description);
+        if (name.empty()) {
+            SLIDEIO_LOG(WARNING) << "SVSSlide: the tiff directory " << index << " of the philips file"
+                " is neither tiled nor named by its description. The directory is ignored.";
+            continue;
+        }
+        if (!auxImages.emplace(name, index).second) {
+            SLIDEIO_LOG(WARNING) << "SVSSlide: the philips file contains more than one auxiliary image '"
+                << name << "'. The tiff directory " << index << " is ignored.";
         }
     }
-    std::sort(imagePyramid.begin(), imagePyramid.end(), [](const PHTLevel& a, const PHTLevel& b) {
-    	return a.levelNumber < b.levelNumber;
-    });
+    // Only the philips metadata knows the level number of a zoom level, and the level
+    // number is what tells how much of the slide the level covers. The levels are assigned
+    // to the tiled directories in file order; a size the metadata declares for a level is
+    // used to check that assignment.
+    PHTDescription description(directories.front().description);
+    const std::vector<PHDeclaredLevel> declaredLevels = phDeclaredLevels(description);
+    const size_t levelCount = std::min(declaredLevels.size(), levelDirs.size());
+    if (declaredLevels.size() != levelDirs.size()) {
+        SLIDEIO_LOG(WARNING) << "SVSSlide: the philips metadata declares " << declaredLevels.size()
+            << " zoom levels but the file contains " << levelDirs.size()
+            << " tiled directories. Only " << levelCount << " zoom levels are used.";
+    }
+    imagePyramid.reserve(levelCount);
+    for (size_t index = 0; index < levelCount; ++index) {
+        const PHDeclaredLevel& declared = declaredLevels[index];
+        const int dirIndex = levelDirs[index];
+        const TiffDirectory& dir = directories[dirIndex];
+        if (declared.size.width > 0 && declared.size.height > 0
+            && (declared.size.width != dir.width || declared.size.height != dir.height)) {
+            SLIDEIO_LOG(WARNING) << "SVSSlide: the philips zoom level " << declared.levelNumber
+                << " is declared as " << declared.size.width << "x" << declared.size.height
+                << " but the tiff directory " << dirIndex << " assigned to it is "
+                << dir.width << "x" << dir.height << ".";
+        }
+        PHTLevel pyramidLevel;
+        pyramidLevel.dirIndex = dirIndex;
+        pyramidLevel.levelNumber = declared.levelNumber;
+        imagePyramid.push_back(pyramidLevel);
+    }
 }
 
 void SVSSlide::phCreateImageScene(const std::vector<TiffDirectory>& directories, const std::vector<PHTLevel>& imagePyramid,

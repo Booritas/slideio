@@ -230,12 +230,27 @@ static std::vector<int> phDirIndices(const std::vector<PHTLevel>& imagePyramid) 
 	return indices;
 }
 
-// Builds a TiffDirectory carrying just the fields phExtractImages inspects.
-static TiffDirectory makeDir(const std::string& description, int width) {
+// Builds a TiffDirectory carrying just the fields phExtractImages inspects: the
+// description, the size and whether the directory is tiled. Philips stores the zoom
+// levels of the pyramid tiled and the auxiliary images striped, so `tiled` is what
+// tells the two apart.
+static TiffDirectory makeDir(const std::string& description, int width, int height, bool tiled) {
 	TiffDirectory dir;
 	dir.description = description;
 	dir.width = width;
+	dir.height = height;
+	dir.tiled = tiled;
 	return dir;
+}
+
+// A zoom level: tiled, sized as philips stores it (padded up to the tile grid).
+static TiffDirectory makeLevelDir(const std::string& description, int width, int height) {
+	return makeDir(description, width, height, true);
+}
+
+// An auxiliary image: striped, named by its description.
+static TiffDirectory makeAuxDir(const std::string& description, int width, int height) {
+	return makeDir(description, width, height, false);
 }
 
 // Builds a TiffDirectory with enough raster fields set that scene construction
@@ -288,8 +303,8 @@ TEST_F(PhTiffImageDriverTests, openSlide) {
 	std::string filePath = TestTools::getFullTestImagePath("philips", "Philips-3.tiff");
 	auto slide = slideio::openSlide(filePath, "PHTIFF");
 	std::list<std::tuple<std::string,int,int>> auxNames = {
-	    {"MACROIMAGE", 791, 403},
-	    {"LABELIMAGE", 387, 403}
+	    {"Macro", 791, 403},
+	    {"Label", 387, 403}
 	};
 	ASSERT_TRUE(slide != nullptr);
 	EXPECT_EQ(slide->getNumScenes(), 1);
@@ -315,19 +330,16 @@ TEST_F(PhTiffImageDriverTests, openSlide) {
 	}
 }
 
-// Trailing non-pyramid directories ("Macro", "Label" in Philips-3.tiff) are
-// auxiliary images: keyed by description, mapped to their directory index, and
-// kept out of the pyramid. "Label" is the regression case for the old
-// find_first_of bug -- it contains 'l' and 'e', so a character-set search would
-// wrongly classify it as a "level" pyramid tier.
+// The tiled directories form the pyramid, the striped ones are the auxiliary images,
+// keyed by the name in their own description (the layout of Philips-3.tiff).
 TEST_F(PhTiffImageDriverTests, phExtractImages_extractsAuxImages) {
-	const std::string xml = MockSVSSlide::createFakeXml(40960, 30720, 3, { "Macro", "Label" });
+	const std::string xml = MockSVSSlide::createFakeXml(131072, 100352, 3, { "MACROIMAGE", "LABELIMAGE" });
 	const std::vector<TiffDirectory> directories = {
-		makeDir(xml, 131072),
-		makeDir("level=1 mag=22 quality=80", 65536),
-		makeDir("level=2 mag=11 quality=80", 32768),
-		makeDir("Macro", 791),
-		makeDir("Label", 387),
+		makeLevelDir(xml, 131072, 100352),
+		makeLevelDir("level=1 mag=22 quality=80", 65536, 50176),
+		makeLevelDir("level=2 mag=11 quality=80", 32768, 25088),
+		makeAuxDir("Macro", 791, 403),
+		makeAuxDir("Label", 387, 403),
 	};
 	std::vector<PHTLevel> imagePyramid;
 	std::map<std::string, int> auxImages;
@@ -341,14 +353,19 @@ TEST_F(PhTiffImageDriverTests, phExtractImages_extractsAuxImages) {
 	EXPECT_EQ(4, auxImages.at("Label"));
 }
 
-// A description containing the "level" substring is a pyramid tier even without
-// XML; the "<?xml" base image is a pyramid tier even without "level".
-TEST_F(PhTiffImageDriverTests, phExtractImages_classifiesBySubstring) {
-	const std::string xml  = MockSVSSlide::createFakeXml(40960, 30720, 2, {"Thumbnail"});
+// The philips metadata is not an index into the file: Philips-4.tiff declares a label
+// image and a macro image but stores only one auxiliary directory, the macro. Reading
+// the two in the declared order hands the macro raster out under the name of the label
+// and drops the macro. The name has to come from the directory that holds the raster.
+TEST_F(PhTiffImageDriverTests, phExtractImages_namesAuxImagesAfterTheirOwnDirectory) {
+	const std::string xml = MockSVSSlide::createFakeXml(91136, 68096, 2, { "LABELIMAGE", "MACROIMAGE" });
 	const std::vector<TiffDirectory> directories = {
-		makeDir(xml, 40960),
-		makeDir("level=1 mag=22 quality=80", 65536),
-		makeDir("Thumbnail", 256),
+		makeLevelDir(xml, 91136, 68096),
+		// createFakeXml declares the levels unpadded, so the level directories follow it
+		// here; the padded case belongs to the tile padding tests.
+		makeLevelDir("level=1 mag=20 quality=80", 45568, 34048),
+		// The only auxiliary directory of the file, and it is the macro image.
+		makeAuxDir("Macro -offset=(0,0)-pixelsize=(0.0315,0.0315)-rois=((0,32000,36000,36000))", 1816, 821),
 	};
 	std::vector<PHTLevel> imagePyramid;
 	std::map<std::string, int> auxImages;
@@ -357,17 +374,57 @@ TEST_F(PhTiffImageDriverTests, phExtractImages_classifiesBySubstring) {
 
 	EXPECT_EQ((std::vector<int>{0, 1}), phDirIndices(imagePyramid));
 	ASSERT_EQ(1u, auxImages.size());
-	EXPECT_EQ(2, auxImages.at("Thumbnail"));
+	EXPECT_EQ(2, auxImages.at("Macro"));
+	EXPECT_EQ(0u, auxImages.count("Label"));
 }
 
-// Two aux directories sharing a description must not clobber each other: the
-// first occurrence wins and the duplicate is dropped.
-TEST_F(PhTiffImageDriverTests, phExtractImages_duplicateAuxDescriptionKeepsFirst) {
-	const std::string xml = MockSVSSlide::createFakeXml(40960, 30720, 1, { "Macro", "Macro" });
+// Auxiliary images are named after the image kinds slideio shares with the other
+// drivers, whatever case the scanner wrote and whatever it appended to the kind.
+TEST_F(PhTiffImageDriverTests, phExtractImages_usesCanonicalAuxImageNames) {
+	const std::string xml = MockSVSSlide::createFakeXml(4096, 4096, 1, {});
 	const std::vector<TiffDirectory> directories = {
-		makeDir(xml, 4096),
-		makeDir("Macro", 791),     // index 1, kept
-		makeDir("Macro", 400),     // index 2, duplicate -> dropped
+		makeLevelDir(xml, 4096, 4096),
+		makeAuxDir("MACRO -offset=(0,0)", 791, 403),
+		makeAuxDir("label", 387, 403),
+		makeAuxDir("Thumbnail", 256, 256),
+	};
+	std::vector<PHTLevel> imagePyramid;
+	std::map<std::string, int> auxImages;
+
+	MockSVSSlide::phExtractImagesMock(directories, imagePyramid, auxImages);
+
+	ASSERT_EQ(3u, auxImages.size());
+	EXPECT_EQ(1, auxImages.at("Macro"));
+	EXPECT_EQ(2, auxImages.at("Label"));
+	EXPECT_EQ(3, auxImages.at("Thumbnail"));
+}
+
+// An auxiliary image of an unknown kind keeps the leading word of its description
+// rather than being dropped.
+TEST_F(PhTiffImageDriverTests, phExtractImages_keepsUnknownAuxKinds) {
+	const std::string xml = MockSVSSlide::createFakeXml(4096, 4096, 1, {});
+	const std::vector<TiffDirectory> directories = {
+		makeLevelDir(xml, 4096, 4096),
+		makeAuxDir("Overview -offset=(0,0)", 791, 403),
+		makeAuxDir("", 100, 100),          // nothing to name it after -> dropped
+	};
+	std::vector<PHTLevel> imagePyramid;
+	std::map<std::string, int> auxImages;
+
+	MockSVSSlide::phExtractImagesMock(directories, imagePyramid, auxImages);
+
+	ASSERT_EQ(1u, auxImages.size());
+	EXPECT_EQ(1, auxImages.at("Overview"));
+}
+
+// Two aux directories of the same kind must not clobber each other: the first
+// occurrence wins and the duplicate is dropped.
+TEST_F(PhTiffImageDriverTests, phExtractImages_duplicateAuxDescriptionKeepsFirst) {
+	const std::string xml = MockSVSSlide::createFakeXml(4096, 4096, 1, { "MACROIMAGE", "MACROIMAGE" });
+	const std::vector<TiffDirectory> directories = {
+		makeLevelDir(xml, 4096, 4096),
+		makeAuxDir("Macro", 791, 403),     // index 1, kept
+		makeAuxDir("Macro", 400, 200),     // index 2, duplicate -> dropped
 	};
 	std::vector<PHTLevel> imagePyramid;
 	std::map<std::string, int> auxImages;
@@ -377,6 +434,24 @@ TEST_F(PhTiffImageDriverTests, phExtractImages_duplicateAuxDescriptionKeepsFirst
 	EXPECT_EQ((std::vector<int>{0}), phDirIndices(imagePyramid));
 	ASSERT_EQ(1u, auxImages.size());
 	EXPECT_EQ(1, auxImages.at("Macro"));
+}
+
+// A pyramid directory the philips metadata does not account for is left out of the
+// pyramid: without a level number the area it covers is unknown.
+TEST_F(PhTiffImageDriverTests, phExtractImages_ignoresUndeclaredPyramidDirectories) {
+	const std::string xml = MockSVSSlide::createFakeXml(4096, 4096, 2, {});
+	const std::vector<TiffDirectory> directories = {
+		makeLevelDir(xml, 4096, 4096),
+		makeLevelDir("level=1 mag=20 quality=80", 2048, 2048),
+		makeLevelDir("level=2 mag=10 quality=80", 1024, 1024),  // not declared in the xml
+	};
+	std::vector<PHTLevel> imagePyramid;
+	std::map<std::string, int> auxImages;
+
+	MockSVSSlide::phExtractImagesMock(directories, imagePyramid, auxImages);
+
+	EXPECT_EQ((std::vector<int>{0, 1}), phDirIndices(imagePyramid));
+	EXPECT_TRUE(auxImages.empty());
 }
 
 // Empty input yields empty outputs and does not touch the caller's containers.
@@ -594,8 +669,11 @@ TEST_F(PhTiffImageDriverTests, openSlide2) {
 		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
 	}
 	std::string filePath = TestTools::getFullTestImagePath("philips", "Philips-4.tiff");
+	// The philips metadata of this file declares a label image and a macro image, but
+	// the only auxiliary directory it stores is the macro (1816x821, described
+	// "Macro -offset=(0,0)-pixelsize=(0.0315,0.0315)-rois=(...)"). There is no label.
 	std::list<std::tuple<std::string, int, int>> auxNames = {
-		{"LABELIMAGE", 1816, 821}
+		{"Macro", 1816, 821}
 	};
 	std::string roiPaths[] = {
 		TestTools::getFullTestImagePath("czi", "test/example_split (1).czi - ScanRegion0 (1, x=17583, y=3676, w=1000, h=1000).png"),
@@ -624,6 +702,35 @@ TEST_F(PhTiffImageDriverTests, openSlide2) {
 		EXPECT_EQ(std::get<3>(rect), std::get<2>(param));
 	}
 
+}
+
+// The auxiliary images of a slide are the ones the file stores, not the ones its
+// metadata declares. The four philips test files cover three layouts: both a macro and
+// a label directory (Philips-3), a macro alone (Philips-2 and Philips-4, the latter
+// declaring a label image it does not store) and none at all (Philips-1, whose macro
+// and label live in the metadata as embedded jpeg, which the driver does not read yet).
+TEST_F(PhTiffImageDriverTests, auxImagesOfTheTestFiles) {
+	if (!TestTools::isFullTestEnabled()) {
+		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
+	}
+	const std::list<std::pair<std::string, std::list<std::string>>> expected = {
+		{"Philips-1.tiff", {}},
+		{"Philips-2.tiff", {"Macro"}},
+		{"Philips-3.tiff", {"Label", "Macro"}},
+		{"Philips-4.tiff", {"Macro"}},
+	};
+	for (const auto& param : expected) {
+		const std::string filePath = TestTools::getFullTestImagePath("philips", param.first);
+		auto slide = slideio::openSlide(filePath, "PHTIFF");
+		ASSERT_TRUE(slide != nullptr) << param.first;
+		EXPECT_EQ(1, slide->getNumScenes()) << param.first;
+		// getAuxImageNames is sorted, the expectations are spelled in the same order.
+		EXPECT_EQ(param.second, slide->getAuxImageNames()) << param.first;
+		for (const std::string& name : param.second) {
+			auto auxScene = slide->getAuxImage(name);
+			EXPECT_TRUE(auxScene != nullptr) << param.first << " " << name;
+		}
+	}
 }
 
 // ---------------------------------------------------------------------------
