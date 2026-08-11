@@ -279,9 +279,33 @@ protected:
 };
 
 
-TEST_F(PhTiffImageDriverTests, canOpenFile) {
-	// The extension is necessary but not sufficient: philips shares *.tif;*.tiff with
-	// gdal and with ome-tiff, so the driver has to look into the file.
+// The extension contract needs no files at all, so it stays covered on a machine
+// without the private dataset: extensions the driver does not serve are rejected
+// without opening anything, and the svs id decides by extension alone (an svs file
+// carries no philips metadata, so no content check ever runs for that id). This is
+// also the only place where extension matching, and its case insensitivity, is
+// observable without a file.
+TEST_F(PhTiffImageDriverTests, canOpenFileByExtension) {
+	SVSImageDriver driver(PHTIFF_DRIVER_ID);
+	const std::string disallowedSuffixes[] = {
+		".ometif", ".ometiff", ".ometf2", ".ometf8", ".omebtf", ".svs", ".ndpi", ".qptiff"
+	};
+	for (const std::string& suffix : disallowedSuffixes) {
+		EXPECT_FALSE(driver.canOpenFile("/projects/image" + suffix)) << suffix;
+	}
+
+	SVSImageDriver svsDriver(SVS_DRIVER_ID);
+	EXPECT_TRUE(svsDriver.canOpenFile("/projects/image.svs"));
+	EXPECT_TRUE(svsDriver.canOpenFile("/projects/image.SVS"));
+	EXPECT_FALSE(svsDriver.canOpenFile("/projects/image.tiff"));
+}
+
+// The extension is necessary but not sufficient: philips shares *.tif;*.tiff with
+// gdal and with ome-tiff, so the driver has to look into the file.
+TEST_F(PhTiffImageDriverTests, canOpenFileByContent) {
+	if (!TestTools::isFullTestEnabled()) {
+		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
+	}
 	SVSImageDriver driver(PHTIFF_DRIVER_ID);
 	EXPECT_TRUE(driver.canOpenFile(TestTools::getFullTestImagePath("philips", "Philips-3.tiff")));
 	EXPECT_FALSE(driver.canOpenFile(
@@ -292,21 +316,7 @@ TEST_F(PhTiffImageDriverTests, canOpenFile) {
 	EXPECT_FALSE(driver.canOpenFile("/projects/no-such-file.tiff"));
 	EXPECT_FALSE(driver.canOpenFile(TestTools::getTestImagePath("gdal", "colors.png")));
 
-	// Extensions the driver does not serve are rejected without opening anything.
-	const std::string disallowedSuffixes[] = {
-		".ometif", ".ometiff", ".ometf2", ".ometf8", ".omebtf", ".svs", ".ndpi", ".qptiff"
-	};
-	for (const std::string& suffix : disallowedSuffixes) {
-		EXPECT_FALSE(driver.canOpenFile("/projects/image" + suffix)) << suffix;
-	}
-
-	// The svs id decides by extension alone: an svs file carries no philips metadata.
-	// This is also the only place where extension matching, and its case insensitivity,
-	// is observable without a file, since no content test runs for the svs id.
 	SVSImageDriver svsDriver(SVS_DRIVER_ID);
-	EXPECT_TRUE(svsDriver.canOpenFile("/projects/image.svs"));
-	EXPECT_TRUE(svsDriver.canOpenFile("/projects/image.SVS"));
-	EXPECT_FALSE(svsDriver.canOpenFile("/projects/image.tiff"));
 	EXPECT_TRUE(svsDriver.canOpenFile(TestTools::getTestImagePath("svs", "CMU-1-Small-Region.svs")));
 }
 
@@ -664,6 +674,9 @@ TEST_F(PhTiffImageDriverTests, phCreateImageScene_doesNotCropAnUncorroboratedLev
 // The same padding on a real file: the levels of Philips-3.tiff are padded in
 // height from level 3 down (level 8 is a 512x512 directory holding 512x392).
 TEST_F(PhTiffImageDriverTests, zoomLevelsOfPhilips3ExcludeTilePadding) {
+	if (!TestTools::isFullTestEnabled()) {
+		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
+	}
 	const std::string filePath = TestTools::getFullTestImagePath("philips", "Philips-3.tiff");
 	auto slide = slideio::openSlide(filePath, "PHTIFF");
 	ASSERT_TRUE(slide != nullptr);
@@ -704,6 +717,9 @@ static double phMeanAbsDiff(const cv::Mat& first, const cv::Mat& second) {
 // every level it could be served from is padded by the same proportion, so two such
 // reads agree with each other while both being wrong.
 TEST_F(PhTiffImageDriverTests, readFromPaddedZoomLevelMatchesUnpaddedLevel) {
+	if (!TestTools::isFullTestEnabled()) {
+		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
+	}
 	const std::string filePath = TestTools::getFullTestImagePath("philips", "Philips-3.tiff");
 	SVSImageDriver driver("PHTIFF");
 	auto slide = driver.openFile(filePath);
@@ -852,6 +868,9 @@ TEST_F(PhTiffImageDriverTests, auxImagesOfTheTestFiles) {
 // order -- it holds regardless of where OMETIFF and PHTIFF sit relative to each other,
 // because PHTIFF's content check rejects OME-XML metadata.
 TEST_F(PhTiffImageDriverTests, findDriver) {
+	if (!TestTools::isFullTestEnabled()) {
+		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
+	}
 	const std::list<std::pair<std::string, std::string>> expected = {
 		{"PHTIFF", TestTools::getFullTestImagePath("philips", "Philips-3.tiff")},
 		{"GDAL", TestTools::getTestImagePath("gdal", "img_2448x2448_3x16bit_SRC_RGB_ducks.tif")},
@@ -871,6 +890,9 @@ TEST_F(PhTiffImageDriverTests, findDriver) {
 // assertions are on what only the philips driver produces -- gdal would hand back one
 // scene per tiff directory, with no auxiliary images and no resolution.
 TEST_F(PhTiffImageDriverTests, openSlideWithoutDriverId) {
+	if (!TestTools::isFullTestEnabled()) {
+		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
+	}
 	const std::string filePath = TestTools::getFullTestImagePath("philips", "Philips-3.tiff");
 	auto slide = slideio::openSlide(filePath);
 	ASSERT_TRUE(slide != nullptr);
