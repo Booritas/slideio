@@ -2,6 +2,7 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/drivers/svs/svsslide.hpp"
+#include "slideio/drivers/svs/svsimagedriver.hpp"
 #include "slideio/imagetools/imagetools.hpp"
 #include "slideio/drivers/svs/svssmallscene.hpp"
 #include "slideio/drivers/svs/svstiledscene.hpp"
@@ -379,7 +380,7 @@ std::shared_ptr<SVSSlide> SVSSlide::openFile(const std::string& filePath, const 
     slide.reset(new SVSSlide);
     slide->setDriverId(driverId);
     slide->m_filePath = filePath;
-    if (driverId == "PHTIFF") {
+    if (driverId == PHTIFF_DRIVER_ID) {
         slide->initPhTiff(directories, keeper.release());
     }
 	else {

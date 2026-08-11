@@ -17,6 +17,7 @@
 #include <tinyxml2.h>
 
 #include "phtdescription.hpp"
+#include "slideio/drivers/svs/svsimagedriver.hpp"
 
 using namespace slideio;
 
@@ -35,7 +36,7 @@ SVSTiledScene::SVSTiledScene(const std::string& filePath, const std::string& dri
 }
 
 void SVSTiledScene::processImageDescription() {
-    if (m_driverId == "PHTIFF") {
+    if (m_driverId == PHTIFF_DRIVER_ID) {
         processImageDescriptionPhTiff();
     } else {
         processImageDescriptionSVS();

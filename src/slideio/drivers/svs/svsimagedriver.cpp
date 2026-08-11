@@ -28,8 +28,8 @@ std::string slideio::SVSImageDriver::getFileSpecs() const
 {
 	static std::string svsPattern("*.svs");
 	static std::string philipsPattern("*.tif;*.tiff");
-	if (m_driverId == "SVS") {
+	if (m_driverId == SVS_DRIVER_ID) {
 		return svsPattern;
-	} 
+	}
 	return philipsPattern;
 }
