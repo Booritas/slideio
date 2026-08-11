@@ -300,9 +300,9 @@ TEST_F(PhTiffImageDriverTests, canOpenFile) {
 	SVSImageDriver driver(PHTIFF_DRIVER_ID);
 	EXPECT_TRUE(driver.canOpenFile(TestTools::getFullTestImagePath("philips", "Philips-3.tiff")));
 	EXPECT_FALSE(driver.canOpenFile(
-		TestTools::getTestImagePath("gdal", "img_2448x2448_3x8bit_SRC_RGB_ducks.tif")));
+		TestTools::getTestImagePath("gdal", "img_2448x2448_3x16bit_SRC_RGB_ducks.tif")));
 	EXPECT_FALSE(driver.canOpenFile(TestTools::getTestImagePath("gdal", "multipage.tif")));
-	EXPECT_FALSE(driver.canOpenFile(TestTools::getTestImagePath("ometiff", "00001_01.ome.tiff")));
+	EXPECT_FALSE(driver.canOpenFile(TestTools::getFullTestImagePath("ometiff", "00001_01.ome.tiff")));
 	// A path that does not exist, and a file that is not a tiff at all.
 	EXPECT_FALSE(driver.canOpenFile("/projects/no-such-file.tiff"));
 	EXPECT_FALSE(driver.canOpenFile(TestTools::getTestImagePath("gdal", "colors.png")));
@@ -450,9 +450,9 @@ Add to `src/tests/phtiff/test_phtiff_driver.cpp`, after the `auxImagesOfTheTestF
 TEST_F(PhTiffImageDriverTests, findDriver) {
 	const std::list<std::pair<std::string, std::string>> expected = {
 		{"PHTIFF", TestTools::getFullTestImagePath("philips", "Philips-3.tiff")},
-		{"GDAL", TestTools::getTestImagePath("gdal", "img_2448x2448_3x8bit_SRC_RGB_ducks.tif")},
+		{"GDAL", TestTools::getTestImagePath("gdal", "img_2448x2448_3x16bit_SRC_RGB_ducks.tif")},
 		{"GDAL", TestTools::getTestImagePath("gdal", "multipage.tif")},
-		{"OMETIFF", TestTools::getTestImagePath("ometiff", "00001_01.ome.tiff")},
+		{"OMETIFF", TestTools::getFullTestImagePath("ometiff", "00001_01.ome.tiff")},
 		{"SVS", TestTools::getTestImagePath("svs", "CMU-1-Small-Region.svs")},
 	};
 	for (const auto& param : expected) {
