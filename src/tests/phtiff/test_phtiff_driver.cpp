@@ -465,6 +465,82 @@ TEST_F(PhTiffImageDriverTests, phExtractImages_ignoresUndeclaredPyramidDirectori
 	EXPECT_TRUE(auxImages.empty());
 }
 
+// A tiled directory the metadata does not account for must not shift the level numbers
+// of the directories that come after it. Levels are matched to directories by declared
+// size, not by position, so the interloper (a tiled directory of a size no declared
+// level has) is dropped on its own and the real levels 1 and 2 still find their own
+// directories even though they no longer sit at the positions a positional zip expects.
+TEST_F(PhTiffImageDriverTests, phExtractImages_undeclaredDirectoryDoesNotShiftLaterLevels) {
+	const std::string xml = MockSVSSlide::createFakeXml(4096, 4096, 3, {});
+	const std::vector<TiffDirectory> directories = {
+		makeLevelDir(xml, 4096, 4096),                            // level 0
+		makeLevelDir("interloper", 3000, 3000),                   // not declared in the xml
+		makeLevelDir("level=1 mag=20 quality=80", 2048, 2048),    // level 1
+		makeLevelDir("level=2 mag=10 quality=80", 1024, 1024),    // level 2
+	};
+	std::vector<PHTLevel> imagePyramid;
+	std::map<std::string, int> auxImages;
+
+	MockSVSSlide::phExtractImagesMock(directories, imagePyramid, auxImages);
+
+	EXPECT_EQ((std::vector<int>{0, 2, 3}), phDirIndices(imagePyramid));
+	EXPECT_EQ((std::vector<PHTLevel>{{0, 0}, {2, 1}, {3, 2}}), imagePyramid);
+}
+
+// createFakeXml always writes LEVEL_COLUMNS/LEVEL_ROWS for every level, so a level with
+// no declared size has to be built by hand here rather than through createFakeXml. Hand
+// building is chosen over post-processing createFakeXml's output because the levels are
+// simple enough (two levels, no aux images) that composing them from the same
+// phAttribute/phOpenArray/phCloseArray helpers createFakeXml itself uses is shorter and
+// less fragile than stripping lines back out of a generated string.
+static std::string createFakeXmlWithSizelessLevel(int width, int height) {
+	std::ostringstream xml;
+	xml << "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n";
+	xml << "<DataObject ObjectType=\"DPUfsImport\">\n";
+	xml << phAttribute(MANUFACTURER, "IString", phDefaults::MANUFACTURER_NAME, 1);
+	xml << phOpenArray(SCANNED_IMAGES, 1);
+	xml << phIndent(3) << "<DataObject ObjectType=\"" << SCANNED_IMAGE << "\">\n";
+	xml << phAttribute(IMAGE_TYPE, "IString", WSI, 4);
+	xml << phOpenArray(LEVEL_SEQUENCE, 4);
+	// Level 0: declared with a size, matches its directory exactly.
+	xml << phIndent(6) << "<DataObject ObjectType=\"" << PIXEL_DATA_REPRESENTATION << "\">\n";
+	xml << phAttribute(LEVEL_NUMBER, "IUInt16", 0, 7);
+	xml << phAttribute(LEVEL_COLUMNS, "IUInt32", width, 7);
+	xml << phAttribute(LEVEL_ROWS, "IUInt32", height, 7);
+	xml << phIndent(6) << "</DataObject>\n";
+	// Level 1: no LEVEL_COLUMNS/LEVEL_ROWS at all -- some scanners omit the size.
+	xml << phIndent(6) << "<DataObject ObjectType=\"" << PIXEL_DATA_REPRESENTATION << "\">\n";
+	xml << phAttribute(LEVEL_NUMBER, "IUInt16", 1, 7);
+	xml << phIndent(6) << "</DataObject>\n";
+	xml << phCloseArray(4);
+	xml << phAttribute(IMAGE_COLUMNS, "IUInt32", width, 4);
+	xml << phAttribute(IMAGE_ROWS, "IUInt32", height, 4);
+	xml << phIndent(3) << "</DataObject>\n";
+	xml << phCloseArray(1);
+	xml << "</DataObject>\n";
+	return xml.str();
+}
+
+// A level the metadata declares no size for cannot be matched by size, so extraction
+// falls back to pairing it with whatever tiled directory is left, by position, and marks
+// the pairing unverified.
+TEST_F(PhTiffImageDriverTests, phExtractImages_levelWithoutDeclaredSizeFallsBackToPosition) {
+	const std::string xml = createFakeXmlWithSizelessLevel(4096, 4096);
+	const std::vector<TiffDirectory> directories = {
+		makeLevelDir(xml, 4096, 4096),
+		makeLevelDir("level=1 mag=20 quality=80", 2048, 2048),
+	};
+	std::vector<PHTLevel> imagePyramid;
+	std::map<std::string, int> auxImages;
+
+	MockSVSSlide::phExtractImagesMock(directories, imagePyramid, auxImages);
+
+	ASSERT_EQ(2u, imagePyramid.size());
+	EXPECT_EQ((std::vector<int>{0, 1}), phDirIndices(imagePyramid));
+	EXPECT_TRUE(imagePyramid[0].corroborated) << "level 0 was matched by size";
+	EXPECT_FALSE(imagePyramid[1].corroborated) << "level 1 has no declared size to match";
+}
+
 // Empty input yields empty outputs and does not touch the caller's containers.
 TEST_F(PhTiffImageDriverTests, phExtractImages_emptyInput) {
 	const std::vector<TiffDirectory> directories;
@@ -535,7 +611,9 @@ TEST_F(PhTiffImageDriverTests, phCreateImageScene_cropsTilePaddingOfZoomLevels) 
 		makeImageDir("level=1 mag=20 quality=80", 45568, 34304),   // holds 45568x34048
 		makeImageDir("level=2 mag=10 quality=80", 23040, 17408),   // holds 22784x17024
 	};
-	const std::vector<PHTLevel> imagePyramid = { {0, 0}, {1, 1}, {2, 2} };
+	// corroborated is spelled out here (PHTLevel now defaults it to false) because this
+	// test is exactly about the crop that only a corroborated level receives.
+	const std::vector<PHTLevel> imagePyramid = { {0, 0, true}, {1, 1, true}, {2, 2, true} };
 
 	MockSVSSlide slide;
 	slide.phCreateImageSceneMock(directories, imagePyramid, nullptr);
@@ -557,6 +635,32 @@ TEST_F(PhTiffImageDriverTests, phCreateImageScene_cropsTilePaddingOfZoomLevels) 
 		EXPECT_EQ(heights[level], info->getSize().height) << "level " << level;
 		EXPECT_DOUBLE_EQ(1. / (1 << level), info->getScale()) << "level " << level;
 	}
+}
+
+// A level marked uncorroborated -- its directory was paired by position, not by a
+// matching declared size -- must keep its stored size. Cropping it would apply
+// ceil(base/2^level) on the strength of a level number extraction could not verify,
+// which is exactly the wrong-scale defect the crop exists to remove.
+TEST_F(PhTiffImageDriverTests, phCreateImageScene_doesNotCropAnUncorroboratedLevel) {
+	const std::string xml = MockSVSSlide::createFakeXml(4096, 4096, 2, {});
+	const std::vector<TiffDirectory> directories = {
+		makeImageDir(xml, 4096, 4096),                            // level 0, corroborated
+		makeImageDir("level=1 mag=20 quality=80", 2100, 2100),    // stored, padded
+	};
+	const std::vector<PHTLevel> imagePyramid = { {0, 0, true}, {1, 1, false} };
+
+	MockSVSSlide slide;
+	slide.phCreateImageSceneMock(directories, imagePyramid, nullptr);
+
+	ASSERT_EQ(1, slide.getNumScenes());
+	auto scene = slide.getScene(0);
+	ASSERT_TRUE(scene != nullptr);
+	ASSERT_EQ(2, scene->getNumZoomLevels());
+	// A corroborated level 0 is unaffected either way since it is not padded here.
+	const LevelInfo* info = scene->getZoomLevelInfo(1);
+	ASSERT_TRUE(info != nullptr);
+	EXPECT_EQ(2100, info->getSize().width) << "the uncorroborated level must not be cropped";
+	EXPECT_EQ(2100, info->getSize().height) << "the uncorroborated level must not be cropped";
 }
 
 // The same padding on a real file: the levels of Philips-3.tiff are padded in
