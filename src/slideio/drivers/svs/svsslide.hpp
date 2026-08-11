@@ -33,6 +33,12 @@ namespace slideio
     {
         int dirIndex = 0;
         int levelNumber = 0;
+        // True when the directory was matched to this level by an exact declared-size
+        // comparison. False means the metadata declared no size for the level and the
+        // pairing fell back to position, so it is unverified: only a corroborated level
+        // may have its tile padding cropped. Defaults to true so a level built by hand
+        // (as the unit tests do) behaves like a verified one unless told otherwise.
+        bool corroborated = true;
 
         bool operator==(const PHTLevel& other) const {
             return dirIndex == other.dirIndex && levelNumber == other.levelNumber;

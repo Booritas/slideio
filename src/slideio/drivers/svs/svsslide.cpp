@@ -136,8 +136,15 @@ namespace
         }
         const cv::Size baseSize = {dirs.front().width, dirs.front().height};
         for (size_t index = 0; index < imagePyramid.size(); ++index) {
-            const int levelNumber = imagePyramid[index].levelNumber;
+            const slideio::PHTLevel& level = imagePyramid[index];
+            const int levelNumber = level.levelNumber;
             slideio::TiffDirectory& dir = dirs[index];
+            if (!level.corroborated) {
+                SLIDEIO_LOG(WARNING) << "SVSSlide: philips zoom level " << levelNumber
+                    << " was paired with its tiff directory by position, not by a matching"
+                    " declared size. Tile padding of the level is not cropped.";
+                continue;
+            }
             if (levelNumber < 0 || levelNumber > PH_MAX_LEVEL_NUMBER) {
                 SLIDEIO_LOG(WARNING) << "SVSSlide: unexpected philips zoom level number "
                     << levelNumber << ". Tile padding of the level is not cropped.";
@@ -295,34 +302,83 @@ void SVSSlide::phExtractImages(const std::vector<TiffDirectory>& directories, st
         }
     }
     // Only the philips metadata knows the level number of a zoom level, and the level
-    // number is what tells how much of the slide the level covers. The levels are assigned
-    // to the tiled directories in file order; a size the metadata declares for a level is
-    // used to check that assignment.
+    // number is what tells how much of the slide the level covers. The tiff directory
+    // size cannot supply it: padding can leave two consecutive levels the same width. A
+    // declared level is therefore matched to the tiled directory holding it by size, not
+    // by position -- a directory the metadata does not account for (an auxiliary image
+    // stored tiled, a level it omits) would otherwise shift the level numbers of every
+    // directory that follows it, and reproduce the wrong-scale defect the crop below
+    // exists to remove.
     PHTDescription description(directories.front().description);
     const std::vector<PHDeclaredLevel> declaredLevels = phDeclaredLevels(description);
-    const size_t levelCount = std::min(declaredLevels.size(), levelDirs.size());
-    if (declaredLevels.size() != levelDirs.size()) {
-        SLIDEIO_LOG(WARNING) << "SVSSlide: the philips metadata declares " << declaredLevels.size()
-            << " zoom levels but the file contains " << levelDirs.size()
-            << " tiled directories. Only " << levelCount << " zoom levels are used.";
+
+    std::vector<bool> levelClaimed(declaredLevels.size(), false);
+    std::vector<bool> dirClaimed(levelDirs.size(), false);
+
+    // In file order, pair every tiled directory with the first unclaimed declared level
+    // (in level order) whose declared size equals its own. Two declared levels of the
+    // same size are handed out in level order to the directories in file order, which is
+    // the right answer for that case (e.g. a small slide whose base already sits on the
+    // tile grid, so two consecutive levels both come out 512x512).
+    for (size_t dirPos = 0; dirPos < levelDirs.size(); ++dirPos) {
+        const TiffDirectory& dir = directories[levelDirs[dirPos]];
+        for (size_t levelIndex = 0; levelIndex < declaredLevels.size(); ++levelIndex) {
+            const PHDeclaredLevel& declared = declaredLevels[levelIndex];
+            if (levelClaimed[levelIndex] || declared.size.width <= 0 || declared.size.height <= 0) {
+                continue;
+            }
+            if (declared.size.width == dir.width && declared.size.height == dir.height) {
+                levelClaimed[levelIndex] = true;
+                dirClaimed[dirPos] = true;
+                imagePyramid.push_back({levelDirs[dirPos], declared.levelNumber, true});
+                break;
+            }
+        }
     }
-    imagePyramid.reserve(levelCount);
-    for (size_t index = 0; index < levelCount; ++index) {
-        const PHDeclaredLevel& declared = declaredLevels[index];
-        const int dirIndex = levelDirs[index];
-        const TiffDirectory& dir = directories[dirIndex];
-        if (declared.size.width > 0 && declared.size.height > 0
-            && (declared.size.width != dir.width || declared.size.height != dir.height)) {
+
+    // A declared level the metadata gives no size for cannot be matched this way: pair it
+    // positionally with whatever tiled directory is still unclaimed. The pairing is not
+    // verified, so phCropLevelPadding must not crop the level on the strength of it.
+    size_t dirCursor = 0;
+    for (size_t levelIndex = 0; levelIndex < declaredLevels.size(); ++levelIndex) {
+        if (levelClaimed[levelIndex]) {
+            continue;
+        }
+        const PHDeclaredLevel& declared = declaredLevels[levelIndex];
+        if (declared.size.width > 0 && declared.size.height > 0) {
             SLIDEIO_LOG(WARNING) << "SVSSlide: the philips zoom level " << declared.levelNumber
                 << " is declared as " << declared.size.width << "x" << declared.size.height
-                << " but the tiff directory " << dirIndex << " assigned to it is "
-                << dir.width << "x" << dir.height << ".";
+                << " but no tiff directory of that size is left. The level is not used.";
+            continue;
         }
-        PHTLevel pyramidLevel;
-        pyramidLevel.dirIndex = dirIndex;
-        pyramidLevel.levelNumber = declared.levelNumber;
-        imagePyramid.push_back(pyramidLevel);
+        while (dirCursor < levelDirs.size() && dirClaimed[dirCursor]) {
+            ++dirCursor;
+        }
+        if (dirCursor >= levelDirs.size()) {
+            SLIDEIO_LOG(WARNING) << "SVSSlide: the philips zoom level " << declared.levelNumber
+                << " has no declared size and no tiff directory is left to pair it with."
+                " The level is not used.";
+            continue;
+        }
+        SLIDEIO_LOG(WARNING) << "SVSSlide: the philips zoom level " << declared.levelNumber
+            << " has no declared size, so it is paired with tiff directory " << levelDirs[dirCursor]
+            << " by position instead. The pairing is not verified and the level's tile"
+            " padding is not cropped.";
+        dirClaimed[dirCursor] = true;
+        imagePyramid.push_back({levelDirs[dirCursor], declared.levelNumber, false});
+        ++dirCursor;
     }
+
+    for (size_t dirPos = 0; dirPos < levelDirs.size(); ++dirPos) {
+        if (!dirClaimed[dirPos]) {
+            SLIDEIO_LOG(WARNING) << "SVSSlide: the tiff directory " << levelDirs[dirPos]
+                << " of the philips file matches no declared zoom level. The directory is ignored.";
+        }
+    }
+
+    std::sort(imagePyramid.begin(), imagePyramid.end(), [](const PHTLevel& a, const PHTLevel& b) {
+        return a.levelNumber < b.levelNumber;
+    });
 }
 
 void SVSSlide::phCreateImageScene(const std::vector<TiffDirectory>& directories, const std::vector<PHTLevel>& imagePyramid,
