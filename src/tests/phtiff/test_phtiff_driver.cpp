@@ -1112,3 +1112,41 @@ TEST_F(PHTDescriptionTests, createFakeXmlClampsLevelSizeToOnePixel) {
 	EXPECT_EQ(1, description.getAttributeInt(levels[4], LEVEL_COLUMNS));
 	EXPECT_EQ(1, description.getAttributeInt(levels[4], LEVEL_ROWS));
 }
+
+// The description of the first tiff directory is what identifies a philips file:
+// the extension *.tif says nothing, gdal and ome-tiff use it too.
+TEST_F(PHTDescriptionTests, isPhilipsDescriptionAcceptsPhilipsMetadata) {
+	EXPECT_TRUE(PHTDescription::isPhilipsDescription(phSampleXML));
+	EXPECT_TRUE(PHTDescription::isPhilipsDescription(MockSVSSlide::createFakeXml()));
+	EXPECT_TRUE(PHTDescription::isPhilipsDescription(MockSVSSlide::fakeXML));
+}
+
+TEST_F(PHTDescriptionTests, isPhilipsDescriptionRejectsOtherDescriptions) {
+	// The description of an ome-tiff file.
+	EXPECT_FALSE(PHTDescription::isPhilipsDescription(
+		"<?xml version=\"1.0\"?><OME xmlns=\"http://www.openmicroscopy.org/Schemas/OME/2016-06\">"
+		"<Image ID=\"Image:0\"/></OME>"));
+	// The description of an aperio svs file.
+	EXPECT_FALSE(PHTDescription::isPhilipsDescription(
+		"Aperio Image Library v11.2.1\r\n46920x33014 [0,100 46000x32914] (256x256)"
+		" JPEG/RGB Q=30|AppMag = 20"));
+	// The description of a zoom level of a philips file, which is not the metadata.
+	EXPECT_FALSE(PHTDescription::isPhilipsDescription("level=1 mag=22 quality=80"));
+	EXPECT_FALSE(PHTDescription::isPhilipsDescription(""));
+	EXPECT_FALSE(PHTDescription::isPhilipsDescription("   \r\n\t"));
+	// The marker alone, in text that is not xml.
+	EXPECT_FALSE(PHTDescription::isPhilipsDescription("DPUfsImport"));
+	// Xml, but not the philips import object.
+	EXPECT_FALSE(PHTDescription::isPhilipsDescription(
+		"<DataObject ObjectType=\"DPScannedImage\">DPUfsImport</DataObject>"));
+	// The philips import object, but not as the root element.
+	EXPECT_FALSE(PHTDescription::isPhilipsDescription(
+		"<Wrapper><DataObject ObjectType=\"DPUfsImport\"/></Wrapper>"));
+	// Malformed xml.
+	EXPECT_FALSE(PHTDescription::isPhilipsDescription("<DataObject ObjectType=\"DPUfsImport\">"));
+}
+
+// A description may carry a utf-8 byte order mark.
+TEST_F(PHTDescriptionTests, isPhilipsDescriptionAcceptsBomPrefixedMetadata) {
+	EXPECT_TRUE(PHTDescription::isPhilipsDescription("\xEF\xBB\xBF" + MockSVSSlide::fakeXML));
+}

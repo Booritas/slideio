@@ -107,6 +107,26 @@ PHTDescription::PHTDescription(PHTDescription&& other) noexcept = default;
 
 PHTDescription& PHTDescription::operator=(PHTDescription&& other) noexcept = default;
 
+bool PHTDescription::isPhilipsDescription(const std::string& description) {
+    // The cheap search comes first: it rejects the description of any other tiff flavour
+    // without building a dom, and a philips description can be large (844 KB in
+    // Philips-2.tiff, which embeds the macro image as base64).
+    if (description.find(DP_UFS_IMPORT) == std::string::npos) {
+        return false;
+    }
+    tinyxml2::XMLDocument doc;
+    if (doc.Parse(description.c_str(), description.size()) != tinyxml2::XML_SUCCESS) {
+        return false;
+    }
+    // A document with no root element parses without error; it is not philips metadata.
+    const tinyxml2::XMLElement* root = doc.RootElement();
+    if (root == nullptr || root->Name() == nullptr || std::strcmp(root->Name(), DATA_OBJECT_TAG) != 0) {
+        return false;
+    }
+    const char* objectType = root->Attribute(OBJECT_TYPE_PROPERTY);
+    return objectType != nullptr && DP_UFS_IMPORT == objectType;
+}
+
 tinyxml2::XMLElement* PHTDescription::getRoot() {
     if (!m_doc) {
         RAISE_RUNTIME_ERROR << "PHTDescription: philips xml metadata is not available.";

@@ -30,6 +30,10 @@ namespace slideio
         PHTDescription(PHTDescription&& other) noexcept;
         PHTDescription& operator=(PHTDescription&& other) noexcept;
 
+        // True if the text is the xml metadata of a philips tiff file. Used to tell a
+        // philips file from any other tiff, which the *.tif extension cannot do.
+        static bool isPhilipsDescription(const std::string& description);
+
         std::vector<tinyxml2::XMLElement*> getObjectList(const tinyxml2::XMLElement* parent, const std::string& name);
         int getAttributeInt(const tinyxml2::XMLElement* element, const Attribute& attribute);
         std::string getAttributeText(const tinyxml2::XMLElement* element, const Attribute& attribute);
@@ -84,5 +88,6 @@ namespace slideio
 	const std::string SCANNED_IMAGE = "DPScannedImage";
 	const std::string WSI = "WSI";
 	const std::string PIXEL_DATA_REPRESENTATION = "PixelDataRepresentation";
+	const std::string DP_UFS_IMPORT = "DPUfsImport";
 }
 
