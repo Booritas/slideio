@@ -444,9 +444,11 @@ git commit -m "identify philips tiff files by their metadata in canOpenFile"
 Add to `src/tests/phtiff/test_phtiff_driver.cpp`, after the `auxImagesOfTheTestFiles` test:
 
 ```cpp
-// Detection precedence for tiff files. The ome-tiff row is the regression guard: its
-// name matches the *.tiff pattern of the philips driver too, and it must keep going to
-// the ome-tiff driver, which precedes philips in the order.
+// Detection routing for tiff files. The philips row is the order guard: gdal claims
+// *.tif;*.tiff by extension alone, so it would take the philips file first if philips
+// came after it in the order. The ome-tiff row asserts routing only -- it holds
+// whichever side of the ome-tiff driver philips sits on, because philips rejects
+// ome-xml by content.
 TEST_F(PhTiffImageDriverTests, findDriver) {
 	const std::list<std::pair<std::string, std::string>> expected = {
 		{"PHTIFF", TestTools::getFullTestImagePath("philips", "Philips-3.tiff")},
@@ -464,8 +466,8 @@ TEST_F(PhTiffImageDriverTests, findDriver) {
 
 // The whole point of the detection: a philips file opens without naming a driver, and
 // it opens as a philips slide. The public Slide class exposes no driver id, so the
-// assertions are on what only the philips driver produces -- gdal would hand back a
-// single flat scene with no auxiliary images and no resolution.
+// assertions are on what only the philips driver produces -- gdal hands back 11 scenes,
+// one per tiff directory, with no auxiliary images and no resolution.
 TEST_F(PhTiffImageDriverTests, openSlideWithoutDriverId) {
 	const std::string filePath = TestTools::getFullTestImagePath("philips", "Philips-3.tiff");
 	auto slide = slideio::openSlide(filePath);
@@ -502,7 +504,7 @@ In `src/slideio/slideio/imagedrivermanager.cpp`, in `findDriver`:
     std::string driverOrder[] = { "OMETIFF", "SVS", "CZI", "AFI", "SCN", "DCM", "ZVI", "NDPI", "VSI", "QPTIFF", "PHTIFF", "GDAL" };
 ```
 
-PHTIFF goes second to last: it must follow OMETIFF, which claims the `*.ome.tif*` subset of the same extensions by name, and precede GDAL, which is the fallback for every plain TIFF.
+PHTIFF goes second to last, immediately before GDAL. That is the load-bearing part: GDAL claims `*.tif;*.tiff` by extension alone, so it would take a Philips file first if PHTIFF came after it. Keeping PHTIFF after OMETIFF matches the design's reading order, but it is not what makes OME-TIFF safe — PHTIFF's content test rejects OME-XML, so an OME-TIFF routes to OMETIFF from either position.
 
 - [ ] **Step 4: Run them to verify they pass**
 

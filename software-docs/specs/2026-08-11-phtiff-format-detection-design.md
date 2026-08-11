@@ -66,7 +66,10 @@ for extensionless files.
 OMETIFF → SVS → CZI → AFI → SCN → DCM → ZVI → NDPI → VSI → QPTIFF → PHTIFF → GDAL
 ```
 
-- `foo.ome.tiff` matches OMETIFF, which precedes PHTIFF, and is unaffected.
+- `foo.ome.tiff` matches OMETIFF, which precedes PHTIFF, and is unaffected. It
+  would in fact be unaffected from either position, since PHTIFF's content test
+  rejects OME-XML; the order merely makes it reach OMETIFF without opening the
+  file twice.
 - A Philips `.tif` is rejected by every earlier driver and accepted by PHTIFF.
 - Any other `.tif` is rejected by PHTIFF's content test and falls through to
   GDAL, the last entry.
@@ -158,17 +161,20 @@ the driver cannot then read.
 `SVSImageDriver::canOpenFile` against real files:
 
 - PHTIFF accepts `philips/Philips-3.tiff`.
-- PHTIFF rejects `gdal/img_2448x2448_3x8bit_SRC_RGB_ducks.tif`, an
+- PHTIFF rejects `gdal/img_2448x2448_3x16bit_SRC_RGB_ducks.tif`, an
   `ometiff/*.ome.tiff`, and a `.svs`.
 - The SVS id keeps accepting `*.svs` by extension alone.
 
 `findDriver`, end to end:
 
-- `philips/Philips-3.tiff` → PHTIFF.
-- `gdal/img_2448x2448_3x8bit_SRC_RGB_ducks.tif` → GDAL.
-- `ometiff/*.ome.tiff` → OMETIFF. This is the regression guard for the
-  precedence: it fails if PHTIFF is placed ahead of OMETIFF or if detection is
-  special-cased on the extension.
+- `philips/Philips-3.tiff` → PHTIFF. This is the regression guard for the one
+  order-sensitive direction: GDAL claims `*.tif;*.tiff` by extension alone, so
+  this row fails if PHTIFF is placed after GDAL.
+- `gdal/img_2448x2448_3x16bit_SRC_RGB_ducks.tif` → GDAL.
+- `ometiff/*.ome.tiff` → OMETIFF. This asserts routing, not precedence: PHTIFF's
+  content test rejects OME-XML, so an OME-TIFF reaches OMETIFF from either side
+  of PHTIFF in the order. Keeping PHTIFF after OMETIFF is therefore convention
+  rather than a safety requirement, and no test can fail on that reordering.
 
 Two consequences for the existing tests:
 
