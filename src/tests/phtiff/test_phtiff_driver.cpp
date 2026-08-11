@@ -744,6 +744,41 @@ TEST_F(PhTiffImageDriverTests, auxImagesOfTheTestFiles) {
 	}
 }
 
+// Detection precedence for tiff files. The ome-tiff row is the regression guard: its
+// name matches the *.tiff pattern of the philips driver too, and it must keep going to
+// the ome-tiff driver, which precedes philips in the order.
+TEST_F(PhTiffImageDriverTests, findDriver) {
+	const std::list<std::pair<std::string, std::string>> expected = {
+		{"PHTIFF", TestTools::getFullTestImagePath("philips", "Philips-3.tiff")},
+		{"GDAL", TestTools::getTestImagePath("gdal", "img_2448x2448_3x16bit_SRC_RGB_ducks.tif")},
+		{"GDAL", TestTools::getTestImagePath("gdal", "multipage.tif")},
+		{"OMETIFF", TestTools::getFullTestImagePath("ometiff", "00001_01.ome.tiff")},
+		{"SVS", TestTools::getTestImagePath("svs", "CMU-1-Small-Region.svs")},
+	};
+	for (const auto& param : expected) {
+		auto driver = ImageDriverManager::findDriver(param.second);
+		ASSERT_TRUE(driver != nullptr) << param.second;
+		EXPECT_EQ(param.first, driver->getID()) << param.second;
+	}
+}
+
+// The whole point of the detection: a philips file opens without naming a driver, and
+// it opens as a philips slide. The public Slide class exposes no driver id, so the
+// assertions are on what only the philips driver produces -- gdal would hand back a
+// single flat scene with no auxiliary images and no resolution.
+TEST_F(PhTiffImageDriverTests, openSlideWithoutDriverId) {
+	const std::string filePath = TestTools::getFullTestImagePath("philips", "Philips-3.tiff");
+	auto slide = slideio::openSlide(filePath);
+	ASSERT_TRUE(slide != nullptr);
+	EXPECT_EQ(1, slide->getNumScenes());
+	EXPECT_EQ((std::list<std::string>{"Label", "Macro"}), slide->getAuxImageNames());
+	auto scene = slide->getScene(0);
+	ASSERT_TRUE(scene != nullptr);
+	const auto res = scene->getResolution();
+	EXPECT_DOUBLE_EQ(0.000226891e-3, std::get<0>(res));
+	EXPECT_DOUBLE_EQ(0.000226907e-3, std::get<1>(res));
+}
+
 // ---------------------------------------------------------------------------
 // PHTDescription
 // ---------------------------------------------------------------------------
