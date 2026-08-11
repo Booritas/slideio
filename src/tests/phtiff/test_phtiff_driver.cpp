@@ -744,9 +744,11 @@ TEST_F(PhTiffImageDriverTests, auxImagesOfTheTestFiles) {
 	}
 }
 
-// Detection precedence for tiff files. The ome-tiff row is the regression guard: its
-// name matches the *.tiff pattern of the philips driver too, and it must keep going to
-// the ome-tiff driver, which precedes philips in the order.
+// Detection precedence for tiff files. The philips row is the order guard: philips must
+// precede gdal, which claims *.tif;*.tiff by extension alone with no content check, and
+// would otherwise take the file first. The ome-tiff row asserts routing rather than
+// order -- it holds regardless of where OMETIFF and PHTIFF sit relative to each other,
+// because PHTIFF's content check rejects OME-XML metadata.
 TEST_F(PhTiffImageDriverTests, findDriver) {
 	const std::list<std::pair<std::string, std::string>> expected = {
 		{"PHTIFF", TestTools::getFullTestImagePath("philips", "Philips-3.tiff")},
@@ -764,8 +766,8 @@ TEST_F(PhTiffImageDriverTests, findDriver) {
 
 // The whole point of the detection: a philips file opens without naming a driver, and
 // it opens as a philips slide. The public Slide class exposes no driver id, so the
-// assertions are on what only the philips driver produces -- gdal would hand back a
-// single flat scene with no auxiliary images and no resolution.
+// assertions are on what only the philips driver produces -- gdal would hand back one
+// scene per tiff directory, with no auxiliary images and no resolution.
 TEST_F(PhTiffImageDriverTests, openSlideWithoutDriverId) {
 	const std::string filePath = TestTools::getFullTestImagePath("philips", "Philips-3.tiff");
 	auto slide = slideio::openSlide(filePath);
