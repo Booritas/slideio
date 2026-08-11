@@ -15,6 +15,7 @@ TIFFKeeper::TIFFKeeper(libtiff::TIFF* hfile) : m_hFile(hfile)
 
 TIFFKeeper::TIFFKeeper(const std::string& filePath, bool readOnly)
 {
+    m_messageHandler = std::make_shared<TIFFMessageHandler>();
     openTiffFile(filePath, readOnly);
 }
 

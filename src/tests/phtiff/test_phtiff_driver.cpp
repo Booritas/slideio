@@ -280,23 +280,34 @@ protected:
 
 
 TEST_F(PhTiffImageDriverTests, canOpenFile) {
-    const std::string allowedSuffixes[] = { ".tif",".tiff" };
-    const std::string disallowedSuffixes[] = { ".ometif",".ometiff", ".ometf2", ".ometf8", ".omebtf" };
-    SVSImageDriver driver("PHTIFF");
-	for(std::string suffix : allowedSuffixes) {
-		std::string filePath = "/projects/ometiff" + suffix;
-		EXPECT_TRUE(driver.canOpenFile(filePath));
+	// The extension is necessary but not sufficient: philips shares *.tif;*.tiff with
+	// gdal and with ome-tiff, so the driver has to look into the file.
+	SVSImageDriver driver(PHTIFF_DRIVER_ID);
+	EXPECT_TRUE(driver.canOpenFile(TestTools::getFullTestImagePath("philips", "Philips-3.tiff")));
+	EXPECT_FALSE(driver.canOpenFile(
+		TestTools::getTestImagePath("gdal", "img_2448x2448_3x16bit_SRC_RGB_ducks.tif")));
+	EXPECT_FALSE(driver.canOpenFile(TestTools::getTestImagePath("gdal", "multipage.tif")));
+	EXPECT_FALSE(driver.canOpenFile(TestTools::getFullTestImagePath("ometiff", "00001_01.ome.tiff")));
+	// A path that does not exist, and a file that is not a tiff at all.
+	EXPECT_FALSE(driver.canOpenFile("/projects/no-such-file.tiff"));
+	EXPECT_FALSE(driver.canOpenFile(TestTools::getTestImagePath("gdal", "colors.png")));
+
+	// Extensions the driver does not serve are rejected without opening anything.
+	const std::string disallowedSuffixes[] = {
+		".ometif", ".ometiff", ".ometf2", ".ometf8", ".omebtf", ".svs", ".ndpi", ".qptiff"
+	};
+	for (const std::string& suffix : disallowedSuffixes) {
+		EXPECT_FALSE(driver.canOpenFile("/projects/image" + suffix)) << suffix;
 	}
-	for (std::string suffix : allowedSuffixes) {
-        std::transform(suffix.begin(), suffix.end(), suffix.begin(),
-            [](unsigned char c) { return std::toupper(c); });
-		std::string filePath = "/projects/ometiff" + suffix;
-		EXPECT_TRUE(driver.canOpenFile(filePath));
-	}
-	for (std::string suffix : disallowedSuffixes) {
-		std::string filePath = "/projects/ometiff" + suffix;
-		EXPECT_FALSE(driver.canOpenFile(filePath));
-	}
+
+	// The svs id decides by extension alone: an svs file carries no philips metadata.
+	// This is also the only place where extension matching, and its case insensitivity,
+	// is observable without a file, since no content test runs for the svs id.
+	SVSImageDriver svsDriver(SVS_DRIVER_ID);
+	EXPECT_TRUE(svsDriver.canOpenFile("/projects/image.svs"));
+	EXPECT_TRUE(svsDriver.canOpenFile("/projects/image.SVS"));
+	EXPECT_FALSE(svsDriver.canOpenFile("/projects/image.tiff"));
+	EXPECT_TRUE(svsDriver.canOpenFile(TestTools::getTestImagePath("svs", "CMU-1-Small-Region.svs")));
 }
 
 TEST_F(PhTiffImageDriverTests, openSlide) {

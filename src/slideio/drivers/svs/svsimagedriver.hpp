@@ -21,6 +21,7 @@ namespace slideio
         std::string getID() const override;
         std::shared_ptr<slideio::CVSlide> openFile(const std::string& filePath) override;
         std::string getFileSpecs() const override;
+        bool canOpenFile(const std::string& filePath) const override;
     private:
         std::string m_driverId;
     };
