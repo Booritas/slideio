@@ -11,6 +11,7 @@ the work can be picked up later without re-doing the analysis.
 
 1. [`TIFFKeeper` unsafe value semantics](#1-tiffkeeper-unsafe-value-semantics)
 2. [Philips TIFF driver follow-ups](#2-philips-tiff-driver-follow-ups)
+3. [`SCNSlide` passes a `TIFF*` where `SVSSmallScene` expects a `bool`](#3-scnslide-passes-a-tiff-where-svssmallscene-expects-a-bool)
 
 ---
 
@@ -202,3 +203,39 @@ flat, no pyramid — and now throws out of `openSlide`. This is inherent to
 `findDriver` and identical for every other format; the strictness trade is
 documented in the design's error-handling section. Recorded so it is a decision
 rather than a discovery.
+
+---
+
+## 3. `SCNSlide` passes a `TIFF*` where `SVSSmallScene` expects a `bool`
+
+**File:** `src/slideio/drivers/scn/scnslide.cpp:89`
+**Related:** `src/slideio/drivers/svs/svssmallscene.hpp:20-25`
+**Status:** Open. Found while reviewing the `TIFFKeeper` ownership change;
+pre-existing and unrelated to it.
+
+`SCNSlide` builds a `supplementalImage` scene with:
+
+```cpp
+std::shared_ptr<SVSSmallScene> scene(new SVSSmallScene(m_filePath, getDriverId(), tagName,
+    directory, m_tiff.getHandle()));
+```
+
+`SVSSmallScene`'s fifth constructor parameter is `bool auxiliary = true`, not a
+`TIFF*`. The `libtiff::TIFF*` returned by `m_tiff.getHandle()` silently
+converts to `bool` — non-null, so `true` — and the handle itself is discarded;
+`SVSSmallScene` never sees it. The call is equivalent to omitting the argument
+and taking the default.
+
+**Impact today: none.** `m_tiff` is validated non-null before this code runs,
+so the converted value always matches the default every other call site
+already passes. This is a latent trap, not a live bug.
+
+**Trap for whoever fixes it:** the obvious repair — add a `TIFF*`-taking
+`SVSSmallScene` overload/parameter so the scene reuses the slide's already-open
+handle instead of implying it should open its own — creates a real double
+close if implemented naively. `SCNSlide::m_tiff` keeps ownership of that handle
+and closes it in `~SCNSlide`. Handing the same raw pointer to `SVSSmallScene`
+without transferring ownership means two owners closing one handle. Any fix
+that shares the handle must go through `TIFFKeeper::release()` (or equivalent
+explicit ownership transfer), not a bare `getHandle()` passed to a second
+owner.

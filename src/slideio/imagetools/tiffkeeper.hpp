@@ -23,10 +23,13 @@ namespace slideio
 
     // Both constructors install a TIFFMessageHandler, which swaps libtiff's
     // PROCESS-GLOBAL error and warning handlers for the keeper's lifetime and restores
-    // them on destruction. With overlapping, non-LIFO keeper lifetimes one destructor can
-    // restore a handler while another keeper is still alive, after which libtiff messages
-    // go to stderr instead of the log. There is no dangling pointer -- both handlers are
-    // static functions -- so the consequence is lost log routing, not a crash.
+    // them on destruction. Move assignment deliberately keeps the destination's own
+    // handler rather than taking the source's (see the .cpp), so the one remaining
+    // hazard is keepers whose lifetimes overlap out of order: with overlapping,
+    // non-LIFO keeper lifetimes, one destructor can restore a handler while another
+    // keeper is still alive, after which libtiff messages go to stderr instead of the
+    // log. There is no dangling pointer -- both handlers are static functions -- so the
+    // consequence is lost log routing, not a crash.
     class SLIDEIO_IMAGETOOLS_EXPORTS TIFFKeeper
     {
     public:
@@ -38,6 +41,11 @@ namespace slideio
         // second one operates on a pointer libtiff has already freed.
         TIFFKeeper(const TIFFKeeper&)            = delete;
         TIFFKeeper& operator=(const TIFFKeeper&) = delete;
+        // After the move, `other` owns nothing: m_hFile is null and m_messageHandler
+        // has been transferred away, so `other` holds no message handler either. A
+        // moved-from keeper must not be revived via reset()/openTiffFile() -- doing so
+        // would hand it a live TIFF handle with no handler installed. It is fit only
+        // to be destroyed or move-/copy-assigned over.
         TIFFKeeper(TIFFKeeper&& other) noexcept;
         TIFFKeeper& operator=(TIFFKeeper&& other) noexcept;
 
@@ -65,6 +73,9 @@ namespace slideio
         void writeRawTile(int x, int y, const uint8_t* data, int size);
 
     private:
+        // Shared initialiser for m_messageHandler, used by both constructors.
+        void initMessageHandler();
+
         libtiff::TIFF* m_hFile = nullptr;
         std::shared_ptr<TIFFMessageHandler> m_messageHandler;
 
