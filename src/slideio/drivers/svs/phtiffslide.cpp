@@ -9,6 +9,7 @@
 #include "slideio/core/metadata_internal.hpp"
 #include "slideio/base/log.hpp"
 #include "slideio/drivers/svs/phtdescription.hpp"
+#include "slideio/drivers/svs/svstools.hpp"
 
 #include <algorithm>
 #include <cctype>
@@ -405,16 +406,49 @@ void PHTIFFSlide::extractImages(const std::vector<TiffDirectory>& directories, c
     std::vector<bool> levelClaimed(declaredLevels.size(), false);
     std::vector<bool> dirClaimed(levelDirs.size(), false);
 
-    // In file order, pair every tiled directory with the first unclaimed declared level
-    // (in level order) whose declared size equals its own. Two declared levels of the
-    // same size are handed out in level order to the directories in file order, which is
-    // the right answer for that case (e.g. a small slide whose base already sits on the
-    // tile grid, so two consecutive levels both come out 512x512).
+    // Pass one: a level directory names its own level, so pair those first and exactly.
+    // Size alone cannot separate two declared levels that share a size, and a directory
+    // the metadata never declared can carry that same size -- in which case matching by
+    // size hands a real level's place to the interloper and drops the real directory.
     for (size_t dirPos = 0; dirPos < levelDirs.size(); ++dirPos) {
+        const TiffDirectory& dir = directories[levelDirs[dirPos]];
+        const int named = SVSTools::extractPhilipsLevelNumber(dir.description);
+        if (named < 0) {
+            continue;
+        }
+        for (size_t levelIndex = 0; levelIndex < declaredLevels.size(); ++levelIndex) {
+            const PHTLevelDeclaration& declared = declaredLevels[levelIndex];
+            if (levelClaimed[levelIndex] || declared.number != named) {
+                continue;
+            }
+            // The declared size still has to agree. A directory that names a level but
+            // does not match its declared size is a contradiction, and is left to the
+            // size pass rather than trusted.
+            if (declared.declaredSize.width == dir.width
+                && declared.declaredSize.height == dir.height) {
+                levelClaimed[levelIndex] = true;
+                dirClaimed[dirPos] = true;
+                PHTLevel pyramidLevel;
+                pyramidLevel.dirIndex = levelDirs[dirPos];
+                pyramidLevel.levelNumber = declared.number;
+                pyramidLevel.corroborated = true;
+                imagePyramid.push_back(pyramidLevel);
+            }
+            break;
+        }
+    }
+
+    // Pass two: everything still unpaired, by declared size, in file order. This is what
+    // places the base level, whose directory carries the xml metadata and names no level.
+    for (size_t dirPos = 0; dirPos < levelDirs.size(); ++dirPos) {
+        if (dirClaimed[dirPos]) {
+            continue;
+        }
         const TiffDirectory& dir = directories[levelDirs[dirPos]];
         for (size_t levelIndex = 0; levelIndex < declaredLevels.size(); ++levelIndex) {
             const PHTLevelDeclaration& declared = declaredLevels[levelIndex];
-            if (levelClaimed[levelIndex] || declared.declaredSize.width <= 0 || declared.declaredSize.height <= 0) {
+            if (levelClaimed[levelIndex] || declared.declaredSize.width <= 0
+                || declared.declaredSize.height <= 0) {
                 continue;
             }
             if (declared.declaredSize.width == dir.width && declared.declaredSize.height == dir.height) {

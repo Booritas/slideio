@@ -201,15 +201,25 @@ silently: wrong pixels, no error. A guard next to the existing
 crop") turns the worst case into a visible degradation. Cheap insurance on a
 clinical read path.~~
 
-**2. Size matching can still bind the wrong level, in one narrow case.**
-Levels are matched to directories by declared size. If an *undeclared* tiled
+**2. ~~Size matching can still bind the wrong level, in one narrow case.~~ Fixed**
+(`SVSTools::extractPhilipsLevelNumber`, `svstools.hpp`/`svstools.cpp`; the two-pass
+match in `PHTIFFSlide::extractImages`, `phtiffslide.cpp`;
+`phExtractImages_sameSizedInterloperDoesNotClaimADeclaredLevel`,
+`test_phtiff_driver.cpp`).
+~~Levels are matched to directories by declared size. If an *undeclared* tiled
 directory happens to have the exact pixel dimensions of one of two
 identically-sized declared levels, and sits between their real directories in
 file order, the interloper can claim the declared level (marked corroborated, so
 it gets cropped) and the real directory is dropped. Requires a coincidental size
 collision on top of an interloper; the pre-fix positional code mishandled the
 same input differently. A focused test would pin it:
-`phExtractImages_sameSizedInterloperBetweenTiedLevelsBindsWrongDirectory`.
+`phExtractImages_sameSizedInterloperBetweenTiedLevelsBindsWrongDirectory`.~~
+A level directory names its own level number in its description
+(`"level=1 mag=20 quality=80"`), a stronger key than size. `extractImages` now
+pairs directories to declared levels by that name first, falling back to the
+existing size match only for what is still unpaired (which is how the base
+level, whose directory carries the xml metadata and names no level, is still
+placed).
 
 **3. ~~The rounding rule in `phLevelContentSize` is never exercised.~~ Fixed**
 (`phCreateImageScene_roundsAContentSizeUpNotDown`, `test_phtiff_driver.cpp`, plus

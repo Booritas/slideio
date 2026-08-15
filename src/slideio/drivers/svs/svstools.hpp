@@ -24,6 +24,10 @@ namespace slideio
         // metadata instead; a level covers 2^-level of the base, so the base is
         // mag * 2^level. Returns 0 if the description names no usable magnification.
         static double extractPhilipsMagnification(const std::string& description);
+        // The zoom level a philips level directory's description names
+        // ("level=1 mag=20 quality=80" -> 1), or -1 if it names none. The base level's
+        // directory carries the xml metadata instead and always returns -1.
+        static int extractPhilipsLevelNumber(const std::string& description);
         // Parses an Aperio-format metadata string into a structured JSON tree.
         // Header lines (before the first '|') become "application" and "image";
         // subsequent "name = value" tokens become entries under "properties".

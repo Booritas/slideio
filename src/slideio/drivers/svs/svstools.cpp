@@ -83,6 +83,19 @@ double SVSTools::extractPhilipsMagnification(const std::string& description)
     return std::ldexp(magnification, level);
 }
 
+int SVSTools::extractPhilipsLevelNumber(const std::string& description)
+{
+    // The same shape the magnification parser trusts, and deliberately not a bare
+    // "level=(\d+)": the derivation description of a converted file contains
+    // "levels=10003,10002", and requiring the mag field keeps that from matching.
+    std::regex rgx(R"(level=(\d{1,9})\s+mag=)");
+    std::smatch match;
+    if (!std::regex_search(description, match, rgx)) {
+        return -1;
+    }
+    return std::stoi(match[1]);
+}
+
 nlohmann::json SVSTools::parseAperioMetadata(const std::string& description)
 {
     using nlohmann::json;

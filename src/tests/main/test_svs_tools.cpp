@@ -111,6 +111,27 @@ TEST(SVSTools, extractPhilipsMagnificationIsIndependentOfTheHostLocale)
 	EXPECT_DOUBLE_EQ(44., magnification);
 }
 
+// A philips level directory names its own level: "level=1 mag=20 quality=80". The base
+// level's directory carries the xml metadata instead and names none.
+TEST(SVSTools, extractPhilipsLevelNumberReadsTheLevel)
+{
+	EXPECT_EQ(1, slideio::SVSTools::extractPhilipsLevelNumber("level=1 mag=20 quality=80"));
+	EXPECT_EQ(8, slideio::SVSTools::extractPhilipsLevelNumber("level=8 mag=0.15625 quality=80"));
+}
+
+TEST(SVSTools, extractPhilipsLevelNumberReturnsMinusOneWhenThereIsNone)
+{
+	EXPECT_EQ(-1, slideio::SVSTools::extractPhilipsLevelNumber(""));
+	EXPECT_EQ(-1, slideio::SVSTools::extractPhilipsLevelNumber("interloper"));
+	EXPECT_EQ(-1, slideio::SVSTools::extractPhilipsLevelNumber(
+		"Macro -offset=(0,0)-pixelsize=(0.0315,0.0315)"));
+	// The aperio syntax names no philips level.
+	EXPECT_EQ(-1, slideio::SVSTools::extractPhilipsLevelNumber(description));
+	// "levels=" is not "level=" -- the derivation description of a converted file
+	// contains "levels=10003,10002" and must not be read as a level number.
+	EXPECT_EQ(-1, slideio::SVSTools::extractPhilipsLevelNumber("levels=10003,10002 mag=20"));
+}
+
 TEST(SVSTools, extractResolution)
 {
 	double res = slideio::SVSTools::extractResolution(description);

@@ -614,6 +614,30 @@ TEST_F(PhTiffImageDriverTests, phExtractImages_undeclaredDirectoryDoesNotShiftLa
 	EXPECT_EQ((std::vector<PHTLevel>{{0, 0}, {2, 1}, {3, 2}}), imagePyramid);
 }
 
+// Two declared levels can share a size -- a small slide whose base already sits on the
+// tile grid comes out 1x1 at both of its lower levels. If an UNDECLARED tiled directory
+// of that same size sits between their real directories, matching by size alone lets the
+// interloper claim the second declared level, be marked corroborated, and get cropped as
+// if it were real, while the real directory is dropped. The directories name their own
+// level, so the pairing does not have to be guessed from size.
+TEST_F(PhTiffImageDriverTests, phExtractImages_sameSizedInterloperDoesNotClaimADeclaredLevel) {
+	const std::string xml = MockPHTIFFSlide::createFakeXml(2, 2, 3, {});
+	const std::vector<TiffDirectory> directories = {
+		makeLevelDir(xml, 2, 2),                                 // declared level 0
+		makeLevelDir("level=1 mag=20 quality=80", 1, 1),         // declared level 1
+		makeLevelDir("interloper", 1, 1),                        // undeclared, same size
+		makeLevelDir("level=2 mag=10 quality=80", 1, 1),         // declared level 2
+	};
+	std::vector<PHTLevel> imagePyramid;
+	std::map<std::string, int> auxImages;
+
+	MockPHTIFFSlide::extractImagesMock(directories, imagePyramid, auxImages);
+
+	EXPECT_EQ((std::vector<int>{0, 1, 3}), phDirIndices(imagePyramid))
+		<< "the interloper at index 2 must not take level 2's place";
+	EXPECT_EQ((std::vector<PHTLevel>{{0, 0}, {1, 1}, {3, 2}}), imagePyramid);
+}
+
 // createFakeXml always writes LEVEL_COLUMNS/LEVEL_ROWS for every level, so a level with
 // no declared size has to be built by hand here rather than through createFakeXml. Hand
 // building is chosen over post-processing createFakeXml's output because the levels are
