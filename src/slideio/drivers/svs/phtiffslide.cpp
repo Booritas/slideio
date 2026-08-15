@@ -2,7 +2,7 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/drivers/svs/phtiffslide.hpp"
-#include "slideio/drivers/svs/svsimagedriver.hpp"
+#include "slideio/drivers/svs/svsdriverids.hpp"
 #include "slideio/drivers/svs/svssmallscene.hpp"
 #include "slideio/drivers/svs/phtiffscene.hpp"
 #include "slideio/imagetools/tifftools.hpp"
@@ -393,11 +393,12 @@ void PHTIFFSlide::extractImages(const std::vector<TiffDirectory>& directories, c
     // Only the philips metadata knows the level number of a zoom level, and the level
     // number is what tells how much of the slide the level covers. The tiff directory
     // size cannot supply it: padding can leave two consecutive levels the same width. A
-    // declared level is therefore matched to the tiled directory holding it by size, not
-    // by position -- a directory the metadata does not account for (an auxiliary image
-    // stored tiled, a level it omits) would otherwise shift the level numbers of every
-    // directory that follows it, and reproduce the wrong-scale defect the crop below
-    // exists to remove.
+    // declared level is therefore matched primarily to the tiled directory that names that
+    // same level number in its own description; when none does (or the one that does
+    // disagrees on size), the fallback matches by declared size instead of position -- a
+    // directory the metadata does not account for (an auxiliary image stored tiled, a
+    // level it omits) would otherwise shift the level numbers of every directory that
+    // follows it, and reproduce the wrong-scale defect the crop below exists to remove.
     std::vector<PHTLevelDeclaration> declaredLevels;
     if (const PHTImageDeclaration* wsi = metadata.wholeSlideImage()) {
         declaredLevels = wsi->levels;
@@ -433,6 +434,12 @@ void PHTIFFSlide::extractImages(const std::vector<TiffDirectory>& directories, c
                 pyramidLevel.levelNumber = declared.number;
                 pyramidLevel.corroborated = true;
                 imagePyramid.push_back(pyramidLevel);
+            } else {
+                SLIDEIO_LOG(WARNING) << "PHTIFFSlide: tiff directory " << levelDirs[dirPos]
+                    << " names philips zoom level " << named << " but is " << dir.width << "x"
+                    << dir.height << ", not the declared " << declared.declaredSize.width << "x"
+                    << declared.declaredSize.height << ". The pairing of the directory to a"
+                    " level is left to the size match.";
             }
             break;
         }

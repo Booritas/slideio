@@ -255,16 +255,21 @@ documented performance reason (a single parse instead of two over descriptions
 that reach 844 KB). It has no caller outside its own unit test: either use it or
 remove it.
 
-**7. Layering points the wrong way.** The format's data classes depend on the
-driver class purely to name a driver id. The refactor moved the problem rather
-than removing it: `svstiledscene.cpp` no longer includes `svsimagedriver.hpp`, but
-`phtiffslide.cpp` and `phtiffscene.cpp` now do, each for `PHTIFF_DRIVER_ID` alone.
-A three-line `svsdriverids.hpp`, or the ids in `svstools.hpp`, would keep the
-dependency pointing down.
+**7. ~~Layering points the wrong way.~~ Fixed** (new `svsdriverids.hpp`;
+`svsimagedriver.hpp`, `phtiffslide.cpp`, `phtiffscene.cpp`, `svsslide.cpp`).
+~~The format's data classes depend on the driver class purely to name a driver id.
+The refactor moved the problem rather than removing it: `svstiledscene.cpp` no
+longer includes `svsimagedriver.hpp`, but `phtiffslide.cpp` and `phtiffscene.cpp`
+now do, each for `PHTIFF_DRIVER_ID` alone. A three-line `svsdriverids.hpp`, or the
+ids in `svstools.hpp`, would keep the dependency pointing down.~~
 
-Separately, `svsslide.cpp`'s include of `svsimagedriver.hpp` is now entirely dead —
+~~Separately, `svsslide.cpp`'s include of `svsimagedriver.hpp` is now entirely dead —
 that file references neither id nor the driver class since the refactor — so that
-one is a straight deletion rather than a re-layering.
+one is a straight deletion rather than a re-layering.~~
+`SVS_DRIVER_ID` and `PHTIFF_DRIVER_ID` now live in `svsdriverids.hpp`;
+`svsimagedriver.hpp` includes it instead of declaring them, `phtiffslide.cpp` and
+`phtiffscene.cpp` include it instead of `svsimagedriver.hpp`, and `svsslide.cpp`'s
+dead include of `svsimagedriver.hpp` is deleted. Both ids keep their string values.
 
 **8. `TIFFKeeper`'s handler swap is global and not order-safe.** Both
 constructors swap libtiff's process-global error/warning handlers for the keeper's

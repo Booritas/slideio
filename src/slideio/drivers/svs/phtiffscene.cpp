@@ -4,7 +4,7 @@
 #include "slideio/drivers/svs/phtiffscene.hpp"
 
 #include "slideio/base/log.hpp"
-#include "slideio/drivers/svs/svsimagedriver.hpp"
+#include "slideio/drivers/svs/svsdriverids.hpp"
 #include "slideio/drivers/svs/svstools.hpp"
 
 using namespace slideio;

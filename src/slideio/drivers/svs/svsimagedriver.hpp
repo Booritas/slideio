@@ -5,14 +5,13 @@
 
 #include "slideio/drivers/svs/svs_api_def.hpp"
 #include "slideio/core/imagedriver.hpp"
+#include "slideio/drivers/svs/svsdriverids.hpp"
 
 namespace slideio
 {
-    // The aperio svs id. PHTIFF_DRIVER_ID stays declared here too: it remains the public
+    // The aperio svs id. PHTIFF_DRIVER_ID is pulled in here too: it remains the public
     // id string for the philips driver (see PHTIFFImageDriver), so openSlide(path,
     // "PHTIFF") keeps working, though it no longer steers control flow in this class.
-    constexpr const char* SVS_DRIVER_ID = "SVS";
-    constexpr const char* PHTIFF_DRIVER_ID = "PHTIFF";
 
     class SLIDEIO_SVS_EXPORTS SVSImageDriver : public slideio::ImageDriver
     {

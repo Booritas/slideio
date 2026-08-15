@@ -9,6 +9,7 @@ HIDE_LIB(libjpeg)
 
 set(SOURCE_FILES 
    ${SOURCE_FILES}
+   ${CMAKE_CURRENT_SOURCE_DIR}/svsdriverids.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/svsimagedriver.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/svsimagedriver.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/phtiffimagedriver.hpp
