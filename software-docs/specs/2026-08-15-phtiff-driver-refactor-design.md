@@ -1,6 +1,6 @@
 # Philips TIFF Driver Refactor — Design
 
-**Status:** Approved 2026-08-15
+**Status:** Implemented 2026-08-15
 **Driver:** `src/slideio/drivers/svs`, `src/slideio/slideio/imagedrivermanager.cpp`
 **Addresses:** the *Design and maintainability* section of the PHTIFF driver review
 
