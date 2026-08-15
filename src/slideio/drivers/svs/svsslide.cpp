@@ -6,6 +6,7 @@
 #include "slideio/imagetools/imagetools.hpp"
 #include "slideio/drivers/svs/svssmallscene.hpp"
 #include "slideio/drivers/svs/svstiledscene.hpp"
+#include "slideio/drivers/svs/phtiffscene.hpp"
 #include "slideio/drivers/svs/svstools.hpp"
 #include "slideio/imagetools/tifftools.hpp"
 #include "slideio/core/metadata_internal.hpp"
@@ -596,7 +597,7 @@ void SVSSlide::phCreateImageScene(const std::vector<TiffDirectory>& directories,
         image_dirs.push_back(directories[level.dirIndex]);
     }
     phCropLevelPadding(imagePyramid, image_dirs);
-    auto tScene = SVSTiledScene::create(m_filePath, getDriverId(), hFile, "Image", image_dirs);
+    auto tScene = PHTIFFTiledScene::create(m_filePath, hFile, "Image", image_dirs);
     tScene->setDriverId(m_driverId);
     std::shared_ptr<CVScene> scene(tScene);
     m_Scenes.push_back(scene);

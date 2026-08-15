@@ -686,9 +686,11 @@ TEST_F(PhTiffImageDriverTests, phCreateImageScene_createsSingleImageScene) {
 // scene rect. Here the pyramid references dir 2 first, then dir 0.
 TEST_F(PhTiffImageDriverTests, phCreateImageScene_usesPyramidIndicesInOrder) {
 	const std::vector<TiffDirectory> directories = {
-		makeImageDir(MockSVSSlide::fakeXML, 45056, 35840),  // index 0
-		makeImageDir("level=1 mag=22 quality=80", 22528, 17920), // index 1 (unused)
-		makeImageDir("level=2 mag=11 quality=80", 11264, 9216),  // index 2
+		makeImageDir("level=1 mag=22 quality=80", 45056, 35840),  // index 0
+		makeImageDir("level=2 mag=11 quality=80", 22528, 17920),  // index 1 (unused)
+		// The base of the pyramid below, so it carries the slide metadata: philips keeps
+		// its xml in the description of the base level's directory.
+		makeImageDir(MockSVSSlide::fakeXML, 11264, 9216),         // index 2
 	};
 	const std::vector<PHTLevel> imagePyramid = { {2, 0}, {0, 1} };  // base = dir 2
 

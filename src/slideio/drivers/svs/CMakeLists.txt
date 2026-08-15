@@ -19,6 +19,8 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/svssmallscene.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/svstiledscene.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/svstiledscene.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/phtiffscene.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/phtiffscene.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/svstools.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/svstools.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/phtdescription.hpp

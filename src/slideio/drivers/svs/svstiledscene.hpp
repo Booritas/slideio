@@ -17,15 +17,6 @@ namespace slideio
     class SLIDEIO_SVS_EXPORTS SVSTiledScene : public SVSScene, public Tiler
     {
     public:
-        SVSTiledScene(const std::string& filePath,
-                      const std::string& driverId,
-                      const std::string& name,
-                      const std::vector<slideio::TiffDirectory>& dirs);
-        SVSTiledScene(const std::string& filePath,
-			const std::string& driverId,
-            libtiff::TIFF* hFile,
-            const std::string& name,
-            const std::vector<slideio::TiffDirectory>& dirs);
         // Constructs and initializes. A factory rather than a constructor call because
         // initialize() reads the image description through a virtual method, and a
         // virtual call made from a constructor does not reach a derived override.
@@ -46,10 +37,23 @@ namespace slideio
         bool readTile(int tileIndex, const std::vector<int>& channelIndices, cv::OutputArray tileRaster,
             void* userData) override;
     protected:
+        // Protected rather than public: a caller constructing the scene directly, instead
+        // of through create(), would skip initialize() and silently get a scene with zero
+        // zoom levels and zero resolution. The factories are members, so they still reach
+        // these, and so does a derived class's own constructor.
+        SVSTiledScene(const std::string& filePath,
+                      const std::string& driverId,
+                      const std::string& name,
+                      const std::vector<slideio::TiffDirectory>& dirs);
+        SVSTiledScene(const std::string& filePath,
+			const std::string& driverId,
+            libtiff::TIFF* hFile,
+            const std::string& name,
+            const std::vector<slideio::TiffDirectory>& dirs);
         void initialize();
-        void processImageDescription();
-        void processImageDescriptionSVS();
-        void processImageDescriptionPhTiff();
+        // Reads the format specific fields — resolution, magnification, raw metadata —
+        // out of the description of the base directory. Called by initialize().
+        virtual void processImageDescription();
         void initializeBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices, cv::OutputArray output) override;
         std::vector<slideio::TiffDirectory> m_directories;
     };
