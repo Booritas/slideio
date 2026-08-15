@@ -17,8 +17,10 @@ the work can be picked up later without re-doing the analysis.
 ## 1. `TIFFKeeper` unsafe value semantics
 
 **File:** `src/slideio/imagetools/tiffkeeper.hpp` (+ `tiffkeeper.cpp`)
-**Related:** `src/slideio/drivers/ndpi/ndpitifftools.hpp:134` (`NDPITIFFKeeper`, near-identical class)
-**Status:** Open — proposal only, not implemented.
+**Related:** `src/slideio/drivers/ndpi/ndpitifftools.hpp:134` (`NDPITIFFKeeper`, now a diverged twin — see problem 6)
+**Status:** RAII fix implemented across commits `53d13332..06c456a7` (design,
+plan, tests, the move-only class, and the call-site migration). Only problem 6,
+unifying with `NDPITIFFKeeper`, remains open.
 
 ### Context
 
@@ -31,23 +33,14 @@ drivers/tests.
 
 ### Problems
 
-**1. Looks like an owning handle but has unsafe value semantics (main issue).**
-The destructor calls `TiffTools::closeTiffFile(m_hFile)`, so the class claims
-ownership. But:
-- The copy constructor and copy assignment are **implicitly generated and
-  public** — copying a `TIFFKeeper` duplicates the raw pointer, leading to
-  **double-close / use-after-free**. Any class holding one by value silently
-  becomes unsafe to copy.
-- There is **no move constructor / move assignment**, so ownership cannot be
-  handed around cleanly (part of why the converter resorts to
-  `shared_ptr<TIFFKeeper>`).
+**1. ~~Looks like an owning handle but has unsafe value semantics (main issue).~~
+Fixed** (`tiffkeeper.hpp`/`tiffkeeper.cpp`, commit `20c7663d`). Copy is now
+`= delete`d and a move constructor/move assignment were added, so ownership
+transfers explicitly instead of being duplicated by an implicit copy.
 
-**2. `operator=(libtiff::TIFF*)` leaks.**
-```cpp
-TIFFKeeper& operator=(libtiff::TIFF* hFile) { m_hFile = hFile; return *this; }
-```
-Overwrites the owned handle **without closing the previous one** → resource
-leak; also does not touch `m_messageHandler`.
+**2. ~~`operator=(libtiff::TIFF*)` leaks.~~ Fixed** (commit `20c7663d`). The
+operator is gone; `reset(libtiff::TIFF*)` (`tiffkeeper.cpp:50-56`) replaces it
+and closes the previously held handle before taking the new one.
 
 **3. ~~Constructors are inconsistent.~~ Fixed.**
 The `(filePath, readOnly)` constructor used to call `openTiffFile` while leaving
@@ -57,22 +50,48 @@ depended on which constructor was used. Both constructors now create it
 because the proposed direction below still refers to a shared init path; the
 remaining value there is factoring the duplication, not fixing a bug.
 
-**4. Implicit conversion `operator libtiff::TIFF*()`.**
-Redundant with `getHandle()`, and implicit conversion to a raw owned pointer is
-a footgun (accidental `delete`, pointer arithmetic, overload ambiguity with the
-raw-pointer `operator=`). Most call sites already use `getHandle()` explicitly.
+**4. ~~Implicit conversion `operator libtiff::TIFF*()`.~~ Fixed** (commits
+`20c7663d`, `06c456a7`). The conversion operator was removed and every call
+site that relied on it — including a few beyond the ones originally scoped,
+found by the compiler — was migrated to explicit `.getHandle()`.
 
-**5. `#define TIFFKeeperPtr std::shared_ptr<slideio::TIFFKeeper>`.**
-A macro where a namespace-scoped alias belongs. Ignores scope, leaks into every
-including TU, cannot be qualified.
+**5. ~~`#define TIFFKeeperPtr std::shared_ptr<slideio::TIFFKeeper>`.~~ Fixed**
+(commit `20c7663d`). Replaced with `using TIFFKeeperPtr = std::shared_ptr<TIFFKeeper>;`
+inside `namespace slideio` (`tiffkeeper.hpp:73`).
 
-**6. Duplication with `NDPITIFFKeeper`.**
-Same handle/isValid/conversion/assignment shape and same latent issues; the two
-differ only in the close function and export macro.
+**6. Duplication with `NDPITIFFKeeper` — the two have since diverged.**
+This entry originally described near-identical twins. That is no longer
+accurate: `TIFFKeeper` is now the move-only owning handle described above —
+copy deleted, move added, `reset()`/`release()` instead of the leaking
+`operator=`, no implicit conversion. `NDPITIFFKeeper`
+(`src/slideio/drivers/ndpi/ndpitifftools.hpp:134`) was left untouched by this
+work and still has the copyable, implicitly-converting, leaking-assignment
+shape both classes used to share — it carries today exactly the defects this
+entry's problems 1, 2 and 4 recorded for `TIFFKeeper`. Unifying the two is no
+longer "merge two equals"; it means bringing `NDPITIFFKeeper` up to the
+contract `TIFFKeeper` now has, then collapsing them onto a shared move-only
+handle. Remains open.
 
-**7. Minor header hygiene.**
-Relies on transitive includes for `<memory>` (shared_ptr), `<cstdint>`, and
-`cv::Mat`; the `OPENCV_`-prefixed include guard is copy-paste residue.
+**7. ~~Minor header hygiene.~~ Fixed** (commit `20c7663d`). `<memory>` and
+`<cstdint>` are now included directly in `tiffkeeper.hpp` rather than relied
+on transitively.
+
+**8. ~~`openTiffFile()` leaked exactly as `operator=` did.~~ Fixed** (commit
+`20c7663d`). `TIFFKeeper::openTiffFile` used to assign
+`TiffTools::openTiffFile(...)` straight into `m_hFile`, leaking any handle
+already held — the same bug as problem 2, just reached through a different
+entry point. It was not recorded when this entry was first written; it was
+found while designing the fix (see the spec's "Two problems the debt entry
+does not record"). `openTiffFile` now routes through `reset()`
+(`tiffkeeper.cpp:45-48`), which closes the old handle first.
+
+**9. ~~`m_hFile` had no default member initialiser.~~ Fixed** (commit
+`20c7663d`). Harmless at the time — a throwing constructor meant the
+destructor never ran — but latent, since it would stop being harmless the
+moment a member whose construction can throw was declared after it. Also
+found while designing the fix and not originally recorded here.
+`m_hFile` is now declared `libtiff::TIFF* m_hFile = nullptr;`
+(`tiffkeeper.hpp:68`).
 
 ### Proposed direction
 

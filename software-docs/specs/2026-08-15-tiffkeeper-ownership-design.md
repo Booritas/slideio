@@ -1,6 +1,6 @@
 # TIFFKeeper Ownership — Design
 
-**Status:** Approved 2026-08-15
+**Status:** Implemented 2026-08-15
 **File:** `src/slideio/imagetools/tiffkeeper.hpp` (+ `tiffkeeper.cpp`)
 **Addresses:** section 1 of `software-docs/TECH_DEBT.md`, *`TIFFKeeper` unsafe value semantics*
 **Scope option chosen:** 1, the full RAII fix. `NDPITIFFKeeper` is out of scope.
