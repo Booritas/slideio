@@ -4,6 +4,8 @@
 
 #pragma once
 #include <string>
+#include <memory>
+#include <cstdint>
 
 #include "tifftools.hpp"
 #include "slideio/imagetools/slideio_imagetools_def.hpp"
@@ -28,27 +30,28 @@ namespace slideio
     class SLIDEIO_IMAGETOOLS_EXPORTS TIFFKeeper
     {
     public:
-        TIFFKeeper(libtiff::TIFF* hfile = nullptr);
-        TIFFKeeper(const std::string& filePath, bool readOnly = true);
+        explicit TIFFKeeper(libtiff::TIFF* hFile = nullptr);
+        explicit TIFFKeeper(const std::string& filePath, bool readOnly = true);
         ~TIFFKeeper();
+
+        // An owning handle must not be copied: two owners means two closes, and the
+        // second one operates on a pointer libtiff has already freed.
+        TIFFKeeper(const TIFFKeeper&)            = delete;
+        TIFFKeeper& operator=(const TIFFKeeper&) = delete;
+        TIFFKeeper(TIFFKeeper&& other) noexcept;
+        TIFFKeeper& operator=(TIFFKeeper&& other) noexcept;
+
         libtiff::TIFF* getHandle() const {
             return m_hFile;
         }
         bool isValid() const {
-            return getHandle() != nullptr;
+            return m_hFile != nullptr;
         }
-        operator libtiff::TIFF* () const {
-            return getHandle();
-        }
-        TIFFKeeper& operator = (libtiff::TIFF* hFile) {
-            m_hFile = hFile;
-            return *this;
-        }
-        libtiff::TIFF* release() {
-            libtiff::TIFF* handle = m_hFile;
-            m_hFile = nullptr;
-            return handle;
-        }
+        // Takes ownership of a raw handle, closing any handle already held. Replaces the
+        // old operator=(TIFF*), which overwrote the member and leaked what it replaced.
+        void reset(libtiff::TIFF* hFile = nullptr);
+        // Gives up ownership without closing: the caller closes it from here on.
+        libtiff::TIFF* release();
         void openTiffFile(const std::string& filePath, bool readOnly = true);
         void closeTiffFile();
         void writeDirectory();
@@ -62,10 +65,10 @@ namespace slideio
         void writeRawTile(int x, int y, const uint8_t* data, int size);
 
     private:
-        libtiff::TIFF* m_hFile;
+        libtiff::TIFF* m_hFile = nullptr;
         std::shared_ptr<TIFFMessageHandler> m_messageHandler;
 
     };
-}
 
-#define TIFFKeeperPtr std::shared_ptr<slideio::TIFFKeeper>
+    using TIFFKeeperPtr = std::shared_ptr<TIFFKeeper>;
+}

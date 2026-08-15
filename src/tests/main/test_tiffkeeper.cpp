@@ -20,7 +20,7 @@ namespace
         const std::filesystem::path copy = std::filesystem::temp_directory_path() / name;
         std::error_code ignored;
         std::filesystem::remove(copy, ignored);
-        std::filesystem::copy_file(source, copy);
+        std::filesystem::copy_file(source, copy, std::filesystem::copy_options::overwrite_existing);
         return copy;
     }
 
@@ -56,18 +56,17 @@ TEST(TIFFKeeper, releaseGivesUpOwnershipWithoutClosing) {
 
 // The defect the debt entry names: assigning a new handle over a held one dropped the
 // old handle without closing it.
-// Task 2 adds reset()
-// TEST(TIFFKeeper, resetClosesTheHandleItReplaces) {
-//     const std::filesystem::path first = copyTestTiff("tiffkeeper-reset-first.tif");
-//     const std::filesystem::path second = copyTestTiff("tiffkeeper-reset-second.tif");
-//     {
-//         TIFFKeeper keeper(TiffTools::openTiffFile(first.string()));
-//         keeper.reset(TiffTools::openTiffFile(second.string()));
-//         EXPECT_TRUE(keeper.isValid());
-//         EXPECT_TRUE(canDelete(first)) << "reset must close the handle it replaced";
-//     }
-//     EXPECT_TRUE(canDelete(second));
-// }
+TEST(TIFFKeeper, resetClosesTheHandleItReplaces) {
+    const std::filesystem::path first = copyTestTiff("tiffkeeper-reset-first.tif");
+    const std::filesystem::path second = copyTestTiff("tiffkeeper-reset-second.tif");
+    {
+        TIFFKeeper keeper(TiffTools::openTiffFile(first.string()));
+        keeper.reset(TiffTools::openTiffFile(second.string()));
+        EXPECT_TRUE(keeper.isValid());
+        EXPECT_TRUE(canDelete(first)) << "reset must close the handle it replaced";
+    }
+    EXPECT_TRUE(canDelete(second));
+}
 
 // The same defect by its other door, which the debt entry does not record.
 TEST(TIFFKeeper, openTiffFileClosesTheHandleItReplaces) {
@@ -84,18 +83,17 @@ TEST(TIFFKeeper, openTiffFileClosesTheHandleItReplaces) {
 
 // The empty case, which the close-first logic must not get wrong: resetting a keeper
 // that holds nothing is just taking ownership, with nothing to close.
-// Task 2 adds reset()
-// TEST(TIFFKeeper, resetOnAnEmptyKeeperTakesOwnership) {
-//     const std::filesystem::path file = copyTestTiff("tiffkeeper-reset-empty.tif");
-//     {
-//         TIFFKeeper keeper;
-//         EXPECT_FALSE(keeper.isValid());
-//         keeper.reset(TiffTools::openTiffFile(file.string()));
-//         EXPECT_TRUE(keeper.isValid());
-//         EXPECT_FALSE(canDelete(file)) << "the keeper holds it open";
-//     }
-//     EXPECT_TRUE(canDelete(file));
-// }
+TEST(TIFFKeeper, resetOnAnEmptyKeeperTakesOwnership) {
+    const std::filesystem::path file = copyTestTiff("tiffkeeper-reset-empty.tif");
+    {
+        TIFFKeeper keeper;
+        EXPECT_FALSE(keeper.isValid());
+        keeper.reset(TiffTools::openTiffFile(file.string()));
+        EXPECT_TRUE(keeper.isValid());
+        EXPECT_FALSE(canDelete(file)) << "the keeper holds it open";
+    }
+    EXPECT_TRUE(canDelete(file));
+}
 
 // TIFFKeeper is move-only by design, so copying one is a compile error rather than a
 // test: an owning handle with two owners closes twice. There is no test here because a
@@ -111,18 +109,17 @@ TEST(TIFFKeeper, openTiffFileClosesTheHandleItReplaces) {
 // then, at scope exit, target's destructor closes the handle and source's destructor
 // closes it again -- a double close that aborts the whole slideio_tests process before
 // the test summary prints, taking the rest of the suite's results down with it.
-// Task 2 adds move construction
-// TEST(TIFFKeeper, moveConstructionTransfersOwnership) {
-//     const std::filesystem::path file = copyTestTiff("tiffkeeper-move-ctor.tif");
-//     {
-//         TIFFKeeper source(TiffTools::openTiffFile(file.string()));
-//         TIFFKeeper target(std::move(source));
-//         EXPECT_TRUE(target.isValid());
-//         EXPECT_FALSE(source.isValid()) << "a moved-from keeper owns nothing";
-//         EXPECT_FALSE(canDelete(file)) << "the target still holds it open";
-//     }
-//     EXPECT_TRUE(canDelete(file)) << "one close, by the target";
-// }
+TEST(TIFFKeeper, moveConstructionTransfersOwnership) {
+    const std::filesystem::path file = copyTestTiff("tiffkeeper-move-ctor.tif");
+    {
+        TIFFKeeper source(TiffTools::openTiffFile(file.string()));
+        TIFFKeeper target(std::move(source));
+        EXPECT_TRUE(target.isValid());
+        EXPECT_FALSE(source.isValid()) << "a moved-from keeper owns nothing";
+        EXPECT_FALSE(canDelete(file)) << "the target still holds it open";
+    }
+    EXPECT_TRUE(canDelete(file)) << "one close, by the target";
+}
 
 // Observed against the unmodified class: "target = std::move(source)" resolves to the
 // implicitly-generated COPY assignment operator for the same reason as above (an rvalue
@@ -131,16 +128,15 @@ TEST(TIFFKeeper, openTiffFileClosesTheHandleItReplaces) {
 // original handle was overwritten, not closed, and source is left "valid" -- but then,
 // at scope exit, target and source's destructors both close the one handle they now
 // share, which aborts the process before the test summary prints.
-// Task 2 adds move assignment
-// TEST(TIFFKeeper, moveAssignmentClosesItsOwnHandleFirst) {
-//     const std::filesystem::path own = copyTestTiff("tiffkeeper-move-own.tif");
-//     const std::filesystem::path taken = copyTestTiff("tiffkeeper-move-taken.tif");
-//     {
-//         TIFFKeeper target(TiffTools::openTiffFile(own.string()));
-//         TIFFKeeper source(TiffTools::openTiffFile(taken.string()));
-//         target = std::move(source);
-//         EXPECT_TRUE(canDelete(own)) << "move assignment must close what it gives up";
-//         EXPECT_FALSE(source.isValid());
-//     }
-//     EXPECT_TRUE(canDelete(taken));
-// }
+TEST(TIFFKeeper, moveAssignmentClosesItsOwnHandleFirst) {
+    const std::filesystem::path own = copyTestTiff("tiffkeeper-move-own.tif");
+    const std::filesystem::path taken = copyTestTiff("tiffkeeper-move-taken.tif");
+    {
+        TIFFKeeper target(TiffTools::openTiffFile(own.string()));
+        TIFFKeeper source(TiffTools::openTiffFile(taken.string()));
+        target = std::move(source);
+        EXPECT_TRUE(canDelete(own)) << "move assignment must close what it gives up";
+        EXPECT_FALSE(source.isValid());
+    }
+    EXPECT_TRUE(canDelete(taken));
+}

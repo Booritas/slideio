@@ -8,7 +8,7 @@
 
 using namespace slideio;
 
-TIFFKeeper::TIFFKeeper(libtiff::TIFF* hfile) : m_hFile(hfile)
+TIFFKeeper::TIFFKeeper(libtiff::TIFF* hFile) : m_hFile(hFile)
 {
     m_messageHandler = std::make_shared<TIFFMessageHandler>();
 }
@@ -19,6 +19,22 @@ TIFFKeeper::TIFFKeeper(const std::string& filePath, bool readOnly)
     openTiffFile(filePath, readOnly);
 }
 
+TIFFKeeper::TIFFKeeper(TIFFKeeper&& other) noexcept
+    : m_hFile(other.m_hFile), m_messageHandler(std::move(other.m_messageHandler))
+{
+    other.m_hFile = nullptr;
+}
+
+TIFFKeeper& TIFFKeeper::operator=(TIFFKeeper&& other) noexcept
+{
+    if (this != &other) {
+        // Close what we own before taking what they own, or ours leaks.
+        reset(other.m_hFile);
+        other.m_hFile = nullptr;
+        m_messageHandler = std::move(other.m_messageHandler);
+    }
+    return *this;
+}
 
 TIFFKeeper::~TIFFKeeper()
 {
@@ -28,7 +44,22 @@ TIFFKeeper::~TIFFKeeper()
 
 void TIFFKeeper::openTiffFile(const std::string& filePath, bool readOnly)
 {
-    m_hFile = TiffTools::openTiffFile(filePath, readOnly);
+    reset(TiffTools::openTiffFile(filePath, readOnly));
+}
+
+void TIFFKeeper::reset(libtiff::TIFF* hFile)
+{
+    if (m_hFile != hFile) {
+        TiffTools::closeTiffFile(m_hFile);
+        m_hFile = hFile;
+    }
+}
+
+libtiff::TIFF* TIFFKeeper::release()
+{
+    libtiff::TIFF* handle = m_hFile;
+    m_hFile = nullptr;
+    return handle;
 }
 
 void TIFFKeeper::closeTiffFile()
