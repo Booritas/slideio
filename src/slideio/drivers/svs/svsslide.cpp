@@ -116,6 +116,189 @@ namespace
         };
     }
 
+    // Metadata tree helpers. Every philips attribute is optional: the files differ in
+    // what their scanner software wrote, and an attribute that is not there simply leaves
+    // its key out of the tree. An attribute stored in an unexpected format is reported and
+    // skipped rather than raised -- a metadata tree is a view of what the file says, and
+    // one odd value must not cost the caller everything else it says.
+    void phWarnSkipped(const slideio::PHTDescription::Attribute& attribute, const std::exception& error) {
+        SLIDEIO_LOG(WARNING) << "SVSSlide: the philips attribute " << attribute.Name
+            << " is left out of the metadata: " << error.what();
+    }
+
+    void phSetText(slideio::MetadataBuilder& node, const char* key, slideio::PHTDescription& description,
+                   const tinyxml2::XMLElement* element, const slideio::PHTDescription::Attribute& attribute) {
+        if (!description.hasAttribute(element, attribute)) {
+            return;
+        }
+        try {
+            node[key].set(description.getAttributeText(element, attribute));
+        }
+        catch (const std::exception& error) {
+            phWarnSkipped(attribute, error);
+        }
+    }
+
+    void phSetInt(slideio::MetadataBuilder& node, const char* key, slideio::PHTDescription& description,
+                  const tinyxml2::XMLElement* element, const slideio::PHTDescription::Attribute& attribute) {
+        if (!description.hasAttribute(element, attribute)) {
+            return;
+        }
+        try {
+            node[key].set(static_cast<int64_t>(description.getAttributeInt(element, attribute)));
+        }
+        catch (const std::exception& error) {
+            phWarnSkipped(attribute, error);
+        }
+    }
+
+    template <typename Value, typename Read>
+    void phSetList(slideio::MetadataBuilder& node, const char* key, slideio::PHTDescription& description,
+                   const tinyxml2::XMLElement* element, const slideio::PHTDescription::Attribute& attribute,
+                   Read read) {
+        if (!description.hasAttribute(element, attribute)) {
+            return;
+        }
+        try {
+            const std::vector<Value> values = read(element, attribute);
+            if (values.empty()) {
+                return;
+            }
+            slideio::MetadataBuilder array = node[key];
+            array.makeArray();
+            for (size_t index = 0; index < values.size(); ++index) {
+                array[index].set(values[index]);
+            }
+        }
+        catch (const std::exception& error) {
+            phWarnSkipped(attribute, error);
+        }
+    }
+
+    void phSetTextList(slideio::MetadataBuilder& node, const char* key, slideio::PHTDescription& description,
+                       const tinyxml2::XMLElement* element, const slideio::PHTDescription::Attribute& attribute) {
+        phSetList<std::string>(node, key, description, element, attribute,
+            [&description](const tinyxml2::XMLElement* owner, const slideio::PHTDescription::Attribute& attr) {
+                return description.getAttributeTextList(owner, attr);
+            });
+    }
+
+    void phSetDoubleList(slideio::MetadataBuilder& node, const char* key, slideio::PHTDescription& description,
+                         const tinyxml2::XMLElement* element, const slideio::PHTDescription::Attribute& attribute) {
+        phSetList<double>(node, key, description, element, attribute,
+            [&description](const tinyxml2::XMLElement* owner, const slideio::PHTDescription::Attribute& attr) {
+                return description.getAttributeDoubleList(owner, attr);
+            });
+    }
+
+    // True if the element carries at least one of the attributes. Used to decide whether a
+    // grouping node (the size, the pixel format, the compression) belongs in the tree at
+    // all: MetadataBuilder cannot drop a key once it is created, so the group has to be
+    // asked for before it is built.
+    bool phHasAny(slideio::PHTDescription& description, const tinyxml2::XMLElement* element,
+                  std::initializer_list<const slideio::PHTDescription::Attribute*> attributes) {
+        for (const slideio::PHTDescription::Attribute* attribute : attributes) {
+            if (description.hasAttribute(element, *attribute)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    void phBuildLevelNode(slideio::MetadataBuilder& node, slideio::PHTDescription& description,
+                          const tinyxml2::XMLElement* level) {
+        node.makeObject();
+        phSetInt(node, "number", description, level, slideio::LEVEL_NUMBER);
+        phSetInt(node, "columns", description, level, slideio::LEVEL_COLUMNS);
+        phSetInt(node, "rows", description, level, slideio::LEVEL_ROWS);
+        phSetDoubleList(node, "pixelSpacing", description, level, slideio::IMAGE_RESOLUTION);
+        phSetDoubleList(node, "position", description, level, slideio::LEVEL_POSITION);
+    }
+
+    // One DPScannedImage: the whole slide image or an auxiliary one. The base64 raster of
+    // PIM_DP_IMAGE_DATA is deliberately left out -- it is image data, it belongs in a
+    // scene, and it makes the description of Philips-2.tiff 844 KB.
+    void phBuildImageNode(slideio::MetadataBuilder& node, slideio::PHTDescription& description,
+                          const tinyxml2::XMLElement* image) {
+        node.makeObject();
+        phSetText(node, "type", description, image, slideio::IMAGE_TYPE);
+        phSetText(node, "sourceFile", description, image, slideio::SOURCE_FILE);
+        phSetText(node, "derivationDescription", description, image, slideio::DERIVATION_DESCRIPTION);
+        phSetText(node, "pixelTransformationMethod", description, image, slideio::PIXEL_TRANSFORMATION_METHOD);
+        if (phHasAny(description, image, {&slideio::IMAGE_COLUMNS, &slideio::IMAGE_ROWS})) {
+            slideio::MetadataBuilder size = node["size"];
+            size.makeObject();
+            phSetInt(size, "columns", description, image, slideio::IMAGE_COLUMNS);
+            phSetInt(size, "rows", description, image, slideio::IMAGE_ROWS);
+        }
+        phSetDoubleList(node, "pixelSpacing", description, image, slideio::IMAGE_RESOLUTION);
+        if (phHasAny(description, image, {
+                &slideio::SAMPLES_PER_PIXEL, &slideio::PHOTOMETRIC_INTERPRETATION,
+                &slideio::PLANAR_CONFIGURATION, &slideio::BITS_ALLOCATED, &slideio::BITS_STORED,
+                &slideio::HIGH_BIT, &slideio::PIXEL_REPRESENTATION})) {
+            slideio::MetadataBuilder format = node["pixelFormat"];
+            format.makeObject();
+            phSetInt(format, "samplesPerPixel", description, image, slideio::SAMPLES_PER_PIXEL);
+            phSetText(format, "photometricInterpretation", description, image, slideio::PHOTOMETRIC_INTERPRETATION);
+            phSetInt(format, "planarConfiguration", description, image, slideio::PLANAR_CONFIGURATION);
+            phSetInt(format, "bitsAllocated", description, image, slideio::BITS_ALLOCATED);
+            phSetInt(format, "bitsStored", description, image, slideio::BITS_STORED);
+            phSetInt(format, "highBit", description, image, slideio::HIGH_BIT);
+            phSetInt(format, "pixelRepresentation", description, image, slideio::PIXEL_REPRESENTATION);
+        }
+        if (phHasAny(description, image, {
+                &slideio::LOSSY_IMAGE_COMPRESSION, &slideio::LOSSY_IMAGE_COMPRESSION_METHOD,
+                &slideio::LOSSY_IMAGE_COMPRESSION_RATIO})) {
+            slideio::MetadataBuilder compression = node["compression"];
+            compression.makeObject();
+            phSetText(compression, "lossy", description, image, slideio::LOSSY_IMAGE_COMPRESSION);
+            // The method and the ratio are array valued attributes even though philips
+            // writes a single entry in each, so they stay arrays here.
+            phSetTextList(compression, "method", description, image, slideio::LOSSY_IMAGE_COMPRESSION_METHOD);
+            phSetDoubleList(compression, "ratio", description, image, slideio::LOSSY_IMAGE_COMPRESSION_RATIO);
+        }
+        // Only the whole slide image has a pyramid; an auxiliary image gets no empty array.
+        const std::vector<tinyxml2::XMLElement*> levels =
+            description.getObjectList(image, slideio::PIXEL_DATA_REPRESENTATION);
+        if (!levels.empty()) {
+            slideio::MetadataBuilder levelNodes = node["levels"];
+            levelNodes.makeArray();
+            for (size_t index = 0; index < levels.size(); ++index) {
+                // Copy initialization from the sub-builder, not a copy: copying a
+                // MetadataBuilder deep copies the subtree into a fresh root, so anything
+                // written through a copy is lost. C++17 elides the initialization and the
+                // local ends up naming the same node as its parent's storage.
+                slideio::MetadataBuilder levelNode = levelNodes[index];
+                phBuildLevelNode(levelNode, description, levels[index]);
+            }
+        }
+    }
+
+    // The metadata tree of a philips slide, built from the xml of tiff directory 0. The
+    // levels keep the order the metadata declares them in rather than being sorted by
+    // level number: the tree reports what the file says.
+    slideio::MetadataBuilder phBuildMetadataTree(const std::string& description) {
+        slideio::PHTDescription philips(description);
+        tinyxml2::XMLElement* slide = philips.getRoot();
+        slideio::MetadataBuilder root;
+        root.makeObject();
+        phSetText(root, "manufacturer", philips, slide, slideio::MANUFACTURER);
+        phSetTextList(root, "softwareVersions", philips, slide, slideio::SOFTWARE_VERSIONS);
+        phSetText(root, "interfaceVersion", philips, slide, slideio::UFS_INTERFACE_VERSION);
+        phSetText(root, "barcode", philips, slide, slideio::UFS_BARCODE);
+        const std::vector<tinyxml2::XMLElement*> images =
+            philips.getObjectList(slide, slideio::SCANNED_IMAGE);
+        if (!images.empty()) {
+            slideio::MetadataBuilder imageNodes = root["images"];
+            imageNodes.makeArray();
+            for (size_t index = 0; index < images.size(); ++index) {
+                slideio::MetadataBuilder imageNode = imageNodes[index];
+                phBuildImageNode(imageNode, philips, images[index]);
+            }
+        }
+        return root;
+    }
+
     // Philips stores every zoom level padded up to a whole number of tiles, so a level
     // directory is larger than the image it holds: level 8 of Philips-3.tiff is a 512x512
     // directory carrying a 512x392 image. The padding is not image data: left in place it
@@ -423,6 +606,12 @@ void SVSSlide::initPhTiff(const std::vector<TiffDirectory>& directories, libtiff
 	phExtractImages(directories, imagePyramid, auxImages);
 	phCreateImageScene(directories, imagePyramid, hFile);
 	phCreateAuxScenes(directories, auxImages);
+    // Philips stores the metadata of the whole slide in the description of tiff
+    // directory 0. buildMetadataTree turns it into the metadata tree of the slide.
+    if (!directories.empty()) {
+        m_rawMetadata = directories.front().description;
+        m_metadataFormat = MetadataFormat::XML;
+    }
 }
 
 std::shared_ptr<SVSSlide> SVSSlide::openFile(const std::string& filePath, const std::string& driverId)
@@ -471,5 +660,18 @@ void SVSSlide::log()
 
 MetadataBuilder SVSSlide::buildMetadataTree() const
 {
+    if (getDriverId() == PHTIFF_DRIVER_ID) {
+        try {
+            return phBuildMetadataTree(m_rawMetadata);
+        }
+        catch (const std::exception& error) {
+            // The description of a philips file is the only place the metadata lives, so
+            // there is nothing better to fall back on than the generic xml handling, which
+            // reports the parse error in the tree instead of raising out of getMetadata().
+            SLIDEIO_LOG(WARNING) << "SVSSlide: cannot build the metadata tree of the philips file "
+                << m_filePath << ": " << error.what();
+            return CVSlide::buildMetadataTree();
+        }
+    }
     return detail::builderFromJson(SVSTools::parseAperioMetadata(m_rawMetadata));
 }

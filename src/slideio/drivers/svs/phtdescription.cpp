@@ -191,6 +191,35 @@ int PHTDescription::getAttributeInt(const tinyxml2::XMLElement* element, const A
     }
 }
 
+std::vector<std::string> PHTDescription::getAttributeTextList(const tinyxml2::XMLElement* element,
+                                                              const Attribute& attribute) {
+    const char* text = getAttributeElement(element, attribute)->GetText();
+    std::vector<std::string> values;
+    if (text == nullptr) {
+        return values;
+    }
+    const std::string list(text);
+    // A quoted value keeps whatever sits between the quotes, blanks included. An
+    // attribute holding a plain string where the array is expected is one value.
+    if (list.find('"') == std::string::npos) {
+        const std::string value = trimValue(text);
+        if (!value.empty()) {
+            values.push_back(value);
+        }
+        return values;
+    }
+    for (size_t begin = list.find('"'); begin != std::string::npos; begin = list.find('"', begin)) {
+        const size_t end = list.find('"', begin + 1);
+        if (end == std::string::npos) {
+            RAISE_RUNTIME_ERROR << "PHTDescription: the value '" << text << "' of the attribute "
+                << attribute.Name << " ends inside a quoted value.";
+        }
+        values.push_back(list.substr(begin + 1, end - begin - 1));
+        begin = end + 1;
+    }
+    return values;
+}
+
 std::vector<double> PHTDescription::getAttributeDoubleList(const tinyxml2::XMLElement* element,
                                                            const Attribute& attribute) {
     const char* text = getAttributeElement(element, attribute)->GetText();

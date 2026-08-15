@@ -37,6 +37,10 @@ namespace slideio
         std::vector<tinyxml2::XMLElement*> getObjectList(const tinyxml2::XMLElement* parent, const std::string& name);
         int getAttributeInt(const tinyxml2::XMLElement* element, const Attribute& attribute);
         std::string getAttributeText(const tinyxml2::XMLElement* element, const Attribute& attribute);
+        // The values of an IStringArray attribute, e.g. "1.6.6186" "20150402_R48" "4.0.3".
+        // getAttributeText cannot read those: it strips the outer quotes only and hands back
+        // the interior ones as part of the value.
+        std::vector<std::string> getAttributeTextList(const tinyxml2::XMLElement* element, const Attribute& attribute);
         std::vector<double> getAttributeDoubleList(const tinyxml2::XMLElement* element, const Attribute& attribute);
         tinyxml2::XMLElement* getRoot();
 		bool hasAttribute(const tinyxml2::XMLElement* element, const Attribute& attribute);

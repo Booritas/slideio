@@ -148,6 +148,24 @@ public:
 		const std::map<std::string, int>& auxImages) {
 		phCreateAuxScenes(directories, auxImages);
 	}
+	void initPhTiffMock(const std::vector<TiffDirectory>& directories, libtiff::TIFF* hFile) {
+		initPhTiff(directories, hFile);
+	}
+	// The metadata tree SVSSlide builds for a slide of the given driver carrying
+	// `rawMetadata`. Both members are protected in CVSlide, so setting them here needs
+	// no test hook in the production class.
+	static Metadata metadataTreeOf(const std::string& driverId, const std::string& rawMetadata,
+		MetadataFormat format) {
+		MockSVSSlide slide;
+		slide.setDriverId(driverId);
+		slide.m_rawMetadata = rawMetadata;
+		slide.m_metadataFormat = format;
+		return slide.buildMetadataTree().freeze();
+	}
+	// The metadata tree of a philips slide whose tiff description is `description`.
+	static Metadata phMetadataTree(const std::string& description) {
+		return metadataTreeOf(PHTIFF_DRIVER_ID, description, MetadataFormat::XML);
+	}
 	const static std::string fakeXML;
 
 	// Builds the xml metadata of a philips tiff slide: a DPUfsImport root holding
@@ -158,13 +176,18 @@ public:
 	// software versions, pixel format, compression, base pixel spacing -- gets a
 	// default value from the phDefaults namespace.
 	static std::string createFakeXml(int width = phDefaults::WIDTH, int height = phDefaults::HEIGHT,
-		int levels = phDefaults::LEVELS, const std::list<std::string>& auxNames = std::list<std::string>()) {
+		int levels = phDefaults::LEVELS, const std::list<std::string>& auxNames = std::list<std::string>(),
+		const std::string& barcode = std::string()) {
 		std::ostringstream xml;
 		xml << "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n";
 		xml << "<DataObject ObjectType=\"DPUfsImport\">\n";
 		xml << phAttribute(MANUFACTURER, "IString", phDefaults::MANUFACTURER_NAME, 1);
 		xml << phAttribute(SOFTWARE_VERSIONS, "IStringArray", phDefaults::SOFTWARE_VERSIONS_VALUE, 1);
 		xml << phAttribute(UFS_INTERFACE_VERSION, "IString", phDefaults::INTERFACE_VERSION, 1);
+		// Not every philips file carries a barcode, so it is only emitted on request.
+		if (!barcode.empty()) {
+			xml << phAttribute(UFS_BARCODE, "IString", barcode, 1);
+		}
 		xml << phOpenArray(SCANNED_IMAGES, 1);
 
 		// The whole slide image and its pyramid.
@@ -267,6 +290,35 @@ static TiffDirectory makeImageDir(const std::string& description, int width, int
 	return dir;
 }
 
+
+// The entries of a metadata array node, as strings.
+static std::vector<std::string> phStringArray(const Metadata& node) {
+	std::vector<std::string> values;
+	for (size_t index = 0; index < node.size(); ++index) {
+		values.push_back(node[index].asString());
+	}
+	return values;
+}
+
+// The entries of a metadata array node, as numbers.
+static std::vector<double> phDoubleArray(const Metadata& node) {
+	std::vector<double> values;
+	for (size_t index = 0; index < node.size(); ++index) {
+		values.push_back(node[index].asDouble());
+	}
+	return values;
+}
+
+// The image node of the given philips image type, e.g. "WSI".
+static Metadata phImageOfType(const Metadata& tree, const std::string& type) {
+	const Metadata images = tree["images"];
+	for (size_t index = 0; index < images.size(); ++index) {
+		if (images[index]["type"].asString() == type) {
+			return images[index];
+		}
+	}
+	return Metadata();
+}
 
 class PhTiffImageDriverTests : public ::testing::Test {
 protected:
@@ -835,6 +887,74 @@ TEST_F(PhTiffImageDriverTests, openSlide2) {
 
 }
 
+// What the four real files agree on. The exact values differ per file -- the level
+// count, the software versions, whether a barcode was read -- so the assertions are
+// on the structure the driver promises for any philips slide.
+TEST_F(PhTiffImageDriverTests, metadataOfTheTestFiles) {
+	if (!TestTools::isFullTestEnabled()) {
+		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
+	}
+	const std::string fileNames[] = {"Philips-1.tiff", "Philips-2.tiff", "Philips-3.tiff", "Philips-4.tiff"};
+	for (const std::string& fileName : fileNames) {
+		const std::string filePath = TestTools::getFullTestImagePath("philips", fileName);
+		auto slide = slideio::openSlide(filePath, "PHTIFF");
+		ASSERT_TRUE(slide != nullptr) << fileName;
+		EXPECT_EQ(MetadataFormat::XML, slide->getMetadataFormat()) << fileName;
+
+		const Metadata tree = slide->getMetadata();
+		// DICOM_MANUFACTURER names the scanner the slide was acquired on, not the
+		// vendor of the file format: of the four test files only Philips-4 says
+		// "PHILIPS", while Philips-1 and Philips-3 say "Hamamatsu" and Philips-2 says
+		// "3D Histech". Only its presence can be asserted across the set.
+		EXPECT_FALSE(tree["manufacturer"].asString().empty()) << fileName;
+		// The regression the quote stripping of getAttributeText caused: the versions
+		// came back as one string with the interior quotes still in it.
+		const std::vector<std::string> versions = phStringArray(tree["softwareVersions"]);
+		EXPECT_FALSE(versions.empty()) << fileName;
+		for (const std::string& version : versions) {
+			EXPECT_EQ(std::string::npos, version.find('"')) << fileName << ": " << version;
+		}
+
+		const Metadata wsi = phImageOfType(tree, WSI);
+		ASSERT_FALSE(wsi.isNull()) << fileName;
+		auto scene = slide->getScene(0);
+		ASSERT_TRUE(scene != nullptr) << fileName;
+		const auto rect = scene->getRect();
+		EXPECT_EQ(std::get<2>(rect), wsi["size"]["columns"].asInt()) << fileName;
+		EXPECT_EQ(std::get<3>(rect), wsi["size"]["rows"].asInt()) << fileName;
+		EXPECT_EQ(3, wsi["pixelFormat"]["samplesPerPixel"].asInt()) << fileName;
+
+		// The declared pyramid: numbered from 0 upwards, one level per declaration.
+		const Metadata levels = wsi["levels"];
+		ASSERT_GT(levels.size(), 0u) << fileName;
+		for (size_t index = 0; index < levels.size(); ++index) {
+			EXPECT_EQ(static_cast<int64_t>(index), levels[index]["number"].asInt()) << fileName;
+		}
+		// The metadata is in millimeters, the scene resolution in meters.
+		const std::vector<double> spacing = phDoubleArray(wsi["pixelSpacing"]);
+		ASSERT_EQ(2u, spacing.size()) << fileName;
+		EXPECT_NEAR(std::get<0>(scene->getResolution()), spacing[0] * 1.e-3, 1e-12) << fileName;
+
+		// The scene describes its own tiff directory, not the slide.
+		EXPECT_EQ(MetadataFormat::JSON, scene->getMetadataFormat()) << fileName;
+		EXPECT_EQ(std::get<2>(rect), scene->getMetadata()["width"].asInt()) << fileName;
+	}
+}
+
+// Philips-3.tiff is the one test file whose scanner read a barcode. Only its
+// presence is asserted: the value identifies the slide.
+TEST_F(PhTiffImageDriverTests, metadataCarriesTheBarcodeOfPhilips3) {
+	if (!TestTools::isFullTestEnabled()) {
+		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
+	}
+	const std::string filePath = TestTools::getFullTestImagePath("philips", "Philips-3.tiff");
+	auto slide = slideio::openSlide(filePath, "PHTIFF");
+	ASSERT_TRUE(slide != nullptr);
+	const Metadata tree = slide->getMetadata();
+	ASSERT_TRUE(tree.contains("barcode"));
+	EXPECT_FALSE(tree["barcode"].asString().empty());
+}
+
 // The auxiliary images of a slide are the ones the file stores, not the ones its
 // metadata declares. The four philips test files cover three layouts: both a macro and
 // a label directory (Philips-3), a macro alone (Philips-2 and Philips-4, the latter
@@ -905,6 +1025,199 @@ TEST_F(PhTiffImageDriverTests, openSlideWithoutDriverId) {
 	const auto res = scene->getResolution();
 	EXPECT_DOUBLE_EQ(0.000226891e-3, std::get<0>(res));
 	EXPECT_DOUBLE_EQ(0.000226907e-3, std::get<1>(res));
+}
+
+// ---------------------------------------------------------------------------
+// Metadata
+// ---------------------------------------------------------------------------
+
+// A two level philips file: the pyramid directories are tiled, and directory 0
+// carries the metadata of the whole slide.
+static std::vector<TiffDirectory> phFakePyramid(const std::string& xml, int width, int height) {
+	std::vector<TiffDirectory> directories = {
+		makeImageDir(xml, width, height),
+		makeImageDir("level=1 mag=20 quality=80", width / 2, height / 2),
+	};
+	directories[0].tiled = true;
+	directories[1].tiled = true;
+	return directories;
+}
+
+// The xml of tiff directory 0 is the only place the philips metadata lives, so it
+// is what the slide hands back as its raw metadata.
+TEST_F(PhTiffImageDriverTests, initPhTiffKeepsTheDescriptionAsTheSlideMetadata) {
+	const std::string xml = MockSVSSlide::createFakeXml(1024, 768, 2);
+	MockSVSSlide slide;
+	slide.setDriverId(PHTIFF_DRIVER_ID);
+	slide.initPhTiffMock(phFakePyramid(xml, 1024, 768), nullptr);
+
+	EXPECT_EQ(xml, slide.getRawMetadata());
+	EXPECT_EQ(MetadataFormat::XML, slide.getMetadataFormat());
+}
+
+// The whole point of the raw metadata: getMetadata() reaches the philips tree
+// through it without the caller knowing which driver opened the file.
+TEST_F(PhTiffImageDriverTests, initPhTiffMakesTheMetadataTreeAvailable) {
+	const std::string xml = MockSVSSlide::createFakeXml(1024, 768, 2);
+	MockSVSSlide slide;
+	slide.setDriverId(PHTIFF_DRIVER_ID);
+	slide.initPhTiffMock(phFakePyramid(xml, 1024, 768), nullptr);
+
+	const Metadata tree = slide.getMetadata();
+	EXPECT_EQ("PHILIPS", tree["manufacturer"].asString());
+	EXPECT_EQ(1024, phImageOfType(tree, WSI)["size"]["columns"].asInt());
+}
+
+// The philips branch of the scene left the scene metadata empty while the aperio
+// branch filled it from the tiff directory. The image scene of a philips slide
+// describes its directory the same way, so that a caller reading scene metadata
+// does not have to know which flavour of tiff it opened.
+TEST_F(PhTiffImageDriverTests, imageSceneDescribesItsTiffDirectory) {
+	const std::string xml = MockSVSSlide::createFakeXml(1024, 768, 2);
+	MockSVSSlide slide;
+	slide.setDriverId(PHTIFF_DRIVER_ID);
+	slide.initPhTiffMock(phFakePyramid(xml, 1024, 768), nullptr);
+
+	auto scene = slide.getScene(0);
+	ASSERT_TRUE(scene != nullptr);
+	EXPECT_EQ(MetadataFormat::JSON, scene->getMetadataFormat());
+	const Metadata tree = scene->getMetadata();
+	EXPECT_EQ(1024, tree["width"].asInt());
+	EXPECT_EQ(768, tree["height"].asInt());
+}
+
+// The scene metadata describes the directory the scene reads from, not the slide:
+// the 844 KB philips description belongs to the slide and must not be duplicated
+// into every scene.
+TEST_F(PhTiffImageDriverTests, imageSceneMetadataIsNotTheSlideDescription) {
+	const std::string xml = MockSVSSlide::createFakeXml(1024, 768, 2);
+	MockSVSSlide slide;
+	slide.setDriverId(PHTIFF_DRIVER_ID);
+	slide.initPhTiffMock(phFakePyramid(xml, 1024, 768), nullptr);
+
+	const std::string sceneMetadata = slide.getScene(0)->getRawMetadata();
+	EXPECT_FALSE(sceneMetadata.empty());
+	EXPECT_NE(xml, sceneMetadata);
+}
+
+TEST_F(PhTiffImageDriverTests, metadataTreeReadsTheSlideAttributes) {
+	const Metadata tree = MockSVSSlide::phMetadataTree(MockSVSSlide::createFakeXml());
+	EXPECT_EQ("PHILIPS", tree["manufacturer"].asString());
+	EXPECT_EQ("5.0", tree["interfaceVersion"].asString());
+	EXPECT_EQ((std::vector<std::string>{"1.6.6186", "20150402_R48", "4.0.3"}),
+		phStringArray(tree["softwareVersions"]));
+}
+
+// A philips file only carries a barcode if the scanner read one, so the key has to
+// be absent rather than empty when the attribute is missing.
+TEST_F(PhTiffImageDriverTests, metadataTreeOmitsAttributesTheFileDoesNotCarry) {
+	const Metadata tree = MockSVSSlide::phMetadataTree(MockSVSSlide::createFakeXml());
+	EXPECT_FALSE(tree.contains("barcode"));
+}
+
+TEST_F(PhTiffImageDriverTests, metadataTreeReadsTheBarcode) {
+	const std::string xml = MockSVSSlide::createFakeXml(phDefaults::WIDTH, phDefaults::HEIGHT,
+		phDefaults::LEVELS, {}, "MDAwMTIzNA==");
+	const Metadata tree = MockSVSSlide::phMetadataTree(xml);
+	EXPECT_EQ("MDAwMTIzNA==", tree["barcode"].asString());
+}
+
+TEST_F(PhTiffImageDriverTests, metadataTreeDescribesEveryScannedImage) {
+	const std::string xml = MockSVSSlide::createFakeXml(phDefaults::WIDTH, phDefaults::HEIGHT,
+		phDefaults::LEVELS, {"LABELIMAGE", "MACROIMAGE"});
+	const Metadata tree = MockSVSSlide::phMetadataTree(xml);
+	const Metadata images = tree["images"];
+	ASSERT_EQ(3u, images.size());
+	EXPECT_EQ((std::vector<std::string>{"WSI", "LABELIMAGE", "MACROIMAGE"}),
+		(std::vector<std::string>{images[size_t(0)]["type"].asString(),
+			images[size_t(1)]["type"].asString(), images[size_t(2)]["type"].asString()}));
+}
+
+TEST_F(PhTiffImageDriverTests, metadataTreeReadsTheSizeAndResolutionOfTheWholeSlideImage) {
+	const Metadata wsi = phImageOfType(MockSVSSlide::phMetadataTree(MockSVSSlide::createFakeXml()), WSI);
+	ASSERT_FALSE(wsi.isNull());
+	EXPECT_EQ(phDefaults::WIDTH, wsi["size"]["columns"].asInt());
+	EXPECT_EQ(phDefaults::HEIGHT, wsi["size"]["rows"].asInt());
+	EXPECT_EQ("%FILENAME%", wsi["sourceFile"].asString());
+	const std::vector<double> spacing = phDoubleArray(wsi["pixelSpacing"]);
+	ASSERT_EQ(2u, spacing.size());
+	EXPECT_DOUBLE_EQ(phDefaults::PIXEL_SPACING, spacing[0]);
+	EXPECT_DOUBLE_EQ(phDefaults::PIXEL_SPACING, spacing[1]);
+}
+
+TEST_F(PhTiffImageDriverTests, metadataTreeReadsThePixelFormat) {
+	const Metadata wsi = phImageOfType(MockSVSSlide::phMetadataTree(MockSVSSlide::createFakeXml()), WSI);
+	ASSERT_FALSE(wsi.isNull());
+	const Metadata format = wsi["pixelFormat"];
+	EXPECT_EQ(phDefaults::SAMPLES, format["samplesPerPixel"].asInt());
+	EXPECT_EQ(phDefaults::PHOTOMETRIC, format["photometricInterpretation"].asString());
+	EXPECT_EQ(0, format["planarConfiguration"].asInt());
+	EXPECT_EQ(phDefaults::BITS, format["bitsAllocated"].asInt());
+	EXPECT_EQ(phDefaults::BITS, format["bitsStored"].asInt());
+	EXPECT_EQ(phDefaults::BITS - 1, format["highBit"].asInt());
+	EXPECT_EQ(0, format["pixelRepresentation"].asInt());
+}
+
+TEST_F(PhTiffImageDriverTests, metadataTreeReadsTheCompression) {
+	const Metadata wsi = phImageOfType(MockSVSSlide::phMetadataTree(MockSVSSlide::createFakeXml()), WSI);
+	ASSERT_FALSE(wsi.isNull());
+	const Metadata compression = wsi["compression"];
+	EXPECT_EQ("01", compression["lossy"].asString());
+	EXPECT_EQ((std::vector<std::string>{"PHILIPS_TIFF_1_0"}), phStringArray(compression["method"]));
+	EXPECT_EQ((std::vector<double>{3.}), phDoubleArray(compression["ratio"]));
+}
+
+TEST_F(PhTiffImageDriverTests, metadataTreeReadsTheZoomLevels) {
+	const Metadata wsi = phImageOfType(MockSVSSlide::phMetadataTree(MockSVSSlide::createFakeXml()), WSI);
+	ASSERT_FALSE(wsi.isNull());
+	const Metadata levels = wsi["levels"];
+	ASSERT_EQ(static_cast<size_t>(phDefaults::LEVELS), levels.size());
+	const Metadata second = levels[size_t(1)];
+	EXPECT_EQ(1, second["number"].asInt());
+	EXPECT_EQ(phDefaults::WIDTH / 2, second["columns"].asInt());
+	EXPECT_EQ(phDefaults::HEIGHT / 2, second["rows"].asInt());
+	EXPECT_EQ((std::vector<double>{0., 0., 0.}), phDoubleArray(second["position"]));
+	const std::vector<double> spacing = phDoubleArray(second["pixelSpacing"]);
+	ASSERT_EQ(2u, spacing.size());
+	EXPECT_DOUBLE_EQ(2. * phDefaults::PIXEL_SPACING, spacing[0]);
+}
+
+// The auxiliary images of Philips-1.tiff and Philips-3.tiff exist only as base64
+// jpeg inside the metadata. That raster belongs in an image scene, not in a
+// metadata tree a caller is expected to print.
+TEST_F(PhTiffImageDriverTests, metadataTreeOmitsTheEmbeddedRaster) {
+	const std::string xml = MockSVSSlide::createFakeXml(phDefaults::WIDTH, phDefaults::HEIGHT,
+		phDefaults::LEVELS, {"MACROIMAGE"});
+	const Metadata tree = MockSVSSlide::phMetadataTree(xml);
+	const Metadata macro = phImageOfType(tree, "MACROIMAGE");
+	ASSERT_FALSE(macro.isNull());
+	EXPECT_FALSE(macro.contains("imageData"));
+	EXPECT_EQ(std::string::npos, tree.toJson().find(phDefaults::IMAGE_DATA_VALUE));
+}
+
+// An image the metadata declares without a pyramid gets no empty levels array.
+TEST_F(PhTiffImageDriverTests, metadataTreeGivesNoLevelsToAnAuxiliaryImage) {
+	const std::string xml = MockSVSSlide::createFakeXml(phDefaults::WIDTH, phDefaults::HEIGHT,
+		phDefaults::LEVELS, {"MACROIMAGE"});
+	const Metadata macro = phImageOfType(MockSVSSlide::phMetadataTree(xml), "MACROIMAGE");
+	ASSERT_FALSE(macro.isNull());
+	EXPECT_FALSE(macro.contains("levels"));
+}
+
+// A description that is not philips metadata must not take getMetadata() down: the
+// slide falls back to the generic xml handling, which reports the parse error.
+TEST_F(PhTiffImageDriverTests, metadataTreeFallsBackWhenTheDescriptionCannotBeParsed) {
+	const Metadata tree = MockSVSSlide::phMetadataTree("this is not xml at all");
+	EXPECT_TRUE(tree.contains("#error"));
+}
+
+// The philips branch must not disturb the aperio one.
+TEST_F(PhTiffImageDriverTests, metadataTreeOfAnSvsSlideStillParsesAperioMetadata) {
+	const Metadata tree = MockSVSSlide::metadataTreeOf("SVS",
+		"Aperio Image Library v11.0\r\n46000x32914 [0,100 46000x32914] (240x240) JPEG/RGB Q=30"
+		"|AppMag = 20|MPP = 0.4990", MetadataFormat::Text);
+	EXPECT_EQ("Aperio Image Library v11.0", tree["application"].asString());
+	EXPECT_EQ("20", tree["properties"]["AppMag"].asString());
 }
 
 // ---------------------------------------------------------------------------
@@ -1117,6 +1430,51 @@ TEST_F(PHTDescriptionTests, getAttributeDoubleListThrowsOnNonNumericValue) {
 	const tinyxml2::XMLElement* image = wsiImage(description);
 	ASSERT_TRUE(image != nullptr);
 	EXPECT_THROW(description.getAttributeDoubleList(image, IMAGE_TYPE), slideio::RuntimeError);
+}
+
+// The metadata of a slide whose string array attributes carry the values a real
+// philips file stores in them. getAttributeText cannot read these: it strips the
+// outer quotes only, so DICOM_SOFTWARE_VERSIONS comes back as one string with the
+// interior quotes still in it.
+static const std::string phStringArrayXML = R"xml(<?xml version="1.0" encoding="UTF-8" ?>
+<DataObject ObjectType="DPUfsImport">
+    <Attribute Name="DICOM_MANUFACTURER" Group="0x0008" Element="0x0070" PMSVR="IString">PHILIPS</Attribute>
+    <Attribute Name="DICOM_SOFTWARE_VERSIONS" Group="0x0018" Element="0x1020" PMSVR="IStringArray">"1.6.6186" "20150402_R48" "4.0.3"</Attribute>
+    <Attribute Name="DICOM_LOSSY_IMAGE_COMPRESSION_METHOD" Group="0x0028" Element="0x2114" PMSVR="IStringArray">"PHILIPS_TIFF_1_0"</Attribute>
+    <Attribute Name="PIM_DP_SOURCE_FILE" Group="0x301D" Element="0x1000" PMSVR="IStringArray"></Attribute>
+</DataObject>)xml";
+
+TEST_F(PHTDescriptionTests, getAttributeTextListSplitsQuotedValues) {
+	PHTDescription description(phStringArrayXML);
+	const std::vector<std::string> versions =
+		description.getAttributeTextList(description.getRoot(), SOFTWARE_VERSIONS);
+	EXPECT_EQ((std::vector<std::string>{"1.6.6186", "20150402_R48", "4.0.3"}), versions);
+}
+
+TEST_F(PHTDescriptionTests, getAttributeTextListReadsASingleQuotedValue) {
+	PHTDescription description(phStringArrayXML);
+	const std::vector<std::string> method =
+		description.getAttributeTextList(description.getRoot(), LOSSY_IMAGE_COMPRESSION_METHOD);
+	EXPECT_EQ((std::vector<std::string>{"PHILIPS_TIFF_1_0"}), method);
+}
+
+// Not every array valued attribute is quoted: a scanner that stores a plain string
+// where the array is expected must still be readable.
+TEST_F(PHTDescriptionTests, getAttributeTextListReadsAnUnquotedValueAsOneEntry) {
+	PHTDescription description(phStringArrayXML);
+	const std::vector<std::string> manufacturer =
+		description.getAttributeTextList(description.getRoot(), MANUFACTURER);
+	EXPECT_EQ((std::vector<std::string>{"PHILIPS"}), manufacturer);
+}
+
+TEST_F(PHTDescriptionTests, getAttributeTextListReturnsNothingForAnEmptyValue) {
+	PHTDescription description(phStringArrayXML);
+	EXPECT_TRUE(description.getAttributeTextList(description.getRoot(), SOURCE_FILE).empty());
+}
+
+TEST_F(PHTDescriptionTests, getAttributeTextListThrowsOnMissingAttribute) {
+	PHTDescription description(phStringArrayXML);
+	EXPECT_THROW(description.getAttributeTextList(description.getRoot(), UFS_BARCODE), slideio::RuntimeError);
 }
 
 TEST_F(PHTDescriptionTests, hasAttributeDetectsPresenceAndAbsence) {

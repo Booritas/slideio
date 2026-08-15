@@ -62,6 +62,11 @@ void SVSTiledScene::processImageDescriptionPhTiff() {
             "SVSTiledScene::processImageDescriptionPhTiff: directories are empty, cannot construct scene.";
     }
     auto& dir = m_directories.front();
+    // The scene describes the tiff directory it reads from, exactly as the aperio branch
+    // does. What the philips xml says about the slide belongs to the slide: it is one
+    // document covering every image of the file, and 844 KB of it in Philips-2.tiff.
+    m_rawMetadata = SVSTools::tiffDirectoryToJson(dir).dump(2);
+    m_metadataFormat = MetadataFormat::JSON;
     PHTDescription description(dir.description);
 
 #if defined(_DEBUG)
