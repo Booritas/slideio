@@ -1510,7 +1510,10 @@ TEST_F(PhTiffImageDriverTests, metadataTreeFallsBackWhenTheDescriptionCannotBePa
 	EXPECT_TRUE(tree.contains("#error"));
 }
 
-// The philips branch must not disturb the aperio one.
+// The philips branch must not disturb the aperio one. The "SVS" argument is inert:
+// SVSSlide::buildMetadataTree is unconditional now, so no id branch selects the Aperio
+// parse any more. What this test still proves is that the Aperio parse reaches an
+// SVSSlide-derived slide at all -- not that some id branch returns it.
 TEST_F(PhTiffImageDriverTests, metadataTreeOfAnSvsSlideStillParsesAperioMetadata) {
 	const Metadata tree = MockSVSSlide::metadataTreeOf("SVS",
 		"Aperio Image Library v11.0\r\n46000x32914 [0,100 46000x32914] (240x240) JPEG/RGB Q=30"

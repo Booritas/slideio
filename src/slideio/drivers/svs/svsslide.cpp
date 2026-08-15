@@ -6,24 +6,20 @@
 #include "slideio/imagetools/imagetools.hpp"
 #include "slideio/drivers/svs/svssmallscene.hpp"
 #include "slideio/drivers/svs/svstiledscene.hpp"
-#include "slideio/drivers/svs/phtiffscene.hpp"
 #include "slideio/drivers/svs/svstools.hpp"
 #include "slideio/imagetools/tifftools.hpp"
 #include "slideio/core/metadata_internal.hpp"
 #include "slideio/base/log.hpp"
-#include "slideio/drivers/svs/phtdescription.hpp"
 
 #include <algorithm>
 #include <cctype>
 #include <filesystem>
 #include <fstream>
-#include <tinyxml2.h>
 
 #include "slideio/core/tools/tools.hpp"
 
 
 using namespace slideio;
-using namespace slideio::phtiff;
 
 // constexpr, not const char*: a const char* is a non-const pointer and so has external
 // linkage, and all three driver libraries define these same three symbols.

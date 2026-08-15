@@ -220,6 +220,38 @@ by value, so the change is mechanical.
 drivers is outside PHTIFF, but it is the same defect, the review names those
 files, and the change is three lines per file with no behaviour attached.
 
+## 4.6 Behaviour deltas accepted
+
+The headline claim above is that the refactor changes no observable
+behaviour, and the existing suites passing unchanged is what backs that claim
+for everything the tests reach. Two deltas were nonetheless accepted during
+execution, because each is a byproduct of collapsing duplicated logic into a
+single path rather than a deliberate behaviour change, and each is confined
+to a case the test files do not exercise.
+
+The first is in `PHTMetadata::wholeSlideImage()`. The previous code walked
+every `DPScannedImage` typed `WSI` and accumulated all of their declared zoom
+levels into one list, while the scene's own loop over those same images let
+the last one win the resolution and magnification it read. `wholeSlideImage()`
+returns the first image typed `WSI` and nothing more, so a file declaring more
+than one whole-slide image now exposes only the first one's pyramid and
+resolution instead of a merge of all of them. This is accepted because the
+DPUfsImport format models exactly one whole-slide image per file, all four
+Philips test files carry exactly one, and the two behaviours agree whenever
+that holds. Where they would differ, the old behaviour combined two pyramids
+into a single list with colliding level numbers, which is not a richer
+answer than the new one — it is a corrupt one.
+
+The second is in `PHTIFFSlide::init`, which now parses the Philips XML from
+tiff directory 0 unconditionally. The previous code had the scene parse the
+description of the pyramid base directory instead, which is directory 0 for
+every well-formed Philips file but need not be for a malformed one. For a
+file whose pyramid base is not directory 0, the old code raised a parse error
+on open; the new code opens successfully using directory 0's metadata. This
+is accepted as the tolerant direction — succeeding where the old code failed
+— and it only reaches malformed input, since directory 0 and the pyramid base
+are the same directory in every file the format actually produces.
+
 ## 5. Sequencing
 
 1. **Constants and internal linkage.** Mechanical, no behaviour, lands first so

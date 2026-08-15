@@ -86,7 +86,7 @@ namespace
     // skipped rather than raised -- a metadata tree is a view of what the file says, and
     // one odd value must not cost the caller everything else it says.
     void phWarnSkipped(const slideio::PHTDescription::Attribute& attribute, const std::exception& error) {
-        SLIDEIO_LOG(WARNING) << "SVSSlide: the philips attribute " << attribute.Name
+        SLIDEIO_LOG(WARNING) << "PHTIFF: the philips attribute " << attribute.Name
             << " is left out of the metadata: " << error.what();
     }
 
@@ -277,7 +277,7 @@ namespace
         // The levels are sorted by level number and the base level is the reference: it is
         // stored unpadded, as the image size of the philips metadata confirms.
         if (imagePyramid.front().levelNumber != 0) {
-            SLIDEIO_LOG(WARNING) << "SVSSlide: philips zoom level 0 is missing."
+            SLIDEIO_LOG(WARNING) << "PHTIFF: philips zoom level 0 is missing."
                 " Tile padding of the zoom levels cannot be cropped.";
             return;
         }
@@ -287,19 +287,19 @@ namespace
             const int levelNumber = level.levelNumber;
             slideio::TiffDirectory& dir = dirs[index];
             if (!level.corroborated) {
-                SLIDEIO_LOG(WARNING) << "SVSSlide: philips zoom level " << levelNumber
+                SLIDEIO_LOG(WARNING) << "PHTIFF: philips zoom level " << levelNumber
                     << " was paired with its tiff directory by position, not by a matching"
                     " declared size. Tile padding of the level is not cropped.";
                 continue;
             }
             if (levelNumber < 0 || levelNumber > PH_MAX_LEVEL_NUMBER) {
-                SLIDEIO_LOG(WARNING) << "SVSSlide: unexpected philips zoom level number "
+                SLIDEIO_LOG(WARNING) << "PHTIFF: unexpected philips zoom level number "
                     << levelNumber << ". Tile padding of the level is not cropped.";
                 continue;
             }
             const cv::Size contentSize = phLevelContentSize(baseSize, levelNumber);
             if (contentSize.width > dir.width || contentSize.height > dir.height) {
-                SLIDEIO_LOG(WARNING) << "SVSSlide: philips zoom level " << levelNumber
+                SLIDEIO_LOG(WARNING) << "PHTIFF: philips zoom level " << levelNumber
                     << " is expected to be at least " << contentSize.width << "x" << contentSize.height
                     << " but the tiff directory is " << dir.width << "x" << dir.height
                     << ". Tile padding of the level is not cropped.";
@@ -485,7 +485,7 @@ MetadataBuilder PHTIFFSlide::buildMetadataTree() const
         // The description of a philips file is the only place the metadata lives, so
         // there is nothing better to fall back on than the generic xml handling, which
         // reports the parse error in the tree instead of raising out of getMetadata().
-        SLIDEIO_LOG(WARNING) << "SVSSlide: cannot build the metadata tree of the philips file "
+        SLIDEIO_LOG(WARNING) << "PHTIFF: cannot build the metadata tree of the philips file "
             << m_filePath << ": " << error.what();
         return CVSlide::buildMetadataTree();
     }

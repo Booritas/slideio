@@ -42,7 +42,7 @@ namespace
             // dropped and the rest of the pyramid is kept, rather than the file being
             // refused over one incomplete declaration.
             if (!philips.hasAttribute(level, LEVEL_NUMBER)) {
-                SLIDEIO_LOG(WARNING) << "PHTIFFSlide: a zoom level of the philips file declares"
+                SLIDEIO_LOG(WARNING) << "PHTIFF: a zoom level of the philips file declares"
                     " no level number. The level is ignored.";
                 continue;
             }
@@ -90,7 +90,7 @@ PHTMetadata slideio::readPHTMetadata(const std::string& description) {
         // an incomplete object is skipped rather than allowed to cost the caller the
         // whole slide.
         if (!philips.hasAttribute(image, IMAGE_TYPE)) {
-            SLIDEIO_LOG(WARNING) << "PHTIFFTiledScene: a scanned image of the philips file declares"
+            SLIDEIO_LOG(WARNING) << "PHTIFF: a scanned image of the philips file declares"
                 " no image type. The image is ignored.";
             continue;
         }

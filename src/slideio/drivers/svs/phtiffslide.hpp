@@ -17,17 +17,18 @@ namespace slideio
     {
         int dirIndex = 0;
         int levelNumber = 0;
-        // True only once phExtractImages has confirmed the pairing between this level and
-        // its tiff directory by an exact declared-size comparison; only a corroborated
-        // level may have its tile padding cropped. Defaults to false rather than true: an
-        // unverified pairing must not be cropped, so a level has to earn "corroborated" by
-        // being matched, not receive it by omission. phExtractImages sets the field
-        // explicitly on every path it produces, so the default matters only to code that
-        // builds a PHTLevel directly instead of through it, e.g. the unit tests.
+        // True only once PHTIFFSlide::extractImages has confirmed the pairing between this
+        // level and its tiff directory by an exact declared-size comparison; only a
+        // corroborated level may have its tile padding cropped. Defaults to false rather
+        // than true: an unverified pairing must not be cropped, so a level has to earn
+        // "corroborated" by being matched, not receive it by omission.
+        // PHTIFFSlide::extractImages sets the field explicitly on every path it produces,
+        // so the default matters only to code that builds a PHTLevel directly instead of
+        // through it, e.g. the unit tests.
         bool corroborated = false;
 
-        // Compares only the level/directory pairing, not how sure phExtractImages was of
-        // it: two levels naming the same directory and level number are the same pairing
+        // Compares only the level/directory pairing, not how sure extractImages was of it:
+        // two levels naming the same directory and level number are the same pairing
         // whether or not corroborated agrees, which is what the existing tests assert.
         bool operator==(const PHTLevel& other) const {
             return dirIndex == other.dirIndex && levelNumber == other.levelNumber;

@@ -54,8 +54,8 @@ namespace slideio
         std::unique_ptr<tinyxml2::XMLDocument> m_doc;
     };
 
-    // The philips metadata vocabulary. Nested so that names like MANUFACTURER, LABEL,
-    // WSI and BITS_STORED do not sit at slideio scope, where they are collision prone.
+    // The philips metadata vocabulary. Nested so that names like MANUFACTURER, WSI
+    // and BITS_STORED do not sit at slideio scope, where they are collision prone.
     // inline constexpr rather than namespace-scope const: one object for the whole
     // program instead of a copy per translation unit.
     namespace phtiff
