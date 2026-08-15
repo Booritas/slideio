@@ -211,12 +211,19 @@ collision on top of an interloper; the pre-fix positional code mishandled the
 same input differently. A focused test would pin it:
 `phExtractImages_sameSizedInterloperBetweenTiedLevelsBindsWrongDirectory`.
 
-**3. The rounding rule in `phLevelContentSize` is never exercised.** Every real
-base size is a multiple of the 512 tile grid, so `base / 2^level` divides exactly
-for all levels ≤ 9 and the `ceil` never rounds — on real files or in the
-synthetic tests. `ceil` versus floor is therefore an untested decision. One
+**3. ~~The rounding rule in `phLevelContentSize` is never exercised.~~ Fixed**
+(`phCreateImageScene_roundsAContentSizeUpNotDown`, `test_phtiff_driver.cpp`, plus
+an extended comment on `phLevelContentSize`, `phtiffslide.cpp`).
+~~Every real base size is a multiple of the 512 tile grid, so `base / 2^level`
+divides exactly for all levels ≤ 9 and the `ceil` never rounds — on real files or
+in the synthetic tests. `ceil` versus floor is therefore an untested decision. One
 synthetic case with a base that does not divide (base 4098 → level 1 content
-2049) plus a comment on why rounding up is right would settle it.
+2049) plus a comment on why rounding up is right would settle it.~~
+(The base actually used is 4097, not 4098: 4098 divides evenly by 2, so it would
+not have distinguished `ceil` from `floor` at level 1 at all -- confirmed by
+building the `floor` mutation in isolation and watching the test pass at 2049
+either way. 4097 is odd, so `ceil(4097/2)=2049` and `floor(4097/2)=2048` actually
+diverge.)
 
 **4. ~~`phCropLevelPadding` trusts its two arguments to be parallel.~~ Fixed** (guard
 added in `phCropLevelPadding`, `phtiffslide.cpp`).

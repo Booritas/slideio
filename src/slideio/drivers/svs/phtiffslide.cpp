@@ -71,7 +71,10 @@ namespace
     }
 
     // A philips zoom level covers the same area as the base level downsampled by
-    // 2^levelNumber, rounded up to a whole pixel.
+    // 2^levelNumber, rounded UP to a whole pixel: a level that rounded down would be one
+    // column or row short of holding the whole slide. No real file exercises this -- every
+    // real base is a multiple of the 512 tile grid, so the division is exact -- which is
+    // why phCreateImageScene_roundsAContentSizeUpNotDown exists to pin it.
     cv::Size phLevelContentSize(const cv::Size& baseSize, int levelNumber) {
         const int divisor = 1 << levelNumber;
         return {
@@ -267,8 +270,9 @@ namespace
     // directory is larger than the image it holds: level 8 of Philips-3.tiff is a 512x512
     // directory carrying a 512x392 image. The padding is not image data: left in place it
     // corrupts the scale of the level (44% at level 8 of Philips-4.tiff) and every block
-    // read from it. Shrink the directories to the size of their content; the number of
-    // tiles is not affected because the padding never exceeds one tile.
+    // read from it. Shrink the directories to the size of their content; Philips pads each
+    // level to its own tile grid, so on real files the tile count is unchanged, and the
+    // guard below refuses the crop when it would not be.
     void phCropLevelPadding(const std::vector<slideio::PHTLevel>& imagePyramid,
                             std::vector<slideio::TiffDirectory>& dirs) {
         if (imagePyramid.empty()) {
