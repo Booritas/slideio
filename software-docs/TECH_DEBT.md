@@ -49,11 +49,13 @@ TIFFKeeper& operator=(libtiff::TIFF* hFile) { m_hFile = hFile; return *this; }
 Overwrites the owned handle **without closing the previous one** → resource
 leak; also does not touch `m_messageHandler`.
 
-**3. Constructors are inconsistent.**
-The `TIFF*` constructor creates `m_messageHandler`; the `(filePath, readOnly)`
-constructor calls `openTiffFile` and **leaves `m_messageHandler` null**. Whether
-the libtiff message handler is installed depends on which constructor was used —
-a latent bug.
+**3. ~~Constructors are inconsistent.~~ Fixed.**
+The `(filePath, readOnly)` constructor used to call `openTiffFile` while leaving
+`m_messageHandler` null, so whether the libtiff message handler was installed
+depended on which constructor was used. Both constructors now create it
+(`tiffkeeper.cpp:11-20`). Kept as a struck-through entry rather than deleted
+because the proposed direction below still refers to a shared init path; the
+remaining value there is factoring the duplication, not fixing a bug.
 
 **4. Implicit conversion `operator libtiff::TIFF*()`.**
 Redundant with `getHandle()`, and implicit conversion to a raw owned pointer is
@@ -159,11 +161,15 @@ close function).
 
 ## 2. Philips TIFF driver follow-ups
 
-**Files:** `src/slideio/drivers/svs/svsslide.cpp`, `svsimagedriver.cpp`,
-`src/slideio/core/tools/tools.cpp`, `src/tests/phtiff/test_phtiff_driver.cpp`
-**Related:** `software-docs/specs/2026-08-11-phtiff-format-detection-design.md`
+**Files:** `src/slideio/drivers/svs/phtiffslide.cpp`, `phtmetadata.cpp`,
+`phtiffscene.cpp`, `svsslide.cpp`, `src/slideio/core/tools/tools.cpp`,
+`src/tests/phtiff/test_phtiff_driver.cpp`
+**Related:** `software-docs/specs/2026-08-11-phtiff-format-detection-design.md`,
+`software-docs/specs/2026-08-15-phtiff-driver-refactor-design.md`
 **Status:** Open — raised by the whole-branch review of the v2.9.0 Philips work
 (commits `36a0df2f`..`b4ad5b48`), triaged as non-blocking and deliberately not fixed.
+Re-verified against the tree at `799ac01a`; see the note below on what has and has
+not changed since.
 
 ### Context
 
@@ -172,6 +178,15 @@ padding, auxiliary image identity, absent format detection, and a driver that
 claimed every `*.tif`. The review that gated the branch raised no Critical
 findings and its three Important findings were fixed. The items below are what it
 left on the table, recorded here so the analysis is not re-done.
+
+**Since then** (commits `90462c0e`..`799ac01a`) the Philips work continued along a
+different list — the driver review's findings 5 and 6, its robustness section, and
+the driver refactor. That effort touched the same files without being aimed at this
+list, so only item 5 below is affected, and only in half. The code moved: everything
+Philips now lives in `phtiffslide.cpp`, `phtmetadata.cpp` and `phtiffscene.cpp`
+rather than in `svsslide.cpp` and `svstiledscene.cpp`, and the file references in
+the items below have been updated to match. Line-number references have been
+dropped rather than re-derived, because they will drift again.
 
 ### Correctness hardening (highest value first)
 
@@ -206,11 +221,20 @@ synthetic case with a base that does not divide (base 4098 → level 1 content
 `dirs[index]` over `imagePyramid`'s range and reads `dirs.front()` with no size
 check; only its single caller guarantees that. One guard line.
 
-**5. One malformed zoom level aborts the whole slide open.** The level number is
-read with `getAttributeInt`, which raises when the attribute is missing or
-non-numeric, while the size attributes two lines below use `hasAttribute` and
-warn. Pre-existing, and out of step with the warn-and-continue posture of the
-rest of that function.
+**5. A non-numeric attribute value still aborts the whole slide open.** *Half
+fixed.* The missing-attribute half is closed: `phReadLevels` in `phtmetadata.cpp`
+now checks `hasAttribute(level, LEVEL_NUMBER)` and skips the level with a warning,
+covered by `phExtractImagesSkipsAZoomLevelWithoutANumber`, and the same treatment
+was given to a scanned image with no `IMAGE_TYPE`.
+
+What remains is the other half, and it is broader than first recorded. Five reads
+in `phtmetadata.cpp` call `getAttributeInt` after only a presence check —
+`LEVEL_NUMBER`, `LEVEL_COLUMNS`, `LEVEL_ROWS`, `IMAGE_COLUMNS`, `IMAGE_ROWS` — and
+that function raises on a value that is present but not an integer. One such value
+anywhere in the document still costs the caller the whole slide, which is out of
+step with the warn-and-continue posture of everything around it. The fix is the
+same shape as the guards already there: read inside a `try`, warn, and leave the
+field at its default.
 
 ### Structure and consistency
 
@@ -220,25 +244,32 @@ documented performance reason (a single parse instead of two over descriptions
 that reach 844 KB). It has no caller outside its own unit test: either use it or
 remove it.
 
-**7. Layering points the wrong way.** `svsslide.cpp` and `svstiledscene.cpp`
-include `svsimagedriver.hpp` purely for `PHTIFF_DRIVER_ID` — the format's data
-classes depending on the driver class. A three-line `svsdriverids.hpp`, or the
-ids in `svstools.hpp`, would keep the dependency pointing down.
+**7. Layering points the wrong way.** The format's data classes depend on the
+driver class purely to name a driver id. The refactor moved the problem rather
+than removing it: `svstiledscene.cpp` no longer includes `svsimagedriver.hpp`, but
+`phtiffslide.cpp` and `phtiffscene.cpp` now do, each for `PHTIFF_DRIVER_ID` alone.
+A three-line `svsdriverids.hpp`, or the ids in `svstools.hpp`, would keep the
+dependency pointing down.
 
-**8. `TIFFKeeper`'s handler swap is global and not order-safe.** The path
-constructor now swaps libtiff's process-global error/warning handlers for the
-keeper's lifetime. With overlapping, non-LIFO keeper lifetimes a destructor can
-restore a handler while another keeper is still alive, routing later libtiff
-messages to stderr. No dangling-pointer risk (both handlers are static
-functions), and the `TIFF*` constructor has always behaved this way, so this did
-not create the pattern. Worth a line in the header. See also item 1 of this
-document.
+Separately, `svsslide.cpp`'s include of `svsimagedriver.hpp` is now entirely dead —
+that file references neither id nor the driver class since the refactor — so that
+one is a straight deletion rather than a re-layering.
 
-**9. Test consistency.** Six places in `test_phtiff_driver.cpp` still hardcode
-`"PHTIFF"` after `PHTIFF_DRIVER_ID` was introduced to name it. Accept-side
-detection coverage is also one file: adding the other three Philips files to the
-accept assertions would pin that the predicate does not depend on the XML
-prolog, which Philips-4 omits.
+**8. `TIFFKeeper`'s handler swap is global and not order-safe.** Both
+constructors swap libtiff's process-global error/warning handlers for the keeper's
+lifetime. With overlapping, non-LIFO keeper lifetimes a destructor can restore a
+handler while another keeper is still alive, routing later libtiff messages to
+stderr. No dangling-pointer risk (both handlers are static functions), and the
+`TIFF*` constructor has always behaved this way, so this did not create the
+pattern. Worth a line in the header. See also item 1 of this document.
+
+**9. Test consistency.** Eight places in `test_phtiff_driver.cpp` hardcode
+`"PHTIFF"` where `PHTIFF_DRIVER_ID` names it — seven `openSlide` calls plus one
+that deliberately asserts the literal id string and should stay literal, since a
+test that the public id is `"PHTIFF"` must not be written in terms of the constant
+it is checking. Accept-side detection coverage is also still one file: adding the
+other three Philips files to the accept assertions would pin that the predicate
+does not depend on the XML prolog, which Philips-4 omits.
 
 ### Consciously accepted, not debt
 
