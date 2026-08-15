@@ -572,7 +572,7 @@ Expected: 103 passing. Every existing extraction test must still pass unchanged 
 
 - [ ] **Step 9: Run the real files and the main suite**
 
-Run `./build/bin/Release/slideio_tests.exe` (489) and confirm the dataset-gated tests in the phtiff suite pass — `zoomLevelsOfPhilips3ExcludeTilePadding`, `readFromPaddedZoomLevelMatchesUnpaddedLevel`, `magnificationOfTheTestFiles` and `metadataOfTheTestFiles` are what prove the new matching lands on the same directories on all four real files.
+Run `./build/bin/Release/slideio_tests.exe` (491 — Task 4 added two `SVSTools` tests to this suite) and confirm the dataset-gated tests in the phtiff suite pass — `zoomLevelsOfPhilips3ExcludeTilePadding`, `readFromPaddedZoomLevelMatchesUnpaddedLevel`, `magnificationOfTheTestFiles` and `metadataOfTheTestFiles` are what prove the new matching lands on the same directories on all four real files.
 
 - [ ] **Step 10: Strike the item and commit**
 
@@ -632,7 +632,7 @@ Expected: only `phtiffimagedriver.hpp` (which subclasses the driver and genuinel
 
 - [ ] **Step 4: Build and run**
 
-Run the build, then `./build/bin/Release/slideio_phtiff_tests.exe` (103) and `./build/bin/Release/slideio_tests.exe` (489).
+Run the build, then `./build/bin/Release/slideio_phtiff_tests.exe` (103) and `./build/bin/Release/slideio_tests.exe` (491).
 
 - [ ] **Step 5: Strike the item and commit**
 
@@ -699,7 +699,7 @@ Keep the existing reject-side assertions in that test exactly as they are.
 
 - [ ] **Step 5: Build and run everything**
 
-Run the build, then all eight suites. Expected: `slideio_tests` 488 (one fewer — the `isXml` test was removed), `slideio_phtiff_tests` 103, and pke 15, ome-tiff 98, ndpi 29, vsi 30, converter 140, transformer 39 unchanged.
+Run the build, then all eight suites. Expected: `slideio_tests` 490 (491 after Task 4, one fewer once the `isXml` test is removed), `slideio_phtiff_tests` 103, and pke 15, ome-tiff 98, ndpi 29, vsi 30, converter 140, transformer 39 unchanged.
 
 - [ ] **Step 6: Strike the items and commit**
 
