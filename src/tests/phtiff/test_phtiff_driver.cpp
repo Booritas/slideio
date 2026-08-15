@@ -424,7 +424,10 @@ TEST_F(PhTiffImageDriverTests, canOpenFileByContent) {
 		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
 	}
 	PHTIFFImageDriver driver;
-	EXPECT_TRUE(driver.canOpenFile(TestTools::getFullTestImagePath("philips", "Philips-3.tiff")));
+	for (const char* fileName : {"Philips-1.tiff", "Philips-2.tiff", "Philips-3.tiff", "Philips-4.tiff"}) {
+		const std::string philips = TestTools::getFullTestImagePath("philips", fileName);
+		EXPECT_TRUE(driver.canOpenFile(philips)) << fileName;
+	}
 	EXPECT_FALSE(driver.canOpenFile(
 		TestTools::getTestImagePath("gdal", "img_2448x2448_3x16bit_SRC_RGB_ducks.tif")));
 	EXPECT_FALSE(driver.canOpenFile(TestTools::getTestImagePath("gdal", "multipage.tif")));
@@ -439,7 +442,7 @@ TEST_F(PhTiffImageDriverTests, canOpenFileByContent) {
 
 TEST_F(PhTiffImageDriverTests, openSlide) {
 	std::string filePath = TestTools::getFullTestImagePath("philips", "Philips-3.tiff");
-	auto slide = slideio::openSlide(filePath, "PHTIFF");
+	auto slide = slideio::openSlide(filePath, PHTIFF_DRIVER_ID);
 	std::list<std::tuple<std::string,int,int>> auxNames = {
 	    {"Macro", 791, 403},
 	    {"Label", 387, 403}
@@ -917,7 +920,7 @@ TEST_F(PhTiffImageDriverTests, zoomLevelsOfPhilips3ExcludeTilePadding) {
 		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
 	}
 	const std::string filePath = TestTools::getFullTestImagePath("philips", "Philips-3.tiff");
-	auto slide = slideio::openSlide(filePath, "PHTIFF");
+	auto slide = slideio::openSlide(filePath, PHTIFF_DRIVER_ID);
 	ASSERT_TRUE(slide != nullptr);
 	auto scene = slide->getScene(0);
 	ASSERT_TRUE(scene != nullptr);
@@ -1048,7 +1051,7 @@ TEST_F(PhTiffImageDriverTests, openSlide2) {
 		TestTools::getFullTestImagePath("czi", "test/example_split (1).czi - ScanRegion0 (1, x=41169, y=4850, w=1000, h=1000).png"),
 		TestTools::getFullTestImagePath("czi", "test/example_split (1).czi - ScanRegion0 (1, x=2668, y=1376, w=1000, h=1000).png"),
 	};
-    std::shared_ptr<Slide> slide = openSlide(filePath, "PHTIFF");
+    std::shared_ptr<Slide> slide = openSlide(filePath, PHTIFF_DRIVER_ID);
 	ASSERT_FALSE(slide == nullptr);
 	EXPECT_EQ(1, slide->getNumScenes());
 	auto scene = slide->getScene(0);
@@ -1082,7 +1085,7 @@ TEST_F(PhTiffImageDriverTests, metadataOfTheTestFiles) {
 	const std::string fileNames[] = {"Philips-1.tiff", "Philips-2.tiff", "Philips-3.tiff", "Philips-4.tiff"};
 	for (const std::string& fileName : fileNames) {
 		const std::string filePath = TestTools::getFullTestImagePath("philips", fileName);
-		auto slide = slideio::openSlide(filePath, "PHTIFF");
+		auto slide = slideio::openSlide(filePath, PHTIFF_DRIVER_ID);
 		ASSERT_TRUE(slide != nullptr) << fileName;
 		EXPECT_EQ(MetadataFormat::XML, slide->getMetadataFormat()) << fileName;
 
@@ -1141,7 +1144,7 @@ TEST_F(PhTiffImageDriverTests, magnificationOfTheTestFiles) {
 	};
 	for (const auto& param : expected) {
 		const std::string filePath = TestTools::getFullTestImagePath("philips", param.first);
-		auto slide = slideio::openSlide(filePath, "PHTIFF");
+		auto slide = slideio::openSlide(filePath, PHTIFF_DRIVER_ID);
 		ASSERT_TRUE(slide != nullptr) << param.first;
 		auto scene = slide->getScene(0);
 		ASSERT_TRUE(scene != nullptr) << param.first;
@@ -1167,7 +1170,7 @@ TEST_F(PhTiffImageDriverTests, metadataCarriesTheBarcodeOfPhilips3) {
 		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
 	}
 	const std::string filePath = TestTools::getFullTestImagePath("philips", "Philips-3.tiff");
-	auto slide = slideio::openSlide(filePath, "PHTIFF");
+	auto slide = slideio::openSlide(filePath, PHTIFF_DRIVER_ID);
 	ASSERT_TRUE(slide != nullptr);
 	const Metadata tree = slide->getMetadata();
 	ASSERT_TRUE(tree.contains("barcode"));
@@ -1191,7 +1194,7 @@ TEST_F(PhTiffImageDriverTests, auxImagesOfTheTestFiles) {
 	};
 	for (const auto& param : expected) {
 		const std::string filePath = TestTools::getFullTestImagePath("philips", param.first);
-		auto slide = slideio::openSlide(filePath, "PHTIFF");
+		auto slide = slideio::openSlide(filePath, PHTIFF_DRIVER_ID);
 		ASSERT_TRUE(slide != nullptr) << param.first;
 		EXPECT_EQ(1, slide->getNumScenes()) << param.first;
 		// getAuxImageNames is sorted, the expectations are spelled in the same order.
@@ -1213,7 +1216,7 @@ TEST_F(PhTiffImageDriverTests, findDriver) {
 		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
 	}
 	const std::list<std::pair<std::string, std::string>> expected = {
-		{"PHTIFF", TestTools::getFullTestImagePath("philips", "Philips-3.tiff")},
+		{PHTIFF_DRIVER_ID, TestTools::getFullTestImagePath("philips", "Philips-3.tiff")},
 		{"GDAL", TestTools::getTestImagePath("gdal", "img_2448x2448_3x16bit_SRC_RGB_ducks.tif")},
 		{"GDAL", TestTools::getTestImagePath("gdal", "multipage.tif")},
 		{"OMETIFF", TestTools::getFullTestImagePath("ometiff", "00001_01.ome.tiff")},

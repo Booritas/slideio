@@ -19,6 +19,12 @@ namespace slideio
 {
     class TIFFMessageHandler;
 
+    // Both constructors install a TIFFMessageHandler, which swaps libtiff's
+    // PROCESS-GLOBAL error and warning handlers for the keeper's lifetime and restores
+    // them on destruction. With overlapping, non-LIFO keeper lifetimes one destructor can
+    // restore a handler while another keeper is still alive, after which libtiff messages
+    // go to stderr instead of the log. There is no dangling pointer -- both handlers are
+    // static functions -- so the consequence is lost log routing, not a crash.
     class SLIDEIO_IMAGETOOLS_EXPORTS TIFFKeeper
     {
     public:

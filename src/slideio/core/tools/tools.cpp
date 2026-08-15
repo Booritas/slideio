@@ -42,29 +42,6 @@ std::vector<std::string> Tools::split(const std::string& val, char delimiter) {
     return tokens;
 }
 
-bool Tools::isXml(const std::string& text) {
-    // An XML document may be preceded by a UTF-8 BOM and by whitespace,
-    // but nothing else is allowed before the first '<'.
-    size_t pos = 0;
-    if (text.compare(0, 3, "\xEF\xBB\xBF") == 0) {
-        pos = 3;
-    }
-    while (pos < text.length() && std::isspace(static_cast<unsigned char>(text[pos]))) {
-        ++pos;
-    }
-    if (pos >= text.length() || text[pos] != '<') {
-        return false;
-    }
-    tinyxml2::XMLDocument doc;
-    if (doc.Parse(text.c_str(), text.length()) != tinyxml2::XML_SUCCESS) {
-        return false;
-    }
-    // A document consisting only of a declaration, a comment or a processing
-    // instruction parses without error but has no root element and is not
-    // a valid XML document.
-    return doc.RootElement() != nullptr;
-}
-
 std::string Tools::randomUUID() {
     static const char* hex = "0123456789abcdef";
     std::random_device rd;

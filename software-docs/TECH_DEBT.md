@@ -249,11 +249,17 @@ no size check; only its single caller guarantees that. One guard line.~~
 
 ### Structure and consistency
 
-**6. `Tools::isXml` is dead production code.** Added by `391ed0e3` for this work,
-then deliberately bypassed by `PHTDescription::isPhilipsDescription` for a
-documented performance reason (a single parse instead of two over descriptions
-that reach 844 KB). It has no caller outside its own unit test: either use it or
-remove it.
+**6. ~~`Tools::isXml` is dead production code.~~ Fixed** (removed from
+`tools.hpp`, `tools.cpp`, and `test_tools.cpp`).
+~~Added by `391ed0e3` for this work, then deliberately bypassed by
+`PHTDescription::isPhilipsDescription` for a documented performance reason (a
+single parse instead of two over descriptions that reach 844 KB). It has no
+caller outside its own unit test: either use it or remove it.~~
+Removed rather than adopted: the reason it went unused is structural (the
+second parse it would require is what `isPhilipsDescription` was written to
+avoid), not incidental. `Tools` is `SLIDEIO_CORE_EXPORTS`, so this is a public
+API removal; nothing in this repository referenced it, but the Python bindings
+live in a separate repository that could not be checked from here.
 
 **7. ~~Layering points the wrong way.~~ Fixed** (new `svsdriverids.hpp`;
 `svsimagedriver.hpp`, `phtiffslide.cpp`, `phtiffscene.cpp`, `svsslide.cpp`).
@@ -271,21 +277,31 @@ one is a straight deletion rather than a re-layering.~~
 `phtiffscene.cpp` include it instead of `svsimagedriver.hpp`, and `svsslide.cpp`'s
 dead include of `svsimagedriver.hpp` is deleted. Both ids keep their string values.
 
-**8. `TIFFKeeper`'s handler swap is global and not order-safe.** Both
-constructors swap libtiff's process-global error/warning handlers for the keeper's
-lifetime. With overlapping, non-LIFO keeper lifetimes a destructor can restore a
-handler while another keeper is still alive, routing later libtiff messages to
-stderr. No dangling-pointer risk (both handlers are static functions), and the
-`TIFF*` constructor has always behaved this way, so this did not create the
-pattern. Worth a line in the header. See also item 1 of this document.
+**8. ~~`TIFFKeeper`'s handler swap is global and not order-safe.~~ Fixed**
+(documented above the class in `tiffkeeper.hpp`).
+~~Both constructors swap libtiff's process-global error/warning handlers for the
+keeper's lifetime. With overlapping, non-LIFO keeper lifetimes a destructor can
+restore a handler while another keeper is still alive, routing later libtiff
+messages to stderr. No dangling-pointer risk (both handlers are static
+functions), and the `TIFF*` constructor has always behaved this way, so this
+did not create the pattern. Worth a line in the header. See also item 1 of this
+document.~~
+No behaviour change; the header now states the swap, the non-LIFO hazard, and
+the lost-log-routing-not-a-crash consequence.
 
-**9. Test consistency.** Eight places in `test_phtiff_driver.cpp` hardcode
-`"PHTIFF"` where `PHTIFF_DRIVER_ID` names it — seven `openSlide` calls plus one
-that deliberately asserts the literal id string and should stay literal, since a
-test that the public id is `"PHTIFF"` must not be written in terms of the constant
-it is checking. Accept-side detection coverage is also still one file: adding the
-other three Philips files to the accept assertions would pin that the predicate
-does not depend on the XML prolog, which Philips-4 omits.
+**9. ~~Test consistency.~~ Fixed** (`test_phtiff_driver.cpp`).
+~~Eight places in `test_phtiff_driver.cpp` hardcode `"PHTIFF"` where
+`PHTIFF_DRIVER_ID` names it — seven `openSlide` calls plus one that
+deliberately asserts the literal id string and should stay literal, since a
+test that the public id is `"PHTIFF"` must not be written in terms of the
+constant it is checking. Accept-side detection coverage is also still one
+file: adding the other three Philips files to the accept assertions would pin
+that the predicate does not depend on the XML prolog, which Philips-4
+omits.~~
+The seven `openSlide` calls and the one `findDriver` pair now use
+`PHTIFF_DRIVER_ID`; the `getID()` literal assertion is untouched.
+`canOpenFileByContent` now loops over all four Philips files on the accept
+side; the reject-side assertions are unchanged.
 
 ### Consciously accepted, not debt
 
