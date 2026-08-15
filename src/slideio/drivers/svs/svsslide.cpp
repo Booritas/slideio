@@ -273,7 +273,7 @@ namespace
             phSetDoubleList(compression, "ratio", description, image, slideio::phtiff::LOSSY_IMAGE_COMPRESSION_RATIO);
         }
         // Only the whole slide image has a pyramid; an auxiliary image gets no empty array.
-        const std::vector<tinyxml2::XMLElement*> levels =
+        const std::vector<const tinyxml2::XMLElement*> levels =
             description.getObjectList(image, slideio::phtiff::LEVEL_SEQUENCE, slideio::phtiff::PIXEL_DATA_REPRESENTATION);
         if (!levels.empty()) {
             slideio::MetadataBuilder levelNodes = node["levels"];
@@ -294,14 +294,14 @@ namespace
     // level number: the tree reports what the file says.
     slideio::MetadataBuilder phBuildMetadataTree(const std::string& description) {
         slideio::PHTDescription philips(description);
-        tinyxml2::XMLElement* slide = philips.getRoot();
+        const tinyxml2::XMLElement* slide = philips.getRoot();
         slideio::MetadataBuilder root;
         root.makeObject();
         phSetText(root, "manufacturer", philips, slide, slideio::phtiff::MANUFACTURER);
         phSetTextList(root, "softwareVersions", philips, slide, slideio::phtiff::SOFTWARE_VERSIONS);
         phSetText(root, "interfaceVersion", philips, slide, slideio::phtiff::UFS_INTERFACE_VERSION);
         phSetText(root, "barcode", philips, slide, slideio::phtiff::UFS_BARCODE);
-        const std::vector<tinyxml2::XMLElement*> images =
+        const std::vector<const tinyxml2::XMLElement*> images =
             philips.getObjectList(slide, slideio::phtiff::SCANNED_IMAGES, slideio::phtiff::SCANNED_IMAGE);
         if (!images.empty()) {
             slideio::MetadataBuilder imageNodes = root["images"];

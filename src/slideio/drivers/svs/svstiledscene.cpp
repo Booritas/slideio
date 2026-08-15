@@ -92,7 +92,7 @@ void SVSTiledScene::processImageDescriptionPhTiff() {
     //description.getDocument()->SaveFile(xmlPath.c_str());
 #endif
 
-    std::vector<tinyxml2::XMLElement*> images = description.getObjectList(description.getRoot(), SCANNED_IMAGES, SCANNED_IMAGE);
+    std::vector<const tinyxml2::XMLElement*> images = description.getObjectList(description.getRoot(), SCANNED_IMAGES, SCANNED_IMAGE);
     for (const tinyxml2::XMLElement* image : images) {
         // An image the metadata declares without naming its type cannot be classified,
         // but it says nothing about the other images in the file. The order of the

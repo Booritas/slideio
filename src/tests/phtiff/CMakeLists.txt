@@ -3,6 +3,7 @@ set(TEST_NAME slideio_phtiff_tests)
 
 set(TEST_SOURCES
   test_phtiff_driver.cpp
+  ${CMAKE_SOURCE_DIR}/src/slideio/drivers/svs/phtdescription.cpp
 )
 
 add_executable(${TEST_NAME} ${TEST_SOURCES})

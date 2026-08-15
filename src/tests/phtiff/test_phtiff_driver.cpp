@@ -1503,7 +1503,7 @@ protected:
 
 TEST_F(PHTDescriptionTests, constructorParsesValidXml) {
 	PHTDescription description(phSampleXML);
-	tinyxml2::XMLElement* root = description.getRoot();
+	const tinyxml2::XMLElement* root = description.getRoot();
 	ASSERT_TRUE(root != nullptr);
 	EXPECT_STREQ("DataObject", root->Name());
 	EXPECT_STREQ("DPUfsImport", root->Attribute("ObjectType"));
@@ -1525,7 +1525,7 @@ TEST_F(PHTDescriptionTests, getRootReturnsTheSameElement) {
 
 TEST_F(PHTDescriptionTests, getObjectListReturnsScannedImagesInDocumentOrder) {
 	PHTDescription description(phSampleXML);
-	const std::vector<tinyxml2::XMLElement*> images =
+	const std::vector<const tinyxml2::XMLElement*> images =
 		description.getObjectList(description.getRoot(), SCANNED_IMAGES, SCANNED_IMAGE);
 	ASSERT_EQ(3u, images.size());
 	EXPECT_EQ(WSI, description.getAttributeText(images[0], IMAGE_TYPE));
@@ -1537,7 +1537,7 @@ TEST_F(PHTDescriptionTests, getObjectListReturnsZoomLevels) {
 	PHTDescription description(phSampleXML);
 	const tinyxml2::XMLElement* image = wsiImage(description);
 	ASSERT_TRUE(image != nullptr);
-	const std::vector<tinyxml2::XMLElement*> levels =
+	const std::vector<const tinyxml2::XMLElement*> levels =
 		description.getObjectList(image, LEVEL_SEQUENCE, PIXEL_DATA_REPRESENTATION);
 	ASSERT_EQ(2u, levels.size());
 	EXPECT_EQ(0, description.getAttributeInt(levels[0], LEVEL_NUMBER));
@@ -1604,7 +1604,7 @@ static const std::string phUndeclaredArrayXML = R"xml(<?xml version="1.0" encodi
 
 TEST_F(PHTDescriptionTests, getObjectListReadsTheArrayOfTheDeclaredAttribute) {
 	PHTDescription description(phTwoArraysXML);
-	const std::vector<tinyxml2::XMLElement*> images =
+	const std::vector<const tinyxml2::XMLElement*> images =
 		description.getObjectList(description.getRoot(), SCANNED_IMAGES, SCANNED_IMAGE);
 	ASSERT_EQ(1u, images.size());
 	EXPECT_EQ(WSI, description.getAttributeText(images[0], IMAGE_TYPE));
@@ -1615,7 +1615,7 @@ TEST_F(PHTDescriptionTests, getObjectListReadsTheArrayOfTheDeclaredAttribute) {
 // not a new way to lose data.
 TEST_F(PHTDescriptionTests, getObjectListFallsBackToScanningWhenTheAttributeIsAbsent) {
 	PHTDescription description(phUndeclaredArrayXML);
-	const std::vector<tinyxml2::XMLElement*> images =
+	const std::vector<const tinyxml2::XMLElement*> images =
 		description.getObjectList(description.getRoot(), SCANNED_IMAGES, SCANNED_IMAGE);
 	ASSERT_EQ(1u, images.size());
 	EXPECT_EQ("DECOY", description.getAttributeText(images[0], IMAGE_TYPE));
@@ -1709,7 +1709,7 @@ TEST_F(PHTDescriptionTests, getAttributeDoubleListReadsTripletsAndNegativeValues
 	PHTDescription description(phSampleXML);
 	const tinyxml2::XMLElement* image = wsiImage(description);
 	ASSERT_TRUE(image != nullptr);
-	const std::vector<tinyxml2::XMLElement*> levels =
+	const std::vector<const tinyxml2::XMLElement*> levels =
 		description.getObjectList(image, LEVEL_SEQUENCE, PIXEL_DATA_REPRESENTATION);
 	ASSERT_EQ(2u, levels.size());
 	const std::vector<double> position = description.getAttributeDoubleList(levels[0], LEVEL_POSITION);
@@ -1781,7 +1781,7 @@ TEST_F(PHTDescriptionTests, hasAttributeDetectsPresenceAndAbsence) {
 	EXPECT_TRUE(description.hasAttribute(description.getRoot(), MANUFACTURER));
 	EXPECT_FALSE(description.hasAttribute(description.getRoot(), UFS_BARCODE));
 
-	const std::vector<tinyxml2::XMLElement*> images =
+	const std::vector<const tinyxml2::XMLElement*> images =
 		description.getObjectList(description.getRoot(), SCANNED_IMAGES, SCANNED_IMAGE);
 	ASSERT_EQ(3u, images.size());
 	EXPECT_FALSE(description.hasAttribute(images[0], IMAGE_DATA));   // WSI: pixels live in the tiff
@@ -1812,7 +1812,7 @@ TEST_F(PHTDescriptionTests, attributeLookupIgnoresHexIdCase) {
 	PHTDescription description(phSampleXML);
 	const tinyxml2::XMLElement* image = wsiImage(description);
 	ASSERT_TRUE(image != nullptr);
-	const std::vector<tinyxml2::XMLElement*> levels =
+	const std::vector<const tinyxml2::XMLElement*> levels =
 		description.getObjectList(image, LEVEL_SEQUENCE, PIXEL_DATA_REPRESENTATION);
 	ASSERT_FALSE(levels.empty());
 	EXPECT_TRUE(description.hasAttribute(levels[0], LEVEL_COLUMNS));
@@ -1865,7 +1865,7 @@ TEST_F(PHTDescriptionTests, createFakeXmlDefaultsDescribeAWholeSlideImage) {
 	EXPECT_EQ("PHILIPS", description.getAttributeText(description.getRoot(), MANUFACTURER));
 	EXPECT_EQ("5.0", description.getAttributeText(description.getRoot(), UFS_INTERFACE_VERSION));
 
-	const std::vector<tinyxml2::XMLElement*> images =
+	const std::vector<const tinyxml2::XMLElement*> images =
 		description.getObjectList(description.getRoot(), SCANNED_IMAGES, SCANNED_IMAGE);
 	ASSERT_EQ(1u, images.size());
 	EXPECT_EQ(WSI, description.getAttributeText(images[0], IMAGE_TYPE));
@@ -1881,10 +1881,10 @@ TEST_F(PHTDescriptionTests, createFakeXmlDefaultsDescribeAWholeSlideImage) {
 // Every level halves the size of the previous one and doubles its pixel spacing.
 TEST_F(PHTDescriptionTests, createFakeXmlBuildsTheRequestedPyramid) {
 	PHTDescription description(MockSVSSlide::createFakeXml(1024, 512, 3));
-	const std::vector<tinyxml2::XMLElement*> images =
+	const std::vector<const tinyxml2::XMLElement*> images =
 		description.getObjectList(description.getRoot(), SCANNED_IMAGES, SCANNED_IMAGE);
 	ASSERT_EQ(1u, images.size());
-	const std::vector<tinyxml2::XMLElement*> levels =
+	const std::vector<const tinyxml2::XMLElement*> levels =
 		description.getObjectList(images[0], LEVEL_SEQUENCE, PIXEL_DATA_REPRESENTATION);
 	ASSERT_EQ(3u, levels.size());
 
@@ -1906,7 +1906,7 @@ TEST_F(PHTDescriptionTests, createFakeXmlBuildsTheRequestedPyramid) {
 // Auxiliary images follow the whole slide image and carry their raster inline.
 TEST_F(PHTDescriptionTests, createFakeXmlAppendsAuxiliaryImages) {
 	PHTDescription description(MockSVSSlide::createFakeXml(1024, 1024, 2, { "LABELIMAGE", "MACROIMAGE" }));
-	const std::vector<tinyxml2::XMLElement*> images =
+	const std::vector<const tinyxml2::XMLElement*> images =
 		description.getObjectList(description.getRoot(), SCANNED_IMAGES, SCANNED_IMAGE);
 	ASSERT_EQ(3u, images.size());
 	EXPECT_EQ(WSI, description.getAttributeText(images[0], IMAGE_TYPE));
@@ -1924,7 +1924,7 @@ TEST_F(PHTDescriptionTests, createFakeXmlAppendsAuxiliaryImages) {
 // A slide without a pyramid is still valid metadata.
 TEST_F(PHTDescriptionTests, createFakeXmlSupportsAnEmptyPyramid) {
 	PHTDescription description(MockSVSSlide::createFakeXml(256, 256, 0));
-	const std::vector<tinyxml2::XMLElement*> images =
+	const std::vector<const tinyxml2::XMLElement*> images =
 		description.getObjectList(description.getRoot(), SCANNED_IMAGES, SCANNED_IMAGE);
 	ASSERT_EQ(1u, images.size());
 	EXPECT_TRUE(description.getObjectList(images[0], LEVEL_SEQUENCE, PIXEL_DATA_REPRESENTATION).empty());
@@ -1934,10 +1934,10 @@ TEST_F(PHTDescriptionTests, createFakeXmlSupportsAnEmptyPyramid) {
 // Levels never collapse to a zero size, however deep the pyramid is.
 TEST_F(PHTDescriptionTests, createFakeXmlClampsLevelSizeToOnePixel) {
 	PHTDescription description(MockSVSSlide::createFakeXml(4, 2, 5));
-	const std::vector<tinyxml2::XMLElement*> images =
+	const std::vector<const tinyxml2::XMLElement*> images =
 		description.getObjectList(description.getRoot(), SCANNED_IMAGES, SCANNED_IMAGE);
 	ASSERT_EQ(1u, images.size());
-	const std::vector<tinyxml2::XMLElement*> levels =
+	const std::vector<const tinyxml2::XMLElement*> levels =
 		description.getObjectList(images[0], LEVEL_SEQUENCE, PIXEL_DATA_REPRESENTATION);
 	ASSERT_EQ(5u, levels.size());
 	EXPECT_EQ(1, description.getAttributeInt(levels[4], LEVEL_COLUMNS));

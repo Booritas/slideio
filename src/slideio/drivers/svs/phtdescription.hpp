@@ -12,7 +12,7 @@
 
 namespace slideio
 {
-    class SLIDEIO_SVS_EXPORTS PHTDescription
+    class PHTDescription
     {
     public:
         class Attribute
@@ -39,20 +39,17 @@ namespace slideio
         // the DPScannedImage objects of PIM_DP_SCANNED_IMAGES. If the parent does not
         // carry that attribute, every attribute of the parent is searched for an array
         // instead, so a file that declares its objects elsewhere is still read.
-        std::vector<tinyxml2::XMLElement*> getObjectList(const tinyxml2::XMLElement* parent,
-            const Attribute& arrayAttribute, std::string_view name);
-        int getAttributeInt(const tinyxml2::XMLElement* element, const Attribute& attribute);
-        std::string getAttributeText(const tinyxml2::XMLElement* element, const Attribute& attribute);
+        std::vector<const tinyxml2::XMLElement*> getObjectList(const tinyxml2::XMLElement* parent,
+            const Attribute& arrayAttribute, std::string_view name) const;
+        int getAttributeInt(const tinyxml2::XMLElement* element, const Attribute& attribute) const;
+        std::string getAttributeText(const tinyxml2::XMLElement* element, const Attribute& attribute) const;
         // The values of an IStringArray attribute, e.g. "1.6.6186" "20150402_R48" "4.0.3".
         // getAttributeText cannot read those: it strips the outer quotes only and hands back
         // the interior ones as part of the value.
-        std::vector<std::string> getAttributeTextList(const tinyxml2::XMLElement* element, const Attribute& attribute);
-        std::vector<double> getAttributeDoubleList(const tinyxml2::XMLElement* element, const Attribute& attribute);
-        tinyxml2::XMLElement* getRoot();
-		bool hasAttribute(const tinyxml2::XMLElement* element, const Attribute& attribute);
-		tinyxml2::XMLDocument* getDocument() const{
-			return m_doc.get();
-		}
+        std::vector<std::string> getAttributeTextList(const tinyxml2::XMLElement* element, const Attribute& attribute) const;
+        std::vector<double> getAttributeDoubleList(const tinyxml2::XMLElement* element, const Attribute& attribute) const;
+        const tinyxml2::XMLElement* getRoot() const;
+		bool hasAttribute(const tinyxml2::XMLElement* element, const Attribute& attribute) const;
     private:
         std::unique_ptr<tinyxml2::XMLDocument> m_doc;
     };

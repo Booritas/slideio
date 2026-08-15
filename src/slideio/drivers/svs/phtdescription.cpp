@@ -88,7 +88,7 @@ namespace
     // parameter: the type has to follow through unbroken, or the call below does not
     // compile (string_view has no implicit conversion to std::string).
     void collectObjects(const tinyxml2::XMLElement* attribute, std::string_view name,
-                        std::vector<tinyxml2::XMLElement*>& objects) {
+                        std::vector<const tinyxml2::XMLElement*>& objects) {
         const tinyxml2::XMLElement* array = attribute->FirstChildElement(ARRAY_TAG);
         if (array == nullptr) {
             return;
@@ -98,7 +98,7 @@ namespace
              object = object->NextSiblingElement(DATA_OBJECT_TAG)) {
             const char* objectType = object->Attribute(OBJECT_TYPE_PROPERTY);
             if (objectType != nullptr && name == objectType) {
-                objects.push_back(const_cast<tinyxml2::XMLElement*>(object));
+                objects.push_back(object);
             }
         }
     }
@@ -150,11 +150,11 @@ bool PHTDescription::isPhilipsDescription(const std::string& description) {
     return objectType != nullptr && DP_UFS_IMPORT == objectType;
 }
 
-tinyxml2::XMLElement* PHTDescription::getRoot() {
+const tinyxml2::XMLElement* PHTDescription::getRoot() const {
     if (!m_doc) {
         RAISE_RUNTIME_ERROR << "PHTDescription: philips xml metadata is not available.";
     }
-    tinyxml2::XMLElement* root = m_doc->RootElement();
+    const tinyxml2::XMLElement* root = m_doc->RootElement();
     if (root == nullptr) {
         RAISE_RUNTIME_ERROR << "PHTDescription: philips xml metadata does not have a root element.";
     }
@@ -164,13 +164,13 @@ tinyxml2::XMLElement* PHTDescription::getRoot() {
 // Data objects are grouped by object type in arrays of the attributes of the parent object:
 // <DataObject><Attribute Name="..." PMSVR="IDataObjectArray"><Array>
 //     <DataObject ObjectType="..."/>...
-std::vector<tinyxml2::XMLElement*> PHTDescription::getObjectList(const tinyxml2::XMLElement* parent,
+std::vector<const tinyxml2::XMLElement*> PHTDescription::getObjectList(const tinyxml2::XMLElement* parent,
                                                                  const Attribute& arrayAttribute,
-                                                                 std::string_view name) {
+                                                                 std::string_view name) const {
     if (parent == nullptr) {
         RAISE_RUNTIME_ERROR << "PHTDescription: cannot retrieve objects '" << name << "' of an undefined parent.";
     }
-    std::vector<tinyxml2::XMLElement*> objects;
+    std::vector<const tinyxml2::XMLElement*> objects;
     const tinyxml2::XMLElement* declared = findAttribute(parent, arrayAttribute);
     if (declared != nullptr) {
         collectObjects(declared, name, objects);
@@ -190,15 +190,15 @@ std::vector<tinyxml2::XMLElement*> PHTDescription::getObjectList(const tinyxml2:
     return objects;
 }
 
-bool PHTDescription::hasAttribute(const tinyxml2::XMLElement* element, const Attribute& attribute) {
+bool PHTDescription::hasAttribute(const tinyxml2::XMLElement* element, const Attribute& attribute) const {
     return findAttribute(element, attribute) != nullptr;
 }
 
-std::string PHTDescription::getAttributeText(const tinyxml2::XMLElement* element, const Attribute& attribute) {
+std::string PHTDescription::getAttributeText(const tinyxml2::XMLElement* element, const Attribute& attribute) const {
     return trimValue(getAttributeElement(element, attribute)->GetText());
 }
 
-int PHTDescription::getAttributeInt(const tinyxml2::XMLElement* element, const Attribute& attribute) {
+int PHTDescription::getAttributeInt(const tinyxml2::XMLElement* element, const Attribute& attribute) const {
     const std::string text = getAttributeText(element, attribute);
     try {
         size_t processed = 0;
@@ -216,7 +216,7 @@ int PHTDescription::getAttributeInt(const tinyxml2::XMLElement* element, const A
 }
 
 std::vector<std::string> PHTDescription::getAttributeTextList(const tinyxml2::XMLElement* element,
-                                                              const Attribute& attribute) {
+                                                              const Attribute& attribute) const {
     const char* text = getAttributeElement(element, attribute)->GetText();
     std::vector<std::string> values;
     if (text == nullptr) {
@@ -245,7 +245,7 @@ std::vector<std::string> PHTDescription::getAttributeTextList(const tinyxml2::XM
 }
 
 std::vector<double> PHTDescription::getAttributeDoubleList(const tinyxml2::XMLElement* element,
-                                                           const Attribute& attribute) {
+                                                           const Attribute& attribute) const {
     const char* text = getAttributeElement(element, attribute)->GetText();
     std::vector<double> values;
     if (text == nullptr) {
