@@ -29,6 +29,8 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/svstools.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/phtdescription.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/phtdescription.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/phtmetadata.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/phtmetadata.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/svs_api_def.hpp
    )
 

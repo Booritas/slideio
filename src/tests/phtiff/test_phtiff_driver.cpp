@@ -17,6 +17,7 @@
 #include "slideio/drivers/svs/svsslide.hpp"
 #include "slideio/drivers/svs/phtiffslide.hpp"
 #include "slideio/drivers/svs/phtdescription.hpp"
+#include "slideio/drivers/svs/phtmetadata.hpp"
 #include "slideio/base/exceptions.hpp"
 #include <type_traits>
 #include <sstream>
@@ -169,13 +170,20 @@ public:
 	static void extractImagesMock(const std::vector<TiffDirectory>& directories, std::vector<PHTLevel>& imagePyramid,
 		std::map<std::string, int>& auxImages) {
 		// extractImages is a member now, not a static: it needs an instance to call
-		// through.
+		// through. The metadata it used to parse for itself is now built once by init()
+		// and passed in; rebuilding it here from the same directories keeps every
+		// existing caller of this mock unchanged.
+		const PHTMetadata metadata = directories.empty() ? PHTMetadata()
+			: readPHTMetadata(directories.front().description);
 		MockPHTIFFSlide slide;
-		slide.extractImages(directories, imagePyramid, auxImages);
+		slide.extractImages(directories, metadata, imagePyramid, auxImages);
 	}
 	void createImageSceneMock(const std::vector<TiffDirectory>& directories, const std::vector<PHTLevel>& imagePyramid,
 		libtiff::TIFF* hFile) {
-		createImageScene(directories, imagePyramid, hFile);
+		// These tests exercise scene geometry, not the philips metadata, so an empty
+		// PHTMetadata is enough: processImageDescription tolerates a slide with no whole
+		// slide image declared.
+		createImageScene(directories, PHTMetadata(), imagePyramid, hFile);
 	}
 	void createAuxScenesMock(const std::vector<TiffDirectory>& directories,
 		const std::map<std::string, int>& auxImages) {
@@ -1234,6 +1242,41 @@ static std::string phRemoveAttribute(const std::string& xml, std::string_view na
 		return xml;
 	}
 	return xml.substr(0, lineBegin) + xml.substr(lineEnd);
+}
+
+TEST_F(PhTiffImageDriverTests, readPHTMetadataReadsTheImagesAndTheirLevels) {
+	const PHTMetadata metadata = readPHTMetadata(
+		MockPHTIFFSlide::createFakeXml(1024, 768, 3, {"MACROIMAGE"}));
+	ASSERT_EQ(2u, metadata.images.size());
+	const PHTImageDeclaration* wsi = metadata.wholeSlideImage();
+	ASSERT_TRUE(wsi != nullptr);
+	EXPECT_EQ(1024, wsi->size.width);
+	EXPECT_EQ(768, wsi->size.height);
+	EXPECT_DOUBLE_EQ(phDefaults::PIXEL_SPACING, wsi->spacing.x);
+	ASSERT_EQ(3u, wsi->levels.size());
+	EXPECT_EQ(1, wsi->levels[1].number);
+	EXPECT_EQ(512, wsi->levels[1].declaredSize.width);
+	EXPECT_TRUE(metadata.images[1].levels.empty()) << "an auxiliary image has no pyramid";
+}
+
+// The skip-with-warning behaviour the robustness work added lives in the parse now.
+TEST_F(PhTiffImageDriverTests, readPHTMetadataSkipsIncompleteDeclarations) {
+	const std::string noType = phRemoveAttribute(
+		MockPHTIFFSlide::createFakeXml(1024, 768, 2, {"MACROIMAGE"}), IMAGE_TYPE.Name, 1);
+	EXPECT_EQ(1u, readPHTMetadata(noType).images.size());
+
+	const std::string noNumber = phRemoveAttribute(
+		MockPHTIFFSlide::createFakeXml(1024, 768, 2), LEVEL_NUMBER.Name, 1);
+	// Bind the metadata to a local: wholeSlideImage() returns a pointer into it, so
+	// calling it on the temporary would leave a dangling pointer.
+	const PHTMetadata metadata = readPHTMetadata(noNumber);
+	const PHTImageDeclaration* wsi = metadata.wholeSlideImage();
+	ASSERT_TRUE(wsi != nullptr);
+	EXPECT_EQ(1u, wsi->levels.size());
+}
+
+TEST_F(PhTiffImageDriverTests, readPHTMetadataRaisesOnADescriptionItCannotParse) {
+	EXPECT_THROW(readPHTMetadata("this is not xml at all"), slideio::RuntimeError);
 }
 
 // A scanned image the metadata declares without naming its type cannot be classified,

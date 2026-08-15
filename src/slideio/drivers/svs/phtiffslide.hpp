@@ -4,6 +4,7 @@
 #pragma once
 
 #include "slideio/drivers/svs/svsslide.hpp"
+#include "slideio/drivers/svs/phtmetadata.hpp"
 
 namespace slideio
 {
@@ -41,9 +42,9 @@ namespace slideio
         PHTIFFSlide() = default;
         void init(const std::vector<TiffDirectory>& directories, TIFFKeeper& keeper) override;
         MetadataBuilder buildMetadataTree() const override;
-        void extractImages(const std::vector<TiffDirectory>& directories,
+        void extractImages(const std::vector<TiffDirectory>& directories, const PHTMetadata& metadata,
             std::vector<PHTLevel>& imagePyramid, std::map<std::string, int>& auxImages);
-        void createImageScene(const std::vector<TiffDirectory>& directories,
+        void createImageScene(const std::vector<TiffDirectory>& directories, const PHTMetadata& metadata,
             const std::vector<PHTLevel>& imagePyramid, libtiff::TIFF* tiff);
         void createAuxScenes(const std::vector<TiffDirectory>& directories,
             const std::map<std::string, int>& auxImages);

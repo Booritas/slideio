@@ -3,6 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 #pragma once
 #include "slideio/drivers/svs/svstiledscene.hpp"
+#include "slideio/drivers/svs/phtmetadata.hpp"
 
 namespace slideio
 {
@@ -13,10 +14,15 @@ namespace slideio
     public:
         static std::shared_ptr<PHTIFFTiledScene> create(const std::string& filePath,
             libtiff::TIFF* hFile, const std::string& name,
-            const std::vector<slideio::TiffDirectory>& dirs);
+            const std::vector<slideio::TiffDirectory>& dirs, const PHTMetadata& metadata);
     protected:
         PHTIFFTiledScene(const std::string& filePath, libtiff::TIFF* hFile,
-            const std::string& name, const std::vector<slideio::TiffDirectory>& dirs);
+            const std::string& name, const std::vector<slideio::TiffDirectory>& dirs,
+            const PHTMetadata& metadata);
         void processImageDescription() override;
+    private:
+        // A copy, not a reference: the metadata is parsed once by PHTIFFSlide::init into a
+        // local variable, and this scene outlives that call, so a reference would dangle.
+        PHTMetadata m_metadata;
     };
 }
