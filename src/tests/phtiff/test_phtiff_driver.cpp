@@ -863,13 +863,13 @@ TEST_F(PhTiffImageDriverTests, phCreateImageScene_doesNotCropAnUncorroboratedLev
 // A base width that does not divide by the level's downsample is the only case where the
 // rounding rule is observable, and no real philips file has one: every real base is a
 // multiple of the 512 tile grid. Rounding UP is what keeps the level able to hold the
-// whole slide -- 4097 pixels halve to 2049, and a level of 2048 would drop the last
+// whole slide -- 4099 pixels halve to 2050, and a level of 2049 would drop the last
 // column. This test exists because that decision is otherwise never exercised.
 TEST_F(PhTiffImageDriverTests, phCreateImageScene_roundsAContentSizeUpNotDown) {
-	const std::string xml = MockPHTIFFSlide::createFakeXml(4097, 4097, 2, {});
+	const std::string xml = MockPHTIFFSlide::createFakeXml(4099, 4099, 2, {});
 	std::vector<TiffDirectory> directories = {
-		makeImageDir(xml, 4097, 4097),
-		// Padded to the tile grid by philips; the content is ceil(4097/2) = 2049.
+		makeImageDir(xml, 4099, 4099),
+		// Padded to the tile grid by philips; the content is ceil(4099/2) = 2050.
 		makeImageDir("level=1 mag=20 quality=80", 2560, 2560),
 	};
 	directories[1].tileWidth = 512;
@@ -882,8 +882,8 @@ TEST_F(PhTiffImageDriverTests, phCreateImageScene_roundsAContentSizeUpNotDown) {
 	ASSERT_EQ(1, slide.getNumScenes());
 	const LevelInfo* info = slide.getScene(0)->getZoomLevelInfo(1);
 	ASSERT_TRUE(info != nullptr);
-	EXPECT_EQ(2049, info->getSize().width) << "ceil(4097/2), not floor";
-	EXPECT_EQ(2049, info->getSize().height);
+	EXPECT_EQ(2050, info->getSize().width) << "ceil(4099/2), not floor";
+	EXPECT_EQ(2050, info->getSize().height);
 }
 
 // The same padding on a real file: the levels of Philips-3.tiff are padded in

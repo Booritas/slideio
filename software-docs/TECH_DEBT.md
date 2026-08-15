@@ -219,11 +219,16 @@ divides exactly for all levels ≤ 9 and the `ceil` never rounds — on real fil
 in the synthetic tests. `ceil` versus floor is therefore an untested decision. One
 synthetic case with a base that does not divide (base 4098 → level 1 content
 2049) plus a comment on why rounding up is right would settle it.~~
-(The base actually used is 4097, not 4098: 4098 divides evenly by 2, so it would
+(The base actually used is 4099, not 4098: 4098 divides evenly by 2, so it would
 not have distinguished `ceil` from `floor` at level 1 at all -- confirmed by
 building the `floor` mutation in isolation and watching the test pass at 2049
-either way. 4097 is odd, so `ceil(4097/2)=2049` and `floor(4097/2)=2048` actually
-diverge.)
+either way. An intermediate choice of 4097 diverges `ceil`/`floor` (2049 vs 2048)
+but the floor-mutated content (2048) lands in a different tile bucket than the
+stored 2560 at 512-pixel tiles, so Task 2's tile-count guard refuses the crop and
+the test fails at 2560 -- correct, but via the guard rather than the rounding.
+4099 avoids that: `ceil(4099/2)=2050` and `floor(4099/2)=2049` both land in the
+same 5-tile bucket as stored 2560, so the guard permits the crop either way and
+the assertion diverges on the rounding alone.)
 
 **4. ~~`phCropLevelPadding` trusts its two arguments to be parallel.~~ Fixed** (guard
 added in `phCropLevelPadding`, `phtiffslide.cpp`).
