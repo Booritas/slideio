@@ -274,6 +274,15 @@ namespace
         if (imagePyramid.empty()) {
             return;
         }
+        // The caller is trusted to pass parallel ranges -- one directory per pyramid
+        // level, in the same order. Checking it here costs one comparison and turns a
+        // future caller's mistake into a refusal instead of an out-of-bounds read.
+        if (dirs.size() != imagePyramid.size()) {
+            SLIDEIO_LOG(WARNING) << "PHTIFF: the zoom level list and the directory list"
+                " have different lengths (" << imagePyramid.size() << " and " << dirs.size()
+                << "). Tile padding is not cropped.";
+            return;
+        }
         // The levels are sorted by level number and the base level is the reference: it is
         // stored unpadded, as the image size of the philips metadata confirms.
         if (imagePyramid.front().levelNumber != 0) {
@@ -304,6 +313,24 @@ namespace
                     << " but the tiff directory is " << dir.width << "x" << dir.height
                     << ". Tile padding of the level is not cropped.";
                 continue;
+            }
+            // Shrinking the directory does not change its tile layout, so the crop is only
+            // safe while the content occupies the same number of tiles as the stored
+            // raster. Philips pads every level to its own tile grid, which makes this hold
+            // on every real file; if it ever did not, the tile indices would skew and the
+            // level would read the wrong pixels with no error at all.
+            if (dir.tileWidth > 0 && dir.tileHeight > 0) {
+                const int storedTilesX = (dir.width - 1) / dir.tileWidth + 1;
+                const int storedTilesY = (dir.height - 1) / dir.tileHeight + 1;
+                const int contentTilesX = (contentSize.width - 1) / dir.tileWidth + 1;
+                const int contentTilesY = (contentSize.height - 1) / dir.tileHeight + 1;
+                if (storedTilesX != contentTilesX || storedTilesY != contentTilesY) {
+                    SLIDEIO_LOG(WARNING) << "PHTIFF: cropping philips zoom level " << levelNumber
+                        << " from " << dir.width << "x" << dir.height << " to "
+                        << contentSize.width << "x" << contentSize.height
+                        << " would change its tile count. The level is not cropped.";
+                    continue;
+                }
             }
             dir.width = contentSize.width;
             dir.height = contentSize.height;

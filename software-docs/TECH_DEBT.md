@@ -190,15 +190,16 @@ dropped rather than re-derived, because they will drift again.
 
 ### Correctness hardening (highest value first)
 
-**1. The tile-count invariant is relied on but never asserted.**
-`phCropLevelPadding` shrinks a level directory to its content size. That is only
+**1. ~~The tile-count invariant is relied on but never asserted.~~ Fixed** (guard
+added in `phCropLevelPadding`, `phtiffslide.cpp`).
+~~`phCropLevelPadding` shrinks a level directory to its content size. That is only
 safe because `ceil(content/tile) == stored/tile` — true for all 35 levels of the
 four Philips test files, and a consequence of Philips padding each level to its
 own tile grid, but nothing checks it. A violation would skew tile indices
 silently: wrong pixels, no error. A guard next to the existing
 `contentSize > dir` check ("if the tile count would change, warn and do not
 crop") turns the worst case into a visible degradation. Cheap insurance on a
-clinical read path.
+clinical read path.~~
 
 **2. Size matching can still bind the wrong level, in one narrow case.**
 Levels are matched to directories by declared size. If an *undeclared* tiled
@@ -217,9 +218,10 @@ synthetic tests. `ceil` versus floor is therefore an untested decision. One
 synthetic case with a base that does not divide (base 4098 → level 1 content
 2049) plus a comment on why rounding up is right would settle it.
 
-**4. `phCropLevelPadding` trusts its two arguments to be parallel.** It indexes
-`dirs[index]` over `imagePyramid`'s range and reads `dirs.front()` with no size
-check; only its single caller guarantees that. One guard line.
+**4. ~~`phCropLevelPadding` trusts its two arguments to be parallel.~~ Fixed** (guard
+added in `phCropLevelPadding`, `phtiffslide.cpp`).
+~~It indexes `dirs[index]` over `imagePyramid`'s range and reads `dirs.front()` with
+no size check; only its single caller guarantees that. One guard line.~~
 
 **5. ~~A non-numeric attribute value still aborts the whole slide open.~~ Fixed** (`phReadInt` in `phtmetadata.cpp`).
 

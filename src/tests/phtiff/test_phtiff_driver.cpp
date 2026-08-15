@@ -765,11 +765,19 @@ TEST_F(PhTiffImageDriverTests, phCreateImageScene_usesPyramidIndicesInOrder) {
 // level 8) and every block read from it comes back shifted and stretched.
 TEST_F(PhTiffImageDriverTests, phCreateImageScene_cropsTilePaddingOfZoomLevels) {
 	const std::string xml = MockPHTIFFSlide::createFakeXml(91136, 68096, 3, {});
-	const std::vector<TiffDirectory> directories = {
+	std::vector<TiffDirectory> directories = {
 		makeImageDir(xml, 91136, 68096),                          // level 0, not padded
 		makeImageDir("level=1 mag=20 quality=80", 45568, 34304),   // holds 45568x34048
 		makeImageDir("level=2 mag=10 quality=80", 23040, 17408),   // holds 22784x17024
 	};
+	// These sizes are Philips-4.tiff's, and philips pads every level to a 512 pixel tile
+	// grid. makeImageDir defaults to 256, under which the level 1 padding is a whole tile
+	// rather than part of one -- a file that cannot exist, and one the crop would read
+	// wrongly. The tile size has to match the grid the dimensions came from.
+	for (TiffDirectory& dir : directories) {
+		dir.tileWidth = 512;
+		dir.tileHeight = 512;
+	}
 	// corroborated is spelled out here (PHTLevel now defaults it to false) because this
 	// test is exactly about the crop that only a corroborated level receives.
 	const std::vector<PHTLevel> imagePyramid = { {0, 0, true}, {1, 1, true}, {2, 2, true} };
@@ -794,6 +802,36 @@ TEST_F(PhTiffImageDriverTests, phCreateImageScene_cropsTilePaddingOfZoomLevels) 
 		EXPECT_EQ(heights[level], info->getSize().height) << "level " << level;
 		EXPECT_DOUBLE_EQ(1. / (1 << level), info->getScale()) << "level " << level;
 	}
+}
+
+// phCropLevelPadding rewrites a level's dimensions but not its tile layout, so the crop
+// is only safe while the content occupies the same number of tiles as the stored raster.
+// Philips pads each level to its own tile grid, which makes that true on every real file
+// -- but if it were ever false the tile indices would skew silently: wrong pixels, no
+// error. Here level 1 is stored 1024 wide with 512-pixel tiles (2 tile columns) while its
+// content is 512 (1 tile column), so cropping would change the tile count and must be
+// refused, leaving the level at its stored size.
+TEST_F(PhTiffImageDriverTests, phCreateImageScene_refusesACropThatWouldChangeTheTileCount) {
+	const std::string xml = MockPHTIFFSlide::createFakeXml(1024, 1024, 2, {});
+	std::vector<TiffDirectory> directories = {
+		makeImageDir(xml, 1024, 1024),
+		// Stored twice the size of its content, which no real philips file does -- the
+		// point is the guard, not the layout.
+		makeImageDir("level=1 mag=20 quality=80", 1024, 1024),
+	};
+	directories[1].tileWidth = 512;
+	directories[1].tileHeight = 512;
+	const std::vector<PHTLevel> imagePyramid = { {0, 0, true}, {1, 1, true} };
+
+	MockPHTIFFSlide slide;
+	slide.createImageSceneMock(directories, imagePyramid, nullptr);
+
+	ASSERT_EQ(1, slide.getNumScenes());
+	const LevelInfo* info = slide.getScene(0)->getZoomLevelInfo(1);
+	ASSERT_TRUE(info != nullptr);
+	EXPECT_EQ(1024, info->getSize().width)
+		<< "content 512 is 1 tile but stored 1024 is 2, so the crop must be refused";
+	EXPECT_EQ(1024, info->getSize().height);
 }
 
 // A level marked uncorroborated -- its directory was paired by position, not by a
