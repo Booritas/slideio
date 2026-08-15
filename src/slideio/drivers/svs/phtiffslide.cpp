@@ -414,7 +414,13 @@ void PHTIFFSlide::extractImages(const std::vector<TiffDirectory>& directories, c
     for (size_t dirPos = 0; dirPos < levelDirs.size(); ++dirPos) {
         const TiffDirectory& dir = directories[levelDirs[dirPos]];
         const int named = SVSTools::extractPhilipsLevelNumber(dir.description);
-        if (named < 0) {
+        // Philips never names level 0: the base level's directory carries the xml metadata
+        // instead. A directory that claims to be level 0 is therefore not one, and letting
+        // it match here would take the real base's place in pass two -- after which every
+        // level's content size is computed against the wrong base and cropped wrongly.
+        // Anything naming level 0 is left to the size pass, which walks in file order and
+        // so gives level 0 to the base directory as it always did.
+        if (named <= 0) {
             continue;
         }
         for (size_t levelIndex = 0; levelIndex < declaredLevels.size(); ++levelIndex) {
@@ -424,7 +430,11 @@ void PHTIFFSlide::extractImages(const std::vector<TiffDirectory>& directories, c
             }
             // The declared size still has to agree. A directory that names a level but
             // does not match its declared size is a contradiction, and is left to the
-            // size pass rather than trusted.
+            // size pass rather than trusted. A level with no declared size at all (width
+            // or height <= 0) is not a contradiction, just a level the scanner could not
+            // size -- warning about it here would fire on every open of such a file, so it
+            // is left to the size pass (and ultimately the positional fallback) silently,
+            // matching the precondition the size pass itself uses.
             if (declared.declaredSize.width == dir.width
                 && declared.declaredSize.height == dir.height) {
                 levelClaimed[levelIndex] = true;
@@ -434,7 +444,7 @@ void PHTIFFSlide::extractImages(const std::vector<TiffDirectory>& directories, c
                 pyramidLevel.levelNumber = declared.number;
                 pyramidLevel.corroborated = true;
                 imagePyramid.push_back(pyramidLevel);
-            } else {
+            } else if (declared.declaredSize.width > 0 && declared.declaredSize.height > 0) {
                 SLIDEIO_LOG(WARNING) << "PHTIFFSlide: tiff directory " << levelDirs[dirPos]
                     << " names philips zoom level " << named << " but is " << dir.width << "x"
                     << dir.height << ", not the declared " << declared.declaredSize.width << "x"

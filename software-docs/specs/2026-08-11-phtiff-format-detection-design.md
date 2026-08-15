@@ -96,9 +96,12 @@ Order of checks:
 3. Root element present, named `DataObject`, with `ObjectType` equal to
    `DPUfsImport`.
 
-Steps 2 and 3 subsume `Tools::isXml`, which is itself "parses and has a root
-element". Calling `isXml` first and then parsing again to reach the root would
-walk Philips-2.tiff's 844 KB description twice for the same answer.
+Steps 2 and 3 subsume the shape of `Tools::isXml` -- "parses and has a root
+element". A version of `isXml` was added during this work as a candidate for
+step 2, but never adopted: calling it first and then parsing again to reach
+the root would walk Philips-2.tiff's 844 KB description twice for the same
+answer, and that cost is structural, not a tuning problem. It has since been
+removed.
 
 A pure function of a string, so its edge cases are testable without a file.
 

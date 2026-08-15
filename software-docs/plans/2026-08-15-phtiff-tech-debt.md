@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Close the eight remaining Philips TIFF follow-ups recorded in section 2 of the tech debt log — the hardening the v2.9.0 branch review deliberately left, plus the untested invariants underneath the tile-padding crop.
+**Goal:** Close the nine remaining Philips TIFF follow-ups recorded in section 2 of the tech debt log — the hardening the v2.9.0 branch review deliberately left, plus the untested invariants underneath the tile-padding crop.
 
 **Architecture:** Four correctness changes to the Philips read path (`phtmetadata.cpp`, `phtiffslide.cpp`), one structural change moving the driver ids out of the driver header, and one batch of small cleanups. No public API changes except the removal of one unused `Tools` utility.
 
