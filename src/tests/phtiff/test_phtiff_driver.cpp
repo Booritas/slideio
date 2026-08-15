@@ -1,4 +1,4 @@
-﻿#include <gtest/gtest.h>
+#include <gtest/gtest.h>
 #include "tests/testlib/testtools.hpp"
 #include <string>
 #include <list>
@@ -14,6 +14,7 @@
 #include "slideio/slideio/slideio.hpp"
 #include "slideio/drivers/svs/svsimagedriver.hpp"
 #include "slideio/drivers/svs/svsslide.hpp"
+#include "slideio/drivers/svs/phtiffslide.hpp"
 #include "slideio/drivers/svs/phtdescription.hpp"
 #include "slideio/base/exceptions.hpp"
 #include <type_traits>
@@ -137,30 +138,15 @@ static int phLevelSize(int size, int level) {
 	return (size > 0) ? std::max(1, size >> level) : size;
 }
 
-// Exposes the protected SVSSlide members (phExtractImages/phCreateImageScene/
-// phCreateAuxScenes) for unit testing.
+// Exposes SVSSlide::buildMetadataTree for unit testing the Aperio path on its own. The
+// Aperio/philips split is by C++ type now rather than by a driver id string, so this
+// mock derives from SVSSlide -- not PHTIFFSlide -- to keep proving the type that used
+// to be tested by driver id: PHTIFFSlide::buildMetadataTree is an unconditional
+// override, so a mock deriving from it would parse every description as philips xml
+// regardless of the id given to metadataTreeOf.
 class MockSVSSlide : public SVSSlide
 {
 public:
-	static void phExtractImagesMock(const std::vector<TiffDirectory>& directories, std::vector<PHTLevel>& imagePyramid,
-		std::map<std::string, int>& auxImages) {
-		phExtractImages(directories, imagePyramid, auxImages);
-	}
-	void phCreateImageSceneMock(const std::vector<TiffDirectory>& directories, const std::vector<PHTLevel>& imagePyramid,
-		libtiff::TIFF* hFile) {
-		phCreateImageScene(directories, imagePyramid, hFile);
-	}
-	void phCreateAuxScenesMock(const std::vector<TiffDirectory>& directories,
-		const std::map<std::string, int>& auxImages) {
-		phCreateAuxScenes(directories, auxImages);
-	}
-	void initPhTiffMock(const std::vector<TiffDirectory>& directories, libtiff::TIFF* hFile) {
-		// initPhTiff takes ownership of the handle through the keeper, so the test gives
-		// it one to take. A null handle is what these tests pass: the scenes are built
-		// from the directories and nothing reads a raster.
-		TIFFKeeper keeper(hFile);
-		initPhTiff(directories, keeper);
-	}
 	// The metadata tree SVSSlide builds for a slide of the given driver carrying
 	// `rawMetadata`. Both members are protected in CVSlide, so setting them here needs
 	// no test hook in the production class.
@@ -172,9 +158,44 @@ public:
 		slide.m_metadataFormat = format;
 		return slide.buildMetadataTree().freeze();
 	}
-	// The metadata tree of a philips slide whose tiff description is `description`.
+};
+
+// Exposes the protected PHTIFFSlide members (extractImages/createImageScene/
+// createAuxScenes/init) for unit testing.
+class MockPHTIFFSlide : public PHTIFFSlide
+{
+public:
+	static void extractImagesMock(const std::vector<TiffDirectory>& directories, std::vector<PHTLevel>& imagePyramid,
+		std::map<std::string, int>& auxImages) {
+		// extractImages is a member now, not a static: it needs an instance to call
+		// through.
+		MockPHTIFFSlide slide;
+		slide.extractImages(directories, imagePyramid, auxImages);
+	}
+	void createImageSceneMock(const std::vector<TiffDirectory>& directories, const std::vector<PHTLevel>& imagePyramid,
+		libtiff::TIFF* hFile) {
+		createImageScene(directories, imagePyramid, hFile);
+	}
+	void createAuxScenesMock(const std::vector<TiffDirectory>& directories,
+		const std::map<std::string, int>& auxImages) {
+		createAuxScenes(directories, auxImages);
+	}
+	void initMock(const std::vector<TiffDirectory>& directories, libtiff::TIFF* hFile) {
+		// init takes ownership of the handle through the keeper, so the test gives
+		// it one to take. A null handle is what these tests pass: the scenes are built
+		// from the directories and nothing reads a raster.
+		TIFFKeeper keeper(hFile);
+		init(directories, keeper);
+	}
+	// The metadata tree of a philips slide whose tiff description is `description`. Sets
+	// the raw metadata directly rather than routing through a driver id: dispatch is by
+	// type now, so this proves the type selects the philips behaviour rather than a
+	// string does.
 	static Metadata phMetadataTree(const std::string& description) {
-		return metadataTreeOf(PHTIFF_DRIVER_ID, description, MetadataFormat::XML);
+		MockPHTIFFSlide slide;
+		slide.m_rawMetadata = description;
+		slide.m_metadataFormat = MetadataFormat::XML;
+		return slide.buildMetadataTree().freeze();
 	}
 	const static std::string fakeXML;
 
@@ -251,7 +272,7 @@ private:
 	}
 };
 
-const std::string MockSVSSlide::fakeXML = "<?xml version=\"1.0\"?><DataObject ObjectType=\"DPUfsImport\"/>";
+const std::string MockPHTIFFSlide::fakeXML = "<?xml version=\"1.0\"?><DataObject ObjectType=\"DPUfsImport\"/>";
 
 // The tiff directory indices of a pyramid, in level order.
 static std::vector<int> phDirIndices(const std::vector<PHTLevel>& imagePyramid) {
@@ -263,7 +284,7 @@ static std::vector<int> phDirIndices(const std::vector<PHTLevel>& imagePyramid) 
 	return indices;
 }
 
-// Builds a TiffDirectory carrying just the fields phExtractImages inspects: the
+// Builds a TiffDirectory carrying just the fields extractImages inspects: the
 // description, the size and whether the directory is tiled. Philips stores the zoom
 // levels of the pyramid tiled and the auxiliary images striped, so `tiled` is what
 // tells the two apart.
@@ -418,7 +439,7 @@ TEST_F(PhTiffImageDriverTests, openSlide) {
 // The tiled directories form the pyramid, the striped ones are the auxiliary images,
 // keyed by the name in their own description (the layout of Philips-3.tiff).
 TEST_F(PhTiffImageDriverTests, phExtractImages_extractsAuxImages) {
-	const std::string xml = MockSVSSlide::createFakeXml(131072, 100352, 3, { "MACROIMAGE", "LABELIMAGE" });
+	const std::string xml = MockPHTIFFSlide::createFakeXml(131072, 100352, 3, { "MACROIMAGE", "LABELIMAGE" });
 	const std::vector<TiffDirectory> directories = {
 		makeLevelDir(xml, 131072, 100352),
 		makeLevelDir("level=1 mag=22 quality=80", 65536, 50176),
@@ -429,7 +450,7 @@ TEST_F(PhTiffImageDriverTests, phExtractImages_extractsAuxImages) {
 	std::vector<PHTLevel> imagePyramid;
 	std::map<std::string, int> auxImages;
 
-	MockSVSSlide::phExtractImagesMock(directories, imagePyramid, auxImages);
+	MockPHTIFFSlide::extractImagesMock(directories, imagePyramid, auxImages);
 
 	EXPECT_EQ((std::vector<int>{0, 1, 2}), phDirIndices(imagePyramid));
 	EXPECT_EQ((std::vector<PHTLevel>{{0, 0}, {1, 1}, {2, 2}}), imagePyramid);
@@ -443,7 +464,7 @@ TEST_F(PhTiffImageDriverTests, phExtractImages_extractsAuxImages) {
 // the two in the declared order hands the macro raster out under the name of the label
 // and drops the macro. The name has to come from the directory that holds the raster.
 TEST_F(PhTiffImageDriverTests, phExtractImages_namesAuxImagesAfterTheirOwnDirectory) {
-	const std::string xml = MockSVSSlide::createFakeXml(91136, 68096, 2, { "LABELIMAGE", "MACROIMAGE" });
+	const std::string xml = MockPHTIFFSlide::createFakeXml(91136, 68096, 2, { "LABELIMAGE", "MACROIMAGE" });
 	const std::vector<TiffDirectory> directories = {
 		makeLevelDir(xml, 91136, 68096),
 		// createFakeXml declares the levels unpadded, so the level directories follow it
@@ -455,7 +476,7 @@ TEST_F(PhTiffImageDriverTests, phExtractImages_namesAuxImagesAfterTheirOwnDirect
 	std::vector<PHTLevel> imagePyramid;
 	std::map<std::string, int> auxImages;
 
-	MockSVSSlide::phExtractImagesMock(directories, imagePyramid, auxImages);
+	MockPHTIFFSlide::extractImagesMock(directories, imagePyramid, auxImages);
 
 	EXPECT_EQ((std::vector<int>{0, 1}), phDirIndices(imagePyramid));
 	ASSERT_EQ(1u, auxImages.size());
@@ -466,7 +487,7 @@ TEST_F(PhTiffImageDriverTests, phExtractImages_namesAuxImagesAfterTheirOwnDirect
 // Auxiliary images are named after the image kinds slideio shares with the other
 // drivers, whatever case the scanner wrote and whatever it appended to the kind.
 TEST_F(PhTiffImageDriverTests, phExtractImages_usesCanonicalAuxImageNames) {
-	const std::string xml = MockSVSSlide::createFakeXml(4096, 4096, 1, {});
+	const std::string xml = MockPHTIFFSlide::createFakeXml(4096, 4096, 1, {});
 	const std::vector<TiffDirectory> directories = {
 		makeLevelDir(xml, 4096, 4096),
 		makeAuxDir("MACRO -offset=(0,0)", 791, 403),
@@ -476,7 +497,7 @@ TEST_F(PhTiffImageDriverTests, phExtractImages_usesCanonicalAuxImageNames) {
 	std::vector<PHTLevel> imagePyramid;
 	std::map<std::string, int> auxImages;
 
-	MockSVSSlide::phExtractImagesMock(directories, imagePyramid, auxImages);
+	MockPHTIFFSlide::extractImagesMock(directories, imagePyramid, auxImages);
 
 	ASSERT_EQ(3u, auxImages.size());
 	EXPECT_EQ(1, auxImages.at("Macro"));
@@ -487,7 +508,7 @@ TEST_F(PhTiffImageDriverTests, phExtractImages_usesCanonicalAuxImageNames) {
 // An auxiliary image of an unknown kind keeps the leading word of its description
 // rather than being dropped.
 TEST_F(PhTiffImageDriverTests, phExtractImages_keepsUnknownAuxKinds) {
-	const std::string xml = MockSVSSlide::createFakeXml(4096, 4096, 1, {});
+	const std::string xml = MockPHTIFFSlide::createFakeXml(4096, 4096, 1, {});
 	const std::vector<TiffDirectory> directories = {
 		makeLevelDir(xml, 4096, 4096),
 		makeAuxDir("Overview -offset=(0,0)", 791, 403),
@@ -496,7 +517,7 @@ TEST_F(PhTiffImageDriverTests, phExtractImages_keepsUnknownAuxKinds) {
 	std::vector<PHTLevel> imagePyramid;
 	std::map<std::string, int> auxImages;
 
-	MockSVSSlide::phExtractImagesMock(directories, imagePyramid, auxImages);
+	MockPHTIFFSlide::extractImagesMock(directories, imagePyramid, auxImages);
 
 	ASSERT_EQ(1u, auxImages.size());
 	EXPECT_EQ(1, auxImages.at("Overview"));
@@ -505,7 +526,7 @@ TEST_F(PhTiffImageDriverTests, phExtractImages_keepsUnknownAuxKinds) {
 // Two aux directories of the same kind must not clobber each other: the first
 // occurrence wins and the duplicate is dropped.
 TEST_F(PhTiffImageDriverTests, phExtractImages_duplicateAuxDescriptionKeepsFirst) {
-	const std::string xml = MockSVSSlide::createFakeXml(4096, 4096, 1, { "MACROIMAGE", "MACROIMAGE" });
+	const std::string xml = MockPHTIFFSlide::createFakeXml(4096, 4096, 1, { "MACROIMAGE", "MACROIMAGE" });
 	const std::vector<TiffDirectory> directories = {
 		makeLevelDir(xml, 4096, 4096),
 		makeAuxDir("Macro", 791, 403),     // index 1, kept
@@ -514,7 +535,7 @@ TEST_F(PhTiffImageDriverTests, phExtractImages_duplicateAuxDescriptionKeepsFirst
 	std::vector<PHTLevel> imagePyramid;
 	std::map<std::string, int> auxImages;
 
-	MockSVSSlide::phExtractImagesMock(directories, imagePyramid, auxImages);
+	MockPHTIFFSlide::extractImagesMock(directories, imagePyramid, auxImages);
 
 	EXPECT_EQ((std::vector<int>{0}), phDirIndices(imagePyramid));
 	ASSERT_EQ(1u, auxImages.size());
@@ -524,7 +545,7 @@ TEST_F(PhTiffImageDriverTests, phExtractImages_duplicateAuxDescriptionKeepsFirst
 // A pyramid directory the philips metadata does not account for is left out of the
 // pyramid: without a level number the area it covers is unknown.
 TEST_F(PhTiffImageDriverTests, phExtractImages_ignoresUndeclaredPyramidDirectories) {
-	const std::string xml = MockSVSSlide::createFakeXml(4096, 4096, 2, {});
+	const std::string xml = MockPHTIFFSlide::createFakeXml(4096, 4096, 2, {});
 	const std::vector<TiffDirectory> directories = {
 		makeLevelDir(xml, 4096, 4096),
 		makeLevelDir("level=1 mag=20 quality=80", 2048, 2048),
@@ -533,7 +554,7 @@ TEST_F(PhTiffImageDriverTests, phExtractImages_ignoresUndeclaredPyramidDirectori
 	std::vector<PHTLevel> imagePyramid;
 	std::map<std::string, int> auxImages;
 
-	MockSVSSlide::phExtractImagesMock(directories, imagePyramid, auxImages);
+	MockPHTIFFSlide::extractImagesMock(directories, imagePyramid, auxImages);
 
 	EXPECT_EQ((std::vector<int>{0, 1}), phDirIndices(imagePyramid));
 	EXPECT_TRUE(auxImages.empty());
@@ -545,7 +566,7 @@ TEST_F(PhTiffImageDriverTests, phExtractImages_ignoresUndeclaredPyramidDirectori
 // level has) is dropped on its own and the real levels 1 and 2 still find their own
 // directories even though they no longer sit at the positions a positional zip expects.
 TEST_F(PhTiffImageDriverTests, phExtractImages_undeclaredDirectoryDoesNotShiftLaterLevels) {
-	const std::string xml = MockSVSSlide::createFakeXml(4096, 4096, 3, {});
+	const std::string xml = MockPHTIFFSlide::createFakeXml(4096, 4096, 3, {});
 	const std::vector<TiffDirectory> directories = {
 		makeLevelDir(xml, 4096, 4096),                            // level 0
 		makeLevelDir("interloper", 3000, 3000),                   // not declared in the xml
@@ -555,7 +576,7 @@ TEST_F(PhTiffImageDriverTests, phExtractImages_undeclaredDirectoryDoesNotShiftLa
 	std::vector<PHTLevel> imagePyramid;
 	std::map<std::string, int> auxImages;
 
-	MockSVSSlide::phExtractImagesMock(directories, imagePyramid, auxImages);
+	MockPHTIFFSlide::extractImagesMock(directories, imagePyramid, auxImages);
 
 	EXPECT_EQ((std::vector<int>{0, 2, 3}), phDirIndices(imagePyramid));
 	EXPECT_EQ((std::vector<PHTLevel>{{0, 0}, {2, 1}, {3, 2}}), imagePyramid);
@@ -607,7 +628,7 @@ static std::string createFakeXmlWithSizelessLevel(int width, int height) {
 // about. Matching by declared size gives the directory its own level number and drops
 // the declaration the file does not back.
 TEST_F(PhTiffImageDriverTests, phExtractImages_ignoresADeclaredLevelTheFileDoesNotStore) {
-	const std::string xml = MockSVSSlide::createFakeXml(4096, 4096, 3, {});
+	const std::string xml = MockPHTIFFSlide::createFakeXml(4096, 4096, 3, {});
 	const std::vector<TiffDirectory> directories = {
 		makeLevelDir(xml, 4096, 4096),                          // declared level 0
 		// The xml declares a level 1 of 2048x2048 that the file does not store. This is
@@ -617,7 +638,7 @@ TEST_F(PhTiffImageDriverTests, phExtractImages_ignoresADeclaredLevelTheFileDoesN
 	std::vector<PHTLevel> imagePyramid;
 	std::map<std::string, int> auxImages;
 
-	MockSVSSlide::phExtractImagesMock(directories, imagePyramid, auxImages);
+	MockPHTIFFSlide::extractImagesMock(directories, imagePyramid, auxImages);
 
 	EXPECT_EQ((std::vector<int>{0, 1}), phDirIndices(imagePyramid));
 	EXPECT_EQ((std::vector<PHTLevel>{{0, 0}, {1, 2}}), imagePyramid)
@@ -637,7 +658,7 @@ TEST_F(PhTiffImageDriverTests, phExtractImages_levelWithoutDeclaredSizeFallsBack
 	std::vector<PHTLevel> imagePyramid;
 	std::map<std::string, int> auxImages;
 
-	MockSVSSlide::phExtractImagesMock(directories, imagePyramid, auxImages);
+	MockPHTIFFSlide::extractImagesMock(directories, imagePyramid, auxImages);
 
 	ASSERT_EQ(2u, imagePyramid.size());
 	EXPECT_EQ((std::vector<int>{0, 1}), phDirIndices(imagePyramid));
@@ -651,15 +672,15 @@ TEST_F(PhTiffImageDriverTests, phExtractImages_emptyInput) {
 	std::vector<PHTLevel> imagePyramid;
 	std::map<std::string, int> auxImages;
 
-	EXPECT_THROW(MockSVSSlide::phExtractImagesMock(directories, imagePyramid, auxImages), slideio::RuntimeError);
+	EXPECT_THROW(MockPHTIFFSlide::extractImagesMock(directories, imagePyramid, auxImages), slideio::RuntimeError);
 }
 
-// phCreateImageScene builds a single tiled "Image" scene out of the directories
+// createImageScene builds a single tiled "Image" scene out of the directories
 // referenced by the pyramid index list and appends it to the slide's scenes.
 // A null TIFF handle is fine: scene geometry comes from the directories, and the
 // handle is only dereferenced later during raster reads.
 TEST_F(PhTiffImageDriverTests, phCreateImageScene_createsSingleImageScene) {
-	const std::string xml = MockSVSSlide::createFakeXml(35840, 30720, 3, {});
+	const std::string xml = MockPHTIFFSlide::createFakeXml(35840, 30720, 3, {});
 	const std::vector<TiffDirectory> directories = {
 		makeImageDir(xml, 35840, 30720),
 		makeImageDir("level=1 mag=22 quality=80", 22528, 17920),
@@ -667,8 +688,8 @@ TEST_F(PhTiffImageDriverTests, phCreateImageScene_createsSingleImageScene) {
 	};
 	const std::vector<PHTLevel> imagePyramid = { {0, 0}, {1, 1}, {2, 2} };
 
-	MockSVSSlide slide;
-	slide.phCreateImageSceneMock(directories, imagePyramid, nullptr);
+	MockPHTIFFSlide slide;
+	slide.createImageSceneMock(directories, imagePyramid, nullptr);
 
 	ASSERT_EQ(1, slide.getNumScenes());
 	auto scene = slide.getScene(0);
@@ -690,12 +711,12 @@ TEST_F(PhTiffImageDriverTests, phCreateImageScene_usesPyramidIndicesInOrder) {
 		makeImageDir("level=2 mag=11 quality=80", 22528, 17920),  // index 1 (unused)
 		// The base of the pyramid below, so it carries the slide metadata: philips keeps
 		// its xml in the description of the base level's directory.
-		makeImageDir(MockSVSSlide::fakeXML, 11264, 9216),         // index 2
+		makeImageDir(MockPHTIFFSlide::fakeXML, 11264, 9216),         // index 2
 	};
 	const std::vector<PHTLevel> imagePyramid = { {2, 0}, {0, 1} };  // base = dir 2
 
-	MockSVSSlide slide;
-	slide.phCreateImageSceneMock(directories, imagePyramid, nullptr);
+	MockPHTIFFSlide slide;
+	slide.createImageSceneMock(directories, imagePyramid, nullptr);
 
 	ASSERT_EQ(1, slide.getNumScenes());
 	const cv::Rect rect = slide.getScene(0)->getRect();
@@ -711,7 +732,7 @@ TEST_F(PhTiffImageDriverTests, phCreateImageScene_usesPyramidIndicesInOrder) {
 // otherwise the scale of the level is off by the padding (1% at level 2, 44% at
 // level 8) and every block read from it comes back shifted and stretched.
 TEST_F(PhTiffImageDriverTests, phCreateImageScene_cropsTilePaddingOfZoomLevels) {
-	const std::string xml = MockSVSSlide::createFakeXml(91136, 68096, 3, {});
+	const std::string xml = MockPHTIFFSlide::createFakeXml(91136, 68096, 3, {});
 	const std::vector<TiffDirectory> directories = {
 		makeImageDir(xml, 91136, 68096),                          // level 0, not padded
 		makeImageDir("level=1 mag=20 quality=80", 45568, 34304),   // holds 45568x34048
@@ -721,8 +742,8 @@ TEST_F(PhTiffImageDriverTests, phCreateImageScene_cropsTilePaddingOfZoomLevels) 
 	// test is exactly about the crop that only a corroborated level receives.
 	const std::vector<PHTLevel> imagePyramid = { {0, 0, true}, {1, 1, true}, {2, 2, true} };
 
-	MockSVSSlide slide;
-	slide.phCreateImageSceneMock(directories, imagePyramid, nullptr);
+	MockPHTIFFSlide slide;
+	slide.createImageSceneMock(directories, imagePyramid, nullptr);
 
 	ASSERT_EQ(1, slide.getNumScenes());
 	auto scene = slide.getScene(0);
@@ -748,15 +769,15 @@ TEST_F(PhTiffImageDriverTests, phCreateImageScene_cropsTilePaddingOfZoomLevels) 
 // ceil(base/2^level) on the strength of a level number extraction could not verify,
 // which is exactly the wrong-scale defect the crop exists to remove.
 TEST_F(PhTiffImageDriverTests, phCreateImageScene_doesNotCropAnUncorroboratedLevel) {
-	const std::string xml = MockSVSSlide::createFakeXml(4096, 4096, 2, {});
+	const std::string xml = MockPHTIFFSlide::createFakeXml(4096, 4096, 2, {});
 	const std::vector<TiffDirectory> directories = {
 		makeImageDir(xml, 4096, 4096),                            // level 0, corroborated
 		makeImageDir("level=1 mag=20 quality=80", 2100, 2100),    // stored, padded
 	};
 	const std::vector<PHTLevel> imagePyramid = { {0, 0, true}, {1, 1, false} };
 
-	MockSVSSlide slide;
-	slide.phCreateImageSceneMock(directories, imagePyramid, nullptr);
+	MockPHTIFFSlide slide;
+	slide.createImageSceneMock(directories, imagePyramid, nullptr);
 
 	ASSERT_EQ(1, slide.getNumScenes());
 	auto scene = slide.getScene(0);
@@ -846,18 +867,18 @@ TEST_F(PhTiffImageDriverTests, readFromPaddedZoomLevelMatchesUnpaddedLevel) {
 	EXPECT_LT(phMeanAbsDiff(probe, referenceResized), 25.);
 }
 
-// phCreateAuxScenes turns each (description -> directory index) entry into a
+// createAuxScenes turns each (description -> directory index) entry into a
 // named auxiliary scene retrievable by name, and registers the names.
 TEST_F(PhTiffImageDriverTests, phCreateAuxScenes_createsNamedAuxScenes) {
 	const std::vector<TiffDirectory> directories = {
-		makeImageDir(MockSVSSlide::fakeXML, 131072, 100352),
+		makeImageDir(MockPHTIFFSlide::fakeXML, 131072, 100352),
 		makeImageDir("Macro", 791, 403),
 		makeImageDir("Label", 387, 403),
 	};
 	const std::map<std::string, int> auxImages = { {"Macro", 1}, {"Label", 2} };
 
-	MockSVSSlide slide;
-	slide.phCreateAuxScenesMock(directories, auxImages);
+	MockPHTIFFSlide slide;
+	slide.createAuxScenesMock(directories, auxImages);
 
 	EXPECT_EQ(2, slide.getNumAuxImages());
 	const std::list<std::string>& names = slide.getAuxImageNames();
@@ -879,12 +900,12 @@ TEST_F(PhTiffImageDriverTests, phCreateAuxScenes_createsNamedAuxScenes) {
 // An empty aux map creates no auxiliary scenes.
 TEST_F(PhTiffImageDriverTests, phCreateAuxScenes_emptyMapCreatesNothing) {
 	const std::vector<TiffDirectory> directories = {
-		makeImageDir(MockSVSSlide::fakeXML, 4096, 4096),
+		makeImageDir(MockPHTIFFSlide::fakeXML, 4096, 4096),
 	};
 	const std::map<std::string, int> auxImages;
 
-	MockSVSSlide slide;
-	slide.phCreateAuxScenesMock(directories, auxImages);
+	MockPHTIFFSlide slide;
+	slide.createAuxScenesMock(directories, auxImages);
 
 	EXPECT_EQ(0, slide.getNumAuxImages());
 	EXPECT_TRUE(slide.getAuxImageNames().empty());
@@ -1124,10 +1145,10 @@ static std::vector<TiffDirectory> phFakePyramid(const std::string& xml, int widt
 // The xml of tiff directory 0 is the only place the philips metadata lives, so it
 // is what the slide hands back as its raw metadata.
 TEST_F(PhTiffImageDriverTests, initPhTiffKeepsTheDescriptionAsTheSlideMetadata) {
-	const std::string xml = MockSVSSlide::createFakeXml(1024, 768, 2);
-	MockSVSSlide slide;
+	const std::string xml = MockPHTIFFSlide::createFakeXml(1024, 768, 2);
+	MockPHTIFFSlide slide;
 	slide.setDriverId(PHTIFF_DRIVER_ID);
-	slide.initPhTiffMock(phFakePyramid(xml, 1024, 768), nullptr);
+	slide.initMock(phFakePyramid(xml, 1024, 768), nullptr);
 
 	EXPECT_EQ(xml, slide.getRawMetadata());
 	EXPECT_EQ(MetadataFormat::XML, slide.getMetadataFormat());
@@ -1136,10 +1157,10 @@ TEST_F(PhTiffImageDriverTests, initPhTiffKeepsTheDescriptionAsTheSlideMetadata) 
 // The whole point of the raw metadata: getMetadata() reaches the philips tree
 // through it without the caller knowing which driver opened the file.
 TEST_F(PhTiffImageDriverTests, initPhTiffMakesTheMetadataTreeAvailable) {
-	const std::string xml = MockSVSSlide::createFakeXml(1024, 768, 2);
-	MockSVSSlide slide;
+	const std::string xml = MockPHTIFFSlide::createFakeXml(1024, 768, 2);
+	MockPHTIFFSlide slide;
 	slide.setDriverId(PHTIFF_DRIVER_ID);
-	slide.initPhTiffMock(phFakePyramid(xml, 1024, 768), nullptr);
+	slide.initMock(phFakePyramid(xml, 1024, 768), nullptr);
 
 	const Metadata tree = slide.getMetadata();
 	EXPECT_EQ("PHILIPS", tree["manufacturer"].asString());
@@ -1161,7 +1182,7 @@ TEST_F(PhTiffImageDriverTests, aFailedOpenDoesNotLeaveTheFileOpen) {
 
 	// The description of this file is aperio text, not philips xml, so the philips parse
 	// raises and the open never reaches a scene that could take the handle.
-	EXPECT_THROW(SVSSlide::openFile(copy.string(), PHTIFF_DRIVER_ID), slideio::RuntimeError);
+	EXPECT_THROW(PHTIFFSlide::openFile(copy.string()), slideio::RuntimeError);
 
 	std::error_code error;
 	const bool removed = std::filesystem::remove(copy, error);
@@ -1196,10 +1217,10 @@ static std::string phRemoveAttribute(const std::string& xml, std::string_view na
 // nothing; raising costs the caller the slide.
 TEST_F(PhTiffImageDriverTests, imageSceneSkipsAScannedImageWithoutAType) {
 	const std::string xml = phRemoveAttribute(
-		MockSVSSlide::createFakeXml(1024, 768, 2, {"MACROIMAGE"}), IMAGE_TYPE.Name, 1);
-	MockSVSSlide slide;
+		MockPHTIFFSlide::createFakeXml(1024, 768, 2, {"MACROIMAGE"}), IMAGE_TYPE.Name, 1);
+	MockPHTIFFSlide slide;
 	slide.setDriverId(PHTIFF_DRIVER_ID);
-	slide.initPhTiffMock(phFakePyramid(xml, 1024, 768), nullptr);
+	slide.initMock(phFakePyramid(xml, 1024, 768), nullptr);
 
 	auto scene = slide.getScene(0);
 	ASSERT_TRUE(scene != nullptr);
@@ -1212,10 +1233,10 @@ TEST_F(PhTiffImageDriverTests, imageSceneSkipsAScannedImageWithoutAType) {
 // level is dropped and the rest of the pyramid is kept.
 TEST_F(PhTiffImageDriverTests, phExtractImagesSkipsAZoomLevelWithoutANumber) {
 	const std::string xml = phRemoveAttribute(
-		MockSVSSlide::createFakeXml(1024, 768, 2), LEVEL_NUMBER.Name, 1);
-	MockSVSSlide slide;
+		MockPHTIFFSlide::createFakeXml(1024, 768, 2), LEVEL_NUMBER.Name, 1);
+	MockPHTIFFSlide slide;
 	slide.setDriverId(PHTIFF_DRIVER_ID);
-	slide.initPhTiffMock(phFakePyramid(xml, 1024, 768), nullptr);
+	slide.initMock(phFakePyramid(xml, 1024, 768), nullptr);
 
 	auto scene = slide.getScene(0);
 	ASSERT_TRUE(scene != nullptr);
@@ -1227,10 +1248,10 @@ TEST_F(PhTiffImageDriverTests, phExtractImagesSkipsAZoomLevelWithoutANumber) {
 // carries the xml metadata instead. The scene takes the magnification of the slide
 // from the first level that names one, scaled back up to the base.
 TEST_F(PhTiffImageDriverTests, imageSceneMagnificationComesFromTheZoomLevels) {
-	const std::string xml = MockSVSSlide::createFakeXml(1024, 768, 2);
-	MockSVSSlide slide;
+	const std::string xml = MockPHTIFFSlide::createFakeXml(1024, 768, 2);
+	MockPHTIFFSlide slide;
 	slide.setDriverId(PHTIFF_DRIVER_ID);
-	slide.initPhTiffMock(phFakePyramid(xml, 1024, 768), nullptr);
+	slide.initMock(phFakePyramid(xml, 1024, 768), nullptr);
 
 	auto scene = slide.getScene(0);
 	ASSERT_TRUE(scene != nullptr);
@@ -1240,7 +1261,7 @@ TEST_F(PhTiffImageDriverTests, imageSceneMagnificationComesFromTheZoomLevels) {
 // Each zoom level reports the magnification it covers: a level is 2^-level of the
 // base, and the philips level descriptions say the same thing.
 TEST_F(PhTiffImageDriverTests, imageSceneZoomLevelsReportTheirOwnMagnification) {
-	const std::string xml = MockSVSSlide::createFakeXml(1024, 768, 3);
+	const std::string xml = MockPHTIFFSlide::createFakeXml(1024, 768, 3);
 	std::vector<TiffDirectory> directories = {
 		makeImageDir(xml, 1024, 768),
 		makeImageDir("level=1 mag=20 quality=80", 512, 384),
@@ -1249,9 +1270,9 @@ TEST_F(PhTiffImageDriverTests, imageSceneZoomLevelsReportTheirOwnMagnification) 
 	for (TiffDirectory& dir : directories) {
 		dir.tiled = true;
 	}
-	MockSVSSlide slide;
+	MockPHTIFFSlide slide;
 	slide.setDriverId(PHTIFF_DRIVER_ID);
-	slide.initPhTiffMock(directories, nullptr);
+	slide.initMock(directories, nullptr);
 
 	auto scene = slide.getScene(0);
 	ASSERT_TRUE(scene != nullptr);
@@ -1264,7 +1285,7 @@ TEST_F(PhTiffImageDriverTests, imageSceneZoomLevelsReportTheirOwnMagnification) 
 // A pyramid whose levels name no magnification leaves it at 0 rather than inventing
 // one: an unknown magnification and a 0x magnification are the same thing to a caller.
 TEST_F(PhTiffImageDriverTests, imageSceneMagnificationStaysZeroWhenNoLevelNamesOne) {
-	const std::string xml = MockSVSSlide::createFakeXml(1024, 768, 2);
+	const std::string xml = MockPHTIFFSlide::createFakeXml(1024, 768, 2);
 	std::vector<TiffDirectory> directories = {
 		makeImageDir(xml, 1024, 768),
 		makeImageDir("quality=80", 512, 384),
@@ -1272,9 +1293,9 @@ TEST_F(PhTiffImageDriverTests, imageSceneMagnificationStaysZeroWhenNoLevelNamesO
 	for (TiffDirectory& dir : directories) {
 		dir.tiled = true;
 	}
-	MockSVSSlide slide;
+	MockPHTIFFSlide slide;
 	slide.setDriverId(PHTIFF_DRIVER_ID);
-	slide.initPhTiffMock(directories, nullptr);
+	slide.initMock(directories, nullptr);
 
 	EXPECT_DOUBLE_EQ(0., slide.getScene(0)->getMagnification());
 }
@@ -1284,10 +1305,10 @@ TEST_F(PhTiffImageDriverTests, imageSceneMagnificationStaysZeroWhenNoLevelNamesO
 // describes its directory the same way, so that a caller reading scene metadata
 // does not have to know which flavour of tiff it opened.
 TEST_F(PhTiffImageDriverTests, imageSceneDescribesItsTiffDirectory) {
-	const std::string xml = MockSVSSlide::createFakeXml(1024, 768, 2);
-	MockSVSSlide slide;
+	const std::string xml = MockPHTIFFSlide::createFakeXml(1024, 768, 2);
+	MockPHTIFFSlide slide;
 	slide.setDriverId(PHTIFF_DRIVER_ID);
-	slide.initPhTiffMock(phFakePyramid(xml, 1024, 768), nullptr);
+	slide.initMock(phFakePyramid(xml, 1024, 768), nullptr);
 
 	auto scene = slide.getScene(0);
 	ASSERT_TRUE(scene != nullptr);
@@ -1301,10 +1322,10 @@ TEST_F(PhTiffImageDriverTests, imageSceneDescribesItsTiffDirectory) {
 // the 844 KB philips description belongs to the slide and must not be duplicated
 // into every scene.
 TEST_F(PhTiffImageDriverTests, imageSceneMetadataIsNotTheSlideDescription) {
-	const std::string xml = MockSVSSlide::createFakeXml(1024, 768, 2);
-	MockSVSSlide slide;
+	const std::string xml = MockPHTIFFSlide::createFakeXml(1024, 768, 2);
+	MockPHTIFFSlide slide;
 	slide.setDriverId(PHTIFF_DRIVER_ID);
-	slide.initPhTiffMock(phFakePyramid(xml, 1024, 768), nullptr);
+	slide.initMock(phFakePyramid(xml, 1024, 768), nullptr);
 
 	const std::string sceneMetadata = slide.getScene(0)->getRawMetadata();
 	EXPECT_FALSE(sceneMetadata.empty());
@@ -1312,7 +1333,7 @@ TEST_F(PhTiffImageDriverTests, imageSceneMetadataIsNotTheSlideDescription) {
 }
 
 TEST_F(PhTiffImageDriverTests, metadataTreeReadsTheSlideAttributes) {
-	const Metadata tree = MockSVSSlide::phMetadataTree(MockSVSSlide::createFakeXml());
+	const Metadata tree = MockPHTIFFSlide::phMetadataTree(MockPHTIFFSlide::createFakeXml());
 	EXPECT_EQ("PHILIPS", tree["manufacturer"].asString());
 	EXPECT_EQ("5.0", tree["interfaceVersion"].asString());
 	EXPECT_EQ((std::vector<std::string>{"1.6.6186", "20150402_R48", "4.0.3"}),
@@ -1322,21 +1343,21 @@ TEST_F(PhTiffImageDriverTests, metadataTreeReadsTheSlideAttributes) {
 // A philips file only carries a barcode if the scanner read one, so the key has to
 // be absent rather than empty when the attribute is missing.
 TEST_F(PhTiffImageDriverTests, metadataTreeOmitsAttributesTheFileDoesNotCarry) {
-	const Metadata tree = MockSVSSlide::phMetadataTree(MockSVSSlide::createFakeXml());
+	const Metadata tree = MockPHTIFFSlide::phMetadataTree(MockPHTIFFSlide::createFakeXml());
 	EXPECT_FALSE(tree.contains("barcode"));
 }
 
 TEST_F(PhTiffImageDriverTests, metadataTreeReadsTheBarcode) {
-	const std::string xml = MockSVSSlide::createFakeXml(phDefaults::WIDTH, phDefaults::HEIGHT,
+	const std::string xml = MockPHTIFFSlide::createFakeXml(phDefaults::WIDTH, phDefaults::HEIGHT,
 		phDefaults::LEVELS, {}, "MDAwMTIzNA==");
-	const Metadata tree = MockSVSSlide::phMetadataTree(xml);
+	const Metadata tree = MockPHTIFFSlide::phMetadataTree(xml);
 	EXPECT_EQ("MDAwMTIzNA==", tree["barcode"].asString());
 }
 
 TEST_F(PhTiffImageDriverTests, metadataTreeDescribesEveryScannedImage) {
-	const std::string xml = MockSVSSlide::createFakeXml(phDefaults::WIDTH, phDefaults::HEIGHT,
+	const std::string xml = MockPHTIFFSlide::createFakeXml(phDefaults::WIDTH, phDefaults::HEIGHT,
 		phDefaults::LEVELS, {"LABELIMAGE", "MACROIMAGE"});
-	const Metadata tree = MockSVSSlide::phMetadataTree(xml);
+	const Metadata tree = MockPHTIFFSlide::phMetadataTree(xml);
 	const Metadata images = tree["images"];
 	ASSERT_EQ(3u, images.size());
 	EXPECT_EQ((std::vector<std::string>{"WSI", "LABELIMAGE", "MACROIMAGE"}),
@@ -1345,7 +1366,7 @@ TEST_F(PhTiffImageDriverTests, metadataTreeDescribesEveryScannedImage) {
 }
 
 TEST_F(PhTiffImageDriverTests, metadataTreeReadsTheSizeAndResolutionOfTheWholeSlideImage) {
-	const Metadata wsi = phImageOfType(MockSVSSlide::phMetadataTree(MockSVSSlide::createFakeXml()), WSI);
+	const Metadata wsi = phImageOfType(MockPHTIFFSlide::phMetadataTree(MockPHTIFFSlide::createFakeXml()), WSI);
 	ASSERT_FALSE(wsi.isNull());
 	EXPECT_EQ(phDefaults::WIDTH, wsi["size"]["columns"].asInt());
 	EXPECT_EQ(phDefaults::HEIGHT, wsi["size"]["rows"].asInt());
@@ -1357,7 +1378,7 @@ TEST_F(PhTiffImageDriverTests, metadataTreeReadsTheSizeAndResolutionOfTheWholeSl
 }
 
 TEST_F(PhTiffImageDriverTests, metadataTreeReadsThePixelFormat) {
-	const Metadata wsi = phImageOfType(MockSVSSlide::phMetadataTree(MockSVSSlide::createFakeXml()), WSI);
+	const Metadata wsi = phImageOfType(MockPHTIFFSlide::phMetadataTree(MockPHTIFFSlide::createFakeXml()), WSI);
 	ASSERT_FALSE(wsi.isNull());
 	const Metadata format = wsi["pixelFormat"];
 	EXPECT_EQ(phDefaults::SAMPLES, format["samplesPerPixel"].asInt());
@@ -1370,7 +1391,7 @@ TEST_F(PhTiffImageDriverTests, metadataTreeReadsThePixelFormat) {
 }
 
 TEST_F(PhTiffImageDriverTests, metadataTreeReadsTheCompression) {
-	const Metadata wsi = phImageOfType(MockSVSSlide::phMetadataTree(MockSVSSlide::createFakeXml()), WSI);
+	const Metadata wsi = phImageOfType(MockPHTIFFSlide::phMetadataTree(MockPHTIFFSlide::createFakeXml()), WSI);
 	ASSERT_FALSE(wsi.isNull());
 	const Metadata compression = wsi["compression"];
 	EXPECT_EQ("01", compression["lossy"].asString());
@@ -1379,7 +1400,7 @@ TEST_F(PhTiffImageDriverTests, metadataTreeReadsTheCompression) {
 }
 
 TEST_F(PhTiffImageDriverTests, metadataTreeReadsTheZoomLevels) {
-	const Metadata wsi = phImageOfType(MockSVSSlide::phMetadataTree(MockSVSSlide::createFakeXml()), WSI);
+	const Metadata wsi = phImageOfType(MockPHTIFFSlide::phMetadataTree(MockPHTIFFSlide::createFakeXml()), WSI);
 	ASSERT_FALSE(wsi.isNull());
 	const Metadata levels = wsi["levels"];
 	ASSERT_EQ(static_cast<size_t>(phDefaults::LEVELS), levels.size());
@@ -1397,9 +1418,9 @@ TEST_F(PhTiffImageDriverTests, metadataTreeReadsTheZoomLevels) {
 // jpeg inside the metadata. That raster belongs in an image scene, not in a
 // metadata tree a caller is expected to print.
 TEST_F(PhTiffImageDriverTests, metadataTreeOmitsTheEmbeddedRaster) {
-	const std::string xml = MockSVSSlide::createFakeXml(phDefaults::WIDTH, phDefaults::HEIGHT,
+	const std::string xml = MockPHTIFFSlide::createFakeXml(phDefaults::WIDTH, phDefaults::HEIGHT,
 		phDefaults::LEVELS, {"MACROIMAGE"});
-	const Metadata tree = MockSVSSlide::phMetadataTree(xml);
+	const Metadata tree = MockPHTIFFSlide::phMetadataTree(xml);
 	const Metadata macro = phImageOfType(tree, "MACROIMAGE");
 	ASSERT_FALSE(macro.isNull());
 	EXPECT_FALSE(macro.contains("imageData"));
@@ -1408,9 +1429,9 @@ TEST_F(PhTiffImageDriverTests, metadataTreeOmitsTheEmbeddedRaster) {
 
 // An image the metadata declares without a pyramid gets no empty levels array.
 TEST_F(PhTiffImageDriverTests, metadataTreeGivesNoLevelsToAnAuxiliaryImage) {
-	const std::string xml = MockSVSSlide::createFakeXml(phDefaults::WIDTH, phDefaults::HEIGHT,
+	const std::string xml = MockPHTIFFSlide::createFakeXml(phDefaults::WIDTH, phDefaults::HEIGHT,
 		phDefaults::LEVELS, {"MACROIMAGE"});
-	const Metadata macro = phImageOfType(MockSVSSlide::phMetadataTree(xml), "MACROIMAGE");
+	const Metadata macro = phImageOfType(MockPHTIFFSlide::phMetadataTree(xml), "MACROIMAGE");
 	ASSERT_FALSE(macro.isNull());
 	EXPECT_FALSE(macro.contains("levels"));
 }
@@ -1418,7 +1439,7 @@ TEST_F(PhTiffImageDriverTests, metadataTreeGivesNoLevelsToAnAuxiliaryImage) {
 // A description that is not philips metadata must not take getMetadata() down: the
 // slide falls back to the generic xml handling, which reports the parse error.
 TEST_F(PhTiffImageDriverTests, metadataTreeFallsBackWhenTheDescriptionCannotBeParsed) {
-	const Metadata tree = MockSVSSlide::phMetadataTree("this is not xml at all");
+	const Metadata tree = MockPHTIFFSlide::phMetadataTree("this is not xml at all");
 	EXPECT_TRUE(tree.contains("#error"));
 }
 
@@ -1860,10 +1881,10 @@ TEST_F(PHTDescriptionTests, movedFromDescriptionThrowsInsteadOfCrashing) {
 	EXPECT_THROW(source.getRoot(), slideio::RuntimeError);
 }
 
-// The metadata generated by MockSVSSlide::createFakeXml has to be readable by
+// The metadata generated by MockPHTIFFSlide::createFakeXml has to be readable by
 // the parser it is meant to feed.
 TEST_F(PHTDescriptionTests, createFakeXmlDefaultsDescribeAWholeSlideImage) {
-	PHTDescription description(MockSVSSlide::createFakeXml());
+	PHTDescription description(MockPHTIFFSlide::createFakeXml());
 	EXPECT_EQ("PHILIPS", description.getAttributeText(description.getRoot(), MANUFACTURER));
 	EXPECT_EQ("5.0", description.getAttributeText(description.getRoot(), UFS_INTERFACE_VERSION));
 
@@ -1882,7 +1903,7 @@ TEST_F(PHTDescriptionTests, createFakeXmlDefaultsDescribeAWholeSlideImage) {
 
 // Every level halves the size of the previous one and doubles its pixel spacing.
 TEST_F(PHTDescriptionTests, createFakeXmlBuildsTheRequestedPyramid) {
-	PHTDescription description(MockSVSSlide::createFakeXml(1024, 512, 3));
+	PHTDescription description(MockPHTIFFSlide::createFakeXml(1024, 512, 3));
 	const std::vector<const tinyxml2::XMLElement*> images =
 		description.getObjectList(description.getRoot(), SCANNED_IMAGES, SCANNED_IMAGE);
 	ASSERT_EQ(1u, images.size());
@@ -1907,7 +1928,7 @@ TEST_F(PHTDescriptionTests, createFakeXmlBuildsTheRequestedPyramid) {
 
 // Auxiliary images follow the whole slide image and carry their raster inline.
 TEST_F(PHTDescriptionTests, createFakeXmlAppendsAuxiliaryImages) {
-	PHTDescription description(MockSVSSlide::createFakeXml(1024, 1024, 2, { "LABELIMAGE", "MACROIMAGE" }));
+	PHTDescription description(MockPHTIFFSlide::createFakeXml(1024, 1024, 2, { "LABELIMAGE", "MACROIMAGE" }));
 	const std::vector<const tinyxml2::XMLElement*> images =
 		description.getObjectList(description.getRoot(), SCANNED_IMAGES, SCANNED_IMAGE);
 	ASSERT_EQ(3u, images.size());
@@ -1925,7 +1946,7 @@ TEST_F(PHTDescriptionTests, createFakeXmlAppendsAuxiliaryImages) {
 
 // A slide without a pyramid is still valid metadata.
 TEST_F(PHTDescriptionTests, createFakeXmlSupportsAnEmptyPyramid) {
-	PHTDescription description(MockSVSSlide::createFakeXml(256, 256, 0));
+	PHTDescription description(MockPHTIFFSlide::createFakeXml(256, 256, 0));
 	const std::vector<const tinyxml2::XMLElement*> images =
 		description.getObjectList(description.getRoot(), SCANNED_IMAGES, SCANNED_IMAGE);
 	ASSERT_EQ(1u, images.size());
@@ -1935,7 +1956,7 @@ TEST_F(PHTDescriptionTests, createFakeXmlSupportsAnEmptyPyramid) {
 
 // Levels never collapse to a zero size, however deep the pyramid is.
 TEST_F(PHTDescriptionTests, createFakeXmlClampsLevelSizeToOnePixel) {
-	PHTDescription description(MockSVSSlide::createFakeXml(4, 2, 5));
+	PHTDescription description(MockPHTIFFSlide::createFakeXml(4, 2, 5));
 	const std::vector<const tinyxml2::XMLElement*> images =
 		description.getObjectList(description.getRoot(), SCANNED_IMAGES, SCANNED_IMAGE);
 	ASSERT_EQ(1u, images.size());
@@ -1950,8 +1971,8 @@ TEST_F(PHTDescriptionTests, createFakeXmlClampsLevelSizeToOnePixel) {
 // the extension *.tif says nothing, gdal and ome-tiff use it too.
 TEST_F(PHTDescriptionTests, isPhilipsDescriptionAcceptsPhilipsMetadata) {
 	EXPECT_TRUE(PHTDescription::isPhilipsDescription(phSampleXML));
-	EXPECT_TRUE(PHTDescription::isPhilipsDescription(MockSVSSlide::createFakeXml()));
-	EXPECT_TRUE(PHTDescription::isPhilipsDescription(MockSVSSlide::fakeXML));
+	EXPECT_TRUE(PHTDescription::isPhilipsDescription(MockPHTIFFSlide::createFakeXml()));
+	EXPECT_TRUE(PHTDescription::isPhilipsDescription(MockPHTIFFSlide::fakeXML));
 }
 
 TEST_F(PHTDescriptionTests, isPhilipsDescriptionRejectsOtherDescriptions) {
@@ -1981,5 +2002,5 @@ TEST_F(PHTDescriptionTests, isPhilipsDescriptionRejectsOtherDescriptions) {
 
 // A description may carry a utf-8 byte order mark.
 TEST_F(PHTDescriptionTests, isPhilipsDescriptionAcceptsBomPrefixedMetadata) {
-	EXPECT_TRUE(PHTDescription::isPhilipsDescription("\xEF\xBB\xBF" + MockSVSSlide::fakeXML));
+	EXPECT_TRUE(PHTDescription::isPhilipsDescription("\xEF\xBB\xBF" + MockPHTIFFSlide::fakeXML));
 }

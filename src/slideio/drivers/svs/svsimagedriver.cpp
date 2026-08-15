@@ -3,6 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/drivers/svs/svsimagedriver.hpp"
 #include "slideio/drivers/svs/svsslide.hpp"
+#include "slideio/drivers/svs/phtiffslide.hpp"
 #include "slideio/drivers/svs/phtdescription.hpp"
 #include "slideio/imagetools/tiffkeeper.hpp"
 #include "slideio/base/log.hpp"
@@ -24,6 +25,12 @@ std::string slideio::SVSImageDriver::getID() const
 
 std::shared_ptr<slideio::CVSlide> slideio::SVSImageDriver::openFile(const std::string& filePath)
 {
+	// The two formats this driver serves now have their own slide classes: the id
+	// selects which one gets constructed, since SVSSlide::openFile(path, id) no longer
+	// branches internally on the id.
+	if (m_driverId == PHTIFF_DRIVER_ID) {
+		return PHTIFFSlide::openFile(filePath);
+	}
 	return SVSSlide::openFile(filePath, getID());
 }
 
