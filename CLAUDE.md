@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-SlideIO is a C++ library (with Python bindings in a separate repo) for reading medical/microscopy slide images. It supports 11 formats (SVS, AFI, SCN, CZI, ZVI, NDPI, VSI, DCM, QPTIFF, OME-TIFF, GDAL) through a pluggable driver architecture. Cross-platform: Linux, macOS, Windows.
+SlideIO is a C++ library (with Python bindings in a separate repo) for reading medical/microscopy slide images. It supports 12 formats (SVS, AFI, SCN, CZI, ZVI, NDPI, VSI, DCM, QPTIFF, OME-TIFF, PHTIFF, GDAL) through a pluggable driver architecture. Cross-platform: Linux, macOS, Windows.
+
+The 12 formats are served by 11 driver libraries: PHTIFF (Philips TIFF) has no library of its own — it is the SVS driver instantiated with a different driver id, which branches on `driverId == PHTIFF_DRIVER_ID` in `svsslide.cpp` and `svstiledscene.cpp`.
 
 ## Build Commands
 
@@ -43,6 +45,7 @@ Tests use Google Test. Test executables (release build):
 ./build/release/bin/slideio_vsi_tests          # VSI driver tests
 ./build/release/bin/slideio_pke_tests          # PKE driver tests
 ./build/release/bin/slideio_ometiff_tests      # OME-TIFF tests
+./build/release/bin/slideio_phtiff_tests       # Philips TIFF (PHTIFF) tests
 
 # Run a single test:
 ./build/release/bin/slideio_tests --gtest_filter="TestSuiteName.TestName"
@@ -63,7 +66,7 @@ There are also single tests for memory/perf in `src/single_tests/`.
 - **slideio** (main) — Public API: `Slide`, `Scene`, `ImageDriverManager` (loads drivers dynamically)
 - **converter** — Format conversion (mainly TIFF output), multithreaded encoding
 - **transformer** — Image filters and color transformations (Gaussian, Canny, Sobel, etc.)
-- **drivers** — 11 format-specific shared libraries, each implementing `ImageDriver`/`CVScene`/`CVSlide`
+- **drivers** — 11 format-specific shared libraries, each implementing `ImageDriver`/`CVScene`/`CVSlide` (the svs library serves both SVS and PHTIFF)
 
 ### Driver Plugin Pattern
 
@@ -90,10 +93,10 @@ src/
 │   ├── imagetools/     # slideio-imagetools
 │   ├── converter/      # slideio-converter
 │   ├── transformer/    # slideio-transformer
-│   └── drivers/        # 11 driver libraries
-│       ├── svs/  afi/  scn/  czi/  zvi/
+│   └── drivers/        # 11 driver libraries, serving 12 formats
+│       ├── svs/  afi/  scn/  czi/  zvi/     # svs/ also serves PHTIFF
 │       ├── ndpi/ vsi/  dcm/  pke/
-│       └── ometiff/  gdal/
+│       └── ome-tiff/  gdal/
 ├── tests/              # Test suites (one per module/driver)
 ├── single_tests/       # Memory leak and performance tests
 └── tools/              # CLI tools

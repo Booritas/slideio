@@ -589,6 +589,36 @@ static std::string createFakeXmlWithSizelessLevel(int width, int height) {
 	return xml.str();
 }
 
+// The mismatch of the previous two tests, the other way round: the metadata declares a
+// zoom level the file does not store. This is the level side of the Philips-4.tiff
+// failure, where the metadata declares an auxiliary image the file does not store.
+//
+// The missing level is deliberately in the middle of the pyramid, because that is the
+// case where the answer differs: the file stores levels 0 and 2, so pairing the two
+// directories with the declared levels by position gives the second directory level 1's
+// number instead of level 2's. The crop then divides by 2 rather than by 4 and the level
+// reports twice the size and scale it covers -- the wrong-scale defect finding 1 was
+// about. Matching by declared size gives the directory its own level number and drops
+// the declaration the file does not back.
+TEST_F(PhTiffImageDriverTests, phExtractImages_ignoresADeclaredLevelTheFileDoesNotStore) {
+	const std::string xml = MockSVSSlide::createFakeXml(4096, 4096, 3, {});
+	const std::vector<TiffDirectory> directories = {
+		makeLevelDir(xml, 4096, 4096),                          // declared level 0
+		// The xml declares a level 1 of 2048x2048 that the file does not store. This is
+		// the declared level 2.
+		makeLevelDir("level=2 mag=10 quality=80", 1024, 1024),
+	};
+	std::vector<PHTLevel> imagePyramid;
+	std::map<std::string, int> auxImages;
+
+	MockSVSSlide::phExtractImagesMock(directories, imagePyramid, auxImages);
+
+	EXPECT_EQ((std::vector<int>{0, 1}), phDirIndices(imagePyramid));
+	EXPECT_EQ((std::vector<PHTLevel>{{0, 0}, {1, 2}}), imagePyramid)
+		<< "the stored directory must keep its own level number, not the next declared one";
+	EXPECT_TRUE(auxImages.empty());
+}
+
 // A level the metadata declares no size for cannot be matched by size, so extraction
 // falls back to pairing it with whatever tiled directory is left, by position, and marks
 // the pairing unverified.
