@@ -16,9 +16,14 @@
 
 using namespace slideio;
 
-const char* THUMBNAIL = "Thumbnail";
-const char* MACRO = "Macro";
-const char* LABEL = "Label";
+// constexpr, not const char*: a const char* is a non-const pointer and so has external
+// linkage, and all three driver libraries define these same three symbols.
+namespace
+{
+    constexpr const char* THUMBNAIL = "Thumbnail";
+    constexpr const char* MACRO = "Macro";
+    constexpr const char* LABEL = "Label";
+}
 
 
 PKESlide::PKESlide()

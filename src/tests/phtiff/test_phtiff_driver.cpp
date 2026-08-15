@@ -30,6 +30,7 @@ namespace slideio
 }
 
 using namespace slideio;
+using namespace slideio::phtiff;
 
 // struct ZoomLevelInfo
 // {
@@ -94,8 +95,11 @@ static std::string phDouble(double value) {
 // Emits one <Attribute> element. The name, the group and the element ids are
 // taken from the attribute constants so that the generated metadata cannot drift
 // away from the definitions in phtdescription.hpp.
+// value is string_view, not const std::string&: WSI (now slideio::phtiff::WSI, a
+// string_view constant) is passed straight through as an attribute value below, and a
+// string_view has no implicit conversion to std::string.
 static std::string phAttribute(const PHTDescription::Attribute& attribute, const std::string& type,
-	const std::string& value, int indent) {
+	std::string_view value, int indent) {
 	std::ostringstream stream;
 	stream << phIndent(indent)
 		<< "<Attribute Name=\"" << attribute.Name
@@ -315,8 +319,10 @@ static std::vector<double> phDoubleArray(const Metadata& node) {
 	return values;
 }
 
-// The image node of the given philips image type, e.g. "WSI".
-static Metadata phImageOfType(const Metadata& tree, const std::string& type) {
+// The image node of the given philips image type, e.g. "WSI". type is string_view, not
+// const std::string&, so that slideio::phtiff::WSI (a string_view constant) can be
+// passed straight through.
+static Metadata phImageOfType(const Metadata& tree, std::string_view type) {
 	const Metadata images = tree["images"];
 	for (size_t index = 0; index < images.size(); ++index) {
 		if (images[index]["type"].asString() == type) {
@@ -1166,8 +1172,8 @@ TEST_F(PhTiffImageDriverTests, aFailedOpenDoesNotLeaveTheFileOpen) {
 // the metadata, producing the description of a file whose scanner left that attribute
 // out. Philips files do vary in which attributes they carry, and the objects a file
 // does declare are not all complete.
-static std::string phRemoveAttribute(const std::string& xml, const std::string& name, int occurrence) {
-	const std::string needle = "Name=\"" + name + "\"";
+static std::string phRemoveAttribute(const std::string& xml, std::string_view name, int occurrence) {
+	const std::string needle = "Name=\"" + std::string(name) + "\"";
 	size_t position = 0;
 	for (int found = 0; found <= occurrence; ++found) {
 		position = xml.find(needle, (found == 0) ? 0 : position + needle.size());

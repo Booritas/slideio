@@ -22,10 +22,16 @@
 
 
 using namespace slideio;
+using namespace slideio::phtiff;
 
-const char* THUMBNAIL = "Thumbnail";
-const char* MACRO = "Macro";
-const char* LABEL = "Label";
+// constexpr, not const char*: a const char* is a non-const pointer and so has external
+// linkage, and all three driver libraries define these same three symbols.
+namespace
+{
+    constexpr const char* THUMBNAIL = "Thumbnail";
+    constexpr const char* MACRO = "Macro";
+    constexpr const char* LABEL = "Label";
+}
 
 namespace
 {
@@ -81,29 +87,29 @@ namespace
     std::vector<PHDeclaredLevel> phDeclaredLevels(slideio::PHTDescription& description) {
         std::vector<PHDeclaredLevel> levels;
         for (const tinyxml2::XMLElement* image :
-             description.getObjectList(description.getRoot(), slideio::SCANNED_IMAGES, slideio::SCANNED_IMAGE)) {
-            if (!description.hasAttribute(image, slideio::IMAGE_TYPE)
-                || description.getAttributeText(image, slideio::IMAGE_TYPE) != slideio::WSI) {
+             description.getObjectList(description.getRoot(), slideio::phtiff::SCANNED_IMAGES, slideio::phtiff::SCANNED_IMAGE)) {
+            if (!description.hasAttribute(image, slideio::phtiff::IMAGE_TYPE)
+                || description.getAttributeText(image, slideio::phtiff::IMAGE_TYPE) != slideio::phtiff::WSI) {
                 continue;
             }
             for (const tinyxml2::XMLElement* level :
-                 description.getObjectList(image, slideio::LEVEL_SEQUENCE, slideio::PIXEL_DATA_REPRESENTATION)) {
+                 description.getObjectList(image, slideio::phtiff::LEVEL_SEQUENCE, slideio::phtiff::PIXEL_DATA_REPRESENTATION)) {
                 // The level number is what says how much of the slide a level covers, so a
                 // level declared without one cannot be placed in the pyramid at all. It is
                 // dropped and the rest of the pyramid is kept, rather than the file being
                 // refused over one incomplete declaration.
-                if (!description.hasAttribute(level, slideio::LEVEL_NUMBER)) {
+                if (!description.hasAttribute(level, slideio::phtiff::LEVEL_NUMBER)) {
                     SLIDEIO_LOG(WARNING) << "SVSSlide: a zoom level of the philips file declares"
                         " no level number. The level is ignored.";
                     continue;
                 }
                 PHDeclaredLevel declared;
-                declared.levelNumber = description.getAttributeInt(level, slideio::LEVEL_NUMBER);
-                if (description.hasAttribute(level, slideio::LEVEL_COLUMNS)
-                    && description.hasAttribute(level, slideio::LEVEL_ROWS)) {
+                declared.levelNumber = description.getAttributeInt(level, slideio::phtiff::LEVEL_NUMBER);
+                if (description.hasAttribute(level, slideio::phtiff::LEVEL_COLUMNS)
+                    && description.hasAttribute(level, slideio::phtiff::LEVEL_ROWS)) {
                     declared.size = {
-                        description.getAttributeInt(level, slideio::LEVEL_COLUMNS),
-                        description.getAttributeInt(level, slideio::LEVEL_ROWS)
+                        description.getAttributeInt(level, slideio::phtiff::LEVEL_COLUMNS),
+                        description.getAttributeInt(level, slideio::phtiff::LEVEL_ROWS)
                     };
                 }
                 levels.push_back(declared);
@@ -217,11 +223,11 @@ namespace
     void phBuildLevelNode(slideio::MetadataBuilder& node, slideio::PHTDescription& description,
                           const tinyxml2::XMLElement* level) {
         node.makeObject();
-        phSetInt(node, "number", description, level, slideio::LEVEL_NUMBER);
-        phSetInt(node, "columns", description, level, slideio::LEVEL_COLUMNS);
-        phSetInt(node, "rows", description, level, slideio::LEVEL_ROWS);
-        phSetDoubleList(node, "pixelSpacing", description, level, slideio::IMAGE_RESOLUTION);
-        phSetDoubleList(node, "position", description, level, slideio::LEVEL_POSITION);
+        phSetInt(node, "number", description, level, slideio::phtiff::LEVEL_NUMBER);
+        phSetInt(node, "columns", description, level, slideio::phtiff::LEVEL_COLUMNS);
+        phSetInt(node, "rows", description, level, slideio::phtiff::LEVEL_ROWS);
+        phSetDoubleList(node, "pixelSpacing", description, level, slideio::phtiff::IMAGE_RESOLUTION);
+        phSetDoubleList(node, "position", description, level, slideio::phtiff::LEVEL_POSITION);
     }
 
     // One DPScannedImage: the whole slide image or an auxiliary one. The base64 raster of
@@ -230,45 +236,45 @@ namespace
     void phBuildImageNode(slideio::MetadataBuilder& node, slideio::PHTDescription& description,
                           const tinyxml2::XMLElement* image) {
         node.makeObject();
-        phSetText(node, "type", description, image, slideio::IMAGE_TYPE);
-        phSetText(node, "sourceFile", description, image, slideio::SOURCE_FILE);
-        phSetText(node, "derivationDescription", description, image, slideio::DERIVATION_DESCRIPTION);
-        phSetText(node, "pixelTransformationMethod", description, image, slideio::PIXEL_TRANSFORMATION_METHOD);
-        if (phHasAny(description, image, {&slideio::IMAGE_COLUMNS, &slideio::IMAGE_ROWS})) {
+        phSetText(node, "type", description, image, slideio::phtiff::IMAGE_TYPE);
+        phSetText(node, "sourceFile", description, image, slideio::phtiff::SOURCE_FILE);
+        phSetText(node, "derivationDescription", description, image, slideio::phtiff::DERIVATION_DESCRIPTION);
+        phSetText(node, "pixelTransformationMethod", description, image, slideio::phtiff::PIXEL_TRANSFORMATION_METHOD);
+        if (phHasAny(description, image, {&slideio::phtiff::IMAGE_COLUMNS, &slideio::phtiff::IMAGE_ROWS})) {
             slideio::MetadataBuilder size = node["size"];
             size.makeObject();
-            phSetInt(size, "columns", description, image, slideio::IMAGE_COLUMNS);
-            phSetInt(size, "rows", description, image, slideio::IMAGE_ROWS);
+            phSetInt(size, "columns", description, image, slideio::phtiff::IMAGE_COLUMNS);
+            phSetInt(size, "rows", description, image, slideio::phtiff::IMAGE_ROWS);
         }
-        phSetDoubleList(node, "pixelSpacing", description, image, slideio::IMAGE_RESOLUTION);
+        phSetDoubleList(node, "pixelSpacing", description, image, slideio::phtiff::IMAGE_RESOLUTION);
         if (phHasAny(description, image, {
-                &slideio::SAMPLES_PER_PIXEL, &slideio::PHOTOMETRIC_INTERPRETATION,
-                &slideio::PLANAR_CONFIGURATION, &slideio::BITS_ALLOCATED, &slideio::BITS_STORED,
-                &slideio::HIGH_BIT, &slideio::PIXEL_REPRESENTATION})) {
+                &slideio::phtiff::SAMPLES_PER_PIXEL, &slideio::phtiff::PHOTOMETRIC_INTERPRETATION,
+                &slideio::phtiff::PLANAR_CONFIGURATION, &slideio::phtiff::BITS_ALLOCATED, &slideio::phtiff::BITS_STORED,
+                &slideio::phtiff::HIGH_BIT, &slideio::phtiff::PIXEL_REPRESENTATION})) {
             slideio::MetadataBuilder format = node["pixelFormat"];
             format.makeObject();
-            phSetInt(format, "samplesPerPixel", description, image, slideio::SAMPLES_PER_PIXEL);
-            phSetText(format, "photometricInterpretation", description, image, slideio::PHOTOMETRIC_INTERPRETATION);
-            phSetInt(format, "planarConfiguration", description, image, slideio::PLANAR_CONFIGURATION);
-            phSetInt(format, "bitsAllocated", description, image, slideio::BITS_ALLOCATED);
-            phSetInt(format, "bitsStored", description, image, slideio::BITS_STORED);
-            phSetInt(format, "highBit", description, image, slideio::HIGH_BIT);
-            phSetInt(format, "pixelRepresentation", description, image, slideio::PIXEL_REPRESENTATION);
+            phSetInt(format, "samplesPerPixel", description, image, slideio::phtiff::SAMPLES_PER_PIXEL);
+            phSetText(format, "photometricInterpretation", description, image, slideio::phtiff::PHOTOMETRIC_INTERPRETATION);
+            phSetInt(format, "planarConfiguration", description, image, slideio::phtiff::PLANAR_CONFIGURATION);
+            phSetInt(format, "bitsAllocated", description, image, slideio::phtiff::BITS_ALLOCATED);
+            phSetInt(format, "bitsStored", description, image, slideio::phtiff::BITS_STORED);
+            phSetInt(format, "highBit", description, image, slideio::phtiff::HIGH_BIT);
+            phSetInt(format, "pixelRepresentation", description, image, slideio::phtiff::PIXEL_REPRESENTATION);
         }
         if (phHasAny(description, image, {
-                &slideio::LOSSY_IMAGE_COMPRESSION, &slideio::LOSSY_IMAGE_COMPRESSION_METHOD,
-                &slideio::LOSSY_IMAGE_COMPRESSION_RATIO})) {
+                &slideio::phtiff::LOSSY_IMAGE_COMPRESSION, &slideio::phtiff::LOSSY_IMAGE_COMPRESSION_METHOD,
+                &slideio::phtiff::LOSSY_IMAGE_COMPRESSION_RATIO})) {
             slideio::MetadataBuilder compression = node["compression"];
             compression.makeObject();
-            phSetText(compression, "lossy", description, image, slideio::LOSSY_IMAGE_COMPRESSION);
+            phSetText(compression, "lossy", description, image, slideio::phtiff::LOSSY_IMAGE_COMPRESSION);
             // The method and the ratio are array valued attributes even though philips
             // writes a single entry in each, so they stay arrays here.
-            phSetTextList(compression, "method", description, image, slideio::LOSSY_IMAGE_COMPRESSION_METHOD);
-            phSetDoubleList(compression, "ratio", description, image, slideio::LOSSY_IMAGE_COMPRESSION_RATIO);
+            phSetTextList(compression, "method", description, image, slideio::phtiff::LOSSY_IMAGE_COMPRESSION_METHOD);
+            phSetDoubleList(compression, "ratio", description, image, slideio::phtiff::LOSSY_IMAGE_COMPRESSION_RATIO);
         }
         // Only the whole slide image has a pyramid; an auxiliary image gets no empty array.
         const std::vector<tinyxml2::XMLElement*> levels =
-            description.getObjectList(image, slideio::LEVEL_SEQUENCE, slideio::PIXEL_DATA_REPRESENTATION);
+            description.getObjectList(image, slideio::phtiff::LEVEL_SEQUENCE, slideio::phtiff::PIXEL_DATA_REPRESENTATION);
         if (!levels.empty()) {
             slideio::MetadataBuilder levelNodes = node["levels"];
             levelNodes.makeArray();
@@ -291,12 +297,12 @@ namespace
         tinyxml2::XMLElement* slide = philips.getRoot();
         slideio::MetadataBuilder root;
         root.makeObject();
-        phSetText(root, "manufacturer", philips, slide, slideio::MANUFACTURER);
-        phSetTextList(root, "softwareVersions", philips, slide, slideio::SOFTWARE_VERSIONS);
-        phSetText(root, "interfaceVersion", philips, slide, slideio::UFS_INTERFACE_VERSION);
-        phSetText(root, "barcode", philips, slide, slideio::UFS_BARCODE);
+        phSetText(root, "manufacturer", philips, slide, slideio::phtiff::MANUFACTURER);
+        phSetTextList(root, "softwareVersions", philips, slide, slideio::phtiff::SOFTWARE_VERSIONS);
+        phSetText(root, "interfaceVersion", philips, slide, slideio::phtiff::UFS_INTERFACE_VERSION);
+        phSetText(root, "barcode", philips, slide, slideio::phtiff::UFS_BARCODE);
         const std::vector<tinyxml2::XMLElement*> images =
-            philips.getObjectList(slide, slideio::SCANNED_IMAGES, slideio::SCANNED_IMAGE);
+            philips.getObjectList(slide, slideio::phtiff::SCANNED_IMAGES, slideio::phtiff::SCANNED_IMAGE);
         if (!images.empty()) {
             slideio::MetadataBuilder imageNodes = root["images"];
             imageNodes.makeArray();

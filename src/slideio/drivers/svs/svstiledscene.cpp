@@ -20,6 +20,7 @@
 #include "slideio/drivers/svs/svsimagedriver.hpp"
 
 using namespace slideio;
+using namespace slideio::phtiff;
 
 
 SVSTiledScene::SVSTiledScene(const std::string& filePath, const std::string& driverId, const std::string& name,

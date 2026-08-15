@@ -13,6 +13,7 @@
 #include "slideio/base/log.hpp"
 
 using namespace slideio;
+using namespace slideio::phtiff;
 
 namespace
 {
@@ -26,7 +27,7 @@ namespace
 
     // Group and element ids are hexadecimal numbers that may be written
     // with either case ("0x115D" or "0x115d") depending on the scanner software.
-    bool equalIgnoreCase(const char* text, const std::string& value) {
+    bool equalIgnoreCase(const char* text, std::string_view value) {
         if (text == nullptr) {
             return false;
         }
@@ -83,7 +84,10 @@ namespace
     }
 
     // Appends the data objects of the given type held by the <Array> of one <Attribute>.
-    void collectObjects(const tinyxml2::XMLElement* attribute, const std::string& name,
+    // Takes name by string_view, not by const std::string&, to match getObjectList's
+    // parameter: the type has to follow through unbroken, or the call below does not
+    // compile (string_view has no implicit conversion to std::string).
+    void collectObjects(const tinyxml2::XMLElement* attribute, std::string_view name,
                         std::vector<tinyxml2::XMLElement*>& objects) {
         const tinyxml2::XMLElement* array = attribute->FirstChildElement(ARRAY_TAG);
         if (array == nullptr) {
@@ -162,7 +166,7 @@ tinyxml2::XMLElement* PHTDescription::getRoot() {
 //     <DataObject ObjectType="..."/>...
 std::vector<tinyxml2::XMLElement*> PHTDescription::getObjectList(const tinyxml2::XMLElement* parent,
                                                                  const Attribute& arrayAttribute,
-                                                                 const std::string& name) {
+                                                                 std::string_view name) {
     if (parent == nullptr) {
         RAISE_RUNTIME_ERROR << "PHTDescription: cannot retrieve objects '" << name << "' of an undefined parent.";
     }
