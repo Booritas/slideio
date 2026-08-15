@@ -8,21 +8,19 @@
 
 namespace slideio
 {
-    // SVSImageDriver serves two formats that share the tiff reading code: the aperio svs
-    // format and the philips tiff format. The id decides which one an instance reads.
+    // The aperio svs id. PHTIFF_DRIVER_ID stays declared here too: it remains the public
+    // id string for the philips driver (see PHTIFFImageDriver), so openSlide(path,
+    // "PHTIFF") keeps working, though it no longer steers control flow in this class.
     constexpr const char* SVS_DRIVER_ID = "SVS";
     constexpr const char* PHTIFF_DRIVER_ID = "PHTIFF";
 
     class SLIDEIO_SVS_EXPORTS SVSImageDriver : public slideio::ImageDriver
     {
     public:
-        SVSImageDriver(const std::string& driverId = SVS_DRIVER_ID);
+        SVSImageDriver();
         ~SVSImageDriver();
         std::string getID() const override;
         std::shared_ptr<slideio::CVSlide> openFile(const std::string& filePath) override;
         std::string getFileSpecs() const override;
-        bool canOpenFile(const std::string& filePath) const override;
-    private:
-        std::string m_driverId;
     };
 }

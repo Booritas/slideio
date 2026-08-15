@@ -11,6 +11,8 @@ set(SOURCE_FILES
    ${SOURCE_FILES}
    ${CMAKE_CURRENT_SOURCE_DIR}/svsimagedriver.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/svsimagedriver.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/phtiffimagedriver.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/phtiffimagedriver.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/svsscene.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/svsscene.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/svsslide.hpp

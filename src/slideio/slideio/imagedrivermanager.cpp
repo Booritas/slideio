@@ -11,6 +11,7 @@
 #include "slideio/drivers/gdal/gdalimagedriver.hpp"
 #include "slideio/drivers/scn/scnimagedriver.hpp"
 #include "slideio/drivers/svs/svsimagedriver.hpp"
+#include "slideio/drivers/svs/phtiffimagedriver.hpp"
 #include "slideio/drivers/zvi/zviimagedriver.hpp"
 #include "slideio/drivers/ndpi/ndpiimagedriver.hpp"
 #include "slideio/drivers/vsi/vsiimagedriver.hpp"
@@ -84,7 +85,7 @@ void ImageDriverManager::initialize()
             driverMap[driver->getID()] = driver;
         }
         {
-            auto driver = std::make_shared<SVSImageDriver>(PHTIFF_DRIVER_ID);
+            auto driver = std::make_shared<PHTIFFImageDriver>();
             driverMap[driver->getID()] = driver;
         }
         {
