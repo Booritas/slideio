@@ -445,11 +445,11 @@ void SVSSlide::initSVS(const std::vector<TiffDirectory>& directories, libtiff::T
         m_rawMetadata = dir.description;
         m_metadataFormat = MetadataFormat::Text;
 #if defined(_DEBUG)
-        std::string fileName = std::filesystem::path(m_filePath).stem().string();
-        std::string xmlPath = "D:/Temp/" + fileName + ".xml";
-        std::ofstream outFile(xmlPath);
-        outFile << m_rawMetadata;
-        outFile.close();
+        // std::string fileName = std::filesystem::path(m_filePath).stem().string();
+        // std::string xmlPath = "D:/Temp/" + fileName + ".xml";
+        // std::ofstream outFile(xmlPath);
+        // outFile << m_rawMetadata;
+        // outFile.close();
 #endif
     }
 }
