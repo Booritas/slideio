@@ -103,9 +103,9 @@ namespace
         EXPECT_EQ(size.width, raster.cols);
         EXPECT_EQ(page->getNumChannels(), raster.channels());
         const std::string& metadata = page->getMetadata();
-        TIFFKeeper tiff = TiffTools::openTiffFile(testFilePath);
+        TIFFKeeper tiff(TiffTools::openTiffFile(testFilePath));
         std::vector<TiffDirectory> dirs;
-        TiffTools::scanFile(tiff, dirs);
+        TiffTools::scanFile(tiff.getHandle(), dirs);
         cv::Mat testRaster;
         TiffTools::readStripedDir(tiff.getHandle(), dirs[0], testRaster);
         EXPECT_EQ(raster.size(), testRaster.size());
@@ -168,9 +168,9 @@ TEST(FIWrapper, readMultiplePages)
     EXPECT_TRUE(wrapper.isValid());
     EXPECT_EQ(3, wrapper.getNumPages());
 
-    TIFFKeeper tiff = TiffTools::openTiffFile(filePath);
+    TIFFKeeper tiff(TiffTools::openTiffFile(filePath));
     std::vector<TiffDirectory> dirs;
-    TiffTools::scanFile(tiff, dirs);
+    TiffTools::scanFile(tiff.getHandle(), dirs);
 
     for (int pageIndex = 0; pageIndex < 3; ++pageIndex) {
         auto page = wrapper.readPage(pageIndex);
@@ -180,7 +180,7 @@ TEST(FIWrapper, readMultiplePages)
         EXPECT_EQ(256, size.height);
 		cv::Mat raster, testRaster;
         page->readRaster(raster);
-        TiffTools::readStripedDir(tiff, dirs[pageIndex], testRaster);
+        TiffTools::readStripedDir(tiff.getHandle(), dirs[pageIndex], testRaster);
 		EXPECT_EQ(raster.size(), testRaster.size());
         double sim = ImageTools::computeSimilarity2(raster, testRaster);
 		EXPECT_GT(sim, 0.99);

@@ -26,7 +26,7 @@ void VsiFileScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, const
     const TiffDirectory& directory = m_vsiFile->getTiffDirectory(m_directoryIndex);
     if(!directory.tiled) {
         cv::Mat directoryRaster;
-        TiffTools::readStripedDir(m_tiff, directory, directoryRaster);
+        TiffTools::readStripedDir(m_tiff.getHandle(), directory, directoryRaster);
         cv::Mat blockRaster(directoryRaster, blockRect);
         cv::Mat resizedBlockRaster;
         cv::resize(blockRaster, resizedBlockRaster, blockSize);
@@ -70,7 +70,7 @@ void VsiFileScene::init()
     m_channelNames.resize(m_numChannels);
     std::fill(m_channelDataType.begin(), m_channelDataType.end(), directory.dataType);
     m_compression = directory.slideioCompression;
-    m_tiff = TiffTools::openTiffFile(m_filePath);
+    m_tiff.reset(TiffTools::openTiffFile(m_filePath));
 
     m_levels.resize(1);
     LevelInfo& level = m_levels[0];

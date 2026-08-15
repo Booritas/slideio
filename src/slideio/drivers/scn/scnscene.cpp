@@ -208,7 +208,7 @@ void SCNScene::setupChannels(const XMLElement* xmlImage)
         int channel = dim.c < 0 ? 0 : dim.c;
         int zIndex = dim.z < 0 ? 0 : dim.z;
         TiffDirectory channelDir;
-        TiffTools::scanTiffDir(m_tiff, dim.ifd, 0, channelDir);
+        TiffTools::scanTiffDir(m_tiff.getHandle(), dim.ifd, 0, channelDir);
         m_channelDirectories[m_planeCount*zIndex + channel].push_back(channelDir);
     }
 
@@ -229,7 +229,7 @@ void SCNScene::setupChannels(const XMLElement* xmlImage)
 
 void SCNScene::init(const XMLElement* xmlImage)
 {
-    m_tiff = TiffTools::openTiffFile(m_filePath.c_str());
+    m_tiff.reset(TiffTools::openTiffFile(m_filePath.c_str()));
     if (!m_tiff.isValid())
     {
         throw std::runtime_error(std::string("SCNImageDriver: Cannot open file:") + m_filePath);

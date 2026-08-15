@@ -697,12 +697,12 @@ void TiffTools::readPlanarStripedDir(libtiff::TIFF* file, const TiffDirectory& d
 void TiffTools::readDirRaster(const std::string& filePath, int dir, cv::OutputArray output) {
     TIFFKeeper tiff(filePath);
     std::vector<TiffDirectory> dirs;
-    scanFile(tiff, dirs);
+    scanFile(tiff.getHandle(), dirs);
     if (dir >= dirs.size()) {
         RAISE_RUNTIME_ERROR << "TiffTools::readDirRaster: Invalid directory index " << dir
             << ", file contains only " << dirs.size() << " directories.";
 	}
-    readDirRaster(tiff, dirs[dir], output);
+    readDirRaster(tiff.getHandle(), dirs[dir], output);
 }
 
 void TiffTools::readDirRaster(libtiff::TIFF* tiff, const TiffDirectory& dir, cv::OutputArray output) {

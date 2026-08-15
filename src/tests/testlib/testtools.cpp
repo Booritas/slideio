@@ -368,18 +368,18 @@ void TestTools::readTiffDirectory(const std::string& filePath, int dirNum, cv::O
 
 void TestTools::readTiffDirectories(const std::string& filePath, const std::vector<int>& dirIndices, cv::OutputArray output) {
     slideio::TIFFKeeper tiffFile(slideio::TiffTools::openTiffFile(filePath));
-    int dirs = slideio::TiffTools::getNumberOfDirectories(tiffFile);
+    int dirs = slideio::TiffTools::getNumberOfDirectories(tiffFile.getHandle());
     std::vector<int> indices = slideio::Tools::completeChannelList(dirIndices, dirs);
     std::vector<cv::Mat> images;
     for(auto dirNum: indices) {
         cv::Mat image;
         slideio::TiffDirectory dir;
-        slideio::TiffTools::scanTiffDirTags(tiffFile, dirNum, 0, dir);
+        slideio::TiffTools::scanTiffDirTags(tiffFile.getHandle(), dirNum, 0, dir);
         if (dir.tiled) {
             RAISE_RUNTIME_ERROR << "Tiled tiff is not supported";
         }
         else {
-            slideio::TiffTools::readStripedDir(tiffFile, dir, image);
+            slideio::TiffTools::readStripedDir(tiffFile.getHandle(), dir, image);
             images.push_back(image);
         }
     }

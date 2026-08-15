@@ -88,7 +88,7 @@ namespace slideio
         void defineChannelDataType();
         void setupChannels(const tinyxml2::XMLElement* xmlPixels);
         libtiff::TIFF* getFileHandle() {
-            return m_tiff;
+            return m_tiff.getHandle();
         }
         void createEmptyChannelTile(int tileIndex, int channel, cv::OutputArray output, void* userData);
     protected:

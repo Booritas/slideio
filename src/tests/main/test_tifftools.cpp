@@ -250,7 +250,7 @@ TEST_F(TiffToolsTests, readNotRGBTile)
     {
         cv::Mat raster;
         std::vector<int> channels = { 0,1,2 };
-        slideio::TiffTools::readNotRGBTile(tiff, dir, 24, channels, raster);
+        slideio::TiffTools::readNotRGBTile(tiff.getHandle(), dir, 24, channels, raster);
         ASSERT_EQ(raster.cols, 512);
         ASSERT_EQ(raster.rows, 512);
         ASSERT_EQ(raster.channels(), 3);
@@ -261,7 +261,7 @@ TEST_F(TiffToolsTests, readNotRGBTile)
     {
         cv::Mat raster;
         std::vector<int> channels = {};
-        slideio::TiffTools::readNotRGBTile(tiff, dir, 24, channels, raster);
+        slideio::TiffTools::readNotRGBTile(tiff.getHandle(), dir, 24, channels, raster);
         ASSERT_EQ(raster.cols, 512);
         ASSERT_EQ(raster.rows, 512);
         ASSERT_EQ(raster.channels(), 3);
@@ -275,7 +275,7 @@ TEST_F(TiffToolsTests, readNotRGBTile)
         cv::extractChannel(tile, tileChannel, channelIndex);
         cv::Mat raster;
         std::vector<int> channels = { channelIndex };
-        slideio::TiffTools::readNotRGBTile(tiff, dir, 24, channels, raster);
+        slideio::TiffTools::readNotRGBTile(tiff.getHandle(), dir, 24, channels, raster);
         ASSERT_EQ(raster.cols, 512);
         ASSERT_EQ(raster.rows, 512);
         ASSERT_EQ(raster.channels(), 1);

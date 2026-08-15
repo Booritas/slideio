@@ -37,7 +37,7 @@ SVSScene::~SVSScene() = default;
 void SVSScene::makeSureFileIsOpened()
 {
     if (!m_tiffKeeper.isValid()) {
-        m_tiffKeeper = TiffTools::openTiffFile(m_filePath);
+        m_tiffKeeper.reset(TiffTools::openTiffFile(m_filePath));
         if(!m_tiffKeeper.isValid()) {
             throw std::runtime_error(std::string("SVSImageDriver: Cannot open file:") + m_filePath);
         }
@@ -47,5 +47,5 @@ void SVSScene::makeSureFileIsOpened()
 libtiff::TIFF* SVSScene::getFileHandle()
 {
     makeSureFileIsOpened();
-    return m_tiffKeeper;
+    return m_tiffKeeper.getHandle();
 }

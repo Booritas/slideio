@@ -22,11 +22,11 @@ SCNSlide::SCNSlide(const std::string& filePath, const std::string& driverId) : m
 void SCNSlide::init()
 {
     std::vector<TiffDirectory> directories;
-    m_tiff = TiffTools::openTiffFile(m_filePath);
+    m_tiff.reset(TiffTools::openTiffFile(m_filePath));
     if (!m_tiff.isValid()) {
         throw std::runtime_error(std::string("SCNImageDriver: Cannot open file:") + m_filePath);
     }
-    TiffTools::scanFile(m_tiff, directories);
+    TiffTools::scanFile(m_tiff.getHandle(), directories);
     m_rawMetadata = directories[0].description;
     constructScenes();
 }
