@@ -2,6 +2,8 @@
 #include "slideio/drivers/svs/svstools.hpp"
 #include <string>
 #include <regex>
+#include <locale>
+#include <stdexcept>
 
 static std::string description = "Aperio Image Library v11.2.1\n"
     "46000x32914 [42673,5576 2220x2967] (240x240) JPEG/RGB Q=30;Aperio Image Library v10.0.51\n"
@@ -34,6 +36,79 @@ TEST(SVSTools, extractMagnification)
 	EXPECT_EQ(0, magn);
 	magn = slideio::SVSTools::extractMagnifiation("");
 	EXPECT_EQ(0, magn);
+}
+
+// Philips names the magnification of a zoom level in the description of the tiff
+// directory holding it: "level=1 mag=20 quality=80". Level 0 carries the philips xml
+// instead and never names one, so the magnification of the slide has to be derived
+// from a level below it: a level covers 2^-level of the base, so the base is
+// mag * 2^level.
+TEST(SVSTools, extractPhilipsMagnificationDerivesTheBaseFromALevel)
+{
+	EXPECT_DOUBLE_EQ(40., slideio::SVSTools::extractPhilipsMagnification("level=1 mag=20 quality=80"));
+}
+
+// The magnification of a level is fractional from level 1 down on a scanner whose
+// base is not a power of two multiple, e.g. the 44x of Philips-1.tiff.
+TEST(SVSTools, extractPhilipsMagnificationReadsFractionalValues)
+{
+	EXPECT_DOUBLE_EQ(44., slideio::SVSTools::extractPhilipsMagnification("level=3 mag=5.5 quality=80"));
+	EXPECT_DOUBLE_EQ(41., slideio::SVSTools::extractPhilipsMagnification("level=1 mag=20.5 quality=80"));
+}
+
+TEST(SVSTools, extractPhilipsMagnificationScalesByTheLevelNumber)
+{
+	EXPECT_DOUBLE_EQ(40., slideio::SVSTools::extractPhilipsMagnification("level=8 mag=0.15625 quality=80"));
+	// A description that names level 0 needs no scaling.
+	EXPECT_DOUBLE_EQ(40., slideio::SVSTools::extractPhilipsMagnification("level=0 mag=40 quality=80"));
+}
+
+TEST(SVSTools, extractPhilipsMagnificationReturnsZeroWhenThereIsNone)
+{
+	EXPECT_DOUBLE_EQ(0., slideio::SVSTools::extractPhilipsMagnification(""));
+	// The description of an auxiliary directory of a philips file.
+	EXPECT_DOUBLE_EQ(0., slideio::SVSTools::extractPhilipsMagnification(
+		"Macro -offset=(0,0)-pixelsize=(0.0315,0.0315)-rois=(0,0,1816,821)"));
+	// An aperio description: the magnification is there, in another syntax.
+	EXPECT_DOUBLE_EQ(0., slideio::SVSTools::extractPhilipsMagnification(description));
+	EXPECT_DOUBLE_EQ(0., slideio::SVSTools::extractPhilipsMagnification("level=1 quality=80"));
+	EXPECT_DOUBLE_EQ(0., slideio::SVSTools::extractPhilipsMagnification("mag=20 quality=80"));
+}
+
+TEST(SVSTools, extractPhilipsMagnificationRejectsUnusableValues)
+{
+	EXPECT_DOUBLE_EQ(0., slideio::SVSTools::extractPhilipsMagnification("level=1 mag=0 quality=80"));
+	EXPECT_DOUBLE_EQ(0., slideio::SVSTools::extractPhilipsMagnification("level=x mag=y quality=80"));
+	// A level number no pyramid can reach: scaling by it would overflow to infinity.
+	EXPECT_DOUBLE_EQ(0., slideio::SVSTools::extractPhilipsMagnification("level=9999 mag=20 quality=80"));
+	// A level number too long to fit an int must be rejected like any other unusable
+	// value: a corrupt description must not stop the file from opening.
+	EXPECT_DOUBLE_EQ(0., slideio::SVSTools::extractPhilipsMagnification(
+		"level=99999999999999999999 mag=20 quality=80"));
+}
+
+// The value is read from a file, so it must not depend on the locale the embedding
+// application happens to have set: under a comma decimal locale a host that honours
+// the global locale reads "5.5" as 5, and the slide comes out at 40x instead of 44x.
+TEST(SVSTools, extractPhilipsMagnificationIsIndependentOfTheHostLocale)
+{
+	const std::locale original = std::locale();
+	bool imbued = false;
+	for (const char* name : {"de-DE", "de_DE.UTF-8", "German_Germany.1252"}) {
+		try {
+			std::locale::global(std::locale(name));
+			imbued = true;
+			break;
+		}
+		catch (const std::runtime_error&) {
+		}
+	}
+	if (!imbued) {
+		GTEST_SKIP() << "No comma decimal locale is installed on this machine";
+	}
+	const double magnification = slideio::SVSTools::extractPhilipsMagnification("level=3 mag=5.5 quality=80");
+	std::locale::global(original);
+	EXPECT_DOUBLE_EQ(44., magnification);
 }
 
 TEST(SVSTools, extractResolution)

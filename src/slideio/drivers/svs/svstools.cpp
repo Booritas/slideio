@@ -3,6 +3,8 @@
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/drivers/svs/svstools.hpp"
 #include "slideio/base/slideio_enums.hpp"
+#include <cmath>
+#include <locale>
 #include <string>
 #include <regex>
 #include <sstream>
@@ -49,6 +51,36 @@ double SVSTools::extractResolution(const std::string& description)
         res = std::stod(res_str) * 1.e-6;
     }
     return res;
+}
+
+double SVSTools::extractPhilipsMagnification(const std::string& description)
+{
+    // The largest level number a pyramid can reach: scaling by more than this overflows
+    // and nothing in a real file comes close (the deepest of the test files is 9).
+    const int MAX_LEVEL = 30;
+    // The level number is bounded in the pattern rather than after the fact, so that a
+    // corrupt description carrying a run of digits no int can hold simply fails to match
+    // instead of raising out of the conversion.
+    std::regex rgx(R"(level=(\d{1,9})\s+mag=(\d+(?:\.\d+)?))");
+    std::smatch match;
+    if (!std::regex_search(description, match, rgx)) {
+        return 0.;
+    }
+    const int level = std::stoi(match[1]);
+    if (level < 0 || level > MAX_LEVEL) {
+        return 0.;
+    }
+    // The value comes out of a file, so it must not be read through the locale the
+    // embedding application happens to have set: a comma decimal locale would stop
+    // "5.5" at the point and turn a 44x slide into a 40x one.
+    std::istringstream stream(match[2].str());
+    stream.imbue(std::locale::classic());
+    double magnification = 0.;
+    stream >> magnification;
+    if (!stream || magnification <= 0.) {
+        return 0.;
+    }
+    return std::ldexp(magnification, level);
 }
 
 nlohmann::json SVSTools::parseAperioMetadata(const std::string& description)

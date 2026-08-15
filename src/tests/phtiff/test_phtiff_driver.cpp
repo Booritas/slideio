@@ -941,6 +941,40 @@ TEST_F(PhTiffImageDriverTests, metadataOfTheTestFiles) {
 	}
 }
 
+// The magnification of the four real files, derived from the zoom level descriptions.
+// Philips-2 reports 41x and Philips-1 and Philips-3 report 44x: the files say so, and
+// the value is not rounded to a nominal one.
+TEST_F(PhTiffImageDriverTests, magnificationOfTheTestFiles) {
+	if (!TestTools::isFullTestEnabled()) {
+		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
+	}
+	const std::list<std::pair<std::string, double>> expected = {
+		{"Philips-1.tiff", 44.},
+		{"Philips-2.tiff", 41.},
+		{"Philips-3.tiff", 44.},
+		{"Philips-4.tiff", 40.},
+	};
+	for (const auto& param : expected) {
+		const std::string filePath = TestTools::getFullTestImagePath("philips", param.first);
+		auto slide = slideio::openSlide(filePath, "PHTIFF");
+		ASSERT_TRUE(slide != nullptr) << param.first;
+		auto scene = slide->getScene(0);
+		ASSERT_TRUE(scene != nullptr) << param.first;
+		EXPECT_DOUBLE_EQ(param.second, scene->getMagnification()) << param.first;
+
+		// Every zoom level halves the magnification of the one above it, which is what
+		// the level descriptions of the file say to six significant digits.
+		const int levels = scene->getNumZoomLevels();
+		ASSERT_GT(levels, 1) << param.first;
+		for (int level = 0; level < levels; ++level) {
+			const LevelInfo* info = scene->getLevelInfo(level);
+			ASSERT_TRUE(info != nullptr) << param.first << " level " << level;
+			EXPECT_NEAR(param.second / std::pow(2., level), info->getMagnification(), 1e-9)
+				<< param.first << " level " << level;
+		}
+	}
+}
+
 // Philips-3.tiff is the one test file whose scanner read a barcode. Only its
 // presence is asserted: the value identifies the slide.
 TEST_F(PhTiffImageDriverTests, metadataCarriesTheBarcodeOfPhilips3) {
@@ -1066,6 +1100,62 @@ TEST_F(PhTiffImageDriverTests, initPhTiffMakesTheMetadataTreeAvailable) {
 	const Metadata tree = slide.getMetadata();
 	EXPECT_EQ("PHILIPS", tree["manufacturer"].asString());
 	EXPECT_EQ(1024, phImageOfType(tree, WSI)["size"]["columns"].asInt());
+}
+
+// Philips names the magnification of every zoom level but the base, whose directory
+// carries the xml metadata instead. The scene takes the magnification of the slide
+// from the first level that names one, scaled back up to the base.
+TEST_F(PhTiffImageDriverTests, imageSceneMagnificationComesFromTheZoomLevels) {
+	const std::string xml = MockSVSSlide::createFakeXml(1024, 768, 2);
+	MockSVSSlide slide;
+	slide.setDriverId(PHTIFF_DRIVER_ID);
+	slide.initPhTiffMock(phFakePyramid(xml, 1024, 768), nullptr);
+
+	auto scene = slide.getScene(0);
+	ASSERT_TRUE(scene != nullptr);
+	EXPECT_DOUBLE_EQ(40., scene->getMagnification());
+}
+
+// Each zoom level reports the magnification it covers: a level is 2^-level of the
+// base, and the philips level descriptions say the same thing.
+TEST_F(PhTiffImageDriverTests, imageSceneZoomLevelsReportTheirOwnMagnification) {
+	const std::string xml = MockSVSSlide::createFakeXml(1024, 768, 3);
+	std::vector<TiffDirectory> directories = {
+		makeImageDir(xml, 1024, 768),
+		makeImageDir("level=1 mag=20 quality=80", 512, 384),
+		makeImageDir("level=2 mag=10 quality=80", 256, 192),
+	};
+	for (TiffDirectory& dir : directories) {
+		dir.tiled = true;
+	}
+	MockSVSSlide slide;
+	slide.setDriverId(PHTIFF_DRIVER_ID);
+	slide.initPhTiffMock(directories, nullptr);
+
+	auto scene = slide.getScene(0);
+	ASSERT_TRUE(scene != nullptr);
+	ASSERT_TRUE(scene->getZoomLevelInfo(0) != nullptr);
+	EXPECT_DOUBLE_EQ(40., scene->getZoomLevelInfo(0)->getMagnification());
+	EXPECT_DOUBLE_EQ(20., scene->getZoomLevelInfo(1)->getMagnification());
+	EXPECT_DOUBLE_EQ(10., scene->getZoomLevelInfo(2)->getMagnification());
+}
+
+// A pyramid whose levels name no magnification leaves it at 0 rather than inventing
+// one: an unknown magnification and a 0x magnification are the same thing to a caller.
+TEST_F(PhTiffImageDriverTests, imageSceneMagnificationStaysZeroWhenNoLevelNamesOne) {
+	const std::string xml = MockSVSSlide::createFakeXml(1024, 768, 2);
+	std::vector<TiffDirectory> directories = {
+		makeImageDir(xml, 1024, 768),
+		makeImageDir("quality=80", 512, 384),
+	};
+	for (TiffDirectory& dir : directories) {
+		dir.tiled = true;
+	}
+	MockSVSSlide slide;
+	slide.setDriverId(PHTIFF_DRIVER_ID);
+	slide.initPhTiffMock(directories, nullptr);
+
+	EXPECT_DOUBLE_EQ(0., slide.getScene(0)->getMagnification());
 }
 
 // The philips branch of the scene left the scene metadata empty while the aperio

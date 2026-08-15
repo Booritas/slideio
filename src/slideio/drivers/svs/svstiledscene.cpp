@@ -67,6 +67,22 @@ void SVSTiledScene::processImageDescriptionPhTiff() {
     // document covering every image of the file, and 844 KB of it in Philips-2.tiff.
     m_rawMetadata = SVSTools::tiffDirectoryToJson(dir).dump(2);
     m_metadataFormat = MetadataFormat::JSON;
+
+    // Philips names the magnification of every zoom level but the base, whose directory
+    // carries the xml metadata instead. Any level gives the magnification of the slide,
+    // but the value is stored rounded to six significant digits, so the first level that
+    // names one -- the least deeply divided, and therefore the least rounded -- is used.
+    for (const TiffDirectory& level : m_directories) {
+        m_magnification = SVSTools::extractPhilipsMagnification(level.description);
+        if (m_magnification > 0.) {
+            break;
+        }
+    }
+    if (m_magnification <= 0.) {
+        SLIDEIO_LOG(WARNING) << "SVSTiledScene: no zoom level of the philips file names a"
+            " magnification. The magnification of the scene is unknown.";
+    }
+
     PHTDescription description(dir.description);
 
 #if defined(_DEBUG)

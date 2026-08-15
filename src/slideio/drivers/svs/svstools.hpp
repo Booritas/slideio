@@ -18,6 +18,12 @@ namespace slideio
         static int extractMagnifiation(const std::string& description);
         // Extracts resolution value from image information string
         static double extractResolution(const std::string& description);
+        // The magnification of the base zoom level, derived from the description of a
+        // philips zoom level directory ("level=1 mag=20 quality=80" -> 40). Philips names
+        // the magnification of every level but the base, whose directory carries the xml
+        // metadata instead; a level covers 2^-level of the base, so the base is
+        // mag * 2^level. Returns 0 if the description names no usable magnification.
+        static double extractPhilipsMagnification(const std::string& description);
         // Parses an Aperio-format metadata string into a structured JSON tree.
         // Header lines (before the first '|') become "application" and "image";
         // subsequent "name = value" tokens become entries under "properties".
