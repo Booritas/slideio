@@ -34,6 +34,7 @@ set(TEST_SOURCES
   test_metadata.cpp
   test_metadata_builder.cpp
   test_tifffiles.cpp
+  test_tiffkeeper.cpp
   test_fiwrapper.cpp
   test_channel_attributes.cpp
   test_boundedqueue.cpp
