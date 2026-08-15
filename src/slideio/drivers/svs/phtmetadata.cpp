@@ -31,6 +31,26 @@ namespace
         }
     }
 
+    // Reads an integer attribute, or reports why it could not and leaves the caller's
+    // value alone. A value that is present but not an integer is a scanner's mistake in
+    // one field; it must not cost the caller the whole slide, which is what letting
+    // getAttributeInt raise through readPHTMetadata would do.
+    bool phReadInt(PHTDescription& philips, const tinyxml2::XMLElement* element,
+                   const PHTDescription::Attribute& attribute, int& value) {
+        if (!philips.hasAttribute(element, attribute)) {
+            return false;
+        }
+        try {
+            value = philips.getAttributeInt(element, attribute);
+            return true;
+        }
+        catch (const std::exception& error) {
+            SLIDEIO_LOG(WARNING) << "PHTIFF: the philips attribute " << attribute.Name
+                << " is not readable as a number and is ignored: " << error.what();
+            return false;
+        }
+    }
+
     // The zoom levels one DPScannedImage declares, ordered by level number. Only used for
     // the whole slide image -- an auxiliary image has no pyramid.
     std::vector<PHTLevelDeclaration> phReadLevels(PHTDescription& philips, const tinyxml2::XMLElement* image) {
@@ -38,21 +58,20 @@ namespace
         for (const tinyxml2::XMLElement* level :
              philips.getObjectList(image, LEVEL_SEQUENCE, PIXEL_DATA_REPRESENTATION)) {
             // The level number is what says how much of the slide a level covers, so a
-            // level declared without one cannot be placed in the pyramid at all. It is
-            // dropped and the rest of the pyramid is kept, rather than the file being
-            // refused over one incomplete declaration.
-            if (!philips.hasAttribute(level, LEVEL_NUMBER)) {
+            // level whose number is missing or unreadable cannot be placed in the pyramid
+            // at all. It is dropped and the rest of the pyramid is kept, rather than the
+            // file being refused over one incomplete declaration.
+            PHTLevelDeclaration declared;
+            if (!phReadInt(philips, level, LEVEL_NUMBER, declared.number)) {
                 SLIDEIO_LOG(WARNING) << "PHTIFF: a zoom level of the philips file declares"
-                    " no level number. The level is ignored.";
+                    " no usable level number. The level is ignored.";
                 continue;
             }
-            PHTLevelDeclaration declared;
-            declared.number = philips.getAttributeInt(level, LEVEL_NUMBER);
-            if (philips.hasAttribute(level, LEVEL_COLUMNS) && philips.hasAttribute(level, LEVEL_ROWS)) {
-                declared.declaredSize = {
-                    philips.getAttributeInt(level, LEVEL_COLUMNS),
-                    philips.getAttributeInt(level, LEVEL_ROWS)
-                };
+            int columns = 0;
+            int rows = 0;
+            if (phReadInt(philips, level, LEVEL_COLUMNS, columns)
+                && phReadInt(philips, level, LEVEL_ROWS, rows)) {
+                declared.declaredSize = {columns, rows};
             }
             if (philips.hasAttribute(level, IMAGE_RESOLUTION)) {
                 phReadSpacing(philips, level, declared.spacing);
@@ -96,11 +115,11 @@ PHTMetadata slideio::readPHTMetadata(const std::string& description) {
         }
         PHTImageDeclaration declared;
         declared.type = philips.getAttributeText(image, IMAGE_TYPE);
-        if (philips.hasAttribute(image, IMAGE_COLUMNS) && philips.hasAttribute(image, IMAGE_ROWS)) {
-            declared.size = {
-                philips.getAttributeInt(image, IMAGE_COLUMNS),
-                philips.getAttributeInt(image, IMAGE_ROWS)
-            };
+        int columns = 0;
+        int rows = 0;
+        if (phReadInt(philips, image, IMAGE_COLUMNS, columns)
+            && phReadInt(philips, image, IMAGE_ROWS, rows)) {
+            declared.size = {columns, rows};
         }
         if (philips.hasAttribute(image, IMAGE_RESOLUTION)) {
             phReadSpacing(philips, image, declared.spacing);

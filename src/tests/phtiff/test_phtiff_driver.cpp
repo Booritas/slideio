@@ -1275,6 +1275,63 @@ TEST_F(PhTiffImageDriverTests, readPHTMetadataSkipsIncompleteDeclarations) {
 	EXPECT_EQ(1u, wsi->levels.size());
 }
 
+// Replaces the text of the `occurrence`-th (0 based) <Attribute> with the given name.
+// Used to plant a value of the wrong type, which is what a scanner writing an empty or
+// corrupt field produces in practice.
+static std::string phSetAttributeValue(const std::string& xml, std::string_view name,
+	int occurrence, const std::string& value) {
+	const std::string needle = "Name=\"" + std::string(name) + "\"";
+	size_t position = 0;
+	for (int found = 0; found <= occurrence; ++found) {
+		position = xml.find(needle, (found == 0) ? 0 : position + needle.size());
+		if (position == std::string::npos) {
+			return xml;
+		}
+	}
+	const size_t open = xml.find('>', position);
+	const size_t close = xml.find("</Attribute>", open);
+	if (open == std::string::npos || close == std::string::npos) {
+		return xml;
+	}
+	return xml.substr(0, open + 1) + value + xml.substr(close);
+}
+
+// A level number that is present but not a number cannot place the level, exactly as a
+// missing one cannot. It costs the caller that level, not the slide.
+TEST_F(PhTiffImageDriverTests, readPHTMetadataSkipsALevelWhoseNumberIsNotANumber) {
+	const std::string xml = phSetAttributeValue(
+		MockPHTIFFSlide::createFakeXml(1024, 768, 2), LEVEL_NUMBER.Name, 1, "not a number");
+	const PHTMetadata metadata = readPHTMetadata(xml);
+	const PHTImageDeclaration* wsi = metadata.wholeSlideImage();
+	ASSERT_TRUE(wsi != nullptr);
+	EXPECT_EQ(1u, wsi->levels.size()) << "the level with the unreadable number is dropped";
+	EXPECT_EQ(0, wsi->levels[0].number);
+}
+
+// A size that will not parse costs the level its size, not its place in the pyramid: a
+// level with no declared size is already handled, by positional fallback.
+TEST_F(PhTiffImageDriverTests, readPHTMetadataKeepsALevelWhoseSizeIsNotANumber) {
+	const std::string xml = phSetAttributeValue(
+		MockPHTIFFSlide::createFakeXml(1024, 768, 2), LEVEL_COLUMNS.Name, 1, "");
+	const PHTMetadata metadata = readPHTMetadata(xml);
+	const PHTImageDeclaration* wsi = metadata.wholeSlideImage();
+	ASSERT_TRUE(wsi != nullptr);
+	ASSERT_EQ(2u, wsi->levels.size());
+	EXPECT_EQ(0, wsi->levels[1].declaredSize.width) << "unreadable size left at its default";
+	EXPECT_EQ(1, wsi->levels[1].number) << "the level itself survives";
+}
+
+// The same for the image's own dimensions.
+TEST_F(PhTiffImageDriverTests, readPHTMetadataKeepsAnImageWhoseSizeIsNotANumber) {
+	const std::string xml = phSetAttributeValue(
+		MockPHTIFFSlide::createFakeXml(1024, 768, 2), IMAGE_COLUMNS.Name, 0, "wide");
+	const PHTMetadata metadata = readPHTMetadata(xml);
+	const PHTImageDeclaration* wsi = metadata.wholeSlideImage();
+	ASSERT_TRUE(wsi != nullptr);
+	EXPECT_EQ(0, wsi->size.width) << "unreadable size left at its default";
+	EXPECT_EQ(WSI, wsi->type) << "the image itself survives";
+}
+
 TEST_F(PhTiffImageDriverTests, readPHTMetadataRaisesOnADescriptionItCannotParse) {
 	EXPECT_THROW(readPHTMetadata("this is not xml at all"), slideio::RuntimeError);
 }

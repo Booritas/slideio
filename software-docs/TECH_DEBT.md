@@ -221,20 +221,7 @@ synthetic case with a base that does not divide (base 4098 → level 1 content
 `dirs[index]` over `imagePyramid`'s range and reads `dirs.front()` with no size
 check; only its single caller guarantees that. One guard line.
 
-**5. A non-numeric attribute value still aborts the whole slide open.** *Half
-fixed.* The missing-attribute half is closed: `phReadLevels` in `phtmetadata.cpp`
-now checks `hasAttribute(level, LEVEL_NUMBER)` and skips the level with a warning,
-covered by `phExtractImagesSkipsAZoomLevelWithoutANumber`, and the same treatment
-was given to a scanned image with no `IMAGE_TYPE`.
-
-What remains is the other half, and it is broader than first recorded. Five reads
-in `phtmetadata.cpp` call `getAttributeInt` after only a presence check —
-`LEVEL_NUMBER`, `LEVEL_COLUMNS`, `LEVEL_ROWS`, `IMAGE_COLUMNS`, `IMAGE_ROWS` — and
-that function raises on a value that is present but not an integer. One such value
-anywhere in the document still costs the caller the whole slide, which is out of
-step with the warn-and-continue posture of everything around it. The fix is the
-same shape as the guards already there: read inside a `try`, warn, and leave the
-field at its default.
+**5. ~~A non-numeric attribute value still aborts the whole slide open.~~ Fixed** (`phReadInt` in `phtmetadata.cpp`).
 
 ### Structure and consistency
 
