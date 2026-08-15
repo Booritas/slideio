@@ -208,23 +208,23 @@ TEST(SVSImageDriver, findZoomDirectory)
     }
 
     std::string fake_path = TestTools::getTestImagePath("svs", "CMU-1-Small-Region.svs");
-    slideio::SVSTiledScene scene(fake_path, "fake_name", "fake", dirs);
+    auto scene = slideio::SVSTiledScene::create(fake_path, "fake_name", "fake", dirs);
     auto& lastDir = dirs[dirs.size()-1];
-    const cv::Rect sceneRect = scene.getRect();
+    const cv::Rect sceneRect = scene->getRect();
     double lastZoom = static_cast<double>(lastDir.width) / static_cast<double>(sceneRect.width);
 
-    EXPECT_EQ(scene.findZoomDirectory(2.).dirIndex, 0);
-    EXPECT_EQ(scene.findZoomDirectory(lastZoom).dirIndex, 9);
-    EXPECT_EQ(scene.findZoomDirectory(lastZoom*2).dirIndex, 8);
-    EXPECT_EQ(scene.findZoomDirectory(lastZoom/2).dirIndex, 9);
-    EXPECT_EQ(scene.findZoomDirectory(0.5).dirIndex, 1);
-    EXPECT_EQ(scene.findZoomDirectory(0.501).dirIndex, 1);
-    EXPECT_EQ(scene.findZoomDirectory(0.499).dirIndex, 1);
-    EXPECT_EQ(scene.findZoomDirectory(0.25).dirIndex, 2);
-    EXPECT_EQ(scene.findZoomDirectory(0.125).dirIndex, 3);
-    EXPECT_EQ(scene.findZoomDirectory(0.55).dirIndex, 0);
-    EXPECT_EQ(scene.findZoomDirectory(0.45).dirIndex, 1);
-    EXPECT_EQ(scene.findZoomDirectory(0.1).dirIndex, 3);
+    EXPECT_EQ(scene->findZoomDirectory(2.).dirIndex, 0);
+    EXPECT_EQ(scene->findZoomDirectory(lastZoom).dirIndex, 9);
+    EXPECT_EQ(scene->findZoomDirectory(lastZoom*2).dirIndex, 8);
+    EXPECT_EQ(scene->findZoomDirectory(lastZoom/2).dirIndex, 9);
+    EXPECT_EQ(scene->findZoomDirectory(0.5).dirIndex, 1);
+    EXPECT_EQ(scene->findZoomDirectory(0.501).dirIndex, 1);
+    EXPECT_EQ(scene->findZoomDirectory(0.499).dirIndex, 1);
+    EXPECT_EQ(scene->findZoomDirectory(0.25).dirIndex, 2);
+    EXPECT_EQ(scene->findZoomDirectory(0.125).dirIndex, 3);
+    EXPECT_EQ(scene->findZoomDirectory(0.55).dirIndex, 0);
+    EXPECT_EQ(scene->findZoomDirectory(0.45).dirIndex, 1);
+    EXPECT_EQ(scene->findZoomDirectory(0.1).dirIndex, 3);
 }
 
 TEST(SVSImageDriver, readBlock_WholeImage)

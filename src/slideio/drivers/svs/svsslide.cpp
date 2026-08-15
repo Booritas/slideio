@@ -425,7 +425,7 @@ void SVSSlide::initSVS(const std::vector<TiffDirectory>& directories, TIFFKeeper
             image_dirs.push_back(directories[index]);
         }
         // The classification above is done; the scene takes the handle from here.
-        std::shared_ptr<SVSTiledScene> tScene(new SVSTiledScene(m_filePath, getDriverId(), keeper.release(),"Image", image_dirs));
+        auto tScene = SVSTiledScene::create(m_filePath, getDriverId(), keeper.release(), "Image", image_dirs);
         tScene->setDriverId(m_driverId);
         std::shared_ptr<CVScene> scene(tScene);
         scenes.push_back(scene);
@@ -596,7 +596,7 @@ void SVSSlide::phCreateImageScene(const std::vector<TiffDirectory>& directories,
         image_dirs.push_back(directories[level.dirIndex]);
     }
     phCropLevelPadding(imagePyramid, image_dirs);
-    std::shared_ptr<SVSTiledScene> tScene(new SVSTiledScene(m_filePath, getDriverId(), hFile, "Image", image_dirs));
+    auto tScene = SVSTiledScene::create(m_filePath, getDriverId(), hFile, "Image", image_dirs);
     tScene->setDriverId(m_driverId);
     std::shared_ptr<CVScene> scene(tScene);
     m_Scenes.push_back(scene);

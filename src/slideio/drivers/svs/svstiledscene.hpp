@@ -17,7 +17,6 @@ namespace slideio
     class SLIDEIO_SVS_EXPORTS SVSTiledScene : public SVSScene, public Tiler
     {
     public:
-        void initialize();
         SVSTiledScene(const std::string& filePath,
                       const std::string& driverId,
                       const std::string& name,
@@ -26,6 +25,15 @@ namespace slideio
 			const std::string& driverId,
             libtiff::TIFF* hFile,
             const std::string& name,
+            const std::vector<slideio::TiffDirectory>& dirs);
+        // Constructs and initializes. A factory rather than a constructor call because
+        // initialize() reads the image description through a virtual method, and a
+        // virtual call made from a constructor does not reach a derived override.
+        static std::shared_ptr<SVSTiledScene> create(const std::string& filePath,
+            const std::string& driverId, const std::string& name,
+            const std::vector<slideio::TiffDirectory>& dirs);
+        static std::shared_ptr<SVSTiledScene> create(const std::string& filePath,
+            const std::string& driverId, libtiff::TIFF* hFile, const std::string& name,
             const std::vector<slideio::TiffDirectory>& dirs);
         int getNumChannels() const override;
         cv::Rect getRect() const override;
@@ -38,11 +46,11 @@ namespace slideio
         bool readTile(int tileIndex, const std::vector<int>& channelIndices, cv::OutputArray tileRaster,
             void* userData) override;
     protected:
+        void initialize();
         void processImageDescription();
         void processImageDescriptionSVS();
         void processImageDescriptionPhTiff();
         void initializeBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices, cv::OutputArray output) override;
-    private:
         std::vector<slideio::TiffDirectory> m_directories;
     };
 }

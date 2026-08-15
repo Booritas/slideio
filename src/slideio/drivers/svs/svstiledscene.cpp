@@ -26,14 +26,28 @@ using namespace slideio::phtiff;
 SVSTiledScene::SVSTiledScene(const std::string& filePath, const std::string& driverId, const std::string& name,
                              const std::vector<TiffDirectory>& dirs) : SVSScene(filePath, driverId, name),
                                                                        m_directories(dirs) {
-    initialize();
 }
 
 SVSTiledScene::SVSTiledScene(const std::string& filePath, const std::string& driverId, libtiff::TIFF* hFile,
                              const std::string& name,
                              const std::vector<slideio::TiffDirectory>& dirs) : SVSScene(filePath, driverId, hFile,
     name), m_directories(dirs) {
-    initialize();
+}
+
+std::shared_ptr<SVSTiledScene> SVSTiledScene::create(const std::string& filePath,
+    const std::string& driverId, const std::string& name,
+    const std::vector<slideio::TiffDirectory>& dirs) {
+    std::shared_ptr<SVSTiledScene> scene(new SVSTiledScene(filePath, driverId, name, dirs));
+    scene->initialize();
+    return scene;
+}
+
+std::shared_ptr<SVSTiledScene> SVSTiledScene::create(const std::string& filePath,
+    const std::string& driverId, libtiff::TIFF* hFile, const std::string& name,
+    const std::vector<slideio::TiffDirectory>& dirs) {
+    std::shared_ptr<SVSTiledScene> scene(new SVSTiledScene(filePath, driverId, hFile, name, dirs));
+    scene->initialize();
+    return scene;
 }
 
 void SVSTiledScene::processImageDescription() {
