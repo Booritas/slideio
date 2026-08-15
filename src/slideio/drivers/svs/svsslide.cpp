@@ -81,13 +81,22 @@ namespace
     std::vector<PHDeclaredLevel> phDeclaredLevels(slideio::PHTDescription& description) {
         std::vector<PHDeclaredLevel> levels;
         for (const tinyxml2::XMLElement* image :
-             description.getObjectList(description.getRoot(), slideio::SCANNED_IMAGE)) {
+             description.getObjectList(description.getRoot(), slideio::SCANNED_IMAGES, slideio::SCANNED_IMAGE)) {
             if (!description.hasAttribute(image, slideio::IMAGE_TYPE)
                 || description.getAttributeText(image, slideio::IMAGE_TYPE) != slideio::WSI) {
                 continue;
             }
             for (const tinyxml2::XMLElement* level :
-                 description.getObjectList(image, slideio::PIXEL_DATA_REPRESENTATION)) {
+                 description.getObjectList(image, slideio::LEVEL_SEQUENCE, slideio::PIXEL_DATA_REPRESENTATION)) {
+                // The level number is what says how much of the slide a level covers, so a
+                // level declared without one cannot be placed in the pyramid at all. It is
+                // dropped and the rest of the pyramid is kept, rather than the file being
+                // refused over one incomplete declaration.
+                if (!description.hasAttribute(level, slideio::LEVEL_NUMBER)) {
+                    SLIDEIO_LOG(WARNING) << "SVSSlide: a zoom level of the philips file declares"
+                        " no level number. The level is ignored.";
+                    continue;
+                }
                 PHDeclaredLevel declared;
                 declared.levelNumber = description.getAttributeInt(level, slideio::LEVEL_NUMBER);
                 if (description.hasAttribute(level, slideio::LEVEL_COLUMNS)
@@ -259,7 +268,7 @@ namespace
         }
         // Only the whole slide image has a pyramid; an auxiliary image gets no empty array.
         const std::vector<tinyxml2::XMLElement*> levels =
-            description.getObjectList(image, slideio::PIXEL_DATA_REPRESENTATION);
+            description.getObjectList(image, slideio::LEVEL_SEQUENCE, slideio::PIXEL_DATA_REPRESENTATION);
         if (!levels.empty()) {
             slideio::MetadataBuilder levelNodes = node["levels"];
             levelNodes.makeArray();
@@ -287,7 +296,7 @@ namespace
         phSetText(root, "interfaceVersion", philips, slide, slideio::UFS_INTERFACE_VERSION);
         phSetText(root, "barcode", philips, slide, slideio::UFS_BARCODE);
         const std::vector<tinyxml2::XMLElement*> images =
-            philips.getObjectList(slide, slideio::SCANNED_IMAGE);
+            philips.getObjectList(slide, slideio::SCANNED_IMAGES, slideio::SCANNED_IMAGE);
         if (!images.empty()) {
             slideio::MetadataBuilder imageNodes = root["images"];
             imageNodes.makeArray();
@@ -374,7 +383,7 @@ std::shared_ptr<CVScene> SVSSlide::getScene(int index) const
     return m_Scenes[index];
 }
 
-void SVSSlide::initSVS(const std::vector<TiffDirectory>& directories, libtiff::TIFF* hFile) {
+void SVSSlide::initSVS(const std::vector<TiffDirectory>& directories, TIFFKeeper& keeper) {
     std::vector<int> image;
     int thumbnail(-1), macro(-1), label(-1);
     image.push_back(0);
@@ -409,7 +418,8 @@ void SVSSlide::initSVS(const std::vector<TiffDirectory>& directories, libtiff::T
         for(const auto index: image){
             image_dirs.push_back(directories[index]);
         }
-        std::shared_ptr<SVSTiledScene> tScene(new SVSTiledScene(m_filePath, getDriverId(), hFile,"Image", image_dirs));
+        // The classification above is done; the scene takes the handle from here.
+        std::shared_ptr<SVSTiledScene> tScene(new SVSTiledScene(m_filePath, getDriverId(), keeper.release(),"Image", image_dirs));
         tScene->setDriverId(m_driverId);
         std::shared_ptr<CVScene> scene(tScene);
         scenes.push_back(scene);
@@ -600,11 +610,14 @@ void SVSSlide::phCreateAuxScenes(const std::vector<TiffDirectory>& directories,
     }
 }
 
-void SVSSlide::initPhTiff(const std::vector<TiffDirectory>& directories, libtiff::TIFF* hFile) {
+void SVSSlide::initPhTiff(const std::vector<TiffDirectory>& directories, TIFFKeeper& keeper) {
     std::vector<PHTLevel> imagePyramid;
 	std::map<std::string, int> auxImages;
+	// phExtractImages parses the philips xml and raises on a description it cannot read,
+	// which is the likeliest way an open fails. The keeper still owns the handle here, so
+	// that failure closes the file instead of leaking it.
 	phExtractImages(directories, imagePyramid, auxImages);
-	phCreateImageScene(directories, imagePyramid, hFile);
+	phCreateImageScene(directories, imagePyramid, keeper.release());
 	phCreateAuxScenes(directories, auxImages);
     // Philips stores the metadata of the whole slide in the description of tiff
     // directory 0. buildMetadataTree turns it into the metadata tree of the slide.
@@ -634,10 +647,10 @@ std::shared_ptr<SVSSlide> SVSSlide::openFile(const std::string& filePath, const 
     slide->setDriverId(driverId);
     slide->m_filePath = filePath;
     if (driverId == PHTIFF_DRIVER_ID) {
-        slide->initPhTiff(directories, keeper.release());
+        slide->initPhTiff(directories, keeper);
     }
 	else {
-        slide->initSVS(directories, keeper.release());
+        slide->initSVS(directories, keeper);
     }
 
     return slide;

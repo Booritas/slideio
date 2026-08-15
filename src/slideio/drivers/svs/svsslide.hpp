@@ -65,11 +65,15 @@ namespace slideio
         void log();
     protected:
         MetadataBuilder buildMetadataTree() const override;
-        void initSVS(const std::vector<TiffDirectory>& directories, libtiff::TIFF* hFile);
+        // The keeper owns the tiff handle until the scene that reads from it is created:
+        // everything before that point can throw, and a handle nobody owns is a handle
+        // nobody closes. Ownership is passed on with TIFFKeeper::release at the one place
+        // it is handed to a scene.
+        void initSVS(const std::vector<TiffDirectory>& directories, TIFFKeeper& keeper);
         static void phExtractImages(const std::vector<TiffDirectory>& directories, std::vector<PHTLevel>& imagePyramid, std::map<std::string, int>& auxImages);
         void phCreateImageScene(const std::vector<TiffDirectory>& directories, const std::vector<PHTLevel>& imagePyramid, libtiff::TIFF* tiff);
         void phCreateAuxScenes(const std::vector<TiffDirectory>& directories, const std::map<std::string, int>& auxImages);
-        void initPhTiff(const std::vector<TiffDirectory>& directories, libtiff::TIFF* hFile);
+        void initPhTiff(const std::vector<TiffDirectory>& directories, TIFFKeeper& keeper);
     private:
         std::vector<std::shared_ptr<slideio::CVScene>> m_Scenes;
         std::map<std::string, std::shared_ptr<slideio::CVScene>> m_auxImages;

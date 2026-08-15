@@ -34,7 +34,12 @@ namespace slideio
         // philips file from any other tiff, which the *.tif extension cannot do.
         static bool isPhilipsDescription(const std::string& description);
 
-        std::vector<tinyxml2::XMLElement*> getObjectList(const tinyxml2::XMLElement* parent, const std::string& name);
+        // The data objects of the given type held by the array of `arrayAttribute`, e.g.
+        // the DPScannedImage objects of PIM_DP_SCANNED_IMAGES. If the parent does not
+        // carry that attribute, every attribute of the parent is searched for an array
+        // instead, so a file that declares its objects elsewhere is still read.
+        std::vector<tinyxml2::XMLElement*> getObjectList(const tinyxml2::XMLElement* parent,
+            const Attribute& arrayAttribute, const std::string& name);
         int getAttributeInt(const tinyxml2::XMLElement* element, const Attribute& attribute);
         std::string getAttributeText(const tinyxml2::XMLElement* element, const Attribute& attribute);
         // The values of an IStringArray attribute, e.g. "1.6.6186" "20150402_R48" "4.0.3".

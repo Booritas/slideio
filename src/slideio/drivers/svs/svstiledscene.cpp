@@ -91,8 +91,18 @@ void SVSTiledScene::processImageDescriptionPhTiff() {
     //description.getDocument()->SaveFile(xmlPath.c_str());
 #endif
 
-    std::vector<tinyxml2::XMLElement*> images = description.getObjectList(description.getRoot(), SCANNED_IMAGE);
+    std::vector<tinyxml2::XMLElement*> images = description.getObjectList(description.getRoot(), SCANNED_IMAGES, SCANNED_IMAGE);
     for (const tinyxml2::XMLElement* image : images) {
+        // An image the metadata declares without naming its type cannot be classified,
+        // but it says nothing about the other images in the file. The order of the
+        // attributes varies between scanners and so does which of them are present, so
+        // an incomplete object is skipped rather than allowed to cost the caller the
+        // whole slide.
+        if (!description.hasAttribute(image, IMAGE_TYPE)) {
+            SLIDEIO_LOG(WARNING) << "SVSTiledScene: a scanned image of the philips file declares"
+                " no image type. The image is ignored.";
+            continue;
+        }
         const std::string imageType = description.getAttributeText(image, IMAGE_TYPE);
         if (imageType == WSI) {
             try {

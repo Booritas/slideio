@@ -6,9 +6,11 @@
 #include <algorithm>
 #include <cctype>
 #include <cstring>
+#include <locale>
 #include <sstream>
 
 #include "slideio/base/exceptions.hpp"
+#include "slideio/base/log.hpp"
 
 using namespace slideio;
 
@@ -80,6 +82,23 @@ namespace
         return nullptr;
     }
 
+    // Appends the data objects of the given type held by the <Array> of one <Attribute>.
+    void collectObjects(const tinyxml2::XMLElement* attribute, const std::string& name,
+                        std::vector<tinyxml2::XMLElement*>& objects) {
+        const tinyxml2::XMLElement* array = attribute->FirstChildElement(ARRAY_TAG);
+        if (array == nullptr) {
+            return;
+        }
+        for (const tinyxml2::XMLElement* object = array->FirstChildElement(DATA_OBJECT_TAG);
+             object != nullptr;
+             object = object->NextSiblingElement(DATA_OBJECT_TAG)) {
+            const char* objectType = object->Attribute(OBJECT_TYPE_PROPERTY);
+            if (objectType != nullptr && name == objectType) {
+                objects.push_back(const_cast<tinyxml2::XMLElement*>(object));
+            }
+        }
+    }
+
     const tinyxml2::XMLElement* getAttributeElement(const tinyxml2::XMLElement* element,
                                                     const PHTDescription::Attribute& attribute) {
         const tinyxml2::XMLElement* attributeElement = findAttribute(element, attribute);
@@ -142,26 +161,27 @@ tinyxml2::XMLElement* PHTDescription::getRoot() {
 // <DataObject><Attribute Name="..." PMSVR="IDataObjectArray"><Array>
 //     <DataObject ObjectType="..."/>...
 std::vector<tinyxml2::XMLElement*> PHTDescription::getObjectList(const tinyxml2::XMLElement* parent,
+                                                                 const Attribute& arrayAttribute,
                                                                  const std::string& name) {
     if (parent == nullptr) {
         RAISE_RUNTIME_ERROR << "PHTDescription: cannot retrieve objects '" << name << "' of an undefined parent.";
     }
     std::vector<tinyxml2::XMLElement*> objects;
+    const tinyxml2::XMLElement* declared = findAttribute(parent, arrayAttribute);
+    if (declared != nullptr) {
+        collectObjects(declared, name, objects);
+        return objects;
+    }
+    // The attribute that should hold the objects is not there. Rather than report the
+    // parent as empty, fall back to searching every attribute for an array: the declared
+    // lookup is an improvement on the search, not a new way to lose data.
+    SLIDEIO_LOG(WARNING) << "PHTDescription: the attribute " << arrayAttribute.Name
+        << " that should hold the '" << name << "' objects is not present."
+        " Every attribute of the parent is searched for them instead.";
     for (const tinyxml2::XMLElement* attribute = parent->FirstChildElement(ATTRIBUTE_TAG);
          attribute != nullptr;
          attribute = attribute->NextSiblingElement(ATTRIBUTE_TAG)) {
-        const tinyxml2::XMLElement* array = attribute->FirstChildElement(ARRAY_TAG);
-        if (array == nullptr) {
-            continue;
-        }
-        for (const tinyxml2::XMLElement* object = array->FirstChildElement(DATA_OBJECT_TAG);
-             object != nullptr;
-             object = object->NextSiblingElement(DATA_OBJECT_TAG)) {
-            const char* objectType = object->Attribute(OBJECT_TYPE_PROPERTY);
-            if (objectType != nullptr && name == objectType) {
-                objects.push_back(const_cast<tinyxml2::XMLElement*>(object));
-            }
-        }
+        collectObjects(attribute, name, objects);
     }
     return objects;
 }
@@ -231,6 +251,11 @@ std::vector<double> PHTDescription::getAttributeDoubleList(const tinyxml2::XMLEl
     std::string list(text);
     std::replace(list.begin(), list.end(), '"', ' ');
     std::istringstream stream(list);
+    // The value comes out of a file and must not be read through the locale the embedding
+    // application happens to have set: under a comma decimal locale the stream stops
+    // "0.00025" at the point, and the eof check below then rejects the whole value, so
+    // the slide does not open at all.
+    stream.imbue(std::locale::classic());
     double value = 0.;
     while (stream >> value) {
         values.push_back(value);

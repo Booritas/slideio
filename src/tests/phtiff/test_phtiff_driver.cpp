@@ -18,6 +18,8 @@
 #include "slideio/base/exceptions.hpp"
 #include <type_traits>
 #include <sstream>
+#include <locale>
+#include <filesystem>
 #include <iomanip>
 #include <cmath>
 
@@ -149,7 +151,11 @@ public:
 		phCreateAuxScenes(directories, auxImages);
 	}
 	void initPhTiffMock(const std::vector<TiffDirectory>& directories, libtiff::TIFF* hFile) {
-		initPhTiff(directories, hFile);
+		// initPhTiff takes ownership of the handle through the keeper, so the test gives
+		// it one to take. A null handle is what these tests pass: the scenes are built
+		// from the directories and nothing reads a raster.
+		TIFFKeeper keeper(hFile);
+		initPhTiff(directories, keeper);
 	}
 	// The metadata tree SVSSlide builds for a slide of the given driver carrying
 	// `rawMetadata`. Both members are protected in CVSlide, so setting them here needs
@@ -1102,6 +1108,83 @@ TEST_F(PhTiffImageDriverTests, initPhTiffMakesTheMetadataTreeAvailable) {
 	EXPECT_EQ(1024, phImageOfType(tree, WSI)["size"]["columns"].asInt());
 }
 
+// openFile creates the tiff handle and hands it to the scene that reads from it. If it
+// is handed over before the philips parse -- which is the step most likely to fail,
+// since it is the one that reads the file's own metadata -- then a failed open leaves
+// nobody owning the handle. The leak is observable: libtiff opens the file without
+// FILE_SHARE_DELETE, so a leaked handle keeps the file undeletable.
+TEST_F(PhTiffImageDriverTests, aFailedOpenDoesNotLeaveTheFileOpen) {
+	const std::string source = TestTools::getTestImagePath("svs", "CMU-1-Small-Region-page-1.tif");
+	const std::filesystem::path copy =
+		std::filesystem::temp_directory_path() / "phtiff-failed-open-leak-check.tif";
+	std::error_code ignored;
+	std::filesystem::remove(copy, ignored);
+	ASSERT_NO_THROW(std::filesystem::copy_file(source, copy));
+
+	// The description of this file is aperio text, not philips xml, so the philips parse
+	// raises and the open never reaches a scene that could take the handle.
+	EXPECT_THROW(SVSSlide::openFile(copy.string(), PHTIFF_DRIVER_ID), slideio::RuntimeError);
+
+	std::error_code error;
+	const bool removed = std::filesystem::remove(copy, error);
+	EXPECT_TRUE(removed) << "the file could not be deleted, so the tiff handle is still open: "
+		<< error.message();
+	std::filesystem::remove(copy, ignored);
+}
+
+// Removes the `occurrence`-th (0 based) <Attribute> element with the given name from
+// the metadata, producing the description of a file whose scanner left that attribute
+// out. Philips files do vary in which attributes they carry, and the objects a file
+// does declare are not all complete.
+static std::string phRemoveAttribute(const std::string& xml, const std::string& name, int occurrence) {
+	const std::string needle = "Name=\"" + name + "\"";
+	size_t position = 0;
+	for (int found = 0; found <= occurrence; ++found) {
+		position = xml.find(needle, (found == 0) ? 0 : position + needle.size());
+		if (position == std::string::npos) {
+			return xml;
+		}
+	}
+	const size_t lineBegin = xml.rfind('\n', position);
+	const size_t lineEnd = xml.find('\n', position);
+	if (lineBegin == std::string::npos || lineEnd == std::string::npos) {
+		return xml;
+	}
+	return xml.substr(0, lineBegin) + xml.substr(lineEnd);
+}
+
+// A scanned image the metadata declares without naming its type cannot be classified,
+// but it says nothing about the other images in the file. Skipping it costs the caller
+// nothing; raising costs the caller the slide.
+TEST_F(PhTiffImageDriverTests, imageSceneSkipsAScannedImageWithoutAType) {
+	const std::string xml = phRemoveAttribute(
+		MockSVSSlide::createFakeXml(1024, 768, 2, {"MACROIMAGE"}), IMAGE_TYPE.Name, 1);
+	MockSVSSlide slide;
+	slide.setDriverId(PHTIFF_DRIVER_ID);
+	slide.initPhTiffMock(phFakePyramid(xml, 1024, 768), nullptr);
+
+	auto scene = slide.getScene(0);
+	ASSERT_TRUE(scene != nullptr);
+	// The whole slide image is still described, so its resolution still arrives.
+	EXPECT_DOUBLE_EQ(phDefaults::PIXEL_SPACING * 1.e-3, scene->getResolution().x);
+}
+
+// A zoom level the metadata declares without a level number cannot be placed in the
+// pyramid: the level number is what says how much of the slide the level covers. The
+// level is dropped and the rest of the pyramid is kept.
+TEST_F(PhTiffImageDriverTests, phExtractImagesSkipsAZoomLevelWithoutANumber) {
+	const std::string xml = phRemoveAttribute(
+		MockSVSSlide::createFakeXml(1024, 768, 2), LEVEL_NUMBER.Name, 1);
+	MockSVSSlide slide;
+	slide.setDriverId(PHTIFF_DRIVER_ID);
+	slide.initPhTiffMock(phFakePyramid(xml, 1024, 768), nullptr);
+
+	auto scene = slide.getScene(0);
+	ASSERT_TRUE(scene != nullptr);
+	EXPECT_EQ(1, scene->getNumZoomLevels()) << "the level without a number is dropped";
+	EXPECT_EQ(1024, scene->getRect().width);
+}
+
 // Philips names the magnification of every zoom level but the base, whose directory
 // carries the xml metadata instead. The scene takes the magnification of the slide
 // from the first level that names one, scaled back up to the base.
@@ -1373,7 +1456,7 @@ protected:
 	}
 	// The single WSI image of phSampleXML.
 	static const tinyxml2::XMLElement* wsiImage(PHTDescription& description) {
-		for (const tinyxml2::XMLElement* image : description.getObjectList(description.getRoot(), SCANNED_IMAGE)) {
+		for (const tinyxml2::XMLElement* image : description.getObjectList(description.getRoot(), SCANNED_IMAGES, SCANNED_IMAGE)) {
 			if (description.getAttributeText(image, IMAGE_TYPE) == WSI) {
 				return image;
 			}
@@ -1407,7 +1490,7 @@ TEST_F(PHTDescriptionTests, getRootReturnsTheSameElement) {
 TEST_F(PHTDescriptionTests, getObjectListReturnsScannedImagesInDocumentOrder) {
 	PHTDescription description(phSampleXML);
 	const std::vector<tinyxml2::XMLElement*> images =
-		description.getObjectList(description.getRoot(), SCANNED_IMAGE);
+		description.getObjectList(description.getRoot(), SCANNED_IMAGES, SCANNED_IMAGE);
 	ASSERT_EQ(3u, images.size());
 	EXPECT_EQ(WSI, description.getAttributeText(images[0], IMAGE_TYPE));
 	EXPECT_EQ("LABELIMAGE", description.getAttributeText(images[1], IMAGE_TYPE));
@@ -1419,7 +1502,7 @@ TEST_F(PHTDescriptionTests, getObjectListReturnsZoomLevels) {
 	const tinyxml2::XMLElement* image = wsiImage(description);
 	ASSERT_TRUE(image != nullptr);
 	const std::vector<tinyxml2::XMLElement*> levels =
-		description.getObjectList(image, PIXEL_DATA_REPRESENTATION);
+		description.getObjectList(image, LEVEL_SEQUENCE, PIXEL_DATA_REPRESENTATION);
 	ASSERT_EQ(2u, levels.size());
 	EXPECT_EQ(0, description.getAttributeInt(levels[0], LEVEL_NUMBER));
 	EXPECT_EQ(91136, description.getAttributeInt(levels[0], LEVEL_COLUMNS));
@@ -1431,22 +1514,75 @@ TEST_F(PHTDescriptionTests, getObjectListReturnsZoomLevels) {
 
 TEST_F(PHTDescriptionTests, getObjectListReturnsEmptyListForUnknownObjectType) {
 	PHTDescription description(phSampleXML);
-	EXPECT_TRUE(description.getObjectList(description.getRoot(), "NoSuchObject").empty());
+	EXPECT_TRUE(description.getObjectList(description.getRoot(), SCANNED_IMAGES, "NoSuchObject").empty());
 }
 
 // The search does not descend into nested objects: zoom levels belong to the
 // scanned image, not to the root.
 TEST_F(PHTDescriptionTests, getObjectListDoesNotSearchNestedObjects) {
 	PHTDescription description(phSampleXML);
-	EXPECT_TRUE(description.getObjectList(description.getRoot(), PIXEL_DATA_REPRESENTATION).empty());
+	EXPECT_TRUE(description.getObjectList(description.getRoot(), LEVEL_SEQUENCE, PIXEL_DATA_REPRESENTATION).empty());
 	const tinyxml2::XMLElement* image = wsiImage(description);
 	ASSERT_TRUE(image != nullptr);
-	EXPECT_TRUE(description.getObjectList(image, SCANNED_IMAGE).empty());
+	EXPECT_TRUE(description.getObjectList(image, SCANNED_IMAGES, SCANNED_IMAGE).empty());
 }
 
 TEST_F(PHTDescriptionTests, getObjectListThrowsOnNullParent) {
 	PHTDescription description(phSampleXML);
-	EXPECT_THROW(description.getObjectList(nullptr, SCANNED_IMAGE), slideio::RuntimeError);
+	EXPECT_THROW(description.getObjectList(nullptr, SCANNED_IMAGES, SCANNED_IMAGE), slideio::RuntimeError);
+}
+
+// Two arrays of the same object type under different attributes. The scanned images of
+// a philips file are the ones its PIM_DP_SCANNED_IMAGES attribute declares; objects of
+// the same type held by another attribute belong to that attribute, not to this one.
+static const std::string phTwoArraysXML = R"xml(<?xml version="1.0" encoding="UTF-8" ?>
+<DataObject ObjectType="DPUfsImport">
+    <Attribute Name="PIM_DP_SCANNED_IMAGES" Group="0x301D" Element="0x1003" PMSVR="IDataObjectArray">
+        <Array>
+            <DataObject ObjectType="DPScannedImage">
+                <Attribute Name="PIM_DP_IMAGE_TYPE" Group="0x301D" Element="0x1004" PMSVR="IString">WSI</Attribute>
+            </DataObject>
+        </Array>
+    </Attribute>
+    <Attribute Name="PIM_DP_OTHER_IMAGES" Group="0x301D" Element="0x9999" PMSVR="IDataObjectArray">
+        <Array>
+            <DataObject ObjectType="DPScannedImage">
+                <Attribute Name="PIM_DP_IMAGE_TYPE" Group="0x301D" Element="0x1004" PMSVR="IString">DECOY</Attribute>
+            </DataObject>
+        </Array>
+    </Attribute>
+</DataObject>)xml";
+
+// The same file with the declared attribute missing: the objects are only reachable by
+// scanning every attribute for an array.
+static const std::string phUndeclaredArrayXML = R"xml(<?xml version="1.0" encoding="UTF-8" ?>
+<DataObject ObjectType="DPUfsImport">
+    <Attribute Name="PIM_DP_OTHER_IMAGES" Group="0x301D" Element="0x9999" PMSVR="IDataObjectArray">
+        <Array>
+            <DataObject ObjectType="DPScannedImage">
+                <Attribute Name="PIM_DP_IMAGE_TYPE" Group="0x301D" Element="0x1004" PMSVR="IString">DECOY</Attribute>
+            </DataObject>
+        </Array>
+    </Attribute>
+</DataObject>)xml";
+
+TEST_F(PHTDescriptionTests, getObjectListReadsTheArrayOfTheDeclaredAttribute) {
+	PHTDescription description(phTwoArraysXML);
+	const std::vector<tinyxml2::XMLElement*> images =
+		description.getObjectList(description.getRoot(), SCANNED_IMAGES, SCANNED_IMAGE);
+	ASSERT_EQ(1u, images.size());
+	EXPECT_EQ(WSI, description.getAttributeText(images[0], IMAGE_TYPE));
+}
+
+// A file that holds its objects under an attribute this code does not know is still
+// read rather than reported empty: the precise lookup is an improvement on the scan,
+// not a new way to lose data.
+TEST_F(PHTDescriptionTests, getObjectListFallsBackToScanningWhenTheAttributeIsAbsent) {
+	PHTDescription description(phUndeclaredArrayXML);
+	const std::vector<tinyxml2::XMLElement*> images =
+		description.getObjectList(description.getRoot(), SCANNED_IMAGES, SCANNED_IMAGE);
+	ASSERT_EQ(1u, images.size());
+	EXPECT_EQ("DECOY", description.getAttributeText(images[0], IMAGE_TYPE));
 }
 
 TEST_F(PHTDescriptionTests, getAttributeTextReadsStringValues) {
@@ -1485,6 +1621,43 @@ TEST_F(PHTDescriptionTests, getAttributeIntThrowsOnMissingAttribute) {
 	EXPECT_THROW(description.getAttributeInt(description.getRoot(), IMAGE_COLUMNS), slideio::RuntimeError);
 }
 
+// The pixel spacing is read from a file and must not depend on the locale the
+// embedding application happens to have set. Under a comma decimal locale a stream
+// honouring the global locale stops "0.00025" at the point, leaving the rest of the
+// value unread -- which the eof check then reports as a malformed value, so the slide
+// does not open at all.
+TEST_F(PHTDescriptionTests, getAttributeDoubleListIsIndependentOfTheHostLocale) {
+	const std::locale original = std::locale();
+	bool imbued = false;
+	for (const char* name : {"de-DE", "de_DE.UTF-8", "German_Germany.1252"}) {
+		try {
+			std::locale::global(std::locale(name));
+			imbued = true;
+			break;
+		}
+		catch (const std::runtime_error&) {
+		}
+	}
+	if (!imbued) {
+		GTEST_SKIP() << "No comma decimal locale is installed on this machine";
+	}
+	std::vector<double> spacing;
+	try {
+		PHTDescription description(phSampleXML);
+		const tinyxml2::XMLElement* image = wsiImage(description);
+		ASSERT_TRUE(image != nullptr);
+		spacing = description.getAttributeDoubleList(image, IMAGE_RESOLUTION);
+	}
+	catch (...) {
+		std::locale::global(original);
+		throw;
+	}
+	std::locale::global(original);
+	ASSERT_EQ(2u, spacing.size());
+	EXPECT_DOUBLE_EQ(0.00025, spacing[0]);
+	EXPECT_DOUBLE_EQ(0.00026, spacing[1]);
+}
+
 TEST_F(PHTDescriptionTests, getAttributeDoubleListReadsQuotedValues) {
 	PHTDescription description(phSampleXML);
 	const tinyxml2::XMLElement* image = wsiImage(description);
@@ -1501,7 +1674,7 @@ TEST_F(PHTDescriptionTests, getAttributeDoubleListReadsTripletsAndNegativeValues
 	const tinyxml2::XMLElement* image = wsiImage(description);
 	ASSERT_TRUE(image != nullptr);
 	const std::vector<tinyxml2::XMLElement*> levels =
-		description.getObjectList(image, PIXEL_DATA_REPRESENTATION);
+		description.getObjectList(image, LEVEL_SEQUENCE, PIXEL_DATA_REPRESENTATION);
 	ASSERT_EQ(2u, levels.size());
 	const std::vector<double> position = description.getAttributeDoubleList(levels[0], LEVEL_POSITION);
 	ASSERT_EQ(3u, position.size());
@@ -1573,7 +1746,7 @@ TEST_F(PHTDescriptionTests, hasAttributeDetectsPresenceAndAbsence) {
 	EXPECT_FALSE(description.hasAttribute(description.getRoot(), UFS_BARCODE));
 
 	const std::vector<tinyxml2::XMLElement*> images =
-		description.getObjectList(description.getRoot(), SCANNED_IMAGE);
+		description.getObjectList(description.getRoot(), SCANNED_IMAGES, SCANNED_IMAGE);
 	ASSERT_EQ(3u, images.size());
 	EXPECT_FALSE(description.hasAttribute(images[0], IMAGE_DATA));   // WSI: pixels live in the tiff
 	EXPECT_TRUE(description.hasAttribute(images[1], IMAGE_DATA));    // label: embedded jpeg
@@ -1604,7 +1777,7 @@ TEST_F(PHTDescriptionTests, attributeLookupIgnoresHexIdCase) {
 	const tinyxml2::XMLElement* image = wsiImage(description);
 	ASSERT_TRUE(image != nullptr);
 	const std::vector<tinyxml2::XMLElement*> levels =
-		description.getObjectList(image, PIXEL_DATA_REPRESENTATION);
+		description.getObjectList(image, LEVEL_SEQUENCE, PIXEL_DATA_REPRESENTATION);
 	ASSERT_FALSE(levels.empty());
 	EXPECT_TRUE(description.hasAttribute(levels[0], LEVEL_COLUMNS));
 	EXPECT_EQ(91136, description.getAttributeInt(levels[0], LEVEL_COLUMNS));
@@ -1616,7 +1789,7 @@ TEST_F(PHTDescriptionTests, emptyAttributeElementsAreIgnored) {
 	PHTDescription description("<DataObject ObjectType=\"DPUfsImport\"><Attribute/><Attribute/></DataObject>");
 	EXPECT_FALSE(description.hasAttribute(description.getRoot(), MANUFACTURER));
 	EXPECT_THROW(description.getAttributeText(description.getRoot(), MANUFACTURER), slideio::RuntimeError);
-	EXPECT_TRUE(description.getObjectList(description.getRoot(), SCANNED_IMAGE).empty());
+	EXPECT_TRUE(description.getObjectList(description.getRoot(), SCANNED_IMAGES, SCANNED_IMAGE).empty());
 }
 
 TEST_F(PHTDescriptionTests, isNotCopyableButMovable) {
@@ -1634,7 +1807,7 @@ TEST_F(PHTDescriptionTests, moveKeepsTheDocumentUsable) {
 	PHTDescription source(phSampleXML);
 	PHTDescription moved(std::move(source));
 	EXPECT_EQ("PHILIPS", moved.getAttributeText(moved.getRoot(), MANUFACTURER));
-	EXPECT_EQ(3u, moved.getObjectList(moved.getRoot(), SCANNED_IMAGE).size());
+	EXPECT_EQ(3u, moved.getObjectList(moved.getRoot(), SCANNED_IMAGES, SCANNED_IMAGE).size());
 
 	PHTDescription assigned("<DataObject ObjectType=\"DPUfsImport\"/>");
 	assigned = std::move(moved);
@@ -1657,7 +1830,7 @@ TEST_F(PHTDescriptionTests, createFakeXmlDefaultsDescribeAWholeSlideImage) {
 	EXPECT_EQ("5.0", description.getAttributeText(description.getRoot(), UFS_INTERFACE_VERSION));
 
 	const std::vector<tinyxml2::XMLElement*> images =
-		description.getObjectList(description.getRoot(), SCANNED_IMAGE);
+		description.getObjectList(description.getRoot(), SCANNED_IMAGES, SCANNED_IMAGE);
 	ASSERT_EQ(1u, images.size());
 	EXPECT_EQ(WSI, description.getAttributeText(images[0], IMAGE_TYPE));
 	EXPECT_EQ(91136, description.getAttributeInt(images[0], IMAGE_COLUMNS));
@@ -1666,17 +1839,17 @@ TEST_F(PHTDescriptionTests, createFakeXmlDefaultsDescribeAWholeSlideImage) {
 	EXPECT_EQ(8, description.getAttributeInt(images[0], BITS_ALLOCATED));
 	EXPECT_EQ(7, description.getAttributeInt(images[0], HIGH_BIT));
 	EXPECT_EQ("RGB", description.getAttributeText(images[0], PHOTOMETRIC_INTERPRETATION));
-	EXPECT_EQ(9u, description.getObjectList(images[0], PIXEL_DATA_REPRESENTATION).size());
+	EXPECT_EQ(9u, description.getObjectList(images[0], LEVEL_SEQUENCE, PIXEL_DATA_REPRESENTATION).size());
 }
 
 // Every level halves the size of the previous one and doubles its pixel spacing.
 TEST_F(PHTDescriptionTests, createFakeXmlBuildsTheRequestedPyramid) {
 	PHTDescription description(MockSVSSlide::createFakeXml(1024, 512, 3));
 	const std::vector<tinyxml2::XMLElement*> images =
-		description.getObjectList(description.getRoot(), SCANNED_IMAGE);
+		description.getObjectList(description.getRoot(), SCANNED_IMAGES, SCANNED_IMAGE);
 	ASSERT_EQ(1u, images.size());
 	const std::vector<tinyxml2::XMLElement*> levels =
-		description.getObjectList(images[0], PIXEL_DATA_REPRESENTATION);
+		description.getObjectList(images[0], LEVEL_SEQUENCE, PIXEL_DATA_REPRESENTATION);
 	ASSERT_EQ(3u, levels.size());
 
 	const int widths[] = { 1024, 512, 256 };
@@ -1698,7 +1871,7 @@ TEST_F(PHTDescriptionTests, createFakeXmlBuildsTheRequestedPyramid) {
 TEST_F(PHTDescriptionTests, createFakeXmlAppendsAuxiliaryImages) {
 	PHTDescription description(MockSVSSlide::createFakeXml(1024, 1024, 2, { "LABELIMAGE", "MACROIMAGE" }));
 	const std::vector<tinyxml2::XMLElement*> images =
-		description.getObjectList(description.getRoot(), SCANNED_IMAGE);
+		description.getObjectList(description.getRoot(), SCANNED_IMAGES, SCANNED_IMAGE);
 	ASSERT_EQ(3u, images.size());
 	EXPECT_EQ(WSI, description.getAttributeText(images[0], IMAGE_TYPE));
 	EXPECT_FALSE(description.hasAttribute(images[0], IMAGE_DATA));
@@ -1706,7 +1879,7 @@ TEST_F(PHTDescriptionTests, createFakeXmlAppendsAuxiliaryImages) {
 	EXPECT_EQ("LABELIMAGE", description.getAttributeText(images[1], IMAGE_TYPE));
 	EXPECT_TRUE(description.hasAttribute(images[1], IMAGE_DATA));
 	EXPECT_FALSE(description.getAttributeText(images[1], IMAGE_DATA).empty());
-	EXPECT_TRUE(description.getObjectList(images[1], PIXEL_DATA_REPRESENTATION).empty());
+	EXPECT_TRUE(description.getObjectList(images[1], LEVEL_SEQUENCE, PIXEL_DATA_REPRESENTATION).empty());
 
 	EXPECT_EQ("MACROIMAGE", description.getAttributeText(images[2], IMAGE_TYPE));
 	EXPECT_TRUE(description.hasAttribute(images[2], IMAGE_DATA));
@@ -1716,9 +1889,9 @@ TEST_F(PHTDescriptionTests, createFakeXmlAppendsAuxiliaryImages) {
 TEST_F(PHTDescriptionTests, createFakeXmlSupportsAnEmptyPyramid) {
 	PHTDescription description(MockSVSSlide::createFakeXml(256, 256, 0));
 	const std::vector<tinyxml2::XMLElement*> images =
-		description.getObjectList(description.getRoot(), SCANNED_IMAGE);
+		description.getObjectList(description.getRoot(), SCANNED_IMAGES, SCANNED_IMAGE);
 	ASSERT_EQ(1u, images.size());
-	EXPECT_TRUE(description.getObjectList(images[0], PIXEL_DATA_REPRESENTATION).empty());
+	EXPECT_TRUE(description.getObjectList(images[0], LEVEL_SEQUENCE, PIXEL_DATA_REPRESENTATION).empty());
 	EXPECT_EQ(256, description.getAttributeInt(images[0], IMAGE_COLUMNS));
 }
 
@@ -1726,10 +1899,10 @@ TEST_F(PHTDescriptionTests, createFakeXmlSupportsAnEmptyPyramid) {
 TEST_F(PHTDescriptionTests, createFakeXmlClampsLevelSizeToOnePixel) {
 	PHTDescription description(MockSVSSlide::createFakeXml(4, 2, 5));
 	const std::vector<tinyxml2::XMLElement*> images =
-		description.getObjectList(description.getRoot(), SCANNED_IMAGE);
+		description.getObjectList(description.getRoot(), SCANNED_IMAGES, SCANNED_IMAGE);
 	ASSERT_EQ(1u, images.size());
 	const std::vector<tinyxml2::XMLElement*> levels =
-		description.getObjectList(images[0], PIXEL_DATA_REPRESENTATION);
+		description.getObjectList(images[0], LEVEL_SEQUENCE, PIXEL_DATA_REPRESENTATION);
 	ASSERT_EQ(5u, levels.size());
 	EXPECT_EQ(1, description.getAttributeInt(levels[4], LEVEL_COLUMNS));
 	EXPECT_EQ(1, description.getAttributeInt(levels[4], LEVEL_ROWS));
