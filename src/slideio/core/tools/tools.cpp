@@ -17,7 +17,6 @@
 #include <string>
 #include <stdexcept>
 #include <cctype>
-#include <tinyxml2.h>
 #include <unicode/unistr.h>
 //#include <arpa/inet.h>
 

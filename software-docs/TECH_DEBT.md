@@ -161,147 +161,19 @@ close function).
 
 ## 2. Philips TIFF driver follow-ups
 
-**Files:** `src/slideio/drivers/svs/phtiffslide.cpp`, `phtmetadata.cpp`,
-`phtiffscene.cpp`, `svsslide.cpp`, `src/slideio/core/tools/tools.cpp`,
-`src/tests/phtiff/test_phtiff_driver.cpp`
-**Related:** `software-docs/specs/2026-08-11-phtiff-format-detection-design.md`,
-`software-docs/specs/2026-08-15-phtiff-driver-refactor-design.md`
-**Status:** Open — raised by the whole-branch review of the v2.9.0 Philips work
-(commits `36a0df2f`..`b4ad5b48`), triaged as non-blocking and deliberately not fixed.
-Re-verified against the tree at `799ac01a`; see the note below on what has and has
-not changed since.
-
-### Context
-
-Four defects in the Philips TIFF support were fixed on v2.9.0: zoom level tile
-padding, auxiliary image identity, absent format detection, and a driver that
-claimed every `*.tif`. The review that gated the branch raised no Critical
-findings and its three Important findings were fixed. The items below are what it
-left on the table, recorded here so the analysis is not re-done.
-
-**Since then** (commits `90462c0e`..`799ac01a`) the Philips work continued along a
-different list — the driver review's findings 5 and 6, its robustness section, and
-the driver refactor. That effort touched the same files without being aimed at this
-list, so only item 5 below is affected, and only in half. The code moved: everything
-Philips now lives in `phtiffslide.cpp`, `phtmetadata.cpp` and `phtiffscene.cpp`
-rather than in `svsslide.cpp` and `svstiledscene.cpp`, and the file references in
-the items below have been updated to match. Line-number references have been
-dropped rather than re-derived, because they will drift again.
-
-### Correctness hardening (highest value first)
-
-**1. ~~The tile-count invariant is relied on but never asserted.~~ Fixed** (guard
-added in `phCropLevelPadding`, `phtiffslide.cpp`).
-~~`phCropLevelPadding` shrinks a level directory to its content size. That is only
-safe because `ceil(content/tile) == stored/tile` — true for all 35 levels of the
-four Philips test files, and a consequence of Philips padding each level to its
-own tile grid, but nothing checks it. A violation would skew tile indices
-silently: wrong pixels, no error. A guard next to the existing
-`contentSize > dir` check ("if the tile count would change, warn and do not
-crop") turns the worst case into a visible degradation. Cheap insurance on a
-clinical read path.~~
-
-**2. ~~Size matching can still bind the wrong level, in one narrow case.~~ Fixed**
-(`SVSTools::extractPhilipsLevelNumber`, `svstools.hpp`/`svstools.cpp`; the two-pass
-match in `PHTIFFSlide::extractImages`, `phtiffslide.cpp`;
-`phExtractImages_sameSizedInterloperDoesNotClaimADeclaredLevel`,
-`test_phtiff_driver.cpp`).
-~~Levels are matched to directories by declared size. If an *undeclared* tiled
-directory happens to have the exact pixel dimensions of one of two
-identically-sized declared levels, and sits between their real directories in
-file order, the interloper can claim the declared level (marked corroborated, so
-it gets cropped) and the real directory is dropped. Requires a coincidental size
-collision on top of an interloper; the pre-fix positional code mishandled the
-same input differently. A focused test would pin it:
-`phExtractImages_sameSizedInterloperBetweenTiedLevelsBindsWrongDirectory`.~~
-A level directory names its own level number in its description
-(`"level=1 mag=20 quality=80"`), a stronger key than size. `extractImages` now
-pairs directories to declared levels by that name first, falling back to the
-existing size match only for what is still unpaired (which is how the base
-level, whose directory carries the xml metadata and names no level, is still
-placed).
-
-**3. ~~The rounding rule in `phLevelContentSize` is never exercised.~~ Fixed**
-(`phCreateImageScene_roundsAContentSizeUpNotDown`, `test_phtiff_driver.cpp`, plus
-an extended comment on `phLevelContentSize`, `phtiffslide.cpp`).
-~~Every real base size is a multiple of the 512 tile grid, so `base / 2^level`
-divides exactly for all levels ≤ 9 and the `ceil` never rounds — on real files or
-in the synthetic tests. `ceil` versus floor is therefore an untested decision. One
-synthetic case with a base that does not divide (base 4098 → level 1 content
-2049) plus a comment on why rounding up is right would settle it.~~
-(The base actually used is 4099, not 4098: 4098 divides evenly by 2, so it would
-not have distinguished `ceil` from `floor` at level 1 at all -- confirmed by
-building the `floor` mutation in isolation and watching the test pass at 2049
-either way. An intermediate choice of 4097 diverges `ceil`/`floor` (2049 vs 2048)
-but the floor-mutated content (2048) lands in a different tile bucket than the
-stored 2560 at 512-pixel tiles, so Task 2's tile-count guard refuses the crop and
-the test fails at 2560 -- correct, but via the guard rather than the rounding.
-4099 avoids that: `ceil(4099/2)=2050` and `floor(4099/2)=2049` both land in the
-same 5-tile bucket as stored 2560, so the guard permits the crop either way and
-the assertion diverges on the rounding alone.)
-
-**4. ~~`phCropLevelPadding` trusts its two arguments to be parallel.~~ Fixed** (guard
-added in `phCropLevelPadding`, `phtiffslide.cpp`).
-~~It indexes `dirs[index]` over `imagePyramid`'s range and reads `dirs.front()` with
-no size check; only its single caller guarantees that. One guard line.~~
-
-**5. ~~A non-numeric attribute value still aborts the whole slide open.~~ Fixed** (`phReadInt` in `phtmetadata.cpp`).
-
-### Structure and consistency
-
-**6. ~~`Tools::isXml` is dead production code.~~ Fixed** (removed from
-`tools.hpp`, `tools.cpp`, and `test_tools.cpp`).
-~~Added by `391ed0e3` for this work, then deliberately bypassed by
-`PHTDescription::isPhilipsDescription` for a documented performance reason (a
-single parse instead of two over descriptions that reach 844 KB). It has no
-caller outside its own unit test: either use it or remove it.~~
-Removed rather than adopted: the reason it went unused is structural (the
-second parse it would require is what `isPhilipsDescription` was written to
-avoid), not incidental. `Tools` is `SLIDEIO_CORE_EXPORTS`, so this is a public
-API removal; nothing in this repository referenced it, but the Python bindings
-live in a separate repository that could not be checked from here.
-
-**7. ~~Layering points the wrong way.~~ Fixed** (new `svsdriverids.hpp`;
-`svsimagedriver.hpp`, `phtiffslide.cpp`, `phtiffscene.cpp`, `svsslide.cpp`).
-~~The format's data classes depend on the driver class purely to name a driver id.
-The refactor moved the problem rather than removing it: `svstiledscene.cpp` no
-longer includes `svsimagedriver.hpp`, but `phtiffslide.cpp` and `phtiffscene.cpp`
-now do, each for `PHTIFF_DRIVER_ID` alone. A three-line `svsdriverids.hpp`, or the
-ids in `svstools.hpp`, would keep the dependency pointing down.~~
-
-~~Separately, `svsslide.cpp`'s include of `svsimagedriver.hpp` is now entirely dead —
-that file references neither id nor the driver class since the refactor — so that
-one is a straight deletion rather than a re-layering.~~
-`SVS_DRIVER_ID` and `PHTIFF_DRIVER_ID` now live in `svsdriverids.hpp`;
-`svsimagedriver.hpp` includes it instead of declaring them, `phtiffslide.cpp` and
-`phtiffscene.cpp` include it instead of `svsimagedriver.hpp`, and `svsslide.cpp`'s
-dead include of `svsimagedriver.hpp` is deleted. Both ids keep their string values.
-
-**8. ~~`TIFFKeeper`'s handler swap is global and not order-safe.~~ Fixed**
-(documented above the class in `tiffkeeper.hpp`).
-~~Both constructors swap libtiff's process-global error/warning handlers for the
-keeper's lifetime. With overlapping, non-LIFO keeper lifetimes a destructor can
-restore a handler while another keeper is still alive, routing later libtiff
-messages to stderr. No dangling-pointer risk (both handlers are static
-functions), and the `TIFF*` constructor has always behaved this way, so this
-did not create the pattern. Worth a line in the header. See also item 1 of this
-document.~~
-No behaviour change; the header now states the swap, the non-LIFO hazard, and
-the lost-log-routing-not-a-crash consequence.
-
-**9. ~~Test consistency.~~ Fixed** (`test_phtiff_driver.cpp`).
-~~Eight places in `test_phtiff_driver.cpp` hardcode `"PHTIFF"` where
-`PHTIFF_DRIVER_ID` names it — seven `openSlide` calls plus one that
-deliberately asserts the literal id string and should stay literal, since a
-test that the public id is `"PHTIFF"` must not be written in terms of the
-constant it is checking. Accept-side detection coverage is also still one
-file: adding the other three Philips files to the accept assertions would pin
-that the predicate does not depend on the XML prolog, which Philips-4
-omits.~~
-The seven `openSlide` calls and the one `findDriver` pair now use
-`PHTIFF_DRIVER_ID`; the `getID()` literal assertion is untouched.
-`canOpenFileByContent` now loops over all four Philips files on the accept
-side; the reject-side assertions are unchanged.
+**Status:** Closed. All nine items raised by the whole-branch review of the
+v2.9.0 Philips work were fixed across commits `75a48f65..a9f179aa`: the
+tile-count and parallel-arrays guards in `phCropLevelPadding`; the
+level-number-based directory matching in `extractImages` that replaces size-only
+matching; the rounding test for `phLevelContentSize`; tolerance for a
+non-numeric attribute value in `phReadInt`; removal of the dead
+`Tools::isXml`; the new `svsdriverids.hpp` header that fixes the driver-id
+layering and drops the dead `svsimagedriver.hpp` include from `svsslide.cpp`;
+the header note on `TIFFKeeper`'s non-LIFO handler-swap hazard; and the
+switch to `PHTIFF_DRIVER_ID` plus full four-file coverage in
+`test_phtiff_driver.cpp`'s accept-side detection test. See
+`git log --oneline 75a48f65..a9f179aa` for the individual commits and their
+messages, which cover the detailed before/after of each item.
 
 ### Consciously accepted, not debt
 
