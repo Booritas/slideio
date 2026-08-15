@@ -327,13 +327,13 @@ Every real Philips base size is a multiple of the 512 tile grid, so `base / 2^le
 // A base width that does not divide by the level's downsample is the only case where the
 // rounding rule is observable, and no real philips file has one: every real base is a
 // multiple of the 512 tile grid. Rounding UP is what keeps the level able to hold the
-// whole slide -- 4098 pixels halve to 2049, and a level of 2048 would drop the last
+// whole slide -- 4097 pixels halve to 2049, and a level of 2048 would drop the last
 // column. This test exists because that decision is otherwise never exercised.
 TEST_F(PhTiffImageDriverTests, phCreateImageScene_roundsAContentSizeUpNotDown) {
-	const std::string xml = MockPHTIFFSlide::createFakeXml(4098, 4098, 2, {});
+	const std::string xml = MockPHTIFFSlide::createFakeXml(4097, 4097, 2, {});
 	std::vector<TiffDirectory> directories = {
-		makeImageDir(xml, 4098, 4098),
-		// Padded to the tile grid by philips; the content is ceil(4098/2) = 2049.
+		makeImageDir(xml, 4097, 4097),
+		// Padded to the tile grid by philips; the content is ceil(4097/2) = 2049.
 		makeImageDir("level=1 mag=20 quality=80", 2560, 2560),
 	};
 	directories[1].tileWidth = 512;
@@ -351,7 +351,7 @@ TEST_F(PhTiffImageDriverTests, phCreateImageScene_roundsAContentSizeUpNotDown) {
 }
 ```
 
-Check the tile arithmetic before running: stored 2560 with 512-pixel tiles is 5 tiles; content 2049 is `ceil(2049/512)` = 5 tiles. The counts agree, so Task 2's guard does not refuse this crop. If you get a different stored size, adjust it so the two tile counts match, and say so in your report.
+The base MUST be odd. 4098 would be wrong: it divides by 2 exactly, so ceil and floor both give 2049 and the test pins nothing — verified empirically during execution. 4097 diverges (ceil 2049, floor 2048), which is what makes step 3's mutation fail as predicted. Check the tile arithmetic before running: stored 2560 with 512-pixel tiles is 5 tiles; content 2049 is `ceil(2049/512)` = 5 tiles. The counts agree, so Task 2's guard does not refuse this crop. If you get a different stored size, adjust it so the two tile counts match, and say so in your report.
 
 - [ ] **Step 2: Run it**
 
@@ -360,7 +360,7 @@ Expected: PASS — the production behaviour is already correct; this test record
 
 - [ ] **Step 3: Prove the test bites**
 
-Temporarily change `phLevelContentSize` to use integer division (`baseSize.width / divisor`) and re-run: the test must FAIL with 2048 against the expected 2049. Restore the `ceil` afterwards. A test that has never failed proves nothing, and this one exists precisely to pin a decision no other test touches.
+Temporarily change `phLevelContentSize` to use integer division (`baseSize.width / divisor`) and re-run: the test must FAIL with 2048 against the expected 2049. Mutate ONLY this — mutating it together with another guard confounds the result and can make the test fail for the wrong reason. Restore the `ceil` afterwards. A test that has never failed proves nothing, and this one exists precisely to pin a decision no other test touches.
 
 - [ ] **Step 4: Record the reasoning where the code is**
 
