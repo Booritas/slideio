@@ -45,3 +45,5 @@ conanbuildenv-release-x86_64.bat
 conanrunenv-release-x86_64.bat
 deactivate_conanbuild.bat
 deactivate_conanrun.bat
+### Superpowers SDD scratch (git-ignored coordination workspace) ###
+.superpowers/
