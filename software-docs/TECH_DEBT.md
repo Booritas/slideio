@@ -16,9 +16,11 @@ the work can be picked up later without re-doing the analysis.
 5. [`ImageTools::computeSimilarity2` cannot handle more than four channels](#5-imagetoolscomputesimilarity2-cannot-handle-more-than-four-channels)
 6. [`CZIScene::getRect()` returns non-zero-based coordinates that block reads cannot use](#6-cziscenegetrect-returns-non-zero-based-coordinates-that-block-reads-cannot-use)
 7. [`SCNScene::getRect()` has the same problem](#7-scnscenegetrect-has-the-same-problem)
-8. [SCN level selection assumes parallel pyramid geometry across channels and z-slices](#8-scn-level-selection-assumes-parallel-pyramid-geometry-across-channels-and-z-slices)
+8. [SCN and OME-TIFF level selection assume parallel pyramid geometry across dimensions](#8-scn-and-ome-tiff-level-selection-assume-parallel-pyramid-geometry-across-dimensions)
 9. [`TilerData::relativeZoom` is dead, and its new formula is only valid in one case](#9-tilerdatarelativezoom-is-dead-and-its-new-formula-is-only-valid-in-one-case)
 10. [`zSliceRange` / `timeFrameRange` are documented backwards in `scene.hpp`](#10-zslicerange--timeframerange-are-documented-backwards-in-scenehpp)
+11. [`TransformerScene` has no level table, so transformed scenes cannot be read by level](#11-transformerscene-has-no-level-table-so-transformed-scenes-cannot-be-read-by-level)
+12. [`SCNScene::getChannelDirectories` indexes unchecked, and the 4D level path widens the exposure](#12-scnscenegetchanneldirectories-indexes-unchecked-and-the-4d-level-path-widens-the-exposure)
 
 ---
 
@@ -333,7 +335,7 @@ either.
 
 ---
 
-## 8. SCN level selection assumes parallel pyramid geometry across channels and z-slices
+## 8. SCN and OME-TIFF level selection assume parallel pyramid geometry across dimensions
 
 **File:** `src/slideio/drivers/scn/scnscene.cpp`
 **Related:** `zStack`, `zStackMissingChannels` tests
@@ -351,6 +353,29 @@ The `zStack` and `zStackMissingChannels` tests cover the one z-stack fixture
 in the suite, and both pass under this assumption. A file that violates it
 would misregister the level rect silently. Fixing it means resolving the
 level per channel/z-slice combination rather than once from channel 0.
+
+### OME-TIFF has the same shape
+
+**File:** `src/slideio/drivers/ome-tiff/otscene.cpp` (`extractImagePyramids`,
+`readTile`)
+**Status:** Open. Pre-existing, unchanged by this work — found during the
+whole-branch review for the 2026-08-16 explicit-level-reading plan.
+
+This is not SCN-specific. `OTScene::extractImagePyramids`
+(`otscene.cpp:143-153`) builds `m_levels` from
+`m_tiffData.front().getTiffDirectory(0)` alone, then `readTile`
+(`otscene.cpp:404`, `:410-412`) takes that single `zoomLevel` and applies it
+to **every** `TiffData` entry that `collectTiffDataIndices` selected for the
+requested channel/z/t (`for (int index : blockInfo->tiffDataIndices) { ...
+tiffData.readTile(channelIndices, zSlice, tFrame, zoomLevel, tileIndex,
+channelRasters); }`). If two `TiffData` entries differ in subresolution
+count or geometry, the level index desynchronises silently, the same failure
+mode as the SCN case above.
+
+This is pre-existing and unaffected by the level-addressed read work: the
+pre-split code reached `readTile` by the identical route, via
+`&levelInfo` carried in the same `BlockInfo`. Recorded here so this entry
+does not read as though SCN were the only driver with this structure.
 
 ---
 
@@ -396,3 +421,69 @@ Recorded here (rather than only fixed silently) because the same wrong
 phrasing may be copy-pasted elsewhere — e.g. other headers, external
 documentation, or code comments outside `scene.hpp` — and that was not
 audited as part of this pass.
+
+---
+
+## 11. `TransformerScene` has no level table, so transformed scenes cannot be read by level
+
+**File:** `src/slideio/transformer/transformerscene.cpp`/`.hpp`
+**Related:** `src/slideio/transformer/transformer.cpp:20,27`
+(`transformScene`/`transformSceneEx`); `src/slideio/core/cvscene.cpp:221-224`
+(the throw site)
+**Status:** Open. Found during the whole-branch review for the 2026-08-16
+explicit-level-reading plan.
+
+`TransformerScene` never populates `m_levels` and does not override
+`getNumZoomLevels()`, so it reports 0 zoom levels via `CVScene`'s default.
+`transformScene`/`transformSceneEx` (`transformer.cpp:20`, `:27`) hand back a
+public `slideio::Scene` wrapping a `TransformerScene`, so any caller doing a
+level-addressed read against a transformed scene hits `CVScene`'s guard and
+gets `"... does not report any zoom level and cannot be read by level"`
+(`cvscene.cpp:221-224`).
+
+The design spec for this plan's §5.1 asserts that after the §5.6 sweep "no
+in-tree driver is in that state" — that claim holds; `TransformerScene` is
+not a driver (it wraps one) and was out of scope for that sweep, not missed
+by an error in it.
+
+**Open design question, recorded rather than answered:** a transformed scene
+arguably *should* expose its source scene's pyramid, with the transformation
+applied at the requested level's resolution. But that is a feature with its
+own design decision — e.g. what a Gaussian blur kernel radius means at level
+3 versus level 0 — not a bug to patch mechanically by forwarding
+`getNumZoomLevels()`/`getZoomLevelInfo()` to the origin scene. Do not
+implement level support for `TransformerScene` without first deciding what a
+transformation means at non-zero levels.
+
+---
+
+## 12. `SCNScene::getChannelDirectories` indexes unchecked, and the 4D level path widens the exposure
+
+**File:** `src/slideio/drivers/scn/scnscene.hpp:64-66`
+**Related:** `src/slideio/slideio/scene.hpp` (`readResampledLevel4DBlockChannels`);
+`src/slideio/core/cvscene.cpp` (`assemble4DBlock`)
+**Status:** Open. The indexing bug is pre-existing; this branch adds a second
+entry point to it.
+
+```cpp
+const std::vector<TiffDirectory>& getChannelDirectories(int channelIndex, int zIndex) const {
+    const int dirIndex = zIndex * m_planeCount + (m_interleavedChannels ? 0 : channelIndex);
+    return m_channelDirectories[dirIndex];
+}
+```
+
+`dirIndex` is used with `operator[]` on `m_channelDirectories`, unvalidated
+against its size. Neither `Scene::readResampledLevel4DBlockChannels` nor
+`CVScene::assemble4DBlock` validates `zSliceRange` (or `channelIndex`)
+against `getNumZSlices()`/`getNumChannels()` before it reaches this call, so
+an out-of-range `zSliceRange` is a heap out-of-bounds read, not a thrown
+error.
+
+**This is pre-existing, not new.** The identical exposure already reaches
+`getChannelDirectories` through `readResampled4DBlockChannels`, which existed
+before this plan. What this branch adds is a second entry point —
+`readResampledLevel4DBlockChannels` — that reaches the same unvalidated
+indexing through a different call path; it does not create the underlying
+bug. Fixing it means validating `zSliceRange`/`channelIndices` against scene
+dimensions once, upstream of both entry points (e.g. in `assemble4DBlock`),
+rather than patching each caller.
