@@ -278,7 +278,7 @@ so it is not lost.
 
 ## 5. `ImageTools::computeSimilarity2` cannot handle more than four channels
 
-**File:** `src/slideio/imagetools/imagetools.cpp:163`
+**File:** `src/slideio/imagetools/imagetools.cpp:164`
 **Related:** `src/slideio/imagetools/imagetools.hpp:51` (exported public API)
 **Status:** Open. Found while working with a multiplex fluorescence fixture.
 

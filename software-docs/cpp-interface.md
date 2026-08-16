@@ -469,11 +469,11 @@ public:
         const std::vector<int>& channelIndices,
         int zSliceIndex, int tFrameIndex,
         cv::OutputArray output);
-    virtual void readResampledLevelBlockChannels(
+    void readResampledLevelBlockChannels(
         int level, const cv::Rect& levelRect, const cv::Size& blockSize,
         const std::vector<int>& channelIndices,
         cv::OutputArray output);
-    virtual void readResampledLevel4DBlockChannels(
+    void readResampledLevel4DBlockChannels(
         int level, const cv::Rect& levelRect, const cv::Size& blockSize,
         const std::vector<int>& channelIndices,
         const cv::Range& zSliceRange, const cv::Range& timeFrameRange,
