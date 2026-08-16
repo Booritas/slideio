@@ -1,10 +1,28 @@
 #pragma once
 #include "slideio/core/cvscene.hpp"
+#include "slideio/core/levelinfo.hpp"
+#include <vector>
 
 class TestScene : public slideio::CVScene
 {
 public:
     using slideio::CVScene::setChannelAttribute;
+    // Records the arguments of every readResampledBlockChannelsEx call, so a test can
+    // assert on the request the base-class level path made and not only on its output.
+    struct Request
+    {
+        cv::Rect rect;
+        cv::Size size;
+        int zSlice;
+        int tFrame;
+    };
+
+    void addLevel(const slideio::LevelInfo& level) { m_levels.push_back(level); }
+    void clearLevels() { m_levels.clear(); }
+    const std::vector<Request>& requests() const { return m_requests; }
+    void clearRequests() { m_requests.clear(); }
+    // Off by default: the tests that predate the level api rely on an untouched output.
+    void setRenderCoordinates(bool render) { m_render = render; }
     TestScene() :
         m_filePath("/path/folder/file.svs"),
         m_rect(0, 0, 100, 100),
@@ -40,9 +58,24 @@ public:
 	void setNumTFrames(int numFrames) { m_numTFrames = numFrames; }
 	void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
 		const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output) override {
-		// Minimal implementation for testing - just create an empty output
+		m_requests.push_back({blockRect, blockSize, zSliceIndex, tFrameIndex});
 		if (!output.needed()) return;
-		output.create(blockSize, CV_8UC(componentIndices.empty() ? m_numChannels : (int)componentIndices.size()));
+		const int channels = componentIndices.empty() ? m_numChannels : (int)componentIndices.size();
+		output.create(blockSize, CV_8UC(channels));
+		if (!m_render) return;
+		// Each pixel encodes the scene coordinate it came from, so a test can tell which
+		// part of the scene a block was actually served from.
+		cv::Mat raster = output.getMat();
+		for (int y = 0; y < blockSize.height; ++y) {
+			uint8_t* row = raster.ptr<uint8_t>(y);
+			for (int x = 0; x < blockSize.width; ++x) {
+				const int sceneX = blockRect.x + (blockRect.width * x) / blockSize.width;
+				const int sceneY = blockRect.y + (blockRect.height * y) / blockSize.height;
+				for (int c = 0; c < channels; ++c) {
+					row[x * channels + c] = static_cast<uint8_t>((sceneX + sceneY * 7 + c * 31) & 0xFF);
+				}
+			}
+		}
 	}
     const std::string& getDriverId() const override {
         return m_driverId;
@@ -59,4 +92,6 @@ private:
     int m_numSlices;
     int m_numTFrames;
 	std::string m_driverId = "TestDriver";
+    std::vector<Request> m_requests;
+    bool m_render = false;
 };

@@ -38,6 +38,7 @@ set(TEST_SOURCES
   test_fiwrapper.cpp
   test_channel_attributes.cpp
   test_boundedqueue.cpp
+  test_levelreading.cpp
 )
 
 add_executable(${TEST_NAME} ${TEST_SOURCES})

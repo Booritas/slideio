@@ -13,6 +13,7 @@
 #include <list>
 #include "refcounter.hpp"
 #include <mutex>
+#include <functional>
 
 #include "levelinfo.hpp"
 
@@ -199,6 +200,54 @@ namespace slideio
 			const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output) = 0;
         virtual int getNumZoomLevels() const;
         virtual const LevelInfo* getZoomLevelInfo(int level) const;
+        /**@brief reads a raster rectangle from an explicitly selected zoom level.
+         *
+         * Unlike the readBlock family, this method does not choose a zoom level: it reads
+         * from the level named by @p level and from no other. It exists for callers that
+         * already know the level they want -- tiled viewers above all -- and that would
+         * otherwise have to convert their rectangle to scene coordinates and let the
+         * library convert it back, rounding twice on the way.
+         *
+         * @param level : zoom level index, in the range [0, getNumZoomLevels()).
+         * @param levelRect : rectangle in the pixel coordinate system of @p level. It is
+         * not scene coordinates and receives no scaling. The part of it lying outside the
+         * level is filled with the background value.
+         * @param blockSize : size of the returned block. Resampling is performed from
+         * @p level only; a blockSize that would suit a different level does not cause one
+         * to be selected. blockSize equal to levelRect.size() means no resampling at all.
+         * @param channelIndices : vector of indices of channels to be extracted. Empty
+         * means every channel.
+         * @param zSliceIndex : index of the z slice to read.
+         * @param tFrameIndex : index of the time frame to read.
+         * @param output : reference to a cv::OutputArray object.
+         *
+         * The default implementation clamps @p levelRect to the level, maps it to scene
+         * coordinates through LevelInfo::getScale() and delegates to
+         * readResampledBlockChannelsEx. For a single level scene that mapping is the
+         * identity. Drivers with a real pyramid override it to read the named level
+         * directly.
+         */
+        virtual void readResampledLevelBlockChannelsEx(int level, const cv::Rect& levelRect,
+            const cv::Size& blockSize, const std::vector<int>& channelIndices,
+            int zSliceIndex, int tFrameIndex, cv::OutputArray output);
+        /**@brief reads a plane raster rectangle from an explicitly selected zoom level.
+         *
+         * Parameters are those of #readResampledLevelBlockChannelsEx, with the z slice and
+         * the time frame fixed at 0.
+         */
+        void readResampledLevelBlockChannels(int level, const cv::Rect& levelRect,
+            const cv::Size& blockSize, const std::vector<int>& channelIndices,
+            cv::OutputArray output);
+        /**@brief reads a multi-dimensional raster block from an explicitly selected zoom level.
+         *
+         * @param zSliceRange : range of z-slices to be read.
+         * @param timeFrameRange : range of time frames to be read.
+         * Other parameters are those of #readResampledLevelBlockChannelsEx.
+         */
+        void readResampledLevel4DBlockChannels(int level, const cv::Rect& levelRect,
+            const cv::Size& blockSize, const std::vector<int>& channelIndices,
+            const cv::Range& zSliceRange, const cv::Range& timeFrameRange,
+            cv::OutputArray output);
         std::string toString() const;
 		/**@brief returns metadata format of the image*/
 		virtual MetadataFormat getMetadataFormat() const { return m_metadataFormat; }
@@ -222,6 +271,8 @@ namespace slideio
         /**@brief adds a floating-point attribute to a channel */
         virtual void setChannelAttribute(int channelIndex, const std::string& attributeName, double attributeValue);
         std::vector<int> getValidChannelIndices(const std::vector<int>& channelIndices);
+        /**@brief throws unless level names a zoom level of this scene. */
+        void validateLevel(int level) const;
         void initializeSceneBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices,
                                   cv::OutputArray output) const;
         /**@brief Driver hook: convert m_rawMetadata into a Metadata tree.
@@ -242,6 +293,15 @@ namespace slideio
         MetadataBuilder m_channelAttrs;
 
     private:
+        /**@brief assembles a 4D block plane by plane.
+         *
+         * Shared by readResampled4DBlockChannels and readResampledLevel4DBlockChannels,
+         * which differ only in how a single plane is read.
+         */
+        void assemble4DBlock(const cv::Size& blockSize, const std::vector<int>& channelIndicesIn,
+            const cv::Range& zSliceRange, const cv::Range& timeFrameRange,
+            const std::function<void(int zSliceIndex, int tFrameIndex, cv::OutputArray plane)>& readPlane,
+            cv::OutputArray output);
         mutable std::once_flag m_metadataOnce;
         mutable Metadata       m_metadata;
         mutable std::once_flag m_channelAttrsOnce;
