@@ -515,7 +515,11 @@ TEST_F(PKEImageDriverTests, readLevelMatchesTheResampledSceneRead) {
 // identical to a native read of level 1 -- equality would mean level 0's read was actually
 // served by level 1.
 TEST_F(PKEImageDriverTests, readLevelDoesNotReuseAdjacentLevel) {
-    std::string filePath = TestTools::getFullTestImagePath("pke", "openmicroscopy/PKI_scans/HandEcompressed_Scan1.qptiff");
+    // Uses the 5-channel fluorescent fixture (not the brightfield one the sibling similarity
+    // test needs): this is a multiplex image, so a wrong-level read would exercise PKE's
+    // one-directory-per-channel path (dir.channels == 1) where the level->directory
+    // indirection meets a second per-channel offset -- the interaction this test guards.
+    std::string filePath = TestTools::getFullTestImagePath("pke", "openmicroscopy/PKI_scans/LuCa-7color_Scan1.qptiff");
     slideio::PKEImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
