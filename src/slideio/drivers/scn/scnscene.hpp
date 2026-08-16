@@ -72,6 +72,9 @@ namespace slideio
         }
         void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
             const std::vector<int>& channelIndicesIn, int zSliceIndex, int tFrameIndex, cv::OutputArray output) override;
+        void readResampledLevelBlockChannelsEx(int level, const cv::Rect& levelRect,
+            const cv::Size& blockSize, const std::vector<int>& channelIndices,
+            int zSliceIndex, int tFrameIndex, cv::OutputArray output) override;
         std::string getChannelName(int channel) const override;
         int getTileCount(void* userData) override;
         bool getTileRect(int tileIndex, cv::Rect& tileRect, void* userData) override;

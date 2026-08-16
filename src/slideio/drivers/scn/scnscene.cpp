@@ -49,40 +49,64 @@ void SCNScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv:
 	if (tFrameIndex != 0) {
 		throw std::runtime_error("SCNImageDriver: Time frames are not supported");
 	}
+    const double zoomX = static_cast<double>(blockSize.width) / static_cast<double>(blockRect.width);
+    const double zoomY = static_cast<double>(blockSize.height) / static_cast<double>(blockRect.height);
+    const double zoom = std::max(zoomX, zoomY);
+
+    // The level index comes from channel 0's directory list at z-slice 0, which is the exact
+    // list m_levels was built from (see init()), so the index and the reported level geometry
+    // cannot disagree. Channel 0 can be absent at other z-slices (a z-stack need not repeat
+    // every channel at every slice), so the requested zSliceIndex is not usable here.
+    const auto& baseDirectories = getChannelDirectories(0, 0);
+    const cv::Rect sceneRect = getRect();
+    const double sceneWidth = static_cast<double>(sceneRect.width);
+    const int level = Tools::findZoomLevel(zoom, (int)baseDirectories.size(),
+        [&baseDirectories, sceneWidth](int index) {
+            return baseDirectories[index].width / sceneWidth;
+        });
+    if (level < 0 || level >= (int)baseDirectories.size()) {
+        RAISE_RUNTIME_ERROR << "SCNImageDriver: no zoom level serves zoom " << zoom;
+    }
+    const TiffDirectory& baseDir = baseDirectories[level];
+    const double zoomDirX = static_cast<double>(baseDir.width) / static_cast<double>(m_rect.width);
+    const double zoomDirY = static_cast<double>(baseDir.height) / static_cast<double>(m_rect.height);
+    cv::Rect levelRect;
+    Tools::scaleRect(blockRect, zoomDirX, zoomDirY, levelRect);
+    readResampledLevelBlockChannelsEx(level, levelRect, blockSize, channelIndicesIn,
+                                      zSliceIndex, tFrameIndex, output);
+}
+
+void SCNScene::readResampledLevelBlockChannelsEx(int level, const cv::Rect& levelRect,
+    const cv::Size& blockSize, const std::vector<int>& channelIndicesIn,
+    int zSliceIndex, int tFrameIndex, cv::OutputArray output)
+{
+	if (tFrameIndex != 0) {
+		throw std::runtime_error("SCNImageDriver: Time frames are not supported");
+	}
+    validateLevel(level);
     auto hFile = getFileHandle();
     if (hFile == nullptr)
         throw std::runtime_error("SCNImageDriver: Invalid file handle by raster reading operation");
-    double zoomX = static_cast<double>(blockSize.width) / static_cast<double>(blockRect.width);
-    double zoomY = static_cast<double>(blockSize.height) / static_cast<double>(blockRect.height);
-    double zoom = std::max(zoomX, zoomY);
-    SCNTilingInfo info;
-    double zoomDirX(-1), zoomDirY(-1);
 
     auto channelIndices(channelIndicesIn);
-    if(channelIndices.empty())
-    {
-        for(int channelIndex=0; channelIndex<m_numChannels; ++channelIndex)
-        {
+    if (channelIndices.empty()) {
+        for (int channelIndex = 0; channelIndex < m_numChannels; ++channelIndex) {
             channelIndices.push_back(channelIndex);
         }
     }
 
-    for(auto channelIndex: channelIndices)
-    {
-        const slideio::TiffDirectory* dir = findZoomDirectory(channelIndex, zSliceIndex, zoom);
-        info.channel2ifd[channelIndex] = dir;
-        if(!dir) {
-            continue;
-        }
-        if(zoomDirX<0 || zoomDirY<0) {
-            zoomDirX = static_cast<double>(dir->width) / static_cast<double>(m_rect.width);
-            zoomDirY = static_cast<double>(dir->height) / static_cast<double>(m_rect.height);
-        }
+    SCNTilingInfo info;
+    for (auto channelIndex : channelIndices) {
+        const auto& directories = getChannelDirectories(channelIndex, zSliceIndex);
+        // Each channel keeps its own directory list. They are parallel in every file seen so
+        // far, so the level index addresses all of them; a channel whose list is shorter
+        // resolves to nullptr, which the composer treats as a channel this level does not
+        // carry -- the same outcome the zoom search gives for such a channel.
+        info.channel2ifd[channelIndex] =
+            (level < (int)directories.size()) ? &directories[level] : nullptr;
     }
 
-    cv::Rect resizedBlock;
-    Tools::scaleRect(blockRect, zoomDirX, zoomDirY, resizedBlock);
-    TileComposer::composeRect(this, channelIndices, resizedBlock, blockSize, output, (void*)&info);
+    TileComposer::composeRect(this, channelIndices, levelRect, blockSize, output, (void*)&info);
 }
 
 std::string SCNScene::getChannelName(int channel) const

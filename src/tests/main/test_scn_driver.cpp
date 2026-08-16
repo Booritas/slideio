@@ -709,6 +709,86 @@ TEST(SCNImageDriver, zStackGetChannelDir)
     }
 }
 
+// SCN resolves a directory per channel: findZoomDirectory(channelIndex, zIndex, zoom) searches
+// each channel's own directory list by zoom. An explicit level read must instead index every
+// channel's own list by the level directly. This is checked by forcing level 0 to be read at
+// level 1's resolution (via readResampledLevelBlockChannels) and comparing it against an
+// implicit zoom request tuned to land exactly on level 1's own scale (via readResampledBlock,
+// unmodified by this change). Level 0's scale is exactly 1.0 by construction, so before this
+// change the base default reduces to literally the same call as the implicit read below -- an
+// exact identity, not a rounding-sensitive similarity. After the change the explicit call reads
+// level 0's own (full resolution) tiles, which cannot reproduce level 1's independently encoded
+// content exactly.
+//
+// Note: scene->getRect() is NOT zero-based for this scene (its origin carries the scene's
+// physical position offset, e.g. (16306, 40361) for Leica-Fluorescence-1.scn scene 0), while
+// tile addressing within the file is zero-based. So the block/level rect here is built directly
+// from the level size rather than from getRect().
+TEST(SCNImageDriver, readLevelDiffersFromResampledLevel1)
+{
+    slideio::SCNImageDriver driver;
+    std::string filePath = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1.scn");
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
+    ASSERT_TRUE(scene != nullptr);
+    const int numLevels = scene->getNumZoomLevels();
+    ASSERT_LE(2, numLevels);
+
+    const slideio::LevelInfo* level0 = scene->getZoomLevelInfo(0);
+    const slideio::LevelInfo* level1 = scene->getZoomLevelInfo(1);
+    ASSERT_TRUE(level0 != nullptr);
+    ASSERT_TRUE(level1 != nullptr);
+    const cv::Size level0Size(level0->getSize().width, level0->getSize().height);
+    const cv::Size level1Size(level1->getSize().width, level1->getSize().height);
+    const cv::Rect level0Rect(cv::Point(0, 0), level0Size);
+
+    cv::Mat viaLevel0, viaImplicitLevel1;
+    scene->readResampledLevelBlockChannels(0, level0Rect, level1Size, {}, viaLevel0);
+    scene->readResampledBlock(level0Rect, level1Size, viaImplicitLevel1);
+
+    ASSERT_EQ(level1Size, viaLevel0.size());
+    ASSERT_EQ(viaImplicitLevel1.size(), viaLevel0.size());
+    ASSERT_EQ(viaImplicitLevel1.channels(), viaLevel0.channels());
+    EXPECT_LT(0, cv::norm(viaLevel0, viaImplicitLevel1, cv::NORM_INF));
+    // Secondary sanity check only, not a discriminator: the two reads still cover the same
+    // field of view, so they should remain broadly similar.
+    EXPECT_LE(0.5, slideio::ImageTools::computeSimilarity2(viaLevel0, viaImplicitLevel1));
+}
+
+// SCN keeps one directory list per channel, so a level read has to address every channel's own
+// list by the same level index. Reading every channel merged in one call and reading each
+// channel individually at the same level have to agree exactly, channel by channel.
+TEST(SCNImageDriver, readLevelChannelsMatchTheMergedRead)
+{
+    slideio::SCNImageDriver driver;
+    std::string filePath = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1.scn");
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
+    ASSERT_TRUE(scene != nullptr);
+    const int numLevels = scene->getNumZoomLevels();
+    ASSERT_LE(1, numLevels);
+    const int lastLevel = numLevels - 1;
+    const slideio::LevelInfo* info = scene->getZoomLevelInfo(lastLevel);
+    ASSERT_TRUE(info != nullptr);
+    const cv::Size lastSize(info->getSize().width, info->getSize().height);
+    const cv::Rect lastRect(cv::Point(0, 0), lastSize);
+
+    cv::Mat all;
+    scene->readResampledLevelBlockChannels(lastLevel, lastRect, lastSize, {}, all);
+    ASSERT_EQ(scene->getNumChannels(), all.channels());
+    std::vector<cv::Mat> planes;
+    cv::split(all, planes);
+    for (int channel = 0; channel < scene->getNumChannels(); ++channel)
+    {
+        cv::Mat single;
+        scene->readResampledLevelBlockChannels(lastLevel, lastRect, lastSize, { channel }, single);
+        ASSERT_EQ(lastSize, single.size()) << "channel " << channel;
+        EXPECT_EQ(0, cv::countNonZero(cv::abs(single - planes[channel]))) << "channel " << channel;
+    }
+}
+
 TEST(SCNImageDriver, zStackMissingChannels) {
     std::string filePath = TestTools::getFullTestImagePath("scn", "private/HER2-63x_1.scn");
     std::string testFilePath = TestTools::getFullTestImagePath("scn", "private/page-67-StitchAB907A82-6319-422F-9B5B-EB0E0A9D0525-z=4-r=0-c=2.tiff");
