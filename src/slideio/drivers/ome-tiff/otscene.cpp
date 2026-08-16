@@ -367,19 +367,28 @@ void OTScene::collectTiffDataIndices(std::vector<int> channelIndices, int zSlice
 void OTScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
                                            const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex,
                                            cv::OutputArray output) {
-    double zoomX = static_cast<double>(blockSize.width) / static_cast<double>(blockRect.width);
-    double zoomY = static_cast<double>(blockSize.height) / static_cast<double>(blockRect.height);
-    double zoom = std::max(zoomX, zoomY);
-    auto channelIndices = Tools::completeChannelList(componentIndices, m_numChannels);
-    const int zoomIndex = findZoomLevel(zoom);
+    const double zoomX = static_cast<double>(blockSize.width) / static_cast<double>(blockRect.width);
+    const double zoomY = static_cast<double>(blockSize.height) / static_cast<double>(blockRect.height);
+    const int zoomIndex = findZoomLevel(std::max(zoomX, zoomY));
     const LevelInfo& levelInfo = m_levels[zoomIndex];
-    double zoomDirX = static_cast<double>(levelInfo.getSize().width) / static_cast<double>(m_imageSize.width);
-    double zoomDirY = static_cast<double>(levelInfo.getSize().height) / static_cast<double>(m_imageSize.height);
-    cv::Rect resizedBlock;
-    Tools::scaleRect(blockRect, zoomDirX, zoomDirY, resizedBlock);
+    const double zoomDirX = static_cast<double>(levelInfo.getSize().width) / static_cast<double>(m_imageSize.width);
+    const double zoomDirY = static_cast<double>(levelInfo.getSize().height) / static_cast<double>(m_imageSize.height);
+    cv::Rect levelRect;
+    Tools::scaleRect(blockRect, zoomDirX, zoomDirY, levelRect);
+    readResampledLevelBlockChannelsEx(zoomIndex, levelRect, blockSize, componentIndices,
+                                      zSliceIndex, tFrameIndex, output);
+}
+
+void OTScene::readResampledLevelBlockChannelsEx(int level, const cv::Rect& levelRect,
+                                                const cv::Size& blockSize,
+                                                const std::vector<int>& componentIndices,
+                                                int zSliceIndex, int tFrameIndex, cv::OutputArray output) {
+    validateLevel(level);
+    auto channelIndices = Tools::completeChannelList(componentIndices, m_numChannels);
+    const LevelInfo& levelInfo = m_levels[level];
     BlockInfo blockInfo = {&levelInfo, zSliceIndex, tFrameIndex, {}};
     collectTiffDataIndices(channelIndices, zSliceIndex, tFrameIndex, blockInfo.tiffDataIndices);
-    TileComposer::composeRect(this, channelIndices, resizedBlock, blockSize, output, (void*)&blockInfo);
+    TileComposer::composeRect(this, channelIndices, levelRect, blockSize, output, (void*)&blockInfo);
 }
 
 std::string OTScene::getFilePath() const {

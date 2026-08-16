@@ -32,6 +32,9 @@ namespace slideio
         cv::Rect getRect() const override;
         void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
             const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output) override;
+        void readResampledLevelBlockChannelsEx(int level, const cv::Rect& levelRect,
+            const cv::Size& blockSize, const std::vector<int>& channelIndices,
+            int zSliceIndex, int tFrameIndex, cv::OutputArray output) override;
         int findZoomLevel(double zoom) const;
         // Tiler methods
         int getTileCount(void* userData) override;

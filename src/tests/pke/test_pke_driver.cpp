@@ -474,3 +474,73 @@ TEST_F(PKEImageDriverTests, getDriverId)
 		EXPECT_EQ("QPTIFF", cvScene->getDriverId());
     }
 }
+
+TEST_F(PKEImageDriverTests, readLevelMatchesTheResampledSceneRead) {
+    // computeSimilarity2 goes through cv::sum, which only supports up to 4 channels, so this
+    // uses the 3-channel brightfield fixture rather than the 5-channel fluorescent one.
+    std::string filePath = TestTools::getFullTestImagePath("pke", "openmicroscopy/PKI_scans/HandEcompressed_Scan1.qptiff");
+    slideio::PKEImageDriver driver;
+    std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    std::shared_ptr<CVScene> scene = slide->getScene(0);
+    ASSERT_TRUE(scene != nullptr);
+
+    const int numLevels = scene->getNumZoomLevels();
+    ASSERT_LE(2, numLevels);
+    for (int level = 1; level < numLevels; ++level)
+    {
+        const slideio::LevelInfo* info = scene->getZoomLevelInfo(level);
+        ASSERT_TRUE(info != nullptr) << "level " << level;
+        const cv::Size levelSize(info->getSize().width, info->getSize().height);
+        cv::Mat viaLevel, viaScene;
+        scene->readResampledLevelBlockChannels(level, cv::Rect(cv::Point(0, 0), levelSize), levelSize, {}, viaLevel);
+        scene->readResampledBlock(scene->getRect(), levelSize, viaScene);
+        ASSERT_EQ(levelSize, viaLevel.size()) << "level " << level;
+        EXPECT_LE(0.95, slideio::ImageTools::computeSimilarity2(viaLevel, viaScene)) << "level " << level;
+    }
+    // An overhanging rect is the ordinary edge tile and must come back background filled.
+    const slideio::LevelInfo* last = scene->getZoomLevelInfo(numLevels - 1);
+    const cv::Size lastSize(last->getSize().width, last->getSize().height);
+    cv::Mat edge;
+    ASSERT_NO_THROW(scene->readResampledLevelBlockChannels(
+        numLevels - 1, cv::Rect(lastSize.width - 32, lastSize.height - 32, 128, 128),
+        cv::Size(128, 128), {}, edge));
+    EXPECT_EQ(cv::Size(128, 128), edge.size());
+}
+
+// The generic CVScene default clamps levelRect to the level and then re-derives a zoom
+// index from the requested output size; when that re-derived index happens to agree with
+// the level actually asked for, the default's output is byte-identical to a direct read of
+// that other level. So reading level 0 resampled down to level 1's size must NOT come back
+// identical to a native read of level 1 -- equality would mean level 0's read was actually
+// served by level 1.
+TEST_F(PKEImageDriverTests, readLevelDoesNotReuseAdjacentLevel) {
+    std::string filePath = TestTools::getFullTestImagePath("pke", "openmicroscopy/PKI_scans/HandEcompressed_Scan1.qptiff");
+    slideio::PKEImageDriver driver;
+    std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    std::shared_ptr<CVScene> scene = slide->getScene(0);
+    ASSERT_TRUE(scene != nullptr);
+    ASSERT_LE(2, scene->getNumZoomLevels());
+
+    const slideio::LevelInfo* level0 = scene->getZoomLevelInfo(0);
+    const slideio::LevelInfo* level1 = scene->getZoomLevelInfo(1);
+    ASSERT_TRUE(level0 != nullptr);
+    ASSERT_TRUE(level1 != nullptr);
+    const cv::Size size0(level0->getSize().width, level0->getSize().height);
+    const cv::Size size1(level1->getSize().width, level1->getSize().height);
+
+    // Read level 0 resampled to level 1's size -- must be served from level 0 directly, not
+    // silently reselected to level 1 by the generic base default.
+    cv::Mat viaLevel0Resampled;
+    scene->readResampledLevelBlockChannels(0, cv::Rect(cv::Point(0, 0), size0), size1, {}, viaLevel0Resampled);
+    // Read level 1 natively: no resampling at all.
+    cv::Mat viaLevel1Native;
+    scene->readResampledLevelBlockChannels(1, cv::Rect(cv::Point(0, 0), size1), size1, {}, viaLevel1Native);
+
+    ASSERT_EQ(size1, viaLevel0Resampled.size());
+    ASSERT_EQ(size1, viaLevel1Native.size());
+    // The two are independently encoded streams; equality means level 0's read was actually
+    // served from level 1.
+    EXPECT_GT(cv::norm(viaLevel0Resampled, viaLevel1Native, cv::NORM_INF), 0);
+}

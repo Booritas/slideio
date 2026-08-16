@@ -181,23 +181,34 @@ int PKETiledScene::getNumChannels() const {
 void PKETiledScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
     const std::vector<int>& channelIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output)
 {
+    const double zoomX = static_cast<double>(blockSize.width) / static_cast<double>(blockRect.width);
+    const double zoomY = static_cast<double>(blockSize.height) / static_cast<double>(blockRect.height);
+    const int zoomIndex = findZoomLevel(std::max(zoomX, zoomY));
+    const int dirIndex = m_zoomDirectoryIndices[zoomIndex];
+    const TiffDirectory& dir = m_directories[dirIndex];
+    const double zoomDirX = static_cast<double>(dir.width) / static_cast<double>(m_directories[0].width);
+    const double zoomDirY = static_cast<double>(dir.height) / static_cast<double>(m_directories[0].height);
+    cv::Rect levelRect;
+    Tools::scaleRect(blockRect, zoomDirX, zoomDirY, levelRect);
+    readResampledLevelBlockChannelsEx(zoomIndex, levelRect, blockSize, channelIndices,
+                                      zSliceIndex, tFrameIndex, output);
+}
+
+void PKETiledScene::readResampledLevelBlockChannelsEx(int level, const cv::Rect& levelRect,
+    const cv::Size& blockSize, const std::vector<int>& channelIndices,
+    int zSliceIndex, int tFrameIndex, cv::OutputArray output)
+{
 	if (zSliceIndex != 0 || tFrameIndex != 0) {
 		RAISE_RUNTIME_ERROR << "PKEDriver: 3D and 4D images are not supported";
 	}
+    validateLevel(level);
     auto hFile = getFileHandle();
     if (hFile == nullptr)
         throw std::runtime_error("PKEDriver: Invalid file header by raster reading operation");
-    double zoomX = static_cast<double>(blockSize.width) / static_cast<double>(blockRect.width);
-    double zoomY = static_cast<double>(blockSize.height) / static_cast<double>(blockRect.height);
-    double zoom = std::max(zoomX, zoomY);
-    const int zoomIndex = findZoomLevel(zoom);
-    int dirIndex = m_zoomDirectoryIndices[zoomIndex];
-    const TiffDirectory& dir = m_directories[dirIndex];
-    double zoomDirX = static_cast<double>(dir.width) / static_cast<double>(m_directories[0].width);
-    double zoomDirY = static_cast<double>(dir.height) / static_cast<double>(m_directories[0].height);
-    cv::Rect resizedBlock;
-    Tools::scaleRect(blockRect, zoomDirX, zoomDirY, resizedBlock);
-    TileComposer::composeRect(this, channelIndices, resizedBlock, blockSize, output, (void*)&zoomIndex);
+    // The composer's userData is the level index; getTileCount and readTile resolve it to a
+    // directory through m_zoomDirectoryIndices themselves.
+    int levelIndex = level;
+    TileComposer::composeRect(this, channelIndices, levelRect, blockSize, output, (void*)&levelIndex);
 }
 
 int PKETiledScene::findZoomLevel(double zoom) const {

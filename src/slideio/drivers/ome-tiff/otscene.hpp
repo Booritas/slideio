@@ -42,6 +42,9 @@ namespace slideio
             void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
                 const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex,
                 cv::OutputArray output) override;
+            void readResampledLevelBlockChannelsEx(int level, const cv::Rect& levelRect,
+                const cv::Size& blockSize, const std::vector<int>& channelIndices,
+                int zSliceIndex, int tFrameIndex, cv::OutputArray output) override;
             std::string getFilePath() const override;
 			int getSceneIndex() const override { return m_sceneIndex; }
             const std::string& getDriverId() const override {
