@@ -6,6 +6,10 @@
 #include "tests/testlib/testscene.hpp"
 #include "slideio/base/exceptions.hpp"
 #include "slideio/core/levelinfo.hpp"
+#include "slideio/slideio/slideio.hpp"
+#include "slideio/slideio/scene.hpp"
+#include "slideio/slideio/slide.hpp"
+#include "tests/testlib/testtools.hpp"
 
 using namespace slideio;
 
@@ -142,4 +146,52 @@ TEST(LevelReadingTests, level4DBlockReadsOnePlanePerSlice)
     EXPECT_EQ(20, raster.size[0]);
     EXPECT_EQ(20, raster.size[1]);
     EXPECT_EQ(3, raster.size[2]);
+}
+
+// The public Scene api reaches the same read as the CVScene one, through a caller supplied
+// buffer. The gdal png is a one level scene, so a level 0 read of a rect must equal readBlock.
+TEST(LevelReadingTests, publicSceneApiReadsALevelIntoABuffer)
+{
+    const std::string path = TestTools::getTestImagePath("gdal", "img_2448x2448_3x8bit_SRC_RGB_ducks.png");
+    std::shared_ptr<slideio::Slide> slide = slideio::openSlide(path, "GDAL");
+    ASSERT_TRUE(slide != nullptr);
+    std::shared_ptr<slideio::Scene> scene = slide->getScene(0);
+    ASSERT_TRUE(scene != nullptr);
+    ASSERT_EQ(1, scene->getNumZoomLevels());
+
+    const std::tuple<int, int, int, int> rect(100, 200, 300, 400);
+    const std::tuple<int, int> size(300, 400);
+    const int bufferSize = scene->getBlockSize(size, 0, 3, 1, 1);
+
+    std::vector<uint8_t> viaBlock(bufferSize), viaLevel(bufferSize);
+    scene->readBlock(rect, viaBlock.data(), viaBlock.size());
+    scene->readResampledLevelBlockChannels(0, rect, size, {}, viaLevel.data(), viaLevel.size());
+    EXPECT_EQ(viaBlock, viaLevel);
+}
+
+TEST(LevelReadingTests, publicSceneApiRejectsATooSmallBuffer)
+{
+    const std::string path = TestTools::getTestImagePath("gdal", "img_2448x2448_3x8bit_SRC_RGB_ducks.png");
+    std::shared_ptr<slideio::Slide> slide = slideio::openSlide(path, "GDAL");
+    std::shared_ptr<slideio::Scene> scene = slide->getScene(0);
+    ASSERT_TRUE(scene != nullptr);
+
+    std::vector<uint8_t> tooSmall(16);
+    EXPECT_THROW(scene->readResampledLevelBlockChannels(
+                     0, {0, 0, 300, 400}, {300, 400}, {}, tooSmall.data(), tooSmall.size()),
+                 slideio::RuntimeError);
+}
+
+TEST(LevelReadingTests, publicSceneApiRejectsAnOutOfRangeLevel)
+{
+    const std::string path = TestTools::getTestImagePath("gdal", "img_2448x2448_3x8bit_SRC_RGB_ducks.png");
+    std::shared_ptr<slideio::Slide> slide = slideio::openSlide(path, "GDAL");
+    std::shared_ptr<slideio::Scene> scene = slide->getScene(0);
+    ASSERT_TRUE(scene != nullptr);
+
+    const std::tuple<int, int> size(64, 64);
+    std::vector<uint8_t> buffer(scene->getBlockSize(size, 0, 3, 1, 1));
+    EXPECT_THROW(scene->readResampledLevelBlockChannels(
+                     5, {0, 0, 64, 64}, size, {}, buffer.data(), buffer.size()),
+                 slideio::RuntimeError);
 }

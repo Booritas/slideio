@@ -258,6 +258,40 @@ namespace slideio
          * Memory layout is the same as in #read4DBlock method.
          */
         void readResampled4DBlockChannels(const std::tuple<int,int,int,int>& blockRect, const std::tuple<int,int>& blockSize, const std::vector<int>& channelIndices, const std::tuple<int,int>& zSliceRange, const std::tuple<int,int>& timeFrameRange, void* buffer, size_t bufferSize);
+        /**@brief reads a raster rectangle from an explicitly selected zoom level into a memory buffer.
+         *
+         * Unlike the readBlock family, this method reads from the level named by @p level
+         * and no other, so a caller that already knows which level it wants does not have
+         * to express its rectangle in scene coordinates and let the library convert it back.
+         *
+         * @param level : zoom level index, in the range [0, getNumZoomLevels()).
+         * @param levelRect : rectangle in the coordinate system of @p level, as a
+         * std::tuple(x,y,width,height). The part of it outside the level is background filled.
+         * @param blockSize : size of the block after resizing, as a std::tuple<width,height>.
+         * Resizing is performed from @p level only.
+         * @param channelIndices : vector of indices of channels to be extracted. Empty means all.
+         * @param buffer : pointer to an allocated memory buffer. Its size can be computed
+         * with #getBlockSize using @p blockSize.
+         * @param bufferSize : size of the memory buffer in bytes.
+         *
+         * Memory layout of the buffer is described in the #readBlock method.
+         */
+        void readResampledLevelBlockChannels(int level, const std::tuple<int,int,int,int>& levelRect,
+            const std::tuple<int,int>& blockSize, const std::vector<int>& channelIndices,
+            void* buffer, size_t bufferSize);
+        /**@brief reads a multi-dimensional raster block from an explicitly selected zoom level.
+         *
+         * @param zSliceRange : range of z-slices to be read, as a
+         * std::tuple<indexOfFirstSliceToRead,numberOfSlicesToRead>.
+         * @param timeFrameRange : range of time frames to be read.
+         * Other parameters are those of #readResampledLevelBlockChannels.
+         *
+         * Memory layout of the buffer is described in the #read4DBlock method.
+         */
+        void readResampledLevel4DBlockChannels(int level, const std::tuple<int,int,int,int>& levelRect,
+            const std::tuple<int,int>& blockSize, const std::vector<int>& channelIndices,
+            const std::tuple<int,int>& zSliceRange, const std::tuple<int,int>& timeFrameRange,
+            void* buffer, size_t bufferSize);
         /**@brief returns array of names of auxiliary images available for the scene.*/
         virtual const std::list<std::string>& getAuxImageNames() const;
         /**@brief returns number of auxiliary images available for the scene.*/

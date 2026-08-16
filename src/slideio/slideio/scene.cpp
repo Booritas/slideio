@@ -277,6 +277,102 @@ void Scene::readResampled4DBlockChannels(const std::tuple<int, int, int, int>& r
 
 }
 
+void Scene::readResampledLevelBlockChannels(int level, const std::tuple<int, int, int, int>& levelRect,
+    const std::tuple<int, int>& blockSize, const std::vector<int>& channelIndices,
+    void* buffer, size_t bufferSize)
+{
+    SLIDEIO_LOG(INFO) << "Scene::readResampledLevelBlockChannels level " << level;
+    cv::Rect rect = tupleToRect(levelRect);
+    cv::Size size = tupleToSize(blockSize);
+    const int numChannels = (channelIndices.empty()?m_scene->getNumChannels():static_cast<int>(channelIndices.size()));
+    const int refChannel = (channelIndices.empty()?0:channelIndices[0]);
+    const int blockMemSize = getBlockSize(blockSize, refChannel, numChannels, 1, 1);
+    const auto dt = m_scene->getChannelDataType(refChannel);
+    const int cvType = CVTools::cvTypeFromDataType(dt);
+
+    if(blockMemSize>bufferSize)
+    {
+        RAISE_RUNTIME_ERROR << "Supplied memory buffer is too small. Received: " << bufferSize
+            << ". Required: " << blockMemSize;
+    }
+    cv::Mat raster(size.height, size.width, CV_MAKETYPE(cvType, numChannels), buffer);
+    raster = cv::Scalar(0);
+    m_scene->readResampledLevelBlockChannels(level, rect, size, channelIndices, raster);
+
+    if(buffer!=raster.data)
+    {
+        RAISE_RUNTIME_ERROR << "Unexpected data reallocation by reading of file " << getFilePath();
+    }
+}
+
+void Scene::readResampledLevel4DBlockChannels(int level, const std::tuple<int, int, int, int>& levelRect,
+    const std::tuple<int, int>& blockSize, const std::vector<int>& channelIndices,
+    const std::tuple<int, int>& zSliceRange, const std::tuple<int, int>& timeFrameRange,
+    void* buffer, size_t bufferSize)
+{
+    SLIDEIO_LOG(INFO) << "Scene::readResampledLevel4DBlockChannels level " << level;
+    cv::Rect rect = tupleToRect(levelRect);
+    cv::Size size = tupleToSize(blockSize);
+    cv::Range sliceRange = tupleToRange(zSliceRange);
+    cv::Range frameRange = tupleToRange(timeFrameRange);
+
+    const int numChannels = (channelIndices.empty()?m_scene->getNumChannels():static_cast<int>(channelIndices.size()));
+    const int numSlices = sliceRange.size();
+    const int numFrames = frameRange.size();
+    const int refChannel = (channelIndices.empty()?0:channelIndices[0]);
+    const int numPlanes = numChannels*numSlices*numFrames;
+    const int blockMemSize = getBlockSize(blockSize, refChannel, numChannels, numSlices, numFrames);
+    const int planeMemSize = getBlockSize(blockSize, refChannel, numChannels, 1, 1);
+    const auto cvType = m_scene->getChannelDataType(refChannel);
+
+    if(blockMemSize>bufferSize) {
+        RAISE_RUNTIME_ERROR << "Supplied memory buffer is too small. Received: " << bufferSize
+            << ". Required: " << blockMemSize;
+    }
+
+    cv::Mat raster(size.height, size.width, CV_MAKETYPE(static_cast<int>(cvType), numPlanes), buffer);
+    if (numSlices==1 && numFrames==1) {
+        m_scene->readResampledLevel4DBlockChannels(level, rect, size, channelIndices, sliceRange, frameRange, raster);
+        if (buffer != raster.data) {
+            RAISE_RUNTIME_ERROR << "Unexpected memory reallocation";
+        }
+    }
+    else {
+        cv::Mat mdRaster;
+        std::vector<int> indices;
+        int sliceIndex(-1), frameIndex(-1);
+
+        if(numSlices > 1) {
+            sliceIndex = 0;
+            indices.push_back(0);
+        }
+        if( numFrames > 1) {
+            frameIndex = sliceIndex + 1;
+            indices.push_back(0);
+        }
+        uint8_t* planeBegin = static_cast<uint8_t*>(buffer);
+        m_scene->readResampledLevel4DBlockChannels(level, rect, size, channelIndices, sliceRange, frameRange, mdRaster);
+        for (int tfIndex = frameRange.start; tfIndex < frameRange.end; ++tfIndex)
+        {
+            if(frameIndex>=0) {
+                indices[frameIndex] = tfIndex - frameRange.start;
+            }
+            for (int zSliceIndex = sliceRange.start; zSliceIndex < sliceRange.end; ++zSliceIndex, planeBegin+=planeMemSize)
+            {
+                if (sliceIndex >= 0) {
+                    indices[sliceIndex] = zSliceIndex - sliceRange.start;
+                }
+                cv::Mat sliceRaster;
+                CVTools::extractSliceFromMultidimMatrix(mdRaster, indices, sliceRaster);
+                if( !sliceRaster.isContinuous()) {
+                    RAISE_RUNTIME_ERROR << "Unexpected non-continuous matrix";
+                }
+                memcpy(planeBegin, sliceRaster.data, planeMemSize);
+            }
+        }
+    }
+}
+
 const std::list<std::string>& Scene::getAuxImageNames() const
 {
     SLIDEIO_LOG(INFO) << "Scene::getAuxImageNames "; 
