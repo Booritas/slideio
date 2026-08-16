@@ -30,7 +30,12 @@ namespace slideio
         cv::Rect getRect() const override;
         void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
             const std::vector<int>& channelIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output) override;
-        const slideio::TiffDirectory& findZoomDirectory(double zoom) const;
+        void readResampledLevelBlockChannelsEx(int level, const cv::Rect& levelRect,
+            const cv::Size& blockSize, const std::vector<int>& channelIndices,
+            int zSliceIndex, int tFrameIndex, cv::OutputArray output) override;
+        // Returns the index of the level serving a zoom, not the directory: the level index
+        // is what the level-addressed read path takes.
+        int findZoomLevelIndex(double zoom) const;
         // Tiler methods
         int getTileCount(void* userData) override;
         bool getTileRect(int tileIndex, cv::Rect& tileRect, void* userData) override;

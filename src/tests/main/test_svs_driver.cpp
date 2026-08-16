@@ -190,7 +190,11 @@ TEST(SVSImageDriver, read_Thumbnail_BlockWithScale)
     ASSERT_LT(0.99, minScore);
 }
 
-TEST(SVSImageDriver, findZoomDirectory)
+// findZoomDirectory was split into findZoomLevelIndex (Task 4 of the explicit-level-reading
+// plan): the level index is what the level-addressed read path takes, and dirIndex was set
+// equal to the position index below, so the expected values are unchanged from the directory
+// lookup this replaces.
+TEST(SVSImageDriver, findZoomLevelIndex)
 {
     std::vector<slideio::TiffDirectory> dirs;
     dirs.resize(10);
@@ -213,18 +217,18 @@ TEST(SVSImageDriver, findZoomDirectory)
     const cv::Rect sceneRect = scene->getRect();
     double lastZoom = static_cast<double>(lastDir.width) / static_cast<double>(sceneRect.width);
 
-    EXPECT_EQ(scene->findZoomDirectory(2.).dirIndex, 0);
-    EXPECT_EQ(scene->findZoomDirectory(lastZoom).dirIndex, 9);
-    EXPECT_EQ(scene->findZoomDirectory(lastZoom*2).dirIndex, 8);
-    EXPECT_EQ(scene->findZoomDirectory(lastZoom/2).dirIndex, 9);
-    EXPECT_EQ(scene->findZoomDirectory(0.5).dirIndex, 1);
-    EXPECT_EQ(scene->findZoomDirectory(0.501).dirIndex, 1);
-    EXPECT_EQ(scene->findZoomDirectory(0.499).dirIndex, 1);
-    EXPECT_EQ(scene->findZoomDirectory(0.25).dirIndex, 2);
-    EXPECT_EQ(scene->findZoomDirectory(0.125).dirIndex, 3);
-    EXPECT_EQ(scene->findZoomDirectory(0.55).dirIndex, 0);
-    EXPECT_EQ(scene->findZoomDirectory(0.45).dirIndex, 1);
-    EXPECT_EQ(scene->findZoomDirectory(0.1).dirIndex, 3);
+    EXPECT_EQ(scene->findZoomLevelIndex(2.), 0);
+    EXPECT_EQ(scene->findZoomLevelIndex(lastZoom), 9);
+    EXPECT_EQ(scene->findZoomLevelIndex(lastZoom*2), 8);
+    EXPECT_EQ(scene->findZoomLevelIndex(lastZoom/2), 9);
+    EXPECT_EQ(scene->findZoomLevelIndex(0.5), 1);
+    EXPECT_EQ(scene->findZoomLevelIndex(0.501), 1);
+    EXPECT_EQ(scene->findZoomLevelIndex(0.499), 1);
+    EXPECT_EQ(scene->findZoomLevelIndex(0.25), 2);
+    EXPECT_EQ(scene->findZoomLevelIndex(0.125), 3);
+    EXPECT_EQ(scene->findZoomLevelIndex(0.55), 0);
+    EXPECT_EQ(scene->findZoomLevelIndex(0.45), 1);
+    EXPECT_EQ(scene->findZoomLevelIndex(0.1), 3);
 }
 
 TEST(SVSImageDriver, readBlock_WholeImage)

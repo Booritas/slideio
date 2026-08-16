@@ -119,37 +119,47 @@ int SVSTiledScene::getNumChannels() const {
 void SVSTiledScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
                                                  const std::vector<int>& channelIndices, int zSliceIndex,
                                                  int tFrameIndex, cv::OutputArray output) {
+    const double zoomX = static_cast<double>(blockSize.width) / static_cast<double>(blockRect.width);
+    const double zoomY = static_cast<double>(blockSize.height) / static_cast<double>(blockRect.height);
+    const int level = findZoomLevelIndex(std::max(zoomX, zoomY));
+    const slideio::TiffDirectory& dir = m_directories[level];
+    const double zoomDirX = static_cast<double>(dir.width) / static_cast<double>(m_directories[0].width);
+    const double zoomDirY = static_cast<double>(dir.height) / static_cast<double>(m_directories[0].height);
+    cv::Rect levelRect;
+    Tools::scaleRect(blockRect, zoomDirX, zoomDirY, levelRect);
+    readResampledLevelBlockChannelsEx(level, levelRect, blockSize, channelIndices,
+                                      zSliceIndex, tFrameIndex, output);
+}
+
+void SVSTiledScene::readResampledLevelBlockChannelsEx(int level, const cv::Rect& levelRect,
+                                                      const cv::Size& blockSize,
+                                                      const std::vector<int>& channelIndices,
+                                                      int zSliceIndex, int tFrameIndex,
+                                                      cv::OutputArray output) {
     if (zSliceIndex != 0 || tFrameIndex != 0) {
         RAISE_RUNTIME_ERROR << "SVSDriver: 3D and 4D images are not supported";
     }
+    validateLevel(level);
     auto hFile = getFileHandle();
     if (hFile == nullptr) {
         RAISE_RUNTIME_ERROR << "SVSDriver: Invalid file header by raster reading operation";
     }
-    double zoomX = static_cast<double>(blockSize.width) / static_cast<double>(blockRect.width);
-    double zoomY = static_cast<double>(blockSize.height) / static_cast<double>(blockRect.height);
-    double zoom = std::max(zoomX, zoomY);
-    const slideio::TiffDirectory& dir = findZoomDirectory(zoom);
-    double zoomDirX = static_cast<double>(dir.width) / static_cast<double>(m_directories[0].width);
-    double zoomDirY = static_cast<double>(dir.height) / static_cast<double>(m_directories[0].height);
-    cv::Rect resizedBlock;
-    Tools::scaleRect(blockRect, zoomDirX, zoomDirY, resizedBlock);
+    const slideio::TiffDirectory& dir = m_directories[level];
     std::vector<int> channels(channelIndices);
     if (channels.empty()) {
         channels.resize(dir.channels);
         std::iota(channels.begin(), channels.end(), 0);
     }
-    TileComposer::composeRect(this, channels, resizedBlock, blockSize, output, (void*)&dir);
+    TileComposer::composeRect(this, channels, levelRect, blockSize, output, (void*)&dir);
 }
 
-const TiffDirectory& SVSTiledScene::findZoomDirectory(double zoom) const {
+int SVSTiledScene::findZoomLevelIndex(double zoom) const {
     const cv::Rect sceneRect = getRect();
     const double sceneWidth = static_cast<double>(sceneRect.width);
     const auto& directories = m_directories;
-    int index = Tools::findZoomLevel(zoom, (int)m_directories.size(), [&directories, sceneWidth](int index) {
+    return Tools::findZoomLevel(zoom, (int)m_directories.size(), [&directories, sceneWidth](int index) {
         return directories[index].width / sceneWidth;
     });
-    return m_directories[index];
 }
 
 int SVSTiledScene::getTileCount(void* userData) {

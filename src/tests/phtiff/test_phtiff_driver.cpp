@@ -2675,3 +2675,120 @@ TEST_F(PhTiffImageDriverTests, multiThreadedRead) {
 	PHTIFFImageDriver driver;
 	TestTools::multiThreadedTest(TestTools::getFullTestImagePath("philips", ph2::FILE_NAME), driver);
 }
+
+// The point of the level api: a rect given in level coordinates is read from that level
+// with no conversion. Reading the whole of a level by level, and reading the whole scene
+// resampled to that level's size, have to show the same picture -- the second goes through
+// the conversion this test's subject avoids, so agreement means the two entry points
+// address the pyramid the same way.
+TEST_F(PhTiffImageDriverTests, readLevelMatchesTheResampledSceneRead) {
+	if (!TestTools::isFullTestEnabled()) {
+		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
+	}
+	PhSlideAndScene opened = phOpenScene(ph2::FILE_NAME);
+	ASSERT_TRUE(opened.scene != nullptr);
+	const int numLevels = opened.scene->getNumZoomLevels();
+	ASSERT_LE(4, numLevels);
+
+	// A whole-level read at the finer levels is too large to hold comfortably in memory
+	// (level 4 of a Philips slide is ~150 MB per raster and the test holds two at once), so
+	// only the coarsest three levels are exercised here -- they test the same property at a
+	// fraction of the cost.
+	for (int level = numLevels - 3; level < numLevels; ++level) {
+		const LevelInfo* info = opened.scene->getZoomLevelInfo(level);
+		ASSERT_TRUE(info != nullptr) << "level " << level;
+		const cv::Size levelSize(info->getSize().width, info->getSize().height);
+		cv::Mat viaLevel, viaScene;
+		opened.scene->readResampledLevelBlockChannels(level, cv::Rect(cv::Point(0, 0), levelSize),
+		                                              levelSize, {}, viaLevel);
+		opened.scene->readResampledBlock(opened.scene->getRect(), levelSize, viaScene);
+		ASSERT_EQ(levelSize, viaLevel.size()) << "level " << level;
+		ASSERT_EQ(levelSize, viaScene.size()) << "level " << level;
+		// The two reads differ only by the rounding of the scene-coordinate round trip, so
+		// they are near identical rather than identical.
+		EXPECT_LE(0.95, ImageTools::computeSimilarity2(viaLevel, viaScene)) << "level " << level;
+	}
+}
+
+// Reading a level tile by tile and stitching the tiles gives the level. This is the test of
+// the coordinate interpretation: an off-by-one in the level rect shows as a seam.
+TEST_F(PhTiffImageDriverTests, readLevelTileByTileReconstructsTheLevel) {
+	if (!TestTools::isFullTestEnabled()) {
+		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
+	}
+	PhSlideAndScene opened = phOpenScene(ph2::FILE_NAME);
+	ASSERT_TRUE(opened.scene != nullptr);
+	const int level = opened.scene->getNumZoomLevels() - 1;
+	const LevelInfo* info = opened.scene->getZoomLevelInfo(level);
+	ASSERT_TRUE(info != nullptr);
+	const cv::Size levelSize(info->getSize().width, info->getSize().height);
+	const cv::Size tileSize(info->getTileSize().width, info->getTileSize().height);
+	ASSERT_LT(0, tileSize.width);
+	ASSERT_LT(0, tileSize.height);
+
+	cv::Mat whole;
+	opened.scene->readResampledLevelBlockChannels(level, cv::Rect(cv::Point(0, 0), levelSize),
+	                                              levelSize, {}, whole);
+	cv::Mat stitched(levelSize, whole.type(), cv::Scalar::all(0));
+	for (int y = 0; y < levelSize.height; y += tileSize.height) {
+		for (int x = 0; x < levelSize.width; x += tileSize.width) {
+			const cv::Rect tileRect(x, y, tileSize.width, tileSize.height);
+			cv::Mat tile;
+			opened.scene->readResampledLevelBlockChannels(level, tileRect, tileSize, {}, tile);
+			ASSERT_EQ(tileSize, tile.size()) << "tile " << x << "," << y;
+			// Only the part of the tile inside the level belongs in the mosaic; the rest is
+			// the background the contract promises for an overhanging tile.
+			const cv::Rect valid = tileRect & cv::Rect(cv::Point(0, 0), levelSize);
+			tile(cv::Rect(0, 0, valid.width, valid.height)).copyTo(stitched(valid));
+		}
+	}
+	EXPECT_DOUBLE_EQ(0., phMaxAbsDiff(stitched, whole));
+}
+
+// The level api never selects a level of its own: asking level N for a half sized block has
+// to resample level N rather than fall through to level N+1, which already holds that size.
+TEST_F(PhTiffImageDriverTests, readLevelDoesNotEscalateToAFinerLevel) {
+	if (!TestTools::isFullTestEnabled()) {
+		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
+	}
+	PhSlideAndScene opened = phOpenScene(ph2::FILE_NAME);
+	ASSERT_TRUE(opened.scene != nullptr);
+	const int level = opened.scene->getNumZoomLevels() - 2;
+	const LevelInfo* coarse = opened.scene->getZoomLevelInfo(level + 1);
+	ASSERT_TRUE(coarse != nullptr);
+	const cv::Size coarseSize(coarse->getSize().width, coarse->getSize().height);
+	const LevelInfo* fine = opened.scene->getZoomLevelInfo(level);
+	ASSERT_TRUE(fine != nullptr);
+	const cv::Size fineSize(fine->getSize().width, fine->getSize().height);
+
+	// Read the fine level down to the coarse level's size, and read the coarse level whole.
+	cv::Mat resampledFine, coarseRead;
+	opened.scene->readResampledLevelBlockChannels(level, cv::Rect(cv::Point(0, 0), fineSize),
+	                                              coarseSize, {}, resampledFine);
+	opened.scene->readResampledLevelBlockChannels(level + 1, cv::Rect(cv::Point(0, 0), coarseSize),
+	                                              coarseSize, {}, coarseRead);
+	ASSERT_EQ(coarseSize, resampledFine.size());
+	ASSERT_EQ(coarseSize, coarseRead.size());
+	// They show the same region, so they are similar -- but philips regenerated each level
+	// with its own quality 80 jpeg, so a downscale of the finer level is not the coarser
+	// level byte for byte. If it were identical, the read had been served from the coarse
+	// level and the resampling never happened.
+	EXPECT_LE(0.85, ImageTools::computeSimilarity2(resampledFine, coarseRead));
+	EXPECT_LT(0., phMaxAbsDiff(resampledFine, coarseRead));
+}
+
+TEST_F(PhTiffImageDriverTests, readLevelRejectsAnOutOfRangeLevel) {
+	if (!TestTools::isFullTestEnabled()) {
+		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
+	}
+	PhSlideAndScene opened = phOpenScene(ph2::FILE_NAME);
+	ASSERT_TRUE(opened.scene != nullptr);
+	const int numLevels = opened.scene->getNumZoomLevels();
+	cv::Mat raster;
+	EXPECT_THROW(opened.scene->readResampledLevelBlockChannels(-1, cv::Rect(0, 0, 64, 64),
+	                                                           cv::Size(64, 64), {}, raster),
+	             slideio::RuntimeError);
+	EXPECT_THROW(opened.scene->readResampledLevelBlockChannels(numLevels, cv::Rect(0, 0, 64, 64),
+	                                                           cv::Size(64, 64), {}, raster),
+	             slideio::RuntimeError);
+}
