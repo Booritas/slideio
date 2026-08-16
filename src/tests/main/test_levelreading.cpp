@@ -3,6 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 #include <gtest/gtest.h>
 #include <opencv2/core.hpp>
+#include <algorithm>
 #include "tests/testlib/testscene.hpp"
 #include "slideio/base/exceptions.hpp"
 #include "slideio/core/levelinfo.hpp"
@@ -194,4 +195,65 @@ TEST(LevelReadingTests, publicSceneApiRejectsAnOutOfRangeLevel)
     EXPECT_THROW(scene->readResampledLevelBlockChannels(
                      5, {0, 0, 64, 64}, size, {}, buffer.data(), buffer.size()),
                  slideio::RuntimeError);
+}
+
+// Discriminating test: the gdal png above has only one level, so level 0 coordinates and
+// scene coordinates are numerically identical there and the test cannot tell a correct
+// delegation from one that silently dropped the level. Here level 1 has scale 0.5, so if
+// Scene::readResampledLevelBlockChannels ever forwarded the level rect to the driver as-is
+// instead of mapping it through the named level, the recorded request would carry (10,10,20,20)
+// instead of the scene-mapped (20,20,40,40) and this assertion would fail.
+TEST(LevelReadingTests, publicSceneApiMapsALevelOntoSceneCoordinates)
+{
+    auto testScene = makeTwoLevelScene();
+    slideio::Scene scene(testScene);
+
+    const std::tuple<int, int, int, int> rect(10, 10, 20, 20);
+    const std::tuple<int, int> size(20, 20);
+    std::vector<uint8_t> buffer(scene.getBlockSize(size, 0, 3, 1, 1));
+
+    scene.readResampledLevelBlockChannels(1, rect, size, {}, buffer.data(), buffer.size());
+
+    ASSERT_EQ(1u, testScene->requests().size());
+    EXPECT_EQ(cv::Rect(20, 20, 40, 40), testScene->requests()[0].rect);
+    EXPECT_EQ(cv::Size(20, 20), testScene->requests()[0].size);
+}
+
+// Scene::readResampledLevel4DBlockChannels had no coverage at all. This drives it through the
+// public buffer api with 3 z-slices at level 1, and checks both ends: the driver saw one
+// request per slice with the same level-mapped rect and an ascending zSlice index (so the level
+// was not dropped anywhere in the per-slice loop), and the buffer that comes back actually
+// carries that data. TestScene's encoded content depends only on the block rect/size, not on
+// zSlice or tFrame, so each of the 3 planes has to equal a plain single-level read of the same
+// rect/size -- if the per-slice memcpy in the wrapper mixed up planes or left one zeroed, this
+// comparison would catch it.
+TEST(LevelReadingTests, publicSceneApiReadsALevel4DBlockPerSlice)
+{
+    auto testScene = makeTwoLevelScene();
+    testScene->setNumZSlices(3);
+    slideio::Scene scene(testScene);
+
+    const std::tuple<int, int, int, int> rect(0, 0, 20, 20);
+    const std::tuple<int, int> size(20, 20);
+    const int numChannels = 3;
+
+    const int planeSize = scene.getBlockSize(size, 0, numChannels, 1, 1);
+    std::vector<uint8_t> reference(planeSize);
+    scene.readResampledLevelBlockChannels(1, rect, size, {}, reference.data(), reference.size());
+    testScene->clearRequests();
+
+    std::vector<uint8_t> buffer(scene.getBlockSize(size, 0, numChannels, 3, 1));
+    scene.readResampledLevel4DBlockChannels(1, rect, size, {}, {0, 3}, {0, 1}, buffer.data(), buffer.size());
+
+    ASSERT_EQ(3u, testScene->requests().size());
+    for (int slice = 0; slice < 3; ++slice) {
+        EXPECT_EQ(cv::Rect(0, 0, 40, 40), testScene->requests()[slice].rect) << "slice " << slice;
+        EXPECT_EQ(slice, testScene->requests()[slice].zSlice) << "slice " << slice;
+    }
+
+    ASSERT_EQ(static_cast<size_t>(planeSize) * 3, buffer.size());
+    for (int slice = 0; slice < 3; ++slice) {
+        const uint8_t* planeBegin = buffer.data() + slice * planeSize;
+        EXPECT_TRUE(std::equal(reference.begin(), reference.end(), planeBegin)) << "slice " << slice;
+    }
 }
