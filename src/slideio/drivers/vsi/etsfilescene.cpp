@@ -155,28 +155,41 @@ void EtsFileScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, const
     if (!etsFile) {
         RAISE_RUNTIME_ERROR << "VSIImageDriver: ETS file is not initialized";
     }
-    const auto volume = etsFile->getVolume();
-    if (!volume) {
-        RAISE_RUNTIME_ERROR << "VSIImageDriver: ETS file does not contain volume";
-    }
-
     const double zoomX = static_cast<double>(blockSize.width) / static_cast<double>(blockRect.width);
     const double zoomY = static_cast<double>(blockSize.height) / static_cast<double>(blockRect.height);
-    const double zoom = std::max(zoomX, zoomY);
-    const int levelIndex = findZoomLevelIndex(zoom);
+    const int levelIndex = findZoomLevelIndex(std::max(zoomX, zoomY));
     if (levelIndex < 0 || levelIndex >= etsFile->getNumPyramidLevels()) {
         RAISE_RUNTIME_ERROR << "VSIImageDriver: Unexpected zoom level index: "
             << levelIndex << " Expected: " << "0 - " << etsFile->getNumPyramidLevels();
     }
     const PyramidLevel& level = etsFile->getPyramidLevel(levelIndex);
+    // getScaleLevel is a divisor, so the zoom of the level is its reciprocal.
     const double levelZoom = 1. / level.getScaleLevel();
-    cv::Rect resizedBlock;
-    Tools::scaleRect(blockRect, levelZoom, levelZoom, resizedBlock);
+    cv::Rect levelRect;
+    Tools::scaleRect(blockRect, levelZoom, levelZoom, levelRect);
+    readResampledLevelBlockChannelsEx(levelIndex, levelRect, blockSize, channelIndices,
+                                      zSliceIndex, tFrameIndex, output);
+}
+
+void EtsFileScene::readResampledLevelBlockChannelsEx(int level, const cv::Rect& levelRect,
+                                                     const cv::Size& blockSize,
+                                                     const std::vector<int>& channelIndices,
+                                                     int zSliceIndex, int tFrameIndex,
+                                                     cv::OutputArray output) {
+    const auto etsFile = getEtsFile();
+    if (!etsFile) {
+        RAISE_RUNTIME_ERROR << "VSIImageDriver: ETS file is not initialized";
+    }
+    const auto volume = etsFile->getVolume();
+    if (!volume) {
+        RAISE_RUNTIME_ERROR << "VSIImageDriver: ETS file does not contain volume";
+    }
+    validateLevel(level);
     TileComposerUserData userData;
-    userData.levelIndex = levelIndex;
+    userData.levelIndex = level;
     userData.zSlice = zSliceIndex;
     userData.tFrame = tFrameIndex;
-    TileComposer::composeRect(this, channelIndices, resizedBlock, blockSize, output, (void*)&userData);
+    TileComposer::composeRect(this, channelIndices, levelRect, blockSize, output, (void*)&userData);
 }
 
 void EtsFileScene::init() {

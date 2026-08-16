@@ -908,6 +908,80 @@ TEST_F(VSIImageDriverTests, stack3d) {
 	EXPECT_GT(similarity, 0.99);
 }
 
+TEST_F(VSIImageDriverTests, readLevelMatchesTheResampledSceneRead) {
+    std::string filePath = TestTools::getFullTestImagePath("vsi", "Zenodo/Abdominal/G1M16_ABD_HE_B6.vsi");
+    slideio::VSIImageDriver driver;
+    std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    std::shared_ptr<CVScene> scene = getSceneByName(slide, "40x_01");
+    ASSERT_TRUE(scene != nullptr);
+
+    const int numLevels = scene->getNumZoomLevels();
+    ASSERT_LE(2, numLevels);
+    for (int level = 1; level < numLevels; ++level)
+    {
+        const slideio::LevelInfo* info = scene->getZoomLevelInfo(level);
+        ASSERT_TRUE(info != nullptr) << "level " << level;
+        const cv::Size levelSize(info->getSize().width, info->getSize().height);
+        cv::Mat viaLevel, viaScene;
+        scene->readResampledLevelBlockChannels(level, cv::Rect(cv::Point(0, 0), levelSize), levelSize, {}, viaLevel);
+        scene->readResampledBlock(scene->getRect(), levelSize, viaScene);
+        ASSERT_EQ(levelSize, viaLevel.size()) << "level " << level;
+        EXPECT_LE(0.95, slideio::ImageTools::computeSimilarity2(viaLevel, viaScene)) << "level " << level;
+    }
+    // An overhanging rect is the ordinary edge tile and must come back background filled.
+    const slideio::LevelInfo* last = scene->getZoomLevelInfo(numLevels - 1);
+    const cv::Size lastSize(last->getSize().width, last->getSize().height);
+    cv::Mat edge;
+    ASSERT_NO_THROW(scene->readResampledLevelBlockChannels(
+        numLevels - 1, cv::Rect(lastSize.width - 32, lastSize.height - 32, 128, 128),
+        cv::Size(128, 128), {}, edge));
+    EXPECT_EQ(cv::Size(128, 128), edge.size());
+}
+
+// The generic CVScene default converts levelRect back to scene coordinates via
+// 1./levelInfo->getScale() and then re-derives a zoom index from the requested output size;
+// when that re-derived index disagrees with the level actually asked for, the level-explicit
+// read is silently served from a different level. This VSI fixture's LevelInfo::getScale() is
+// a *measured* width ratio (7374/14749 = 0.499966...) rather than the exact power-of-two
+// reciprocal the driver's own zoom search uses internally (PyramidLevel::getScaleLevel()), so
+// levels 1+ round-trip with a one-pixel fuzz that makes a level-0-vs-level-1 byte comparison
+// unreliable as a discriminator (it is never exactly 0, overridden or not -- verified
+// empirically, see task-8-report.md). Level 0 has no such fuzz: its scale is always exactly
+// 1.0, so a level-0-explicit request and the ordinary whole-scene request funnel into the
+// exact same call, byte for byte, whenever the un-overridden default reselects a coarser level
+// for the requested output size. So: request level 0 explicitly over a rect sized to force a
+// 2x-downsample zoom (which the scene-level path would satisfy from level 1), and compare
+// against an ordinary scene-level read of that same rect/size. Un-overridden, both must be
+// byte-identical (the level-0 request silently reselects level 1, exactly matching the
+// scene-level path). Overridden, the level-0 request must actually read level 0's own tiles,
+// which cannot equal level 1's independently-encoded content.
+TEST_F(VSIImageDriverTests, readLevelDoesNotReuseAdjacentLevel) {
+    std::string filePath = TestTools::getFullTestImagePath("vsi", "Zenodo/Abdominal/G1M16_ABD_HE_B6.vsi");
+    slideio::VSIImageDriver driver;
+    std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    std::shared_ptr<CVScene> scene = getSceneByName(slide, "40x_01");
+    ASSERT_TRUE(scene != nullptr);
+    ASSERT_LE(2, scene->getNumZoomLevels());
+
+    // A rect well inside level 0's bounds (14749x20874), sized so that a 256x256 output
+    // implies a 2x downsample -- the zoom ratio that maps onto level 1.
+    const cv::Rect rect0(2048, 2048, 512, 512);
+    const cv::Size blockSize(256, 256);
+
+    cv::Mat viaLevel0Request;
+    scene->readResampledLevelBlockChannels(0, rect0, blockSize, {}, viaLevel0Request);
+    cv::Mat viaSceneRequest;
+    scene->readResampledBlock(rect0, blockSize, viaSceneRequest);
+
+    ASSERT_EQ(blockSize, viaLevel0Request.size());
+    ASSERT_EQ(blockSize, viaSceneRequest.size());
+    // Equality means the explicit level-0 request was actually served by whatever level the
+    // ordinary scene-level zoom search picked (level 1) instead of level 0.
+    EXPECT_GT(cv::norm(viaLevel0Request, viaSceneRequest, cv::NORM_INF), 0);
+}
+
 TEST_F(VSIImageDriverTests, multiThreadSceneAccess) {
     if (!TestTools::isFullTestEnabled())
     {
