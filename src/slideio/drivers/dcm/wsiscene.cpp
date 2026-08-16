@@ -140,21 +140,34 @@ void WSIScene::initializeBlock(const cv::Size& blockSize, const std::vector<int>
 
 void WSIScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
     const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output) {
-	TilerData userData;
 	const double zoomX = static_cast<double>(blockSize.width) / static_cast<double>(blockRect.width);
 	const double zoomY = static_cast<double>(blockSize.height) / static_cast<double>(blockRect.height);
 	const double zoom = std::max(zoomX, zoomY);
 	auto& files = m_files;
-	userData.zoomLevelIndex = Tools::findZoomLevel(zoom, static_cast<int>(m_files.size()), [&files](int index) {
+	const int level = Tools::findZoomLevel(zoom, static_cast<int>(m_files.size()), [&files](int index) {
 		return files[index]->getScale();
 		});
-	const double levelZoom = files[userData.zoomLevelIndex]->getScale();
-	cv::Rect zoomLevelRect;
-	Tools::scaleRect(blockRect, levelZoom, levelZoom, zoomLevelRect);
-	userData.relativeZoom = levelZoom / zoom;
+	const double levelZoom = files[level]->getScale();
+	cv::Rect levelRect;
+	Tools::scaleRect(blockRect, levelZoom, levelZoom, levelRect);
+	readResampledLevelBlockChannelsEx(level, levelRect, blockSize, componentIndices,
+	                                  zSliceIndex, tFrameIndex, output);
+}
+
+void WSIScene::readResampledLevelBlockChannelsEx(int level, const cv::Rect& levelRect,
+	const cv::Size& blockSize, const std::vector<int>& componentIndices,
+	int zSliceIndex, int tFrameIndex, cv::OutputArray output) {
+	validateLevel(level);
+	TilerData userData;
+	userData.zoomLevelIndex = level;
+	// relativeZoom was levelZoom/zoom; with the rect already in level coordinates that is
+	// the ratio of the level rect to the output block.
+	userData.relativeZoom = (blockSize.width > 0)
+		? static_cast<double>(levelRect.width) / static_cast<double>(blockSize.width)
+		: 1.;
 	userData.zSliceIndex = zSliceIndex;
 	userData.tFrameIndex = tFrameIndex;
-	TileComposer::composeRect(this, componentIndices, zoomLevelRect, blockSize, output, &userData);
+	TileComposer::composeRect(this, componentIndices, levelRect, blockSize, output, &userData);
 }
 
 std::shared_ptr<CVScene> WSIScene::getAuxImage(const std::string& imageName) const {

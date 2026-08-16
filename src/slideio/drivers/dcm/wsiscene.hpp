@@ -59,6 +59,9 @@ namespace slideio
         void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
             const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex,
             cv::OutputArray output) override;
+        void readResampledLevelBlockChannelsEx(int level, const cv::Rect& levelRect,
+            const cv::Size& blockSize, const std::vector<int>& componentIndices,
+            int zSliceIndex, int tFrameIndex, cv::OutputArray output) override;
         std::shared_ptr<CVScene> getAuxImage(const std::string& imageName) const override;
 
     private:

@@ -97,6 +97,9 @@ namespace slideio
         bool isMosaic() const { return m_bMosaic; }
         void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
             const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output) override;
+        void readResampledLevelBlockChannelsEx(int level, const cv::Rect& levelRect,
+            const cv::Size& blockSize, const std::vector<int>& componentIndices,
+            int zSliceIndex, int tFrameIndex, cv::OutputArray output) override;
     private:
         void setMosaic(bool mosaic) { m_bMosaic = mosaic; }
         void setupComponents(const std::map<int, int>& channelPixelType);

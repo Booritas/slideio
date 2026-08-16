@@ -814,6 +814,101 @@ TEST(DCMImageDriver, zoomLevelsSingle)
     }
 }
 
+// Behavior preservation: a level read resampled down to a coarser level's size must
+// essentially match a scene read resampled to the same size, level by level.
+TEST(DCMImageDriver, readLevelMatchesTheResampledSceneRead)
+{
+    if (!TestTools::isFullTestEnabled())
+    {
+        GTEST_SKIP() <<
+            "Skip private test because full dataset is not enabled";
+    }
+    DCMImageDriver driver;
+    std::string slidePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777");
+    auto slide = driver.openFile(slidePath);
+    const int numScenes = slide->getNumScenes();
+    ASSERT_EQ(numScenes, 1);
+    std::shared_ptr<CVScene> scene = slide->getScene(0);
+    ASSERT_TRUE(scene != nullptr);
+
+    const int numLevels = scene->getNumZoomLevels();
+    ASSERT_LE(2, numLevels);
+    // computeSimilarity2 goes through cv::sum, which only supports up to 4 channels; cap the
+    // comparison to a channel subset if the fixture turns out to carry more.
+    const int numChannels = scene->getNumChannels();
+    const std::vector<int> channelIndices = numChannels > 4 ? std::vector<int>{0, 1, 2} : std::vector<int>{};
+    // A whole-level read at the finer levels of this pyramid is tens of megapixels (level 0
+    // is 72192x70400), so only the coarsest three levels are exercised here -- they test the
+    // same property at a fraction of the cost.
+    for (int level = std::max(1, numLevels - 3); level < numLevels; ++level)
+    {
+        const slideio::LevelInfo* info = scene->getZoomLevelInfo(level);
+        ASSERT_TRUE(info != nullptr) << "level " << level;
+        const cv::Size levelSize(info->getSize().width, info->getSize().height);
+        cv::Mat viaLevel, viaScene;
+        scene->readResampledLevelBlockChannels(level, cv::Rect(cv::Point(0, 0), levelSize), levelSize,
+                                               channelIndices, viaLevel);
+        scene->readResampledBlockChannels(scene->getRect(), levelSize, channelIndices, viaScene);
+        ASSERT_EQ(levelSize, viaLevel.size()) << "level " << level;
+        EXPECT_LE(0.95, ImageTools::computeSimilarity2(viaLevel, viaScene)) << "level " << level;
+    }
+}
+
+// The generic CVScene default clamps levelRect to the level and then re-derives a zoom
+// index from the requested output size; when that re-derived index happens to agree with
+// the level actually asked for, the default's output is byte-identical to a direct read of
+// that other level. So reading a level-0 sub-rect resampled down to level 1's local scale
+// must NOT come back identical to a native read of the corresponding level-1 sub-rect --
+// equality would mean level 0's read was actually served by level 1.
+//
+// Uses small sub-rectangles rather than whole levels: level 0 of this fixture is
+// 72192x70400, and a whole-level read at that size is prohibitively expensive here. Levels 0
+// and 1 (rather than the coarsest pair) are used because they are the most collapse-prone --
+// exactly the pair the reference tests for other drivers exercise.
+TEST(DCMImageDriver, readLevelDoesNotReuseAdjacentLevel)
+{
+    if (!TestTools::isFullTestEnabled())
+    {
+        GTEST_SKIP() <<
+            "Skip private test because full dataset is not enabled";
+    }
+    DCMImageDriver driver;
+    std::string slidePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777");
+    auto slide = driver.openFile(slidePath);
+    const int numScenes = slide->getNumScenes();
+    ASSERT_EQ(numScenes, 1);
+    std::shared_ptr<CVScene> scene = slide->getScene(0);
+    ASSERT_TRUE(scene != nullptr);
+    ASSERT_LE(2, scene->getNumZoomLevels());
+
+    const slideio::LevelInfo* level0 = scene->getZoomLevelInfo(0);
+    const slideio::LevelInfo* level1 = scene->getZoomLevelInfo(1);
+    ASSERT_TRUE(level0 != nullptr);
+    ASSERT_TRUE(level1 != nullptr);
+    const double scale = level1->getScale() / level0->getScale();
+
+    // A rect well inside both levels' bounds; level 0's rect scaled down by the level 0->1
+    // ratio gives the corresponding level-1 rect.
+    const cv::Rect rect0(20000, 20000, 512, 512);
+    const cv::Size blockSize(256, 256);
+    const cv::Rect rect1(static_cast<int>(rect0.x * scale), static_cast<int>(rect0.y * scale),
+                          blockSize.width, blockSize.height);
+
+    // Read the level-0 sub-rect resampled to level 1's local scale -- must be served from
+    // level 0 directly, not silently reselected to level 1 by the generic base default.
+    cv::Mat viaLevel0Resampled;
+    scene->readResampledLevelBlockChannels(0, rect0, blockSize, {}, viaLevel0Resampled);
+    // Read the corresponding level-1 sub-rect natively: no resampling at all.
+    cv::Mat viaLevel1Native;
+    scene->readResampledLevelBlockChannels(1, rect1, blockSize, {}, viaLevel1Native);
+
+    ASSERT_EQ(blockSize, viaLevel0Resampled.size());
+    ASSERT_EQ(blockSize, viaLevel1Native.size());
+    // The two are independently encoded streams; equality means level 0's read was actually
+    // served from level 1.
+    EXPECT_GT(cv::norm(viaLevel0Resampled, viaLevel1Native, cv::NORM_INF), 0);
+}
+
 TEST(DCMImageDriver, multiThreadSceneAccess) {
     if (!TestTools::isFullTestEnabled())
     {

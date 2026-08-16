@@ -114,21 +114,36 @@ std::shared_ptr<CVScene> CZIScene::getAuxImage(const std::string& sceneName) con
 void CZIScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
                                             const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output)
 {
-    TilerData userData;
     const double zoomX = static_cast<double>(blockSize.width) / static_cast<double>(blockRect.width);
     const double zoomY = static_cast<double>(blockSize.height) / static_cast<double>(blockRect.height);
     const double zoom = std::max(zoomX, zoomY);
     const std::vector<ZoomLevel>& zoomLevels = m_zoomLevels;
-    userData.zoomLevelIndex = Tools::findZoomLevel(zoom, static_cast<int>(m_zoomLevels.size()), [&zoomLevels](int index){
+    const int level = Tools::findZoomLevel(zoom, static_cast<int>(m_zoomLevels.size()), [&zoomLevels](int index){
         return zoomLevels[index].zoom;
     });
-    const double levelZoom = zoomLevels[userData.zoomLevelIndex].zoom;
-    cv::Rect zoomLevelRect;
-    Tools::scaleRect(blockRect, levelZoom, levelZoom, zoomLevelRect);
-    userData.relativeZoom = levelZoom / zoom;
+    const double levelZoom = zoomLevels[level].zoom;
+    cv::Rect levelRect;
+    Tools::scaleRect(blockRect, levelZoom, levelZoom, levelRect);
+    readResampledLevelBlockChannelsEx(level, levelRect, blockSize, componentIndices,
+                                      zSliceIndex, tFrameIndex, output);
+}
+
+void CZIScene::readResampledLevelBlockChannelsEx(int level, const cv::Rect& levelRect,
+                                                 const cv::Size& blockSize,
+                                                 const std::vector<int>& componentIndices,
+                                                 int zSliceIndex, int tFrameIndex, cv::OutputArray output)
+{
+    validateLevel(level);
+    TilerData userData;
+    userData.zoomLevelIndex = level;
+    // relativeZoom was levelZoom/zoom; with the rect already in level coordinates that is
+    // the ratio of the level rect to the output block.
+    userData.relativeZoom = (blockSize.width > 0)
+        ? static_cast<double>(levelRect.width) / static_cast<double>(blockSize.width)
+        : 1.;
     userData.zSliceIndex = zSliceIndex + m_firstSliceIndex;
     userData.tFrameIndex = tFrameIndex + m_firstTFrameIndex;
-    TileComposer::composeRect(this, componentIndices, zoomLevelRect, blockSize, output, &userData);
+    TileComposer::composeRect(this, componentIndices, levelRect, blockSize, output, &userData);
 }
 
 std::string CZIScene::getName() const

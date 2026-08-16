@@ -831,3 +831,135 @@ TEST(CZIImageDriver, splitZoomLevel)
         EXPECT_NEAR(sim, 1.0, 0.06);
     }
 }
+
+// Behavior preservation: a level read resampled down to a coarser level's size must
+// essentially match a scene read resampled to the same size, level by level.
+TEST(CZIImageDriver, readLevelMatchesTheResampledSceneRead)
+{
+    if (!TestTools::isFullTestEnabled())
+    {
+        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
+    }
+    std::string filePath = TestTools::getFullTestImagePath("czi", "zeiss.czi");
+    slideio::CZIImageDriver driver;
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
+    ASSERT_TRUE(scene != nullptr);
+
+    const int numLevels = scene->getNumZoomLevels();
+    ASSERT_LE(2, numLevels);
+    // computeSimilarity2 goes through cv::sum, which only supports up to 4 channels; cap the
+    // comparison to a channel subset if the fixture turns out to carry more.
+    const int numChannels = scene->getNumChannels();
+    const std::vector<int> channelIndices = numChannels > 4 ? std::vector<int>{0, 1, 2} : std::vector<int>{};
+    // This fixture's getRect() reports the sub-block union in raw file coordinates, which for
+    // a mosaic scan is not zero-based (its origin here is a large negative offset); the tile
+    // grid a block read actually addresses is zero-based, so the scene-space comparison rect
+    // has to be zero-based too, matching the level-space rect used for the level read.
+    const cv::Rect zeroBasedSceneRect(cv::Point(0, 0), scene->getRect().size());
+    for (int level = std::max(1, numLevels - 3); level < numLevels; ++level)
+    {
+        const slideio::LevelInfo* info = scene->getZoomLevelInfo(level);
+        ASSERT_TRUE(info != nullptr) << "level " << level;
+        const cv::Size levelSize(info->getSize().width, info->getSize().height);
+        cv::Mat viaLevel, viaScene;
+        scene->readResampledLevelBlockChannels(level, cv::Rect(cv::Point(0, 0), levelSize), levelSize,
+                                               channelIndices, viaLevel);
+        scene->readResampledBlockChannels(zeroBasedSceneRect, levelSize, channelIndices, viaScene);
+        ASSERT_EQ(levelSize, viaLevel.size()) << "level " << level;
+        EXPECT_LE(0.95, slideio::ImageTools::computeSimilarity2(viaLevel, viaScene)) << "level " << level;
+    }
+
+    // zeiss.czi has a single z slice, so the 4D path is exercised separately below against a
+    // fixture that actually has more than one.
+    ASSERT_EQ(1, scene->getNumZSlices());
+
+    // The level path assembles slices through the same helper as the scene path, so a single
+    // slice read has to agree with the corresponding plane of the scene read.
+    // 30-10-2020_NothingRecognized-15986.czi has 3 z slices, so it is used here instead of
+    // zeiss.czi. Its getRect() also reports a large, non-zero-based origin (see the comment
+    // above), and its level 0 is far too large for a whole-level read, so a small sub-rect at
+    // the coarsest level is used in both the level path and the scene path.
+    {
+        std::string zStackFilePath = TestTools::getFullTestImagePath("czi", "30-10-2020_NothingRecognized-15986.czi");
+        std::shared_ptr<slideio::CVSlide> zStackSlide = driver.openFile(zStackFilePath);
+        ASSERT_TRUE(zStackSlide != nullptr);
+        std::shared_ptr<slideio::CVScene> zStackScene = zStackSlide->getScene(0);
+        ASSERT_TRUE(zStackScene != nullptr);
+        ASSERT_LT(1, zStackScene->getNumZSlices());
+
+        const int zNumLevels = zStackScene->getNumZoomLevels();
+        const int coarsestLevel = zNumLevels - 1;
+        const slideio::LevelInfo* info = zStackScene->getZoomLevelInfo(coarsestLevel);
+        const double coarsestScale = info->getScale();
+        const cv::Size blockSize(256, 256);
+        // The level-space rect this level read asks for...
+        const cv::Rect levelRect(cv::Point(0, 0), blockSize);
+        // ...and the zero-based scene-space rect that covers the same area at full
+        // resolution, so the scene path resamples down to the same content.
+        const cv::Size sceneRectSize(static_cast<int>(std::lround(blockSize.width / coarsestScale)),
+                                     static_cast<int>(std::lround(blockSize.height / coarsestScale)));
+        const cv::Rect sceneRect(cv::Point(0, 0), sceneRectSize);
+        cv::Mat viaLevel, viaScene;
+        zStackScene->readResampledLevel4DBlockChannels(coarsestLevel, levelRect, blockSize, {},
+                                                       cv::Range(1, 2), cv::Range(0, 1), viaLevel);
+        zStackScene->readResampled4DBlockChannels(sceneRect, blockSize, {},
+                                                  cv::Range(1, 2), cv::Range(0, 1), viaScene);
+        ASSERT_EQ(viaScene.size(), viaLevel.size());
+        EXPECT_LE(0.95, slideio::ImageTools::computeSimilarity2(viaLevel, viaScene));
+    }
+}
+
+// The generic CVScene default clamps levelRect to the level and then re-derives a zoom
+// index from the requested output size; when that re-derived index happens to agree with
+// the level actually asked for, the default's output is byte-identical to a direct read of
+// that other level. So reading a level-0 sub-rect resampled down to level 1's local scale
+// must NOT come back identical to a native read of the corresponding level-1 sub-rect --
+// equality would mean level 0's read was actually served by level 1.
+//
+// Uses small sub-rectangles rather than whole levels: level 0 of this fixture is
+// 49132x48722, and a whole-level read at that size is prohibitively expensive here. Levels 0
+// and 1 (rather than the coarsest pair) are used because they are the most collapse-prone --
+// exactly the pair the reference tests for other drivers exercise.
+TEST(CZIImageDriver, readLevelDoesNotReuseAdjacentLevel)
+{
+    if (!TestTools::isFullTestEnabled())
+    {
+        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
+    }
+    std::string filePath = TestTools::getFullTestImagePath("czi", "30-10-2020_NothingRecognized-15986.czi");
+    slideio::CZIImageDriver driver;
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
+    ASSERT_TRUE(scene != nullptr);
+    ASSERT_LE(2, scene->getNumZoomLevels());
+
+    const slideio::LevelInfo* level0 = scene->getZoomLevelInfo(0);
+    const slideio::LevelInfo* level1 = scene->getZoomLevelInfo(1);
+    ASSERT_TRUE(level0 != nullptr);
+    ASSERT_TRUE(level1 != nullptr);
+    const double scale = level1->getScale() / level0->getScale();
+
+    // A rect well inside both levels' bounds; level 0's rect scaled down by the level 0->1
+    // ratio gives the corresponding level-1 rect.
+    const cv::Rect rect0(20000, 20000, 512, 512);
+    const cv::Size blockSize(256, 256);
+    const cv::Rect rect1(static_cast<int>(rect0.x * scale), static_cast<int>(rect0.y * scale),
+                          blockSize.width, blockSize.height);
+
+    // Read the level-0 sub-rect resampled to level 1's local scale -- must be served from
+    // level 0 directly, not silently reselected to level 1 by the generic base default.
+    cv::Mat viaLevel0Resampled;
+    scene->readResampledLevelBlockChannels(0, rect0, blockSize, {}, viaLevel0Resampled);
+    // Read the corresponding level-1 sub-rect natively: no resampling at all.
+    cv::Mat viaLevel1Native;
+    scene->readResampledLevelBlockChannels(1, rect1, blockSize, {}, viaLevel1Native);
+
+    ASSERT_EQ(blockSize, viaLevel0Resampled.size());
+    ASSERT_EQ(blockSize, viaLevel1Native.size());
+    // The two are independently encoded streams; equality means level 0's read was actually
+    // served from level 1.
+    EXPECT_GT(cv::norm(viaLevel0Resampled, viaLevel1Native, cv::NORM_INF), 0);
+}
