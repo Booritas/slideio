@@ -5,6 +5,7 @@
 #include "slideio/drivers/pke/pketools.hpp"
 #include "slideio/slideio/slideio.hpp"
 #include "slideio/imagetools/tifftools.hpp"
+#include "slideio/core/levelinfo.hpp"
 
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
@@ -48,6 +49,16 @@ PKESmallScene::PKESmallScene(const std::string& filePath,
     m_levelInfo.setTileSize({ m_directory.tileWidth, m_directory.tileHeight});
     m_levelInfo.setSize({ m_directory.width, m_directory.height });
     m_levelInfo.setLevel(0);
+
+    // A small scene is a single directory with no pyramid; it registers the one level it is
+    // so that it can be addressed by level like every other scene.
+    LevelInfo level;
+    level.setLevel(0);
+    level.setScale(1.);
+    level.setMagnification(m_magnification);
+    level.setTileSize({ m_directory.tileWidth, m_directory.tileHeight });
+    level.setSize({ m_directory.width, m_directory.height });
+    m_levels.push_back(level);
 }
 
 

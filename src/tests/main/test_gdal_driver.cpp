@@ -309,6 +309,56 @@ TEST(GDALDriver, multiThreadSceneAccess) {
     TestTools::multiThreadedTest(filePath, driver);
 }
 
+// GDAL images have no pyramid, but a scene with no level at all cannot be addressed by
+// level, so it reports the single level it is. Reading that level is the same read as
+// reading the scene.
+TEST(GDALImageDriverTests, singleZoomLevelAndLevelRead)
+{
+    std::string path = TestTools::getTestImagePath("gdal", "img_2448x2448_3x8bit_SRC_RGB_ducks.png");
+    slideio::GDALImageDriver driver;
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(path);
+    ASSERT_TRUE(slide != nullptr);
+    std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
+    ASSERT_TRUE(scene != nullptr);
+
+    ASSERT_EQ(1, scene->getNumZoomLevels());
+    const slideio::LevelInfo* level = scene->getZoomLevelInfo(0);
+    ASSERT_TRUE(level != nullptr);
+    EXPECT_EQ(0, level->getLevel());
+    EXPECT_DOUBLE_EQ(1.0, level->getScale());
+    EXPECT_EQ(2448, level->getSize().width);
+    EXPECT_EQ(2448, level->getSize().height);
+
+    const cv::Rect roi(100, 200, 300, 400);
+    cv::Mat viaBlock, viaLevel;
+    scene->readBlock(roi, viaBlock);
+    scene->readResampledLevelBlockChannels(0, roi, roi.size(), {}, viaLevel);
+    ASSERT_EQ(viaBlock.size(), viaLevel.size());
+    ASSERT_EQ(viaBlock.type(), viaLevel.type());
+    cv::Mat diff;
+    cv::absdiff(viaBlock, viaLevel, diff);
+    EXPECT_EQ(0, cv::countNonZero(diff.reshape(1)));
+}
+
+// A rect running off the right and bottom edges is the ordinary edge-tile case. GDAL crops
+// with cv::Mat(raster, rect), which throws out of range, so the clamp in the base class is
+// what keeps this from being an exception.
+TEST(GDALImageDriverTests, levelReadClampsAnOverhangingRect)
+{
+    std::string path = TestTools::getTestImagePath("gdal", "img_2448x2448_3x8bit_SRC_RGB_ducks.png");
+    slideio::GDALImageDriver driver;
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(path);
+    std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
+    ASSERT_TRUE(scene != nullptr);
+
+    cv::Mat raster;
+    ASSERT_NO_THROW(scene->readResampledLevelBlockChannels(
+        0, cv::Rect(2400, 2400, 256, 256), cv::Size(256, 256), {}, raster));
+    ASSERT_EQ(cv::Size(256, 256), raster.size());
+    // The overhang is background: 255 for a byte image.
+    EXPECT_EQ(cv::Vec3b(255, 255, 255), raster.at<cv::Vec3b>(200, 200));
+}
+
 TEST(GDALDriver, getSceneIndex)
 {
     if (!TestTools::isFullTestEnabled()) {

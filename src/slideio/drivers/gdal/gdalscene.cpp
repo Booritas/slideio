@@ -9,15 +9,28 @@
 #include "slideio/slideio/slideio.hpp"
 #include "slideio/base/resolution.hpp"
 #include "slideio/core/tools/tools.hpp"
+#include "slideio/core/levelinfo.hpp"
 #include "slideio/imagetools/smallimage.hpp"
 
 
 slideio::GDALScene::GDALScene(SmallImagePage* page, const std::string& path, const std::string& driverId) :
-    m_imagePage(page), 
+    m_imagePage(page),
     m_filePath(path),
 	m_driverId(driverId)
 {
     m_filePath = path;
+    // A gdal image has no pyramid, but a scene with no level cannot be addressed by level
+    // at all, so it registers the single level it is. Same shape as SVSSmallScene.
+    if (m_imagePage != nullptr) {
+        const cv::Size imageSize = m_imagePage->getSize();
+        LevelInfo level;
+        level.setLevel(0);
+        level.setScale(1.);
+        level.setMagnification(getMagnification());
+        level.setSize({imageSize.width, imageSize.height});
+        level.setTileSize({imageSize.width, imageSize.height});
+        m_levels.push_back(level);
+    }
 }
 
 

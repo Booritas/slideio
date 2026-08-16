@@ -224,6 +224,36 @@ TEST_F(PKEImageDriverTests, auxiliaryImages) {
     }
 }
 
+// An auxiliary image (Thumbnail/Overview/Label) is a PKESmallScene: a single directory with
+// no pyramid. It still has to report the one level it is so it can be addressed by level like
+// every other scene, and reading that level has to match an ordinary readBlock.
+TEST_F(PKEImageDriverTests, auxImageSingleZoomLevelAndLevelRead) {
+    std::string filePath = TestTools::getFullTestImagePath("pke", "openmicroscopy/PKI_scans/LuCa-7color_Scan1.qptiff");
+    slideio::PKEImageDriver driver;
+    std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    std::shared_ptr<CVScene> thumbnail = slide->getAuxImage("Thumbnail");
+    ASSERT_TRUE(thumbnail != nullptr);
+
+    ASSERT_EQ(1, thumbnail->getNumZoomLevels());
+    const LevelInfo* level = thumbnail->getZoomLevelInfo(0);
+    ASSERT_TRUE(level != nullptr);
+    EXPECT_EQ(0, level->getLevel());
+    EXPECT_DOUBLE_EQ(1.0, level->getScale());
+    const cv::Rect sceneRect = thumbnail->getRect();
+    EXPECT_EQ(sceneRect.width, level->getSize().width);
+    EXPECT_EQ(sceneRect.height, level->getSize().height);
+
+    cv::Mat viaBlock, viaLevel;
+    thumbnail->readBlock(sceneRect, viaBlock);
+    thumbnail->readResampledLevelBlockChannels(0, sceneRect, sceneRect.size(), {}, viaLevel);
+    ASSERT_EQ(viaBlock.size(), viaLevel.size());
+    ASSERT_EQ(viaBlock.type(), viaLevel.type());
+    cv::Mat diff;
+    cv::absdiff(viaBlock, viaLevel, diff);
+    EXPECT_EQ(0, cv::countNonZero(diff.reshape(1)));
+}
+
 TEST_F(PKEImageDriverTests, metadata) {
     std::string filePath = TestTools::getFullTestImagePath("pke", "openmicroscopy/PKI_scans/LuCa-7color_Scan1.qptiff");
     slideio::PKEImageDriver driver;
