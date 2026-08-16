@@ -312,7 +312,7 @@ TEST(GDALDriver, multiThreadSceneAccess) {
 // GDAL images have no pyramid, but a scene with no level at all cannot be addressed by
 // level, so it reports the single level it is. Reading that level is the same read as
 // reading the scene.
-TEST(GDALImageDriverTests, singleZoomLevelAndLevelRead)
+TEST(GDALDriver, singleZoomLevelAndLevelRead)
 {
     std::string path = TestTools::getTestImagePath("gdal", "img_2448x2448_3x8bit_SRC_RGB_ducks.png");
     slideio::GDALImageDriver driver;
@@ -343,7 +343,7 @@ TEST(GDALImageDriverTests, singleZoomLevelAndLevelRead)
 // A rect running off the right and bottom edges is the ordinary edge-tile case. GDAL crops
 // with cv::Mat(raster, rect), which throws out of range, so the clamp in the base class is
 // what keeps this from being an exception.
-TEST(GDALImageDriverTests, levelReadClampsAnOverhangingRect)
+TEST(GDALDriver, levelReadClampsAnOverhangingRect)
 {
     std::string path = TestTools::getTestImagePath("gdal", "img_2448x2448_3x8bit_SRC_RGB_ducks.png");
     slideio::GDALImageDriver driver;
