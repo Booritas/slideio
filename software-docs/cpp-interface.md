@@ -241,6 +241,25 @@ public:
         const std::tuple<int,int>& timeFrameRange,
         void* buffer, size_t bufferSize);
 
+    // --- Level-addressed raster reading (added in 2.9.0) ---
+
+    // Read a rectangle from an explicitly selected zoom level, resampled to blockSize.
+    void readResampledLevelBlockChannels(
+        int level, const std::tuple<int,int,int,int>& levelRect,
+        const std::tuple<int,int>& blockSize,
+        const std::vector<int>& channelIndices,
+        void* buffer, size_t bufferSize);
+
+    // Read a multi-dimensional (Z-slices + time frames) block from an
+    // explicitly selected zoom level, resampled to blockSize.
+    void readResampledLevel4DBlockChannels(
+        int level, const std::tuple<int,int,int,int>& levelRect,
+        const std::tuple<int,int>& blockSize,
+        const std::vector<int>& channelIndices,
+        const std::tuple<int,int>& zSliceRange,
+        const std::tuple<int,int>& timeFrameRange,
+        void* buffer, size_t bufferSize);
+
     // --- Auxiliary images ---
 
     const std::list<std::string>& getAuxImageNames() const;
@@ -279,6 +298,36 @@ public:
 
 typedef std::shared_ptr<slideio::Scene> ScenePtr;
 ```
+
+### Level-addressed reading (new in 2.9.0)
+
+`readResampledLevelBlockChannels` and `readResampledLevel4DBlockChannels` read
+from an explicitly named zoom pyramid level instead of scene coordinates:
+
+```cpp
+scene->readResampledLevelBlockChannels(
+    2, {0, 0, 512, 512},   // level 2, rect in level-2 pixel coordinates
+    {512, 512},            // blockSize: no resampling here (equals levelRect.size())
+    {},                    // channelIndices: empty = all channels
+    buffer, bufferSize);
+```
+
+- `level` must be in `[0, getNumZoomLevels())`.
+- `levelRect` is expressed in the **coordinate system of `level` itself**, not
+  scene (level-0) coordinates. No level selection or re-derivation happens:
+  the library reads from exactly the level passed in and never substitutes a
+  different one based on `blockSize` or scale.
+- `blockSize` resamples **within** `level` only. When `blockSize` equals
+  `levelRect.size()`, no resampling occurs and the block is returned at the
+  level's native resolution.
+- Any part of `levelRect` that falls outside the level's bounds is
+  background-filled rather than clamped or rejected: 255 for channels of
+  `DataType::DT_Byte`, 0 for every other data type.
+
+`readResampledLevel4DBlockChannels` adds `zSliceRange` and `timeFrameRange`
+with the same semantics as the `read4DBlock` family; all other parameters and
+the background-fill rule are identical to
+`readResampledLevelBlockChannels`.
 
 ---
 
@@ -405,6 +454,27 @@ public:
                                      cv::OutputArray output);
     virtual void readResampled4DBlockChannels(
         const cv::Rect& blockRect, const cv::Size& blockSize,
+        const std::vector<int>& channelIndices,
+        const cv::Range& zSliceRange, const cv::Range& timeFrameRange,
+        cv::OutputArray output);
+
+    // Level-addressed reading (new in 2.9.0). readResampledLevelBlockChannelsEx
+    // is virtual with a working default: it clamps levelRect to the level,
+    // maps it to scene coordinates via LevelInfo::getScale(), delegates to
+    // readResampledBlockChannelsEx, and background-fills the remainder. Drivers
+    // may override it for a more direct level-native read path; those that
+    // don't still build and read correctly against the default.
+    virtual void readResampledLevelBlockChannelsEx(
+        int level, const cv::Rect& levelRect, const cv::Size& blockSize,
+        const std::vector<int>& channelIndices,
+        int zSliceIndex, int tFrameIndex,
+        cv::OutputArray output);
+    virtual void readResampledLevelBlockChannels(
+        int level, const cv::Rect& levelRect, const cv::Size& blockSize,
+        const std::vector<int>& channelIndices,
+        cv::OutputArray output);
+    virtual void readResampledLevel4DBlockChannels(
+        int level, const cv::Rect& levelRect, const cv::Size& blockSize,
         const std::vector<int>& channelIndices,
         const cv::Range& zSliceRange, const cv::Range& timeFrameRange,
         cv::OutputArray output);

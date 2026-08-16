@@ -58,3 +58,22 @@ not afford a second parse of an 844 KB description just to answer that
 question. It had no caller anywhere in this repository at the time of
 removal. Any out-of-tree code calling `Tools::isXml` will need to inline an
 equivalent check or drop the dependency.
+
+### `CVScene` gains a virtual method
+
+**Module:** `slideio-core` (exported)
+**File:** `src/slideio/core/cvscene.hpp`
+
+`CVScene::readResampledLevelBlockChannelsEx` was added as a virtual method,
+which changes the vtable layout of `CVScene` and of every class deriving from
+it. This is a binary incompatibility: an out-of-tree driver or an application
+linked against slideio 2.8.x must be recompiled against 2.9.0. Source
+compatibility is unaffected — no existing signature, default argument or
+documented behaviour changed, and the new method carries a working default
+implementation, so a driver that does not override it continues to build and
+to read correctly.
+
+The Python bindings (separate `slideio-python` repository) must be rebuilt
+against 2.9.0. The version appears in `conanfile.txt`,
+`build-dependencies.ps1` and `conan.sh` of that repository, and all three
+must move together.

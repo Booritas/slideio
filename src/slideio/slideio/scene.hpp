@@ -170,8 +170,8 @@ namespace slideio
          * - width: block width in pixels;
          * - height: block height in pixels;
          * from left top corner of the image).
-         * @param zSliceRange : range of z-slices to be read. Defined as a @b std::tuple<indexOfFirstSliceToRead,numberOfSlicesToRead>
-         * @param timeFrameRange : range of time frames to be read. Defined as a @b std::tuple<indexOfFirstTimeFrameToRead,numberOfTimeFramesToRead>;
+         * @param zSliceRange : range of z-slices to be read. Defined as a @b std::tuple<indexOfFirstSliceToRead,indexAfterLastSliceToRead>
+         * @param timeFrameRange : range of time frames to be read. Defined as a @b std::tuple<indexOfFirstTimeFrameToRead,indexAfterLastTimeFrameToRead>;
          * @param buffer : pointer to an allocated memory buffer for the raster block. Size of the block can be computed with the method getBlockSize;
          * @param bufferSize : size of the memory buffer in bytes.
          *
@@ -211,8 +211,8 @@ namespace slideio
          * - height: block height in pixels;
          * from left top corner of the image).
          * @param channelIndices : vector of indices of channels to be extracted;
-         * @param zSliceRange : range of z-slices to be read. Defined as a @b std::tuple<indexOfFirstSliceToRead,numberOfSlicesToRead>
-         * @param timeFrameRange : range of time frames to be read. Defined as a @b std::tuple<indexOfFirstTimeFrameToRead,numberOfTimeFramesToRead>;
+         * @param zSliceRange : range of z-slices to be read. Defined as a @b std::tuple<indexOfFirstSliceToRead,indexAfterLastSliceToRead>
+         * @param timeFrameRange : range of time frames to be read. Defined as a @b std::tuple<indexOfFirstTimeFrameToRead,indexAfterLastTimeFrameToRead>;
          * @param buffer : pointer to an allocated memory buffer for the raster block. Size of the block can be computed with the method getBlockSize;
          * @param bufferSize : size of the memory buffer in bytes.
          *
@@ -229,8 +229,8 @@ namespace slideio
          * - height: block height in pixels;
          * from left top corner of the image).
          * @param blockSize : size of the block after resizing. The size is set as a @b std::tuple<width,height>;
-         * @param zSliceRange : range of z-slices to be read. Defined as a @b std::tuple<indexOfFirstSliceToRead,numberOfSlicesToRead>
-         * @param timeFrameRange : range of time frames to be read. Defined as a @b std::tuple<indexOfFirstTimeFrameToRead,numberOfTimeFramesToRead>;
+         * @param zSliceRange : range of z-slices to be read. Defined as a @b std::tuple<indexOfFirstSliceToRead,indexAfterLastSliceToRead>
+         * @param timeFrameRange : range of time frames to be read. Defined as a @b std::tuple<indexOfFirstTimeFrameToRead,indexAfterLastTimeFrameToRead>;
          * @param buffer : pointer to an allocated memory buffer for the raster block. Size of the block can be computed with the method getBlockSize;
          * @param bufferSize : size of the memory buffer in bytes.
          *
@@ -248,8 +248,8 @@ namespace slideio
          * from left top corner of the image).
          * @param blockSize : size of the block after resizing. The size is set as a @b std::tuple<width,height>;
          * @param channelIndices : vector of indices of channels to be extracted;
-         * @param zSliceRange : range of z-slices to be read. Defined as a @b std::tuple<indexOfFirstSliceToRead,numberOfSlicesToRead>
-         * @param timeFrameRange : range of time frames to be read. Defined as a @b std::tuple<indexOfFirstTimeFrameToRead,numberOfTimeFramesToRead>;
+         * @param zSliceRange : range of z-slices to be read. Defined as a @b std::tuple<indexOfFirstSliceToRead,indexAfterLastSliceToRead>
+         * @param timeFrameRange : range of time frames to be read. Defined as a @b std::tuple<indexOfFirstTimeFrameToRead,indexAfterLastTimeFrameToRead>;
          * @param buffer : pointer to an allocated memory buffer for the raster block. Size of the block can be computed with the method getBlockSize;
          * @param bufferSize : size of the memory buffer in bytes.
          *
@@ -282,7 +282,7 @@ namespace slideio
         /**@brief reads a multi-dimensional raster block from an explicitly selected zoom level.
          *
          * @param zSliceRange : range of z-slices to be read, as a
-         * std::tuple<indexOfFirstSliceToRead,numberOfSlicesToRead>.
+         * std::tuple<indexOfFirstSliceToRead,indexAfterLastSliceToRead>.
          * @param timeFrameRange : range of time frames to be read.
          * Other parameters are those of #readResampledLevelBlockChannels.
          *

@@ -12,6 +12,13 @@ the work can be picked up later without re-doing the analysis.
 1. [`TIFFKeeper` unsafe value semantics](#1-tiffkeeper-unsafe-value-semantics)
 2. [Philips TIFF driver follow-ups](#2-philips-tiff-driver-follow-ups)
 3. [`SCNSlide` passes a `TIFF*` where `SVSSmallScene` expects a `bool`](#3-scnslide-passes-a-tiff-where-svssmallscene-expects-a-bool)
+4. [`CVScene` serialises every block read, and does so inconsistently](#4-cvscene-serialises-every-block-read-and-does-so-inconsistently)
+5. [`ImageTools::computeSimilarity2` cannot handle more than four channels](#5-imagetoolscomputesimilarity2-cannot-handle-more-than-four-channels)
+6. [`CZIScene::getRect()` returns non-zero-based coordinates that block reads cannot use](#6-cziscenegetrect-returns-non-zero-based-coordinates-that-block-reads-cannot-use)
+7. [`SCNScene::getRect()` has the same problem](#7-scnscenegetrect-has-the-same-problem)
+8. [SCN level selection assumes parallel pyramid geometry across channels and z-slices](#8-scn-level-selection-assumes-parallel-pyramid-geometry-across-channels-and-z-slices)
+9. [`TilerData::relativeZoom` is dead, and its new formula is only valid in one case](#9-tilerdatarelativezoom-is-dead-and-its-new-formula-is-only-valid-in-one-case)
+10. [`zSliceRange` / `timeFrameRange` are documented backwards in `scene.hpp`](#10-zslicerange--timeframerange-are-documented-backwards-in-scenehpp)
 
 ---
 
@@ -239,3 +246,153 @@ without transferring ownership means two owners closing one handle. Any fix
 that shares the handle must go through `TIFFKeeper::release()` (or equivalent
 explicit ownership transfer), not a bare `getHandle()` passed to a second
 owner.
+
+---
+
+## 4. `CVScene` serialises every block read, and does so inconsistently
+
+**File:** `src/slideio/core/cvscene.cpp`
+**Related:** issue #69, the 2026-08-16 explicit-level-reading plan
+**Status:** Open. Found while adding the level-addressed read path; predates it
+and is out of scope for it.
+
+`CVScene::readResampledBlockChannels` and `readResampledLevelBlockChannels`
+each take `m_readBlockMutex` for the whole read, so no two block reads of one
+scene ever overlap. A tiled viewer fetching tiles from a thread pool — the
+workload issue #69 describes — therefore gets no concurrency from the
+library, and this is likely to dominate whatever the level-addressed read
+path saves it.
+
+Separately, inside `assemble4DBlock` the same mutex is taken in the
+single-plane branch and not in the multi-plane one. That asymmetry predates
+the level API; it was carried over unchanged when the plane loop was
+extracted for 2.9.0, deliberately, so that the extraction stayed
+behaviour-preserving.
+
+Fixing either needs a thread-safety audit of the driver state each `readTile`
+implementation touches — the TIFF handle above all, which several drivers
+share across a whole slide. Out of scope for the level API and recorded here
+so it is not lost.
+
+---
+
+## 5. `ImageTools::computeSimilarity2` cannot handle more than four channels
+
+**File:** `src/slideio/imagetools/imagetools.cpp:163`
+**Related:** `src/slideio/imagetools/imagetools.hpp:51` (exported public API)
+**Status:** Open. Found while working with a multiplex fluorescence fixture.
+
+`cv::Scalar sums = cv::sum(diffd)` returns a four-element `cv::Scalar`, and
+`cv::sum` asserts `cn <= 4`. `computeSimilarity2` therefore throws on exactly
+the multiplex fluorescence images the PKE and CZI drivers exist to read — it
+was hit on `LuCa-7color_Scan1.qptiff` (5 channels).
+
+The function is exported public API. Any test author reaching for it on a
+multiplex fixture with more than four channels rediscovers this the hard way.
+Fixing it means summing per-channel (e.g. looping planes and accumulating, or
+reshaping before calling `cv::sum`) instead of relying on `cv::Scalar`'s
+four-slot limit.
+
+---
+
+## 6. `CZIScene::getRect()` returns non-zero-based coordinates that block reads cannot use
+
+**File:** `src/slideio/drivers/czi/cziscene.cpp` (`computeSceneRect`,
+`updateTileRects`)
+**Status:** Open. Found while adding the level-addressed read path.
+
+`computeSceneRect` builds `m_sceneRect` from the raw union of sub-block rects
+in file coordinates — observed origins `x=-90720` and `x=-421920` on two
+fixtures — while `updateTileRects` builds each tile's addressable rect as
+`zoom * (tile.rect - m_sceneRect.{x,y})`, which is zero-based.
+`TileComposer::composeRect` intersects `blockRect` with those tile rects, so
+passing `scene->getRect()` straight in as a `blockRect` silently reads the
+wrong region for mosaic and split-region files. This is the obvious call and
+it is wrong.
+
+No fix is proposed here; recorded so the mismatch between what `getRect()`
+returns and what the tile geometry expects is not rediscovered by trial and
+error.
+
+---
+
+## 7. `SCNScene::getRect()` has the same problem
+
+**File:** `src/slideio/drivers/scn/scnscene.cpp` (`parseGeometry`)
+**Related:** [§6](#6-cziscenegetrect-returns-non-zero-based-coordinates-that-block-reads-cannot-use)
+**Status:** Open. Found while adding the level-addressed read path.
+
+`parseGeometry` sets `m_rect.x`/`m_rect.y` from the `<view>` element's
+`offsetX`/`offsetY`, a physical-position origin — observed
+`[4737x6338 from (16306,40361)]` on `Leica-Fluorescence-1.scn`. Same
+consequence as §6: passing `getRect()` straight into a block read silently
+reads the wrong region.
+
+Worth checking whether any other driver shares this pattern before fixing
+either.
+
+---
+
+## 8. SCN level selection assumes parallel pyramid geometry across channels and z-slices
+
+**File:** `src/slideio/drivers/scn/scnscene.cpp`
+**Related:** `zStack`, `zStackMissingChannels` tests
+**Status:** Open. Found while adding the level-addressed read path.
+
+`SCNScene`'s level-addressed read derives the level index and the level
+geometry from channel 0 at z=0, because that is what `m_levels` is built
+from, then uses that single level index to address every requested channel's
+own z-specific directory list. The pre-split code instead searched per
+channel at the requested z. The two agree only if every channel's pyramid
+shares the same scale sequence across z-slices — an assumption, not an
+invariant.
+
+The `zStack` and `zStackMissingChannels` tests cover the one z-stack fixture
+in the suite, and both pass under this assumption. A file that violates it
+would misregister the level rect silently. Fixing it means resolving the
+level per channel/z-slice combination rather than once from channel 0.
+
+---
+
+## 9. `TilerData::relativeZoom` is dead, and its new formula is only valid in one case
+
+**File:** the CZI and DICOM-WSI read paths that populate `TilerData`
+**Status:** Open. `relativeZoom` itself predates this work; its formula
+changed during the 2026-08-16 explicit-level-reading work.
+
+The field is written by the CZI and DICOM-WSI read paths and **read by
+nothing** — that was already true before this work. During the level split
+its computation changed from `levelZoom / zoom` to
+`levelRect.width / blockSize.width`. Those are equal only when the zoom is
+width-dominant; `zoom` is `max(zoomX, zoomY)`, so on a height-dominant
+anisotropic resize they diverge by the `zoomY/zoomX` ratio. Additionally
+`Tools::scaleRect` floors the origin and ceils the far corner independently,
+so `levelRect.width` drifts from `w*scale` by a pixel or two, and that drift
+propagates into the new formula too.
+
+Harmless today because the field is unread. **Anyone reviving `relativeZoom`
+must either fix the formula or delete the field** — do not assume the current
+formula is correct just because it compiles and nothing reads it.
+
+---
+
+## 10. `zSliceRange` / `timeFrameRange` are documented backwards in `scene.hpp`
+
+**File:** `src/slideio/slideio/scene.hpp`
+**Related:** `src/slideio/slideio/scene.cpp:25-29` (`tupleToRange`)
+**Status:** Partially fixed. The doc comments in `scene.hpp` were corrected
+as part of the 2026-08-16 explicit-level-reading documentation pass
+(comment-only change, no behaviour touched). Any other place repeating the
+old, wrong wording may still be out there and was not searched for.
+
+The doc comments used to describe `std::tuple<indexOfFirstSliceToRead,
+numberOfSlicesToRead>` — a `<start, count>` pair — but `tupleToRange` builds
+`cv::Range(get<0>, get<1>)`, a `<start, end>` pair. They coincide only when
+start is 0. The Python layer documents it correctly as "(first, last+1)" and
+computes `numSlices = stop - start`, so the code was always right and only
+the C++ doc comments were wrong, on every method taking those parameters.
+
+Recorded here (rather than only fixed silently) because the same wrong
+phrasing may be copy-pasted elsewhere — e.g. other headers, external
+documentation, or code comments outside `scene.hpp` — and that was not
+audited as part of this pass.
