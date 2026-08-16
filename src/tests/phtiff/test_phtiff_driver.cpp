@@ -2222,3 +2222,456 @@ TEST_F(PHTDescriptionTests, isPhilipsDescriptionRejectsOtherDescriptions) {
 TEST_F(PHTDescriptionTests, isPhilipsDescriptionAcceptsBomPrefixedMetadata) {
 	EXPECT_TRUE(PHTDescription::isPhilipsDescription("\xEF\xBB\xBF" + MockPHTIFFSlide::fakeXML));
 }
+
+// --- raster reading -----------------------------------------------------------------
+// The tests below read the whole slide image of Philips-2.tiff: a 97280x217600 pyramid of
+// ten zoom levels, each level exactly half of the previous one and none of them tile
+// padded (Philips-3.tiff covers the padded case above). The private dataset carries one
+// reference raster for the file -- the region REFERENCE_ROI, exported as a png -- which
+// anchors the pixel values; every other read is checked against it or against another
+// read of the same scene.
+namespace ph2
+{
+	const char* FILE_NAME = "Philips-2.tiff";
+	const char* REFERENCE_PNG = "tests/Philips-2 (1, x=50098, y=146988, w=1526, h=966).png";
+	// The region the reference png covers.
+	const cv::Rect REFERENCE_ROI = { 50098, 146988, 1526, 966 };
+	// A sub region of the reference roi whose origin and size are both multiples of 32, so
+	// that it maps onto whole pixels of every zoom level down to level 5. The resampling
+	// tests read this region rather than the whole reference roi because a region that
+	// lands between the pixels of the level serving the read loses about as much accuracy
+	// to that rounding as to the downscaling itself: at 1/4 the mean absolute difference
+	// against the reference is 18 for this region and 33 for the reference roi, whose
+	// origin (50098,146988) is odd in x and not divisible by 8 in y.
+	const cv::Rect ALIGNED_ROI = { 50112, 147008, 1024, 768 };
+	const cv::Size SCENE_SIZE = { 97280, 217600 };
+	const int LEVELS = 10;
+}
+
+// Philips-2.tiff, and the scene of its whole slide image. The slide comes back with the
+// scene because it owns the tiff handle the scene reads through -- a scene outliving its
+// slide has nothing left to read from.
+struct PhSlideAndScene
+{
+	std::shared_ptr<CVSlide> slide;
+	std::shared_ptr<CVScene> scene;
+};
+
+// The scene of the first (and, for a philips file, only) image of the named philips file.
+// The driver object is local: a slide does not refer back to the driver that opened it.
+static PhSlideAndScene phOpenScene(const std::string& fileName) {
+	PHTIFFImageDriver driver;
+	PhSlideAndScene opened;
+	opened.slide = driver.openFile(TestTools::getFullTestImagePath("philips", fileName));
+	if (opened.slide && opened.slide->getNumScenes() > 0) {
+		opened.scene = opened.slide->getScene(0);
+	}
+	return opened;
+}
+
+// The reference raster of REFERENCE_ROI.
+static cv::Mat phReferenceRaster() {
+	cv::Mat reference;
+	TestTools::readPNG(TestTools::getFullTestImagePath("philips", ph2::REFERENCE_PNG), reference);
+	return reference;
+}
+
+// The part of the reference raster covering `subRect`, which is given in scene
+// coordinates and has to lie inside REFERENCE_ROI.
+static cv::Mat phReferenceRasterOf(const cv::Mat& reference, const cv::Rect& subRect) {
+	const cv::Rect inReference = subRect - ph2::REFERENCE_ROI.tl();
+	return reference(inReference).clone();
+}
+
+// The largest absolute difference between two rasters of the same size and type: zero
+// means they are identical pixel for pixel.
+static double phMaxAbsDiff(const cv::Mat& first, const cv::Mat& second) {
+	cv::Mat diff;
+	cv::absdiff(first, second, diff);
+	double maxValue = 0.;
+	cv::minMaxLoc(diff.reshape(1), nullptr, &maxValue);
+	return maxValue;
+}
+
+// `raster` reduced to `size` the way an ideal downscale of the base level would look.
+static cv::Mat phDownscaled(const cv::Mat& raster, const cv::Size& size) {
+	cv::Mat resized;
+	cv::resize(raster, resized, size, 0., 0., cv::INTER_AREA);
+	return resized;
+}
+
+// A block read at the native resolution of the slide has to reproduce the reference
+// raster of the region, and has to come back as a three channel byte raster of exactly
+// the requested size.
+TEST_F(PhTiffImageDriverTests, readImage) {
+	if (!TestTools::isFullTestEnabled()) {
+		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
+	}
+	PhSlideAndScene opened = phOpenScene(ph2::FILE_NAME);
+	ASSERT_TRUE(opened.slide != nullptr);
+	ASSERT_EQ(1, opened.slide->getNumScenes());
+	std::shared_ptr<CVScene> scene = opened.scene;
+	ASSERT_TRUE(scene != nullptr);
+	EXPECT_EQ("Image", scene->getName());
+	const cv::Rect rect = scene->getRect();
+	EXPECT_EQ(ph2::SCENE_SIZE.width, rect.width);
+	EXPECT_EQ(ph2::SCENE_SIZE.height, rect.height);
+	EXPECT_EQ(3, scene->getNumChannels());
+	for (int channel = 0; channel < scene->getNumChannels(); ++channel) {
+		EXPECT_EQ(DataType::DT_Byte, scene->getChannelDataType(channel)) << "channel " << channel;
+	}
+	EXPECT_EQ(Compression::Jpeg, scene->getCompression());
+
+	cv::Mat block;
+	scene->readBlock(ph2::REFERENCE_ROI, block);
+	EXPECT_EQ(ph2::REFERENCE_ROI.size(), block.size());
+	EXPECT_EQ(CV_8UC3, block.type());
+	const cv::Mat reference = phReferenceRaster();
+	ASSERT_EQ(ph2::REFERENCE_ROI.size(), reference.size());
+	EXPECT_LE(0.999, ImageTools::computeSimilarity2(block, reference));
+
+	// The same request twice gives the same raster: nothing in the read path depends on
+	// state left behind by an earlier read -- the current tiff directory of the handle,
+	// above all.
+	cv::Mat second;
+	scene->readBlock(ph2::REFERENCE_ROI, second);
+	EXPECT_DOUBLE_EQ(0., phMaxAbsDiff(block, second));
+}
+
+// The pyramid the resampled reads are served from. Philips-2.tiff stores ten levels, each
+// exactly half of the previous one in both directions, so a read at 1/2^n is served by
+// level n without any rounding -- which is what lets the downscaling tests below compare
+// against an exact reduction of the reference.
+TEST_F(PhTiffImageDriverTests, zoomLevelsOfPhilips2) {
+	if (!TestTools::isFullTestEnabled()) {
+		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
+	}
+	PhSlideAndScene opened = phOpenScene(ph2::FILE_NAME);
+	ASSERT_TRUE(opened.scene != nullptr);
+	ASSERT_EQ(ph2::LEVELS, opened.scene->getNumZoomLevels());
+	for (int level = 0; level < ph2::LEVELS; ++level) {
+		const LevelInfo* info = opened.scene->getZoomLevelInfo(level);
+		ASSERT_TRUE(info != nullptr) << "level " << level;
+		EXPECT_EQ(level, info->getLevel());
+		EXPECT_EQ(ph2::SCENE_SIZE.width >> level, info->getSize().width) << "level " << level;
+		EXPECT_EQ(ph2::SCENE_SIZE.height >> level, info->getSize().height) << "level " << level;
+		EXPECT_DOUBLE_EQ(1. / (1 << level), info->getScale()) << "level " << level;
+		EXPECT_EQ(512, info->getTileSize().width) << "level " << level;
+		EXPECT_EQ(512, info->getTileSize().height) << "level " << level;
+	}
+	EXPECT_THROW(opened.scene->getZoomLevelInfo(ph2::LEVELS), slideio::RuntimeError);
+	EXPECT_THROW(opened.scene->getZoomLevelInfo(-1), slideio::RuntimeError);
+}
+
+// Reading a selection of channels delivers exactly the channels asked for, in the order
+// they were asked for, and with the values a read of the whole pixel gives: the selection
+// picks channels out of the decoded tile, so it must not change what the channels that
+// were asked for contain. An empty selection means every channel.
+TEST_F(PhTiffImageDriverTests, readImageChannels) {
+	if (!TestTools::isFullTestEnabled()) {
+		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
+	}
+	PhSlideAndScene opened = phOpenScene(ph2::FILE_NAME);
+	ASSERT_TRUE(opened.scene != nullptr);
+	const cv::Rect roi = ph2::ALIGNED_ROI;
+	cv::Mat allChannels;
+	opened.scene->readBlock(roi, allChannels);
+	ASSERT_EQ(3, allChannels.channels());
+	std::vector<cv::Mat> planes;
+	cv::split(allChannels, planes);
+
+	// One channel at a time: a single channel raster of the same geometry, holding that
+	// channel of the full read.
+	for (int channel = 0; channel < 3; ++channel) {
+		cv::Mat single;
+		opened.scene->readBlockChannels(roi, { channel }, single);
+		EXPECT_EQ(roi.size(), single.size()) << "channel " << channel;
+		EXPECT_EQ(CV_8UC1, single.type()) << "channel " << channel;
+		EXPECT_DOUBLE_EQ(0., phMaxAbsDiff(single, planes[channel])) << "channel " << channel;
+	}
+
+	// A subset keeps the requested order, so the channels of the result follow the index
+	// list and not the layout of the file.
+	cv::Mat reversed;
+	opened.scene->readBlockChannels(roi, { 2, 1, 0 }, reversed);
+	ASSERT_EQ(3, reversed.channels());
+	cv::Mat expectedReversed;
+	cv::merge(std::vector<cv::Mat>{ planes[2], planes[1], planes[0] }, expectedReversed);
+	EXPECT_DOUBLE_EQ(0., phMaxAbsDiff(reversed, expectedReversed));
+
+	// A two channel subset, which no full read can be compared against as a whole.
+	cv::Mat outerChannels;
+	opened.scene->readBlockChannels(roi, { 0, 2 }, outerChannels);
+	ASSERT_EQ(2, outerChannels.channels());
+	EXPECT_EQ(roi.size(), outerChannels.size());
+	std::vector<cv::Mat> outerPlanes;
+	cv::split(outerChannels, outerPlanes);
+	EXPECT_DOUBLE_EQ(0., phMaxAbsDiff(outerPlanes[0], planes[0]));
+	EXPECT_DOUBLE_EQ(0., phMaxAbsDiff(outerPlanes[1], planes[2]));
+
+	// Naming every channel is the same request as naming none.
+	cv::Mat explicitAll;
+	opened.scene->readBlockChannels(roi, { 0, 1, 2 }, explicitAll);
+	EXPECT_DOUBLE_EQ(0., phMaxAbsDiff(explicitAll, allChannels));
+}
+
+// A read smaller than its region is served from the zoom level that carries it, so this is
+// the test of the level selection and the coordinate mapping onto that level. Philips
+// regenerated every level with a quality 80 jpeg, so a level never matches an exact
+// reduction of the base level: the similarity of an ideal reduction against the level falls
+// from 0.98 at 1/2 to 0.83 at 1/16 (measured on this region), and the thresholds below sit
+// just under the measured values. What makes them meaningful rather than arbitrary is the
+// control at the end -- reading the region 16 pixels off scores 0.66, below every threshold
+// here -- so a read served from the wrong level, or mapped onto the wrong part of the right
+// one, cannot pass.
+TEST_F(PhTiffImageDriverTests, readImageDownscaled) {
+	if (!TestTools::isFullTestEnabled()) {
+		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
+	}
+	PhSlideAndScene opened = phOpenScene(ph2::FILE_NAME);
+	ASSERT_TRUE(opened.scene != nullptr);
+	const cv::Rect roi = ph2::ALIGNED_ROI;
+	const cv::Mat reference = phReferenceRasterOf(phReferenceRaster(), roi);
+
+	// downsample -> the lowest similarity the read may have against an ideal reduction of
+	// the reference. The measured values are 0.999, 0.976, 0.916, 0.884, 0.834 and 0.892.
+	const std::vector<std::pair<int, double>> thresholds = {
+		{1, 0.99}, {2, 0.96}, {4, 0.90}, {8, 0.86}, {16, 0.80}, {32, 0.85}
+	};
+	for (const auto& [divisor, threshold] : thresholds) {
+		const cv::Size size(roi.width / divisor, roi.height / divisor);
+		cv::Mat scaled;
+		opened.scene->readResampledBlock(roi, size, scaled);
+		ASSERT_EQ(size, scaled.size()) << "1/" << divisor;
+		EXPECT_EQ(CV_8UC3, scaled.type()) << "1/" << divisor;
+		EXPECT_LE(threshold, ImageTools::computeSimilarity2(scaled, phDownscaled(reference, size)))
+			<< "1/" << divisor;
+	}
+
+	// The control: the same request 16 pixels to the right of the region. 16 pixels is one
+	// pixel of level 4 and less than one pixel of the levels below it, so this is about the
+	// smallest displacement the coarser reads could even express.
+	const cv::Size quarter(roi.width / 4, roi.height / 4);
+	cv::Mat displaced;
+	opened.scene->readResampledBlock(cv::Rect(roi.x + 16, roi.y, roi.width, roi.height), quarter, displaced);
+	EXPECT_GT(0.80, ImageTools::computeSimilarity2(displaced, phDownscaled(reference, quarter)))
+		<< "a displaced read must not reach the thresholds above";
+}
+
+// Two reads of the same region at different zoom, reduced to a common size, have to show
+// the same part of the slide: the 1/8 read is served from level 3 and the 1/2 read from
+// level 1, so agreeing means both levels were addressed consistently. Measured similarity
+// is 0.89 -- the two levels differ by their own jpeg noise -- and the 0.66 of a displaced
+// read applies here as well.
+TEST_F(PhTiffImageDriverTests, readImageDownscaledAcrossLevelsAgree) {
+	if (!TestTools::isFullTestEnabled()) {
+		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
+	}
+	PhSlideAndScene opened = phOpenScene(ph2::FILE_NAME);
+	ASSERT_TRUE(opened.scene != nullptr);
+	const cv::Rect roi = ph2::ALIGNED_ROI;
+	const cv::Size half(roi.width / 2, roi.height / 2);
+	const cv::Size eighth(roi.width / 8, roi.height / 8);
+
+	cv::Mat halfRead, eighthRead;
+	opened.scene->readResampledBlock(roi, half, halfRead);
+	opened.scene->readResampledBlock(roi, eighth, eighthRead);
+	ASSERT_EQ(half, halfRead.size());
+	ASSERT_EQ(eighth, eighthRead.size());
+	EXPECT_LE(0.85, ImageTools::computeSimilarity2(eighthRead, phDownscaled(halfRead, eighth)));
+}
+
+// Channel selection and resampling combine without interfering: the channels are picked out
+// of each decoded tile before it is scaled, and scaling is per channel, so a resampled
+// single channel read has to equal that channel of the resampled full read exactly.
+TEST_F(PhTiffImageDriverTests, readImageDownscaledChannels) {
+	if (!TestTools::isFullTestEnabled()) {
+		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
+	}
+	PhSlideAndScene opened = phOpenScene(ph2::FILE_NAME);
+	ASSERT_TRUE(opened.scene != nullptr);
+	const cv::Rect roi = ph2::ALIGNED_ROI;
+	const cv::Size size(roi.width / 4, roi.height / 4);
+
+	cv::Mat scaled;
+	opened.scene->readResampledBlock(roi, size, scaled);
+	std::vector<cv::Mat> planes;
+	cv::split(scaled, planes);
+	for (int channel = 0; channel < 3; ++channel) {
+		cv::Mat single;
+		opened.scene->readResampledBlockChannels(roi, size, { channel }, single);
+		EXPECT_EQ(size, single.size()) << "channel " << channel;
+		EXPECT_EQ(CV_8UC1, single.type()) << "channel " << channel;
+		EXPECT_DOUBLE_EQ(0., phMaxAbsDiff(single, planes[channel])) << "channel " << channel;
+	}
+
+	// The reversed subset at a scale that has to be served from a lower level: the channel
+	// order has to survive the resampling too.
+	cv::Mat reversed;
+	opened.scene->readResampledBlockChannels(roi, size, { 2, 1, 0 }, reversed);
+	ASSERT_EQ(3, reversed.channels());
+	cv::Mat expectedReversed;
+	cv::merge(std::vector<cv::Mat>{ planes[2], planes[1], planes[0] }, expectedReversed);
+	EXPECT_DOUBLE_EQ(0., phMaxAbsDiff(reversed, expectedReversed));
+}
+
+// The level of a resampled read is chosen by the larger of the two zoom factors, so a block
+// scaled by 1/2 in x and 1/8 in y is served from level 1 and reduced further in y only. The
+// result still has to be the region that was asked for: measured similarity against an
+// ideal reduction of the reference is 0.97, against 0.66 for the same read displaced by 64
+// pixels.
+TEST_F(PhTiffImageDriverTests, readImageDownscaledAnisotropically) {
+	if (!TestTools::isFullTestEnabled()) {
+		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
+	}
+	PhSlideAndScene opened = phOpenScene(ph2::FILE_NAME);
+	ASSERT_TRUE(opened.scene != nullptr);
+	const cv::Rect roi = ph2::ALIGNED_ROI;
+	const cv::Size size(roi.width / 2, roi.height / 8);
+	const cv::Mat reference = phReferenceRasterOf(phReferenceRaster(), roi);
+
+	cv::Mat scaled;
+	opened.scene->readResampledBlock(roi, size, scaled);
+	ASSERT_EQ(size, scaled.size());
+	EXPECT_LE(0.93, ImageTools::computeSimilarity2(scaled, phDownscaled(reference, size)));
+
+	cv::Mat displaced;
+	opened.scene->readResampledBlock(cv::Rect(roi.x + 64, roi.y, roi.width, roi.height), size, displaced);
+	EXPECT_GT(0.93, ImageTools::computeSimilarity2(displaced, phDownscaled(reference, size)));
+}
+
+// A block requested larger than its region is served from the base level and interpolated
+// up, so it stays a faithful magnification of the reference: measured similarity against
+// the reference scaled up the same way is 0.999. The composer scales each tile on its own,
+// which is why this is not an exact match.
+TEST_F(PhTiffImageDriverTests, readImageUpscaled) {
+	if (!TestTools::isFullTestEnabled()) {
+		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
+	}
+	PhSlideAndScene opened = phOpenScene(ph2::FILE_NAME);
+	ASSERT_TRUE(opened.scene != nullptr);
+	const cv::Rect roi = ph2::ALIGNED_ROI;
+	const cv::Size size(roi.width * 2, roi.height * 2);
+
+	cv::Mat scaled;
+	opened.scene->readResampledBlock(roi, size, scaled);
+	ASSERT_EQ(size, scaled.size());
+	cv::Mat referenceScaled;
+	cv::resize(phReferenceRasterOf(phReferenceRaster(), roi), referenceScaled, size, 0., 0., cv::INTER_LINEAR);
+	EXPECT_LE(0.99, ImageTools::computeSimilarity2(scaled, referenceScaled));
+}
+
+// The whole slide at once, at the size of the smallest zoom level: the read every caller
+// starts with, and the one that reaches the far end of the pyramid. 190x425 is exactly
+// level 9, so the raster comes from the last level of the file. It has to carry the slide
+// rather than a blank sheet, and it has to agree with the same region taken from the level
+// above it.
+TEST_F(PhTiffImageDriverTests, readImageWholeSlideThumbnail) {
+	if (!TestTools::isFullTestEnabled()) {
+		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
+	}
+	PhSlideAndScene opened = phOpenScene(ph2::FILE_NAME);
+	ASSERT_TRUE(opened.scene != nullptr);
+	const cv::Rect rect = opened.scene->getRect();
+	const cv::Size thumbnailSize(rect.width / 512, rect.height / 512);   // 190x425, level 9
+	const cv::Size largerSize(rect.width / 256, rect.height / 256);      // 380x850, level 8
+
+	cv::Mat thumbnail, larger;
+	opened.scene->readResampledBlock(rect, thumbnailSize, thumbnail);
+	opened.scene->readResampledBlock(rect, largerSize, larger);
+	ASSERT_EQ(thumbnailSize, thumbnail.size());
+	ASSERT_EQ(largerSize, larger.size());
+	EXPECT_EQ(CV_8UC3, thumbnail.type());
+	// A philips slide is mostly white glass around the tissue, so the mean sits near 255;
+	// what proves the tissue is there is the spread around it (measured 11.8 per channel).
+	cv::Scalar mean, stddev;
+	cv::meanStdDev(thumbnail, mean, stddev);
+	EXPECT_GT(stddev[0], 5.) << "the thumbnail carries no image content";
+	// Level 8 reduced by two has to show the same slide as level 9 (measured 0.997).
+	EXPECT_LE(0.99, ImageTools::computeSimilarity2(thumbnail, phDownscaled(larger, thumbnailSize)));
+}
+
+// A block may hang over the edge of the slide. The part inside has to hold the same pixels
+// an in-bounds read of it gives, and the part outside has to come back as the background
+// the scene initializes a block with (white for a byte image) rather than as image data
+// wrapped around or as uninitialized memory.
+TEST_F(PhTiffImageDriverTests, readImageBlockCrossingTheSceneEdge) {
+	if (!TestTools::isFullTestEnabled()) {
+		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
+	}
+	PhSlideAndScene opened = phOpenScene(ph2::FILE_NAME);
+	ASSERT_TRUE(opened.scene != nullptr);
+	const cv::Rect rect = opened.scene->getRect();
+	const cv::Rect inside = { rect.width - 100, rect.height - 100, 100, 100 };
+	const cv::Rect crossing = { inside.x, inside.y, 200, 200 };
+
+	cv::Mat crossingRaster, insideRaster;
+	opened.scene->readBlock(crossing, crossingRaster);
+	opened.scene->readBlock(inside, insideRaster);
+	ASSERT_EQ(crossing.size(), crossingRaster.size());
+	EXPECT_DOUBLE_EQ(0., phMaxAbsDiff(crossingRaster(cv::Rect(0, 0, 100, 100)), insideRaster));
+	// Everything right of, and everything below, the corner of the slide.
+	const cv::Scalar rightOfTheSlide = cv::mean(crossingRaster(cv::Rect(100, 0, 100, 200)));
+	const cv::Scalar belowTheSlide = cv::mean(crossingRaster(cv::Rect(0, 100, 100, 100)));
+	for (int channel = 0; channel < 3; ++channel) {
+		EXPECT_DOUBLE_EQ(255., rightOfTheSlide[channel]) << "channel " << channel;
+		EXPECT_DOUBLE_EQ(255., belowTheSlide[channel]) << "channel " << channel;
+	}
+}
+
+// The auxiliary images are striped rather than tiled and carry a single level, so they are
+// read through a different scene class (SVSSmallScene) than the pyramid above. The same
+// three reads have to work on them: the whole image, a reduced copy of it, and a single
+// channel. Philips-3.tiff is the file that stores two of them, a label and a macro.
+TEST_F(PhTiffImageDriverTests, readAuxImageRasters) {
+	if (!TestTools::isFullTestEnabled()) {
+		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
+	}
+	PhSlideAndScene opened = phOpenScene("Philips-3.tiff");
+	ASSERT_TRUE(opened.slide != nullptr);
+	const std::list<std::string> names = opened.slide->getAuxImageNames();
+	ASSERT_EQ(2u, names.size());
+	for (const std::string& name : names) {
+		std::shared_ptr<CVScene> aux = opened.slide->getAuxImage(name);
+		ASSERT_TRUE(aux != nullptr) << name;
+		const cv::Rect rect = aux->getRect();
+		ASSERT_GT(rect.width, 0) << name;
+		EXPECT_EQ(1, aux->getNumZoomLevels()) << name;
+
+		cv::Mat whole;
+		aux->readBlock(rect, whole);
+		ASSERT_EQ(rect.size(), whole.size()) << name;
+		EXPECT_EQ(CV_8UC3, whole.type()) << name;
+		// Both the label and the macro of this file are photographs of the slide, so they
+		// carry a wide spread of values (measured 87 and 50 per channel).
+		cv::Scalar mean, stddev;
+		cv::meanStdDev(whole, mean, stddev);
+		EXPECT_GT(stddev[0], 10.) << name << " carries no image content";
+
+		const cv::Size half(rect.width / 2, rect.height / 2);
+		cv::Mat halfRead;
+		aux->readResampledBlock(rect, half, halfRead);
+		ASSERT_EQ(half, halfRead.size()) << name;
+		EXPECT_LE(0.95, ImageTools::computeSimilarity2(halfRead, phDownscaled(whole, half))) << name;
+
+		std::vector<cv::Mat> planes;
+		cv::split(whole, planes);
+		cv::Mat single;
+		aux->readBlockChannels(rect, { 1 }, single);
+		EXPECT_EQ(CV_8UC1, single.type()) << name;
+		EXPECT_DOUBLE_EQ(0., phMaxAbsDiff(single, planes[1])) << name;
+	}
+}
+
+// Concurrent reads of one scene: the whole slide image reads through a single tiff handle
+// whose current directory is shared state, so two threads reading different zoom levels can
+// hand each other the wrong raster. The helper reads a set of regions from many threads and
+// compares every raster of a region against the first one read for it. Every other driver
+// of the library is covered by this test; the philips driver was not.
+TEST_F(PhTiffImageDriverTests, multiThreadedRead) {
+	if (!TestTools::isFullTestEnabled()) {
+		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
+	}
+	PHTIFFImageDriver driver;
+	TestTools::multiThreadedTest(TestTools::getFullTestImagePath("philips", ph2::FILE_NAME), driver);
+}
