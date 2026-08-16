@@ -573,3 +573,99 @@ TEST_F(NDPIImageDriverTests, getDriverId)
 	EXPECT_EQ(filePath, scene->getFilePath());
 	EXPECT_EQ("NDPI", scene->getDriverId());
 }
+
+// Reading a level whole, by level, has to show the same picture as reading the whole scene
+// resampled to that level's size. The second goes through the scene-coordinate round trip
+// the level api avoids, so agreement means both address the pyramid the same way.
+TEST_F(NDPIImageDriverTests, readLevelMatchesTheResampledSceneRead)
+{
+    if (!TestTools::isFullTestEnabled())
+    {
+        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
+    }
+    slideio::NDPIImageDriver driver;
+    const std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "2017-02-27 15.29.08.ndpi");
+    auto slide = driver.openFile(filePath);
+    auto scene = slide->getScene(0);
+    ASSERT_TRUE(scene != nullptr);
+    const int numLevels = scene->getNumZoomLevels();
+    ASSERT_EQ(3, numLevels);
+
+    for (int level = 1; level < numLevels; ++level)
+    {
+        const slideio::LevelInfo* info = scene->getZoomLevelInfo(level);
+        ASSERT_TRUE(info != nullptr) << "level " << level;
+        const cv::Size levelSize(info->getSize().width, info->getSize().height);
+        cv::Mat viaLevel, viaScene;
+        scene->readResampledLevelBlockChannels(level, cv::Rect(cv::Point(0, 0), levelSize), levelSize, {}, viaLevel);
+        scene->readResampledBlock(scene->getRect(), levelSize, viaScene);
+        ASSERT_EQ(levelSize, viaLevel.size()) << "level " << level;
+        EXPECT_LE(0.95, slideio::ImageTools::computeSimilarity2(viaLevel, viaScene)) << "level " << level;
+    }
+}
+
+// The right and bottom edge of a level: the rect overhangs, the read must not throw, and the
+// overhang comes back as background. The ndpi SingleStripe branch crops with cv::Mat(m,rect),
+// which is exactly the operation that throws when the rect is not contained.
+TEST_F(NDPIImageDriverTests, readLevelClampsAnOverhangingRect)
+{
+    if (!TestTools::isFullTestEnabled())
+    {
+        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
+    }
+    slideio::NDPIImageDriver driver;
+    const std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "2017-02-27 15.29.08.ndpi");
+    auto slide = driver.openFile(filePath);
+    auto scene = slide->getScene(0);
+    ASSERT_TRUE(scene != nullptr);
+    const int level = scene->getNumZoomLevels() - 1;
+    const slideio::LevelInfo* info = scene->getZoomLevelInfo(level);
+    ASSERT_TRUE(info != nullptr);
+    const cv::Size levelSize(info->getSize().width, info->getSize().height);
+
+    const cv::Rect overhanging(levelSize.width - 64, levelSize.height - 64, 256, 256);
+    cv::Mat raster;
+    ASSERT_NO_THROW(scene->readResampledLevelBlockChannels(level, overhanging, cv::Size(256, 256), {}, raster));
+    ASSERT_EQ(cv::Size(256, 256), raster.size());
+    // Anything past the level's own 64x64 corner is background: 255 for a byte image.
+    const cv::Vec3b outside = raster.at<cv::Vec3b>(200, 200);
+    EXPECT_EQ(255, outside[0]);
+    EXPECT_EQ(255, outside[1]);
+    EXPECT_EQ(255, outside[2]);
+}
+
+// Reading level 0 resampled down to level 1's own size must resample level 0's data, not
+// silently escalate to level 1's own directory. Level 1 is its own independently encoded
+// image, not an arithmetic derivative of level 0, so an exact pixel match between "level 0
+// resampled to level 1's size" and "level 1 read natively" is the base default's reselection
+// bug (the old entry point re-derives a zoom from the scene-coordinate rect and picks
+// whichever directory best matches it, regardless of the level explicitly requested) — not a
+// coincidence of similar content.
+TEST_F(NDPIImageDriverTests, readLevelDoesNotEscalateToACoarserLevel)
+{
+    if (!TestTools::isFullTestEnabled())
+    {
+        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
+    }
+    slideio::NDPIImageDriver driver;
+    const std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "2017-02-27 15.29.08.ndpi");
+    auto slide = driver.openFile(filePath);
+    auto scene = slide->getScene(0);
+    ASSERT_TRUE(scene != nullptr);
+    ASSERT_EQ(3, scene->getNumZoomLevels());
+
+    const slideio::LevelInfo* coarserInfo = scene->getZoomLevelInfo(1);
+    ASSERT_TRUE(coarserInfo != nullptr);
+    const cv::Size coarserSize(coarserInfo->getSize().width, coarserInfo->getSize().height);
+
+    cv::Mat resampledFine, coarseNative;
+    scene->readResampledLevelBlockChannels(0, scene->getRect(), coarserSize, {}, resampledFine);
+    scene->readResampledLevelBlockChannels(1, cv::Rect(cv::Point(0, 0), coarserSize), coarserSize, {}, coarseNative);
+
+    ASSERT_EQ(coarserSize, resampledFine.size());
+    ASSERT_EQ(coarserSize, coarseNative.size());
+    cv::Mat diff;
+    cv::absdiff(resampledFine, coarseNative, diff);
+    const double maxAbsDiff = cv::norm(diff, cv::NORM_INF);
+    EXPECT_LT(0., maxAbsDiff);
+}

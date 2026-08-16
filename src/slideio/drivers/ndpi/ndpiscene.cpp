@@ -7,6 +7,7 @@
 #include <opencv2/imgproc.hpp>
 #include <nlohmann/json.hpp>
 #include <sstream>
+#include <cmath>
 
 #include "ndpifile.hpp"
 #include "slideio/core/tools/tools.hpp"
@@ -261,31 +262,82 @@ void NDPIScene::scaleBlockToDirectory(const cv::Rect& imageBlockRect, const slid
 void NDPIScene::readResampledBlockChannelsEx(const cv::Rect& imageBlockRect, const cv::Size& requiredBlockSize,
         const std::vector<int>& channelIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output)
 {
-	if (zSliceIndex != 0 || tFrameIndex != 0) {
-		RAISE_RUNTIME_ERROR << "NDPIScene: 3D and 4D images are not supported";
-	}
-    const slideio::NDPITiffDirectory& dir = findZoomDirectory(imageBlockRect, requiredBlockSize);
+    const double zoomX = static_cast<double>(requiredBlockSize.width) / static_cast<double>(imageBlockRect.width);
+    const double zoomY = static_cast<double>(requiredBlockSize.height) / static_cast<double>(imageBlockRect.height);
+    const int level = findZoomLevelIndex(std::max(zoomX, zoomY));
     const auto& directories = m_pfile->directories();
+    const slideio::NDPITiffDirectory& dir = directories[m_startDir + level];
 
     cv::Rect dirBlockRect;
     scaleBlockToDirectory(imageBlockRect, dir, dirBlockRect);
+    readResampledLevelBlockChannelsEx(level, dirBlockRect, requiredBlockSize, channelIndices,
+                                      zSliceIndex, tFrameIndex, output);
+}
+
+void NDPIScene::readResampledLevelBlockChannelsEx(int level, const cv::Rect& levelRect,
+        const cv::Size& blockSize, const std::vector<int>& channelIndices,
+        int zSliceIndex, int tFrameIndex, cv::OutputArray output)
+{
+    if (zSliceIndex != 0 || tFrameIndex != 0) {
+        RAISE_RUNTIME_ERROR << "NDPIScene: 3D and 4D images are not supported";
+    }
+    validateLevel(level);
+    const auto& directories = m_pfile->directories();
+    const slideio::NDPITiffDirectory& dir = directories[m_startDir + level];
+
     NDPITiffTools::setCurrentDirectory(m_pfile->getTiffHandle(), dir);
     NDPIUserData data(&dir, getFilePath());
     const auto dirType = dir.getType();
-    if(dirType == NDPITiffDirectory::Type::Tiled 
+    if (dirType == NDPITiffDirectory::Type::Tiled
         || dirType == NDPITiffDirectory::Type::SingleStripeMCU
-        || dirType == NDPITiffDirectory::Type::Striped ) {
-               TileComposer::composeRect(this, channelIndices, dirBlockRect, requiredBlockSize, output, (void*)&data);
-    } else if(dirType==NDPITiffDirectory::Type::SingleStripe){
+        || dirType == NDPITiffDirectory::Type::Striped) {
+        // TileComposer intersects every tile with the block, so an overhanging block simply
+        // finds no tile there and keeps the background.
+        TileComposer::composeRect(this, channelIndices, levelRect, blockSize, output, (void*)&data);
+    } else if (dirType == NDPITiffDirectory::Type::SingleStripe) {
         cv::Mat raster;
         NDPITiffTools::readStripedDir(m_pfile->getTiffHandle(), dir, raster);
-        cv::Mat block(raster, dirBlockRect);
+        // cv::Mat(raster, rect) throws unless the rect is contained, and an edge tile of a
+        // level is not: clamp, read the part that exists, and leave the rest background.
+        const cv::Rect valid = levelRect & cv::Rect(0, 0, raster.cols, raster.rows);
+        initializeSceneBlock(blockSize, channelIndices, output);
+        if (valid.empty()) {
+            return;
+        }
+        const double scaleX = static_cast<double>(blockSize.width) / static_cast<double>(levelRect.width);
+        const double scaleY = static_cast<double>(blockSize.height) / static_cast<double>(levelRect.height);
+        cv::Rect target;
+        target.x = static_cast<int>(std::floor((valid.x - levelRect.x) * scaleX));
+        target.y = static_cast<int>(std::floor((valid.y - levelRect.y) * scaleY));
+        target.width = std::min(static_cast<int>(std::ceil(valid.width * scaleX)), blockSize.width - target.x);
+        target.height = std::min(static_cast<int>(std::ceil(valid.height * scaleY)), blockSize.height - target.y);
+        if (target.width <= 0 || target.height <= 0) {
+            return;
+        }
+        cv::Mat block(raster, valid);
         cv::Mat blockResized;
-        cv::resize(block, blockResized, requiredBlockSize);
-        Tools::extractChannels(blockResized, channelIndices, output);
+        cv::resize(block, blockResized, target.size());
+        cv::Mat extracted;
+        Tools::extractChannels(blockResized, channelIndices, extracted);
+        cv::Mat out = output.getMat();
+        extracted.copyTo(out(target));
     } else {
-        RAISE_RUNTIME_ERROR << "NDPIScene::readResampledBlockChannels: Unexpected directory type: " << dir.getType();
+        RAISE_RUNTIME_ERROR << "NDPIScene::readResampledLevelBlockChannelsEx: Unexpected directory type: "
+            << dir.getType();
     }
+}
+
+int NDPIScene::findZoomLevelIndex(double zoom) const
+{
+    // The body of NDPIFile::findZoomDirectory (ndpifile.cpp:55-63) without its final
+    // index-to-reference step, so the level it names is the level that function would.
+    const auto& directories = m_pfile->directories();
+    const int sceneWidth = m_rect.width;
+    const int begin = m_startDir;
+    return Tools::findZoomLevel(zoom, m_endDir - m_startDir,
+        [&directories, sceneWidth, begin](int index) {
+            return static_cast<double>(directories[index + begin].width) / static_cast<double>(sceneWidth);
+        });
 }
 
 int NDPIScene::getTileCount(void* userData)

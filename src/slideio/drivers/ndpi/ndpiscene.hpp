@@ -46,6 +46,12 @@ namespace slideio
         Compression getCompression() const override;
         void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
             const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output) override;
+        void readResampledLevelBlockChannelsEx(int level, const cv::Rect& levelRect,
+            const cv::Size& blockSize, const std::vector<int>& channelIndices,
+            int zSliceIndex, int tFrameIndex, cv::OutputArray output) override;
+        // The index of the level serving a zoom. NDPIFile::findZoomDirectory performs this
+        // same search and then returns the directory; the level path needs the index itself.
+        int findZoomLevelIndex(double zoom) const;
         const NDPITiffDirectory& findZoomDirectory(const cv::Rect& imageBlockRect, const cv::Size& requiredBlockSize) const;
         void scaleBlockToDirectory(const cv::Rect& imageBlockRect, const slideio::NDPITiffDirectory& dir, cv::Rect& dirBlockRect) const;
         int getTileCount(void* userData) override;
