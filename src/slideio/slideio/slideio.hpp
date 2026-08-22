@@ -7,28 +7,37 @@
 #include <string>
 #include <vector>
 
-/*!@mainpage SlideioIO imaging library
+/*!@mainpage SlideIO imaging library
 * 
 * @section intro_sec Overview
-* The SlideIO library allows extraction information from medical images. It includes raster data as well as metadata.
-* The library allows reading whole slides as well as any region of a slide. 
+* The SlideIO library extracts information from medical and microscopy images: raster data as well as metadata.
+* It reads whole slides as well as any region of a slide.
 * Large slides can be effectively scaled to a smaller size.
-* The library uses internal zoom pyramids of images to make the scaling process as fast as possible. 
+* The library uses the internal zoom pyramids of the images to make the scaling process as fast as possible.
+* A region can also be read from a pyramid level named by the caller, in the coordinate system of that level,
+* which avoids the coordinate conversion and the level selection that the library performs otherwise.
 * SlideIO supports 2D slides as well as 3D data sets and time series.
+* Metadata is available both as the raw string embedded in the file and as a navigable tree.
 * SlideIO exposes 2 c++ interfaces: opencv based interface and generic c++ interface.
 * The library works with multiple image formats. Each format is implemented with a 'driver'.
 * A driver can be accessed by id - unique human readable string assigned to the driver instance.
-* Cuttently the follwing drivers are provided:
+* The id can be omitted, in which case the library selects the driver by the content of the file.
+* Currently the following drivers are provided:
 * - SVS : Aperio SVS image format;
 * - AFI : Aperio AFI image format;
 * - SCN : Leica SCN image format;
 * - CZI : Zeiss CZI image format;
 * - ZVI : Zeiss ZVI image format;
 * - NDPI : Hamamatsu NDPI image format;
-* - DCM : DICOM image format;
+* - VSI : Olympus VSI image format;
+* - DCM : DICOM image format, including whole slide images;
+* - QPTIFF : PerkinElmer Vectra QPTIFF image format;
+* - OMETIFF : OME-TIFF image format;
+* - PHTIFF : Philips TIFF image format;
 * - GDAL : Generic image formats like jpeg, tiff, etc.
 * @section ref_section Generic c++ Interface
-* SlideIO generic c++ interface provides 2 global functions slideio::openSlide(), slideio::getDriverIDs() and 2 classes: slideio::Slide and slideio::Scene.
+* SlideIO generic c++ interface provides the global functions slideio::openSlide(), slideio::getDriverIDs(),
+* slideio::setLogLevel(), slideio::getVersion() and 2 classes: slideio::Slide and slideio::Scene.
 * Function slideio::openSlide() opens a slide and returns object of class slideio::Slide. The class slideio::Slide exposes methods
 * for accessing of the slide properties including metadata and images. A single instance of slideio::Slide can contain multiple
 * raster images that are represented by slideio::Scene class. Class slideio::Scene exposes methods for working with a single raster
@@ -86,7 +95,9 @@ namespace  slideio
     /**Function for opening a slide file.
     @brief The function returns a smart pointer to an object of Slide class.
     @param path : path of the file/folder that contains the slide.
-    @param driver : id of image driver
+    @param driver : id of image driver, as returned by getDriverIDs(). An empty string or
+    "AUTO" selects the driver by the content of the file. The function throws an exception
+    if the id is unknown or if no driver accepts the file.
     */
     SLIDEIO_EXPORTS std::shared_ptr<Slide> openSlide(const std::string& path, const std::string& driver= "");
     /**@brief Returns a list of available driver ids. */
