@@ -10,9 +10,6 @@
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/stdout_sinks.h>
 
-#include <cstring>
-#include <memory>
-
 #include <chrono>
 #include <cstdio>
 #include <ctime>
@@ -60,11 +57,25 @@ namespace
     // width up to the clock's precision.
     std::string timestamp()
     {
+        // `seconds` and `micros` are both derived from ONE microsecond count
+        // rather than from independent calls (system_clock::to_time_t(now)
+        // for the former, a separate floor-division of
+        // now.time_since_epoch() for the latter): to_time_t's rounding
+        // direction is implementation-defined, so the two could otherwise
+        // disagree by a whole second once per second (e.g. to_time_t rounds
+        // up to the next second while micros still reflects the previous
+        // one). A single division can't disagree with itself.
         const auto now = std::chrono::system_clock::now();
-        const std::time_t seconds = std::chrono::system_clock::to_time_t(now);
-        const auto micros = std::chrono::duration_cast<std::chrono::microseconds>(
-                                now.time_since_epoch()).count() % 1000000;
+        const auto usSinceEpoch = std::chrono::duration_cast<std::chrono::microseconds>(
+                                       now.time_since_epoch()).count();
+        const std::time_t seconds = static_cast<std::time_t>(usSinceEpoch / 1000000);
+        const auto micros = usSinceEpoch % 1000000;
 
+        // Zero-initialised, so a localtime_s/r failure - only possible for a
+        // time_t outside the platform's representable range, which "now"
+        // never is - degrades to a fixed, parseable (if meaningless)
+        // timestamp rather than reading uninitialised memory. The return
+        // value is deliberately not checked beyond that guarantee.
         std::tm parts{};
 #if defined(_MSC_VER)
         localtime_s(&parts, &seconds);
@@ -90,46 +101,46 @@ namespace
         return stream.str();
     }
 
-    // Builds a fresh sink/logger for every call rather than caching one
-    // process-wide.
+    // Builds a fresh sink for every call rather than caching one
+    // process-wide, and calls the sink directly - no spdlog::logger.
     //
-    // A cached singleton was tried first (via spdlog::stderr_logger_mt(),
-    // stored in a function-local static) and failed under test: spdlog's
-    // Windows stdout/stderr sink resolves the raw OS HANDLE for its target
-    // FILE* exactly once, at construction
+    // Freshness: a cached singleton was tried first (via
+    // spdlog::stderr_logger_mt(), stored in a function-local static) and
+    // failed under test: spdlog's Windows stdout/stderr sink resolves the
+    // raw OS HANDLE for its target FILE* exactly once, at construction
     // (stdout_sink_base ctor: handle_ = ::_get_osfhandle(::_fileno(file_))),
     // and never re-resolves it on later writes. A singleton therefore keeps
     // writing to whatever OS handle sat behind stderr's file descriptor at
     // the moment of the *first* log call in the process, even after stderr
     // is later reopened or redirected - which is exactly what
-    // testing::internal::CaptureStderr() does before every test. The
-    // resulting write targets a stale handle, spdlog's own logger::sink_it_
-    // catches the resulting exception internally and hands it to the error
-    // handler (see below) before it ever reaches this file's try/catch, so
-    // the message is silently lost with no visible failure. Building the
-    // sink fresh on every call re-resolves the handle each time and keeps it
-    // always current. The extra allocation is a non-issue: logMessage sits
-    // on the error/exception path (spec 4.4.5: ~97% of ERROR volume comes
-    // from RuntimeError), not a hot loop.
+    // testing::internal::CaptureStderr() does before every test. Building
+    // the sink fresh on every call re-resolves the handle each time and
+    // keeps it always current. The extra allocation is a non-issue: the
+    // caller (logMessage) has already returned before this point unless a
+    // line is actually going to be emitted - the threshold check happens
+    // first and costs nothing when nothing is logged, which is the common
+    // case (default threshold is Fatal, and even at INFO most call sites
+    // never fire). Once a line IS emitted, a synchronous flushed write
+    // dominates whatever this allocates.
     //
-    // Constructing the logger directly (rather than through
-    // spdlog::stderr_logger_mt(), which registers it by name in spdlog's
-    // global registry) also sidesteps "logger already exists" on the second
-    // call, and means the per-logger error handler - not the process-wide
-    // spdlog::set_error_handler() - is what needs to be set here.
+    // No spdlog::logger: constructing one via spdlog::stderr_logger_mt()
+    // registers it by name in spdlog's global registry, which throws
+    // "logger already exists" on the second call now that construction
+    // happens per-call rather than once. Calling the sink's log() directly
+    // sidesteps the registry entirely, and also avoids building two
+    // pattern_formatters per call - stdout_sink_base's constructor
+    // unconditionally builds one for its default pattern, and going through
+    // a logger would mean set_pattern("%v") immediately discarding it and
+    // building a second - plus a logger's flush_on(), which would be a
+    // redundant second console-mutex acquisition and fflush: the sink's own
+    // log() already flushes after every write (see stdout_sinks-inl.h).
     void logLine(const std::string& line)
     {
-        auto sink = std::make_shared<spdlog::sinks::stderr_sink_mt>();
-        spdlog::logger logger("slideio", sink);
-        // Non-throwing error handler: see spec 4.5.2. Belt to the try/catch
-        // in logMessage.
-        logger.set_error_handler([](const std::string&) {});
+        spdlog::sinks::stderr_sink_mt sink;
         // The whole line is produced by logMessage; spdlog must not add a
         // prefix of its own.
-        logger.set_pattern("%v");
-        logger.set_level(spdlog::level::trace);
-        logger.flush_on(spdlog::level::trace);
-        logger.info(line);
+        sink.set_pattern("%v");
+        sink.log(spdlog::details::log_msg(spdlog::source_loc{}, "slideio", spdlog::level::info, line));
     }
 }
 
@@ -162,8 +173,13 @@ namespace slideio
             logLine(line_.str());
         }
         catch (...) {
-            // Swallowed deliberately. This runs during throw; propagating here
-            // is std::terminate. See spec 4.5.2.
+            // This is the only guard against a sink failure escaping:
+            // logLine() calls the sink's log() directly, with no
+            // spdlog::logger in the path, so there is no SPDLOG_LOGGER_CATCH
+            // to swallow the exception first (as it did in an earlier
+            // version of this file that went through a logger - see git
+            // history). Swallowed deliberately - this can run during throw,
+            // where propagating is std::terminate. See spec 4.5.2.
         }
     }
 }
