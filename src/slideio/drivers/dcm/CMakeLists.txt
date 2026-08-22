@@ -29,7 +29,6 @@ add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES})
 set_target_properties(${LIBRARY_NAME} PROPERTIES OUTPUT_NAME "${LIBRARY_NAME}${LIB_NAME_SUFFIX}")
 
 find_package(SQLite3)
-find_package(glog)
 find_package(OpenCV)
 find_package(DCMTK)
 find_package(ZLIB)
@@ -39,7 +38,6 @@ find_package(OpenJPEG)
 
 target_link_libraries(${LIBRARY_NAME} 
         SQLite::SQLite3
-        glog::glog
         opencv::opencv
         DCMTK::ofstd
         DCMTK::oflog

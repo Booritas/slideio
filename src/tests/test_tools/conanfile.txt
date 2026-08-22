@@ -1,5 +1,4 @@
 [requires]
-glog/0.7.1
 gtest/1.17.0
 opencv/4.10.0@slideio/stable
 [options]

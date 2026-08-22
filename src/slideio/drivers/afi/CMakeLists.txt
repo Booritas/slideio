@@ -24,7 +24,6 @@ SOURCE_GROUP_BY_FOLDER(SOURCE_FILES)
 target_link_libraries(${LIBRARY_NAME} ${CORE_LIB_NAME} ${IMAGETOOLS_LIB_NAME} ${SVS_DRIVER_NAME})
 
 find_package(SQLite3)
-find_package(glog)
 find_package(OpenCV)
 find_package(TIFF)
 find_package(LibLZMA)
@@ -38,7 +37,6 @@ find_package(Iconv)
 
 target_link_libraries(${LIBRARY_NAME} 
    SQLite::SQLite3
-   glog::glog
    opencv::opencv
    TIFF::TIFF
    LibLZMA::LibLZMA

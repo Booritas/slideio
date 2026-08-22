@@ -61,12 +61,10 @@ set_target_properties(${LIBRARY_NAME} PROPERTIES OUTPUT_NAME "${LIBRARY_NAME}${L
 
 find_package(OpenCV)
 find_package(ZLIB)
-find_package(glog)
 
 target_link_libraries(${LIBRARY_NAME}
    opencv::opencv
    ZLIB::ZLIB
-   glog::glog
 )
 
 SOURCE_GROUP_BY_FOLDER(SOURCE_FILES)

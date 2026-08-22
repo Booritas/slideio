@@ -12,12 +12,10 @@ target_include_directories(${TEST_NAME} PRIVATE ${INCLUDE_ROOT})
 
 
 find_package(GTest)
-find_package(glog)
 find_package(OpenCV)
 
 target_link_libraries(${TEST_NAME} 
    gtest::gtest
-   glog::glog
    opencv::opencv
 )
 
