@@ -53,7 +53,7 @@ IF(WIN32)
 ENDIF(WIN32)
 
 set_target_properties(${LIBRARY_NAME} PROPERTIES LINKER_LANGUAGE CXX)
-target_link_libraries(${LIBRARY_NAME} PRIVATE 
+target_link_libraries(${LIBRARY_NAME} PUBLIC
    ${BASE_LIB_NAME}
 )
 
