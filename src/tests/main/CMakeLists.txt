@@ -40,6 +40,7 @@ set(TEST_SOURCES
   test_channel_attributes.cpp
   test_boundedqueue.cpp
   test_levelreading.cpp
+  test_log_macro_collision.cpp
 )
 
 add_executable(${TEST_NAME} ${TEST_SOURCES})

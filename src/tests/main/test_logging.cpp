@@ -25,7 +25,10 @@ namespace {
     // tests. FATAL is the library default (spec 4.7).
     class LoggingTest : public ::testing::Test {
     protected:
-        void TearDown() override { slideio::setLogLevel("FATAL"); }
+        void TearDown() override {
+            slideio::setLogLevel("FATAL");
+            slideio::setLogThreshold(static_cast<int>(slideio::LogLevel::Fatal));
+        }
     };
 }
 
@@ -447,4 +450,33 @@ TEST_F(LoggingTest, failingSinkCannotEscapeLogMessage)
 
     SUCCEED() << "logMessage survived a failing sink";
     // restoreStderr's destructor runs here, putting fd 2 back.
+}
+
+// Spec 4.7 / 7.3: the default threshold is uniformly Fatal. Before this change
+// it depended on whether ImageDriverManager::initialize() had run, so the two
+// former paths are asserted separately - the second is the one that changes.
+TEST(LoggingDefaults, utilityOnlyPathIsSilentByDefault)
+{
+    // Deliberately no setLogLevel call and no ImageDriverManager use, so this
+    // test must run in a process where nothing has configured logging. The
+    // gtest filter in Step 6 enforces that.
+    testing::internal::CaptureStderr();
+    try {
+        RAISE_RUNTIME_ERROR << "must not appear 5501";
+    } catch (const std::exception&) {
+    }
+    const std::string out = testing::internal::GetCapturedStderr();
+    EXPECT_EQ(out.find("must not appear 5501"), std::string::npos)
+        << "utility-only path logged at default threshold; captured:\n" << out;
+    EXPECT_EQ(out.find("InitGoogleLogging"), std::string::npos)
+        << "glog initialisation banner still present; captured:\n" << out;
+}
+
+TEST(LoggingDefaults, driverPathIsSilentByDefault)
+{
+    testing::internal::CaptureStderr();
+    EXPECT_THROW(slideio::openSlide("nonexistent_slide.ndpi", "NDPI"), slideio::RuntimeError);
+    const std::string out = testing::internal::GetCapturedStderr();
+    EXPECT_EQ(out.find("NDPIImageDriver"), std::string::npos)
+        << "driver path logged at default threshold; captured:\n" << out;
 }
