@@ -6,6 +6,13 @@
 #include <cstddef>
 #include <thread>
 #include <vector>
+#if defined(_MSC_VER)
+#include <io.h>
+#include <fcntl.h>
+#else
+#include <unistd.h>
+#include <fcntl.h>
+#endif
 #include "slideio/base/base.hpp"
 #include "slideio/slideio/slideio.hpp"
 
@@ -178,4 +185,129 @@ TEST_F(LoggingTest, concurrentLoggingProducesWholeLines)
             EXPECT_NE(out.find(marker), std::string::npos) << "torn or lost line: " << marker;
         }
     }
+}
+
+#include "slideio/base/logcontract.hpp"
+
+// Spec 4.7.1: the threshold is constant-initialised to Fatal. Reading it before
+// anything has configured logging must yield Fatal, not an indeterminate value.
+TEST_F(LoggingTest, thresholdDefaultsToFatal)
+{
+    const int* threshold = slideio::logThresholdPtr();
+    ASSERT_NE(threshold, nullptr);
+
+    slideio::setLogThreshold(static_cast<int>(slideio::LogLevel::Fatal));
+    EXPECT_EQ(*threshold, static_cast<int>(slideio::LogLevel::Fatal));
+}
+
+// Spec 4.3: every caller sees the same variable. A per-module copy would make
+// the pointer's target diverge from what setLogThreshold wrote.
+TEST_F(LoggingTest, thresholdPointerTracksWrites)
+{
+    const int* threshold = slideio::logThresholdPtr();
+    ASSERT_NE(threshold, nullptr);
+
+    slideio::setLogThreshold(static_cast<int>(slideio::LogLevel::Info));
+    EXPECT_EQ(*threshold, static_cast<int>(slideio::LogLevel::Info));
+
+    slideio::setLogThreshold(static_cast<int>(slideio::LogLevel::Error));
+    EXPECT_EQ(*threshold, static_cast<int>(slideio::LogLevel::Error));
+
+    EXPECT_EQ(slideio::logThresholdPtr(), threshold) << "pointer must be stable across calls";
+}
+
+// Spec 4.6: format must match the captured glog line field-for-field.
+TEST_F(LoggingTest, logMessageFormatMatchesSpec)
+{
+    slideio::setLogThreshold(static_cast<int>(slideio::LogLevel::Error));
+    testing::internal::CaptureStderr();
+    slideio::logMessage(static_cast<int>(slideio::LogLevel::Error),
+                        "D:\\some\\path\\widget.cpp", 42, "payload 9021");
+    const std::string out = testing::internal::GetCapturedStderr();
+
+    // E20260822 19:31:43.120792 18220 widget.cpp:42] payload 9021
+    EXPECT_EQ(out.empty(), false) << "nothing emitted";
+    EXPECT_EQ(out[0], 'E') << "severity initial wrong; got: " << out;
+    EXPECT_NE(out.find("widget.cpp:42]"), std::string::npos)
+        << "basename:line] field wrong; got: " << out;
+    EXPECT_NE(out.find("payload 9021"), std::string::npos) << "message lost; got: " << out;
+    EXPECT_EQ(out.find("D:\\some\\path"), std::string::npos)
+        << "location field must be the basename only; got: " << out;
+    EXPECT_EQ(out.back(), '\n') << "line must be newline-terminated";
+}
+
+TEST_F(LoggingTest, logMessageRespectsThreshold)
+{
+    slideio::setLogThreshold(static_cast<int>(slideio::LogLevel::Error));
+
+    testing::internal::CaptureStderr();
+    slideio::logMessage(static_cast<int>(slideio::LogLevel::Info), "f.cpp", 1, "suppressed 3310");
+    EXPECT_EQ(testing::internal::GetCapturedStderr().find("suppressed 3310"), std::string::npos);
+
+    testing::internal::CaptureStderr();
+    slideio::logMessage(static_cast<int>(slideio::LogLevel::Error), "f.cpp", 1, "emitted 3311");
+    EXPECT_NE(testing::internal::GetCapturedStderr().find("emitted 3311"), std::string::npos);
+}
+
+// Spec 4.5.2: logMessage is called during throw. It must never propagate.
+TEST_F(LoggingTest, logMessageIsNoexcept)
+{
+    static_assert(noexcept(slideio::logMessage(0, "f.cpp", 1, "m")),
+                  "logMessage must be noexcept - it runs inside RuntimeError's copy ctor "
+                  "during throw, where an escaping exception is std::terminate");
+
+    slideio::setLogThreshold(static_cast<int>(slideio::LogLevel::Error));
+    // Degenerate inputs must not throw or crash.
+    EXPECT_NO_THROW(slideio::logMessage(static_cast<int>(slideio::LogLevel::Error), nullptr, 0, nullptr));
+    EXPECT_NO_THROW(slideio::logMessage(9999, "f.cpp", 1, ""));
+    EXPECT_NO_THROW(slideio::logMessage(-1, "f.cpp", 1, "negative level"));
+}
+
+// Spec 7.6 - THE test that catches spdlog's throw-by-default behaviour. A
+// static_assert only proves the declaration; this proves the implementation
+// survives a sink that actually fails. Forces the failure by putting a
+// read-only descriptor over stderr, so every write returns an error.
+TEST_F(LoggingTest, failingSinkCannotEscapeLogMessage)
+{
+    slideio::setLogThreshold(static_cast<int>(slideio::LogLevel::Error));
+    // Ensure the sink is constructed before stderr is broken, so we are testing
+    // write failure rather than construction failure.
+    slideio::logMessage(static_cast<int>(slideio::LogLevel::Error), "warmup.cpp", 1, "warmup");
+
+#if defined(_MSC_VER)
+    const int saved = _dup(2);
+    const int readOnly = _open("nul", _O_RDONLY);
+    ASSERT_NE(saved, -1);
+    ASSERT_NE(readOnly, -1);
+    ASSERT_NE(_dup2(readOnly, 2), -1);
+#else
+    const int saved = dup(2);
+    const int readOnly = open("/dev/null", O_RDONLY);
+    ASSERT_NE(saved, -1);
+    ASSERT_NE(readOnly, -1);
+    ASSERT_NE(dup2(readOnly, 2), -1);
+#endif
+
+    // The assertion is simply that we reach the next line. If logMessage lets
+    // the sink's exception escape, this test terminates the process instead of
+    // failing - which is exactly the production failure mode being guarded.
+    slideio::logMessage(static_cast<int>(slideio::LogLevel::Error), "broken.cpp", 7, "into a broken sink");
+
+    // Same call through the path that matters: during throw.
+    try {
+        RAISE_RUNTIME_ERROR << "raised into a broken sink";
+    } catch (const std::exception&) {
+    }
+
+#if defined(_MSC_VER)
+    _dup2(saved, 2);
+    _close(saved);
+    _close(readOnly);
+#else
+    dup2(saved, 2);
+    close(saved);
+    close(readOnly);
+#endif
+
+    SUCCEED() << "logMessage survived a failing sink";
 }

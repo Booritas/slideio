@@ -7,6 +7,8 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/slideio_enums.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/slideio_enums.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/log.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/log.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/logcontract.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/exceptions.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/exceptions.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/slideio_base_def.hpp
@@ -25,10 +27,13 @@ set_target_properties(${LIBRARY_NAME} PROPERTIES OUTPUT_NAME "${LIBRARY_NAME}${L
 
 
 find_package(glog REQUIRED)
-target_link_libraries(${LIBRARY_NAME} glog::glog)
+target_link_libraries(${LIBRARY_NAME} PRIVATE glog::glog)
+
+find_package(spdlog REQUIRED)
+target_link_libraries(${LIBRARY_NAME} PRIVATE spdlog::spdlog)
 
 IF(WIN32)
-   target_link_libraries(${LIBRARY_NAME} Shlwapi)
+   target_link_libraries(${LIBRARY_NAME} PRIVATE Shlwapi)
    set_target_properties(${LIBRARY_NAME} PROPERTIES LINK_FLAGS "/ignore:4099")
    target_compile_definitions(${LIBRARY_NAME} PRIVATE SLIDEIO_BASE_API _CRT_SECURE_NO_WARNINGS)
 ENDIF(WIN32)
