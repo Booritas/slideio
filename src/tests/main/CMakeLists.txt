@@ -24,6 +24,7 @@ set(TEST_SOURCES
   test_cvtools.cpp
   test_dcmfile.cpp
   test_exception.cpp
+  test_logging.cpp
   test_generic.cpp
   test_vsi_driver.cpp
   test_blocktiler.cpp
