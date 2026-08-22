@@ -21,13 +21,13 @@
 # -- Project information -----------------------------------------------------
 
 project = 'SlideIO'
-copyright = '2023, Stanislav Melnikov'
+copyright = '2023-2026, Stanislav Melnikov'
 author = 'Stanislav Melnikov'
 
 # The short X.Y version.
-version = '2.0'
+version = '2.9'
 # The full version, including alpha/beta/rc tags
-release = '2.0.0'
+release = '2.9.0'
 
 
 # -- General configuration ---------------------------------------------------

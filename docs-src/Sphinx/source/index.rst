@@ -5,11 +5,16 @@ Module SlideIO
 
 If you have any question about the library or want to report a bug, visit our new `forum <http://slideio.com/forum/viewforum.php?f=2>`_ .
 
-What is new
--------------------
-- Support of DICOM files
-- New functionality for retriving of auxiliary images of scene and slide objects such as thumbnails and labels.
-- Bug fixing and small improvements
+What is new in version 2.9.0
+-----------------------------
+- Support of Philips TIFF whole slide images through the new PHTIFF driver.
+- Reading from an explicitly selected zoom level with the new *Scene* method :py:meth:`~slideio.Scene.read_block_from_level`. The rectangle is given in the coordinate system of the level, so a tiled viewer does not have to convert its coordinates and no implicit level selection happens inside the library.
+- New level tile helpers: properties *tile_count* and method *get_tile_rect* of the level info object return the tile grid of a zoom level in level coordinates.
+- CZI: fixed a defect where a single pyramid level was split into two zoom levels, which could make *read_block* return a partially blank image.
+- Bug fixing and small improvements.
+
+Earlier releases added the structured metadata tree (*metadata* property of *Slide* and *Scene* objects),
+multithreaded conversion, and support for OME-TIFF files.
 
 
 Overview
@@ -32,7 +37,9 @@ The module builds accesses images through a system of image drivers that impleme
 - DCM - driver for reading of DICOM images, including whole slide images (WSI).
 - NDPI - driver for reading of Hamamatsu NDPI images.
 - VSI  - driver for reading of `Olympus VSI images <https://www.olympus-lifescience.com>`_.
+- QPTIFF - driver for reading of `PerkinElmer Vectra QPTIFF images <https://www.akoyabio.com/phenoimager/instruments/vectra-3-0/>`_.
 - OMETIFF - driver for reading of `OME-TIFF images <https://docs.openmicroscopy.org/ome-model/5.6.3/ome-tiff/>`_.
+- PHTIFF - driver for reading of `Philips TIFF whole slide images <https://www.usa.philips.com/healthcare/resources/feature-detail/intellisite-pathology-solution>`_.
 
 The module provides 2 python classes: *Slide* and *Scene*. *Slide* is a container object returned by the module function *open_slide*. In the simplest case, a *Slide* object contains a single *Scene* object. Some slides can contain multiple scenes. For example, a czi file can contain several scanned regions, each of them is represented as a *Scene* object. *Scene* class provides methods to access image pixel values and metadata. 
 
@@ -68,7 +75,7 @@ Here is an example of a reading of a czi file:
 .. code-block:: python
 
  import slideio
- slide = slideio.open_slidei(file_path="/data/a.czi",driver_id="CZI")
+ slide = slideio.open_slide(file_path="/data/a.czi",driver_id="CZI")
  scene = slide.get_scene(0)
  block = scene.read_block()
 

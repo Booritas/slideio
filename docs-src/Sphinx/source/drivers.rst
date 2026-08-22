@@ -28,6 +28,8 @@ The slideio module accesses images through a system of image drivers. A driver i
 +--------+-----------------+----------+------------+
 | OMETIFF|     yes         |   yes    |    yes     |
 +--------+-----------------+----------+------------+
+| PHTIFF |     no          |   no     |    no      |
++--------+-----------------+----------+------------+
 CZI driver
 ------------------
 
@@ -226,3 +228,39 @@ extracted from images.
 Auxiliary images
 ******************
 The driver does not support auxiliary images.
+
+PHTIFF driver
+------------------
+
+The driver opens Philips TIFF whole slide images produced by the Philips IntelliSite scanners.
+Philips files use the generic *.tif* and *.tiff* extensions, so the driver identifies them by the
+metadata in the description of the first tiff directory. A Philips file is therefore recognised by
+automatic driver selection: *open_slide* with the default driver id *"AUTO"* picks PHTIFF, while a
+plain tiff file is still opened by GDAL and an OME-TIFF file by the OMETIFF driver.
+
+A *Slide* object contains a single *Scene* object with the whole slide image. The zoom levels of the
+image are matched to tiff directories by the level number that each directory declares, and the tile
+padding that Philips writes at the right and bottom edge of a level is cropped, so the level sizes
+are consistent across the pyramid. The objective magnification of the scene is reported in the
+*magnification* property.
+
+Scene naming
+******************
+
+The main image scene is named "Image". Auxiliary images are named after the kind of image they
+contain: Thumbnail, Macro or Label.
+
+Metadata
+******************
+raw_metadata property of a *Slide* object returns the XML document extracted from the "Image Description"
+tiff tag of the first directory. raw_metadata property of a *Scene* object returns a JSON representation of
+the tiff tags of the level directory. The *metadata* property of both objects returns the metadata as a
+navigable tree.
+
+Auxiliary images
+******************
+The driver supports auxiliary images for *Slide* objects. A slide may contain the following auxiliary images:
+
+- Thumbnail
+- Macro
+- Label
