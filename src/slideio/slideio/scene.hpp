@@ -307,8 +307,28 @@ namespace slideio
          */
         virtual std::shared_ptr<Scene> getAuxImage(const std::string& imageName) const;
         std::shared_ptr<CVScene> getCVScene() { return m_scene; }
+        /**@brief returns the number of zoom levels of the internal image pyramid.
+         *
+         * Every scene has at least one level. Level 0 is the level of the highest
+         * resolution; the size of a level decreases with a growing level index.
+         */
         int getNumZoomLevels() const;
+        /**@brief returns information about a zoom level of the internal image pyramid.
+         *
+         * @param level : zoom level index, in the range [0, getNumZoomLevels()).
+         * @return pointer to a slideio::LevelInfo object owned by the scene. It describes
+         * the size, scale, magnification and tile size of the level and gives access to
+         * the tile grid of the level. Use it to choose the level for
+         * #readResampledLevelBlockChannels.
+         */
         const LevelInfo* getLevelInfo(int level) const;
+        /**@brief returns a human readable description of the scene.
+         *
+         * The description contains the file path, the name, the rectangle, the channels and
+         * their data types, the number of z slices and time frames, the magnification and
+         * the number of auxiliary images and zoom levels. It is intended for logging and
+         * diagnostics; its layout is not part of the API.
+         */
         std::string toString() const;
         /**@brief returns channel attributes as a Metadata tree.
          *

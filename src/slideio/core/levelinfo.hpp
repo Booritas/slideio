@@ -13,6 +13,15 @@
 
 namespace slideio
 {
+    /**@brief Description of a single level of the internal image pyramid of a scene.
+     *
+     * A scene keeps one object per zoom level and returns it from Scene::getLevelInfo.
+     * The object describes the geometry of the level: its size in the pixels of the level,
+     * the scale relative to level 0, the objective magnification and the size of the tiles
+     * the level is stored in. It also exposes the tile grid of the level through
+     * #getTileCount and #getTileRect, which return rectangles in the coordinate system of
+     * the level and can be passed straight to Scene::readResampledLevelBlockChannels.
+     */
     class SLIDEIO_CORE_EXPORTS LevelInfo
     {
     public:
@@ -60,6 +69,7 @@ namespace slideio
                 m_tileSize.height == other.m_tileSize.height;
         }
 
+        /**@brief recomputes the cached tile count from the current level and tile size.*/
         void updateTileCount() const {
             if (getTileSize().width > 0 && getTileSize().height > 0) {
                 const int tilesX = (getSize().width - 1) / getTileSize().width + 1;
@@ -71,29 +81,53 @@ namespace slideio
             }
         }
 
+        /**@brief returns the index of the level. Level 0 is the level of the highest resolution.*/
         int getLevel() const { return m_level; }
         void setLevel(int level) { m_level = level; }
 
+        /**@brief returns the size of the level in the pixels of the level.*/
         Size getSize() const { return m_size; }
         void setSize(const Size& size) { m_size = size; }
 
+        /**@brief returns the scale of the level relative to level 0.
+         *
+         * The scale of level 0 is 1; a level of half the size of level 0 has a scale of 0.5.
+         */
         double getScale() const { return m_scale; }
         void setScale(double scale) { m_scale = scale; }
 
+        /**@brief returns the objective magnification of the level. 0 if the format does not report it.*/
         double getMagnification() const { return m_magnification; }
         void setMagnification(double magnification) { m_magnification = magnification; }
 
+        /**@brief returns the size of a tile of the level. (0,0) if the level is not tiled.*/
         Size getTileSize() const { return m_tileSize; }
         void setTileSize(const Size& tileSize) { m_tileSize = tileSize; }
 
+		/**@brief returns the number of tiles of the level.
+		 *
+		 * A level that is not tiled consists of a single tile that covers the whole level.
+		 */
 		int getTileCount() const {
             if (m_tileCount < 1)
                 updateTileCount();
             return m_tileCount;
         }
 
+        /**@brief returns a human readable description of the level.*/
         std::string toString() const;
 
+		/**@brief returns the rectangle of a tile in the coordinate system of the level.
+		 *
+		 * Tiles are numbered row by row, from the top left corner of the level.
+		 *
+		 * @param tileIndex : tile index, in the range [0, getTileCount()).
+		 * @return rectangle of the tile. On a level of more than one tile every rectangle has
+		 * the size returned by #getTileSize, so the tiles of the right and the bottom edge
+		 * overhang the level; reading such a rectangle with
+		 * Scene::readResampledLevelBlockChannels fills the part outside the level with the
+		 * background value. On a level of a single tile the rectangle is the level itself.
+		 */
 		Rect getTileRect(int tileIndex) const {
 			Rect tileRect;
 			const int tileCount = getTileCount();

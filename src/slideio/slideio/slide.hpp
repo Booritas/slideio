@@ -48,12 +48,13 @@ namespace slideio
          *Content of the string depends on image driver and may be plain text, 
         xml or json formatted string. Default value is an empty string.*/
         const std::string& getRawMetadata() const;
-        /**@brief The method returns list of names of auxiliary images contained in the slide.
-         *
-         *Default: empty list.*/
+        /**@brief The method returns the format of the metadata returned by getRawMetadata.*/
 		MetadataFormat getMetadataFormat() const;
         /**@brief returns metadata as a navigable tree. Built lazily on first call. */
         const Metadata& getMetadata() const;
+        /**@brief The method returns list of names of auxiliary images contained in the slide.
+         *
+         *Default: empty list.*/
         const std::list<std::string>& getAuxImageNames() const;
         /**@brief The method returns number of auxiliary images contained in the slide.*/
         virtual int getNumAuxImages() const;
@@ -62,10 +63,14 @@ namespace slideio
         @param sceneName : name of the auxiliary image. It must be contained in the list returned by getAuxImageNames method. 
         */
         virtual std::shared_ptr<Scene> getAuxImage(const std::string& sceneName) const;
-		/**@brief The method returns a string containing serialized metadata of the slide.
-		 */
+		/**@brief The method returns a human readable description of the slide.
+		 *
+		 *The description contains the file path, the driver id, the metadata format, the number
+		 *of scenes, the names of the auxiliary images and the beginning of the raw metadata.
+		 *It is intended for logging and diagnostics; its layout is not part of the API.*/
         std::string toString() const;
         void setDriverId(const std::string& driverId);
+        /**@brief The method returns the id of the image driver that opened the slide.*/
         const std::string& getDriverId() const;
     private:
         std::shared_ptr<CVSlide> m_slide;
