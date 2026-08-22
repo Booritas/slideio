@@ -46,7 +46,6 @@ set(TEST_SOURCES
 add_executable(${TEST_NAME} ${TEST_SOURCES})
 
 find_package(SQLite3)
-find_package(glog)
 find_package(GTest)
 find_package(OpenCV)
 find_package(ZLIB)
@@ -56,7 +55,6 @@ find_package(nlohmann_json REQUIRED)
 
 target_link_libraries(${TEST_NAME}
   SQLite::SQLite3
-  glog::glog
   gtest::gtest
   opencv::opencv
   ZLIB::ZLIB

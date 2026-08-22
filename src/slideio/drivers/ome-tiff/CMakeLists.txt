@@ -26,12 +26,10 @@ set_target_properties(${LIBRARY_NAME} PROPERTIES OUTPUT_NAME "${LIBRARY_NAME}${L
 
 SOURCE_GROUP_BY_FOLDER(SOURCE_FILES)
 
-find_package(glog)
 find_package(OpenCV)
 find_package(tinyxml2)
 
 target_link_libraries(${LIBRARY_NAME} 
-  glog::glog
   opencv::opencv
   tinyxml2::tinyxml2
 )

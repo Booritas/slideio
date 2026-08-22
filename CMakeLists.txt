@@ -75,7 +75,6 @@ set(NAME_TOOL_LIB_LIST
     "lib${CONVERTER_LIB_NAME}.dylib"
     "lib${BASE_LIB_NAME}.dylib"
     "lib${TRANSFORMER_LIB_NAME}.dylib"
-    "@rpath/libglog.dylib"
 )
 include_directories(${INCLUDE_ROOT})
 

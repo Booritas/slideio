@@ -13,7 +13,6 @@ add_executable(${TEST_NAME} ${TEST_SOURCES})
 
 target_include_directories(${TEST_NAME} PRIVATE ${INCLUDE_ROOT})
 
-find_package(glog)
 find_package(GTest)
 find_package(OpenCV)
 find_package(TIFF)
@@ -22,7 +21,6 @@ find_package(WebP)
 find_package(tinyxml2)
 
 target_link_libraries(${TEST_NAME}
-  glog::glog
   gtest::gtest
   opencv::opencv
   TIFF::TIFF

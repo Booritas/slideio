@@ -41,7 +41,6 @@ SOURCE_GROUP_BY_FOLDER(SOURCE_FILES)
 target_link_libraries(${LIBRARY_NAME} ${CORE_LIB_NAME} ${IMAGETOOLS_LIB_NAME})
 
 find_package(SQLite3)
-find_package(glog)
 find_package(OpenCV)
 find_package(tinyxml2)
 find_package(TIFF)
@@ -52,7 +51,6 @@ find_package(nlohmann_json REQUIRED)
 
 target_link_libraries(${LIBRARY_NAME} 
    SQLite::SQLite3  
-   glog::glog  
    opencv::opencv  
    tinyxml2::tinyxml2  
    TIFF::TIFF  

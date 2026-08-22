@@ -27,7 +27,6 @@ add_subdirectory(tools)
 add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES})
 set_target_properties(${LIBRARY_NAME} PROPERTIES OUTPUT_NAME "${LIBRARY_NAME}${LIB_NAME_SUFFIX}")
 
-find_package(glog REQUIRED)
 find_package(SQLite3 REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(ZLIB REQUIRED)
@@ -36,7 +35,6 @@ find_package(nlohmann_json REQUIRED)
 find_package(ICU)
 
 
-target_link_libraries(${LIBRARY_NAME} PRIVATE glog::glog)
 target_link_libraries(${LIBRARY_NAME} PRIVATE SQLite::SQLite3)
 target_link_libraries(${LIBRARY_NAME} PRIVATE opencv::opencv)
 target_link_libraries(${LIBRARY_NAME} PRIVATE ZLIB::ZLIB)

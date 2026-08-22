@@ -42,7 +42,6 @@ set(SOURCE_FILES
 add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES})
 set_target_properties(${LIBRARY_NAME} PROPERTIES OUTPUT_NAME "${LIBRARY_NAME}${LIB_NAME_SUFFIX}")
 
-find_package(glog)
 find_package(OpenCV)
 find_package(jpegxrcodec)
 find_package(freeimage)
@@ -56,7 +55,6 @@ find_package(nlohmann_json REQUIRED)
 find_package(jxrlib REQUIRED)
 
 target_link_libraries(${LIBRARY_NAME} 
-   glog::glog
    opencv::opencv
    jpegxrcodec::jpegxrcodec
    freeimage::freeimage
