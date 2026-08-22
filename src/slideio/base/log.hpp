@@ -16,9 +16,28 @@ namespace slideio
     // glog/stl_logging.h used to inject globally. That header is gone along
     // with the rest of glog, and call sites are frozen by contract (see
     // SLIDEIO_LOG below), so the two shapes actually used are reproduced here
-    // instead. Declared before LogStream so ordinary unqualified lookup from
-    // slideio::detail finds them - the same path slideio's other operator<<
-    // overloads (e.g. TiffDirectory's) already rely on.
+    // instead.
+    //
+    // These overloads are NOT ADL-reachable: their argument types
+    // (std::vector<std::string>, std::list<std::string>) live in namespace
+    // std, so std is their only associated namespace and ADL never looks
+    // into slideio. (Contrast TiffDirectory's operator<<, which *is*
+    // ADL-reachable because TiffDirectory itself lives in namespace slideio.)
+    // They work only because they appear lexically before LogStream in this
+    // same header, so ordinary unqualified lookup at LogStream::operator<<'s
+    // definition context (below) finds them. Moving them into a separate,
+    // later-included header - e.g. a tidy-up into "logcontainers.hpp" - breaks
+    // czislide.cpp / otscene.cpp with a C2679 that gives no hint why.
+    //
+    // Consequently this container streaming is available through SLIDEIO_LOG
+    // only, not through RAISE_RUNTIME_ERROR: RuntimeError::operator<<
+    // (exceptions.hpp) forwards from a context where neither ordinary lookup
+    // nor ADL can see slideio::operator<<. Under glog this worked from any
+    // context, because glog declared its overloads at global scope and added
+    // `namespace std { using ::operator<<; }`, making them ADL-reachable
+    // everywhere. Streaming a container through RAISE_RUNTIME_ERROR now fails
+    // to compile - loudly, not silently - and nothing in the tree does this
+    // today.
     inline std::ostream& operator<<(std::ostream& stream, const std::vector<std::string>& values)
     {
         for (std::size_t i = 0; i < values.size(); ++i) {

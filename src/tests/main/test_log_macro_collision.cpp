@@ -8,6 +8,10 @@
 // the one property of the macro that is easy to refactor away by accident.
 #include <gtest/gtest.h>
 
+#include <list>
+#include <string>
+#include <vector>
+
 // Emulate the windows.h / wingdi.h macro set, deliberately BEFORE log.hpp.
 #define ERROR 0
 #define INFO 0
@@ -21,6 +25,19 @@ TEST(LogMacroCollision, compilesWithWindowsSeverityMacrosDefined)
     SLIDEIO_LOG(INFO) << "info under macro pressure";
     SLIDEIO_LOG(WARNING) << "warning under macro pressure";
     SLIDEIO_LOG(ERROR) << "error under macro pressure";
+    SUCCEED();
+}
+
+// Guards the lexical-precedence constraint on the container operator<< overloads
+// in log.hpp: they are not ADL-reachable (their argument types live in std), so
+// they only work while they appear before LogStream in that header. If someone
+// moves them into a separately-included header, this stops compiling.
+TEST(LogMacroCollision, compilesWithContainerStreaming)
+{
+    const std::vector<std::string> vectorOfStrings{"alpha", "beta"};
+    const std::list<std::string> listOfStrings{"gamma", "delta"};
+    SLIDEIO_LOG(INFO) << vectorOfStrings;
+    SLIDEIO_LOG(INFO) << listOfStrings;
     SUCCEED();
 }
 
