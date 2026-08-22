@@ -74,10 +74,10 @@ TEST_F(LoggingTest, exceptionLineCarriesRaiseSiteLocation)
         << "glog prefix location missing; captured:\n" << out;
 }
 
-// Spec 7.8: RuntimeError's m_shown guard means one line per exception, not one
-// per copy made while it propagates. The test below re-throws twice, mirroring
-// test_exception.cpp's nesting.
-TEST_F(LoggingTest, exceptionLogsExactlyOncePerRaise)
+// A bare `throw;` reactivates the same exception object without copying it, so
+// this path produces one line. It does NOT exercise the m_shown guard - see
+// copyingOneSourceTwiceLogsOnce for that.
+TEST_F(LoggingTest, bareRethrowDoesNotDuplicateTheLogLine)
 {
     const std::string marker = "log once marker 6220";
     slideio::setLogLevel("ERROR");
@@ -98,6 +98,34 @@ TEST_F(LoggingTest, exceptionLogsExactlyOncePerRaise)
         ++count;
     }
     EXPECT_EQ(count, 1u) << "expected exactly one line per raise, saw " << count
+                         << "; captured:\n" << out;
+}
+
+// Spec 7.8: the m_shown guard means one log line per source object. Two copies
+// from one source must produce one line, not two. This test fails if the guard
+// is removed - unlike a bare-rethrow test, which cannot detect its removal
+// because a bare rethrow copy-constructs nothing.
+TEST_F(LoggingTest, copyingOneSourceTwiceLogsOnce)
+{
+    const std::string marker = "guard marker 7731";
+    slideio::setLogLevel("ERROR");
+    testing::internal::CaptureStderr();
+    {
+        slideio::RuntimeError source;
+        source << marker;
+        slideio::RuntimeError first(source);    // logs
+        slideio::RuntimeError second(source);   // must NOT log: source.m_shown is now true
+        (void)first;
+        (void)second;
+    }
+    const std::string out = testing::internal::GetCapturedStderr();
+
+    std::size_t count = 0;
+    for (std::size_t at = out.find(marker); at != std::string::npos;
+         at = out.find(marker, at + marker.size())) {
+        ++count;
+    }
+    EXPECT_EQ(count, 1u) << "expected one line per source object, saw " << count
                          << "; captured:\n" << out;
 }
 
