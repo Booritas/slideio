@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 SlideIO is a C++ library (with Python bindings in a separate repo) for reading medical/microscopy slide images. It supports 12 formats (SVS, AFI, SCN, CZI, ZVI, NDPI, VSI, DCM, QPTIFF, OME-TIFF, PHTIFF, GDAL) through a pluggable driver architecture. Cross-platform: Linux, macOS, Windows.
 
-The 12 formats are served by 11 driver libraries: PHTIFF (Philips TIFF) has no library of its own — it is the SVS driver instantiated with a different driver id, which branches on `driverId == PHTIFF_DRIVER_ID` in `svsslide.cpp` and `svstiledscene.cpp`.
+The 12 formats are served by 11 driver libraries: PHTIFF (Philips TIFF) has no library of its own — it ships inside the `slideio-svs` library, as `PHTIFFImageDriver`/`PHTIFFSlide`/`PHTIFFTiledScene` (`phtiff*.cpp` in `src/slideio/drivers/svs/`). `PHTIFFTiledScene` derives from `SVSTiledScene` to reuse the tiled-tiff reading path; everything format specific (detection, metadata parsing in `phtdescription.cpp`/`phtmetadata.cpp`, level-to-directory matching, tile padding crop) lives in the PHTIFF classes. Both driver ids are declared in `svsdriverids.hpp`.
 
 ## Build Commands
 
@@ -80,6 +80,7 @@ Each driver in `src/slideio/drivers/<format>/` is an independent shared library 
 - **Zoom pyramid support**: Slides contain multi-resolution levels accessed via `LevelInfo`
 - **Multidimensional images**: 2D, 3D (Z-slices), and 4D (time-series) via CVScene
 - **Block-based reading**: Efficient region extraction with arbitrary scaling
+- **Level-addressed reading**: `CVScene::readResampledLevelBlockChannelsEx` reads a rect given in the coordinates of a named zoom level, bypassing level selection. Pyramid drivers override it; the base class has a working default. Public API: `Scene::readResampledLevelBlockChannels` / `readResampledLevel4DBlockChannels`, exposed to Python as `read_block_from_level`
 - **Library naming**: `slideio-<module>` with `_d` suffix for debug builds
 
 ### Source Layout
@@ -101,6 +102,13 @@ src/
 ├── single_tests/       # Memory leak and performance tests
 └── tools/              # CLI tools
 ```
+
+## Documentation
+
+- `docs/` is the published Jekyll site (GitHub Pages); release announcements live in `docs/_posts/`. Anything added here is public.
+- `docs-src/` holds the sources of the published API reference: `Sphinx/source/` (Python API, `*.rst`) and `Doxygen/` (C++ API). The Sphinx pages are also public.
+- `software-docs/` holds internal engineering documentation: `specs/` (designs), `plans/` (implementation plans), `TECH_DEBT.md`, `BREAKING_CHANGES.md`, `review.md`. Internal docs go here, never under `docs/`.
+- Record exported-API changes that break out-of-tree callers in `software-docs/BREAKING_CHANGES.md`, grouped by branch. There is no changelog in the repository.
 
 ## Dependencies (managed via Conan)
 
