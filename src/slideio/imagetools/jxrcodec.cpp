@@ -9,7 +9,7 @@
 #include <opencv2/imgproc.hpp>
 #include <filesystem>
 
-#include "slideio/base/exceptions.hpp"
+#include "slideio/core/exceptions.hpp"
 
 
 static int getCvType(jpegxr_image_info& info)

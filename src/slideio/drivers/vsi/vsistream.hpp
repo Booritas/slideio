@@ -3,7 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 #pragma once
 #include <fstream>
-#include "slideio/base/exceptions.hpp"
+#include "slideio/core/exceptions.hpp"
 #include "slideio/drivers/vsi/vsi_api_def.hpp"
 #include <cstdint>
 #include <memory>

@@ -16,7 +16,7 @@
 #include "slideio/drivers/ome-tiff/tiffdata.hpp"
 #include <tinyxml2.h>
 
-#include "slideio/base/log.hpp"
+#include "slideio/core/log.hpp"
 
 using namespace slideio;
 using namespace slideio::ometiff;

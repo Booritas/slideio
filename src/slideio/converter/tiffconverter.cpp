@@ -21,7 +21,7 @@
 #include <atomic>
 #include <unordered_map>
 
-#include "slideio/base/log.hpp"
+#include "slideio/core/log.hpp"
 #include "slideio/core/tools/boundedqueue.hpp"
 #include "slideio/slideio/slideio.hpp"
 

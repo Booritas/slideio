@@ -2,11 +2,11 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 //
-#include "slideio/base/exceptions.hpp"
+#include "slideio/core/exceptions.hpp"
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/drivers/ndpi/ndpilibtiff.hpp"
 #include "slideio/drivers/ndpi/ndpitifftools.hpp"
-#include "slideio/base/log.hpp"
+#include "slideio/core/log.hpp"
 #include "slideio/core/tools/cvtools.hpp"
 #include <jpeglib.h>
 #include "ndpifile.hpp"

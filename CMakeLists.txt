@@ -52,7 +52,6 @@ set(NDPI_DRIVER_NAME "${LIB_NAME_PREFIX}ndpi")
 set(VSI_DRIVER_NAME "${LIB_NAME_PREFIX}vsi")
 set(OMETIFF_DRIVER_NAME "${LIB_NAME_PREFIX}ometiff")
 set(TEST_LIB_NAME "${LIB_NAME_PREFIX}test-lib")
-set(BASE_LIB_NAME "${LIB_NAME_PREFIX}base")
 set(CONVERTER_LIB_NAME "${LIB_NAME_PREFIX}converter")
 set(TRANSFORMER_LIB_NAME "${LIB_NAME_PREFIX}transformer")
 
@@ -73,7 +72,6 @@ set(NAME_TOOL_LIB_LIST
     "lib${OMETIFF_DRIVER_NAME}.dylib"
     "lib${IMAGETOOLS_LIB_NAME}.dylib"
     "lib${CONVERTER_LIB_NAME}.dylib"
-    "lib${BASE_LIB_NAME}.dylib"
     "lib${TRANSFORMER_LIB_NAME}.dylib"
 )
 include_directories(${INCLUDE_ROOT})
@@ -161,7 +159,6 @@ install(TARGETS
 )
 
 install(TARGETS 
-             ${BASE_LIB_NAME}
              ${GDAL_DRIVER_NAME}
              ${SVS_DRIVER_NAME}
              ${PKE_DRIVER_NAME} 
@@ -181,7 +178,6 @@ install(TARGETS
 
 if(NOT WIN32)
     install(TARGETS
-                 ${BASE_LIB_NAME}
                  ${GDAL_DRIVER_NAME}
                  ${SVS_DRIVER_NAME}
                  ${PKE_DRIVER_NAME}
@@ -209,7 +205,6 @@ if(MSVC)
         ${CORE_LIB_NAME}
         ${CONVERTER_LIB_NAME}
         ${TRANSFORMER_LIB_NAME}
-        ${BASE_LIB_NAME}
         ${IMAGETOOLS_LIB_NAME}
         ${GDAL_DRIVER_NAME}
         ${SVS_DRIVER_NAME}
@@ -232,17 +227,6 @@ if(MSVC)
 endif()
 
 install(FILES 
-    ${INCLUDE_ROOT}/slideio/base/base.hpp 
-    ${INCLUDE_ROOT}/slideio/base/rect.hpp 
-    ${INCLUDE_ROOT}/slideio/base/size.hpp 
-    ${INCLUDE_ROOT}/slideio/base/range.hpp 
-    ${INCLUDE_ROOT}/slideio/base/resolution.hpp
-    ${INCLUDE_ROOT}/slideio/base/slideio_base_def.hpp
-    ${INCLUDE_ROOT}/slideio/base/slideio_enums.hpp
-    ${INCLUDE_ROOT}/slideio/base/slideio_structs.hpp
-    DESTINATION include/slideio/base)
-
-install(FILES 
     ${INCLUDE_ROOT}/slideio/converter/converterparameters.hpp 
     ${INCLUDE_ROOT}/slideio/converter/convertercallback.hpp 
     ${INCLUDE_ROOT}/slideio/converter/converter_def.hpp 
@@ -254,6 +238,12 @@ install(FILES
     ${INCLUDE_ROOT}/slideio/core/slideio_core_def.hpp
     ${INCLUDE_ROOT}/slideio/core/levelinfo.hpp
     ${INCLUDE_ROOT}/slideio/core/metadata.hpp
+    ${INCLUDE_ROOT}/slideio/core/rect.hpp
+    ${INCLUDE_ROOT}/slideio/core/size.hpp
+    ${INCLUDE_ROOT}/slideio/core/range.hpp
+    ${INCLUDE_ROOT}/slideio/core/resolution.hpp
+    ${INCLUDE_ROOT}/slideio/core/slideio_enums.hpp
+    ${INCLUDE_ROOT}/slideio/core/slideio_structs.hpp
     DESTINATION include/slideio/core)
 
 install(FILES 

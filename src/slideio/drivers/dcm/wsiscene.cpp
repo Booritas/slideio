@@ -4,7 +4,7 @@
 #include "slideio/drivers/dcm/wsiscene.hpp"
 #include <filesystem>
 
-#include "slideio/base/exceptions.hpp"
+#include "slideio/core/exceptions.hpp"
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/drivers/dcm/dcmscene.hpp"
 

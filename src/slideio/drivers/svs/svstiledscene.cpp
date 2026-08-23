@@ -7,7 +7,7 @@
 #include <numeric>
 #include <sstream>
 
-#include "slideio/base/log.hpp"
+#include "slideio/core/log.hpp"
 #include "slideio/imagetools/tifftools.hpp"
 #include "slideio/drivers/svs/svstools.hpp"
 #include "slideio/imagetools/imagetools.hpp"

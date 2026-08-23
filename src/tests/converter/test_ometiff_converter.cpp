@@ -3,7 +3,7 @@
 #include "slideio/converter/converter.hpp"
 #include "slideio/slideio/slideio.hpp"
 #include "slideio/slideio/scene.hpp"
-#include "slideio/base/exceptions.hpp"
+#include "slideio/core/exceptions.hpp"
 #include <filesystem>
 
 #include "slideio/converter/converterparameters.hpp"

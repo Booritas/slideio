@@ -8,7 +8,7 @@
 #include <dcmtk/dcmdata/dcjson.h>
 #include <ostream>
 
-#include "slideio/base/log.hpp"
+#include "slideio/core/log.hpp"
 #include "slideio/core/tools/endian.hpp"
 #include "slideio/core/tools/tools.hpp"
 

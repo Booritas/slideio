@@ -18,7 +18,7 @@
 #include "slideio/drivers/svs/phtiffslide.hpp"
 #include "slideio/drivers/svs/phtdescription.hpp"
 #include "slideio/drivers/svs/phtmetadata.hpp"
-#include "slideio/base/exceptions.hpp"
+#include "slideio/core/exceptions.hpp"
 #include <type_traits>
 #include <sstream>
 #include <locale>

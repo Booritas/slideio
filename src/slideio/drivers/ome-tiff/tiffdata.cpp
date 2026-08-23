@@ -4,7 +4,7 @@
 #include "slideio/drivers/ome-tiff/tiffdata.hpp"
 #include "slideio/drivers/ome-tiff/otstructs.hpp"
 #include "slideio/core/dimensions.hpp"
-#include "slideio/base/log.hpp"
+#include "slideio/core/log.hpp"
 #include "slideio/imagetools/tifffiles.hpp"
 #include "slideio/core/tools/tools.hpp"
 #include <tinyxml2.h>

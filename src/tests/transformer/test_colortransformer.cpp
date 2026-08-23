@@ -3,7 +3,7 @@
 #include "slideio/converter/converter.hpp"
 #include "slideio/slideio/slideio.hpp"
 #include "slideio/slideio/scene.hpp"
-#include "slideio/base/exceptions.hpp"
+#include "slideio/core/exceptions.hpp"
 #include <opencv2/imgproc.hpp>
 #include "slideio/transformer/colortransformation.hpp"
 #include "slideio/transformer/transformer.hpp"

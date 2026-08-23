@@ -5,7 +5,7 @@
 #include "slideio/imagetools/tifftools.hpp"
 #include "slideio/converter/converter.hpp"
 #include "slideio/converter/converterparameters.hpp"
-#include "slideio/base/log.hpp"
+#include "slideio/core/log.hpp"
 #include "tiffconverter.hpp"
 
 #include <filesystem>

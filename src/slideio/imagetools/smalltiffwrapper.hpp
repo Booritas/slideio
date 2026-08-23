@@ -5,7 +5,7 @@
 #include "smallimage.hpp"
 #include "slideio/imagetools/slideio_imagetools_def.hpp"
 #include "slideio/imagetools/tiffkeeper.hpp"
-#include "slideio/base/size.hpp"
+#include "slideio/core/size.hpp"
 #include "slideio/drivers/vsi/vsifile.hpp"
 
 namespace libtiff

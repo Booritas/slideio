@@ -6,8 +6,8 @@
 #include "slideio/drivers/ome-tiff/otscene.hpp"
 #include "slideio/drivers/ome-tiff/otstructs.hpp"
 #include "slideio/imagetools/tifftools.hpp"
-#include "slideio/base/log.hpp"
-#include "slideio/base/exceptions.hpp"
+#include "slideio/core/log.hpp"
+#include "slideio/core/exceptions.hpp"
 #include "slideio/imagetools/tiffkeeper.hpp"
 #include <fstream>
 #include <tinyxml2.h>

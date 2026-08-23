@@ -4,7 +4,7 @@
 #pragma once
 
 #include "slideio/slideio/slideio_def.hpp"
-#include "slideio/base/slideio_enums.hpp"
+#include "slideio/core/slideio_enums.hpp"
 #include "slideio/core/metadata.hpp"
 #include <string>
 #include <vector>

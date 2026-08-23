@@ -10,7 +10,7 @@
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/core/mat.hpp>
-#include "slideio/base/exceptions.hpp"
+#include "slideio/core/exceptions.hpp"
 #include "slideio/imagetools/tifftools.hpp"
 #include "slideio/core/imagedriver.hpp"
 #include "slideio/core/tools/tools.hpp"

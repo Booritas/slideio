@@ -4,10 +4,10 @@
 
 #include "slideio/drivers/ndpi/ndpislide.hpp"
 #include "slideio/drivers/ndpi/ndpiscene.hpp"
-#include "slideio/base/base.hpp"
+#include "slideio/core/base.hpp"
 #include "slideio/drivers/ndpi/ndpitifftools.hpp"
 #include "slideio/drivers/ndpi/ndpifile.hpp"
-#include "slideio/base/log.hpp"
+#include "slideio/core/log.hpp"
 #include "slideio/core/tools/tools.hpp"
 
 

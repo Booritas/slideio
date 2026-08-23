@@ -4,7 +4,7 @@
 #include "tests/testlib/testtools.hpp"
 #include "slideio/converter/convertertools.hpp"
 #include "slideio/slideio/imagedrivermanager.hpp"
-#include "slideio/base/exceptions.hpp"
+#include "slideio/core/exceptions.hpp"
 #include "slideio/core/cvslide.hpp"
 
 using namespace slideio;

@@ -6,7 +6,7 @@
 #include "slideio/imagetools/imagetools.hpp"
 #include "slideio/core/tools/cvtools.hpp"
 #include "slideio/imagetools/libtiff.hpp"
-#include "slideio/base/log.hpp"
+#include "slideio/core/log.hpp"
 #include "slideio/core/tools/endian.hpp"
 #include "slideio/core/tools/tools.hpp"
 #include <opencv2/core.hpp>

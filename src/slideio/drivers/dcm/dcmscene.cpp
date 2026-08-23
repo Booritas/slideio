@@ -5,9 +5,9 @@
 #include <opencv2/imgproc.hpp>
 
 #include "slideio/drivers/dcm/dcmscene.hpp"
-#include "slideio/base/base.hpp"
+#include "slideio/core/base.hpp"
 #include "slideio/core/tools/tools.hpp"
-#include "slideio/base/log.hpp"
+#include "slideio/core/log.hpp"
 
 
 using namespace slideio;

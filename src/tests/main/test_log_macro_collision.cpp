@@ -17,7 +17,7 @@
 #define INFO 0
 #define WARNING 0
 
-#include "slideio/base/log.hpp"
+#include "slideio/core/log.hpp"
 
 TEST(LogMacroCollision, compilesWithWindowsSeverityMacrosDefined)
 {

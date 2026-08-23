@@ -3,7 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 #include <gtest/gtest.h>
 
-#include "slideio/base/exceptions.hpp"
+#include "slideio/core/exceptions.hpp"
 #include "slideio/core/tools/color_tools.hpp"
 
 using namespace slideio;

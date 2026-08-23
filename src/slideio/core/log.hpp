@@ -2,7 +2,7 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #pragma once
-#include "slideio/base/logcontract.hpp"
+#include "slideio/core/logcontract.hpp"
 
 #include <list>
 #include <sstream>
@@ -78,7 +78,7 @@ namespace slideio
          *
          * The pointer is cached once per module. Duplicating the cached pointer
          * across modules is intentional and correct: every copy points at the
-         * one variable inside slideio-base. See design spec section 4.3.
+         * one variable inside slideio-core. See design spec section 4.3.
          */
         inline bool logEnabled(int level)
         {

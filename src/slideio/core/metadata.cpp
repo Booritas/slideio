@@ -3,7 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/core/metadata.hpp"
 #include "slideio/core/metadata_internal.hpp"
-#include "slideio/base/exceptions.hpp"
+#include "slideio/core/exceptions.hpp"
 #include <nlohmann/json.hpp>
 #include <stdexcept>
 

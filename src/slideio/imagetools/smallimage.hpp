@@ -4,7 +4,7 @@
 #pragma once
 #include <string>
 #include <opencv2/core/mat.hpp>
-#include "slideio/base/resolution.hpp"
+#include "slideio/core/resolution.hpp"
 
 namespace slideio
 {

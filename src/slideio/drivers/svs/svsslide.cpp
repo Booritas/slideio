@@ -8,7 +8,7 @@
 #include "slideio/drivers/svs/svstools.hpp"
 #include "slideio/imagetools/tifftools.hpp"
 #include "slideio/core/metadata_internal.hpp"
-#include "slideio/base/log.hpp"
+#include "slideio/core/log.hpp"
 
 #include <algorithm>
 #include <cctype>

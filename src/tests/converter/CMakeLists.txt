@@ -30,7 +30,6 @@ target_link_libraries(${TEST_NAME}
 )
 
 target_link_libraries(${TEST_NAME} 
-    ${BASE_LIB_NAME}
     ${CORE_LIB_NAME}
     ${SLIDEIO_LIB_NAME}
     ${CONVERTER_LIB_NAME}

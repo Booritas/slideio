@@ -75,7 +75,6 @@ IF(WIN32)
 ENDIF(WIN32)
 
 target_link_libraries(${LIBRARY_NAME}
-   ${BASE_LIB_NAME}
    ${CORE_LIB_NAME}
 )
 

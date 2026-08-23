@@ -5,8 +5,8 @@
 #include "slideio/slideio/scene.hpp"
 #include "slideio/core/tools/cvtools.hpp"
 #include "slideio/core/cvscene.hpp"
-#include "slideio/base/log.hpp"
-#include "slideio/base/exceptions.hpp"
+#include "slideio/core/log.hpp"
+#include "slideio/core/exceptions.hpp"
 
 using namespace slideio;
 

@@ -8,7 +8,7 @@
 #include "slideio/drivers/zvi/zvitags.hpp"
 #include "slideio/core/metadata_internal.hpp"
 #include "slideio/core/tools/tools.hpp"
-#include "slideio/base/log.hpp"
+#include "slideio/core/log.hpp"
 #include <nlohmann/json.hpp>
 #include <pole/storage.hpp>
 #include <map>

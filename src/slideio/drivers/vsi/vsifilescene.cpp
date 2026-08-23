@@ -4,7 +4,7 @@
 
 #include "vsifilescene.hpp"
 #include "slideio/core/tools/tools.hpp"
-#include "slideio/base/log.hpp"
+#include "slideio/core/log.hpp"
 
 #include <opencv2/imgproc.hpp>
 

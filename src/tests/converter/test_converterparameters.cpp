@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 #include "slideio/converter/converterparameters.hpp"
-#include "slideio/base/exceptions.hpp"
+#include "slideio/core/exceptions.hpp"
 #include "tests/testlib/testscene.hpp"
 
 using namespace slideio;

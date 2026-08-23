@@ -3,7 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 #include <gtest/gtest.h>
 #include "slideio/core/cvscene.hpp"
-#include "slideio/base/exceptions.hpp"
+#include "slideio/core/exceptions.hpp"
 #include "tests/testlib/testscene.hpp"
 #include <memory>
 
