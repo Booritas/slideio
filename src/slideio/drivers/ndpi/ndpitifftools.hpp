@@ -129,29 +129,6 @@ namespace slideio
     private:
         static void fixJpegHeader(const NDPITiffDirectory& dir, uint8_t* data);
     };
-
-    class  NDPITIFFKeeper
-    {
-    public:
-        NDPITIFFKeeper(libtiff::TIFF* hfile=nullptr);
-        ~NDPITIFFKeeper();
-        libtiff::TIFF* getHandle() const{
-            return m_hFile;
-        }
-        bool isValid() const{
-            return getHandle() != nullptr;
-        }
-        operator libtiff::TIFF* () const {
-            return getHandle();
-        }
-        NDPITIFFKeeper& operator = (libtiff::TIFF* hFile){
-            m_hFile = hFile;
-            return *this;
-        }
-
-    private:
-        libtiff::TIFF* m_hFile;
-    };
 }
 
 #if defined(_MSC_VER)

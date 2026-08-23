@@ -7,6 +7,69 @@ by branch.
 
 ---
 
+## v2.10.0
+
+### `NDPITIFFMessageHandler` is no longer copyable
+
+**Module:** `slideio-ndpi` (exported: `SLIDEIO_NDPI_EXPORTS`)
+**File:** `src/slideio/drivers/ndpi/ndpitiffmessagehandler.hpp`
+
+The copy constructor and copy assignment operator are now `= delete`. Declaring
+copy deleted also suppresses the implicit move constructor and move assignment
+operator, so the type is neither copyable nor movable.
+
+The class is RAII over libtiff's process-global error and warning handlers: it
+saves them in the constructor and restores them in the destructor. A copy saved
+the same two handlers twice and restored them twice, the second restore
+overwriting whatever the intervening scope had installed. There was no in-tree
+copy of it; every use is a stack local or a `std::unique_ptr` member, and the
+`unique_ptr` moves the pointer rather than the object.
+
+Migration for callers: hold it by value in the scope that needs it, or through
+a `unique_ptr`/`shared_ptr`. There is nothing a copy did that a second
+default-constructed instance does not do correctly.
+
+How reachable this was out of tree differs by platform, and the entry is kept for the
+cautious case: the class carried no export macro before this change, so on Windows it
+was not in `slideio-ndpi`'s import library and no out-of-tree caller could link it at
+all. On Linux and macOS default visibility left it linkable, so a consumer there could
+have copied one.
+
+### `NDPITIFFKeeper` moved header and became move-only
+
+**Module:** `slideio-ndpi`
+**Files:** `src/slideio/drivers/ndpi/ndpitiffkeeper.hpp` (new),
+`src/slideio/drivers/ndpi/ndpitifftools.hpp`
+
+The class was defined inline in `ndpitifftools.hpp` and was not exported. It now
+lives in its own `ndpitiffkeeper.hpp` and is `SLIDEIO_NDPI_EXPORTS`.
+
+Removed:
+
+- The copy constructor and copy assignment operator (`= delete`).
+- `operator libtiff::TIFF*()` (implicit conversion to the raw handle).
+- `operator=(libtiff::TIFF*)`.
+
+Changed:
+
+- Both constructors are `explicit`; a `(const std::string& filePath)`
+  constructor was added, and it installs the message handler before opening.
+- A move constructor and move assignment operator were added.
+
+Migration for callers: the same as for `TIFFKeeper` under v2.9.0 — call
+`.getHandle()` where the implicit conversion was relied on, and `.reset(handle)`
+where a raw handle was assigned in. The old `operator=` overwrote the member
+without closing what it replaced, and leaked.
+
+Note also a **behaviour** change that is not an API break: both keeper constructors
+now install `NDPITIFFMessageHandler`, which the keeper previously never did. The
+driver already installed one as a stack local at its own entry points
+(`ndpiimagedriver.cpp:26`, `ndpiscene.cpp:132`, `:369`, `:418`), so on those paths
+nothing changes — the keeper's handler simply nests inside the driver's. What changes
+is code that reaches libtiff outside those scopes, by calling `NDPITiffTools`
+directly: NDPI libtiff errors there now raise a runtime error instead of printing to
+stderr. See `software-docs/TECH_DEBT.md` §1 problem 6.
+
 ## v2.9.0
 
 ### `TIFFKeeper` is now move-only

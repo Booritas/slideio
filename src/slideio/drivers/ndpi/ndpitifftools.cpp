@@ -263,7 +263,10 @@ libtiff::TIFF* slideio::NDPITiffTools::openTiffFile(const std::string& path)
 
 void slideio::NDPITiffTools::closeTiffFile(libtiff::TIFF* file)
 {
-    libtiff::TIFFClose(file);
+    // Guard the null case as slideio::TiffTools::closeTiffFile does: libtiff::TIFFClose
+    // dereferences its argument, so closing nothing used to be an access violation.
+    if (file)
+        libtiff::TIFFClose(file);
 }
 
 
@@ -1438,17 +1441,5 @@ void NDPITiffTools::jpeglibDecodeTile(const uint8_t* jpg_buffer, size_t jpg_size
 
     // Once you're really really done, destroy the object to free everything
     jpeg_destroy_decompress(&cinfo);
-}
-
-
-slideio::NDPITIFFKeeper::NDPITIFFKeeper(libtiff::TIFF* hfile) : m_hFile(hfile)
-{
-}
-
-
-NDPITIFFKeeper::~NDPITIFFKeeper()
-{
-    if (m_hFile)
-        libtiff::TIFFClose(m_hFile);
 }
 

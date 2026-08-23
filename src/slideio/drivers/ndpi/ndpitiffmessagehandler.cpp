@@ -3,6 +3,10 @@
 // of this distribution and at http://slideio.com/license.html.
 #include <stdlib.h>
 #include "slideio/drivers/ndpi/ndpitiffmessagehandler.hpp"
+
+#include <cstdarg>
+#include <tiffio.h>
+
 #include "slideio/base/log.hpp"
 #include "slideio/base/exceptions.hpp"
 

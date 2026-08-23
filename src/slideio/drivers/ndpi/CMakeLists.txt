@@ -19,6 +19,8 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/ndpifile.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/ndpitifftools.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/ndpitifftools.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/ndpitiffkeeper.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/ndpitiffkeeper.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/ndpilibtiff.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/ndpitiffmessagehandler.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/ndpitiffmessagehandler.cpp
