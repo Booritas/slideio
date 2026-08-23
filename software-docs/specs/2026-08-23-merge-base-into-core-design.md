@@ -60,26 +60,52 @@ the reasoning is not re-litigated later.
 
 ## 4. Landing strategy
 
-Two commits, both of which build and test green.
+Three commits, each of which configures, builds, installs, and tests green.
 
-**Commit 1 — mechanical.** File moves, the scripted include rewrite, and all
-CMake/Conan wiring. Everything required to compile, and nothing requiring
-per-file judgment. The rewrite script goes in the commit message so review
-verifies the transformation rather than reading 169 one-line diffs.
+**Commit 1 — mechanical.** Everything that is scriptable or verifiable by grep:
+the 15 file moves, the include rewrite, all CMake/Conan wiring, the full
+`BASE_LIB_NAME` purge including the install and packaging lists, the
+`SLIDEIO_BASE_EXPORTS → SLIDEIO_CORE_EXPORTS` rename, and the deletion of
+`slideio_base_def.hpp`. `base.hpp` is *moved* to `src/slideio/core/base.hpp`
+here rather than deleted, so its 9 consumers need only a path rewrite. The
+rewrite commands go in the commit message so review verifies the transformation
+rather than reading 169 one-line diffs.
 
-**Commit 2 — judgment-bearing.** Export-macro purge, `base.hpp` deletion with
-per-consumer include expansion, install/packaging lists, `CLAUDE.md`,
-`BREAKING_CHANGES.md`, `TECH_DEBT.md`.
+**Commit 2 — judgment-bearing.** Deletes `src/slideio/core/base.hpp` and expands
+its 9 consumers to the headers each one actually uses. This is the only work in
+the merge that requires reading files rather than running a command, which is
+why it gets a commit of its own.
 
-Why not finer: moving the files breaks every `#include "slideio/base/..."` in
-the same instant, so the move and the include rewrite cannot be separated
-without an intermediate commit that does not compile. Commit 1 is therefore the
-finest granularity the compiler permits.
+**Commit 3 — documentation.** `CLAUDE.md`, `BREAKING_CHANGES.md`,
+`TECH_DEBT.md`. No build impact.
+
+### 4.1 What forces this grouping
+
+Commit 1 is the finest granularity the toolchain permits, and each of the
+following is a hard constraint rather than a preference:
+
+- **The move and the include rewrite are inseparable.** Moving the files breaks
+  every `#include "slideio/base/..."` in the same instant.
+- **The install and packaging lists cannot be deferred.** `install.py -a install`
+  runs `cmake --install` (`install.py:289-290`), which is also the spec's own
+  verification command (§6.1). `install(FILES ${INCLUDE_ROOT}/slideio/base/...)`
+  fails there once those files are gone, and
+  `install(TARGETS ${BASE_LIB_NAME})` fails earlier still, at configure time,
+  once the target is gone.
+- **The export-macro rename cannot be deferred.** `RuntimeError::log`, the four
+  `slideio_enums` functions, and the three `logcontract` functions all have
+  out-of-line definitions in `.cpp` files that compile into `slideio-core`. Once
+  nothing defines `SLIDEIO_BASE_API`, `SLIDEIO_BASE_EXPORTS` expands to
+  `__declspec(dllimport)`, and MSVC rejects a `dllimport` declaration whose
+  definition lives in the same DLL (C2491). Deferring the rename would leave
+  commit 1 unbuildable on Windows.
 
 Why not coarser: a single commit would interleave 169 mechanical line changes
-with the nine hand-read `base.hpp` expansions and the export-macro edits. The
-mechanical changes are reviewable only in bulk against a script; the others need
-reading. Separating them puts each on the right side of that line.
+with the nine hand-read `base.hpp` expansions. The mechanical changes are
+reviewable only in bulk against a script; the expansions need reading.
+Separating them puts each on the right side of that line. Keeping
+`core/base.hpp` alive for exactly one commit is what buys that separation, and
+it is the only transient artifact the merge introduces.
 
 ## 5. Design
 
@@ -100,8 +126,10 @@ size.hpp            size.inl
 range.hpp           range.inl
 ```
 
-Two files are deleted rather than moved: `base.hpp` and
-`slideio_base_def.hpp`.
+Two files are deleted rather than surviving the merge: `slideio_base_def.hpp`
+(deleted in commit 1, its three includers redirected to
+`slideio/core/slideio_core_def.hpp`) and `base.hpp` (moved to
+`src/slideio/core/base.hpp` in commit 1, deleted in commit 2 — see §4).
 
 `src/slideio/core/` contains no file with any of those fifteen names, and no
 `core.hpp` exists to collide with the deleted umbrella, so the move introduces
@@ -216,20 +244,20 @@ installed before and are not installed now.
 ### 5.3 Include rewrite
 
 183 lines across the tree reference `slideio/base/`. They fall into three
-populations plus a remainder that vanishes, and the four numbers account for the
-183 exactly:
+populations that account for the 183 exactly:
 
-| Population | Lines | Treatment |
-|---|---|---|
-| A — plain path rewrites | 169 | scripted `slideio/base/ → slideio/core/` |
-| B — `slideio_base_def.hpp` includes | 3 | → `slideio/core/slideio_core_def.hpp` |
-| C — `base/base.hpp` includes | 9 | expanded per consumer |
-| Inside `base.hpp` itself | 2 | deleted with the file |
+| Population | Lines | Commit | Treatment |
+|---|---|---|---|
+| A — plain path rewrites | 171 | 1 | scripted `slideio/base/ → slideio/core/` |
+| B — `slideio_base_def.hpp` includes | 3 | 1 | → `slideio/core/slideio_core_def.hpp` |
+| C — `base/base.hpp` includes | 9 | 1 then 2 | path-rewritten in 1, expanded per consumer in 2 |
 
-**Population A — 169 plain path rewrites.** `slideio/base/ → slideio/core/`,
-scripted, no other change. Five of the 169 are internal to the moved files:
-`log.hpp:5`, `exceptions.cpp:4`, `exceptions.cpp:5`, `log.cpp:8`, and
-`slideio_enums.cpp:7`.
+**Population A — 171 plain path rewrites.** `slideio/base/ → slideio/core/`,
+scripted, no other change. Seven of the 171 are internal to the moved files:
+`log.hpp:5`, `exceptions.cpp:4`, `exceptions.cpp:5`, `log.cpp:8`,
+`slideio_enums.cpp:7`, and `base.hpp:5-6`. The last two live inside the file
+that commit 2 deletes, so they are rewritten and then discarded — harmless, and
+cheaper than special-casing them out of a scripted pass.
 
 One oddity is carried across mechanically rather than fixed:
 `src/tests/converter/test_tiffconverter.cpp:15` includes `slideio/base/rect.inl`
@@ -253,8 +281,10 @@ the `SLIDEIO_CORE` definition; left as `SLIDEIO_BASE_EXPORTS` they would resolve
 to `dllimport` (nothing defines `SLIDEIO_BASE_API` any more) while being defined
 in the same library.
 
-**Population C — 9 `base/base.hpp` includes.** Expanded per consumer to only
-what that file actually uses, not blanket-replaced with both headers:
+**Population C — 9 `base/base.hpp` includes.** In commit 1 these are
+path-rewritten to `slideio/core/base.hpp` along with everything else in
+population A. In commit 2, once the umbrella is deleted, each is expanded to
+only what that file actually uses — not blanket-replaced with both headers:
 
 ```
 src/slideio/core/tools/cvtools.cpp:7
@@ -269,8 +299,9 @@ src/tests/main/test_logging.cpp:17
 ```
 
 Each is read individually and gets `slideio/core/exceptions.hpp`,
-`slideio/core/slideio_enums.hpp`, or both. This is why population C belongs in
-commit 2.
+`slideio/core/slideio_enums.hpp`, or both. Reading nine files is the only part of
+this merge a script cannot do, which is what earns commit 2 its own reviewer
+gate.
 
 ### 5.4 Downstream repositories
 
@@ -292,7 +323,10 @@ references to `base`.
 
 ## 6. Verification
 
-In order. Steps 1-2 gate commit 1; the rest gate commit 2.
+Commits 1 and 2 each run §6.1 through §6.4 in full — both are expected to
+configure, build, install, and test green on their own. §6.5 (downstream) runs
+once, after commit 2, since that is the first point at which the public header
+set is final. Commit 3 touches only Markdown and needs none of it.
 
 **6.1 Build.** `python install.py -a conan`, then
 `python install.py -a install -c all`. Both configurations clean.
@@ -317,6 +351,12 @@ legitimately retain historical references):
 ```
 slideio/base      SLIDEIO_BASE      BASE_LIB_NAME      slideio-base
 ```
+
+All four are expected to be clean from the end of commit 1 onward. Note that
+none of them catches the one intentional residue of commit 1,
+`src/slideio/core/base.hpp` — `slideio/core/base.hpp` does not match
+`slideio/base`. Commit 2 is what removes it, so after commit 2 a fifth check
+applies: `ls src/slideio/core/base.hpp` must fail.
 
 **6.4 Artifacts.** `build/*/bin/` contains no `slideio-base.*`. A test install
 tree has no `include/slideio/base/` directory, and does contain the six
