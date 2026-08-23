@@ -49,11 +49,17 @@ at link or load time with no source-level hint. The migration is to drop the
 entry: `slideio-core` provides those symbols, and every consumer that linked
 `slideio-base` already linked `slideio-core`.
 
-Unlike the `NDPITIFFMessageHandler` entry below, this one is reachable on every
-platform. On Windows the affected declarations carried `SLIDEIO_BASE_EXPORTS`
-and so appeared in `slideio-base`'s import library; on Linux and macOS default
-visibility left them linkable. There is no platform on which an out-of-tree
-caller could not reach them.
+Reachability of these symbols before this change differed by platform. The
+top-level `CMakeLists.txt`'s `ARCHIVE DESTINATION lib` block never listed
+`${BASE_LIB_NAME}` — only `RUNTIME DESTINATION bin` did — so `slideio-base.lib`
+was never installed on Windows. An out-of-tree consumer working from the
+install tree got `slideio-base.dll` with no import library and could not link
+`logMessage`, `setLogThreshold`, `logThresholdPtr`, `compressionToString`, or
+`RuntimeError::log` at all. On Linux and macOS, `libslideio-base.so`/`.dylib`
+was installed and default visibility made those same symbols linkable. This
+merge improves the Windows case: `${CORE_LIB_NAME}` is in the `ARCHIVE
+DESTINATION lib` block, so `slideio-core.lib` is installed and those symbols
+are linkable on Windows for the first time.
 
 ### `NDPITIFFMessageHandler` is no longer copyable
 
