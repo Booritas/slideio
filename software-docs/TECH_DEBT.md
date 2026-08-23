@@ -537,7 +537,7 @@ rather than patching each caller.
 
 ## 13. `slideio-core`'s export-control define breaks the project naming convention
 
-**File:** `src/slideio/core/CMakeLists.txt:50`, `src/slideio/core/slideio_core_def.hpp`
+**File:** `src/slideio/core/CMakeLists.txt:67`, `src/slideio/core/slideio_core_def.hpp`
 
 Every module gates its `__declspec(dllexport)` on a compile definition named
 `SLIDEIO_<MODULE>_API` — `SLIDEIO_NDPI_API`, `SLIDEIO_IMAGETOOLS_API`,
