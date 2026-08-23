@@ -60,8 +60,7 @@ There are also single tests for memory/perf in `src/single_tests/`.
 
 ### Module Hierarchy (each is a shared library, prefixed `slideio-`):
 
-- **base** — Fundamental types: Rect, Size, Range, Resolution, enums, exceptions
-- **core** — Abstract base classes: `CVScene` (raster image), `CVSlide` (slide container), `ImageDriver`, `LevelInfo` (zoom pyramid)
+- **core** — Bottom layer. Fundamental types (Rect, Size, Range, Resolution, enums, exceptions, the logging seam) and the abstract base classes: `CVScene` (raster image), `CVSlide` (slide container), `ImageDriver`, `LevelInfo` (zoom pyramid)
 - **imagetools** — Image I/O utilities: TIFF handling, JPEG2000 codec, FreeImage wrapper, color processing, tile management
 - **slideio** (main) — Public API: `Slide`, `Scene`, `ImageDriverManager` (loads drivers dynamically)
 - **converter** — Format conversion (mainly TIFF output), multithreaded encoding
@@ -88,7 +87,6 @@ Each driver in `src/slideio/drivers/<format>/` is an independent shared library 
 ```
 src/
 ├── slideio/
-│   ├── base/           # slideio-base
 │   ├── core/           # slideio-core
 │   ├── slideio/        # slideio (main API)
 │   ├── imagetools/     # slideio-imagetools
@@ -112,7 +110,11 @@ src/
 
 ## Dependencies (managed via Conan)
 
-glog, SQLite3, OpenCV, ZLIB, tinyxml2, ICU, libtiff, libjpeg, WebP, OpenJPEG, Iconv, pole, nlohmann_json
+spdlog, SQLite3, OpenCV, ZLIB, tinyxml2, ICU, libtiff, libjpeg, WebP, OpenJPEG, Iconv, pole, nlohmann_json
+
+spdlog is a static library linked `PRIVATE` into `slideio-core` alone. That is a
+link-time-singleton constraint, not an ordinary dependency: the logging
+threshold and sink must exist in exactly one shared library.
 
 Conan profiles are in `conan/<Platform>/` with variants per distro/arch.
 

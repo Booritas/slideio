@@ -21,6 +21,7 @@ the work can be picked up later without re-doing the analysis.
 10. [`zSliceRange` / `timeFrameRange` are documented backwards in `scene.hpp`](#10-zslicerange--timeframerange-are-documented-backwards-in-scenehpp)
 11. [`TransformerScene` has no level table, so transformed scenes cannot be read by level](#11-transformerscene-has-no-level-table-so-transformed-scenes-cannot-be-read-by-level)
 12. [`SCNScene::getChannelDirectories` indexes unchecked, and the 4D level path widens the exposure](#12-scnscenegetchanneldirectories-indexes-unchecked-and-the-4d-level-path-widens-the-exposure)
+13. [`slideio-core`'s export-control define breaks the project naming convention](#13-slideio-cores-export-control-define-breaks-the-project-naming-convention)
 
 ---
 
@@ -531,3 +532,31 @@ indexing through a different call path; it does not create the underlying
 bug. Fixing it means validating `zSliceRange`/`channelIndices` against scene
 dimensions once, upstream of both entry points (e.g. in `assemble4DBlock`),
 rather than patching each caller.
+
+---
+
+## 13. `slideio-core`'s export-control define breaks the project naming convention
+
+**File:** `src/slideio/core/CMakeLists.txt:50`, `src/slideio/core/slideio_core_def.hpp`
+
+Every module gates its `__declspec(dllexport)` on a compile definition named
+`SLIDEIO_<MODULE>_API` — `SLIDEIO_NDPI_API`, `SLIDEIO_IMAGETOOLS_API`,
+`SLIDEIO_CONVERTER_API`, and twelve more. `slideio-core` alone uses
+`SLIDEIO_CORE`, with no `_API` suffix.
+
+This is cosmetic — the macro works — but it is a trap for anyone adding a module
+by copying core's CMakeLists, and it defeats a grep for `SLIDEIO_.*_API` across
+the build.
+
+Noted while merging `slideio-base` into `slideio-core` (2026-08-23), which moved
+eight more declarations onto `SLIDEIO_CORE_EXPORTS` and so widened the
+inconsistency's reach. It was deliberately left out of that merge: renaming the
+define is a two-file change with no functional effect, and it would have landed
+inside a commit whose reviewability depended on staying mechanical.
+
+**Proposed direction:** rename the compile definition to `SLIDEIO_CORE_API` in
+`core/CMakeLists.txt` and update the `#if defined(...)` guard in
+`slideio_core_def.hpp`. Both are private to the build — `SLIDEIO_CORE` is never
+defined by consumers, only by the core target itself — so this is not a breaking
+change and needs no `BREAKING_CHANGES.md` entry. Two-line diff, one full build
+to verify.

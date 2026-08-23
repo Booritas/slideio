@@ -9,6 +9,52 @@ by branch.
 
 ## v2.10.0
 
+### `slideio-base` was merged into `slideio-core`
+
+**Modules:** `slideio-base` (removed), `slideio-core` (exported: `SLIDEIO_CORE_EXPORTS`)
+**Files:** all of `src/slideio/base/` → `src/slideio/core/`
+
+`slideio-base` no longer exists. Its types now live in `slideio-core`, which is
+the bottom layer of the module hierarchy. The base/core split was a distinction
+without an architectural rule: nothing decided which of the two a new
+fundamental type belonged in, and every target that linked `slideio-base`
+already linked `slideio-core`.
+
+Three separate things break for out-of-tree callers.
+
+**1. Include paths moved.** For the six installed headers that survive:
+
+| Was | Now |
+|---|---|
+| `slideio/base/rect.hpp` | `slideio/core/rect.hpp` |
+| `slideio/base/size.hpp` | `slideio/core/size.hpp` |
+| `slideio/base/range.hpp` | `slideio/core/range.hpp` |
+| `slideio/base/resolution.hpp` | `slideio/core/resolution.hpp` |
+| `slideio/base/slideio_enums.hpp` | `slideio/core/slideio_enums.hpp` |
+| `slideio/base/slideio_structs.hpp` | `slideio/core/slideio_structs.hpp` |
+
+Fails at preprocessing with a file-not-found. The fix is a path swap.
+
+**2. `base.hpp` and `slideio_base_def.hpp` were deleted.** Also preprocess-time,
+but the fix is not a path swap. `slideio/base/base.hpp` was an umbrella over
+`exceptions.hpp` and `slideio_enums.hpp`; include whichever of the two you
+actually use (`exceptions.hpp` is not an installed header — if you relied on it,
+you were including a private header). `SLIDEIO_BASE_EXPORTS` is gone; the macro
+is now `SLIDEIO_CORE_EXPORTS`, from `slideio/core/slideio_core_def.hpp`.
+
+**3. The `slideio-base` binary is no longer built, installed, or shipped.** A
+build script that links or copies `slideio-base`, `libslideio-base.so`,
+`libslideio-base.dylib`, `slideio-base.dll`, or their `_d` debug variants fails
+at link or load time with no source-level hint. The migration is to drop the
+entry: `slideio-core` provides those symbols, and every consumer that linked
+`slideio-base` already linked `slideio-core`.
+
+Unlike the `NDPITIFFMessageHandler` entry below, this one is reachable on every
+platform. On Windows the affected declarations carried `SLIDEIO_BASE_EXPORTS`
+and so appeared in `slideio-base`'s import library; on Linux and macOS default
+visibility left them linkable. There is no platform on which an out-of-tree
+caller could not reach them.
+
 ### `NDPITIFFMessageHandler` is no longer copyable
 
 **Module:** `slideio-ndpi` (exported: `SLIDEIO_NDPI_EXPORTS`)
