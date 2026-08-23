@@ -8,6 +8,7 @@
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/imagetools/libtiff.hpp"
 #include "slideio/core/tools/cvtools.hpp"
+#include "slideio/core/exceptions.hpp"
 
 
 using namespace slideio;

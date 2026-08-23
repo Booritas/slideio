@@ -36,7 +36,6 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/size.inl
    ${CMAKE_CURRENT_SOURCE_DIR}/range.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/range.inl
-   ${CMAKE_CURRENT_SOURCE_DIR}/base.hpp
    )
 
 add_subdirectory(tools)

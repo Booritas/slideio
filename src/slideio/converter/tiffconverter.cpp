@@ -10,6 +10,7 @@
 #include "slideio/imagetools/tiffmessagehandler.hpp"
 #include "slideio/imagetools/libtiff.hpp"
 #include "slideio/core/tools/color_tools.hpp"
+#include "slideio/core/exceptions.hpp"
 #include <algorithm>
 #include <filesystem>
 #include <tinyxml2.h>

@@ -14,6 +14,7 @@
 #include "slideio/drivers/ndpi/ndpitiffmessagehandler.hpp"
 #include "slideio/imagetools/imagetools.hpp"
 #include "slideio/core/log.hpp"
+#include "slideio/core/exceptions.hpp"
 
 using namespace slideio;
 

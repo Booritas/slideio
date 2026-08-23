@@ -5,7 +5,8 @@
 #include <opencv2/imgproc.hpp>
 
 #include "slideio/drivers/dcm/dcmscene.hpp"
-#include "slideio/core/base.hpp"
+#include "slideio/core/exceptions.hpp"
+#include "slideio/core/slideio_enums.hpp"
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/core/log.hpp"
 

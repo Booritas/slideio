@@ -8,6 +8,7 @@
 #include "slideio/imagetools/tifftools.hpp"
 #include "slideio/core/metadata_internal.hpp"
 #include "slideio/core/log.hpp"
+#include "slideio/core/exceptions.hpp"
 #include "slideio/drivers/svs/phtdescription.hpp"
 #include "slideio/drivers/svs/svstools.hpp"
 

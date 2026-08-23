@@ -4,6 +4,7 @@
 #include "slideio/drivers/svs/phtiffscene.hpp"
 
 #include "slideio/core/log.hpp"
+#include "slideio/core/exceptions.hpp"
 #include "slideio/drivers/svs/svsdriverids.hpp"
 #include "slideio/drivers/svs/svstools.hpp"
 

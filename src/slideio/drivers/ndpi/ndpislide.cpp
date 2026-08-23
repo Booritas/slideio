@@ -4,7 +4,7 @@
 
 #include "slideio/drivers/ndpi/ndpislide.hpp"
 #include "slideio/drivers/ndpi/ndpiscene.hpp"
-#include "slideio/core/base.hpp"
+#include "slideio/core/exceptions.hpp"
 #include "slideio/drivers/ndpi/ndpitifftools.hpp"
 #include "slideio/drivers/ndpi/ndpifile.hpp"
 #include "slideio/core/log.hpp"

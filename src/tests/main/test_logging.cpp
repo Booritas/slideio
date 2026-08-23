@@ -14,7 +14,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #endif
-#include "slideio/core/base.hpp"
+#include "slideio/core/exceptions.hpp"
 #include "slideio/core/logcontract.hpp"
 #include "slideio/slideio/slideio.hpp"
 
