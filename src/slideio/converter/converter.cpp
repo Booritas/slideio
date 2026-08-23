@@ -6,6 +6,7 @@
 #include "slideio/converter/converter.hpp"
 #include "slideio/converter/converterparameters.hpp"
 #include "slideio/core/log.hpp"
+#include "slideio/core/exceptions.hpp"
 #include "tiffconverter.hpp"
 
 #include <filesystem>

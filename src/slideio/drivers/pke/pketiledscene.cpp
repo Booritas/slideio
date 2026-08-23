@@ -9,6 +9,7 @@
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/core/tools/cvtools.hpp"
 #include "slideio/core/tools/color_tools.hpp"
+#include "slideio/core/exceptions.hpp"
 #include <tinyxml2.h>
 
 using namespace slideio;

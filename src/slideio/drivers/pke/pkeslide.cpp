@@ -6,7 +6,8 @@
 #include "slideio/drivers/pke/pkesmallscene.hpp"
 #include "slideio/drivers/pke/pketiledscene.hpp"
 #include "slideio/imagetools/tifftools.hpp"
-#include "slideio/core/base.hpp"
+#include "slideio/core/exceptions.hpp"
+#include "slideio/core/slideio_enums.hpp"
 #include "slideio/core/log.hpp"
 #include <fstream>
 #include <tinyxml2.h>
