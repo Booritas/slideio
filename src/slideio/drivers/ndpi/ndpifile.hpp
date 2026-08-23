@@ -11,6 +11,7 @@
 #include <string>
 
 #include "ndpitifftools.hpp"
+#include "ndpitiffkeeper.hpp"
 
 namespace libtiff
 {
@@ -35,7 +36,7 @@ namespace slideio
         }
         libtiff::TIFF* getTiffHandle()
         {
-            return m_tiff;
+            return m_tiff.getHandle();
         }
         const NDPITiffDirectory& findZoomDirectory(double zoom, int sceneWidth, int dirBegin, int dirEnd);
     private:

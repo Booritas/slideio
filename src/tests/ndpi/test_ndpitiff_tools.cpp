@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include "slideio/drivers/ndpi/ndpitifftools.hpp"
 #include "tests/testlib/testtools.hpp"
+#include <memory>
 #include <string>
 #include <opencv2/imgproc.hpp>
 #include <slideio/slideio/imagedrivermanager.hpp>
@@ -8,16 +9,23 @@
 #include "slideio/drivers/ndpi/ndpifile.hpp"
 #include "slideio/imagetools/imagetools.hpp"
 #include "slideio/core/tools/tools.hpp"
-
+#include "slideio/drivers/ndpi/ndpitiffkeeper.hpp"
+#include "slideio/drivers/ndpi/ndpitiffmessagehandler.hpp"
 
 class NDPITiffToolsTests : public ::testing::Test {
 protected:
     static void SetUpTestSuite() {
         slideio::ImageDriverManager::setLogLevel("ERROR");
-        std::cerr << "SetUpTestSuite: Running before all tests\n";
     }
-    static void TearDownTestSuite() {
-    }
+    // Swaps libtiff's process-global error and warning handlers for the duration of
+    // each test: warnings reach SLIDEIO_LOG and errors raise instead of printing to
+    // stderr. Deliberately referenced by no test -- it is pure RAII, and it mirrors
+    // what the driver installs at its own entry points (ndpiimagedriver.cpp:26,
+    // ndpiscene.cpp:132). Tests going through NDPIFile or NDPITIFFKeeper get a handler
+    // from the keeper anyway; this one covers the tests that call NDPITiffTools
+    // directly. Do not delete it as unused -- see TECH_DEBT.md section 1 problem 6,
+    // where this class sat dead for exactly that reason.
+    slideio::NDPITIFFMessageHandler m_messageHandler;
 };
 
 TEST_F(NDPITiffToolsTests, scanFile)
@@ -66,10 +74,10 @@ TEST_F(NDPITiffToolsTests, readRegularStripedDir)
     int dirCount = (int)dirs.size();
     int dirIndex = 3;
     cv::Mat dirRaster;
-    auto tiff = slideio::NDPITiffTools::openTiffFile(filePath);
+    slideio::NDPITIFFKeeper tiff(filePath);
+    ASSERT_TRUE(tiff.isValid());
     auto& dir = dirs[dirIndex];
-    slideio::NDPITiffTools::readStripedDir(tiff, dir, dirRaster);
-    slideio::NDPITiffTools::closeTiffFile(tiff);
+    slideio::NDPITiffTools::readStripedDir(tiff.getHandle(), dir, dirRaster);
     EXPECT_EQ(dirRaster.rows, dir.height);
     EXPECT_EQ(dirRaster.cols, dir.width);
     cv::Mat testRaster;
@@ -85,18 +93,17 @@ TEST_F(NDPITiffToolsTests, readRegularStrip)
 {
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1.ndpi");
     std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1-dir.png");
-    libtiff::TIFF* tiff = slideio::NDPITiffTools::openTiffFile(filePath);;
-    ASSERT_TRUE(tiff != nullptr);
+    slideio::NDPITIFFKeeper tiff(filePath);
+    ASSERT_TRUE(tiff.isValid());
     int dirIndex = 3;
     slideio::NDPITiffDirectory dir;
-    slideio::NDPITiffTools::scanTiffDirTags(tiff, dirIndex, 0, dir);
+    slideio::NDPITiffTools::scanTiffDirTags(tiff.getHandle(), dirIndex, 0, dir);
     dir.dataType = slideio::DataType::DT_Byte;
     const std::vector<int> channelIndices = { 0,1,2 };
     cv::Mat stripRaster;
-    slideio::NDPITiffTools::scanTiffDirTags(tiff, 0, 0, dir);
-    slideio::NDPITiffTools::scanTiffDirTags(tiff, dirIndex, 0, dir);
-    slideio::NDPITiffTools::readStripe(tiff, dir, 0, channelIndices, stripRaster);
-    slideio::NDPITiffTools::closeTiffFile(tiff);
+    slideio::NDPITiffTools::scanTiffDirTags(tiff.getHandle(), 0, 0, dir);
+    slideio::NDPITiffTools::scanTiffDirTags(tiff.getHandle(), dirIndex, 0, dir);
+    slideio::NDPITiffTools::readStripe(tiff.getHandle(), dir, 0, channelIndices, stripRaster);
     EXPECT_EQ(stripRaster.rows, dir.rowsPerStrip);
     EXPECT_EQ(stripRaster.cols, dir.width);
     cv::Mat testRaster;
@@ -118,15 +125,14 @@ TEST_F(NDPITiffToolsTests, readTile)
     const std::vector<slideio::NDPITiffDirectory>& dirs = file.directories();
     int dirCount = (int)dirs.size();
 
-    libtiff::TIFF* tiff = slideio::NDPITiffTools::openTiffFile(filePath);;
-    ASSERT_TRUE(tiff != nullptr);
+    slideio::NDPITIFFKeeper tiff(filePath);
+    ASSERT_TRUE(tiff.isValid());
     const int dirIndex = 3;
     const int tileIndex = 306;
     cv::Mat tileRaster;
     const slideio::NDPITiffDirectory& dir = dirs[dirIndex];
     const std::vector<int> channelIndices = { 0,1,2 };
-    slideio::NDPITiffTools::readTile(tiff, dir, tileIndex, channelIndices, tileRaster);
-    slideio::NDPITiffTools::closeTiffFile(tiff);
+    slideio::NDPITiffTools::readTile(tiff.getHandle(), dir, tileIndex, channelIndices, tileRaster);
     EXPECT_EQ(tileRaster.rows, dir.tileHeight);
     EXPECT_EQ(tileRaster.cols, dir.tileWidth);
     // TestTools::showRaster(tileRaster);
@@ -230,22 +236,22 @@ TEST_F(NDPITiffToolsTests, readScanlines)
 {
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1.ndpi");
     std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1-scanline.png");
-    libtiff::TIFF* tiff = slideio::NDPITiffTools::openTiffFile(filePath);;
-    ASSERT_TRUE(tiff != nullptr);
+    slideio::NDPITIFFKeeper tiff(filePath);
+    ASSERT_TRUE(tiff.isValid());
     int dirIndex = 3;
     slideio::NDPITiffDirectory dir;
-    slideio::NDPITiffTools::scanTiffDirTags(tiff, dirIndex, 0, dir);
+    slideio::NDPITiffTools::scanTiffDirTags(tiff.getHandle(), dirIndex, 0, dir);
     dir.dataType = slideio::DataType::DT_Byte;
     const std::vector<int> channelIndices = { 0,1,2 };
     cv::Mat stripRaster;
-    slideio::NDPITiffTools::scanTiffDirTags(tiff, 0, 0, dir);
-    slideio::NDPITiffTools::scanTiffDirTags(tiff, dirIndex, 0, dir);
+    slideio::NDPITiffTools::scanTiffDirTags(tiff.getHandle(), 0, 0, dir);
+    slideio::NDPITiffTools::scanTiffDirTags(tiff.getHandle(), dirIndex, 0, dir);
     const int numberScanlines = 300;
     const int firstScanline = 200;
-    FILE* file = fopen(filePath.c_str(), "rb");
-    slideio::NDPITiffTools::readJpegScanlines(tiff, file, dir, firstScanline, numberScanlines, channelIndices, stripRaster);
-    slideio::NDPITiffTools::closeTiffFile(tiff);
-    fclose(file);
+    std::unique_ptr<FILE, slideio::Tools::FileDeleter> sfile(slideio::Tools::openFile(filePath, "rb"));
+    ASSERT_NE(sfile.get(), nullptr);
+    slideio::NDPITiffTools::readJpegScanlines(tiff.getHandle(), sfile.get(), dir, firstScanline,
+                                              numberScanlines, channelIndices, stripRaster);
     EXPECT_EQ(numberScanlines, stripRaster.rows);
     EXPECT_EQ(dir.width, stripRaster.cols);
     //slideio::NDPITestTools::writePNG(stripRaster, testFilePath);
@@ -265,15 +271,14 @@ TEST_F(NDPITiffToolsTests, readRegularStripedDir2)
     file.init(filePath);
     const std::vector<slideio::NDPITiffDirectory>& dirs = file.directories();
     int dirCount = (int)dirs.size();
-    libtiff::TIFF* tiff = slideio::NDPITiffTools::openTiffFile(filePath);;
-    ASSERT_TRUE(tiff != nullptr);
+    slideio::NDPITIFFKeeper tiff(filePath);
+    ASSERT_TRUE(tiff.isValid());
     int dirIndex = 2;
     slideio::NDPITiffDirectory dir;
-    slideio::NDPITiffTools::scanTiffDirTags(tiff, dirIndex, 0, dir);
+    slideio::NDPITiffTools::scanTiffDirTags(tiff.getHandle(), dirIndex, 0, dir);
     dir.dataType = slideio::DataType::DT_Byte;
     cv::Mat dirRaster;
-    slideio::NDPITiffTools::readStripedDir(tiff, dir, dirRaster);
-    slideio::NDPITiffTools::closeTiffFile(tiff);
+    slideio::NDPITiffTools::readStripedDir(tiff.getHandle(), dir, dirRaster);
     EXPECT_EQ(dirRaster.rows, dir.height);
     EXPECT_EQ(dirRaster.cols, dir.width);
     cv::Mat testRaster;
@@ -288,16 +293,16 @@ TEST_F(NDPITiffToolsTests, readScanlinesDNLMarker)
 {
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "HE_Hamamatsu.ndpi");
     std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "HE_Hamamatsu-roi.png");
-    libtiff::TIFF* tiff = slideio::NDPITiffTools::openTiffFile(filePath);
-    ASSERT_TRUE(tiff != nullptr);
+    slideio::NDPITIFFKeeper tiff(filePath);
+    ASSERT_TRUE(tiff.isValid());
     int dirIndex = 0;
     slideio::NDPITiffDirectory dir;
-    slideio::NDPITiffTools::scanTiffDirTags(tiff, dirIndex, 0, dir);
+    slideio::NDPITiffTools::scanTiffDirTags(tiff.getHandle(), dirIndex, 0, dir);
     dir.dataType = slideio::DataType::DT_Byte;
     const std::vector<int> channelIndices = { 0,1,2 };
     cv::Mat stripRaster;
     cv::Rect roi = { dir.width / 2, dir.height / 2, 400, 300 };
-    slideio::NDPITiffTools::readJpegDirectoryRegion(tiff, filePath, roi, dir, channelIndices, stripRaster);
+    slideio::NDPITiffTools::readJpegDirectoryRegion(tiff.getHandle(), filePath, roi, dir, channelIndices, stripRaster);
     EXPECT_EQ(roi.height, stripRaster.rows);
     EXPECT_EQ(roi.width, stripRaster.cols);
     //slideio::NDPITestTools::writePNG(stripRaster, testFilePath);
@@ -311,16 +316,16 @@ TEST_F(NDPITiffToolsTests, readScanlinesDNLMarkerSingleChannel)
 {
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "HE_Hamamatsu.ndpi");
     std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "HE_Hamamatsu-roi-gray.png");
-    libtiff::TIFF* tiff = slideio::NDPITiffTools::openTiffFile(filePath);
-    ASSERT_TRUE(tiff != nullptr);
+    slideio::NDPITIFFKeeper tiff(filePath);
+    ASSERT_TRUE(tiff.isValid());
     int dirIndex = 0;
     slideio::NDPITiffDirectory dir;
-    slideio::NDPITiffTools::scanTiffDirTags(tiff, dirIndex, 0, dir);
+    slideio::NDPITiffTools::scanTiffDirTags(tiff.getHandle(), dirIndex, 0, dir);
     dir.dataType = slideio::DataType::DT_Byte;
     const std::vector<int> channelIndices = { 1 };
     cv::Mat stripRaster;
     cv::Rect roi = { dir.width / 3, dir.height / 3, 400, 300 };
-    slideio::NDPITiffTools::readJpegDirectoryRegion(tiff, filePath, roi, dir, channelIndices, stripRaster);
+    slideio::NDPITiffTools::readJpegDirectoryRegion(tiff.getHandle(), filePath, roi, dir, channelIndices, stripRaster);
     EXPECT_EQ(roi.height, stripRaster.rows);
     EXPECT_EQ(roi.width, stripRaster.cols);
     EXPECT_EQ(1, stripRaster.channels());
@@ -335,16 +340,16 @@ TEST_F(NDPITiffToolsTests, readScanlinesDNLMarkerInversedChannels)
 {
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "HE_Hamamatsu.ndpi");
     std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "HE_Hamamatsu-roi-inversed.png");
-    libtiff::TIFF* tiff = slideio::NDPITiffTools::openTiffFile(filePath);
-    ASSERT_TRUE(tiff != nullptr);
+    slideio::NDPITIFFKeeper tiff(filePath);
+    ASSERT_TRUE(tiff.isValid());
     int dirIndex = 0;
     slideio::NDPITiffDirectory dir;
-    slideio::NDPITiffTools::scanTiffDirTags(tiff, dirIndex, 0, dir);
+    slideio::NDPITiffTools::scanTiffDirTags(tiff.getHandle(), dirIndex, 0, dir);
     dir.dataType = slideio::DataType::DT_Byte;
     const std::vector<int> channelIndices = { 2,0,1};
     cv::Mat stripRaster;
     cv::Rect roi = { dir.width / 2, dir.height / 2, 400, 300 };
-    slideio::NDPITiffTools::readJpegDirectoryRegion(tiff, filePath, roi, dir, channelIndices, stripRaster);
+    slideio::NDPITiffTools::readJpegDirectoryRegion(tiff.getHandle(), filePath, roi, dir, channelIndices, stripRaster);
     EXPECT_EQ(roi.height, stripRaster.rows);
     EXPECT_EQ(roi.width, stripRaster.cols);
     //slideio::NDPITestTools::writePNG(stripRaster, testFilePath);
@@ -417,4 +422,14 @@ TEST_F(NDPITiffToolsTests, getDirectoryType) {
 
     dir.rowsPerStrip = 0;
     EXPECT_EQ(dir.getType(), slideio::NDPITiffDirectory::Type::Striped);
+}
+
+// Observed against the unmodified function, which called libtiff::TIFFClose
+// unconditionally: this aborted the test process with an access violation
+// (SEH 0xc0000005). slideio::TiffTools::closeTiffFile has always guarded the null case;
+// the NDPI twin did not, and NDPIFile's destructor called it directly.
+TEST_F(NDPITiffToolsTests, closeTiffFileIgnoresANullHandle)
+{
+    slideio::NDPITiffTools::closeTiffFile(nullptr);
+    SUCCEED() << "closing nothing is not an error";
 }

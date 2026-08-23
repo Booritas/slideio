@@ -11,6 +11,7 @@
 #include "slideio/drivers/ndpi/ndpiscene.hpp"
 #include "slideio/imagetools/imagetools.hpp"
 #include "slideio/core/tools/tools.hpp"
+#include "slideio/drivers/ndpi/ndpitiffmessagehandler.hpp"
 #include "slideio/slideio/slideio.hpp"
 
 namespace slideio
@@ -22,10 +23,16 @@ class NDPIImageDriverTests : public ::testing::Test {
 protected:
     static void SetUpTestSuite() {
         slideio::ImageDriverManager::setLogLevel("ERROR");
-        std::cerr << "SetUpTestSuite: Running before all tests\n";
     }
-    static void TearDownTestSuite() {
-    }
+    // Swaps libtiff's process-global error and warning handlers for the duration of
+    // each test: warnings reach SLIDEIO_LOG and errors raise instead of printing to
+    // stderr. Deliberately referenced by no test -- it is pure RAII, and it mirrors
+    // what the driver installs at its own entry points (ndpiimagedriver.cpp:26,
+    // ndpiscene.cpp:132). Tests going through NDPIFile or NDPITIFFKeeper get a handler
+    // from the keeper anyway; this one covers the tests that call NDPITiffTools
+    // directly. Do not delete it as unused -- see TECH_DEBT.md section 1 problem 6,
+    // where this class sat dead for exactly that reason.
+    slideio::NDPITIFFMessageHandler m_messageHandler;
 };
 
 TEST_F(NDPIImageDriverTests, openFile)

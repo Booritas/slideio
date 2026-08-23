@@ -9,10 +9,9 @@
 
 slideio::NDPIFile::~NDPIFile()
 {
-    if(m_tiff) {
+    if(m_tiff.isValid()) {
         SLIDEIO_LOG(INFO) << "Closing file " << m_filePath;
-        NDPITiffTools::closeTiffFile(m_tiff);
-        m_tiff = nullptr;
+        m_tiff.closeTiffFile();
     }
 }
 
@@ -22,7 +21,7 @@ void slideio::NDPIFile::init(const std::string& filePath)
 
     Tools::throwIfPathNotExist(filePath, "NDPIFile::init");
     SLIDEIO_LOG(INFO) << "Opening of NDPI TIFF file " << filePath;
-    m_tiff = NDPITiffTools::openTiffFile(filePath);
+    m_tiff.openTiffFile(filePath);
 
     if (!m_tiff.isValid())
     {

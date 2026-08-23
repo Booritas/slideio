@@ -8,6 +8,7 @@ set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 set(TEST_SOURCES
   test_ndpitiff_tools.cpp
   test_ndpi_driver.cpp
+  test_ndpitiffkeeper.cpp
 )
 
 add_executable(${TEST_NAME} ${TEST_SOURCES})

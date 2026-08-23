@@ -27,10 +27,12 @@ the work can be picked up later without re-doing the analysis.
 ## 1. `TIFFKeeper` unsafe value semantics
 
 **File:** `src/slideio/imagetools/tiffkeeper.hpp` (+ `tiffkeeper.cpp`)
-**Related:** `src/slideio/drivers/ndpi/ndpitifftools.hpp:134` (`NDPITIFFKeeper`, now a diverged twin — see problem 6)
+**Related:** `src/slideio/drivers/ndpi/ndpitiffkeeper.hpp` (`NDPITIFFKeeper` — see problem 6)
 **Status:** RAII fix implemented across commits `53d13332..06c456a7` (design,
-plan, tests, the move-only class, and the call-site migration). Only problem 6,
-unifying with `NDPITIFFKeeper`, remains open.
+plan, tests, the move-only class, and the call-site migration). `NDPITIFFKeeper`
+was brought up to the same contract afterwards on branch `v2.10.0`. Only the
+second half of problem 6 — collapsing the two onto one shared handle — remains
+open.
 
 ### Context
 
@@ -69,18 +71,60 @@ found by the compiler — was migrated to explicit `.getHandle()`.
 (commit `20c7663d`). Replaced with `using TIFFKeeperPtr = std::shared_ptr<TIFFKeeper>;`
 inside `namespace slideio` (`tiffkeeper.hpp:73`).
 
-**6. Duplication with `NDPITIFFKeeper` — the two have since diverged.**
-This entry originally described near-identical twins. That is no longer
-accurate: `TIFFKeeper` is now the move-only owning handle described above —
-copy deleted, move added, `reset()`/`release()` instead of the leaking
-`operator=`, no implicit conversion. `NDPITIFFKeeper`
-(`src/slideio/drivers/ndpi/ndpitifftools.hpp:134`) was left untouched by this
-work and still has the copyable, implicitly-converting, leaking-assignment
-shape both classes used to share — it carries today exactly the defects this
-entry's problems 1, 2 and 4 recorded for `TIFFKeeper`. Unifying the two is no
-longer "merge two equals"; it means bringing `NDPITIFFKeeper` up to the
-contract `TIFFKeeper` now has, then collapsing them onto a shared move-only
-handle. Remains open.
+**6. Duplication with `NDPITIFFKeeper` — first half done, unification still open.**
+This entry originally described near-identical twins, then described
+`NDPITIFFKeeper` as the diverged one still carrying the defects problems 1, 2
+and 4 record for `TIFFKeeper`. The first half of the fix — bringing
+`NDPITIFFKeeper` up to `TIFFKeeper`'s contract — is now done. It moved out of
+`ndpitifftools.hpp`/`.cpp` into its own `ndpitiffkeeper.hpp`/`.cpp` and is now
+a `SLIDEIO_NDPI_EXPORTS` move-only owning handle: copy explicitly deleted,
+move constructor/assignment added with the same deliberately-not-moved message
+handler as `TIFFKeeper`, `reset()`/`release()`/`openTiffFile()`/`closeTiffFile()`
+replacing the leaking `operator=(TIFF*)`, `operator libtiff::TIFF*()` removed,
+`m_hFile` default-initialised, and `<memory>`/`<string>` included directly. The
+two `NDPIFile` call sites that relied on the implicit conversion and the raw
+assignment were migrated. Covered by `src/tests/ndpi/test_ndpitiffkeeper.cpp`,
+which mirrors `test_tiffkeeper.cpp`.
+
+What this entry recorded for problems 1, 2 and 4 held. Two further findings it did
+not record, found by doing the work:
+
+- **`NDPITiffTools::closeTiffFile` had no null guard** and called
+  `libtiff::TIFFClose` unconditionally, unlike `TiffTools::closeTiffFile`.
+  Reached with `nullptr` it was an access violation (observed: SEH `0xc0000005`).
+  `~NDPITIFFKeeper` guarded itself with `if (m_hFile)`, so the crash was only
+  reachable through the free function — which `~NDPIFile` called directly. Now
+  guarded, with a test.
+- **The keeper installed no message handler, unlike `TIFFKeeper`.** At `c89bb999`
+  `NDPITIFFKeeper` had no handler member at all. `NDPITIFFMessageHandler` was *not*
+  dead code, though — the driver installs one as a stack local at four entry points
+  (`ndpiimagedriver.cpp:26`, `ndpiscene.cpp:132`, `:369`, `:418`), so anything reached
+  through `openFile`, `NDPIScene::init` or a scene read was already covered: warnings
+  reached `SLIDEIO_LOG` and `NDPITIFFErrorHandler`'s `RAISE_RUNTIME_ERROR` did fire.
+  The gap was code reaching libtiff *outside* those four scopes — chiefly tests calling
+  `NDPITiffTools` directly, which ran against libtiff's default handlers.
+
+  Both keeper constructors now install one via a shared `initMessageHandler()`,
+  matching `TIFFKeeper`, and the `slideio_ndpi_tests` fixtures install one each so the
+  direct-`NDPITiffTools` tests are covered too. On the driver's own paths this changes
+  nothing (the handler was already installed and the keeper's merely nests inside it,
+  LIFO-safely); for direct `NDPITiffTools` callers it is a **behaviour change** —
+  libtiff errors now throw rather than printing to stderr. The full
+  `slideio_ndpi_tests` and `slideio_tests` suites pass with it.
+
+  Note the ordering trap the keeper's handler does *not* close: in
+  `NDPITIFFKeeper keeper(NDPITiffTools::openTiffFile(path))` the file is opened while
+  evaluating the argument, *before* the constructor body installs the handler, so
+  whatever handler is already current reports any problem with that open. Opening
+  through the `filePath` constructor or `openTiffFile()` has no such gap.
+
+**Still open:** collapsing `TIFFKeeper` and `NDPITIFFKeeper` onto one shared
+move-only handle. They now have the same contract but remain two classes, because
+the NDPI driver links its own patched libtiff and routes messages through
+`NDPITIFFMessageHandler` rather than `TIFFMessageHandler`, and `slideio-imagetools`
+is not in the NDPI driver's link closure. Doing it means a header-only handle
+template parameterised by close function and handler type — the "Follow-up
+(separate change)" already named at the end of the proposed direction below.
 
 **7. ~~Minor header hygiene.~~ Fixed** (commit `20c7663d`). `<memory>` and
 `<cstdint>` are now included directly in `tiffkeeper.hpp` rather than relied

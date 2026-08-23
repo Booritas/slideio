@@ -8,7 +8,7 @@
 
 slideio::NDPIImageDriver::NDPIImageDriver()
 {
-	SLIDEIO_LOG(ERROR) << "Create NDPIImageDriver.";
+	SLIDEIO_LOG(INFO) << "Create NDPIImageDriver.";
 }
 
 slideio::NDPIImageDriver::~NDPIImageDriver()
