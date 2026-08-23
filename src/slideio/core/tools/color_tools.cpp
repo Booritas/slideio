@@ -11,7 +11,7 @@
 #include <algorithm>
 #include "slideio/core/tools/color_tools.hpp"
 
-#include "slideio/base/exceptions.hpp"
+#include "slideio/core/exceptions.hpp"
 
 using namespace slideio;
 

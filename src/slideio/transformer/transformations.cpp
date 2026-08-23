@@ -2,7 +2,7 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include "transformations.hpp"
-#include "slideio/base/exceptions.hpp"
+#include "slideio/core/exceptions.hpp"
 #include "slideio/transformer/colortransformation.hpp"
 #include "slideio/transformer/gaussianblurfilter.hpp"
 #include "slideio/transformer/laplacianfilter.hpp"

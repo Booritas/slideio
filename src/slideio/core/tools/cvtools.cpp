@@ -4,7 +4,7 @@
 //
 #include "slideio/core/cvslide.hpp"
 #include "slideio/core/tools/cvtools.hpp"
-#include "slideio/base/base.hpp"
+#include "slideio/core/base.hpp"
 
 #include <string>
 

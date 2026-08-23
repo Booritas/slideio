@@ -22,7 +22,6 @@ target_link_libraries(${TEST_NAME} PRIVATE
    ${CORE_LIB_NAME}
    ${IMAGETOOLS_LIB_NAME}
    ${TEST_LIB_NAME}
-   ${BASE_LIB_NAME}
 )
 
 FIX_MACOS_RPATH(${TEST_NAME})

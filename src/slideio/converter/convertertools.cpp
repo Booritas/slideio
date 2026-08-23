@@ -3,7 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/converter/convertertools.hpp"
 
-#include "slideio/base/exceptions.hpp"
+#include "slideio/core/exceptions.hpp"
 #include "slideio/core/tools/cvtools.hpp"
 #include "slideio/converter/converterparameters.hpp"
 

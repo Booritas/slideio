@@ -4,7 +4,7 @@
 #include <gtest/gtest.h>
 #include "slideio/core/metadata.hpp"
 #include "slideio/core/metadata_internal.hpp"
-#include "slideio/base/exceptions.hpp"
+#include "slideio/core/exceptions.hpp"
 #include <nlohmann/json.hpp>
 
 using namespace slideio;

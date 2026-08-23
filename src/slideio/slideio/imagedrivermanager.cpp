@@ -3,7 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/slideio/imagedrivermanager.hpp"
 
-#include "slideio/base/exceptions.hpp"
+#include "slideio/core/exceptions.hpp"
 #include "slideio/core/imagedriver.hpp"
 #include "slideio/drivers/afi/afiimagedriver.hpp"
 #include "slideio/drivers/czi/cziimagedriver.hpp"
@@ -17,7 +17,7 @@
 #include "slideio/drivers/vsi/vsiimagedriver.hpp"
 #include "slideio/drivers/pke/pkeimagedriver.hpp"
 #include "slideio/drivers/ome-tiff/otimagedriver.hpp"
-#include "slideio/base/log.hpp"
+#include "slideio/core/log.hpp"
 
 using namespace slideio;
 std::map<std::string, std::shared_ptr<ImageDriver>> ImageDriverManager::driverMap;

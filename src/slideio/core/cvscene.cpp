@@ -6,7 +6,7 @@
 
 #include <numeric>
 #include <mutex>
-#include "slideio/base/exceptions.hpp"
+#include "slideio/core/exceptions.hpp"
 #include "slideio/core/metadata_internal.hpp"
 #include "cvscene.hpp"
 #include "slideio/core/tools/tools.hpp"

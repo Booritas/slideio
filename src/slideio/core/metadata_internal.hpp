@@ -4,7 +4,7 @@
 #pragma once
 
 #include "slideio/core/metadata.hpp"
-#include "slideio/base/slideio_enums.hpp"
+#include "slideio/core/slideio_enums.hpp"
 #include <nlohmann/json.hpp>
 
 namespace slideio { namespace detail {

@@ -2,7 +2,7 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #pragma once
-#include "slideio/base/slideio_base_def.hpp"
+#include "slideio/core/slideio_core_def.hpp"
 
 namespace slideio
 {
@@ -33,17 +33,17 @@ namespace slideio
      * @a file may be a full path; only its basename is emitted. @a file and
      * @a message tolerate nullptr.
      */
-    SLIDEIO_BASE_EXPORTS void logMessage(int level, const char* file, int line,
+    SLIDEIO_CORE_EXPORTS void logMessage(int level, const char* file, int line,
                                          const char* message) noexcept;
 
     /** @brief Sets the global severity threshold. Values outside LogLevel are ignored. */
-    SLIDEIO_BASE_EXPORTS void setLogThreshold(int level) noexcept;
+    SLIDEIO_CORE_EXPORTS void setLogThreshold(int level) noexcept;
 
     /** @brief Address of the single global threshold, for cheap per-call-site checks.
      *
      * The returned pointer is stable for the process lifetime and always refers
-     * to the one variable inside slideio-base. Callers in other modules cache it
+     * to the one variable inside slideio-core. Callers in other modules cache it
      * so the common case is a load rather than a cross-DLL call.
      */
-    SLIDEIO_BASE_EXPORTS const int* logThresholdPtr() noexcept;
+    SLIDEIO_CORE_EXPORTS const int* logThresholdPtr() noexcept;
 }

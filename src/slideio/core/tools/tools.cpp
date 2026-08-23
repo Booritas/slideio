@@ -6,7 +6,7 @@
 
 #include <codecvt>
 #include <numeric>
-#include "slideio/base/exceptions.hpp"
+#include "slideio/core/exceptions.hpp"
 #include <filesystem>
 #include <random>
 #if defined(WIN32)

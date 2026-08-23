@@ -7,8 +7,8 @@
 #include <cstdarg>
 #include <tiffio.h>
 
-#include "slideio/base/log.hpp"
-#include "slideio/base/exceptions.hpp"
+#include "slideio/core/log.hpp"
+#include "slideio/core/exceptions.hpp"
 
 using namespace slideio;
 

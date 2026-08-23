@@ -12,8 +12,8 @@
 
 #include "czithumbnail.hpp"
 #include "czitools.hpp"
-#include "slideio/base/exceptions.hpp"
-#include "slideio/base/log.hpp"
+#include "slideio/core/exceptions.hpp"
+#include "slideio/core/log.hpp"
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/core/tools/endian.hpp"
 

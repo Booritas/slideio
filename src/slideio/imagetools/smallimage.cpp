@@ -2,10 +2,10 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/imagetools/smallimage.hpp"
-#include "slideio/base/size.hpp"
+#include "slideio/core/size.hpp"
 #include <opencv2/core.hpp>
 #include "fiwrapper.hpp"
-#include "slideio/base/exceptions.hpp"
+#include "slideio/core/exceptions.hpp"
 
 using namespace slideio;
 

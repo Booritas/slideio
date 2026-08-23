@@ -10,7 +10,7 @@
 #include "slideio/drivers/vsi/etsfilescene.hpp"
 #include "slideio/drivers/vsi/volume.hpp"
 #include "slideio/drivers/vsi/vsistruct.hpp"
-#include "slideio/base/slideio_enums.hpp"
+#include "slideio/core/slideio_enums.hpp"
 #include "slideio/drivers/vsi/vsistream.hpp"
 #include "slideio/drivers/vsi/pyramid.hpp"
 

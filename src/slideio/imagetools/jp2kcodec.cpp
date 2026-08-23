@@ -4,8 +4,8 @@
 #include "slideio/imagetools/imagetools.hpp"
 #include <opencv2/imgproc.hpp>
 #include "slideio/imagetools/memory_stream.hpp"
-#include "slideio/base/exceptions.hpp"
-#include "slideio/base/log.hpp"
+#include "slideio/core/exceptions.hpp"
+#include "slideio/core/log.hpp"
 #include "jp2kcodec.hpp"
 
 #include <openjpeg.h>

@@ -3,7 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/drivers/svs/phtmetadata.hpp"
 #include "slideio/drivers/svs/phtdescription.hpp"
-#include "slideio/base/log.hpp"
+#include "slideio/core/log.hpp"
 
 #include <algorithm>
 #include <tinyxml2.h>

@@ -4,7 +4,7 @@
 
 #include "converterparameters.hpp"
 #include "convertertools.hpp"
-#include "slideio/base/exceptions.hpp"
+#include "slideio/core/exceptions.hpp"
 #include "slideio/core/cvscene.hpp"
 
 using namespace slideio;

@@ -3,7 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/drivers/svs/phtiffscene.hpp"
 
-#include "slideio/base/log.hpp"
+#include "slideio/core/log.hpp"
 #include "slideio/drivers/svs/svsdriverids.hpp"
 #include "slideio/drivers/svs/svstools.hpp"
 

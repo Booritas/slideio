@@ -12,7 +12,7 @@
 #include "slideio/slideio/scene.hpp"
 #include "slideio/core/tools/cvtools.hpp"
 #include "slideio/imagetools/imagetools.hpp"
-#include "slideio/base/exceptions.hpp"
+#include "slideio/core/exceptions.hpp"
 #include "slideio/slideio/slideio.hpp"
 
 TEST(CZIImageDriver, DriverManager_getDriverIDs)

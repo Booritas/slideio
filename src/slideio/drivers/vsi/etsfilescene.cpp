@@ -4,7 +4,7 @@
 
 #include "etsfilescene.hpp"
 
-#include "slideio/base/exceptions.hpp"
+#include "slideio/core/exceptions.hpp"
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/drivers/vsi/etsfile.hpp"
 #include "slideio/drivers/vsi/vsifile.hpp"

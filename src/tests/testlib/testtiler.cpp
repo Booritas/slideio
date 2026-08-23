@@ -4,7 +4,7 @@
 //#include <opencv2/highgui.hpp>
 
 #include "testtools.hpp"
-#include "slideio/base/slideio_enums.hpp"
+#include "slideio/core/slideio_enums.hpp"
 #include "slideio/core/tools/cvtools.hpp"
 
 int TestTiler::getTileCount(void* userData)

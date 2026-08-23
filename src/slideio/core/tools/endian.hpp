@@ -3,9 +3,9 @@
 // of this distribution and at http://slideio.com/license.html.
 #pragma once
 #include "slideio/core/slideio_core_def.hpp"
-#include "slideio/base/exceptions.hpp"
+#include "slideio/core/exceptions.hpp"
 #include <cstdint>
-#include "slideio/base/slideio_enums.hpp"
+#include "slideio/core/slideio_enums.hpp"
 
 namespace slideio
 {

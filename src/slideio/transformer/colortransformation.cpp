@@ -4,7 +4,7 @@
 
 #include <opencv2/imgproc.hpp>
 #include "colortransformation.hpp"
-#include "slideio/base/exceptions.hpp"
+#include "slideio/core/exceptions.hpp"
 
 using namespace slideio;
 

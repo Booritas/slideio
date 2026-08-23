@@ -14,8 +14,8 @@
 #include <unistd.h>
 #include <fcntl.h>
 #endif
-#include "slideio/base/base.hpp"
-#include "slideio/base/logcontract.hpp"
+#include "slideio/core/base.hpp"
+#include "slideio/core/logcontract.hpp"
 #include "slideio/slideio/slideio.hpp"
 
 using namespace slideio;
@@ -60,7 +60,7 @@ TEST_F(LoggingTest, thresholdCrossesModuleBoundary)
         << "driver-resident INFO log survived a FATAL threshold; captured:\n" << atFatal;
 }
 
-// Spec 4.1 / 7.2: RuntimeError::log lives in slideio-base and is reached from
+// Spec 4.1 / 7.2: RuntimeError::log lives in slideio-core and is reached from
 // every module. ~97% of ERROR output comes from here.
 TEST_F(LoggingTest, raiseRuntimeErrorLogsFromBase)
 {

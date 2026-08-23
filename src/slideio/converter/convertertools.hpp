@@ -7,8 +7,8 @@
 #include <opencv2/core/mat.hpp>
 
 #include "slideio/converter/converter_def.hpp"
-#include "slideio/base/size.hpp"
-#include "slideio/base/rect.hpp"
+#include "slideio/core/size.hpp"
+#include "slideio/core/rect.hpp"
 
 namespace slideio
 {

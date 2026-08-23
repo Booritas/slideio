@@ -23,7 +23,6 @@ target_link_libraries(${TEST_NAME} PRIVATE
    ${SLIDEIO_LIB_NAME}
    ${IMAGETOOLS_LIB_NAME}
    ${TEST_LIB_NAME}
-   ${BASE_LIB_NAME}
    ${CONVERTER_LIB_NAME}
 )
 

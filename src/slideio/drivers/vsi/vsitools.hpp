@@ -5,7 +5,7 @@
 #include <cstdint>
 #include "etsfile.hpp"
 #include "vsistream.hpp"
-#include "slideio/base/slideio_enums.hpp"
+#include "slideio/core/slideio_enums.hpp"
 #include <nlohmann/json.hpp>
 
 using json = nlohmann::json;

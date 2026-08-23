@@ -1,7 +1,7 @@
 // This file is part of slideio project.
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
-#include "slideio/base/exceptions.hpp"
+#include "slideio/core/exceptions.hpp"
 #include "slideio/drivers/gdal/gdalslide.hpp"
 #include "slideio/drivers/gdal/gdalscene.hpp"
 #include <nlohmann/json.hpp>

@@ -13,7 +13,7 @@
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/drivers/ndpi/ndpitiffmessagehandler.hpp"
 #include "slideio/imagetools/imagetools.hpp"
-#include "slideio/base/log.hpp"
+#include "slideio/core/log.hpp"
 
 using namespace slideio;
 

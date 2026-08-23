@@ -3,7 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/imagetools/tifffiles.hpp"
 #include "slideio/imagetools/libtiff.hpp"
-#include "slideio/base/exceptions.hpp"
+#include "slideio/core/exceptions.hpp"
 
 slideio::TIFFFiles::~TIFFFiles() {
     closeAll();

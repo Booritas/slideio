@@ -6,13 +6,13 @@
 #include "slideio/converter/tiffconverter.hpp"
 #include "slideio/converter/converterparameters.hpp"
 #include "slideio/core/tools/tempfile.hpp"
-#include "slideio/base/exceptions.hpp"
+#include "slideio/core/exceptions.hpp"
 #include "slideio/converter/converter.hpp"
 #include "slideio/converter/convertertools.hpp"
 #include "slideio/slideio/scene.hpp"
 #include "slideio/slideio/slide.hpp"
 #include "slideio/slideio/slideio.hpp"
-#include "slideio/base/rect.inl"
+#include "slideio/core/rect.inl"
 #include "slideio/imagetools/tifftools.hpp"
 
 using namespace slideio;

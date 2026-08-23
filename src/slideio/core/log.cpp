@@ -5,7 +5,7 @@
 // This is the ONLY translation unit in slideio that includes a third-party
 // logging library. See the design spec, section 4.3: everything else reaches
 // logging through the three exported functions declared in logcontract.hpp.
-#include "slideio/base/logcontract.hpp"
+#include "slideio/core/logcontract.hpp"
 
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/stdout_sinks.h>

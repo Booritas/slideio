@@ -5,7 +5,7 @@
 #include <opencv2/core.hpp>
 #include <algorithm>
 #include "tests/testlib/testscene.hpp"
-#include "slideio/base/exceptions.hpp"
+#include "slideio/core/exceptions.hpp"
 #include "slideio/core/levelinfo.hpp"
 #include "slideio/slideio/slideio.hpp"
 #include "slideio/slideio/scene.hpp"

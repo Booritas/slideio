@@ -6,7 +6,7 @@
 #include "tests/testlib/testtools.hpp"
 #include "slideio/drivers/zvi/zviutils.hpp"
 #include "slideio/drivers/zvi/pole_lib.hpp"
-#include "slideio/base/exceptions.hpp"
+#include "slideio/core/exceptions.hpp"
 #include <stdexcept>
 
 using namespace slideio;

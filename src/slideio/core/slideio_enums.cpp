@@ -4,7 +4,7 @@
 
 #include <string>
 #include <ostream>
-#include "slideio/base/slideio_enums.hpp"
+#include "slideio/core/slideio_enums.hpp"
 
 std::string slideio::compressionToString(slideio::Compression compression) {
     switch (compression) {

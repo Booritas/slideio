@@ -5,7 +5,7 @@
 
 #include "slideio/drivers/zvi/zvi_api_def.hpp"
 #include "slideio/drivers/zvi/pole_lib.hpp"
-#include "slideio/base/slideio_enums.hpp"
+#include "slideio/core/slideio_enums.hpp"
 #include <codecvt>
 #include <cstdint>
 #include <string>

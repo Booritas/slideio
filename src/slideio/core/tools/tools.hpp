@@ -17,8 +17,8 @@
 #include <list>
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
-#include "slideio/base/slideio_enums.hpp"
-#include "slideio/base/slideio_structs.hpp"
+#include "slideio/core/slideio_enums.hpp"
+#include "slideio/core/slideio_structs.hpp"
 
 namespace slideio
 {

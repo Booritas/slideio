@@ -7,7 +7,7 @@
 #include "slideio/drivers/svs/phtiffscene.hpp"
 #include "slideio/imagetools/tifftools.hpp"
 #include "slideio/core/metadata_internal.hpp"
-#include "slideio/base/log.hpp"
+#include "slideio/core/log.hpp"
 #include "slideio/drivers/svs/phtdescription.hpp"
 #include "slideio/drivers/svs/svstools.hpp"
 

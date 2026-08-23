@@ -3,7 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 
 #include "slideio/core/tools/blocktiler.hpp"
-#include "slideio/base/exceptions.hpp"
+#include "slideio/core/exceptions.hpp"
 #include "slideio/core/tools/tilevisitor.hpp"
 
 using namespace slideio;

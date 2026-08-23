@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "slideio/base/exceptions.hpp"
+#include "slideio/core/exceptions.hpp"
 #include "slideio/converter/tiffstructure.hpp"
 
 using namespace slideio::converter;

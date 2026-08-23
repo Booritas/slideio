@@ -4,7 +4,7 @@
 #include "slideio/transformer/transformer.hpp"
 #include "slideio/transformer/transformations.hpp"
 #include "slideio/transformer/transformerscene.hpp"
-#include "slideio/base/exceptions.hpp"
+#include "slideio/core/exceptions.hpp"
 #include "slideio/slideio/scene.hpp"
 #include "slideio/transformer/transformationtype.hpp"
 #include "slideio/transformer/wrappers.hpp"

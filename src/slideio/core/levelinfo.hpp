@@ -3,7 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 #pragma once
 #include "slideio/core/slideio_core_def.hpp"
-#include "slideio/base/slideio_structs.hpp"
+#include "slideio/core/slideio_structs.hpp"
 #include <cmath>
 
 #if defined(_MSC_VER)

@@ -1,4 +1,4 @@
-#include "slideio/base/exceptions.hpp"
+#include "slideio/core/exceptions.hpp"
 #include <cstdint>
 #include <stdio.h>
 #include <jpeglib.h>

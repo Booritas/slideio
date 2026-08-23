@@ -3,7 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 #pragma once
 #include <string>
-#include "slideio/base/slideio_base_def.hpp"
+#include "slideio/core/slideio_core_def.hpp"
 
 namespace slideio
 {
@@ -87,8 +87,8 @@ namespace slideio
 		XML
 	};
 
-    std::string SLIDEIO_BASE_EXPORTS compressionToString(Compression compression);
-    SLIDEIO_BASE_EXPORTS std::ostream& operator << (std::ostream& os, Compression compression);
-    SLIDEIO_BASE_EXPORTS std::ostream& operator << (std::ostream& os, const DataType& dt);
-	SLIDEIO_BASE_EXPORTS std::ostream& operator << (std::ostream& os, const MetadataFormat& mt);
+    std::string SLIDEIO_CORE_EXPORTS compressionToString(Compression compression);
+    SLIDEIO_CORE_EXPORTS std::ostream& operator << (std::ostream& os, Compression compression);
+    SLIDEIO_CORE_EXPORTS std::ostream& operator << (std::ostream& os, const DataType& dt);
+	SLIDEIO_CORE_EXPORTS std::ostream& operator << (std::ostream& os, const MetadataFormat& mt);
 }

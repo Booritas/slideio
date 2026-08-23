@@ -4,7 +4,7 @@
 #include <gtest/gtest.h>
 
 #include <opencv2/imgproc.hpp>
-#include "slideio/base/exceptions.hpp"
+#include "slideio/core/exceptions.hpp"
 #include "slideio/drivers/dcm/dcmfile.hpp"
 #include "tests/testlib/testtools.hpp"
 

@@ -6,7 +6,7 @@
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
 #include "tests/testlib/testtools.hpp"
-#include "slideio/base/exceptions.hpp"
+#include "slideio/core/exceptions.hpp"
 #include "slideio/slideio/slideio.hpp"
 #include "slideio/slideio/slide.hpp"
 #include "slideio/core/metadata.hpp"

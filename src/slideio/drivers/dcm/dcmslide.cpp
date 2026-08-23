@@ -3,7 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/drivers/dcm/dcmslide.hpp"
 #include "slideio/drivers/dcm/dcmscene.hpp"
-#include "slideio/base/base.hpp"
+#include "slideio/core/base.hpp"
 #include <filesystem>
 #include <algorithm>
 #include <dcmdata/dcdeftag.h>
@@ -11,7 +11,7 @@
 #include <dcmtk/dcmdata/dcdicdir.h>
 #include "wsiscene.hpp"
 #include "slideio/core/tools/tools.hpp"
-#include "slideio/base/log.hpp"
+#include "slideio/core/log.hpp"
 
 using namespace slideio;
 namespace fs = std::filesystem;

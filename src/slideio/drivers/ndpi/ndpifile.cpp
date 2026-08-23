@@ -4,7 +4,7 @@
 #include "ndpifile.hpp"
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/drivers/ndpi/ndpilibtiff.hpp"
-#include "slideio/base/log.hpp"
+#include "slideio/core/log.hpp"
 
 
 slideio::NDPIFile::~NDPIFile()

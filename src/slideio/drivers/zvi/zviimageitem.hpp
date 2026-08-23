@@ -4,7 +4,7 @@
 #pragma once
 #include "slideio/drivers/zvi/pole_lib.hpp"
 #include "slideio/drivers/zvi/zvipixelformat.hpp"
-#include "slideio/base/slideio_enums.hpp"
+#include "slideio/core/slideio_enums.hpp"
 #include <opencv2/opencv.hpp>
 
 namespace slideio

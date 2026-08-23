@@ -10,7 +10,7 @@
 #include "vsistream.hpp"
 #include "etsfile.hpp"
 #include "vsitools.hpp"
-#include "slideio/base/log.hpp"
+#include "slideio/core/log.hpp"
 #include "taginfo.hpp"
 #include "slideio/core/tools/endian.hpp"
 #include "slideio/imagetools/tifftools.hpp"
