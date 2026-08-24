@@ -6,7 +6,6 @@ class ConverterConan(ConanFile):
     settings = "os", "compiler", "build_type", "arch"
     def requirements(self):
         self.requires("sqlite3/3.44.2")
-        self.requires("glog/0.7.1")
         self.requires("opencv/4.10.0@slideio/stable")
         self.requires("zlib/1.3.1")
         self.requires("tinyxml2/9.0.0")

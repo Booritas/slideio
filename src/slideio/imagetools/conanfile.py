@@ -3,7 +3,6 @@ class ImageToolsRecipe(ConanFile):
     settings = "os", "compiler", "build_type", "arch"
     def requirements(self):
         self.requires("expat/2.6.4", override=True)
-        self.requires("glog/0.7.1")
         self.requires("opencv/4.10.0@slideio/stable")
         self.requires("zlib/1.3.1")
         self.requires("libtiff/4.6.0")
