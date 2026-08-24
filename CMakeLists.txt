@@ -139,11 +139,47 @@ ENDMACRO(FIX_MACOS_RPATH)
 
 set(TEST_DIR ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
 
-MACRO(HIDE_LIB LIB)
-    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-        set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--exclude-libs,${LIB}")
+# Keeps a target's bundled libtiff/libjpeg private to that target, and checks
+# afterwards that it worked.
+#
+# This project links two different builds of each into one process: the ndpi
+# driver carries the ndpi-libtiff and ndpi-libjpeg-turbo forks, every other
+# module carries libtiff and libjpeg. The symbol names are identical, and the
+# structs are not the same size, so if the names are exported then which copy
+# answers a call depends on load order and the disagreement shows up at runtime
+# as libjpeg's "JPEG parameter struct mismatch" rather than as a link error.
+#
+# Replaces the earlier HIDE_LIB macro, which was a no-op except under GNU --
+# leaving both AppleClang and Clang-on-Linux unprotected -- and which appended to
+# directory-scoped CMAKE_SHARED_LINKER_FLAGS, so its effect leaked into every
+# target configured after it rather than applying to the one that needed it.
+FUNCTION(HIDE_THIRD_PARTY_SYMBOLS target)
+    if(APPLE)
+        # ld64 has no --exclude-libs; suppress by symbol pattern instead.
+        target_link_options(${target} PRIVATE
+            "-Wl,-unexported_symbol,_jpeg_*"
+            "-Wl,-unexported_symbol,_TIFF*")
+    elseif(UNIX)
+        # --exclude-libs hides symbols brought in from static archives;
+        # -Bsymbolic makes this object's own calls prefer its own definitions.
+        target_link_options(${target} PRIVATE
+            "-Wl,--exclude-libs,ALL"
+            "-Wl,-Bsymbolic")
     endif()
-ENDMACRO(HIDE_LIB)
+    # Windows needs neither: only __declspec(dllexport) symbols are exported.
+
+    # The script lives in cmake-scripts/ and not in cmake/, because .gitignore
+    # excludes **/cmake/ -- those directories hold conan-generated files. A guard
+    # that git refuses to track is a guard nobody else gets.
+    if(NOT WIN32)
+        add_custom_command(TARGET ${target} POST_BUILD
+            COMMAND ${CMAKE_COMMAND}
+                -DTARGET_FILE=$<TARGET_FILE:${target}>
+                -DAPPLE_HOST=$<BOOL:${APPLE}>
+                -P ${CMAKE_SOURCE_DIR}/cmake-scripts/assert_no_thirdparty_exports.cmake
+            VERBATIM)
+    endif()
+ENDFUNCTION(HIDE_THIRD_PARTY_SYMBOLS)
 
 add_subdirectory(src)
 

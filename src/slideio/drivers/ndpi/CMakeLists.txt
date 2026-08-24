@@ -2,10 +2,6 @@ set(LIBRARY_NAME ${NDPI_DRIVER_NAME})
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 set(CMAKE_PREFIX_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-HIDE_LIB("libtiff")
-HIDE_LIB("libjpeg")
-
-
 set(SOURCE_FILES 
    ${SOURCE_FILES}
    ${CMAKE_CURRENT_SOURCE_DIR}/ndpiimagedriver.hpp
@@ -27,6 +23,7 @@ set(SOURCE_FILES
    )
 
 add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES})
+HIDE_THIRD_PARTY_SYMBOLS(${LIBRARY_NAME})
 set_target_properties(${LIBRARY_NAME} PROPERTIES OUTPUT_NAME "${LIBRARY_NAME}${LIB_NAME_SUFFIX}")
 
 find_package(SQLite3)
@@ -69,6 +66,5 @@ ENDIF(WIN32)
 
 set_target_properties(${LIBRARY_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 
-if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    target_link_options(${LIBRARY_NAME} PRIVATE "-Wl,-Bsymbolic")
-endif()
+# -Bsymbolic used to be applied here, for GNU only. HIDE_THIRD_PARTY_SYMBOLS now
+# applies it to every ELF target that bundles libtiff/libjpeg, Clang included.
