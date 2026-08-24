@@ -122,6 +122,41 @@ is code that reaches libtiff outside those scopes, by calling `NDPITiffTools`
 directly: NDPI libtiff errors there now raise a runtime error instead of printing to
 stderr. See `software-docs/TECH_DEBT.md` §1 problem 6.
 
+### The log line's thread-id field is decimal again on macOS and Linux
+
+**Module:** `slideio-core` (exported: the three functions in `logcontract.hpp`)
+**File:** `src/slideio/core/log.cpp`
+
+No signature changed; what changed is the text `slideio` writes to stderr, which
+the logging design spec (§4.6) pins field-for-field because users' log scrapers
+read it. The thread-id field was produced by streaming
+`std::this_thread::get_id()`, and the formatting of `std::thread::id` is
+implementation defined. libstdc++ and MSVC print a decimal number, which matched
+the glog format the spec reproduces, but libc++ prints the underlying `pthread_t`
+as a hex pointer, so on macOS (and any libc++ build of Linux) the line came out
+as:
+
+```
+E20260824 15:07:46.676435 0x1f2755d80 widget.cpp:42] payload 9021
+```
+
+where §4.6 specifies a decimal OS thread id in that position. It now asks the OS
+directly -- `GetCurrentThreadId` on Windows, `pthread_threadid_np` on macOS,
+`gettid` elsewhere -- and prints:
+
+```
+E20260824 15:40:52.832592 5686447 exceptions.cpp:10] payload 9021
+```
+
+**Who is affected.** Only non-MSVC, non-libstdc++ builds, where this restores
+the documented format rather than departing from it. A scraper written against a
+macOS build's actual output -- matching `0x[0-9a-f]+` in the third field, or
+skipping a fixed number of characters to reach the location field -- will stop
+matching. A scraper written against §4.6, or against a Windows or libstdc++
+build, is unaffected. The numeric value is not comparable across platforms or
+with the previous value on the same platform; it identifies a thread within one
+process run and nothing more.
+
 ## v2.9.0
 
 ### `TIFFKeeper` is now move-only
