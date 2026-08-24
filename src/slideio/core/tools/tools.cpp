@@ -107,12 +107,24 @@ void Tools::resize(cv::InputArray src, cv::OutputArray dst, cv::Size dsize, int 
             resizedS.copyTo(dst);
         }
         else {
-            // Interpolating methods need arithmetic. Promote to CV_64F, which
-            // represents the full int32 range exactly (unlike CV_32F, whose
-            // 24-bit mantissa loses precision above 2^24), resize, then convert
-            // back to CV_32S with saturation.
-            cv::Mat tmp;
-            srcMat.convertTo(tmp, CV_64F);
+            // Interpolating methods need arithmetic. CV_64F is the only float
+            // depth that represents the full int32 range exactly (CV_32F's
+            // 24-bit mantissa loses precision above 2^24), but the promotion
+            // must NOT go through cv::Mat::convertTo: OpenCV's CV_32S -> CV_64F
+            // kernel routes the value via float, so convertTo alone rounds
+            // -123456789 to -123456792 before any resizing happens. Widen
+            // int32 -> double directly instead, which is lossless by the C++
+            // conversion rules, then resize and convert back to CV_32S with
+            // saturation (the CV_64F -> CV_32S direction is exact).
+            cv::Mat tmp(srcMat.rows, srcMat.cols, CV_MAKETYPE(CV_64F, channels));
+            const int valuesPerRow = srcMat.cols * channels;
+            for (int y = 0; y < srcMat.rows; ++y) {
+                const int32_t* sourceRow = srcMat.ptr<int32_t>(y);
+                double* targetRow = tmp.ptr<double>(y);
+                for (int i = 0; i < valuesPerRow; ++i) {
+                    targetRow[i] = static_cast<double>(sourceRow[i]);
+                }
+            }
             cv::Mat resized;
             cv::resize(tmp, resized, dsize, 0, 0, interpolation);
             resized.convertTo(dst, CV_32S);
