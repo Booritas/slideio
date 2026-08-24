@@ -7,7 +7,6 @@ class AfiConan(ConanFile):
 
     def requirements(self):
         self.requires("sqlite3/3.44.2")
-        self.requires("glog/0.7.1")
         self.requires("opencv/4.10.0@slideio/stable")
         self.requires("zlib/1.3.1")
         self.requires("xz_utils/5.4.5")
