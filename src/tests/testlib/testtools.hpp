@@ -20,6 +20,10 @@ public:
     static std::string getTestImageDirectory(bool priv=false);
 	static std::string getTestImagePath(const std::string& subfolder, const std::string& image, bool priv=false);
     static std::string getFullTestImagePath(const std::string& subfolder, const std::string& image);
+    // True while some handle in this process still holds `path` open, so that a test
+    // can observe a handle being closed rather than assume it. See the .cpp for the
+    // platform split, and for why this is not an attempt to delete the file.
+    static bool isFileHeldOpen(const std::string& path);
     static void readRawImage(const std::string& path, cv::Mat& image);
     static void writeRawImage(const std::string& path, const cv::Mat& image);
     static void compareRasters(cv::Mat& raster1, cv::Mat& raster2);
