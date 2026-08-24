@@ -157,6 +157,34 @@ build, is unaffected. The numeric value is not comparable across platforms or
 with the previous value on the same platform; it identifies a thread within one
 process run and nothing more.
 
+### Driver file-pattern matching changed on Linux and macOS
+
+**Module:** `slideio-core` (exported)
+**Files:** `src/slideio/core/tools/tools.cpp`, `src/slideio/drivers/ome-tiff/otimagedriver.cpp`
+
+No signature changed. What changed is which files `ImageDriver::canOpenFile`
+claims, and therefore which driver `ImageDriverManager` selects. Two separate
+corrections, pulling in opposite directions.
+
+**1. Matching is now case-insensitive off Windows.** `Tools::matchPattern` used
+`PathMatchSpecW` on Windows and `wildmat` elsewhere; the first ignores case and
+the second does not. A slide named `SCAN.OME.TIFF` or `IMAGE.SVS` opened on
+Windows and failed with "Cannot find driver for file" on Linux and macOS. Both
+platforms now behave as Windows always has, so `canOpenFile` returns `true` for
+upper- and mixed-case extensions where it previously returned `false`. Out-of-tree
+code that relied on the rejection -- using `canOpenFile` to filter a directory
+listing, say -- will now see those files accepted. Folding is ASCII-only, so a
+non-ASCII extension is still matched byte-for-byte off Windows, which Windows
+itself would fold.
+
+**2. The OME-TIFF driver no longer claims names merely ending in "ome".** Its
+pattern listed `*ome.tiff` without the separating dot, so `genome.tiff` and
+`myome.tiff` matched. Since `ImageDriverManager` takes the first driver whose
+`canOpenFile` answers `true`, such a file could be routed to the OME-TIFF driver
+and fail there rather than reaching the driver that should have handled it.
+This one was wrong on every platform, Windows included, and the fix narrows
+matching: files of that shape are no longer claimed.
+
 ## v2.9.0
 
 ### `TIFFKeeper` is now move-only
