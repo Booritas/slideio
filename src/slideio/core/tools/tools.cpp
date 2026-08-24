@@ -134,6 +134,29 @@ void Tools::resize(cv::InputArray src, cv::OutputArray dst, cv::Size dsize, int 
     cv::resize(src, dst, dsize, 0, 0, interpolation);
 }
 
+#if !defined(WIN32)
+namespace
+{
+    // Lower-cases the ASCII letters and nothing else. Deliberately not
+    // std::tolower: that consults the global C locale, which a host application
+    // is free to change, and the answer to "can this driver open this file"
+    // must not depend on that. Bytes outside A-Z are left exactly as they are,
+    // so a UTF-8 path keeps its multi-byte sequences intact -- folding those
+    // correctly would need real Unicode case mapping, and every pattern this is
+    // used with is a plain ASCII extension.
+    std::string asciiToLower(const std::string& value)
+    {
+        std::string lowered(value);
+        for (char& symbol : lowered) {
+            if (symbol >= 'A' && symbol <= 'Z') {
+                symbol = static_cast<char>(symbol - 'A' + 'a');
+            }
+        }
+        return lowered;
+    }
+}
+#endif
+
 bool Tools::matchPattern(const std::string& path, const std::string& pattern)
 {
     bool ret(false);
@@ -142,10 +165,18 @@ bool Tools::matchPattern(const std::string& path, const std::string& pattern)
     const std::wstring wpattern = Tools::toWstring(pattern);
     ret = PathMatchSpecW(wpath.c_str(), wpattern.c_str()) != 0;
 #else
-    std::vector<std::string> subPatterns = split(pattern, ';');
+    // wildmat compares case-sensitively; PathMatchSpecW on the branch above does
+    // not. This function has one caller, ImageDriver::canOpenFile, and that is
+    // what ImageDriverManager uses to choose a driver -- so with a case-sensitive
+    // comparison a slide named SCAN.OME.TIFF opens on Windows and reports
+    // "Cannot find driver" on Linux and macOS. Fold both sides instead, which
+    // matches what Windows has always done rather than changing it.
+    const std::string loweredPath = asciiToLower(path);
+    const std::string loweredPattern = asciiToLower(pattern);
+    std::vector<std::string> subPatterns = split(loweredPattern, ';');
     for(const auto& sub_pattern : subPatterns)
     {
-        ret = wildmat(const_cast<char*>(path.c_str()),const_cast<char*>(sub_pattern.c_str()));
+        ret = wildmat(const_cast<char*>(loweredPath.c_str()),const_cast<char*>(sub_pattern.c_str()));
         if(ret){
             break;
         }
