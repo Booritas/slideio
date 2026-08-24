@@ -132,6 +132,15 @@ def collect_profiles(profile_dir, configuration, profile_type=""):
 def process_conan_profile(profile, trg_dir, conan_file, build_folder):
     build_libs = []
     build_libs.append("missing")
+    # ndpi-libtiff must be built here rather than downloaded. Its package_id
+    # records its jpeg dependency by version only ("ndpi-libjpeg-turbo/2.1.Z"),
+    # not by that package's options, so a prebuilt ndpi-libtiff stays "valid" in
+    # conan's eyes even when it was compiled against a differently configured
+    # libjpeg-turbo. The published binary was, and the sizeof mismatch it carries
+    # (656 against turbo 2.1.2's 696) reaches the user as libtiff reporting
+    # "JPEG parameter struct mismatch" on every strip read. Building it from
+    # source pairs it with the turbo actually being linked.
+    build_libs.append("ndpi-libtiff/*")
     command = [
         "conan",
         "install",
