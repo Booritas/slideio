@@ -22,6 +22,12 @@
 #include "slideio/core/tools/cvtools.hpp"
 #include "slideio/core/tools/endian.hpp"
 
+// For isFileHeldOpen, which inspects this process's own descriptor table.
+#if !defined(WIN32)
+#include <sys/stat.h>
+#include <unistd.h>
+#endif
+
 static const char* TEST_PATH_VARIABLE = "SLIDEIO_TEST_DATA_PATH";
 static const char* PRIV_TEST_PATH_VARIABLE = "SLIDEIO_TEST_DATA_PRIV_PATH";
 static const char* TEST_FULL_TEST_PATH_VARIABLE = "SLIDEIO_IMAGES_PATH";
@@ -80,6 +86,48 @@ std::string TestTools::getFullTestImagePath(const std::string& subfolder, const 
         imagePath += std::string("/") + subfolder;
     imagePath += std::string("/") + image;
     return std::filesystem::path(imagePath).lexically_normal().string();
+}
+
+// A test that asserts "the handle was closed" needs that closure to be observable.
+// Trying to delete the file is not a portable way to observe it. It reports closure
+// only on Windows, where libtiff opens without FILE_SHARE_DELETE, so a live handle
+// blocks removal. On POSIX, unlink() of an open file always succeeds -- the directory
+// entry goes at once and the inode survives until the last descriptor closes -- so a
+// delete probe there both misreports every open handle as closed and destroys the very
+// file it was asked about.
+//
+// POSIX therefore asks the descriptor table directly: does any open descriptor in this
+// process refer to the same (device, inode) as `path`? Identity is by inode rather than
+// by a remembered descriptor number, so a number that libtiff has closed and the OS has
+// since recycled for an unrelated file cannot be mistaken for the original handle.
+//
+// Windows keeps the delete probe, the only one proven on that platform. Mind the
+// asymmetry it brings: there, a false result CONSUMES the file, so each file tolerates
+// exactly one "is it closed yet" question, and it must be asked last.
+bool TestTools::isFileHeldOpen(const std::string& path)
+{
+#if defined(WIN32)
+    std::error_code error;
+    if (!std::filesystem::exists(path, error)) {
+        return false;
+    }
+    return !std::filesystem::remove(path, error);
+#else
+    struct stat target = {};
+    if (::stat(path.c_str(), &target) != 0) {
+        return false;
+    }
+    const int descriptorLimit = ::getdtablesize();
+    for (int descriptor = 0; descriptor < descriptorLimit; ++descriptor) {
+        struct stat held = {};
+        if (::fstat(descriptor, &held) == 0
+            && held.st_dev == target.st_dev
+            && held.st_ino == target.st_ino) {
+            return true;
+        }
+    }
+    return false;
+#endif
 }
 
 

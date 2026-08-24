@@ -14,22 +14,39 @@ using namespace slideio;
 
 namespace
 {
-    // A private copy of a real ndpi, so a test can assert the handle was closed by
-    // deleting the file. libtiff opens without FILE_SHARE_DELETE, so a file with a live
-    // handle cannot be removed -- which makes "closed" observable rather than assumed.
-    std::filesystem::path copyTestNdpi(const char* name) {
-        const std::string source = TestTools::getTestImagePath("ndpi", "test3-TRITC 2 (560).ndpi");
-        const std::filesystem::path copy = std::filesystem::temp_directory_path() / name;
-        std::error_code ignored;
-        std::filesystem::remove(copy, ignored);
-        std::filesystem::copy_file(source, copy, std::filesystem::copy_options::overwrite_existing);
-        return copy;
-    }
+    // A private copy of a real ndpi, so a test can open and close a handle on it
+    // without disturbing the shared test image. Closure is observed with
+    // TestTools::isFileHeldOpen, which asks whether this process still holds a
+    // descriptor on the file -- see testtools.cpp for why the earlier "try to delete
+    // it" probe only worked on Windows.
+    //
+    // Scoped so the copy is removed when the test ends: unlike the delete probe it
+    // replaces, isFileHeldOpen leaves the file in place, and these copies are three
+    // megabytes each.
+    class TempNdpi
+    {
+    public:
+        explicit TempNdpi(const char* name)
+            : m_path(std::filesystem::temp_directory_path() / name)
+        {
+            const std::string source = TestTools::getTestImagePath("ndpi", "test3-TRITC 2 (560).ndpi");
+            std::error_code ignored;
+            std::filesystem::remove(m_path, ignored);
+            std::filesystem::copy_file(source, m_path, std::filesystem::copy_options::overwrite_existing);
+        }
+        ~TempNdpi() {
+            std::error_code ignored;
+            std::filesystem::remove(m_path, ignored);
+        }
+        TempNdpi(const TempNdpi&) = delete;
+        TempNdpi& operator=(const TempNdpi&) = delete;
 
-    bool canDelete(const std::filesystem::path& path) {
-        std::error_code error;
-        return std::filesystem::remove(path, error);
-    }
+        std::string string() const { return m_path.string(); }
+        bool isHeldOpen() const { return TestTools::isFileHeldOpen(m_path.string()); }
+
+    private:
+        std::filesystem::path m_path;
+    };
 }
 
 class NDPITIFFKeeperTests : public ::testing::Test {
@@ -50,27 +67,27 @@ protected:
 };
 
 TEST_F(NDPITIFFKeeperTests, destructorClosesTheHandle) {
-    const std::filesystem::path file = copyTestNdpi("ndpikeeper-dtor.ndpi");
+    const TempNdpi file("ndpikeeper-dtor.ndpi");
     {
         NDPITIFFKeeper keeper(NDPITiffTools::openTiffFile(file.string()));
         ASSERT_TRUE(keeper.isValid());
-        EXPECT_FALSE(canDelete(file)) << "the handle is open, so the file is locked";
+        EXPECT_TRUE(file.isHeldOpen()) << "the keeper holds the handle open";
     }
-    EXPECT_TRUE(canDelete(file)) << "the destructor must close the handle";
+    EXPECT_FALSE(file.isHeldOpen()) << "the destructor must close the handle";
 }
 
 TEST_F(NDPITIFFKeeperTests, filePathConstructorOpensTheFile) {
-    const std::filesystem::path file = copyTestNdpi("ndpikeeper-ctor-path.ndpi");
+    const TempNdpi file("ndpikeeper-ctor-path.ndpi");
     {
         NDPITIFFKeeper keeper(file.string());
         EXPECT_TRUE(keeper.isValid());
-        EXPECT_FALSE(canDelete(file)) << "the keeper holds it open";
+        EXPECT_TRUE(file.isHeldOpen()) << "the keeper holds it open";
     }
-    EXPECT_TRUE(canDelete(file));
+    EXPECT_FALSE(file.isHeldOpen());
 }
 
 TEST_F(NDPITIFFKeeperTests, releaseGivesUpOwnershipWithoutClosing) {
-    const std::filesystem::path file = copyTestNdpi("ndpikeeper-release.ndpi");
+    const TempNdpi file("ndpikeeper-release.ndpi");
     libtiff::TIFF* handle = nullptr;
     {
         NDPITIFFKeeper keeper(NDPITiffTools::openTiffFile(file.string()));
@@ -78,9 +95,9 @@ TEST_F(NDPITIFFKeeperTests, releaseGivesUpOwnershipWithoutClosing) {
         EXPECT_FALSE(keeper.isValid()) << "release leaves the keeper empty";
         EXPECT_TRUE(handle != nullptr);
     }
-    EXPECT_FALSE(canDelete(file)) << "release must NOT close: the caller owns it now";
+    EXPECT_TRUE(file.isHeldOpen()) << "release must NOT close: the caller owns it now";
     NDPITiffTools::closeTiffFile(handle);
-    EXPECT_TRUE(canDelete(file));
+    EXPECT_FALSE(file.isHeldOpen());
 }
 
 // The defect TECH_DEBT.md section 1 problem 2 records for TIFFKeeper, which
@@ -90,43 +107,45 @@ TEST_F(NDPITIFFKeeperTests, releaseGivesUpOwnershipWithoutClosing) {
 // below failed with "Actual: false" -- the first file was still locked by a handle
 // nothing owned any more, leaked until the process exited.
 TEST_F(NDPITIFFKeeperTests, resetClosesTheHandleItReplaces) {
-    const std::filesystem::path first = copyTestNdpi("ndpikeeper-reset-first.ndpi");
-    const std::filesystem::path second = copyTestNdpi("ndpikeeper-reset-second.ndpi");
+    const TempNdpi first("ndpikeeper-reset-first.ndpi");
+    const TempNdpi second("ndpikeeper-reset-second.ndpi");
     {
         NDPITIFFKeeper keeper(NDPITiffTools::openTiffFile(first.string()));
         keeper.reset(NDPITiffTools::openTiffFile(second.string()));
         EXPECT_TRUE(keeper.isValid());
-        EXPECT_TRUE(canDelete(first)) << "reset must close the handle it replaced";
+        EXPECT_FALSE(first.isHeldOpen()) << "reset must close the handle it replaced";
+        EXPECT_TRUE(second.isHeldOpen()) << "and must hold on to the one it took";
     }
-    EXPECT_TRUE(canDelete(second));
+    EXPECT_FALSE(second.isHeldOpen());
 }
 
 // The same defect by its other door: NDPIFile::init reached it as
 // "m_tiff = NDPITiffTools::openTiffFile(filePath)".
 TEST_F(NDPITIFFKeeperTests, openTiffFileClosesTheHandleItReplaces) {
-    const std::filesystem::path first = copyTestNdpi("ndpikeeper-open-first.ndpi");
-    const std::filesystem::path second = copyTestNdpi("ndpikeeper-open-second.ndpi");
+    const TempNdpi first("ndpikeeper-open-first.ndpi");
+    const TempNdpi second("ndpikeeper-open-second.ndpi");
     {
         NDPITIFFKeeper keeper(NDPITiffTools::openTiffFile(first.string()));
         keeper.openTiffFile(second.string());
         EXPECT_TRUE(keeper.isValid());
-        EXPECT_TRUE(canDelete(first)) << "openTiffFile must close the handle it replaced";
+        EXPECT_FALSE(first.isHeldOpen()) << "openTiffFile must close the handle it replaced";
+        EXPECT_TRUE(second.isHeldOpen()) << "and must hold on to the one it opened";
     }
-    EXPECT_TRUE(canDelete(second));
+    EXPECT_FALSE(second.isHeldOpen());
 }
 
 // The empty case, which the close-first logic must not get wrong: resetting a keeper
 // that holds nothing is just taking ownership, with nothing to close.
 TEST_F(NDPITIFFKeeperTests, resetOnAnEmptyKeeperTakesOwnership) {
-    const std::filesystem::path file = copyTestNdpi("ndpikeeper-reset-empty.ndpi");
+    const TempNdpi file("ndpikeeper-reset-empty.ndpi");
     {
         NDPITIFFKeeper keeper;
         EXPECT_FALSE(keeper.isValid());
         keeper.reset(NDPITiffTools::openTiffFile(file.string()));
         EXPECT_TRUE(keeper.isValid());
-        EXPECT_FALSE(canDelete(file)) << "the keeper holds it open";
+        EXPECT_TRUE(file.isHeldOpen()) << "the keeper holds it open";
     }
-    EXPECT_TRUE(canDelete(file));
+    EXPECT_FALSE(file.isHeldOpen());
 }
 
 // Observed against the unmodified NDPITiffTools::closeTiffFile, which called
@@ -155,29 +174,30 @@ TEST_F(NDPITIFFKeeperTests, closingAnEmptyKeeperIsSafe) {
 // NDPIFile owns the keeper by value but is itself only ever held by unique_ptr and
 // passed as a raw pointer, so nothing in the driver copied one.
 TEST_F(NDPITIFFKeeperTests, moveConstructionTransfersOwnership) {
-    const std::filesystem::path file = copyTestNdpi("ndpikeeper-move-ctor.ndpi");
+    const TempNdpi file("ndpikeeper-move-ctor.ndpi");
     {
         NDPITIFFKeeper source(NDPITiffTools::openTiffFile(file.string()));
         NDPITIFFKeeper target(std::move(source));
         EXPECT_TRUE(target.isValid());
         EXPECT_FALSE(source.isValid()) << "a moved-from keeper owns nothing";
-        EXPECT_FALSE(canDelete(file)) << "the target still holds it open";
+        EXPECT_TRUE(file.isHeldOpen()) << "the target still holds it open";
     }
-    EXPECT_TRUE(canDelete(file)) << "one close, by the target";
+    EXPECT_FALSE(file.isHeldOpen()) << "one close, by the target";
 }
 
 // "target = std::move(source)" resolved to the implicit COPY assignment operator for the
 // same reason as above. It overwrote target's handle without closing it -- the leak
 // resetClosesTheHandleItReplaces covers -- and left both keepers owning source's handle.
 TEST_F(NDPITIFFKeeperTests, moveAssignmentClosesItsOwnHandleFirst) {
-    const std::filesystem::path own = copyTestNdpi("ndpikeeper-move-own.ndpi");
-    const std::filesystem::path taken = copyTestNdpi("ndpikeeper-move-taken.ndpi");
+    const TempNdpi own("ndpikeeper-move-own.ndpi");
+    const TempNdpi taken("ndpikeeper-move-taken.ndpi");
     {
         NDPITIFFKeeper target(NDPITiffTools::openTiffFile(own.string()));
         NDPITIFFKeeper source(NDPITiffTools::openTiffFile(taken.string()));
         target = std::move(source);
-        EXPECT_TRUE(canDelete(own)) << "move assignment must close what it gives up";
+        EXPECT_FALSE(own.isHeldOpen()) << "move assignment must close what it gives up";
+        EXPECT_TRUE(taken.isHeldOpen()) << "and must keep the handle it took";
         EXPECT_FALSE(source.isValid());
     }
-    EXPECT_TRUE(canDelete(taken));
+    EXPECT_FALSE(taken.isHeldOpen());
 }
