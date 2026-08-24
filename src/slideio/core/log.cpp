@@ -11,11 +11,30 @@
 #include <spdlog/sinks/stdout_sinks.h>
 
 #include <chrono>
+#include <cstdint>
 #include <cstdio>
 #include <ctime>
 #include <sstream>
 #include <string>
-#include <thread>
+
+// For the spec 4.6 thread id field, which must be the OS thread id in decimal.
+#if defined(WIN32)
+// Narrow the surface and keep the min/max macros out: this TU is the one place
+// that mixes a third-party logging library with a platform header, and the
+// LogMacroCollision tests exist because that mixture has bitten before.
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#elif defined(__APPLE__)
+#include <pthread.h>
+#else
+#include <sys/syscall.h>
+#include <unistd.h>
+#endif
 
 namespace
 {
@@ -91,14 +110,22 @@ namespace
         return buffer;
     }
 
-    // glog prints the OS thread id. std::thread::id streams as a number on
-    // every target toolchain; the exact value need not match glog's, only the
-    // field's presence and shape.
+    // glog prints the OS thread id as a decimal integer, and spec 4.6 pins that
+    // shape. Streaming std::this_thread::get_id() is not a substitute: the
+    // formatting of std::thread::id is implementation defined, and libc++ prints
+    // the underlying pthread_t as a hex pointer ("0x1f2755d80"), which breaks the
+    // documented field. Ask the OS for its numeric thread id instead.
     std::string threadId()
     {
-        std::ostringstream stream;
-        stream << std::this_thread::get_id();
-        return stream.str();
+#if defined(WIN32)
+        return std::to_string(static_cast<unsigned long long>(::GetCurrentThreadId()));
+#elif defined(__APPLE__)
+        std::uint64_t id = 0;
+        ::pthread_threadid_np(nullptr, &id);
+        return std::to_string(id);
+#else
+        return std::to_string(static_cast<unsigned long long>(::syscall(SYS_gettid)));
+#endif
     }
 
     // Builds a fresh sink for every call rather than caching one
