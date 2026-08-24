@@ -73,6 +73,17 @@ TEST_F(OTImageDriverTests, canOpenFile) {
 		std::string filePath = "/projects/ometiff" + suffix;
 		EXPECT_FALSE(driver.canOpenFile(filePath));
 	}
+	// The suffixes above all drop the dot INSIDE the extension (".ometiff"),
+	// which no sub-pattern could match anyway. These keep a well-formed
+	// ".tiff" and instead let "ome" run into the end of the file name, so they
+	// fail only if a sub-pattern is missing its leading dot -- as
+	// "*ome.tiff" was, matching every file whose name happened to end in
+	// "ome" plus a tiff extension.
+	const std::string namesEndingInOme[] = { "/projects/genome.tiff", "/projects/myome.tif",
+	                                         "/projects/genome.tf2", "/projects/genome.btf" };
+	for (const std::string& filePath : namesEndingInOme) {
+		EXPECT_FALSE(driver.canOpenFile(filePath)) << filePath;
+	}
 }
 
 TEST_F(OTImageDriverTests, openSlide) {
