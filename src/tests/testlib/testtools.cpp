@@ -104,6 +104,42 @@ std::string TestTools::getFullTestImagePath(const std::string& subfolder, const 
 // Windows keeps the delete probe, the only one proven on that platform. Mind the
 // asymmetry it brings: there, a false result CONSUMES the file, so each file tolerates
 // exactly one "is it closed yet" question, and it must be asked last.
+bool TestTools::skipsMissingImages()
+{
+    // Cached: the answer cannot change during a run, and this is consulted from
+    // every image-backed test.
+    static const bool skip = [] {
+        const char* value = getenv("SLIDEIO_SKIP_MISSING_IMAGES");
+        if (value == nullptr) {
+            return false;
+        }
+        const std::string setting(value);
+        return !setting.empty() && setting != "0";
+    }();
+    return skip;
+}
+
+bool TestTools::imageExists(const std::string& path)
+{
+    std::error_code error;
+    return std::filesystem::exists(path, error);
+}
+
+bool TestTools::imageDirExists(const std::string& subfolder)
+{
+    const char* var = getenv(TEST_FULL_TEST_PATH_VARIABLE);
+    if (var == nullptr) {
+        // Nothing to look in. Let the caller fail the ordinary way, with the
+        // "Undefined environment variable" message getFullTestImagePath raises.
+        return true;
+    }
+    std::string dir(var);
+    if (!subfolder.empty()) {
+        dir += std::string("/") + subfolder;
+    }
+    return imageExists(std::filesystem::path(dir).lexically_normal().string());
+}
+
 bool TestTools::isFileHeldOpen(const std::string& path)
 {
 #if defined(WIN32)
