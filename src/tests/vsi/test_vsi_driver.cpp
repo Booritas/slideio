@@ -65,6 +65,7 @@ private:
 
 TEST_F(VSIImageDriverTests, openFileWithExternalFiles1) {
     std::string filePath = TestTools::getFullTestImagePath("vsi","OS-1/OS-1.vsi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     slideio::VSIImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide!=nullptr);
@@ -84,6 +85,7 @@ TEST_F(VSIImageDriverTests, openFileWithoutExternalFiles) {
     std::string filePath = TestTools::getFullTestImagePath("vsi",
                                                            "Zenodo/Q6VM49JF/Figure-1-ultrasound-raw-data"
                                                            "/SPECTRUM_#201_2016-06-14_Jiangtao Liu/1286FL9057GDF8RGDX257R2GLHZ.vsi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     slideio::VSIImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide!=nullptr);
@@ -124,6 +126,7 @@ TEST_F(VSIImageDriverTests, getSceneIndex)
             "Skip the test because full dataset is not enabled";
     }
     const std::string filePath = TestTools::getFullTestImagePath("vsi", "Zenodo/Abdominal/G1M16_ABD_HE_B6.vsi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     auto slide = slideio::openSlide(filePath, "AUTO");
     ASSERT_TRUE(slide);
     EXPECT_EQ("VSI", slide->getDriverId());
@@ -156,6 +159,7 @@ TEST_F(VSIImageDriverTests, openFileWithExternalFiles) {
         {"40x_03", 16240, 18759, 40, "40x FocusMap"},
     };
     const std::string filePath = TestTools::getFullTestImagePath("vsi", "Zenodo/Abdominal/G1M16_ABD_HE_B6.vsi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     slideio::VSIImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
@@ -184,7 +188,9 @@ TEST_F(VSIImageDriverTests, openFileWithExternalFiles) {
 
 TEST_F(VSIImageDriverTests, auxImages) {
     const std::string filePath = TestTools::getFullTestImagePath("vsi", "Zenodo/Abdominal/G1M16_ABD_HE_B6.vsi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     const std::string testFilePath = TestTools::getFullTestImagePath("vsi", "Zenodo/Abdominal/G1M16_ABD_HE_B6.aux.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath);
     slideio::VSIImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
@@ -210,6 +216,7 @@ TEST_F(VSIImageDriverTests, VSIFileOpenWithOutExternalFiles) {
     std::string filePath = TestTools::getFullTestImagePath("vsi",
                                                            "Zenodo/Q6VM49JF/Figure-1-ultrasound-raw-data"
                                                            "/SPECTRUM_#201_2016-06-14_Jiangtao Liu/1286FL9057GDF8RGDX257R2GLHZ.vsi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     vsi::VSIFile vsiFile(filePath);
     EXPECT_EQ(0, vsiFile.getNumEtsFiles());
 }
@@ -218,8 +225,10 @@ TEST_F(VSIImageDriverTests, readVSISceneStripedDirUncompressed) {
     std::string filePath = TestTools::getFullTestImagePath("vsi",
                                                            "Zenodo/Q6VM49JF/Figure-1-ultrasound-raw-data"
                                                            "/SPECTRUM_#201_2016-06-14_Jiangtao Liu/1286FL9057GDF8RGDX257R2GLHZ.vsi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::string testFilePath = TestTools::getFullTestImagePath("vsi",
                                                                "test-output/1286FL9057GDF8RGDX257R2GLHZ.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath);
     slideio::VSIImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
@@ -240,8 +249,10 @@ TEST_F(VSIImageDriverTests, readVSISceneStripedDirUncompressedRoi) {
     std::string filePath = TestTools::getFullTestImagePath("vsi",
                                                            "Zenodo/Q6VM49JF/Figure-1-ultrasound-raw-data"
                                                            "/SPECTRUM_#201_2016-06-14_Jiangtao Liu/1286FL9057GDF8RGDX257R2GLHZ.vsi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::string testFilePath = TestTools::getFullTestImagePath("vsi",
                                                                "test-output/1286FL9057GDF8RGDX257R2GLHZ.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath);
     slideio::VSIImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
@@ -263,8 +274,10 @@ TEST_F(VSIImageDriverTests, readVSISceneStripedDirUncompressedRoiResampled) {
     std::string filePath = TestTools::getFullTestImagePath("vsi",
                                                            "Zenodo/Q6VM49JF/Figure-1-ultrasound-raw-data"
                                                            "/SPECTRUM_#201_2016-06-14_Jiangtao Liu/1286FL9057GDF8RGDX257R2GLHZ.vsi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::string testFilePath = TestTools::getFullTestImagePath("vsi",
                                                                "test-output/1286FL9057GDF8RGDX257R2GLHZ.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath);
     slideio::VSIImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
@@ -286,13 +299,16 @@ TEST_F(VSIImageDriverTests, readVSISceneStripedDirUncompressedRoiResampled) {
 
 TEST_F(VSIImageDriverTests, VSIFileOpenWithExternalFiles) {
     std::string filePath = TestTools::getFullTestImagePath("vsi", "Zenodo/Abdominal/G1M16_ABD_HE_B6.vsi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     vsi::VSIFile vsiFile(filePath);
     EXPECT_EQ(4, vsiFile.getNumEtsFiles());
 }
 
 TEST_F(VSIImageDriverTests, read3DVolume16bitSlice) {
     std::string filePath = TestTools::getFullTestImagePath("vsi", "vsi-multifile/vsi-ets-test-jpg2k.vsi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::string testFilePath = TestTools::getFullTestImagePath("vsi", "test-output/vsi-ets-test-jpg2k.vsi.ome.tif");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath);
     slideio::VSIImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
@@ -315,8 +331,10 @@ TEST_F(VSIImageDriverTests, read3DVolume16bitSlice) {
 
 TEST_F(VSIImageDriverTests, read3DVolume16bit) {
     std::string filePath = TestTools::getFullTestImagePath("vsi", "vsi-multifile/vsi-ets-test-jpg2k.vsi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::string testFileOme = TestTools::getFullTestImagePath("vsi",
         "test-output/vsi-ets-test-jpg2k.vsi.ome.tif");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testFileOme);
     slideio::VSIImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
@@ -354,8 +372,10 @@ TEST_F(VSIImageDriverTests, read3DVolume16bit) {
 TEST_F(VSIImageDriverTests, read3DStack16bit) {
     std::string filePath = TestTools::getFullTestImagePath("vsi", 
         "vsi-multifile/vsi-ets-test-jpg2k.vsi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::string testFileOme = TestTools::getFullTestImagePath("vsi",
         "test-output/vsi-ets-test-jpg2k.vsi.ome.tif");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testFileOme);
     slideio::VSIImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
@@ -396,7 +416,9 @@ TEST_F(VSIImageDriverTests, read3DStack16bit) {
 
 TEST_F(VSIImageDriverTests, readMultiscene) {
     std::string filePath = TestTools::getFullTestImagePath("vsi", "Zenodo/Abdominal/G1M16_ABD_HE_B6.vsi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::string testFilePath = TestTools::getFullTestImagePath("vsi", "test-output/G1M16_ABD_HE_B6.vsi-40x_01(1,x=5836,y=11793,w=849,h=607).png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath);
     slideio::VSIImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
@@ -432,7 +454,9 @@ TEST_F(VSIImageDriverTests, readMultiscene) {
 
 TEST_F(VSIImageDriverTests, readMultisceneResized) {
     std::string filePath = TestTools::getFullTestImagePath("vsi", "Zenodo/Abdominal/G1M16_ABD_HE_B6.vsi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::string testFilePath = TestTools::getFullTestImagePath("vsi", "test-output/G1M16_ABD_HE_B6.vsi-40x_01(1,x=5836,y=11793,w=849,h=607).png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath);
     slideio::VSIImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
@@ -456,7 +480,9 @@ TEST_F(VSIImageDriverTests, readMultisceneResized) {
 
 TEST_F(VSIImageDriverTests, readMultisceneResizedSingeChannel) {
     std::string filePath = TestTools::getFullTestImagePath("vsi", "Zenodo/Abdominal/G1M16_ABD_HE_B6.vsi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::string testFilePath = TestTools::getFullTestImagePath("vsi", "test-output/G1M16_ABD_HE_B6.vsi-40x_01(1,x=5836,y=11793,w=849,h=607).png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath);
     slideio::VSIImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
@@ -481,8 +507,10 @@ TEST_F(VSIImageDriverTests, readMultisceneResizedSingeChannel) {
 
 TEST_F(VSIImageDriverTests, readMultisceneResizedReversedChannels) {
     std::string filePath = TestTools::getFullTestImagePath("vsi", "Zenodo/Abdominal/G1M16_ABD_HE_B6.vsi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::string testFilePath = TestTools::getFullTestImagePath("vsi",
         "test-output/G1M16_ABD_HE_B6.vsi-40x_01(1,x=5836,y=11793,w=849,h=607).png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath);
     slideio::VSIImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
@@ -510,7 +538,9 @@ TEST_F(VSIImageDriverTests, readMultisceneResizedReversedChannels) {
 
 TEST(EtsFile, readTileJpeg) {
     std::string filePath = TestTools::getFullTestImagePath("vsi", "Zenodo/Abdominal/G1M16_ABD_HE_B6.vsi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::string testFilePath = TestTools::getFullTestImagePath("vsi", "test-output/G1M16_ABD_HE_B6.vsi-40x_01(1,x=0,y=0,w=512,h=512).png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath);
     slideio::vsi::VSIFile vsiFile(filePath);
     const std::string dir("stack10001");
     const int numEtsFiles = vsiFile.getNumEtsFiles();
@@ -537,7 +567,9 @@ TEST(EtsFile, readTileJpeg) {
 
 TEST(EtsFile, readTileJpeg2K) {
     std::string filePath = TestTools::getFullTestImagePath("vsi", "vsi-multifile/vsi-ets-test-jpg2k.vsi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::string testFilePath = TestTools::getFullTestImagePath("vsi", "test-output/vsi-ets-test-jpg2k_tile_5.tif");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath);
     slideio::vsi::VSIFile vsiFile(filePath);
     auto etsFile = vsiFile.getEtsFile(0);
     cv::Mat tileRaster;
@@ -801,8 +833,11 @@ TEST_F(VSIImageDriverTests, invalidEts) {
             "Skip the test because full dataset is not enabled";
     }
     std::string filePath = TestTools::getFullTestImagePath("vsi", "vs200-vsi-share/Image_B309.vsi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::string overviewFilePath = TestTools::getFullTestImagePath("vsi", "test-output/Image_B309_Overview.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(overviewFilePath);
     std::string macroFilePath = TestTools::getFullTestImagePath("vsi", "test-output/Image_B309_Macro.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(macroFilePath);
     slideio::VSIImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
@@ -846,8 +881,10 @@ TEST_F(VSIImageDriverTests, volumes) {
             "Skip the test because full dataset is not enabled";
     }
     std::string filePath = TestTools::getFullTestImagePath("vsi", "private/d/STS_G6889_11_1_pHH3.vsi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::string testImageFilePath = TestTools::getFullTestImagePath("vsi", 
         "test-output/STS_G6889_11_1_pHH3.vsi - 40x_BF_01 (1, x=82570, y=77046, w=1153, h=797).png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testImageFilePath);
     slideio::VSIImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
@@ -876,8 +913,10 @@ TEST_F(VSIImageDriverTests, stack3d) {
             "Skip the test because full dataset is not enabled";
     }
     std::string filePath = TestTools::getFullTestImagePath("vsi", "private/3d/01072022_35_2_z.vsi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::string slice6 = TestTools::getFullTestImagePath("vsi", 
         "private/3d/test-images/01072022_35_2_z.vsi - 60x_BF_Z_01 (1, x=45625, y=42302, w=984, h=1015).png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(slice6);
     slideio::VSIImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
@@ -910,6 +949,7 @@ TEST_F(VSIImageDriverTests, stack3d) {
 
 TEST_F(VSIImageDriverTests, readLevelMatchesTheResampledSceneRead) {
     std::string filePath = TestTools::getFullTestImagePath("vsi", "Zenodo/Abdominal/G1M16_ABD_HE_B6.vsi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     slideio::VSIImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
@@ -958,6 +998,7 @@ TEST_F(VSIImageDriverTests, readLevelMatchesTheResampledSceneRead) {
 // which cannot equal level 1's independently-encoded content.
 TEST_F(VSIImageDriverTests, readLevelDoesNotReuseAdjacentLevel) {
     std::string filePath = TestTools::getFullTestImagePath("vsi", "Zenodo/Abdominal/G1M16_ABD_HE_B6.vsi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     slideio::VSIImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
@@ -989,6 +1030,7 @@ TEST_F(VSIImageDriverTests, multiThreadSceneAccess) {
             "Skip the test because full dataset is not enabled";
     }
     std::string filePath = TestTools::getFullTestImagePath("vsi", "private/d/STS_G6889_11_1_pHH3.vsi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     slideio::VSIImageDriver driver;
     TestTools::multiThreadedTest(filePath, driver);
 }

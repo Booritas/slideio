@@ -18,6 +18,7 @@
 
 TEST(Converter, convertGDALJpeg) {
 	std::string path = TestTools::getTestImagePath("gdal", "Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
 	SlidePtr slide = slideio::openSlide(path, "GDAL");
 	ScenePtr scene = slide->getScene(0);
 	auto sceneRect = scene->getRect();
@@ -55,6 +56,7 @@ TEST(Converter, convertGDALJpeg) {
 TEST(Converter, convertGDALJp2K)
 {
 	std::string path = TestTools::getTestImagePath("gdal", "Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
 	SlidePtr slide = slideio::openSlide(path, "GDAL");
 	ScenePtr scene = slide->getScene(0);
 	auto sceneRect = scene->getRect();
@@ -96,6 +98,7 @@ TEST(Converter, nullScene)
 TEST(Converter, unsupportedDriver)
 {
 	std::string path = TestTools::getTestImagePath("gdal", "Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
 	SlidePtr slide = slideio::openSlide(path, "GDAL");
 	ScenePtr scene = slide->getScene(0);
 	ASSERT_TRUE(scene.get() != nullptr);
@@ -109,6 +112,7 @@ TEST(Converter, unsupportedDriver)
 TEST(Converter, outputPathExists)
 {
 	std::string path = TestTools::getTestImagePath("gdal", "Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
 	SlidePtr slide = slideio::openSlide(path, "GDAL");
 	ScenePtr scene = slide->getScene(0);
 	ASSERT_TRUE(scene.get() != nullptr);
@@ -125,6 +129,7 @@ TEST(Converter, fromMultipleScenes)
 		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
 	}
 	std::string path = TestTools::getFullTestImagePath("czi", "jxr-rgb-5scenes.czi");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
 	SlidePtr slide = slideio::openSlide(path);
     ScenePtr scene = slide->getScene(0);
 	ASSERT_TRUE(scene.get() != nullptr);
@@ -178,6 +183,7 @@ TEST(Converter, from3DScene)
 		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
 	}
 	std::string path = TestTools::getFullTestImagePath("czi", "pJP31mCherry.czi");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
 	SlidePtr slide = slideio::openSlide(path);
 	ScenePtr scene = slide->getScene(0);
 	ASSERT_TRUE(scene.get() != nullptr);
@@ -248,6 +254,7 @@ TEST(Converter, jpeg2k4channelsScene)
 		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
 	}
 	std::string path = TestTools::getFullTestImagePath("czi", "jxr-16bit-4chnls.czi");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
 	SlidePtr slide = slideio::openSlide(path);
 	ScenePtr scene = slide->getScene(0);
 	ASSERT_TRUE(scene.get() != nullptr);
@@ -307,6 +314,7 @@ TEST(Converter, invalidRegions)
 		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
 	}
 	std::string path = TestTools::getFullTestImagePath("czi", "jxr-rgb-5scenes.czi");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
 	SlidePtr slide = slideio::openSlide(path);
 	ScenePtr scene = slide->getScene(0);
 	ASSERT_TRUE(scene.get() != nullptr);
@@ -361,6 +369,7 @@ TEST(Converter, jpeg2k)
 		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
 	}
 	std::string path = TestTools::getFullTestImagePath("czi", "doughnut.czi");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
 	SlidePtr slide = slideio::openSlide(path);
 	ScenePtr scene = slide->getScene(0);
 	ASSERT_TRUE(scene.get() != nullptr);
@@ -407,6 +416,7 @@ TEST(Converter, jpeg2k)
 TEST(Converter, jpeg2kBorderTiles)
 {
 	std::string path = TestTools::getTestImagePath("czi", "08_18_2018_enc_1001_633.czi");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
 	SlidePtr slide = slideio::openSlide(path);
 	ScenePtr scene = slide->getScene(0);
 	ASSERT_TRUE(scene.get() != nullptr);
@@ -453,6 +463,7 @@ TEST(Converter, jpeg2kBorderTiles)
 TEST(Converter, metadata)
 {
 	std::string path = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1.scn");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
 	SlidePtr slide = slideio::openSlide(path);
 	ScenePtr scene = slide->getScene(0);
 	ASSERT_TRUE(scene.get() != nullptr);
@@ -508,6 +519,7 @@ TEST(Converter, metadata)
 TEST(Converter, intData)
 {
 	std::string path = TestTools::getTestImagePath("zvi", "Zeiss-1-Merged.zvi");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
 	SlidePtr slide = slideio::openSlide(path);
 	ScenePtr scene = slide->getScene(0);
 	ASSERT_TRUE(scene.get() != nullptr);
@@ -564,6 +576,7 @@ TEST(Converter, intData)
 TEST(Converter, createSVS8bitGray)
 {
 	std::string imagePath = TestTools::getTestImagePath("gdal", "img_2448x2448_1x8bit_SRC_GRAY_ducks.png");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(imagePath);
 	std::shared_ptr<slideio::Slide> slide = slideio::openSlide(imagePath, "GDAL");
 	ASSERT_NE(slide, nullptr);
 	const int numScenes = slide->getNumScenes();
@@ -590,6 +603,7 @@ TEST(Converter, createSVS8bitGray)
 TEST(Converter, createSVS8bitColor)
 {
 	std::string imagePath = TestTools::getTestImagePath("gdal", "img_2448x2448_3x8bit_SRC_RGB_ducks.png");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(imagePath);
 	std::shared_ptr<slideio::Slide> slide = slideio::openSlide(imagePath, "GDAL");
 	ASSERT_NE(slide, nullptr);
 	const int numScenes = slide->getNumScenes();

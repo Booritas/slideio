@@ -13,6 +13,7 @@ using namespace slideio;
 TEST(ColorTransfomation, grayColor)
 {
 	std::string path = TestTools::getTestImagePath("gdal", "colors.png");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
 	std::shared_ptr<slideio::Slide> slide = openSlide(path, "AUTO");
 	std::shared_ptr<slideio::Scene> originScene = slide->getScene(0);
 	ColorTransformation transformation;
@@ -52,6 +53,7 @@ TEST(ColorTransfomation, colorspaces3channels)
 	
 
 	std::string path = TestTools::getTestImagePath("gdal", "colors.png");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
 	std::shared_ptr<slideio::Slide> slide = openSlide(path, "AUTO");
 	std::shared_ptr<slideio::Scene> originScene = slide->getScene(0);
 
@@ -83,6 +85,7 @@ TEST(ColorTransfomation, colorspaces3channels)
 TEST(ColorTransfomation, grayColorLargeImage)
 {
 	std::string path = TestTools::getTestImagePath("svs", "JP2K-33003-1.svs");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
 	std::shared_ptr<slideio::Slide> slide = openSlide(path, "AUTO");
 	std::shared_ptr<slideio::Scene> originScene = slide->getScene(0);
 	ColorTransformation transformation;
@@ -127,6 +130,7 @@ TEST(ColorTransfomation, colorspaces3channelsLargeImage)
 
 
 	std::string path = TestTools::getTestImagePath("svs", "JP2K-33003-1.svs");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
 	std::shared_ptr<slideio::Slide> slide = openSlide(path, "AUTO");
 	std::shared_ptr<slideio::Scene> originScene = slide->getScene(0);
 
@@ -176,6 +180,7 @@ TEST(ColorTransfomation, selectiveChannels)
 
 
 	std::string path = TestTools::getTestImagePath("svs", "JP2K-33003-1.svs");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
 	std::shared_ptr<slideio::Slide> slide = openSlide(path, "AUTO");
 	std::shared_ptr<slideio::Scene> originScene = slide->getScene(0);
 
@@ -229,6 +234,7 @@ TEST(ColorTransfomation, selective2Channels)
 
 
 	std::string path = TestTools::getTestImagePath("svs", "JP2K-33003-1.svs");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
 	std::shared_ptr<slideio::Slide> slide = openSlide(path, "AUTO");
 	std::shared_ptr<slideio::Scene> originScene = slide->getScene(0);
 

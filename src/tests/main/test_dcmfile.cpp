@@ -18,6 +18,7 @@ TEST(DCMFile, init)
     DCMImageDriver::initializeDCMTK();
 
     std::string slidePath = TestTools::getTestImagePath("dcm", "benigns_01/patient0186/0186.LEFT_CC.dcm");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
     DCMFile file(slidePath);
     file.init();
     const int width = file.getWidth();
@@ -41,6 +42,7 @@ TEST(DCMFile, initPaletted)
     DCMImageDriver::initializeDCMTK();
 
     std::string slidePath = TestTools::getTestImagePath("dcm", "barre.dev/US-PAL-8-10x-echo");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
     DCMFile file(slidePath);
     file.init();
     const int width = file.getWidth();
@@ -59,7 +61,9 @@ TEST(DCMFile, initPaletted)
 TEST(DCMFile, pixelValues)
 {
     std::string slidePath = TestTools::getTestImagePath("dcm", "barre.dev/OT-MONO2-8-hip.dcm");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
     std::string testPath = TestTools::getTestImagePath("dcm", "barre.dev/OT-MONO2-8-hip.frames/frame0.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testPath);
     DCMFile file(slidePath);
     file.init();
     std::vector<cv::Mat> frames;
@@ -75,7 +79,9 @@ TEST(DCMFile, pixelValues)
 TEST(DCMFile, pixelRGB)
 {
     std::string slidePath = TestTools::getTestImagePath("dcm", "barre.dev/US-RGB-8-epicard");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
     std::string testPath = TestTools::getTestImagePath("dcm", "barre.dev/US-RGB-8-epicard.frames/frame0.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testPath);
     DCMFile file(slidePath);
     file.init();
     std::vector<cv::Mat> frames;
@@ -92,8 +98,11 @@ TEST(DCMFile, pixelRGB)
 TEST(DCMFile, pixelValuesExtended)
 {
     std::string slidePath = TestTools::getTestImagePath("dcm", "barre.dev/MR-MONO2-8-16x-heart");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
     std::string testPath1 =  TestTools::getTestImagePath("dcm", "barre.dev/MR-MONO2-8-16x-heart.frames/frame5.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testPath1);
     std::string testPath2 = TestTools::getTestImagePath("dcm", "barre.dev/MR-MONO2-8-16x-heart.frames/frame6.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testPath2);
     DCMFile file(slidePath);
     file.init();
     int fileFrames = file.getNumSlices();
@@ -117,8 +126,11 @@ TEST(DCMFile, pixelPaleteExtended)
     DCMImageDriver::initializeDCMTK();
 
     std::string slidePath = TestTools::getTestImagePath("dcm", "barre.dev/US-PAL-8-10x-echo");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
     std::string testPath1 = TestTools::getTestImagePath("dcm", "barre.dev/US-PAL-8-10x-echo.frames/frame5.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testPath1);
     std::string testPath2 = TestTools::getTestImagePath("dcm", "barre.dev/US-PAL-8-10x-echo.frames/frame6.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testPath2);
     DCMFile file(slidePath);
     file.init();
     int fileFrames = file.getNumSlices();
@@ -146,8 +158,11 @@ TEST(DCMFile, pixelJpegExtended)
     DCMImageDriver::initializeDCMTK();
 
     std::string slidePath = TestTools::getTestImagePath("dcm", "barre.dev/XA-MONO2-8-12x-catheter");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
     std::string testPath1 = TestTools::getTestImagePath("dcm", "barre.dev/XA-MONO2-8-12x-catheter.frames/frame5.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testPath1);
     std::string testPath2 = TestTools::getTestImagePath("dcm", "barre.dev/XA-MONO2-8-12x-catheter.frames/frame6.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testPath2);
     DCMFile file(slidePath);
     file.init();
     int fileFrames = file.getNumSlices();
@@ -172,7 +187,9 @@ TEST(DCMFile, pixelJpegLsValues)
     DCMImageDriver::initializeDCMTK();
 
     std::string slidePath = TestTools::getTestImagePath("dcm", "benigns_01/patient0186/0186.LEFT_MLO.dcm");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
     std::string testPath = TestTools::getTestImagePath("dcm", "benigns_01/patient0186/0186.LEFT_MLO.frames/frame0.tif");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testPath);
     DCMFile file(slidePath);
     file.init();
     EXPECT_EQ(4008, file.getWidth());
@@ -194,6 +211,7 @@ TEST(DCMFile, pixelJpegLsValues)
 TEST(DCMFile, getMetadata)
 {
     std::string slidePath = TestTools::getTestImagePath("dcm", "barre.dev/US-PAL-8-10x-echo");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
     DCMFile file(slidePath);
     file.init();
     std::string metadata = file.getMetadata();
@@ -211,6 +229,7 @@ TEST(DCMFile, isDicomDirFile)
             "Skip the test because full dataset is not enabled";
     }
     std::string filePath = TestTools::getTestImagePath("dcm", "barre.dev/US-PAL-8-10x-echo");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     bool res = DCMFile::isDicomDirFile(filePath);
     EXPECT_FALSE(res);
     filePath = TestTools::getFullTestImagePath("dcm", "spine_mr/DICOMDIR");
@@ -223,6 +242,7 @@ TEST(DCMFile, channelDataType)
     DCMImageDriver::initializeDCMTK();
 
     std::string slidePath = TestTools::getTestImagePath("dcm", "barre.dev/US-PAL-8-10x-echo");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
     DCMFile file(slidePath);
     file.init();
     DataType dt = file.getDataType();
@@ -234,7 +254,9 @@ TEST(DCMFile, pixelValuesCTMono)
     DCMImageDriver::initializeDCMTK();
 
     std::string slidePath = TestTools::getTestImagePath("dcm", "barre.dev/CT-MONO2-12-lomb-an2");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
     std::string testPath = TestTools::getTestImagePath("dcm", "barre.dev/CT-MONO2-12-lomb-an2.frames/frame0.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testPath);
     DCMFile file(slidePath);
     file.init();
     EXPECT_EQ(512, file.getWidth());
@@ -265,7 +287,9 @@ TEST(DCMFile, pixelValues12AllocatedBits)
     DCMImageDriver::initializeDCMTK();
 
     std::string slidePath = TestTools::getTestImagePath("dcm", "barre.dev/MR-MONO2-12-angio-an1");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
     std::string testPath = TestTools::getTestImagePath("dcm", "barre.dev/MR-MONO2-12-angio-an1.frames/frame0.tif");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testPath);
     DCMFile file(slidePath);
     file.init();
     EXPECT_EQ(256, file.getWidth());
@@ -292,6 +316,7 @@ TEST(DCMFile, isWSIFile)
             "Skip the test because full dataset is not enabled";
     }
     std::string filePath = TestTools::getFullTestImagePath("dcm", "barre.dev/MultiFrame/MR-MONO2-8-16x-heart");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     bool res = DCMFile::isWSIFile(filePath);
     EXPECT_FALSE(res);
     filePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777/H01EBB50P-24777_level-0.dcm");
@@ -305,6 +330,7 @@ TEST(DCMFile, WSIFileAttributes) {
             "Skip the test because full dataset is not enabled";
     }
     std::string filePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777/H01EBB50P-24777_level-0.dcm");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     DCMFile file(filePath);
     file.init();
     EXPECT_TRUE(file.isWSIFile());
@@ -325,6 +351,7 @@ TEST(DCMFile, getTileRect) {
             "Skip the test because full dataset is not enabled";
     }
     std::string filePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777/H01EBB50P-24777_level-0.dcm");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     DCMFile file(filePath);
     file.init();
     const int width = 72192;
@@ -358,7 +385,9 @@ TEST(DCMFile, readFrame) {
     DCMImageDriver::initializeDCMTK();
 
     std::string filePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777/H01EBB50P-24777_level-0.dcm");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::string testFilePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777.tile.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath);
     DCMFile file(filePath);
     file.init();
     const int width = 72192;
@@ -392,7 +421,9 @@ TEST(DCMFile, readFrame2) {
     DCMImageDriver::initializeDCMTK();
 
     std::string filePath = TestTools::getFullTestImagePath("dcm", "private/wsi/M01FBC14P-589_level-0.dcm");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::string testFilePath = TestTools::getFullTestImagePath("dcm", "private/wsi/M01FBC14P-589_level-0.tile.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath);
     DCMFile file(filePath);
     file.init();
     const int width = 82432;
@@ -420,7 +451,9 @@ TEST(DCMFile, readJ2K) {
     DCMImageDriver::initializeDCMTK();
 
     std::string filePath = TestTools::getTestImagePath("dcm", "openmicroscopy.org/CT1_J2KI");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::string testFilePath = TestTools::getTestImagePath("dcm", "openmicroscopy.org/CT1_J2KI.tiff");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath);
     DCMFile file(filePath);
     file.init();
     EXPECT_EQ(512, file.getWidth());

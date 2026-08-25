@@ -19,6 +19,7 @@ using namespace slideio::converter;
 TEST(Converter, convertGdalToOmetiff)
 {
 	std::string path = TestTools::getTestImagePath("gdal", "Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
 	SlidePtr slide = slideio::openSlide(path, "GDAL");
 	ScenePtr scene = slide->getScene(0);
 	auto sceneRect = scene->getRect();
@@ -53,6 +54,7 @@ TEST(Converter, convertGdalToOmetiff)
 TEST(Converter, convertGdalToOmetiffJp2K)
 {
 	std::string path = TestTools::getTestImagePath("gdal", "Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
 	SlidePtr slide = slideio::openSlide(path, "GDAL");
 	ScenePtr scene = slide->getScene(0);
 	auto sceneRect = scene->getRect();

@@ -63,6 +63,7 @@ TEST(CZIImageDriver, openFile)
 {
     slideio::CZIImageDriver driver;
     std::string filePath = TestTools::getTestImagePath("czi","pJP31mCherry.czi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide!=nullptr);
     int numScenes = slide->getNumScenes();
@@ -91,6 +92,7 @@ TEST(CZIImageDriver, openFileInfo)
 {
     slideio::CZIImageDriver driver;
     std::string filePath = TestTools::getTestImagePath("czi", "08_18_2018_enc_1001_633.czi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::string channelNames[] = {"646", "655", "664", "673", "682", "691"};
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
@@ -124,6 +126,7 @@ TEST(CZIImageDriver, readBlock)
 {
     slideio::CZIImageDriver driver;
     std::string filePath = TestTools::getTestImagePath("czi","pJP31mCherry.czi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::string channelBmps[] = {
         TestTools::getTestImagePath("czi","pJP31mCherry.grey/pJP31mCherry_b0t0z0c0x0-512y0-512.bmp"),
         TestTools::getTestImagePath("czi","pJP31mCherry.grey/pJP31mCherry_b0t0z0c1x0-512y0-512.bmp"),
@@ -157,6 +160,7 @@ TEST(CZIImageDriver, readBlockStrongDownscaleNotThrowing)
 {
     slideio::CZIImageDriver driver;
     std::string filePath = TestTools::getTestImagePath("czi", "PYP-467.czi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
     int numScenes = slide->getNumScenes();
@@ -175,6 +179,7 @@ TEST(CZIImageDriver, readBlock4D)
 {
     slideio::CZIImageDriver driver;
     std::string filePath = TestTools::getTestImagePath("czi","pJP31mCherry.czi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide!=nullptr);
     int numScenes = slide->getNumScenes();
@@ -205,6 +210,7 @@ TEST(CZIImageDriver, readBlock4D)
             std::to_string(channelIndex) +
             std::string("x0-512y0-512.bmp");
             std::string bmpFilePath = TestTools::getTestImagePath("czi",bmpFileName);
+            SLIDEIO_SKIP_IF_IMAGE_MISSING(bmpFilePath);
             // read exported bmp channel
             cv::Mat bmpImage; // = cv::imread(bmpFilePath, cv::IMREAD_GRAYSCALE);
             slideio::ImageTools::readSmallImageRaster(bmpFilePath, bmpImage);
@@ -368,6 +374,7 @@ TEST(CZIImageDriver, slideRawMetadata)
     for(const auto& imageName: images)
     {
         std::string filePath = TestTools::getTestImagePath("czi",imageName);
+        SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
         std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
         const std::string& metadata = slide->getRawMetadata();
         EXPECT_GT(metadata.length(),0);
@@ -398,6 +405,7 @@ TEST(CZIImageDriver, metadataCompression)
         const SceneCompression& compr = compression[item];
 
         std::string filePath = TestTools::getTestImagePath("czi",imageName);
+        SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
         std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
         const int sceneIndex = std::get<0>(compr);
         const slideio::Compression sceneCompression = std::get<1>(compr);
@@ -410,6 +418,7 @@ TEST(CZIImageDriver, metadataCompression)
 TEST(CZIImageDriver, crashTestNotCZIImage)
 {
     std::string filePath = TestTools::getTestImagePath("svs","corrupted.svs");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     slideio::CZIImageDriver driver;
     EXPECT_THROW(driver.openFile(filePath),slideio::RuntimeError);
 }
@@ -417,6 +426,7 @@ TEST(CZIImageDriver, crashTestNotCZIImage)
 TEST(CZIImageDriver, corruptedCZI)
 {
     std::string filePath = TestTools::getTestImagePath("czi","corrupted.czi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     slideio::CZIImageDriver driver;
     EXPECT_THROW(driver.openFile(filePath), std::exception);
 }
@@ -447,7 +457,9 @@ TEST(CZIImageDriver, auxSlidePreview)
         GTEST_SKIP() << "Skip private test because private dataset is not enabled";
     }
     std::string imagePath = TestTools::getTestImagePath("czi", "jxr-rgb-5scenes.czi", true);
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(imagePath);
     std::string testImagePath = TestTools::getTestImagePath("czi", "jxr-rgb-5scenes.preview.tiff", true);
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testImagePath);
     testAuxImage(imagePath, "SlidePreview", testImagePath);
 }
 
@@ -458,7 +470,9 @@ TEST(CZIImageDriver, auxSlidePreviewTimeFrame)
         GTEST_SKIP() << "Skip private test because private dataset is not enabled";
     }
     std::string imagePath = TestTools::getTestImagePath("czi", "jxr-16bit-4chnls.czi", true);
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(imagePath);
     std::string testImagePath = TestTools::getTestImagePath("czi", "jxr-16bit-4chnls.preview.tiff", true);
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testImagePath);
     testAuxImage(imagePath, "SlidePreview", testImagePath);
 }
 
@@ -469,7 +483,9 @@ TEST(CZIImageDriver, auxThumbnail)
         GTEST_SKIP() << "Skip private test because private dataset is not enabled";
     }
     std::string imagePath = TestTools::getTestImagePath("czi", "jxr-16bit-4chnls.czi", true);
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(imagePath);
     std::string testImagePath = TestTools::getTestImagePath("czi", "jxr-16bit-4chnls.thumb.png", true);
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testImagePath);
     testAuxImage(imagePath, "Thumbnail", testImagePath);
 }
 
@@ -480,7 +496,9 @@ TEST(CZIImageDriver, auxThumbnail2)
         GTEST_SKIP() << "Skip private test because private dataset is not enabled";
     }
     std::string imagePath = TestTools::getTestImagePath("czi", "jxr-rgb-5scenes.czi", true);
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(imagePath);
     std::string testImagePath = TestTools::getTestImagePath("czi", "jxr-rgb-5scenes.thumb.png", true);
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testImagePath);
     testAuxImage(imagePath, "Thumbnail", testImagePath);
 }
 
@@ -495,7 +513,9 @@ TEST(CZIImageDriver, auxLabel)
         GTEST_SKIP() << "Skip private test because private dataset is not enabled";
     }
     std::string imagePath = TestTools::getTestImagePath("czi", "jxr-rgb-5scenes.czi", true);
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(imagePath);
     std::string testImagePath = TestTools::getTestImagePath("czi", "jxr-rgb-5scenes.label.tiff", true);
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testImagePath);
     testAuxImage(imagePath, "Label", testImagePath);
 }
 
@@ -506,6 +526,7 @@ TEST(CZIImageDriver, timeResolution)
         GTEST_SKIP() << "Skip private test because full dataset is not enabled";
     }
     std::string imagePath = TestTools::getFullTestImagePath("czi", "T_3_CH_2.czi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(imagePath);
     slideio::CZIImageDriver driver;
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(imagePath);
     ASSERT_TRUE(slide != nullptr);
@@ -521,6 +542,7 @@ TEST(CZIImageDriver, mosaicFile)
         GTEST_SKIP() << "Skip private test because full dataset is not enabled";
     }
     std::string imagePath = TestTools::getFullTestImagePath("czi", "16bit_CH_1_doughnut_crop.czi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(imagePath);
     slideio::CZIImageDriver driver;
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(imagePath);
     ASSERT_TRUE(slide != nullptr);
@@ -531,6 +553,7 @@ TEST(CZIImageDriver, mosaicFile)
     cv::Mat raster;
     scene->readBlock(rect, raster);
     std::string testImagePath = TestTools::getFullTestImagePath("czi", "test/16bit_CH_1_doughnut_crop.tiff");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testImagePath);
     cv::Mat testRaster;
     slideio::ImageTools::readSmallImageRaster(testImagePath, testRaster);
     auto memSize = raster.total() * raster.elemSize();
@@ -544,6 +567,7 @@ TEST(CZIImageDriver, artificialFile)
         GTEST_SKIP() << "Skip private test because full dataset is not enabled";
     }
     std::string imagePath = TestTools::getFullTestImagePath("czi", "bug_2D_rgb_compressed.czi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(imagePath);
     slideio::CZIImageDriver driver;
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(imagePath);
     ASSERT_TRUE(slide != nullptr);
@@ -554,6 +578,7 @@ TEST(CZIImageDriver, artificialFile)
     cv::Mat raster;
     scene->readBlock(rect, raster);
     std::string testImagePath = TestTools::getFullTestImagePath("czi", "test/bug_2D_rgb_compressed.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testImagePath);
     cv::Mat testRaster;
     slideio::ImageTools::readSmallImageRaster(testImagePath, testRaster);
     auto memSize = raster.total() * raster.elemSize();
@@ -568,7 +593,9 @@ TEST(CZIImageDriver, mozaicZoomPyramid)
         GTEST_SKIP() << "Skip private test because full dataset is not enabled";
     }
     std::string imagePath = TestTools::getFullTestImagePath("czi", "zeiss.czi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(imagePath);
     std::string testImagePath = TestTools::getFullTestImagePath("czi", "test/zeiss-block.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testImagePath);
     slideio::CZIImageDriver driver;
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(imagePath);
     ASSERT_TRUE(slide != nullptr);
@@ -594,6 +621,7 @@ TEST(CZIImageDriver, openDamagedFile)
     slideio::CZIImageDriver driver;
 
     std::string filePath = TestTools::getFullTestImagePath("czi", "private/E2_A3_W12.czi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
 
     ASSERT_NO_THROW(driver.openFile(filePath));
 }
@@ -601,6 +629,7 @@ TEST(CZIImageDriver, openDamagedFile)
 TEST(CZIImageDriver, auxSceneMemoryReallocatedBug)
 {
     std::string imagePath = TestTools::getTestImagePath("czi", "03_14_2019_DSGN0545_A_wb_1353_fov_1_633.czi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(imagePath);
     slideio::CZIImageDriver driver;
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(imagePath);
     ASSERT_TRUE(slide != nullptr);
@@ -625,6 +654,7 @@ TEST(CZIImageDriver, openFileUtf8)
     }
     {
         std::string filePath = TestTools::getFullTestImagePath("unicode", u8"тест/pJP31mCherry.czi");
+        SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
         slideio::CZIImageDriver driver;
         std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
         int dirCount = slide->getNumScenes();
@@ -658,6 +688,7 @@ TEST(CZIImageDriver, zoomLevels)
     };
     slideio::CZIImageDriver driver;
     std::string filePath = TestTools::getFullTestImagePath("czi", "30-10-2020_NothingRecognized-15986.czi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     const std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     const std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
     const int numScenes = slide->getNumScenes();
@@ -684,6 +715,7 @@ TEST(CZIImageDriver, multiThreadSceneAccess) {
             "Skip the test because full dataset is not enabled";
     }
     std::string filePath = TestTools::getTestImagePath("czi", "03_14_2019_DSGN0545_A_wb_1353_fov_1_633.czi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     slideio::CZIImageDriver driver;
     TestTools::multiThreadedTest(filePath, driver);
 }
@@ -692,6 +724,7 @@ TEST(CZIImageDriver, channelAttributes)
 {
     slideio::CZIImageDriver driver;
     std::string filePath = TestTools::getTestImagePath("czi", "pJP31mCherry.czi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
     int numScenes = slide->getNumScenes();
@@ -722,6 +755,7 @@ TEST(CZIImageDriver, channelAttributes2)
     }
     {
         std::string imagePath = TestTools::getFullTestImagePath("czi", "bug_2D_rgb_compressed.czi");
+        SLIDEIO_SKIP_IF_IMAGE_MISSING(imagePath);
         slideio::CZIImageDriver driver;
         std::shared_ptr<slideio::CVSlide> slide = driver.openFile(imagePath);
         ASSERT_TRUE(slide != nullptr);
@@ -735,6 +769,7 @@ TEST(CZIImageDriver, channelAttributes2)
     }
     {
         std::string imagePath = TestTools::getFullTestImagePath("czi", "private/20-024_K5_HE.czi");
+        SLIDEIO_SKIP_IF_IMAGE_MISSING(imagePath);
         slideio::CZIImageDriver driver;
         std::shared_ptr<slideio::CVSlide> slide = driver.openFile(imagePath);
         ASSERT_TRUE(slide != nullptr);
@@ -751,6 +786,7 @@ TEST(CZIImageDriver, channelAttributes2)
 TEST(CZIImageDriver, getDriverId)
 {
     std::string filePath = TestTools::getTestImagePath("czi", "pJP31mCherry.czi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     auto slide = slideio::openSlide(filePath, "AUTO");
     ASSERT_TRUE(slide);
     EXPECT_EQ("CZI", slide->getDriverId());
@@ -773,6 +809,7 @@ TEST(CZIImageDriver, openChannelColor)
     }
     {
         std::string filePath = TestTools::getFullTestImagePath("czi", u8"openslide/Zeiss-4-Mosaic.czi");
+        SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
         slideio::CZIImageDriver driver;
         std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
         int dirCount = slide->getNumScenes();
@@ -794,6 +831,7 @@ TEST(CZIImageDriver, splitZoomLevel)
         GTEST_SKIP() << "Skip private test because full dataset is not enabled";
     }
     std::string filePath = TestTools::getFullTestImagePath("czi", u8"private/example_split.czi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::string roiPaths[] = {
         TestTools::getFullTestImagePath("czi", "test/example_split (1).czi - ScanRegion0 (1, x=17583, y=3676, w=1000, h=1000).png"),
         TestTools::getFullTestImagePath("czi", "test/example_split (1).czi - ScanRegion0 (1, x=41169, y=4850, w=1000, h=1000).png"),
@@ -841,6 +879,7 @@ TEST(CZIImageDriver, readLevelMatchesTheResampledSceneRead)
         GTEST_SKIP() << "Skip private test because full dataset is not enabled";
     }
     std::string filePath = TestTools::getFullTestImagePath("czi", "zeiss.czi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     slideio::CZIImageDriver driver;
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
@@ -883,6 +922,7 @@ TEST(CZIImageDriver, readLevelMatchesTheResampledSceneRead)
     // the coarsest level is used in both the level path and the scene path.
     {
         std::string zStackFilePath = TestTools::getFullTestImagePath("czi", "30-10-2020_NothingRecognized-15986.czi");
+        SLIDEIO_SKIP_IF_IMAGE_MISSING(zStackFilePath);
         std::shared_ptr<slideio::CVSlide> zStackSlide = driver.openFile(zStackFilePath);
         ASSERT_TRUE(zStackSlide != nullptr);
         std::shared_ptr<slideio::CVScene> zStackScene = zStackSlide->getScene(0);
@@ -929,6 +969,7 @@ TEST(CZIImageDriver, readLevelDoesNotReuseAdjacentLevel)
         GTEST_SKIP() << "Skip private test because full dataset is not enabled";
     }
     std::string filePath = TestTools::getFullTestImagePath("czi", "30-10-2020_NothingRecognized-15986.czi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     slideio::CZIImageDriver driver;
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);

@@ -88,6 +88,7 @@ TEST_F(OTImageDriverTests, canOpenFile) {
 
 TEST_F(OTImageDriverTests, openSlide) {
 	std::string filePath = TestTools::getFullTestImagePath("ometiff", "Multifile/multifile-Z1.ome.tiff");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
 	auto slide = slideio::openSlide(filePath, "OMETIFF");
 	ASSERT_TRUE(slide != nullptr);
 	slide = slideio::openSlide(filePath, "AUTO");
@@ -96,6 +97,7 @@ TEST_F(OTImageDriverTests, openSlide) {
 
 TEST_F(OTImageDriverTests, readInt8Scene) {
 	std::string filePath = TestTools::getFullTestImagePath("ometiff", "4D-Series/4D-series.ome.tiff");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
 	auto slide = slideio::openSlide(filePath, "OMETIFF");
 	ASSERT_TRUE(slide != nullptr);
 	slide = slideio::openSlide(filePath, "AUTO");
@@ -122,6 +124,7 @@ TEST_F(OTImageDriverTests, readInt8Scene) {
 
 TEST_F(OTImageDriverTests, openMultifileSlide) {
     std::string filePath = TestTools::getFullTestImagePath("ometiff", "Multifile/multifile-Z1.ome.tiff");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     slideio::ometiff::OTImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
@@ -144,6 +147,7 @@ TEST_F(OTImageDriverTests, openMultifileSlide) {
 
 TEST_F(OTImageDriverTests, openMultifileExternalMetadata) {
 	std::string filePath = TestTools::getFullTestImagePath("ometiff", "Multifile2/multifile-Z1.ome.tiff");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
 	slideio::ometiff::OTImageDriver driver;
 	std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
 	ASSERT_TRUE(slide != nullptr);
@@ -171,6 +175,7 @@ TEST_F(OTImageDriverTests, getDriverId)
 	}
 
 	std::string filePath = TestTools::getFullTestImagePath("ometiff", "Subresolutions/Leica-2.ome.tiff");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
 	auto slide = slideio::openSlide(filePath, "AUTO");
 	ASSERT_TRUE(slide);
 	const int numScenes = slide->getNumScenes();
@@ -207,6 +212,7 @@ TEST_F(OTImageDriverTests, openMultiResolutionSlide) {
 	};
 
     std::string filePath = TestTools::getFullTestImagePath("ometiff", "Subresolutions/Leica-2.ome.tiff");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     slideio::ometiff::OTImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
@@ -246,6 +252,7 @@ TEST_F(OTImageDriverTests, openMultiResolutionSlide) {
 
 TEST_F(OTImageDriverTests, openFluorescentSlide) {
 	std::string filePath = TestTools::getFullTestImagePath("ometiff", "Subresolutions/retina_large.ome.tiff");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
 	slideio::ometiff::OTImageDriver driver;
 	std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
 	ASSERT_TRUE(slide != nullptr);
@@ -302,8 +309,11 @@ TEST_F(OTImageDriverTests, openFluorescentSlide) {
 TEST_F(OTImageDriverTests, TIFFFiles) {
 	TIFFFiles files;
 	std::string filePath1 = TestTools::getFullTestImagePath("ometiff", "Subresolutions/retina_large.ome.tiff");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath1);
 	std::string filePath2 = TestTools::getFullTestImagePath("ometiff", "Multifile/multifile-Z1.ome.tiff");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath2);
 	std::string filePath3 = TestTools::getFullTestImagePath("ometiff", "Subresolutions/Leica-2.ome.tiff");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath3);
 	libtiff::TIFF* tiff = files.getOrOpen(filePath1);
 	ASSERT_TRUE(tiff != nullptr);
 	EXPECT_EQ(files.getNumberOfOpenFiles(), 1);
@@ -353,7 +363,9 @@ TEST_F(OTImageDriverTests, TIFFFiles) {
 
 TEST_F(OTImageDriverTests, readBlockSingleTile) {
 	std::string filePath = TestTools::getFullTestImagePath("ometiff", "Subresolutions/Leica-1.ome.tiff");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
 	std::string testFilePath = TestTools::getFullTestImagePath("ometiff", "Tests/Leica-1.ome.tiff - Series 1 (1, x=21504, y=15360, w=512, h=512).png");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath);
 	slideio::ometiff::OTImageDriver driver;
 	std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
 	ASSERT_TRUE(slide != nullptr);
@@ -374,8 +386,11 @@ TEST_F(OTImageDriverTests, readBlockSingleTile) {
 
 TEST_F(OTImageDriverTests, readBlock3Chnls) {
 	std::string filePath = TestTools::getFullTestImagePath("ometiff", "Subresolutions/Leica-1.ome.tiff");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
 	std::string testFilePath = TestTools::getFullTestImagePath("ometiff", "Tests/Leica-1.ome.tiff - Series 1 (1, x=24000, y=18000, w=2000, h=1000).png");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath);
 	std::string testFileDownsampledPath = TestTools::getFullTestImagePath("ometiff", "Tests/Leica-1.ome.tiff - Series 1 (4, x=24000, y=18000, w=2000, h=1000).png");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(testFileDownsampledPath);
 	slideio::ometiff::OTImageDriver driver;
 	std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
 	ASSERT_TRUE(slide != nullptr);
@@ -408,8 +423,11 @@ TEST_F(OTImageDriverTests, readBlock3Chnls) {
 
 TEST_F(OTImageDriverTests, readBlock3ChnlsBGR) {
 	std::string filePath = TestTools::getFullTestImagePath("ometiff", "Subresolutions/Leica-1.ome.tiff");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
 	std::string testFilePath = TestTools::getFullTestImagePath("ometiff", "Tests/Leica-1.ome.tiff - Series 1 (1, x=24000, y=18000, w=2000, h=1000).png");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath);
 	std::string testFileDownsampledPath = TestTools::getFullTestImagePath("ometiff", "Tests/Leica-1.ome.tiff - Series 1 (4, x=24000, y=18000, w=2000, h=1000).png");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(testFileDownsampledPath);
 	slideio::ometiff::OTImageDriver driver;
 	std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
 	ASSERT_TRUE(slide != nullptr);
@@ -444,8 +462,11 @@ TEST_F(OTImageDriverTests, readBlock3ChnlsBGR) {
 
 TEST_F(OTImageDriverTests, readBlockZStackChannels) {
 	std::string filePath = TestTools::getFullTestImagePath("ometiff", "Subresolutions/retina_large.ome.tiff");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
 	std::string testFilePathCh1 = TestTools::getFullTestImagePath("ometiff", "Tests/retina_large.ome-page32-channel-0.tif");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePathCh1);
 	std::string testFilePathCh2 = TestTools::getFullTestImagePath("ometiff", "Tests/retina_large.ome-page32-channel-1.tif");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePathCh2);
 	slideio::ometiff::OTImageDriver driver;
 	std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
 	ASSERT_TRUE(slide != nullptr);
@@ -477,6 +498,7 @@ TEST_F(OTImageDriverTests, readBlockZStackChannels) {
 
 TEST_F(OTImageDriverTests, readBlockZStackSlices) {
 	std::string filePath = TestTools::getFullTestImagePath("ometiff", "Subresolutions/retina_large.ome.tiff");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
 	std::vector<std::string> sliceFiles = {
 		TestTools::getFullTestImagePath("ometiff", "Tests/page_24.tif"),
 		TestTools::getFullTestImagePath("ometiff", "Tests/page_25.tif"),
@@ -518,6 +540,7 @@ TEST_F(OTImageDriverTests, readBlockZStackSlices) {
 
 TEST_F(OTImageDriverTests, readBlock4DMultifile) {
 	std::string filePath = TestTools::getFullTestImagePath("ometiff", "tubhiswt-4D/tubhiswt_C0_TP0.ome.tif");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
 	std::vector<std::string> sliceFiles = {
 		TestTools::getFullTestImagePath("ometiff", "Tests/tubhiswt4D-C0-T20-Z3.tif"),
 		TestTools::getFullTestImagePath("ometiff", "Tests/tubhiswt4D-C0-T20-Z4.tif"),
@@ -595,6 +618,10 @@ TEST_F(OTImageDriverTests, magnification) {
 		{TestTools::getFullTestImagePath("ometiff", "Subresolutions/Leica-2.ome.tiff"), 0, 0.60833},
 		{TestTools::getFullTestImagePath("ometiff", "Subresolutions/Leica-2.ome.tiff"), 1, 40.},
 	};
+	// Paths live inside the tuples, so the per-statement guard cannot see them.
+	for (const auto& testCase : testCases) {
+		SLIDEIO_SKIP_IF_IMAGE_MISSING(std::get<0>(testCase));
+	}
 	for (const auto& testCase : testCases) {
 		std::string filePath = std::get<0>(testCase);
 		int sceneIndex = std::get<1>(testCase);
@@ -618,6 +645,10 @@ TEST_F(OTImageDriverTests, metadata) {
 		{TestTools::getFullTestImagePath("ometiff", "Subresolutions/Leica-2.ome.tiff"), 0, 0.60833},
 		{TestTools::getFullTestImagePath("ometiff", "Subresolutions/Leica-2.ome.tiff"), 1, 40.},
 	};
+	// Paths live inside the tuples, so the per-statement guard cannot see them.
+	for (const auto& testCase : testCases) {
+		SLIDEIO_SKIP_IF_IMAGE_MISSING(std::get<0>(testCase));
+	}
 	for (const auto& testCase : testCases) {
 		std::string filePath = std::get<0>(testCase);
 		slideio::ometiff::OTImageDriver driver;
@@ -633,7 +664,9 @@ TEST_F(OTImageDriverTests, metadata) {
 
 TEST_F(OTImageDriverTests, readBlockLargeFileLZW) {
 	std::string filePath = TestTools::getFullTestImagePath("ometiff", "private/test.ome.tif");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
 	std::string testFilePathCh1 = TestTools::getFullTestImagePath("ometiff", "Tests/test.ome.tif - USL-2023-53777-20 (1, x=16245, y=23321, w=1028, h=640).tif");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePathCh1);
 	slideio::ometiff::OTImageDriver driver;
 	std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
 	ASSERT_TRUE(slide != nullptr);
@@ -700,7 +733,9 @@ TEST_F(OTImageDriverTests, readBlockLargeFileLZW) {
 
 TEST_F(OTImageDriverTests, sceneWithPixeltype) {
 	std::string filePath = TestTools::getFullTestImagePath("ometiff", "Iron-Plate.ome.tiff");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
 	std::string testFilePathCh1 = TestTools::getFullTestImagePath("ometiff", "Tests/Iron-Plate (1, x=144, y=146, w=258, h=175).tif");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePathCh1);
 	slideio::ometiff::OTImageDriver driver;
 	std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
 	ASSERT_TRUE(slide != nullptr);
@@ -726,6 +761,7 @@ TEST_F(OTImageDriverTests, sceneWithPixeltype) {
 
 TEST_F(OTImageDriverTests, channelAttributes) {
     std::string filePath = TestTools::getFullTestImagePath("ometiff", "private/test.ome.tif");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     OTImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
@@ -772,6 +808,7 @@ TEST_F(OTImageDriverTests, channelAttributes) {
 
 TEST_F(OTImageDriverTests, readBlockBigEndian) {
 	std::string filePath = TestTools::getFullTestImagePath("ometiff", "private/ULT-2020-111-014-1.ome.tif");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
 	std::string testFilePaths[] = {	TestTools::getFullTestImagePath("ometiff", "Tests/ULT-2020-111-014_1 (1, x=4375, y=39330, w=1153, h=743).tif"),
 	                                TestTools::getFullTestImagePath("ometiff", "Tests/ULT-2020-111-014_1 (1, x=28333, y=36086, w=1099, h=760).tif")
 	};
@@ -852,6 +889,7 @@ TEST_F(OTImageDriverTests, readBlockBigEndian) {
 
 TEST_F(OTImageDriverTests, readLevelMatchesTheResampledSceneRead) {
 	std::string filePath = TestTools::getFullTestImagePath("ometiff", "Subresolutions/Leica-2.ome.tiff");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
 	slideio::ometiff::OTImageDriver driver;
 	std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
 	ASSERT_TRUE(slide != nullptr);
@@ -889,6 +927,7 @@ TEST_F(OTImageDriverTests, readLevelMatchesTheResampledSceneRead) {
 // served by level 1.
 TEST_F(OTImageDriverTests, readLevelDoesNotReuseAdjacentLevel) {
 	std::string filePath = TestTools::getFullTestImagePath("ometiff", "Subresolutions/Leica-2.ome.tiff");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
 	slideio::ometiff::OTImageDriver driver;
 	std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
 	ASSERT_TRUE(slide != nullptr);

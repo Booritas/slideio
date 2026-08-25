@@ -76,6 +76,7 @@ TEST(TagInfo, findChild) {
 
 TEST(VSIFile, expectExternalFilesTrue) {
     const std::string filePath = TestTools::getFullTestImagePath("vsi", "Zenodo/Abdominal/G1M16_ABD_HE_B6.vsi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     VSIFile file(filePath);
     EXPECT_TRUE(file.expectExternalFiles());
     EXPECT_TRUE(file.hasExternalFiles());
@@ -85,6 +86,7 @@ TEST(VSIFile, expectExternalFilesFalse) {
     std::string filePath = TestTools::getFullTestImagePath("vsi",
         "Zenodo/Q6VM49JF/Figure-1-ultrasound-raw-data"
         "/SPECTRUM_#201_2016-06-14_Jiangtao Liu/1286FL9057GDF8RGDX257R2GLHZ.vsi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     VSIFile file(filePath);
     EXPECT_FALSE(file.expectExternalFiles());
 }

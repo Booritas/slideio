@@ -15,7 +15,9 @@
 TEST(ImageTools, readJp2KFile)
 {
     std::string filePath = TestTools::getTestImagePath("jp2K","relax.jp2");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::string bmpFilePath = TestTools::getTestImagePath("jp2K","relax.bmp");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(bmpFilePath);
     // read jp2k file
     cv::Mat jp2k;
     slideio::ImageTools::readJp2KFile(filePath, jp2k);
@@ -36,7 +38,9 @@ TEST(ImageTools, readJp2KFile)
 TEST(ImageTools, readJp2Header)
 {
     std::string filePath = TestTools::getTestImagePath("jp2K", "relax.jp2");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::string bmpFilePath = TestTools::getTestImagePath("jp2K", "relax.bmp");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(bmpFilePath);
 
     auto fileSize = std::filesystem::file_size(filePath);
     ASSERT_GT(fileSize, 0);
@@ -65,6 +69,7 @@ TEST(ImageTools, readJp2Header)
 TEST(ImageTools, readGDALImage)
 {
     std::string path = TestTools::getTestImagePath("gdal","img_1024x600_3x8bit_RGB_color_bars_CMYKWRGB.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
     cv::Mat image;
     slideio::ImageTools::readSmallImageRaster(path, image);
     cv::Rect rect(260, 500, 100, 100);
@@ -100,6 +105,7 @@ TEST(ImageTools, readGDALImage)
 TEST(ImageTools, writeRGBImage)
 {
     std::string pathBmp = TestTools::getTestImagePath("jxr","seagull.bmp");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(pathBmp);
     slideio::TempFile pathPng("png");
     cv::Mat sourceRaster;
     slideio::ImageTools::readSmallImageRaster(pathBmp, sourceRaster);
@@ -121,7 +127,9 @@ TEST(ImageTools, writeRGBImage)
 TEST(ImageTools, readJxrImage)
 {
     std::string pathJxr = TestTools::getTestImagePath("jxr","seagull.wdp");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(pathJxr);
     std::string pathBmp = TestTools::getTestImagePath("jxr","seagull.bmp");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(pathBmp);
     cv::Mat jxrImage, bmpImage;
     slideio::ImageTools::readJxrImage(pathJxr, jxrImage);
     slideio::ImageTools::readSmallImageRaster(pathBmp, bmpImage);
@@ -137,6 +145,7 @@ TEST(ImageTools, readJxrImage)
 TEST(ImageTools, readJxrImageCorrupted)
 {
     std::string pathJxr = TestTools::getTestImagePath("jxr","corrupted.wdp");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(pathJxr);
     cv::Mat jxrImage, bmpImage;
     EXPECT_THROW(slideio::ImageTools::readJxrImage(pathJxr, jxrImage), std::exception);
 }
@@ -144,7 +153,9 @@ TEST(ImageTools, readJxrImageCorrupted)
 TEST(ImageTools, decodeJxrBlock)
 {
     std::string pathJxr = TestTools::getTestImagePath("jxr","seagull.wdp");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(pathJxr);
     std::string pathBmp = TestTools::getTestImagePath("jxr","seagull.bmp");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(pathBmp);
     // read jpxr file to the memory
     std::ifstream file (pathJxr, std::ios::in| std::ios::binary| std::ios::ate);
     ASSERT_TRUE(file.is_open());
@@ -172,7 +183,9 @@ TEST(ImageTools, decodeJxrBlock)
 TEST(ImageTools, decodeJxrBlock16)
 {
     std::string pathJxr = TestTools::getTestImagePath("jxr","tile16.jxr");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(pathJxr);
     std::string pathRaw = TestTools::getTestImagePath("jxr","tile16.raw");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(pathRaw);
     // read jpxr file to the memory
     std::ifstream file (pathJxr, std::ios::in| std::ios::binary| std::ios::ate);
     ASSERT_TRUE(file.is_open());
@@ -200,7 +213,9 @@ TEST(ImageTools, decodeJxrBlock16)
 TEST(ImageTools, decodeJpegStream)
 {
     std::string pathJpg = TestTools::getTestImagePath("jpeg", "lena_256.jpg");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(pathJpg);
     std::string pathPng = TestTools::getTestImagePath("jpeg", "lena_256.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(pathPng);
 
     std::ifstream file(pathJpg, std::ios::in | std::ios::binary | std::ios::ate);
     ASSERT_TRUE(file.is_open());
@@ -228,7 +243,9 @@ TEST(ImageTools, decodeJpegStream)
 TEST(ImageTools, decodeJpegStream2)
 {
     std::string pathJpg = TestTools::getTestImagePath("jpeg", "p2YCpvg.jpeg");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(pathJpg);
     std::string pathPng = TestTools::getTestImagePath("jpeg", "p2YCpvg.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(pathPng);
 
     std::ifstream file(pathJpg, std::ios::in | std::ios::binary | std::ios::ate);
     ASSERT_TRUE(file.is_open());
@@ -278,6 +295,7 @@ TEST(ImageTools, computeSimilarityDifferent)
 TEST(ImageTools, computeSimilaritySimilar)
 {
     std::string pathPng = TestTools::getTestImagePath("jpeg", "lena_256.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(pathPng);
     cv::Mat left;
     slideio::ImageTools::readSmallImageRaster(pathPng, left);
     cv::Mat right = left.clone();
@@ -289,6 +307,7 @@ TEST(ImageTools, computeSimilaritySimilar)
 TEST(ImageTools, computeSimilaritySimilar2)
 {
     std::string pathPng = TestTools::getTestImagePath("jpeg", "lena_256.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(pathPng);
     cv::Mat left;
     slideio::ImageTools::readSmallImageRaster(pathPng, left);
     cv::Mat right = left.clone();
@@ -302,6 +321,7 @@ TEST(ImageTools, computeSimilaritySimilar2)
 TEST(ImageTools, encodeJpeg)
 {
     std::string pathPng = TestTools::getTestImagePath("gdal", "img_2448x2448_3x8bit_SRC_RGB_ducks.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(pathPng);
     cv::Mat source;
     slideio::ImageTools::readSmallImageRaster(pathPng, source);
     std::vector<uint8_t> output;
@@ -322,6 +342,7 @@ TEST(ImageTools, encodeJpeg)
 TEST(ImageTools, encodeJpegGray)
 {
     std::string pathPng = TestTools::getTestImagePath("gdal", "img_2448x2448_1x8bit_SRC_GRAY_ducks.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(pathPng);
     cv::Mat source;
     slideio::ImageTools::readSmallImageRaster(pathPng, source);
     std::vector<uint8_t> output;
@@ -384,7 +405,9 @@ TEST(ConverterTools, ConvertTo32BitChannelsTest) {
 TEST(ImageTools, computeSimilarity2)
 {
     std::string testFilePath1 = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1-dir.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath1);
     std::string testFilePath2 = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1-dir1.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath2);
     cv::Mat testRaster1;
     TestTools::readPNG(testFilePath1, testRaster1);
     cv::cvtColor(testRaster1, testRaster1, cv::COLOR_BGRA2BGR);
@@ -464,6 +487,7 @@ TEST(ImageTools, readBitmapInvalidFormat)
 {
     // Test with a non-BMP file
     std::string pathPng = TestTools::getTestImagePath("gdal", "img_2448x2448_3x8bit_SRC_RGB_ducks.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(pathPng);
     cv::Mat bmpRaster;
     
     EXPECT_THROW({

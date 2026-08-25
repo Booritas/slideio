@@ -43,6 +43,7 @@ TEST_F(NDPIImageDriverTests, openFile)
     }
 
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "2017-02-27 15.29.08.ndpi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     slideio::NDPIImageDriver driver;
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide);
@@ -82,8 +83,11 @@ TEST_F(NDPIImageDriverTests, readStrippedScene)
     }
 
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1.ndpi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::string testFilePath1 = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1-1.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath1);
     std::string testFilePath2 = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1_002.tif");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath2);
     slideio::NDPIImageDriver driver;
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide);
@@ -144,7 +148,9 @@ TEST_F(NDPIImageDriverTests, readROI)
     }
 
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-2.ndpi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-2-roi-l0.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath);
     slideio::NDPIImageDriver driver;
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide);
@@ -191,7 +197,9 @@ TEST_F(NDPIImageDriverTests, readROI2)
     }
 
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "test3-TRITC 2 (560).ndpi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "test3-TRITC 2 (560)-roi.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath);
     slideio::NDPIImageDriver driver;
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide);
@@ -222,7 +230,9 @@ TEST_F(NDPIImageDriverTests, readROIResampled)
     }
 
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-2.ndpi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-2-roi-l0.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath);
     slideio::NDPIImageDriver driver;
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide);
@@ -273,8 +283,11 @@ TEST_F(NDPIImageDriverTests, readAuxImages)
     }
 
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "2017-02-27 15.29.08.ndpi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::string macroFilePath = TestTools::getFullTestImagePath("hamamatsu", "2017-02-27 15.29.08.macro.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(macroFilePath);
     std::string mapFilePath = TestTools::getFullTestImagePath("hamamatsu", "2017-02-27 15.29.08.map.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(mapFilePath);
     slideio::NDPIImageDriver driver;
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide);
@@ -312,7 +325,9 @@ TEST_F(NDPIImageDriverTests, readResampledTiled)
         GTEST_SKIP() << "Skip private test because full dataset is not enabled";
     }
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "DM0014 - 2020-04-02 10.25.21.ndpi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "DM0014 - 2020-04-02 10.25.21-roi-resampled.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath);
     slideio::NDPIImageDriver driver;
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide);
@@ -356,7 +371,9 @@ TEST_F(NDPIImageDriverTests, readResampledTiledRoi)
     }
 
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "DM0014 - 2020-04-02 10.25.21.ndpi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "DM0014 - 2020-04-02 10.25.21-roi-resampled-tiled.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath);
     slideio::NDPIImageDriver driver;
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide);
@@ -399,7 +416,9 @@ TEST_F(NDPIImageDriverTests, readResampled)
         GTEST_SKIP() << "Skip private test because full dataset is not enabled";
     }
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "DM0014 - 2020-04-02 11.10.47.ndpi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "DM0014 - 2020-04-02 11.10.47-resampled.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath);
     slideio::NDPIImageDriver driver;
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide);
@@ -427,6 +446,7 @@ TEST_F(NDPIImageDriverTests, openFileUtf8)
     }
     {
         std::string filePath = TestTools::getFullTestImagePath("unicode", u8"тест/test3-TRITC 2 (560).ndpi");
+        SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
         slideio::NDPIImageDriver driver;
         std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
         int dirCount = slide->getNumScenes();
@@ -450,6 +470,7 @@ TEST_F(NDPIImageDriverTests, findZoomDirectory)
         GTEST_SKIP() << "Skip private test because full dataset is not enabled";
     }
     const std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "DM0014 - 2020-04-02 11.10.47.ndpi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     slideio::NDPIImageDriver driver;
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     const int dirCount = slide->getNumScenes();
@@ -504,6 +525,7 @@ TEST_F(NDPIImageDriverTests, zoomLevels)
     };
     slideio::NDPIImageDriver driver;
     const std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "2017-02-27 15.29.08.ndpi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     const std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     const std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
     const int numScenes = slide->getNumScenes();
@@ -530,6 +552,7 @@ TEST_F(NDPIImageDriverTests, multiThreadSceneAccess) {
             "Skip the test because full dataset is not enabled";
     }
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "DM0014 - 2020-04-02 11.10.47.ndpi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     slideio::NDPIImageDriver driver;
     TestTools::multiThreadedTest(filePath, driver);
 }
@@ -542,8 +565,11 @@ TEST_F(NDPIImageDriverTests, readRoiExceedScene)
     }
 
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1.ndpi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::string testFilePath1 = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1-1.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath1);
     std::string testFilePath2 = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1_002.tif");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath2);
     slideio::NDPIImageDriver driver;
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide);
@@ -570,6 +596,7 @@ TEST_F(NDPIImageDriverTests, getDriverId)
     }
 
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1.ndpi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     auto slide = slideio::openSlide(filePath, "AUTO");
     ASSERT_TRUE(slide);
     const int numScenes = slide->getNumScenes();
@@ -592,6 +619,7 @@ TEST_F(NDPIImageDriverTests, readLevelMatchesTheResampledSceneRead)
     }
     slideio::NDPIImageDriver driver;
     const std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "2017-02-27 15.29.08.ndpi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     auto slide = driver.openFile(filePath);
     auto scene = slide->getScene(0);
     ASSERT_TRUE(scene != nullptr);
@@ -622,6 +650,7 @@ TEST_F(NDPIImageDriverTests, readLevelClampsAnOverhangingRect)
     }
     slideio::NDPIImageDriver driver;
     const std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "2017-02-27 15.29.08.ndpi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     auto slide = driver.openFile(filePath);
     auto scene = slide->getScene(0);
     ASSERT_TRUE(scene != nullptr);
@@ -656,6 +685,7 @@ TEST_F(NDPIImageDriverTests, readLevelDoesNotEscalateToACoarserLevel)
     }
     slideio::NDPIImageDriver driver;
     const std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "2017-02-27 15.29.08.ndpi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     auto slide = driver.openFile(filePath);
     auto scene = slide->getScene(0);
     ASSERT_TRUE(scene != nullptr);

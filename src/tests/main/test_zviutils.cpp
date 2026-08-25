@@ -18,6 +18,7 @@ using namespace slideio;
 TEST(ZVIUtils, read_stream_int)
 {
     std::string file_path = TestTools::getTestImagePath("zvi","Zeiss-1-Merged.zvi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(file_path);
     ole::compound_document doc(file_path);
     ASSERT_TRUE(doc.good());
     auto begin = doc.begin();
@@ -49,6 +50,7 @@ TEST(ZVIUtils, read_stream_int)
 TEST(ZVIUtils, read_stream_double)
 {
     std::string file_path = TestTools::getTestImagePath("zvi","Zeiss-1-Merged.zvi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(file_path);
     ole::compound_document doc(file_path);
     ASSERT_TRUE(doc.good());
     auto begin = doc.begin();
@@ -67,6 +69,7 @@ TEST(ZVIUtils, read_stream_double)
 TEST(ZVIUtils, read_stream_string)
 {
     std::string file_path = TestTools::getTestImagePath("zvi","Zeiss-1-Merged.zvi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(file_path);
     ole::compound_document doc(file_path);
     ASSERT_TRUE(doc.good());
     auto begin = doc.begin();
@@ -83,6 +86,7 @@ TEST(ZVIUtils, read_stream_string)
 TEST(ZVIUtils, StreamKeeper)
 {
     std::string file_path = TestTools::getTestImagePath("zvi", "Zeiss-1-Merged.zvi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(file_path);
     ole::compound_document doc(file_path);
     ZVIUtils::StreamKeeper stream(doc, "/Image/Scaling/Contents");
     ZVIUtils::skipItems(stream, 1);
@@ -93,6 +97,7 @@ TEST(ZVIUtils, StreamKeeper)
 TEST(ZVIUtils, StreamKeeperNegative)
 {
     std::string file_path = TestTools::getTestImagePath("zvi", "Zeiss-1-Merged.zvi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(file_path);
     ole::compound_document doc(file_path);
 
     ASSERT_THROW(ZVIUtils::StreamKeeper(doc, "/Image/Scaling1/Contents"), slideio::RuntimeError);
@@ -101,6 +106,7 @@ TEST(ZVIUtils, StreamKeeperNegative)
 TEST(ZVIUtils, readItem)
 {
     std::string file_path = TestTools::getTestImagePath("zvi", "Zeiss-1-Merged.zvi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(file_path);
     ole::compound_document doc(file_path);
     ZVIUtils::StreamKeeper stream(doc, "/Image/Scaling/Contents");
     ZVIUtils::skipItems(stream, 1);
@@ -146,6 +152,7 @@ TEST(ZVITags, getZviTagName_unknown)
 TEST(ZVIUtils, readAllTags_imageTagsContents)
 {
     std::string file_path = TestTools::getTestImagePath("zvi","Zeiss-1-Merged.zvi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(file_path);
     ole::compound_document doc(file_path);
     ASSERT_TRUE(doc.good());
     ZVIUtils::StreamKeeper stream(doc, "/Image/Tags/Contents");

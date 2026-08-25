@@ -389,7 +389,9 @@ TEST_F(PhTiffImageDriverTests, onlyThePhilipsDriverSniffsContent) {
 		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
 	}
 	const std::string philips = TestTools::getFullTestImagePath("philips", "Philips-4.tiff");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(philips);
 	const std::string plainTiff = TestTools::getTestImagePath("svs", "CMU-1-Small-Region-page-1.tif");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(plainTiff);
 	EXPECT_TRUE(PHTIFFImageDriver().canOpenFile(philips));
 	EXPECT_FALSE(PHTIFFImageDriver().canOpenFile(plainTiff));
 	EXPECT_FALSE(SVSImageDriver().canOpenFile(philips)) << "wrong extension for the svs driver";
@@ -426,6 +428,7 @@ TEST_F(PhTiffImageDriverTests, canOpenFileByContent) {
 	PHTIFFImageDriver driver;
 	for (const char* fileName : {"Philips-1.tiff", "Philips-2.tiff", "Philips-3.tiff", "Philips-4.tiff"}) {
 		const std::string philips = TestTools::getFullTestImagePath("philips", fileName);
+		SLIDEIO_SKIP_IF_IMAGE_MISSING(philips);
 		EXPECT_TRUE(driver.canOpenFile(philips)) << fileName;
 	}
 	EXPECT_FALSE(driver.canOpenFile(
@@ -442,6 +445,7 @@ TEST_F(PhTiffImageDriverTests, canOpenFileByContent) {
 
 TEST_F(PhTiffImageDriverTests, openSlide) {
 	std::string filePath = TestTools::getFullTestImagePath("philips", "Philips-3.tiff");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
 	auto slide = slideio::openSlide(filePath, PHTIFF_DRIVER_ID);
 	std::list<std::tuple<std::string,int,int>> auxNames = {
 	    {"Macro", 791, 403},
@@ -920,6 +924,7 @@ TEST_F(PhTiffImageDriverTests, zoomLevelsOfPhilips3ExcludeTilePadding) {
 		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
 	}
 	const std::string filePath = TestTools::getFullTestImagePath("philips", "Philips-3.tiff");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
 	auto slide = slideio::openSlide(filePath, PHTIFF_DRIVER_ID);
 	ASSERT_TRUE(slide != nullptr);
 	auto scene = slide->getScene(0);
@@ -963,6 +968,7 @@ TEST_F(PhTiffImageDriverTests, readFromPaddedZoomLevelMatchesUnpaddedLevel) {
 		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
 	}
 	const std::string filePath = TestTools::getFullTestImagePath("philips", "Philips-3.tiff");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
 	PHTIFFImageDriver driver;
 	auto slide = driver.openFile(filePath);
 	ASSERT_TRUE(slide != nullptr);
@@ -1040,6 +1046,7 @@ TEST_F(PhTiffImageDriverTests, openSlide2) {
 		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
 	}
 	std::string filePath = TestTools::getFullTestImagePath("philips", "Philips-4.tiff");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
 	// The philips metadata of this file declares a label image and a macro image, but
 	// the only auxiliary directory it stores is the macro (1816x821, described
 	// "Macro -offset=(0,0)-pixelsize=(0.0315,0.0315)-rois=(...)"). There is no label.
@@ -1085,6 +1092,7 @@ TEST_F(PhTiffImageDriverTests, metadataOfTheTestFiles) {
 	const std::string fileNames[] = {"Philips-1.tiff", "Philips-2.tiff", "Philips-3.tiff", "Philips-4.tiff"};
 	for (const std::string& fileName : fileNames) {
 		const std::string filePath = TestTools::getFullTestImagePath("philips", fileName);
+		SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
 		auto slide = slideio::openSlide(filePath, PHTIFF_DRIVER_ID);
 		ASSERT_TRUE(slide != nullptr) << fileName;
 		EXPECT_EQ(MetadataFormat::XML, slide->getMetadataFormat()) << fileName;
@@ -1144,6 +1152,7 @@ TEST_F(PhTiffImageDriverTests, magnificationOfTheTestFiles) {
 	};
 	for (const auto& param : expected) {
 		const std::string filePath = TestTools::getFullTestImagePath("philips", param.first);
+		SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
 		auto slide = slideio::openSlide(filePath, PHTIFF_DRIVER_ID);
 		ASSERT_TRUE(slide != nullptr) << param.first;
 		auto scene = slide->getScene(0);
@@ -1170,6 +1179,7 @@ TEST_F(PhTiffImageDriverTests, metadataCarriesTheBarcodeOfPhilips3) {
 		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
 	}
 	const std::string filePath = TestTools::getFullTestImagePath("philips", "Philips-3.tiff");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
 	auto slide = slideio::openSlide(filePath, PHTIFF_DRIVER_ID);
 	ASSERT_TRUE(slide != nullptr);
 	const Metadata tree = slide->getMetadata();
@@ -1194,6 +1204,7 @@ TEST_F(PhTiffImageDriverTests, auxImagesOfTheTestFiles) {
 	};
 	for (const auto& param : expected) {
 		const std::string filePath = TestTools::getFullTestImagePath("philips", param.first);
+		SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
 		auto slide = slideio::openSlide(filePath, PHTIFF_DRIVER_ID);
 		ASSERT_TRUE(slide != nullptr) << param.first;
 		EXPECT_EQ(1, slide->getNumScenes()) << param.first;
@@ -1222,6 +1233,10 @@ TEST_F(PhTiffImageDriverTests, findDriver) {
 		{"OMETIFF", TestTools::getFullTestImagePath("ometiff", "00001_01.ome.tiff")},
 		{"SVS", TestTools::getTestImagePath("svs", "CMU-1-Small-Region.svs")},
 	};
+	// Paths live inside the pairs, so guard them by walking the list.
+	for (const auto& param : expected) {
+		SLIDEIO_SKIP_IF_IMAGE_MISSING(param.second);
+	}
 	for (const auto& param : expected) {
 		auto driver = ImageDriverManager::findDriver(param.second);
 		ASSERT_TRUE(driver != nullptr) << param.second;
@@ -1238,6 +1253,7 @@ TEST_F(PhTiffImageDriverTests, openSlideWithoutDriverId) {
 		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
 	}
 	const std::string filePath = TestTools::getFullTestImagePath("philips", "Philips-3.tiff");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
 	auto slide = slideio::openSlide(filePath);
 	ASSERT_TRUE(slide != nullptr);
 	EXPECT_EQ(1, slide->getNumScenes());
@@ -1297,6 +1313,7 @@ TEST_F(PhTiffImageDriverTests, initPhTiffMakesTheMetadataTreeAvailable) {
 // FILE_SHARE_DELETE, so a leaked handle keeps the file undeletable.
 TEST_F(PhTiffImageDriverTests, aFailedOpenDoesNotLeaveTheFileOpen) {
 	const std::string source = TestTools::getTestImagePath("svs", "CMU-1-Small-Region-page-1.tif");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(source);
 	const std::filesystem::path copy =
 		std::filesystem::temp_directory_path() / "phtiff-failed-open-leak-check.tif";
 	std::error_code ignored;
@@ -2307,6 +2324,7 @@ TEST_F(PhTiffImageDriverTests, readImage) {
 	if (!TestTools::isFullTestEnabled()) {
 		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
 	}
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(TestTools::getFullTestImagePath("philips", ph2::FILE_NAME));
 	PhSlideAndScene opened = phOpenScene(ph2::FILE_NAME);
 	ASSERT_TRUE(opened.slide != nullptr);
 	ASSERT_EQ(1, opened.slide->getNumScenes());
@@ -2346,6 +2364,7 @@ TEST_F(PhTiffImageDriverTests, zoomLevelsOfPhilips2) {
 	if (!TestTools::isFullTestEnabled()) {
 		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
 	}
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(TestTools::getFullTestImagePath("philips", ph2::FILE_NAME));
 	PhSlideAndScene opened = phOpenScene(ph2::FILE_NAME);
 	ASSERT_TRUE(opened.scene != nullptr);
 	ASSERT_EQ(ph2::LEVELS, opened.scene->getNumZoomLevels());
@@ -2371,6 +2390,7 @@ TEST_F(PhTiffImageDriverTests, readImageChannels) {
 	if (!TestTools::isFullTestEnabled()) {
 		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
 	}
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(TestTools::getFullTestImagePath("philips", ph2::FILE_NAME));
 	PhSlideAndScene opened = phOpenScene(ph2::FILE_NAME);
 	ASSERT_TRUE(opened.scene != nullptr);
 	const cv::Rect roi = ph2::ALIGNED_ROI;
@@ -2428,6 +2448,7 @@ TEST_F(PhTiffImageDriverTests, readImageDownscaled) {
 	if (!TestTools::isFullTestEnabled()) {
 		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
 	}
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(TestTools::getFullTestImagePath("philips", ph2::FILE_NAME));
 	PhSlideAndScene opened = phOpenScene(ph2::FILE_NAME);
 	ASSERT_TRUE(opened.scene != nullptr);
 	const cv::Rect roi = ph2::ALIGNED_ROI;
@@ -2467,6 +2488,7 @@ TEST_F(PhTiffImageDriverTests, readImageDownscaledAcrossLevelsAgree) {
 	if (!TestTools::isFullTestEnabled()) {
 		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
 	}
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(TestTools::getFullTestImagePath("philips", ph2::FILE_NAME));
 	PhSlideAndScene opened = phOpenScene(ph2::FILE_NAME);
 	ASSERT_TRUE(opened.scene != nullptr);
 	const cv::Rect roi = ph2::ALIGNED_ROI;
@@ -2488,6 +2510,7 @@ TEST_F(PhTiffImageDriverTests, readImageDownscaledChannels) {
 	if (!TestTools::isFullTestEnabled()) {
 		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
 	}
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(TestTools::getFullTestImagePath("philips", ph2::FILE_NAME));
 	PhSlideAndScene opened = phOpenScene(ph2::FILE_NAME);
 	ASSERT_TRUE(opened.scene != nullptr);
 	const cv::Rect roi = ph2::ALIGNED_ROI;
@@ -2524,6 +2547,7 @@ TEST_F(PhTiffImageDriverTests, readImageDownscaledAnisotropically) {
 	if (!TestTools::isFullTestEnabled()) {
 		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
 	}
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(TestTools::getFullTestImagePath("philips", ph2::FILE_NAME));
 	PhSlideAndScene opened = phOpenScene(ph2::FILE_NAME);
 	ASSERT_TRUE(opened.scene != nullptr);
 	const cv::Rect roi = ph2::ALIGNED_ROI;
@@ -2548,6 +2572,7 @@ TEST_F(PhTiffImageDriverTests, readImageUpscaled) {
 	if (!TestTools::isFullTestEnabled()) {
 		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
 	}
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(TestTools::getFullTestImagePath("philips", ph2::FILE_NAME));
 	PhSlideAndScene opened = phOpenScene(ph2::FILE_NAME);
 	ASSERT_TRUE(opened.scene != nullptr);
 	const cv::Rect roi = ph2::ALIGNED_ROI;
@@ -2570,6 +2595,7 @@ TEST_F(PhTiffImageDriverTests, readImageWholeSlideThumbnail) {
 	if (!TestTools::isFullTestEnabled()) {
 		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
 	}
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(TestTools::getFullTestImagePath("philips", ph2::FILE_NAME));
 	PhSlideAndScene opened = phOpenScene(ph2::FILE_NAME);
 	ASSERT_TRUE(opened.scene != nullptr);
 	const cv::Rect rect = opened.scene->getRect();
@@ -2599,6 +2625,7 @@ TEST_F(PhTiffImageDriverTests, readImageBlockCrossingTheSceneEdge) {
 	if (!TestTools::isFullTestEnabled()) {
 		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
 	}
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(TestTools::getFullTestImagePath("philips", ph2::FILE_NAME));
 	PhSlideAndScene opened = phOpenScene(ph2::FILE_NAME);
 	ASSERT_TRUE(opened.scene != nullptr);
 	const cv::Rect rect = opened.scene->getRect();
@@ -2627,6 +2654,7 @@ TEST_F(PhTiffImageDriverTests, readAuxImageRasters) {
 	if (!TestTools::isFullTestEnabled()) {
 		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
 	}
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(TestTools::getFullTestImagePath("philips", "Philips-3.tiff"));
 	PhSlideAndScene opened = phOpenScene("Philips-3.tiff");
 	ASSERT_TRUE(opened.slide != nullptr);
 	const std::list<std::string> names = opened.slide->getAuxImageNames();
@@ -2672,6 +2700,7 @@ TEST_F(PhTiffImageDriverTests, multiThreadedRead) {
 	if (!TestTools::isFullTestEnabled()) {
 		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
 	}
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(TestTools::getFullTestImagePath("philips", ph2::FILE_NAME));
 	PHTIFFImageDriver driver;
 	TestTools::multiThreadedTest(TestTools::getFullTestImagePath("philips", ph2::FILE_NAME), driver);
 }
@@ -2685,6 +2714,7 @@ TEST_F(PhTiffImageDriverTests, readLevelMatchesTheResampledSceneRead) {
 	if (!TestTools::isFullTestEnabled()) {
 		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
 	}
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(TestTools::getFullTestImagePath("philips", ph2::FILE_NAME));
 	PhSlideAndScene opened = phOpenScene(ph2::FILE_NAME);
 	ASSERT_TRUE(opened.scene != nullptr);
 	const int numLevels = opened.scene->getNumZoomLevels();
@@ -2716,6 +2746,7 @@ TEST_F(PhTiffImageDriverTests, readLevelTileByTileReconstructsTheLevel) {
 	if (!TestTools::isFullTestEnabled()) {
 		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
 	}
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(TestTools::getFullTestImagePath("philips", ph2::FILE_NAME));
 	PhSlideAndScene opened = phOpenScene(ph2::FILE_NAME);
 	ASSERT_TRUE(opened.scene != nullptr);
 	const int level = opened.scene->getNumZoomLevels() - 1;
@@ -2751,6 +2782,7 @@ TEST_F(PhTiffImageDriverTests, readLevelDoesNotEscalateToAFinerLevel) {
 	if (!TestTools::isFullTestEnabled()) {
 		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
 	}
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(TestTools::getFullTestImagePath("philips", ph2::FILE_NAME));
 	PhSlideAndScene opened = phOpenScene(ph2::FILE_NAME);
 	ASSERT_TRUE(opened.scene != nullptr);
 	const int level = opened.scene->getNumZoomLevels() - 2;
@@ -2781,6 +2813,7 @@ TEST_F(PhTiffImageDriverTests, readLevelRejectsAnOutOfRangeLevel) {
 	if (!TestTools::isFullTestEnabled()) {
 		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
 	}
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(TestTools::getFullTestImagePath("philips", ph2::FILE_NAME));
 	PhSlideAndScene opened = phOpenScene(ph2::FILE_NAME);
 	ASSERT_TRUE(opened.scene != nullptr);
 	const int numLevels = opened.scene->getNumZoomLevels();

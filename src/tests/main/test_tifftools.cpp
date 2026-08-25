@@ -21,6 +21,7 @@ protected:
 TEST_F(TiffToolsTests, scanTiffFile)
 {
     std::string filePath = TestTools::getTestImagePath("svs","JP2K-33003-1.svs");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::vector<slideio::TiffDirectory> dirs;
     slideio::TiffTools::scanFile(filePath, dirs);
     int dirCount = (int)dirs.size();
@@ -52,7 +53,9 @@ TEST_F(TiffToolsTests, scanTiffFile)
 TEST_F(TiffToolsTests, readStripedDir8bitInterleavedPhotometric2)
 {
     std::string filePathTiff = TestTools::getTestImagePath("svs","CMU-1-Small-Region.svs");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePathTiff);
     std::string filePathBmp = TestTools::getTestImagePath("svs", "CMU-1-Small-Region-page-2.bmp");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePathBmp);
     libtiff::TIFF* tiff = slideio::TiffTools::openTiffFile(filePathTiff);;
     ASSERT_TRUE(tiff!=nullptr);
     int dirIndex = 2;
@@ -71,7 +74,9 @@ TEST_F(TiffToolsTests, readStripedDir8bitInterleavedPhotometric2)
 TEST_F(TiffToolsTests, readStripedDir16bitSingleChannel)
 {
     std::string filePathTiff = TestTools::getTestImagePath("gdal", "img_2448x2448_1x16bit_SRC_RGB_ducks.tif");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePathTiff);
     std::string filePathRaw = TestTools::getTestImagePath("gdal", "img_2448x2448_1x16bit_SRC_RGB_ducks.raw");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePathRaw);
     libtiff::TIFF* tiff = slideio::TiffTools::openTiffFile(filePathTiff);;
     ASSERT_TRUE(tiff != nullptr);
     int dirIndex = 0;
@@ -89,7 +94,9 @@ TEST_F(TiffToolsTests, readStripedDir16bitSingleChannel)
 TEST_F(TiffToolsTests, readStripedDir16bitSingleChannel2ndDir)
 {
     std::string filePathTiff = TestTools::getTestImagePath("gdal", "multipage-ducks.tif");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePathTiff);
     std::string filePathRaw = TestTools::getTestImagePath("gdal", "img_2448x2448_1x16bit_SRC_RGB_ducks.raw");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePathRaw);
     libtiff::TIFF* tiff = slideio::TiffTools::openTiffFile(filePathTiff);;
     ASSERT_TRUE(tiff != nullptr);
     int dirIndex = 1;
@@ -107,7 +114,9 @@ TEST_F(TiffToolsTests, readStripedDir16bitSingleChannel2ndDir)
 TEST_F(TiffToolsTests, readStripedDir16bit3Channels)
 {
     std::string filePathTiff = TestTools::getTestImagePath("gdal", "img_2448x2448_3x16bit_SRC_RGB_ducks.tif");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePathTiff);
     std::string filePathRaw = TestTools::getTestImagePath("gdal", "img_2448x2448_3x16bit_SRC_RGB_ducks.raw");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePathRaw);
     libtiff::TIFF* tiff = slideio::TiffTools::openTiffFile(filePathTiff);;
     ASSERT_TRUE(tiff != nullptr);
     int dirIndex = 0;
@@ -219,6 +228,7 @@ TEST_F(TiffToolsTests, readTile_jpeg_swapChannles)
 TEST_F(TiffToolsTests, readPhotometricYCbCr)
 {
     std::string filePath = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1.scn");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::vector<slideio::TiffDirectory> dirs;
     slideio::TiffTools::scanFile(filePath, dirs);
     int dirCount = (int)dirs.size();
@@ -236,6 +246,7 @@ TEST_F(TiffToolsTests, readPhotometricYCbCr)
 TEST_F(TiffToolsTests, readNotRGBTile)
 {
     std::string filePath = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1.scn");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::vector<slideio::TiffDirectory> dirs;
     slideio::TiffTools::scanFile(filePath, dirs);
     int dirCount = (int)dirs.size();
@@ -244,6 +255,7 @@ TEST_F(TiffToolsTests, readNotRGBTile)
     slideio::TIFFKeeper tiff(slideio::TiffTools::openTiffFile(filePath));
 
     std::string tilePath = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1/tile.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(tilePath);
     cv::Mat tile;
     slideio::ImageTools::readSmallImageRaster(tilePath, tile);
 
@@ -287,6 +299,7 @@ TEST_F(TiffToolsTests, readNotRGBTile)
 TEST_F(TiffToolsTests, openFileUtf8)
 {
     std::string filePath = TestTools::getTestImagePath("gdal", u8"тест/тест.tif");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::vector<slideio::TiffDirectory> dirs;
     slideio::TiffTools::scanFile(filePath, dirs);
     int dirCount = (int)dirs.size();
