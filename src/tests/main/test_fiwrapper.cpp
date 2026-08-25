@@ -12,6 +12,7 @@ using namespace slideio;
 TEST(FIWrapper, constructorWithValidFile)
 {
     std::string filePath = TestTools::getTestImagePath("gdal", "img_2448x2448_3x8bit_SRC_RGB_ducks.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     EXPECT_NO_THROW({
         FIWrapper wrapper(filePath);
 	    EXPECT_TRUE(wrapper.isValid());
@@ -21,6 +22,8 @@ TEST(FIWrapper, constructorWithValidFile)
 
 TEST(FIWrapper, constructorWithNonExistentFile)
 {
+    // No guard here: this test wants the file to be absent, so skipping when it
+    // is absent would skip it always.
     std::string filePath = TestTools::getTestImagePath("gdal", "non_existent_file.png");
     EXPECT_THROW({
         FIWrapper wrapper(filePath);
@@ -30,6 +33,7 @@ TEST(FIWrapper, constructorWithNonExistentFile)
 TEST(FIWrapper, constructorWithInvalidFormat)
 {
     std::string filePath = TestTools::getTestImagePath("czi", "08_18_2018_enc_1001_633.czi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     EXPECT_THROW({
         FIWrapper wrapper(filePath);
     }, RuntimeError);
@@ -39,7 +43,9 @@ TEST(FIWrapper, constructorWithInvalidFormat)
 TEST(FIWrapper, openMultipleFiles)
 {
     std::string filePath1 = TestTools::getTestImagePath("gdal", "img_2448x2448_3x8bit_SRC_RGB_ducks.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath1);
     std::string filePath2 = TestTools::getTestImagePath("gdal", "img_2448x2448_1x8bit_SRC_GRAY_ducks.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath2);
     
     EXPECT_NO_THROW({
         FIWrapper wrapper1(filePath1);
@@ -56,6 +62,7 @@ TEST(FIWrapper, openMultipleFiles)
 TEST(FIWrapper, unicodeFilePath)
 {
     std::string filePath = TestTools::getFullTestImagePath("unicode", u8"тест/lena_256.jpg");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     FIWrapper wrapper(filePath);
 	EXPECT_TRUE(wrapper.isValid());
     EXPECT_EQ(1, wrapper.getNumPages());
@@ -154,6 +161,7 @@ TEST(FIWrapper, openPngFile)
 TEST(FIWrapper, lifetimeManagement)
 {
     std::string filePath = TestTools::getTestImagePath("gdal", "img_2448x2448_3x8bit_SRC_RGB_ducks.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     for (int i = 0; i < 10; ++i) {
         FIWrapper wrapper(filePath);
 		EXPECT_TRUE(wrapper.isValid());
@@ -164,6 +172,7 @@ TEST(FIWrapper, lifetimeManagement)
 TEST(FIWrapper, readMultiplePages)
 {
     std::string filePath = TestTools::getTestImagePath("gdal", "multipage.tif");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     FIWrapper wrapper(filePath);
     EXPECT_TRUE(wrapper.isValid());
     EXPECT_EQ(3, wrapper.getNumPages());
@@ -190,6 +199,7 @@ TEST(FIWrapper, readMultiplePages)
 TEST(FIWrapper, readJpegMetadata)
 {
     std::string filePath = TestTools::getTestImagePath("gdal", "Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     FIWrapper wrapper(filePath);
     EXPECT_TRUE(wrapper.isValid());
     EXPECT_EQ(1, wrapper.getNumPages());
@@ -205,6 +215,7 @@ TEST(FIWrapper, readJpegMetadata)
 TEST(FIWrapper, readTifMetadata)
 {
     std::string filePath = TestTools::getTestImagePath("gdal", "multipage.tif");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     FIWrapper wrapper(filePath);
     EXPECT_TRUE(wrapper.isValid());
     EXPECT_EQ(3, wrapper.getNumPages());
@@ -217,7 +228,9 @@ TEST(FIWrapper, readTifMetadata)
 TEST(FIWrapper, readJxrImage)
 {
     std::string pathJxr = TestTools::getTestImagePath("jxr", "seagull.wdp");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(pathJxr);
     std::string pathBmp = TestTools::getTestImagePath("jxr", "seagull.bmp");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(pathBmp);
     cv::Mat jxrImage;
     slideio::ImageTools::readSmallImageRaster(pathJxr, jxrImage);
     ASSERT_FALSE(jxrImage.empty());

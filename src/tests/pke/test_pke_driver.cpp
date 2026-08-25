@@ -35,6 +35,7 @@ protected:
 
 TEST_F(PKEImageDriverTests, openBrightFieldFile) {
     std::string filePath = TestTools::getFullTestImagePath("pke","openmicroscopy/PKI_scans/HandEcompressed_Scan1.qptiff");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     slideio::PKEImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide!=nullptr);
@@ -76,6 +77,7 @@ TEST_F(PKEImageDriverTests, openBrightFieldFile) {
 
 TEST_F(PKEImageDriverTests, openSlideAutoDriver) {
     std::string filePath = TestTools::getFullTestImagePath("pke", "openmicroscopy/PKI_scans/HandEcompressed_Scan1.qptiff");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::shared_ptr<slideio::Slide> slide = slideio::openSlide(filePath, "AUTO");
     ASSERT_TRUE(slide != nullptr);
     ASSERT_EQ(1, slide->getNumScenes());
@@ -87,6 +89,7 @@ TEST_F(PKEImageDriverTests, openSlideAutoDriver) {
 
 TEST_F(PKEImageDriverTests, openFLFile) {
     std::string filePath = TestTools::getFullTestImagePath("pke", "openmicroscopy/PKI_scans/LuCa-7color_Scan1.qptiff");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     slideio::PKEImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
@@ -133,7 +136,9 @@ TEST_F(PKEImageDriverTests, openFLFile) {
 
 TEST_F(PKEImageDriverTests, readBrightFieldRegion) {
     std::string filePath = TestTools::getFullTestImagePath("pke", "openmicroscopy/PKI_scans/HandEcompressed_Scan1.qptiff");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::string testFilePath = TestTools::getFullTestImagePath("pke", "test-images/HandEcompressed_Scan1 (1, x=11190, y=8580, w=1622, h=963).png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath);
     slideio::PKEImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
@@ -159,7 +164,9 @@ TEST_F(PKEImageDriverTests, readBrightFieldRegion) {
 
 TEST_F(PKEImageDriverTests, readFLRegion) {
     std::string filePath = TestTools::getFullTestImagePath("pke", "openmicroscopy/PKI_scans/LuCa-7color_Scan1.qptiff");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::string testFilePath = TestTools::getFullTestImagePath("pke", "test-images/LuCa-7color_Scan1.qptiff - resolution #1 (1, x=4981, y=10654, w=2367, h=1578).tif");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath);
     slideio::PKEImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
@@ -200,6 +207,7 @@ void testAuxImage(std::shared_ptr<CVSlide>& slide, const std::string& filePath, 
 
 TEST_F(PKEImageDriverTests, auxiliaryImages) {
     std::string filePath = TestTools::getFullTestImagePath("pke", "openmicroscopy/PKI_scans/LuCa-7color_Scan1.qptiff");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     const std::list<std::string> auxPaths = {
         TestTools::getFullTestImagePath("pke", "test-images/LuCa-7color_Scan1.thumb.png"),
         TestTools::getFullTestImagePath("pke", "test-images/LuCa-7color_Scan1.overv.png"),
@@ -229,6 +237,7 @@ TEST_F(PKEImageDriverTests, auxiliaryImages) {
 // every other scene, and reading that level has to match an ordinary readBlock.
 TEST_F(PKEImageDriverTests, auxImageSingleZoomLevelAndLevelRead) {
     std::string filePath = TestTools::getFullTestImagePath("pke", "openmicroscopy/PKI_scans/LuCa-7color_Scan1.qptiff");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     slideio::PKEImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
@@ -256,6 +265,7 @@ TEST_F(PKEImageDriverTests, auxImageSingleZoomLevelAndLevelRead) {
 
 TEST_F(PKEImageDriverTests, metadata) {
     std::string filePath = TestTools::getFullTestImagePath("pke", "openmicroscopy/PKI_scans/LuCa-7color_Scan1.qptiff");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     slideio::PKEImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
@@ -280,7 +290,9 @@ TEST_F(PKEImageDriverTests, metadata) {
 
 TEST_F(PKEImageDriverTests, readStripedDir) {
     std::string filePath = TestTools::getFullTestImagePath("pke", "openmicroscopy/PKI_scans/HandEcompressed_Scan1.qptiff");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::string testFilePath = TestTools::getFullTestImagePath("pke", "test-images/HandEcompressed_Scan1-low.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath);
     slideio::PKEImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
@@ -303,7 +315,9 @@ TEST_F(PKEImageDriverTests, readStripedDir) {
 
 TEST_F(PKEImageDriverTests, readStripedDir5Channels_SelectedChannels) {
     std::string filePath = TestTools::getFullTestImagePath("pke", "openmicroscopy/PKI_scans/LuCa-7color_Scan1.qptiff");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::string testFilePath = TestTools::getFullTestImagePath("pke", "test-images/LuCa-7color_Scan1-low.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath);
     slideio::PKEImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
@@ -329,7 +343,9 @@ TEST_F(PKEImageDriverTests, readStripedDir5Channels_SelectedChannels) {
 
 TEST_F(PKEImageDriverTests, readStripedDir5Channels_SingleChannel) {
     std::string filePath = TestTools::getFullTestImagePath("pke", "openmicroscopy/PKI_scans/LuCa-7color_Scan1.qptiff");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::string testFilePath = TestTools::getFullTestImagePath("pke", "test-images/LuCa-7color_Scan1-low.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath);
     slideio::PKEImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
@@ -348,6 +364,7 @@ TEST_F(PKEImageDriverTests, readStripedDir5Channels_SingleChannel) {
         scene->readResampledBlockChannels(rectRoi, size, { channel }, channelRaster);
         std::string fileName = "test-images/LuCa-7color_Scan1-low-" + std::to_string(channel) + ".png";
         std::string testFilePath = TestTools::getFullTestImagePath("pke", fileName);
+        SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath);
         //TestTools::writePNG(channelRaster, testFilePath);
         cv::Mat referenceRaster;
         TestTools::readPNG(testFilePath, referenceRaster);
@@ -357,6 +374,7 @@ TEST_F(PKEImageDriverTests, readStripedDir5Channels_SingleChannel) {
 
 TEST_F(PKEImageDriverTests, readStripedDir5ChannelsAllChannels) {
     std::string filePath = TestTools::getFullTestImagePath("pke", "openmicroscopy/PKI_scans/LuCa-7color_Scan1.qptiff");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     slideio::PKEImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
@@ -377,6 +395,7 @@ TEST_F(PKEImageDriverTests, readStripedDir5ChannelsAllChannels) {
         cv::extractChannel(raster, channelRaster, channel);
         std::string fileName = "test-images/LuCa-7color_Scan1-low-" + std::to_string(channel) + ".png";
         std::string testFilePath = TestTools::getFullTestImagePath("pke", fileName);
+        SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath);
         //TestTools::writePNG(channelRaster, testFilePath);
         cv::Mat referenceRaster;
         TestTools::readPNG(testFilePath, referenceRaster);
@@ -386,7 +405,9 @@ TEST_F(PKEImageDriverTests, readStripedDir5ChannelsAllChannels) {
 
 TEST_F(PKEImageDriverTests, readMultichannelImageNoScaleAllChannels) {
     std::string filePath = TestTools::getFullTestImagePath("pke", "openmicroscopy/PKI_scans/LuCa-7color_Scan1.qptiff");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::string refImagePath = TestTools::getFullTestImagePath("pke", "test-images/LuCa-7color_Scan1.qptiff - resolution #1 (1, x=11619, y=16875, w=1202, h=756).tif");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(refImagePath);
     cv::Mat refImage;
     ImageTools::openSmallImage(refImagePath)->readImageStack(refImage);
     ASSERT_EQ(refImage.size(), cv::Size(1202, 756));
@@ -412,7 +433,9 @@ TEST_F(PKEImageDriverTests, readMultichannelImageNoScaleAllChannels) {
 
 TEST_F(PKEImageDriverTests, readMultichannelImageNoScaleSeparatedChannels) {
     std::string filePath = TestTools::getFullTestImagePath("pke", "openmicroscopy/PKI_scans/LuCa-7color_Scan1.qptiff");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::string refImagePath = TestTools::getFullTestImagePath("pke", "test-images/LuCa-7color_Scan1.qptiff - resolution #1 (1, x=11619, y=16875, w=1202, h=756).tif");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(refImagePath);
     cv::Mat refImage;
     ImageTools::openSmallImage(refImagePath)->readImageStack(refImage);
     ASSERT_EQ(refImage.size(), cv::Size(1202, 756));
@@ -449,6 +472,7 @@ TEST_F(PKEImageDriverTests, multiThreadSceneAccess) {
             "Skip the test because full dataset is not enabled";
     }
     std::string filePath = TestTools::getFullTestImagePath("pke", "openmicroscopy/PKI_scans/LuCa-7color_Scan1.qptiff");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     slideio::PKEImageDriver driver;
     TestTools::multiThreadedTest(filePath, driver);
 }
@@ -460,6 +484,7 @@ TEST_F(PKEImageDriverTests, getDriverId)
     }
 
     std::string filePath = TestTools::getFullTestImagePath("pke", "openmicroscopy/PKI_scans/LuCa-7color_Scan1.qptiff");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
 	auto slide = slideio::openSlide(filePath, "AUTO");
     ASSERT_TRUE(slide);
     EXPECT_EQ("QPTIFF", slide->getDriverId());
@@ -479,6 +504,7 @@ TEST_F(PKEImageDriverTests, readLevelMatchesTheResampledSceneRead) {
     // computeSimilarity2 goes through cv::sum, which only supports up to 4 channels, so this
     // uses the 3-channel brightfield fixture rather than the 5-channel fluorescent one.
     std::string filePath = TestTools::getFullTestImagePath("pke", "openmicroscopy/PKI_scans/HandEcompressed_Scan1.qptiff");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     slideio::PKEImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
@@ -520,6 +546,7 @@ TEST_F(PKEImageDriverTests, readLevelDoesNotReuseAdjacentLevel) {
     // one-directory-per-channel path (dir.channels == 1) where the level->directory
     // indirection meets a second per-channel offset -- the interaction this test guards.
     std::string filePath = TestTools::getFullTestImagePath("pke", "openmicroscopy/PKI_scans/LuCa-7color_Scan1.qptiff");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     slideio::PKEImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);

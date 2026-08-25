@@ -21,6 +21,7 @@ GTEST_TEST(ImageDriverManager, getDriversGlobal)
 TEST(ImageDriverManager, openSlide)
 {
     std::string path = TestTools::getTestImagePath("gdal", "img_2448x2448_3x8bit_SRC_RGB_ducks.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
     std::shared_ptr<slideio::CVSlide> slide = slideio::ImageDriverManager::openSlide(path, "GDAL");
     ASSERT_NE(slide, nullptr);
     const int numScenes = slide->getNumScenes();

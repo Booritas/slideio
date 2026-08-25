@@ -48,6 +48,12 @@ TEST_F(TIFFFilesTest, Close_FileClosedSuccessfully) {
 }
 
 TEST_F(TIFFFilesTest, CloseAll_AllFilesClosedSuccessfully) {
+    // The other tests in this fixture only touch testFiles.front(); this one opens all
+    // of them, so it is the only one that needs all of them present. Guarding the
+    // fixture instead would skip the other three for files they never read.
+    for (const auto& filePath : testFiles) {
+        SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    }
 	for (const auto& filePath : testFiles) {
 		tiffFiles.getOrOpen(filePath);
 	}

@@ -44,6 +44,7 @@ TEST(ZVIImageDriver, openSlide2D)
 {
     slideio::ZVIImageDriver driver;
     std::string filePath = TestTools::getTestImagePath("zvi", "Zeiss-1-Merged.zvi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide.get() != nullptr);
     EXPECT_EQ(slide->getMetadataFormat(), slideio::MetadataFormat::JSON);
@@ -97,6 +98,7 @@ TEST(ZVIImageDriver, openSlide3D)
 {
     slideio::ZVIImageDriver driver;
     std::string filePath = TestTools::getTestImagePath("zvi", "Zeiss-1-Stacked.zvi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide.get() != nullptr);
     const int sceneCount = slide->getNumScenes();
@@ -151,6 +153,7 @@ TEST(ZVIImageDriver, openSlideMosaic)
 
     slideio::ZVIImageDriver driver;
     std::string filePath = TestTools::getFullTestImagePath("zvi", "openslide/Zeiss-3-Mosaic.zvi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide.get() != nullptr);
     const int sceneCount = slide->getNumScenes();
@@ -182,6 +185,7 @@ TEST(ZVIImageDriver, readBlock3Layers)
 {
     slideio::ZVIImageDriver driver;
     std::string filePath = TestTools::getTestImagePath("zvi", "Zeiss-1-Merged.zvi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide.get() != nullptr);
     auto scene = slide->getScene(0);
@@ -198,6 +202,7 @@ TEST(ZVIImageDriver, readBlock3Layers)
         cv::extractChannel(raster, channelRaster, channel);
         std::string channelName = std::string("Zeiss-1-Merged-ch") + std::to_string(channel) + ".tif";
         std::string channelPath = TestTools::getTestImagePath("zvi", channelName);
+        SLIDEIO_SKIP_IF_IMAGE_MISSING(channelPath);
         slideio::ImageTools::readSmallImageRaster(channelPath, channelRasterTest);
 		double score = ImageTools::computeSimilarity2(channelRaster, channelRasterTest);
 		EXPECT_GT(score, 0.999);
@@ -208,6 +213,7 @@ TEST(ZVIImageDriver, readBlockROI)
 {
     slideio::ZVIImageDriver driver;
     std::string filePath = TestTools::getTestImagePath("zvi", "Zeiss-1-Merged.zvi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
 
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide.get() != nullptr);
@@ -222,6 +228,7 @@ TEST(ZVIImageDriver, readBlockROI)
 
     cv::Mat channelRaster;
     std::string channelPath = TestTools::getTestImagePath("zvi", "Zeiss-1-Merged-ch0.tif");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(channelPath);
     slideio::ImageTools::readSmallImageRaster(channelPath, channelRaster);
     cv::Mat channelDiff = cv::abs(raster - channelRaster);
     double min(0), max(0);
@@ -261,6 +268,7 @@ TEST(ZVIImageDriver, readBlock3DSlice)
 {
     slideio::ZVIImageDriver driver;
     std::string filePath = TestTools::getTestImagePath("zvi", "Zeiss-1-Stacked.zvi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
 
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide.get() != nullptr);
@@ -282,6 +290,7 @@ TEST(ZVIImageDriver, readBlock3DSlice)
     EXPECT_EQ(raster.rows, sizeRoi.height);
     cv::Mat rawSlice(rect.height, rect.width, CV_16SC1);
     std::string slicePath = TestTools::getTestImagePath("zvi", "Zeiss-1-Stacked/zvi_slice_6_channel_1");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(slicePath);
     TestTools::readRawImage(slicePath, rawSlice);
 
     double similarity = ImageTools::computeSimilarity(raster, rawSlice);
@@ -292,6 +301,7 @@ TEST(ZVIImageDriver, readBlock3DROI)
 {
     slideio::ZVIImageDriver driver;
     std::string filePath = TestTools::getTestImagePath("zvi", "Zeiss-1-Stacked.zvi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
 
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide.get() != nullptr);
@@ -318,6 +328,7 @@ TEST(ZVIImageDriver, readBlock3DROI)
     EXPECT_EQ(raster.rows, sizeRoi.height);
     cv::Mat rawSlice(rect.height, rect.width, CV_16SC1);
     std::string slicePath = TestTools::getTestImagePath("zvi", "Zeiss-1-Stacked/zvi_slice_6_channel_1");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(slicePath);
     TestTools::readRawImage(slicePath, rawSlice);
 
     cv::Mat roi = rawSlice(rectRoi);
@@ -330,6 +341,7 @@ TEST(ZVIImageDriver, readBlock3DROIResized)
 {
     slideio::ZVIImageDriver driver;
     std::string filePath = TestTools::getTestImagePath("zvi", "Zeiss-1-Stacked.zvi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
 
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide.get() != nullptr);
@@ -356,6 +368,7 @@ TEST(ZVIImageDriver, readBlock3DROIResized)
     EXPECT_EQ(raster.rows, sizeRoi.height);
     cv::Mat rawSlice(rect.height, rect.width, CV_16SC1);
     std::string slicePath = TestTools::getTestImagePath("zvi", "Zeiss-1-Stacked/zvi_slice_6_channel_1");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(slicePath);
     TestTools::readRawImage(slicePath, rawSlice);
     cv::Mat rawRoi = rawSlice(rectRoi);
     cv::Mat rawRoiResized;
@@ -370,6 +383,7 @@ TEST(ZVIImageDriver, readBlock3DROIResizedMultiSlice)
 {
     slideio::ZVIImageDriver driver;
     std::string filePath = TestTools::getTestImagePath("zvi", "Zeiss-1-Stacked.zvi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
 
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide.get() != nullptr);
@@ -409,6 +423,7 @@ TEST(ZVIImageDriver, readBlock3DROIResizedMultiSlice)
     cv::extractChannel(sliceRaster, channelRaster, 1);
 
     std::string slicePath = TestTools::getTestImagePath("zvi", "Zeiss-1-Stacked/zvi_slice_7_channel_2");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(slicePath);
 
     cv::Mat rawSlice(sceneRect.height, sceneRect.width, CV_16SC1);
     TestTools::readRawImage(slicePath, rawSlice);
@@ -427,6 +442,7 @@ TEST(ZVIImageDriver, readBlock)
     }
     slideio::ZVIImageDriver driver;
     std::string filePath = TestTools::getFullTestImagePath("zvi", "mouse/20140207_mouse_2cell_H2AUb_HA_DAPI_inj_002.zvi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide.get() != nullptr);
     auto scene = slide->getScene(0);
@@ -448,6 +464,7 @@ TEST(ZVIImageDriver, readBlockTOMM)
 {
     slideio::ZVIImageDriver driver;
     std::string filePath = TestTools::getTestImagePath("zvi", "TOMMAlexaFluor647.zvi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide.get() != nullptr);
     auto scene = slide->getScene(0);
@@ -468,6 +485,7 @@ TEST(ZVIImageDriver, readBlock3D)
     }
     slideio::ZVIImageDriver driver;
     std::string filePath = TestTools::getFullTestImagePath("zvi", "mouse/20140505_mouse_2cell_H2AUb_RING1B_DAPI_T_005.zvi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide.get() != nullptr);
     auto scene = slide->getScene(0);
@@ -492,6 +510,7 @@ TEST(ZVIImageDriver, readBlock3D_emptyChannelIndices)
 {
     slideio::ZVIImageDriver driver;
     std::string filePath = TestTools::getTestImagePath("zvi", "Zeiss-1-Stacked.zvi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide.get() != nullptr);
     auto scene = slide->getScene(0);
@@ -516,6 +535,7 @@ TEST(ZVIImageDriver, openFileUtf8)
 {
     {
         std::string filePath = TestTools::getFullTestImagePath("unicode", u8"тест/TOMMAlexaFluor647.zvi");
+        SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
         slideio::ZVIImageDriver driver;
         std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
         int dirCount = slide->getNumScenes();
@@ -540,6 +560,7 @@ TEST(ZVIImageDriver, zoomLevel)
 {
     slideio::ZVIImageDriver driver;
     const std::string filePath = TestTools::getTestImagePath("zvi", "Zeiss-1-Stacked.zvi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide.get() != nullptr);
     auto scene = slide->getScene(0);
@@ -559,6 +580,7 @@ TEST(ZVIImageDriver, multiThreadSceneAccess) {
             "Skip the test because full dataset is not enabled";
     }
     std::string filePath = TestTools::getFullTestImagePath("zvi", "mouse/20140505_mouse_2cell_H2AUb_RING1B_DAPI_T_005.zvi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     slideio::ZVIImageDriver driver;
     TestTools::multiThreadedTest(filePath, driver);
 }
@@ -570,6 +592,7 @@ TEST(ZVIImageDriver, getSceneIndex)
             "Skip the test because full dataset is not enabled";
     }
     const std::string filePath = TestTools::getTestImagePath("zvi", "Zeiss-1-Stacked.zvi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     auto slide = slideio::openSlide(filePath, "AUTO");
     ASSERT_TRUE(slide);
     EXPECT_EQ("ZVI", slide->getDriverId());

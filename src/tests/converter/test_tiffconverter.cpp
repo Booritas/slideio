@@ -782,6 +782,7 @@ TEST(TiffConverterTests, jpegToOMETIFF) {
     constexpr int numZoomLevels = 5;
 
     std::string path = TestTools::getTestImagePath("gdal", "Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
     SlidePtr slide = openSlide(path, "GDAL");
     ScenePtr scene = slide->getScene(0);
     auto sceneRect = scene->getRect();
@@ -852,6 +853,7 @@ TEST(TiffConverterTests, jpegToSVS) {
     constexpr int numZoomLevels = 5;
 
     std::string path = TestTools::getTestImagePath("gdal", "Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
     SlidePtr slide = openSlide(path, "GDAL");
     ScenePtr scene = slide->getScene(0);
     auto sceneRect = scene->getRect();

@@ -23,6 +23,7 @@ TEST(ConverterTools, readTile_normal)
 {
 	std::string path = TestTools::getTestImagePath("gdal",
 		"Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
 	CVSlidePtr slide = slideio::ImageDriverManager::openSlide(path, "GDAL");
 	CVScenePtr scene = slide->getScene(0);
 	{
@@ -51,6 +52,7 @@ TEST(ConverterTools, readTile_scaled)
 {
 	std::string path = TestTools::getTestImagePath("gdal",
 		"Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
 	CVSlidePtr slide = slideio::ImageDriverManager::openSlide(path, "GDAL");
 	CVScenePtr scene = slide->getScene(0);
 	{
@@ -81,6 +83,7 @@ TEST(ConverterTools, readTile_edge)
 {
 	std::string path = TestTools::getTestImagePath("gdal",
 		"Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
 	CVSlidePtr slide = slideio::ImageDriverManager::openSlide(path, "GDAL");
 	CVScenePtr scene = slide->getScene(0);
 	cv::Rect sceneRect = scene->getRect();

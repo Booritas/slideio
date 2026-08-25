@@ -154,6 +154,7 @@ TEST(LevelReadingTests, level4DBlockReadsOnePlanePerSlice)
 TEST(LevelReadingTests, publicSceneApiReadsALevelIntoABuffer)
 {
     const std::string path = TestTools::getTestImagePath("gdal", "img_2448x2448_3x8bit_SRC_RGB_ducks.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
     std::shared_ptr<slideio::Slide> slide = slideio::openSlide(path, "GDAL");
     ASSERT_TRUE(slide != nullptr);
     std::shared_ptr<slideio::Scene> scene = slide->getScene(0);
@@ -173,6 +174,7 @@ TEST(LevelReadingTests, publicSceneApiReadsALevelIntoABuffer)
 TEST(LevelReadingTests, publicSceneApiRejectsATooSmallBuffer)
 {
     const std::string path = TestTools::getTestImagePath("gdal", "img_2448x2448_3x8bit_SRC_RGB_ducks.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
     std::shared_ptr<slideio::Slide> slide = slideio::openSlide(path, "GDAL");
     std::shared_ptr<slideio::Scene> scene = slide->getScene(0);
     ASSERT_TRUE(scene != nullptr);
@@ -186,6 +188,7 @@ TEST(LevelReadingTests, publicSceneApiRejectsATooSmallBuffer)
 TEST(LevelReadingTests, publicSceneApiRejectsAnOutOfRangeLevel)
 {
     const std::string path = TestTools::getTestImagePath("gdal", "img_2448x2448_3x8bit_SRC_RGB_ducks.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
     std::shared_ptr<slideio::Slide> slide = slideio::openSlide(path, "GDAL");
     std::shared_ptr<slideio::Scene> scene = slide->getScene(0);
     ASSERT_TRUE(scene != nullptr);

@@ -39,6 +39,7 @@ TEST(GDALDriver, openPngFile_3chnls_8bit)
 {
     slideio::GDALImageDriver driver;
     std::string path = TestTools::getTestImagePath("gdal","img_2448x2448_3x8bit_SRC_RGB_ducks.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(path);
     ASSERT_TRUE(slide!=nullptr);
     int numbScenes = slide->getNumScenes();
@@ -64,6 +65,7 @@ TEST(GDALDriver, openPngFile_1chnl_8bit)
 {
     slideio::GDALImageDriver driver;
     std::string path = TestTools::getTestImagePath("gdal","img_2448x2448_1x8bit_SRC_GRAY_ducks.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(path);
     ASSERT_TRUE(slide!=nullptr);
     int numbScenes = slide->getNumScenes();
@@ -87,6 +89,7 @@ TEST(GDALDriver, openPngFile_3chnl_16bit)
 {
     slideio::GDALImageDriver driver;
     std::string path = TestTools::getTestImagePath("gdal","img_2448x2448_3x16bit_SRC_RGB_ducks.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(path);
     ASSERT_TRUE(slide!=nullptr);
     int numbScenes = slide->getNumScenes();
@@ -112,6 +115,7 @@ TEST(GDALDriver, openJpegFile_3chnl_8bit)
 {
     slideio::GDALImageDriver driver;
     std::string path = TestTools::getTestImagePath("gdal","Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(path);
     ASSERT_TRUE(slide!=nullptr);
     int numbScenes = slide->getNumScenes();
@@ -137,7 +141,9 @@ TEST(GDALDriver, readBlockPng)
 {
     slideio::GDALImageDriver driver;
     std::string path = TestTools::getTestImagePath("gdal","img_1024x600_3x8bit_RGB_color_bars_CMYKWRGB.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
     std::string referenceImagePath = TestTools::getTestImagePath("gdal", "img_1024x600_3x8bit_RGB_color_bars_CMYKWRGB.bmp");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(referenceImagePath);
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(path);
     ASSERT_TRUE(slide!=nullptr);
     int numbScenes = slide->getNumScenes();
@@ -182,6 +188,7 @@ TEST(GDALDriver, readBlockPngResampling)
 {
     slideio::GDALImageDriver driver;
     std::string path = TestTools::getTestImagePath("gdal","img_1024x600_3x8bit_RGB_color_bars_CMYKWRGB.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(path);
     ASSERT_TRUE(slide!=nullptr);
     int numbScenes = slide->getNumScenes();
@@ -221,6 +228,7 @@ TEST(GDALDriver, metadataCompression)
     for(const auto& item : imageData)
     {
         std::string filePath = TestTools::getTestImagePath("gdal",std::get<0>(item));
+        SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
         std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
         const slideio::Compression sceneCompression = std::get<1>(item);
         std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
@@ -234,6 +242,7 @@ TEST(GDALDriver, read16bitSignedImage)
     // Should not throw exception. See issue #5
     // Gdal driver throws an error during reading of signed 16bit image
     std::string path = TestTools::getTestImagePath("zvi", "Zeiss-1-Merged-ch1.tif");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
     std::shared_ptr<slideio::Slide> slide = slideio::openSlide(path, "GDAL");
     std::shared_ptr<slideio::Scene> scene = slide->getScene(0);
     std::vector<uint8_t> buffer(2 * 1480 * 1132);
@@ -245,6 +254,7 @@ TEST(GDALDriver, openFileUtf8)
 {
     {
         std::string filePath = TestTools::getTestImagePath("gdal", u8"тест/тест.tif");
+        SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
         std::shared_ptr<slideio::Slide> slide = slideio::openSlide(filePath, "GDAL");
         int dirCount = slide->getNumScenes();
         ASSERT_EQ(dirCount, 1);
@@ -260,6 +270,7 @@ TEST(GDALDriver, openFileUtf8)
     }
     {
         std::string filePath = TestTools::getFullTestImagePath("unicode", u8"тест/lena_256.jpg");
+        SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
         std::shared_ptr<slideio::Slide> slide = slideio::openSlide(filePath, "GDAL");
         int dirCount = slide->getNumScenes();
         ASSERT_EQ(dirCount, 1);
@@ -278,6 +289,7 @@ TEST(GDALDriver, openFileUtf8)
 TEST(GDALDriver, metadataTiff)
 {
         std::string filePath = TestTools::getFullTestImagePath("ometiff", u8"SPIM-ModuloAlongZ.ome.tiff");
+        SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
         std::shared_ptr<slideio::Slide> slide = slideio::openSlide(filePath, "GDAL");
         std::string metadata = slide->getScene(0)->getRawMetadata();
         EXPECT_EQ(slide->getScene(0)->getMetadataFormat(), slideio::MetadataFormat::JSON);
@@ -288,6 +300,7 @@ TEST(GDALDriver, metadataTiff)
 TEST(GDALDriver, metadataJpeg)
 {
     std::string filePath = TestTools::getTestImagePath("gdal", "Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::shared_ptr<slideio::Slide> slide = slideio::openSlide(filePath, "GDAL");
     std::string metadata = slide->getRawMetadata();
     EXPECT_EQ(slide->getMetadataFormat(), slideio::MetadataFormat::JSON);
@@ -305,6 +318,7 @@ TEST(GDALDriver, multiThreadSceneAccess) {
             "Skip the test because full dataset is not enabled";
     }
     std::string filePath = TestTools::getTestImagePath("gdal", "Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     slideio::GDALImageDriver driver;
     TestTools::multiThreadedTest(filePath, driver);
 }
@@ -315,6 +329,7 @@ TEST(GDALDriver, multiThreadSceneAccess) {
 TEST(GDALDriver, singleZoomLevelAndLevelRead)
 {
     std::string path = TestTools::getTestImagePath("gdal", "img_2448x2448_3x8bit_SRC_RGB_ducks.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
     slideio::GDALImageDriver driver;
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(path);
     ASSERT_TRUE(slide != nullptr);
@@ -346,6 +361,7 @@ TEST(GDALDriver, singleZoomLevelAndLevelRead)
 TEST(GDALDriver, levelReadClampsAnOverhangingRect)
 {
     std::string path = TestTools::getTestImagePath("gdal", "img_2448x2448_3x8bit_SRC_RGB_ducks.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
     slideio::GDALImageDriver driver;
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(path);
     std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
@@ -366,6 +382,7 @@ TEST(GDALDriver, getSceneIndex)
             "Skip the test because full dataset is not enabled";
     }
     std::string filePath = TestTools::getTestImagePath("gdal", "Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     auto slide = slideio::openSlide(filePath, "AUTO");
     ASSERT_TRUE(slide);
     EXPECT_EQ("GDAL", slide->getDriverId());
