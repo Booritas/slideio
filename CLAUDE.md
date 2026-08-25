@@ -56,6 +56,22 @@ Tests use Google Test. Test executables (release build):
 
 There are also single tests for memory/perf in `src/single_tests/`.
 
+### Test images
+
+Tests read from three roots, named by `SLIDEIO_TEST_DATA_PATH`,
+`SLIDEIO_TEST_DATA_PRIV_PATH` and `SLIDEIO_IMAGES_PATH`. The corpus under the last
+one is far larger than most machines hold, so it tends to be rotated in and out.
+
+Set `SLIDEIO_SKIP_MISSING_IMAGES=1` and a test whose image is absent **skips**
+instead of failing, naming the file it wanted. Leave it unset -- as CI must -- and a
+missing image fails exactly as before, so coverage cannot quietly disappear. This
+matters for reading a run at all: without it a rotated-out directory turns a suite
+entirely red and a real regression is indistinguishable from an absent file.
+
+`software-docs/TEST_IMAGES.md` lists every image the tests name, with its size and
+how many tests would be lost by deleting it. Regenerate it with
+`python3 auxfiles/list-test-images.py`.
+
 ## Architecture
 
 ### Module Hierarchy (each is a shared library, prefixed `slideio-`):
