@@ -19,8 +19,7 @@ public:
 	static bool isPrivateTestEnabled();
     static bool isFullTestEnabled();
     static std::string getTestImageDirectory(bool priv=false);
-	static std::string getTestImagePath(const std::string& subfolder, const std::string& image, bool priv=false);
-    static std::string getFullTestImagePath(const std::string& subfolder, const std::string& image);
+    static std::string getTestImagePath(const std::string& subfolder, const std::string& image);
     // True while some handle in this process still holds `path` open, so that a test
     // can observe a handle being closed rather than assume it. See the .cpp for the
     // platform split, and for why this is not an attempt to delete the file.

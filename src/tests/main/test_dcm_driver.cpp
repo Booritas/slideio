@@ -71,7 +71,7 @@ TEST(DCMImageDriver, openDirectory)
 {
     DCMImageDriver driver;
     std::string slidePath = TestTools::getTestImagePath(
-        "dcm", "series/series_1", true);
+        "dcm", "series/series_1");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
     auto slide = driver.openFile(slidePath);
     const int numScenes = slide->getNumScenes();
@@ -93,7 +93,7 @@ TEST(DCMImageDriver, openDirectory)
 TEST(DCMImageDriver, getSceneIndex)
 {
     DCMImageDriver driver;
-    std::string filePath = TestTools::getTestImagePath("dcm", "series", true);
+    std::string filePath = TestTools::getTestImagePath("dcm", "series");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     auto slide = slideio::openSlide(filePath, "AUTO");
     ASSERT_TRUE(slide);
@@ -113,7 +113,7 @@ TEST(DCMImageDriver, getSceneIndex)
 TEST(DCMImageDriver, openDirectoryRecursively)
 {
     DCMImageDriver driver;
-    std::string slidePath = TestTools::getTestImagePath("dcm", "series", true);
+    std::string slidePath = TestTools::getTestImagePath("dcm", "series");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
     auto slide = driver.openFile(slidePath);
     const int numScenes = slide->getNumScenes();
@@ -313,9 +313,9 @@ TEST(DCMImageDriver, readMultiFrameROIRescale)
 TEST(DCMImageDriver, readDirectory3D)
 {
     DCMImageDriver driver;
-    std::string slidePath = TestTools::getTestImagePath("dcm", "series/series_1", true);
+    std::string slidePath = TestTools::getTestImagePath("dcm", "series/series_1");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
-    std::string testImagePath = TestTools::getTestImagePath("dcm", "series/series_1/tests/IMG-0001-00005.tiff", true);
+    std::string testImagePath = TestTools::getTestImagePath("dcm", "series/series_1/tests/IMG-0001-00005.tiff");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(testImagePath);
     auto slide = driver.openFile(slidePath);
     const int numScenes = slide->getNumScenes();
@@ -345,7 +345,7 @@ TEST(DCMImageDriver, readDirectory3D)
 TEST(DCMImageDriver, DICOMDirgetSceneIndex)
 {
     DCMImageDriver driver;
-    std::string filePath = TestTools::getFullTestImagePath("dcm", "spine_mr/DICOMDIR");
+    std::string filePath = TestTools::getTestImagePath("dcm", "spine_mr/DICOMDIR");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide);
@@ -363,7 +363,7 @@ TEST(DCMImageDriver, DICOMDirgetSceneIndex)
 TEST(DCMImageDriver, openDicomDirFile)
 {
     DCMImageDriver driver;
-    std::string slidePath = TestTools::getFullTestImagePath("dcm", "spine_mr/DICOMDIR");
+    std::string slidePath = TestTools::getTestImagePath("dcm", "spine_mr/DICOMDIR");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
     auto slide = driver.openFile(slidePath);
     const int numScenes = slide->getNumScenes();
@@ -433,7 +433,7 @@ TEST(DCMImageDriver, readBlockChangingBits)
 TEST(DCMImageDriver, openFileUtf8Path)
 {
     DCMImageDriver driver;
-    std::string slidePath = TestTools::getFullTestImagePath(
+    std::string slidePath = TestTools::getTestImagePath(
         "unicode", u8"тест/CT-MONO2-12-lomb-an2");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
     auto slide = driver.openFile(slidePath);
@@ -454,7 +454,7 @@ TEST(DCMImageDriver, openWSIDirectory)
 {
     std::list<std::string> auxNames = { "LOCALIZER", "LABEL", "OVERVIEW" };
     DCMImageDriver driver;
-    std::string slidePath = TestTools::getFullTestImagePath(
+    std::string slidePath = TestTools::getTestImagePath(
             "dcm", "private/H01EBB50P-24777");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
     auto slide = driver.openFile(slidePath);
@@ -472,7 +472,7 @@ TEST(DCMImageDriver, openWSIDirectory)
 TEST(DCMImageDriver, openSingleFileWSI)
 {
     DCMImageDriver driver;
-    std::string slidePath = TestTools::getFullTestImagePath(
+    std::string slidePath = TestTools::getTestImagePath(
         "dcm", "private/wsi/M01FBC14P-589_level-0.dcm");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
     auto slide = driver.openFile(slidePath);
@@ -496,10 +496,10 @@ TEST(DCMImageDriver, openSingleFileWSI)
 TEST(DCMImageDriver, readBlockSingleFileWSI)
 {
     DCMImageDriver driver;
-    std::string slidePath = TestTools::getFullTestImagePath(
+    std::string slidePath = TestTools::getTestImagePath(
         "dcm", "private/wsi/M01FBC14P-589_level-0.dcm");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
-    std::string testFilePath = TestTools::getFullTestImagePath(
+    std::string testFilePath = TestTools::getTestImagePath(
         "dcm", "private/wsi/M01FBC14P-589_level-0.block.dcm");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath);
     auto slide = driver.openFile(slidePath);
@@ -525,7 +525,7 @@ TEST(DCMImageDriver, readBlockSingleFileWSI)
 TEST(DCMImageDriver, WSISingleFileGetSceneIndex)
 {
     DCMImageDriver driver;
-    std::string filePath = TestTools::getFullTestImagePath(
+    std::string filePath = TestTools::getTestImagePath(
         "dcm", "private/wsi/M01FBC14P-589_level-0.dcm");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
@@ -544,10 +544,10 @@ TEST(DCMImageDriver, WSISingleFileGetSceneIndex)
 TEST(DCMImageDriver, readBlockResampleSingleFileWSI)
 {
     DCMImageDriver driver;
-    std::string slidePath = TestTools::getFullTestImagePath(
+    std::string slidePath = TestTools::getTestImagePath(
         "dcm", "private/wsi/M01FBC14P-589_level-0.dcm");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
-    std::string testFilePath = TestTools::getFullTestImagePath(
+    std::string testFilePath = TestTools::getTestImagePath(
         "dcm", "private/wsi/M01FBC14P-589_level-0.block.dcm");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath);
     auto slide = driver.openFile(slidePath);
@@ -576,11 +576,11 @@ TEST(DCMImageDriver, readBlockResampleSingleFileWSI)
 TEST(DCMImageDriver, readResampledBlockWSIDirectory)
 {
     DCMImageDriver driver;
-    std::string slidePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777");
+    std::string slidePath = TestTools::getTestImagePath("dcm", "private/H01EBB50P-24777");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
-    std::string testFilePath1 = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777.block-2.png");
+    std::string testFilePath1 = TestTools::getTestImagePath("dcm", "private/H01EBB50P-24777.block-2.png");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath1);
-    std::string testFilePath2 = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777.block-3.png");
+    std::string testFilePath2 = TestTools::getTestImagePath("dcm", "private/H01EBB50P-24777.block-3.png");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath2);
     auto slide = driver.openFile(slidePath);
     const int numScenes = slide->getNumScenes();
@@ -621,7 +621,7 @@ TEST(DCMImageDriver, readResampledBlockWSIDirectory)
 TEST(DCMImageDriver, WSIDirGetSceneIndex)
 {
     DCMImageDriver driver;
-    std::string filePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777");
+    std::string filePath = TestTools::getTestImagePath("dcm", "private/H01EBB50P-24777");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide);
@@ -639,9 +639,9 @@ TEST(DCMImageDriver, WSIDirGetSceneIndex)
 TEST(DCMImageDriver, readBlockWSIDirectory)
 {
     DCMImageDriver driver;
-    std::string slidePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777");
+    std::string slidePath = TestTools::getTestImagePath("dcm", "private/H01EBB50P-24777");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
-    std::string testFilePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777.block.png");
+    std::string testFilePath = TestTools::getTestImagePath("dcm", "private/H01EBB50P-24777.block.png");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath);
     auto slide = driver.openFile(slidePath);
     const int numScenes = slide->getNumScenes();
@@ -666,9 +666,9 @@ TEST(DCMImageDriver, readAuxImagesWSIDirectory)
 {
     std::list<std::string> auxNames = { "LOCALIZER", "LABEL", "OVERVIEW" };
     DCMImageDriver driver;
-    std::string slidePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777");
+    std::string slidePath = TestTools::getTestImagePath("dcm", "private/H01EBB50P-24777");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
-    std::string testFilePathBase = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777");
+    std::string testFilePathBase = TestTools::getTestImagePath("dcm", "private/H01EBB50P-24777");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePathBase);
     auto slide = driver.openFile(slidePath);
     const int numScenes = slide->getNumScenes();
@@ -728,7 +728,7 @@ TEST(DCMImageDriver, zoomLevels)
         slideio::LevelInfo(8, {282,275}, 0.00390625, 0, {256,256}),
     };
     slideio::DCMImageDriver driver;
-    const std::string filePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777");
+    const std::string filePath = TestTools::getTestImagePath("dcm", "private/H01EBB50P-24777");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     const std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     const std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
@@ -782,7 +782,7 @@ TEST(DCMImageDriver, zoomLevelsSingle)
 TEST(DCMImageDriver, readLevelMatchesTheResampledSceneRead)
 {
     DCMImageDriver driver;
-    std::string slidePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777");
+    std::string slidePath = TestTools::getTestImagePath("dcm", "private/H01EBB50P-24777");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
     auto slide = driver.openFile(slidePath);
     const int numScenes = slide->getNumScenes();
@@ -827,7 +827,7 @@ TEST(DCMImageDriver, readLevelMatchesTheResampledSceneRead)
 TEST(DCMImageDriver, readLevelDoesNotReuseAdjacentLevel)
 {
     DCMImageDriver driver;
-    std::string slidePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777");
+    std::string slidePath = TestTools::getTestImagePath("dcm", "private/H01EBB50P-24777");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
     auto slide = driver.openFile(slidePath);
     const int numScenes = slide->getNumScenes();
@@ -865,7 +865,7 @@ TEST(DCMImageDriver, readLevelDoesNotReuseAdjacentLevel)
 }
 
 TEST(DCMImageDriver, multiThreadSceneAccess) {
-    std::string filePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777");
+    std::string filePath = TestTools::getTestImagePath("dcm", "private/H01EBB50P-24777");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     DCMImageDriver driver;
     TestTools::multiThreadedTest(filePath, driver);

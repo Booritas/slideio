@@ -61,7 +61,7 @@ TEST(FIWrapper, openMultipleFiles)
 #if defined(WIN32)
 TEST(FIWrapper, unicodeFilePath)
 {
-    std::string filePath = TestTools::getFullTestImagePath("unicode", u8"тест/lena_256.jpg");
+    std::string filePath = TestTools::getTestImagePath("unicode", u8"тест/lena_256.jpg");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     FIWrapper wrapper(filePath);
 	EXPECT_TRUE(wrapper.isValid());

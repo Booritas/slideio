@@ -269,7 +269,7 @@ TEST(GDALDriver, openFileUtf8)
         scene->readBlock(rect, raster.data(), raster.size());
     }
     {
-        std::string filePath = TestTools::getFullTestImagePath("unicode", u8"тест/lena_256.jpg");
+        std::string filePath = TestTools::getTestImagePath("unicode", u8"тест/lena_256.jpg");
         SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
         std::shared_ptr<slideio::Slide> slide = slideio::openSlide(filePath, "GDAL");
         int dirCount = slide->getNumScenes();
@@ -288,7 +288,7 @@ TEST(GDALDriver, openFileUtf8)
 
 TEST(GDALDriver, metadataTiff)
 {
-        std::string filePath = TestTools::getFullTestImagePath("ometiff", u8"SPIM-ModuloAlongZ.ome.tiff");
+        std::string filePath = TestTools::getTestImagePath("ometiff", u8"SPIM-ModuloAlongZ.ome.tiff");
         SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
         std::shared_ptr<slideio::Slide> slide = slideio::openSlide(filePath, "GDAL");
         std::string metadata = slide->getScene(0)->getRawMetadata();

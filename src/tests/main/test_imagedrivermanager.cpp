@@ -48,7 +48,7 @@ TEST(ImageDriverManager, findDriver)
     std::list<TestEntity> testList = {
         TestEntity("GDAL", TestTools::getTestImagePath("gdal", "img_2448x2448_3x8bit_SRC_RGB_ducks.png")),
         TestEntity("GDAL", TestTools::getTestImagePath("gdal", "Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg")),
-        TestEntity("AFI", TestTools::getTestImagePath("afi", "fs.afi", true)),
+        TestEntity("AFI", TestTools::getTestImagePath("afi", "fs.afi")),
         TestEntity("CZI", TestTools::getTestImagePath("czi", "pJP31mCherry.czi")),
         TestEntity("DCM", TestTools::getTestImagePath("dcm", "CT-MONO2-12-lomb-an2")),
         TestEntity("DCM", TestTools::getTestImagePath("dcm", "barre.dev/OT-MONO2-8-hip.dcm")),

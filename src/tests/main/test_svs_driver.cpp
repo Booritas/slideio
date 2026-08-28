@@ -440,7 +440,7 @@ TEST(SVSImageDriver, imageResolution)
 TEST(SVSImageDriver, imageResolutionPrivate)
 {
     slideio::SVSImageDriver driver;
-    std::string filePath = TestTools::getTestImagePath("svs", "jp2k_3chnl_8bit.svs", true);
+    std::string filePath = TestTools::getTestImagePath("svs", "jp2k_3chnl_8bit.svs");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
@@ -500,7 +500,7 @@ TEST(SVSImageDriver, readCELabImage)
 {
     // read image by svs driver
     slideio::SVSImageDriver driver;
-    std::string path = TestTools::getFullTestImagePath("svs", "S1303802-11-HE-DX1.svs");
+    std::string path = TestTools::getTestImagePath("svs", "S1303802-11-HE-DX1.svs");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(path);
     ASSERT_TRUE(slide != nullptr);
@@ -510,7 +510,7 @@ TEST(SVSImageDriver, readCELabImage)
     cv::Mat block;
     std::vector<int> channelIndices = {0, 1, 2};
     scene->readBlock(cv::Rect(0, 0, 1000, 1000), block);
-    std::string pathTest = TestTools::getFullTestImagePath("svs", "test/S1303802-11-HE-DX1-block.png");
+    std::string pathTest = TestTools::getTestImagePath("svs", "test/S1303802-11-HE-DX1-block.png");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(pathTest);
     cv::Mat expectedBlock;
     slideio::ImageTools::readSmallImageRaster(pathTest, expectedBlock);
@@ -566,7 +566,7 @@ TEST(SVSImageDriver, readJP2Kcompression)
 
 TEST(SVSImageDriver, openFileUtf8)
 {
-    std::string filePath = TestTools::getFullTestImagePath("unicode", u8"тест/CMU-1-Small-Region.svs");
+    std::string filePath = TestTools::getTestImagePath("unicode", u8"тест/CMU-1-Small-Region.svs");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     slideio::SVSImageDriver driver;
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);

@@ -14,7 +14,7 @@
 
 static std::string getPrivTestImagesPath(std::string dir, std::string file)
 {
-    return TestTools::getTestImagePath(dir, file, true);
+    return TestTools::getTestImagePath(dir, file);
 }
 
 TEST(AFIDriver, driverID)

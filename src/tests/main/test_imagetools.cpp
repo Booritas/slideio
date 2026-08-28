@@ -404,9 +404,9 @@ TEST(ConverterTools, ConvertTo32BitChannelsTest) {
 
 TEST(ImageTools, computeSimilarity2)
 {
-    std::string testFilePath1 = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1-dir.png");
+    std::string testFilePath1 = TestTools::getTestImagePath("hamamatsu", "openslide/CMU-1-dir.png");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath1);
-    std::string testFilePath2 = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1-dir1.png");
+    std::string testFilePath2 = TestTools::getTestImagePath("hamamatsu", "openslide/CMU-1-dir1.png");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath2);
     cv::Mat testRaster1;
     TestTools::readPNG(testFilePath1, testRaster1);

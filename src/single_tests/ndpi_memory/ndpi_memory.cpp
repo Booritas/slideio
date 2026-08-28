@@ -18,7 +18,7 @@ void test()
     slideio::setLogLevel("INFO");
     {
         NDPIImageDriver driver;
-        const std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1.ndpi");
+        const std::string filePath = TestTools::getTestImagePath("hamamatsu", "openslide/CMU-1.ndpi");
         std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath.c_str());
         std::shared_ptr<CVScene> scene = slide->getScene(0);
         cv::Rect rectScene = scene->getRect();
