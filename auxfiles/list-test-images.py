@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Regenerate software-docs/TEST_IMAGES.md.
 
-Parses every TestTools::getTestImagePath / getFullTestImagePath call in the test
-sources, resolves the calls whose arguments are string literals against the three
-data-root environment variables, stats what it finds, and writes the table.
+Parses every TestTools::getTestImagePath call in the test sources, resolves the
+calls whose arguments are string literals against the image-root environment
+variable, stats what it finds, and writes the table.
 
 Run from the repository root, with the environment the tests use:
 
@@ -32,7 +32,7 @@ BINARY = {'main': 'slideio_tests', 'ndpi': 'slideio_ndpi_tests', 'vsi': 'slideio
           'phtiff': 'slideio_phtiff_tests', 'converter': 'slideio_converter_tests',
           'transformer': 'slideio_transformer_tests'}
 
-CALL = re.compile(r'TestTools::get(Full)?TestImagePath\s*\(')
+CALL = re.compile(r'TestTools::getTestImagePath\s*\(')
 LITERAL = re.compile(r'"((?:[^"\\]|\\.)*)"')
 TEST_DECL = re.compile(r'^TEST(_F)?\(\s*(\w+)\s*,\s*(\w+)\s*\)', re.M)
 
@@ -127,13 +127,12 @@ def collect():
             arguments = split_arguments(argument_text)
             subfolder = as_literal(arguments[0]) if arguments else None
             image = as_literal(arguments[1]) if len(arguments) > 1 else None
-            private = len(arguments) > 2 and 'true' in arguments[2].lower()
             line = text[:match.start()].count('\n') + 1
             if subfolder is None or image is None:
                 dynamic.append((path, line, enclosing(match.start()),
                                 ' '.join(argument_text.split())[:80]))
                 continue
-            root = 'full' if match.group(1) else ('priv' if private else 'std')
+            root = 'full'
             references.append(dict(root=root, subfolder=subfolder, image=image, suite=suite,
                                    test=enclosing(match.start())))
     return references, dynamic
@@ -203,7 +202,7 @@ def main():
     add('corpus does not fit: the last column is what deleting an image would cost in tests.')
     add('')
     add('Paths are relative to the directory **containing** the `slideio` repository, so that')
-    add('all three data roots can be written the same way.')
+    add('every data root can be written the same way.')
     add('')
     add('| Root | Environment variable | Path |')
     add('|---|---|---|')
@@ -285,9 +284,9 @@ def main():
     add('')
     add('## How this was produced')
     add('')
-    add('By `auxfiles/list-test-images.py`, which parses the two `TestTools` path helpers out')
-    add('of every `.cpp` under `src/tests/` and `src/single_tests/` (excluding')
-    add('`testlib/testtools.cpp`, which merely defines them) and records the enclosing test.')
+    add('By `auxfiles/list-test-images.py`, which parses the `TestTools::getTestImagePath` calls')
+    add('out of every `.cpp` under `src/tests/` and `src/single_tests/` (excluding')
+    add('`testlib/testtools.cpp`, which merely defines it) and records the enclosing test.')
     add('Arguments that are string literals -- including concatenated and `u8`-prefixed ones --')
     add('are resolved against the roots above and stat-ed; anything assembled from a variable is')
     add('listed separately rather than guessed at. A directory argument is marked *(dir)* and')

@@ -65,12 +65,7 @@ std::string TestTools::getTestImageDirectory(bool priv)
 }
 
 
-std::string TestTools::getTestImagePath(const std::string& subfolder, const std::string& image, bool priv)
-{
-    return getFullTestImagePath(subfolder, image);
-}
-
-std::string TestTools::getFullTestImagePath(const std::string& subfolder, const std::string& image)
+std::string TestTools::getTestImagePath(const std::string& subfolder, const std::string& image)
 {
     const char* varName = TEST_FULL_TEST_PATH_VARIABLE;
     const char* var = getenv(varName);
@@ -126,7 +121,7 @@ bool TestTools::imageDirExists(const std::string& subfolder)
     const char* var = getenv(TEST_FULL_TEST_PATH_VARIABLE);
     if (var == nullptr) {
         // Nothing to look in. Let the caller fail the ordinary way, with the
-        // "Undefined environment variable" message getFullTestImagePath raises.
+        // "Undefined environment variable" message getTestImagePath raises.
         return true;
     }
     std::string dir(var);

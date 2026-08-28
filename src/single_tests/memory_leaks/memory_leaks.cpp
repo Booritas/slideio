@@ -12,7 +12,7 @@ using namespace slideio;
 void test()
 {
     CZIImageDriver driver;
-    const std::string filePath = TestTools::getFullTestImagePath("czi", "2017-02-27 15.22.39.ndpi");
+    const std::string filePath = TestTools::getTestImagePath("czi", "2017-02-27 15.22.39.ndpi");
     auto slide = driver.openFile(filePath.c_str());
     auto scene = slide->getScene(0);
     cv::Rect blockRect = { 0,0,1000,1000 };

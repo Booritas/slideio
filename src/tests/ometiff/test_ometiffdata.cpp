@@ -55,7 +55,7 @@ void extractTiffData(const std::string& filePath, TIFFFiles& files, const std::s
 
 
 TEST_F(TiffDataTests, init) {
-    std::string filePath = TestTools::getFullTestImagePath("ometiff", "Subresolutions/retina_large.ome.tiff");
+    std::string filePath = TestTools::getTestImagePath("ometiff", "Subresolutions/retina_large.ome.tiff");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
 	std::string directoryPath = std::filesystem::path(filePath).parent_path().string();
 	TIFFFiles files;
@@ -79,7 +79,7 @@ TEST_F(TiffDataTests, init) {
 }
 
 TEST_F(TiffDataTests, init3chnl) {
-	std::string filePath = TestTools::getFullTestImagePath("ometiff", "Subresolutions/Leica-1.ome.tiff");
+	std::string filePath = TestTools::getTestImagePath("ometiff", "Subresolutions/Leica-1.ome.tiff");
 	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
 	std::string directoryPath = std::filesystem::path(filePath).parent_path().string();
 	TIFFFiles files;
@@ -105,9 +105,9 @@ TEST_F(TiffDataTests, init3chnl) {
 }
 
 TEST_F(TiffDataTests, readTileFirstChannelOf2) {
-	std::string filePath = TestTools::getFullTestImagePath("ometiff", "Subresolutions/retina_large.ome.tiff");
+	std::string filePath = TestTools::getTestImagePath("ometiff", "Subresolutions/retina_large.ome.tiff");
 	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
-	std::string testFilePath = TestTools::getFullTestImagePath("ometiff", "Tests/retina_large.ome-page32-channel-0.tif");
+	std::string testFilePath = TestTools::getTestImagePath("ometiff", "Tests/retina_large.ome-page32-channel-0.tif");
 	SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath);
 	std::string directoryPath = std::filesystem::path(filePath).parent_path().string();
 	TIFFFiles files;
@@ -133,9 +133,9 @@ TEST_F(TiffDataTests, readTileFirstChannelOf2) {
 }
 
 TEST_F(TiffDataTests, readTileSecondChannelOf2) {
-	std::string filePath = TestTools::getFullTestImagePath("ometiff", "Subresolutions/retina_large.ome.tiff");
+	std::string filePath = TestTools::getTestImagePath("ometiff", "Subresolutions/retina_large.ome.tiff");
 	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
-	std::string testFilePath = TestTools::getFullTestImagePath("ometiff", "Tests/retina_large.ome-page32-channel-1.tif");
+	std::string testFilePath = TestTools::getTestImagePath("ometiff", "Tests/retina_large.ome-page32-channel-1.tif");
 	SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath);
 	std::string directoryPath = std::filesystem::path(filePath).parent_path().string();
 	TIFFFiles files;
@@ -161,9 +161,9 @@ TEST_F(TiffDataTests, readTileSecondChannelOf2) {
 }
 
 TEST_F(TiffDataTests, readTile3chOf3) {
-	std::string filePath = TestTools::getFullTestImagePath("ometiff", "Subresolutions/Leica-1.ome.tiff");
+	std::string filePath = TestTools::getTestImagePath("ometiff", "Subresolutions/Leica-1.ome.tiff");
 	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
-	std::string testFilePath = TestTools::getFullTestImagePath("ometiff", "Tests/Leica-1.ome-page_1.tif");
+	std::string testFilePath = TestTools::getTestImagePath("ometiff", "Tests/Leica-1.ome-page_1.tif");
 	SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath);
 	std::string directoryPath = std::filesystem::path(filePath).parent_path().string();
 	TIFFFiles files;
@@ -190,9 +190,9 @@ TEST_F(TiffDataTests, readTile3chOf3) {
 
 
 TEST_F(TiffDataTests, readTileChannelsStripePlanar) {
-	std::string filePath = TestTools::getFullTestImagePath("ometiff", "Subresolutions/retina_large.ome.tiff");
+	std::string filePath = TestTools::getTestImagePath("ometiff", "Subresolutions/retina_large.ome.tiff");
 	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
-	std::string testFilePath = TestTools::getFullTestImagePath("ometiff", "Tests/retina_large.ome-page32-channel-0.tif");
+	std::string testFilePath = TestTools::getTestImagePath("ometiff", "Tests/retina_large.ome-page32-channel-0.tif");
 	SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath);
 	std::string directoryPath = std::filesystem::path(filePath).parent_path().string();
 	TIFFFiles files;
@@ -219,9 +219,9 @@ TEST_F(TiffDataTests, readTileChannelsStripePlanar) {
 }
 
 TEST_F(TiffDataTests, readTileChannelsStripePlanar3ch) {
-	std::string filePath = TestTools::getFullTestImagePath("ometiff", "Subresolutions/Leica-1.ome.tiff");
+	std::string filePath = TestTools::getTestImagePath("ometiff", "Subresolutions/Leica-1.ome.tiff");
 	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
-	std::string testFilePath = TestTools::getFullTestImagePath("ometiff", "Tests/Leica-1.ome-page_1.tif");
+	std::string testFilePath = TestTools::getTestImagePath("ometiff", "Tests/Leica-1.ome-page_1.tif");
 	SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath);
 	std::string directoryPath = std::filesystem::path(filePath).parent_path().string();
 	TIFFFiles files;
@@ -247,9 +247,9 @@ TEST_F(TiffDataTests, readTileChannelsStripePlanar3ch) {
 }
 
 TEST_F(TiffDataTests, readTileChannelsTiledPlanar3ch) {
-	std::string filePath = TestTools::getFullTestImagePath("ometiff", "Subresolutions/Leica-1.ome.tiff");
+	std::string filePath = TestTools::getTestImagePath("ometiff", "Subresolutions/Leica-1.ome.tiff");
 	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
-	std::string testFilePath = TestTools::getFullTestImagePath("ometiff", "Tests/Leica-1.ome.tiff - Series 1 (1, x=21504, y=15360, w=512, h=512).png");
+	std::string testFilePath = TestTools::getTestImagePath("ometiff", "Tests/Leica-1.ome.tiff - Series 1 (1, x=21504, y=15360, w=512, h=512).png");
 	SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath);
 	std::string directoryPath = std::filesystem::path(filePath).parent_path().string();
 	TIFFFiles files;
@@ -269,9 +269,9 @@ TEST_F(TiffDataTests, readTileChannelsTiledPlanar3ch) {
 }
 
 TEST_F(TiffDataTests, readTileChannelsTiledPalette3ch) {
-	std::string filePath = TestTools::getFullTestImagePath("ometiff", "Subresolutions/Leica-2.ome.tiff");
+	std::string filePath = TestTools::getTestImagePath("ometiff", "Subresolutions/Leica-2.ome.tiff");
 	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
-	std::string testFilePath = TestTools::getFullTestImagePath("ometiff", "Tests/Leica-2.ome.tiff - Series 1 (1, x=23552, y=14336, w=512, h=512).png");
+	std::string testFilePath = TestTools::getTestImagePath("ometiff", "Tests/Leica-2.ome.tiff - Series 1 (1, x=23552, y=14336, w=512, h=512).png");
 	SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath);
 	std::string directoryPath = std::filesystem::path(filePath).parent_path().string();
 	TIFFFiles files;

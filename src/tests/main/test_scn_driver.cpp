@@ -480,7 +480,7 @@ TEST(SCNImageDriver, auxImages)
 
 TEST(SCNImageDriver, getSceneIndex)
 {
-    std::string filePath = TestTools::getFullTestImagePath("scn", "ultivue/Leica Aperio Versa 5 channel fluorescent image.scn");
+    std::string filePath = TestTools::getTestImagePath("scn", "ultivue/Leica Aperio Versa 5 channel fluorescent image.scn");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     auto slide = slideio::openSlide(filePath, "AUTO");
     ASSERT_TRUE(slide);
@@ -509,7 +509,7 @@ TEST(SCNImageDriver, getSceneIndex)
 TEST(SCNImageDriver, supplementalImage)
 {
     slideio::SCNImageDriver driver;
-    std::string filePath = TestTools::getFullTestImagePath("scn", "ultivue/Leica Aperio Versa 5 channel fluorescent image.scn");
+    std::string filePath = TestTools::getTestImagePath("scn", "ultivue/Leica Aperio Versa 5 channel fluorescent image.scn");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
@@ -523,20 +523,20 @@ TEST(SCNImageDriver, supplementalImage)
     auto rect = scene->getRect();
     cv::Mat label;
     scene->readBlock(rect, label);
-    std::string testFilePath = TestTools::getFullTestImagePath("scn", "ultivue/test/Leica Aperio Versa 5 channel fluorescent image-label.png");
+    std::string testFilePath = TestTools::getTestImagePath("scn", "ultivue/test/Leica Aperio Versa 5 channel fluorescent image-label.png");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath);
     cv::Mat expectedLabel;
     slideio::ImageTools::readSmallImageRaster(testFilePath, expectedLabel);
 	const double score = slideio::ImageTools::computeSimilarity2(label, expectedLabel);
 	const double precision = slideio::Endian::isLittleEndian()?0.99:0.88;
 	EXPECT_GT(score, precision);
-    //std::string testFilePath2 = TestTools::getFullTestImagePath("scn", "ultivue/test/Leica Aperio Versa 5 channel fluorescent image-label-temp.png");
+    //std::string testFilePath2 = TestTools::getTestImagePath("scn", "ultivue/test/Leica Aperio Versa 5 channel fluorescent image-label-temp.png");
 	//TestTools::writePNG(expectedLabel, testFilePath2);
 }
 
 TEST(SCNImageDriver, openFileUtf8)
 {
-    std::string filePath = TestTools::getFullTestImagePath("unicode", u8"тест/Leica-Fluorescence-1.scn");
+    std::string filePath = TestTools::getTestImagePath("unicode", u8"тест/Leica-Fluorescence-1.scn");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     slideio::SCNImageDriver driver;
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
@@ -568,7 +568,7 @@ TEST(SCNImageDriver, zoomLevels)
         slideio::LevelInfo(5, {295,454}, 0.03117, 0.15625, {512,512}),
     };
     slideio::SCNImageDriver driver;
-    const std::string filePath = TestTools::getFullTestImagePath("scn", "ultivue/Leica Aperio Versa 5 channel fluorescent image.scn");
+    const std::string filePath = TestTools::getTestImagePath("scn", "ultivue/Leica Aperio Versa 5 channel fluorescent image.scn");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     const std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     const std::shared_ptr<slideio::CVScene> scene = slide->getScene(1);
@@ -590,7 +590,7 @@ TEST(SCNImageDriver, zoomLevels)
 }
 
 TEST(SCNImageDriver, multiThreadSceneAccess) {
-    std::string filePath = TestTools::getFullTestImagePath("scn", "ultivue/Leica Aperio Versa 5 channel fluorescent image.scn");
+    std::string filePath = TestTools::getTestImagePath("scn", "ultivue/Leica Aperio Versa 5 channel fluorescent image.scn");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     slideio::SCNImageDriver driver;
     TestTools::multiThreadedTest(filePath, driver);
@@ -611,9 +611,9 @@ TEST(SCNImageDriver, zStackSetup) {
 }
 
 TEST(SCNImageDriver, zStack) {
-    std::string filePath = TestTools::getFullTestImagePath("scn", "private/HER2-63x_1.scn");
+    std::string filePath = TestTools::getTestImagePath("scn", "private/HER2-63x_1.scn");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
-    std::string testFilePath = TestTools::getFullTestImagePath("scn", "private/page-67-StitchAB907A82-6319-422F-9B5B-EB0E0A9D0525-z=4-r=0-c=2.tiff");
+    std::string testFilePath = TestTools::getTestImagePath("scn", "private/page-67-StitchAB907A82-6319-422F-9B5B-EB0E0A9D0525-z=4-r=0-c=2.tiff");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath);
     slideio::SCNImageDriver driver;
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
@@ -663,7 +663,7 @@ TEST(SCNImageDriver, zStack) {
 }
 
 TEST(SCNImageDriver, zStackFindZoomDirectory) {
-    std::string filePath = TestTools::getFullTestImagePath("scn", "private/HER2-63x_1.scn");
+    std::string filePath = TestTools::getTestImagePath("scn", "private/HER2-63x_1.scn");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     slideio::SCNImageDriver driver;
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
@@ -696,7 +696,7 @@ TEST(SCNImageDriver, zStackFindZoomDirectory) {
 
 TEST(SCNImageDriver, zStackGetChannelDir)
 {
-    std::string filePath = TestTools::getFullTestImagePath("scn", "private/HER2-63x_1.scn");
+    std::string filePath = TestTools::getTestImagePath("scn", "private/HER2-63x_1.scn");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     slideio::SCNImageDriver driver;
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
@@ -808,9 +808,9 @@ TEST(SCNImageDriver, readLevelChannelsMatchTheMergedRead)
 }
 
 TEST(SCNImageDriver, zStackMissingChannels) {
-    std::string filePath = TestTools::getFullTestImagePath("scn", "private/HER2-63x_1.scn");
+    std::string filePath = TestTools::getTestImagePath("scn", "private/HER2-63x_1.scn");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
-    std::string testFilePath = TestTools::getFullTestImagePath("scn", "private/page-67-StitchAB907A82-6319-422F-9B5B-EB0E0A9D0525-z=4-r=0-c=2.tiff");
+    std::string testFilePath = TestTools::getTestImagePath("scn", "private/page-67-StitchAB907A82-6319-422F-9B5B-EB0E0A9D0525-z=4-r=0-c=2.tiff");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath);
     slideio::SCNImageDriver driver;
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);

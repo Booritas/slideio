@@ -385,7 +385,7 @@ TEST_F(PhTiffImageDriverTests, driversClaimTheirOwnFileSpecs) {
 // An svs file is identified by its extension alone and must not be content sniffed;
 // a philips file is a *.tif that only its metadata identifies.
 TEST_F(PhTiffImageDriverTests, onlyThePhilipsDriverSniffsContent) {
-	const std::string philips = TestTools::getFullTestImagePath("philips", "Philips-4.tiff");
+	const std::string philips = TestTools::getTestImagePath("philips", "Philips-4.tiff");
 	SLIDEIO_SKIP_IF_IMAGE_MISSING(philips);
 	const std::string plainTiff = TestTools::getTestImagePath("svs", "CMU-1-Small-Region-page-1.tif");
 	SLIDEIO_SKIP_IF_IMAGE_MISSING(plainTiff);
@@ -421,14 +421,14 @@ TEST_F(PhTiffImageDriverTests, canOpenFileByExtension) {
 TEST_F(PhTiffImageDriverTests, canOpenFileByContent) {
 	PHTIFFImageDriver driver;
 	for (const char* fileName : {"Philips-1.tiff", "Philips-2.tiff", "Philips-3.tiff", "Philips-4.tiff"}) {
-		const std::string philips = TestTools::getFullTestImagePath("philips", fileName);
+		const std::string philips = TestTools::getTestImagePath("philips", fileName);
 		SLIDEIO_SKIP_IF_IMAGE_MISSING(philips);
 		EXPECT_TRUE(driver.canOpenFile(philips)) << fileName;
 	}
 	EXPECT_FALSE(driver.canOpenFile(
 		TestTools::getTestImagePath("gdal", "img_2448x2448_3x16bit_SRC_RGB_ducks.tif")));
 	EXPECT_FALSE(driver.canOpenFile(TestTools::getTestImagePath("gdal", "multipage.tif")));
-	EXPECT_FALSE(driver.canOpenFile(TestTools::getFullTestImagePath("ometiff", "00001_01.ome.tiff")));
+	EXPECT_FALSE(driver.canOpenFile(TestTools::getTestImagePath("ometiff", "00001_01.ome.tiff")));
 	// A path that does not exist, and a file that is not a tiff at all.
 	EXPECT_FALSE(driver.canOpenFile("/projects/no-such-file.tiff"));
 	EXPECT_FALSE(driver.canOpenFile(TestTools::getTestImagePath("gdal", "colors.png")));
@@ -438,7 +438,7 @@ TEST_F(PhTiffImageDriverTests, canOpenFileByContent) {
 }
 
 TEST_F(PhTiffImageDriverTests, openSlide) {
-	std::string filePath = TestTools::getFullTestImagePath("philips", "Philips-3.tiff");
+	std::string filePath = TestTools::getTestImagePath("philips", "Philips-3.tiff");
 	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
 	auto slide = slideio::openSlide(filePath, PHTIFF_DRIVER_ID);
 	std::list<std::tuple<std::string,int,int>> auxNames = {
@@ -914,7 +914,7 @@ TEST_F(PhTiffImageDriverTests, phCreateImageScene_roundsAContentSizeUpNotDown) {
 // The same padding on a real file: the levels of Philips-3.tiff are padded in
 // height from level 3 down (level 8 is a 512x512 directory holding 512x392).
 TEST_F(PhTiffImageDriverTests, zoomLevelsOfPhilips3ExcludeTilePadding) {
-	const std::string filePath = TestTools::getFullTestImagePath("philips", "Philips-3.tiff");
+	const std::string filePath = TestTools::getTestImagePath("philips", "Philips-3.tiff");
 	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
 	auto slide = slideio::openSlide(filePath, PHTIFF_DRIVER_ID);
 	ASSERT_TRUE(slide != nullptr);
@@ -955,7 +955,7 @@ static double phMeanAbsDiff(const cv::Mat& first, const cv::Mat& second) {
 // every level it could be served from is padded by the same proportion, so two such
 // reads agree with each other while both being wrong.
 TEST_F(PhTiffImageDriverTests, readFromPaddedZoomLevelMatchesUnpaddedLevel) {
-	const std::string filePath = TestTools::getFullTestImagePath("philips", "Philips-3.tiff");
+	const std::string filePath = TestTools::getTestImagePath("philips", "Philips-3.tiff");
 	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
 	PHTIFFImageDriver driver;
 	auto slide = driver.openFile(filePath);
@@ -1029,7 +1029,7 @@ TEST_F(PhTiffImageDriverTests, phCreateAuxScenes_emptyMapCreatesNothing) {
 }
 
 TEST_F(PhTiffImageDriverTests, openSlide2) {
-	std::string filePath = TestTools::getFullTestImagePath("philips", "Philips-4.tiff");
+	std::string filePath = TestTools::getTestImagePath("philips", "Philips-4.tiff");
 	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
 	// The philips metadata of this file declares a label image and a macro image, but
 	// the only auxiliary directory it stores is the macro (1816x821, described
@@ -1038,9 +1038,9 @@ TEST_F(PhTiffImageDriverTests, openSlide2) {
 		{"Macro", 1816, 821}
 	};
 	std::string roiPaths[] = {
-		TestTools::getFullTestImagePath("czi", "test/example_split (1).czi - ScanRegion0 (1, x=17583, y=3676, w=1000, h=1000).png"),
-		TestTools::getFullTestImagePath("czi", "test/example_split (1).czi - ScanRegion0 (1, x=41169, y=4850, w=1000, h=1000).png"),
-		TestTools::getFullTestImagePath("czi", "test/example_split (1).czi - ScanRegion0 (1, x=2668, y=1376, w=1000, h=1000).png"),
+		TestTools::getTestImagePath("czi", "test/example_split (1).czi - ScanRegion0 (1, x=17583, y=3676, w=1000, h=1000).png"),
+		TestTools::getTestImagePath("czi", "test/example_split (1).czi - ScanRegion0 (1, x=41169, y=4850, w=1000, h=1000).png"),
+		TestTools::getTestImagePath("czi", "test/example_split (1).czi - ScanRegion0 (1, x=2668, y=1376, w=1000, h=1000).png"),
 	};
     std::shared_ptr<Slide> slide = openSlide(filePath, PHTIFF_DRIVER_ID);
 	ASSERT_FALSE(slide == nullptr);
@@ -1072,7 +1072,7 @@ TEST_F(PhTiffImageDriverTests, openSlide2) {
 TEST_F(PhTiffImageDriverTests, metadataOfTheTestFiles) {
 	const std::string fileNames[] = {"Philips-1.tiff", "Philips-2.tiff", "Philips-3.tiff", "Philips-4.tiff"};
 	for (const std::string& fileName : fileNames) {
-		const std::string filePath = TestTools::getFullTestImagePath("philips", fileName);
+		const std::string filePath = TestTools::getTestImagePath("philips", fileName);
 		SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
 		auto slide = slideio::openSlide(filePath, PHTIFF_DRIVER_ID);
 		ASSERT_TRUE(slide != nullptr) << fileName;
@@ -1129,7 +1129,7 @@ TEST_F(PhTiffImageDriverTests, magnificationOfTheTestFiles) {
 		{"Philips-4.tiff", 40.},
 	};
 	for (const auto& param : expected) {
-		const std::string filePath = TestTools::getFullTestImagePath("philips", param.first);
+		const std::string filePath = TestTools::getTestImagePath("philips", param.first);
 		SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
 		auto slide = slideio::openSlide(filePath, PHTIFF_DRIVER_ID);
 		ASSERT_TRUE(slide != nullptr) << param.first;
@@ -1153,7 +1153,7 @@ TEST_F(PhTiffImageDriverTests, magnificationOfTheTestFiles) {
 // Philips-3.tiff is the one test file whose scanner read a barcode. Only its
 // presence is asserted: the value identifies the slide.
 TEST_F(PhTiffImageDriverTests, metadataCarriesTheBarcodeOfPhilips3) {
-	const std::string filePath = TestTools::getFullTestImagePath("philips", "Philips-3.tiff");
+	const std::string filePath = TestTools::getTestImagePath("philips", "Philips-3.tiff");
 	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
 	auto slide = slideio::openSlide(filePath, PHTIFF_DRIVER_ID);
 	ASSERT_TRUE(slide != nullptr);
@@ -1175,7 +1175,7 @@ TEST_F(PhTiffImageDriverTests, auxImagesOfTheTestFiles) {
 		{"Philips-4.tiff", {"Macro"}},
 	};
 	for (const auto& param : expected) {
-		const std::string filePath = TestTools::getFullTestImagePath("philips", param.first);
+		const std::string filePath = TestTools::getTestImagePath("philips", param.first);
 		SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
 		auto slide = slideio::openSlide(filePath, PHTIFF_DRIVER_ID);
 		ASSERT_TRUE(slide != nullptr) << param.first;
@@ -1196,10 +1196,10 @@ TEST_F(PhTiffImageDriverTests, auxImagesOfTheTestFiles) {
 // because PHTIFF's content check rejects OME-XML metadata.
 TEST_F(PhTiffImageDriverTests, findDriver) {
 	const std::list<std::pair<std::string, std::string>> expected = {
-		{PHTIFF_DRIVER_ID, TestTools::getFullTestImagePath("philips", "Philips-3.tiff")},
+		{PHTIFF_DRIVER_ID, TestTools::getTestImagePath("philips", "Philips-3.tiff")},
 		{"GDAL", TestTools::getTestImagePath("gdal", "img_2448x2448_3x16bit_SRC_RGB_ducks.tif")},
 		{"GDAL", TestTools::getTestImagePath("gdal", "multipage.tif")},
-		{"OMETIFF", TestTools::getFullTestImagePath("ometiff", "00001_01.ome.tiff")},
+		{"OMETIFF", TestTools::getTestImagePath("ometiff", "00001_01.ome.tiff")},
 		{"SVS", TestTools::getTestImagePath("svs", "CMU-1-Small-Region.svs")},
 	};
 	// Paths live inside the pairs, so guard them by walking the list.
@@ -1218,7 +1218,7 @@ TEST_F(PhTiffImageDriverTests, findDriver) {
 // assertions are on what only the philips driver produces -- gdal would hand back one
 // scene per tiff directory, with no auxiliary images and no resolution.
 TEST_F(PhTiffImageDriverTests, openSlideWithoutDriverId) {
-	const std::string filePath = TestTools::getFullTestImagePath("philips", "Philips-3.tiff");
+	const std::string filePath = TestTools::getTestImagePath("philips", "Philips-3.tiff");
 	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
 	auto slide = slideio::openSlide(filePath);
 	ASSERT_TRUE(slide != nullptr);
@@ -2245,7 +2245,7 @@ struct PhSlideAndScene
 static PhSlideAndScene phOpenScene(const std::string& fileName) {
 	PHTIFFImageDriver driver;
 	PhSlideAndScene opened;
-	opened.slide = driver.openFile(TestTools::getFullTestImagePath("philips", fileName));
+	opened.slide = driver.openFile(TestTools::getTestImagePath("philips", fileName));
 	if (opened.slide && opened.slide->getNumScenes() > 0) {
 		opened.scene = opened.slide->getScene(0);
 	}
@@ -2255,7 +2255,7 @@ static PhSlideAndScene phOpenScene(const std::string& fileName) {
 // The reference raster of REFERENCE_ROI.
 static cv::Mat phReferenceRaster() {
 	cv::Mat reference;
-	TestTools::readPNG(TestTools::getFullTestImagePath("philips", ph2::REFERENCE_PNG), reference);
+	TestTools::readPNG(TestTools::getTestImagePath("philips", ph2::REFERENCE_PNG), reference);
 	return reference;
 }
 
@@ -2287,7 +2287,7 @@ static cv::Mat phDownscaled(const cv::Mat& raster, const cv::Size& size) {
 // raster of the region, and has to come back as a three channel byte raster of exactly
 // the requested size.
 TEST_F(PhTiffImageDriverTests, readImage) {
-	SLIDEIO_SKIP_IF_IMAGE_MISSING(TestTools::getFullTestImagePath("philips", ph2::FILE_NAME));
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(TestTools::getTestImagePath("philips", ph2::FILE_NAME));
 	PhSlideAndScene opened = phOpenScene(ph2::FILE_NAME);
 	ASSERT_TRUE(opened.slide != nullptr);
 	ASSERT_EQ(1, opened.slide->getNumScenes());
@@ -2324,7 +2324,7 @@ TEST_F(PhTiffImageDriverTests, readImage) {
 // level n without any rounding -- which is what lets the downscaling tests below compare
 // against an exact reduction of the reference.
 TEST_F(PhTiffImageDriverTests, zoomLevelsOfPhilips2) {
-	SLIDEIO_SKIP_IF_IMAGE_MISSING(TestTools::getFullTestImagePath("philips", ph2::FILE_NAME));
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(TestTools::getTestImagePath("philips", ph2::FILE_NAME));
 	PhSlideAndScene opened = phOpenScene(ph2::FILE_NAME);
 	ASSERT_TRUE(opened.scene != nullptr);
 	ASSERT_EQ(ph2::LEVELS, opened.scene->getNumZoomLevels());
@@ -2347,7 +2347,7 @@ TEST_F(PhTiffImageDriverTests, zoomLevelsOfPhilips2) {
 // picks channels out of the decoded tile, so it must not change what the channels that
 // were asked for contain. An empty selection means every channel.
 TEST_F(PhTiffImageDriverTests, readImageChannels) {
-	SLIDEIO_SKIP_IF_IMAGE_MISSING(TestTools::getFullTestImagePath("philips", ph2::FILE_NAME));
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(TestTools::getTestImagePath("philips", ph2::FILE_NAME));
 	PhSlideAndScene opened = phOpenScene(ph2::FILE_NAME);
 	ASSERT_TRUE(opened.scene != nullptr);
 	const cv::Rect roi = ph2::ALIGNED_ROI;
@@ -2402,7 +2402,7 @@ TEST_F(PhTiffImageDriverTests, readImageChannels) {
 // here -- so a read served from the wrong level, or mapped onto the wrong part of the right
 // one, cannot pass.
 TEST_F(PhTiffImageDriverTests, readImageDownscaled) {
-	SLIDEIO_SKIP_IF_IMAGE_MISSING(TestTools::getFullTestImagePath("philips", ph2::FILE_NAME));
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(TestTools::getTestImagePath("philips", ph2::FILE_NAME));
 	PhSlideAndScene opened = phOpenScene(ph2::FILE_NAME);
 	ASSERT_TRUE(opened.scene != nullptr);
 	const cv::Rect roi = ph2::ALIGNED_ROI;
@@ -2439,7 +2439,7 @@ TEST_F(PhTiffImageDriverTests, readImageDownscaled) {
 // is 0.89 -- the two levels differ by their own jpeg noise -- and the 0.66 of a displaced
 // read applies here as well.
 TEST_F(PhTiffImageDriverTests, readImageDownscaledAcrossLevelsAgree) {
-	SLIDEIO_SKIP_IF_IMAGE_MISSING(TestTools::getFullTestImagePath("philips", ph2::FILE_NAME));
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(TestTools::getTestImagePath("philips", ph2::FILE_NAME));
 	PhSlideAndScene opened = phOpenScene(ph2::FILE_NAME);
 	ASSERT_TRUE(opened.scene != nullptr);
 	const cv::Rect roi = ph2::ALIGNED_ROI;
@@ -2458,7 +2458,7 @@ TEST_F(PhTiffImageDriverTests, readImageDownscaledAcrossLevelsAgree) {
 // of each decoded tile before it is scaled, and scaling is per channel, so a resampled
 // single channel read has to equal that channel of the resampled full read exactly.
 TEST_F(PhTiffImageDriverTests, readImageDownscaledChannels) {
-	SLIDEIO_SKIP_IF_IMAGE_MISSING(TestTools::getFullTestImagePath("philips", ph2::FILE_NAME));
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(TestTools::getTestImagePath("philips", ph2::FILE_NAME));
 	PhSlideAndScene opened = phOpenScene(ph2::FILE_NAME);
 	ASSERT_TRUE(opened.scene != nullptr);
 	const cv::Rect roi = ph2::ALIGNED_ROI;
@@ -2492,7 +2492,7 @@ TEST_F(PhTiffImageDriverTests, readImageDownscaledChannels) {
 // ideal reduction of the reference is 0.97, against 0.66 for the same read displaced by 64
 // pixels.
 TEST_F(PhTiffImageDriverTests, readImageDownscaledAnisotropically) {
-	SLIDEIO_SKIP_IF_IMAGE_MISSING(TestTools::getFullTestImagePath("philips", ph2::FILE_NAME));
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(TestTools::getTestImagePath("philips", ph2::FILE_NAME));
 	PhSlideAndScene opened = phOpenScene(ph2::FILE_NAME);
 	ASSERT_TRUE(opened.scene != nullptr);
 	const cv::Rect roi = ph2::ALIGNED_ROI;
@@ -2514,7 +2514,7 @@ TEST_F(PhTiffImageDriverTests, readImageDownscaledAnisotropically) {
 // the reference scaled up the same way is 0.999. The composer scales each tile on its own,
 // which is why this is not an exact match.
 TEST_F(PhTiffImageDriverTests, readImageUpscaled) {
-	SLIDEIO_SKIP_IF_IMAGE_MISSING(TestTools::getFullTestImagePath("philips", ph2::FILE_NAME));
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(TestTools::getTestImagePath("philips", ph2::FILE_NAME));
 	PhSlideAndScene opened = phOpenScene(ph2::FILE_NAME);
 	ASSERT_TRUE(opened.scene != nullptr);
 	const cv::Rect roi = ph2::ALIGNED_ROI;
@@ -2534,7 +2534,7 @@ TEST_F(PhTiffImageDriverTests, readImageUpscaled) {
 // rather than a blank sheet, and it has to agree with the same region taken from the level
 // above it.
 TEST_F(PhTiffImageDriverTests, readImageWholeSlideThumbnail) {
-	SLIDEIO_SKIP_IF_IMAGE_MISSING(TestTools::getFullTestImagePath("philips", ph2::FILE_NAME));
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(TestTools::getTestImagePath("philips", ph2::FILE_NAME));
 	PhSlideAndScene opened = phOpenScene(ph2::FILE_NAME);
 	ASSERT_TRUE(opened.scene != nullptr);
 	const cv::Rect rect = opened.scene->getRect();
@@ -2561,7 +2561,7 @@ TEST_F(PhTiffImageDriverTests, readImageWholeSlideThumbnail) {
 // the scene initializes a block with (white for a byte image) rather than as image data
 // wrapped around or as uninitialized memory.
 TEST_F(PhTiffImageDriverTests, readImageBlockCrossingTheSceneEdge) {
-	SLIDEIO_SKIP_IF_IMAGE_MISSING(TestTools::getFullTestImagePath("philips", ph2::FILE_NAME));
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(TestTools::getTestImagePath("philips", ph2::FILE_NAME));
 	PhSlideAndScene opened = phOpenScene(ph2::FILE_NAME);
 	ASSERT_TRUE(opened.scene != nullptr);
 	const cv::Rect rect = opened.scene->getRect();
@@ -2587,7 +2587,7 @@ TEST_F(PhTiffImageDriverTests, readImageBlockCrossingTheSceneEdge) {
 // three reads have to work on them: the whole image, a reduced copy of it, and a single
 // channel. Philips-3.tiff is the file that stores two of them, a label and a macro.
 TEST_F(PhTiffImageDriverTests, readAuxImageRasters) {
-	SLIDEIO_SKIP_IF_IMAGE_MISSING(TestTools::getFullTestImagePath("philips", "Philips-3.tiff"));
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(TestTools::getTestImagePath("philips", "Philips-3.tiff"));
 	PhSlideAndScene opened = phOpenScene("Philips-3.tiff");
 	ASSERT_TRUE(opened.slide != nullptr);
 	const std::list<std::string> names = opened.slide->getAuxImageNames();
@@ -2630,9 +2630,9 @@ TEST_F(PhTiffImageDriverTests, readAuxImageRasters) {
 // compares every raster of a region against the first one read for it. Every other driver
 // of the library is covered by this test; the philips driver was not.
 TEST_F(PhTiffImageDriverTests, multiThreadedRead) {
-	SLIDEIO_SKIP_IF_IMAGE_MISSING(TestTools::getFullTestImagePath("philips", ph2::FILE_NAME));
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(TestTools::getTestImagePath("philips", ph2::FILE_NAME));
 	PHTIFFImageDriver driver;
-	TestTools::multiThreadedTest(TestTools::getFullTestImagePath("philips", ph2::FILE_NAME), driver);
+	TestTools::multiThreadedTest(TestTools::getTestImagePath("philips", ph2::FILE_NAME), driver);
 }
 
 // The point of the level api: a rect given in level coordinates is read from that level
@@ -2641,7 +2641,7 @@ TEST_F(PhTiffImageDriverTests, multiThreadedRead) {
 // the conversion this test's subject avoids, so agreement means the two entry points
 // address the pyramid the same way.
 TEST_F(PhTiffImageDriverTests, readLevelMatchesTheResampledSceneRead) {
-	SLIDEIO_SKIP_IF_IMAGE_MISSING(TestTools::getFullTestImagePath("philips", ph2::FILE_NAME));
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(TestTools::getTestImagePath("philips", ph2::FILE_NAME));
 	PhSlideAndScene opened = phOpenScene(ph2::FILE_NAME);
 	ASSERT_TRUE(opened.scene != nullptr);
 	const int numLevels = opened.scene->getNumZoomLevels();
@@ -2670,7 +2670,7 @@ TEST_F(PhTiffImageDriverTests, readLevelMatchesTheResampledSceneRead) {
 // Reading a level tile by tile and stitching the tiles gives the level. This is the test of
 // the coordinate interpretation: an off-by-one in the level rect shows as a seam.
 TEST_F(PhTiffImageDriverTests, readLevelTileByTileReconstructsTheLevel) {
-	SLIDEIO_SKIP_IF_IMAGE_MISSING(TestTools::getFullTestImagePath("philips", ph2::FILE_NAME));
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(TestTools::getTestImagePath("philips", ph2::FILE_NAME));
 	PhSlideAndScene opened = phOpenScene(ph2::FILE_NAME);
 	ASSERT_TRUE(opened.scene != nullptr);
 	const int level = opened.scene->getNumZoomLevels() - 1;
@@ -2703,7 +2703,7 @@ TEST_F(PhTiffImageDriverTests, readLevelTileByTileReconstructsTheLevel) {
 // The level api never selects a level of its own: asking level N for a half sized block has
 // to resample level N rather than fall through to level N+1, which already holds that size.
 TEST_F(PhTiffImageDriverTests, readLevelDoesNotEscalateToAFinerLevel) {
-	SLIDEIO_SKIP_IF_IMAGE_MISSING(TestTools::getFullTestImagePath("philips", ph2::FILE_NAME));
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(TestTools::getTestImagePath("philips", ph2::FILE_NAME));
 	PhSlideAndScene opened = phOpenScene(ph2::FILE_NAME);
 	ASSERT_TRUE(opened.scene != nullptr);
 	const int level = opened.scene->getNumZoomLevels() - 2;
@@ -2731,7 +2731,7 @@ TEST_F(PhTiffImageDriverTests, readLevelDoesNotEscalateToAFinerLevel) {
 }
 
 TEST_F(PhTiffImageDriverTests, readLevelRejectsAnOutOfRangeLevel) {
-	SLIDEIO_SKIP_IF_IMAGE_MISSING(TestTools::getFullTestImagePath("philips", ph2::FILE_NAME));
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(TestTools::getTestImagePath("philips", ph2::FILE_NAME));
 	PhSlideAndScene opened = phOpenScene(ph2::FILE_NAME);
 	ASSERT_TRUE(opened.scene != nullptr);
 	const int numLevels = opened.scene->getNumZoomLevels();

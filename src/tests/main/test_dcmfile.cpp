@@ -227,7 +227,7 @@ TEST(DCMFile, isDicomDirFile)
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     bool res = DCMFile::isDicomDirFile(filePath);
     EXPECT_FALSE(res);
-    filePath = TestTools::getFullTestImagePath("dcm", "spine_mr/DICOMDIR");
+    filePath = TestTools::getTestImagePath("dcm", "spine_mr/DICOMDIR");
     res = DCMFile::isDicomDirFile(filePath);
     EXPECT_TRUE(res);
 }
@@ -305,17 +305,17 @@ TEST(DCMFile, pixelValues12AllocatedBits)
 
 TEST(DCMFile, isWSIFile)
 {
-    std::string filePath = TestTools::getFullTestImagePath("dcm", "barre.dev/MultiFrame/MR-MONO2-8-16x-heart");
+    std::string filePath = TestTools::getTestImagePath("dcm", "barre.dev/MultiFrame/MR-MONO2-8-16x-heart");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     bool res = DCMFile::isWSIFile(filePath);
     EXPECT_FALSE(res);
-    filePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777/H01EBB50P-24777_level-0.dcm");
+    filePath = TestTools::getTestImagePath("dcm", "private/H01EBB50P-24777/H01EBB50P-24777_level-0.dcm");
     res = DCMFile::isWSIFile(filePath);
     EXPECT_TRUE(res);
 }
 
 TEST(DCMFile, WSIFileAttributes) {
-    std::string filePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777/H01EBB50P-24777_level-0.dcm");
+    std::string filePath = TestTools::getTestImagePath("dcm", "private/H01EBB50P-24777/H01EBB50P-24777_level-0.dcm");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     DCMFile file(filePath);
     file.init();
@@ -332,7 +332,7 @@ TEST(DCMFile, WSIFileAttributes) {
 }
 
 TEST(DCMFile, getTileRect) {
-    std::string filePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777/H01EBB50P-24777_level-0.dcm");
+    std::string filePath = TestTools::getTestImagePath("dcm", "private/H01EBB50P-24777/H01EBB50P-24777_level-0.dcm");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     DCMFile file(filePath);
     file.init();
@@ -362,9 +362,9 @@ TEST(DCMFile, getTileRect) {
 TEST(DCMFile, readFrame) {
     DCMImageDriver::initializeDCMTK();
 
-    std::string filePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777/H01EBB50P-24777_level-0.dcm");
+    std::string filePath = TestTools::getTestImagePath("dcm", "private/H01EBB50P-24777/H01EBB50P-24777_level-0.dcm");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
-    std::string testFilePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777.tile.png");
+    std::string testFilePath = TestTools::getTestImagePath("dcm", "private/H01EBB50P-24777.tile.png");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath);
     DCMFile file(filePath);
     file.init();
@@ -394,9 +394,9 @@ TEST(DCMFile, readFrame) {
 TEST(DCMFile, readFrame2) {
     DCMImageDriver::initializeDCMTK();
 
-    std::string filePath = TestTools::getFullTestImagePath("dcm", "private/wsi/M01FBC14P-589_level-0.dcm");
+    std::string filePath = TestTools::getTestImagePath("dcm", "private/wsi/M01FBC14P-589_level-0.dcm");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
-    std::string testFilePath = TestTools::getFullTestImagePath("dcm", "private/wsi/M01FBC14P-589_level-0.tile.png");
+    std::string testFilePath = TestTools::getTestImagePath("dcm", "private/wsi/M01FBC14P-589_level-0.tile.png");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath);
     DCMFile file(filePath);
     file.init();

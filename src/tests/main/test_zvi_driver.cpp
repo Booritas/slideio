@@ -147,7 +147,7 @@ TEST(ZVIImageDriver, openSlide3D)
 TEST(ZVIImageDriver, openSlideMosaic)
 {
     slideio::ZVIImageDriver driver;
-    std::string filePath = TestTools::getFullTestImagePath("zvi", "openslide/Zeiss-3-Mosaic.zvi");
+    std::string filePath = TestTools::getTestImagePath("zvi", "openslide/Zeiss-3-Mosaic.zvi");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide.get() != nullptr);
@@ -433,7 +433,7 @@ TEST(ZVIImageDriver, readBlock3DROIResizedMultiSlice)
 TEST(ZVIImageDriver, readBlock)
 {
     slideio::ZVIImageDriver driver;
-    std::string filePath = TestTools::getFullTestImagePath("zvi", "mouse/20140207_mouse_2cell_H2AUb_HA_DAPI_inj_002.zvi");
+    std::string filePath = TestTools::getTestImagePath("zvi", "mouse/20140207_mouse_2cell_H2AUb_HA_DAPI_inj_002.zvi");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide.get() != nullptr);
@@ -473,7 +473,7 @@ TEST(ZVIImageDriver, readBlockTOMM)
 TEST(ZVIImageDriver, readBlock3D)
 {
     slideio::ZVIImageDriver driver;
-    std::string filePath = TestTools::getFullTestImagePath("zvi", "mouse/20140505_mouse_2cell_H2AUb_RING1B_DAPI_T_005.zvi");
+    std::string filePath = TestTools::getTestImagePath("zvi", "mouse/20140505_mouse_2cell_H2AUb_RING1B_DAPI_T_005.zvi");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide.get() != nullptr);
@@ -523,7 +523,7 @@ TEST(ZVIImageDriver, readBlock3D_emptyChannelIndices)
 TEST(ZVIImageDriver, openFileUtf8)
 {
     {
-        std::string filePath = TestTools::getFullTestImagePath("unicode", u8"тест/TOMMAlexaFluor647.zvi");
+        std::string filePath = TestTools::getTestImagePath("unicode", u8"тест/TOMMAlexaFluor647.zvi");
         SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
         slideio::ZVIImageDriver driver;
         std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
@@ -563,7 +563,7 @@ TEST(ZVIImageDriver, zoomLevel)
 }
 
 TEST(ZVIImageDriver, multiThreadSceneAccess) {
-    std::string filePath = TestTools::getFullTestImagePath("zvi", "mouse/20140505_mouse_2cell_H2AUb_RING1B_DAPI_T_005.zvi");
+    std::string filePath = TestTools::getTestImagePath("zvi", "mouse/20140505_mouse_2cell_H2AUb_RING1B_DAPI_T_005.zvi");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     slideio::ZVIImageDriver driver;
     TestTools::multiThreadedTest(filePath, driver);

@@ -124,7 +124,7 @@ TEST(Converter, outputPathExists)
 
 TEST(Converter, fromMultipleScenes)
 {
-	std::string path = TestTools::getFullTestImagePath("czi", "jxr-rgb-5scenes.czi");
+	std::string path = TestTools::getTestImagePath("czi", "jxr-rgb-5scenes.czi");
 	SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
 	SlidePtr slide = slideio::openSlide(path);
     ScenePtr scene = slide->getScene(0);
@@ -174,7 +174,7 @@ TEST(Converter, fromMultipleScenes)
 
 TEST(Converter, from3DScene)
 {
-	std::string path = TestTools::getFullTestImagePath("czi", "pJP31mCherry.czi");
+	std::string path = TestTools::getTestImagePath("czi", "pJP31mCherry.czi");
 	SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
 	SlidePtr slide = slideio::openSlide(path);
 	ScenePtr scene = slide->getScene(0);
@@ -241,7 +241,7 @@ TEST(Converter, from3DScene)
 
 TEST(Converter, jpeg2k4channelsScene)
 {
-	std::string path = TestTools::getFullTestImagePath("czi", "jxr-16bit-4chnls.czi");
+	std::string path = TestTools::getTestImagePath("czi", "jxr-16bit-4chnls.czi");
 	SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
 	SlidePtr slide = slideio::openSlide(path);
 	ScenePtr scene = slide->getScene(0);
@@ -297,7 +297,7 @@ TEST(Converter, jpeg2k4channelsScene)
 
 TEST(Converter, invalidRegions)
 {
-	std::string path = TestTools::getFullTestImagePath("czi", "jxr-rgb-5scenes.czi");
+	std::string path = TestTools::getTestImagePath("czi", "jxr-rgb-5scenes.czi");
 	SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
 	SlidePtr slide = slideio::openSlide(path);
 	ScenePtr scene = slide->getScene(0);
@@ -348,7 +348,7 @@ TEST(Converter, invalidRegions)
 
 TEST(Converter, jpeg2k)
 {
-	std::string path = TestTools::getFullTestImagePath("czi", "doughnut.czi");
+	std::string path = TestTools::getTestImagePath("czi", "doughnut.czi");
 	SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
 	SlidePtr slide = slideio::openSlide(path);
 	ScenePtr scene = slide->getScene(0);

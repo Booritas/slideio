@@ -15,12 +15,12 @@ protected:
     void TearDown() override {
     }
     std::list<std::string> testFiles = {
-        TestTools::getFullTestImagePath("svs","CMU-1-Small-Region.svs"),
-        TestTools::getFullTestImagePath("ometiff","Subresolutions/retina_large.ome.tiff"),
-        TestTools::getFullTestImagePath("ometiff","Subresolutions/Leica-2.ome.tiff"),
-        TestTools::getFullTestImagePath("ometiff","Subresolutions/Leica-1.ome.tiff"),
-        TestTools::getFullTestImagePath("ometiff","SPIM-ModuloAlongZ.ome.tiff"),
-        TestTools::getFullTestImagePath("ometiff","LAMBDA-ModuloAlongZ-ModuloAlongT.ome.tiff")
+        TestTools::getTestImagePath("svs","CMU-1-Small-Region.svs"),
+        TestTools::getTestImagePath("ometiff","Subresolutions/retina_large.ome.tiff"),
+        TestTools::getTestImagePath("ometiff","Subresolutions/Leica-2.ome.tiff"),
+        TestTools::getTestImagePath("ometiff","Subresolutions/Leica-1.ome.tiff"),
+        TestTools::getTestImagePath("ometiff","SPIM-ModuloAlongZ.ome.tiff"),
+        TestTools::getTestImagePath("ometiff","LAMBDA-ModuloAlongZ-ModuloAlongT.ome.tiff")
     };
     slideio::TIFFFiles tiffFiles;
 };
