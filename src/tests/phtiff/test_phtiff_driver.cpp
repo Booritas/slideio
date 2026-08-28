@@ -385,9 +385,6 @@ TEST_F(PhTiffImageDriverTests, driversClaimTheirOwnFileSpecs) {
 // An svs file is identified by its extension alone and must not be content sniffed;
 // a philips file is a *.tif that only its metadata identifies.
 TEST_F(PhTiffImageDriverTests, onlyThePhilipsDriverSniffsContent) {
-	if (!TestTools::isFullTestEnabled()) {
-		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-	}
 	const std::string philips = TestTools::getFullTestImagePath("philips", "Philips-4.tiff");
 	SLIDEIO_SKIP_IF_IMAGE_MISSING(philips);
 	const std::string plainTiff = TestTools::getTestImagePath("svs", "CMU-1-Small-Region-page-1.tif");
@@ -422,9 +419,6 @@ TEST_F(PhTiffImageDriverTests, canOpenFileByExtension) {
 // The extension is necessary but not sufficient: philips shares *.tif;*.tiff with
 // gdal and with ome-tiff, so the driver has to look into the file.
 TEST_F(PhTiffImageDriverTests, canOpenFileByContent) {
-	if (!TestTools::isFullTestEnabled()) {
-		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-	}
 	PHTIFFImageDriver driver;
 	for (const char* fileName : {"Philips-1.tiff", "Philips-2.tiff", "Philips-3.tiff", "Philips-4.tiff"}) {
 		const std::string philips = TestTools::getFullTestImagePath("philips", fileName);
@@ -920,9 +914,6 @@ TEST_F(PhTiffImageDriverTests, phCreateImageScene_roundsAContentSizeUpNotDown) {
 // The same padding on a real file: the levels of Philips-3.tiff are padded in
 // height from level 3 down (level 8 is a 512x512 directory holding 512x392).
 TEST_F(PhTiffImageDriverTests, zoomLevelsOfPhilips3ExcludeTilePadding) {
-	if (!TestTools::isFullTestEnabled()) {
-		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-	}
 	const std::string filePath = TestTools::getFullTestImagePath("philips", "Philips-3.tiff");
 	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
 	auto slide = slideio::openSlide(filePath, PHTIFF_DRIVER_ID);
@@ -964,9 +955,6 @@ static double phMeanAbsDiff(const cv::Mat& first, const cv::Mat& second) {
 // every level it could be served from is padded by the same proportion, so two such
 // reads agree with each other while both being wrong.
 TEST_F(PhTiffImageDriverTests, readFromPaddedZoomLevelMatchesUnpaddedLevel) {
-	if (!TestTools::isFullTestEnabled()) {
-		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-	}
 	const std::string filePath = TestTools::getFullTestImagePath("philips", "Philips-3.tiff");
 	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
 	PHTIFFImageDriver driver;
@@ -1041,10 +1029,6 @@ TEST_F(PhTiffImageDriverTests, phCreateAuxScenes_emptyMapCreatesNothing) {
 }
 
 TEST_F(PhTiffImageDriverTests, openSlide2) {
-	if (!TestTools::isFullTestEnabled())
-	{
-		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-	}
 	std::string filePath = TestTools::getFullTestImagePath("philips", "Philips-4.tiff");
 	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
 	// The philips metadata of this file declares a label image and a macro image, but
@@ -1086,9 +1070,6 @@ TEST_F(PhTiffImageDriverTests, openSlide2) {
 // count, the software versions, whether a barcode was read -- so the assertions are
 // on the structure the driver promises for any philips slide.
 TEST_F(PhTiffImageDriverTests, metadataOfTheTestFiles) {
-	if (!TestTools::isFullTestEnabled()) {
-		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-	}
 	const std::string fileNames[] = {"Philips-1.tiff", "Philips-2.tiff", "Philips-3.tiff", "Philips-4.tiff"};
 	for (const std::string& fileName : fileNames) {
 		const std::string filePath = TestTools::getFullTestImagePath("philips", fileName);
@@ -1141,9 +1122,6 @@ TEST_F(PhTiffImageDriverTests, metadataOfTheTestFiles) {
 // Philips-2 reports 41x and Philips-1 and Philips-3 report 44x: the files say so, and
 // the value is not rounded to a nominal one.
 TEST_F(PhTiffImageDriverTests, magnificationOfTheTestFiles) {
-	if (!TestTools::isFullTestEnabled()) {
-		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-	}
 	const std::list<std::pair<std::string, double>> expected = {
 		{"Philips-1.tiff", 44.},
 		{"Philips-2.tiff", 41.},
@@ -1175,9 +1153,6 @@ TEST_F(PhTiffImageDriverTests, magnificationOfTheTestFiles) {
 // Philips-3.tiff is the one test file whose scanner read a barcode. Only its
 // presence is asserted: the value identifies the slide.
 TEST_F(PhTiffImageDriverTests, metadataCarriesTheBarcodeOfPhilips3) {
-	if (!TestTools::isFullTestEnabled()) {
-		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-	}
 	const std::string filePath = TestTools::getFullTestImagePath("philips", "Philips-3.tiff");
 	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
 	auto slide = slideio::openSlide(filePath, PHTIFF_DRIVER_ID);
@@ -1193,9 +1168,6 @@ TEST_F(PhTiffImageDriverTests, metadataCarriesTheBarcodeOfPhilips3) {
 // declaring a label image it does not store) and none at all (Philips-1, whose macro
 // and label live in the metadata as embedded jpeg, which the driver does not read yet).
 TEST_F(PhTiffImageDriverTests, auxImagesOfTheTestFiles) {
-	if (!TestTools::isFullTestEnabled()) {
-		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-	}
 	const std::list<std::pair<std::string, std::list<std::string>>> expected = {
 		{"Philips-1.tiff", {}},
 		{"Philips-2.tiff", {"Macro"}},
@@ -1223,9 +1195,6 @@ TEST_F(PhTiffImageDriverTests, auxImagesOfTheTestFiles) {
 // order -- it holds regardless of where OMETIFF and PHTIFF sit relative to each other,
 // because PHTIFF's content check rejects OME-XML metadata.
 TEST_F(PhTiffImageDriverTests, findDriver) {
-	if (!TestTools::isFullTestEnabled()) {
-		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-	}
 	const std::list<std::pair<std::string, std::string>> expected = {
 		{PHTIFF_DRIVER_ID, TestTools::getFullTestImagePath("philips", "Philips-3.tiff")},
 		{"GDAL", TestTools::getTestImagePath("gdal", "img_2448x2448_3x16bit_SRC_RGB_ducks.tif")},
@@ -1249,9 +1218,6 @@ TEST_F(PhTiffImageDriverTests, findDriver) {
 // assertions are on what only the philips driver produces -- gdal would hand back one
 // scene per tiff directory, with no auxiliary images and no resolution.
 TEST_F(PhTiffImageDriverTests, openSlideWithoutDriverId) {
-	if (!TestTools::isFullTestEnabled()) {
-		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-	}
 	const std::string filePath = TestTools::getFullTestImagePath("philips", "Philips-3.tiff");
 	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
 	auto slide = slideio::openSlide(filePath);
@@ -2321,9 +2287,6 @@ static cv::Mat phDownscaled(const cv::Mat& raster, const cv::Size& size) {
 // raster of the region, and has to come back as a three channel byte raster of exactly
 // the requested size.
 TEST_F(PhTiffImageDriverTests, readImage) {
-	if (!TestTools::isFullTestEnabled()) {
-		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-	}
 	SLIDEIO_SKIP_IF_IMAGE_MISSING(TestTools::getFullTestImagePath("philips", ph2::FILE_NAME));
 	PhSlideAndScene opened = phOpenScene(ph2::FILE_NAME);
 	ASSERT_TRUE(opened.slide != nullptr);
@@ -2361,9 +2324,6 @@ TEST_F(PhTiffImageDriverTests, readImage) {
 // level n without any rounding -- which is what lets the downscaling tests below compare
 // against an exact reduction of the reference.
 TEST_F(PhTiffImageDriverTests, zoomLevelsOfPhilips2) {
-	if (!TestTools::isFullTestEnabled()) {
-		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-	}
 	SLIDEIO_SKIP_IF_IMAGE_MISSING(TestTools::getFullTestImagePath("philips", ph2::FILE_NAME));
 	PhSlideAndScene opened = phOpenScene(ph2::FILE_NAME);
 	ASSERT_TRUE(opened.scene != nullptr);
@@ -2387,9 +2347,6 @@ TEST_F(PhTiffImageDriverTests, zoomLevelsOfPhilips2) {
 // picks channels out of the decoded tile, so it must not change what the channels that
 // were asked for contain. An empty selection means every channel.
 TEST_F(PhTiffImageDriverTests, readImageChannels) {
-	if (!TestTools::isFullTestEnabled()) {
-		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-	}
 	SLIDEIO_SKIP_IF_IMAGE_MISSING(TestTools::getFullTestImagePath("philips", ph2::FILE_NAME));
 	PhSlideAndScene opened = phOpenScene(ph2::FILE_NAME);
 	ASSERT_TRUE(opened.scene != nullptr);
@@ -2445,9 +2402,6 @@ TEST_F(PhTiffImageDriverTests, readImageChannels) {
 // here -- so a read served from the wrong level, or mapped onto the wrong part of the right
 // one, cannot pass.
 TEST_F(PhTiffImageDriverTests, readImageDownscaled) {
-	if (!TestTools::isFullTestEnabled()) {
-		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-	}
 	SLIDEIO_SKIP_IF_IMAGE_MISSING(TestTools::getFullTestImagePath("philips", ph2::FILE_NAME));
 	PhSlideAndScene opened = phOpenScene(ph2::FILE_NAME);
 	ASSERT_TRUE(opened.scene != nullptr);
@@ -2485,9 +2439,6 @@ TEST_F(PhTiffImageDriverTests, readImageDownscaled) {
 // is 0.89 -- the two levels differ by their own jpeg noise -- and the 0.66 of a displaced
 // read applies here as well.
 TEST_F(PhTiffImageDriverTests, readImageDownscaledAcrossLevelsAgree) {
-	if (!TestTools::isFullTestEnabled()) {
-		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-	}
 	SLIDEIO_SKIP_IF_IMAGE_MISSING(TestTools::getFullTestImagePath("philips", ph2::FILE_NAME));
 	PhSlideAndScene opened = phOpenScene(ph2::FILE_NAME);
 	ASSERT_TRUE(opened.scene != nullptr);
@@ -2507,9 +2458,6 @@ TEST_F(PhTiffImageDriverTests, readImageDownscaledAcrossLevelsAgree) {
 // of each decoded tile before it is scaled, and scaling is per channel, so a resampled
 // single channel read has to equal that channel of the resampled full read exactly.
 TEST_F(PhTiffImageDriverTests, readImageDownscaledChannels) {
-	if (!TestTools::isFullTestEnabled()) {
-		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-	}
 	SLIDEIO_SKIP_IF_IMAGE_MISSING(TestTools::getFullTestImagePath("philips", ph2::FILE_NAME));
 	PhSlideAndScene opened = phOpenScene(ph2::FILE_NAME);
 	ASSERT_TRUE(opened.scene != nullptr);
@@ -2544,9 +2492,6 @@ TEST_F(PhTiffImageDriverTests, readImageDownscaledChannels) {
 // ideal reduction of the reference is 0.97, against 0.66 for the same read displaced by 64
 // pixels.
 TEST_F(PhTiffImageDriverTests, readImageDownscaledAnisotropically) {
-	if (!TestTools::isFullTestEnabled()) {
-		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-	}
 	SLIDEIO_SKIP_IF_IMAGE_MISSING(TestTools::getFullTestImagePath("philips", ph2::FILE_NAME));
 	PhSlideAndScene opened = phOpenScene(ph2::FILE_NAME);
 	ASSERT_TRUE(opened.scene != nullptr);
@@ -2569,9 +2514,6 @@ TEST_F(PhTiffImageDriverTests, readImageDownscaledAnisotropically) {
 // the reference scaled up the same way is 0.999. The composer scales each tile on its own,
 // which is why this is not an exact match.
 TEST_F(PhTiffImageDriverTests, readImageUpscaled) {
-	if (!TestTools::isFullTestEnabled()) {
-		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-	}
 	SLIDEIO_SKIP_IF_IMAGE_MISSING(TestTools::getFullTestImagePath("philips", ph2::FILE_NAME));
 	PhSlideAndScene opened = phOpenScene(ph2::FILE_NAME);
 	ASSERT_TRUE(opened.scene != nullptr);
@@ -2592,9 +2534,6 @@ TEST_F(PhTiffImageDriverTests, readImageUpscaled) {
 // rather than a blank sheet, and it has to agree with the same region taken from the level
 // above it.
 TEST_F(PhTiffImageDriverTests, readImageWholeSlideThumbnail) {
-	if (!TestTools::isFullTestEnabled()) {
-		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-	}
 	SLIDEIO_SKIP_IF_IMAGE_MISSING(TestTools::getFullTestImagePath("philips", ph2::FILE_NAME));
 	PhSlideAndScene opened = phOpenScene(ph2::FILE_NAME);
 	ASSERT_TRUE(opened.scene != nullptr);
@@ -2622,9 +2561,6 @@ TEST_F(PhTiffImageDriverTests, readImageWholeSlideThumbnail) {
 // the scene initializes a block with (white for a byte image) rather than as image data
 // wrapped around or as uninitialized memory.
 TEST_F(PhTiffImageDriverTests, readImageBlockCrossingTheSceneEdge) {
-	if (!TestTools::isFullTestEnabled()) {
-		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-	}
 	SLIDEIO_SKIP_IF_IMAGE_MISSING(TestTools::getFullTestImagePath("philips", ph2::FILE_NAME));
 	PhSlideAndScene opened = phOpenScene(ph2::FILE_NAME);
 	ASSERT_TRUE(opened.scene != nullptr);
@@ -2651,9 +2587,6 @@ TEST_F(PhTiffImageDriverTests, readImageBlockCrossingTheSceneEdge) {
 // three reads have to work on them: the whole image, a reduced copy of it, and a single
 // channel. Philips-3.tiff is the file that stores two of them, a label and a macro.
 TEST_F(PhTiffImageDriverTests, readAuxImageRasters) {
-	if (!TestTools::isFullTestEnabled()) {
-		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-	}
 	SLIDEIO_SKIP_IF_IMAGE_MISSING(TestTools::getFullTestImagePath("philips", "Philips-3.tiff"));
 	PhSlideAndScene opened = phOpenScene("Philips-3.tiff");
 	ASSERT_TRUE(opened.slide != nullptr);
@@ -2697,9 +2630,6 @@ TEST_F(PhTiffImageDriverTests, readAuxImageRasters) {
 // compares every raster of a region against the first one read for it. Every other driver
 // of the library is covered by this test; the philips driver was not.
 TEST_F(PhTiffImageDriverTests, multiThreadedRead) {
-	if (!TestTools::isFullTestEnabled()) {
-		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-	}
 	SLIDEIO_SKIP_IF_IMAGE_MISSING(TestTools::getFullTestImagePath("philips", ph2::FILE_NAME));
 	PHTIFFImageDriver driver;
 	TestTools::multiThreadedTest(TestTools::getFullTestImagePath("philips", ph2::FILE_NAME), driver);
@@ -2711,9 +2641,6 @@ TEST_F(PhTiffImageDriverTests, multiThreadedRead) {
 // the conversion this test's subject avoids, so agreement means the two entry points
 // address the pyramid the same way.
 TEST_F(PhTiffImageDriverTests, readLevelMatchesTheResampledSceneRead) {
-	if (!TestTools::isFullTestEnabled()) {
-		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-	}
 	SLIDEIO_SKIP_IF_IMAGE_MISSING(TestTools::getFullTestImagePath("philips", ph2::FILE_NAME));
 	PhSlideAndScene opened = phOpenScene(ph2::FILE_NAME);
 	ASSERT_TRUE(opened.scene != nullptr);
@@ -2743,9 +2670,6 @@ TEST_F(PhTiffImageDriverTests, readLevelMatchesTheResampledSceneRead) {
 // Reading a level tile by tile and stitching the tiles gives the level. This is the test of
 // the coordinate interpretation: an off-by-one in the level rect shows as a seam.
 TEST_F(PhTiffImageDriverTests, readLevelTileByTileReconstructsTheLevel) {
-	if (!TestTools::isFullTestEnabled()) {
-		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-	}
 	SLIDEIO_SKIP_IF_IMAGE_MISSING(TestTools::getFullTestImagePath("philips", ph2::FILE_NAME));
 	PhSlideAndScene opened = phOpenScene(ph2::FILE_NAME);
 	ASSERT_TRUE(opened.scene != nullptr);
@@ -2779,9 +2703,6 @@ TEST_F(PhTiffImageDriverTests, readLevelTileByTileReconstructsTheLevel) {
 // The level api never selects a level of its own: asking level N for a half sized block has
 // to resample level N rather than fall through to level N+1, which already holds that size.
 TEST_F(PhTiffImageDriverTests, readLevelDoesNotEscalateToAFinerLevel) {
-	if (!TestTools::isFullTestEnabled()) {
-		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-	}
 	SLIDEIO_SKIP_IF_IMAGE_MISSING(TestTools::getFullTestImagePath("philips", ph2::FILE_NAME));
 	PhSlideAndScene opened = phOpenScene(ph2::FILE_NAME);
 	ASSERT_TRUE(opened.scene != nullptr);
@@ -2810,9 +2731,6 @@ TEST_F(PhTiffImageDriverTests, readLevelDoesNotEscalateToAFinerLevel) {
 }
 
 TEST_F(PhTiffImageDriverTests, readLevelRejectsAnOutOfRangeLevel) {
-	if (!TestTools::isFullTestEnabled()) {
-		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-	}
 	SLIDEIO_SKIP_IF_IMAGE_MISSING(TestTools::getFullTestImagePath("philips", ph2::FILE_NAME));
 	PhSlideAndScene opened = phOpenScene(ph2::FILE_NAME);
 	ASSERT_TRUE(opened.scene != nullptr);
