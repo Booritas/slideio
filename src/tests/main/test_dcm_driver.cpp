@@ -69,11 +69,6 @@ TEST(DCMImageDriver, openFile)
 
 TEST(DCMImageDriver, openDirectory)
 {
-    if (!TestTools::isPrivateTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip private test because private dataset is not enabled";
-    }
     DCMImageDriver driver;
     std::string slidePath = TestTools::getTestImagePath(
         "dcm", "series/series_1", true);
@@ -97,10 +92,6 @@ TEST(DCMImageDriver, openDirectory)
 
 TEST(DCMImageDriver, getSceneIndex)
 {
-    if (!TestTools::isPrivateTestEnabled()) {
-        GTEST_SKIP() <<
-            "Skip private test because private dataset is not enabled";
-    }
     DCMImageDriver driver;
     std::string filePath = TestTools::getTestImagePath("dcm", "series", true);
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
@@ -121,11 +112,6 @@ TEST(DCMImageDriver, getSceneIndex)
 
 TEST(DCMImageDriver, openDirectoryRecursively)
 {
-    if (!TestTools::isPrivateTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip private test because private dataset is not enabled";
-    }
     DCMImageDriver driver;
     std::string slidePath = TestTools::getTestImagePath("dcm", "series", true);
     SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
@@ -326,11 +312,6 @@ TEST(DCMImageDriver, readMultiFrameROIRescale)
 
 TEST(DCMImageDriver, readDirectory3D)
 {
-    if (!TestTools::isPrivateTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip private test because private dataset is not enabled";
-    }
     DCMImageDriver driver;
     std::string slidePath = TestTools::getTestImagePath("dcm", "series/series_1", true);
     SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
@@ -363,10 +344,6 @@ TEST(DCMImageDriver, readDirectory3D)
 
 TEST(DCMImageDriver, DICOMDirgetSceneIndex)
 {
-    if (!TestTools::isPrivateTestEnabled()) {
-        GTEST_SKIP() <<
-            "Skip private test because private dataset is not enabled";
-    }
     DCMImageDriver driver;
     std::string filePath = TestTools::getFullTestImagePath("dcm", "spine_mr/DICOMDIR");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
@@ -385,11 +362,6 @@ TEST(DCMImageDriver, DICOMDirgetSceneIndex)
 
 TEST(DCMImageDriver, openDicomDirFile)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip the test because full dataset is not enabled";
-    }
     DCMImageDriver driver;
     std::string slidePath = TestTools::getFullTestImagePath("dcm", "spine_mr/DICOMDIR");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
@@ -460,11 +432,6 @@ TEST(DCMImageDriver, readBlockChangingBits)
 
 TEST(DCMImageDriver, openFileUtf8Path)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() <<
-                     "Skip private test because private dataset is not enabled";
-    }
     DCMImageDriver driver;
     std::string slidePath = TestTools::getFullTestImagePath(
         "unicode", u8"тест/CT-MONO2-12-lomb-an2");
@@ -486,12 +453,6 @@ TEST(DCMImageDriver, openFileUtf8Path)
 TEST(DCMImageDriver, openWSIDirectory)
 {
     std::list<std::string> auxNames = { "LOCALIZER", "LABEL", "OVERVIEW" };
-
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() <<
-        "Skip private test because private dataset is not enabled";
-    }
     DCMImageDriver driver;
     std::string slidePath = TestTools::getFullTestImagePath(
             "dcm", "private/H01EBB50P-24777");
@@ -510,11 +471,6 @@ TEST(DCMImageDriver, openWSIDirectory)
 
 TEST(DCMImageDriver, openSingleFileWSI)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip private test because private dataset is not enabled";
-    }
     DCMImageDriver driver;
     std::string slidePath = TestTools::getFullTestImagePath(
         "dcm", "private/wsi/M01FBC14P-589_level-0.dcm");
@@ -539,11 +495,6 @@ TEST(DCMImageDriver, openSingleFileWSI)
 
 TEST(DCMImageDriver, readBlockSingleFileWSI)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip private test because private dataset is not enabled";
-    }
     DCMImageDriver driver;
     std::string slidePath = TestTools::getFullTestImagePath(
         "dcm", "private/wsi/M01FBC14P-589_level-0.dcm");
@@ -573,10 +524,6 @@ TEST(DCMImageDriver, readBlockSingleFileWSI)
 
 TEST(DCMImageDriver, WSISingleFileGetSceneIndex)
 {
-    if (!TestTools::isPrivateTestEnabled()) {
-        GTEST_SKIP() <<
-            "Skip private test because private dataset is not enabled";
-    }
     DCMImageDriver driver;
     std::string filePath = TestTools::getFullTestImagePath(
         "dcm", "private/wsi/M01FBC14P-589_level-0.dcm");
@@ -596,11 +543,6 @@ TEST(DCMImageDriver, WSISingleFileGetSceneIndex)
 
 TEST(DCMImageDriver, readBlockResampleSingleFileWSI)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip private test because private dataset is not enabled";
-    }
     DCMImageDriver driver;
     std::string slidePath = TestTools::getFullTestImagePath(
         "dcm", "private/wsi/M01FBC14P-589_level-0.dcm");
@@ -633,11 +575,6 @@ TEST(DCMImageDriver, readBlockResampleSingleFileWSI)
 
 TEST(DCMImageDriver, readResampledBlockWSIDirectory)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip private test because private dataset is not enabled";
-    }
     DCMImageDriver driver;
     std::string slidePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
@@ -683,10 +620,6 @@ TEST(DCMImageDriver, readResampledBlockWSIDirectory)
 
 TEST(DCMImageDriver, WSIDirGetSceneIndex)
 {
-    if (!TestTools::isPrivateTestEnabled()) {
-        GTEST_SKIP() <<
-            "Skip private test because private dataset is not enabled";
-    }
     DCMImageDriver driver;
     std::string filePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
@@ -705,11 +638,6 @@ TEST(DCMImageDriver, WSIDirGetSceneIndex)
 
 TEST(DCMImageDriver, readBlockWSIDirectory)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip private test because private dataset is not enabled";
-    }
     DCMImageDriver driver;
     std::string slidePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
@@ -737,12 +665,6 @@ TEST(DCMImageDriver, readBlockWSIDirectory)
 TEST(DCMImageDriver, readAuxImagesWSIDirectory)
 {
     std::list<std::string> auxNames = { "LOCALIZER", "LABEL", "OVERVIEW" };
-
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip private test because private dataset is not enabled";
-    }
     DCMImageDriver driver;
     std::string slidePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
@@ -859,11 +781,6 @@ TEST(DCMImageDriver, zoomLevelsSingle)
 // essentially match a scene read resampled to the same size, level by level.
 TEST(DCMImageDriver, readLevelMatchesTheResampledSceneRead)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip private test because full dataset is not enabled";
-    }
     DCMImageDriver driver;
     std::string slidePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
@@ -909,11 +826,6 @@ TEST(DCMImageDriver, readLevelMatchesTheResampledSceneRead)
 // exactly the pair the reference tests for other drivers exercise.
 TEST(DCMImageDriver, readLevelDoesNotReuseAdjacentLevel)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip private test because full dataset is not enabled";
-    }
     DCMImageDriver driver;
     std::string slidePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
@@ -953,11 +865,6 @@ TEST(DCMImageDriver, readLevelDoesNotReuseAdjacentLevel)
 }
 
 TEST(DCMImageDriver, multiThreadSceneAccess) {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip the test because full dataset is not enabled";
-    }
     std::string filePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     DCMImageDriver driver;

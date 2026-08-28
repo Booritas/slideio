@@ -124,10 +124,6 @@ TEST(Converter, outputPathExists)
 
 TEST(Converter, fromMultipleScenes)
 {
-	if (!TestTools::isFullTestEnabled())
-	{
-		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-	}
 	std::string path = TestTools::getFullTestImagePath("czi", "jxr-rgb-5scenes.czi");
 	SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
 	SlidePtr slide = slideio::openSlide(path);
@@ -178,10 +174,6 @@ TEST(Converter, fromMultipleScenes)
 
 TEST(Converter, from3DScene)
 {
-	if (!TestTools::isFullTestEnabled())
-	{
-		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-	}
 	std::string path = TestTools::getFullTestImagePath("czi", "pJP31mCherry.czi");
 	SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
 	SlidePtr slide = slideio::openSlide(path);
@@ -249,10 +241,6 @@ TEST(Converter, from3DScene)
 
 TEST(Converter, jpeg2k4channelsScene)
 {
-	if (!TestTools::isFullTestEnabled())
-	{
-		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-	}
 	std::string path = TestTools::getFullTestImagePath("czi", "jxr-16bit-4chnls.czi");
 	SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
 	SlidePtr slide = slideio::openSlide(path);
@@ -309,10 +297,6 @@ TEST(Converter, jpeg2k4channelsScene)
 
 TEST(Converter, invalidRegions)
 {
-	if (!TestTools::isFullTestEnabled())
-	{
-		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-	}
 	std::string path = TestTools::getFullTestImagePath("czi", "jxr-rgb-5scenes.czi");
 	SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
 	SlidePtr slide = slideio::openSlide(path);
@@ -364,10 +348,6 @@ TEST(Converter, invalidRegions)
 
 TEST(Converter, jpeg2k)
 {
-	if (!TestTools::isFullTestEnabled())
-	{
-		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-	}
 	std::string path = TestTools::getFullTestImagePath("czi", "doughnut.czi");
 	SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
 	SlidePtr slide = slideio::openSlide(path);

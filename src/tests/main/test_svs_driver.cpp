@@ -439,10 +439,6 @@ TEST(SVSImageDriver, imageResolution)
 
 TEST(SVSImageDriver, imageResolutionPrivate)
 {
-    if(!TestTools::isPrivateTestEnabled())
-    {
-        GTEST_SKIP() << "Skip private test because private dataset is not enabled";
-    }
     slideio::SVSImageDriver driver;
     std::string filePath = TestTools::getTestImagePath("svs", "jp2k_3chnl_8bit.svs", true);
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
@@ -570,31 +566,25 @@ TEST(SVSImageDriver, readJP2Kcompression)
 
 TEST(SVSImageDriver, openFileUtf8)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-    }
-    {
-        std::string filePath = TestTools::getFullTestImagePath("unicode", u8"тест/CMU-1-Small-Region.svs");
-        SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
-        slideio::SVSImageDriver driver;
-        std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
-        int dirCount = slide->getNumScenes();
-        ASSERT_EQ(dirCount, 1);
-        std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
-        auto rect = scene->getRect();
-        cv::Rect expectedRect(0, 0, 2220, 2967);
-        EXPECT_EQ(rect, expectedRect);
-        cv::Mat raster;
-        cv::Size size;
-        double scale = 0.5;
-        size.width = std::lround(double(rect.width) * scale);
-        size.height = std::lround(double(rect.height) * scale);
-        rect.x = rect.y = 0;
-        scene->readResampledBlock(rect, size, raster);
-        EXPECT_EQ(raster.cols, size.width);
-        EXPECT_EQ(raster.rows, size.height);
-    }
+    std::string filePath = TestTools::getFullTestImagePath("unicode", u8"тест/CMU-1-Small-Region.svs");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::SVSImageDriver driver;
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    int dirCount = slide->getNumScenes();
+    ASSERT_EQ(dirCount, 1);
+    std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
+    auto rect = scene->getRect();
+    cv::Rect expectedRect(0, 0, 2220, 2967);
+    EXPECT_EQ(rect, expectedRect);
+    cv::Mat raster;
+    cv::Size size;
+    double scale = 0.5;
+    size.width = std::lround(double(rect.width) * scale);
+    size.height = std::lround(double(rect.height) * scale);
+    rect.x = rect.y = 0;
+    scene->readResampledBlock(rect, size, raster);
+    EXPECT_EQ(raster.cols, size.width);
+    EXPECT_EQ(raster.rows, size.height);
 }
 
 TEST(SVSImageDriver, zoomLevels)
@@ -621,11 +611,6 @@ TEST(SVSImageDriver, zoomLevels)
 }
 
 TEST(SVSImageDriver, multiThreadSceneAccess) {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip the test because full dataset is not enabled";
-    }
     const std::string filePath = TestTools::getTestImagePath("svs", "JP2K-33003-1.svs");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     slideio::SVSImageDriver driver;
@@ -675,9 +660,6 @@ TEST(SVSImageDriver, MetadataTreeIsStructured)
 {
     const std::string filePath = TestTools::getTestImagePath("svs", "CMU-1-Small-Region.svs");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
-    if (!std::ifstream(filePath).good()) {
-        GTEST_SKIP() << "Fixture not available: " << filePath;
-    }
     auto slide = slideio::openSlide(filePath, "SVS");
     ASSERT_TRUE(slide);
 

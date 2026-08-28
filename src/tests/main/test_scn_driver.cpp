@@ -480,10 +480,6 @@ TEST(SCNImageDriver, auxImages)
 
 TEST(SCNImageDriver, getSceneIndex)
 {
-    if (!TestTools::isFullTestEnabled()) {
-        GTEST_SKIP() <<
-            "Skip the test because full dataset is not enabled";
-    }
     std::string filePath = TestTools::getFullTestImagePath("scn", "ultivue/Leica Aperio Versa 5 channel fluorescent image.scn");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     auto slide = slideio::openSlide(filePath, "AUTO");
@@ -540,31 +536,25 @@ TEST(SCNImageDriver, supplementalImage)
 
 TEST(SCNImageDriver, openFileUtf8)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-    }
-    {
-        std::string filePath = TestTools::getFullTestImagePath("unicode", u8"тест/Leica-Fluorescence-1.scn");
-        SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
-        slideio::SCNImageDriver driver;
-        std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
-        int dirCount = slide->getNumScenes();
-        ASSERT_EQ(dirCount, 1);
-        std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
-        auto rect = scene->getRect();
-        cv::Rect expectedRect(16306, 40361, 4737, 6338);
-        EXPECT_EQ(rect, expectedRect);
-        cv::Mat raster;
-        cv::Size size;
-        double scale = 0.25;
-        size.width = std::lround(double(rect.width) * scale);
-        size.height = std::lround(double(rect.height) * scale);
-        rect.x = rect.y = 0;
-        scene->readResampledBlock(rect, size, raster);
-        EXPECT_EQ(raster.cols, size.width);
-        EXPECT_EQ(raster.rows, size.height);
-    }
+    std::string filePath = TestTools::getFullTestImagePath("unicode", u8"тест/Leica-Fluorescence-1.scn");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::SCNImageDriver driver;
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    int dirCount = slide->getNumScenes();
+    ASSERT_EQ(dirCount, 1);
+    std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
+    auto rect = scene->getRect();
+    cv::Rect expectedRect(16306, 40361, 4737, 6338);
+    EXPECT_EQ(rect, expectedRect);
+    cv::Mat raster;
+    cv::Size size;
+    double scale = 0.25;
+    size.width = std::lround(double(rect.width) * scale);
+    size.height = std::lround(double(rect.height) * scale);
+    rect.x = rect.y = 0;
+    scene->readResampledBlock(rect, size, raster);
+    EXPECT_EQ(raster.cols, size.width);
+    EXPECT_EQ(raster.rows, size.height);
 }
 
 TEST(SCNImageDriver, zoomLevels)
@@ -600,11 +590,6 @@ TEST(SCNImageDriver, zoomLevels)
 }
 
 TEST(SCNImageDriver, multiThreadSceneAccess) {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip the test because full dataset is not enabled";
-    }
     std::string filePath = TestTools::getFullTestImagePath("scn", "ultivue/Leica Aperio Versa 5 channel fluorescent image.scn");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     slideio::SCNImageDriver driver;
