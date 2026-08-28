@@ -466,11 +466,6 @@ TEST_F(PKEImageDriverTests, readMultichannelImageNoScaleSeparatedChannels) {
 
 
 TEST_F(PKEImageDriverTests, multiThreadSceneAccess) {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip the test because full dataset is not enabled";
-    }
     std::string filePath = TestTools::getFullTestImagePath("pke", "openmicroscopy/PKI_scans/LuCa-7color_Scan1.qptiff");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     slideio::PKEImageDriver driver;
@@ -479,10 +474,6 @@ TEST_F(PKEImageDriverTests, multiThreadSceneAccess) {
 
 TEST_F(PKEImageDriverTests, getDriverId)
 {
-    if (!TestTools::isFullTestEnabled()) {
-        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-    }
-
     std::string filePath = TestTools::getFullTestImagePath("pke", "openmicroscopy/PKI_scans/LuCa-7color_Scan1.qptiff");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
 	auto slide = slideio::openSlide(filePath, "AUTO");

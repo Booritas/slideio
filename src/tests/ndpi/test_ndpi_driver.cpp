@@ -37,11 +37,6 @@ protected:
 
 TEST_F(NDPIImageDriverTests, openFile)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-    }
-
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "2017-02-27 15.29.08.ndpi");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     slideio::NDPIImageDriver driver;
@@ -77,11 +72,6 @@ TEST_F(NDPIImageDriverTests, openFile)
 
 TEST_F(NDPIImageDriverTests, readStrippedScene)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-    }
-
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1.ndpi");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::string testFilePath1 = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1-1.png");
@@ -142,11 +132,6 @@ TEST_F(NDPIImageDriverTests, readStrippedScene)
 
 TEST_F(NDPIImageDriverTests, readROI)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-    }
-
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-2.ndpi");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-2-roi-l0.png");
@@ -191,11 +176,6 @@ TEST_F(NDPIImageDriverTests, readROI)
 
 TEST_F(NDPIImageDriverTests, readROI2)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-    }
-
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "test3-TRITC 2 (560).ndpi");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "test3-TRITC 2 (560)-roi.png");
@@ -224,11 +204,6 @@ TEST_F(NDPIImageDriverTests, readROI2)
 
 TEST_F(NDPIImageDriverTests, readROIResampled)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-    }
-
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-2.ndpi");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-2-roi-l0.png");
@@ -277,11 +252,6 @@ TEST_F(NDPIImageDriverTests, readROIResampled)
 
 TEST_F(NDPIImageDriverTests, readAuxImages)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-    }
-
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "2017-02-27 15.29.08.ndpi");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::string macroFilePath = TestTools::getFullTestImagePath("hamamatsu", "2017-02-27 15.29.08.macro.png");
@@ -320,10 +290,6 @@ TEST_F(NDPIImageDriverTests, readAuxImages)
 
 TEST_F(NDPIImageDriverTests, readResampledTiled)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-    }
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "DM0014 - 2020-04-02 10.25.21.ndpi");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "DM0014 - 2020-04-02 10.25.21-roi-resampled.png");
@@ -365,11 +331,6 @@ TEST_F(NDPIImageDriverTests, readResampledTiled)
 
 TEST_F(NDPIImageDriverTests, readResampledTiledRoi)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-    }
-
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "DM0014 - 2020-04-02 10.25.21.ndpi");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "DM0014 - 2020-04-02 10.25.21-roi-resampled-tiled.png");
@@ -411,10 +372,6 @@ TEST_F(NDPIImageDriverTests, readResampledTiledRoi)
 
 TEST_F(NDPIImageDriverTests, readResampled)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-    }
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "DM0014 - 2020-04-02 11.10.47.ndpi");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "DM0014 - 2020-04-02 11.10.47-resampled.png");
@@ -440,35 +397,25 @@ TEST_F(NDPIImageDriverTests, readResampled)
 
 TEST_F(NDPIImageDriverTests, openFileUtf8)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-    }
-    {
-        std::string filePath = TestTools::getFullTestImagePath("unicode", u8"тест/test3-TRITC 2 (560).ndpi");
-        SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
-        slideio::NDPIImageDriver driver;
-        std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
-        int dirCount = slide->getNumScenes();
-        ASSERT_EQ(dirCount, 1);
-        std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
-        auto rect = scene->getRect();
-        cv::Rect expectedRect(0, 0, 3968, 4864);
-        EXPECT_EQ(rect, expectedRect);
-        cv::Mat raster;
-        scene->readBlock(rect, raster);
-        EXPECT_EQ(raster.cols, rect.width);
-        EXPECT_EQ(raster.rows, rect.height);
-    }
+    std::string filePath = TestTools::getFullTestImagePath("unicode", u8"тест/test3-TRITC 2 (560).ndpi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::NDPIImageDriver driver;
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    int dirCount = slide->getNumScenes();
+    ASSERT_EQ(dirCount, 1);
+    std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
+    auto rect = scene->getRect();
+    cv::Rect expectedRect(0, 0, 3968, 4864);
+    EXPECT_EQ(rect, expectedRect);
+    cv::Mat raster;
+    scene->readBlock(rect, raster);
+    EXPECT_EQ(raster.cols, rect.width);
+    EXPECT_EQ(raster.rows, rect.height);
 }
 
 
 TEST_F(NDPIImageDriverTests, findZoomDirectory)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-    }
     const std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "DM0014 - 2020-04-02 11.10.47.ndpi");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     slideio::NDPIImageDriver driver;
@@ -513,11 +460,6 @@ TEST_F(NDPIImageDriverTests, findZoomDirectory)
 
 TEST_F(NDPIImageDriverTests, zoomLevels)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-    }
-
     const slideio::LevelInfo levels[] = {
         slideio::LevelInfo(0, {11520,9984}, 1.0, 20., {1920,8}),
         slideio::LevelInfo(1, {2880,2496}, 0.25, 5., {480,8}),
@@ -546,11 +488,6 @@ TEST_F(NDPIImageDriverTests, zoomLevels)
 }
 
 TEST_F(NDPIImageDriverTests, multiThreadSceneAccess) {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip the test because full dataset is not enabled";
-    }
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "DM0014 - 2020-04-02 11.10.47.ndpi");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     slideio::NDPIImageDriver driver;
@@ -559,11 +496,6 @@ TEST_F(NDPIImageDriverTests, multiThreadSceneAccess) {
 
 TEST_F(NDPIImageDriverTests, readRoiExceedScene)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-    }
-
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1.ndpi");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::string testFilePath1 = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1-1.png");
@@ -591,10 +523,6 @@ TEST_F(NDPIImageDriverTests, readRoiExceedScene)
 
 TEST_F(NDPIImageDriverTests, getDriverId)
 {
-    if (!TestTools::isFullTestEnabled()) {
-        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-    }
-
     std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1.ndpi");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     auto slide = slideio::openSlide(filePath, "AUTO");
@@ -613,10 +541,6 @@ TEST_F(NDPIImageDriverTests, getDriverId)
 // the level api avoids, so agreement means both address the pyramid the same way.
 TEST_F(NDPIImageDriverTests, readLevelMatchesTheResampledSceneRead)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-    }
     slideio::NDPIImageDriver driver;
     const std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "2017-02-27 15.29.08.ndpi");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
@@ -644,10 +568,6 @@ TEST_F(NDPIImageDriverTests, readLevelMatchesTheResampledSceneRead)
 // which is exactly the operation that throws when the rect is not contained.
 TEST_F(NDPIImageDriverTests, readLevelClampsAnOverhangingRect)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-    }
     slideio::NDPIImageDriver driver;
     const std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "2017-02-27 15.29.08.ndpi");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
@@ -679,10 +599,6 @@ TEST_F(NDPIImageDriverTests, readLevelClampsAnOverhangingRect)
 // coincidence of similar content.
 TEST_F(NDPIImageDriverTests, readLevelDoesNotEscalateToACoarserLevel)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-    }
     slideio::NDPIImageDriver driver;
     const std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "2017-02-27 15.29.08.ndpi");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);

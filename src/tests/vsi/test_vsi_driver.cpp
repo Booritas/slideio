@@ -121,10 +121,6 @@ static std::shared_ptr<CVScene> getSceneByName(std::shared_ptr<CVSlide> slide, c
 
 TEST_F(VSIImageDriverTests, getSceneIndex)
 {
-    if (!TestTools::isFullTestEnabled()) {
-        GTEST_SKIP() <<
-            "Skip the test because full dataset is not enabled";
-    }
     const std::string filePath = TestTools::getFullTestImagePath("vsi", "Zenodo/Abdominal/G1M16_ABD_HE_B6.vsi");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     auto slide = slideio::openSlide(filePath, "AUTO");
@@ -827,11 +823,6 @@ TEST(Pyramid, init3D) {
 }
 
 TEST_F(VSIImageDriverTests, invalidEts) {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip the test because full dataset is not enabled";
-    }
     std::string filePath = TestTools::getFullTestImagePath("vsi", "vs200-vsi-share/Image_B309.vsi");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::string overviewFilePath = TestTools::getFullTestImagePath("vsi", "test-output/Image_B309_Overview.png");
@@ -875,11 +866,6 @@ TEST_F(VSIImageDriverTests, invalidEts) {
 }
 
 TEST_F(VSIImageDriverTests, volumes) {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip the test because full dataset is not enabled";
-    }
     std::string filePath = TestTools::getFullTestImagePath("vsi", "private/d/STS_G6889_11_1_pHH3.vsi");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::string testImageFilePath = TestTools::getFullTestImagePath("vsi", 
@@ -907,11 +893,6 @@ TEST_F(VSIImageDriverTests, volumes) {
 
 
 TEST_F(VSIImageDriverTests, stack3d) {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip the test because full dataset is not enabled";
-    }
     std::string filePath = TestTools::getFullTestImagePath("vsi", "private/3d/01072022_35_2_z.vsi");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::string slice6 = TestTools::getFullTestImagePath("vsi", 
@@ -1024,11 +1005,6 @@ TEST_F(VSIImageDriverTests, readLevelDoesNotReuseAdjacentLevel) {
 }
 
 TEST_F(VSIImageDriverTests, multiThreadSceneAccess) {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip the test because full dataset is not enabled";
-    }
     std::string filePath = TestTools::getFullTestImagePath("vsi", "private/d/STS_G6889_11_1_pHH3.vsi");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     slideio::VSIImageDriver driver;

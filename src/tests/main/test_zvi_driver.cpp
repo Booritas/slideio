@@ -146,11 +146,6 @@ TEST(ZVIImageDriver, openSlide3D)
 
 TEST(ZVIImageDriver, openSlideMosaic)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() << "Skip private test because full image dataset is not available";
-    }
-
     slideio::ZVIImageDriver driver;
     std::string filePath = TestTools::getFullTestImagePath("zvi", "openslide/Zeiss-3-Mosaic.zvi");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
@@ -437,9 +432,6 @@ TEST(ZVIImageDriver, readBlock3DROIResizedMultiSlice)
 
 TEST(ZVIImageDriver, readBlock)
 {
-    if (!TestTools::isFullTestEnabled()) {
-        GTEST_SKIP() << "Skip full test because full dataset is not enabled";
-    }
     slideio::ZVIImageDriver driver;
     std::string filePath = TestTools::getFullTestImagePath("zvi", "mouse/20140207_mouse_2cell_H2AUb_HA_DAPI_inj_002.zvi");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
@@ -480,9 +472,6 @@ TEST(ZVIImageDriver, readBlockTOMM)
 
 TEST(ZVIImageDriver, readBlock3D)
 {
-    if (!TestTools::isFullTestEnabled()) {
-        GTEST_SKIP() << "Skip full test because full dataset is not enabled";
-    }
     slideio::ZVIImageDriver driver;
     std::string filePath = TestTools::getFullTestImagePath("zvi", "mouse/20140505_mouse_2cell_H2AUb_RING1B_DAPI_T_005.zvi");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
@@ -574,11 +563,6 @@ TEST(ZVIImageDriver, zoomLevel)
 }
 
 TEST(ZVIImageDriver, multiThreadSceneAccess) {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip the test because full dataset is not enabled";
-    }
     std::string filePath = TestTools::getFullTestImagePath("zvi", "mouse/20140505_mouse_2cell_H2AUb_RING1B_DAPI_T_005.zvi");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     slideio::ZVIImageDriver driver;
@@ -587,10 +571,6 @@ TEST(ZVIImageDriver, multiThreadSceneAccess) {
 
 TEST(ZVIImageDriver, getSceneIndex)
 {
-    if (!TestTools::isFullTestEnabled()) {
-        GTEST_SKIP() <<
-            "Skip the test because full dataset is not enabled";
-    }
     const std::string filePath = TestTools::getTestImagePath("zvi", "Zeiss-1-Stacked.zvi");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     auto slide = slideio::openSlide(filePath, "AUTO");

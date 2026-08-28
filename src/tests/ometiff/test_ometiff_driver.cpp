@@ -170,10 +170,6 @@ TEST_F(OTImageDriverTests, openMultifileExternalMetadata) {
 
 TEST_F(OTImageDriverTests, getDriverId)
 {
-	if (!TestTools::isFullTestEnabled()) {
-		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-	}
-
 	std::string filePath = TestTools::getFullTestImagePath("ometiff", "Subresolutions/Leica-2.ome.tiff");
 	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
 	auto slide = slideio::openSlide(filePath, "AUTO");
