@@ -52,7 +52,7 @@ TEST(ImageDriverManager, findDriver)
         TestEntity("CZI", TestTools::getTestImagePath("czi", "pJP31mCherry.czi")),
         TestEntity("DCM", TestTools::getTestImagePath("dcm", "CT-MONO2-12-lomb-an2")),
         TestEntity("DCM", TestTools::getTestImagePath("dcm", "barre.dev/OT-MONO2-8-hip.dcm")),
-        TestEntity("NDPI", TestTools::getTestImagePath("ndpi", "test3-DAPI-2-(387).ndpi")),
+        TestEntity("NDPI", TestTools::getTestImagePath("hamamatsu", "test3-DAPI-2-(387).ndpi")),
         TestEntity("SCN", TestTools::getTestImagePath("scn", "Leica-Fluorescence-1.scn")),
         TestEntity("SVS", TestTools::getTestImagePath("svs", "CMU-1-Small-Region.svs")),
         TestEntity("ZVI", TestTools::getTestImagePath("svs", "TOMMAlexaFluor647.zvi"))

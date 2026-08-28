@@ -29,7 +29,7 @@ namespace
         explicit TempNdpi(const char* name)
             : m_path(std::filesystem::temp_directory_path() / name)
         {
-            const std::string source = TestTools::getTestImagePath("ndpi", "test3-TRITC 2 (560).ndpi");
+            const std::string source = TestTools::getTestImagePath("hamamatsu", "test3-TRITC 2 (560).ndpi");
             std::error_code ignored;
             std::filesystem::remove(m_path, ignored);
             std::filesystem::copy_file(source, m_path, std::filesystem::copy_options::overwrite_existing);
