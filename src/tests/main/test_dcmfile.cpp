@@ -223,11 +223,6 @@ TEST(DCMFile, getMetadata)
 
 TEST(DCMFile, isDicomDirFile)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip the test because full dataset is not enabled";
-    }
     std::string filePath = TestTools::getTestImagePath("dcm", "barre.dev/US-PAL-8-10x-echo");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     bool res = DCMFile::isDicomDirFile(filePath);
@@ -310,11 +305,6 @@ TEST(DCMFile, pixelValues12AllocatedBits)
 
 TEST(DCMFile, isWSIFile)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip the test because full dataset is not enabled";
-    }
     std::string filePath = TestTools::getFullTestImagePath("dcm", "barre.dev/MultiFrame/MR-MONO2-8-16x-heart");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     bool res = DCMFile::isWSIFile(filePath);
@@ -325,10 +315,6 @@ TEST(DCMFile, isWSIFile)
 }
 
 TEST(DCMFile, WSIFileAttributes) {
-    if (!TestTools::isFullTestEnabled()) {
-        GTEST_SKIP() <<
-            "Skip the test because full dataset is not enabled";
-    }
     std::string filePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777/H01EBB50P-24777_level-0.dcm");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     DCMFile file(filePath);
@@ -346,10 +332,6 @@ TEST(DCMFile, WSIFileAttributes) {
 }
 
 TEST(DCMFile, getTileRect) {
-    if (!TestTools::isFullTestEnabled()) {
-        GTEST_SKIP() <<
-            "Skip the test because full dataset is not enabled";
-    }
     std::string filePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777/H01EBB50P-24777_level-0.dcm");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     DCMFile file(filePath);
@@ -378,10 +360,6 @@ TEST(DCMFile, getTileRect) {
 }
 
 TEST(DCMFile, readFrame) {
-    if (!TestTools::isFullTestEnabled()) {
-        GTEST_SKIP() <<
-            "Skip the test because full dataset is not enabled";
-    }
     DCMImageDriver::initializeDCMTK();
 
     std::string filePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777/H01EBB50P-24777_level-0.dcm");
@@ -414,10 +392,6 @@ TEST(DCMFile, readFrame) {
 }
 
 TEST(DCMFile, readFrame2) {
-    if (!TestTools::isFullTestEnabled()) {
-        GTEST_SKIP() <<
-            "Skip the test because full dataset is not enabled";
-    }
     DCMImageDriver::initializeDCMTK();
 
     std::string filePath = TestTools::getFullTestImagePath("dcm", "private/wsi/M01FBC14P-589_level-0.dcm");

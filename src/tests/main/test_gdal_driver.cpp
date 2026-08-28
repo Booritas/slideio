@@ -312,11 +312,6 @@ TEST(GDALDriver, metadataJpeg)
 }
 
 TEST(GDALDriver, multiThreadSceneAccess) {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip the test because full dataset is not enabled";
-    }
     std::string filePath = TestTools::getTestImagePath("gdal", "Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     slideio::GDALImageDriver driver;
@@ -377,10 +372,6 @@ TEST(GDALDriver, levelReadClampsAnOverhangingRect)
 
 TEST(GDALDriver, getSceneIndex)
 {
-    if (!TestTools::isFullTestEnabled()) {
-        GTEST_SKIP() <<
-            "Skip the test because full dataset is not enabled";
-    }
     std::string filePath = TestTools::getTestImagePath("gdal", "Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     auto slide = slideio::openSlide(filePath, "AUTO");

@@ -56,9 +56,6 @@ TEST(AFIDriver, readFileBrokenEntries)
 class AFIDriverFileTest : public ::testing::Test {
 public:
     void SetUp() override {
-        if (!TestTools::isPrivateTestEnabled()) {
-            GTEST_SKIP() << "Skip private test because private dataset is not enabled";
-        }
     }
 };
 
@@ -167,23 +164,16 @@ TEST_F(AFIDriverFileTest, read_ImageBlockScaled)
 }
 
 TEST_F(AFIDriverFileTest, multiThreadSceneAccess) {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip the test because full dataset is not enabled";
-    }
     std::string filePath = getPrivTestImagesPath("afi", "fs.afi");
+  	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     slideio::AFIImageDriver driver;
     TestTools::multiThreadedTest(filePath, driver);
 }
 
 TEST_F(AFIDriverFileTest, getDriverId)
 {
-    if (!TestTools::isFullTestEnabled()) {
-        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-    }
-
     const std::string filePath = getPrivTestImagesPath("afi", "fs.afi");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     auto slide = slideio::openSlide(filePath, "AUTO");
     ASSERT_TRUE(slide);
     EXPECT_EQ("AFI", slide->getDriverId());
