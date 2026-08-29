@@ -225,6 +225,8 @@ TEST(FIWrapper, readTifMetadata)
     EXPECT_NE(metadata.find("photometric"), std::string::npos);
 }
 
+// JPEG XR is supported only by the Windows build of FreeImage
+#if defined(WIN32)
 TEST(FIWrapper, readJxrImage)
 {
     std::string pathJxr = TestTools::getTestImagePath("jxr", "seagull.wdp");
@@ -240,3 +242,4 @@ TEST(FIWrapper, readJxrImage)
 	double sim = slideio::ImageTools::computeSimilarity2(jxrImage, bmpImage);
     ASSERT_LT(0.99, sim);
 }
+#endif
