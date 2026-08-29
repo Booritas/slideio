@@ -10,6 +10,5 @@ class ImageToolsRecipe(ConanFile):
         self.requires("libwebp/1.3.2")
         self.requires("libpng/1.6.53")
         self.requires("openjpeg/2.5.2")
-        self.requires("jpegxrcodec/1.0.3@slideio/stable")
         self.requires("freeimage/3.18.0")
         self.requires("jxrlib/cci.20260102", force=True) 

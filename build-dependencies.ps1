@@ -63,7 +63,6 @@ try {
     Invoke-ConanCreateSlideio -FolderPath "recipes\dcmtk\all" -Version "3.6.8"
     Invoke-ConanCreate -FolderPath "recipes\glog\all" -Version "0.7.1"
     Invoke-ConanCreateSlideio -FolderPath "recipes\opencv\4.x" -Version "4.10.0"
-    Invoke-ConanCreateSlideio -FolderPath "recipes\jpegxrcodec\all" -Version "1.0.3"
     Invoke-ConanCreateSlideio -FolderPath "recipes\ndpi-libjpeg-turbo\all" -Version "2.1.2"
     Invoke-ConanCreateSlideio -FolderPath "recipes\ndpi-libtiff\all" -Version "4.3.0"
     Invoke-ConanCreateSlideio -FolderPath "recipes\pole\all" -Version "1.0.4"

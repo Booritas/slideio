@@ -64,7 +64,12 @@ For manylinux slideio provides 2 docker containers:
 #### Build instructions
 1. Clone the repository:
 ```bash
-git clone https://github.com/Booritas/slideio
+git clone --recurse-submodules https://github.com/Booritas/slideio
+```
+The JPEG XR codec lives in the `extern/jpegxrcodec` submodule. In a clone made
+without `--recurse-submodules`, fetch it before configuring:
+```bash
+git submodule update --init
 ```
 2. Pull docker image from the docker hub
 For x86_64 processor use:
@@ -95,7 +100,12 @@ After the build process you can find installed files in the install subfolder of
 #### Build instructions
 1. Clone the repository:
 ```bash
-git clone https://github.com/Booritas/slideio
+git clone --recurse-submodules https://github.com/Booritas/slideio
+```
+The JPEG XR codec lives in the `extern/jpegxrcodec` submodule. In a clone made
+without `--recurse-submodules`, fetch it before configuring:
+```bash
+git submodule update --init
 ```
 2. Build custom dependencies
 ```bash
@@ -117,7 +127,12 @@ After the build process you can find installed files in the install subfolder of
 #### Build instructions
 1. Clone the repository:
 ```bash
-git clone https://github.com/Booritas/slideio
+git clone --recurse-submodules https://github.com/Booritas/slideio
+```
+The JPEG XR codec lives in the `extern/jpegxrcodec` submodule. In a clone made
+without `--recurse-submodules`, fetch it before configuring:
+```bash
+git submodule update --init
 ```
 2. Build custom dependencies
 ```powershell
