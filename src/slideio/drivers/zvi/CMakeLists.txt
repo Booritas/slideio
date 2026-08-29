@@ -23,6 +23,7 @@ set(SOURCE_FILES
    )
 
 add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES})
+HIDE_THIRD_PARTY_SYMBOLS(${LIBRARY_NAME})
 set_target_properties(${LIBRARY_NAME} PROPERTIES OUTPUT_NAME "${LIBRARY_NAME}${LIB_NAME_SUFFIX}")
 
 find_package(SQLite3)
@@ -51,6 +52,10 @@ ENDIF(WIN32)
 
 set_target_properties(${LIBRARY_NAME} PROPERTIES LINKER_LANGUAGE CXX)
 
-if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-    target_link_options(${LIBRARY_NAME} PRIVATE "-Wl,-Bsymbolic")
-endif()
+# -Bsymbolic used to be applied here, for GNU only, and without the
+# --exclude-libs,ALL that has to accompany it. On its own it makes this object
+# prefer its own definitions -- including the private copy of libstdc++ that
+# -static-libstdc++ links in -- while still exporting that copy, so the process
+# carries two libstdc++ runtimes and reads facets out of the wrong one.
+# HIDE_THIRD_PARTY_SYMBOLS applies both flags together, which keeps the private
+# copy private.
