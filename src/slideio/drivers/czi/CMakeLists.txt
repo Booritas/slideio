@@ -29,14 +29,13 @@ set_target_properties(${LIBRARY_NAME} PROPERTIES OUTPUT_NAME "${LIBRARY_NAME}${L
 find_package(SQLite3)
 find_package(OpenCV)
 find_package(ZLIB)
-find_package(jpegxrcodec)
 find_package(tinyxml2)
 
 target_link_libraries(${LIBRARY_NAME} 
    SQLite::SQLite3
    opencv::opencv
    ZLIB::ZLIB
-   jpegxrcodec::jpegxrcodec
+   jxrcodec
    tinyxml2::tinyxml2
 )
 

@@ -128,6 +128,16 @@ src/
 
 spdlog, SQLite3, OpenCV, ZLIB, tinyxml2, ICU, libtiff, libjpeg, WebP, OpenJPEG, Iconv, pole, nlohmann_json
 
+The JPEG XR codec is *not* a Conan package. It is the `extern/jpegxrcodec` git
+submodule (github.com/Booritas/jpegxrcodec, pinned at v1.0.3), added to the build
+with `add_subdirectory` from the root `CMakeLists.txt`. It builds a static
+`jxrcodec` target that slideio-imagetools, slideio-czi and slideio-ndpi link
+against; there is no `find_package(jpegxrcodec)` any more. A clone without
+`--recurse-submodules` needs `git submodule update --init` before configuring, or
+CMake stops with a FATAL_ERROR naming the empty directory. Plain `--init` is
+enough: jpegxrcodec's own googletest submodule is only needed for its tests,
+which the slideio build forces off.
+
 spdlog is a static library linked `PRIVATE` into `slideio-core` alone. That is a
 link-time-singleton constraint, not an ordinary dependency: the logging
 threshold and sink must exist in exactly one shared library.

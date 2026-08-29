@@ -41,7 +41,6 @@ HIDE_THIRD_PARTY_SYMBOLS(${LIBRARY_NAME})
 set_target_properties(${LIBRARY_NAME} PROPERTIES OUTPUT_NAME "${LIBRARY_NAME}${LIB_NAME_SUFFIX}")
 
 find_package(OpenCV)
-find_package(jpegxrcodec)
 find_package(freeimage)
 find_package(OpenJPEG)
 find_package(PNG)
@@ -54,7 +53,7 @@ find_package(jxrlib REQUIRED)
 
 target_link_libraries(${LIBRARY_NAME} 
    opencv::opencv
-   jpegxrcodec::jpegxrcodec
+   jxrcodec
    freeimage::freeimage
    openjp2
    PNG::PNG

@@ -181,6 +181,31 @@ FUNCTION(HIDE_THIRD_PARTY_SYMBOLS target)
     endif()
 ENDFUNCTION(HIDE_THIRD_PARTY_SYMBOLS)
 
+# jpegxrcodec: our own JPEG XR codec, built from the extern/jpegxrcodec
+# submodule instead of being pulled in as the jpegxrcodec/1.0.3@slideio/stable
+# conan package. Same sources -- the conan recipe only cloned this repository
+# and ran its CMakeLists -- but the codec now moves in step with the code that
+# calls it, and a change to it no longer needs a package rebuild and upload
+# before it can be tested here.
+#
+# The submodule ships a `jxrcodec` STATIC target; it is linked into
+# slideio-imagetools, slideio-czi and slideio-ndpi, and (like every other static
+# dependency) kept private to each by HIDE_THIRD_PARTY_SYMBOLS.
+set(JPEGXRCODEC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/extern/jpegxrcodec)
+if(NOT EXISTS ${JPEGXRCODEC_DIR}/CMakeLists.txt)
+    message(FATAL_ERROR
+        "extern/jpegxrcodec is empty. Run 'git submodule update --init' in "
+        "${CMAKE_CURRENT_SOURCE_DIR} and configure again.")
+endif()
+# Its tests need the googletest submodule nested inside it, which a plain
+# 'git submodule update --init' does not fetch. FORCE because this is not a
+# choice the slideio build offers: run those tests from their own repository.
+set(PACKAGE_TESTS OFF CACHE BOOL "Build the jpegxrcodec tests" FORCE)
+add_subdirectory(${JPEGXRCODEC_DIR} ${CMAKE_BINARY_DIR}/extern/jpegxrcodec)
+# The codec exports no usage requirements of its own; consumers include it as
+# <jxrcodec/jxrcodec.hpp>, so the repository root is the include directory.
+target_include_directories(jxrcodec PUBLIC ${JPEGXRCODEC_DIR})
+
 add_subdirectory(src)
 
 # Install the library

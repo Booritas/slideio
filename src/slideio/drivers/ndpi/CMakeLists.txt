@@ -33,7 +33,6 @@ find_package(ZLIB)
 find_package(LibLZMA)
 find_package(NDPIJPEG)
 find_package(WebP)
-find_package(jpegxrcodec)
 find_package(lerc)
 find_package(nlohmann_json REQUIRED)
 
@@ -46,7 +45,7 @@ target_link_libraries(${LIBRARY_NAME}
    LibLZMA::LibLZMA
    NDPIJPEG::NDPIJPEG
    libwebp::libwebp
-   jpegxrcodec::jpegxrcodec
+   jxrcodec
    lerc::lerc
    nlohmann_json::nlohmann_json
 )
