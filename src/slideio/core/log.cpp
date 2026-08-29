@@ -56,7 +56,7 @@ namespace
 
     // glog emits the basename only. Handles both separators: __FILE__ is
     // backslash-separated under MSVC and slash-separated elsewhere.
-    const char* basename(const char* path)
+    const char* fileBasename(const char* path)
     {
         if (path == nullptr) {
             return "";
@@ -195,7 +195,7 @@ namespace slideio
             // E20260822 19:31:43.120792 18220 exceptions.cpp:10] message
             std::ostringstream line_;
             line_ << severityInitial(level) << timestamp() << ' ' << threadId() << ' '
-                  << basename(file) << ':' << line << "] "
+                  << fileBasename(file) << ':' << line << "] "
                   << (message == nullptr ? "" : message);
             logLine(line_.str());
         }
