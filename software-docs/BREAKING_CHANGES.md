@@ -218,6 +218,41 @@ matches and opencv is built from source on a cold cache; `install.py` already
 passes `-b missing`. The upload/remove scripts still name opencv so the private
 `slideio` remote can keep caching that build.
 
+### ICU moved to 78.2 from conan center, and s390x support goes with it
+
+**Modules:** `slideio-core` (links `icu::icu` PRIVATE), `slideio-dcm`
+**Files:** `src/slideio/core/conanfile.txt`, `src/slideio/drivers/dcm/conanfile.py`,
+`build-dependencies.sh`, `build-dependencies.ps1`
+
+`icu/76.1@slideio/stable` becomes `icu/78.2`, the conan center recipe. The fork
+is retired and `build-dependencies` no longer creates an ICU package.
+
+**s390x builds are expected to fail.** This is a deliberate trade, not an
+oversight. The fork carried two s390x fixes in `recipes/icu/all/conanfile.py`,
+and upstream has only one of them. Upstream now picks the ICU data bundle
+suffix -- `icudt78b.dat` against `icudt78l.dat` -- from `self.settings.arch`
+against a big-endian set that includes `s390x`, which is strictly better than
+the fork's `sys.byteorder` test because it also holds when cross-compiling.
+What upstream still lacks is `s390x` in the `arch64` list that decides
+`--with-library-bits`, so a native s390x build is configured 32-bit and fails
+there. The `conan/Linux/s390x/` profiles are left in place; they are not
+expected to produce a working build until upstream takes that one-line list
+addition.
+
+Nothing in slideio's own sources changes. `Tools::fromUnicode16`
+(`src/slideio/core/tools/tools.cpp`) is the only ICU call site, and both things
+it touches survive in 78.2: `UChar` is still an unguarded
+`typedef char16_t`, and `UnicodeString(const char16_t*, int32_t)` is unchanged.
+ICU is linked `PRIVATE` and statically (`icu/*:shared=False` in every profile),
+so the versioned `icu_78` symbol namespace does not reach out-of-tree callers.
+A consumer that links ICU itself, however, now shares a process with ICU 78
+rather than 76.
+
+One incidental gain: `shared=False` matches the recipe default, so conan center
+serves a prebuilt ICU binary. The fork always had to be compiled, and ICU is a
+slow build. `force=True` stays on the dcm driver's requirement, which is what
+keeps dcmtk's own ICU from landing a second version in that graph.
+
 ## v2.9.0
 
 ### `TIFFKeeper` is now move-only
