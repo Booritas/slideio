@@ -30,18 +30,29 @@ def remove_files_by_patterns(root_dir, patterns):
                     os.remove(file_path)
 
 
+# Directories the cmake cleanup never descends into. The submodules under
+# extern/ ship cmake/ directories of their own -- ndpi-tiff keeps libtiff's
+# AutotoolsVersion.cmake, CompilerChecks.cmake, FindCMath.cmake and the rest
+# there -- and deleting those leaves the tree unconfigurable until the
+# submodule is checked out again.
+cmake_cleanup_skipped_dirs = ["extern", ".git"]
+
+
 def remove_cmake_directories(root_dir):
     """
-    Recursively delete all directories named 'cmake' starting from root_dir.
+    Recursively delete all directories named 'cmake' starting from root_dir,
+    leaving third-party sources under extern/ untouched.
 
     :param root_dir: The root directory to start the search from
     """
-    for root, dirs, files in os.walk(root_dir, topdown=False):
-        for dir_name in dirs:
+    for root, dirs, files in os.walk(root_dir, topdown=True):
+        dirs[:] = [d for d in dirs if d not in cmake_cleanup_skipped_dirs]
+        for dir_name in list(dirs):
             if dir_name == "cmake":
                 dir_path = os.path.join(root, dir_name)
                 print(f"Removing directory: {dir_path}")
                 shutil.rmtree(dir_path)
+                dirs.remove(dir_name)
 
 
 def get_platform():
@@ -132,15 +143,6 @@ def collect_profiles(profile_dir, configuration, profile_type=""):
 def process_conan_profile(profile, trg_dir, conan_file, build_folder):
     build_libs = []
     build_libs.append("missing")
-    # ndpi-libtiff must be built here rather than downloaded. Its package_id
-    # records its jpeg dependency by version only ("ndpi-libjpeg-turbo/2.1.Z"),
-    # not by that package's options, so a prebuilt ndpi-libtiff stays "valid" in
-    # conan's eyes even when it was compiled against a differently configured
-    # libjpeg-turbo. The published binary was, and the sizeof mismatch it carries
-    # (656 against turbo 2.1.2's 696) reaches the user as libtiff reporting
-    # "JPEG parameter struct mismatch" on every strip read. Building it from
-    # source pairs it with the turbo actually being linked.
-    build_libs.append("ndpi-libtiff/*")
     command = [
         "conan",
         "install",

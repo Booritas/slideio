@@ -1,5 +1,11 @@
 set(INCLUDE_ROOT ${CMAKE_SOURCE_DIR}/src)
 set(TEST_NAME slideio_ometiff_tests)
+# Without these, find_package(GTest) below depends on a sibling test directory
+# having been configured first and left GTest_DIR in the cache. Every other
+# directory under src/tests sets them; these two did not, and a fresh build
+# tree configured without that leftover fails at generate time on gtest::gtest.
+set(CMAKE_PREFIX_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 set(TEST_SOURCES
   test_ometiff_driver.cpp
