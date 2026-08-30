@@ -253,6 +253,56 @@ serves a prebuilt ICU binary. The fork always had to be compiled, and ICU is a
 slow build. `force=True` stays on the dcm driver's requirement, which is what
 keeps dcmtk's own ICU from landing a second version in that graph.
 
+### The NDPI libjpeg-turbo and libtiff forks are submodules, not conan packages
+
+**Module:** `slideio-ndpi`
+**Files:** `.gitmodules`, `extern/ndpi-libjpeg-turbo`, `extern/ndpi-tiff`,
+`src/slideio/drivers/ndpi/CMakeLists.txt`,
+`src/slideio/drivers/ndpi/conanfile.txt`, `cmake-scripts/ndpi-tiff-deps/`,
+`install.py`, `build-dependencies.sh`, `build-dependencies.ps1`,
+`auxfiles/upload-dependencies.sh`, `auxfiles/remove-dependencies.sh`
+
+`ndpi-libjpeg-turbo/2.1.2@slideio/stable` and `ndpi-libtiff/4.3.0@slideio/stable`
+are gone. The same sources now build in-tree from two submodules pinned at the
+same tags the recipes fetched -- `extern/ndpi-libjpeg-turbo` at v2.1.2
+(6bb4790) and `extern/ndpi-tiff` at v4.3.0 (d23311c). No slideio source file
+changed and no exported signature changed.
+
+**A clone now needs its submodules.** `git clone --recurse-submodules`, or
+`git submodule update --init` before configuring. Missing directories stop the
+configure with a FATAL_ERROR naming them rather than failing later on a header.
+This is the same requirement jpegxrcodec introduced; there are three submodules
+now, all under `extern/`.
+
+**The two forks had to move together.** ndpi-libtiff required
+ndpi-libjpeg-turbo (`recipes/ndpi-libtiff/all/conanfile.py:63`) and re-exported
+it, so dropping only the jpeg package would have pulled conan's copy straight
+back through `NDPITIFF::NDPITIFF` and put two libjpeg-turbo builds in one
+driver. The driver calls `jpeglib.h` directly and so does libtiff, and the fork
+is built `WITH_JPEG8` and `WITH_MEM_SRCDST`, both of which change the size of
+`jpeg_decompress_struct`. That disagreement surfaces at runtime as libtiff's
+"JPEG parameter struct mismatch", not as a link error.
+
+**`install.py` no longer force-builds ndpi-libtiff.** The `-b ndpi-libtiff/*`
+entry existed because a prebuilt ndpi-libtiff recorded its jpeg dependency by
+version only, so conan considered a binary compiled against a differently
+configured libjpeg-turbo still valid. With both built in-tree from one source
+tree there is no second configuration to disagree with, and `-b missing` is
+enough again.
+
+**Out-of-tree build scripts** that referenced either package -- creating them
+from the conan-center-index fork, or uploading them to the `slideio` remote --
+should drop those entries. `build-dependencies` and the auxfiles scripts already
+have.
+
+Two behaviours worth knowing. The in-tree jpeg builds without SIMD unless NASM
+is on PATH, where the published conan binary may have had it; this is a decode
+speed difference in the NDPI driver only, not a correctness one, and
+`REQUIRE_SIMD` is left at its default so a missing NASM degrades rather than
+fails. And the codec set is pinned to what the recipe configured -- zlib,
+libdeflate, lzma, jbig, zstd, webp and the C++ API on, lerc and jpeg12 off --
+rather than left to libtiff's autodetection.
+
 ## v2.9.0
 
 ### `TIFFKeeper` is now move-only

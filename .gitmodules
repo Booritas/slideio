@@ -1,3 +1,9 @@
 [submodule "extern/jpegxrcodec"]
 	path = extern/jpegxrcodec
 	url = https://Booritas@github.com/Booritas/jpegxrcodec.git
+[submodule "extern/ndpi-libjpeg-turbo"]
+	path = extern/ndpi-libjpeg-turbo
+	url = https://Booritas@github.com/Booritas/ndpi-libjpeg-turbo.git
+[submodule "extern/ndpi-tiff"]
+	path = extern/ndpi-tiff
+	url = https://Booritas@github.com/Booritas/ndpi-tiff.git

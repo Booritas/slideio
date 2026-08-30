@@ -66,8 +66,10 @@ For manylinux slideio provides 2 docker containers:
 ```bash
 git clone --recurse-submodules https://github.com/Booritas/slideio
 ```
-The JPEG XR codec lives in the `extern/jpegxrcodec` submodule. In a clone made
-without `--recurse-submodules`, fetch it before configuring:
+Three dependencies live in submodules under `extern/`: the JPEG XR codec
+(`jpegxrcodec`) and the NDPI forks of libjpeg-turbo and libtiff
+(`ndpi-libjpeg-turbo`, `ndpi-tiff`). In a clone made without
+`--recurse-submodules`, fetch them before configuring:
 ```bash
 git submodule update --init
 ```
@@ -102,8 +104,10 @@ After the build process you can find installed files in the install subfolder of
 ```bash
 git clone --recurse-submodules https://github.com/Booritas/slideio
 ```
-The JPEG XR codec lives in the `extern/jpegxrcodec` submodule. In a clone made
-without `--recurse-submodules`, fetch it before configuring:
+Three dependencies live in submodules under `extern/`: the JPEG XR codec
+(`jpegxrcodec`) and the NDPI forks of libjpeg-turbo and libtiff
+(`ndpi-libjpeg-turbo`, `ndpi-tiff`). In a clone made without
+`--recurse-submodules`, fetch them before configuring:
 ```bash
 git submodule update --init
 ```
@@ -129,8 +133,10 @@ After the build process you can find installed files in the install subfolder of
 ```bash
 git clone --recurse-submodules https://github.com/Booritas/slideio
 ```
-The JPEG XR codec lives in the `extern/jpegxrcodec` submodule. In a clone made
-without `--recurse-submodules`, fetch it before configuring:
+Three dependencies live in submodules under `extern/`: the JPEG XR codec
+(`jpegxrcodec`) and the NDPI forks of libjpeg-turbo and libtiff
+(`ndpi-libjpeg-turbo`, `ndpi-tiff`). In a clone made without
+`--recurse-submodules`, fetch them before configuring:
 ```bash
 git submodule update --init
 ```

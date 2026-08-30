@@ -138,6 +138,43 @@ CMake stops with a FATAL_ERROR naming the empty directory. Plain `--init` is
 enough: jpegxrcodec's own googletest submodule is only needed for its tests,
 which the slideio build forces off.
 
+The NDPI driver's two forks are also submodules rather than Conan packages:
+`extern/ndpi-libjpeg-turbo` (github.com/Booritas/ndpi-libjpeg-turbo, v2.1.2) and
+`extern/ndpi-tiff` (github.com/Booritas/ndpi-tiff, v4.3.0), replacing the
+`ndpi-libjpeg-turbo/2.1.2@slideio/stable` and `ndpi-libtiff/4.3.0@slideio/stable`
+packages. Unlike jpegxrcodec they are added from
+`src/slideio/drivers/ndpi/CMakeLists.txt`, not the root: ndpi-tiff needs zlib,
+libdeflate, xz_utils, jbig, zstd and libwebp, which are on `CMAKE_PREFIX_PATH`
+only inside the directory where that driver's Conan files are generated, and the
+ndpi driver is their only consumer.
+
+The two have to move together. libtiff calls libjpeg, the driver calls it too
+(`ndpitifftools.cpp` includes `jpeglib.h`), and the fork is built `WITH_JPEG8`
+and `WITH_MEM_SRCDST` -- both change the size of `jpeg_decompress_struct`. Two
+libjpeg builds that disagree show up at runtime as "JPEG parameter struct
+mismatch", not as a link error. One in-tree build removes the whole class of
+problem, and with it the `-b ndpi-libtiff/*` force-build `install.py` used to
+need.
+
+ndpi-tiff is a pristine submodule, so the `ndpi-libtiff` recipe's
+`4.3.0-0001-cmake-dependencies.patch` cannot be applied to it. Shim find modules
+in `cmake-scripts/ndpi-tiff-deps/` do the same job from outside, publishing the
+imported-target names libtiff links (`Deflate::Deflate`, `JBIG::JBIG`,
+`ZSTD::ZSTD`, `WebP::WebP`) from the ones Conan actually provides, and resolving
+`find_package(JPEG)` to the in-tree `jpeg-static`. They are deliberately not
+`GLOBAL`: the vsi, ome-tiff and phtiff modules have their own `JPEG::JPEG` from
+the regular libjpeg.
+
+Two things about that arrangement are easy to break. The ndpi-tiff subdirectory
+sets `CMAKE_FIND_PACKAGE_PREFER_CONFIG OFF`, because the Conan toolchain turns
+it on and config mode would match `jbig-config.cmake` for `find_package(JBIG)`
+on a case-insensitive filesystem -- reporting success while creating
+`jbig::jbig` instead of the `JBIG::JBIG` libtiff links. And the shims are handed
+their include directories explicitly, derived from `<pkg>_PACKAGE_FOLDER_<CONFIG>`:
+for libdeflate, jbig and zstd, Conan's `<pkg>_INCLUDE_DIRS_<CONFIG>` arrives
+empty in this graph even though the libraries and link interface are intact, so
+relying on it silently loses the headers and libtiff fails on `libdeflate.h`.
+
 spdlog is a static library linked `PRIVATE` into `slideio-core` alone. That is a
 link-time-singleton constraint, not an ordinary dependency: the logging
 threshold and sink must exist in exactly one shared library.
