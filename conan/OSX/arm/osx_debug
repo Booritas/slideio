@@ -39,3 +39,13 @@ dcmtk/*:with_openssl=False
 dcmtk/*:charset_conversion=icu
 icu/*:shared=False
 freeimage/*:with_raw=False
+
+# jxrlib is 2010-era C that conan center has no binary for at this compiler
+# version -- it ships apple-clang 13 only, and no Debug build -- so it is
+# compiled from source here. Recent clang promoted several long-standing C
+# warnings to errors by default, and jxrlib's jxrtestlib trips them. Demote
+# just those, for just this package. Nothing slideio links is affected: the
+# recipe packages jxrglue and jpegxr, and the code that fails to compile is
+# the test library built alongside them.
+[conf]
+jxrlib/*:tools.build:cflags=["-Wno-error=incompatible-pointer-types", "-Wno-error=incompatible-function-pointer-types", "-Wno-error=implicit-function-declaration", "-Wno-error=int-conversion"]

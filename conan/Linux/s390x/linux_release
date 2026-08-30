@@ -39,3 +39,14 @@ dcmtk/*:with_openssl=False
 dcmtk/*:charset_conversion=icu
 icu/*:shared=False
 freeimage/*:with_raw=False
+
+# jxrlib is 2010-era C that conan center has no binary for at this compiler
+# version -- it ships gcc 11 and 13 only, and no Debug build for any of them --
+# so it is compiled from source here. GCC 14 turned several long-standing C
+# warnings into errors by default, and jxrlib's jxrtestlib trips two of them.
+# Demote just those, for just this package: -Wno-error rather than -Wno- keeps
+# the diagnostics visible. Nothing slideio links is affected -- the recipe
+# packages jxrglue and jpegxr, and the code that fails to compile is the test
+# library built alongside them.
+[conf]
+jxrlib/*:tools.build:cflags=["-Wno-error=incompatible-pointer-types", "-Wno-error=implicit-function-declaration", "-Wno-error=int-conversion", "-Wno-error=implicit-int", "-Wno-error=return-mismatch"]
