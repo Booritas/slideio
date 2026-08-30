@@ -59,7 +59,6 @@ function Invoke-ConanCreateSlideio {
 }
 
 try {
-    Invoke-ConanCreateSlideio -FolderPath "recipes\pole\all" -Version "1.0.4"
     Invoke-ConanCreate -FolderPath "recipes\jxrlib\all" -Version "cci.20260102"
 }
 catch {

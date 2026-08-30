@@ -115,7 +115,6 @@ invoke_conan_create_slideio() {
 original_dir=$(pwd)
 
 create_conan_recipes() {
-    invoke_conan_create_slideio "recipes/pole/all" "1.0.4"
     invoke_conan_create "recipes/jxrlib/all" "cci.20260102"
 }
 

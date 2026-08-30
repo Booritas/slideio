@@ -126,7 +126,7 @@ src/
 
 ## Dependencies (managed via Conan)
 
-spdlog, SQLite3, OpenCV, ZLIB, tinyxml2, ICU, libtiff, libjpeg, WebP, OpenJPEG, Iconv, pole, nlohmann_json
+spdlog, SQLite3, OpenCV, ZLIB, tinyxml2, ICU, libtiff, libjpeg, WebP, OpenJPEG, Iconv, nlohmann_json
 
 The JPEG XR codec is *not* a Conan package. It is the `extern/jpegxrcodec` git
 submodule (github.com/Booritas/jpegxrcodec, pinned at v1.0.3), added to the build
@@ -137,6 +137,24 @@ against; there is no `find_package(jpegxrcodec)` any more. A clone without
 CMake stops with a FATAL_ERROR naming the empty directory. Plain `--init` is
 enough: jpegxrcodec's own googletest submodule is only needed for its tests,
 which the slideio build forces off.
+
+pole, the OLE compound-file reader the zvi driver reads ZVI storages with, is
+the same arrangement: the `extern/pole` submodule (github.com/Booritas/pole,
+pinned at v1.0.4) in place of `pole/1.0.4@slideio/stable`, added from the root
+`CMakeLists.txt` because it needs nothing but the standard library. It builds a
+static `pole` target that slideio-zvi and the main test suite link directly --
+no `find_package(pole)`, no `pole::pole`. It spells its tests option
+`PACKAGE_TESTS`, the same name jpegxrcodec uses, so the one cache entry the
+root sets turns both off.
+
+pole publishes no include directory of its own, and everything that consumes it
+says `<pole/...>` while its headers sit in `includes/`. The root `CMakeLists.txt`
+stages that prefix in the build tree -- `file(COPY)` of `includes/` into
+`${CMAKE_BINARY_DIR}/extern/pole/include/pole` -- which is the layout the Conan
+recipe produced by copying the same directory into the package as
+`include/pole`. It also redirects the `pole` target's archive output: pole sets
+`CMAKE_ARCHIVE_OUTPUT_DIRECTORY` to `${CMAKE_BINARY_DIR}/install/lib`, which in
+this build tree is the directory `install.py` installs into.
 
 The NDPI driver's two forks are also submodules rather than Conan packages:
 `extern/ndpi-libjpeg-turbo` (github.com/Booritas/ndpi-libjpeg-turbo, v2.1.2) and

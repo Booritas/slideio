@@ -200,11 +200,42 @@ endif()
 # Its tests need the googletest submodule nested inside it, which a plain
 # 'git submodule update --init' does not fetch. FORCE because this is not a
 # choice the slideio build offers: run those tests from their own repository.
-set(PACKAGE_TESTS OFF CACHE BOOL "Build the jpegxrcodec tests" FORCE)
+# pole below spells its option the same way, so this one entry turns both off.
+set(PACKAGE_TESTS OFF CACHE BOOL "Build the jpegxrcodec and pole tests" FORCE)
 add_subdirectory(${JPEGXRCODEC_DIR} ${CMAKE_BINARY_DIR}/extern/jpegxrcodec)
 # The codec exports no usage requirements of its own; consumers include it as
 # <jxrcodec/jxrcodec.hpp>, so the repository root is the include directory.
 target_include_directories(jxrcodec PUBLIC ${JPEGXRCODEC_DIR})
+
+# pole: the OLE compound-file reader the zvi driver reads ZVI storages with,
+# built from the extern/pole submodule instead of the pole/1.0.4@slideio/stable
+# conan package. That recipe only cloned this repository at v1.0.4 and ran its
+# CMakeLists, so the sources compiled here are the same ones. It needs nothing
+# but the standard library, which is why it is added here rather than beside its
+# consumers the way the ndpi forks are.
+set(POLE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/extern/pole)
+if(NOT EXISTS ${POLE_DIR}/CMakeLists.txt)
+    message(FATAL_ERROR
+        "extern/pole is empty. Run 'git submodule update --init' in "
+        "${CMAKE_CURRENT_SOURCE_DIR} and configure again.")
+endif()
+add_subdirectory(${POLE_DIR} ${CMAKE_BINARY_DIR}/extern/pole)
+# pole declares no usage requirements either -- its own sources reach their
+# headers by relative path -- and its headers sit in includes/ while everything
+# that consumes them says <pole/...>. That prefix is what the conan recipe
+# produced, by copying includes/ into the package as include/pole; staging the
+# same shape in the build tree keeps the include lines untouched. The copy
+# happens at configure time, so a header edited in the submodule needs a
+# re-configure to be seen -- the recipe needed a package rebuild.
+set(POLE_INCLUDE_DIR ${CMAKE_BINARY_DIR}/extern/pole/include)
+file(COPY ${POLE_DIR}/includes/ DESTINATION ${POLE_INCLUDE_DIR}/pole
+    FILES_MATCHING PATTERN "*.hpp" PATTERN "*.h" PATTERN "*.hh")
+target_include_directories(pole PUBLIC ${POLE_INCLUDE_DIR})
+# pole points CMAKE_ARCHIVE_OUTPUT_DIRECTORY at ${CMAKE_BINARY_DIR}/install/lib,
+# which used to be its own build tree and is now the directory install.py
+# installs into. Keep the archive in the build tree where it belongs.
+set_target_properties(pole PROPERTIES
+    ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/extern/pole/lib)
 
 add_subdirectory(src)
 
