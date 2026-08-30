@@ -76,11 +76,17 @@ detected automatically.
 ### Linux build using manylinux docker containers
 #### Prerequisites:
 - Docker
-- Python 3.6 or higher
 - git
-For manylinux slideio provides 2 docker containers:
-- x86_64 Linux: booritas/slideio-manylinux_2_28_x86_64:2.7.1
-- s390x Linux: booritas/slideio-manylinux_2_28_s390x:2.7.1
+
+The manylinux images carry the build toolchain -- compilers, CMake, conan,
+python and the system libraries the dependencies need -- and no slideio sources.
+You mount a working copy and build in it, so the same image serves any branch or
+version:
+- x86_64 Linux: booritas/slideio-manylinux_2_28_x86_64:2.8.0
+- s390x Linux: booritas/slideio-manylinux_2_28_s390x:2.8.0
+
+The Dockerfiles are in `docker/`, if you would rather build the image yourself
+than pull it.
 #### Build instructions
 1. Clone the repository:
 ```bash
@@ -94,20 +100,20 @@ git submodule update --init
 2. Pull docker image from the docker hub
 For x86_64 processor use:
 ```bash
-docker pull booritas/slideio-manylinux_2_28_x86_64:2.7.1
+docker pull booritas/slideio-manylinux_2_28_x86_64:2.8.0
 ```
 For s390x processor use:
 ```bash
-docker pull booritas/slideio-manylinux_2_28_s390x:2.7.1
+docker pull booritas/slideio-manylinux_2_28_s390x:2.8.0
 ```
 3. Start the docker container
 ```bash
-docker run -it -v $(pwd)/slideio:/slideio  booritas/slideio-manylinux_2_28_x86_64:2.7.1 bash
+docker run -it -v $(pwd)/slideio:/slideio booritas/slideio-manylinux_2_28_x86_64:2.8.0 bash
 ```
 4. Inside the container
 ```bash
 cd /slideio
-python3 install.py -a install
+python3 install.py -a install -c release
 ```
 After the build process you can find installed files in the install subfolder of the slideio folder.
 
