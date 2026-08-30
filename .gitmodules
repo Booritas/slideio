@@ -7,3 +7,6 @@
 [submodule "extern/ndpi-tiff"]
 	path = extern/ndpi-tiff
 	url = https://Booritas@github.com/Booritas/ndpi-tiff.git
+[submodule "extern/pole"]
+	path = extern/pole
+	url = https://Booritas@github.com/Booritas/pole.git

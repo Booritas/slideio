@@ -50,7 +50,6 @@ find_package(GTest)
 find_package(OpenCV)
 find_package(ZLIB)
 find_package(tinyxml2)
-find_package(pole)
 find_package(nlohmann_json REQUIRED)
 
 target_link_libraries(${TEST_NAME}
@@ -59,7 +58,7 @@ target_link_libraries(${TEST_NAME}
   opencv::opencv
   ZLIB::ZLIB
   tinyxml2::tinyxml2
-  pole::pole
+  pole
   nlohmann_json::nlohmann_json  
 )
 

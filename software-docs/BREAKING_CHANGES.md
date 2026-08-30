@@ -303,6 +303,48 @@ fails. And the codec set is pinned to what the recipe configured -- zlib,
 libdeflate, lzma, jbig, zstd, webp and the C++ API on, lerc and jpeg12 off --
 rather than left to libtiff's autodetection.
 
+### pole is a submodule, not a conan package
+
+**Modules:** `slideio-zvi`
+**Files:** `.gitmodules`, `extern/pole`, `CMakeLists.txt`,
+`src/slideio/drivers/zvi/CMakeLists.txt`,
+`src/slideio/drivers/zvi/conanfile.txt`, `src/tests/main/CMakeLists.txt`,
+`src/tests/main/conanfile.txt`, `build-dependencies.sh`,
+`build-dependencies.ps1`, `auxfiles/upload-dependencies.sh`,
+`auxfiles/remove-dependencies.sh`
+
+`pole/1.0.4@slideio/stable` is gone. The same sources now build in-tree from
+`extern/pole`, pinned at the v1.0.4 tag (5f7963f) the recipe cloned. No slideio
+source file changed and no exported signature changed: the zvi driver still
+includes `<pole/polepp.hpp>` and `<pole/storage.hpp>`, and pole is still a
+static archive hidden inside `slideio-zvi` by `HIDE_THIRD_PARTY_SYMBOLS`.
+
+**The target is now `pole`, not `pole::pole`,** and there is no
+`find_package(pole)`. Two places linked it -- the zvi driver and the main test
+suite -- and both changed. An out-of-tree CMake project that linked
+`pole::pole` from the conan package is unaffected as long as it keeps using
+that package; nothing in slideio's installed interface exposed pole.
+
+**A clone now needs a fourth submodule.** `git clone --recurse-submodules`, or
+`git submodule update --init` before configuring; a missing `extern/pole` stops
+the configure with a FATAL_ERROR naming it. Plain `--init` is enough -- pole's
+nested googletest submodule is only needed for its own tests, which the root
+`CMakeLists.txt` forces off through the same `PACKAGE_TESTS` cache entry
+jpegxrcodec uses.
+
+**Out-of-tree build scripts** that created pole from the conan-center-index
+fork, or uploaded it to the `slideio` remote, should drop those entries;
+`build-dependencies` and the auxfiles scripts already have.
+
+One implementation detail is worth knowing, because it is the only thing about
+this that is not mechanical. pole publishes no include directory: its own
+sources reach their headers by relative path, and the `<pole/...>` prefix every
+consumer uses existed only because the recipe copied `includes/` into the
+package as `include/pole`. The root `CMakeLists.txt` stages that same shape in
+the build tree with `file(COPY)`. It is a configure-time copy, so a header
+edited inside the submodule needs a re-configure to be picked up -- where the
+package needed a rebuild and upload.
+
 ## v2.9.0
 
 ### `TIFFKeeper` is now move-only
