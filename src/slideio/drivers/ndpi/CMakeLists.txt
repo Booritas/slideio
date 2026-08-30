@@ -110,10 +110,23 @@ endforeach()
 # libtiff calls this one find_package(Deflate), not find_package(libdeflate).
 set(NDPI_TIFF_DEFLATE_INCLUDE ${NDPI_TIFF_LIBDEFLATE_INCLUDE})
 
-# Mirrors the ndpi-libtiff recipe's toolchain variables. BUILD_SHARED_LIBS is a
-# plain variable, not a cache entry: ndpi-tiff sets it ON in the cache itself,
-# and a normal variable shadows that here and in its subdirectories without
-# leaking the setting to the rest of the build.
+# Mirrors the ndpi-libtiff recipe's toolchain variables. BUILD_SHARED_LIBS takes
+# both lines below, in this order, and a shadowing normal variable alone is not
+# enough. ndpi-tiff does `set(BUILD_SHARED_LIBS ON CACHE BOOL ...)` without
+# FORCE, under a cmake_minimum_required(3.9.0) that leaves CMP0126 at OLD. On
+# the first configure of a build tree the cache entry does not exist yet, so
+# that call creates it *and* removes the normal variable of the same name from
+# the scope -- taking the shadow with it and building libtiff shared. On every
+# later configure the entry exists, the call is a no-op, the shadow survives,
+# and the same tree builds it static. A shared libtiff is not what the rest of
+# this build assumes: nothing installs it, so slideio-ndpi would carry a runtime
+# dependency on a tiff.dll that never reaches the install tree, and CI configures
+# a fresh tree every time.
+#
+# Seeding the cache entry here makes ndpi-tiff's call a no-op from the first
+# configure onwards; the normal variable then keeps the setting from leaking to
+# the rest of the build. FORCE so an existing tree carrying ON is corrected too.
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build the in-tree third-party libraries as shared" FORCE)
 set(BUILD_SHARED_LIBS OFF)
 # The conan toolchain turns on CMAKE_FIND_PACKAGE_PREFER_CONFIG, which would
 # send libtiff's find_package(JBIG) / (ZSTD) / (Deflate) straight to conan's
