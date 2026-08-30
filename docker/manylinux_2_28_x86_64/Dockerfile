@@ -18,12 +18,20 @@
 # the working copy you mount.
 FROM quay.io/pypa/manylinux_2_28_x86_64:latest
 
-# System libraries the dependency graph builds against. opencv keeps highgui
-# enabled, which is what the X and xcb entries are for; perl-IPC-Cmd and cpanm
-# are needed by the openssl and dcmtk build scripts.
+# Tools first, then the system libraries the dependency graph builds against.
+# openssh-clients is there for git over ssh -- slideio's own remote is an ssh
+# URL, as are any submodules pointing at a private repository -- so pass your
+# key or agent in at run time, for example:
+#
+#   docker run -it -v "$SSH_AUTH_SOCK:/ssh-agent" -e SSH_AUTH_SOCK=/ssh-agent ...
+#   docker run -it -v "$HOME/.ssh:/root/.ssh:ro" ...
+#
+# No key material is baked into the image. opencv keeps highgui enabled, which is
+# what the X and xcb entries are for; perl-IPC-Cmd and cpanm are needed by the
+# openssl and dcmtk build scripts.
 RUN yum update -y && \
     yum install -y \
-        wget vim \
+        wget vim openssh-clients \
         libva-devel libvdpau-devel xkeyboard-config-devel libnsl2-devel \
         libfontenc-devel libXaw-devel libXcomposite-devel libXcursor-devel \
         libXdmcp-devel libXtst-devel libXinerama-devel libxkbfile-devel \
