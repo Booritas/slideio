@@ -140,7 +140,7 @@ which the slideio build forces off.
 
 pole, the OLE compound-file reader the zvi driver reads ZVI storages with, is
 the same arrangement: the `extern/pole` submodule (github.com/Booritas/pole,
-pinned at v1.0.4) in place of `pole/1.0.4@slideio/stable`, added from the root
+pinned just past v1.0.4) in place of `pole/1.0.4@slideio/stable`, added from the root
 `CMakeLists.txt` because it needs nothing but the standard library. It builds a
 static `pole` target that slideio-zvi and the main test suite link directly --
 no `find_package(pole)`, no `pole::pole`. It spells its tests option
