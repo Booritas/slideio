@@ -13,7 +13,7 @@ Slideio is a c++ library and a python module for the reading of medical images. 
 
 The module delivers a raster as a numpy array and compatible with the popular computer vision library OpenCV.
 
-The module builds accesses images through a system of image drivers that implement specifics of different image formats. Currently following drivers are implemented:
+The module accesses images through a system of image drivers, each implementing the specifics of one image format. The following drivers are implemented:
 
 | **Driver** | **File format** | **File extensions** | **Format developer** | **Scanners** |
 |---|---|---|---|---|
@@ -26,11 +26,31 @@ The module builds accesses images through a system of image drivers that impleme
 | **NDPI** | [Hamamatsu NDPI image format](https://www.hamamatsu.com/eu/en/product/life-science-and-medical-systems/digital-slide-scanner/U12388-01.html) | *.ndpi | [Hamamatsu](https://www.hamamatsu.com/eu/en.html) |  |
 | **VSI** | Olympus VSI images | *.vsi |  |  |
 | **QPTIFF** | PerkinElmer Vectra QPTIFF | *.qptiff | [Akoya Biosciences](https://www.akoyabio.com/software-data-analysis/) | [Perkin Elmer Vectra scanner](https://www.akoyabio.com/phenoimager/instruments/vectra-3-0/) |
-| **GDAL** | General image formates | *.jpeg,*.jpg,*.tiff,*.tiff,*.png | - | - |
+| **OME-TIFF** | [OME-TIFF](https://ome-model.readthedocs.io/en/stable/ome-tiff/) | *.ome.tif, *.ome.tiff, *.ome.tf2, *.ome.tf8, *.ome.btf | [Open Microscopy Environment](https://www.openmicroscopy.org/) | |
+| **PHTIFF** | Philips TIFF | *.tif, *.tiff | [Philips](https://www.philips.com/) | [Philips IntelliSite Ultra Fast Scanner](https://www.usa.philips.com/healthcare/resources/landing/philips-intellisite-pathology-solution) |
+| **GDAL** | General image formats | *.png, *.jpeg, *.jpg, *.tif, *.tiff, *.bmp, *.gif, *.jp2 | - | - |
 
 The library is built as a c++ python extension and provides c++ and python interfaces.
 For details visit [the library WEB site](https://booritas.github.io/slideio/).
 ## Build instructions
+
+### Dependencies
+
+All third-party packages come from **conan center**. `conan install` needs no
+extra remote, no credentials, and nothing built in advance.
+
+Four dependencies are git submodules under `extern/` rather than conan packages:
+the JPEG XR codec (`jpegxrcodec`), the pole OLE compound-file reader (`pole`),
+and the NDPI forks of libjpeg-turbo and libtiff (`ndpi-libjpeg-turbo`,
+`ndpi-tiff`). Clone with `--recurse-submodules`, or run
+`git submodule update --init` before configuring -- CMake stops with an error
+naming any directory it finds empty.
+
+Build with the profiles in `conan/<Platform>/`; `install.py` picks the right one
+for your platform. They carry more than settings: the Linux and macOS profiles
+also hold a `[conf]` entry that jxrlib needs in order to compile from source on
+current compilers, so a hand-written profile is likely to fail where these
+succeed.
 
 ### Syncing the toolchain (Conan profiles + CMake generator)
 
@@ -66,10 +86,8 @@ For manylinux slideio provides 2 docker containers:
 ```bash
 git clone --recurse-submodules https://github.com/Booritas/slideio
 ```
-Four dependencies live in submodules under `extern/`: the JPEG XR codec
-(`jpegxrcodec`), the pole OLE compound-file reader (`pole`) and the NDPI forks
-of libjpeg-turbo and libtiff (`ndpi-libjpeg-turbo`, `ndpi-tiff`). In a clone
-made without `--recurse-submodules`, fetch them before configuring:
+In a clone made without `--recurse-submodules`, fetch the submodules before
+configuring (see [Dependencies](#dependencies)):
 ```bash
 git submodule update --init
 ```
@@ -80,11 +98,11 @@ docker pull booritas/slideio-manylinux_2_28_x86_64:2.7.1
 ```
 For s390x processor use:
 ```bash
-docker pull booritas/slideio-manylinux_2_28_x86_64:2.7.1
+docker pull booritas/slideio-manylinux_2_28_s390x:2.7.1
 ```
 3. Start the docker container
 ```bash
-docker run -it -v $(PWD)/slideio:/slideio  booritas/slideio-manylinux_2_28_x86_64:2.7.1 bash
+docker run -it -v $(pwd)/slideio:/slideio  booritas/slideio-manylinux_2_28_x86_64:2.7.1 bash
 ```
 4. Inside the container
 ```bash
@@ -95,19 +113,18 @@ After the build process you can find installed files in the install subfolder of
 
 ### Build for Linux and Mac
 #### Prerequisites
-- Docker
 - Python 3.6 or higher
 - conan package manager version 2 or more
+- CMake 3.10 or higher
+- a C++17 compiler
 - git
 #### Build instructions
 1. Clone the repository:
 ```bash
 git clone --recurse-submodules https://github.com/Booritas/slideio
 ```
-Four dependencies live in submodules under `extern/`: the JPEG XR codec
-(`jpegxrcodec`), the pole OLE compound-file reader (`pole`) and the NDPI forks
-of libjpeg-turbo and libtiff (`ndpi-libjpeg-turbo`, `ndpi-tiff`). In a clone
-made without `--recurse-submodules`, fetch them before configuring:
+In a clone made without `--recurse-submodules`, fetch the submodules before
+configuring (see [Dependencies](#dependencies)):
 ```bash
 git submodule update --init
 ```
@@ -120,19 +137,18 @@ After the build process you can find installed files in the install subfolder of
 
 ### Build for Windows
 #### Prerequisites
-- Docker
 - Python 3.6 or higher
 - conan package manager version 2 or more
+- CMake 3.10 or higher
+- Visual Studio 2022 (C++17)
 - git
 #### Build instructions
 1. Clone the repository:
 ```bash
 git clone --recurse-submodules https://github.com/Booritas/slideio
 ```
-Four dependencies live in submodules under `extern/`: the JPEG XR codec
-(`jpegxrcodec`), the pole OLE compound-file reader (`pole`) and the NDPI forks
-of libjpeg-turbo and libtiff (`ndpi-libjpeg-turbo`, `ndpi-tiff`). In a clone
-made without `--recurse-submodules`, fetch them before configuring:
+In a clone made without `--recurse-submodules`, fetch the submodules before
+configuring (see [Dependencies](#dependencies)):
 ```bash
 git submodule update --init
 ```
