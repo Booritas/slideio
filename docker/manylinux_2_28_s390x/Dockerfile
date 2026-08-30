@@ -27,21 +27,16 @@ echo "alias ll='ls -lh'" >> /root/.bashrc && \
 echo "alias la='ls -lAh'" >> /root/.bashrc
 
 FROM base AS builder
-ARG CONAN_LOGIN_USERNAME
-ARG CONAN_PASSWORD
-ARG CONAN_SERVER_URL
+# Every dependency comes from conan center; there is no private remote and no
+# conan-center-index fork to bootstrap from any more.
 ENV SLIDEIO_HOME=/opt/slideio
-ENV CONAN_INDEX_HOME=/opt/conan-center-index
 WORKDIR /opt
-RUN conan remote add slideio  ${CONAN_SERVER_URL} && conan remote login -p ${CONAN_PASSWORD} slideio ${CONAN_LOGIN_USERNAME}
 RUN cd /opt && git clone --recursive --depth 1 --branch ${SLIDEIO_VERSION} https://github.com/Booritas/slideio
-RUN cd /opt && git clone --depth 1 --branch ${SLIDEIO_VERSION} https://github.com/Booritas/conan-center-index.git
 RUN git clone https://github.com/pya102/conan-cmake.git && \
     cd conan-cmake && \
     conan create -pr:h /opt/slideio/conan/Linux/s390x/linux_release -pr:b /opt/slideio/conan/Linux/s390x/linux_release --build missing .
 RUN cd /opt/slideio && bash ./conan.sh
 RUN cd /opt/slideio && python3 ./install.py -a conan
-RUN conan upload -c "*" -r slideio
 
 FROM base AS final
 COPY --from=builder /root/.conan2/p /root/.conan2/p

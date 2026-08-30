@@ -347,6 +347,50 @@ the build tree with `file(COPY)`. It is a configure-time copy, so a header
 edited inside the submodule needs a re-configure to be picked up -- where the
 package needed a rebuild and upload.
 
+### The private conan remote is gone; everything comes from conan center
+
+**Module:** build system
+**Files:** `src/slideio/imagetools/conanfile.py`, `build-dependencies.sh`
+(removed), `build-dependencies.ps1` (removed), `auxfiles/upload-dependencies.sh`
+(removed), `auxfiles/remove-dependencies.sh` (removed),
+`.github/workflows/build-validation.yml`,
+`.github/workflows/docker-manylinux_2_28_x86_64.yml`, all four `docker/*/Dockerfile`,
+`docker-build-linux.sh`
+
+Nothing in the build reaches for the `slideio` conan remote or the
+conan-center-index fork any more. `conan install -b missing` against conan
+center resolves all 34 conanfiles, so a fresh machine, a CI job and a container
+each need no credentials and no bootstrap step.
+
+**`jxrlib/cci.20260102` becomes `jxrlib/cci.20170615`.** That was the last
+package that existed only on the private remote, and it was not a different
+library: the fork's recipe and conan center's current one
+(`576979230d06d6cc445342b2731b517f`) have byte-identical `conanfile.py`, the
+same source tarball, the same sha256 and the same
+`0001-missing-declarations.patch`. The version was a rename, so the same code
+compiles. `force=True` went with it -- freeimage/3.18.0 requires exactly
+`cci.20170615`, so there is no longer a conflict to override, and the
+imagetools recipe simply requires it directly for its `jxrlib::jxrlib` target.
+
+**Four scripts were removed,** having nothing left to do. `build-dependencies.sh`
+and `build-dependencies.ps1` created packages from the conan-center-index fork;
+`auxfiles/upload-dependencies.sh` and `auxfiles/remove-dependencies.sh`
+published them to, and removed them from, the `slideio` remote. An out-of-tree
+script that called any of them should drop the call rather than replace it. The
+three CI jobs lose their `CONAN_INDEX_HOME`, fork-clone and
+"Build custom dependencies" steps, and their conan caches are now keyed on the
+conanfiles alone rather than on a fork commit.
+
+**Containers no longer take conan credentials.** The `CONAN_LOGIN_USERNAME`,
+`CONAN_PASSWORD` and `CONAN_SERVER_URL` build args are gone from all four
+Dockerfiles, from `docker-build-linux.sh` and from the manylinux image
+workflow, along with the `conan upload -c "*" -r slideio` step that populated
+the remote. Anything that built these images by passing those args should stop.
+
+Note for anyone rebuilding a manylinux image: those two Dockerfiles were
+already stale before this change -- they clone slideio at a pinned old tag and
+run `bash ./conan.sh`, which no longer exists in the repository.
+
 ## v2.9.0
 
 ### `TIFFKeeper` is now move-only

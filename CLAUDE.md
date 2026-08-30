@@ -128,6 +128,13 @@ src/
 
 spdlog, SQLite3, OpenCV, ZLIB, tinyxml2, ICU, libtiff, libjpeg, WebP, OpenJPEG, Iconv, nlohmann_json
 
+Every one of them resolves from **conan center**. There is no private remote and
+no conan-center-index fork to bootstrap: nothing has to be `conan create`d
+before a build, `conan install -b missing` is all a fresh machine needs, and a
+CI job or container needs no credentials. Anything that could not come from
+conan center is a git submodule under `extern/` instead -- see below. Keep it
+that way: a new dependency belongs on conan center, in `extern/`, or nowhere.
+
 The JPEG XR codec is *not* a Conan package. It is the `extern/jpegxrcodec` git
 submodule (github.com/Booritas/jpegxrcodec, pinned at v1.0.3), added to the build
 with `add_subdirectory` from the root `CMakeLists.txt`. It builds a static

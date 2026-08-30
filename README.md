@@ -111,11 +111,7 @@ made without `--recurse-submodules`, fetch them before configuring:
 ```bash
 git submodule update --init
 ```
-2. Build custom dependencies
-```bash
-bash ./build-dependencies.sh
-```
-3. Build the SlideIO library
+2. Build the SlideIO library
 ```bash
 cd /slideio
 python3 install.py -a install
@@ -140,11 +136,7 @@ made without `--recurse-submodules`, fetch them before configuring:
 ```bash
 git submodule update --init
 ```
-2. Build custom dependencies
-```powershell
-powershell ./build-dependencies.ps1
-```
-3. Build the SlideIO library
+2. Build the SlideIO library
 ```powershell
 cd /slideio
 python3 install.py -a install
