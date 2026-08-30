@@ -85,8 +85,15 @@ version:
 - x86_64 Linux: booritas/slideio-manylinux_2_28_x86_64:2.8.0
 - s390x Linux: booritas/slideio-manylinux_2_28_s390x:2.8.0
 
-The Dockerfiles are in `docker/`, if you would rather build the image yourself
-than pull it.
+Each image also ships a conan cache with every dependency already built, so a
+build inside it goes straight to compiling slideio itself.
+
+To build the image yourself rather than pull it, run this from the repository
+root -- the context has to be the root, because the image copies the conanfiles
+out of it:
+```bash
+docker build -f docker/manylinux_2_28_x86_64/Dockerfile -t slideio-manylinux_2_28_x86_64:local .
+```
 #### Build instructions
 1. Clone the repository:
 ```bash

@@ -20,9 +20,10 @@ jobs:
         username: ${{ secrets.DOCKERHUB_USER }}
         password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+    # The context is the repository root: the image's deps stage copies the
+    # conanfiles and profiles out of it to populate its conan cache.
     - name: Build Docker image
-      working-directory: ./docker/manylinux_2_28_x86_64
-      run: docker build -t slideio-manylinux_2_28_x86_64:${{ env.SLIDEIO_VERSION }} .
+      run: docker build -f docker/manylinux_2_28_x86_64/Dockerfile -t slideio-manylinux_2_28_x86_64:${{ env.SLIDEIO_VERSION }} .
   
     - name: Tag Docker image
       run: docker tag slideio-manylinux_2_28_x86_64:${{ env.SLIDEIO_VERSION }} booritas/slideio-manylinux_2_28_x86_64:${{ env.SLIDEIO_VERSION }}

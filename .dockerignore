@@ -1,0 +1,15 @@
+# The manylinux image is built with the repository root as its context, because
+# the stage that populates the conan cache copies the conanfiles and profiles
+# out of it. Everything here is irrelevant to that and would only make the
+# context slower to send -- build/ alone runs to several gigabytes.
+#
+# docker/ is deliberately NOT excluded: the image copies its vimrc from there.
+build/
+.git/
+.github/
+docs/
+docs-src/
+software-docs/
+extern/
+__pycache__/
+*.pyc
