@@ -59,7 +59,6 @@ function Invoke-ConanCreateSlideio {
 }
 
 try {
-    Invoke-ConanCreateSlideio -FolderPath "recipes\icu\all" -Version "76.1"
     Invoke-ConanCreateSlideio -FolderPath "recipes\ndpi-libjpeg-turbo\all" -Version "2.1.2"
     Invoke-ConanCreateSlideio -FolderPath "recipes\ndpi-libtiff\all" -Version "4.3.0"
     Invoke-ConanCreateSlideio -FolderPath "recipes\pole\all" -Version "1.0.4"

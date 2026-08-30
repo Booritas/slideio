@@ -10,6 +10,6 @@ class DCMConan(ConanFile):
         self.requires("xz_utils/5.4.5")
         self.requires("zlib/1.3.1")
         self.requires("dcmtk/3.6.9")
-        self.requires("icu/76.1@slideio/stable", force=True)
+        self.requires("icu/78.2", force=True)
         self.requires("libwebp/1.3.2")
         self.requires("openjpeg/2.5.2")
