@@ -116,9 +116,6 @@ original_dir=$(pwd)
 
 create_conan_recipes() {
     invoke_conan_create_slideio "recipes/icu/all" "76.1"
-    invoke_conan_create_slideio "recipes/dcmtk/all" "3.6.8"
-    invoke_conan_create "recipes/glog/all" "0.7.1"
-    invoke_conan_create_slideio "recipes/opencv/4.x" "4.10.0"
     invoke_conan_create_slideio "recipes/ndpi-libjpeg-turbo/all" "2.1.2"
     invoke_conan_create_slideio "recipes/ndpi-libtiff/all" "4.3.0"
     invoke_conan_create_slideio "recipes/pole/all" "1.0.4"

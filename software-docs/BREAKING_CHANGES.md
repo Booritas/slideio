@@ -185,6 +185,39 @@ and fail there rather than reaching the driver that should have handled it.
 This one was wrong on every platform, Windows included, and the fix narrows
 matching: files of that shape are no longer claimed.
 
+### OpenCV moved to 4.14.0 from conan center
+
+**Modules:** all (the OpenCV-based interface: `CVSlide`, `CVScene`, `CVTools`)
+**Files:** every `conanfile.txt`/`conanfile.py` under `src/`, `build-dependencies.sh`,
+`build-dependencies.ps1`, `auxfiles/upload-dependencies.sh`,
+`auxfiles/remove-dependencies.sh`
+
+The requirement is now `opencv/4.14.0`, the conan center recipe, in place of
+`opencv/4.10.0@slideio/stable`. No signature changed, but the OpenCV-based
+interface passes `cv::Mat`, `cv::Rect` and `cv::Size` across the library
+boundary, so an out-of-tree caller has to be compiled against the same OpenCV
+slideio was. Linking a consumer built against 4.10.0 to a slideio built against
+4.14.0 is undefined; rebuild the consumer.
+
+The `@slideio/stable` fork existed for one reason: with `imgcodecs=False` --
+which every profile in `conan/` sets -- OpenCV 4.10.0's
+`modules/highgui/src/window_w32.cpp` failed to compile, because the
+`showSaveDialog` fallback called `CV_LOG_WARNING` without its tag argument. The
+fork carried a patch deleting that line, plus `INSTALL_TESTS=False`. Upstream
+now passes `NULL` as the tag, so the patch has nothing left to do and the fork
+is retired: `build-dependencies` no longer creates an opencv package, and
+`CONAN_INDEX_HOME` is no longer consulted for one.
+
+Every option the profiles set (`ml`, `dnn`, `gapi`, `flann`, `photo`, `video`,
+`calib3d`, `videoio`, `imgcodecs`, `objdetect`, `stitching`, `with_png`,
+`with_tiff`, `with_webp`, `with_quirc`, `with_ffmpeg`, `with_openexr`,
+`with_wayland`, `with_protobuf`, `with_flatbuffers`, and the four
+`with_imgcodec_*`) still exists in the 4.14.0 recipe, so the profiles are
+unchanged. Those options are not the recipe's defaults, so no prebuilt binary
+matches and opencv is built from source on a cold cache; `install.py` already
+passes `-b missing`. The upload/remove scripts still name opencv so the private
+`slideio` remote can keep caching that build.
+
 ## v2.9.0
 
 ### `TIFFKeeper` is now move-only
