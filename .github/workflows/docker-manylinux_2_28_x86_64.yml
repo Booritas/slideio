@@ -10,9 +10,9 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Image tag, e.g. 2.8.0"
+        description: "Image tag, e.g. 2.10.0"
         required: true
-        default: "2.8.0"
+        default: "2.10.0"
       conan_config:
         description: "Configuration whose dependencies are cached in the image"
         required: true

@@ -82,8 +82,8 @@ The manylinux images carry the build toolchain -- compilers, CMake, conan,
 python and the system libraries the dependencies need -- and no slideio sources.
 You mount a working copy and build in it, so the same image serves any branch or
 version:
-- x86_64 Linux: booritas/slideio-manylinux_2_28_x86_64:2.8.0
-- s390x Linux: booritas/slideio-manylinux_2_28_s390x:2.8.0
+- x86_64 Linux: booritas/slideio-manylinux_2_28_x86_64:2.10.0
+- s390x Linux: booritas/slideio-manylinux_2_28_s390x:2.10.0
 
 Each image also ships a conan cache with every dependency already built, so a
 build inside it goes straight to compiling slideio itself.
@@ -107,15 +107,15 @@ git submodule update --init
 2. Pull docker image from the docker hub
 For x86_64 processor use:
 ```bash
-docker pull booritas/slideio-manylinux_2_28_x86_64:2.8.0
+docker pull booritas/slideio-manylinux_2_28_x86_64:2.10.0
 ```
 For s390x processor use:
 ```bash
-docker pull booritas/slideio-manylinux_2_28_s390x:2.8.0
+docker pull booritas/slideio-manylinux_2_28_s390x:2.10.0
 ```
 3. Start the docker container
 ```bash
-docker run -it -v $(pwd)/slideio:/slideio booritas/slideio-manylinux_2_28_x86_64:2.8.0 bash
+docker run -it -v $(pwd)/slideio:/slideio booritas/slideio-manylinux_2_28_x86_64:2.10.0 bash
 ```
 4. Inside the container
 ```bash
