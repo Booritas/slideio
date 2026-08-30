@@ -1,31 +1,64 @@
-FROM quay.io/pypa/manylinux_2_28_x86_64:2025.02.28-1 AS base
-ENV CONAN_REVISIONS_ENABLED=1
+# Build environment for slideio on manylinux_2_28 (x86_64).
+#
+# The image carries the toolchain and nothing else: compilers, CMake, conan,
+# python, and the system -devel packages the dependency graph compiles against.
+# It deliberately does not clone or build slideio, so it stays valid across
+# every change to the sources. Mount a working copy and build inside it:
+#
+#   docker run -it -v "$(pwd):/slideio" booritas/slideio-manylinux_2_28_x86_64:<tag> bash
+#   cd /slideio && python3 install.py -a install -c release
+#
+# The base image already provides gcc 14, CMake, make and git, so none of those
+# are installed here. `latest` follows manylinux's rolling tag; pin a dated one
+# (quay.io/pypa/manylinux_2_28_x86_64:2025.02.28-1 and the like) when a
+# reproducible image matters more than a current one.
+#
+# Nothing needs a conan remote or credentials: every package resolves from conan
+# center, and the four dependencies that do not live there are git submodules of
+# the working copy you mount.
+FROM quay.io/pypa/manylinux_2_28_x86_64:latest
 
+# System libraries the dependency graph builds against. opencv keeps highgui
+# enabled, which is what the X and xcb entries are for; perl-IPC-Cmd and cpanm
+# are needed by the openssl and dcmtk build scripts.
 RUN yum update -y && \
-    yum install -y wget vim libva-devel libvdpau-devel xkeyboard-config-devel libnsl2-devel libfontenc-devel libXaw-devel libXcomposite-devel libXcursor-devel libXdmcp-devel libXtst-devel libXinerama-devel libxkbfile-devel libXrandr-devel libXres-devel libXScrnSaver-devel xcb-util-wm-devel xcb-util-image-devel xcb-util-keysyms-devel xcb-util-renderutil-devel libXdamage-devel libXxf86vm-devel libXv-devel xcb-util-devel libuuid-devel perl-IPC-Cmd perl-App-cpanminus && \
-    sed -i 's|-specs=/usr/lib/rpm/redhat/redhat-annobin-cc1||g' /usr/lib64/perl5/Config_heavy.pl && \
-    cpanm Scalar::Util && \
-    update-alternatives --install /usr/bin/python3 python3 /opt/python/cp311-cp311/bin/python3 10 && \
-    update-alternatives --install /usr/bin/pip3 pip3 /opt/python/cp311-cp311/bin/pip3 10 && \
-    yes | pip3 install conan && \
-    update-alternatives --install /usr/bin/conan conan /opt/python/cp311-cp311/bin/conan 10 && \
-    echo "alias lsa='ls -lah'" >> /root/.bashrc && \
-    echo "alias l='ls -lah'" >> /root/.bashrc && \
-    echo "alias ll='ls -lh'" >> /root/.bashrc && \
-    echo "alias la='ls -lAh'" >> /root/.bashrc && \
-    yes | python3 -m ensurepip && \
-    yes | python3 -m pip install distro
+    yum install -y \
+        wget vim \
+        libva-devel libvdpau-devel xkeyboard-config-devel libnsl2-devel \
+        libfontenc-devel libXaw-devel libXcomposite-devel libXcursor-devel \
+        libXdmcp-devel libXtst-devel libXinerama-devel libxkbfile-devel \
+        libXrandr-devel libXres-devel libXScrnSaver-devel libXdamage-devel \
+        libXxf86vm-devel libXv-devel libuuid-devel \
+        xcb-util-wm-devel xcb-util-image-devel xcb-util-keysyms-devel \
+        xcb-util-renderutil-devel xcb-util-devel \
+        perl-IPC-Cmd perl-App-cpanminus && \
+    yum clean all && rm -rf /var/cache/yum
+
+# perl's recorded build flags still name redhat-annobin-cc1, which this image
+# does not ship; without stripping it, every module cpanm compiles fails.
+RUN sed -i 's|-specs=/usr/lib/rpm/redhat/redhat-annobin-cc1||g' /usr/lib64/perl5/Config_heavy.pl && \
+    cpanm --notest Scalar::Util
+
+# manylinux ships one python per version under /opt/python, and the image also
+# carries its own python3 on PATH -- a different interpreter, currently 3.12.
+# Putting cp311 first pins every one of python3, pip3 and conan to the same one,
+# which is what stops conan and distro from being installed into an interpreter
+# that install.py does not run on. Alternatives cannot do this reliably: the
+# image's python3 is found on PATH before /usr/bin.
+ENV PATH=/opt/python/cp311-cp311/bin:${PATH}
+
+# distro is what install.py reads to pick the conan profile for this
+# distribution; conan 2 is the package manager the build drives.
+RUN python3 -m pip install --no-cache-dir "conan>=2" distro
+
+RUN printf "%s\n" \
+      "alias lsa='ls -lah'" \
+      "alias l='ls -lah'" \
+      "alias ll='ls -lh'" \
+      "alias la='ls -lAh'" >> /root/.bashrc
 
 COPY vimrc /root/.vimrc
-WORKDIR /opt
 
-FROM base AS builder
-# Every dependency comes from conan center; there is no private remote and no
-# conan-center-index fork to bootstrap from any more.
-RUN cd /opt && git clone --recursive --depth 1 --branch v2.7.4 https://github.com/Booritas/slideio
-ENV SLIDEIO_HOME=/opt/slideio
-RUN cd /opt/slideio && bash ./conan.sh
-RUN cd /opt/slideio && python3 ./install.py -a build
-
-FROM base AS final
-COPY --from=builder /root/.conan2/p /root/.conan2/p
+# Mount the working copy here.
+WORKDIR /slideio
+CMD ["/bin/bash"]
