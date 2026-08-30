@@ -391,6 +391,28 @@ Note for anyone rebuilding a manylinux image: those two Dockerfiles were
 already stale before this change -- they clone slideio at a pinned old tag and
 run `bash ./conan.sh`, which no longer exists in the repository.
 
+**Custom conan profiles need one addition.** conan center has no jxrlib binary
+for the compilers this project pins -- it ships gcc 11 and 13, apple-clang 13,
+and no Debug build of any of them -- so jxrlib is now compiled from source on
+Linux and macOS where the private remote used to serve a prebuilt one. It is
+2010-era C, and GCC 14 and recent clang turned several of the warnings it trips
+into errors by default; a build fails in `jxrtestlib/JXRTest.c` with
+"passing argument 2 of 'GetTestDecodeIID' from incompatible pointer type". Every
+profile under `conan/Linux/` and `conan/OSX/` now carries a `[conf]` section
+demoting those diagnostics for that one package:
+
+```
+[conf]
+jxrlib/*:tools.build:cflags=["-Wno-error=incompatible-pointer-types", ...]
+```
+
+`-Wno-error` rather than `-Wno-`, so the diagnostics stay visible, and scoped to
+`jxrlib/*`, so nothing else loses them. Nothing slideio links is affected: the
+recipe packages `jxrglue` and `jpegxr`, and the code that fails to compile is
+the test library built beside them. An out-of-tree profile that does not copy
+this will hit the failure on any Linux or macOS toolchain new enough to enforce
+those errors.
+
 ## v2.9.0
 
 ### `TIFFKeeper` is now move-only
