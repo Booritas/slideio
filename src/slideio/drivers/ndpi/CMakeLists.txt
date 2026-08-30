@@ -143,6 +143,19 @@ set(jpeg12 OFF CACHE BOOL "libtiff: 8/12-bit dual mode" FORCE)
 set(lerc OFF CACHE BOOL "libtiff: LERC support" FORCE)
 add_subdirectory(${NDPI_TIFF_DIR} ${CMAKE_BINARY_DIR}/extern/ndpi-tiff EXCLUDE_FROM_ALL)
 
+# libtiff calls strcpy, sprintf and getenv, which MSVC's CRT deprecates in
+# favour of its _s variants: 35 C4996 in a release build, not one of them a
+# defect. Every slideio target that compiles on Windows already answers this
+# the same way, this driver included; libtiff builds in-tree now, so it is
+# silenced here rather than by whatever the conan recipe did. PRIVATE, so the
+# definition reaches libtiff's own sources and nothing that links it.
+IF(WIN32)
+   target_compile_definitions(tiff PRIVATE _CRT_SECURE_NO_WARNINGS)
+   if(TARGET tiffxx)
+      target_compile_definitions(tiffxx PRIVATE _CRT_SECURE_NO_WARNINGS)
+   endif()
+ENDIF(WIN32)
+
 set(SOURCE_FILES 
    ${SOURCE_FILES}
    ${CMAKE_CURRENT_SOURCE_DIR}/ndpiimagedriver.hpp
