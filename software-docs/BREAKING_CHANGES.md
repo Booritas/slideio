@@ -314,10 +314,12 @@ rather than left to libtiff's autodetection.
 `auxfiles/remove-dependencies.sh`
 
 `pole/1.0.4@slideio/stable` is gone. The same sources now build in-tree from
-`extern/pole`, pinned at the v1.0.4 tag (5f7963f) the recipe cloned. No slideio
-source file changed and no exported signature changed: the zvi driver still
-includes `<pole/polepp.hpp>` and `<pole/storage.hpp>`, and pole is still a
-static archive hidden inside `slideio-zvi` by `HIDE_THIRD_PARTY_SYMBOLS`.
+`extern/pole`, at 3e64e5a -- the v1.0.4 tag the recipe cloned (5f7963f) plus
+three fixes for warnings that tag builds with, none of which change behaviour.
+No slideio source file changed and no exported signature changed: the zvi
+driver still includes `<pole/polepp.hpp>` and `<pole/storage.hpp>`, and pole is
+still a static archive hidden inside `slideio-zvi` by
+`HIDE_THIRD_PARTY_SYMBOLS`.
 
 **The target is now `pole`, not `pole::pole`,** and there is no
 `find_package(pole)`. Two places linked it -- the zvi driver and the main test
