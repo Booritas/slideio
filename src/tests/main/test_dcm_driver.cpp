@@ -20,28 +20,37 @@
 
 using namespace slideio;
 
-TEST(DCMImageDriver, DriverManager_getDriverIDs)
+class DCMImageDriverTests : public ::testing::Test {
+protected:
+    static void SetUpTestSuite() {
+        ImageDriverManager::setLogLevel("ERROR");
+    }
+    static void TearDownTestSuite() {
+    }
+};
+
+TEST_F(DCMImageDriverTests, DriverManager_getDriverIDs)
 {
     std::vector<std::string> driverIds = ImageDriverManager::getDriverIDs();
     auto it = std::find(driverIds.begin(), driverIds.end(), "DCM");
     EXPECT_FALSE(it == driverIds.end());
 }
 
-TEST(DCMImageDriver, getID)
+TEST_F(DCMImageDriverTests, getID)
 {
     DCMImageDriver driver;
     std::string id = driver.getID();
     EXPECT_EQ(id, "DCM");
 }
 
-TEST(DCMImageDriver, canOpenFile)
+TEST_F(DCMImageDriverTests, canOpenFile)
 {
     DCMImageDriver driver;
     EXPECT_TRUE(driver.canOpenFile("c:\\abbb\\a.dcm"));
     EXPECT_FALSE(driver.canOpenFile("c:\\abbb\\a.scn.tmp"));
 }
 
-TEST(DCMImageDriver, openFile)
+TEST_F(DCMImageDriverTests, openFile)
 {
     DCMImageDriver driver;
     std::string slidePath = TestTools::getTestImagePath(
@@ -67,7 +76,7 @@ TEST(DCMImageDriver, openFile)
 }
 
 
-TEST(DCMImageDriver, openDirectory)
+TEST_F(DCMImageDriverTests, openDirectory)
 {
     DCMImageDriver driver;
     std::string slidePath = TestTools::getTestImagePath(
@@ -90,7 +99,7 @@ TEST(DCMImageDriver, openDirectory)
     EXPECT_EQ(scene->getName(), "COU IV");
 }
 
-TEST(DCMImageDriver, getSceneIndex)
+TEST_F(DCMImageDriverTests, getSceneIndex)
 {
     DCMImageDriver driver;
     std::string filePath = TestTools::getTestImagePath("dcm", "series");
@@ -110,7 +119,7 @@ TEST(DCMImageDriver, getSceneIndex)
 }
 
 
-TEST(DCMImageDriver, openDirectoryRecursively)
+TEST_F(DCMImageDriverTests, openDirectoryRecursively)
 {
     DCMImageDriver driver;
     std::string slidePath = TestTools::getTestImagePath("dcm", "series");
@@ -137,7 +146,7 @@ TEST(DCMImageDriver, openDirectoryRecursively)
     EXPECT_EQ(scene->getName(), "1.2.276.0.7230010.3.100.1.1");
 }
 
-TEST(DCMImageDriver, readSimpleFileWholeBlock)
+TEST_F(DCMImageDriverTests, readSimpleFileWholeBlock)
 {
     std::string slidePath = TestTools::getTestImagePath(
         "dcm", "barre.dev/OT-MONO2-8-hip.dcm");
@@ -163,7 +172,7 @@ TEST(DCMImageDriver, readSimpleFileWholeBlock)
     EXPECT_LT(0.99, similarity);
 }
 
-TEST(DCMImageDriver, getRawMetadata)
+TEST_F(DCMImageDriverTests, getRawMetadata)
 {
     std::string slidePath = TestTools::getTestImagePath(
         "dcm", "barre.dev/OT-MONO2-8-hip.dcm");
@@ -183,7 +192,7 @@ TEST(DCMImageDriver, getRawMetadata)
 }
 
 
-TEST(DCMImageDriver, readSimpleFileResampled)
+TEST_F(DCMImageDriverTests, readSimpleFileResampled)
 {
     std::string slidePath = TestTools::getTestImagePath(
         "dcm", "barre.dev/OT-MONO2-8-hip.dcm");
@@ -212,7 +221,7 @@ TEST(DCMImageDriver, readSimpleFileResampled)
     EXPECT_LT(0.99, similarity);
 }
 
-TEST(DCMImageDriver, readSingleFrame)
+TEST_F(DCMImageDriverTests, readSingleFrame)
 {
     std::string slidePath = TestTools::getTestImagePath("dcm", "benigns_01/patient0186/0186.LEFT_MLO.dcm");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
@@ -238,7 +247,7 @@ TEST(DCMImageDriver, readSingleFrame)
     EXPECT_LT(0.99, similarity);
 }
 
-TEST(DCMImageDriver, readSingleFrameROIRescale)
+TEST_F(DCMImageDriverTests, readSingleFrameROIRescale)
 {
     std::string slidePath = TestTools::getTestImagePath("dcm", "benigns_01/patient0186/0186.LEFT_MLO.dcm");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
@@ -268,7 +277,7 @@ TEST(DCMImageDriver, readSingleFrameROIRescale)
     EXPECT_LT(0.99, similarity);
 }
 
-TEST(DCMImageDriver, readMultiFrameROIRescale)
+TEST_F(DCMImageDriverTests, readMultiFrameROIRescale)
 {
     std::string slidePath = TestTools::getTestImagePath("dcm", "barre.dev/XA-MONO2-8-12x-catheter");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
@@ -310,7 +319,7 @@ TEST(DCMImageDriver, readMultiFrameROIRescale)
     EXPECT_LT(0.999, similarity);
 }
 
-TEST(DCMImageDriver, readDirectory3D)
+TEST_F(DCMImageDriverTests, readDirectory3D)
 {
     DCMImageDriver driver;
     std::string slidePath = TestTools::getTestImagePath("dcm", "series/series_1");
@@ -342,7 +351,7 @@ TEST(DCMImageDriver, readDirectory3D)
     EXPECT_EQ(1, similarity);
 }
 
-TEST(DCMImageDriver, DICOMDirgetSceneIndex)
+TEST_F(DCMImageDriverTests, DICOMDirgetSceneIndex)
 {
     DCMImageDriver driver;
     std::string filePath = TestTools::getTestImagePath("dcm", "spine_mr/DICOMDIR");
@@ -360,7 +369,7 @@ TEST(DCMImageDriver, DICOMDirgetSceneIndex)
 }
 
 
-TEST(DCMImageDriver, openDicomDirFile)
+TEST_F(DCMImageDriverTests, openDicomDirFile)
 {
     DCMImageDriver driver;
     std::string slidePath = TestTools::getTestImagePath("dcm", "spine_mr/DICOMDIR");
@@ -414,7 +423,7 @@ TEST(DCMImageDriver, openDicomDirFile)
 
 }
 
-TEST(DCMImageDriver, readBlockChangingBits)
+TEST_F(DCMImageDriverTests, readBlockChangingBits)
 {
     std::string slidePath = TestTools::getTestImagePath("dcm", "barre.dev/US-PAL-8-10x-echo");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
@@ -430,7 +439,7 @@ TEST(DCMImageDriver, readBlockChangingBits)
     scene->read4DBlock(rect, cv::Range(0, slices), cv::Range(0, 1), image);
 }
 
-TEST(DCMImageDriver, openFileUtf8Path)
+TEST_F(DCMImageDriverTests, openFileUtf8Path)
 {
     DCMImageDriver driver;
     std::string slidePath = TestTools::getTestImagePath(
@@ -450,7 +459,7 @@ TEST(DCMImageDriver, openFileUtf8Path)
     EXPECT_EQ(raster.rows, rect.height);
 }
 
-TEST(DCMImageDriver, openWSIDirectory)
+TEST_F(DCMImageDriverTests, openWSIDirectory)
 {
     std::list<std::string> auxNames = { "LOCALIZER", "LABEL", "OVERVIEW" };
     DCMImageDriver driver;
@@ -469,7 +478,7 @@ TEST(DCMImageDriver, openWSIDirectory)
     }
 }
 
-TEST(DCMImageDriver, openSingleFileWSI)
+TEST_F(DCMImageDriverTests, openSingleFileWSI)
 {
     DCMImageDriver driver;
     std::string slidePath = TestTools::getTestImagePath(
@@ -493,7 +502,7 @@ TEST(DCMImageDriver, openSingleFileWSI)
     EXPECT_EQ(103936, scene->getRect().height);
 }
 
-TEST(DCMImageDriver, readBlockSingleFileWSI)
+TEST_F(DCMImageDriverTests, readBlockSingleFileWSI)
 {
     DCMImageDriver driver;
     std::string slidePath = TestTools::getTestImagePath(
@@ -522,7 +531,7 @@ TEST(DCMImageDriver, readBlockSingleFileWSI)
     //TestTools::showRaster(raster);
 }
 
-TEST(DCMImageDriver, WSISingleFileGetSceneIndex)
+TEST_F(DCMImageDriverTests, WSISingleFileGetSceneIndex)
 {
     DCMImageDriver driver;
     std::string filePath = TestTools::getTestImagePath(
@@ -541,7 +550,7 @@ TEST(DCMImageDriver, WSISingleFileGetSceneIndex)
     }
 }
 
-TEST(DCMImageDriver, readBlockResampleSingleFileWSI)
+TEST_F(DCMImageDriverTests, readBlockResampleSingleFileWSI)
 {
     DCMImageDriver driver;
     std::string slidePath = TestTools::getTestImagePath(
@@ -573,7 +582,7 @@ TEST(DCMImageDriver, readBlockResampleSingleFileWSI)
     //TestTools::showRasters(testRaster, raster);
 }
 
-TEST(DCMImageDriver, readResampledBlockWSIDirectory)
+TEST_F(DCMImageDriverTests, readResampledBlockWSIDirectory)
 {
     DCMImageDriver driver;
     std::string slidePath = TestTools::getTestImagePath("dcm", "private/H01EBB50P-24777");
@@ -618,7 +627,7 @@ TEST(DCMImageDriver, readResampledBlockWSIDirectory)
     //TestTools::showRasters(testRaster,raster);
 }
 
-TEST(DCMImageDriver, WSIDirGetSceneIndex)
+TEST_F(DCMImageDriverTests, WSIDirGetSceneIndex)
 {
     DCMImageDriver driver;
     std::string filePath = TestTools::getTestImagePath("dcm", "private/H01EBB50P-24777");
@@ -636,7 +645,7 @@ TEST(DCMImageDriver, WSIDirGetSceneIndex)
     }
 }
 
-TEST(DCMImageDriver, readBlockWSIDirectory)
+TEST_F(DCMImageDriverTests, readBlockWSIDirectory)
 {
     DCMImageDriver driver;
     std::string slidePath = TestTools::getTestImagePath("dcm", "private/H01EBB50P-24777");
@@ -662,7 +671,7 @@ TEST(DCMImageDriver, readBlockWSIDirectory)
     //TestTools::showRasters(testRaster, raster);
 }
 
-TEST(DCMImageDriver, readAuxImagesWSIDirectory)
+TEST_F(DCMImageDriverTests, readAuxImagesWSIDirectory)
 {
     std::list<std::string> auxNames = { "LOCALIZER", "LABEL", "OVERVIEW" };
     DCMImageDriver driver;
@@ -689,7 +698,7 @@ TEST(DCMImageDriver, readAuxImagesWSIDirectory)
     }
 }
 
-TEST(DCMImageDriver, readJp2K)
+TEST_F(DCMImageDriverTests, readJp2K)
 {
     std::string slidePath = TestTools::getTestImagePath("dcm", "openmicroscopy.org/CT1_J2KI");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
@@ -714,7 +723,7 @@ TEST(DCMImageDriver, readJp2K)
     EXPECT_GT(simScore, 0.999);
 }
 
-TEST(DCMImageDriver, zoomLevels)
+TEST_F(DCMImageDriverTests, zoomLevels)
 {
     const slideio::LevelInfo levels[] = {
         slideio::LevelInfo(0, {72192,70400}, 1.0, 0., {256,256}),
@@ -749,7 +758,7 @@ TEST(DCMImageDriver, zoomLevels)
     }
 }
 
-TEST(DCMImageDriver, zoomLevelsSingle)
+TEST_F(DCMImageDriverTests, zoomLevelsSingle)
 {
     const slideio::LevelInfo levels[] = {
         slideio::LevelInfo(0, {512,512}, 1.0, 0., {512,512}),
@@ -779,7 +788,7 @@ TEST(DCMImageDriver, zoomLevelsSingle)
 
 // Behavior preservation: a level read resampled down to a coarser level's size must
 // essentially match a scene read resampled to the same size, level by level.
-TEST(DCMImageDriver, readLevelMatchesTheResampledSceneRead)
+TEST_F(DCMImageDriverTests, readLevelMatchesTheResampledSceneRead)
 {
     DCMImageDriver driver;
     std::string slidePath = TestTools::getTestImagePath("dcm", "private/H01EBB50P-24777");
@@ -824,7 +833,7 @@ TEST(DCMImageDriver, readLevelMatchesTheResampledSceneRead)
 // 72192x70400, and a whole-level read at that size is prohibitively expensive here. Levels 0
 // and 1 (rather than the coarsest pair) are used because they are the most collapse-prone --
 // exactly the pair the reference tests for other drivers exercise.
-TEST(DCMImageDriver, readLevelDoesNotReuseAdjacentLevel)
+TEST_F(DCMImageDriverTests, readLevelDoesNotReuseAdjacentLevel)
 {
     DCMImageDriver driver;
     std::string slidePath = TestTools::getTestImagePath("dcm", "private/H01EBB50P-24777");
@@ -864,7 +873,7 @@ TEST(DCMImageDriver, readLevelDoesNotReuseAdjacentLevel)
     EXPECT_GT(cv::norm(viaLevel0Resampled, viaLevel1Native, cv::NORM_INF), 0);
 }
 
-TEST(DCMImageDriver, multiThreadSceneAccess) {
+TEST_F(DCMImageDriverTests, multiThreadSceneAccess) {
     std::string filePath = TestTools::getTestImagePath("dcm", "private/H01EBB50P-24777");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     DCMImageDriver driver;

@@ -26,8 +26,7 @@ namespace fso = std::filesystem;
 class VSIImageDriverTests : public ::testing::Test {
 protected:
     static void SetUpTestSuite() {
-        ImageDriverManager::setLogLevel("WARNING");
-        std::cerr << "SetUpTestSuite: Running before all tests\n";
+        ImageDriverManager::setLogLevel("ERROR");
     }
     static void TearDownTestSuite() {
     }
