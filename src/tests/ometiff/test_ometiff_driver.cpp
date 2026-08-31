@@ -47,8 +47,7 @@ struct SceneInfo
 class OTImageDriverTests : public ::testing::Test {
 protected:
 	static void SetUpTestSuite() {
-		ImageDriverManager::setLogLevel("WARNING");
-		std::cerr << "SetUpTestSuite: Running before all tests\n";
+		ImageDriverManager::setLogLevel("ERROR");
 	}
 	static void TearDownTestSuite() {
 	}

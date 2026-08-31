@@ -8,6 +8,7 @@
 #include "slideio/imagetools/tifffiles.hpp"
 #include "slideio/imagetools/tifftools.hpp"
 #include "tests/testlib/testtools.hpp"
+#include "slideio/slideio/imagedrivermanager.hpp"
 
 using namespace slideio;
 using namespace slideio::ometiff;
@@ -15,6 +16,7 @@ using namespace slideio::ometiff;
 class TiffDataTests : public ::testing::Test {
 protected:
     void SetUp() override {
+		ImageDriverManager::setLogLevel("ERROR");
     }
 };
 

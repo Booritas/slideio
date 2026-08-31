@@ -4,6 +4,11 @@
 #include "slideio/imagetools/tifffiles.hpp"
 #include "slideio/imagetools/libtiff.hpp"
 #include "slideio/core/exceptions.hpp"
+#include "slideio/imagetools/tiffmessagehandler.hpp"
+
+slideio::TIFFFiles::TIFFFiles() {
+     initMessageHandler(); 
+}
 
 slideio::TIFFFiles::~TIFFFiles() {
     closeAll();
@@ -36,4 +41,9 @@ void slideio::TIFFFiles::close(const std::string& filename) {
 
 void slideio::TIFFFiles::closeAll() {
     m_openFiles.clear(); // shared_ptr will call TIFFClose
+}
+
+void slideio::TIFFFiles::initMessageHandler()
+{
+    m_messageHandler = std::make_shared<TIFFMessageHandler>();
 }
