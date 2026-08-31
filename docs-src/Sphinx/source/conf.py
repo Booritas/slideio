@@ -25,9 +25,9 @@ copyright = '2023-2026, Stanislav Melnikov'
 author = 'Stanislav Melnikov'
 
 # The short X.Y version.
-version = '2.9'
+version = '2.10'
 # The full version, including alpha/beta/rc tags
-release = '2.9.0'
+release = '2.10.0'
 
 
 # -- General configuration ---------------------------------------------------
