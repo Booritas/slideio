@@ -7,7 +7,7 @@ if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.30")
 endif()
 
 set(PROJECT_NAME slide_io)
-set(projectVersion 2.9.2)
+set(projectVersion 2.10.0)
 
 project(${PROJECT_NAME} VERSION ${projectVersion} LANGUAGES C CXX)
 enable_testing()
