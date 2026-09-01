@@ -10,54 +10,88 @@
 #include "slideio/core/tools/tools.hpp"
 using namespace slideio;
 
+namespace slideio
+{
+    namespace ZVIUtils
+    {
+        // Number of payload bytes that follow the 2-byte type token of an item.
+        // For the length-prefixed types the 4-byte length prefix is consumed
+        // here and its value returned.
+        //
+        // This is the single place where item sizes are defined. skipItem() and
+        // readItem() both go through it, so the two can never disagree about
+        // how many bytes an item occupies: a disagreement desynchronizes the
+        // stream and makes the *next* readItem() interpret payload bytes as a
+        // type token.
+        static uint32_t itemPayloadSize(ole::basic_stream& stream, uint16_t type)
+        {
+            switch (type)
+            {
+            case VT_EMPTY:
+            case VT_NULL:
+                return 0;
+            case VT_I1:
+            case VT_UI1:
+                return 1;
+            case VT_I2:
+            case VT_UI2:
+            case VT_BOOL:
+                return 2;
+            case VT_I4:
+            case VT_UI4:
+            case VT_INT:
+            case VT_UINT:
+            case VT_R4:
+            case VT_ERROR:
+                return 4;
+            case VT_I8:
+            case VT_UI8:
+            case VT_R8:
+            case VT_DATE:
+            case VT_CY:
+                return 8;
+            case VT_DISPATCH:
+            case VT_UNKNOWN:
+            case VT_DECIMAL:
+                return 16;
+            case VT_BSTR:
+            case VT_BLOB:
+            case VT_STORED_OBJECT:
+            case VT_ARRAY:
+                {
+                    uint32_t length = 0;
+                    stream.read((char*)&length, sizeof(length));
+                    return Endian::fromLittleEndianToNative(length);
+                }
+            case VT_STREAM:
+                {
+                    // Unlike the types above, VT_STREAM is prefixed with a
+                    // 16-bit length (matches Bio-Formats' ZeissZVIReader).
+                    uint16_t length = 0;
+                    stream.read((char*)&length, sizeof(length));
+                    return Endian::fromLittleEndianToNative(length);
+                }
+            default:
+                break;
+            }
+            // Guessing a size here would silently desynchronize the stream, so
+            // the unknown type is reported at the offset it was read from.
+            RAISE_RUNTIME_ERROR << "ZVIImageDriver: Unsupported item type: " << type
+                << " at stream offset " << static_cast<long long>(stream.pos()) - 2;
+        }
+    }
+}
+
 void ZVIUtils::skipItem(ole::basic_stream& stream)
 {
     uint16_t type;
     stream.read((char*)&type, sizeof(type));
-	type = Endian::fromLittleEndianToNative(type);
-    uint32_t offset = 0;
-    switch(type)
+    type = Endian::fromLittleEndianToNative(type);
+    const uint32_t offset = itemPayloadSize(stream, type);
+    if (offset > 0)
     {
-    case VT_EMPTY:
-    case VT_NULL:
-        break;
-    case VT_I1:
-    case VT_UI1:
-        offset = 1;
-        break;
-    case VT_I2:
-    case VT_UI2:
-    case VT_BOOL:
-        offset = 2;
-        break;
-    case VT_I4:
-    case VT_INT:
-    case VT_UI4:
-    case VT_UINT:
-        offset = 4;
-        break;
-    case VT_I8:
-    case VT_UI8:
-    case VT_DATE:
-    case VT_R4:
-        offset = 4;
-        break;
-    case VT_R8:
-        offset = 8;
-        break;
-    case VT_BSTR:
-    case VT_ARRAY:
-    case VT_BLOB:
-    case VT_STORED_OBJECT:
-        stream.read((char*)&offset, 4);
-		offset = Endian::fromLittleEndianToNative(offset);
-        break;
-    case VT_DISPATCH:
-    case VT_UNKNOWN:
-        offset = 16;
-        break;
+        stream.seek(offset, std::ios::cur);
     }
-    stream.seek(offset, std::ios::cur);
 }
 
 void ZVIUtils::skipItems(ole::basic_stream& stream, int count)
@@ -199,23 +233,12 @@ ZVIUtils::Variant ZVIUtils::readItem(ole::basic_stream& stream, bool skipUnusedT
     case VT_BSTR:
         value = readStringValue(stream);
         break;
-    case VT_DISPATCH:
-    case VT_UNKNOWN:
-        offset = 16;
-        break;
-    case VT_ARRAY:
-        stream.read((char*)&offset, 4);
-        break;
-    case VT_DATE:
-        offset = 8;
-        break;
-    case VT_BLOB:
-    case VT_STORED_OBJECT:
-        stream.read((char*)&offset, 4);
-        offset = Endian::fromLittleEndianToNative(offset);
-        break;
     default:
-        RAISE_RUNTIME_ERROR << "ZVIImageDriver: Unsuported item type: " << type;
+        // Types the driver does not decode into a Variant (VT_DATE, VT_BLOB,
+        // VT_DISPATCH, ...) still have to be stepped over exactly. Truly
+        // unknown types are rejected by itemPayloadSize().
+        offset = itemPayloadSize(stream, type);
+        break;
     }
     if(offset>0)
     {

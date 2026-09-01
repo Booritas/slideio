@@ -129,6 +129,38 @@ TEST(ZVIUtils, readItem)
 
 }
 
+// skipItem() must step over exactly as many bytes as readItem() consumes.
+// When the two disagree the stream desynchronizes and the *next* readItem()
+// interprets payload bytes as a type token, which surfaces far from the real
+// cause as "Unsupported item type: <garbage>".
+// /Image/Item(0)/Tags/Contents of Zeiss-1-Merged.zvi carries VT_DATE items,
+// which skipItem() used to step over as 4 bytes instead of 8.
+TEST(ZVIUtils, skipItemConsumesSameBytesAsReadItem)
+{
+    std::string filePath = TestTools::getTestImagePath("zvi", "Zeiss-1-Merged.zvi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    ole::compound_document doc(filePath);
+    ASSERT_TRUE(doc.good());
+    ZVIUtils::StreamKeeper keeper(doc, "/Image/Item(0)/Tags/Contents");
+    ole::basic_stream& stream = keeper;
+
+    ZVIUtils::readIntItem(stream); // {Version}
+    const int32_t count = ZVIUtils::readIntItem(stream);
+    ASSERT_GT(count, 0);
+
+    // Each tag is a (Value, TagID, Attribute) triple of items.
+    for (int32_t index = 0; index < count * 3; ++index)
+    {
+        const std::streamoff start = stream.pos();
+        ZVIUtils::readItem(stream);
+        const std::streamoff afterRead = stream.pos();
+        stream.seek(start, std::ios::beg);
+        ZVIUtils::skipItem(stream);
+        ASSERT_EQ(stream.pos(), afterRead)
+            << "item " << index << " at stream offset " << start;
+    }
+}
+
 #if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
