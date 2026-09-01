@@ -61,11 +61,7 @@ std::string TestTools::getTestImageDirectory(bool priv)
 
 std::string TestTools::getTestImagePath(const std::string& subfolder, const std::string& image, bool priv)
 {
-    std::string imagePath(getTestImageDirectory(priv));
-    if(!subfolder.empty())
-        imagePath += std::string("/") + subfolder;
-    imagePath += std::string("/") +  image;
-    return std::filesystem::path(imagePath).lexically_normal().string();
+    return getFullTestImagePath(subfolder, image);
 }
 
 std::string TestTools::getFullTestImagePath(const std::string& subfolder, const std::string& image)
