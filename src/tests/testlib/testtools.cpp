@@ -64,13 +64,7 @@ std::string TestTools::getTestImageDirectory(bool priv)
     return testDirPath;
 }
 
-
-std::string TestTools::getTestImagePath(const std::string& subfolder, const std::string& image, bool priv)
-{
-    return getFullTestImagePath(subfolder, image);
-}
-
-std::string TestTools::getFullTestImagePath(const std::string& subfolder, const std::string& image)
+std::string TestTools::getTestImagePath(const std::string& subfolder, const std::string& image)
 {
     const char* varName = TEST_FULL_TEST_PATH_VARIABLE;
     const char* var = getenv(varName);
