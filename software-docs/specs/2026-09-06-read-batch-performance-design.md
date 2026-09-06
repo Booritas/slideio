@@ -1,7 +1,7 @@
 # `read_batch` performance — source analysis and proposal
 
 **Status:** analysis / for discussion
-**Date:** 2026-09-06 (rev. 2 — concurrency section rewritten: parallel `read_block` rather than a pool around it)
+**Date:** 2026-09-06 (rev. 3 — adds §3.1.1, the per-driver stateless-I/O design for CZI, VSI and ZVI)
 **Baseline read:** `slideio` @ main, `slideio-python` @ main (2026-09-06)
 **Companion to:** the ML tiling design doc, `slideio-tiling/docs/ml-tiling-design.md` (§5.2 defines `grid.read_batch`)
 **Scope:** what makes tile reads slow today, and what `read_batch` has to do — and what the core has to do — to be fast.
@@ -88,7 +88,7 @@ A pool therefore has to be a pool of `Slide`s — one open file per worker — w
 
 #### Making `read_block` parallel instead
 
-**CZI, VSI, ZVI — nearly free.** `CZISlide::readBlock(pos, size, data)` is *already* a positional API; the body just happens to implement it as seek-then-read on a shared stream. Replace it with `pread()` (POSIX) / `ReadFile` with an `OVERLAPPED` offset (Windows) and it becomes thread-safe with no pool, no extra descriptors and no extra memory. Roughly ten lines for CZI, and `CZIScene::readTile` is then safe as it stands. VSI and ZVI are the same shape.
+**CZI and VSI — nearly free; ZVI is not.** `CZISlide::readBlock(pos, size, data)` is *already* a positional API; the body just happens to implement it as seek-then-read on a shared stream. Replace it with a positional read and it becomes thread-safe with no pool, no extra descriptors and no extra memory. VSI is the same shape plus one hidden scratch-buffer race. ZVI's shared state is inside vendored OLE code and is a different problem. §3.1.1 works all three through in detail.
 
 **TIFF family — a per-scene handle pool.** libtiff genuinely is not re-entrant on one handle, so each thread needs its own. But every read funnels through a single accessor — `SVSScene::getFileHandle()` (`svsscene.cpp:46`), `NDPIFile::getTiffHandle()`, the PKE equivalent — so the change is to turn that accessor into an RAII borrow from a small pool. The reason this is much cheaper than a `Slide` pool: `TiffTools::setCurrentDirectory` positions via `TIFFSetSubDirectory(hFile, dir.byteOffset)` (`tifftools.cpp:1040`), so a fresh handle jumps straight to the right IFD with no directory walk and no re-parse. You duplicate the file descriptor, not the parsed model.
 
@@ -102,6 +102,104 @@ A pool therefore has to be a pool of `Slide`s — one open file per worker — w
 Both need the same prerequisite. Build the prerequisite once, do the batch axis first, and leave the in-read axis as a later option for the large-block callers.
 
 The converter is worth mining for two other things while in here: it already reads **several tiles wide in one call** (`batchWidth`, `tiffconverter.cpp:515-525`), and it already carries idle-time instrumentation (`m_readersIdleTimeNs`, `m_encodersIdleTimeNs`) that can serve as the measurement harness for §7.
+
+### 3.1.1 Stateless I/O for CZI, VSI and ZVI
+
+These three are grouped in §3.1 as "the stream drivers", but they are three different amounts of work. Summary first:
+
+| Driver | Change | Extra descriptors | Extra parse | Concurrent after? |
+|---|---|---|---|---|
+| CZI | one function + reader plumbing | 0 | 0 | yes |
+| VSI/ETS | one function + thread-local scratch | 0 | 0 | yes |
+| ZVI | declared serialised (option A below) | 0 | 0 | no, by decision |
+
+For comparison, a `Slide` pool at 8 workers costs 8× the descriptors and 8× the sub-block directory parse for CZI — the case where that hurts most.
+
+#### The shared piece: a positional reader
+
+One class in `slideio-core`, used by all three, so the platform subtleties are written and tested once:
+
+```cpp
+class FileReader {                       // core/tools/filereader.hpp
+public:
+    explicit FileReader(const std::string& path);
+    // Thread-safe. No shared cursor. Fills `size` bytes or throws.
+    void readAt(uint64_t offset, void* dst, size_t size) const;
+    uint64_t size() const;
+private:
+#ifdef _WIN32
+    HANDLE m_handle;   // CreateFileW(..., FILE_FLAG_OVERLAPPED | FILE_FLAG_RANDOM_ACCESS, ...)
+#else
+    int m_fd;          // open(path, O_RDONLY | O_CLOEXEC); posix_fadvise(POSIX_FADV_RANDOM)
+#endif
+    uint64_t m_size;
+};
+```
+
+Two things that are easy to get subtly wrong:
+
+- **Windows.** `ReadFile` with an `OVERLAPPED` offset on a handle opened *without* `FILE_FLAG_OVERLAPPED` does read at the offset, but it also moves the file pointer, and concurrent operations on such a handle are not supported. That build is silently racy on the primary development platform. Open with `FILE_FLAG_OVERLAPPED`, put the `OVERLAPPED` on the stack per call with a `thread_local` manual-reset event, and finish with `GetOverlappedResult(..., TRUE)`. The file pointer is then not used at all and concurrent reads on one handle are supported.
+- **POSIX.** `pread` is specified not to touch the file offset, so one fd is safe across threads — but it may return short. Loop until satisfied; `ifstream::read` hid that.
+
+Memory-mapping would make all of this disappear (reads become `memcpy`, the page cache does the caching, inherently positional). Rejected: a truncated or network-backed file raises `SIGBUS` / an SEH exception in the middle of a `memcpy`, and handling that inside a library that has to survive arbitrary user files is not worth the saving.
+
+The key property is that **one descriptor per file serves every thread** — no pool, no per-thread handle, no descriptor growth.
+
+Parsing keeps a cursor. A thin `SequentialReader { reader, pos }` with `read<T>()` / `skip()` over `FileReader` serves the `init()` paths, which are single-threaded and should not be contorted.
+
+#### CZI — one function
+
+`m_fileStream` has four users; three (`readFileHeader`, `readDirectory`/`readMetadata`, `readAttachments`) run during `init()`. Only `readBlock` is on the read path.
+
+```cpp
+void CZISlide::readBlock(uint64_t pos, uint64_t size, std::vector<unsigned char>& data) {
+    data.resize(size);
+    m_reader->readAt(pos, data.data(), size);
+}
+```
+
+`CZIScene::readTile` then needs **no change**: `data` and `rasterData` are locals, `decodeData` builds per-call OpenJPEG/JXR objects, `unpackChannels` writes into per-call rasters, and `m_componentToChannelIndex` / `m_sceneParams` / `m_zoomLevels` are read-only after `init()`.
+
+Three details to pick up in the same change:
+
+- The current `catch` does `m_fileStream.clear(); m_fileStream.seekg(0); throw ex;` — error recovery that mutates shared state, which is exactly what is being removed. It disappears.
+- `throw ex;` slices to `std::exception`. Should be `throw;`. Unrelated pre-existing bug, free to fix here.
+- Have `CZIScene` hold `shared_ptr<FileReader>` directly rather than reading through `m_slide`. `CZIScene::m_slide` is a raw `CZISlide*`, so a scene outliving its slide is already a dangling read; this removes the back-pointer from the read path and fixes that at the same time.
+
+#### VSI — the stream, plus a scratch buffer that is easy to miss
+
+`EtsFile::readTilePart` (`etsfile.cpp:141-147`) has **two** races, not one:
+
+```cpp
+m_etsStream->setPos(offset);
+m_buffer.resize(tileCompressedSize);          // m_buffer is a MEMBER (etsfile.hpp:112)
+m_etsStream->readBytes(m_buffer.data(), m_buffer.size());
+```
+
+The second one survives fixing the stream and is not a handle, so it will not be found by looking for file state. It produces **corrupted tiles, not a crash** — the worst failure mode for a dataset, and invisible to any test that only checks for exceptions.
+
+```cpp
+void EtsFile::readTilePart(const TileInfo& tileInfo, cv::OutputArray tileRaster) const {
+    static thread_local std::vector<uint8_t> buffer;   // pure scratch: nothing to close
+    buffer.resize(tileInfo.size);
+    m_reader->readAt(tileInfo.offset, buffer.data(), tileInfo.size);
+    ...
+}
+```
+
+Marking the method `const` makes the compiler find any remaining member mutation. Note this is the *benign* use of thread-local storage — scratch memory with no handle and no lifetime coupling to the `Scene`, so none of the ownership problems of a thread-local I/O context apply.
+
+`VSIStream` stays as the parsing API (`vsifile.cpp` and `etsfile.cpp:74-125` use it heavily at open time), reimplemented over `FileReader` with a local cursor.
+
+Consistency point: `VsiFileScene` holds its own `TIFFKeeper m_tiff` and belongs to the libtiff fix, not this one. Convert both halves of the driver or it ends up concurrent on ETS scenes and serialised on TIFF ones.
+
+#### ZVI — a different problem
+
+The shared state is not a cursor slideio owns. `ZVIScene::m_Doc` is an `ole::compound_document`; `ZVIUtils::StreamKeeper` holds an iterator into the document's own vector of `stream_path` and returns a reference to a shared `ole::basic_stream`; `ZVIImageItem::readRaster` (`zviimageitem.cpp:163-198`) then calls `stream->seek()` / `stream->read()` on it, and in the JPEG branch seeks to the end to measure the stream. Shared mutable cursors, three layers down, in vendored code.
+
+- **A — serialise ZVI, deliberately.** Keep `m_readBlockMutex` for this driver alone. ZVI is a legacy Zeiss format with small images and no real pyramid; it is not in the ML tiling path. Model it as a declared property on the base class — `bool supportsConcurrentReads()` — rather than leaving it looking like an oversight. **This is the recommendation.**
+- **B — per-thread `compound_document`.** This is where the thread-local I/O context earns its keep: the OLE FAT/directory parse for a ZVI is small, so N× parse is cheap here in a way it never is for CZI. The right fallback for drivers whose I/O layer cannot be made stateless.
+- **C — resolve extents once.** At `init()`, walk the compound document and record each `Image/Item(n)/Contents` stream as a list of `(fileOffset, length)` extents from its sector chain; a tile read then becomes `readAt` calls with no OLE involved, and ZVI takes the same shape as CZI — and gets faster single-threaded, since per-read stream navigation disappears. Cost: taking ownership of the OLE sector-chain logic including the mini-FAT for streams under 4096 bytes. A couple of days, self-contained, worth it only if ZVI ever matters for throughput.
 
 ### 3.2 The global libtiff message handler is a blocker for any of this
 
@@ -245,7 +343,7 @@ The API is the same whichever way the concurrency is obtained; only the pool beh
 | 2 | Install the libtiff message handlers once at init; stop swapping them | `slideio` | small | removes a per-tile cost; unblocks 5–6 |
 | 3 | `align="codec"` in `TileGrid` | tiling | geometry only | 2.25× fewer decodes |
 | 4 | `Tiler::getTileIndices` + per-driver overrides | `slideio` | ~1 day + per driver | removes an O(slide area) cost |
-| 5 | Positional I/O (`pread`/`ReadFile`+offset) for CZI, VSI, ZVI | `slideio` | ~10 lines each | those drivers become concurrent |
+| 5 | `FileReader` + positional I/O for CZI and VSI; ZVI declared serialised (§3.1.1) | `slideio` | one shared class + ~1 function each | CZI and VSI become concurrent |
 | 6 | Per-scene TIFF handle pool behind `getFileHandle()`; shrink `m_readBlockMutex` | `slideio` | medium | TIFF family becomes concurrent |
 | 7 | `read_batch` — `Slide` pool now, single `Scene` once 5–6 ship | tiling | small | N× |
 | 8 | Drop the double clear; skip identity resize; fill only uncovered area | `slideio` | small | ~5–10% |
@@ -282,7 +380,14 @@ Everything above needs to be re-measured on real files before anything is merged
 - **Metric:** tiles/sec at 512×512, level 0 and at 0.5 µm/px, cold and warm cache.
 - **Ablation, in this order**, so each change is attributable: baseline → fused repack → codec alignment → indexed tile lookup → clears/resize → 1/2/4/8/16 workers → with tile cache → overlap 0 vs 64 → random vs native order.
 - **The concurrency comparison** (design doc §10.2 #8): threads over one `Scene` before the change (the serialised baseline), a `Slide` pool of N, N processes, and threads over one `Scene` after §3.1. The gap between the pool and the last one is what the pool costs in handles, parse time and memory — the number that justifies doing 5–6 at all.
-- **Thread-safety gates, not just speed gates.** Parallel reads are a correctness change, so: a stress test reading a scene from 16 threads for a sustained period on every driver, run under ThreadSanitizer and under Helgrind/DRD at least once per driver; plus an explicit check that libtiff warnings still reach the log after concurrent reads (the §3.2 regression). None of these exist today because they could not have failed today.
+- **Thread-safety gates, not just speed gates.** Parallel reads are a correctness change, and the characteristic failure is *wrong pixels*, not a crash — `EtsFile::m_buffer` (§3.1.1) would corrupt tiles while every smoke test passes. So:
+  - a stress test reading one scene from 16 threads and comparing **every tile byte-for-byte** against the single-threaded result, on every driver. Checking only for absent exceptions does not test this;
+  - that test under ThreadSanitizer, and under Helgrind/DRD at least once per driver. TSan finds `m_buffer` immediately; review may not;
+  - a short-read test for `pread` (a filesystem that returns partial reads, or an injected fake) — the one guarantee lost in the migration off `ifstream::read`;
+  - a check that libtiff warnings still reach the log after concurrent reads (the §3.2 regression);
+  - a check that closing a `Slide` while worker threads are alive releases every descriptor — the lifetime failure from the thread-local design, which on Windows shows up as a file the user cannot delete.
+
+  None of these exist today because none of them could have failed today.
 - **Correctness gate, non-negotiable:** tiles from `read_batch` must be pixel-identical to the equivalent single `read_block_from_level` call, on every driver, including ROI edges, `align="codec"`, and the fused repack path. The repack change in §3.3 alters channel handling on the most common code path in the library — it needs a byte-exact regression test against the current output before it lands, not after.
 
 ---
