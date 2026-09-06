@@ -2,6 +2,7 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/base/exceptions.hpp"
+#include "slideio/base/log.hpp"
 #include "slideio/drivers/zvi/zviscene.hpp"
 #include "slideio/drivers/zvi/zvislide.hpp"
 #include "slideio/drivers/zvi/zvitags.hpp"
@@ -402,12 +403,30 @@ void ZVIScene::parseImageTags()
 
     for (int tagIndex = 0; tagIndex < numTags; ++tagIndex)
     {
-        const ZVIUtils::Variant tag = ZVIUtils::readItem(stream);
-        const ZVITAG id = static_cast<ZVITAG>(ZVIUtils::readIntItem(stream));
-        ZVIUtils::skipItem(stream);
+        // {NumberOfTags} is not always the number of tags the stream holds, and
+        // a tag the reader cannot decode must not cost the scene the tags read
+        // before it -- geometry aside, these are metadata.
+        if (ZVIUtils::bytesLeft(stream) < 2) {
+            SLIDEIO_LOG(WARNING) << "ZVIImageDriver: /Image/Tags/Contents ends after "
+                << tagIndex << " of " << numTags << " declared tags";
+            break;
+        }
+        ZVIUtils::Variant tag;
+        ZVITAG id = static_cast<ZVITAG>(0); // no tag has id 0
+        try {
+            tag = ZVIUtils::readItem(stream);
+            id = static_cast<ZVITAG>(ZVIUtils::readIntItem(stream));
+            ZVIUtils::skipItem(stream);
+        }
+        catch (const std::exception& e) {
+            SLIDEIO_LOG(WARNING) << "ZVIImageDriver: stopped reading /Image/Tags/Contents after "
+                << tagIndex << " of " << numTags << " tags: " << e.what();
+            break;
+        }
         if (tag.index() == 0)
             continue;
 
+        try {
         switch (id)
         {
         case ZVITAG::ZVITAG_IMAGE_WIDTH:
@@ -445,6 +464,13 @@ void ZVIScene::parseImageTags()
             break;
         case ZVITAG::ZVITAG_COMPRESSION:
             break;
+        }
+        }
+        catch (const std::bad_variant_access&) {
+            // The tag carries a type this case does not expect. The stream is
+            // still in sync, so only this one tag is lost.
+            SLIDEIO_LOG(WARNING) << "ZVIImageDriver: /Image/Tags/Contents: tag "
+                << static_cast<int>(id) << " has an unexpected value type";
         }
     }
     m_res.x = scaleToResolution(scaleX, unitsX);

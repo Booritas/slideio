@@ -2,6 +2,7 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/base/exceptions.hpp"
+#include "slideio/base/log.hpp"
 #include "zviutils.hpp"
 #include "zvipixelformat.hpp"
 #include <locale>
@@ -14,6 +15,56 @@ namespace slideio
 {
     namespace ZVIUtils
     {
+        std::streamoff streamSize(ole::basic_stream& stream)
+        {
+            const std::streamoff pos = stream.pos();
+            const std::streamoff size = stream.seek(0, std::ios::end);
+            stream.seek(pos, std::ios::beg);
+            return size;
+        }
+
+        std::streamoff bytesLeft(ole::basic_stream& stream)
+        {
+            const std::streamoff pos = stream.pos();
+            const std::streamoff size = streamSize(stream);
+            return (size > pos) ? (size - pos) : 0;
+        }
+
+        // An unchecked read at the end of a stream hands back whatever the
+        // destination already held -- for a stack local, uninitialized memory --
+        // which is how a stream overrun reached users as "Unsupported item
+        // type: <garbage>", a different number on every run and never the cause.
+        void readExactly(ole::basic_stream& stream, void* buffer, std::streamsize size)
+        {
+            const std::streamsize read = stream.read(static_cast<char*>(buffer), size);
+            if (read != size)
+            {
+                RAISE_RUNTIME_ERROR << "ZVIImageDriver: unexpected end of stream at offset "
+                    << static_cast<long long>(stream.pos()) << ": "
+                    << static_cast<long long>(size) << " bytes requested, "
+                    << static_cast<long long>(read) << " available";
+            }
+        }
+
+        // POLE refuses to seek past the end of a stream and reports nothing when
+        // it does, leaving the position where it was: an unchecked skip of a
+        // bogus length silently continues the parse at the wrong offset.
+        static void skipExactly(ole::basic_stream& stream, std::streamoff size)
+        {
+            if (size <= 0)
+            {
+                return;
+            }
+            if (size > bytesLeft(stream))
+            {
+                RAISE_RUNTIME_ERROR << "ZVIImageDriver: unexpected end of stream at offset "
+                    << static_cast<long long>(stream.pos()) << ": cannot skip "
+                    << static_cast<long long>(size) << " bytes, only "
+                    << static_cast<long long>(bytesLeft(stream)) << " left";
+            }
+            stream.seek(size, std::ios::cur);
+        }
+
         // Number of payload bytes that follow the 2-byte type token of an item.
         // For the length-prefixed types the 4-byte length prefix is consumed
         // here and its value returned.
@@ -58,9 +109,13 @@ namespace slideio
             case VT_BLOB:
             case VT_STORED_OBJECT:
             case VT_ARRAY:
+            case 0x003F:
+                // 0x3F has no VARENUM name. Bio-Formats' ZeissZVIReader
+                // getNextTag() steps over it as a 32-bit length prefixed blob,
+                // like VT_BLOB, which is the only description of it we have.
                 {
                     uint32_t length = 0;
-                    stream.read((char*)&length, sizeof(length));
+                    readExactly(stream, &length, sizeof(length));
                     return Endian::fromLittleEndianToNative(length);
                 }
             case VT_STREAM:
@@ -68,7 +123,7 @@ namespace slideio
                     // Unlike the types above, VT_STREAM is prefixed with a
                     // 16-bit length (matches Bio-Formats' ZeissZVIReader).
                     uint16_t length = 0;
-                    stream.read((char*)&length, sizeof(length));
+                    readExactly(stream, &length, sizeof(length));
                     return Endian::fromLittleEndianToNative(length);
                 }
             default:
@@ -84,14 +139,10 @@ namespace slideio
 
 void ZVIUtils::skipItem(ole::basic_stream& stream)
 {
-    uint16_t type;
-    stream.read((char*)&type, sizeof(type));
+    uint16_t type = 0;
+    readExactly(stream, &type, sizeof(type));
     type = Endian::fromLittleEndianToNative(type);
-    const uint32_t offset = itemPayloadSize(stream, type);
-    if (offset > 0)
-    {
-        stream.seek(offset, std::ios::cur);
-    }
+    skipExactly(stream, itemPayloadSize(stream, type));
 }
 
 void ZVIUtils::skipItems(ole::basic_stream& stream, int count)
@@ -105,7 +156,7 @@ void ZVIUtils::skipItems(ole::basic_stream& stream, int count)
 int32_t ZVIUtils::readIntItem(ole::basic_stream& stream)
 {
    uint16_t type(0);
-   stream.read((char*)&type, sizeof(type));
+   readExactly(stream, &type, sizeof(type));
    type = Endian::fromLittleEndianToNative(type);
    if(type != VT_I4 && type != VT_INT)
    {
@@ -114,15 +165,15 @@ int32_t ZVIUtils::readIntItem(ole::basic_stream& stream)
       error += std::to_string(type);
       throw std::runtime_error(error);
    }
-   int32_t value;
-   stream.read((char*)&value, sizeof(value));
+   int32_t value = 0;
+   readExactly(stream, &value, sizeof(value));
    return Endian::fromLittleEndianToNative(value);
 }
 
 double ZVIUtils::readDoubleItem(ole::basic_stream& stream)
 {
    uint16_t type(0);
-   stream.read((char*)&type, sizeof(type));
+   readExactly(stream, &type, sizeof(type));
    type = Endian::fromLittleEndianToNative(type);
    if(type != VT_R8)
    {
@@ -131,23 +182,31 @@ double ZVIUtils::readDoubleItem(ole::basic_stream& stream)
       error += std::to_string(type);
       throw std::runtime_error(error);
    }
-   double value;
-   stream.read((char*)&value, sizeof(value));
+   double value = 0.;
+   readExactly(stream, &value, sizeof(value));
    return Endian::fromLittleEndianToNative(value);
 }
 
 
 static  std::string readStringValue(ole::basic_stream& stream)
 {
-    int32_t string_length;
+    int32_t string_length = 0;
     std::string value;
-    stream.read((char*)&string_length, sizeof(string_length));
+    ZVIUtils::readExactly(stream, &string_length, sizeof(string_length));
     string_length = Endian::fromLittleEndianToNative(string_length);
     if(string_length > 0)
     {
         std::vector<char> buffer(string_length, 0);
-        stream.read((char*)buffer.data(), string_length);
-        std::u16string src((char16_t*)buffer.data());
+        ZVIUtils::readExactly(stream, buffer.data(), string_length);
+        // The payload is not guaranteed to be NUL terminated, so the length has
+        // to bound the string: constructing it from the raw pointer alone read
+        // past the end of the buffer whenever the terminator was missing.
+        std::u16string src(reinterpret_cast<const char16_t*>(buffer.data()),
+                           static_cast<size_t>(string_length) / sizeof(char16_t));
+        const size_t terminator = src.find(char16_t(0));
+        if (terminator != std::u16string::npos) {
+            src.resize(terminator);
+        }
 		if (!Endian::isLittleEndian()) {
 			src = Endian::u16StringLittleToBig(src);
 		}
@@ -159,7 +218,7 @@ static  std::string readStringValue(ole::basic_stream& stream)
 std::string ZVIUtils::readStringItem(ole::basic_stream& stream)
 {
    uint16_t type(0);
-   stream.read((char*)&type, sizeof(type));
+   readExactly(stream, &type, sizeof(type));
    type = Endian::fromLittleEndianToNative(type);
    if(type != VT_BSTR)
    {
@@ -175,15 +234,15 @@ template<typename T>
 static T  readTypedValue(ole::basic_stream& stream)
 {
     T val(0);
-    stream.read((char*)&val, sizeof(val));
+    ZVIUtils::readExactly(stream, &val, sizeof(val));
     return val;
 }
 
 ZVIUtils::Variant ZVIUtils::readItem(ole::basic_stream& stream, bool skipUnusedTypes)
 {
     Variant value;
-    uint16_t type;
-    stream.read((char*)&type, sizeof(type));
+    uint16_t type = 0;
+    readExactly(stream, &type, sizeof(type));
 	type = Endian::fromLittleEndianToNative(type);
     uint32_t offset = 0;
     switch ((VARENUM)type)
@@ -240,10 +299,7 @@ ZVIUtils::Variant ZVIUtils::readItem(ole::basic_stream& stream, bool skipUnusedT
         offset = itemPayloadSize(stream, type);
         break;
     }
-    if(offset>0)
-    {
-        stream.seek(offset, std::ios::cur);
-    }
+    skipExactly(stream, offset);
     return value;
 }
 
@@ -346,9 +402,27 @@ std::vector<ZVIUtils::ZviTagEntry> ZVIUtils::readAllTags(
     std::vector<ZviTagEntry> entries;
     entries.reserve(static_cast<size_t>(count));
     for (int32_t i = 0; i < count; ++i) {
-        Variant value = readItem(stream);
-        const int32_t id = readIntItem(stream);
-        skipItem(stream); // {Attribute} — no longer used per spec.
+        // {Count} is not always the number of tags the stream actually holds;
+        // Bio-Formats' ZeissZVIReader.parseTags() bounds its loop the same way.
+        if (bytesLeft(stream) < 2) {
+            SLIDEIO_LOG(WARNING) << "ZVIImageDriver: tag stream ends after " << i
+                << " of " << count << " declared tags";
+            break;
+        }
+        Variant value;
+        int32_t id = 0;
+        try {
+            value = readItem(stream);
+            id = readIntItem(stream);
+            skipItem(stream); // {Attribute} — no longer used per spec.
+        }
+        catch (const std::exception& e) {
+            // An unreadable tag truncates the metadata; it must not cost the
+            // caller the tags read before it, nor the file its scenes.
+            SLIDEIO_LOG(WARNING) << "ZVIImageDriver: stopped reading tags after " << i
+                << " of " << count << ": " << e.what();
+            break;
+        }
         if (value.index() == 0) {
             continue; // std::monostate: VT_EMPTY/VT_NULL/blob/object — drop.
         }
