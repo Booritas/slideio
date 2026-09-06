@@ -86,6 +86,21 @@ namespace slideio
         std::vector<ZviTagEntry> SLIDEIO_ZVI_EXPORTS readAllTags(
             ole::basic_stream& stream, bool hasClsidHeader);
 
+        // Total size of `stream` in bytes. The position is left where it was.
+        std::streamoff SLIDEIO_ZVI_EXPORTS streamSize(ole::basic_stream& stream);
+        // Bytes between the current position of `stream` and its end. POLE
+        // neither zeroes the destination nor advances the position on a read
+        // that runs past the end, so a loop over a stream has to check what is
+        // left before reading rather than inspect the result afterwards.
+        std::streamoff SLIDEIO_ZVI_EXPORTS bytesLeft(ole::basic_stream& stream);
+
+        // Reads exactly `size` bytes or throws. POLE reports a short read only
+        // through its return value: it leaves the destination buffer untouched
+        // and does not advance the position, so an unchecked read at the end of
+        // a stream hands back whatever the destination already held.
+        void SLIDEIO_ZVI_EXPORTS readExactly(ole::basic_stream& stream, void* buffer,
+                                             std::streamsize size);
+
         void SLIDEIO_ZVI_EXPORTS skipItem(ole::basic_stream& stream);
         void SLIDEIO_ZVI_EXPORTS skipItems(ole::basic_stream& stream, int count);
         int32_t SLIDEIO_ZVI_EXPORTS readIntItem(ole::basic_stream& stream);

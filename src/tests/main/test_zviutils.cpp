@@ -6,7 +6,8 @@
 #include "tests/testlib/testtools.hpp"
 #include "slideio/drivers/zvi/zviutils.hpp"
 #include "slideio/drivers/zvi/pole_lib.hpp"
-#include "slideio/core/exceptions.hpp"
+#include "slideio/base/exceptions.hpp"
+#include <functional>
 #include <stdexcept>
 
 using namespace slideio;
@@ -138,7 +139,6 @@ TEST(ZVIUtils, readItem)
 TEST(ZVIUtils, skipItemConsumesSameBytesAsReadItem)
 {
     std::string filePath = TestTools::getTestImagePath("zvi", "Zeiss-1-Merged.zvi");
-    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     ole::compound_document doc(filePath);
     ASSERT_TRUE(doc.good());
     ZVIUtils::StreamKeeper keeper(doc, "/Image/Item(0)/Tags/Contents");
@@ -202,4 +202,86 @@ TEST(ZVIUtils, readAllTags_imageTagsContents)
         }
     }
     EXPECT_TRUE(hasFilename);
+}
+
+// POLE signals a short read through its return value and leaves the caller's
+// buffer untouched: it neither zeroes the buffer nor advances the position.
+// The item readers ignored that, so at the end of a stream readItem() and
+// skipItem() decoded an uninitialized stack variable as the item type. That is
+// what reached the field as "Unsupported item type: <garbage>" -- a different
+// number on every run, never the actual cause -- while readIntItem(), whose
+// type variable happens to be zero initialized, reported the same condition as
+// "Expected integer. Received:0" (discussion #73).
+TEST(ZVIUtils, itemReadersReportEndOfStream)
+{
+    const std::string filePath = TestTools::getTestImagePath("zvi", "Zeiss-1-Merged.zvi");
+    ole::compound_document doc(filePath);
+    ASSERT_TRUE(doc.good());
+    ZVIUtils::StreamKeeper keeper(doc, "/Image/Item(0)/Tags/Contents");
+    ole::basic_stream& stream = keeper;
+
+    const std::streamoff size = ZVIUtils::streamSize(stream);
+    ASSERT_GT(size, 0);
+
+    auto messageOf = [&](const std::function<void()>& call) -> std::string {
+        stream.seek(size, std::ios::beg);
+        try {
+            call();
+        }
+        catch (const std::exception& e) {
+            return e.what();
+        }
+        return std::string("<no exception>");
+    };
+
+    EXPECT_NE(messageOf([&] { ZVIUtils::readItem(stream); }).find("end of stream"),
+              std::string::npos);
+    EXPECT_NE(messageOf([&] { ZVIUtils::skipItem(stream); }).find("end of stream"),
+              std::string::npos);
+    EXPECT_NE(messageOf([&] { ZVIUtils::readIntItem(stream); }).find("end of stream"),
+              std::string::npos);
+}
+
+TEST(ZVIUtils, streamSizeAndBytesLeft)
+{
+    const std::string filePath = TestTools::getTestImagePath("zvi", "Zeiss-1-Merged.zvi");
+    ole::compound_document doc(filePath);
+    ASSERT_TRUE(doc.good());
+    ZVIUtils::StreamKeeper keeper(doc, "/Image/Item(0)/Tags/Contents");
+    ole::basic_stream& stream = keeper;
+
+    const std::streamoff size = ZVIUtils::streamSize(stream);
+    ASSERT_GT(size, 0);
+    // streamSize() must not disturb the position it was called at.
+    EXPECT_EQ(stream.pos(), 0);
+    EXPECT_EQ(ZVIUtils::bytesLeft(stream), size);
+
+    ZVIUtils::readIntItem(stream); // {Version}
+    EXPECT_EQ(ZVIUtils::bytesLeft(stream), size - 6);
+
+    stream.seek(size, std::ios::beg);
+    EXPECT_EQ(ZVIUtils::bytesLeft(stream), 0);
+}
+
+// A ZVI tag stream whose declared {Count} exceeds the tags it actually holds
+// must yield the tags that are there, not fail the whole file. Bio-Formats'
+// ZeissZVIReader.parseTags() bounds its loop the same way.
+// The fixture: /Image/Item(0)/Tags/Contents of Zeiss-1-Merged.zvi is 606 bytes
+// and starting at offset 20 the next two items are VT_I4 8 and VT_I4 1480, so
+// readAllTags() reads {Version}=8, {Count}=1480 with only 83 items -- 27 whole
+// (Value, TagID, Attribute) triples -- left in the stream.
+TEST(ZVIUtils, readAllTagsStopsAtEndOfStream)
+{
+    const std::string filePath = TestTools::getTestImagePath("zvi", "Zeiss-1-Merged.zvi");
+    ole::compound_document doc(filePath);
+    ASSERT_TRUE(doc.good());
+    ZVIUtils::StreamKeeper keeper(doc, "/Image/Item(0)/Tags/Contents");
+    ole::basic_stream& stream = keeper;
+    ASSERT_EQ(ZVIUtils::streamSize(stream), 606);
+
+    stream.seek(20, std::ios::beg);
+    std::vector<ZVIUtils::ZviTagEntry> entries;
+    ASSERT_NO_THROW(entries = ZVIUtils::readAllTags(stream, /*hasClsidHeader=*/false));
+    EXPECT_FALSE(entries.empty());
+    EXPECT_LE(entries.size(), 27u);
 }
