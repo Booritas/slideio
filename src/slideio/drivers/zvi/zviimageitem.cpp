@@ -8,8 +8,8 @@
 #include "slideio/drivers/zvi/zviimageitem.hpp"
 #include "slideio/imagetools/imagetools.hpp"
 #include "slideio/core/tools/endian.hpp"
-#include "slideio/base/exceptions.hpp"
-#include "slideio/base/log.hpp"
+#include "slideio/core/exceptions.hpp"
+#include "slideio/core/log.hpp"
 
 using namespace slideio;
 
