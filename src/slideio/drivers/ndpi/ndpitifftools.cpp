@@ -947,7 +947,9 @@ void NDPITiffTools::readDirectoryJpegHeaders(NDPIFile* ndpi, NDPITiffDirectory& 
     if (dir.height == dir.rowsPerStrip && !dir.mcuStarts.empty()) {
         const auto dirIndex = dir.dirIndex;
 
-        libtiff::TIFF* tiff = ndpi->getTiffHandle();
+        // Runs during NDPIFile::init(), single-threaded, so a local borrow is enough.
+        auto borrow = ndpi->acquireContext();
+        libtiff::TIFF* tiff = borrow.as<NDPIReadContext>().keeper.getHandle();
         setCurrentDirectory(tiff, dir);
 
         std::unique_ptr<FILE, Tools::FileDeleter> sfile(Tools::openFile(ndpi->getFilePath(), "rb"));

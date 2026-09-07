@@ -10,9 +10,11 @@
 
 slideio::NDPIFile::~NDPIFile()
 {
-    if(m_tiff.isValid()) {
+    if (m_contextPool) {
+        // The pool's destructor blocks until every outstanding borrow is returned and then
+        // destroys every NDPIReadContext, which closes its keeper -- so there is no handle
+        // left to close here explicitly, unlike the old single-handle m_tiff.
         SLIDEIO_LOG(INFO) << "Closing file " << m_filePath;
-        m_tiff.closeTiffFile();
     }
 }
 
@@ -22,14 +24,18 @@ void slideio::NDPIFile::init(const std::string& filePath)
 
     Tools::throwIfPathNotExist(filePath, "NDPIFile::init");
     SLIDEIO_LOG(INFO) << "Opening of NDPI TIFF file " << filePath;
-    m_tiff.openTiffFile(filePath);
-
-    if (!m_tiff.isValid())
+    m_filePath = filePath;
+    m_contextPool = std::make_unique<ContextPool>([filePath]() {
+        return std::make_unique<NDPIReadContext>(filePath);
+    });
     {
-        RAISE_RUNTIME_ERROR << "NDPIImageDriver: Cannot open file:" << filePath;
+        // Force one context open right away, matching the old eager
+        // m_tiff.openTiffFile() + isValid() check: a bad file is rejected here,
+        // before scanFile(), rather than surfacing later at the first concurrent
+        // read. NDPIReadContext's constructor throws on failure (see ndpifile.hpp).
+        auto borrow = acquireContext();
     }
     SLIDEIO_LOG(INFO) << "File " << filePath << " is successfully opened";
-    m_filePath = filePath;
     scanFile();
     for(auto& dir : m_directories) {
         NDPITiffTools::readDirectoryJpegHeaders(this, dir);
@@ -40,7 +46,10 @@ void slideio::NDPIFile::init(const std::string& filePath)
 void slideio::NDPIFile::scanFile()
 {
     SLIDEIO_LOG(INFO) << "NDPITiffTools::scanFile-begin";
-    libtiff::TIFF* tiff = getTiffHandle();
+    // Runs during init(), single-threaded, so a local borrow is enough -- no member
+    // handle needs to survive past this function.
+    auto borrow = acquireContext();
+    libtiff::TIFF* tiff = borrow.as<NDPIReadContext>().keeper.getHandle();
     int dirs = libtiff::TIFFNumberOfDirectories(tiff);
     SLIDEIO_LOG(INFO) << "Total number of directories: " << dirs;
     m_directories.resize(dirs);
