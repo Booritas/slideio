@@ -85,6 +85,14 @@ void SCNSlide::constructScenes()
                 {
                     slideio::TiffDirectory directory;
                     TiffTools::scanTiffDir(m_tiff.getHandle(), dir, 0, directory);
+                    // TECH_DEBT #3: m_tiff.getHandle() below is passed positionally into a
+                    // parameter declared `bool auxiliary`, so it silently converts to true and
+                    // is discarded; SVSSmallScene opens its own file lazily instead. That
+                    // accident is what keeps this auxiliary scene safe to read concurrently
+                    // with SCNScene, which is now declared to support concurrent reads. If this
+                    // bug is ever fixed, the fix must drop the argument, not plumb this slide's
+                    // handle into the scene -- doing that would inject a shared, unsynchronised
+                    // TIFF* into a driver whose scenes are read from multiple threads.
                     std::shared_ptr<SVSSmallScene> scene(new SVSSmallScene(m_filePath, getDriverId(), tagName,
                         directory, m_tiff.getHandle()));
                     scene->setSceneIndex(-1);
