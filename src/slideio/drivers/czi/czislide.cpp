@@ -402,14 +402,15 @@ void CZISlide::readSubBlocks(uint64_t directoryPosition, uint64_t originPos, std
     uint64_t filePos = reader.pos();
     for (unsigned int entry = 0; entry < directoryHeader.entryCount; ++entry)
     {
+        CZISubBlock block;
+        DirectoryEntryDV entryHeader{};
+        std::vector<DimensionEntryDV> dimensions;
         try
         {
-            CZISubBlock block;
-            DirectoryEntryDV entryHeader{};
             reader.setPos(filePos);
             reader.read(entryHeader);
 			updateDirectoryEntryBE(entryHeader);
-            std::vector<DimensionEntryDV> dimensions(entryHeader.dimensionCount);
+            dimensions.resize(entryHeader.dimensionCount);
             for (int dim = 0; dim < entryHeader.dimensionCount; ++dim)
             {
                 DimensionEntryDV& dimEntry = dimensions[dim];
@@ -417,11 +418,23 @@ void CZISlide::readSubBlocks(uint64_t directoryPosition, uint64_t originPos, std
 				updateDimensionEntryBE(dimEntry);
             }
             filePos = reader.pos();
-            if (entryHeader.filePosition < 0 ||
-                static_cast<uint64_t>(entryHeader.filePosition) > UINT64_MAX - originPos) {
-                RAISE_RUNTIME_ERROR << "CZISlide::readSubBlocks: sub-block file position overflow (filePosition="
-                    << entryHeader.filePosition << ", originPos=" << originPos << ")";
-            }
+        }
+        catch (const slideio::RuntimeError&)
+        {
+            SLIDEIO_LOG(WARNING) << "Error by reading of subblocks of the file " << getFilePath() << "." << std::endl;
+            break;
+        }
+
+        // Deliberately outside the try/catch blocks: entryHeader.filePosition comes
+        // straight from the file, and a corrupt value here is a data-integrity
+        // problem, not a transient short read. It must fail CZISlide::init() hard,
+        // not be logged as a warning and silently truncate the parsed sub-block
+        // list the way a genuine short/failed read (caught above and below) does.
+        // See CZIImageDriver.subBlockFilePositionOverflowPropagates.
+        validateSubBlockFilePosition(entryHeader.filePosition, originPos);
+
+        try
+        {
             reader.setPos(static_cast<uint64_t>(entryHeader.filePosition) + originPos);
             SegmentHeader segmentHeader;
             reader.read(segmentHeader);
@@ -458,6 +471,15 @@ void CZISlide::readSubBlocks(uint64_t directoryPosition, uint64_t originPos, std
             SLIDEIO_LOG(WARNING) << "Error by reading of subblocks of the file " << getFilePath() << "." << std::endl;
             break;
         }
+    }
+}
+
+void CZISlide::validateSubBlockFilePosition(int64_t filePosition, uint64_t originPos)
+{
+    if (filePosition < 0 ||
+        static_cast<uint64_t>(filePosition) > UINT64_MAX - originPos) {
+        RAISE_RUNTIME_ERROR << "CZISlide::readSubBlocks: sub-block file position overflow (filePosition="
+            << filePosition << ", originPos=" << originPos << ")";
     }
 }
 
