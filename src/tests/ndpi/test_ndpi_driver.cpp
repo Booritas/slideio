@@ -1,4 +1,6 @@
-﻿#include <random>
+﻿#include <atomic>
+#include <random>
+#include <thread>
 #include <gtest/gtest.h>
 #include "slideio/drivers/ndpi/ndpitifftools.hpp"
 #include "tests/testlib/testtools.hpp"
@@ -633,20 +635,80 @@ TEST_F(NDPIImageDriverTests, reportsConcurrentReadSupport) {
 
 // Scenes of one NDPI file share the pool, so opening a second scene must not
 // double the descriptor count.
+// A sequential read from every scene proves nothing here: a per-scene pool would pass
+// identically, since nothing would observe pool identity or descriptor count, and
+// DM0014's 3 scenes (main + macro + map aux images) are nowhere near enough to exhaust
+// descriptors even duplicated. So this drives two DIFFERENT scenes of the SAME file --
+// the main scene and one auxiliary image, both reached through the same NDPIFile --
+// with two DIFFERENT amounts of genuine concurrency (2 threads vs 5), synchronized to
+// start together so the reads actually overlap in time. NDPIFile::contextCount() /
+// NDPIScene::contextCount() then let the test observe, not assume, that both scenes
+// report the exact same number: if the pool really is one object shared by the file,
+// that is not a coincidence -- both calls read the same ContextPool's size. A per-scene
+// pool would instead let each scene's own pool settle near its own thread count (2 vs
+// 5), which would make the two counts differ far more often than they'd coincide.
 TEST_F(NDPIImageDriverTests, scenesOfOneFileShareTheHandlePool) {
     std::string filePath = TestTools::getTestImagePath("hamamatsu", "DM0014 - 2020-04-02 11.10.47.ndpi");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     slideio::NDPIImageDriver driver;
     auto slide = driver.openFile(filePath);
     ASSERT_TRUE(slide);
-    const int numScenes = slide->getNumScenes();
-    for (int i = 0; i < numScenes; ++i) {
-        cv::Mat raster;
-        auto scene = slide->getScene(i);
+
+    auto mainScene = std::dynamic_pointer_cast<slideio::NDPIScene>(slide->getScene(0));
+    ASSERT_TRUE(mainScene);
+    const auto& auxNames = slide->getAuxImageNames();
+    ASSERT_FALSE(auxNames.empty()) << "test needs a second scene of the same file";
+    auto auxScene = std::dynamic_pointer_cast<slideio::NDPIScene>(slide->getAuxImage(auxNames.front()));
+    ASSERT_TRUE(auxScene);
+
+    // init() itself already borrowed the pool once (to validate the file eagerly, then
+    // again inside scanFile()/readDirectoryJpegHeaders), but always one context at a
+    // time, so the pool never had to grow past 1 before any scene was read.
+    EXPECT_EQ(1, mainScene->contextCount());
+
+    auto readBlock = [](const std::shared_ptr<slideio::NDPIScene>& scene) {
         const cv::Rect rect = scene->getRect();
         const cv::Size size(std::min(64, rect.width), std::min(64, rect.height));
+        cv::Mat raster;
         scene->readResampledBlockChannels(cv::Rect(rect.x, rect.y, size.width, size.height),
                                           size, {}, raster);
         EXPECT_FALSE(raster.empty());
+    };
+
+    const int mainThreads = 2;
+    const int auxThreads = 5;
+    const int totalThreads = mainThreads + auxThreads;
+    std::atomic<int> readyCount{0};
+    std::atomic<bool> go{false};
+    std::vector<std::thread> threads;
+    threads.reserve(totalThreads);
+    for (int i = 0; i < mainThreads; ++i) {
+        threads.emplace_back([&, mainScene]() {
+            ++readyCount;
+            while (!go.load()) { std::this_thread::yield(); }
+            readBlock(mainScene);
+        });
     }
+    for (int i = 0; i < auxThreads; ++i) {
+        threads.emplace_back([&, auxScene]() {
+            ++readyCount;
+            while (!go.load()) { std::this_thread::yield(); }
+            readBlock(auxScene);
+        });
+    }
+    // Every thread waits here until all totalThreads have started, so the two batches of
+    // reads genuinely overlap instead of merely happening to interleave by scheduling luck.
+    while (readyCount.load() < totalThreads) { std::this_thread::yield(); }
+    go = true;
+    for (auto& t : threads) {
+        t.join();
+    }
+
+    const int mainCount = mainScene->contextCount();
+    const int auxCount = auxScene->contextCount();
+    EXPECT_GT(mainCount, 0);
+    EXPECT_LE(mainCount, slideio::ContextPool::defaultMax());
+    EXPECT_EQ(mainCount, auxCount)
+        << "the main scene and an auxiliary image of the same NDPI file reported "
+           "different pool sizes -- the handle pool is not actually shared per file";
 }

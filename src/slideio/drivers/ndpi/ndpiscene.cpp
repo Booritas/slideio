@@ -149,6 +149,11 @@ cv::Rect NDPIScene::getRect() const
     return m_rect;
 }
 
+int NDPIScene::contextCount() const
+{
+    return m_pfile->contextCount();
+}
+
 int NDPIScene::getNumChannels() const
 {
     const std::vector<NDPITiffDirectory>& directories = m_pfile->directories();

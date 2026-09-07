@@ -64,6 +64,10 @@ namespace slideio
         virtual ~NDPIScene();
         void init(const std::string& name, int sceneIndex, const std::string& driverId, NDPIFile* file, int32_t startDirIndex, int32_t endDirIndex);
         bool supportsConcurrentReads() const override { return true; }
+        /// Forwards to the shared NDPIFile's pool. For tests -- see
+        /// NDPIFile::contextCount(); this is how a test reaches it from a scene,
+        /// which is all a test normally holds.
+        int contextCount() const;
         int getNumChannels() const override;
         cv::Rect getRect() const override;
         std::string getFilePath() const override;
