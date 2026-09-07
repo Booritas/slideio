@@ -541,9 +541,15 @@ void TestTools::concurrentReadIdentityTest(const std::string& filePath,
 
     const cv::Rect sceneRect = scene->getRect();
     // Small enough that numRois of them fit, big enough to span several codec
-    // tiles so that tile assembly is exercised rather than a single tile.
-    const cv::Size blockSize(std::min(512, std::max(16, sceneRect.width / 4)),
-                             std::min(512, std::max(16, sceneRect.height / 4)));
+    // tiles so that tile assembly is exercised rather than a single tile. Also
+    // clamped to the scene's own extent: this helper is reused across every
+    // scene of multi-scene formats (concurrentReadIdentityTestAllScenes), and
+    // auxiliary scenes -- thumbnail, label, overview -- can be smaller than the
+    // 16 px floor below. Without this clamp the block would exceed the scene,
+    // maxX/maxY would collapse to 0, and every ROI would reach past the scene
+    // bound into whatever undefined per-driver behaviour that produces.
+    const cv::Size blockSize(std::min(sceneRect.width,  std::min(512, std::max(16, sceneRect.width / 4))),
+                             std::min(sceneRect.height, std::min(512, std::max(16, sceneRect.height / 4))));
     ASSERT_GT(blockSize.width, 0);
     ASSERT_GT(blockSize.height, 0);
 
@@ -574,8 +580,11 @@ void TestTools::concurrentReadIdentityTest(const std::string& filePath,
         threads.emplace_back([&, t]() {
             for (int r = 0; r < readsPerThread; ++r) {
                 for (size_t i = 0; i < rois.size(); ++i) {
-                    // Stagger the starting ROI per thread so threads are reading
-                    // different regions at the same moment.
+                    // Stagger the starting ROI per thread: with numThreads > rois.size()
+                    // (the default 16 threads over 8 ROIs), threads t and t + rois.size()
+                    // land on the SAME region at the same moment. That collision is the
+                    // point -- it is what makes this a real contention/race detector on a
+                    // shared region rather than just a parallel smoke test.
                     const size_t index = (i + static_cast<size_t>(t)) % rois.size();
                     try {
                         cv::Mat raster;
