@@ -2635,6 +2635,13 @@ TEST_F(PhTiffImageDriverTests, multiThreadedRead) {
 	TestTools::multiThreadedTest(TestTools::getTestImagePath("philips", ph2::FILE_NAME), driver);
 }
 
+TEST(PHTIFFImageDriver, concurrentReadsAreByteIdentical) {
+    const std::string filePath = TestTools::getTestImagePath("philips", ph2::FILE_NAME);
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::PHTIFFImageDriver driver;
+    TestTools::concurrentReadIdentityTest(filePath, driver);
+}
+
 // The point of the level api: a rect given in level coordinates is read from that level
 // with no conversion. Reading the whole of a level by level, and reading the whole scene
 // resampled to that level's size, have to show the same picture -- the second goes through

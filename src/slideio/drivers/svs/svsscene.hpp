@@ -5,6 +5,9 @@
 
 #include "slideio/drivers/svs/svs_api_def.hpp"
 #include "slideio/core/cvscene.hpp"
+#include "slideio/core/exceptions.hpp"
+#include "slideio/core/tools/contextpool.hpp"
+#include "slideio/core/tools/readcontext.hpp"
 #include "slideio/imagetools/tiffkeeper.hpp"
 #include "slideio/imagetools/tifftools.hpp"
 
@@ -15,6 +18,23 @@
 
 namespace slideio
 {
+    /// One libtiff handle. A fresh handle is cheap here because
+    /// TiffTools::setCurrentDirectory positions with TIFFSetSubDirectory(offset),
+    /// so it jumps straight to the right IFD with no directory walk and no
+    /// re-parse of the pyramid -- a context duplicates the descriptor, not the
+    /// parsed model.
+    class SVSReadContext : public ReadContext
+    {
+    public:
+        explicit SVSReadContext(const std::string& filePath)
+            : keeper(TiffTools::openTiffFile(filePath)) {
+            if (!keeper.isValid()) {
+                RAISE_RUNTIME_ERROR << "SVSImageDriver: cannot open file " << filePath;
+            }
+        }
+        TIFFKeeper keeper;
+    };
+
     class SLIDEIO_SVS_EXPORTS SVSScene : public CVScene
     {
     public:
@@ -28,7 +48,8 @@ namespace slideio
         SVSScene(const std::string& filePath, const std::string& driverId, libtiff::TIFF* hFile, const std::string& name);
 
         virtual ~SVSScene();
-        void makeSureFileIsOpened();
+
+        bool supportsConcurrentReads() const override { return true; }
 
         std::string getFilePath() const override {
             return m_filePath;
@@ -63,8 +84,12 @@ namespace slideio
         DataType getChannelDataType(int) const override{
             return m_dataType;
         }
-        libtiff::TIFF* getFileHandle();
     protected:
+        /// Borrows a handle for the duration of one block read. Acquire once per
+        /// read and pass the context down through userData -- never re-acquire
+        /// mid-read.
+        ContextPool::Borrow acquireContext() { return m_contextPool.acquire(); }
+
         std::string m_filePath;
         std::string m_driverId;
         std::string m_name;
@@ -74,7 +99,7 @@ namespace slideio
         DataType m_dataType;
         int m_sceneIndex;
     private:
-        TIFFKeeper m_tiffKeeper;
+        ContextPool m_contextPool;
     };
 }
 

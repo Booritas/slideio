@@ -18,6 +18,19 @@
 
 using namespace slideio;
 
+namespace
+{
+    // What Tiler's methods receive as userData for one call to
+    // readResampledLevelBlockChannelsEx: the directory being read (immutable, shared across
+    // threads) and the context borrowed for the duration of that one call -- the only place a
+    // TIFF handle enters the read path. Acquired once by the caller and never re-acquired
+    // mid-read; see SVSScene::acquireContext.
+    struct SVSTileComposerUserData
+    {
+        const slideio::TiffDirectory* dir = nullptr;
+        SVSReadContext* context = nullptr;
+    };
+}
 
 SVSTiledScene::SVSTiledScene(const std::string& filePath, const std::string& driverId, const std::string& name,
                              const std::vector<TiffDirectory>& dirs) : SVSScene(filePath, driverId, name),
@@ -141,17 +154,17 @@ void SVSTiledScene::readResampledLevelBlockChannelsEx(int level, const cv::Rect&
         RAISE_RUNTIME_ERROR << "SVSDriver: 3D and 4D images are not supported";
     }
     validateLevel(level);
-    auto hFile = getFileHandle();
-    if (hFile == nullptr) {
-        RAISE_RUNTIME_ERROR << "SVSDriver: Invalid file header by raster reading operation";
-    }
+    // One borrow for the whole call -- readTile and getTileRect below read the handle out of
+    // this same context, never acquiring one of their own.
+    auto borrow = acquireContext();
     const slideio::TiffDirectory& dir = m_directories[level];
     std::vector<int> channels(channelIndices);
     if (channels.empty()) {
         channels.resize(dir.channels);
         std::iota(channels.begin(), channels.end(), 0);
     }
-    TileComposer::composeRect(this, channels, levelRect, blockSize, output, (void*)&dir);
+    SVSTileComposerUserData userData{ &dir, &borrow.as<SVSReadContext>() };
+    TileComposer::composeRect(this, channels, levelRect, blockSize, output, (void*)&userData);
 }
 
 int SVSTiledScene::findZoomLevelIndex(double zoom) const {
@@ -164,14 +177,14 @@ int SVSTiledScene::findZoomLevelIndex(double zoom) const {
 }
 
 int SVSTiledScene::getTileCount(void* userData) {
-    const TiffDirectory* dir = (const TiffDirectory*)userData;
+    const TiffDirectory* dir = static_cast<const SVSTileComposerUserData*>(userData)->dir;
     int tilesX = (dir->width - 1) / dir->tileWidth + 1;
     int tilesY = (dir->height - 1) / dir->tileHeight + 1;
     return tilesX * tilesY;
 }
 
 bool SVSTiledScene::getTileRect(int tileIndex, cv::Rect& tileRect, void* userData) {
-    const TiffDirectory* dir = (const TiffDirectory*)userData;
+    const TiffDirectory* dir = static_cast<const SVSTileComposerUserData*>(userData)->dir;
     const int tilesX = (dir->width - 1) / dir->tileWidth + 1;
     const int tilesY = (dir->height - 1) / dir->tileHeight + 1;
     const int tileY = tileIndex / tilesX;
@@ -185,10 +198,11 @@ bool SVSTiledScene::getTileRect(int tileIndex, cv::Rect& tileRect, void* userDat
 
 bool SVSTiledScene::readTile(int tileIndex, const std::vector<int>& channelIndices, cv::OutputArray tileRaster,
                              void* userData) {
-    const TiffDirectory* dir = static_cast<const TiffDirectory*>(userData);
+    const SVSTileComposerUserData* data = static_cast<const SVSTileComposerUserData*>(userData);
+    const TiffDirectory* dir = data->dir;
     bool ret = false;
     try {
-        TiffTools::readTile(getFileHandle(), *dir, tileIndex, channelIndices, tileRaster);
+        TiffTools::readTile(data->context->keeper.getHandle(), *dir, tileIndex, channelIndices, tileRaster);
         ret = true;
     }
     catch (slideio::RuntimeError&) {
