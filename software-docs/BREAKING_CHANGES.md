@@ -9,6 +9,41 @@ by branch.
 
 ## v2.10.0
 
+### `Scene` block reads may now overlap
+
+**Module:** `slideio-core` (exported: `CVScene::supportsConcurrentReads()`)
+**Files:** `src/slideio/core/cvscene.hpp`/`.cpp`, and every converted driver
+
+Reads of one `Scene` were thread-safe and fully serialised: no two block reads
+of one scene ever ran at the same time. For the scenes of SVS, PHTIFF, AFI,
+PKE, SCN, NDPI, CZI and VSI they now run concurrently. ZVI, DCM, GDAL and
+OME-TIFF are unchanged; `CVScene::supportsConcurrentReads()` reports which
+applies.
+
+No signatures changed and there is no source or binary incompatibility. The
+break is behavioural: code that relied on reads of one scene being mutually
+exclusive in order to protect **its own** state must now take its own lock.
+
+See `software-docs/specs/2026-09-07-parallel-read-block-design.md`.
+
+### `VsiFileScene` now throws on an unopenable file at first read, not construction
+
+**Module:** `slideio-vsi`
+**File:** `src/slideio/drivers/vsi/vsifilescene.hpp`/`.cpp`
+
+Part of the same work as above. `VsiFileScene` used to open its file handle
+eagerly in `init()`, so a file that could not be opened threw at scene
+construction. Making the scene safe for concurrent reads moved that handle
+into a lazily-constructed `ContextPool`, so the same failure now surfaces at
+the scene's first read instead.
+
+In practice the window this opens is narrow: `VSIFile` has already opened the
+same path successfully before the scene is constructed, so a file that fails
+here has typically changed state (permissions, deletion, a network mount
+dropping) between that check and the first read. Still a real change for any
+caller that wrapped scene construction, rather than the first read, in a
+try/catch to detect an unopenable file.
+
 ### `slideio-base` was merged into `slideio-core`
 
 **Modules:** `slideio-base` (removed), `slideio-core` (exported: `SLIDEIO_CORE_EXPORTS`)
