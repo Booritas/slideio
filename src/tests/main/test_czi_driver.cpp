@@ -665,6 +665,24 @@ TEST(CZIImageDriver, multiThreadSceneAccess) {
     TestTools::multiThreadedTest(filePath, driver);
 }
 
+TEST(CZIImageDriver, concurrentReadsAreByteIdentical) {
+    std::string filePath = TestTools::getTestImagePath("czi", "03_14_2019_DSGN0545_A_wb_1353_fov_1_633.czi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::CZIImageDriver driver;
+    TestTools::concurrentReadIdentityTest(filePath, driver);
+}
+
+TEST(CZIImageDriver, reportsConcurrentReadSupport) {
+    std::string filePath = TestTools::getTestImagePath("czi", "03_14_2019_DSGN0545_A_wb_1353_fov_1_633.czi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::CZIImageDriver driver;
+    auto slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide);
+    auto scene = slide->getScene(0);
+    ASSERT_TRUE(scene);
+    EXPECT_TRUE(scene->supportsConcurrentReads());
+}
+
 TEST(CZIImageDriver, channelAttributes)
 {
     slideio::CZIImageDriver driver;
