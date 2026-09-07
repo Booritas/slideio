@@ -30,6 +30,16 @@ namespace slideio
         /// thread_local: the buffer then dies with the EtsFile's pool instead of
         /// living for the thread's lifetime, and it is per-scene rather than
         /// per-process.
+        ///
+        /// The memory cost is worth stating, because the pool is kUnbounded and
+        /// so never reclaims a context: `buffer` is resized up to each tile's
+        /// compressed size and never shrinks, so an EtsFile ends up holding
+        /// roughly (peak concurrent readers) x (largest compressed tile) bytes
+        /// for as long as it lives. Peak concurrency is a high-water mark, not a
+        /// current count -- a burst of 16 threads leaves 16 contexts behind. For
+        /// tiles of tens to hundreds of kilobytes that is a few megabytes, which
+        /// is why it is documented rather than bounded; a shrink_to_fit here
+        /// would give back the memory and reintroduce a per-tile allocation.
         class EtsReadContext : public ReadContext
         {
         public:

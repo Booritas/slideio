@@ -99,6 +99,17 @@ AFI needs no work: it aggregates SVS slides and its scenes *are* SVS scenes, so
 it inherits the conversion. That makes eight of the twelve formats concurrent,
 and it is why the tree has 11 driver libraries for 12 formats.
 
+**The contract is per scene, not per slide, and CZI shows why that matters.**
+`SVSSmallScene` and `PKESmallScene` derive from their driver's scene base and so
+inherit `true` for their auxiliary images, but CZI's auxiliary images are
+`CZIThumbnail`, which derives from `CVSmallScene` and reports the default
+`false`. So a CZI slide's main scenes are concurrent while its thumbnail is
+not. That is safe — `false` only means the base class serialises that scene —
+but it means the "every scene of one slide gives the same answer" property that
+`VSIImageDriverTests.allScenesAgreeOnTheConcurrencyContract` asserts for VSI
+does **not** hold library-wide. A caller deciding whether to build a thread
+pool must ask each `Scene`, not one scene of the slide.
+
 ### 3.2 Drivers declared serialised
 
 Four scene types stay serialised in this change and are recorded in

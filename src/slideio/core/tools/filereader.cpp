@@ -24,11 +24,23 @@ void FileReader::fillFrom(void* dst, size_t size, uint64_t offset,
     uint8_t* cursor = static_cast<uint8_t*>(dst);
     size_t remaining = size;
     uint64_t position = offset;
+    // Retries that make no progress are capped. An unbounded retry loop turns a
+    // pathological source of EINTR -- a signal arriving faster than the read
+    // completes -- into a hang inside a library call, with no way for the caller
+    // to tell that from a slow file. The cap is generous: a real interruption
+    // succeeds on the next attempt, and any successful partial read resets it.
+    static constexpr int kMaxRetriesWithoutProgress = 1000;
+    int retries = 0;
     while (remaining > 0) {
         const int64_t read = primitive(cursor, remaining, position);
-        if (read < 0) {
-            continue;                      // retryable interruption
+        if (read < 0) {                    // retryable interruption
+            if (++retries > kMaxRetriesWithoutProgress) {
+                RAISE_RUNTIME_ERROR << "FileReader: read of " << path << " at " << position
+                                    << " was interrupted " << retries << " times without progress";
+            }
+            continue;
         }
+        retries = 0;
         if (read == 0) {
             RAISE_RUNTIME_ERROR << "FileReader: unexpected end of file " << path
                                 << " at " << position;
@@ -95,7 +107,11 @@ void FileReader::readAt(uint64_t offset, void* dst, size_t size) const {
                             << " (" << m_size << " bytes)";
     }
     // One manual-reset event per thread, reused across calls. It holds no file
-    // state, so it is the one thread_local this design permits. Wrapped in a
+    // state, so it is the only thread_local on a read path -- the rule in
+    // CLAUDE.md is about per-thread *file handles*, whose lifetime would then
+    // be tied to a thread rather than to the Scene that owns them; an event
+    // object is not one of those. (tempfile.cpp has two pre-existing ones for
+    // its random-name generator, off any read path.) Wrapped in a
     // tiny RAII holder rather than a raw HANDLE: a raw thread_local HANDLE has
     // no destructor, so TLS teardown would free only the storage slot and
     // leak the kernel Event object for every thread that ever calls readAt.
@@ -142,6 +158,17 @@ void FileReader::readAt(uint64_t offset, void* dst, size_t size) const {
                                              << " at " << position
                                              << ". Error code: " << error;
                      }
+                     // GetOverlappedResult is called with bWait = TRUE, so it
+                     // returns only once the I/O has completed or failed, and
+                     // this OVERLAPPED is no longer referenced by the kernel by
+                     // the time it leaves scope. The one exception is a failure
+                     // of GetOverlappedResult itself (below): that should not
+                     // happen for a completed or failed operation on a valid
+                     // handle, but if it did, the operation might still be
+                     // pending against a stack OVERLAPPED that is about to go
+                     // away. Nothing useful can be done about it here -- there
+                     // is no handle state left to trust -- so it is reported and
+                     // the read fails.
                      if (!::GetOverlappedResult(handle, &overlapped, &read, TRUE)) {
                          RAISE_RUNTIME_ERROR << "FileReader: read failed on " << path
                                              << " at " << position

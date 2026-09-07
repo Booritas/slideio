@@ -104,7 +104,12 @@ Each driver in `src/slideio/drivers/<format>/` is an independent shared library 
   (`ContextPool`, which hands out `ReadContext` subclasses one borrower at a
   time). Use `ContextPool` for per-thread read state rather than inventing a
   second mechanism, and never `thread_local` for anything holding a file
-  handle. Concurrent today: SVS, PHTIFF, AFI, PKE, SCN, NDPI, CZI, VSI.
+  handle — that ties a descriptor's lifetime to a thread rather than to the
+  `Scene` that owns it, which on Windows shows up as a file the user cannot
+  delete after closing the slide. (`FileReader` keeps one `thread_local` event
+  object on the Windows read path, and `tempfile.cpp` two for random names;
+  neither holds file state.) Concurrent today: SVS, PHTIFF, AFI, PKE, SCN,
+  NDPI, CZI, VSI.
 - **Library naming**: `slideio-<module>` with `_d` suffix for debug builds
 
 ### Source Layout

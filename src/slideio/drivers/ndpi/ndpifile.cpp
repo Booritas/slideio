@@ -10,12 +10,10 @@
 
 slideio::NDPIFile::~NDPIFile()
 {
-    if (m_contextPool) {
-        // The pool's destructor blocks until every outstanding borrow is returned and then
-        // destroys every NDPIReadContext, which closes its keeper -- so there is no handle
-        // left to close here explicitly, unlike the old single-handle m_tiff.
-        SLIDEIO_LOG(INFO) << "Closing file " << m_filePath;
-    }
+    // The pool's destructor blocks until every outstanding borrow is returned and then
+    // destroys every NDPIReadContext, which closes its keeper -- so there is no handle
+    // left to close here explicitly, unlike the old single-handle m_tiff.
+    SLIDEIO_LOG(INFO) << "Closing file " << m_filePath;
 }
 
 void slideio::NDPIFile::init(const std::string& filePath)

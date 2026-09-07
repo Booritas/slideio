@@ -15,7 +15,7 @@ using namespace slideio;
 using namespace tinyxml2;
 
 // SCNTileUserData -- what Tiler's methods receive as userData for one call to
-// readResampledLevelBlockChannelsEx -- is declared in scnstruct.h, not file-local here, so a
+// readResampledLevelBlockChannelsEx -- is declared in scnscene.hpp, not file-local here, so a
 // white-box test driving getTileCount/getTileRect/readTile directly can build one too.
 
 SCNScene::SCNScene(const std::string& filePath, int sceneIndex, const std::string& driverId, const tinyxml2::XMLElement* xmlImage):
