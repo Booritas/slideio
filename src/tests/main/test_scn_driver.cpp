@@ -880,6 +880,17 @@ TEST(SCNImageDriver, concurrentReadsAreByteIdentical) {
     TestTools::concurrentReadIdentityTest(filePath, driver);
 }
 
+// SCN walks channel2ifd per channel, so an explicit channel list resolves a
+// different directory for each channel -- the most per-read-state-heavy code in
+// this driver, and untested under concurrency until this. Also covers the
+// level-addressed entry point.
+TEST(SCNImageDriver, concurrentReadsAreByteIdenticalOnEveryEntryPath) {
+    std::string filePath = TestTools::getTestImagePath("scn", "ultivue/Leica Aperio Versa 5 channel fluorescent image.scn");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::SCNImageDriver driver;
+    TestTools::concurrentReadIdentityTestAllPaths(filePath, driver);
+}
+
 TEST(SCNImageDriver, reportsConcurrentReadSupport) {
     std::string filePath = TestTools::getTestImagePath("scn", "ultivue/Leica Aperio Versa 5 channel fluorescent image.scn");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);

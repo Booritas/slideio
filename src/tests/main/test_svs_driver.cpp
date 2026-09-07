@@ -628,6 +628,16 @@ TEST(SVSImageDriver, concurrentReadsAreByteIdentical) {
     TestTools::concurrentReadIdentityTest(filePath, driver);
 }
 
+// The same gate on the other three entry shapes: an explicit single channel, an
+// explicit out-of-order subset, and the level-addressed path. Spec 6 asks for
+// all of them, and they reach per-read state an all-channels 2D read does not.
+TEST(SVSImageDriver, concurrentReadsAreByteIdenticalOnEveryEntryPath) {
+    const std::string filePath = TestTools::getTestImagePath("svs", "JP2K-33003-1.svs");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::SVSImageDriver driver;
+    TestTools::concurrentReadIdentityTestAllPaths(filePath, driver);
+}
+
 TEST(SVSImageDriver, reportsConcurrentReadSupport) {
     const std::string filePath = TestTools::getTestImagePath("svs", "JP2K-33003-1.svs");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
