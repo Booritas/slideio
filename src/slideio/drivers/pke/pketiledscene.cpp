@@ -14,6 +14,20 @@
 
 using namespace slideio;
 
+namespace
+{
+    // What Tiler's methods receive as userData for one call to
+    // readResampledLevelBlockChannelsEx: the level being read (immutable, shared across
+    // threads) and the context borrowed for the duration of that one call -- the only place a
+    // TIFF handle enters the read path. Acquired once by the caller and never re-acquired
+    // mid-read; see PKEScene::acquireContext.
+    struct PKEUserData
+    {
+        int level = 0;
+        PKEReadContext* context = nullptr;
+    };
+}
+
 
 PKETiledScene::PKETiledScene(const std::string& filePath, int sceneIndex, const std::string& driverId, const std::string& name,
                              const std::vector<TiffDirectory>& dirs): PKEScene(filePath, sceneIndex, driverId, name), m_directories(dirs) {
@@ -203,13 +217,11 @@ void PKETiledScene::readResampledLevelBlockChannelsEx(int level, const cv::Rect&
 		RAISE_RUNTIME_ERROR << "PKEDriver: 3D and 4D images are not supported";
 	}
     validateLevel(level);
-    auto hFile = getFileHandle();
-    if (hFile == nullptr)
-        throw std::runtime_error("PKEDriver: Invalid file header by raster reading operation");
-    // The composer's userData is the level index; getTileCount and readTile resolve it to a
-    // directory through m_zoomDirectoryIndices themselves.
-    int levelIndex = level;
-    TileComposer::composeRect(this, channelIndices, levelRect, blockSize, output, (void*)&levelIndex);
+    // One borrow for the whole call -- getTileCount, getTileRect and readTile below read the
+    // handle out of this same context, never acquiring one of their own.
+    auto borrow = acquireContext();
+    PKEUserData userData{ level, &borrow.as<PKEReadContext>() };
+    TileComposer::composeRect(this, channelIndices, levelRect, blockSize, output, (void*)&userData);
 }
 
 int PKETiledScene::findZoomLevel(double zoom) const {
@@ -226,7 +238,7 @@ int PKETiledScene::findZoomLevel(double zoom) const {
 }
 
 int PKETiledScene::getTileCount(void* userData) {
-    const int level = *(static_cast<int*>(userData));
+    const int level = static_cast<PKEUserData*>(userData)->level;
     const int dirIndex = m_zoomDirectoryIndices[level];
     const TiffDirectory& dir = m_directories[dirIndex];
     if (dir.tiled) {
@@ -242,7 +254,7 @@ bool PKETiledScene::getTileRect(int tileIndex, cv::Rect& tileRect, void* userDat
     if (tileIndex >= tileCount) {
         RAISE_RUNTIME_ERROR << "PerkinElmer driver: invalid tile index: " << tileIndex << " of " << tileCount;
     }
-    const int level = *(static_cast<int*>(userData));
+    const int level = static_cast<PKEUserData*>(userData)->level;
     const int dirIndex = m_zoomDirectoryIndices[level];
     const TiffDirectory& dir = m_directories[dirIndex];
     if (dir.tiled) {
@@ -261,26 +273,26 @@ bool PKETiledScene::getTileRect(int tileIndex, cv::Rect& tileRect, void* userDat
     return true;
 }
 
-bool slideio::PKETiledScene::readTiffTile(int tileIndex, int zoomLevel,
+bool slideio::PKETiledScene::readTiffTile(libtiff::TIFF* hFile, int tileIndex, int zoomLevel,
                                           const std::vector<int>& channelIndices, cv::OutputArray tileRaster) {
     bool ret = false;
     const int dirIndex = m_zoomDirectoryIndices[zoomLevel];
     const TiffDirectory& dir = m_directories[dirIndex];
     try {
         if (isBrightField()) {
-            TiffTools::readTile(getFileHandle(), dir, tileIndex, channelIndices, tileRaster);
+            TiffTools::readTile(hFile, dir, tileIndex, channelIndices, tileRaster);
             ret = true;
         }
         else if (channelIndices.size() == 1) {
             const TiffDirectory& channelDirectory = m_directories[dirIndex + channelIndices[0]];
-            TiffTools::readTile(getFileHandle(), channelDirectory, tileIndex, {0}, tileRaster);
+            TiffTools::readTile(hFile, channelDirectory, tileIndex, {0}, tileRaster);
             ret = true;
         }
         else if(dir.channels == getNumChannels()) {
             // all channels in one directory
             if(channelIndices.empty()) {
                 std::vector<int> channels = Tools::completeChannelList(channelIndices, getNumChannels());
-                TiffTools::readTile(getFileHandle(), dir, tileIndex, channels, tileRaster);
+                TiffTools::readTile(hFile, dir, tileIndex, channels, tileRaster);
                 ret = true;
             }
             else {
@@ -288,7 +300,7 @@ bool slideio::PKETiledScene::readTiffTile(int tileIndex, int zoomLevel,
                 std::vector<int> channels = Tools::completeChannelList(channelIndices, getNumChannels());
                 for (const auto& channelIndex : channels) {
                     cv::Mat channelRaster;
-                    TiffTools::readTile(getFileHandle(), dir, tileIndex, { channelIndex }, channelRaster);
+                    TiffTools::readTile(hFile, dir, tileIndex, { channelIndex }, channelRaster);
                     channelRasters.push_back(channelRaster);
                 }
                 cv::merge(channelRasters, tileRaster);
@@ -301,7 +313,7 @@ bool slideio::PKETiledScene::readTiffTile(int tileIndex, int zoomLevel,
             std::vector<int> channels = Tools::completeChannelList(channelIndices, getNumChannels());
             for (const auto& channelIndex : channels) {
                 cv::Mat channelRaster;
-                TiffTools::readTile(getFileHandle(), m_directories[dirIndex + channelIndex], tileIndex, { 0 }, channelRaster);
+                TiffTools::readTile(hFile, m_directories[dirIndex + channelIndex], tileIndex, { 0 }, channelRaster);
                 channelRasters.push_back(channelRaster);
             }
             cv::merge(channelRasters, tileRaster);
@@ -322,10 +334,10 @@ bool slideio::PKETiledScene::readTiffTile(int tileIndex, int zoomLevel,
     return ret;
 }
 
-bool slideio::PKETiledScene::readTiffDirectory(const TiffDirectory& dir, const std::vector<int>& channelIndices,
+bool slideio::PKETiledScene::readTiffDirectory(libtiff::TIFF* hFile, const TiffDirectory& dir, const std::vector<int>& channelIndices,
                                                cv::OutputArray wholeDirRaster) {
     cv::Mat dirRaster;
-    TiffTools::readStripedDir(getFileHandle(), dir, dirRaster);
+    TiffTools::readStripedDir(hFile, dir, dirRaster);
     Tools::extractChannels(dirRaster, channelIndices, wholeDirRaster);
     return true;
 }
@@ -337,27 +349,29 @@ bool PKETiledScene::readTile(int tileIndex, const std::vector<int>& channelIndic
         RAISE_RUNTIME_ERROR << "PerkinElmer driver: invalid tile index: " << tileIndex << " of " << tileCount;
     }
 
-    const int level = *(static_cast<int*>(userData));
+    const auto* data = static_cast<PKEUserData*>(userData);
+    const int level = data->level;
+    libtiff::TIFF* hFile = data->context->keeper.getHandle();
     bool ret = false;
     const int dirIndex = m_zoomDirectoryIndices[level];
     const TiffDirectory& dir = m_directories[dirIndex];
     if (dir.tiled) {
-        return readTiffTile(tileIndex, level, channelIndices, tileRaster);
+        return readTiffTile(hFile, tileIndex, level, channelIndices, tileRaster);
     }
     if (dir.channels == getNumChannels()) {
-        return readTiffDirectory(dir, channelIndices, tileRaster);
+        return readTiffDirectory(hFile, dir, channelIndices, tileRaster);
     }
     if (dir.channels == 1) {
         auto channels = Tools::completeChannelList(channelIndices, getNumChannels());
         if (channels.size() == 1) {
             const TiffDirectory newDir = m_directories.at(dirIndex + channels[0]);
-            return readTiffDirectory(newDir, {0}, tileRaster);
+            return readTiffDirectory(hFile, newDir, {0}, tileRaster);
         }
         std::vector<cv::Mat> channelRasters;
         for (const auto& channelIndex : channels) {
             cv::Mat channelRaster;
             const TiffDirectory newDir = m_directories.at(dirIndex + channels[channelIndex]);
-            TiffTools::readRegularStripedDir(getFileHandle(), newDir, channelRaster);
+            TiffTools::readRegularStripedDir(hFile, newDir, channelRaster);
             channelRasters.push_back(channelRaster);
         }
         cv::merge(channelRasters, tileRaster);

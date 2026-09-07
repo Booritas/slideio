@@ -566,3 +566,21 @@ TEST_F(PKEImageDriverTests, readLevelDoesNotReuseAdjacentLevel) {
     // served from level 1.
     EXPECT_GT(cv::norm(viaLevel0Resampled, viaLevel1Native, cv::NORM_INF), 0);
 }
+
+TEST_F(PKEImageDriverTests, concurrentReadsAreByteIdentical) {
+    std::string filePath = TestTools::getTestImagePath("pke", "openmicroscopy/PKI_scans/LuCa-7color_Scan1.qptiff");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::PKEImageDriver driver;
+    TestTools::concurrentReadIdentityTest(filePath, driver);
+}
+
+TEST_F(PKEImageDriverTests, reportsConcurrentReadSupport) {
+    std::string filePath = TestTools::getTestImagePath("pke", "openmicroscopy/PKI_scans/LuCa-7color_Scan1.qptiff");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::PKEImageDriver driver;
+    auto slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide);
+    auto scene = slide->getScene(0);
+    ASSERT_TRUE(scene);
+    EXPECT_TRUE(scene->supportsConcurrentReads());
+}
