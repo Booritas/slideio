@@ -4,20 +4,11 @@
 #pragma once
 #include "slideio/drivers/ndpi/ndpi_api_def.hpp"
 
-namespace slideio {
-
-    class SLIDEIO_NDPI_EXPORTS NDPITIFFMessageHandler
-    {
-    public:
-        NDPITIFFMessageHandler();
-        ~NDPITIFFMessageHandler();
-        // Copying would save the same two handlers twice and restore them twice, the
-        // second time over whatever the intervening scope installed. Copy was never
-        // meaningful; NDPITIFFKeeper deletes its copy for the analogous reason.
-        NDPITIFFMessageHandler(const NDPITIFFMessageHandler&) = delete;
-        NDPITIFFMessageHandler& operator=(const NDPITIFFMessageHandler&) = delete;
-    private:
-        void* m_oldWarningHandler;
-        void* m_oldErrorHandler;
-    };
+namespace slideio
+{
+    /// Installs the slideio handlers into the NDPI libtiff fork. Idempotent and
+    /// thread-safe. The fork has its own process-global handlers, separate from
+    /// the regular libtiff's, so this is a second installation point rather
+    /// than a duplicate of installTiffMessageHandlers().
+    SLIDEIO_NDPI_EXPORTS void installNDPITiffMessageHandlers();
 }

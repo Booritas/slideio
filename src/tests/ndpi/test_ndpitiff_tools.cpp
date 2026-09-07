@@ -16,16 +16,13 @@ class NDPITiffToolsTests : public ::testing::Test {
 protected:
     static void SetUpTestSuite() {
         slideio::ImageDriverManager::setLogLevel("ERROR");
+        // These tests call NDPITiffTools directly, without going through
+        // NDPIImageDriver, which is otherwise where the NDPI libtiff fork's handlers
+        // get installed. Without this, a run that reaches this suite before any
+        // NDPIImageDriver has been constructed sends libtiff warnings straight to
+        // stderr instead of through SLIDEIO_LOG, past the ERROR level set above.
+        slideio::installNDPITiffMessageHandlers();
     }
-    // Swaps libtiff's process-global error and warning handlers for the duration of
-    // each test: warnings reach SLIDEIO_LOG and errors raise instead of printing to
-    // stderr. Deliberately referenced by no test -- it is pure RAII, and it mirrors
-    // what the driver installs at its own entry points (ndpiimagedriver.cpp:26,
-    // ndpiscene.cpp:132). Tests going through NDPIFile or NDPITIFFKeeper get a handler
-    // from the keeper anyway; this one covers the tests that call NDPITiffTools
-    // directly. Do not delete it as unused -- see TECH_DEBT.md section 1 problem 6,
-    // where this class sat dead for exactly that reason.
-    slideio::NDPITIFFMessageHandler m_messageHandler;
 };
 
 TEST_F(NDPITiffToolsTests, scanFile)
