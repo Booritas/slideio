@@ -46,6 +46,13 @@ namespace slideio
         void readFileHeader(uint64_t pos, FileHeader& fileHeader);
         void readSubBlocks(uint64_t pos, uint64_t originPos, std::vector<CZISubBlocks>& sceneBlocks, std::vector<uint64_t>& sceneIds);
         std::shared_ptr<CZIScene> constructScene(int sceneIndex, uint64_t sceneId, const CZISubBlocks& blocks, bool mainScene = true);
+        // Validates that a sub-block directory entry's file position, combined with the
+        // segment origin offset, does not overflow uint64_t. Throws RuntimeError on an
+        // invalid combination. Deliberately public and static (no instance state) so it
+        // can be unit-tested directly, without needing a crafted corrupt CZI file: see
+        // readSubBlocks() in czislide.cpp for why this check must sit outside the
+        // per-entry try/catch there, rather than unit-testing it only through a fixture.
+        static void validateSubBlockFilePosition(int64_t filePosition, uint64_t originPos);
     private:
         void readAttachments();
         void init();

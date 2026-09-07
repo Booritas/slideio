@@ -2,6 +2,7 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include <filesystem>
+#include <limits>
 #include <gtest/gtest.h>
 #include "slideio/slideio/imagedrivermanager.hpp"
 #include "slideio/drivers/czi/cziimagedriver.hpp"
@@ -220,6 +221,23 @@ TEST(CZIImageDriver, readBlock4D)
             EXPECT_EQ(compare, 0);
         }
     }
+}
+
+// readSubBlocks() catches slideio::RuntimeError per directory entry to tolerate a
+// genuine short/failed read (see FileReader::readAt). That catch type is also what
+// a corrupt entryHeader.filePosition raises, so the overflow guard has to sit
+// outside that catch or it gets swallowed the same way -- turning a corrupt file
+// into a silently, partially-parsed slide instead of a failed open. This exercises
+// the guard directly, without needing a crafted corrupt CZI fixture.
+TEST(CZIImageDriver, subBlockFilePositionOverflowPropagates)
+{
+    // A normal, in-range position: no throw.
+    EXPECT_NO_THROW(slideio::CZISlide::validateSubBlockFilePosition(100, 0));
+    // A corrupted (negative) file position: must propagate.
+    EXPECT_THROW(slideio::CZISlide::validateSubBlockFilePosition(-1, 0), slideio::RuntimeError);
+    // A file position that overflows uint64_t once combined with originPos: must propagate.
+    EXPECT_THROW(slideio::CZISlide::validateSubBlockFilePosition(
+        std::numeric_limits<int64_t>::max(), 10000000000000000000ULL), slideio::RuntimeError);
 }
 
 TEST(CZIImageDriver, sceneId)
