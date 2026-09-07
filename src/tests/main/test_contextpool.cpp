@@ -4,7 +4,9 @@
 #include <gtest/gtest.h>
 #include "slideio/core/tools/contextpool.hpp"
 #include "slideio/core/tools/readcontext.hpp"
+#include "slideio/core/exceptions.hpp"
 #include <atomic>
+#include <optional>
 #include <chrono>
 #include <thread>
 #include <vector>
@@ -215,4 +217,77 @@ TEST(ContextPool, borrowIsMovable) {
     EXPECT_EQ(pool.contextCount(), 1);
     auto again = pool.acquire();
     EXPECT_EQ(pool.contextCount(), 1) << "double release would have grown the pool";
+}
+
+// The blocking destructor is the whole of the 4.7 lifetime guarantee, and
+// destroysEveryContextOnPoolDestruction does not reach it: its borrows are
+// declared after the pool, so they are destroyed *before* it and the wait
+// predicate is already true on entry. Here the borrow outlives the start of
+// destruction, on another thread, which is the case that would deadlock or --
+// worse -- free a handle a reader is still using.
+TEST(ContextPool, destructorWaitsForAnOutstandingBorrow) {
+    std::atomic<int> live{0};
+    auto pool = std::make_unique<slideio::ContextPool>([&live]() {
+        return std::make_unique<CountingContext>(live);
+    }, 2);
+
+    std::atomic<bool> acquired{false};
+    std::atomic<bool> released{false};
+    std::thread holder([&pool, &acquired, &released]() {
+        auto borrow = pool->acquire();
+        acquired = true;
+        std::this_thread::sleep_for(std::chrono::milliseconds(150));
+        // Set before the borrow is dropped, so a destructor that failed to wait
+        // would be seen returning while this is still false.
+        released = true;
+    });
+    while (!acquired.load()) {
+        std::this_thread::yield();
+    }
+
+    pool.reset();
+    EXPECT_TRUE(released.load()) << "~ContextPool returned while a borrow was outstanding";
+    EXPECT_EQ(live.load(), 0);
+    holder.join();
+}
+
+// The other half of 4.7: once destruction has begun the pool refuses new
+// acquisitions, so a read racing a Slide close fails loudly instead of being
+// handed a context that is about to be freed.
+TEST(ContextPool, acquireOnAClosingPoolThrows) {
+    std::atomic<int> live{0};
+    auto pool = std::make_unique<slideio::ContextPool>([&live]() {
+        return std::make_unique<CountingContext>(live);
+    }, 2);
+    slideio::ContextPool* const raw = pool.get();
+
+    // Held here so the destructor below blocks with m_closing already set.
+    std::optional<slideio::ContextPool::Borrow> borrow(raw->acquire());
+
+    std::atomic<bool> closing{false};
+    std::thread closer([&pool, &closing]() {
+        closing = true;
+        pool.reset();
+    });
+    while (!closing.load()) {
+        std::this_thread::yield();
+    }
+
+    // m_closing is not observable from outside, so retry until the closer has
+    // entered the destructor. An acquire that still succeeds is simply returned.
+    bool threw = false;
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
+    while (!threw && std::chrono::steady_clock::now() < deadline) {
+        try {
+            auto extra = raw->acquire();
+        }
+        catch (const slideio::RuntimeError&) {
+            threw = true;
+        }
+    }
+    EXPECT_TRUE(threw) << "acquire() on a closing pool must throw";
+
+    borrow.reset();
+    closer.join();
+    EXPECT_EQ(live.load(), 0);
 }
