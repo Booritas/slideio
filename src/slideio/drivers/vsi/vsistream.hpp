@@ -4,6 +4,7 @@
 #pragma once
 #include "slideio/core/exceptions.hpp"
 #include "slideio/core/tools/filereader.hpp"
+#include "slideio/core/tools/sequentialreader.hpp"
 #include "slideio/drivers/vsi/vsi_api_def.hpp"
 #include <cstdint>
 #include <memory>
@@ -36,8 +37,7 @@ namespace slideio {
 
             template <typename T>
             void read(T& value) {
-                m_reader->readAt(m_pos, &value, sizeof(T));
-                m_pos += sizeof(T);
+                m_cursor.read(value);
             }
             template <typename T>
             T readValue() {
@@ -52,8 +52,14 @@ namespace slideio {
             void skipBytes(uint32_t bytes);
             void readBytes(uint8_t* bytes, uint32_t size);
         private:
+            // m_reader keeps the FileReader alive; m_cursor holds the position and
+            // the read-ahead buffer. The buffer is what keeps open time sane:
+            // one readAt per field is one system call per field, and EtsFile::init
+            // reads numDimensions + 2 fields for each of 10^5+ used chunks (and
+            // VSIFile's metadata walk reads far more), so an unbuffered cursor
+            // turns an open into ~10^6 system calls. See SequentialReader.
             std::shared_ptr<const FileReader> m_reader;
-            uint64_t m_pos = 0;
+            SequentialReader m_cursor;
         };
     };
 }

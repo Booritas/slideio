@@ -10,18 +10,17 @@ using namespace slideio::vsi;
 
 
 VSIStream::VSIStream(const std::string& filePath)
-    : m_reader(std::make_shared<slideio::FileReader>(filePath)) {
+    : m_reader(std::make_shared<slideio::FileReader>(filePath)), m_cursor(*m_reader) {
 }
 
 VSIStream::VSIStream(std::shared_ptr<const slideio::FileReader> reader)
-    : m_reader(std::move(reader)) {
+    : m_reader(std::move(reader)), m_cursor(*m_reader) {
 }
 
 std::string VSIStream::readString(size_t dataSize)
 {
     std::u16string wstr(dataSize + 1, '\0');
-    m_reader->readAt(m_pos, (char*)wstr.data(), dataSize);
-    m_pos += dataSize;
+    m_cursor.readBytes((char*)wstr.data(), dataSize);
 	if (!Endian::isLittleEndian()){
         wstr = Endian::u16StringLittleToBig(wstr);
     }
@@ -31,25 +30,24 @@ std::string VSIStream::readString(size_t dataSize)
 
 int64_t VSIStream::getPos() const
 {
-    return static_cast<int64_t>(m_pos);
+    return static_cast<int64_t>(m_cursor.pos());
 }
 
 void VSIStream::setPos(int64_t pos)
 {
-    m_pos = static_cast<uint64_t>(pos);
+    m_cursor.setPos(static_cast<uint64_t>(pos));
 }
 
 int64_t VSIStream::getSize()
 {
-    return static_cast<int64_t>(m_reader->size());
+    return static_cast<int64_t>(m_cursor.size());
 }
 
 void VSIStream::skipBytes(uint32_t bytes)
 {
-    m_pos += bytes;
+    m_cursor.skip(bytes);
 }
 
 void VSIStream::readBytes(uint8_t* buffer, uint32_t size) {
-    m_reader->readAt(m_pos, buffer, size);
-    m_pos += size;
+    m_cursor.readBytes(buffer, size);
 }
