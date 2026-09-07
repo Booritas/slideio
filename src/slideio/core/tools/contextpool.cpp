@@ -68,27 +68,41 @@ ContextPool::Borrow ContextPool::acquire() {
                              || m_borrowed + static_cast<int>(m_free.size()) < m_maxContexts;
         if (mayGrow) {
             ++m_borrowed;
+            // Every throwing path out of this branch has to put that increment
+            // back, or the destructor's m_borrowed == 0 predicate never becomes
+            // true and ~ContextPool blocks forever. There are three such paths
+            // and only two of them are obvious: the factory, the null check,
+            // and m_contexts.push_back -- which can throw bad_alloc *after* the
+            // factory has already succeeded. A guard covers the branch as a
+            // whole so a fourth one cannot be added without being covered too.
+            bool grown = false;
+            struct GrowthGuard
+            {
+                std::unique_lock<std::mutex>& lock;
+                int& borrowed;
+                std::condition_variable& available;
+                const bool& grown;
+                ~GrowthGuard() {
+                    if (grown) {
+                        return;
+                    }
+                    if (!lock.owns_lock()) {
+                        lock.lock();
+                    }
+                    --borrowed;
+                    available.notify_all();
+                }
+            } guard{lock, m_borrowed, m_available, grown};
             lock.unlock();
             // The factory does I/O (TIFFOpen), so it runs outside the lock.
-            std::unique_ptr<ReadContext> created;
-            try {
-                created = m_factory();
-            }
-            catch (...) {
-                lock.lock();
-                --m_borrowed;
-                m_available.notify_all();
-                throw;
-            }
+            std::unique_ptr<ReadContext> created = m_factory();
             if (!created) {
-                lock.lock();
-                --m_borrowed;
-                m_available.notify_all();
                 RAISE_RUNTIME_ERROR << "ContextPool: the factory returned null";
             }
             ReadContext* context = created.get();
             lock.lock();
             m_contexts.push_back(std::move(created));
+            grown = true;
             return Borrow(this, context);
         }
         m_available.wait(lock);
