@@ -5,7 +5,11 @@
 #include "vsifile.hpp"
 #include "vsiscene.hpp"
 #include "slideio/drivers/vsi/vsi_api_def.hpp"
+#include "slideio/core/exceptions.hpp"
+#include "slideio/core/tools/contextpool.hpp"
+#include "slideio/core/tools/readcontext.hpp"
 #include "slideio/imagetools/tiffkeeper.hpp"
+#include "slideio/imagetools/tifftools.hpp"
 
 
 #if defined(_MSC_VER)
@@ -17,6 +21,23 @@ namespace slideio
 {
     namespace vsi
     {
+        /// One libtiff handle. A fresh handle is cheap here because
+        /// TiffTools::setCurrentDirectory positions with TIFFSetSubDirectory(offset),
+        /// so it jumps straight to the right IFD with no directory walk and no
+        /// re-parse of the pyramid -- a context duplicates the descriptor, not the
+        /// parsed model.
+        class VsiTiffReadContext : public ReadContext
+        {
+        public:
+            explicit VsiTiffReadContext(const std::string& filePath)
+                : keeper(TiffTools::openTiffFile(filePath)) {
+                if (!keeper.isValid()) {
+                    RAISE_RUNTIME_ERROR << "VSIImageDriver: cannot open file " << filePath;
+                }
+            }
+            TIFFKeeper keeper;
+        };
+
         class SLIDEIO_VSI_EXPORTS VsiFileScene : public VSIScene
         {
         public:
@@ -30,9 +51,14 @@ namespace slideio
                           void* userData) override;
         protected:
             void init();
+            /// Borrows a handle for the duration of one block read. Acquire once per
+            /// read and pass the context down through userData -- never re-acquire
+            /// mid-read.
+            ContextPool::Borrow acquireContext() { return m_contextPool.acquire(); }
         protected:
             int m_directoryIndex;
-            TIFFKeeper m_tiff;
+        private:
+            ContextPool m_contextPool;
         };
     }
 

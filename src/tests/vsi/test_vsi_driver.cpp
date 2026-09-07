@@ -1009,3 +1009,22 @@ TEST_F(VSIImageDriverTests, multiThreadSceneAccess) {
     slideio::VSIImageDriver driver;
     TestTools::multiThreadedTest(filePath, driver);
 }
+
+// Both VSI scene kinds must agree on the contract: a slide that reports
+// concurrency for its ETS scenes and not for its TIFF scenes is a worse
+// contract than either answer. This test holds through Task 12 (both false)
+// and Task 13 (both true).
+TEST_F(VSIImageDriverTests, allScenesAgreeOnTheConcurrencyContract) {
+    std::string filePath = TestTools::getTestImagePath("vsi", "private/d/STS_G6889_11_1_pHH3.vsi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::VSIImageDriver driver;
+    auto slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide);
+    const int numScenes = slide->getNumScenes();
+    ASSERT_GE(numScenes, 1);
+    const bool first = slide->getScene(0)->supportsConcurrentReads();
+    for (int i = 1; i < numScenes; ++i) {
+        EXPECT_EQ(slide->getScene(i)->supportsConcurrentReads(), first)
+            << "scene " << i << " disagrees with scene 0";
+    }
+}
