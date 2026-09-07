@@ -81,15 +81,28 @@ void FileReader::readAt(uint64_t offset, void* dst, size_t size) const {
     if (size == 0) {
         return;
     }
-    if (offset + size > m_size) {
+    if (offset > m_size || size > m_size - offset) {
         RAISE_RUNTIME_ERROR << "FileReader: read of " << size << " bytes at "
                             << offset << " is past the end of " << m_path
                             << " (" << m_size << " bytes)";
     }
     // One manual-reset event per thread, reused across calls. It holds no file
-    // state, so it is the one thread_local this design permits.
-    thread_local HANDLE event = ::CreateEventW(nullptr, TRUE, FALSE, nullptr);
-    if (!event) {
+    // state, so it is the one thread_local this design permits. Wrapped in a
+    // tiny RAII holder rather than a raw HANDLE: a raw thread_local HANDLE has
+    // no destructor, so TLS teardown would free only the storage slot and
+    // leak the kernel Event object for every thread that ever calls readAt.
+    // MSVC's dynamic-TLS machinery does run this wrapper's destructor at
+    // thread exit.
+    struct EventHandle {
+        HANDLE handle = ::CreateEventW(nullptr, TRUE, FALSE, nullptr);
+        ~EventHandle() {
+            if (handle) {
+                ::CloseHandle(handle);
+            }
+        }
+    };
+    thread_local EventHandle event;
+    if (!event.handle) {
         RAISE_RUNTIME_ERROR << "FileReader: cannot create an event object";
     }
     HANDLE handle = static_cast<HANDLE>(m_handle);
@@ -105,8 +118,8 @@ void FileReader::readAt(uint64_t offset, void* dst, size_t size) const {
                  OVERLAPPED overlapped = {};
                  overlapped.Offset = static_cast<DWORD>(position & 0xFFFFFFFFu);
                  overlapped.OffsetHigh = static_cast<DWORD>(position >> 32);
-                 overlapped.hEvent = event;
-                 ::ResetEvent(event);
+                 overlapped.hEvent = event.handle;
+                 ::ResetEvent(event.handle);
                  DWORD read = 0;
                  if (!::ReadFile(handle, chunkDst, chunk, &read, &overlapped)) {
                      const DWORD error = ::GetLastError();
@@ -155,7 +168,7 @@ void FileReader::readAt(uint64_t offset, void* dst, size_t size) const {
     if (size == 0) {
         return;
     }
-    if (offset + size > m_size) {
+    if (offset > m_size || size > m_size - offset) {
         RAISE_RUNTIME_ERROR << "FileReader: read of " << size << " bytes at "
                             << offset << " is past the end of " << m_path
                             << " (" << m_size << " bytes)";
