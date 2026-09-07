@@ -15,7 +15,6 @@ namespace libtiff
 
 namespace slideio
 {
-    class TIFFMessageHandler;
     class SLIDEIO_IMAGETOOLS_EXPORTS TIFFFiles {
     public:
         TIFFFiles();
@@ -30,10 +29,8 @@ namespace slideio
 		int getNumberOfOpenFiles() const { return static_cast<int>(m_openFiles.size());}
 		int getOpenFileCounter() const { return m_openFileCounter; }
     private:
-        void initMessageHandler();
         std::unordered_map<std::string, std::shared_ptr<libtiff::TIFF>> m_openFiles;
 		int m_openFileCounter = 0;
-        std::shared_ptr<TIFFMessageHandler> m_messageHandler;
     };
 
 }
