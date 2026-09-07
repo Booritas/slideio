@@ -50,6 +50,29 @@ public:
            std::equal(prefix.begin(), prefix.end(), str.begin());
     }
     static void multiThreadedTest(const std::string& filePath, slideio::ImageDriver& driver, int numberRois = 5, int numThreads = 30);
+    // Reads a set of ROIs single-threaded to build a baseline, then reads every
+    // ROI from numThreads threads and requires every result to be byte-identical
+    // to its baseline.
+    //
+    // This is the gate for concurrent reads, and it is shaped by the failure it
+    // has to catch: a race on a shared decode buffer or file cursor produces
+    // WRONG PIXELS, not an exception. A test that only checks for absent
+    // exceptions passes while the data is corrupt.
+    static void concurrentReadIdentityTest(const std::string& filePath,
+                                           slideio::ImageDriver& driver,
+                                           int sceneIndex = 0,
+                                           int numRois = 8,
+                                           int numThreads = 16,
+                                           int readsPerThread = 8);
+
+    // The same, applied to every scene of the slide in turn. Formats whose
+    // slides carry more than one kind of scene -- VSI has ETS scenes and TIFF
+    // scenes -- need every kind covered, not just scene 0.
+    static void concurrentReadIdentityTestAllScenes(const std::string& filePath,
+                                                    slideio::ImageDriver& driver,
+                                                    int numRois = 4,
+                                                    int numThreads = 16,
+                                                    int readsPerThread = 4);
     static std::shared_ptr<slideio::CVScene> findScene(std::shared_ptr<slideio::CVSlide> slide, const std::string& name);
 };
 
