@@ -45,7 +45,7 @@ void CVScene::readResampledBlockChannels(const cv::Rect& blockRect,
     const cv::Size& blockSize, const std::vector<int>& channelIndices,
     cv::OutputArray output) {
     RefCounterGuard guard(this);
-    std::lock_guard<std::mutex> lock(m_readBlockMutex);
+    auto lock = lockIfSerialised();
     readResampledBlockChannelsEx(blockRect, blockSize, channelIndices, 0, 0, output);
 }
 
@@ -147,12 +147,15 @@ void CVScene::assemble4DBlock(const cv::Size& blockSize, const std::vector<int>&
                 indices[zLocalIndex] = sliceCounter;
             }
             if (planeMatrix) {
-				std::lock_guard<std::mutex> lock(m_readBlockMutex);
+                auto lock = lockIfSerialised();
                 readPlane(zSlieceIndex, tfIndex, dataRaster);
             }
             else {
                 cv::Mat sliceRaster;
-                readPlane(zSlieceIndex, tfIndex, sliceRaster);
+                {
+                    auto lock = lockIfSerialised();
+                    readPlane(zSlieceIndex, tfIndex, sliceRaster);
+                }
                 CVTools::insertSliceInMultidimMatrix(dataRaster, sliceRaster, indices);
             }
         }
@@ -282,7 +285,7 @@ void CVScene::readResampledLevelBlockChannels(int level, const cv::Rect& levelRe
     const cv::Size& blockSize, const std::vector<int>& channelIndices, cv::OutputArray output)
 {
     RefCounterGuard guard(this);
-    std::lock_guard<std::mutex> lock(m_readBlockMutex);
+    auto lock = lockIfSerialised();
     readResampledLevelBlockChannelsEx(level, levelRect, blockSize, channelIndices, 0, 0, output);
 }
 
