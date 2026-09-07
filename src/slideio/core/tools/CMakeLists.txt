@@ -19,5 +19,8 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/color_tools.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/color_tools.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/boundedqueue.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/filereader.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/filereader.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/sequentialreader.hpp
    PARENT_SCOPE
    )
