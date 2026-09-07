@@ -57,6 +57,12 @@ namespace slideio
         /// pointer to a shared NDPIFile, so a per-scene pool would multiply
         /// descriptors by scene count.
         ContextPool::Borrow acquireContext() { return m_contextPool->acquire(); }
+        /// Contexts the pool has constructed so far. For tests -- it is how
+        /// scenesOfOneFileShareTheHandlePool (test_ndpi_driver.cpp) observes that
+        /// every scene of this file draws from the one pool here, rather than each
+        /// growing a pool of its own. Mirrors ContextPool::contextCount(), which
+        /// exists for the same reason.
+        int contextCount() const { return m_contextPool->contextCount(); }
         const NDPITiffDirectory& findZoomDirectory(double zoom, int sceneWidth, int dirBegin, int dirEnd);
     private:
         void scanFile();
