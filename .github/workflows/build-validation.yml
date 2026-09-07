@@ -111,6 +111,14 @@ jobs:
     # dependencies (OpenCV, libtiff, etc.) are prebuilt binaries and are NOT
     # instrumented -- TSan will miss races inside them but still catches races
     # in slideio's own code, which is what these two suites exercise.
+    #
+    # Built with -c debug, deliberately, not -c release: CMakeLists.txt only
+    # appends -s (strip symbols) to CMAKE_CXX_FLAGS_RELEASE/_C_FLAGS_RELEASE
+    # when CMAKE_BUILD_TYPE is Release, and that same variable's default -O3
+    # would silently win over the -O1 below (last -O flag on the command line
+    # wins). Release would therefore both blind TSan's stack traces (stripped
+    # symbols despite -g) and ignore the requested -O1. Debug has neither
+    # problem. Do not "optimise" this job back to Release.
     env:
       SLIDEIO_HOME: ${{ github.workspace }}
       CXXFLAGS: -fsanitize=thread -g -O1
@@ -143,16 +151,16 @@ jobs:
             conan-tsan-ubuntu-
 
       - name: Conan install
-        run: python install.py -a conan -c release
+        run: python install.py -a conan -c debug
 
       - name: CMake configure
-        run: python install.py -a configure-only -c release
+        run: python install.py -a configure-only -c debug
 
       - name: Build
-        run: python install.py -a build-only -c release
+        run: python install.py -a build-only -c debug
 
       - name: FileReader and ContextPool under ThreadSanitizer
-        run: ./build/release/bin/slideio_tests --gtest_filter="FileReader.*:ContextPool.*"
+        run: ./build/debug/bin/slideio_tests --gtest_filter="FileReader.*:ContextPool.*"
 
   build-windows:
     name: Windows

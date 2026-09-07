@@ -650,18 +650,23 @@ per-driver byte-exactness tests above need the corpus, which CI does not
 carry, and `CLAUDE.md` requires CI to leave `SLIDEIO_SKIP_MISSING_IMAGES`
 unset, so a corpus-less run of those tests would fail rather than skip and
 cannot run there. They must instead be run under ThreadSanitizer on a machine
-with the corpus before each driver's opt-in commit merges:
+with the corpus before each driver's opt-in commit merges, built **debug, not
+release** -- `CMakeLists.txt` strips symbols and lets `-O3` win over an
+explicit `-O1` in a release build, which would blind TSan's stack traces for
+no benefit here:
 
     CXXFLAGS="-fsanitize=thread -g -O1" CFLAGS="-fsanitize=thread -g -O1" \
-    LDFLAGS="-fsanitize=thread" python install.py -a install -c release -bd build-tsan
-    ./build-tsan/release/bin/slideio_tests --gtest_filter="*concurrentReads*"
+    LDFLAGS="-fsanitize=thread" python install.py -a install -c debug -bd build-tsan
+    ./build-tsan/debug/bin/slideio_tests --gtest_filter="*concurrentReads*"
 
 This gate has a platform gap that is stated rather than implied: **MSVC has no
 ThreadSanitizer**, so Windows — the primary development platform — gets the
-byte-exactness test only. Anything found by TSan is found on Linux. The
-implication for sequencing is unchanged: the per-driver ThreadSanitizer run
-above must be green before a driver's opt-in commit merges, not after the last
-driver lands -- it is a required local/manual step, since CI cannot carry it.
+byte-exactness test only. Anything found by TSan is found on Linux, on
+whichever compiler that runner defaults to -- GCC and clang both implement
+ThreadSanitizer, and this document does not pin one. The implication for
+sequencing is unchanged: the per-driver ThreadSanitizer run above must be
+green before a driver's opt-in commit merges, not after the last driver lands
+-- it is a required local/manual step, since CI cannot carry it.
 
 **Lifetime.** A test that closes a `Slide` while 16 reader threads are mid-read
 and then asserts the file can be deleted (`std::filesystem::remove` succeeds on
