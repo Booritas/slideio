@@ -47,12 +47,20 @@ FileReader::FileReader(const std::string& path) : m_path(path), m_handle(nullptr
     // handle opened without it does read from the offset, but it also moves the
     // shared file pointer, and concurrent operations on such a handle are not
     // supported -- the build would be silently racy.
+    // All three share flags are deliberate.
+    // FILE_SHARE_READ | FILE_SHARE_WRITE is what MSVC's std::ifstream asks for
+    // (_wfsopen with _SH_DENYNO), and CZI and VSI opened their files that way
+    // before FileReader existed. Dropping FILE_SHARE_WRITE would make them fail
+    // with ERROR_SHARING_VIOLATION on a file some other process holds open for
+    // writing -- a scanner still appending, a sync client, a backup agent --
+    // which used to work.
     // FILE_SHARE_DELETE lets a caller (or a test) remove the file while this
     // handle is still open, same as unlink() does on POSIX -- without it,
     // std::filesystem::remove() on a still-open FileReader fails with
     // ERROR_SHARING_VIOLATION where POSIX would just succeed.
     HANDLE handle = ::CreateFileW(wsPath.c_str(), GENERIC_READ,
-                                  FILE_SHARE_READ | FILE_SHARE_DELETE, nullptr,
+                                  FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE,
+                                  nullptr,
                                   OPEN_EXISTING,
                                   FILE_FLAG_OVERLAPPED | FILE_FLAG_RANDOM_ACCESS,
                                   nullptr);
