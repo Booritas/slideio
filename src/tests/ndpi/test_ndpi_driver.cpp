@@ -612,3 +612,41 @@ TEST_F(NDPIImageDriverTests, readLevelDoesNotEscalateToACoarserLevel)
     const double maxAbsDiff = cv::norm(diff, cv::NORM_INF);
     EXPECT_LT(0., maxAbsDiff);
 }
+
+TEST_F(NDPIImageDriverTests, concurrentReadsAreByteIdentical) {
+    std::string filePath = TestTools::getTestImagePath("hamamatsu", "DM0014 - 2020-04-02 11.10.47.ndpi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::NDPIImageDriver driver;
+    TestTools::concurrentReadIdentityTest(filePath, driver);
+}
+
+TEST_F(NDPIImageDriverTests, reportsConcurrentReadSupport) {
+    std::string filePath = TestTools::getTestImagePath("hamamatsu", "DM0014 - 2020-04-02 11.10.47.ndpi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::NDPIImageDriver driver;
+    auto slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide);
+    auto scene = slide->getScene(0);
+    ASSERT_TRUE(scene);
+    EXPECT_TRUE(scene->supportsConcurrentReads());
+}
+
+// Scenes of one NDPI file share the pool, so opening a second scene must not
+// double the descriptor count.
+TEST_F(NDPIImageDriverTests, scenesOfOneFileShareTheHandlePool) {
+    std::string filePath = TestTools::getTestImagePath("hamamatsu", "DM0014 - 2020-04-02 11.10.47.ndpi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::NDPIImageDriver driver;
+    auto slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide);
+    const int numScenes = slide->getNumScenes();
+    for (int i = 0; i < numScenes; ++i) {
+        cv::Mat raster;
+        auto scene = slide->getScene(i);
+        const cv::Rect rect = scene->getRect();
+        const cv::Size size(std::min(64, rect.width), std::min(64, rect.height));
+        scene->readResampledBlockChannels(cv::Rect(rect.x, rect.y, size.width, size.height),
+                                          size, {}, raster);
+        EXPECT_FALSE(raster.empty());
+    }
+}
