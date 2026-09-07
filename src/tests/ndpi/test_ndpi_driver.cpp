@@ -638,15 +638,19 @@ TEST_F(NDPIImageDriverTests, reportsConcurrentReadSupport) {
 // A sequential read from every scene proves nothing here: a per-scene pool would pass
 // identically, since nothing would observe pool identity or descriptor count, and
 // DM0014's 3 scenes (main + macro + map aux images) are nowhere near enough to exhaust
-// descriptors even duplicated. So this drives two DIFFERENT scenes of the SAME file --
-// the main scene and one auxiliary image, both reached through the same NDPIFile --
-// with two DIFFERENT amounts of genuine concurrency (2 threads vs 5), synchronized to
-// start together so the reads actually overlap in time. NDPIFile::contextCount() /
-// NDPIScene::contextCount() then let the test observe, not assume, that both scenes
-// report the exact same number: if the pool really is one object shared by the file,
-// that is not a coincidence -- both calls read the same ContextPool's size. A per-scene
-// pool would instead let each scene's own pool settle near its own thread count (2 vs
-// 5), which would make the two counts differ far more often than they'd coincide.
+// descriptors even duplicated. So this drives concurrency through the main scene ONLY
+// -- the aux scene (a DIFFERENT NDPIScene reached through the same NDPIFile) is never
+// read at all -- and then compares NDPIFile::contextCount() / NDPIScene::contextCount()
+// as read via each scene. Under the real (shared) design this is not a coincidence: both
+// calls read the size of the literal same ContextPool, so whatever the main scene's
+// traffic grows it to, the aux scene reports identically, having read nothing itself.
+// Under a per-scene pool, the aux scene's own pool would never have been constructed at
+// all (0 contexts) while the main scene's grew from its own traffic -- so the two would
+// differ. Unlike comparing two DIFFERENT thread counts against each other (which this
+// test used to do), this does not rely on ContextPool::defaultMax() being large enough
+// for two different concurrency levels to actually diverge: it holds even when
+// defaultMax() == 1, because "never touched, so never constructed" (0) still differs
+// from "touched at least once" (>= 1) regardless of the cap.
 TEST_F(NDPIImageDriverTests, scenesOfOneFileShareTheHandlePool) {
     std::string filePath = TestTools::getTestImagePath("hamamatsu", "DM0014 - 2020-04-02 11.10.47.ndpi");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
@@ -666,49 +670,51 @@ TEST_F(NDPIImageDriverTests, scenesOfOneFileShareTheHandlePool) {
     // time, so the pool never had to grow past 1 before any scene was read.
     EXPECT_EQ(1, mainScene->contextCount());
 
-    auto readBlock = [](const std::shared_ptr<slideio::NDPIScene>& scene) {
-        const cv::Rect rect = scene->getRect();
-        const cv::Size size(std::min(64, rect.width), std::min(64, rect.height));
-        cv::Mat raster;
-        scene->readResampledBlockChannels(cv::Rect(rect.x, rect.y, size.width, size.height),
-                                          size, {}, raster);
-        EXPECT_FALSE(raster.empty());
-    };
-
-    const int mainThreads = 2;
-    const int auxThreads = 5;
-    const int totalThreads = mainThreads + auxThreads;
+    const int mainThreads = 6;
     std::atomic<int> readyCount{0};
     std::atomic<bool> go{false};
+    // gtest assertion macros are not safe to call off the main test thread -- a failure
+    // recorded from a worker can be corrupted or silently lost. So, following the shape
+    // TestTools::concurrentReadIdentityTest already uses, workers record outcomes into
+    // atomics only; every assertion below happens on the main thread after join().
+    std::atomic<int> emptyCount{0};
+    std::atomic<int> exceptionCount{0};
     std::vector<std::thread> threads;
-    threads.reserve(totalThreads);
+    threads.reserve(mainThreads);
     for (int i = 0; i < mainThreads; ++i) {
         threads.emplace_back([&, mainScene]() {
             ++readyCount;
             while (!go.load()) { std::this_thread::yield(); }
-            readBlock(mainScene);
+            try {
+                const cv::Rect rect = mainScene->getRect();
+                const cv::Size size(std::min(64, rect.width), std::min(64, rect.height));
+                cv::Mat raster;
+                mainScene->readResampledBlockChannels(cv::Rect(rect.x, rect.y, size.width, size.height),
+                                                      size, {}, raster);
+                if (raster.empty()) {
+                    ++emptyCount;
+                }
+            } catch (const std::exception&) {
+                ++exceptionCount;
+            }
         });
     }
-    for (int i = 0; i < auxThreads; ++i) {
-        threads.emplace_back([&, auxScene]() {
-            ++readyCount;
-            while (!go.load()) { std::this_thread::yield(); }
-            readBlock(auxScene);
-        });
-    }
-    // Every thread waits here until all totalThreads have started, so the two batches of
-    // reads genuinely overlap instead of merely happening to interleave by scheduling luck.
-    while (readyCount.load() < totalThreads) { std::this_thread::yield(); }
+    // Every thread waits here until all mainThreads have started, so the reads genuinely
+    // overlap instead of merely happening to interleave by scheduling luck.
+    while (readyCount.load() < mainThreads) { std::this_thread::yield(); }
     go = true;
     for (auto& t : threads) {
         t.join();
     }
+    EXPECT_EQ(0, emptyCount.load());
+    EXPECT_EQ(0, exceptionCount.load());
 
     const int mainCount = mainScene->contextCount();
     const int auxCount = auxScene->contextCount();
     EXPECT_GT(mainCount, 0);
     EXPECT_LE(mainCount, slideio::ContextPool::defaultMax());
     EXPECT_EQ(mainCount, auxCount)
-        << "the main scene and an auxiliary image of the same NDPI file reported "
-           "different pool sizes -- the handle pool is not actually shared per file";
+        << "the auxiliary image reported a different pool size than the main scene "
+           "despite never having been read itself -- the handle pool is not actually "
+           "shared per file";
 }
