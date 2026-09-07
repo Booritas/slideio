@@ -9,6 +9,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
+#include <limits>
 #include <numeric>
 #include <thread>
 #include <vector>
@@ -76,6 +77,21 @@ TEST(FileReader, throwsPastEndOfFile) {
 TEST(FileReader, throwsOnMissingFile) {
     EXPECT_THROW(slideio::FileReader("no-such-file-4b8c1e.bin"),
                  slideio::RuntimeError);
+}
+
+// offset + size must not be computed with a form that can wrap: these offsets
+// come from parsed, untrusted file headers (a CZI sub-block directory, say),
+// not from caller constants, so a corrupt file must produce the precise
+// "past the end of" diagnostic rather than an overflow slipping the bounds
+// check and surfacing as an unrelated platform error.
+TEST(FileReader, throwsOnOffsetNearUint64Max) {
+    const std::string path = writePattern("slideio_fr_overflow.bin", 64);
+    slideio::FileReader reader(path);
+    std::vector<uint8_t> buffer(8);
+    const uint64_t offset = std::numeric_limits<uint64_t>::max() - 4;
+    EXPECT_THROW(reader.readAt(offset, buffer.data(), buffer.size()),
+                 slideio::RuntimeError);
+    std::filesystem::remove(path);
 }
 
 // 16 threads reading overlapping offsets through ONE FileReader. Every read is
