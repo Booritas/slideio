@@ -75,11 +75,8 @@ void SVSSmallScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, cons
         RAISE_RUNTIME_ERROR << "SVSDriver: 3D and 4D images are not supported";
     }
 
-    auto hFile = getFileHandle();
-
-    if (hFile == nullptr) {
-        RAISE_RUNTIME_ERROR << "SVSDriver: Invalid file header by raster reading operation";
-    }
+    auto borrow = acquireContext();
+    auto hFile = borrow.as<SVSReadContext>().keeper.getHandle();
 
     cv::Mat wholeDirRaster;
     if(channelIndices.empty())
