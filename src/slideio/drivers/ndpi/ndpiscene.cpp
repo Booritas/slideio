@@ -11,7 +11,6 @@
 
 #include "ndpifile.hpp"
 #include "slideio/core/tools/tools.hpp"
-#include "slideio/drivers/ndpi/ndpitiffmessagehandler.hpp"
 #include "slideio/imagetools/imagetools.hpp"
 #include "slideio/core/log.hpp"
 #include "slideio/core/exceptions.hpp"
@@ -130,8 +129,6 @@ NDPIScene::~NDPIScene()
 
 void NDPIScene::init(const std::string& name, int sceneIndex, const std::string& driverId, NDPIFile* file, int32_t startDirIndex, int32_t endDirIndex)
 {
-    NDPITIFFMessageHandler mh;
-
     m_sceneName = name;
     m_pfile = file;
     m_startDir = startDirIndex;
@@ -367,8 +364,6 @@ int NDPIScene::getTileCount(void* userData)
 
 bool NDPIScene::getTileRect(int tileIndex, cv::Rect& tileRect, void* userData)
 {
-    NDPITIFFMessageHandler mh;
-
     const NDPIUserData* data = static_cast<const NDPIUserData*>(userData);
     const NDPITiffDirectory* dir = data->dir();
     switch (dir->getType()) {
@@ -416,8 +411,6 @@ void NDPIScene::makeSureValidDirectoryType(NDPITiffDirectory::Type directoryType
 bool NDPIScene::readTile(int tileIndex, const std::vector<int>& channelIndices, cv::OutputArray tileRaster,
                          void* userData)
 {
-    NDPITIFFMessageHandler mh;
-
     const NDPIUserData* data = static_cast<const NDPIUserData*>(userData);
     const NDPITiffDirectory* dir = data->dir();
     bool ret = false;
