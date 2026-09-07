@@ -147,6 +147,15 @@ namespace slideio
         bool m_interleavedChannels;
         int m_sceneIndex;
     private:
+        // Declared last on purpose, and it must stay last -- the declaration
+        // order is load-bearing, not tidiness. ~ContextPool blocks until every
+        // outstanding borrow is returned, and members are destroyed in reverse
+        // declaration order, so only a pool declared after the tables above is
+        // destroyed *before* the m_channelDirectories that an in-flight readTile
+        // walks. SCNScene is the most-derived scene class, so nothing is
+        // declared after this. If a subclass is ever added, its own read state
+        // needs its own pool (see SVSTiledScene) -- a pool in a base class is
+        // destroyed too late to protect derived state.
         ContextPool m_contextPool;
     };
 }

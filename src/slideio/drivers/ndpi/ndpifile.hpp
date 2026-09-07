@@ -56,23 +56,39 @@ namespace slideio
         /// on the scene because the handle does: NDPIScene::m_pfile is a raw
         /// pointer to a shared NDPIFile, so a per-scene pool would multiply
         /// descriptors by scene count.
-        ContextPool::Borrow acquireContext() { return m_contextPool->acquire(); }
+        ContextPool::Borrow acquireContext() { return pool().acquire(); }
         /// Contexts the pool has constructed so far. For tests -- it is how
         /// scenesOfOneFileShareTheHandlePool (test_ndpi_driver.cpp) observes that
         /// every scene of this file draws from the one pool here, rather than each
         /// growing a pool of its own. Mirrors ContextPool::contextCount(), which
         /// exists for the same reason.
-        int contextCount() const { return m_contextPool->contextCount(); }
+        int contextCount() const { return pool().contextCount(); }
         const NDPITiffDirectory& findZoomDirectory(double zoom, int sceneWidth, int dirBegin, int dirEnd);
     private:
         void scanFile();
+        // The pool exists only after init() has supplied a path. No live path reaches
+        // either accessor before that -- scenes are constructed from an NDPIFile whose
+        // init() has already returned -- but the shape invites one, so the null is
+        // reported as an error rather than dereferenced.
+        ContextPool& pool() const {
+            if (!m_contextPool) {
+                RAISE_RUNTIME_ERROR << "NDPIFile: the file is not initialized";
+            }
+            return *m_contextPool;
+        }
     private:
         std::string m_filePath;
+        std::vector<NDPITiffDirectory> m_directories;
         // A plain ContextPool member can't be initialized until filePath is known, and
         // NDPIFile is default-constructed well before that (init() supplies the path
         // later) -- so the pool is built in init(), not in the constructor init list.
+        //
+        // Declared last on purpose, and it must stay after m_directories.
+        // ~ContextPool blocks until every outstanding borrow is returned, and
+        // members are destroyed in reverse declaration order, so this ordering
+        // is what keeps m_directories alive for an in-flight NDPIScene::readTile
+        // -- which reads m_pfile->directories() -- until that read has finished.
         std::unique_ptr<ContextPool> m_contextPool;
-        std::vector<NDPITiffDirectory> m_directories;
     };
 }
 

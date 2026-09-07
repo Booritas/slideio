@@ -410,7 +410,7 @@ per-tile cost today, so it lands first and separately (§5).
 | PKE | scene-owned `TIFFKeeper` | one `TIFFKeeper` | `defaultMax()` | scene |
 | SCN | scene-owned `TIFFKeeper` | one `TIFFKeeper` | `defaultMax()` | scene |
 | NDPI | shared `NDPIFile::m_tiff` | one `NDPITIFFKeeper` | `defaultMax()` | `NDPIFile` |
-| CZI | shared `std::ifstream` | decode scratch | `kUnbounded` | scene |
+| CZI | shared `std::ifstream` | *no context; no pool* | — | — |
 | VSI/ETS | shared `VSIStream` + member scratch | tile scratch | `kUnbounded` | `EtsFile` |
 | VSI/TIFF | `VsiFileScene::m_tiff` | one `TIFFKeeper` | `defaultMax()` | scene |
 
@@ -497,9 +497,23 @@ being rewritten:
   `shared_ptr<const FileReader>` directly instead, which removes the
   back-pointer from the read path and fixes the lifetime at the same time.
 
-CZI's context holds only the decode scratch buffer, so its pool is
-`kUnbounded`. Moving that buffer into the context removes a per-tile
-allocation as a side effect.
+**CZI has no `ContextPool` and no `ReadContext`** — the row above says so, and
+`grep -rn "ContextPool\|ReadContext" src/slideio/drivers/czi/` finds nothing.
+An earlier draft of this section specified a `kUnbounded` pool whose context
+held the decode scratch buffer; that turned out to buy nothing. Once the shared
+`ifstream` is replaced by a `FileReader` that needs no per-thread state, the
+only remaining candidate for a context was the scratch buffer, and
+`CZIScene::readTile` keeps that as a plain local `std::vector<uint8_t>` — which
+is thread-safe by construction, with no pool, no borrow and no userData field
+to plumb. So the driver opts in with nothing but the reader swap, which is what
+makes it the cheapest validation of the mechanism (§5, commit 4).
+
+The one thing the abandoned pool would have bought is still available as a
+future optimisation: the local buffer is allocated per tile, and a pooled
+context would let it be reused across tiles of one read. That is a
+single-threaded allocation cost, unmeasured, and not worth a pool on its own;
+if the tile-read path is ever profiled again it belongs on the same list as the
+fused repack (§2).
 
 #### 4.5.4 VSI
 
@@ -576,8 +590,43 @@ handle in use. The rule is placed in one implementation:
 returned, and refuses new acquisitions once destruction has begun (throwing,
 so a read racing a close fails loudly instead of touching freed state).
 
-Because contexts are free-list rather than thread-affine, this is sufficient:
-there is no context reachable only from a thread that has already exited.
+Because contexts are free-list rather than thread-affine, that is sufficient
+*for the contexts*: there is no context reachable only from a thread that has
+already exited.
+
+**What the pool does not protect, and why the caller has to.** The pool
+guarantees the lifetime of the **contexts** — handles and scratch buffers — and
+nothing else. It cannot guarantee the lifetime of the scene's own parsed model,
+because the pool is a *member* of the scene, and members are destroyed in
+reverse declaration order, derived class before base. A read in flight
+dereferences much more than its context: `SVSTiledScene::readTile` reads a
+`TiffDirectory*` into `m_directories`, `PKETiledScene::readTiffTile` indexes
+`m_directories` and `m_zoomDirectoryIndices`, `NDPIScene::readTile` reads
+`m_pfile->directories()`. So:
+
+- Within a class, the pool must be declared **last**, after everything the read
+  path reads. It is then destroyed first and blocks before that state is freed.
+  That ordering is load-bearing in `SVSTiledScene`, `SVSSmallScene`,
+  `PKETiledScene`, `PKESmallScene`, `SCNScene`, `VsiFileScene` and `NDPIFile`,
+  and each records it at the member.
+- Across a hierarchy, the pool must live in the **most-derived** class that
+  owns read state. A pool in a base class is destroyed after the derived
+  members an in-flight read is still using. This is why the SVS and PKE pools
+  live in the concrete tiled/small scenes rather than in `SVSScene`/`PKEScene`.
+- **Shared ownership held across the read is the reference pattern**, and the
+  only one that is robust independently of declaration order. `CZIScene` holds
+  a `shared_ptr<const FileReader>`, and `EtsFileScene` copies its
+  `shared_ptr<EtsFile>` into a local for the whole read
+  (`etsfilescene.cpp`) — either keeps the object alive for the duration of the
+  read no matter what the owner does. A new driver should prefer it.
+
+**And the caller still owns the top of the chain.** None of the above makes it
+safe to destroy a `Slide` or `Scene` while a read on it is in flight: the
+`Scene` object itself, and its members, go away at that point. The public
+contract in `scene.hpp` therefore states the requirement — keep the scene alive
+(or join the reader threads) until every read has returned. The pool makes a
+close that races a read fail loudly rather than silently return freed handles;
+it does not make it legal.
 
 The failure mode if this is wrong is platform-asymmetric and worth naming:
 on POSIX a leaked descriptor is invisible until the process runs out; on

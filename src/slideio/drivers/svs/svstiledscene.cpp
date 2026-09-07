@@ -32,15 +32,24 @@ namespace
     };
 }
 
+// The factory captures the path by value, not `this`. That is load-bearing for AFI:
+// AFISlide::openFile overwrites SVSScene::m_filePath with the path of the .afi index file
+// *after* the scene is constructed, so a factory reading m_filePath at acquire() time would
+// open the AFI XML as a TIFF. Copying the path here freezes the path of the actual slide.
 SVSTiledScene::SVSTiledScene(const std::string& filePath, const std::string& driverId, const std::string& name,
                              const std::vector<TiffDirectory>& dirs) : SVSScene(filePath, driverId, name),
-                                                                       m_directories(dirs) {
+                                                                       m_directories(dirs),
+                                                                       m_contextPool([filePath]() {
+                                                                           return std::make_unique<SVSReadContext>(filePath);
+                                                                       }) {
 }
 
 SVSTiledScene::SVSTiledScene(const std::string& filePath, const std::string& driverId, libtiff::TIFF* hFile,
                              const std::string& name,
                              const std::vector<slideio::TiffDirectory>& dirs) : SVSScene(filePath, driverId, hFile,
-    name), m_directories(dirs) {
+    name), m_directories(dirs), m_contextPool([filePath]() {
+        return std::make_unique<SVSReadContext>(filePath);
+    }) {
 }
 
 std::shared_ptr<SVSTiledScene> SVSTiledScene::create(const std::string& filePath,

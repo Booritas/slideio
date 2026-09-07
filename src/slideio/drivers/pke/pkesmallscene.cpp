@@ -20,7 +20,10 @@ PKESmallScene::PKESmallScene(const std::string& filePath,
     const TiffDirectory& dir,
     bool auxiliary):
         PKEScene(filePath, sceneIndex, driverId, name),
-        m_directory(dir)
+        m_directory(dir),
+        m_contextPool([filePath]() {
+            return std::make_unique<PKEReadContext>(filePath);
+        })
 {
     m_dataType = m_directory.dataType;
 

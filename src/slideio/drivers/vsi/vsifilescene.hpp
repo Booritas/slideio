@@ -59,6 +59,14 @@ namespace slideio
         protected:
             int m_directoryIndex;
         private:
+            // Declared last on purpose, and it must stay last -- the
+            // declaration order is load-bearing, not tidiness. ~ContextPool
+            // blocks until every outstanding borrow is returned, and members are
+            // destroyed in reverse declaration order, so only a pool declared
+            // last is destroyed *before* the state an in-flight read still
+            // reads (m_directoryIndex here, and the base's VSIFile). This is
+            // also the most-derived scene class; a pool in a base class is
+            // destroyed too late to protect derived state (see SVSTiledScene).
             ContextPool m_contextPool;
         };
     }
