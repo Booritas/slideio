@@ -225,22 +225,25 @@ TEST(SCNImageDriver, getTileCount)
     ASSERT_TRUE(slide != nullptr);
     const int numScenes = slide->getNumScenes();
     ASSERT_EQ(numScenes, 1);
+    slideio::SCNReadContext context(filePath);
     {
         std::shared_ptr<slideio::SCNScene> scene =
             std::dynamic_pointer_cast<slideio::SCNScene>(slide->getAuxImage("Macro"));
         ASSERT_FALSE(scene == nullptr);
-        SCNTilingInfo info;
-        info.channel2ifd[0] = &dirs[0];
-        int count = scene->getTileCount(&info);
+        SCNTileUserData data;
+        data.context = &context;
+        data.info.channel2ifd[0] = &dirs[0];
+        int count = scene->getTileCount(&data);
         EXPECT_EQ(count, 40);
     }
     {
         std::shared_ptr<slideio::SCNScene> scene =
             std::dynamic_pointer_cast<slideio::SCNScene>(slide->getScene(0));
         ASSERT_FALSE(scene == nullptr);
-        SCNTilingInfo info;
-        info.channel2ifd[0] = &dirs[8];
-        int count = scene->getTileCount(&info);
+        SCNTileUserData data;
+        data.context = &context;
+        data.info.channel2ifd[0] = &dirs[8];
+        int count = scene->getTileCount(&data);
         EXPECT_EQ(count, 130);
     }
 }
@@ -260,12 +263,14 @@ TEST(SCNImageDriver, getTileRect)
         std::shared_ptr<slideio::SCNScene> scene =
             std::dynamic_pointer_cast<slideio::SCNScene>(slide->getAuxImage("Macro"));
         ASSERT_FALSE(scene == nullptr);
-        SCNTilingInfo info;
-        info.channel2ifd[0] = &dirs[0];
+        slideio::SCNReadContext context(filePath);
+        SCNTileUserData data;
+        data.context = &context;
+        data.info.channel2ifd[0] = &dirs[0];
         cv::Rect tileRect;
-        scene->getTileRect(0, tileRect, &info);
+        scene->getTileRect(0, tileRect, &data);
         EXPECT_EQ(tileRect, cv::Rect(0,0,512,512));
-        scene->getTileRect(39, tileRect, &info);
+        scene->getTileRect(39, tileRect, &data);
         EXPECT_EQ(tileRect, cv::Rect(1536, 4608, 512, 512));
     }
 }
@@ -286,12 +291,14 @@ TEST(SCNImageDriver, readTile_1_channel)
     std::shared_ptr<slideio::SCNScene> scene =
         std::dynamic_pointer_cast<slideio::SCNScene>(slide->getScene(0));
     ASSERT_FALSE(scene == nullptr);
-    SCNTilingInfo info;
-    info.channel2ifd[0] = &dirs[8];
+    slideio::SCNReadContext context(filePath);
+    SCNTileUserData data;
+    data.context = &context;
+    data.info.channel2ifd[0] = &dirs[8];
     cv::Mat raster;
     const std::vector<int> channelIndices = { 0 };
     const int tileIndex = 6 + 8*10;
-    scene->readTile(tileIndex, channelIndices, raster, &info);
+    scene->readTile(tileIndex, channelIndices, raster, &data);
     cv::Mat bmpImage;// = cv::imread(tilePath, cv::IMREAD_GRAYSCALE);
     slideio::ImageTools::readSmallImageRaster(tilePath, bmpImage);
     int compare = std::memcmp(raster.data, bmpImage.data, raster.total() * raster.elemSize());
@@ -316,14 +323,16 @@ TEST(SCNImageDriver, readTile_2_channels)
     std::shared_ptr<slideio::SCNScene> scene =
         std::dynamic_pointer_cast<slideio::SCNScene>(slide->getScene(0));
     ASSERT_FALSE(scene == nullptr);
-    SCNTilingInfo info;
-    info.channel2ifd[0] = &dirs[6];
-    info.channel2ifd[1] = &dirs[8];
+    slideio::SCNReadContext context(filePath);
+    SCNTileUserData data;
+    data.context = &context;
+    data.info.channel2ifd[0] = &dirs[6];
+    data.info.channel2ifd[1] = &dirs[8];
 
     cv::Mat raster;
     const std::vector<int> channelIndices = { 0, 1 };
     const int tileIndex = 6 + 8 * 10;
-    scene->readTile(tileIndex, channelIndices, raster, &info);
+    scene->readTile(tileIndex, channelIndices, raster, &data);
 
     std::vector<cv::Mat> tileChannels(2);
     //tileChannels[0] = cv::imread(tilePath1, cv::IMREAD_GRAYSCALE);
@@ -353,12 +362,14 @@ TEST(SCNImageDriver, readTile_interleaved_channels)
     std::shared_ptr<slideio::SCNScene> scene =
         std::dynamic_pointer_cast<slideio::SCNScene>(slide->getAuxImage("Macro"));
     ASSERT_FALSE(scene == nullptr);
-    SCNTilingInfo info;
-    info.channel2ifd[0] = &dirs[0];
+    slideio::SCNReadContext context(filePath);
+    SCNTileUserData data;
+    data.context = &context;
+    data.info.channel2ifd[0] = &dirs[0];
     cv::Mat raster;
     const std::vector<int> channelIndices = { 2, 1, 0 };
     const int tileIndex = 1 + 7 * 4;
-    scene->readTile(tileIndex, channelIndices, raster, &info);
+    scene->readTile(tileIndex, channelIndices, raster, &data);
 
     std::string tilePath = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1/dir_0_tile_1-7.png");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(tilePath);
@@ -860,5 +871,23 @@ TEST(SCNImageDriver, zStackMissingChannels) {
     cv::minMaxLoc(channelRaster, &minVal, &maxVal);
 	EXPECT_EQ(maxVal, 0);
 	EXPECT_EQ(minVal, 0);
+}
+
+TEST(SCNImageDriver, concurrentReadsAreByteIdentical) {
+    std::string filePath = TestTools::getTestImagePath("scn", "ultivue/Leica Aperio Versa 5 channel fluorescent image.scn");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::SCNImageDriver driver;
+    TestTools::concurrentReadIdentityTest(filePath, driver);
+}
+
+TEST(SCNImageDriver, reportsConcurrentReadSupport) {
+    std::string filePath = TestTools::getTestImagePath("scn", "ultivue/Leica Aperio Versa 5 channel fluorescent image.scn");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::SCNImageDriver driver;
+    auto slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide);
+    auto scene = slide->getScene(0);
+    ASSERT_TRUE(scene);
+    EXPECT_TRUE(scene->supportsConcurrentReads());
 }
 
