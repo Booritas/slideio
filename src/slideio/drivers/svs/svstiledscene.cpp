@@ -24,7 +24,7 @@ namespace
     // readResampledLevelBlockChannelsEx: the directory being read (immutable, shared across
     // threads) and the context borrowed for the duration of that one call -- the only place a
     // TIFF handle enters the read path. Acquired once by the caller and never re-acquired
-    // mid-read; see SVSScene::acquireContext.
+    // mid-read; see SVSTiledScene::acquireContext.
     struct SVSTileComposerUserData
     {
         const slideio::TiffDirectory* dir = nullptr;

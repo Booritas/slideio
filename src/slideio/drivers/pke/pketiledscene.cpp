@@ -20,7 +20,7 @@ namespace
     // readResampledLevelBlockChannelsEx: the level being read (immutable, shared across
     // threads) and the context borrowed for the duration of that one call -- the only place a
     // TIFF handle enters the read path. Acquired once by the caller and never re-acquired
-    // mid-read; see PKEScene::acquireContext.
+    // mid-read; see PKETiledScene::acquireContext.
     struct PKEUserData
     {
         int level = 0;

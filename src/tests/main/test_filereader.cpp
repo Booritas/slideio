@@ -214,3 +214,39 @@ TEST(SequentialReader, readsStructsAndSkips) {
     EXPECT_EQ(byte, static_cast<uint8_t>(8));
     std::filesystem::remove(path);
 }
+
+// A position taken straight out of a file can be any uint64_t, and the
+// read-ahead buffer's coverage test does unsigned arithmetic on it: m_pos + size
+// wraps for a position near UINT64_MAX, which made the request look like one the
+// warm buffer already covered -- skipping the end-of-file check and memcpy'ing
+// from m_buffer.data() + m_pos. Reachable from a malformed VSI today, since
+// EtsFile::init calls setPos with unvalidated header offsets.
+//
+// The first read is what makes this a test of the wrap: it warms the buffer, so
+// m_bufferPos/m_bufferedSize are non-zero and the coverage test can be satisfied
+// by a wrapped value. With a cold buffer the refill branch runs and the bounds
+// check is reached regardless.
+TEST(SequentialReader, readPastTheEndOfTheAddressSpaceThrows) {
+    const std::string path = writePattern("slideio_sr_wrap.bin", 1024);
+    slideio::FileReader reader(path);
+    slideio::SequentialReader sequential(reader);
+
+    uint32_t warm = 0;
+    sequential.read(warm);                    // populates the buffer
+
+    for (const uint64_t position : {std::numeric_limits<uint64_t>::max(),
+                                    std::numeric_limits<uint64_t>::max() - 8,
+                                    std::numeric_limits<uint64_t>::max() - 64}) {
+        sequential.setPos(position);
+        uint64_t value = 0;
+        EXPECT_THROW(sequential.read(value), slideio::RuntimeError)
+            << "position " << position << " was not rejected";
+    }
+
+    // An ordinary past-the-end position, for the same reason and without the wrap.
+    sequential.setPos(1020);
+    uint64_t value = 0;
+    EXPECT_THROW(sequential.read(value), slideio::RuntimeError);
+
+    std::filesystem::remove(path);
+}

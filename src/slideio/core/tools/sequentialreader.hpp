@@ -84,11 +84,28 @@ namespace slideio
             if (size > kBufferSize) {
                 return false;
             }
+            // The bounds check comes FIRST, and is written so it cannot wrap.
+            // m_pos is set from setPos() with values read straight out of the
+            // file -- EtsFile::init does setPos(header.additionalHeaderPos) and
+            // setPos(header.usedChunksPos), neither validated -- so it can be
+            // any uint64_t at all. Testing coverage before bounds would let
+            // m_pos + size wrap past the end of the address space (m_pos =
+            // UINT64_MAX, size = 64 gives 63, which is inside any warm buffer),
+            // report the read as already covered, skip this check entirely and
+            // memcpy from m_buffer.data() + m_pos. That is the same overflow
+            // FileReader::readAt was fixed for, one layer up.
+            //
+            // Everything below is then provably wrap-free: m_pos <= fileSize
+            // and size <= fileSize - m_pos, so m_pos + size <= fileSize;
+            // m_bufferPos and m_bufferedSize come from a readAt that succeeded,
+            // so m_bufferPos + m_bufferedSize <= fileSize; and m_pos -
+            // m_bufferPos is only evaluated once the first clause has
+            // established m_pos >= m_bufferPos.
+            const uint64_t fileSize = m_reader.size();
+            if (m_pos > fileSize || fileSize - m_pos < size) {
+                return false;
+            }
             if (m_pos < m_bufferPos || m_pos + size > m_bufferPos + m_bufferedSize) {
-                const uint64_t fileSize = m_reader.size();
-                if (m_pos > fileSize || fileSize - m_pos < size) {
-                    return false;
-                }
                 const size_t fill = static_cast<size_t>(
                     std::min<uint64_t>(kBufferSize, fileSize - m_pos));
                 if (m_buffer.empty()) {
