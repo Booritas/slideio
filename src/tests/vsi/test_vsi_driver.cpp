@@ -552,7 +552,8 @@ TEST(EtsFile, readTileJpeg) {
     }
     ASSERT_TRUE(etsFile.get() != nullptr);
     cv::Mat tileRaster;
-    etsFile->readTile(0, 0, {},0, 0,  tileRaster);
+    auto borrow = etsFile->acquireContext();
+    etsFile->readTile(0, 0, {}, 0, 0, borrow.as<vsi::EtsReadContext>(), tileRaster);
     cv::Mat testRaster;
     TestTools::readPNG(testFilePath, testRaster);
     double score = ImageTools::computeSimilarity2(testRaster, tileRaster);
@@ -568,7 +569,8 @@ TEST(EtsFile, readTileJpeg2K) {
     slideio::vsi::VSIFile vsiFile(filePath);
     auto etsFile = vsiFile.getEtsFile(0);
     cv::Mat tileRaster;
-    etsFile->readTile(0, 0, { 0 }, 5, 0, tileRaster);
+    auto borrow = etsFile->acquireContext();
+    etsFile->readTile(0, 0, { 0 }, 5, 0, borrow.as<vsi::EtsReadContext>(), tileRaster);
     //TestTools::showRaster(tileRaster);
     //ImageTools::writeTiffImage(testFilePath, tileRaster);
     cv::Mat testRaster;
@@ -1027,4 +1029,22 @@ TEST_F(VSIImageDriverTests, allScenesAgreeOnTheConcurrencyContract) {
         EXPECT_EQ(slide->getScene(i)->supportsConcurrentReads(), first)
             << "scene " << i << " disagrees with scene 0";
     }
+}
+
+TEST_F(VSIImageDriverTests, concurrentReadsAreByteIdenticalOnEveryScene) {
+    std::string filePath = TestTools::getTestImagePath("vsi", "private/d/STS_G6889_11_1_pHH3.vsi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::VSIImageDriver driver;
+    // Every scene, because a VSI slide mixes ETS scenes and TIFF scenes and they
+    // take different code paths.
+    TestTools::concurrentReadIdentityTestAllScenes(filePath, driver);
+}
+
+TEST_F(VSIImageDriverTests, reportsConcurrentReadSupport) {
+    std::string filePath = TestTools::getTestImagePath("vsi", "private/d/STS_G6889_11_1_pHH3.vsi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::VSIImageDriver driver;
+    auto slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide);
+    EXPECT_TRUE(slide->getScene(0)->supportsConcurrentReads());
 }

@@ -20,6 +20,10 @@ struct TileComposerUserData
     int levelIndex = -1;
     int zSlice = 0;
     int tFrame = 0;
+    // The borrow acquired once by readResampledLevelBlockChannelsEx, for the
+    // whole call -- getTileCount/getTileRect/readTile below read the scratch
+    // buffer out of this same context, never acquiring one of their own.
+    EtsReadContext* context = nullptr;
 };
 
 EtsFileScene::EtsFileScene(const std::string& filePath,
@@ -75,7 +79,7 @@ bool EtsFileScene::readTile(int tileIndex, const std::vector<int>& channelIndice
     const int levelIndex = tileComposerUserData->levelIndex;
     const std::shared_ptr<EtsFile> etsFile = getEtsFile();
     etsFile->readTile(levelIndex, tileIndex, channelIndices, tileComposerUserData->zSlice, tileComposerUserData->tFrame,
-                      tileRaster);
+                      *tileComposerUserData->context, tileRaster);
     return true;
 }
 
@@ -185,10 +189,14 @@ void EtsFileScene::readResampledLevelBlockChannelsEx(int level, const cv::Rect& 
         RAISE_RUNTIME_ERROR << "VSIImageDriver: ETS file does not contain volume";
     }
     validateLevel(level);
+    // One borrow for the whole call -- getTileCount, getTileRect and readTile above read the
+    // scratch buffer out of this same context, never acquiring one of their own.
+    auto borrow = etsFile->acquireContext();
     TileComposerUserData userData;
     userData.levelIndex = level;
     userData.zSlice = zSliceIndex;
     userData.tFrame = tFrameIndex;
+    userData.context = &borrow.as<EtsReadContext>();
     TileComposer::composeRect(this, channelIndices, levelRect, blockSize, output, (void*)&userData);
 }
 

@@ -43,6 +43,7 @@ namespace slideio
         public:
             VsiFileScene(const std::string& filePath, int sceneIndex, const std::string& driverId, std::shared_ptr<VSIFile>& vsiFile, int directoryIndex);
         public:
+            bool supportsConcurrentReads() const override { return true; }
             void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
                 const std::vector<int>& channelIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output) override;
             int getTileCount(void* userData) override;
