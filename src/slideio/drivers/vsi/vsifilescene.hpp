@@ -21,11 +21,15 @@ namespace slideio
 {
     namespace vsi
     {
-        /// One libtiff handle. A fresh handle is cheap here because
-        /// TiffTools::setCurrentDirectory positions with TIFFSetSubDirectory(offset),
-        /// so it jumps straight to the right IFD with no directory walk and no
-        /// re-parse of the pyramid -- a context duplicates the descriptor, not the
-        /// parsed model.
+        /// One libtiff handle. A fresh handle is cheap here, though not by quite
+        /// the same route as in the pyramid drivers, whose comment this was
+        /// first copied from: they position per tile, while VsiFileScene reads
+        /// one whole directory through TiffTools::readStripedDir -- which
+        /// positions once, via the same setCurrentDirectory(dir) and so the same
+        /// TIFFSetSubDirectory(dir.offset), and then reads every strip. So a
+        /// context costs one TIFFOpen (first IFD only) plus that one seek,
+        /// amortised over a whole-directory read rather than a tile. Either way
+        /// it duplicates the descriptor, not the parsed model.
         class VsiTiffReadContext : public ReadContext
         {
         public:

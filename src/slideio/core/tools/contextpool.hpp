@@ -47,7 +47,11 @@ namespace slideio
         class SLIDEIO_CORE_EXPORTS Borrow
         {
         public:
-            Borrow() = default;
+            // No default constructor: an empty borrow has no context, so get()
+            // and as<T>() would dereference null. Every borrow comes from
+            // acquire(). A caller that needs an "optional borrow" should use
+            // std::optional<Borrow>, which says so.
+            Borrow() = delete;
             Borrow(Borrow&& other) noexcept;
             Borrow& operator=(Borrow&& other) noexcept;
             ~Borrow();
