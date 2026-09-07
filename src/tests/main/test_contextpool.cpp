@@ -5,6 +5,7 @@
 #include "slideio/core/tools/contextpool.hpp"
 #include "slideio/core/tools/readcontext.hpp"
 #include <atomic>
+#include <chrono>
 #include <thread>
 #include <vector>
 
@@ -104,6 +105,50 @@ TEST(ContextPool, neverExceedsItsBound) {
                 auto borrow = pool.acquire();
                 borrow.as<CountingContext>().payload += 1;
             }
+        });
+    }
+    for (auto& thread : threads) {
+        thread.join();
+    }
+    EXPECT_LE(peak.load(), 2);
+    EXPECT_LE(pool.contextCount(), 2);
+}
+
+// neverExceedsItsBound above uses a near-instant factory (make_unique), so
+// every construction finishes before a second acquire() reaches the mayGrow
+// check -- it cannot observe a bound check that only counts fully-built
+// contexts (m_contexts.size()) instead of built-or-promised ones
+// (m_borrowed + m_free.size()), because by the time any other thread looks,
+// the previous grower has already finished and pushed its context. That gap
+// is exactly the bug this pool once had: gating growth on m_contexts.size()
+// let every racing thread see "nothing has grown yet" and all of them grow
+// at once. This test widens the window with a short, deliberate hold inside
+// the factory so concurrent construction is actually observed. Without the
+// hold, this test would pass even against the buggy check -- it is not
+// testing the same thing as neverExceedsItsBound, it is testing the thing
+// that test's fast factory cannot expose.
+TEST(ContextPool, neverExceedsItsBoundUnderContention) {
+    std::atomic<int> live{0};
+    std::atomic<int> concurrentFactoryCalls{0};
+    std::atomic<int> peak{0};
+    slideio::ContextPool pool([&live, &concurrentFactoryCalls, &peak]() {
+        const int current = ++concurrentFactoryCalls;
+        int seen = peak.load();
+        while (current > seen && !peak.compare_exchange_weak(seen, current)) {
+        }
+        // The hold: long enough that, with 16 threads racing acquire() and a
+        // bound of 2, multiple factory calls are reliably in flight at once
+        // -- short enough that the whole test still finishes in well under
+        // a second.
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        --concurrentFactoryCalls;
+        return std::make_unique<CountingContext>(live);
+    }, 2);
+
+    std::vector<std::thread> threads;
+    for (int t = 0; t < 16; ++t) {
+        threads.emplace_back([&pool]() {
+            auto borrow = pool.acquire();
         });
     }
     for (auto& thread : threads) {
