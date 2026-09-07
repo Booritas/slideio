@@ -26,6 +26,7 @@ the work can be picked up later without re-doing the analysis.
 15. [DCM still serialises every block read](#15-dcm-still-serialises-every-block-read)
 16. [GDAL still serialises every block read](#16-gdal-still-serialises-every-block-read)
 17. [OME-TIFF still serialises every block read](#17-ome-tiff-still-serialises-every-block-read)
+18. [CZI rejects a corrupt sub-block position on the main path and tolerates it on the attachment path](#18-czi-rejects-a-corrupt-sub-block-position-on-the-main-path-and-tolerates-it-on-the-attachment-path)
 
 ---
 
@@ -679,3 +680,55 @@ The alternative, if this ever matters for throughput: resolve every tile's
 `(offset, length)` once at `init()` and read via `FileReader` thereafter,
 bypassing `TIFFFiles`/libtiff on the read path entirely. That is faster
 single-threaded too.
+
+---
+
+## 18. CZI rejects a corrupt sub-block position on the main path and tolerates it on the attachment path
+
+**Files:** `src/slideio/drivers/czi/czislide.cpp`
+(`readSubBlocks`, `validateSubBlockFilePosition`, `readAttachments`,
+`addAuxiliaryImage`)
+**Related:** `software-docs/specs/2026-09-07-parallel-read-block-design.md` §4.5.3
+**Status:** Open, deliberately deferred.
+
+One driver now has two different answers to "what does a corrupt file do".
+
+`readSubBlocks` guards each directory entry's `filePosition` with
+`validateSubBlockFilePosition`, which raises `slideio::RuntimeError` on a
+negative value or one that would overflow when added to `originPos`. The call
+sits deliberately *outside* the two `try` blocks around it, because those
+blocks catch `slideio::RuntimeError` — they were widened to it when the driver
+moved off `std::ifstream`, since `FileReader` reports a short read that way —
+and log it as a warning that truncates the sub-block list. A data-integrity
+problem must not be handled like a transient short read, so on the main path
+the corruption fails `CZISlide::init()` hard
+(`CZIImageDriver.subBlockFilePositionOverflowPropagates` covers it).
+
+The attachment path reaches the same validator by a different route.
+`readAttachments` → `addAuxiliaryImage` → `createCZIAttachmentScenes` calls
+`readSubBlocks` with a non-zero `originPos` for a CZI embedded as an
+attachment, and **both** of those callers catch `std::exception&`
+(`czislide.cpp`, the two handlers around `addAuxiliaryImage` and around the
+whole of `readAttachments`). `slideio::RuntimeError` derives from
+`std::exception`, so the guard's throw is swallowed there and logged as
+"Error reading auxiliary image". The result is a slide that opens successfully
+carrying a partially parsed auxiliary image, from a file the main path would
+have rejected outright.
+
+Which behaviour is right is a product decision, not a mechanical one, and that
+is why this is deferred rather than fixed: an unreadable *auxiliary* image is
+arguably not a reason to fail opening the whole slide, whereas an unreadable
+main pyramid clearly is. What is not defensible is that the difference is an
+accident of which `catch` clause the throw happens to meet.
+
+The work, whichever way it is decided:
+
+1. If the attachment path should also reject: narrow those two handlers so
+   they do not catch the integrity error — e.g. give the overflow its own
+   exception type, or validate before the `try`, as `readSubBlocks` does.
+2. If it should keep tolerating: say so at both handlers, and record that an
+   auxiliary image can be dropped from a slide that otherwise opens, so a
+   caller iterating `getAuxImageNames()` knows the list can be silently short.
+
+Either way the two paths should be tested together, so the next widening of a
+`catch` cannot re-open the gap unnoticed.

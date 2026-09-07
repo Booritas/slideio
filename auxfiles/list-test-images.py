@@ -104,6 +104,10 @@ def as_literal(argument):
 def collect():
     references, dynamic = [], []
     sources = sorted(glob.glob('src/tests/*/*.cpp')) + sorted(glob.glob('src/single_tests/*/*.cpp'))
+    # glob yields the native separator, and everything below (the suite name, the
+    # testtools filter, the paths written into the document) is written in terms
+    # of '/'. Normalising here is what lets the script run on Windows at all.
+    sources = [s.replace(os.sep, '/') for s in sources]
     # testtools.cpp only DEFINES the helpers; its parameter lists are not call sites.
     sources = [s for s in sources if not s.endswith('testlib/testtools.cpp')]
     for path in sources:
@@ -150,7 +154,9 @@ def directory_size(path):
 
 
 def relative(path):
-    return os.path.relpath(path, PARENT) if path else ''
+    # Always '/', whichever platform generated the document: the paths in it are
+    # read by people and by grep, not passed back to a shell.
+    return os.path.relpath(path, PARENT).replace(os.sep, '/') if path else ''
 
 
 def human(size):
