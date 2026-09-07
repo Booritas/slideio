@@ -617,6 +617,16 @@ TEST(SVSImageDriver, multiThreadSceneAccess) {
     TestTools::multiThreadedTest(filePath, driver);
 }
 
+// The concurrency gate. SVS is still serialised at this point, and that is the
+// point: a correct harness must pass against a serialised driver too, so
+// running it here proves the harness before any driver's behaviour changes.
+TEST(SVSImageDriver, concurrentReadsAreByteIdentical) {
+    const std::string filePath = TestTools::getTestImagePath("svs", "JP2K-33003-1.svs");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::SVSImageDriver driver;
+    TestTools::concurrentReadIdentityTest(filePath, driver);
+}
+
 TEST(SVSTools, ParseAperioMetadataHeaderOnly)
 {
     const std::string raw = "Aperio GT450 v1.0\n100x200 (256x256) JPEG Q=91";

@@ -2,6 +2,7 @@
 #include "testtools.hpp"
 
 
+#include <atomic>
 #include <cmath>
 #include <codecvt>
 #include <fstream>
@@ -11,6 +12,8 @@
 #include <opencv2/imgproc.hpp>
 #include <opencv2/core/mat.hpp>
 #include "slideio/core/exceptions.hpp"
+#include "slideio/core/cvscene.hpp"
+#include "slideio/core/cvslide.hpp"
 #include "slideio/imagetools/tifftools.hpp"
 #include "slideio/core/imagedriver.hpp"
 #include "slideio/core/tools/tools.hpp"
@@ -521,6 +524,101 @@ void TestTools::multiThreadedTest(const std::string& filePath, slideio::ImageDri
     }
     for (auto& t : threads) {
         t.join();
+    }
+}
+
+void TestTools::concurrentReadIdentityTest(const std::string& filePath,
+                                           slideio::ImageDriver& driver,
+                                           int sceneIndex,
+                                           int numRois,
+                                           int numThreads,
+                                           int readsPerThread) {
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide);
+    ASSERT_GT(slide->getNumScenes(), sceneIndex);
+    std::shared_ptr<slideio::CVScene> scene = slide->getScene(sceneIndex);
+    ASSERT_TRUE(scene);
+
+    const cv::Rect sceneRect = scene->getRect();
+    // Small enough that numRois of them fit, big enough to span several codec
+    // tiles so that tile assembly is exercised rather than a single tile.
+    const cv::Size blockSize(std::min(512, std::max(16, sceneRect.width / 4)),
+                             std::min(512, std::max(16, sceneRect.height / 4)));
+    ASSERT_GT(blockSize.width, 0);
+    ASSERT_GT(blockSize.height, 0);
+
+    const int maxX = std::max(0, sceneRect.width - blockSize.width);
+    const int maxY = std::max(0, sceneRect.height - blockSize.height);
+
+    std::vector<cv::Rect> rois;
+    rois.reserve(numRois);
+    for (int i = 0; i < numRois; ++i) {
+        const int x = (numRois == 1) ? 0 : (maxX * i) / (numRois - 1);
+        const int y = (numRois == 1) ? 0 : (maxY * i) / (numRois - 1);
+        rois.emplace_back(cv::Point(sceneRect.x + x, sceneRect.y + y), blockSize);
+    }
+
+    // Baseline, single-threaded. Native size: no resampling, so a mismatch is a
+    // read bug and not an interpolation difference.
+    std::vector<cv::Mat> baseline(rois.size());
+    for (size_t i = 0; i < rois.size(); ++i) {
+        scene->readResampledBlockChannels(rois[i], blockSize, {}, baseline[i]);
+        ASSERT_FALSE(baseline[i].empty()) << "baseline roi " << i << " came back empty";
+    }
+
+    std::atomic<int> mismatches{0};
+    std::atomic<int> exceptions{0};
+    std::vector<std::thread> threads;
+    threads.reserve(numThreads);
+    for (int t = 0; t < numThreads; ++t) {
+        threads.emplace_back([&, t]() {
+            for (int r = 0; r < readsPerThread; ++r) {
+                for (size_t i = 0; i < rois.size(); ++i) {
+                    // Stagger the starting ROI per thread so threads are reading
+                    // different regions at the same moment.
+                    const size_t index = (i + static_cast<size_t>(t)) % rois.size();
+                    try {
+                        cv::Mat raster;
+                        scene->readResampledBlockChannels(rois[index], blockSize, {}, raster);
+                        if (raster.size() != baseline[index].size()
+                            || raster.type() != baseline[index].type()) {
+                            ++mismatches;
+                            continue;
+                        }
+                        if (cv::norm(raster, baseline[index], cv::NORM_INF) != 0.0) {
+                            ++mismatches;
+                        }
+                    }
+                    catch (const std::exception&) {
+                        ++exceptions;
+                    }
+                }
+            }
+        });
+    }
+    for (auto& thread : threads) {
+        thread.join();
+    }
+
+    EXPECT_EQ(exceptions.load(), 0) << "concurrent reads threw";
+    EXPECT_EQ(mismatches.load(), 0)
+        << "concurrent reads returned different pixels than the single-threaded "
+           "baseline -- this is data corruption, not a performance problem";
+}
+
+void TestTools::concurrentReadIdentityTestAllScenes(const std::string& filePath,
+                                                    slideio::ImageDriver& driver,
+                                                    int numRois,
+                                                    int numThreads,
+                                                    int readsPerThread) {
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide);
+    const int numScenes = slide->getNumScenes();
+    ASSERT_GE(numScenes, 1);
+    for (int sceneIndex = 0; sceneIndex < numScenes; ++sceneIndex) {
+        SCOPED_TRACE("scene index " + std::to_string(sceneIndex));
+        concurrentReadIdentityTest(filePath, driver, sceneIndex, numRois,
+                                   numThreads, readsPerThread);
     }
 }
 
