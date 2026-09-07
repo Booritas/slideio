@@ -230,7 +230,7 @@ TEST(SCNImageDriver, getTileCount)
         std::shared_ptr<slideio::SCNScene> scene =
             std::dynamic_pointer_cast<slideio::SCNScene>(slide->getAuxImage("Macro"));
         ASSERT_FALSE(scene == nullptr);
-        SCNTileUserData data;
+        slideio::SCNTileUserData data;
         data.context = &context;
         data.info.channel2ifd[0] = &dirs[0];
         int count = scene->getTileCount(&data);
@@ -240,7 +240,7 @@ TEST(SCNImageDriver, getTileCount)
         std::shared_ptr<slideio::SCNScene> scene =
             std::dynamic_pointer_cast<slideio::SCNScene>(slide->getScene(0));
         ASSERT_FALSE(scene == nullptr);
-        SCNTileUserData data;
+        slideio::SCNTileUserData data;
         data.context = &context;
         data.info.channel2ifd[0] = &dirs[8];
         int count = scene->getTileCount(&data);
@@ -264,7 +264,7 @@ TEST(SCNImageDriver, getTileRect)
             std::dynamic_pointer_cast<slideio::SCNScene>(slide->getAuxImage("Macro"));
         ASSERT_FALSE(scene == nullptr);
         slideio::SCNReadContext context(filePath);
-        SCNTileUserData data;
+        slideio::SCNTileUserData data;
         data.context = &context;
         data.info.channel2ifd[0] = &dirs[0];
         cv::Rect tileRect;
@@ -292,7 +292,7 @@ TEST(SCNImageDriver, readTile_1_channel)
         std::dynamic_pointer_cast<slideio::SCNScene>(slide->getScene(0));
     ASSERT_FALSE(scene == nullptr);
     slideio::SCNReadContext context(filePath);
-    SCNTileUserData data;
+    slideio::SCNTileUserData data;
     data.context = &context;
     data.info.channel2ifd[0] = &dirs[8];
     cv::Mat raster;
@@ -324,7 +324,7 @@ TEST(SCNImageDriver, readTile_2_channels)
         std::dynamic_pointer_cast<slideio::SCNScene>(slide->getScene(0));
     ASSERT_FALSE(scene == nullptr);
     slideio::SCNReadContext context(filePath);
-    SCNTileUserData data;
+    slideio::SCNTileUserData data;
     data.context = &context;
     data.info.channel2ifd[0] = &dirs[6];
     data.info.channel2ifd[1] = &dirs[8];
@@ -363,7 +363,7 @@ TEST(SCNImageDriver, readTile_interleaved_channels)
         std::dynamic_pointer_cast<slideio::SCNScene>(slide->getAuxImage("Macro"));
     ASSERT_FALSE(scene == nullptr);
     slideio::SCNReadContext context(filePath);
-    SCNTileUserData data;
+    slideio::SCNTileUserData data;
     data.context = &context;
     data.info.channel2ifd[0] = &dirs[0];
     cv::Mat raster;
