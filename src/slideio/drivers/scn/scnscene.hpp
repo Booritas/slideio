@@ -42,6 +42,19 @@ namespace slideio
         TIFFKeeper keeper;
     };
 
+    // What Tiler's methods receive as userData for one call to
+    // readResampledLevelBlockChannelsEx: the per-channel directory map (immutable, shared
+    // across threads) plus the context borrowed for the duration of that one call -- the only
+    // place a TIFF handle enters the read path. Acquired once by the caller and never
+    // re-acquired mid-read; see SCNScene::acquireContext. Declared here, next to
+    // SCNReadContext, rather than file-local to scnscene.cpp, so a white-box test driving
+    // getTileCount/getTileRect/readTile directly can build one that matches the real read path.
+    struct SCNTileUserData
+    {
+        SCNTilingInfo info;
+        SCNReadContext* context = nullptr;
+    };
+
     class SLIDEIO_SCN_EXPORTS SCNScene : public CVScene, public Tiler
     {
     public:
