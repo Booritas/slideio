@@ -3,6 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/imagetools/tifffiles.hpp"
 #include "slideio/imagetools/libtiff.hpp"
+#include "slideio/imagetools/tiffmessagehandler.hpp"
 #include "slideio/core/exceptions.hpp"
 
 slideio::TIFFFiles::TIFFFiles() {
@@ -17,6 +18,11 @@ libtiff::TIFF* slideio::TIFFFiles::getOrOpen(const std::string& filename) {
     if (it != m_openFiles.end()) {
         return it->second.get();
     }
+    // This is the one TIFF open that does not go through TiffTools::openTiffFile,
+    // so it installs the message handlers itself -- otherwise an OME-TIFF opened
+    // without ImageDriverManager::initialize() having run would leave libtiff on
+    // its default handlers, printing raw warnings to stderr. Idempotent.
+    installTiffMessageHandlers();
     libtiff::TIFF* tiff = libtiff::TIFFOpen(filename.c_str(), "r");
     if(tiff) {
 		m_openFileCounter++;

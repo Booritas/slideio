@@ -6,6 +6,7 @@
 #include "slideio/imagetools/imagetools.hpp"
 #include "slideio/core/tools/cvtools.hpp"
 #include "slideio/imagetools/libtiff.hpp"
+#include "slideio/imagetools/tiffmessagehandler.hpp"
 #include "slideio/core/log.hpp"
 #include "slideio/core/tools/endian.hpp"
 #include "slideio/core/tools/tools.hpp"
@@ -290,6 +291,16 @@ std::ostream& slideio::operator<<(std::ostream& os, const TiffDirectory& dir) {
 
 libtiff::TIFF* TiffTools::openTiffFile(const std::string& path, bool readOnly) {
     namespace fs = std::filesystem;
+    // The handlers used to be installed by TIFFKeeper, per object. They are now
+    // installed once, and this is the single funnel every TIFF-family driver
+    // opens through, so installing them here is what keeps libtiff diagnostics
+    // routed to the log for a caller that never went through openSlide():
+    // ImageDriverManager::initialize() is the only other call site, and a test
+    // binary or a C++ embedder using SVSImageDriver (or TiffTools) directly
+    // never reaches it -- libtiff would then print raw warnings to stderr. The
+    // function is call_once-guarded and idempotent, so the per-open cost is one
+    // atomic load.
+    installTiffMessageHandlers();
     libtiff::TIFF* hfile(nullptr);
 #if defined(WIN32)
     std::wstring wsPath = Tools::toWstring(path);
