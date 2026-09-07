@@ -44,6 +44,7 @@ set(TEST_SOURCES
   test_log_macro_collision.cpp
   test_concurrency_contract.cpp
   test_filereader.cpp
+  test_contextpool.cpp
 )
 
 add_executable(${TEST_NAME} ${TEST_SOURCES})
