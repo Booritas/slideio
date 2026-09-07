@@ -128,6 +128,16 @@ namespace slideio
          * of different types in one block.
          */
         virtual void readResampledBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize, const std::vector<int>& channelIndices, cv::OutputArray output);
+        /**
+         * True if two block reads of this scene may run concurrently on
+         * different threads.
+         *
+         * False -- the default -- means the base class serialises block reads
+         * of one scene, as it has always done. A driver returns true only once
+         * every mutable object its read path touches is either per-thread (see
+         * ContextPool) or cursor-free (see FileReader).
+         */
+        virtual bool supportsConcurrentReads() const { return false; }
         /**@brief reads multi-dimensional raster block.
          *
          * @param blockRect : rectangle of the block to be read. The rectangle is represented by cv::Rect structure
@@ -291,6 +301,21 @@ namespace slideio
         std::string m_rawMetadata;
         MetadataFormat m_metadataFormat = MetadataFormat::None;
         MetadataBuilder m_channelAttrs;
+
+        /**
+         * A lock that is engaged only for scenes that do not support
+         * concurrent reads.
+         *
+         * The mutex is not recursive, so nothing called while holding this may
+         * re-enter a locking entry point. In particular the plane callbacks
+         * passed to assemble4DBlock must keep calling the *Ex read variants,
+         * which do not lock.
+         */
+        std::unique_lock<std::mutex> lockIfSerialised() const {
+            return supportsConcurrentReads()
+                       ? std::unique_lock<std::mutex>()
+                       : std::unique_lock<std::mutex>(m_readBlockMutex);
+        }
 
     private:
         /**@brief assembles a 4D block plane by plane.
