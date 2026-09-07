@@ -84,13 +84,30 @@ TEST(FileReader, throwsOnMissingFile) {
 // not from caller constants, so a corrupt file must produce the precise
 // "past the end of" diagnostic rather than an overflow slipping the bounds
 // check and surfacing as an unrelated platform error.
+// EXPECT_THROW alone is not enough here: with the buggy
+// `offset + size > m_size` form, offset + size wraps mod 2^64 to a small
+// number, the bounds check does not fire, the read is issued for real,
+// ReadFile/pread fails at the OS level on the bogus offset, and *that* path
+// also throws slideio::RuntimeError -- just with a different message. So the
+// exception type alone does not distinguish "the bounds check caught it" from
+// "the OS caught it downstream", and only the former is the guarantee this
+// test exists to pin. Assert on the message instead, following the
+// catch-and-inspect-what() pattern established in test_exception.cpp.
 TEST(FileReader, throwsOnOffsetNearUint64Max) {
     const std::string path = writePattern("slideio_fr_overflow.bin", 64);
     slideio::FileReader reader(path);
     std::vector<uint8_t> buffer(8);
     const uint64_t offset = std::numeric_limits<uint64_t>::max() - 4;
-    EXPECT_THROW(reader.readAt(offset, buffer.data(), buffer.size()),
-                 slideio::RuntimeError);
+    bool thrown = false;
+    try {
+        reader.readAt(offset, buffer.data(), buffer.size());
+    }
+    catch (const slideio::RuntimeError& ex) {
+        thrown = true;
+        const std::string message = ex.what();
+        EXPECT_NE(message.find("past the end of"), std::string::npos) << message;
+    }
+    EXPECT_TRUE(thrown);
     std::filesystem::remove(path);
 }
 

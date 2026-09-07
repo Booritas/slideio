@@ -95,11 +95,17 @@ void FileReader::readAt(uint64_t offset, void* dst, size_t size) const {
     // thread exit.
     struct EventHandle {
         HANDLE handle = ::CreateEventW(nullptr, TRUE, FALSE, nullptr);
+        EventHandle() = default;
         ~EventHandle() {
             if (handle) {
                 ::CloseHandle(handle);
             }
         }
+        // Never copied today (it only ever exists as the thread_local below),
+        // but deleted explicitly so a future change can't introduce a double
+        // close via an accidental copy.
+        EventHandle(const EventHandle&) = delete;
+        EventHandle& operator=(const EventHandle&) = delete;
     };
     thread_local EventHandle event;
     if (!event.handle) {
