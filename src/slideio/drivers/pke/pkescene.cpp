@@ -15,10 +15,7 @@ PKEScene::PKEScene(const std::string& filePath, int sceneIndex, const std::strin
     m_resolution(0., 0.),
     m_dataType(slideio::DataType::DT_Unknown),
     m_magnification(0.),
-	m_sceneIndex(sceneIndex),
-    m_contextPool([filePath = m_filePath]() {
-        return std::make_unique<PKEReadContext>(filePath);
-    })
+	m_sceneIndex(sceneIndex)
 {
 }
 
@@ -30,15 +27,12 @@ PKEScene::PKEScene(const std::string& filePath, int sceneIndex, const std::strin
     m_resolution(0., 0.),
     m_dataType(slideio::DataType::DT_Unknown),
     m_magnification(0.),
-    m_sceneIndex(sceneIndex),
-    m_contextPool([filePath = m_filePath]() {
-        return std::make_unique<PKEReadContext>(filePath);
-    })
+    m_sceneIndex(sceneIndex)
 {
     // hFile was opened by the caller while scanning directories, which then handed its
-    // ownership to this constructor. Reads now go through m_contextPool, whose contexts open
-    // their own handles, so this handle is not kept for reading -- it is simply closed here to
-    // avoid leaking the descriptor.
+    // ownership to this constructor. Reads now go through the concrete scene's context pool,
+    // whose contexts open their own handles, so this handle is not kept for reading -- it is
+    // simply closed here to avoid leaking the descriptor.
     TIFFKeeper closer(hFile);
 }
 

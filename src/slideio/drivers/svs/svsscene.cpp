@@ -15,10 +15,7 @@ SVSScene::SVSScene(const std::string& filePath, const std::string& driverId, con
     m_resolution(0., 0.),
     m_dataType(slideio::DataType::DT_Unknown),
     m_magnification(0.),
-    m_sceneIndex(0),
-    m_contextPool([filePath = m_filePath]() {
-        return std::make_unique<SVSReadContext>(filePath);
-    })
+    m_sceneIndex(0)
 {
 }
 
@@ -30,15 +27,12 @@ SVSScene::SVSScene(const std::string& filePath, const std::string& driverId, lib
     m_resolution(0., 0.),
     m_dataType(slideio::DataType::DT_Unknown),
     m_magnification(0.),
-    m_sceneIndex(0),
-    m_contextPool([filePath = m_filePath]() {
-        return std::make_unique<SVSReadContext>(filePath);
-    })
+    m_sceneIndex(0)
 {
     // hFile was opened by the caller while scanning directories (see SVSSlide::openFile /
     // PHTIFFSlide::init), which then handed its ownership to this constructor. Reads now go
-    // through m_contextPool, whose contexts open their own handles, so this handle is not kept
-    // for reading -- it is simply closed here to avoid leaking the descriptor.
+    // through the concrete scene's context pool, whose contexts open their own handles, so this
+    // handle is not kept for reading -- it is simply closed here to avoid leaking the descriptor.
     TIFFKeeper closer(hFile);
 }
 

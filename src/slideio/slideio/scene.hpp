@@ -31,6 +31,11 @@ namespace slideio
     * serialises them internally. Callers that relied on reads of one scene being
     * mutually exclusive in order to protect their own state must take their own
     * lock.
+    *
+    * Lifetime is the caller's responsibility: a Scene or the Slide it came from
+    * must not be destroyed while a read on it is still in flight. Keep the
+    * shared_ptr alive (or join the reader threads) until every read has
+    * returned. The library does not make a close wait for in-flight reads.
     */
     class SLIDEIO_EXPORTS Scene
     {

@@ -30,13 +30,18 @@ namespace
 
 
 PKETiledScene::PKETiledScene(const std::string& filePath, int sceneIndex, const std::string& driverId, const std::string& name,
-                             const std::vector<TiffDirectory>& dirs): PKEScene(filePath, sceneIndex, driverId, name), m_directories(dirs) {
+                             const std::vector<TiffDirectory>& dirs): PKEScene(filePath, sceneIndex, driverId, name),
+    m_directories(dirs), m_contextPool([filePath]() {
+        return std::make_unique<PKEReadContext>(filePath);
+    }) {
     initialize();
 }
 
 PKETiledScene::PKETiledScene(const std::string& filePath, int sceneIndex, const std::string& driverId, libtiff::TIFF* hFile, const std::string& name,
                              const std::vector<slideio::TiffDirectory>& dirs) : PKEScene(filePath, sceneIndex, driverId, hFile, name),
-    m_directories(dirs) {
+    m_directories(dirs), m_contextPool([filePath]() {
+        return std::make_unique<PKEReadContext>(filePath);
+    }) {
     initialize();
 }
 

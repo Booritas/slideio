@@ -85,11 +85,15 @@ namespace slideio
             return m_dataType;
         }
     protected:
-        /// Borrows a handle for the duration of one block read. Acquire once per
-        /// read and pass the context down through userData -- never re-acquire
-        /// mid-read.
-        ContextPool::Borrow acquireContext() { return m_contextPool.acquire(); }
-
+        // The handle pool deliberately lives in the concrete scenes
+        // (SVSTiledScene, SVSSmallScene) rather than here. ~ContextPool blocks
+        // until every borrow is returned, but a member is destroyed in reverse
+        // declaration order and a base's members die after a derived class's --
+        // so a pool declared here would be destroyed only after the derived
+        // state an in-flight readTile is still dereferencing (SVSTiledScene's
+        // m_directories, which the borrowed userData points into) had already
+        // been freed. Declared last in the concrete scene, the pool blocks
+        // first and that state outlives the read.
         std::string m_filePath;
         std::string m_driverId;
         std::string m_name;
@@ -98,8 +102,6 @@ namespace slideio
         double m_magnification;
         DataType m_dataType;
         int m_sceneIndex;
-    private:
-        ContextPool m_contextPool;
     };
 }
 

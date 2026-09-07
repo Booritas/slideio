@@ -18,7 +18,13 @@ SVSSmallScene::SVSSmallScene(const std::string& filePath,
     const TiffDirectory& dir,
     bool auxiliary):
         SVSScene(filePath, driverId, name),
-        m_directory(dir)
+        m_directory(dir),
+        // By value, not `this`: AFISlide::openFile overwrites SVSScene::m_filePath with the
+        // path of the .afi index file after construction, so a factory that read m_filePath
+        // at acquire() time would open the AFI XML as a TIFF.
+        m_contextPool([filePath]() {
+            return std::make_unique<SVSReadContext>(filePath);
+        })
 {
     m_dataType = m_directory.dataType;
 
