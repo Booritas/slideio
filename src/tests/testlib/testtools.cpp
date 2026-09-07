@@ -4,6 +4,7 @@
 
 #include <atomic>
 #include <cmath>
+#include <cstring>
 #include <codecvt>
 #include <fstream>
 #include <numeric>
@@ -527,12 +528,65 @@ void TestTools::multiThreadedTest(const std::string& filePath, slideio::ImageDri
     }
 }
 
+namespace
+{
+    // Byte-exact and NaN-safe. cv::norm(a, b, NORM_INF) returns NaN when the
+    // data contains NaN, and NaN != 0.0 is true, so a float scene with
+    // legitimate NaNs -- CZI Gray32/Gray64 -- reported a mismatch even when the
+    // two reads returned the same bytes. Comparing the bytes is what "the
+    // concurrent read returned the same data" actually means, and it stays
+    // exact for integer data.
+    bool rastersAreByteIdentical(const cv::Mat& left, const cv::Mat& right) {
+        if (left.size() != right.size() || left.type() != right.type()) {
+            return false;
+        }
+        const size_t rowBytes = static_cast<size_t>(left.cols) * left.elemSize();
+        for (int row = 0; row < left.rows; ++row) {
+            if (std::memcmp(left.ptr(row), right.ptr(row), rowBytes) != 0) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // The channel list the given entry shape reads with. Empty means "all
+    // channels", which is a different code path in every driver from an
+    // explicit list of all of them.
+    std::vector<int> channelsForPath(TestTools::ConcurrentReadPath path, int numChannels) {
+        switch (path) {
+        case TestTools::ConcurrentReadPath::SingleChannel:
+            return {numChannels - 1};
+        case TestTools::ConcurrentReadPath::ChannelSubset:
+            // Reversed, so the driver cannot pass by reading channels in
+            // storage order. One channel scenes have no subset to take.
+            return numChannels > 1 ? std::vector<int>{numChannels - 1, 0}
+                                   : std::vector<int>{0};
+        case TestTools::ConcurrentReadPath::AllChannels:
+        case TestTools::ConcurrentReadPath::Level:
+        default:
+            return {};
+        }
+    }
+
+    const char* pathName(TestTools::ConcurrentReadPath path) {
+        switch (path) {
+        case TestTools::ConcurrentReadPath::SingleChannel: return "SingleChannel";
+        case TestTools::ConcurrentReadPath::ChannelSubset: return "ChannelSubset";
+        case TestTools::ConcurrentReadPath::Level:         return "Level";
+        case TestTools::ConcurrentReadPath::AllChannels:
+        default:                                           return "AllChannels";
+        }
+    }
+}
+
 void TestTools::concurrentReadIdentityTest(const std::string& filePath,
                                            slideio::ImageDriver& driver,
                                            int sceneIndex,
                                            int numRois,
                                            int numThreads,
-                                           int readsPerThread) {
+                                           int readsPerThread,
+                                           ConcurrentReadPath path) {
+    SCOPED_TRACE(std::string("read path ") + pathName(path));
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide);
     ASSERT_GT(slide->getNumScenes(), sceneIndex);
@@ -564,11 +618,27 @@ void TestTools::concurrentReadIdentityTest(const std::string& filePath,
         rois.emplace_back(cv::Point(sceneRect.x + x, sceneRect.y + y), blockSize);
     }
 
+    const std::vector<int> channels = channelsForPath(path, scene->getNumChannels());
+    // One read through the shape under test. Both the baseline and the threads
+    // go through this, so they cannot drift apart.
+    const auto readOne = [path, &channels, blockSize](slideio::CVScene& target,
+                                                      const cv::Rect& roi,
+                                                      cv::OutputArray output) {
+        if (path == ConcurrentReadPath::Level) {
+            // Level 0 is the scene's own resolution, so the ROI needs no
+            // rescaling and the comparison stays byte-exact.
+            target.readResampledLevelBlockChannels(0, roi, blockSize, channels, output);
+        }
+        else {
+            target.readResampledBlockChannels(roi, blockSize, channels, output);
+        }
+    };
+
     // Baseline, single-threaded. Native size: no resampling, so a mismatch is a
     // read bug and not an interpolation difference.
     std::vector<cv::Mat> baseline(rois.size());
     for (size_t i = 0; i < rois.size(); ++i) {
-        scene->readResampledBlockChannels(rois[i], blockSize, {}, baseline[i]);
+        readOne(*scene, rois[i], baseline[i]);
         ASSERT_FALSE(baseline[i].empty()) << "baseline roi " << i << " came back empty";
     }
 
@@ -588,13 +658,8 @@ void TestTools::concurrentReadIdentityTest(const std::string& filePath,
                     const size_t index = (i + static_cast<size_t>(t)) % rois.size();
                     try {
                         cv::Mat raster;
-                        scene->readResampledBlockChannels(rois[index], blockSize, {}, raster);
-                        if (raster.size() != baseline[index].size()
-                            || raster.type() != baseline[index].type()) {
-                            ++mismatches;
-                            continue;
-                        }
-                        if (cv::norm(raster, baseline[index], cv::NORM_INF) != 0.0) {
+                        readOne(*scene, rois[index], raster);
+                        if (!rastersAreByteIdentical(raster, baseline[index])) {
                             ++mismatches;
                         }
                     }
@@ -613,6 +678,27 @@ void TestTools::concurrentReadIdentityTest(const std::string& filePath,
     EXPECT_EQ(mismatches.load(), 0)
         << "concurrent reads returned different pixels than the single-threaded "
            "baseline -- this is data corruption, not a performance problem";
+}
+
+void TestTools::concurrentReadIdentityTestAllPaths(const std::string& filePath,
+                                                   slideio::ImageDriver& driver,
+                                                   int sceneIndex,
+                                                   int numRois,
+                                                   int numThreads,
+                                                   int readsPerThread) {
+    const ConcurrentReadPath paths[] = {
+        ConcurrentReadPath::AllChannels,
+        ConcurrentReadPath::SingleChannel,
+        ConcurrentReadPath::ChannelSubset,
+        ConcurrentReadPath::Level
+    };
+    for (const ConcurrentReadPath path : paths) {
+        concurrentReadIdentityTest(filePath, driver, sceneIndex, numRois,
+                                   numThreads, readsPerThread, path);
+        if (::testing::Test::HasFatalFailure()) {
+            return;
+        }
+    }
 }
 
 void TestTools::concurrentReadIdentityTestAllScenes(const std::string& filePath,
