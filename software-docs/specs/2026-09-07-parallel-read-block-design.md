@@ -642,15 +642,26 @@ and `readResampledLevelBlock*` paths. Checking only for absent exceptions does
 not test this: `EtsFile::m_buffer` would corrupt tiles while every smoke test
 passed.
 
-**ThreadSanitizer, on Linux CI.** The same stress test built with
-`-fsanitize=thread` under clang, as a Linux CI job. TSan finds `m_buffer` on
-the first run; review may not.
+**ThreadSanitizer, split by what CI can reach.** The mechanism-level suites --
+`FileReader.*` and `ContextPool.*` -- run under ThreadSanitizer on every push
+(`tsan-linux` in `build-validation.yml`); they need no slide corpus and cover
+the code where a generic concurrency bug like `m_buffer` would live. The
+per-driver byte-exactness tests above need the corpus, which CI does not
+carry, and `CLAUDE.md` requires CI to leave `SLIDEIO_SKIP_MISSING_IMAGES`
+unset, so a corpus-less run of those tests would fail rather than skip and
+cannot run there. They must instead be run under ThreadSanitizer on a machine
+with the corpus before each driver's opt-in commit merges:
+
+    CXXFLAGS="-fsanitize=thread -g -O1" CFLAGS="-fsanitize=thread -g -O1" \
+    LDFLAGS="-fsanitize=thread" python install.py -a install -c release -bd build-tsan
+    ./build-tsan/release/bin/slideio_tests --gtest_filter="*concurrentReads*"
 
 This gate has a platform gap that is stated rather than implied: **MSVC has no
 ThreadSanitizer**, so Windows — the primary development platform — gets the
 byte-exactness test only. Anything found by TSan is found on Linux. The
-implication for sequencing is that the Linux sanitizer job must be green before
-a driver's opt-in commit merges, not after the last driver lands.
+implication for sequencing is unchanged: the per-driver ThreadSanitizer run
+above must be green before a driver's opt-in commit merges, not after the last
+driver lands -- it is a required local/manual step, since CI cannot carry it.
 
 **Lifetime.** A test that closes a `Slide` while 16 reader threads are mid-read
 and then asserts the file can be deleted (`std::filesystem::remove` succeeds on

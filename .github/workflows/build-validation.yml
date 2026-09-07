@@ -94,6 +94,66 @@ jobs:
       - name: Build
         run: python install.py -a build-only -c release
 
+  tsan-linux:
+    name: ThreadSanitizer (Linux)
+    runs-on: ubuntu-latest
+
+    # Mechanism-level suites only (FileReader.*, ContextPool.*): they need no
+    # slide corpus. The per-driver byte-exactness tests need the corpus, which
+    # CI does not carry, and CLAUDE.md requires CI to leave
+    # SLIDEIO_SKIP_MISSING_IMAGES unset, so a corpus-less run of those would
+    # fail here rather than skip. They instead run under ThreadSanitizer on a
+    # machine with the corpus before each driver's opt-in commit merges (see
+    # software-docs/specs/2026-09-07-parallel-read-block-design.md, §6).
+    #
+    # CXXFLAGS/CFLAGS/LDFLAGS are set at job level so they reach both the
+    # compile and link steps of the CMake build below. Conan's own
+    # dependencies (OpenCV, libtiff, etc.) are prebuilt binaries and are NOT
+    # instrumented -- TSan will miss races inside them but still catches races
+    # in slideio's own code, which is what these two suites exercise.
+    env:
+      SLIDEIO_HOME: ${{ github.workspace }}
+      CXXFLAGS: -fsanitize=thread -g -O1
+      CFLAGS: -fsanitize=thread -g -O1
+      LDFLAGS: -fsanitize=thread
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # extern/jpegxrcodec supplies the JPEG XR codec; without it the
+          # CMake configure step stops with a FATAL_ERROR.
+          submodules: true
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install Python dependencies
+        run: pip install conan distro
+
+      - name: Sync toolchain
+        run: python sync-toolchain.py
+
+      - name: Cache Conan packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.conan2
+          key: conan-tsan-ubuntu-${{ hashFiles('src/**/conanfile.py', 'conanfile.txt', 'conan/**') }}
+          restore-keys: |
+            conan-tsan-ubuntu-
+
+      - name: Conan install
+        run: python install.py -a conan -c release
+
+      - name: CMake configure
+        run: python install.py -a configure-only -c release
+
+      - name: Build
+        run: python install.py -a build-only -c release
+
+      - name: FileReader and ContextPool under ThreadSanitizer
+        run: ./build/release/bin/slideio_tests --gtest_filter="FileReader.*:ContextPool.*"
+
   build-windows:
     name: Windows
     runs-on: windows-2022
