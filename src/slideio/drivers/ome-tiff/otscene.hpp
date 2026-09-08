@@ -85,6 +85,7 @@ namespace slideio
             const TiffData& getTiffData(int index) const { return m_tiffData[index]; }
             double getZSliceResolution() const override { return m_zResolution; }
             double getTFrameResolution() const override { return m_tResolution; }
+            bool supportsConcurrentReads() const override { return true; }
         private:
             void extractImagePyramids();
             void initialize();
