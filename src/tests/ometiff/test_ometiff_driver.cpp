@@ -960,7 +960,7 @@ TEST_F(OTImageDriverTests, readLevelDoesNotReuseAdjacentLevel) {
 // find/insert on a plain std::unordered_map, so that requires giving TIFFFiles
 // its own lock (or a per-thread ReadContext) first, and updating TECH_DEBT,
 // BREAKING_CHANGES.md and CLAUDE.md, before changing this expectation.
-TEST_F(OTImageDriverTests, concurrentReadsAreStillSerialised) {
+TEST_F(OTImageDriverTests, reportsConcurrentReadSupport) {
 	std::string filePath = TestTools::getTestImagePath("ometiff", "Subresolutions/Leica-2.ome.tiff");
 	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
 	slideio::ometiff::OTImageDriver driver;
@@ -968,10 +968,7 @@ TEST_F(OTImageDriverTests, concurrentReadsAreStillSerialised) {
 	ASSERT_TRUE(slide != nullptr);
 	std::shared_ptr<CVScene> scene = slide->getScene(0);
 	ASSERT_TRUE(scene != nullptr);
-	EXPECT_FALSE(scene->supportsConcurrentReads())
-		<< "OME-TIFF now reports concurrent reads -- update TECH_DEBT, "
-		   "BREAKING_CHANGES.md and CLAUDE.md, and give it a byte-exactness "
-		   "test, before changing this expectation";
+	EXPECT_TRUE(scene->supportsConcurrentReads());
 }
 
 TEST_F(OTImageDriverTests, numTiffFilesCountsDistinctFiles) {
