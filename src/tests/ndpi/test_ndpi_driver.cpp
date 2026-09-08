@@ -1,4 +1,6 @@
-﻿#include <random>
+﻿#include <atomic>
+#include <random>
+#include <thread>
 #include <gtest/gtest.h>
 #include "slideio/drivers/ndpi/ndpitifftools.hpp"
 #include "tests/testlib/testtools.hpp"
@@ -11,7 +13,6 @@
 #include "slideio/drivers/ndpi/ndpiscene.hpp"
 #include "slideio/imagetools/imagetools.hpp"
 #include "slideio/core/tools/tools.hpp"
-#include "slideio/drivers/ndpi/ndpitiffmessagehandler.hpp"
 #include "slideio/slideio/slideio.hpp"
 
 namespace slideio
@@ -24,15 +25,6 @@ protected:
     static void SetUpTestSuite() {
         slideio::ImageDriverManager::setLogLevel("ERROR");
     }
-    // Swaps libtiff's process-global error and warning handlers for the duration of
-    // each test: warnings reach SLIDEIO_LOG and errors raise instead of printing to
-    // stderr. Deliberately referenced by no test -- it is pure RAII, and it mirrors
-    // what the driver installs at its own entry points (ndpiimagedriver.cpp:26,
-    // ndpiscene.cpp:132). Tests going through NDPIFile or NDPITIFFKeeper get a handler
-    // from the keeper anyway; this one covers the tests that call NDPITiffTools
-    // directly. Do not delete it as unused -- see TECH_DEBT.md section 1 problem 6,
-    // where this class sat dead for exactly that reason.
-    slideio::NDPITIFFMessageHandler m_messageHandler;
 };
 
 TEST_F(NDPIImageDriverTests, openFile)
@@ -621,4 +613,108 @@ TEST_F(NDPIImageDriverTests, readLevelDoesNotEscalateToACoarserLevel)
     cv::absdiff(resampledFine, coarseNative, diff);
     const double maxAbsDiff = cv::norm(diff, cv::NORM_INF);
     EXPECT_LT(0., maxAbsDiff);
+}
+
+TEST_F(NDPIImageDriverTests, concurrentReadsAreByteIdentical) {
+    std::string filePath = TestTools::getTestImagePath("hamamatsu", "DM0014 - 2020-04-02 11.10.47.ndpi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::NDPIImageDriver driver;
+    TestTools::concurrentReadIdentityTest(filePath, driver);
+}
+
+TEST_F(NDPIImageDriverTests, reportsConcurrentReadSupport) {
+    std::string filePath = TestTools::getTestImagePath("hamamatsu", "DM0014 - 2020-04-02 11.10.47.ndpi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::NDPIImageDriver driver;
+    auto slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide);
+    auto scene = slide->getScene(0);
+    ASSERT_TRUE(scene);
+    EXPECT_TRUE(scene->supportsConcurrentReads());
+}
+
+// Scenes of one NDPI file share the pool, so opening a second scene must not
+// double the descriptor count.
+// A sequential read from every scene proves nothing here: a per-scene pool would pass
+// identically, since nothing would observe pool identity or descriptor count, and
+// DM0014's 3 scenes (main + macro + map aux images) are nowhere near enough to exhaust
+// descriptors even duplicated. So this drives concurrency through the main scene ONLY
+// -- the aux scene (a DIFFERENT NDPIScene reached through the same NDPIFile) is never
+// read at all -- and then compares NDPIFile::contextCount() / NDPIScene::contextCount()
+// as read via each scene. Under the real (shared) design this is not a coincidence: both
+// calls read the size of the literal same ContextPool, so whatever the main scene's
+// traffic grows it to, the aux scene reports identically, having read nothing itself.
+// Under a per-scene pool, the aux scene's own pool would never have been constructed at
+// all (0 contexts) while the main scene's grew from its own traffic -- so the two would
+// differ. Unlike comparing two DIFFERENT thread counts against each other (which this
+// test used to do), this does not rely on ContextPool::defaultMax() being large enough
+// for two different concurrency levels to actually diverge: it holds even when
+// defaultMax() == 1, because "never touched, so never constructed" (0) still differs
+// from "touched at least once" (>= 1) regardless of the cap.
+TEST_F(NDPIImageDriverTests, scenesOfOneFileShareTheHandlePool) {
+    std::string filePath = TestTools::getTestImagePath("hamamatsu", "DM0014 - 2020-04-02 11.10.47.ndpi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::NDPIImageDriver driver;
+    auto slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide);
+
+    auto mainScene = std::dynamic_pointer_cast<slideio::NDPIScene>(slide->getScene(0));
+    ASSERT_TRUE(mainScene);
+    const auto& auxNames = slide->getAuxImageNames();
+    ASSERT_FALSE(auxNames.empty()) << "test needs a second scene of the same file";
+    auto auxScene = std::dynamic_pointer_cast<slideio::NDPIScene>(slide->getAuxImage(auxNames.front()));
+    ASSERT_TRUE(auxScene);
+
+    // init() itself already borrowed the pool once (to validate the file eagerly, then
+    // again inside scanFile()/readDirectoryJpegHeaders), but always one context at a
+    // time, so the pool never had to grow past 1 before any scene was read.
+    EXPECT_EQ(1, mainScene->contextCount());
+
+    const int mainThreads = 6;
+    std::atomic<int> readyCount{0};
+    std::atomic<bool> go{false};
+    // gtest assertion macros are not safe to call off the main test thread -- a failure
+    // recorded from a worker can be corrupted or silently lost. So, following the shape
+    // TestTools::concurrentReadIdentityTest already uses, workers record outcomes into
+    // atomics only; every assertion below happens on the main thread after join().
+    std::atomic<int> emptyCount{0};
+    std::atomic<int> exceptionCount{0};
+    std::vector<std::thread> threads;
+    threads.reserve(mainThreads);
+    for (int i = 0; i < mainThreads; ++i) {
+        threads.emplace_back([&, mainScene]() {
+            ++readyCount;
+            while (!go.load()) { std::this_thread::yield(); }
+            try {
+                const cv::Rect rect = mainScene->getRect();
+                const cv::Size size(std::min(64, rect.width), std::min(64, rect.height));
+                cv::Mat raster;
+                mainScene->readResampledBlockChannels(cv::Rect(rect.x, rect.y, size.width, size.height),
+                                                      size, {}, raster);
+                if (raster.empty()) {
+                    ++emptyCount;
+                }
+            } catch (const std::exception&) {
+                ++exceptionCount;
+            }
+        });
+    }
+    // Every thread waits here until all mainThreads have started, so the reads genuinely
+    // overlap instead of merely happening to interleave by scheduling luck.
+    while (readyCount.load() < mainThreads) { std::this_thread::yield(); }
+    go = true;
+    for (auto& t : threads) {
+        t.join();
+    }
+    EXPECT_EQ(0, emptyCount.load());
+    EXPECT_EQ(0, exceptionCount.load());
+
+    const int mainCount = mainScene->contextCount();
+    const int auxCount = auxScene->contextCount();
+    EXPECT_GT(mainCount, 0);
+    EXPECT_LE(mainCount, slideio::ContextPool::defaultMax());
+    EXPECT_EQ(mainCount, auxCount)
+        << "the auxiliary image reported a different pool size than the main scene "
+           "despite never having been read itself -- the handle pool is not actually "
+           "shared per file";
 }

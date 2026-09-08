@@ -18,6 +18,12 @@ namespace slideio
                 cleanCounter();
         }
     protected:
+        // initializeCounter() and cleanCounter() fire on the 0->1 and 1->0
+        // transitions. Nothing overrides them today, and nothing should use them for
+        // file handle lifecycle: block reads of one scene may now overlap, so the
+        // count oscillates through zero and a driver opening on 0->1 and closing on
+        // 1->0 would reopen the file repeatedly and race a close against another
+        // thread's open. Per-thread read state belongs in a ReadContext.
         virtual void initializeCounter(){};
         virtual void cleanCounter(){};
     private:

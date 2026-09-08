@@ -9,22 +9,18 @@
 using namespace slideio::vsi;
 
 
-VSIStream::VSIStream(std::string& filePath): m_size(-1) {
-#if defined(WIN32)
-    std::wstring filePathW = Tools::toWstring(filePath);
-    m_stream = std::make_unique<std::ifstream>(filePathW, std::ios::binary);
-#else
-    m_stream = std::make_unique<std::ifstream>(filePath, std::ios::binary);
-#endif
+VSIStream::VSIStream(const std::string& filePath)
+    : m_reader(std::make_shared<slideio::FileReader>(filePath)), m_cursor(*m_reader) {
+}
+
+VSIStream::VSIStream(std::shared_ptr<const slideio::FileReader> reader)
+    : m_reader(std::move(reader)), m_cursor(*m_reader) {
 }
 
 std::string VSIStream::readString(size_t dataSize)
 {
     std::u16string wstr(dataSize + 1, '\0');
-    m_stream->read((char*)wstr.data(), dataSize);
-    if (m_stream->bad()) {
-        RAISE_RUNTIME_ERROR << "VSI driver: error by reading stream";
-    }
+    m_cursor.readBytes((char*)wstr.data(), dataSize);
 	if (!Endian::isLittleEndian()){
         wstr = Endian::u16StringLittleToBig(wstr);
     }
@@ -34,42 +30,24 @@ std::string VSIStream::readString(size_t dataSize)
 
 int64_t VSIStream::getPos() const
 {
-    return m_stream->tellg();
+    return static_cast<int64_t>(m_cursor.pos());
 }
 
 void VSIStream::setPos(int64_t pos)
 {
-    m_stream->seekg(pos);
-    if (m_stream->bad()) {
-        RAISE_RUNTIME_ERROR << "VSI driver: error by setting stream position: " << pos;
-    }
+    m_cursor.setPos(static_cast<uint64_t>(pos));
 }
 
 int64_t VSIStream::getSize()
 {
-    if(m_size<0) {
-        const auto pos = m_stream->tellg();
-        m_stream->seekg(0, std::ios::end);
-        m_size = m_stream->tellg();
-        m_stream->seekg(pos);
-        if (m_stream->bad()) {
-            RAISE_RUNTIME_ERROR << "VSI driver: error by getting stream size";
-        }
-    }
-    return m_size;
+    return static_cast<int64_t>(m_cursor.size());
 }
 
 void VSIStream::skipBytes(uint32_t bytes)
 {
-    m_stream->seekg(bytes, std::ios::cur);
-    if (m_stream->bad()) {
-               RAISE_RUNTIME_ERROR << "VSI driver: error by skipping stream bytes";
-    }
+    m_cursor.skip(bytes);
 }
 
 void VSIStream::readBytes(uint8_t* buffer, uint32_t size) {
-    m_stream->read(reinterpret_cast<char*>(buffer), size);
-    if (m_stream->bad()) {
-        RAISE_RUNTIME_ERROR << "VSI driver: error by reading " << size << " bytes from stream";
-    }
+    m_cursor.readBytes(buffer, size);
 }

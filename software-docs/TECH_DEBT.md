@@ -22,6 +22,11 @@ the work can be picked up later without re-doing the analysis.
 11. [`TransformerScene` has no level table, so transformed scenes cannot be read by level](#11-transformerscene-has-no-level-table-so-transformed-scenes-cannot-be-read-by-level)
 12. [`SCNScene::getChannelDirectories` indexes unchecked, and the 4D level path widens the exposure](#12-scnscenegetchanneldirectories-indexes-unchecked-and-the-4d-level-path-widens-the-exposure)
 13. [`slideio-core`'s export-control define breaks the project naming convention](#13-slideio-cores-export-control-define-breaks-the-project-naming-convention)
+14. [ZVI still serialises every block read](#14-zvi-still-serialises-every-block-read)
+15. [DCM still serialises every block read](#15-dcm-still-serialises-every-block-read)
+16. [GDAL still serialises every block read](#16-gdal-still-serialises-every-block-read)
+17. [OME-TIFF still serialises every block read](#17-ome-tiff-still-serialises-every-block-read)
+18. [CZI rejects a corrupt sub-block position on the main path and tolerates it on the attachment path](#18-czi-rejects-a-corrupt-sub-block-position-on-the-main-path-and-tolerates-it-on-the-attachment-path)
 
 ---
 
@@ -294,32 +299,46 @@ that shares the handle must go through `TIFFKeeper::release()` (or equivalent
 explicit ownership transfer), not a bare `getHandle()` passed to a second
 owner.
 
+**Constraint added 2026-09-07.** SCN scenes now declare concurrent reads
+(`software-docs/specs/2026-09-07-parallel-read-block-design.md` §4.5.1). The
+handle being silently discarded is what makes SCN's auxiliary scenes safe, so
+fixing this must **drop** the argument, not plumb the slide's handle into the
+scene -- the latter would put a shared, unsynchronised `TIFF*` back into a
+driver that advertises concurrency. The code already carries this warning at
+the construction site in `scnslide.cpp`.
+
 ---
 
 ## 4. `CVScene` serialises every block read, and does so inconsistently
 
 **File:** `src/slideio/core/cvscene.cpp`
-**Related:** issue #69, the 2026-08-16 explicit-level-reading plan
-**Status:** Open. Found while adding the level-addressed read path; predates it
-and is out of scope for it.
+**Related:** issue #69, the 2026-08-16 explicit-level-reading plan,
+`software-docs/specs/2026-09-07-parallel-read-block-design.md`
+**Status:** Partially fixed. The `assemble4DBlock` asymmetry is resolved
+outright: both branches now take `lockIfSerialised()`, with the lock scoped to
+the `readPlane` call only in the multi-plane branch. The serialisation itself
+is removed for the scenes of SVS, PHTIFF, AFI, PKE, SCN, NDPI, CZI and VSI.
+Kept open because ZVI, DCM, GDAL and OME-TIFF still serialise every block
+read — see [§14](#14-zvi-still-serialises-every-block-read),
+[§15](#15-dcm-still-serialises-every-block-read),
+[§16](#16-gdal-still-serialises-every-block-read) and
+[§17](#17-ome-tiff-still-serialises-every-block-read).
 
 `CVScene::readResampledBlockChannels` and `readResampledLevelBlockChannels`
-each take `m_readBlockMutex` for the whole read, so no two block reads of one
-scene ever overlap. A tiled viewer fetching tiles from a thread pool — the
-workload issue #69 describes — therefore gets no concurrency from the
-library, and this is likely to dominate whatever the level-addressed read
-path saves it.
+used to each take `m_readBlockMutex` for the whole read, so no two block
+reads of one scene ever overlapped. A tiled viewer fetching tiles from a
+thread pool — the workload issue #69 describes — therefore got no
+concurrency from the library.
 
-Separately, inside `assemble4DBlock` the same mutex is taken in the
-single-plane branch and not in the multi-plane one. That asymmetry predates
-the level API; it was carried over unchanged when the plane loop was
-extracted for 2.9.0, deliberately, so that the extraction stayed
-behaviour-preserving.
-
-Fixing either needs a thread-safety audit of the driver state each `readTile`
-implementation touches — the TIFF handle above all, which several drivers
-share across a whole slide. Out of scope for the level API and recorded here
-so it is not lost.
+The fix: `CVScene::supportsConcurrentReads()` (public virtual, defaulting to
+`false`) says whether a scene's block reads may overlap, and
+`CVScene::lockIfSerialised()` takes `m_readBlockMutex` only for scenes that
+still report `false`. Eight of the twelve formats now override it to `true`,
+having made every mutable object on their read path either cursor-free
+(`FileReader`) or per-thread (`ContextPool`, handing out `ReadContext`
+subclasses one borrower at a time). Measured on the same test and image
+before/after: NDPI 471712 → 68667 ms (6.87×), SVS 21239 → 3820 ms (5.6×), SCN
+16574 → 2978 ms (5.6×).
 
 ---
 
@@ -560,3 +579,156 @@ inside a commit whose reviewability depended on staying mechanical.
 defined by consumers, only by the core target itself — so this is not a breaking
 change and needs no `BREAKING_CHANGES.md` entry. Two-line diff, one full build
 to verify.
+
+---
+
+## 14. ZVI still serialises every block read
+
+**Files:** `src/slideio/drivers/zvi/`
+**Related:** [§4](#4-cvscene-serialises-every-block-read-and-does-so-inconsistently);
+`software-docs/specs/2026-09-07-parallel-read-block-design.md` §3.2
+**Status:** Open, deliberately deferred.
+
+`ZVIScene` returns `false` from `supportsConcurrentReads()`, so the base class
+serialises its reads as it always did. It was deferred because its mutable
+read-path state lives inside vendored OLE code rather than in slideio, and it
+is not in the tiling or converter path.
+
+The work is now bounded: add a `ReadContext` subclass holding an
+`ole::compound_document`. `ZVIScene::m_Doc`, `ZVIUtils::StreamKeeper` and
+`ZVIImageItem::readRaster` share mutable cursors three layers down in that
+vendored OLE code. A per-thread document costs N x the OLE FAT and directory
+parse, which is small for a ZVI in a way it never is for CZI.
+
+The alternative, if this ever matters for throughput: resolve every stream's
+`(offset, length)` once at `init()` and read via `FileReader` thereafter,
+bypassing the vendored OLE reader on the read path entirely. That is faster
+single-threaded too, but it means owning OLE sector chains including the
+mini-FAT for streams under 4096 bytes.
+
+---
+
+## 15. DCM still serialises every block read
+
+**Files:** `src/slideio/drivers/dcm/`
+**Related:** [§4](#4-cvscene-serialises-every-block-read-and-does-so-inconsistently);
+`software-docs/specs/2026-09-07-parallel-read-block-design.md` §3.2
+**Status:** Open, deliberately deferred.
+
+`DCMScene` returns `false` from `supportsConcurrentReads()`, so the base class
+serialises its reads as it always did. It was deferred because its mutable
+read-path state lives inside DCMTK rather than in slideio, and it is not in
+the tiling or converter path.
+
+The work is now bounded: add a `ReadContext` subclass holding a `DCMFile`.
+`DCMFile::readFrame` builds a fresh `DicomImage` per frame from a shared
+`DcmDataset`, and DCMTK's `DcmPixelData` caches decompressed representations
+inside that dataset. N x parse is expensive here, so choose the pool's cap
+accordingly.
+
+The alternative, if this ever matters for throughput: resolve every frame's
+encapsulated-pixel-data offset once at `init()` and read via `FileReader`
+thereafter, bypassing DCMTK on the read path entirely. That is faster
+single-threaded too, but it means owning DICOM encapsulated-pixel-data basic
+offset tables.
+
+---
+
+## 16. GDAL still serialises every block read
+
+**Files:** `src/slideio/drivers/gdal/`
+**Related:** [§4](#4-cvscene-serialises-every-block-read-and-does-so-inconsistently);
+`software-docs/specs/2026-09-07-parallel-read-block-design.md` §3.2
+**Status:** Open, deliberately deferred.
+
+`GDALScene` returns `false` from `supportsConcurrentReads()`, so the base
+class serialises its reads as it always did. It was deferred because its
+mutable read-path state lives inside GDAL rather than in slideio, and it is
+not in the tiling or converter path.
+
+The work is now bounded: add a `ReadContext` subclass holding the GDAL
+dataset. GDAL datasets are not re-entrant, and the driver decodes a whole
+scene per call, so the read granularity wants revisiting at the same time as
+the pool's cap is chosen.
+
+The alternative, if this ever matters for throughput: resolve tile
+`(offset, length)` once at `init()` and read via `FileReader` thereafter,
+bypassing GDAL on the read path entirely. That is faster single-threaded too,
+but it means owning whatever container format the GDAL dataset was
+abstracting.
+
+---
+
+## 17. OME-TIFF still serialises every block read
+
+**Files:** `src/slideio/drivers/ome-tiff/`
+**Related:** [§4](#4-cvscene-serialises-every-block-read-and-does-so-inconsistently);
+`software-docs/specs/2026-09-07-parallel-read-block-design.md` §3.2
+**Status:** Open, deliberately deferred.
+
+`OTScene` returns `false` from `supportsConcurrentReads()`, so the base class
+serialises its reads as it always did. Unlike ZVI, DCM and GDAL, this is a
+**different failure class**, which is why it must not be left to chance:
+`TIFFFiles::getOrOpen` does a `find` followed by an insert into a plain
+`std::unordered_map`. A race there corrupts the container — undefined
+behaviour, not a bad tile.
+
+The work is now bounded: either give `TIFFFiles` its own lock, or move the
+whole map into a per-thread `ReadContext`.
+
+The alternative, if this ever matters for throughput: resolve every tile's
+`(offset, length)` once at `init()` and read via `FileReader` thereafter,
+bypassing `TIFFFiles`/libtiff on the read path entirely. That is faster
+single-threaded too.
+
+---
+
+## 18. CZI rejects a corrupt sub-block position on the main path and tolerates it on the attachment path
+
+**Files:** `src/slideio/drivers/czi/czislide.cpp`
+(`readSubBlocks`, `validateSubBlockFilePosition`, `readAttachments`,
+`addAuxiliaryImage`)
+**Related:** `software-docs/specs/2026-09-07-parallel-read-block-design.md` §4.5.3
+**Status:** Open, deliberately deferred.
+
+One driver now has two different answers to "what does a corrupt file do".
+
+`readSubBlocks` guards each directory entry's `filePosition` with
+`validateSubBlockFilePosition`, which raises `slideio::RuntimeError` on a
+negative value or one that would overflow when added to `originPos`. The call
+sits deliberately *outside* the two `try` blocks around it, because those
+blocks catch `slideio::RuntimeError` — they were widened to it when the driver
+moved off `std::ifstream`, since `FileReader` reports a short read that way —
+and log it as a warning that truncates the sub-block list. A data-integrity
+problem must not be handled like a transient short read, so on the main path
+the corruption fails `CZISlide::init()` hard
+(`CZIImageDriver.subBlockFilePositionOverflowPropagates` covers it).
+
+The attachment path reaches the same validator by a different route.
+`readAttachments` → `addAuxiliaryImage` → `createCZIAttachmentScenes` calls
+`readSubBlocks` with a non-zero `originPos` for a CZI embedded as an
+attachment, and **both** of those callers catch `std::exception&`
+(`czislide.cpp`, the two handlers around `addAuxiliaryImage` and around the
+whole of `readAttachments`). `slideio::RuntimeError` derives from
+`std::exception`, so the guard's throw is swallowed there and logged as
+"Error reading auxiliary image". The result is a slide that opens successfully
+carrying a partially parsed auxiliary image, from a file the main path would
+have rejected outright.
+
+Which behaviour is right is a product decision, not a mechanical one, and that
+is why this is deferred rather than fixed: an unreadable *auxiliary* image is
+arguably not a reason to fail opening the whole slide, whereas an unreadable
+main pyramid clearly is. What is not defensible is that the difference is an
+accident of which `catch` clause the throw happens to meet.
+
+The work, whichever way it is decided:
+
+1. If the attachment path should also reject: narrow those two handlers so
+   they do not catch the integrity error — e.g. give the overflow its own
+   exception type, or validate before the `try`, as `readSubBlocks` does.
+2. If it should keep tolerating: say so at both handlers, and record that an
+   auxiliary image can be dropped from a slide that otherwise opens, so a
+   caller iterating `getAuxImageNames()` knows the list can be silently short.
+
+Either way the two paths should be tested together, so the next widening of a
+`catch` cannot re-open the gap unnoticed.

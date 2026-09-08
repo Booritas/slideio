@@ -28,7 +28,14 @@ namespace slideio
         void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
             const std::vector<int>& channelIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output) override;
     private:
+        ContextPool::Borrow acquireContext() { return m_contextPool.acquire(); }
+
         slideio::TiffDirectory m_directory;
+        // Declared last on purpose, and it must stay last: ~ContextPool blocks
+        // until every borrow is returned, and members die in reverse
+        // declaration order, so the pool has to be destroyed before the
+        // m_directory an in-flight read is still reading from.
+        ContextPool m_contextPool;
     };
 }
 

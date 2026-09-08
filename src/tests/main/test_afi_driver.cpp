@@ -170,6 +170,20 @@ TEST_F(AFIDriverFileTest, multiThreadSceneAccess) {
     TestTools::multiThreadedTest(filePath, driver);
 }
 
+// AFI is advertised as concurrent -- it aggregates SVS slides and its scenes
+// *are* SVS scenes -- but it inherited that with no byte-exactness test of its
+// own, and it only works because SVSTiledScene's pool factory captures the file
+// path by value: AFISlide::openFile overwrites SVSScene::m_filePath with the
+// path of the .afi index file after the scenes are built, so a factory reading
+// m_filePath at acquire() time would open the AFI XML as a TIFF on every read.
+// This is what would catch that.
+TEST_F(AFIDriverFileTest, concurrentReadsAreByteIdentical) {
+    const std::string filePath = getPrivTestImagesPath("afi", "fs.afi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::AFIImageDriver driver;
+    TestTools::concurrentReadIdentityTest(filePath, driver);
+}
+
 TEST_F(AFIDriverFileTest, getDriverId)
 {
     const std::string filePath = getPrivTestImagesPath("afi", "fs.afi");

@@ -47,14 +47,25 @@ namespace slideio
     private:
         void initialize();
         void initializeChannelNames();
-        bool readTiffTile(int tileIndex, int zoomLevel, const std::vector<int>& channelIndices, cv::OutputArray tileRaster);
-        bool readTiffDirectory(const TiffDirectory& dir, const std::vector<int>& channelIndices, cv::OutputArray tileRaster);
+        bool readTiffTile(libtiff::TIFF* hFile, int tileIndex, int zoomLevel, const std::vector<int>& channelIndices, cv::OutputArray tileRaster);
+        bool readTiffDirectory(libtiff::TIFF* hFile, const TiffDirectory& dir, const std::vector<int>& channelIndices, cv::OutputArray tileRaster);
+        /// Borrows a handle for the duration of one block read. Acquire once per
+        /// read and pass the context down through userData -- never re-acquire
+        /// mid-read.
+        ContextPool::Borrow acquireContext() { return m_contextPool.acquire(); }
     private:
         std::vector<slideio::TiffDirectory> m_directories;
         bool m_isUnmixed = false;
         std::vector<int> m_zoomDirectoryIndices;
         int m_numChannels = 0;
         std::vector<std::string> m_channelNames;
+        // Declared last on purpose, and it must stay last. ~ContextPool blocks
+        // until every outstanding borrow is returned, but members are destroyed
+        // in reverse declaration order, so only a pool declared after the
+        // tables above is destroyed *before* the m_directories and
+        // m_zoomDirectoryIndices that an in-flight readTiffTile indexes. A pool
+        // declared in PKEScene would be destroyed after they were already gone.
+        ContextPool m_contextPool;
     };
 }
 

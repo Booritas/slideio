@@ -5,6 +5,9 @@
 
 #include "slideio/drivers/pke/pke_api_def.hpp"
 #include "slideio/core/cvscene.hpp"
+#include "slideio/core/exceptions.hpp"
+#include "slideio/core/tools/contextpool.hpp"
+#include "slideio/core/tools/readcontext.hpp"
 #include "slideio/imagetools/tiffkeeper.hpp"
 #include "slideio/imagetools/tifftools.hpp"
 
@@ -15,6 +18,23 @@
 
 namespace slideio
 {
+    /// One libtiff handle. A fresh handle is cheap here because
+    /// TiffTools::setCurrentDirectory positions with TIFFSetSubDirectory(offset),
+    /// so it jumps straight to the right IFD with no directory walk and no
+    /// re-parse of the pyramid -- a context duplicates the descriptor, not the
+    /// parsed model.
+    class PKEReadContext : public ReadContext
+    {
+    public:
+        explicit PKEReadContext(const std::string& filePath)
+            : keeper(TiffTools::openTiffFile(filePath)) {
+            if (!keeper.isValid()) {
+                RAISE_RUNTIME_ERROR << "PKEImageDriver: cannot open file " << filePath;
+            }
+        }
+        TIFFKeeper keeper;
+    };
+
     class SLIDEIO_PKE_EXPORTS PKEScene : public CVScene
     {
     public:
@@ -28,7 +48,8 @@ namespace slideio
         PKEScene(const std::string& filePath, int sceneIndex, const std::string& driverId, libtiff::TIFF* hFile, const std::string& name);
 
         virtual ~PKEScene();
-        void makeSureFileIsOpened();
+
+        bool supportsConcurrentReads() const override { return true; }
 
         std::string getFilePath() const override {
             return m_filePath;
@@ -54,9 +75,16 @@ namespace slideio
         DataType getChannelDataType(int) const override{
             return m_dataType;
         }
-        libtiff::TIFF* getFileHandle();
 
     protected:
+        // The handle pool deliberately lives in the concrete scenes
+        // (PKETiledScene, PKESmallScene) rather than here. ~ContextPool blocks
+        // until every borrow is returned, but members are destroyed in reverse
+        // declaration order and a base's members die after a derived class's --
+        // so a pool declared here would only block after the derived state an
+        // in-flight read still dereferences (PKETiledScene::m_directories and
+        // m_zoomDirectoryIndices, which readTiffTile indexes) had already been
+        // freed. Declared last in the concrete scene, the pool blocks first.
         std::string m_filePath;
         std::string m_driverId;
         std::string m_name;
@@ -65,8 +93,6 @@ namespace slideio
         double m_magnification;
         DataType m_dataType;
 		int m_sceneIndex;
-    private:
-        TIFFKeeper m_tiffKeeper;
     };
 }
 

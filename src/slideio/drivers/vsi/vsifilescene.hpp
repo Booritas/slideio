@@ -5,7 +5,11 @@
 #include "vsifile.hpp"
 #include "vsiscene.hpp"
 #include "slideio/drivers/vsi/vsi_api_def.hpp"
+#include "slideio/core/exceptions.hpp"
+#include "slideio/core/tools/contextpool.hpp"
+#include "slideio/core/tools/readcontext.hpp"
 #include "slideio/imagetools/tiffkeeper.hpp"
+#include "slideio/imagetools/tifftools.hpp"
 
 
 #if defined(_MSC_VER)
@@ -17,11 +21,33 @@ namespace slideio
 {
     namespace vsi
     {
+        /// One libtiff handle. A fresh handle is cheap here, though not by quite
+        /// the same route as in the pyramid drivers, whose comment this was
+        /// first copied from: they position per tile, while VsiFileScene reads
+        /// one whole directory through TiffTools::readStripedDir -- which
+        /// positions once, via the same setCurrentDirectory(dir) and so the same
+        /// TIFFSetSubDirectory(dir.offset), and then reads every strip. So a
+        /// context costs one TIFFOpen (first IFD only) plus that one seek,
+        /// amortised over a whole-directory read rather than a tile. Either way
+        /// it duplicates the descriptor, not the parsed model.
+        class VsiTiffReadContext : public ReadContext
+        {
+        public:
+            explicit VsiTiffReadContext(const std::string& filePath)
+                : keeper(TiffTools::openTiffFile(filePath)) {
+                if (!keeper.isValid()) {
+                    RAISE_RUNTIME_ERROR << "VSIImageDriver: cannot open file " << filePath;
+                }
+            }
+            TIFFKeeper keeper;
+        };
+
         class SLIDEIO_VSI_EXPORTS VsiFileScene : public VSIScene
         {
         public:
             VsiFileScene(const std::string& filePath, int sceneIndex, const std::string& driverId, std::shared_ptr<VSIFile>& vsiFile, int directoryIndex);
         public:
+            bool supportsConcurrentReads() const override { return true; }
             void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
                 const std::vector<int>& channelIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output) override;
             int getTileCount(void* userData) override;
@@ -30,9 +56,22 @@ namespace slideio
                           void* userData) override;
         protected:
             void init();
+            /// Borrows a handle for the duration of one block read. Acquire once per
+            /// read and pass the context down through userData -- never re-acquire
+            /// mid-read.
+            ContextPool::Borrow acquireContext() { return m_contextPool.acquire(); }
         protected:
             int m_directoryIndex;
-            TIFFKeeper m_tiff;
+        private:
+            // Declared last on purpose, and it must stay last -- the
+            // declaration order is load-bearing, not tidiness. ~ContextPool
+            // blocks until every outstanding borrow is returned, and members are
+            // destroyed in reverse declaration order, so only a pool declared
+            // last is destroyed *before* the state an in-flight read still
+            // reads (m_directoryIndex here, and the base's VSIFile). This is
+            // also the most-derived scene class; a pool in a base class is
+            // destroyed too late to protect derived state (see SVSTiledScene).
+            ContextPool m_contextPool;
         };
     }
 

@@ -12,6 +12,7 @@
 #include "slideio/core/metadata.hpp"
 
 #include <stdint.h>
+#include <filesystem>
 #include <fstream>
 #include <functional>
 #include <numeric>
@@ -615,6 +616,57 @@ TEST(SVSImageDriver, multiThreadSceneAccess) {
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     slideio::SVSImageDriver driver;
     TestTools::multiThreadedTest(filePath, driver);
+}
+
+// The concurrency gate. SVS is still serialised at this point, and that is the
+// point: a correct harness must pass against a serialised driver too, so
+// running it here proves the harness before any driver's behaviour changes.
+TEST(SVSImageDriver, concurrentReadsAreByteIdentical) {
+    const std::string filePath = TestTools::getTestImagePath("svs", "JP2K-33003-1.svs");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::SVSImageDriver driver;
+    TestTools::concurrentReadIdentityTest(filePath, driver);
+}
+
+// The same gate on the other three entry shapes: an explicit single channel, an
+// explicit out-of-order subset, and the level-addressed path. Spec 6 asks for
+// all of them, and they reach per-read state an all-channels 2D read does not.
+TEST(SVSImageDriver, concurrentReadsAreByteIdenticalOnEveryEntryPath) {
+    const std::string filePath = TestTools::getTestImagePath("svs", "JP2K-33003-1.svs");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::SVSImageDriver driver;
+    TestTools::concurrentReadIdentityTestAllPaths(filePath, driver);
+}
+
+TEST(SVSImageDriver, reportsConcurrentReadSupport) {
+    const std::string filePath = TestTools::getTestImagePath("svs", "JP2K-33003-1.svs");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::SVSImageDriver driver;
+    auto slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide);
+    auto scene = slide->getScene(0);
+    ASSERT_TRUE(scene);
+    EXPECT_TRUE(scene->supportsConcurrentReads());
+}
+
+// Closing the slide while readers were active must release every descriptor.
+// On Windows a retained handle shows up as a file that cannot be deleted, which
+// is what isFileHeldOpen checks.
+TEST(SVSImageDriver, closingReleasesEveryDescriptor) {
+    const std::string source = TestTools::getTestImagePath("svs", "JP2K-33003-1.svs");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(source);
+    const std::string copy =
+        (std::filesystem::temp_directory_path() / "slideio_svs_close.svs").string();
+    std::filesystem::copy_file(source, copy,
+                               std::filesystem::copy_options::overwrite_existing);
+    {
+        slideio::SVSImageDriver driver;
+        TestTools::concurrentReadIdentityTest(copy, driver, 0, 4, 8, 2);
+    }
+    EXPECT_FALSE(TestTools::isFileHeldOpen(copy))
+        << "a context's TIFF handle outlived the scene that owned it";
+    std::error_code ignored;
+    std::filesystem::remove(copy, ignored);
 }
 
 TEST(SVSTools, ParseAperioMetadataHeaderOnly)

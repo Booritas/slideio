@@ -19,5 +19,11 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/color_tools.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/color_tools.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/boundedqueue.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/filereader.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/filereader.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/sequentialreader.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/readcontext.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/contextpool.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/contextpool.cpp
    PARENT_SCOPE
    )

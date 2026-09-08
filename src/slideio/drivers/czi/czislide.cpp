@@ -16,6 +16,7 @@
 #include "slideio/core/log.hpp"
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/core/tools/endian.hpp"
+#include "slideio/core/tools/sequentialreader.hpp"
 
 using namespace slideio;
 using namespace tinyxml2;
@@ -25,14 +26,6 @@ static char SID_METADATA[] = "ZISRAWMETADATA";
 static char SID_DIRECTORY[] = "ZISRAWDIRECTORY";
 static char SID_ATTACHMENT_DIR[] = "ZISRAWATTDIR";
 static char SID_ATTACHMENT_CONTENT[] = "ZISRAWATTACH";
-
-namespace {
-    void checkStream(std::ifstream& stream, const char* context) {
-        if (!stream.good()) {
-            RAISE_RUNTIME_ERROR << "CZISlide: failed to read " << context;
-        }
-    }
-}
 
 CZISlide::CZISlide(const std::string& filePath, const std::string& driverId) : m_filePath(filePath), m_resZ(0), m_resT(0), m_magnification(0)
 {
@@ -64,19 +57,10 @@ std::shared_ptr<CVScene> CZISlide::getScene(int index) const
 	return m_scenes[index];
 }
 
-void CZISlide::readBlock(uint64_t pos, uint64_t size, std::vector<unsigned char>& data)
+void CZISlide::readBlock(uint64_t pos, uint64_t size, std::vector<unsigned char>& data) const
 {
-    try
-    {
-        data.resize(size);
-        m_fileStream.seekg(pos, std::ios_base::beg);
-        m_fileStream.read((char*)data.data(), size);
-    }
-    catch(std::exception& ex) {
-        m_fileStream.clear();
-        m_fileStream.seekg(0);
-        throw ex;
-    }
+    data.resize(size);
+    m_reader->readAt(pos, data.data(), size);
 }
 
 std::shared_ptr<CVScene> CZISlide::getAuxImage(const std::string& sceneName) const {
@@ -94,9 +78,9 @@ void CZISlide::readAttachments()
     {
         if (m_attachmentDirectoryPosition > 0)
         {
+            SequentialReader reader(*m_reader, m_attachmentDirectoryPosition);
             AttachmentDirectorySegment attachmentDirectory{};
-            m_fileStream.seekg(m_attachmentDirectoryPosition, std::ios_base::beg);
-            m_fileStream.read((char*)&attachmentDirectory, sizeof(attachmentDirectory));
+            reader.read(attachmentDirectory);
 			updateAttachmentDirectorySegmentBE(attachmentDirectory);
             if (strcmp(attachmentDirectory.header.SID, SID_ATTACHMENT_DIR) == 0) {
                 SLIDEIO_LOG(INFO) << "Reading attachment header. Number of attachments: "
@@ -104,19 +88,16 @@ void CZISlide::readAttachments()
                     << attachmentDirectory.data.entryCount
                     << ")";
                 const int32_t numbAttachments = attachmentDirectory.data.entryCount;
-                std::ifstream::pos_type pos = m_fileStream.tellg();
+                uint64_t pos = reader.pos();
                 for (int attachment = 0; attachment < numbAttachments; ++attachment)
                 {
                     SLIDEIO_LOG(INFO) << "Reading attachment " << attachment << ". Position: " << pos << ".";
-                    m_fileStream.seekg(pos, std::ios_base::beg);
+                    reader.setPos(pos);
                     AttachmentEntry entry{ 0 };
-                    m_fileStream.read(reinterpret_cast<char*>(&entry), sizeof(entry));
+                    reader.read(entry);
 					updateAttachmentEntryBE(entry);
                     SLIDEIO_LOG(INFO) << "Attachment Schema Type:" << entry.schemaType;
                     SLIDEIO_LOG(INFO) << "Attachment Content Type:" << entry.contentFileType;
-                    if (!m_fileStream) {
-                        break;
-                    }
                     if (strcmp(entry.schemaType, "A1") != 0) {
                         break;
                     }
@@ -128,7 +109,6 @@ void CZISlide::readAttachments()
                         }
                         catch(std::exception& err) {
                             SLIDEIO_LOG(WARNING) << "Error reading auxiliary image: " << err.what();
-                            m_fileStream.clear();
                         }
                     }
                     pos += 128;
@@ -138,22 +118,13 @@ void CZISlide::readAttachments()
     }
     catch(std::exception& err) {
         SLIDEIO_LOG(WARNING) << "Error reading attachments: " << err.what();
-        m_fileStream.clear();
     }
 }
 
 void CZISlide::init()
 {
     SLIDEIO_LOG(INFO) << "Slide initialization. File path: " << getFilePath();
-    // read file header
-    m_fileStream.exceptions(std::ios::failbit | std::ios::badbit);
-    auto flags = std::ifstream::in | std::ifstream::binary;
-#if defined(WIN32)
-    std::wstring wsPath = Tools::toWstring(getFilePath());
-    m_fileStream.open(wsPath.c_str(), flags);
-#else
-    m_fileStream.open(m_filePath.c_str(), flags);
-#endif
+    m_reader = std::make_shared<const FileReader>(m_filePath);
     readFileHeader();
     readMetadata();
     readDirectory();
@@ -367,12 +338,10 @@ void CZISlide::processBgrChannelAttributes() {
 
 void CZISlide::readMetadata()
 {
-    // position stream pointer to metadata segment
-    m_fileStream.seekg(m_metadataPosition, std::ios_base::beg);
+    SequentialReader reader(*m_reader, m_metadataPosition);
     // read segment header
     SegmentHeader header{};
-    m_fileStream.read((char*)&header, sizeof(header));
-    checkStream(m_fileStream, "metadata segment header");
+    reader.read(header);
 	updateSegmentHeaderBE(header);
     if (strncmp(header.SID, SID_METADATA, sizeof(SID_METADATA)) != 0)
     {
@@ -380,39 +349,34 @@ void CZISlide::readMetadata()
     }
     // read metadata header
     MetadataHeader metadataHeader{};
-    m_fileStream.read((char*)&metadataHeader, sizeof(metadataHeader));
-    checkStream(m_fileStream, "metadata header");
+    reader.read(metadataHeader);
 	updateMetadataHeaderBE(metadataHeader);
     const uint32_t xmlSize = metadataHeader.xmlSize;;
     std::vector<char> xmlString(xmlSize);
     // read metadata xml
-    m_fileStream.read(xmlString.data(), xmlSize);
-    checkStream(m_fileStream, "metadata XML");
+    reader.readBytes(xmlString.data(), xmlSize);
     m_rawMetadata.assign(xmlString.data(), xmlSize);
     Tools::replaceAll(m_rawMetadata, "\r\n", "\n");
     parseMetadataXmL(xmlString.data(), xmlSize);
 }
 
-void CZISlide::readFileHeader(FileHeader& fileHeader) {
+void CZISlide::readFileHeader(uint64_t pos, FileHeader& fileHeader) {
     fileHeader = {};
-    uint64_t pos = m_fileStream.tellg();
+    SequentialReader reader(*m_reader, pos);
     SegmentHeader header{};
-    m_fileStream.read(reinterpret_cast<char*>(&header), sizeof(header));
-    checkStream(m_fileStream, "file segment header");
+    reader.read(header);
     updateSegmentHeaderBE(header);
     if (strncmp(header.SID, SID_FILES, sizeof(SID_FILES)) != 0) {
         RAISE_RUNTIME_ERROR << "CZIImageDriver:" << m_filePath << " is not a CZI file.";
     }
-    m_fileStream.read(reinterpret_cast<char*>(&fileHeader), sizeof(fileHeader));
-    checkStream(m_fileStream, "file header");
+    reader.read(fileHeader);
 	updateFileHeaderBE(fileHeader);
-	m_fileStream.seekg(pos);
 }
 
 void CZISlide::readFileHeader()
 {
     FileHeader fileHeader;
-    readFileHeader(fileHeader);
+    readFileHeader(0, fileHeader);
     m_directoryPosition = fileHeader.directoryPosition;
     m_metadataPosition = fileHeader.metadataPosition;
     m_attachmentDirectoryPosition = fileHeader.attachmentDirectoryPosition;
@@ -423,52 +387,60 @@ void CZISlide::readSubBlocks(uint64_t directoryPosition, uint64_t originPos, std
         RAISE_RUNTIME_ERROR << "CZISlide::readSubBlocks: file position overflow (directoryPosition="
             << directoryPosition << ", originPos=" << originPos << ")";
     }
-    m_fileStream.seekg(directoryPosition + originPos, std::ios_base::beg);
+    SequentialReader reader(*m_reader, directoryPosition + originPos);
     // read segment header
     SegmentHeader header{};
-    m_fileStream.read(reinterpret_cast<char*>(&header), sizeof(header));
-    checkStream(m_fileStream, "directory segment header");
+    reader.read(header);
     updateSegmentHeaderBE(header);
     if (strncmp(header.SID, SID_DIRECTORY, sizeof(SID_DIRECTORY)) != 0) {
         RAISE_RUNTIME_ERROR << "CZIImageDriver: invalid directory segment of file " << m_filePath;
     }
     DirectoryHeader directoryHeader{};
-    m_fileStream.read(reinterpret_cast<char*>(&directoryHeader), sizeof(directoryHeader));
-    checkStream(m_fileStream, "directory header");
+    reader.read(directoryHeader);
 	updateDirectoryHeaderBE(directoryHeader);
     std::map<uint64_t, int> sceneMap;
-    auto filePos = m_fileStream.tellg();
+    uint64_t filePos = reader.pos();
     for (unsigned int entry = 0; entry < directoryHeader.entryCount; ++entry)
     {
+        CZISubBlock block;
+        DirectoryEntryDV entryHeader{};
+        std::vector<DimensionEntryDV> dimensions;
         try
         {
-            CZISubBlock block;
-            DirectoryEntryDV entryHeader{};
-            m_fileStream.seekg(filePos);
-            m_fileStream.read(reinterpret_cast<char*>(&entryHeader), sizeof(entryHeader));
-            checkStream(m_fileStream, "directory entry header");
+            reader.setPos(filePos);
+            reader.read(entryHeader);
 			updateDirectoryEntryBE(entryHeader);
-            std::vector<DimensionEntryDV> dimensions(entryHeader.dimensionCount);
+            dimensions.resize(entryHeader.dimensionCount);
             for (int dim = 0; dim < entryHeader.dimensionCount; ++dim)
             {
                 DimensionEntryDV& dimEntry = dimensions[dim];
-                m_fileStream.read(reinterpret_cast<char*>(&dimEntry), sizeof(dimEntry));
+                reader.read(dimEntry);
 				updateDimensionEntryBE(dimEntry);
             }
-            filePos = m_fileStream.tellg();
-            if (entryHeader.filePosition < 0 ||
-                static_cast<uint64_t>(entryHeader.filePosition) > UINT64_MAX - originPos) {
-                RAISE_RUNTIME_ERROR << "CZISlide::readSubBlocks: sub-block file position overflow (filePosition="
-                    << entryHeader.filePosition << ", originPos=" << originPos << ")";
-            }
-            m_fileStream.seekg(static_cast<uint64_t>(entryHeader.filePosition) + originPos);
+            filePos = reader.pos();
+        }
+        catch (const slideio::RuntimeError&)
+        {
+            SLIDEIO_LOG(WARNING) << "Error by reading of subblocks of the file " << getFilePath() << "." << std::endl;
+            break;
+        }
+
+        // Deliberately outside the try/catch blocks: entryHeader.filePosition comes
+        // straight from the file, and a corrupt value here is a data-integrity
+        // problem, not a transient short read. It must fail CZISlide::init() hard,
+        // not be logged as a warning and silently truncate the parsed sub-block
+        // list the way a genuine short/failed read (caught above and below) does.
+        // See CZIImageDriver.subBlockFilePositionOverflowPropagates.
+        validateSubBlockFilePosition(entryHeader.filePosition, originPos);
+
+        try
+        {
+            reader.setPos(static_cast<uint64_t>(entryHeader.filePosition) + originPos);
             SegmentHeader segmentHeader;
-            m_fileStream.read((char*)&segmentHeader, sizeof(segmentHeader));
-            checkStream(m_fileStream, "sub-block segment header");
+            reader.read(segmentHeader);
 			updateSegmentHeaderBE(segmentHeader);
             SubBlockHeader subblockHeader;
-            m_fileStream.read((char*)&subblockHeader, sizeof(subblockHeader));
-            checkStream(m_fileStream, "sub-block header");
+            reader.read(subblockHeader);
 			updateSublockHeaderBE(subblockHeader);
             subblockHeader.direEntry.filePosition += originPos;
             block.setupBlock(subblockHeader, dimensions);
@@ -494,11 +466,20 @@ void CZISlide::readSubBlocks(uint64_t directoryPosition, uint64_t originPos, std
                 sceneBlocks[sceneIndex].push_back(block);
             }
         }
-        catch (const std::ios_base::failure&)
+        catch (const slideio::RuntimeError&)
         {
             SLIDEIO_LOG(WARNING) << "Error by reading of subblocks of the file " << getFilePath() << "." << std::endl;
             break;
         }
+    }
+}
+
+void CZISlide::validateSubBlockFilePosition(int64_t filePosition, uint64_t originPos)
+{
+    if (filePosition < 0 ||
+        static_cast<uint64_t>(filePosition) > UINT64_MAX - originPos) {
+        RAISE_RUNTIME_ERROR << "CZISlide::readSubBlocks: sub-block file position overflow (filePosition="
+            << filePosition << ", originPos=" << originPos << ")";
     }
 }
 
@@ -598,9 +579,9 @@ void CZISlide::parseSizes(tinyxml2::XMLNode* root)
 void CZISlide::addAuxiliaryImage(const std::string& name, const std::string& typeName, int64_t position)
 {
     SLIDEIO_LOG(INFO) << "Reading Auxiliary Image:" << name << ".Type: " << typeName << ".Position: " << position;
-    m_fileStream.seekg(position, std::ios_base::beg);
+    SequentialReader reader(*m_reader, position);
     AttachmentSegment attachmentSegment;
-    m_fileStream.read(reinterpret_cast<char*>(&attachmentSegment), sizeof(attachmentSegment));
+    reader.read(attachmentSegment);
 	updateAttachmentSegmentBE(attachmentSegment);
     if (strcmp(attachmentSegment.header.SID, SID_ATTACHMENT_CONTENT) == 0)
     {
@@ -621,9 +602,8 @@ void CZISlide::addAuxiliaryImage(const std::string& name, const std::string& typ
 void CZISlide::createCZIAttachmentScenes(const int64_t dataPos, int64_t dataSize, const std::string& attachmentName)
 {
     const int64_t fileOrigin = dataPos + sizeof(SegmentHeader);
-    m_fileStream.seekg(fileOrigin);
     FileHeader fileHeader{};
-    readFileHeader(fileHeader);
+    readFileHeader(fileOrigin, fileHeader);
     std::vector<CZISubBlocks> sceneBlocks;
     std::vector<uint64_t> sceneIds;
     readSubBlocks(fileHeader.directoryPosition, fileOrigin, sceneBlocks, sceneIds);
