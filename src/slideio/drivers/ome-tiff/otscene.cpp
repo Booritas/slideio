@@ -5,6 +5,7 @@
 #include "slideio/drivers/ome-tiff/otscene.hpp"
 
 #include <filesystem>
+#include <set>
 
 #include "slideio/imagetools/tifftools.hpp"
 #include "slideio/drivers/ome-tiff/ottools.hpp"
@@ -27,10 +28,12 @@ struct BlockInfo
     int zSliceIndex = -1;
     int tFrameIndex = -1;
 	std::vector<int> tiffDataIndices;
+    OTReadContext* context = nullptr;
 };
 
 
-OTScene::OTScene(const ImageData& imageData, int sceneIndex, const std::string& driverId) {
+OTScene::OTScene(const ImageData& imageData, int sceneIndex, const std::string& driverId)
+    : m_contextPool([]() { return std::make_unique<OTReadContext>(); }) {
     m_imageXml = imageData.imageXml;
     m_imageDoc = imageData.doc;
     m_imageId = imageData.imageId;
@@ -85,7 +88,7 @@ void OTScene::extractMagnificationFromMetadata() {
 	SLIDEIO_LOG(INFO) << "OTScene: Magnification extracted: " << m_magnification;
 }
 
-void OTScene::extractTiffData(tinyxml2::XMLElement* pixels) {
+void OTScene::extractTiffData(tinyxml2::XMLElement* pixels, TIFFFiles& files) {
 	SLIDEIO_LOG(INFO) << "OTScene: Extracting TiffData from xml metadata for image: " << m_imageId;
 
     for (tinyxml2::XMLElement* xmlTiffData = pixels->FirstChildElement("TiffData");
@@ -93,7 +96,7 @@ void OTScene::extractTiffData(tinyxml2::XMLElement* pixels) {
          xmlTiffData = xmlTiffData->NextSiblingElement("TiffData")) {
         try {
             TiffData tiffData;
-            tiffData.init(m_filePath, &m_files, m_dimensionOrder, m_numChannels, m_numZSlices, m_numTFrames, xmlTiffData);
+            tiffData.init(m_filePath, files, m_dimensionOrder, m_numChannels, m_numZSlices, m_numTFrames, xmlTiffData);
             m_tiffData.push_back(tiffData);
         }
         catch (std::exception& e) {
@@ -228,7 +231,8 @@ void OTScene::initialize() {
 	}
 
     extractImageIndex();
-    extractTiffData(pixels);
+    auto borrow = acquireContext();
+    extractTiffData(pixels, borrow.as<OTReadContext>().files);
     extractMagnificationFromMetadata();
     initializeChannelAttributes(pixels);
 
@@ -312,6 +316,14 @@ int OTScene::getNumTFrames() const {
     return m_numTFrames;
 }
 
+int OTScene::getNumTiffFiles() const {
+    std::set<std::string> paths;
+    for (const TiffData& tiffData : m_tiffData) {
+        paths.insert(tiffData.getFilePath());
+    }
+    return static_cast<int>(paths.size());
+}
+
 
 cv::Rect OTScene::getRect() const {
     return {cv::Point(0, 0), m_imageSize};
@@ -383,10 +395,11 @@ void OTScene::readResampledLevelBlockChannelsEx(int level, const cv::Rect& level
                                                 const cv::Size& blockSize,
                                                 const std::vector<int>& componentIndices,
                                                 int zSliceIndex, int tFrameIndex, cv::OutputArray output) {
+    auto borrow = acquireContext();
     validateLevel(level);
     auto channelIndices = Tools::completeChannelList(componentIndices, m_numChannels);
     const LevelInfo& levelInfo = m_levels[level];
-    BlockInfo blockInfo = {&levelInfo, zSliceIndex, tFrameIndex, {}};
+    BlockInfo blockInfo = {&levelInfo, zSliceIndex, tFrameIndex, {}, &borrow.as<OTReadContext>()};
     collectTiffDataIndices(channelIndices, zSliceIndex, tFrameIndex, blockInfo.tiffDataIndices);
     TileComposer::composeRect(this, channelIndices, levelRect, blockSize, output, (void*)&blockInfo);
 }
@@ -406,9 +419,10 @@ bool OTScene::readTile(int tileIndex, const std::vector<int>& channelIndices, cv
         RAISE_RUNTIME_ERROR << "OMETIFF driver: invalid tile index: " << tileIndex << " of " << tileCount;
     }
 	std::vector<cv::Mat> channelRasters(channelIndices.size());
+	TIFFFiles& files = blockInfo->context->files;
 	for (int index : blockInfo->tiffDataIndices) {
 		const auto& tiffData = m_tiffData[index];
-		tiffData.readTile(channelIndices, zSlice, tFrame, zoomLevel, tileIndex, channelRasters);
+		tiffData.readTile(channelIndices, zSlice, tFrame, zoomLevel, tileIndex, files, channelRasters);
 	}
     int channel = 0;
 	for (const cv::Mat& channelRaster : channelRasters) {

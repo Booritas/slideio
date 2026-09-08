@@ -16,7 +16,7 @@
 using namespace slideio;
 using namespace slideio::ometiff;
 
-void TiffData::init(const std::string& filePath, TIFFFiles* files, const std::string& dimOrder, int numChannels, int numZSlices, int numTFrames, tinyxml2::XMLElement* xmlTiffData) {
+void TiffData::init(const std::string& filePath, TIFFFiles& files, const std::string& dimOrder, int numChannels, int numZSlices, int numTFrames, tinyxml2::XMLElement* xmlTiffData) {
 
     m_filePath = filePath;
     const std::string directoryPath = std::filesystem::path(filePath).parent_path().string();
@@ -26,9 +26,6 @@ void TiffData::init(const std::string& filePath, TIFFFiles* files, const std::st
 	}
 	if (directoryPath.empty()) {
 		RAISE_RUNTIME_ERROR << "TiffData: Unexpected empty directory path";
-	}
-	if (files == nullptr) {
-		RAISE_RUNTIME_ERROR << "TiffData: Unexpected TIFFFiles collection is null";
 	}
     int firstChannel = xmlTiffData->IntAttribute("FirstC", 0);
     int firstZSlice = xmlTiffData->IntAttribute("FirstZ", 0);
@@ -53,13 +50,13 @@ void TiffData::init(const std::string& filePath, TIFFFiles* files, const std::st
         ? m_filePath
         : std::filesystem::path(directoryPath).append(fileNameAttr).string();
 
-    m_tiff = files->getOrOpen(m_filePath);
-    if (!m_tiff) {
-        RAISE_RUNTIME_ERROR << "OTScene: cannot open file " << m_filePath << " with libtiff";
-    }
+    // Opened here, and dropped again -- the handle is not cached. init() needs
+    // one to scan the directories; the read path resolves its own from the
+    // borrowed context's collection.
+    libtiff::TIFF* tiff = files.getOrOpen(m_filePath);
     m_directories.resize(m_planeCount);
     for (int plane = 0; plane < m_planeCount; ++plane) {
-        TiffTools::scanTiffDir(m_tiff, m_firstIFD + plane, 0, m_directories[plane]);
+        TiffTools::scanTiffDir(tiff, m_firstIFD + plane, 0, m_directories[plane]);
     }
 	const TiffDirectory& mainDir = m_directories[0];
 	m_dimensions.init(dimOrder, numChannels, numZSlices, numTFrames, mainDir.channels);
@@ -111,7 +108,7 @@ const TiffDirectory& TiffData::getTiffDirectory(int plane) const {
 
 
 void TiffData::readTile(const std::vector<int>& channelIndices, int zSlice, int tFrame, int zoomLevel,
-    int tileIndex, std::vector<cv::Mat>& rasters) const {
+    int tileIndex, TIFFFiles& files, std::vector<cv::Mat>& rasters) const {
 
     // Filter channel indices that are in the range of TiffData
     std::vector<int> myChannelIndices;
@@ -137,6 +134,7 @@ void TiffData::readTile(const std::vector<int>& channelIndices, int zSlice, int 
         int globalChannel = channelIndices[index];
         globalChannelToChannelOrder[globalChannel] = index;
     }
+    libtiff::TIFF* tiff = files.getOrOpen(m_filePath);
     for (int plane = 0; plane < m_planeCount; ++plane) {
         if (coords[zIndex] != zSlice || coords[tIndex] != tFrame) {
             m_dimensions.incrementCoordinates(coords);
@@ -145,7 +143,7 @@ void TiffData::readTile(const std::vector<int>& channelIndices, int zSlice, int 
 
         const TiffDirectory& dir = (zoomLevel == 0) ? m_directories[plane] : m_directories[plane].subdirectories[zoomLevel - 1];
         cv::Mat localRaster;
-        readTileChannels(dir, tileIndex, localChannelIndices, localRaster);
+        readTileChannels(dir, tileIndex, localChannelIndices, tiff, localRaster);
 
         for (int localChannelIndex : localChannelIndices) {
             int globChannel = coords[cIndex] + localChannelIndex;
@@ -172,13 +170,14 @@ void TiffData::readTile(const std::vector<int>& channelIndices, int zSlice, int 
 }
 
 
-void TiffData::readTileChannels(const TiffDirectory& dir, int tileIndex, const std::vector<int>& channelIndices, cv::OutputArray raster) const {
+void TiffData::readTileChannels(const TiffDirectory& dir, int tileIndex, const std::vector<int>& channelIndices,
+                                libtiff::TIFF* tiff, cv::OutputArray raster) const {
     if (dir.tiled) {
-        TiffTools::readTile(m_tiff, dir, tileIndex, channelIndices, raster);
+        TiffTools::readTile(tiff, dir, tileIndex, channelIndices, raster);
     }
     else if (tileIndex == 0) {
 		cv::Mat dirRaster;
-        TiffTools::readStripedDir(m_tiff, dir, dirRaster);
+        TiffTools::readStripedDir(tiff, dir, dirRaster);
         if (static_cast<int>(channelIndices.size()) == 1 && dirRaster.channels()==1 && channelIndices[0] == 0) {
             raster.assign(dirRaster);
         }
