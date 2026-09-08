@@ -329,10 +329,18 @@ ROI, then has 16 threads read every ROI repeatedly and compares **every** read
 byte-for-byte. Run it on:
 
 - a single-file scene (`Subresolutions/Leica-2.ome.tiff` or `retina_large`), and
-- **`Multifile/multifile-Z1.ome.tiff`** — not optional. Multi-file is the case
-  this design is shaped around, and a single-file scene exercises exactly one
-  `getOrOpen` per context, which would leave the collection's whole reason for
-  existing untested.
+- **`tubhiswt-4D/tubhiswt_C0_TP0.ome.tif`** — not optional, and the case this design is
+  shaped around. Channel-split across 86 files (2 channels x 43 timepoints), so an
+  all-channels read resolves two different files *within a single read*. That is the only
+  shape that exercises the collection rather than a single handle.
+- **`Multifile/multifile-Z1.ome.tiff`** — retained, but it does **not** test multi-file
+  access in any form. This scene is 1 channel, 18x24 px, with one `TiffData` per z-slice,
+  and `concurrentReadIdentityTest` reads only z=0/t=0 (`readResampledBlockChannels` and
+  `readResampledLevelBlockChannels` both pass a literal `0, 0` — `cvscene.cpp:49`, `:289`).
+  So every read resolves the `FirstZ="0"` entry, which lives in the file the slide was
+  opened from; `multifile-Z2..Z5` are never opened. What it covers is concurrent identical
+  reads on a scene small enough to hit the harness's `max(16, ...)` block-size floor, plus
+  the `AllScenes` path.
 
 Use the all-paths variants added by the parallel-read-block fix wave, so
 channel subsets and the level-addressed entry point are covered as well as the
