@@ -973,3 +973,18 @@ TEST_F(OTImageDriverTests, concurrentReadsAreStillSerialised) {
 		   "BREAKING_CHANGES.md and CLAUDE.md, and give it a byte-exactness "
 		   "test, before changing this expectation";
 }
+
+TEST_F(OTImageDriverTests, numTiffFilesCountsDistinctFiles) {
+	std::string filePath = TestTools::getTestImagePath("ometiff", "Multifile/multifile-Z1.ome.tiff");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+	OTImageDriver driver;
+	std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
+	ASSERT_TRUE(slide);
+	std::shared_ptr<CVScene> scene = slide->getScene(0);
+	ASSERT_TRUE(scene);
+	std::shared_ptr<OTScene> otScene = std::static_pointer_cast<OTScene>(scene);
+	// A multi-file dataset: more than one distinct file, and no more distinct
+	// files than TiffData elements.
+	EXPECT_GT(otScene->getNumTiffFiles(), 1);
+	EXPECT_LE(otScene->getNumTiffFiles(), otScene->getNumTiffDataItems());
+}
