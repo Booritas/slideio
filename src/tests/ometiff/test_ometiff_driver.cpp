@@ -1011,8 +1011,11 @@ TEST_F(OTImageDriverTests, concurrentReadsAreByteIdenticalMultifile) {
 	std::string filePath = TestTools::getTestImagePath("ometiff", "Multifile/multifile-Z1.ome.tiff");
 	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
 	OTImageDriver driver;
-	// The case this design exists for: one read can span several TiffData that
-	// name different files, so each context must hold a collection of handles
-	// rather than one. A single-file scene never exercises that.
+	// Not a cross-file read, despite the dataset: concurrentReadIdentityTest reads only
+	// z=0/t=0 (readResampledBlockChannels fixes both -- cvscene.cpp:49), and this scene's
+	// z=0 plane lives in the very file the slide was opened from, so multifile-Z2..Z5 are
+	// never touched here. What this does cover is concurrent identical reads on a tiny
+	// 18x24 scene, where blockSize hits the harness's max(16, ...) floor, plus the
+	// AllScenes path. The read that genuinely spans two files is the tubhiswt test above.
 	TestTools::concurrentReadIdentityTestAllScenes(filePath, driver);
 }
