@@ -996,3 +996,23 @@ TEST_F(OTImageDriverTests, concurrentReadsAreByteIdentical) {
 	// level-addressed path is a separate entry point that acquires its own borrow.
 	TestTools::concurrentReadIdentityTestAllPaths(filePath, driver);
 }
+
+TEST_F(OTImageDriverTests, concurrentReadsAreByteIdenticalAcrossFilesInOneRead) {
+	std::string filePath = TestTools::getTestImagePath("ometiff", "tubhiswt-4D/tubhiswt_C0_TP0.ome.tif");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+	OTImageDriver driver;
+	// Channel-split dataset: channel 0 and channel 1 live in DIFFERENT files, so an
+	// all-channels read spans two files within one read. This is what OTReadContext's
+	// TIFFFiles collection exists for; a single-file scene never exercises it.
+	TestTools::concurrentReadIdentityTestAllPaths(filePath, driver);
+}
+
+TEST_F(OTImageDriverTests, concurrentReadsAreByteIdenticalMultifile) {
+	std::string filePath = TestTools::getTestImagePath("ometiff", "Multifile/multifile-Z1.ome.tiff");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+	OTImageDriver driver;
+	// The case this design exists for: one read can span several TiffData that
+	// name different files, so each context must hold a collection of handles
+	// rather than one. A single-file scene never exercises that.
+	TestTools::concurrentReadIdentityTestAllScenes(filePath, driver);
+}
