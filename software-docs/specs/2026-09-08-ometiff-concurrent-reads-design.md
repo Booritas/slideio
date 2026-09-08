@@ -443,7 +443,14 @@ The concurrency-contract bullet lists the concurrent formats; add OME-TIFF.
 - **OME-TIFF read granularity.** `readTileChannels` reads a whole striped
   directory when `dir.tiled` is false, and rejects any `tileIndex != 0` there.
   That shapes how much work one "tile" is, and it interacts with throughput,
-  but it is orthogonal to whether two reads can overlap.
+  but it is orthogonal to whether two reads can overlap. A second, compounding
+  cause: `OTScene::collectTiffDataIndices` (`otscene.cpp:368-377`) pushes a
+  matching `TiffData` index once per matching channel, with no `break`, so a
+  `TiffData` covering an interleaved 3-channel plane is pushed three times and
+  `readTile` reads it three times over. Both are pre-existing, not introduced
+  by this change -- `collectTiffDataIndices` is byte-identical to its version
+  at the branch point `c6a7f7d7` -- and stay out of scope: they are on the read
+  path and changing either needs its own re-validation.
 - **The per-tile allocations** in `OTScene::readTile` (`channelRasters`) and
   `TiffData::readTile` (`localRaster`, per-channel `cv::extractChannel`
   copies). Real, and the kind of thing the read-batch analysis measured

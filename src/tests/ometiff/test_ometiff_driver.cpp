@@ -954,12 +954,13 @@ TEST_F(OTImageDriverTests, readLevelDoesNotReuseAdjacentLevel) {
 
 // The OME-TIFF half of the concurrency-contract coverage (see
 // src/tests/main/test_concurrency_contract.cpp): OTImageDriver is not linked into
-// slideio_tests, so its assertion that the driver still reports the safe,
-// serialised default lives here instead. If this ever fails, it means an earlier
-// change opted OME-TIFF into concurrent reads -- TIFFFiles::getOrOpen races a
-// find/insert on a plain std::unordered_map, so that requires giving TIFFFiles
-// its own lock (or a per-thread ReadContext) first, and updating TECH_DEBT,
-// BREAKING_CHANGES.md and CLAUDE.md, before changing this expectation.
+// slideio_tests, so this assertion lives here instead. OME-TIFF reports concurrent
+// reads because TiffData no longer caches a shared libtiff::TIFF*: each read borrows
+// an OTReadContext holding its own TIFFFiles collection. If this ever fails,
+// something reverted that isolation -- restore it rather than putting a lock on
+// TIFFFiles, which would protect the map while still handing the same handle to two
+// threads. See TECH_DEBT.md section 17 and
+// software-docs/specs/2026-09-08-ometiff-concurrent-reads-design.md section 2.
 TEST_F(OTImageDriverTests, reportsConcurrentReadSupport) {
 	std::string filePath = TestTools::getTestImagePath("ometiff", "Subresolutions/Leica-2.ome.tiff");
 	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
@@ -980,10 +981,11 @@ TEST_F(OTImageDriverTests, numTiffFilesCountsDistinctFiles) {
 	std::shared_ptr<CVScene> scene = slide->getScene(0);
 	ASSERT_TRUE(scene);
 	std::shared_ptr<OTScene> otScene = std::static_pointer_cast<OTScene>(scene);
-	// A multi-file dataset: more than one distinct file, and no more distinct
-	// files than TiffData elements.
+	// A multi-file dataset: more than one distinct file, and the fixture's
+	// known distinct-file count exactly (multifile-Z1.ome.tiff is backed by
+	// multifile-Z1..Z5).
 	EXPECT_GT(otScene->getNumTiffFiles(), 1);
-	EXPECT_LE(otScene->getNumTiffFiles(), otScene->getNumTiffDataItems());
+	EXPECT_EQ(5, otScene->getNumTiffFiles());
 }
 
 TEST_F(OTImageDriverTests, concurrentReadsAreByteIdentical) {

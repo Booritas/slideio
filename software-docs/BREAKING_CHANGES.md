@@ -159,6 +159,26 @@ dropping) between that check and the first read. Still a real change for any
 caller that wrapped scene construction, rather than the first read, in a
 try/catch to detect an unopenable file.
 
+### OME-TIFF: `getOrOpen` now runs at read time too, not only at construction
+
+**Module:** `slideio-ometiff`
+**File:** `src/slideio/drivers/ome-tiff/tiffdata.cpp`
+
+Before this branch, `TiffData::init` opened every member file up front via
+`TIFFFiles::getOrOpen` and cached the handle for the scene's lifetime, so a
+file that was later unlinked did not affect an already-open scene: every read
+kept succeeding. Making OME-TIFF reads concurrent moved the file collection
+into a per-read context borrowed from a `ContextPool`, and `TiffData::readTile`
+now calls `getOrOpen` again on each read to resolve a handle from that
+context's collection.
+
+This changes failure timing under file removal, not data correctness: if a
+member file is unlinked after the slide is opened, a read whose context has
+already opened that file keeps reading the warm handle (POSIX unlink
+semantics), while a read whose context has not yet opened it now throws where
+it previously would have succeeded, because there is no longer a
+scene-lifetime cache to fall back on.
+
 ### `slideio-base` was merged into `slideio-core`
 
 **Modules:** `slideio-base` (removed), `slideio-core` (exported: `SLIDEIO_CORE_EXPORTS`)
