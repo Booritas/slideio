@@ -25,7 +25,7 @@ the work can be picked up later without re-doing the analysis.
 14. [ZVI still serialises every block read](#14-zvi-still-serialises-every-block-read)
 15. [DCM still serialises every block read](#15-dcm-still-serialises-every-block-read)
 16. [GDAL still serialises every block read](#16-gdal-still-serialises-every-block-read)
-17. [OME-TIFF still serialises every block read](#17-ome-tiff-still-serialises-every-block-read)
+17. [OME-TIFF now reports concurrent reads (resolved)](#17-ome-tiff-now-reports-concurrent-reads-resolved)
 18. [CZI rejects a corrupt sub-block position on the main path and tolerates it on the attachment path](#18-czi-rejects-a-corrupt-sub-block-position-on-the-main-path-and-tolerates-it-on-the-attachment-path)
 
 ---
@@ -317,12 +317,12 @@ the construction site in `scnslide.cpp`.
 **Status:** Partially fixed. The `assemble4DBlock` asymmetry is resolved
 outright: both branches now take `lockIfSerialised()`, with the lock scoped to
 the `readPlane` call only in the multi-plane branch. The serialisation itself
-is removed for the scenes of SVS, PHTIFF, AFI, PKE, SCN, NDPI, CZI and VSI.
-Kept open because ZVI, DCM, GDAL and OME-TIFF still serialise every block
+is removed for the scenes of SVS, PHTIFF, AFI, PKE, SCN, NDPI, CZI, VSI and
+OME-TIFF (see [§17](#17-ome-tiff-now-reports-concurrent-reads-resolved)).
+Kept open because ZVI, DCM and GDAL still serialise every block
 read — see [§14](#14-zvi-still-serialises-every-block-read),
-[§15](#15-dcm-still-serialises-every-block-read),
-[§16](#16-gdal-still-serialises-every-block-read) and
-[§17](#17-ome-tiff-still-serialises-every-block-read).
+[§15](#15-dcm-still-serialises-every-block-read) and
+[§16](#16-gdal-still-serialises-every-block-read).
 
 `CVScene::readResampledBlockChannels` and `readResampledLevelBlockChannels`
 used to each take `m_readBlockMutex` for the whole read, so no two block
@@ -333,7 +333,7 @@ concurrency from the library.
 The fix: `CVScene::supportsConcurrentReads()` (public virtual, defaulting to
 `false`) says whether a scene's block reads may overlap, and
 `CVScene::lockIfSerialised()` takes `m_readBlockMutex` only for scenes that
-still report `false`. Eight of the twelve formats now override it to `true`,
+still report `false`. Nine of the twelve formats now override it to `true`,
 having made every mutable object on their read path either cursor-free
 (`FileReader`) or per-thread (`ContextPool`, handing out `ReadContext`
 subclasses one borrower at a time). Measured on the same test and image
@@ -623,8 +623,13 @@ the tiling or converter path.
 The work is now bounded: add a `ReadContext` subclass holding a `DCMFile`.
 `DCMFile::readFrame` builds a fresh `DicomImage` per frame from a shared
 `DcmDataset`, and DCMTK's `DcmPixelData` caches decompressed representations
-inside that dataset. N x parse is expensive here, so choose the pool's cap
-accordingly.
+inside that dataset. `DCMFile::createImage` constructs the `DicomImage` as
+`DicomImage(dataset, xfer, CIF_UsePartialAccessToPixelData, firstFrame,
+numFrames)`, and `CIF_UsePartialAccessToPixelData` is precisely the flag that
+makes DCMTK retain partial pixel-data state inside that shared `DcmDataset`
+between `DicomImage` constructions — which is why per-thread `DCMFile`
+replicas are the only route there. N x parse is expensive here, so choose the
+pool's cap accordingly.
 
 The alternative, if this ever matters for throughput: resolve every frame's
 encapsulated-pixel-data offset once at `init()` and read via `FileReader`
@@ -643,43 +648,57 @@ offset tables.
 
 `GDALScene` returns `false` from `supportsConcurrentReads()`, so the base
 class serialises its reads as it always did. It was deferred because its
-mutable read-path state lives inside GDAL rather than in slideio, and it is
-not in the tiling or converter path.
+mutable read-path state lives inside FreeImage rather than in slideio, and it
+is not in the tiling or converter path.
 
-The work is now bounded: add a `ReadContext` subclass holding the GDAL
-dataset. GDAL datasets are not re-entrant, and the driver decodes a whole
-scene per call, so the read granularity wants revisiting at the same time as
-the pool's cap is chosen.
+**That driver contains no GDAL.** `GDALScene::m_imagePage` is a
+`SmallImagePage*` (`gdalscene.hpp:42`), obtained from `GDALSlide`'s
+`m_image->readPage(...)` (`gdalslide.cpp:22`) where `m_image` is a
+`SmallImage`. The only implementation of `SmallImagePage` in the tree is
+`FIWrapper::Page` (`fiwrapper.hpp:25`), and `fiwrapper.hpp` includes
+`<FreeImage.h>`. A tree-wide search for `GDALOpen`, `gdal_priv` and
+`GDALAllRegister` returns nothing.
+
+The work is now bounded: add a `ReadContext` subclass holding whatever
+`FIWrapper`/`FIWrapper::Page` state the read path shares. The real question is
+FreeImage's thread-safety — its plugin registry and `FreeImage_Initialise` are
+process-global — plus whatever mutable state `FIWrapper` and `FIWrapper::Page`
+hold, so the read granularity wants revisiting at the same time as the pool's
+cap is chosen.
 
 The alternative, if this ever matters for throughput: resolve tile
 `(offset, length)` once at `init()` and read via `FileReader` thereafter,
-bypassing GDAL on the read path entirely. That is faster single-threaded too,
-but it means owning whatever container format the GDAL dataset was
+bypassing FreeImage on the read path entirely. That is faster single-threaded
+too, but it means owning whatever container format `FIWrapper` was
 abstracting.
 
 ---
 
-## 17. OME-TIFF still serialises every block read
+## 17. OME-TIFF now reports concurrent reads (resolved)
 
 **Files:** `src/slideio/drivers/ome-tiff/`
 **Related:** [§4](#4-cvscene-serialises-every-block-read-and-does-so-inconsistently);
-`software-docs/specs/2026-09-07-parallel-read-block-design.md` §3.2
-**Status:** Open, deliberately deferred.
+`software-docs/specs/2026-09-07-parallel-read-block-design.md` §3.2;
+`software-docs/specs/2026-09-08-ometiff-concurrent-reads-design.md`
+**Status:** Resolved. `OTScene` now reports `supportsConcurrentReads() ==
+true`.
 
-`OTScene` returns `false` from `supportsConcurrentReads()`, so the base class
-serialises its reads as it always did. Unlike ZVI, DCM and GDAL, this is a
-**different failure class**, which is why it must not be left to chance:
-`TIFFFiles::getOrOpen` does a `find` followed by an insert into a plain
-`std::unordered_map`. A race there corrupts the container — undefined
-behaviour, not a bad tile.
+This entry originally claimed `TIFFFiles::getOrOpen` raced on the read path
+and called OME-TIFF "a different failure class" from ZVI, DCM and GDAL. Both
+were wrong: `getOrOpen`'s only caller was `TiffData::init` at construction, so
+the map was never touched by a read and there was no container race. The
+entry's first suggested fix — "give `TIFFFiles` its own lock" — would not have
+worked either, since a lock protects the map while leaving the handles it
+hands out shared. The real blocker was `TiffData::m_tiff`, a raw
+`libtiff::TIFF*` cached during `init` and shared by every `TiffData` naming
+the same file — the ordinary single-handle blocker SVS, PHTIFF, PKE, SCN and
+NDPI each had.
 
-The work is now bounded: either give `TIFFFiles` its own lock, or move the
-whole map into a per-thread `ReadContext`.
-
-The alternative, if this ever matters for throughput: resolve every tile's
-`(offset, length)` once at `init()` and read via `FileReader` thereafter,
-bypassing `TIFFFiles`/libtiff on the read path entirely. That is faster
-single-threaded too.
+The fix moved `TIFFFiles` off `OTScene` and into a per-thread `OTReadContext`
+held by a `ContextPool`, one collection per context rather than one handle,
+because a single tile read can span several `TiffData` naming different
+files. See `software-docs/specs/2026-09-08-ometiff-concurrent-reads-design.md`
+for the full design and its verification.
 
 ---
 

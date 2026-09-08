@@ -16,15 +16,41 @@ by branch.
 
 Reads of one `Scene` were thread-safe and fully serialised: no two block reads
 of one scene ever ran at the same time. For the scenes of SVS, PHTIFF, AFI,
-PKE, SCN, NDPI, CZI and VSI they now run concurrently. ZVI, DCM, GDAL and
-OME-TIFF are unchanged; `CVScene::supportsConcurrentReads()` reports which
-applies.
+PKE, SCN, NDPI, CZI, VSI and OME-TIFF they now run concurrently — nine of the
+twelve formats. ZVI, DCM and GDAL are unchanged;
+`CVScene::supportsConcurrentReads()` reports which applies. See
+`software-docs/specs/2026-09-08-ometiff-concurrent-reads-design.md` for the
+OME-TIFF conversion specifically.
 
 No signatures changed and there is no source or binary incompatibility. The
 break is behavioural: code that relied on reads of one scene being mutually
 exclusive in order to protect **its own** state must now take its own lock.
 
 See `software-docs/specs/2026-09-07-parallel-read-block-design.md`.
+
+**Outstanding, required before this ships, not eventual.** Two gaps in what
+was actually verified for OME-TIFF, recorded here because this entry is what
+turns the eight-format claim into a nine-format one:
+
+- **No ThreadSanitizer run exists for `slideio_ometiff_tests`.** MSVC has no
+  TSan and there is no Linux build on this machine, so — as with the eight
+  formats converted before it — the byte-exactness gates carried the weight
+  locally. The `tsan-linux` CI job added by the parallel-read-block work
+  covers only the mechanism-level suites (`FileReader.*` and
+  `ContextPool.*`); it does not run `slideio_ometiff_tests`, and cannot,
+  because that suite needs the image corpus CI does not carry. A Linux TSan
+  run of `slideio_ometiff_tests` is a required gate before this ships, not a
+  follow-up.
+- **The concurrent-read harness proves cross-file-in-one-read only for
+  channel-split slides.** `TestTools::concurrentReadIdentityTest` reads only
+  z=0/t=0, because `CVScene::readResampledBlockChannels` and
+  `readResampledLevelBlockChannels` both pass a literal `0, 0`
+  (`cvscene.cpp:49`, `:289`). That is exercised for OME-TIFF via the
+  channel-split `tubhiswt-4D` fixture; slides that split files by **z or t**
+  instead — `Multifile/multifile-Z1..Z5` is exactly that shape — have **no**
+  concurrent-read gate at all. Closing this needs `TestTools` extended to vary
+  z/t, which changes the harness all nine concurrent drivers share, so it
+  belongs in its own change with all nine suites re-run.
 
 ### The classes and members the concurrent-read work removed or changed
 
@@ -75,6 +101,10 @@ to the concrete scene class and there is no public equivalent.
 | `vsi::VSIStream::VSIStream` | `slideio-vsi` | `VSIStream(std::string&)` → `VSIStream(const std::string&)`, plus a new `VSIStream(std::shared_ptr<const FileReader>)` overload |
 | `CZISlide::readFileHeader` | `slideio-czi` | `readFileHeader(FileHeader&)` → `readFileHeader(uint64_t pos, FileHeader&)` |
 | `CZISlide::readBlock` | `slideio-czi` | became `const` |
+| `ometiff::TiffData::init` | `slideio-ometiff` | `init(filePath, TIFFFiles*, ...)` → `init(filePath, TIFFFiles&, ...)` |
+| `ometiff::TiffData::readTile` | `slideio-ometiff` | gained a `TIFFFiles&` parameter before `rasters` |
+| `ometiff::TiffData::readTileChannels` | `slideio-ometiff` | gained a `libtiff::TIFF*` parameter before `raster` |
+| `OTScene::getNumTiffFiles()` | `slideio-ometiff` | unchanged signature, changed meaning: was "handles currently open" (the scene's shared map), is now "distinct files referenced" (counted from `m_tiffData`'s paths) |
 
 The `EtsReadContext&` parameters are the scratch buffer that used to be a
 member of `EtsFile` — a member that two concurrent tile reads would have
@@ -83,19 +113,32 @@ The `VSIStream` change is incidental (the old constructor took a non-const
 reference to a string it did not modify, so it could not be called with a
 temporary or a `const std::string`).
 
+The `TiffData`/`OTScene` changes are OME-TIFF's version of the same shape:
+`TIFFFiles`, formerly a single map owned by the scene (`OTScene::m_files`),
+is now a collection held per-thread inside an `OTReadContext` borrowed from a
+`ContextPool`, because one tile read can span several `TiffData` naming
+different files. `TiffData::init` already raised on a null pointer, so taking
+a reference removes a check rather than adding a risk. See
+`software-docs/specs/2026-09-08-ometiff-concurrent-reads-design.md` §4.
+
 **ABI/layout breaks.** These change the size of a type, so anything holding one
-**by value** must be recompiled, not merely relinked. Neither type changed its
-public interface:
+**by value** must be recompiled, not merely relinked. None of the three types
+changed its public interface:
 
 | Type | Module | Change |
 |---|---|---|
 | `TIFFKeeper` | `slideio-imagetools` | lost `std::shared_ptr<TIFFMessageHandler> m_messageHandler` |
 | `NDPITIFFKeeper` | `slideio-ndpi` | lost `std::unique_ptr<NDPITIFFMessageHandler> m_messageHandler` |
+| `ometiff::OTScene` | `slideio-ometiff` | lost `TIFFFiles m_files`, gained a `ContextPool` member |
 
-Both members existed to scope a handler swap per keeper, which is what §4.4 of
-the design removed. A caller that holds either by value, or embeds one in a
-type of its own, sees a smaller object; a caller that only calls methods
-through a pointer or reference is unaffected at source level but still needs a
+Both `TIFFKeeper`/`NDPITIFFKeeper` members existed to scope a handler swap per
+keeper, which is what §4.4 of the design removed. `OTScene::m_files` moved to
+a per-thread `OTReadContext` for the same reason every other converted driver
+moved its scene-owned handle into a context: a shared `libtiff::TIFF*` cannot
+survive concurrent reads. A caller that holds any of these three types by
+value, or embeds one in a type of its own, sees a differently-sized object; a
+caller that only calls methods through a pointer or reference is unaffected
+at source level but still needs a
 matching build.
 
 ### `VsiFileScene` now throws on an unopenable file at first read, not construction

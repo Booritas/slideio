@@ -109,7 +109,7 @@ Each driver in `src/slideio/drivers/<format>/` is an independent shared library 
   delete after closing the slide. (`FileReader` keeps one `thread_local` event
   object on the Windows read path, and `tempfile.cpp` two for random names;
   neither holds file state.) Concurrent today: SVS, PHTIFF, AFI, PKE, SCN,
-  NDPI, CZI, VSI.
+  NDPI, CZI, VSI, OME-TIFF.
 - **Library naming**: `slideio-<module>` with `_d` suffix for debug builds
 
 ### Source Layout
