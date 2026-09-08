@@ -245,11 +245,24 @@ check rather than adding a risk.
 
 Two consequences worth having deliberately:
 
-- **Every referenced file is still opened and validated at construction.** An
-  unopenable or non-TIFF member file still fails `openSlide`, not the first
-  read. The `VsiFileScene` conversion moved that timing and it had to be
-  recorded in `BREAKING_CHANGES.md`; here it does not move, because `init`
-  needs handles anyway.
+- **Every referenced file is still opened at construction, so nothing about
+  failure timing or behaviour moves.** Be precise about what that behaviour
+  actually is, because it is easy to assume: `extractTiffData` wraps each
+  `TiffData::init` in a per-element `catch (std::exception&)` that logs a
+  warning and skips that element. So an unopenable or non-TIFF member file does
+  **not** fail `openSlide` today — the scene is built without that element.
+  This design neither improves nor worsens that; `init` still opens every file
+  at construction, and a failure is still a warning and a skipped element. The
+  point of using a local borrow in `init` is precisely that this stays
+  unchanged: the `VsiFileScene` conversion moved its failure timing from
+  construction to first read and had to record it in `BREAKING_CHANGES.md`,
+  and here nothing moves.
+
+  That per-element tolerance is a soft failure on malformed input, the same
+  shape as the CZI attachment-path asymmetry recorded in `TECH_DEBT.md` during
+  the parallel-read-block work. It is pre-existing, orthogonal to concurrency,
+  and out of scope here — noted only so a reader of this section is not misled
+  about what "validated at construction" buys.
 - The borrow is released at the end of `initialize()`, so the context returns
   to the pool with its handles already warm — the first read of that scene on
   that context pays no reopen.
