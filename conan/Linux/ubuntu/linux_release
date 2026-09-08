@@ -1,10 +1,12 @@
+{% set _compiler, _version, _exe = detect_api.detect_default_compiler() %}
+{% set gcc_version = detect_api.default_compiler_version(_compiler, _version) if _compiler == "gcc" else "14" %}
 [settings]
 arch=x86_64
 build_type=Release
 compiler=gcc
 compiler.cppstd=17
 compiler.libcxx=libstdc++11
-compiler.version=14
+compiler.version={{ gcc_version }}
 os=Linux
 [options]
 tinyxml2/*:shared=False
@@ -40,13 +42,20 @@ dcmtk/*:charset_conversion=icu
 icu/*:shared=False
 freeimage/*:with_raw=False
 
-# jxrlib is 2010-era C that conan center has no binary for at this compiler
+# jxrlib is 2010-era C that conan center has no binary for at every compiler
 # version -- it ships gcc 11 and 13 only, and no Debug build for any of them --
-# so it is compiled from source here. GCC 14 turned several long-standing C
-# warnings into errors by default, and jxrlib's jxrtestlib trips two of them.
+# so it is usually compiled from source here. GCC 14 turned several long-standing
+# C warnings into errors by default, and jxrlib's jxrtestlib trips two of them.
 # Demote just those, for just this package: -Wno-error rather than -Wno- keeps
 # the diagnostics visible. Nothing slideio links is affected -- the recipe
 # packages jxrglue and jpegxr, and the code that fails to compile is the test
 # library built alongside them.
+#
+# -Wreturn-mismatch only exists from gcc 14 on -- gcc 13 reports the same thing
+# under -Wreturn-type -- and an unknown warning name in -Wno-error= is a hard
+# error, unlike a bare -Wno-, so passing it to gcc 13 breaks cmake's compiler
+# check before a line of jxrlib is compiled. Hence the version guard, and hence
+# compiler.version being detected at the top of this profile rather than pinned:
+# it has to name the compiler that will actually run.
 [conf]
-jxrlib/*:tools.build:cflags=["-Wno-error=incompatible-pointer-types", "-Wno-error=implicit-function-declaration", "-Wno-error=int-conversion", "-Wno-error=implicit-int", "-Wno-error=return-mismatch"]
+jxrlib/*:tools.build:cflags=["-Wno-error=incompatible-pointer-types", "-Wno-error=implicit-function-declaration", "-Wno-error=int-conversion", "-Wno-error=implicit-int"{% if gcc_version | int >= 14 %}, "-Wno-error=return-mismatch"{% endif %}]
