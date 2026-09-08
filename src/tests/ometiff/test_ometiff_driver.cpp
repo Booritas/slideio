@@ -985,3 +985,14 @@ TEST_F(OTImageDriverTests, numTiffFilesCountsDistinctFiles) {
 	EXPECT_GT(otScene->getNumTiffFiles(), 1);
 	EXPECT_LE(otScene->getNumTiffFiles(), otScene->getNumTiffDataItems());
 }
+
+TEST_F(OTImageDriverTests, concurrentReadsAreByteIdentical) {
+	std::string filePath = TestTools::getTestImagePath("ometiff", "Subresolutions/Leica-2.ome.tiff");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+	OTImageDriver driver;
+	// AllPaths, not the plain variant: OME-TIFF's per-channel logic walks
+	// TiffData coordinate ranges and filters by isInRange, so a channel subset
+	// reaches per-read state an all-channels read never touches -- and the
+	// level-addressed path is a separate entry point that acquires its own borrow.
+	TestTools::concurrentReadIdentityTestAllPaths(filePath, driver);
+}
