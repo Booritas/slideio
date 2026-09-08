@@ -36,11 +36,15 @@ set(TEST_SOURCES
   test_metadata_builder.cpp
   test_tifffiles.cpp
   test_tiffkeeper.cpp
+  test_tiffmessagehandler.cpp
   test_fiwrapper.cpp
   test_channel_attributes.cpp
   test_boundedqueue.cpp
   test_levelreading.cpp
   test_log_macro_collision.cpp
+  test_concurrency_contract.cpp
+  test_filereader.cpp
+  test_contextpool.cpp
 )
 
 add_executable(${TEST_NAME} ${TEST_SOURCES})

@@ -5,6 +5,7 @@
 #include "slideio/drivers/ndpi/ndpitiffmessagehandler.hpp"
 
 #include <cstdarg>
+#include <mutex>
 #include <tiffio.h>
 
 #include "slideio/core/log.hpp"
@@ -63,12 +64,10 @@ void NDPITIFFErrorHandler(const char *module, const char *fmt, va_list ap) {
     }
 }
 
-NDPITIFFMessageHandler::NDPITIFFMessageHandler() {
-    m_oldErrorHandler = (void*)TIFFSetErrorHandler(NDPITIFFErrorHandler);
-    m_oldWarningHandler = (void*)TIFFSetWarningHandler(NDPITIFFWarningHandler);
-}
-
-NDPITIFFMessageHandler::~NDPITIFFMessageHandler() {
-    TIFFSetErrorHandler((TIFFErrorHandler)m_oldErrorHandler);
-    TIFFSetWarningHandler((TIFFErrorHandler)m_oldWarningHandler);
+void slideio::installNDPITiffMessageHandlers() {
+    static std::once_flag flag;
+    std::call_once(flag, []() {
+        TIFFSetErrorHandler(NDPITIFFErrorHandler);
+        TIFFSetWarningHandler(NDPITIFFWarningHandler);
+    });
 }

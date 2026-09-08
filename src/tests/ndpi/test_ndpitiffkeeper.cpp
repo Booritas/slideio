@@ -53,17 +53,13 @@ class NDPITIFFKeeperTests : public ::testing::Test {
 protected:
     static void SetUpTestSuite() {
         ImageDriverManager::setLogLevel("ERROR");
+        // NDPITIFFKeeper no longer installs a handler of its own (see
+        // ndpitiffkeeper.hpp), and these tests never construct an NDPIImageDriver --
+        // the driver's own installation point -- so a run that reaches this suite
+        // first would otherwise open files against libtiff's default handlers and
+        // print raw warnings to stderr instead of routing them through SLIDEIO_LOG.
+        installNDPITiffMessageHandlers();
     }
-    // As in test_ndpitiff_tools.cpp and test_ndpi_driver.cpp: pure RAII over libtiff's
-    // process-global handlers, referenced by no test, and not to be deleted as unused.
-    // It matters more here than there, because of an ordering gap the keeper cannot
-    // close on its own: in "NDPITIFFKeeper keeper(NDPITiffTools::openTiffFile(path))"
-    // the file is opened while evaluating the constructor's argument, so the open
-    // happens before the constructor body installs the keeper's own handler. Without
-    // this member those opens ran against libtiff's defaults, and the fixture's unknown
-    // private tag reached stderr as a raw TIFFReadDirectory warning. With it, the
-    // warning routes through SLIDEIO_LOG and the ERROR level above filters it.
-    NDPITIFFMessageHandler m_messageHandler;
 };
 
 TEST_F(NDPITIFFKeeperTests, destructorClosesTheHandle) {

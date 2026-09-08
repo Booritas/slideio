@@ -18,6 +18,7 @@
 #include "slideio/drivers/pke/pkeimagedriver.hpp"
 #include "slideio/drivers/ome-tiff/otimagedriver.hpp"
 #include "slideio/core/log.hpp"
+#include "slideio/imagetools/tiffmessagehandler.hpp"
 
 using namespace slideio;
 std::map<std::string, std::shared_ptr<ImageDriver>> ImageDriverManager::driverMap;
@@ -63,6 +64,7 @@ void ImageDriverManager::initialize()
     if(driverMap.empty())
     {
         SLIDEIO_LOG(INFO) << "Initialization ImageDriverManager";
+        installTiffMessageHandlers();
         {
             std::shared_ptr<ImageDriver> driver { std::make_shared<ometiff::OTImageDriver>() };
             driverMap[driver->getID()] = driver;

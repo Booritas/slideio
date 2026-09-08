@@ -21,9 +21,21 @@ namespace slideio
     class LevelInfo;
     class CVScene;
     /**@brief Scene class represents a raster image contained in a slide.
-    * 
+    *
     * Scene class allows extracting information from image of a slide. It includes raster data as well as metadata.
     * The object supports multichannel multi-dimensional rasters. The class provides methods for resampling of multi-dimensional rasters.
+    *
+    * Thread safety: block reads of one Scene are always safe to call from several
+    * threads. Whether they *overlap* depends on the driver: a scene whose driver
+    * supports concurrent reads runs them in parallel, otherwise the library
+    * serialises them internally. Callers that relied on reads of one scene being
+    * mutually exclusive in order to protect their own state must take their own
+    * lock.
+    *
+    * Lifetime is the caller's responsibility: a Scene or the Slide it came from
+    * must not be destroyed while a read on it is still in flight. Keep the
+    * shared_ptr alive (or join the reader threads) until every read has
+    * returned. The library does not make a close wait for in-flight reads.
     */
     class SLIDEIO_EXPORTS Scene
     {

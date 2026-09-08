@@ -9,6 +9,113 @@ by branch.
 
 ## v2.10.0
 
+### `Scene` block reads may now overlap
+
+**Module:** `slideio-core` (exported: `CVScene::supportsConcurrentReads()`)
+**Files:** `src/slideio/core/cvscene.hpp`/`.cpp`, and every converted driver
+
+Reads of one `Scene` were thread-safe and fully serialised: no two block reads
+of one scene ever ran at the same time. For the scenes of SVS, PHTIFF, AFI,
+PKE, SCN, NDPI, CZI and VSI they now run concurrently. ZVI, DCM, GDAL and
+OME-TIFF are unchanged; `CVScene::supportsConcurrentReads()` reports which
+applies.
+
+No signatures changed and there is no source or binary incompatibility. The
+break is behavioural: code that relied on reads of one scene being mutually
+exclusive in order to protect **its own** state must now take its own lock.
+
+See `software-docs/specs/2026-09-07-parallel-read-block-design.md`.
+
+### The classes and members the concurrent-read work removed or changed
+
+Part of the same work as above, and grouped here because a reader needs to see
+at a glance which of these break a **build** and which break a **binary**.
+
+**Source breaks — deleted types.** Both carried an export macro, so both were
+linkable out of tree:
+
+| Deleted | Module | Was in |
+|---|---|---|
+| `slideio::TIFFMessageHandler` | `slideio-imagetools` | `imagetools/tiffmessagehandler.hpp` |
+| `slideio::NDPITIFFMessageHandler` | `slideio-ndpi` | `drivers/ndpi/ndpitiffmessagehandler.hpp` |
+
+Each was RAII over libtiff's **process-global** error and warning handlers:
+the constructor swapped them, the destructor restored them. Two threads reading
+at once wrote the same globals outside any lock, so scoped swapping had to go.
+The handlers are now installed once and never swapped again. The header
+`tiffmessagehandler.hpp` remains and exports `installTiffMessageHandlers()`;
+`ndpitiffmessagehandler.hpp` exports `installNDPITiffMessageHandlers()`. A
+caller that scoped one of these to capture libtiff diagnostics has no
+replacement for the scoping — the handlers now route to the slideio log for the
+life of the process.
+
+**Source breaks — removed accessors.** Each returned or lazily opened a scene's
+single shared `TIFF*`, which is exactly what could not survive concurrent
+reads. A read now borrows a handle from a `ContextPool` for the duration of one
+block read; there is no scene-owned handle to hand out:
+
+| Removed | Module | Class was exported as |
+|---|---|---|
+| `NDPIFile::getTiffHandle()` | `slideio-ndpi` | `SLIDEIO_NDPI_EXPORTS` |
+| `PKEScene::getFileHandle()`, `PKEScene::makeSureFileIsOpened()` | `slideio-pke` | `SLIDEIO_PKE_EXPORTS` |
+| `SVSScene::getFileHandle()`, `SVSScene::makeSureFileIsOpened()` | `slideio-svs` | `SLIDEIO_SVS_EXPORTS` |
+| `SCNScene::getFileHandle()` | `slideio-scn` | `SLIDEIO_SCN_EXPORTS` |
+
+`makeSureFileIsOpened()` was itself a race — two threads could both find the
+keeper invalid and both open — and pool acquisition subsumes it. The nearest
+replacement is `NDPIFile::acquireContext()`; on the scenes the pool is private
+to the concrete scene class and there is no public equivalent.
+
+**Source breaks — changed signatures:**
+
+| Changed | Module | Was → is |
+|---|---|---|
+| `EtsFile::readTile` | `slideio-vsi` | gained an `EtsReadContext&` before `output`, and is now `const` |
+| `EtsFile::readTilePart` | `slideio-vsi` | gained an `EtsReadContext&` before `tileRaster`, and is now `const` |
+| `vsi::VSIStream::VSIStream` | `slideio-vsi` | `VSIStream(std::string&)` → `VSIStream(const std::string&)`, plus a new `VSIStream(std::shared_ptr<const FileReader>)` overload |
+| `CZISlide::readFileHeader` | `slideio-czi` | `readFileHeader(FileHeader&)` → `readFileHeader(uint64_t pos, FileHeader&)` |
+| `CZISlide::readBlock` | `slideio-czi` | became `const` |
+
+The `EtsReadContext&` parameters are the scratch buffer that used to be a
+member of `EtsFile` — a member that two concurrent tile reads would have
+resized under each other, producing corrupted tiles rather than an exception.
+The `VSIStream` change is incidental (the old constructor took a non-const
+reference to a string it did not modify, so it could not be called with a
+temporary or a `const std::string`).
+
+**ABI/layout breaks.** These change the size of a type, so anything holding one
+**by value** must be recompiled, not merely relinked. Neither type changed its
+public interface:
+
+| Type | Module | Change |
+|---|---|---|
+| `TIFFKeeper` | `slideio-imagetools` | lost `std::shared_ptr<TIFFMessageHandler> m_messageHandler` |
+| `NDPITIFFKeeper` | `slideio-ndpi` | lost `std::unique_ptr<NDPITIFFMessageHandler> m_messageHandler` |
+
+Both members existed to scope a handler swap per keeper, which is what §4.4 of
+the design removed. A caller that holds either by value, or embeds one in a
+type of its own, sees a smaller object; a caller that only calls methods
+through a pointer or reference is unaffected at source level but still needs a
+matching build.
+
+### `VsiFileScene` now throws on an unopenable file at first read, not construction
+
+**Module:** `slideio-vsi`
+**File:** `src/slideio/drivers/vsi/vsifilescene.hpp`/`.cpp`
+
+Part of the same work as above. `VsiFileScene` used to open its file handle
+eagerly in `init()`, so a file that could not be opened threw at scene
+construction. Making the scene safe for concurrent reads moved that handle
+into a lazily-constructed `ContextPool`, so the same failure now surfaces at
+the scene's first read instead.
+
+In practice the window this opens is narrow: `VSIFile` has already opened the
+same path successfully before the scene is constructed, so a file that fails
+here has typically changed state (permissions, deletion, a network mount
+dropping) between that check and the first read. Still a real change for any
+caller that wrapped scene construction, rather than the first read, in a
+try/catch to detect an unopenable file.
+
 ### `slideio-base` was merged into `slideio-core`
 
 **Modules:** `slideio-base` (removed), `slideio-core` (exported: `SLIDEIO_CORE_EXPORTS`)

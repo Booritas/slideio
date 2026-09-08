@@ -96,6 +96,20 @@ Each driver in `src/slideio/drivers/<format>/` is an independent shared library 
 - **Multidimensional images**: 2D, 3D (Z-slices), and 4D (time-series) via CVScene
 - **Block-based reading**: Efficient region extraction with arbitrary scaling
 - **Level-addressed reading**: `CVScene::readResampledLevelBlockChannelsEx` reads a rect given in the coordinates of a named zoom level, bypassing level selection. Pyramid drivers override it; the base class has a working default. Public API: `Scene::readResampledLevelBlockChannels` / `readResampledLevel4DBlockChannels`, exposed to Python as `read_block_from_level`
+- **Concurrency contract**: `CVScene::supportsConcurrentReads()` says whether
+  two block reads of one scene may overlap. It defaults to `false`, and the
+  base class serialises reads for any scene that does not override it, so a new
+  driver is safe by construction. A driver overrides it only once every mutable
+  object on its read path is either cursor-free (`FileReader`) or per-thread
+  (`ContextPool`, which hands out `ReadContext` subclasses one borrower at a
+  time). Use `ContextPool` for per-thread read state rather than inventing a
+  second mechanism, and never `thread_local` for anything holding a file
+  handle — that ties a descriptor's lifetime to a thread rather than to the
+  `Scene` that owns it, which on Windows shows up as a file the user cannot
+  delete after closing the slide. (`FileReader` keeps one `thread_local` event
+  object on the Windows read path, and `tempfile.cpp` two for random names;
+  neither holds file state.) Concurrent today: SVS, PHTIFF, AFI, PKE, SCN,
+  NDPI, CZI, VSI.
 - **Library naming**: `slideio-<module>` with `_d` suffix for debug builds
 
 ### Source Layout

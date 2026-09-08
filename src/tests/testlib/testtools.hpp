@@ -50,6 +50,54 @@ public:
            std::equal(prefix.begin(), prefix.end(), str.begin());
     }
     static void multiThreadedTest(const std::string& filePath, slideio::ImageDriver& driver, int numberRois = 5, int numThreads = 30);
+    // Reads a set of ROIs single-threaded to build a baseline, then reads every
+    // ROI from numThreads threads and requires every result to be byte-identical
+    // to its baseline.
+    //
+    // This is the gate for concurrent reads, and it is shaped by the failure it
+    // has to catch: a race on a shared decode buffer or file cursor produces
+    // WRONG PIXELS, not an exception. A test that only checks for absent
+    // exceptions passes while the data is corrupt.
+    // Which entry shape the reads go through. The default AllChannels was for a
+    // while the only one covered, which left the most per-read-state-heavy code
+    // on the concurrency branch untested: PKE resolves a *different directory
+    // per channel* and SCN walks channel2ifd per channel, so a channel subset
+    // touches per-read state that an all-channels read never reaches, and the
+    // level-addressed path is a separate entry point with its own lock.
+    enum class ConcurrentReadPath
+    {
+        AllChannels,    // readResampledBlockChannels with an empty channel list
+        SingleChannel,  // one explicit channel, the last one
+        ChannelSubset,  // an explicit list of more than one channel, out of order
+        Level           // readResampledLevelBlockChannels at level 0
+    };
+
+    static void concurrentReadIdentityTest(const std::string& filePath,
+                                           slideio::ImageDriver& driver,
+                                           int sceneIndex = 0,
+                                           int numRois = 8,
+                                           int numThreads = 16,
+                                           int readsPerThread = 8,
+                                           ConcurrentReadPath path = ConcurrentReadPath::AllChannels);
+
+    // Runs concurrentReadIdentityTest once per entry shape. Spec 6 requires
+    // channel subsets and the level-addressed path as well as the 2D
+    // all-channels read; this is how a driver covers all of them in one call.
+    static void concurrentReadIdentityTestAllPaths(const std::string& filePath,
+                                                   slideio::ImageDriver& driver,
+                                                   int sceneIndex = 0,
+                                                   int numRois = 4,
+                                                   int numThreads = 16,
+                                                   int readsPerThread = 4);
+
+    // The same, applied to every scene of the slide in turn. Formats whose
+    // slides carry more than one kind of scene -- VSI has ETS scenes and TIFF
+    // scenes -- need every kind covered, not just scene 0.
+    static void concurrentReadIdentityTestAllScenes(const std::string& filePath,
+                                                    slideio::ImageDriver& driver,
+                                                    int numRois = 4,
+                                                    int numThreads = 16,
+                                                    int readsPerThread = 4);
     static std::shared_ptr<slideio::CVScene> findScene(std::shared_ptr<slideio::CVSlide> slide, const std::string& name);
 };
 

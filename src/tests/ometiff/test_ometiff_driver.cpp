@@ -951,3 +951,25 @@ TEST_F(OTImageDriverTests, readLevelDoesNotReuseAdjacentLevel) {
 	// served from level 1.
 	EXPECT_GT(cv::norm(viaLevel0Resampled, viaLevel1Native, cv::NORM_INF), 0);
 }
+
+// The OME-TIFF half of the concurrency-contract coverage (see
+// src/tests/main/test_concurrency_contract.cpp): OTImageDriver is not linked into
+// slideio_tests, so its assertion that the driver still reports the safe,
+// serialised default lives here instead. If this ever fails, it means an earlier
+// change opted OME-TIFF into concurrent reads -- TIFFFiles::getOrOpen races a
+// find/insert on a plain std::unordered_map, so that requires giving TIFFFiles
+// its own lock (or a per-thread ReadContext) first, and updating TECH_DEBT,
+// BREAKING_CHANGES.md and CLAUDE.md, before changing this expectation.
+TEST_F(OTImageDriverTests, concurrentReadsAreStillSerialised) {
+	std::string filePath = TestTools::getTestImagePath("ometiff", "Subresolutions/Leica-2.ome.tiff");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+	slideio::ometiff::OTImageDriver driver;
+	std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
+	ASSERT_TRUE(slide != nullptr);
+	std::shared_ptr<CVScene> scene = slide->getScene(0);
+	ASSERT_TRUE(scene != nullptr);
+	EXPECT_FALSE(scene->supportsConcurrentReads())
+		<< "OME-TIFF now reports concurrent reads -- update TECH_DEBT, "
+		   "BREAKING_CHANGES.md and CLAUDE.md, and give it a byte-exactness "
+		   "test, before changing this expectation";
+}

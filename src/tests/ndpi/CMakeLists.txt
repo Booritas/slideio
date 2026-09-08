@@ -9,6 +9,7 @@ set(TEST_SOURCES
   test_ndpitiff_tools.cpp
   test_ndpi_driver.cpp
   test_ndpitiffkeeper.cpp
+  test_ndpitiffmessagehandler.cpp
 )
 
 add_executable(${TEST_NAME} ${TEST_SOURCES})

@@ -566,3 +566,32 @@ TEST_F(PKEImageDriverTests, readLevelDoesNotReuseAdjacentLevel) {
     // served from level 1.
     EXPECT_GT(cv::norm(viaLevel0Resampled, viaLevel1Native, cv::NORM_INF), 0);
 }
+
+TEST_F(PKEImageDriverTests, concurrentReadsAreByteIdentical) {
+    std::string filePath = TestTools::getTestImagePath("pke", "openmicroscopy/PKI_scans/LuCa-7color_Scan1.qptiff");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::PKEImageDriver driver;
+    TestTools::concurrentReadIdentityTest(filePath, driver);
+}
+
+// PKE resolves a different directory per channel (readTiffTile indexes
+// m_directories by dirIndex + channelIndex), so an explicit channel list is the
+// per-read-state-heavy path here and an all-channels read does not reach it.
+// Also covers the level-addressed entry point.
+TEST_F(PKEImageDriverTests, concurrentReadsAreByteIdenticalOnEveryEntryPath) {
+    std::string filePath = TestTools::getTestImagePath("pke", "openmicroscopy/PKI_scans/LuCa-7color_Scan1.qptiff");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::PKEImageDriver driver;
+    TestTools::concurrentReadIdentityTestAllPaths(filePath, driver);
+}
+
+TEST_F(PKEImageDriverTests, reportsConcurrentReadSupport) {
+    std::string filePath = TestTools::getTestImagePath("pke", "openmicroscopy/PKI_scans/LuCa-7color_Scan1.qptiff");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::PKEImageDriver driver;
+    auto slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide);
+    auto scene = slide->getScene(0);
+    ASSERT_TRUE(scene);
+    EXPECT_TRUE(scene->supportsConcurrentReads());
+}

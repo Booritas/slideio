@@ -12,7 +12,10 @@ using namespace slideio;
 using namespace slideio::vsi;
 
 VsiFileScene::VsiFileScene(const std::string& filePath, int sceneIndex, const std::string& driverId, std::shared_ptr<vsi::VSIFile>& vsiFile, int directoryIndex) :
-    VSIScene(filePath, sceneIndex, driverId, vsiFile), m_directoryIndex(directoryIndex)
+    VSIScene(filePath, sceneIndex, driverId, vsiFile), m_directoryIndex(directoryIndex),
+    m_contextPool([filePath]() {
+        return std::make_unique<VsiTiffReadContext>(filePath);
+    })
 {
     init();
 }
@@ -25,8 +28,14 @@ void VsiFileScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, const
 	}
     const TiffDirectory& directory = m_vsiFile->getTiffDirectory(m_directoryIndex);
     if(!directory.tiled) {
+        // One borrow for the whole call -- this scene never reaches the tiled path below
+        // (getTileCount/getTileRect/readTile are unused stubs here, since VsiFileScene reads
+        // the full directory directly rather than going through TileComposer), so a single
+        // handle acquired up front covers the entire read.
+        auto borrow = acquireContext();
+        libtiff::TIFF* hFile = borrow.as<VsiTiffReadContext>().keeper.getHandle();
         cv::Mat directoryRaster;
-        TiffTools::readStripedDir(m_tiff.getHandle(), directory, directoryRaster);
+        TiffTools::readStripedDir(hFile, directory, directoryRaster);
         cv::Mat blockRaster(directoryRaster, blockRect);
         cv::Mat resizedBlockRaster;
         cv::resize(blockRaster, resizedBlockRaster, blockSize);
@@ -70,7 +79,6 @@ void VsiFileScene::init()
     m_channelNames.resize(m_numChannels);
     std::fill(m_channelDataType.begin(), m_channelDataType.end(), directory.dataType);
     m_compression = directory.slideioCompression;
-    m_tiff.reset(TiffTools::openTiffFile(m_filePath));
 
     m_levels.resize(1);
     LevelInfo& level = m_levels[0];

@@ -6,13 +6,10 @@
 
 namespace slideio {
 
-    class SLIDEIO_IMAGETOOLS_EXPORTS TIFFMessageHandler
-    {
-    public:
-        TIFFMessageHandler();
-        ~TIFFMessageHandler();
-    private:
-        void* m_oldWarningHandler;
-        void* m_oldErrorHandler;
-    };
+    /// Installs the slideio error and warning handlers into libtiff. Idempotent
+    /// and thread-safe; call from library initialisation. The handlers are
+    /// process-global, so they are installed once and never swapped again --
+    /// swapping them per object was a data race as soon as two threads could
+    /// read at the same time.
+    SLIDEIO_IMAGETOOLS_EXPORTS void installTiffMessageHandlers();
 }
