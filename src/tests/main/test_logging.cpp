@@ -4,6 +4,7 @@
 #include <gtest/gtest.h>
 #include <cctype>
 #include <cstddef>
+#include <cstdio>
 #include <string>
 #include <thread>
 #include <vector>
@@ -411,6 +412,15 @@ TEST_F(LoggingTest, failingSinkCannotEscapeLogMessage)
     // pointed at a read-only/broken destination for the ~500 remaining tests
     // in this process - every later testing::internal::GetCapturedStderr()
     // would silently come back empty.
+    //
+    // Restoring the descriptor is necessary but NOT sufficient: the failed
+    // writes below leave a sticky error indicator on the `stderr` FILE
+    // stream itself, and that survives dup2 of the underlying fd. On a
+    // poisoned stream every later fprintf() returns -1 with EBADF - while a
+    // raw write(2, ...) to the same descriptor still succeeds, which is what
+    // makes the damage so easy to miss - so the process loses all
+    // stdio-routed stderr output, spdlog's sink included, for every
+    // remaining test. clearerr() is what actually hands the stream back.
     struct StderrRestorer {
         int saved;
         ~StderrRestorer()
@@ -422,6 +432,7 @@ TEST_F(LoggingTest, failingSinkCannotEscapeLogMessage)
             dup2(saved, 2);
             close(saved);
 #endif
+            clearerr(stderr);
         }
     } restoreStderr{saved};
 
