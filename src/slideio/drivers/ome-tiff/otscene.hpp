@@ -7,6 +7,8 @@
 #include "slideio/core/cvscene.hpp"
 #include "slideio/drivers/ome-tiff/otscene.hpp"
 #include "slideio/imagetools/tifftools.hpp"
+#include "slideio/core/tools/contextpool.hpp"
+#include "slideio/core/tools/readcontext.hpp"
 #include "slideio/core/tools/tilecomposer.hpp"
 #include "slideio/drivers/ome-tiff/otstructs.hpp"
 #include "slideio/drivers/ome-tiff/tiffdata.hpp"
@@ -24,6 +26,23 @@ namespace slideio
     namespace ometiff
     {
         struct ImageData;
+
+        /// Per-thread libtiff handles for one OME-TIFF read.
+        ///
+        /// A collection rather than a single handle, because one tile read can
+        /// span several TiffData that name different files -- the file comes
+        /// from each <TiffData> element's UUID/FileName attribute. TIFFFiles
+        /// opens lazily, so a context only ever holds handles to the files the
+        /// thread it served actually read.
+        ///
+        /// Unlike the sibling drivers' contexts, this constructor opens nothing:
+        /// TIFFFiles::getOrOpen raises on a failed TIFFOpen rather than
+        /// returning null, so no call site needs a null check either way.
+        class OTReadContext : public ReadContext
+        {
+        public:
+            TIFFFiles files;
+        };
 
         class SLIDEIO_OMETIFF_EXPORTS OTScene : public CVScene, public Tiler
         {
@@ -57,7 +76,11 @@ namespace slideio
             Compression getCompression() const override;
             int getNumZSlices() const override;
             int getNumTFrames() const override;
-			int getNumTiffFiles() const { return m_files.getNumberOfOpenFiles(); }
+			/// The number of distinct files this scene's TiffData elements
+			/// reference. Deterministic and independent of read history --
+			/// deliberately not "handles currently open", which is now
+			/// per-context and would read 0 before the first read.
+			int getNumTiffFiles() const;
 			int getNumTiffDataItems() const { return static_cast<int>(m_tiffData.size()); }
             const TiffData& getTiffData(int index) const { return m_tiffData[index]; }
             double getZSliceResolution() const override { return m_zResolution; }
@@ -67,11 +90,17 @@ namespace slideio
             void initialize();
             void initializeChannelAttributes(tinyxml2::XMLElement* pixels);
             void extractMagnificationFromMetadata();
-            void extractTiffData(tinyxml2::XMLElement* pixels);
+            void extractTiffData(tinyxml2::XMLElement* pixels, TIFFFiles& files);
             void extractImageIndex();
             LevelInfo extractLevelInfo(const TiffDirectory& dir, int index) const;
             void collectTiffDataIndices(std::vector<int> channelIndices, int zSliceIndex, int tFrameIndex,
                 std::vector<int>& tiffDataIndices) const;
+        protected:
+            /// Borrows this scene's per-thread handles for the duration of one
+            /// block read. Acquire once per read at the outermost entry point
+            /// and pass the context down through BlockInfo; never re-acquire
+            /// inside a read.
+            ContextPool::Borrow acquireContext() { return m_contextPool.acquire(); }
         private:
             int m_numChannels = 0;
             std::vector<std::string> m_channelNames;
@@ -91,11 +120,16 @@ namespace slideio
             Resolution m_resolution = {};
             double m_magnification = 0;
             int m_imageIndex = -1;
-            TIFFFiles m_files;
 			double m_zResolution = 0.0;
 			double m_tResolution = 0.0;
             int m_sceneIndex = -1;
             std::string m_driverId;
+            // Declared LAST deliberately. ~ContextPool blocks until every
+            // outstanding Borrow is returned, and members are destroyed in
+            // reverse declaration order -- so the pool must be declared after
+            // m_tiffData, whose TiffData objects an in-flight read is reading.
+            // Moving this line up reintroduces a use-after-free on close.
+            ContextPool m_contextPool;
         };
     }
 }
