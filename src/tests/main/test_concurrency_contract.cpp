@@ -48,16 +48,24 @@ namespace
     }
 }
 
-// Image paths mirror the multiThreadedTest call sites in test_zvi_driver.cpp,
-// test_dcm_driver.cpp and test_gdal_driver.cpp, since those are already known
-// to open successfully with each of these drivers.
+// Image paths mirror the multiThreadedTest call sites in test_dcm_driver.cpp
+// and test_gdal_driver.cpp, since those are already known to open successfully
+// with each of these drivers.
 
-TEST(ConcurrencyContract, zviIsStillSerialised) {
+// ZVI reports concurrent reads as of the 2026-09-09 conversion. Its mutable
+// read-path state lived in the vendored pole submodule; pole's read path is now
+// positional, so one ole::compound_document serves every thread. See
+// software-docs/specs/2026-09-09-zvi-concurrent-reads-design.md.
+TEST(ConcurrencyContract, zviReportsConcurrentReads) {
     const std::string filePath = TestTools::getTestImagePath(
         "zvi", "mouse/20140505_mouse_2cell_H2AUb_RING1B_DAPI_T_005.zvi");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     slideio::ZVIImageDriver driver;
-    expectSerialised(filePath, driver);
+    auto slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide);
+    auto scene = slide->getScene(0);
+    ASSERT_TRUE(scene);
+    EXPECT_TRUE(scene->supportsConcurrentReads());
 }
 
 TEST(ConcurrencyContract, dcmIsStillSerialised) {
