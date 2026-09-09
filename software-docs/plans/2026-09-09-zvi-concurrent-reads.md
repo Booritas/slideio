@@ -753,6 +753,34 @@ values and the write path are all untouched.
 
 - [ ] **Step 2: Declare the positional reader**
 
+> **Correction, 2026-09-09 (post-implementation).** The `PositionalFile` code in
+> Steps 2 and 3 below is a sketch that was never compiled when this plan was
+> written, and it is **wrong in one way that matters**: it opens the Windows
+> handle with `FILE_ATTRIBUTE_NORMAL` and no `FILE_FLAG_OVERLAPPED`. Per
+> `src/slideio/core/tools/filereader.cpp:57-61`, passing an `OVERLAPPED` offset
+> to a handle opened without that flag *does* read from the offset but **also
+> moves the handle's shared file pointer**, and concurrent operations on such a
+> handle are unsupported. The sketch would therefore have returned correct
+> bytes, passed every test in this plan, and gone on serialising inside the
+> syscall — shipping the exact defect this task exists to remove, invisibly.
+>
+> The shipped version opens with
+> `FILE_FLAG_OVERLAPPED | FILE_FLAG_RANDOM_ACCESS` and all three share flags,
+> and mirrors `FileReader::readAt`: a `thread_local` RAII manual-reset event in
+> the `OVERLAPPED`, `ResetEvent` before every `ReadFile`, `ERROR_IO_PENDING`
+> completed via `GetOverlappedResult(..., TRUE)`, `ERROR_HANDLE_EOF` as
+> end-of-file, a bounded no-progress retry cap on the POSIX `EINTR` path in
+> place of the sketch's unbounded `continue`, and `O_CLOEXEC` on the POSIX
+> open. The platform `#include`s also had to move outside `namespace POLE`.
+>
+> **Read `extern/pole` commit `c3c5356` for the real code**, and
+> `.superpowers/sdd/2026-09-09-zvi-concurrent-reads/task-4-report.md` §"Deviations
+> from the brief's code" for all nine differences with their reasons. Everything
+> else in this task — the fallback to the mutex path, the untouched `in | out`
+> fstream open, the `std::iostream*` constructor keeping its old behaviour, the
+> `const` cascade, the four sentinels, the write path staying byte-identical —
+> stands as written below.
+
 In `extern/pole/includes/pole/detail/storage.hpp`, above `class StorageIO`:
 
 ```cpp
