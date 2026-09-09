@@ -1669,25 +1669,51 @@ that changes the trade.
 
 - [ ] **Step 3: Count descriptors**
 
-The whole point of the shared-document route is one descriptor per open ZVI,
-not one per thread. Verify it rather than trusting it. With the mosaic
-byte-exactness test running, check the process's open handles on that file:
+The whole point of the shared-document route is a fixed number of descriptors
+per open ZVI, not one per thread. Verify it rather than trusting it.
+
+> **Correction, 2026-09-09.** This step originally used Sysinternals
+> `handle.exe`. **It is not installed on this machine** — not on PATH, not in
+> the usual locations — and `openfiles` returns nothing (its
+> maintain-objects-list flag is off, and turning it on needs a reboot). Do not
+> spend turns hunting for them. It also suggested a temporary `std::atomic`
+> counter inside `PositionalFile`; prefer not to, since it means editing pole
+> to measure it and then proving the edit is gone. Use the two checks below
+> instead, which need no external tool and no code change.
+
+**Check 1 — does the handle count scale with thread count?** That is the
+failure this step exists to catch. Sample the process's total handle count
+during a single-threaded mosaic test and during the 16-thread one, and compare
+the two:
 
 ```bash
+./build/bin/Release/slideio_tests.exe --gtest_filter="ZVIImageDriver.openSlideMosaic" &
+powershell -NoProfile -Command "1..12 | ForEach-Object { (Get-Process -Name slideio_tests -ErrorAction SilentlyContinue).HandleCount; Start-Sleep -Milliseconds 400 }"
+wait
 ./build/bin/Release/slideio_tests.exe --gtest_filter="ZVIImageDriver.concurrentReadsAreByteIdenticalMosaic" &
-# then, in another shell, with Sysinternals handle.exe if available:
-handle.exe -p slideio_tests.exe Zeiss-3-Mosaic
+powershell -NoProfile -Command "1..40 | ForEach-Object { (Get-Process -Name slideio_tests -ErrorAction SilentlyContinue).HandleCount; Start-Sleep -Milliseconds 500 }"
+wait
 ```
 
-Expected: exactly two handles on the file — the `std::fstream` pole has always
-opened `in|out`, plus the read-only `PositionalFile` Task 4 added. **Not**
-sixteen. If `handle.exe` is unavailable, substitute a temporary counter: a
-`static std::atomic<int>` incremented in `PositionalFile`'s constructor and
-decremented in its destructor, logged at scene close, and removed before
-finishing — confirm `git diff --stat` is empty afterwards.
+Report the peak in each. Threads themselves consume handles, so expect the
+16-thread run to be higher — what matters is that the peak does **not** rise by
+one *file* handle per thread on top of that. If you see the concurrent run's
+peak exceed the single-threaded peak by roughly 16 or 32, that is the finding
+this step is looking for, and it would mean something is opening per-thread
+descriptors after all.
 
-Two, not one, is the expected and documented answer here; Task 10 files the
-`in|out` open mode that makes it two.
+**Check 2 — the code-reading argument, stated explicitly.** There is no
+mechanism in the shipped design that *could* open a descriptor per thread:
+`ZVISlide` holds one `ZVIScene`, which holds one `ole::compound_document` as a
+plain member; `StorageIO` opens exactly one `std::fstream` and one
+`PositionalFile` per document; there is no `ContextPool` and no `ReadContext`
+anywhere in the ZVI driver; and the one `thread_local` on the path holds a
+manual-reset **event**, not a file handle. Confirm each of those five claims by
+grep and say so — that is the durable half of this step, and Check 1 is the
+sanity test on it.
+
+Two file handles, not one, is the expected and documented answer; Task 10 files
+the `in | out` open mode that makes it two.
 
 - [ ] **Step 4: Say plainly what was not run**
 
