@@ -1624,17 +1624,48 @@ not "fix" unrelated pre-existing failures.
 
 - [ ] **Step 2: Before/after on open time**
 
-Run `ZVIImageDriver.openSlideMosaic` and compare against the 6690 ms baseline
-recorded in the spec's investigation:
+Run `ZVIImageDriver.openSlideMosaic` **three times back to back** and report all
+three numbers:
 
 ```bash
-./build/bin/Release/slideio_tests.exe --gtest_filter="ZVIImageDriver.openSlideMosaic"
+for i in 1 2 3; do ./build/bin/Release/slideio_tests.exe --gtest_filter="ZVIImageDriver.openSlideMosaic"; done
 ```
 
-Expected: materially faster — Task 3 removed 1721 ms of it. Report the number.
+> **Correction, 2026-09-09.** Do **not** compare this against the spec's
+> 6690 ms figure as a before/after. That number was the first read of a 2.0 GB
+> file in its session and is therefore cold-cache, while anything measured here
+> is warm — differencing them overstates the gain. For the same reason, do not
+> difference the 2314 ms and 2946 ms figures that appear in the Task 3 and
+> Task 6 reports: they come from separate sessions with different cache state,
+> and `openSlideMosaic` only opens the file and checks metadata, so it is
+> dominated by `readImageItems` reading Contents and Tags across 1543 streams
+> rather than by anything either task set out to change. Report the three
+> numbers you measure, their spread, and say plainly that no comparable warm
+> pre-change baseline was taken.
+
 Then re-run the §3.2 probe over all five ZVI files and report the table
 alongside the spec's, so a reviewer can see nothing regressed on the small
-files.
+files. The probe number **is** warm-vs-warm and is the one defensible
+before/after in this work: 1721 ms → ~138 ms on the mosaic.
+
+- [ ] **Step 2b: Measure single-threaded read throughput, warm**
+
+The positional read replaced a buffered `std::fstream` path, so it could have
+cost single-threaded throughput. A controller measurement during Task 6 found
+`read_at` and the cursor read now within noise of each other (2.08–2.32 ms vs
+2.14–2.65 ms warm for the mosaic's 2.9 MB `/Image/Item(0)/Contents`), but both
+about 10–13% slower than the 1.9 ms / 1437 MB/s recorded for that same stream
+before any change — a single pre-change measurement, from a different process
+and build, so not conclusive.
+
+Settle it properly. Build a probe that opens the mosaic and times repeated warm
+reads of `/Image/Item(0)/Contents` through both `read` and `read_at`, run it at
+least five times, and report the distribution rather than a single figure.
+
+State the conclusion honestly either way. A single-digit-percent single-thread
+cost in exchange for concurrent reads is a reasonable trade, but it must be
+reported, not glossed — and if it turns out larger than that, say so, because
+that changes the trade.
 
 - [ ] **Step 3: Count descriptors**
 
