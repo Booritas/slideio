@@ -106,10 +106,11 @@ Each driver in `src/slideio/drivers/<format>/` is an independent shared library 
   second mechanism, and never `thread_local` for anything holding a file
   handle — that ties a descriptor's lifetime to a thread rather than to the
   `Scene` that owns it, which on Windows shows up as a file the user cannot
-  delete after closing the slide. (`FileReader` keeps one `thread_local` event
-  object on the Windows read path, and `tempfile.cpp` two for random names;
-  neither holds file state.) Concurrent today: SVS, PHTIFF, AFI, PKE, SCN,
-  NDPI, CZI, VSI, OME-TIFF.
+  delete after closing the slide. (Three `thread_local`s on these paths hold no
+  file state and are therefore fine: `FileReader` keeps one event object on the
+  Windows read path, pole's `PositionalFile` keeps a manual-reset event of its
+  own mirroring it, and `tempfile.cpp` keeps two for random names.) Concurrent
+  today: SVS, PHTIFF, AFI, PKE, SCN, NDPI, CZI, VSI, OME-TIFF, ZVI.
 - **Library naming**: `slideio-<module>` with `_d` suffix for debug builds
 
 ### Source Layout
@@ -176,6 +177,26 @@ recipe produced by copying the same directory into the package as
 `include/pole`. It also redirects the `pole` target's archive output: pole sets
 `CMAKE_ARCHIVE_OUTPUT_DIRECTORY` to `${CMAKE_BINARY_DIR}/install/lib`, which in
 this build tree is the directory `install.py` installs into.
+
+**That `file(COPY)` (`CMakeLists.txt:231`) runs at configure time.** A header
+edited inside `extern/pole` is *not* picked up by a plain rebuild: the build
+compiles the stale copy already staged in the build tree, silently and without
+a warning. Re-run CMake configure after touching anything in
+`extern/pole/includes/`.
+
+pole also carries a positional read path now, which is what lets ZVI report
+concurrent reads: `StorageIO` reads through a `PositionalFile` doing `ReadFile`
+with an `OVERLAPPED` offset on Windows and `pread` elsewhere, and
+`ole::basic_stream::read_at`/`size` expose it upward. That is
+`slideio::FileReader::readAt` and its retry loop reimplemented, deliberately,
+because pole must stay standard-library-only -- it cannot depend on
+slideio-core, and a shared primitive would invert the dependency. A fix to one
+belongs in the other; pole's copy says so in a comment naming
+`slideio::FileReader`, though `FileReader` does not yet name pole back. pole's
+write path still shares one `std::fstream` and stays serialised. See
+`software-docs/specs/2026-09-09-zvi-concurrent-reads-design.md` and
+`software-docs/TECH_DEBT.md` §19-§21, the last of which records that the
+positional path costs about 20% on a single-threaded read.
 
 The NDPI driver's two forks are also submodules rather than Conan packages:
 `extern/ndpi-libjpeg-turbo` (github.com/Booritas/ndpi-libjpeg-turbo, v2.1.2) and

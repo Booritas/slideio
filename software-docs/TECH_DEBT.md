@@ -22,11 +22,14 @@ the work can be picked up later without re-doing the analysis.
 11. [`TransformerScene` has no level table, so transformed scenes cannot be read by level](#11-transformerscene-has-no-level-table-so-transformed-scenes-cannot-be-read-by-level)
 12. [`SCNScene::getChannelDirectories` indexes unchecked, and the 4D level path widens the exposure](#12-scnscenegetchanneldirectories-indexes-unchecked-and-the-4d-level-path-widens-the-exposure)
 13. [`slideio-core`'s export-control define breaks the project naming convention](#13-slideio-cores-export-control-define-breaks-the-project-naming-convention)
-14. [ZVI still serialises every block read](#14-zvi-still-serialises-every-block-read)
+14. [ZVI now reports concurrent reads (resolved)](#14-zvi-now-reports-concurrent-reads-resolved)
 15. [DCM still serialises every block read](#15-dcm-still-serialises-every-block-read)
 16. [GDAL still serialises every block read](#16-gdal-still-serialises-every-block-read)
 17. [OME-TIFF now reports concurrent reads (resolved)](#17-ome-tiff-now-reports-concurrent-reads-resolved)
 18. [CZI rejects a corrupt sub-block position on the main path and tolerates it on the attachment path](#18-czi-rejects-a-corrupt-sub-block-position-on-the-main-path-and-tolerates-it-on-the-attachment-path)
+19. [pole read-path defects left in place](#19-pole-read-path-defects-left-in-place)
+20. [The ZVI concurrent-read work: what no test covers](#20-the-zvi-concurrent-read-work-what-no-test-covers)
+21. [pole's positional read path is ~20% slower single-threaded](#21-poles-positional-read-path-is-20-slower-single-threaded)
 
 ---
 
@@ -317,11 +320,11 @@ the construction site in `scnslide.cpp`.
 **Status:** Partially fixed. The `assemble4DBlock` asymmetry is resolved
 outright: both branches now take `lockIfSerialised()`, with the lock scoped to
 the `readPlane` call only in the multi-plane branch. The serialisation itself
-is removed for the scenes of SVS, PHTIFF, AFI, PKE, SCN, NDPI, CZI, VSI and
-OME-TIFF (see [§17](#17-ome-tiff-now-reports-concurrent-reads-resolved)).
-Kept open because ZVI, DCM and GDAL still serialise every block
-read — see [§14](#14-zvi-still-serialises-every-block-read),
-[§15](#15-dcm-still-serialises-every-block-read) and
+is removed for the scenes of SVS, PHTIFF, AFI, PKE, SCN, NDPI, CZI, VSI,
+OME-TIFF (see [§17](#17-ome-tiff-now-reports-concurrent-reads-resolved)) and
+ZVI (see [§14](#14-zvi-now-reports-concurrent-reads-resolved)).
+Kept open because DCM and GDAL still serialise every block
+read — see [§15](#15-dcm-still-serialises-every-block-read) and
 [§16](#16-gdal-still-serialises-every-block-read).
 
 `CVScene::readResampledBlockChannels` and `readResampledLevelBlockChannels`
@@ -333,7 +336,7 @@ concurrency from the library.
 The fix: `CVScene::supportsConcurrentReads()` (public virtual, defaulting to
 `false`) says whether a scene's block reads may overlap, and
 `CVScene::lockIfSerialised()` takes `m_readBlockMutex` only for scenes that
-still report `false`. Nine of the twelve formats now override it to `true`,
+still report `false`. Ten of the twelve formats now override it to `true`,
 having made every mutable object on their read path either cursor-free
 (`FileReader`) or per-thread (`ContextPool`, handing out `ReadContext`
 subclasses one borrower at a time). Measured on the same test and image
@@ -582,29 +585,54 @@ to verify.
 
 ---
 
-## 14. ZVI still serialises every block read
+## 14. ZVI now reports concurrent reads (resolved)
 
-**Files:** `src/slideio/drivers/zvi/`
+**Files:** `src/slideio/drivers/zvi/`, `extern/pole`
 **Related:** [§4](#4-cvscene-serialises-every-block-read-and-does-so-inconsistently);
-`software-docs/specs/2026-09-07-parallel-read-block-design.md` §3.2
-**Status:** Open, deliberately deferred.
+`software-docs/specs/2026-09-07-parallel-read-block-design.md` §3.2;
+`software-docs/specs/2026-09-09-zvi-concurrent-reads-design.md`;
+[§19](#19-pole-read-path-defects-left-in-place),
+[§20](#20-the-zvi-concurrent-read-work-what-no-test-covers),
+[§21](#21-poles-positional-read-path-is-20-slower-single-threaded)
+**Status:** Resolved. `ZVIScene` now reports `supportsConcurrentReads() ==
+true`.
 
-`ZVIScene` returns `false` from `supportsConcurrentReads()`, so the base class
-serialises its reads as it always did. It was deferred because its mutable
-read-path state lives inside vendored OLE code rather than in slideio, and it
-is not in the tiling or converter path.
+This entry's mechanism was right and its cost claim was wrong. It recommended a
+`ReadContext` subclass holding a per-thread `ole::compound_document`, on the
+grounds that "N x the OLE FAT and directory parse" is "small for a ZVI in a way
+it never is for CZI". Measured, one document costs **1721 ms and 12 MB** on
+`openslide/Zeiss-3-Mosaic.zvi` (1543 streams). The 0–3 ms the "small" estimate
+was evidently drawn from is what the four smaller ZVIs in the corpus cost. At
+1721 ms and 12 MB per replica a mosaic reader would have ended up slower than
+the mutex the pool was meant to remove, so that route was rejected on the
+measurement rather than adopted — see
+`software-docs/specs/2026-09-09-zvi-concurrent-reads-design.md` §3.2 and §4.
 
-The work is now bounded: add a `ReadContext` subclass holding an
-`ole::compound_document`. `ZVIScene::m_Doc`, `ZVIUtils::StreamKeeper` and
-`ZVIImageItem::readRaster` share mutable cursors three layers down in that
-vendored OLE code. A per-thread document costs N x the OLE FAT and directory
-parse, which is small for a ZVI in a way it never is for CZI.
+The route actually taken keeps **one** shared `ole::compound_document` and
+makes it safe to read from several threads, which meant changing
+`extern/pole` rather than the driver. Three races were on the read path — a
+shared `std::fstream` cursor inside `StorageIO`, `StreamImpl::_pos`/`_state`
+written by the positional read, and `stream_path::stream()` bumping
+`_ref_count` on a borrow — and all three were removed by construction:
+`StorageIO`'s read path now goes through a `PositionalFile`
+(`ReadFile`-with-`OVERLAPPED` on Windows, `pread` elsewhere),
+`StreamImpl::read(pos, ...)` is `const` with a tri-state `eof_report`
+out-param, and `stream_path` gained a `const stream()` that borrows without
+mutating the count. `ZVIImageItem::readRaster` then borrows `const` through
+`ZVIUtils::ConstStreamKeeper` and issues one `read_at` where it used to issue
+four `seek`s. `ZVIScene::m_Doc` stays a plain member: no `ContextPool`, no
+per-thread document, no extra descriptor per thread. See the design's §5.3 and
+§5.4.
 
-The alternative, if this ever matters for throughput: resolve every stream's
-`(offset, length)` once at `init()` and read via `FileReader` thereafter,
-bypassing the vendored OLE reader on the read path entirely. That is faster
-single-threaded too, but it means owning OLE sector chains including the
-mini-FAT for streams under 4096 bytes.
+Two claims this entry used to make should not be carried forward. The
+alternative it offered — "resolve every stream's `(offset, length)` once at
+`init()` and read via `FileReader` thereafter" — described moving OLE sector
+chains and the mini-FAT into slideio; §5.3 of the design is the same idea done
+where that logic already lives, so the alternative is not outstanding, it is
+what happened. And the route was not free single-threaded: the positional read
+path is about 20% slower per read than the buffered `fstream` it replaced, for
+reasons and with numbers recorded in
+[§21](#21-poles-positional-read-path-is-20-slower-single-threaded).
 
 ---
 
@@ -629,7 +657,11 @@ numFrames)`, and `CIF_UsePartialAccessToPixelData` is precisely the flag that
 makes DCMTK retain partial pixel-data state inside that shared `DcmDataset`
 between `DicomImage` constructions — which is why per-thread `DCMFile`
 replicas are the only route there. N x parse is expensive here, so choose the
-pool's cap accordingly.
+pool's cap accordingly — and measure what one replica costs before choosing
+it. `software-docs/specs/2026-09-09-zvi-concurrent-reads-design.md` §3.2 is the
+method, and [§14](#14-zvi-now-reports-concurrent-reads-resolved) is the
+evidence that it matters: §14 used to assume a per-thread document was cheap
+for ZVI, and the measurement came back at 1721 ms and 12 MB each.
 
 The alternative, if this ever matters for throughput: resolve every frame's
 encapsulated-pixel-data offset once at `init()` and read via `FileReader`
@@ -751,3 +783,222 @@ The work, whichever way it is decided:
 
 Either way the two paths should be tested together, so the next widening of a
 `catch` cannot re-open the gap unnoticed.
+
+---
+
+## 19. pole read-path defects left in place
+
+**Files:** `extern/pole/sources/pole/detail/storage.cpp`,
+`extern/pole/sources/pole/detail/stream.cpp`,
+`extern/pole/includes/pole/detail/storage.hpp`,
+`extern/pole/sources/pole/pole.cpp`, `extern/pole/sources/storage.cpp`,
+`extern/pole/includes/path.hpp`
+**Related:** [§14](#14-zvi-now-reports-concurrent-reads-resolved);
+`software-docs/specs/2026-09-09-zvi-concurrent-reads-design.md` §5.1–§5.3
+**Status:** Open, deliberately deferred. Each item is pre-existing or was
+scoped out; none is a regression introduced by the concurrent-read work.
+
+Seven defects found while giving pole a positional read path and left alone,
+because fixing any of them would have changed behaviour on a change whose whole
+value was that it did not.
+
+1. **pole opens every compound document read/write.** `StorageIO(const char*)`
+   and `StorageIO(const wchar_t*)` open with
+   `std::ios::binary | std::ios::in | std::ios::out`, so slideio cannot open a
+   read-only ZVI, or one on read-only media, at all. Fixing it changes *when
+   opens succeed* and needs its own test. It is also why an open ZVI holds
+   **two** descriptors rather than one: the read/write `std::fstream` plus the
+   read-only `PositionalFile` opened alongside it. Two per document, not two
+   per thread.
+2. **`StreamImpl::_state &= StreamImpl::Eof`** keeps the Eof bit and clears
+   `Bad`, where `&= ~Eof` was evidently meant (`stream.cpp:200`, `:225`,
+   `:254`, `stream.hpp:68`). Carried across verbatim so the positional-read
+   change stayed behaviour-preserving. Nothing in slideio consults either flag.
+3. **The cursor `read` dereferences a possibly-null `_entry`.**
+   `StreamImpl::read(unsigned char*, std::streamsize)` ends with
+   `if( _pos == _entry->size() )` and no null check, and `_entry` comes from
+   `io->entry(path)`, which can return null. Pre-existing; the guard was
+   deliberately not added, for the same behaviour-preservation reason as (2).
+4. **`compound_document::path_exist()` is wrong for nested stream paths.**
+   It derives the parent storage with `substr(0, path.size() - ++pos)`
+   (`sources/storage.cpp:147`), which for `/Image/Contents` yields `/Image/C`
+   and finds nothing. Measured against pole's own `test1.bin`: `false` for all
+   fifteen nested streams, while `find_storage` + `find_stream` resolve every
+   one of them. slideio does not call it, which is why nothing noticed.
+   Anything that starts calling it must fix it first.
+5. **`Storage::stream()`'s reuse lookup never matches.** It compares
+   `(*it)->path()`, the entry's *short* name, against `name`, which every
+   caller passes as a full path (`sources/pole/pole.cpp:77`), so `reuse = true`
+   always misses and the `streams` list grows one entry per stream and is
+   scanned in full each time. Worth 2 ms of the mosaic's original 1721 ms,
+   which is why it was left. It is also not safely fixable in isolation:
+   keying on the full path makes reuse start working where it never has, and
+   keying on the short name makes every item's `Contents` collide.
+6. **`StorageIO::get_entry_childrens` takes `result` by value** and so
+   discards everything it collects (`detail/storage.hpp:111`). Dead code — no
+   caller in pole, its tests, or the zvi driver.
+7. **`StorageIO::create()` leaves `_pread` stale.** It replaces `_file` and
+   `_stream` without touching the positional handle
+   (`detail/storage.cpp:377-393`), so a read after it would come from the
+   previously opened file. Dead code — no caller in pole or slideio — and it
+   is on the write path, which the concurrency work was scoped out of.
+
+Fixing (1) is the only one with a user-visible payoff, and it is the one that
+needs a new test rather than a one-line edit. (6) and (7) are cheapest fixed
+by deletion if pole's write path is ever revisited.
+
+**Stale comments and cosmetics, all one-liners, all left because this change
+is not reopening the files they sit in:** the doc comment above the positional
+`read` in `includes/pole/detail/stream.hpp` still names the out-param
+`hit_eof` after it was renamed `eof_report` and made tri-state; the
+`mutable std::mutex _stream_mutex` comment (`detail/storage.hpp:159`) reads
+"guards `_stream` when `_pread` is NULL" without the qualifier that `load()`
+reads `_stream` unguarded either way, which is safe only because `load()` runs
+once during construction, before any `StreamImpl` exists;
+`sources/pole/detail/dirtree.cpp` pre-checks `visited[prev]`/`visited[next]`
+before recursing, duplicating the check `find_siblings` makes on entry
+(harmless, saves a call frame, not worth a commit); and
+`src/slideio/drivers/zvi/zviscene.hpp` carries a redundant `public:` label that
+predates this work and now sits just after the new `supportsConcurrentReads`
+override.
+
+---
+
+## 20. The ZVI concurrent-read work: what no test covers
+
+**Files:** `src/tests/main/test_zvi_driver.cpp`,
+`extern/pole/sources/pole/detail/storage.cpp` (`PositionalFile`),
+`src/slideio/drivers/zvi/zviimageitem.cpp`, `extern/pole/tests/`
+**Related:** [§14](#14-zvi-now-reports-concurrent-reads-resolved);
+`software-docs/specs/2026-09-09-zvi-concurrent-reads-design.md` §6
+**Status:** Open. Four gaps, recorded so the next change here knows what the
+green suites do and do not stand behind.
+
+1. **`PositionalFile::read_at`'s short-read/EOF loop is never entered by any
+   test**, and neither is its `ERROR_IO_PENDING` / `GetOverlappedResult`
+   branch. pole's 12 tests read a small local NTFS document where every read
+   completes synchronously and in full.
+   `stream.read_at_past_end_is_clamped` does not discharge this: it exercises
+   `StreamImpl::read`'s *logical-size* clamp one layer above, and every block
+   loader beneath it requests a full block. Two pole-side unit tests over an
+   existing fixture would close it, no thread and no mosaic needed:
+   `read_at(size - 4, buf, 64)` and `read_at(0, buf, size)` on the largest
+   fixture, the second to force more than one loop iteration.
+
+2. **`ZVIImageItem::readRaster`'s JPEG branch is exercised by no test and
+   cannot be with the current corpus.** That branch is selected by header word
+   6 (`validBits`) being 0 or 1 (`zviscene.cpp:292-295`,
+   `zviimageitem.cpp:211` and `:218`). Every ZVI fixture was scanned for such
+   an item:
+
+   | fixture | items | JPEG-branch items |
+   |---|---|---|
+   | `TOMMAlexaFluor647.zvi` | 1 | 0 |
+   | `Zeiss-1-Merged.zvi` | 3 | 0 |
+   | `Zeiss-1-Stacked.zvi` | 39 | 0 |
+   | `mouse/…RING1B_DAPI_T_005.zvi` | 144 | 0 |
+   | `mouse/…HA_DAPI_inj_002.zvi` | 117 | 0 |
+   | `openslide/Zeiss-3-Mosaic.zvi` | 759 | 0 |
+
+   1063 items, not one JPEG. The branch was equally untested before this work,
+   and the positional-read change to it is equivalence-provable by reading:
+   `basic_stream::seek(0, std::ios::end)` computes `size() - 0` and
+   `StreamImpl::seek` accepts `pos == _entry->size()`, so the old
+   `seek(0, end); pos()` returned exactly `size()`, the two length computations
+   are arithmetically identical, and `read_at(off, n)` reads the same bytes as
+   `seek(off); read(n)`. The only new behaviour is a short-read check — a new
+   error path that can fire only where the old code silently handed a truncated
+   buffer to `decodeJpegStream`. **The fix is acquiring a JPEG-compressed ZVI
+   fixture**; nothing else closes this.
+
+3. **ThreadSanitizer was never run, and the byte-exactness tests are not a
+   replacement for it.** MSVC has no TSan and there is no Linux build on the
+   development machine. The intended stand-in — revert `readRaster` to its
+   cursor form and watch `concurrentReadsAreByteIdenticalMosaic` go red — was
+   tried and the plain revert **passed** three times, because that race's
+   window is roughly 50 ns against a ~2 ms read, a duty cycle near 1e-5.
+   Widening the window with a `sleep_for(50 microseconds)` in the reverted
+   build did make it fail, on exceptions, 75/59/77 occurrences across three of
+   the four read paths. So what the three tests support is exactly this: they
+   detect read corruption on a shared ZVI scene (demonstrated), and they do not
+   reliably catch this specific narrow-window race. The `_ref_count` and
+   `_state` races were removed by construction and are unverified by any race
+   detector; `_ref_count` has one direct property test at the pole layer
+   (`stream.const_borrow_does_not_bump_the_ref_count`), which checks that a
+   `const` borrow does not increment the count, not the absence of a race under
+   contention. **A Linux CI job running TSan is the real fix.** The existing
+   `tsan-linux` job covers only the mechanism-level suites (`FileReader.*`,
+   `ContextPool.*`) and cannot run the driver suites, which need the image
+   corpus CI does not carry.
+
+4. **The POSIX branch of `PositionalFile` has never been compiled.** The
+   development machine is Windows-only, so CI is its first real build. It was
+   assessed by reading: every symbol has a matching include, and
+   `src/slideio/core/tools/filereader.cpp:186` relies on the same `O_CLOEXEC`
+   feature-test on the same two platforms. Still, the first Linux or macOS
+   configure is the test.
+
+---
+
+## 21. pole's positional read path is ~20% slower single-threaded
+
+**Files:** `extern/pole/sources/pole/detail/storage.cpp`
+(`StorageIO::loadBigBlocks`, `loadBigBlock`),
+`extern/pole/sources/storage.cpp` (`compound_document::find_storage`)
+**Related:** [§14](#14-zvi-now-reports-concurrent-reads-resolved);
+`software-docs/BREAKING_CHANGES.md`, `v2.10.0`;
+`software-docs/specs/2026-09-09-zvi-concurrent-reads-design.md` §5.3, §8
+**Status:** Open. The first item is a **measured regression** with an
+identified fix, not a nicety; the other two are throughput observations.
+
+**1. Sector coalescing in `loadBigBlocks`, the fix for the regression.**
+`loadBigBlocks` issues one `ReadFile`-with-`OVERLAPPED` per 512-byte block —
+about 5600 of them for the 2.9 MB `/Image/Item(0)/Contents` in
+`openslide/Zeiss-3-Mosaic.zvi` — where the `std::fstream` path it replaced was
+buffered; `loadBigBlock` also heap-allocates a one-element vector per block.
+Measured with one probe source and one set of flags against both pole
+revisions, n=15 warm samples each, one warm-up pass discarded, same session,
+reading that same item:
+
+| pole | mean | median | range | throughput |
+|---|---|---|---|---|
+| pristine `3e64e5a` | 1.80 ms | ~1.76 ms | 1.72–1.99 ms | ~1540 MB/s |
+| current `4b49f49` | 2.16 ms | ~2.12 ms | 2.06–2.37 ms | ~1280 MB/s |
+
+The ranges do not overlap, so this is real and not noise: **+20% on time,
+−17% on throughput** for a warm 2.9 MB read.
+
+Three things make it acceptable rather than blocking, and they belong with the
+number. It is 0.36 ms per 2.9 MB tile. It is recovered immediately by a second
+reader thread, which the mutex this work removed made impossible. And on the
+same file it is dwarfed by the open-time win: 759 items × 0.36 ms is about
+273 ms of extra read against about 1583 ms saved opening the document
+(1721 ms → ~138 ms), so even a full-slide **single-threaded** read of the
+mosaic is net faster than before.
+
+Coalescing runs of contiguous sectors into one positional read would cut those
+~5600 syscalls to a handful and should recover more than the regression. It
+was scoped out of the concurrency change deliberately, so that a regression in
+it would be separable from the concurrency work; it wants its own commit with
+its own before/after. The cold case is worse still and coalescing is the same
+fix: the same tile measured 61 MB/s cold against 1437 MB/s warm, which is the
+per-block syscall count showing through once the page cache is not absorbing
+it.
+
+**2. `compound_document::find_storage` is a linear scan, now on the read
+path.** It walks the whole `_storages` tree comparing strings — about 1543
+comparisons per `readRaster` on the mosaic, since `ConstStreamKeeper` resolves
+a path per item. It mutates nothing, so this is throughput, not correctness,
+and it wants its own measurement before anyone restructures the tree into a
+map.
+
+**3. A multi-block short read now shifts the destination.** `loadBigBlocks`
+advances `bytes` by the actual count returned, so if block *i* reads short,
+blocks *i+1..n* land at the wrong offsets; the old `bytes += p` preserved the
+alignment. Only `load()` passes a chain, and it ignores the return value; the
+path is reachable only on a truncated or erroring file, where both the old and
+the new code produce junk, and the `pos + p > _size` clamp guarantees a full
+read for the legitimate last block. The call site already carries a comment
+explaining why it advances by the true count; what it does not say is that the
+old code's alignment was a property, so one more sentence there is the whole
+fix.

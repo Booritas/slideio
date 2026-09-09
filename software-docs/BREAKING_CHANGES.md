@@ -16,11 +16,14 @@ by branch.
 
 Reads of one `Scene` were thread-safe and fully serialised: no two block reads
 of one scene ever ran at the same time. For the scenes of SVS, PHTIFF, AFI,
-PKE, SCN, NDPI, CZI, VSI and OME-TIFF they now run concurrently — nine of the
-twelve formats. ZVI, DCM and GDAL are unchanged;
+PKE, SCN, NDPI, CZI, VSI, OME-TIFF and ZVI they now run concurrently — ten of
+the twelve formats. DCM and GDAL are unchanged;
 `CVScene::supportsConcurrentReads()` reports which applies. See
 `software-docs/specs/2026-09-08-ometiff-concurrent-reads-design.md` for the
-OME-TIFF conversion specifically.
+OME-TIFF conversion specifically, and
+`software-docs/specs/2026-09-09-zvi-concurrent-reads-design.md` for ZVI's,
+which was done in `extern/pole` and carries a single-threaded read cost of its
+own — see "pole gained a positional read path" below.
 
 No signatures changed and there is no source or binary incompatibility. The
 break is behavioural: code that relied on reads of one scene being mutually
@@ -49,8 +52,8 @@ turns the eight-format claim into a nine-format one:
   channel-split `tubhiswt-4D` fixture; slides that split files by **z or t**
   instead — `Multifile/multifile-Z1..Z5` is exactly that shape — have **no**
   concurrent-read gate at all. Closing this needs `TestTools` extended to vary
-  z/t, which changes the harness all nine concurrent drivers share, so it
-  belongs in its own change with all nine suites re-run.
+  z/t, which changes the harness all ten concurrent drivers share, so it
+  belongs in its own change with all ten suites re-run.
 
 ### The classes and members the concurrent-read work removed or changed
 
@@ -516,6 +519,93 @@ package as `include/pole`. The root `CMakeLists.txt` stages that same shape in
 the build tree with `file(COPY)`. It is a configure-time copy, so a header
 edited inside the submodule needs a re-configure to be picked up -- where the
 package needed a rebuild and upload.
+
+### pole gained a positional read path: new API, faster opens, slower reads
+
+**Modules:** `slideio-zvi`, `extern/pole`
+**Files:** `extern/pole` (submodule pointer `3e64e5a` → `4b49f49`),
+`src/slideio/drivers/zvi/zviimageitem.cpp`, `zviutils.hpp`/`.cpp`,
+`zviscene.hpp`
+
+This is what made ZVI concurrent in the first entry above. It is recorded
+separately because pole is a library in its own right, and an out-of-tree
+consumer of the submodule sees three changes: a larger API, a much faster
+open, and a slower single-threaded read.
+
+**Exported API — additions only, no removals and no renames:**
+
+| Added | Type | Note |
+|---|---|---|
+| `read_at(std::streamoff, char*, std::streamsize) const` | `ole::basic_stream` | positional read; touches neither `_pos` nor `_state` |
+| `size() const` | `ole::basic_stream` | replaces `seek(0, std::ios::end); pos()` for learning a length |
+| `stream() const` → `const ole::basic_stream&` | `ole::stream_path` | borrows without incrementing `_ref_count`; the non-`const` overload is unchanged |
+| `read_at(unsigned long, unsigned char*, unsigned long) const` | `POLE::Stream` | what `basic_stream::read_at` forwards to |
+
+`POLE::StreamImpl::read` gained a positional overload,
+`read(size_t pos, unsigned char* data, std::streamsize maxlen, int* eof_report
+= 0) const`, whose out-param is tri-state (not read / read without hitting the
+end / clamped at the end). The existing cursor API — `seek`, `read`, `pos`,
+`eof`, `fail` — is untouched and still works exactly as before.
+
+**One layout break.** `POLE::StorageIO`'s four block loaders (`loadBigBlocks`,
+`loadBigBlock`, `loadSmallBlocks`, `loadSmallBlock`) became `const`, and the
+class gained two data members: a `PositionalFile*` and a `mutable std::mutex`.
+Anything embedding a `StorageIO` **by value** sees a differently-sized object
+and must be recompiled. Nothing in slideio does; the zvi driver reaches pole
+only through `ole::compound_document`.
+
+**No slideio signature changed.** `ZVIScene`, `ZVISlide` and `ZVIImageItem`
+keep their interfaces; `ZVIUtils` gained a `ConstStreamKeeper` alongside the
+existing `StreamKeeper`, which is unchanged.
+
+**Opening a large compound document is much faster.** Two changes in pole's
+directory walk — guarding a discarded `path()` call and giving `find_siblings`
+an O(1) duplicate check — take `ole::compound_document` construction on a
+1543-stream ZVI (`openslide/Zeiss-3-Mosaic.zvi`) from **1721 ms to ~138 ms**,
+measured warm on both sides, and 139/140 ms when re-measured on the landed
+code. A 315-stream file goes from 26 ms to 10 ms. Files with a hundred streams
+or fewer were already at 0–3 ms and are unchanged. This part is pure gain and
+needs nothing from a caller.
+
+**A single read is now about 20% slower single-threaded.** This is the
+behavioural cost, and it is real rather than noise. `loadBigBlocks` issues one
+`ReadFile`-with-`OVERLAPPED` (or `pread`) per 512-byte block where the
+`std::fstream` path it replaced was buffered — about 5600 syscalls for a 2.9 MB
+item. Measured with one probe source and one set of flags against both pole
+revisions, n=15 warm samples each, one warm-up discarded, same session,
+reading `/Image/Item(0)/Contents` (2.9 MB) from the mosaic:
+
+| pole | mean | median | range | throughput |
+|---|---|---|---|---|
+| `3e64e5a` (before) | 1.80 ms | ~1.76 ms | 1.72–1.99 ms | ~1540 MB/s |
+| `4b49f49` (after) | 2.16 ms | ~2.12 ms | 2.06–2.37 ms | ~1280 MB/s |
+
+The ranges do not overlap: +20% on time, −17% on throughput. In absolute terms
+it is 0.36 ms per 2.9 MB tile, a second reader thread — which the removed mutex
+made impossible — recovers it immediately, and on this file it is dwarfed by
+the open-time win: 759 items × 0.36 ms is about 273 ms of extra read against
+about 1583 ms saved on the open, so even a full-slide **single-threaded** read
+of the mosaic is net faster than before. A caller reading one small region from
+a small ZVI, single-threaded, sees the 20% without that offset. The identified
+fix is coalescing runs of contiguous sectors into one positional read; it is
+scoped out and recorded in `software-docs/TECH_DEBT.md` §21.
+
+**A new property consumers may rely on:** reads of one `ole::compound_document`
+from several threads are now safe, provided the document was opened by
+filename. The `StorageIO(std::iostream*)` constructor has no positional
+equivalent and falls back to a mutexed `seekg`+`read`, so its behaviour is
+preserved and unchanged. pole's **write** path — `saveBlock`, `flush`,
+`delete_entry`, `StreamImpl::write` — still shares one `std::fstream` and is
+still serialised.
+
+A document opened by filename now holds **two** descriptors, not one: the
+read/write `std::fstream` pole has always opened, plus the read-only
+`PositionalFile`. Two per document, not two per thread. That pole opens
+read/write at all is a pre-existing defect (`TECH_DEBT.md` §19) — it means a
+read-only file or read-only media cannot be opened at all — and is why the
+second descriptor was added alongside the first rather than replacing it.
+
+See `software-docs/specs/2026-09-09-zvi-concurrent-reads-design.md`.
 
 ### The private conan remote is gone; everything comes from conan center
 
