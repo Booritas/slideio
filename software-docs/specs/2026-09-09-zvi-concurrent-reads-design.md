@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-09
 **Branch:** v2.10.0
-**Status:** Design proposed, pending approval
+**Status:** Implemented 2026-09-09 (`extern/pole` at `4b49f49`)
 **Baseline:** `slideio` @ `e9094277` (branch `v2.10.0`); `extern/pole` @ `3e64e5a`
 (`v1.0.4-3-g3e64e5a`)
 **Companion:** `software-docs/specs/2026-09-07-parallel-read-block-design.md`
@@ -330,6 +330,14 @@ plan gates on the equivalence of the paths the document reports rather than on a
 wall-clock assertion, which would flake in CI; the timings are reported, not
 asserted.
 
+**Measured again after the whole change landed**, warm, two consecutive runs
+per file: the mosaic's `ole::compound_document` construction takes 139 ms and
+140 ms, the 315-stream mouse file 10 ms and 10 ms, `Zeiss-1-Stacked.zvi` 2 ms,
+and the two smallest 0–1 ms. Storage and stream counts matched the table's
+column exactly on every file. So the "After" column above held, and §5.3's
+positional read path did not regress the open — 1721 ms → ~138 ms is the
+defensible before/after for this work.
+
 **This change stands alone.** It speeds up every ZVI open in the library,
 single-threaded, on the largest files, and it should land and be releasable
 independently of anything else here.
@@ -399,15 +407,24 @@ borrowing and removes the third race outright. `StreamKeeper` (§5.4) uses it.
 both init-time), every `StreamImpl::_blocks` sector chain (built at construction,
 read-only after), and the `AllocTable`s.
 
-**Throughput, as a bonus.** `loadBigBlocks` issues one `seekg`+`read` pair per
-block and `loadBigBlock` heap-allocates a one-element `std::vector<ULONG32>` per
-block, so the 2.9 MB tile in the mosaic costs ~5600 syscalls and ~5600 vector
-allocations. Measured cold read of that tile is 61 MB/s; warm it is 1437 MB/s,
-which is the same code with the page cache absorbing the syscalls. Coalescing
+**Throughput — and, as it turned out, a cost.** `loadBigBlocks` issues one
+`seekg`+`read` pair per block and `loadBigBlock` heap-allocates a one-element
+`std::vector<ULONG32>` per block, so the 2.9 MB tile in the mosaic costs ~5600
+syscalls and ~5600 vector allocations. Measured cold read of that tile is
+61 MB/s; warm it is 1437 MB/s, which is the same code with the page cache
+absorbing the syscalls. Coalescing
 runs of contiguous sectors into one positional read is a natural thing to do
 while rewriting this function and would move the cold number materially. It is
 **optional** for this design and should be a separate commit with its own
 before/after, so that a regression in it is separable from the concurrency work.
+
+That separability was worth having, but "as a bonus" was the wrong
+expectation and is corrected here. Leaving the coalescing out cost about
+**20%** on a warm single-threaded read of that tile — 1.80 ms before against
+2.16 ms after, n=15 each side with non-overlapping ranges. The positional path
+is a concurrency win paid for single-threaded until the coalescing lands;
+`software-docs/TECH_DEBT.md` §21 carries the numbers and the argument for why
+that trade is acceptable.
 
 ### 5.4 The driver
 
