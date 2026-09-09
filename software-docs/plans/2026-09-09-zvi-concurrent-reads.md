@@ -778,7 +778,6 @@ public:
 	ULONG32 read_at( ULONG32 offset, unsigned char* dst, ULONG32 n ) const;
 
 private:
-	void open_handle( const void* name, bool wide );
 #if defined(WIN32)
 	void* _handle;
 #else
@@ -816,9 +815,12 @@ In `extern/pole/sources/pole/detail/storage.cpp`, above `StorageIO`:
 ```cpp
 #if defined(WIN32)
 #include <windows.h>
+#include <cstring>
 #else
 #include <fcntl.h>
 #include <unistd.h>
+#include <cerrno>
+#include <cstring>
 #endif
 
 PositionalFile::PositionalFile( const char* filename )
@@ -867,7 +869,11 @@ ULONG32 PositionalFile::read_at( ULONG32 offset, unsigned char* dst, ULONG32 n )
 #if defined(WIN32)
 		OVERLAPPED ov;
 		memset( &ov, 0, sizeof(ov) );
-		ov.Offset = (DWORD)((offset + done) & 0xffffffffu);
+		// pole is already 32-bit-offset-limited: ULONG32 is `unsigned long`
+		// (util.hpp) and StorageIO::_size is assigned (ULONG32)tellg(), so a
+		// compound document over 4 GB is unsupported here already. Do not
+		// widen it in this change.
+		ov.Offset = (DWORD)(offset + done);
 		ov.OffsetHigh = 0;
 		DWORD got = 0;
 		if( !ReadFile( _handle, dst + done, (DWORD)(n - done), &got, &ov ) )
