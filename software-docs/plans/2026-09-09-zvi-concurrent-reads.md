@@ -1718,12 +1718,41 @@ the `in | out` open mode that makes it two.
 - [ ] **Step 4: Say plainly what was not run**
 
 ThreadSanitizer is unavailable on this machine (MSVC has no TSan, no Linux
-build). The substitute is Task 8 Step 3: the demonstration that the mosaic test
-fails against the pre-change read path. Report that explicitly rather than
-implying race coverage that does not exist. The `_ref_count` and `_state` races
-in particular are the kind a byte-comparison test may not catch, and the honest
-statement is that they were removed by construction and are unverified by a
-race detector.
+build).
+
+> **Correction, 2026-09-09 (post-Task-8).** This step used to say the
+> substitute is "the demonstration that the mosaic test fails against the
+> pre-change read path". **That demonstration does not hold, and the sentence
+> was wrong.** Task 8 ran it: with `readRaster` reverted to its cursor-based
+> form, the mosaic byte-exactness test **passed** three times
+> (18430/18453/18287 ms). The reason is not a defect in the tests — the
+> reverted code does race on `POLE::StreamImpl::_pos`, but `read()` samples
+> `tell()` at its start and then spends ~2 ms moving 2.9 MB, so the window is
+> the ~50 ns between the `seek` and that sampling: a duty cycle near 1e-5, and
+> well under one expected collision per run.
+>
+> What Task 8 did establish, by widening the window in the reverted build only:
+> a bare `std::this_thread::yield()` was still not enough, and
+> `sleep_for(50 microseconds)` made the test fail on **exceptions** — 75/59/77
+> across the AllChannels, ChannelSubset and Level paths — which is the second
+> thread finding `_pos` at end-of-stream, clamping to zero bytes, and tripping
+> `readBytes != rasterSize`.
+
+Report exactly this, and no more than this:
+
+1. The three byte-exactness tests **do** detect read corruption on a shared ZVI
+   scene — demonstrated, with the numbers above.
+2. They do **not** reliably catch the specific narrow-window race the mechanism
+   removes. A plain revert passes.
+3. They are therefore a genuine corruption detector and **not** a substitute
+   for ThreadSanitizer. Do not use that phrase.
+4. The `_ref_count` and `_state` races were removed by construction and are
+   unverified by any race detector. `_ref_count` has one direct test at the
+   pole layer (`const_borrow_does_not_bump_the_ref_count`), which checks the
+   property rather than the absence of a race.
+
+Running TSan on a Linux CI job is the real fix and belongs in the tech-debt
+entry, not in a claim here.
 
 - [ ] **Step 5: Report, do not commit**
 
