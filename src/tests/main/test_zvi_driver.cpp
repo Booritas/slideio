@@ -595,3 +595,38 @@ TEST(ZVIImageDriver, getSceneIndex)
         EXPECT_EQ(filePath, scene->getFilePath());
     }
 }
+
+// Spec 6 requires the channel-subset and level-addressed entry points as well
+// as the plain 2D all-channels read; concurrentReadIdentityTestAllPaths covers
+// all four shapes in one call.
+TEST(ZVIImageDriver, concurrentReadsAreByteIdentical)
+{
+    std::string filePath = TestTools::getTestImagePath("zvi", "Zeiss-1-Merged.zvi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::ZVIImageDriver driver;
+    TestTools::concurrentReadIdentityTestAllPaths(filePath, driver);
+}
+
+// A Z-stack, which Zeiss-1-Merged is not. ZVI resolves the slice inside
+// readTile through TilerData::zSliceIndex, so this is what exercises
+// ZVITile::getImageItem's per-slice item lookup under concurrency.
+TEST(ZVIImageDriver, concurrentReadsAreByteIdenticalStacked)
+{
+    std::string filePath = TestTools::getTestImagePath("zvi", "Zeiss-1-Stacked.zvi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::ZVIImageDriver driver;
+    TestTools::concurrentReadIdentityTestAllPaths(filePath, driver);
+}
+
+// The mosaic, and the only file here where one block read spans many items and
+// therefore many POLE::StreamImpl objects. This is the test that would have
+// caught the shared std::fstream cursor in StorageIO::loadBigBlocks -- the
+// races on a single item's cursor are invisible to the two tests above, which
+// read one tile per scene.
+TEST(ZVIImageDriver, concurrentReadsAreByteIdenticalMosaic)
+{
+    std::string filePath = TestTools::getTestImagePath("zvi", "openslide/Zeiss-3-Mosaic.zvi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::ZVIImageDriver driver;
+    TestTools::concurrentReadIdentityTestAllPaths(filePath, driver);
+}
