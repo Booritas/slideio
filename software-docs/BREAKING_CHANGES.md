@@ -591,8 +591,8 @@ fix is coalescing runs of contiguous sectors into one positional read; it is
 scoped out and recorded in `software-docs/TECH_DEBT.md` §21.
 
 **A new property consumers may rely on:** reads of one `ole::compound_document`
-from several threads are now safe **through the positional API — `read_at`
-and `size()` — provided** the document was opened by filename. The cursor API
+from several threads are now safe **through the positional API (`read_at` and
+`size()`)**, provided the document was opened by filename. The cursor API
 (`seek`/`read`/`getch`/`pos`/`eof`/`fail`) still mutates `StreamImpl::_pos`,
 `_state`, `_cache_data`, `_cache_size` and `_cache_pos` on every call, per
 stream, unsynchronised — a single stream must not be read through it from two

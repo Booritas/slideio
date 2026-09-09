@@ -13,8 +13,8 @@ submodule. Rather than replicating that document per thread (measured at 1721 ms
 and 12 MB each on the 2.0 GB mosaic — a net loss), pole's read path is made
 cursor-free: a positional `read_at` on `ole::basic_stream`, positional file I/O
 under `StorageIO::loadBigBlocks`, and a `const` stream borrow that does not bump
-a refcount. One shared document then serves every thread with one descriptor,
-the same shape CZI and VSI already use via `FileReader`. A separate,
+a refcount. One shared document then serves every thread with two descriptors —
+not per thread — the same shape CZI and VSI already use via `FileReader`. A separate,
 independently valuable fix replaces two brute-force searches in pole's directory
 tree that account for the 1.7 s.
 
@@ -47,7 +47,9 @@ standard-library-only.
 - `ZVIScene::m_Doc` stays a plain member. **No `ContextPool`, no
   `ReadContext`** — that is the route the spec rejected in §4. If you find
   yourself adding one, stop and re-read spec §3.2.
-- Exactly one descriptor per open ZVI for reading. Task 9 asserts it.
+- Two descriptors per open ZVI, not one -- a read/write `fstream` plus a
+  read-only `PositionalFile` -- two per document, not per thread. Task 9
+  asserts it.
 - No new slideio public API beyond the `supportsConcurrentReads()` override.
 - Do not touch: `cvscene.*`, `FileReader`, `ContextPool`, any other driver,
   `Tiler`, `TileComposer`, `read_batch`, `TiffConverter`.
