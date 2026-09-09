@@ -123,6 +123,25 @@ namespace slideio
         private:
             std::vector<ole::stream_path>::iterator m_StreamPos;
         };
+
+        // StreamKeeper's read-only sibling. It borrows the stream through
+        // stream_path::stream() const, which does not bump _ref_count -- so
+        // two threads resolving the same path do not race. Use this on the read
+        // path; StreamKeeper stays for the init-time parsers, which walk a
+        // stream sequentially with the cursor API.
+        class SLIDEIO_ZVI_EXPORTS ConstStreamKeeper
+        {
+        public:
+            ConstStreamKeeper(ole::compound_document& doc, const std::string& path);
+            operator const ole::basic_stream& () const {
+                return m_StreamPos->stream();
+            }
+            const ole::basic_stream* operator ->() const {
+                return &(m_StreamPos->stream());
+            }
+        private:
+            std::vector<ole::stream_path>::const_iterator m_StreamPos;
+        };
     }
 }
 #if defined(_MSC_VER)
