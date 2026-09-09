@@ -868,10 +868,11 @@ override.
 
 **Files:** `src/tests/main/test_zvi_driver.cpp`,
 `extern/pole/sources/pole/detail/storage.cpp` (`PositionalFile`),
-`src/slideio/drivers/zvi/zviimageitem.cpp`, `extern/pole/tests/`
+`src/slideio/drivers/zvi/zviimageitem.cpp`, `extern/pole/tests/`,
+`CMakeLists.txt`, `.github/workflows/build-validation.yml`
 **Related:** [§14](#14-zvi-now-reports-concurrent-reads-resolved);
 `software-docs/specs/2026-09-09-zvi-concurrent-reads-design.md` §6
-**Status:** Open. Four gaps, recorded so the next change here knows what the
+**Status:** Open. Five gaps, recorded so the next change here knows what the
 green suites do and do not stand behind.
 
 1. **`PositionalFile::read_at`'s short-read/EOF loop is never entered by any
@@ -937,6 +938,33 @@ green suites do and do not stand behind.
    `src/slideio/core/tools/filereader.cpp:186` relies on the same `O_CLOEXEC`
    feature-test on the same two platforms. Still, the first Linux or macOS
    configure is the test.
+
+5. **pole's own test suite is built by no CI job, so the "pole's 12 tests"
+   figure above is a one-time manual result, not standing coverage.**
+   `CMakeLists.txt:204` sets `PACKAGE_TESTS OFF CACHE BOOL … FORCE`, so
+   `storage_tests` is never configured in the slideio build; `extern/pole` has
+   no `.github/` of its own; and no workflow under `.github/workflows/`
+   mentions pole. The seven tests this branch added therefore ran exactly
+   once, in a manual standalone configure, and nothing will run them again on
+   any push. Two are load-bearing and have no other coverage anywhere:
+   `stream.concurrent_read_at_on_one_document`, the only test that exercises
+   the new positional-read primitive under contention, and
+   `dirtree.every_reported_path_resolves`, the only test that makes the §5.2
+   `find_siblings` rewrite behaviour-preserving rather than merely fast.
+
+   This compounds with item 3 above, which is the real risk: the three ZVI
+   byte-exactness tests **are** in CI, but item 3 already records that a
+   deliberately reverted `readRaster` passed them three times. So the
+   automated regression net this branch leaves behind, after merge, is three
+   tests shown unable to detect this class of race, plus seven tests that
+   nothing runs.
+
+   The fix does not need the slide corpus, so it can run on every push: a job,
+   or a step in an existing Linux job, that configures `extern/pole` standalone
+   with `-DPACKAGE_TESTS=ON` and builds and runs `storage_tests`. It needs
+   `submodules: recursive` (or `git submodule update --init` inside
+   `extern/pole`) to pull the nested googletest submodule that `PACKAGE_TESTS`
+   requires — see §6.4 of the design.
 
 ---
 

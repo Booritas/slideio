@@ -55,9 +55,10 @@ namespace slideio
         // Safe because nothing on the read path holds a cursor: readRaster
         // borrows its stream const and issues one positional read_at, and
         // pole's block loaders read by offset rather than through a shared
-        // file cursor. m_Doc is therefore shared by every reader, with one
-        // descriptor and no ContextPool -- the CZI and VSI shape, not the
-        // NDPI one. See the 2026-09-09 design, section 4.
+        // file cursor. m_Doc is therefore shared by every reader, with two
+        // descriptors per document rather than per thread, and no
+        // ContextPool -- the CZI and VSI shape, not the NDPI one. See the
+        // 2026-09-09 design, section 4.
         bool supportsConcurrentReads() const override { return true; }
     public:
         int getTileCount(void* userData) override;

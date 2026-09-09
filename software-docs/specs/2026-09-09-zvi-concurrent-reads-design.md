@@ -464,7 +464,7 @@ bool supportsConcurrentReads() const override { return true; }
 ```
 
 and nothing else. `m_Doc` stays a plain member, shared by all readers, with no
-`ContextPool` and no extra descriptor. `ZVITile::readTile` keeps its
+`ContextPool` and no extra descriptor **per thread**. `ZVITile::readTile` keeps its
 `ole::compound_document&` parameter; only what `readRaster` does with it
 changes. `m_Doc` is declared before `m_Tiles` and `m_ImageItems` in
 `zviscene.hpp` and must stay that way — a reader in flight holds pointers into
@@ -522,10 +522,18 @@ that does not exist.
 
 ### 6.3 Descriptors and memory
 
-One open ZVI must hold exactly one file descriptor after this change, and
-`ZVIScene`'s resident cost must not grow with thread count. Both are the point
-of Route B and both should be asserted, the descriptor count by the same means
-the OME-TIFF work used.
+As designed here, this section said one open ZVI must hold exactly one file
+descriptor after this change. As landed, it holds **two**: the read/write
+`std::fstream` pole has always opened, plus the read-only `PositionalFile`
+§5.3 adds alongside it. `TECH_DEBT.md` §19.1 has the reason -- pole opens
+every compound document read/write, a pre-existing defect this change did not
+take on -- and why the second descriptor could not simply replace the first.
+Two is the expected answer for this assertion, not one.
+
+`ZVIScene`'s resident cost must not grow with thread count -- that half of
+Route B's point is unaffected by the correction above and holds as designed.
+Both counts are the point of Route B and both should be asserted, the
+descriptor count by the same means the OME-TIFF work used.
 
 ### 6.4 pole's own tests
 
