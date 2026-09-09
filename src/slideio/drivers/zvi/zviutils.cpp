@@ -328,6 +328,29 @@ ZVIUtils::StreamKeeper::StreamKeeper(ole::compound_document& doc, const std::str
     }
 }
 
+ZVIUtils::ConstStreamKeeper::ConstStreamKeeper(ole::compound_document& doc, const std::string& path)
+{
+    const size_t pos = path.find_last_of('/');
+    std::string storagePath = path.substr(0, pos);
+    auto storagePos = doc.find_storage(storagePath);
+
+    if(storagePos==0)
+    {
+        storagePath = "/";
+    }
+
+    if(storagePos == doc.end())
+    {
+        RAISE_RUNTIME_ERROR << "ZVIImageDriver: Invalid storage path: " << storagePath;
+    }
+
+    m_StreamPos = storagePos->find_stream(path);
+    if(m_StreamPos == storagePos->end())
+    {
+        RAISE_RUNTIME_ERROR << "ZVIImageDriver: Invalid stream path: " << path;
+    }
+}
+
 slideio::DataType ZVIUtils::dataTypeFromPixelFormat(const ZVIPixelFormat pixelFormat)
 {
     DataType dt = DataType::DT_Unknown;

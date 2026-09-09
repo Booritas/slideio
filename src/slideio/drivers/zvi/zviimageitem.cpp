@@ -213,18 +213,19 @@ void ZVIImageItem::readRaster(ole::compound_document& doc, cv::OutputArray raste
 
 
     const std::string streamPath = std::string("/Image/Item(") + std::to_string(getItemIndex()) + ")/Contents";
-    ZVIUtils::StreamKeeper stream(doc, streamPath);
-
-    stream->seek(getDataOffset(), std::ios::beg);
+    ZVIUtils::ConstStreamKeeper stream(doc, streamPath);
 
     if (validBites==0 || validBites==1)
     {
-        stream->seek(0, std::ios::end);
-        std::streampos endPos = stream->pos();
-        std::streamsize bytesToRead = endPos - getDataOffset();
-        stream->seek(getDataOffset(), std::ios::beg);
+        const std::streamoff bytesToRead = stream->size() - getDataOffset();
         std::vector<uint8_t> buff(bytesToRead);
-        stream->read(reinterpret_cast<char*>(buff.data()), bytesToRead);
+        const std::streamsize readBytes =
+            stream->read_at(getDataOffset(), reinterpret_cast<char*>(buff.data()), bytesToRead);
+        if (readBytes != bytesToRead) {
+            RAISE_RUNTIME_ERROR << "ZVIImageDriver: unexpected end of stream reading item "
+                << getItemIndex() << ": " << static_cast<long long>(bytesToRead)
+                << " bytes requested, " << static_cast<long long>(readBytes) << " available";
+        }
         ImageTools::decodeJpegStream(buff.data(), buff.size(), raster);
     }
     else
@@ -232,10 +233,12 @@ void ZVIImageItem::readRaster(ole::compound_document& doc, cv::OutputArray raste
         raster.create(getHeight(), getWidth(), CV_MAKETYPE(CVTools::toOpencvType(dt), channels));
         cv::Mat& mat = raster.getMatRef();
 
-        stream->seek(getDataOffset(), std::ios::beg);
-        const auto readBytes = stream->read(reinterpret_cast<char*>(mat.data), rasterSize);
+        const auto readBytes =
+            stream->read_at(getDataOffset(), reinterpret_cast<char*>(mat.data), rasterSize);
         if (readBytes != rasterSize) {
-            throw std::runtime_error("ZVIImageDriver: Unexpected end of stream");
+            RAISE_RUNTIME_ERROR << "ZVIImageDriver: unexpected end of stream reading item "
+                << getItemIndex() << ": " << static_cast<long long>(rasterSize)
+                << " bytes requested, " << static_cast<long long>(readBytes) << " available";
         }
         Endian::fromLittleEndianToNative(dt, mat.data, readBytes);
     }
