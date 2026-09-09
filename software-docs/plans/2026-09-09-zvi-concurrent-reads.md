@@ -99,7 +99,7 @@ standard-library-only.
 
 | File | Responsibility after this plan |
 |---|---|
-| `extern/pole/includes/pole/detail/stream.hpp` | `_state` initialised; `read(pos, …)` declared `const` with an `hit_eof` out-param |
+| `extern/pole/includes/pole/detail/stream.hpp` | `_state` initialised; `read(pos, …)` declared `const` with a tri-state `eof_report` out-param |
 | `extern/pole/sources/pole/detail/stream.cpp` | positional read no longer writes `_state`; cursor read reproduces the old flag behaviour exactly |
 | `extern/pole/includes/pole/detail/dirtree.hpp` | `find_siblings` takes a caller-owned `visited` buffer |
 | `extern/pole/sources/pole/detail/dirtree.cpp` | `find_siblings` deduplicates in O(1); `children()` owns the buffer |
@@ -218,7 +218,8 @@ positional read is the thing Task 5 exposes.
 **Interfaces:**
 - Consumes: nothing new.
 - Produces:
-  - `std::streamsize StreamImpl::read(size_t pos, unsigned char* data, std::streamsize maxlen, bool* hit_eof = 0) const`
+  - `std::streamsize StreamImpl::read(size_t pos, unsigned char* data, std::streamsize maxlen, int* eof_report = 0) const`
+  - `enum { NoRead = -1, InBounds = 0, Clamped = 1 }` on `StreamImpl`
   - `bool StreamImpl::eof() const` / `fail() const` now well-defined on a
     freshly opened stream (both `false`)
 
@@ -285,6 +286,25 @@ the cache but never `_state`:
 ```
 
 - [ ] **Step 4: Split the positional read from the cursor read**
+
+> **Correction, 2026-09-09 (post-implementation).** The `bool* hit_eof` code
+> below is **wrong** and was replaced during execution. A `bool` cannot
+> distinguish "ran and did not clamp" from "returned before reading anything",
+> and pole's original wrote `_state` only *after* its three sanity guards — so
+> the code as written makes `Stream::read(data, 0)` execute `_state &= Eof`
+> and clear a pre-existing `Bad` bit where it previously wrote nothing. It also
+> silently dropped `update_cache()`'s flag update, since that call site passes
+> no out-param.
+>
+> The shipped version uses a tri-state `int* eof_report` with
+> `enum { NoRead = -1, InBounds = 0, Clamped = 1 }` on `StreamImpl`: `NoRead`
+> is set at the top, advanced to `InBounds` only after the guards pass, and to
+> `Clamped` on the clamp; the cursor overload writes flags only for `InBounds`
+> and `Clamped`, and `update_cache()` passes its own `eof_report` and applies
+> the same two branches. See `extern/pole` commit `f5da9ad` for the real code.
+> Everything else in this step — the `const`, the public placement, leaving
+> `_state &= Eof` verbatim, leaving `getch()`/`update_cache()`'s own bodies
+> otherwise alone — stands as written.
 
 Declare in `stream.hpp` — note the `const` and the out-param:
 
@@ -972,7 +992,7 @@ it reachable without touching a cursor, and removes the last race
 - Test: `extern/pole/tests/test_storage.cpp`
 
 **Interfaces:**
-- Consumes: `StreamImpl::read(pos, data, maxlen, hit_eof) const` from Task 2;
+- Consumes: `StreamImpl::read(pos, data, maxlen, eof_report) const` from Task 2 (public, and callable with three arguments — the out-param defaults to 0);
   `PositionalFile` from Task 4.
 - Produces:
   - `unsigned long POLE::Stream::read_at(unsigned long offset, unsigned char* data, unsigned long maxlen) const`
@@ -1793,7 +1813,7 @@ requires Task 9, because it states measured numbers.
   are reading an older copy of the spec that prescribes a `_parent` field,
   this plan supersedes it.
 - **Naming consistency:** `read_at` and `size` on `ole::basic_stream`;
-  `read_at` on `POLE::Stream`; `read(pos, data, maxlen, hit_eof)` on
+  `read_at` on `POLE::Stream`; `read(pos, data, maxlen, eof_report)` on
   `StreamImpl`; `ConstStreamKeeper` in `ZVIUtils`; `PositionalFile` in `POLE`;
   `find_siblings(result, index, visited)` on `DirTree`. These spellings are used
   identically in every task that mentions them.
