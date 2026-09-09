@@ -52,6 +52,13 @@ namespace slideio
         void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
             const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex,
             cv::OutputArray output) override;
+        // Safe because nothing on the read path holds a cursor: readRaster
+        // borrows its stream const and issues one positional read_at, and
+        // pole's block loaders read by offset rather than through a shared
+        // file cursor. m_Doc is therefore shared by every reader, with one
+        // descriptor and no ContextPool -- the CZI and VSI shape, not the
+        // NDPI one. See the 2026-09-09 design, section 4.
+        bool supportsConcurrentReads() const override { return true; }
     public:
         int getTileCount(void* userData) override;
         bool getTileRect(int tileIndex, cv::Rect& tileRect, void* userData) override;
