@@ -1550,19 +1550,39 @@ slowest in the suite and Task 9 reports it.
 - [ ] **Step 3: Prove the tests can actually fail**
 
 A concurrency test that passes against broken code is worthless. Temporarily
-revert the mechanism and confirm the mosaic test goes red:
+revert the mechanism and confirm the mosaic test goes red.
+
+> **Correction, 2026-09-09.** This step originally used
+> `git stash push src/slideio/drivers/zvi/zviimageitem.cpp`. That does
+> **nothing** here: Task 6 commits that file, so by the time this step runs
+> there are no local changes to stash and `git stash push` reports "No local
+> changes to save" — leaving the fixed code in place, the test passing, and the
+> step's own stop condition ("if the reverted build passes … stop") firing on a
+> revert that never happened. Check out the pre-Task-6 version of the file
+> instead, as below.
+
+First find the commit that introduced the positional `readRaster` — Task 6's
+read-path commit, whose subject begins "read ZVI item rasters positionally" —
+and take its parent:
 
 ```bash
-git stash push src/slideio/drivers/zvi/zviimageitem.cpp
+T6=$(git log --format=%H --grep="read ZVI item rasters positionally" -1)
+git log --oneline -1 "$T6"        # sanity-check you found the right commit
+git checkout "$T6^" -- src/slideio/drivers/zvi/zviimageitem.cpp
 cmake --build build --config Release --target slideio_tests -- -m
 ./build/bin/Release/slideio_tests.exe --gtest_filter="ZVIImageDriver.concurrentReadsAreByteIdenticalMosaic"
 ```
 
+The old file still compiles: Task 6 only *added* `ConstStreamKeeper` alongside
+`StreamKeeper`, so the pre-change `readRaster`'s cursor calls all still resolve.
+
 Expected: FAIL, or a crash — the cursor-based `readRaster` is back while the
-contract still says reads may overlap. Then:
+contract still says reads may overlap. Then restore and confirm the tree is
+clean again:
 
 ```bash
-git stash pop
+git checkout HEAD -- src/slideio/drivers/zvi/zviimageitem.cpp
+git status --short          # must show no modification to that file
 cmake --build build --config Release --target slideio_tests -- -m
 ./build/bin/Release/slideio_tests.exe --gtest_filter="ZVIImageDriver.concurrentReadsAreByteIdenticalMosaic"
 ```
