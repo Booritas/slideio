@@ -190,11 +190,11 @@ with an `OVERLAPPED` offset on Windows and `pread` elsewhere, and
 `ole::basic_stream::read_at`/`size` expose it upward. That is
 `slideio::FileReader::readAt` and its retry loop reimplemented, deliberately,
 because pole must stay standard-library-only -- it cannot depend on
-slideio-core, and a shared primitive would invert the dependency. A fix to one
-belongs in the other; pole's copy says so in a comment naming
-`slideio::FileReader`, though `FileReader` does not yet name pole back. pole's
-write path still shares one `std::fstream` and stays serialised. See
-`software-docs/specs/2026-09-09-zvi-concurrent-reads-design.md` and
+slideio-core, and a shared primitive would invert the dependency. A fix to the
+retry loop or the Windows open flags belongs in both, and both class comments
+say so and name the other. pole's write path still shares one `std::fstream`
+and stays serialised.
+See `software-docs/specs/2026-09-09-zvi-concurrent-reads-design.md` and
 `software-docs/TECH_DEBT.md` §19-§21, the last of which records that the
 positional path costs about 20% on a single-threaded read.
 

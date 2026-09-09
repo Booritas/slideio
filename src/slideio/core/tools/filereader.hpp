@@ -20,6 +20,12 @@ namespace slideio
      * Not memory-mapped, deliberately: a truncated or network-backed file would
      * raise SIGBUS or an SEH exception inside a memcpy, which is not survivable
      * in a library that reads arbitrary user files.
+     *
+     * There is a second copy of this primitive: POLE::PositionalFile in
+     * extern/pole/sources/pole/detail/storage.cpp, which the ZVI read path uses.
+     * The duplication is deliberate -- pole must stay standard-library-only and
+     * cannot depend on slideio-core -- so a change to the retry loop or to the
+     * Windows open flags belongs in both.
      */
     class SLIDEIO_CORE_EXPORTS FileReader
     {

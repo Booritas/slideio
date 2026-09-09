@@ -1588,8 +1588,19 @@ cmake --build build --config Release --target slideio_tests -- -m
 ```
 
 Expected: green again. Report both outcomes. **If the reverted build passes,
-say so plainly and stop** — it means the test is not exercising what this plan
-claims, and Task 9's substitute for TSan rests on it.
+say so plainly and stop** — it means the test does not catch this race at its
+natural window, and any claim that these tests stand in for a race detector has
+to go.
+
+*What happened:* the plain revert **passed** three times. The window is ~50 ns
+against a ~2 ms read, a duty cycle near 1e-5, so one run is nowhere near enough
+to hit it; a bare `yield()` was not enough either. Widening it with
+`sleep_for(50 microseconds)` in the reverted build did make the mosaic test
+fail, on exceptions, 75/59/77 across three of the four read paths. So what
+these tests establish is that they detect read corruption on a shared scene,
+not that they catch this specific narrow-window race — and nothing here stands
+in for ThreadSanitizer. `TECH_DEBT.md` §20 records that gap and names a Linux
+TSan CI job as the fix.
 
 - [ ] **Step 4: Commit**
 
