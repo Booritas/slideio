@@ -728,6 +728,17 @@ sequencing is unchanged: the per-driver ThreadSanitizer run above must be
 green before a driver's opt-in commit merges, not after the last driver lands
 -- it is a required local/manual step, since CI cannot carry it.
 
+**As practiced, this gate has not been met for any driver.** The run needs a
+Linux build with the image corpus, and development has happened on a
+Windows-only machine throughout, for ZVI and for every driver converted before
+it. `software-docs/TECH_DEBT.md` §20.3 is the first place this is stated
+plainly rather than left implicit -- `TECH_DEBT.md` names a TSan gap only in
+the ZVI entry, which is a symptom of the same machine limitation rather than
+evidence that the other nine were actually run. This document should stop
+asserting the run as established practice until a Linux machine with the
+corpus is actually in the loop for a driver's opt-in commit; §20.3 is the
+standing item that tracks closing it.
+
 **Lifetime.** A test that closes a `Slide` while 16 reader threads are mid-read
 and then asserts the file can be deleted (`std::filesystem::remove` succeeds on
 Windows) — the §4.7 failure, in the platform-visible form.

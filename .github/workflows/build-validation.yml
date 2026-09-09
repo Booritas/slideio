@@ -102,9 +102,12 @@ jobs:
     # slide corpus. The per-driver byte-exactness tests need the corpus, which
     # CI does not carry, and CLAUDE.md requires CI to leave
     # SLIDEIO_SKIP_MISSING_IMAGES unset, so a corpus-less run of those would
-    # fail here rather than skip. They instead run under ThreadSanitizer on a
-    # machine with the corpus before each driver's opt-in commit merges (see
-    # software-docs/specs/2026-09-07-parallel-read-block-design.md, §6).
+    # fail here rather than skip. Design intent is that they instead run under
+    # ThreadSanitizer on a machine with the corpus before each driver's opt-in
+    # commit merges (software-docs/specs/2026-09-07-parallel-read-block-design.md,
+    # §6); in practice that run has not happened for any converted driver on
+    # this Windows-only development setup -- see software-docs/TECH_DEBT.md
+    # §20.3.
     #
     # CXXFLAGS/CFLAGS/LDFLAGS are set at job level so they reach both the
     # compile and link steps of the CMake build below. Conan's own
