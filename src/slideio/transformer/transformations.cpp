@@ -4,6 +4,7 @@
 #include "transformations.hpp"
 #include "slideio/core/exceptions.hpp"
 #include "slideio/transformer/colortransformation.hpp"
+#include "slideio/transformer/colormanagement.hpp"
 #include "slideio/transformer/gaussianblurfilter.hpp"
 #include "slideio/transformer/laplacianfilter.hpp"
 #include "slideio/transformer/medianblurfilter.hpp"
@@ -67,6 +68,12 @@ std::shared_ptr<Transformation> slideio::makeTransformationCopy(const Transforma
             std::shared_ptr<TransformationEx> transformation(new ColorTransformation(filter));
             return transformation;
         }
+    case TransformationType::ColorManagement:
+        {
+            ColorManagement& filter = (ColorManagement&)source;
+            std::shared_ptr<TransformationEx> transformation(new ColorManagement(filter));
+            return transformation;
+        }
     default:
         RAISE_RUNTIME_ERROR << "Unsupported transformation type " << (int)type << ".";
     }
@@ -121,6 +128,12 @@ std::shared_ptr<TransformationWrapper> slideio::makeTransformationCopy(const Tra
         {
             const ColorTransformationWrap& filter = (const ColorTransformationWrap&)source;
             std::shared_ptr<TransformationWrapper> transformation(new ColorTransformationWrap(filter));
+            return transformation;
+        }
+    case TransformationType::ColorManagement:
+        {
+            const ColorManagementWrap& filter = (const ColorManagementWrap&)source;
+            std::shared_ptr<TransformationWrapper> transformation(new ColorManagementWrap(filter));
             return transformation;
         }
     default:

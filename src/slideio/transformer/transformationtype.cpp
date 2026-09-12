@@ -34,6 +34,9 @@ std::ostream& slideio::operator << (std::ostream& os, TransformationType type) {
     case TransformationType::CannyFilter:
         os << "CannyFilter";
         break;
+    case TransformationType::ColorManagement:
+        os << "ColorManagement";
+        break;
     default:
         os << "Unknown";
         break;
