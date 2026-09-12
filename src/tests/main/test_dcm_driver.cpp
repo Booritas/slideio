@@ -883,11 +883,18 @@ TEST_F(DCMImageDriverTests, multiThreadSceneAccess) {
     TestTools::multiThreadedTest(filePath, driver);
 }
 
-// barre.dev/OT-MONO2-8-hip.dcm is a plain (non-WSI) radiograph; a corpus scan with
-// dcmdump found no ICC Profile tag on it at either the Optical Path Sequence or
-// dataset level, so this exercises the empty/None path without raising. Positive,
-// falsifiable coverage of the Embedded path is in colorProfileFromWSIAuxImage below.
-TEST(DCMImageDriver, colorProfileFromOpticalPathSequence)
+// NOT falsifiable coverage of the Embedded path, by construction: barre.dev/
+// OT-MONO2-8-hip.dcm is a plain (non-WSI) radiograph, and a corpus scan with
+// dcmdump confirmed it carries no ICC Profile tag anywhere (neither Optical
+// Path Sequence nor dataset level) -- so the `if (!profile.isEmpty())` branch
+// below can never execute against this fixture, and this test would pass
+// identically against a no-op implementation. Kept only because the original
+// task brief specified it verbatim and it still gives real regression
+// coverage (no exception, correct None/empty handling on a real file).
+// Positive, falsifiable coverage of the Embedded path lives in
+// colorProfileFromWSIAuxImage (DCMScene) and
+// colorProfileEndToEndThroughWSISceneRealDriverPath (WSIScene) below.
+TEST(DCMImageDriver, colorProfileAbsentPathOnly_notFalsifiableForEmbedded)
 {
     std::string path = TestTools::getTestImagePath("dcm", "barre.dev/OT-MONO2-8-hip.dcm");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
