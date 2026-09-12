@@ -4,6 +4,7 @@
 #pragma once
 #include <array>
 #include <cstdint>
+#include <iosfwd>
 #include <string>
 #include <vector>
 #include "slideio/core/slideio_core_def.hpp"
@@ -79,9 +80,18 @@ namespace slideio
         ColorProfileSource m_source = ColorProfileSource::None;
     };
 
-    /**@brief parsed ICC header facts. Populated by slideio-imagetools.*/
+    /**@brief parsed ICC header facts. Populated by slideio-imagetools.
+     *
+     * present gates every other field, source included. Check it first: it is
+     * false both when the scene carries no profile at all and when it carries
+     * bytes that would not parse, and in the second case source still reads
+     * Embedded -- it is copied from the profile the driver stamped, not derived
+     * from a successful parse. present == false therefore means "no usable
+     * colorimetry here", whatever source says.*/
     struct SLIDEIO_CORE_EXPORTS ColorProfileInfo
     {
+        /**@brief true only if the bytes parsed as an ICC profile. See above:
+         * nothing else in this struct is meaningful when it is false.*/
         bool present = false;
         ColorProfileSource source = ColorProfileSource::None;
         std::string description;
