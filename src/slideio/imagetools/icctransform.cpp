@@ -34,6 +34,12 @@ namespace
         }
     }
 
+    // 512 bytes is deliberate, not a guess at the maximum: cmsGetProfileInfoASCII
+    // truncates to the buffer it is given and never overruns it, and these three
+    // fields (description, manufacturer, model) are human-readable labels shown
+    // to a user or logged, not identifiers anything matches on. A profile whose
+    // description runs longer than 511 characters loses the tail; nothing else
+    // in the header depends on it.
     std::string readProfileText(cmsHPROFILE handle, cmsInfoType type)
     {
         char buffer[512] = {0};
@@ -220,8 +226,28 @@ IccTransform::IccTransform(const ColorProfile& source, ColorTarget target,
         RAISE_RUNTIME_ERROR << "IccTransform: cannot create a profile for target " << target;
     }
 
-    const cmsUInt32Number flags =
-        blackPointCompensation ? cmsFLAGS_BLACKPOINTCOMPENSATION : 0;
+    // cmsFLAGS_NOCACHE, unconditionally, for every target.
+    //
+    // One IccTransform is built at bind time and then shared: every thread
+    // reading a colour managed scene calls apply() on the same instance, and
+    // the header promises that is safe. lcms2's *cached* transform paths keep
+    // a one-pixel cache reachable from the _cmsTRANSFORM object, i.e. state
+    // shared between those threads; only this flag makes "immutable after
+    // construction" true of the lcms2 object as well as of this wrapper, and
+    // so makes the promise depend on nothing but the flag.
+    //
+    // Set for all four targets rather than for the ones that need it. As of
+    // lcms 2.16 a mixed transform (TYPE_RGB_8 in, TYPE_*_FLT out) already
+    // takes the uncached float path, so only the sRGB target -- integer in,
+    // integer out -- reaches a cached path at all; but that is a fact about
+    // one version and about the pixel formats this class happens to
+    // construct today. Conditioning the flag on either would leave a trap for
+    // whoever adds the next target. The flag is inert on a path that was
+    // never cached.
+    cmsUInt32Number flags = cmsFLAGS_NOCACHE;
+    if (blackPointCompensation) {
+        flags |= cmsFLAGS_BLACKPOINTCOMPENSATION;
+    }
     m_transform = cmsCreateTransform(srcProfile, srcFormat, dstProfile,
                                      targetFormat(target, sourceType),
                                      toLcmsIntent(intent), flags);
@@ -259,6 +285,16 @@ void IccTransform::apply(const cv::Mat& src, cv::OutputArray dst) const
                           : ((m_outputType == DataType::DT_UInt16) ? CV_16U : CV_8U);
     dst.create(src.rows, src.cols, CV_MAKETYPE(depth, m_targetChannels));
     cv::Mat output = dst.getMat();
+    if (!output.isContinuous()) {
+        // dst.create() is a no-op when the bound array already has a matching
+        // size and type, so a caller that binds a non-continuous ROI gets that
+        // ROI back untouched. cmsDoTransform would then write rows*cols*3
+        // contiguous samples into a strided buffer, overwriting whatever the
+        // row gaps belong to. Symmetric with the input continuity check above,
+        // and there for the same reason: apply() is exported and cannot trust
+        // its arguments, even though every in-tree caller passes a fresh Mat.
+        RAISE_RUNTIME_ERROR << "IccTransform: expected a continuous output block";
+    }
     cmsDoTransform(static_cast<cmsHTRANSFORM>(m_transform), src.data, output.data,
                    static_cast<cmsUInt32Number>(src.rows) * static_cast<cmsUInt32Number>(src.cols));
 }
