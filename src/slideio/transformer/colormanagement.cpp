@@ -44,8 +44,8 @@ std::shared_ptr<TransformationEx> ColorManagement::bindToSource(
                             << dataType;
     }
 
-    ColorProfile sourceProfile = m_sourceOverride.isEmpty() ? inputProfile
-                                                            : m_sourceOverride;
+    const bool fromOverride = !m_sourceOverride.isEmpty();
+    ColorProfile sourceProfile = fromOverride ? m_sourceOverride : inputProfile;
     if (!sourceProfile.isEmpty()) {
         const ColorProfileInfo info = IccTransform::describe(sourceProfile);
         if (!info.present) {
@@ -53,8 +53,15 @@ std::shared_ptr<TransformationEx> ColorManagement::bindToSource(
             sourceProfile = ColorProfile();
         }
         else if (info.dataSpace != IccColorSpace::RGB) {
-            RAISE_RUNTIME_ERROR << "ColorManagement: the embedded profile describes "
+            RAISE_RUNTIME_ERROR << "ColorManagement: the source profile describes "
                                 << info.dataSpace << " data, not RGB";
+        }
+        else if (fromOverride) {
+            // It reached this scene through setSourceProfileOverride rather than out
+            // of the file, so its provenance is Supplied whatever the caller stamped
+            // on it. Only the valid path is restamped: a corrupt override falls
+            // through to the policy above and is reported as Assumed, which is true.
+            sourceProfile.setSource(ColorProfileSource::Supplied);
         }
     }
 

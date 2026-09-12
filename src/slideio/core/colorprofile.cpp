@@ -36,6 +36,7 @@ std::ostream& slideio::operator << (std::ostream& os, ColorProfileSource source)
     case ColorProfileSource::None: os << "None"; break;
     case ColorProfileSource::Embedded: os << "Embedded"; break;
     case ColorProfileSource::Assumed: os << "Assumed"; break;
+    case ColorProfileSource::Supplied: os << "Supplied"; break;
     default: os << "Unknown"; break;
     }
     return os;

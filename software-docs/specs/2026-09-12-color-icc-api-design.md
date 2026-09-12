@@ -91,6 +91,7 @@ enum class ColorProfileSource {
     None,      // the file carries no profile
     Embedded,  // a real ICC profile read out of the file
     Assumed,   // none embedded; sRGB assumed under MissingProfilePolicy
+    Supplied,  // supplied by the caller via setSourceProfileOverride
 };
 
 /**@brief colour space of ICC profile data. Distinct from the transformer's

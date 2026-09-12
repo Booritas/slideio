@@ -200,11 +200,29 @@ TEST(ColorManagement, sourceProfileOverrideIsUsed)
     ColorManagement cm(ColorTarget::Lab);
     cm.setMissingProfilePolicy(MissingProfilePolicy::Fail);
     ColorProfile measured = IccTransform::createSRGBProfile();
+    // Deliberately mis-stamp it Embedded: reaching the scene through the override
+    // is what decides provenance, not what the caller claimed on the way in.
     measured.setSource(ColorProfileSource::Embedded);
     cm.setSourceProfileOverride(measured);
     // Fail policy no longer applies: an explicit profile was supplied.
     std::shared_ptr<Scene> managed = transformScene(scene, cm);
-    ASSERT_EQ(ColorProfileSource::Embedded, managed->getColorProfileInfo().source);
+    ASSERT_EQ(ColorProfileSource::Supplied, managed->getColorProfileInfo().source);
+}
+
+TEST(ColorManagement, aCorruptOverrideFallsBackToThePolicyRatherThanClaimingSupplied)
+{
+    std::string path = TestTools::getTestImagePath("gdal", "img_2448x2448_3x8bit_SRC_RGB_ducks.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
+    std::shared_ptr<Scene> scene = openUnprofiledRgbScene();
+    ColorManagement cm(ColorTarget::Lab);
+    // Truncated bytes cannot be parsed, so the override supplies nothing and the
+    // missing-profile policy decides. Reporting Supplied here would claim
+    // colorimetry that was never actually applied.
+    const ColorProfile good = IccTransform::createSRGBProfile();
+    cm.setSourceProfileOverride(ColorProfile(
+        std::vector<uint8_t>(good.getData().begin(), good.getData().begin() + 40)));
+    std::shared_ptr<Scene> managed = transformScene(scene, cm);
+    ASSERT_EQ(ColorProfileSource::Assumed, managed->getColorProfileInfo().source);
 }
 
 // NOTE on falsifiability: because both binds here use the same fixture and

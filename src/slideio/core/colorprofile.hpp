@@ -25,6 +25,13 @@ namespace slideio
         Embedded,
         /**@brief none embedded; sRGB assumed under MissingProfilePolicy*/
         Assumed,
+        /**@brief supplied by the caller through
+         * ColorManagement::setSourceProfileOverride rather than found in the file.
+         *
+         * Distinct from Embedded on purpose: a supplied profile is a colorimetric
+         * claim the caller makes about the scanner, not one the slide carries. A
+         * pipeline auditing its corpus must be able to tell the two apart.*/
+        Supplied,
     };
 
     /**@brief colour space of ICC profile data.
