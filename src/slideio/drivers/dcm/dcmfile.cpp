@@ -730,6 +730,26 @@ bool DCMFile::getTileRect(int tileIndex, cv::Rect& tileRect) const{
     return true;
 }
 
+ColorProfile DCMFile::readColorProfile() const
+{
+    DcmDataset* dataset = getValidDataset();
+    const Uint8* bytes = nullptr;
+    unsigned long count = 0;
+
+    DcmItem* opticalPath = nullptr;
+    if (dataset->findAndGetSequenceItem(DCM_OpticalPathSequence, opticalPath, 0).good()
+        && opticalPath != nullptr) {
+        opticalPath->findAndGetUint8Array(DCM_ICCProfile, bytes, &count);
+    }
+    if (bytes == nullptr || count == 0) {
+        dataset->findAndGetUint8Array(DCM_ICCProfile, bytes, &count);
+    }
+    if (bytes == nullptr || count == 0) {
+        return ColorProfile();
+    }
+    return ColorProfile(std::vector<uint8_t>(bytes, bytes + count));
+}
+
 bool DCMFile::readFrame(int frameIndex, cv::OutputArray frame) {
     SLIDEIO_LOG(INFO) << "Extracting pixel values with partial decompression.";
 

@@ -17,6 +17,7 @@
 #include "slideio/drivers/dcm/dcmimagedriver.hpp"
 #include "slideio/imagetools/imagetools.hpp"
 #include "slideio/slideio/slideio.hpp"
+#include <dcmtk/dcmdata/dctk.h>
 
 using namespace slideio;
 
@@ -878,4 +879,81 @@ TEST_F(DCMImageDriverTests, multiThreadSceneAccess) {
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     DCMImageDriver driver;
     TestTools::multiThreadedTest(filePath, driver);
+}
+
+// barre.dev/OT-MONO2-8-hip.dcm is a plain (non-WSI) radiograph; a corpus scan with
+// dcmdump found no ICC Profile tag on it at either the Optical Path Sequence or
+// dataset level, so this exercises the empty/None path without raising. Positive,
+// falsifiable coverage of the Embedded path is in colorProfileFromWSIAuxImage below.
+TEST(DCMImageDriver, colorProfileFromOpticalPathSequence)
+{
+    std::string path = TestTools::getTestImagePath("dcm", "barre.dev/OT-MONO2-8-hip.dcm");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
+    std::shared_ptr<slideio::Slide> slide = slideio::openSlide(path, "DCM");
+    std::shared_ptr<slideio::Scene> scene = slide->getScene(0);
+    const slideio::ColorProfile profile = scene->getColorProfile();
+    if (!profile.isEmpty()) {
+        ASSERT_EQ(slideio::ColorProfileSource::Embedded, profile.getSource());
+        const slideio::ColorProfileInfo info = scene->getColorProfileInfo();
+        ASSERT_TRUE(info.present);
+        ASSERT_EQ(profile.getSize(), info.dataSize);
+    }
+    else {
+        ASSERT_EQ(slideio::ColorProfileSource::None, profile.getSource());
+    }
+}
+
+// Real positive coverage: a corpus scan of every DICOM-ish file under
+// SLIDEIO_IMAGES_PATH (dcmdump --search 0028,2000) found the ICC Profile tag only on
+// WSI-classified (VLWholeSlideMicroscopyImageStorage) files, and only on their aux
+// images (LABEL/OVERVIEW/LOCALIZER), never on a plain radiograph and never on the
+// main VOLUME pyramid files in this corpus. private/H01EBB50P-24777_label.dcm is one
+// such aux file, carrying a real embedded profile inside its Optical Path Sequence.
+// The ground truth bytes are read here directly via DCMTK, bypassing DCMFile
+// entirely, so the comparison is independent of the production code under test.
+//
+// Uses a local DCMImageDriver (like every other test in this file), not
+// slideio::openSlide: ImageDriverManager caches one shared DCMImageDriver
+// instance, but DCMImageDriver::initializeDCMTK/clieanUpDCMTK register and
+// unregister DCMTK's JPEG/RLE/JP2K codecs *globally*, tied to that instance's
+// ctor/dtor. A local DCMImageDriver destructed by an earlier test deregisters
+// the codecs process-wide, so a later JPEG-compressed read through the
+// manager's shared instance (e.g. this label file) intermittently fails to
+// decompress depending on test order -- a pre-existing lifecycle issue in the
+// driver, unrelated to color profiles, that this test sidesteps rather than
+// papers over.
+TEST(DCMImageDriver, colorProfileFromWSIAuxImage)
+{
+    std::string dirPath = TestTools::getTestImagePath("dcm", "private/H01EBB50P-24777");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(dirPath);
+    std::string labelPath = TestTools::getTestImagePath("dcm", "private/H01EBB50P-24777/H01EBB50P-24777_label.dcm");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(labelPath);
+
+    DcmFileFormat refFile;
+    ASSERT_TRUE(refFile.loadFile(labelPath.c_str()).good());
+    DcmDataset* refDataset = refFile.getDataset();
+    ASSERT_TRUE(refDataset != nullptr);
+    DcmItem* refOpticalPath = nullptr;
+    ASSERT_TRUE(refDataset->findAndGetSequenceItem(DCM_OpticalPathSequence, refOpticalPath, 0).good());
+    ASSERT_TRUE(refOpticalPath != nullptr);
+    const Uint8* refBytes = nullptr;
+    unsigned long refCount = 0;
+    ASSERT_TRUE(refOpticalPath->findAndGetUint8Array(DCM_ICCProfile, refBytes, &refCount).good());
+    ASSERT_GT(refCount, 0ul) << "fixture no longer carries the ICC tag this test relies on";
+    const std::vector<uint8_t> refProfile(refBytes, refBytes + refCount);
+
+    DCMImageDriver driver;
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(dirPath);
+    std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
+    std::shared_ptr<slideio::CVScene> auxCvScene = scene->getAuxImage("LABEL");
+    ASSERT_TRUE(auxCvScene.get() != nullptr);
+    slideio::Scene auxScene(auxCvScene);
+
+    const slideio::ColorProfile profile = auxScene.getColorProfile();
+    ASSERT_FALSE(profile.isEmpty());
+    ASSERT_EQ(refProfile, profile.getData());
+    ASSERT_EQ(slideio::ColorProfileSource::Embedded, profile.getSource());
+    const slideio::ColorProfileInfo info = auxScene.getColorProfileInfo();
+    ASSERT_TRUE(info.present);
+    ASSERT_EQ(profile.getSize(), info.dataSize);
 }
