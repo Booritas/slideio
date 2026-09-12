@@ -49,6 +49,8 @@ static std::shared_ptr<Transformation> transformFromWrapper(std::shared_ptr<slid
         return static_cast<LaplacianFilterWrap*>(wrap)->getFilter();
     case TransformationType::ColorTransformation:
         return static_cast<ColorTransformationWrap*>(wrap)->getFilter();
+    case TransformationType::ColorManagement:
+        return static_cast<ColorManagementWrap*>(wrap)->getFilter();
     default:
         RAISE_RUNTIME_ERROR << "Unknown transformation type: " << wrap->getType();
     }

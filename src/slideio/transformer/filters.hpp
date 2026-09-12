@@ -10,3 +10,4 @@
 #include "slideio/transformer/cannyfilter.hpp"
 #include "slideio/transformer/laplacianfilter.hpp"
 #include "slideio/transformer/colortransformation.hpp"
+#include "slideio/transformer/colormanagement.hpp"
