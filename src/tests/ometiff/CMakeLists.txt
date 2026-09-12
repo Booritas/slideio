@@ -12,6 +12,7 @@ set(TEST_SOURCES
   test_otdimensions.cpp
   test_ometiffdata.cpp
   test_ottools.cpp
+  test_ometiff_colorprofile.cpp
 )
 
 add_executable(${TEST_NAME} ${TEST_SOURCES})

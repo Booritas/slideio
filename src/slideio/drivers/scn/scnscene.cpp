@@ -284,6 +284,10 @@ void SCNScene::init(const XMLElement* xmlImage)
     defineChannelDataType();
     const auto& directories = getChannelDirectories(0,0);
     if (!directories.empty()) {
+        // This scene's own directory is channel 0, z-slice 0, level 0 -- the base
+        // full-resolution directory that everything else here (compression,
+        // resolution) is already read from.
+        m_colorProfile = ColorProfile(directories[0].iccProfile);
         const int numLevels = static_cast<int>(directories.size());
         const int width0 = directories[0].width;
         m_levels.resize(directories.size());

@@ -4,6 +4,7 @@
 #pragma once
 
 #include "slideio/drivers/scn/scn_api_def.hpp"
+#include "slideio/core/colorprofile.hpp"
 #include "slideio/core/cvscene.hpp"
 #include "slideio/core/exceptions.hpp"
 #include "slideio/core/tools/contextpool.hpp"
@@ -96,6 +97,12 @@ namespace slideio
         DataType getChannelDataType(int channelIndex) const override{
             return m_channelDataType[channelIndex];
         }
+        ColorProfile getColorProfile() const override {
+            return m_colorProfile;
+        }
+        void setColorProfile(const ColorProfile& profile) {
+            m_colorProfile = profile;
+        }
         const std::vector<TiffDirectory>& getChannelDirectories(int channelIndex, int zIndex) const {
             const  int dirIndex = zIndex * m_planeCount + (m_interleavedChannels ? 0 : channelIndex);
             return m_channelDirectories[dirIndex];
@@ -146,6 +153,7 @@ namespace slideio
         std::vector<std::vector<TiffDirectory>> m_channelDirectories;
         bool m_interleavedChannels;
         int m_sceneIndex;
+        ColorProfile m_colorProfile;
     private:
         // Declared last on purpose, and it must stay last -- the declaration
         // order is load-bearing, not tidiness. ~ContextPool blocks until every

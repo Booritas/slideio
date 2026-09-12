@@ -10,6 +10,7 @@
 #include "slideio/slideio/slideio.hpp"
 #include "slideio/slideio/slide.hpp"
 #include "slideio/core/metadata.hpp"
+#include "slideio/imagetools/tifftools.hpp"
 
 #include <stdint.h>
 #include <filesystem>
@@ -722,5 +723,39 @@ TEST(SVSImageDriver, MetadataTreeIsStructured)
     EXPECT_GT(meta["properties"].size(), 0u);
     // AppMag is a standard Aperio property — should be present and non-empty.
     EXPECT_FALSE(meta["properties"]["AppMag"].asString().empty());
+}
+
+TEST(SVSImageDriver, colorProfileAbsentWhenTiffTagIsAbsent)
+{
+    // CMU-1-Small-Region.svs carries no ICC tag in its base directory.
+    std::string path = TestTools::getTestImagePath("svs", "CMU-1-Small-Region.svs");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
+    std::shared_ptr<slideio::Slide> slide = slideio::openSlide(path, "SVS");
+    std::shared_ptr<slideio::Scene> scene = slide->getScene(0);
+
+    const slideio::ColorProfile profile = scene->getColorProfile();
+    ASSERT_TRUE(profile.isEmpty());
+    ASSERT_EQ(slideio::ColorProfileSource::None, profile.getSource());
+}
+
+TEST(SVSImageDriver, colorProfileMatchesTheTiffTagWhenPresent)
+{
+    // JP2K-33003-1.svs's base directory (dir[0]) carries a real embedded ICC tag --
+    // confirmed by scanning the corpus directly with a raw TIFF IFD walker, not assumed.
+    std::string path = TestTools::getTestImagePath("svs", "JP2K-33003-1.svs");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
+    std::shared_ptr<slideio::Slide> slide = slideio::openSlide(path, "SVS");
+    std::shared_ptr<slideio::Scene> scene = slide->getScene(0);
+
+    std::vector<slideio::TiffDirectory> directories;
+    slideio::TiffTools::scanFile(path, directories);
+    ASSERT_FALSE(directories[0].iccProfile.empty())
+        << "corpus file no longer carries the ICC tag this test relies on";
+
+    const slideio::ColorProfile profile = scene->getColorProfile();
+    ASSERT_FALSE(profile.isEmpty());
+    ASSERT_EQ(directories[0].iccProfile, profile.getData());
+    ASSERT_EQ(slideio::ColorProfileSource::Embedded, profile.getSource());
+    ASSERT_TRUE(scene->getColorProfileInfo().present);
 }
 
