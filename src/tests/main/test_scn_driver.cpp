@@ -15,7 +15,6 @@
 #include "slideio/imagetools/imagetools.hpp"
 #include "slideio/core/tools/xmltools.hpp"
 #include "slideio/slideio/slideio.hpp"
-#include "slideio/imagetools/tifftools.hpp"
 
 
 TEST(SCNImageDriver, DriverManager_getDriverIDs)

@@ -541,6 +541,7 @@ void PHTIFFSlide::createImageScene(const std::vector<TiffDirectory>& directories
     phCropLevelPadding(imagePyramid, image_dirs);
     auto tScene = PHTIFFTiledScene::create(m_filePath, hFile, "Image", image_dirs, metadata);
     tScene->setDriverId(m_driverId);
+    tScene->setColorProfile(ColorProfile(image_dirs.front().iccProfile));
     std::shared_ptr<CVScene> scene(tScene);
     m_Scenes.push_back(scene);
 }
@@ -553,6 +554,7 @@ void PHTIFFSlide::createAuxScenes(const std::vector<TiffDirectory>& directories,
         std::shared_ptr<SVSSmallScene> sScene = std::make_shared <SVSSmallScene>(
             m_filePath, getDriverId(), name, directories[index], true);
         sScene->setDriverId(m_driverId);
+        sScene->setColorProfile(ColorProfile(directories[index].iccProfile));
         std::shared_ptr<CVScene> scene(sScene);
         m_auxImages[name] = scene;
         m_auxNames.emplace_back(name);
