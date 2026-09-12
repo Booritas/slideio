@@ -794,6 +794,113 @@ fix.
 
 ---
 
+## 22. The colour/ICC extraction work: what no test covers
+
+**Files:** `src/tests/main/test_scn_driver.cpp`, `src/tests/pke/test_pke_driver.cpp`,
+`src/tests/vsi/test_vsi_driver.cpp`, `src/tests/ometiff/test_ometiff_colorprofile.cpp`,
+`src/tests/main/test_dcm_driver.cpp`, `src/tests/main/test_icctransform.cpp`
+**Related:** `software-docs/specs/2026-09-12-color-icc-api-design.md`;
+the colour/ICC public API work on `v2.10.0`
+**Status:** Open. Three gaps, recorded so the next change here knows what the
+green suites do and do not stand behind.
+
+1. **Four drivers' ICC wiring is verified by no test that could fail.** The scn,
+   pke, vsi and ome-tiff scenes each carry a `setColorProfile(ColorProfile(...))`
+   call, and each has a test asserting an unprofiled scene reports an empty
+   profile. Those tests pass with the production line deleted. The reason is
+   structural, not sloppiness: `ColorProfile(emptyVector)`, a default-constructed
+   `ColorProfile()`, and the base `CVScene::getColorProfile()` are observably
+   identical — `isEmpty()` true, source `None` — so on a file carrying no tag
+   the wired and unwired cases cannot be told apart. Each line was reverted and
+   the suite re-run to confirm this.
+
+   The cause is the corpus, and merging every image root did not change it. All
+   TIFF-family fixtures were walked at the IFD level for `TIFFTAG_ICCPROFILE`
+   (34675), independently of the library under test:
+
+   | format | files scanned | carrying a profile |
+   |---|---|---|
+   | scn | 4 | 0 |
+   | pke (QPTIFF) | 5 | 0 |
+   | vsi | 27 | 0 |
+   | ome-tiff | 133 | 0 |
+   | philips (PHTIFF) | 4 | 0 |
+   | hamamatsu (NDPI) | 10 | 0 |
+   | afi | 5 | 0 |
+   | svs | 14 | **4** |
+
+   Only SVS has a profiled fixture, so only SVS has real positive coverage
+   (`JP2K-33003-1.svs`, 141,992 bytes). **Acquiring a profiled fixture of any of
+   the four formats closes this** — but so does a synthetic path, and three
+   already exist in-tree to copy from: PHTIFF injects a profile through the real
+   `createImageScene`/`createAuxScenes` using the existing `MockPHTIFFSlide`
+   harness; NDPI writes a synthetic single-directory TIFF
+   (`src/tests/ndpi/synthetic_tiff.hpp`); DCM builds a synthetic WSI object with
+   DCMTK's own write API. Each of those three is falsifiable; the four here are
+   not.
+
+2. **One DCM test is non-falsifiable by construction and says so in its name.**
+   `DCMImageDriver.colorProfileAbsentPathOnly_notFalsifiableForEmbedded`
+   (`test_dcm_driver.cpp`) runs against a plain radiograph that cannot carry the
+   tag, so its `Embedded` branch never executes. It is kept as a regression
+   guard against a driver that starts fabricating profiles, not as coverage, and
+   is named that way so no future reader mistakes it. DCM's real coverage is two
+   other tests: a corpus WSI aux image with ground truth extracted via raw DCMTK
+   calls that bypass `DCMFile`, and the synthetic WSI object above.
+
+3. **`ColorProfileInfo::manufacturer`, `::model` and `::intent` are parsed but
+   asserted by no test.** `IccTransform::describe()` populates all three; no test
+   in the tree reads them. The adjacent field `version` had a truncation bug
+   found only in review — `cmsGetProfileVersion()` returns a `cmsFloat64Number`
+   and was cast to an unsigned int, reporting `"4"` for `"4.4"` — which is
+   exactly the class of defect an unasserted field hides. A single test over the
+   synthetic sRGB profile, whose values are known, would close all three.
+
+---
+
+## 23. DCMTK codec registration is process-wide but tied to one instance's lifetime
+
+**Files:** `src/slideio/drivers/dcm/dcmimagedriver.cpp`
+(`initializeDCMTK`/`clieanUpDCMTK`, the constructor and destructor),
+`src/slideio/core/imagedrivermanager.cpp`
+**Related:** found while adding ICC extraction to the dcm driver on `v2.10.0`;
+not caused by that work and deliberately not fixed there
+**Status:** Open. Pre-existing, order-dependent, presents as flakiness.
+
+`DCMImageDriver`'s constructor registers the JPEG, RLE and JP2K codecs with
+DCMTK's `DcmCodecList`, and its destructor unregisters them. Both are
+**process-wide**: `DcmCodecList` is global state, not per-instance.
+
+`ImageDriverManager` caches a single shared `DCMImageDriver`, but nothing stops
+other code — the DCM tests do it throughout — from constructing local instances.
+When such a local instance goes out of scope, its destructor tears down the codec
+registry that the cached driver still depends on, and the next compressed read
+through the shared driver fails. Whether it fails depends on construction and
+destruction order, so it surfaces as an intermittent failure in an unrelated
+test rather than as a clean, attributable error.
+
+There is also an undocumented platform asymmetry: an existing `#ifndef __GNUC__`
+guard means the registration lifecycle differs between MSVC and GCC builds, so a
+reproduction on one toolchain may not reproduce on the other.
+
+**Reproduction:** run a DCM test that constructs a local `DCMImageDriver` and
+lets it destruct, then read a JPEG-compressed DICOM through the driver
+`ImageDriverManager` returns, in the same process.
+
+Three fixes, in increasing cost:
+
+1. Refcount the registrations, so teardown happens when the last instance dies
+   rather than the first.
+2. Funnel construction through a factory so only one instance exists per process
+   — which is what the global state already assumes.
+3. At minimum, document the `#ifndef __GNUC__` asymmetry where it sits, so the
+   next person does not rediscover it from a failing test.
+
+The ICC work sidestepped this by making its own test use a local instance like
+the rest of that file. That is a workaround in one test, not a fix.
+
+---
+
 ## Consciously accepted, not debt
 
 **PHTIFF detection has no fallback if the claiming driver then fails.** A
