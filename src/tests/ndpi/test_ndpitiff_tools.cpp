@@ -11,6 +11,10 @@
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/drivers/ndpi/ndpitiffkeeper.hpp"
 #include "slideio/drivers/ndpi/ndpitiffmessagehandler.hpp"
+// Fixture generation only, for the colour-profile tests below.
+#include "slideio/imagetools/icctransform.hpp"
+#include "slideio/core/tools/tempfile.hpp"
+#include "tests/ndpi/synthetic_tiff.hpp"
 
 class NDPITiffToolsTests : public ::testing::Test {
 protected:
@@ -448,4 +452,64 @@ TEST_F(NDPITiffToolsTests, closeTiffFileIgnoresANullHandle)
 {
     slideio::NDPITiffTools::closeTiffFile(nullptr);
     SUCCEED() << "closing nothing is not an error";
+}
+
+// No NDPI image in the corpus available to this task carries an ICC tag (checked with
+// a raw TIFF IFD walker over the whole hamamatsu corpus). This proves the read side of
+// the wiring directly against NDPITiffTools::scanTiffDirTags -- the exact function this
+// task modifies -- rather than only against files that happen to lack the tag: a real
+// embedded sRGB profile is written into a synthetic TIFF (see synthetic_tiff.hpp for why
+// it is hand-built rather than written with a libtiff API), then scanned back through
+// the ndpi driver's own reader.
+TEST_F(NDPITiffToolsTests, scanTiffDirTagsReadsTheIccProfile)
+{
+    const slideio::ColorProfile injected = slideio::IccTransform::createSRGBProfile();
+    ASSERT_FALSE(injected.isEmpty());
+    const std::vector<uint8_t>& profileBytes = injected.getData();
+
+    slideio::TempFile tempTiff("ndpi");
+    const std::string tempPath = tempTiff.getPath().string();
+    slideio_test::writeSyntheticIccTiff(tempPath, profileBytes);
+
+    libtiff::TIFF* ndpiTiff = slideio::NDPITiffTools::openTiffFile(tempPath);
+    ASSERT_TRUE(ndpiTiff != nullptr);
+    slideio::NDPITiffDirectory dir;
+    slideio::NDPITiffTools::scanTiffDirTags(ndpiTiff, 0, 0, dir);
+    slideio::NDPITiffTools::closeTiffFile(ndpiTiff);
+
+    ASSERT_EQ(profileBytes, dir.iccProfile);
+}
+
+// The else branch that clears iccProfile when the tag is absent matters because
+// scanTiffDirTags is called repeatedly against one NDPITiffDirectory instance on some
+// paths (e.g. NDPIFile::scanFile reuses none per-instance today, but the directory
+// struct itself is a plain value type callers may rescan into); without the clear, a
+// directory lacking the tag would keep reporting a previous directory's profile.
+TEST_F(NDPITiffToolsTests, scanTiffDirTagsClearsTheProfileWhenTheTagIsAbsent)
+{
+    const slideio::ColorProfile injected = slideio::IccTransform::createSRGBProfile();
+    ASSERT_FALSE(injected.isEmpty());
+
+    slideio::TempFile tempTiffWithIcc("ndpi");
+    slideio_test::writeSyntheticIccTiff(tempTiffWithIcc.getPath().string(), injected.getData());
+
+    slideio::TempFile tempTiffWithoutIcc("ndpi");
+    slideio_test::writeSyntheticIccTiff(tempTiffWithoutIcc.getPath().string(), {});
+
+    // Scan the tagged file first, populating dir.iccProfile ...
+    libtiff::TIFF* taggedTiff = slideio::NDPITiffTools::openTiffFile(tempTiffWithIcc.getPath().string());
+    ASSERT_TRUE(taggedTiff != nullptr);
+    slideio::NDPITiffDirectory dir;
+    slideio::NDPITiffTools::scanTiffDirTags(taggedTiff, 0, 0, dir);
+    slideio::NDPITiffTools::closeTiffFile(taggedTiff);
+    ASSERT_FALSE(dir.iccProfile.empty());
+
+    // ... then rescan the SAME instance against a file with no tag: the stale profile
+    // must not survive.
+    libtiff::TIFF* untaggedTiff = slideio::NDPITiffTools::openTiffFile(tempTiffWithoutIcc.getPath().string());
+    ASSERT_TRUE(untaggedTiff != nullptr);
+    slideio::NDPITiffTools::scanTiffDirTags(untaggedTiff, 0, 0, dir);
+    slideio::NDPITiffTools::closeTiffFile(untaggedTiff);
+
+    EXPECT_TRUE(dir.iccProfile.empty());
 }

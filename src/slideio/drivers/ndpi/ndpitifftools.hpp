@@ -66,6 +66,8 @@ namespace slideio
         uint32_t jpegHeaderSize;
         uint32_t rawStripSize = 0;
         bool auxImage = false;
+        /**@brief raw ICC profile bytes from TIFFTAG_ICCPROFILE (34675).*/
+        std::vector<uint8_t> iccProfile;
 
         Type getType() const {
             if(tiled) {
