@@ -36,6 +36,18 @@ TEST(IccTransform, describeSRGBProfileReportsRGBAndXYZ)
     ASSERT_NEAR(1.0000, info.whitePoint[1], 0.01);
 }
 
+TEST(IccTransform, describeSRGBProfileReportsVersion)
+{
+    // cmsGetProfileVersion() encodes major.minor.bugfix as a single decimal
+    // (minor in the tenths place, bugfix in the hundredths place). A
+    // previous version of this code truncated that double to an integer
+    // before stringifying it, so "4.4" silently became "4". Assert the full
+    // string so that regression stays caught.
+    const ColorProfile profile = IccTransform::createSRGBProfile();
+    const ColorProfileInfo info = IccTransform::describe(profile);
+    ASSERT_EQ("4.4", info.version);
+}
+
 TEST(IccTransform, describeCarriesSourceFromTheProfile)
 {
     // Provenance is known to whoever produced the bytes, not discoverable
