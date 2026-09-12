@@ -32,10 +32,10 @@ programs under `src/single_tests/` have no test cases, so they show `--`.
 
 | | Count | Size |
 |---|---:|---:|
-| Images referenced by tests | 241 | |
-| Present on this machine | 236 | **103.3 GB** |
+| Images referenced by tests | 242 | |
+| Present on this machine | 237 | **103.3 GB** |
 | Referenced but absent | 5 | -- |
-| Static references in test code | 605 | |
+| Static references in test code | 648 | |
 | References built at run time | 37 | |
 
 ### By directory
@@ -44,7 +44,7 @@ programs under `src/single_tests/` have no test cases, so they show `--`.
 |---|---:|---:|---:|
 | `images/images/ometiff` | 69.9 GB | 40 | 0 |
 | `images/images/czi` | 8.9 GB | 31 | 1 |
-| `images/images/dcm` | 7.5 GB | 37 | 1 |
+| `images/images/dcm` | 7.5 GB | 38 | 1 |
 | `images/images/hamamatsu` | 5.8 GB | 26 | 0 |
 | `images/images/philips` | 3.3 GB | 2 | 0 |
 | `images/images/zvi` | 2.9 GB | 10 | 0 |
@@ -69,13 +69,13 @@ Sizes are what is on disk now. "Tests" counts the distinct tests naming the imag
 | `images/images/ometiff/private/test.ome.tif` | 21.1 GB | ometiff | 2 |
 | `images/images/czi/30-10-2020_NothingRecognized-15986.czi` | 6.1 GB | main | 3 |
 | `images/images/dcm/private/H01EBB49P-24900` *(dir)* | 4.1 GB | performance | -- |
-| `images/images/philips/Philips-3.tiff` | 3.1 GB | phtiff | 7 |
+| `images/images/philips/Philips-3.tiff` | 3.1 GB | phtiff | 8 |
 | `images/images/hamamatsu/DM0014 - 2020-04-02 10.25.21.ndpi` | 2.6 GB | ndpi | 3 |
-| `images/images/zvi/openslide/Zeiss-3-Mosaic.zvi` | 2.0 GB | main | 1 |
+| `images/images/zvi/openslide/Zeiss-3-Mosaic.zvi` | 2.0 GB | main | 2 |
 | `images/images/hamamatsu/DM0014 - 2020-04-02 11.10.47.ndpi` | 2.0 GB | ndpi | 6 |
-| `images/images/pke/openmicroscopy/PKI_scans/LuCa-7color_Scan1.qptiff` | 1.9 GB | pke | 16 |
-| `images/images/dcm/private/H01EBB50P-24777` *(dir)* | 1.3 GB | main | 10 |
-| `images/images/ometiff/Subresolutions/Leica-2.ome.tiff` | 1.2 GB | main, ometiff | 9 |
+| `images/images/pke/openmicroscopy/PKI_scans/LuCa-7color_Scan1.qptiff` | 1.9 GB | pke | 17 |
+| `images/images/dcm/private/H01EBB50P-24777` *(dir)* | 1.3 GB | main | 11 |
+| `images/images/ometiff/Subresolutions/Leica-2.ome.tiff` | 1.2 GB | main, ometiff | 11 |
 | `images/images/czi/openslide/Zeiss-4-Mosaic.czi` | 1.1 GB | main | 1 |
 | `images/images/dcm/private/wsi/M01FBC14P-589_level-0.dcm` | 1.1 GB | main | 5 |
 | `images/images/dcm/private/H01EBB50P-24777/H01EBB50P-24777_level-0.dcm` | 968.7 MB | main | 4 |
@@ -92,20 +92,20 @@ Sizes are what is on disk now. "Tests" counts the distinct tests naming the imag
 | `images/images/zvi/mouse/20140207_mouse_2cell_H2AUb_HA_DAPI_inj_002.zvi` | 323.1 MB | main | 1 |
 | `images/images/philips/Philips-4.tiff` | 277.5 MB | phtiff | 2 |
 | `images/images/ometiff/Subresolutions/retina_large.ome.tiff` | 214.8 MB | main, ometiff | 8 |
-| `images/images/hamamatsu/openslide/CMU-1.ndpi` | 188.9 MB | ndpi, ndpi_memory | 7 |
+| `images/images/hamamatsu/openslide/CMU-1.ndpi` | 188.9 MB | ndpi, ndpi_memory | 8 |
 | `images/images/czi/jxr-16bit-4chnls.czi` | 174.2 MB | converter, main | 3 |
 | `images/images/hamamatsu/openslide/CMU-1_002.tif` | 137.4 MB | ndpi | 2 |
 | `images/images/ometiff/00001_01.ome.tiff` | 126.1 MB | phtiff | 2 |
-| `images/images/zvi/Zeiss-1-Stacked.zvi` | 107.7 MB | main | 8 |
+| `images/images/zvi/Zeiss-1-Stacked.zvi` | 107.7 MB | main | 9 |
 | `images/images/gdal/test.svs` | 99.3 MB | converter | 2 |
 | `images/images/svs/jp2k_3chnl_8bit.svs` | 98.9 MB | main | 1 |
 | `images/images/czi/jxr-rgb-5scenes.czi` | 88.8 MB | converter, main | 5 |
 | `images/images/czi/private/example_split.czi` | 87.7 MB | main | 1 |
 | `images/images/czi/zeiss.czi` | 87.7 MB | main | 2 |
-| `images/images/svs/JP2K-33003-1.svs` | 60.9 MB | main, transformer | 13 |
+| `images/images/svs/JP2K-33003-1.svs` | 60.9 MB | main, transformer | 14 |
 | `images/images/czi/03_14_2019_DSGN0545_A_wb_1353_fov_1_633.czi` | 45.9 MB | main | 4 |
 | `images/images/gdal/multipage-ducks.tif` | 45.7 MB | main | 1 |
-| `images/images/gdal/Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg` | 39.1 MB | converter, main, transformer | 21 |
+| `images/images/gdal/Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg` | 39.1 MB | converter, main, transformer | 22 |
 | `images/images/czi/doughnut.czi` | 36.3 MB | converter | 1 |
 | `images/images/gdal/img_2448x2448_3x16bit_SRC_RGB_ducks.raw` | 34.3 MB | main | 1 |
 | `images/images/ometiff/Tests/ULT-2020-111-014_1 (1, x=4375, y=39330, w=1153, h=743).tif` | 31.1 MB | ometiff | 1 |
@@ -113,7 +113,7 @@ Sizes are what is on disk now. "Tests" counts the distinct tests naming the imag
 | `images/images/gdal/img_2448x2448_3x16bit_SRC_RGB_ducks.tif` | 30.1 MB | main, phtiff | 3 |
 | `images/images/gdal/Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.svs` | 28.4 MB | converter | 1 |
 | `images/images/gdal/img_2448x2448_3x16bit_SRC_RGB_ducks.png` | 24.2 MB | main | 1 |
-| `images/images/scn/Leica-Fluorescence-1.scn` | 20.7 MB | converter, main | 18 |
+| `images/images/scn/Leica-Fluorescence-1.scn` | 20.7 MB | converter, main | 19 |
 | `images/images/unicode/тест/Leica-Fluorescence-1.scn` | 20.7 MB | main | 1 |
 | `images/images/svs/CMU-1-Small-Region-page-0.tif` | 18.8 MB | main | 3 |
 | `images/images/ometiff/Tests/test.ome.tif - USL-2023-53777-20 (1, x=16245, y=23321, w=1028, h=640).tif` | 18.8 MB | ometiff | 1 |
@@ -125,13 +125,13 @@ Sizes are what is on disk now. "Tests" counts the distinct tests naming the imag
 | `images/images/czi/jxr-16bit-4chnls.preview.tiff` | 14.7 MB | main | 1 |
 | `images/images/hamamatsu/2017-02-27 15.29.08.ndpi` | 14.6 MB | ndpi | 8 |
 | `images/images/dcm/benigns_01/patient0186/0186.LEFT_MLO.frames/frame0.tif` | 13.3 MB | main | 3 |
-| `images/images/czi/08_18_2018_enc_1001_633.czi` | 11.7 MB | converter, main | 3 |
+| `images/images/czi/08_18_2018_enc_1001_633.czi` | 11.7 MB | converter, main, transformer | 4 |
 | `images/images/vsi/Zenodo/Q6VM49JF/Figure-1-ultrasound-raw-data/SPECTRUM_#201_2016-06-14_Jiangtao Liu/1286FL9057GDF8RGDX257R2GLHZ.vsi` | 11.6 MB | vsi | 6 |
 | `images/images/gdal/img_2448x2448_1x16bit_SRC_RGB_ducks.raw` | 11.4 MB | main | 2 |
 | `images/images/pke/test-images/LuCa-7color_Scan1.overv.png` | 11.0 MB | pke | 1 |
 | `images/images/dcm/series` *(dir)* | 10.3 MB | main | 2 |
 | `images/images/gdal/img_2448x2448_1x16bit_SRC_RGB_ducks.tif` | 9.8 MB | main | 1 |
-| `images/images/zvi/Zeiss-1-Merged.zvi` | 9.7 MB | converter, main | 15 |
+| `images/images/zvi/Zeiss-1-Merged.zvi` | 9.7 MB | converter, main | 16 |
 | `images/images/dcm/series/series_1` *(dir)* | 8.0 MB | main | 2 |
 | `images/images/dcm/benigns_01/patient0186/0186.LEFT_MLO.dcm` | 7.5 MB | main | 3 |
 | `images/images/dcm/benigns_01/patient0186/0186.LEFT_CC.dcm` | 7.5 MB | main | 2 |
@@ -148,7 +148,7 @@ Sizes are what is on disk now. "Tests" counts the distinct tests naming the imag
 | `images/images/pke/test-images/HandEcompressed_Scan1 (1, x=11190, y=8580, w=1622, h=963).png` | 4.2 MB | pke | 1 |
 | `images/images/vsi/private/d/STS_G6889_11_1_pHH3.vsi` | 4.1 MB | vsi | 5 |
 | `images/images/vsi/test-output/vsi-ets-test-jpg2k.vsi.ome.tif` | 3.9 MB | vsi | 3 |
-| `images/images/gdal/img_2448x2448_3x8bit_SRC_RGB_ducks.png` | 3.6 MB | converter, main | 15 |
+| `images/images/gdal/img_2448x2448_3x8bit_SRC_RGB_ducks.png` | 3.6 MB | converter, main, transformer | 26 |
 | `images/images/czi/T_3_CH_2.czi` | 3.6 MB | main | 1 |
 | `images/images/hamamatsu/test3-DAPI-2-(387).ndpi` | 3.4 MB | main | 1 |
 | `images/images/zvi/Zeiss-1-Merged-ch0.tif` | 3.2 MB | main | 1 |
@@ -159,7 +159,7 @@ Sizes are what is on disk now. "Tests" counts the distinct tests naming the imag
 | `images/images/zvi/TOMMAlexaFluor647.zvi` | 2.8 MB | main | 1 |
 | `images/images/zvi/Zeiss-1-Stacked/zvi_slice_6_channel_1` | 2.8 MB | main | 3 |
 | `images/images/zvi/Zeiss-1-Stacked/zvi_slice_7_channel_2` | 2.8 MB | main | 1 |
-| `images/images/ometiff/tubhiswt-4D/tubhiswt_C0_TP0.ome.tif` | 2.7 MB | ometiff | 3 |
+| `images/images/ometiff/tubhiswt-4D/tubhiswt_C0_TP0.ome.tif` | 2.7 MB | ometiff | 4 |
 | `images/images/vsi/private/3d/01072022_35_2_z.vsi` | 2.7 MB | vsi | 1 |
 | `images/images/czi/test/example_split (1).czi - ScanRegion0 (1, x=41169, y=4850, w=1000, h=1000).png` | 2.6 MB | main, phtiff | 2 |
 | `images/images/czi/test/example_split (1).czi - ScanRegion0 (1, x=17583, y=3676, w=1000, h=1000).png` | 2.6 MB | main, phtiff | 2 |
@@ -171,18 +171,18 @@ Sizes are what is on disk now. "Tests" counts the distinct tests naming the imag
 | `images/images/ometiff/LAMBDA-ModuloAlongZ-ModuloAlongT.ome.tiff` | 2.0 MB | main | -- |
 | `images/images/czi/jxr-rgb-5scenes.label.tiff` | 2.0 MB | main | 1 |
 | `images/images/jxr/seagull.bmp` | 1.9 MB | main | 4 |
-| `images/images/svs/CMU-1-Small-Region.svs` | 1.8 MB | main, phtiff | 20 |
+| `images/images/svs/CMU-1-Small-Region.svs` | 1.8 MB | main, phtiff, transformer | 24 |
 | `images/images/unicode/тест/CMU-1-Small-Region.svs` | 1.8 MB | main | 1 |
 | `images/images/hamamatsu/openslide/CMU-2-roi-l0.png` | 1.8 MB | ndpi | 2 |
 | `images/images/gdal/img_1024x600_3x8bit_RGB_color_bars_CMYKWRGB.bmp` | 1.8 MB | main | 1 |
 | `images/images/czi/test/zeiss-block.png` | 1.6 MB | main | 1 |
 | `images/images/jpeg/p2YCpvg.png` | 1.6 MB | main | 1 |
-| `images/images/vsi/OS-1/OS-1.vsi` | 1.3 MB | vsi | 1 |
+| `images/images/vsi/OS-1/OS-1.vsi` | 1.3 MB | vsi | 2 |
 | `images/images/svs/CMU-1-Small-Region-page-1.tif` | 1.3 MB | main, phtiff | 5 |
 | `images/images/hamamatsu/test3-TRITC 2 (560)-roi.png` | 1.2 MB | ndpi | 1 |
 | `images/images/gdal/img_2448x2448_1x8bit_SRC_GRAY_ducks.png` | 1.1 MB | converter, main | 4 |
 | `images/images/vsi/test-output/G1M16_ABD_HE_B6.vsi-40x_01(1,x=5836,y=11793,w=849,h=607).png` | 1.1 MB | vsi | 4 |
-| `images/images/gdal/test.tif` | 1.1 MB | main | 1 |
+| `images/images/gdal/test.tif` | 1.1 MB | main | 2 |
 | `images/images/vsi/test-output/STS_G6889_11_1_pHH3.vsi - 40x_BF_01 (1, x=82570, y=77046, w=1153, h=797).png` | 1.1 MB | vsi | 1 |
 | `images/images/dcm/barre.dev/MR-MONO2-8-16x-heart` | 1.0 MB | main | 1 |
 | `images/images/dcm/barre.dev/MultiFrame/MR-MONO2-8-16x-heart` | 1.0 MB | main | 1 |
@@ -246,7 +246,7 @@ Sizes are what is on disk now. "Tests" counts the distinct tests naming the imag
 | `images/images/czi/test/16bit_CH_1_doughnut_crop.tiff` | 259.1 KB | main | 1 |
 | `images/images/scn/Leica-Fluorescence-1/dir_6_tile_6-8.bmp` | 257.1 KB | main | 1 |
 | `images/images/scn/Leica-Fluorescence-1/dir_8_tile_6-8.bmp` | 257.1 KB | main | 2 |
-| `images/images/dcm/barre.dev/OT-MONO2-8-hip.dcm` | 256.4 KB | main | 6 |
+| `images/images/dcm/barre.dev/OT-MONO2-8-hip.dcm` | 256.4 KB | main | 7 |
 | `images/images/hamamatsu/DM0014 - 2020-04-02 11.10.47-resampled.png` | 256.3 KB | ndpi | 1 |
 | `images/images/dcm/private/H01EBB50P-24777.block.png` | 250.1 KB | main | 1 |
 | `images/images/vsi/test-output/G1M16_ABD_HE_B6.vsi-40x_01(1,x=0,y=0,w=512,h=512).png` | 227.6 KB | vsi | 1 |
@@ -271,6 +271,7 @@ Sizes are what is on disk now. "Tests" counts the distinct tests naming the imag
 | `images/images/dcm/barre.dev/MR-MONO2-12-angio-an1` | 96.6 KB | main | 1 |
 | `images/images/dcm/barre.dev/CT-MONO2-12-lomb-an2.frames/frame0.png` | 93.4 KB | main | 1 |
 | `images/images/hamamatsu/openslide/CMU-1-1.png` | 90.6 KB | ndpi | 2 |
+| `images/images/dcm/private/H01EBB50P-24777/H01EBB50P-24777_label.dcm` | 75.2 KB | main | 1 |
 | `images/images/dcm/private/H01EBB50P-24777.block-2.png` | 71.8 KB | main | 1 |
 | `images/images/jxr/seagull.wdp` | 71.0 KB | main | 3 |
 | `images/images/dcm/barre.dev/XA-MONO2-8-12x-catheter.frames/frame5.png` | 70.1 KB | main | 2 |
@@ -294,9 +295,9 @@ Sizes are what is on disk now. "Tests" counts the distinct tests naming the imag
 | `images/images/dcm/openmicroscopy.org/CT1_J2KI` | 13.8 KB | main | 2 |
 | `images/images/vsi/Zenodo/Abdominal/G1M16_ABD_HE_B6.aux.png` | 11.0 KB | vsi | 1 |
 | `images/images/scn/z-stack.xml` | 8.0 KB | main | 1 |
-| `images/images/gdal/colors.png` | 6.3 KB | phtiff, transformer | 10 |
+| `images/images/gdal/colors.png` | 6.3 KB | main, phtiff, transformer | 17 |
 | `images/images/jxr/tile16.jxr` | 5.5 KB | main | 1 |
-| `images/images/ometiff/Multifile/multifile-Z1.ome.tiff` | 2.7 KB | ometiff | 3 |
+| `images/images/ometiff/Multifile/multifile-Z1.ome.tiff` | 2.7 KB | ometiff | 5 |
 | `images/images/gdal/img_1024x600_3x8bit_RGB_color_bars_CMYKWRGB.png` | 2.7 KB | main | 3 |
 | `images/images/ometiff/Multifile2/multifile-Z1.ome.tiff` | 1.7 KB | ometiff | 1 |
 | `images/images/hamamatsu/2017-02-27 15.29.08.map.png` | 283 B | ndpi | 1 |
@@ -329,33 +330,33 @@ identified by reading the source. They are not counted in the tables above.
 | `src/tests/main/test_fiwrapper.cpp` | 89 | `FIWrapper.emptyFilePath` | `"gdal", testFileName` |
 | `src/tests/main/test_gdal_driver.cpp` | 230 | `GDALDriver.metadataCompression` | `"gdal",std::get<0>(item)` |
 | `src/tests/main/test_scn_driver.cpp` | 48 | `SCNImageDriver.slideRawMetadata` | `"scn", imageName` |
-| `src/tests/main/test_svs_driver.cpp` | 359 | `SVSImageDriver.metadataCompression` | `"svs",imageName` |
-| `src/tests/main/test_svs_driver.cpp` | 377 | `SVSImageDriver.slideRawMetadata` | `"svs",imageName` |
+| `src/tests/main/test_svs_driver.cpp` | 360 | `SVSImageDriver.metadataCompression` | `"svs",imageName` |
+| `src/tests/main/test_svs_driver.cpp` | 378 | `SVSImageDriver.slideRawMetadata` | `"svs",imageName` |
 | `src/tests/main/test_zvi_driver.cpp` | 199 | `ZVIImageDriver.readBlock3Layers` | `"zvi", channelName` |
-| `src/tests/phtiff/test_phtiff_driver.cpp` | 424 | `PhTiffImageDriverTests.canOpenFileByContent` | `"philips", fileName` |
-| `src/tests/phtiff/test_phtiff_driver.cpp` | 1075 | `PhTiffImageDriverTests.metadataOfTheTestFiles` | `"philips", fileName` |
-| `src/tests/phtiff/test_phtiff_driver.cpp` | 1132 | `PhTiffImageDriverTests.magnificationOfTheTestFiles` | `"philips", param.first` |
-| `src/tests/phtiff/test_phtiff_driver.cpp` | 1178 | `PhTiffImageDriverTests.auxImagesOfTheTestFiles` | `"philips", param.first` |
-| `src/tests/phtiff/test_phtiff_driver.cpp` | 2248 | `PHTDescriptionTests.isPhilipsDescriptionAcceptsBomPrefixedMetadata` | `"philips", fileName` |
-| `src/tests/phtiff/test_phtiff_driver.cpp` | 2258 | `PHTDescriptionTests.isPhilipsDescriptionAcceptsBomPrefixedMetadata` | `"philips", ph2::REFERENCE_PNG` |
-| `src/tests/phtiff/test_phtiff_driver.cpp` | 2290 | `PhTiffImageDriverTests.readImage` | `"philips", ph2::FILE_NAME` |
-| `src/tests/phtiff/test_phtiff_driver.cpp` | 2327 | `PhTiffImageDriverTests.zoomLevelsOfPhilips2` | `"philips", ph2::FILE_NAME` |
-| `src/tests/phtiff/test_phtiff_driver.cpp` | 2350 | `PhTiffImageDriverTests.readImageChannels` | `"philips", ph2::FILE_NAME` |
-| `src/tests/phtiff/test_phtiff_driver.cpp` | 2405 | `PhTiffImageDriverTests.readImageDownscaled` | `"philips", ph2::FILE_NAME` |
-| `src/tests/phtiff/test_phtiff_driver.cpp` | 2442 | `PhTiffImageDriverTests.readImageDownscaledAcrossLevelsAgree` | `"philips", ph2::FILE_NAME` |
-| `src/tests/phtiff/test_phtiff_driver.cpp` | 2461 | `PhTiffImageDriverTests.readImageDownscaledChannels` | `"philips", ph2::FILE_NAME` |
-| `src/tests/phtiff/test_phtiff_driver.cpp` | 2495 | `PhTiffImageDriverTests.readImageDownscaledAnisotropically` | `"philips", ph2::FILE_NAME` |
-| `src/tests/phtiff/test_phtiff_driver.cpp` | 2517 | `PhTiffImageDriverTests.readImageUpscaled` | `"philips", ph2::FILE_NAME` |
-| `src/tests/phtiff/test_phtiff_driver.cpp` | 2537 | `PhTiffImageDriverTests.readImageWholeSlideThumbnail` | `"philips", ph2::FILE_NAME` |
-| `src/tests/phtiff/test_phtiff_driver.cpp` | 2564 | `PhTiffImageDriverTests.readImageBlockCrossingTheSceneEdge` | `"philips", ph2::FILE_NAME` |
-| `src/tests/phtiff/test_phtiff_driver.cpp` | 2633 | `PhTiffImageDriverTests.multiThreadedRead` | `"philips", ph2::FILE_NAME` |
-| `src/tests/phtiff/test_phtiff_driver.cpp` | 2635 | `PhTiffImageDriverTests.multiThreadedRead` | `"philips", ph2::FILE_NAME` |
-| `src/tests/phtiff/test_phtiff_driver.cpp` | 2639 | `PHTIFFImageDriver.concurrentReadsAreByteIdentical` | `"philips", ph2::FILE_NAME` |
-| `src/tests/phtiff/test_phtiff_driver.cpp` | 2648 | `PHTIFFImageDriver.reportsConcurrentReadSupport` | `"philips", ph2::FILE_NAME` |
-| `src/tests/phtiff/test_phtiff_driver.cpp` | 2664 | `PhTiffImageDriverTests.readLevelMatchesTheResampledSceneRead` | `"philips", ph2::FILE_NAME` |
-| `src/tests/phtiff/test_phtiff_driver.cpp` | 2693 | `PhTiffImageDriverTests.readLevelTileByTileReconstructsTheLevel` | `"philips", ph2::FILE_NAME` |
-| `src/tests/phtiff/test_phtiff_driver.cpp` | 2726 | `PhTiffImageDriverTests.readLevelDoesNotEscalateToAFinerLevel` | `"philips", ph2::FILE_NAME` |
-| `src/tests/phtiff/test_phtiff_driver.cpp` | 2754 | `PhTiffImageDriverTests.readLevelRejectsAnOutOfRangeLevel` | `"philips", ph2::FILE_NAME` |
+| `src/tests/phtiff/test_phtiff_driver.cpp` | 425 | `PhTiffImageDriverTests.canOpenFileByContent` | `"philips", fileName` |
+| `src/tests/phtiff/test_phtiff_driver.cpp` | 1076 | `PhTiffImageDriverTests.metadataOfTheTestFiles` | `"philips", fileName` |
+| `src/tests/phtiff/test_phtiff_driver.cpp` | 1133 | `PhTiffImageDriverTests.magnificationOfTheTestFiles` | `"philips", param.first` |
+| `src/tests/phtiff/test_phtiff_driver.cpp` | 1179 | `PhTiffImageDriverTests.auxImagesOfTheTestFiles` | `"philips", param.first` |
+| `src/tests/phtiff/test_phtiff_driver.cpp` | 2249 | `PHTDescriptionTests.isPhilipsDescriptionAcceptsBomPrefixedMetadata` | `"philips", fileName` |
+| `src/tests/phtiff/test_phtiff_driver.cpp` | 2259 | `PHTDescriptionTests.isPhilipsDescriptionAcceptsBomPrefixedMetadata` | `"philips", ph2::REFERENCE_PNG` |
+| `src/tests/phtiff/test_phtiff_driver.cpp` | 2291 | `PhTiffImageDriverTests.readImage` | `"philips", ph2::FILE_NAME` |
+| `src/tests/phtiff/test_phtiff_driver.cpp` | 2328 | `PhTiffImageDriverTests.zoomLevelsOfPhilips2` | `"philips", ph2::FILE_NAME` |
+| `src/tests/phtiff/test_phtiff_driver.cpp` | 2351 | `PhTiffImageDriverTests.readImageChannels` | `"philips", ph2::FILE_NAME` |
+| `src/tests/phtiff/test_phtiff_driver.cpp` | 2406 | `PhTiffImageDriverTests.readImageDownscaled` | `"philips", ph2::FILE_NAME` |
+| `src/tests/phtiff/test_phtiff_driver.cpp` | 2443 | `PhTiffImageDriverTests.readImageDownscaledAcrossLevelsAgree` | `"philips", ph2::FILE_NAME` |
+| `src/tests/phtiff/test_phtiff_driver.cpp` | 2462 | `PhTiffImageDriverTests.readImageDownscaledChannels` | `"philips", ph2::FILE_NAME` |
+| `src/tests/phtiff/test_phtiff_driver.cpp` | 2496 | `PhTiffImageDriverTests.readImageDownscaledAnisotropically` | `"philips", ph2::FILE_NAME` |
+| `src/tests/phtiff/test_phtiff_driver.cpp` | 2518 | `PhTiffImageDriverTests.readImageUpscaled` | `"philips", ph2::FILE_NAME` |
+| `src/tests/phtiff/test_phtiff_driver.cpp` | 2538 | `PhTiffImageDriverTests.readImageWholeSlideThumbnail` | `"philips", ph2::FILE_NAME` |
+| `src/tests/phtiff/test_phtiff_driver.cpp` | 2565 | `PhTiffImageDriverTests.readImageBlockCrossingTheSceneEdge` | `"philips", ph2::FILE_NAME` |
+| `src/tests/phtiff/test_phtiff_driver.cpp` | 2634 | `PhTiffImageDriverTests.multiThreadedRead` | `"philips", ph2::FILE_NAME` |
+| `src/tests/phtiff/test_phtiff_driver.cpp` | 2636 | `PhTiffImageDriverTests.multiThreadedRead` | `"philips", ph2::FILE_NAME` |
+| `src/tests/phtiff/test_phtiff_driver.cpp` | 2640 | `PHTIFFImageDriver.concurrentReadsAreByteIdentical` | `"philips", ph2::FILE_NAME` |
+| `src/tests/phtiff/test_phtiff_driver.cpp` | 2649 | `PHTIFFImageDriver.reportsConcurrentReadSupport` | `"philips", ph2::FILE_NAME` |
+| `src/tests/phtiff/test_phtiff_driver.cpp` | 2665 | `PhTiffImageDriverTests.readLevelMatchesTheResampledSceneRead` | `"philips", ph2::FILE_NAME` |
+| `src/tests/phtiff/test_phtiff_driver.cpp` | 2694 | `PhTiffImageDriverTests.readLevelTileByTileReconstructsTheLevel` | `"philips", ph2::FILE_NAME` |
+| `src/tests/phtiff/test_phtiff_driver.cpp` | 2727 | `PhTiffImageDriverTests.readLevelDoesNotEscalateToAFinerLevel` | `"philips", ph2::FILE_NAME` |
+| `src/tests/phtiff/test_phtiff_driver.cpp` | 2755 | `PhTiffImageDriverTests.readLevelRejectsAnOutOfRangeLevel` | `"philips", ph2::FILE_NAME` |
 | `src/tests/pke/test_pke_driver.cpp` | 366 | `PKEImageDriverTests.readStripedDir5Channels_SingleChannel` | `"pke", fileName` |
 | `src/tests/pke/test_pke_driver.cpp` | 397 | `PKEImageDriverTests.readStripedDir5ChannelsAllChannels` | `"pke", fileName` |
 
