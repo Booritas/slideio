@@ -53,6 +53,10 @@ void WSIScene::init(const std::string& slideFilePath, int sceneIndex, const std:
 	m_resolution = baseFile->getResolution();
 	m_rawMetadata = baseFile->getMetadata();
 	m_metadataFormat = MetadataFormat::JSON;
+	// This scene's own backing file is baseFile -- the widest (full-resolution)
+	// VOLUME file after the sort above -- so the main pyramid reports its own
+	// profile, never a fixed level or an aux image's.
+	m_colorProfile = baseFile->readColorProfile();
     const auto& files = m_files;
 	const int numLevels = static_cast<int>(files.size());
 	m_levels.resize(numLevels);

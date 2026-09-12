@@ -16,6 +16,8 @@
 #include "slideio/core/tools/cvtools.hpp"
 #include "slideio/drivers/dcm/dcmimagedriver.hpp"
 #include "slideio/imagetools/imagetools.hpp"
+#include "slideio/imagetools/icctransform.hpp"
+#include "slideio/core/tools/tempfile.hpp"
 #include "slideio/slideio/slideio.hpp"
 #include <dcmtk/dcmdata/dctk.h>
 
@@ -956,4 +958,89 @@ TEST(DCMImageDriver, colorProfileFromWSIAuxImage)
     const slideio::ColorProfileInfo info = auxScene.getColorProfileInfo();
     ASSERT_TRUE(info.present);
     ASSERT_EQ(profile.getSize(), info.dataSize);
+}
+
+// Writes a minimal, single-frame, uncompressed DICOM WSI (VLWholeSlideMicroscopyImageStorage)
+// object with a VOLUME ImageType, carrying iccProfile inside its own Optical Path
+// Sequence -- i.e. a synthetic main-pyramid file, the kind no real corpus file
+// carries the tag on (see colorProfileFromWSIAuxImage above: real profiles in this
+// corpus live only on aux images). Uncompressed/Explicit VR Little Endian so no
+// codec registration is involved. Built with DCMTK's own write API, not hand-rolled
+// bytes: the dcm driver already links DCMTK directly (unlike NDPI's dual-libtiff
+// situation), so there is no two-copies hazard to avoid here.
+static void writeSyntheticWSIFile(const std::string& path, const std::vector<uint8_t>& iccProfile)
+{
+    DcmFileFormat fileformat;
+    DcmDataset* dataset = fileformat.getDataset();
+
+    const Uint16 rows = 4;
+    const Uint16 columns = 4;
+    std::vector<Uint8> pixels(static_cast<size_t>(rows) * columns, 128);
+
+    dataset->putAndInsertOFStringArray(DCM_SOPClassUID, UID_VLWholeSlideMicroscopyImageStorage);
+    dataset->putAndInsertOFStringArray(DCM_SOPInstanceUID, "1.2.826.0.1.3680043.10.559.1.1.1.1");
+    dataset->putAndInsertOFStringArray(DCM_SeriesInstanceUID, "1.2.826.0.1.3680043.10.559.1.1.1.2");
+    dataset->putAndInsertOFStringArray(DCM_StudyInstanceUID, "1.2.826.0.1.3680043.10.559.1.1.1.3");
+    dataset->putAndInsertOFStringArray(DCM_Modality, "SM");
+    dataset->putAndInsertOFStringArray(DCM_ImageType, "ORIGINAL\\PRIMARY\\VOLUME\\NONE");
+    dataset->putAndInsertUint16(DCM_Rows, rows);
+    dataset->putAndInsertUint16(DCM_Columns, columns);
+    dataset->putAndInsertUint16(DCM_BitsAllocated, 8);
+    dataset->putAndInsertUint16(DCM_BitsStored, 8);
+    dataset->putAndInsertUint16(DCM_HighBit, 7);
+    dataset->putAndInsertUint16(DCM_PixelRepresentation, 0);
+    dataset->putAndInsertUint16(DCM_SamplesPerPixel, 1);
+    dataset->putAndInsertOFStringArray(DCM_PhotometricInterpretation, "MONOCHROME2");
+    OFCondition cond = dataset->putAndInsertUint8Array(DCM_PixelData, pixels.data(),
+        static_cast<unsigned long>(pixels.size()));
+    if (!cond.good()) {
+        throw std::runtime_error(std::string("synthetic WSI fixture: cannot set PixelData: ") + cond.text());
+    }
+
+    DcmItem* opticalPathItem = new DcmItem();
+    opticalPathItem->putAndInsertOFStringArray(DCM_OpticalPathIdentifier, "1");
+    opticalPathItem->putAndInsertUint8Array(DCM_ICCProfile, iccProfile.data(),
+        static_cast<unsigned long>(iccProfile.size()));
+    auto opticalPathSeq = new DcmSequenceOfItems(DCM_OpticalPathSequence);
+    opticalPathSeq->insert(opticalPathItem);
+    dataset->insert(opticalPathSeq);
+
+    cond = fileformat.saveFile(path.c_str(), EXS_LittleEndianExplicit);
+    if (!cond.good()) {
+        throw std::runtime_error(std::string("synthetic WSI fixture: cannot save file: ") + cond.text());
+    }
+}
+
+// The real corpus has no ICC-tagged VOLUME (main pyramid) file -- every embedded
+// profile found in this corpus lives on a WSI aux image (LABEL/OVERVIEW/LOCALIZER,
+// see colorProfileFromWSIAuxImage above), never on the tissue pyramid itself. This
+// drives the real production path -- DCMImageDriver::openFile -> DCMSlide::init ->
+// DCMSlide::initFromWSIFile -> DCMFile::init/readColorProfile -> WSIScene::init --
+// end to end on a synthetic single-file WSI carrying a real embedded sRGB profile,
+// proving WSIScene's own wiring rather than only the DCMScene (aux image) path
+// every real corpus file exercises. No mock of any DCM class is used; the fixture
+// is a real file and every call from openFile down is the production code.
+TEST(DCMImageDriver, colorProfileEndToEndThroughWSISceneRealDriverPath)
+{
+    const slideio::ColorProfile injected = slideio::IccTransform::createSRGBProfile();
+    ASSERT_FALSE(injected.isEmpty());
+    const std::vector<uint8_t>& profileBytes = injected.getData();
+
+    slideio::TempFile tempDcm("dcm");
+    const std::string tempPath = tempDcm.getPath().string();
+    writeSyntheticWSIFile(tempPath, profileBytes);
+
+    DCMImageDriver driver;
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(tempPath);
+    ASSERT_TRUE(slide.get() != nullptr);
+    ASSERT_EQ(1, slide->getNumScenes());
+    std::shared_ptr<slideio::CVScene> cvScene = slide->getScene(0);
+    ASSERT_TRUE(cvScene.get() != nullptr);
+    slideio::Scene scene(cvScene);
+
+    const slideio::ColorProfile profile = scene.getColorProfile();
+    ASSERT_FALSE(profile.isEmpty());
+    EXPECT_EQ(profileBytes, profile.getData());
+    EXPECT_EQ(slideio::ColorProfileSource::Embedded, profile.getSource());
+    EXPECT_TRUE(scene.getColorProfileInfo().present);
 }
