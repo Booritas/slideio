@@ -677,6 +677,23 @@ the test library built beside them. An out-of-tree profile that does not copy
 this will hit the failure on any Linux or macOS toolchain new enough to enforce
 those errors.
 
+### TransformerScene now reports its origin scene's concurrency
+
+`TransformerScene::supportsConcurrentReads()` previously inherited `CVScene`'s
+`false`, so wrapping any scene in a transform silently serialised its reads --
+an SVS scene that read concurrently stopped doing so. It now forwards the origin
+scene's value.
+
+Callers that relied on reads of a transformed scene being mutually exclusive in
+order to protect their own state must take their own lock. This is the same
+contract `Scene` already documents for driver scenes.
+
+Evidence is repeated multi-threaded stress runs (`applyIsSafeFromSeveralThreads`
+in `slideio_tests`, `concurrentReadsOfAManagedSceneAgree` here), not a
+ThreadSanitizer run -- MSVC has no TSan and there is no Linux build on this
+machine, the same gap already recorded above for the concurrent-reads
+conversion itself. A sanitizer run remains outstanding.
+
 ## v2.9.0
 
 ### `TIFFKeeper` is now move-only

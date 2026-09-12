@@ -2,6 +2,8 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include <gtest/gtest.h>
+#include <thread>
+#include <atomic>
 #include "tests/testlib/testtools.hpp"
 #include "slideio/slideio/slideio.hpp"
 #include "slideio/slideio/scene.hpp"
@@ -282,4 +284,49 @@ TEST(ColorManagement, wrapperPathMatchesDirectPath)
     // unprofiledSceneIsReportedAsAssumed: Assumed profile, Float32 channels.
     ASSERT_EQ(ColorProfileSource::Assumed, viaWrapper->getColorProfileInfo().source);
     ASSERT_EQ(DataType::DT_Float32, viaWrapper->getChannelDataType(0));
+}
+
+TEST(ColorManagement, transformedSceneKeepsTheOriginConcurrency)
+{
+    std::string path = TestTools::getTestImagePath("svs", "CMU-1-Small-Region.svs");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
+    std::shared_ptr<Slide> slide = openSlide(path, "SVS");
+    std::shared_ptr<Scene> scene = slide->getScene(0);
+    ASSERT_TRUE(scene->getCVScene()->supportsConcurrentReads());
+
+    ColorManagement cm(ColorTarget::sRGB);
+    std::shared_ptr<Scene> managed = transformScene(scene, cm);
+    // Wrapping a scene in a transform must not silently serialise its reads.
+    ASSERT_TRUE(managed->getCVScene()->supportsConcurrentReads());
+}
+
+TEST(ColorManagement, concurrentReadsOfAManagedSceneAgree)
+{
+    std::string path = TestTools::getTestImagePath("svs", "CMU-1-Small-Region.svs");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
+    std::shared_ptr<Slide> slide = openSlide(path, "SVS");
+    ColorManagement cm(ColorTarget::sRGB);
+    std::shared_ptr<Scene> managed = transformScene(slide->getScene(0), cm);
+
+    const std::tuple<int, int, int, int> rect{0, 0, 256, 256};
+    std::vector<uint8_t> expected(256 * 256 * 3);
+    managed->readBlock(rect, expected.data(), expected.size());
+
+    std::atomic<int> mismatches{0};
+    std::vector<std::thread> threads;
+    for (int t = 0; t < 8; ++t) {
+        threads.emplace_back([&]() {
+            for (int i = 0; i < 20; ++i) {
+                std::vector<uint8_t> actual(expected.size());
+                managed->readBlock(rect, actual.data(), actual.size());
+                if (actual != expected) {
+                    ++mismatches;
+                }
+            }
+        });
+    }
+    for (auto& thread : threads) {
+        thread.join();
+    }
+    ASSERT_EQ(0, mismatches.load());
 }

@@ -110,7 +110,10 @@ Each driver in `src/slideio/drivers/<format>/` is an independent shared library 
   file state and are therefore fine: `FileReader` keeps one event object on the
   Windows read path, pole's `PositionalFile` keeps a manual-reset event of its
   own mirroring it, and `tempfile.cpp` keeps two for random names.) Concurrent
-  today: SVS, PHTIFF, AFI, PKE, SCN, NDPI, CZI, VSI, OME-TIFF, ZVI.
+  today: SVS, PHTIFF, AFI, PKE, SCN, NDPI, CZI, VSI, OME-TIFF, ZVI. A
+  `TransformerScene` forwards its origin scene's `supportsConcurrentReads()`
+  rather than hard-coding `false`, so wrapping one of these in a transform no
+  longer silently downgrades it to serialised reads.
 - **Library naming**: `slideio-<module>` with `_d` suffix for debug builds
 
 ### Source Layout

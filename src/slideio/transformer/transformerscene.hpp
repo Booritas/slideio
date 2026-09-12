@@ -42,6 +42,16 @@ namespace slideio
         std::shared_ptr<CVScene> getOriginScene() const {
             return m_originScene;
         }
+        /**@brief a transformed scene reads as concurrently as its origin does.
+         *
+         * Every transformation applies as a const, stateless operation over a
+         * caller-supplied block, and ColorManagement's bound state -- the
+         * compiled lcms2 transform -- is immutable after binding. Without this
+         * override a transform silently downgraded a concurrent scene to
+         * serialised reads.*/
+        bool supportsConcurrentReads() const override {
+            return m_originScene->supportsConcurrentReads();
+        }
     private:
         void initChannels();
         void computeInflationValue();
