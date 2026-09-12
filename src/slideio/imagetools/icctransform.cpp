@@ -4,6 +4,7 @@
 #include "slideio/imagetools/icctransform.hpp"
 #include "slideio/core/exceptions.hpp"
 #include "slideio/core/log.hpp"
+#include <cstdio>
 #include <lcms2.h>
 
 using namespace slideio;
@@ -40,6 +41,26 @@ namespace
             cmsGetProfileInfoASCII(handle, type, "en", "US", buffer, sizeof(buffer) - 1);
         return size > 0 ? std::string(buffer) : std::string();
     }
+
+    // cmsGetProfileVersion() encodes major.minor.bugfix as a single decimal
+    // (its own documented convention: minor in the tenths place, bugfix in
+    // the hundredths place -- e.g. 4.3 for ICC v4.3.0.0, 2.1 for v2.1.0.0).
+    // A previous version of this code truncated that double with
+    // static_cast<cmsUInt32Number>(...) before stringifying it, which
+    // silently dropped minor and bugfix for every real-world profile (v2.1,
+    // v4.2, v4.3, v4.4 all became just "2" or "4"). Format both digits and
+    // trim only a non-informative trailing zero in the hundredths place,
+    // since bugfix is 0 for almost every profile in the wild.
+    std::string formatIccVersion(double version)
+    {
+        char buffer[32];
+        std::snprintf(buffer, sizeof(buffer), "%.2f", version);
+        std::string text(buffer);
+        if (text.size() > 1 && text.back() == '0') {
+            text.pop_back();
+        }
+        return text;
+    }
 }
 
 ColorProfileInfo IccTransform::describe(const ColorProfile& profile)
@@ -65,8 +86,7 @@ ColorProfileInfo IccTransform::describe(const ColorProfile& profile)
     info.connectionSpace = toIccColorSpace(cmsGetPCS(handle));
     info.intent = toRenderingIntent(cmsGetHeaderRenderingIntent(handle));
 
-    const cmsUInt32Number version = static_cast<cmsUInt32Number>(cmsGetProfileVersion(handle));
-    info.version = std::to_string(version);
+    info.version = formatIccVersion(cmsGetProfileVersion(handle));
 
     if (const cmsCIEXYZ* wp = static_cast<const cmsCIEXYZ*>(
             cmsReadTag(handle, cmsSigMediaWhitePointTag))) {

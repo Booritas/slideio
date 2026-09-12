@@ -74,6 +74,16 @@ namespace slideio
         IccColorSpace dataSpace = IccColorSpace::Unknown;
         IccColorSpace connectionSpace = IccColorSpace::Unknown;
         RenderingIntent intent = RenderingIntent::RelativeColorimetric;
+        /**@brief the profile's mediaWhitePointTag, as XYZ.
+         *
+         * NOT the scanner/device's native white in general: an ICC v4
+         * profile (icc v4 requires this per ICC.1:2010 8.2.18) always
+         * reports the PCS illuminant D50 (~0.9642, 1.0, 0.8249) here,
+         * regardless of the device's actual white point -- the device's
+         * native white for a v4 profile is recorded separately, via the
+         * chromatic adaptation ("chad") tag, which this struct does not
+         * expose. Only a v2 profile's mediaWhitePointTag is the device
+         * white directly. Check version to know which case applies.*/
         std::array<double, 3> whitePoint{0.0, 0.0, 0.0};
         size_t dataSize = 0;
         std::string toString() const;
