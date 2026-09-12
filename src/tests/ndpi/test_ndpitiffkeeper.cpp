@@ -96,7 +96,7 @@ TEST_F(NDPITIFFKeeperTests, releaseGivesUpOwnershipWithoutClosing) {
     EXPECT_FALSE(file.isHeldOpen());
 }
 
-// The defect TECH_DEBT.md section 1 problem 2 records for TIFFKeeper, which
+// The leak TIFFKeeper's operator=(libtiff::TIFF*) used to have, which
 // NDPITIFFKeeper still carried. Observed against the unmodified class: with
 // "keeper = NDPITiffTools::openTiffFile(second)" going through
 // operator=(libtiff::TIFF*), which overwrote m_hFile without closing it, the assertion
