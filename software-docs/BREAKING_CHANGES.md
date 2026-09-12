@@ -694,6 +694,49 @@ ThreadSanitizer run -- MSVC has no TSan and there is no Linux build on this
 machine, the same gap already recorded above for the concurrent-reads
 conversion itself. A sanitizer run remains outstanding.
 
+### `TransformationEx::bindToSource` takes the state it will receive, not the origin scene
+
+The virtual is now
+
+```cpp
+virtual std::shared_ptr<TransformationEx> bindToSource(
+    const CVScene& source, const std::vector<DataType>& channelDataTypes,
+    const ColorProfile& sourceProfile) const;
+```
+
+and `TransformerScene`'s constructor binds and accumulates in one loop, so each
+transformation in a chain is validated against what the transformations before
+it produce. Previously every element was bound against the origin scene, which
+made bind-time validation vacuous under composition:
+`transformSceneEx(scene, [ColorTransformation(GRAY), ColorManagement()])` bound
+happily against three origin channels and then threw from inside
+`IccTransform::apply` on the first tile -- the several-thousand-tiles-later
+failure bind-time validation exists to prevent.
+
+`bindToSource` was introduced earlier on this same branch and has never shipped
+in a release, so no out-of-tree override can exist yet. Anything overriding it
+in a working tree must add the two parameters and validate against them.
+
+### `IccTransform::apply` rejects a non-continuous output array
+
+It already rejected a non-continuous input; it now rejects a non-continuous
+destination for the same reason. `cv::OutputArray::create` is a no-op when the
+bound array already matches in size and type, so a caller that bound a strided
+ROI previously had `cmsDoTransform` write `rows*cols*3` contiguous samples into
+it, trampling the row gaps. Every in-tree caller passes a fresh `cv::Mat` and is
+unaffected.
+
+### The ICC enums no longer export their members into the Python extension namespace
+
+`ColorTarget`, `ColorProfileSource`, `RenderingIntent`, `IccColorSpace` and
+`MissingProfilePolicy` dropped `export_values()`. They had put bare `GRAY`,
+`RGB`, `XYZ`, `LAB` and friends into the `slideiopybind` module namespace, in
+two cases silently rebinding names the pre-existing `ColorSpace` enum had
+already put there -- a bare `XYZ` meant `ColorTarget.XYZ`, not
+`ColorSpace.XYZ`. Use `slideio.ColorTarget.XYZ` and the like; the `slideio`
+package itself never re-exported the bare names, so only code reaching into
+`slideio.core.libs.slideiopybind` directly is affected.
+
 ## v2.9.0
 
 ### `TIFFKeeper` is now move-only

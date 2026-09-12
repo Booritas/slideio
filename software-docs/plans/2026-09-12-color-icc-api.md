@@ -54,8 +54,8 @@ conan install -r conancenter -pr:b conan/Windows/x86_64_release -pr:h conan/Wind
 Running tests:
 
 ```bash
-./build/Release/slideio_tests.exe --gtest_filter="ColorProfile.*"
-./build/Release/slideio_transformer_tests.exe --gtest_filter="ColorManagement.*"
+./build/bin/Release/slideio_tests.exe --gtest_filter="ColorProfile.*"
+./build/bin/Release/slideio_transformer_tests.exe --gtest_filter="ColorManagement.*"
 ```
 
 ---
@@ -212,6 +212,23 @@ namespace slideio
     /**@brief device-independent space a scene's pixels may be converted into*/
     enum class ColorTarget { sRGB, LinearRGB, Lab, XYZ };
 
+    /**@brief what to do for a slide that embeds no ICC profile.
+     *
+     * Lives here rather than in slideio-transformer, alongside the rest of
+     * the public colour vocabulary, so it can be named -- e.g. by a language
+     * binding -- without pulling in ColorManagement's own header, which is
+     * internal and drags in OpenCV.*/
+    enum class MissingProfilePolicy
+    {
+        /**@brief treat the source as sRGB. Reads always succeed; the scene
+         * reports ColorProfileSource::Assumed so absence stays visible.*/
+        AssumeSRGB,
+        /**@brief return decoded pixels untouched. Valid only for target sRGB.*/
+        PassThrough,
+        /**@brief throw at bind time. For pipelines that require real colorimetry.*/
+        Fail,
+    };
+
     /**@brief raw ICC profile bytes as found in a slide.
      *
      * A byte container only: it does not parse or validate its contents. Use
@@ -358,7 +375,7 @@ Add both files to `set(SOURCE_FILES ...)` in `src/slideio/core/CMakeLists.txt`, 
 - [ ] **Step 5: Run the tests to verify they pass**
 
 Run: `cmake --build build --config Release --target slideio_tests -- -m` then
-`./build/Release/slideio_tests.exe --gtest_filter="ColorProfile*"`
+`./build/bin/Release/slideio_tests.exe --gtest_filter="ColorProfile*"`
 Expected: 6 tests PASS.
 
 - [ ] **Step 6: Commit**
@@ -399,9 +416,11 @@ Append to `src/tests/main/test_colorprofile.cpp`:
 
 TEST(ColorProfile, sceneWithoutProfileReportsAbsent)
 {
-    // PNG through the gdal driver carries no ICC profile, and no driver
-    // overrides the new virtual yet, so this exercises the default.
-    std::string path = TestTools::getTestImagePath("gdal", "colors.png");
+    // img_2448x2448_3x8bit_SRC_RGB_ducks.png is the genuinely profile-free
+    // PNG in this corpus -- colors.png carries a real 672-byte GIMP sRGB
+    // profile. No driver overrides the new virtual yet, so this exercises
+    // the default.
+    std::string path = TestTools::getTestImagePath("gdal", "img_2448x2448_3x8bit_SRC_RGB_ducks.png");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
     std::shared_ptr<slideio::Slide> slide = slideio::openSlide(path, "AUTO");
     std::shared_ptr<slideio::Scene> scene = slide->getScene(0);
@@ -456,8 +475,8 @@ ColorProfile Scene::getColorProfile() const
 - [ ] **Step 5: Run the test to verify it passes**
 
 Run: `cmake --build build --config Release --target slideio_tests -- -m` then
-`./build/Release/slideio_tests.exe --gtest_filter="ColorProfile.sceneWithoutProfileReportsAbsent"`
-Expected: PASS (or SKIPPED if `colors.png` is absent — rerun with the image present before committing).
+`./build/bin/Release/slideio_tests.exe --gtest_filter="ColorProfile.sceneWithoutProfileReportsAbsent"`
+Expected: PASS (or SKIPPED if `img_2448x2448_3x8bit_SRC_RGB_ducks.png` is absent — rerun with the image present before committing).
 
 - [ ] **Step 6: Commit**
 
@@ -518,8 +537,11 @@ TEST(IccTransform, describeSRGBProfileReportsRGBAndXYZ)
     ASSERT_EQ(IccColorSpace::XYZ, info.connectionSpace);
     ASSERT_EQ(profile.getSize(), info.dataSize);
     ASSERT_FALSE(info.description.empty());
-    // D65 white point, roughly (0.9505, 1.0, 1.0890).
-    ASSERT_NEAR(0.9505, info.whitePoint[0], 0.01);
+    // lcms2 builds an ICC v4 sRGB profile, and ICC.1:2010 8.2.18 requires a
+    // v4 mediaWhitePointTag to be the PCS illuminant D50, ~(0.9642, 1.0,
+    // 0.8249) -- NOT the device D65. The device white of a v4 profile lives
+    // in the chromatic adaptation ("chad") tag, which describe() does not read.
+    ASSERT_NEAR(0.9642, info.whitePoint[0], 0.01);
     ASSERT_NEAR(1.0000, info.whitePoint[1], 0.01);
 }
 
@@ -762,7 +784,7 @@ void IccTransform::apply(const cv::Mat&, cv::OutputArray) const
 
 - [ ] **Step 5: Run the tests to verify they pass**
 
-Run: `./build/Release/slideio_tests.exe --gtest_filter="IccTransform.*"`
+Run: `./build/bin/Release/slideio_tests.exe --gtest_filter="IccTransform.*"`
 Expected: 5 tests PASS.
 
 - [ ] **Step 6: Verify lcms2 has not leaked**
@@ -804,7 +826,7 @@ Append to `src/tests/main/test_colorprofile.cpp`:
 ```cpp
 TEST(ColorProfile, sceneWithoutProfileReportsInfoAbsent)
 {
-    std::string path = TestTools::getTestImagePath("gdal", "colors.png");
+    std::string path = TestTools::getTestImagePath("gdal", "img_2448x2448_3x8bit_SRC_RGB_ducks.png");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
     std::shared_ptr<slideio::Slide> slide = slideio::openSlide(path, "AUTO");
     std::shared_ptr<slideio::Scene> scene = slide->getScene(0);
@@ -844,7 +866,7 @@ ColorProfileInfo Scene::getColorProfileInfo() const
 
 - [ ] **Step 4: Run the test to verify it passes**
 
-Run: `./build/Release/slideio_tests.exe --gtest_filter="ColorProfile.sceneWithoutProfileReportsInfoAbsent"`
+Run: `./build/bin/Release/slideio_tests.exe --gtest_filter="ColorProfile.sceneWithoutProfileReportsInfoAbsent"`
 Expected: PASS.
 
 - [ ] **Step 5: Commit**
@@ -996,7 +1018,7 @@ Add `#include <thread>`, `#include <atomic>` and `#include "slideio/core/excepti
 
 - [ ] **Step 2: Run them to verify they fail**
 
-Run: `./build/Release/slideio_tests.exe --gtest_filter="IccTransform.*"`
+Run: `./build/bin/Release/slideio_tests.exe --gtest_filter="IccTransform.*"`
 Expected: the new tests FAIL with "conversion is not implemented yet"; the five from Task 3 still pass.
 
 - [ ] **Step 3: Implement the constructor and apply()**
@@ -1123,7 +1145,7 @@ void IccTransform::apply(const cv::Mat& src, cv::OutputArray dst) const
 
 - [ ] **Step 4: Run the tests to verify they pass**
 
-Run: `./build/Release/slideio_tests.exe --gtest_filter="IccTransform.*"`
+Run: `./build/bin/Release/slideio_tests.exe --gtest_filter="IccTransform.*"`
 Expected: 13 tests PASS, including `channelOrderIsRgbNotBgr` and `applyIsSafeFromSeveralThreads`.
 
 If `applyIsSafeFromSeveralThreads` fails or is flaky, lcms2's documented re-entrancy does not hold in this build. **Stop and report it** — the concurrency decision in Task 13 depends on it, and the spec names `ContextPool` holding one `cmsHTRANSFORM` per borrower as the fallback.
@@ -1210,7 +1232,7 @@ The `else` branch matters: `scanTiffDirTags` is called repeatedly against one `T
 
 - [ ] **Step 4: Run the test to verify it passes**
 
-Run: `./build/Release/slideio_tests.exe --gtest_filter="TiffTools.iccProfile*"`
+Run: `./build/bin/Release/slideio_tests.exe --gtest_filter="TiffTools.iccProfile*"`
 Expected: PASS.
 
 - [ ] **Step 5: Commit**
@@ -1272,7 +1294,7 @@ TEST(SVSImageDriver, colorProfileMatchesTheTiffTag)
 - [ ] **Step 2: Run it to verify it fails**
 
 Run: `cmake --build build --config Release --target slideio_tests -- -m` then
-`./build/Release/slideio_tests.exe --gtest_filter="SVSImageDriver.colorProfileMatchesTheTiffTag"`
+`./build/bin/Release/slideio_tests.exe --gtest_filter="SVSImageDriver.colorProfileMatchesTheTiffTag"`
 Expected: FAIL — the scene reports an empty profile even when the directory holds bytes. (If `CMU-1-Small-Region.svs` has no ICC tag the test passes trivially; still implement the steps below, and rely on the ome-tiff and scn cases plus Task 9's DICOM test for positive coverage.)
 
 - [ ] **Step 3: Add storage and the override to SVSScene**
@@ -1304,14 +1326,14 @@ Repeat the same two steps for the scn, pke, ome-tiff and vsi scene/slide pairs, 
 
 Run:
 ```bash
-./build/Release/slideio_tests.exe --gtest_filter="SVSImageDriver.colorProfile*:SCNImageDriver.colorProfile*"
-./build/Release/slideio_ometiff_tests.exe --gtest_filter="*colorProfile*"
+./build/bin/Release/slideio_tests.exe --gtest_filter="SVSImageDriver.colorProfile*:SCNImageDriver.colorProfile*"
+./build/bin/Release/slideio_ometiff_tests.exe --gtest_filter="*colorProfile*"
 ```
 Expected: PASS or SKIPPED.
 
 - [ ] **Step 6: Verify AFI inherits it without code**
 
-Run: `./build/Release/slideio_tests.exe --gtest_filter="AFIImageDriver.*"`
+Run: `./build/bin/Release/slideio_tests.exe --gtest_filter="AFIImageDriver.*"`
 Expected: PASS. AFI delegates to SVS scenes, so it gains the profile with no change of its own; confirm nothing regressed.
 
 - [ ] **Step 7: Commit**
@@ -1370,7 +1392,7 @@ TEST(NDPIImageDriver, colorProfileMatchesTheTiffTag)
 - [ ] **Step 2: Run it to verify it fails**
 
 Run: `cmake --build build --config Release --target slideio_ndpi_tests -- -m` then
-`./build/Release/slideio_ndpi_tests.exe --gtest_filter="NDPIImageDriver.colorProfile*"`
+`./build/bin/Release/slideio_ndpi_tests.exe --gtest_filter="NDPIImageDriver.colorProfile*"`
 Expected: FAIL to compile until the scene override exists.
 
 - [ ] **Step 3: Add the field and read the tag**
@@ -1401,7 +1423,7 @@ Populate it in `ndpislide.cpp` where scenes are constructed (`grep -n "make_shar
 
 - [ ] **Step 5: Run the test to verify it passes**
 
-Run: `./build/Release/slideio_ndpi_tests.exe --gtest_filter="NDPIImageDriver.colorProfile*"`
+Run: `./build/bin/Release/slideio_ndpi_tests.exe --gtest_filter="NDPIImageDriver.colorProfile*"`
 Expected: PASS or SKIPPED.
 
 - [ ] **Step 6: Commit**
@@ -1502,7 +1524,7 @@ Add `ColorProfile m_colorProfile;`, a `getColorProfile()` override and a `setCol
 
 - [ ] **Step 5: Run the test to verify it passes**
 
-Run: `./build/Release/slideio_tests.exe --gtest_filter="DCMImageDriver.colorProfile*"`
+Run: `./build/bin/Release/slideio_tests.exe --gtest_filter="DCMImageDriver.colorProfile*"`
 Expected: PASS or SKIPPED.
 
 - [ ] **Step 6: Commit**
@@ -1529,7 +1551,7 @@ normatively, so it is the reference case for extraction."
 - Consumes: `CVScene::getColorProfile` (Task 2).
 - Produces: `GDALScene::getColorProfile()` override.
 
-GDAL exposes the profile base64-encoded as metadata item `SOURCE_ICC_PROFILE` in the `COLOR_PROFILE` domain.
+The driver is named for the format family it serves, not for libgdal: it does not link libgdal at all. It reads through FreeImage (`FIWrapper`), with a separate small-TIFF path for TIFF inputs, so the profile comes from `FreeImage_GetICCProfile` and from the existing TIFF tag scan -- there is no `COLOR_PROFILE` metadata domain and no base64 decode.
 
 - [ ] **Step 1: Write the failing test**
 
@@ -1538,14 +1560,14 @@ Append to `src/tests/main/test_gdal_driver.cpp`:
 ```cpp
 TEST(GDALImageDriver, colorProfileAbsentForPlainPng)
 {
-    std::string path = TestTools::getTestImagePath("gdal", "colors.png");
+    std::string path = TestTools::getTestImagePath("gdal", "img_2448x2448_3x8bit_SRC_RGB_ducks.png");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
     std::shared_ptr<slideio::Slide> slide = slideio::openSlide(path, "GDAL");
     std::shared_ptr<slideio::Scene> scene = slide->getScene(0);
     ASSERT_TRUE(scene->getColorProfile().isEmpty());
 }
 
-TEST(GDALImageDriver, colorProfileDecodedFromBase64WhenPresent)
+TEST(GDALImageDriver, colorProfileReadWhenPresent)
 {
     // A JPEG written with an embedded profile; skipped when the corpus lacks it.
     std::string path = TestTools::getTestImagePath("gdal", "icc/srgb-tagged.jpg");
@@ -1570,36 +1592,24 @@ Expected: FAIL to compile until the override exists.
 
 In `gdalscene.hpp`, add `#include "slideio/core/colorprofile.hpp"` and declare `ColorProfile getColorProfile() const override;`.
 
-In `gdalscene.cpp`, using GDAL's own base64 decoder so no new dependency is introduced:
+Surface whatever the underlying reader already extracted for the page, in the constructor:
 
 ```cpp
-ColorProfile GDALScene::getColorProfile() const
-{
-    if (!m_hFile) {
-        return ColorProfile();
-    }
-    const char* encoded = GDALGetMetadataItem(m_hFile, "SOURCE_ICC_PROFILE", "COLOR_PROFILE");
-    if (encoded == nullptr || *encoded == '\0') {
-        return ColorProfile();
-    }
-    // GDAL stores the profile base64-encoded in this domain.
-    std::vector<uint8_t> decoded(strlen(encoded));   // decoded is always shorter
-    const int size = CPLBase64DecodeInPlace(reinterpret_cast<GByte*>(
-        memcpy(decoded.data(), encoded, decoded.size())));
-    if (size <= 0) {
-        SLIDEIO_LOG(WARNING) << "GDALScene: SOURCE_ICC_PROFILE is not valid base64; ignoring it";
-        return ColorProfile();
-    }
-    decoded.resize(size);
-    return ColorProfile(std::move(decoded));
-}
+// gdalscene.cpp, in the constructor, after the level is built:
+// Bytes only here: the driver never parses the profile it finds, it
+// just surfaces whatever the underlying reader (FreeImage or the TIFF
+// scan) already extracted for this page.
+m_colorProfile = ColorProfile(m_imagePage->getICCProfile());
 ```
 
-Add `#include "cpl_string.h"` and `#include "slideio/core/log.hpp"` if not already present.
+`SmallImage::getICCProfile()` gains a defaulted override returning no bytes, with
+real implementations in `FIWrapper::Page` (`FreeImage_GetICCProfile`) and
+`SmallTiffWrapper::SmallTiffPage` (the TIFF tag). `gdalscene.hpp` holds the
+resulting `ColorProfile` in a member and returns it from the override.
 
 - [ ] **Step 4: Run the tests to verify they pass**
 
-Run: `./build/Release/slideio_tests.exe --gtest_filter="GDALImageDriver.colorProfile*"`
+Run: `./build/bin/Release/slideio_tests.exe --gtest_filter="GDALImageDriver.colorProfile*"`
 Expected: the first PASSES; the second PASSES or is SKIPPED if the corpus lacks the image.
 
 - [ ] **Step 5: Record the new test image if one was added**
@@ -1624,6 +1634,18 @@ rather than raised, matching how a corrupt profile is handled elsewhere."
 ---
 
 ### Task 11: Source binding hooks on TransformationEx
+
+> **Later correction (whole-branch review).** The signature this task lands,
+> `bindToSource(const CVScene&)`, is not enough under composition: every
+> transformation ends up bound against the origin scene, so a chain such as
+> `[ColorTransformation(GRAY), ColorManagement()]` validates ColorManagement
+> against three origin channels and then throws from the first tile read. The
+> shipped signature is
+> `bindToSource(const CVScene&, const std::vector<DataType>& channelDataTypes,
+> const ColorProfile& sourceProfile)`, and `TransformerScene`'s constructor
+> binds and accumulates channel types and profile in one loop rather than
+> binding in one pass and computing channels in another. Read the signatures
+> below as the state of this task, not as the final contract.
 
 **Files:**
 - Modify: `src/slideio/transformer/transformationex.hpp`, `src/slideio/transformer/transformerscene.hpp`, `src/slideio/transformer/transformerscene.cpp`, `src/slideio/transformer/CMakeLists.txt`
@@ -1770,12 +1792,12 @@ Add `${IMAGETOOLS_LIB_NAME}` to the transformer's `target_link_libraries` in `sr
 
 - [ ] **Step 5: Run the tests to verify they pass**
 
-Run: `./build/Release/slideio_transformer_tests.exe --gtest_filter="TransformationBinding.*"`
+Run: `./build/bin/Release/slideio_transformer_tests.exe --gtest_filter="TransformationBinding.*"`
 Expected: 3 tests PASS.
 
 - [ ] **Step 6: Run the whole transformer suite to check nothing regressed**
 
-Run: `./build/Release/slideio_transformer_tests.exe`
+Run: `./build/bin/Release/slideio_transformer_tests.exe`
 Expected: all pre-existing tests still PASS. The binding loop now runs for every transform, so a regression here would show up as a filter behaving differently.
 
 - [ ] **Step 7: Commit**
@@ -1814,8 +1836,8 @@ different channel data types from its unbound configuration."
 - Test: `src/tests/transformer/test_colormanagement.cpp`
 
 **Interfaces:**
-- Consumes: `IccTransform` (Tasks 3, 5), `bindToSource`/`amendColorProfile` (Task 11).
-- Produces: `enum class MissingProfilePolicy { AssumeSRGB, PassThrough, Fail }`; class `ColorManagement` with `getTarget/setTarget`, `getIntent/setIntent`, `getBlackPointCompensation/setBlackPointCompensation`, `getMissingProfilePolicy/setMissingProfilePolicy`, `getSourceProfileOverride/setSourceProfileOverride`; class `ColorManagementWrap` mirroring `ColorTransformationWrap`; `TransformationType::ColorManagement`.
+- Consumes: `IccTransform` (Tasks 3, 5), `bindToSource`/`amendColorProfile` (Task 11), `MissingProfilePolicy` from `slideio/core/colorprofile.hpp` (Task 1).
+- Produces: class `ColorManagement` with `getTarget/setTarget`, `getIntent/setIntent`, `getBlackPointCompensation/setBlackPointCompensation`, `getMissingProfilePolicy/setMissingProfilePolicy`, `getSourceProfileOverride/setSourceProfileOverride`; class `ColorManagementWrap` mirroring `ColorTransformationWrap`; `TransformationType::ColorManagement`.
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -1827,7 +1849,7 @@ Append to `src/tests/transformer/test_colormanagement.cpp`:
 namespace {
     std::shared_ptr<Scene> openRgbScene()
     {
-        std::string path = TestTools::getTestImagePath("gdal", "colors.png");
+        std::string path = TestTools::getTestImagePath("gdal", "img_2448x2448_3x8bit_SRC_RGB_ducks.png");
         return openSlide(path, "AUTO")->getScene(0);
     }
 }
@@ -1862,7 +1884,7 @@ TEST(ColorManagement, srgbTargetPreservesChannelDataTypes)
 
 TEST(ColorManagement, unprofiledSceneIsReportedAsAssumed)
 {
-    std::string path = TestTools::getTestImagePath("gdal", "colors.png");
+    std::string path = TestTools::getTestImagePath("gdal", "img_2448x2448_3x8bit_SRC_RGB_ducks.png");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
     std::shared_ptr<Scene> scene = openRgbScene();
     ASSERT_TRUE(scene->getColorProfile().isEmpty());
@@ -1875,7 +1897,7 @@ TEST(ColorManagement, unprofiledSceneIsReportedAsAssumed)
 
 TEST(ColorManagement, failPolicyThrowsAtBindTimeWithoutAProfile)
 {
-    std::string path = TestTools::getTestImagePath("gdal", "colors.png");
+    std::string path = TestTools::getTestImagePath("gdal", "img_2448x2448_3x8bit_SRC_RGB_ducks.png");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
     std::shared_ptr<Scene> scene = openRgbScene();
     ColorManagement cm(ColorTarget::Lab);
@@ -1887,7 +1909,7 @@ TEST(ColorManagement, failPolicyThrowsAtBindTimeWithoutAProfile)
 
 TEST(ColorManagement, passThroughIsRejectedForNonSrgbTargets)
 {
-    std::string path = TestTools::getTestImagePath("gdal", "colors.png");
+    std::string path = TestTools::getTestImagePath("gdal", "img_2448x2448_3x8bit_SRC_RGB_ducks.png");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
     std::shared_ptr<Scene> scene = openRgbScene();
     ColorManagement cm(ColorTarget::Lab);
@@ -1899,7 +1921,7 @@ TEST(ColorManagement, passThroughIsRejectedForNonSrgbTargets)
 
 TEST(ColorManagement, sourceProfileOverrideIsUsed)
 {
-    std::string path = TestTools::getTestImagePath("gdal", "colors.png");
+    std::string path = TestTools::getTestImagePath("gdal", "img_2448x2448_3x8bit_SRC_RGB_ducks.png");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
     std::shared_ptr<Scene> scene = openRgbScene();
     ColorManagement cm(ColorTarget::Lab);
@@ -1914,7 +1936,7 @@ TEST(ColorManagement, sourceProfileOverrideIsUsed)
 
 TEST(ColorManagement, oneConfigObjectBindsIndependentlyToTwoScenes)
 {
-    std::string path = TestTools::getTestImagePath("gdal", "colors.png");
+    std::string path = TestTools::getTestImagePath("gdal", "img_2448x2448_3x8bit_SRC_RGB_ducks.png");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
     ColorManagement cm(ColorTarget::Lab);
     std::shared_ptr<Scene> first = transformScene(openRgbScene(), cm);
@@ -1927,7 +1949,7 @@ TEST(ColorManagement, oneConfigObjectBindsIndependentlyToTwoScenes)
 
 TEST(ColorManagement, labBlockIsFloatAndPlausible)
 {
-    std::string path = TestTools::getTestImagePath("gdal", "colors.png");
+    std::string path = TestTools::getTestImagePath("gdal", "img_2448x2448_3x8bit_SRC_RGB_ducks.png");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
     std::shared_ptr<Scene> managed = transformScene(openRgbScene(), *std::make_shared<ColorManagement>(ColorTarget::Lab));
     auto rect = managed->getRect();
@@ -1966,17 +1988,26 @@ namespace slideio
 {
     class IccTransform;
 
-    /**@brief what to do for a slide that embeds no ICC profile*/
-    enum class MissingProfilePolicy
-    {
-        /**@brief treat the source as sRGB. Reads always succeed; the scene
-         * reports ColorProfileSource::Assumed so absence stays visible.*/
-        AssumeSRGB,
-        /**@brief return decoded pixels untouched. Valid only for target sRGB.*/
-        PassThrough,
-        /**@brief throw at bind time. For pipelines that require real colorimetry.*/
-        Fail,
-    };
+    // MissingProfilePolicy is NOT declared here. It belongs in
+    // slideio/core/colorprofile.hpp, alongside the rest of the public colour
+    // vocabulary: this header depends on OpenCV and is never installed, so an
+    // enum declared here could not be named by a language binding. Add it to
+    // colorprofile.hpp in Task 1 instead:
+    //
+    //     /**@brief what to do for a slide that embeds no ICC profile*/
+    //     enum class MissingProfilePolicy
+    //     {
+    //         /**@brief treat the source as sRGB. Reads always succeed; the
+    //          * scene reports ColorProfileSource::Assumed so absence stays
+    //          * visible.*/
+    //         AssumeSRGB,
+    //         /**@brief return decoded pixels untouched. Valid only for target
+    //          * sRGB.*/
+    //         PassThrough,
+    //         /**@brief throw at bind time. For pipelines that require real
+    //          * colorimetry.*/
+    //         Fail,
+    //     };
 
     /**@brief converts scene blocks into a device-independent colour space.
      *
@@ -2142,7 +2173,7 @@ Add all four new files to `set(SOURCE_FILES ...)` in `src/slideio/transformer/CM
 
 - [ ] **Step 6: Run the tests to verify they pass**
 
-Run: `./build/Release/slideio_transformer_tests.exe --gtest_filter="ColorManagement.*"`
+Run: `./build/bin/Release/slideio_transformer_tests.exe --gtest_filter="ColorManagement.*"`
 Expected: 9 tests PASS.
 
 - [ ] **Step 7: Commit**
@@ -2234,7 +2265,7 @@ Add `#include <thread>` and `#include <atomic>` to the file.
 
 - [ ] **Step 2: Run them to verify the first fails**
 
-Run: `./build/Release/slideio_transformer_tests.exe --gtest_filter="ColorManagement.*concurren*"`
+Run: `./build/bin/Release/slideio_transformer_tests.exe --gtest_filter="ColorManagement.*concurren*"`
 Expected: `transformedSceneKeepsTheOriginConcurrency` FAILS — `TransformerScene` inherits `CVScene`'s `false`.
 
 - [ ] **Step 3: Forward the origin's concurrency**
@@ -2256,15 +2287,15 @@ Add to `src/slideio/transformer/transformerscene.hpp`:
 
 - [ ] **Step 4: Run the tests to verify they pass**
 
-Run: `./build/Release/slideio_transformer_tests.exe --gtest_filter="ColorManagement.*concurren*"`
+Run: `./build/bin/Release/slideio_transformer_tests.exe --gtest_filter="ColorManagement.*concurren*"`
 Expected: both PASS.
 
 - [ ] **Step 5: Run the full transformer and main suites**
 
 Run:
 ```bash
-./build/Release/slideio_transformer_tests.exe
-./build/Release/slideio_tests.exe
+./build/bin/Release/slideio_transformer_tests.exe
+./build/bin/Release/slideio_tests.exe
 ```
 Expected: all PASS. The seven existing filters are now reachable concurrently for the first time, so any latent shared state in them would surface here.
 
@@ -2338,7 +2369,7 @@ from testlib import get_test_image_path
 
 class TestColor(unittest.TestCase):
     def test_absent_profile_is_none(self):
-        path = get_test_image_path("gdal", "colors.png")
+        path = get_test_image_path("gdal", "img_2448x2448_3x8bit_SRC_RGB_ducks.png")
         with slideio.open_slide(path, "AUTO") as slide:
             scene = slide.get_scene(0)
             self.assertIsNone(scene.get_color_profile())
@@ -2362,8 +2393,9 @@ class TestColor(unittest.TestCase):
         path = get_test_image_path("gdal", "colors.png")
         with slideio.open_slide(path, "AUTO") as slide:
             scene = slide.get_scene(0)
-            cm = slideio.ColorManagement(slideio.ColorTarget.LAB)
-            managed = slideio.transform_scene(scene, cm)
+            cm = slideio.ColorManagement()
+            cm.target = slideio.ColorTarget.LAB
+            managed = slideio.transform_scene(scene, [cm])
             tile = managed.read_block((0, 0, 16, 16), size=(16, 16))
             self.assertEqual(tile.dtype.name, "float32")
             self.assertEqual(tile.shape[2], 3)
@@ -2371,13 +2403,16 @@ class TestColor(unittest.TestCase):
             self.assertTrue((tile[:, :, 0] <= 100.5).all())
 
     def test_fail_policy_raises(self):
-        path = get_test_image_path("gdal", "colors.png")
+        # Must be the profile-free fixture: FAIL only fires when the
+        # missing-profile policy is actually consulted.
+        path = get_test_image_path("gdal", "img_2448x2448_3x8bit_SRC_RGB_ducks.png")
         with slideio.open_slide(path, "AUTO") as slide:
             scene = slide.get_scene(0)
-            cm = slideio.ColorManagement(slideio.ColorTarget.LAB)
+            cm = slideio.ColorManagement()
+            cm.target = slideio.ColorTarget.LAB
             cm.missing_profile_policy = slideio.MissingProfilePolicy.FAIL
             with self.assertRaises(RuntimeError):
-                slideio.transform_scene(scene, cm)
+                slideio.transform_scene(scene, [cm])
 
 
 if __name__ == "__main__":
