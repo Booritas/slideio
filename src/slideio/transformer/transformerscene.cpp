@@ -11,8 +11,16 @@ using namespace slideio;
 
 TransformerScene::TransformerScene(std::shared_ptr<CVScene> originScene,
                                    const std::list<std::shared_ptr<Transformation>>& list) :
-    m_originScene(originScene), m_transformations(list), m_inflationValue(0)
+    m_originScene(originScene), m_inflationValue(0)
 {
+    // Bind before initChannels(): a bound transformation may report different
+    // channel data types from its unbound configuration.
+    for (const auto& transformation : list) {
+        TransformationEx* transformationEx = dynamic_cast<TransformationEx*>(transformation.get());
+        std::shared_ptr<TransformationEx> bound =
+            transformationEx ? transformationEx->bindToSource(*originScene) : nullptr;
+        m_transformations.push_back(bound ? bound : transformation);
+    }
     initChannels();
     computeInflationValue();
 }
@@ -93,6 +101,17 @@ double TransformerScene::getTFrameResolution() const
 std::string TransformerScene::getRawMetadata() const
 {
     return m_originScene->getRawMetadata();
+}
+
+ColorProfile TransformerScene::getColorProfile() const
+{
+    ColorProfile profile = m_originScene->getColorProfile();
+    for (const auto& transformation : m_transformations) {
+        if (TransformationEx* transformationEx = dynamic_cast<TransformationEx*>(transformation.get())) {
+            profile = transformationEx->amendColorProfile(profile);
+        }
+    }
+    return profile;
 }
 
 void TransformerScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
