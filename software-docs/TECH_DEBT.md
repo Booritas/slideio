@@ -5,273 +5,102 @@ refactoring opportunities identified during development that are not yet
 scheduled. Each entry records the problem, impact, and a proposed direction so
 the work can be picked up later without re-doing the analysis.
 
+Every entry below was re-verified against the tree on 2026-09-09; the ones that
+turned out to be fixed were removed and are listed, with the evidence, under
+[Resolved and removed](#resolved-and-removed).
+
 ---
 
 ## Table of Contents
 
-1. [`TIFFKeeper` unsafe value semantics](#1-tiffkeeper-unsafe-value-semantics)
-2. [Philips TIFF driver follow-ups](#2-philips-tiff-driver-follow-ups)
+Numbers are stable identifiers cited from outside this file, so a fixed entry is
+removed without renumbering the rest and its number is retired in
+[Resolved and removed](#resolved-and-removed) rather than reused.
+
+1. [`TIFFKeeper` and `NDPITIFFKeeper` are two classes with one contract](#1-tiffkeeper-and-ndpitiffkeeper-are-two-classes-with-one-contract)
+2. *retired -- fixed, see [Resolved and removed](#resolved-and-removed)*
 3. [`SCNSlide` passes a `TIFF*` where `SVSSmallScene` expects a `bool`](#3-scnslide-passes-a-tiff-where-svssmallscene-expects-a-bool)
-4. [`CVScene` serialises every block read, and does so inconsistently](#4-cvscene-serialises-every-block-read-and-does-so-inconsistently)
+4. [`CVScene` still serialises every block read for two drivers](#4-cvscene-still-serialises-every-block-read-for-two-drivers)
 5. [`ImageTools::computeSimilarity2` cannot handle more than four channels](#5-imagetoolscomputesimilarity2-cannot-handle-more-than-four-channels)
 6. [`CZIScene::getRect()` returns non-zero-based coordinates that block reads cannot use](#6-cziscenegetrect-returns-non-zero-based-coordinates-that-block-reads-cannot-use)
 7. [`SCNScene::getRect()` has the same problem](#7-scnscenegetrect-has-the-same-problem)
 8. [SCN and OME-TIFF level selection assume parallel pyramid geometry across dimensions](#8-scn-and-ome-tiff-level-selection-assume-parallel-pyramid-geometry-across-dimensions)
 9. [`TilerData::relativeZoom` is dead, and its new formula is only valid in one case](#9-tilerdatarelativezoom-is-dead-and-its-new-formula-is-only-valid-in-one-case)
-10. [`zSliceRange` / `timeFrameRange` are documented backwards in `scene.hpp`](#10-zslicerange--timeframerange-are-documented-backwards-in-scenehpp)
+10. [`zSliceRange` / `timeFrameRange` are documented backwards in `cvscene.hpp`](#10-zslicerange--timeframerange-are-documented-backwards-in-cvscenehpp)
 11. [`TransformerScene` has no level table, so transformed scenes cannot be read by level](#11-transformerscene-has-no-level-table-so-transformed-scenes-cannot-be-read-by-level)
 12. [`SCNScene::getChannelDirectories` indexes unchecked, and the 4D level path widens the exposure](#12-scnscenegetchanneldirectories-indexes-unchecked-and-the-4d-level-path-widens-the-exposure)
 13. [`slideio-core`'s export-control define breaks the project naming convention](#13-slideio-cores-export-control-define-breaks-the-project-naming-convention)
-14. [ZVI now reports concurrent reads (resolved)](#14-zvi-now-reports-concurrent-reads-resolved)
+14. *retired -- fixed, see [Resolved and removed](#resolved-and-removed)*
 15. [DCM still serialises every block read](#15-dcm-still-serialises-every-block-read)
 16. [GDAL still serialises every block read](#16-gdal-still-serialises-every-block-read)
-17. [OME-TIFF now reports concurrent reads (resolved)](#17-ome-tiff-now-reports-concurrent-reads-resolved)
+17. *retired -- fixed, see [Resolved and removed](#resolved-and-removed)*
 18. [CZI rejects a corrupt sub-block position on the main path and tolerates it on the attachment path](#18-czi-rejects-a-corrupt-sub-block-position-on-the-main-path-and-tolerates-it-on-the-attachment-path)
 19. [pole read-path defects left in place](#19-pole-read-path-defects-left-in-place)
 20. [The ZVI concurrent-read work: what no test covers](#20-the-zvi-concurrent-read-work-what-no-test-covers)
 21. [pole's positional read path is ~20% slower single-threaded](#21-poles-positional-read-path-is-20-slower-single-threaded)
 
+Not debt, recorded so it stays a decision:
+[Consciously accepted, not debt](#consciously-accepted-not-debt).
+
 ---
 
-## 1. `TIFFKeeper` unsafe value semantics
+## 1. `TIFFKeeper` and `NDPITIFFKeeper` are two classes with one contract
 
-**File:** `src/slideio/imagetools/tiffkeeper.hpp` (+ `tiffkeeper.cpp`)
-**Related:** `src/slideio/drivers/ndpi/ndpitiffkeeper.hpp` (`NDPITIFFKeeper` — see problem 6)
-**Status:** RAII fix implemented across commits `53d13332..06c456a7` (design,
-plan, tests, the move-only class, and the call-site migration). `NDPITIFFKeeper`
-was brought up to the same contract afterwards on branch `v2.10.0`. Only the
-second half of problem 6 — collapsing the two onto one shared handle — remains
-open.
+**Files:** `src/slideio/imagetools/tiffkeeper.hpp`/`.cpp`,
+`src/slideio/drivers/ndpi/ndpitiffkeeper.hpp`/`.cpp`
+**Related:** `software-docs/specs/2026-08-15-tiffkeeper-ownership-design.md`
+**Status:** Open — the one surviving item of what was originally a nine-item
+entry. The RAII work itself is done and its eight other items are gone from
+this file; see [Resolved and removed](#resolved-and-removed).
 
-### Context
+Both classes are now move-only owning handles: copy deleted, move
+constructor/assignment, `reset()`/`release()` in place of the leaking
+`operator=(libtiff::TIFF*)`, a shared message-handler init path used by both
+constructors, no implicit `operator libtiff::TIFF*()`, `TIFFKeeperPtr` a
+`using` rather than a macro, and `m_hFile` default-initialised. `TIFFKeeper`
+landed across `53d13332..06c456a7`; `NDPITIFFKeeper` was brought up to the same
+contract on `v2.10.0`, moving out of `ndpitifftools.hpp`/`.cpp` into its own
+files, and is covered by `src/tests/ndpi/test_ndpitiffkeeper.cpp`, which
+mirrors `test_tiffkeeper.cpp`.
 
-`TIFFKeeper` is a thin RAII wrapper around a `libtiff::TIFF*`: it owns the
-handle, closes it in the destructor, and forwards a handful of operations to the
-free functions in `TiffTools`. It is held by value as a member in a few places
-(`SmallTiffWrapper::m_pTiff`, `ScnSlide::m_tiff`), by `shared_ptr` in the
-converter (`tiffconverter.cpp:861`), and constructed on the stack in several
-drivers/tests.
+What remains is that they are still **two** classes with one contract, kept in
+step by hand — the class comment in `ndpitiffkeeper.hpp` says so and points
+here. Collapsing them means a header-only handle template parameterised by
+close function and handler type, because the NDPI driver links its own patched
+libtiff, routes messages through `NDPITIFFMessageHandler` rather than
+`TIFFMessageHandler`, and does not have `slideio-imagetools` in its link
+closure.
 
-### Problems
-
-**1. ~~Looks like an owning handle but has unsafe value semantics (main issue).~~
-Fixed** (`tiffkeeper.hpp`/`tiffkeeper.cpp`, commit `20c7663d`). Copy is now
-`= delete`d and a move constructor/move assignment were added, so ownership
-transfers explicitly instead of being duplicated by an implicit copy.
-
-**2. ~~`operator=(libtiff::TIFF*)` leaks.~~ Fixed** (commit `20c7663d`). The
-operator is gone; `reset(libtiff::TIFF*)` (`tiffkeeper.cpp:50-56`) replaces it
-and closes the previously held handle before taking the new one.
-
-**3. ~~Constructors are inconsistent.~~ Fixed.**
-The `(filePath, readOnly)` constructor used to call `openTiffFile` while leaving
-`m_messageHandler` null, so whether the libtiff message handler was installed
-depended on which constructor was used. Both constructors now create it
-(`tiffkeeper.cpp:11-20`). Kept as a struck-through entry rather than deleted
-because the proposed direction below still refers to a shared init path; the
-remaining value there is factoring the duplication, not fixing a bug.
-
-**4. ~~Implicit conversion `operator libtiff::TIFF*()`.~~ Fixed** (commits
-`20c7663d`, `06c456a7`). The conversion operator was removed and every call
-site that relied on it — including a few beyond the ones originally scoped,
-found by the compiler — was migrated to explicit `.getHandle()`.
-
-**5. ~~`#define TIFFKeeperPtr std::shared_ptr<slideio::TIFFKeeper>`.~~ Fixed**
-(commit `20c7663d`). Replaced with `using TIFFKeeperPtr = std::shared_ptr<TIFFKeeper>;`
-inside `namespace slideio` (`tiffkeeper.hpp:73`).
-
-**6. Duplication with `NDPITIFFKeeper` — first half done, unification still open.**
-This entry originally described near-identical twins, then described
-`NDPITIFFKeeper` as the diverged one still carrying the defects problems 1, 2
-and 4 record for `TIFFKeeper`. The first half of the fix — bringing
-`NDPITIFFKeeper` up to `TIFFKeeper`'s contract — is now done. It moved out of
-`ndpitifftools.hpp`/`.cpp` into its own `ndpitiffkeeper.hpp`/`.cpp` and is now
-a `SLIDEIO_NDPI_EXPORTS` move-only owning handle: copy explicitly deleted,
-move constructor/assignment added with the same deliberately-not-moved message
-handler as `TIFFKeeper`, `reset()`/`release()`/`openTiffFile()`/`closeTiffFile()`
-replacing the leaking `operator=(TIFF*)`, `operator libtiff::TIFF*()` removed,
-`m_hFile` default-initialised, and `<memory>`/`<string>` included directly. The
-two `NDPIFile` call sites that relied on the implicit conversion and the raw
-assignment were migrated. Covered by `src/tests/ndpi/test_ndpitiffkeeper.cpp`,
-which mirrors `test_tiffkeeper.cpp`.
-
-What this entry recorded for problems 1, 2 and 4 held. Two further findings it did
-not record, found by doing the work:
+Three things found while doing the NDPI half are worth carrying here, because
+none of them is in the design spec:
 
 - **`NDPITiffTools::closeTiffFile` had no null guard** and called
   `libtiff::TIFFClose` unconditionally, unlike `TiffTools::closeTiffFile`.
-  Reached with `nullptr` it was an access violation (observed: SEH `0xc0000005`).
-  `~NDPITIFFKeeper` guarded itself with `if (m_hFile)`, so the crash was only
-  reachable through the free function — which `~NDPIFile` called directly. Now
-  guarded, with a test.
-- **The keeper installed no message handler, unlike `TIFFKeeper`.** At `c89bb999`
-  `NDPITIFFKeeper` had no handler member at all. `NDPITIFFMessageHandler` was *not*
-  dead code, though — the driver installs one as a stack local at four entry points
-  (`ndpiimagedriver.cpp:26`, `ndpiscene.cpp:132`, `:369`, `:418`), so anything reached
-  through `openFile`, `NDPIScene::init` or a scene read was already covered: warnings
-  reached `SLIDEIO_LOG` and `NDPITIFFErrorHandler`'s `RAISE_RUNTIME_ERROR` did fire.
-  The gap was code reaching libtiff *outside* those four scopes — chiefly tests calling
-  `NDPITiffTools` directly, which ran against libtiff's default handlers.
-
-  Both keeper constructors now install one via a shared `initMessageHandler()`,
-  matching `TIFFKeeper`, and the `slideio_ndpi_tests` fixtures install one each so the
-  direct-`NDPITiffTools` tests are covered too. On the driver's own paths this changes
-  nothing (the handler was already installed and the keeper's merely nests inside it,
-  LIFO-safely); for direct `NDPITiffTools` callers it is a **behaviour change** —
-  libtiff errors now throw rather than printing to stderr. The full
-  `slideio_ndpi_tests` and `slideio_tests` suites pass with it.
-
-  Note the ordering trap the keeper's handler does *not* close: in
-  `NDPITIFFKeeper keeper(NDPITiffTools::openTiffFile(path))` the file is opened while
-  evaluating the argument, *before* the constructor body installs the handler, so
-  whatever handler is already current reports any problem with that open. Opening
-  through the `filePath` constructor or `openTiffFile()` has no such gap.
-
-**Still open:** collapsing `TIFFKeeper` and `NDPITIFFKeeper` onto one shared
-move-only handle. They now have the same contract but remain two classes, because
-the NDPI driver links its own patched libtiff and routes messages through
-`NDPITIFFMessageHandler` rather than `TIFFMessageHandler`, and `slideio-imagetools`
-is not in the NDPI driver's link closure. Doing it means a header-only handle
-template parameterised by close function and handler type — the "Follow-up
-(separate change)" already named at the end of the proposed direction below.
-
-**7. ~~Minor header hygiene.~~ Fixed** (commit `20c7663d`). `<memory>` and
-`<cstdint>` are now included directly in `tiffkeeper.hpp` rather than relied
-on transitively.
-
-**8. ~~`openTiffFile()` leaked exactly as `operator=` did.~~ Fixed** (commit
-`20c7663d`). `TIFFKeeper::openTiffFile` used to assign
-`TiffTools::openTiffFile(...)` straight into `m_hFile`, leaking any handle
-already held — the same bug as problem 2, just reached through a different
-entry point. It was not recorded when this entry was first written; it was
-found while designing the fix (see the spec's "Two problems the debt entry
-does not record"). `openTiffFile` now routes through `reset()`
-(`tiffkeeper.cpp:45-48`), which closes the old handle first.
-
-**9. ~~`m_hFile` had no default member initialiser.~~ Fixed** (commit
-`20c7663d`). Harmless at the time — a throwing constructor meant the
-destructor never ran — but latent, since it would stop being harmless the
-moment a member whose construction can throw was declared after it. Also
-found while designing the fix and not originally recorded here.
-`m_hFile` is now declared `libtiff::TIFF* m_hFile = nullptr;`
-(`tiffkeeper.hpp:68`).
-
-### Proposed direction
-
-Make `TIFFKeeper` a proper **move-only owning handle**, fix the leak/inconsistency,
-and drop the footguns:
-
-```cpp
-namespace slideio
-{
-    class TIFFMessageHandler;
-
-    class SLIDEIO_IMAGETOOLS_EXPORTS TIFFKeeper
-    {
-    public:
-        explicit TIFFKeeper(libtiff::TIFF* hFile = nullptr);
-        explicit TIFFKeeper(const std::string& filePath, bool readOnly = true);
-        ~TIFFKeeper();
-
-        // Move-only: an owning handle must not be copied.
-        TIFFKeeper(const TIFFKeeper&)            = delete;
-        TIFFKeeper& operator=(const TIFFKeeper&) = delete;
-        TIFFKeeper(TIFFKeeper&& other) noexcept;
-        TIFFKeeper& operator=(TIFFKeeper&& other) noexcept;
-
-        libtiff::TIFF* getHandle() const { return m_hFile; }
-        bool isValid() const             { return m_hFile != nullptr; }
-
-        // Take ownership of a raw handle, closing any currently held one.
-        void reset(libtiff::TIFF* hFile = nullptr);
-        // Relinquish ownership without closing.
-        libtiff::TIFF* release();
-
-        void openTiffFile(const std::string& filePath, bool readOnly = true);
-        void closeTiffFile();
-        // ... (unchanged forwarding methods) ...
-
-    private:
-        libtiff::TIFF* m_hFile = nullptr;
-        std::shared_ptr<TIFFMessageHandler> m_messageHandler;
-    };
-
-    using TIFFKeeperPtr = std::shared_ptr<TIFFKeeper>;
-}
-```
-
-Concrete changes:
-- **Delete copy, add move** (move ctor/assign transfer `m_hFile` + `m_messageHandler`
-  and null the source).
-- **Replace `operator=(libtiff::TIFF*)` with `reset()`** that closes the old handle
-  first. Call sites doing `keeper = TiffTools::openTiffFile(...)` become
-  `keeper.reset(...)`.
-- **Create `m_messageHandler` in a shared init path** used by both constructors, so
-  behavior is consistent regardless of entry point.
-- **Remove `operator libtiff::TIFF*()`**; standardize on `getHandle()`. Widest
-  call-site impact — sites passing a `keeper` where a `TIFF*` is expected
-  (`pkeslide.cpp:61`, `otslide.cpp:92`, `svsslide.cpp:143`, ...) need `.getHandle()`.
-- **Replace the macro** with `using TIFFKeeperPtr = ...;`.
-- Add `<memory>`, `<cstdint>`, and the OpenCV core include; consider `#pragma once`.
-
-Follow-up (separate change): collapse `TIFFKeeper` and `NDPITIFFKeeper` onto a
-shared move-only handle template (e.g. header-only `TiffHandle` parameterized by
-close function).
-
-### Impact & compatibility
-
-- Shared-library (`slideio-imagetools`) header used by **7 drivers, the converter,
-  and tests** — an API change. Making it move-only will **surface any accidental
-  copies at compile time** (likely none, since by-value members live in
-  non-copyable slide classes — the build will confirm).
-- Call sites needing edits: the raw-pointer `operator=` assignments and the
-  implicit-conversion sites above — a bounded, mechanical set (~10 files).
-- No behavioral change to reading/writing TIFF data; risk is confined to
-  ownership/lifetime. Validation gate: `slideio_tests`, `slideio_ometiff_tests`,
-  `slideio_ndpi_tests`, `slideio_converter_tests`.
-
-### Scope options (for whoever picks this up)
-
-1. **Full RAII fix** — move-only, `reset()`/`release()`, consistent handler init,
-   drop implicit conversion + macro (~10 call sites). *Recommended.*
-2. **Safety-only, keep API** — delete copy / add move and fix the `operator=` leak,
-   but keep `operator libtiff::TIFF*()` and the macro to minimize churn.
-3. **Full fix + unify with NDPI** — option 1 plus collapsing `NDPITIFFKeeper`
-   (largest blast radius).
-
----
-
-## 2. Philips TIFF driver follow-ups
-
-**Status:** Closed. All nine items raised by the whole-branch review of the
-v2.9.0 Philips work were fixed across commits `75a48f65..a9f179aa`: the
-tile-count and parallel-arrays guards in `phCropLevelPadding`; the
-level-number-based directory matching in `extractImages` that replaces size-only
-matching; the rounding test for `phLevelContentSize`; tolerance for a
-non-numeric attribute value in `phReadInt`; removal of the dead
-`Tools::isXml`; the new `svsdriverids.hpp` header that fixes the driver-id
-layering and drops the dead `svsimagedriver.hpp` include from `svsslide.cpp`;
-the header note on `TIFFKeeper`'s non-LIFO handler-swap hazard; and the
-switch to `PHTIFF_DRIVER_ID` plus full four-file coverage in
-`test_phtiff_driver.cpp`'s accept-side detection test. See
-`git log --oneline 75a48f65..a9f179aa` for the individual commits and their
-messages, which cover the detailed before/after of each item.
-
-### Consciously accepted, not debt
-
-Detection has no fallback if the claiming driver then fails. A `.tif` carrying
-Philips metadata that the driver cannot fully read used to open through GDAL —
-flat, no pyramid — and now throws out of `openSlide`. This is inherent to
-`findDriver` and identical for every other format; the strictness trade is
-documented in the design's error-handling section. Recorded so it is a decision
-rather than a discovery.
+  Reached with `nullptr` it was an access violation (observed: SEH
+  `0xc0000005`). `~NDPITIFFKeeper` guarded itself, so the crash was reachable
+  only through the free function — which `~NDPIFile` called directly. Guarded
+  now, with a test.
+- **Installing the keeper's handler is a behaviour change for direct
+  `NDPITiffTools` callers:** libtiff errors now throw rather than printing to
+  stderr. The driver's own four entry points (`ndpiimagedriver.cpp`,
+  `ndpiscene.cpp` ×3) already installed a handler as a stack local, so nothing
+  changed on any driver path; the affected callers are chiefly tests reaching
+  `NDPITiffTools` directly.
+- **An ordering trap the keeper's handler does not close:** in
+  `NDPITIFFKeeper keeper(NDPITiffTools::openTiffFile(path))` the file is opened
+  while the argument is evaluated, *before* the constructor body installs the
+  handler, so whatever handler is already current reports any problem with that
+  open. Opening through the `filePath` constructor or `openTiffFile()` has no
+  such gap.
 
 ---
 
 ## 3. `SCNSlide` passes a `TIFF*` where `SVSSmallScene` expects a `bool`
 
-**File:** `src/slideio/drivers/scn/scnslide.cpp:89`
-**Related:** `src/slideio/drivers/svs/svssmallscene.hpp:20-25`
+**File:** `src/slideio/drivers/scn/scnslide.cpp` — the `new SVSSmallScene(...)`
+call inside `constructScenes`, which carries a `TECH_DEBT #3` comment
+**Related:** `src/slideio/drivers/svs/svssmallscene.hpp`, the `SVSSmallScene`
+constructor declaration
 **Status:** Open. Found while reviewing the `TIFFKeeper` ownership change;
 pre-existing and unrelated to it.
 
@@ -312,19 +141,21 @@ the construction site in `scnslide.cpp`.
 
 ---
 
-## 4. `CVScene` serialises every block read, and does so inconsistently
+## 4. `CVScene` still serialises every block read for two drivers
 
 **File:** `src/slideio/core/cvscene.cpp`
 **Related:** issue #69, the 2026-08-16 explicit-level-reading plan,
 `software-docs/specs/2026-09-07-parallel-read-block-design.md`
-**Status:** Partially fixed. The `assemble4DBlock` asymmetry is resolved
-outright: both branches now take `lockIfSerialised()`, with the lock scoped to
-the `readPlane` call only in the multi-plane branch. The serialisation itself
-is removed for the scenes of SVS, PHTIFF, AFI, PKE, SCN, NDPI, CZI, VSI,
-OME-TIFF (see [§17](#17-ome-tiff-now-reports-concurrent-reads-resolved)) and
-ZVI (see [§14](#14-zvi-now-reports-concurrent-reads-resolved)).
-Kept open because DCM and GDAL still serialise every block
-read — see [§15](#15-dcm-still-serialises-every-block-read) and
+**Status:** Partially fixed, and what is left of it is DCM and GDAL. The
+`assemble4DBlock` asymmetry this entry also recorded is resolved outright: both
+branches now take `lockIfSerialised()` (`cvscene.cpp:150`, `:156`), with the
+lock scoped to the `readPlane` call only in the multi-plane branch. The
+serialisation itself is removed for the scenes of SVS, PHTIFF, AFI, PKE, SCN,
+NDPI, CZI, VSI, OME-TIFF and ZVI — the last two per
+`software-docs/specs/2026-09-08-ometiff-concurrent-reads-design.md` and
+`software-docs/specs/2026-09-09-zvi-concurrent-reads-design.md`. Kept open
+because DCM and GDAL still serialise every block read — see
+[§15](#15-dcm-still-serialises-every-block-read) and
 [§16](#16-gdal-still-serialises-every-block-read).
 
 `CVScene::readResampledBlockChannels` and `readResampledLevelBlockChannels`
@@ -429,12 +260,12 @@ level per channel/z-slice combination rather than once from channel 0.
 whole-branch review for the 2026-08-16 explicit-level-reading plan.
 
 This is not SCN-specific. `OTScene::extractImagePyramids`
-(`otscene.cpp:143-153`) builds `m_levels` from
+(`otscene.cpp:145-155`) builds `m_levels` from
 `m_tiffData.front().getTiffDirectory(0)` alone, then `readTile`
-(`otscene.cpp:404`, `:410-412`) takes that single `zoomLevel` and applies it
+(`otscene.cpp:417`, `:423-425`) takes that single `zoomLevel` and applies it
 to **every** `TiffData` entry that `collectTiffDataIndices` selected for the
 requested channel/z/t (`for (int index : blockInfo->tiffDataIndices) { ...
-tiffData.readTile(channelIndices, zSlice, tFrame, zoomLevel, tileIndex,
+tiffData.readTile(channelIndices, zSlice, tFrame, zoomLevel, tileIndex, files,
 channelRasters); }`). If two `TiffData` entries differ in subresolution
 count or geometry, the level index desynchronises silently, the same failure
 mode as the SCN case above.
@@ -468,45 +299,49 @@ formula is correct just because it compiles and nothing reads it.
 
 ---
 
-## 10. `zSliceRange` / `timeFrameRange` are documented backwards in `scene.hpp`
+## 10. `zSliceRange` / `timeFrameRange` are documented backwards in `cvscene.hpp`
 
-**File:** `src/slideio/slideio/scene.hpp`
-**Related:** `src/slideio/slideio/scene.cpp:25-29` (`tupleToRange`)
-**Status:** Partially fixed. The doc comments in `scene.hpp` were corrected
-as part of the 2026-08-16 explicit-level-reading documentation pass
-(comment-only change, no behaviour touched). Any other place repeating the
-old, wrong wording may still be out there and was not searched for.
+**File:** `src/slideio/core/cvscene.hpp:145`, `:158`, `:171`, `:185`
+**Related:** `src/slideio/slideio/scene.cpp:25-29` (`tupleToRange`);
+`src/slideio/slideio/scene.hpp` (fixed)
+**Status:** Open, and now located. The public `scene.hpp` comments were
+corrected during the 2026-08-16 explicit-level-reading documentation pass, and
+that entry noted the wrong phrasing "may still be out there" without searching
+for it. A tree-wide search on 2026-09-09 found it: all four `zSliceRange`
+comments in `src/slideio/core/cvscene.hpp` still say
+`std::tuple<indexOfFirstSliceToRead,numberOfSlicesToRead>`, where `scene.hpp`
+now says `indexAfterLastSliceToRead`. Nothing else in the tree repeats it
+(the remaining hits are the 2026-08-16 plan and this file).
 
-The doc comments used to describe `std::tuple<indexOfFirstSliceToRead,
+The comments describe `std::tuple<indexOfFirstSliceToRead,
 numberOfSlicesToRead>` — a `<start, count>` pair — but `tupleToRange` builds
 `cv::Range(get<0>, get<1>)`, a `<start, end>` pair. They coincide only when
 start is 0. The Python layer documents it correctly as "(first, last+1)" and
-computes `numSlices = stop - start`, so the code was always right and only
-the C++ doc comments were wrong, on every method taking those parameters.
+computes `numSlices = stop - start`, so the code is right and only the C++ doc
+comments are wrong, on every method taking those parameters.
 
-Recorded here (rather than only fixed silently) because the same wrong
-phrasing may be copy-pasted elsewhere — e.g. other headers, external
-documentation, or code comments outside `scene.hpp` — and that was not
-audited as part of this pass.
+The fix is a four-line comment-only edit in `cvscene.hpp`, copying the wording
+`scene.hpp` already carries. Left as an entry rather than folded into this
+review because the review deliberately changed no code.
 
 ---
 
 ## 11. `TransformerScene` has no level table, so transformed scenes cannot be read by level
 
 **File:** `src/slideio/transformer/transformerscene.cpp`/`.hpp`
-**Related:** `src/slideio/transformer/transformer.cpp:20,27`
-(`transformScene`/`transformSceneEx`); `src/slideio/core/cvscene.cpp:221-224`
-(the throw site)
+**Related:** `src/slideio/transformer/transformer.cpp:15`, `:25`
+(`transformScene`/`transformSceneEx`); `src/slideio/core/cvscene.cpp:222-228`
+(`validateLevel`, the throw site)
 **Status:** Open. Found during the whole-branch review for the 2026-08-16
 explicit-level-reading plan.
 
 `TransformerScene` never populates `m_levels` and does not override
 `getNumZoomLevels()`, so it reports 0 zoom levels via `CVScene`'s default.
-`transformScene`/`transformSceneEx` (`transformer.cpp:20`, `:27`) hand back a
+`transformScene`/`transformSceneEx` (`transformer.cpp:15`, `:25`) hand back a
 public `slideio::Scene` wrapping a `TransformerScene`, so any caller doing a
 level-addressed read against a transformed scene hits `CVScene`'s guard and
 gets `"... does not report any zoom level and cannot be read by level"`
-(`cvscene.cpp:221-224`).
+(`cvscene.cpp:222-228`).
 
 The design spec for this plan's §5.1 asserts that after the §5.6 sweep "no
 in-tree driver is in that state" — that claim holds; `TransformerScene` is
@@ -526,7 +361,7 @@ transformation means at non-zero levels.
 
 ## 12. `SCNScene::getChannelDirectories` indexes unchecked, and the 4D level path widens the exposure
 
-**File:** `src/slideio/drivers/scn/scnscene.hpp:64-66`
+**File:** `src/slideio/drivers/scn/scnscene.hpp:99-102`
 **Related:** `src/slideio/slideio/scene.hpp` (`readResampledLevel4DBlockChannels`);
 `src/slideio/core/cvscene.cpp` (`assemble4DBlock`)
 **Status:** Open. The indexing bug is pre-existing; this branch adds a second
@@ -585,61 +420,10 @@ to verify.
 
 ---
 
-## 14. ZVI now reports concurrent reads (resolved)
-
-**Files:** `src/slideio/drivers/zvi/`, `extern/pole`
-**Related:** [§4](#4-cvscene-serialises-every-block-read-and-does-so-inconsistently);
-`software-docs/specs/2026-09-07-parallel-read-block-design.md` §3.2;
-`software-docs/specs/2026-09-09-zvi-concurrent-reads-design.md`;
-[§19](#19-pole-read-path-defects-left-in-place),
-[§20](#20-the-zvi-concurrent-read-work-what-no-test-covers),
-[§21](#21-poles-positional-read-path-is-20-slower-single-threaded)
-**Status:** Resolved. `ZVIScene` now reports `supportsConcurrentReads() ==
-true`.
-
-This entry's mechanism was right and its cost claim was wrong. It recommended a
-`ReadContext` subclass holding a per-thread `ole::compound_document`, on the
-grounds that "N x the OLE FAT and directory parse" is "small for a ZVI in a way
-it never is for CZI". Measured, one document costs **1721 ms and 12 MB** on
-`openslide/Zeiss-3-Mosaic.zvi` (1543 streams). The 0–3 ms the "small" estimate
-was evidently drawn from is what the four smaller ZVIs in the corpus cost. At
-1721 ms and 12 MB per replica a mosaic reader would have ended up slower than
-the mutex the pool was meant to remove, so that route was rejected on the
-measurement rather than adopted — see
-`software-docs/specs/2026-09-09-zvi-concurrent-reads-design.md` §3.2 and §4.
-
-The route actually taken keeps **one** shared `ole::compound_document` and
-makes it safe to read from several threads, which meant changing
-`extern/pole` rather than the driver. Three races were on the read path — a
-shared `std::fstream` cursor inside `StorageIO`, `StreamImpl::_pos`/`_state`
-written by the positional read, and `stream_path::stream()` bumping
-`_ref_count` on a borrow — and all three were removed by construction:
-`StorageIO`'s read path now goes through a `PositionalFile`
-(`ReadFile`-with-`OVERLAPPED` on Windows, `pread` elsewhere),
-`StreamImpl::read(pos, ...)` is `const` with a tri-state `eof_report`
-out-param, and `stream_path` gained a `const stream()` that borrows without
-mutating the count. `ZVIImageItem::readRaster` then borrows `const` through
-`ZVIUtils::ConstStreamKeeper` and issues one `read_at` where it used to issue
-four `seek`s. `ZVIScene::m_Doc` stays a plain member: no `ContextPool`, no
-per-thread document, no extra descriptor per thread. See the design's §5.3 and
-§5.4.
-
-Two claims this entry used to make should not be carried forward. The
-alternative it offered — "resolve every stream's `(offset, length)` once at
-`init()` and read via `FileReader` thereafter" — described moving OLE sector
-chains and the mini-FAT into slideio; §5.3 of the design is the same idea done
-where that logic already lives, so the alternative is not outstanding, it is
-what happened. And the route was not free single-threaded: the positional read
-path is about 20% slower per read than the buffered `fstream` it replaced, for
-reasons and with numbers recorded in
-[§21](#21-poles-positional-read-path-is-20-slower-single-threaded).
-
----
-
 ## 15. DCM still serialises every block read
 
 **Files:** `src/slideio/drivers/dcm/`
-**Related:** [§4](#4-cvscene-serialises-every-block-read-and-does-so-inconsistently);
+**Related:** [§4](#4-cvscene-still-serialises-every-block-read-for-two-drivers);
 `software-docs/specs/2026-09-07-parallel-read-block-design.md` §3.2
 **Status:** Open, deliberately deferred.
 
@@ -659,9 +443,11 @@ between `DicomImage` constructions — which is why per-thread `DCMFile`
 replicas are the only route there. N x parse is expensive here, so choose the
 pool's cap accordingly — and measure what one replica costs before choosing
 it. `software-docs/specs/2026-09-09-zvi-concurrent-reads-design.md` §3.2 is the
-method, and [§14](#14-zvi-now-reports-concurrent-reads-resolved) is the
-evidence that it matters: §14 used to assume a per-thread document was cheap
-for ZVI, and the measurement came back at 1721 ms and 12 MB each.
+method, and ZVI is the evidence that it matters: that work started from the
+assumption that a per-thread `ole::compound_document` would be cheap, and the
+measurement came back at 1721 ms and 12 MB per replica on
+`openslide/Zeiss-3-Mosaic.zvi` (1543 streams) — which is why ZVI ended up
+sharing one document rather than pooling replicas.
 
 The alternative, if this ever matters for throughput: resolve every frame's
 encapsulated-pixel-data offset once at `init()` and read via `FileReader`
@@ -674,7 +460,7 @@ offset tables.
 ## 16. GDAL still serialises every block read
 
 **Files:** `src/slideio/drivers/gdal/`
-**Related:** [§4](#4-cvscene-serialises-every-block-read-and-does-so-inconsistently);
+**Related:** [§4](#4-cvscene-still-serialises-every-block-read-for-two-drivers);
 `software-docs/specs/2026-09-07-parallel-read-block-design.md` §3.2
 **Status:** Open, deliberately deferred.
 
@@ -703,34 +489,6 @@ The alternative, if this ever matters for throughput: resolve tile
 bypassing FreeImage on the read path entirely. That is faster single-threaded
 too, but it means owning whatever container format `FIWrapper` was
 abstracting.
-
----
-
-## 17. OME-TIFF now reports concurrent reads (resolved)
-
-**Files:** `src/slideio/drivers/ome-tiff/`
-**Related:** [§4](#4-cvscene-serialises-every-block-read-and-does-so-inconsistently);
-`software-docs/specs/2026-09-07-parallel-read-block-design.md` §3.2;
-`software-docs/specs/2026-09-08-ometiff-concurrent-reads-design.md`
-**Status:** Resolved. `OTScene` now reports `supportsConcurrentReads() ==
-true`.
-
-This entry originally claimed `TIFFFiles::getOrOpen` raced on the read path
-and called OME-TIFF "a different failure class" from ZVI, DCM and GDAL. Both
-were wrong: `getOrOpen`'s only caller was `TiffData::init` at construction, so
-the map was never touched by a read and there was no container race. The
-entry's first suggested fix — "give `TIFFFiles` its own lock" — would not have
-worked either, since a lock protects the map while leaving the handles it
-hands out shared. The real blocker was `TiffData::m_tiff`, a raw
-`libtiff::TIFF*` cached during `init` and shared by every `TiffData` naming
-the same file — the ordinary single-handle blocker SVS, PHTIFF, PKE, SCN and
-NDPI each had.
-
-The fix moved `TIFFFiles` off `OTScene` and into a per-thread `OTReadContext`
-held by a `ContextPool`, one collection per context rather than one handle,
-because a single tile read can span several `TiffData` naming different
-files. See `software-docs/specs/2026-09-08-ometiff-concurrent-reads-design.md`
-for the full design and its verification.
 
 ---
 
@@ -793,7 +551,8 @@ Either way the two paths should be tested together, so the next widening of a
 `extern/pole/includes/pole/detail/storage.hpp`,
 `extern/pole/sources/pole/pole.cpp`, `extern/pole/sources/storage.cpp`,
 `extern/pole/includes/path.hpp`
-**Related:** [§14](#14-zvi-now-reports-concurrent-reads-resolved);
+**Related:** the ZVI concurrent-read work (§14, now closed — see
+[Resolved and removed](#resolved-and-removed));
 `software-docs/specs/2026-09-09-zvi-concurrent-reads-design.md` §5.1–§5.3
 **Status:** Open, deliberately deferred. Each item is pre-existing or was
 scoped out; none is a regression introduced by the concurrent-read work.
@@ -821,16 +580,16 @@ value was that it did not.
    deliberately not added, for the same behaviour-preservation reason as (2).
 4. **`compound_document::path_exist()` is wrong for nested stream paths.**
    It derives the parent storage with `substr(0, path.size() - ++pos)`
-   (`sources/storage.cpp:147`), which for `/Image/Contents` yields `/Image/C`
-   and finds nothing. Measured against pole's own `test1.bin`: `false` for all
-   fifteen nested streams, while `find_storage` + `find_stream` resolve every
-   one of them. slideio does not call it, which is why nothing noticed.
+   (`sources/storage.cpp:164`, inside `path_exist` at `:147`), which for
+   `/Image/Contents` yields `/Image/C` and finds nothing. Measured against
+   pole's own `test1.bin`: `false` for all fifteen nested streams, while
+   `find_storage` + `find_stream` resolve every one of them. slideio does not call it, which is why nothing noticed.
    Anything that starts calling it must fix it first.
 5. **`Storage::stream()`'s reuse lookup never matches.** It compares
    `(*it)->path()`, the entry's *short* name, against `name`, which every
-   caller passes as a full path (`sources/pole/pole.cpp:77`), so `reuse = true`
-   always misses and the `streams` list grows one entry per stream and is
-   scanned in full each time. Worth 2 ms of the mosaic's original 1721 ms,
+   caller passes as a full path (`sources/pole/pole.cpp:98`, in
+   `Storage::stream` at `:78`), so `reuse = true` always misses and the
+   `streams` list grows one entry per stream and is scanned in full each time. Worth 2 ms of the mosaic's original 1721 ms,
    which is why it was left. It is also not safely fixable in isolation:
    keying on the full path makes reuse start working where it never has, and
    keying on the short name makes every item's `Contents` collide.
@@ -870,7 +629,8 @@ override.
 `extern/pole/sources/pole/detail/storage.cpp` (`PositionalFile`),
 `src/slideio/drivers/zvi/zviimageitem.cpp`, `extern/pole/tests/`,
 `CMakeLists.txt`, `.github/workflows/build-validation.yml`
-**Related:** [§14](#14-zvi-now-reports-concurrent-reads-resolved);
+**Related:** the ZVI concurrent-read work (§14, now closed — see
+[Resolved and removed](#resolved-and-removed));
 `software-docs/specs/2026-09-09-zvi-concurrent-reads-design.md` §6
 **Status:** Open. Five gaps, recorded so the next change here knows what the
 green suites do and do not stand behind.
@@ -973,7 +733,8 @@ green suites do and do not stand behind.
 **Files:** `extern/pole/sources/pole/detail/storage.cpp`
 (`StorageIO::loadBigBlocks`, `loadBigBlock`),
 `extern/pole/sources/storage.cpp` (`compound_document::find_storage`)
-**Related:** [§14](#14-zvi-now-reports-concurrent-reads-resolved);
+**Related:** the ZVI concurrent-read work (§14, now closed — see
+[Resolved and removed](#resolved-and-removed));
 `software-docs/BREAKING_CHANGES.md`, `v2.10.0`;
 `software-docs/specs/2026-09-09-zvi-concurrent-reads-design.md` §5.3, §8
 **Status:** Open. The first item is a **measured regression** with an
@@ -1030,3 +791,39 @@ read for the legitimate last block. The call site already carries a comment
 explaining why it advances by the true count; what it does not say is that the
 old code's alignment was a property, so one more sentence there is the whole
 fix.
+
+---
+
+## Consciously accepted, not debt
+
+**PHTIFF detection has no fallback if the claiming driver then fails.** A
+`.tif` carrying Philips metadata that the driver cannot fully read used to open
+through GDAL — flat, no pyramid — and now throws out of `openSlide`. This is
+inherent to `findDriver` and identical for every other format; the
+`canOpenFile`-level half of the trade is in
+`software-docs/specs/2026-08-11-phtiff-format-detection-design.md` §6. Recorded
+here so it stays a decision rather than becoming a discovery.
+
+---
+
+## Resolved and removed
+
+Entry numbers in this file are used as identifiers from outside it — source
+comments, a CI job comment, plans and design specs all cite them — so a fixed
+entry is removed without renumbering the ones around it, and its number is
+retired here rather than reused.
+
+| # | Entry | Verified fixed by | Record |
+|---|---|---|---|
+| 2 | Philips TIFF driver follow-ups | All nine items landed across `75a48f65..a9f179aa`. Spot-verified: the tile-count and parallel-arrays guards are in `phCropLevelPadding` (`phtiffslide.cpp:278-298`), `svsdriverids.hpp` exists, and `Tools::isXml` is gone from the tree. | `git log --oneline 75a48f65..a9f179aa`; `software-docs/specs/2026-08-11-phtiff-format-detection-design.md`. The one item that was never debt is kept above, under [Consciously accepted, not debt](#consciously-accepted-not-debt). |
+| 14 | ZVI serialised every block read | `ZVIScene::supportsConcurrentReads()` returns `true` (`zviscene.hpp:62`), on one shared `ole::compound_document` made safe by pole's positional read path. | `software-docs/specs/2026-09-09-zvi-concurrent-reads-design.md` §3.2, §4, §5.3, §5.4. Its follow-ups are still open as [§19](#19-pole-read-path-defects-left-in-place), [§20](#20-the-zvi-concurrent-read-work-what-no-test-covers) and [§21](#21-poles-positional-read-path-is-20-slower-single-threaded). |
+| 17 | OME-TIFF serialised every block read | `OTScene::supportsConcurrentReads()` returns `true` (`otscene.hpp:88`); `TIFFFiles` moved off `OTScene` into a per-thread `OTReadContext` held by a `ContextPool`. | `software-docs/specs/2026-09-08-ometiff-concurrent-reads-design.md`; the contract assertion is `OTImageDriverTests.reportsConcurrentReadSupport`. |
+
+Also removed: eight of the nine sub-items of [§1](#1-tiffkeeper-and-ndpitiffkeeper-are-two-classes-with-one-contract) — the
+copy/move semantics, the `operator=` and `openTiffFile` leaks, the
+constructor inconsistency, the implicit `TIFF*` conversion, the
+`TIFFKeeperPtr` macro, the header hygiene and the missing `m_hFile`
+initialiser. All were verified fixed in `tiffkeeper.hpp`/`.cpp` and
+`ndpitiffkeeper.hpp`/`.cpp`; the design record is
+`software-docs/specs/2026-08-15-tiffkeeper-ownership-design.md`. Only the
+unification of the two classes remains open, and §1 is now about that alone.
