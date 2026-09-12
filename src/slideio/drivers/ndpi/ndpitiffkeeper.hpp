@@ -23,8 +23,8 @@ namespace slideio
     // libtiff::TIFF* opened by NDPITiffTools. It exists separately because the NDPI
     // driver links its own patched libtiff and routes messages through
     // installNDPITiffMessageHandlers() rather than installTiffMessageHandlers(). The
-    // two classes are deliberately kept in step; see TECH_DEBT.md section 1 problem 6
-    // for the open follow-up that would collapse them onto one shared handle.
+    // two classes are deliberately kept in step; see TECH_DEBT.md section 1 for the
+    // open follow-up that would collapse them onto one shared handle.
     //
     // The NDPI libtiff fork's error and warning handlers are installed once, at
     // NDPIImageDriver construction (see installNDPITiffMessageHandlers()); an

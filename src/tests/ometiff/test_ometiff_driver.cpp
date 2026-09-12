@@ -959,8 +959,8 @@ TEST_F(OTImageDriverTests, readLevelDoesNotReuseAdjacentLevel) {
 // an OTReadContext holding its own TIFFFiles collection. If this ever fails,
 // something reverted that isolation -- restore it rather than putting a lock on
 // TIFFFiles, which would protect the map while still handing the same handle to two
-// threads. See TECH_DEBT.md section 17 and
-// software-docs/specs/2026-09-08-ometiff-concurrent-reads-design.md section 2.
+// threads. See software-docs/specs/2026-09-08-ometiff-concurrent-reads-design.md
+// section 2.
 TEST_F(OTImageDriverTests, reportsConcurrentReadSupport) {
 	std::string filePath = TestTools::getTestImagePath("ometiff", "Subresolutions/Leica-2.ome.tiff");
 	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
