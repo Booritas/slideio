@@ -336,6 +336,7 @@ install(FILES
     ${INCLUDE_ROOT}/slideio/core/resolution.hpp
     ${INCLUDE_ROOT}/slideio/core/slideio_enums.hpp
     ${INCLUDE_ROOT}/slideio/core/slideio_structs.hpp
+    ${INCLUDE_ROOT}/slideio/core/colorprofile.hpp
     DESTINATION include/slideio/core)
 
 install(FILES 
@@ -364,6 +365,7 @@ install(FILES
     ${INCLUDE_ROOT}/slideio/transformer/gaussianblurfilterwrap.hpp
     ${INCLUDE_ROOT}/slideio/transformer/colortransformationwrap.hpp
     ${INCLUDE_ROOT}/slideio/transformer/colorspace.hpp
+    ${INCLUDE_ROOT}/slideio/transformer/colormanagementwrap.hpp
     ${INCLUDE_ROOT}/slideio/transformer/cannyfilterwrap.hpp
     ${INCLUDE_ROOT}/slideio/transformer/bilateralfilterwrap.hpp
     DESTINATION include/slideio/transformer)

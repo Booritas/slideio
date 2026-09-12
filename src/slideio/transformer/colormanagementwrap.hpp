@@ -16,7 +16,8 @@
 namespace slideio
 {
     class ColorManagement;
-    enum class MissingProfilePolicy;
+    // MissingProfilePolicy is fully defined by the colorprofile.hpp include
+    // above; no forward declaration needed here.
     enum class TransformationType;
     class SLIDEIO_TRANSFORMER_EXPORTS ColorManagementWrap : public TransformationWrapper
     {

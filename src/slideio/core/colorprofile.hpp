@@ -41,6 +41,23 @@ namespace slideio
     /**@brief device-independent space a scene's pixels may be converted into*/
     enum class ColorTarget { sRGB, LinearRGB, Lab, XYZ };
 
+    /**@brief what to do for a slide that embeds no ICC profile.
+     *
+     * Lives here rather than in slideio-transformer, alongside the rest of the
+     * public colour vocabulary, so it can be named -- e.g. by a language
+     * binding -- without pulling in ColorManagement's own header, which is
+     * internal and drags in OpenCV.*/
+    enum class MissingProfilePolicy
+    {
+        /**@brief treat the source as sRGB. Reads always succeed; the scene
+         * reports ColorProfileSource::Assumed so absence stays visible.*/
+        AssumeSRGB,
+        /**@brief return decoded pixels untouched. Valid only for target sRGB.*/
+        PassThrough,
+        /**@brief throw at bind time. For pipelines that require real colorimetry.*/
+        Fail,
+    };
+
     /**@brief raw ICC profile bytes as found in a slide.
      *
      * A byte container only: it does not parse or validate its contents. Use
