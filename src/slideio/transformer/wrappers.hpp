@@ -10,3 +10,4 @@
 #include "slideio/transformer/cannyfilterwrap.hpp"
 #include "slideio/transformer/scharrfilterwrap.hpp"
 #include "slideio/transformer/colortransformationwrap.hpp"
+#include "slideio/transformer/colormanagementwrap.hpp"

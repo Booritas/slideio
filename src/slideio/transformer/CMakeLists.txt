@@ -18,6 +18,10 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/colortransformation.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/colortransformationwrap.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/colortransformationwrap.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/colormanagement.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/colormanagement.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/colormanagementwrap.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/colormanagementwrap.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/transformations.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/transformations.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/transformertools.cpp
