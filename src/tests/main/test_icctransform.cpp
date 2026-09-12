@@ -1,6 +1,8 @@
 #include <gtest/gtest.h>
-#include <thread>
 #include <atomic>
+#include <cmath>
+#include <thread>
+#include <vector>
 #include "slideio/imagetools/icctransform.hpp"
 #include "slideio/core/exceptions.hpp"
 
@@ -173,6 +175,20 @@ TEST(IccTransform, rejectsByteInputWhenConstructedForUInt16)
     ASSERT_THROW(transform.apply(makeRgbPatch({255, 255, 255}), out), slideio::RuntimeError);
 }
 
+TEST(IccTransform, rejectsNonContinuousOutput)
+{
+    // dst.create() is a no-op when the bound array already matches in size and
+    // type, so a pre-bound non-continuous ROI reaches cmsDoTransform unchanged
+    // and it writes rows*cols*3 contiguous samples into a strided buffer,
+    // trampling the row gaps. Symmetric with the input continuity check.
+    IccTransform transform(IccTransform::createSRGBProfile(), ColorTarget::sRGB,
+                           RenderingIntent::RelativeColorimetric, true, DataType::DT_Byte);
+    cv::Mat backing(8, 8, CV_8UC3, cv::Scalar(0, 0, 0));
+    cv::Mat roi = backing(cv::Rect(0, 0, 4, 4));
+    ASSERT_FALSE(roi.isContinuous());
+    ASSERT_THROW(transform.apply(makeRgbPatch({10, 200, 90}), roi), slideio::RuntimeError);
+}
+
 TEST(IccTransform, rejectsUInt16InputWhenConstructedForByte)
 {
     // The opposite mismatch: constructed for DT_Byte (TYPE_RGB_8, 1
@@ -186,25 +202,85 @@ TEST(IccTransform, rejectsUInt16InputWhenConstructedForByte)
     ASSERT_THROW(transform.apply(wideDepth, out), slideio::RuntimeError);
 }
 
+namespace {
+    // A deterministic patch, different for every thread index and internally
+    // multi-coloured.
+    //
+    // Both properties are what make the concurrency tests below able to fail.
+    // An earlier version had all eight threads transform one constant colour,
+    // which cannot observe a shared-state bug at all: whatever a torn
+    // per-transform cache paired, the answer was the same colour's answer.
+    // Distinct patches make a mispairing visible, and 64 colours per patch
+    // stop any one-pixel cache from settling, so shared state is exercised on
+    // every pixel rather than once per call.
+    cv::Mat makeThreadPatch(int thread)
+    {
+        cv::Mat patch(8, 8, CV_8UC3);
+        for (int row = 0; row < patch.rows; ++row) {
+            for (int col = 0; col < patch.cols; ++col) {
+                patch.at<cv::Vec3b>(row, col) = cv::Vec3b(
+                    static_cast<uchar>((thread * 37 + row * 11 + col * 29) % 256),
+                    static_cast<uchar>((thread * 61 + row * 7 + col * 13) % 256),
+                    static_cast<uchar>((thread * 97 + row * 5 + col * 3) % 256));
+            }
+        }
+        return patch;
+    }
+
+    // Runs one shared transform from eight threads, each on its own patch, and
+    // asserts every thread gets exactly the answer that same transform gives
+    // that patch single threaded. Exact, not approximate: the reference comes
+    // from the same object, so any divergence is concurrency, not tolerance.
+    void assertConcurrentApplyMatchesSerial(const IccTransform& transform, int cvType)
+    {
+        constexpr int threadCount = 8;
+        std::vector<cv::Mat> patches;
+        std::vector<cv::Mat> expected;
+        for (int t = 0; t < threadCount; ++t) {
+            patches.push_back(makeThreadPatch(t));
+            cv::Mat out;
+            transform.apply(patches.back(), out);
+            ASSERT_EQ(cvType, out.type());
+            expected.push_back(out.clone());
+        }
+
+        std::atomic<int> mismatches{0};
+        std::vector<std::thread> threads;
+        for (int t = 0; t < threadCount; ++t) {
+            threads.emplace_back([&transform, &patches, &expected, &mismatches, t]() {
+                for (int i = 0; i < 300; ++i) {
+                    cv::Mat out;
+                    transform.apply(patches[t], out);
+                    if (cv::countNonZero(out.reshape(1) != expected[t].reshape(1)) != 0) {
+                        ++mismatches;
+                    }
+                }
+            });
+        }
+        for (auto& thread : threads) {
+            thread.join();
+        }
+        ASSERT_EQ(0, mismatches.load());
+    }
+}
+
 TEST(IccTransform, applyIsSafeFromSeveralThreads)
 {
+    // Lab target: mixed formats (TYPE_RGB_8 in, TYPE_Lab_FLT out).
     IccTransform transform(IccTransform::createSRGBProfile(), ColorTarget::Lab,
                            RenderingIntent::RelativeColorimetric, true, DataType::DT_Byte);
-    std::vector<std::thread> threads;
-    std::atomic<int> failures{0};
-    for (int t = 0; t < 8; ++t) {
-        threads.emplace_back([&transform, &failures]() {
-            for (int i = 0; i < 200; ++i) {
-                cv::Mat out;
-                transform.apply(makeRgbPatch({255, 255, 255}), out);
-                if (std::abs(out.at<cv::Vec3f>(0, 0)[0] - 100.0f) > 0.5f) {
-                    ++failures;
-                }
-            }
-        });
-    }
-    for (auto& thread : threads) {
-        thread.join();
-    }
-    ASSERT_EQ(0, failures.load());
+    assertConcurrentApplyMatchesSerial(transform, CV_32FC3);
+}
+
+TEST(IccTransform, applyIsSafeFromSeveralThreadsOnTheIntegerPath)
+{
+    // The sRGB target is the one case this class builds where both formatters
+    // are integer (TYPE_RGB_8 in and out), which is the only shape lcms2 can
+    // route to a *cached* transform -- the path whose one-pixel cache hangs
+    // off the shared transform object. Covering it separately keeps the
+    // guarantee tested on the path where it is not free, rather than only on
+    // the float path that never had a cache.
+    IccTransform transform(IccTransform::createSRGBProfile(), ColorTarget::sRGB,
+                           RenderingIntent::RelativeColorimetric, true, DataType::DT_Byte);
+    assertConcurrentApplyMatchesSerial(transform, CV_8UC3);
 }
