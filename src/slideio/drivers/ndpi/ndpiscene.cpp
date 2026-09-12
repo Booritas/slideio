@@ -126,6 +126,11 @@ void NDPIScene::init(const std::string& name, int sceneIndex, const std::string&
     const NDPITiffDirectory& dir = directories[m_startDir];
     m_rect.width = dir.width;
     m_rect.height = dir.height;
+    // This scene's own backing directory is directories[m_startDir] -- the base,
+    // full-resolution directory for the main scene and the sole directory for
+    // an aux (macro/map) scene -- so every scene reports its own directory's
+    // profile, never a fixed directory 0.
+    m_colorProfile = ColorProfile(dir.iccProfile);
 
     m_rawMetadata = directoryToJson(dir).dump(2);
     m_metadataFormat = MetadataFormat::JSON;

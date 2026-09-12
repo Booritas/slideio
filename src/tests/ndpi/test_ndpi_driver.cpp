@@ -14,6 +14,10 @@
 #include "slideio/imagetools/imagetools.hpp"
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/slideio/slideio.hpp"
+// Fixture generation only, for colorProfileEndToEndThroughRealDriverPath below.
+#include "slideio/imagetools/icctransform.hpp"
+#include "slideio/core/tools/tempfile.hpp"
+#include "tests/ndpi/synthetic_tiff.hpp"
 
 namespace slideio
 {
@@ -717,4 +721,57 @@ TEST_F(NDPIImageDriverTests, scenesOfOneFileShareTheHandlePool) {
         << "the auxiliary image reported a different pool size than the main scene "
            "despite never having been read itself -- the handle pool is not actually "
            "shared per file";
+}
+
+// --- color profile --------------------------------------------------------------------
+// No NDPI image in the corpus available to this task carries an ICC tag (checked with a
+// raw TIFF IFD walker over all nine reachable hamamatsu files: 2017-02-27 15.29.08.ndpi,
+// DM0014 - 2020-04-02 10.25.21.ndpi, DM0014 - 2020-04-02 11.10.47.ndpi,
+// HE_Hamamatsu.ndpi, CMU-1.ndpi, CMU-2.ndpi, test3-DAPI-2-(387).ndpi, test3-FITC 2
+// (485).ndpi, test3-TRITC 2 (560).ndpi -- none carry TIFFTAG_ICCPROFILE). This is the
+// absent-path counterpart to colorProfileEndToEndThroughRealDriverPath below.
+TEST(NDPIImageDriver, colorProfileMatchesTheTiffTag)
+{
+    std::string path = TestTools::getTestImagePath("hamamatsu", "openslide/CMU-1.ndpi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
+    std::shared_ptr<slideio::Slide> slide = slideio::openSlide(path, "NDPI");
+    std::shared_ptr<slideio::Scene> scene = slide->getScene(0);
+    const slideio::ColorProfile profile = scene->getColorProfile();
+    if (!profile.isEmpty()) {
+        ASSERT_EQ(slideio::ColorProfileSource::Embedded, profile.getSource());
+        ASSERT_TRUE(scene->getColorProfileInfo().present);
+    }
+    else {
+        ASSERT_EQ(slideio::ColorProfileSource::None, profile.getSource());
+    }
+}
+
+// The real corpus has no ICC-tagged NDPI file, so this drives the whole real production
+// path -- NDPIImageDriver::openFile -> NDPISlide::init -> NDPIFile::init/scanFile ->
+// NDPITiffTools::scanTiffDirTags -> NDPISlide::constructScenes -> NDPIScene::init -- on a
+// synthetic single-directory TIFF carrying a real embedded sRGB profile, proving the
+// wiring end to end rather than only in the absent-tag case every real corpus file
+// exercises. No mock of any NDPI class is used; the fixture is a real file and every
+// call from openSlide down is the production code.
+TEST(NDPIImageDriver, colorProfileEndToEndThroughRealDriverPath)
+{
+    const slideio::ColorProfile injected = slideio::IccTransform::createSRGBProfile();
+    ASSERT_FALSE(injected.isEmpty());
+    const std::vector<uint8_t>& profileBytes = injected.getData();
+
+    slideio::TempFile tempTiff("ndpi");
+    const std::string tempPath = tempTiff.getPath().string();
+    slideio_test::writeSyntheticIccTiff(tempPath, profileBytes);
+
+    std::shared_ptr<slideio::Slide> slide = slideio::openSlide(tempPath, "NDPI");
+    ASSERT_TRUE(slide != nullptr);
+    ASSERT_EQ(1, slide->getNumScenes());
+    std::shared_ptr<slideio::Scene> scene = slide->getScene(0);
+    ASSERT_TRUE(scene != nullptr);
+
+    const slideio::ColorProfile profile = scene->getColorProfile();
+    ASSERT_FALSE(profile.isEmpty());
+    EXPECT_EQ(profileBytes, profile.getData());
+    EXPECT_EQ(slideio::ColorProfileSource::Embedded, profile.getSource());
+    EXPECT_TRUE(scene->getColorProfileInfo().present);
 }

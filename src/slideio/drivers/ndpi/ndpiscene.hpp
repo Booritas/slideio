@@ -7,6 +7,7 @@
 
 #include "ndpitifftools.hpp"
 #include "slideio/drivers/ndpi/ndpi_api_def.hpp"
+#include "slideio/core/colorprofile.hpp"
 #include "slideio/core/cvscene.hpp"
 #include "slideio/core/tools/tilecomposer.hpp"
 
@@ -84,6 +85,12 @@ namespace slideio
         Resolution getResolution() const override;
         double getMagnification() const override;
         Compression getCompression() const override;
+        ColorProfile getColorProfile() const override {
+            return m_colorProfile;
+        }
+        void setColorProfile(const ColorProfile& profile) {
+            m_colorProfile = profile;
+        }
         void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
             const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output) override;
         void readResampledLevelBlockChannelsEx(int level, const cv::Rect& levelRect,
@@ -109,6 +116,7 @@ namespace slideio
         cv::Rect m_rect;
         int m_sceneIndex;
 		std::string m_driverId;
+        ColorProfile m_colorProfile;
     };
 
 }
