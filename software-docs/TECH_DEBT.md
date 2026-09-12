@@ -901,6 +901,65 @@ the rest of that file. That is a workaround in one test, not a fix.
 
 ---
 
+## 24. GDAL and CZI scenes hold raw pointers into slide-owned state
+
+**Files:** `src/slideio/drivers/gdal/gdalscene.hpp` (`m_imagePage`),
+`src/slideio/drivers/gdal/gdalslide.cpp` (scene construction),
+`src/slideio/drivers/czi/cziscene.hpp` (`m_slide`),
+`src/slideio/slideio/scene.hpp` (the lifetime contract),
+`D:/Projects/slideio/slideio-python/src/pyscene.hpp` (why Python is immune)
+**Related:** hit during the colour/ICC work on `v2.10.0` as non-deterministic
+SEH / `bad_alloc` crashes while writing a pixel-reading transformer test
+**Status:** Open. Pre-existing, silent for metadata, crashes on pixel reads.
+
+A `Scene` can outlive the `Slide` it came from, and for two drivers that is a
+use-after-free rather than merely unsupported:
+
+- `GDALSlide` owns `std::shared_ptr<SmallImage> m_image`, and
+  `m_image->readPage(i)` returns a **raw** `SmallImagePage*` owned by that
+  `SmallImage`. `GDALScene` stores it as `SmallImagePage* m_imagePage`.
+- `CZIScene` stores `CZISlide* m_slide`, also raw.
+
+Nothing in `slideio::Scene` keeps the slide alive — it holds only
+`std::shared_ptr<CVScene> m_scene`. So the natural one-liner
+
+```cpp
+auto scene = openSlide(path, driver)->getScene(0);   // Slide dies here
+scene->readBlock(rect, buffer, size);                // reads freed memory
+```
+
+destroys the `Slide` at the end of the first full expression and leaves the
+scene pointing at freed state. It is easy to write and hard to notice: metadata
+accessors that touch none of the slide-owned state keep working, so the pattern
+looks correct until something reads pixels, and then it fails
+non-deterministically — as `bad_alloc`, as an SEH exception, or not at all
+depending on what reclaimed the memory.
+
+**The documented contract is weaker than the real requirement.** `scene.hpp`
+says a `Scene` or the `Slide` it came from "must not be destroyed while a read
+on it is still in flight". A reader takes that as *do not destroy mid-read*,
+which the one-liner above does not do — the slide is long gone before the read
+starts. The actual requirement is that the slide outlive the scene entirely.
+
+**The Python binding is already immune**, and by construction rather than by
+luck: `PyScene` holds `std::shared_ptr<slideio::Slide> m_slide` alongside its
+scene, so a Python `Scene` keeps its slide alive. Only C++ callers are exposed.
+
+Three fixes, in increasing cost:
+
+1. Sharpen the `scene.hpp` contract to say the slide must outlive the scene, not
+   merely the read. Cheapest, and leaves the hazard in place.
+2. Have `GDALScene` and `CZIScene` hold a `shared_ptr` to the owner — the
+   `SmallImage` and the `CZISlide` respectively — so the dependency is expressed
+   in the type system instead of in prose.
+3. Have `slideio::Scene` retain its `Slide`, as `PyScene` already does, which
+   closes it for every driver at once and makes the documented caveat
+   unnecessary.
+
+Only the third removes the class of bug rather than this instance of it.
+
+---
+
 ## Consciously accepted, not debt
 
 **PHTIFF detection has no fallback if the claiming driver then fails.** A
