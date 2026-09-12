@@ -25,6 +25,8 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/exceptions.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/slideio_enums.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/slideio_enums.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/colorprofile.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/colorprofile.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/log.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/log.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/logcontract.hpp
