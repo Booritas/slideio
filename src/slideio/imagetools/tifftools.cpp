@@ -521,7 +521,7 @@ void TiffTools::scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, int64_t dirOf
 
     uint32_t iccSize = 0;
     void* iccData = nullptr;
-    if (TIFFGetField(tiff, TIFFTAG_ICCPROFILE, &iccSize, &iccData) && iccData && iccSize > 0) {
+    if (libtiff::TIFFGetField(tiff, TIFFTAG_ICCPROFILE, &iccSize, &iccData) && iccData && iccSize > 0) {
         const uint8_t* bytes = static_cast<const uint8_t*>(iccData);
         dir.iccProfile.assign(bytes, bytes + iccSize);
     }
