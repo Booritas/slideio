@@ -319,6 +319,12 @@ namespace slideio
          * as stored, suitable for handing to an external colour management
          * system. Use #getColorProfileInfo for the parsed header.*/
         ColorProfile getColorProfile() const;
+        /**@brief returns the parsed header of the scene's ICC colour profile.
+         *
+         * present is false when the slide carries no profile, and also when the
+         * profile it carries cannot be parsed. Use the source field to tell a
+         * real correction from an assumed one.*/
+        ColorProfileInfo getColorProfileInfo() const;
         /**@brief returns metadata as a navigable tree. Built lazily on first call. */
         const Metadata& getMetadata() const;
         /**@brief returns a slideio::Scene object that represents an auxiliary image.

@@ -76,3 +76,15 @@ TEST(ColorProfile, sceneWithoutProfileReportsAbsent)
     ASSERT_TRUE(profile.isEmpty());
     ASSERT_EQ(ColorProfileSource::None, profile.getSource());
 }
+
+TEST(ColorProfile, sceneWithoutProfileReportsInfoAbsent)
+{
+    std::string path = TestTools::getTestImagePath("gdal", "colors.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
+    std::shared_ptr<slideio::Slide> slide = slideio::openSlide(path, "AUTO");
+    std::shared_ptr<slideio::Scene> scene = slide->getScene(0);
+    const ColorProfileInfo info = scene->getColorProfileInfo();
+    ASSERT_FALSE(info.present);
+    ASSERT_EQ(ColorProfileSource::None, info.source);
+    ASSERT_NE(std::string::npos, info.toString().find("present=false"));
+}
