@@ -11,6 +11,7 @@
 
 #include "slideio/core/slideio_enums.hpp"
 #include "slideio/core/resolution.hpp"
+#include "slideio/core/colorprofile.hpp"
 
 #if defined(_MSC_VER)
 #pragma warning( push )
@@ -143,6 +144,13 @@ namespace slideio
         bool isAuxImage() const {
             return m_imageType != "VOLUME";
         }
+
+        /**@brief reads ICC Profile (0028,2000).
+         *
+         * Looked for first inside Optical Path Sequence (0048,0105), where
+         * DICOM WSI places it, then at dataset level as a fallback for
+         * non-WSI objects that carry it directly.*/
+        ColorProfile readColorProfile() const;
     private:
         void readFrames(std::vector<cv::Mat>& frames, int startFrame, int numFrames);
         void extractPixelsWholeFileDecompression(std::vector<cv::Mat>& mats, int startFrame, int numFrames);
