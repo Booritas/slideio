@@ -34,6 +34,8 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/smallimage.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/smalltiffwrapper.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/smalltiffwrapper.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/icctransform.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/icctransform.cpp
 )
 
 add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES})
@@ -50,8 +52,9 @@ find_package(JPEG)
 find_package(WebP)
 find_package(nlohmann_json REQUIRED)
 find_package(jxrlib REQUIRED)
+find_package(lcms REQUIRED)
 
-target_link_libraries(${LIBRARY_NAME} 
+target_link_libraries(${LIBRARY_NAME} PUBLIC
    opencv::opencv
    jxrcodec
    freeimage::freeimage
@@ -65,13 +68,17 @@ target_link_libraries(${LIBRARY_NAME}
    jxrlib::jxrlib
 )
 
+# PRIVATE: lcms2 is visible only to icctransform.cpp, never to a consumer of
+# this library -- see the class comment on IccTransform.
+target_link_libraries(${LIBRARY_NAME} PRIVATE lcms::lcms)
+
 IF(WIN32)
-   target_link_libraries(${LIBRARY_NAME} Shlwapi)
+   target_link_libraries(${LIBRARY_NAME} PUBLIC Shlwapi)
    set_target_properties(${LIBRARY_NAME} PROPERTIES LINK_FLAGS "/ignore:4099")
    target_compile_definitions(${LIBRARY_NAME} PRIVATE SLIDEIO_IMAGETOOLS_API _CRT_SECURE_NO_WARNINGS)
 ENDIF(WIN32)
 
-target_link_libraries(${LIBRARY_NAME}
+target_link_libraries(${LIBRARY_NAME} PUBLIC
    ${CORE_LIB_NAME}
 )
 
