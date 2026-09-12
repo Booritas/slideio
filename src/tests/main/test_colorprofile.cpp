@@ -1,5 +1,8 @@
 #include <gtest/gtest.h>
 #include "slideio/core/colorprofile.hpp"
+#include "slideio/slideio/slideio.hpp"
+#include "slideio/slideio/scene.hpp"
+#include "tests/testlib/testtools.hpp"
 
 using namespace slideio;
 
@@ -59,10 +62,6 @@ TEST(ColorProfileInfo, toStringNamesPresenceAndDescription)
     ASSERT_NE(std::string::npos, text.find("Embedded"));
     ASSERT_NE(std::string::npos, text.find("3144"));
 }
-
-#include "slideio/slideio/slideio.hpp"
-#include "slideio/slideio/scene.hpp"
-#include "tests/testlib/testtools.hpp"
 
 TEST(ColorProfile, sceneWithoutProfileReportsAbsent)
 {
