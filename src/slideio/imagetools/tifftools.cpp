@@ -519,6 +519,16 @@ void TiffTools::scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, int64_t dirOf
     dir.YCbCrSubsampling[0] = YCbCrSubsampling[0];
     dir.YCbCrSubsampling[1] = YCbCrSubsampling[1];
 
+    uint32_t iccSize = 0;
+    void* iccData = nullptr;
+    if (TIFFGetField(tiff, TIFFTAG_ICCPROFILE, &iccSize, &iccData) && iccData && iccSize > 0) {
+        const uint8_t* bytes = static_cast<const uint8_t*>(iccData);
+        dir.iccProfile.assign(bytes, bytes + iccSize);
+    }
+    else {
+        dir.iccProfile.clear();
+    }
+
     if (units == RESUNIT_INCH && resx > 0 && resy > 0) {
         dir.res.x = 0.0254 / resx;
         dir.res.y = 0.0254 / resy;

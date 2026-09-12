@@ -306,3 +306,17 @@ TEST_F(TiffToolsTests, openFileUtf8)
     ASSERT_EQ(dirCount, 1);
 }
 
+
+TEST(TiffTools, iccProfileIsEmptyWhenTheTagIsAbsent)
+{
+    // Most TIFF-family slides carry no ICC tag; the field must stay empty
+    // rather than holding stale bytes from a previous directory.
+    std::string path = TestTools::getTestImagePath("svs", "CMU-1-Small-Region.svs");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
+    std::vector<slideio::TiffDirectory> directories;
+    slideio::TiffTools::scanFile(path, directories);
+    ASSERT_FALSE(directories.empty());
+    for (const auto& directory : directories) {
+        ASSERT_EQ(directory.iccProfile.size() == 0, directory.iccProfile.empty());
+    }
+}

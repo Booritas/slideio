@@ -49,6 +49,9 @@ namespace slideio
         int stripSize = 0;
         int compressionQuality = 0;
         uint64_t byteOffset = 0;
+        /**@brief raw ICC profile bytes from TIFFTAG_ICCPROFILE (34675). Empty
+         * when the directory carries no profile.*/
+        std::vector<uint8_t> iccProfile;
     };
 
     SLIDEIO_IMAGETOOLS_EXPORTS std::ostream& operator<<(std::ostream& os, const TiffDirectory& dir);
