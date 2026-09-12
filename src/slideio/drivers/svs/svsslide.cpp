@@ -95,12 +95,14 @@ void SVSSlide::init(const std::vector<TiffDirectory>& directories, TIFFKeeper& k
         // The classification above is done; the scene takes the handle from here.
         auto tScene = SVSTiledScene::create(m_filePath, getDriverId(), keeper.release(), "Image", image_dirs);
         tScene->setDriverId(m_driverId);
+        tScene->setColorProfile(ColorProfile(image_dirs.front().iccProfile));
         std::shared_ptr<CVScene> scene(tScene);
         scenes.push_back(scene);
     }
     if(thumbnail>=0) {
         std::shared_ptr<SVSSmallScene> sScene(new SVSSmallScene(m_filePath, getDriverId(), THUMBNAIL, directories[thumbnail], true));
         sScene->setDriverId(m_driverId);
+        sScene->setColorProfile(ColorProfile(directories[thumbnail].iccProfile));
         std::shared_ptr<CVScene> scene(sScene);
         auxImages[THUMBNAIL] = scene;
         auxNames.emplace_back(THUMBNAIL);
@@ -108,6 +110,7 @@ void SVSSlide::init(const std::vector<TiffDirectory>& directories, TIFFKeeper& k
     if(label>=0) {
         std::shared_ptr<SVSSmallScene> sScene(new SVSSmallScene(m_filePath, getDriverId(), LABEL, directories[label], true));
         sScene->setDriverId(m_driverId);
+        sScene->setColorProfile(ColorProfile(directories[label].iccProfile));
         std::shared_ptr<CVScene> scene(sScene);
         auxImages[LABEL] = scene;
         auxNames.emplace_back(LABEL);
@@ -116,6 +119,7 @@ void SVSSlide::init(const std::vector<TiffDirectory>& directories, TIFFKeeper& k
         std::shared_ptr<SVSSmallScene> sScene = std::make_shared <SVSSmallScene>(
             m_filePath, getDriverId(),MACRO, directories[macro], true);
         sScene->setDriverId(m_driverId);
+        sScene->setColorProfile(ColorProfile(directories[macro].iccProfile));
         std::shared_ptr<CVScene> scene(sScene);
         auxImages[MACRO] = scene;
         auxNames.emplace_back(MACRO);

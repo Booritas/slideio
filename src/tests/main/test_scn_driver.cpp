@@ -15,6 +15,7 @@
 #include "slideio/imagetools/imagetools.hpp"
 #include "slideio/core/tools/xmltools.hpp"
 #include "slideio/slideio/slideio.hpp"
+#include "slideio/imagetools/tifftools.hpp"
 
 
 TEST(SCNImageDriver, DriverManager_getDriverIDs)
@@ -900,5 +901,21 @@ TEST(SCNImageDriver, reportsConcurrentReadSupport) {
     auto scene = slide->getScene(0);
     ASSERT_TRUE(scene);
     EXPECT_TRUE(scene->supportsConcurrentReads());
+}
+
+TEST(SCNImageDriver, colorProfileAbsentWhenTiffTagIsAbsent) {
+    // Leica-Fluorescence-1.scn's channel-0/z-0 base directory carries no ICC tag;
+    // no SCN or PKE/OME-TIFF/VSI image in the corpus available to this task carries
+    // one either (checked with a raw TIFF IFD walker over the whole images corpus).
+    std::string filePath = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1.scn");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::SCNImageDriver driver;
+    auto slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide);
+    auto scene = slide->getScene(0);
+    ASSERT_TRUE(scene);
+    const slideio::ColorProfile profile = scene->getColorProfile();
+    ASSERT_TRUE(profile.isEmpty());
+    ASSERT_EQ(slideio::ColorProfileSource::None, profile.getSource());
 }
 

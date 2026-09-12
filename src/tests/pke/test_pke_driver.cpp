@@ -10,6 +10,7 @@
 #include "slideio/drivers/pke/pkescene.hpp"
 #include "slideio/drivers/pke/pkeslide.hpp"
 #include "slideio/imagetools/smallimage.hpp"
+#include "slideio/imagetools/tifftools.hpp"
 #include "slideio/slideio/imagedrivermanager.hpp"
 #include "slideio/slideio/slide.hpp"
 #include "slideio/slideio/slideio.hpp"
@@ -594,4 +595,19 @@ TEST_F(PKEImageDriverTests, reportsConcurrentReadSupport) {
     auto scene = slide->getScene(0);
     ASSERT_TRUE(scene);
     EXPECT_TRUE(scene->supportsConcurrentReads());
+}
+
+TEST_F(PKEImageDriverTests, colorProfileAbsentWhenTiffTagIsAbsent) {
+    // Neither qptiff in the corpus available to this task carries an ICC tag
+    // (checked with a raw TIFF IFD walker over the whole images corpus).
+    std::string filePath = TestTools::getTestImagePath("pke", "openmicroscopy/PKI_scans/LuCa-7color_Scan1.qptiff");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::PKEImageDriver driver;
+    auto slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide);
+    auto scene = slide->getScene(0);
+    ASSERT_TRUE(scene);
+    const slideio::ColorProfile profile = scene->getColorProfile();
+    ASSERT_TRUE(profile.isEmpty());
+    ASSERT_EQ(slideio::ColorProfileSource::None, profile.getSource());
 }

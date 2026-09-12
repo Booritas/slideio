@@ -79,6 +79,7 @@ void VsiFileScene::init()
     m_channelNames.resize(m_numChannels);
     std::fill(m_channelDataType.begin(), m_channelDataType.end(), directory.dataType);
     m_compression = directory.slideioCompression;
+    m_colorProfile = ColorProfile(directory.iccProfile);
 
     m_levels.resize(1);
     LevelInfo& level = m_levels[0];

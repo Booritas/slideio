@@ -4,6 +4,7 @@
 #pragma once
 
 #include "slideio/drivers/ome-tiff/ot_api_def.hpp"
+#include "slideio/core/colorprofile.hpp"
 #include "slideio/core/cvscene.hpp"
 #include "slideio/drivers/ome-tiff/otscene.hpp"
 #include "slideio/imagetools/tifftools.hpp"
@@ -86,6 +87,8 @@ namespace slideio
             double getZSliceResolution() const override { return m_zResolution; }
             double getTFrameResolution() const override { return m_tResolution; }
             bool supportsConcurrentReads() const override { return true; }
+            ColorProfile getColorProfile() const override { return m_colorProfile; }
+            void setColorProfile(const ColorProfile& profile) { m_colorProfile = profile; }
         private:
             void extractImagePyramids();
             void initialize();
@@ -124,6 +127,7 @@ namespace slideio
 			double m_zResolution = 0.0;
 			double m_tResolution = 0.0;
             int m_sceneIndex = -1;
+            ColorProfile m_colorProfile;
             std::string m_driverId;
             // Declared LAST deliberately. ~ContextPool blocks until every
             // outstanding Borrow is returned, and members are destroyed in

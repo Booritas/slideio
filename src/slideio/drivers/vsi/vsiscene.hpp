@@ -4,6 +4,7 @@
 #pragma once
 
 #include "slideio/drivers/vsi/vsi_api_def.hpp"
+#include "slideio/core/colorprofile.hpp"
 #include "slideio/core/cvscene.hpp"
 #include "slideio/core/tools/tilecomposer.hpp"
 
@@ -47,6 +48,12 @@ namespace slideio
             DataType getChannelDataType(int channelIndex) const override {
                 return m_channelDataType[channelIndex];
             }
+            ColorProfile getColorProfile() const override {
+                return m_colorProfile;
+            }
+            void setColorProfile(const ColorProfile& profile) {
+                m_colorProfile = profile;
+            }
             const std::string& getDriverId() const override {
 				return m_driverId;
             }
@@ -68,6 +75,7 @@ namespace slideio
             std::shared_ptr<vsi::VSIFile> m_vsiFile;
             int m_sceneIndex;
 			std::string m_driverId;
+            ColorProfile m_colorProfile;
         };
     }
 }

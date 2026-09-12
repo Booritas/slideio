@@ -97,7 +97,9 @@ std::shared_ptr<PKESlide> PKESlide::openFile(const std::string& filePath, const 
                     }
                     image_dirs.push_back(directory);
                 } else if(type == "Thumbnail" || type == "Overview" || type == "Label") {
-                    std::shared_ptr<CVScene> scene(new PKESmallScene(filePath, -1, slide->getDriverId(),type, directory, true));
+                    std::shared_ptr<PKESmallScene> smallScene(new PKESmallScene(filePath, -1, slide->getDriverId(),type, directory, true));
+                    smallScene->setColorProfile(ColorProfile(directory.iccProfile));
+                    std::shared_ptr<CVScene> scene(smallScene);
                     auxImages[type] = scene;
                     auxNames.emplace_back(type);
                 }
@@ -106,7 +108,9 @@ std::shared_ptr<PKESlide> PKESlide::openFile(const std::string& filePath, const 
     }
 
     std::vector<std::shared_ptr<CVScene>> scenes;
-    std::shared_ptr<CVScene> scene(new PKETiledScene(filePath,static_cast<int>(scenes.size()), slide->getDriverId(), keeper.release(),"Image", image_dirs));
+    std::shared_ptr<PKETiledScene> tiledScene(new PKETiledScene(filePath,static_cast<int>(scenes.size()), slide->getDriverId(), keeper.release(),"Image", image_dirs));
+    tiledScene->setColorProfile(ColorProfile(image_dirs.front().iccProfile));
+    std::shared_ptr<CVScene> scene(tiledScene);
     scenes.push_back(scene);
     slide->m_Scenes.assign(scenes.begin(), scenes.end());
     slide->m_filePath = filePath;

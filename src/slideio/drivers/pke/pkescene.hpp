@@ -4,6 +4,7 @@
 #pragma once
 
 #include "slideio/drivers/pke/pke_api_def.hpp"
+#include "slideio/core/colorprofile.hpp"
 #include "slideio/core/cvscene.hpp"
 #include "slideio/core/exceptions.hpp"
 #include "slideio/core/tools/contextpool.hpp"
@@ -75,6 +76,12 @@ namespace slideio
         DataType getChannelDataType(int) const override{
             return m_dataType;
         }
+        ColorProfile getColorProfile() const override {
+            return m_colorProfile;
+        }
+        void setColorProfile(const ColorProfile& profile) {
+            m_colorProfile = profile;
+        }
 
     protected:
         // The handle pool deliberately lives in the concrete scenes
@@ -93,6 +100,7 @@ namespace slideio
         double m_magnification;
         DataType m_dataType;
 		int m_sceneIndex;
+        ColorProfile m_colorProfile;
     };
 }
 

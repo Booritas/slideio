@@ -244,6 +244,7 @@ void OTScene::initialize() {
     if (!resolutionProcessed) {
         m_resolution = dir.res;
     }
+    m_colorProfile = ColorProfile(dir.iccProfile);
 
     extractImagePyramids();
     SLIDEIO_LOG(INFO) << "OTScene: Scene " << m_imageId << " is successfully initialized.";

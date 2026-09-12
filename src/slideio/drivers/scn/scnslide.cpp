@@ -96,6 +96,7 @@ void SCNSlide::constructScenes()
                     std::shared_ptr<SVSSmallScene> scene(new SVSSmallScene(m_filePath, getDriverId(), tagName,
                         directory, m_tiff.getHandle()));
                     scene->setSceneIndex(-1);
+                    scene->setColorProfile(ColorProfile(directory.iccProfile));
                     m_auxImages[type] = scene;
                     m_auxNames.push_back(type);
                 }

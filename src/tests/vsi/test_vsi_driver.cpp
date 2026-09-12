@@ -1048,3 +1048,18 @@ TEST_F(VSIImageDriverTests, reportsConcurrentReadSupport) {
     ASSERT_TRUE(slide);
     EXPECT_TRUE(slide->getScene(0)->supportsConcurrentReads());
 }
+
+TEST_F(VSIImageDriverTests, colorProfileAbsentWhenTiffTagIsAbsent) {
+    // No VSI slide in the corpus available to this task carries an ICC tag
+    // (checked with a raw TIFF IFD walker over the whole images corpus).
+    std::string filePath = TestTools::getTestImagePath("vsi", "OS-1/OS-1.vsi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::VSIImageDriver driver;
+    auto slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide);
+    auto scene = slide->getScene(0);
+    ASSERT_TRUE(scene);
+    const slideio::ColorProfile profile = scene->getColorProfile();
+    ASSERT_TRUE(profile.isEmpty());
+    ASSERT_EQ(slideio::ColorProfileSource::None, profile.getSource());
+}
