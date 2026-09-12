@@ -1,5 +1,8 @@
 #include <gtest/gtest.h>
+#include <thread>
+#include <atomic>
 #include "slideio/imagetools/icctransform.hpp"
+#include "slideio/core/exceptions.hpp"
 
 using namespace slideio;
 
@@ -65,4 +68,118 @@ TEST(IccTransform, describeTruncatedProfileReportsAbsentRatherThanThrowing)
     ColorProfileInfo info;
     ASSERT_NO_THROW(info = IccTransform::describe(ColorProfile(truncated)));
     ASSERT_FALSE(info.present);
+}
+
+namespace {
+    cv::Mat makeRgbPatch(const cv::Vec3b& colour)
+    {
+        cv::Mat patch(4, 4, CV_8UC3);
+        patch.setTo(cv::Scalar(colour[0], colour[1], colour[2]));
+        return patch;
+    }
+}
+
+TEST(IccTransform, srgbToLabWhiteIsLightness100)
+{
+    IccTransform transform(IccTransform::createSRGBProfile(), ColorTarget::Lab,
+                           RenderingIntent::RelativeColorimetric, true, DataType::DT_Byte);
+    ASSERT_EQ(DataType::DT_Float32, transform.getOutputDataType());
+    cv::Mat out;
+    transform.apply(makeRgbPatch({255, 255, 255}), out);
+    ASSERT_EQ(CV_32FC3, out.type());
+    const cv::Vec3f lab = out.at<cv::Vec3f>(0, 0);
+    ASSERT_NEAR(100.0f, lab[0], 0.5f);
+    ASSERT_NEAR(0.0f, lab[1], 1.0f);
+    ASSERT_NEAR(0.0f, lab[2], 1.0f);
+}
+
+TEST(IccTransform, srgbToLabMidGreyIsLightness53)
+{
+    IccTransform transform(IccTransform::createSRGBProfile(), ColorTarget::Lab,
+                           RenderingIntent::RelativeColorimetric, true, DataType::DT_Byte);
+    cv::Mat out;
+    transform.apply(makeRgbPatch({128, 128, 128}), out);
+    ASSERT_NEAR(53.6f, out.at<cv::Vec3f>(0, 0)[0], 1.0f);
+}
+
+TEST(IccTransform, channelOrderIsRgbNotBgr)
+{
+    // The regression that matters: a BGR mix-up produces output of the right
+    // shape and dtype that looks entirely plausible. Pure red must stay red,
+    // which in Lab means a strongly positive a* and a near-zero-to-positive b*.
+    IccTransform transform(IccTransform::createSRGBProfile(), ColorTarget::Lab,
+                           RenderingIntent::RelativeColorimetric, true, DataType::DT_Byte);
+    cv::Mat out;
+    transform.apply(makeRgbPatch({255, 0, 0}), out);
+    const cv::Vec3f lab = out.at<cv::Vec3f>(0, 0);
+    ASSERT_NEAR(53.2f, lab[0], 1.5f);   // sRGB red
+    ASSERT_GT(lab[1], 60.0f);           // a* strongly positive
+    ASSERT_GT(lab[2], 40.0f);           // b* positive; blue would give a large negative
+}
+
+TEST(IccTransform, srgbToSrgbPreservesDataType)
+{
+    IccTransform transform(IccTransform::createSRGBProfile(), ColorTarget::sRGB,
+                           RenderingIntent::RelativeColorimetric, true, DataType::DT_Byte);
+    ASSERT_EQ(DataType::DT_Byte, transform.getOutputDataType());
+    cv::Mat out;
+    transform.apply(makeRgbPatch({10, 200, 90}), out);
+    ASSERT_EQ(CV_8UC3, out.type());
+    const cv::Vec3b rgb = out.at<cv::Vec3b>(0, 0);
+    ASSERT_NEAR(10, rgb[0], 2);
+    ASSERT_NEAR(200, rgb[1], 2);
+    ASSERT_NEAR(90, rgb[2], 2);
+}
+
+TEST(IccTransform, linearRgbRemovesGamma)
+{
+    IccTransform transform(IccTransform::createSRGBProfile(), ColorTarget::LinearRGB,
+                           RenderingIntent::RelativeColorimetric, true, DataType::DT_Byte);
+    ASSERT_EQ(DataType::DT_Float32, transform.getOutputDataType());
+    cv::Mat out;
+    transform.apply(makeRgbPatch({128, 128, 128}), out);
+    // sRGB 128/255 is about 0.216 once linearised, not 0.502.
+    ASSERT_NEAR(0.216f, out.at<cv::Vec3f>(0, 0)[0], 0.02f);
+}
+
+TEST(IccTransform, xyzTargetProducesFloat)
+{
+    IccTransform transform(IccTransform::createSRGBProfile(), ColorTarget::XYZ,
+                           RenderingIntent::RelativeColorimetric, true, DataType::DT_Byte);
+    ASSERT_EQ(DataType::DT_Float32, transform.getOutputDataType());
+    cv::Mat out;
+    transform.apply(makeRgbPatch({255, 255, 255}), out);
+    ASSERT_NEAR(1.0f, out.at<cv::Vec3f>(0, 0)[1], 0.02f);   // Y of white
+}
+
+TEST(IccTransform, rejectsNonThreeChannelInput)
+{
+    IccTransform transform(IccTransform::createSRGBProfile(), ColorTarget::Lab,
+                           RenderingIntent::RelativeColorimetric, true, DataType::DT_Byte);
+    cv::Mat grey(4, 4, CV_8UC1, cv::Scalar(128));
+    cv::Mat out;
+    ASSERT_THROW(transform.apply(grey, out), slideio::RuntimeError);
+}
+
+TEST(IccTransform, applyIsSafeFromSeveralThreads)
+{
+    IccTransform transform(IccTransform::createSRGBProfile(), ColorTarget::Lab,
+                           RenderingIntent::RelativeColorimetric, true, DataType::DT_Byte);
+    std::vector<std::thread> threads;
+    std::atomic<int> failures{0};
+    for (int t = 0; t < 8; ++t) {
+        threads.emplace_back([&transform, &failures]() {
+            for (int i = 0; i < 200; ++i) {
+                cv::Mat out;
+                transform.apply(makeRgbPatch({255, 255, 255}), out);
+                if (std::abs(out.at<cv::Vec3f>(0, 0)[0] - 100.0f) > 0.5f) {
+                    ++failures;
+                }
+            }
+        });
+    }
+    for (auto& thread : threads) {
+        thread.join();
+    }
+    ASSERT_EQ(0, failures.load());
 }

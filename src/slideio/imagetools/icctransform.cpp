@@ -125,14 +125,118 @@ IccTransform::~IccTransform()
     }
 }
 
-// The constructor and apply() are implemented in Task 5. Stubs here keep this
-// task compiling and reviewable on its own.
-IccTransform::IccTransform(const ColorProfile&, ColorTarget, RenderingIntent, bool, DataType)
+namespace
 {
-    RAISE_RUNTIME_ERROR << "IccTransform: conversion is not implemented yet";
+    cmsHPROFILE createTargetProfile(ColorTarget target)
+    {
+        switch (target) {
+        case ColorTarget::sRGB:
+            return cmsCreate_sRGBProfile();
+        case ColorTarget::Lab:
+            return cmsCreateLab4Profile(nullptr);
+        case ColorTarget::XYZ:
+            return cmsCreateXYZProfile();
+        case ColorTarget::LinearRGB: {
+            // sRGB primaries and white point with a gamma-1.0 tone curve.
+            cmsCIExyY whitePoint{0.3127, 0.3290, 1.0};
+            cmsCIExyYTRIPLE primaries{{0.6400, 0.3300, 1.0},
+                                      {0.3000, 0.6000, 1.0},
+                                      {0.1500, 0.0600, 1.0}};
+            cmsToneCurve* linear = cmsBuildGamma(nullptr, 1.0);
+            cmsToneCurve* curves[3] = {linear, linear, linear};
+            cmsHPROFILE profile = cmsCreateRGBProfile(&whitePoint, &primaries, curves);
+            cmsFreeToneCurve(linear);
+            return profile;
+        }
+        default:
+            return nullptr;
+        }
+    }
+
+    cmsUInt32Number sourceFormat(DataType type)
+    {
+        // TYPE_RGB_*, never TYPE_BGR_*: slideio buffers are in scene channel
+        // order, which is RGB. OpenCV's BGR convention does not apply here.
+        switch (type) {
+        case DataType::DT_Byte: return TYPE_RGB_8;
+        case DataType::DT_UInt16: return TYPE_RGB_16;
+        default: return 0;
+        }
+    }
+
+    cmsUInt32Number targetFormat(ColorTarget target, DataType sourceType)
+    {
+        switch (target) {
+        case ColorTarget::sRGB: return sourceFormat(sourceType);
+        case ColorTarget::Lab: return TYPE_Lab_FLT;
+        case ColorTarget::XYZ: return TYPE_XYZ_FLT;
+        case ColorTarget::LinearRGB: return TYPE_RGB_FLT;
+        default: return 0;
+        }
+    }
+
+    cmsUInt32Number toLcmsIntent(RenderingIntent intent)
+    {
+        switch (intent) {
+        case RenderingIntent::Perceptual: return INTENT_PERCEPTUAL;
+        case RenderingIntent::Saturation: return INTENT_SATURATION;
+        case RenderingIntent::AbsoluteColorimetric: return INTENT_ABSOLUTE_COLORIMETRIC;
+        default: return INTENT_RELATIVE_COLORIMETRIC;
+        }
+    }
 }
 
-void IccTransform::apply(const cv::Mat&, cv::OutputArray) const
+IccTransform::IccTransform(const ColorProfile& source, ColorTarget target,
+                           RenderingIntent intent, bool blackPointCompensation,
+                           DataType sourceType)
 {
-    RAISE_RUNTIME_ERROR << "IccTransform: conversion is not implemented yet";
+    const cmsUInt32Number srcFormat = sourceFormat(sourceType);
+    if (srcFormat == 0) {
+        RAISE_RUNTIME_ERROR << "IccTransform: unsupported source data type " << sourceType
+                            << "; only DT_Byte and DT_UInt16 are colorimetric";
+    }
+    if (source.isEmpty()) {
+        RAISE_RUNTIME_ERROR << "IccTransform: an empty source profile cannot be converted";
+    }
+
+    cmsHPROFILE srcProfile = cmsOpenProfileFromMem(
+        source.getData().data(), static_cast<cmsUInt32Number>(source.getSize()));
+    if (!srcProfile) {
+        RAISE_RUNTIME_ERROR << "IccTransform: cannot parse the source ICC profile ("
+                            << source.getSize() << " bytes)";
+    }
+    cmsHPROFILE dstProfile = createTargetProfile(target);
+    if (!dstProfile) {
+        cmsCloseProfile(srcProfile);
+        RAISE_RUNTIME_ERROR << "IccTransform: cannot create a profile for target " << target;
+    }
+
+    const cmsUInt32Number flags =
+        blackPointCompensation ? cmsFLAGS_BLACKPOINTCOMPENSATION : 0;
+    m_transform = cmsCreateTransform(srcProfile, srcFormat, dstProfile,
+                                     targetFormat(target, sourceType),
+                                     toLcmsIntent(intent), flags);
+    cmsCloseProfile(srcProfile);
+    cmsCloseProfile(dstProfile);
+    if (!m_transform) {
+        RAISE_RUNTIME_ERROR << "IccTransform: lcms2 could not build a transform to " << target;
+    }
+    m_outputType = (target == ColorTarget::sRGB) ? sourceType : DataType::DT_Float32;
+}
+
+void IccTransform::apply(const cv::Mat& src, cv::OutputArray dst) const
+{
+    if (src.channels() != 3) {
+        RAISE_RUNTIME_ERROR << "IccTransform: expected 3 channels, received " << src.channels();
+    }
+    if (!src.isContinuous()) {
+        RAISE_RUNTIME_ERROR << "IccTransform: expected a continuous block";
+    }
+    const int depth = (m_outputType == DataType::DT_Float32)
+                          ? CV_32F
+                          : ((m_outputType == DataType::DT_UInt16) ? CV_16U : CV_8U);
+    dst.create(src.rows, src.cols, CV_MAKETYPE(depth, m_targetChannels));
+    cv::Mat output = dst.getMat();
+    cmsDoTransform(static_cast<cmsHTRANSFORM>(m_transform), src.data, output.data,
+                   static_cast<cmsUInt32Number>(src.rows) * static_cast<cmsUInt32Number>(src.cols));
 }
