@@ -53,6 +53,11 @@ Resolution SmallTiffWrapper::SmallTiffPage::getResolution() const {
 	return dir.res;
 }
 
+std::vector<uint8_t> SmallTiffWrapper::SmallTiffPage::getICCProfile() const {
+	const TiffDirectory& dir = m_parent->getDirectory(m_pageIndex);
+	return dir.iccProfile;
+}
+
 void SmallTiffWrapper::SmallTiffPage::extractMetadata() {
 	const TiffDirectory& dir = m_parent->getDirectory(m_pageIndex);
 	json mtdObj = json::object();

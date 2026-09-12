@@ -387,3 +387,52 @@ TEST(GDALDriver, getSceneIndex)
 		EXPECT_EQ("GDAL", scene->getDriverId());
     }
 }
+
+// img_2448x2448_3x8bit_SRC_RGB_ducks.png carries no ICC profile (confirmed with
+// `identify -verbose`), unlike colors.png in this same corpus directory, which
+// does -- so this file, not colors.png, is the genuine absent-profile fixture.
+TEST(GDALImageDriver, colorProfileAbsentWhenNoIccChunkIsPresent)
+{
+    std::string path = TestTools::getTestImagePath("gdal", "img_2448x2448_3x8bit_SRC_RGB_ducks.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
+    std::shared_ptr<slideio::Slide> slide = slideio::openSlide(path, "GDAL");
+    std::shared_ptr<slideio::Scene> scene = slide->getScene(0);
+    ASSERT_TRUE(scene->getColorProfile().isEmpty());
+    ASSERT_EQ(slideio::ColorProfileSource::None, scene->getColorProfile().getSource());
+}
+
+// Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg carries a real embedded sRGB
+// ICC profile (confirmed with `identify -verbose`: Profile-icc, 3144 bytes,
+// "sRGB IEC61966-2.1"). This is read through FIWrapper/FreeImage, exercising
+// FreeImage_GetICCProfile -- the JPEG/PNG/BMP/... path.
+TEST(GDALImageDriver, colorProfileDecodedFromEmbeddedIccInJpeg)
+{
+    std::string path = TestTools::getTestImagePath("gdal", "Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
+    std::shared_ptr<slideio::Slide> slide = slideio::openSlide(path, "GDAL");
+    std::shared_ptr<slideio::Scene> scene = slide->getScene(0);
+    const slideio::ColorProfile profile = scene->getColorProfile();
+    ASSERT_FALSE(profile.isEmpty());
+    ASSERT_EQ(slideio::ColorProfileSource::Embedded, profile.getSource());
+    const slideio::ColorProfileInfo info = scene->getColorProfileInfo();
+    ASSERT_TRUE(info.present);
+    ASSERT_EQ(slideio::IccColorSpace::RGB, info.dataSpace);
+}
+
+// test.tif carries the same embedded sRGB ICC profile (Profile-icc, 3144
+// bytes). A ".tif" file opens through SmallTiffWrapper rather than FIWrapper
+// (see ImageTools::openSmallImage), so this exercises the other backing
+// reader: TiffDirectory::iccProfile, populated by TiffTools::scanTiffDirTags.
+TEST(GDALImageDriver, colorProfileDecodedFromEmbeddedIccInTiff)
+{
+    std::string path = TestTools::getTestImagePath("gdal", "test.tif");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
+    std::shared_ptr<slideio::Slide> slide = slideio::openSlide(path, "GDAL");
+    std::shared_ptr<slideio::Scene> scene = slide->getScene(0);
+    const slideio::ColorProfile profile = scene->getColorProfile();
+    ASSERT_FALSE(profile.isEmpty());
+    ASSERT_EQ(slideio::ColorProfileSource::Embedded, profile.getSource());
+    const slideio::ColorProfileInfo info = scene->getColorProfileInfo();
+    ASSERT_TRUE(info.present);
+    ASSERT_EQ(slideio::IccColorSpace::RGB, info.dataSpace);
+}

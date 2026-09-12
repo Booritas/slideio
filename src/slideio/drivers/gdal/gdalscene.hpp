@@ -4,6 +4,7 @@
 #pragma once
 
 #include "slideio/drivers/gdal/gdal_api_def.hpp"
+#include "slideio/core/colorprofile.hpp"
 #include "slideio/core/cvscene.hpp"
 #include "slideio/core/slideio_enums.hpp"
 #include <opencv2/core.hpp>
@@ -38,10 +39,17 @@ namespace slideio
         Compression getCompression() const override;
         MetadataFormat getMetadataFormat() const override;
         std::string getRawMetadata() const override;
+        ColorProfile getColorProfile() const override {
+            return m_colorProfile;
+        }
+        void setColorProfile(const ColorProfile& profile) {
+            m_colorProfile = profile;
+        }
     private:
         SmallImagePage* m_imagePage;
         std::string m_filePath;
         std::string m_driverId;
+        ColorProfile m_colorProfile;
     };
 }
 

@@ -30,6 +30,10 @@ slideio::GDALScene::GDALScene(SmallImagePage* page, const std::string& path, con
         level.setSize({imageSize.width, imageSize.height});
         level.setTileSize({imageSize.width, imageSize.height});
         m_levels.push_back(level);
+        // Bytes only here: the driver never parses the profile it finds, it
+        // just surfaces whatever the underlying reader (FreeImage or the TIFF
+        // scan) already extracted for this page.
+        m_colorProfile = ColorProfile(m_imagePage->getICCProfile());
     }
 }
 
