@@ -223,14 +223,21 @@ only the pixel block; it never sees the source scene
 transformation needs the source ICC profile, so one new virtual is added:
 
 ```cpp
-/**@brief returns a copy of this transformation specialised to a source scene.
+/**@brief returns a copy of this transformation specialised to its input.
  *
  * The default returns nullptr, meaning the transformation needs no binding and
- * is used as-is. A transformation whose behaviour depends on the source image --
- * colour management on the source ICC profile, stain normalisation on source
- * statistics -- overrides it and returns a new, fully prepared object.
+ * is used as-is. A transformation whose behaviour depends on the image it will
+ * receive -- colour management on the source ICC profile, stain normalisation on
+ * source statistics -- overrides it and returns a new, fully prepared object.
+ *
+ * channelDataTypes and sourceProfile describe the blocks this transformation
+ * will actually be handed, NOT the file on disk: in a chain they are the state
+ * the transformations before it produce. Validating against `source` instead
+ * would let a rejection that belongs at bind time escape to the first tile read.
  */
-virtual std::shared_ptr<TransformationEx> bindToSource(const CVScene& source) const {
+virtual std::shared_ptr<TransformationEx> bindToSource(
+    const CVScene& source, const std::vector<DataType>& channelDataTypes,
+    const ColorProfile& sourceProfile) const {
     return nullptr;
 }
 
@@ -246,13 +253,18 @@ virtual ColorProfile amendColorProfile(const ColorProfile& input) const {
 }
 ```
 
-`TransformerScene`'s constructor maps its transformation list through
-`bindToSource` before `initChannels()` and `computeInflationValue()`, keeping the
-original wherever nullptr is returned. It reuses the existing
+`TransformerScene`'s constructor binds and accumulates in one loop, keeping the
+original transformation wherever nullptr is returned: it starts from the origin
+scene's channel data types and colour profile, binds each transformation against
+that state, then advances the state through the bound object's
+`computeChannelDataTypes()` and `amendColorProfile()` before moving on. One loop
+rather than two passes is what makes the promise above hold under composition --
+binding everything against the origin scene would validate each transformation
+against an image it will never be handed, so
+`[ColorTransformation(GRAY), ColorManagement()]` would bind happily and throw
+from the first tile instead. It reuses the existing
 `dynamic_cast<TransformationEx*>` dispatch idiom already present in
-`transformerscene.cpp` at the three sites that apply transformations, compute
-channel data types and compute the inflation value. All seven existing filters are
-unaffected.
+`transformerscene.cpp`. All seven existing filters are unaffected.
 
 It returns a bound **copy** rather than mutating `this`, and that is load-bearing.
 The user's `ColorManagement` object stays pure configuration, so one object can be
@@ -262,10 +274,16 @@ and since the list holds `shared_ptr`s shared between scenes, racy.
 
 ### ColorManagement
 
-`src/slideio/transformer/colormanagement.hpp`:
+`MissingProfilePolicy` lives in `src/slideio/core/colorprofile.hpp`, alongside
+the rest of the public colour vocabulary -- `colormanagement.hpp` is an
+OpenCV-dependent internal header that is never installed, so an enum declared
+there could not be named by a language binding:
 
 ```cpp
+// slideio/core/colorprofile.hpp
 enum class MissingProfilePolicy { AssumeSRGB, PassThrough, Fail };
+
+// slideio/transformer/colormanagement.hpp
 
 class SLIDEIO_TRANSFORMER_EXPORTS ColorManagement : public TransformationEx
 {
@@ -282,7 +300,9 @@ public:
     const ColorProfile&  getSourceProfileOverride() const;
     void                 setSourceProfileOverride(const ColorProfile&);
 
-    std::shared_ptr<TransformationEx> bindToSource(const CVScene&) const override;
+    std::shared_ptr<TransformationEx> bindToSource(const CVScene&,
+                                                   const std::vector<DataType>&,
+                                                   const ColorProfile&) const override;
     ColorProfile amendColorProfile(const ColorProfile& input) const override;
     void applyTransformation(const cv::Mat&, cv::OutputArray) const override;
     std::vector<DataType> computeChannelDataTypes(const std::vector<DataType>&) const override;
@@ -392,7 +412,7 @@ driver libraries call that function and are served by it.
 | AFI | afi | delegates to SVS scenes | none, inherited |
 | NDPI | ndpi | same tag, but the driver has its own `NDPITiffDirectory` and `NDPITiffTools::scanTiffDirTags` | parallel change in the ndpi driver |
 | DCM | dcm | ICC Profile `(0028,2000)` in Optical Path Sequence `(0048,0105)` | DCMTK `findAndGetUint8Array` |
-| GDAL | gdal | metadata domain `COLOR_PROFILE`, item `SOURCE_ICC_PROFILE` (base64) | `GetMetadataItem` plus base64 decode |
+| GDAL | gdal | whatever FreeImage reports for the file, plus the TIFF tag for TIFF inputs | `FreeImage_GetICCProfile`, and shared `TiffTools` for TIFF |
 | CZI | czi | the format carries no ICC profile | none; default returns absent |
 | ZVI | zvi | the format carries no ICC profile | none; default returns absent |
 
@@ -441,12 +461,14 @@ sld.MissingProfilePolicy.ASSUME_SRGB / PASS_THROUGH / FAIL
 sld.IccColorSpace.RGB / GRAY / CMYK / LAB / XYZ / YCBCR / UNKNOWN
 
 # the working path
-cm = sld.ColorManagement(target=sld.ColorTarget.LAB)
+cm = sld.ColorManagement()
+cm.target                   = sld.ColorTarget.LAB
 cm.missing_profile_policy   = sld.MissingProfilePolicy.FAIL
 cm.intent                   = sld.RenderingIntent.RELATIVE_COLORIMETRIC
 cm.black_point_compensation = True
+cm.source_profile_override  = icc_bytes   # optional; bytes or None
 
-managed = sld.transform_scene(scene, cm)
+managed = sld.transform_scene(scene, [cm])   # always a list
 tile = managed.read_block((0, 0, 1024, 1024), size=(512, 512))   # float32 Lab
 
 info = managed.get_color_profile_info()
@@ -530,8 +552,8 @@ Not specified here, but the architecture must accommodate it, and does:
 - Composition works through the existing `transformSceneEx`:
 
 ```python
-sld.transform_scene_ex(scene, [
-    sld.ColorManagement(sld.ColorTarget.LAB),
+sld.transform_scene(scene, [
+    cm,                                        # ColorManagement, target LAB
     sld.MacenkoNormalization(reference=ref),   # future
 ])
 ```

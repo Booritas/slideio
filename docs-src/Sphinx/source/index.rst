@@ -62,6 +62,14 @@ To convert a scene's pixels into a device-independent colour space, transform it
 
 *ColorManagement* accepts three-channel scenes only, and converts to one of four targets (:py:class:`~slideio.ColorTarget`): *SRGB*, *LINEAR_RGB*, *LAB* or *XYZ*. When a scene carries no embedded profile it assumes sRGB by default; set *missing_profile_policy* (:py:class:`~slideio.MissingProfilePolicy`) to change that -- for example to *FAIL*, to reject scenes without a real embedded profile, or to *PASS_THROUGH*, to leave the pixels untouched when the target is sRGB.
 
+If you have characterised the scanner yourself, assign the profile to *source_profile_override* as raw ICC bytes; it is used in place of whatever the scene embeds, so even a slide with no profile converts colorimetrically and *missing_profile_policy* never applies. Assign *None* to clear it.
+
+.. code-block:: python
+
+ with open("/data/scanner.icc", "rb") as icc:
+     cm.source_profile_override = icc.read()
+
+
 
 Contents
 ----------

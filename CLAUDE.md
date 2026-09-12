@@ -144,7 +144,7 @@ src/
 
 ## Dependencies (managed via Conan)
 
-spdlog, SQLite3, OpenCV, ZLIB, tinyxml2, ICU, libtiff, libjpeg, WebP, OpenJPEG, Iconv, nlohmann_json
+spdlog, SQLite3, OpenCV, ZLIB, tinyxml2, ICU, libtiff, libjpeg, WebP, OpenJPEG, Iconv, nlohmann_json, lcms
 
 Every one of them resolves from **conan center**. There is no private remote and
 no conan-center-index fork to bootstrap: nothing has to be `conan create`d
@@ -241,6 +241,13 @@ relying on it silently loses the headers and libtiff fails on `libdeflate.h`.
 spdlog is a static library linked `PRIVATE` into `slideio-core` alone. That is a
 link-time-singleton constraint, not an ordinary dependency: the logging
 threshold and sink must exist in exactly one shared library.
+
+lcms (`lcms/2.16`, the Little-CMS colour engine) is likewise linked `PRIVATE`,
+into `slideio-imagetools` alone, and `<lcms2.h>` is included from exactly one
+translation unit: `src/slideio/imagetools/icctransform.cpp`. Everything above it
+-- the drivers, `slideio-transformer`'s `ColorManagement`, the public headers --
+sees only slideio's own colour vocabulary in `slideio/core/colorprofile.hpp`, so
+no consumer of an installed header needs lcms2 on its include path.
 
 Conan profiles are in `conan/<Platform>/` with variants per distro/arch.
 
