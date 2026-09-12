@@ -5,15 +5,14 @@ Module SlideIO
 
 If you have any question about the library or want to report a bug, visit our new `forum <http://slideio.com/forum/viewforum.php?f=2>`_ .
 
-What is new in version 2.9.0
+What is new in version 2.10.0
 -----------------------------
-- Support of Philips TIFF whole slide images through the new PHTIFF driver.
-- Reading from an explicitly selected zoom level with the new *Scene* method :py:meth:`~slideio.Scene.read_block_from_level`. The rectangle is given in the coordinate system of the level, so a tiled viewer does not have to convert its coordinates and no implicit level selection happens inside the library.
-- New level tile helpers: properties *tile_count* and method *get_tile_rect* of the level info object return the tile grid of a zoom level in level coordinates.
-- CZI: fixed a defect where a single pyramid level was split into two zoom levels, which could make *read_block* return a partially blank image.
+- Colour management: :py:meth:`~slideio.Scene.get_color_profile` returns a scene's embedded ICC profile as raw bytes (or *None* if it carries none), and :py:meth:`~slideio.Scene.get_color_profile_info` returns a parsed summary of it. The new :py:class:`~slideio.ColorManagement` transformation converts scene pixels into a device-independent colour space -- sRGB, linear RGB, CIE Lab or XYZ. See `Colour management`_ below.
 - Bug fixing and small improvements.
 
-Earlier releases added the structured metadata tree (*metadata* property of *Slide* and *Scene* objects),
+Earlier releases added support for Philips TIFF whole slide images, reading from an
+explicitly selected zoom level with :py:meth:`~slideio.Scene.read_block_from_level`,
+the structured metadata tree (*metadata* property of *Slide* and *Scene* objects),
 multithreaded conversion, and support for OME-TIFF files.
 
 
@@ -41,7 +40,27 @@ The module builds accesses images through a system of image drivers that impleme
 - OMETIFF - driver for reading of `OME-TIFF images <https://docs.openmicroscopy.org/ome-model/5.6.3/ome-tiff/>`_.
 - PHTIFF - driver for reading of `Philips TIFF whole slide images <https://www.usa.philips.com/healthcare/resources/feature-detail/intellisite-pathology-solution>`_.
 
-The module provides 2 python classes: *Slide* and *Scene*. *Slide* is a container object returned by the module function *open_slide*. In the simplest case, a *Slide* object contains a single *Scene* object. Some slides can contain multiple scenes. For example, a czi file can contain several scanned regions, each of them is represented as a *Scene* object. *Scene* class provides methods to access image pixel values and metadata. 
+The module provides 2 python classes: *Slide* and *Scene*. *Slide* is a container object returned by the module function *open_slide*. In the simplest case, a *Slide* object contains a single *Scene* object. Some slides can contain multiple scenes. For example, a czi file can contain several scanned regions, each of them is represented as a *Scene* object. *Scene* class provides methods to access image pixel values and metadata.
+
+Colour management
+------------------
+Some image formats embed an ICC colour profile that describes how a scene's raw pixel values map to a real colour space. *Scene* exposes it two ways: :py:meth:`~slideio.Scene.get_color_profile` returns the raw profile bytes, or *None* if the scene carries none, and :py:meth:`~slideio.Scene.get_color_profile_info` returns a parsed summary as a :py:class:`~slideio.ColorProfileInfo` object, including where the profile came from (:py:class:`~slideio.ColorProfileSource`: an embedded profile, an assumed one, or none at all).
+
+To convert a scene's pixels into a device-independent colour space, transform it with :py:class:`~slideio.ColorManagement`:
+
+.. code-block:: python
+
+ import slideio
+
+ slide = slideio.open_slide(file_path="/data/a.svs", driver_id="SVS")
+ scene = slide.get_scene(0)
+
+ cm = slideio.ColorManagement()
+ cm.target = slideio.ColorTarget.LAB
+ lab_scene = slideio.transform_scene(scene, [cm])
+ block = lab_scene.read_block()
+
+*ColorManagement* accepts three-channel scenes only, and converts to one of four targets (:py:class:`~slideio.ColorTarget`): *SRGB*, *LINEAR_RGB*, *LAB* or *XYZ*. When a scene carries no embedded profile it assumes sRGB by default; set *missing_profile_policy* (:py:class:`~slideio.MissingProfilePolicy`) to change that -- for example to *FAIL*, to reject scenes without a real embedded profile, or to *PASS_THROUGH*, to leave the pixels untouched when the target is sRGB.
 
 
 Contents

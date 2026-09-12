@@ -12,17 +12,8 @@ namespace slideio
 {
     class IccTransform;
 
-    /**@brief what to do for a slide that embeds no ICC profile*/
-    enum class MissingProfilePolicy
-    {
-        /**@brief treat the source as sRGB. Reads always succeed; the scene
-         * reports ColorProfileSource::Assumed so absence stays visible.*/
-        AssumeSRGB,
-        /**@brief return decoded pixels untouched. Valid only for target sRGB.*/
-        PassThrough,
-        /**@brief throw at bind time. For pipelines that require real colorimetry.*/
-        Fail,
-    };
+    // MissingProfilePolicy now lives in slideio/core/colorprofile.hpp, alongside
+    // the rest of the public colour vocabulary -- see that header for why.
 
     /**@brief converts scene blocks into a device-independent colour space.
      *
