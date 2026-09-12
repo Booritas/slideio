@@ -13,15 +13,41 @@ TransformerScene::TransformerScene(std::shared_ptr<CVScene> originScene,
                                    const std::list<std::shared_ptr<Transformation>>& list) :
     m_originScene(originScene), m_inflationValue(0)
 {
-    // Bind before initChannels(): a bound transformation may report different
-    // channel data types from its unbound configuration.
+    // Binding and channel-type accumulation are one loop, not two passes.
+    //
+    // Each transformation is bound against the state it will actually be
+    // handed -- the channel types and colour profile the transformations
+    // before it produce -- rather than against the origin scene. Two passes
+    // cannot do that: the earlier version bound every element against
+    // *originScene, so a composed chain such as [ColorTransformation(GRAY),
+    // ColorManagement()] validated ColorManagement against three origin
+    // channels, bound, and only then threw from the first tile read. The
+    // accumulation also has to happen after each bind, because a bound
+    // transformation may report different channel data types from its unbound
+    // configuration.
+    std::vector<DataType> dataTypes;
+    dataTypes.reserve(originScene->getNumChannels());
+    for (int channel = 0; channel < originScene->getNumChannels(); ++channel) {
+        dataTypes.push_back(originScene->getChannelDataType(channel));
+    }
+    ColorProfile profile = originScene->getColorProfile();
+
     for (const auto& transformation : list) {
         TransformationEx* transformationEx = dynamic_cast<TransformationEx*>(transformation.get());
+        if (!transformationEx) {
+            RAISE_RUNTIME_ERROR << "TransformScene: invalid Transformation";
+        }
         std::shared_ptr<TransformationEx> bound =
-            transformationEx ? transformationEx->bindToSource(*originScene) : nullptr;
-        m_transformations.push_back(bound ? bound : transformation);
+            transformationEx->bindToSource(*originScene, dataTypes, profile);
+        if (bound) {
+            transformationEx = bound.get();
+        }
+        m_transformations.push_back(bound ? std::static_pointer_cast<Transformation>(bound)
+                                          : transformation);
+        dataTypes = transformationEx->computeChannelDataTypes(dataTypes);
+        profile = transformationEx->amendColorProfile(profile);
     }
-    initChannels();
+    m_channelDataTypes = dataTypes;
     computeInflationValue();
 }
 
@@ -153,24 +179,6 @@ void TransformerScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, c
         }
         cv::merge(selectedChannels, output);
     }
-}
-
-void TransformerScene::initChannels()
-{
-    const int numChannels = m_originScene->getNumChannels();
-    std::vector<DataType> dataTypes;
-    for (int ch = 0; ch < numChannels; ++ch) {
-        dataTypes.push_back(m_originScene->getChannelDataType(ch));
-    }
-    for (const auto& transformation : m_transformations) {
-        TransformationEx* transformationEx = dynamic_cast<TransformationEx*>(transformation.get());
-        if (!transformationEx) {
-            RAISE_RUNTIME_ERROR << "TransformScene: invalid Transformation";
-        }
-        std::vector<DataType> newDataTypes = transformationEx->computeChannelDataTypes(dataTypes);
-        dataTypes = newDataTypes;
-    }
-    m_channelDataTypes = dataTypes;
 }
 
 void TransformerScene::computeInflationValue()

@@ -18,23 +18,33 @@ ColorManagement::ColorManagement(ColorTarget target) : ColorManagement()
     m_target = target;
 }
 
-std::shared_ptr<TransformationEx> ColorManagement::bindToSource(const CVScene& source) const
+// The origin scene parameter is deliberately unused; see the comment below.
+std::shared_ptr<TransformationEx> ColorManagement::bindToSource(
+    const CVScene&, const std::vector<DataType>& channelDataTypes,
+    const ColorProfile& inputProfile) const
 {
     auto bound = std::make_shared<ColorManagement>(*this);
 
-    if (source.getNumChannels() != 3) {
-        RAISE_RUNTIME_ERROR << "ColorManagement: expected a 3 channel RGB scene, found "
-                            << source.getNumChannels()
+    // channelDataTypes and inputProfile, not the origin scene: in a chain this is the
+    // state the earlier transformations hand us, which for anything but the
+    // first element differs from the origin scene's. Validating against the
+    // origin instead let, say, [ColorTransformation(GRAY), ColorManagement()]
+    // bind happily against three origin channels and then throw from inside
+    // IccTransform::apply on the first tile -- exactly the several-thousand-
+    // tiles-later failure bind-time validation exists to prevent.
+    if (channelDataTypes.size() != 3) {
+        RAISE_RUNTIME_ERROR << "ColorManagement: expected a 3 channel RGB image, received "
+                            << channelDataTypes.size()
                             << " channels. ICC conversion of non-colorimetric channels is"
                                " not meaningful.";
     }
-    const DataType dataType = source.getChannelDataType(0);
+    const DataType dataType = channelDataTypes[0];
     if (dataType != DataType::DT_Byte && dataType != DataType::DT_UInt16) {
         RAISE_RUNTIME_ERROR << "ColorManagement: expected DT_Byte or DT_UInt16 channels, found "
                             << dataType;
     }
 
-    ColorProfile sourceProfile = m_sourceOverride.isEmpty() ? source.getColorProfile()
+    ColorProfile sourceProfile = m_sourceOverride.isEmpty() ? inputProfile
                                                             : m_sourceOverride;
     if (!sourceProfile.isEmpty()) {
         const ColorProfileInfo info = IccTransform::describe(sourceProfile);
@@ -53,6 +63,7 @@ std::shared_ptr<TransformationEx> ColorManagement::bindToSource(const CVScene& s
         case MissingProfilePolicy::Fail:
             RAISE_RUNTIME_ERROR << "ColorManagement: the scene embeds no ICC profile and the"
                                    " missing profile policy is Fail";
+            break;
         case MissingProfilePolicy::PassThrough:
             if (m_target != ColorTarget::sRGB) {
                 RAISE_RUNTIME_ERROR << "ColorManagement: PassThrough is only coherent with the"

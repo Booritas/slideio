@@ -40,7 +40,9 @@ namespace slideio
         const ColorProfile& getSourceProfileOverride() const { return m_sourceOverride; }
         void setSourceProfileOverride(const ColorProfile& profile) { m_sourceOverride = profile; }
 
-        std::shared_ptr<TransformationEx> bindToSource(const CVScene& source) const override;
+        std::shared_ptr<TransformationEx> bindToSource(
+            const CVScene& source, const std::vector<DataType>& channelDataTypes,
+            const ColorProfile& sourceProfile) const override;
         ColorProfile amendColorProfile(const ColorProfile& input) const override;
         void applyTransformation(const cv::Mat& block, cv::OutputArray transformedBlock) const override;
         std::vector<DataType> computeChannelDataTypes(const std::vector<DataType>& channels) const override;
