@@ -44,7 +44,9 @@ The module provides 2 python classes: *Slide* and *Scene*. *Slide* is a containe
 
 Colour management
 ------------------
-Some image formats embed an ICC colour profile that describes how a scene's raw pixel values map to a real colour space. *Scene* exposes it two ways: :py:meth:`~slideio.Scene.get_color_profile` returns the raw profile bytes, or *None* if the scene carries none, and :py:meth:`~slideio.Scene.get_color_profile_info` returns a parsed summary as a :py:class:`~slideio.ColorProfileInfo` object, including where the profile came from (:py:class:`~slideio.ColorProfileSource`: an embedded profile, an assumed one, or none at all).
+Some image formats embed an ICC colour profile that describes how a scene's raw pixel values map to a real colour space. *Scene* exposes it two ways: :py:meth:`~slideio.Scene.get_color_profile` returns the raw profile bytes, or *None* if the scene carries none, and :py:meth:`~slideio.Scene.get_color_profile_info` returns a parsed summary as a :py:class:`~slideio.ColorProfileInfo` object, including where the profile came from (:py:class:`~slideio.ColorProfileSource`: a profile embedded in the file, one you supplied yourself, an assumed one, or none at all).
+
+Those four values are worth keeping apart when you record what a pipeline did. ``EMBEDDED`` means the slide carried the colorimetry; ``SUPPLIED`` means you provided it through ``source_profile_override``, so the claim about the scanner is yours rather than the file's; ``ASSUMED`` means nothing was found and sRGB was assumed, so no real correction took place.
 
 To convert a scene's pixels into a device-independent colour space, transform it with :py:class:`~slideio.ColorManagement`:
 
