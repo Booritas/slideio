@@ -184,6 +184,15 @@ namespace
         default: return INTENT_RELATIVE_COLORIMETRIC;
         }
     }
+
+    // The cv::Mat depth apply() must receive to match the DataType the
+    // transform was constructed for. sourceFormat() already rejected every
+    // DataType but these two, so this cannot return anything else at apply()
+    // time.
+    int expectedCvDepth(DataType type)
+    {
+        return (type == DataType::DT_UInt16) ? CV_16U : CV_8U;
+    }
 }
 
 IccTransform::IccTransform(const ColorProfile& source, ColorTarget target,
@@ -222,6 +231,7 @@ IccTransform::IccTransform(const ColorProfile& source, ColorTarget target,
         RAISE_RUNTIME_ERROR << "IccTransform: lcms2 could not build a transform to " << target;
     }
     m_outputType = (target == ColorTarget::sRGB) ? sourceType : DataType::DT_Float32;
+    m_sourceType = sourceType;
 }
 
 void IccTransform::apply(const cv::Mat& src, cv::OutputArray dst) const
@@ -231,6 +241,18 @@ void IccTransform::apply(const cv::Mat& src, cv::OutputArray dst) const
     }
     if (!src.isContinuous()) {
         RAISE_RUNTIME_ERROR << "IccTransform: expected a continuous block";
+    }
+    const int expectedDepth = expectedCvDepth(m_sourceType);
+    if (src.depth() != expectedDepth) {
+        // lcms2 reads bytesPerChannel(m_sourceType) * rows * cols * 3 bytes
+        // from src.data regardless of what the Mat actually holds. A depth
+        // mismatch here is a heap over-read (DT_UInt16 transform, 8-bit
+        // input) or a silent half-read producing wrong colours (DT_Byte
+        // transform, 16-bit input) -- not a shape/type mismatch OpenCV would
+        // catch on its own.
+        RAISE_RUNTIME_ERROR << "IccTransform: constructed for " << m_sourceType
+                            << " (expected cv::Mat depth " << expectedDepth
+                            << "), received a cv::Mat of depth " << src.depth();
     }
     const int depth = (m_outputType == DataType::DT_Float32)
                           ? CV_32F

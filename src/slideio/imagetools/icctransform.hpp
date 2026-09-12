@@ -40,6 +40,7 @@ namespace slideio
     private:
         void* m_transform = nullptr;   // cmsHTRANSFORM
         DataType m_outputType = DataType::DT_Unknown;
+        DataType m_sourceType = DataType::DT_Unknown;
         int m_targetChannels = 3;
     };
 }
