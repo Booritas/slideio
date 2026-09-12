@@ -59,3 +59,20 @@ TEST(ColorProfileInfo, toStringNamesPresenceAndDescription)
     ASSERT_NE(std::string::npos, text.find("Embedded"));
     ASSERT_NE(std::string::npos, text.find("3144"));
 }
+
+#include "slideio/slideio/slideio.hpp"
+#include "slideio/slideio/scene.hpp"
+#include "tests/testlib/testtools.hpp"
+
+TEST(ColorProfile, sceneWithoutProfileReportsAbsent)
+{
+    // PNG through the gdal driver carries no ICC profile, and no driver
+    // overrides the new virtual yet, so this exercises the default.
+    std::string path = TestTools::getTestImagePath("gdal", "colors.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
+    std::shared_ptr<slideio::Slide> slide = slideio::openSlide(path, "AUTO");
+    std::shared_ptr<slideio::Scene> scene = slide->getScene(0);
+    const ColorProfile profile = scene->getColorProfile();
+    ASSERT_TRUE(profile.isEmpty());
+    ASSERT_EQ(ColorProfileSource::None, profile.getSource());
+}
