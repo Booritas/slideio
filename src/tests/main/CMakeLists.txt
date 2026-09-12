@@ -8,6 +8,7 @@ set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 set(TEST_SOURCES
   test_color_tools.cpp
   test_colorprofile.cpp
+  test_icctransform.cpp
   test_imagedrivermanager.cpp
   test_czi_driver.cpp
   test_czi_tools.cpp

@@ -12,3 +12,4 @@ class ImageToolsRecipe(ConanFile):
         self.requires("openjpeg/2.5.2")
         self.requires("freeimage/3.18.0")
         self.requires("jxrlib/cci.20170615")
+        self.requires("lcms/2.16")
