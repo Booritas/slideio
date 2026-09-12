@@ -10,6 +10,7 @@
 #include "slideio/transformer/transformer.hpp"
 #include "slideio/transformer/gaussianblurfilter.hpp"
 #include "slideio/transformer/colormanagement.hpp"
+#include "slideio/transformer/colormanagementwrap.hpp"
 #include "slideio/imagetools/icctransform.hpp"
 
 using namespace slideio;
@@ -261,4 +262,24 @@ TEST(ColorManagement, nonRgbChannelCountIsRejectedAtBindTime)
     ASSERT_EQ(6, scene->getNumChannels());
     ColorManagement cm;
     ASSERT_THROW(transformScene(scene, cm), RuntimeError);
+}
+
+// End-to-end coverage of the OTHER dispatch path: transformScene(scene,
+// TransformationWrapper&), which is what the Python binding calls (Task 14
+// wraps ColorManagementWrap and calls transform_scene). This overload goes
+// through transformer.cpp's transformFromWrapper(), a second switch on
+// TransformationType entirely separate from makeTransformationCopy()'s -- a
+// wrapper class with no case there is unreachable dead code from Python even
+// though the raw Transformation& path works fine.
+TEST(ColorManagement, wrapperPathMatchesDirectPath)
+{
+    std::string path = TestTools::getTestImagePath("gdal", "img_2448x2448_3x8bit_SRC_RGB_ducks.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
+    ColorManagementWrap wrap;
+    wrap.setTarget(ColorTarget::Lab);
+    std::shared_ptr<Scene> viaWrapper = transformScene(openUnprofiledRgbScene(), wrap);
+    // Same observable outcome as the direct-object path exercised by
+    // unprofiledSceneIsReportedAsAssumed: Assumed profile, Float32 channels.
+    ASSERT_EQ(ColorProfileSource::Assumed, viaWrapper->getColorProfileInfo().source);
+    ASSERT_EQ(DataType::DT_Float32, viaWrapper->getChannelDataType(0));
 }
