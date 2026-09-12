@@ -66,9 +66,11 @@ TEST(ColorProfileInfo, toStringNamesPresenceAndDescription)
 
 TEST(ColorProfile, sceneWithoutProfileReportsAbsent)
 {
-    // PNG through the gdal driver carries no ICC profile, and no driver
-    // overrides the new virtual yet, so this exercises the default.
-    std::string path = TestTools::getTestImagePath("gdal", "colors.png");
+    // colors.png, this file's original fixture, turns out to carry a real
+    // embedded ICC profile (see ColorProfile.gdalPngSceneReportsItsEmbeddedIcc
+    // below) -- img_2448x2448_3x8bit_SRC_RGB_ducks.png is the genuinely
+    // profile-less PNG in this corpus, confirmed with `identify -verbose`.
+    std::string path = TestTools::getTestImagePath("gdal", "img_2448x2448_3x8bit_SRC_RGB_ducks.png");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
     std::shared_ptr<slideio::Slide> slide = slideio::openSlide(path, "AUTO");
     std::shared_ptr<slideio::Scene> scene = slide->getScene(0);
@@ -79,7 +81,7 @@ TEST(ColorProfile, sceneWithoutProfileReportsAbsent)
 
 TEST(ColorProfile, sceneWithoutProfileReportsInfoAbsent)
 {
-    std::string path = TestTools::getTestImagePath("gdal", "colors.png");
+    std::string path = TestTools::getTestImagePath("gdal", "img_2448x2448_3x8bit_SRC_RGB_ducks.png");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
     std::shared_ptr<slideio::Slide> slide = slideio::openSlide(path, "AUTO");
     std::shared_ptr<slideio::Scene> scene = slide->getScene(0);
@@ -87,4 +89,24 @@ TEST(ColorProfile, sceneWithoutProfileReportsInfoAbsent)
     ASSERT_FALSE(info.present);
     ASSERT_EQ(ColorProfileSource::None, info.source);
     ASSERT_NE(std::string::npos, info.toString().find("present=false"));
+}
+
+// colors.png carries a real 672-byte GIMP-built sRGB ICC profile (confirmed
+// with `identify -verbose`: Profile-icc, "GIMP built-in sRGB"). Now that the
+// gdal driver reads it (GDALScene::getColorProfile(), via FreeImage's
+// FreeImage_GetICCProfile), this is an end-to-end assertion of the whole
+// chain: FreeImage -> GDALScene -> Scene::getColorProfileInfo().
+TEST(ColorProfile, gdalPngSceneReportsItsEmbeddedIcc)
+{
+    std::string path = TestTools::getTestImagePath("gdal", "colors.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
+    std::shared_ptr<slideio::Slide> slide = slideio::openSlide(path, "AUTO");
+    std::shared_ptr<slideio::Scene> scene = slide->getScene(0);
+    const ColorProfile profile = scene->getColorProfile();
+    ASSERT_FALSE(profile.isEmpty());
+    ASSERT_EQ(672u, profile.getSize());
+    ASSERT_EQ(ColorProfileSource::Embedded, profile.getSource());
+    const ColorProfileInfo info = scene->getColorProfileInfo();
+    ASSERT_TRUE(info.present);
+    ASSERT_EQ(IccColorSpace::RGB, info.dataSpace);
 }
