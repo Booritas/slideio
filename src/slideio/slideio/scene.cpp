@@ -7,6 +7,7 @@
 #include "slideio/core/cvscene.hpp"
 #include "slideio/core/log.hpp"
 #include "slideio/core/exceptions.hpp"
+#include "slideio/imagetools/icctransform.hpp"
 
 using namespace slideio;
 
@@ -400,6 +401,11 @@ ColorProfile Scene::getColorProfile() const
 {
 	SLIDEIO_LOG(INFO) << "Scene::getColorProfile ";
 	return m_scene->getColorProfile();
+}
+
+ColorProfileInfo Scene::getColorProfileInfo() const
+{
+	return IccTransform::describe(m_scene->getColorProfile());
 }
 
 const slideio::Metadata& slideio::Scene::getMetadata() const
