@@ -10,7 +10,6 @@
 #include "slideio/drivers/pke/pkescene.hpp"
 #include "slideio/drivers/pke/pkeslide.hpp"
 #include "slideio/imagetools/smallimage.hpp"
-#include "slideio/imagetools/tifftools.hpp"
 #include "slideio/slideio/imagedrivermanager.hpp"
 #include "slideio/slideio/slide.hpp"
 #include "slideio/slideio/slideio.hpp"

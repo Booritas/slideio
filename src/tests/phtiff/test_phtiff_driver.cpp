@@ -19,6 +19,7 @@
 #include "slideio/drivers/svs/phtdescription.hpp"
 #include "slideio/drivers/svs/phtmetadata.hpp"
 #include "slideio/core/exceptions.hpp"
+#include "slideio/imagetools/icctransform.hpp"
 #include <type_traits>
 #include <sstream>
 #include <locale>
@@ -2762,4 +2763,81 @@ TEST_F(PhTiffImageDriverTests, readLevelRejectsAnOutOfRangeLevel) {
 	EXPECT_THROW(opened.scene->readResampledLevelBlockChannels(numLevels, cv::Rect(0, 0, 64, 64),
 	                                                           cv::Size(64, 64), {}, raster),
 	             slideio::RuntimeError);
+}
+
+// --- color profile -------------------------------------------------------------------
+// No Philips file in the corpus available to this task carries an ICC tag (checked with
+// a raw TIFF IFD walker over the whole images corpus), so this is the absent-path
+// counterpart to the two white-box tests below, which inject a real synthetic profile
+// directly onto a fake TiffDirectory to prove the wiring end to end without depending on
+// the corpus ever gaining an ICC-tagged Philips fixture.
+TEST_F(PhTiffImageDriverTests, colorProfileAbsentWhenTiffTagIsAbsent) {
+	std::string filePath = TestTools::getTestImagePath("philips", "Philips-3.tiff");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+	auto slide = slideio::openSlide(filePath, PHTIFF_DRIVER_ID);
+	ASSERT_TRUE(slide != nullptr);
+	auto scene = slide->getScene(0);
+	ASSERT_TRUE(scene != nullptr);
+	const slideio::ColorProfile profile = scene->getColorProfile();
+	ASSERT_TRUE(profile.isEmpty());
+	ASSERT_EQ(slideio::ColorProfileSource::None, profile.getSource());
+}
+
+// createImageScene reports the profile of image_dirs.front() -- the base (level 0)
+// directory -- the same one processImageDescription already reads compression and
+// resolution from. A real embedded sRGB profile (not a placeholder byte vector) proves
+// the exact bytes survive the trip through PHTIFFTiledScene/SVSTiledScene unmodified.
+TEST_F(PhTiffImageDriverTests, phCreateImageScene_carriesTheIccProfileOfItsBaseDirectory) {
+	const slideio::ColorProfile injected = IccTransform::createSRGBProfile();
+	ASSERT_FALSE(injected.isEmpty());
+
+	const std::string xml = MockPHTIFFSlide::createFakeXml(35840, 30720, 3, {});
+	std::vector<TiffDirectory> directories = {
+		makeImageDir(xml, 35840, 30720),
+		makeImageDir("level=1 mag=22 quality=80", 22528, 17920),
+		makeImageDir("level=2 mag=11 quality=80", 11264, 9216),
+	};
+	directories[0].iccProfile = injected.getData();
+	const std::vector<PHTLevel> imagePyramid = { {0, 0}, {1, 1}, {2, 2} };
+
+	MockPHTIFFSlide slide;
+	slide.createImageSceneMock(directories, imagePyramid, nullptr);
+
+	ASSERT_EQ(1, slide.getNumScenes());
+	auto scene = slide.getScene(0);
+	ASSERT_TRUE(scene != nullptr);
+	const slideio::ColorProfile profile = scene->getColorProfile();
+	ASSERT_FALSE(profile.isEmpty());
+	EXPECT_EQ(injected.getData(), profile.getData());
+	EXPECT_EQ(slideio::ColorProfileSource::Embedded, profile.getSource());
+}
+
+// Each aux scene reports its own directory's profile, not directory 0's and not another
+// aux image's: Label carries a real synthetic profile here, Macro carries none, proving
+// createAuxScenes does not smear one profile across every named image.
+TEST_F(PhTiffImageDriverTests, phCreateAuxScenes_carriesEachAuxImagesOwnIccProfile) {
+	const slideio::ColorProfile injected = IccTransform::createSRGBProfile();
+	ASSERT_FALSE(injected.isEmpty());
+
+	std::vector<TiffDirectory> directories = {
+		makeImageDir(MockPHTIFFSlide::fakeXML, 131072, 100352),
+		makeImageDir("Macro", 791, 403),
+		makeImageDir("Label", 387, 403),
+	};
+	directories[2].iccProfile = injected.getData();
+	const std::map<std::string, int> auxImages = { {"Macro", 1}, {"Label", 2} };
+
+	MockPHTIFFSlide slide;
+	slide.createAuxScenesMock(directories, auxImages);
+
+	auto macro = slide.getAuxImage("Macro");
+	ASSERT_TRUE(macro != nullptr);
+	EXPECT_TRUE(macro->getColorProfile().isEmpty());
+
+	auto label = slide.getAuxImage("Label");
+	ASSERT_TRUE(label != nullptr);
+	const slideio::ColorProfile labelProfile = label->getColorProfile();
+	ASSERT_FALSE(labelProfile.isEmpty());
+	EXPECT_EQ(injected.getData(), labelProfile.getData());
+	EXPECT_EQ(slideio::ColorProfileSource::Embedded, labelProfile.getSource());
 }
