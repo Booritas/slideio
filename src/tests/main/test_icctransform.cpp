@@ -161,6 +161,31 @@ TEST(IccTransform, rejectsNonThreeChannelInput)
     ASSERT_THROW(transform.apply(grey, out), slideio::RuntimeError);
 }
 
+TEST(IccTransform, rejectsByteInputWhenConstructedForUInt16)
+{
+    // Constructed for DT_UInt16, lcms2's source format is TYPE_RGB_16: it
+    // reads 2 bytes/channel. Handing it an 8-bit Mat of the same rows/cols
+    // is a heap over-read, not merely wrong output -- this must throw before
+    // cmsDoTransform ever runs.
+    IccTransform transform(IccTransform::createSRGBProfile(), ColorTarget::Lab,
+                           RenderingIntent::RelativeColorimetric, true, DataType::DT_UInt16);
+    cv::Mat out;
+    ASSERT_THROW(transform.apply(makeRgbPatch({255, 255, 255}), out), slideio::RuntimeError);
+}
+
+TEST(IccTransform, rejectsUInt16InputWhenConstructedForByte)
+{
+    // The opposite mismatch: constructed for DT_Byte (TYPE_RGB_8, 1
+    // byte/channel) but hands it a 16-bit Mat. lcms2 would silently read
+    // only the low half of the buffer and produce plausible-looking but
+    // wrong colours with no error -- this must throw instead.
+    IccTransform transform(IccTransform::createSRGBProfile(), ColorTarget::Lab,
+                           RenderingIntent::RelativeColorimetric, true, DataType::DT_Byte);
+    cv::Mat wideDepth(4, 4, CV_16UC3, cv::Scalar(60000, 60000, 60000));
+    cv::Mat out;
+    ASSERT_THROW(transform.apply(wideDepth, out), slideio::RuntimeError);
+}
+
 TEST(IccTransform, applyIsSafeFromSeveralThreads)
 {
     IccTransform transform(IccTransform::createSRGBProfile(), ColorTarget::Lab,
