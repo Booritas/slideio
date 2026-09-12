@@ -53,7 +53,6 @@ namespace slideio
             return m_originScene->supportsConcurrentReads();
         }
     private:
-        void initChannels();
         void computeInflationValue();
     private:
         std::shared_ptr<CVScene> m_originScene;

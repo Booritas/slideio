@@ -2,8 +2,11 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include <gtest/gtest.h>
-#include <thread>
+#include <algorithm>
 #include <atomic>
+#include <list>
+#include <memory>
+#include <thread>
 #include "tests/testlib/testtools.hpp"
 #include "slideio/slideio/slideio.hpp"
 #include "slideio/slideio/scene.hpp"
@@ -11,6 +14,7 @@
 #include "slideio/core/exceptions.hpp"
 #include "slideio/transformer/transformer.hpp"
 #include "slideio/transformer/gaussianblurfilter.hpp"
+#include "slideio/transformer/colortransformation.hpp"
 #include "slideio/transformer/colormanagement.hpp"
 #include "slideio/transformer/colormanagementwrap.hpp"
 #include "slideio/imagetools/icctransform.hpp"
@@ -29,7 +33,8 @@ TEST(TransformationBinding, existingFiltersNeedNoBinding)
     std::shared_ptr<Scene> scene = slide->getScene(0);
     std::shared_ptr<CVScene> cvScene = scene->getCVScene();
     GaussianBlurFilter filter;
-    ASSERT_EQ(nullptr, filter.bindToSource(*cvScene).get());
+    ASSERT_EQ(nullptr, filter.bindToSource(*cvScene, {DataType::DT_Byte, DataType::DT_Byte,
+                                                      DataType::DT_Byte}, ColorProfile()).get());
 }
 
 TEST(TransformationBinding, existingFiltersLeaveTheProfileAlone)
@@ -264,6 +269,72 @@ TEST(ColorManagement, nonRgbChannelCountIsRejectedAtBindTime)
     ASSERT_EQ(6, scene->getNumChannels());
     ColorManagement cm;
     ASSERT_THROW(transformScene(scene, cm), RuntimeError);
+}
+
+// Composition is the shape Python actually offers -- transform_scene(scene,
+// [...]) takes a list -- and it is where bind-time validation used to leak.
+// Every transformation was bound against the origin scene, so the checks below
+// were made against an image the transformation would never be handed, and the
+// rejection escaped to the first tile read instead.
+TEST(ColorManagement, composedChainIsValidatedAgainstItsUpstreamChannels)
+{
+    std::string path = TestTools::getTestImagePath("gdal", "colors.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
+    std::shared_ptr<Scene> scene = openProfiledRgbScene();
+    ASSERT_EQ(3, scene->getNumChannels());
+
+    // ColorTransformation(GRAY) collapses three channels to one, so the
+    // ColorManagement behind it can never see colorimetric RGB. Before this
+    // was threaded through binding, the chain built happily against the
+    // origin's three channels and threw from inside IccTransform::apply on
+    // the first tile -- several thousand tiles into a batch, not on the file.
+    std::list<std::shared_ptr<Transformation>> chain{
+        std::make_shared<ColorTransformation>(ColorSpace::GRAY),
+        std::make_shared<ColorManagement>(ColorTarget::Lab)};
+    ASSERT_THROW(transformSceneEx(scene, chain), RuntimeError);
+}
+
+TEST(ColorManagement, composedChainIsValidatedAgainstItsUpstreamDataType)
+{
+    std::string path = TestTools::getTestImagePath("gdal", "colors.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
+    std::shared_ptr<Scene> scene = openProfiledRgbScene();
+
+    // The other axis of the same bug: channel count survives, the data type
+    // does not. The first conversion leaves DT_Float32 channels, which are not
+    // colorimetric input for a second one.
+    std::list<std::shared_ptr<Transformation>> chain{
+        std::make_shared<ColorManagement>(ColorTarget::Lab),
+        std::make_shared<ColorManagement>(ColorTarget::Lab)};
+    ASSERT_THROW(transformSceneEx(scene, chain), RuntimeError);
+}
+
+// The other half of the contract: threading the state through binding must not
+// start rejecting compositions that are genuinely fine. A blur preserves both
+// the channel count and the data type, so colour management behind it binds and
+// reads exactly as it does on its own.
+TEST(ColorManagement, composedChainBehindAShapePreservingFilterStillBinds)
+{
+    std::string path = TestTools::getTestImagePath("gdal", "colors.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
+    std::shared_ptr<Scene> origin = openProfiledRgbScene();
+    auto blur = std::make_shared<GaussianBlurFilter>();
+    std::list<std::shared_ptr<Transformation>> chain{
+        blur, std::make_shared<ColorManagement>(ColorTarget::Lab)};
+    std::shared_ptr<Scene> managed = transformSceneEx(origin, chain);
+    ASSERT_EQ(DataType::DT_Float32, managed->getChannelDataType(0));
+    ASSERT_EQ(ColorProfileSource::Embedded, managed->getColorProfileInfo().source);
+
+    auto rect = managed->getRect();
+    const int width = std::min(64, std::get<2>(rect));
+    const int height = std::min(64, std::get<3>(rect));
+    const std::tuple<int, int, int, int> block{0, 0, width, height};
+    std::vector<float> buffer(static_cast<size_t>(width) * height * 3);
+    managed->readBlock(block, buffer.data(), buffer.size() * sizeof(float));
+    for (size_t i = 0; i < buffer.size(); i += 3) {
+        ASSERT_GE(buffer[i], -0.5f);      // L in [0,100]
+        ASSERT_LE(buffer[i], 100.5f);
+    }
 }
 
 // End-to-end coverage of the OTHER dispatch path: transformScene(scene,
