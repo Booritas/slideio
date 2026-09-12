@@ -7,6 +7,7 @@
 #include "slideio/core/resolution.hpp"
 #include "slideio/core/slideio_enums.hpp"
 #include "slideio/core/metadata.hpp"
+#include "slideio/core/colorprofile.hpp"
 #include <opencv2/core.hpp>
 #include <vector>
 #include <string>
@@ -204,6 +205,14 @@ namespace slideio
         virtual std::shared_ptr<CVScene> getAuxImage(const std::string& imageName) const;
         /**@brief returns string of serialized metadata. Content of the string depends on image format.*/
         virtual std::string getRawMetadata() const { return m_rawMetadata; }
+        /**@brief returns the ICC colour profile embedded in the scene.
+         *
+         * The default returns an empty profile, which is the correct answer for
+         * a format that carries no colorimetry. A driver overrides it when it
+         * has real profile bytes. Per scene rather than per slide: a label and a
+         * macro image are captured through different optics than the tissue
+         * scan.*/
+        virtual ColorProfile getColorProfile() const { return ColorProfile(); }
         /**@brief returns metadata as a navigable tree. Built lazily on first call. */
         const Metadata& getMetadata() const;
         virtual void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,

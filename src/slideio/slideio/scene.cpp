@@ -396,6 +396,12 @@ MetadataFormat Scene::getMetadataFormat() const {
 	return m_scene->getMetadataFormat();
 }
 
+ColorProfile Scene::getColorProfile() const
+{
+	SLIDEIO_LOG(INFO) << "Scene::getColorProfile ";
+	return m_scene->getColorProfile();
+}
+
 const slideio::Metadata& slideio::Scene::getMetadata() const
 {
     SLIDEIO_LOG(INFO) << "Scene::getMetadata ";

@@ -6,6 +6,7 @@
 #include "slideio/slideio/slideio_def.hpp"
 #include "slideio/core/slideio_enums.hpp"
 #include "slideio/core/metadata.hpp"
+#include "slideio/core/colorprofile.hpp"
 #include <string>
 #include <vector>
 #include <memory>
@@ -312,6 +313,12 @@ namespace slideio
         std::string getRawMetadata() const;
 		/**@brief returns metadata format of the scene. */
 		MetadataFormat getMetadataFormat() const;
+        /**@brief returns the raw ICC colour profile embedded in the scene.
+         *
+         * Empty when the slide carries none. The bytes are the profile exactly
+         * as stored, suitable for handing to an external colour management
+         * system. Use #getColorProfileInfo for the parsed header.*/
+        ColorProfile getColorProfile() const;
         /**@brief returns metadata as a navigable tree. Built lazily on first call. */
         const Metadata& getMetadata() const;
         /**@brief returns a slideio::Scene object that represents an auxiliary image.
