@@ -2,7 +2,9 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #pragma once
+#include <cstdint>
 #include <string>
+#include <vector>
 #include <opencv2/core/mat.hpp>
 #include "slideio/core/resolution.hpp"
 
@@ -22,6 +24,14 @@ namespace slideio
 		virtual const std::string& getMetadata() const = 0;
 		virtual void readRaster(cv::OutputArray raster) = 0;
 		virtual Resolution getResolution() const {
+			return {};
+		}
+		/**@brief raw ICC profile bytes embedded in the page, if any.
+		 *
+		 * Empty when the page carries no profile. Default implementation
+		 * returns empty; a wrapper overrides it only when its underlying
+		 * library exposes an ICC chunk/tag.*/
+		virtual std::vector<uint8_t> getICCProfile() const {
 			return {};
 		}
 	};

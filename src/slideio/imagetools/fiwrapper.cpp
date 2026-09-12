@@ -475,6 +475,20 @@ void FIWrapper::Page::readRaster(cv::OutputArray raster) {
     }
 }
 
+std::vector<uint8_t> FIWrapper::Page::getICCProfile() const {
+    if (!m_pBitmap) {
+        return {};
+    }
+    // FreeImage_GetICCProfile always returns a valid pointer to a struct
+    // embedded in the FIBITMAP header; a profile-less image reports size 0.
+    FIICCPROFILE* profile = FreeImage_GetICCProfile(m_pBitmap);
+    if (!profile || profile->size == 0 || profile->data == nullptr) {
+        return {};
+    }
+    const uint8_t* bytes = static_cast<const uint8_t*>(profile->data);
+    return std::vector<uint8_t>(bytes, bytes + profile->size);
+}
+
 Resolution FIWrapper::Page::getResolution() const {
     double pixPerMX = FreeImage_GetDotsPerMeterX(m_pBitmap);
     double pixPerMY = FreeImage_GetDotsPerMeterY(m_pBitmap);
