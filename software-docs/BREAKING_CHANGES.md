@@ -720,6 +720,55 @@ Two tests in `tests/test_storage.cpp`: the call-count bound, which fails on the
 old code at 7 against a bound of 3, and a sweep reading every offset in the
 stream at five lengths against a whole-stream reference.
 
+### ZVI parses metadata from a buffer, not field by field off the file
+
+**Module:** `slideio-zvi` (exported: the `ZVIUtils` parser functions and
+`StreamKeeper`)
+**Files:** `src/slideio/drivers/zvi/zviutils.hpp`/`.cpp`
+
+The init-time parsers walked a stream field by field — two bytes of type, then
+a value — and pole's positional read path has no buffer beneath it, so each of
+those reached the file. A nine-field parse cost 14 file reads. `ZVIUtils` now
+reads a stream once into memory and parses from there.
+
+**Measured:** end-to-end `openSlide` on `zvi/openslide/Zeiss-3-Mosaic.zvi`
+(2.0 GB, 1543 items) goes from **~2750 ms to ~1130 ms**, a 2.4× speedup. The
+same parse that cost 14 file reads now costs 3, which is the floor for that
+particular stream — it is 390 bytes, and its small blocks sit in three distinct
+container blocks.
+
+**Source break — the parser signatures changed type.** Every `ZVIUtils` parser
+took `ole::basic_stream&` and now takes `ZVIUtils::BufferedStream&`:
+
+| Function | Was → is |
+|---|---|
+| `readAllTags`, `streamSize`, `bytesLeft`, `readExactly`, `skipItem`, `skipItems`, `readIntItem`, `readDoubleItem`, `readStringItem`, `readItem` | first parameter `ole::basic_stream&` → `ZVIUtils::BufferedStream&` |
+| `StreamKeeper::operator ole::basic_stream&`, `operator->` | now yield `BufferedStream&` / `BufferedStream*` |
+
+`StreamKeeper` holds the buffer, so call sites that went through it are
+unchanged — that is why the driver itself needed no edits beyond `zviutils`.
+A caller that built an `ole::basic_stream` and handed it to a parser directly
+must wrap it: `ZVIUtils::BufferedStream buffered(stream);`. `StreamKeeper`
+still resolves the path the same way and still claims the stream through the
+non-`const` `stream()`, so nothing about stream ownership changed.
+
+`ConstStreamKeeper` is untouched and still yields `const ole::basic_stream&`.
+The pixel path reads whole tiles through it with one `read_at` and must keep
+doing so — routing tiles through `BufferedStream` would copy each one an extra
+time for nothing.
+
+**New type.** `ZVIUtils::BufferedStream` reads a stream once in its constructor
+and exposes the three operations the parsers use — `read`, `seek`, `pos` —
+with pole's semantics preserved deliberately: `read` clamps to what is left and
+advances by the count it returns, and `seek` refuses a target outside the
+stream and leaves the position where it was. `skipExactly` depends on the
+latter to catch a bogus skip length, so a looser `seek` would turn a detected
+parse error into a silent misparse.
+
+This fixes slideio's use of pole rather than pole itself;
+`software-docs/TECH_DEBT.md` §26 stays open for the underlying absence of
+buffering, which any other pole consumer would still meet.
+
 ### The private conan remote is gone; everything comes from conan center
 
 **Module:** build system

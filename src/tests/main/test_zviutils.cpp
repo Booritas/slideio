@@ -29,7 +29,7 @@ TEST(ZVIUtils, read_stream_int)
     auto contents = storage->find_stream("/Image/Contents");
     ASSERT_TRUE(contents != storage->end());
 
-    ole::basic_stream stream = contents->stream();
+    ZVIUtils::BufferedStream stream(contents->stream());
     ZVIUtils::skipItems(stream, 4);
 
     int32_t width = ZVIUtils::readIntItem(stream);
@@ -60,10 +60,11 @@ TEST(ZVIUtils, read_stream_double)
     ASSERT_TRUE(scaling_storage != doc.end());
     auto contents_stream = scaling_storage->find_stream("/Image/Scaling/Contents");
     ASSERT_TRUE(contents_stream != scaling_storage->end());
-    ZVIUtils::skipItems(contents_stream->stream(), 3);
-    double value = ZVIUtils::readDoubleItem(contents_stream->stream());
+    ZVIUtils::BufferedStream stream(contents_stream->stream());
+    ZVIUtils::skipItems(stream, 3);
+    double value = ZVIUtils::readDoubleItem(stream);
     ASSERT_DOUBLE_EQ(value, 0.0645);
-    int scalingUnits = ZVIUtils::readIntItem(contents_stream->stream());
+    int scalingUnits = ZVIUtils::readIntItem(stream);
     ASSERT_EQ(scalingUnits, 76);
 }
 
@@ -79,8 +80,9 @@ TEST(ZVIUtils, read_stream_string)
     ASSERT_TRUE(scaling_storage != doc.end());
     auto contents_stream = scaling_storage->find_stream("/Image/Scaling/Contents");
     ASSERT_TRUE(contents_stream != scaling_storage->end());
-    ZVIUtils::skipItems(contents_stream->stream(), 1);
-    std::string key = ZVIUtils::readStringItem(contents_stream->stream());
+    ZVIUtils::BufferedStream stream(contents_stream->stream());
+    ZVIUtils::skipItems(stream, 1);
+    std::string key = ZVIUtils::readStringItem(stream);
     ASSERT_EQ(key, std::string("Scaling124"));
 }
 
@@ -142,7 +144,7 @@ TEST(ZVIUtils, skipItemConsumesSameBytesAsReadItem)
     ole::compound_document doc(filePath);
     ASSERT_TRUE(doc.good());
     ZVIUtils::StreamKeeper keeper(doc, "/Image/Item(0)/Tags/Contents");
-    ole::basic_stream& stream = keeper;
+    ZVIUtils::BufferedStream& stream = keeper;
 
     ZVIUtils::readIntItem(stream); // {Version}
     const int32_t count = ZVIUtils::readIntItem(stream);
@@ -218,7 +220,7 @@ TEST(ZVIUtils, itemReadersReportEndOfStream)
     ole::compound_document doc(filePath);
     ASSERT_TRUE(doc.good());
     ZVIUtils::StreamKeeper keeper(doc, "/Image/Item(0)/Tags/Contents");
-    ole::basic_stream& stream = keeper;
+    ZVIUtils::BufferedStream& stream = keeper;
 
     const std::streamoff size = ZVIUtils::streamSize(stream);
     ASSERT_GT(size, 0);
@@ -248,7 +250,7 @@ TEST(ZVIUtils, streamSizeAndBytesLeft)
     ole::compound_document doc(filePath);
     ASSERT_TRUE(doc.good());
     ZVIUtils::StreamKeeper keeper(doc, "/Image/Item(0)/Tags/Contents");
-    ole::basic_stream& stream = keeper;
+    ZVIUtils::BufferedStream& stream = keeper;
 
     const std::streamoff size = ZVIUtils::streamSize(stream);
     ASSERT_GT(size, 0);
@@ -276,7 +278,7 @@ TEST(ZVIUtils, readAllTagsStopsAtEndOfStream)
     ole::compound_document doc(filePath);
     ASSERT_TRUE(doc.good());
     ZVIUtils::StreamKeeper keeper(doc, "/Image/Item(0)/Tags/Contents");
-    ole::basic_stream& stream = keeper;
+    ZVIUtils::BufferedStream& stream = keeper;
     ASSERT_EQ(ZVIUtils::streamSize(stream), 606);
 
     stream.seek(20, std::ios::beg);
@@ -284,4 +286,40 @@ TEST(ZVIUtils, readAllTagsStopsAtEndOfStream)
     ASSERT_NO_THROW(entries = ZVIUtils::readAllTags(stream, /*hasClsidHeader=*/false));
     EXPECT_FALSE(entries.empty());
     EXPECT_LE(entries.size(), 27u);
+}
+
+// Parsing walks a stream field by field -- readIntItem and friends read a
+// handful of bytes at a time. Each of those used to reach the file, because
+// pole's positional read path has no buffer under it (TECH_DEBT 26). Reading
+// the stream once and parsing from memory is what this asserts; without it the
+// count is one file read per field.
+TEST(ZVIUtils, parsingAStreamReadsTheFileOnceNotOncePerField)
+{
+    std::string file_path = TestTools::getTestImagePath("zvi", "Zeiss-1-Merged.zvi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(file_path);
+    ole::compound_document doc(file_path);
+    ASSERT_TRUE(doc.good());
+    auto storage = doc.find_storage("/Image");
+    ASSERT_TRUE(storage != doc.end());
+    auto contents = storage->find_stream("/Image/Contents");
+    ASSERT_TRUE(contents != storage->end());
+
+    const ole::basic_stream& underlying = contents->stream();
+    const unsigned long long before = underlying.read_calls();
+
+    ZVIUtils::BufferedStream stream(underlying);
+    ZVIUtils::skipItems(stream, 4);
+    for (int i = 0; i < 5; ++i) {
+        (void)ZVIUtils::readIntItem(stream);
+    }
+
+    const unsigned long long calls = underlying.read_calls() - before;
+    // Three, and the number is not arbitrary: BufferedStream issues exactly one
+    // read_at, and /Image/Contents is 390 bytes -- a small stream, whose seven
+    // 64-byte blocks sit in three distinct big blocks of the container, so one
+    // logical read costs three file reads. That is this stream's floor, not a
+    // tunable. What the bound excludes is the old behaviour, a file read per
+    // parsed field, which for this parse was 14.
+    EXPECT_LE(calls, 3u)
+        << "parsing issued " << calls << " file reads; before buffering it was 14";
 }

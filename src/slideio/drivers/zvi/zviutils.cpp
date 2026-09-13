@@ -5,6 +5,7 @@
 #include "slideio/core/log.hpp"
 #include "zviutils.hpp"
 #include "zvipixelformat.hpp"
+#include <cstring>
 #include <locale>
 
 #include "slideio/core/tools/endian.hpp"
@@ -15,7 +16,67 @@ namespace slideio
 {
     namespace ZVIUtils
     {
-        std::streamoff streamSize(ole::basic_stream& stream)
+        BufferedStream::BufferedStream(const ole::basic_stream& stream)
+        {
+            const std::streamoff size = stream.size();
+            if (size <= 0)
+            {
+                return;
+            }
+            m_data.resize(static_cast<size_t>(size));
+            // One positional read of the whole stream. read_at rather than the
+            // cursor read because it leaves the pole stream's cursor and flags
+            // untouched, which keeps this transparent to anything else holding
+            // the same stream.
+            const std::streamsize read =
+                stream.read_at(0, reinterpret_cast<char*>(m_data.data()), size);
+            if (read != static_cast<std::streamsize>(size))
+            {
+                RAISE_RUNTIME_ERROR << "ZVIImageDriver: could not buffer stream: "
+                    << static_cast<long long>(size) << " bytes expected, "
+                    << static_cast<long long>(read) << " read";
+            }
+        }
+
+        std::streamsize BufferedStream::read(char* buffer, std::streamsize size)
+        {
+            if (!buffer || size <= 0)
+            {
+                return 0;
+            }
+            const std::streamoff left = this->size() - m_pos;
+            if (left <= 0)
+            {
+                return 0;
+            }
+            const std::streamsize count =
+                (size < static_cast<std::streamsize>(left)) ? size : static_cast<std::streamsize>(left);
+            memcpy(buffer, m_data.data() + m_pos, static_cast<size_t>(count));
+            m_pos += count;
+            return count;
+        }
+
+        std::streamoff BufferedStream::seek(std::streamoff offset, std::ios::seekdir way)
+        {
+            std::streamoff target = m_pos;
+            switch (way)
+            {
+            case std::ios::cur: target = m_pos + offset; break;
+            case std::ios::beg: target = offset; break;
+            case std::ios::end: target = size() - offset; break;
+            default: return m_pos;
+            }
+            // POLE refuses a seek outside the stream and leaves the position
+            // where it was, reporting nothing. skipExactly below depends on
+            // that to catch a bogus skip length, so it is preserved here.
+            if (target >= 0 && target <= size())
+            {
+                m_pos = target;
+            }
+            return m_pos;
+        }
+
+        std::streamoff streamSize(BufferedStream& stream)
         {
             const std::streamoff pos = stream.pos();
             const std::streamoff size = stream.seek(0, std::ios::end);
@@ -23,7 +84,7 @@ namespace slideio
             return size;
         }
 
-        std::streamoff bytesLeft(ole::basic_stream& stream)
+        std::streamoff bytesLeft(BufferedStream& stream)
         {
             const std::streamoff pos = stream.pos();
             const std::streamoff size = streamSize(stream);
@@ -34,7 +95,7 @@ namespace slideio
         // destination already held -- for a stack local, uninitialized memory --
         // which is how a stream overrun reached users as "Unsupported item
         // type: <garbage>", a different number on every run and never the cause.
-        void readExactly(ole::basic_stream& stream, void* buffer, std::streamsize size)
+        void readExactly(BufferedStream& stream, void* buffer, std::streamsize size)
         {
             const std::streamsize read = stream.read(static_cast<char*>(buffer), size);
             if (read != size)
@@ -49,7 +110,7 @@ namespace slideio
         // POLE refuses to seek past the end of a stream and reports nothing when
         // it does, leaving the position where it was: an unchecked skip of a
         // bogus length silently continues the parse at the wrong offset.
-        static void skipExactly(ole::basic_stream& stream, std::streamoff size)
+        static void skipExactly(BufferedStream& stream, std::streamoff size)
         {
             if (size <= 0)
             {
@@ -74,7 +135,7 @@ namespace slideio
         // how many bytes an item occupies: a disagreement desynchronizes the
         // stream and makes the *next* readItem() interpret payload bytes as a
         // type token.
-        static uint32_t itemPayloadSize(ole::basic_stream& stream, uint16_t type)
+        static uint32_t itemPayloadSize(BufferedStream& stream, uint16_t type)
         {
             switch (type)
             {
@@ -137,7 +198,7 @@ namespace slideio
     }
 }
 
-void ZVIUtils::skipItem(ole::basic_stream& stream)
+void ZVIUtils::skipItem(BufferedStream& stream)
 {
     uint16_t type = 0;
     readExactly(stream, &type, sizeof(type));
@@ -145,7 +206,7 @@ void ZVIUtils::skipItem(ole::basic_stream& stream)
     skipExactly(stream, itemPayloadSize(stream, type));
 }
 
-void ZVIUtils::skipItems(ole::basic_stream& stream, int count)
+void ZVIUtils::skipItems(BufferedStream& stream, int count)
 {
    for(int item = 0; item < count; item++)
    {
@@ -153,7 +214,7 @@ void ZVIUtils::skipItems(ole::basic_stream& stream, int count)
    }
 }
 
-int32_t ZVIUtils::readIntItem(ole::basic_stream& stream)
+int32_t ZVIUtils::readIntItem(BufferedStream& stream)
 {
    uint16_t type(0);
    readExactly(stream, &type, sizeof(type));
@@ -170,7 +231,7 @@ int32_t ZVIUtils::readIntItem(ole::basic_stream& stream)
    return Endian::fromLittleEndianToNative(value);
 }
 
-double ZVIUtils::readDoubleItem(ole::basic_stream& stream)
+double ZVIUtils::readDoubleItem(BufferedStream& stream)
 {
    uint16_t type(0);
    readExactly(stream, &type, sizeof(type));
@@ -188,7 +249,7 @@ double ZVIUtils::readDoubleItem(ole::basic_stream& stream)
 }
 
 
-static  std::string readStringValue(ole::basic_stream& stream)
+static  std::string readStringValue(ZVIUtils::BufferedStream& stream)
 {
     int32_t string_length = 0;
     std::string value;
@@ -215,7 +276,7 @@ static  std::string readStringValue(ole::basic_stream& stream)
     return value;
 }
 
-std::string ZVIUtils::readStringItem(ole::basic_stream& stream)
+std::string ZVIUtils::readStringItem(BufferedStream& stream)
 {
    uint16_t type(0);
    readExactly(stream, &type, sizeof(type));
@@ -231,14 +292,14 @@ std::string ZVIUtils::readStringItem(ole::basic_stream& stream)
 }
 
 template<typename T>
-static T  readTypedValue(ole::basic_stream& stream)
+static T  readTypedValue(ZVIUtils::BufferedStream& stream)
 {
     T val(0);
     ZVIUtils::readExactly(stream, &val, sizeof(val));
     return val;
 }
 
-ZVIUtils::Variant ZVIUtils::readItem(ole::basic_stream& stream, bool skipUnusedTypes)
+ZVIUtils::Variant ZVIUtils::readItem(BufferedStream& stream, bool skipUnusedTypes)
 {
     Variant value;
     uint16_t type = 0;
@@ -303,29 +364,40 @@ ZVIUtils::Variant ZVIUtils::readItem(ole::basic_stream& stream, bool skipUnusedT
     return value;
 }
 
+namespace {
+    // The resolution StreamKeeper used to do inline. It moved out so the
+    // buffer, which has no default constructor, can be built in the member
+    // initialiser list from the stream this returns. Unchanged otherwise --
+    // still the non-const stream(), so the stream is still claimed exactly as
+    // before.
+    ole::basic_stream& resolveStream(ole::compound_document& doc, const std::string& path)
+    {
+        const size_t pos = path.find_last_of('/');
+        std::string storagePath = path.substr(0, pos);
+        auto storagePos = doc.find_storage(storagePath);
+
+        if (storagePos == 0)
+        {
+            storagePath = "/";
+        }
+
+        if (storagePos == doc.end())
+        {
+            RAISE_RUNTIME_ERROR << "ZVIImageDriver: Invalid storage path: " << storagePath;
+        }
+
+        auto streamPos = storagePos->find_stream(path);
+        if (streamPos == storagePos->end())
+        {
+            RAISE_RUNTIME_ERROR << "ZVIImageDriver: Invalid stream path: " << path;
+        }
+        return streamPos->stream();
+    }
+}
+
 ZVIUtils::StreamKeeper::StreamKeeper(ole::compound_document& doc, const std::string& path)
+    : m_buffer(resolveStream(doc, path))
 {
-    std::vector<std::string> items;
-    const size_t pos = path.find_last_of('/');
-    std::string storagePath = path.substr(0, pos);
-    std::string stream = path.substr(pos);
-    auto storagePos = doc.find_storage(storagePath);
-
-    if(storagePos==0)
-    {
-        storagePath = "/";
-    }
-
-    if(storagePos == doc.end())
-    {
-        RAISE_RUNTIME_ERROR << "ZVIImageDriver: Invalid storage path: " << storagePath;
-    }
-
-    m_StreamPos = storagePos->find_stream(path);
-    if(m_StreamPos == storagePos->end())
-    {
-        RAISE_RUNTIME_ERROR << "ZVIImageDriver: Invalid stream path: " << path;
-    }
 }
 
 ZVIUtils::ConstStreamKeeper::ConstStreamKeeper(ole::compound_document& doc, const std::string& path)
@@ -410,7 +482,7 @@ int ZVIUtils::channelCountFromPixelFormat(const ZVIPixelFormat pixelFormat)
 }
 
 std::vector<ZVIUtils::ZviTagEntry> ZVIUtils::readAllTags(
-    ole::basic_stream& stream, bool hasClsidHeader)
+    BufferedStream& stream, bool hasClsidHeader)
 {
     if (hasClsidHeader) {
         // 128-bit CLSID — raw, not a typed token.
