@@ -1004,6 +1004,16 @@ comparison is **not available**: pristine pole has no `read_at`, so the current
 ZVI driver cannot be built against it, and getting the number would mean
 reverting the driver too.
 
+**ZVI no longer pays this, but pole still has it.** The driver now reads each
+metadata stream once into a `ZVIUtils::BufferedStream` and parses from memory,
+which took `openSlide` on the mosaic from ~2750 ms to ~1130 ms — a 2.4×
+speedup, and well beyond the ~700 ms the estimate above projected, because each
+parsed field cost a whole `StreamImpl::read` block walk and not merely the
+syscall. See *ZVI parses metadata from a buffer* in `BREAKING_CHANGES.md`. That
+fixes the consumer, not the cause: this entry stays open because any other pole
+consumer parsing field by field still meets it, and because the numbers in the
+table above are still what pole does.
+
 **The fix, and the constraint that shapes it.** A read-through buffer belongs on
 the **cursor** path only. `StreamImpl::read(unsigned char*, std::streamsize)` is
 non-`const` and single-threaded by contract, and `StreamImpl` already carries
