@@ -206,9 +206,14 @@ slideio-core, and a shared primitive would invert the dependency. A fix to the
 retry loop or the Windows open flags belongs in both, and both class comments
 say so and name the other. pole's write path still shares one `std::fstream`
 and stays serialised.
+`StreamImpl::read` walks runs of consecutively numbered blocks and issues one
+positional read per run rather than one per block, so a sequentially written
+stream costs a single read — `ole::basic_stream::read_calls()` reports the
+count, and pole's own suite asserts on it. That fix removed the single-threaded
+read regression the positional path originally carried; do not reintroduce a
+per-block loop.
 See `software-docs/specs/2026-09-09-zvi-concurrent-reads-design.md` and
-`software-docs/TECH_DEBT.md` §19-§21, the last of which records that the
-positional path costs about 20% on a single-threaded read.
+`software-docs/TECH_DEBT.md` §19-§21.
 
 The NDPI driver's two forks are also submodules rather than Conan packages:
 `extern/ndpi-libjpeg-turbo` (github.com/Booritas/ndpi-libjpeg-turbo, v2.1.2) and

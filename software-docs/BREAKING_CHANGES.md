@@ -590,6 +590,14 @@ a small ZVI, single-threaded, sees the 20% without that offset. The identified
 fix is coalescing runs of contiguous sectors into one positional read; it is
 scoped out and recorded in `software-docs/TECH_DEBT.md` §21.
 
+> **Superseded.** The coalescing landed — see *pole coalesces contiguous block
+> runs into one read* below. A single read is no longer slower than the
+> `std::fstream` path it replaced; it is about 7× faster than that path and
+> 8× faster than the figure in the table above. Two details in this paragraph
+> were also wrong and are corrected there: the per-block loop is in
+> `StreamImpl::read`, not `loadBigBlocks`, and "5600 syscalls" assumed
+> 512-byte sectors where the mosaic uses 4096 (705 reads).
+
 **A new property consumers may rely on:** reads of one `ole::compound_document`
 from several threads are now safe **through the positional API (`read_at` and
 `size()`)**, provided the document was opened by filename. The cursor API
@@ -610,6 +618,61 @@ read-only file or read-only media cannot be opened at all — and is why the
 second descriptor was added alongside the first rather than replacing it.
 
 See `software-docs/specs/2026-09-09-zvi-concurrent-reads-design.md`.
+
+### pole coalesces contiguous block runs into one read
+
+**Modules:** `extern/pole` (submodule pointer bumped)
+**Files:** `extern/pole/sources/pole/detail/stream.cpp`,
+`sources/pole/detail/storage.cpp`, `sources/pole/pole.cpp`, and the matching
+headers
+
+`StreamImpl::read` read a stream one block at a time: one `loadBigBlock` per
+block, each wrapping the block number in a fresh one-element `std::vector`,
+reading into a scratch buffer, and copying out. It now walks runs of
+consecutively numbered blocks and issues one positional read per run, straight
+into the caller's buffer.
+
+Measured on `/Image/Item(0)/Contents` (2.75 MB) of
+`zvi/openslide/Zeiss-3-Mosaic.zvi`, n=15 warm samples, one warm-up discarded,
+same session and same probe for both rows:
+
+| | positional reads | mean | median | throughput |
+|---|---|---|---|---|
+| before | 705 | 2.09 ms | 2.07 ms | 1317 MB/s |
+| after | **1** | **0.25 ms** | 0.24 ms | **11172 MB/s** |
+
+That is 8× faster than the per-block path and about 7× faster than the
+`std::fstream` path that preceded it, so the regression recorded above is not
+merely recovered. Two effects compound: the syscalls, and the removal of a
+full second copy of the stream — the old loop bounced every block through a
+scratch buffer. The old path also over-read, requesting 2887680 bytes to
+deliver 2887364, because it always asked for a whole final block.
+
+Chains are not always contiguous and the fix does not assume they are: a run
+boundary simply costs another read. Every ZVI image item measured — five files
+from 2.8 MB to 2.0 GB — is a single run, while the mosaic's 19838-byte
+`/Image/Contents` takes four.
+
+**Exported API — one addition, no removals, no renames, no signature changes:**
+
+| Added | Type | Note |
+|---|---|---|
+| `read_calls() const` | `ole::basic_stream`, `POLE::Stream`, `POLE::StreamImpl`, `POLE::StorageIO`, `POLE::PositionalFile` | positional reads issued so far; 0 for a document opened over an `iostream` |
+| `loadBigBlockRun(...)` | `POLE::StorageIO` | one read over a run of consecutive blocks |
+
+`read_calls()` exists so that "a contiguous stream costs one read, not one per
+block" is assertable. Reading block by block and reading whole return the same
+bytes, so the syscall count is the only observable difference between the two,
+and without it the regression would be invisible to every test in the suite.
+It is a relaxed atomic counter and carries no ordering guarantee.
+
+`PositionalFile` gained a member, so its size changed. It is an internal
+detail of `StorageIO` — never allocated or embedded by a consumer — but an
+out-of-tree build must recompile rather than relink.
+
+Three tests in `tests/test_storage.cpp` cover it: the call-count bound, a
+whole-read against a block-at-a-time read of the same stream, and a sweep of
+offsets and lengths either side of both 512- and 4096-byte boundaries.
 
 ### The private conan remote is gone; everything comes from conan center
 
