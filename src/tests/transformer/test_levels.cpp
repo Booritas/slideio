@@ -143,3 +143,108 @@ TEST(TransformerSceneLevels, aLevelReadAgreesWithTheEquivalentScaledRead)
     ASSERT_EQ(viaLevel.type(), viaScale.type());
     EXPECT_EQ(cv::countNonZero(viaLevel.reshape(1) != viaScale.reshape(1)), 0);
 }
+
+// ---------------------------------------------------------------------------
+// Rectangles that fall partly or wholly outside the level.
+//
+// CVScene::readResampledLevelBlockChannelsEx promises a background-filled block
+// for the part of the request the level does not cover, and it promises not to
+// throw on a degenerate rectangle. An override has to keep both promises; the
+// first version of this one cropped the transformed block with the *requested*
+// rectangle rather than the clipped one, which is an invalid ROI the moment any
+// of the request lies outside the level.
+//
+// Each case compares against the origin read the same way and converted by
+// hand. That works for the background too: the background is 255 in every
+// channel, and grey of white is white, so a correct implementation agrees with
+// the origin everywhere rather than only inside the valid region.
+// ---------------------------------------------------------------------------
+
+namespace
+{
+    void expectMatchesOriginThroughGrey(int level, const cv::Rect& levelRect, const cv::Size& blockSize)
+    {
+        auto origin = pyramidOrigin();
+        auto originScene = std::make_shared<Scene>(origin);
+        auto transformed = grayTransformOf(originScene);
+        std::shared_ptr<CVScene> cvTransformed = transformed->getCVScene();
+
+        cv::Mat raster;
+        ASSERT_NO_THROW(
+            cvTransformed->readResampledLevelBlockChannels(level, levelRect, blockSize, {}, raster));
+        ASSERT_EQ(raster.size(), blockSize);
+        ASSERT_EQ(raster.channels(), 1);
+
+        cv::Mat originRaster;
+        origin->readResampledLevelBlockChannels(level, levelRect, blockSize, {}, originRaster);
+        cv::Mat expected;
+        cv::cvtColor(originRaster, expected, cv::COLOR_RGB2GRAY);
+
+        ASSERT_EQ(expected.size(), raster.size());
+        EXPECT_EQ(cv::countNonZero(expected != raster), 0);
+    }
+}
+
+TEST(TransformerSceneLevels, aLevelRectStartingLeftOfTheLevelIsBackgroundFilled)
+{
+    expectMatchesOriginThroughGrey(1, cv::Rect(-10, 0, 100, 100), cv::Size(100, 100));
+}
+
+TEST(TransformerSceneLevels, aLevelRectStartingAboveTheLevelIsBackgroundFilled)
+{
+    expectMatchesOriginThroughGrey(1, cv::Rect(0, -20, 100, 100), cv::Size(100, 100));
+}
+
+TEST(TransformerSceneLevels, aLevelRectRunningPastTheRightAndBottomIsBackgroundFilled)
+{
+    // Level 1 is 200x150, so this overruns both edges.
+    expectMatchesOriginThroughGrey(1, cv::Rect(150, 100, 100, 100), cv::Size(100, 100));
+}
+
+TEST(TransformerSceneLevels, aLevelRectLargerThanTheLevelOnEverySideIsBackgroundFilled)
+{
+    expectMatchesOriginThroughGrey(1, cv::Rect(-50, -50, 400, 400), cv::Size(200, 200));
+}
+
+TEST(TransformerSceneLevels, anEmptyLevelRectReturnsBackgroundRatherThanThrowing)
+{
+    // Zero width and zero height both reach the scale division in
+    // computeInflatedRectParams, which is why the guard has to come first.
+    expectMatchesOriginThroughGrey(1, cv::Rect(0, 0, 0, 100), cv::Size(100, 100));
+    expectMatchesOriginThroughGrey(1, cv::Rect(0, 0, 100, 0), cv::Size(100, 100));
+}
+
+TEST(TransformerSceneLevels, aLevelRectEntirelyOutsideTheLevelIsAllBackground)
+{
+    expectMatchesOriginThroughGrey(1, cv::Rect(1000, 1000, 50, 50), cv::Size(50, 50));
+}
+
+TEST(TransformerSceneLevels, anOutOfBoundsLevelRectIsSafeForAKernelTransformToo)
+{
+    // The cases above use a colour conversion, whose inflation value is zero.
+    // A filter with a kernel inflates the rectangle before reading, so the
+    // clipping and the halo interact; this is the case where getting the order
+    // wrong is easiest.
+    auto origin = pyramidOrigin();
+    auto originScene = std::make_shared<Scene>(origin);
+    GaussianBlurFilter blur;
+    blur.setKernelSizeX(9);
+    blur.setKernelSizeY(9);
+    std::shared_ptr<Scene> transformed = transformScene(originScene, blur);
+    std::shared_ptr<CVScene> cvTransformed = transformed->getCVScene();
+
+    const cv::Rect cases[] = {
+        cv::Rect(-20, -20, 100, 100),      // off the top left
+        cv::Rect(170, 120, 100, 100),      // past the right and bottom
+        cv::Rect(-50, -50, 400, 400),      // larger than the level every way
+        cv::Rect(1000, 1000, 40, 40),      // entirely outside
+    };
+    for (const cv::Rect& levelRect : cases) {
+        cv::Mat raster;
+        ASSERT_NO_THROW(
+            cvTransformed->readResampledLevelBlockChannels(1, levelRect, cv::Size(100, 100), {}, raster))
+            << "levelRect " << levelRect;
+        EXPECT_EQ(raster.size(), cv::Size(100, 100)) << "levelRect " << levelRect;
+        EXPECT_EQ(raster.channels(), 3) << "levelRect " << levelRect;
+    }
+}
