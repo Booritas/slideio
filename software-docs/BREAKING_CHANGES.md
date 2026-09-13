@@ -769,6 +769,57 @@ This fixes slideio's use of pole rather than pole itself;
 `software-docs/TECH_DEBT.md` §26 stays open for the underlying absence of
 buffering, which any other pole consumer would still meet.
 
+### Transformed scenes can be read by level, and report a pyramid
+
+**Module:** `slideio-transformer`
+**Files:** `src/slideio/transformer/transformerscene.hpp`/`.cpp`
+
+`TransformerScene` never populated `m_levels`, so a transformed scene reported
+**0** zoom levels and any level-addressed read of one threw *"does not report
+any zoom level and cannot be read by level"*. It now copies the origin's level
+table and overrides `readResampledLevelBlockChannelsEx`. `TECH_DEBT.md` §11 is
+closed by this.
+
+**Behavioural break, in the direction of working.** Two observable changes for
+existing callers:
+
+| Was | Is |
+|---|---|
+| `getNumZoomLevels()` returned 0 on any transformed scene | returns the origin's level count |
+| `readResampledLevelBlockChannels` / `readResampledLevel4DBlockChannels` (Python `read_block_from_level`) threw | reads |
+
+Code that branched on `getNumZoomLevels() == 0` to detect "transformed scene",
+or that caught the throw, sees different behaviour. No signature changed, and
+no existing call that succeeded returns anything different.
+
+**The semantic decision §11 asked for, made and recorded.** A transformation's
+parameters are in the pixels of **the level being read**. A blur of radius 5
+covers five level-2 pixels at level 2 — four times as much tissue as at level
+0. The reasons, in order of weight:
+
+1. It is what the library already does. `TransformerTools::computeInflatedRectParams`
+   divides the inflation by the requested scale, so a scaled-down read has
+   always applied the kernel at the output resolution. Defining levels the
+   other way would make reading level 1 differ from reading at half scale.
+2. The alternative — transform at level 0, then downsample — makes every level
+   read fetch full-resolution data, which is what a pyramid exists to avoid.
+
+`TransformerSceneLevels.aLevelReadAgreesWithTheEquivalentScaledRead` asserts
+point 1 directly: a full read of level 1 is bit-identical to a half-scale read
+of the whole scene.
+
+**Why the base-class default was not enough.** `CVScene::readResampledLevelBlockChannelsEx`
+converts the level rectangle to scene coordinates and reads through
+`readResampledBlockChannelsEx`, leaving the origin to choose a level from the
+resulting scale. That usually lands on the level the caller named, but the
+level api exists to remove the "usually". The override asks the origin for the
+level it was given, and inflates in level coordinates so the halo is clipped
+against the level's bounds rather than the scene's.
+
+Level geometry is copied from the origin verbatim: a transformation changes
+what a pixel holds, never where it is, so sizes, scales and magnifications
+carry over unchanged.
+
 ### The private conan remote is gone; everything comes from conan center
 
 **Module:** build system

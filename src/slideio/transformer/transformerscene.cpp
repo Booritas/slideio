@@ -49,6 +49,16 @@ TransformerScene::TransformerScene(std::shared_ptr<CVScene> originScene,
     }
     m_channelDataTypes = dataTypes;
     computeInflationValue();
+
+    // The origin's pyramid, copied verbatim. A transformation changes what a
+    // pixel holds -- its channel count and type -- but never where it is: each
+    // one is handed a block and returns a block of the same size, and getRect()
+    // forwards the origin's. So every level keeps its geometry, scale and
+    // magnification, and nothing here has to be recomputed.
+    m_levels.reserve(originScene->getNumZoomLevels());
+    for (int level = 0; level < originScene->getNumZoomLevels(); ++level) {
+        m_levels.push_back(*originScene->getZoomLevelInfo(level));
+    }
 }
 
 std::string TransformerScene::getFilePath() const
@@ -154,6 +164,42 @@ void TransformerScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, c
     getOriginScene()->readResampledBlockChannelsEx(extendedBlockRect, extendedBlockSize, {}, zSliceIndex,
         tFrameIndex, sourceBlock);
 
+    applyChain(sourceBlock, blockPosition, blockSize, componentIndices, output);
+}
+
+void TransformerScene::readResampledLevelBlockChannelsEx(int level, const cv::Rect& levelRect,
+    const cv::Size& blockSize, const std::vector<int>& componentIndices,
+    int zSliceIndex, int tFrameIndex, cv::OutputArray output)
+{
+    // Deliberately not the base class implementation, which would convert the
+    // level rectangle to scene coordinates and read through
+    // readResampledBlockChannelsEx -- leaving the origin to pick a level for
+    // itself from the resulting scale. That would usually land on the level the
+    // caller named, but "usually" is not what the level api promises. The
+    // origin is asked for the level it was asked for.
+    validateLevel(level);
+    const LevelInfo* levelInfo = getZoomLevelInfo(level);
+    const cv::Size levelSize = levelInfo->getSize();
+
+    // The inflation is clipped against the level's bounds, not the scene's:
+    // levelRect is in level coordinates and so is the block handed to the
+    // transformations.
+    cv::Rect extendedLevelRect;
+    cv::Size extendedBlockSize;
+    cv::Point blockPosition;
+    TransformerTools::computeInflatedRectParams(levelSize, levelRect, m_inflationValue, blockSize,
+        extendedLevelRect, extendedBlockSize, blockPosition);
+
+    cv::Mat sourceBlock;
+    getOriginScene()->readResampledLevelBlockChannelsEx(level, extendedLevelRect, extendedBlockSize,
+        {}, zSliceIndex, tFrameIndex, sourceBlock);
+
+    applyChain(sourceBlock, blockPosition, blockSize, componentIndices, output);
+}
+
+void TransformerScene::applyChain(cv::Mat& sourceBlock, const cv::Point& blockPosition,
+    const cv::Size& blockSize, const std::vector<int>& componentIndices, cv::OutputArray output)
+{
     for (const auto& transformation : m_transformations) {
         cv::Mat targetBlock;
         TransformationEx * transformationEx = dynamic_cast<TransformationEx*>(transformation.get());
