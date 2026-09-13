@@ -52,6 +52,18 @@ namespace slideio
         bool supportsConcurrentReads() const override {
             return m_originScene->supportsConcurrentReads();
         }
+    protected:
+        /**@brief a transformed scene is serialised by its origin's lock, not its own.
+         *
+         * readResampledBlockChannelsEx reads the origin through the origin's
+         * *Ex variant, which does not lock, so without this the origin is never
+         * excluded: two transforms over one origin take two different mutexes,
+         * and so do a transformed read and a direct read of the origin. The
+         * origin is kept alive by m_originScene for this scene's whole
+         * lifetime, so the reference stays valid. */
+        std::mutex& readSerialisationMutex() const override {
+            return serialisationMutexOf(*m_originScene);
+        }
     private:
         void computeInflationValue();
     private:

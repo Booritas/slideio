@@ -694,6 +694,39 @@ ThreadSanitizer run -- MSVC has no TSan and there is no Linux build on this
 machine, the same gap already recorded above for the concurrent-reads
 conversion itself. A sanitizer run remains outstanding.
 
+### `CVScene` gains a second virtual method, `readSerialisationMutex()`
+
+**Module:** `slideio-core` (exported)
+**File:** `src/slideio/core/cvscene.hpp`
+
+`CVScene::readSerialisationMutex()` was added as a protected virtual, alongside
+a protected static `serialisationMutexOf()`. It answers which mutex serialises a
+given scene's block reads; `lockIfSerialised()` now asks it instead of taking
+`m_readBlockMutex` directly. A scene that wraps another overrides it to return
+the wrapped scene's mutex, so the whole wrap chain contends on one lock --
+`TransformerScene` is the only such scene in the tree and does exactly that.
+
+As with `readResampledLevelBlockChannelsEx` in 2.9.0, adding a virtual changes
+the vtable layout of `CVScene` and of every class deriving from it. This is a
+binary incompatibility: an out-of-tree driver or an application linked against
+an earlier 2.10.0 build must be recompiled. Source compatibility is unaffected
+-- no existing signature or documented behaviour changed, `m_readBlockMutex` is
+still a protected member, and the new virtual carries a working default, so a
+driver that does not override it continues to build and to lock exactly as
+before.
+
+The Python bindings (separate `slideio-python` repository) must be rebuilt.
+
+An out-of-tree scene that wraps another scene should override it. Three rules
+come with doing so. It must forward `supportsConcurrentReads()` to the origin as
+well -- `lockIfSerialised()` consults the *wrapper's* value, so a wrapper
+reporting `true` over a non-concurrent origin takes no lock at all and then
+reads the origin unlocked from several threads, which is the hazard this change
+closes. It must read its origin through the origin's `*Ex` variants and never
+the origin's public entry points, which would re-enter the non-recursive mutex
+and deadlock. And it must keep the origin alive for its own lifetime, since it
+is handing out a reference to the origin's member.
+
 ### `TransformationEx::bindToSource` takes the state it will receive, not the origin scene
 
 The virtual is now

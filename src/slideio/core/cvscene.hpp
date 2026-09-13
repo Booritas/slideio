@@ -312,6 +312,43 @@ namespace slideio
         MetadataBuilder m_channelAttrs;
 
         /**
+         * The mutex that serialises this scene's block reads.
+         *
+         * A scene that wraps another one returns that one's mutex, so every
+         * reader of the underlying scene -- directly or through any number of
+         * wrappers -- contends on a single lock. A wrapper that kept its own
+         * mutex would exclude nothing: neither a second wrapper over the same
+         * origin nor a direct read of the origin takes it.
+         *
+         * Three rules come with overriding this:
+         *
+         * - Forward supportsConcurrentReads() to the origin as well. This one
+         *   is load-bearing, not cosmetic: lockIfSerialised() consults the
+         *   *wrapper's* value, so a wrapper reporting true over a false origin
+         *   takes no lock at all and then calls the origin's unlocked *Ex from
+         *   several threads -- reopening the very hazard this closes.
+         * - Keep calling the origin's *Ex read variants, never its public entry
+         *   points, which would re-enter this non-recursive mutex and deadlock.
+         * - Keep the origin alive for the wrapper's own lifetime, since the
+         *   wrapper is handing out a reference to the origin's member.
+         */
+        virtual std::mutex& readSerialisationMutex() const { return m_readBlockMutex; }
+
+        /**
+         * Reaches another scene's serialisation mutex, for a scene that wraps
+         * it.
+         *
+         * [class.protected] forbids origin->readSerialisationMutex() from a
+         * derived class through a CVScene pointer -- a protected non-static
+         * member may only be accessed through an object of the accessing
+         * class's own type. The restriction does not apply to a static member,
+         * which is why this exists.
+         */
+        static std::mutex& serialisationMutexOf(const CVScene& scene) {
+            return scene.readSerialisationMutex();
+        }
+
+        /**
          * A lock that is engaged only for scenes that do not support
          * concurrent reads.
          *
@@ -323,7 +360,7 @@ namespace slideio
         std::unique_lock<std::mutex> lockIfSerialised() const {
             return supportsConcurrentReads()
                        ? std::unique_lock<std::mutex>()
-                       : std::unique_lock<std::mutex>(m_readBlockMutex);
+                       : std::unique_lock<std::mutex>(readSerialisationMutex());
         }
 
     private:
