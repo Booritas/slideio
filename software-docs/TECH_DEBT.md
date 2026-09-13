@@ -960,66 +960,6 @@ Only the third removes the class of bug rather than this instance of it.
 
 ---
 
-## 25. A transformed scene bypasses its origin's read lock
-
-**Files:** `src/slideio/transformer/transformerscene.cpp`
-(`readResampledBlockChannelsEx`, the `getOriginScene()->…Ex` call),
-`src/slideio/core/cvscene.cpp` (`readResampledBlockChannels`,
-`assemble4DBlock`, `readResampledLevelBlockChannels`),
-`src/slideio/core/cvscene.hpp` (`m_readBlockMutex`, `lockIfSerialised`)
-**Related:** noticed during the whole-branch review of the colour/ICC work on
-`v2.10.0`; pre-existing and unchanged by that work
-**Status:** Open. Affects the dcm and gdal drivers only.
-
-`CVScene` serialises a non-concurrent scene's reads at its **public** layer:
-`readResampledBlockChannels`, `assemble4DBlock` and
-`readResampledLevelBlockChannels` each take `m_readBlockMutex` via
-`lockIfSerialised()`. The `…Ex` virtuals beneath them are the unlocked inner
-implementations — that split is deliberate, since the lock must be taken once
-per call rather than once per level or per tile.
-
-`TransformerScene::readResampledBlockChannelsEx` calls
-`getOriginScene()->readResampledBlockChannelsEx(...)` directly, so the origin's
-public layer — and therefore the origin's mutex — is never entered. The
-transformed scene takes its **own** `m_readBlockMutex` instead. Two exposures
-follow, both only when the origin is non-concurrent:
-
-1. **Two transformed scenes over one origin.** Each `TransformerScene` has its
-   own mutex, so neither excludes the other, and both call the origin's `…Ex`
-   concurrently. The origin is never locked by anyone.
-2. **Reading the origin directly while a transformed scene exists.** The direct
-   read takes the origin's mutex; the transformed read takes the transformer's.
-   Different mutexes, so they do not exclude each other.
-
-**Scope is narrow and worth stating precisely.** Only dcm and gdal leave
-`supportsConcurrentReads()` at its `false` default; czi, ndpi, ome-tiff, pke,
-scn, svs, vsi and zvi all override it to `true`, and afi inherits concurrent SVS
-scenes. A concurrent origin is safe by construction here, so this is a hazard
-for transformed DCM and GDAL scenes and nothing else.
-
-**Not introduced by the concurrency forwarding in §22's branch.** Before it,
-`TransformerScene` inherited `false` and always locked its own mutex — which was
-never the origin's mutex either. The forwarding changed which scenes lock, not
-whose lock is taken.
-
-Three fixes, in increasing cost:
-
-1. Document the constraint: a non-concurrent scene must not be wrapped by more
-   than one transform, nor read directly while wrapped. Cheapest, and leaves the
-   hazard armed.
-2. Route the transformer's read through the origin's public entrypoint instead
-   of its `…Ex`. This is the obvious fix but needs checking before it is taken —
-   the public entrypoint performs level selection and resampling the transformer
-   has already done, so it may not be a drop-in.
-3. Give `CVScene` a protected way for a wrapping scene to borrow its origin's
-   lock, so "this scene's reads are serialised by that scene's mutex" is
-   expressed once rather than reconstructed by every wrapper.
-
-No test covers either exposure; both would need two threads and a non-concurrent
-origin, which the transformer suite currently never constructs.
-
----
-
 ## Consciously accepted, not debt
 
 **PHTIFF detection has no fallback if the claiming driver then fails.** A
@@ -1044,6 +984,7 @@ retired here rather than reused.
 | 2 | Philips TIFF driver follow-ups | All nine items landed across `75a48f65..a9f179aa`. Spot-verified: the tile-count and parallel-arrays guards are in `phCropLevelPadding` (`phtiffslide.cpp:278-298`), `svsdriverids.hpp` exists, and `Tools::isXml` is gone from the tree. | `git log --oneline 75a48f65..a9f179aa`; `software-docs/specs/2026-08-11-phtiff-format-detection-design.md`. The one item that was never debt is kept above, under [Consciously accepted, not debt](#consciously-accepted-not-debt). |
 | 14 | ZVI serialised every block read | `ZVIScene::supportsConcurrentReads()` returns `true` (`zviscene.hpp:62`), on one shared `ole::compound_document` made safe by pole's positional read path. | `software-docs/specs/2026-09-09-zvi-concurrent-reads-design.md` §3.2, §4, §5.3, §5.4. Its follow-ups are still open as [§19](#19-pole-read-path-defects-left-in-place), [§20](#20-the-zvi-concurrent-read-work-what-no-test-covers) and [§21](#21-poles-positional-read-path-is-20-slower-single-threaded). |
 | 17 | OME-TIFF serialised every block read | `OTScene::supportsConcurrentReads()` returns `true` (`otscene.hpp:88`); `TIFFFiles` moved off `OTScene` into a per-thread `OTReadContext` held by a `ContextPool`. | `software-docs/specs/2026-09-08-ometiff-concurrent-reads-design.md`; the contract assertion is `OTImageDriverTests.reportsConcurrentReadSupport`. |
+| 25 | A transformed scene bypasses its origin's read lock | `CVScene::lockIfSerialised()` now takes the mutex named by the new virtual `readSerialisationMutex()`, and `TransformerScene` overrides it to return its origin's (`transformerscene.hpp`), so a wrap chain contends on one lock instead of one mutex per scene. | The two exposures are `TransformedSceneReadLock.twoTransformsOverOneOriginDoNotReadItConcurrently` and `.aDirectReadOfTheOriginExcludesATransformedRead` in `slideio_transformer_tests`; both were watched failing on the unfixed code. `.aConcurrentOriginIsStillReadConcurrentlyThroughATransform` guards `TransformerScene::supportsConcurrentReads()`'s forwarding to the origin against a fix that re-serialises what it made concurrent. |
 
 Also removed: eight of the nine sub-items of [§1](#1-tiffkeeper-and-ndpitiffkeeper-are-two-classes-with-one-contract) — the
 copy/move semantics, the `operator=` and `openTiffFile` leaks, the

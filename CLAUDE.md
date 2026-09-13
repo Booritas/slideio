@@ -113,7 +113,16 @@ Each driver in `src/slideio/drivers/<format>/` is an independent shared library 
   today: SVS, PHTIFF, AFI, PKE, SCN, NDPI, CZI, VSI, OME-TIFF, ZVI. A
   `TransformerScene` forwards its origin scene's `supportsConcurrentReads()`
   rather than hard-coding `false`, so wrapping one of these in a transform no
-  longer silently downgrades it to serialised reads.
+  longer silently downgrades it to serialised reads. A scene that wraps another
+  forwards `readSerialisationMutex()` too, so the whole wrap chain serialises on
+  the origin's one mutex; a wrapper that kept its own would exclude neither a
+  second wrapper over that origin nor a direct read of it. The two forwards are
+  a pair — `lockIfSerialised()` reads the *wrapper's* `supportsConcurrentReads()`,
+  so a wrapper that forwarded only the mutex and reported `true` over a
+  non-concurrent origin would take no lock at all and reopen the hazard. Also
+  read the origin through its `…Ex` variants only — the public entry points
+  would re-enter the non-recursive mutex and deadlock — and keep the origin
+  alive for the wrapper's lifetime.
 - **Library naming**: `slideio-<module>` with `_d` suffix for debug builds
 
 ### Source Layout
