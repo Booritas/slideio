@@ -6,6 +6,8 @@
 #include "transformationex.hpp"
 #include "transformertools.hpp"
 #include "slideio/core/exceptions.hpp"
+#include <algorithm>
+#include <cmath>
 
 using namespace slideio;
 
@@ -180,21 +182,56 @@ void TransformerScene::readResampledLevelBlockChannelsEx(int level, const cv::Re
     validateLevel(level);
     const LevelInfo* levelInfo = getZoomLevelInfo(level);
     const cv::Size levelSize = levelInfo->getSize();
+    const cv::Rect levelBounds(0, 0, levelSize.width, levelSize.height);
+    const cv::Rect validRect = levelRect & levelBounds;
 
-    // The inflation is clipped against the level's bounds, not the scene's:
-    // levelRect is in level coordinates and so is the block handed to the
-    // transformations.
+    // The whole block is background first, and only the part the level actually
+    // covers is overwritten -- the contract the base class defines and an
+    // override has to keep. The guards come before any scaling arithmetic
+    // because computeInflatedRectParams divides by the requested rectangle's
+    // width and height, so a degenerate rectangle would reach a division by
+    // zero on the way to producing an empty block for the chain to choke on.
+    initializeSceneBlock(blockSize, componentIndices, output);
+    if (validRect.empty() || blockSize.width <= 0 || blockSize.height <= 0
+        || levelRect.width <= 0 || levelRect.height <= 0) {
+        return;
+    }
+
+    // Where the surviving part of the rectangle lands in the output. Derived
+    // from the offsets rather than from the width so that a rectangle clipped
+    // on both sides keeps both -- the same arithmetic as the base class, and
+    // deliberately identical so the two cannot disagree about placement.
+    const double scaleX = static_cast<double>(blockSize.width) / static_cast<double>(levelRect.width);
+    const double scaleY = static_cast<double>(blockSize.height) / static_cast<double>(levelRect.height);
+    cv::Rect target;
+    target.x = static_cast<int>(std::floor((validRect.x - levelRect.x) * scaleX));
+    target.y = static_cast<int>(std::floor((validRect.y - levelRect.y) * scaleY));
+    target.width = std::min(static_cast<int>(std::ceil(validRect.width * scaleX)),
+                            blockSize.width - target.x);
+    target.height = std::min(static_cast<int>(std::ceil(validRect.height * scaleY)),
+                             blockSize.height - target.y);
+    if (target.width <= 0 || target.height <= 0) {
+        return;
+    }
+
+    // The *clipped* rectangle is what gets inflated, at the size it occupies in
+    // the output. Inflating the requested rectangle instead leaves the crop in
+    // applyChain describing a region the origin was never asked for, which for
+    // anything reaching outside the level is an invalid ROI.
     cv::Rect extendedLevelRect;
     cv::Size extendedBlockSize;
     cv::Point blockPosition;
-    TransformerTools::computeInflatedRectParams(levelSize, levelRect, m_inflationValue, blockSize,
+    TransformerTools::computeInflatedRectParams(levelSize, validRect, m_inflationValue, target.size(),
         extendedLevelRect, extendedBlockSize, blockPosition);
 
     cv::Mat sourceBlock;
     getOriginScene()->readResampledLevelBlockChannelsEx(level, extendedLevelRect, extendedBlockSize,
         {}, zSliceIndex, tFrameIndex, sourceBlock);
 
-    applyChain(sourceBlock, blockPosition, blockSize, componentIndices, output);
+    cv::Mat part;
+    applyChain(sourceBlock, blockPosition, target.size(), componentIndices, part);
+    cv::Mat block = output.getMat();
+    part.copyTo(block(target));
 }
 
 void TransformerScene::applyChain(cv::Mat& sourceBlock, const cv::Point& blockPosition,
@@ -211,6 +248,20 @@ void TransformerScene::applyChain(cv::Mat& sourceBlock, const cv::Point& blockPo
     }
 
     cv::Rect rectInInflatedRect = cv::Rect(blockPosition.x, blockPosition.y, blockSize.width, blockSize.height);
+    // The caller's geometry should already place this inside the block, but the
+    // inflation arithmetic rounds, and a crop one pixel over the edge surfaces
+    // as a bare OpenCV ROI assertion that says nothing about which read failed.
+    // Nudge a rounding overshoot back, and raise something legible if the block
+    // is genuinely too small -- that would be a logic error above, not input.
+    rectInInflatedRect.x = std::max(0, std::min(rectInInflatedRect.x,
+                                               sourceBlock.cols - rectInInflatedRect.width));
+    rectInInflatedRect.y = std::max(0, std::min(rectInInflatedRect.y,
+                                               sourceBlock.rows - rectInInflatedRect.height));
+    if (rectInInflatedRect.width > sourceBlock.cols || rectInInflatedRect.height > sourceBlock.rows) {
+        RAISE_RUNTIME_ERROR << "TransformerScene: transformed block is "
+            << sourceBlock.cols << "x" << sourceBlock.rows << ", too small for the requested "
+            << rectInInflatedRect.width << "x" << rectInInflatedRect.height;
+    }
     cv::Mat block = sourceBlock(rectInInflatedRect);
     if(componentIndices.empty()) {
         block.copyTo(output);
