@@ -37,7 +37,7 @@ removed without renumbering the rest and its number is retired in
 18. [CZI rejects a corrupt sub-block position on the main path and tolerates it on the attachment path](#18-czi-rejects-a-corrupt-sub-block-position-on-the-main-path-and-tolerates-it-on-the-attachment-path)
 19. [pole read-path defects left in place](#19-pole-read-path-defects-left-in-place)
 20. [The ZVI concurrent-read work: what no test covers](#20-the-zvi-concurrent-read-work-what-no-test-covers)
-21. [pole read-path throughput: three remaining items](#21-pole-read-path-throughput-three-remaining-items)
+21. [pole read-path throughput: two remaining items](#21-pole-read-path-throughput-two-remaining-items)
 
 Not debt, recorded so it stays a decision:
 [Consciously accepted, not debt](#consciously-accepted-not-debt).
@@ -728,48 +728,41 @@ green suites do and do not stand behind.
 
 ---
 
-## 21. pole read-path throughput: three remaining items
+## 21. pole read-path throughput: two remaining items
 
 **Files:** `extern/pole/sources/pole/detail/storage.cpp`
-(`StorageIO::loadBigBlocks`, `loadSmallBlocks`),
+(`StorageIO::loadBigBlocks`),
 `extern/pole/sources/storage.cpp` (`compound_document::find_storage`)
 **Related:** the ZVI concurrent-read work (§14, now closed — see
 [Resolved and removed](#resolved-and-removed));
 `software-docs/BREAKING_CHANGES.md`, `v2.10.0`;
 `software-docs/specs/2026-09-09-zvi-concurrent-reads-design.md` §5.3, §8
-**Status:** Open. Both are throughput observations, neither a regression. The
-20% single-threaded read regression this entry was opened for is **fixed** —
-see *pole coalesces contiguous block runs into one read* in
-`BREAKING_CHANGES.md`. A 2.75 MB item of the mosaic went from 705 positional
-reads at 2.09 ms to **1 read at 0.25 ms**, which is also ~7× faster than the
-`std::fstream` path that preceded the regression.
+**Status:** Open. Both remaining items are throughput observations, neither a
+regression. The 20% single-threaded read regression this entry was opened for
+is **fixed**, on both the big-block and the small-block paths — see *pole
+coalesces contiguous block runs into one read* and *pole stops re-reading a
+container block per small block* in `BREAKING_CHANGES.md`. A 2.75 MB item of
+the mosaic went from 705 positional reads at 2.09 ms to **1 read at 0.25 ms**,
+which is also ~7× faster than the `std::fstream` path that preceded the
+regression; a 390-byte small stream went from 7 reads to 3, which is the number
+of distinct container blocks it actually touches.
 
 Two things the original entry got wrong, recorded because they cost time:
 the per-block loop was in `StreamImpl::read`, **not** `loadBigBlocks` — which
 on that path is only ever handed a one-element vector, so coalescing there as
 prescribed would have changed nothing — and "~5600 blocks" assumed 512-byte
-sectors where the mosaic uses 4096 (705 reads). The cold-cache figure quoted
-below was never re-measured after the fix.
+sectors where the mosaic uses 4096 (705 reads). The small-block path had the
+identical shape for the identical reason. The cold-cache figure quoted in the
+original entry was never re-measured after either fix.
 
-**1. `loadSmallBlocks` re-reads the same big block per small block.** It calls
-`loadBigBlock` once per small block, and consecutive small blocks usually live
-in the same big block, so that block is read again for each. Measured with
-`ole::basic_stream::read_calls()`: `/Image/Contents` of `Zeiss-1-Merged.zvi`,
-390 bytes, costs **7 positional reads**. Caching the last big block inside
-`loadSmallBlocks` is the fix. Bounded and small in absolute terms — a small
-stream is under the header's 4096-byte threshold by definition — so the case
-for it is open time across many small streams, which has not been measured.
-It was left out of the coalescing commit deliberately, having no measured
-benefit to point at.
-
-**2. `compound_document::find_storage` is a linear scan, now on the read
+**1. `compound_document::find_storage` is a linear scan, now on the read
 path.** It walks the whole `_storages` tree comparing strings — about 1543
 comparisons per `readRaster` on the mosaic, since `ConstStreamKeeper` resolves
 a path per item. It mutates nothing, so this is throughput, not correctness,
 and it wants its own measurement before anyone restructures the tree into a
 map.
 
-**3. A multi-block short read shifts the destination in `loadBigBlocks`.**
+**2. A multi-block short read shifts the destination in `loadBigBlocks`.**
 `loadBigBlocks` advances `bytes` by the actual count returned, so if block *i*
 reads short, blocks *i+1..n* land at the wrong offsets; the old `bytes += p`
 preserved the alignment. Unaffected by the coalescing fix, which left
@@ -970,7 +963,7 @@ retired here rather than reused.
 | # | Entry | Verified fixed by | Record |
 |---|---|---|---|
 | 2 | Philips TIFF driver follow-ups | All nine items landed across `75a48f65..a9f179aa`. Spot-verified: the tile-count and parallel-arrays guards are in `phCropLevelPadding` (`phtiffslide.cpp:278-298`), `svsdriverids.hpp` exists, and `Tools::isXml` is gone from the tree. | `git log --oneline 75a48f65..a9f179aa`; `software-docs/specs/2026-08-11-phtiff-format-detection-design.md`. The one item that was never debt is kept above, under [Consciously accepted, not debt](#consciously-accepted-not-debt). |
-| 14 | ZVI serialised every block read | `ZVIScene::supportsConcurrentReads()` returns `true` (`zviscene.hpp:62`), on one shared `ole::compound_document` made safe by pole's positional read path. | `software-docs/specs/2026-09-09-zvi-concurrent-reads-design.md` §3.2, §4, §5.3, §5.4. Its follow-ups are still open as [§19](#19-pole-read-path-defects-left-in-place), [§20](#20-the-zvi-concurrent-read-work-what-no-test-covers) and [§21](#21-pole-read-path-throughput-three-remaining-items). |
+| 14 | ZVI serialised every block read | `ZVIScene::supportsConcurrentReads()` returns `true` (`zviscene.hpp:62`), on one shared `ole::compound_document` made safe by pole's positional read path. | `software-docs/specs/2026-09-09-zvi-concurrent-reads-design.md` §3.2, §4, §5.3, §5.4. Its follow-ups are still open as [§19](#19-pole-read-path-defects-left-in-place), [§20](#20-the-zvi-concurrent-read-work-what-no-test-covers) and [§21](#21-pole-read-path-throughput-two-remaining-items). |
 | 17 | OME-TIFF serialised every block read | `OTScene::supportsConcurrentReads()` returns `true` (`otscene.hpp:88`); `TIFFFiles` moved off `OTScene` into a per-thread `OTReadContext` held by a `ContextPool`. | `software-docs/specs/2026-09-08-ometiff-concurrent-reads-design.md`; the contract assertion is `OTImageDriverTests.reportsConcurrentReadSupport`. |
 | 25 | A transformed scene bypasses its origin's read lock | `CVScene::lockIfSerialised()` now takes the mutex named by the new virtual `readSerialisationMutex()`, and `TransformerScene` overrides it to return its origin's (`transformerscene.hpp`), so a wrap chain contends on one lock instead of one mutex per scene. | The two exposures are `TransformedSceneReadLock.twoTransformsOverOneOriginDoNotReadItConcurrently` and `.aDirectReadOfTheOriginExcludesATransformedRead` in `slideio_transformer_tests`; both were watched failing on the unfixed code. `.aConcurrentOriginIsStillReadConcurrentlyThroughATransform` guards `TransformerScene::supportsConcurrentReads()`'s forwarding to the origin against a fix that re-serialises what it made concurrent. |
 
