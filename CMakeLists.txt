@@ -12,6 +12,28 @@ set(projectVersion 2.10.0)
 project(${PROJECT_NAME} VERSION ${projectVersion} LANGUAGES C CXX)
 enable_testing()
 
+# The version the library reports at runtime -- ImageDriverManager::getVersion()
+# returns SLIDEIO_VERSION from src/slideio/slideio/slideio_def.hpp -- is a
+# literal, and it had drifted: 2.9.2 against a 2.10.0 build. That was harmless
+# while nobody shipped the binaries. It stops being harmless the moment a
+# release pipeline stamps package names and SONAMEs with projectVersion, so
+# configure refuses a build where the two disagree rather than producing a
+# package that lies about what is inside it.
+file(READ ${CMAKE_SOURCE_DIR}/src/slideio/slideio/slideio_def.hpp _slideio_def_hpp)
+string(REGEX MATCH "SLIDEIO_VERSION[^\"]*\"([0-9]+[.][0-9]+[.][0-9]+)\""
+       _slideio_version_match "${_slideio_def_hpp}")
+if(NOT CMAKE_MATCH_1)
+    message(FATAL_ERROR
+        "Could not read SLIDEIO_VERSION out of src/slideio/slideio/slideio_def.hpp.")
+elseif(NOT CMAKE_MATCH_1 VERSION_EQUAL projectVersion)
+    message(FATAL_ERROR
+        "Version mismatch: CMakeLists.txt says ${projectVersion}, but "
+        "src/slideio/slideio/slideio_def.hpp says SLIDEIO_VERSION = "
+        "\"${CMAKE_MATCH_1}\". Update the header.")
+endif()
+unset(_slideio_def_hpp)
+unset(_slideio_version_match)
+
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     add_compile_options(-Wno-switch)
     add_compile_options(-Wno-switch-default)
@@ -100,6 +122,16 @@ MACRO(SOURCE_GROUP_BY_FOLDER target)
 ENDMACRO(SOURCE_GROUP_BY_FOLDER)
 
 IF(APPLE)
+    # Floor for the distributed arm64 build: every Apple Silicon Mac still
+    # receiving security updates runs 12 or newer. Set here rather than in
+    # conan/OSX/arm/* on purpose -- os.version is part of a conan package id, so
+    # putting it in the profile would invalidate every cached binary and make CI
+    # build opencv, dcmtk and icu from source. Only slideio's own objects need
+    # the floor; linking them against dependencies built for an older target is
+    # fine.
+    if(NOT CMAKE_OSX_DEPLOYMENT_TARGET)
+        set(CMAKE_OSX_DEPLOYMENT_TARGET "12.0" CACHE STRING "Minimum macOS version" FORCE)
+    endif()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
     add_compile_definitions(_FILE_OFFSET_BITS=64)
     set(CMAKE_INSTALL_RPATH "@executable_path")
@@ -112,6 +144,15 @@ ELSEIF(UNIX)
 
 if(MSVC)
     add_compile_options(/wd4275 /wd4251)
+    # Release ships its PDBs as a separate artifact, so Release has to produce
+    # them: /Zi writes the symbols, /DEBUG makes the linker keep them. /DEBUG
+    # also turns off the two link-time optimisations MSVC otherwise applies to
+    # a release build, so both are asked for again explicitly -- without them
+    # the shipped binaries would be measurably larger than before for no reason.
+    add_compile_options($<$<CONFIG:Release>:/Zi>)
+    add_link_options($<$<CONFIG:Release>:/DEBUG>
+                     $<$<CONFIG:Release>:/OPT:REF>
+                     $<$<CONFIG:Release>:/OPT:ICF>)
 endif()
 
 IF(WIN32)
@@ -239,92 +280,97 @@ set_target_properties(pole PROPERTIES
 
 add_subdirectory(src)
 
-# Install the library
-install(TARGETS 
-             ${SLIDEIO_LIB_NAME}
-             ${CORE_LIB_NAME}
-             ${CONVERTER_LIB_NAME}
-             ${TRANSFORMER_LIB_NAME}
-    LIBRARY DESTINATION lib
-    ARCHIVE DESTINATION lib
-    RUNTIME DESTINATION bin
+# ---------------------------------------------------------------------------
+# Installation
+# ---------------------------------------------------------------------------
+#
+# The installed tree is what every binary distribution is cut from, so the
+# rules below are grouped into CPack components rather than written one target
+# at a time:
+#
+#   Runtime       the shared libraries a consumer's program loads. All sixteen
+#                 belong together in one directory: the format drivers are
+#                 load-time linked into the slideio library (see
+#                 src/slideio/slideio/CMakeLists.txt), not dlopen'd, and the
+#                 installed RPATH is $ORIGIN.
+#   Development   import libraries, public headers, CMake package config.
+#   DebugSymbols  MSVC PDB files, shipped as an archive of their own.
+#
+# cmake-scripts/packaging.cmake turns those into a .zip, a .tar.gz or a pair of
+# .deb files. A plain `cmake --install` is unaffected and still writes the
+# whole tree.
+
+set(SLIDEIO_PUBLIC_LIBS
+    ${SLIDEIO_LIB_NAME}
+    ${CORE_LIB_NAME}
+    ${IMAGETOOLS_LIB_NAME}
+    ${CONVERTER_LIB_NAME}
+    ${TRANSFORMER_LIB_NAME}
 )
 
-install(TARGETS 
-             ${GDAL_DRIVER_NAME}
-             ${SVS_DRIVER_NAME}
-             ${PKE_DRIVER_NAME} 
-             ${AFI_DRIVER_NAME} 
-             ${CZI_DRIVER_NAME} 
-             ${DCM_DRIVER_NAME} 
-             ${SCN_DRIVER_NAME} 
-             ${ZVI_DRIVER_NAME} 
-             ${NDPI_DRIVER_NAME} 
-             ${VSI_DRIVER_NAME}
-             ${OMETIFF_DRIVER_NAME}
-             ${CORE_LIB_NAME}
-             ${IMAGETOOLS_LIB_NAME}
-    RUNTIME DESTINATION bin
+set(SLIDEIO_DRIVER_LIBS
+    ${GDAL_DRIVER_NAME}
+    ${SVS_DRIVER_NAME}
+    ${PKE_DRIVER_NAME}
+    ${AFI_DRIVER_NAME}
+    ${CZI_DRIVER_NAME}
+    ${DCM_DRIVER_NAME}
+    ${SCN_DRIVER_NAME}
+    ${ZVI_DRIVER_NAME}
+    ${NDPI_DRIVER_NAME}
+    ${VSI_DRIVER_NAME}
+    ${OMETIFF_DRIVER_NAME}
 )
 
+set(SLIDEIO_ALL_LIBS ${SLIDEIO_PUBLIC_LIBS} ${SLIDEIO_DRIVER_LIBS})
 
-if(NOT WIN32)
-    install(TARGETS
-                 ${GDAL_DRIVER_NAME}
-                 ${SVS_DRIVER_NAME}
-                 ${PKE_DRIVER_NAME}
-                 ${AFI_DRIVER_NAME}
-                 ${CZI_DRIVER_NAME}
-                 ${DCM_DRIVER_NAME}
-                 ${SCN_DRIVER_NAME}
-                 ${ZVI_DRIVER_NAME}
-                 ${NDPI_DRIVER_NAME}
-                 ${VSI_DRIVER_NAME}
-                 ${OMETIFF_DRIVER_NAME}
-                 ${CORE_LIB_NAME}
-                 ${IMAGETOOLS_LIB_NAME}
-                 ${SLIDEIO_LIB_NAME}
-                 ${CONVERTER_LIB_NAME}
-                 ${TRANSFORMER_LIB_NAME}
-            LIBRARY DESTINATION bin
-    )
+# A Debian package split into a runtime and a -dev half needs an SONAME, and
+# there was none. It is major.minor and not major: 2.10 added virtual functions
+# to CVScene, so a program built against 2.9 must not silently load 2.10, and
+# libslideio2.9 and libslideio2.10 are separate packages that can coexist.
+#
+# Linux only, deliberately. On macOS, VERSION/SOVERSION would rename the
+# libraries to lib<name>.2.10.dylib, and FIX_MACOS_RPATH above rewrites install
+# names by matching the literal strings "lib<name>.dylib" held in
+# NAME_TOOL_LIB_LIST. Those would stop matching, install_name_tool -change would
+# quietly do nothing, and the macOS archive would ship binaries whose
+# dependencies cannot be resolved -- with no error at build time. Windows has no
+# SONAME concept at all. Nothing outside the .deb needs one, so nothing outside
+# Linux gets one.
+if(UNIX AND NOT APPLE)
+    set_target_properties(${SLIDEIO_ALL_LIBS} PROPERTIES
+        VERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
+        SOVERSION ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR})
 endif()
 
-# Install debug symbol files (PDB) alongside binaries for Debug builds on MSVC.
+# Windows puts the DLLs in bin/ and the import libraries in lib/; everywhere
+# else the shared objects are the runtime and go to lib/. Before this, Unix
+# builds installed the libraries into both lib/ and bin/ -- two copies of every
+# .so, which a system package must not carry.
+install(TARGETS ${SLIDEIO_ALL_LIBS}
+    RUNTIME DESTINATION bin COMPONENT Runtime
+    LIBRARY DESTINATION lib COMPONENT Runtime
+    ARCHIVE DESTINATION lib COMPONENT Development
+)
+
+# Debug symbols. Release is what gets distributed, so it is the configuration
+# that matters here; Debug keeps the behaviour it always had.
 if(MSVC)
-    set(SLIDEIO_PDB_TARGETS
-        ${SLIDEIO_LIB_NAME}
-        ${CORE_LIB_NAME}
-        ${CONVERTER_LIB_NAME}
-        ${TRANSFORMER_LIB_NAME}
-        ${IMAGETOOLS_LIB_NAME}
-        ${GDAL_DRIVER_NAME}
-        ${SVS_DRIVER_NAME}
-        ${PKE_DRIVER_NAME}
-        ${AFI_DRIVER_NAME}
-        ${CZI_DRIVER_NAME}
-        ${DCM_DRIVER_NAME}
-        ${SCN_DRIVER_NAME}
-        ${ZVI_DRIVER_NAME}
-        ${NDPI_DRIVER_NAME}
-        ${VSI_DRIVER_NAME}
-        ${OMETIFF_DRIVER_NAME}
-    )
-    foreach(_pdb_target ${SLIDEIO_PDB_TARGETS})
+    foreach(_pdb_target ${SLIDEIO_ALL_LIBS})
         install(FILES $<TARGET_PDB_FILE:${_pdb_target}>
                 DESTINATION bin
-                CONFIGURATIONS Debug
+                CONFIGURATIONS Debug Release
+                COMPONENT DebugSymbols
                 OPTIONAL)
     endforeach()
 endif()
 
-install(FILES 
-    ${INCLUDE_ROOT}/slideio/converter/converterparameters.hpp 
-    ${INCLUDE_ROOT}/slideio/converter/convertercallback.hpp 
-    ${INCLUDE_ROOT}/slideio/converter/converter_def.hpp 
+install(FILES
+    ${INCLUDE_ROOT}/slideio/converter/converterparameters.hpp
+    ${INCLUDE_ROOT}/slideio/converter/convertercallback.hpp
+    ${INCLUDE_ROOT}/slideio/converter/converter_def.hpp
     ${INCLUDE_ROOT}/slideio/converter/converter.hpp
-    DESTINATION include/slideio/converter)
-
+    DESTINATION include/slideio/converter COMPONENT Development)
 
 install(FILES
     ${INCLUDE_ROOT}/slideio/core/slideio_core_def.hpp
@@ -337,20 +383,20 @@ install(FILES
     ${INCLUDE_ROOT}/slideio/core/slideio_enums.hpp
     ${INCLUDE_ROOT}/slideio/core/slideio_structs.hpp
     ${INCLUDE_ROOT}/slideio/core/colorprofile.hpp
-    DESTINATION include/slideio/core)
+    DESTINATION include/slideio/core COMPONENT Development)
 
-install(FILES 
-    ${INCLUDE_ROOT}/slideio/imagetools/encodeparameters.hpp 
-    DESTINATION include/slideio/imagetools)
+install(FILES
+    ${INCLUDE_ROOT}/slideio/imagetools/encodeparameters.hpp
+    DESTINATION include/slideio/imagetools COMPONENT Development)
 
-install(FILES 
-    ${INCLUDE_ROOT}/slideio/slideio/slideio_def.hpp 
-    ${INCLUDE_ROOT}/slideio/slideio/slideio.hpp 
-    ${INCLUDE_ROOT}/slideio/slideio/slide.hpp 
-    ${INCLUDE_ROOT}/slideio/slideio/scene.hpp 
-    DESTINATION include/slideio/slideio)
+install(FILES
+    ${INCLUDE_ROOT}/slideio/slideio/slideio_def.hpp
+    ${INCLUDE_ROOT}/slideio/slideio/slideio.hpp
+    ${INCLUDE_ROOT}/slideio/slideio/slide.hpp
+    ${INCLUDE_ROOT}/slideio/slideio/scene.hpp
+    DESTINATION include/slideio/slideio COMPONENT Development)
 
-install(FILES 
+install(FILES
     ${INCLUDE_ROOT}/slideio/transformer/wrappers.hpp
     ${INCLUDE_ROOT}/slideio/transformer/transformer_def.hpp
     ${INCLUDE_ROOT}/slideio/transformer/transformer.hpp
@@ -368,4 +414,67 @@ install(FILES
     ${INCLUDE_ROOT}/slideio/transformer/colormanagementwrap.hpp
     ${INCLUDE_ROOT}/slideio/transformer/cannyfilterwrap.hpp
     ${INCLUDE_ROOT}/slideio/transformer/bilateralfilterwrap.hpp
-    DESTINATION include/slideio/transformer)
+    DESTINATION include/slideio/transformer COMPONENT Development)
+
+# ---------------------------------------------------------------------------
+# CMake package configuration
+# ---------------------------------------------------------------------------
+#
+# Lets a consumer write find_package(slideio 2.10 REQUIRED) and link
+# slideio::slideio. See cmake-scripts/slideioConfig.cmake.in for why the config
+# is hand-written rather than generated by install(EXPORT).
+include(CMakePackageConfigHelpers)
+
+set(SLIDEIO_CMAKE_PACKAGE_DIR lib/cmake/slideio)
+
+configure_package_config_file(
+    ${CMAKE_SOURCE_DIR}/cmake-scripts/slideioConfig.cmake.in
+    ${CMAKE_BINARY_DIR}/cmake-package/slideioConfig.cmake
+    INSTALL_DESTINATION ${SLIDEIO_CMAKE_PACKAGE_DIR})
+
+# SameMinorVersion is the honest compatibility rule -- 2.10 broke ABI against
+# 2.9 -- but CMake only learned it in 3.11, and this project still declares 3.10
+# as its floor.
+if(CMAKE_VERSION VERSION_LESS 3.11)
+    set(SLIDEIO_VERSION_COMPATIBILITY ExactVersion)
+else()
+    set(SLIDEIO_VERSION_COMPATIBILITY SameMinorVersion)
+endif()
+
+write_basic_package_version_file(
+    ${CMAKE_BINARY_DIR}/cmake-package/slideioConfigVersion.cmake
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY ${SLIDEIO_VERSION_COMPATIBILITY})
+
+install(FILES
+    ${CMAKE_BINARY_DIR}/cmake-package/slideioConfig.cmake
+    ${CMAKE_BINARY_DIR}/cmake-package/slideioConfigVersion.cmake
+    DESTINATION ${SLIDEIO_CMAKE_PACKAGE_DIR} COMPONENT Development)
+
+# ---------------------------------------------------------------------------
+# Packaging
+# ---------------------------------------------------------------------------
+
+# Names the artifacts. Only x86_64 Windows, x86_64 Debian and arm64 macOS are
+# distributed, but the tag is derived rather than hard-coded so a build on
+# anything else is labelled for what it is instead of lying.
+if(WIN32)
+    set(SLIDEIO_PLATFORM_OS "windows")
+elseif(APPLE)
+    set(SLIDEIO_PLATFORM_OS "macos")
+else()
+    set(SLIDEIO_PLATFORM_OS "linux")
+endif()
+
+string(TOLOWER "${CMAKE_SYSTEM_PROCESSOR}" SLIDEIO_PLATFORM_ARCH)
+if(SLIDEIO_PLATFORM_ARCH STREQUAL "amd64" OR SLIDEIO_PLATFORM_ARCH STREQUAL "x64")
+    set(SLIDEIO_PLATFORM_ARCH "x86_64")
+elseif(SLIDEIO_PLATFORM_ARCH STREQUAL "aarch64")
+    set(SLIDEIO_PLATFORM_ARCH "arm64")
+elseif(SLIDEIO_PLATFORM_ARCH STREQUAL "")
+    set(SLIDEIO_PLATFORM_ARCH "unknown")
+endif()
+
+set(SLIDEIO_PLATFORM_TAG "${SLIDEIO_PLATFORM_OS}-${SLIDEIO_PLATFORM_ARCH}")
+
+include(${CMAKE_SOURCE_DIR}/cmake-scripts/packaging.cmake)

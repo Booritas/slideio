@@ -31,6 +31,42 @@ python3 install.py -a build -c all       # Both (default)
 python3 install.py -a install -bd /path/to/build -pr /path/to/install
 ```
 
+```bash
+# Build the binary distribution packages for the current platform:
+python3 install.py -a package -c release       # conan + configure + build + package
+python3 install.py -a package-only -c release  # package an already-built tree
+```
+
+Packages land in `build/packages`. Release only -- `package` refuses a debug
+configuration, because a distribution of `_d`-suffixed libraries with a SONAME
+matching nothing serves nobody. What comes out depends on the platform: a `.zip`
+plus a separate `-pdb.zip` on Windows, a `.tar.gz` on macOS, and
+`libslideio<major>.<minor>` + `libslideio-dev` `.deb` files on Linux.
+
+`.github/workflows/release.yml` runs exactly these commands on a `v*` tag and
+attaches the results to a draft GitHub Release; `workflow_dispatch` does
+everything except publish, which makes it a real rehearsal. Before publishing,
+each platform runs the corpus-free unit suites and then builds
+`auxfiles/package-smoke/` against the package it just produced -- a standalone
+`find_package(slideio)` consumer that knows nothing about the build tree. That
+smoke test is the only thing that catches a header missing from the `-dev`
+package or a driver left out of an archive.
+
+Three statements of the version have to agree and are checked mechanically:
+`projectVersion` in `CMakeLists.txt`, `SLIDEIO_VERSION` in
+`src/slideio/slideio/slideio_def.hpp` (configure fails if they differ), and the
+git tag (the workflow fails if it differs). Bumping a version means editing both
+files.
+
+See `software-docs/specs/2026-09-13-ci-library-distribution-design.md`.
+Two traps recorded there, because both fail silently: **do not give the macOS
+libraries a `VERSION`/`SOVERSION`** -- it renames the dylibs, `FIX_MACOS_RPATH`
+matches install names against the literal strings in `NAME_TOOL_LIB_LIST`, and
+the rewrite quietly becomes a no-op -- and **do not switch the CMake package
+config to `install(EXPORT)`** while the modules link their dependencies through
+the plain `target_link_libraries(tgt a b c)` signature, which would drag every
+conan imported target into the exported interface.
+
 Build output: `build/release/bin/` and `build/debug/bin/` on Linux/macOS; `build/` on Windows.
 
 ## Running Tests
