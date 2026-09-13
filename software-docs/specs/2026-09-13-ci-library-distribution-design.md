@@ -36,7 +36,7 @@ layout fix, not a rewrite.
 
 | Question | Decision |
 |---|---|
-| Trigger | Tag `v*` publishes a draft GitHub Release; `workflow_dispatch` builds and smoke-tests everything without publishing |
+| Trigger | Tag `v*` publishes a draft GitHub Release; `workflow_dispatch` builds and smoke-tests without publishing, with `platforms` and `skip_tests` inputs |
 | Debian layout | Split `libslideio2.10` (runtime) + `libslideio-dev` (headers, CMake config) |
 | Windows / macOS | Plain `.zip` / `.tar.gz`, plus a separate `-pdb.zip` of MSVC release symbols |
 | `find_package` | Yes — `slideioConfig.cmake`, consumers link `slideio::slideio` |
@@ -211,8 +211,13 @@ deliberately and watching configure fail.
 machine on this development setup, so the `.deb` split, `dpkg-shlibdeps`, the
 SOVERSION symlinks, the macOS deployment target and the `@rpath` resolution in
 the tarball are all first exercised by the workflow itself. Run it once with
-`workflow_dispatch` — which builds, packages and smoke-tests every platform but
-publishes nothing — before pushing a tag.
+`workflow_dispatch` — which builds, packages and smoke-tests but publishes
+nothing — before pushing a tag. Its `platforms` input takes `debian` or `macos`
+alone, so the two untried paths can be worked through one at a time.
+
+That rehearsal has to wait for the merge: GitHub offers a manual run only for
+workflow files that exist on the default branch, so `release.yml` cannot be
+dispatched from its own branch no matter what its `on:` block says.
 
 One thing to watch on that first macOS run: the smoke test deliberately does not
 set `DYLD_LIBRARY_PATH`, relying on CMake giving the consumer an RPATH from the

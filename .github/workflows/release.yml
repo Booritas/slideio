@@ -22,6 +22,30 @@ on:
     tags:
       - 'v*'
   workflow_dispatch:
+    inputs:
+      platforms:
+        description: "Which platforms to build"
+        required: true
+        default: "all"
+        type: choice
+        options:
+          - all
+          - windows
+          - debian
+          - macos
+      skip_tests:
+        description: "Skip the corpus-free unit suites (packaging changes only)"
+        required: false
+        default: false
+        type: boolean
+
+# A manual run cannot publish: the publish job is gated on the ref being a tag,
+# and a tag push never carries inputs. So both knobs above only ever shorten a
+# rehearsal, and neither can put an untested artifact on a release page.
+#
+# Note that GitHub offers the "Run workflow" button only for workflow files that
+# exist on the default branch. Until this file is merged to master it cannot be
+# dispatched from anywhere, including from its own branch.
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -37,6 +61,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
+      matrix: ${{ steps.matrix.outputs.matrix }}
     steps:
       - uses: actions/checkout@v4
 
@@ -64,6 +89,42 @@ jobs:
           fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
 
+      # The build matrix is assembled here rather than written inline in the
+      # build job, so a manual run can ask for one platform instead of three.
+      # A tag push carries no inputs, so a release always builds all three.
+      - name: Select the platforms to build
+        id: matrix
+        shell: bash
+        env:
+          PLATFORMS: ${{ inputs.platforms || 'all' }}
+        run: |
+          set -euo pipefail
+
+          # Multi-config generator: the binaries land under build/bin/<Config>.
+          windows='{"name":"Windows x86_64","os":"windows-2022","artifact":"windows-x86_64","bin_dir":"build/bin/Release"}'
+          # 22.04 and not the latest image on purpose: it fixes the glibc floor
+          # at 2.35, so the .deb installs on Ubuntu 22.04+ and Debian 12+. Built
+          # on 24.04 it would refuse both.
+          debian='{"name":"Debian x86_64","os":"ubuntu-22.04","artifact":"debian-x86_64","bin_dir":"build/release/bin"}'
+          # macos-14 is the first arm64 image; macos-latest also points at Apple
+          # Silicon now, but naming the version keeps the artifact's
+          # architecture from changing under us.
+          macos='{"name":"macOS arm64","os":"macos-14","artifact":"macos-arm64","bin_dir":"build/release/bin"}'
+
+          case "$PLATFORMS" in
+            all)     include="${windows},${debian},${macos}" ;;
+            windows) include="${windows}" ;;
+            debian)  include="${debian}" ;;
+            macos)   include="${macos}" ;;
+            *)
+              echo "Unknown platform selection: ${PLATFORMS}" >&2
+              exit 1
+              ;;
+          esac
+
+          echo "building: ${PLATFORMS}"
+          echo "matrix={\"include\":[${include}]}" >> "$GITHUB_OUTPUT"
+
   build:
     name: ${{ matrix.name }}
     needs: check-version
@@ -74,27 +135,10 @@ jobs:
       # cleanly; a release that is short one artifact is worth knowing about in
       # full rather than one platform at a time.
       fail-fast: false
-      matrix:
-        include:
-          - name: Windows x86_64
-            os: windows-2022
-            artifact: windows-x86_64
-            # Multi-config generator: the binaries land under build/bin/<Config>.
-            bin_dir: build/bin/Release
-          - name: Debian x86_64
-            # 22.04 and not the latest image on purpose: it fixes the glibc
-            # floor at 2.35, so the .deb installs on Ubuntu 22.04+ and Debian
-            # 12+. Built on 24.04 it would refuse both.
-            os: ubuntu-22.04
-            artifact: debian-x86_64
-            bin_dir: build/release/bin
-          - name: macOS arm64
-            # macos-14 is the first arm64 image; macos-latest also points at
-            # Apple Silicon now, but naming the version keeps the artifact's
-            # architecture from changing under us.
-            os: macos-14
-            artifact: macos-arm64
-            bin_dir: build/release/bin
+      # Assembled by the check-version job, so a manual run can build one
+      # platform instead of three. The runner choices and the reasons for them
+      # are there.
+      matrix: ${{ fromJson(needs.check-version.outputs.matrix) }}
 
     env:
       SLIDEIO_HOME: ${{ github.workspace }}
@@ -144,6 +188,9 @@ jobs:
       # SLIDEIO_SKIP_MISSING_IMAGES unset, so running them here would fail
       # rather than skip.
       - name: Corpus-free unit suites
+        # Skippable only from a manual run, which cannot publish anything. A tag
+        # push carries no inputs, so a release always runs them.
+        if: ${{ !inputs.skip_tests }}
         shell: bash
         run: |
           set -euo pipefail
