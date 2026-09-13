@@ -9,6 +9,58 @@ by branch.
 
 ## v2.10.0
 
+### The installed tree moved, and the Linux libraries gained an SONAME
+
+**Module:** all (installation layout only)
+**Files:** `CMakeLists.txt`, `cmake-scripts/packaging.cmake`,
+`cmake-scripts/slideioConfig.cmake.in`
+
+Three changes to what `cmake --install` (and `install.py -a install`) writes.
+None of them changes a signature, and code that links against a build tree is
+unaffected.
+
+**On Linux and macOS the shared libraries are no longer installed into `bin/`.**
+They were written to both `lib/` and `bin/` -- two copies of every `.so` -- and
+are now written to `lib/` alone. A consumer whose build points at
+`<prefix>/bin` for libraries has to point at `<prefix>/lib` instead. Windows is
+unchanged: DLLs in `bin/`, import libraries in `lib/`.
+
+**On Linux the libraries now carry an SONAME of `<major>.<minor>`.**
+`libslideio.so` becomes a symlink to `libslideio.so.2.10`, and likewise for the
+other fourteen. Anything that names a library file literally rather than linking
+`-lslideio` has to account for the symlink. macOS and Windows are unchanged, and
+deliberately so -- see
+`software-docs/specs/2026-09-13-ci-library-distribution-design.md` for why
+versioning the dylibs would break `FIX_MACOS_RPATH` silently.
+
+**The install is now split into CPack components** -- `Runtime`, `Development`
+and `DebugSymbols`. A plain `cmake --install` with no `--component` still writes
+the whole tree, so this only matters to someone who wants a subset.
+
+Alongside these, the tree gained `lib/cmake/slideio/slideioConfig.cmake`, so a
+consumer can replace hand-wired include and library paths with:
+
+```cmake
+find_package(slideio 2.10 REQUIRED)
+target_link_libraries(myapp PRIVATE slideio::slideio)
+```
+
+### `SLIDEIO_VERSION` was 2.9.2 in a 2.10.0 tree
+
+**Module:** `slideio` (exported: `slideio::getVersion()`,
+`ImageDriverManager::getVersion()`)
+**File:** `src/slideio/slideio/slideio_def.hpp`
+
+`getVersion()` returned `"2.9.2"` from every 2.10.0 build: the constant is a
+literal and had not been updated with `projectVersion`. It now returns
+`"2.10.0"`, and CMake configure fails if the two ever disagree again.
+
+Code that compared the returned string against `"2.9.2"` to detect a 2.10 build
+was relying on the bug and will now take the other branch. The constant is
+visible to anything including `slideio_def.hpp`, so a consumer that baked it in
+at compile time needs a rebuild.
+
+
 ### `Scene` block reads may now overlap
 
 **Module:** `slideio-core` (exported: `CVScene::supportsConcurrentReads()`)

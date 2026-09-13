@@ -8,6 +8,7 @@ import platform
 import argparse
 from argparse import RawTextHelpFormatter
 import fnmatch
+import re
 
 try:
     import distro
@@ -321,12 +322,94 @@ def install_slideio(configuration, prefix):
         subprocess.check_call(cmd, stderr=subprocess.STDOUT)
 
 
+
+def read_cpack_package_file_name(build_dir):
+    """Base name CPack gives an archive, read out of the generated CPackConfig.cmake.
+
+    Parsed rather than recomputed here on purpose: the platform tag it contains
+    is built in cmake-scripts/packaging.cmake, and a second definition in this
+    file would eventually disagree with it and have the workflow upload
+    artifacts whose names do not match the packages inside them.
+    """
+    config = os.path.join(build_dir, "CPackConfig.cmake")
+    if not os.path.isfile(config):
+        raise RuntimeError(
+            f"{config} does not exist. Configure and build before packaging."
+        )
+    with open(config, encoding="utf-8") as handle:
+        for line in handle:
+            match = re.match(r'\s*set\(CPACK_PACKAGE_FILE_NAME\s+"([^"]+)"\)', line)
+            if match:
+                return match.group(1)
+    raise RuntimeError(f"CPACK_PACKAGE_FILE_NAME is not set in {config}.")
+
+
+def package_slideio(configuration, output_dir):
+    """Build the binary distribution artifacts for the current platform.
+
+    Release only. A distribution carries release libraries, and packaging a
+    debug build would produce archives full of _d-suffixed libraries that no
+    consumer wants and a .deb whose SONAME matches nothing.
+    """
+    os_platform = get_platform()
+    cpack = "cpack.exe" if os_platform == "Windows" else "cpack"
+
+    if not configuration["release"]:
+        raise RuntimeError(
+            "Distributions are cut from the release build only. Run with -c release."
+        )
+
+    build_dir = configuration["build_release_directory"]
+    base_name = read_cpack_package_file_name(build_dir)
+    os.makedirs(output_dir, exist_ok=True)
+
+    def run_cpack(generator, components, file_name):
+        cmd = [
+            cpack,
+            "-G",
+            generator,
+            "-C",
+            "Release",
+            "--config",
+            os.path.join(build_dir, "CPackConfig.cmake"),
+            "-B",
+            output_dir,
+            "-D",
+            "CPACK_COMPONENTS_ALL=" + ";".join(components),
+            "-D",
+            "CPACK_PACKAGE_FILE_NAME=" + file_name,
+        ]
+        print(cmd)
+        subprocess.check_call(cmd, stderr=subprocess.STDOUT)
+
+    if os_platform == "Windows":
+        run_cpack("ZIP", ["Runtime", "Development"], base_name)
+        # The PDBs are several times the size of the libraries they describe,
+        # so they ship as their own download rather than inside the archive
+        # everybody has to fetch.
+        run_cpack("ZIP", ["DebugSymbols"], base_name + "-pdb")
+    elif os_platform == "OSX":
+        run_cpack("TGZ", ["Runtime", "Development"], base_name)
+    else:
+        # CPACK_DEBIAN_FILE_NAME is DEB-DEFAULT, so the two components become
+        # libslideio<major>.<minor>_<version>_<arch>.deb and
+        # libslideio-dev_<version>_<arch>.deb; the name passed here is ignored.
+        run_cpack("DEB", ["Runtime", "Development"], base_name)
+
+    print("-------- packages written to", output_dir, "--------")
+    for entry in sorted(os.listdir(output_dir)):
+        full = os.path.join(output_dir, entry)
+        if os.path.isfile(full):
+            print(f"  {entry}  ({os.path.getsize(full)} bytes)")
+
+
 if __name__ == "__main__":
     action_help = """Type of action:
         conan:      run conan to prepare cmake files for 3rd party packages
         configure:  run cmake to configure the build
         build:      build the software
-        install:    install the software"""
+        install:    install the software
+        package:    build the binary distribution packages for this platform"""
     config_help = "Software configuration to be configured and build. Select from release, debug or all."
     parser = argparse.ArgumentParser(
         formatter_class=RawTextHelpFormatter,
@@ -343,6 +426,8 @@ if __name__ == "__main__":
             "build-only",
             "install",
             "install-only",
+            "package",
+            "package-only",
             "clean",
         ],
         default="configure",
@@ -418,11 +503,17 @@ if __name__ == "__main__":
     if args.action in ["clean"]:
         clean_prev_build(slideio_directory, build_directory)
     else:
-        if args.action in ["conan", "configure", "build", "install"]:
+        if args.action in ["conan", "configure", "build", "install", "package"]:
             configure_conan(slideio_directory, configuration)
-        if args.action in ["configure", "configure-only", "build", "install"]:
+        if args.action in [
+            "configure",
+            "configure-only",
+            "build",
+            "install",
+            "package",
+        ]:
             configure_slideio(configuration)
-        if args.action in ["build", "build-only", "install"]:
+        if args.action in ["build", "build-only", "install", "package"]:
             build_slideio(configuration)
         if args.action in ["install", "install-only"]:
             prefix = {
@@ -430,3 +521,5 @@ if __name__ == "__main__":
                 "debug": os.path.join(install_directory, "debug"),
             }
             install_slideio(configuration, prefix)
+        if args.action in ["package", "package-only"]:
+            package_slideio(configuration, os.path.join(build_directory, "packages"))
