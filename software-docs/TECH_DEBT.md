@@ -38,6 +38,11 @@ removed without renumbering the rest and its number is retired in
 19. [pole read-path defects left in place](#19-pole-read-path-defects-left-in-place)
 20. [The ZVI concurrent-read work: what no test covers](#20-the-zvi-concurrent-read-work-what-no-test-covers)
 21. [pole read-path throughput: two remaining items](#21-pole-read-path-throughput-two-remaining-items)
+22. [The colour/ICC extraction work: what no test covers](#22-the-colouricc-extraction-work-what-no-test-covers)
+23. [DCMTK codec registration is process-wide but tied to one instance's lifetime](#23-dcmtk-codec-registration-is-process-wide-but-tied-to-one-instances-lifetime)
+24. [GDAL and CZI scenes hold raw pointers into slide-owned state](#24-gdal-and-czi-scenes-hold-raw-pointers-into-slide-owned-state)
+25. *retired -- fixed, see [Resolved and removed](#resolved-and-removed)*
+26. [The positional read path has no buffer for small sequential reads](#26-the-positional-read-path-has-no-buffer-for-small-sequential-reads)
 
 Not debt, recorded so it stays a decision:
 [Consciously accepted, not debt](#consciously-accepted-not-debt).
@@ -755,6 +760,13 @@ sectors where the mosaic uses 4096 (705 reads). The small-block path had the
 identical shape for the identical reason. The cold-cache figure quoted in the
 original entry was never re-measured after either fix.
 
+The regression is closed for large reads but **not for every pattern**: many
+small sequential cursor reads are still slower than pre-concurrency pole, by
+more than the 20% this entry was opened for, and coalescing cannot reach them.
+That is [§26](#26-the-positional-read-path-has-no-buffer-for-small-sequential-reads),
+recorded separately because the cause is different — an absent buffer rather
+than a block walk.
+
 **1. `compound_document::find_storage` is a linear scan, now on the read
 path.** It walks the whole `_storages` tree comparing strings — about 1543
 comparisons per `readRaster` on the mosaic, since `ConstStreamKeeper` resolves
@@ -941,6 +953,69 @@ Only the third removes the class of bug rather than this instance of it.
 
 ---
 
+## 26. The positional read path has no buffer for small sequential reads
+
+**Files:** `extern/pole/sources/pole/detail/stream.cpp` (`StreamImpl::read`, both
+overloads, and `update_cache`), `sources/pole/detail/storage.cpp`
+(`PositionalFile::read_at`)
+**Related:** [§21](#21-pole-read-path-throughput-two-remaining-items), whose
+coalescing fix cannot reach this; `software-docs/BREAKING_CHANGES.md`,
+`v2.10.0`, *pole gained a positional read path* and *pole coalesces contiguous
+block runs into one read*
+**Status:** Open. A **measured regression** against pre-concurrency pole —
+larger than the 20% §21 was opened for, on a pattern §21's fix does not touch.
+Found while checking whether the coalescing had closed §21 completely.
+
+Pristine pole read through a buffered `std::fstream`. The positional path that
+replaced it has no buffering beneath it: every `read_at` is a syscall. For one
+large read that is a win, because the syscall count collapses. For many small
+sequential reads it is a loss, because the `fstream` buffer used to absorb them.
+
+Measured against pristine pole `3e64e5a` built from a worktree, same probe
+source compiled against both, same session, `/Image/Item(0)/Contents` of
+`zvi/openslide/Zeiss-3-Mosaic.zvi`. Content hashes identical throughout.
+
+| Pattern | pristine `3e64e5a` | current `bd6319e` | |
+|---|---|---|---|
+| `compound_document` open | 1721.5 ms | 139.0 ms | **12× faster** |
+| one 2.75 MB read (n=15 warm) | 1.72 ms, 1604 MB/s | 0.24 ms, 11418 MB/s | **7.2× faster** |
+| 20000 × 4-byte cursor reads | 1.849 µs each | 2.430 µs each | **+31% slower** |
+| 20000 × 64-byte cursor reads | 1.919 µs each | 2.808 µs each | **+46% slower** |
+
+**Coalescing cannot fix this, which is why §21's work left it behind.** A run of
+contiguous blocks is collapsed into one read only within a single `read` call;
+a 4-byte read spans one block, so there is nothing to coalesce. The cost is the
+absent buffer, not the block walk.
+
+**Who hits it.** The split inside the ZVI driver is exact: pixels go through
+`read_at` (`zviimageitem.cpp:223`, `:237`) and are firmly on the winning side of
+the table, while metadata and tag parsing go through the cursor `read`
+(`zviutils.cpp:39`, reached from `skipItems`, `readIntItem`, `readItem`) and are
+on the losing side. Any other consumer parsing structured data field by field is
+in the same position.
+
+**Net effect is probably still a large win, but the second half of that is an
+estimate and should not be quoted as measured.** End-to-end `openSlide` on the
+mosaic is ~2750 ms, of which only 139 ms is `compound_document` construction;
+the remaining ~2610 ms is tag parsing, dominated by small reads. Scaling that
+back by the measured penalty puts pristine near 1865 ms of parsing plus its
+1721 ms open, so about 3590 ms against today's 2750 ms. A measured end-to-end
+comparison is **not available**: pristine pole has no `read_at`, so the current
+ZVI driver cannot be built against it, and getting the number would mean
+reverting the driver too.
+
+**The fix, and the constraint that shapes it.** A read-through buffer belongs on
+the **cursor** path only. `StreamImpl::read(unsigned char*, std::streamsize)` is
+non-`const` and single-threaded by contract, and `StreamImpl` already carries
+`_cache_data`/`update_cache()` — used today by `getch()` alone — which is the
+natural place to put it. What must **not** happen is buffering inside
+`StreamImpl::read(size_t pos, ...) const`: that is the positional overload
+`read_at` forwards to, it is called concurrently by design, and a shared mutable
+buffer there would reinstate exactly the race the whole concurrency conversion
+removed. Wants its own before/after on both patterns, since a buffer that fixes
+the small-read case must not slow the large-read case back down.
+
+---
 ## Consciously accepted, not debt
 
 **PHTIFF detection has no fallback if the claiming driver then fails.** A
