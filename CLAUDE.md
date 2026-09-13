@@ -45,7 +45,14 @@ plus a separate `-pdb.zip` on Windows, a `.tar.gz` on macOS, and
 
 `.github/workflows/release.yml` runs exactly these commands on a `v*` tag and
 attaches the results to a draft GitHub Release; `workflow_dispatch` does
-everything except publish, which makes it a real rehearsal. Before publishing,
+everything except publish, which makes it a real rehearsal. A manual run takes
+two inputs -- `platforms` (`all`, `windows`, `debian` or `macos`) so checking
+one platform costs one job instead of three, and `skip_tests` for iterating on
+packaging itself. Neither can reach a release page: the publish job is gated on
+the ref being a tag, and a tag push carries no inputs. Note that GitHub offers
+the Run workflow button only for workflow files present on the **default
+branch**, so the workflow cannot be dispatched from a feature branch until it
+is merged. Before publishing,
 each platform runs the corpus-free unit suites and then builds
 `auxfiles/package-smoke/` against the package it just produced -- a standalone
 `find_package(slideio)` consumer that knows nothing about the build tree. That
