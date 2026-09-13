@@ -12,6 +12,7 @@ set(TEST_SOURCES
   test_copy.cpp
   test_colormanagement.cpp
   test_readlock.cpp
+  test_levels.cpp
 )
 
 add_executable(${TEST_NAME} ${TEST_SOURCES})

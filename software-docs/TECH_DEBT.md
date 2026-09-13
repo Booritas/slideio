@@ -27,7 +27,7 @@ removed without renumbering the rest and its number is retired in
 8. [SCN and OME-TIFF level selection assume parallel pyramid geometry across dimensions](#8-scn-and-ome-tiff-level-selection-assume-parallel-pyramid-geometry-across-dimensions)
 9. [`TilerData::relativeZoom` is dead, and its new formula is only valid in one case](#9-tilerdatarelativezoom-is-dead-and-its-new-formula-is-only-valid-in-one-case)
 10. [`zSliceRange` / `timeFrameRange` are documented backwards in `cvscene.hpp`](#10-zslicerange--timeframerange-are-documented-backwards-in-cvscenehpp)
-11. [`TransformerScene` has no level table, so transformed scenes cannot be read by level](#11-transformerscene-has-no-level-table-so-transformed-scenes-cannot-be-read-by-level)
+11. *retired -- fixed, see [Resolved and removed](#resolved-and-removed)*
 12. [`SCNScene::getChannelDirectories` indexes unchecked, and the 4D level path widens the exposure](#12-scnscenegetchanneldirectories-indexes-unchecked-and-the-4d-level-path-widens-the-exposure)
 13. [`slideio-core`'s export-control define breaks the project naming convention](#13-slideio-cores-export-control-define-breaks-the-project-naming-convention)
 14. *retired -- fixed, see [Resolved and removed](#resolved-and-removed)*
@@ -328,39 +328,6 @@ comments are wrong, on every method taking those parameters.
 The fix is a four-line comment-only edit in `cvscene.hpp`, copying the wording
 `scene.hpp` already carries. Left as an entry rather than folded into this
 review because the review deliberately changed no code.
-
----
-
-## 11. `TransformerScene` has no level table, so transformed scenes cannot be read by level
-
-**File:** `src/slideio/transformer/transformerscene.cpp`/`.hpp`
-**Related:** `src/slideio/transformer/transformer.cpp:15`, `:25`
-(`transformScene`/`transformSceneEx`); `src/slideio/core/cvscene.cpp:222-228`
-(`validateLevel`, the throw site)
-**Status:** Open. Found during the whole-branch review for the 2026-08-16
-explicit-level-reading plan.
-
-`TransformerScene` never populates `m_levels` and does not override
-`getNumZoomLevels()`, so it reports 0 zoom levels via `CVScene`'s default.
-`transformScene`/`transformSceneEx` (`transformer.cpp:15`, `:25`) hand back a
-public `slideio::Scene` wrapping a `TransformerScene`, so any caller doing a
-level-addressed read against a transformed scene hits `CVScene`'s guard and
-gets `"... does not report any zoom level and cannot be read by level"`
-(`cvscene.cpp:222-228`).
-
-The design spec for this plan's §5.1 asserts that after the §5.6 sweep "no
-in-tree driver is in that state" — that claim holds; `TransformerScene` is
-not a driver (it wraps one) and was out of scope for that sweep, not missed
-by an error in it.
-
-**Open design question, recorded rather than answered:** a transformed scene
-arguably *should* expose its source scene's pyramid, with the transformation
-applied at the requested level's resolution. But that is a feature with its
-own design decision — e.g. what a Gaussian blur kernel radius means at level
-3 versus level 0 — not a bug to patch mechanically by forwarding
-`getNumZoomLevels()`/`getZoomLevelInfo()` to the origin scene. Do not
-implement level support for `TransformerScene` without first deciding what a
-transformation means at non-zero levels.
 
 ---
 
@@ -1048,6 +1015,7 @@ retired here rather than reused.
 | # | Entry | Verified fixed by | Record |
 |---|---|---|---|
 | 2 | Philips TIFF driver follow-ups | All nine items landed across `75a48f65..a9f179aa`. Spot-verified: the tile-count and parallel-arrays guards are in `phCropLevelPadding` (`phtiffslide.cpp:278-298`), `svsdriverids.hpp` exists, and `Tools::isXml` is gone from the tree. | `git log --oneline 75a48f65..a9f179aa`; `software-docs/specs/2026-08-11-phtiff-format-detection-design.md`. The one item that was never debt is kept above, under [Consciously accepted, not debt](#consciously-accepted-not-debt). |
+| 11 | `TransformerScene` has no level table, so transformed scenes cannot be read by level | `TransformerScene` copies the origin's `m_levels` in its constructor and overrides `readResampledLevelBlockChannelsEx` to read the origin at the level it was asked for, inflating in level coordinates. The entry's open design question is answered in `transformerscene.hpp`: a transformation's parameters are in the pixels of the level being read, which is what `computeInflatedRectParams` already does for a scaled read. | `TransformerSceneLevels.*` in `slideio_transformer_tests` — four tests, all watched failing first. `aLevelReadAgreesWithTheEquivalentScaledRead` is the one that pins the semantics: a full read of level 1 is bit-identical to a half-scale read of the scene. |
 | 14 | ZVI serialised every block read | `ZVIScene::supportsConcurrentReads()` returns `true` (`zviscene.hpp:62`), on one shared `ole::compound_document` made safe by pole's positional read path. | `software-docs/specs/2026-09-09-zvi-concurrent-reads-design.md` §3.2, §4, §5.3, §5.4. Its follow-ups are still open as [§19](#19-pole-read-path-defects-left-in-place), [§20](#20-the-zvi-concurrent-read-work-what-no-test-covers) and [§21](#21-pole-read-path-throughput-two-remaining-items). |
 | 17 | OME-TIFF serialised every block read | `OTScene::supportsConcurrentReads()` returns `true` (`otscene.hpp:88`); `TIFFFiles` moved off `OTScene` into a per-thread `OTReadContext` held by a `ContextPool`. | `software-docs/specs/2026-09-08-ometiff-concurrent-reads-design.md`; the contract assertion is `OTImageDriverTests.reportsConcurrentReadSupport`. |
 | 25 | A transformed scene bypasses its origin's read lock | `CVScene::lockIfSerialised()` now takes the mutex named by the new virtual `readSerialisationMutex()`, and `TransformerScene` overrides it to return its origin's (`transformerscene.hpp`), so a wrap chain contends on one lock instead of one mutex per scene. | The two exposures are `TransformedSceneReadLock.twoTransformsOverOneOriginDoNotReadItConcurrently` and `.aDirectReadOfTheOriginExcludesATransformedRead` in `slideio_transformer_tests`; both were watched failing on the unfixed code. `.aConcurrentOriginIsStillReadConcurrentlyThroughATransform` guards `TransformerScene::supportsConcurrentReads()`'s forwarding to the origin against a fix that re-serialises what it made concurrent. |

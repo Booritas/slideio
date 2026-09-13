@@ -39,6 +39,26 @@ namespace slideio
         void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
             const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex,
             cv::OutputArray output) override;
+        /**@brief reads a block addressed in the coordinates of a zoom level.
+         *
+         * A transformed scene exposes its origin's pyramid unchanged -- the
+         * transformations do not alter raster geometry -- and a level read
+         * reads the origin at that same level, then transforms the result.
+         *
+         * So a transformation's parameters are in the pixels of the level being
+         * read: a blur of radius 5 covers five level-2 pixels at level 2, and
+         * therefore twenty level-0 pixels' worth of tissue. That is not a new
+         * decision, it is the one readResampledBlockChannels already makes --
+         * TransformerTools::computeInflatedRectParams divides the inflation by
+         * the requested scale, so a scaled-down read has always applied the
+         * kernel at the output resolution. Reading level 2 and reading at
+         * quarter scale therefore agree, which they would not if the kernel
+         * were defined in level-0 pixels. The alternative -- transform at
+         * level 0 and downsample -- would also make every level read fetch
+         * full-resolution data, which is what a pyramid exists to avoid. */
+        void readResampledLevelBlockChannelsEx(int level, const cv::Rect& levelRect,
+            const cv::Size& blockSize, const std::vector<int>& componentIndices,
+            int zSliceIndex, int tFrameIndex, cv::OutputArray output) override;
         std::shared_ptr<CVScene> getOriginScene() const {
             return m_originScene;
         }
@@ -66,6 +86,16 @@ namespace slideio
         }
     private:
         void computeInflationValue();
+        /**@brief runs the chain over sourceBlock and delivers the requested part.
+         *
+         * Shared by the scene-coordinate and level-coordinate read paths, which
+         * differ only in the geometry they use to fetch sourceBlock from the
+         * origin. Keeping the chain, the crop back out of the inflated block
+         * and the channel selection in one place is what stops the two paths
+         * drifting apart. */
+        void applyChain(cv::Mat& sourceBlock, const cv::Point& blockPosition,
+                        const cv::Size& blockSize, const std::vector<int>& componentIndices,
+                        cv::OutputArray output);
     private:
         std::shared_ptr<CVScene> m_originScene;
         std::list<std::shared_ptr<Transformation>> m_transformations;
