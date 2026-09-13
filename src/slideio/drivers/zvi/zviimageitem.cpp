@@ -15,8 +15,19 @@ using namespace slideio;
 
 void ZVIImageItem::readItemInfo(ole::compound_document& doc)
 {
+    // <Contents> carries the geometry and the raster: without it there is no
+    // item. The tag stream only adds the channel name and the tile position,
+    // both of which have a usable default, so a missing or unreadable
+    // [Tags]/<Contents> must not cost the scene the item.
     readContents(doc);
-    readTags(doc);
+    try {
+        readTags(doc);
+    }
+    catch (const std::exception& e) {
+        SLIDEIO_LOG(WARNING) << "ZVIImageDriver: /Image/Item(" << getItemIndex()
+            << ")/Tags/Contents cannot be read: " << e.what()
+            << ". The channel name and tile position of the item are unknown.";
+    }
 }
 
 
@@ -146,7 +157,10 @@ void ZVIImageItem::readTags(ole::compound_document& doc)
             itemTileIndexY = std::get<int32_t>(tag);
             break;
         case ZVITAG::ZVITAG_IMAGE_COUNT_U:
-            itemTileIndexY = std::get<int32_t>(tag);
+            // {ImageCountU} is the width of the mosaic, not a position in it.
+            // Assigning it to itemTileIndexY overwrote the tile row read from
+            // {ImageIndexV} whenever the count tag came later in the stream.
+            itemTilesX = std::get<int32_t>(tag);
             break;
         case ZVITAG::ZVITAG_IMAGE_COUNT_V:
             itemTilesY = std::get<int32_t>(tag);

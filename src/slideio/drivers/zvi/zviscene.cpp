@@ -6,6 +6,7 @@
 #include "slideio/drivers/zvi/zviscene.hpp"
 #include "slideio/drivers/zvi/zvislide.hpp"
 #include "slideio/drivers/zvi/zvitags.hpp"
+#include <algorithm>
 #include <cstdio>
 #include <filesystem>
 #include <variant>
@@ -18,6 +19,38 @@
 
 using namespace slideio;
 
+namespace
+{
+    // An upper bound on the tile grid a file may declare. The largest mosaic
+    // in the test set is a few hundred tiles; this only has to be small enough
+    // that a corrupt grid cannot ask for an unreasonable allocation.
+    constexpr int64_t MAX_TILE_COUNT = 1 << 20;
+
+    // "/Image/Item(<n>)" -> n. Returns -1 for anything else, including the
+    // storages nested inside an item ("/Image/Item(3)/Tags") and the sibling
+    // "/Image/DisplayItem".
+    int imageItemIndex(const std::string& path)
+    {
+        static const std::string prefix = "/Image/Item(";
+        if (path.size() <= prefix.size() || path.compare(0, prefix.size(), prefix) != 0) {
+            return -1;
+        }
+        if (path.back() != ')') {
+            return -1;
+        }
+        const std::string digits = path.substr(prefix.size(), path.size() - prefix.size() - 1);
+        // 9 digits keep the conversion inside int without a range check.
+        if (digits.empty() || digits.size() > 9) {
+            return -1;
+        }
+        for (const char c : digits) {
+            if (c < '0' || c > '9') {
+                return -1;
+            }
+        }
+        return std::stoi(digits);
+    }
+}
 
 ZVIScene::ZVIScene(const std::string& filePath, const std::string& driverId) :
     m_filePath(filePath),
@@ -117,13 +150,19 @@ Compression ZVIScene::getCompression() const
     return m_Compression;
 }
 
+// The number of tiles that exist, not the product of the two counts read from
+// the file: computeTiles() is what reconciles the declared grid with what can
+// be allocated, and m_Tiles is what every tile index addresses.
 int ZVIScene::getTileCount(void* userData)
 {
-    return m_TileCountX * m_TileCountY;
+    return static_cast<int>(m_Tiles.size());
 }
 
 bool ZVIScene::getTileRect(int tileIndex, cv::Rect& tileRect, void* userData)
 {
+    if (tileIndex < 0 || tileIndex >= static_cast<int>(m_Tiles.size())) {
+        return false;
+    }
     tileRect = m_Tiles[tileIndex].getRect();
     return true;
 }
@@ -131,6 +170,9 @@ bool ZVIScene::getTileRect(int tileIndex, cv::Rect& tileRect, void* userData)
 bool ZVIScene::readTile(int tileIndex, const std::vector<int>& channelIndices, cv::OutputArray tileRaster,
                         void* userData)
 {
+    if (tileIndex < 0 || tileIndex >= static_cast<int>(m_Tiles.size())) {
+        return false;
+    }
     TilerData* data = (TilerData*)userData;
     int slice = data->zSliceIndex;
     ZVITile& tile = m_Tiles[tileIndex];
@@ -203,33 +245,53 @@ void ZVIScene::alignChannelInfoToPixelFormat()
 
 void ZVIScene::computeSceneDimensions()
 {
-    int maxChannel = 0;
-    int maxZ = 0;
-    int maxT = 0;
-    int minChannel = std::numeric_limits<int>::max();
+    // A dimension is as large as the number of distinct indices the image
+    // items actually use, not as the largest index plus one. An index nothing
+    // is stored under -- a channel the document does not carry, an item that
+    // could not be read -- would otherwise be advertised as part of the scene
+    // while every read of it failed in ZVITile::getImageItem(). Renumbering
+    // the surviving indices densely is what the driver already did for a
+    // missing leading channel; the same has to hold for a gap anywhere.
+    std::vector<int> channels;
+    std::vector<int> zSlices;
+    std::vector<int> tFrames;
+    channels.reserve(m_ImageItems.size());
+    zSlices.reserve(m_ImageItems.size());
+    tFrames.reserve(m_ImageItems.size());
+    for (const auto& imageItem : m_ImageItems)
+    {
+        channels.push_back(imageItem.getCIndex());
+        zSlices.push_back(imageItem.getZIndex());
+        tFrames.push_back(imageItem.getTIndex());
+    }
+    const auto distinct = [](std::vector<int>& values) {
+        std::sort(values.begin(), values.end());
+        values.erase(std::unique(values.begin(), values.end()), values.end());
+    };
+    distinct(channels);
+    distinct(zSlices);
+    distinct(tFrames);
 
+    const auto rank = [](const std::vector<int>& values, int value) {
+        return static_cast<int>(
+            std::lower_bound(values.begin(), values.end(), value) - values.begin());
+    };
     for (auto&& imageItem : m_ImageItems)
     {
-        const int channelIndex = imageItem.getCIndex();
-        maxChannel = std::max(channelIndex, maxChannel);
-        minChannel = std::min(channelIndex, minChannel);
-        maxZ = std::max(imageItem.getZIndex(), maxZ);
-        maxT = std::max(imageItem.getTIndex(), maxT);
+        imageItem.setCIndex(rank(channels, imageItem.getCIndex()));
+        imageItem.setZIndex(rank(zSlices, imageItem.getZIndex()));
+        imageItem.setTIndex(rank(tFrames, imageItem.getTIndex()));
     }
 
-    m_ChannelCount = maxChannel - minChannel + 1;
-    m_ZSliceCount = maxZ + 1;
-    m_TFrameCount = maxT + 1;
+    m_ChannelCount = static_cast<int>(channels.size());
+    m_ZSliceCount = static_cast<int>(zSlices.size());
+    m_TFrameCount = static_cast<int>(tFrames.size());
     m_ChannelNames.resize(m_ChannelCount);
     m_ChannelDataTypes.resize(m_ChannelCount);
 
     for (auto&& imageItem : m_ImageItems)
     {
-        int channelIndex = imageItem.getCIndex();
-        if (minChannel > 0) {
-            channelIndex -= minChannel;
-            imageItem.setCIndex(channelIndex);
-        }
+        const int channelIndex = imageItem.getCIndex();
         const std::string channelName = imageItem.getChannelName();
         if (!channelName.empty())
             m_ChannelNames[channelIndex] = channelName;
@@ -280,19 +342,79 @@ void ZVIScene::computeSceneDimensions()
     alignChannelInfoToPixelFormat();
 }
 
+// The indices of the image items the document actually holds, in ascending
+// order.
+//
+// {RawCount} in /Image/Contents is not a reliable item count: files exist
+// whose item storages are fewer than it declares, or are numbered with gaps.
+// Deriving the item list from the declared count instead of from the document
+// made a single absent storage ("Invalid stream path: /Image/Item(30)/
+// Contents") cost the caller the whole file. Bio-Formats' ZeissZVIReader
+// enumerates the document the same way and ignores {RawCount} entirely.
+std::vector<int> ZVIScene::findImageItemIndices()
+{
+    std::vector<int> indices;
+    for (auto it = m_Doc.begin(); it != m_Doc.end(); ++it)
+    {
+        const std::string storagePath = it->string();
+        const int index = imageItemIndex(storagePath);
+        if (index < 0) {
+            continue;
+        }
+        // A storage without a <Contents> stream carries no raster and no
+        // geometry: there is nothing for readContents() to read.
+        if (!it->path_exist(storagePath + "/Contents")) {
+            SLIDEIO_LOG(WARNING) << "ZVIImageDriver: " << storagePath
+                << " has no Contents stream. The item is skipped.";
+            continue;
+        }
+        indices.push_back(index);
+    }
+    std::sort(indices.begin(), indices.end());
+    indices.erase(std::unique(indices.begin(), indices.end()), indices.end());
+    return indices;
+}
+
 void ZVIScene::readImageItems()
 {
-    m_ImageItems.resize(m_RawCount);
+    const std::vector<int> itemIndices = findImageItemIndices();
+    if (itemIndices.empty()) {
+        RAISE_RUNTIME_ERROR << "ZVIImageDriver: no image item with a Contents stream found in "
+            << m_filePath << ". /Image/Contents declares " << m_RawCount << " items.";
+    }
+    if (static_cast<int>(itemIndices.size()) != m_RawCount) {
+        SLIDEIO_LOG(WARNING) << "ZVIImageDriver: /Image/Contents declares " << m_RawCount
+            << " image items, the document contains " << itemIndices.size()
+            << " (indices " << itemIndices.front() << ".." << itemIndices.back()
+            << "). The items present in the document are used.";
+    }
 
-    for (auto itemIndex = 0; itemIndex < m_RawCount; ++itemIndex)
+    m_ImageItems.clear();
+    m_ImageItems.reserve(itemIndices.size());
+    for (const int itemIndex : itemIndices)
     {
-        auto& item = m_ImageItems[itemIndex];
+        ZVIImageItem item;
         item.setItemIndex(itemIndex);
-        item.readItemInfo(m_Doc);
+        try {
+            item.readItemInfo(m_Doc);
+        }
+        catch (const std::exception& e) {
+            // One unreadable item must not cost the caller the other scenes:
+            // the raster of the items that did parse is still readable.
+            SLIDEIO_LOG(WARNING) << "ZVIImageDriver: /Image/Item(" << itemIndex
+                << ") of " << m_filePath << " cannot be read and is skipped: " << e.what();
+            continue;
+        }
         const int validBits = item.getValidBits();
         if (validBits==0 || validBits==1) {
             m_Compression = Compression::Jpeg;
         }
+        m_ImageItems.push_back(std::move(item));
+    }
+
+    if (m_ImageItems.empty()) {
+        RAISE_RUNTIME_ERROR << "ZVIImageDriver: none of the " << itemIndices.size()
+            << " image items of " << m_filePath << " could be read.";
     }
 }
 
@@ -309,6 +431,22 @@ void ZVIScene::parseImageInfo()
 
 void ZVIScene::computeTiles()
 {
+    // {ImageCountU}/{ImageCountV} are two unvalidated 32-bit values read from
+    // the file. Their product is what sizes m_Tiles, so it has to be computed
+    // where it cannot overflow: 0x10000 x 0x10000 wraps a signed int to zero,
+    // which left an empty m_Tiles that the loop below then indexed far past
+    // its end. One tile covering the whole image is what a file without those
+    // tags means, and the only fallback that can be read.
+    const int64_t declaredTiles =
+        static_cast<int64_t>(m_TileCountX) * static_cast<int64_t>(m_TileCountY);
+    if (m_TileCountX < 1 || m_TileCountY < 1 || declaredTiles > MAX_TILE_COUNT)
+    {
+        SLIDEIO_LOG(WARNING) << "ZVIImageDriver: " << m_filePath << " declares a "
+            << m_TileCountX << "x" << m_TileCountY
+            << " tile grid. A single tile is assumed.";
+        m_TileCountX = 1;
+        m_TileCountY = 1;
+    }
     const int tileCount = m_TileCountX * m_TileCountY;
     m_Tiles.resize(tileCount);
 
@@ -317,10 +455,40 @@ void ZVIScene::computeTiles()
 
     for (auto itemIndex = 0; itemIndex < m_ImageItems.size(); ++itemIndex)
     {
-        const ZVIImageItem& item = m_ImageItems[itemIndex];
-        int xIndex = item.getTileIndexX();
-        int yIndex = item.getTileIndexY();
-        int tileIndex = yIndex * m_TileCountX + xIndex;
+        ZVIImageItem& item = m_ImageItems[itemIndex];
+        // An item whose tag stream could not be read has no tile position. On
+        // a single tile image there is only one place it can belong. On a
+        // mosaic there is not: placing it at (0,0) would let it shadow the
+        // item that really belongs there -- ZVITile::getImageItem() returns
+        // the first match for a (slice, channel) pair -- and serve its pixels
+        // for the wrong part of the image.
+        //
+        // The resolved position is written back to the item: ZVITile::addItem()
+        // reads the position from the item it is given, so resolving it only
+        // here left the tile rejecting the item as a coordinate mismatch.
+        if ((item.getTileIndexX() < 0 || item.getTileIndexY() < 0) && tileCount == 1)
+        {
+            item.setTileIndexX(0);
+            item.setTileIndexY(0);
+        }
+        const int xIndex = item.getTileIndexX();
+        const int yIndex = item.getTileIndexY();
+        // The tile position comes from the item tag stream, the grid size from
+        // /Image/Tags/Contents. Nothing in the format ties the two together, so
+        // an out of range position is a corrupt-file case, not an invariant:
+        // indexing m_Tiles with it wrote past the end of the vector.
+        const int64_t tileIndex64 =
+            static_cast<int64_t>(yIndex) * static_cast<int64_t>(m_TileCountX) + xIndex;
+        if (xIndex < 0 || xIndex >= m_TileCountX || yIndex < 0 || yIndex >= m_TileCountY
+            || tileIndex64 < 0 || tileIndex64 >= static_cast<int64_t>(m_Tiles.size()))
+        {
+            SLIDEIO_LOG(WARNING) << "ZVIImageDriver: /Image/Item(" << item.getItemIndex()
+                << ") of " << m_filePath << " reports tile position (" << xIndex << ","
+                << yIndex << "), outside the " << m_TileCountX << "x" << m_TileCountY
+                << " tile grid. The item is skipped.";
+            continue;
+        }
+        const int tileIndex = static_cast<int>(tileIndex64);
         ZVITile& tile = m_Tiles[tileIndex];
         tile.addItem(&item);
         if (w[xIndex] < 0)
@@ -328,6 +496,32 @@ void ZVIScene::computeTiles()
         if (h[yIndex] < 0)
             h[yIndex] = item.getHeight();
     }
+
+    // A column or row that no item landed in keeps its -1 sentinel. It still
+    // has to advance the running origin: contributing zero would stack every
+    // tile after the gap on top of its neighbour and serve those pixels for
+    // the wrong part of the image. Tiles of a ZVI mosaic are uniform, so the
+    // size of any other column is the right stand-in.
+    const auto fillMissingSizes = [](std::vector<int>& sizes, int total) {
+        int known = 0;
+        for (const int size : sizes) {
+            if (size > 0) {
+                known = size;
+                break;
+            }
+        }
+        if (known <= 0) {
+            known = sizes.empty() ? 1 : std::max(1, total / static_cast<int>(sizes.size()));
+        }
+        for (int& size : sizes) {
+            if (size <= 0) {
+                size = known;
+            }
+        }
+    };
+    fillMissingSizes(w, m_Width);
+    fillMissingSizes(h, m_Height);
+
     int yPos = 0;
     int tileIndex = 0;
     for (int yIndex = 0; yIndex < m_TileCountY; ++yIndex)
@@ -362,9 +556,16 @@ void ZVIScene::init()
     level.setLevel(0);
     level.setTileSize(Size(m_Width, m_Height));
     level.setSize(Size(m_Width, m_Height));
-    if (!m_Tiles.empty()) {
-        const cv::Rect tileRect = m_Tiles.front().getRect();
-        level.setTileSize(Tools::cvSizeToSize(tileRect.size()));
+    // A tile that received no item keeps an empty rectangle, and the first
+    // tile is not guaranteed to be one that did. Publishing 0x0 as the level
+    // tile size would hand every caller a degenerate value; the full image
+    // size already set above is the right fallback.
+    for (const ZVITile& tile : m_Tiles) {
+        const cv::Rect tileRect = tile.getRect();
+        if (tileRect.width > 0 && tileRect.height > 0) {
+            level.setTileSize(Tools::cvSizeToSize(tileRect.size()));
+            break;
+        }
     }
     level.setMagnification(getMagnification());
     level.setScale(1.);
