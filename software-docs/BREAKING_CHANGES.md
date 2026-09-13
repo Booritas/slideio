@@ -674,6 +674,52 @@ Three tests in `tests/test_storage.cpp` cover it: the call-count bound, a
 whole-read against a block-at-a-time read of the same stream, and a sweep of
 offsets and lengths either side of both 512- and 4096-byte boundaries.
 
+### pole stops re-reading a container block per small block
+
+**Modules:** `extern/pole` (submodule pointer bumped)
+**Files:** `extern/pole/sources/pole/detail/stream.cpp`,
+`sources/pole/detail/storage.cpp`, and the matching headers
+
+The same shape as the entry above, on the other read path. Streams under the
+header's small-stream threshold are stored as small blocks packed inside the
+big blocks of the small-block container stream. `StreamImpl::read` called
+`loadSmallBlock` once per small block; each re-entered `loadSmallBlocks` with a
+one-element chain and loaded the containing big block afresh, so consecutive
+small blocks sharing a big block re-read that block once each.
+
+It now makes one call, `StorageIO::loadSmallBlockRun`, which keeps the big
+block it last loaded and reloads only when the run crosses into a different
+one.
+
+Measured with `read_calls()` on `/Image/Contents` of `Zeiss-1-Merged.zvi`, 390
+bytes: **7 positional reads become 3.** Three rather than one because this
+stream's seven 64-byte small blocks are 39..44 and 75, which fall in three
+distinct container big blocks — 4, 5 and 9. Three is what the stream actually
+touches; the old code's seven was one read per small block.
+
+Smaller in absolute terms than the big-block fix, and it does not change
+throughput on any pixel path — a small stream is under 4096 bytes by
+definition. What it removes is a per-small-stream cost paid at open time, on a
+document that may hold thousands of them.
+
+**Exported API — one addition, no removals, no renames, no signature changes:**
+
+| Added | Type | Note |
+|---|---|---|
+| `loadSmallBlockRun(...)` | `POLE::StorageIO` | one pass over a small-block chain, caching the container block |
+
+`loadSmallBlock` and `loadSmallBlocks` are unchanged and still exported; nothing
+that called them has to move.
+
+Not done, and deliberately: the container's own big blocks are not coalesced
+when two of them are adjacent in the file. For this fixture that would turn 3
+reads into 2, on a stream of under 4096 bytes. It needs `loadBigBlockRun` on
+the container chain and is not worth the code until something measures it.
+
+Two tests in `tests/test_storage.cpp`: the call-count bound, which fails on the
+old code at 7 against a bound of 3, and a sweep reading every offset in the
+stream at five lengths against a whole-stream reference.
+
 ### The private conan remote is gone; everything comes from conan center
 
 **Module:** build system
