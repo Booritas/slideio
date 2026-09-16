@@ -1,0 +1,103 @@
+# slideio CMake package configuration.
+#
+# Generated from cmake-scripts/slideioConfig.cmake.in. Lets a consumer write
+#
+#     find_package(slideio 2.10 REQUIRED)
+#     target_link_libraries(myapp PRIVATE slideio::slideio)
+#
+# and get the include directory, the import library and the runtime location
+# without knowing anything about how slideio was built.
+#
+# This file is written by hand rather than produced by install(EXPORT), and
+# that is deliberate. Every module here links its third-party dependencies
+# through the plain target_link_libraries(tgt a b c) signature, which puts
+# opencv::opencv, TIFF::TIFF, SQLite::SQLite3 and the rest into
+# INTERFACE_LINK_LIBRARIES; install(EXPORT) would then refuse to export any
+# slideio target until each of those conan-generated imported targets were also
+# in an export set, and a consumer would need conan and the whole dependency
+# graph on their machine just to link. They do not: the dependencies are static
+# and HIDE_THIRD_PARTY_SYMBOLS keeps their symbols out of the exported symbol
+# table, so a consumer needs the slideio shared libraries and nothing else.
+# Describing that directly is both accurate and shorter than reshaping sixteen
+# CMakeLists files to make install(EXPORT) tell the same truth.
+
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+
+set(_slideio_libdir "${PACKAGE_PREFIX_DIR}/lib")
+set(_slideio_bindir "${PACKAGE_PREFIX_DIR}/bin")
+set(_slideio_incdir "${PACKAGE_PREFIX_DIR}/include")
+
+if(NOT EXISTS "${_slideio_incdir}/slideio/slideio/slideio.hpp")
+    set(slideio_FOUND FALSE)
+    set(slideio_NOT_FOUND_MESSAGE
+        "slideio headers are missing from ${_slideio_incdir}. The package looks "
+        "incomplete -- on Debian this means the libslideio-dev package is not installed.")
+    return()
+endif()
+
+# Module name -> installed library base name. The drivers are deliberately
+# absent: they are load-time linked into the slideio library rather than
+# dlopen'd, so they are shipped and loaded but never named by a consumer.
+set(_slideio_components slideio core imagetools converter transformer)
+set(_slideio_libname_slideio     "slideio")
+set(_slideio_libname_core        "slideio-core")
+set(_slideio_libname_imagetools  "slideio-imagetools")
+set(_slideio_libname_converter   "slideio-converter")
+set(_slideio_libname_transformer "slideio-transformer")
+
+foreach(_comp IN LISTS _slideio_components)
+    if(TARGET slideio::${_comp})
+        continue()
+    endif()
+
+    set(_base "${_slideio_libname_${_comp}}")
+
+    # The _d suffix is the debug build's; a distribution carries the release
+    # libraries only, but a locally installed debug tree should still resolve.
+    find_library(_slideio_lib_${_comp}
+        NAMES ${_base} ${_base}_d
+        PATHS "${_slideio_libdir}" "${_slideio_bindir}"
+        NO_DEFAULT_PATH)
+
+    if(NOT _slideio_lib_${_comp})
+        set(slideio_FOUND FALSE)
+        set(slideio_NOT_FOUND_MESSAGE
+            "slideio component '${_comp}' (${_base}) was not found under ${_slideio_libdir}.")
+        return()
+    endif()
+
+    add_library(slideio::${_comp} SHARED IMPORTED)
+    set_target_properties(slideio::${_comp} PROPERTIES
+        INTERFACE_INCLUDE_DIRECTORIES "${_slideio_incdir}")
+
+    if(WIN32)
+        # On Windows find_library returns the import library; the DLL sits in
+        # bin/ next to the drivers it loads.
+        get_filename_component(_stem "${_slideio_lib_${_comp}}" NAME_WE)
+        set_target_properties(slideio::${_comp} PROPERTIES
+            IMPORTED_IMPLIB "${_slideio_lib_${_comp}}"
+            IMPORTED_LOCATION "${_slideio_bindir}/${_stem}.dll")
+    else()
+        set_target_properties(slideio::${_comp} PROPERTIES
+            IMPORTED_LOCATION "${_slideio_lib_${_comp}}")
+    endif()
+
+    mark_as_advanced(_slideio_lib_${_comp})
+endforeach()
+
+# Inter-module dependencies, mirroring the target_link_libraries calls in
+# src/slideio/*/CMakeLists.txt. A consumer of the converter gets the main
+# library on its link line without asking for it.
+set_property(TARGET slideio::slideio APPEND PROPERTY
+    INTERFACE_LINK_LIBRARIES slideio::core)
+set_property(TARGET slideio::converter APPEND PROPERTY
+    INTERFACE_LINK_LIBRARIES slideio::slideio slideio::core)
+set_property(TARGET slideio::transformer APPEND PROPERTY
+    INTERFACE_LINK_LIBRARIES slideio::slideio slideio::core slideio::imagetools)
+
+set(slideio_INCLUDE_DIRS "${_slideio_incdir}")
+set(slideio_LIBRARIES slideio::slideio)
+
+check_required_components(slideio)
