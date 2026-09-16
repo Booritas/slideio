@@ -56,6 +56,16 @@ foreach(_comp IN LISTS _slideio_components)
 
     # The _d suffix is the debug build's; a distribution carries the release
     # libraries only, but a locally installed debug tree should still resolve.
+    #
+    # The unset is not redundant. find_library writes its result to the cache, so
+    # on a consumer's *re*configure -- they unpack 2.11 somewhere new and point
+    # CMAKE_PREFIX_PATH at it, reusing the same build directory -- the call would
+    # short-circuit on the value found last time and IMPORTED_LOCATION would keep
+    # naming the previous tree: a link error against a path that no longer
+    # exists, or worse, a silent link against the older library. NO_CACHE would
+    # say this more directly but is CMake 3.21, and this file has to be readable
+    # by whatever CMake the consumer happens to run.
+    unset(_slideio_lib_${_comp} CACHE)
     find_library(_slideio_lib_${_comp}
         NAMES ${_base} ${_base}_d
         PATHS "${_slideio_libdir}" "${_slideio_bindir}"
@@ -83,6 +93,13 @@ foreach(_comp IN LISTS _slideio_components)
         set_target_properties(slideio::${_comp} PROPERTIES
             IMPORTED_LOCATION "${_slideio_lib_${_comp}}")
     endif()
+
+    # check_required_components below tests exactly this variable, and nothing
+    # else sets it. Without it, find_package(slideio REQUIRED COMPONENTS
+    # transformer) -- the natural way to read a config that publishes a
+    # component list -- reports slideio_FOUND FALSE and "components missing",
+    # having just located the library and created the target.
+    set(slideio_${_comp}_FOUND TRUE)
 
     mark_as_advanced(_slideio_lib_${_comp})
 endforeach()

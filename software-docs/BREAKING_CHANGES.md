@@ -27,7 +27,7 @@ unchanged: DLLs in `bin/`, import libraries in `lib/`.
 
 **On Linux the libraries now carry an SONAME of `<major>.<minor>`.**
 `libslideio.so` becomes a symlink to `libslideio.so.2.10`, and likewise for the
-other fourteen. Anything that names a library file literally rather than linking
+other fifteen. Anything that names a library file literally rather than linking
 `-lslideio` has to account for the symlink. macOS and Windows are unchanged, and
 deliberately so -- see
 `software-docs/specs/2026-09-13-ci-library-distribution-design.md` for why

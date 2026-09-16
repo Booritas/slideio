@@ -9,6 +9,7 @@ import argparse
 from argparse import RawTextHelpFormatter
 import fnmatch
 import re
+import zipfile
 
 try:
     import distro
@@ -344,6 +345,41 @@ def read_cpack_package_file_name(build_dir):
     raise RuntimeError(f"CPACK_PACKAGE_FILE_NAME is not set in {config}.")
 
 
+def assert_archive_has_pdbs(archive):
+    """Fail if the debug-symbol archive came out empty.
+
+    The PDB install rule is OPTIONAL, because a configuration that emits no PDBs
+    must not fail the install. The cost of that is silence: if the release link
+    ever stops producing them -- the /Zi and /DEBUG options overridden, a
+    generator or policy change -- cpack still writes a perfectly valid zip
+    containing nothing, the workflow uploads it because the file exists, and the
+    gap is discovered by whoever next tries to symbolise a release crash.
+    """
+    with zipfile.ZipFile(archive) as handle:
+        pdbs = [n for n in handle.namelist() if n.lower().endswith(".pdb")]
+    if not pdbs:
+        raise RuntimeError(
+            f"{archive} contains no .pdb files. The release build stopped "
+            f"emitting debug symbols; check the MSVC /Zi and /DEBUG options in "
+            f"CMakeLists.txt before shipping this."
+        )
+    print(f"  {os.path.basename(archive)}: {len(pdbs)} pdb files")
+
+
+def drop_cpack_staging(output_dir):
+    """Remove the _CPack_Packages tree cpack leaves next to the packages.
+
+    It is a second full copy of the installed tree, one per component set, and
+    it is larger than everything it was used to build: 97 MB against 42 MB of
+    archives on Windows. The release workflow names the package files
+    explicitly and would not upload it either way, but leaving it behind makes
+    the output directory misleading to anyone looking at it by hand.
+    """
+    staging = os.path.join(output_dir, "_CPack_Packages")
+    if os.path.isdir(staging):
+        shutil.rmtree(staging, ignore_errors=True)
+
+
 def package_slideio(configuration, output_dir):
     """Build the binary distribution artifacts for the current platform.
 
@@ -388,6 +424,7 @@ def package_slideio(configuration, output_dir):
         # so they ship as their own download rather than inside the archive
         # everybody has to fetch.
         run_cpack("ZIP", ["DebugSymbols"], base_name + "-pdb")
+        assert_archive_has_pdbs(os.path.join(output_dir, base_name + "-pdb.zip"))
     elif os_platform == "OSX":
         run_cpack("TGZ", ["Runtime", "Development"], base_name)
     else:
@@ -395,6 +432,8 @@ def package_slideio(configuration, output_dir):
         # libslideio<major>.<minor>_<version>_<arch>.deb and
         # libslideio-dev_<version>_<arch>.deb; the name passed here is ignored.
         run_cpack("DEB", ["Runtime", "Development"], base_name)
+
+    drop_cpack_staging(output_dir)
 
     print("-------- packages written to", output_dir, "--------")
     for entry in sorted(os.listdir(output_dir)):
