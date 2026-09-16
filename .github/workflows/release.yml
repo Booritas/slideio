@@ -39,9 +39,11 @@ on:
         default: false
         type: boolean
 
-# A manual run cannot publish: the publish job is gated on the ref being a tag,
-# and a tag push never carries inputs. So both knobs above only ever shorten a
-# rehearsal, and neither can put an untested artifact on a release page.
+# A manual run cannot publish: the publish job is gated on the event being a tag
+# push, and a tag push never carries inputs. So both knobs above only ever
+# shorten a rehearsal, and neither can put an untested artifact on a release
+# page -- not even a manual run started against a tag ref, which the dispatch
+# API accepts as readily as a branch.
 #
 # Note that GitHub offers the "Run workflow" button only for workflow files that
 # exist on the default branch. Until this file is merged to master it cannot be
@@ -188,8 +190,9 @@ jobs:
       # SLIDEIO_SKIP_MISSING_IMAGES unset, so running them here would fail
       # rather than skip.
       - name: Corpus-free unit suites
-        # Skippable only from a manual run, which cannot publish anything. A tag
-        # push carries no inputs, so a release always runs them.
+        # Skippable only from a manual run, which cannot publish anything -- see
+        # the publish job's condition. A tag push carries no inputs, so a
+        # release always runs them.
         if: ${{ !inputs.skip_tests }}
         shell: bash
         run: |
@@ -285,10 +288,18 @@ jobs:
   publish:
     name: Publish release
     needs: [check-version, build]
-    # Only a tag publishes. A manual run stops after the build job, having
-    # produced and smoke-tested every artifact -- which is what makes it a
-    # usable rehearsal for a release.
-    if: github.ref_type == 'tag'
+    # Only a tag *push* publishes. A manual run stops after the build job,
+    # having produced and smoke-tested every artifact -- which is what makes it
+    # a usable rehearsal for a release.
+    #
+    # Both halves of this condition are load-bearing. github.ref_type alone is
+    # not enough: the dispatch API takes a tag as readily as a branch, so a
+    # manual run started against v2.10.0 also reports ref_type == 'tag'. It
+    # would reach this job carrying whatever the inputs asked for and publish a
+    # release built from one platform with the unit suites skipped. Requiring
+    # event_name == 'push' is what makes "a manual run cannot publish" true
+    # rather than merely usually true.
+    if: github.event_name == 'push' && github.ref_type == 'tag'
     runs-on: ubuntu-latest
     permissions:
       contents: write
