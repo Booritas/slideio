@@ -16,6 +16,58 @@ namespace slideio
 {
     namespace ZVIUtils
     {
+        BufferedStream::BufferedStream(const ole::basic_stream& stream, std::streamoff maxBuffer)
+            : m_size(stream.size() > 0 ? stream.size() : 0)
+            , m_stream(&stream)
+            , m_maxBuffer(maxBuffer > 0 ? maxBuffer : 1)
+        {
+        }
+
+        void BufferedStream::ensureBuffered(std::streamsize count)
+        {
+            if (!m_stream)
+            {
+                // Whole stream already in m_data.
+                return;
+            }
+            const std::streamoff windowEnd =
+                m_windowStart + static_cast<std::streamoff>(m_data.size());
+            if (m_pos >= m_windowStart && (m_pos + count) <= windowEnd)
+            {
+                return;
+            }
+            // Refill from the read position. Always at least maxBuffer, and more
+            // when a single field is larger than that -- the position blob is
+            // length prefixed and nothing here may assume a bound on it.
+            std::streamoff want = m_maxBuffer;
+            if (static_cast<std::streamoff>(count) > want)
+            {
+                want = static_cast<std::streamoff>(count);
+            }
+            const std::streamoff left = m_size - m_pos;
+            if (want > left)
+            {
+                want = left;
+            }
+            if (want <= 0)
+            {
+                m_windowStart = m_pos;
+                m_data.clear();
+                return;
+            }
+            m_data.resize(static_cast<size_t>(want));
+            const std::streamsize read = m_stream->read_at(
+                m_pos, reinterpret_cast<char*>(m_data.data()), want);
+            if (read != static_cast<std::streamsize>(want))
+            {
+                RAISE_RUNTIME_ERROR << "ZVIImageDriver: could not buffer stream at offset "
+                    << static_cast<long long>(m_pos) << ": "
+                    << static_cast<long long>(want) << " bytes expected, "
+                    << static_cast<long long>(read) << " read";
+            }
+            m_windowStart = m_pos;
+        }
+
         BufferedStream::BufferedStream(const ole::basic_stream& stream)
         {
             const std::streamoff size = stream.size();
@@ -23,6 +75,7 @@ namespace slideio
             {
                 return;
             }
+            m_size = size;
             m_data.resize(static_cast<size_t>(size));
             // One positional read of the whole stream. read_at rather than the
             // cursor read because it leaves the pole stream's cursor and flags
@@ -51,7 +104,8 @@ namespace slideio
             }
             const std::streamsize count =
                 (size < static_cast<std::streamsize>(left)) ? size : static_cast<std::streamsize>(left);
-            memcpy(buffer, m_data.data() + m_pos, static_cast<size_t>(count));
+            ensureBuffered(count);
+            memcpy(buffer, m_data.data() + (m_pos - m_windowStart), static_cast<size_t>(count));
             m_pos += count;
             return count;
         }
@@ -395,8 +449,25 @@ namespace {
     }
 }
 
-ZVIUtils::StreamKeeper::StreamKeeper(ole::compound_document& doc, const std::string& path)
-    : m_buffer(resolveStream(doc, path))
+namespace
+{
+    // maxBuffer == 0 keeps the historical whole-stream behaviour; anything else
+    // selects bounded read-ahead. Branching here rather than in the member
+    // initialiser list, which cannot choose between two constructors.
+    slideio::ZVIUtils::BufferedStream makeBuffer(ole::basic_stream& stream,
+                                                 std::streamoff maxBuffer)
+    {
+        if (maxBuffer > 0)
+        {
+            return slideio::ZVIUtils::BufferedStream(stream, maxBuffer);
+        }
+        return slideio::ZVIUtils::BufferedStream(stream);
+    }
+}
+
+ZVIUtils::StreamKeeper::StreamKeeper(ole::compound_document& doc, const std::string& path,
+                                     std::streamoff maxBuffer)
+    : m_buffer(makeBuffer(resolveStream(doc, path), maxBuffer))
 {
 }
 

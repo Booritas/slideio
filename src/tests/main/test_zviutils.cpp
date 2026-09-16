@@ -323,3 +323,79 @@ TEST(ZVIUtils, parsingAStreamReadsTheFileOnceNotOncePerField)
     EXPECT_LE(calls, 3u)
         << "parsing issued " << calls << " file reads; before buffering it was 14";
 }
+
+// [Item(n)]/<Contents> holds the pixel payload immediately after the header the
+// init parser reads, so buffering the whole stream made opening a slide read
+// every image in the file and discard it. The bounded constructor refills a
+// window instead -- which is only worth having if it parses identically, so
+// this compares it against the whole-stream parse field for field.
+//
+// The window is deliberately absurd: 16 bytes forces a refill several times per
+// field, including partway through the length-prefixed position blob, which is
+// where an off-by-one in the window arithmetic would show up.
+TEST(ZVIUtils, boundedBufferingParsesIdenticallyToWholeStreamBuffering)
+{
+    std::string file_path = TestTools::getTestImagePath("zvi", "Zeiss-1-Merged.zvi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(file_path);
+    ole::compound_document doc(file_path);
+    ASSERT_TRUE(doc.good());
+    auto storage = doc.find_storage("/Image");
+    ASSERT_TRUE(storage != doc.end());
+    auto contents = storage->find_stream("/Image/Contents");
+    ASSERT_TRUE(contents != storage->end());
+    const ole::basic_stream& underlying = contents->stream();
+
+    auto parse = [&underlying](ZVIUtils::BufferedStream& stream) {
+        ZVIUtils::skipItems(stream, 4);
+        std::vector<int32_t> values;
+        for (int i = 0; i < 5; ++i) {
+            values.push_back(ZVIUtils::readIntItem(stream));
+        }
+        return values;
+    };
+
+    ZVIUtils::BufferedStream whole(underlying);
+    const std::vector<int32_t> expected = parse(whole);
+
+    ZVIUtils::BufferedStream windowed(underlying, 16);
+    const std::vector<int32_t> actual = parse(windowed);
+
+    ASSERT_EQ(expected, actual);
+    // size() must keep meaning the whole stream whatever the window holds:
+    // streamSize(), bytesLeft() and seek(..., ios::end) are all defined against
+    // it, and the tag parsers use them to decide when to stop.
+    ASSERT_EQ(whole.size(), windowed.size());
+    ASSERT_EQ(underlying.size(), windowed.size());
+    ASSERT_EQ(whole.pos(), windowed.pos());
+}
+
+// Seeking backwards has to refill, not read out of a window that has moved past
+// the target. The parsers seek within a stream (skipExactly, and the tag reader
+// rewinding on an unsupported type), so this is a real path and not a synthetic
+// one.
+TEST(ZVIUtils, boundedBufferingRereadsAfterABackwardSeek)
+{
+    std::string file_path = TestTools::getTestImagePath("zvi", "Zeiss-1-Merged.zvi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(file_path);
+    ole::compound_document doc(file_path);
+    ASSERT_TRUE(doc.good());
+    auto storage = doc.find_storage("/Image");
+    ASSERT_TRUE(storage != doc.end());
+    auto contents = storage->find_stream("/Image/Contents");
+    ASSERT_TRUE(contents != storage->end());
+
+    ZVIUtils::BufferedStream stream(contents->stream(), 16);
+
+    std::vector<char> first(8);
+    ASSERT_EQ(8, stream.read(first.data(), 8));
+
+    // Well past the window, then back to the start.
+    stream.seek(200, std::ios::beg);
+    std::vector<char> middle(8);
+    ASSERT_EQ(8, stream.read(middle.data(), 8));
+
+    stream.seek(0, std::ios::beg);
+    std::vector<char> again(8);
+    ASSERT_EQ(8, stream.read(again.data(), 8));
+    ASSERT_EQ(first, again);
+}

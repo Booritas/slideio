@@ -102,6 +102,31 @@ ColorProfile ColorManagement::amendColorProfile(const ColorProfile& input) const
     return m_boundSource;
 }
 
+ColorProfile ColorManagement::computeColorProfile(const ColorProfile& input) const
+{
+    // Nothing was converted, so the blocks arrive in the space they started in.
+    // !m_transform covers an unbound instance, which has converted nothing by
+    // definition.
+    if (m_passThrough || !m_transform) {
+        return input;
+    }
+
+    if (m_target == ColorTarget::sRGB) {
+        // The blocks are sRGB now, whatever they were. Saying so is the whole
+        // point: the next ColorManagement in the chain binds against this, and
+        // handing it m_boundSource instead had it convert already-sRGB pixels
+        // as though they were still the scanner's.
+        return IccTransform::createSRGBProfile();
+    }
+
+    // LinearRGB, Lab and XYZ leave ICC RGB behind, and computeChannelDataTypes
+    // turns the blocks into DT_Float32 -- which bindToSource rejects, so a
+    // second colour-managed stage cannot follow one of these in any case.
+    // Reporting no profile is the honest answer rather than one that would
+    // misdescribe float colorimetry as an RGB space.
+    return ColorProfile();
+}
+
 void ColorManagement::applyTransformation(const cv::Mat& block, cv::OutputArray transformedBlock) const
 {
     if (m_passThrough || !m_transform) {
