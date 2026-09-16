@@ -128,7 +128,7 @@ After the build process you can find installed files in the install subfolder of
 #### Prerequisites
 - Python 3.6 or higher
 - conan package manager version 2 or more
-- CMake 3.10 or higher
+- CMake 3.15 or higher
 - a C++17 compiler
 - git
 #### Build instructions
@@ -152,7 +152,7 @@ After the build process you can find installed files in the install subfolder of
 #### Prerequisites
 - Python 3.6 or higher
 - conan package manager version 2 or more
-- CMake 3.10 or higher
+- CMake 3.15 or higher
 - Visual Studio 2022 (C++17)
 - git
 #### Build instructions
