@@ -10,7 +10,7 @@ The 12 formats are served by 11 driver libraries: PHTIFF (Philips TIFF) has no l
 
 ## Build Commands
 
-Prerequisites: Conan v2+, CMake 3.10+, C++17 compiler, Python 3.6+.
+Prerequisites: Conan v2+, CMake 3.15+, C++17 compiler, Python 3.6+.
 
 ```bash
 # Full build (conan + configure + build), release only:
