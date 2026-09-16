@@ -5,7 +5,7 @@
 #include "smallimage.hpp"
 #include "slideio/imagetools/slideio_imagetools_def.hpp"
 #include "slideio/imagetools/tiffkeeper.hpp"
-#include "slideio/base/size.hpp"
+#include "slideio/core/size.hpp"
 #include "slideio/drivers/vsi/vsifile.hpp"
 
 namespace libtiff
@@ -30,6 +30,7 @@ namespace slideio
 			const std::string& getMetadata() const override;
 			void readRaster(cv::OutputArray raster) override;
 			Resolution getResolution() const override;
+			std::vector<uint8_t> getICCProfile() const override;
 		private:
 			void extractMetadata();
 		private:

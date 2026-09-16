@@ -23,21 +23,19 @@ set(SOURCE_FILES
    )
 
 add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES})
+HIDE_THIRD_PARTY_SYMBOLS(${LIBRARY_NAME})
 set_target_properties(${LIBRARY_NAME} PROPERTIES OUTPUT_NAME "${LIBRARY_NAME}${LIB_NAME_SUFFIX}")
 
 find_package(SQLite3)
-find_package(glog)
 find_package(OpenCV)
 find_package(ZLIB)
-find_package(jpegxrcodec)
 find_package(tinyxml2)
 
 target_link_libraries(${LIBRARY_NAME} 
    SQLite::SQLite3
-   glog::glog
    opencv::opencv
    ZLIB::ZLIB
-   jpegxrcodec::jpegxrcodec
+   jxrcodec
    tinyxml2::tinyxml2
 )
 

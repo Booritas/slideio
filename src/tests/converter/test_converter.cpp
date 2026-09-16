@@ -3,7 +3,7 @@
 #include "slideio/converter/converter.hpp"
 #include "slideio/slideio/slideio.hpp"
 #include "slideio/slideio/scene.hpp"
-#include "slideio/base/exceptions.hpp"
+#include "slideio/core/exceptions.hpp"
 #include "slideio/converter/converterparameters.hpp"
 #include "slideio/core/tools/tempfile.hpp"
 #include "slideio/imagetools/imagetools.hpp"
@@ -18,6 +18,7 @@
 
 TEST(Converter, convertGDALJpeg) {
 	std::string path = TestTools::getTestImagePath("gdal", "Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
 	SlidePtr slide = slideio::openSlide(path, "GDAL");
 	ScenePtr scene = slide->getScene(0);
 	auto sceneRect = scene->getRect();
@@ -55,6 +56,7 @@ TEST(Converter, convertGDALJpeg) {
 TEST(Converter, convertGDALJp2K)
 {
 	std::string path = TestTools::getTestImagePath("gdal", "Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
 	SlidePtr slide = slideio::openSlide(path, "GDAL");
 	ScenePtr scene = slide->getScene(0);
 	auto sceneRect = scene->getRect();
@@ -96,6 +98,7 @@ TEST(Converter, nullScene)
 TEST(Converter, unsupportedDriver)
 {
 	std::string path = TestTools::getTestImagePath("gdal", "Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
 	SlidePtr slide = slideio::openSlide(path, "GDAL");
 	ScenePtr scene = slide->getScene(0);
 	ASSERT_TRUE(scene.get() != nullptr);
@@ -109,6 +112,7 @@ TEST(Converter, unsupportedDriver)
 TEST(Converter, outputPathExists)
 {
 	std::string path = TestTools::getTestImagePath("gdal", "Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
 	SlidePtr slide = slideio::openSlide(path, "GDAL");
 	ScenePtr scene = slide->getScene(0);
 	ASSERT_TRUE(scene.get() != nullptr);
@@ -120,11 +124,8 @@ TEST(Converter, outputPathExists)
 
 TEST(Converter, fromMultipleScenes)
 {
-	if (!TestTools::isFullTestEnabled())
-	{
-		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-	}
-	std::string path = TestTools::getFullTestImagePath("czi", "jxr-rgb-5scenes.czi");
+	std::string path = TestTools::getTestImagePath("czi", "jxr-rgb-5scenes.czi");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
 	SlidePtr slide = slideio::openSlide(path);
     ScenePtr scene = slide->getScene(0);
 	ASSERT_TRUE(scene.get() != nullptr);
@@ -173,11 +174,8 @@ TEST(Converter, fromMultipleScenes)
 
 TEST(Converter, from3DScene)
 {
-	if (!TestTools::isFullTestEnabled())
-	{
-		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-	}
-	std::string path = TestTools::getFullTestImagePath("czi", "pJP31mCherry.czi");
+	std::string path = TestTools::getTestImagePath("czi", "pJP31mCherry.czi");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
 	SlidePtr slide = slideio::openSlide(path);
 	ScenePtr scene = slide->getScene(0);
 	ASSERT_TRUE(scene.get() != nullptr);
@@ -243,11 +241,8 @@ TEST(Converter, from3DScene)
 
 TEST(Converter, jpeg2k4channelsScene)
 {
-	if (!TestTools::isFullTestEnabled())
-	{
-		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-	}
-	std::string path = TestTools::getFullTestImagePath("czi", "jxr-16bit-4chnls.czi");
+	std::string path = TestTools::getTestImagePath("czi", "jxr-16bit-4chnls.czi");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
 	SlidePtr slide = slideio::openSlide(path);
 	ScenePtr scene = slide->getScene(0);
 	ASSERT_TRUE(scene.get() != nullptr);
@@ -302,11 +297,8 @@ TEST(Converter, jpeg2k4channelsScene)
 
 TEST(Converter, invalidRegions)
 {
-	if (!TestTools::isFullTestEnabled())
-	{
-		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-	}
-	std::string path = TestTools::getFullTestImagePath("czi", "jxr-rgb-5scenes.czi");
+	std::string path = TestTools::getTestImagePath("czi", "jxr-rgb-5scenes.czi");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
 	SlidePtr slide = slideio::openSlide(path);
 	ScenePtr scene = slide->getScene(0);
 	ASSERT_TRUE(scene.get() != nullptr);
@@ -356,11 +348,8 @@ TEST(Converter, invalidRegions)
 
 TEST(Converter, jpeg2k)
 {
-	if (!TestTools::isFullTestEnabled())
-	{
-		GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-	}
-	std::string path = TestTools::getFullTestImagePath("czi", "doughnut.czi");
+	std::string path = TestTools::getTestImagePath("czi", "doughnut.czi");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
 	SlidePtr slide = slideio::openSlide(path);
 	ScenePtr scene = slide->getScene(0);
 	ASSERT_TRUE(scene.get() != nullptr);
@@ -407,6 +396,7 @@ TEST(Converter, jpeg2k)
 TEST(Converter, jpeg2kBorderTiles)
 {
 	std::string path = TestTools::getTestImagePath("czi", "08_18_2018_enc_1001_633.czi");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
 	SlidePtr slide = slideio::openSlide(path);
 	ScenePtr scene = slide->getScene(0);
 	ASSERT_TRUE(scene.get() != nullptr);
@@ -453,6 +443,7 @@ TEST(Converter, jpeg2kBorderTiles)
 TEST(Converter, metadata)
 {
 	std::string path = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1.scn");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
 	SlidePtr slide = slideio::openSlide(path);
 	ScenePtr scene = slide->getScene(0);
 	ASSERT_TRUE(scene.get() != nullptr);
@@ -508,6 +499,7 @@ TEST(Converter, metadata)
 TEST(Converter, intData)
 {
 	std::string path = TestTools::getTestImagePath("zvi", "Zeiss-1-Merged.zvi");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
 	SlidePtr slide = slideio::openSlide(path);
 	ScenePtr scene = slide->getScene(0);
 	ASSERT_TRUE(scene.get() != nullptr);
@@ -564,6 +556,7 @@ TEST(Converter, intData)
 TEST(Converter, createSVS8bitGray)
 {
 	std::string imagePath = TestTools::getTestImagePath("gdal", "img_2448x2448_1x8bit_SRC_GRAY_ducks.png");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(imagePath);
 	std::shared_ptr<slideio::Slide> slide = slideio::openSlide(imagePath, "GDAL");
 	ASSERT_NE(slide, nullptr);
 	const int numScenes = slide->getNumScenes();
@@ -590,6 +583,7 @@ TEST(Converter, createSVS8bitGray)
 TEST(Converter, createSVS8bitColor)
 {
 	std::string imagePath = TestTools::getTestImagePath("gdal", "img_2448x2448_3x8bit_SRC_RGB_ducks.png");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(imagePath);
 	std::shared_ptr<slideio::Slide> slide = slideio::openSlide(imagePath, "GDAL");
 	ASSERT_NE(slide, nullptr);
 	const int numScenes = slide->getNumScenes();

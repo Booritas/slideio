@@ -8,7 +8,7 @@
 #include <string>
 
 #include "otscene.hpp"
-#include "slideio/base/slideio_enums.hpp"
+#include "slideio/core/slideio_enums.hpp"
 
 namespace slideio
 {

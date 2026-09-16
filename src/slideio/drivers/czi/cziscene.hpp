@@ -4,10 +4,12 @@
 #pragma once
 #include "slideio/drivers/czi/czi_api_def.hpp"
 #include "slideio/core/cvscene.hpp"
+#include "slideio/core/tools/filereader.hpp"
 #include "slideio/core/tools/tilecomposer.hpp"
 #include "slideio/drivers/czi/czisubblock.hpp"
 #include "slideio/drivers/czi/czistructs.hpp"
 #include <map>
+#include <memory>
 
 #if defined(_MSC_VER)
 #pragma warning( push )
@@ -71,6 +73,7 @@ namespace slideio
         const std::string& getDriverId() const override {
             return m_driverId;
         }
+        bool supportsConcurrentReads() const override { return true; }
         cv::Rect getRect() const override;
         int getNumChannels() const override;
         int getNumZSlices() const override;
@@ -139,6 +142,7 @@ namespace slideio
         cv::Rect m_sceneRect;
         std::map<int, std::pair<int, int>> m_componentToChannelIndex;
         CZISlide* m_slide;
+        std::shared_ptr<const FileReader> m_reader;
         std::string m_name;
         uint64_t m_id{};
         SceneParams m_sceneParams{};

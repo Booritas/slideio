@@ -4,7 +4,8 @@
 //
 #include "slideio/core/cvslide.hpp"
 #include "slideio/core/tools/cvtools.hpp"
-#include "slideio/base/base.hpp"
+#include "slideio/core/exceptions.hpp"
+#include "slideio/core/slideio_enums.hpp"
 
 #include <string>
 

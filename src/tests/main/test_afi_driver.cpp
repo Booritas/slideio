@@ -2,7 +2,7 @@
 #include "slideio/drivers/afi/afiimagedriver.hpp"
 #include "slideio/drivers/afi/afislide.hpp"
 #include "slideio/imagetools/imagetools.hpp"
-#include "slideio/base/exceptions.hpp"
+#include "slideio/core/exceptions.hpp"
 #include "slideio/slideio/slideio.hpp"
 
 #include <gtest/gtest.h>
@@ -14,7 +14,7 @@
 
 static std::string getPrivTestImagesPath(std::string dir, std::string file)
 {
-    return TestTools::getTestImagePath(dir, file, true);
+    return TestTools::getTestImagePath(dir, file);
 }
 
 TEST(AFIDriver, driverID)
@@ -56,9 +56,6 @@ TEST(AFIDriver, readFileBrokenEntries)
 class AFIDriverFileTest : public ::testing::Test {
 public:
     void SetUp() override {
-        if (!TestTools::isPrivateTestEnabled()) {
-            GTEST_SKIP() << "Skip private test because private dataset is not enabled";
-        }
     }
 };
 
@@ -167,23 +164,30 @@ TEST_F(AFIDriverFileTest, read_ImageBlockScaled)
 }
 
 TEST_F(AFIDriverFileTest, multiThreadSceneAccess) {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip the test because full dataset is not enabled";
-    }
     std::string filePath = getPrivTestImagesPath("afi", "fs.afi");
+  	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     slideio::AFIImageDriver driver;
     TestTools::multiThreadedTest(filePath, driver);
 }
 
+// AFI is advertised as concurrent -- it aggregates SVS slides and its scenes
+// *are* SVS scenes -- but it inherited that with no byte-exactness test of its
+// own, and it only works because SVSTiledScene's pool factory captures the file
+// path by value: AFISlide::openFile overwrites SVSScene::m_filePath with the
+// path of the .afi index file after the scenes are built, so a factory reading
+// m_filePath at acquire() time would open the AFI XML as a TIFF on every read.
+// This is what would catch that.
+TEST_F(AFIDriverFileTest, concurrentReadsAreByteIdentical) {
+    const std::string filePath = getPrivTestImagesPath("afi", "fs.afi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::AFIImageDriver driver;
+    TestTools::concurrentReadIdentityTest(filePath, driver);
+}
+
 TEST_F(AFIDriverFileTest, getDriverId)
 {
-    if (!TestTools::isFullTestEnabled()) {
-        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-    }
-
     const std::string filePath = getPrivTestImagesPath("afi", "fs.afi");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     auto slide = slideio::openSlide(filePath, "AUTO");
     ASSERT_TRUE(slide);
     EXPECT_EQ("AFI", slide->getDriverId());

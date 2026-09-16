@@ -5,8 +5,9 @@
 #include "slideio/slideio/scene.hpp"
 #include "slideio/core/tools/cvtools.hpp"
 #include "slideio/core/cvscene.hpp"
-#include "slideio/base/log.hpp"
-#include "slideio/base/exceptions.hpp"
+#include "slideio/core/log.hpp"
+#include "slideio/core/exceptions.hpp"
+#include "slideio/imagetools/icctransform.hpp"
 
 using namespace slideio;
 
@@ -394,6 +395,17 @@ std::string Scene::getRawMetadata() const
 MetadataFormat Scene::getMetadataFormat() const {
 	SLIDEIO_LOG(INFO) << "Scene::getMetadataFormat ";
 	return m_scene->getMetadataFormat();
+}
+
+ColorProfile Scene::getColorProfile() const
+{
+	SLIDEIO_LOG(INFO) << "Scene::getColorProfile ";
+	return m_scene->getColorProfile();
+}
+
+ColorProfileInfo Scene::getColorProfileInfo() const
+{
+	return IccTransform::describe(m_scene->getColorProfile());
 }
 
 const slideio::Metadata& slideio::Scene::getMetadata() const

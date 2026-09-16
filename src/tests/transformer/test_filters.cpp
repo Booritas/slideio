@@ -3,7 +3,7 @@
 #include "slideio/converter/converter.hpp"
 #include "slideio/slideio/slideio.hpp"
 #include "slideio/slideio/scene.hpp"
-#include "slideio/base/exceptions.hpp"
+#include "slideio/core/exceptions.hpp"
 #include <opencv2/imgproc.hpp>
 
 #include "slideio/core/tools/tools.hpp"
@@ -25,6 +25,7 @@ using namespace slideio;
 TEST(Filters, applyTransformationGaussianBlur)
 {
     std::string path = TestTools::getTestImagePath("gdal", "colors.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
     std::shared_ptr<slideio::Slide> slide = openSlide(path, "AUTO");
     std::shared_ptr<slideio::Scene> originScene = slide->getScene(0);
 
@@ -51,6 +52,7 @@ TEST(Filters, applyTransformationGaussianBlur)
 TEST(Filters, applyTransformationMedianBlur)
 {
     std::string path = TestTools::getTestImagePath("gdal", "colors.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
     std::shared_ptr<slideio::Slide> slide = openSlide(path, "AUTO");
     std::shared_ptr<slideio::Scene> originScene = slide->getScene(0);
 
@@ -75,6 +77,7 @@ TEST(Filters, applyTransformationMedianBlur)
 TEST(Filters, applyTransformationSobelFilter)
 {
     std::string path = TestTools::getTestImagePath("gdal", "colors.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
     std::shared_ptr<slideio::Slide> slide = openSlide(path, "AUTO");
     std::shared_ptr<slideio::Scene> originScene = slide->getScene(0);
 
@@ -103,6 +106,7 @@ TEST(Filters, applyTransformationSobelFilter)
 TEST(Filters, applyTransformationSharrFilter)
 {
     std::string path = TestTools::getTestImagePath("gdal", "colors.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
     std::shared_ptr<slideio::Slide> slide = openSlide(path, "AUTO");
     std::shared_ptr<slideio::Scene> originScene = slide->getScene(0);
 
@@ -129,6 +133,7 @@ TEST(Filters, applyTransformationSharrFilter)
 TEST(Filters, readBlockWholeImageSobel)
 {
     std::string path = TestTools::getTestImagePath("gdal", "colors.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
     std::shared_ptr<slideio::Slide> slide = openSlide(path, "AUTO");
     std::shared_ptr<slideio::Scene> originScene = slide->getScene(0);
 
@@ -166,6 +171,7 @@ TEST(Filters, readBlockWholeImageSobel)
 TEST(Filters, readBlockPartialScharr)
 {
     std::string path = TestTools::getTestImagePath("gdal", "Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
     std::shared_ptr<slideio::Slide> slide = openSlide(path, "AUTO");
     std::shared_ptr<slideio::Scene> originScene = slide->getScene(0);
 
@@ -208,6 +214,7 @@ TEST(Filters, readScaledBlockMedian)
     constexpr int kernelSize = 5;
 
     std::string path = TestTools::getTestImagePath("gdal", "Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
     std::shared_ptr<Slide> slide = openSlide(path, "AUTO");
     std::shared_ptr<Scene> originScene = slide->getScene(0);
 
@@ -244,6 +251,7 @@ TEST(Filters, readScaledBlockBilateral)
     constexpr double scale = 0.5;
 
     std::string path = TestTools::getTestImagePath("gdal", "Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
     std::shared_ptr<Slide> slide = openSlide(path, "AUTO");
     std::shared_ptr<Scene> originScene = slide->getScene(0);
 
@@ -282,6 +290,7 @@ TEST(Filters, readScaledBlockGaussianBlur)
     const double scale = 0.5;
 
     std::string path = TestTools::getTestImagePath("gdal", "colors.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
     std::shared_ptr<slideio::Slide> slide = openSlide(path, "AUTO");
     std::shared_ptr<slideio::Scene> originScene = slide->getScene(0);
 
@@ -337,6 +346,7 @@ TEST(Filters, readScaledBlockCanny)
     const double scale = 0.5;
 
     std::string path = TestTools::getTestImagePath("gdal", "colors.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
     std::shared_ptr<slideio::Slide> slide = openSlide(path, "AUTO");
     std::shared_ptr<slideio::Scene> originScene = slide->getScene(0);
 

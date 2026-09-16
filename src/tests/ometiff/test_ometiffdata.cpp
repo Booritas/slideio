@@ -8,6 +8,7 @@
 #include "slideio/imagetools/tifffiles.hpp"
 #include "slideio/imagetools/tifftools.hpp"
 #include "tests/testlib/testtools.hpp"
+#include "slideio/slideio/imagedrivermanager.hpp"
 
 using namespace slideio;
 using namespace slideio::ometiff;
@@ -15,6 +16,7 @@ using namespace slideio::ometiff;
 class TiffDataTests : public ::testing::Test {
 protected:
     void SetUp() override {
+		ImageDriverManager::setLogLevel("ERROR");
     }
 };
 
@@ -55,14 +57,15 @@ void extractTiffData(const std::string& filePath, TIFFFiles& files, const std::s
 
 
 TEST_F(TiffDataTests, init) {
-    std::string filePath = TestTools::getFullTestImagePath("ometiff", "Subresolutions/retina_large.ome.tiff");
+    std::string filePath = TestTools::getTestImagePath("ometiff", "Subresolutions/retina_large.ome.tiff");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
 	std::string directoryPath = std::filesystem::path(filePath).parent_path().string();
 	TIFFFiles files;
 	tinyxml2::XMLElement* xmlTiffData = nullptr;
 	tinyxml2::XMLDocument doc;
 	extractTiffData(filePath, files, "Image:0", "FirstZ", 32, doc, xmlTiffData);
 	TiffData tiffData;
-	tiffData.init(filePath, &files, "XYZCT", 2, 64, 1, xmlTiffData);
+	tiffData.init(filePath, files, "XYZCT", 2, 64, 1, xmlTiffData);
 	EXPECT_EQ(1, files.getNumberOfOpenFiles());
 	EXPECT_EQ(tiffData.getFirstIFD(), 32);
 	EXPECT_EQ(tiffData.getPlaneCount(), 1);
@@ -78,7 +81,8 @@ TEST_F(TiffDataTests, init) {
 }
 
 TEST_F(TiffDataTests, init3chnl) {
-	std::string filePath = TestTools::getFullTestImagePath("ometiff", "Subresolutions/Leica-1.ome.tiff");
+	std::string filePath = TestTools::getTestImagePath("ometiff", "Subresolutions/Leica-1.ome.tiff");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
 	std::string directoryPath = std::filesystem::path(filePath).parent_path().string();
 	TIFFFiles files;
 	tinyxml2::XMLElement* xmlTiffData = nullptr;
@@ -86,7 +90,7 @@ TEST_F(TiffDataTests, init3chnl) {
 	extractTiffData(filePath, files, "Image:1", "FirstZ", 0, doc, xmlTiffData);
 	TiffData tiffData;
 	OTDimensions dimensions;
-	tiffData.init(filePath, &files, "XYCZT", 3, 1, 1, xmlTiffData);
+	tiffData.init(filePath, files, "XYCZT", 3, 1, 1, xmlTiffData);
 	EXPECT_EQ(1, files.getNumberOfOpenFiles());
 	EXPECT_EQ(tiffData.getFirstIFD(), 1);
 	EXPECT_EQ(tiffData.getPlaneCount(), 1);
@@ -103,8 +107,10 @@ TEST_F(TiffDataTests, init3chnl) {
 }
 
 TEST_F(TiffDataTests, readTileFirstChannelOf2) {
-	std::string filePath = TestTools::getFullTestImagePath("ometiff", "Subresolutions/retina_large.ome.tiff");
-	std::string testFilePath = TestTools::getFullTestImagePath("ometiff", "Tests/retina_large.ome-page32-channel-0.tif");
+	std::string filePath = TestTools::getTestImagePath("ometiff", "Subresolutions/retina_large.ome.tiff");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+	std::string testFilePath = TestTools::getTestImagePath("ometiff", "Tests/retina_large.ome-page32-channel-0.tif");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath);
 	std::string directoryPath = std::filesystem::path(filePath).parent_path().string();
 	TIFFFiles files;
 	tinyxml2::XMLElement* xmlTiffData = nullptr;
@@ -112,14 +118,14 @@ TEST_F(TiffDataTests, readTileFirstChannelOf2) {
 	extractTiffData(filePath, files, "Image:0", "FirstZ", 32, doc, xmlTiffData);
 	ASSERT_TRUE(xmlTiffData != nullptr);
 	TiffData tiffData;
-	tiffData.init(filePath, &files, "XYZCT", 2, 64, 1, xmlTiffData);
+	tiffData.init(filePath, files, "XYZCT", 2, 64, 1, xmlTiffData);
 	const TiffDirectory& dir = tiffData.getTiffDirectory(0);
 	const TiffDirectory& dir1 = dir.subdirectories[1];
 	ASSERT_EQ(dir.dirIndex, 32);
 
 	std::vector<int> channelIndices = { 0, 1 };
 	std::vector<cv::Mat> rasters(channelIndices.size());
-	tiffData.readTile(channelIndices, 32, 0, 0, 0, rasters);
+	tiffData.readTile(channelIndices, 32, 0, 0, 0, files, rasters);
 	ASSERT_FALSE(rasters[0].empty());
 	ASSERT_TRUE(rasters[1].empty());
 	cv::Mat raster = rasters[0];
@@ -129,8 +135,10 @@ TEST_F(TiffDataTests, readTileFirstChannelOf2) {
 }
 
 TEST_F(TiffDataTests, readTileSecondChannelOf2) {
-	std::string filePath = TestTools::getFullTestImagePath("ometiff", "Subresolutions/retina_large.ome.tiff");
-	std::string testFilePath = TestTools::getFullTestImagePath("ometiff", "Tests/retina_large.ome-page32-channel-1.tif");
+	std::string filePath = TestTools::getTestImagePath("ometiff", "Subresolutions/retina_large.ome.tiff");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+	std::string testFilePath = TestTools::getTestImagePath("ometiff", "Tests/retina_large.ome-page32-channel-1.tif");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath);
 	std::string directoryPath = std::filesystem::path(filePath).parent_path().string();
 	TIFFFiles files;
 	tinyxml2::XMLElement* xmlTiffData = nullptr;
@@ -138,14 +146,14 @@ TEST_F(TiffDataTests, readTileSecondChannelOf2) {
 	extractTiffData(filePath, files, "Image:0", "IFD", 96, doc, xmlTiffData);
 	ASSERT_TRUE(xmlTiffData != nullptr);
 	TiffData tiffData;
-	tiffData.init(filePath, &files, "XYZCT", 2, 64, 1, xmlTiffData);
+	tiffData.init(filePath, files, "XYZCT", 2, 64, 1, xmlTiffData);
 	const TiffDirectory& dir = tiffData.getTiffDirectory(0);
 	const TiffDirectory& dir1 = dir.subdirectories[1];
 	ASSERT_EQ(dir.dirIndex, 96);
 
 	std::vector<int> channelIndices = { 0, 1 };
 	std::vector<cv::Mat> rasters(channelIndices.size());
-	tiffData.readTile(channelIndices, 32, 0, 0, 0, rasters);
+	tiffData.readTile(channelIndices, 32, 0, 0, 0, files, rasters);
 	ASSERT_FALSE(rasters[1].empty());
 	ASSERT_TRUE(rasters[0].empty());
 	cv::Mat raster = rasters[1];
@@ -155,21 +163,23 @@ TEST_F(TiffDataTests, readTileSecondChannelOf2) {
 }
 
 TEST_F(TiffDataTests, readTile3chOf3) {
-	std::string filePath = TestTools::getFullTestImagePath("ometiff", "Subresolutions/Leica-1.ome.tiff");
-	std::string testFilePath = TestTools::getFullTestImagePath("ometiff", "Tests/Leica-1.ome-page_1.tif");
+	std::string filePath = TestTools::getTestImagePath("ometiff", "Subresolutions/Leica-1.ome.tiff");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+	std::string testFilePath = TestTools::getTestImagePath("ometiff", "Tests/Leica-1.ome-page_1.tif");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath);
 	std::string directoryPath = std::filesystem::path(filePath).parent_path().string();
 	TIFFFiles files;
 	tinyxml2::XMLElement* xmlTiffData = nullptr;
 	tinyxml2::XMLDocument doc;
 	extractTiffData(filePath, files, "Image:0", "IFD", 0, doc, xmlTiffData);
 	TiffData tiffData;
-	tiffData.init(filePath, &files, "XYCZT", 3, 1, 1, xmlTiffData);
+	tiffData.init(filePath, files, "XYCZT", 3, 1, 1, xmlTiffData);
 	const TiffDirectory& dir = tiffData.getTiffDirectory(0);
 	const TiffDirectory& dir1 = dir.subdirectories[1];
 
 	std::vector<int> channelIndices = { 0, 1, 2 };
 	std::vector<cv::Mat> rasters(channelIndices.size());
-	tiffData.readTile(channelIndices, 0, 0, 0, 0, rasters);
+	tiffData.readTile(channelIndices, 0, 0, 0, 0, files, rasters);
 	ASSERT_FALSE(rasters[0].empty());
 	ASSERT_FALSE(rasters[1].empty());
 	ASSERT_FALSE(rasters[2].empty());
@@ -182,8 +192,10 @@ TEST_F(TiffDataTests, readTile3chOf3) {
 
 
 TEST_F(TiffDataTests, readTileChannelsStripePlanar) {
-	std::string filePath = TestTools::getFullTestImagePath("ometiff", "Subresolutions/retina_large.ome.tiff");
-	std::string testFilePath = TestTools::getFullTestImagePath("ometiff", "Tests/retina_large.ome-page32-channel-0.tif");
+	std::string filePath = TestTools::getTestImagePath("ometiff", "Subresolutions/retina_large.ome.tiff");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+	std::string testFilePath = TestTools::getTestImagePath("ometiff", "Tests/retina_large.ome-page32-channel-0.tif");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath);
 	std::string directoryPath = std::filesystem::path(filePath).parent_path().string();
 	TIFFFiles files;
 	tinyxml2::XMLElement* xmlTiffData = nullptr;
@@ -191,63 +203,70 @@ TEST_F(TiffDataTests, readTileChannelsStripePlanar) {
 	extractTiffData(filePath, files, "Image:0", "FirstZ", 32, doc, xmlTiffData);
 	TiffData tiffData;
 	OTDimensions dimensions;
-	tiffData.init(filePath, &files, "XYZCT", 2, 64, 1, xmlTiffData);
+	tiffData.init(filePath, files, "XYZCT", 2, 64, 1, xmlTiffData);
 	const TiffDirectory& dir = tiffData.getTiffDirectory(0);
     const TiffDirectory& dir1 = dir.subdirectories[1];
 	ASSERT_EQ(dir.dirIndex, 32);
+	libtiff::TIFF* tiff = files.getOrOpen(filePath);
 	std::vector<int> channelIndices = { 0 };
 	cv::Mat raster;
-	tiffData.readTileChannels(dir, 0, channelIndices,  raster);
+	tiffData.readTileChannels(dir, 0, channelIndices, tiff, raster);
 	EXPECT_FALSE(raster.empty());
 	cv::Mat testRaster;
 	ImageTools::readSmallImageRaster(testFilePath, testRaster);
 	EXPECT_TRUE(TestTools::compareRastersEx(raster, testRaster));
 	cv::resize(testRaster, testRaster, cv::Size(dir1.width, dir1.height));
-	tiffData.readTileChannels(dir1, 0, channelIndices, raster);
+	tiffData.readTileChannels(dir1, 0, channelIndices, tiff, raster);
 	double sim = ImageTools::computeSimilarity2(raster, testRaster);
 	EXPECT_TRUE(sim > 0.99);
 }
 
 TEST_F(TiffDataTests, readTileChannelsStripePlanar3ch) {
-	std::string filePath = TestTools::getFullTestImagePath("ometiff", "Subresolutions/Leica-1.ome.tiff");
-	std::string testFilePath = TestTools::getFullTestImagePath("ometiff", "Tests/Leica-1.ome-page_1.tif");
+	std::string filePath = TestTools::getTestImagePath("ometiff", "Subresolutions/Leica-1.ome.tiff");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+	std::string testFilePath = TestTools::getTestImagePath("ometiff", "Tests/Leica-1.ome-page_1.tif");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath);
 	std::string directoryPath = std::filesystem::path(filePath).parent_path().string();
 	TIFFFiles files;
 	tinyxml2::XMLElement* xmlTiffData = nullptr;
 	tinyxml2::XMLDocument doc;
 	extractTiffData(filePath, files, "Image:0","IFD", 0, doc, xmlTiffData);
 	TiffData tiffData;
-	tiffData.init(filePath, &files, "XYCZT", 3, 1, 1, xmlTiffData);
+	tiffData.init(filePath, files, "XYCZT", 3, 1, 1, xmlTiffData);
 	const TiffDirectory& dir = tiffData.getTiffDirectory(0);
 	const TiffDirectory& dir1 = dir.subdirectories[0];
+	libtiff::TIFF* tiff = files.getOrOpen(filePath);
 	std::vector<int> channelIndices = { 0, 1, 2 };
 	cv::Mat raster;
-	tiffData.readTileChannels(dir, 0, channelIndices, raster);
+	tiffData.readTileChannels(dir, 0, channelIndices, tiff, raster);
 	EXPECT_FALSE(raster.empty());
 	cv::Mat testRaster;
 	ImageTools::readSmallImageRaster(testFilePath, testRaster);
 	EXPECT_TRUE(TestTools::compareRastersEx(raster, testRaster));
 	cv::resize(testRaster, testRaster, cv::Size(dir1.width, dir1.height));
-	tiffData.readTileChannels(dir1, 0, channelIndices, raster);
+	tiffData.readTileChannels(dir1, 0, channelIndices, tiff, raster);
 	double sim = ImageTools::computeSimilarity2(raster, testRaster);
 	//TestTools::showRasters(raster, testRaster);
 	EXPECT_GE(sim, 0.98);
 }
 
 TEST_F(TiffDataTests, readTileChannelsTiledPlanar3ch) {
-	std::string filePath = TestTools::getFullTestImagePath("ometiff", "Subresolutions/Leica-1.ome.tiff");
-	std::string testFilePath = TestTools::getFullTestImagePath("ometiff", "Tests/Leica-1.ome.tiff - Series 1 (1, x=21504, y=15360, w=512, h=512).png");
+	std::string filePath = TestTools::getTestImagePath("ometiff", "Subresolutions/Leica-1.ome.tiff");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+	std::string testFilePath = TestTools::getTestImagePath("ometiff", "Tests/Leica-1.ome.tiff - Series 1 (1, x=21504, y=15360, w=512, h=512).png");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath);
 	std::string directoryPath = std::filesystem::path(filePath).parent_path().string();
 	TIFFFiles files;
 	tinyxml2::XMLElement* xmlTiffData = nullptr;
 	tinyxml2::XMLDocument doc;
 	extractTiffData(filePath, files, "Image:1", "IFD", 1, doc, xmlTiffData);
 	TiffData tiffData;
-	tiffData.init(filePath, &files, "XYCZT", 3, 1, 1, xmlTiffData);
+	tiffData.init(filePath, files, "XYCZT", 3, 1, 1, xmlTiffData);
 	const TiffDirectory& dir = tiffData.getTiffDirectory(0);
+	libtiff::TIFF* tiff = files.getOrOpen(filePath);
 	std::vector<int> channelIndices = { 0, 1, 2 };
 	cv::Mat raster;
-	tiffData.readTileChannels(dir, 2202, channelIndices, raster);
+	tiffData.readTileChannels(dir, 2202, channelIndices, tiff, raster);
 	EXPECT_FALSE(raster.empty());
 	cv::Mat testRaster;
 	ImageTools::readSmallImageRaster(testFilePath, testRaster);
@@ -255,19 +274,22 @@ TEST_F(TiffDataTests, readTileChannelsTiledPlanar3ch) {
 }
 
 TEST_F(TiffDataTests, readTileChannelsTiledPalette3ch) {
-	std::string filePath = TestTools::getFullTestImagePath("ometiff", "Subresolutions/Leica-2.ome.tiff");
-	std::string testFilePath = TestTools::getFullTestImagePath("ometiff", "Tests/Leica-2.ome.tiff - Series 1 (1, x=23552, y=14336, w=512, h=512).png");
+	std::string filePath = TestTools::getTestImagePath("ometiff", "Subresolutions/Leica-2.ome.tiff");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+	std::string testFilePath = TestTools::getTestImagePath("ometiff", "Tests/Leica-2.ome.tiff - Series 1 (1, x=23552, y=14336, w=512, h=512).png");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath);
 	std::string directoryPath = std::filesystem::path(filePath).parent_path().string();
 	TIFFFiles files;
 	tinyxml2::XMLElement* xmlTiffData = nullptr;
 	tinyxml2::XMLDocument doc;
 	extractTiffData(filePath, files, "Image:1", "IFD", 1, doc, xmlTiffData);
 	TiffData tiffData;
-	tiffData.init(filePath, &files, "XYCZT", 3, 1, 1, xmlTiffData);
+	tiffData.init(filePath, files, "XYCZT", 3, 1, 1, xmlTiffData);
 	const TiffDirectory& dir = tiffData.getTiffDirectory(0);
+	libtiff::TIFF* tiff = files.getOrOpen(filePath);
 	std::vector<int> channelIndices = { 0, 1, 2 };
 	cv::Mat raster;
-	tiffData.readTileChannels(dir, 2202, channelIndices, raster);
+	tiffData.readTileChannels(dir, 2202, channelIndices, tiff, raster);
 	//TestTools::showRaster(raster);
 	EXPECT_FALSE(raster.empty());
 	cv::Mat testRaster;

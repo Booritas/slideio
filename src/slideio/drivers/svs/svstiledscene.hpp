@@ -60,7 +60,22 @@ namespace slideio
         // out of the description of the base directory. Called by initialize().
         virtual void processImageDescription();
         void initializeBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices, cv::OutputArray output) override;
+        /// Borrows a handle for the duration of one block read. Acquire once per
+        /// read and pass the context down through userData -- never re-acquire
+        /// mid-read.
+        ContextPool::Borrow acquireContext() { return m_contextPool.acquire(); }
+
         std::vector<slideio::TiffDirectory> m_directories;
+    private:
+        // Declared last on purpose, and it must stay last. ~ContextPool blocks
+        // until every outstanding borrow is returned, but members are destroyed
+        // in reverse declaration order, so only a pool declared after
+        // m_directories is destroyed *before* the vector that readTile's
+        // userData points into. A pool declared any earlier -- in SVSScene, say
+        // -- would let an in-flight read dereference a freed directory.
+        // PHTIFFTiledScene derives from this class and adds only metadata that
+        // the read path never touches, so its members dying first is harmless.
+        ContextPool m_contextPool;
     };
 }
 

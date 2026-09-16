@@ -8,6 +8,8 @@ import platform
 import argparse
 from argparse import RawTextHelpFormatter
 import fnmatch
+import re
+import zipfile
 
 try:
     import distro
@@ -30,18 +32,29 @@ def remove_files_by_patterns(root_dir, patterns):
                     os.remove(file_path)
 
 
+# Directories the cmake cleanup never descends into. The submodules under
+# extern/ ship cmake/ directories of their own -- ndpi-tiff keeps libtiff's
+# AutotoolsVersion.cmake, CompilerChecks.cmake, FindCMath.cmake and the rest
+# there -- and deleting those leaves the tree unconfigurable until the
+# submodule is checked out again.
+cmake_cleanup_skipped_dirs = ["extern", ".git"]
+
+
 def remove_cmake_directories(root_dir):
     """
-    Recursively delete all directories named 'cmake' starting from root_dir.
+    Recursively delete all directories named 'cmake' starting from root_dir,
+    leaving third-party sources under extern/ untouched.
 
     :param root_dir: The root directory to start the search from
     """
-    for root, dirs, files in os.walk(root_dir, topdown=False):
-        for dir_name in dirs:
+    for root, dirs, files in os.walk(root_dir, topdown=True):
+        dirs[:] = [d for d in dirs if d not in cmake_cleanup_skipped_dirs]
+        for dir_name in list(dirs):
             if dir_name == "cmake":
                 dir_path = os.path.join(root, dir_name)
                 print(f"Removing directory: {dir_path}")
                 shutil.rmtree(dir_path)
+                dirs.remove(dir_name)
 
 
 def get_platform():
@@ -310,12 +323,132 @@ def install_slideio(configuration, prefix):
         subprocess.check_call(cmd, stderr=subprocess.STDOUT)
 
 
+
+def read_cpack_package_file_name(build_dir):
+    """Base name CPack gives an archive, read out of the generated CPackConfig.cmake.
+
+    Parsed rather than recomputed here on purpose: the platform tag it contains
+    is built in cmake-scripts/packaging.cmake, and a second definition in this
+    file would eventually disagree with it and have the workflow upload
+    artifacts whose names do not match the packages inside them.
+    """
+    config = os.path.join(build_dir, "CPackConfig.cmake")
+    if not os.path.isfile(config):
+        raise RuntimeError(
+            f"{config} does not exist. Configure and build before packaging."
+        )
+    with open(config, encoding="utf-8") as handle:
+        for line in handle:
+            match = re.match(r'\s*set\(CPACK_PACKAGE_FILE_NAME\s+"([^"]+)"\)', line)
+            if match:
+                return match.group(1)
+    raise RuntimeError(f"CPACK_PACKAGE_FILE_NAME is not set in {config}.")
+
+
+def assert_archive_has_pdbs(archive):
+    """Fail if the debug-symbol archive came out empty.
+
+    The PDB install rule is OPTIONAL, because a configuration that emits no PDBs
+    must not fail the install. The cost of that is silence: if the release link
+    ever stops producing them -- the /Zi and /DEBUG options overridden, a
+    generator or policy change -- cpack still writes a perfectly valid zip
+    containing nothing, the workflow uploads it because the file exists, and the
+    gap is discovered by whoever next tries to symbolise a release crash.
+    """
+    with zipfile.ZipFile(archive) as handle:
+        pdbs = [n for n in handle.namelist() if n.lower().endswith(".pdb")]
+    if not pdbs:
+        raise RuntimeError(
+            f"{archive} contains no .pdb files. The release build stopped "
+            f"emitting debug symbols; check the MSVC /Zi and /DEBUG options in "
+            f"CMakeLists.txt before shipping this."
+        )
+    print(f"  {os.path.basename(archive)}: {len(pdbs)} pdb files")
+
+
+def drop_cpack_staging(output_dir):
+    """Remove the _CPack_Packages tree cpack leaves next to the packages.
+
+    It is a second full copy of the installed tree, one per component set, and
+    it is larger than everything it was used to build: 97 MB against 42 MB of
+    archives on Windows. The release workflow names the package files
+    explicitly and would not upload it either way, but leaving it behind makes
+    the output directory misleading to anyone looking at it by hand.
+    """
+    staging = os.path.join(output_dir, "_CPack_Packages")
+    if os.path.isdir(staging):
+        shutil.rmtree(staging, ignore_errors=True)
+
+
+def package_slideio(configuration, output_dir):
+    """Build the binary distribution artifacts for the current platform.
+
+    Release only. A distribution carries release libraries, and packaging a
+    debug build would produce archives full of _d-suffixed libraries that no
+    consumer wants and a .deb whose SONAME matches nothing.
+    """
+    os_platform = get_platform()
+    cpack = "cpack.exe" if os_platform == "Windows" else "cpack"
+
+    if not configuration["release"]:
+        raise RuntimeError(
+            "Distributions are cut from the release build only. Run with -c release."
+        )
+
+    build_dir = configuration["build_release_directory"]
+    base_name = read_cpack_package_file_name(build_dir)
+    os.makedirs(output_dir, exist_ok=True)
+
+    def run_cpack(generator, components, file_name):
+        cmd = [
+            cpack,
+            "-G",
+            generator,
+            "-C",
+            "Release",
+            "--config",
+            os.path.join(build_dir, "CPackConfig.cmake"),
+            "-B",
+            output_dir,
+            "-D",
+            "CPACK_COMPONENTS_ALL=" + ";".join(components),
+            "-D",
+            "CPACK_PACKAGE_FILE_NAME=" + file_name,
+        ]
+        print(cmd)
+        subprocess.check_call(cmd, stderr=subprocess.STDOUT)
+
+    if os_platform == "Windows":
+        run_cpack("ZIP", ["Runtime", "Development"], base_name)
+        # The PDBs are several times the size of the libraries they describe,
+        # so they ship as their own download rather than inside the archive
+        # everybody has to fetch.
+        run_cpack("ZIP", ["DebugSymbols"], base_name + "-pdb")
+        assert_archive_has_pdbs(os.path.join(output_dir, base_name + "-pdb.zip"))
+    elif os_platform == "OSX":
+        run_cpack("TGZ", ["Runtime", "Development"], base_name)
+    else:
+        # CPACK_DEBIAN_FILE_NAME is DEB-DEFAULT, so the two components become
+        # libslideio<major>.<minor>_<version>_<arch>.deb and
+        # libslideio-dev_<version>_<arch>.deb; the name passed here is ignored.
+        run_cpack("DEB", ["Runtime", "Development"], base_name)
+
+    drop_cpack_staging(output_dir)
+
+    print("-------- packages written to", output_dir, "--------")
+    for entry in sorted(os.listdir(output_dir)):
+        full = os.path.join(output_dir, entry)
+        if os.path.isfile(full):
+            print(f"  {entry}  ({os.path.getsize(full)} bytes)")
+
+
 if __name__ == "__main__":
     action_help = """Type of action:
         conan:      run conan to prepare cmake files for 3rd party packages
         configure:  run cmake to configure the build
         build:      build the software
-        install:    install the software"""
+        install:    install the software
+        package:    build the binary distribution packages for this platform"""
     config_help = "Software configuration to be configured and build. Select from release, debug or all."
     parser = argparse.ArgumentParser(
         formatter_class=RawTextHelpFormatter,
@@ -332,6 +465,8 @@ if __name__ == "__main__":
             "build-only",
             "install",
             "install-only",
+            "package",
+            "package-only",
             "clean",
         ],
         default="configure",
@@ -407,11 +542,17 @@ if __name__ == "__main__":
     if args.action in ["clean"]:
         clean_prev_build(slideio_directory, build_directory)
     else:
-        if args.action in ["conan", "configure", "build", "install"]:
+        if args.action in ["conan", "configure", "build", "install", "package"]:
             configure_conan(slideio_directory, configuration)
-        if args.action in ["configure", "configure-only", "build", "install"]:
+        if args.action in [
+            "configure",
+            "configure-only",
+            "build",
+            "install",
+            "package",
+        ]:
             configure_slideio(configuration)
-        if args.action in ["build", "build-only", "install"]:
+        if args.action in ["build", "build-only", "install", "package"]:
             build_slideio(configuration)
         if args.action in ["install", "install-only"]:
             prefix = {
@@ -419,3 +560,5 @@ if __name__ == "__main__":
                 "debug": os.path.join(install_directory, "debug"),
             }
             install_slideio(configuration, prefix)
+        if args.action in ["package", "package-only"]:
+            package_slideio(configuration, os.path.join(build_directory, "packages"))

@@ -8,10 +8,15 @@
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/imagetools/libtiff.hpp"
 #include "slideio/core/tools/cvtools.hpp"
+#include "slideio/core/exceptions.hpp"
 
 
 using namespace slideio;
 using namespace tinyxml2;
+
+// SCNTileUserData -- what Tiler's methods receive as userData for one call to
+// readResampledLevelBlockChannelsEx -- is declared in scnscene.hpp, not file-local here, so a
+// white-box test driving getTileCount/getTileRect/readTile directly can build one too.
 
 SCNScene::SCNScene(const std::string& filePath, int sceneIndex, const std::string& driverId, const tinyxml2::XMLElement* xmlImage):
     m_filePath(filePath),
@@ -22,8 +27,11 @@ SCNScene::SCNScene(const std::string& filePath, int sceneIndex, const std::strin
     m_interleavedChannels(false),
     m_numChannels(1),
     m_numZSlices(1),
-    m_planeCount(1), 
-	m_sceneIndex(sceneIndex)
+    m_planeCount(1),
+	m_sceneIndex(sceneIndex),
+    m_contextPool([filePath = m_filePath]() {
+        return std::make_unique<SCNReadContext>(filePath);
+    })
 {
 	m_metadataFormat = MetadataFormat::XML;
     init(xmlImage);
@@ -84,9 +92,9 @@ void SCNScene::readResampledLevelBlockChannelsEx(int level, const cv::Rect& leve
 		throw std::runtime_error("SCNImageDriver: Time frames are not supported");
 	}
     validateLevel(level);
-    auto hFile = getFileHandle();
-    if (hFile == nullptr)
-        throw std::runtime_error("SCNImageDriver: Invalid file handle by raster reading operation");
+    // One borrow for the whole call -- getTileCount, getTileRect and readTile below read the
+    // handle out of this same context, never acquiring one of their own.
+    auto borrow = acquireContext();
 
     auto channelIndices(channelIndicesIn);
     if (channelIndices.empty()) {
@@ -95,18 +103,19 @@ void SCNScene::readResampledLevelBlockChannelsEx(int level, const cv::Rect& leve
         }
     }
 
-    SCNTilingInfo info;
+    SCNTileUserData userData;
+    userData.context = &borrow.as<SCNReadContext>();
     for (auto channelIndex : channelIndices) {
         const auto& directories = getChannelDirectories(channelIndex, zSliceIndex);
         // Each channel keeps its own directory list. They are parallel in every file seen so
         // far, so the level index addresses all of them; a channel whose list is shorter
         // resolves to nullptr, which the composer treats as a channel this level does not
         // carry -- the same outcome the zoom search gives for such a channel.
-        info.channel2ifd[channelIndex] =
+        userData.info.channel2ifd[channelIndex] =
             (level < (int)directories.size()) ? &directories[level] : nullptr;
     }
 
-    TileComposer::composeRect(this, channelIndices, levelRect, blockSize, output, (void*)&info);
+    TileComposer::composeRect(this, channelIndices, levelRect, blockSize, output, (void*)&userData);
 }
 
 std::string SCNScene::getChannelName(int channel) const
@@ -209,7 +218,7 @@ void SCNScene::defineChannelDataType()
     }
 }
 
-void SCNScene::setupChannels(const XMLElement* xmlImage)
+void SCNScene::setupChannels(const XMLElement* xmlImage, libtiff::TIFF* hFile)
 {
     const XMLElement* xmlPixels = xmlImage->FirstChildElement("pixels");
     int maxChannelIndex = -1;
@@ -232,7 +241,7 @@ void SCNScene::setupChannels(const XMLElement* xmlImage)
         int channel = dim.c < 0 ? 0 : dim.c;
         int zIndex = dim.z < 0 ? 0 : dim.z;
         TiffDirectory channelDir;
-        TiffTools::scanTiffDir(m_tiff.getHandle(), dim.ifd, 0, channelDir);
+        TiffTools::scanTiffDir(hFile, dim.ifd, 0, channelDir);
         m_channelDirectories[m_planeCount*zIndex + channel].push_back(channelDir);
     }
 
@@ -253,11 +262,11 @@ void SCNScene::setupChannels(const XMLElement* xmlImage)
 
 void SCNScene::init(const XMLElement* xmlImage)
 {
-    m_tiff.reset(TiffTools::openTiffFile(m_filePath.c_str()));
-    if (!m_tiff.isValid())
-    {
-        throw std::runtime_error(std::string("SCNImageDriver: Cannot open file:") + m_filePath);
-    }
+    // init() runs single-threaded during construction, so a local borrow -- not a member
+    // handle -- is enough to scan the channel directories below. Reads after construction go
+    // through acquireContext()/m_contextPool, never through a handle kept on the scene.
+    auto borrow = m_contextPool.acquire();
+    libtiff::TIFF* hFile = borrow.as<SCNReadContext>().keeper.getHandle();
 
     const char* name = xmlImage->Attribute("name");
     m_name = name ? name : "unknown";
@@ -268,13 +277,17 @@ void SCNScene::init(const XMLElement* xmlImage)
     m_rawMetadata = imageDoc.str();
 
     parseGeometry(xmlImage);
-    setupChannels(xmlImage);
+    setupChannels(xmlImage, hFile);
     parseChannelNames(xmlImage);
     parseMagnification(xmlImage);
     parseChannelNames(xmlImage);
     defineChannelDataType();
     const auto& directories = getChannelDirectories(0,0);
     if (!directories.empty()) {
+        // This scene's own directory is channel 0, z-slice 0, level 0 -- the base
+        // full-resolution directory that everything else here (compression,
+        // resolution) is already read from.
+        m_colorProfile = ColorProfile(directories[0].iccProfile);
         const int numLevels = static_cast<int>(directories.size());
         const int width0 = directories[0].width;
         m_levels.resize(directories.size());
@@ -308,7 +321,7 @@ const TiffDirectory* SCNScene::findZoomDirectory(int channelIndex, int zIndex, d
 int SCNScene::getTileCount(void* userData)
 {
 	int tileCount = 0;
-    const SCNTilingInfo* info = (const SCNTilingInfo*)userData;
+    const SCNTilingInfo* info = &static_cast<const SCNTileUserData*>(userData)->info;
     const TiffDirectory* dir = info->getValidDir();
     if (dir != nullptr) {
         int tilesX = (dir->width - 1) / dir->tileWidth + 1;
@@ -320,7 +333,7 @@ int SCNScene::getTileCount(void* userData)
 
 bool SCNScene::getTileRect(int tileIndex, cv::Rect& tileRect, void* userData)
 {
-    const SCNTilingInfo* info = (const SCNTilingInfo*)userData;
+    const SCNTilingInfo* info = &static_cast<const SCNTileUserData*>(userData)->info;
     const TiffDirectory* dir = info->getValidDir();
 	if (dir == nullptr) {
 		return false;
@@ -339,14 +352,16 @@ bool SCNScene::getTileRect(int tileIndex, cv::Rect& tileRect, void* userData)
 bool SCNScene::readTile(int tileIndex, const std::vector<int>& channelIndices, cv::OutputArray tileRaster,
     void* userData)
 {
-    const SCNTilingInfo* info = (const SCNTilingInfo*)userData;
+    const SCNTileUserData* data = static_cast<const SCNTileUserData*>(userData);
+    const SCNTilingInfo* info = &data->info;
+    libtiff::TIFF* hFile = data->context->keeper.getHandle();
     if(m_interleavedChannels)
     {
         const TiffDirectory* dir = info->getValidDir();
         if(dir) {
-            TiffTools::readTile(getFileHandle(), *dir, tileIndex, channelIndices, tileRaster);
+            TiffTools::readTile(hFile, *dir, tileIndex, channelIndices, tileRaster);
         } else {
-            RAISE_RUNTIME_ERROR << "SCNImageDriver: missing channel for interleaved scene " 
+            RAISE_RUNTIME_ERROR << "SCNImageDriver: missing channel for interleaved scene "
                 << channelIndices[0] << " received during tile reading. File " << m_filePath;
         }
     }
@@ -355,7 +370,7 @@ bool SCNScene::readTile(int tileIndex, const std::vector<int>& channelIndices, c
         const std::vector<int> localChannelIndices = { 0 };
         const TiffDirectory* dir = info->getChannelDir(*channelIndices.begin());
         if(dir){
-            TiffTools::readTile(getFileHandle(), *dir, tileIndex, localChannelIndices, tileRaster);
+            TiffTools::readTile(hFile, *dir, tileIndex, localChannelIndices, tileRaster);
         } else {
             createEmptyChannelTile(tileIndex, channelIndices[0], tileRaster, userData);
         }
@@ -370,12 +385,12 @@ bool SCNScene::readTile(int tileIndex, const std::vector<int>& channelIndices, c
         {
             auto it = info->channel2ifd.find(channelIndex);
             if (it == info->channel2ifd.end()) {
-                RAISE_RUNTIME_ERROR << "SCNImageDriver: invalid channel index " 
+                RAISE_RUNTIME_ERROR << "SCNImageDriver: invalid channel index "
                     << channelIndex << " received during tile reading. File " << m_filePath;
             }
             const TiffDirectory* dir = it->second;
             if(dir) {
-                TiffTools::readTile(getFileHandle(), *dir, tileIndex, localChannelIndices, channelRasters[channel]);
+                TiffTools::readTile(hFile, *dir, tileIndex, localChannelIndices, channelRasters[channel]);
             } else {
                 createEmptyChannelTile(tileIndex, channel, channelRasters[channel], userData);
             }

@@ -3,7 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/drivers/ome-tiff/otimagedriver.hpp"
 #include "slideio/drivers/ome-tiff/otslide.hpp"
-#include "slideio/base/log.hpp"
+#include "slideio/core/log.hpp"
 
 using namespace slideio;
 using namespace slideio::ometiff;
@@ -28,6 +28,6 @@ std::shared_ptr<slideio::CVSlide> OTImageDriver::openFile(const std::string& fil
 
 std::string OTImageDriver::getFileSpecs() const
 {
-	static std::string pattern("*.ome.tif;*ome.tiff;*.ome.tf2;*.ome.tf8;*.ome.btf");
+	static std::string pattern("*.ome.tif;*.ome.tiff;*.ome.tf2;*.ome.tf8;*.ome.btf");
 	return pattern;
 }

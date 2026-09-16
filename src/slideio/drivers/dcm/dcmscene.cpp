@@ -5,9 +5,10 @@
 #include <opencv2/imgproc.hpp>
 
 #include "slideio/drivers/dcm/dcmscene.hpp"
-#include "slideio/base/base.hpp"
+#include "slideio/core/exceptions.hpp"
+#include "slideio/core/slideio_enums.hpp"
 #include "slideio/core/tools/tools.hpp"
-#include "slideio/base/log.hpp"
+#include "slideio/core/log.hpp"
 
 
 using namespace slideio;
@@ -184,6 +185,12 @@ void DCMScene::init(const std::string& slideFilePath, int sceneIndex, const std:
 
     m_rawMetadata = file->getMetadata();
     m_metadataFormat = MetadataFormat::JSON;
+
+    // `file` is this scene's own first-added file, not a fixed one -- this reads
+    // its ICC profile whether the scene is a plain multi-slice series (dcmslide.cpp)
+    // or a WSI aux image (label/macro/localizer), which WSIScene::addFile constructs
+    // as its own DCMScene and initializes through this same path.
+    m_colorProfile = file->readColorProfile();
 
     prepareSliceIndices();
 

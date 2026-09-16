@@ -3,7 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 #pragma once
 #include "slideio/transformer/transformationex.hpp"
-#include "slideio/base/slideio_enums.hpp"
+#include "slideio/core/slideio_enums.hpp"
 #include "slideio/transformer/transformationtype.hpp"
 
 namespace slideio

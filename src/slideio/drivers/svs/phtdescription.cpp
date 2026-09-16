@@ -9,8 +9,8 @@
 #include <locale>
 #include <sstream>
 
-#include "slideio/base/exceptions.hpp"
-#include "slideio/base/log.hpp"
+#include "slideio/core/exceptions.hpp"
+#include "slideio/core/log.hpp"
 
 using namespace slideio;
 using namespace slideio::phtiff;

@@ -8,6 +8,8 @@
 #include "slideio/drivers/zvi/zviimageitem.hpp"
 #include "slideio/imagetools/imagetools.hpp"
 #include "slideio/core/tools/endian.hpp"
+#include "slideio/core/exceptions.hpp"
+#include "slideio/core/log.hpp"
 
 using namespace slideio;
 
@@ -21,20 +23,38 @@ void ZVIImageItem::readItemInfo(ole::compound_document& doc)
 void ZVIImageItem::readContents(ole::compound_document& doc)
 {
     const std::string streamPath = std::string("/Image/Item(") + std::to_string(getItemIndex()) + ")/Contents";
-    ZVIUtils::StreamKeeper stream(doc, streamPath);
+    // Bounded read-ahead, not the whole stream: everything after the header this
+    // function parses is the pixel payload, which the raster path reads later
+    // and positionally. Buffering it all here made opening a slide read every
+    // image in the file and throw it away -- init I/O proportional to the whole
+    // dataset, and a peak allocation the size of the largest item, for a caller
+    // that may only want the dimensions. 64 KiB covers this header many times
+    // over, and a field larger than the window still reads in one go.
+    constexpr std::streamoff headerReadAhead = 64 * 1024;
+    ZVIUtils::StreamKeeper stream(doc, streamPath, headerReadAhead);
 
     ZVIUtils::skipItems(stream, 11);
-    uint16_t type;
-    stream->read(reinterpret_cast<char*>(&type), sizeof(type));
+    // {PositionInformation}: a length prefixed blob of at least seven 32-bit
+    // fields. Indexing it without checking the length read a blob shorter than
+    // that out of bounds -- and wrote the byte swapped values back.
+    const int positionFields = 7;
+    uint16_t type = 0;
+    ZVIUtils::readExactly(stream, &type, sizeof(type));
 	type=Endian::fromLittleEndianToNative(type);
 
-    uint32_t sz;
-    stream->read(reinterpret_cast<char*>(&sz), sizeof(sz));
+    uint32_t sz = 0;
+    ZVIUtils::readExactly(stream, &sz, sizeof(sz));
 	sz = Endian::fromLittleEndianToNative(sz);
+    if (sz < positionFields * sizeof(uint32_t))
+    {
+        RAISE_RUNTIME_ERROR << "ZVIImageDriver: " << streamPath
+            << ": position information is " << sz << " bytes, expected at least "
+            << positionFields * sizeof(uint32_t);
+    }
     std::vector<char> posBuffer(sz);
-    stream->read(posBuffer.data(), posBuffer.size());
+    ZVIUtils::readExactly(stream, posBuffer.data(), posBuffer.size());
     uint32_t* position = reinterpret_cast<uint32_t*>(posBuffer.data());
-	for(int index=0; index<7; ++index)
+	for(int index=0; index<positionFields; ++index)
 		position[index] = Endian::fromLittleEndianToNative(position[index]);
 
     setZIndex(position[2]);
@@ -45,7 +65,7 @@ void ZVIImageItem::readContents(ole::compound_document& doc)
 
     ZVIUtils::skipItems(stream, 5);
     std::vector<int32_t> header(7);
-    stream->read(reinterpret_cast<char*>(header.data()), sizeof(int32_t) * header.size());
+    ZVIUtils::readExactly(stream, header.data(), sizeof(int32_t) * header.size());
 	for(int index=0; index<header.size(); ++index)
 		header[index] = Endian::fromLittleEndianToNative(header[index]);
     const int32_t version = header[0];
@@ -86,10 +106,32 @@ void ZVIImageItem::readTags(ole::compound_document& doc)
     std::string channelName;
     for (int tagIndex = 0; tagIndex < numTags; ++tagIndex)
     {
-        ZVIUtils::Variant tag = ZVIUtils::readItem(stream);
-        ZVITAG id = static_cast<ZVITAG>(ZVIUtils::readIntItem(stream));
-        ZVIUtils::skipItem(stream);
+        // {NumberOfTags} is not always the number of tags the stream holds, and
+        // a tag the reader cannot decode must not cost the item the tags before
+        // it: without its tags the item has no tile index and the file will not
+        // open at all.
+        if (ZVIUtils::bytesLeft(stream) < 2) {
+            SLIDEIO_LOG(WARNING) << "ZVIImageDriver: " << streamPath << " ends after "
+                << tagIndex << " of " << numTags << " declared tags";
+            break;
+        }
+        ZVIUtils::Variant tag;
+        ZVITAG id = static_cast<ZVITAG>(0); // no tag has id 0
+        try {
+            tag = ZVIUtils::readItem(stream);
+            id = static_cast<ZVITAG>(ZVIUtils::readIntItem(stream));
+            ZVIUtils::skipItem(stream);
+        }
+        catch (const std::exception& e) {
+            SLIDEIO_LOG(WARNING) << "ZVIImageDriver: stopped reading " << streamPath
+                << " after " << tagIndex << " of " << numTags << " tags: " << e.what();
+            break;
+        }
+        if (tag.index() == 0) {
+            continue; // std::monostate: nothing the cases below can read.
+        }
 
+        try {
         switch (id)
         {
         case ZVITAG::ZVITAG_IMAGE_TILE_INDEX:
@@ -149,6 +191,13 @@ void ZVIImageItem::readTags(ole::compound_document& doc)
             }
             break;
         }
+        }
+        catch (const std::bad_variant_access&) {
+            // The tag carries a type this case does not expect. The stream is
+            // still in sync, so only this one tag is lost.
+            SLIDEIO_LOG(WARNING) << "ZVIImageDriver: " << streamPath << ": tag "
+                << static_cast<int>(id) << " has an unexpected value type";
+        }
     }
 
     setChannelName(channelName);
@@ -172,18 +221,19 @@ void ZVIImageItem::readRaster(ole::compound_document& doc, cv::OutputArray raste
 
 
     const std::string streamPath = std::string("/Image/Item(") + std::to_string(getItemIndex()) + ")/Contents";
-    ZVIUtils::StreamKeeper stream(doc, streamPath);
-
-    stream->seek(getDataOffset(), std::ios::beg);
+    ZVIUtils::ConstStreamKeeper stream(doc, streamPath);
 
     if (validBites==0 || validBites==1)
     {
-        stream->seek(0, std::ios::end);
-        std::streampos endPos = stream->pos();
-        std::streamsize bytesToRead = endPos - getDataOffset();
-        stream->seek(getDataOffset(), std::ios::beg);
+        const std::streamoff bytesToRead = stream->size() - getDataOffset();
         std::vector<uint8_t> buff(bytesToRead);
-        stream->read(reinterpret_cast<char*>(buff.data()), bytesToRead);
+        const std::streamsize readBytes =
+            stream->read_at(getDataOffset(), reinterpret_cast<char*>(buff.data()), bytesToRead);
+        if (readBytes != bytesToRead) {
+            RAISE_RUNTIME_ERROR << "ZVIImageDriver: unexpected end of stream reading item "
+                << getItemIndex() << ": " << static_cast<long long>(bytesToRead)
+                << " bytes requested, " << static_cast<long long>(readBytes) << " available";
+        }
         ImageTools::decodeJpegStream(buff.data(), buff.size(), raster);
     }
     else
@@ -191,10 +241,12 @@ void ZVIImageItem::readRaster(ole::compound_document& doc, cv::OutputArray raste
         raster.create(getHeight(), getWidth(), CV_MAKETYPE(CVTools::toOpencvType(dt), channels));
         cv::Mat& mat = raster.getMatRef();
 
-        stream->seek(getDataOffset(), std::ios::beg);
-        const auto readBytes = stream->read(reinterpret_cast<char*>(mat.data), rasterSize);
+        const auto readBytes =
+            stream->read_at(getDataOffset(), reinterpret_cast<char*>(mat.data), rasterSize);
         if (readBytes != rasterSize) {
-            throw std::runtime_error("ZVIImageDriver: Unexpected end of stream");
+            RAISE_RUNTIME_ERROR << "ZVIImageDriver: unexpected end of stream reading item "
+                << getItemIndex() << ": " << static_cast<long long>(rasterSize)
+                << " bytes requested, " << static_cast<long long>(readBytes) << " available";
         }
         Endian::fromLittleEndianToNative(dt, mat.data, readBytes);
     }

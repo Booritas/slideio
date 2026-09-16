@@ -16,36 +16,49 @@
 #include "slideio/core/tools/cvtools.hpp"
 #include "slideio/drivers/dcm/dcmimagedriver.hpp"
 #include "slideio/imagetools/imagetools.hpp"
+#include "slideio/imagetools/icctransform.hpp"
+#include "slideio/core/tools/tempfile.hpp"
 #include "slideio/slideio/slideio.hpp"
+#include <dcmtk/dcmdata/dctk.h>
 
 using namespace slideio;
 
-TEST(DCMImageDriver, DriverManager_getDriverIDs)
+class DCMImageDriverTests : public ::testing::Test {
+protected:
+    static void SetUpTestSuite() {
+        ImageDriverManager::setLogLevel("ERROR");
+    }
+    static void TearDownTestSuite() {
+    }
+};
+
+TEST_F(DCMImageDriverTests, DriverManager_getDriverIDs)
 {
     std::vector<std::string> driverIds = ImageDriverManager::getDriverIDs();
     auto it = std::find(driverIds.begin(), driverIds.end(), "DCM");
     EXPECT_FALSE(it == driverIds.end());
 }
 
-TEST(DCMImageDriver, getID)
+TEST_F(DCMImageDriverTests, getID)
 {
     DCMImageDriver driver;
     std::string id = driver.getID();
     EXPECT_EQ(id, "DCM");
 }
 
-TEST(DCMImageDriver, canOpenFile)
+TEST_F(DCMImageDriverTests, canOpenFile)
 {
     DCMImageDriver driver;
     EXPECT_TRUE(driver.canOpenFile("c:\\abbb\\a.dcm"));
     EXPECT_FALSE(driver.canOpenFile("c:\\abbb\\a.scn.tmp"));
 }
 
-TEST(DCMImageDriver, openFile)
+TEST_F(DCMImageDriverTests, openFile)
 {
     DCMImageDriver driver;
     std::string slidePath = TestTools::getTestImagePath(
         "dcm", "benigns_01/patient0186/0186.LEFT_CC.dcm");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
     auto slide = driver.openFile(slidePath);
     const int numScenes = slide->getNumScenes();
     ASSERT_EQ(numScenes, 1);
@@ -66,16 +79,12 @@ TEST(DCMImageDriver, openFile)
 }
 
 
-TEST(DCMImageDriver, openDirectory)
+TEST_F(DCMImageDriverTests, openDirectory)
 {
-    if (!TestTools::isPrivateTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip private test because private dataset is not enabled";
-    }
     DCMImageDriver driver;
     std::string slidePath = TestTools::getTestImagePath(
-        "dcm", "series/series_1", true);
+        "dcm", "series/series_1");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
     auto slide = driver.openFile(slidePath);
     const int numScenes = slide->getNumScenes();
     ASSERT_EQ(numScenes, 1);
@@ -93,14 +102,11 @@ TEST(DCMImageDriver, openDirectory)
     EXPECT_EQ(scene->getName(), "COU IV");
 }
 
-TEST(DCMImageDriver, getSceneIndex)
+TEST_F(DCMImageDriverTests, getSceneIndex)
 {
-    if (!TestTools::isPrivateTestEnabled()) {
-        GTEST_SKIP() <<
-            "Skip private test because private dataset is not enabled";
-    }
     DCMImageDriver driver;
-    std::string filePath = TestTools::getTestImagePath("dcm", "series", true);
+    std::string filePath = TestTools::getTestImagePath("dcm", "series");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     auto slide = slideio::openSlide(filePath, "AUTO");
     ASSERT_TRUE(slide);
     EXPECT_EQ("DCM", slide->getDriverId());
@@ -116,15 +122,11 @@ TEST(DCMImageDriver, getSceneIndex)
 }
 
 
-TEST(DCMImageDriver, openDirectoryRecursively)
+TEST_F(DCMImageDriverTests, openDirectoryRecursively)
 {
-    if (!TestTools::isPrivateTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip private test because private dataset is not enabled";
-    }
     DCMImageDriver driver;
-    std::string slidePath = TestTools::getTestImagePath("dcm", "series", true);
+    std::string slidePath = TestTools::getTestImagePath("dcm", "series");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
     auto slide = driver.openFile(slidePath);
     const int numScenes = slide->getNumScenes();
     ASSERT_EQ(numScenes, 2);
@@ -147,12 +149,14 @@ TEST(DCMImageDriver, openDirectoryRecursively)
     EXPECT_EQ(scene->getName(), "1.2.276.0.7230010.3.100.1.1");
 }
 
-TEST(DCMImageDriver, readSimpleFileWholeBlock)
+TEST_F(DCMImageDriverTests, readSimpleFileWholeBlock)
 {
     std::string slidePath = TestTools::getTestImagePath(
         "dcm", "barre.dev/OT-MONO2-8-hip.dcm");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
     std::string testPath = TestTools::getTestImagePath(
         "dcm", "barre.dev/OT-MONO2-8-hip.frames/frame0.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testPath);
 
     DCMImageDriver driver;
     auto slide = driver.openFile(slidePath);
@@ -171,10 +175,11 @@ TEST(DCMImageDriver, readSimpleFileWholeBlock)
     EXPECT_LT(0.99, similarity);
 }
 
-TEST(DCMImageDriver, getRawMetadata)
+TEST_F(DCMImageDriverTests, getRawMetadata)
 {
     std::string slidePath = TestTools::getTestImagePath(
         "dcm", "barre.dev/OT-MONO2-8-hip.dcm");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
 
     DCMImageDriver driver;
     auto slide = driver.openFile(slidePath);
@@ -190,12 +195,14 @@ TEST(DCMImageDriver, getRawMetadata)
 }
 
 
-TEST(DCMImageDriver, readSimpleFileResampled)
+TEST_F(DCMImageDriverTests, readSimpleFileResampled)
 {
     std::string slidePath = TestTools::getTestImagePath(
         "dcm", "barre.dev/OT-MONO2-8-hip.dcm");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
     std::string testPath = TestTools::getTestImagePath(
         "dcm", "barre.dev/OT-MONO2-8-hip.frames/frame0.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testPath);
 
     DCMImageDriver driver;
     auto slide = driver.openFile(slidePath);
@@ -217,10 +224,12 @@ TEST(DCMImageDriver, readSimpleFileResampled)
     EXPECT_LT(0.99, similarity);
 }
 
-TEST(DCMImageDriver, readSingleFrame)
+TEST_F(DCMImageDriverTests, readSingleFrame)
 {
     std::string slidePath = TestTools::getTestImagePath("dcm", "benigns_01/patient0186/0186.LEFT_MLO.dcm");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
     std::string testPath = TestTools::getTestImagePath("dcm", "benigns_01/patient0186/0186.LEFT_MLO.frames/frame0.tif");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testPath);
 
     DCMImageDriver driver;
     auto slide = driver.openFile(slidePath);
@@ -241,10 +250,12 @@ TEST(DCMImageDriver, readSingleFrame)
     EXPECT_LT(0.99, similarity);
 }
 
-TEST(DCMImageDriver, readSingleFrameROIRescale)
+TEST_F(DCMImageDriverTests, readSingleFrameROIRescale)
 {
     std::string slidePath = TestTools::getTestImagePath("dcm", "benigns_01/patient0186/0186.LEFT_MLO.dcm");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
     std::string testPath = TestTools::getTestImagePath("dcm", "benigns_01/patient0186/0186.LEFT_MLO.frames/frame0.tif");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testPath);
 
     DCMImageDriver driver;
     auto slide = driver.openFile(slidePath);
@@ -269,11 +280,14 @@ TEST(DCMImageDriver, readSingleFrameROIRescale)
     EXPECT_LT(0.99, similarity);
 }
 
-TEST(DCMImageDriver, readMultiFrameROIRescale)
+TEST_F(DCMImageDriverTests, readMultiFrameROIRescale)
 {
     std::string slidePath = TestTools::getTestImagePath("dcm", "barre.dev/XA-MONO2-8-12x-catheter");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
     std::string testPath1 = TestTools::getTestImagePath("dcm", "barre.dev/XA-MONO2-8-12x-catheter.frames/frame5.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testPath1);
     std::string testPath2 = TestTools::getTestImagePath("dcm", "barre.dev/XA-MONO2-8-12x-catheter.frames/frame6.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testPath2);
 
     DCMImageDriver driver;
     auto slide = driver.openFile(slidePath);
@@ -308,16 +322,13 @@ TEST(DCMImageDriver, readMultiFrameROIRescale)
     EXPECT_LT(0.999, similarity);
 }
 
-TEST(DCMImageDriver, readDirectory3D)
+TEST_F(DCMImageDriverTests, readDirectory3D)
 {
-    if (!TestTools::isPrivateTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip private test because private dataset is not enabled";
-    }
     DCMImageDriver driver;
-    std::string slidePath = TestTools::getTestImagePath("dcm", "series/series_1", true);
-    std::string testImagePath = TestTools::getTestImagePath("dcm", "series/series_1/tests/IMG-0001-00005.tiff", true);
+    std::string slidePath = TestTools::getTestImagePath("dcm", "series/series_1");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
+    std::string testImagePath = TestTools::getTestImagePath("dcm", "series/series_1/tests/IMG-0001-00005.tiff");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testImagePath);
     auto slide = driver.openFile(slidePath);
     const int numScenes = slide->getNumScenes();
     ASSERT_EQ(numScenes, 1);
@@ -343,14 +354,11 @@ TEST(DCMImageDriver, readDirectory3D)
     EXPECT_EQ(1, similarity);
 }
 
-TEST(DCMImageDriver, DICOMDirgetSceneIndex)
+TEST_F(DCMImageDriverTests, DICOMDirgetSceneIndex)
 {
-    if (!TestTools::isPrivateTestEnabled()) {
-        GTEST_SKIP() <<
-            "Skip private test because private dataset is not enabled";
-    }
     DCMImageDriver driver;
-    std::string filePath = TestTools::getFullTestImagePath("dcm", "spine_mr/DICOMDIR");
+    std::string filePath = TestTools::getTestImagePath("dcm", "spine_mr/DICOMDIR");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide);
     const int numScenes = slide->getNumScenes();
@@ -364,15 +372,11 @@ TEST(DCMImageDriver, DICOMDirgetSceneIndex)
 }
 
 
-TEST(DCMImageDriver, openDicomDirFile)
+TEST_F(DCMImageDriverTests, openDicomDirFile)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip the test because full dataset is not enabled";
-    }
     DCMImageDriver driver;
-    std::string slidePath = TestTools::getFullTestImagePath("dcm", "spine_mr/DICOMDIR");
+    std::string slidePath = TestTools::getTestImagePath("dcm", "spine_mr/DICOMDIR");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
     auto slide = driver.openFile(slidePath);
     const int numScenes = slide->getNumScenes();
     EXPECT_EQ(16, numScenes);
@@ -422,9 +426,10 @@ TEST(DCMImageDriver, openDicomDirFile)
 
 }
 
-TEST(DCMImageDriver, readBlockChangingBits)
+TEST_F(DCMImageDriverTests, readBlockChangingBits)
 {
     std::string slidePath = TestTools::getTestImagePath("dcm", "barre.dev/US-PAL-8-10x-echo");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
     DCMImageDriver driver;
     auto slide = driver.openFile(slidePath);
     const int numScenes = slide->getNumScenes();
@@ -437,16 +442,12 @@ TEST(DCMImageDriver, readBlockChangingBits)
     scene->read4DBlock(rect, cv::Range(0, slices), cv::Range(0, 1), image);
 }
 
-TEST(DCMImageDriver, openFileUtf8Path)
+TEST_F(DCMImageDriverTests, openFileUtf8Path)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() <<
-                     "Skip private test because private dataset is not enabled";
-    }
     DCMImageDriver driver;
-    std::string slidePath = TestTools::getFullTestImagePath(
+    std::string slidePath = TestTools::getTestImagePath(
         "unicode", u8"тест/CT-MONO2-12-lomb-an2");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
     auto slide = driver.openFile(slidePath);
     const int numScenes = slide->getNumScenes();
     ASSERT_EQ(numScenes, 1);
@@ -461,18 +462,13 @@ TEST(DCMImageDriver, openFileUtf8Path)
     EXPECT_EQ(raster.rows, rect.height);
 }
 
-TEST(DCMImageDriver, openWSIDirectory)
+TEST_F(DCMImageDriverTests, openWSIDirectory)
 {
     std::list<std::string> auxNames = { "LOCALIZER", "LABEL", "OVERVIEW" };
-
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() <<
-        "Skip private test because private dataset is not enabled";
-    }
     DCMImageDriver driver;
-    std::string slidePath = TestTools::getFullTestImagePath(
+    std::string slidePath = TestTools::getTestImagePath(
             "dcm", "private/H01EBB50P-24777");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
     auto slide = driver.openFile(slidePath);
     const int numScenes = slide->getNumScenes();
     ASSERT_EQ(numScenes, 1);
@@ -485,16 +481,12 @@ TEST(DCMImageDriver, openWSIDirectory)
     }
 }
 
-TEST(DCMImageDriver, openSingleFileWSI)
+TEST_F(DCMImageDriverTests, openSingleFileWSI)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip private test because private dataset is not enabled";
-    }
     DCMImageDriver driver;
-    std::string slidePath = TestTools::getFullTestImagePath(
+    std::string slidePath = TestTools::getTestImagePath(
         "dcm", "private/wsi/M01FBC14P-589_level-0.dcm");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
     auto slide = driver.openFile(slidePath);
     const int numScenes = slide->getNumScenes();
     ASSERT_EQ(numScenes, 1);
@@ -513,18 +505,15 @@ TEST(DCMImageDriver, openSingleFileWSI)
     EXPECT_EQ(103936, scene->getRect().height);
 }
 
-TEST(DCMImageDriver, readBlockSingleFileWSI)
+TEST_F(DCMImageDriverTests, readBlockSingleFileWSI)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip private test because private dataset is not enabled";
-    }
     DCMImageDriver driver;
-    std::string slidePath = TestTools::getFullTestImagePath(
+    std::string slidePath = TestTools::getTestImagePath(
         "dcm", "private/wsi/M01FBC14P-589_level-0.dcm");
-    std::string testFilePath = TestTools::getFullTestImagePath(
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
+    std::string testFilePath = TestTools::getTestImagePath(
         "dcm", "private/wsi/M01FBC14P-589_level-0.block.dcm");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath);
     auto slide = driver.openFile(slidePath);
     const int numScenes = slide->getNumScenes();
     ASSERT_EQ(numScenes, 1);
@@ -545,15 +534,12 @@ TEST(DCMImageDriver, readBlockSingleFileWSI)
     //TestTools::showRaster(raster);
 }
 
-TEST(DCMImageDriver, WSISingleFileGetSceneIndex)
+TEST_F(DCMImageDriverTests, WSISingleFileGetSceneIndex)
 {
-    if (!TestTools::isPrivateTestEnabled()) {
-        GTEST_SKIP() <<
-            "Skip private test because private dataset is not enabled";
-    }
     DCMImageDriver driver;
-    std::string filePath = TestTools::getFullTestImagePath(
+    std::string filePath = TestTools::getTestImagePath(
         "dcm", "private/wsi/M01FBC14P-589_level-0.dcm");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide);
     const int numScenes = slide->getNumScenes();
@@ -567,18 +553,15 @@ TEST(DCMImageDriver, WSISingleFileGetSceneIndex)
     }
 }
 
-TEST(DCMImageDriver, readBlockResampleSingleFileWSI)
+TEST_F(DCMImageDriverTests, readBlockResampleSingleFileWSI)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip private test because private dataset is not enabled";
-    }
     DCMImageDriver driver;
-    std::string slidePath = TestTools::getFullTestImagePath(
+    std::string slidePath = TestTools::getTestImagePath(
         "dcm", "private/wsi/M01FBC14P-589_level-0.dcm");
-    std::string testFilePath = TestTools::getFullTestImagePath(
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
+    std::string testFilePath = TestTools::getTestImagePath(
         "dcm", "private/wsi/M01FBC14P-589_level-0.block.dcm");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath);
     auto slide = driver.openFile(slidePath);
     const int numScenes = slide->getNumScenes();
     ASSERT_EQ(numScenes, 1);
@@ -602,17 +585,15 @@ TEST(DCMImageDriver, readBlockResampleSingleFileWSI)
     //TestTools::showRasters(testRaster, raster);
 }
 
-TEST(DCMImageDriver, readResampledBlockWSIDirectory)
+TEST_F(DCMImageDriverTests, readResampledBlockWSIDirectory)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip private test because private dataset is not enabled";
-    }
     DCMImageDriver driver;
-    std::string slidePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777");
-    std::string testFilePath1 = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777.block-2.png");
-    std::string testFilePath2 = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777.block-3.png");
+    std::string slidePath = TestTools::getTestImagePath("dcm", "private/H01EBB50P-24777");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
+    std::string testFilePath1 = TestTools::getTestImagePath("dcm", "private/H01EBB50P-24777.block-2.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath1);
+    std::string testFilePath2 = TestTools::getTestImagePath("dcm", "private/H01EBB50P-24777.block-3.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath2);
     auto slide = driver.openFile(slidePath);
     const int numScenes = slide->getNumScenes();
     ASSERT_EQ(numScenes, 1);
@@ -649,14 +630,11 @@ TEST(DCMImageDriver, readResampledBlockWSIDirectory)
     //TestTools::showRasters(testRaster,raster);
 }
 
-TEST(DCMImageDriver, WSIDirGetSceneIndex)
+TEST_F(DCMImageDriverTests, WSIDirGetSceneIndex)
 {
-    if (!TestTools::isPrivateTestEnabled()) {
-        GTEST_SKIP() <<
-            "Skip private test because private dataset is not enabled";
-    }
     DCMImageDriver driver;
-    std::string filePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777");
+    std::string filePath = TestTools::getTestImagePath("dcm", "private/H01EBB50P-24777");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide);
     const int numScenes = slide->getNumScenes();
@@ -670,16 +648,13 @@ TEST(DCMImageDriver, WSIDirGetSceneIndex)
     }
 }
 
-TEST(DCMImageDriver, readBlockWSIDirectory)
+TEST_F(DCMImageDriverTests, readBlockWSIDirectory)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip private test because private dataset is not enabled";
-    }
     DCMImageDriver driver;
-    std::string slidePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777");
-    std::string testFilePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777.block.png");
+    std::string slidePath = TestTools::getTestImagePath("dcm", "private/H01EBB50P-24777");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
+    std::string testFilePath = TestTools::getTestImagePath("dcm", "private/H01EBB50P-24777.block.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath);
     auto slide = driver.openFile(slidePath);
     const int numScenes = slide->getNumScenes();
     ASSERT_EQ(numScenes, 1);
@@ -699,18 +674,14 @@ TEST(DCMImageDriver, readBlockWSIDirectory)
     //TestTools::showRasters(testRaster, raster);
 }
 
-TEST(DCMImageDriver, readAuxImagesWSIDirectory)
+TEST_F(DCMImageDriverTests, readAuxImagesWSIDirectory)
 {
     std::list<std::string> auxNames = { "LOCALIZER", "LABEL", "OVERVIEW" };
-
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip private test because private dataset is not enabled";
-    }
     DCMImageDriver driver;
-    std::string slidePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777");
-    std::string testFilePathBase = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777");
+    std::string slidePath = TestTools::getTestImagePath("dcm", "private/H01EBB50P-24777");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
+    std::string testFilePathBase = TestTools::getTestImagePath("dcm", "private/H01EBB50P-24777");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePathBase);
     auto slide = driver.openFile(slidePath);
     const int numScenes = slide->getNumScenes();
     ASSERT_EQ(numScenes, 1);
@@ -730,10 +701,12 @@ TEST(DCMImageDriver, readAuxImagesWSIDirectory)
     }
 }
 
-TEST(DCMImageDriver, readJp2K)
+TEST_F(DCMImageDriverTests, readJp2K)
 {
     std::string slidePath = TestTools::getTestImagePath("dcm", "openmicroscopy.org/CT1_J2KI");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
     std::string testPath = TestTools::getTestImagePath("dcm", "openmicroscopy.org/CT1_J2KI.tiff");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testPath);
 
     DCMImageDriver driver;
     auto slide = driver.openFile(slidePath);
@@ -753,7 +726,7 @@ TEST(DCMImageDriver, readJp2K)
     EXPECT_GT(simScore, 0.999);
 }
 
-TEST(DCMImageDriver, zoomLevels)
+TEST_F(DCMImageDriverTests, zoomLevels)
 {
     const slideio::LevelInfo levels[] = {
         slideio::LevelInfo(0, {72192,70400}, 1.0, 0., {256,256}),
@@ -767,7 +740,8 @@ TEST(DCMImageDriver, zoomLevels)
         slideio::LevelInfo(8, {282,275}, 0.00390625, 0, {256,256}),
     };
     slideio::DCMImageDriver driver;
-    const std::string filePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777");
+    const std::string filePath = TestTools::getTestImagePath("dcm", "private/H01EBB50P-24777");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     const std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     const std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
     const int numScenes = slide->getNumScenes();
@@ -787,7 +761,7 @@ TEST(DCMImageDriver, zoomLevels)
     }
 }
 
-TEST(DCMImageDriver, zoomLevelsSingle)
+TEST_F(DCMImageDriverTests, zoomLevelsSingle)
 {
     const slideio::LevelInfo levels[] = {
         slideio::LevelInfo(0, {512,512}, 1.0, 0., {512,512}),
@@ -795,6 +769,7 @@ TEST(DCMImageDriver, zoomLevelsSingle)
     slideio::DCMImageDriver driver;
     std::string filePath = TestTools::getTestImagePath(
         "dcm", "barre.dev/OT-MONO2-8-hip.dcm");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     const std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     const std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
     const int numScenes = slide->getNumScenes();
@@ -816,15 +791,11 @@ TEST(DCMImageDriver, zoomLevelsSingle)
 
 // Behavior preservation: a level read resampled down to a coarser level's size must
 // essentially match a scene read resampled to the same size, level by level.
-TEST(DCMImageDriver, readLevelMatchesTheResampledSceneRead)
+TEST_F(DCMImageDriverTests, readLevelMatchesTheResampledSceneRead)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip private test because full dataset is not enabled";
-    }
     DCMImageDriver driver;
-    std::string slidePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777");
+    std::string slidePath = TestTools::getTestImagePath("dcm", "private/H01EBB50P-24777");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
     auto slide = driver.openFile(slidePath);
     const int numScenes = slide->getNumScenes();
     ASSERT_EQ(numScenes, 1);
@@ -865,15 +836,11 @@ TEST(DCMImageDriver, readLevelMatchesTheResampledSceneRead)
 // 72192x70400, and a whole-level read at that size is prohibitively expensive here. Levels 0
 // and 1 (rather than the coarsest pair) are used because they are the most collapse-prone --
 // exactly the pair the reference tests for other drivers exercise.
-TEST(DCMImageDriver, readLevelDoesNotReuseAdjacentLevel)
+TEST_F(DCMImageDriverTests, readLevelDoesNotReuseAdjacentLevel)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip private test because full dataset is not enabled";
-    }
     DCMImageDriver driver;
-    std::string slidePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777");
+    std::string slidePath = TestTools::getTestImagePath("dcm", "private/H01EBB50P-24777");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
     auto slide = driver.openFile(slidePath);
     const int numScenes = slide->getNumScenes();
     ASSERT_EQ(numScenes, 1);
@@ -909,13 +876,178 @@ TEST(DCMImageDriver, readLevelDoesNotReuseAdjacentLevel)
     EXPECT_GT(cv::norm(viaLevel0Resampled, viaLevel1Native, cv::NORM_INF), 0);
 }
 
-TEST(DCMImageDriver, multiThreadSceneAccess) {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip the test because full dataset is not enabled";
-    }
-    std::string filePath = TestTools::getFullTestImagePath("dcm", "private/H01EBB50P-24777");
+TEST_F(DCMImageDriverTests, multiThreadSceneAccess) {
+    std::string filePath = TestTools::getTestImagePath("dcm", "private/H01EBB50P-24777");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     DCMImageDriver driver;
     TestTools::multiThreadedTest(filePath, driver);
+}
+
+// NOT falsifiable coverage of the Embedded path, by construction: barre.dev/
+// OT-MONO2-8-hip.dcm is a plain (non-WSI) radiograph, and a corpus scan with
+// dcmdump confirmed it carries no ICC Profile tag anywhere (neither Optical
+// Path Sequence nor dataset level) -- so the `if (!profile.isEmpty())` branch
+// below can never execute against this fixture, and this test would pass
+// identically against a no-op implementation. Kept only because the original
+// task brief specified it verbatim and it still gives real regression
+// coverage (no exception, correct None/empty handling on a real file).
+// Positive, falsifiable coverage of the Embedded path lives in
+// colorProfileFromWSIAuxImage (DCMScene) and
+// colorProfileEndToEndThroughWSISceneRealDriverPath (WSIScene) below.
+TEST(DCMImageDriver, colorProfileAbsentPathOnly_notFalsifiableForEmbedded)
+{
+    std::string path = TestTools::getTestImagePath("dcm", "barre.dev/OT-MONO2-8-hip.dcm");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
+    std::shared_ptr<slideio::Slide> slide = slideio::openSlide(path, "DCM");
+    std::shared_ptr<slideio::Scene> scene = slide->getScene(0);
+    const slideio::ColorProfile profile = scene->getColorProfile();
+    if (!profile.isEmpty()) {
+        ASSERT_EQ(slideio::ColorProfileSource::Embedded, profile.getSource());
+        const slideio::ColorProfileInfo info = scene->getColorProfileInfo();
+        ASSERT_TRUE(info.present);
+        ASSERT_EQ(profile.getSize(), info.dataSize);
+    }
+    else {
+        ASSERT_EQ(slideio::ColorProfileSource::None, profile.getSource());
+    }
+}
+
+// Real positive coverage: a corpus scan of every DICOM-ish file under
+// SLIDEIO_IMAGES_PATH (dcmdump --search 0028,2000) found the ICC Profile tag only on
+// WSI-classified (VLWholeSlideMicroscopyImageStorage) files, and only on their aux
+// images (LABEL/OVERVIEW/LOCALIZER), never on a plain radiograph and never on the
+// main VOLUME pyramid files in this corpus. private/H01EBB50P-24777_label.dcm is one
+// such aux file, carrying a real embedded profile inside its Optical Path Sequence.
+// The ground truth bytes are read here directly via DCMTK, bypassing DCMFile
+// entirely, so the comparison is independent of the production code under test.
+//
+// Uses a local DCMImageDriver (like every other test in this file), not
+// slideio::openSlide: ImageDriverManager caches one shared DCMImageDriver
+// instance, but DCMImageDriver::initializeDCMTK/clieanUpDCMTK register and
+// unregister DCMTK's JPEG/RLE/JP2K codecs *globally*, tied to that instance's
+// ctor/dtor. A local DCMImageDriver destructed by an earlier test deregisters
+// the codecs process-wide, so a later JPEG-compressed read through the
+// manager's shared instance (e.g. this label file) intermittently fails to
+// decompress depending on test order -- a pre-existing lifecycle issue in the
+// driver, unrelated to color profiles, that this test sidesteps rather than
+// papers over.
+TEST(DCMImageDriver, colorProfileFromWSIAuxImage)
+{
+    std::string dirPath = TestTools::getTestImagePath("dcm", "private/H01EBB50P-24777");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(dirPath);
+    std::string labelPath = TestTools::getTestImagePath("dcm", "private/H01EBB50P-24777/H01EBB50P-24777_label.dcm");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(labelPath);
+
+    DcmFileFormat refFile;
+    ASSERT_TRUE(refFile.loadFile(labelPath.c_str()).good());
+    DcmDataset* refDataset = refFile.getDataset();
+    ASSERT_TRUE(refDataset != nullptr);
+    DcmItem* refOpticalPath = nullptr;
+    ASSERT_TRUE(refDataset->findAndGetSequenceItem(DCM_OpticalPathSequence, refOpticalPath, 0).good());
+    ASSERT_TRUE(refOpticalPath != nullptr);
+    const Uint8* refBytes = nullptr;
+    unsigned long refCount = 0;
+    ASSERT_TRUE(refOpticalPath->findAndGetUint8Array(DCM_ICCProfile, refBytes, &refCount).good());
+    ASSERT_GT(refCount, 0ul) << "fixture no longer carries the ICC tag this test relies on";
+    const std::vector<uint8_t> refProfile(refBytes, refBytes + refCount);
+
+    DCMImageDriver driver;
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(dirPath);
+    std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
+    std::shared_ptr<slideio::CVScene> auxCvScene = scene->getAuxImage("LABEL");
+    ASSERT_TRUE(auxCvScene.get() != nullptr);
+    slideio::Scene auxScene(auxCvScene);
+
+    const slideio::ColorProfile profile = auxScene.getColorProfile();
+    ASSERT_FALSE(profile.isEmpty());
+    ASSERT_EQ(refProfile, profile.getData());
+    ASSERT_EQ(slideio::ColorProfileSource::Embedded, profile.getSource());
+    const slideio::ColorProfileInfo info = auxScene.getColorProfileInfo();
+    ASSERT_TRUE(info.present);
+    ASSERT_EQ(profile.getSize(), info.dataSize);
+}
+
+// Writes a minimal, single-frame, uncompressed DICOM WSI (VLWholeSlideMicroscopyImageStorage)
+// object with a VOLUME ImageType, carrying iccProfile inside its own Optical Path
+// Sequence -- i.e. a synthetic main-pyramid file, the kind no real corpus file
+// carries the tag on (see colorProfileFromWSIAuxImage above: real profiles in this
+// corpus live only on aux images). Uncompressed/Explicit VR Little Endian so no
+// codec registration is involved. Built with DCMTK's own write API, not hand-rolled
+// bytes: the dcm driver already links DCMTK directly (unlike NDPI's dual-libtiff
+// situation), so there is no two-copies hazard to avoid here.
+static void writeSyntheticWSIFile(const std::string& path, const std::vector<uint8_t>& iccProfile)
+{
+    DcmFileFormat fileformat;
+    DcmDataset* dataset = fileformat.getDataset();
+
+    const Uint16 rows = 4;
+    const Uint16 columns = 4;
+    std::vector<Uint8> pixels(static_cast<size_t>(rows) * columns, 128);
+
+    dataset->putAndInsertOFStringArray(DCM_SOPClassUID, UID_VLWholeSlideMicroscopyImageStorage);
+    dataset->putAndInsertOFStringArray(DCM_SOPInstanceUID, "1.2.826.0.1.3680043.10.559.1.1.1.1");
+    dataset->putAndInsertOFStringArray(DCM_SeriesInstanceUID, "1.2.826.0.1.3680043.10.559.1.1.1.2");
+    dataset->putAndInsertOFStringArray(DCM_StudyInstanceUID, "1.2.826.0.1.3680043.10.559.1.1.1.3");
+    dataset->putAndInsertOFStringArray(DCM_Modality, "SM");
+    dataset->putAndInsertOFStringArray(DCM_ImageType, "ORIGINAL\\PRIMARY\\VOLUME\\NONE");
+    dataset->putAndInsertUint16(DCM_Rows, rows);
+    dataset->putAndInsertUint16(DCM_Columns, columns);
+    dataset->putAndInsertUint16(DCM_BitsAllocated, 8);
+    dataset->putAndInsertUint16(DCM_BitsStored, 8);
+    dataset->putAndInsertUint16(DCM_HighBit, 7);
+    dataset->putAndInsertUint16(DCM_PixelRepresentation, 0);
+    dataset->putAndInsertUint16(DCM_SamplesPerPixel, 1);
+    dataset->putAndInsertOFStringArray(DCM_PhotometricInterpretation, "MONOCHROME2");
+    OFCondition cond = dataset->putAndInsertUint8Array(DCM_PixelData, pixels.data(),
+        static_cast<unsigned long>(pixels.size()));
+    if (!cond.good()) {
+        throw std::runtime_error(std::string("synthetic WSI fixture: cannot set PixelData: ") + cond.text());
+    }
+
+    DcmItem* opticalPathItem = new DcmItem();
+    opticalPathItem->putAndInsertOFStringArray(DCM_OpticalPathIdentifier, "1");
+    opticalPathItem->putAndInsertUint8Array(DCM_ICCProfile, iccProfile.data(),
+        static_cast<unsigned long>(iccProfile.size()));
+    auto opticalPathSeq = new DcmSequenceOfItems(DCM_OpticalPathSequence);
+    opticalPathSeq->insert(opticalPathItem);
+    dataset->insert(opticalPathSeq);
+
+    cond = fileformat.saveFile(path.c_str(), EXS_LittleEndianExplicit);
+    if (!cond.good()) {
+        throw std::runtime_error(std::string("synthetic WSI fixture: cannot save file: ") + cond.text());
+    }
+}
+
+// The real corpus has no ICC-tagged VOLUME (main pyramid) file -- every embedded
+// profile found in this corpus lives on a WSI aux image (LABEL/OVERVIEW/LOCALIZER,
+// see colorProfileFromWSIAuxImage above), never on the tissue pyramid itself. This
+// drives the real production path -- DCMImageDriver::openFile -> DCMSlide::init ->
+// DCMSlide::initFromWSIFile -> DCMFile::init/readColorProfile -> WSIScene::init --
+// end to end on a synthetic single-file WSI carrying a real embedded sRGB profile,
+// proving WSIScene's own wiring rather than only the DCMScene (aux image) path
+// every real corpus file exercises. No mock of any DCM class is used; the fixture
+// is a real file and every call from openFile down is the production code.
+TEST(DCMImageDriver, colorProfileEndToEndThroughWSISceneRealDriverPath)
+{
+    const slideio::ColorProfile injected = slideio::IccTransform::createSRGBProfile();
+    ASSERT_FALSE(injected.isEmpty());
+    const std::vector<uint8_t>& profileBytes = injected.getData();
+
+    slideio::TempFile tempDcm("dcm");
+    const std::string tempPath = tempDcm.getPath().string();
+    writeSyntheticWSIFile(tempPath, profileBytes);
+
+    DCMImageDriver driver;
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(tempPath);
+    ASSERT_TRUE(slide.get() != nullptr);
+    ASSERT_EQ(1, slide->getNumScenes());
+    std::shared_ptr<slideio::CVScene> cvScene = slide->getScene(0);
+    ASSERT_TRUE(cvScene.get() != nullptr);
+    slideio::Scene scene(cvScene);
+
+    const slideio::ColorProfile profile = scene.getColorProfile();
+    ASSERT_FALSE(profile.isEmpty());
+    EXPECT_EQ(profileBytes, profile.getData());
+    EXPECT_EQ(slideio::ColorProfileSource::Embedded, profile.getSource());
+    EXPECT_TRUE(scene.getColorProfileInfo().present);
 }

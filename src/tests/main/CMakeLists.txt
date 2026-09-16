@@ -7,6 +7,8 @@ set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 set(TEST_SOURCES
   test_color_tools.cpp
+  test_colorprofile.cpp
+  test_icctransform.cpp
   test_imagedrivermanager.cpp
   test_czi_driver.cpp
   test_czi_tools.cpp
@@ -24,6 +26,7 @@ set(TEST_SOURCES
   test_cvtools.cpp
   test_dcmfile.cpp
   test_exception.cpp
+  test_logging.cpp
   test_generic.cpp
   test_vsi_driver.cpp
   test_blocktiler.cpp
@@ -35,36 +38,38 @@ set(TEST_SOURCES
   test_metadata_builder.cpp
   test_tifffiles.cpp
   test_tiffkeeper.cpp
+  test_tiffmessagehandler.cpp
   test_fiwrapper.cpp
   test_channel_attributes.cpp
   test_boundedqueue.cpp
   test_levelreading.cpp
+  test_log_macro_collision.cpp
+  test_concurrency_contract.cpp
+  test_filereader.cpp
+  test_contextpool.cpp
 )
 
 add_executable(${TEST_NAME} ${TEST_SOURCES})
 
 find_package(SQLite3)
-find_package(glog)
 find_package(GTest)
 find_package(OpenCV)
 find_package(ZLIB)
 find_package(tinyxml2)
-find_package(pole)
 find_package(nlohmann_json REQUIRED)
 
 target_link_libraries(${TEST_NAME}
   SQLite::SQLite3
-  glog::glog
   gtest::gtest
   opencv::opencv
   ZLIB::ZLIB
   tinyxml2::tinyxml2
-  pole::pole
+  pole
   nlohmann_json::nlohmann_json  
 )
 
 target_include_directories(${TEST_NAME} PRIVATE ${INCLUDE_ROOT})
-target_link_libraries(${TEST_NAME} ${SLIDEIO_LIB_NAME} ${BASE_LIB_NAME} ${TEST_LIB_NAME})
+target_link_libraries(${TEST_NAME} ${SLIDEIO_LIB_NAME} ${CORE_LIB_NAME} ${TEST_LIB_NAME})
 
 
 

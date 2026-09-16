@@ -5,9 +5,8 @@
 
 
 #include "slideio/drivers/ndpi/ndpi_api_def.hpp"
-#include "slideio/base/resolution.hpp"
-#include "slideio/base/slideio_enums.hpp"
-#include "slideio/base/base.hpp"
+#include "slideio/core/resolution.hpp"
+#include "slideio/core/slideio_enums.hpp"
 #include <opencv2/core.hpp>
 #include <string>
 #include <vector>
@@ -67,6 +66,8 @@ namespace slideio
         uint32_t jpegHeaderSize;
         uint32_t rawStripSize = 0;
         bool auxImage = false;
+        /**@brief raw ICC profile bytes from TIFFTAG_ICCPROFILE (34675).*/
+        std::vector<uint8_t> iccProfile;
 
         Type getType() const {
             if(tiled) {
@@ -128,29 +129,6 @@ namespace slideio
                                       cv::_OutputArray tileRaster);
     private:
         static void fixJpegHeader(const NDPITiffDirectory& dir, uint8_t* data);
-    };
-
-    class  NDPITIFFKeeper
-    {
-    public:
-        NDPITIFFKeeper(libtiff::TIFF* hfile=nullptr);
-        ~NDPITIFFKeeper();
-        libtiff::TIFF* getHandle() const{
-            return m_hFile;
-        }
-        bool isValid() const{
-            return getHandle() != nullptr;
-        }
-        operator libtiff::TIFF* () const {
-            return getHandle();
-        }
-        NDPITIFFKeeper& operator = (libtiff::TIFF* hFile){
-            m_hFile = hFile;
-            return *this;
-        }
-
-    private:
-        libtiff::TIFF* m_hFile;
     };
 }
 

@@ -10,7 +10,7 @@ The 12 formats are served by 11 driver libraries: PHTIFF (Philips TIFF) has no l
 
 ## Build Commands
 
-Prerequisites: Conan v2+, CMake 3.10+, C++17 compiler, Python 3.6+.
+Prerequisites: Conan v2+, CMake 3.15+, C++17 compiler, Python 3.6+.
 
 ```bash
 # Full build (conan + configure + build), release only:
@@ -30,6 +30,51 @@ python3 install.py -a build -c all       # Both (default)
 # Custom build/install directories:
 python3 install.py -a install -bd /path/to/build -pr /path/to/install
 ```
+
+```bash
+# Build the binary distribution packages for the current platform:
+python3 install.py -a package -c release       # conan + configure + build + package
+python3 install.py -a package-only -c release  # package an already-built tree
+```
+
+Packages land in `build/packages`. Release only -- `package` refuses a debug
+configuration, because a distribution of `_d`-suffixed libraries with a SONAME
+matching nothing serves nobody. What comes out depends on the platform: a `.zip`
+plus a separate `-pdb.zip` on Windows, a `.tar.gz` on macOS, and
+`libslideio<major>.<minor>` + `libslideio-dev` `.deb` files on Linux.
+
+`.github/workflows/release.yml` runs exactly these commands on a `v*` tag and
+attaches the results to a draft GitHub Release; `workflow_dispatch` does
+everything except publish, which makes it a real rehearsal. A manual run takes
+two inputs -- `platforms` (`all`, `windows`, `debian` or `macos`) so checking
+one platform costs one job instead of three, and `skip_tests` for iterating on
+packaging itself. Neither can reach a release page: the publish job is gated on
+the event being a tag **push**, and a tag push carries no inputs. Both halves of
+that condition matter -- the dispatch API accepts a tag as a ref, so a manual run
+can report `ref_type == 'tag'` too. Note that GitHub offers
+the Run workflow button only for workflow files present on the **default
+branch**, so the workflow cannot be dispatched from a feature branch until it
+is merged. Before publishing,
+each platform runs the corpus-free unit suites and then builds
+`auxfiles/package-smoke/` against the package it just produced -- a standalone
+`find_package(slideio)` consumer that knows nothing about the build tree. That
+smoke test is the only thing that catches a header missing from the `-dev`
+package or a driver left out of an archive.
+
+Three statements of the version have to agree and are checked mechanically:
+`projectVersion` in `CMakeLists.txt`, `SLIDEIO_VERSION` in
+`src/slideio/slideio/slideio_def.hpp` (configure fails if they differ), and the
+git tag (the workflow fails if it differs). Bumping a version means editing both
+files.
+
+See `software-docs/specs/2026-09-13-ci-library-distribution-design.md`.
+Two traps recorded there, because both fail silently: **do not give the macOS
+libraries a `VERSION`/`SOVERSION`** -- it renames the dylibs, `FIX_MACOS_RPATH`
+matches install names against the literal strings in `NAME_TOOL_LIB_LIST`, and
+the rewrite quietly becomes a no-op -- and **do not switch the CMake package
+config to `install(EXPORT)`** while the modules link their dependencies through
+the plain `target_link_libraries(tgt a b c)` signature, which would drag every
+conan imported target into the exported interface.
 
 Build output: `build/release/bin/` and `build/debug/bin/` on Linux/macOS; `build/` on Windows.
 
@@ -56,12 +101,27 @@ Tests use Google Test. Test executables (release build):
 
 There are also single tests for memory/perf in `src/single_tests/`.
 
+### Test images
+
+Tests read from three roots, named by `SLIDEIO_TEST_DATA_PATH`,
+`SLIDEIO_TEST_DATA_PRIV_PATH` and `SLIDEIO_IMAGES_PATH`. The corpus under the last
+one is far larger than most machines hold, so it tends to be rotated in and out.
+
+Set `SLIDEIO_SKIP_MISSING_IMAGES=1` and a test whose image is absent **skips**
+instead of failing, naming the file it wanted. Leave it unset -- as CI must -- and a
+missing image fails exactly as before, so coverage cannot quietly disappear. This
+matters for reading a run at all: without it a rotated-out directory turns a suite
+entirely red and a real regression is indistinguishable from an absent file.
+
+`software-docs/TEST_IMAGES.md` lists every image the tests name, with its size and
+how many tests would be lost by deleting it. Regenerate it with
+`python3 auxfiles/list-test-images.py`.
+
 ## Architecture
 
 ### Module Hierarchy (each is a shared library, prefixed `slideio-`):
 
-- **base** — Fundamental types: Rect, Size, Range, Resolution, enums, exceptions
-- **core** — Abstract base classes: `CVScene` (raster image), `CVSlide` (slide container), `ImageDriver`, `LevelInfo` (zoom pyramid)
+- **core** — Bottom layer. Fundamental types (Rect, Size, Range, Resolution, enums, exceptions, the logging seam) and the abstract base classes: `CVScene` (raster image), `CVSlide` (slide container), `ImageDriver`, `LevelInfo` (zoom pyramid)
 - **imagetools** — Image I/O utilities: TIFF handling, JPEG2000 codec, FreeImage wrapper, color processing, tile management
 - **slideio** (main) — Public API: `Slide`, `Scene`, `ImageDriverManager` (loads drivers dynamically)
 - **converter** — Format conversion (mainly TIFF output), multithreaded encoding
@@ -80,7 +140,34 @@ Each driver in `src/slideio/drivers/<format>/` is an independent shared library 
 - **Zoom pyramid support**: Slides contain multi-resolution levels accessed via `LevelInfo`
 - **Multidimensional images**: 2D, 3D (Z-slices), and 4D (time-series) via CVScene
 - **Block-based reading**: Efficient region extraction with arbitrary scaling
-- **Level-addressed reading**: `CVScene::readResampledLevelBlockChannelsEx` reads a rect given in the coordinates of a named zoom level, bypassing level selection. Pyramid drivers override it; the base class has a working default. Public API: `Scene::readResampledLevelBlockChannels` / `readResampledLevel4DBlockChannels`, exposed to Python as `read_block_from_level`
+- **Level-addressed reading**: `CVScene::readResampledLevelBlockChannelsEx` reads a rect given in the coordinates of a named zoom level, bypassing level selection. Pyramid drivers override it; the base class has a working default. Public API: `Scene::readResampledLevelBlockChannels` / `readResampledLevel4DBlockChannels`, exposed to Python as `read_block_from_level`. A `TransformerScene` exposes its origin's pyramid unchanged and reads the origin at the level it was asked for. The rule that settles what a transformation means at a level: **its parameters are in the pixels of the level being read**, so a blur radius covers the same number of pixels at every level and therefore more tissue at coarser ones. That is not a new decision — `computeInflatedRectParams` divides the inflation by the requested scale, so a scaled-down read has always applied the kernel at the output resolution, and a level read agrees with the equivalent scaled read bit for bit
+- **Concurrency contract**: `CVScene::supportsConcurrentReads()` says whether
+  two block reads of one scene may overlap. It defaults to `false`, and the
+  base class serialises reads for any scene that does not override it, so a new
+  driver is safe by construction. A driver overrides it only once every mutable
+  object on its read path is either cursor-free (`FileReader`) or per-thread
+  (`ContextPool`, which hands out `ReadContext` subclasses one borrower at a
+  time). Use `ContextPool` for per-thread read state rather than inventing a
+  second mechanism, and never `thread_local` for anything holding a file
+  handle — that ties a descriptor's lifetime to a thread rather than to the
+  `Scene` that owns it, which on Windows shows up as a file the user cannot
+  delete after closing the slide. (Three `thread_local`s on these paths hold no
+  file state and are therefore fine: `FileReader` keeps one event object on the
+  Windows read path, pole's `PositionalFile` keeps a manual-reset event of its
+  own mirroring it, and `tempfile.cpp` keeps two for random names.) Concurrent
+  today: SVS, PHTIFF, AFI, PKE, SCN, NDPI, CZI, VSI, OME-TIFF, ZVI. A
+  `TransformerScene` forwards its origin scene's `supportsConcurrentReads()`
+  rather than hard-coding `false`, so wrapping one of these in a transform no
+  longer silently downgrades it to serialised reads. A scene that wraps another
+  forwards `readSerialisationMutex()` too, so the whole wrap chain serialises on
+  the origin's one mutex; a wrapper that kept its own would exclude neither a
+  second wrapper over that origin nor a direct read of it. The two forwards are
+  a pair — `lockIfSerialised()` reads the *wrapper's* `supportsConcurrentReads()`,
+  so a wrapper that forwarded only the mutex and reported `true` over a
+  non-concurrent origin would take no lock at all and reopen the hazard. Also
+  read the origin through its `…Ex` variants only — the public entry points
+  would re-enter the non-recursive mutex and deadlock — and keep the origin
+  alive for the wrapper's lifetime.
 - **Library naming**: `slideio-<module>` with `_d` suffix for debug builds
 
 ### Source Layout
@@ -88,7 +175,6 @@ Each driver in `src/slideio/drivers/<format>/` is an independent shared library 
 ```
 src/
 ├── slideio/
-│   ├── base/           # slideio-base
 │   ├── core/           # slideio-core
 │   ├── slideio/        # slideio (main API)
 │   ├── imagetools/     # slideio-imagetools
@@ -112,7 +198,115 @@ src/
 
 ## Dependencies (managed via Conan)
 
-glog, SQLite3, OpenCV, ZLIB, tinyxml2, ICU, libtiff, libjpeg, WebP, OpenJPEG, Iconv, pole, nlohmann_json
+spdlog, SQLite3, OpenCV, ZLIB, tinyxml2, ICU, libtiff, libjpeg, WebP, OpenJPEG, Iconv, nlohmann_json, lcms
+
+Every one of them resolves from **conan center**. There is no private remote and
+no conan-center-index fork to bootstrap: nothing has to be `conan create`d
+before a build, `conan install -b missing` is all a fresh machine needs, and a
+CI job or container needs no credentials. Anything that could not come from
+conan center is a git submodule under `extern/` instead -- see below. Keep it
+that way: a new dependency belongs on conan center, in `extern/`, or nowhere.
+
+The JPEG XR codec is *not* a Conan package. It is the `extern/jpegxrcodec` git
+submodule (github.com/Booritas/jpegxrcodec, pinned at v1.0.3), added to the build
+with `add_subdirectory` from the root `CMakeLists.txt`. It builds a static
+`jxrcodec` target that slideio-imagetools, slideio-czi and slideio-ndpi link
+against; there is no `find_package(jpegxrcodec)` any more. A clone without
+`--recurse-submodules` needs `git submodule update --init` before configuring, or
+CMake stops with a FATAL_ERROR naming the empty directory. Plain `--init` is
+enough: jpegxrcodec's own googletest submodule is only needed for its tests,
+which the slideio build forces off.
+
+pole, the OLE compound-file reader the zvi driver reads ZVI storages with, is
+the same arrangement: the `extern/pole` submodule (github.com/Booritas/pole,
+pinned just past v1.0.4) in place of `pole/1.0.4@slideio/stable`, added from the root
+`CMakeLists.txt` because it needs nothing but the standard library. It builds a
+static `pole` target that slideio-zvi and the main test suite link directly --
+no `find_package(pole)`, no `pole::pole`. It spells its tests option
+`PACKAGE_TESTS`, the same name jpegxrcodec uses, so the one cache entry the
+root sets turns both off.
+
+pole publishes no include directory of its own, and everything that consumes it
+says `<pole/...>` while its headers sit in `includes/`. The root `CMakeLists.txt`
+stages that prefix in the build tree -- `file(COPY)` of `includes/` into
+`${CMAKE_BINARY_DIR}/extern/pole/include/pole` -- which is the layout the Conan
+recipe produced by copying the same directory into the package as
+`include/pole`. It also redirects the `pole` target's archive output: pole sets
+`CMAKE_ARCHIVE_OUTPUT_DIRECTORY` to `${CMAKE_BINARY_DIR}/install/lib`, which in
+this build tree is the directory `install.py` installs into.
+
+**That `file(COPY)` (`CMakeLists.txt:231`) runs at configure time.** A header
+edited inside `extern/pole` is *not* picked up by a plain rebuild: the build
+compiles the stale copy already staged in the build tree, silently and without
+a warning. Re-run CMake configure after touching anything in
+`extern/pole/includes/`.
+
+pole also carries a positional read path now, which is what lets ZVI report
+concurrent reads: `StorageIO` reads through a `PositionalFile` doing `ReadFile`
+with an `OVERLAPPED` offset on Windows and `pread` elsewhere, and
+`ole::basic_stream::read_at`/`size` expose it upward. That is
+`slideio::FileReader::readAt` and its retry loop reimplemented, deliberately,
+because pole must stay standard-library-only -- it cannot depend on
+slideio-core, and a shared primitive would invert the dependency. A fix to the
+retry loop or the Windows open flags belongs in both, and both class comments
+say so and name the other. pole's write path still shares one `std::fstream`
+and stays serialised.
+`StreamImpl::read` walks runs of consecutively numbered blocks and issues one
+positional read per run rather than one per block, so a sequentially written
+stream costs a single read — `ole::basic_stream::read_calls()` reports the
+count, and pole's own suite asserts on it. That fix removed the single-threaded
+read regression the positional path originally carried; do not reintroduce a
+per-block loop.
+See `software-docs/specs/2026-09-09-zvi-concurrent-reads-design.md` and
+`software-docs/TECH_DEBT.md` §19-§21.
+
+The NDPI driver's two forks are also submodules rather than Conan packages:
+`extern/ndpi-libjpeg-turbo` (github.com/Booritas/ndpi-libjpeg-turbo, v2.1.2) and
+`extern/ndpi-tiff` (github.com/Booritas/ndpi-tiff, v4.3.0), replacing the
+`ndpi-libjpeg-turbo/2.1.2@slideio/stable` and `ndpi-libtiff/4.3.0@slideio/stable`
+packages. Unlike jpegxrcodec they are added from
+`src/slideio/drivers/ndpi/CMakeLists.txt`, not the root: ndpi-tiff needs zlib,
+libdeflate, xz_utils, jbig, zstd and libwebp, which are on `CMAKE_PREFIX_PATH`
+only inside the directory where that driver's Conan files are generated, and the
+ndpi driver is their only consumer.
+
+The two have to move together. libtiff calls libjpeg, the driver calls it too
+(`ndpitifftools.cpp` includes `jpeglib.h`), and the fork is built `WITH_JPEG8`
+and `WITH_MEM_SRCDST` -- both change the size of `jpeg_decompress_struct`. Two
+libjpeg builds that disagree show up at runtime as "JPEG parameter struct
+mismatch", not as a link error. One in-tree build removes the whole class of
+problem, and with it the `-b ndpi-libtiff/*` force-build `install.py` used to
+need.
+
+ndpi-tiff is a pristine submodule, so the `ndpi-libtiff` recipe's
+`4.3.0-0001-cmake-dependencies.patch` cannot be applied to it. Shim find modules
+in `cmake-scripts/ndpi-tiff-deps/` do the same job from outside, publishing the
+imported-target names libtiff links (`Deflate::Deflate`, `JBIG::JBIG`,
+`ZSTD::ZSTD`, `WebP::WebP`) from the ones Conan actually provides, and resolving
+`find_package(JPEG)` to the in-tree `jpeg-static`. They are deliberately not
+`GLOBAL`: the vsi, ome-tiff and phtiff modules have their own `JPEG::JPEG` from
+the regular libjpeg.
+
+Two things about that arrangement are easy to break. The ndpi-tiff subdirectory
+sets `CMAKE_FIND_PACKAGE_PREFER_CONFIG OFF`, because the Conan toolchain turns
+it on and config mode would match `jbig-config.cmake` for `find_package(JBIG)`
+on a case-insensitive filesystem -- reporting success while creating
+`jbig::jbig` instead of the `JBIG::JBIG` libtiff links. And the shims are handed
+their include directories explicitly, derived from `<pkg>_PACKAGE_FOLDER_<CONFIG>`:
+for libdeflate, jbig and zstd, Conan's `<pkg>_INCLUDE_DIRS_<CONFIG>` arrives
+empty in this graph even though the libraries and link interface are intact, so
+relying on it silently loses the headers and libtiff fails on `libdeflate.h`.
+
+spdlog is a static library linked `PRIVATE` into `slideio-core` alone. That is a
+link-time-singleton constraint, not an ordinary dependency: the logging
+threshold and sink must exist in exactly one shared library.
+
+lcms (`lcms/2.16`, the Little-CMS colour engine) is likewise linked `PRIVATE`,
+into `slideio-imagetools` alone, and `<lcms2.h>` is included from exactly one
+translation unit: `src/slideio/imagetools/icctransform.cpp`. Everything above it
+-- the drivers, `slideio-transformer`'s `ColorManagement`, the public headers --
+sees only slideio's own colour vocabulary in `slideio/core/colorprofile.hpp`, so
+no consumer of an installed header needs lcms2 on its include path.
 
 Conan profiles are in `conan/<Platform>/` with variants per distro/arch.
 

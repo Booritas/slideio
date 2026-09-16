@@ -4,9 +4,10 @@
 #pragma once
 
 #include "slideio/core/slideio_core_def.hpp"
-#include "slideio/base/resolution.hpp"
-#include "slideio/base/slideio_enums.hpp"
+#include "slideio/core/resolution.hpp"
+#include "slideio/core/slideio_enums.hpp"
 #include "slideio/core/metadata.hpp"
+#include "slideio/core/colorprofile.hpp"
 #include <opencv2/core.hpp>
 #include <vector>
 #include <string>
@@ -128,6 +129,16 @@ namespace slideio
          * of different types in one block.
          */
         virtual void readResampledBlockChannels(const cv::Rect& blockRect, const cv::Size& blockSize, const std::vector<int>& channelIndices, cv::OutputArray output);
+        /**
+         * True if two block reads of this scene may run concurrently on
+         * different threads.
+         *
+         * False -- the default -- means the base class serialises block reads
+         * of one scene, as it has always done. A driver returns true only once
+         * every mutable object its read path touches is either per-thread (see
+         * ContextPool) or cursor-free (see FileReader).
+         */
+        virtual bool supportsConcurrentReads() const { return false; }
         /**@brief reads multi-dimensional raster block.
          *
          * @param blockRect : rectangle of the block to be read. The rectangle is represented by cv::Rect structure
@@ -194,6 +205,14 @@ namespace slideio
         virtual std::shared_ptr<CVScene> getAuxImage(const std::string& imageName) const;
         /**@brief returns string of serialized metadata. Content of the string depends on image format.*/
         virtual std::string getRawMetadata() const { return m_rawMetadata; }
+        /**@brief returns the ICC colour profile embedded in the scene.
+         *
+         * The default returns an empty profile, which is the correct answer for
+         * a format that carries no colorimetry. A driver overrides it when it
+         * has real profile bytes. Per scene rather than per slide: a label and a
+         * macro image are captured through different optics than the tissue
+         * scan.*/
+        virtual ColorProfile getColorProfile() const { return ColorProfile(); }
         /**@brief returns metadata as a navigable tree. Built lazily on first call. */
         const Metadata& getMetadata() const;
         virtual void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
@@ -291,6 +310,58 @@ namespace slideio
         std::string m_rawMetadata;
         MetadataFormat m_metadataFormat = MetadataFormat::None;
         MetadataBuilder m_channelAttrs;
+
+        /**
+         * The mutex that serialises this scene's block reads.
+         *
+         * A scene that wraps another one returns that one's mutex, so every
+         * reader of the underlying scene -- directly or through any number of
+         * wrappers -- contends on a single lock. A wrapper that kept its own
+         * mutex would exclude nothing: neither a second wrapper over the same
+         * origin nor a direct read of the origin takes it.
+         *
+         * Three rules come with overriding this:
+         *
+         * - Forward supportsConcurrentReads() to the origin as well. This one
+         *   is load-bearing, not cosmetic: lockIfSerialised() consults the
+         *   *wrapper's* value, so a wrapper reporting true over a false origin
+         *   takes no lock at all and then calls the origin's unlocked *Ex from
+         *   several threads -- reopening the very hazard this closes.
+         * - Keep calling the origin's *Ex read variants, never its public entry
+         *   points, which would re-enter this non-recursive mutex and deadlock.
+         * - Keep the origin alive for the wrapper's own lifetime, since the
+         *   wrapper is handing out a reference to the origin's member.
+         */
+        virtual std::mutex& readSerialisationMutex() const { return m_readBlockMutex; }
+
+        /**
+         * Reaches another scene's serialisation mutex, for a scene that wraps
+         * it.
+         *
+         * [class.protected] forbids origin->readSerialisationMutex() from a
+         * derived class through a CVScene pointer -- a protected non-static
+         * member may only be accessed through an object of the accessing
+         * class's own type. The restriction does not apply to a static member,
+         * which is why this exists.
+         */
+        static std::mutex& serialisationMutexOf(const CVScene& scene) {
+            return scene.readSerialisationMutex();
+        }
+
+        /**
+         * A lock that is engaged only for scenes that do not support
+         * concurrent reads.
+         *
+         * The mutex is not recursive, so nothing called while holding this may
+         * re-enter a locking entry point. In particular the plane callbacks
+         * passed to assemble4DBlock must keep calling the *Ex read variants,
+         * which do not lock.
+         */
+        std::unique_lock<std::mutex> lockIfSerialised() const {
+            return supportsConcurrentReads()
+                       ? std::unique_lock<std::mutex>()
+                       : std::unique_lock<std::mutex>(readSerialisationMutex());
+        }
 
     private:
         /**@brief assembles a 4D block plane by plane.

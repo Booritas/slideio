@@ -18,6 +18,7 @@ namespace slideio
         LaplacianFilter,
         BilateralFilter,
         CannyFilter,
+        ColorManagement,
     };
 
     SLIDEIO_TRANSFORMER_EXPORTS std::ostream& operator << (std::ostream& os, TransformationType type);

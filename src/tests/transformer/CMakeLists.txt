@@ -10,6 +10,9 @@ set(TEST_SOURCES
   test_filters.cpp
   test_transformertools.cpp
   test_copy.cpp
+  test_colormanagement.cpp
+  test_readlock.cpp
+  test_levels.cpp
 )
 
 add_executable(${TEST_NAME} ${TEST_SOURCES})
@@ -17,20 +20,17 @@ add_executable(${TEST_NAME} ${TEST_SOURCES})
 target_include_directories(${TEST_NAME} PRIVATE ${INCLUDE_ROOT})
 
 
-find_package(glog)
 find_package(GTest)
 find_package(OpenCV)
 find_package(ZLIB)
 
 target_link_libraries(${TEST_NAME} 
-  glog::glog
   gtest::gtest
   opencv::opencv
   ZLIB::ZLIB
 )
 
 target_link_libraries(${TEST_NAME} 
-    ${BASE_LIB_NAME}
     ${CORE_LIB_NAME}
     ${SLIDEIO_LIB_NAME}
     ${CONVERTER_LIB_NAME}

@@ -6,12 +6,14 @@
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
 #include "tests/testlib/testtools.hpp"
-#include "slideio/base/exceptions.hpp"
+#include "slideio/core/exceptions.hpp"
 #include "slideio/slideio/slideio.hpp"
 #include "slideio/slideio/slide.hpp"
 #include "slideio/core/metadata.hpp"
+#include "slideio/imagetools/tifftools.hpp"
 
 #include <stdint.h>
+#include <filesystem>
 #include <fstream>
 #include <functional>
 #include <numeric>
@@ -33,6 +35,7 @@ TEST(SVSImageDriver, canOpenFile)
 TEST(SVSImageDriver, getDriverId)
 {
     std::string filePath = TestTools::getTestImagePath("svs", "CMU-1-Small-Region.svs");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     auto slide = slideio::openSlide(filePath, "AUTO");
     ASSERT_TRUE(slide);
     EXPECT_EQ("SVS", slide->getDriverId());
@@ -51,6 +54,7 @@ TEST(SVSImageDriver, openFile_BrightField)
 {
     slideio::SVSImageDriver driver;
     std::string path = TestTools::getTestImagePath("svs","CMU-1-Small-Region.svs");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(path);
     ASSERT_TRUE(slide!=nullptr);
     int numbScenes = slide->getNumScenes();
@@ -79,6 +83,7 @@ TEST(SVSImageDriver, read_Thumbnail_WholeImage)
     // read image by svs driver
     slideio::SVSImageDriver driver;
     std::string path = TestTools::getTestImagePath("svs","CMU-1-Small-Region.svs");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(path);
     ASSERT_TRUE(slide!=nullptr);
     int numbScenes = slide->getNumScenes();
@@ -95,6 +100,7 @@ TEST(SVSImageDriver, read_Thumbnail_WholeImage)
 
     // read extracted page by GDAL library
     std::string pathPageFile = TestTools::getTestImagePath("svs","CMU-1-Small-Region-page-1.tif");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(pathPageFile);
     cv::Mat pageRaster;
     slideio::ImageTools::readSmallImageRaster(pathPageFile, pageRaster);
 
@@ -110,6 +116,7 @@ TEST(SVSImageDriver, read_Thumbnail_Block)
     // read image by svs driver
     slideio::SVSImageDriver driver;
     std::string path = TestTools::getTestImagePath("svs","CMU-1-Small-Region.svs");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(path);
     ASSERT_TRUE(slide!=nullptr);
     int numbScenes = slide->getNumScenes();
@@ -134,6 +141,7 @@ TEST(SVSImageDriver, read_Thumbnail_Block)
 
     // read extracted page by GDAL library
     std::string pathPageFile = TestTools::getTestImagePath("svs", "CMU-1-Small-Region-page-1.tif");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(pathPageFile);
     cv::Mat pageRaster;
     slideio::ImageTools::readSmallImageRaster(pathPageFile, pageRaster);
     cv::Mat pageBlockRaster = pageRaster(blockRect);
@@ -150,6 +158,7 @@ TEST(SVSImageDriver, read_Thumbnail_BlockWithScale)
     // read image by svs driver
     slideio::SVSImageDriver driver;
     std::string path = TestTools::getTestImagePath("svs", "CMU-1-Small-Region.svs");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(path);
     ASSERT_TRUE(slide != nullptr);
     int numbScenes = slide->getNumScenes();
@@ -177,6 +186,7 @@ TEST(SVSImageDriver, read_Thumbnail_BlockWithScale)
 
     // read extracted page by GDAL library
     std::string pathPageFile = TestTools::getTestImagePath("svs", "CMU-1-Small-Region-page-1.tif");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(pathPageFile);
     cv::Mat pageRaster;
     slideio::ImageTools::readSmallImageRaster(pathPageFile, pageRaster);
     cv::Mat pageBlockRaster = pageRaster(blockRect);
@@ -212,6 +222,7 @@ TEST(SVSImageDriver, findZoomLevelIndex)
     }
 
     std::string fake_path = TestTools::getTestImagePath("svs", "CMU-1-Small-Region.svs");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(fake_path);
     auto scene = slideio::SVSTiledScene::create(fake_path, "fake_name", "fake", dirs);
     auto& lastDir = dirs[dirs.size()-1];
     const cv::Rect sceneRect = scene->getRect();
@@ -235,6 +246,7 @@ TEST(SVSImageDriver, readBlock_WholeImage)
 {
     slideio::SVSImageDriver driver;
     std::string path = TestTools::getTestImagePath("svs", "CMU-1-Small-Region.svs");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(path);
     ASSERT_TRUE(slide != nullptr);
     int numbScenes = slide->getNumScenes();
@@ -253,6 +265,7 @@ TEST(SVSImageDriver, readBlock_WholeImage)
 
     // read extracted page by GDAL library
     std::string pathPageFile = TestTools::getTestImagePath("svs", "CMU-1-Small-Region-page-0.tif");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(pathPageFile);
     cv::Mat pageRaster;
     slideio::ImageTools::readSmallImageRaster(pathPageFile, pageRaster);
     cv::Mat pageBlockRaster = pageRaster(sceneRect);
@@ -267,6 +280,7 @@ TEST(SVSImageDriver, readBlock_Part)
 {
     slideio::SVSImageDriver driver;
     std::string path = TestTools::getTestImagePath("svs", "CMU-1-Small-Region.svs");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(path);
     ASSERT_TRUE(slide != nullptr);
     int numbScenes = slide->getNumScenes();
@@ -282,6 +296,7 @@ TEST(SVSImageDriver, readBlock_Part)
 
     // read extracted page by GDAL library
     std::string pathPageFile = TestTools::getTestImagePath("svs", "CMU-1-Small-Region-page-0.tif");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(pathPageFile);
     cv::Mat pageRaster;
     slideio::ImageTools::readSmallImageRaster(pathPageFile, pageRaster);
     cv::Mat pageBlockRaster = pageRaster(blockRect);
@@ -296,6 +311,7 @@ TEST(SVSImageDriver, readBlock_PartScale)
 {
     slideio::SVSImageDriver driver;
     std::string path = TestTools::getTestImagePath("svs", "CMU-1-Small-Region.svs");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(path);
     ASSERT_TRUE(slide != nullptr);
     int numbScenes = slide->getNumScenes();
@@ -313,6 +329,7 @@ TEST(SVSImageDriver, readBlock_PartScale)
 
     // read extracted page by GDAL library
     std::string pathPageFile = TestTools::getTestImagePath("svs", "CMU-1-Small-Region-page-0.tif");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(pathPageFile);
     cv::Mat pageRaster;
     slideio::ImageTools::readSmallImageRaster(pathPageFile, pageRaster);
     cv::Mat pageBlockRaster = pageRaster(blockRect);
@@ -341,6 +358,7 @@ TEST(SVSImageDriver, metadataCompression)
         const slideio::Compression sceneCompression = std::get<2>(item);
 
         std::string filePath = TestTools::getTestImagePath("svs",imageName);
+        SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
         std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
         std::shared_ptr<slideio::CVScene> scene = slide->getScene(sceneIndex);
         EXPECT_TRUE(scene!=nullptr);
@@ -358,6 +376,7 @@ TEST(SVSImageDriver, slideRawMetadata)
     for(const auto& imageName: images)
     {
         std::string filePath = TestTools::getTestImagePath("svs",imageName);
+        SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
         std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
         const std::string& metadata = slide->getRawMetadata();
         EXPECT_GT(metadata.length(),0);
@@ -373,6 +392,7 @@ TEST(SVSImageDriver, crashTest)
 {
     slideio::SVSImageDriver driver;
     std::string filePath = TestTools::getTestImagePath("svs","corrupted.svs");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     int numScenes = slide->getNumScenes();
     std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
@@ -386,6 +406,7 @@ TEST(SVSImageDriver, swapedChannels)
 {
     slideio::SVSImageDriver driver;
     std::string filePath = TestTools::getTestImagePath("svs", "CMU-1-Small-Region.svs");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
     cv::Mat matSwaped, matOrigin;
@@ -410,6 +431,7 @@ TEST(SVSImageDriver, imageResolution)
 {
     slideio::SVSImageDriver driver;
     std::string filePath = TestTools::getTestImagePath("svs", "CMU-1-Small-Region.svs");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
     slideio::Resolution res = scene->getResolution();
@@ -419,12 +441,9 @@ TEST(SVSImageDriver, imageResolution)
 
 TEST(SVSImageDriver, imageResolutionPrivate)
 {
-    if(!TestTools::isPrivateTestEnabled())
-    {
-        GTEST_SKIP() << "Skip private test because private dataset is not enabled";
-    }
     slideio::SVSImageDriver driver;
-    std::string filePath = TestTools::getTestImagePath("svs", "jp2k_3chnl_8bit.svs", true);
+    std::string filePath = TestTools::getTestImagePath("svs", "jp2k_3chnl_8bit.svs");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
     slideio::Resolution res = scene->getResolution();
@@ -437,6 +456,7 @@ TEST(SVSImageDriver, auxImages)
     // read image by svs driver
     slideio::SVSImageDriver driver;
     std::string path = TestTools::getTestImagePath("svs", "CMU-1-Small-Region.svs");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(path);
     ASSERT_TRUE(slide != nullptr);
     int numbScenes = slide->getNumScenes();
@@ -482,7 +502,8 @@ TEST(SVSImageDriver, readCELabImage)
 {
     // read image by svs driver
     slideio::SVSImageDriver driver;
-    std::string path = TestTools::getFullTestImagePath("svs", "S1303802-11-HE-DX1.svs");
+    std::string path = TestTools::getTestImagePath("svs", "S1303802-11-HE-DX1.svs");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(path);
     ASSERT_TRUE(slide != nullptr);
     int numbScenes = slide->getNumScenes();
@@ -491,7 +512,8 @@ TEST(SVSImageDriver, readCELabImage)
     cv::Mat block;
     std::vector<int> channelIndices = {0, 1, 2};
     scene->readBlock(cv::Rect(0, 0, 1000, 1000), block);
-    std::string pathTest = TestTools::getFullTestImagePath("svs", "test/S1303802-11-HE-DX1-block.png");
+    std::string pathTest = TestTools::getTestImagePath("svs", "test/S1303802-11-HE-DX1-block.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(pathTest);
     cv::Mat expectedBlock;
     slideio::ImageTools::readSmallImageRaster(pathTest, expectedBlock);
     cv::Mat dif;
@@ -510,7 +532,9 @@ TEST(SVSImageDriver, readJP2Kcompression)
 {
     slideio::SVSImageDriver driver;
     std::string filePath = TestTools::getTestImagePath("svs", "JP2K-33003-1.svs");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::string testPath = TestTools::getTestImagePath("svs", "tests/JP2K-33003-1.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testPath);
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
     ASSERT_TRUE(scene != nullptr);
@@ -544,30 +568,25 @@ TEST(SVSImageDriver, readJP2Kcompression)
 
 TEST(SVSImageDriver, openFileUtf8)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-    }
-    {
-        std::string filePath = TestTools::getFullTestImagePath("unicode", u8"тест/CMU-1-Small-Region.svs");
-        slideio::SVSImageDriver driver;
-        std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
-        int dirCount = slide->getNumScenes();
-        ASSERT_EQ(dirCount, 1);
-        std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
-        auto rect = scene->getRect();
-        cv::Rect expectedRect(0, 0, 2220, 2967);
-        EXPECT_EQ(rect, expectedRect);
-        cv::Mat raster;
-        cv::Size size;
-        double scale = 0.5;
-        size.width = std::lround(double(rect.width) * scale);
-        size.height = std::lround(double(rect.height) * scale);
-        rect.x = rect.y = 0;
-        scene->readResampledBlock(rect, size, raster);
-        EXPECT_EQ(raster.cols, size.width);
-        EXPECT_EQ(raster.rows, size.height);
-    }
+    std::string filePath = TestTools::getTestImagePath("unicode", u8"тест/CMU-1-Small-Region.svs");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::SVSImageDriver driver;
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    int dirCount = slide->getNumScenes();
+    ASSERT_EQ(dirCount, 1);
+    std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
+    auto rect = scene->getRect();
+    cv::Rect expectedRect(0, 0, 2220, 2967);
+    EXPECT_EQ(rect, expectedRect);
+    cv::Mat raster;
+    cv::Size size;
+    double scale = 0.5;
+    size.width = std::lround(double(rect.width) * scale);
+    size.height = std::lround(double(rect.height) * scale);
+    rect.x = rect.y = 0;
+    scene->readResampledBlock(rect, size, raster);
+    EXPECT_EQ(raster.cols, size.width);
+    EXPECT_EQ(raster.rows, size.height);
 }
 
 TEST(SVSImageDriver, zoomLevels)
@@ -579,6 +598,7 @@ TEST(SVSImageDriver, zoomLevels)
     };
     slideio::SVSImageDriver driver;
     const std::string filePath = TestTools::getTestImagePath("svs", "JP2K-33003-1.svs");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     const std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     const std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
     ASSERT_TRUE(scene != nullptr);
@@ -593,14 +613,61 @@ TEST(SVSImageDriver, zoomLevels)
 }
 
 TEST(SVSImageDriver, multiThreadSceneAccess) {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip the test because full dataset is not enabled";
-    }
     const std::string filePath = TestTools::getTestImagePath("svs", "JP2K-33003-1.svs");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     slideio::SVSImageDriver driver;
     TestTools::multiThreadedTest(filePath, driver);
+}
+
+// The concurrency gate. SVS is still serialised at this point, and that is the
+// point: a correct harness must pass against a serialised driver too, so
+// running it here proves the harness before any driver's behaviour changes.
+TEST(SVSImageDriver, concurrentReadsAreByteIdentical) {
+    const std::string filePath = TestTools::getTestImagePath("svs", "JP2K-33003-1.svs");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::SVSImageDriver driver;
+    TestTools::concurrentReadIdentityTest(filePath, driver);
+}
+
+// The same gate on the other three entry shapes: an explicit single channel, an
+// explicit out-of-order subset, and the level-addressed path. Spec 6 asks for
+// all of them, and they reach per-read state an all-channels 2D read does not.
+TEST(SVSImageDriver, concurrentReadsAreByteIdenticalOnEveryEntryPath) {
+    const std::string filePath = TestTools::getTestImagePath("svs", "JP2K-33003-1.svs");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::SVSImageDriver driver;
+    TestTools::concurrentReadIdentityTestAllPaths(filePath, driver);
+}
+
+TEST(SVSImageDriver, reportsConcurrentReadSupport) {
+    const std::string filePath = TestTools::getTestImagePath("svs", "JP2K-33003-1.svs");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::SVSImageDriver driver;
+    auto slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide);
+    auto scene = slide->getScene(0);
+    ASSERT_TRUE(scene);
+    EXPECT_TRUE(scene->supportsConcurrentReads());
+}
+
+// Closing the slide while readers were active must release every descriptor.
+// On Windows a retained handle shows up as a file that cannot be deleted, which
+// is what isFileHeldOpen checks.
+TEST(SVSImageDriver, closingReleasesEveryDescriptor) {
+    const std::string source = TestTools::getTestImagePath("svs", "JP2K-33003-1.svs");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(source);
+    const std::string copy =
+        (std::filesystem::temp_directory_path() / "slideio_svs_close.svs").string();
+    std::filesystem::copy_file(source, copy,
+                               std::filesystem::copy_options::overwrite_existing);
+    {
+        slideio::SVSImageDriver driver;
+        TestTools::concurrentReadIdentityTest(copy, driver, 0, 4, 8, 2);
+    }
+    EXPECT_FALSE(TestTools::isFileHeldOpen(copy))
+        << "a context's TIFF handle outlived the scene that owned it";
+    std::error_code ignored;
+    std::filesystem::remove(copy, ignored);
 }
 
 TEST(SVSTools, ParseAperioMetadataHeaderOnly)
@@ -645,9 +712,7 @@ TEST(SVSTools, ParseAperioMetadataEmpty)
 TEST(SVSImageDriver, MetadataTreeIsStructured)
 {
     const std::string filePath = TestTools::getTestImagePath("svs", "CMU-1-Small-Region.svs");
-    if (!std::ifstream(filePath).good()) {
-        GTEST_SKIP() << "Fixture not available: " << filePath;
-    }
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     auto slide = slideio::openSlide(filePath, "SVS");
     ASSERT_TRUE(slide);
 
@@ -658,5 +723,39 @@ TEST(SVSImageDriver, MetadataTreeIsStructured)
     EXPECT_GT(meta["properties"].size(), 0u);
     // AppMag is a standard Aperio property — should be present and non-empty.
     EXPECT_FALSE(meta["properties"]["AppMag"].asString().empty());
+}
+
+TEST(SVSImageDriver, colorProfileAbsentWhenTiffTagIsAbsent)
+{
+    // CMU-1-Small-Region.svs carries no ICC tag in its base directory.
+    std::string path = TestTools::getTestImagePath("svs", "CMU-1-Small-Region.svs");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
+    std::shared_ptr<slideio::Slide> slide = slideio::openSlide(path, "SVS");
+    std::shared_ptr<slideio::Scene> scene = slide->getScene(0);
+
+    const slideio::ColorProfile profile = scene->getColorProfile();
+    ASSERT_TRUE(profile.isEmpty());
+    ASSERT_EQ(slideio::ColorProfileSource::None, profile.getSource());
+}
+
+TEST(SVSImageDriver, colorProfileMatchesTheTiffTagWhenPresent)
+{
+    // JP2K-33003-1.svs's base directory (dir[0]) carries a real embedded ICC tag --
+    // confirmed by scanning the corpus directly with a raw TIFF IFD walker, not assumed.
+    std::string path = TestTools::getTestImagePath("svs", "JP2K-33003-1.svs");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
+    std::shared_ptr<slideio::Slide> slide = slideio::openSlide(path, "SVS");
+    std::shared_ptr<slideio::Scene> scene = slide->getScene(0);
+
+    std::vector<slideio::TiffDirectory> directories;
+    slideio::TiffTools::scanFile(path, directories);
+    ASSERT_FALSE(directories[0].iccProfile.empty())
+        << "corpus file no longer carries the ICC tag this test relies on";
+
+    const slideio::ColorProfile profile = scene->getColorProfile();
+    ASSERT_FALSE(profile.isEmpty());
+    ASSERT_EQ(directories[0].iccProfile, profile.getData());
+    ASSERT_EQ(slideio::ColorProfileSource::Embedded, profile.getSource());
+    ASSERT_TRUE(scene->getColorProfileInfo().present);
 }
 

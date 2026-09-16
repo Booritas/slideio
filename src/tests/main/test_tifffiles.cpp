@@ -2,7 +2,7 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include <gtest/gtest.h>
-#include "slideio/base/exceptions.hpp"
+#include "slideio/core/exceptions.hpp"
 #include "slideio/imagetools/tifffiles.hpp"
 #include "tests/testlib/testtools.hpp"
 #include <list>
@@ -15,12 +15,12 @@ protected:
     void TearDown() override {
     }
     std::list<std::string> testFiles = {
-        TestTools::getFullTestImagePath("svs","CMU-1-Small-Region.svs"),
-        TestTools::getFullTestImagePath("ometiff","Subresolutions/retina_large.ome.tiff"),
-        TestTools::getFullTestImagePath("ometiff","Subresolutions/Leica-2.ome.tiff"),
-        TestTools::getFullTestImagePath("ometiff","Subresolutions/Leica-1.ome.tiff"),
-        TestTools::getFullTestImagePath("ometiff","SPIM-ModuloAlongZ.ome.tiff"),
-        TestTools::getFullTestImagePath("ometiff","LAMBDA-ModuloAlongZ-ModuloAlongT.ome.tiff")
+        TestTools::getTestImagePath("svs","CMU-1-Small-Region.svs"),
+        TestTools::getTestImagePath("ometiff","Subresolutions/retina_large.ome.tiff"),
+        TestTools::getTestImagePath("ometiff","Subresolutions/Leica-2.ome.tiff"),
+        TestTools::getTestImagePath("ometiff","Subresolutions/Leica-1.ome.tiff"),
+        TestTools::getTestImagePath("ometiff","SPIM-ModuloAlongZ.ome.tiff"),
+        TestTools::getTestImagePath("ometiff","LAMBDA-ModuloAlongZ-ModuloAlongT.ome.tiff")
     };
     slideio::TIFFFiles tiffFiles;
 };
@@ -48,6 +48,12 @@ TEST_F(TIFFFilesTest, Close_FileClosedSuccessfully) {
 }
 
 TEST_F(TIFFFilesTest, CloseAll_AllFilesClosedSuccessfully) {
+    // The other tests in this fixture only touch testFiles.front(); this one opens all
+    // of them, so it is the only one that needs all of them present. Guarding the
+    // fixture instead would skip the other three for files they never read.
+    for (const auto& filePath : testFiles) {
+        SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    }
 	for (const auto& filePath : testFiles) {
 		tiffFiles.getOrOpen(filePath);
 	}

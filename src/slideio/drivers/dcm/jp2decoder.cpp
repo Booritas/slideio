@@ -11,10 +11,10 @@
 #include "dcmtk/dcmdata/dcvrpobw.h"  /* for class DcmPolymorphOBOW */
 #include "dcmtk/dcmdata/dcswap.h"    /* for swapIfNecessary() */
 #include "dcmtk/dcmdata/dcuid.h"     /* for dcmGenerateUniqueIdentifer()*/
-#include "slideio/base/exceptions.hpp"
-#include "slideio/base/slideio_enums.hpp"
+#include "slideio/core/exceptions.hpp"
+#include "slideio/core/slideio_enums.hpp"
 #include "slideio/imagetools/imagetools.hpp"
-#include "slideio/base/log.hpp"
+#include "slideio/core/log.hpp"
 
 #include "jp2decoder.hpp"
 #include <dcmjpeg/djdecode.h>

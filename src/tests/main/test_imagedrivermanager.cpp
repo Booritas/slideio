@@ -21,6 +21,7 @@ GTEST_TEST(ImageDriverManager, getDriversGlobal)
 TEST(ImageDriverManager, openSlide)
 {
     std::string path = TestTools::getTestImagePath("gdal", "img_2448x2448_3x8bit_SRC_RGB_ducks.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
     std::shared_ptr<slideio::CVSlide> slide = slideio::ImageDriverManager::openSlide(path, "GDAL");
     ASSERT_NE(slide, nullptr);
     const int numScenes = slide->getNumScenes();
@@ -47,11 +48,11 @@ TEST(ImageDriverManager, findDriver)
     std::list<TestEntity> testList = {
         TestEntity("GDAL", TestTools::getTestImagePath("gdal", "img_2448x2448_3x8bit_SRC_RGB_ducks.png")),
         TestEntity("GDAL", TestTools::getTestImagePath("gdal", "Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg")),
-        TestEntity("AFI", TestTools::getTestImagePath("afi", "fs.afi", true)),
+        TestEntity("AFI", TestTools::getTestImagePath("afi", "fs.afi")),
         TestEntity("CZI", TestTools::getTestImagePath("czi", "pJP31mCherry.czi")),
         TestEntity("DCM", TestTools::getTestImagePath("dcm", "CT-MONO2-12-lomb-an2")),
         TestEntity("DCM", TestTools::getTestImagePath("dcm", "barre.dev/OT-MONO2-8-hip.dcm")),
-        TestEntity("NDPI", TestTools::getTestImagePath("ndpi", "test3-DAPI-2-(387).ndpi")),
+        TestEntity("NDPI", TestTools::getTestImagePath("hamamatsu", "test3-DAPI-2-(387).ndpi")),
         TestEntity("SCN", TestTools::getTestImagePath("scn", "Leica-Fluorescence-1.scn")),
         TestEntity("SVS", TestTools::getTestImagePath("svs", "CMU-1-Small-Region.svs")),
         TestEntity("ZVI", TestTools::getTestImagePath("svs", "TOMMAlexaFluor647.zvi"))
@@ -71,5 +72,5 @@ TEST(ImageDriverManager, findDriver)
 TEST(ImageDriverManager, getVersion)
 {
 	std::string version = slideio::ImageDriverManager::getVersion();
-	EXPECT_EQ(version, "2.9.0");
+	EXPECT_EQ(version, "2.9.2");
 }

@@ -8,26 +8,25 @@ set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 set(TEST_SOURCES
   test_ndpitiff_tools.cpp
   test_ndpi_driver.cpp
+  test_ndpitiffkeeper.cpp
+  test_ndpitiffmessagehandler.cpp
 )
 
 add_executable(${TEST_NAME} ${TEST_SOURCES})
 
 target_include_directories(${TEST_NAME} PRIVATE ${INCLUDE_ROOT})
 
-find_package(glog)
 find_package(GTest)
 find_package(OpenCV)
 find_package(ZLIB)
 
 target_link_libraries(${TEST_NAME} 
-  glog::glog
   gtest::gtest
   opencv::opencv
   ZLIB::ZLIB
 )
 
 target_link_libraries(${TEST_NAME} 
-    ${BASE_LIB_NAME}
     ${CORE_LIB_NAME}
     ${NDPI_DRIVER_NAME}
     ${TEST_LIB_NAME}

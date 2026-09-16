@@ -3,7 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/drivers/ome-tiff/otdimensions.hpp"
 
-#include "slideio/base/exceptions.hpp"
+#include "slideio/core/exceptions.hpp"
 
 using namespace slideio;
 using namespace slideio::ometiff;

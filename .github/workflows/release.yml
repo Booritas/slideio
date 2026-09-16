@@ -1,0 +1,353 @@
+name: Release
+
+# Builds the binary distributions and attaches them to the GitHub Release for a
+# version tag:
+#
+#   slideio-<version>-windows-x86_64.zip       headers, import libs and DLLs
+#   slideio-<version>-windows-x86_64-pdb.zip   matching MSVC debug symbols
+#   slideio-<version>-macos-arm64.tar.gz       headers and dylibs, arm64 only
+#   libslideio<major>.<minor>_<version>_amd64.deb   runtime libraries
+#   libslideio-dev_<version>_amd64.deb              headers and CMake config
+#
+# Release builds only; there is no debug distribution. Everything is produced by
+# `install.py -a package-only`, so the same artifacts can be built on a
+# developer machine -- see software-docs/specs/2026-09-13-ci-library-distribution-design.md.
+#
+# build-validation.yml remains the per-commit gate and is untouched. This
+# workflow runs only on tags and on manual dispatch, and a manual run builds and
+# uploads the packages as Actions artifacts without publishing a Release.
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      platforms:
+        description: "Which platforms to build"
+        required: true
+        default: "all"
+        type: choice
+        options:
+          - all
+          - windows
+          - debian
+          - macos
+      skip_tests:
+        description: "Skip the corpus-free unit suites (packaging changes only)"
+        required: false
+        default: false
+        type: boolean
+
+# A manual run cannot publish: the publish job is gated on the event being a tag
+# push, and a tag push never carries inputs. So both knobs above only ever
+# shorten a rehearsal, and neither can put an untested artifact on a release
+# page -- not even a manual run started against a tag ref, which the dispatch
+# API accepts as readily as a branch.
+#
+# Note that GitHub offers the "Run workflow" button only for workflow files that
+# exist on the default branch. Until this file is merged to master it cannot be
+# dispatched from anywhere, including from its own branch.
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # A tag is the only thing that says which version is being released, and
+  # CMakeLists.txt is the only thing that says which version is being built.
+  # They have to agree before three platforms spend an hour producing packages
+  # whose names would otherwise be wrong.
+  check-version:
+    name: Check version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read projectVersion and compare with the tag
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          version=$(sed -n 's/^set(projectVersion \([0-9.]*\))$/\1/p' CMakeLists.txt)
+          if [ -z "$version" ]; then
+            echo "Could not read projectVersion from CMakeLists.txt" >&2
+            exit 1
+          fi
+          echo "projectVersion: $version"
+          if [ "${GITHUB_REF_TYPE:-}" = "tag" ]; then
+            tag_version="${GITHUB_REF_NAME#v}"
+            echo "tag: ${GITHUB_REF_NAME} (version ${tag_version})"
+            if [ "$tag_version" != "$version" ]; then
+              echo "Tag ${GITHUB_REF_NAME} does not match projectVersion ${version} in CMakeLists.txt." >&2
+              echo "Update projectVersion (and SLIDEIO_VERSION in src/slideio/slideio/slideio_def.hpp) or retag." >&2
+              exit 1
+            fi
+          else
+            echo "Manual run: no tag to check against."
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      # The build matrix is assembled here rather than written inline in the
+      # build job, so a manual run can ask for one platform instead of three.
+      # A tag push carries no inputs, so a release always builds all three.
+      - name: Select the platforms to build
+        id: matrix
+        shell: bash
+        env:
+          PLATFORMS: ${{ inputs.platforms || 'all' }}
+        run: |
+          set -euo pipefail
+
+          # Multi-config generator: the binaries land under build/bin/<Config>.
+          windows='{"name":"Windows x86_64","os":"windows-2022","artifact":"windows-x86_64","bin_dir":"build/bin/Release"}'
+          # 22.04 and not the latest image on purpose: it fixes the glibc floor
+          # at 2.35, so the .deb installs on Ubuntu 22.04+ and Debian 12+. Built
+          # on 24.04 it would refuse both.
+          debian='{"name":"Debian x86_64","os":"ubuntu-22.04","artifact":"debian-x86_64","bin_dir":"build/release/bin"}'
+          # macos-14 is the first arm64 image; macos-latest also points at Apple
+          # Silicon now, but naming the version keeps the artifact's
+          # architecture from changing under us.
+          macos='{"name":"macOS arm64","os":"macos-14","artifact":"macos-arm64","bin_dir":"build/release/bin"}'
+
+          case "$PLATFORMS" in
+            all)     include="${windows},${debian},${macos}" ;;
+            windows) include="${windows}" ;;
+            debian)  include="${debian}" ;;
+            macos)   include="${macos}" ;;
+            *)
+              echo "Unknown platform selection: ${PLATFORMS}" >&2
+              exit 1
+              ;;
+          esac
+
+          echo "building: ${PLATFORMS}"
+          echo "matrix={\"include\":[${include}]}" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: ${{ matrix.name }}
+    needs: check-version
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      # One platform failing should not hide whether the other two package
+      # cleanly; a release that is short one artifact is worth knowing about in
+      # full rather than one platform at a time.
+      fail-fast: false
+      # Assembled by the check-version job, so a manual run can build one
+      # platform instead of three. The runner choices and the reasons for them
+      # are there.
+      matrix: ${{ fromJson(needs.check-version.outputs.matrix) }}
+
+    env:
+      SLIDEIO_HOME: ${{ github.workspace }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # extern/jpegxrcodec and extern/pole; without them the CMake configure
+          # step stops with a FATAL_ERROR naming the empty directory.
+          submodules: true
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install Python dependencies
+        run: pip install conan distro
+
+      - name: Setup MSVC
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: amd64
+
+      - name: Sync toolchain
+        run: python sync-toolchain.py
+
+      - name: Cache Conan packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.conan2
+          key: conan-release-${{ matrix.os }}-${{ hashFiles('src/**/conanfile.py', 'conanfile.txt', 'conan/**') }}
+          restore-keys: |
+            conan-release-${{ matrix.os }}-
+
+      - name: Conan install
+        run: python install.py -a conan -c release
+
+      - name: CMake configure
+        run: python install.py -a configure-only -c release
+
+      - name: Build
+        run: python install.py -a build-only -c release
+
+      # The suites that need no slide corpus. The rest of slideio_tests reads
+      # images CI does not carry, and CLAUDE.md requires CI to leave
+      # SLIDEIO_SKIP_MISSING_IMAGES unset, so running them here would fail
+      # rather than skip.
+      - name: Corpus-free unit suites
+        # Skippable only from a manual run, which cannot publish anything -- see
+        # the publish job's condition. A tag push carries no inputs, so a
+        # release always runs them.
+        if: ${{ !inputs.skip_tests }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          exe="${{ matrix.bin_dir }}/slideio_tests"
+          if [ "${RUNNER_OS}" = "Windows" ]; then exe="${exe}.exe"; fi
+          "$exe" --gtest_filter="FileReader.*:ContextPool.*"
+
+      - name: Build packages
+        run: python install.py -a package-only -c release
+
+      - name: List packages
+        shell: bash
+        run: ls -la build/packages
+
+      # --- the package is only real if a stranger can use it -----------------
+      #
+      # Everything below builds auxfiles/package-smoke against the artifact that
+      # was just produced -- unpacked, or apt-installed -- with no reference to
+      # the build tree, no conan and no toolchain file. A missing header, a
+      # driver left out of the archive or a runtime path that only resolves
+      # in-tree fails here rather than on the release page.
+
+      - name: Smoke test the Debian packages
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y ./build/packages/libslideio*.deb
+          cmake -S auxfiles/package-smoke -B build/smoke \
+                -DCMAKE_BUILD_TYPE=Release \
+                -DCMAKE_PREFIX_PATH=/usr \
+                -DSLIDEIO_EXPECTED_VERSION=${{ needs.check-version.outputs.version }}
+          cmake --build build/smoke
+          ./build/smoke/slideio_package_smoke
+
+      - name: Smoke test the macOS archive
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/unpacked
+          # The archive is flat -- bin/, lib/ and include/ at the root, no
+          # enclosing directory -- so the directory it is unpacked into is the
+          # prefix.
+          tar -xzf build/packages/slideio-*.tar.gz -C build/unpacked
+          prefix="${PWD}/build/unpacked"
+          echo "unpacked to ${prefix}"
+          cmake -S auxfiles/package-smoke -B build/smoke \
+                -DCMAKE_BUILD_TYPE=Release \
+                -DCMAKE_PREFIX_PATH="${prefix}" \
+                -DSLIDEIO_EXPECTED_VERSION=${{ needs.check-version.outputs.version }}
+          cmake --build build/smoke
+          # No DYLD_LIBRARY_PATH: the imported target carries an absolute
+          # location, so CMake gives the executable an RPATH pointing into the
+          # unpacked tree. If that is not enough the package is broken for
+          # everyone else too, and this is where we want to find out.
+          ./build/smoke/slideio_package_smoke
+
+      - name: Smoke test the Windows archive
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force build/unpacked | Out-Null
+          $zip = Get-ChildItem build/packages -Filter 'slideio-*.zip' |
+                 Where-Object { $_.Name -notlike '*-pdb.zip' } |
+                 Select-Object -First 1
+          Expand-Archive -Path $zip.FullName -DestinationPath build/unpacked -Force
+          # The archive is flat -- bin/, lib/ and include/ at the root, no
+          # enclosing directory -- so the directory it is unpacked into is the
+          # prefix.
+          $prefix = (Resolve-Path build/unpacked).Path
+          Write-Host "unpacked to $prefix"
+          cmake -S auxfiles/package-smoke -B build/smoke `
+                -DCMAKE_PREFIX_PATH="$prefix" `
+                -DSLIDEIO_EXPECTED_VERSION=${{ needs.check-version.outputs.version }}
+          cmake --build build/smoke --config Release
+          # Windows has no RPATH: the loader finds the DLLs on PATH, which is
+          # what a consumer of the zip has to arrange too.
+          $env:PATH = "$prefix\bin;$env:PATH"
+          & build/smoke/Release/slideio_package_smoke.exe
+
+      - name: Upload packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: slideio-${{ matrix.artifact }}
+          # The packages themselves and nothing else. cpack -B leaves its
+          # _CPack_Packages staging directory here -- a full second copy of the
+          # installed tree, measured locally at 97 MB against 42 MB of actual
+          # archives -- and `build/packages/*` swept it up. Beyond tripling every
+          # artifact, download-artifact with merge-multiple then dropped three
+          # platforms' staging directories into one dist/, where they can
+          # collide before `files: dist/*` ever runs.
+          path: |
+            build/packages/*.zip
+            build/packages/*.tar.gz
+            build/packages/*.deb
+          if-no-files-found: error
+          retention-days: 30
+
+  publish:
+    name: Publish release
+    needs: [check-version, build]
+    # Only a tag *push* publishes. A manual run stops after the build job,
+    # having produced and smoke-tested every artifact -- which is what makes it
+    # a usable rehearsal for a release.
+    #
+    # Both halves of this condition are load-bearing. github.ref_type alone is
+    # not enough: the dispatch API takes a tag as readily as a branch, so a
+    # manual run started against v2.10.0 also reports ref_type == 'tag'. It
+    # would reach this job carrying whatever the inputs asked for and publish a
+    # release built from one platform with the unit suites skipped. Requiring
+    # event_name == 'push' is what makes "a manual run cannot publish" true
+    # rather than merely usually true.
+    if: github.event_name == 'push' && github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download every platform's packages
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: List what will be published
+        run: ls -la dist
+
+      - name: Create the GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*
+          name: slideio ${{ needs.check-version.outputs.version }}
+          draft: true
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          body: |
+            Binary distributions of slideio ${{ needs.check-version.outputs.version }}.
+
+            | Platform | File | Notes |
+            |---|---|---|
+            | Windows x86_64 | `slideio-${{ needs.check-version.outputs.version }}-windows-x86_64.zip` | MSVC 2022. Add `bin` to `PATH`. |
+            | Windows x86_64 | `slideio-${{ needs.check-version.outputs.version }}-windows-x86_64-pdb.zip` | Debug symbols for the above. |
+            | macOS arm64 | `slideio-${{ needs.check-version.outputs.version }}-macos-arm64.tar.gz` | Apple Silicon. Built with a macOS 12 deployment target; tested on macOS 14. |
+            | Debian/Ubuntu x86_64 | `libslideio*.deb` | Ubuntu 22.04+ / Debian 12+. Install both for development. |
+
+            Each package carries the CMake package config, so a consumer can use it with:
+
+            ```cmake
+            find_package(slideio ${{ needs.check-version.outputs.version }} REQUIRED)
+            target_link_libraries(myapp PRIVATE slideio::slideio)
+            ```
+
+            Third-party dependencies are linked statically and their symbols are
+            hidden, so nothing beyond a C++17 runtime is required.

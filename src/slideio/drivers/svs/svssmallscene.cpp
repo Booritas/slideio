@@ -1,7 +1,7 @@
 // This file is part of slideio project.
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
-#include "slideio/base/exceptions.hpp" 
+#include "slideio/core/exceptions.hpp" 
 #include "slideio/drivers/svs/svssmallscene.hpp"
 #include "slideio/drivers/svs/svstools.hpp"
 #include "slideio/slideio/slideio.hpp"
@@ -18,7 +18,13 @@ SVSSmallScene::SVSSmallScene(const std::string& filePath,
     const TiffDirectory& dir,
     bool auxiliary):
         SVSScene(filePath, driverId, name),
-        m_directory(dir)
+        m_directory(dir),
+        // By value, not `this`: AFISlide::openFile overwrites SVSScene::m_filePath with the
+        // path of the .afi index file after construction, so a factory that read m_filePath
+        // at acquire() time would open the AFI XML as a TIFF.
+        m_contextPool([filePath]() {
+            return std::make_unique<SVSReadContext>(filePath);
+        })
 {
     m_dataType = m_directory.dataType;
 
@@ -75,11 +81,8 @@ void SVSSmallScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, cons
         RAISE_RUNTIME_ERROR << "SVSDriver: 3D and 4D images are not supported";
     }
 
-    auto hFile = getFileHandle();
-
-    if (hFile == nullptr) {
-        RAISE_RUNTIME_ERROR << "SVSDriver: Invalid file header by raster reading operation";
-    }
+    auto borrow = acquireContext();
+    auto hFile = borrow.as<SVSReadContext>().keeper.getHandle();
 
     cv::Mat wholeDirRaster;
     if(channelIndices.empty())

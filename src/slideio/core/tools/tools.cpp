@@ -6,7 +6,7 @@
 
 #include <codecvt>
 #include <numeric>
-#include "slideio/base/exceptions.hpp"
+#include "slideio/core/exceptions.hpp"
 #include <filesystem>
 #include <random>
 #if defined(WIN32)
@@ -107,12 +107,24 @@ void Tools::resize(cv::InputArray src, cv::OutputArray dst, cv::Size dsize, int 
             resizedS.copyTo(dst);
         }
         else {
-            // Interpolating methods need arithmetic. Promote to CV_64F, which
-            // represents the full int32 range exactly (unlike CV_32F, whose
-            // 24-bit mantissa loses precision above 2^24), resize, then convert
-            // back to CV_32S with saturation.
-            cv::Mat tmp;
-            srcMat.convertTo(tmp, CV_64F);
+            // Interpolating methods need arithmetic. CV_64F is the only float
+            // depth that represents the full int32 range exactly (CV_32F's
+            // 24-bit mantissa loses precision above 2^24), but the promotion
+            // must NOT go through cv::Mat::convertTo: OpenCV's CV_32S -> CV_64F
+            // kernel routes the value via float, so convertTo alone rounds
+            // -123456789 to -123456792 before any resizing happens. Widen
+            // int32 -> double directly instead, which is lossless by the C++
+            // conversion rules, then resize and convert back to CV_32S with
+            // saturation (the CV_64F -> CV_32S direction is exact).
+            cv::Mat tmp(srcMat.rows, srcMat.cols, CV_MAKETYPE(CV_64F, channels));
+            const int valuesPerRow = srcMat.cols * channels;
+            for (int y = 0; y < srcMat.rows; ++y) {
+                const int32_t* sourceRow = srcMat.ptr<int32_t>(y);
+                double* targetRow = tmp.ptr<double>(y);
+                for (int i = 0; i < valuesPerRow; ++i) {
+                    targetRow[i] = static_cast<double>(sourceRow[i]);
+                }
+            }
             cv::Mat resized;
             cv::resize(tmp, resized, dsize, 0, 0, interpolation);
             resized.convertTo(dst, CV_32S);
@@ -122,6 +134,29 @@ void Tools::resize(cv::InputArray src, cv::OutputArray dst, cv::Size dsize, int 
     cv::resize(src, dst, dsize, 0, 0, interpolation);
 }
 
+#if !defined(WIN32)
+namespace
+{
+    // Lower-cases the ASCII letters and nothing else. Deliberately not
+    // std::tolower: that consults the global C locale, which a host application
+    // is free to change, and the answer to "can this driver open this file"
+    // must not depend on that. Bytes outside A-Z are left exactly as they are,
+    // so a UTF-8 path keeps its multi-byte sequences intact -- folding those
+    // correctly would need real Unicode case mapping, and every pattern this is
+    // used with is a plain ASCII extension.
+    std::string asciiToLower(const std::string& value)
+    {
+        std::string lowered(value);
+        for (char& symbol : lowered) {
+            if (symbol >= 'A' && symbol <= 'Z') {
+                symbol = static_cast<char>(symbol - 'A' + 'a');
+            }
+        }
+        return lowered;
+    }
+}
+#endif
+
 bool Tools::matchPattern(const std::string& path, const std::string& pattern)
 {
     bool ret(false);
@@ -130,10 +165,18 @@ bool Tools::matchPattern(const std::string& path, const std::string& pattern)
     const std::wstring wpattern = Tools::toWstring(pattern);
     ret = PathMatchSpecW(wpath.c_str(), wpattern.c_str()) != 0;
 #else
-    std::vector<std::string> subPatterns = split(pattern, ';');
+    // wildmat compares case-sensitively; PathMatchSpecW on the branch above does
+    // not. This function has one caller, ImageDriver::canOpenFile, and that is
+    // what ImageDriverManager uses to choose a driver -- so with a case-sensitive
+    // comparison a slide named SCAN.OME.TIFF opens on Windows and reports
+    // "Cannot find driver" on Linux and macOS. Fold both sides instead, which
+    // matches what Windows has always done rather than changing it.
+    const std::string loweredPath = asciiToLower(path);
+    const std::string loweredPattern = asciiToLower(pattern);
+    std::vector<std::string> subPatterns = split(loweredPattern, ';');
     for(const auto& sub_pattern : subPatterns)
     {
-        ret = wildmat(const_cast<char*>(path.c_str()),const_cast<char*>(sub_pattern.c_str()));
+        ret = wildmat(const_cast<char*>(loweredPath.c_str()),const_cast<char*>(sub_pattern.c_str()));
         if(ret){
             break;
         }

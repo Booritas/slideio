@@ -1,8 +1,8 @@
 ﻿// This file is part of slideio project.
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
-#include "slideio/base/exceptions.hpp"
-#include "slideio/base/log.hpp"
+#include "slideio/core/exceptions.hpp"
+#include "slideio/core/log.hpp"
 #include "slideio/drivers/czi/cziscene.hpp"
 #include <map>
 #include "slideio/drivers/czi/czislide.hpp"
@@ -293,6 +293,7 @@ void CZIScene::init(uint64_t sceneId, SceneParams& sceneParams, const std::strin
 {
     m_sceneParams = sceneParams;
     m_slide = slide;
+    m_reader = slide->getReader();
     m_id = sceneId;
 	m_sceneIndex = sceneIndex;
     m_filePath = filePath;
@@ -570,7 +571,8 @@ bool CZIScene::readTile(int tileIndex, const std::vector<int>& orgComponentIndic
         {
             uint64_t pos = block.dataPosition();
             uint64_t size = block.dataSize();
-            m_slide->readBlock(pos, size, data);
+            data.resize(size);
+            m_reader->readAt(pos, data.data(), size);
             std::vector<uint8_t> rasterData = decodeData(block, data);
             unpackChannels(block, componentIndices, rasterData, tilerData, channelRasters);
         }

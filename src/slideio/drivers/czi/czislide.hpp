@@ -4,9 +4,10 @@
 #pragma once
 #include "slideio/drivers/czi/czi_api_def.hpp"
 #include "slideio/core/cvslide.hpp"
+#include "slideio/core/tools/filereader.hpp"
 #include "slideio/drivers/czi/cziscene.hpp"
 #include "slideio/drivers/czi/czistructs.hpp"
-#include <fstream>
+#include <memory>
 
 
 namespace tinyxml2
@@ -39,11 +40,19 @@ namespace slideio
         double getTFrameResolution() const {return m_resT;}
         const CZIChannelInfos& getChannelInfo() const { return m_channels; }
         const std::string& getTitle() const { return m_title; }
-        void readBlock(uint64_t pos, uint64_t size, std::vector<unsigned char>& data);;
+        void readBlock(uint64_t pos, uint64_t size, std::vector<unsigned char>& data) const;
+        const std::shared_ptr<const FileReader>& getReader() const { return m_reader; }
         std::shared_ptr<CVScene> getAuxImage(const std::string& sceneName) const override;
-        void readFileHeader(FileHeader& fileHeader);
+        void readFileHeader(uint64_t pos, FileHeader& fileHeader);
         void readSubBlocks(uint64_t pos, uint64_t originPos, std::vector<CZISubBlocks>& sceneBlocks, std::vector<uint64_t>& sceneIds);
         std::shared_ptr<CZIScene> constructScene(int sceneIndex, uint64_t sceneId, const CZISubBlocks& blocks, bool mainScene = true);
+        // Validates that a sub-block directory entry's file position, combined with the
+        // segment origin offset, does not overflow uint64_t. Throws RuntimeError on an
+        // invalid combination. Deliberately public and static (no instance state) so it
+        // can be unit-tested directly, without needing a crafted corrupt CZI file: see
+        // readSubBlocks() in czislide.cpp for why this check must sit outside the
+        // per-entry try/catch there, rather than unit-testing it only through a fixture.
+        static void validateSubBlockFilePosition(int64_t filePosition, uint64_t originPos);
     private:
         void readAttachments();
         void init();
@@ -76,7 +85,7 @@ namespace slideio
     private:
         std::vector<std::shared_ptr<CZIScene>> m_scenes;
         std::string m_filePath;
-        std::ifstream m_fileStream;
+        std::shared_ptr<const FileReader> m_reader;
         uint64_t m_directoryPosition{};
         uint64_t m_metadataPosition{};
         uint64_t m_attachmentDirectoryPosition;

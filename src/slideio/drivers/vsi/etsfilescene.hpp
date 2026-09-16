@@ -24,6 +24,7 @@ namespace slideio
         public:
             EtsFileScene(const std::string& filePath, int sceneIndex, const std::string& driverId, std::shared_ptr<VSIFile>& vsiFile, int etsIndex);
         public:
+            bool supportsConcurrentReads() const override { return true; }
             int getTileCount(void* userData) override;
             bool getTileRect(int tileIndex, cv::Rect& tileRect, void* userData) override;
             bool readTile(int tileIndex, const std::vector<int>& channelIndices, cv::OutputArray tileRaster,

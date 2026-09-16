@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include "slideio/drivers/ome-tiff/otdimensions.hpp"
+#include "slideio/slideio/imagedrivermanager.hpp"
 
 using namespace slideio;
 using namespace slideio::ometiff;
@@ -8,6 +9,7 @@ class OTDimensionsTest : public ::testing::Test {
 protected:
 
     void SetUp() override {
+		ImageDriverManager::setLogLevel("ERROR");
     }
 };
 

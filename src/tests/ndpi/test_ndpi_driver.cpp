@@ -1,4 +1,6 @@
-﻿#include <random>
+﻿#include <atomic>
+#include <random>
+#include <thread>
 #include <gtest/gtest.h>
 #include "slideio/drivers/ndpi/ndpitifftools.hpp"
 #include "tests/testlib/testtools.hpp"
@@ -12,6 +14,10 @@
 #include "slideio/imagetools/imagetools.hpp"
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/slideio/slideio.hpp"
+// Fixture generation only, for colorProfileEndToEndThroughRealDriverPath below.
+#include "slideio/imagetools/icctransform.hpp"
+#include "slideio/core/tools/tempfile.hpp"
+#include "tests/ndpi/synthetic_tiff.hpp"
 
 namespace slideio
 {
@@ -22,20 +28,13 @@ class NDPIImageDriverTests : public ::testing::Test {
 protected:
     static void SetUpTestSuite() {
         slideio::ImageDriverManager::setLogLevel("ERROR");
-        std::cerr << "SetUpTestSuite: Running before all tests\n";
-    }
-    static void TearDownTestSuite() {
     }
 };
 
 TEST_F(NDPIImageDriverTests, openFile)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-    }
-
-    std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "2017-02-27 15.29.08.ndpi");
+    std::string filePath = TestTools::getTestImagePath("hamamatsu", "2017-02-27 15.29.08.ndpi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     slideio::NDPIImageDriver driver;
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide);
@@ -69,14 +68,12 @@ TEST_F(NDPIImageDriverTests, openFile)
 
 TEST_F(NDPIImageDriverTests, readStrippedScene)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-    }
-
-    std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1.ndpi");
-    std::string testFilePath1 = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1-1.png");
-    std::string testFilePath2 = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1_002.tif");
+    std::string filePath = TestTools::getTestImagePath("hamamatsu", "openslide/CMU-1.ndpi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    std::string testFilePath1 = TestTools::getTestImagePath("hamamatsu", "openslide/CMU-1-1.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath1);
+    std::string testFilePath2 = TestTools::getTestImagePath("hamamatsu", "openslide/CMU-1_002.tif");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath2);
     slideio::NDPIImageDriver driver;
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide);
@@ -131,13 +128,10 @@ TEST_F(NDPIImageDriverTests, readStrippedScene)
 
 TEST_F(NDPIImageDriverTests, readROI)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-    }
-
-    std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-2.ndpi");
-    std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-2-roi-l0.png");
+    std::string filePath = TestTools::getTestImagePath("hamamatsu", "openslide/CMU-2.ndpi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    std::string testFilePath = TestTools::getTestImagePath("hamamatsu", "openslide/CMU-2-roi-l0.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath);
     slideio::NDPIImageDriver driver;
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide);
@@ -178,13 +172,10 @@ TEST_F(NDPIImageDriverTests, readROI)
 
 TEST_F(NDPIImageDriverTests, readROI2)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-    }
-
-    std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "test3-TRITC 2 (560).ndpi");
-    std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "test3-TRITC 2 (560)-roi.png");
+    std::string filePath = TestTools::getTestImagePath("hamamatsu", "test3-TRITC 2 (560).ndpi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    std::string testFilePath = TestTools::getTestImagePath("hamamatsu", "test3-TRITC 2 (560)-roi.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath);
     slideio::NDPIImageDriver driver;
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide);
@@ -209,13 +200,10 @@ TEST_F(NDPIImageDriverTests, readROI2)
 
 TEST_F(NDPIImageDriverTests, readROIResampled)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-    }
-
-    std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-2.ndpi");
-    std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-2-roi-l0.png");
+    std::string filePath = TestTools::getTestImagePath("hamamatsu", "openslide/CMU-2.ndpi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    std::string testFilePath = TestTools::getTestImagePath("hamamatsu", "openslide/CMU-2-roi-l0.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath);
     slideio::NDPIImageDriver driver;
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide);
@@ -260,14 +248,12 @@ TEST_F(NDPIImageDriverTests, readROIResampled)
 
 TEST_F(NDPIImageDriverTests, readAuxImages)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-    }
-
-    std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "2017-02-27 15.29.08.ndpi");
-    std::string macroFilePath = TestTools::getFullTestImagePath("hamamatsu", "2017-02-27 15.29.08.macro.png");
-    std::string mapFilePath = TestTools::getFullTestImagePath("hamamatsu", "2017-02-27 15.29.08.map.png");
+    std::string filePath = TestTools::getTestImagePath("hamamatsu", "2017-02-27 15.29.08.ndpi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    std::string macroFilePath = TestTools::getTestImagePath("hamamatsu", "2017-02-27 15.29.08.macro.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(macroFilePath);
+    std::string mapFilePath = TestTools::getTestImagePath("hamamatsu", "2017-02-27 15.29.08.map.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(mapFilePath);
     slideio::NDPIImageDriver driver;
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide);
@@ -300,12 +286,10 @@ TEST_F(NDPIImageDriverTests, readAuxImages)
 
 TEST_F(NDPIImageDriverTests, readResampledTiled)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-    }
-    std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "DM0014 - 2020-04-02 10.25.21.ndpi");
-    std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "DM0014 - 2020-04-02 10.25.21-roi-resampled.png");
+    std::string filePath = TestTools::getTestImagePath("hamamatsu", "DM0014 - 2020-04-02 10.25.21.ndpi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    std::string testFilePath = TestTools::getTestImagePath("hamamatsu", "DM0014 - 2020-04-02 10.25.21-roi-resampled.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath);
     slideio::NDPIImageDriver driver;
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide);
@@ -343,13 +327,10 @@ TEST_F(NDPIImageDriverTests, readResampledTiled)
 
 TEST_F(NDPIImageDriverTests, readResampledTiledRoi)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-    }
-
-    std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "DM0014 - 2020-04-02 10.25.21.ndpi");
-    std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "DM0014 - 2020-04-02 10.25.21-roi-resampled-tiled.png");
+    std::string filePath = TestTools::getTestImagePath("hamamatsu", "DM0014 - 2020-04-02 10.25.21.ndpi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    std::string testFilePath = TestTools::getTestImagePath("hamamatsu", "DM0014 - 2020-04-02 10.25.21-roi-resampled-tiled.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath);
     slideio::NDPIImageDriver driver;
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide);
@@ -387,12 +368,10 @@ TEST_F(NDPIImageDriverTests, readResampledTiledRoi)
 
 TEST_F(NDPIImageDriverTests, readResampled)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-    }
-    std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "DM0014 - 2020-04-02 11.10.47.ndpi");
-    std::string testFilePath = TestTools::getFullTestImagePath("hamamatsu", "DM0014 - 2020-04-02 11.10.47-resampled.png");
+    std::string filePath = TestTools::getTestImagePath("hamamatsu", "DM0014 - 2020-04-02 11.10.47.ndpi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    std::string testFilePath = TestTools::getTestImagePath("hamamatsu", "DM0014 - 2020-04-02 11.10.47-resampled.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath);
     slideio::NDPIImageDriver driver;
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide);
@@ -414,35 +393,27 @@ TEST_F(NDPIImageDriverTests, readResampled)
 
 TEST_F(NDPIImageDriverTests, openFileUtf8)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-    }
-    {
-        std::string filePath = TestTools::getFullTestImagePath("unicode", u8"тест/test3-TRITC 2 (560).ndpi");
-        slideio::NDPIImageDriver driver;
-        std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
-        int dirCount = slide->getNumScenes();
-        ASSERT_EQ(dirCount, 1);
-        std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
-        auto rect = scene->getRect();
-        cv::Rect expectedRect(0, 0, 3968, 4864);
-        EXPECT_EQ(rect, expectedRect);
-        cv::Mat raster;
-        scene->readBlock(rect, raster);
-        EXPECT_EQ(raster.cols, rect.width);
-        EXPECT_EQ(raster.rows, rect.height);
-    }
+    std::string filePath = TestTools::getTestImagePath("unicode", u8"тест/test3-TRITC 2 (560).ndpi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::NDPIImageDriver driver;
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    int dirCount = slide->getNumScenes();
+    ASSERT_EQ(dirCount, 1);
+    std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
+    auto rect = scene->getRect();
+    cv::Rect expectedRect(0, 0, 3968, 4864);
+    EXPECT_EQ(rect, expectedRect);
+    cv::Mat raster;
+    scene->readBlock(rect, raster);
+    EXPECT_EQ(raster.cols, rect.width);
+    EXPECT_EQ(raster.rows, rect.height);
 }
 
 
 TEST_F(NDPIImageDriverTests, findZoomDirectory)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-    }
-    const std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "DM0014 - 2020-04-02 11.10.47.ndpi");
+    const std::string filePath = TestTools::getTestImagePath("hamamatsu", "DM0014 - 2020-04-02 11.10.47.ndpi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     slideio::NDPIImageDriver driver;
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     const int dirCount = slide->getNumScenes();
@@ -485,18 +456,14 @@ TEST_F(NDPIImageDriverTests, findZoomDirectory)
 
 TEST_F(NDPIImageDriverTests, zoomLevels)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-    }
-
     const slideio::LevelInfo levels[] = {
         slideio::LevelInfo(0, {11520,9984}, 1.0, 20., {1920,8}),
         slideio::LevelInfo(1, {2880,2496}, 0.25, 5., {480,8}),
         slideio::LevelInfo(2, {720,624},  0.0625, 1.25, {120,8}),
     };
     slideio::NDPIImageDriver driver;
-    const std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "2017-02-27 15.29.08.ndpi");
+    const std::string filePath = TestTools::getTestImagePath("hamamatsu", "2017-02-27 15.29.08.ndpi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     const std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     const std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
     const int numScenes = slide->getNumScenes();
@@ -517,26 +484,20 @@ TEST_F(NDPIImageDriverTests, zoomLevels)
 }
 
 TEST_F(NDPIImageDriverTests, multiThreadSceneAccess) {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip the test because full dataset is not enabled";
-    }
-    std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "DM0014 - 2020-04-02 11.10.47.ndpi");
+    std::string filePath = TestTools::getTestImagePath("hamamatsu", "DM0014 - 2020-04-02 11.10.47.ndpi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     slideio::NDPIImageDriver driver;
     TestTools::multiThreadedTest(filePath, driver);
 }
 
 TEST_F(NDPIImageDriverTests, readRoiExceedScene)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-    }
-
-    std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1.ndpi");
-    std::string testFilePath1 = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1-1.png");
-    std::string testFilePath2 = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1_002.tif");
+    std::string filePath = TestTools::getTestImagePath("hamamatsu", "openslide/CMU-1.ndpi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    std::string testFilePath1 = TestTools::getTestImagePath("hamamatsu", "openslide/CMU-1-1.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath1);
+    std::string testFilePath2 = TestTools::getTestImagePath("hamamatsu", "openslide/CMU-1_002.tif");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath2);
     slideio::NDPIImageDriver driver;
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide);
@@ -558,11 +519,8 @@ TEST_F(NDPIImageDriverTests, readRoiExceedScene)
 
 TEST_F(NDPIImageDriverTests, getDriverId)
 {
-    if (!TestTools::isFullTestEnabled()) {
-        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-    }
-
-    std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1.ndpi");
+    std::string filePath = TestTools::getTestImagePath("hamamatsu", "openslide/CMU-1.ndpi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     auto slide = slideio::openSlide(filePath, "AUTO");
     ASSERT_TRUE(slide);
     const int numScenes = slide->getNumScenes();
@@ -579,12 +537,9 @@ TEST_F(NDPIImageDriverTests, getDriverId)
 // the level api avoids, so agreement means both address the pyramid the same way.
 TEST_F(NDPIImageDriverTests, readLevelMatchesTheResampledSceneRead)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-    }
     slideio::NDPIImageDriver driver;
-    const std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "2017-02-27 15.29.08.ndpi");
+    const std::string filePath = TestTools::getTestImagePath("hamamatsu", "2017-02-27 15.29.08.ndpi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     auto slide = driver.openFile(filePath);
     auto scene = slide->getScene(0);
     ASSERT_TRUE(scene != nullptr);
@@ -609,12 +564,9 @@ TEST_F(NDPIImageDriverTests, readLevelMatchesTheResampledSceneRead)
 // which is exactly the operation that throws when the rect is not contained.
 TEST_F(NDPIImageDriverTests, readLevelClampsAnOverhangingRect)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-    }
     slideio::NDPIImageDriver driver;
-    const std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "2017-02-27 15.29.08.ndpi");
+    const std::string filePath = TestTools::getTestImagePath("hamamatsu", "2017-02-27 15.29.08.ndpi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     auto slide = driver.openFile(filePath);
     auto scene = slide->getScene(0);
     ASSERT_TRUE(scene != nullptr);
@@ -643,12 +595,9 @@ TEST_F(NDPIImageDriverTests, readLevelClampsAnOverhangingRect)
 // coincidence of similar content.
 TEST_F(NDPIImageDriverTests, readLevelDoesNotEscalateToACoarserLevel)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-    }
     slideio::NDPIImageDriver driver;
-    const std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "2017-02-27 15.29.08.ndpi");
+    const std::string filePath = TestTools::getTestImagePath("hamamatsu", "2017-02-27 15.29.08.ndpi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     auto slide = driver.openFile(filePath);
     auto scene = slide->getScene(0);
     ASSERT_TRUE(scene != nullptr);
@@ -668,4 +617,161 @@ TEST_F(NDPIImageDriverTests, readLevelDoesNotEscalateToACoarserLevel)
     cv::absdiff(resampledFine, coarseNative, diff);
     const double maxAbsDiff = cv::norm(diff, cv::NORM_INF);
     EXPECT_LT(0., maxAbsDiff);
+}
+
+TEST_F(NDPIImageDriverTests, concurrentReadsAreByteIdentical) {
+    std::string filePath = TestTools::getTestImagePath("hamamatsu", "DM0014 - 2020-04-02 11.10.47.ndpi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::NDPIImageDriver driver;
+    TestTools::concurrentReadIdentityTest(filePath, driver);
+}
+
+TEST_F(NDPIImageDriverTests, reportsConcurrentReadSupport) {
+    std::string filePath = TestTools::getTestImagePath("hamamatsu", "DM0014 - 2020-04-02 11.10.47.ndpi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::NDPIImageDriver driver;
+    auto slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide);
+    auto scene = slide->getScene(0);
+    ASSERT_TRUE(scene);
+    EXPECT_TRUE(scene->supportsConcurrentReads());
+}
+
+// Scenes of one NDPI file share the pool, so opening a second scene must not
+// double the descriptor count.
+// A sequential read from every scene proves nothing here: a per-scene pool would pass
+// identically, since nothing would observe pool identity or descriptor count, and
+// DM0014's 3 scenes (main + macro + map aux images) are nowhere near enough to exhaust
+// descriptors even duplicated. So this drives concurrency through the main scene ONLY
+// -- the aux scene (a DIFFERENT NDPIScene reached through the same NDPIFile) is never
+// read at all -- and then compares NDPIFile::contextCount() / NDPIScene::contextCount()
+// as read via each scene. Under the real (shared) design this is not a coincidence: both
+// calls read the size of the literal same ContextPool, so whatever the main scene's
+// traffic grows it to, the aux scene reports identically, having read nothing itself.
+// Under a per-scene pool, the aux scene's own pool would never have been constructed at
+// all (0 contexts) while the main scene's grew from its own traffic -- so the two would
+// differ. Unlike comparing two DIFFERENT thread counts against each other (which this
+// test used to do), this does not rely on ContextPool::defaultMax() being large enough
+// for two different concurrency levels to actually diverge: it holds even when
+// defaultMax() == 1, because "never touched, so never constructed" (0) still differs
+// from "touched at least once" (>= 1) regardless of the cap.
+TEST_F(NDPIImageDriverTests, scenesOfOneFileShareTheHandlePool) {
+    std::string filePath = TestTools::getTestImagePath("hamamatsu", "DM0014 - 2020-04-02 11.10.47.ndpi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::NDPIImageDriver driver;
+    auto slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide);
+
+    auto mainScene = std::dynamic_pointer_cast<slideio::NDPIScene>(slide->getScene(0));
+    ASSERT_TRUE(mainScene);
+    const auto& auxNames = slide->getAuxImageNames();
+    ASSERT_FALSE(auxNames.empty()) << "test needs a second scene of the same file";
+    auto auxScene = std::dynamic_pointer_cast<slideio::NDPIScene>(slide->getAuxImage(auxNames.front()));
+    ASSERT_TRUE(auxScene);
+
+    // init() itself already borrowed the pool once (to validate the file eagerly, then
+    // again inside scanFile()/readDirectoryJpegHeaders), but always one context at a
+    // time, so the pool never had to grow past 1 before any scene was read.
+    EXPECT_EQ(1, mainScene->contextCount());
+
+    const int mainThreads = 6;
+    std::atomic<int> readyCount{0};
+    std::atomic<bool> go{false};
+    // gtest assertion macros are not safe to call off the main test thread -- a failure
+    // recorded from a worker can be corrupted or silently lost. So, following the shape
+    // TestTools::concurrentReadIdentityTest already uses, workers record outcomes into
+    // atomics only; every assertion below happens on the main thread after join().
+    std::atomic<int> emptyCount{0};
+    std::atomic<int> exceptionCount{0};
+    std::vector<std::thread> threads;
+    threads.reserve(mainThreads);
+    for (int i = 0; i < mainThreads; ++i) {
+        threads.emplace_back([&, mainScene]() {
+            ++readyCount;
+            while (!go.load()) { std::this_thread::yield(); }
+            try {
+                const cv::Rect rect = mainScene->getRect();
+                const cv::Size size(std::min(64, rect.width), std::min(64, rect.height));
+                cv::Mat raster;
+                mainScene->readResampledBlockChannels(cv::Rect(rect.x, rect.y, size.width, size.height),
+                                                      size, {}, raster);
+                if (raster.empty()) {
+                    ++emptyCount;
+                }
+            } catch (const std::exception&) {
+                ++exceptionCount;
+            }
+        });
+    }
+    // Every thread waits here until all mainThreads have started, so the reads genuinely
+    // overlap instead of merely happening to interleave by scheduling luck.
+    while (readyCount.load() < mainThreads) { std::this_thread::yield(); }
+    go = true;
+    for (auto& t : threads) {
+        t.join();
+    }
+    EXPECT_EQ(0, emptyCount.load());
+    EXPECT_EQ(0, exceptionCount.load());
+
+    const int mainCount = mainScene->contextCount();
+    const int auxCount = auxScene->contextCount();
+    EXPECT_GT(mainCount, 0);
+    EXPECT_LE(mainCount, slideio::ContextPool::defaultMax());
+    EXPECT_EQ(mainCount, auxCount)
+        << "the auxiliary image reported a different pool size than the main scene "
+           "despite never having been read itself -- the handle pool is not actually "
+           "shared per file";
+}
+
+// --- color profile --------------------------------------------------------------------
+// No NDPI image in the corpus available to this task carries an ICC tag (checked with a
+// raw TIFF IFD walker over all nine reachable hamamatsu files: 2017-02-27 15.29.08.ndpi,
+// DM0014 - 2020-04-02 10.25.21.ndpi, DM0014 - 2020-04-02 11.10.47.ndpi,
+// HE_Hamamatsu.ndpi, CMU-1.ndpi, CMU-2.ndpi, test3-DAPI-2-(387).ndpi, test3-FITC 2
+// (485).ndpi, test3-TRITC 2 (560).ndpi -- none carry TIFFTAG_ICCPROFILE). This is the
+// absent-path counterpart to colorProfileEndToEndThroughRealDriverPath below.
+TEST(NDPIImageDriver, colorProfileMatchesTheTiffTag)
+{
+    std::string path = TestTools::getTestImagePath("hamamatsu", "openslide/CMU-1.ndpi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
+    std::shared_ptr<slideio::Slide> slide = slideio::openSlide(path, "NDPI");
+    std::shared_ptr<slideio::Scene> scene = slide->getScene(0);
+    const slideio::ColorProfile profile = scene->getColorProfile();
+    if (!profile.isEmpty()) {
+        ASSERT_EQ(slideio::ColorProfileSource::Embedded, profile.getSource());
+        ASSERT_TRUE(scene->getColorProfileInfo().present);
+    }
+    else {
+        ASSERT_EQ(slideio::ColorProfileSource::None, profile.getSource());
+    }
+}
+
+// The real corpus has no ICC-tagged NDPI file, so this drives the whole real production
+// path -- NDPIImageDriver::openFile -> NDPISlide::init -> NDPIFile::init/scanFile ->
+// NDPITiffTools::scanTiffDirTags -> NDPISlide::constructScenes -> NDPIScene::init -- on a
+// synthetic single-directory TIFF carrying a real embedded sRGB profile, proving the
+// wiring end to end rather than only in the absent-tag case every real corpus file
+// exercises. No mock of any NDPI class is used; the fixture is a real file and every
+// call from openSlide down is the production code.
+TEST(NDPIImageDriver, colorProfileEndToEndThroughRealDriverPath)
+{
+    const slideio::ColorProfile injected = slideio::IccTransform::createSRGBProfile();
+    ASSERT_FALSE(injected.isEmpty());
+    const std::vector<uint8_t>& profileBytes = injected.getData();
+
+    slideio::TempFile tempTiff("ndpi");
+    const std::string tempPath = tempTiff.getPath().string();
+    slideio_test::writeSyntheticIccTiff(tempPath, profileBytes);
+
+    std::shared_ptr<slideio::Slide> slide = slideio::openSlide(tempPath, "NDPI");
+    ASSERT_TRUE(slide != nullptr);
+    ASSERT_EQ(1, slide->getNumScenes());
+    std::shared_ptr<slideio::Scene> scene = slide->getScene(0);
+    ASSERT_TRUE(scene != nullptr);
+
+    const slideio::ColorProfile profile = scene->getColorProfile();
+    ASSERT_FALSE(profile.isEmpty());
+    EXPECT_EQ(profileBytes, profile.getData());
+    EXPECT_EQ(slideio::ColorProfileSource::Embedded, profile.getSource());
+    EXPECT_TRUE(scene->getColorProfileInfo().present);
 }
