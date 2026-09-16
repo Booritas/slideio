@@ -4,6 +4,8 @@
 #pragma once
 #include "slideio/core/slideio_core_def.hpp"
 
+#include <atomic>
+
 namespace slideio
 {
     /** @brief Log severity.
@@ -45,5 +47,11 @@ namespace slideio
      * to the one variable inside slideio-core. Callers in other modules cache it
      * so the common case is a load rather than a cross-DLL call.
      */
-    SLIDEIO_CORE_EXPORTS const int* logThresholdPtr() noexcept;
+    // std::atomic, because setLogLevel is public and callable while reads are
+    // running: the threshold is written by one thread and read by every
+    // SLIDEIO_LOG statement on every other. Relaxed ordering is all that is
+    // needed -- the value guards nothing but itself -- and it compiles to the
+    // same load a plain int did. The header is internal, so widening the
+    // returned pointer type breaks no out-of-tree caller.
+    SLIDEIO_CORE_EXPORTS const std::atomic<int>* logThresholdPtr() noexcept;
 }

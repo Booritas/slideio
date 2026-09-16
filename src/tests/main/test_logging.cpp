@@ -37,7 +37,7 @@ namespace {
 // CONSTANT-initialised, which is guaranteed to complete before any dynamic
 // initialisation in any TU - so this observes the true initial value, before
 // any test (or setter call) can have run. See spec 4.7.1.
-const int g_thresholdAtStaticInit = *slideio::logThresholdPtr();
+const int g_thresholdAtStaticInit = slideio::logThresholdPtr()->load();
 
 // THE critical test (spec 7.1). setLogLevel lives in slideio; the asserted
 // message is emitted by NDPIImageDriver::openFile in slideio-ndpi. If the
@@ -210,7 +210,7 @@ TEST_F(LoggingTest, thresholdDefaultsToFatal)
 {
     EXPECT_EQ(g_thresholdAtStaticInit, static_cast<int>(slideio::LogLevel::Fatal));
 
-    const int* threshold = slideio::logThresholdPtr();
+    const std::atomic<int>* threshold = slideio::logThresholdPtr();
     ASSERT_NE(threshold, nullptr);
     EXPECT_EQ(slideio::logThresholdPtr(), threshold) << "pointer must be stable across calls";
 }
@@ -219,14 +219,14 @@ TEST_F(LoggingTest, thresholdDefaultsToFatal)
 // the pointer's target diverge from what setLogThreshold wrote.
 TEST_F(LoggingTest, thresholdPointerTracksWrites)
 {
-    const int* threshold = slideio::logThresholdPtr();
+    const std::atomic<int>* threshold = slideio::logThresholdPtr();
     ASSERT_NE(threshold, nullptr);
 
     slideio::setLogThreshold(static_cast<int>(slideio::LogLevel::Info));
-    EXPECT_EQ(*threshold, static_cast<int>(slideio::LogLevel::Info));
+    EXPECT_EQ(threshold->load(), static_cast<int>(slideio::LogLevel::Info));
 
     slideio::setLogThreshold(static_cast<int>(slideio::LogLevel::Error));
-    EXPECT_EQ(*threshold, static_cast<int>(slideio::LogLevel::Error));
+    EXPECT_EQ(threshold->load(), static_cast<int>(slideio::LogLevel::Error));
 
     EXPECT_EQ(slideio::logThresholdPtr(), threshold) << "pointer must be stable across calls";
 }

@@ -291,3 +291,62 @@ TEST(ContextPool, acquireOnAClosingPoolThrows) {
     closer.join();
     EXPECT_EQ(live.load(), 0);
 }
+
+// The case the test above cannot reach. Its pool has a bound of 2 with one
+// borrow held, so a second acquire() grows a context and returns rather than
+// blocking -- no thread is ever parked inside m_available.wait(). A parked
+// thread is the dangerous one: it has to relock m_mutex to return from wait(),
+// so a destructor that finishes while it is parked destroys the mutex
+// mid-acquisition, which is undefined behaviour rather than a missed wakeup.
+//
+// Bound 1, with the only context held, is what forces the park. The destructor
+// must then wait for the waiter to leave as well as for the borrow to come
+// back.
+TEST(ContextPool, destructionWaitsForAThreadParkedInAcquire) {
+    std::atomic<int> live{0};
+    auto pool = std::make_unique<slideio::ContextPool>([&live]() {
+        return std::make_unique<CountingContext>(live);
+    }, 1);
+    slideio::ContextPool* const raw = pool.get();
+
+    // The one context this pool is allowed, so the next acquire() must park.
+    std::optional<slideio::ContextPool::Borrow> held(raw->acquire());
+
+    std::atomic<bool> entered{false};
+    std::atomic<bool> threw{false};
+    std::thread waiter([raw, &entered, &threw]() {
+        entered = true;
+        try {
+            auto parked = raw->acquire();
+            (void)parked;
+        }
+        catch (const slideio::RuntimeError&) {
+            threw = true;
+        }
+    });
+
+    while (!entered.load()) {
+        std::this_thread::yield();
+    }
+    // entered only says the thread started; give it time to actually reach the
+    // wait. Nothing observable distinguishes the two, and overshooting costs a
+    // few milliseconds while undershooting merely tests less.
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+    std::thread closer([&pool]() { pool.reset(); });
+
+    // The waiter must be released by the destructor setting m_closing -- before
+    // the borrow is returned, which is what proves the notify_all() is there.
+    // Without it the waiter sleeps on and this times out.
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
+    while (!threw.load() && std::chrono::steady_clock::now() < deadline) {
+        std::this_thread::yield();
+    }
+    EXPECT_TRUE(threw.load())
+        << "a thread parked in acquire() was not woken by the destructor";
+
+    held.reset();
+    closer.join();
+    waiter.join();
+    EXPECT_EQ(live.load(), 0);
+}

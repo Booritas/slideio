@@ -99,6 +99,11 @@ namespace slideio
         std::vector<std::unique_ptr<ReadContext>> m_contexts;  // owns everything
         std::vector<ReadContext*> m_free;
         int m_borrowed = 0;
+        // Threads parked in acquire(). The destructor waits for this to reach
+        // zero as well as m_borrowed, because a parked thread has to relock
+        // m_mutex to leave its wait() and the destructor would otherwise be
+        // free to destroy that mutex first.
+        int m_waiters = 0;
         bool m_closing = false;
     };
 }
