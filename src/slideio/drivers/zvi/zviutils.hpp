@@ -88,7 +88,24 @@ namespace slideio
         class SLIDEIO_ZVI_EXPORTS BufferedStream
         {
         public:
+            // Buffers the whole stream. For streams that hold nothing but
+            // metadata, which is all of them except [Item(n)]/<Contents>.
             explicit BufferedStream(const ole::basic_stream& stream);
+
+            // Buffers at most `maxBuffer` bytes at a time, refilling as the
+            // parser advances. For a stream whose metadata header is followed
+            // by the pixel payload: [Item(n)]/<Contents> is parsed only as far
+            // as setDataOffset() and the pixels after that point are read later,
+            // positionally, by the raster path. Buffering the whole thing made
+            // opening a slide read every image payload and discard it, turning
+            // metadata init into I/O proportional to the entire image -- and
+            // allocating as much as the largest item -- for a caller that may
+            // only have wanted the dimensions.
+            //
+            // `stream` must outlive this object in this mode; it is read from
+            // on demand rather than copied out once. StreamKeeper owns both and
+            // keeps that true.
+            BufferedStream(const ole::basic_stream& stream, std::streamoff maxBuffer);
 
             // The three operations the parsers use, with pole's semantics
             // preserved exactly, because the parsers depend on them: `read`
@@ -98,11 +115,24 @@ namespace slideio
             std::streamsize read(char* buffer, std::streamsize size);
             std::streamoff seek(std::streamoff offset, std::ios::seekdir way);
             std::streamoff pos() const { return m_pos; }
-            std::streamoff size() const { return static_cast<std::streamoff>(m_data.size()); }
+            // The whole stream, never the buffered window. streamSize(),
+            // bytesLeft() and seek(..., ios::end) are all defined against it,
+            // and the parsers use those to decide when to stop.
+            std::streamoff size() const { return m_size; }
 
         private:
+            // Makes [m_pos, m_pos + count) available in m_data, reading from
+            // m_stream if it is not already. A no-op when fully buffered.
+            void ensureBuffered(std::streamsize count);
+
             std::vector<uint8_t> m_data;
             std::streamoff m_pos = 0;
+            std::streamoff m_size = 0;
+            // Offset in the stream that m_data[0] corresponds to.
+            std::streamoff m_windowStart = 0;
+            // Null when the whole stream was buffered up front.
+            const ole::basic_stream* m_stream = nullptr;
+            std::streamoff m_maxBuffer = 0;
         };
 
         // Reads a ZVI Tags stream:
@@ -147,7 +177,11 @@ namespace slideio
         class SLIDEIO_ZVI_EXPORTS StreamKeeper
         {
         public:
-            StreamKeeper(ole::compound_document& doc, const std::string& path);
+            // maxBuffer == 0 buffers the whole stream, which is what a
+            // metadata-only stream wants. Pass a bound for a stream that carries
+            // pixel data after its header -- see BufferedStream above.
+            StreamKeeper(ole::compound_document& doc, const std::string& path,
+                         std::streamoff maxBuffer = 0);
             operator BufferedStream& () {
                 return m_buffer;
             }

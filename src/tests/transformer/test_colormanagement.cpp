@@ -66,6 +66,77 @@ TEST(TransformationBinding, transformedSceneForwardsTheOriginProfile)
               transformed->getColorProfile().getSize());
 }
 
+TEST(TransformationBinding, colorManagementSeparatesProvenanceFromTheConvertedProfile)
+{
+    // The two profile hooks answer different questions and a conversion is
+    // where the answers diverge. amendColorProfile keeps naming the source --
+    // that is what this scene's colour meant -- while computeColorProfile
+    // describes the blocks the next transformation will be handed, which after
+    // an sRGB conversion are sRGB.
+    //
+    // Both are checked against colors.png's real 672-byte GIMP profile rather
+    // than against each other, so a regression that collapsed the two back into
+    // one function cannot pass: the synthetic lcms sRGB profile is a different
+    // size, and equality with 672 is only true for the source.
+    std::string path = TestTools::getTestImagePath("gdal", "colors.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
+    std::shared_ptr<Slide> slide = openSlide(path, "AUTO");
+    std::shared_ptr<Scene> scene = slide->getScene(0);
+    std::shared_ptr<CVScene> cvScene = scene->getCVScene();
+
+    const ColorProfile source = cvScene->getColorProfile();
+    ASSERT_EQ(static_cast<size_t>(672), source.getSize());
+
+    ColorManagement management(ColorTarget::sRGB);
+    std::shared_ptr<TransformationEx> bound = management.bindToSource(
+        *cvScene, {DataType::DT_Byte, DataType::DT_Byte, DataType::DT_Byte}, source);
+    ASSERT_NE(nullptr, bound.get());
+
+    // Provenance: still the profile the file carried.
+    ASSERT_EQ(source.getData(), bound->amendColorProfile(source).getData());
+
+    // What the blocks now are: sRGB, and specifically not the source profile.
+    const ColorProfile produced = bound->computeColorProfile(source);
+    ASSERT_FALSE(produced.isEmpty());
+    ASSERT_NE(source.getData(), produced.getData());
+    ASSERT_EQ(IccColorSpace::RGB, IccTransform::describe(produced).dataSpace);
+}
+
+TEST(TransformationBinding, chainedColorManagementBindsAgainstTheConvertedProfile)
+{
+    // The bug this guards: TransformerScene accumulated the chain's profile
+    // through amendColorProfile, so a second colour-managed stage was built
+    // against the original source while being handed already-converted pixels,
+    // and converted them a second time from the wrong space without failing.
+    //
+    // A non-sRGB target is used for the second stage because that is the
+    // composition a caller would actually write, and because it makes the
+    // first stage's output profile the only thing the second can bind against.
+    std::string path = TestTools::getTestImagePath("gdal", "colors.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
+    std::shared_ptr<Slide> slide = openSlide(path, "AUTO");
+    std::shared_ptr<Scene> scene = slide->getScene(0);
+    std::shared_ptr<CVScene> cvScene = scene->getCVScene();
+
+    const ColorProfile source = cvScene->getColorProfile();
+    const std::vector<DataType> bytes{DataType::DT_Byte, DataType::DT_Byte, DataType::DT_Byte};
+
+    ColorManagement first(ColorTarget::sRGB);
+    std::shared_ptr<TransformationEx> boundFirst = first.bindToSource(*cvScene, bytes, source);
+    ASSERT_NE(nullptr, boundFirst.get());
+
+    const ColorProfile handedOn = boundFirst->computeColorProfile(source);
+    ColorManagement second(ColorTarget::Lab);
+    std::shared_ptr<TransformationEx> boundSecond =
+        second.bindToSource(*cvScene, boundFirst->computeChannelDataTypes(bytes), handedOn);
+    ASSERT_NE(nullptr, boundSecond.get());
+
+    // The second stage must have bound against sRGB, not the scanner profile.
+    // amendColorProfile reports the source it was bound to, so it is the probe.
+    ASSERT_EQ(handedOn.getData(), boundSecond->amendColorProfile(handedOn).getData());
+    ASSERT_NE(source.getData(), boundSecond->amendColorProfile(handedOn).getData());
+}
+
 namespace {
     // GDALScene wraps a raw SmallImagePage* owned by the GDALSlide that created
     // it; it does not keep its parent alive on its own. A Scene handed back

@@ -23,7 +23,15 @@ void ZVIImageItem::readItemInfo(ole::compound_document& doc)
 void ZVIImageItem::readContents(ole::compound_document& doc)
 {
     const std::string streamPath = std::string("/Image/Item(") + std::to_string(getItemIndex()) + ")/Contents";
-    ZVIUtils::StreamKeeper stream(doc, streamPath);
+    // Bounded read-ahead, not the whole stream: everything after the header this
+    // function parses is the pixel payload, which the raster path reads later
+    // and positionally. Buffering it all here made opening a slide read every
+    // image in the file and throw it away -- init I/O proportional to the whole
+    // dataset, and a peak allocation the size of the largest item, for a caller
+    // that may only want the dimensions. 64 KiB covers this header many times
+    // over, and a field larger than the window still reads in one go.
+    constexpr std::streamoff headerReadAhead = 64 * 1024;
+    ZVIUtils::StreamKeeper stream(doc, streamPath, headerReadAhead);
 
     ZVIUtils::skipItems(stream, 11);
     // {PositionInformation}: a length prefixed blob of at least seven 32-bit

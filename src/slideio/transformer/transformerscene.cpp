@@ -47,7 +47,12 @@ TransformerScene::TransformerScene(std::shared_ptr<CVScene> originScene,
         m_transformations.push_back(bound ? std::static_pointer_cast<Transformation>(bound)
                                           : transformation);
         dataTypes = transformationEx->computeChannelDataTypes(dataTypes);
-        profile = transformationEx->amendColorProfile(profile);
+        // computeColorProfile, not amendColorProfile: this accumulator says what
+        // the *next* transformation will be handed, and after a colour
+        // conversion that is the target space, not the source the scene still
+        // reports. getColorProfile() below keeps using amendColorProfile, which
+        // is the provenance question and has the opposite answer.
+        profile = transformationEx->computeColorProfile(profile);
     }
     m_channelDataTypes = dataTypes;
     computeInflationValue();
