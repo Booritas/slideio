@@ -3,13 +3,13 @@
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/imagetools/imagetools.hpp"
 
-#include "slideio/base/exceptions.hpp"
+#include "slideio/core/exceptions.hpp"
 #include "slideio/core/tools/cvtools.hpp"
 #include "slideio/imagetools/smalltiffwrapper.hpp"
 #include "slideio/imagetools/fiwrapper.hpp"
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/imagetools/smallimage.hpp"
-#include "slideio/base/log.hpp"
+#include "slideio/core/log.hpp"
 #include <FreeImage.h>
 #include <numeric>
 #include <opencv2/imgproc.hpp>

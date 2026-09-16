@@ -7,6 +7,9 @@
 #include "opencv2/imgproc.hpp"
 #include "slideio/imagetools/tiffkeeper.hpp"
 #include "slideio/slideio/imagedrivermanager.hpp"
+#include "slideio/imagetools/icctransform.hpp"
+#include "slideio/core/tools/tempfile.hpp"
+#include "slideio/imagetools/libtiff.hpp"
 
 class TiffToolsTests : public ::testing::Test {
 protected:
@@ -21,6 +24,7 @@ protected:
 TEST_F(TiffToolsTests, scanTiffFile)
 {
     std::string filePath = TestTools::getTestImagePath("svs","JP2K-33003-1.svs");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::vector<slideio::TiffDirectory> dirs;
     slideio::TiffTools::scanFile(filePath, dirs);
     int dirCount = (int)dirs.size();
@@ -52,7 +56,9 @@ TEST_F(TiffToolsTests, scanTiffFile)
 TEST_F(TiffToolsTests, readStripedDir8bitInterleavedPhotometric2)
 {
     std::string filePathTiff = TestTools::getTestImagePath("svs","CMU-1-Small-Region.svs");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePathTiff);
     std::string filePathBmp = TestTools::getTestImagePath("svs", "CMU-1-Small-Region-page-2.bmp");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePathBmp);
     libtiff::TIFF* tiff = slideio::TiffTools::openTiffFile(filePathTiff);;
     ASSERT_TRUE(tiff!=nullptr);
     int dirIndex = 2;
@@ -71,7 +77,9 @@ TEST_F(TiffToolsTests, readStripedDir8bitInterleavedPhotometric2)
 TEST_F(TiffToolsTests, readStripedDir16bitSingleChannel)
 {
     std::string filePathTiff = TestTools::getTestImagePath("gdal", "img_2448x2448_1x16bit_SRC_RGB_ducks.tif");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePathTiff);
     std::string filePathRaw = TestTools::getTestImagePath("gdal", "img_2448x2448_1x16bit_SRC_RGB_ducks.raw");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePathRaw);
     libtiff::TIFF* tiff = slideio::TiffTools::openTiffFile(filePathTiff);;
     ASSERT_TRUE(tiff != nullptr);
     int dirIndex = 0;
@@ -89,7 +97,9 @@ TEST_F(TiffToolsTests, readStripedDir16bitSingleChannel)
 TEST_F(TiffToolsTests, readStripedDir16bitSingleChannel2ndDir)
 {
     std::string filePathTiff = TestTools::getTestImagePath("gdal", "multipage-ducks.tif");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePathTiff);
     std::string filePathRaw = TestTools::getTestImagePath("gdal", "img_2448x2448_1x16bit_SRC_RGB_ducks.raw");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePathRaw);
     libtiff::TIFF* tiff = slideio::TiffTools::openTiffFile(filePathTiff);;
     ASSERT_TRUE(tiff != nullptr);
     int dirIndex = 1;
@@ -107,7 +117,9 @@ TEST_F(TiffToolsTests, readStripedDir16bitSingleChannel2ndDir)
 TEST_F(TiffToolsTests, readStripedDir16bit3Channels)
 {
     std::string filePathTiff = TestTools::getTestImagePath("gdal", "img_2448x2448_3x16bit_SRC_RGB_ducks.tif");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePathTiff);
     std::string filePathRaw = TestTools::getTestImagePath("gdal", "img_2448x2448_3x16bit_SRC_RGB_ducks.raw");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePathRaw);
     libtiff::TIFF* tiff = slideio::TiffTools::openTiffFile(filePathTiff);;
     ASSERT_TRUE(tiff != nullptr);
     int dirIndex = 0;
@@ -219,6 +231,7 @@ TEST_F(TiffToolsTests, readTile_jpeg_swapChannles)
 TEST_F(TiffToolsTests, readPhotometricYCbCr)
 {
     std::string filePath = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1.scn");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::vector<slideio::TiffDirectory> dirs;
     slideio::TiffTools::scanFile(filePath, dirs);
     int dirCount = (int)dirs.size();
@@ -236,6 +249,7 @@ TEST_F(TiffToolsTests, readPhotometricYCbCr)
 TEST_F(TiffToolsTests, readNotRGBTile)
 {
     std::string filePath = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1.scn");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::vector<slideio::TiffDirectory> dirs;
     slideio::TiffTools::scanFile(filePath, dirs);
     int dirCount = (int)dirs.size();
@@ -244,6 +258,7 @@ TEST_F(TiffToolsTests, readNotRGBTile)
     slideio::TIFFKeeper tiff(slideio::TiffTools::openTiffFile(filePath));
 
     std::string tilePath = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1/tile.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(tilePath);
     cv::Mat tile;
     slideio::ImageTools::readSmallImageRaster(tilePath, tile);
 
@@ -287,9 +302,138 @@ TEST_F(TiffToolsTests, readNotRGBTile)
 TEST_F(TiffToolsTests, openFileUtf8)
 {
     std::string filePath = TestTools::getTestImagePath("gdal", u8"тест/тест.tif");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::vector<slideio::TiffDirectory> dirs;
     slideio::TiffTools::scanFile(filePath, dirs);
     int dirCount = (int)dirs.size();
     ASSERT_EQ(dirCount, 1);
 }
 
+
+TEST(TiffTools, iccProfileIsEmptyWhenTheTagIsAbsent)
+{
+    // Most TIFF-family slides carry no ICC tag; the field must stay empty
+    // rather than holding stale bytes from a previous directory.
+    std::string path = TestTools::getTestImagePath("svs", "CMU-1-Small-Region.svs");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
+    std::vector<slideio::TiffDirectory> directories;
+    slideio::TiffTools::scanFile(path, directories);
+    ASSERT_FALSE(directories.empty());
+    for (const auto& directory : directories) {
+        ASSERT_TRUE(directory.iccProfile.empty());
+    }
+}
+
+TEST(TiffTools, iccProfileIsPopulatedWhenTheTagIsPresent)
+{
+    // Create a temporary TIFF with an ICC profile, scan it back, and verify
+    // the bytes match exactly. This tests the populate path (the if branch).
+    slideio::ColorProfile profile = slideio::IccTransform::createSRGBProfile();
+    const std::vector<uint8_t>& profileBytes = profile.getData();
+    ASSERT_FALSE(profileBytes.empty()) << "sRGB profile is empty";
+
+    // Create a temporary TIFF file with a single directory
+    slideio::TempFile tempTiff("tiff");
+    std::string tempPath = tempTiff.getPath().string();
+
+    {
+        libtiff::TIFF* tiff = slideio::TiffTools::openTiffFile(tempPath, false);
+        ASSERT_TRUE(tiff != nullptr) << "Failed to create temporary TIFF file";
+
+        // Write minimal required tags
+        libtiff::TIFFSetField(tiff, TIFFTAG_IMAGEWIDTH, 256U);
+        libtiff::TIFFSetField(tiff, TIFFTAG_IMAGELENGTH, 256U);
+        libtiff::TIFFSetField(tiff, TIFFTAG_BITSPERSAMPLE, 8U);
+        libtiff::TIFFSetField(tiff, TIFFTAG_SAMPLESPERPIXEL, 3U);
+        libtiff::TIFFSetField(tiff, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
+
+        // Write the ICC profile tag
+        libtiff::TIFFSetField(tiff, TIFFTAG_ICCPROFILE, (uint32_t)profileBytes.size(), profileBytes.data());
+
+        // Write a minimal strip (not strictly required for ICC tag test, but keeps the TIFF valid)
+        std::vector<uint8_t> stripData(256 * 3, 0);
+        libtiff::TIFFWriteEncodedStrip(tiff, 0, stripData.data(), (int)stripData.size());
+
+        slideio::TiffTools::closeTiffFile(tiff);
+    }
+
+    // Scan the file back
+    std::vector<slideio::TiffDirectory> directories;
+    slideio::TiffTools::scanFile(tempPath, directories);
+
+    ASSERT_FALSE(directories.empty()) << "No directories found in temp TIFF";
+    ASSERT_EQ(directories[0].iccProfile.size(), profileBytes.size())
+        << "ICC profile size mismatch";
+    ASSERT_EQ(directories[0].iccProfile, profileBytes)
+        << "ICC profile bytes do not match (byte-for-byte comparison)";
+}
+
+TEST(TiffTools, iccProfileIsClearedOnReuse)
+{
+    // Create a temporary TIFF with an ICC profile
+    slideio::ColorProfile profile = slideio::IccTransform::createSRGBProfile();
+    const std::vector<uint8_t>& profileBytes = profile.getData();
+    ASSERT_FALSE(profileBytes.empty());
+
+    slideio::TempFile tempTiff("tiff");
+    std::string tempPath = tempTiff.getPath().string();
+
+    {
+        libtiff::TIFF* tiff = slideio::TiffTools::openTiffFile(tempPath, false);
+        ASSERT_TRUE(tiff != nullptr);
+
+        // First directory with ICC profile
+        libtiff::TIFFSetField(tiff, TIFFTAG_IMAGEWIDTH, 256U);
+        libtiff::TIFFSetField(tiff, TIFFTAG_IMAGELENGTH, 256U);
+        libtiff::TIFFSetField(tiff, TIFFTAG_BITSPERSAMPLE, 8U);
+        libtiff::TIFFSetField(tiff, TIFFTAG_SAMPLESPERPIXEL, 3U);
+        libtiff::TIFFSetField(tiff, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
+        libtiff::TIFFSetField(tiff, TIFFTAG_ICCPROFILE, (uint32_t)profileBytes.size(), profileBytes.data());
+
+        std::vector<uint8_t> stripData(256 * 3, 0);
+        libtiff::TIFFWriteEncodedStrip(tiff, 0, stripData.data(), (int)stripData.size());
+
+        // Second directory WITHOUT ICC profile
+        libtiff::TIFFWriteDirectory(tiff);
+        libtiff::TIFFSetField(tiff, TIFFTAG_IMAGEWIDTH, 128U);
+        libtiff::TIFFSetField(tiff, TIFFTAG_IMAGELENGTH, 128U);
+        libtiff::TIFFSetField(tiff, TIFFTAG_BITSPERSAMPLE, 8U);
+        libtiff::TIFFSetField(tiff, TIFFTAG_SAMPLESPERPIXEL, 3U);
+        libtiff::TIFFSetField(tiff, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
+        // Intentionally do NOT set TIFFTAG_ICCPROFILE
+
+        std::vector<uint8_t> stripData2(128 * 3, 0);
+        libtiff::TIFFWriteEncodedStrip(tiff, 0, stripData2.data(), (int)stripData2.size());
+
+        slideio::TiffTools::closeTiffFile(tiff);
+    }
+
+    // Scan once to populate iccProfile in first directory
+    std::vector<slideio::TiffDirectory> directories;
+    slideio::TiffTools::scanFile(tempPath, directories);
+
+    ASSERT_EQ(directories.size(), 2) << "Expected 2 directories";
+    ASSERT_EQ(directories[0].iccProfile, profileBytes)
+        << "First directory should have ICC profile";
+
+    // Now test the reuse scenario: reuse the first directory object and scan
+    // the second directory into it
+    slideio::TiffDirectory reuseDir;
+
+    // Populate it with the first directory (which has a profile)
+    libtiff::TIFF* tiff = slideio::TiffTools::openTiffFile(tempPath);
+    slideio::TiffTools::scanTiffDirTags(tiff, 0, 0, reuseDir);
+    ASSERT_FALSE(reuseDir.iccProfile.empty())
+        << "First scan should have populated iccProfile";
+    ASSERT_EQ(reuseDir.iccProfile, profileBytes);
+
+    // Now scan the second directory (without ICC tag) into the SAME object
+    slideio::TiffTools::scanTiffDirTags(tiff, 1, 0, reuseDir);
+
+    slideio::TiffTools::closeTiffFile(tiff);
+
+    // The field must be cleared because the second directory has no ICC tag
+    ASSERT_TRUE(reuseDir.iccProfile.empty())
+        << "iccProfile was not cleared when scanning a directory without ICC tag; "
+        << "stale data from previous directory would be attributed to this one";
+}

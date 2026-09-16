@@ -4,9 +4,6 @@ set(LIBRARY_NAME ${GDAL_DRIVER_NAME})
 set(CMAKE_PREFIX_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-HIDE_LIB("libtiff")
-HIDE_LIB("libjpeg")
-
 set(SOURCE_FILES ${SOURCE_FILES}
    ${CMAKE_CURRENT_SOURCE_DIR}/gdalimagedriver.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/gdalimagedriver.cpp
@@ -18,14 +15,13 @@ set(SOURCE_FILES ${SOURCE_FILES}
    )
 
 add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES})
+HIDE_THIRD_PARTY_SYMBOLS(${LIBRARY_NAME})
 set_target_properties(${LIBRARY_NAME} PROPERTIES OUTPUT_NAME "${LIBRARY_NAME}${LIB_NAME_SUFFIX}")
 
-find_package(glog)
 find_package(OpenCV)
 find_package(nlohmann_json REQUIRED)
 
 target_link_libraries(${LIBRARY_NAME} 
-   glog::glog  
    opencv::opencv  
    nlohmann_json::nlohmann_json   
 )

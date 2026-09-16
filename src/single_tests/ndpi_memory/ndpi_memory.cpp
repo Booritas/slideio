@@ -7,7 +7,7 @@
 #include <iostream>
 #include "slideio/drivers/ndpi/ndpiimagedriver.hpp"
 #include "tests/testlib/testtools.hpp"
-#include "slideio/base/log.hpp"
+#include "slideio/slideio/slideio.hpp"
 #include <memory>
 #include <chrono>
 
@@ -15,12 +15,10 @@ using namespace slideio;
 
 void test()
 {
-    google::InitGoogleLogging("slideio");
-    FLAGS_minloglevel = 0;
-    FLAGS_logtostderr = true;
+    slideio::setLogLevel("INFO");
     {
         NDPIImageDriver driver;
-        const std::string filePath = TestTools::getFullTestImagePath("hamamatsu", "openslide/CMU-1.ndpi");
+        const std::string filePath = TestTools::getTestImagePath("hamamatsu", "openslide/CMU-1.ndpi");
         std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath.c_str());
         std::shared_ptr<CVScene> scene = slide->getScene(0);
         cv::Rect rectScene = scene->getRect();

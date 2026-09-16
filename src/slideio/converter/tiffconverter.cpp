@@ -7,9 +7,9 @@
 #include "slideio/core/cvscene.hpp"
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/imagetools/tiffkeeper.hpp"
-#include "slideio/imagetools/tiffmessagehandler.hpp"
 #include "slideio/imagetools/libtiff.hpp"
 #include "slideio/core/tools/color_tools.hpp"
+#include "slideio/core/exceptions.hpp"
 #include <algorithm>
 #include <filesystem>
 #include <tinyxml2.h>
@@ -21,7 +21,7 @@
 #include <atomic>
 #include <unordered_map>
 
-#include "slideio/base/log.hpp"
+#include "slideio/core/log.hpp"
 #include "slideio/core/tools/boundedqueue.hpp"
 #include "slideio/slideio/slideio.hpp"
 
@@ -856,7 +856,6 @@ void TiffConverter::writeDirectoryDataMT(TiffDirectory& dir, const TiffDirectory
 
 
 void TiffConverter::createTiff(const std::string& filePath, const std::function<void(int)>& cb, int tileBatchSize) {
-    TIFFMessageHandler mh;
     m_currentTile = 0;
     m_file.reset(new TIFFKeeper(filePath, false));
     m_filePath = filePath;

@@ -3,7 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/core/tools/tools.hpp"
 #include "tests/testlib/testtools.hpp"
-#include "slideio/base/exceptions.hpp"
+#include "slideio/core/exceptions.hpp"
 #include "slideio/core/tools/tempfile.hpp"
 #include "slideio/core/tools/endian.hpp"
 #include <filesystem>

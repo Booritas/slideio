@@ -5,10 +5,11 @@
 #include "slideio/imagetools/tiffmessagehandler.hpp"
 
 #include <cstdarg>
+#include <mutex>
 #include <tiffio.h>
 
-#include "slideio/base/log.hpp"
-#include "slideio/base/exceptions.hpp"
+#include "slideio/core/log.hpp"
+#include "slideio/core/exceptions.hpp"
 
 using namespace slideio;
 
@@ -74,12 +75,10 @@ void TIFFErrorHandlerFunc(const char *module, const char *fmt, va_list ap) {
     }
 }
 
-TIFFMessageHandler::TIFFMessageHandler() {
-    m_oldErrorHandler = (void*)TIFFSetErrorHandler(TIFFErrorHandlerFunc);
-    m_oldWarningHandler = (void*)TIFFSetWarningHandler(TIFFMessageHandlerFunc);
-}
-
-TIFFMessageHandler::~TIFFMessageHandler() {
-    TIFFSetErrorHandler((TIFFErrorHandler)m_oldErrorHandler);
-    TIFFSetWarningHandler((TIFFErrorHandler)m_oldWarningHandler);
+void slideio::installTiffMessageHandlers() {
+    static std::once_flag flag;
+    std::call_once(flag, []() {
+        TIFFSetErrorHandler(TIFFErrorHandlerFunc);
+        TIFFSetWarningHandler(TIFFMessageHandlerFunc);
+    });
 }

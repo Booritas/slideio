@@ -3,7 +3,7 @@
 #include <openjpeg.h>
 
 #include "jp2_memory.hpp"
-#include "slideio/base/exceptions.hpp"
+#include "slideio/core/exceptions.hpp"
 #include "slideio/core/imagedrivermanager.hpp"
 #include "opj_wrappers.h"
 #include "slideio/converter/convertertools.hpp"

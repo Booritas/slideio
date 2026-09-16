@@ -1,9 +1,9 @@
 // This file is part of slideio project.
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
-#include "slideio/base/exceptions.hpp"
+#include "slideio/core/exceptions.hpp"
 #include "slideio/imagetools/fiwrapper.hpp"
-#include "slideio/base/log.hpp"
+#include "slideio/core/log.hpp"
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/core/tools/cvtools.hpp"
 #include <filesystem>
@@ -473,6 +473,20 @@ void FIWrapper::Page::readRaster(cv::OutputArray raster) {
     else if (mat.channels() == 4 && dt == DataType::DT_Byte) {
         cv::cvtColor(mat, mat, cv::COLOR_BGRA2RGBA);
     }
+}
+
+std::vector<uint8_t> FIWrapper::Page::getICCProfile() const {
+    if (!m_pBitmap) {
+        return {};
+    }
+    // FreeImage_GetICCProfile always returns a valid pointer to a struct
+    // embedded in the FIBITMAP header; a profile-less image reports size 0.
+    FIICCPROFILE* profile = FreeImage_GetICCProfile(m_pBitmap);
+    if (!profile || profile->size == 0 || profile->data == nullptr) {
+        return {};
+    }
+    const uint8_t* bytes = static_cast<const uint8_t*>(profile->data);
+    return std::vector<uint8_t>(bytes, bytes + profile->size);
 }
 
 Resolution FIWrapper::Page::getResolution() const {

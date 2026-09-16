@@ -46,6 +46,7 @@ TEST(SCNImageDriver, slideRawMetadata)
     for (const auto& imageName : images)
     {
         std::string filePath = TestTools::getTestImagePath("scn", imageName);
+        SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
         std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
         const std::string& metadata = slide->getRawMetadata();
         EXPECT_GT(metadata.length(), 0);
@@ -77,6 +78,7 @@ TEST(SCNImageDriver, openFile)
     };
     slideio::SCNImageDriver driver;
     std::string filePath = TestTools::getTestImagePath("scn","Leica-Fluorescence-1.scn");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide!=nullptr);
     const int numScenes = slide->getNumScenes();
@@ -122,6 +124,7 @@ TEST(SCNImageDriver, getChannelDir)
 {
     slideio::SCNImageDriver driver;
     std::string filePath = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1.scn");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
     const int numScenes = slide->getNumScenes();
@@ -164,6 +167,7 @@ TEST(SCNImageDriver, findZoomDirectory)
 {
     slideio::SCNImageDriver driver;
     std::string filePath = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1.scn");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
     const int numScenes = slide->getNumScenes();
@@ -214,28 +218,32 @@ TEST(SCNImageDriver, getTileCount)
 {
     slideio::SCNImageDriver driver;
     std::string filePath = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1.scn");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::vector<slideio::TiffDirectory> dirs;
     slideio::TiffTools::scanFile(filePath, dirs);
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
     const int numScenes = slide->getNumScenes();
     ASSERT_EQ(numScenes, 1);
+    slideio::SCNReadContext context(filePath);
     {
         std::shared_ptr<slideio::SCNScene> scene =
             std::dynamic_pointer_cast<slideio::SCNScene>(slide->getAuxImage("Macro"));
         ASSERT_FALSE(scene == nullptr);
-        SCNTilingInfo info;
-        info.channel2ifd[0] = &dirs[0];
-        int count = scene->getTileCount(&info);
+        slideio::SCNTileUserData data;
+        data.context = &context;
+        data.info.channel2ifd[0] = &dirs[0];
+        int count = scene->getTileCount(&data);
         EXPECT_EQ(count, 40);
     }
     {
         std::shared_ptr<slideio::SCNScene> scene =
             std::dynamic_pointer_cast<slideio::SCNScene>(slide->getScene(0));
         ASSERT_FALSE(scene == nullptr);
-        SCNTilingInfo info;
-        info.channel2ifd[0] = &dirs[8];
-        int count = scene->getTileCount(&info);
+        slideio::SCNTileUserData data;
+        data.context = &context;
+        data.info.channel2ifd[0] = &dirs[8];
+        int count = scene->getTileCount(&data);
         EXPECT_EQ(count, 130);
     }
 }
@@ -244,6 +252,7 @@ TEST(SCNImageDriver, getTileRect)
 {
     slideio::SCNImageDriver driver;
     std::string filePath = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1.scn");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::vector<slideio::TiffDirectory> dirs;
     slideio::TiffTools::scanFile(filePath, dirs);
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
@@ -254,12 +263,14 @@ TEST(SCNImageDriver, getTileRect)
         std::shared_ptr<slideio::SCNScene> scene =
             std::dynamic_pointer_cast<slideio::SCNScene>(slide->getAuxImage("Macro"));
         ASSERT_FALSE(scene == nullptr);
-        SCNTilingInfo info;
-        info.channel2ifd[0] = &dirs[0];
+        slideio::SCNReadContext context(filePath);
+        slideio::SCNTileUserData data;
+        data.context = &context;
+        data.info.channel2ifd[0] = &dirs[0];
         cv::Rect tileRect;
-        scene->getTileRect(0, tileRect, &info);
+        scene->getTileRect(0, tileRect, &data);
         EXPECT_EQ(tileRect, cv::Rect(0,0,512,512));
-        scene->getTileRect(39, tileRect, &info);
+        scene->getTileRect(39, tileRect, &data);
         EXPECT_EQ(tileRect, cv::Rect(1536, 4608, 512, 512));
     }
 }
@@ -268,7 +279,9 @@ TEST(SCNImageDriver, readTile_1_channel)
 {
     slideio::SCNImageDriver driver;
     std::string filePath = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1.scn");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::string tilePath = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1/dir_8_tile_6-8.bmp");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(tilePath);
     std::vector<slideio::TiffDirectory> dirs;
     slideio::TiffTools::scanFile(filePath, dirs);
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
@@ -278,12 +291,14 @@ TEST(SCNImageDriver, readTile_1_channel)
     std::shared_ptr<slideio::SCNScene> scene =
         std::dynamic_pointer_cast<slideio::SCNScene>(slide->getScene(0));
     ASSERT_FALSE(scene == nullptr);
-    SCNTilingInfo info;
-    info.channel2ifd[0] = &dirs[8];
+    slideio::SCNReadContext context(filePath);
+    slideio::SCNTileUserData data;
+    data.context = &context;
+    data.info.channel2ifd[0] = &dirs[8];
     cv::Mat raster;
     const std::vector<int> channelIndices = { 0 };
     const int tileIndex = 6 + 8*10;
-    scene->readTile(tileIndex, channelIndices, raster, &info);
+    scene->readTile(tileIndex, channelIndices, raster, &data);
     cv::Mat bmpImage;// = cv::imread(tilePath, cv::IMREAD_GRAYSCALE);
     slideio::ImageTools::readSmallImageRaster(tilePath, bmpImage);
     int compare = std::memcmp(raster.data, bmpImage.data, raster.total() * raster.elemSize());
@@ -294,8 +309,11 @@ TEST(SCNImageDriver, readTile_2_channels)
 {
     slideio::SCNImageDriver driver;
     std::string filePath = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1.scn");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::string tilePath1 = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1/dir_6_tile_6-8.bmp");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(tilePath1);
     std::string tilePath2 = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1/dir_8_tile_6-8.bmp");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(tilePath2);
     std::vector<slideio::TiffDirectory> dirs;
     slideio::TiffTools::scanFile(filePath, dirs);
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
@@ -305,14 +323,16 @@ TEST(SCNImageDriver, readTile_2_channels)
     std::shared_ptr<slideio::SCNScene> scene =
         std::dynamic_pointer_cast<slideio::SCNScene>(slide->getScene(0));
     ASSERT_FALSE(scene == nullptr);
-    SCNTilingInfo info;
-    info.channel2ifd[0] = &dirs[6];
-    info.channel2ifd[1] = &dirs[8];
+    slideio::SCNReadContext context(filePath);
+    slideio::SCNTileUserData data;
+    data.context = &context;
+    data.info.channel2ifd[0] = &dirs[6];
+    data.info.channel2ifd[1] = &dirs[8];
 
     cv::Mat raster;
     const std::vector<int> channelIndices = { 0, 1 };
     const int tileIndex = 6 + 8 * 10;
-    scene->readTile(tileIndex, channelIndices, raster, &info);
+    scene->readTile(tileIndex, channelIndices, raster, &data);
 
     std::vector<cv::Mat> tileChannels(2);
     //tileChannels[0] = cv::imread(tilePath1, cv::IMREAD_GRAYSCALE);
@@ -332,6 +352,7 @@ TEST(SCNImageDriver, readTile_interleaved_channels)
 {
     slideio::SCNImageDriver driver;
     std::string filePath = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1.scn");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::vector<slideio::TiffDirectory> dirs;
     slideio::TiffTools::scanFile(filePath, dirs);
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
@@ -341,14 +362,17 @@ TEST(SCNImageDriver, readTile_interleaved_channels)
     std::shared_ptr<slideio::SCNScene> scene =
         std::dynamic_pointer_cast<slideio::SCNScene>(slide->getAuxImage("Macro"));
     ASSERT_FALSE(scene == nullptr);
-    SCNTilingInfo info;
-    info.channel2ifd[0] = &dirs[0];
+    slideio::SCNReadContext context(filePath);
+    slideio::SCNTileUserData data;
+    data.context = &context;
+    data.info.channel2ifd[0] = &dirs[0];
     cv::Mat raster;
     const std::vector<int> channelIndices = { 2, 1, 0 };
     const int tileIndex = 1 + 7 * 4;
-    scene->readTile(tileIndex, channelIndices, raster, &info);
+    scene->readTile(tileIndex, channelIndices, raster, &data);
 
     std::string tilePath = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1/dir_0_tile_1-7.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(tilePath);
     cv::Mat bmpImage;
     slideio::ImageTools::readSmallImageRaster(tilePath, bmpImage);
 
@@ -368,7 +392,9 @@ TEST(SCNImageDriver, readTile_readBlock)
 {
     slideio::SCNImageDriver driver;
     std::string filePath = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1.scn");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::string regionPath = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1/x2500-y2338-600x500.bmp");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(regionPath);
     cv::Mat region; 
     slideio::ImageTools::readSmallImageRaster(regionPath, region);
 
@@ -393,7 +419,9 @@ TEST(SCNImageDriver, readTile_readBlockResampling)
 {
     slideio::SCNImageDriver driver;
     std::string filePath = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1.scn");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::string regionPath = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1/x2500-y2338-600x500.bmp");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(regionPath);
     cv::Mat region;// = cv::imread(regionPath, cv::IMREAD_COLOR);
     slideio::ImageTools::readSmallImageRaster(regionPath, region);
     const double coef = 1. / 3.;
@@ -429,7 +457,9 @@ TEST(SCNImageDriver, readThumbnail)
 {
     slideio::SCNImageDriver driver;
     std::string filePath = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1.scn");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::string thumbnailPath = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1/thumbnail.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(thumbnailPath);
     cv::Mat thumbnail;
     slideio::ImageTools::readSmallImageRaster(thumbnailPath, thumbnail);
     slideio::SCNImageDriver imageDriver;
@@ -449,6 +479,7 @@ TEST(SCNImageDriver, auxImages)
 {
     slideio::SCNImageDriver driver;
     std::string filePath = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1.scn");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
     const int numImages = slide->getNumAuxImages();
@@ -460,11 +491,8 @@ TEST(SCNImageDriver, auxImages)
 
 TEST(SCNImageDriver, getSceneIndex)
 {
-    if (!TestTools::isFullTestEnabled()) {
-        GTEST_SKIP() <<
-            "Skip the test because full dataset is not enabled";
-    }
-    std::string filePath = TestTools::getFullTestImagePath("scn", "ultivue/Leica Aperio Versa 5 channel fluorescent image.scn");
+    std::string filePath = TestTools::getTestImagePath("scn", "ultivue/Leica Aperio Versa 5 channel fluorescent image.scn");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     auto slide = slideio::openSlide(filePath, "AUTO");
     ASSERT_TRUE(slide);
     EXPECT_EQ("SCN", slide->getDriverId());
@@ -492,7 +520,8 @@ TEST(SCNImageDriver, getSceneIndex)
 TEST(SCNImageDriver, supplementalImage)
 {
     slideio::SCNImageDriver driver;
-    std::string filePath = TestTools::getFullTestImagePath("scn", "ultivue/Leica Aperio Versa 5 channel fluorescent image.scn");
+    std::string filePath = TestTools::getTestImagePath("scn", "ultivue/Leica Aperio Versa 5 channel fluorescent image.scn");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
     const int numScenes = slide->getNumScenes();
@@ -505,42 +534,38 @@ TEST(SCNImageDriver, supplementalImage)
     auto rect = scene->getRect();
     cv::Mat label;
     scene->readBlock(rect, label);
-    std::string testFilePath = TestTools::getFullTestImagePath("scn", "ultivue/test/Leica Aperio Versa 5 channel fluorescent image-label.png");
+    std::string testFilePath = TestTools::getTestImagePath("scn", "ultivue/test/Leica Aperio Versa 5 channel fluorescent image-label.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath);
     cv::Mat expectedLabel;
     slideio::ImageTools::readSmallImageRaster(testFilePath, expectedLabel);
 	const double score = slideio::ImageTools::computeSimilarity2(label, expectedLabel);
 	const double precision = slideio::Endian::isLittleEndian()?0.99:0.88;
 	EXPECT_GT(score, precision);
-    //std::string testFilePath2 = TestTools::getFullTestImagePath("scn", "ultivue/test/Leica Aperio Versa 5 channel fluorescent image-label-temp.png");
+    //std::string testFilePath2 = TestTools::getTestImagePath("scn", "ultivue/test/Leica Aperio Versa 5 channel fluorescent image-label-temp.png");
 	//TestTools::writePNG(expectedLabel, testFilePath2);
 }
 
 TEST(SCNImageDriver, openFileUtf8)
 {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() << "Skip private test because full dataset is not enabled";
-    }
-    {
-        std::string filePath = TestTools::getFullTestImagePath("unicode", u8"тест/Leica-Fluorescence-1.scn");
-        slideio::SCNImageDriver driver;
-        std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
-        int dirCount = slide->getNumScenes();
-        ASSERT_EQ(dirCount, 1);
-        std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
-        auto rect = scene->getRect();
-        cv::Rect expectedRect(16306, 40361, 4737, 6338);
-        EXPECT_EQ(rect, expectedRect);
-        cv::Mat raster;
-        cv::Size size;
-        double scale = 0.25;
-        size.width = std::lround(double(rect.width) * scale);
-        size.height = std::lround(double(rect.height) * scale);
-        rect.x = rect.y = 0;
-        scene->readResampledBlock(rect, size, raster);
-        EXPECT_EQ(raster.cols, size.width);
-        EXPECT_EQ(raster.rows, size.height);
-    }
+    std::string filePath = TestTools::getTestImagePath("unicode", u8"тест/Leica-Fluorescence-1.scn");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::SCNImageDriver driver;
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    int dirCount = slide->getNumScenes();
+    ASSERT_EQ(dirCount, 1);
+    std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
+    auto rect = scene->getRect();
+    cv::Rect expectedRect(16306, 40361, 4737, 6338);
+    EXPECT_EQ(rect, expectedRect);
+    cv::Mat raster;
+    cv::Size size;
+    double scale = 0.25;
+    size.width = std::lround(double(rect.width) * scale);
+    size.height = std::lround(double(rect.height) * scale);
+    rect.x = rect.y = 0;
+    scene->readResampledBlock(rect, size, raster);
+    EXPECT_EQ(raster.cols, size.width);
+    EXPECT_EQ(raster.rows, size.height);
 }
 
 TEST(SCNImageDriver, zoomLevels)
@@ -554,7 +579,8 @@ TEST(SCNImageDriver, zoomLevels)
         slideio::LevelInfo(5, {295,454}, 0.03117, 0.15625, {512,512}),
     };
     slideio::SCNImageDriver driver;
-    const std::string filePath = TestTools::getFullTestImagePath("scn", "ultivue/Leica Aperio Versa 5 channel fluorescent image.scn");
+    const std::string filePath = TestTools::getTestImagePath("scn", "ultivue/Leica Aperio Versa 5 channel fluorescent image.scn");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     const std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     const std::shared_ptr<slideio::CVScene> scene = slide->getScene(1);
     const int numScenes = slide->getNumScenes();
@@ -575,18 +601,15 @@ TEST(SCNImageDriver, zoomLevels)
 }
 
 TEST(SCNImageDriver, multiThreadSceneAccess) {
-    if (!TestTools::isFullTestEnabled())
-    {
-        GTEST_SKIP() <<
-            "Skip the test because full dataset is not enabled";
-    }
-    std::string filePath = TestTools::getFullTestImagePath("scn", "ultivue/Leica Aperio Versa 5 channel fluorescent image.scn");
+    std::string filePath = TestTools::getTestImagePath("scn", "ultivue/Leica Aperio Versa 5 channel fluorescent image.scn");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     slideio::SCNImageDriver driver;
     TestTools::multiThreadedTest(filePath, driver);
 }
 
 TEST(SCNImageDriver, zStackSetup) {
     std::string filePath = TestTools::getTestImagePath("scn", "z-stack.xml");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     tinyxml2::XMLDocument doc;
     tinyxml2::XMLError result = doc.LoadFile(filePath.c_str());
     ASSERT_EQ(result, tinyxml2::XML_SUCCESS) << "Failed to load XML file: " << filePath;
@@ -599,8 +622,10 @@ TEST(SCNImageDriver, zStackSetup) {
 }
 
 TEST(SCNImageDriver, zStack) {
-    std::string filePath = TestTools::getFullTestImagePath("scn", "private/HER2-63x_1.scn");
-    std::string testFilePath = TestTools::getFullTestImagePath("scn", "private/page-67-StitchAB907A82-6319-422F-9B5B-EB0E0A9D0525-z=4-r=0-c=2.tiff");
+    std::string filePath = TestTools::getTestImagePath("scn", "private/HER2-63x_1.scn");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    std::string testFilePath = TestTools::getTestImagePath("scn", "private/page-67-StitchAB907A82-6319-422F-9B5B-EB0E0A9D0525-z=4-r=0-c=2.tiff");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath);
     slideio::SCNImageDriver driver;
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
@@ -649,7 +674,8 @@ TEST(SCNImageDriver, zStack) {
 }
 
 TEST(SCNImageDriver, zStackFindZoomDirectory) {
-    std::string filePath = TestTools::getFullTestImagePath("scn", "private/HER2-63x_1.scn");
+    std::string filePath = TestTools::getTestImagePath("scn", "private/HER2-63x_1.scn");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     slideio::SCNImageDriver driver;
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
@@ -681,7 +707,8 @@ TEST(SCNImageDriver, zStackFindZoomDirectory) {
 
 TEST(SCNImageDriver, zStackGetChannelDir)
 {
-    std::string filePath = TestTools::getFullTestImagePath("scn", "private/HER2-63x_1.scn");
+    std::string filePath = TestTools::getTestImagePath("scn", "private/HER2-63x_1.scn");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     slideio::SCNImageDriver driver;
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
@@ -728,6 +755,7 @@ TEST(SCNImageDriver, readLevelDiffersFromResampledLevel1)
 {
     slideio::SCNImageDriver driver;
     std::string filePath = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1.scn");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
     std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
@@ -763,6 +791,7 @@ TEST(SCNImageDriver, readLevelChannelsMatchTheMergedRead)
 {
     slideio::SCNImageDriver driver;
     std::string filePath = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1.scn");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
     std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
@@ -790,8 +819,10 @@ TEST(SCNImageDriver, readLevelChannelsMatchTheMergedRead)
 }
 
 TEST(SCNImageDriver, zStackMissingChannels) {
-    std::string filePath = TestTools::getFullTestImagePath("scn", "private/HER2-63x_1.scn");
-    std::string testFilePath = TestTools::getFullTestImagePath("scn", "private/page-67-StitchAB907A82-6319-422F-9B5B-EB0E0A9D0525-z=4-r=0-c=2.tiff");
+    std::string filePath = TestTools::getTestImagePath("scn", "private/HER2-63x_1.scn");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    std::string testFilePath = TestTools::getTestImagePath("scn", "private/page-67-StitchAB907A82-6319-422F-9B5B-EB0E0A9D0525-z=4-r=0-c=2.tiff");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(testFilePath);
     slideio::SCNImageDriver driver;
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
@@ -840,5 +871,50 @@ TEST(SCNImageDriver, zStackMissingChannels) {
     cv::minMaxLoc(channelRaster, &minVal, &maxVal);
 	EXPECT_EQ(maxVal, 0);
 	EXPECT_EQ(minVal, 0);
+}
+
+TEST(SCNImageDriver, concurrentReadsAreByteIdentical) {
+    std::string filePath = TestTools::getTestImagePath("scn", "ultivue/Leica Aperio Versa 5 channel fluorescent image.scn");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::SCNImageDriver driver;
+    TestTools::concurrentReadIdentityTest(filePath, driver);
+}
+
+// SCN walks channel2ifd per channel, so an explicit channel list resolves a
+// different directory for each channel -- the most per-read-state-heavy code in
+// this driver, and untested under concurrency until this. Also covers the
+// level-addressed entry point.
+TEST(SCNImageDriver, concurrentReadsAreByteIdenticalOnEveryEntryPath) {
+    std::string filePath = TestTools::getTestImagePath("scn", "ultivue/Leica Aperio Versa 5 channel fluorescent image.scn");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::SCNImageDriver driver;
+    TestTools::concurrentReadIdentityTestAllPaths(filePath, driver);
+}
+
+TEST(SCNImageDriver, reportsConcurrentReadSupport) {
+    std::string filePath = TestTools::getTestImagePath("scn", "ultivue/Leica Aperio Versa 5 channel fluorescent image.scn");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::SCNImageDriver driver;
+    auto slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide);
+    auto scene = slide->getScene(0);
+    ASSERT_TRUE(scene);
+    EXPECT_TRUE(scene->supportsConcurrentReads());
+}
+
+TEST(SCNImageDriver, colorProfileAbsentWhenTiffTagIsAbsent) {
+    // Leica-Fluorescence-1.scn's channel-0/z-0 base directory carries no ICC tag;
+    // no SCN or PKE/OME-TIFF/VSI image in the corpus available to this task carries
+    // one either (checked with a raw TIFF IFD walker over the whole images corpus).
+    std::string filePath = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1.scn");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::SCNImageDriver driver;
+    auto slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide);
+    auto scene = slide->getScene(0);
+    ASSERT_TRUE(scene);
+    const slideio::ColorProfile profile = scene->getColorProfile();
+    ASSERT_TRUE(profile.isEmpty());
+    ASSERT_EQ(slideio::ColorProfileSource::None, profile.getSource());
 }
 

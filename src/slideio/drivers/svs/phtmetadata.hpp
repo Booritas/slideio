@@ -3,7 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 #pragma once
 #include "slideio/drivers/svs/svs_api_def.hpp"
-#include "slideio/base/resolution.hpp"
+#include "slideio/core/resolution.hpp"
 #include <opencv2/core.hpp>
 #include <string>
 #include <vector>

@@ -1,5 +1,4 @@
 FROM ubuntu:latest AS builder
-ARG CONAN_SERVER_URL
 
 ENV CONAN_REVISIONS_ENABLED=1
 ENV DEBIAN_FRONTEND=noninteractive
@@ -69,7 +68,6 @@ RUN apt-get update && \
     echo "alias l='ls -lah'" >> /root/.bashrc && \
     echo "alias ll='ls -lh'" >> /root/.bashrc && \
     echo "alias la='ls -lAh'" >> /root/.bashrc
-RUN conan remote add slideio  ${CONAN_SERVER_URL} # && conan remote login -p ${CONAN_PASSWORD} slideio ${CONAN_LOGIN_USERNAME}
 RUN cd /opt && git clone --recursive --depth 1 --branch v2.8.1 https://github.com/Booritas/slideio
 ENV SLIDEIO_HOME=/opt/slideio
 RUN cd /opt/slideio && python3 ./install.py -a install -c release

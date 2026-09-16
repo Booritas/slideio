@@ -280,16 +280,8 @@ TEST(MetadataSlide, IsCached)
 
 TEST(MetadataPublicApi, SceneAndSlideExposeTreeForRealSvs)
 {
-    std::string path;
-    try {
-        path = TestTools::getTestImagePath("svs", "JP2K-33003-1.svs");
-    }
-    catch (...) {
-        GTEST_SKIP() << "SLIDEIO_TEST_DATA_PATH not set";
-    }
-    if (!std::ifstream(path).good()) {
-        GTEST_SKIP() << "Fixture not available: " << path;
-    }
+    std::string path = TestTools::getTestImagePath("svs", "JP2K-33003-1.svs");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
 
     auto slide = slideio::openSlide(path, "SVS");
     ASSERT_TRUE(slide);

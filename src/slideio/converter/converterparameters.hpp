@@ -3,9 +3,9 @@
 // of this distribution and at http://slideio.com/license.html.
 #pragma once
 #include "slideio/imagetools/encodeparameters.hpp"
-#include "slideio/base/rect.hpp"
-#include "slideio/base/range.hpp"
-#include "slideio/base/slideio_enums.hpp"
+#include "slideio/core/rect.hpp"
+#include "slideio/core/range.hpp"
+#include "slideio/core/slideio_enums.hpp"
 #include "slideio/converter/converter_def.hpp"
 
 #if defined(_MSC_VER)

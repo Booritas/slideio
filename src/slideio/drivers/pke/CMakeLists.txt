@@ -4,9 +4,6 @@ set(LIBRARY_NAME ${PKE_DRIVER_NAME})
 set(CMAKE_PREFIX_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-HIDE_LIB(libtiff)
-HIDE_LIB(libjpeg)
-
 set(SOURCE_FILES
    ${SOURCE_FILES}
    ${CMAKE_CURRENT_SOURCE_DIR}/pkeimagedriver.hpp
@@ -25,10 +22,10 @@ set(SOURCE_FILES
    )
 
 add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES})
+HIDE_THIRD_PARTY_SYMBOLS(${LIBRARY_NAME})
 set_target_properties(${LIBRARY_NAME} PROPERTIES OUTPUT_NAME "${LIBRARY_NAME}${LIB_NAME_SUFFIX}")
 
 find_package(SQLite3)
-find_package(glog)
 find_package(OpenCV)
 find_package(TIFF)
 find_package(LibLZMA)
@@ -42,7 +39,6 @@ find_package(tinyxml2)
 
 target_link_libraries(${LIBRARY_NAME} 
    SQLite::SQLite3  
-   glog::glog  
    opencv::opencv  
    TIFF::TIFF  
    LibLZMA::LibLZMA  

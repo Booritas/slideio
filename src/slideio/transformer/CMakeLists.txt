@@ -18,6 +18,10 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/colortransformation.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/colortransformationwrap.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/colortransformationwrap.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/colormanagement.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/colormanagement.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/colormanagementwrap.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/colormanagementwrap.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/transformations.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/transformations.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/transformertools.cpp
@@ -61,12 +65,10 @@ set_target_properties(${LIBRARY_NAME} PROPERTIES OUTPUT_NAME "${LIBRARY_NAME}${L
 
 find_package(OpenCV)
 find_package(ZLIB)
-find_package(glog)
 
 target_link_libraries(${LIBRARY_NAME}
    opencv::opencv
    ZLIB::ZLIB
-   glog::glog
 )
 
 SOURCE_GROUP_BY_FOLDER(SOURCE_FILES)
@@ -74,6 +76,7 @@ SOURCE_GROUP_BY_FOLDER(SOURCE_FILES)
 target_link_libraries(${LIBRARY_NAME}
 	${CORE_LIB_NAME}
 	${SLIDEIO_LIB_NAME}
+	${IMAGETOOLS_LIB_NAME}
 )
 
 IF(WIN32)

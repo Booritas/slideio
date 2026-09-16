@@ -2,11 +2,11 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 //
-#include "slideio/base/exceptions.hpp"
+#include "slideio/core/exceptions.hpp"
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/drivers/ndpi/ndpilibtiff.hpp"
 #include "slideio/drivers/ndpi/ndpitifftools.hpp"
-#include "slideio/base/log.hpp"
+#include "slideio/core/log.hpp"
 #include "slideio/core/tools/cvtools.hpp"
 #include <jpeglib.h>
 #include "ndpifile.hpp"
@@ -263,7 +263,10 @@ libtiff::TIFF* slideio::NDPITiffTools::openTiffFile(const std::string& path)
 
 void slideio::NDPITiffTools::closeTiffFile(libtiff::TIFF* file)
 {
-    libtiff::TIFFClose(file);
+    // Guard the null case as slideio::TiffTools::closeTiffFile does: libtiff::TIFFClose
+    // dereferences its argument, so closing nothing used to be an access violation.
+    if (file)
+        libtiff::TIFFClose(file);
 }
 
 
@@ -426,6 +429,16 @@ void slideio::NDPITiffTools::scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, 
     libtiff::TIFFGetField(tiff, TIFFTAG_YCBCRSUBSAMPLING, &YCbCrSubsampling[0], &YCbCrSubsampling[0]);
     dir.YCbCrSubsampling[0] = YCbCrSubsampling[0];
     dir.YCbCrSubsampling[1] = YCbCrSubsampling[1];
+
+    uint32_t iccSize = 0;
+    void* iccData = nullptr;
+    if (libtiff::TIFFGetField(tiff, TIFFTAG_ICCPROFILE, &iccSize, &iccData) && iccData && iccSize > 0) {
+        const uint8_t* bytes = static_cast<const uint8_t*>(iccData);
+        dir.iccProfile.assign(bytes, bytes + iccSize);
+    }
+    else {
+        dir.iccProfile.clear();
+    }
 
     if (units == RESUNIT_INCH && resx > 0 && resy > 0) {
         dir.res.x = 0.01 / resx;
@@ -944,7 +957,9 @@ void NDPITiffTools::readDirectoryJpegHeaders(NDPIFile* ndpi, NDPITiffDirectory& 
     if (dir.height == dir.rowsPerStrip && !dir.mcuStarts.empty()) {
         const auto dirIndex = dir.dirIndex;
 
-        libtiff::TIFF* tiff = ndpi->getTiffHandle();
+        // Runs during NDPIFile::init(), single-threaded, so a local borrow is enough.
+        auto borrow = ndpi->acquireContext();
+        libtiff::TIFF* tiff = borrow.as<NDPIReadContext>().keeper.getHandle();
         setCurrentDirectory(tiff, dir);
 
         std::unique_ptr<FILE, Tools::FileDeleter> sfile(Tools::openFile(ndpi->getFilePath(), "rb"));
@@ -1438,17 +1453,5 @@ void NDPITiffTools::jpeglibDecodeTile(const uint8_t* jpg_buffer, size_t jpg_size
 
     // Once you're really really done, destroy the object to free everything
     jpeg_destroy_decompress(&cinfo);
-}
-
-
-slideio::NDPITIFFKeeper::NDPITIFFKeeper(libtiff::TIFF* hfile) : m_hFile(hfile)
-{
-}
-
-
-NDPITIFFKeeper::~NDPITIFFKeeper()
-{
-    if (m_hFile)
-        libtiff::TIFFClose(m_hFile);
 }
 

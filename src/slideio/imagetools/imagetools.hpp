@@ -5,7 +5,7 @@
 
 #include <opencv2/core.hpp>
 #include "slideio/imagetools/slideio_imagetools_def.hpp"
-#include "slideio/base/slideio_enums.hpp"
+#include "slideio/core/slideio_enums.hpp"
 #include "slideio/imagetools/encodeparameters.hpp"
 
 

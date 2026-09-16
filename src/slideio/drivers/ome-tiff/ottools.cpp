@@ -3,7 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/drivers/ome-tiff/ottools.hpp"
 
-#include "slideio/base/log.hpp"
+#include "slideio/core/log.hpp"
 
 using namespace slideio;
 using namespace slideio::ometiff;

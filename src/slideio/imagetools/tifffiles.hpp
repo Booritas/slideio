@@ -15,10 +15,9 @@ namespace libtiff
 
 namespace slideio
 {
-
     class SLIDEIO_IMAGETOOLS_EXPORTS TIFFFiles {
     public:
-        TIFFFiles() = default;
+        TIFFFiles();
         TIFFFiles(const TIFFFiles&) = delete;
         TIFFFiles& operator=(const TIFFFiles&) = delete;
         TIFFFiles(TIFFFiles&&) = delete;

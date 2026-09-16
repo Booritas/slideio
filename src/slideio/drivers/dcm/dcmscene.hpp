@@ -6,6 +6,7 @@
 #include <map>
 
 #include "slideio/drivers/dcm/dcm_api_def.hpp"
+#include "slideio/core/colorprofile.hpp"
 #include "slideio/core/cvscene.hpp"
 #include "slideio/drivers/dcm/dcmfile.hpp"
 
@@ -45,6 +46,12 @@ namespace slideio
             const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output) override;
         std::string getName() const override;
         Compression getCompression() const override;
+        ColorProfile getColorProfile() const override {
+            return m_colorProfile;
+        }
+        void setColorProfile(const ColorProfile& profile) {
+            m_colorProfile = profile;
+        }
         void addFile(std::shared_ptr<DCMFile>& file);
         void init(const std::string& slideFilePath, int sceneIndex, const std::string& driverId);
     protected:
@@ -69,6 +76,7 @@ namespace slideio
         DataType m_dataType = DataType::DT_Unknown;
         Compression m_compression = Compression::Unknown;
         std::string m_driverId;
+        ColorProfile m_colorProfile;
     };
 }
 

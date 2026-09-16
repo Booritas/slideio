@@ -4,6 +4,7 @@
 #pragma once
 
 #include "slideio/drivers/dcm/dcm_api_def.hpp"
+#include "slideio/core/colorprofile.hpp"
 #include "slideio/core/cvscene.hpp"
 #include "slideio/core/tools/tilecomposer.hpp"
 #include "slideio/drivers/dcm/dcmfile.hpp"
@@ -46,6 +47,12 @@ namespace slideio
         Resolution getResolution() const override;
         double getMagnification() const override;
         Compression getCompression() const override;
+        ColorProfile getColorProfile() const override {
+            return m_colorProfile;
+        }
+        void setColorProfile(const ColorProfile& profile) {
+            m_colorProfile = profile;
+        }
     private:
         std::shared_ptr<DCMFile> getBaseFile() const;
 
@@ -79,5 +86,6 @@ namespace slideio
         std::map<std::string, std::shared_ptr<DCMScene>> m_auxImages;
         int m_sceneIndex = 0;
         std::string m_driverId;
+        ColorProfile m_colorProfile;
     };
 };

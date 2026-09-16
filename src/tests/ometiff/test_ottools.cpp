@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include "slideio/drivers/ome-tiff/ottools.hpp"
+#include "slideio/slideio/imagedrivermanager.hpp"
 #include <cmath>
 
 using namespace slideio;
@@ -8,6 +9,7 @@ using namespace slideio::ometiff;
 class OTToolsTests : public ::testing::Test {
 protected:
     void SetUp() override {
+		ImageDriverManager::setLogLevel("ERROR");
     }
 
     // Helper function to compare doubles with tolerance

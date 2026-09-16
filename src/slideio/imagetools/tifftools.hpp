@@ -6,9 +6,8 @@
 #include <map>
 
 #include "slideio/imagetools/slideio_imagetools_def.hpp"
-#include "slideio/base/resolution.hpp"
-#include "slideio/base/slideio_enums.hpp"
-#include "slideio/base/base.hpp"
+#include "slideio/core/resolution.hpp"
+#include "slideio/core/slideio_enums.hpp"
 #include <opencv2/core.hpp>
 #include <string>
 #include <vector>
@@ -50,6 +49,9 @@ namespace slideio
         int stripSize = 0;
         int compressionQuality = 0;
         uint64_t byteOffset = 0;
+        /**@brief raw ICC profile bytes from TIFFTAG_ICCPROFILE (34675). Empty
+         * when the directory carries no profile.*/
+        std::vector<uint8_t> iccProfile;
     };
 
     SLIDEIO_IMAGETOOLS_EXPORTS std::ostream& operator<<(std::ostream& os, const TiffDirectory& dir);

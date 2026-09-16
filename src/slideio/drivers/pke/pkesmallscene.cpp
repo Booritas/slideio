@@ -6,6 +6,7 @@
 #include "slideio/slideio/slideio.hpp"
 #include "slideio/imagetools/tifftools.hpp"
 #include "slideio/core/levelinfo.hpp"
+#include "slideio/core/exceptions.hpp"
 
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
@@ -19,7 +20,10 @@ PKESmallScene::PKESmallScene(const std::string& filePath,
     const TiffDirectory& dir,
     bool auxiliary):
         PKEScene(filePath, sceneIndex, driverId, name),
-        m_directory(dir)
+        m_directory(dir),
+        m_contextPool([filePath]() {
+            return std::make_unique<PKEReadContext>(filePath);
+        })
 {
     m_dataType = m_directory.dataType;
 
@@ -79,11 +83,8 @@ void PKESmallScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, cons
 	if (zSliceIndex != 0 || tFrameIndex != 0) {
 		RAISE_RUNTIME_ERROR << "PKESmallScene: 3D and 4D images are not supported";
 	}
-    auto hFile = getFileHandle();
-
-    if (hFile == nullptr) {
-        RAISE_RUNTIME_ERROR << "PKEDriver: Invalid file header by raster reading operation";
-    }
+    auto borrow = acquireContext();
+    auto hFile = borrow.as<PKEReadContext>().keeper.getHandle();
 
     cv::Mat wholeDirRaster;
     if(channelIndices.empty())

@@ -1,5 +1,11 @@
 set(INCLUDE_ROOT ${CMAKE_SOURCE_DIR}/src)
 set(TEST_NAME slideio_phtiff_tests)
+# Without these, find_package(GTest) below depends on a sibling test directory
+# having been configured first and left GTest_DIR in the cache. Every other
+# directory under src/tests sets them; these two did not, and a fresh build
+# tree configured without that leftover fails at generate time on gtest::gtest.
+set(CMAKE_PREFIX_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 set(TEST_SOURCES
   test_phtiff_driver.cpp
@@ -12,12 +18,10 @@ target_include_directories(${TEST_NAME} PRIVATE ${INCLUDE_ROOT})
 
 
 find_package(GTest)
-find_package(glog)
 find_package(OpenCV)
 
 target_link_libraries(${TEST_NAME} 
    gtest::gtest
-   glog::glog
    opencv::opencv
 )
 

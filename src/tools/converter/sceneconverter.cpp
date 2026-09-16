@@ -5,9 +5,10 @@
 #include "slideio/converter/converterparameters.hpp"
 #include "slideio/converter/tiffconverter.hpp"
 #include "slideio/slideio/slide.hpp"
-#include "slideio/base/rect.hpp"
-#include "slideio/base/range.hpp"
+#include "slideio/core/rect.hpp"
+#include "slideio/core/range.hpp"
 #include "slideio/core/cvscene.hpp"
+#include "slideio/core/exceptions.hpp"
 #include "slideio/slideio/slideio.hpp"
 #include <iostream>
 #include <filesystem>

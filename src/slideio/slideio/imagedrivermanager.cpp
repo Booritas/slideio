@@ -3,7 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/slideio/imagedrivermanager.hpp"
 
-#include "slideio/base/exceptions.hpp"
+#include "slideio/core/exceptions.hpp"
 #include "slideio/core/imagedriver.hpp"
 #include "slideio/drivers/afi/afiimagedriver.hpp"
 #include "slideio/drivers/czi/cziimagedriver.hpp"
@@ -17,21 +17,11 @@
 #include "slideio/drivers/vsi/vsiimagedriver.hpp"
 #include "slideio/drivers/pke/pkeimagedriver.hpp"
 #include "slideio/drivers/ome-tiff/otimagedriver.hpp"
-#include "slideio/base/log.hpp"
+#include "slideio/core/log.hpp"
+#include "slideio/imagetools/tiffmessagehandler.hpp"
 
 using namespace slideio;
 std::map<std::string, std::shared_ptr<ImageDriver>> ImageDriverManager::driverMap;
-
-static void initLogging()
-{
-    static bool initLog = false;
-    if (!initLog) {
-        google::InitGoogleLogging("slideio");
-        FLAGS_logtostderr = true;
-        FLAGS_minloglevel = google::GLOG_FATAL;
-        initLog = true;
-    }
-}
 
 ImageDriverManager::ImageDriverManager()
 {
@@ -71,11 +61,10 @@ std::shared_ptr<slideio::ImageDriver> ImageDriverManager::findDriver(const std::
 
 void ImageDriverManager::initialize()
 {
-    initLogging();
-
     if(driverMap.empty())
     {
         SLIDEIO_LOG(INFO) << "Initialization ImageDriverManager";
+        installTiffMessageHandlers();
         {
             std::shared_ptr<ImageDriver> driver { std::make_shared<ometiff::OTImageDriver>() };
             driverMap[driver->getID()] = driver;
@@ -129,7 +118,6 @@ void ImageDriverManager::initialize()
 
 std::shared_ptr<CVSlide> ImageDriverManager::openSlide(const std::string& filePath, const std::string& driverName)
 {
-    static bool initLog = false;
     initialize();
     std::shared_ptr<slideio::ImageDriver> driver;
     if(driverName.compare("AUTO")==0 || driverName.empty()) {
@@ -150,16 +138,17 @@ std::shared_ptr<CVSlide> ImageDriverManager::openSlide(const std::string& filePa
 }
 
 void ImageDriverManager::setLogLevel(const std::string &level) {
-    initLogging();
     if(level.compare("INFO")==0) {
-        FLAGS_minloglevel = google::GLOG_INFO;
-    } else if(level.compare("ERROR")==0) {
-        FLAGS_minloglevel = google::GLOG_ERROR;
+        slideio::setLogThreshold(static_cast<int>(slideio::LogLevel::Info));
     } else if(level.compare("WARNING")==0) {
-        FLAGS_minloglevel = google::GLOG_WARNING;
+        slideio::setLogThreshold(static_cast<int>(slideio::LogLevel::Warning));
+    } else if(level.compare("ERROR")==0) {
+        slideio::setLogThreshold(static_cast<int>(slideio::LogLevel::Error));
     } else if(level.compare("FATAL")==0) {
-        FLAGS_minloglevel = google::GLOG_FATAL;
+        slideio::setLogThreshold(static_cast<int>(slideio::LogLevel::Fatal));
     }
+    // Unrecognised strings are ignored, not rejected. Python callers depend on
+    // this not throwing. See design spec section 4.4.3.
 }
 
 std::string ImageDriverManager::getVersion()

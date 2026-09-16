@@ -11,9 +11,9 @@
 
 #include "ndpifile.hpp"
 #include "slideio/core/tools/tools.hpp"
-#include "slideio/drivers/ndpi/ndpitiffmessagehandler.hpp"
 #include "slideio/imagetools/imagetools.hpp"
-#include "slideio/base/log.hpp"
+#include "slideio/core/log.hpp"
+#include "slideio/core/exceptions.hpp"
 
 using namespace slideio;
 
@@ -74,50 +74,29 @@ namespace
     }
 }
 
-class NDPIUserData
+// NDPIUserData itself is declared in ndpiscene.hpp, next to NDPIScene; only its
+// constructor/destructor -- which need Tools::openFile and RAISE_RUNTIME_ERROR -- are
+// defined here.
+NDPIUserData::NDPIUserData(const NDPITiffDirectory* dir, const std::string& filePath) : m_dir(dir),
+                                                                          m_file(nullptr),
+                                                                          m_filePath(filePath)
 {
-public:
-    NDPIUserData(const NDPITiffDirectory* dir, const std::string& filePath) : m_dir(dir),
-                                                                              m_file(nullptr),
-                                                                              m_filePath(filePath)
-    {
-        if ((!dir->tiled) && (dir->rowsPerStrip == dir->height) 
-            && (dir->slideioCompression==Compression::Jpeg
-            || dir->slideioCompression==Compression::Uncompressed)) {
-            m_file = Tools::openFile(filePath, "rb");
-            if (!m_file) {
-                RAISE_RUNTIME_ERROR << "NDPI Image Driver: Cannot open file " << filePath;
-            }
+    if ((!dir->tiled) && (dir->rowsPerStrip == dir->height)
+        && (dir->slideioCompression==Compression::Jpeg
+        || dir->slideioCompression==Compression::Uncompressed)) {
+        m_file = Tools::openFile(filePath, "rb");
+        if (!m_file) {
+            RAISE_RUNTIME_ERROR << "NDPI Image Driver: Cannot open file " << filePath;
         }
     }
+}
 
-    ~NDPIUserData()
-    {
-        if (m_file) {
-            fclose(m_file);
-        }
+NDPIUserData::~NDPIUserData()
+{
+    if (m_file) {
+        fclose(m_file);
     }
-
-    const NDPITiffDirectory* dir() const
-    {
-        return m_dir;
-    }
-
-    FILE* file() const
-    {
-        return m_file;
-    }
-
-    const std::string& filePath() const
-    {
-        return m_filePath;
-    }
-
-private:
-    const NDPITiffDirectory* m_dir;
-    FILE* m_file;
-    std::string m_filePath;
-};
+}
 
 NDPIScene::NDPIScene() : m_pfile(nullptr), m_startDir(-1), m_endDir(-1), m_rect(0, 0, 0, 0), m_sceneIndex(-1)
 {
@@ -129,8 +108,6 @@ NDPIScene::~NDPIScene()
 
 void NDPIScene::init(const std::string& name, int sceneIndex, const std::string& driverId, NDPIFile* file, int32_t startDirIndex, int32_t endDirIndex)
 {
-    NDPITIFFMessageHandler mh;
-
     m_sceneName = name;
     m_pfile = file;
     m_startDir = startDirIndex;
@@ -149,6 +126,11 @@ void NDPIScene::init(const std::string& name, int sceneIndex, const std::string&
     const NDPITiffDirectory& dir = directories[m_startDir];
     m_rect.width = dir.width;
     m_rect.height = dir.height;
+    // This scene's own backing directory is directories[m_startDir] -- the base,
+    // full-resolution directory for the main scene and the sole directory for
+    // an aux (macro/map) scene -- so every scene reports its own directory's
+    // profile, never a fixed directory 0.
+    m_colorProfile = ColorProfile(dir.iccProfile);
 
     m_rawMetadata = directoryToJson(dir).dump(2);
     m_metadataFormat = MetadataFormat::JSON;
@@ -170,6 +152,11 @@ void NDPIScene::init(const std::string& name, int sceneIndex, const std::string&
 cv::Rect NDPIScene::getRect() const
 {
     return m_rect;
+}
+
+int NDPIScene::contextCount() const
+{
+    return m_pfile->contextCount();
 }
 
 int NDPIScene::getNumChannels() const
@@ -285,8 +272,14 @@ void NDPIScene::readResampledLevelBlockChannelsEx(int level, const cv::Rect& lev
     const auto& directories = m_pfile->directories();
     const slideio::NDPITiffDirectory& dir = directories[m_startDir + level];
 
-    NDPITiffTools::setCurrentDirectory(m_pfile->getTiffHandle(), dir);
+    // One borrow for the whole call -- getTileCount, getTileRect and readTile below read
+    // the handle out of this same context, never acquiring one of their own.
+    auto borrow = m_pfile->acquireContext();
+    libtiff::TIFF* tiff = borrow.as<NDPIReadContext>().keeper.getHandle();
+
+    NDPITiffTools::setCurrentDirectory(tiff, dir);
     NDPIUserData data(&dir, getFilePath());
+    data.context = &borrow.as<NDPIReadContext>();
     const auto dirType = dir.getType();
     if (dirType == NDPITiffDirectory::Type::Tiled
         || dirType == NDPITiffDirectory::Type::SingleStripeMCU
@@ -296,7 +289,7 @@ void NDPIScene::readResampledLevelBlockChannelsEx(int level, const cv::Rect& lev
         TileComposer::composeRect(this, channelIndices, levelRect, blockSize, output, (void*)&data);
     } else if (dirType == NDPITiffDirectory::Type::SingleStripe) {
         cv::Mat raster;
-        NDPITiffTools::readStripedDir(m_pfile->getTiffHandle(), dir, raster);
+        NDPITiffTools::readStripedDir(tiff, dir, raster);
         // cv::Mat(raster, rect) throws unless the rect is contained, and an edge tile of a
         // level is not: clamp, read the part that exists, and leave the rest background.
         const cv::Rect valid = levelRect & cv::Rect(0, 0, raster.cols, raster.rows);
@@ -366,8 +359,6 @@ int NDPIScene::getTileCount(void* userData)
 
 bool NDPIScene::getTileRect(int tileIndex, cv::Rect& tileRect, void* userData)
 {
-    NDPITIFFMessageHandler mh;
-
     const NDPIUserData* data = static_cast<const NDPIUserData*>(userData);
     const NDPITiffDirectory* dir = data->dir();
     switch (dir->getType()) {
@@ -415,8 +406,6 @@ void NDPIScene::makeSureValidDirectoryType(NDPITiffDirectory::Type directoryType
 bool NDPIScene::readTile(int tileIndex, const std::vector<int>& channelIndices, cv::OutputArray tileRaster,
                          void* userData)
 {
-    NDPITIFFMessageHandler mh;
-
     const NDPIUserData* data = static_cast<const NDPIUserData*>(userData);
     const NDPITiffDirectory* dir = data->dir();
     bool ret = false;
@@ -427,7 +416,7 @@ bool NDPIScene::readTile(int tileIndex, const std::vector<int>& channelIndices, 
     try {
         switch (directoryType) {
         case NDPITiffDirectory::Type::Tiled: {
-            NDPITiffTools::readTile(m_pfile->getTiffHandle(), *dir, tileIndex, channelIndices, tileRaster);
+            NDPITiffTools::readTile(data->context->keeper.getHandle(), *dir, tileIndex, channelIndices, tileRaster);
             ret = true;
             break;
         }
@@ -439,13 +428,13 @@ bool NDPIScene::readTile(int tileIndex, const std::vector<int>& channelIndices, 
             break;
         }
         case NDPITiffDirectory::Type::Striped: {
-            NDPITiffTools::readStripe(m_pfile->getTiffHandle(), *dir, tileIndex, channelIndices, tileRaster);
+            NDPITiffTools::readStripe(data->context->keeper.getHandle(), *dir, tileIndex, channelIndices, tileRaster);
             ret = true;
             break;
         }
         case NDPITiffDirectory::Type::SingleStripe: {
             cv::Mat raster;
-            NDPITiffTools::readStripedDir(m_pfile->getTiffHandle(), *dir, raster);
+            NDPITiffTools::readStripedDir(data->context->keeper.getHandle(), *dir, raster);
             cv::Rect tileRect;
             if(getTileRect(tileIndex,tileRect, userData)) {
                 cv::Mat blockRaster(raster, tileRect);

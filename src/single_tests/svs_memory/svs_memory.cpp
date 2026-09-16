@@ -5,7 +5,7 @@ using namespace slideio;
 
 void test()
 {
-    const std::string filePath = TestTools::getFullTestImagePath("svs", "S1303802-11-HE-DX1.svs");
+    const std::string filePath = TestTools::getTestImagePath("svs", "S1303802-11-HE-DX1.svs");
     auto slide = slideio::openSlide(filePath,"SVS");
     std::cout << "Done" << std::endl;
 }

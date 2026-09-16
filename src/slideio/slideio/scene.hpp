@@ -4,8 +4,9 @@
 #pragma once
 
 #include "slideio/slideio/slideio_def.hpp"
-#include "slideio/base/slideio_enums.hpp"
+#include "slideio/core/slideio_enums.hpp"
 #include "slideio/core/metadata.hpp"
+#include "slideio/core/colorprofile.hpp"
 #include <string>
 #include <vector>
 #include <memory>
@@ -21,9 +22,21 @@ namespace slideio
     class LevelInfo;
     class CVScene;
     /**@brief Scene class represents a raster image contained in a slide.
-    * 
+    *
     * Scene class allows extracting information from image of a slide. It includes raster data as well as metadata.
     * The object supports multichannel multi-dimensional rasters. The class provides methods for resampling of multi-dimensional rasters.
+    *
+    * Thread safety: block reads of one Scene are always safe to call from several
+    * threads. Whether they *overlap* depends on the driver: a scene whose driver
+    * supports concurrent reads runs them in parallel, otherwise the library
+    * serialises them internally. Callers that relied on reads of one scene being
+    * mutually exclusive in order to protect their own state must take their own
+    * lock.
+    *
+    * Lifetime is the caller's responsibility: a Scene or the Slide it came from
+    * must not be destroyed while a read on it is still in flight. Keep the
+    * shared_ptr alive (or join the reader threads) until every read has
+    * returned. The library does not make a close wait for in-flight reads.
     */
     class SLIDEIO_EXPORTS Scene
     {
@@ -300,6 +313,18 @@ namespace slideio
         std::string getRawMetadata() const;
 		/**@brief returns metadata format of the scene. */
 		MetadataFormat getMetadataFormat() const;
+        /**@brief returns the raw ICC colour profile embedded in the scene.
+         *
+         * Empty when the slide carries none. The bytes are the profile exactly
+         * as stored, suitable for handing to an external colour management
+         * system. Use #getColorProfileInfo for the parsed header.*/
+        ColorProfile getColorProfile() const;
+        /**@brief returns the parsed header of the scene's ICC colour profile.
+         *
+         * present is false when the slide carries no profile, and also when the
+         * profile it carries cannot be parsed. Use the source field to tell a
+         * real correction from an assumed one.*/
+        ColorProfileInfo getColorProfileInfo() const;
         /**@brief returns metadata as a navigable tree. Built lazily on first call. */
         const Metadata& getMetadata() const;
         /**@brief returns a slideio::Scene object that represents an auxiliary image.

@@ -4,8 +4,8 @@
 #pragma once
 #include "slideio/imagetools/slideio_imagetools_def.hpp"
 #include "tifftools.hpp"
-#include "slideio/base/size.hpp"
-#include "slideio/base/slideio_enums.hpp"
+#include "slideio/core/size.hpp"
+#include "slideio/core/slideio_enums.hpp"
 #include "slideio/imagetools/smallimage.hpp"
 #include <FreeImage.h>
 #include <map>
@@ -47,6 +47,7 @@ namespace slideio
 			}
 			void readRaster(cv::OutputArray) override;
 			Resolution getResolution() const override;
+			std::vector<uint8_t> getICCProfile() const override;
 		private:
             void detectMetadata();
 			void extractCommonMetadata();
