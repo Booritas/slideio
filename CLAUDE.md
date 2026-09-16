@@ -49,7 +49,9 @@ everything except publish, which makes it a real rehearsal. A manual run takes
 two inputs -- `platforms` (`all`, `windows`, `debian` or `macos`) so checking
 one platform costs one job instead of three, and `skip_tests` for iterating on
 packaging itself. Neither can reach a release page: the publish job is gated on
-the ref being a tag, and a tag push carries no inputs. Note that GitHub offers
+the event being a tag **push**, and a tag push carries no inputs. Both halves of
+that condition matter -- the dispatch API accepts a tag as a ref, so a manual run
+can report `ref_type == 'tag'` too. Note that GitHub offers
 the Run workflow button only for workflow files present on the **default
 branch**, so the workflow cannot be dispatched from a feature branch until it
 is merged. Before publishing,

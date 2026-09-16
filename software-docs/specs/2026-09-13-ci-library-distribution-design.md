@@ -36,7 +36,7 @@ layout fix, not a rewrite.
 
 | Question | Decision |
 |---|---|
-| Trigger | Tag `v*` publishes a draft GitHub Release; `workflow_dispatch` builds and smoke-tests without publishing, with `platforms` and `skip_tests` inputs |
+| Trigger | A tag `v*` **push** publishes a draft GitHub Release; `workflow_dispatch` builds and smoke-tests without publishing, with `platforms` and `skip_tests` inputs |
 | Debian layout | Split `libslideio2.10` (runtime) + `libslideio-dev` (headers, CMake config) |
 | Windows / macOS | Plain `.zip` / `.tar.gz`, plus a separate `-pdb.zip` of MSVC release symbols |
 | `find_package` | Yes — `slideioConfig.cmake`, consumers link `slideio::slideio` |
@@ -119,6 +119,18 @@ Release, together with `/OPT:REF` and `/OPT:ICF` — `/DEBUG` disables both, and
 without asking for them back the shipped binaries would be larger than before
 for no benefit.
 
+The `Runtime` split has one subtlety that decides whether the SONAME work was
+worth anything. With `VERSION`/`SOVERSION` set, CMake emits `libslideio.so.2.10`
+**and** an unversioned `libslideio.so` namelink, and by default the namelink
+inherits the `LIBRARY` clause's component. Left in `Runtime`, `libslideio2.10`
+and a future `libslideio2.11` would both own `/usr/lib/libslideio.so`, dpkg
+would refuse to have both installed, and the side-by-side installation the
+major.minor SONAME exists to allow would never happen. `NAMELINK_COMPONENT
+Development` puts the unversioned link in `libslideio-dev`, where Debian expects
+it: it is what `-lslideio` resolves through at link time, and nothing reads it at
+runtime. Caught in review, not by the smoke test — which installs both packages
+and so could never have noticed.
+
 ## The version has one source of truth
 
 `ImageDriverManager::getVersion()` returns `SLIDEIO_VERSION`, a literal in
@@ -135,6 +147,14 @@ have to agree, and two of them are checked mechanically:
   version the package is named for.
 
 ## The release gate
+
+The `publish` job requires `github.event_name == 'push' && github.ref_type ==
+'tag'`. Both halves are load-bearing. `ref_type` alone is not enough: the
+dispatch API takes a tag as readily as a branch, so a manual run started against
+`v2.10.0` also reports `ref_type == 'tag'` — and would arrive carrying whatever
+`platforms` and `skip_tests` asked for, publishing a release built from one
+platform with the unit suites skipped. The `event_name` half is what makes "a
+manual run cannot publish" true rather than usually true.
 
 Two steps run before anything is uploaded.
 

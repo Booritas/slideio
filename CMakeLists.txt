@@ -347,9 +347,18 @@ endif()
 # else the shared objects are the runtime and go to lib/. Before this, Unix
 # builds installed the libraries into both lib/ and bin/ -- two copies of every
 # .so, which a system package must not carry.
+#
+# NAMELINK_COMPONENT is what keeps the minor-version packages co-installable.
+# With VERSION/SOVERSION set, CMake emits libslideio.so.2.10 *and* an
+# unversioned libslideio.so pointing at it, and the namelink follows the LIBRARY
+# clause's component unless told otherwise. Left in Runtime, libslideio2.10 and
+# a future libslideio2.11 would both own /usr/lib/libslideio.so -- a dpkg file
+# conflict, and the end of the side-by-side installation the whole major.minor
+# SONAME exists to allow. The unversioned link is a development file: it is what
+# `-lslideio` resolves through, and nothing at runtime reads it.
 install(TARGETS ${SLIDEIO_ALL_LIBS}
     RUNTIME DESTINATION bin COMPONENT Runtime
-    LIBRARY DESTINATION lib COMPONENT Runtime
+    LIBRARY DESTINATION lib COMPONENT Runtime NAMELINK_COMPONENT Development
     ARCHIVE DESTINATION lib COMPONENT Development
 )
 
@@ -432,19 +441,20 @@ configure_package_config_file(
     ${CMAKE_BINARY_DIR}/cmake-package/slideioConfig.cmake
     INSTALL_DESTINATION ${SLIDEIO_CMAKE_PACKAGE_DIR})
 
-# SameMinorVersion is the honest compatibility rule -- 2.10 broke ABI against
-# 2.9 -- but CMake only learned it in 3.11, and this project still declares 3.10
-# as its floor.
-if(CMAKE_VERSION VERSION_LESS 3.11)
-    set(SLIDEIO_VERSION_COMPATIBILITY ExactVersion)
-else()
-    set(SLIDEIO_VERSION_COMPATIBILITY SameMinorVersion)
-endif()
-
+# SameMinorVersion is the honest compatibility rule: 2.10 broke ABI against 2.9,
+# so a consumer asking for 2.10 must not be handed 2.11.
+#
+# It needs CMake 3.11, and NAMELINK_COMPONENT above needs 3.12, both above the
+# 3.10 this file declares. That declaration is already inaccurate and was before
+# this change: target_link_options (CMakeLists.txt:200 and
+# src/slideio/slideio/CMakeLists.txt:59) is 3.13, so the real floor is 3.13. A
+# version guard here would only pretend otherwise. Raising
+# cmake_minimum_required to match is worth doing, but it changes policy defaults
+# and belongs in its own change.
 write_basic_package_version_file(
     ${CMAKE_BINARY_DIR}/cmake-package/slideioConfigVersion.cmake
     VERSION ${PROJECT_VERSION}
-    COMPATIBILITY ${SLIDEIO_VERSION_COMPATIBILITY})
+    COMPATIBILITY SameMinorVersion)
 
 install(FILES
     ${CMAKE_BINARY_DIR}/cmake-package/slideioConfig.cmake
