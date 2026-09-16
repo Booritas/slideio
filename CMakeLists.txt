@@ -1,4 +1,20 @@
-cmake_minimum_required(VERSION 3.10)
+# 3.15 is not aspirational -- it is what this file already required.
+# cmake_policy(SET CMP0091 NEW) two lines down names a policy CMake learned in
+# 3.15, and setting a policy an older CMake does not know is a hard error, so
+# every version below 3.15 failed here before reaching anything else. The
+# declared 3.10 had been wrong for as long as that line has existed.
+#
+# Other floors this passes on the way, each already in use: add_compile_definitions
+# (3.12), target_link_options and add_link_options (3.13, in
+# HIDE_THIRD_PARTY_SYMBOLS and the MSVC release flags), and
+# CMAKE_BUILD_RPATH_USE_ORIGIN (3.14).
+#
+# Raising the declaration also moves the policy defaults from 3.10 to 3.15. The
+# one with a visible effect here is CMP0092: MSVC warning flags are no longer
+# baked into CMAKE_CXX_FLAGS, so the default level drops from /W3 to the
+# compiler default. Nothing in the build parses warning text, and the explicit
+# /wd4275 /wd4251 suppressions are unaffected.
+cmake_minimum_required(VERSION 3.15)
 cmake_policy(SET CMP0057 NEW)
 cmake_policy(SET CMP0091 NEW)
 
@@ -444,13 +460,8 @@ configure_package_config_file(
 # SameMinorVersion is the honest compatibility rule: 2.10 broke ABI against 2.9,
 # so a consumer asking for 2.10 must not be handed 2.11.
 #
-# It needs CMake 3.11, and NAMELINK_COMPONENT above needs 3.12, both above the
-# 3.10 this file declares. That declaration is already inaccurate and was before
-# this change: target_link_options (CMakeLists.txt:200 and
-# src/slideio/slideio/CMakeLists.txt:59) is 3.13, so the real floor is 3.13. A
-# version guard here would only pretend otherwise. Raising
-# cmake_minimum_required to match is worth doing, but it changes policy defaults
-# and belongs in its own change.
+# It needs CMake 3.11 and NAMELINK_COMPONENT above needs 3.12, both comfortably
+# under the 3.15 declared at the top of this file, so neither is guarded.
 write_basic_package_version_file(
     ${CMAKE_BINARY_DIR}/cmake-package/slideioConfigVersion.cmake
     VERSION ${PROJECT_VERSION}
