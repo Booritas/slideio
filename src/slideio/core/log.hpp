@@ -82,8 +82,8 @@ namespace slideio
          */
         inline bool logEnabled(int level)
         {
-            static const int* threshold = logThresholdPtr();
-            return level >= *threshold;
+            static const std::atomic<int>* threshold = logThresholdPtr();
+            return level >= threshold->load(std::memory_order_relaxed);
         }
 
         /** @brief Accumulates a streamed message and emits it on destruction.

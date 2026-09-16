@@ -41,7 +41,7 @@ namespace
     // Constant-initialised, NOT assigned in a lazy init function. A log emitted
     // during another translation unit's static initialisation must not read an
     // indeterminate threshold. See spec section 4.7.1.
-    int g_threshold = static_cast<int>(slideio::LogLevel::Fatal);
+    std::atomic<int> g_threshold{static_cast<int>(slideio::LogLevel::Fatal)};
 
     // Reproduces glog's severity initial: I / W / E / F.
     char severityInitial(int level)
@@ -178,17 +178,17 @@ namespace slideio
         if (level < static_cast<int>(LogLevel::Info) || level > static_cast<int>(LogLevel::Fatal)) {
             return;
         }
-        g_threshold = level;
+        g_threshold.store(level, std::memory_order_relaxed);
     }
 
-    const int* logThresholdPtr() noexcept
+    const std::atomic<int>* logThresholdPtr() noexcept
     {
         return &g_threshold;
     }
 
     void logMessage(int level, const char* file, int line, const char* message) noexcept
     {
-        if (level < g_threshold) {
+        if (level < g_threshold.load(std::memory_order_relaxed)) {
             return;
         }
         try {

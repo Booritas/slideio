@@ -29,8 +29,18 @@ ContextPool::ContextPool(Factory factory, int maxContexts)
 ContextPool::~ContextPool() {
     std::unique_lock<std::mutex> lock(m_mutex);
     m_closing = true;
-    // A read racing a Slide close must not have its context freed underneath it.
-    m_available.wait(lock, [this]() { return m_borrowed == 0; });
+    // Wake anyone parked in acquire() so they can see m_closing and leave.
+    // Without this they sleep until some unrelated event notifies them, and the
+    // last give() below could wake this destructor first.
+    m_available.notify_all();
+    // A read racing a Slide close must not have its context freed underneath
+    // it -- and a thread parked in acquire() must not have the mutex it is
+    // about to relock freed underneath it either. A waiter still inside
+    // wait() has to reacquire m_mutex before it can return, so finishing here
+    // while m_waiters > 0 would destroy that mutex mid-acquisition, which is
+    // undefined behaviour rather than merely a missed wakeup. Both counters,
+    // therefore, not just m_borrowed.
+    m_available.wait(lock, [this]() { return m_borrowed == 0 && m_waiters == 0; });
     m_free.clear();
     m_contexts.clear();
 }
@@ -105,7 +115,28 @@ ContextPool::Borrow ContextPool::acquire() {
             grown = true;
             return Borrow(this, context);
         }
-        m_available.wait(lock);
+        {
+            // Counted across the wait so a destructor can tell the difference
+            // between "nobody is using the pool" and "nobody is using it yet".
+            // The decrement happens under the same lock acquisition that wait()
+            // returns with, and the loop re-checks m_closing before releasing
+            // it, so the count never reads zero while this thread still intends
+            // to wait.
+            struct WaiterCount {
+                int& waiters;
+                std::condition_variable& available;
+                const bool& closing;
+                ~WaiterCount() {
+                    --waiters;
+                    if (closing) {
+                        // A destructor may be waiting for exactly this.
+                        available.notify_all();
+                    }
+                }
+            } counted{m_waiters, m_available, m_closing};
+            ++m_waiters;
+            m_available.wait(lock);
+        }
     }
 }
 

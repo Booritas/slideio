@@ -38,7 +38,9 @@ namespace slideio
         LevelInfo() = default;
 
         LevelInfo(int level, const Size& size, double scale, double magnification, const Size& tileSize)
-            : m_level(level), m_size(size), m_scale(scale), m_magnification(magnification), m_tileSize(tileSize) {}
+            : m_level(level), m_size(size), m_scale(scale), m_magnification(magnification), m_tileSize(tileSize) {
+            updateTileCount();
+        }
 
         LevelInfo(const LevelInfo& other) {
             m_level = other.m_level;
@@ -69,16 +71,25 @@ namespace slideio
                 m_tileSize.height == other.m_tileSize.height;
         }
 
-        /**@brief recomputes the cached tile count from the current level and tile size.*/
-        void updateTileCount() const {
+        /**@brief the tile count implied by the current level and tile size.
+         *
+         * Pure: it computes and returns, and touches nothing. That is what lets
+         * getTileCount() be called from a read.*/
+        int computeTileCount() const {
             if (getTileSize().width > 0 && getTileSize().height > 0) {
                 const int tilesX = (getSize().width - 1) / getTileSize().width + 1;
                 const int tilesY = (getSize().height - 1) / getTileSize().height + 1;
-                m_tileCount = tilesX * tilesY;
+                return tilesX * tilesY;
 			}
-            else {
-                m_tileCount = 1;
-            }
+            return 1;
+        }
+
+        /**@brief recomputes the cached tile count from the current level and tile size.
+         *
+         * Called from the setters, which run while a scene is being built and
+         * before any read can see it. Never from a getter -- see getTileCount().*/
+        void updateTileCount() const {
+            m_tileCount = computeTileCount();
         }
 
         /**@brief returns the index of the level. Level 0 is the level of the highest resolution.*/
@@ -87,7 +98,7 @@ namespace slideio
 
         /**@brief returns the size of the level in the pixels of the level.*/
         Size getSize() const { return m_size; }
-        void setSize(const Size& size) { m_size = size; }
+        void setSize(const Size& size) { m_size = size; updateTileCount(); }
 
         /**@brief returns the scale of the level relative to level 0.
          *
@@ -102,16 +113,25 @@ namespace slideio
 
         /**@brief returns the size of a tile of the level. (0,0) if the level is not tiled.*/
         Size getTileSize() const { return m_tileSize; }
-        void setTileSize(const Size& tileSize) { m_tileSize = tileSize; }
+        void setTileSize(const Size& tileSize) { m_tileSize = tileSize; updateTileCount(); }
 
 		/**@brief returns the number of tiles of the level.
 		 *
 		 * A level that is not tiled consists of a single tile that covers the whole level.
 		 */
 		int getTileCount() const {
-            if (m_tileCount < 1)
-                updateTileCount();
-            return m_tileCount;
+            // Reads, never writes. This is called from the block-read path --
+            // OTScene::getTileCount forwards to it through tilecomposer, and
+            // OME-TIFF reports concurrent reads -- so the lazy `if (m_tileCount
+            // < 1) updateTileCount();` that used to live here had two
+            // overlapping reads of one scene both writing the member. They
+            // stored the same value, so it never misbehaved, but it was a data
+            // race by the language rules and the one lazy cache in core left
+            // unguarded: CVScene::m_metadata and friends all use std::once_flag
+            // for exactly this. Computing instead of caching costs two
+            // divisions and needs no synchronisation at all.
+            const int cached = m_tileCount;
+            return (cached >= 1) ? cached : computeTileCount();
         }
 
         /**@brief returns a human readable description of the level.*/
