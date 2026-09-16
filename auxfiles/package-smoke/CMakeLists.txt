@@ -30,7 +30,15 @@ endif()
 # run is checking, and asking find_package to enforce it too would turn a
 # mismatch into a configure error that says less than the runtime comparison
 # does.
-find_package(slideio REQUIRED)
+#
+# COMPONENTS is named explicitly even though linking slideio::slideio alone
+# would do. A config that publishes a component list has to answer a request for
+# one, and the plain form never asks: the first version of this file said only
+# find_package(slideio REQUIRED) and so never noticed that the config set no
+# slideio_<comp>_FOUND variables, leaving check_required_components guaranteed
+# to fail for anyone who did ask.
+find_package(slideio REQUIRED
+    COMPONENTS slideio core imagetools converter transformer)
 
 add_executable(slideio_package_smoke main.cpp)
 target_link_libraries(slideio_package_smoke PRIVATE slideio::slideio)

@@ -281,7 +281,17 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: slideio-${{ matrix.artifact }}
-          path: build/packages/*
+          # The packages themselves and nothing else. cpack -B leaves its
+          # _CPack_Packages staging directory here -- a full second copy of the
+          # installed tree, measured locally at 97 MB against 42 MB of actual
+          # archives -- and `build/packages/*` swept it up. Beyond tripling every
+          # artifact, download-artifact with merge-multiple then dropped three
+          # platforms' staging directories into one dist/, where they can
+          # collide before `files: dist/*` ever runs.
+          path: |
+            build/packages/*.zip
+            build/packages/*.tar.gz
+            build/packages/*.deb
           if-no-files-found: error
           retention-days: 30
 
@@ -329,7 +339,7 @@ jobs:
             |---|---|---|
             | Windows x86_64 | `slideio-${{ needs.check-version.outputs.version }}-windows-x86_64.zip` | MSVC 2022. Add `bin` to `PATH`. |
             | Windows x86_64 | `slideio-${{ needs.check-version.outputs.version }}-windows-x86_64-pdb.zip` | Debug symbols for the above. |
-            | macOS arm64 | `slideio-${{ needs.check-version.outputs.version }}-macos-arm64.tar.gz` | Apple Silicon, macOS 12 or newer. |
+            | macOS arm64 | `slideio-${{ needs.check-version.outputs.version }}-macos-arm64.tar.gz` | Apple Silicon. Built with a macOS 12 deployment target; tested on macOS 14. |
             | Debian/Ubuntu x86_64 | `libslideio*.deb` | Ubuntu 22.04+ / Debian 12+. Install both for development. |
 
             Each package carries the CMake package config, so a consumer can use it with:
