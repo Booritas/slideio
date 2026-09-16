@@ -71,8 +71,17 @@ set( CMAKE_VERBOSE_MAKEFILE OFF )
 set(INCLUDE_ROOT ${CMAKE_SOURCE_DIR}/src)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(CMAKE_BUILD_RPATH_USE_ORIGIN 1)
-set(CMAKE_CXX_STANDARD_REQUIRED, ON)
-set(CMAKE_CXX_STANDARD,17)
+# The commas here used to make both of these no-ops: CMake splits set() on
+# whitespace, so set(CMAKE_CXX_STANDARD,17) declared a variable actually named
+# "CMAKE_CXX_STANDARD,17" and left the real one untouched. The build compiled as
+# C++17 regardless, because the conan toolchain sets the same two variables from
+# compiler.cppstd -- which meant a configure without that toolchain silently fell
+# back to the compiler default and failed deep inside ICU and log.hpp on C++17
+# constructs. Saying it here costs nothing (the value matches what the toolchain
+# sets, so conan_modify_std_watch stays quiet) and makes the requirement the
+# project own rather than something inherited by luck.
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_STANDARD 17)
 set(CONAN_DISABLE_CHECK_COMPILER ON)
 
 set(CORE_LIB_NAME "${LIB_NAME_PREFIX}core")
