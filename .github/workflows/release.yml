@@ -231,13 +231,25 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update
-          sudo apt-get install -y ./build/packages/libslideio*.deb
+          # *.deb, not libslideio*.deb: the tools package is named slideio-tools
+          # and would not match that older glob, so the tools checks below would
+          # fail on a package that had never been installed.
+          sudo apt-get install -y ./build/packages/*.deb
           cmake -S auxfiles/package-smoke -B build/smoke \
                 -DCMAKE_BUILD_TYPE=Release \
                 -DCMAKE_PREFIX_PATH=/usr \
                 "-DSLIDEIO_EXPECTED_VERSION=${{ needs.check-version.outputs.version }}"
           cmake --build build/smoke
           ./build/smoke/slideio_package_smoke
+
+          # The tools, from the installed package. On Debian they land in
+          # /usr/bin and the libraries in /usr/lib, which the loader searches by
+          # default -- so this checks the packaging, not the rpath.
+          slideio-converter --help | head -2
+          if slideio-tiffinspector; then
+            echo "slideio-tiffinspector should have exited 1 with no arguments" >&2
+            exit 1
+          fi
 
       - name: Smoke test the macOS archive
         if: runner.os == 'macOS'
@@ -261,6 +273,17 @@ jobs:
           # unpacked tree. If that is not enough the package is broken for
           # everyone else too, and this is where we want to find out.
           ./build/smoke/slideio_package_smoke
+
+          # The tools, run out of the package. They sit in bin/ and the dylibs
+          # in lib/, so this is what proves their
+          # @executable_path/../lib rpath survived -- and, with it, that
+          # FIX_MACOS_RPATH did not rewrite their dependencies to
+          # @loader_path and send them looking beside themselves.
+          "${prefix}/bin/slideio-converter" --help | head -2
+          if "${prefix}/bin/slideio-tiffinspector"; then
+            echo "slideio-tiffinspector should have exited 1 with no arguments" >&2
+            exit 1
+          fi
 
       - name: Smoke test the Windows archive
         if: runner.os == 'Windows'
@@ -292,6 +315,16 @@ jobs:
           # what a consumer of the zip has to arrange too.
           $env:PATH = "$prefix\bin;$env:PATH"
           & build/smoke/Release/slideio_package_smoke.exe
+
+          # The tools, from the package. The DLLs sit beside them in bin/, so
+          # this checks that they were packaged and are runnable rather than
+          # anything about search paths.
+          & "$prefix\bin\slideio-converter.exe" --help | Select-Object -First 2
+          if ($LASTEXITCODE -ne 0) { throw "slideio-converter --help failed" }
+          & "$prefix\bin\slideio-tiffinspector.exe"
+          # No arguments is its usage path, which exits 1. Reaching it proves
+          # the executable loaded.
+          if ($LASTEXITCODE -ne 1) { throw "slideio-tiffinspector should exit 1 with no arguments" }
 
       - name: Upload packages
         uses: actions/upload-artifact@v4
@@ -366,6 +399,15 @@ jobs:
                     "-DSLIDEIO_EXPECTED_VERSION=${{ needs.check-version.outputs.version }}"
               cmake --build build/smoke
               ./build/smoke/slideio_package_smoke
+
+              # The tools, out of the unpacked archive with nothing on
+              # LD_LIBRARY_PATH. bin/ and lib/ are separate directories here, so
+              # this is the check that their $ORIGIN/../lib rpath is right.
+              ./build/unpacked/bin/slideio-converter --help | head -2
+              if ./build/unpacked/bin/slideio-tiffinspector; then
+                echo "slideio-tiffinspector should have exited 1 with no arguments" >&2
+                exit 1
+              fi
             '
 
       - name: List packages
