@@ -21,7 +21,13 @@ static void process(const std::string& inputPath) {
 
 int main(int argc, char* argv[]) {
 	if (argc !=2 ) {
-		std::cerr << "Usage: tiffinspector inputPath" << std::endl;
+		// argv[0] rather than a literal: the distributions install this as
+		// slideio-tiffinspector, so a hard-coded name would tell the user to
+		// run something that is not on their machine.
+		const std::string name =
+			(argc > 0 && argv[0]) ? std::filesystem::path(argv[0]).filename().string()
+			                      : std::string("tiffinspector");
+		std::cerr << "Usage: " << name << " inputPath" << std::endl;
 		return 1;
 	}
 

@@ -43,6 +43,24 @@ matching nothing serves nobody. What comes out depends on the platform: a `.zip`
 plus a separate `-pdb.zip` on Windows, a `.tar.gz` on macOS, and on Linux either
 `libslideio<major>.<minor>` + `libslideio-dev` `.deb` files or a `.tar.gz`.
 
+Every artifact also carries the two command line tools, installed as
+`slideio-converter` and `slideio-tiffinspector`. They are **renamed at install
+time**, not built under those names -- the build tree keeps `converter` and
+`tiffinspector` -- because `converter` is far too generic a name to put in a
+shared `/usr/bin`. On Debian they are a third package, `slideio-tools`, rather
+than part of the runtime: they install to unversioned paths, so shipping them
+from `libslideio<major>.<minor>` would make two minor releases claim
+`/usr/bin/slideio-converter` and defeat the co-installability the versioned
+SONAME exists for.
+
+The tools carry their own `INSTALL_RPATH` of `$ORIGIN;$ORIGIN/../lib`
+(`@executable_path` on macOS) because they live in `bin/` while the libraries
+live in `lib/`. Both entries are load-bearing: the first keeps the build tree
+working, where everything sits together, and the second is the installed layout.
+Inside the `.deb` this is invisible -- `/usr/lib` is a trusted loader directory --
+so the archives are the only place it is tested, and the release smoke steps run
+both tools out of the unpacked package on every platform for exactly that reason.
+
 Which of the two Linux shapes is not a preference: `packaging.cmake` looks for
 `dpkg` and picks DEB where it exists, TGZ where it does not. A Debian or Ubuntu
 machine gets packages; an RPM-based one -- the manylinux_2_28 image among them --
