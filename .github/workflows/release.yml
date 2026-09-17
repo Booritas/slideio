@@ -324,7 +324,11 @@ jobs:
           & "$prefix\bin\slideio-tiffinspector.exe"
           # No arguments is its usage path, which exits 1. Reaching it proves
           # the executable loaded.
-          if ($LASTEXITCODE -ne 1) { throw "slideio-tiffinspector should exit 1 with no arguments" }
+          if ($LASTEXITCODE -ne 1) { throw "slideio-tiffinspector should exit 1 with no arguments, got $LASTEXITCODE" }
+          # And then say so, because a pwsh step takes its own exit status from
+          # the last native command's. Without this the expected 1 above fails
+          # the step, having already proved exactly what it was asked to.
+          exit 0
 
       - name: Upload packages
         uses: actions/upload-artifact@v4
