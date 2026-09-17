@@ -581,6 +581,29 @@ TEST(EtsFile, readTileJpeg2K) {
 }
 
 
+TEST_F(VSIImageDriverTests, Ix73PlaneTimestampsChannelMajor) {
+    // TIME_VALUE list is channel-major (DAPI T0..T24, then FITC); UNITS 10^-3s.
+    std::string filePath = TestTools::getTestImagePath(
+        "vsi", "vsi-multifile/vsi-ix73-7template.vsi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::VSIImageDriver driver;
+    std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    ASSERT_GE(slide->getNumScenes(), 1);
+    std::shared_ptr<CVScene> scene = slide->getScene(0);
+    EXPECT_EQ(scene->getNumTFrames(), 25);
+    EXPECT_EQ(scene->getNumChannels(), 2);
+    EXPECT_EQ(scene->getPlaneTimestampCount(), 50);
+    EXPECT_NEAR(scene->getPlaneTimestamp(0, 0, 0), 0.0, 1e-9);
+    EXPECT_NEAR(scene->getPlaneTimestamp(1, 0, 0), 3.601008, 1e-6);
+    EXPECT_NEAR(scene->getPlaneTimestamp(2, 0, 0), 7.201, 1e-6);
+    EXPECT_NEAR(scene->getPlaneTimestamp(0, 1, 0), 0.511, 1e-6);
+    EXPECT_NEAR(scene->getPlaneTimestamp(1, 1, 0), 4.113, 1e-6);
+    EXPECT_NEAR(scene->getPlaneTimestamp(24, 0, 0), 86.404, 1e-6);
+    EXPECT_NEAR(scene->getPlaneTimestamp(24, 1, 0), 86.915, 1e-6);
+}
+
+
 TEST(Pyramid, init) {
     TestDimensionOrder dimOrder;
     {

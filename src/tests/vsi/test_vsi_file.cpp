@@ -2,6 +2,8 @@
 #include <string>
 
 #include "slideio/drivers/vsi/vsifile.hpp"
+#include "slideio/drivers/vsi/volume.hpp"
+#include "slideio/drivers/vsi/vsitools.hpp"
 #include "tests/testlib/testtools.hpp"
 
 
@@ -150,4 +152,68 @@ TEST(VSIFile, findChildRecursively) {
         ASSERT_NE(result, nullptr);
         EXPECT_EQ(result->tag, 2);
     }
+}
+
+TEST(Volume, PlaneTimestampsRoundTrip) {
+    vsi::Volume volume;
+    volume.setPlaneTimestamps({0.0, 2000.0, 4000.0});
+    ASSERT_EQ(volume.getPlaneTimestampCount(), 3);
+    EXPECT_DOUBLE_EQ(volume.getPlaneTimestampByIndex(0), 0.0);
+    EXPECT_DOUBLE_EQ(volume.getPlaneTimestampByIndex(1), 2000.0);
+    EXPECT_DOUBLE_EQ(volume.getPlaneTimestampByIndex(2), 4000.0);
+    EXPECT_DOUBLE_EQ(volume.getPlaneTimestampByIndex(3), 0.0);
+}
+
+TEST(VSITools, UnitToSeconds) {
+    EXPECT_FALSE(VSITools::unitToSeconds("").has_value());
+    EXPECT_FALSE(VSITools::unitToSeconds("um").has_value());
+    EXPECT_FALSE(VSITools::unitToSeconds("10^-3m^1").has_value());
+
+    ASSERT_TRUE(VSITools::unitToSeconds("10^-3s^1").has_value());
+    EXPECT_DOUBLE_EQ(*VSITools::unitToSeconds("10^-3s^1"), 1e-3);
+    EXPECT_DOUBLE_EQ(*VSITools::unitToSeconds("10^-3 s^1"), 1e-3);
+    EXPECT_DOUBLE_EQ(*VSITools::unitToSeconds("s^1"), 1.0);
+    EXPECT_DOUBLE_EQ(*VSITools::unitToSeconds("s"), 1.0);
+    EXPECT_DOUBLE_EQ(*VSITools::unitToSeconds("10^-6s^1"), 1e-6);
+    EXPECT_DOUBLE_EQ(*VSITools::unitToSeconds("10^0s"), 1.0);
+}
+
+TEST(VSITools, PlaneTimestampListIndexFallbackTZC) {
+    // Unset orders (< 2) → (t*nZ+z)*nC+c
+    EXPECT_EQ(VSITools::planeTimestampListIndex(0, 0, 0, 25, 2, 1, -1, -1, -1), 0);
+    EXPECT_EQ(VSITools::planeTimestampListIndex(0, 1, 0, 25, 2, 1, -1, -1, -1), 1);
+    EXPECT_EQ(VSITools::planeTimestampListIndex(1, 0, 0, 25, 2, 1, -1, -1, -1), 2);
+    EXPECT_EQ(VSITools::planeTimestampListIndex(1, 1, 0, 25, 2, 1, -1, -1, -1), 3);
+}
+
+TEST(VSITools, PlaneTimestampListIndexChannelMajor) {
+    // IX73-style DIMENSION_DESCRIPTION: T=2, Z=3, C=4 → T fastest, C slowest.
+    constexpr int orderT = 2, orderZ = 3, orderC = 4;
+    constexpr int nT = 25, nC = 2, nZ = 1;
+    EXPECT_EQ(VSITools::planeTimestampListIndex(0, 0, 0, nT, nC, nZ, orderT, orderC, orderZ), 0);
+    EXPECT_EQ(VSITools::planeTimestampListIndex(1, 0, 0, nT, nC, nZ, orderT, orderC, orderZ), 1);
+    EXPECT_EQ(VSITools::planeTimestampListIndex(24, 0, 0, nT, nC, nZ, orderT, orderC, orderZ), 24);
+    EXPECT_EQ(VSITools::planeTimestampListIndex(0, 1, 0, nT, nC, nZ, orderT, orderC, orderZ), 25);
+    EXPECT_EQ(VSITools::planeTimestampListIndex(1, 1, 0, nT, nC, nZ, orderT, orderC, orderZ), 26);
+    EXPECT_EQ(VSITools::planeTimestampListIndex(24, 1, 0, nT, nC, nZ, orderT, orderC, orderZ), 49);
+}
+
+TEST(Volume, TResolutionRequiresParseableUnit) {
+    vsi::Volume volume;
+    volume.setTResolution(2000.0);
+    EXPECT_DOUBLE_EQ(volume.getTResolution(), 0.0);
+
+    volume.setTResolutionUnit("10^-3s^1");
+    EXPECT_DOUBLE_EQ(volume.getTResolution(), 2.0);
+
+    volume.setTResolutionUnit("bogus");
+    EXPECT_DOUBLE_EQ(volume.getTResolution(), 0.0);
+}
+
+TEST(Volume, PlaneTimestampsScaledByUnit) {
+    vsi::Volume volume;
+    volume.setPlaneTimestamps({10003.0, 12003.0});
+    volume.setPlaneTimestampUnit("10^-3s^1");
+    EXPECT_NEAR(volume.getPlaneTimestampByIndex(0), 10.003, 1e-9);
+    EXPECT_NEAR(volume.getPlaneTimestampByIndex(1), 12.003, 1e-9);
 }
