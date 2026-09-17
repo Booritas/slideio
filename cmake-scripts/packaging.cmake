@@ -104,6 +104,18 @@ else()
     set(CPACK_DEBIAN_RUNTIME_PACKAGE_SECTION "libs")
     set(CPACK_DEBIAN_DEVELOPMENT_PACKAGE_SECTION "libdevel")
 
+    # The tools get a package of their own rather than riding in the runtime.
+    # They install into /usr/bin under names that carry no version, so shipping
+    # them from libslideio<major>.<minor> would have two minor releases claim
+    # the same paths and dpkg refuse to install both -- undoing exactly what the
+    # versioned SONAME and package name are for. The name is stable and the
+    # dependency is exact, so the tools always run against the runtime they were
+    # built against.
+    set(CPACK_DEBIAN_TOOLS_PACKAGE_NAME "slideio-tools")
+    set(CPACK_DEBIAN_TOOLS_PACKAGE_DEPENDS
+        "${CPACK_DEBIAN_RUNTIME_PACKAGE_NAME} (= ${PROJECT_VERSION})")
+    set(CPACK_DEBIAN_TOOLS_PACKAGE_SECTION "science")
+
     # dpkg-shlibdeps derives Depends: from what the libraries actually link,
     # rather than from a hand-written guess that goes stale. It matters here
     # that the third-party dependencies are static and libstdc++ is linked
@@ -136,6 +148,9 @@ cpack_add_component(Runtime
 cpack_add_component(Development
     DISPLAY_NAME "Development files"
     DESCRIPTION "Public headers, import libraries and the CMake package config.")
+cpack_add_component(Tools
+    DISPLAY_NAME "Command line tools"
+    DESCRIPTION "slideio-converter and slideio-tiffinspector.")
 cpack_add_component(DebugSymbols
     DISPLAY_NAME "Debug symbols"
     DESCRIPTION "MSVC PDB files matching the release libraries.")
