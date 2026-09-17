@@ -226,7 +226,7 @@ jobs:
           cmake -S auxfiles/package-smoke -B build/smoke \
                 -DCMAKE_BUILD_TYPE=Release \
                 -DCMAKE_PREFIX_PATH=/usr \
-                -DSLIDEIO_EXPECTED_VERSION=${{ needs.check-version.outputs.version }}
+                "-DSLIDEIO_EXPECTED_VERSION=${{ needs.check-version.outputs.version }}"
           cmake --build build/smoke
           ./build/smoke/slideio_package_smoke
 
@@ -245,7 +245,7 @@ jobs:
           cmake -S auxfiles/package-smoke -B build/smoke \
                 -DCMAKE_BUILD_TYPE=Release \
                 -DCMAKE_PREFIX_PATH="${prefix}" \
-                -DSLIDEIO_EXPECTED_VERSION=${{ needs.check-version.outputs.version }}
+                "-DSLIDEIO_EXPECTED_VERSION=${{ needs.check-version.outputs.version }}"
           cmake --build build/smoke
           # No DYLD_LIBRARY_PATH: the imported target carries an absolute
           # location, so CMake gives the executable an RPATH pointing into the
@@ -268,9 +268,16 @@ jobs:
           # prefix.
           $prefix = (Resolve-Path build/unpacked).Path
           Write-Host "unpacked to $prefix"
+          # The version argument is quoted whole, and has to be. PowerShell
+          # splits a bare -DNAME=2.10.0 at the first dot and hands cmake two
+          # arguments: -DSLIDEIO_EXPECTED_VERSION=2 and a stray .10.0, which
+          # cmake shrugs off as "Ignoring extra path from command line". The
+          # smoke test then compared the library's 2.10.0 against a package
+          # claiming "2" and failed, a long way from the cause. The bash steps
+          # above pass the same token whole, which is why only Windows saw it.
           cmake -S auxfiles/package-smoke -B build/smoke `
                 -DCMAKE_PREFIX_PATH="$prefix" `
-                -DSLIDEIO_EXPECTED_VERSION=${{ needs.check-version.outputs.version }}
+                "-DSLIDEIO_EXPECTED_VERSION=${{ needs.check-version.outputs.version }}"
           cmake --build build/smoke --config Release
           # Windows has no RPATH: the loader finds the DLLs on PATH, which is
           # what a consumer of the zip has to arrange too.

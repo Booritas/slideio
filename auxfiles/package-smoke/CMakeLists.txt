@@ -26,6 +26,19 @@ if(NOT SLIDEIO_EXPECTED_VERSION)
         "the library reports the version the package is named for.")
 endif()
 
+# Checked for shape, not just presence, because the interesting failure is a
+# value that arrives mangled rather than missing. PowerShell splits a bare
+# -DNAME=2.10.0 at the first dot, so cmake receives "2" and a stray path it
+# merely warns about; the run then got all the way to comparing the library's
+# 2.10.0 against a package claiming "2" before anything complained. Failing here
+# names the cause instead.
+if(NOT SLIDEIO_EXPECTED_VERSION MATCHES "^[0-9]+[.][0-9]+[.][0-9]+$")
+    message(FATAL_ERROR
+        "SLIDEIO_EXPECTED_VERSION is '${SLIDEIO_EXPECTED_VERSION}', which is not "
+        "a full major.minor.patch version. It was probably split by the shell -- "
+        "quote the whole argument, as \"-DSLIDEIO_EXPECTED_VERSION=1.2.3\".")
+endif()
+
 # No version argument here on purpose: SLIDEIO_EXPECTED_VERSION is what this
 # run is checking, and asking find_package to enforce it too would turn a
 # mismatch into a configure error that says less than the runtime comparison
