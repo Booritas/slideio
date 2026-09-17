@@ -387,6 +387,48 @@ install(TARGETS ${SLIDEIO_ALL_LIBS}
     ARCHIVE DESTINATION lib COMPONENT Development
 )
 
+# ---------------------------------------------------------------------------
+# The command line tools
+# ---------------------------------------------------------------------------
+
+set(SLIDEIO_TOOLS converter tiffinspector)
+
+# The tools sit in bin/ while the shared libraries sit in lib/, so the
+# directory-wide $ORIGIN is the wrong answer for them: it names bin/, where
+# there is nothing to find. Inside the .deb this is invisible -- /usr/lib is a
+# trusted loader directory -- but from an unpacked archive the tools would fail
+# to start, which is the whole of how a tarball user meets them.
+#
+# Both entries are needed. $ORIGIN keeps the build tree working, where
+# everything sits together in build/release/bin; $ORIGIN/../lib is the installed
+# layout. CMAKE_BUILD_WITH_INSTALL_RPATH is ON, so this one value is baked in at
+# build time and has to serve both.
+if(APPLE)
+    set_target_properties(${SLIDEIO_TOOLS} PROPERTIES
+        INSTALL_RPATH "@executable_path;@executable_path/../lib")
+elseif(UNIX)
+    set_target_properties(${SLIDEIO_TOOLS} PROPERTIES
+        INSTALL_RPATH "$ORIGIN;$ORIGIN/../lib")
+endif()
+
+# Installed under a slideio- prefix, and renamed rather than built that way:
+# `converter` is far too generic a name to put in a shared /usr/bin and says
+# nothing about where it came from, while the build tree and everything that
+# refers to it keep the names they have.
+#
+# install(PROGRAMS ... RENAME) rather than install(TARGETS), which cannot
+# rename. Nothing is lost by that here: install(TARGETS) would otherwise
+# re-write the rpath at install time, and with CMAKE_BUILD_WITH_INSTALL_RPATH
+# the binaries already carry the value set above.
+install(PROGRAMS $<TARGET_FILE:converter>
+        DESTINATION bin
+        COMPONENT Tools
+        RENAME slideio-converter${CMAKE_EXECUTABLE_SUFFIX})
+install(PROGRAMS $<TARGET_FILE:tiffinspector>
+        DESTINATION bin
+        COMPONENT Tools
+        RENAME slideio-tiffinspector${CMAKE_EXECUTABLE_SUFFIX})
+
 # Debug symbols. Release is what gets distributed, so it is the configuration
 # that matters here; Debug keeps the behaviour it always had.
 if(MSVC)

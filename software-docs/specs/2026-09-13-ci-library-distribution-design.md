@@ -202,6 +202,42 @@ python3 install.py -a package-only -c release  # package an existing build
 Artifacts land in `build/packages`. This is the same path CI takes, so a release
 candidate can be inspected before a tag is pushed.
 
+## The command line tools
+
+`src/tools/` builds `converter` and `tiffinspector`, and the first packages
+shipped neither. They are now in every artifact, as `slideio-converter` and
+`slideio-tiffinspector`.
+
+**Renamed at install, not built renamed.** `install(PROGRAMS … RENAME)` rather
+than `OUTPUT_NAME`, so the build tree and everything referring to it keep the
+existing names. `converter` is far too generic a thing to drop into a shared
+`/usr/bin`, and it tells a user nothing about where it came from.
+
+**A third Debian package, `slideio-tools`.** The executables install to
+unversioned paths, so shipping them from `libslideio<major>.<minor>` would have
+2.10 and 2.11 both claim `/usr/bin/slideio-converter` and dpkg refuse to install
+both — the same conflict the namelink fix above closed, arriving by a different
+route. `slideio-tools` has a stable name and an exact dependency on the runtime
+it was built against.
+
+**They need an rpath of their own.** The tools sit in `bin/`; since the
+packaging work the shared libraries sit in `lib/` alone. The directory-wide
+`$ORIGIN` names `bin/`, where there is nothing to find, so the tools carry
+`$ORIGIN;$ORIGIN/../lib` (`@executable_path` equivalents on macOS). Both entries
+matter — the first keeps the build tree working, where everything is together in
+`build/release/bin`, and the second is the installed layout;
+`CMAKE_BUILD_WITH_INSTALL_RPATH` is ON, so one value has to serve both.
+
+Inside the `.deb` none of this is visible, because `/usr/lib` is a trusted loader
+directory. The archives are where it can break, which is why the release smoke
+steps now run both tools out of the unpacked package on every platform rather
+than merely checking they are present. `slideio-tiffinspector` with no arguments
+exits 1 on its usage path — reaching that at all proves the loader resolved
+everything, so the check asserts on exactly that.
+
+`slideio-test-lib`, which both tools link, is a STATIC library, so shipping the
+tools pulls no test code into the packages.
+
 ## manylinux_2_28 x86_64
 
 Added after the first release rehearsal, as a fourth platform and a fifth

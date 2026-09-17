@@ -429,8 +429,13 @@ def package_slideio(configuration, output_dir):
     # this reads the decision.
     generator = read_cpack_setting(build_dir, "CPACK_GENERATOR")
 
+    # Tools travels with Runtime and Development in every artifact: the command
+    # line tools are part of what a distribution is, and on Debian the component
+    # becomes its own package rather than landing in the runtime one.
+    shipped = ["Runtime", "Development", "Tools"]
+
     if os_platform == "Windows":
-        run_cpack(generator, ["Runtime", "Development"], base_name)
+        run_cpack(generator, shipped, base_name)
         # The PDBs are several times the size of the libraries they describe,
         # so they ship as their own download rather than inside the archive
         # everybody has to fetch.
@@ -441,7 +446,7 @@ def package_slideio(configuration, output_dir):
         # become libslideio<major>.<minor>_<version>_<arch>.deb and
         # libslideio-dev_<version>_<arch>.deb and the name passed here is
         # ignored. With TGZ it names the single archive.
-        run_cpack(generator, ["Runtime", "Development"], base_name)
+        run_cpack(generator, shipped, base_name)
 
     drop_cpack_staging(output_dir)
 
