@@ -38,7 +38,31 @@ set(CPACK_VERBATIM_VARIABLES ON)
 # a "pdb" archive byte-for-byte the size of the full one.
 set(CPACK_COMPONENTS_ALL Runtime Development)
 
-if(WIN32 OR APPLE)
+# Which of the two Linux shapes to produce. A .deb needs dpkg to build, which a
+# Debian or Ubuntu machine has and an RPM-based one -- the manylinux_2_28 image
+# among them -- does not, so detecting it is both the portable default and the
+# honest one: without this, packaging on Alma or Fedora fails inside CPack with
+# an error about a missing tool rather than producing the archive that platform
+# can actually use. Override with -DSLIDEIO_LINUX_PACKAGE_FORMAT=DEB or TGZ.
+if(NOT WIN32 AND NOT APPLE)
+    if(NOT SLIDEIO_LINUX_PACKAGE_FORMAT)
+        find_program(SLIDEIO_DPKG_EXECUTABLE dpkg)
+        if(SLIDEIO_DPKG_EXECUTABLE)
+            set(SLIDEIO_LINUX_PACKAGE_FORMAT "DEB")
+        else()
+            set(SLIDEIO_LINUX_PACKAGE_FORMAT "TGZ")
+        endif()
+        mark_as_advanced(SLIDEIO_DPKG_EXECUTABLE)
+    endif()
+    if(NOT SLIDEIO_LINUX_PACKAGE_FORMAT MATCHES "^(DEB|TGZ)$")
+        message(FATAL_ERROR
+            "SLIDEIO_LINUX_PACKAGE_FORMAT is '${SLIDEIO_LINUX_PACKAGE_FORMAT}'; "
+            "it must be DEB or TGZ.")
+    endif()
+    message(STATUS "slideio: Linux package format ${SLIDEIO_LINUX_PACKAGE_FORMAT}")
+endif()
+
+if(WIN32 OR APPLE OR SLIDEIO_LINUX_PACKAGE_FORMAT STREQUAL "TGZ")
     if(WIN32)
         set(CPACK_GENERATOR "ZIP")
     else()

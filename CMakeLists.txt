@@ -505,6 +505,23 @@ elseif(SLIDEIO_PLATFORM_ARCH STREQUAL "")
     set(SLIDEIO_PLATFORM_ARCH "unknown")
 endif()
 
-set(SLIDEIO_PLATFORM_TAG "${SLIDEIO_PLATFORM_OS}-${SLIDEIO_PLATFORM_ARCH}")
+# Overridable because "linux" is not always specific enough to name an artifact
+# by. A build inside the manylinux_2_28 image produces libraries with a glibc
+# 2.28 floor rather than whatever the host happens to have, and that is the
+# whole reason someone would download it -- so the release workflow passes
+# -DSLIDEIO_PLATFORM_TAG=manylinux_2_28-x86_64 and the archive says what it can
+# actually run on. Everything else derives the tag as before.
+#
+# The environment is honoured as well as the cache variable, because the
+# manylinux build drives cmake through install.py, which owns the command line
+# and passes no -D of its own. `docker run -e SLIDEIO_PLATFORM_TAG=...` is the
+# way in; adding a passthrough flag to install.py for one caller would be the
+# larger change.
+if(NOT SLIDEIO_PLATFORM_TAG AND DEFINED ENV{SLIDEIO_PLATFORM_TAG})
+    set(SLIDEIO_PLATFORM_TAG "$ENV{SLIDEIO_PLATFORM_TAG}")
+endif()
+if(NOT SLIDEIO_PLATFORM_TAG)
+    set(SLIDEIO_PLATFORM_TAG "${SLIDEIO_PLATFORM_OS}-${SLIDEIO_PLATFORM_ARCH}")
+endif()
 
 include(${CMAKE_SOURCE_DIR}/cmake-scripts/packaging.cmake)

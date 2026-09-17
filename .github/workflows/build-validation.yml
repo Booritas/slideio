@@ -210,3 +210,41 @@ jobs:
 
       - name: Build
         run: python install.py -a build-only -c release
+
+  build-manylinux:
+    name: manylinux_2_28 (x86_64)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The image carries a conan cache but no slideio sources, and the four
+          # dependencies that are not on conan center are submodules of this
+          # working copy.
+          submodules: true
+
+      # The build runs inside the image rather than the image being the job's
+      # `container:`. A container job has to host the runner's Node, and this
+      # image exists precisely to be old -- glibc 2.28 is the point of it -- so
+      # that arrangement adds a failure mode that has nothing to do with
+      # slideio. `docker run -v` is also how docker/manylinux_2_28_x86_64/Dockerfile
+      # documents its own use.
+      #
+      # The tag is pinned. `latest` on this repository is two years older than
+      # the versioned tags, so tracking it would quietly build against the wrong
+      # toolchain; the pin has to be moved by hand when the image is rebuilt.
+      - name: Build in the manylinux image
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}:/slideio" \
+            -w /slideio \
+            -e SLIDEIO_HOME=/slideio \
+            booritas/slideio-manylinux_2_28_x86_64:2.10.0 \
+            bash -c '
+              set -euo pipefail
+              python3 install.py -a conan -c release
+              python3 install.py -a configure-only -c release
+              python3 install.py -a build-only -c release
+              # The suites that need no slide corpus, as elsewhere in this file.
+              ./build/release/bin/slideio_tests --gtest_filter="FileReader.*:ContextPool.*"
+            '

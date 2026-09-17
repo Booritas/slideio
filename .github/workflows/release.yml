@@ -33,6 +33,7 @@ on:
           - windows
           - debian
           - macos
+          - manylinux
       skip_tests:
         description: "Skip the corpus-free unit suites (packaging changes only)"
         required: false
@@ -118,6 +119,12 @@ jobs:
             windows) include="${windows}" ;;
             debian)  include="${debian}" ;;
             macos)   include="${macos}" ;;
+            # manylinux is built by the build-manylinux job, not from this
+            # matrix: it runs its toolchain inside a container and shares almost
+            # none of the steps below. Selecting it alone therefore leaves this
+            # matrix empty, which is a job with nothing to do rather than an
+            # error.
+            manylinux) include="" ;;
             *)
               echo "Unknown platform selection: ${PLATFORMS}" >&2
               exit 1
@@ -130,6 +137,8 @@ jobs:
   build:
     name: ${{ matrix.name }}
     needs: check-version
+    # Empty when a manylinux-only run is dispatched; that job builds itself.
+    if: needs.check-version.outputs.matrix != '{"include":[]}'
     runs-on: ${{ matrix.os }}
 
     strategy:
@@ -302,9 +311,77 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
+  build-manylinux:
+    name: manylinux_2_28 x86_64
+    needs: check-version
+    runs-on: ubuntu-latest
+    # A dispatch can ask for one platform; a tag push carries no inputs and so
+    # builds everything.
+    if: contains(fromJson('["all","manylinux"]'), inputs.platforms || 'all')
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      # Built inside the image rather than with the image as the job's
+      # `container:`. A container job has to host the runner's Node, and this
+      # image exists precisely to be old -- glibc 2.28 is the point of it -- so
+      # that arrangement adds a failure mode unrelated to slideio. The tag is
+      # pinned because `latest` on this repository is two years behind the
+      # versioned tags.
+      #
+      # SLIDEIO_PLATFORM_TAG is what stops the archive being named
+      # slideio-<v>-linux-x86_64, which would say nothing about the thing that
+      # makes it worth downloading: a glibc 2.28 floor rather than the build
+      # host's. CMakeLists.txt reads it from the environment for exactly this
+      # caller, since install.py owns the cmake command line.
+      #
+      # The package format is not passed: packaging.cmake looks for dpkg, does
+      # not find it on this RPM-based image, and selects TGZ on its own.
+      - name: Build and package in the manylinux image
+        run: |
+          docker run --rm \
+            -v "${{ github.workspace }}:/slideio" \
+            -w /slideio \
+            -e SLIDEIO_HOME=/slideio \
+            -e SLIDEIO_PLATFORM_TAG=manylinux_2_28-x86_64 \
+            booritas/slideio-manylinux_2_28_x86_64:2.10.0 \
+            bash -c '
+              set -euo pipefail
+              python3 install.py -a conan -c release
+              python3 install.py -a configure-only -c release
+              python3 install.py -a build-only -c release
+              ./build/release/bin/slideio_tests --gtest_filter="FileReader.*:ContextPool.*"
+              python3 install.py -a package-only -c release
+
+              # The consumer smoke test, run in the same image the package was
+              # built in. Anywhere else it would be testing this glibc floor
+              # against a newer one and proving less than it appears to.
+              mkdir -p build/unpacked
+              tar -xzf build/packages/slideio-*.tar.gz -C build/unpacked
+              cmake -S auxfiles/package-smoke -B build/smoke \
+                    -DCMAKE_BUILD_TYPE=Release \
+                    -DCMAKE_PREFIX_PATH=/slideio/build/unpacked \
+                    "-DSLIDEIO_EXPECTED_VERSION=${{ needs.check-version.outputs.version }}"
+              cmake --build build/smoke
+              ./build/smoke/slideio_package_smoke
+            '
+
+      - name: List packages
+        run: ls -la build/packages
+
+      - name: Upload packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: slideio-manylinux_2_28-x86_64
+          path: build/packages/*.tar.gz
+          if-no-files-found: error
+          retention-days: 30
+
   publish:
     name: Publish release
-    needs: [check-version, build]
+    needs: [check-version, build, build-manylinux]
     # Only a tag *push* publishes. A manual run stops after the build job,
     # having produced and smoke-tested every artifact -- which is what makes it
     # a usable rehearsal for a release.

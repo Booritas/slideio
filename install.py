@@ -324,25 +324,29 @@ def install_slideio(configuration, prefix):
 
 
 
-def read_cpack_package_file_name(build_dir):
-    """Base name CPack gives an archive, read out of the generated CPackConfig.cmake.
+def read_cpack_setting(build_dir, name):
+    """One quoted CPACK_ setting, read out of the generated CPackConfig.cmake.
 
-    Parsed rather than recomputed here on purpose: the platform tag it contains
-    is built in cmake-scripts/packaging.cmake, and a second definition in this
-    file would eventually disagree with it and have the workflow upload
-    artifacts whose names do not match the packages inside them.
+    Parsed rather than recomputed here on purpose. The platform tag and the
+    generator are both decided in cmake-scripts/packaging.cmake, which knows
+    things this script does not -- whether dpkg exists, what the release
+    workflow overrode the tag to. A second definition here would eventually
+    disagree with that one, and the failure would be a workflow uploading
+    artifacts whose names do not match the packages inside them, or asking for a
+    generator the configuration never set up.
     """
     config = os.path.join(build_dir, "CPackConfig.cmake")
     if not os.path.isfile(config):
         raise RuntimeError(
             f"{config} does not exist. Configure and build before packaging."
         )
+    pattern = re.compile(r'\s*set\(' + re.escape(name) + r'\s+"([^"]+)"\)')
     with open(config, encoding="utf-8") as handle:
         for line in handle:
-            match = re.match(r'\s*set\(CPACK_PACKAGE_FILE_NAME\s+"([^"]+)"\)', line)
+            match = pattern.match(line)
             if match:
                 return match.group(1)
-    raise RuntimeError(f"CPACK_PACKAGE_FILE_NAME is not set in {config}.")
+    raise RuntimeError(f"{name} is not set in {config}.")
 
 
 def assert_archive_has_pdbs(archive):
@@ -396,7 +400,7 @@ def package_slideio(configuration, output_dir):
         )
 
     build_dir = configuration["build_release_directory"]
-    base_name = read_cpack_package_file_name(build_dir)
+    base_name = read_cpack_setting(build_dir, "CPACK_PACKAGE_FILE_NAME")
     os.makedirs(output_dir, exist_ok=True)
 
     def run_cpack(generator, components, file_name):
@@ -418,20 +422,26 @@ def package_slideio(configuration, output_dir):
         print(cmd)
         subprocess.check_call(cmd, stderr=subprocess.STDOUT)
 
+    # The generator comes from the configuration rather than from this
+    # platform check, because on Linux it is not a platform question: a Debian
+    # or Ubuntu machine has dpkg and gets DEB, an RPM-based one -- the
+    # manylinux_2_28 image among them -- gets TGZ. packaging.cmake decides;
+    # this reads the decision.
+    generator = read_cpack_setting(build_dir, "CPACK_GENERATOR")
+
     if os_platform == "Windows":
-        run_cpack("ZIP", ["Runtime", "Development"], base_name)
+        run_cpack(generator, ["Runtime", "Development"], base_name)
         # The PDBs are several times the size of the libraries they describe,
         # so they ship as their own download rather than inside the archive
         # everybody has to fetch.
-        run_cpack("ZIP", ["DebugSymbols"], base_name + "-pdb")
+        run_cpack(generator, ["DebugSymbols"], base_name + "-pdb")
         assert_archive_has_pdbs(os.path.join(output_dir, base_name + "-pdb.zip"))
-    elif os_platform == "OSX":
-        run_cpack("TGZ", ["Runtime", "Development"], base_name)
     else:
-        # CPACK_DEBIAN_FILE_NAME is DEB-DEFAULT, so the two components become
-        # libslideio<major>.<minor>_<version>_<arch>.deb and
-        # libslideio-dev_<version>_<arch>.deb; the name passed here is ignored.
-        run_cpack("DEB", ["Runtime", "Development"], base_name)
+        # With DEB, CPACK_DEBIAN_FILE_NAME is DEB-DEFAULT, so the two components
+        # become libslideio<major>.<minor>_<version>_<arch>.deb and
+        # libslideio-dev_<version>_<arch>.deb and the name passed here is
+        # ignored. With TGZ it names the single archive.
+        run_cpack(generator, ["Runtime", "Development"], base_name)
 
     drop_cpack_staging(output_dir)
 
