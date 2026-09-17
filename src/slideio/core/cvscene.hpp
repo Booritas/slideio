@@ -83,6 +83,37 @@ namespace slideio
         virtual double getZSliceResolution() const {return 0;}
         /**@brief returns time between 2 time frames in seconds for images with time frames.*/
         virtual double getTFrameResolution() const {return 0;}
+        /**@brief native significant bits. Defaults to the channel storage width. */
+        virtual int getBitDepth() const {
+            if (getNumChannels() <= 0) {
+                return 0;
+            }
+            switch (getChannelDataType(0)) {
+                case DataType::DT_Byte:
+                case DataType::DT_Int8:
+                    return 8;
+                case DataType::DT_UInt16:
+                case DataType::DT_Int16:
+                case DataType::DT_Float16:
+                    return 16;
+                case DataType::DT_UInt32:
+                case DataType::DT_Int32:
+                case DataType::DT_Float32:
+                    return 32;
+                case DataType::DT_UInt64:
+                case DataType::DT_Int64:
+                case DataType::DT_Float64:
+                    return 64;
+                default:
+                    return 0;
+            }
+        }
+        /**@brief number of per-plane timestamps. 0 if the driver does not expose them. */
+        virtual int getPlaneTimestampCount() const { return 0; }
+        /**@brief per-plane timestamp in seconds.
+         * Indexing is T slowest, then Z, then C: index = (t * numZ + z) * numC + c.
+         * Returns 0 if timestamps are unavailable. */
+        virtual double getPlaneTimestamp(int /*tFrame*/, int /*channel*/, int /*zSlice*/) const { return 0; }
         /**@brief returns slide magnification extracted from the slide metadata. */
         virtual double getMagnification() const = 0;
         /**@brief returns compression of the raster data */

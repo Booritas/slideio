@@ -85,6 +85,12 @@ namespace slideio
         double getZSliceResolution() const;
         /**@brief returns time between 2 time frames in seconds for images with time frames.*/
         double getTFrameResolution() const;
+        /**@brief native significant bits; defaults to the channel storage width. */
+        int getBitDepth() const;
+        /**@brief number of per-plane timestamps, or 0. */
+        int getPlaneTimestampCount() const;
+        /**@brief per-plane timestamp in seconds. 0 if unavailable. */
+        double getPlaneTimestamp(int tFrame, int channel, int zSlice) const;
         /**@brief returns slide magnification extracted from the slide metadata. */
         double getMagnification() const;
         /**@brief returns memory size in the bytes required for a raster block.

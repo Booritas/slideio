@@ -64,8 +64,11 @@ namespace slideio
             void setResolution(const Resolution& resolution) { m_resolution = resolution; }
             void setZResolution(double res) { m_zResolution = res; }
             double getZResolution() const { return m_zResolution; }
-            void setTResolution(double res) { m_tResolution = res; }
-            double getTResolution() const { return m_tResolution; }
+            // Raw T-frame increment in file units (setTResolutionUnit). getTResolution
+            // returns seconds, or 0 if the unit is missing/unparseable.
+            void setTResolution(double raw);
+            void setTResolutionUnit(const std::string& unit);
+            double getTResolution() const;
             void setChannelName(int channelIndex, const std::string& channelName);
             std::string getChannelName(int channelIndex) const;
 
@@ -80,6 +83,13 @@ namespace slideio
             // 0.0 means "not set".
             void setChannelEmissionWavelength(int channelIndex, double nm);
             double getChannelEmissionWavelength(int channelIndex) const;
+
+            // Plane timestamps: store raw values + unit; getter returns seconds.
+            // Without a parseable unit, raw values are returned unchanged.
+            void setPlaneTimestamps(std::vector<double> timestamps);
+            void setPlaneTimestampUnit(const std::string& unit);
+            int getPlaneTimestampCount() const;
+            double getPlaneTimestampByIndex(int index) const;
 
 			const bool isValid() const {
 				return m_size.height>0 && m_size.width>0;
@@ -102,11 +112,14 @@ namespace slideio
             int m_dimensionOrder[MAX_DIMENSIONS] = {-1};
             Resolution m_resolution;
             double m_zResolution = 0.;
-            double m_tResolution = 0.;
+            double m_tResolutionRaw = 0.;
+            std::string m_tResolutionUnit;
             std::vector<std::string> m_channelNames;
             static constexpr uint32_t kNoChannelColor = 0xFFFFFFFFu;
             std::vector<uint32_t> m_channelColors;
             std::vector<double> m_channelEmissionWavelengths;
+            std::vector<double> m_planeTimestamps;
+            std::string m_planeTimestampUnit;
         };
 
     };

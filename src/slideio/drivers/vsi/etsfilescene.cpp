@@ -133,6 +133,51 @@ double EtsFileScene::getTFrameResolution() const {
     return 0.;
 }
 
+
+int EtsFileScene::getBitDepth() const {
+    if (getEtsFile() && getEtsFile()->getVolume()) {
+        const int bits = getEtsFile()->getVolume()->getBitDepth();
+        if (bits == 8 || bits == 12 || bits == 16) {
+            return bits;
+        }
+    }
+    return CVScene::getBitDepth();
+}
+
+int EtsFileScene::getPlaneTimestampCount() const {
+    if (getEtsFile() && getEtsFile()->getVolume()) {
+        return getEtsFile()->getVolume()->getPlaneTimestampCount();
+    }
+    return 0;
+}
+
+double EtsFileScene::getPlaneTimestamp(int tFrame, int channel, int zSlice) const {
+    const auto ets = getEtsFile();
+    if (!ets || !ets->getVolume()) {
+        return 0.;
+    }
+    const int nC = std::max(ets->getNumChannels(), 1);
+    const int nZ = std::max(ets->getNumZSlices(), 1);
+    const int nT = std::max(ets->getNumTFrames(), 1);
+    if (tFrame < 0 || tFrame >= nT || channel < 0 || channel >= nC || zSlice < 0 || zSlice >= nZ) {
+        return 0.;
+    }
+    const auto volume = ets->getVolume();
+    const int count = volume->getPlaneTimestampCount();
+    if (count == nT * nC * nZ) {
+        const int index = VSITools::planeTimestampListIndex(
+            tFrame, channel, zSlice, nT, nC, nZ,
+            volume->getDimensionOrder(Dimensions::T),
+            volume->getDimensionOrder(Dimensions::C),
+            volume->getDimensionOrder(Dimensions::Z));
+        return volume->getPlaneTimestampByIndex(index);
+    }
+    if (count == nT) {
+        return volume->getPlaneTimestampByIndex(tFrame);
+    }
+    return 0.;
+}
+
 int EtsFileScene::getNumChannels() const {
     if (getEtsFile()) {
         return getEtsFile()->getNumChannels();

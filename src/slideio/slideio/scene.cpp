@@ -110,6 +110,21 @@ double Scene::getTFrameResolution() const
     return m_scene->getTFrameResolution();
 }
 
+int Scene::getBitDepth() const
+{
+    return m_scene->getBitDepth();
+}
+
+int Scene::getPlaneTimestampCount() const
+{
+    return m_scene->getPlaneTimestampCount();
+}
+
+double Scene::getPlaneTimestamp(int tFrame, int channel, int zSlice) const
+{
+    return m_scene->getPlaneTimestamp(tFrame, channel, zSlice);
+}
+
 double Scene::getMagnification() const
 {
     SLIDEIO_LOG(INFO) << "Scene::getMagnification "; 
