@@ -122,6 +122,21 @@ else()
     # statically too (-static-libstdc++, set at the top of CMakeLists.txt), so
     # the computed list is short -- essentially libc6 and libgomp1.
     set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
+
+    # Where to find the slideio libraries themselves while doing that. Each
+    # component is analysed as its own package, so when dpkg-shlibdeps reaches
+    # slideio-tools the libraries the tools link are in a *sibling* package and
+    # it cannot see them at all:
+    #
+    #   dpkg-shlibdeps: error: cannot find library libslideio-imagetools.so.2.10
+    #   needed by ./usr/bin/slideio-tiffinspector
+    #
+    # which is fatal, not a warning, and took the whole DEB generation with it.
+    # Pointing it at the build output directory is the -l the error message
+    # suggests: it resolves the private libraries and then --ignore-missing-info
+    # keeps it quiet about their having no shlibs file, while the system
+    # dependencies it exists to compute are still found.
+    set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS_PRIVATE_DIRS "${CMAKE_BINARY_DIR}/bin")
     set(CPACK_DEBIAN_PACKAGE_GENERATE_SHLIBS ON)
 
     set(CPACK_DEBIAN_PACKAGE_DESCRIPTION
