@@ -40,8 +40,31 @@ python3 install.py -a package-only -c release  # package an already-built tree
 Packages land in `build/packages`. Release only -- `package` refuses a debug
 configuration, because a distribution of `_d`-suffixed libraries with a SONAME
 matching nothing serves nobody. What comes out depends on the platform: a `.zip`
-plus a separate `-pdb.zip` on Windows, a `.tar.gz` on macOS, and
-`libslideio<major>.<minor>` + `libslideio-dev` `.deb` files on Linux.
+plus a separate `-pdb.zip` on Windows, a `.tar.gz` on macOS, and on Linux either
+`libslideio<major>.<minor>` + `libslideio-dev` `.deb` files or a `.tar.gz`.
+
+Which of the two Linux shapes is not a preference: `packaging.cmake` looks for
+`dpkg` and picks DEB where it exists, TGZ where it does not. A Debian or Ubuntu
+machine gets packages; an RPM-based one -- the manylinux_2_28 image among them --
+gets the archive, instead of CPack failing on a missing tool. Override with
+`-DSLIDEIO_LINUX_PACKAGE_FORMAT=DEB` or `TGZ`. `install.py` reads the chosen
+generator back out of `CPackConfig.cmake` rather than deciding again, so the two
+cannot disagree.
+
+**manylinux builds run in a container, not on the host.** Both workflows drive
+`docker run -v` over `booritas/slideio-manylinux_2_28_x86_64:2.10.0` rather than
+using it as a job `container:`: a container job must host the runner's Node, and
+this image exists to be old -- glibc 2.28 is the point of it. The tag is pinned
+because `latest` on that repository is two years behind the versioned tags, so
+the pin has to be moved by hand whenever the image is rebuilt. Note that the
+image's conan cache is a snapshot: a dependency added to the tree since the image
+was built (lcms, for one) compiles from source inside the job.
+
+The archive is named from `SLIDEIO_PLATFORM_TAG`, which the release job sets to
+`manylinux_2_28-x86_64` through the environment -- `CMakeLists.txt` reads it from
+there as well as from `-D`, because `install.py` owns the cmake command line.
+Without it the artifact would be called `linux-x86_64` and say nothing about the
+glibc floor that is the reason to download it.
 
 `.github/workflows/release.yml` runs exactly these commands on a `v*` tag and
 attaches the results to a draft GitHub Release; `workflow_dispatch` does

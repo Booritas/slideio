@@ -202,6 +202,51 @@ python3 install.py -a package-only -c release  # package an existing build
 Artifacts land in `build/packages`. This is the same path CI takes, so a release
 candidate can be inspected before a tag is pushed.
 
+## manylinux_2_28 x86_64
+
+Added after the first release rehearsal, as a fourth platform and a fifth
+per-commit build.
+
+The Debian packages are built on `ubuntu-22.04`, which fixes their glibc floor at
+2.35 — Ubuntu 22.04+ and Debian 12+, and nothing older. The manylinux tarball is
+built inside `booritas/slideio-manylinux_2_28_x86_64:2.10.0`, whose floor is
+**2.28**: RHEL/Alma/Rocky 8+, Debian 10+, Ubuntu 18.04+. The two ship together
+rather than one replacing the other, because they answer different questions —
+`apt` integration and SONAME co-installability on one side, reach on the other.
+
+**It runs through `docker run -v`, not as a job `container:`.** A container job
+has to host the runner's Node, and this image exists precisely to be old; making
+the runner's toolchain a dependency of an image chosen for its ancient glibc
+invites failures that have nothing to do with slideio. `docker run -v` is also
+what `docker/manylinux_2_28_x86_64/Dockerfile` documents as its own usage.
+
+Three things follow from the platform rather than being chosen for it:
+
+- **TGZ, not DEB.** CPack's DEB generator needs `dpkg`, which AlmaLinux does not
+  carry. `packaging.cmake` looks for it and selects the generator accordingly, so
+  the same source also packages correctly on a developer's Fedora box instead of
+  failing inside CPack on a missing tool. `install.py` reads the decision back out
+  of `CPackConfig.cmake` rather than making it again.
+- **The archive is named `manylinux_2_28-x86_64`.** `SLIDEIO_PLATFORM_TAG` is now
+  overridable, from the environment as well as `-D`, because `install.py` owns
+  the cmake command line and the container has no other way in. Called
+  `linux-x86_64` the artifact would say nothing about the only property that
+  distinguishes it from the `.deb`.
+- **The tag is pinned.** `latest` on that image repository is two years older
+  than the versioned tags, so tracking it would silently build against the wrong
+  toolchain. The cost is that the pin must be moved by hand when the image is
+  rebuilt.
+
+The image's conan cache is a snapshot of the dependency graph as it stood when
+the image was built. Anything added since — lcms, from the colour work — compiles
+from source inside the job. That is correctness-neutral and costs minutes;
+rebuilding the image is what removes it.
+
+Note also that the image workflow's last run failed, on the ghcr push
+(`permission_denied: read_package`) and not on the build — the Docker Hub tag was
+pushed a second earlier and is what CI uses. The consequence is that `:2.10.0`
+was never exercised by that workflow's own smoke-test step.
+
 ## Quote the version argument on the Windows smoke step
 
 A third silent trap, found by the first `workflow_dispatch` rehearsal on master.
