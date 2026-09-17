@@ -7,6 +7,9 @@
 #include "taginfo.hpp"
 
 #include <algorithm>
+#include <cctype>
+#include <cmath>
+#include <optional>
 
 using namespace slideio;
 
@@ -875,4 +878,93 @@ std::string vsi::VSITools::extractTagValue(vsi::VSIStream& vsi, const vsi::TagIn
                             break;
     }
     return value;
+}
+
+std::optional<double> vsi::VSITools::unitToSeconds(const std::string& unitStr) {
+    if (unitStr.empty()) {
+        return std::nullopt;
+    }
+    std::string s = unitStr;
+    s.erase(std::remove_if(s.begin(), s.end(),
+                           [](unsigned char c) { return std::isspace(c) != 0; }),
+            s.end());
+    if (s.empty()) {
+        return std::nullopt;
+    }
+
+    int exponent = 0;
+    std::size_t pos = 0;
+    if (s.size() >= 3 && s.compare(0, 3, "10^") == 0) {
+        std::size_t i = 3;
+        bool neg = false;
+        if (i < s.size() && s[i] == '-') {
+            neg = true;
+            ++i;
+        } else if (i < s.size() && s[i] == '+') {
+            ++i;
+        }
+        if (i >= s.size() || !std::isdigit(static_cast<unsigned char>(s[i]))) {
+            return std::nullopt;
+        }
+        int exp = 0;
+        while (i < s.size() && std::isdigit(static_cast<unsigned char>(s[i]))) {
+            exp = exp * 10 + (s[i] - '0');
+            ++i;
+        }
+        exponent = neg ? -exp : exp;
+        pos = i;
+    }
+
+    if (pos >= s.size() || s[pos] != 's') {
+        return std::nullopt;
+    }
+    ++pos;
+    if (pos < s.size()) {
+        if (s[pos] != '^') {
+            return std::nullopt;
+        }
+        ++pos;
+        if (pos < s.size() && (s[pos] == '-' || s[pos] == '+')) {
+            ++pos;
+        }
+        if (pos >= s.size() || !std::isdigit(static_cast<unsigned char>(s[pos]))) {
+            return std::nullopt;
+        }
+        while (pos < s.size() && std::isdigit(static_cast<unsigned char>(s[pos]))) {
+            ++pos;
+        }
+        if (pos != s.size()) {
+            return std::nullopt;
+        }
+    }
+    return std::pow(10.0, static_cast<double>(exponent));
+}
+
+int vsi::VSITools::planeTimestampListIndex(int t, int c, int z,
+                                           int nT, int nC, int nZ,
+                                           int orderT, int orderC, int orderZ) {
+    // Unset T/Z/C orders stay at -1 (Volume only seeds X=0, Y=1).
+    if (orderT < 2 || orderC < 2 || orderZ < 2) {
+        return (t * nZ + z) * nC + c;
+    }
+    struct Axis {
+        int order;
+        int coord;
+        int size;
+    };
+    Axis axes[3] = {
+        {orderT, t, nT},
+        {orderZ, z, nZ},
+        {orderC, c, nC},
+    };
+    std::sort(axes, axes + 3, [](const Axis& a, const Axis& b) {
+        return a.order < b.order;
+    });
+    int index = 0;
+    int stride = 1;
+    for (const Axis& axis : axes) {
+        index += axis.coord * stride;
+        stride *= axis.size;
+    }
+    return index;
 }

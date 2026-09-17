@@ -3,6 +3,8 @@
 // of this distribution and at http://slideio.com/license.html.
 #pragma once
 #include <cstdint>
+#include <optional>
+#include <string>
 #include "etsfile.hpp"
 #include "vsistream.hpp"
 #include "slideio/core/slideio_enums.hpp"
@@ -29,6 +31,22 @@ namespace slideio
             static std::string getStackTypeName(const std::string& value);
             static std::string getDeviceSubtype(const std::string& value);
             static std::string extractTagValue(vsi::VSIStream& vsi, const vsi::TagInfo& tagInfo);
+            /**@brief Convert an Olympus VSI time unit string to seconds per raw unit.
+             *
+             * Accepts forms such as "10^-3s^1", "s^1", "10^-6s". Returns nullopt if
+             * empty or unparseable (callers must not invent a default like 1e-3).
+             */
+            static std::optional<double> unitToSeconds(const std::string& unitStr);
+            /** Linear index into a TIME_VALUE list of length nT*nC*nZ.
+             *
+             * When orderT/C/Z are all set (>= 2 from DIMENSION_DESCRIPTION),
+             * the higher order is the slower axis (T fastest / C slowest on
+             * IX73-style stacks). Otherwise falls back to TZC:
+             * (t*nZ+z)*nC+c.
+             */
+            static int planeTimestampListIndex(int t, int c, int z,
+                                               int nT, int nC, int nZ,
+                                               int orderT, int orderC, int orderZ);
         private:
             static bool isTag(const json& parentObject, int srcTag);
             static std::string getDimensionPropertyName(int tag);

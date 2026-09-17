@@ -3,7 +3,6 @@
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/drivers/vsi/vsistream.hpp"
 #include "slideio/core/tools/tools.hpp"
-#include <codecvt>
 
 #include "slideio/core/tools/endian.hpp"
 using namespace slideio::vsi;

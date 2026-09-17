@@ -39,6 +39,9 @@ namespace slideio
             Resolution getResolution() const override;
             double getZSliceResolution() const override;
             double getTFrameResolution() const override;
+            int getBitDepth() const override;
+            int getPlaneTimestampCount() const override;
+            double getPlaneTimestamp(int tFrame, int channel, int zSlice) const override;
             int getNumChannels() const override;
             std::string getChannelName(int channel) const override;
             void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,

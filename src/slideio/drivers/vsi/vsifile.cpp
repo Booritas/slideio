@@ -4,6 +4,8 @@
 
 #include "vsifile.hpp"
 #include <iomanip>
+#include <optional>
+#include <vector>
 #include "slideio/core/tools/tools.hpp"
 #include "vsistruct.hpp"
 #include "vsitags.hpp"
@@ -259,12 +261,21 @@ void VSIFile::extractVolumesFromMetadata() {
                                 }
                                 case 2: {
                                     volumeObj->setDimensionOrder(Dimensions::T, index + 2);
+                                    // Prefer TIME_INCREMENT (+ UNITS) collected below.
+                                    // Dimension-T VALUE is only used when UNITS is present;
+                                    // never invent *1e-3.
                                     const TagInfo* channelInfo = itc->findChild(Tag::CHANNEL_INFO_PROPERTIES);
                                     if (channelInfo) {
                                         const TagInfo* valueTag = channelInfo->findChild(Tag::VALUE);
-                                        if (valueTag) {
-                                            double res = std::stod(valueTag->value);
-                                            volumeObj->setTResolution(res);
+                                        const TagInfo* unitsTag = channelInfo->findChild(Tag::UNITS);
+                                        if (valueTag && unitsTag &&
+                                            VSITools::unitToSeconds(unitsTag->value)) {
+                                            try {
+                                                const double res = std::stod(valueTag->value);
+                                                volumeObj->setTResolution(res);
+                                                volumeObj->setTResolutionUnit(unitsTag->value);
+                                            } catch (const std::exception&) {
+                                            }
                                         }
                                     }
                                     break;
@@ -335,7 +346,76 @@ void VSIFile::extractVolumesFromMetadata() {
                                 }
                             }
                         }
+                        }
+                }
+            }
+            {
+                std::vector<double> planeTs;
+                std::string planeTsUnit;
+                std::optional<double> timeIncrement;
+                std::string timeIncrementUnit;
+
+                auto readValueChild = [](const TagInfo& node) -> std::string {
+                    if (const TagInfo* val = node.findChild(Tag::VALUE); val && !val->value.empty()) {
+                        return val->value;
                     }
+                    return node.value;
+                };
+                auto readUnitsChild = [](const TagInfo& node) -> std::string {
+                    if (const TagInfo* units = node.findChild(Tag::UNITS); units && !units->value.empty()) {
+                        return units->value;
+                    }
+                    return {};
+                };
+
+                const auto collect = [&](auto&& self, const TagInfo& node) -> void {
+                    if (node.tag == Tag::TIME_VALUE) {
+                        const std::string valueStr = readValueChild(node);
+                        if (!valueStr.empty()) {
+                            try {
+                                planeTs.push_back(std::stod(valueStr));
+                            } catch (const std::exception&) {
+                            }
+                        }
+                        if (planeTsUnit.empty()) {
+                            const std::string unit = readUnitsChild(node);
+                            if (VSITools::unitToSeconds(unit)) {
+                                planeTsUnit = unit;
+                            }
+                        }
+                        return;
+                    }
+                    // Tag 2016 is overloaded (TIME_INCREMENT vs default-sample IFD).
+                    // Accept only nodes with a parseable time UNITS child.
+                    if (node.tag == Tag::TIME_INCREMENT) {
+                        const std::string unit = readUnitsChild(node);
+                        if (VSITools::unitToSeconds(unit)) {
+                            const std::string valueStr = readValueChild(node);
+                            if (!valueStr.empty()) {
+                                try {
+                                    timeIncrement = std::stod(valueStr);
+                                    timeIncrementUnit = unit;
+                                } catch (const std::exception&) {
+                                }
+                            }
+                        }
+                        // Still recurse: nested tags may hold the real increment.
+                    }
+                    for (const auto& child : node.children) {
+                        self(self, child);
+                    }
+                };
+                collect(collect, *volume);
+                if (!planeTs.empty()) {
+                    volumeObj->setPlaneTimestamps(std::move(planeTs));
+                    if (!planeTsUnit.empty()) {
+                        volumeObj->setPlaneTimestampUnit(planeTsUnit);
+                    }
+                }
+                // TIME_INCREMENT overrides dimension-T provisional resolution.
+                if (timeIncrement && !timeIncrementUnit.empty()) {
+                    volumeObj->setTResolution(*timeIncrement);
+                    volumeObj->setTResolutionUnit(timeIncrementUnit);
                 }
             }
             m_volumes.push_back(volumeObj);

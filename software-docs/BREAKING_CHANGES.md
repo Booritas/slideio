@@ -7,6 +7,21 @@ by branch.
 
 ---
 
+## vsi-timestamps
+
+### `CVScene` gained bit-depth and per-plane timestamp virtuals
+
+**Module:** `slideio-core` (exported: `CVScene`)
+**Files:** `src/slideio/core/cvscene.hpp`,
+`src/slideio/slideio/scene.hpp`/`.cpp`
+
+`CVScene` gained `getBitDepth()`, `getPlaneTimestampCount()` and
+`getPlaneTimestamp()`. Out-of-tree `CVScene` subclasses and binaries using the
+old vtable must be rebuilt before they are used with libraries from this
+branch. The methods have defaults, so source changes are not required.
+
+---
+
 ## v2.10.0
 
 ### The installed tree moved, and the Linux libraries gained an SONAME
