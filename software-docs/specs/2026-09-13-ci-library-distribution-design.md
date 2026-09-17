@@ -202,6 +202,23 @@ python3 install.py -a package-only -c release  # package an existing build
 Artifacts land in `build/packages`. This is the same path CI takes, so a release
 candidate can be inspected before a tag is pushed.
 
+## Quote the version argument on the Windows smoke step
+
+A third silent trap, found by the first `workflow_dispatch` rehearsal on master.
+
+PowerShell splits a bare `-DSLIDEIO_EXPECTED_VERSION=2.10.0` at the first dot
+and hands CMake two arguments: `-DSLIDEIO_EXPECTED_VERSION=2` and a stray
+`.10.0`. CMake does not treat the leftover as an error — it prints `Ignoring
+extra path from command line` and carries on — so the run reached the smoke
+test, compared the library's `2.10.0` against a package claiming `2`, and failed
+there, a long way from the cause.
+
+Only Windows was affected: the Debian and macOS steps run under bash, which
+passes the same token whole. All three invocations are now quoted, and
+`auxfiles/package-smoke/CMakeLists.txt` additionally rejects a value that is not
+`major.minor.patch`, so a shell that mangles it fails at configure with a message
+naming the cause rather than at runtime with one that does not.
+
 ## The archives are flat
 
 `bin/`, `lib/` and `include/` sit at the root of the `.zip` and `.tar.gz`; there
