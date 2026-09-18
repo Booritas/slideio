@@ -67,6 +67,7 @@ class CompoundFile:
         self.num_difat_sectors = struct.unpack_from("<I", hdr, 0x48)[0]
         self.num_sectors = max(0, self.file_size // self.sector_size - 1)
         self._mini_cache = None
+        self.header = hdr
 
         self._read_difat(hdr)
         self._read_fat()
@@ -106,6 +107,71 @@ class CompoundFile:
             self.difat.extend(vals[:-1])
             sect = vals[-1]
         self.difat = [s for s in self.difat if s <= MAXREGSECT]
+
+    # -- FAT sector list, two ways -----------------------------------------
+    # The header names the first 109 FAT sectors. Beyond that they are listed
+    # in DIFAT sectors, each of which holds (sector_size/4 - 1) FAT sector
+    # numbers followed, in its last 4 bytes, by the number of the next DIFAT
+    # sector. The two readings below differ only once a file needs a second
+    # DIFAT sector, which is what makes that the interesting threshold.
+    def _header_difat(self):
+        entries = []
+        for i in range(min(109, self.num_fat_sectors)):
+            entries.append(struct.unpack_from("<I", self.header, 0x4C + i * 4)[0])
+        return entries
+
+    def fat_sectors_correct(self):
+        """Following the DIFAT chain, per MS-CFB."""
+        entries = self._header_difat()
+        sect = self.first_difat
+        seen = set()
+        per = self.sector_size // 4
+        while (len(entries) < self.num_fat_sectors and sect <= MAXREGSECT
+               and sect not in seen):
+            seen.add(sect)
+            buf = self.read_sector(sect)
+            if len(buf) < self.sector_size:
+                break
+            vals = struct.unpack_from("<%dI" % per, buf, 0)
+            for value in vals[:-1]:          # the last slot is the chain pointer
+                if len(entries) >= self.num_fat_sectors:
+                    break
+                entries.append(value)
+            sect = vals[-1]
+        return entries
+
+    def fat_sectors_as_pole_reads(self):
+        """As POLE's StorageIO::load() builds the list: every slot of a DIFAT
+        sector taken as a FAT sector number, and the DIFAT sectors assumed to
+        be consecutive rather than chained."""
+        entries = self._header_difat()
+        if self.num_fat_sectors > 109 and self.num_difat_sectors > 0:
+            per = self.sector_size // 4
+            for r in range(self.num_difat_sectors):
+                buf = self.read_sector(self.first_difat + r)
+                if len(buf) < self.sector_size:
+                    break
+                vals = struct.unpack_from("<%dI" % per, buf, 0)
+                for value in vals:           # no slot withheld for the chain
+                    if len(entries) >= self.num_fat_sectors:
+                        break
+                    entries.append(value)
+        return entries
+
+    def first_fat_divergence(self):
+        """Index of the first FAT sector the two readings disagree on, and the
+        byte offset into the file from which streams become unreliable. Returns
+        (None, None) when they agree."""
+        correct = self.fat_sectors_correct()
+        pole = self.fat_sectors_as_pole_reads()
+        for i in range(min(len(correct), len(pole))):
+            if correct[i] != pole[i]:
+                entries_per_fat_sector = self.sector_size // 4
+                covered = i * entries_per_fat_sector * self.sector_size
+                return i, covered
+        if len(correct) != len(pole):
+            return min(len(correct), len(pole)), None
+        return None, None
 
     def _read_fat(self):
         self.fat = []
@@ -170,6 +236,7 @@ class CompoundFile:
         self._assign_paths()
 
     def _assign_paths(self):
+        self.orphans = set()
         if not self.entries:
             return
         root = self.entries[0]
@@ -394,6 +461,28 @@ def main(path):
           "sectors-in-file=%d" % (cf.major, cf.sector_size,
                                   cf.mini_sector_size, cf.mini_cutoff,
                                   cf.num_sectors))
+    print("FAT  : %d FAT sectors, %d DIFAT sectors"
+          % (cf.num_fat_sectors, cf.num_difat_sectors))
+
+    divergence, covered = cf.first_fat_divergence()
+    if divergence is not None:
+        print()
+        print("!! This file needs %d DIFAT sectors, and slideio's compound-file"
+              % cf.num_difat_sectors)
+        print("   library (POLE) reads them incorrectly. It takes the last 4 bytes")
+        print("   of each DIFAT sector -- the pointer to the next one -- as if they")
+        print("   were a FAT entry, and assumes the DIFAT sectors are consecutive.")
+        print("   Its sector table first disagrees with the real one at FAT sector"
+              " %d," % divergence)
+        if covered is not None:
+            print("   so data stored past roughly %.1f MB into the file reads as"
+                  % (covered / 1048576.0))
+            print("   truncated or goes missing.")
+        print("   If this file fails to open, this is almost certainly why.")
+        print("   A file needs a second DIFAT sector at about 15 MB with 512-byte")
+        print("   sectors; with 4096-byte sectors the limit is far beyond any slide.")
+    elif cf.num_difat_sectors:
+        print("       (DIFAT within the range POLE reads correctly)")
     print("DIR  : %d entries (%d storages, %d streams)"
           % (len(cf.entries),
              sum(1 for e in cf.entries if e.type == 1),
