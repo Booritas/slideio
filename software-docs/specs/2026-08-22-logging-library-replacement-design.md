@@ -13,9 +13,8 @@ pinned at `glog/0.7.1`, its final release. The upstream README directs users to
 `ng-log` (community fork, API-compatible) or Abseil Logging (Google-maintained).
 
 An archived dependency is not an emergency, but it is a SOUP item that will
-never receive another security or correctness fix. See §9 for the regulatory
-consequences, which are the reason to do this deliberately rather than
-opportunistically.
+never receive another security or correctness fix — a reason to do this
+deliberately rather than opportunistically.
 
 ## 2. Current state
 
@@ -503,8 +502,7 @@ redaction)..
 
 **Not in scope:** named per-module loggers, file or rotating sinks, structured
 output, source-location capture beyond `file:line`, PHI redaction, and any change
-to the 234 call sites. Each is a separate decision; §10 records why redaction in
-particular deserves its own discussion.
+to the 234 call sites. Each is a separate decision.
 
 ## 7. Testing
 
