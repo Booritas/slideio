@@ -66,7 +66,7 @@ try {
     Invoke-ConanCreateSlideio -FolderPath "recipes\jpegxrcodec\all" -Version "1.0.3"
     Invoke-ConanCreateSlideio -FolderPath "recipes\ndpi-libjpeg-turbo\all" -Version "2.1.2"
     Invoke-ConanCreateSlideio -FolderPath "recipes\ndpi-libtiff\all" -Version "4.3.0"
-    Invoke-ConanCreateSlideio -FolderPath "recipes\pole\all" -Version "1.0.4"
+    Invoke-ConanCreateSlideio -FolderPath "recipes\pole\all" -Version "1.0.5"
     Invoke-ConanCreate -FolderPath "recipes\jxrlib\all" -Version "cci.20260102"
 }
 catch {
