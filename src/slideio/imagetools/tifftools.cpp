@@ -4,6 +4,7 @@
 //
 #include "slideio/imagetools/tifftools.hpp"
 #include "slideio/imagetools/imagetools.hpp"
+#include "slideio/imagetools/icctransform.hpp"
 #include "slideio/core/tools/cvtools.hpp"
 #include "slideio/imagetools/libtiff.hpp"
 #include "slideio/imagetools/tiffmessagehandler.hpp"
@@ -244,6 +245,35 @@ std::ostream& operator<<(std::ostream& os, const std::vector<TiffDirectory>& dir
     return os;
 }
 
+static void printIccProfile(std::ostream& os, const std::vector<uint8_t>& iccProfile, const std::string& pad) {
+    if (iccProfile.empty()) {
+        os << "\n" << pad << "  iccProfile: none";
+        return;
+    }
+    os << "\n" << pad << "  iccProfile: " << iccProfile.size() << " bytes";
+    // describe() reports present=false for bytes that do not parse instead of
+    // throwing, so a corrupt profile costs one line of the dump, not the dump.
+    const ColorProfileInfo info = IccTransform::describe(ColorProfile(iccProfile));
+    if (!info.present) {
+        os << " (not a parseable ICC profile)";
+        return;
+    }
+    const std::string subPad = pad + "  ";
+    os << "\n" << subPad << "  description: " << info.description
+        << "\n" << subPad << "  version: " << info.version
+        << "\n" << subPad << "  dataSpace: " << info.dataSpace
+        << "\n" << subPad << "  connectionSpace: " << info.connectionSpace
+        << "\n" << subPad << "  intent: " << info.intent;
+    if (!info.manufacturer.empty()) {
+        os << "\n" << subPad << "  manufacturer: " << info.manufacturer;
+    }
+    if (!info.model.empty()) {
+        os << "\n" << subPad << "  model: " << info.model;
+    }
+    os << "\n" << subPad << "  whitePoint: {" << info.whitePoint[0] << ", "
+        << info.whitePoint[1] << ", " << info.whitePoint[2] << "}";
+}
+
 static std::ostream& printDir(std::ostream& os, const TiffDirectory& dir, const std::string& pad) {
     os << "\n" << pad << "------------- TIFF Directory " << dir.dirIndex << " -------------------------------"
         << "\n" << pad << "  width: " << dir.width
@@ -269,8 +299,9 @@ static std::ostream& printDir(std::ostream& os, const TiffDirectory& dir, const 
         << "\n" << pad << "  compressionQuality: " << dir.compressionQuality
         << "\n" << pad << "  byteOffset: " << dir.byteOffset
         << "\n" << pad << "  subFileType: " << dir.subFileType
-        << "\n" << pad << "  software: " << dir.software
-	    << "\n" << pad << "  number of subdirectories: " << dir.subdirectories.size();
+        << "\n" << pad << "  software: " << dir.software;
+    printIccProfile(os, dir.iccProfile, pad);
+    os << "\n" << pad << "  number of subdirectories: " << dir.subdirectories.size();
 	std::string subPad = pad + "    ";
     if (!dir.subdirectories.empty()) {
         os << "\n" << pad << "  subdirectories (";
