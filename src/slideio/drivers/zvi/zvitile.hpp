@@ -26,6 +26,7 @@ namespace slideio
             cv::OutputArray tile_raster, int slice, ole::compound_document& doc) const;
     protected:
         const ZVIImageItem* getImageItem(int slice, int channelIndex) const;
+        const ZVIImageItem* getPackedImageItem(int slice, int channelIndex) const;
     private:
         int m_Index = 0;
         int m_XIndex = -1;

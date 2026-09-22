@@ -70,6 +70,7 @@ namespace slideio
         ZVIPixelFormat getPixelFormat() const;
         void alignChannelInfoToPixelFormat();
         void computeSceneDimensions();
+        std::vector<int> findImageItemIndices();
         void readImageItems();
         void init();
         void parseImageTags();
