@@ -3,6 +3,7 @@
 #include "slideio/core/imagedriver.hpp"
 #include "slideio/slideio/imagedrivermanager.hpp"
 #include "slideio/slideio/slideio.hpp"
+#include "slideio/slideio/slideio_def.hpp"
 #include "tests/testlib/testtools.hpp"
 
 
@@ -71,6 +72,13 @@ TEST(ImageDriverManager, findDriver)
 
 TEST(ImageDriverManager, getVersion)
 {
+	// Compared against the macro rather than a literal: the version is already
+	// stated in CMakeLists.txt and slideio_def.hpp, and configure fails if those
+	// two disagree, so a literal here is a fourth statement outside that check --
+	// which is how it came to still read 2.9.2 at 2.10.0. What this asserts is
+	// that the string crosses the library boundary intact: the test links against
+	// the header while getVersion() returns the copy compiled into slideio.
 	std::string version = slideio::ImageDriverManager::getVersion();
-	EXPECT_EQ(version, "2.9.2");
+	EXPECT_EQ(version, SLIDEIO_VERSION);
+	EXPECT_FALSE(version.empty());
 }
