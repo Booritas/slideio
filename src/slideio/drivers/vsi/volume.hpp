@@ -2,6 +2,7 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #pragma once
+#include <algorithm>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -25,9 +26,15 @@ namespace slideio
         class SLIDEIO_VSI_EXPORTS Volume : public IDimensionOrder
         {
         public:
+            // The order of a dimension is only known once DIMENSION_DESCRIPTION has
+            // been read, so every dimension starts unset. X and Y are the exception:
+            // the format fixes them at 0 and 1, which is also why UNSET_DIMENSION_ORDER
+            // cannot be 0 -- that is a real order, and readers here test for "> 1".
             Volume() {
-                m_dimensionOrder[0] = 0;
-                m_dimensionOrder[1] = 1;
+                std::fill(std::begin(m_dimensionOrder), std::end(m_dimensionOrder),
+                          UNSET_DIMENSION_ORDER);
+                m_dimensionOrder[dimensionIndex(Dimensions::X)] = 0;
+                m_dimensionOrder[dimensionIndex(Dimensions::Y)] = 1;
             }
             std::string getName() const { return m_name; }
             void setName(const std::string& name) { m_name = name; }
@@ -113,7 +120,9 @@ namespace slideio
             int m_ifd = -1;
             std::vector<std::shared_ptr<Volume>> m_auxVolumes;
             int m_defaultColor = 0;
-            int m_dimensionOrder[MAX_DIMENSIONS] = {-1};
+            // Filled by the constructor: a braced initialiser would set only the
+            // first element and value-initialise the rest to 0.
+            int m_dimensionOrder[MAX_DIMENSIONS];
             Resolution m_resolution;
             double m_zResolution = 0.;
             double m_tResolutionRaw = 0.;

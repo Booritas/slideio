@@ -943,7 +943,8 @@ std::optional<double> vsi::VSITools::unitToSeconds(const std::string& unitStr) {
 int vsi::VSITools::planeTimestampListIndex(int t, int c, int z,
                                            int nT, int nC, int nZ,
                                            int orderT, int orderC, int orderZ) {
-    // Unset T/Z/C orders stay at -1 (Volume only seeds X=0, Y=1).
+    // An order the file did not state is UNSET_DIMENSION_ORDER; 0 and 1 belong to
+    // X and Y, so any of the three below 2 means the layout is not described.
     if (orderT < 2 || orderC < 2 || orderZ < 2) {
         return (t * nZ + z) * nC + c;
     }

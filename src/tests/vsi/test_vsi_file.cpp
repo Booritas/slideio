@@ -154,6 +154,19 @@ TEST(VSIFile, findChildRecursively) {
     }
 }
 
+TEST(Volume, DimensionOrdersAreUnsetUntilTheFileSetsThem) {
+    // X and Y are fixed by the format. Every other dimension has to read the
+    // unset sentinel until DIMENSION_DESCRIPTION supplies an order, otherwise a
+    // caller cannot tell "not recorded" from the order 0 that belongs to X.
+    vsi::Volume volume;
+    EXPECT_EQ(volume.getDimensionOrder(Dimensions::X), 0);
+    EXPECT_EQ(volume.getDimensionOrder(Dimensions::Y), 1);
+    for (const Dimensions dim : {Dimensions::Z, Dimensions::C, Dimensions::T,
+                                 Dimensions::L, Dimensions::P}) {
+        EXPECT_EQ(volume.getDimensionOrder(dim), -1) << "dimension " << static_cast<int>(dim);
+    }
+}
+
 TEST(Volume, PlaneTimestampsRoundTrip) {
     vsi::Volume volume;
     volume.setPlaneTimestamps({0.0, 2000.0, 4000.0});
