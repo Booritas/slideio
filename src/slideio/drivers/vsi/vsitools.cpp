@@ -5,6 +5,7 @@
 #include "vsislide.hpp"
 #include "vsitags.hpp"
 #include "taginfo.hpp"
+#include "slideio/core/log.hpp"
 
 #include <algorithm>
 #include <cctype>
@@ -946,6 +947,99 @@ bool vsi::VSITools::isPlaneTimestampNode(const TagInfo& node) {
     }
     const TagInfo* units = node.findChild(Tag::UNITS);
     return units && unitToSeconds(units->value).has_value();
+}
+
+namespace
+{
+    std::string readValueChild(const vsi::TagInfo& node) {
+        if (const vsi::TagInfo* val = node.findChild(vsi::Tag::VALUE); val && !val->value.empty()) {
+            return val->value;
+        }
+        return node.value;
+    }
+
+    std::string readUnitsChild(const vsi::TagInfo& node) {
+        if (const vsi::TagInfo* units = node.findChild(vsi::Tag::UNITS); units && !units->value.empty()) {
+            return units->value;
+        }
+        return {};
+    }
+}
+
+vsi::VSITools::PlaneTimes vsi::VSITools::collectPlaneTimes(const TagInfo& volume) {
+    PlaneTimes times;
+    bool timestampsUsable = true;
+
+    const auto collect = [&](auto&& self, const TagInfo& node) -> void {
+        // Tag 2017 is overloaded (TIME_VALUE vs VECTOR_LAYER_VOLUME), so the tag
+        // alone does not make a node a timestamp: a vector layer carries a whole
+        // document subtree and would be read as one plane of a time series. Only a
+        // node stating a time unit qualifies.
+        if (node.tag == Tag::TIME_VALUE) {
+            if (!isPlaneTimestampNode(node)) {
+                // Not a timestamp. Do not descend either: whatever this subtree
+                // holds, it is not part of the time series.
+                return;
+            }
+            const std::string valueStr = readValueChild(node);
+            bool read = false;
+            if (!valueStr.empty()) {
+                try {
+                    times.timestamps.push_back(std::stod(valueStr));
+                    read = true;
+                }
+                catch (const std::exception& ex) {
+                    SLIDEIO_LOG(WARNING) << "VSI driver: unreadable plane timestamp ("
+                        << valueStr << "): " << ex.what();
+                }
+            }
+            else {
+                SLIDEIO_LOG(WARNING) << "VSI driver: plane timestamp without a value";
+            }
+            if (!read) {
+                // Entries are addressed by position, so carrying on without this
+                // one would report every later plane at its neighbour's time.
+                timestampsUsable = false;
+            }
+            if (times.timestampUnit.empty()) {
+                const std::string unit = readUnitsChild(node);
+                if (unitToSeconds(unit)) {
+                    times.timestampUnit = unit;
+                }
+            }
+            return;
+        }
+        // Tag 2016 is overloaded (TIME_INCREMENT vs default-sample IFD).
+        // Accept only nodes with a parseable time UNITS child.
+        if (node.tag == Tag::TIME_INCREMENT) {
+            const std::string unit = readUnitsChild(node);
+            if (unitToSeconds(unit)) {
+                const std::string valueStr = readValueChild(node);
+                if (!valueStr.empty()) {
+                    try {
+                        times.increment = std::stod(valueStr);
+                        times.incrementUnit = unit;
+                    }
+                    catch (const std::exception&) {
+                    }
+                }
+            }
+            // Still recurse: nested tags may hold the real increment.
+        }
+        for (const auto& child : node.children) {
+            self(self, child);
+        }
+    };
+    collect(collect, volume);
+
+    if (!timestampsUsable) {
+        SLIDEIO_LOG(WARNING) << "VSI driver: discarding " << times.timestamps.size()
+            << " plane timestamps: the series is incomplete and its entries are"
+               " addressed by position";
+        times.timestamps.clear();
+        times.timestampUnit.clear();
+    }
+    return times;
 }
 
 int vsi::VSITools::planeTimestampListIndex(int t, int c, int z,

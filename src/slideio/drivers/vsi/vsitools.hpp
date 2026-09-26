@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <vector>
 #include "slideio/drivers/vsi/vsi_api_def.hpp"
 #include "etsfile.hpp"
 #include "vsistream.hpp"
@@ -47,6 +48,20 @@ namespace slideio
              * overload of tag 2016 uses.
              */
             static bool isPlaneTimestampNode(const TagInfo& node);
+            /**@brief Per-plane times read from one volume subtree. */
+            struct PlaneTimes
+            {
+                /** One entry per plane, in the order the file lists them. Empty when
+                 *  any timestamp node was unreadable: the list is addressed by
+                 *  position, so dropping an entry would move every later plane onto
+                 *  its neighbour's time. No timestamps beats wrong ones. */
+                std::vector<double> timestamps;
+                std::string timestampUnit;
+                std::optional<double> increment;
+                std::string incrementUnit;
+            };
+            /**@brief Reads the plane timestamps and the time increment of a volume. */
+            static PlaneTimes collectPlaneTimes(const TagInfo& volume);
             /** Linear index into a TIME_VALUE list of length nT*nC*nZ.
              *
              * When orderT/C/Z are all set (>= 2 from DIMENSION_DESCRIPTION),

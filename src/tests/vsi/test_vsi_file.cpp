@@ -250,6 +250,86 @@ TEST(VSITools, APlaneTimestampNodeNeedsTheUnitToBeATimeUnit) {
     EXPECT_FALSE(VSITools::isPlaneTimestampNode(other));
 }
 
+namespace {
+    vsi::TagInfo makeTimestampNode(const std::string& unit, const std::string& value) {
+        vsi::TagInfo node;
+        node.tag = Tag::TIME_VALUE;
+        node.children.push_back(makeChild(Tag::UNITS, unit));
+        node.children.push_back(makeChild(Tag::VALUE, value));
+        return node;
+    }
+
+    vsi::TagInfo makeVolumeOf(const std::vector<vsi::TagInfo>& children) {
+        vsi::TagInfo volume;
+        volume.tag = Tag::MULTIDIM_IMAGE_VOLUME;
+        for (const auto& child : children) {
+            volume.children.push_back(child);
+        }
+        return volume;
+    }
+}
+
+TEST(VSITools, CollectPlaneTimesReadsEveryTimestampInOrder) {
+    const vsi::TagInfo volume = makeVolumeOf({
+        makeTimestampNode("10^-3s^1", "1000.0"),
+        makeTimestampNode("10^-3s^1", "2000.0"),
+        makeTimestampNode("10^-3s^1", "3000.0"),
+    });
+    const auto times = VSITools::collectPlaneTimes(volume);
+    ASSERT_EQ(times.timestamps.size(), 3u);
+    EXPECT_DOUBLE_EQ(times.timestamps[0], 1000.0);
+    EXPECT_DOUBLE_EQ(times.timestamps[1], 2000.0);
+    EXPECT_DOUBLE_EQ(times.timestamps[2], 3000.0);
+    EXPECT_EQ(times.timestampUnit, "10^-3s^1");
+}
+
+TEST(VSITools, OneUnreadableTimestampDiscardsTheWholeSeries) {
+    // The list is positional. Skipping an unreadable entry would slide every
+    // later plane onto its neighbour's time, which is worse than reporting no
+    // timestamps at all, so one bad node invalidates the series.
+    const vsi::TagInfo volume = makeVolumeOf({
+        makeTimestampNode("10^-3s^1", "1000.0"),
+        makeTimestampNode("10^-3s^1", "not a number"),
+        makeTimestampNode("10^-3s^1", "3000.0"),
+    });
+    const auto times = VSITools::collectPlaneTimes(volume);
+    EXPECT_TRUE(times.timestamps.empty());
+}
+
+TEST(VSITools, AnEmptyTimestampValueAlsoDiscardsTheWholeSeries) {
+    const vsi::TagInfo volume = makeVolumeOf({
+        makeTimestampNode("10^-3s^1", "1000.0"),
+        makeTimestampNode("10^-3s^1", ""),
+    });
+    const auto times = VSITools::collectPlaneTimes(volume);
+    EXPECT_TRUE(times.timestamps.empty());
+}
+
+TEST(VSITools, CollectPlaneTimesIgnoresAVectorLayerSharingTheTag) {
+    vsi::TagInfo vectorLayer;
+    vectorLayer.tag = Tag::VECTOR_LAYER_VOLUME;   // the same 2017
+    vectorLayer.children.push_back(makeChild(6, "1162180352"));
+    const vsi::TagInfo volume = makeVolumeOf({
+        makeTimestampNode("10^-3s^1", "1000.0"),
+        vectorLayer,
+    });
+    const auto times = VSITools::collectPlaneTimes(volume);
+    ASSERT_EQ(times.timestamps.size(), 1u);
+    EXPECT_DOUBLE_EQ(times.timestamps[0], 1000.0);
+}
+
+TEST(VSITools, CollectPlaneTimesReadsTheTimeIncrement) {
+    vsi::TagInfo increment;
+    increment.tag = Tag::TIME_INCREMENT;
+    increment.children.push_back(makeChild(Tag::UNITS, "10^-3s^1"));
+    increment.children.push_back(makeChild(Tag::VALUE, "2000.0"));
+    const vsi::TagInfo volume = makeVolumeOf({increment});
+    const auto times = VSITools::collectPlaneTimes(volume);
+    ASSERT_TRUE(times.increment.has_value());
+    EXPECT_DOUBLE_EQ(*times.increment, 2000.0);
+    EXPECT_EQ(times.incrementUnit, "10^-3s^1");
+}
+
 TEST(VSITools, PlaneTimestampListIndexIgnoresTheOrderOfASingletonDimension) {
     // One time frame, so the file need not state an order for T. A dimension of
     // extent 1 contributes nothing to the index whatever its position, so the

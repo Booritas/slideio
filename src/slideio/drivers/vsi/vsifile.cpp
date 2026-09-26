@@ -380,71 +380,7 @@ void VSIFile::extractVolumesFromMetadata() {
                 }
             }
             {
-                std::vector<double> planeTs;
-                std::string planeTsUnit;
-                std::optional<double> timeIncrement;
-                std::string timeIncrementUnit;
-
-                auto readValueChild = [](const TagInfo& node) -> std::string {
-                    if (const TagInfo* val = node.findChild(Tag::VALUE); val && !val->value.empty()) {
-                        return val->value;
-                    }
-                    return node.value;
-                };
-                auto readUnitsChild = [](const TagInfo& node) -> std::string {
-                    if (const TagInfo* units = node.findChild(Tag::UNITS); units && !units->value.empty()) {
-                        return units->value;
-                    }
-                    return {};
-                };
-
-                const auto collect = [&](auto&& self, const TagInfo& node) -> void {
-                    // Tag 2017 is overloaded (TIME_VALUE vs VECTOR_LAYER_VOLUME), so
-                    // the tag alone does not make a node a timestamp: a vector layer
-                    // carries a whole document subtree and would be read as one plane
-                    // of a time series. Only a node stating a time unit qualifies.
-                    if (node.tag == Tag::TIME_VALUE) {
-                        if (!VSITools::isPlaneTimestampNode(node)) {
-                            // Not a timestamp. Do not descend either: whatever this
-                            // subtree holds, it is not part of the time series.
-                            return;
-                        }
-                        const std::string valueStr = readValueChild(node);
-                        if (!valueStr.empty()) {
-                            try {
-                                planeTs.push_back(std::stod(valueStr));
-                            } catch (const std::exception&) {
-                            }
-                        }
-                        if (planeTsUnit.empty()) {
-                            const std::string unit = readUnitsChild(node);
-                            if (VSITools::unitToSeconds(unit)) {
-                                planeTsUnit = unit;
-                            }
-                        }
-                        return;
-                    }
-                    // Tag 2016 is overloaded (TIME_INCREMENT vs default-sample IFD).
-                    // Accept only nodes with a parseable time UNITS child.
-                    if (node.tag == Tag::TIME_INCREMENT) {
-                        const std::string unit = readUnitsChild(node);
-                        if (VSITools::unitToSeconds(unit)) {
-                            const std::string valueStr = readValueChild(node);
-                            if (!valueStr.empty()) {
-                                try {
-                                    timeIncrement = std::stod(valueStr);
-                                    timeIncrementUnit = unit;
-                                } catch (const std::exception&) {
-                                }
-                            }
-                        }
-                        // Still recurse: nested tags may hold the real increment.
-                    }
-                    for (const auto& child : node.children) {
-                        self(self, child);
-                    }
-                };
-                collect(collect, *volume);
+                const VSITools::PlaneTimes planeTimes = VSITools::collectPlaneTimes(*volume);
                 // Acquisition start: the volume's own CREATION_TIME, a Unix epoch.
                 // Looked up by path rather than recursively so that a nested
                 // sub-volume's stamp cannot be mistaken for this volume's.
@@ -457,16 +393,16 @@ void VSIFile::extractVolumesFromMetadata() {
                         // Leave the acquisition time unset.
                     }
                 }
-                if (!planeTs.empty()) {
-                    volumeObj->setPlaneTimestamps(std::move(planeTs));
-                    if (!planeTsUnit.empty()) {
-                        volumeObj->setPlaneTimestampUnit(planeTsUnit);
+                if (!planeTimes.timestamps.empty()) {
+                    volumeObj->setPlaneTimestamps(planeTimes.timestamps);
+                    if (!planeTimes.timestampUnit.empty()) {
+                        volumeObj->setPlaneTimestampUnit(planeTimes.timestampUnit);
                     }
                 }
                 // TIME_INCREMENT overrides dimension-T provisional resolution.
-                if (timeIncrement && !timeIncrementUnit.empty()) {
-                    volumeObj->setTResolution(*timeIncrement);
-                    volumeObj->setTResolutionUnit(timeIncrementUnit);
+                if (planeTimes.increment && !planeTimes.incrementUnit.empty()) {
+                    volumeObj->setTResolution(*planeTimes.increment);
+                    volumeObj->setTResolutionUnit(planeTimes.incrementUnit);
                 }
             }
             m_volumes.push_back(volumeObj);
