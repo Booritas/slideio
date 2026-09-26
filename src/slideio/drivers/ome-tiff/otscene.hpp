@@ -86,6 +86,10 @@ namespace slideio
             const TiffData& getTiffData(int index) const { return m_tiffData[index]; }
             double getZSliceResolution() const override { return m_zResolution; }
             double getTFrameResolution() const override { return m_tResolution; }
+            int getChannelSignificantBits(int channelIndex) const override;
+            bool hasPlaneTimestamps() const override { return !m_planeTimestamps.empty(); }
+            double getPlaneTimestamp(int tFrame, int channel, int zSlice) const override;
+            int64_t getAcquisitionTime() const override { return m_acquisitionTime; }
             bool supportsConcurrentReads() const override { return true; }
             ColorProfile getColorProfile() const override { return m_colorProfile; }
             void setColorProfile(const ColorProfile& profile) { m_colorProfile = profile; }
@@ -93,6 +97,7 @@ namespace slideio
             void extractImagePyramids();
             void initialize();
             void initializeChannelAttributes(tinyxml2::XMLElement* pixels);
+        void initializePlaneTimes(tinyxml2::XMLElement* pixels);
             void extractMagnificationFromMetadata();
             void extractTiffData(tinyxml2::XMLElement* pixels, TIFFFiles& files);
             void extractImageIndex();
@@ -126,6 +131,13 @@ namespace slideio
             int m_imageIndex = -1;
 			double m_zResolution = 0.0;
 			double m_tResolution = 0.0;
+            // Pixels/@SignificantBits, 0 when the file does not state it.
+            int m_significantBits = 0;
+            // Image/AcquisitionDate as a Unix epoch, 0 when the file states none.
+            int64_t m_acquisitionTime = 0;
+            // Seconds from the scene acquisition origin, one per plane, indexed
+            // (t * numZ + z) * numC + c. Empty unless every plane has one.
+            std::vector<double> m_planeTimestamps;
             int m_sceneIndex = -1;
             ColorProfile m_colorProfile;
             std::string m_driverId;

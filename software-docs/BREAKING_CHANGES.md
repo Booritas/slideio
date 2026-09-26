@@ -7,6 +7,48 @@ by branch.
 
 ---
 
+## ometiff-plane-times
+
+### `OTScene` reports significant bits, acquisition time and plane timestamps
+
+**Module:** `slideio-ometiff` (exported: `ometiff::OTScene`, `ometiff::OTTools`)
+**Files:** `src/slideio/drivers/ome-tiff/otscene.hpp`/`.cpp`,
+`src/slideio/drivers/ome-tiff/ottools.hpp`/`.cpp`
+
+`OTScene` now overrides `getChannelSignificantBits(int)`,
+`hasPlaneTimestamps()`, `getPlaneTimestamp()` and `getAcquisitionTime()`, reading
+`Pixels/@SignificantBits`, `Image/AcquisitionDate` and `Plane/@DeltaT`
+respectively. A scene whose file states none of these reports 0 / false, as
+before, so nothing that worked stops working — but `OTScene`'s data members
+changed, so out-of-tree code deriving from it must be rebuilt.
+
+`OTTools` gained `timeUnitToSeconds`, `parseAcquisitionDate`,
+`collectPlaneTimestamps`, `readZSliceResolution` and `readTFrameResolution`.
+`convertToSeconds` is unchanged but now has no caller in the driver; it is left
+in place because it is exported and tested.
+
+### `getTFrameResolution()` was scaled by the Z unit
+
+**Module:** `slideio-ometiff` (behaviour only)
+**File:** `src/slideio/drivers/ome-tiff/otscene.cpp`
+
+Reading `PhysicalSizeT` consulted **`PhysicalSizeZUnit`** for its unit. Two ways
+that went wrong, both silent: a file stating both got its time scaled by a
+length unit — which `convertToSeconds` does not recognise, so it returned the
+number unchanged with a warning — and a file stating `PhysicalSizeTUnit` but no
+`PhysicalSizeZUnit` had its time unit ignored altogether, so a value in
+milliseconds was reported as seconds.
+
+It now reads `PhysicalSizeTUnit`, and an unreadable unit yields 0 rather than an
+unscaled number, matching how the plane timestamps and `vsi::Volume` treat a
+unit they cannot parse. A caller that had compensated for the old behaviour
+must stop.
+
+No image in the corpus states `PhysicalSizeT`, so nothing observable changes for
+the test suite; the fix is covered by unit tests on `OTTools::readTFrameResolution`.
+
+---
+
 ## vsi-timestamps
 
 ### `CVScene` gained bit-depth and per-plane timestamp virtuals

@@ -2,6 +2,8 @@
 #include "slideio/drivers/ome-tiff/ottools.hpp"
 #include "slideio/slideio/imagedrivermanager.hpp"
 #include <cmath>
+#include <optional>
+#include <tinyxml2.h>
 
 using namespace slideio;
 using namespace slideio::ometiff;
@@ -321,4 +323,172 @@ TEST_F(OTToolsTests, convertToSeconds_Day) {
 
 TEST_F(OTToolsTests, convertToSeconds_UnknownUnit) {
     EXPECT_DOUBLE_EQ(OTTools::convertToSeconds(5.0, "unknown"), 5.0);
+}
+
+TEST_F(OTToolsTests, timeUnitToSecondsKnownUnits) {
+    ASSERT_TRUE(OTTools::timeUnitToSeconds("s").has_value());
+    EXPECT_DOUBLE_EQ(*OTTools::timeUnitToSeconds("s"), 1.0);
+    EXPECT_DOUBLE_EQ(*OTTools::timeUnitToSeconds("ms"), 1e-3);
+    EXPECT_DOUBLE_EQ(*OTTools::timeUnitToSeconds("min"), 60.0);
+    EXPECT_DOUBLE_EQ(*OTTools::timeUnitToSeconds("h"), 3600.0);
+}
+
+TEST_F(OTToolsTests, timeUnitToSecondsRejectsWhatItCannotRead) {
+    // A unit that is not understood must not be treated as seconds. Reporting a
+    // millisecond as a second is worse than reporting no time at all.
+    EXPECT_FALSE(OTTools::timeUnitToSeconds("furlong").has_value());
+    EXPECT_FALSE(OTTools::timeUnitToSeconds("m").has_value());
+    EXPECT_FALSE(OTTools::timeUnitToSeconds("").has_value());
+}
+
+TEST_F(OTToolsTests, parseAcquisitionDateIsUtcAndTimezoneIndependent) {
+    // OME AcquisitionDate is an xsd:dateTime. Parsed as UTC so the same file
+    // yields the same epoch whatever the timezone of the machine reading it.
+    ASSERT_TRUE(OTTools::parseAcquisitionDate("2011-09-16T10:45:48").has_value());
+    EXPECT_EQ(*OTTools::parseAcquisitionDate("2011-09-16T10:45:48"), 1316169948LL);
+    EXPECT_EQ(*OTTools::parseAcquisitionDate("2011-09-16T10:45:48Z"), 1316169948LL);
+    EXPECT_EQ(*OTTools::parseAcquisitionDate("2011-08-30T16:06:00"), 1314720360LL);
+    // Fractional seconds are accepted and truncated.
+    EXPECT_EQ(*OTTools::parseAcquisitionDate("2011-09-16T10:45:48.500"), 1316169948LL);
+}
+
+TEST_F(OTToolsTests, parseAcquisitionDateRejectsMalformedText) {
+    EXPECT_FALSE(OTTools::parseAcquisitionDate("").has_value());
+    EXPECT_FALSE(OTTools::parseAcquisitionDate("yesterday").has_value());
+    EXPECT_FALSE(OTTools::parseAcquisitionDate("2011-09-16").has_value());
+    EXPECT_FALSE(OTTools::parseAcquisitionDate("2011-13-16T10:45:48").has_value());
+    EXPECT_FALSE(OTTools::parseAcquisitionDate("2011-09-32T10:45:48").has_value());
+}
+
+namespace {
+    // Builds a Pixels element with one Plane per (t, c, z), in the order given.
+    std::string pixelsXml(const std::string& planes) {
+        return "<Pixels SizeC=\"1\" SizeZ=\"2\" SizeT=\"2\">" + planes + "</Pixels>";
+    }
+}
+
+TEST_F(OTToolsTests, planeTimestampsAreReadFromDeltaT) {
+    tinyxml2::XMLDocument doc;
+    ASSERT_EQ(doc.Parse(pixelsXml(
+        "<Plane TheT=\"0\" TheC=\"0\" TheZ=\"0\" DeltaT=\"0.0\"/>"
+        "<Plane TheT=\"0\" TheC=\"0\" TheZ=\"1\" DeltaT=\"0.5\"/>"
+        "<Plane TheT=\"1\" TheC=\"0\" TheZ=\"0\" DeltaT=\"1.0\"/>"
+        "<Plane TheT=\"1\" TheC=\"0\" TheZ=\"1\" DeltaT=\"1.5\"/>").c_str()),
+        tinyxml2::XML_SUCCESS);
+    const auto times = OTTools::collectPlaneTimestamps(doc.RootElement(), 2, 1, 2);
+    ASSERT_TRUE(times.has_value());
+    ASSERT_EQ(times->size(), 4u);
+    // index = (t * numZ + z) * numC + c
+    EXPECT_DOUBLE_EQ((*times)[0], 0.0);
+    EXPECT_DOUBLE_EQ((*times)[1], 0.5);
+    EXPECT_DOUBLE_EQ((*times)[2], 1.0);
+    EXPECT_DOUBLE_EQ((*times)[3], 1.5);
+}
+
+TEST_F(OTToolsTests, planeTimestampsUseTheStatedUnit) {
+    tinyxml2::XMLDocument doc;
+    ASSERT_EQ(doc.Parse(pixelsXml(
+        "<Plane TheT=\"0\" TheC=\"0\" TheZ=\"0\" DeltaT=\"0\" DeltaTUnit=\"ms\"/>"
+        "<Plane TheT=\"0\" TheC=\"0\" TheZ=\"1\" DeltaT=\"500\" DeltaTUnit=\"ms\"/>"
+        "<Plane TheT=\"1\" TheC=\"0\" TheZ=\"0\" DeltaT=\"1000\" DeltaTUnit=\"ms\"/>"
+        "<Plane TheT=\"1\" TheC=\"0\" TheZ=\"1\" DeltaT=\"1500\" DeltaTUnit=\"ms\"/>").c_str()),
+        tinyxml2::XML_SUCCESS);
+    const auto times = OTTools::collectPlaneTimestamps(doc.RootElement(), 2, 1, 2);
+    ASSERT_TRUE(times.has_value());
+    EXPECT_DOUBLE_EQ((*times)[1], 0.5);
+    EXPECT_DOUBLE_EQ((*times)[3], 1.5);
+}
+
+TEST_F(OTToolsTests, aPlaneWithoutADeltaTDiscardsTheWholeSeries) {
+    // The getter is addressed by plane, so a missing entry would leave one plane
+    // reporting a time it does not have. No timestamps beats wrong ones.
+    tinyxml2::XMLDocument doc;
+    ASSERT_EQ(doc.Parse(pixelsXml(
+        "<Plane TheT=\"0\" TheC=\"0\" TheZ=\"0\" DeltaT=\"0.0\"/>"
+        "<Plane TheT=\"0\" TheC=\"0\" TheZ=\"1\" DeltaT=\"0.5\"/>"
+        "<Plane TheT=\"1\" TheC=\"0\" TheZ=\"0\"/>"
+        "<Plane TheT=\"1\" TheC=\"0\" TheZ=\"1\" DeltaT=\"1.5\"/>").c_str()),
+        tinyxml2::XML_SUCCESS);
+    EXPECT_FALSE(OTTools::collectPlaneTimestamps(doc.RootElement(), 2, 1, 2).has_value());
+}
+
+TEST_F(OTToolsTests, anUnreadableDeltaTUnitDiscardsTheWholeSeries) {
+    tinyxml2::XMLDocument doc;
+    ASSERT_EQ(doc.Parse(pixelsXml(
+        "<Plane TheT=\"0\" TheC=\"0\" TheZ=\"0\" DeltaT=\"0\" DeltaTUnit=\"furlong\"/>"
+        "<Plane TheT=\"0\" TheC=\"0\" TheZ=\"1\" DeltaT=\"1\" DeltaTUnit=\"furlong\"/>"
+        "<Plane TheT=\"1\" TheC=\"0\" TheZ=\"0\" DeltaT=\"2\" DeltaTUnit=\"furlong\"/>"
+        "<Plane TheT=\"1\" TheC=\"0\" TheZ=\"1\" DeltaT=\"3\" DeltaTUnit=\"furlong\"/>").c_str()),
+        tinyxml2::XML_SUCCESS);
+    EXPECT_FALSE(OTTools::collectPlaneTimestamps(doc.RootElement(), 2, 1, 2).has_value());
+}
+
+TEST_F(OTToolsTests, aPlaneNamingACoordinateOutsideTheSceneDiscardsTheSeries) {
+    tinyxml2::XMLDocument doc;
+    ASSERT_EQ(doc.Parse(pixelsXml(
+        "<Plane TheT=\"0\" TheC=\"0\" TheZ=\"0\" DeltaT=\"0.0\"/>"
+        "<Plane TheT=\"0\" TheC=\"0\" TheZ=\"1\" DeltaT=\"0.5\"/>"
+        "<Plane TheT=\"1\" TheC=\"0\" TheZ=\"0\" DeltaT=\"1.0\"/>"
+        "<Plane TheT=\"9\" TheC=\"0\" TheZ=\"1\" DeltaT=\"1.5\"/>").c_str()),
+        tinyxml2::XML_SUCCESS);
+    EXPECT_FALSE(OTTools::collectPlaneTimestamps(doc.RootElement(), 2, 1, 2).has_value());
+}
+
+TEST_F(OTToolsTests, noPlaneElementsMeansNoTimestampsRatherThanAnError) {
+    tinyxml2::XMLDocument doc;
+    ASSERT_EQ(doc.Parse(pixelsXml("").c_str()), tinyxml2::XML_SUCCESS);
+    EXPECT_FALSE(OTTools::collectPlaneTimestamps(doc.RootElement(), 2, 1, 2).has_value());
+}
+
+TEST_F(OTToolsTests, planesMissingAltogetherDiscardTheWholeSeries) {
+    // Two of the four planes are simply not described. Filling the gaps with 0
+    // would have two planes reporting a time that belongs to neither.
+    tinyxml2::XMLDocument doc;
+    ASSERT_EQ(doc.Parse(pixelsXml(
+        "<Plane TheT=\"0\" TheC=\"0\" TheZ=\"0\" DeltaT=\"0.0\"/>"
+        "<Plane TheT=\"1\" TheC=\"0\" TheZ=\"1\" DeltaT=\"1.5\"/>").c_str()),
+        tinyxml2::XML_SUCCESS);
+    EXPECT_FALSE(OTTools::collectPlaneTimestamps(doc.RootElement(), 2, 1, 2).has_value());
+}
+
+TEST_F(OTToolsTests, aPlaneDescribedTwiceDoesNotCompleteTheSeries) {
+    // The same plane twice is still two planes short, not a full series.
+    tinyxml2::XMLDocument doc;
+    ASSERT_EQ(doc.Parse(pixelsXml(
+        "<Plane TheT=\"0\" TheC=\"0\" TheZ=\"0\" DeltaT=\"0.0\"/>"
+        "<Plane TheT=\"0\" TheC=\"0\" TheZ=\"0\" DeltaT=\"0.1\"/>"
+        "<Plane TheT=\"0\" TheC=\"0\" TheZ=\"1\" DeltaT=\"0.5\"/>").c_str()),
+        tinyxml2::XML_SUCCESS);
+    EXPECT_FALSE(OTTools::collectPlaneTimestamps(doc.RootElement(), 2, 1, 2).has_value());
+}
+
+TEST_F(OTToolsTests, tFrameResolutionUsesTheTimeUnitNotTheZUnit) {
+    // The two unit attributes are deliberately different here: reading
+    // PhysicalSizeZUnit for the T resolution scales a time by a length unit.
+    tinyxml2::XMLDocument doc;
+    ASSERT_EQ(doc.Parse("<Pixels PhysicalSizeT=\"500\" PhysicalSizeTUnit=\"ms\""
+                        " PhysicalSizeZ=\"2\" PhysicalSizeZUnit=\"um\"/>"),
+              tinyxml2::XML_SUCCESS);
+    EXPECT_DOUBLE_EQ(OTTools::readTFrameResolution(doc.RootElement()), 0.5);
+}
+
+TEST_F(OTToolsTests, tFrameResolutionDefaultsToSeconds) {
+    tinyxml2::XMLDocument doc;
+    ASSERT_EQ(doc.Parse("<Pixels PhysicalSizeT=\"2.5\"/>"), tinyxml2::XML_SUCCESS);
+    EXPECT_DOUBLE_EQ(OTTools::readTFrameResolution(doc.RootElement()), 2.5);
+}
+
+TEST_F(OTToolsTests, tFrameResolutionIsZeroWhenItsUnitCannotBeRead) {
+    tinyxml2::XMLDocument doc;
+    ASSERT_EQ(doc.Parse("<Pixels PhysicalSizeT=\"500\" PhysicalSizeTUnit=\"furlong\"/>"),
+              tinyxml2::XML_SUCCESS);
+    EXPECT_DOUBLE_EQ(OTTools::readTFrameResolution(doc.RootElement()), 0.);
+}
+
+TEST_F(OTToolsTests, zSliceResolutionUsesItsOwnLengthUnit) {
+    tinyxml2::XMLDocument doc;
+    ASSERT_EQ(doc.Parse("<Pixels PhysicalSizeZ=\"2\" PhysicalSizeZUnit=\"um\""
+                        " PhysicalSizeT=\"500\" PhysicalSizeTUnit=\"ms\"/>"),
+              tinyxml2::XML_SUCCESS);
+    EXPECT_DOUBLE_EQ(OTTools::readZSliceResolution(doc.RootElement()), 2e-6);
 }

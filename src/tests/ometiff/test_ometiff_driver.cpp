@@ -1021,3 +1021,70 @@ TEST_F(OTImageDriverTests, concurrentReadsAreByteIdenticalMultifile) {
 	// AllScenes path. The read that genuinely spans two files is the tubhiswt test above.
 	TestTools::concurrentReadIdentityTestAllScenes(filePath, driver);
 }
+
+TEST(OMETiffDriver, channelSignificantBitsFromMetadata) {
+    // Pixels/@SignificantBits is 8 in this file, and it is 8-bit storage, so the
+    // value proves the attribute was read rather than the width inferred -- the
+    // file without the attribute below reports 0, not 8.
+    std::string filePath = TestTools::getTestImagePath(
+        "ometiff", "LAMBDA-ModuloAlongZ-ModuloAlongT.ome.tiff");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::ometiff::OTImageDriver driver;
+    std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    ASSERT_GE(slide->getNumScenes(), 1);
+    std::shared_ptr<CVScene> scene = slide->getScene(0);
+    ASSERT_EQ(scene->getNumChannels(), 1);
+    EXPECT_EQ(scene->getChannelSignificantBits(0), 8);
+    EXPECT_EQ(scene->getChannelSignificantBits(-1), 0);
+    EXPECT_EQ(scene->getChannelSignificantBits(1), 0);
+}
+
+TEST(OMETiffDriver, channelSignificantBitsAreUnknownWhenNotStated) {
+    // No SignificantBits attribute: 0 for unknown rather than the storage width.
+    std::string filePath = TestTools::getTestImagePath("ometiff", "4D-Series/4D-series.ome.tiff");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::ometiff::OTImageDriver driver;
+    std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    ASSERT_GE(slide->getNumScenes(), 1);
+    EXPECT_EQ(slide->getScene(0)->getChannelSignificantBits(0), 0);
+}
+
+TEST(OMETiffDriver, acquisitionTimeFromMetadata) {
+    // <AcquisitionDate>2011-09-16T10:45:48</AcquisitionDate>, read as UTC so the
+    // expectation does not depend on the timezone of the machine running it.
+    std::string filePath = TestTools::getTestImagePath(
+        "ometiff", "LAMBDA-ModuloAlongZ-ModuloAlongT.ome.tiff");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::ometiff::OTImageDriver driver;
+    std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    ASSERT_GE(slide->getNumScenes(), 1);
+    EXPECT_EQ(slide->getScene(0)->getAcquisitionTime(), 1316169948LL);
+}
+
+TEST(OMETiffDriver, acquisitionTimeIsUnknownWhenNotStated) {
+    std::string filePath = TestTools::getTestImagePath("ometiff", "4D-Series/4D-series.ome.tiff");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::ometiff::OTImageDriver driver;
+    std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    ASSERT_GE(slide->getNumScenes(), 1);
+    EXPECT_EQ(slide->getScene(0)->getAcquisitionTime(), 0);
+}
+
+TEST(OMETiffDriver, noPlaneTimestampsWhenTheFileStatesNoDeltaT) {
+    // This file carries all 50 Plane elements but none states DeltaT, so there
+    // are no per-plane times to report.
+    std::string filePath = TestTools::getTestImagePath(
+        "ometiff", "LAMBDA-ModuloAlongZ-ModuloAlongT.ome.tiff");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::ometiff::OTImageDriver driver;
+    std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    ASSERT_GE(slide->getNumScenes(), 1);
+    std::shared_ptr<CVScene> scene = slide->getScene(0);
+    EXPECT_FALSE(scene->hasPlaneTimestamps());
+    EXPECT_DOUBLE_EQ(scene->getPlaneTimestamp(0, 0, 0), 0.);
+}

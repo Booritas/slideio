@@ -202,22 +202,18 @@ void OTScene::initialize() {
     if (m_imageSize.width <= 0 || m_imageSize.height <= 0) {
         RAISE_RUNTIME_ERROR << "OTScene: invalid image size: " << m_imageSize.width << "x" << m_imageSize.height;
     }
+    // Optional, and 0 when absent rather than inferred from Type: a file that
+    // does not say how many bits carry data must not be mistaken for one saying
+    // that all of them do.
+    m_significantBits = pixels->IntAttribute("SignificantBits", 0);
+
     m_bigEndian = pixels->BoolAttribute("BigEndian", false);
     if (m_bigEndian) {
         SLIDEIO_LOG(INFO) << "OTScene: BigEndian pixel order is declared in metadata";
     }
 
-	m_zResolution = pixels->DoubleAttribute("PhysicalSizeZ", 0.0);
-    const char* att = pixels->Attribute("PhysicalSizeZUnit");
-    if (att != nullptr) {
-        m_zResolution = OTTools::convertToMeters(m_zResolution, att);
-    }
-
-	m_tResolution = pixels->DoubleAttribute("PhysicalSizeT", 0.0);
-    att = pixels->Attribute("PhysicalSizeZUnit");
-    if (att != nullptr) {
-        m_tResolution = OTTools::convertToSeconds(m_tResolution, att);
-    }
+    m_zResolution = OTTools::readZSliceResolution(pixels);
+    m_tResolution = OTTools::readTFrameResolution(pixels);
 
     bool resolutionProcessed = false;
     double xRes = pixels->DoubleAttribute("PhysicalSizeX", 0.);
@@ -235,6 +231,7 @@ void OTScene::initialize() {
     extractTiffData(pixels, borrow.as<OTReadContext>().files);
     extractMagnificationFromMetadata();
     initializeChannelAttributes(pixels);
+    initializePlaneTimes(pixels);
 
 
     int width = m_imageSize.width;
@@ -444,4 +441,68 @@ void OTScene::initializeBlock(const cv::Size& blockSize, const std::vector<int>&
 
 std::string OTScene::getChannelName(int channel) const {
     return m_channelNames.empty() ? "" : m_channelNames[channel];
+}
+
+int OTScene::getChannelSignificantBits(int channelIndex) const {
+    if (channelIndex < 0 || channelIndex >= m_numChannels) {
+        return 0;
+    }
+    // SignificantBits sits on Pixels, not on Channel, so every channel of a
+    // scene shares it.
+    return m_significantBits;
+}
+
+double OTScene::getPlaneTimestamp(int tFrame, int channel, int zSlice) const {
+    if (m_planeTimestamps.empty()) {
+        return 0.;
+    }
+    if (tFrame < 0 || tFrame >= m_numTFrames || channel < 0 || channel >= m_numChannels
+        || zSlice < 0 || zSlice >= m_numZSlices) {
+        return 0.;
+    }
+    const size_t index =
+        (static_cast<size_t>(tFrame) * m_numZSlices + zSlice) * m_numChannels + channel;
+    return m_planeTimestamps[index];
+}
+
+void OTScene::initializePlaneTimes(tinyxml2::XMLElement* pixels) {
+    const tinyxml2::XMLElement* acquired = m_imageXml->FirstChildElement("AcquisitionDate");
+    if (acquired != nullptr && acquired->GetText() != nullptr) {
+        if (const auto epoch = OTTools::parseAcquisitionDate(acquired->GetText())) {
+            m_acquisitionTime = *epoch;
+        }
+        else {
+            SLIDEIO_LOG(WARNING) << "OTScene: unreadable AcquisitionDate '"
+                << acquired->GetText() << "' for image " << m_imageId;
+        }
+    }
+
+    auto deltas = OTTools::collectPlaneTimestamps(pixels, m_numTFrames, m_numChannels,
+                                                  m_numZSlices);
+    if (!deltas) {
+        return;
+    }
+    const double earliest = *std::min_element(deltas->begin(), deltas->end());
+    if (m_acquisitionTime != 0 && earliest >= 0.) {
+        // The file states the origin the offsets are measured from, and they do
+        // not precede it, so they are reported as recorded and
+        // getAcquisitionTime() + getPlaneTimestamp() is the plane's absolute time.
+        m_planeTimestamps = std::move(*deltas);
+        return;
+    }
+    if (m_acquisitionTime != 0) {
+        // The recorded origin is later than the first plane, which
+        // CVScene::getPlaneTimestamp() forbids. Rebasing keeps the timestamps
+        // non-negative, but the two getters would no longer add up, so the
+        // acquisition time is dropped rather than left to mislead.
+        SLIDEIO_LOG(WARNING) << "OTScene: image " << m_imageId
+            << " states a plane earlier than its AcquisitionDate; reporting the"
+               " times relative to the earliest plane and no acquisition time";
+        m_acquisitionTime = 0;
+    }
+    // No recorded origin: the earliest plane is the origin, per the contract.
+    for (double& value : *deltas) {
+        value -= earliest;
+    }
+    m_planeTimestamps = std::move(*deltas);
 }
