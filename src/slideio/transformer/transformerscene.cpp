@@ -141,6 +141,29 @@ double TransformerScene::getTFrameResolution() const
     return m_originScene->getTFrameResolution();
 }
 
+// A transformation changes pixel values, not when or how the origin was
+// acquired, so everything describing the acquisition is the origin's answer.
+
+int TransformerScene::getChannelSignificantBits(int channelIndex) const
+{
+    return m_originScene->getChannelSignificantBits(channelIndex);
+}
+
+bool TransformerScene::hasPlaneTimestamps() const
+{
+    return m_originScene->hasPlaneTimestamps();
+}
+
+double TransformerScene::getPlaneTimestamp(int tFrame, int channel, int zSlice) const
+{
+    return m_originScene->getPlaneTimestamp(tFrame, channel, zSlice);
+}
+
+int64_t TransformerScene::getAcquisitionTime() const
+{
+    return m_originScene->getAcquisitionTime();
+}
+
 std::string TransformerScene::getRawMetadata() const
 {
     return m_originScene->getRawMetadata();

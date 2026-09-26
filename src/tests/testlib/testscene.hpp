@@ -56,6 +56,28 @@ public:
     int getNumTFrames() const override { return m_numTFrames; }
 	void setNumZSlices(int numSlices) { m_numSlices = numSlices; }
 	void setNumTFrames(int numFrames) { m_numTFrames = numFrames; }
+    double getZSliceResolution() const override { return m_zSliceResolution; }
+    void setZSliceResolution(double resolution) { m_zSliceResolution = resolution; }
+    double getTFrameResolution() const override { return m_tFrameResolution; }
+    void setTFrameResolution(double resolution) { m_tFrameResolution = resolution; }
+    // Per channel, so a test can tell whether a wrapper passed the index through
+    // rather than always asking for channel 0.
+    int getChannelSignificantBits(int channelIndex) const override {
+        if (channelIndex < 0 || channelIndex >= (int)m_significantBits.size()) {
+            return 0;
+        }
+        return m_significantBits[channelIndex];
+    }
+    void setChannelSignificantBits(const std::vector<int>& bits) { m_significantBits = bits; }
+    bool hasPlaneTimestamps() const override { return m_hasPlaneTimestamps; }
+    void setHasPlaneTimestamps(bool has) { m_hasPlaneTimestamps = has; }
+    // Encodes all three indices, so a test can tell whether a wrapper forwarded
+    // them in the right order instead of only forwarding the call.
+    double getPlaneTimestamp(int tFrame, int channel, int zSlice) const override {
+        return tFrame * 100. + channel * 10. + zSlice;
+    }
+    int64_t getAcquisitionTime() const override { return m_acquisitionTime; }
+    void setAcquisitionTime(int64_t epochSeconds) { m_acquisitionTime = epochSeconds; }
 	void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
 		const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex, cv::OutputArray output) override {
 		m_requests.push_back({blockRect, blockSize, zSliceIndex, tFrameIndex});
@@ -91,6 +113,11 @@ private:
     slideio::Compression m_compression;
     int m_numSlices;
     int m_numTFrames;
+    double m_zSliceResolution = 0.;
+    double m_tFrameResolution = 0.;
+    std::vector<int> m_significantBits;
+    bool m_hasPlaneTimestamps = false;
+    int64_t m_acquisitionTime = 0;
 	std::string m_driverId = "TestDriver";
     std::vector<Request> m_requests;
     bool m_render = false;
