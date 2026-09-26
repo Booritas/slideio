@@ -39,6 +39,10 @@ namespace slideio
             Resolution getResolution() const override;
             double getZSliceResolution() const override;
             double getTFrameResolution() const override;
+            int getChannelSignificantBits(int channelIndex) const override;
+            bool hasPlaneTimestamps() const override;
+            double getPlaneTimestamp(int tFrame, int channel, int zSlice) const override;
+            int64_t getAcquisitionTime() const override;
             int getNumChannels() const override;
             std::string getChannelName(int channel) const override;
             void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
@@ -51,6 +55,11 @@ namespace slideio
             void init();
             std::shared_ptr<EtsFile> getEtsFile() const;
             int findZoomLevelIndex(double zoom) const;
+            /** @brief true if the volume holds a timestamp for every plane of the scene.
+             * On success fills the plane dimensions and the number of timestamps the
+             * volume holds, which is either one per plane or one per time frame. */
+            bool resolvePlaneTimestampLayout(int& numTFrames, int& numChannels, int& numZSlices,
+                                             int& count) const;
         protected:
             int m_etsIndex;
             std::map<std::string, std::shared_ptr<CVScene>> m_auxScenes;

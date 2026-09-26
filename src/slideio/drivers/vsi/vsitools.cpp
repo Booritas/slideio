@@ -5,8 +5,12 @@
 #include "vsislide.hpp"
 #include "vsitags.hpp"
 #include "taginfo.hpp"
+#include "slideio/core/log.hpp"
 
 #include <algorithm>
+#include <cctype>
+#include <cmath>
+#include <optional>
 
 using namespace slideio;
 
@@ -875,4 +879,227 @@ std::string vsi::VSITools::extractTagValue(vsi::VSIStream& vsi, const vsi::TagIn
                             break;
     }
     return value;
+}
+
+std::optional<double> vsi::VSITools::unitToSeconds(const std::string& unitStr) {
+    if (unitStr.empty()) {
+        return std::nullopt;
+    }
+    std::string s = unitStr;
+    s.erase(std::remove_if(s.begin(), s.end(),
+                           [](unsigned char c) { return std::isspace(c) != 0; }),
+            s.end());
+    if (s.empty()) {
+        return std::nullopt;
+    }
+
+    int exponent = 0;
+    std::size_t pos = 0;
+    if (s.size() >= 3 && s.compare(0, 3, "10^") == 0) {
+        std::size_t i = 3;
+        bool neg = false;
+        if (i < s.size() && s[i] == '-') {
+            neg = true;
+            ++i;
+        } else if (i < s.size() && s[i] == '+') {
+            ++i;
+        }
+        if (i >= s.size() || !std::isdigit(static_cast<unsigned char>(s[i]))) {
+            return std::nullopt;
+        }
+        int exp = 0;
+        while (i < s.size() && std::isdigit(static_cast<unsigned char>(s[i]))) {
+            exp = exp * 10 + (s[i] - '0');
+            ++i;
+        }
+        exponent = neg ? -exp : exp;
+        pos = i;
+    }
+
+    if (pos >= s.size() || s[pos] != 's') {
+        return std::nullopt;
+    }
+    ++pos;
+    if (pos < s.size()) {
+        if (s[pos] != '^') {
+            return std::nullopt;
+        }
+        ++pos;
+        if (pos < s.size() && (s[pos] == '-' || s[pos] == '+')) {
+            ++pos;
+        }
+        if (pos >= s.size() || !std::isdigit(static_cast<unsigned char>(s[pos]))) {
+            return std::nullopt;
+        }
+        while (pos < s.size() && std::isdigit(static_cast<unsigned char>(s[pos]))) {
+            ++pos;
+        }
+        if (pos != s.size()) {
+            return std::nullopt;
+        }
+    }
+    return std::pow(10.0, static_cast<double>(exponent));
+}
+
+bool vsi::VSITools::isPlaneTimestampNode(const TagInfo& node) {
+    if (node.tag != Tag::TIME_VALUE) {
+        return false;
+    }
+    const TagInfo* units = node.findChild(Tag::UNITS);
+    return units && unitToSeconds(units->value).has_value();
+}
+
+namespace
+{
+    std::string readValueChild(const vsi::TagInfo& node) {
+        if (const vsi::TagInfo* val = node.findChild(vsi::Tag::VALUE); val && !val->value.empty()) {
+            return val->value;
+        }
+        return node.value;
+    }
+
+    std::string readUnitsChild(const vsi::TagInfo& node) {
+        if (const vsi::TagInfo* units = node.findChild(vsi::Tag::UNITS); units && !units->value.empty()) {
+            return units->value;
+        }
+        return {};
+    }
+}
+
+vsi::VSITools::PlaneTimes vsi::VSITools::collectPlaneTimes(const TagInfo& volume) {
+    PlaneTimes times;
+    bool timestampsUsable = true;
+    int frames = 0;
+    int framesCarryingATime = 0;
+
+    // The image frames of a volume are its planes, in the order the file lists
+    // them, so a timestamp is read from each frame's own properties rather than
+    // from wherever tag 2017 happens to appear under the volume. A walk of the
+    // whole subtree would concatenate any other series it met -- one under a
+    // dimension description, say -- and every index past the join would then name
+    // the wrong plane. It also keeps the walk away from vector layers, which share
+    // the tag and hang off the frame beside its properties.
+    for (const TagInfo& frame : volume.children) {
+        if (frame.tag != Tag::IMAGE_FRAME_VOLUME) {
+            continue;
+        }
+        ++frames;
+        const TagInfo* properties = frame.findChild(Tag::FRAME_PROPERTIES);
+        const TagInfo* node = properties ? properties->findChild(Tag::TIME_VALUE) : nullptr;
+        if (!node) {
+            continue;
+        }
+        ++framesCarryingATime;
+        if (!isPlaneTimestampNode(*node)) {
+            SLIDEIO_LOG(WARNING) << "VSI driver: plane timestamp states no readable time unit";
+            timestampsUsable = false;
+            continue;
+        }
+        const std::string valueStr = readValueChild(*node);
+        if (valueStr.empty()) {
+            SLIDEIO_LOG(WARNING) << "VSI driver: plane timestamp without a value";
+            timestampsUsable = false;
+            continue;
+        }
+        try {
+            times.timestamps.push_back(std::stod(valueStr));
+        }
+        catch (const std::exception& ex) {
+            // Entries are addressed by position, so carrying on without this one
+            // would report every later plane at its neighbour's time.
+            SLIDEIO_LOG(WARNING) << "VSI driver: unreadable plane timestamp ("
+                << valueStr << "): " << ex.what();
+            timestampsUsable = false;
+            continue;
+        }
+        if (times.timestampUnit.empty()) {
+            times.timestampUnit = readUnitsChild(*node);
+        }
+    }
+    // Some planes timed and others not leaves a list that no longer lines up with
+    // the planes, which is the same failure as a list with a hole in it.
+    if (framesCarryingATime > 0 && framesCarryingATime != frames) {
+        SLIDEIO_LOG(WARNING) << "VSI driver: " << (frames - framesCarryingATime) << " of "
+            << frames << " image frames carry no timestamp";
+        timestampsUsable = false;
+    }
+
+    // The increment is a single value rather than a series, so it is looked for
+    // anywhere under the volume. Tag 2016 is overloaded (TIME_INCREMENT vs
+    // default-sample IFD); accept only a node with a parseable time UNITS child.
+    const auto findIncrement = [&](auto&& self, const TagInfo& node) -> void {
+        if (node.tag == Tag::TIME_VALUE) {
+            // A timestamp, or a vector layer sharing its tag. Neither holds an
+            // increment, and a vector layer's document subtree is not ours to walk.
+            return;
+        }
+        if (node.tag == Tag::TIME_INCREMENT) {
+            const std::string unit = readUnitsChild(node);
+            if (unitToSeconds(unit)) {
+                const std::string valueStr = readValueChild(node);
+                if (!valueStr.empty()) {
+                    try {
+                        times.increment = std::stod(valueStr);
+                        times.incrementUnit = unit;
+                    }
+                    catch (const std::exception&) {
+                    }
+                }
+            }
+            // Still recurse: nested tags may hold the real increment.
+        }
+        for (const auto& child : node.children) {
+            self(self, child);
+        }
+    };
+    findIncrement(findIncrement, volume);
+
+    if (!timestampsUsable) {
+        SLIDEIO_LOG(WARNING) << "VSI driver: discarding " << times.timestamps.size()
+            << " plane timestamps: the series is incomplete and its entries are"
+               " addressed by position";
+        times.timestamps.clear();
+        times.timestampUnit.clear();
+    }
+    return times;
+}
+
+int vsi::VSITools::planeTimestampListIndex(int t, int c, int z,
+                                           int nT, int nC, int nZ,
+                                           int orderT, int orderC, int orderZ) {
+    nT = std::max(nT, 1);
+    nC = std::max(nC, 1);
+    nZ = std::max(nZ, 1);
+    // An order the file did not state is UNSET_DIMENSION_ORDER; 0 and 1 belong to X
+    // and Y, so an order below 2 means that dimension's place is not described. Only
+    // a dimension with extent needs one: a dimension of size 1 has a single
+    // coordinate, 0, and so adds nothing to the index and multiplies the stride by
+    // one wherever it lands in the order. Demanding an order for it would throw away
+    // a layout the file did describe for the dimensions that do vary.
+    const bool missingOrder = (nT > 1 && orderT < 2)
+                           || (nC > 1 && orderC < 2)
+                           || (nZ > 1 && orderZ < 2);
+    if (missingOrder) {
+        return (t * nZ + z) * nC + c;
+    }
+    struct Axis {
+        int order;
+        int coord;
+        int size;
+    };
+    Axis axes[3] = {
+        {orderT, t, nT},
+        {orderZ, z, nZ},
+        {orderC, c, nC},
+    };
+    std::sort(axes, axes + 3, [](const Axis& a, const Axis& b) {
+        return a.order < b.order;
+    });
+    int index = 0;
+    int stride = 1;
+    for (const Axis& axis : axes) {
+        index += axis.coord * stride;
+        stride *= axis.size;
+    }
+    return index;
 }

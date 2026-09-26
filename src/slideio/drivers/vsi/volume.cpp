@@ -2,9 +2,20 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/drivers/vsi/volume.hpp"
+#include "slideio/drivers/vsi/vsitools.hpp"
 
 using namespace slideio;
 using namespace slideio::vsi;
+
+void Volume::setTResolution(double raw, const std::string& unit) {
+    m_tResolution = 0.;
+    if (raw <= 0.0) {
+        return;
+    }
+    if (const auto scale = VSITools::unitToSeconds(unit)) {
+        m_tResolution = raw * (*scale);
+    }
+}
 
 void Volume::setChannelName(int channelIndex, const std::string& name) {
     if (channelIndex >= static_cast<int>(m_channelNames.size())) {
@@ -64,4 +75,27 @@ double Volume::getChannelEmissionWavelength(int channelIndex) const {
         return 0.0;
     }
     return m_channelEmissionWavelengths[channelIndex];
+}
+
+void Volume::setPlaneTimestamps(const std::vector<double>& raw, const std::string& unit) {
+    m_planeTimestamps.clear();
+    const auto scale = VSITools::unitToSeconds(unit);
+    if (!scale) {
+        return;
+    }
+    m_planeTimestamps.reserve(raw.size());
+    for (const double value : raw) {
+        m_planeTimestamps.push_back(value * (*scale));
+    }
+}
+
+int Volume::getPlaneTimestampCount() const {
+    return static_cast<int>(m_planeTimestamps.size());
+}
+
+double Volume::getPlaneTimestampByIndex(int index) const {
+    if (index < 0 || index >= static_cast<int>(m_planeTimestamps.size())) {
+        return 0.0;
+    }
+    return m_planeTimestamps[static_cast<std::size_t>(index)];
 }

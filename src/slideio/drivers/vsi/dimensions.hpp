@@ -19,6 +19,11 @@ namespace slideio
 
         const int MAX_DIMENSIONS = 7;
 
+        // Reported for a dimension whose order the file has not stated. It cannot be
+        // 0: that is the order the format gives X, so a zero default would make an
+        // unrecorded dimension indistinguishable from the first real one.
+        const int UNSET_DIMENSION_ORDER = -1;
+
         class IDimensionOrder
         {
         public:

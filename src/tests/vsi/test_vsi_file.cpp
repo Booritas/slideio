@@ -2,6 +2,8 @@
 #include <string>
 
 #include "slideio/drivers/vsi/vsifile.hpp"
+#include "slideio/drivers/vsi/volume.hpp"
+#include "slideio/drivers/vsi/vsitools.hpp"
 #include "tests/testlib/testtools.hpp"
 
 
@@ -150,4 +152,276 @@ TEST(VSIFile, findChildRecursively) {
         ASSERT_NE(result, nullptr);
         EXPECT_EQ(result->tag, 2);
     }
+}
+
+TEST(Volume, DimensionOrdersAreUnsetUntilTheFileSetsThem) {
+    // X and Y are fixed by the format. Every other dimension has to read the
+    // unset sentinel until DIMENSION_DESCRIPTION supplies an order, otherwise a
+    // caller cannot tell "not recorded" from the order 0 that belongs to X.
+    vsi::Volume volume;
+    EXPECT_EQ(volume.getDimensionOrder(Dimensions::X), 0);
+    EXPECT_EQ(volume.getDimensionOrder(Dimensions::Y), 1);
+    for (const Dimensions dim : {Dimensions::Z, Dimensions::C, Dimensions::T,
+                                 Dimensions::L, Dimensions::P}) {
+        EXPECT_EQ(volume.getDimensionOrder(dim), -1) << "dimension " << static_cast<int>(dim);
+    }
+}
+
+TEST(Volume, PlaneTimestampsAreStoredInSeconds) {
+    // A Volume holds time in seconds and nothing else: the raw values and their
+    // unit arrive together and are converted on the way in.
+    vsi::Volume volume;
+    volume.setPlaneTimestamps({0.0, 2000.0, 4000.0}, "10^-3s^1");
+    ASSERT_EQ(volume.getPlaneTimestampCount(), 3);
+    EXPECT_DOUBLE_EQ(volume.getPlaneTimestampByIndex(0), 0.0);
+    EXPECT_DOUBLE_EQ(volume.getPlaneTimestampByIndex(1), 2.0);
+    EXPECT_DOUBLE_EQ(volume.getPlaneTimestampByIndex(2), 4.0);
+    EXPECT_DOUBLE_EQ(volume.getPlaneTimestampByIndex(3), 0.0);
+}
+
+TEST(VSITools, UnitToSeconds) {
+    EXPECT_FALSE(VSITools::unitToSeconds("").has_value());
+    EXPECT_FALSE(VSITools::unitToSeconds("um").has_value());
+    EXPECT_FALSE(VSITools::unitToSeconds("10^-3m^1").has_value());
+
+    ASSERT_TRUE(VSITools::unitToSeconds("10^-3s^1").has_value());
+    EXPECT_DOUBLE_EQ(*VSITools::unitToSeconds("10^-3s^1"), 1e-3);
+    EXPECT_DOUBLE_EQ(*VSITools::unitToSeconds("10^-3 s^1"), 1e-3);
+    EXPECT_DOUBLE_EQ(*VSITools::unitToSeconds("s^1"), 1.0);
+    EXPECT_DOUBLE_EQ(*VSITools::unitToSeconds("s"), 1.0);
+    EXPECT_DOUBLE_EQ(*VSITools::unitToSeconds("10^-6s^1"), 1e-6);
+    EXPECT_DOUBLE_EQ(*VSITools::unitToSeconds("10^0s"), 1.0);
+}
+
+TEST(VSITools, PlaneTimestampListIndexFallbackTZC) {
+    // Unset orders (< 2) → (t*nZ+z)*nC+c
+    EXPECT_EQ(VSITools::planeTimestampListIndex(0, 0, 0, 25, 2, 1, -1, -1, -1), 0);
+    EXPECT_EQ(VSITools::planeTimestampListIndex(0, 1, 0, 25, 2, 1, -1, -1, -1), 1);
+    EXPECT_EQ(VSITools::planeTimestampListIndex(1, 0, 0, 25, 2, 1, -1, -1, -1), 2);
+    EXPECT_EQ(VSITools::planeTimestampListIndex(1, 1, 0, 25, 2, 1, -1, -1, -1), 3);
+}
+
+TEST(VSITools, PlaneTimestampListIndexChannelMajor) {
+    // IX73-style DIMENSION_DESCRIPTION: T=2, Z=3, C=4 → T fastest, C slowest.
+    constexpr int orderT = 2, orderZ = 3, orderC = 4;
+    constexpr int nT = 25, nC = 2, nZ = 1;
+    EXPECT_EQ(VSITools::planeTimestampListIndex(0, 0, 0, nT, nC, nZ, orderT, orderC, orderZ), 0);
+    EXPECT_EQ(VSITools::planeTimestampListIndex(1, 0, 0, nT, nC, nZ, orderT, orderC, orderZ), 1);
+    EXPECT_EQ(VSITools::planeTimestampListIndex(24, 0, 0, nT, nC, nZ, orderT, orderC, orderZ), 24);
+    EXPECT_EQ(VSITools::planeTimestampListIndex(0, 1, 0, nT, nC, nZ, orderT, orderC, orderZ), 25);
+    EXPECT_EQ(VSITools::planeTimestampListIndex(1, 1, 0, nT, nC, nZ, orderT, orderC, orderZ), 26);
+    EXPECT_EQ(VSITools::planeTimestampListIndex(24, 1, 0, nT, nC, nZ, orderT, orderC, orderZ), 49);
+}
+
+namespace {
+    vsi::TagInfo makeChild(int tag, const std::string& value) {
+        vsi::TagInfo child;
+        child.tag = tag;
+        child.value = value;
+        return child;
+    }
+}
+
+TEST(VSITools, APlaneTimestampNodeIsTheOneStatingATimeUnit) {
+    // TIME_VALUE and VECTOR_LAYER_VOLUME are both tag 2017, so the tag alone
+    // cannot tell them apart. A timestamp states the unit of its value; a vector
+    // layer is a document subtree and states none.
+    vsi::TagInfo timestamp;
+    timestamp.tag = Tag::TIME_VALUE;
+    timestamp.children.push_back(makeChild(Tag::UNITS, "10^-3s^1"));
+    timestamp.children.push_back(makeChild(Tag::VALUE, "29559.439000"));
+    EXPECT_TRUE(VSITools::isPlaneTimestampNode(timestamp));
+
+    vsi::TagInfo vectorLayer;
+    vectorLayer.tag = Tag::VECTOR_LAYER_VOLUME;   // the same 2017
+    vectorLayer.children.push_back(makeChild(6, "1162180352"));
+    vectorLayer.children.push_back(makeChild(5, "xv.idgen.unique"));
+    EXPECT_FALSE(VSITools::isPlaneTimestampNode(vectorLayer));
+}
+
+TEST(VSITools, APlaneTimestampNodeNeedsTheUnitToBeATimeUnit) {
+    vsi::TagInfo node;
+    node.tag = Tag::TIME_VALUE;
+    node.children.push_back(makeChild(Tag::UNITS, "m^1"));
+    node.children.push_back(makeChild(Tag::VALUE, "12.5"));
+    EXPECT_FALSE(VSITools::isPlaneTimestampNode(node));
+
+    vsi::TagInfo other;
+    other.tag = Tag::MULTIDIM_STACK_PROPERTIES;
+    other.children.push_back(makeChild(Tag::UNITS, "10^-3s^1"));
+    EXPECT_FALSE(VSITools::isPlaneTimestampNode(other));
+}
+
+namespace {
+    vsi::TagInfo makeTimestampNode(const std::string& unit, const std::string& value) {
+        vsi::TagInfo node;
+        node.tag = Tag::TIME_VALUE;
+        node.children.push_back(makeChild(Tag::UNITS, unit));
+        node.children.push_back(makeChild(Tag::VALUE, value));
+        return node;
+    }
+
+    vsi::TagInfo makeVolumeOf(const std::vector<vsi::TagInfo>& children) {
+        vsi::TagInfo volume;
+        volume.tag = Tag::MULTIDIM_IMAGE_VOLUME;
+        for (const auto& child : children) {
+            volume.children.push_back(child);
+        }
+        return volume;
+    }
+
+    // One plane of the stack: an image frame whose frame properties carry its
+    // timestamp, which is how a VSI file lays a time series out.
+    vsi::TagInfo makeFrame(const vsi::TagInfo& timestamp) {
+        vsi::TagInfo properties;
+        properties.tag = Tag::FRAME_PROPERTIES;
+        properties.children.push_back(timestamp);
+        vsi::TagInfo frame;
+        frame.tag = Tag::IMAGE_FRAME_VOLUME;
+        frame.children.push_back(properties);
+        return frame;
+    }
+
+    vsi::TagInfo makeEmptyFrame() {
+        vsi::TagInfo frame;
+        frame.tag = Tag::IMAGE_FRAME_VOLUME;
+        return frame;
+    }
+
+    vsi::TagInfo makeVolumeOfFrames(const std::vector<std::string>& values,
+                                    const std::string& unit = "10^-3s^1") {
+        std::vector<vsi::TagInfo> frames;
+        for (const auto& value : values) {
+            frames.push_back(makeFrame(makeTimestampNode(unit, value)));
+        }
+        return makeVolumeOf(frames);
+    }
+}
+
+TEST(VSITools, CollectPlaneTimesReadsEveryTimestampInOrder) {
+    const vsi::TagInfo volume = makeVolumeOfFrames({"1000.0", "2000.0", "3000.0"});
+    const auto times = VSITools::collectPlaneTimes(volume);
+    ASSERT_EQ(times.timestamps.size(), 3u);
+    EXPECT_DOUBLE_EQ(times.timestamps[0], 1000.0);
+    EXPECT_DOUBLE_EQ(times.timestamps[1], 2000.0);
+    EXPECT_DOUBLE_EQ(times.timestamps[2], 3000.0);
+    EXPECT_EQ(times.timestampUnit, "10^-3s^1");
+}
+
+TEST(VSITools, OnlyTheFramesContributeToTheSeries) {
+    // The frames are the planes, in order, so they alone define the sequence.
+    // A TIME_VALUE anywhere else in the volume -- under a dimension description,
+    // say -- belongs to some other series, and concatenating it would make every
+    // index past it name the wrong plane.
+    vsi::TagInfo dimensionDescription;
+    dimensionDescription.tag = Tag::DIMENSION_DESCRIPTION_VOLUME;
+    dimensionDescription.children.push_back(makeTimestampNode("10^-3s^1", "9999.0"));
+
+    vsi::TagInfo volume = makeVolumeOfFrames({"1000.0", "2000.0"});
+    volume.children.push_back(dimensionDescription);
+
+    const auto times = VSITools::collectPlaneTimes(volume);
+    ASSERT_EQ(times.timestamps.size(), 2u);
+    EXPECT_DOUBLE_EQ(times.timestamps[0], 1000.0);
+    EXPECT_DOUBLE_EQ(times.timestamps[1], 2000.0);
+}
+
+TEST(VSITools, AFrameWithoutATimestampDiscardsTheWholeSeries) {
+    // Every plane needs one or the list stops lining up with the planes.
+    vsi::TagInfo volume = makeVolumeOfFrames({"1000.0", "2000.0"});
+    volume.children.push_back(makeEmptyFrame());
+    const auto times = VSITools::collectPlaneTimes(volume);
+    EXPECT_TRUE(times.timestamps.empty());
+}
+
+TEST(VSITools, OneUnreadableTimestampDiscardsTheWholeSeries) {
+    // The list is positional. Skipping an unreadable entry would slide every
+    // later plane onto its neighbour's time, which is worse than reporting no
+    // timestamps at all, so one bad node invalidates the series.
+    const vsi::TagInfo volume = makeVolumeOfFrames({"1000.0", "not a number", "3000.0"});
+    const auto times = VSITools::collectPlaneTimes(volume);
+    EXPECT_TRUE(times.timestamps.empty());
+}
+
+TEST(VSITools, AnEmptyTimestampValueAlsoDiscardsTheWholeSeries) {
+    const vsi::TagInfo volume = makeVolumeOfFrames({"1000.0", ""});
+    const auto times = VSITools::collectPlaneTimes(volume);
+    EXPECT_TRUE(times.timestamps.empty());
+}
+
+TEST(VSITools, CollectPlaneTimesIgnoresAVectorLayerSharingTheTag) {
+    // A vector layer hangs off the frame itself, beside the frame properties.
+    vsi::TagInfo vectorLayer;
+    vectorLayer.tag = Tag::VECTOR_LAYER_VOLUME;   // the same 2017
+    vectorLayer.children.push_back(makeChild(6, "1162180352"));
+
+    vsi::TagInfo frame = makeFrame(makeTimestampNode("10^-3s^1", "1000.0"));
+    frame.children.push_back(vectorLayer);
+
+    const auto times = VSITools::collectPlaneTimes(makeVolumeOf({frame}));
+    ASSERT_EQ(times.timestamps.size(), 1u);
+    EXPECT_DOUBLE_EQ(times.timestamps[0], 1000.0);
+}
+
+TEST(VSITools, CollectPlaneTimesReadsTheTimeIncrement) {
+    vsi::TagInfo increment;
+    increment.tag = Tag::TIME_INCREMENT;
+    increment.children.push_back(makeChild(Tag::UNITS, "10^-3s^1"));
+    increment.children.push_back(makeChild(Tag::VALUE, "2000.0"));
+    const vsi::TagInfo volume = makeVolumeOf({increment});
+    const auto times = VSITools::collectPlaneTimes(volume);
+    ASSERT_TRUE(times.increment.has_value());
+    EXPECT_DOUBLE_EQ(*times.increment, 2000.0);
+    EXPECT_EQ(times.incrementUnit, "10^-3s^1");
+}
+
+TEST(VSITools, PlaneTimestampListIndexIgnoresTheOrderOfASingletonDimension) {
+    // One time frame, so the file need not state an order for T. A dimension of
+    // extent 1 contributes nothing to the index whatever its position, so the
+    // described layout of C and Z still applies: Z fastest, C slowest, index z + 11c.
+    constexpr int orderT = -1, orderZ = 2, orderC = 3;
+    constexpr int nT = 1, nC = 2, nZ = 11;
+    EXPECT_EQ(VSITools::planeTimestampListIndex(0, 0, 0, nT, nC, nZ, orderT, orderC, orderZ), 0);
+    EXPECT_EQ(VSITools::planeTimestampListIndex(0, 0, 1, nT, nC, nZ, orderT, orderC, orderZ), 1);
+    EXPECT_EQ(VSITools::planeTimestampListIndex(0, 0, 10, nT, nC, nZ, orderT, orderC, orderZ), 10);
+    EXPECT_EQ(VSITools::planeTimestampListIndex(0, 1, 0, nT, nC, nZ, orderT, orderC, orderZ), 11);
+    EXPECT_EQ(VSITools::planeTimestampListIndex(0, 1, 1, nT, nC, nZ, orderT, orderC, orderZ), 12);
+}
+
+TEST(VSITools, PlaneTimestampListIndexFallsBackWhenAPresentDimensionHasNoOrder) {
+    // Z has extent, so its missing order leaves the layout undescribed and the
+    // TZC fallback applies: (t*nZ + z)*nC + c.
+    constexpr int orderT = 2, orderZ = -1, orderC = 3;
+    constexpr int nT = 2, nC = 2, nZ = 11;
+    EXPECT_EQ(VSITools::planeTimestampListIndex(0, 0, 1, nT, nC, nZ, orderT, orderC, orderZ), 2);
+    EXPECT_EQ(VSITools::planeTimestampListIndex(1, 1, 0, nT, nC, nZ, orderT, orderC, orderZ), 23);
+}
+
+TEST(Volume, TResolutionIsStoredInSeconds) {
+    vsi::Volume volume;
+    volume.setTResolution(2000.0, "10^-3s^1");
+    EXPECT_DOUBLE_EQ(volume.getTResolution(), 2.0);
+}
+
+TEST(Volume, TResolutionRequiresParseableUnit) {
+    // Without a unit the number means nothing, so nothing is stored. The
+    // alternative -- keeping the raw number and guessing a scale later -- is how
+    // a millisecond ends up reported as a second.
+    vsi::Volume volume;
+    volume.setTResolution(2000.0, "bogus");
+    EXPECT_DOUBLE_EQ(volume.getTResolution(), 0.0);
+
+    volume.setTResolution(2000.0, "");
+    EXPECT_DOUBLE_EQ(volume.getTResolution(), 0.0);
+}
+
+TEST(Volume, PlaneTimestampsRequireAParseableUnit) {
+    vsi::Volume volume;
+    volume.setPlaneTimestamps({10003.0, 12003.0}, "bogus");
+    EXPECT_EQ(volume.getPlaneTimestampCount(), 0);
+
+    volume.setPlaneTimestamps({10003.0, 12003.0}, "10^-3s^1");
+    ASSERT_EQ(volume.getPlaneTimestampCount(), 2);
+    EXPECT_NEAR(volume.getPlaneTimestampByIndex(0), 10.003, 1e-9);
+    EXPECT_NEAR(volume.getPlaneTimestampByIndex(1), 12.003, 1e-9);
 }

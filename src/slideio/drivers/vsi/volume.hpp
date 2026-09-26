@@ -2,6 +2,7 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #pragma once
+#include <algorithm>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -25,9 +26,15 @@ namespace slideio
         class SLIDEIO_VSI_EXPORTS Volume : public IDimensionOrder
         {
         public:
+            // The order of a dimension is only known once DIMENSION_DESCRIPTION has
+            // been read, so every dimension starts unset. X and Y are the exception:
+            // the format fixes them at 0 and 1, which is also why UNSET_DIMENSION_ORDER
+            // cannot be 0 -- that is a real order, and readers here test for "> 1".
             Volume() {
-                m_dimensionOrder[0] = 0;
-                m_dimensionOrder[1] = 1;
+                std::fill(std::begin(m_dimensionOrder), std::end(m_dimensionOrder),
+                          UNSET_DIMENSION_ORDER);
+                m_dimensionOrder[dimensionIndex(Dimensions::X)] = 0;
+                m_dimensionOrder[dimensionIndex(Dimensions::Y)] = 1;
             }
             std::string getName() const { return m_name; }
             void setName(const std::string& name) { m_name = name; }
@@ -64,7 +71,11 @@ namespace slideio
             void setResolution(const Resolution& resolution) { m_resolution = resolution; }
             void setZResolution(double res) { m_zResolution = res; }
             double getZResolution() const { return m_zResolution; }
-            void setTResolution(double res) { m_tResolution = res; }
+            // Time in a Volume is always in seconds. A raw value arrives with the unit
+            // the file stated and is converted here; if that unit cannot be read the
+            // number means nothing and is not stored, rather than kept to be scaled by
+            // a guess later.
+            void setTResolution(double raw, const std::string& unit);
             double getTResolution() const { return m_tResolution; }
             void setChannelName(int channelIndex, const std::string& channelName);
             std::string getChannelName(int channelIndex) const;
@@ -80,6 +91,17 @@ namespace slideio
             // 0.0 means "not set".
             void setChannelEmissionWavelength(int channelIndex, double nm);
             double getChannelEmissionWavelength(int channelIndex) const;
+
+            // Converted to seconds on the way in, like the T resolution above.
+            // An unreadable unit stores nothing, so a count of 0 means "no usable
+            // timestamps" and every stored value is in seconds.
+            void setPlaneTimestamps(const std::vector<double>& raw, const std::string& unit);
+            int getPlaneTimestampCount() const;
+            double getPlaneTimestampByIndex(int index) const;
+
+            // Acquisition start as a Unix epoch in seconds; 0 when the file records none.
+            void setAcquisitionTime(int64_t epochSeconds) { m_acquisitionTime = epochSeconds; }
+            int64_t getAcquisitionTime() const { return m_acquisitionTime; }
 
 			const bool isValid() const {
 				return m_size.height>0 && m_size.width>0;
@@ -99,14 +121,18 @@ namespace slideio
             int m_ifd = -1;
             std::vector<std::shared_ptr<Volume>> m_auxVolumes;
             int m_defaultColor = 0;
-            int m_dimensionOrder[MAX_DIMENSIONS] = {-1};
+            // Filled by the constructor: a braced initialiser would set only the
+            // first element and value-initialise the rest to 0.
+            int m_dimensionOrder[MAX_DIMENSIONS];
             Resolution m_resolution;
             double m_zResolution = 0.;
-            double m_tResolution = 0.;
+            double m_tResolution = 0.;   // seconds
             std::vector<std::string> m_channelNames;
             static constexpr uint32_t kNoChannelColor = 0xFFFFFFFFu;
             std::vector<uint32_t> m_channelColors;
             std::vector<double> m_channelEmissionWavelengths;
+            std::vector<double> m_planeTimestamps;   // seconds
+            int64_t m_acquisitionTime = 0;
         };
 
     };

@@ -133,6 +133,74 @@ double EtsFileScene::getTFrameResolution() const {
     return 0.;
 }
 
+
+int EtsFileScene::getChannelSignificantBits(int channelIndex) const {
+    if (channelIndex < 0 || channelIndex >= getNumChannels()) {
+        return 0;
+    }
+    if (getEtsFile() && getEtsFile()->getVolume()) {
+        const int bits = getEtsFile()->getVolume()->getBitDepth();
+        if (bits == 8 || bits == 12 || bits == 16) {
+            return bits;
+        }
+    }
+    return CVScene::getChannelSignificantBits(channelIndex);
+}
+
+bool EtsFileScene::resolvePlaneTimestampLayout(int& numTFrames, int& numChannels, int& numZSlices,
+                                               int& count) const {
+    const auto ets = getEtsFile();
+    if (!ets || !ets->getVolume()) {
+        return false;
+    }
+    numChannels = std::max(ets->getNumChannels(), 1);
+    numZSlices = std::max(ets->getNumZSlices(), 1);
+    numTFrames = std::max(ets->getNumTFrames(), 1);
+    count = ets->getVolume()->getPlaneTimestampCount();
+    return count == numTFrames * numChannels * numZSlices || count == numTFrames;
+}
+
+bool EtsFileScene::hasPlaneTimestamps() const {
+    int nT = 0, nC = 0, nZ = 0, count = 0;
+    return resolvePlaneTimestampLayout(nT, nC, nZ, count);
+}
+
+double EtsFileScene::getPlaneTimestamp(int tFrame, int channel, int zSlice) const {
+    int nT = 0, nC = 0, nZ = 0, count = 0;
+    if (!resolvePlaneTimestampLayout(nT, nC, nZ, count)) {
+        return 0.;
+    }
+    if (tFrame < 0 || tFrame >= nT || channel < 0 || channel >= nC || zSlice < 0 || zSlice >= nZ) {
+        return 0.;
+    }
+    const auto volume = getEtsFile()->getVolume();
+    if (count == nT * nC * nZ) {
+        const int index = VSITools::planeTimestampListIndex(
+            tFrame, channel, zSlice, nT, nC, nZ,
+            volume->getDimensionOrder(Dimensions::T),
+            volume->getDimensionOrder(Dimensions::C),
+            volume->getDimensionOrder(Dimensions::Z));
+        return volume->getPlaneTimestampByIndex(index);
+    }
+    return volume->getPlaneTimestampByIndex(tFrame);
+}
+
+// The volume's CREATION_TIME is taken to be the origin the TIME_VALUE list measures
+// from, which is what CVScene::getPlaneTimestamp() requires of a driver. It is
+// consistent with the one timestamped file in the corpus -- creation stamped ~29.6 s
+// before the first exposure, the gap a setup would take -- but not proven: no file we
+// hold has both plane timestamps and a second scene to check the two origins against.
+// A file with timestamps in two scenes would settle it. If the list turns out to
+// measure from something else, this value stays correct as an acquisition stamp and it
+// is the additive relationship between the two getters that needs revisiting.
+int64_t EtsFileScene::getAcquisitionTime() const {
+    const auto ets = getEtsFile();
+    if (!ets || !ets->getVolume()) {
+        return 0;
+    }
+    return ets->getVolume()->getAcquisitionTime();
+}
+
 int EtsFileScene::getNumChannels() const {
     if (getEtsFile()) {
         return getEtsFile()->getNumChannels();

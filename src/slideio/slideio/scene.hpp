@@ -7,6 +7,7 @@
 #include "slideio/core/slideio_enums.hpp"
 #include "slideio/core/metadata.hpp"
 #include "slideio/core/colorprofile.hpp"
+#include <cstdint>
 #include <string>
 #include <vector>
 #include <memory>
@@ -85,6 +86,26 @@ namespace slideio
         double getZSliceResolution() const;
         /**@brief returns time between 2 time frames in seconds for images with time frames.*/
         double getTFrameResolution() const;
+        /**@brief native significant bits of a channel; 0 when unknown.
+        @param channelIndex : index of the channel, in the range (0, numberOfChannels)*/
+        int getChannelSignificantBits(int channelIndex) const;
+        /**@brief true if every plane of the scene has a timestamp. */
+        bool hasPlaneTimestamps() const;
+        /**@brief when one plane was acquired, in seconds from the scene's acquisition origin.
+         *
+         * The origin is the acquisition start recorded in the file -- the instant
+         * getAcquisitionTime() reports -- or the scene's earliest plane where the file
+         * records none. Timestamps are never negative, but the earliest plane is 0 only
+         * where it is itself the origin: a recorded start may precede the first exposure.
+         * Differences between planes are always meaningful; an absolute time needs
+         * getAcquisitionTime() to be non-zero. Returns 0 if hasPlaneTimestamps() is false
+         * or an index is out of range. */
+        double getPlaneTimestamp(int tFrame, int channel, int zSlice) const;
+        /**@brief acquisition start in seconds since 1970-01-01T00:00:00Z, 0 if unknown.
+         *
+         * This is the origin getPlaneTimestamp() measures from, so the absolute time of
+         * a plane is getAcquisitionTime() + getPlaneTimestamp(tFrame, channel, zSlice).*/
+        int64_t getAcquisitionTime() const;
         /**@brief returns slide magnification extracted from the slide metadata. */
         double getMagnification() const;
         /**@brief returns memory size in the bytes required for a raster block.

@@ -43,6 +43,7 @@ removed without renumbering the rest and its number is retired in
 24. [GDAL and CZI scenes hold raw pointers into slide-owned state](#24-gdal-and-czi-scenes-hold-raw-pointers-into-slide-owned-state)
 25. *retired -- fixed, see [Resolved and removed](#resolved-and-removed)*
 26. [The positional read path has no buffer for small sequential reads](#26-the-positional-read-path-has-no-buffer-for-small-sequential-reads)
+27. [VSI scales X, Y and Z resolution by a hardcoded 1e-6 and ignores the unit the file states](#27-vsi-scales-x-y-and-z-resolution-by-a-hardcoded-1e-6-and-ignores-the-unit-the-file-states)
 
 Not debt, recorded so it stays a decision:
 [Consciously accepted, not debt](#consciously-accepted-not-debt).
@@ -991,6 +992,61 @@ natural place to put it. What must **not** happen is buffering inside
 buffer there would reinstate exactly the race the whole concurrency conversion
 removed. Wants its own before/after on both patterns, since a buffer that fixes
 the small-read case must not slow the large-read case back down.
+
+---
+
+## 27. VSI scales X, Y and Z resolution by a hardcoded 1e-6 and ignores the unit the file states
+
+**Files:** `src/slideio/drivers/vsi/vsifile.cpp` — X/Y in
+`extractVolumesFromMetadata` where `RWC_FRAME_SCALE` is read, Z in the
+`case 1:` branch where `DIMENSION_PARAMETERS`/`CHANNEL_INFO_PROPERTIES` is read
+**Related:** `software-docs/BREAKING_CHANGES.md`, branch `vsi-timestamps`,
+*`vsi::Volume` stores time in seconds* — the T dimension was converted away from this
+same pattern; raised in review of #79
+(https://github.com/Booritas/slideio/pull/79#discussion_r4053580362)
+**Status:** Open. **Latent, not live**: every VSI file in the corpus states
+`10^-6m^1`, so the hardcoded factor is currently right. A file stating anything
+else is silently wrong by whatever the two differ by.
+
+Both resolutions are computed by multiplying the recorded number by `1.e-6`,
+without reading the unit sitting beside it:
+
+```cpp
+const double xRes = 1.e-6 * std::stod(tokens[0]);      // RWC_FRAME_SCALE
+...
+double zRes = std::stod(valueTag->value);
+volumeObj->setZResolution(zRes * 1.e-6);               // CHANNEL_INFO_PROPERTIES/VALUE
+```
+
+The unit is there in both cases and is simply not consulted:
+
+| Dimension | Value tag | Unit tag | Recorded in all three dumped files |
+|---|---|---|---|
+| X, Y | `RWC_FRAME_SCALE` (2019) | `RWC_FRAME_UNIT` (2020) | `10^-6m^1` |
+| Z | `CHANNEL_INFO_PROPERTIES`/`VALUE` | the sibling `UNITS` | `10^-6m^1` |
+
+**Why this is worth an entry rather than a shrug.** The T dimension had exactly
+this shape and it was a real defect: a raw number scaled by an assumed factor.
+The fix for T went in on this branch — `unitToSeconds` refuses to guess, and
+`Volume` now converts on the way in and stores nothing when the unit cannot be
+read, so a millisecond can no longer be reported as a second. X, Y and Z still
+do what T used to. The asymmetry is the debt: one dimension in the same parser
+reads its unit and three do not, and a reader of `setZResolution(zRes * 1.e-6)`
+has no way to tell whether the factor was verified or assumed.
+
+**What the fix needs.** A length counterpart to `VSITools::unitToSeconds` —
+`10^-6m^1` parses as exponent `-6` with base `m`, so the existing parser has the
+shape but is hardcoded to `s`. Then `setResolution`/`setZResolution` take the
+raw value and the unit together, as `setTResolution` and `setPlaneTimestamps`
+now do, giving `Volume` the same invariant for length that it has for time.
+
+**Why it was not fixed with T.** Resolution feeds magnification, level selection
+and every physical-size calculation in the driver, so changing how it is scaled
+moves numbers that tests and callers depend on, whereas the timestamp work was
+adding a getter nobody had used yet. Doing both at once would have made a
+review of either harder. It wants its own change, with a corpus file stating a
+unit other than `10^-6m^1` to prove the conversion — which no image we hold
+does, so the test would have to be at the `Volume`/parser level.
 
 ---
 ## Consciously accepted, not debt
