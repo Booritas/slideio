@@ -302,8 +302,7 @@ void VSIFile::extractVolumesFromMetadata() {
                                             VSITools::unitToSeconds(unitsTag->value)) {
                                             try {
                                                 const double res = std::stod(valueTag->value);
-                                                volumeObj->setTResolution(res);
-                                                volumeObj->setTResolutionUnit(unitsTag->value);
+                                                volumeObj->setTResolution(res, unitsTag->value);
                                             } catch (const std::exception&) {
                                             }
                                         }
@@ -394,15 +393,11 @@ void VSIFile::extractVolumesFromMetadata() {
                     }
                 }
                 if (!planeTimes.timestamps.empty()) {
-                    volumeObj->setPlaneTimestamps(planeTimes.timestamps);
-                    if (!planeTimes.timestampUnit.empty()) {
-                        volumeObj->setPlaneTimestampUnit(planeTimes.timestampUnit);
-                    }
+                    volumeObj->setPlaneTimestamps(planeTimes.timestamps, planeTimes.timestampUnit);
                 }
                 // TIME_INCREMENT overrides dimension-T provisional resolution.
-                if (planeTimes.increment && !planeTimes.incrementUnit.empty()) {
-                    volumeObj->setTResolution(*planeTimes.increment);
-                    volumeObj->setTResolutionUnit(planeTimes.incrementUnit);
+                if (planeTimes.increment) {
+                    volumeObj->setTResolution(*planeTimes.increment, planeTimes.incrementUnit);
                 }
             }
             m_volumes.push_back(volumeObj);

@@ -7,23 +7,14 @@
 using namespace slideio;
 using namespace slideio::vsi;
 
-void Volume::setTResolution(double raw) {
-    m_tResolutionRaw = raw;
-}
-
-void Volume::setTResolutionUnit(const std::string& unit) {
-    m_tResolutionUnit = unit;
-}
-
-double Volume::getTResolution() const {
-    if (m_tResolutionRaw <= 0.0) {
-        return 0.0;
+void Volume::setTResolution(double raw, const std::string& unit) {
+    m_tResolution = 0.;
+    if (raw <= 0.0) {
+        return;
     }
-    const auto scale = VSITools::unitToSeconds(m_tResolutionUnit);
-    if (!scale) {
-        return 0.0;
+    if (const auto scale = VSITools::unitToSeconds(unit)) {
+        m_tResolution = raw * (*scale);
     }
-    return m_tResolutionRaw * (*scale);
 }
 
 void Volume::setChannelName(int channelIndex, const std::string& name) {
@@ -86,12 +77,16 @@ double Volume::getChannelEmissionWavelength(int channelIndex) const {
     return m_channelEmissionWavelengths[channelIndex];
 }
 
-void Volume::setPlaneTimestamps(std::vector<double> timestamps) {
-    m_planeTimestamps = std::move(timestamps);
-}
-
-void Volume::setPlaneTimestampUnit(const std::string& unit) {
-    m_planeTimestampUnit = unit;
+void Volume::setPlaneTimestamps(const std::vector<double>& raw, const std::string& unit) {
+    m_planeTimestamps.clear();
+    const auto scale = VSITools::unitToSeconds(unit);
+    if (!scale) {
+        return;
+    }
+    m_planeTimestamps.reserve(raw.size());
+    for (const double value : raw) {
+        m_planeTimestamps.push_back(value * (*scale));
+    }
 }
 
 int Volume::getPlaneTimestampCount() const {
@@ -102,7 +97,5 @@ double Volume::getPlaneTimestampByIndex(int index) const {
     if (index < 0 || index >= static_cast<int>(m_planeTimestamps.size())) {
         return 0.0;
     }
-    const double raw = m_planeTimestamps[static_cast<std::size_t>(index)];
-    const auto scale = VSITools::unitToSeconds(m_planeTimestampUnit);
-    return raw * (scale ? *scale : 1.0);
+    return m_planeTimestamps[static_cast<std::size_t>(index)];
 }

@@ -167,13 +167,15 @@ TEST(Volume, DimensionOrdersAreUnsetUntilTheFileSetsThem) {
     }
 }
 
-TEST(Volume, PlaneTimestampsRoundTrip) {
+TEST(Volume, PlaneTimestampsAreStoredInSeconds) {
+    // A Volume holds time in seconds and nothing else: the raw values and their
+    // unit arrive together and are converted on the way in.
     vsi::Volume volume;
-    volume.setPlaneTimestamps({0.0, 2000.0, 4000.0});
+    volume.setPlaneTimestamps({0.0, 2000.0, 4000.0}, "10^-3s^1");
     ASSERT_EQ(volume.getPlaneTimestampCount(), 3);
     EXPECT_DOUBLE_EQ(volume.getPlaneTimestampByIndex(0), 0.0);
-    EXPECT_DOUBLE_EQ(volume.getPlaneTimestampByIndex(1), 2000.0);
-    EXPECT_DOUBLE_EQ(volume.getPlaneTimestampByIndex(2), 4000.0);
+    EXPECT_DOUBLE_EQ(volume.getPlaneTimestampByIndex(1), 2.0);
+    EXPECT_DOUBLE_EQ(volume.getPlaneTimestampByIndex(2), 4.0);
     EXPECT_DOUBLE_EQ(volume.getPlaneTimestampByIndex(3), 0.0);
 }
 
@@ -352,22 +354,31 @@ TEST(VSITools, PlaneTimestampListIndexFallsBackWhenAPresentDimensionHasNoOrder) 
     EXPECT_EQ(VSITools::planeTimestampListIndex(1, 1, 0, nT, nC, nZ, orderT, orderC, orderZ), 23);
 }
 
-TEST(Volume, TResolutionRequiresParseableUnit) {
+TEST(Volume, TResolutionIsStoredInSeconds) {
     vsi::Volume volume;
-    volume.setTResolution(2000.0);
+    volume.setTResolution(2000.0, "10^-3s^1");
+    EXPECT_DOUBLE_EQ(volume.getTResolution(), 2.0);
+}
+
+TEST(Volume, TResolutionRequiresParseableUnit) {
+    // Without a unit the number means nothing, so nothing is stored. The
+    // alternative -- keeping the raw number and guessing a scale later -- is how
+    // a millisecond ends up reported as a second.
+    vsi::Volume volume;
+    volume.setTResolution(2000.0, "bogus");
     EXPECT_DOUBLE_EQ(volume.getTResolution(), 0.0);
 
-    volume.setTResolutionUnit("10^-3s^1");
-    EXPECT_DOUBLE_EQ(volume.getTResolution(), 2.0);
-
-    volume.setTResolutionUnit("bogus");
+    volume.setTResolution(2000.0, "");
     EXPECT_DOUBLE_EQ(volume.getTResolution(), 0.0);
 }
 
-TEST(Volume, PlaneTimestampsScaledByUnit) {
+TEST(Volume, PlaneTimestampsRequireAParseableUnit) {
     vsi::Volume volume;
-    volume.setPlaneTimestamps({10003.0, 12003.0});
-    volume.setPlaneTimestampUnit("10^-3s^1");
+    volume.setPlaneTimestamps({10003.0, 12003.0}, "bogus");
+    EXPECT_EQ(volume.getPlaneTimestampCount(), 0);
+
+    volume.setPlaneTimestamps({10003.0, 12003.0}, "10^-3s^1");
+    ASSERT_EQ(volume.getPlaneTimestampCount(), 2);
     EXPECT_NEAR(volume.getPlaneTimestampByIndex(0), 10.003, 1e-9);
     EXPECT_NEAR(volume.getPlaneTimestampByIndex(1), 12.003, 1e-9);
 }

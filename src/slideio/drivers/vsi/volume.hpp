@@ -71,11 +71,12 @@ namespace slideio
             void setResolution(const Resolution& resolution) { m_resolution = resolution; }
             void setZResolution(double res) { m_zResolution = res; }
             double getZResolution() const { return m_zResolution; }
-            // Raw T-frame increment in file units (setTResolutionUnit). getTResolution
-            // returns seconds, or 0 if the unit is missing/unparseable.
-            void setTResolution(double raw);
-            void setTResolutionUnit(const std::string& unit);
-            double getTResolution() const;
+            // Time in a Volume is always in seconds. A raw value arrives with the unit
+            // the file stated and is converted here; if that unit cannot be read the
+            // number means nothing and is not stored, rather than kept to be scaled by
+            // a guess later.
+            void setTResolution(double raw, const std::string& unit);
+            double getTResolution() const { return m_tResolution; }
             void setChannelName(int channelIndex, const std::string& channelName);
             std::string getChannelName(int channelIndex) const;
 
@@ -91,10 +92,10 @@ namespace slideio
             void setChannelEmissionWavelength(int channelIndex, double nm);
             double getChannelEmissionWavelength(int channelIndex) const;
 
-            // Plane timestamps: store raw values + unit; getter returns seconds.
-            // Without a parseable unit, raw values are returned unchanged.
-            void setPlaneTimestamps(std::vector<double> timestamps);
-            void setPlaneTimestampUnit(const std::string& unit);
+            // Converted to seconds on the way in, like the T resolution above.
+            // An unreadable unit stores nothing, so a count of 0 means "no usable
+            // timestamps" and every stored value is in seconds.
+            void setPlaneTimestamps(const std::vector<double>& raw, const std::string& unit);
             int getPlaneTimestampCount() const;
             double getPlaneTimestampByIndex(int index) const;
 
@@ -125,14 +126,12 @@ namespace slideio
             int m_dimensionOrder[MAX_DIMENSIONS];
             Resolution m_resolution;
             double m_zResolution = 0.;
-            double m_tResolutionRaw = 0.;
-            std::string m_tResolutionUnit;
+            double m_tResolution = 0.;   // seconds
             std::vector<std::string> m_channelNames;
             static constexpr uint32_t kNoChannelColor = 0xFFFFFFFFu;
             std::vector<uint32_t> m_channelColors;
             std::vector<double> m_channelEmissionWavelengths;
-            std::vector<double> m_planeTimestamps;
-            std::string m_planeTimestampUnit;
+            std::vector<double> m_planeTimestamps;   // seconds
             int64_t m_acquisitionTime = 0;
         };
 
