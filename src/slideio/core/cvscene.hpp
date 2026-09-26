@@ -9,6 +9,7 @@
 #include "slideio/core/metadata.hpp"
 #include "slideio/core/colorprofile.hpp"
 #include <opencv2/core.hpp>
+#include <cstdint>
 #include <vector>
 #include <string>
 #include <list>
@@ -108,12 +109,19 @@ namespace slideio
                     return 0;
             }
         }
-        /**@brief number of per-plane timestamps. 0 if the driver does not expose them. */
-        virtual int getPlaneTimestampCount() const { return 0; }
+        /**@brief true if the driver exposes a timestamp for every plane of the scene.
+         * A driver returns true only when all numTFrames * numChannels * numZSlices planes
+         * have a timestamp; partial coverage counts as no timestamps at all. */
+        virtual bool hasPlaneTimestamps() const { return false; }
         /**@brief per-plane timestamp in seconds.
          * Indexing is T slowest, then Z, then C: index = (t * numZ + z) * numC + c.
-         * Returns 0 if timestamps are unavailable. */
+         * Returns 0 if hasPlaneTimestamps() is false or an index is out of range. */
         virtual double getPlaneTimestamp(int /*tFrame*/, int /*channel*/, int /*zSlice*/) const { return 0; }
+        /**@brief start of the scene's acquisition, in seconds since 1970-01-01T00:00:00Z.
+         * This is the origin getPlaneTimestamp() measures from, so the absolute time of a
+         * plane is getAcquisitionTime() + getPlaneTimestamp(...). Returns 0 if the file
+         * records no acquisition time. */
+        virtual int64_t getAcquisitionTime() const { return 0; }
         /**@brief returns slide magnification extracted from the slide metadata. */
         virtual double getMagnification() const = 0;
         /**@brief returns compression of the raster data */

@@ -7,6 +7,7 @@
 #include "slideio/core/slideio_enums.hpp"
 #include "slideio/core/metadata.hpp"
 #include "slideio/core/colorprofile.hpp"
+#include <cstdint>
 #include <string>
 #include <vector>
 #include <memory>
@@ -87,10 +88,15 @@ namespace slideio
         double getTFrameResolution() const;
         /**@brief native significant bits; defaults to the channel storage width. */
         int getBitDepth() const;
-        /**@brief number of per-plane timestamps, or 0. */
-        int getPlaneTimestampCount() const;
+        /**@brief true if every plane of the scene has a timestamp. */
+        bool hasPlaneTimestamps() const;
         /**@brief per-plane timestamp in seconds. 0 if unavailable. */
         double getPlaneTimestamp(int tFrame, int channel, int zSlice) const;
+        /**@brief acquisition start in seconds since 1970-01-01T00:00:00Z, 0 if unknown.
+         *
+         * This is the origin getPlaneTimestamp() measures from, so the absolute time of
+         * a plane is getAcquisitionTime() + getPlaneTimestamp(tFrame, channel, zSlice).*/
+        int64_t getAcquisitionTime() const;
         /**@brief returns slide magnification extracted from the slide metadata. */
         double getMagnification() const;
         /**@brief returns memory size in the bytes required for a raster block.

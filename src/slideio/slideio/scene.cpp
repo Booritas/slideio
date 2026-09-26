@@ -115,14 +115,19 @@ int Scene::getBitDepth() const
     return m_scene->getBitDepth();
 }
 
-int Scene::getPlaneTimestampCount() const
+bool Scene::hasPlaneTimestamps() const
 {
-    return m_scene->getPlaneTimestampCount();
+    return m_scene->hasPlaneTimestamps();
 }
 
 double Scene::getPlaneTimestamp(int tFrame, int channel, int zSlice) const
 {
     return m_scene->getPlaneTimestamp(tFrame, channel, zSlice);
+}
+
+int64_t Scene::getAcquisitionTime() const
+{
+    return m_scene->getAcquisitionTime();
 }
 
 double Scene::getMagnification() const

@@ -581,26 +581,108 @@ TEST(EtsFile, readTileJpeg2K) {
 }
 
 
-TEST_F(VSIImageDriverTests, Ix73PlaneTimestampsChannelMajor) {
-    // TIME_VALUE list is channel-major (DAPI T0..T24, then FITC); UNITS 10^-3s.
+TEST_F(VSIImageDriverTests, PlaneTimestampsChannelMajor) {
+    // 22 TIME_VALUE entries for 1 frame x 2 channels x 11 slices, listed
+    // channel-major: entries 0..10 are channel 0 over Z, entries 11..21 are
+    // channel 1. UNITS is 10^-3s^1, so the raw milliseconds recorded in the file
+    // (29559.439, 30059.570, ... 34800.177) are reported as seconds.
     std::string filePath = TestTools::getTestImagePath(
-        "vsi", "vsi-multifile/vsi-ix73-7template.vsi");
+        "vsi", "vsi-multifile/vsi-ets-test-jpg2k.vsi");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     slideio::VSIImageDriver driver;
     std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
     ASSERT_TRUE(slide != nullptr);
     ASSERT_GE(slide->getNumScenes(), 1);
     std::shared_ptr<CVScene> scene = slide->getScene(0);
-    EXPECT_EQ(scene->getNumTFrames(), 25);
+    EXPECT_EQ(scene->getNumTFrames(), 1);
     EXPECT_EQ(scene->getNumChannels(), 2);
-    EXPECT_EQ(scene->getPlaneTimestampCount(), 50);
-    EXPECT_NEAR(scene->getPlaneTimestamp(0, 0, 0), 0.0, 1e-9);
-    EXPECT_NEAR(scene->getPlaneTimestamp(1, 0, 0), 3.601008, 1e-6);
-    EXPECT_NEAR(scene->getPlaneTimestamp(2, 0, 0), 7.201, 1e-6);
-    EXPECT_NEAR(scene->getPlaneTimestamp(0, 1, 0), 0.511, 1e-6);
-    EXPECT_NEAR(scene->getPlaneTimestamp(1, 1, 0), 4.113, 1e-6);
-    EXPECT_NEAR(scene->getPlaneTimestamp(24, 0, 0), 86.404, 1e-6);
-    EXPECT_NEAR(scene->getPlaneTimestamp(24, 1, 0), 86.915, 1e-6);
+    EXPECT_EQ(scene->getNumZSlices(), 11);
+    EXPECT_TRUE(scene->hasPlaneTimestamps());
+    EXPECT_NEAR(scene->getPlaneTimestamp(0, 0, 0), 29.559439, 1e-6);
+    EXPECT_NEAR(scene->getPlaneTimestamp(0, 0, 1), 30.059570, 1e-6);
+    EXPECT_NEAR(scene->getPlaneTimestamp(0, 0, 10), 34.560011, 1e-6);
+    EXPECT_NEAR(scene->getPlaneTimestamp(0, 1, 0), 29.798370, 1e-6);
+    EXPECT_NEAR(scene->getPlaneTimestamp(0, 1, 1), 30.299491, 1e-6);
+    EXPECT_NEAR(scene->getPlaneTimestamp(0, 1, 10), 34.800177, 1e-6);
+}
+
+
+TEST_F(VSIImageDriverTests, AcquisitionTimeIsEpochSeconds) {
+    // Volume CREATION_TIME is stored as a Unix time_t. 1622473135 is
+    // 2021-05-31T14:58:55Z; the expectation is in epoch seconds so that the
+    // test does not depend on the timezone of the machine running it.
+    std::string filePath = TestTools::getTestImagePath(
+        "vsi", "vsi-multifile/vsi-ets-test-jpg2k.vsi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::VSIImageDriver driver;
+    std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    ASSERT_GE(slide->getNumScenes(), 1);
+    EXPECT_EQ(slide->getScene(0)->getAcquisitionTime(), 1622473135LL);
+}
+
+
+TEST_F(VSIImageDriverTests, MetadataRendersCreationTimeAsADate) {
+    // The tag tree holds CREATION_TIME as a raw epoch so that
+    // getAcquisitionTime() can report it; the metadata must still render it for
+    // display. Checked by shape, because the rendering is in local time and the
+    // test must not depend on the timezone of the machine running it.
+    std::string filePath = TestTools::getTestImagePath(
+        "vsi", "vsi-multifile/vsi-ets-test-jpg2k.vsi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::VSIImageDriver driver;
+    std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    const std::string key = "\"tag\":2015,\"value\":\"";
+    const std::string raw = slide->getRawMetadata();
+    const size_t pos = raw.find(key);
+    ASSERT_NE(pos, std::string::npos);
+    const size_t start = pos + key.size();
+    const std::string value = raw.substr(start, raw.find('"', start) - start);
+    // "31-05-2021 16-58-55" -- a raw epoch would be digits only.
+    EXPECT_EQ(value.size(), 19u) << value;
+    EXPECT_NE(value.find('-'), std::string::npos) << value;
+}
+
+
+TEST_F(VSIImageDriverTests, AcquisitionTimeIsReachableThroughThePublicApi) {
+    std::string filePath = TestTools::getTestImagePath(
+        "vsi", "vsi-multifile/vsi-ets-test-jpg2k.vsi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    auto slide = slideio::openSlide(filePath, "AUTO");
+    ASSERT_TRUE(slide != nullptr);
+    ASSERT_GE(slide->getNumScenes(), 1);
+    EXPECT_EQ(slide->getScene(0)->getAcquisitionTime(), 1622473135LL);
+}
+
+
+TEST_F(VSIImageDriverTests, AcquisitionTimeComesFromTheScenesOwnVolume) {
+    // OS-1 stamps each of its volumes separately, over twelve minutes. The scene
+    // reports the stamp of the volume backing it (1351618515, 2012-10-30T17:35:15Z)
+    // and not the document's own stamp, which is twelve minutes earlier.
+    std::string filePath = TestTools::getTestImagePath("vsi", "OS-1/OS-1.vsi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::VSIImageDriver driver;
+    std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    ASSERT_GE(slide->getNumScenes(), 1);
+    const int64_t sceneTime = slide->getScene(0)->getAcquisitionTime();
+    EXPECT_EQ(sceneTime, 1351618515LL);
+    EXPECT_NE(sceneTime, 1351617823LL) << "reported the document stamp, not the volume's";
+}
+
+
+TEST_F(VSIImageDriverTests, NoPlaneTimestamps) {
+    // The file records no TIME_VALUE list, so no plane carries a timestamp.
+    std::string filePath = TestTools::getTestImagePath("vsi", "OS-1/OS-1.vsi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::VSIImageDriver driver;
+    std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    ASSERT_GE(slide->getNumScenes(), 1);
+    std::shared_ptr<CVScene> scene = slide->getScene(0);
+    EXPECT_FALSE(scene->hasPlaneTimestamps());
+    EXPECT_DOUBLE_EQ(scene->getPlaneTimestamp(0, 0, 0), 0.);
 }
 
 

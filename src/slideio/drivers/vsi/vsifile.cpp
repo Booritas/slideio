@@ -23,6 +23,28 @@ using namespace slideio::vsi;
 namespace fs = std::filesystem;
 
 
+// DOCUMENT_TIME and CREATION_TIME are stored as a Unix time_t. The tag tree keeps
+// that raw epoch -- it is what Volume::getAcquisitionTime() reports -- and the value
+// is rendered for display only when the metadata is serialised.
+static bool isEpochTimeTag(int tag) {
+    return tag == Tag::DOCUMENT_TIME || tag == Tag::CREATION_TIME;
+}
+
+
+static std::string formatEpochTime(const std::string& rawEpoch) {
+    try {
+        const time_t time = static_cast<time_t>(std::stoll(rawEpoch));
+        std::ostringstream oss;
+        oss << std::put_time(std::localtime(&time), "%d-%m-%Y %H-%M-%S");
+        return oss.str();
+    }
+    catch (const std::exception& ex) {
+        SLIDEIO_LOG(WARNING) << "VSI driver: error parsing time value (" << rawEpoch << "): " << ex.what();
+        return rawEpoch;
+    }
+}
+
+
 static int extractBaseDirectoryNameSuffix(const fs::path& path) {
     std::filesystem::path parentDir = path.parent_path();
     std::string dirName = parentDir.filename().string();
@@ -406,6 +428,18 @@ void VSIFile::extractVolumesFromMetadata() {
                     }
                 };
                 collect(collect, *volume);
+                // Acquisition start: the volume's own CREATION_TIME, a Unix epoch.
+                // Looked up by path rather than recursively so that a nested
+                // sub-volume's stamp cannot be mistaken for this volume's.
+                if (const TagInfo* created = volume->findChild(
+                        {Tag::MULTIDIM_STACK_PROPERTIES, Tag::CREATION_TIME})) {
+                    try {
+                        volumeObj->setAcquisitionTime(std::stoll(created->value));
+                    }
+                    catch (const std::exception&) {
+                        // Leave the acquisition time unset.
+                    }
+                }
                 if (!planeTs.empty()) {
                     volumeObj->setPlaneTimestamps(std::move(planeTs));
                     if (!planeTsUnit.empty()) {
@@ -575,7 +609,7 @@ StackType VSIFile::getVolumeStackType(const TagInfo* volume) {
 void VSIFile::serializeMetadata(const TagInfo& tagInfo, json& jsonObj) const {
     jsonObj["tag"] = tagInfo.tag;
     jsonObj["name"] = tagInfo.name;
-    jsonObj["value"] = tagInfo.value;
+    jsonObj["value"] = isEpochTimeTag(tagInfo.tag) ? formatEpochTime(tagInfo.value) : tagInfo.value;
     jsonObj["secondTag"] = tagInfo.secondTag;
     if (!tagInfo.children.empty()) {
         json array = json::array();
@@ -819,17 +853,6 @@ bool VSIFile::readMetadata(VSIStream& vsi, std::list<TagInfo>& path) {
                 value = VSITools::extractTagValue(vsi, tagInfo);
             }
 
-            if (tagInfo.tag == Tag::DOCUMENT_TIME || tagInfo.tag == Tag::CREATION_TIME) {
-                try {
-                    std::ostringstream oss;
-                    time_t time = std::stoll(value);
-                    oss << std::put_time(std::localtime(&time), "%d-%m-%Y %H-%M-%S");
-                    value = oss.str();
-                }
-                catch (const std::exception& ex) {
-                    SLIDEIO_LOG(WARNING) << "VSI driver: error parsing time value (" << value << "): " << ex.what();
-                }
-            }
             tagInfo.setValue(value);
         }
 

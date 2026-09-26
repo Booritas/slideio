@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include "slideio/drivers/vsi/vsi_api_def.hpp"
 #include "etsfile.hpp"
 #include "vsistream.hpp"
 #include "slideio/core/slideio_enums.hpp"
@@ -19,7 +20,7 @@ namespace slideio
         class TagInfo;
         enum class Compression;
         enum class StackType;
-        class VSITools
+        class SLIDEIO_VSI_EXPORTS VSITools
         {
         public:
             static DataType toSlideioPixelType(uint32_t vsiPixelType);

@@ -91,6 +91,10 @@ namespace slideio
             int getPlaneTimestampCount() const;
             double getPlaneTimestampByIndex(int index) const;
 
+            // Acquisition start as a Unix epoch in seconds; 0 when the file records none.
+            void setAcquisitionTime(int64_t epochSeconds) { m_acquisitionTime = epochSeconds; }
+            int64_t getAcquisitionTime() const { return m_acquisitionTime; }
+
 			const bool isValid() const {
 				return m_size.height>0 && m_size.width>0;
 			}
@@ -120,6 +124,7 @@ namespace slideio
             std::vector<double> m_channelEmissionWavelengths;
             std::vector<double> m_planeTimestamps;
             std::string m_planeTimestampUnit;
+            int64_t m_acquisitionTime = 0;
         };
 
     };

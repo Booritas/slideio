@@ -15,9 +15,9 @@ by branch.
 **Files:** `src/slideio/core/cvscene.hpp`,
 `src/slideio/slideio/scene.hpp`/`.cpp`
 
-`CVScene` gained `getBitDepth()`, `getPlaneTimestampCount()` and
-`getPlaneTimestamp()`. Out-of-tree `CVScene` subclasses and binaries using the
-old vtable must be rebuilt before they are used with libraries from this
+`CVScene` gained `getBitDepth()`, `hasPlaneTimestamps()`, `getPlaneTimestamp()`
+and `getAcquisitionTime()`. Out-of-tree `CVScene` subclasses and binaries using
+the old vtable must be rebuilt before they are used with libraries from this
 branch. The methods have defaults, so source changes are not required.
 
 ---
