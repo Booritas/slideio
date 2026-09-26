@@ -492,3 +492,66 @@ TEST_F(OTToolsTests, zSliceResolutionUsesItsOwnLengthUnit) {
               tinyxml2::XML_SUCCESS);
     EXPECT_DOUBLE_EQ(OTTools::readZSliceResolution(doc.RootElement()), 2e-6);
 }
+
+TEST_F(OTToolsTests, tFrameResolutionReadsTimeIncrement) {
+    // TimeIncrement is the OME-XML attribute for the interval between time
+    // points. PhysicalSizeT is not in the schema at all.
+    tinyxml2::XMLDocument doc;
+    ASSERT_EQ(doc.Parse("<Pixels TimeIncrement=\"500\" TimeIncrementUnit=\"ms\"/>"),
+              tinyxml2::XML_SUCCESS);
+    EXPECT_DOUBLE_EQ(OTTools::readTFrameResolution(doc.RootElement()), 0.5);
+}
+
+TEST_F(OTToolsTests, tFrameResolutionFallsBackToPhysicalSizeT) {
+    // slideio's own converter writes PhysicalSizeT, so files it produced are
+    // still read back. TimeIncrement wins when a file states both.
+    tinyxml2::XMLDocument ours;
+    ASSERT_EQ(ours.Parse("<Pixels PhysicalSizeT=\"2.5\"/>"), tinyxml2::XML_SUCCESS);
+    EXPECT_DOUBLE_EQ(OTTools::readTFrameResolution(ours.RootElement()), 2.5);
+
+    tinyxml2::XMLDocument both;
+    ASSERT_EQ(both.Parse("<Pixels TimeIncrement=\"7\" PhysicalSizeT=\"2.5\"/>"),
+              tinyxml2::XML_SUCCESS);
+    EXPECT_DOUBLE_EQ(OTTools::readTFrameResolution(both.RootElement()), 7.0);
+}
+
+TEST_F(OTToolsTests, zSliceResolutionDefaultsToMicrometres) {
+    // PhysicalSizeZUnit carries a schema default of um; treating an absent unit
+    // as metres is wrong by a factor of a million.
+    tinyxml2::XMLDocument doc;
+    ASSERT_EQ(doc.Parse("<Pixels PhysicalSizeZ=\"0.5\"/>"), tinyxml2::XML_SUCCESS);
+    EXPECT_DOUBLE_EQ(OTTools::readZSliceResolution(doc.RootElement()), 5e-7);
+}
+
+TEST_F(OTToolsTests, parseAcquisitionDateRejectsNegativeFields) {
+    // %2d will consume a sign, so the guard needs a floor as well as a ceiling.
+    EXPECT_FALSE(OTTools::parseAcquisitionDate("2011-09-16T-1:45:48").has_value());
+    EXPECT_FALSE(OTTools::parseAcquisitionDate("2011-09-16T10:-5:48").has_value());
+    EXPECT_FALSE(OTTools::parseAcquisitionDate("2011-09-16T10:45:-8").has_value());
+    EXPECT_FALSE(OTTools::parseAcquisitionDate("-011-09-16T10:45:48").has_value());
+}
+
+TEST_F(OTToolsTests, parseAcquisitionDateRejectsAnOffsetItCannotRead) {
+    // "+0200" without the colon is not xsd:dateTime. Silently reading it as UTC
+    // would be a two hour error in something whose point is one file, one epoch.
+    EXPECT_FALSE(OTTools::parseAcquisitionDate("2011-09-16T10:45:48+0200").has_value());
+    EXPECT_FALSE(OTTools::parseAcquisitionDate("2011-09-16T10:45:48+").has_value());
+    // A well formed offset is still applied.
+    ASSERT_TRUE(OTTools::parseAcquisitionDate("2011-09-16T12:45:48+02:00").has_value());
+    EXPECT_EQ(*OTTools::parseAcquisitionDate("2011-09-16T12:45:48+02:00"), 1316169948LL);
+    EXPECT_EQ(*OTTools::parseAcquisitionDate("2011-09-16T08:45:48-02:00"), 1316169948LL);
+}
+
+TEST_F(OTToolsTests, aDuplicatePlaneIsRejectedEvenWhenTheSeriesIsOtherwiseComplete) {
+    // All four planes are described, and one of them twice. Counting distinct
+    // indices alone would accept this and let the second DeltaT win silently.
+    tinyxml2::XMLDocument doc;
+    ASSERT_EQ(doc.Parse(pixelsXml(
+        "<Plane TheT=\"0\" TheC=\"0\" TheZ=\"0\" DeltaT=\"0.0\"/>"
+        "<Plane TheT=\"0\" TheC=\"0\" TheZ=\"1\" DeltaT=\"0.5\"/>"
+        "<Plane TheT=\"1\" TheC=\"0\" TheZ=\"0\" DeltaT=\"1.0\"/>"
+        "<Plane TheT=\"1\" TheC=\"0\" TheZ=\"1\" DeltaT=\"1.5\"/>"
+        "<Plane TheT=\"0\" TheC=\"0\" TheZ=\"0\" DeltaT=\"9.9\"/>").c_str()),
+        tinyxml2::XML_SUCCESS);
+    EXPECT_FALSE(OTTools::collectPlaneTimestamps(doc.RootElement(), 2, 1, 2).has_value());
+}

@@ -89,7 +89,7 @@ namespace slideio
             int getChannelSignificantBits(int channelIndex) const override;
             bool hasPlaneTimestamps() const override { return !m_planeTimestamps.empty(); }
             double getPlaneTimestamp(int tFrame, int channel, int zSlice) const override;
-            int64_t getAcquisitionTime() const override { return m_acquisitionTime; }
+            int64_t getAcquisitionTime() const override { return m_hasAcquisitionTime ? m_acquisitionTime : 0; }
             bool supportsConcurrentReads() const override { return true; }
             ColorProfile getColorProfile() const override { return m_colorProfile; }
             void setColorProfile(const ColorProfile& profile) { m_colorProfile = profile; }
@@ -133,8 +133,14 @@ namespace slideio
 			double m_tResolution = 0.0;
             // Pixels/@SignificantBits, 0 when the file does not state it.
             int m_significantBits = 0;
-            // Image/AcquisitionDate as a Unix epoch, 0 when the file states none.
+            // Image/AcquisitionDate as a Unix epoch. The flag, rather than a zero
+            // epoch, says whether the file stated one: 1970-01-01T00:00:00Z is a
+            // real instant and must not read as "unstated".
             int64_t m_acquisitionTime = 0;
+            bool m_hasAcquisitionTime = false;
+            // Planes index channels in groups of SamplesPerPixel, so an RGB scene
+            // has one plane per (z,t) while m_numChannels counts three.
+            int m_samplesPerPixel = 1;
             // Seconds from the scene acquisition origin, one per plane, indexed
             // (t * numZ + z) * numC + c. Empty unless every plane has one.
             std::vector<double> m_planeTimestamps;

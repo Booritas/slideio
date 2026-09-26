@@ -5,7 +5,6 @@
 #include <cstdio>
 #include <map>
 #include <tinyxml2.h>
-#include "slideio/core/log.hpp"
 
 #include "slideio/core/log.hpp"
 
@@ -56,7 +55,7 @@ double OTTools::convertToMeters(double value, const std::string& unit) {
 	if (unit == "m") {
 		return value;
 	}
-	else if (unit == "\xC2\xB5m") { // �m (micrometer)
+	else if (unit == "\xC2\xB5m") { // µm (micrometer)
 		return value * 1.e-6; // Micrometer
 	}
 	else if (unit == "mm") {
@@ -113,7 +112,7 @@ double OTTools::convertToMeters(double value, const std::string& unit) {
 	else if (unit == "dam") {
 		return value * 0.1; // Dekameter
 	}
-	else if (unit == "\xC3\x85") { // � (Angstrom)
+	else if (unit == "\xC3\x85") { // Å (Angstrom)
 		return value * 0.0000000001; // Angstrom
 	}
 	else if (unit == "thou") {
@@ -229,8 +228,11 @@ std::optional<int64_t> OTTools::parseAcquisitionDate(const std::string& text) {
                     &year, &month, &day, &hour, &minute, &second, &consumed) != 6) {
         return std::nullopt;
     }
-    if (month < 1 || month > 12 || day < 1 || day > 31
-        || hour > 23 || minute > 59 || second > 60) {
+    // Floors as well as ceilings: %2d consumes a sign, so "T-1:45:48" parses
+    // and would otherwise give an hour before midnight of the stated day.
+    if (year < 1 || month < 1 || month > 12 || day < 1 || day > 31
+        || hour < 0 || hour > 23 || minute < 0 || minute > 59
+        || second < 0 || second > 60) {
         return std::nullopt;
     }
     static const int monthLengths[12] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
@@ -263,10 +265,18 @@ std::optional<int64_t> OTTools::parseAcquisitionDate(const std::string& text) {
     }
     if (*rest == '+' || *rest == '-') {
         int offsetHours = 0, offsetMinutes = 0;
-        if (std::sscanf(rest + 1, "%2d:%2d", &offsetHours, &offsetMinutes) == 2) {
-            const int64_t offset = offsetHours * 3600LL + offsetMinutes * 60LL;
-            epoch += (*rest == '+') ? -offset : offset;
+        // An offset we cannot read is refused rather than assumed to be UTC.
+        // "+0200" without the colon is not xsd:dateTime, and silently dropping
+        // it would be a two hour error in a getter whose whole premise is that
+        // one file yields one instant.
+        if (std::sscanf(rest + 1, "%2d:%2d", &offsetHours, &offsetMinutes) != 2
+            || offsetHours < 0 || offsetHours > 14
+            || offsetMinutes < 0 || offsetMinutes > 59) {
+            SLIDEIO_LOG(WARNING) << "OTTools: unreadable timezone offset in '" << text << "'";
+            return std::nullopt;
         }
+        const int64_t offset = offsetHours * 3600LL + offsetMinutes * 60LL;
+        epoch += (*rest == '+') ? -offset : offset;
     }
     return epoch;
 }
@@ -274,6 +284,13 @@ std::optional<int64_t> OTTools::parseAcquisitionDate(const std::string& text) {
 std::optional<std::vector<double>> OTTools::collectPlaneTimestamps(
     const tinyxml2::XMLElement* pixels, int numTFrames, int numChannels, int numZSlices) {
     if (pixels == nullptr || numTFrames <= 0 || numChannels <= 0 || numZSlices <= 0) {
+        return std::nullopt;
+    }
+    // Checked before anything is sized from the metadata. Most files state no
+    // Plane element at all, and the sizes are attributes a corrupt file is free
+    // to inflate: allocating first would turn that into a bad_alloc escaping
+    // openFile rather than the driver's usual metadata error.
+    if (pixels->FirstChildElement("Plane") == nullptr) {
         return std::nullopt;
     }
     const size_t planeCount =
@@ -313,9 +330,15 @@ std::optional<std::vector<double>> OTTools::collectPlaneTimestamps(
         }
         const size_t index =
             (static_cast<size_t>(t) * numZSlices + z) * numChannels + c;
-        if (!stated[index]) {
-            ++statedCount;
+        if (stated[index]) {
+            // The same plane twice. Which DeltaT is the plane's own time is not
+            // ours to guess, and letting the later one win would decide it
+            // silently.
+            SLIDEIO_LOG(WARNING) << "OTTools: plane (" << t << "," << c << "," << z
+                << ") is described more than once; discarding the plane timestamps";
+            return std::nullopt;
         }
+        ++statedCount;
         stated[index] = true;
         timestamps[index] = delta * scale;
     }
@@ -336,7 +359,9 @@ double OTTools::readZSliceResolution(const tinyxml2::XMLElement* pixels) {
     const double size = pixels->DoubleAttribute("PhysicalSizeZ", 0.0);
     const char* unit = pixels->Attribute("PhysicalSizeZUnit");
     if (unit == nullptr) {
-        return size;
+        // The schema default for PhysicalSize*Unit is the micrometre, not the
+        // metre, so an absent attribute is not a licence to return the number.
+        return size * 1e-6;
     }
     return convertToMeters(size, unit);
 }
@@ -345,15 +370,25 @@ double OTTools::readTFrameResolution(const tinyxml2::XMLElement* pixels) {
     if (pixels == nullptr) {
         return 0.;
     }
-    const double size = pixels->DoubleAttribute("PhysicalSizeT", 0.0);
-    const char* unit = pixels->Attribute("PhysicalSizeTUnit");
+    // TimeIncrement is the OME-XML attribute for the interval between time
+    // points. PhysicalSizeT is not in the schema at all; it is read as a
+    // fallback only because slideio's own converter writes it
+    // (converter/tiffconverter.cpp), so files this library produced still read
+    // back. A file stating both is taken at its schema-conformant word.
+    const char* unitAttribute = "TimeIncrementUnit";
+    double size = pixels->DoubleAttribute("TimeIncrement", 0.0);
+    if (size == 0.0 && pixels->Attribute("TimeIncrement") == nullptr) {
+        size = pixels->DoubleAttribute("PhysicalSizeT", 0.0);
+        unitAttribute = "PhysicalSizeTUnit";
+    }
+    const char* unit = pixels->Attribute(unitAttribute);
     if (unit == nullptr) {
-        // The OME default for PhysicalSizeTUnit is seconds.
+        // The schema default for TimeIncrementUnit is the second.
         return size;
     }
     const auto scale = timeUnitToSeconds(unit);
     if (!scale) {
-        SLIDEIO_LOG(WARNING) << "OTTools: unreadable PhysicalSizeTUnit '" << unit
+        SLIDEIO_LOG(WARNING) << "OTTools: unreadable " << unitAttribute << " '" << unit
             << "'; reporting no time-frame resolution";
         return 0.;
     }

@@ -30,10 +30,15 @@ namespace slideio
              * unreadable unit rather than assume seconds: reporting a millisecond as
              * a second is worse than reporting no time at all. */
             static std::optional<double> timeUnitToSeconds(const std::string& units);
-            /**@brief PhysicalSizeZ of a Pixels element in metres, 0 if unstated. */
+            /**@brief PhysicalSizeZ of a Pixels element in metres, 0 if unstated.
+             * An absent PhysicalSizeZUnit means micrometres, which is the schema
+             * default, not metres. */
             static double readZSliceResolution(const tinyxml2::XMLElement* pixels);
-            /**@brief PhysicalSizeT of a Pixels element in seconds, 0 if unstated or if
-             * its unit cannot be read. */
+            /**@brief The interval between time points, in seconds, 0 if unstated or if
+             * its unit cannot be read.
+             *
+             * Reads TimeIncrement, falling back to the non-standard PhysicalSizeT
+             * that slideio own converter writes. */
             static double readTFrameResolution(const tinyxml2::XMLElement* pixels);
             /**@brief OME AcquisitionDate (an xsd:dateTime) as seconds since
              * 1970-01-01T00:00:00Z, or nullopt if it cannot be read.

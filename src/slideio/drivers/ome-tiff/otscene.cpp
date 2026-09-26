@@ -4,8 +4,10 @@
 
 #include "slideio/drivers/ome-tiff/otscene.hpp"
 
+#include <algorithm>
 #include <filesystem>
 #include <set>
+#include <utility>
 
 #include "slideio/imagetools/tifftools.hpp"
 #include "slideio/drivers/ome-tiff/ottools.hpp"
@@ -460,8 +462,12 @@ double OTScene::getPlaneTimestamp(int tFrame, int channel, int zSlice) const {
         || zSlice < 0 || zSlice >= m_numZSlices) {
         return 0.;
     }
+    // One plane covers SamplesPerPixel channels, so the samples of an
+    // interleaved pixel share the time of the plane holding them.
+    const int planeChannels = m_numChannels / m_samplesPerPixel;
+    const int planeChannel = channel / m_samplesPerPixel;
     const size_t index =
-        (static_cast<size_t>(tFrame) * m_numZSlices + zSlice) * m_numChannels + channel;
+        (static_cast<size_t>(tFrame) * m_numZSlices + zSlice) * planeChannels + planeChannel;
     return m_planeTimestamps[index];
 }
 
@@ -470,6 +476,7 @@ void OTScene::initializePlaneTimes(tinyxml2::XMLElement* pixels) {
     if (acquired != nullptr && acquired->GetText() != nullptr) {
         if (const auto epoch = OTTools::parseAcquisitionDate(acquired->GetText())) {
             m_acquisitionTime = *epoch;
+            m_hasAcquisitionTime = true;
         }
         else {
             SLIDEIO_LOG(WARNING) << "OTScene: unreadable AcquisitionDate '"
@@ -477,20 +484,29 @@ void OTScene::initializePlaneTimes(tinyxml2::XMLElement* pixels) {
         }
     }
 
-    auto deltas = OTTools::collectPlaneTimestamps(pixels, m_numTFrames, m_numChannels,
+    // A Plane element is one IFD, so for interleaved samples one plane covers
+    // SamplesPerPixel of the channels m_numChannels counts.
+    if (!m_tiffData.empty()) {
+        const int samples = m_tiffData.front().getTiffDirectory(0).channels;
+        if (samples > 0 && m_numChannels % samples == 0) {
+            m_samplesPerPixel = samples;
+        }
+    }
+    const int planeChannels = m_numChannels / m_samplesPerPixel;
+    auto deltas = OTTools::collectPlaneTimestamps(pixels, m_numTFrames, planeChannels,
                                                   m_numZSlices);
     if (!deltas) {
         return;
     }
     const double earliest = *std::min_element(deltas->begin(), deltas->end());
-    if (m_acquisitionTime != 0 && earliest >= 0.) {
+    if (m_hasAcquisitionTime && earliest >= 0.) {
         // The file states the origin the offsets are measured from, and they do
         // not precede it, so they are reported as recorded and
         // getAcquisitionTime() + getPlaneTimestamp() is the plane's absolute time.
         m_planeTimestamps = std::move(*deltas);
         return;
     }
-    if (m_acquisitionTime != 0) {
+    if (m_hasAcquisitionTime) {
         // The recorded origin is later than the first plane, which
         // CVScene::getPlaneTimestamp() forbids. Rebasing keeps the timestamps
         // non-negative, but the two getters would no longer add up, so the
@@ -499,6 +515,7 @@ void OTScene::initializePlaneTimes(tinyxml2::XMLElement* pixels) {
             << " states a plane earlier than its AcquisitionDate; reporting the"
                " times relative to the earliest plane and no acquisition time";
         m_acquisitionTime = 0;
+        m_hasAcquisitionTime = false;
     }
     // No recorded origin: the earliest plane is the origin, per the contract.
     for (double& value : *deltas) {
