@@ -199,6 +199,32 @@ void ZVIImageItem::readTags(ole::compound_document& doc)
                 m_ExcitationWavelength = *p;
             }
             break;
+        case ZVITAG::ZVITAG_CAMERA_IMAGE_ACQUISITION_TIME:
+            {
+                // A serial date. The spec says float64; one AxioVision build is
+                // known to write it as a string, so both are accepted.
+                double serial = 0.;
+                bool read = false;
+                if (auto* p = std::get_if<double>(&tag)) {
+                    serial = *p;
+                    read = true;
+                }
+                else if (auto* p = std::get_if<std::string>(&tag)) {
+                    try {
+                        serial = std::stod(*p);
+                        read = true;
+                    }
+                    catch (const std::exception&) {
+                        SLIDEIO_LOG(WARNING) << "ZVIImageDriver: unreadable acquisition time '"
+                            << *p << "'";
+                    }
+                }
+                if (read) {
+                    m_AcquisitionTime = ZVIUtils::acquisitionTimeToEpochSeconds(serial);
+                    m_HasAcquisitionTime = true;
+                }
+            }
+            break;
         case ZVITAG::ZVITAG_ACQUISITION_BIT_DEPTH:
             if (auto* p = std::get_if<int32_t>(&tag)) {
                 m_AcquisitionBitDepth = *p;

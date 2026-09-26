@@ -44,6 +44,9 @@ namespace slideio
         void validateChannelIndex(int channel) const;
         DataType getChannelDataType(int channel) const override;
         int getChannelSignificantBits(int channelIndex) const override;
+        bool hasPlaneTimestamps() const override { return !m_PlaneTimestamps.empty(); }
+        double getPlaneTimestamp(int tFrame, int channel, int zSlice) const override;
+        int64_t getAcquisitionTime() const override { return m_AcquisitionTime; }
         std::string getChannelName(int channel) const override;
         Resolution getResolution() const override;
         double getMagnification() const override;
@@ -71,6 +74,7 @@ namespace slideio
         ZVIPixelFormat getPixelFormat() const;
         void alignChannelInfoToPixelFormat();
         void collectChannelSignificantBits();
+        void collectPlaneTimestamps();
         void computeSceneDimensions();
         std::vector<int> findImageItemIndices();
         void readImageItems();
@@ -95,6 +99,10 @@ namespace slideio
         std::vector<ZVIImageItem> m_ImageItems;
         // ACQUISITION_BIT_DEPTH, per channel, 0 where the file states none.
         std::vector<int> m_ChannelSignificantBits;
+        // Seconds from getAcquisitionTime(), one per plane, indexed
+        // (t * numZ + z) * numC + c. Empty unless every plane states a time.
+        std::vector<double> m_PlaneTimestamps;
+        int64_t m_AcquisitionTime = 0;
         std::vector<ZVITile> m_Tiles;
         Resolution m_res = {0,0};
         double m_ZSliceRes = 0.;

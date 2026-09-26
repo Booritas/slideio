@@ -7,6 +7,33 @@ by branch.
 
 ---
 
+## zvi-plane-metadata
+
+### `ZVIScene` reports significant bits, plane timestamps and acquisition time
+
+**Module:** `slideio-zvi` (exported: `ZVIScene`, `ZVIImageItem`, `ZVIUtils`)
+**Files:** `src/slideio/drivers/zvi/zviscene.hpp`/`.cpp`,
+`src/slideio/drivers/zvi/zviimageitem.hpp`/`.cpp`,
+`src/slideio/drivers/zvi/zviutils.hpp`/`.cpp`
+
+`ZVIScene` now overrides `getChannelSignificantBits(int)`,
+`hasPlaneTimestamps()`, `getPlaneTimestamp()` and `getAcquisitionTime()`,
+reading `ACQUISITION_BIT_DEPTH` (531) and `CAMERA_IMAGE_ACQUISITION_TIME`
+(1025) from the per-item tags. A file stating neither reports 0 and false, so
+nothing that worked stops working; `ZVIScene` and `ZVIImageItem` gained data
+members, so out-of-tree code deriving from either must be rebuilt.
+
+`ZVIUtils` gained `acquisitionTimeToEpochSeconds`.
+
+**`getChannelSignificantBits()` deliberately differs from Bio-Formats.** Its
+`BaseZeissReader` sets `bitsPerPixel` from the pixel type -- the storage width --
+and uses tag 531 only as a metadata key name. `Zeiss-1-Stacked.zvi` states 14
+with 16-bit samples, so Bio-Formats reports 16 there and slideio reports 14.
+14 is what the getter is documented to mean and what the camera filled, but a
+caller comparing the two libraries will see the difference.
+
+---
+
 ## vsi-resolution-units
 
 ### `vsi::Volume` stores length in metres

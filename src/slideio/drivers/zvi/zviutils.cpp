@@ -596,3 +596,19 @@ std::vector<ZVIUtils::ZviTagEntry> ZVIUtils::readAllTags(
     }
     return entries;
 }
+
+double slideio::ZVIUtils::acquisitionTimeToEpochSeconds(double serialDate)
+{
+    // Days since 1900-01-01, which is day 1 rather than day 0, and the serial
+    // carries Excel's phantom 1900-02-29 once past day 60.
+    const double daySeconds = 86400.0;
+    double days = std::floor(serialDate);
+    const double fraction = serialDate - days;
+    days -= 1.0;
+    if (days > 60.0) {
+        days -= 1.0;
+    }
+    // 1900-01-01T00:00:00Z as a Unix epoch.
+    const double epochOf1900 = -2208988800.0;
+    return epochOf1900 + days * daySeconds + fraction * daySeconds;
+}

@@ -155,6 +155,12 @@ namespace slideio
         // left before reading rather than inspect the result afterwards.
         std::streamoff SLIDEIO_ZVI_EXPORTS bytesLeft(BufferedStream& stream);
 
+        // CAMERA_IMAGE_ACQUISITION_TIME (tag 1025) is a serial date: days since
+        // 1900-01-01, that date being day 1, carrying Excel's phantom 1900-02-29
+        // for serials past 60. Returns seconds since the Unix epoch, fraction
+        // kept. The encoding matches Bio-Formats BaseZeissReader.parseTimestamp.
+        double SLIDEIO_ZVI_EXPORTS acquisitionTimeToEpochSeconds(double serialDate);
+
         // Reads exactly `size` bytes or throws. POLE reports a short read only
         // through its return value: it leaves the destination buffer untouched
         // and does not advance the position, so an unchecked read at the end of

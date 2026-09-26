@@ -399,3 +399,23 @@ TEST(ZVIUtils, boundedBufferingRereadsAfterABackwardSeek)
     ASSERT_EQ(8, stream.read(again.data(), 8));
     ASSERT_EQ(first, again);
 }
+
+TEST(ZVIUtils, AcquisitionTimeIsAnExcelStyleSerialDate)
+{
+    // ZVI stores CAMERA_IMAGE_ACQUISITION_TIME as days since 1900-01-01 with
+    // day 1 being that date, and carries Excel's phantom 1900-02-29 for serials
+    // past 60. Cross-checked against the well-known Excel serial 40000, which
+    // is 2009-07-06: -2208988800 (1900-01-01) + 39998 days.
+    EXPECT_NEAR(ZVIUtils::acquisitionTimeToEpochSeconds(40000.0), 1246838400.0, 1e-6);
+    EXPECT_NEAR(ZVIUtils::acquisitionTimeToEpochSeconds(40000.5), 1246881600.0, 1e-6);
+    // Serial 1 is 1900-01-01 itself, and is below the leap-bug threshold.
+    EXPECT_NEAR(ZVIUtils::acquisitionTimeToEpochSeconds(1.0), -2208988800.0, 1e-6);
+    EXPECT_NEAR(ZVIUtils::acquisitionTimeToEpochSeconds(2.0), -2208902400.0, 1e-6);
+}
+
+TEST(ZVIUtils, AcquisitionTimeKeepsSubSecondPrecision)
+{
+    // Half a day plus a quarter second.
+    const double serial = 40000.0 + 0.25 / 86400.0;
+    EXPECT_NEAR(ZVIUtils::acquisitionTimeToEpochSeconds(serial), 1246838400.25, 1e-3);
+}

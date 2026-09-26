@@ -220,6 +220,73 @@ void ZVIScene::collectChannelSignificantBits()
     }
 }
 
+
+double ZVIScene::getPlaneTimestamp(int tFrame, int channel, int zSlice) const
+{
+    if (m_PlaneTimestamps.empty()) {
+        return 0.;
+    }
+    if (tFrame < 0 || tFrame >= m_TFrameCount || channel < 0 || channel >= m_ChannelCount
+        || zSlice < 0 || zSlice >= m_ZSliceCount) {
+        return 0.;
+    }
+    const size_t index =
+        (static_cast<size_t>(tFrame) * m_ZSliceCount + zSlice) * m_ChannelCount + channel;
+    return m_PlaneTimestamps[index];
+}
+
+void ZVIScene::collectPlaneTimestamps()
+{
+    // An item is one plane and names its own z, channel and time frame, so the
+    // series is addressed rather than positional and cannot be built out of
+    // order. Every plane has to state a time: a gap would leave one plane
+    // reporting a time belonging to no plane at all.
+    const size_t planeCount = static_cast<size_t>(m_TFrameCount)
+        * m_ChannelCount * m_ZSliceCount;
+    if (planeCount == 0 || m_ImageItems.empty()) {
+        return;
+    }
+    std::vector<double> absolute(planeCount, 0.);
+    std::vector<bool> stated(planeCount, false);
+    size_t statedCount = 0;
+    for (const ZVIImageItem& item : m_ImageItems) {
+        if (!item.hasAcquisitionTime()) {
+            continue;
+        }
+        const int t = item.getTIndex();
+        const int c = item.getCIndex();
+        const int z = item.getZIndex();
+        if (t < 0 || t >= m_TFrameCount || c < 0 || c >= m_ChannelCount
+            || z < 0 || z >= m_ZSliceCount) {
+            continue;
+        }
+        const size_t index = (static_cast<size_t>(t) * m_ZSliceCount + z) * m_ChannelCount + c;
+        if (!stated[index]) {
+            ++statedCount;
+        }
+        stated[index] = true;
+        absolute[index] = item.getAcquisitionTime();
+    }
+    if (statedCount != planeCount) {
+        if (statedCount != 0) {
+            SLIDEIO_LOG(WARNING) << "ZVIImageDriver: " << statedCount << " of " << planeCount
+                << " planes state an acquisition time; discarding the series";
+        }
+        return;
+    }
+    // ZVI states no separate acquisition start, so the origin is the earliest
+    // plane, as CVScene::getPlaneTimestamp() requires. Reporting the whole
+    // second of it keeps getAcquisitionTime() + getPlaneTimestamp() exactly the
+    // plane's absolute time, with the remainder carried by the offsets.
+    const double earliest = *std::min_element(absolute.begin(), absolute.end());
+    m_AcquisitionTime = static_cast<int64_t>(std::floor(earliest));
+    const double origin = static_cast<double>(m_AcquisitionTime);
+    m_PlaneTimestamps.resize(planeCount);
+    for (size_t i = 0; i < planeCount; ++i) {
+        m_PlaneTimestamps[i] = absolute[i] - origin;
+    }
+}
+
 ZVIPixelFormat ZVIScene::getPixelFormat() const
 {
     return (m_PixelFormat == ZVIPixelFormat::PF_UNKNOWN) ? m_ImageItems[0].getPixelFormat() : m_PixelFormat;
@@ -381,6 +448,7 @@ void ZVIScene::computeSceneDimensions()
 
     alignChannelInfoToPixelFormat();
     collectChannelSignificantBits();
+    collectPlaneTimestamps();
 }
 
 // The indices of the image items the document actually holds, in ascending

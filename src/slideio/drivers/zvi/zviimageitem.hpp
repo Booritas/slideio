@@ -38,6 +38,11 @@ namespace slideio
             // 0 when the item states none. Distinct from getValidBits(), which is
             // the raster header field and doubles as a compression marker.
             int getAcquisitionBitDepth() const { return m_AcquisitionBitDepth; }
+            // CAMERA_IMAGE_ACQUISITION_TIME as seconds since the Unix epoch.
+            // hasAcquisitionTime() is the test, not a zero epoch: 1970 is a real
+            // instant even if no microscope will produce it.
+            bool hasAcquisitionTime() const { return m_HasAcquisitionTime; }
+            double getAcquisitionTime() const { return m_AcquisitionTime; }
             // The scene renumbers the item coordinates densely once it knows
             // which items the document really holds; see
             // ZVIScene::computeSceneDimensions().
@@ -88,6 +93,8 @@ namespace slideio
             int m_TileIndexY = -1;
             int m_ValidBits = 0;
             int m_AcquisitionBitDepth = 0;
+            bool m_HasAcquisitionTime = false;
+            double m_AcquisitionTime = 0.;
             std::streamoff m_DataPos = 0;
             std::string m_ChannelName;
             ZVIPixelFormat m_PixelFormat = ZVIPixelFormat::PF_UNKNOWN;
