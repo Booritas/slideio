@@ -34,6 +34,10 @@ namespace slideio
             int getTileIndexY() const { return m_TileIndexY; }
             void readRaster(ole::compound_document& doc, cv::OutputArray raster) const;
             int getValidBits() const { return m_ValidBits; }
+            // ACQUISITION_BIT_DEPTH: how many of the stored bits the camera filled.
+            // 0 when the item states none. Distinct from getValidBits(), which is
+            // the raster header field and doubles as a compression marker.
+            int getAcquisitionBitDepth() const { return m_AcquisitionBitDepth; }
             // The scene renumbers the item coordinates densely once it knows
             // which items the document really holds; see
             // ZVIScene::computeSceneDimensions().
@@ -83,6 +87,7 @@ namespace slideio
             int m_TileIndexX = -1;
             int m_TileIndexY = -1;
             int m_ValidBits = 0;
+            int m_AcquisitionBitDepth = 0;
             std::streamoff m_DataPos = 0;
             std::string m_ChannelName;
             ZVIPixelFormat m_PixelFormat = ZVIPixelFormat::PF_UNKNOWN;

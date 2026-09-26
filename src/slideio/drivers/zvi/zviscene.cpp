@@ -180,6 +180,46 @@ bool ZVIScene::readTile(int tileIndex, const std::vector<int>& channelIndices, c
 }
 
 
+
+int ZVIScene::getChannelSignificantBits(int channelIndex) const
+{
+    if (channelIndex < 0 || channelIndex >= static_cast<int>(m_ChannelSignificantBits.size())) {
+        return 0;
+    }
+    return m_ChannelSignificantBits[channelIndex];
+}
+
+void ZVIScene::collectChannelSignificantBits()
+{
+    // An item is one plane and knows the channel it belongs to, so the depth is
+    // taken from an item of that channel. A pixel format that expands one item
+    // into several channels -- BGR and friends -- leaves those channels without
+    // an item of their own, and they share the depth of the item they came from.
+    m_ChannelSignificantBits.assign(m_ChannelCount, 0);
+    for (const ZVIImageItem& item : m_ImageItems) {
+        const int depth = item.getAcquisitionBitDepth();
+        if (depth <= 0) {
+            continue;
+        }
+        const int channel = item.getCIndex();
+        if (channel >= 0 && channel < m_ChannelCount) {
+            m_ChannelSignificantBits[channel] = depth;
+        }
+    }
+    if (m_ImageItems.empty()) {
+        return;
+    }
+    const int firstDepth = m_ImageItems.front().getAcquisitionBitDepth();
+    if (firstDepth <= 0) {
+        return;
+    }
+    for (int channel = 0; channel < m_ChannelCount; ++channel) {
+        if (m_ChannelSignificantBits[channel] == 0) {
+            m_ChannelSignificantBits[channel] = firstDepth;
+        }
+    }
+}
+
 ZVIPixelFormat ZVIScene::getPixelFormat() const
 {
     return (m_PixelFormat == ZVIPixelFormat::PF_UNKNOWN) ? m_ImageItems[0].getPixelFormat() : m_PixelFormat;
@@ -340,6 +380,7 @@ void ZVIScene::computeSceneDimensions()
     }
 
     alignChannelInfoToPixelFormat();
+    collectChannelSignificantBits();
 }
 
 // The indices of the image items the document actually holds, in ascending

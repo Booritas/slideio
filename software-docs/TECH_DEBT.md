@@ -44,6 +44,7 @@ removed without renumbering the rest and its number is retired in
 25. *retired -- fixed, see [Resolved and removed](#resolved-and-removed)*
 26. [The positional read path has no buffer for small sequential reads](#26-the-positional-read-path-has-no-buffer-for-small-sequential-reads)
 27. *retired -- fixed, see [Resolved and removed](#resolved-and-removed)*
+28. [Three drivers with the dimensions for plane timestamps have no file that states any](#28-three-drivers-with-the-dimensions-for-plane-timestamps-have-no-file-that-states-any)
 
 Not debt, recorded so it stays a decision:
 [Consciously accepted, not debt](#consciously-accepted-not-debt).
@@ -995,6 +996,42 @@ the small-read case must not slow the large-read case back down.
 
 ---
 
+## 28. Three drivers with the dimensions for plane timestamps have no file that states any
+
+**Files:** `src/slideio/drivers/zvi/zviimageitem.cpp` (`readTags`),
+`src/slideio/drivers/czi/czisubblock.cpp:128`,
+`src/slideio/drivers/ome-tiff/ottools.cpp` (`collectPlaneTimestamps`)
+**Related:** `BREAKING_CHANGES.md`, `ometiff-plane-times`; the VSI implementation
+in `vsitools.cpp` is the one case backed by real data
+**Status:** Open, and blocked on corpus rather than on code. Recorded so the next
+person does not repeat the survey.
+
+`CVScene::getPlaneTimestamp()` is implemented for VSI and OME-TIFF and could be
+implemented for ZVI and CZI. What stops the remaining work is that **no image in
+the corpus states a per-plane time in any of the three formats**:
+
+| Driver | Where the format keeps it | What the corpus holds |
+|---|---|---|
+| ZVI | `ZVITAG_CAMERA_IMAGE_ACQUISITION_TIME` (1025), per image item | Tallied every tag read across the ZVI suite: 4708 reads, **all** id 531. One item carries 84 distinct tags; the only time-bearing ones are `EXPOSURE_TIME` (2564) and `AXIOCAM_DELAY_TIME` (65542). Tag 1025 and `ACQUISITION_DATE` (1793) appear in no file. |
+| CZI | per-subblock XML `<AcquisitionTime>` | Not parsed at all: `subblockHeader.metadataSize` is used only to compute the data offset, so the metadata is skipped. Whether any corpus file states it is unknown for the same reason. |
+| OME-TIFF | `Plane/@DeltaT` | Implemented. `LAMBDA-ModuloAlongZ-ModuloAlongT` states all 50 `Plane` elements and `SPIM-ModuloAlongZ` all 192, and **none carries `DeltaT`**. |
+
+**Why this is worth an entry rather than just doing the work.** For ZVI the tag's
+*encoding* cannot be determined without a sample — `int32`, a `double` holding an
+OLE automation date (days since 1899-12-30), or a string are all plausible, and
+the conversion to a Unix epoch differs for each. Implementing against a guess
+means writing tests that confirm the guess, which is how the `PhysicalSizeT`
+defect reached `master`: an attribute that is not in the OME schema was read,
+"fixed", and covered by hand-built XML using the same wrong spelling, so nothing
+failed until someone checked the schema.
+
+**What would unblock it:** one file per format that states a per-plane time. For
+ZVI a time series from an Axiovision acquisition; for OME-TIFF anything written
+by Bio-Formats from a time-lapse, where `DeltaT` is routine. Until then the
+honest position is what the code does now — `hasPlaneTimestamps()` returns false,
+which is correct for every file we hold.
+
+---
 ## Consciously accepted, not debt
 
 **PHTIFF detection has no fallback if the claiming driver then fails.** A

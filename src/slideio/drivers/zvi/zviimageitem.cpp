@@ -199,6 +199,11 @@ void ZVIImageItem::readTags(ole::compound_document& doc)
                 m_ExcitationWavelength = *p;
             }
             break;
+        case ZVITAG::ZVITAG_ACQUISITION_BIT_DEPTH:
+            if (auto* p = std::get_if<int32_t>(&tag)) {
+                m_AcquisitionBitDepth = *p;
+            }
+            break;
         case ZVITAG::ZVITAG_REFLECTOR:
             if (auto* p = std::get_if<std::string>(&tag)) {
                 m_Reflector = *p;

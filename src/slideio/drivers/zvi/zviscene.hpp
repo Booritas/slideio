@@ -43,6 +43,7 @@ namespace slideio
         double getTFrameResolution() const override;
         void validateChannelIndex(int channel) const;
         DataType getChannelDataType(int channel) const override;
+        int getChannelSignificantBits(int channelIndex) const override;
         std::string getChannelName(int channel) const override;
         Resolution getResolution() const override;
         double getMagnification() const override;
@@ -69,6 +70,7 @@ namespace slideio
     private:
         ZVIPixelFormat getPixelFormat() const;
         void alignChannelInfoToPixelFormat();
+        void collectChannelSignificantBits();
         void computeSceneDimensions();
         std::vector<int> findImageItemIndices();
         void readImageItems();
@@ -91,6 +93,8 @@ namespace slideio
         std::vector<DataType> m_ChannelDataTypes;
         std::vector<std::string> m_ChannelNames;
         std::vector<ZVIImageItem> m_ImageItems;
+        // ACQUISITION_BIT_DEPTH, per channel, 0 where the file states none.
+        std::vector<int> m_ChannelSignificantBits;
         std::vector<ZVITile> m_Tiles;
         Resolution m_res = {0,0};
         double m_ZSliceRes = 0.;

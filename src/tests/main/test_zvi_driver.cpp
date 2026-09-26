@@ -1149,3 +1149,48 @@ TEST(ZVIImageDriver, openSlideWithMissingItemTags)
     std::error_code ignored;
     std::filesystem::remove(patchedPath, ignored);
 }
+
+TEST(ZVIImageDriver, channelSignificantBitsFromAcquisitionBitDepth)
+{
+    // ACQUISITION_BIT_DEPTH is 14 in this file while the samples are stored in
+    // 16 bits -- the case the getter exists for, and the only file in the
+    // corpus where significant bits and storage width actually differ.
+    slideio::ZVIImageDriver driver;
+    std::string filePath = TestTools::getTestImagePath("zvi", "Zeiss-1-Stacked.zvi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide.get() != nullptr);
+    ASSERT_GE(slide->getNumScenes(), 1);
+    auto scene = slide->getScene(0);
+    ASSERT_TRUE(scene.get() != nullptr);
+    ASSERT_GT(scene->getNumChannels(), 0);
+    EXPECT_EQ(scene->getChannelSignificantBits(0), 14);
+    EXPECT_EQ(scene->getChannelDataType(0), slideio::DataType::DT_Int16);
+    EXPECT_EQ(scene->getChannelSignificantBits(-1), 0);
+    EXPECT_EQ(scene->getChannelSignificantBits(scene->getNumChannels()), 0);
+}
+
+TEST(ZVIImageDriver, channelSignificantBitsAreUnknownWhenNotStated)
+{
+    // This file states no ACQUISITION_BIT_DEPTH, so the getter reports 0 rather
+    // than inferring the width of the samples.
+    slideio::ZVIImageDriver driver;
+    std::string filePath = TestTools::getTestImagePath("zvi", "Zeiss-1-Merged.zvi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide.get() != nullptr);
+    ASSERT_GE(slide->getNumScenes(), 1);
+    EXPECT_EQ(slide->getScene(0)->getChannelSignificantBits(0), 0);
+}
+
+TEST(ZVIImageDriver, noPlaneTimestampsWhenTheFileStatesNone)
+{
+    // No ZVI file in the corpus carries CAMERA_IMAGE_ACQUISITION_TIME.
+    slideio::ZVIImageDriver driver;
+    std::string filePath = TestTools::getTestImagePath("zvi", "Zeiss-1-Stacked.zvi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide.get() != nullptr);
+    ASSERT_GE(slide->getNumScenes(), 1);
+    EXPECT_FALSE(slide->getScene(0)->hasPlaneTimestamps());
+}
