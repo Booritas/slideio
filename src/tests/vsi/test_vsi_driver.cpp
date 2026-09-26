@@ -581,6 +581,79 @@ TEST(EtsFile, readTileJpeg2K) {
 }
 
 
+TEST_F(VSIImageDriverTests, ChannelSignificantBitsComeFromTheCameraBitDepth) {
+    // "Camera Actual Bit Depth" (tag 100049) sits under the Microscope node at a
+    // device-dependent depth, so it is found by searching that subtree rather
+    // than by a fixed path. This volume records 16; channels share the depth.
+    std::string filePath = TestTools::getTestImagePath(
+        "vsi", "vsi-multifile/vsi-ets-test-jpg2k.vsi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::VSIImageDriver driver;
+    std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    ASSERT_GE(slide->getNumScenes(), 1);
+    std::shared_ptr<CVScene> scene = slide->getScene(0);
+    ASSERT_EQ(scene->getNumChannels(), 2);
+    EXPECT_EQ(scene->getChannelSignificantBits(0), 16);
+    EXPECT_EQ(scene->getChannelSignificantBits(1), 16);
+}
+
+
+TEST_F(VSIImageDriverTests, ChannelSignificantBitsAreReadForAnEightBitVolume) {
+    // OS-1 records "Camera Actual Bit Depth" 8 at the same device-dependent depth.
+    std::string filePath = TestTools::getTestImagePath("vsi", "OS-1/OS-1.vsi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::VSIImageDriver driver;
+    std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    ASSERT_GE(slide->getNumScenes(), 1);
+    EXPECT_EQ(slide->getScene(0)->getChannelSignificantBits(0), 8);
+}
+
+
+TEST_F(VSIImageDriverTests, ChannelSignificantBitsRejectAnOutOfRangeChannel) {
+    std::string filePath = TestTools::getTestImagePath(
+        "vsi", "vsi-multifile/vsi-ets-test-jpg2k.vsi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::VSIImageDriver driver;
+    std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    ASSERT_GE(slide->getNumScenes(), 1);
+    std::shared_ptr<CVScene> scene = slide->getScene(0);
+    EXPECT_EQ(scene->getChannelSignificantBits(-1), 0);
+    EXPECT_EQ(scene->getChannelSignificantBits(scene->getNumChannels()), 0);
+}
+
+
+TEST_F(VSIImageDriverTests, ChannelSignificantBitsAreUnknownWhenTheDriverDoesNotReportThem) {
+    // A PNG carries no statement of significant bits and the GDAL driver does not
+    // override the getter, so the scene reports 0 (unknown) rather than the 8-bit
+    // storage width of its channels.
+    std::string filePath = TestTools::getTestImagePath("vsi", "test-output/Image_B309_Overview.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    auto slide = slideio::openSlide(filePath, "GDAL");
+    ASSERT_TRUE(slide != nullptr);
+    ASSERT_GE(slide->getNumScenes(), 1);
+    auto scene = slide->getScene(0);
+    ASSERT_GT(scene->getNumChannels(), 0);
+    ASSERT_EQ(scene->getChannelDataType(0), DataType::DT_Byte);
+    EXPECT_EQ(scene->getChannelSignificantBits(0), 0);
+}
+
+
+TEST_F(VSIImageDriverTests, ChannelSignificantBitsAreReachableThroughThePublicApi) {
+    std::string filePath = TestTools::getTestImagePath(
+        "vsi", "vsi-multifile/vsi-ets-test-jpg2k.vsi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    auto slide = slideio::openSlide(filePath, "AUTO");
+    ASSERT_TRUE(slide != nullptr);
+    ASSERT_GE(slide->getNumScenes(), 1);
+    auto scene = slide->getScene(0);
+    EXPECT_EQ(scene->getChannelSignificantBits(0), 16);
+    EXPECT_EQ(scene->getChannelSignificantBits(scene->getNumChannels()), 0);
+}
+
+
 TEST_F(VSIImageDriverTests, PlaneTimestampsChannelMajor) {
     // 22 TIME_VALUE entries for 1 frame x 2 channels x 11 slices, listed
     // channel-major: entries 0..10 are channel 0 over Z, entries 11..21 are

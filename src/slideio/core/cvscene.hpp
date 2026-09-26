@@ -84,31 +84,15 @@ namespace slideio
         virtual double getZSliceResolution() const {return 0;}
         /**@brief returns time between 2 time frames in seconds for images with time frames.*/
         virtual double getTFrameResolution() const {return 0;}
-        /**@brief native significant bits. Defaults to the channel storage width. */
-        virtual int getBitDepth() const {
-            if (getNumChannels() <= 0) {
-                return 0;
-            }
-            switch (getChannelDataType(0)) {
-                case DataType::DT_Byte:
-                case DataType::DT_Int8:
-                    return 8;
-                case DataType::DT_UInt16:
-                case DataType::DT_Int16:
-                case DataType::DT_Float16:
-                    return 16;
-                case DataType::DT_UInt32:
-                case DataType::DT_Int32:
-                case DataType::DT_Float32:
-                    return 32;
-                case DataType::DT_UInt64:
-                case DataType::DT_Int64:
-                case DataType::DT_Float64:
-                    return 64;
-                default:
-                    return 0;
-            }
-        }
+        /**@brief number of significant bits the file records for a channel, 0 if unknown.
+         *
+         * A driver overrides this only when the file states how many of the stored bits
+         * carry data -- a 12-bit camera image kept in 16-bit samples reports 12. The
+         * default is 0 rather than the storage width, which getChannelDataType() already
+         * gives: a driver that does not know the significant bits must not be mistaken
+         * for one reporting that every stored bit is significant.
+         * @param channelIndex : index of the channel, in the range (0, numberOfChannels) */
+        virtual int getChannelSignificantBits(int /*channelIndex*/) const { return 0; }
         /**@brief true if the driver exposes a timestamp for every plane of the scene.
          * A driver returns true only when all numTFrames * numChannels * numZSlices planes
          * have a timestamp; partial coverage counts as no timestamps at all. */

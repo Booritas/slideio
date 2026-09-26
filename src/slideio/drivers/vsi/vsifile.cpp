@@ -245,6 +245,14 @@ void VSIFile::extractVolumesFromMetadata() {
                         }
                     }
                     const TagInfo* bitDepth = stackProps->findChild(REL_PATH_TO_BITDEPTH);
+                    if (!bitDepth && microscope) {
+                        // BIT_DEPTH ("Camera Actual Bit Depth") hangs off the
+                        // microscope node under a properties tag whose id varies by
+                        // device -- 1 where REL_PATH_TO_BITDEPTH expects
+                        // MICROSCOPE_PROPERTIES -- so search the subtree, as the
+                        // magnification lookup above does for OBJECTIVE_MAG.
+                        bitDepth = microscope->findChildRecursively(Tag::BIT_DEPTH);
+                    }
                     if (bitDepth) {
                         try {
                             volumeObj->setBitDepth(std::stoi(bitDepth->value));

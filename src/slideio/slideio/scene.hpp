@@ -86,8 +86,9 @@ namespace slideio
         double getZSliceResolution() const;
         /**@brief returns time between 2 time frames in seconds for images with time frames.*/
         double getTFrameResolution() const;
-        /**@brief native significant bits; defaults to the channel storage width. */
-        int getBitDepth() const;
+        /**@brief native significant bits of a channel; 0 when unknown.
+        @param channelIndex : index of the channel, in the range (0, numberOfChannels)*/
+        int getChannelSignificantBits(int channelIndex) const;
         /**@brief true if every plane of the scene has a timestamp. */
         bool hasPlaneTimestamps() const;
         /**@brief per-plane timestamp in seconds. 0 if unavailable. */

@@ -39,7 +39,7 @@ namespace slideio
             Resolution getResolution() const override;
             double getZSliceResolution() const override;
             double getTFrameResolution() const override;
-            int getBitDepth() const override;
+            int getChannelSignificantBits(int channelIndex) const override;
             bool hasPlaneTimestamps() const override;
             double getPlaneTimestamp(int tFrame, int channel, int zSlice) const override;
             int64_t getAcquisitionTime() const override;

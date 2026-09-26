@@ -134,14 +134,17 @@ double EtsFileScene::getTFrameResolution() const {
 }
 
 
-int EtsFileScene::getBitDepth() const {
+int EtsFileScene::getChannelSignificantBits(int channelIndex) const {
+    if (channelIndex < 0 || channelIndex >= getNumChannels()) {
+        return 0;
+    }
     if (getEtsFile() && getEtsFile()->getVolume()) {
         const int bits = getEtsFile()->getVolume()->getBitDepth();
         if (bits == 8 || bits == 12 || bits == 16) {
             return bits;
         }
     }
-    return CVScene::getBitDepth();
+    return CVScene::getChannelSignificantBits(channelIndex);
 }
 
 bool EtsFileScene::resolvePlaneTimestampLayout(int& numTFrames, int& numChannels, int& numZSlices,

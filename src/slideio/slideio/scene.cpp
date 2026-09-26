@@ -110,9 +110,9 @@ double Scene::getTFrameResolution() const
     return m_scene->getTFrameResolution();
 }
 
-int Scene::getBitDepth() const
+int Scene::getChannelSignificantBits(int channelIndex) const
 {
-    return m_scene->getBitDepth();
+    return m_scene->getChannelSignificantBits(channelIndex);
 }
 
 bool Scene::hasPlaneTimestamps() const

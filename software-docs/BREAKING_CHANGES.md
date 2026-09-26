@@ -15,10 +15,18 @@ by branch.
 **Files:** `src/slideio/core/cvscene.hpp`,
 `src/slideio/slideio/scene.hpp`/`.cpp`
 
-`CVScene` gained `getBitDepth()`, `hasPlaneTimestamps()`, `getPlaneTimestamp()`
-and `getAcquisitionTime()`. Out-of-tree `CVScene` subclasses and binaries using
-the old vtable must be rebuilt before they are used with libraries from this
-branch. The methods have defaults, so source changes are not required.
+`CVScene` gained `getChannelSignificantBits(int)`, `hasPlaneTimestamps()`,
+`getPlaneTimestamp()` and `getAcquisitionTime()`. Out-of-tree `CVScene`
+subclasses and binaries using the old vtable must be rebuilt before they are
+used with libraries from this branch. The methods have defaults, so source
+changes are not required.
+
+`getChannelSignificantBits(int)` takes a channel index and returns **0 when the
+file does not record the significant bits**. It does not fall back to the
+channel storage width -- callers wanting that should use
+`getChannelDataType(int)`, which is what the width was being derived from
+anyway. A caller that treated a non-zero result as always meaningful must now
+handle 0.
 
 ---
 
