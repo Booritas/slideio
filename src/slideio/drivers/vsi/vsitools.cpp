@@ -969,48 +969,70 @@ namespace
 vsi::VSITools::PlaneTimes vsi::VSITools::collectPlaneTimes(const TagInfo& volume) {
     PlaneTimes times;
     bool timestampsUsable = true;
+    int frames = 0;
+    int framesCarryingATime = 0;
 
-    const auto collect = [&](auto&& self, const TagInfo& node) -> void {
-        // Tag 2017 is overloaded (TIME_VALUE vs VECTOR_LAYER_VOLUME), so the tag
-        // alone does not make a node a timestamp: a vector layer carries a whole
-        // document subtree and would be read as one plane of a time series. Only a
-        // node stating a time unit qualifies.
+    // The image frames of a volume are its planes, in the order the file lists
+    // them, so a timestamp is read from each frame's own properties rather than
+    // from wherever tag 2017 happens to appear under the volume. A walk of the
+    // whole subtree would concatenate any other series it met -- one under a
+    // dimension description, say -- and every index past the join would then name
+    // the wrong plane. It also keeps the walk away from vector layers, which share
+    // the tag and hang off the frame beside its properties.
+    for (const TagInfo& frame : volume.children) {
+        if (frame.tag != Tag::IMAGE_FRAME_VOLUME) {
+            continue;
+        }
+        ++frames;
+        const TagInfo* properties = frame.findChild(Tag::FRAME_PROPERTIES);
+        const TagInfo* node = properties ? properties->findChild(Tag::TIME_VALUE) : nullptr;
+        if (!node) {
+            continue;
+        }
+        ++framesCarryingATime;
+        if (!isPlaneTimestampNode(*node)) {
+            SLIDEIO_LOG(WARNING) << "VSI driver: plane timestamp states no readable time unit";
+            timestampsUsable = false;
+            continue;
+        }
+        const std::string valueStr = readValueChild(*node);
+        if (valueStr.empty()) {
+            SLIDEIO_LOG(WARNING) << "VSI driver: plane timestamp without a value";
+            timestampsUsable = false;
+            continue;
+        }
+        try {
+            times.timestamps.push_back(std::stod(valueStr));
+        }
+        catch (const std::exception& ex) {
+            // Entries are addressed by position, so carrying on without this one
+            // would report every later plane at its neighbour's time.
+            SLIDEIO_LOG(WARNING) << "VSI driver: unreadable plane timestamp ("
+                << valueStr << "): " << ex.what();
+            timestampsUsable = false;
+            continue;
+        }
+        if (times.timestampUnit.empty()) {
+            times.timestampUnit = readUnitsChild(*node);
+        }
+    }
+    // Some planes timed and others not leaves a list that no longer lines up with
+    // the planes, which is the same failure as a list with a hole in it.
+    if (framesCarryingATime > 0 && framesCarryingATime != frames) {
+        SLIDEIO_LOG(WARNING) << "VSI driver: " << (frames - framesCarryingATime) << " of "
+            << frames << " image frames carry no timestamp";
+        timestampsUsable = false;
+    }
+
+    // The increment is a single value rather than a series, so it is looked for
+    // anywhere under the volume. Tag 2016 is overloaded (TIME_INCREMENT vs
+    // default-sample IFD); accept only a node with a parseable time UNITS child.
+    const auto findIncrement = [&](auto&& self, const TagInfo& node) -> void {
         if (node.tag == Tag::TIME_VALUE) {
-            if (!isPlaneTimestampNode(node)) {
-                // Not a timestamp. Do not descend either: whatever this subtree
-                // holds, it is not part of the time series.
-                return;
-            }
-            const std::string valueStr = readValueChild(node);
-            bool read = false;
-            if (!valueStr.empty()) {
-                try {
-                    times.timestamps.push_back(std::stod(valueStr));
-                    read = true;
-                }
-                catch (const std::exception& ex) {
-                    SLIDEIO_LOG(WARNING) << "VSI driver: unreadable plane timestamp ("
-                        << valueStr << "): " << ex.what();
-                }
-            }
-            else {
-                SLIDEIO_LOG(WARNING) << "VSI driver: plane timestamp without a value";
-            }
-            if (!read) {
-                // Entries are addressed by position, so carrying on without this
-                // one would report every later plane at its neighbour's time.
-                timestampsUsable = false;
-            }
-            if (times.timestampUnit.empty()) {
-                const std::string unit = readUnitsChild(node);
-                if (unitToSeconds(unit)) {
-                    times.timestampUnit = unit;
-                }
-            }
+            // A timestamp, or a vector layer sharing its tag. Neither holds an
+            // increment, and a vector layer's document subtree is not ours to walk.
             return;
         }
-        // Tag 2016 is overloaded (TIME_INCREMENT vs default-sample IFD).
-        // Accept only nodes with a parseable time UNITS child.
         if (node.tag == Tag::TIME_INCREMENT) {
             const std::string unit = readUnitsChild(node);
             if (unitToSeconds(unit)) {
@@ -1030,7 +1052,7 @@ vsi::VSITools::PlaneTimes vsi::VSITools::collectPlaneTimes(const TagInfo& volume
             self(self, child);
         }
     };
-    collect(collect, volume);
+    findIncrement(findIncrement, volume);
 
     if (!timestampsUsable) {
         SLIDEIO_LOG(WARNING) << "VSI driver: discarding " << times.timestamps.size()

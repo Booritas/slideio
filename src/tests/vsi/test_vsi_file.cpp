@@ -269,14 +269,37 @@ namespace {
         }
         return volume;
     }
+
+    // One plane of the stack: an image frame whose frame properties carry its
+    // timestamp, which is how a VSI file lays a time series out.
+    vsi::TagInfo makeFrame(const vsi::TagInfo& timestamp) {
+        vsi::TagInfo properties;
+        properties.tag = Tag::FRAME_PROPERTIES;
+        properties.children.push_back(timestamp);
+        vsi::TagInfo frame;
+        frame.tag = Tag::IMAGE_FRAME_VOLUME;
+        frame.children.push_back(properties);
+        return frame;
+    }
+
+    vsi::TagInfo makeEmptyFrame() {
+        vsi::TagInfo frame;
+        frame.tag = Tag::IMAGE_FRAME_VOLUME;
+        return frame;
+    }
+
+    vsi::TagInfo makeVolumeOfFrames(const std::vector<std::string>& values,
+                                    const std::string& unit = "10^-3s^1") {
+        std::vector<vsi::TagInfo> frames;
+        for (const auto& value : values) {
+            frames.push_back(makeFrame(makeTimestampNode(unit, value)));
+        }
+        return makeVolumeOf(frames);
+    }
 }
 
 TEST(VSITools, CollectPlaneTimesReadsEveryTimestampInOrder) {
-    const vsi::TagInfo volume = makeVolumeOf({
-        makeTimestampNode("10^-3s^1", "1000.0"),
-        makeTimestampNode("10^-3s^1", "2000.0"),
-        makeTimestampNode("10^-3s^1", "3000.0"),
-    });
+    const vsi::TagInfo volume = makeVolumeOfFrames({"1000.0", "2000.0", "3000.0"});
     const auto times = VSITools::collectPlaneTimes(volume);
     ASSERT_EQ(times.timestamps.size(), 3u);
     EXPECT_DOUBLE_EQ(times.timestamps[0], 1000.0);
@@ -285,37 +308,57 @@ TEST(VSITools, CollectPlaneTimesReadsEveryTimestampInOrder) {
     EXPECT_EQ(times.timestampUnit, "10^-3s^1");
 }
 
+TEST(VSITools, OnlyTheFramesContributeToTheSeries) {
+    // The frames are the planes, in order, so they alone define the sequence.
+    // A TIME_VALUE anywhere else in the volume -- under a dimension description,
+    // say -- belongs to some other series, and concatenating it would make every
+    // index past it name the wrong plane.
+    vsi::TagInfo dimensionDescription;
+    dimensionDescription.tag = Tag::DIMENSION_DESCRIPTION_VOLUME;
+    dimensionDescription.children.push_back(makeTimestampNode("10^-3s^1", "9999.0"));
+
+    vsi::TagInfo volume = makeVolumeOfFrames({"1000.0", "2000.0"});
+    volume.children.push_back(dimensionDescription);
+
+    const auto times = VSITools::collectPlaneTimes(volume);
+    ASSERT_EQ(times.timestamps.size(), 2u);
+    EXPECT_DOUBLE_EQ(times.timestamps[0], 1000.0);
+    EXPECT_DOUBLE_EQ(times.timestamps[1], 2000.0);
+}
+
+TEST(VSITools, AFrameWithoutATimestampDiscardsTheWholeSeries) {
+    // Every plane needs one or the list stops lining up with the planes.
+    vsi::TagInfo volume = makeVolumeOfFrames({"1000.0", "2000.0"});
+    volume.children.push_back(makeEmptyFrame());
+    const auto times = VSITools::collectPlaneTimes(volume);
+    EXPECT_TRUE(times.timestamps.empty());
+}
+
 TEST(VSITools, OneUnreadableTimestampDiscardsTheWholeSeries) {
     // The list is positional. Skipping an unreadable entry would slide every
     // later plane onto its neighbour's time, which is worse than reporting no
     // timestamps at all, so one bad node invalidates the series.
-    const vsi::TagInfo volume = makeVolumeOf({
-        makeTimestampNode("10^-3s^1", "1000.0"),
-        makeTimestampNode("10^-3s^1", "not a number"),
-        makeTimestampNode("10^-3s^1", "3000.0"),
-    });
+    const vsi::TagInfo volume = makeVolumeOfFrames({"1000.0", "not a number", "3000.0"});
     const auto times = VSITools::collectPlaneTimes(volume);
     EXPECT_TRUE(times.timestamps.empty());
 }
 
 TEST(VSITools, AnEmptyTimestampValueAlsoDiscardsTheWholeSeries) {
-    const vsi::TagInfo volume = makeVolumeOf({
-        makeTimestampNode("10^-3s^1", "1000.0"),
-        makeTimestampNode("10^-3s^1", ""),
-    });
+    const vsi::TagInfo volume = makeVolumeOfFrames({"1000.0", ""});
     const auto times = VSITools::collectPlaneTimes(volume);
     EXPECT_TRUE(times.timestamps.empty());
 }
 
 TEST(VSITools, CollectPlaneTimesIgnoresAVectorLayerSharingTheTag) {
+    // A vector layer hangs off the frame itself, beside the frame properties.
     vsi::TagInfo vectorLayer;
     vectorLayer.tag = Tag::VECTOR_LAYER_VOLUME;   // the same 2017
     vectorLayer.children.push_back(makeChild(6, "1162180352"));
-    const vsi::TagInfo volume = makeVolumeOf({
-        makeTimestampNode("10^-3s^1", "1000.0"),
-        vectorLayer,
-    });
-    const auto times = VSITools::collectPlaneTimes(volume);
+
+    vsi::TagInfo frame = makeFrame(makeTimestampNode("10^-3s^1", "1000.0"));
+    frame.children.push_back(vectorLayer);
+
+    const auto times = VSITools::collectPlaneTimes(makeVolumeOf({frame}));
     ASSERT_EQ(times.timestamps.size(), 1u);
     EXPECT_DOUBLE_EQ(times.timestamps[0], 1000.0);
 }
