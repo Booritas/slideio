@@ -185,6 +185,14 @@ double EtsFileScene::getPlaneTimestamp(int tFrame, int channel, int zSlice) cons
     return volume->getPlaneTimestampByIndex(tFrame);
 }
 
+// The volume's CREATION_TIME is taken to be the origin the TIME_VALUE list measures
+// from, which is what CVScene::getPlaneTimestamp() requires of a driver. It is
+// consistent with the one timestamped file in the corpus -- creation stamped ~29.6 s
+// before the first exposure, the gap a setup would take -- but not proven: no file we
+// hold has both plane timestamps and a second scene to check the two origins against.
+// A file with timestamps in two scenes would settle it. If the list turns out to
+// measure from something else, this value stays correct as an acquisition stamp and it
+// is the additive relationship between the two getters that needs revisiting.
 int64_t EtsFileScene::getAcquisitionTime() const {
     const auto ets = getEtsFile();
     if (!ets || !ets->getVolume()) {

@@ -97,14 +97,29 @@ namespace slideio
          * A driver returns true only when all numTFrames * numChannels * numZSlices planes
          * have a timestamp; partial coverage counts as no timestamps at all. */
         virtual bool hasPlaneTimestamps() const { return false; }
-        /**@brief per-plane timestamp in seconds.
-         * Indexing is T slowest, then Z, then C: index = (t * numZ + z) * numC + c.
+        /**@brief when one plane was acquired, in seconds from the scene's acquisition origin.
+         *
+         * The origin is the acquisition start the file records -- the same instant
+         * getAcquisitionTime() reports -- or, where the file records none, the scene's
+         * earliest plane. A driver must never take an origin later than its earliest
+         * plane, so a timestamp is never negative. The earliest plane reads 0 only when
+         * it is itself the origin: a file that records a start may well record one that
+         * precedes its first exposure, leaving every plane at a positive offset.
+         *
+         * Differences between planes are always meaningful. An absolute time is available
+         * only where getAcquisitionTime() is non-zero, and is then
+         * getAcquisitionTime() + getPlaneTimestamp(tFrame, channel, zSlice).
+         *
+         * How a driver locates the value is its own business: callers address a plane by
+         * its three indices and never by a position in the file's list.
+         *
          * Returns 0 if hasPlaneTimestamps() is false or an index is out of range. */
         virtual double getPlaneTimestamp(int /*tFrame*/, int /*channel*/, int /*zSlice*/) const { return 0; }
         /**@brief start of the scene's acquisition, in seconds since 1970-01-01T00:00:00Z.
          * This is the origin getPlaneTimestamp() measures from, so the absolute time of a
          * plane is getAcquisitionTime() + getPlaneTimestamp(...). Returns 0 if the file
-         * records no acquisition time. */
+         * records no acquisition time, in which case only differences between plane
+         * timestamps carry meaning. */
         virtual int64_t getAcquisitionTime() const { return 0; }
         /**@brief returns slide magnification extracted from the slide metadata. */
         virtual double getMagnification() const = 0;

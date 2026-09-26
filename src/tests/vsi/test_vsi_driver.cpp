@@ -4,6 +4,7 @@
 #include <string>
 #include <opencv2/imgproc.hpp>
 #include <filesystem>
+#include <limits>
 
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/drivers/vsi/vsiimagedriver.hpp"
@@ -742,6 +743,36 @@ TEST_F(VSIImageDriverTests, AcquisitionTimeComesFromTheScenesOwnVolume) {
     const int64_t sceneTime = slide->getScene(0)->getAcquisitionTime();
     EXPECT_EQ(sceneTime, 1351618515LL);
     EXPECT_NE(sceneTime, 1351617823LL) << "reported the document stamp, not the volume's";
+}
+
+
+TEST_F(VSIImageDriverTests, PlaneTimestampsAreNeverNegative) {
+    // The origin is never later than the earliest plane, so no plane reports a
+    // negative offset. Here the origin is the recorded acquisition start, which
+    // precedes the first exposure by ~29.6 s, so the smallest value is not 0 --
+    // it is the offset of the plane the scene acquired first.
+    std::string filePath = TestTools::getTestImagePath(
+        "vsi", "vsi-multifile/vsi-ets-test-jpg2k.vsi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::VSIImageDriver driver;
+    std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    ASSERT_GE(slide->getNumScenes(), 1);
+    std::shared_ptr<CVScene> scene = slide->getScene(0);
+    ASSERT_TRUE(scene->hasPlaneTimestamps());
+    ASSERT_NE(scene->getAcquisitionTime(), 0);
+    double smallest = std::numeric_limits<double>::max();
+    for (int t = 0; t < scene->getNumTFrames(); ++t) {
+        for (int c = 0; c < scene->getNumChannels(); ++c) {
+            for (int z = 0; z < scene->getNumZSlices(); ++z) {
+                const double ts = scene->getPlaneTimestamp(t, c, z);
+                EXPECT_GE(ts, 0.) << "plane " << t << "," << c << "," << z;
+                smallest = std::min(smallest, ts);
+            }
+        }
+    }
+    EXPECT_DOUBLE_EQ(smallest, scene->getPlaneTimestamp(0, 0, 0));
+    EXPECT_GT(smallest, 0.) << "a recorded origin earlier than the first plane";
 }
 
 

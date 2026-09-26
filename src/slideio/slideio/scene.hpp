@@ -91,7 +91,15 @@ namespace slideio
         int getChannelSignificantBits(int channelIndex) const;
         /**@brief true if every plane of the scene has a timestamp. */
         bool hasPlaneTimestamps() const;
-        /**@brief per-plane timestamp in seconds. 0 if unavailable. */
+        /**@brief when one plane was acquired, in seconds from the scene's acquisition origin.
+         *
+         * The origin is the acquisition start recorded in the file -- the instant
+         * getAcquisitionTime() reports -- or the scene's earliest plane where the file
+         * records none. Timestamps are never negative, but the earliest plane is 0 only
+         * where it is itself the origin: a recorded start may precede the first exposure.
+         * Differences between planes are always meaningful; an absolute time needs
+         * getAcquisitionTime() to be non-zero. Returns 0 if hasPlaneTimestamps() is false
+         * or an index is out of range. */
         double getPlaneTimestamp(int tFrame, int channel, int zSlice) const;
         /**@brief acquisition start in seconds since 1970-01-01T00:00:00Z, 0 if unknown.
          *
