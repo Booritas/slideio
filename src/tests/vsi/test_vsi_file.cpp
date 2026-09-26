@@ -211,6 +211,28 @@ TEST(VSITools, PlaneTimestampListIndexChannelMajor) {
     EXPECT_EQ(VSITools::planeTimestampListIndex(24, 1, 0, nT, nC, nZ, orderT, orderC, orderZ), 49);
 }
 
+TEST(VSITools, PlaneTimestampListIndexIgnoresTheOrderOfASingletonDimension) {
+    // One time frame, so the file need not state an order for T. A dimension of
+    // extent 1 contributes nothing to the index whatever its position, so the
+    // described layout of C and Z still applies: Z fastest, C slowest, index z + 11c.
+    constexpr int orderT = -1, orderZ = 2, orderC = 3;
+    constexpr int nT = 1, nC = 2, nZ = 11;
+    EXPECT_EQ(VSITools::planeTimestampListIndex(0, 0, 0, nT, nC, nZ, orderT, orderC, orderZ), 0);
+    EXPECT_EQ(VSITools::planeTimestampListIndex(0, 0, 1, nT, nC, nZ, orderT, orderC, orderZ), 1);
+    EXPECT_EQ(VSITools::planeTimestampListIndex(0, 0, 10, nT, nC, nZ, orderT, orderC, orderZ), 10);
+    EXPECT_EQ(VSITools::planeTimestampListIndex(0, 1, 0, nT, nC, nZ, orderT, orderC, orderZ), 11);
+    EXPECT_EQ(VSITools::planeTimestampListIndex(0, 1, 1, nT, nC, nZ, orderT, orderC, orderZ), 12);
+}
+
+TEST(VSITools, PlaneTimestampListIndexFallsBackWhenAPresentDimensionHasNoOrder) {
+    // Z has extent, so its missing order leaves the layout undescribed and the
+    // TZC fallback applies: (t*nZ + z)*nC + c.
+    constexpr int orderT = 2, orderZ = -1, orderC = 3;
+    constexpr int nT = 2, nC = 2, nZ = 11;
+    EXPECT_EQ(VSITools::planeTimestampListIndex(0, 0, 1, nT, nC, nZ, orderT, orderC, orderZ), 2);
+    EXPECT_EQ(VSITools::planeTimestampListIndex(1, 1, 0, nT, nC, nZ, orderT, orderC, orderZ), 23);
+}
+
 TEST(Volume, TResolutionRequiresParseableUnit) {
     vsi::Volume volume;
     volume.setTResolution(2000.0);

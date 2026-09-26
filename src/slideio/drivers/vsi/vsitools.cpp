@@ -943,9 +943,19 @@ std::optional<double> vsi::VSITools::unitToSeconds(const std::string& unitStr) {
 int vsi::VSITools::planeTimestampListIndex(int t, int c, int z,
                                            int nT, int nC, int nZ,
                                            int orderT, int orderC, int orderZ) {
-    // An order the file did not state is UNSET_DIMENSION_ORDER; 0 and 1 belong to
-    // X and Y, so any of the three below 2 means the layout is not described.
-    if (orderT < 2 || orderC < 2 || orderZ < 2) {
+    nT = std::max(nT, 1);
+    nC = std::max(nC, 1);
+    nZ = std::max(nZ, 1);
+    // An order the file did not state is UNSET_DIMENSION_ORDER; 0 and 1 belong to X
+    // and Y, so an order below 2 means that dimension's place is not described. Only
+    // a dimension with extent needs one: a dimension of size 1 has a single
+    // coordinate, 0, and so adds nothing to the index and multiplies the stride by
+    // one wherever it lands in the order. Demanding an order for it would throw away
+    // a layout the file did describe for the dimensions that do vary.
+    const bool missingOrder = (nT > 1 && orderT < 2)
+                           || (nC > 1 && orderC < 2)
+                           || (nZ > 1 && orderZ < 2);
+    if (missingOrder) {
         return (t * nZ + z) * nC + c;
     }
     struct Axis {
