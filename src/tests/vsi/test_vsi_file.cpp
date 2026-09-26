@@ -211,6 +211,45 @@ TEST(VSITools, PlaneTimestampListIndexChannelMajor) {
     EXPECT_EQ(VSITools::planeTimestampListIndex(24, 1, 0, nT, nC, nZ, orderT, orderC, orderZ), 49);
 }
 
+namespace {
+    vsi::TagInfo makeChild(int tag, const std::string& value) {
+        vsi::TagInfo child;
+        child.tag = tag;
+        child.value = value;
+        return child;
+    }
+}
+
+TEST(VSITools, APlaneTimestampNodeIsTheOneStatingATimeUnit) {
+    // TIME_VALUE and VECTOR_LAYER_VOLUME are both tag 2017, so the tag alone
+    // cannot tell them apart. A timestamp states the unit of its value; a vector
+    // layer is a document subtree and states none.
+    vsi::TagInfo timestamp;
+    timestamp.tag = Tag::TIME_VALUE;
+    timestamp.children.push_back(makeChild(Tag::UNITS, "10^-3s^1"));
+    timestamp.children.push_back(makeChild(Tag::VALUE, "29559.439000"));
+    EXPECT_TRUE(VSITools::isPlaneTimestampNode(timestamp));
+
+    vsi::TagInfo vectorLayer;
+    vectorLayer.tag = Tag::VECTOR_LAYER_VOLUME;   // the same 2017
+    vectorLayer.children.push_back(makeChild(6, "1162180352"));
+    vectorLayer.children.push_back(makeChild(5, "xv.idgen.unique"));
+    EXPECT_FALSE(VSITools::isPlaneTimestampNode(vectorLayer));
+}
+
+TEST(VSITools, APlaneTimestampNodeNeedsTheUnitToBeATimeUnit) {
+    vsi::TagInfo node;
+    node.tag = Tag::TIME_VALUE;
+    node.children.push_back(makeChild(Tag::UNITS, "m^1"));
+    node.children.push_back(makeChild(Tag::VALUE, "12.5"));
+    EXPECT_FALSE(VSITools::isPlaneTimestampNode(node));
+
+    vsi::TagInfo other;
+    other.tag = Tag::MULTIDIM_STACK_PROPERTIES;
+    other.children.push_back(makeChild(Tag::UNITS, "10^-3s^1"));
+    EXPECT_FALSE(VSITools::isPlaneTimestampNode(other));
+}
+
 TEST(VSITools, PlaneTimestampListIndexIgnoresTheOrderOfASingletonDimension) {
     // One time frame, so the file need not state an order for T. A dimension of
     // extent 1 contributes nothing to the index whatever its position, so the

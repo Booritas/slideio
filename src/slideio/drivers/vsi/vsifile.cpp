@@ -399,7 +399,16 @@ void VSIFile::extractVolumesFromMetadata() {
                 };
 
                 const auto collect = [&](auto&& self, const TagInfo& node) -> void {
+                    // Tag 2017 is overloaded (TIME_VALUE vs VECTOR_LAYER_VOLUME), so
+                    // the tag alone does not make a node a timestamp: a vector layer
+                    // carries a whole document subtree and would be read as one plane
+                    // of a time series. Only a node stating a time unit qualifies.
                     if (node.tag == Tag::TIME_VALUE) {
+                        if (!VSITools::isPlaneTimestampNode(node)) {
+                            // Not a timestamp. Do not descend either: whatever this
+                            // subtree holds, it is not part of the time series.
+                            return;
+                        }
                         const std::string valueStr = readValueChild(node);
                         if (!valueStr.empty()) {
                             try {

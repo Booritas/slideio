@@ -38,6 +38,15 @@ namespace slideio
              * empty or unparseable (callers must not invent a default like 1e-3).
              */
             static std::optional<double> unitToSeconds(const std::string& unitStr);
+            /**@brief True if a node carries a plane timestamp.
+             *
+             * TIME_VALUE shares tag 2017 with VECTOR_LAYER_VOLUME, so the tag alone
+             * does not identify one: a volume walk that trusted it would read a
+             * vector layer as a timestamp. A timestamp states the unit of its value
+             * and a vector layer does not, which is the same guard the TIME_INCREMENT
+             * overload of tag 2016 uses.
+             */
+            static bool isPlaneTimestampNode(const TagInfo& node);
             /** Linear index into a TIME_VALUE list of length nT*nC*nZ.
              *
              * When orderT/C/Z are all set (>= 2 from DIMENSION_DESCRIPTION),

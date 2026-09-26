@@ -940,6 +940,14 @@ std::optional<double> vsi::VSITools::unitToSeconds(const std::string& unitStr) {
     return std::pow(10.0, static_cast<double>(exponent));
 }
 
+bool vsi::VSITools::isPlaneTimestampNode(const TagInfo& node) {
+    if (node.tag != Tag::TIME_VALUE) {
+        return false;
+    }
+    const TagInfo* units = node.findChild(Tag::UNITS);
+    return units && unitToSeconds(units->value).has_value();
+}
+
 int vsi::VSITools::planeTimestampListIndex(int t, int c, int z,
                                            int nT, int nC, int nZ,
                                            int orderT, int orderC, int orderZ) {
