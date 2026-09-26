@@ -67,9 +67,13 @@ namespace slideio
             int getDimensionOrder(Dimensions dim) const override { return m_dimensionOrder[dimensionIndex(dim)]; } 
             void setDimensionOrder(Dimensions dim, int value) { m_dimensionOrder[dimensionIndex(dim)] = value; }
 
+            // Length in a Volume is always in metres, on the same terms as time
+            // below: the raw value arrives with the unit the file stated and is
+            // converted here, and a unit that cannot be read stores nothing rather
+            // than a number waiting to be scaled by a guess.
             const Resolution& getResolution() const { return m_resolution; }
-            void setResolution(const Resolution& resolution) { m_resolution = resolution; }
-            void setZResolution(double res) { m_zResolution = res; }
+            void setResolution(double rawX, double rawY, const std::string& unit);
+            void setZResolution(double raw, const std::string& unit);
             double getZResolution() const { return m_zResolution; }
             // Time in a Volume is always in seconds. A raw value arrives with the unit
             // the file stated and is converted here; if that unit cannot be read the

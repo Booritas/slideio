@@ -7,6 +7,37 @@ by branch.
 
 ---
 
+## vsi-resolution-units
+
+### `vsi::Volume` stores length in metres
+
+**Module:** `slideio-vsi` (exported: `vsi::Volume`, `vsi::VSITools`)
+**Files:** `src/slideio/drivers/vsi/volume.hpp`/`.cpp`,
+`src/slideio/drivers/vsi/vsitools.hpp`/`.cpp`,
+`src/slideio/drivers/vsi/vsifile.cpp`
+**Related:** `TECH_DEBT.md` §27, now retired
+
+X, Y and Z resolution were scaled by a hardcoded `1e-6` while the file stated
+the unit beside the value — `RWC_FRAME_UNIT` for X and Y, a sibling `UNITS` for
+Z. Every file seen states `10^-6m^1`, so the factor was right and the defect
+latent; a file stating anything else was silently wrong by the difference.
+
+| Removed | Replaced by |
+|---|---|
+| `setResolution(const Resolution&)` | `setResolution(double rawX, double rawY, const std::string& unit)` |
+| `setZResolution(double)` | `setZResolution(double raw, const std::string& unit)` |
+
+Both convert on the way in and store nothing when the unit cannot be read, so
+`Volume` now holds length in metres on the same terms as it holds time in
+seconds. `VSITools` gained `unitToMeters`.
+
+`unitToSeconds` changes behaviour in one respect: a unit raised to a power other
+than one is now refused. It previously accepted `s^2` and `s^-1` as seconds
+because it validated the power's syntax without reading its value. Both parsers
+now share one implementation, so `m^2` — an area — is likewise not a length.
+
+---
+
 ## ometiff-plane-times
 
 ### `OTScene` reports significant bits, acquisition time and plane timestamps

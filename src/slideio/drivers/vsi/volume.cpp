@@ -7,6 +7,20 @@
 using namespace slideio;
 using namespace slideio::vsi;
 
+
+void Volume::setResolution(double rawX, double rawY, const std::string& unit) {
+    m_resolution = Resolution(0., 0.);
+    if (const auto scale = VSITools::unitToMeters(unit)) {
+        m_resolution = Resolution(rawX * (*scale), rawY * (*scale));
+    }
+}
+
+void Volume::setZResolution(double raw, const std::string& unit) {
+    m_zResolution = 0.;
+    if (const auto scale = VSITools::unitToMeters(unit)) {
+        m_zResolution = raw * (*scale);
+    }
+}
 void Volume::setTResolution(double raw, const std::string& unit) {
     m_tResolution = 0.;
     if (raw <= 0.0) {

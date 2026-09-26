@@ -425,3 +425,57 @@ TEST(Volume, PlaneTimestampsRequireAParseableUnit) {
     EXPECT_NEAR(volume.getPlaneTimestampByIndex(0), 10.003, 1e-9);
     EXPECT_NEAR(volume.getPlaneTimestampByIndex(1), 12.003, 1e-9);
 }
+TEST(VSITools, UnitToMeters) {
+    EXPECT_FALSE(VSITools::unitToMeters("").has_value());
+    EXPECT_FALSE(VSITools::unitToMeters("um").has_value());
+    // A time is not a length, whatever its exponent.
+    EXPECT_FALSE(VSITools::unitToMeters("10^-3s^1").has_value());
+
+    ASSERT_TRUE(VSITools::unitToMeters("10^-6m^1").has_value());
+    EXPECT_DOUBLE_EQ(*VSITools::unitToMeters("10^-6m^1"), 1e-6);
+    EXPECT_DOUBLE_EQ(*VSITools::unitToMeters("10^-6 m^1"), 1e-6);
+    EXPECT_DOUBLE_EQ(*VSITools::unitToMeters("m^1"), 1.0);
+    EXPECT_DOUBLE_EQ(*VSITools::unitToMeters("m"), 1.0);
+    EXPECT_DOUBLE_EQ(*VSITools::unitToMeters("10^-9m"), 1e-9);
+    EXPECT_DOUBLE_EQ(*VSITools::unitToMeters("10^0m"), 1.0);
+}
+
+TEST(VSITools, AUnitRaisedToAnotherPowerIsNotThatUnit) {
+    // m^2 is an area and s^2 is not a duration. Reading either as the base
+    // quantity would report, say, a square micrometre count as a pixel size.
+    EXPECT_FALSE(VSITools::unitToMeters("10^-6m^2").has_value());
+    EXPECT_FALSE(VSITools::unitToMeters("m^-1").has_value());
+    EXPECT_FALSE(VSITools::unitToSeconds("s^2").has_value());
+    EXPECT_FALSE(VSITools::unitToSeconds("10^-3s^-1").has_value());
+}
+
+TEST(Volume, ResolutionIsStoredInMetres) {
+    // Length in a Volume is always in metres, converted on the way in, as time
+    // already is. The raw number and its unit arrive together.
+    vsi::Volume volume;
+    volume.setResolution(0.108333, 0.2, "10^-6m^1");
+    EXPECT_NEAR(volume.getResolution().x, 0.108333e-6, 1e-15);
+    EXPECT_NEAR(volume.getResolution().y, 0.2e-6, 1e-15);
+}
+
+TEST(Volume, ResolutionRequiresAParseableUnit) {
+    vsi::Volume volume;
+    volume.setResolution(1.0, 2.0, "bogus");
+    EXPECT_DOUBLE_EQ(volume.getResolution().x, 0.);
+    EXPECT_DOUBLE_EQ(volume.getResolution().y, 0.);
+
+    volume.setResolution(1.0, 2.0, "");
+    EXPECT_DOUBLE_EQ(volume.getResolution().x, 0.);
+}
+
+TEST(Volume, ZResolutionIsStoredInMetres) {
+    vsi::Volume volume;
+    volume.setZResolution(1.5, "10^-6m^1");
+    EXPECT_NEAR(volume.getZResolution(), 1.5e-6, 1e-15);
+}
+
+TEST(Volume, ZResolutionRequiresAParseableUnit) {
+    vsi::Volume volume;
+    volume.setZResolution(1.5, "10^-3s^1");   // a time, not a length
+    EXPECT_DOUBLE_EQ(volume.getZResolution(), 0.);
+}

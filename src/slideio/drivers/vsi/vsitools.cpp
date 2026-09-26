@@ -881,64 +881,92 @@ std::string vsi::VSITools::extractTagValue(vsi::VSIStream& vsi, const vsi::TagIn
     return value;
 }
 
-std::optional<double> vsi::VSITools::unitToSeconds(const std::string& unitStr) {
-    if (unitStr.empty()) {
-        return std::nullopt;
-    }
-    std::string s = unitStr;
-    s.erase(std::remove_if(s.begin(), s.end(),
-                           [](unsigned char c) { return std::isspace(c) != 0; }),
-            s.end());
-    if (s.empty()) {
-        return std::nullopt;
-    }
-
-    int exponent = 0;
-    std::size_t pos = 0;
-    if (s.size() >= 3 && s.compare(0, 3, "10^") == 0) {
-        std::size_t i = 3;
-        bool neg = false;
-        if (i < s.size() && s[i] == '-') {
-            neg = true;
-            ++i;
-        } else if (i < s.size() && s[i] == '+') {
-            ++i;
-        }
-        if (i >= s.size() || !std::isdigit(static_cast<unsigned char>(s[i]))) {
+namespace
+{
+    // Parses an Olympus unit string of the form "10^<exp>" + base + "^<power>",
+    // where both the exponent prefix and the power suffix are optional. Returns
+    // the decimal exponent, or nullopt when the string is not this unit at all.
+    // A power other than 1 is refused: "m^2" is an area, not a length.
+    std::optional<int> unitDecimalExponent(const std::string& unitStr, char base) {
+        if (unitStr.empty()) {
             return std::nullopt;
         }
-        int exp = 0;
-        while (i < s.size() && std::isdigit(static_cast<unsigned char>(s[i]))) {
-            exp = exp * 10 + (s[i] - '0');
-            ++i;
+        std::string s = unitStr;
+        s.erase(std::remove_if(s.begin(), s.end(),
+                               [](unsigned char c) { return std::isspace(c) != 0; }),
+                s.end());
+        if (s.empty()) {
+            return std::nullopt;
         }
-        exponent = neg ? -exp : exp;
-        pos = i;
-    }
 
-    if (pos >= s.size() || s[pos] != 's') {
-        return std::nullopt;
-    }
-    ++pos;
-    if (pos < s.size()) {
+        int exponent = 0;
+        std::size_t pos = 0;
+        if (s.size() >= 3 && s.compare(0, 3, "10^") == 0) {
+            std::size_t i = 3;
+            bool neg = false;
+            if (i < s.size() && s[i] == '-') {
+                neg = true;
+                ++i;
+            } else if (i < s.size() && s[i] == '+') {
+                ++i;
+            }
+            if (i >= s.size() || !std::isdigit(static_cast<unsigned char>(s[i]))) {
+                return std::nullopt;
+            }
+            int exp = 0;
+            while (i < s.size() && std::isdigit(static_cast<unsigned char>(s[i]))) {
+                exp = exp * 10 + (s[i] - '0');
+                ++i;
+            }
+            exponent = neg ? -exp : exp;
+            pos = i;
+        }
+
+        if (pos >= s.size() || s[pos] != base) {
+            return std::nullopt;
+        }
+        ++pos;
+        if (pos == s.size()) {
+            return exponent;   // no power suffix means the first power
+        }
         if (s[pos] != '^') {
             return std::nullopt;
         }
         ++pos;
+        bool powerNegative = false;
         if (pos < s.size() && (s[pos] == '-' || s[pos] == '+')) {
+            powerNegative = s[pos] == '-';
             ++pos;
         }
         if (pos >= s.size() || !std::isdigit(static_cast<unsigned char>(s[pos]))) {
             return std::nullopt;
         }
+        int power = 0;
         while (pos < s.size() && std::isdigit(static_cast<unsigned char>(s[pos]))) {
+            power = power * 10 + (s[pos] - '0');
             ++pos;
         }
-        if (pos != s.size()) {
+        if (pos != s.size() || powerNegative || power != 1) {
             return std::nullopt;
         }
+        return exponent;
     }
-    return std::pow(10.0, static_cast<double>(exponent));
+}
+
+std::optional<double> vsi::VSITools::unitToSeconds(const std::string& unitStr) {
+    const auto exponent = unitDecimalExponent(unitStr, 's');
+    if (!exponent) {
+        return std::nullopt;
+    }
+    return std::pow(10.0, static_cast<double>(*exponent));
+}
+
+std::optional<double> vsi::VSITools::unitToMeters(const std::string& unitStr) {
+    const auto exponent = unitDecimalExponent(unitStr, 'm');
+    if (!exponent) {
+        return std::nullopt;
+    }
+    return std::pow(10.0, static_cast<double>(*exponent));
 }
 
 bool vsi::VSITools::isPlaneTimestampNode(const TagInfo& node) {

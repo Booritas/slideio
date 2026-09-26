@@ -39,6 +39,13 @@ namespace slideio
              * empty or unparseable (callers must not invent a default like 1e-3).
              */
             static std::optional<double> unitToSeconds(const std::string& unitStr);
+            /**@brief Convert an Olympus VSI length unit string to metres per raw unit.
+             *
+             * Accepts forms such as "10^-6m^1", "m", "10^-9m". Returns nullopt if empty,
+             * unparseable, a different base quantity, or raised to a power other than
+             * one -- "m^2" is an area, not a length.
+             */
+            static std::optional<double> unitToMeters(const std::string& unitStr);
             /**@brief True if a node carries a plane timestamp.
              *
              * TIME_VALUE shares tag 2017 with VECTOR_LAYER_VOLUME, so the tag alone

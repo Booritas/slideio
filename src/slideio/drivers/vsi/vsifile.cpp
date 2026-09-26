@@ -199,10 +199,14 @@ void VSIFile::extractVolumesFromMetadata() {
                                 "VSI driver: invalid number of image resolutions. Expected: 2, Received: "
                                 << tokens.size() << " " << resolutionTag->value;
                         }
+                        // RWC_FRAME_UNIT states the unit the scale is in. Every
+                        // file seen states micrometres, but the tag is read rather
+                        // than assumed: a file stating anything else was silently
+                        // wrong by whatever the two differ by.
+                        const TagInfo* resolutionUnit = stackProps->findChild(Tag::RWC_FRAME_UNIT);
                         try {
-                            const double xRes = 1.e-6 * std::stod(tokens[0]);
-                            const double yRes = 1.e-6 * std::stod(tokens[1]);
-                            volumeObj->setResolution(Resolution(xRes, yRes));
+                            volumeObj->setResolution(std::stod(tokens[0]), std::stod(tokens[1]),
+                                                     resolutionUnit ? resolutionUnit->value : std::string());
                         }
                         catch (std::exception& ex) {
                             SLIDEIO_LOG(WARNING) << "VSI driver: error reading resolution (ignored): " << ex.what();
@@ -282,9 +286,17 @@ void VSIFile::extractVolumesFromMetadata() {
                                     const TagInfo* channelInfo = itc->findChild(Tag::CHANNEL_INFO_PROPERTIES);
                                     if (channelInfo) {
                                         const TagInfo* valueTag = channelInfo->findChild(Tag::VALUE);
+                                        const TagInfo* unitsTag = channelInfo->findChild(Tag::UNITS);
                                         if (valueTag) {
-                                            double zRes = std::stod(valueTag->value);
-                                            volumeObj->setZResolution(zRes * 1.e-6);
+                                            try {
+                                                volumeObj->setZResolution(
+                                                    std::stod(valueTag->value),
+                                                    unitsTag ? unitsTag->value : std::string());
+                                            }
+                                            catch (const std::exception& ex) {
+                                                SLIDEIO_LOG(WARNING) << "VSI driver: error reading z resolution"
+                                                    " (ignored): " << ex.what();
+                                            }
                                         }
                                     }
                                     break;
