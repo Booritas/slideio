@@ -1001,7 +1001,7 @@ the small-read case must not slow the large-read case back down.
 `extractVolumesFromMetadata` where `RWC_FRAME_SCALE` is read, Z in the
 `case 1:` branch where `DIMENSION_PARAMETERS`/`CHANNEL_INFO_PROPERTIES` is read
 **Related:** `software-docs/BREAKING_CHANGES.md`, branch `vsi-timestamps`,
-*Volume stores time in seconds* — the T dimension was converted away from this
+*`vsi::Volume` stores time in seconds* — the T dimension was converted away from this
 same pattern; raised in review of #79
 (https://github.com/Booritas/slideio/pull/79#discussion_r4053580362)
 **Status:** Open. **Latent, not live**: every VSI file in the corpus states

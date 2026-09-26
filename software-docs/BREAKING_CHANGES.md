@@ -28,6 +28,37 @@ channel storage width -- callers wanting that should use
 anyway. A caller that treated a non-zero result as always meaningful must now
 handle 0.
 
+### `vsi::Volume` stores time in seconds
+
+**Module:** `slideio-vsi` (exported: `vsi::Volume`)
+**Files:** `src/slideio/drivers/vsi/volume.hpp`/`.cpp`,
+`src/slideio/drivers/vsi/vsifile.cpp`
+
+A raw value and the unit it was recorded in used to arrive through separate
+setters, and the getters did the conversion. They now arrive together and are
+converted on the way in, so everything a `Volume` holds is already in seconds:
+
+| Removed | Replaced by |
+|---|---|
+| `setTResolution(double)` + `setTResolutionUnit(const std::string&)` | `setTResolution(double raw, const std::string& unit)` |
+| `setPlaneTimestamps(std::vector<double>)` + `setPlaneTimestampUnit(const std::string&)` | `setPlaneTimestamps(const std::vector<double>& raw, const std::string& unit)` |
+
+Two behaviour changes come with it. A unit that cannot be parsed now stores
+**nothing** rather than a raw number the getter would scale later, so a non-zero
+`getPlaneTimestampCount()` guarantees every value in the list is in seconds —
+previously the list could be full of numbers in an unknown unit. And
+`getPlaneTimestampByIndex()` no longer falls back to a scale of 1.0 when the
+unit is unreadable; that fallback returned milliseconds labelled as seconds.
+
+`Volume` is exported and its data members changed, so out-of-tree code that
+constructs, copies or derives from it must be rebuilt, not merely recompiled
+against the new header.
+
+Note what this does **not** cover: X, Y and Z resolution are still scaled by a
+hardcoded `1e-6` and ignore the unit the file states beside the value. That is
+recorded as [`TECH_DEBT.md` §27](TECH_DEBT.md#27-vsi-scales-x-y-and-z-resolution-by-a-hardcoded-1e-6-and-ignores-the-unit-the-file-states),
+not fixed here.
+
 ---
 
 ## v2.10.0
