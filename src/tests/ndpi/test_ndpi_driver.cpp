@@ -3,6 +3,7 @@
 #include <thread>
 #include <gtest/gtest.h>
 #include "slideio/drivers/ndpi/ndpitifftools.hpp"
+#include "slideio/drivers/ndpi/ndpilibtiff.hpp"
 #include "tests/testlib/testtools.hpp"
 #include <string>
 #include <opencv2/imgproc.hpp>
@@ -774,4 +775,57 @@ TEST(NDPIImageDriver, colorProfileEndToEndThroughRealDriverPath)
     EXPECT_EQ(profileBytes, profile.getData());
     EXPECT_EQ(slideio::ColorProfileSource::Embedded, profile.getSource());
     EXPECT_TRUE(scene->getColorProfileInfo().present);
+}
+
+
+TEST_F(NDPIImageDriverTests, acquisitionTimeFromTiffDateTime)
+{
+    // Every directory of every NDPI in the corpus states the same DateTime,
+    // which is the scan's, and it is the tag Bio-Formats reads for the OME
+    // AcquisitionDate (NDPIReader, IFD.DATE_TIME).
+    std::string filePath = TestTools::getTestImagePath("hamamatsu", "openslide/CMU-1.ndpi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::NDPIImageDriver driver;
+    auto slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide);
+    auto scene = slide->getScene(0);
+    ASSERT_TRUE(scene);
+    // 2009:12:31 09:11:46
+    EXPECT_EQ(scene->getAcquisitionTime(), 1262250706LL);
+}
+
+TEST_F(NDPIImageDriverTests, acquisitionTimeOfASecondFile)
+{
+    std::string filePath = TestTools::getTestImagePath("hamamatsu", "2017-02-27 15.29.08.ndpi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::NDPIImageDriver driver;
+    auto slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide);
+    auto scene = slide->getScene(0);
+    ASSERT_TRUE(scene);
+    // 2017:02:27 15:29:26 -- eighteen seconds after the time in the file name,
+    // which is when the scan was started rather than written.
+    EXPECT_EQ(scene->getAcquisitionTime(), 1488209366LL);
+}
+
+TEST_F(NDPIImageDriverTests, noPlaneTimestampsOrSignificantBits)
+{
+    // NDPI states one DateTime for the whole file and the driver models one
+    // plane, so there is nothing a per-plane timestamp could distinguish.
+    // TIFF has no tag for significant bits either: BitsPerSample is the storage
+    // width, which getChannelDataType() already reports.
+    std::string filePath = TestTools::getTestImagePath("hamamatsu", "openslide/CMU-1.ndpi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::NDPIImageDriver driver;
+    auto slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide);
+    auto scene = slide->getScene(0);
+    ASSERT_TRUE(scene);
+    ASSERT_EQ(scene->getNumZSlices(), 1);
+    ASSERT_EQ(scene->getNumTFrames(), 1);
+    EXPECT_FALSE(scene->hasPlaneTimestamps());
+    EXPECT_DOUBLE_EQ(scene->getPlaneTimestamp(0, 0, 0), 0.);
+    for (int channel = 0; channel < scene->getNumChannels(); ++channel) {
+        EXPECT_EQ(scene->getChannelSignificantBits(channel), 0) << "channel " << channel;
+    }
 }

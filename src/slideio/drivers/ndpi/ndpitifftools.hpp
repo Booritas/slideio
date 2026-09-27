@@ -10,6 +10,7 @@
 #include <opencv2/core.hpp>
 #include <string>
 #include <vector>
+#include <optional>
 
 namespace libtiff
 {
@@ -68,6 +69,11 @@ namespace slideio
         bool auxImage = false;
         /**@brief raw ICC profile bytes from TIFFTAG_ICCPROFILE (34675).*/
         std::vector<uint8_t> iccProfile;
+        /**@brief TIFFTAG_DATETIME (306), "YYYY:MM:DD HH:MM:SS", empty if unstated.
+         *
+         * Every directory of an NDPI states the scan's time, and every one of
+         * them states the same value.*/
+        std::string dateTime;
 
         Type getType() const {
             if(tiled) {
@@ -97,6 +103,15 @@ namespace slideio
         static void readMCUTile(FILE* file, const NDPITiffDirectory& dir, int tile, cv::OutputArray output);
         static void jpeglibDecodeTile(const uint8_t* jpg_buffer, size_t jpg_size, const cv::Size& tileSize, cv::OutputArray output);
         static void scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, int64_t dirOffset, slideio::NDPITiffDirectory& dir);
+        /**@brief A TIFF DateTime (306) as seconds since 1970-01-01T00:00:00Z,
+         * or nullopt where it cannot be read.
+         *
+         * TIFF spells it "YYYY:MM:DD HH:MM:SS" -- colons in the date, a space
+         * before the time -- and names no timezone, so it is read as UTC for the
+         * same reason every other driver here does: assuming the reader's zone
+         * would make one file yield different instants on different machines.
+         * Static and public so the spelling can be tested without a file.*/
+        static std::optional<int64_t> tiffDateTimeToEpochSeconds(const std::string& text);
         static void updateJpegXRCompressedDirectoryMedatata(libtiff::TIFF* tiff, NDPITiffDirectory& dir);
         static void scanTiffDir(libtiff::TIFF* tiff, int dirIndex, int64_t dirOffset, slideio::NDPITiffDirectory& dir);
         static void readNotRGBStripedDir(libtiff::TIFF* tiff, const NDPITiffDirectory& dir, cv::_OutputArray output);

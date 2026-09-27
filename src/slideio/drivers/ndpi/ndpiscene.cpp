@@ -131,6 +131,18 @@ void NDPIScene::init(const std::string& name, int sceneIndex, const std::string&
     // an aux (macro/map) scene -- so every scene reports its own directory's
     // profile, never a fixed directory 0.
     m_colorProfile = ColorProfile(dir.iccProfile);
+    // Every directory of the file states the same DateTime, so this scene's
+    // own is as good as any and needs no search. NDPI states no per-plane time
+    // and the driver models one plane, so hasPlaneTimestamps() stays false.
+    if (const auto acquired = NDPITiffTools::tiffDateTimeToEpochSeconds(dir.dateTime)) {
+        m_acquisitionTime = *acquired;
+    }
+    else if (!dir.dateTime.empty()) {
+        // Stated but unreadable is not the same as absent, and both report 0.
+        // Saying so is what OTScene and DCMFile do with theirs.
+        SLIDEIO_LOG(WARNING) << "NDPIImageDriver: unreadable DateTime '" << dir.dateTime
+            << "' in " << m_pfile->getFilePath();
+    }
 
     m_rawMetadata = directoryToJson(dir).dump(2);
     m_metadataFormat = MetadataFormat::JSON;

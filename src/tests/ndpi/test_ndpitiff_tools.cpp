@@ -513,3 +513,51 @@ TEST_F(NDPITiffToolsTests, scanTiffDirTagsClearsTheProfileWhenTheTagIsAbsent)
 
     EXPECT_TRUE(dir.iccProfile.empty());
 }
+
+TEST(NDPITiffTools, tiffDateTimeToEpochSeconds)
+{
+    // TIFF spells DateTime (306) "YYYY:MM:DD HH:MM:SS", colons in the date and
+    // a space before the time -- neither of which ISO 8601 accepts.
+    ASSERT_TRUE(slideio::NDPITiffTools::tiffDateTimeToEpochSeconds("2009:12:31 09:11:46").has_value());
+    EXPECT_EQ(*slideio::NDPITiffTools::tiffDateTimeToEpochSeconds("2009:12:31 09:11:46"), 1262250706LL);
+    EXPECT_EQ(*slideio::NDPITiffTools::tiffDateTimeToEpochSeconds("2017:02:27 15:29:26"), 1488209366LL);
+    EXPECT_EQ(*slideio::NDPITiffTools::tiffDateTimeToEpochSeconds("2014:04:30 14:51:30"), 1398869490LL);
+}
+
+TEST(NDPITiffTools, tiffDateTimeToEpochSecondsRejectsWhatItCannotRead)
+{
+    EXPECT_FALSE(slideio::NDPITiffTools::tiffDateTimeToEpochSeconds("").has_value());
+    EXPECT_FALSE(slideio::NDPITiffTools::tiffDateTimeToEpochSeconds("2009:12:31").has_value());
+    EXPECT_FALSE(slideio::NDPITiffTools::tiffDateTimeToEpochSeconds("yesterday").has_value());
+    EXPECT_FALSE(slideio::NDPITiffTools::tiffDateTimeToEpochSeconds("2009:13:31 09:11:46").has_value());
+    EXPECT_FALSE(slideio::NDPITiffTools::tiffDateTimeToEpochSeconds("2009:12:32 09:11:46").has_value());
+    EXPECT_FALSE(slideio::NDPITiffTools::tiffDateTimeToEpochSeconds("2009:12:31 25:11:46").has_value());
+    // A blank DateTime is what a TIFF writer leaves behind when it has nothing
+    // to say, and is not a date.
+    EXPECT_FALSE(slideio::NDPITiffTools::tiffDateTimeToEpochSeconds("    :  :      :  :  ").has_value());
+}
+
+TEST_F(NDPITiffToolsTests, scanTiffDirTagsClearsTheDateTimeWhenTheTagIsAbsent)
+{
+    // NDPITiffDirectory is a plain value type callers may rescan into, so a
+    // field left alone on a miss keeps the previous directory's value. A stale
+    // DateTime would have NDPIScene report an acquisition time the second file
+    // never stated. Same invariant as the ICC profile above.
+    std::string filePath = TestTools::getTestImagePath("hamamatsu", "openslide/CMU-1.ndpi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+
+    libtiff::TIFF* datedTiff = slideio::NDPITiffTools::openTiffFile(filePath);
+    ASSERT_TRUE(datedTiff != nullptr);
+    slideio::NDPITiffDirectory dir;
+    slideio::NDPITiffTools::scanTiffDirTags(datedTiff, 0, 0, dir);
+    slideio::NDPITiffTools::closeTiffFile(datedTiff);
+    ASSERT_FALSE(dir.dateTime.empty());
+
+    slideio::TempFile tempTiff("ndpi");
+    slideio_test::writeSyntheticIccTiff(tempTiff.getPath().string(), {});
+    libtiff::TIFF* undatedTiff = slideio::NDPITiffTools::openTiffFile(tempTiff.getPath().string());
+    ASSERT_TRUE(undatedTiff != nullptr);
+    slideio::NDPITiffTools::scanTiffDirTags(undatedTiff, 0, 0, dir);
+    slideio::NDPITiffTools::closeTiffFile(undatedTiff);
+    EXPECT_TRUE(dir.dateTime.empty()) << "stale DateTime survived: " << dir.dateTime;
+}

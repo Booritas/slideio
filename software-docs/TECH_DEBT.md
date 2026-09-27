@@ -1030,6 +1030,24 @@ origin, as Bio-Formats does (`ZeissCZIReader`:
 preview of `jxr-16bit-4chnls.czi` is exactly that, an attachment whose own
 metadata the driver does not parse.
 
+**NDPI states neither, and that is a finding rather than a gap.** It was
+surveyed on this entry's account and is not on the list above because the format
+has nothing to read, not because nobody looked:
+
+- TIFF has no tag for significant bits at all. BitsPerSample is the storage
+  width `getChannelDataType()` already reports, and every NDPI in the corpus is
+  8 bits per sample with SampleFormat unset. Bio-Formats reads nothing further.
+- Every directory of every corpus NDPI states the same TIFFTAG_DATETIME, and
+  `NDPIScene` models one plane -- `getNumZSlices()` and `getNumTFrames()` are
+  both 1, and a read of any other index throws. One plane and one time leaves a
+  per-plane timestamp nothing to distinguish.
+
+`NDPIScene::getAcquisitionTime()` reads that DateTime, which is the part of the
+feature the format does support, and
+`NDPIImageDriverTests.noPlaneTimestampsOrSignificantBits` pins the other two at
+0 and false so the decision is not quietly reversed by someone wiring
+BitsPerSample in.
+
 **What ZVI needed, and why it is no longer here.** Its tag was enumerated in
 `zvitags.hpp` and appeared in no corpus file, so the *encoding* was unknown --
 `int32`, a `double` serial date, a string were all plausible and each converts to

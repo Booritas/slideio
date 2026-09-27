@@ -82,6 +82,7 @@ namespace slideio
             return m_sceneName;
         }
         slideio::DataType getChannelDataType(int channel) const override;
+        int64_t getAcquisitionTime() const override { return m_acquisitionTime; }
         Resolution getResolution() const override;
         double getMagnification() const override;
         Compression getCompression() const override;
@@ -115,6 +116,9 @@ namespace slideio
         std::string m_sceneName;
         cv::Rect m_rect;
         int m_sceneIndex;
+        // TIFFTAG_DATETIME of this scene's base directory, in seconds since the
+        // Unix epoch; 0 where the file states none.
+        int64_t m_acquisitionTime = 0;
 		std::string m_driverId;
         ColorProfile m_colorProfile;
     };

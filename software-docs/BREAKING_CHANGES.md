@@ -7,6 +7,40 @@ by branch.
 
 ---
 
+## ndpi-acquisition-time
+
+### `NDPIScene` reports the scan's acquisition time
+
+**Module:** `slideio-ndpi` (exported: `NDPIScene`, `NDPITiffTools`,
+`NDPITiffDirectory`)
+**Files:** `src/slideio/drivers/ndpi/ndpiscene.hpp`/`.cpp`,
+`src/slideio/drivers/ndpi/ndpitifftools.hpp`/`.cpp`
+
+`NDPIScene` now overrides `getAcquisitionTime()`, reading TIFFTAG_DATETIME
+(306) from its own base directory. That is the tag Bio-Formats reads for the
+OME AcquisitionDate (`NDPIReader`, `IFD.DATE_TIME`). A file stating none
+reports 0, so nothing that worked stops working. `NDPIScene` and
+`NDPITiffDirectory` gained data members, so out-of-tree code deriving from or
+embedding either must be rebuilt; `NDPITiffTools` gained the static
+`tiffDateTimeToEpochSeconds()`.
+
+**`getChannelSignificantBits()` is deliberately not implemented.** TIFF has no
+tag for it: BitsPerSample is the storage width, which `getChannelDataType()`
+already reports, and `CVScene` documents 0 as meaning "unknown" precisely so a
+driver that does not know cannot be mistaken for one reporting that every
+stored bit is significant. Every NDPI in the corpus is 8 bits per sample with
+no SampleFormat, and Bio-Formats reads nothing further either.
+
+**`getPlaneTimestamp()` is deliberately not implemented.** Every directory of
+an NDPI states the same DateTime -- the scan's -- and the driver models one
+plane per scene (`getNumZSlices()` and `getNumTFrames()` are both 1, and a read
+of any other index throws). With one plane and one time there is nothing a
+per-plane timestamp could distinguish, and `hasPlaneTimestamps()` returning
+true with a constant 0 would suggest the file separates planes in time when it
+does not.
+
+---
+
 ## dcm-plane-metadata
 
 ### `DCMScene` and `WSIScene` report significant bits, acquisition and plane times

@@ -32,10 +32,10 @@ programs under `src/single_tests/` have no test cases, so they show `--`.
 
 | | Count | Size |
 |---|---:|---:|
-| Images referenced by tests | 242 | |
-| Present on this machine | 237 | **103.3 GB** |
+| Images referenced by tests | 243 | |
+| Present on this machine | 238 | **103.3 GB** |
 | Referenced but absent | 5 | -- |
-| Static references in test code | 648 | |
+| Static references in test code | 700 | |
 | References built at run time | 37 | |
 
 ### By directory
@@ -44,7 +44,7 @@ programs under `src/single_tests/` have no test cases, so they show `--`.
 |---|---:|---:|---:|
 | `images/images/ometiff` | 69.9 GB | 40 | 0 |
 | `images/images/czi` | 8.9 GB | 31 | 1 |
-| `images/images/dcm` | 7.5 GB | 38 | 1 |
+| `images/images/dcm` | 7.5 GB | 39 | 1 |
 | `images/images/hamamatsu` | 5.8 GB | 26 | 0 |
 | `images/images/philips` | 3.3 GB | 2 | 0 |
 | `images/images/zvi` | 2.9 GB | 10 | 0 |
@@ -74,7 +74,7 @@ Sizes are what is on disk now. "Tests" counts the distinct tests naming the imag
 | `images/images/zvi/openslide/Zeiss-3-Mosaic.zvi` | 2.0 GB | main | 2 |
 | `images/images/hamamatsu/DM0014 - 2020-04-02 11.10.47.ndpi` | 2.0 GB | ndpi | 6 |
 | `images/images/pke/openmicroscopy/PKI_scans/LuCa-7color_Scan1.qptiff` | 1.9 GB | pke | 17 |
-| `images/images/dcm/private/H01EBB50P-24777` *(dir)* | 1.3 GB | main | 11 |
+| `images/images/dcm/private/H01EBB50P-24777` *(dir)* | 1.3 GB | main | 12 |
 | `images/images/ometiff/Subresolutions/Leica-2.ome.tiff` | 1.2 GB | main, ometiff | 11 |
 | `images/images/czi/openslide/Zeiss-4-Mosaic.czi` | 1.1 GB | main | 1 |
 | `images/images/dcm/private/wsi/M01FBC14P-589_level-0.dcm` | 1.1 GB | main | 5 |
@@ -92,21 +92,21 @@ Sizes are what is on disk now. "Tests" counts the distinct tests naming the imag
 | `images/images/zvi/mouse/20140207_mouse_2cell_H2AUb_HA_DAPI_inj_002.zvi` | 323.1 MB | main | 1 |
 | `images/images/philips/Philips-4.tiff` | 277.5 MB | phtiff | 2 |
 | `images/images/ometiff/Subresolutions/retina_large.ome.tiff` | 214.8 MB | main, ometiff | 8 |
-| `images/images/hamamatsu/openslide/CMU-1.ndpi` | 188.9 MB | ndpi, ndpi_memory | 8 |
-| `images/images/czi/jxr-16bit-4chnls.czi` | 174.2 MB | converter, main | 3 |
+| `images/images/hamamatsu/openslide/CMU-1.ndpi` | 188.9 MB | ndpi, ndpi_memory | 11 |
+| `images/images/czi/jxr-16bit-4chnls.czi` | 174.2 MB | converter, main | 7 |
 | `images/images/hamamatsu/openslide/CMU-1_002.tif` | 137.4 MB | ndpi | 2 |
 | `images/images/ometiff/00001_01.ome.tiff` | 126.1 MB | phtiff | 2 |
-| `images/images/zvi/Zeiss-1-Stacked.zvi` | 107.7 MB | main | 9 |
+| `images/images/zvi/Zeiss-1-Stacked.zvi` | 107.7 MB | main | 12 |
 | `images/images/gdal/test.svs` | 99.3 MB | converter | 2 |
 | `images/images/svs/jp2k_3chnl_8bit.svs` | 98.9 MB | main | 1 |
 | `images/images/czi/jxr-rgb-5scenes.czi` | 88.8 MB | converter, main | 5 |
 | `images/images/czi/private/example_split.czi` | 87.7 MB | main | 1 |
-| `images/images/czi/zeiss.czi` | 87.7 MB | main | 2 |
+| `images/images/czi/zeiss.czi` | 87.7 MB | main | 3 |
 | `images/images/svs/JP2K-33003-1.svs` | 60.9 MB | main, transformer | 14 |
 | `images/images/czi/03_14_2019_DSGN0545_A_wb_1353_fov_1_633.czi` | 45.9 MB | main | 4 |
 | `images/images/gdal/multipage-ducks.tif` | 45.7 MB | main | 1 |
 | `images/images/gdal/Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg` | 39.1 MB | converter, main, transformer | 22 |
-| `images/images/czi/doughnut.czi` | 36.3 MB | converter | 1 |
+| `images/images/czi/doughnut.czi` | 36.3 MB | converter, main | 2 |
 | `images/images/gdal/img_2448x2448_3x16bit_SRC_RGB_ducks.raw` | 34.3 MB | main | 1 |
 | `images/images/ometiff/Tests/ULT-2020-111-014_1 (1, x=4375, y=39330, w=1153, h=743).tif` | 31.1 MB | ometiff | 1 |
 | `images/images/ometiff/Tests/ULT-2020-111-014_1 (1, x=28333, y=36086, w=1099, h=760).tif` | 30.3 MB | ometiff | 1 |
@@ -123,7 +123,7 @@ Sizes are what is on disk now. "Tests" counts the distinct tests naming the imag
 | `images/images/gdal/img_2448x2448_3x8bit_SRC_RGB_ducks.raw` | 17.1 MB | main | 1 |
 | `images/images/ometiff/Tests/Leica-1.ome-page_1.tif` | 16.6 MB | ometiff | 2 |
 | `images/images/czi/jxr-16bit-4chnls.preview.tiff` | 14.7 MB | main | 1 |
-| `images/images/hamamatsu/2017-02-27 15.29.08.ndpi` | 14.6 MB | ndpi | 8 |
+| `images/images/hamamatsu/2017-02-27 15.29.08.ndpi` | 14.6 MB | ndpi | 9 |
 | `images/images/dcm/benigns_01/patient0186/0186.LEFT_MLO.frames/frame0.tif` | 13.3 MB | main | 3 |
 | `images/images/czi/08_18_2018_enc_1001_633.czi` | 11.7 MB | converter, main, transformer | 4 |
 | `images/images/vsi/Zenodo/Q6VM49JF/Figure-1-ultrasound-raw-data/SPECTRUM_#201_2016-06-14_Jiangtao Liu/1286FL9057GDF8RGDX257R2GLHZ.vsi` | 11.6 MB | vsi | 6 |
@@ -131,8 +131,8 @@ Sizes are what is on disk now. "Tests" counts the distinct tests naming the imag
 | `images/images/pke/test-images/LuCa-7color_Scan1.overv.png` | 11.0 MB | pke | 1 |
 | `images/images/dcm/series` *(dir)* | 10.3 MB | main | 2 |
 | `images/images/gdal/img_2448x2448_1x16bit_SRC_RGB_ducks.tif` | 9.8 MB | main | 1 |
-| `images/images/zvi/Zeiss-1-Merged.zvi` | 9.7 MB | converter, main | 16 |
-| `images/images/dcm/series/series_1` *(dir)* | 8.0 MB | main | 2 |
+| `images/images/zvi/Zeiss-1-Merged.zvi` | 9.7 MB | converter, main | 23 |
+| `images/images/dcm/series/series_1` *(dir)* | 8.0 MB | main | 4 |
 | `images/images/dcm/benigns_01/patient0186/0186.LEFT_MLO.dcm` | 7.5 MB | main | 3 |
 | `images/images/dcm/benigns_01/patient0186/0186.LEFT_CC.dcm` | 7.5 MB | main | 2 |
 | `images/images/ometiff/SPIM-ModuloAlongZ.ome.tiff` | 6.9 MB | main | 1 |
@@ -140,7 +140,7 @@ Sizes are what is on disk now. "Tests" counts the distinct tests naming the imag
 | `images/images/czi/jxr-rgb-5scenes.preview.tiff` | 5.8 MB | main | 1 |
 | `images/images/gdal/img_2448x2448_1x8bit_SRC_GRAY_ducks.bmp` | 5.7 MB | main | 1 |
 | `images/images/gdal/img_2448x2448_1x8bit_SRC_GRAY_ducks.raw` | 5.7 MB | main | 1 |
-| `images/images/czi/pJP31mCherry.czi` | 5.3 MB | converter, main | 7 |
+| `images/images/czi/pJP31mCherry.czi` | 5.3 MB | converter, main | 9 |
 | `images/images/unicode/тест/pJP31mCherry.czi` | 5.3 MB | main | 1 |
 | `images/images/vsi/test-output/vsi-ets-test-jpg2k_tile_5.tif` | 5.3 MB | vsi | 1 |
 | `images/images/ometiff/Tests/Leica-1.ome.tiff - Series 1 (1, x=24000, y=18000, w=2000, h=1000).png` | 5.0 MB | ometiff | 2 |
@@ -148,27 +148,27 @@ Sizes are what is on disk now. "Tests" counts the distinct tests naming the imag
 | `images/images/pke/test-images/HandEcompressed_Scan1 (1, x=11190, y=8580, w=1622, h=963).png` | 4.2 MB | pke | 1 |
 | `images/images/vsi/private/d/STS_G6889_11_1_pHH3.vsi` | 4.1 MB | vsi | 5 |
 | `images/images/vsi/test-output/vsi-ets-test-jpg2k.vsi.ome.tif` | 3.9 MB | vsi | 3 |
-| `images/images/gdal/img_2448x2448_3x8bit_SRC_RGB_ducks.png` | 3.6 MB | converter, main, transformer | 26 |
-| `images/images/czi/T_3_CH_2.czi` | 3.6 MB | main | 1 |
+| `images/images/gdal/img_2448x2448_3x8bit_SRC_RGB_ducks.png` | 3.6 MB | converter, main, transformer | 27 |
+| `images/images/czi/T_3_CH_2.czi` | 3.6 MB | main | 3 |
 | `images/images/hamamatsu/test3-DAPI-2-(387).ndpi` | 3.4 MB | main | 1 |
 | `images/images/zvi/Zeiss-1-Merged-ch0.tif` | 3.2 MB | main | 1 |
 | `images/images/zvi/Zeiss-1-Merged-ch1.tif` | 3.2 MB | main | 1 |
 | `images/images/hamamatsu/test3-TRITC 2 (560).ndpi` | 2.9 MB | ndpi | 1 |
 | `images/images/unicode/тест/test3-TRITC 2 (560).ndpi` | 2.9 MB | ndpi | 1 |
 | `images/images/unicode/тест/TOMMAlexaFluor647.zvi` | 2.8 MB | main | 1 |
-| `images/images/zvi/TOMMAlexaFluor647.zvi` | 2.8 MB | main | 1 |
+| `images/images/zvi/TOMMAlexaFluor647.zvi` | 2.8 MB | main | 2 |
 | `images/images/zvi/Zeiss-1-Stacked/zvi_slice_6_channel_1` | 2.8 MB | main | 3 |
 | `images/images/zvi/Zeiss-1-Stacked/zvi_slice_7_channel_2` | 2.8 MB | main | 1 |
 | `images/images/ometiff/tubhiswt-4D/tubhiswt_C0_TP0.ome.tif` | 2.7 MB | ometiff | 4 |
 | `images/images/vsi/private/3d/01072022_35_2_z.vsi` | 2.7 MB | vsi | 1 |
 | `images/images/czi/test/example_split (1).czi - ScanRegion0 (1, x=41169, y=4850, w=1000, h=1000).png` | 2.6 MB | main, phtiff | 2 |
 | `images/images/czi/test/example_split (1).czi - ScanRegion0 (1, x=17583, y=3676, w=1000, h=1000).png` | 2.6 MB | main, phtiff | 2 |
-| `images/images/ometiff/4D-Series/4D-series.ome.tiff` | 2.5 MB | ometiff | 1 |
+| `images/images/ometiff/4D-Series/4D-series.ome.tiff` | 2.5 MB | ometiff | 3 |
 | `images/images/czi/test/example_split (1).czi - ScanRegion0 (1, x=2668, y=1376, w=1000, h=1000).png` | 2.4 MB | main, phtiff | 2 |
 | `images/images/vsi/private/3d/test-images/01072022_35_2_z.vsi - 60x_BF_Z_01 (1, x=45625, y=42302, w=984, h=1015).png` | 2.1 MB | vsi | 1 |
 | `images/images/vsi/vs200-vsi-share/Image_B309.vsi` | 2.1 MB | vsi | 1 |
 | `images/images/vsi/Zenodo/Abdominal/G1M16_ABD_HE_B6.vsi` | 2.0 MB | vsi | 12 |
-| `images/images/ometiff/LAMBDA-ModuloAlongZ-ModuloAlongT.ome.tiff` | 2.0 MB | main | -- |
+| `images/images/ometiff/LAMBDA-ModuloAlongZ-ModuloAlongT.ome.tiff` | 2.0 MB | main, ometiff | 3 |
 | `images/images/czi/jxr-rgb-5scenes.label.tiff` | 2.0 MB | main | 1 |
 | `images/images/jxr/seagull.bmp` | 1.9 MB | main | 4 |
 | `images/images/svs/CMU-1-Small-Region.svs` | 1.8 MB | main, phtiff, transformer | 24 |
@@ -177,7 +177,7 @@ Sizes are what is on disk now. "Tests" counts the distinct tests naming the imag
 | `images/images/gdal/img_1024x600_3x8bit_RGB_color_bars_CMYKWRGB.bmp` | 1.8 MB | main | 1 |
 | `images/images/czi/test/zeiss-block.png` | 1.6 MB | main | 1 |
 | `images/images/jpeg/p2YCpvg.png` | 1.6 MB | main | 1 |
-| `images/images/vsi/OS-1/OS-1.vsi` | 1.3 MB | vsi | 2 |
+| `images/images/vsi/OS-1/OS-1.vsi` | 1.3 MB | vsi | 5 |
 | `images/images/svs/CMU-1-Small-Region-page-1.tif` | 1.3 MB | main, phtiff | 5 |
 | `images/images/hamamatsu/test3-TRITC 2 (560)-roi.png` | 1.2 MB | ndpi | 1 |
 | `images/images/gdal/img_2448x2448_1x8bit_SRC_GRAY_ducks.png` | 1.1 MB | converter, main | 4 |
@@ -188,7 +188,7 @@ Sizes are what is on disk now. "Tests" counts the distinct tests naming the imag
 | `images/images/dcm/barre.dev/MultiFrame/MR-MONO2-8-16x-heart` | 1.0 MB | main | 1 |
 | `images/images/czi/corrupted.czi` | 1014.0 KB | main | 1 |
 | `images/images/dcm/barre.dev/US-RGB-8-epicard` | 901.0 KB | main | 1 |
-| `images/images/dcm/barre.dev/XA-MONO2-8-12x-catheter` | 899.5 KB | main | 2 |
+| `images/images/dcm/barre.dev/XA-MONO2-8-12x-catheter` | 899.5 KB | main | 3 |
 | `images/images/scn/Leica-Fluorescence-1/x2500-y2338-600x500.bmp` | 879.0 KB | main | 2 |
 | `images/images/czi/16bit_CH_1_doughnut_crop.czi` | 875.9 KB | main | 1 |
 | `images/images/ometiff/Tests/page_24.tif` | 832.5 KB | ometiff | 1 |
@@ -211,13 +211,14 @@ Sizes are what is on disk now. "Tests" counts the distinct tests naming the imag
 | `images/images/ometiff/Tests/retina_large.ome-page32-channel-1.tif` | 551.1 KB | ometiff | 2 |
 | `images/images/svs/CMU-1-Small-Region-page-2.bmp` | 526.4 KB | main | 1 |
 | `images/images/jpeg/p2YCpvg.jpeg` | 515.5 KB | main | 1 |
-| `images/images/dcm/barre.dev/CT-MONO2-12-lomb-an2` | 513.2 KB | main | 1 |
+| `images/images/dcm/series/series_1/IM-0001-0001.dcm` | 514.2 KB | main | 1 |
+| `images/images/dcm/barre.dev/CT-MONO2-12-lomb-an2` | 513.2 KB | main | 2 |
 | `images/images/unicode/тест/CT-MONO2-12-lomb-an2` | 513.2 KB | main | 1 |
 | `images/images/dcm/openmicroscopy.org/CT1_J2KI.tiff` | 512.5 KB | main | 2 |
 | `images/images/dcm/series/series_1/tests/IMG-0001-00005.tiff` | 512.5 KB | main | 1 |
 | `images/images/hamamatsu/2017-02-27 15.29.08-2.png` | 496.2 KB | ndpi | 1 |
 | `images/images/scn/Leica-Fluorescence-1/dir_0_tile_1-7.png` | 472.8 KB | main | 1 |
-| `images/images/dcm/barre.dev/US-PAL-8-10x-echo` | 472.3 KB | main | 6 |
+| `images/images/dcm/barre.dev/US-PAL-8-10x-echo` | 472.3 KB | main | 7 |
 | `images/images/scn/Leica-Fluorescence-1/tile.png` | 448.6 KB | main | 1 |
 | `images/images/scn/Leica-Fluorescence-1/thumbnail.png` | 424.2 KB | main | 1 |
 | `images/images/hamamatsu/DM0014 - 2020-04-02 10.25.21-roi-resampled-tiled.png` | 410.3 KB | ndpi | 1 |
@@ -262,12 +263,12 @@ Sizes are what is on disk now. "Tests" counts the distinct tests naming the imag
 | `images/images/dcm/spine_mr/DICOMDIR` | 143.3 KB | main | 3 |
 | `images/images/jpeg/lena_256.png` | 137.8 KB | main | 3 |
 | `images/images/ometiff/Tests/Iron-Plate (1, x=144, y=146, w=258, h=175).tif` | 135.4 KB | ometiff | 1 |
-| `images/images/vsi/test-output/Image_B309_Overview.png` | 134.6 KB | vsi | 1 |
+| `images/images/vsi/test-output/Image_B309_Overview.png` | 134.6 KB | vsi | 2 |
 | `images/images/dcm/barre.dev/MR-MONO2-12-angio-an1.frames/frame0.tif` | 128.2 KB | main | 1 |
 | `images/images/svs/tests/JP2K-33003-1.png` | 127.7 KB | main | 1 |
 | `images/images/jxr/tile16.raw` | 110.1 KB | main | 1 |
 | `images/images/dcm/private/wsi/M01FBC14P-589_level-0.tile.png` | 102.8 KB | main | 1 |
-| `images/images/vsi/vsi-multifile/vsi-ets-test-jpg2k.vsi` | 101.2 KB | vsi | 4 |
+| `images/images/vsi/vsi-multifile/vsi-ets-test-jpg2k.vsi` | 101.2 KB | vsi | 12 |
 | `images/images/dcm/barre.dev/MR-MONO2-12-angio-an1` | 96.6 KB | main | 1 |
 | `images/images/dcm/barre.dev/CT-MONO2-12-lomb-an2.frames/frame0.png` | 93.4 KB | main | 1 |
 | `images/images/hamamatsu/openslide/CMU-1-1.png` | 90.6 KB | ndpi | 2 |
@@ -295,7 +296,7 @@ Sizes are what is on disk now. "Tests" counts the distinct tests naming the imag
 | `images/images/dcm/openmicroscopy.org/CT1_J2KI` | 13.8 KB | main | 2 |
 | `images/images/vsi/Zenodo/Abdominal/G1M16_ABD_HE_B6.aux.png` | 11.0 KB | vsi | 1 |
 | `images/images/scn/z-stack.xml` | 8.0 KB | main | 1 |
-| `images/images/gdal/colors.png` | 6.3 KB | main, phtiff, transformer | 17 |
+| `images/images/gdal/colors.png` | 6.3 KB | main, phtiff, transformer | 19 |
 | `images/images/jxr/tile16.jxr` | 5.5 KB | main | 1 |
 | `images/images/ometiff/Multifile/multifile-Z1.ome.tiff` | 2.7 KB | ometiff | 5 |
 | `images/images/gdal/img_1024x600_3x8bit_RGB_color_bars_CMYKWRGB.png` | 2.7 KB | main | 3 |
@@ -332,7 +333,7 @@ identified by reading the source. They are not counted in the tables above.
 | `src/tests/main/test_scn_driver.cpp` | 48 | `SCNImageDriver.slideRawMetadata` | `"scn", imageName` |
 | `src/tests/main/test_svs_driver.cpp` | 360 | `SVSImageDriver.metadataCompression` | `"svs",imageName` |
 | `src/tests/main/test_svs_driver.cpp` | 378 | `SVSImageDriver.slideRawMetadata` | `"svs",imageName` |
-| `src/tests/main/test_zvi_driver.cpp` | 199 | `ZVIImageDriver.readBlock3Layers` | `"zvi", channelName` |
+| `src/tests/main/test_zvi_driver.cpp` | 202 | `ZVIImageDriver.readBlock3Layers` | `"zvi", channelName` |
 | `src/tests/phtiff/test_phtiff_driver.cpp` | 425 | `PhTiffImageDriverTests.canOpenFileByContent` | `"philips", fileName` |
 | `src/tests/phtiff/test_phtiff_driver.cpp` | 1076 | `PhTiffImageDriverTests.metadataOfTheTestFiles` | `"philips", fileName` |
 | `src/tests/phtiff/test_phtiff_driver.cpp` | 1133 | `PhTiffImageDriverTests.magnificationOfTheTestFiles` | `"philips", param.first` |

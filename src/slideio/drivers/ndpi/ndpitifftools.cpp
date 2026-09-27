@@ -14,6 +14,7 @@
 #include "slideio/core/tools/endian.hpp"
 
 
+#include <cmath>
 #include <codecvt>
 #include <opencv2/imgproc.hpp>
 #include <setjmp.h>
@@ -333,6 +334,28 @@ static slideio::DataType retrieveTiffDataType(libtiff::TIFF* tiff)
     return dataType;
 }
 
+std::optional<int64_t> slideio::NDPITiffTools::tiffDateTimeToEpochSeconds(const std::string& text)
+{
+    // "YYYY:MM:DD HH:MM:SS" is exactly twenty characters and TIFF fixes the
+    // length, so a writer with nothing to say leaves spaces behind rather than
+    // omitting the tag. Rebuilt into ISO 8601 rather than parsed again here:
+    // Tools::parseIso8601 already validates the calendar and the ranges.
+    if (text.size() < 19) {
+        return std::nullopt;
+    }
+    if (text[4] != ':' || text[7] != ':' || text[10] != ' '
+        || text[13] != ':' || text[16] != ':') {
+        return std::nullopt;
+    }
+    std::string iso = text.substr(0, 4) + "-" + text.substr(5, 2) + "-" + text.substr(8, 2)
+        + "T" + text.substr(11, 2) + ":" + text.substr(14, 2) + ":" + text.substr(17, 2) + "Z";
+    const auto epoch = Tools::parseIso8601(iso);
+    if (!epoch) {
+        return std::nullopt;
+    }
+    return static_cast<int64_t>(std::floor(*epoch));
+}
+
 void slideio::NDPITiffTools::scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, int64_t dirOffset,
                                              slideio::NDPITiffDirectory& dir)
 {
@@ -376,6 +399,18 @@ void slideio::NDPITiffTools::scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, 
     SLIDEIO_LOG(INFO) << "NDPITiffTools::scanTiffDirTags TIFFTAG_TILEWIDTH: " << tile_width;
     libtiff::TIFFGetField(tiff,TIFFTAG_TILELENGTH, &tile_height);
     SLIDEIO_LOG(INFO) << "NDPITiffTools::scanTiffDirTags TIFFTAG_TILELENGTH: " << tile_height;
+    char* dateTime(nullptr);
+    if (libtiff::TIFFGetField(tiff, TIFFTAG_DATETIME, &dateTime) && dateTime) {
+        dir.dateTime = dateTime;
+        SLIDEIO_LOG(INFO) << "NDPITiffTools::scanTiffDirTags TIFFTAG_DATETIME: " << dateTime;
+    }
+    else {
+        // Cleared rather than left alone: NDPITiffDirectory is a plain value
+        // type callers may rescan into, and a stale date would have the scene
+        // report an acquisition time the second directory never stated. Same
+        // reason iccProfile is cleared below.
+        dir.dateTime.clear();
+    }
     libtiff::TIFFGetField(tiff, TIFFTAG_IMAGEDESCRIPTION, &description);
     if(description) {
         SLIDEIO_LOG(INFO) << "NDPITiffTools::scanTiffDirTags TIFFTAG_IMAGEDESCRIPTION: " << description;
