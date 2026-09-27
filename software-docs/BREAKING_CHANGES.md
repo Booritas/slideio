@@ -7,6 +7,60 @@ by branch.
 
 ---
 
+## dcm-plane-metadata
+
+### `DCMScene` and `WSIScene` report significant bits, acquisition and plane times
+
+**Module:** `slideio-dcm` (exported: `DCMScene`, `WSIScene`, `DCMFile`)
+**Files:** `src/slideio/drivers/dcm/dcmscene.hpp`/`.cpp`,
+`src/slideio/drivers/dcm/wsiscene.hpp`/`.cpp`,
+`src/slideio/drivers/dcm/dcmfile.hpp`/`.cpp`
+
+`DCMScene` now overrides `getChannelSignificantBits(int)`,
+`hasPlaneTimestamps()`, `getPlaneTimestamp()` and `getAcquisitionTime()`;
+`WSIScene` overrides the first and the last. Significant bits come from
+BitsStored (0028,0101), which `DCMFile::init` read into a local and discarded.
+All three classes gained data members, so out-of-tree code deriving from them
+must be rebuilt. `DCMFile` gained `getBitsStored()`, `getAcquisitionTime()`,
+`getContentTime()` and the static `dicomDateTimeToEpochSeconds()`.
+
+**`getChannelSignificantBits()` deliberately differs from Bio-Formats**, as it
+does for ZVI. `DicomReader` sets `bitsPerPixel` from BitsAllocated (0028,0100),
+the storage width that `getChannelDataType()` already gives; slideio reports
+BitsStored. A 12-bit detector kept in 16-bit samples -- `series/series_1`,
+`CT-MONO2-12-lomb-an2`, the mammograms under `benigns_01` -- reads 16 in
+Bio-Formats and 12 here.
+
+**A palette image reports 0.** BitsStored is 8 in `US-PAL-8-10x-echo`, but it
+is the width of the index into the lookup table, whose entries are 16 bits and
+whose expansion the scene reports as three 16-bit channels. 8 would answer a
+question about a different number.
+
+**The plane time is ContentDate (0008,0023) with ContentTime (0008,0033); the
+origin is the acquisition time.** In a series of one file per slice, the
+acquisition time is commonly written once for the whole series --
+`series/series_1` states 15:44:52.000000 in all fifteen files -- while the
+content time is what moves from slice to slice, 15:44:52.570999, .603001 and so
+on. Bio-Formats also reports ContentDate/ContentTime as the OME AcquisitionDate
+for DICOM (`DicomReader.getTimestamp`), but flattens the two into one value; the
+split into origin plus offset is what `CVScene` asks for, and it is why the
+fifteen slices here read 0.571 to 1.009 rather than all reading the same
+instant.
+
+**Only a series of one file per plane reports plane timestamps.** A single
+multi-frame object states one ContentTime for all of its frames --
+`XA-MONO2-8-12x-catheter` holds twelve and states no ContentTime at all -- and
+one time repeated across twelve frames of a cine loop describes the object, not
+a plane. The same applies to a WSI pyramid, whose files are resolutions of one
+plane rather than planes.
+
+**Opening any DICOM object now reads six more tags.** AcquisitionDateTime,
+AcquisitionDate, AcquisitionTime, ContentDate, ContentTime and
+TimezoneOffsetFromUTC (0008,0201) are read in `DCMFile::init`, and a file
+stating none of them reports 0 and false, so nothing that worked stops working.
+
+---
+
 ## czi-plane-metadata
 
 ### `CZIScene` reports significant bits, plane timestamps and acquisition time

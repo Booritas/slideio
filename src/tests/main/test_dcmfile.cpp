@@ -444,3 +444,115 @@ TEST(DCMFile, readJ2K) {
 
     //TestTools::showRasters(testImage, frames[0]);
 }
+
+
+TEST(DCMFile, dicomDateTimeToEpochSeconds)
+{
+    // DA is YYYYMMDD and TM is HHMMSS.FFFFFF, but the corpus holds plenty of
+    // files written before that was settled: barre.dev states "1994.10.16" and
+    // "11:25:01", which DICOM's own predecessor allowed and readers still meet.
+    ASSERT_TRUE(DCMFile::dicomDateTimeToEpochSeconds("20050927", "154452.000000").has_value());
+    EXPECT_NEAR(*DCMFile::dicomDateTimeToEpochSeconds("20050927", "154452.000000"),
+                1127835892., 1e-6);
+    EXPECT_NEAR(*DCMFile::dicomDateTimeToEpochSeconds("20050927", "154452.570999"),
+                1127835892.570999, 1e-6);
+    EXPECT_NEAR(*DCMFile::dicomDateTimeToEpochSeconds("1996.12.02", "16:38:46.783000"),
+                849544726.783, 1e-6);
+    // A time may be truncated after the hour or the minute.
+    EXPECT_NEAR(*DCMFile::dicomDateTimeToEpochSeconds("20050927", "1544"),
+                1127835840., 1e-6);
+    EXPECT_NEAR(*DCMFile::dicomDateTimeToEpochSeconds("20050927", "15"),
+                1127833200., 1e-6);
+}
+
+TEST(DCMFile, dicomDateTimeToEpochSecondsRejectsWhatItCannotRead)
+{
+    EXPECT_FALSE(DCMFile::dicomDateTimeToEpochSeconds("", "154452").has_value());
+    EXPECT_FALSE(DCMFile::dicomDateTimeToEpochSeconds("20050927", "").has_value());
+    EXPECT_FALSE(DCMFile::dicomDateTimeToEpochSeconds("2005092", "154452").has_value());
+    EXPECT_FALSE(DCMFile::dicomDateTimeToEpochSeconds("2005-09-27", "154452").has_value());
+    EXPECT_FALSE(DCMFile::dicomDateTimeToEpochSeconds("20051327", "154452").has_value());
+    EXPECT_FALSE(DCMFile::dicomDateTimeToEpochSeconds("20050927", "254452").has_value());
+    EXPECT_FALSE(DCMFile::dicomDateTimeToEpochSeconds("20050927", "abcdef").has_value());
+}
+
+TEST(DCMFile, dicomDateTimeToEpochSecondsReadsACombinedDateTime)
+{
+    // AcquisitionDateTime (0008,002A) states both in one DT value, optionally
+    // with a "+ZZXX" offset that is not spelled the way ISO 8601 spells one.
+    ASSERT_TRUE(DCMFile::dicomDateTimeToEpochSeconds("20050927154452.570999", "").has_value());
+    EXPECT_NEAR(*DCMFile::dicomDateTimeToEpochSeconds("20050927154452.570999", ""),
+                1127835892.570999, 1e-6);
+    EXPECT_NEAR(*DCMFile::dicomDateTimeToEpochSeconds("20050927174452.570999+0200", ""),
+                1127835892.570999, 1e-6);
+    EXPECT_NEAR(*DCMFile::dicomDateTimeToEpochSeconds("20050927134452.570999-0200", ""),
+                1127835892.570999, 1e-6);
+}
+
+TEST(DCMFile, significantBitsAndTimesOfAMultiFileSeries)
+{
+    DCMImageDriver::initializeDCMTK();
+    std::string slidePath = TestTools::getTestImagePath("dcm", "series/series_1/IM-0001-0001.dcm");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
+    DCMFile file(slidePath);
+    file.init();
+    // BitsAllocated is 16, BitsStored 12.
+    EXPECT_EQ(file.getBitsStored(), 12);
+    EXPECT_EQ(file.getDataType(), DataType::DT_UInt16);
+    ASSERT_TRUE(file.getAcquisitionTime().has_value());
+    EXPECT_NEAR(*file.getAcquisitionTime(), 1127835892., 1e-6);
+    ASSERT_TRUE(file.getContentTime().has_value());
+    EXPECT_NEAR(*file.getContentTime(), 1127835892.570999, 1e-6);
+}
+
+TEST(DCMFile, dicomDateTimeToEpochSecondsAppliesTheInstanceZoneOffset)
+{
+    // A DA/TM pair cannot carry an offset of its own. TimezoneOffsetFromUTC
+    // (0008,0201) states one for every DA and TM in the instance, and without
+    // it such a value names a local time the file does not qualify.
+    ASSERT_TRUE(DCMFile::dicomDateTimeToEpochSeconds("20050927", "154452.570999",
+                                                     "+0200").has_value());
+    EXPECT_NEAR(*DCMFile::dicomDateTimeToEpochSeconds("20050927", "154452.570999", "+0200"),
+                1127828692.570999, 1e-6);
+    EXPECT_NEAR(*DCMFile::dicomDateTimeToEpochSeconds("20050927", "154452.570999", "-0500"),
+                1127853892.570999, 1e-6);
+    // An offset the value states itself wins over the instance's.
+    EXPECT_NEAR(*DCMFile::dicomDateTimeToEpochSeconds("20050927174452.570999+0200", "", "-0500"),
+                1127835892.570999, 1e-6);
+    // An unreadable instance offset is refused rather than ignored, for the
+    // same reason the value's own is.
+    EXPECT_FALSE(DCMFile::dicomDateTimeToEpochSeconds("20050927", "154452", "+2").has_value());
+}
+
+TEST(DCMFile, timeFromTagsFallsBackToTheSeparatePair)
+{
+    // The DT VR allows a date with no time at all, and vendors spell it in ways
+    // a reader may not follow. An enhanced object states the separate pair as
+    // well, so a DT that cannot be read is no reason to report no time.
+    ASSERT_TRUE(DCMFile::timeFromTags("20050927", "20050927", "154452.570999", "").has_value());
+    EXPECT_NEAR(*DCMFile::timeFromTags("20050927", "20050927", "154452.570999", ""),
+                1127835892.570999, 1e-6);
+    EXPECT_NEAR(*DCMFile::timeFromTags("not a date", "20050927", "154452.570999", ""),
+                1127835892.570999, 1e-6);
+    // A DT that does read is preferred: it is the more specific statement.
+    EXPECT_NEAR(*DCMFile::timeFromTags("20050927154452.570999", "20050927", "010101", ""),
+                1127835892.570999, 1e-6);
+    EXPECT_FALSE(DCMFile::timeFromTags("", "20050927", "", "").has_value());
+    EXPECT_FALSE(DCMFile::timeFromTags("", "", "", "").has_value());
+}
+
+TEST(DCMFile, timeFromTagsKeepsOneClockForBothHalves)
+{
+    // The origin comes from a DT that may state an offset; the plane time comes
+    // from a DA/TM pair that cannot. Reading the pair as UTC while the DT names
+    // +02:00 would put the two two hours apart and make a plane that follows
+    // its acquisition by 51 ms look like one that precedes it by nearly two
+    // hours -- which the scene would answer by dropping the acquisition time.
+    const auto acquired =
+        DCMFile::timeFromTags("20221213084022.948608+0200", "", "", "+0200");
+    const auto content = DCMFile::timeFromTags("", "20221213", "084023.000000", "+0200");
+    ASSERT_TRUE(acquired.has_value());
+    ASSERT_TRUE(content.has_value());
+    EXPECT_NEAR(*acquired, 1670913622.948608, 1e-6);
+    EXPECT_NEAR(*content - *acquired, 0.051392, 1e-6);
+}

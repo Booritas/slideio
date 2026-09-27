@@ -44,6 +44,8 @@ namespace slideio
         cv::Rect getRect() const override;
         int getNumChannels() const override;
         slideio::DataType getChannelDataType(int channel) const override;
+        int getChannelSignificantBits(int channelIndex) const override;
+        int64_t getAcquisitionTime() const override { return m_acquisitionTime; }
         Resolution getResolution() const override;
         double getMagnification() const override;
         Compression getCompression() const override;
@@ -80,6 +82,12 @@ namespace slideio
         int m_numChannels = 0;
         std::string m_filePath;
         DataType m_dataType = DataType::DT_Unknown;
+        // BitsStored of the pyramid's base file, 0 where it states none.
+        int m_significantBits = 0;
+        // Whole seconds of the base file's acquisition time. The levels are
+        // resolutions of one plane rather than planes, so there is no per-plane
+        // time and hasPlaneTimestamps() keeps the base class's false.
+        int64_t m_acquisitionTime = 0;
         Compression m_compression = Compression::Unknown;
         double m_magnification = 0;
         Resolution m_resolution = { 0, 0 };

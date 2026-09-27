@@ -7,6 +7,7 @@
 #include "slideio/core/slideio_enums.hpp"
 #include <string>
 #include <memory>
+#include <optional>
 #include <opencv2/core.hpp>
 
 #include "slideio/core/slideio_enums.hpp"
@@ -99,6 +100,66 @@ namespace slideio
             return m_compression;
         }
 
+        /**@brief BitsStored (0028,0101), 0 where the file states none.
+         *
+         * How many of the BitsAllocated bits carry data: a 12 bit detector kept in
+         * 16 bit samples states 12. Bio-Formats reports BitsAllocated instead
+         * (DicomReader, BITS_ALLOCATED -> bitsPerPixel), which is the storage
+         * width getChannelDataType() already gives.*/
+        int getBitsStored() const {
+            return m_bitsStored;
+        }
+
+        /**@brief AcquisitionDateTime (0008,002A), or AcquisitionDate (0008,0022)
+         * with AcquisitionTime (0008,0032), as seconds since the Unix epoch.
+         *
+         * When the acquisition of the object started, which is the origin
+         * CVScene::getPlaneTimestamp() measures from.*/
+        const std::optional<double>& getAcquisitionTime() const {
+            return m_acquisitionTime;
+        }
+
+        /**@brief ContentDate (0008,0023) with ContentTime (0008,0033), as seconds
+         * since the Unix epoch.
+         *
+         * When this object's pixel data was created, which for a series of one
+         * file per slice is the one value that differs from slice to slice --
+         * AcquisitionTime is commonly written once for the whole series. It is
+         * also what Bio-Formats reports as the OME AcquisitionDate for DICOM.*/
+        const std::optional<double>& getContentTime() const {
+            return m_contentTime;
+        }
+
+        /**@brief A DICOM DA plus TM, or a DT alone with an empty time, as
+         * seconds since 1970-01-01T00:00:00Z; nullopt if it cannot be read.
+         *
+         * Only a DT states an offset of its own. For everything else the
+         * instance states one in TimezoneOffsetFromUTC (0008,0201), which is
+         * what @p zoneOffset carries; where neither names one the value is read
+         * as UTC, because assuming the reader's zone would make one file yield
+         * different instants on different machines. Static and public so the
+         * formats can be tested directly -- the corpus holds both the current
+         * spelling and the dotted, colonned one DICOM's predecessor allowed.
+         * @param zoneOffset : "&ZZXX" or "&ZZ:XX", applied only where the value
+         * states no offset itself; empty means read as UTC.*/
+        static std::optional<double> dicomDateTimeToEpochSeconds(const std::string& date,
+                                                                const std::string& time,
+                                                                const std::string& zoneOffset = std::string());
+
+        /**@brief The time a DT tag and a DA/TM pair state between them, or
+         * nullopt where neither can be read.
+         *
+         * The DT is preferred where it reads -- it is the more specific
+         * statement -- but a DT the reader cannot follow, a date with no time
+         * among them, falls through to the pair rather than suppressing it: an
+         * enhanced object states both, and the pair is often the readable one.
+         * Static and public so the choice can be tested without a file that
+         * states an unreadable DT, which the corpus does not hold.*/
+        static std::optional<double> timeFromTags(const std::string& dateTime,
+                                                  const std::string& date,
+                                                  const std::string& time,
+                                                  const std::string& zoneOffset);
+
         const std::string& getModality() const {
             return m_modality;
         }
@@ -156,6 +217,7 @@ namespace slideio
         void extractPixelsWholeFileDecompression(std::vector<cv::Mat>& mats, int startFrame, int numFrames);
         std::shared_ptr<DicomImage> createImage(int firstSlice = 0, int numSlices = 1);
         void initPhotoInterpretaion();
+        void readTimes();
         void defineCompression();
         DcmDataset* getDataset() const;
         DcmDataset* getValidDataset() const;
@@ -185,6 +247,9 @@ namespace slideio
         Compression m_compression = Compression::Unknown;
         bool m_decompressWholeFile = false;
         int m_bitsAllocated = 0;
+        int m_bitsStored = 0;
+        std::optional<double> m_acquisitionTime;
+        std::optional<double> m_contentTime;
         std::string m_modality;
         bool m_WSISlide = false;
         int m_frames = 1;

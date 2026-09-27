@@ -1051,3 +1051,122 @@ TEST(DCMImageDriver, colorProfileEndToEndThroughWSISceneRealDriverPath)
     EXPECT_EQ(slideio::ColorProfileSource::Embedded, profile.getSource());
     EXPECT_TRUE(scene.getColorProfileInfo().present);
 }
+
+TEST_F(DCMImageDriverTests, planeTimestampsOfAMultiFileSeries)
+{
+    // Fifteen files, one per Z slice, each stating its own ContentTime within
+    // the same second: 15:44:52.570999, .603001, ... The series states an
+    // AcquisitionTime of 15:44:52.000000 that precedes all of them, so
+    // getAcquisitionTime() + getPlaneTimestamp() is the slice's own instant.
+    DCMImageDriver driver;
+    std::string slidePath = TestTools::getTestImagePath("dcm", "series/series_1");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
+    auto slide = driver.openFile(slidePath);
+    auto scene = slide->getScene(0);
+    ASSERT_TRUE(scene);
+    ASSERT_EQ(scene->getNumZSlices(), 15);
+    ASSERT_TRUE(scene->hasPlaneTimestamps());
+    EXPECT_EQ(scene->getAcquisitionTime(), 1127835892LL);
+    EXPECT_NEAR(scene->getPlaneTimestamp(0, 0, 0), 0.570999, 1e-6);
+    EXPECT_NEAR(scene->getPlaneTimestamp(0, 0, 1), 0.603001, 1e-6);
+    EXPECT_NEAR(scene->getPlaneTimestamp(0, 0, 4), 0.695999, 1e-6);
+    // Never negative, as the contract requires. The fifteen slices are written
+    // over about a second -- the last reads 1.009 -- so none is minutes out.
+    for (int z = 0; z < scene->getNumZSlices(); ++z) {
+        EXPECT_GE(scene->getPlaneTimestamp(0, 0, z), 0.) << "slice " << z;
+        EXPECT_LT(scene->getPlaneTimestamp(0, 0, z), 2.) << "slice " << z;
+    }
+    EXPECT_DOUBLE_EQ(scene->getPlaneTimestamp(0, 0, 15), 0.);
+    EXPECT_DOUBLE_EQ(scene->getPlaneTimestamp(1, 0, 0), 0.);
+}
+
+TEST_F(DCMImageDriverTests, significantBitsFromBitsStored)
+{
+    // BitsAllocated is 16 and BitsStored 12, so the value proves the tag was
+    // read rather than the storage width reported.
+    DCMImageDriver driver;
+    std::string slidePath = TestTools::getTestImagePath("dcm", "series/series_1");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
+    auto slide = driver.openFile(slidePath);
+    auto scene = slide->getScene(0);
+    ASSERT_TRUE(scene);
+    ASSERT_EQ(scene->getNumChannels(), 1);
+    EXPECT_EQ(scene->getChannelDataType(0), DataType::DT_UInt16);
+    EXPECT_EQ(scene->getChannelSignificantBits(0), 12);
+    EXPECT_EQ(scene->getChannelSignificantBits(-1), 0);
+    EXPECT_EQ(scene->getChannelSignificantBits(1), 0);
+}
+
+TEST_F(DCMImageDriverTests, noPlaneTimestampsWhereOneFileHoldsEverySlice)
+{
+    // Twelve frames in one file, which states one ContentDate and no
+    // ContentTime at all. One time for twelve frames of a cine loop is a
+    // property of the object, not of a plane.
+    DCMImageDriver driver;
+    std::string slidePath = TestTools::getTestImagePath("dcm", "barre.dev/XA-MONO2-8-12x-catheter");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
+    auto slide = driver.openFile(slidePath);
+    auto scene = slide->getScene(0);
+    ASSERT_TRUE(scene);
+    ASSERT_EQ(scene->getNumZSlices(), 12);
+    EXPECT_FALSE(scene->hasPlaneTimestamps());
+    EXPECT_DOUBLE_EQ(scene->getPlaneTimestamp(0, 0, 0), 0.);
+    EXPECT_EQ(scene->getAcquisitionTime(), 0LL);
+    EXPECT_EQ(scene->getChannelSignificantBits(0), 8);
+}
+
+TEST_F(DCMImageDriverTests, noSignificantBitsForAPaletteImage)
+{
+    // BitsStored is 8 here, but it describes the palette index rather than the
+    // samples: the lookup table states 16 bits per entry and the scene reports
+    // three 16-bit channels. 8 would be an answer about a different number.
+    DCMImageDriver driver;
+    std::string slidePath = TestTools::getTestImagePath("dcm", "barre.dev/US-PAL-8-10x-echo");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
+    auto slide = driver.openFile(slidePath);
+    auto scene = slide->getScene(0);
+    ASSERT_TRUE(scene);
+    ASSERT_EQ(scene->getChannelDataType(0), DataType::DT_UInt16);
+    EXPECT_EQ(scene->getChannelSignificantBits(0), 0);
+}
+
+
+TEST_F(DCMImageDriverTests, significantBitsAndAcquisitionTimeOfAWSIScene)
+{
+    // The WSI pyramid states AcquisitionDateTime (0008,002A) in the combined DT
+    // form -- 20221213084022.948608 -- rather than the DA/TM pair the older
+    // image objects carry. Its levels are files of one plane, not planes of
+    // their own, so there is no per-plane time to report.
+    DCMImageDriver driver;
+    std::string slidePath = TestTools::getTestImagePath("dcm", "private/H01EBB50P-24777");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
+    auto slide = driver.openFile(slidePath);
+    auto scene = slide->getScene(0);
+    ASSERT_TRUE(scene);
+    ASSERT_EQ(scene->getNumChannels(), 3);
+    for (int channel = 0; channel < 3; ++channel) {
+        EXPECT_EQ(scene->getChannelSignificantBits(channel), 8) << "channel " << channel;
+    }
+    EXPECT_EQ(scene->getChannelSignificantBits(3), 0);
+    EXPECT_EQ(scene->getAcquisitionTime(), 1670920822LL);
+    EXPECT_FALSE(scene->hasPlaneTimestamps());
+}
+
+TEST_F(DCMImageDriverTests, planeTimestampOfASingleSliceObject)
+{
+    // One file, one slice: its own ContentTime is the plane's, measured from
+    // the acquisition time the same file states. Both read 16:38:46.783000
+    // here, so the whole second is the origin and the plane sits .783 into it.
+    DCMImageDriver driver;
+    std::string slidePath = TestTools::getTestImagePath("dcm", "barre.dev/CT-MONO2-12-lomb-an2");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(slidePath);
+    auto slide = driver.openFile(slidePath);
+    auto scene = slide->getScene(0);
+    ASSERT_TRUE(scene);
+    ASSERT_EQ(scene->getNumZSlices(), 1);
+    ASSERT_TRUE(scene->hasPlaneTimestamps());
+    EXPECT_EQ(scene->getAcquisitionTime(), 849544726LL);
+    EXPECT_NEAR(scene->getPlaneTimestamp(0, 0, 0), 0.783, 1e-6);
+    // BitsAllocated 16, BitsStored 12.
+    EXPECT_EQ(scene->getChannelSignificantBits(0), 12);
+}

@@ -2,6 +2,8 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include <set>
+#include <algorithm>
+#include <cmath>
 #include <opencv2/imgproc.hpp>
 
 #include "slideio/drivers/dcm/dcmscene.hpp"
@@ -194,6 +196,15 @@ void DCMScene::init(const std::string& slideFilePath, int sceneIndex, const std:
 
     prepareSliceIndices();
 
+    // BitsStored describes a sample only where the samples are what is stored.
+    // For a palette image it is the width of the index into the lookup table,
+    // whose entries are 16 bit here while the index is 8 -- reporting 8 would
+    // answer a question about a different number.
+    if (file->getPhotointerpretation() != EPhotoInterpetation::PHIN_PALETTE) {
+        m_significantBits = file->getBitsStored();
+    }
+    collectPlaneTimestamps();
+
     m_levels.resize(1);
     LevelInfo& level = m_levels[0];
     Size rectSize(m_rect.width, m_rect.height);
@@ -202,6 +213,88 @@ void DCMScene::init(const std::string& slideFilePath, int sceneIndex, const std:
     level.setSize(rectSize);
     level.setMagnification(getMagnification());
     level.setScale(1.);
+}
+
+int DCMScene::getChannelSignificantBits(int channelIndex) const
+{
+    if (channelIndex < 0 || channelIndex >= m_numChannels) {
+        return 0;
+    }
+    // Every channel of a DICOM image shares one BitsStored: the tag describes
+    // the samples of the object, not of a component.
+    return m_significantBits;
+}
+
+double DCMScene::getPlaneTimestamp(int tFrame, int channel, int zSlice) const
+{
+    if (m_planeTimestamps.empty()) {
+        return 0.;
+    }
+    if (tFrame < 0 || tFrame >= m_numFrames || channel < 0 || channel >= m_numChannels
+        || zSlice < 0 || zSlice >= static_cast<int>(m_planeTimestamps.size())) {
+        return 0.;
+    }
+    // One file is one plane, and its channels are the samples of that plane.
+    return m_planeTimestamps[zSlice];
+}
+
+void DCMScene::collectPlaneTimestamps()
+{
+    const auto file = *(m_files.begin());
+    if (const auto& acquired = file->getAcquisitionTime()) {
+        // The whole second, leaving the remainder in the plane offsets, so
+        // getAcquisitionTime() + getPlaneTimestamp() is the plane's own instant.
+        m_acquisitionTime = static_cast<int64_t>(std::floor(*acquired));
+    }
+    if (static_cast<int>(m_files.size()) != m_numSlices) {
+        // One file holding several slices states one ContentTime for all of
+        // them, which is a property of the object rather than of a plane. Only
+        // a series of one file per slice carries a real per-plane time.
+        return;
+    }
+    std::vector<double> absolute(m_numSlices, 0.);
+    for (int slice = 0; slice < m_numSlices; ++slice) {
+        int fileIndex = 0;
+        if (m_files.size() > 1) {
+            // The slice map rather than findFileIndex(), which throws where a
+            // slice has no file of its own. InstanceNumber is what the map is
+            // built from and nothing guarantees it runs 1..N, so throwing here
+            // would turn a series with gaps in it from one without plane times
+            // into one that cannot be opened at all.
+            const auto it = m_sliceMap.find(slice);
+            if (it == m_sliceMap.end()) {
+                return;
+            }
+            fileIndex = it->second;
+        }
+        const auto& content = m_files[fileIndex]->getContentTime();
+        if (!content) {
+            // Partial coverage counts as none: the result is addressed by
+            // plane, so a gap would leave one plane reporting another's time.
+            return;
+        }
+        absolute[slice] = *content;
+    }
+    const double earliest = *std::min_element(absolute.begin(), absolute.end());
+    double origin = static_cast<double>(m_acquisitionTime);
+    if (!file->getAcquisitionTime() || earliest < origin) {
+        // Either the series states no acquisition start, or it states one later
+        // than its first plane, which CVScene::getPlaneTimestamp() forbids. The
+        // earliest plane is then the origin, and no acquisition time is
+        // reported: rebasing keeps the offsets non-negative, but the two
+        // getters would no longer add up.
+        if (file->getAcquisitionTime()) {
+            SLIDEIO_LOG(WARNING) << "DCMImageDriver: " << m_filePath
+                << " states a plane earlier than its acquisition time; reporting the"
+                   " times relative to the earliest plane and no acquisition time";
+        }
+        m_acquisitionTime = 0;
+        origin = earliest;
+    }
+    m_planeTimestamps.resize(m_numSlices);
+    for (int slice = 0; slice < m_numSlices; ++slice) {
+        m_planeTimestamps[slice] = absolute[slice] - origin;
+    }
 }
 
 void DCMScene::extractSliceRaster(const cv::Mat& frame,

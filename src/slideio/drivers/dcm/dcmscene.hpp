@@ -4,6 +4,7 @@
 #pragma once
 
 #include <map>
+#include <vector>
 
 #include "slideio/drivers/dcm/dcm_api_def.hpp"
 #include "slideio/core/colorprofile.hpp"
@@ -39,6 +40,10 @@ namespace slideio
         double getZSliceResolution() const override;
         double getTFrameResolution() const override;
         DataType getChannelDataType(int channel) const override;
+        int getChannelSignificantBits(int channelIndex) const override;
+        bool hasPlaneTimestamps() const override { return !m_planeTimestamps.empty(); }
+        double getPlaneTimestamp(int tFrame, int channel, int zSlice) const override;
+        int64_t getAcquisitionTime() const override { return m_acquisitionTime; }
         std::string getChannelName(int channel) const override;
         Resolution getResolution() const override;
         double getMagnification() const override;
@@ -56,6 +61,7 @@ namespace slideio
         void init(const std::string& slideFilePath, int sceneIndex, const std::string& driverId);
     protected:
         void prepareSliceIndices();
+        void collectPlaneTimestamps();
         void checkScene();
         void extractSliceRaster(const cv::Mat& frame,
                                 const cv::Rect& blockRect,
@@ -74,6 +80,13 @@ namespace slideio
         std::string m_filePath;
 		int m_sceneIndex = 0;
         DataType m_dataType = DataType::DT_Unknown;
+        // BitsStored of the scene's files, 0 where they state none or where the
+        // value describes something other than a sample -- a palette index.
+        int m_significantBits = 0;
+        // Seconds from m_acquisitionTime, one per Z slice. Empty unless every
+        // slice has a file of its own that states a ContentTime.
+        std::vector<double> m_planeTimestamps;
+        int64_t m_acquisitionTime = 0;
         Compression m_compression = Compression::Unknown;
         std::string m_driverId;
         ColorProfile m_colorProfile;

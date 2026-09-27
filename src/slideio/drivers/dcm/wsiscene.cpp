@@ -3,6 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/drivers/dcm/wsiscene.hpp"
 #include <filesystem>
+#include <cmath>
 
 #include "slideio/core/exceptions.hpp"
 #include "slideio/core/tools/tools.hpp"
@@ -57,6 +58,14 @@ void WSIScene::init(const std::string& slideFilePath, int sceneIndex, const std:
 	// VOLUME file after the sort above -- so the main pyramid reports its own
 	// profile, never a fixed level or an aux image's.
 	m_colorProfile = baseFile->readColorProfile();
+	// Same rule as DCMScene: BitsStored describes a sample only where the
+	// samples are what is stored, which a palette image does not do.
+	if (baseFile->getPhotointerpretation() != EPhotoInterpetation::PHIN_PALETTE) {
+		m_significantBits = baseFile->getBitsStored();
+	}
+	if (const auto& acquired = baseFile->getAcquisitionTime()) {
+		m_acquisitionTime = static_cast<int64_t>(std::floor(*acquired));
+	}
     const auto& files = m_files;
 	const int numLevels = static_cast<int>(files.size());
 	m_levels.resize(numLevels);
@@ -88,6 +97,15 @@ cv::Rect WSIScene::getRect() const {
 
 int WSIScene::getNumChannels() const {
 	return m_numChannels;
+}
+
+int WSIScene::getChannelSignificantBits(int channelIndex) const {
+	if (channelIndex < 0 || channelIndex >= m_numChannels) {
+		return 0;
+	}
+	// One BitsStored covers every channel: the tag describes the samples of
+	// the object, not of a component.
+	return m_significantBits;
 }
 
 slideio::DataType WSIScene::getChannelDataType(int channel) const {

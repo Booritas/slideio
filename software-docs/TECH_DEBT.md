@@ -1003,8 +1003,9 @@ the small-read case must not slow the large-read case back down.
 **Status:** Open, and blocked on corpus rather than on code. Recorded so the next
 person does not repeat the survey.
 
-`CVScene::getPlaneTimestamp()` is implemented for VSI, ZVI, CZI and OME-TIFF.
-Three of the four are backed by files that state the times. OME-TIFF is not:
+`CVScene::getPlaneTimestamp()` is implemented for VSI, ZVI, CZI, DCM and
+OME-TIFF. Four of the five are backed by files that state the times. OME-TIFF is
+not:
 `LAMBDA-ModuloAlongZ-ModuloAlongT` states all 50 `Plane` elements and
 `SPIM-ModuloAlongZ` all 192, and **none carries `DeltaT`**. The code is written
 and the schema is unambiguous; it wants a file -- anything Bio-Formats wrote from
