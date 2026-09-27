@@ -2,11 +2,13 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/drivers/pke/pkesmallscene.hpp"
+#include "slideio/core/tools/tools.hpp"
 #include "slideio/drivers/pke/pketools.hpp"
 #include "slideio/slideio/slideio.hpp"
 #include "slideio/imagetools/tifftools.hpp"
 #include "slideio/core/levelinfo.hpp"
 #include "slideio/core/exceptions.hpp"
+#include "slideio/core/log.hpp"
 
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
@@ -26,6 +28,14 @@ PKESmallScene::PKESmallScene(const std::string& filePath,
         })
 {
     m_dataType = m_directory.dataType;
+    if (const auto acquired = Tools::parseTiffDateTime(m_directory.dateTime)) {
+        m_acquisitionTime = *acquired;
+    }
+    else if (!m_directory.dateTime.empty()) {
+        // Stated but unreadable is not the same as absent, and both report 0.
+        SLIDEIO_LOG(WARNING) << "PKEImageDriver: unreadable DateTime '" << m_directory.dateTime
+            << "' in " << m_filePath;
+    }
 
     if(m_dataType==DataType::DT_None || m_dataType==DataType::DT_Unknown)
     {

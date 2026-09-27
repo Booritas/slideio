@@ -610,3 +610,56 @@ TEST_F(PKEImageDriverTests, colorProfileAbsentWhenTiffTagIsAbsent) {
     ASSERT_TRUE(profile.isEmpty());
     ASSERT_EQ(slideio::ColorProfileSource::None, profile.getSource());
 }
+
+TEST_F(PKEImageDriverTests, acquisitionTimeFromTiffDateTime) {
+    // QPTIFF states TIFFTAG_DATETIME in every one of its directories -- 33 of
+    // them here -- all carrying the one value, which is the scan's.
+    std::string filePath = TestTools::getTestImagePath("pke", "openmicroscopy/PKI_scans/LuCa-7color_Scan1.qptiff");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::PKEImageDriver driver;
+    std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    std::shared_ptr<CVScene> scene = slide->getScene(0);
+    ASSERT_TRUE(scene != nullptr);
+    // 2017:10:05 09:23:03
+    EXPECT_EQ(scene->getAcquisitionTime(), 1507195383LL);
+    // The auxiliary images are directories of the same scan and state the same.
+    std::shared_ptr<CVScene> label = slide->getAuxImage("Label");
+    ASSERT_TRUE(label != nullptr);
+    EXPECT_EQ(label->getAcquisitionTime(), 1507195383LL);
+}
+
+TEST_F(PKEImageDriverTests, acquisitionTimeOfABrightfieldScan) {
+    std::string filePath = TestTools::getTestImagePath("pke", "openmicroscopy/PKI_scans/HandEcompressed_Scan1.qptiff");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::PKEImageDriver driver;
+    std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    std::shared_ptr<CVScene> scene = slide->getScene(0);
+    ASSERT_TRUE(scene != nullptr);
+    // 2017:10:25 15:46:04, twenty days after the fluorescence scan above.
+    EXPECT_EQ(scene->getAcquisitionTime(), 1508946364LL);
+}
+
+TEST_F(PKEImageDriverTests, noPlaneTimestampsOrSignificantBits) {
+    // The qptiff xml states two things that look like these and are neither. <Bits>12
+    // sits in <ScanProfile><CameraSettings> and is the camera's digitisation
+    // depth: both corpus files store 8 bit samples, so 12 would claim more
+    // significant bits than a sample has. <Date> sits in
+    // <Responsivity><Filter> and is when that filter's response was
+    // calibrated -- 2017-09-25 for DAPI against a scan of 2017-10-05.
+    std::string filePath = TestTools::getTestImagePath("pke", "openmicroscopy/PKI_scans/LuCa-7color_Scan1.qptiff");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::PKEImageDriver driver;
+    std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    std::shared_ptr<CVScene> scene = slide->getScene(0);
+    ASSERT_TRUE(scene != nullptr);
+    ASSERT_EQ(5, scene->getNumChannels());
+    ASSERT_EQ(DataType::DT_Byte, scene->getChannelDataType(0));
+    EXPECT_FALSE(scene->hasPlaneTimestamps());
+    EXPECT_DOUBLE_EQ(scene->getPlaneTimestamp(0, 0, 0), 0.);
+    for (int channel = 0; channel < scene->getNumChannels(); ++channel) {
+        EXPECT_EQ(scene->getChannelSignificantBits(channel), 0) << "channel " << channel;
+    }
+}

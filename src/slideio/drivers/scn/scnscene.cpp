@@ -9,6 +9,8 @@
 #include "slideio/imagetools/libtiff.hpp"
 #include "slideio/core/tools/cvtools.hpp"
 #include "slideio/core/exceptions.hpp"
+#include "slideio/core/log.hpp"
+#include <cmath>
 
 
 using namespace slideio;
@@ -208,6 +210,27 @@ void SCNScene::parseMagnification(const XMLElement* xmlImage)
     }
 }
 
+void SCNScene::parseCreationDate(const XMLElement* xmlImage)
+{
+    const XMLElement* xmlDate = xmlImage->FirstChildElement("creationDate");
+    if (xmlDate == nullptr || xmlDate->GetText() == nullptr) {
+        return;
+    }
+    // ISO 8601 with a Z and, in the older files, a fraction of a second:
+    // "2012-05-02T14:00:29.07Z". The getter reports whole seconds, so the
+    // fraction is dropped. Not quite exactly: parseIso8601 returns a double,
+    // whose ULP around 2012 is about 2.4e-7, so a fraction of seven or more
+    // nines lands on the next second before floor sees it. No SCN states more
+    // than three places.
+    if (const auto epoch = Tools::parseIso8601(xmlDate->GetText())) {
+        m_acquisitionTime = static_cast<int64_t>(std::floor(*epoch));
+    }
+    else {
+        SLIDEIO_LOG(WARNING) << "SCNImageDriver: unreadable creationDate '"
+            << xmlDate->GetText() << "' in " << m_filePath;
+    }
+}
+
 void SCNScene::defineChannelDataType()
 {
     m_channelDataType.resize(m_numChannels);
@@ -280,7 +303,7 @@ void SCNScene::init(const XMLElement* xmlImage)
     setupChannels(xmlImage, hFile);
     parseChannelNames(xmlImage);
     parseMagnification(xmlImage);
-    parseChannelNames(xmlImage);
+    parseCreationDate(xmlImage);
     defineChannelDataType();
     const auto& directories = getChannelDirectories(0,0);
     if (!directories.empty()) {

@@ -223,8 +223,10 @@ std::optional<double> OTTools::timeUnitToSeconds(const std::string& units) {
 std::optional<int64_t> OTTools::parseAcquisitionDate(const std::string& text) {
     // xsd:dateTime, which is the same grammar CZI states its sub-block times in,
     // so the civil-date arithmetic lives in core rather than twice here. Whole
-    // seconds: the getter reports an epoch second, and floor keeps a fractional
-    // text from rounding up past the second the file states.
+    // seconds: the getter reports an epoch second and the fraction is dropped.
+    // Not quite exactly -- parseIso8601 returns a double, whose ULP in this era
+    // is around 2.4e-7, so a fraction of seven or more nines has already landed
+    // on the next second by the time floor sees it.
     const auto epoch = Tools::parseIso8601(text);
     if (!epoch) {
         SLIDEIO_LOG(WARNING) << "OTTools: unreadable AcquisitionDate '" << text << "'";

@@ -472,3 +472,26 @@ std::optional<double> Tools::parseIso8601(const std::string& text)
     }
     return epoch;
 }
+
+std::optional<int64_t> Tools::parseTiffDateTime(const std::string& text)
+{
+    // "YYYY:MM:DD HH:MM:SS" is exactly nineteen characters and TIFF fixes the
+    // length, so a writer with nothing to say leaves spaces behind rather than
+    // omitting the tag. Rebuilt into ISO 8601 rather than parsed again here:
+    // parseIso8601 already validates the calendar and the ranges.
+    if (text.size() < 19) {
+        return std::nullopt;
+    }
+    if (text[4] != ':' || text[7] != ':' || text[10] != ' '
+        || text[13] != ':' || text[16] != ':') {
+        return std::nullopt;
+    }
+    std::string iso = text.substr(0, 4) + "-" + text.substr(5, 2) + "-" + text.substr(8, 2)
+        + "T" + text.substr(11, 2) + ":" + text.substr(14, 2) + ":" + text.substr(17, 2) + "Z";
+    const auto epoch = parseIso8601(iso);
+    if (!epoch) {
+        return std::nullopt;
+    }
+    // Whole seconds. A TIFF DateTime carries no fraction, so nothing is lost.
+    return static_cast<int64_t>(std::floor(*epoch));
+}

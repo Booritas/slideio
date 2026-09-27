@@ -35,7 +35,7 @@ programs under `src/single_tests/` have no test cases, so they show `--`.
 | Images referenced by tests | 243 | |
 | Present on this machine | 238 | **103.3 GB** |
 | Referenced but absent | 5 | -- |
-| Static references in test code | 700 | |
+| Static references in test code | 706 | |
 | References built at run time | 37 | |
 
 ### By directory
@@ -73,7 +73,7 @@ Sizes are what is on disk now. "Tests" counts the distinct tests naming the imag
 | `images/images/hamamatsu/DM0014 - 2020-04-02 10.25.21.ndpi` | 2.6 GB | ndpi | 3 |
 | `images/images/zvi/openslide/Zeiss-3-Mosaic.zvi` | 2.0 GB | main | 2 |
 | `images/images/hamamatsu/DM0014 - 2020-04-02 11.10.47.ndpi` | 2.0 GB | ndpi | 6 |
-| `images/images/pke/openmicroscopy/PKI_scans/LuCa-7color_Scan1.qptiff` | 1.9 GB | pke | 17 |
+| `images/images/pke/openmicroscopy/PKI_scans/LuCa-7color_Scan1.qptiff` | 1.9 GB | pke | 19 |
 | `images/images/dcm/private/H01EBB50P-24777` *(dir)* | 1.3 GB | main | 12 |
 | `images/images/ometiff/Subresolutions/Leica-2.ome.tiff` | 1.2 GB | main, ometiff | 11 |
 | `images/images/czi/openslide/Zeiss-4-Mosaic.czi` | 1.1 GB | main | 1 |
@@ -85,10 +85,10 @@ Sizes are what is on disk now. "Tests" counts the distinct tests naming the imag
 | `images/images/czi/private/E2_A3_W12.czi` | 582.5 MB | main | 1 |
 | `images/images/hamamatsu/HE_Hamamatsu.ndpi` | 557.6 MB | ndpi | 3 |
 | `images/images/czi/private/20-024_K5_HE.czi` | 518.9 MB | main | 1 |
-| `images/images/pke/openmicroscopy/PKI_scans/HandEcompressed_Scan1.qptiff` | 402.3 MB | pke | 5 |
+| `images/images/pke/openmicroscopy/PKI_scans/HandEcompressed_Scan1.qptiff` | 402.3 MB | pke | 6 |
 | `images/images/zvi/mouse/20140505_mouse_2cell_H2AUb_RING1B_DAPI_T_005.zvi` | 396.6 MB | main | 3 |
 | `images/images/hamamatsu/openslide/CMU-2.ndpi` | 382.1 MB | ndpi | 2 |
-| `images/images/scn/private/HER2-63x_1.scn` | 378.7 MB | main | 4 |
+| `images/images/scn/private/HER2-63x_1.scn` | 378.7 MB | main | 5 |
 | `images/images/zvi/mouse/20140207_mouse_2cell_H2AUb_HA_DAPI_inj_002.zvi` | 323.1 MB | main | 1 |
 | `images/images/philips/Philips-4.tiff` | 277.5 MB | phtiff | 2 |
 | `images/images/ometiff/Subresolutions/retina_large.ome.tiff` | 214.8 MB | main, ometiff | 8 |
@@ -113,7 +113,7 @@ Sizes are what is on disk now. "Tests" counts the distinct tests naming the imag
 | `images/images/gdal/img_2448x2448_3x16bit_SRC_RGB_ducks.tif` | 30.1 MB | main, phtiff | 3 |
 | `images/images/gdal/Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.svs` | 28.4 MB | converter | 1 |
 | `images/images/gdal/img_2448x2448_3x16bit_SRC_RGB_ducks.png` | 24.2 MB | main | 1 |
-| `images/images/scn/Leica-Fluorescence-1.scn` | 20.7 MB | converter, main | 19 |
+| `images/images/scn/Leica-Fluorescence-1.scn` | 20.7 MB | converter, main | 21 |
 | `images/images/unicode/тест/Leica-Fluorescence-1.scn` | 20.7 MB | main | 1 |
 | `images/images/svs/CMU-1-Small-Region-page-0.tif` | 18.8 MB | main | 3 |
 | `images/images/ometiff/Tests/test.ome.tif - USL-2023-53777-20 (1, x=16245, y=23321, w=1028, h=640).tif` | 18.8 MB | ometiff | 1 |
@@ -330,7 +330,7 @@ identified by reading the source. They are not counted in the tables above.
 | `src/tests/main/test_czi_driver.cpp` | 425 | `CZIImageDriver.metadataCompression` | `"czi",imageName` |
 | `src/tests/main/test_fiwrapper.cpp` | 89 | `FIWrapper.emptyFilePath` | `"gdal", testFileName` |
 | `src/tests/main/test_gdal_driver.cpp` | 230 | `GDALDriver.metadataCompression` | `"gdal",std::get<0>(item)` |
-| `src/tests/main/test_scn_driver.cpp` | 48 | `SCNImageDriver.slideRawMetadata` | `"scn", imageName` |
+| `src/tests/main/test_scn_driver.cpp` | 50 | `SCNImageDriver.slideRawMetadata` | `"scn", imageName` |
 | `src/tests/main/test_svs_driver.cpp` | 360 | `SVSImageDriver.metadataCompression` | `"svs",imageName` |
 | `src/tests/main/test_svs_driver.cpp` | 378 | `SVSImageDriver.slideRawMetadata` | `"svs",imageName` |
 | `src/tests/main/test_zvi_driver.cpp` | 202 | `ZVIImageDriver.readBlock3Layers` | `"zvi", channelName` |

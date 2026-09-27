@@ -118,6 +118,16 @@ namespace slideio
          * sub-block AcquisitionTime -- and a second copy of the civil-date
          * arithmetic would be a second place to fix. */
         static std::optional<double> parseIso8601(const std::string& text);
+        /**@brief A TIFF DateTime (306) as seconds since 1970-01-01T00:00:00Z,
+         * or nullopt where it cannot be read.
+         *
+         * TIFF spells it "YYYY:MM:DD HH:MM:SS" -- colons in the date, a space
+         * before the time -- and names no timezone, so it is read as UTC for the
+         * same reason parseIso8601 reads an unqualified text that way. Shared
+         * because two drivers read it today -- NDPI and PKE, whose qptiff states
+         * the scan time in the same tag -- and it is TIFF's spelling rather than
+         * either format's, so a third would want the same code.*/
+        static std::optional<int64_t> parseTiffDateTime(const std::string& text);
         static std::list<std::string> findFilesWithExtension(const std::string& directory, const std::string& extension);
         static void extractChannels(const cv::Mat& sourceRaster, const std::vector<int>& channels, cv::OutputArray output);
         static FILE* openFile(const std::string& filePath, const char* mode);

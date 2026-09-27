@@ -49,6 +49,8 @@ namespace slideio
         int stripSize = 0;
         int compressionQuality = 0;
         uint64_t byteOffset = 0;
+        /**@brief TIFFTAG_DATETIME (306), "YYYY:MM:DD HH:MM:SS", empty if unstated.*/
+        std::string dateTime;
         /**@brief raw ICC profile bytes from TIFFTAG_ICCPROFILE (34675). Empty
          * when the directory carries no profile.*/
         std::vector<uint8_t> iccProfile;

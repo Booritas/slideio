@@ -1030,9 +1030,11 @@ origin, as Bio-Formats does (`ZeissCZIReader`:
 preview of `jxr-16bit-4chnls.czi` is exactly that, an attachment whose own
 metadata the driver does not parse.
 
-**NDPI states neither, and that is a finding rather than a gap.** It was
-surveyed on this entry's account and is not on the list above because the format
-has nothing to read, not because nobody looked:
+**NDPI, SCN and PKE state neither, and that is a finding rather than a gap.**
+All three were surveyed on this entry's account and are not on the list above
+because the formats have nothing to read, not because nobody looked.
+
+NDPI:
 
 - TIFF has no tag for significant bits at all. BitsPerSample is the storage
   width `getChannelDataType()` already reports, and every NDPI in the corpus is
@@ -1042,11 +1044,34 @@ has nothing to read, not because nobody looked:
   both 1, and a read of any other index throws. One plane and one time leaves a
   per-plane timestamp nothing to distinguish.
 
-`NDPIScene::getAcquisitionTime()` reads that DateTime, which is the part of the
-feature the format does support, and
-`NDPIImageDriverTests.noPlaneTimestampsOrSignificantBits` pins the other two at
-0 and false so the decision is not quietly reversed by someone wiring
-BitsPerSample in.
+SCN, which is a TIFF too and comes out the same way:
+
+- BitsPerSample again, 8 with SampleFormat unset in every corpus file.
+- The xml states one `<creationDate>` per `<image>` and nothing per plane: a
+  `<dimension>` carries `c`, `z`, `r` and `ifd` and no time. Not one directory
+  of any corpus SCN carries TIFFTAG_DATETIME either -- 0 of 18, 0 of 410, 0 of
+  53 -- so there is nothing in the TIFF layer to fall back on, and a z-stack's
+  slices are positions in depth rather than in time.
+
+PKE (qptiff), where the xml states two things that look like the answers and
+are not:
+
+- `<Bits>12</Bits>` is inside `<ScanProfile><root><CameraSettings>`: the
+  camera's digitisation depth, not the stored sample's. Both corpus files are
+  `DT_Byte`, so 12 would exceed the width of the sample it claims to describe.
+- `<Date>` is inside `<Responsivity><Filter>`: when that filter was calibrated.
+  `LuCa-7color_Scan1.qptiff` states five, one per filter, days apart from each
+  other and from the scan -- DAPI's is 2017-09-25 against a scan of 2017-10-05.
+- `<ExposureTime>` is a duration per channel, which is all Bio-Formats takes it
+  for (`VectraReader`, `setPlaneExposureTime`).
+
+The scan time is in TIFFTAG_DATETIME, in all 33 directories of the one and all
+8 of the other, one value each.
+
+`getAcquisitionTime()` on `NDPIScene`, `SCNScene` and `PKEScene` reads what the
+formats do state, and a `noPlaneTimestampsOrSignificantBits` test in each driver
+pins the other two getters at 0 and false so none of the decisions is quietly
+reversed by someone wiring BitsPerSample -- or `<Bits>` -- in.
 
 **What ZVI needed, and why it is no longer here.** Its tag was enumerated in
 `zvitags.hpp` and appeared in no corpus file, so the *encoding* was unknown --

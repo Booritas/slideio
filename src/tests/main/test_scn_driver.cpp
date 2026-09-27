@@ -13,6 +13,8 @@
 #include "slideio/core/tools/endian.hpp"
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/imagetools/imagetools.hpp"
+#include "slideio/imagetools/libtiff.hpp"
+#include "slideio/imagetools/tifftools.hpp"
 #include "slideio/core/tools/xmltools.hpp"
 #include "slideio/slideio/slideio.hpp"
 
@@ -918,3 +920,70 @@ TEST(SCNImageDriver, colorProfileAbsentWhenTiffTagIsAbsent) {
     ASSERT_EQ(slideio::ColorProfileSource::None, profile.getSource());
 }
 
+
+
+TEST(SCNImageDriver, acquisitionTimeFromCreationDate)
+{
+    // Each <image> of the SCN xml states its own <creationDate>, which is the
+    // element Bio-Formats reads for the OME AcquisitionDate (LeicaSCNReader).
+    // The three images of this file were scanned three quarters of an hour
+    // apart, so the value proves the scene's own element was read rather than
+    // the first one in the document.
+    slideio::SCNImageDriver driver;
+    std::string filePath = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1.scn");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+
+    // image_0000000591, 2012-05-02T14:00:29.07Z -- the fraction is dropped, the
+    // getter reporting whole seconds.
+    std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
+    ASSERT_TRUE(scene != nullptr);
+    EXPECT_EQ(scene->getAcquisitionTime(), 1335967229LL);
+
+    // image_0000000586, 2012-05-02T13:14:38.877Z
+    std::shared_ptr<slideio::CVScene> macro = slide->getAuxImage("Macro");
+    ASSERT_TRUE(macro != nullptr);
+    EXPECT_EQ(macro->getAcquisitionTime(), 1335964478LL);
+
+    // image_0000000590, 2012-05-02T13:40:25.733Z
+    std::shared_ptr<slideio::CVScene> macro1 = slide->getAuxImage("Macro~1");
+    ASSERT_TRUE(macro1 != nullptr);
+    EXPECT_EQ(macro1->getAcquisitionTime(), 1335966025LL);
+}
+
+TEST(SCNImageDriver, noPlaneTimestampsOrSignificantBits)
+{
+    // The SCN xml states a time per image and none per plane: a <dimension>
+    // carries c, z, r and ifd and no time at all, and not one directory of any
+    // corpus SCN carries TIFFTAG_DATETIME. TIFF has no tag for significant bits
+    // either, so BitsPerSample is the storage width getChannelDataType()
+    // already reports.
+    slideio::SCNImageDriver driver;
+    std::string filePath = TestTools::getTestImagePath("scn", "Leica-Fluorescence-1.scn");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
+    ASSERT_TRUE(scene != nullptr);
+    EXPECT_FALSE(scene->hasPlaneTimestamps());
+    EXPECT_DOUBLE_EQ(scene->getPlaneTimestamp(0, 0, 0), 0.);
+    for (int channel = 0; channel < scene->getNumChannels(); ++channel) {
+        EXPECT_EQ(scene->getChannelSignificantBits(channel), 0) << "channel " << channel;
+    }
+}
+
+TEST(SCNImageDriver, acquisitionTimeOfAZStackScene)
+{
+    // A scene of several z slices still states one creationDate: the slices are
+    // positions in depth, not in time.
+    slideio::SCNImageDriver driver;
+    std::string filePath = TestTools::getTestImagePath("scn", "private/HER2-63x_1.scn");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
+    ASSERT_TRUE(scene != nullptr);
+    EXPECT_GT(scene->getAcquisitionTime(), 0LL);
+    EXPECT_FALSE(scene->hasPlaneTimestamps());
+}

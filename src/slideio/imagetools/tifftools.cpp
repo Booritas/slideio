@@ -299,7 +299,8 @@ static std::ostream& printDir(std::ostream& os, const TiffDirectory& dir, const 
         << "\n" << pad << "  compressionQuality: " << dir.compressionQuality
         << "\n" << pad << "  byteOffset: " << dir.byteOffset
         << "\n" << pad << "  subFileType: " << dir.subFileType
-        << "\n" << pad << "  software: " << dir.software;
+        << "\n" << pad << "  software: " << dir.software
+        << "\n" << pad << "  dateTime: " << dir.dateTime;
     printIccProfile(os, dir.iccProfile, pad);
     os << "\n" << pad << "  number of subdirectories: " << dir.subdirectories.size();
 	std::string subPad = pad + "    ";
@@ -549,6 +550,18 @@ void TiffTools::scanTiffDirTags(libtiff::TIFF* tiff, int dirIndex, int64_t dirOf
     libtiff::TIFFGetField(tiff, TIFFTAG_YCBCRSUBSAMPLING, &YCbCrSubsampling[0], &YCbCrSubsampling[1]);
     dir.YCbCrSubsampling[0] = YCbCrSubsampling[0];
     dir.YCbCrSubsampling[1] = YCbCrSubsampling[1];
+
+    char* dateTime(nullptr);
+    if (libtiff::TIFFGetField(tiff, TIFFTAG_DATETIME, &dateTime) && dateTime) {
+        dir.dateTime = dateTime;
+    }
+    else {
+        // Cleared rather than left alone: TiffDirectory is a plain value type
+        // callers may rescan into, and a stale date would be reported as this
+        // directory's. The description and software strings above predate that
+        // rule and still carry it.
+        dir.dateTime.clear();
+    }
 
     uint32_t iccSize = 0;
     void* iccData = nullptr;

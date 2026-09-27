@@ -7,6 +7,84 @@ by branch.
 
 ---
 
+## pke-acquisition-time
+
+### `PKEScene` reports the scan's acquisition time
+
+**Module:** `slideio-pke` (exported: `PKEScene`), `slideio-imagetools`
+(`TiffDirectory`), `slideio-core` (`Tools`)
+**Files:** `src/slideio/drivers/pke/pkescene.hpp`,
+`src/slideio/drivers/pke/pketiledscene.cpp`,
+`src/slideio/drivers/pke/pkesmallscene.cpp`,
+`src/slideio/imagetools/tifftools.hpp`/`.cpp`,
+`src/slideio/core/tools/tools.hpp`/`.cpp`
+
+`PKEScene` now overrides `getAcquisitionTime()`, reading TIFFTAG_DATETIME (306)
+from its own directory. Every directory of a QPTIFF carries it -- 33 of them in
+`LuCa-7color_Scan1.qptiff` -- and all carry the one value, so the auxiliary
+images report the same scan time as the main scene. A file stating none reports
+0.
+
+**`TiffDirectory` gained a `dateTime` field**, read in
+`TiffTools::scanTiffDirTags`. That struct is shared by the SVS, AFI, SCN, PKE,
+PHTIFF and OME-TIFF drivers, so all of them now carry the value whether or not
+they read it, and out-of-tree code embedding a `TiffDirectory` must be rebuilt.
+It is cleared when the tag is absent, unlike the `description` and `software`
+strings beside it, which predate that rule and can still go stale across a
+rescan of one struct.
+
+**`Tools::parseTiffDateTime` is new** and
+`NDPITiffTools::tiffDateTimeToEpochSeconds` now delegates to it, unchanged for
+callers. The spelling is TIFF's rather than any one format's, and two drivers
+now read it.
+
+**Neither `getChannelSignificantBits()` nor `getPlaneTimestamp()` is
+implemented, and the qptiff xml states two things that look like they should
+be.** Both are decoys:
+
+- `<Bits>12</Bits>` sits inside `<ScanProfile><root><CameraSettings>` and is
+  the camera's digitisation depth, not a description of the stored pixels. Both
+  corpus files store 8-bit samples -- `getChannelDataType()` reports `DT_Byte`
+  for the 5-channel fluorescence scan as well as the brightfield one -- so
+  reporting 12 would claim more significant bits than a sample has.
+- `<Date>2017-09-25T18:54:15.6407059Z</Date>` sits inside
+  `<Responsivity><Filter>` and is when that filter's response was calibrated.
+  `LuCa-7color_Scan1.qptiff` states five of them, one per filter, days apart
+  from each other and from the scan: DAPI's reads 2017-09-25 against a
+  TIFFTAG_DATETIME of 2017-10-05.
+
+`<ExposureTime>` is a duration per channel rather than an instant, which is
+what Bio-Formats reads it as (`VectraReader`, `setPlaneExposureTime`); that
+reader takes no acquisition date and no bit depth from a qptiff at all.
+
+---
+
+## scn-acquisition-time
+
+### `SCNScene` reports the image's creation date
+
+**Module:** `slideio-scn` (exported: `SCNScene`)
+**Files:** `src/slideio/drivers/scn/scnscene.hpp`/`.cpp`
+
+`SCNScene` now overrides `getAcquisitionTime()`, reading `<creationDate>` from
+its own `<image>` element of the SCN xml -- the element Bio-Formats reads for
+the OME AcquisitionDate (`LeicaSCNReader`). Every image of a slide states its
+own, and they differ: the three of `Leica-Fluorescence-1.scn` are 13:14:38,
+13:40:25 and 14:00:29 of 2012-05-02, so the macro images report their own scan
+times rather than the main image's. A file stating none reports 0. `SCNScene`
+gained a data member, so out-of-tree code deriving from it must be rebuilt.
+
+**Neither `getChannelSignificantBits()` nor `getPlaneTimestamp()` is
+implemented.** SCN is a TIFF, and TIFF has no tag for significant bits:
+BitsPerSample is the storage width `getChannelDataType()` already reports, and
+every corpus SCN is 8 bits per sample with SampleFormat unset. For the times,
+the xml states one per image and none per plane -- a `<dimension>` carries `c`,
+`z`, `r` and `ifd` and nothing about time -- and not one directory of any
+corpus SCN carries TIFFTAG_DATETIME (0 of 18, 0 of 410, 0 of 53). A z-stack's
+slices are positions in depth, not in time.
+
+---
+
 ## ndpi-acquisition-time
 
 ### `NDPIScene` reports the scan's acquisition time

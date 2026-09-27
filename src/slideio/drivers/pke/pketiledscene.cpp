@@ -10,6 +10,7 @@
 #include "slideio/core/tools/cvtools.hpp"
 #include "slideio/core/tools/color_tools.hpp"
 #include "slideio/core/exceptions.hpp"
+#include "slideio/core/log.hpp"
 #include <tinyxml2.h>
 
 using namespace slideio;
@@ -47,6 +48,14 @@ PKETiledScene::PKETiledScene(const std::string& filePath, int sceneIndex, const 
 
 void PKETiledScene::initialize() {
     const auto& directory = m_directories[0];
+    if (const auto acquired = Tools::parseTiffDateTime(directory.dateTime)) {
+        m_acquisitionTime = *acquired;
+    }
+    else if (!directory.dateTime.empty()) {
+        // Stated but unreadable is not the same as absent, and both report 0.
+        SLIDEIO_LOG(WARNING) << "PKEImageDriver: unreadable DateTime '" << directory.dateTime
+            << "' in " << m_filePath;
+    }
     const auto& description = directory.description;
     if (!description.empty()) {
         tinyxml2::XMLDocument doc;

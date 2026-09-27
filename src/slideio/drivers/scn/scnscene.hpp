@@ -112,6 +112,10 @@ namespace slideio
         int getNumZSlices() const override {
             return m_numZSlices;
         }
+        // <image><creationDate>, in seconds since the Unix epoch. SCN states a
+        // time per image and none per plane, so hasPlaneTimestamps() keeps the
+        // base class's false; see TECH_DEBT #28.
+        int64_t getAcquisitionTime() const override { return m_acquisitionTime; }
         void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
             const std::vector<int>& channelIndicesIn, int zSliceIndex, int tFrameIndex, cv::OutputArray output) override;
         void readResampledLevelBlockChannelsEx(int level, const cv::Rect& levelRect,
@@ -130,6 +134,7 @@ namespace slideio
         void parseChannelNames(const tinyxml2::XMLElement* xmlImage);
         void parseGeometry(const tinyxml2::XMLElement* xmlImage);
         void parseMagnification(const tinyxml2::XMLElement* xmlImage);
+        void parseCreationDate(const tinyxml2::XMLElement* xmlImage);
         void defineChannelDataType();
         void setupChannels(const tinyxml2::XMLElement* xmlPixels, libtiff::TIFF* hFile);
         /// Borrows a handle for the duration of one block read. Acquire once per
@@ -153,6 +158,7 @@ namespace slideio
         std::vector<std::vector<TiffDirectory>> m_channelDirectories;
         bool m_interleavedChannels;
         int m_sceneIndex;
+        int64_t m_acquisitionTime = 0;
         ColorProfile m_colorProfile;
     private:
         // Declared last on purpose, and it must stay last -- the declaration

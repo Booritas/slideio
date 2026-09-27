@@ -76,6 +76,11 @@ namespace slideio
         DataType getChannelDataType(int) const override{
             return m_dataType;
         }
+        // TIFFTAG_DATETIME of the scene's own directory, in seconds since the
+        // Unix epoch; 0 where the file states none. QPTIFF states one time for
+        // the whole scan and nothing per plane, so hasPlaneTimestamps() keeps
+        // the base class's false; see TECH_DEBT #28.
+        int64_t getAcquisitionTime() const override { return m_acquisitionTime; }
         ColorProfile getColorProfile() const override {
             return m_colorProfile;
         }
@@ -99,6 +104,7 @@ namespace slideio
         Resolution m_resolution;
         double m_magnification;
         DataType m_dataType;
+        int64_t m_acquisitionTime = 0;
 		int m_sceneIndex;
         ColorProfile m_colorProfile;
     };
