@@ -242,7 +242,12 @@ std::string TiffConverter::createOMETiffDescription() const {
         pixels->SetAttribute("PhysicalSizeZUnit", "mm");
     }
     if (resT > 0) {
-        pixels->SetAttribute("PhysicalSizeT", resT);
+        // TimeIncrement is the OME-XML attribute for the interval between time
+        // points, in seconds by default, which is the unit getTFrameResolution()
+        // reports. There is no PhysicalSizeT in the schema: writing one, as this
+        // did, left the interval legible to slideio and to nothing else.
+        pixels->SetAttribute("TimeIncrement", resT);
+        pixels->SetAttribute("TimeIncrementUnit", "s");
     }
     image->InsertEndChild(pixels);
 

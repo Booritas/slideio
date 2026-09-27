@@ -65,6 +65,29 @@ now share one implementation, so `m^2` — an area — is likewise not a length.
 
 ---
 
+## converter-time-increment
+
+### The OME-TIFF converter states the time interval as `TimeIncrement`
+
+**Module:** `slideio-converter` (output metadata only)
+**File:** `src/slideio/converter/tiffconverter.cpp`
+
+The converter wrote the interval between time points as `PhysicalSizeT`, which
+is not an OME-XML attribute -- the schema names it `TimeIncrement`, with
+`TimeIncrementUnit`. Only slideio could read the value back; Bio-Formats and
+anything else reading the written file got no time interval at all.
+
+It now writes `TimeIncrement` and `TimeIncrementUnit="s"`, the unit
+`getTFrameResolution()` reports in. `PhysicalSizeT` is no longer written. The
+OME-TIFF reader still accepts it on input, so files slideio wrote before this
+change keep reading correctly; a consumer that parsed `PhysicalSizeT` out of
+slideio output must move to `TimeIncrement`.
+
+`TiffConverter::createOMETiffDescription()` moved from private to protected so
+the written metadata can be asserted on without going through a file.
+
+---
+
 ## ometiff-plane-times
 
 ### `OTScene` reports significant bits, acquisition time and plane timestamps

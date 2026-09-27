@@ -77,6 +77,7 @@ static std::shared_ptr<TestScene> makeScene(int channels = 3, int width = 512, i
 class TestTiffConverter : public TiffConverter
 {
 public:
+    using TiffConverter::createOMETiffDescription;
     virtual std::pair<std::shared_ptr<Slide>, std::shared_ptr<Scene>> cloneScene() const override {
 		int channels = getScene()->getNumChannels();
         auto rect = getScene()->getRect();
@@ -1436,4 +1437,26 @@ TEST(TiffConverterTests, CreateTileQueue_SequenceIdsMonotonic) {
 		}
 		prevSeqId = block.firstTileSequenceId;
 	}
+}
+
+TEST(TiffConverterTests, OMETiffStatesTheTimeIntervalWithTheSchemaAttribute) {
+    // OME-XML names the interval between time points TimeIncrement, in seconds
+    // by default. There is no PhysicalSizeT in the schema, so writing one leaves
+    // the interval legible to slideio alone -- Bio-Formats reads neither it nor
+    // anything else for T from such a file.
+    auto scene = makeScene(1);
+    scene->setTFrameResolution(2.5);
+    scene->setZSliceResolution(4e-6);
+
+    OMETIFFJpegConverterParameters params;
+    configureCommonRanges(params, 1, 1);
+
+    TestTiffConverter converter;
+    ASSERT_NO_THROW(converter.createFileLayout(scene, params));
+    const std::string description = converter.createOMETiffDescription();
+
+    EXPECT_NE(description.find("TimeIncrement=\"2.5\""), std::string::npos) << description;
+    EXPECT_EQ(description.find("PhysicalSizeT"), std::string::npos) << description;
+    // The Z resolution keeps its own attribute and unit.
+    EXPECT_NE(description.find("PhysicalSizeZ"), std::string::npos) << description;
 }

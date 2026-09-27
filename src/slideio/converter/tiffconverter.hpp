@@ -121,6 +121,10 @@ namespace slideio
             std::shared_ptr<CVScene> getScene() const {
                 return m_scene;
             }
+            // Protected rather than private so a test can read the metadata the
+            // converter writes without going through a file, as cloneScene() is
+            // virtual for the same reason.
+            std::string createOMETiffDescription() const;
         private:
             TiffPageStructure& appendPage() {
                 return m_pages.emplace_back();
@@ -129,7 +133,6 @@ namespace slideio
             int computeChannelChunk(int firstChannel, const std::shared_ptr<CVScene>& scene) const;
             std::string createSVSImageDescription() const;
             std::string createImageDescriptionTag() const;
-            std::string createOMETiffDescription() const;
             TiffDirectory setUpDirectory(const TiffDirectoryStructure& page);
             void writeDirectoryData(TiffDirectory& dir, const TiffDirectoryStructure& page,
                 const std::function<void(int)>& cb, int param);
