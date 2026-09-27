@@ -44,7 +44,7 @@ removed without renumbering the rest and its number is retired in
 25. *retired -- fixed, see [Resolved and removed](#resolved-and-removed)*
 26. [The positional read path has no buffer for small sequential reads](#26-the-positional-read-path-has-no-buffer-for-small-sequential-reads)
 27. *retired -- fixed, see [Resolved and removed](#resolved-and-removed)*
-28. [CZI and OME-TIFF plane timestamps have no file that states one](#28-czi-and-ome-tiff-plane-timestamps-have-no-file-that-states-one)
+28. [OME-TIFF plane timestamps have no file that states one](#28-ome-tiff-plane-timestamps-have-no-file-that-states-one)
 
 Not debt, recorded so it stays a decision:
 [Consciously accepted, not debt](#consciously-accepted-not-debt).
@@ -996,48 +996,60 @@ the small-read case must not slow the large-read case back down.
 
 ---
 
-## 28. CZI and OME-TIFF plane timestamps have no file that states one
+## 28. OME-TIFF plane timestamps have no file that states one
 
-**Files:** `src/slideio/drivers/czi/czisubblock.cpp:128`,
-`src/slideio/drivers/ome-tiff/ottools.cpp` (`collectPlaneTimestamps`)
-**Related:** `BREAKING_CHANGES.md`, `ometiff-plane-times`. VSI and ZVI are both
-implemented and backed by real data; ZVI was on this entry until the encoding of
-its tag was settled against Bio-Formats, which is what the remaining two lack.
+**Files:** `src/slideio/drivers/ome-tiff/ottools.cpp` (`collectPlaneTimestamps`)
+**Related:** `BREAKING_CHANGES.md`, `ometiff-plane-times`.
 **Status:** Open, and blocked on corpus rather than on code. Recorded so the next
 person does not repeat the survey.
 
-`CVScene::getPlaneTimestamp()` is implemented for VSI, OME-TIFF and ZVI. What
-stops the rest is that **no image in the corpus states a per-plane time** in the
-two formats below:
+`CVScene::getPlaneTimestamp()` is implemented for VSI, ZVI, CZI and OME-TIFF.
+Three of the four are backed by files that state the times. OME-TIFF is not:
+`LAMBDA-ModuloAlongZ-ModuloAlongT` states all 50 `Plane` elements and
+`SPIM-ModuloAlongZ` all 192, and **none carries `DeltaT`**. The code is written
+and the schema is unambiguous; it wants a file -- anything Bio-Formats wrote from
+a time-lapse, where `DeltaT` is routine.
 
-| Driver | Where the format keeps it | What the corpus holds |
-|---|---|---|
-| CZI | per-subblock XML `<AcquisitionTime>` | Not parsed at all: `subblockHeader.metadataSize` is used only to compute the data offset, so the metadata is skipped. Whether any corpus file states it is unknown for the same reason. CZI's T handling today is an interval (`czislide.cpp`, `Dimensions/T/Positions/Interval/Increment`), i.e. uniform spacing rather than real per-plane times. |
-| OME-TIFF | `Plane/@DeltaT` | Implemented. `LAMBDA-ModuloAlongZ-ModuloAlongT` states all 50 `Plane` elements and `SPIM-ModuloAlongZ` all 192, and **none carries `DeltaT`**. |
+**Two CZI branches the corpus does not reach**, now that the driver reads the
+sub-block metadata:
 
-**Two different blockers, and only one is about data.** For OME-TIFF the code is
-written and the schema is unambiguous; it wants a file. For CZI the subblock
-metadata is not read at all, so the work is real parsing, and only after that can
-anyone say whether the corpus states the times.
+- a file whose stated `AcquisitionDateAndTime` is *later* than its earliest
+  plane, which drops the acquisition time rather than let the two getters
+  disagree;
+- a main scene that states an `AcquisitionDateAndTime` but no per-plane times,
+  which reports the acquisition time anyway. Every corpus file states either
+  both or neither.
+
+Both mirror `OTScene::initializePlaneTimes`, where they are reachable from
+OME-XML a test can write directly. A CZI cannot be written that way here, so
+they are carried on the OME-TIFF tests. The third branch of that trio -- a scene
+that states sub-block times and no start, which takes its earliest plane as the
+origin, as Bio-Formats does (`ZeissCZIReader`:
+`if (startTime == null) startTime = p.timestamp;`) -- **is** covered: the slide
+preview of `jxr-16bit-4chnls.czi` is exactly that, an attachment whose own
+metadata the driver does not parse.
 
 **What ZVI needed, and why it is no longer here.** Its tag was enumerated in
-`zvitags.hpp` and appeared in no corpus file, so the *encoding* was unknown —
+`zvitags.hpp` and appeared in no corpus file, so the *encoding* was unknown --
 `int32`, a `double` serial date, a string were all plausible and each converts to
 an epoch differently. Implementing against a guess would have meant tests that
 confirm the guess, which is how the `PhysicalSizeT` defect reached `master`.
 Bio-Formats settled it: `BaseZeissReader.parseTimestamp` reads a serial date,
 days since 1900-01-01 with that date as day 1 and Excel's phantom 1900-02-29
-past day 60. That is verifiable independently of our own code — serial 40000 is
-2009-07-06 — so the conversion is unit-tested against an outside oracle even
-though no file we hold exercises the path end to end. **The lesson for the two
-above: a reference implementation can supply what the corpus cannot, and is
-worth looking for before recording something as blocked.**
+past day 60. That is verifiable independently of our own code -- serial 40000 is
+2009-07-06 -- so the conversion is unit-tested against an outside oracle even
+though no file we hold exercises the path end to end.
 
-**What would still unblock them:** for OME-TIFF, anything Bio-Formats wrote from
-a time-lapse, where `DeltaT` is routine. For CZI, the subblock metadata reader
-first.
+**What retired CZI from this entry** was neither of those: the blocker was that
+the sub-block metadata was never read, so nobody could say whether the corpus
+stated the times. It does. `T_3_CH_2.czi` states six `<AcquisitionTime>` values
+against three time frames and two channels, and `doughnut.czi` states 87 across
+the tiles of a single plane. **The lesson for what is left: a blocker phrased as
+"the corpus has nothing" is worth re-reading, because sometimes it is really "we
+never looked".**
 
- . ---
+---
+
 ## Consciously accepted, not debt
 
 **PHTIFF detection has no fallback if the claiming driver then fails.** A

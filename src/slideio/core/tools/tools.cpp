@@ -4,6 +4,7 @@
 //
 #include "slideio/core/tools/tools.hpp"
 
+#include <cstdio>
 #include <codecvt>
 #include <numeric>
 #include "slideio/core/exceptions.hpp"
@@ -397,4 +398,77 @@ void Tools::replaceAll(std::string& str, const std::string& from, const std::str
         str.replace(start_pos, from.length(), to);
         start_pos += to.length();
     }
+}
+
+std::optional<double> Tools::parseIso8601(const std::string& text)
+{
+    int year = 0, month = 0, day = 0, hour = 0, minute = 0, second = 0;
+    int consumed = 0;
+    if (std::sscanf(text.c_str(), "%4d-%2d-%2dT%2d:%2d:%2d%n",
+                    &year, &month, &day, &hour, &minute, &second, &consumed) != 6) {
+        return std::nullopt;
+    }
+    // Floors as well as ceilings: %2d consumes a sign, so "T-1:45:48" would
+    // otherwise parse to an hour before midnight of the stated day.
+    if (year < 1 || month < 1 || month > 12 || day < 1 || day > 31
+        || hour < 0 || hour > 23 || minute < 0 || minute > 59
+        || second < 0 || second > 60) {
+        return std::nullopt;
+    }
+    static const int monthLengths[12] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+    const bool leap = (year % 4 == 0 && year % 100 != 0) || year % 400 == 0;
+    if (day > monthLengths[month - 1] + ((leap && month == 2) ? 1 : 0)) {
+        return std::nullopt;
+    }
+
+    // Days from the civil date, after Howard Hinnant: no timegm, which is not
+    // portable, and no mktime, which would drag in the local timezone.
+    int y = year;
+    y -= month <= 2;
+    const int era = (y >= 0 ? y : y - 399) / 400;
+    const unsigned yoe = static_cast<unsigned>(y - era * 400);
+    const unsigned doy = (153 * (month + (month > 2 ? -3 : 9)) + 2) / 5 + day - 1;
+    const unsigned doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+    const int64_t days = static_cast<int64_t>(era) * 146097 + static_cast<int64_t>(doe) - 719468;
+
+    double epoch = static_cast<double>(days) * 86400.0
+        + hour * 3600.0 + minute * 60.0 + second;
+
+    const char* rest = text.c_str() + consumed;
+    if (*rest == '.') {
+        // Kept rather than skipped: CZI states sub-block times to seven places
+        // and neighbouring planes differ by tens of milliseconds.
+        // Read digit by digit rather than with strtod, which honours the
+        // decimal point of the current C locale: on a comma-decimal host whose
+        // application has called setlocale(LC_ALL, "") -- Qt does -- strtod
+        // would return 0 here and every time would collapse to its whole second.
+        ++rest;
+        int64_t fraction = 0;
+        double denominator = 1.;
+        while (*rest >= '0' && *rest <= '9') {
+            if (denominator < 1.e18) {
+                fraction = fraction * 10 + (*rest - '0');
+                denominator *= 10.;
+            }
+            ++rest;
+        }
+        epoch += static_cast<double>(fraction) / denominator;
+    }
+    if (*rest == 'Z' || *rest == 'z') {
+        ++rest;
+    }
+    else if (*rest == '+' || *rest == '-') {
+        int offsetHours = 0, offsetMinutes = 0;
+        // An offset that cannot be read is refused rather than assumed to be
+        // UTC: "+0200" without the colon is not ISO 8601, and dropping it
+        // silently is a two hour error in something meant to name one instant.
+        if (std::sscanf(rest + 1, "%2d:%2d", &offsetHours, &offsetMinutes) != 2
+            || offsetHours < 0 || offsetHours > 14
+            || offsetMinutes < 0 || offsetMinutes > 59) {
+            return std::nullopt;
+        }
+        const double offset = offsetHours * 3600.0 + offsetMinutes * 60.0;
+        epoch += (*rest == '+') ? -offset : offset;
+    }
+    return epoch;
 }

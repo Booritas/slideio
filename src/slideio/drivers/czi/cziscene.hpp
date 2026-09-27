@@ -81,6 +81,10 @@ namespace slideio
         double getZSliceResolution() const override;
         double getTFrameResolution() const override;
         slideio::DataType getChannelDataType(int channel) const override;
+        int getChannelSignificantBits(int channelIndex) const override;
+        bool hasPlaneTimestamps() const override { return !m_planeTimestamps.empty(); }
+        double getPlaneTimestamp(int tFrame, int channel, int zSlice) const override;
+        int64_t getAcquisitionTime() const override { return m_acquisitionTime; }
         std::string getChannelName(int channel) const override;
         Resolution getResolution() const override;
         double getMagnification() const override;
@@ -106,6 +110,8 @@ namespace slideio
     private:
         void setMosaic(bool mosaic) { m_bMosaic = mosaic; }
         void setupComponents(const std::map<int, int>& channelPixelType);
+        void setupComponentSignificantBits();
+        void collectPlaneTimestamps(const CZISubBlocks& blocks);
         void setupComponentsAux(const std::map<int, int>& channelPixelType);
         void generateSceneName();
         void computeSceneRect();
@@ -137,6 +143,23 @@ namespace slideio
     private:
         std::vector<ZoomLevel> m_zoomLevels;
         std::vector<ComponentInfo> m_componentInfos;
+        // ComponentBitCount of the CZI channel each scene component belongs to,
+        // falling back to the image level count and 0 where the file states
+        // neither. A channel of several components -- an interleaved Bgr24, say --
+        // gives all of them its own count.
+        std::vector<int> m_componentSignificantBits;
+        // Seconds from getAcquisitionTime(), one per plane, indexed
+        // (t * numZ + z) * numChannels + channel. Empty unless every plane states
+        // a time. Channel here is the CZI channel, which an interleaved pixel
+        // format expands into several scene components sharing one plane. A plane
+        // built of many tiles takes the earliest time its tiles state.
+        std::vector<double> m_planeTimestamps;
+        int64_t m_acquisitionTime = 0;
+        // Whether this scene has an acquisition origin of its own. Not the same as
+        // a zero m_acquisitionTime, and not the same as the slide having one: an
+        // attachment scene is excluded even where the main image states one.
+        bool m_hasAcquisitionTime = false;
+        int m_timestampChannels = 0;
         std::vector<SceneChannelInfo> m_channelInfos;
         std::string m_filePath;
         cv::Rect m_sceneRect;

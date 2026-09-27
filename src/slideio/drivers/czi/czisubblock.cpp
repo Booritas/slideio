@@ -125,6 +125,10 @@ void slideio::CZISubBlock::setupBlock(const SubBlockHeader& subblockHeader, std:
     m_dimensions.reserve(entryHeader.dimensionCount);
     uint64_t subblockHeaderSize = sizeof(SubBlockHeader) + sizeof(DimensionEntryDV)*entryHeader.dimensionCount;
     subblockHeaderSize = std::max((uint64_t)256, subblockHeaderSize);
+    // Layout: SegmentHeader, then the fixed sub-block header padded to at least
+    // 256 bytes, then metadataSize bytes of xml, then the pixel data.
+    m_metadataPosition = m_filePosition + sizeof(SegmentHeader) + subblockHeaderSize;
+    m_metadataSize = subblockHeader.metadataSize;
     m_dataPosition = m_filePosition + sizeof(SegmentHeader) + subblockHeader.metadataSize + subblockHeaderSize;
     int numComponents;
     CZIScene::channelComponentInfo(static_cast<CZIDataType>(m_cziPixelType), m_dataType, numComponents, m_pixelSize);

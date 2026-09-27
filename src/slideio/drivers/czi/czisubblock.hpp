@@ -55,6 +55,17 @@ namespace slideio
         int cziPixelType() const { return m_cziPixelType; }
         int64_t computeDataOffset(int channel, int z, int t, int r, int s, int i, int b, int h, int v) const;
         void setupBlock(const SubBlockHeader& subblockHeader, std::vector<DimensionEntryDV>& dimensions);
+        // The sub-block xml, which is where CZI states the plane's AcquisitionTime.
+        // Position and size only: reading it needs the file, which the block has not got.
+        int64_t metadataPosition() const { return m_metadataPosition; }
+        int32_t metadataSize() const { return m_metadataSize; }
+        // Seconds since the Unix epoch, set when the sub-block states a time.
+        bool hasAcquisitionTime() const { return m_hasAcquisitionTime; }
+        double acquisitionTime() const { return m_acquisitionTime; }
+        void setAcquisitionTime(double epochSeconds) {
+            m_acquisitionTime = epochSeconds;
+            m_hasAcquisitionTime = true;
+        }
         bool isInBlock(int channel, int z, int t, int r, int s, int i, int b, int h, int v) const;
         int pixelSize() const { return m_pixelSize; }
         slideio::DataType dataType() const {return m_dataType;};
@@ -127,6 +138,10 @@ namespace slideio
         int32_t m_planeSize;
         int64_t m_filePosition;
         int64_t m_dataPosition;
+        int64_t m_metadataPosition = 0;
+        int32_t m_metadataSize = 0;
+        double m_acquisitionTime = 0.;
+        bool m_hasAcquisitionTime = false;
         int64_t m_dataSize;
         int32_t m_filePart;
         int32_t m_compression;

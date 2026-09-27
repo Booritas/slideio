@@ -166,8 +166,70 @@ void CZISlide::parseMetadataXmL(const char* xmlString, size_t dataSize)
     }
     parseSizes(&doc);
     parseMagnification(&doc);
+    parseAcquisitionTime(&doc);
     parseResolutions(&doc);
     parseChannels(&doc);
+}
+
+
+// The sub-block xml states when its plane was acquired. It is read here rather
+// than in CZISubBlock because the block does not hold the file, and skipped
+// silently when absent: most CZI files state no per-plane time at all.
+void CZISlide::readSubBlockAcquisitionTime(SequentialReader& reader, CZISubBlock& block)
+{
+    const int32_t size = block.metadataSize();
+    if (size <= 0 || size > (1 << 20)) {
+        return;
+    }
+    try {
+        std::string xml(static_cast<size_t>(size), '\0');
+        reader.setPos(static_cast<uint64_t>(block.metadataPosition()));
+        reader.readBytes(&xml[0], size);
+        if (xml.find("AcquisitionTime") == std::string::npos) {
+            // Most sub-blocks state other tags only, and a mosaic has tens of
+            // thousands of them: not worth a DOM for each.
+            return;
+        }
+        tinyxml2::XMLDocument doc;
+        if (doc.Parse(xml.c_str(), xml.size()) != tinyxml2::XML_SUCCESS) {
+            return;
+        }
+        const tinyxml2::XMLElement* time =
+            XMLTools::getElementByPath(&doc, {"METADATA", "Tags", "AcquisitionTime"});
+        if (time == nullptr || time->GetText() == nullptr) {
+            return;
+        }
+        if (const auto epoch = Tools::parseIso8601(time->GetText())) {
+            block.setAcquisitionTime(*epoch);
+        }
+        else {
+            SLIDEIO_LOG(WARNING) << "CZIImageDriver: unreadable sub-block AcquisitionTime '"
+                << time->GetText() << "'";
+        }
+    }
+    catch (const std::exception& ex) {
+        SLIDEIO_LOG(WARNING) << "CZIImageDriver: cannot read sub-block metadata: " << ex.what();
+    }
+}
+
+
+void CZISlide::parseAcquisitionTime(XMLNode* root)
+{
+    const std::vector<std::string> path = {
+        "ImageDocument", "Metadata", "Information", "Image", "AcquisitionDateAndTime"
+    };
+    const XMLElement* xmlTime = XMLTools::getElementByPath(root, path);
+    if (xmlTime == nullptr || xmlTime->GetText() == nullptr) {
+        return;
+    }
+    if (const auto epoch = Tools::parseIso8601(xmlTime->GetText())) {
+        m_acquisitionTime = *epoch;
+        m_hasAcquisitionTime = true;
+    }
+    else {
+        SLIDEIO_LOG(WARNING) << "CZIImageDriver: unreadable AcquisitionDateAndTime '"
+            << xmlTime->GetText() << "'";
+    }
 }
 
 void CZISlide::parseChannels(XMLNode* root)
@@ -444,6 +506,7 @@ void CZISlide::readSubBlocks(uint64_t directoryPosition, uint64_t originPos, std
 			updateSublockHeaderBE(subblockHeader);
             subblockHeader.direEntry.filePosition += originPos;
             block.setupBlock(subblockHeader, dimensions);
+            readSubBlockAcquisitionTime(reader, block);
             const std::vector<Dimension>& blockDimensions = block.dimensions();
             std::vector<uint64_t> blockSceneIds;
             CZIScene::sceneIdsFromDims(blockDimensions, blockSceneIds);
@@ -573,6 +636,10 @@ void CZISlide::parseSizes(tinyxml2::XMLNode* root)
     m_slideMs = XMLTools::childNodeTextToInt(xmlImage, "SizeM");
     m_slideBs = XMLTools::childNodeTextToInt(xmlImage, "SizeB");
     m_slideVs = XMLTools::childNodeTextToInt(xmlImage, "SizeV");
+    // How many of the stored bits carry data, for the image as a whole. A
+    // <Channel> may state its own, which is more specific; this is the fallback,
+    // and is the only one Bio-Formats reads (ZeissCZIReader.translateInformation).
+    m_componentBitCount = XMLTools::childNodeTextToInt(xmlImage, "ComponentBitCount", 0);
 }
 
 

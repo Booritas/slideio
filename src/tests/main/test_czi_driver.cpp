@@ -965,3 +965,202 @@ TEST(CZIImageDriver, readLevelDoesNotReuseAdjacentLevel)
     // served from level 1.
     EXPECT_GT(cv::norm(viaLevel0Resampled, viaLevel1Native, cv::NORM_INF), 0);
 }
+TEST(CZIImageDriver, channelSignificantBitsFromComponentBitCount)
+{
+    // ComponentBitCount is 12 for each of the four channels while the samples
+    // are stored in 16 bits, so the value proves the tag was read rather than
+    // the width inferred.
+    std::string imagePath = TestTools::getTestImagePath("czi", "jxr-16bit-4chnls.czi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(imagePath);
+    slideio::CZIImageDriver driver;
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(imagePath);
+    ASSERT_TRUE(slide != nullptr);
+    std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
+    ASSERT_EQ(scene->getNumChannels(), 4);
+    for (int channel = 0; channel < 4; ++channel) {
+        EXPECT_EQ(scene->getChannelSignificantBits(channel), 12) << "channel " << channel;
+        EXPECT_EQ(scene->getChannelDataType(channel), slideio::DataType::DT_UInt16)
+            << "channel " << channel;
+    }
+    EXPECT_EQ(scene->getChannelSignificantBits(-1), 0);
+    EXPECT_EQ(scene->getChannelSignificantBits(4), 0);
+}
+
+TEST(CZIImageDriver, channelSignificantBitsMatchTheStorageWidthWhenTheyDo)
+{
+    std::string imagePath = TestTools::getTestImagePath("czi", "T_3_CH_2.czi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(imagePath);
+    slideio::CZIImageDriver driver;
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(imagePath);
+    ASSERT_TRUE(slide != nullptr);
+    std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
+    ASSERT_EQ(scene->getNumChannels(), 2);
+    EXPECT_EQ(scene->getChannelSignificantBits(0), 8);
+    EXPECT_EQ(scene->getChannelSignificantBits(1), 8);
+}
+
+TEST(CZIImageDriver, planeTimestampsFromSubBlockAcquisitionTime)
+{
+    // T_3_CH_2.czi states 3 time frames x 2 channels and exactly six sub-block
+    // AcquisitionTime values, with an image level AcquisitionDateAndTime
+    // 2021-02-10T09:18:18.0045815Z that precedes all of them. The offsets are
+    // from that start, so getAcquisitionTime() + getPlaneTimestamp() is the
+    // plane's own instant.
+    std::string imagePath = TestTools::getTestImagePath("czi", "T_3_CH_2.czi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(imagePath);
+    slideio::CZIImageDriver driver;
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(imagePath);
+    ASSERT_TRUE(slide != nullptr);
+    std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
+    ASSERT_EQ(scene->getNumTFrames(), 3);
+    ASSERT_EQ(scene->getNumChannels(), 2);
+    ASSERT_EQ(scene->getNumZSlices(), 1);
+    ASSERT_TRUE(scene->hasPlaneTimestamps());
+
+    // 2021-02-10T09:18:18Z, the whole second of the stated start.
+    EXPECT_EQ(scene->getAcquisitionTime(), 1612948698LL);
+
+    // The six stated times, less that whole second, in file order:
+    // .1395793 .1795789 .2055902 .2365808 .2625829 .2925791
+    EXPECT_NEAR(scene->getPlaneTimestamp(0, 0, 0), 0.1395793, 1e-6);
+    EXPECT_NEAR(scene->getPlaneTimestamp(0, 1, 0), 0.1795789, 1e-6);
+    EXPECT_NEAR(scene->getPlaneTimestamp(1, 0, 0), 0.2055902, 1e-6);
+    EXPECT_NEAR(scene->getPlaneTimestamp(1, 1, 0), 0.2365808, 1e-6);
+    EXPECT_NEAR(scene->getPlaneTimestamp(2, 0, 0), 0.2625829, 1e-6);
+    EXPECT_NEAR(scene->getPlaneTimestamp(2, 1, 0), 0.2925791, 1e-6);
+
+    // Every plane is after the stated start, as the contract requires.
+    for (int t = 0; t < 3; ++t) {
+        for (int c = 0; c < 2; ++c) {
+            EXPECT_GE(scene->getPlaneTimestamp(t, c, 0), 0.) << t << "," << c;
+        }
+    }
+    EXPECT_DOUBLE_EQ(scene->getPlaneTimestamp(3, 0, 0), 0.);
+    EXPECT_DOUBLE_EQ(scene->getPlaneTimestamp(0, 2, 0), 0.);
+}
+
+TEST(CZIImageDriver, noPlaneTimestampsWhenTheFileStatesNone)
+{
+    std::string imagePath = TestTools::getTestImagePath("czi", "pJP31mCherry.czi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(imagePath);
+    slideio::CZIImageDriver driver;
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(imagePath);
+    ASSERT_TRUE(slide != nullptr);
+    std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
+    EXPECT_FALSE(scene->hasPlaneTimestamps());
+    EXPECT_DOUBLE_EQ(scene->getPlaneTimestamp(0, 0, 0), 0.);
+}
+
+TEST(CZIImageDriver, channelSignificantBitsFallBackToTheImageLevelCount)
+{
+    // pJP31mCherry.czi states ComponentBitCount once, on Information/Image, and
+    // not on any Channel. That is the element Bio-Formats reads, and it applies
+    // to every channel of the image.
+    std::string imagePath = TestTools::getTestImagePath("czi", "pJP31mCherry.czi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(imagePath);
+    slideio::CZIImageDriver driver;
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(imagePath);
+    ASSERT_TRUE(slide != nullptr);
+    std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
+    ASSERT_EQ(scene->getNumChannels(), 3);
+    for (int channel = 0; channel < 3; ++channel) {
+        EXPECT_EQ(scene->getChannelSignificantBits(channel), 8) << "channel " << channel;
+    }
+}
+
+TEST(CZIImageDriver, planeTimestampOfAMosaicIsItsEarliestTile)
+{
+    // doughnut.czi is one plane made of 87 tiles, each stating its own
+    // AcquisitionTime over a span of 31 seconds. The plane's time is the
+    // earliest of them -- when the plane began being acquired -- and not
+    // whichever tile the sub-block directory happens to list last.
+    std::string imagePath = TestTools::getTestImagePath("czi", "doughnut.czi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(imagePath);
+    slideio::CZIImageDriver driver;
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(imagePath);
+    ASSERT_TRUE(slide != nullptr);
+    std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
+    ASSERT_EQ(scene->getNumTFrames(), 1);
+    ASSERT_EQ(scene->getNumChannels(), 1);
+    ASSERT_EQ(scene->getNumZSlices(), 1);
+    ASSERT_TRUE(scene->hasPlaneTimestamps());
+    // AcquisitionDateAndTime 2021-08-23T06:16:10.32436Z, whole second.
+    EXPECT_EQ(scene->getAcquisitionTime(), 1629699370LL);
+    // Earliest tile 2021-08-23T06:16:11.0424006Z; the latest is 06:16:42.1923615Z.
+    EXPECT_NEAR(scene->getPlaneTimestamp(0, 0, 0), 1.0424006, 1e-6);
+}
+
+TEST(CZIImageDriver, auxiliarySceneStatesNoAcquisitionTimeOfItsOwn)
+{
+    // The label of this file states its own AcquisitionDateAndTime,
+    // 2018-06-26T10:33:28Z, two hours before the main image's. That metadata
+    // belongs to the embedded CZI and is not parsed, so handing the label the
+    // main image's time would put it two hours out; 0 is what the getter means
+    // by "the file records none".
+    std::string imagePath = TestTools::getTestImagePath("czi", "zeiss.czi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(imagePath);
+    slideio::CZIImageDriver driver;
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(imagePath);
+    ASSERT_TRUE(slide != nullptr);
+    std::shared_ptr<slideio::CVScene> label = slide->getAuxImage("Label");
+    ASSERT_TRUE(label != nullptr);
+    EXPECT_FALSE(label->hasPlaneTimestamps());
+    EXPECT_EQ(label->getAcquisitionTime(), 0LL);
+    // The main image does state one, and reports it.
+    EXPECT_EQ(slide->getScene(0)->getAcquisitionTime(), 1530016484LL);
+}
+
+TEST(CZIImageDriver, sceneWithOneTimeFrameAtANonZeroZReportsOneTimeFrame)
+{
+    // The slide preview of this file is a single plane whose blocks sit at
+    // Z = 11. compute4DParameters() recognises that shape, and the count of
+    // time frames it then states is 1 -- incrementing the initial 1 instead of
+    // assigning it made the scene claim a second frame that holds nothing.
+    std::string imagePath = TestTools::getTestImagePath("czi", "jxr-16bit-4chnls.czi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(imagePath);
+    slideio::CZIImageDriver driver;
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(imagePath);
+    ASSERT_TRUE(slide != nullptr);
+    std::shared_ptr<slideio::CVScene> preview = slide->getAuxImage("SlidePreview");
+    ASSERT_TRUE(preview != nullptr);
+    EXPECT_EQ(preview->getNumTFrames(), 1);
+    EXPECT_EQ(preview->getNumZSlices(), 1);
+}
+
+TEST(CZIImageDriver, planeTimestampsSurviveANonZeroZBase)
+{
+    // The same preview scene: its sub-blocks are at Z = 11, which
+    // compute4DParameters() rebases to the single slice 0. Indexing the
+    // timestamps by the raw block index instead dropped all six stated times,
+    // and the scene reported none at all.
+    std::string imagePath = TestTools::getTestImagePath("czi", "jxr-16bit-4chnls.czi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(imagePath);
+    slideio::CZIImageDriver driver;
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(imagePath);
+    ASSERT_TRUE(slide != nullptr);
+    std::shared_ptr<slideio::CVScene> preview = slide->getAuxImage("SlidePreview");
+    ASSERT_TRUE(preview != nullptr);
+    ASSERT_TRUE(preview->hasPlaneTimestamps());
+    // The scene states no acquisition time of its own, so its earliest -- here
+    // its only -- plane is the origin and reads 0. An offset in the billions
+    // would mean the epoch leaked through as the timestamp.
+    EXPECT_EQ(preview->getAcquisitionTime(), 0LL);
+    EXPECT_DOUBLE_EQ(preview->getPlaneTimestamp(0, 0, 0), 0.);
+}
+
+TEST(CZIImageDriver, auxiliarySceneStatesNoSignificantBitsOfItsOwn)
+{
+    // An attachment is a CZI of its own, and its metadata is not parsed: the
+    // slide holds the main image's channels and its ComponentBitCount. Handing
+    // those to the preview reported 12 significant bits for 8-bit samples.
+    std::string imagePath = TestTools::getTestImagePath("czi", "jxr-16bit-4chnls.czi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(imagePath);
+    slideio::CZIImageDriver driver;
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(imagePath);
+    ASSERT_TRUE(slide != nullptr);
+    std::shared_ptr<slideio::CVScene> preview = slide->getAuxImage("SlidePreview");
+    ASSERT_TRUE(preview != nullptr);
+    for (int channel = 0; channel < preview->getNumChannels(); ++channel) {
+        EXPECT_EQ(preview->getChannelSignificantBits(channel), 0) << "channel " << channel;
+    }
+}

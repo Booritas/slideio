@@ -13,6 +13,7 @@
 #include "slideio/core/slideio_core_def.hpp"
 #include <vector>
 #include <string>
+#include <optional>
 #include <cmath>
 #include <list>
 #include <opencv2/core.hpp>
@@ -108,6 +109,15 @@ namespace slideio
 
         static std::string fromUnicode16(const std::u16string& u16string);
         static void throwIfPathNotExist(const std::string& path, const std::string label);
+        /**@brief An ISO 8601 date-time as seconds since 1970-01-01T00:00:00Z,
+         * fraction kept, or nullopt if the text cannot be read.
+         *
+         * Read as UTC where the text states no offset, so one file yields one
+         * instant whatever the timezone of the machine reading it. Shared because
+         * two formats state times this way -- OME-XML AcquisitionDate and the CZI
+         * sub-block AcquisitionTime -- and a second copy of the civil-date
+         * arithmetic would be a second place to fix. */
+        static std::optional<double> parseIso8601(const std::string& text);
         static std::list<std::string> findFilesWithExtension(const std::string& directory, const std::string& extension);
         static void extractChannels(const cv::Mat& sourceRaster, const std::vector<int>& channels, cv::OutputArray output);
         static FILE* openFile(const std::string& filePath, const char* mode);

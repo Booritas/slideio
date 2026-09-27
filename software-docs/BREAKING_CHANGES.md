@@ -7,6 +7,79 @@ by branch.
 
 ---
 
+## czi-plane-metadata
+
+### `CZIScene` reports significant bits, plane timestamps and acquisition time
+
+**Module:** `slideio-czi` (exported: `CZIScene`, `CZISlide`, `CZISubBlock`)
+**Files:** `src/slideio/drivers/czi/cziscene.hpp`/`.cpp`,
+`src/slideio/drivers/czi/czislide.hpp`/`.cpp`,
+`src/slideio/drivers/czi/czisubblock.hpp`/`.cpp`
+
+`CZIScene` now overrides `getChannelSignificantBits(int)`,
+`hasPlaneTimestamps()`, `getPlaneTimestamp()` and `getAcquisitionTime()`.
+Significant bits come from a `<Channel>`'s `ComponentBitCount`, falling back to
+`Information/Image/ComponentBitCount`; the timestamps come from each
+sub-block's `<METADATA><Tags><AcquisitionTime>`, which the driver did not read
+before, measured from `Information/Image/AcquisitionDateAndTime`. A file
+stating none of these reports 0 and false, so nothing that worked stops working.
+
+All three classes gained data members, so out-of-tree code deriving from them
+must be rebuilt. `CZISlide` gained `hasAcquisitionTime()`,
+`getAcquisitionTime()` and `getComponentBitCount()`; `CZISubBlock` gained
+`metadataPosition()`, `metadataSize()`, `hasAcquisitionTime()`,
+`acquisitionTime()` and `setAcquisitionTime()`.
+
+**Opening a CZI now reads each sub-block's metadata.** It is one short read per
+block, taken where the reader already sits after the sub-block header, and the
+XML is parsed only when the text contains `AcquisitionTime` at all -- but a
+mosaic of many thousands of tiles does that many more reads at open time than it
+did, and a metadata block larger than the reader's 4 KB window costs a refill on
+top.
+
+**A plane built of many tiles reports the earliest time its tiles state.** The
+tiles of one plane are acquired over a span -- 31 seconds across the 87 tiles of
+`doughnut.czi` -- and the start of that span is the one point in it that does
+not depend on the order the sub-block directory happens to list them in.
+Bio-Formats takes the first sub-block indexed at the coordinate
+(`ZeissCZIReader`, `planes.get(index.get(0))`), which is the same tile wherever
+the directory is written in acquisition order.
+
+**An attachment scene reports no significant bits and no acquisition time.** The
+label and the slide preview are CZIs embedded in the file, with metadata of their
+own that the driver does not parse -- `jxr-16bit-4chnls.czi` states an
+`AcquisitionDateAndTime` for its label 83 minutes from the main image's. Giving
+those scenes the slide's channels and acquisition time would have reported 12
+significant bits for 8-bit samples and a time the file contradicts, so both read
+0. They do still get plane timestamps where their own sub-blocks state them,
+measured from the earliest of those planes.
+
+### A CZI scene whose Z blocks start above zero reported one time frame too many
+
+**Module:** `slideio-czi` (`CZIScene::getNumTFrames`)
+**Files:** `src/slideio/drivers/czi/cziscene.cpp` (`compute4DParameters`)
+
+`compute4DParameters` handles four arrangements of the T and Z bases. Three
+assign the frame count; the fourth -- T based at 0, Z at a fixed index above 0 --
+**incremented** it instead, so a scene of one time frame reported two. The slide
+preview of `jxr-16bit-4chnls.czi` is such a scene, and `getNumTFrames()` on it
+returns 1 rather than 2 from this commit. Anything iterating that range was
+reading a frame that holds nothing.
+
+### `Tools::parseIso8601` replaced OME-TIFF's private copy
+
+**Module:** `slideio-core` (exported: `Tools`), `slideio-ometiff` (`OTTools`)
+**Files:** `src/slideio/core/tools/tools.hpp`/`.cpp`,
+`src/slideio/drivers/ome-tiff/ottools.cpp`
+
+`Tools::parseIso8601(const std::string&)` is new: an xsd:dateTime as seconds
+since the Unix epoch, fraction kept, `std::nullopt` where the text cannot be
+read. `OTTools::parseAcquisitionDate` now delegates to it and returns the whole
+second, unchanged for every input it accepted before; the civil-date arithmetic
+it used to carry is gone from the OME-TIFF driver. Purely additive for callers.
+
+---
+
 ## zvi-plane-metadata
 
 ### `ZVIScene` reports significant bits, plane timestamps and acquisition time

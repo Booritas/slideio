@@ -6,6 +6,7 @@
 #include "slideio/core/exceptions.hpp"
 #include "slideio/core/tools/tempfile.hpp"
 #include "slideio/core/tools/endian.hpp"
+#include <clocale>
 #include <filesystem>
 #include <numeric>
 #include <gtest/gtest.h>
@@ -670,3 +671,23 @@ TEST(TestTools, writeReadRawImage_MultiChannel) {
     TestTools::compareRasters(original, loaded);
 }
 
+
+TEST(Tools, parseIso8601KeepsTheFractionUnderACommaDecimalLocale) {
+    // std::strtod reads the decimal point of the current C locale, so a host
+    // that has called setlocale(LC_ALL, "") on a comma-decimal machine -- Qt
+    // does exactly that -- would have every CZI sub-block time collapse to its
+    // whole second, silently and without a parse failure.
+    const char* current = std::setlocale(LC_NUMERIC, nullptr);
+    const std::string previous = (current != nullptr) ? current : "C";
+    const char* applied = std::setlocale(LC_NUMERIC, "de-DE");
+    if (applied == nullptr) {
+        applied = std::setlocale(LC_NUMERIC, "de_DE.UTF-8");
+    }
+    if (applied == nullptr) {
+        GTEST_SKIP() << "no comma-decimal locale on this machine";
+    }
+    const auto epoch = Tools::parseIso8601("2021-02-10T09:18:18.1395793Z");
+    std::setlocale(LC_NUMERIC, previous.c_str());
+    ASSERT_TRUE(epoch.has_value());
+    EXPECT_NEAR(*epoch, 1612948698.1395793, 1e-6);
+}

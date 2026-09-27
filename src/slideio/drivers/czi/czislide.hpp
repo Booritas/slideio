@@ -24,6 +24,7 @@ namespace tinyxml2
 
 namespace slideio
 {
+    class SequentialReader;
     class SLIDEIO_CZI_EXPORTS CZISlide : public CVSlide
     {
         friend class CZIImageDriver;
@@ -39,6 +40,12 @@ namespace slideio
         double getZSliceResolution() const {return m_resZ;}
         double getTFrameResolution() const {return m_resT;}
         const CZIChannelInfos& getChannelInfo() const { return m_channels; }
+        // Information/Image/AcquisitionDateAndTime, in seconds since the Unix
+        // epoch. hasAcquisitionTime() is the test rather than a zero epoch.
+        bool hasAcquisitionTime() const { return m_hasAcquisitionTime; }
+        double getAcquisitionTime() const { return m_acquisitionTime; }
+        // Information/Image/ComponentBitCount, 0 where the file states none.
+        int getComponentBitCount() const { return m_componentBitCount; }
         const std::string& getTitle() const { return m_title; }
         void readBlock(uint64_t pos, uint64_t size, std::vector<unsigned char>& data) const;
         const std::shared_ptr<const FileReader>& getReader() const { return m_reader; }
@@ -60,12 +67,14 @@ namespace slideio
         void readFileHeader();
         void readDirectory();
         void parseMagnification(tinyxml2::XMLNode* root);
+        void parseAcquisitionTime(tinyxml2::XMLNode* root);
         void parseMetadataXmL(const char* xml, size_t dataSize);
         void parseResolutions(tinyxml2::XMLNode* root);
         void parseSizes(tinyxml2::XMLNode* root);
         void createJpgAttachmentScenes(int64_t dataPosition, int64_t dataSize, const std::string& name);
         void processBgrChannelAttributes();
         void parseChannels(tinyxml2::XMLNode* root);
+        static void readSubBlockAcquisitionTime(SequentialReader& reader, CZISubBlock& block);
         void createCZIAttachmentScenes(const int64_t dataPos, int64_t dataSize, const std::string& attachmentName);
         void addAuxiliaryImage(const std::string& name, const std::string& type, int64_t position);
 		static void updateSegmentHeaderBE(SegmentHeader& header);
@@ -102,6 +111,9 @@ namespace slideio
         int m_slideBs{};
         int m_slideVs{};
         double m_magnification{};
+        double m_acquisitionTime = 0.;
+        bool m_hasAcquisitionTime = false;
+        int m_componentBitCount = 0;
         Resolution m_res{};
         double m_resZ{};
         double m_resT{};

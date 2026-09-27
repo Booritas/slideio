@@ -4,6 +4,8 @@
 #include "slideio/core/exceptions.hpp"
 #include "slideio/core/log.hpp"
 #include "slideio/drivers/czi/cziscene.hpp"
+#include <algorithm>
+#include <cmath>
 #include <map>
 #include "slideio/drivers/czi/czislide.hpp"
 #include "slideio/core/tools/tilecomposer.hpp"
@@ -243,7 +245,7 @@ void CZIScene::compute4DParameters()
         m_numTFrames = 1;
     }
     else if (firstTFrame == 0 && firstZSlice > 0 && firstZSlice == lastZSlice) {
-        m_numTFrames = m_numTFrames + 1;
+        m_numTFrames = lastTFrame + 1;
         m_numZSlices = 1;
     }
     else if (firstTFrame > 0 && firstTFrame == lastTFrame && firstZSlice > 0 && firstZSlice == lastZSlice) {
@@ -331,6 +333,12 @@ void CZIScene::init(uint64_t sceneId, SceneParams& sceneParams, const std::strin
     } else {
         setupComponentsAux(channelPixelType);
     }
+    if (mainScene) {
+        // An attachment is a CZI of its own and its metadata is not parsed, so
+        // the slide holds the main image's channels and ComponentBitCount, which
+        // say nothing about this one. 0 is what the getter means by unknown.
+        setupComponentSignificantBits();
+    }
     // sort zoom levels in ascending order
     std::sort(m_zoomLevels.begin(), m_zoomLevels.end(), [](const ZoomLevel& left, const ZoomLevel& right)
     {
@@ -343,6 +351,20 @@ void CZIScene::init(uint64_t sceneId, SceneParams& sceneParams, const std::strin
     generateSceneName();
     computeSceneMetadata();
     initZoomLevelInfo();
+    if (mainScene && m_slide->hasAcquisitionTime()) {
+        // Whole seconds of Information/Image/AcquisitionDateAndTime, reported
+        // whether or not the sub-blocks state per-plane times: when an image was
+        // acquired is an answer in itself. The remainder of the second stays in
+        // the plane offsets, which are measured from this same origin.
+        //
+        // Not for an attachment. The label and the slide preview state their own
+        // AcquisitionDateAndTime, an hour or more from the main image's in
+        // jxr-16bit-4chnls.czi, and the embedded metadata that holds it is not
+        // parsed -- so the honest answer for those scenes is none.
+        m_acquisitionTime = static_cast<int64_t>(std::floor(m_slide->getAcquisitionTime()));
+        m_hasAcquisitionTime = true;
+    }
+    collectPlaneTimestamps(blocks);
 }
 
 int CZIScene::getTileCount(void* userData)
@@ -674,6 +696,167 @@ void CZIScene::channelComponentInfo(CZIDataType channelCZIDataType, DataType& co
     case Gray64ComplexFloat:
     default:
         RAISE_RUNTIME_ERROR << "CZIImageDriver: Unsupported data type: " << channelCZIDataType;
+    }
+}
+
+
+int CZIScene::getChannelSignificantBits(int channelIndex) const
+{
+    if (channelIndex < 0 || channelIndex >= static_cast<int>(m_componentSignificantBits.size())) {
+        return 0;
+    }
+    return m_componentSignificantBits[channelIndex];
+}
+
+// ComponentBitCount as stated for one CZI channel, 0 when it states none. The
+// channel parser already keeps every scalar child of <Channel> as an attribute,
+// so the value is read from there rather than the xml being walked again.
+static int channelSignificantBits(const CZIChannelInfo& channel)
+{
+    for (const auto& attribute : channel.attributes) {
+        if (attribute.first == "ComponentBitCount") {
+            try {
+                return std::stoi(attribute.second);
+            }
+            catch (const std::exception&) {
+                return 0;
+            }
+        }
+    }
+    return 0;
+}
+
+void CZIScene::setupComponentSignificantBits()
+{
+    const int imageBits = m_slide->getComponentBitCount();
+    m_componentSignificantBits.assign(m_componentInfos.size(), imageBits);
+    const CZIChannelInfos& fileChannels = m_slide->getChannelInfo();
+    for (const auto& mapping : m_componentToChannelIndex) {
+        const int component = mapping.first;
+        const int channel = mapping.second.first;
+        if (component < 0 || component >= static_cast<int>(m_componentSignificantBits.size())) {
+            continue;
+        }
+        if (channel < 0 || channel >= static_cast<int>(fileChannels.size())) {
+            continue;
+        }
+        const int bits = channelSignificantBits(fileChannels[channel]);
+        // The channel is more specific where it states one; the image level
+        // count is what most files state, and often the only one they state.
+        m_componentSignificantBits[component] = (bits > 0) ? bits : imageBits;
+    }
+}
+
+
+double CZIScene::getPlaneTimestamp(int tFrame, int channel, int zSlice) const
+{
+    if (m_planeTimestamps.empty() || m_timestampChannels <= 0) {
+        return 0.;
+    }
+    if (tFrame < 0 || tFrame >= m_numTFrames || zSlice < 0 || zSlice >= m_numZSlices
+        || channel < 0 || channel >= getNumChannels()) {
+        return 0.;
+    }
+    // A sub-block carries one CZI channel, which an interleaved pixel format
+    // expands into several scene components; those components share the plane
+    // they were stored in, and so share its time.
+    const auto it = m_componentToChannelIndex.find(channel);
+    const int cziChannel = (it == m_componentToChannelIndex.end()) ? channel : it->second.first;
+    if (cziChannel < 0 || cziChannel >= m_timestampChannels) {
+        return 0.;
+    }
+    const size_t index =
+        (static_cast<size_t>(tFrame) * m_numZSlices + zSlice) * m_timestampChannels + cziChannel;
+    return m_planeTimestamps[index];
+}
+
+void CZIScene::collectPlaneTimestamps(const CZISubBlocks& blocks)
+{
+    int channels = 0;
+    for (const auto& block : blocks) {
+        channels = std::max(channels, block.lastChannel() + 1);
+    }
+    if (channels <= 0 || m_numZSlices <= 0 || m_numTFrames <= 0) {
+        return;
+    }
+    const size_t planeCount =
+        static_cast<size_t>(m_numTFrames) * m_numZSlices * channels;
+    std::vector<double> absolute(planeCount, 0.);
+    std::vector<bool> stated(planeCount, false);
+    size_t statedCount = 0;
+    for (const auto& block : blocks) {
+        if (!block.hasAcquisitionTime()) {
+            continue;
+        }
+        // A block states one time for every plane it holds, and it may hold a
+        // span in any of the three dimensions. Its T and Z indices are the
+        // file's: compute4DParameters() rebases a dimension that does not start
+        // at zero, and the read path adds the base back, so the same subtraction
+        // is what turns a block index into the caller's.
+        for (int blockT = block.firstTFrame(); blockT <= block.lastTFrame(); ++blockT) {
+            const int t = blockT - m_firstTFrameIndex;
+            if (t < 0 || t >= m_numTFrames) {
+                continue;
+            }
+            for (int blockZ = block.firstZSlice(); blockZ <= block.lastZSlice(); ++blockZ) {
+                const int z = blockZ - m_firstSliceIndex;
+                if (z < 0 || z >= m_numZSlices) {
+                    continue;
+                }
+                for (int c = block.firstChannel(); c <= block.lastChannel(); ++c) {
+                    if (c < 0 || c >= channels) {
+                        continue;
+                    }
+                    const size_t index =
+                        (static_cast<size_t>(t) * m_numZSlices + z) * channels + c;
+                    if (!stated[index]) {
+                        ++statedCount;
+                        stated[index] = true;
+                        absolute[index] = block.acquisitionTime();
+                    }
+                    else {
+                        // A mosaic states a time per tile, so many blocks land on
+                        // one plane. The earliest is taken: the plane was acquired
+                        // over the span of its tiles, and its start is the one
+                        // point in that span that does not depend on the order the
+                        // directory happens to list them in.
+                        absolute[index] = std::min(absolute[index], block.acquisitionTime());
+                    }
+                }
+            }
+        }
+    }
+    if (statedCount != planeCount) {
+        // Partial coverage counts as none: the result is addressed by plane, so
+        // a gap would leave one plane reporting a time that belongs to another.
+        return;
+    }
+    const double earliest = *std::min_element(absolute.begin(), absolute.end());
+    bool hasStart = m_hasAcquisitionTime;
+    double origin = static_cast<double>(m_acquisitionTime);
+    if (hasStart && earliest < origin) {
+        // The stated start is later than the earliest plane, which
+        // CVScene::getPlaneTimestamp() forbids. Rebasing keeps the timestamps
+        // non-negative, but the two getters would then no longer add up, so the
+        // acquisition time is dropped rather than left to mislead.
+        SLIDEIO_LOG(WARNING) << "CZIImageDriver: scene " << getName()
+            << " states a plane earlier than its AcquisitionDateAndTime; reporting"
+               " the times relative to the earliest plane and no acquisition time";
+        m_acquisitionTime = 0;
+        m_hasAcquisitionTime = false;
+        hasStart = false;
+    }
+    if (!hasStart) {
+        // No stated origin of this scene's own: the earliest plane is the origin,
+        // as the contract provides for and as Bio-Formats does when acquiredDate
+        // is absent. The attachment scenes reach this -- the slide preview of
+        // jxr-16bit-4chnls.czi states six sub-block times and no start.
+        origin = earliest;
+    }
+    m_timestampChannels = channels;
+    m_planeTimestamps.resize(planeCount);
+    for (size_t i = 0; i < planeCount; ++i) {
+        m_planeTimestamps[i] = absolute[i] - origin;
     }
 }
 
