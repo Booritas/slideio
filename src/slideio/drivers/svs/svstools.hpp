@@ -8,6 +8,7 @@
 #include <opencv2/core.hpp>
 #include <nlohmann/json.hpp>
 #include <string>
+#include <optional>
 
 namespace slideio
 {
@@ -32,6 +33,35 @@ namespace slideio
         // Header lines (before the first '|') become "application" and "image";
         // subsequent "name = value" tokens become entries under "properties".
         static nlohmann::json parseAperioMetadata(const std::string& description);
+        // The scan time an Aperio description states, in seconds since
+        // 1970-01-01T00:00:00Z, or nullopt where it cannot be read.
+        //
+        // Aperio splits it across two properties, "Date = 12/29/09" and
+        // "Time = 09:59:15" -- month first, and a year that may be two digits;
+        // 00-68 is 2000-2068 and 69-99 is 1969-1999, the window strptime's %y
+        // uses. Java's SimpleDateFormat, which Bio-Formats parses this with,
+        // slides its window with the current date instead, so the two disagree
+        // about a year far enough out and only this one answers the same way
+        // next decade. A "Time Zone = GMT-05:00" property is applied when the
+        // file states one; without it the text is read as UTC, because assuming
+        // the reader's zone would make one file yield different instants on
+        // different machines. Static and public so the formats can be tested
+        // directly -- no corpus file states a zone.
+        static std::optional<int64_t> aperioDateTimeToEpochSeconds(const std::string& date,
+                                                                   const std::string& time,
+                                                                   const std::string& zone);
+        // The significant bits an Aperio image description states, or 0 where
+        // it states none.
+        //
+        // Aperio writes "Acquisition Bit Depth = 10" for a camera digitising
+        // narrower than the sample it is stored in. It is a property of the same
+        // header the scan time comes from, not a TIFF tag, which is why a survey
+        // of the tags alone concluded SVS states nothing.
+        static int significantBitsFromDescription(const std::string& description);
+        // The scan time an Aperio image description states, in seconds since
+        // the Unix epoch, or 0 where it states none or none that can be read.
+        // Reads the Date, Time and Time Zone properties of the description.
+        static int64_t acquisitionTimeFromDescription(const std::string& description);
         // Serializes a TiffDirectory (and its subdirectories) to JSON.
         static nlohmann::json tiffDirectoryToJson(const TiffDirectory& dir);
     };

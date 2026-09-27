@@ -1032,7 +1032,9 @@ metadata the driver does not parse.
 
 **NDPI, SCN and PKE state neither, and that is a finding rather than a gap.**
 All three were surveyed on this entry's account and are not on the list above
-because the formats have nothing to read, not because nobody looked.
+because the formats have nothing to read, not because nobody looked. All three
+are TIFFs, and the shape repeats: no tag for significant bits anywhere in TIFF,
+and a scan time that belongs to the file rather than to a plane.
 
 NDPI:
 
@@ -1068,10 +1070,28 @@ are not:
 The scan time is in TIFFTAG_DATETIME, in all 33 directories of the one and all
 8 of the other, one value each.
 
-`getAcquisitionTime()` on `NDPIScene`, `SCNScene` and `PKEScene` reads what the
-formats do state, and a `noPlaneTimestampsOrSignificantBits` test in each driver
-pins the other two getters at 0 and false so none of the decisions is quietly
-reversed by someone wiring BitsPerSample -- or `<Bits>` -- in.
+SVS is not in this group at all, and the first version of that work wrongly put
+it here. Aperio states **both** answers in its image description: the scan time
+as `Date = 12/29/09|Time = 09:59:15`, and the significant bits as
+`Acquisition Bit Depth = 10`, which `jp2k_1chnl.svs` carries against 16-bit
+samples. The survey behind that first version read the TIFF tags and stopped,
+even though the same change was already parsing the Aperio properties for the
+time -- and it pinned the wrong answer in a test before review caught it. Only
+`getPlaneTimestamp()` is genuinely absent from SVS: the header states one time
+per slide and `SVSScene` models one plane.
+
+**The lesson, and it is the second time this entry has recorded one like it:**
+a format that keeps metadata in two places needs both read before anything is
+recorded as absent. The ZVI note below says a reference implementation can
+supply what the corpus cannot; this one says the corpus can supply what a
+partial look at it cannot.
+
+`getAcquisitionTime()` on `NDPIScene`, `SCNScene`, `PKEScene` and `SVSScene`
+reads what the formats do state, and a `noPlaneTimestampsOrSignificantBits` test
+in the first three pins the other two getters at 0 and false so none of those
+decisions is quietly reversed by someone wiring BitsPerSample -- or `<Bits>` --
+in. SVS's test of that name now pins only the plane timestamps, and says in so
+many words that its 0 for the bits is that one file stating none.
 
 **What ZVI needed, and why it is no longer here.** Its tag was enumerated in
 `zvitags.hpp` and appeared in no corpus file, so the *encoding* was unknown --

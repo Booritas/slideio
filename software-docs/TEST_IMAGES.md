@@ -32,10 +32,10 @@ programs under `src/single_tests/` have no test cases, so they show `--`.
 
 | | Count | Size |
 |---|---:|---:|
-| Images referenced by tests | 243 | |
-| Present on this machine | 238 | **103.3 GB** |
+| Images referenced by tests | 244 | |
+| Present on this machine | 239 | **103.3 GB** |
 | Referenced but absent | 5 | -- |
-| Static references in test code | 706 | |
+| Static references in test code | 712 | |
 | References built at run time | 37 | |
 
 ### By directory
@@ -50,7 +50,7 @@ programs under `src/single_tests/` have no test cases, so they show `--`.
 | `images/images/zvi` | 2.9 GB | 10 | 0 |
 | `images/images/pke` | 2.4 GB | 10 | 0 |
 | `images/images/scn` | 1.3 GB | 12 | 1 |
-| `images/images/svs` | 814.4 MB | 11 | 1 |
+| `images/images/svs` | 815.7 MB | 12 | 1 |
 | `images/images/gdal` | 376.7 MB | 21 | 1 |
 | `images/images/vsi` | 38.2 MB | 17 | 0 |
 | `images/images/unicode` | 34.2 MB | 7 | 0 |
@@ -98,11 +98,11 @@ Sizes are what is on disk now. "Tests" counts the distinct tests naming the imag
 | `images/images/ometiff/00001_01.ome.tiff` | 126.1 MB | phtiff | 2 |
 | `images/images/zvi/Zeiss-1-Stacked.zvi` | 107.7 MB | main | 12 |
 | `images/images/gdal/test.svs` | 99.3 MB | converter | 2 |
-| `images/images/svs/jp2k_3chnl_8bit.svs` | 98.9 MB | main | 1 |
+| `images/images/svs/jp2k_3chnl_8bit.svs` | 98.9 MB | main | 2 |
 | `images/images/czi/jxr-rgb-5scenes.czi` | 88.8 MB | converter, main | 5 |
 | `images/images/czi/private/example_split.czi` | 87.7 MB | main | 1 |
 | `images/images/czi/zeiss.czi` | 87.7 MB | main | 3 |
-| `images/images/svs/JP2K-33003-1.svs` | 60.9 MB | main, transformer | 14 |
+| `images/images/svs/JP2K-33003-1.svs` | 60.9 MB | main, transformer | 15 |
 | `images/images/czi/03_14_2019_DSGN0545_A_wb_1353_fov_1_633.czi` | 45.9 MB | main | 4 |
 | `images/images/gdal/multipage-ducks.tif` | 45.7 MB | main | 1 |
 | `images/images/gdal/Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg` | 39.1 MB | converter, main, transformer | 22 |
@@ -171,12 +171,13 @@ Sizes are what is on disk now. "Tests" counts the distinct tests naming the imag
 | `images/images/ometiff/LAMBDA-ModuloAlongZ-ModuloAlongT.ome.tiff` | 2.0 MB | main, ometiff | 3 |
 | `images/images/czi/jxr-rgb-5scenes.label.tiff` | 2.0 MB | main | 1 |
 | `images/images/jxr/seagull.bmp` | 1.9 MB | main | 4 |
-| `images/images/svs/CMU-1-Small-Region.svs` | 1.8 MB | main, phtiff, transformer | 24 |
+| `images/images/svs/CMU-1-Small-Region.svs` | 1.8 MB | main, phtiff, transformer | 27 |
 | `images/images/unicode/тест/CMU-1-Small-Region.svs` | 1.8 MB | main | 1 |
 | `images/images/hamamatsu/openslide/CMU-2-roi-l0.png` | 1.8 MB | ndpi | 2 |
 | `images/images/gdal/img_1024x600_3x8bit_RGB_color_bars_CMYKWRGB.bmp` | 1.8 MB | main | 1 |
 | `images/images/czi/test/zeiss-block.png` | 1.6 MB | main | 1 |
 | `images/images/jpeg/p2YCpvg.png` | 1.6 MB | main | 1 |
+| `images/images/svs/jp2k_1chnl.svs` | 1.3 MB | main | 1 |
 | `images/images/vsi/OS-1/OS-1.vsi` | 1.3 MB | vsi | 5 |
 | `images/images/svs/CMU-1-Small-Region-page-1.tif` | 1.3 MB | main, phtiff | 5 |
 | `images/images/hamamatsu/test3-TRITC 2 (560)-roi.png` | 1.2 MB | ndpi | 1 |

@@ -48,6 +48,12 @@ SVSSmallScene::SVSSmallScene(const std::string& filePath,
         double res = SVSTools::extractResolution(dir.description);
         m_resolution = { res, res };
     }
+    // From this directory's own description rather than the main image's: the
+    // label and macro are captured in the same scan run and Aperio repeats the
+    // properties on them, so each scene answers from what it holds. A
+    // directory stating none reports 0.
+    m_acquisitionTime = SVSTools::acquisitionTimeFromDescription(dir.description);
+    m_significantBits = SVSTools::significantBitsFromDescription(dir.description);
     m_compression = m_directory.slideioCompression;
     LevelInfo level;
     level.setLevel(0);

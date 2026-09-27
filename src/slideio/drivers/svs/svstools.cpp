@@ -3,6 +3,8 @@
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/drivers/svs/svstools.hpp"
 #include "slideio/core/slideio_enums.hpp"
+#include "slideio/core/tools/tools.hpp"
+#include "slideio/core/log.hpp"
 #include <cmath>
 #include <locale>
 #include <string>
@@ -96,6 +98,86 @@ int SVSTools::extractPhilipsLevelNumber(const std::string& description)
     return std::stoi(match[1]);
 }
 
+namespace
+{
+    bool allDigitsSvs(const std::string& text)
+    {
+        if (text.empty()) {
+            return false;
+        }
+        for (const char c : text) {
+            if (c < '0' || c > '9') {
+                return false;
+            }
+        }
+        return true;
+    }
+}
+
+std::optional<int64_t> SVSTools::aperioDateTimeToEpochSeconds(const std::string& date,
+                                                              const std::string& time,
+                                                              const std::string& zone)
+{
+    // MM/DD/YY or MM/DD/YYYY.
+    if ((date.size() != 8 && date.size() != 10) || date[2] != '/' || date[5] != '/') {
+        return std::nullopt;
+    }
+    const std::string month = date.substr(0, 2);
+    const std::string day = date.substr(3, 2);
+    std::string year = date.substr(6);
+    if (!allDigitsSvs(month) || !allDigitsSvs(day) || !allDigitsSvs(year)) {
+        return std::nullopt;
+    }
+    if (year.size() == 2) {
+        // The window strptime's %y uses. A fixed rule rather than one that
+        // slides with today's date, so the same file reads the same next
+        // decade.
+        year = (std::stoi(year) <= 68 ? "20" : "19") + year;
+    }
+
+    // HH:MM:SS.
+    if (time.size() != 8 || time[2] != ':' || time[5] != ':') {
+        return std::nullopt;
+    }
+    if (!allDigitsSvs(time.substr(0, 2)) || !allDigitsSvs(time.substr(3, 2))
+        || !allDigitsSvs(time.substr(6, 2))) {
+        return std::nullopt;
+    }
+
+    std::string iso = year + "-" + month + "-" + day + "T" + time;
+    if (zone.empty()) {
+        iso += "Z";
+    }
+    else {
+        // "GMT-05:00", or the same without the colon. A zone that cannot be
+        // read falls back to UTC rather than discarding the Date and Time,
+        // which were perfectly readable -- the same reading an absent zone
+        // gets, and strictly more than reporting nothing.
+        std::string digits = (zone.size() > 4) ? zone.substr(4) : std::string();
+        const size_t colon = digits.find(':');
+        if (colon != std::string::npos) {
+            digits.erase(colon, 1);
+        }
+        if (zone.size() < 6 || zone.compare(0, 3, "GMT") != 0
+            || (zone[3] != '+' && zone[3] != '-')
+            || digits.size() != 4 || !allDigitsSvs(digits)) {
+            iso += "Z";
+        }
+        else {
+            iso += zone[3];
+            iso += digits.substr(0, 2);
+            iso += ":";
+            iso += digits.substr(2, 2);
+        }
+    }
+    const auto epoch = Tools::parseIso8601(iso);
+    if (!epoch) {
+        return std::nullopt;
+    }
+    // Whole seconds; an Aperio time states none beyond them.
+    return static_cast<int64_t>(std::floor(*epoch));
+}
+
 nlohmann::json SVSTools::parseAperioMetadata(const std::string& description)
 {
     using nlohmann::json;
@@ -148,6 +230,55 @@ nlohmann::json SVSTools::parseAperioMetadata(const std::string& description)
     }
 
     return result;
+}
+
+int SVSTools::significantBitsFromDescription(const std::string& description)
+{
+    const nlohmann::json metadata = parseAperioMetadata(description);
+    const auto props = metadata.find("properties");
+    if (props == metadata.end() || !props->is_object()) {
+        return 0;
+    }
+    const auto it = props->find("Acquisition Bit Depth");
+    if (it == props->end() || !it->is_string()) {
+        return 0;
+    }
+    try {
+        const int bits = std::stoi(it->get<std::string>());
+        // 0 is what the getter means by unknown, so a value that cannot be one
+        // reports unknown rather than itself.
+        return (bits > 0) ? bits : 0;
+    }
+    catch (const std::exception&) {
+        return 0;
+    }
+}
+
+int64_t SVSTools::acquisitionTimeFromDescription(const std::string& description)
+{
+    const nlohmann::json metadata = parseAperioMetadata(description);
+    const auto props = metadata.find("properties");
+    if (props == metadata.end() || !props->is_object()) {
+        return 0;
+    }
+    const auto readProp = [&props](const char* name) -> std::string {
+        const auto it = props->find(name);
+        return (it != props->end() && it->is_string()) ? it->get<std::string>() : std::string();
+    };
+    const std::string date = readProp("Date");
+    const std::string time = readProp("Time");
+    if (date.empty() || time.empty()) {
+        // Not every svs carries an Aperio header, and not every header states
+        // the scan time. Absent is not an error.
+        return 0;
+    }
+    if (const auto epoch = aperioDateTimeToEpochSeconds(date, time, readProp("Time Zone"))) {
+        return *epoch;
+    }
+    // Stated but unreadable is not the same as absent, and both report 0.
+    SLIDEIO_LOG(WARNING) << "SVSImageDriver: unreadable Aperio scan time '" << date
+        << " " << time << "' zone '" << readProp("Time Zone") << "'";
+    return 0;
 }
 
 nlohmann::json SVSTools::tiffDirectoryToJson(const TiffDirectory& dir)

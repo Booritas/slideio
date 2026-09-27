@@ -7,6 +7,57 @@ by branch.
 
 ---
 
+## svs-acquisition-time
+
+### `SVSScene` reports the slide's scan time and significant bits
+
+**Module:** `slideio-svs` (exported: `SVSScene`, `SVSTools`)
+**Files:** `src/slideio/drivers/svs/svsscene.hpp`,
+`src/slideio/drivers/svs/svstiledscene.cpp`,
+`src/slideio/drivers/svs/svssmallscene.cpp`,
+`src/slideio/drivers/svs/svstools.hpp`/`.cpp`
+
+`SVSScene` now overrides `getAcquisitionTime()`, reading the `Date` and `Time`
+properties of the Aperio image description -- `Date = 12/29/09|Time = 09:59:15`
+-- which is the pair Bio-Formats reads for the OME AcquisitionDate
+(`SVSReader.DATE_FORMAT`, `"MM/dd/yy HH:mm:ss"`). Each scene reads its own
+directory's description; Aperio repeats the property block on the thumbnail but
+not on the label or the macro, whose descriptions are no more than
+`label 387x463`, so an auxiliary scene that states no time of its own takes the
+slide's. A description stating no `Date` or `Time` reports 0 --
+`jp2k_3chnl_8bit.svs` carries an Aperio header with `AppMag` and `MPP` and
+neither of those two. `SVSScene` gained two data members and a
+`setAcquisitionTime()` setter, so out-of-tree code deriving from it must be
+rebuilt. `SVSTools` gained `aperioDateTimeToEpochSeconds()`,
+`acquisitionTimeFromDescription()` and `significantBitsFromDescription()`.
+
+**A two-digit year uses a fixed window: 00-68 is 2000-2068, 69-99 is
+1969-1999**, which is the rule `strptime`'s `%y` uses. Java's
+`SimpleDateFormat`, which Bio-Formats parses this with, slides its window with
+the current date, so the two libraries will disagree about a year far enough
+out -- and only the fixed rule answers the same way next decade as it does
+today. Every corpus file states a year in the 2000s, where the two agree.
+
+**`Time Zone = GMT-05:00` is applied when the file states one**, which
+Bio-Formats does not read at all; a zone that is absent, or stated in a spelling
+the parser cannot read, leaves the text read as UTC rather than costing the
+`Date` and `Time` that were perfectly readable. No corpus file states a zone, so
+both paths are exercised through the public static rather than through a file.
+
+**`getChannelSignificantBits()` reads Aperio's `Acquisition Bit Depth`.**
+`jp2k_1chnl.svs` states 10 against 16-bit samples, which is exactly the case the
+getter is defined for. TIFF itself has no tag for it -- BitsPerSample is the
+storage width `getChannelDataType()` already reports -- and the first version of
+this change concluded from the tags alone that SVS states nothing, pinned that
+in a test and recorded it in TECH_DEBT. It was wrong: the value is a property of
+the same header the scan time comes from. A description stating none reports 0,
+which is every other corpus file.
+
+**`getPlaneTimestamp()` is not implemented.** The Aperio header states one time
+for the slide and nothing per plane, and the driver models one plane per scene.
+
+---
+
 ## pke-acquisition-time
 
 ### `PKEScene` reports the scan's acquisition time

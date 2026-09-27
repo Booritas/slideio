@@ -124,6 +124,22 @@ void SVSSlide::init(const std::vector<TiffDirectory>& directories, TIFFKeeper& k
         auxImages[MACRO] = scene;
         auxNames.emplace_back(MACRO);
     }
+    // Aperio repeats the property block on the thumbnail but not on the label
+    // or the macro, whose descriptions are no more than "label 387x463". They
+    // are directories of the one scan, so a scene that states no time of its
+    // own takes the slide's rather than reporting 0, which cvscene.hpp defines
+    // as the file recording none.
+    if (!directories.empty()) {
+        const int64_t slideTime = SVSTools::acquisitionTimeFromDescription(directories.front().description);
+        if (slideTime != 0) {
+            for (auto& entry : auxImages) {
+                auto aux = std::dynamic_pointer_cast<SVSScene>(entry.second);
+                if (aux && aux->getAcquisitionTime() == 0) {
+                    aux->setAcquisitionTime(slideTime);
+                }
+            }
+        }
+    }
     m_Scenes.assign(scenes.begin(), scenes.end());
     m_auxImages = auxImages;
     m_auxNames = auxNames;

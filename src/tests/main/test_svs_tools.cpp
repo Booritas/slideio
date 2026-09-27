@@ -146,3 +146,90 @@ TEST(SVSTools, extractResolution)
 }
 
 
+
+TEST(SVSTools, aperioDateTimeToEpochSeconds)
+{
+    // Aperio states the scan time as two properties of the image description,
+    // "Date = 12/29/09" and "Time = 09:59:15" -- month first, and a year of two
+    // digits. Bio-Formats reads the same pair with "MM/dd/yy HH:mm:ss"
+    // (SVSReader.DATE_FORMAT).
+    ASSERT_TRUE(slideio::SVSTools::aperioDateTimeToEpochSeconds("12/29/09", "09:59:15", "").has_value());
+    EXPECT_EQ(*slideio::SVSTools::aperioDateTimeToEpochSeconds("12/29/09", "09:59:15", ""), 1262080755LL);
+    EXPECT_EQ(*slideio::SVSTools::aperioDateTimeToEpochSeconds("07/16/09", "18:15:06", ""), 1247768106LL);
+    EXPECT_EQ(*slideio::SVSTools::aperioDateTimeToEpochSeconds("01/13/10", "11:58:28", ""), 1263383908LL);
+    // A four digit year is taken as it stands.
+    EXPECT_EQ(*slideio::SVSTools::aperioDateTimeToEpochSeconds("12/29/2009", "09:59:15", ""), 1262080755LL);
+}
+
+TEST(SVSTools, aperioDateTimeAppliesTheStatedTimeZone)
+{
+    // "Time Zone = GMT-05:00" is a property Aperio writes and no file in the
+    // corpus carries, so the offset is exercised here rather than through one.
+    // Without it the text names a local time the file does not qualify, and it
+    // is read as UTC.
+    EXPECT_EQ(*slideio::SVSTools::aperioDateTimeToEpochSeconds("12/29/09", "09:59:15", "GMT-05:00"),
+              1262080755LL + 5 * 3600);
+    EXPECT_EQ(*slideio::SVSTools::aperioDateTimeToEpochSeconds("12/29/09", "09:59:15", "GMT+02:00"),
+              1262080755LL - 2 * 3600);
+    EXPECT_EQ(*slideio::SVSTools::aperioDateTimeToEpochSeconds("12/29/09", "09:59:15", "GMT+0200"),
+              1262080755LL - 2 * 3600);
+}
+
+TEST(SVSTools, aperioDateTimeRejectsWhatItCannotRead)
+{
+    EXPECT_FALSE(slideio::SVSTools::aperioDateTimeToEpochSeconds("", "09:59:15", "").has_value());
+    EXPECT_FALSE(slideio::SVSTools::aperioDateTimeToEpochSeconds("12/29/09", "", "").has_value());
+    EXPECT_FALSE(slideio::SVSTools::aperioDateTimeToEpochSeconds("29/12/09", "09:59:15", "").has_value());
+    EXPECT_FALSE(slideio::SVSTools::aperioDateTimeToEpochSeconds("12-29-09", "09:59:15", "").has_value());
+    EXPECT_FALSE(slideio::SVSTools::aperioDateTimeToEpochSeconds("12/29/09", "25:59:15", "").has_value());
+    EXPECT_FALSE(slideio::SVSTools::aperioDateTimeToEpochSeconds("yesterday", "09:59:15", "").has_value());
+}
+
+TEST(SVSTools, aperioTwoDigitYearUsesAFixedWindow)
+{
+    // 00-68 is 2000-2068 and 69-99 is 1969-1999, the rule strptime's %y uses.
+    // Java's SimpleDateFormat, which Bio-Formats parses this with, slides its
+    // window with the current date instead, so the two libraries will disagree
+    // about a year far enough out -- and this one at least answers the same way
+    // next decade as it does today.
+    ASSERT_TRUE(slideio::SVSTools::aperioDateTimeToEpochSeconds("01/01/68", "00:00:00", "").has_value());
+    EXPECT_EQ(*slideio::SVSTools::aperioDateTimeToEpochSeconds("01/01/68", "00:00:00", ""), 3092601600LL);
+    EXPECT_EQ(*slideio::SVSTools::aperioDateTimeToEpochSeconds("01/01/69", "00:00:00", ""), -31536000LL);
+    EXPECT_EQ(*slideio::SVSTools::aperioDateTimeToEpochSeconds("01/01/70", "00:00:00", ""), 0LL);
+}
+
+TEST(SVSTools, significantBitsFromAcquisitionBitDepth)
+{
+    // Aperio states it in the same header the scan time comes from. The survey
+    // that first recorded SVS as stating no significant bits looked only at the
+    // TIFF tags and missed this, and jp2k_1chnl.svs is the file that shows it:
+    // 10 bits of a 16 bit sample.
+    const std::string withDepth =
+        "Aperio Image Library v10.2.20\n1600x1721 [0,100 1559x1621] (256x256) J2K/KDU Q=70"
+        "|AppMag = 20|Date = 01/13/10|Time = 11:58:28|Dye = Alexa Fluor 488"
+        "|Exposure Time = 800|Acquisition Bit Depth = 10";
+    EXPECT_EQ(slideio::SVSTools::significantBitsFromDescription(withDepth), 10);
+
+    const std::string withoutDepth =
+        "Aperio Image Library v11.2.1\n46000x32914 (256x256) JPEG/RGB Q=30"
+        "|AppMag = 20|Date = 12/29/09|Time = 09:59:15";
+    EXPECT_EQ(slideio::SVSTools::significantBitsFromDescription(withoutDepth), 0);
+    EXPECT_EQ(slideio::SVSTools::significantBitsFromDescription(""), 0);
+    EXPECT_EQ(slideio::SVSTools::significantBitsFromDescription(
+        "Aperio Image Library\nlabel 387x463"), 0);
+    // Not a number, and a negative, are both refused.
+    EXPECT_EQ(slideio::SVSTools::significantBitsFromDescription(
+        "Aperio\nx|Acquisition Bit Depth = deep"), 0);
+    EXPECT_EQ(slideio::SVSTools::significantBitsFromDescription(
+        "Aperio\nx|Acquisition Bit Depth = -4"), 0);
+}
+
+TEST(SVSTools, aperioDateTimeFallsBackToUtcOnAnUnreadableZone)
+{
+    // A zone the parser cannot spell-match must not cost the Date and Time,
+    // which were perfectly readable. Dropping them would discard more of the
+    // file than the branch above, which reads an absent zone as UTC.
+    ASSERT_TRUE(slideio::SVSTools::aperioDateTimeToEpochSeconds("12/29/09", "09:59:15", "GMT").has_value());
+    EXPECT_EQ(*slideio::SVSTools::aperioDateTimeToEpochSeconds("12/29/09", "09:59:15", "GMT"), 1262080755LL);
+    EXPECT_EQ(*slideio::SVSTools::aperioDateTimeToEpochSeconds("12/29/09", "09:59:15", "Eastern"), 1262080755LL);
+}

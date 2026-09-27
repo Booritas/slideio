@@ -85,6 +85,24 @@ namespace slideio
         DataType getChannelDataType(int) const override{
             return m_dataType;
         }
+        // The Aperio Date and Time properties of the scene's description, in
+        // seconds since the Unix epoch; 0 where the file states none. SVS states
+        // one time for the slide and nothing per plane, so hasPlaneTimestamps()
+        // keeps the base class's false; see TECH_DEBT #28.
+        int64_t getAcquisitionTime() const override { return m_acquisitionTime; }
+        // Aperio's "Acquisition Bit Depth", 0 where the description states none.
+        // One value covers every channel: it describes the camera behind the
+        // samples, not a component of them.
+        int getChannelSignificantBits(int channelIndex) const override {
+            if (channelIndex < 0 || channelIndex >= getNumChannels()) {
+                return 0;
+            }
+            return m_significantBits;
+        }
+        // Applied by SVSSlide to an auxiliary scene whose own directory states no
+        // time: Aperio repeats the property block on the thumbnail but not on
+        // the label or the macro, and all of them belong to the one scan.
+        void setAcquisitionTime(int64_t epochSeconds) { m_acquisitionTime = epochSeconds; }
         ColorProfile getColorProfile() const override {
             return m_colorProfile;
         }
@@ -108,6 +126,8 @@ namespace slideio
         Resolution m_resolution;
         double m_magnification;
         DataType m_dataType;
+        int64_t m_acquisitionTime = 0;
+        int m_significantBits = 0;
         int m_sceneIndex;
         ColorProfile m_colorProfile;
     };

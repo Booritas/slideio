@@ -759,3 +759,106 @@ TEST(SVSImageDriver, colorProfileMatchesTheTiffTagWhenPresent)
     ASSERT_TRUE(scene->getColorProfileInfo().present);
 }
 
+
+TEST(SVSImageDriver, acquisitionTimeFromAperioDateAndTime)
+{
+    // "Date = 12/29/09|Time = 09:59:15" in the image description, which is the
+    // pair Bio-Formats reads for the OME AcquisitionDate (SVSReader).
+    slideio::SVSImageDriver driver;
+    std::string filePath = TestTools::getTestImagePath("svs", "CMU-1-Small-Region.svs");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
+    ASSERT_TRUE(scene != nullptr);
+    EXPECT_EQ(scene->getAcquisitionTime(), 1262080755LL);
+}
+
+TEST(SVSImageDriver, acquisitionTimeOfAJpeg2000Slide)
+{
+    // A different scanner version and a different encoder, same two properties:
+    // "Date = 07/16/09|Time = 18:15:06".
+    slideio::SVSImageDriver driver;
+    std::string filePath = TestTools::getTestImagePath("svs", "JP2K-33003-1.svs");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
+    ASSERT_TRUE(scene != nullptr);
+    EXPECT_EQ(scene->getAcquisitionTime(), 1247768106LL);
+}
+
+TEST(SVSImageDriver, noAcquisitionTimeWhereTheDescriptionStatesNone)
+{
+    // This one carries an Aperio header -- AppMag, MPP, OriginalWidth -- and
+    // states no Date or Time among them. 0 is what the getter means by that.
+    slideio::SVSImageDriver driver;
+    std::string filePath = TestTools::getTestImagePath("svs", "jp2k_3chnl_8bit.svs");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
+    ASSERT_TRUE(scene != nullptr);
+    EXPECT_EQ(scene->getAcquisitionTime(), 0LL);
+}
+
+TEST(SVSImageDriver, noPlaneTimestampsOrSignificantBits)
+{
+    // This file states no Acquisition Bit Depth -- jp2k_1chnl.svs does, and
+    // reports it -- so 0 here is "the file says nothing", not "the driver does
+    // not look". The Aperio header states one time for the slide and nothing
+    // per plane, and the driver models one plane per scene.
+    slideio::SVSImageDriver driver;
+    std::string filePath = TestTools::getTestImagePath("svs", "CMU-1-Small-Region.svs");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
+    ASSERT_TRUE(scene != nullptr);
+    ASSERT_EQ(scene->getNumZSlices(), 1);
+    ASSERT_EQ(scene->getNumTFrames(), 1);
+    EXPECT_FALSE(scene->hasPlaneTimestamps());
+    EXPECT_DOUBLE_EQ(scene->getPlaneTimestamp(0, 0, 0), 0.);
+    for (int channel = 0; channel < scene->getNumChannels(); ++channel) {
+        EXPECT_EQ(scene->getChannelSignificantBits(channel), 0) << "channel " << channel;
+    }
+}
+
+TEST(SVSImageDriver, significantBitsFromAcquisitionBitDepth)
+{
+    // 16 bit samples carrying 10 bits of camera data -- the case
+    // getChannelSignificantBits() is defined for. Aperio states it as
+    // "Acquisition Bit Depth = 10" in the image description.
+    slideio::SVSImageDriver driver;
+    std::string filePath = TestTools::getTestImagePath("svs", "jp2k_1chnl.svs");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
+    ASSERT_TRUE(scene != nullptr);
+    ASSERT_EQ(scene->getNumChannels(), 1);
+    EXPECT_EQ(scene->getChannelDataType(0), slideio::DataType::DT_UInt16);
+    EXPECT_EQ(scene->getChannelSignificantBits(0), 10);
+    EXPECT_EQ(scene->getChannelSignificantBits(-1), 0);
+    EXPECT_EQ(scene->getChannelSignificantBits(1), 0);
+    // Same file, same header: the scan time reads too.
+    EXPECT_EQ(scene->getAcquisitionTime(), 1263383908LL);
+}
+
+TEST(SVSImageDriver, auxiliarySceneReportsTheSlideScanTime)
+{
+    // Aperio repeats the property block on the thumbnail but not on the label
+    // or the macro, whose descriptions are just "Aperio Image Library v11.2.1 /
+    // label 387x463". They are directories of the one scan, so they report its
+    // time rather than 0, which would mean the file records none.
+    slideio::SVSImageDriver driver;
+    std::string filePath = TestTools::getTestImagePath("svs", "CMU-1-Small-Region.svs");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    for (const std::string& name : slide->getAuxImageNames()) {
+        std::shared_ptr<slideio::CVScene> aux = slide->getAuxImage(name);
+        ASSERT_TRUE(aux != nullptr) << name;
+        EXPECT_EQ(aux->getAcquisitionTime(), 1262080755LL) << name;
+    }
+}
