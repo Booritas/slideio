@@ -207,6 +207,14 @@ void DCMFile::init()
     {
         RAISE_RUNTIME_ERROR << "DCMImageDriver: undefined valude for DCM_BitsAllocated tag. File:" << m_filePath;
     }
+    // A file stating more stored bits than it allocated contradicts itself, and
+    // getBitsStored() is what getChannelSignificantBits() reports.
+    if (const int usable = significantBits(m_bitsStored, m_bitsAllocated); usable != m_bitsStored) {
+        SLIDEIO_LOG(WARNING) << "DCMImageDriver: BitsStored " << m_bitsStored
+            << " exceeds BitsAllocated " << m_bitsAllocated << " in " << m_filePath
+            << ". The significant bits are reported as unknown.";
+        m_bitsStored = usable;
+    }
 
     int pixelRepresentation(0);
     if (!getIntTag(DCM_PixelRepresentation, pixelRepresentation))
@@ -542,6 +550,17 @@ void DCMFile::readPixelValues(std::vector<cv::Mat>& frames, int startFrame, int 
     {
         extractPixelsWholeFileDecompression(frames, startFrame, numFrames);
     }
+}
+
+int DCMFile::significantBits(int bitsStored, int bitsAllocated)
+{
+    if (bitsStored <= 0) {
+        return 0;
+    }
+    if (bitsAllocated > 0 && bitsStored > bitsAllocated) {
+        return 0;
+    }
+    return bitsStored;
 }
 
 std::optional<double> DCMFile::dicomDateTimeToEpochSeconds(const std::string& date,

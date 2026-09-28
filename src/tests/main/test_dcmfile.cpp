@@ -556,3 +556,19 @@ TEST(DCMFile, timeFromTagsKeepsOneClockForBothHalves)
     EXPECT_NEAR(*acquired, 1670913622.948608, 1e-6);
     EXPECT_NEAR(*content - *acquired, 0.051392, 1e-6);
 }
+
+TEST(DCMFile, significantBitsNeverExceedTheAllocatedWidth)
+{
+    // BitsStored is how many of the BitsAllocated bits carry data, so a file
+    // stating more of them than it allocated contradicts itself. 0 is the
+    // getter's word for unknown, which is what such a pair amounts to; clamping
+    // to the allocated width instead would be indistinguishable from a file
+    // saying every stored bit is significant.
+    EXPECT_EQ(DCMFile::significantBits(12, 16), 12);
+    EXPECT_EQ(DCMFile::significantBits(16, 16), 16);
+    EXPECT_EQ(DCMFile::significantBits(12, 8), 0);
+    EXPECT_EQ(DCMFile::significantBits(0, 16), 0);
+    EXPECT_EQ(DCMFile::significantBits(-1, 16), 0);
+    // Where the allocated width is not known there is nothing to contradict.
+    EXPECT_EQ(DCMFile::significantBits(12, 0), 12);
+}

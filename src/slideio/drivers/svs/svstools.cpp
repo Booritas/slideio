@@ -232,7 +232,7 @@ nlohmann::json SVSTools::parseAperioMetadata(const std::string& description)
     return result;
 }
 
-int SVSTools::significantBitsFromDescription(const std::string& description)
+int SVSTools::significantBitsFromDescription(const std::string& description, int storageBits)
 {
     const nlohmann::json metadata = parseAperioMetadata(description);
     const auto props = metadata.find("properties");
@@ -243,15 +243,30 @@ int SVSTools::significantBitsFromDescription(const std::string& description)
     if (it == props->end() || !it->is_string()) {
         return 0;
     }
+    int bits = 0;
     try {
-        const int bits = std::stoi(it->get<std::string>());
-        // 0 is what the getter means by unknown, so a value that cannot be one
-        // reports unknown rather than itself.
-        return (bits > 0) ? bits : 0;
+        bits = std::stoi(it->get<std::string>());
     }
     catch (const std::exception&) {
         return 0;
     }
+    // 0 is what the getter means by unknown, so a value that cannot be one
+    // reports unknown rather than itself.
+    if (bits <= 0) {
+        return 0;
+    }
+    if (storageBits > 0 && bits > storageBits) {
+        // The property is the camera's digitisation depth, and a scan written
+        // narrower than the camera leaves the two disagreeing about the sample
+        // this claims to describe. More significant bits than a sample holds is
+        // not something a caller can shift by, so it reports unknown -- the same
+        // reason the PKE driver declines to read <Bits> from a scan profile.
+        SLIDEIO_LOG(WARNING) << "SVSImageDriver: Acquisition Bit Depth " << bits
+            << " exceeds the " << storageBits << " bits of a sample. The significant"
+               " bits of the image are reported as unknown.";
+        return 0;
+    }
+    return bits;
 }
 
 int64_t SVSTools::acquisitionTimeFromDescription(const std::string& description)

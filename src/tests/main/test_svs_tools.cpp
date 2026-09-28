@@ -208,20 +208,20 @@ TEST(SVSTools, significantBitsFromAcquisitionBitDepth)
         "Aperio Image Library v10.2.20\n1600x1721 [0,100 1559x1621] (256x256) J2K/KDU Q=70"
         "|AppMag = 20|Date = 01/13/10|Time = 11:58:28|Dye = Alexa Fluor 488"
         "|Exposure Time = 800|Acquisition Bit Depth = 10";
-    EXPECT_EQ(slideio::SVSTools::significantBitsFromDescription(withDepth), 10);
+    EXPECT_EQ(slideio::SVSTools::significantBitsFromDescription(withDepth, 16), 10);
 
     const std::string withoutDepth =
         "Aperio Image Library v11.2.1\n46000x32914 (256x256) JPEG/RGB Q=30"
         "|AppMag = 20|Date = 12/29/09|Time = 09:59:15";
-    EXPECT_EQ(slideio::SVSTools::significantBitsFromDescription(withoutDepth), 0);
-    EXPECT_EQ(slideio::SVSTools::significantBitsFromDescription(""), 0);
+    EXPECT_EQ(slideio::SVSTools::significantBitsFromDescription(withoutDepth, 8), 0);
+    EXPECT_EQ(slideio::SVSTools::significantBitsFromDescription("", 8), 0);
     EXPECT_EQ(slideio::SVSTools::significantBitsFromDescription(
-        "Aperio Image Library\nlabel 387x463"), 0);
+        "Aperio Image Library\nlabel 387x463", 8), 0);
     // Not a number, and a negative, are both refused.
     EXPECT_EQ(slideio::SVSTools::significantBitsFromDescription(
-        "Aperio\nx|Acquisition Bit Depth = deep"), 0);
+        "Aperio\nx|Acquisition Bit Depth = deep", 16), 0);
     EXPECT_EQ(slideio::SVSTools::significantBitsFromDescription(
-        "Aperio\nx|Acquisition Bit Depth = -4"), 0);
+        "Aperio\nx|Acquisition Bit Depth = -4", 16), 0);
 }
 
 TEST(SVSTools, aperioDateTimeFallsBackToUtcOnAnUnreadableZone)
@@ -232,4 +232,27 @@ TEST(SVSTools, aperioDateTimeFallsBackToUtcOnAnUnreadableZone)
     ASSERT_TRUE(slideio::SVSTools::aperioDateTimeToEpochSeconds("12/29/09", "09:59:15", "GMT").has_value());
     EXPECT_EQ(*slideio::SVSTools::aperioDateTimeToEpochSeconds("12/29/09", "09:59:15", "GMT"), 1262080755LL);
     EXPECT_EQ(*slideio::SVSTools::aperioDateTimeToEpochSeconds("12/29/09", "09:59:15", "Eastern"), 1262080755LL);
+}
+
+TEST(SVSTools, significantBitsNeverExceedTheSampleTheyDescribe)
+{
+    // Aperio's "Acquisition Bit Depth" is the camera's, and a camera wider than
+    // the samples a scan was written with is not a contradiction in the scanner
+    // -- it is one in what the two numbers together would mean. 10 significant
+    // bits of an 8 bit sample is not something a caller can shift by, so it
+    // reports the getter's word for unknown instead.
+    const std::string tenBits =
+        "Aperio Image Library v10.2.20\n1600x1721|AppMag = 20|Acquisition Bit Depth = 10";
+    EXPECT_EQ(slideio::SVSTools::significantBitsFromDescription(tenBits, 16), 10);
+    EXPECT_EQ(slideio::SVSTools::significantBitsFromDescription(tenBits, 8), 0);
+
+    // Equal is not a contradiction: a file may state that every stored bit
+    // carries data, and that is a statement rather than a default.
+    const std::string eightBits =
+        "Aperio Image Library v10.2.20\n1600x1721|AppMag = 20|Acquisition Bit Depth = 8";
+    EXPECT_EQ(slideio::SVSTools::significantBitsFromDescription(eightBits, 8), 8);
+
+    // Where the storage width is not known there is nothing to contradict, so
+    // the stated value stands.
+    EXPECT_EQ(slideio::SVSTools::significantBitsFromDescription(tenBits, 0), 10);
 }

@@ -53,7 +53,7 @@ SVSSmallScene::SVSSmallScene(const std::string& filePath,
     // properties on them, so each scene answers from what it holds. A
     // directory stating none reports 0.
     m_acquisitionTime = SVSTools::acquisitionTimeFromDescription(dir.description);
-    m_significantBits = SVSTools::significantBitsFromDescription(dir.description);
+    m_significantBits = SVSTools::significantBitsFromDescription(dir.description, dir.bitsPerSample);
     m_compression = m_directory.slideioCompression;
     LevelInfo level;
     level.setLevel(0);

@@ -78,7 +78,7 @@ void SVSTiledScene::processImageDescription() {
     m_metadataFormat = MetadataFormat::JSON;
     m_magnification = SVSTools::extractMagnifiation(dir.description);
     m_acquisitionTime = SVSTools::acquisitionTimeFromDescription(dir.description);
-    m_significantBits = SVSTools::significantBitsFromDescription(dir.description);
+    m_significantBits = SVSTools::significantBitsFromDescription(dir.description, dir.bitsPerSample);
     double res = SVSTools::extractResolution(dir.description);
     m_resolution = {res, res};
 }

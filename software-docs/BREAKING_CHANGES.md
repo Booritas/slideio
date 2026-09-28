@@ -54,6 +54,17 @@ enough to look right in a test that only checked the shape of the value.
 file rather than inferred: the format states it, which is the condition
 `CVScene::getChannelSignificantBits()` documents for overriding at all.
 
+**A stated depth wider than the sample reports 0, not itself.** `DCMFile` and
+`readPHTMetadata` refuse a BitsStored greater than the BitsAllocated beside it,
+with a warning, as `SVSTools::significantBitsFromDescription` does for Aperio's
+`Acquisition Bit Depth`. BitsStored counts how many of the allocated bits carry
+data, so more of the one than the other is a file contradicting itself, and
+unknown is what such a pair amounts to; the allocated width would be
+indistinguishable from a file saying every stored bit is significant, which
+`cvscene.hpp` reserves 0 to avoid. No corpus file states such a pair, so both
+guards are exercised through a public static and a crafted description rather
+than through a file. `DCMFile` gained the static `significantBits()`.
+
 **`getPlaneTimestamp()` is not implemented.** The philips xml states one
 acquisition time for the slide and nothing per plane, and the driver models one
 plane per scene.
@@ -111,6 +122,17 @@ this change concluded from the tags alone that SVS states nothing, pinned that
 in a test and recorded it in TECH_DEBT. It was wrong: the value is a property of
 the same header the scan time comes from. A description stating none reports 0,
 which is every other corpus file.
+
+**A stated depth wider than the sample reports 0, not itself.**
+`significantBitsFromDescription` takes the storage width as a second argument --
+the directory's BitsPerSample -- and refuses a value that exceeds it with a
+warning. `Acquisition Bit Depth` is the camera's, and a scan written narrower
+than the camera would otherwise have the getter report more significant bits
+than a sample holds, which is not something a caller can shift by. It is the
+same reason the PKE driver declines to read `<Bits>` from a scan profile. No
+corpus file states such a pair -- `Acquisition Bit Depth` appears only in the
+16-bit fluorescence files, at 10 -- so the guard is exercised through the public
+static rather than through a file.
 
 **`getPlaneTimestamp()` is not implemented.** The Aperio header states one time
 for the slide and nothing per plane, and the driver models one plane per scene.

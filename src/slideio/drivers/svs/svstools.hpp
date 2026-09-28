@@ -57,7 +57,11 @@ namespace slideio
         // narrower than the sample it is stored in. It is a property of the same
         // header the scan time comes from, not a TIFF tag, which is why a survey
         // of the tags alone concluded SVS states nothing.
-        static int significantBitsFromDescription(const std::string& description);
+        // @param storageBits : how many bits a sample of the scene occupies, or 0
+        // where that is not known. A stated depth wider than the sample it claims to
+        // describe is a contradiction in the file, and reports 0 -- the getter's
+        // word for unknown -- rather than a value a caller could shift by.
+        static int significantBitsFromDescription(const std::string& description, int storageBits);
         // The scan time an Aperio image description states, in seconds since
         // the Unix epoch, or 0 where it states none or none that can be read.
         // Reads the Date, Time and Time Zone properties of the description.

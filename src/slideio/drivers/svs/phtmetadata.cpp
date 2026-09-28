@@ -150,6 +150,21 @@ PHTMetadata slideio::readPHTMetadata(const std::string& description) {
         // the whole slide image each declare their own. 0 where it states none,
         // which is what getChannelSignificantBits() means by unknown.
         phReadInt(philips, image, BITS_STORED, declared.significantBits);
+        // It counts how many of the allocated bits carry data, so more of the
+        // one than the other is a file contradicting itself and amounts to
+        // unknown. The allocated width would be indistinguishable from a file
+        // saying every stored bit is significant, which 0 is reserved to avoid.
+        int allocated = 0;
+        if (phReadInt(philips, image, BITS_ALLOCATED, allocated)
+            && allocated > 0 && declared.significantBits > allocated) {
+            SLIDEIO_LOG(WARNING) << "PHTIFF: the image declares DICOM_BITS_STORED "
+                << declared.significantBits << " of DICOM_BITS_ALLOCATED " << allocated
+                << ". The significant bits of the image are reported as unknown.";
+            declared.significantBits = 0;
+        }
+        if (declared.significantBits < 0) {
+            declared.significantBits = 0;
+        }
         // Only the whole slide image has a pyramid; an auxiliary image is left with none.
         if (declared.type == WSI) {
             declared.levels = phReadLevels(philips, image);

@@ -142,6 +142,19 @@ namespace slideio
          * spelling and the dotted, colonned one DICOM's predecessor allowed.
          * @param zoneOffset : "&ZZXX" or "&ZZ:XX", applied only where the value
          * states no offset itself; empty means read as UTC.*/
+        /**@brief BitsStored as a significant bit count, or 0 where the pair cannot
+         * be one.
+         *
+         * BitsStored counts how many of the BitsAllocated bits carry data, so a
+         * file stating more of the one than it allocated of the other contradicts
+         * itself and reports unknown. Clamping to the allocated width instead
+         * would be indistinguishable from a file saying every stored bit is
+         * significant, which cvscene.hpp reserves 0 to avoid. Static and public
+         * so the rule can be tested -- no corpus file states such a pair.
+         * @param bitsAllocated : 0 where the width is not known, which disables
+         * the check rather than failing it.*/
+        static int significantBits(int bitsStored, int bitsAllocated);
+
         static std::optional<double> dicomDateTimeToEpochSeconds(const std::string& date,
                                                                 const std::string& time,
                                                                 const std::string& zoneOffset = std::string());

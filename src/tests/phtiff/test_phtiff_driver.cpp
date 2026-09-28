@@ -3040,3 +3040,29 @@ TEST_F(PhTiffImageDriverTests, phCreateAuxScenes_doesNotLetAnAperioReadingSurviv
 	// the 12 the aperio parser found, and not the whole slide image's 8.
 	EXPECT_EQ(0, thumbnail->getChannelSignificantBits(0));
 }
+
+TEST_F(PhTiffImageDriverTests, readPHTMetadataRefusesMoreStoredBitsThanAllocated) {
+	// DICOM_BITS_STORED counts how many of the DICOM_BITS_ALLOCATED bits carry
+	// data, so a file stating more of the one than it allocated of the other
+	// contradicts itself. 0 is the getter's word for unknown, which is what such
+	// a pair amounts to; the allocated width would be indistinguishable from a
+	// file saying every stored bit is significant.
+	const std::string contradictory = phSetAttributeValue(
+		MockPHTIFFSlide::createFakeXml(1024, 768, 2), BITS_STORED.Name, 0, "12");
+	const PHTMetadata metadata = readPHTMetadata(contradictory);
+	const PHTImageDeclaration* wsi = metadata.wholeSlideImage();
+	ASSERT_TRUE(wsi != nullptr);
+	EXPECT_EQ(0, wsi->significantBits) << "12 stored bits of an 8 bit sample";
+
+	// The unaltered file states 8 of 8, which is a statement rather than a
+	// contradiction.
+	const PHTMetadata plain = readPHTMetadata(MockPHTIFFSlide::createFakeXml(1024, 768, 2));
+	ASSERT_TRUE(plain.wholeSlideImage() != nullptr);
+	EXPECT_EQ(phDefaults::BITS, plain.wholeSlideImage()->significantBits);
+
+	// With no allocated width stated there is nothing to contradict.
+	const std::string noAllocated = phRemoveAttribute(contradictory, BITS_ALLOCATED.Name, 0);
+	const PHTMetadata unchecked = readPHTMetadata(noAllocated);
+	ASSERT_TRUE(unchecked.wholeSlideImage() != nullptr);
+	EXPECT_EQ(12, unchecked.wholeSlideImage()->significantBits);
+}
