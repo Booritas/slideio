@@ -7,6 +7,7 @@
 #include "slideio/core/range.hpp"
 #include "slideio/core/slideio_enums.hpp"
 #include "slideio/converter/converter_def.hpp"
+#include <memory>
 
 #if defined(_MSC_VER)
 #pragma warning( push )
@@ -176,12 +177,18 @@ namespace slideio
                 return m_encodeParameters;
             }
 
+            // No downcast here: the member already is a
+            // std::shared_ptr<ContainerParameters>, and casting it to
+            // TIFFContainerParameters only to return it as the base was a
+            // round trip that changed no pointer value -- while being
+            // undefined the moment a container that is not a TIFF one exists.
+            // Callers that want the derived type cast it themselves.
             std::shared_ptr<ContainerParameters> getContainerParameters() {
-                return std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters);
+                return m_containerParameters;
             }
 
             std::shared_ptr<const ContainerParameters> getContainerParameters() const {
-                return std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters);
+                return m_containerParameters;
             }
 
             bool isValid() const {

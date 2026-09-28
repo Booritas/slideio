@@ -93,10 +93,17 @@ foreach(_staged IN LISTS _staged_files)
     endif()
 endforeach()
 if(_stale)
+    # Removed rather than reported as an error. This directory is created and
+    # filled by this script and by nothing else, so a file here that no list
+    # names is stale by definition and deleting it is the repair. Failing
+    # instead would leave the build tree wedged: nothing else removes the file,
+    # so every later configure would fail the same way until somebody deleted
+    # the directory by hand.
     string(REPLACE ";" ", " _stale_text "${_stale}")
-    message(FATAL_ERROR
-        "The staged public header tree at ${PUBLIC_HEADER_STAGE} holds files "
-        "that no public-headers.cmake names: ${_stale_text}. They are almost "
-        "certainly headers that were public in an earlier configure of this "
-        "build tree. Delete ${PUBLIC_HEADER_STAGE} and re-configure.")
+    message(STATUS
+        "Public header check: dropping headers that no public-headers.cmake "
+        "names any more: ${_stale_text}")
+    foreach(_staged IN LISTS _stale)
+        file(REMOVE ${PUBLIC_HEADER_STAGE}/${_staged})
+    endforeach()
 endif()

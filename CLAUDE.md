@@ -265,6 +265,14 @@ reasoning keeps `cvscene.hpp`, `cvslide.hpp` and `imagedriver.hpp` internal,
 which is why the "OpenCV Interface" that `slideio.hpp`'s Doxygen mainpage
 advertises has no shipped headers.
 
+What the check cannot prove is that a header is self-contained on a *different*
+standard library. It compiles with one toolchain, so a header that reaches
+`std::tuple` or `std::shared_ptr` only because this implementation's `<memory>`
+or `<string>` happens to pull it in still passes. Four public headers were in
+exactly that state and now include what they use; when adding one, include the
+standard headers for every `std::` name it mentions rather than trusting a green
+local build.
+
 Headers are staged with `configure_file(... COPYONLY)` rather than `file(COPY)`
 precisely because of the trap documented below for `extern/pole`: `configure_file`
 registers its input as a configure dependency, so editing a public header

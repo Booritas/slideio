@@ -9,6 +9,7 @@
 #include "slideio/core/colorprofile.hpp"
 #include <cstdint>
 #include <string>
+#include <tuple>
 #include <vector>
 #include <memory>
 #include <list>
