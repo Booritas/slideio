@@ -109,6 +109,10 @@ PHTMetadata slideio::readPHTMetadata(const std::string& description) {
     // before the scan in Philips-4.tiff, near enough to look right.
     if (philips.hasAttribute(philips.getRoot(), ACQUISITION_DATETIME)) {
         const std::string stated = philips.getAttributeText(philips.getRoot(), ACQUISITION_DATETIME);
+        // A reduced precision DT -- a bare "20160718", which the VR permits --
+        // reads as nullopt and so reports 0 rather than midnight of that day.
+        // No corpus file states one, and inventing a time of day the file does
+        // not give is worse than saying the time is unknown.
         if (const auto epoch = Tools::parseDicomDateTime(stated, "")) {
             metadata.acquisitionTime = static_cast<int64_t>(std::floor(*epoch));
         }

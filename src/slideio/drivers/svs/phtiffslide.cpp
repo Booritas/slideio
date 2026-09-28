@@ -575,6 +575,12 @@ void PHTIFFSlide::createAuxScenes(const std::vector<TiffDirectory>& directories,
         // no auxiliary image in the corpus declares one, the pixel format
         // attributes appearing on the whole slide image alone.
         sScene->setAcquisitionTime(metadata.acquisitionTime);
+        // Displaced first, not only when a declaration matches: an unmatched scene
+        // would otherwise keep whatever the aperio parser made of its philips
+        // description. Nothing matches a thumbnail -- the philips vocabulary has
+        // no THUMBNAILIMAGE -- and a directory the metadata does not declare is a
+        // shape Philips-4.tiff already shows in the other direction.
+        sScene->setSignificantBits(0);
         for (const PHTImageDeclaration& declared : metadata.images) {
             if (phEqualIgnoreCase(name, phImageKindOfType(declared.type))) {
                 sScene->setSignificantBits(declared.significantBits);

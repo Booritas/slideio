@@ -201,3 +201,45 @@ TEST_F(AFIDriverFileTest, getDriverId)
         EXPECT_EQ("AFI", scene->getDriverId());
     }
 }
+
+TEST_F(AFIDriverFileTest, acquisitionTimeAndSignificantBitsOfEveryChannelFile)
+{
+    // An afi is an index over one .svs per channel, and its scenes are the
+    // SVSScene objects those files produce, so what the aperio header states
+    // reaches a caller through the afi unchanged. All three files of fs.afi
+    // were written by the one scan -- "Date = 01/12/10|Time = 14:38:30" in each
+    // -- and each states "Acquisition Bit Depth = 10" against 16 bit samples.
+    slideio::AFIImageDriver driver;
+    const std::string filePath = getPrivTestImagesPath("afi", "fs.afi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    auto slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    ASSERT_EQ(3, slide->getNumScenes());
+    for (int index = 0; index < slide->getNumScenes(); ++index) {
+        auto scene = slide->getScene(index);
+        ASSERT_TRUE(scene != nullptr) << index;
+        EXPECT_EQ(1263307110LL, scene->getAcquisitionTime()) << "scene " << index;
+        ASSERT_EQ(1, scene->getNumChannels()) << index;
+        EXPECT_EQ(slideio::DataType::DT_UInt16, scene->getChannelDataType(0)) << index;
+        EXPECT_EQ(10, scene->getChannelSignificantBits(0)) << "scene " << index;
+        EXPECT_EQ(0, scene->getChannelSignificantBits(1)) << index;
+    }
+}
+
+TEST_F(AFIDriverFileTest, noPlaneTimestamps)
+{
+    // Each channel is a scene of its own rather than a plane of one scene, so
+    // there is nothing for a per-plane timestamp to distinguish; the aperio
+    // header states one time per file and the driver models one plane.
+    slideio::AFIImageDriver driver;
+    const std::string filePath = getPrivTestImagesPath("afi", "fs.afi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    auto slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    auto scene = slide->getScene(0);
+    ASSERT_TRUE(scene != nullptr);
+    ASSERT_EQ(1, scene->getNumZSlices());
+    ASSERT_EQ(1, scene->getNumTFrames());
+    EXPECT_FALSE(scene->hasPlaneTimestamps());
+    EXPECT_DOUBLE_EQ(0., scene->getPlaneTimestamp(0, 0, 0));
+}

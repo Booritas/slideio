@@ -1098,6 +1098,12 @@ scanner's calibration -- four and a half minutes before the scan in
 value looked like a date. Only `getPlaneTimestamp()` is absent from PHTIFF: one
 time per slide, one plane per scene.
 
+AFI needed no work of its own: an `.afi` is an index over one `.svs` per channel
+and its scenes are `SVSScene` objects, so it inherited both getters from the SVS
+work. `fs.afi` is 10 bits in 16-bit samples across three files of one scan.
+Tests pin it anyway -- disabling the SVS source fails them -- because nothing
+else would catch a future change to how `AFISlide` builds its scenes.
+
 `getAcquisitionTime()` on `NDPIScene`, `SCNScene`, `PKEScene`, `SVSScene` and
 `PHTIFFTiledScene` reads what the formats do state, and a
 `noPlaneTimestampsOrSignificantBits` test in the first three pins the other two

@@ -115,6 +115,12 @@ which is every other corpus file.
 **`getPlaneTimestamp()` is not implemented.** The Aperio header states one time
 for the slide and nothing per plane, and the driver models one plane per scene.
 
+**The AFI driver inherits all of this.** An `.afi` is an index over one `.svs`
+per channel and its scenes are the `SVSScene` objects those files produce, so
+an afi slide began reporting both getters with this commit and no code of its
+own. `fs.afi` states `Date = 01/12/10|Time = 14:38:30` and
+`Acquisition Bit Depth = 10` against 16-bit samples in all three of its files.
+
 ---
 
 ## pke-acquisition-time

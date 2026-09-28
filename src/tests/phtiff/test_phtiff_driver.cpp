@@ -3005,3 +3005,38 @@ TEST_F(PhTiffImageDriverTests, auxiliaryImagesOfTheCorpusDeclareNoBitsStored) {
 		EXPECT_EQ(0, aux->getChannelSignificantBits(0)) << name;
 	}
 }
+
+// createAuxScenes displaces both values, not just the one it finds a
+// declaration for. SVSSmallScene parses its directory's description as aperio
+// text on the way in, and a philips description is not that -- but nothing
+// stops a directory from carrying text the aperio parser does read. Leaving the
+// bits alone when no philips declaration matches would let that value through,
+// and the philips vocabulary has no THUMBNAILIMAGE at all, so an image named
+// "Thumbnail" never matches anything.
+TEST_F(PhTiffImageDriverTests, phCreateAuxScenes_doesNotLetAnAperioReadingSurvive) {
+	std::vector<TiffDirectory> directories = {
+		makeImageDir(MockPHTIFFSlide::fakeXML, 131072, 100352),
+		makeImageDir("Thumbnail", 791, 403),
+	};
+	// Aperio text in the directory description of a philips file. Contrived, but
+	// it is the only thing standing between the aperio parser and the scene.
+	directories[1].description =
+		"Thumbnail\nAperio Image Library v11.2.1\n791x403|AppMag = 20"
+		"|Acquisition Bit Depth = 12";
+	const std::map<std::string, int> auxImages = { {"Thumbnail", 1} };
+
+	PHTMetadata metadata;
+	PHTImageDeclaration wsiDeclaration;
+	wsiDeclaration.type = "WSI";
+	wsiDeclaration.significantBits = 8;
+	metadata.images.push_back(wsiDeclaration);
+
+	MockPHTIFFSlide slide;
+	slide.createAuxScenesMock(directories, auxImages, metadata);
+
+	auto thumbnail = slide.getAuxImage("Thumbnail");
+	ASSERT_TRUE(thumbnail != nullptr);
+	// No philips declaration names a thumbnail, so the scene states none -- not
+	// the 12 the aperio parser found, and not the whole slide image's 8.
+	EXPECT_EQ(0, thumbnail->getChannelSignificantBits(0));
+}
