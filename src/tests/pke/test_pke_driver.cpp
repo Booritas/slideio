@@ -1,5 +1,6 @@
 ﻿#include <random>
 #include <gtest/gtest.h>
+#include "slideio/slideio/sceneinternal.hpp"
 #include "tests/testlib/testtools.hpp"
 #include <string>
 #include <tinyxml2.h>
@@ -484,7 +485,7 @@ TEST_F(PKEImageDriverTests, getDriverId)
     for (int iScene = 0; iScene < numScenes; ++iScene) {
         auto scene = slide->getScene(iScene);
         EXPECT_TRUE(scene.get() != nullptr);
-		auto cvScene = scene->getCVScene();
+		auto cvScene = slideio::SceneInternal::getCVScene(scene);
         EXPECT_EQ(iScene, cvScene->getSceneIndex());
         EXPECT_EQ(filePath, cvScene->getFilePath());
 		EXPECT_EQ("QPTIFF", cvScene->getDriverId());

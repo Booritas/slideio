@@ -2,6 +2,7 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include <gtest/gtest.h>
+#include "slideio/slideio/sceneinternal.hpp"
 
 
 //#include <opencv2/highgui.hpp>
@@ -113,7 +114,7 @@ TEST_F(DCMImageDriverTests, getSceneIndex)
     const int numScenes = slide->getNumScenes();
     EXPECT_EQ(2, numScenes);
     for (int iScene = 0; iScene < numScenes; ++iScene) {
-        std::shared_ptr<slideio::CVScene> scene = slide->getScene(iScene)->getCVScene();
+        std::shared_ptr<slideio::CVScene> scene = slideio::SceneInternal::getCVScene(slide->getScene(iScene));
         EXPECT_TRUE(scene.get() != nullptr);
         EXPECT_EQ(iScene, scene->getSceneIndex());
         EXPECT_EQ(filePath, scene->getFilePath());
@@ -956,13 +957,13 @@ TEST(DCMImageDriver, colorProfileFromWSIAuxImage)
     std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
     std::shared_ptr<slideio::CVScene> auxCvScene = scene->getAuxImage("LABEL");
     ASSERT_TRUE(auxCvScene.get() != nullptr);
-    slideio::Scene auxScene(auxCvScene);
+    auto auxScene = slideio::SceneInternal::createScene(auxCvScene);
 
-    const slideio::ColorProfile profile = auxScene.getColorProfile();
+    const slideio::ColorProfile profile = auxScene->getColorProfile();
     ASSERT_FALSE(profile.isEmpty());
     ASSERT_EQ(refProfile, profile.getData());
     ASSERT_EQ(slideio::ColorProfileSource::Embedded, profile.getSource());
-    const slideio::ColorProfileInfo info = auxScene.getColorProfileInfo();
+    const slideio::ColorProfileInfo info = auxScene->getColorProfileInfo();
     ASSERT_TRUE(info.present);
     ASSERT_EQ(profile.getSize(), info.dataSize);
 }
@@ -1043,13 +1044,13 @@ TEST(DCMImageDriver, colorProfileEndToEndThroughWSISceneRealDriverPath)
     ASSERT_EQ(1, slide->getNumScenes());
     std::shared_ptr<slideio::CVScene> cvScene = slide->getScene(0);
     ASSERT_TRUE(cvScene.get() != nullptr);
-    slideio::Scene scene(cvScene);
+    auto sceneWrapper = slideio::SceneInternal::createScene(cvScene);
 
-    const slideio::ColorProfile profile = scene.getColorProfile();
+    const slideio::ColorProfile profile = sceneWrapper->getColorProfile();
     ASSERT_FALSE(profile.isEmpty());
     EXPECT_EQ(profileBytes, profile.getData());
     EXPECT_EQ(slideio::ColorProfileSource::Embedded, profile.getSource());
-    EXPECT_TRUE(scene.getColorProfileInfo().present);
+    EXPECT_TRUE(sceneWrapper->getColorProfileInfo().present);
 }
 
 TEST_F(DCMImageDriverTests, planeTimestampsOfAMultiFileSeries)

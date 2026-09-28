@@ -15,11 +15,6 @@
 
 namespace slideio
 {
-    class CVScene;
-}
-
-namespace slideio
-{
     namespace converter
     {
         enum ImageFormat
@@ -201,8 +196,6 @@ namespace slideio
             void setTileBatchSize(int batchSize) {
                 m_tileBatchSize = batchSize;
             }
-
-            void updateNotDefinedParameters(const std::shared_ptr<CVScene>& scene);
 
         private:
             void initialize();

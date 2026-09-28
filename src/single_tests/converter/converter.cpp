@@ -1,4 +1,5 @@
 #include "slideio/converter/converter.hpp"
+#include "slideio/slideio/sceneinternal.hpp"
 #include "slideio/slideio/slideio.hpp"
 #include "slideio/slideio/scene.hpp"
 #include "slideio/core/exceptions.hpp"
@@ -37,7 +38,7 @@ int main()
     // tiffParams->setTileHeight(tileHeight);
 
     // TiffConverter converter;
-    // ASSERT_NO_THROW(converter.createFileLayout(scene->getCVScene(), parameters));
+    // ASSERT_NO_THROW(converter.createFileLayout(slideio::SceneInternal::getCVScene(scene), parameters));
 
 	return 0;   
 }

@@ -441,56 +441,28 @@ if(MSVC)
     endforeach()
 endif()
 
-install(FILES
-    ${INCLUDE_ROOT}/slideio/converter/converterparameters.hpp
-    ${INCLUDE_ROOT}/slideio/converter/convertercallback.hpp
-    ${INCLUDE_ROOT}/slideio/converter/converter_def.hpp
-    ${INCLUDE_ROOT}/slideio/converter/converter.hpp
-    DESTINATION include/slideio/converter COMPONENT Development)
+# Public headers.
+#
+# Each module names its own in src/slideio/<module>/public-headers.cmake, next
+# to the headers themselves, and those lists are the single definition of the
+# public surface: they drive both the install rules here and the compile check
+# in src/public_headers_check, which builds every one of them the way a consumer
+# of the -dev package would. Adding a header to the public API is a one-line
+# change in the module that owns it; the check then holds it to the contract.
+set(SLIDEIO_PUBLIC_HEADER_MODULES core slideio imagetools converter transformer)
 
-install(FILES
-    ${INCLUDE_ROOT}/slideio/core/slideio_core_def.hpp
-    ${INCLUDE_ROOT}/slideio/core/levelinfo.hpp
-    ${INCLUDE_ROOT}/slideio/core/metadata.hpp
-    ${INCLUDE_ROOT}/slideio/core/rect.hpp
-    ${INCLUDE_ROOT}/slideio/core/size.hpp
-    ${INCLUDE_ROOT}/slideio/core/range.hpp
-    ${INCLUDE_ROOT}/slideio/core/resolution.hpp
-    ${INCLUDE_ROOT}/slideio/core/slideio_enums.hpp
-    ${INCLUDE_ROOT}/slideio/core/slideio_structs.hpp
-    ${INCLUDE_ROOT}/slideio/core/colorprofile.hpp
-    DESTINATION include/slideio/core COMPONENT Development)
+foreach(_module IN LISTS SLIDEIO_PUBLIC_HEADER_MODULES)
+    include(${INCLUDE_ROOT}/slideio/${_module}/public-headers.cmake)
+    set(_module_headers)
+    foreach(_name IN LISTS SLIDEIO_PUBLIC_HEADERS_${_module})
+        list(APPEND _module_headers ${INCLUDE_ROOT}/slideio/${_module}/${_name})
+    endforeach()
+    install(FILES ${_module_headers}
+            DESTINATION include/slideio/${_module} COMPONENT Development)
+endforeach()
 
-install(FILES
-    ${INCLUDE_ROOT}/slideio/imagetools/encodeparameters.hpp
-    DESTINATION include/slideio/imagetools COMPONENT Development)
-
-install(FILES
-    ${INCLUDE_ROOT}/slideio/slideio/slideio_def.hpp
-    ${INCLUDE_ROOT}/slideio/slideio/slideio.hpp
-    ${INCLUDE_ROOT}/slideio/slideio/slide.hpp
-    ${INCLUDE_ROOT}/slideio/slideio/scene.hpp
-    DESTINATION include/slideio/slideio COMPONENT Development)
-
-install(FILES
-    ${INCLUDE_ROOT}/slideio/transformer/wrappers.hpp
-    ${INCLUDE_ROOT}/slideio/transformer/transformer_def.hpp
-    ${INCLUDE_ROOT}/slideio/transformer/transformer.hpp
-    ${INCLUDE_ROOT}/slideio/transformer/transformationwrapper.hpp
-    ${INCLUDE_ROOT}/slideio/transformer/transformationtype.hpp
-    ${INCLUDE_ROOT}/slideio/transformer/transformations.hpp
-    ${INCLUDE_ROOT}/slideio/transformer/transformation.hpp
-    ${INCLUDE_ROOT}/slideio/transformer/sobelfilterwrap.hpp
-    ${INCLUDE_ROOT}/slideio/transformer/scharrfilterwrap.hpp
-    ${INCLUDE_ROOT}/slideio/transformer/medianblurfilterwrap.hpp
-    ${INCLUDE_ROOT}/slideio/transformer/laplacianfilterwrap.hpp
-    ${INCLUDE_ROOT}/slideio/transformer/gaussianblurfilterwrap.hpp
-    ${INCLUDE_ROOT}/slideio/transformer/colortransformationwrap.hpp
-    ${INCLUDE_ROOT}/slideio/transformer/colorspace.hpp
-    ${INCLUDE_ROOT}/slideio/transformer/colormanagementwrap.hpp
-    ${INCLUDE_ROOT}/slideio/transformer/cannyfilterwrap.hpp
-    ${INCLUDE_ROOT}/slideio/transformer/bilateralfilterwrap.hpp
-    DESTINATION include/slideio/transformer COMPONENT Development)
+# After the include()s above, which is where the lists it reads come from.
+add_subdirectory(src/public_headers_check)
 
 # ---------------------------------------------------------------------------
 # CMake package configuration

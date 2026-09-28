@@ -12,6 +12,7 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/slide.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/slide.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/scene.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/sceneinternal.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/scene.cpp
    )
 

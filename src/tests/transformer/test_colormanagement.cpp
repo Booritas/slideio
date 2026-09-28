@@ -2,6 +2,7 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include <gtest/gtest.h>
+#include "slideio/slideio/sceneinternal.hpp"
 #include <algorithm>
 #include <atomic>
 #include <list>
@@ -31,7 +32,7 @@ TEST(TransformationBinding, existingFiltersNeedNoBinding)
     SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
     std::shared_ptr<Slide> slide = openSlide(path, "AUTO");
     std::shared_ptr<Scene> scene = slide->getScene(0);
-    std::shared_ptr<CVScene> cvScene = scene->getCVScene();
+    std::shared_ptr<CVScene> cvScene = slideio::SceneInternal::getCVScene(scene);
     GaussianBlurFilter filter;
     ASSERT_EQ(nullptr, filter.bindToSource(*cvScene, {DataType::DT_Byte, DataType::DT_Byte,
                                                       DataType::DT_Byte}, ColorProfile()).get());
@@ -82,7 +83,7 @@ TEST(TransformationBinding, colorManagementSeparatesProvenanceFromTheConvertedPr
     SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
     std::shared_ptr<Slide> slide = openSlide(path, "AUTO");
     std::shared_ptr<Scene> scene = slide->getScene(0);
-    std::shared_ptr<CVScene> cvScene = scene->getCVScene();
+    std::shared_ptr<CVScene> cvScene = slideio::SceneInternal::getCVScene(scene);
 
     const ColorProfile source = cvScene->getColorProfile();
     ASSERT_EQ(static_cast<size_t>(672), source.getSize());
@@ -116,7 +117,7 @@ TEST(TransformationBinding, chainedColorManagementBindsAgainstTheConvertedProfil
     SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
     std::shared_ptr<Slide> slide = openSlide(path, "AUTO");
     std::shared_ptr<Scene> scene = slide->getScene(0);
-    std::shared_ptr<CVScene> cvScene = scene->getCVScene();
+    std::shared_ptr<CVScene> cvScene = slideio::SceneInternal::getCVScene(scene);
 
     const ColorProfile source = cvScene->getColorProfile();
     const std::vector<DataType> bytes{DataType::DT_Byte, DataType::DT_Byte, DataType::DT_Byte};
@@ -452,12 +453,12 @@ TEST(ColorManagement, transformedSceneKeepsTheOriginConcurrency)
     SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
     std::shared_ptr<Slide> slide = openSlide(path, "SVS");
     std::shared_ptr<Scene> scene = slide->getScene(0);
-    ASSERT_TRUE(scene->getCVScene()->supportsConcurrentReads());
+    ASSERT_TRUE(slideio::SceneInternal::getCVScene(scene)->supportsConcurrentReads());
 
     ColorManagement cm(ColorTarget::sRGB);
     std::shared_ptr<Scene> managed = transformScene(scene, cm);
     // Wrapping a scene in a transform must not silently serialise its reads.
-    ASSERT_TRUE(managed->getCVScene()->supportsConcurrentReads());
+    ASSERT_TRUE(slideio::SceneInternal::getCVScene(managed)->supportsConcurrentReads());
 }
 
 TEST(ColorManagement, concurrentReadsOfAManagedSceneAgree)

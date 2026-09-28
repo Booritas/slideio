@@ -2,6 +2,7 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/transformer/transformer.hpp"
+#include "slideio/slideio/sceneinternal.hpp"
 #include "slideio/transformer/transformations.hpp"
 #include "slideio/transformer/transformerscene.hpp"
 #include "slideio/core/exceptions.hpp"
@@ -17,15 +18,15 @@ std::shared_ptr<Scene> slideio::transformScene(std::shared_ptr<slideio::Scene> s
     auto ptr = makeTransformationCopy(transform);
     std::list<std::shared_ptr<Transformation>> transforms;
     transforms.push_back(ptr);
-    std::shared_ptr<CVScene> transformedCVScene(new TransformerScene(scene->getCVScene(), transforms));
-    std::shared_ptr<Scene> transformerScene(new Scene(transformedCVScene));
+    std::shared_ptr<CVScene> transformedCVScene(new TransformerScene(slideio::SceneInternal::getCVScene(scene), transforms));
+    std::shared_ptr<Scene> transformerScene = slideio::SceneInternal::createScene(transformedCVScene);
     return transformerScene;
 }
 
 std::shared_ptr<Scene> slideio::transformSceneEx(std::shared_ptr<Scene> scene, std::list<std::shared_ptr<Transformation>>& transforms)
 {
-    std::shared_ptr<CVScene> transformedCVScene(new TransformerScene(scene->getCVScene(), transforms));
-    std::shared_ptr<slideio::Scene> transformerScene(new Scene(transformedCVScene));
+    std::shared_ptr<CVScene> transformedCVScene(new TransformerScene(slideio::SceneInternal::getCVScene(scene), transforms));
+    std::shared_ptr<slideio::Scene> transformerScene = slideio::SceneInternal::createScene(transformedCVScene);
     return transformerScene;
 }
 

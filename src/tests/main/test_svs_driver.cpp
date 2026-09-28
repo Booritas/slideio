@@ -1,5 +1,6 @@
 ﻿#include <gtest/gtest.h>
 #include "slideio/drivers/svs/svsimagedriver.hpp"
+#include "slideio/slideio/sceneinternal.hpp"
 #include "slideio/drivers/svs/svstiledscene.hpp"
 #include "slideio/drivers/svs/svstools.hpp"
 #include "slideio/imagetools/imagetools.hpp"
@@ -42,7 +43,7 @@ TEST(SVSImageDriver, getDriverId)
     const int numScenes = slide->getNumScenes();
     EXPECT_EQ(1, numScenes);
     for (int iScene = 0; iScene < numScenes; ++iScene) {
-        std::shared_ptr<slideio::CVScene> scene = slide->getScene(iScene)->getCVScene();
+        std::shared_ptr<slideio::CVScene> scene = slideio::SceneInternal::getCVScene(slide->getScene(iScene));
         EXPECT_TRUE(scene.get() != nullptr);
         EXPECT_EQ(iScene, scene->getSceneIndex());
         EXPECT_EQ(filePath, scene->getFilePath());

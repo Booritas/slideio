@@ -2,6 +2,7 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include <gtest/gtest.h>
+#include "slideio/slideio/sceneinternal.hpp"
 #include <memory>
 #include <opencv2/imgproc.hpp>
 #include "tests/testlib/testscene.hpp"
@@ -43,9 +44,9 @@ namespace
 TEST(TransformerSceneLevels, aTransformedSceneReportsItsOriginsPyramid)
 {
     auto origin = pyramidOrigin();
-    auto originScene = std::make_shared<Scene>(origin);
+    auto originScene = slideio::SceneInternal::createScene(origin);
     auto transformed = grayTransformOf(originScene);
-    std::shared_ptr<CVScene> cvTransformed = transformed->getCVScene();
+    std::shared_ptr<CVScene> cvTransformed = slideio::SceneInternal::getCVScene(transformed);
 
     ASSERT_EQ(cvTransformed->getNumZoomLevels(), origin->getNumZoomLevels());
     for (int level = 0; level < origin->getNumZoomLevels(); ++level) {
@@ -61,9 +62,9 @@ TEST(TransformerSceneLevels, aTransformedSceneReportsItsOriginsPyramid)
 TEST(TransformerSceneLevels, aLevelReadAppliesTheTransformToThatLevelsRaster)
 {
     auto origin = pyramidOrigin();
-    auto originScene = std::make_shared<Scene>(origin);
+    auto originScene = slideio::SceneInternal::createScene(origin);
     auto transformed = grayTransformOf(originScene);
-    std::shared_ptr<CVScene> cvTransformed = transformed->getCVScene();
+    std::shared_ptr<CVScene> cvTransformed = slideio::SceneInternal::getCVScene(transformed);
 
     // Read the whole of level 1 from both. The transform is a colour
     // conversion with no kernel, so the transformed result must be exactly the
@@ -95,9 +96,9 @@ TEST(TransformerSceneLevels, aLevelReadIsTakenFromTheRequestedLevelNotResampledF
     // origin was asked at the requested level's geometry rather than at some
     // scale the origin then had to choose a level for.
     auto origin = pyramidOrigin();
-    auto originScene = std::make_shared<Scene>(origin);
+    auto originScene = slideio::SceneInternal::createScene(origin);
     auto transformed = grayTransformOf(originScene);
-    std::shared_ptr<CVScene> cvTransformed = transformed->getCVScene();
+    std::shared_ptr<CVScene> cvTransformed = slideio::SceneInternal::getCVScene(transformed);
 
     origin->clearRequests();
     cv::Mat raster;
@@ -123,13 +124,13 @@ TEST(TransformerSceneLevels, aLevelReadAgreesWithTheEquivalentScaledRead)
     // the blur ran at the output resolution in both cases. Were the kernel
     // defined in level-0 pixels these two would differ.
     auto origin = pyramidOrigin();
-    auto originScene = std::make_shared<Scene>(origin);
+    auto originScene = slideio::SceneInternal::createScene(origin);
 
     GaussianBlurFilter blur;
     blur.setKernelSizeX(5);
     blur.setKernelSizeY(5);
     std::shared_ptr<Scene> transformed = transformScene(originScene, blur);
-    std::shared_ptr<CVScene> cvTransformed = transformed->getCVScene();
+    std::shared_ptr<CVScene> cvTransformed = slideio::SceneInternal::getCVScene(transformed);
 
     cv::Mat viaLevel;
     cvTransformed->readResampledLevelBlockChannels(1, cv::Rect(0, 0, 200, 150),
@@ -165,9 +166,9 @@ namespace
     void expectMatchesOriginThroughGrey(int level, const cv::Rect& levelRect, const cv::Size& blockSize)
     {
         auto origin = pyramidOrigin();
-        auto originScene = std::make_shared<Scene>(origin);
+        auto originScene = slideio::SceneInternal::createScene(origin);
         auto transformed = grayTransformOf(originScene);
-        std::shared_ptr<CVScene> cvTransformed = transformed->getCVScene();
+        std::shared_ptr<CVScene> cvTransformed = slideio::SceneInternal::getCVScene(transformed);
 
         cv::Mat raster;
         ASSERT_NO_THROW(
@@ -226,12 +227,12 @@ TEST(TransformerSceneLevels, anOutOfBoundsLevelRectIsSafeForAKernelTransformToo)
     // clipping and the halo interact; this is the case where getting the order
     // wrong is easiest.
     auto origin = pyramidOrigin();
-    auto originScene = std::make_shared<Scene>(origin);
+    auto originScene = slideio::SceneInternal::createScene(origin);
     GaussianBlurFilter blur;
     blur.setKernelSizeX(9);
     blur.setKernelSizeY(9);
     std::shared_ptr<Scene> transformed = transformScene(originScene, blur);
-    std::shared_ptr<CVScene> cvTransformed = transformed->getCVScene();
+    std::shared_ptr<CVScene> cvTransformed = slideio::SceneInternal::getCVScene(transformed);
 
     const cv::Rect cases[] = {
         cv::Rect(-20, -20, 100, 100),      // off the top left

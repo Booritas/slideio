@@ -2,6 +2,7 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include <gtest/gtest.h>
+#include "slideio/slideio/sceneinternal.hpp"
 #include <opencv2/core.hpp>
 #include <algorithm>
 #include "tests/testlib/testscene.hpp"
@@ -209,13 +210,13 @@ TEST(LevelReadingTests, publicSceneApiRejectsAnOutOfRangeLevel)
 TEST(LevelReadingTests, publicSceneApiMapsALevelOntoSceneCoordinates)
 {
     auto testScene = makeTwoLevelScene();
-    slideio::Scene scene(testScene);
+    auto scene = slideio::SceneInternal::createScene(testScene);
 
     const std::tuple<int, int, int, int> rect(10, 10, 20, 20);
     const std::tuple<int, int> size(20, 20);
-    std::vector<uint8_t> buffer(scene.getBlockSize(size, 0, 3, 1, 1));
+    std::vector<uint8_t> buffer(scene->getBlockSize(size, 0, 3, 1, 1));
 
-    scene.readResampledLevelBlockChannels(1, rect, size, {}, buffer.data(), buffer.size());
+    scene->readResampledLevelBlockChannels(1, rect, size, {}, buffer.data(), buffer.size());
 
     ASSERT_EQ(1u, testScene->requests().size());
     EXPECT_EQ(cv::Rect(20, 20, 40, 40), testScene->requests()[0].rect);
@@ -234,19 +235,19 @@ TEST(LevelReadingTests, publicSceneApiReadsALevel4DBlockPerSlice)
 {
     auto testScene = makeTwoLevelScene();
     testScene->setNumZSlices(3);
-    slideio::Scene scene(testScene);
+    auto scene = slideio::SceneInternal::createScene(testScene);
 
     const std::tuple<int, int, int, int> rect(0, 0, 20, 20);
     const std::tuple<int, int> size(20, 20);
     const int numChannels = 3;
 
-    const int planeSize = scene.getBlockSize(size, 0, numChannels, 1, 1);
+    const int planeSize = scene->getBlockSize(size, 0, numChannels, 1, 1);
     std::vector<uint8_t> reference(planeSize);
-    scene.readResampledLevelBlockChannels(1, rect, size, {}, reference.data(), reference.size());
+    scene->readResampledLevelBlockChannels(1, rect, size, {}, reference.data(), reference.size());
     testScene->clearRequests();
 
-    std::vector<uint8_t> buffer(scene.getBlockSize(size, 0, numChannels, 3, 1));
-    scene.readResampledLevel4DBlockChannels(1, rect, size, {}, {0, 3}, {0, 1}, buffer.data(), buffer.size());
+    std::vector<uint8_t> buffer(scene->getBlockSize(size, 0, numChannels, 3, 1));
+    scene->readResampledLevel4DBlockChannels(1, rect, size, {}, {0, 3}, {0, 1}, buffer.data(), buffer.size());
 
     ASSERT_EQ(3u, testScene->requests().size());
     for (int slice = 0; slice < 3; ++slice) {

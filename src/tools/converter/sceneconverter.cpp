@@ -3,6 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 
 #include "slideio/converter/converterparameters.hpp"
+#include "slideio/slideio/sceneinternal.hpp"
 #include "slideio/converter/tiffconverter.hpp"
 #include "slideio/slideio/slide.hpp"
 #include "slideio/core/rect.hpp"
@@ -229,7 +230,7 @@ void convertFile(
 	ConverterParameters params(format, TIFF_CONTAINER, compression);
 	params.setTileBatchSize(tileBatchSize);
 	if (!rect.empty()) {
-		const Rect& sceneRect = scene->getCVScene()->getRect();
+		const Rect& sceneRect = slideio::SceneInternal::getCVScene(scene)->getRect();
 		if (rect.x + rect.width > sceneRect.width 
 			|| rect.y + rect.height > sceneRect.height) {
 			RAISE_RUNTIME_ERROR << "Specified rectangle exceeds scene dimensions: (0,0,"
@@ -280,7 +281,7 @@ void convertFile(
 		containerParams->setNumZoomLevels(numZoomLevels);
 	}
 	TiffConverter converter;
-	converter.createFileLayout(scene->getCVScene(), params);
+	converter.createFileLayout(slideio::SceneInternal::getCVScene(scene), params);
 
 	if (infoOnly || !silent) {
 		printInfo(converter);

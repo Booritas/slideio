@@ -1,5 +1,6 @@
 ﻿#include <random>
 #include <gtest/gtest.h>
+#include "slideio/slideio/sceneinternal.hpp"
 #include "tests/testlib/testtools.hpp"
 #include <string>
 #include <opencv2/imgproc.hpp>
@@ -129,7 +130,7 @@ TEST_F(VSIImageDriverTests, getSceneIndex)
     const int numScenes = slide->getNumScenes();
     EXPECT_EQ(3, numScenes);
     for (int iScene = 0; iScene < numScenes; ++iScene) {
-        std::shared_ptr<slideio::CVScene> scene = slide->getScene(iScene)->getCVScene();
+        std::shared_ptr<slideio::CVScene> scene = slideio::SceneInternal::getCVScene(slide->getScene(iScene));
         EXPECT_TRUE(scene.get() != nullptr);
         EXPECT_EQ(iScene, scene->getSceneIndex());
         EXPECT_EQ(filePath, scene->getFilePath());
@@ -139,7 +140,7 @@ TEST_F(VSIImageDriverTests, getSceneIndex)
     ASSERT_EQ(numImages, 1);
     std::list<std::string> imageNames = slide->getAuxImageNames();
     for (auto& name : imageNames) {
-        auto scene = slide->getAuxImage(name)->getCVScene();
+        auto scene = slideio::SceneInternal::getCVScene(slide->getAuxImage(name));
         EXPECT_TRUE(scene.get() != nullptr);
         EXPECT_EQ(-1, scene->getSceneIndex());
         EXPECT_EQ(filePath, scene->getFilePath());

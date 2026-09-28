@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include "slideio/converter/converterparameters.hpp"
+#include "slideio/converter/converterparametersinternal.hpp"
 #include "slideio/core/exceptions.hpp"
 #include "tests/testlib/testscene.hpp"
 
@@ -194,7 +195,7 @@ TEST(ConverterParametersTests, UpdateNotDefinedParameters_SVS_AllUndefined) {
     scene->setNumZSlices(5);
     scene->setNumTFrames(10);
     
-    params.updateNotDefinedParameters(scene);
+    updateNotDefinedParameters(params, scene);
     
     // Rect should be set to scene rect
     const Rect& rect = params.getRect();
@@ -222,7 +223,7 @@ TEST(ConverterParametersTests, UpdateNotDefinedParameters_OMETIFF_AllUndefined) 
     scene->setNumZSlices(7);
     scene->setNumTFrames(12);
     
-    params.updateNotDefinedParameters(scene);
+    updateNotDefinedParameters(params, scene);
     
     // Rect should be set to scene rect
     const Rect& rect = params.getRect();
@@ -252,7 +253,7 @@ TEST(ConverterParametersTests, UpdateNotDefinedParameters_PreserveDefinedRect) {
     scene->setRect(cv::Rect(0, 0, 1024, 2048));
     scene->setNumChannels(3);
     
-    params.updateNotDefinedParameters(scene);
+    updateNotDefinedParameters(params, scene);
     
     // Custom rect should be preserved
     const Rect& rect = params.getRect();
@@ -274,7 +275,7 @@ TEST(ConverterParametersTests, UpdateNotDefinedParameters_PreserveDefinedChannel
     scene->setNumZSlices(3);
     scene->setNumTFrames(4);
     
-    params.updateNotDefinedParameters(scene);
+    updateNotDefinedParameters(params, scene);
     
     // Custom channel range should be preserved
     EXPECT_EQ(cv::Range(1, 3), params.getChannelRange());
@@ -296,7 +297,7 @@ TEST(ConverterParametersTests, UpdateNotDefinedParameters_PreserveDefinedSliceRa
     scene->setNumZSlices(10);
     scene->setNumTFrames(8);
     
-    params.updateNotDefinedParameters(scene);
+    updateNotDefinedParameters(params, scene);
     
     // Custom slice range should be preserved
     EXPECT_EQ(cv::Range(2, 5), params.getSliceRange());
@@ -318,7 +319,7 @@ TEST(ConverterParametersTests, UpdateNotDefinedParameters_PreserveDefinedFrameRa
     scene->setNumZSlices(5);
     scene->setNumTFrames(10);
     
-    params.updateNotDefinedParameters(scene);
+    updateNotDefinedParameters(params, scene);
     
     // Custom frame range should be preserved
     EXPECT_EQ(cv::Range(3, 7), params.getTFrameRange());
@@ -338,7 +339,7 @@ TEST(ConverterParametersTests, UpdateNotDefinedParameters_InvalidRect) {
     scene->setRect(cv::Rect(10, 20, 800, 600));
     scene->setNumChannels(3);
     
-    params.updateNotDefinedParameters(scene);
+    updateNotDefinedParameters(params, scene);
     
     // Invalid rect should be replaced with scene rect
     const Rect& rect = params.getRect();
@@ -360,7 +361,7 @@ TEST(ConverterParametersTests, UpdateNotDefinedParameters_EmptyChannelRange) {
     scene->setNumZSlices(2);
     scene->setNumTFrames(3);
     
-    params.updateNotDefinedParameters(scene);
+    updateNotDefinedParameters(params, scene);
     
     // Empty channel range should be replaced
     EXPECT_EQ(cv::Range(0, 4), params.getChannelRange());
@@ -378,7 +379,7 @@ TEST(ConverterParametersTests, UpdateNotDefinedParameters_EmptySliceRange) {
     scene->setNumZSlices(6);
     scene->setNumTFrames(4);
     
-    params.updateNotDefinedParameters(scene);
+    updateNotDefinedParameters(params, scene);
     
     // Empty slice range should be replaced
     EXPECT_EQ(cv::Range(0, 6), params.getSliceRange());
@@ -396,7 +397,7 @@ TEST(ConverterParametersTests, UpdateNotDefinedParameters_EmptyFrameRange) {
     scene->setNumZSlices(2);
     scene->setNumTFrames(8);
     
-    params.updateNotDefinedParameters(scene);
+    updateNotDefinedParameters(params, scene);
     
     // Empty frame range should be replaced
     EXPECT_EQ(cv::Range(0, 8), params.getTFrameRange());
@@ -411,7 +412,7 @@ TEST(ConverterParametersTests, UpdateNotDefinedParameters_SVS_ForcesSliceAndFram
     scene->setNumZSlices(10);  // Scene has multiple slices
     scene->setNumTFrames(15);  // Scene has multiple frames
     
-    params.updateNotDefinedParameters(scene);
+    updateNotDefinedParameters(params, scene);
     
     // SVS format should force slice and frame ranges to (0, 1)
     EXPECT_EQ(cv::Range(0, 1), params.getSliceRange());
@@ -432,7 +433,7 @@ TEST(ConverterParametersTests, UpdateNotDefinedParameters_MixedDefinedUndefined)
     scene->setNumZSlices(4);
     scene->setNumTFrames(6);
     
-    params.updateNotDefinedParameters(scene);
+    updateNotDefinedParameters(params, scene);
     
     // Defined parameters should be preserved
     const Rect& rect = params.getRect();
@@ -456,7 +457,7 @@ TEST(ConverterParametersTests, UpdateNotDefinedParameters_SceneWithZeroChannels)
     scene->setNumZSlices(1);
     scene->setNumTFrames(1);
     
-    params.updateNotDefinedParameters(scene);
+    updateNotDefinedParameters(params, scene);
     
     // Channel range should handle zero channels
     EXPECT_EQ(cv::Range(0, 0), params.getChannelRange());
@@ -471,7 +472,7 @@ TEST(ConverterParametersTests, UpdateNotDefinedParameters_SceneWithSingleSliceAn
     scene->setNumZSlices(1);   // Single slice
     scene->setNumTFrames(1);   // Single frame
     
-    params.updateNotDefinedParameters(scene);
+    updateNotDefinedParameters(params, scene);
     
     // Should work correctly with single slice/frame
     EXPECT_EQ(cv::Range(0, 1), params.getSliceRange());
@@ -791,7 +792,7 @@ TEST(ConverterParametersTests, UpdateNotDefinedParameters_ZoomLevels_SmallImage)
     scene->setRect(cv::Rect(0, 0, 500, 600));
     scene->setNumChannels(3);
     
-    params.updateNotDefinedParameters(scene);
+    updateNotDefinedParameters(params, scene);
     
     // Small image (both dimensions <= 1000) should have 1 zoom level
     auto containerParams = std::static_pointer_cast<TIFFContainerParameters>(params.getContainerParameters());
@@ -805,7 +806,7 @@ TEST(ConverterParametersTests, UpdateNotDefinedParameters_ZoomLevels_MediumImage
     scene->setRect(cv::Rect(0, 0, 1500, 1200));
     scene->setNumChannels(3);
     
-    params.updateNotDefinedParameters(scene);
+    updateNotDefinedParameters(params, scene);
     
     // Medium image (one dimension > 1000) should have 2 zoom levels
     auto containerParams = std::static_pointer_cast<TIFFContainerParameters>(params.getContainerParameters());
@@ -819,7 +820,7 @@ TEST(ConverterParametersTests, UpdateNotDefinedParameters_ZoomLevels_LargeImage)
     scene->setRect(cv::Rect(0, 0, 16000, 16000));
     scene->setNumChannels(3);
     
-    params.updateNotDefinedParameters(scene);
+    updateNotDefinedParameters(params, scene);
     
     // Large image (16000x16000) should have 5 zoom levels
     // 16000 -> 8000 -> 4000 -> 2000 -> 1000 -> 500 (stops at 1000)
@@ -834,7 +835,7 @@ TEST(ConverterParametersTests, UpdateNotDefinedParameters_ZoomLevels_ExactlyAtTh
     scene->setRect(cv::Rect(0, 0, 1000, 1000));
     scene->setNumChannels(3);
     
-    params.updateNotDefinedParameters(scene);
+    updateNotDefinedParameters(params, scene);
     
     // Exactly 1000x1000 should have 1 zoom level (not > 1000)
     auto containerParams = std::static_pointer_cast<TIFFContainerParameters>(params.getContainerParameters());
@@ -848,7 +849,7 @@ TEST(ConverterParametersTests, UpdateNotDefinedParameters_ZoomLevels_JustOverThr
     scene->setRect(cv::Rect(0, 0, 1001, 1001));
     scene->setNumChannels(3);
     
-    params.updateNotDefinedParameters(scene);
+    updateNotDefinedParameters(params, scene);
     
     // Just over 1000x1000 (1001x1001) should have 2 zoom levels
     auto containerParams = std::static_pointer_cast<TIFFContainerParameters>(params.getContainerParameters());
@@ -862,7 +863,7 @@ TEST(ConverterParametersTests, UpdateNotDefinedParameters_ZoomLevels_AsymmetricI
     scene->setRect(cv::Rect(0, 0, 100000, 500));
     scene->setNumChannels(3);
     
-    params.updateNotDefinedParameters(scene);
+    updateNotDefinedParameters(params, scene);
     
     // Asymmetric image where only width is large
     // Both dimensions must be > 1000 for additional zoom levels
@@ -882,7 +883,7 @@ TEST(ConverterParametersTests, UpdateNotDefinedParameters_ZoomLevels_PreserveIfD
     scene->setRect(cv::Rect(0, 0, 16000, 16000));
     scene->setNumChannels(3);
     
-    params.updateNotDefinedParameters(scene);
+    updateNotDefinedParameters(params, scene);
     
     // Pre-defined zoom levels (>= 1) should be preserved
     EXPECT_EQ(10, containerParams->getNumZoomLevels());
@@ -899,7 +900,7 @@ TEST(ConverterParametersTests, UpdateNotDefinedParameters_ZoomLevels_UpdateIfNeg
     scene->setRect(cv::Rect(0, 0, 5000, 5000));
     scene->setNumChannels(3);
     
-    params.updateNotDefinedParameters(scene);
+    updateNotDefinedParameters(params, scene);
     
     // Negative zoom levels should be updated
     // 5000 -> 2500 -> 1250 -> 625 (stops at 1000)
@@ -917,7 +918,7 @@ TEST(ConverterParametersTests, UpdateNotDefinedParameters_ZoomLevels_UpdateIfZer
     scene->setRect(cv::Rect(0, 0, 4000, 4000));
     scene->setNumChannels(3);
     
-    params.updateNotDefinedParameters(scene);
+    updateNotDefinedParameters(params, scene);
     
     // Zero zoom levels should be updated
     // 4000 -> 2000 -> 1000 -> 500 (stops at 1000)
@@ -934,7 +935,7 @@ TEST(ConverterParametersTests, UpdateNotDefinedParameters_ZoomLevels_WithCustomR
     scene->setRect(cv::Rect(0, 0, 10000, 10000));
     scene->setNumChannels(3);
     
-    params.updateNotDefinedParameters(scene);
+    updateNotDefinedParameters(params, scene);
     
     // Zoom levels should be computed based on the custom rect (2500x2500)
     // 2500 -> 1250 -> 625 (stops at 1000)
@@ -949,7 +950,7 @@ TEST(ConverterParametersTests, UpdateNotDefinedParameters_ZoomLevels_VeryLargeIm
     scene->setRect(cv::Rect(0, 0, 64000, 64000));
     scene->setNumChannels(3);
     
-    params.updateNotDefinedParameters(scene);
+    updateNotDefinedParameters(params, scene);
     
     // Very large image (64000x64000)
     // 64000 -> 32000 -> 16000 -> 8000 -> 4000 -> 2000 -> 1000 -> 500
@@ -966,7 +967,7 @@ TEST(ConverterParametersTests, UpdateNotDefinedParameters_ZoomLevels_OMETIFFForm
     scene->setNumZSlices(5);
     scene->setNumTFrames(10);
     
-    params.updateNotDefinedParameters(scene);
+    updateNotDefinedParameters(params, scene);
     
     // OME-TIFF should also compute zoom levels
     // 8000 -> 4000 -> 2000 -> 1000 -> 500
@@ -981,7 +982,7 @@ TEST(ConverterParametersTests, UpdateNotDefinedParameters_ZoomLevels_MinimalRect
     scene->setRect(cv::Rect(0, 0, 1, 1));
     scene->setNumChannels(1);
     
-    params.updateNotDefinedParameters(scene);
+    updateNotDefinedParameters(params, scene);
     
     // Minimal rect should have 1 zoom level
     auto containerParams = std::static_pointer_cast<TIFFContainerParameters>(params.getContainerParameters());
@@ -995,7 +996,7 @@ TEST(ConverterParametersTests, UpdateNotDefinedParameters_ZoomLevels_TallNarrowI
     scene->setRect(cv::Rect(0, 0, 800, 50000));
     scene->setNumChannels(3);
     
-    params.updateNotDefinedParameters(scene);
+    updateNotDefinedParameters(params, scene);
     
     // Tall narrow image where height > 1000 but width <= 1000
     // Both must be > 1000 for additional zoom levels
@@ -1010,7 +1011,7 @@ TEST(ConverterParametersTests, UpdateNotDefinedParameters_ZoomLevels_WideShortIm
     scene->setRect(cv::Rect(0, 0, 50000, 800));
     scene->setNumChannels(3);
     
-    params.updateNotDefinedParameters(scene);
+    updateNotDefinedParameters(params, scene);
     
     // Wide short image where width > 1000 but height <= 1000
     // Both must be > 1000 for additional zoom levels
@@ -1029,7 +1030,7 @@ TEST(ConverterParametersTests, UpdateNotDefinedParameters_ZoomLevels_NullContain
     scene->setNumChannels(3);
     
     // Should not crash with null container parameters
-    EXPECT_NO_THROW(params.updateNotDefinedParameters(scene));
+    EXPECT_NO_THROW(updateNotDefinedParameters(params, scene));
 }
 
 TEST(ConverterParametersTests, UpdateNotDefinedParameters_ZoomLevels_CompleteWorkflow) {
@@ -1040,7 +1041,7 @@ TEST(ConverterParametersTests, UpdateNotDefinedParameters_ZoomLevels_CompleteWor
     scene->setRect(cv::Rect(0, 0, 15000, 12000));
     scene->setNumChannels(3);
     
-    params.updateNotDefinedParameters(scene);
+    updateNotDefinedParameters(params, scene);
     
     // Verify all parameters are set correctly
     auto containerParams = std::static_pointer_cast<TIFFContainerParameters>(params.getContainerParameters());

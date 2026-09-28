@@ -2,6 +2,7 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include <gtest/gtest.h>
+#include "slideio/slideio/sceneinternal.hpp"
 #include <atomic>
 #include <chrono>
 #include <memory>
@@ -95,7 +96,7 @@ namespace
     // readBlock family of Scene writes into a caller-supplied buffer, and it is
     // CVScene's public layer that carries the lock under test.
     void readWholeScene(const std::shared_ptr<Scene>& scene) {
-        std::shared_ptr<CVScene> cvScene = scene->getCVScene();
+        std::shared_ptr<CVScene> cvScene = slideio::SceneInternal::getCVScene(scene);
         cv::Mat raster;
         cvScene->readBlock(cvScene->getRect(), raster);
     }
@@ -106,7 +107,7 @@ TEST(TransformedSceneReadLock, twoTransformsOverOneOriginDoNotReadItConcurrently
     // Each TransformerScene used to take its own mutex, so neither excluded the
     // other and both entered the non-concurrent origin at once.
     auto origin = std::make_shared<OverlapDetectingScene>();
-    auto originScene = std::make_shared<Scene>(origin);
+    auto originScene = slideio::SceneInternal::createScene(origin);
     GaussianBlurFilter filter;
     std::shared_ptr<Scene> first = transformScene(originScene, filter);
     std::shared_ptr<Scene> second = transformScene(originScene, filter);
@@ -124,7 +125,7 @@ TEST(TransformedSceneReadLock, aDirectReadOfTheOriginExcludesATransformedRead)
     // The direct read took the origin's mutex and the transformed read took the
     // transformer's -- different mutexes, so they did not exclude each other.
     auto origin = std::make_shared<OverlapDetectingScene>();
-    auto originScene = std::make_shared<Scene>(origin);
+    auto originScene = slideio::SceneInternal::createScene(origin);
     GaussianBlurFilter filter;
     std::shared_ptr<Scene> transformed = transformScene(originScene, filter);
 
@@ -149,7 +150,7 @@ TEST(TransformedSceneReadLock, aConcurrentOriginIsStillReadConcurrentlyThroughAT
         bool supportsConcurrentReads() const override { return true; }
     };
     auto origin = std::make_shared<ConcurrentScene>();
-    auto originScene = std::make_shared<Scene>(origin);
+    auto originScene = slideio::SceneInternal::createScene(origin);
     GaussianBlurFilter filter;
     std::shared_ptr<Scene> first = transformScene(originScene, filter);
     std::shared_ptr<Scene> second = transformScene(originScene, filter);

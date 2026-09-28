@@ -1,5 +1,6 @@
 ﻿#include <atomic>
 #include <random>
+#include "slideio/slideio/sceneinternal.hpp"
 #include <thread>
 #include <gtest/gtest.h>
 #include "slideio/drivers/ndpi/ndpitifftools.hpp"
@@ -526,7 +527,7 @@ TEST_F(NDPIImageDriverTests, getDriverId)
     ASSERT_TRUE(slide);
     const int numScenes = slide->getNumScenes();
     EXPECT_EQ(1, numScenes);
-    std::shared_ptr<slideio::CVScene> scene = slide->getScene(0)->getCVScene();
+    std::shared_ptr<slideio::CVScene> scene = slideio::SceneInternal::getCVScene(slide->getScene(0));
     EXPECT_TRUE(scene.get() != nullptr);
 	EXPECT_EQ(0, scene->getSceneIndex());
 	EXPECT_EQ(filePath, scene->getFilePath());

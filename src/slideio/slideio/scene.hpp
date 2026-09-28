@@ -42,8 +42,8 @@ namespace slideio
     class SLIDEIO_EXPORTS Scene
     {
         friend class Slide;
+        friend struct SceneInternal;
     public:
-        Scene(std::shared_ptr<CVScene> scene);
         virtual ~Scene(){
         }
         /**@brief returns path of the slide */
@@ -352,7 +352,6 @@ namespace slideio
          * @param imageName : name of the auxiliary image.
          */
         virtual std::shared_ptr<Scene> getAuxImage(const std::string& imageName) const;
-        std::shared_ptr<CVScene> getCVScene() { return m_scene; }
         /**@brief returns the number of zoom levels of the internal image pyramid.
          *
          * Every scene has at least one level. Level 0 is the level of the highest
@@ -383,6 +382,11 @@ namespace slideio
          */
         const Metadata& getChannelAttributes() const;
     private:
+        // Private, with Slide and SceneInternal as the only callers: a Scene is
+        // made by the library from a CVScene, never by a consumer, who has no
+        // way to name the type. See sceneinternal.hpp.
+        Scene(std::shared_ptr<CVScene> scene);
+
         std::shared_ptr<CVScene> m_scene;
     };
 }

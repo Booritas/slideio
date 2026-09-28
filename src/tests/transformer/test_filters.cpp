@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include "slideio/slideio/sceneinternal.hpp"
 #include "tests/testlib/testtools.hpp"
 #include "slideio/converter/converter.hpp"
 #include "slideio/slideio/slideio.hpp"
@@ -226,7 +227,7 @@ TEST(Filters, readScaledBlockMedian)
     const cv::Size cvBlockSize(std::lround(cvBlockRect.width * scale), std::lround(cvBlockRect.height * scale));
 
     cv::Mat originalBlock;
-    originScene->getCVScene()->readResampledBlock(cvBlockRect, cvBlockSize, originalBlock);
+    slideio::SceneInternal::getCVScene(originScene)->readResampledBlock(cvBlockRect, cvBlockSize, originalBlock);
 
     cv::Mat referenceBlock;
     cv::medianBlur(originalBlock, referenceBlock, kernelSize);
@@ -235,7 +236,7 @@ TEST(Filters, readScaledBlockMedian)
     filter.setKernelSize(kernelSize);
     std::shared_ptr<Scene> transformedScene = transformScene(originScene, filter);
     cv::Mat transformedBlock;
-    transformedScene->getCVScene()->readResampledBlock(cvBlockRect, cvBlockSize, transformedBlock);
+    slideio::SceneInternal::getCVScene(transformedScene)->readResampledBlock(cvBlockRect, cvBlockSize, transformedBlock);
 	double sim = ImageTools::computeSimilarity2(referenceBlock, transformedBlock);
 	EXPECT_GT(sim, 0.99);
     // cv::Mat diff = (referenceBlock != transformedBlock);
@@ -263,7 +264,7 @@ TEST(Filters, readScaledBlockBilateral)
     const cv::Size cvBlockSize(std::lround(cvBlockRect.width * scale), std::lround(cvBlockRect.height * scale));
 
     cv::Mat originBlock;
-	originScene->getCVScene()->readResampledBlock(cvBlockRect, cvBlockSize, originBlock);
+	slideio::SceneInternal::getCVScene(originScene)->readResampledBlock(cvBlockRect, cvBlockSize, originBlock);
     cv::Mat referenceTransformedBlock;
     cv::bilateralFilter(originBlock, referenceTransformedBlock, diameter, sigmaColor, sigmaSpace);
 
@@ -274,7 +275,7 @@ TEST(Filters, readScaledBlockBilateral)
     std::shared_ptr<Scene> transformedScene = transformScene(originScene, filter);
 
     cv::Mat transformedBlock;
-    transformedScene->getCVScene()->readResampledBlock(cvBlockRect, cvBlockSize, transformedBlock);
+    slideio::SceneInternal::getCVScene(transformedScene)->readResampledBlock(cvBlockRect, cvBlockSize, transformedBlock);
     double sim = ImageTools::computeSimilarity2(referenceTransformedBlock, transformedBlock);
     EXPECT_GT(sim, 0.99);
 	// cv::Mat dif = (referenceTransformedBlock - transformedBlock)*100;

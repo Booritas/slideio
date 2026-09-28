@@ -2,6 +2,7 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include <gtest/gtest.h>
+#include "slideio/slideio/sceneinternal.hpp"
 #include <memory>
 #include "tests/testlib/testscene.hpp"
 #include "slideio/core/cvscene.hpp"
@@ -35,7 +36,7 @@ namespace
     {
         ColorTransformation gray;
         gray.setColorSpace(ColorSpace::GRAY);
-        return transformScene(std::make_shared<Scene>(origin), gray);
+        return transformScene(slideio::SceneInternal::createScene(origin), gray);
     }
 }
 

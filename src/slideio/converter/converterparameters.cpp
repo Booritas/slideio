@@ -3,6 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 
 #include "converterparameters.hpp"
+#include "converterparametersinternal.hpp"
 #include "convertertools.hpp"
 #include "slideio/core/exceptions.hpp"
 #include "slideio/core/cvscene.hpp"
@@ -91,37 +92,41 @@ void ConverterParameters::copyFrom(const ConverterParameters& other) {
     }
 }
 
-void ConverterParameters::updateNotDefinedParameters(const std::shared_ptr<CVScene>& scene) {
-    if (!m_rect.valid()) {
+void slideio::converter::updateNotDefinedParameters(ConverterParameters& parameters,
+                                                    const std::shared_ptr<CVScene>& scene) {
+    if (!parameters.getRect().valid()) {
         cv::Rect rect = scene->getRect();
-        m_rect = Rect(0, 0, rect.width, rect.height);
+        parameters.setRect(Rect(0, 0, rect.width, rect.height));
     }
-    if (m_channelRange.size() <= 0) {
-        m_channelRange = Range(0, scene->getNumChannels());
+    if (parameters.getChannelRange().size() <= 0) {
+        parameters.setChannelRange(Range(0, scene->getNumChannels()));
     }
-    if (m_sliceRange.size() <= 0) {
-        if (m_format == ImageFormat::SVS) {
-			m_sliceRange = Range(0, 1);
-        } else if (m_format == ImageFormat::OME_TIFF) {
-			m_sliceRange = Range(0, scene->getNumZSlices());
+    const ImageFormat format = parameters.getFormat();
+    if (parameters.getSliceRange().size() <= 0) {
+        if (format == ImageFormat::SVS) {
+            parameters.setSliceRange(Range(0, 1));
+        } else if (format == ImageFormat::OME_TIFF) {
+            parameters.setSliceRange(Range(0, scene->getNumZSlices()));
         }
     }
-    if (m_frameRange.size() <= 0) {
-        if (m_format == ImageFormat::SVS) {
-            m_frameRange = Range(0, 1);
+    if (parameters.getTFrameRange().size() <= 0) {
+        if (format == ImageFormat::SVS) {
+            parameters.setTFrameRange(Range(0, 1));
         }
-        else if (m_format == ImageFormat::OME_TIFF) {
-            m_frameRange = Range(0, scene->getNumTFrames());
+        else if (format == ImageFormat::OME_TIFF) {
+            parameters.setTFrameRange(Range(0, scene->getNumTFrames()));
         }
     }
-    if (m_containerParameters != nullptr) {
-        if (m_containerParameters->getContainerType() == TIFF_CONTAINER) {
-            auto tiffParams = std::static_pointer_cast<TIFFContainerParameters>(m_containerParameters);
+    std::shared_ptr<ContainerParameters> container = parameters.getContainerParameters();
+    if (container != nullptr) {
+        if (container->getContainerType() == TIFF_CONTAINER) {
+            auto tiffParams = std::static_pointer_cast<TIFFContainerParameters>(container);
             if (tiffParams->getNumZoomLevels() < 1) {
-                int numZoomLevels = ConverterTools::computeNumZoomLevels(m_rect.width, m_rect.height);
+                const Rect& rect = parameters.getRect();
+                int numZoomLevels = ConverterTools::computeNumZoomLevels(rect.width, rect.height);
                 tiffParams->setNumZoomLevels(numZoomLevels);
             }
-		}
+        }
     }
 }
 
