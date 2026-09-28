@@ -32,10 +32,10 @@ programs under `src/single_tests/` have no test cases, so they show `--`.
 
 | | Count | Size |
 |---|---:|---:|
-| Images referenced by tests | 244 | |
-| Present on this machine | 239 | **103.3 GB** |
+| Images referenced by tests | 245 | |
+| Present on this machine | 240 | **103.6 GB** |
 | Referenced but absent | 5 | -- |
-| Static references in test code | 712 | |
+| Static references in test code | 716 | |
 | References built at run time | 37 | |
 
 ### By directory
@@ -46,7 +46,7 @@ programs under `src/single_tests/` have no test cases, so they show `--`.
 | `images/images/czi` | 8.9 GB | 31 | 1 |
 | `images/images/dcm` | 7.5 GB | 39 | 1 |
 | `images/images/hamamatsu` | 5.8 GB | 26 | 0 |
-| `images/images/philips` | 3.3 GB | 2 | 0 |
+| `images/images/philips` | 3.7 GB | 3 | 0 |
 | `images/images/zvi` | 2.9 GB | 10 | 0 |
 | `images/images/pke` | 2.4 GB | 10 | 0 |
 | `images/images/scn` | 1.3 GB | 12 | 1 |
@@ -90,7 +90,8 @@ Sizes are what is on disk now. "Tests" counts the distinct tests naming the imag
 | `images/images/hamamatsu/openslide/CMU-2.ndpi` | 382.1 MB | ndpi | 2 |
 | `images/images/scn/private/HER2-63x_1.scn` | 378.7 MB | main | 5 |
 | `images/images/zvi/mouse/20140207_mouse_2cell_H2AUb_HA_DAPI_inj_002.zvi` | 323.1 MB | main | 1 |
-| `images/images/philips/Philips-4.tiff` | 277.5 MB | phtiff | 2 |
+| `images/images/philips/Philips-1.tiff` | 311.5 MB | phtiff | 1 |
+| `images/images/philips/Philips-4.tiff` | 277.5 MB | phtiff | 5 |
 | `images/images/ometiff/Subresolutions/retina_large.ome.tiff` | 214.8 MB | main, ometiff | 8 |
 | `images/images/hamamatsu/openslide/CMU-1.ndpi` | 188.9 MB | ndpi, ndpi_memory | 11 |
 | `images/images/czi/jxr-16bit-4chnls.czi` | 174.2 MB | converter, main | 7 |
@@ -335,30 +336,30 @@ identified by reading the source. They are not counted in the tables above.
 | `src/tests/main/test_svs_driver.cpp` | 360 | `SVSImageDriver.metadataCompression` | `"svs",imageName` |
 | `src/tests/main/test_svs_driver.cpp` | 378 | `SVSImageDriver.slideRawMetadata` | `"svs",imageName` |
 | `src/tests/main/test_zvi_driver.cpp` | 202 | `ZVIImageDriver.readBlock3Layers` | `"zvi", channelName` |
-| `src/tests/phtiff/test_phtiff_driver.cpp` | 425 | `PhTiffImageDriverTests.canOpenFileByContent` | `"philips", fileName` |
-| `src/tests/phtiff/test_phtiff_driver.cpp` | 1076 | `PhTiffImageDriverTests.metadataOfTheTestFiles` | `"philips", fileName` |
-| `src/tests/phtiff/test_phtiff_driver.cpp` | 1133 | `PhTiffImageDriverTests.magnificationOfTheTestFiles` | `"philips", param.first` |
-| `src/tests/phtiff/test_phtiff_driver.cpp` | 1179 | `PhTiffImageDriverTests.auxImagesOfTheTestFiles` | `"philips", param.first` |
-| `src/tests/phtiff/test_phtiff_driver.cpp` | 2249 | `PHTDescriptionTests.isPhilipsDescriptionAcceptsBomPrefixedMetadata` | `"philips", fileName` |
-| `src/tests/phtiff/test_phtiff_driver.cpp` | 2259 | `PHTDescriptionTests.isPhilipsDescriptionAcceptsBomPrefixedMetadata` | `"philips", ph2::REFERENCE_PNG` |
-| `src/tests/phtiff/test_phtiff_driver.cpp` | 2291 | `PhTiffImageDriverTests.readImage` | `"philips", ph2::FILE_NAME` |
-| `src/tests/phtiff/test_phtiff_driver.cpp` | 2328 | `PhTiffImageDriverTests.zoomLevelsOfPhilips2` | `"philips", ph2::FILE_NAME` |
-| `src/tests/phtiff/test_phtiff_driver.cpp` | 2351 | `PhTiffImageDriverTests.readImageChannels` | `"philips", ph2::FILE_NAME` |
-| `src/tests/phtiff/test_phtiff_driver.cpp` | 2406 | `PhTiffImageDriverTests.readImageDownscaled` | `"philips", ph2::FILE_NAME` |
-| `src/tests/phtiff/test_phtiff_driver.cpp` | 2443 | `PhTiffImageDriverTests.readImageDownscaledAcrossLevelsAgree` | `"philips", ph2::FILE_NAME` |
-| `src/tests/phtiff/test_phtiff_driver.cpp` | 2462 | `PhTiffImageDriverTests.readImageDownscaledChannels` | `"philips", ph2::FILE_NAME` |
-| `src/tests/phtiff/test_phtiff_driver.cpp` | 2496 | `PhTiffImageDriverTests.readImageDownscaledAnisotropically` | `"philips", ph2::FILE_NAME` |
-| `src/tests/phtiff/test_phtiff_driver.cpp` | 2518 | `PhTiffImageDriverTests.readImageUpscaled` | `"philips", ph2::FILE_NAME` |
-| `src/tests/phtiff/test_phtiff_driver.cpp` | 2538 | `PhTiffImageDriverTests.readImageWholeSlideThumbnail` | `"philips", ph2::FILE_NAME` |
-| `src/tests/phtiff/test_phtiff_driver.cpp` | 2565 | `PhTiffImageDriverTests.readImageBlockCrossingTheSceneEdge` | `"philips", ph2::FILE_NAME` |
-| `src/tests/phtiff/test_phtiff_driver.cpp` | 2634 | `PhTiffImageDriverTests.multiThreadedRead` | `"philips", ph2::FILE_NAME` |
-| `src/tests/phtiff/test_phtiff_driver.cpp` | 2636 | `PhTiffImageDriverTests.multiThreadedRead` | `"philips", ph2::FILE_NAME` |
-| `src/tests/phtiff/test_phtiff_driver.cpp` | 2640 | `PHTIFFImageDriver.concurrentReadsAreByteIdentical` | `"philips", ph2::FILE_NAME` |
-| `src/tests/phtiff/test_phtiff_driver.cpp` | 2649 | `PHTIFFImageDriver.reportsConcurrentReadSupport` | `"philips", ph2::FILE_NAME` |
-| `src/tests/phtiff/test_phtiff_driver.cpp` | 2665 | `PhTiffImageDriverTests.readLevelMatchesTheResampledSceneRead` | `"philips", ph2::FILE_NAME` |
-| `src/tests/phtiff/test_phtiff_driver.cpp` | 2694 | `PhTiffImageDriverTests.readLevelTileByTileReconstructsTheLevel` | `"philips", ph2::FILE_NAME` |
-| `src/tests/phtiff/test_phtiff_driver.cpp` | 2727 | `PhTiffImageDriverTests.readLevelDoesNotEscalateToAFinerLevel` | `"philips", ph2::FILE_NAME` |
-| `src/tests/phtiff/test_phtiff_driver.cpp` | 2755 | `PhTiffImageDriverTests.readLevelRejectsAnOutOfRangeLevel` | `"philips", ph2::FILE_NAME` |
+| `src/tests/phtiff/test_phtiff_driver.cpp` | 439 | `PhTiffImageDriverTests.canOpenFileByContent` | `"philips", fileName` |
+| `src/tests/phtiff/test_phtiff_driver.cpp` | 1090 | `PhTiffImageDriverTests.metadataOfTheTestFiles` | `"philips", fileName` |
+| `src/tests/phtiff/test_phtiff_driver.cpp` | 1147 | `PhTiffImageDriverTests.magnificationOfTheTestFiles` | `"philips", param.first` |
+| `src/tests/phtiff/test_phtiff_driver.cpp` | 1193 | `PhTiffImageDriverTests.auxImagesOfTheTestFiles` | `"philips", param.first` |
+| `src/tests/phtiff/test_phtiff_driver.cpp` | 2263 | `PHTDescriptionTests.isPhilipsDescriptionAcceptsBomPrefixedMetadata` | `"philips", fileName` |
+| `src/tests/phtiff/test_phtiff_driver.cpp` | 2273 | `PHTDescriptionTests.isPhilipsDescriptionAcceptsBomPrefixedMetadata` | `"philips", ph2::REFERENCE_PNG` |
+| `src/tests/phtiff/test_phtiff_driver.cpp` | 2305 | `PhTiffImageDriverTests.readImage` | `"philips", ph2::FILE_NAME` |
+| `src/tests/phtiff/test_phtiff_driver.cpp` | 2342 | `PhTiffImageDriverTests.zoomLevelsOfPhilips2` | `"philips", ph2::FILE_NAME` |
+| `src/tests/phtiff/test_phtiff_driver.cpp` | 2365 | `PhTiffImageDriverTests.readImageChannels` | `"philips", ph2::FILE_NAME` |
+| `src/tests/phtiff/test_phtiff_driver.cpp` | 2420 | `PhTiffImageDriverTests.readImageDownscaled` | `"philips", ph2::FILE_NAME` |
+| `src/tests/phtiff/test_phtiff_driver.cpp` | 2457 | `PhTiffImageDriverTests.readImageDownscaledAcrossLevelsAgree` | `"philips", ph2::FILE_NAME` |
+| `src/tests/phtiff/test_phtiff_driver.cpp` | 2476 | `PhTiffImageDriverTests.readImageDownscaledChannels` | `"philips", ph2::FILE_NAME` |
+| `src/tests/phtiff/test_phtiff_driver.cpp` | 2510 | `PhTiffImageDriverTests.readImageDownscaledAnisotropically` | `"philips", ph2::FILE_NAME` |
+| `src/tests/phtiff/test_phtiff_driver.cpp` | 2532 | `PhTiffImageDriverTests.readImageUpscaled` | `"philips", ph2::FILE_NAME` |
+| `src/tests/phtiff/test_phtiff_driver.cpp` | 2552 | `PhTiffImageDriverTests.readImageWholeSlideThumbnail` | `"philips", ph2::FILE_NAME` |
+| `src/tests/phtiff/test_phtiff_driver.cpp` | 2579 | `PhTiffImageDriverTests.readImageBlockCrossingTheSceneEdge` | `"philips", ph2::FILE_NAME` |
+| `src/tests/phtiff/test_phtiff_driver.cpp` | 2648 | `PhTiffImageDriverTests.multiThreadedRead` | `"philips", ph2::FILE_NAME` |
+| `src/tests/phtiff/test_phtiff_driver.cpp` | 2650 | `PhTiffImageDriverTests.multiThreadedRead` | `"philips", ph2::FILE_NAME` |
+| `src/tests/phtiff/test_phtiff_driver.cpp` | 2654 | `PHTIFFImageDriver.concurrentReadsAreByteIdentical` | `"philips", ph2::FILE_NAME` |
+| `src/tests/phtiff/test_phtiff_driver.cpp` | 2663 | `PHTIFFImageDriver.reportsConcurrentReadSupport` | `"philips", ph2::FILE_NAME` |
+| `src/tests/phtiff/test_phtiff_driver.cpp` | 2679 | `PhTiffImageDriverTests.readLevelMatchesTheResampledSceneRead` | `"philips", ph2::FILE_NAME` |
+| `src/tests/phtiff/test_phtiff_driver.cpp` | 2708 | `PhTiffImageDriverTests.readLevelTileByTileReconstructsTheLevel` | `"philips", ph2::FILE_NAME` |
+| `src/tests/phtiff/test_phtiff_driver.cpp` | 2741 | `PhTiffImageDriverTests.readLevelDoesNotEscalateToAFinerLevel` | `"philips", ph2::FILE_NAME` |
+| `src/tests/phtiff/test_phtiff_driver.cpp` | 2769 | `PhTiffImageDriverTests.readLevelRejectsAnOutOfRangeLevel` | `"philips", ph2::FILE_NAME` |
 | `src/tests/pke/test_pke_driver.cpp` | 366 | `PKEImageDriverTests.readStripedDir5Channels_SingleChannel` | `"pke", fileName` |
 | `src/tests/pke/test_pke_driver.cpp` | 397 | `PKEImageDriverTests.readStripedDir5ChannelsAllChannels` | `"pke", fileName` |
 

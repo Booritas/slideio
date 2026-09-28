@@ -103,6 +103,9 @@ namespace slideio
         // time: Aperio repeats the property block on the thumbnail but not on
         // the label or the macro, and all of them belong to the one scan.
         void setAcquisitionTime(int64_t epochSeconds) { m_acquisitionTime = epochSeconds; }
+        // Applied by PHTIFFSlide to a philips scene: the value comes from the
+        // philips xml, which the slide parses once, not from this directory.
+        void setSignificantBits(int bits) { m_significantBits = bits; }
         ColorProfile getColorProfile() const override {
             return m_colorProfile;
         }

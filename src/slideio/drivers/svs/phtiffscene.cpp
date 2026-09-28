@@ -57,5 +57,10 @@ void PHTIFFTiledScene::processImageDescription() {
     // as it did when this scene parsed the xml itself.
     if (const PHTImageDeclaration* wsi = m_metadata.wholeSlideImage()) {
         m_resolution = { wsi->spacing.x * 1.e-3, wsi->spacing.y * 1.e-3 };
+        // DICOM_BITS_STORED is declared per image, so this is the whole slide
+        // image's own. The acquisition time is a root attribute and covers the
+        // whole file.
+        m_significantBits = wsi->significantBits;
     }
+    m_acquisitionTime = m_metadata.acquisitionTime;
 }

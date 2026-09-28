@@ -128,6 +128,17 @@ namespace slideio
          * the scan time in the same tag -- and it is TIFF's spelling rather than
          * either format's, so a third would want the same code.*/
         static std::optional<int64_t> parseTiffDateTime(const std::string& text);
+        /**@brief A DICOM DA plus TM, or a DT alone with an empty time, as seconds
+         * since 1970-01-01T00:00:00Z; nullopt if it cannot be read.
+         *
+         * Only a DT states an offset of its own; @p zoneOffset ("&ZZXX" or
+         * "&ZZ:XX") stands in where the value states none, and an empty one is
+         * read as UTC. Shared because two formats state times this way: DICOM
+         * itself and the philips tiff, whose xml is DICOM attributes by another
+         * spelling -- DICOM_ACQUISITION_DATETIME is (0008,002A).*/
+        static std::optional<double> parseDicomDateTime(const std::string& date,
+                                                        const std::string& time,
+                                                        const std::string& zoneOffset = std::string());
         static std::list<std::string> findFilesWithExtension(const std::string& directory, const std::string& extension);
         static void extractChannels(const cv::Mat& sourceRaster, const std::vector<int>& channels, cv::OutputArray output);
         static FILE* openFile(const std::string& filePath, const char* mode);

@@ -7,6 +7,65 @@ by branch.
 
 ---
 
+## phtiff-acquisition-time
+
+### `PHTIFFTiledScene` reports the scan time and significant bits
+
+**Module:** `slideio-svs` (exported: `PHTMetadata`, `PHTImageDeclaration`,
+`SVSScene`), `slideio-core` (`Tools`), `slideio-dcm` (`DCMFile`)
+**Files:** `src/slideio/drivers/svs/phtmetadata.hpp`/`.cpp`,
+`src/slideio/drivers/svs/phtdescription.hpp`,
+`src/slideio/drivers/svs/phtiffscene.cpp`,
+`src/slideio/drivers/svs/phtiffslide.hpp`/`.cpp`,
+`src/slideio/drivers/svs/svsscene.hpp`,
+`src/slideio/core/tools/tools.hpp`/`.cpp`,
+`src/slideio/drivers/dcm/dcmfile.cpp`
+
+A philips tiff scene now reports `getAcquisitionTime()` from
+`DICOM_ACQUISITION_DATETIME` and `getChannelSignificantBits()` from
+`DICOM_BITS_STORED`, both read by `readPHTMetadata`. `PHTMetadata` gained
+`acquisitionTime` and `PHTImageDeclaration` gained `significantBits`, so
+out-of-tree code embedding either must be rebuilt; `SVSScene` gained
+`setSignificantBits()`; `PHTIFFSlide::createAuxScenes` takes the metadata as a
+third argument.
+
+**The acquisition time is a root attribute and the significant bits are per
+image.** `DICOM_ACQUISITION_DATETIME` sits on the `DPUfsImport` root, so the
+label and the macro report the same scan time as the whole slide image.
+Philips-1, -2 and -3 state no acquisition time at all and report 0; Philips-4
+states `20160718122300.000000`.
+
+`DICOM_BITS_STORED` sits on each `DPScannedImage`, so every scene takes its own
+-- but **no auxiliary image in the corpus declares one**: the `LABELIMAGE` and
+`MACROIMAGE` objects carry no pixel format attributes at all, so the label and
+the macro report 0 and only the whole slide image reports 8. Matching a scene to
+its declaration needs the two spellings bridged: `PIM_DP_IMAGE_TYPE` says
+`MACROIMAGE` where the auxiliary image is named `Macro`, and comparing those as
+they stand is an equality that is never true.
+
+**Not `DICOM_DATE_OF_LAST_CALIBRATION`.** That attribute, with
+`DICOM_TIME_OF_LAST_CALIBRATION`, sits beside the acquisition time on the same
+root element and is the scanner's calibration: in `Philips-4.tiff` it reads
+2016-07-18 12:18:28, four and a half minutes before the 12:23:00 scan. Near
+enough to look right in a test that only checked the shape of the value.
+
+**Every corpus file states `DICOM_BITS_STORED` 8 against `DICOM_BITS_ALLOCATED`
+8**, so the value matches the storage width there. It is still read from the
+file rather than inferred: the format states it, which is the condition
+`CVScene::getChannelSignificantBits()` documents for overriding at all.
+
+**`getPlaneTimestamp()` is not implemented.** The philips xml states one
+acquisition time for the slide and nothing per plane, and the driver models one
+plane per scene.
+
+**`Tools::parseDicomDateTime` is new** and
+`DCMFile::dicomDateTimeToEpochSeconds` now delegates to it, unchanged for
+callers. The philips xml is DICOM attributes by another spelling --
+`DICOM_ACQUISITION_DATETIME` is (0008,002A), the same tag the DCM driver reads
+-- so the grammar belongs in core rather than once per driver.
+
+---
+
 ## svs-acquisition-time
 
 ### `SVSScene` reports the slide's scan time and significant bits

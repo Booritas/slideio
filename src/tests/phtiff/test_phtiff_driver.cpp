@@ -188,7 +188,15 @@ public:
 	}
 	void createAuxScenesMock(const std::vector<TiffDirectory>& directories,
 		const std::map<std::string, int>& auxImages) {
-		createAuxScenes(directories, auxImages);
+		// These tests exercise which directories become auxiliary scenes, not the
+		// philips metadata, so an empty PHTMetadata is enough: the scenes then
+		// report no acquisition time and no significant bits, as a file stating
+		// none does.
+		createAuxScenes(directories, auxImages, PHTMetadata());
+	}
+	void createAuxScenesMock(const std::vector<TiffDirectory>& directories,
+		const std::map<std::string, int>& auxImages, const PHTMetadata& metadata) {
+		createAuxScenes(directories, auxImages, metadata);
 	}
 	void initMock(const std::vector<TiffDirectory>& directories, libtiff::TIFF* hFile) {
 		// init takes ownership of the handle through the keeper, so the test gives
@@ -218,10 +226,16 @@ public:
 	// default value from the phDefaults namespace.
 	static std::string createFakeXml(int width = phDefaults::WIDTH, int height = phDefaults::HEIGHT,
 		int levels = phDefaults::LEVELS, const std::list<std::string>& auxNames = std::list<std::string>(),
-		const std::string& barcode = std::string()) {
+		const std::string& barcode = std::string(),
+		const std::string& acquisitionDateTime = std::string()) {
 		std::ostringstream xml;
 		xml << "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n";
 		xml << "<DataObject ObjectType=\"DPUfsImport\">\n";
+		// Only on request: Philips-1, -2 and -3 state no acquisition time at all
+		// and Philips-4 does, so both shapes are real.
+		if (!acquisitionDateTime.empty()) {
+			xml << phAttribute(ACQUISITION_DATETIME, "IString", acquisitionDateTime, 1);
+		}
 		xml << phAttribute(MANUFACTURER, "IString", phDefaults::MANUFACTURER_NAME, 1);
 		xml << phAttribute(SOFTWARE_VERSIONS, "IStringArray", phDefaults::SOFTWARE_VERSIONS_VALUE, 1);
 		xml << phAttribute(UFS_INTERFACE_VERSION, "IString", phDefaults::INTERFACE_VERSION, 1);
@@ -2840,4 +2854,154 @@ TEST_F(PhTiffImageDriverTests, phCreateAuxScenes_carriesEachAuxImagesOwnIccProfi
 	ASSERT_FALSE(labelProfile.isEmpty());
 	EXPECT_EQ(injected.getData(), labelProfile.getData());
 	EXPECT_EQ(slideio::ColorProfileSource::Embedded, labelProfile.getSource());
+}
+
+TEST_F(PhTiffImageDriverTests, readPHTMetadataReadsTheAcquisitionTimeAndSignificantBits) {
+	// DICOM_ACQUISITION_DATETIME is a DICOM DT on the root DataObject, so it
+	// covers every image of the file; DICOM_BITS_STORED sits on each
+	// DPScannedImage and so belongs to that image.
+	const PHTMetadata stated = readPHTMetadata(
+		MockPHTIFFSlide::createFakeXml(1024, 768, 3, {"MACROIMAGE"}, "", "20160718122300.000000"));
+	EXPECT_EQ(1468844580LL, stated.acquisitionTime);
+	const PHTImageDeclaration* wsi = stated.wholeSlideImage();
+	ASSERT_TRUE(wsi != nullptr);
+	EXPECT_EQ(phDefaults::BITS, wsi->significantBits);
+
+	// Most philips files state no acquisition time, and 0 is what that means.
+	const PHTMetadata unstated = readPHTMetadata(MockPHTIFFSlide::createFakeXml(1024, 768, 3));
+	EXPECT_EQ(0LL, unstated.acquisitionTime);
+}
+
+TEST_F(PhTiffImageDriverTests, readPHTMetadataWithoutBitsStoredOrAReadableTime) {
+	// An image declaring no DICOM_BITS_STORED reports 0 rather than guessing
+	// from the allocated width, which getChannelDataType() already gives.
+	const std::string noBits = phRemoveAttribute(
+		MockPHTIFFSlide::createFakeXml(1024, 768, 2), BITS_STORED.Name, 0);
+	const PHTMetadata metadata = readPHTMetadata(noBits);
+	const PHTImageDeclaration* wsi = metadata.wholeSlideImage();
+	ASSERT_TRUE(wsi != nullptr);
+	EXPECT_EQ(0, wsi->significantBits);
+
+	// A datetime the parser cannot read is 0 as well, not a raise: the rest of
+	// the document is still usable.
+	const PHTMetadata bad = readPHTMetadata(
+		MockPHTIFFSlide::createFakeXml(1024, 768, 2, {}, "", "not a datetime"));
+	EXPECT_EQ(0LL, bad.acquisitionTime);
+	EXPECT_TRUE(bad.wholeSlideImage() != nullptr) << "the rest of the parse must survive it";
+}
+
+TEST_F(PhTiffImageDriverTests, acquisitionTimeFromDicomAcquisitionDateTime) {
+	// Philips-4.tiff states DICOM_ACQUISITION_DATETIME 20160718122300.000000.
+	// It also states DICOM_DATE_OF_LAST_CALIBRATION 20160718 with
+	// DICOM_TIME_OF_LAST_CALIBRATION 121828 -- the scanner's calibration, four
+	// and a half minutes earlier, which would read 1468844308. The expected
+	// value here is the acquisition, not that.
+	const std::string path = TestTools::getTestImagePath("philips", "Philips-4.tiff");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
+	PHTIFFImageDriver driver;
+	std::shared_ptr<CVSlide> slide = driver.openFile(path);
+	ASSERT_TRUE(slide != nullptr);
+	std::shared_ptr<CVScene> scene = slide->getScene(0);
+	ASSERT_TRUE(scene != nullptr);
+	EXPECT_EQ(1468844580LL, scene->getAcquisitionTime());
+	// The root attribute covers the label and the macro too.
+	for (const std::string& name : slide->getAuxImageNames()) {
+		std::shared_ptr<CVScene> aux = slide->getAuxImage(name);
+		ASSERT_TRUE(aux != nullptr) << name;
+		EXPECT_EQ(1468844580LL, aux->getAcquisitionTime()) << name;
+	}
+}
+
+TEST_F(PhTiffImageDriverTests, significantBitsFromDicomBitsStored) {
+	// Every philips file in the corpus states DICOM_BITS_STORED 8 against
+	// DICOM_BITS_ALLOCATED 8, so the value matches the storage width here --
+	// but it is read from the file rather than inferred from the sample.
+	const std::string path = TestTools::getTestImagePath("philips", "Philips-1.tiff");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
+	PHTIFFImageDriver driver;
+	std::shared_ptr<CVSlide> slide = driver.openFile(path);
+	ASSERT_TRUE(slide != nullptr);
+	std::shared_ptr<CVScene> scene = slide->getScene(0);
+	ASSERT_TRUE(scene != nullptr);
+	ASSERT_EQ(3, scene->getNumChannels());
+	EXPECT_EQ(DataType::DT_Byte, scene->getChannelDataType(0));
+	for (int channel = 0; channel < 3; ++channel) {
+		EXPECT_EQ(8, scene->getChannelSignificantBits(channel)) << "channel " << channel;
+	}
+	EXPECT_EQ(0, scene->getChannelSignificantBits(-1));
+	EXPECT_EQ(0, scene->getChannelSignificantBits(3));
+	// This file states no acquisition time.
+	EXPECT_EQ(0LL, scene->getAcquisitionTime());
+}
+
+TEST_F(PhTiffImageDriverTests, noPlaneTimestamps) {
+	// The philips xml states one acquisition time for the slide and nothing per
+	// plane, and the driver models one plane per scene.
+	const std::string path = TestTools::getTestImagePath("philips", "Philips-4.tiff");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
+	PHTIFFImageDriver driver;
+	std::shared_ptr<CVSlide> slide = driver.openFile(path);
+	ASSERT_TRUE(slide != nullptr);
+	std::shared_ptr<CVScene> scene = slide->getScene(0);
+	ASSERT_TRUE(scene != nullptr);
+	ASSERT_EQ(1, scene->getNumZSlices());
+	ASSERT_EQ(1, scene->getNumTFrames());
+	EXPECT_FALSE(scene->hasPlaneTimestamps());
+	EXPECT_DOUBLE_EQ(0., scene->getPlaneTimestamp(0, 0, 0));
+}
+
+// The two vocabularies do not spell an auxiliary image the same way:
+// phAuxImageName gives the canonical slideio name from the tiff directory's
+// description ("Macro"), while PIM_DP_IMAGE_TYPE spells the same image
+// "MACROIMAGE". An equality between the two is never true, so a scene would
+// take no bits at all however many its declaration states.
+TEST_F(PhTiffImageDriverTests, phCreateAuxScenes_givesEachAuxImageItsOwnDeclaredBits) {
+	const std::vector<TiffDirectory> directories = {
+		makeImageDir(MockPHTIFFSlide::fakeXML, 131072, 100352),
+		makeImageDir("Macro", 791, 403),
+		makeImageDir("Label", 387, 403),
+	};
+	const std::map<std::string, int> auxImages = { {"Macro", 1}, {"Label", 2} };
+
+	PHTMetadata metadata;
+	metadata.acquisitionTime = 1468844580LL;
+	PHTImageDeclaration macroDeclaration;
+	macroDeclaration.type = "MACROIMAGE";
+	macroDeclaration.significantBits = 12;
+	metadata.images.push_back(macroDeclaration);
+	PHTImageDeclaration labelDeclaration;
+	labelDeclaration.type = "LABELIMAGE";   // declares no bits
+	metadata.images.push_back(labelDeclaration);
+
+	MockPHTIFFSlide slide;
+	slide.createAuxScenesMock(directories, auxImages, metadata);
+
+	auto macro = slide.getAuxImage("Macro");
+	ASSERT_TRUE(macro != nullptr);
+	EXPECT_EQ(12, macro->getChannelSignificantBits(0));
+	auto label = slide.getAuxImage("Label");
+	ASSERT_TRUE(label != nullptr);
+	EXPECT_EQ(0, label->getChannelSignificantBits(0));
+	// The acquisition time is a root attribute, so both take it.
+	EXPECT_EQ(1468844580LL, macro->getAcquisitionTime());
+	EXPECT_EQ(1468844580LL, label->getAcquisitionTime());
+}
+
+TEST_F(PhTiffImageDriverTests, auxiliaryImagesOfTheCorpusDeclareNoBitsStored) {
+	// Every philips file here declares DICOM_BITS_STORED on the whole slide
+	// image's DPScannedImage and on no other: the LABELIMAGE and MACROIMAGE
+	// objects carry no pixel format attributes at all. So 0 for an auxiliary
+	// scene is the file stating none, which is what the getter means by it --
+	// not the lookup failing to find what is there.
+	const std::string path = TestTools::getTestImagePath("philips", "Philips-4.tiff");
+	SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
+	PHTIFFImageDriver driver;
+	std::shared_ptr<CVSlide> slide = driver.openFile(path);
+	ASSERT_TRUE(slide != nullptr);
+	EXPECT_EQ(8, slide->getScene(0)->getChannelSignificantBits(0));
+	for (const std::string& name : slide->getAuxImageNames()) {
+		std::shared_ptr<CVScene> aux = slide->getAuxImage(name);
+		ASSERT_TRUE(aux != nullptr) << name;
+		EXPECT_EQ(0, aux->getChannelSignificantBits(0)) << name;
+	}
 }

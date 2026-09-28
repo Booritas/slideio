@@ -1070,8 +1070,8 @@ are not:
 The scan time is in TIFFTAG_DATETIME, in all 33 directories of the one and all
 8 of the other, one value each.
 
-SVS is not in this group at all, and the first version of that work wrongly put
-it here. Aperio states **both** answers in its image description: the scan time
+SVS and PHTIFF are not in this group at all, and the first version of the SVS
+work wrongly put it here. Aperio states **both** answers in its image description: the scan time
 as `Date = 12/29/09|Time = 09:59:15`, and the significant bits as
 `Acquisition Bit Depth = 10`, which `jp2k_1chnl.svs` carries against 16-bit
 samples. The survey behind that first version read the TIFF tags and stopped,
@@ -1086,12 +1086,25 @@ recorded as absent. The ZVI note below says a reference implementation can
 supply what the corpus cannot; this one says the corpus can supply what a
 partial look at it cannot.
 
-`getAcquisitionTime()` on `NDPIScene`, `SCNScene`, `PKEScene` and `SVSScene`
-reads what the formats do state, and a `noPlaneTimestampsOrSignificantBits` test
-in the first three pins the other two getters at 0 and false so none of those
-decisions is quietly reversed by someone wiring BitsPerSample -- or `<Bits>` --
-in. SVS's test of that name now pins only the plane timestamps, and says in so
-many words that its 0 for the bits is that one file stating none.
+PHTIFF states both as well, in DICOM attributes by another spelling:
+`DICOM_ACQUISITION_DATETIME` (0008,002A) on the `DPUfsImport` root and
+`DICOM_BITS_STORED` (0028,0101) on the whole slide image's `DPScannedImage` --
+and on that one alone: the auxiliary images declare no pixel format attributes,
+so they report 0. It carries a decoy
+worth naming beside PKE's: `DICOM_DATE_OF_LAST_CALIBRATION` with
+`DICOM_TIME_OF_LAST_CALIBRATION` sits on the same root element and is the
+scanner's calibration -- four and a half minutes before the scan in
+`Philips-4.tiff`, which is close enough to pass a test that only checked the
+value looked like a date. Only `getPlaneTimestamp()` is absent from PHTIFF: one
+time per slide, one plane per scene.
+
+`getAcquisitionTime()` on `NDPIScene`, `SCNScene`, `PKEScene`, `SVSScene` and
+`PHTIFFTiledScene` reads what the formats do state, and a
+`noPlaneTimestampsOrSignificantBits` test in the first three pins the other two
+getters at 0 and false so none of those decisions is quietly reversed by someone
+wiring BitsPerSample -- or `<Bits>` -- in. SVS's test of that name now pins only
+the plane timestamps, and says in so many words that its 0 for the bits is that
+one file stating none; PHTIFF has a `noPlaneTimestamps` test for the same reason.
 
 **What ZVI needed, and why it is no longer here.** Its tag was enumerated in
 `zvitags.hpp` and appeared in no corpus file, so the *encoding* was unknown --

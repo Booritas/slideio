@@ -66,6 +66,10 @@ namespace slideio
         inline constexpr PHTDescription::Attribute UFS_INTERFACE_VERSION = { "PIM_DP_UFS_INTERFACE_VERSION", "0x301D", "0x1001" };
         inline constexpr PHTDescription::Attribute UFS_BARCODE = { "PIM_DP_UFS_BARCODE", "0x301D", "0x1002" };
         inline constexpr PHTDescription::Attribute SCANNED_IMAGES = { "PIM_DP_SCANNED_IMAGES", "0x301D", "0x1003" };
+        // When the scan was made. Not DICOM_DATE_OF_LAST_CALIBRATION/
+        // DICOM_TIME_OF_LAST_CALIBRATION, which sit beside it on the same element and
+        // are the scanner's calibration, five minutes earlier in Philips-4.tiff.
+        inline constexpr PHTDescription::Attribute ACQUISITION_DATETIME = { "DICOM_ACQUISITION_DATETIME", "0x0008", "0x002A" };
 
         // Scanned image (DPScannedImage) attributes
         inline constexpr PHTDescription::Attribute IMAGE_TYPE = { "PIM_DP_IMAGE_TYPE", "0x301D", "0x1004" };

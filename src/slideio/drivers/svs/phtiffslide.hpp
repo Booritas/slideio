@@ -48,6 +48,6 @@ namespace slideio
         void createImageScene(const std::vector<TiffDirectory>& directories, const PHTMetadata& metadata,
             const std::vector<PHTLevel>& imagePyramid, libtiff::TIFF* tiff);
         void createAuxScenes(const std::vector<TiffDirectory>& directories,
-            const std::map<std::string, int>& auxImages);
+            const std::map<std::string, int>& auxImages, const PHTMetadata& metadata);
     };
 }

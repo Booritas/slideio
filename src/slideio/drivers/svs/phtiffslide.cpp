@@ -72,6 +72,19 @@ namespace
         return word;
     }
 
+    // PIM_DP_IMAGE_TYPE spells an auxiliary image "MACROIMAGE" where
+    // phAuxImageName gives the canonical "Macro", so the two vocabularies only meet
+    // once the trailing "IMAGE" is off. Comparing them as they stand is an equality
+    // that is never true, which is what this used to be.
+    std::string phImageKindOfType(const std::string& type) {
+        const std::string suffix = "IMAGE";
+        if (type.size() > suffix.size()
+            && phEqualIgnoreCase(type.substr(type.size() - suffix.size()), suffix)) {
+            return type.substr(0, type.size() - suffix.size());
+        }
+        return type;
+    }
+
     // A philips zoom level covers the same area as the base level downsampled by
     // 2^levelNumber, rounded UP to a whole pixel: a level that rounded down would be one
     // column or row short of holding the whole slide. No real file exercises this -- every
@@ -357,7 +370,7 @@ void PHTIFFSlide::init(const std::vector<TiffDirectory>& directories, TIFFKeeper
 	std::map<std::string, int> auxImages;
 	extractImages(directories, metadata, imagePyramid, auxImages);
 	createImageScene(directories, metadata, imagePyramid, keeper.release());
-	createAuxScenes(directories, auxImages);
+	createAuxScenes(directories, auxImages, metadata);
     m_rawMetadata = directories.front().description;
     m_metadataFormat = MetadataFormat::XML;
 }
@@ -547,7 +560,7 @@ void PHTIFFSlide::createImageScene(const std::vector<TiffDirectory>& directories
 }
 
 void PHTIFFSlide::createAuxScenes(const std::vector<TiffDirectory>& directories,
-    const std::map<std::string, int>& auxImages) {
+    const std::map<std::string, int>& auxImages, const PHTMetadata& metadata) {
     for (const auto& pair : auxImages) {
         const std::string& name = pair.first;
         int index = pair.second;
@@ -555,6 +568,19 @@ void PHTIFFSlide::createAuxScenes(const std::vector<TiffDirectory>& directories,
             m_filePath, getDriverId(), name, directories[index], true);
         sScene->setDriverId(m_driverId);
         sScene->setColorProfile(ColorProfile(directories[index].iccProfile));
+        // SVSSmallScene reads its directory's description as aperio text, which a
+        // philips description is not, so both values come from the philips xml
+        // here. The acquisition time is a root attribute and covers every image;
+        // DICOM_BITS_STORED is declared per image, so each takes its own -- though
+        // no auxiliary image in the corpus declares one, the pixel format
+        // attributes appearing on the whole slide image alone.
+        sScene->setAcquisitionTime(metadata.acquisitionTime);
+        for (const PHTImageDeclaration& declared : metadata.images) {
+            if (phEqualIgnoreCase(name, phImageKindOfType(declared.type))) {
+                sScene->setSignificantBits(declared.significantBits);
+                break;
+            }
+        }
         std::shared_ptr<CVScene> scene(sScene);
         m_auxImages[name] = scene;
         m_auxNames.emplace_back(name);

@@ -4,6 +4,8 @@
 #include "slideio/drivers/svs/phtmetadata.hpp"
 #include "slideio/drivers/svs/phtdescription.hpp"
 #include "slideio/core/log.hpp"
+#include "slideio/core/tools/tools.hpp"
+#include <cmath>
 
 #include <algorithm>
 #include <tinyxml2.h>
@@ -101,6 +103,22 @@ PHTMetadata slideio::readPHTMetadata(const std::string& description) {
     // PixelDataRepresentation does not cost the caller the rest of the file.
     PHTDescription philips(description);
     PHTMetadata metadata;
+    // A root attribute, so it covers every image of the file. Deliberately not
+    // DICOM_DATE_OF_LAST_CALIBRATION with DICOM_TIME_OF_LAST_CALIBRATION, which
+    // sit beside it and are the scanner's calibration -- four and a half minutes
+    // before the scan in Philips-4.tiff, near enough to look right.
+    if (philips.hasAttribute(philips.getRoot(), ACQUISITION_DATETIME)) {
+        const std::string stated = philips.getAttributeText(philips.getRoot(), ACQUISITION_DATETIME);
+        if (const auto epoch = Tools::parseDicomDateTime(stated, "")) {
+            metadata.acquisitionTime = static_cast<int64_t>(std::floor(*epoch));
+        }
+        else {
+            // The rest of the document is still usable, so this is a warning
+            // rather than a raise.
+            SLIDEIO_LOG(WARNING) << "PHTIFF: unreadable DICOM_ACQUISITION_DATETIME '"
+                << stated << "'. The acquisition time of the slide is unknown.";
+        }
+    }
     for (const tinyxml2::XMLElement* image :
          philips.getObjectList(philips.getRoot(), SCANNED_IMAGES, SCANNED_IMAGE)) {
         // An image the metadata declares without naming its type cannot be classified,
@@ -124,6 +142,10 @@ PHTMetadata slideio::readPHTMetadata(const std::string& description) {
         if (philips.hasAttribute(image, IMAGE_RESOLUTION)) {
             phReadSpacing(philips, image, declared.spacing);
         }
+        // DICOM_BITS_STORED belongs to the image, not the slide: the label and
+        // the whole slide image each declare their own. 0 where it states none,
+        // which is what getChannelSignificantBits() means by unknown.
+        phReadInt(philips, image, BITS_STORED, declared.significantBits);
         // Only the whole slide image has a pyramid; an auxiliary image is left with none.
         if (declared.type == WSI) {
             declared.levels = phReadLevels(philips, image);

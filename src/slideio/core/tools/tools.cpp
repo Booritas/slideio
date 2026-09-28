@@ -5,6 +5,7 @@
 #include "slideio/core/tools/tools.hpp"
 
 #include <cstdio>
+#include <algorithm>
 #include <codecvt>
 #include <numeric>
 #include "slideio/core/exceptions.hpp"
@@ -494,4 +495,98 @@ std::optional<int64_t> Tools::parseTiffDateTime(const std::string& text)
     }
     // Whole seconds. A TIFF DateTime carries no fraction, so nothing is lost.
     return static_cast<int64_t>(std::floor(*epoch));
+}
+
+namespace
+{
+    bool dicomAllDigits(const std::string& text)
+    {
+        if (text.empty()) {
+            return false;
+        }
+        for (const char c : text) {
+            if (c < '0' || c > '9') {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    std::string dicomWithoutSeparators(std::string text)
+    {
+        text.erase(std::remove_if(text.begin(), text.end(),
+                                  [](const char c) { return c == '.' || c == ':'; }),
+                   text.end());
+        return text;
+    }
+}
+
+std::optional<double> Tools::parseDicomDateTime(const std::string& date,
+                                                const std::string& time,
+                                                const std::string& zoneOffset)
+{
+    std::string day = date;
+    std::string clock = time;
+    // A DT value states both halves in one string. Split it before the
+    // separators are stripped, so a dotted DA of more than eight characters --
+    // "1994.10.16" -- is not mistaken for one.
+    if (clock.empty() && day.size() > 8 && dicomAllDigits(day.substr(0, 8))) {
+        clock = day.substr(8);
+        day = day.substr(0, 8);
+    }
+    day = dicomWithoutSeparators(day);
+    if (day.size() != 8 || !dicomAllDigits(day)) {
+        return std::nullopt;
+    }
+
+    std::string offset;
+    const size_t offsetAt = clock.find_first_of("+-");
+    if (offsetAt != std::string::npos) {
+        offset = clock.substr(offsetAt);
+        clock = clock.substr(0, offsetAt);
+    }
+    else {
+        // Nothing in the value, so the instance's offset applies. Both halves
+        // of a plane time -- an acquisition DT and a content DA/TM pair -- end
+        // up on one clock this way, and their difference means what it says.
+        offset = zoneOffset;
+    }
+    clock.erase(std::remove(clock.begin(), clock.end(), ':'), clock.end());
+
+    std::string fraction;
+    const size_t dot = clock.find('.');
+    if (dot != std::string::npos) {
+        fraction = clock.substr(dot);
+        clock = clock.substr(0, dot);
+        if (fraction.size() < 2 || !dicomAllDigits(fraction.substr(1))) {
+            return std::nullopt;
+        }
+    }
+    // A TM may stop after the hour or after the minute.
+    if (clock.size() < 2 || clock.size() > 6 || (clock.size() % 2) != 0 || !dicomAllDigits(clock)) {
+        return std::nullopt;
+    }
+    clock.append(6 - clock.size(), '0');
+
+    std::string iso = day.substr(0, 4) + "-" + day.substr(4, 2) + "-" + day.substr(6, 2)
+        + "T" + clock.substr(0, 2) + ":" + clock.substr(2, 2) + ":" + clock.substr(4, 2)
+        + fraction;
+    if (offset.empty()) {
+        iso += "Z";
+    }
+    else {
+        // DICOM writes the offset as &ZZXX, which ISO 8601 spells with a colon.
+        if (offset[0] != '+' && offset[0] != '-') {
+            return std::nullopt;
+        }
+        const std::string digits = dicomWithoutSeparators(offset.substr(1));
+        if (digits.size() != 4 || !dicomAllDigits(digits)) {
+            return std::nullopt;
+        }
+        iso += offset[0];
+        iso += digits.substr(0, 2);
+        iso += ":";
+        iso += digits.substr(2, 2);
+    }
+    return Tools::parseIso8601(iso);
 }

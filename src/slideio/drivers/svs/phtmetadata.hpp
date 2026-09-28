@@ -7,6 +7,7 @@
 #include <opencv2/core.hpp>
 #include <string>
 #include <vector>
+#include <cstdint>
 
 namespace slideio
 {
@@ -26,6 +27,9 @@ namespace slideio
         cv::Size size = {};
         Resolution spacing = {};
         std::vector<PHTLevelDeclaration> levels;   // empty for an auxiliary image
+        // DICOM_BITS_STORED: how many of the allocated bits carry data. 0 where the
+        // image declares none.
+        int significantBits = 0;
     };
 
     // Everything the driver needs from the philips xml, parsed once per open. What only
@@ -35,6 +39,10 @@ namespace slideio
     struct SLIDEIO_SVS_EXPORTS PHTMetadata
     {
         std::vector<PHTImageDeclaration> images;
+        // DICOM_ACQUISITION_DATETIME of the slide, in seconds since the Unix epoch;
+        // 0 where the file states none. It is a root attribute, so it covers every
+        // image of the file rather than one of them.
+        int64_t acquisitionTime = 0;
         const PHTImageDeclaration* wholeSlideImage() const;
     };
 
