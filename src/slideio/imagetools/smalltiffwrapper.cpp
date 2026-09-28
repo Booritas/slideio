@@ -39,6 +39,13 @@ const std::string& SmallTiffWrapper::SmallTiffPage::getMetadata() const {
 	return m_metadata;
 }
 
+std::string SmallTiffWrapper::SmallTiffPage::getAcquisitionDateTime() const {
+	// TIFFTAG_DATETIME, which TiffTools::scanTiffDirTags already reads into the
+	// directory. No tiff in the gdal corpus carries it, which is why the test
+	// writes one.
+	return m_parent->getDirectory(m_pageIndex).dateTime;
+}
+
 void SmallTiffWrapper::SmallTiffPage::readRaster(cv::OutputArray raster) {
 	const TiffDirectory& dir = m_parent->getDirectory(m_pageIndex);
 	if (dir.tiled) {

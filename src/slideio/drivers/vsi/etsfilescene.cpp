@@ -9,6 +9,7 @@
 #include "slideio/drivers/vsi/etsfile.hpp"
 #include "slideio/drivers/vsi/vsifile.hpp"
 #include "slideio/drivers/vsi/volume.hpp"
+#include "slideio/drivers/vsi/vsitools.hpp"
 
 #include <cstdio>
 
@@ -139,10 +140,12 @@ int EtsFileScene::getChannelSignificantBits(int channelIndex) const {
         return 0;
     }
     if (getEtsFile() && getEtsFile()->getVolume()) {
-        const int bits = getEtsFile()->getVolume()->getBitDepth();
-        if (bits == 8 || bits == 12 || bits == 16) {
-            return bits;
-        }
+        // Any stated depth the sample can hold, not a list of the three the corpus
+        // happens to show: 10 and 14 are ordinary camera depths too. What a
+        // sample cannot hold is refused instead, which is the rule SVSTools,
+        // DCMFile and readPHTMetadata apply to their own stated depths.
+        return VSITools::significantBits(getEtsFile()->getVolume()->getBitDepth(),
+                                         getChannelDataType(channelIndex));
     }
     return CVScene::getChannelSignificantBits(channelIndex);
 }

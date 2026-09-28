@@ -39,6 +39,12 @@ namespace slideio
         Compression getCompression() const override;
         MetadataFormat getMetadataFormat() const override;
         std::string getRawMetadata() const override;
+        // The page's acquisition time -- exif DateTimeOriginal or DateTime for a
+        // freeimage page, TIFFTAG_DATETIME for a tiff one -- in seconds since the
+        // Unix epoch; 0 where the file states none. No format this driver opens
+        // states significant bits or a per-plane time, so those keep the base
+        // class defaults; see TECH_DEBT #28.
+        int64_t getAcquisitionTime() const override { return m_acquisitionTime; }
         ColorProfile getColorProfile() const override {
             return m_colorProfile;
         }
@@ -47,6 +53,7 @@ namespace slideio
         }
     private:
         SmallImagePage* m_imagePage;
+        int64_t m_acquisitionTime = 0;
         std::string m_filePath;
         std::string m_driverId;
         ColorProfile m_colorProfile;

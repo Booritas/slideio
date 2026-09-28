@@ -22,6 +22,9 @@ slideio::GDALScene::GDALScene(SmallImagePage* page, const std::string& path, con
     // A gdal image has no pyramid, but a scene with no level cannot be addressed by level
     // at all, so it registers the single level it is. Same shape as SVSSmallScene.
     if (m_imagePage != nullptr) {
+        if (const auto acquired = Tools::parseTiffDateTime(m_imagePage->getAcquisitionDateTime())) {
+            m_acquisitionTime = *acquired;
+        }
         const cv::Size imageSize = m_imagePage->getSize();
         LevelInfo level;
         level.setLevel(0);

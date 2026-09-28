@@ -48,6 +48,7 @@ namespace slideio
 			void readRaster(cv::OutputArray) override;
 			Resolution getResolution() const override;
 			std::vector<uint8_t> getICCProfile() const override;
+			std::string getAcquisitionDateTime() const override;
 		private:
             void detectMetadata();
 			void extractCommonMetadata();

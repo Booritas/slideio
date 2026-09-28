@@ -34,6 +34,15 @@ namespace slideio
 		virtual std::vector<uint8_t> getICCProfile() const {
 			return {};
 		}
+		/**@brief when the image was acquired, spelled "YYYY:MM:DD HH:MM:SS".
+		 *
+		 * Empty where the page states none. The spelling is TIFF's tag 306, which
+		 * is also what exif inherited for its DateTime, so one parse serves both
+		 * wrappers -- see Tools::parseTiffDateTime. Raw text rather than an epoch
+		 * because a page is a decoder wrapper and the conversion belongs above it.*/
+		virtual std::string getAcquisitionDateTime() const {
+			return {};
+		}
 	};
 	class SmallImage
 	{

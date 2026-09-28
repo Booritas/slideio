@@ -543,6 +543,30 @@ void FIWrapper::Page::detectMetadata() {
     }
 }
 
+std::string FIWrapper::Page::getAcquisitionDateTime() const {
+    if (!m_pBitmap) {
+        return {};
+    }
+    // DateTimeOriginal (0x9003) alone: exif defines it as when the original
+    // image data was generated, which is the acquisition.
+    //
+    // Deliberately not DateTime (0x0132). Exif defines that one as the file
+    // change date -- FreeImage's own description of the tag reads "File change
+    // date and time" -- and FreeImage publishes a png's tIME chunk under the
+    // same key, so for a png it is literally the last modification, which
+    // re-saving the file moves. colors.png carries one and reports no
+    // acquisition time because of it. TIFF defines tag 306 as the time of image
+    // creation instead, which is why the tiff page does read it.
+    FITAG* tag = nullptr;
+    if (FreeImage_GetMetadata(FIMD_EXIF_EXIF, m_pBitmap, "DateTimeOriginal", &tag) && tag) {
+        const char* value = static_cast<const char*>(FreeImage_GetTagValue(tag));
+        if (value != nullptr && value[0] != 0) {
+            return value;
+        }
+    }
+    return {};
+}
+
 void FIWrapper::Page::extractCommonMetadata() {
 
     static constexpr FREE_IMAGE_MDMODEL models[] = {

@@ -54,6 +54,16 @@ namespace slideio
              * and a vector layer does not, which is the same guard the TIME_INCREMENT
              * overload of tag 2016 uses.
              */
+            // The significant bits a stated camera depth amounts to for a sample of
+            // the given type, or 0 where it cannot be one.
+            //
+            // "Camera Actual Bit Depth" describes the camera, so a volume written
+            // narrower than the camera would otherwise report more significant bits
+            // than a sample holds. 0 is what getChannelSignificantBits() means by
+            // unknown, and the storage width would be indistinguishable from a file
+            // saying every stored bit is significant. An unknown data type has no
+            // width to contradict, so the stated value stands.
+            static int significantBits(int statedBits, DataType dataType);
             static bool isPlaneTimestampNode(const TagInfo& node);
             /**@brief Per-plane times read from one volume subtree. */
             struct PlaneTimes

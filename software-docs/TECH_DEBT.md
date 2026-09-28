@@ -1098,6 +1098,17 @@ scanner's calibration -- four and a half minutes before the scan in
 value looked like a date. Only `getPlaneTimestamp()` is absent from PHTIFF: one
 time per slide, one plane per scene.
 
+GDAL states no significant bits either -- no tiff tag, no png `sBIT` in the
+corpus, nothing from FreeImage beyond a bit depth -- and it carries the
+subtlest decoy of the set, because the decoy and the answer are the same tag
+number. TIFF defines 306 as the time of image creation, which is why NDPI, PKE
+and the tiff half of GDAL read it. Exif defines 0x0132 as the *file change*
+date, and FreeImage publishes a png's `tIME` chunk -- last modification by the
+png spec's own wording -- under that same key. So the FreeImage half reads
+`DateTimeOriginal` (0x9003) and nothing else, and both corpus files that carry
+a date-looking value report 0. No file states `DateTimeOriginal`, so that half
+is carried by the rule and by a tiff the test writes.
+
 AFI needed no work of its own: an `.afi` is an index over one `.svs` per channel
 and its scenes are `SVSScene` objects, so it inherited both getters from the SVS
 work. `fs.afi` is 10 bits in 16-bit samples across three files of one scan.
@@ -1111,6 +1122,35 @@ getters at 0 and false so none of those decisions is quietly reversed by someone
 wiring BitsPerSample -- or `<Bits>` -- in. SVS's test of that name now pins only
 the plane timestamps, and says in so many words that its 0 for the bits is that
 one file stating none; PHTIFF has a `noPlaneTimestamps` test for the same reason.
+
+**What the drivers agree on, and where they differ on purpose.** A consistency
+review across all thirteen scene classes settled the following, so the next
+person changing one of them knows which differences are load bearing:
+
+- Every implementation of `getChannelSignificantBits()` bounds its channel
+  index and returns 0 for one out of range, and every driver that reads a
+  stated depth refuses one wider than the sample holds. 0 means unknown
+  throughout; none of them clamps to the storage width, because that would be
+  indistinguishable from a file saying every stored bit is significant.
+- Every driver with plane timestamps builds its vector only on full coverage,
+  so `hasPlaneTimestamps()` cannot disagree with the getter, and every one
+  guarantees a non-negative offset -- three by checking the origin against the
+  earliest plane and dropping the acquisition time when it fails, one by
+  deriving the origin from the planes.
+- `TransformerScene` forwards all four getters, so wrapping a scene in a
+  transform keeps them.
+
+Deliberately different, and not to be "fixed" into agreement:
+
+- **Auxiliary images.** CZI and DCM give theirs no acquisition time because the
+  label and the preview are separately acquired files embedded in the slide,
+  with metadata the driver does not parse. SVS, PKE and PHTIFF give theirs the
+  slide's, because there the label and macro come off the same scan run.
+- **DCM reports 0 for a palette image**, where `BitsStored` is the width of the
+  index into the lookup table rather than of a sample.
+- **VSI accepts a per-time-frame timestamp list** broadcast across channels and
+  z, where the others require one value per plane. OME-TIFF does something
+  similar across `SamplesPerPixel`.
 
 **What ZVI needed, and why it is no longer here.** Its tag was enumerated in
 `zvitags.hpp` and appeared in no corpus file, so the *encoding* was unknown --

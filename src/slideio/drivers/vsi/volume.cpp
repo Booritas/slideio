@@ -3,6 +3,8 @@
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/drivers/vsi/volume.hpp"
 #include "slideio/drivers/vsi/vsitools.hpp"
+#include "slideio/core/log.hpp"
+#include <algorithm>
 
 using namespace slideio;
 using namespace slideio::vsi;
@@ -100,6 +102,24 @@ void Volume::setPlaneTimestamps(const std::vector<double>& raw, const std::strin
     m_planeTimestamps.reserve(raw.size());
     for (const double value : raw) {
         m_planeTimestamps.push_back(value * (*scale));
+    }
+    if (m_planeTimestamps.empty()) {
+        return;
+    }
+    const double earliest = *std::min_element(m_planeTimestamps.begin(), m_planeTimestamps.end());
+    if (earliest < 0.) {
+        // CVScene::getPlaneTimestamp() forbids a negative offset: the origin must
+        // never be later than the earliest plane. Rebasing on that plane keeps
+        // them non-negative, but the acquisition time is then no longer what they
+        // are measured from, so it is dropped rather than left to mislead --
+        // which is how CZIScene, DCMScene and OTScene answer the same case.
+        SLIDEIO_LOG(WARNING) << "VSI driver: a plane time precedes the volume's"
+            " creation time by " << -earliest << " s. Reporting the times relative to"
+            " the earliest plane and no acquisition time.";
+        for (double& value : m_planeTimestamps) {
+            value -= earliest;
+        }
+        m_acquisitionTime = 0;
     }
 }
 

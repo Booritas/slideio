@@ -10,6 +10,8 @@
 #include <nlohmann/json.hpp>
 
 #include "slideio/imagetools/imagetools.hpp"
+#include "slideio/imagetools/libtiff.hpp"
+#include "slideio/core/tools/tempfile.hpp"
 
 using namespace tinyxml2;
 using json = nlohmann::json;
@@ -436,3 +438,96 @@ TEST(GDALImageDriver, colorProfileDecodedFromEmbeddedIccInTiff)
     ASSERT_TRUE(info.present);
     ASSERT_EQ(slideio::IccColorSpace::RGB, info.dataSpace);
 }
+
+TEST(GDALDriver, anExifFileChangeDateIsNotAnAcquisitionTime)
+{
+    // The one file in this corpus that carries exif states DateTime (0x0132)
+    // 2015:02:05 16:27:58 and no DateTimeOriginal. Exif defines 0x0132 as the
+    // file change date -- FreeImage labels it "File change date and time" -- so
+    // it is not when the image was acquired and the scene reports none. 0x9003,
+    // DateTimeOriginal, is the one that means acquisition, and no file here
+    // states it.
+    slideio::GDALImageDriver driver;
+    const std::string path = TestTools::getTestImagePath(
+        "gdal", "Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(path);
+    ASSERT_TRUE(slide != nullptr);
+    std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
+    ASSERT_TRUE(scene != nullptr);
+    EXPECT_EQ(scene->getAcquisitionTime(), 0LL);
+}
+
+TEST(GDALDriver, aPngModificationTimeIsNotAnAcquisitionTime)
+{
+    // colors.png carries a tIME chunk reading 2023-05-27 20:35:52, which would
+    // be 1685219752. tIME is the image's last modification, which the png spec
+    // says in so many words, and re-saving a file moves it. It is not when the
+    // image was acquired, so the scene reports none.
+    slideio::GDALImageDriver driver;
+    const std::string path = TestTools::getTestImagePath("gdal", "colors.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(path);
+    ASSERT_TRUE(slide != nullptr);
+    std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
+    ASSERT_TRUE(scene != nullptr);
+    EXPECT_EQ(scene->getAcquisitionTime(), 0LL);
+}
+
+TEST(GDALDriver, acquisitionTimeFromATiffDateTime)
+{
+    // The tiff backed half of the driver. No tiff in the corpus carries tag
+    // 306, so one is written here: SmallTiffPage reads the value through the
+    // same TiffDirectory field the pke driver added.
+    slideio::TempFile temp("tif");
+    const std::string path = temp.getPath().string();
+    {
+        libtiff::TIFF* tiff = libtiff::TIFFOpen(path.c_str(), "w");
+        ASSERT_TRUE(tiff != nullptr);
+        const int width = 8, height = 8;
+        libtiff::TIFFSetField(tiff, TIFFTAG_IMAGEWIDTH, width);
+        libtiff::TIFFSetField(tiff, TIFFTAG_IMAGELENGTH, height);
+        libtiff::TIFFSetField(tiff, TIFFTAG_SAMPLESPERPIXEL, 1);
+        libtiff::TIFFSetField(tiff, TIFFTAG_BITSPERSAMPLE, 8);
+        libtiff::TIFFSetField(tiff, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_MINISBLACK);
+        libtiff::TIFFSetField(tiff, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
+        libtiff::TIFFSetField(tiff, TIFFTAG_ROWSPERSTRIP, height);
+        libtiff::TIFFSetField(tiff, TIFFTAG_DATETIME, "2015:02:05 16:27:58");
+        std::vector<uint8_t> row(width, 0);
+        for (int y = 0; y < height; ++y) {
+            ASSERT_EQ(1, libtiff::TIFFWriteScanline(tiff, row.data(), y, 0));
+        }
+        libtiff::TIFFClose(tiff);
+    }
+
+    slideio::GDALImageDriver driver;
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(path);
+    ASSERT_TRUE(slide != nullptr);
+    std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
+    ASSERT_TRUE(scene != nullptr);
+    EXPECT_EQ(scene->getAcquisitionTime(), 1423153678LL);
+}
+
+TEST(GDALDriver, noSignificantBitsOrPlaneTimestamps)
+{
+    // Neither tiff, png, jpeg nor bmp states how many of the stored bits carry
+    // data: BitsPerSample and the png bit depth are the storage width
+    // getChannelDataType() already reports, and no corpus png carries the sBIT
+    // chunk that would say otherwise. One page is one plane, so there is
+    // nothing for a per-plane timestamp to distinguish either.
+    slideio::GDALImageDriver driver;
+    const std::string path = TestTools::getTestImagePath(
+        "gdal", "img_2448x2448_3x16bit_SRC_RGB_ducks.png");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(path);
+    ASSERT_TRUE(slide != nullptr);
+    std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
+    ASSERT_TRUE(scene != nullptr);
+    ASSERT_EQ(slideio::DataType::DT_UInt16, scene->getChannelDataType(0));
+    for (int channel = 0; channel < scene->getNumChannels(); ++channel) {
+        EXPECT_EQ(0, scene->getChannelSignificantBits(channel)) << "channel " << channel;
+    }
+    EXPECT_FALSE(scene->hasPlaneTimestamps());
+    EXPECT_DOUBLE_EQ(0., scene->getPlaneTimestamp(0, 0, 0));
+}
+

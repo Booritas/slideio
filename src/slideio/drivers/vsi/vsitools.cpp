@@ -969,6 +969,41 @@ std::optional<double> vsi::VSITools::unitToMeters(const std::string& unitStr) {
     return std::pow(10.0, static_cast<double>(*exponent));
 }
 
+int vsi::VSITools::significantBits(int statedBits, DataType dataType) {
+    if (statedBits <= 0) {
+        return 0;
+    }
+    int storageBits = 0;
+    switch (dataType) {
+    case DataType::DT_Byte:
+    case DataType::DT_Int8:
+        storageBits = 8;
+        break;
+    case DataType::DT_UInt16:
+    case DataType::DT_Int16:
+    case DataType::DT_Float16:
+        storageBits = 16;
+        break;
+    case DataType::DT_Int32:
+    case DataType::DT_Float32:
+        storageBits = 32;
+        break;
+    case DataType::DT_Float64:
+        storageBits = 64;
+        break;
+    default:
+        // DT_Unknown and DT_None: no width to contradict. Tools::dataTypeSize
+        // raises on those rather than answering, which is why the widths are
+        // spelled out here.
+        storageBits = 0;
+        break;
+    }
+    if (storageBits > 0 && statedBits > storageBits) {
+        return 0;
+    }
+    return statedBits;
+}
+
 bool vsi::VSITools::isPlaneTimestampNode(const TagInfo& node) {
     if (node.tag != Tag::TIME_VALUE) {
         return false;

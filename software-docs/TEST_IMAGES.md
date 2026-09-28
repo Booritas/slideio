@@ -35,7 +35,7 @@ programs under `src/single_tests/` have no test cases, so they show `--`.
 | Images referenced by tests | 245 | |
 | Present on this machine | 240 | **103.6 GB** |
 | Referenced but absent | 5 | -- |
-| Static references in test code | 716 | |
+| Static references in test code | 719 | |
 | References built at run time | 37 | |
 
 ### By directory
@@ -106,14 +106,14 @@ Sizes are what is on disk now. "Tests" counts the distinct tests naming the imag
 | `images/images/svs/JP2K-33003-1.svs` | 60.9 MB | main, transformer | 15 |
 | `images/images/czi/03_14_2019_DSGN0545_A_wb_1353_fov_1_633.czi` | 45.9 MB | main | 4 |
 | `images/images/gdal/multipage-ducks.tif` | 45.7 MB | main | 1 |
-| `images/images/gdal/Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg` | 39.1 MB | converter, main, transformer | 22 |
+| `images/images/gdal/Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg` | 39.1 MB | converter, main, transformer | 23 |
 | `images/images/czi/doughnut.czi` | 36.3 MB | converter, main | 2 |
 | `images/images/gdal/img_2448x2448_3x16bit_SRC_RGB_ducks.raw` | 34.3 MB | main | 1 |
 | `images/images/ometiff/Tests/ULT-2020-111-014_1 (1, x=4375, y=39330, w=1153, h=743).tif` | 31.1 MB | ometiff | 1 |
 | `images/images/ometiff/Tests/ULT-2020-111-014_1 (1, x=28333, y=36086, w=1099, h=760).tif` | 30.3 MB | ometiff | 1 |
 | `images/images/gdal/img_2448x2448_3x16bit_SRC_RGB_ducks.tif` | 30.1 MB | main, phtiff | 3 |
 | `images/images/gdal/Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.svs` | 28.4 MB | converter | 1 |
-| `images/images/gdal/img_2448x2448_3x16bit_SRC_RGB_ducks.png` | 24.2 MB | main | 1 |
+| `images/images/gdal/img_2448x2448_3x16bit_SRC_RGB_ducks.png` | 24.2 MB | main | 2 |
 | `images/images/scn/Leica-Fluorescence-1.scn` | 20.7 MB | converter, main | 21 |
 | `images/images/unicode/тест/Leica-Fluorescence-1.scn` | 20.7 MB | main | 1 |
 | `images/images/svs/CMU-1-Small-Region-page-0.tif` | 18.8 MB | main | 3 |
@@ -298,7 +298,7 @@ Sizes are what is on disk now. "Tests" counts the distinct tests naming the imag
 | `images/images/dcm/openmicroscopy.org/CT1_J2KI` | 13.8 KB | main | 2 |
 | `images/images/vsi/Zenodo/Abdominal/G1M16_ABD_HE_B6.aux.png` | 11.0 KB | vsi | 1 |
 | `images/images/scn/z-stack.xml` | 8.0 KB | main | 1 |
-| `images/images/gdal/colors.png` | 6.3 KB | main, phtiff, transformer | 19 |
+| `images/images/gdal/colors.png` | 6.3 KB | main, phtiff, transformer | 20 |
 | `images/images/jxr/tile16.jxr` | 5.5 KB | main | 1 |
 | `images/images/ometiff/Multifile/multifile-Z1.ome.tiff` | 2.7 KB | ometiff | 5 |
 | `images/images/gdal/img_1024x600_3x8bit_RGB_color_bars_CMYKWRGB.png` | 2.7 KB | main | 3 |
@@ -331,7 +331,7 @@ identified by reading the source. They are not counted in the tables above.
 | `src/tests/main/test_czi_driver.cpp` | 394 | `CZIImageDriver.slideRawMetadata` | `"czi",imageName` |
 | `src/tests/main/test_czi_driver.cpp` | 425 | `CZIImageDriver.metadataCompression` | `"czi",imageName` |
 | `src/tests/main/test_fiwrapper.cpp` | 89 | `FIWrapper.emptyFilePath` | `"gdal", testFileName` |
-| `src/tests/main/test_gdal_driver.cpp` | 230 | `GDALDriver.metadataCompression` | `"gdal",std::get<0>(item)` |
+| `src/tests/main/test_gdal_driver.cpp` | 232 | `GDALDriver.metadataCompression` | `"gdal",std::get<0>(item)` |
 | `src/tests/main/test_scn_driver.cpp` | 50 | `SCNImageDriver.slideRawMetadata` | `"scn", imageName` |
 | `src/tests/main/test_svs_driver.cpp` | 360 | `SVSImageDriver.metadataCompression` | `"svs",imageName` |
 | `src/tests/main/test_svs_driver.cpp` | 378 | `SVSImageDriver.slideRawMetadata` | `"svs",imageName` |

@@ -479,3 +479,55 @@ TEST(Volume, ZResolutionRequiresAParseableUnit) {
     volume.setZResolution(1.5, "10^-3s^1");   // a time, not a length
     EXPECT_DOUBLE_EQ(volume.getZResolution(), 0.);
 }
+
+TEST(VSITools, significantBitsNeverExceedTheSampleTheyDescribe) {
+    // "Camera Actual Bit Depth" is the camera's, and a volume written narrower
+    // than the camera leaves the two disagreeing about the sample it claims to
+    // describe. 0 is what getChannelSignificantBits() means by unknown, and the
+    // storage width would be indistinguishable from a file saying every stored
+    // bit is significant. Same rule as SVSTools, DCMFile and readPHTMetadata.
+    EXPECT_EQ(VSITools::significantBits(16, DataType::DT_UInt16), 16);
+    EXPECT_EQ(VSITools::significantBits(12, DataType::DT_UInt16), 12);
+    EXPECT_EQ(VSITools::significantBits(8, DataType::DT_Byte), 8);
+    EXPECT_EQ(VSITools::significantBits(16, DataType::DT_Byte), 0);
+    EXPECT_EQ(VSITools::significantBits(12, DataType::DT_Byte), 0);
+
+    // A depth that is not 8, 12 or 16 is still a depth. The list this replaced
+    // rejected 10 and 14, which are ordinary camera depths -- the aperio
+    // fluorescence files state 10.
+    EXPECT_EQ(VSITools::significantBits(10, DataType::DT_UInt16), 10);
+    EXPECT_EQ(VSITools::significantBits(14, DataType::DT_UInt16), 14);
+
+    EXPECT_EQ(VSITools::significantBits(0, DataType::DT_UInt16), 0);
+    EXPECT_EQ(VSITools::significantBits(-4, DataType::DT_UInt16), 0);
+    // Where the sample width is not known there is nothing to contradict.
+    EXPECT_EQ(VSITools::significantBits(12, DataType::DT_Unknown), 12);
+}
+
+TEST(Volume, PlaneTimestampsThatPrecedeTheCreationTimeAreRebased) {
+    // The contract forbids a negative plane timestamp: the origin must never be
+    // later than the earliest plane. A creation time after the first exposure
+    // would make one, so the offsets are rebased on their earliest and the
+    // acquisition time is dropped -- the two getters can no longer add up, and
+    // saying so beats reporting an origin that is not one. CZIScene, DCMScene
+    // and OTScene all answer this case the same way.
+    vsi::Volume volume;
+    volume.setAcquisitionTime(1000);
+    volume.setPlaneTimestamps({-2.0, 0.0, 3.0}, "s");
+    ASSERT_EQ(volume.getPlaneTimestampCount(), 3);
+    EXPECT_DOUBLE_EQ(volume.getPlaneTimestampByIndex(0), 0.0);
+    EXPECT_DOUBLE_EQ(volume.getPlaneTimestampByIndex(1), 2.0);
+    EXPECT_DOUBLE_EQ(volume.getPlaneTimestampByIndex(2), 5.0);
+    EXPECT_EQ(volume.getAcquisitionTime(), 0);
+}
+
+TEST(Volume, PlaneTimestampsAtOrAfterTheCreationTimeAreLeftAlone) {
+    // The ordinary case: the offsets already start at or after the origin, so
+    // nothing is rebased and the acquisition time stands.
+    vsi::Volume volume;
+    volume.setAcquisitionTime(1000);
+    volume.setPlaneTimestamps({0.0, 2.0, 4.0}, "s");
+    EXPECT_DOUBLE_EQ(volume.getPlaneTimestampByIndex(0), 0.0);
+    EXPECT_DOUBLE_EQ(volume.getPlaneTimestampByIndex(2), 4.0);
+    EXPECT_EQ(volume.getAcquisitionTime(), 1000);
+}

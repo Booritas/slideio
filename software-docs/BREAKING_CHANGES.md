@@ -7,6 +7,94 @@ by branch.
 
 ---
 
+## vsi-contract-alignment
+
+### `EtsFileScene` and `vsi::Volume` brought into line with the other drivers
+
+**Module:** `slideio-vsi` (exported: `VSITools`, `vsi::Volume`, `EtsFileScene`)
+**Files:** `src/slideio/drivers/vsi/vsitools.hpp`/`.cpp`,
+`src/slideio/drivers/vsi/volume.cpp`,
+`src/slideio/drivers/vsi/etsfilescene.cpp`
+
+VSI was the first driver to implement this feature and the last to be held to
+the rules the later ones settled on. A consistency review across all thirteen
+scene classes found it differing in three ways, all now closed. `VSITools`
+gained the static `significantBits()`.
+
+**A plane time that precedes the volume's creation time is rebased, and the
+acquisition time is dropped.** `cvscene.hpp` requires that the origin never
+postdate the earliest plane, so a timestamp is never negative. `CZIScene`,
+`DCMScene` and `OTScene` all check that and drop the acquisition time when it
+fails; `ZVIScene` derives its origin from the planes, so the two agree by
+construction. VSI did neither: `Volume::setPlaneTimestamps` stored the file's
+`TIME_VALUE` list unit-scaled and never compared it with the `CREATION_TIME`
+the volume reports as its acquisition time. It now does, in
+`setPlaneTimestamps`, which is where both values are in hand.
+
+**A stated bit depth wider than the sample reports 0.** VSI was the last reader
+of a stated depth without the guard added to SVS, DCM and PHTIFF -- the "Camera
+Actual Bit Depth" tag is the camera's, so a volume written narrower than the
+camera would have reported more significant bits than a sample holds.
+
+**Any stated depth the sample can hold is accepted, not just 8, 12 or 16.** The
+list that replaced was a defensive filter against the recursive tag search that
+finds the depth, with no test behind it, and it rejected 10 and 14 -- ordinary
+camera depths, and 10 is exactly what the aperio fluorescence files state. The
+storage-width check is the better guard and is the one every other driver uses.
+
+---
+
+## gdal-acquisition-time
+
+### `GDALScene` reports the page's acquisition time
+
+**Module:** `slideio-gdal` (exported: `GDALScene`), `slideio-imagetools`
+(`SmallImagePage`, `SmallTiffWrapper`, `FIWrapper`)
+**Files:** `src/slideio/drivers/gdal/gdalscene.hpp`/`.cpp`,
+`src/slideio/imagetools/smallimage.hpp`,
+`src/slideio/imagetools/smalltiffwrapper.hpp`/`.cpp`,
+`src/slideio/imagetools/fiwrapper.hpp`/`.cpp`
+
+`GDALScene` now overrides `getAcquisitionTime()`. The driver's name is
+historical -- it is backed by libtiff for tiff files and FreeImage for
+everything else -- so the value comes through a new
+`SmallImagePage::getAcquisitionDateTime()` virtual that each wrapper answers
+from its own source, as raw `"YYYY:MM:DD HH:MM:SS"` text that
+`Tools::parseTiffDateTime` converts. `SmallImagePage` gained a virtual with a
+default, so an out-of-tree implementation of it still compiles.
+
+**The tiff page reads TIFFTAG_DATETIME (306), which TIFF defines as the time of
+image creation.** No tiff in the gdal corpus carries one, so the test writes a
+tiff that does.
+
+**The FreeImage page reads exif DateTimeOriginal (0x9003) and nothing else.**
+That is the tag exif defines as when the original image data was generated. It
+deliberately does not read DateTime (0x0132), which exif defines as the *file
+change* date -- FreeImage's own description of it reads "File change date and
+time". Two corpus files show why that matters:
+
+- `colors.png` carries a png `tIME` chunk, which is the image's last
+  modification by the png spec's own wording, and FreeImage publishes it under
+  the `DateTime` key. Reading that key would have the scene report 2023-05-27
+  for a file whose acquisition time is unknown, and re-saving the file would
+  move it.
+- `Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg` carries `DateTime`
+  2015:02:05 16:27:58 and no `DateTimeOriginal`, so it reports 0 as well.
+
+No corpus file states `DateTimeOriginal`, so the FreeImage half of this is
+carried by the tiff test and the rule rather than by a file. Note that the same
+tag number means different things in the two standards: TIFF 306 is creation,
+exif 0x0132 is file change, which is why one is read and the other is not.
+
+**Neither `getChannelSignificantBits()` nor `getPlaneTimestamp()` is
+implemented.** No format this driver opens states how many of the stored bits
+carry data: BitsPerSample and the png bit depth are the storage width
+`getChannelDataType()` already reports, and no corpus png carries the `sBIT`
+chunk that would say otherwise. One page is one plane, so a per-plane timestamp
+has nothing to distinguish.
+
+---
+
 ## phtiff-acquisition-time
 
 ### `PHTIFFTiledScene` reports the scan time and significant bits
