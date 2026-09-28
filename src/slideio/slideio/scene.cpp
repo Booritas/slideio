@@ -3,6 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 
 #include "slideio/slideio/scene.hpp"
+#include "slideio/slideio/sceneinternal.hpp"
 #include "slideio/core/tools/cvtools.hpp"
 #include "slideio/core/cvscene.hpp"
 #include "slideio/core/log.hpp"
@@ -460,3 +461,12 @@ const slideio::Metadata& Scene::getChannelAttributes() const
     return m_scene->getChannelAttributes();
 }
 
+std::shared_ptr<Scene> slideio::SceneInternal::createScene(std::shared_ptr<CVScene> cvScene)
+{
+    return std::shared_ptr<Scene>(new Scene(cvScene));
+}
+
+std::shared_ptr<CVScene> slideio::SceneInternal::getCVScene(const std::shared_ptr<Scene>& scene)
+{
+    return scene->m_scene;
+}

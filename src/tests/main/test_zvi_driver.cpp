@@ -2,6 +2,7 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include <algorithm>
+#include "slideio/slideio/sceneinternal.hpp"
 #include <cstdint>
 #include <filesystem>
 #include <fstream>
@@ -582,7 +583,7 @@ TEST(ZVIImageDriver, getSceneIndex)
     const int numScenes = slide->getNumScenes();
     EXPECT_EQ(1, numScenes);
     for (int iScene = 0; iScene < numScenes; ++iScene) {
-        std::shared_ptr<slideio::CVScene> scene = slide->getScene(iScene)->getCVScene();
+        std::shared_ptr<slideio::CVScene> scene = slideio::SceneInternal::getCVScene(slide->getScene(iScene));
         EXPECT_TRUE(scene.get() != nullptr);
         EXPECT_EQ(iScene, scene->getSceneIndex());
         EXPECT_EQ(filePath, scene->getFilePath());
@@ -592,7 +593,7 @@ TEST(ZVIImageDriver, getSceneIndex)
     ASSERT_EQ(numImages, 0);
     std::list<std::string> imageNames = slide->getAuxImageNames();
     for (auto& name : imageNames) {
-        auto scene = slide->getAuxImage("label")->getCVScene();
+        auto scene = slideio::SceneInternal::getCVScene(slide->getAuxImage("label"));
         EXPECT_TRUE(scene.get() != nullptr);
         EXPECT_EQ(-1, scene->getSceneIndex());
         EXPECT_EQ(filePath, scene->getFilePath());

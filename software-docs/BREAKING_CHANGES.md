@@ -7,6 +7,85 @@ by branch.
 
 ---
 
+## public-header-separation
+
+### `Scene`'s CVScene constructor and `getCVScene()` moved to `SceneInternal`
+
+**Module:** `slideio` (exported: `Scene`)
+**Files:** `src/slideio/slideio/scene.hpp`/`.cpp`,
+`src/slideio/slideio/sceneinternal.hpp` (new), and the call sites in
+`slideio-converter`, `slideio-transformer` and `slideio-converter`'s CLI tool
+
+Two members are no longer part of `Scene`'s public interface:
+
+```cpp
+Scene(std::shared_ptr<CVScene> scene);      // now private
+std::shared_ptr<CVScene> getCVScene();      // now on SceneInternal
+```
+
+Both are reached through the new internal header
+`slideio/slideio/sceneinternal.hpp`, which is **not** installed:
+
+```cpp
+slideio::SceneInternal::createScene(cvScene);   // was: new Scene(cvScene)
+slideio::SceneInternal::getCVScene(scene);      // was: scene->getCVScene()
+```
+
+`Scene` declares `friend struct SceneInternal;` alongside the `friend class
+Slide;` it already had.
+
+As with `ConverterParameters::updateNotDefinedParameters`, no out-of-tree caller
+could have used either: `CVScene` is defined in `cvscene.hpp`, which has never
+shipped, so the constructor could not be called and the `shared_ptr` returned by
+`getCVScene()` could only be copied and destroyed, never dereferenced. The
+Python bindings, the one real out-of-tree consumer, use neither.
+
+The forward declaration `class CVScene;` stays in `scene.hpp`: `Scene` holds a
+`std::shared_ptr<CVScene>` member, so the name has to be visible there. What
+changed is that it is now confined to the private section instead of appearing
+in the signatures of public members.
+
+### `ConverterParameters::updateNotDefinedParameters` replaced by a free function
+
+**Module:** `slideio-converter` (exported: `ConverterParameters`)
+**Files:** `src/slideio/converter/converterparameters.hpp`/`.cpp`,
+`src/slideio/converter/converterparametersinternal.hpp` (new),
+`src/slideio/converter/tiffconverter.cpp`
+
+The public member
+
+```cpp
+void ConverterParameters::updateNotDefinedParameters(const std::shared_ptr<CVScene>& scene);
+```
+
+is gone. The same work is now done by
+
+```cpp
+namespace slideio::converter {
+    void updateNotDefinedParameters(ConverterParameters& parameters,
+                                    const std::shared_ptr<CVScene>& scene);
+}
+```
+
+declared in the new internal header `slideio/converter/converterparametersinternal.hpp`,
+which is **not** installed.
+
+No out-of-tree caller could have been calling the member in the first place:
+`CVScene` is an internal type whose header `cvscene.hpp` has never shipped, so
+the parameter could not be named from outside the build tree. What the member
+did accomplish was to put an internal type in the signature of a public class
+and force every consumer of `converterparameters.hpp` to read a forward
+declaration of a class they were never given -- and to leave the public surface
+looking as though the OpenCV-based interface were reachable. Both are now gone:
+the forward declaration `class CVScene;` has been removed from the public header
+as well.
+
+Behaviour is unchanged. The function needed no privileged access to
+`ConverterParameters` -- everything it touches goes through the public
+accessors -- so it is a plain free function rather than a friend.
+
+---
+
 ## vsi-contract-alignment
 
 ### `EtsFileScene` and `vsi::Volume` brought into line with the other drivers

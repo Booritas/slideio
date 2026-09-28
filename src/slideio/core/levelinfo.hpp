@@ -5,6 +5,8 @@
 #include "slideio/core/slideio_core_def.hpp"
 #include "slideio/core/slideio_structs.hpp"
 #include <cmath>
+#include <ostream>
+#include <string>
 
 #if defined(_MSC_VER)
 #pragma warning( push )

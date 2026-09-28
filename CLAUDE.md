@@ -230,6 +230,58 @@ src/
 └── tools/              # CLI tools
 ```
 
+## Public headers
+
+37 headers ship in the `-dev` package. Each module names its own in
+`src/slideio/<module>/public-headers.cmake`, next to the headers themselves, and
+those five lists are the single definition of the public surface: the root
+`CMakeLists.txt` turns them into the `install(FILES)` rules, and
+`src/public_headers_check/` compiles every one of them the way a consumer would.
+Making a header public is a one-line change in the module that owns it.
+
+The check builds one translation unit per public header, each including its
+header twice -- once to prove the header is self-contained, the second time to
+prove its include guard works. Two things make that directory different from
+every other one, and **both are load-bearing**:
+
+- its include path is the staged tree in `build/public-include` and nothing
+  else, so an include of an internal header cannot resolve;
+- `SLIDEIO_INTERNAL_HEADER` is not defined for it.
+
+Remove either and the check still passes -- vacuously, and forever. That is not
+a hypothetical: with the include-path reset removed, a public header including
+`slideio/core/refcounter.hpp` compiles clean, because the header is then found
+in `src/` instead of the staged tree.
+
+`SLIDEIO_INTERNAL_HEADER` is the project's real public/internal seam, set by
+`add_compile_definitions` in the root `CMakeLists.txt` for the whole in-tree
+build and by nothing a consumer compiles. `rect.hpp`, `size.hpp` and `range.hpp`
+include their `.inl` only under it; those `.inl` files hold the
+`cv::Rect`/`cv::Size`/`cv::Range` conversions and pull
+`<opencv2/core/types.hpp>`, while the `.hpp` forward-declares the cv types
+itself so the declarations still compile without OpenCV. **The `.inl` files must
+never be installed** -- doing so would make OpenCV a public dependency. The same
+reasoning keeps `cvscene.hpp`, `cvslide.hpp` and `imagedriver.hpp` internal,
+which is why the "OpenCV Interface" that `slideio.hpp`'s Doxygen mainpage
+advertises has no shipped headers.
+
+What the check cannot prove is that a header is self-contained on a *different*
+standard library. It compiles with one toolchain, so a header that reaches
+`std::tuple` or `std::shared_ptr` only because this implementation's `<memory>`
+or `<string>` happens to pull it in still passes. Four public headers were in
+exactly that state and now include what they use; when adding one, include the
+standard headers for every `std::` name it mentions rather than trusting a green
+local build.
+
+Headers are staged with `configure_file(... COPYONLY)` rather than `file(COPY)`
+precisely because of the trap documented below for `extern/pole`: `configure_file`
+registers its input as a configure dependency, so editing a public header
+re-runs cmake and re-stages it.
+
+`core/resolution.hpp` is public but reached by no other public header -- `Scene`
+returns resolutions as `std::tuple<double,double>`. It stays because it has
+shipped in every release; removing it needs a `BREAKING_CHANGES.md` entry.
+
 ## Documentation
 
 - `docs/` is the published Jekyll site (GitHub Pages); release announcements live in `docs/_posts/`. Anything added here is public.

@@ -1,4 +1,5 @@
 #include "tests/testlib/testtools.hpp"
+#include "slideio/slideio/sceneinternal.hpp"
 #include "slideio/drivers/afi/afiimagedriver.hpp"
 #include "slideio/drivers/afi/afislide.hpp"
 #include "slideio/imagetools/imagetools.hpp"
@@ -194,7 +195,7 @@ TEST_F(AFIDriverFileTest, getDriverId)
     const int numScenes = slide->getNumScenes();
     EXPECT_EQ(3, numScenes);
     for (int iScene = 0; iScene < numScenes; ++iScene) {
-        std::shared_ptr<slideio::CVScene> scene = slide->getScene(iScene)->getCVScene();
+        std::shared_ptr<slideio::CVScene> scene = slideio::SceneInternal::getCVScene(slide->getScene(iScene));
         EXPECT_TRUE(scene.get() != nullptr);
         EXPECT_EQ(iScene, scene->getSceneIndex());
         EXPECT_EQ(filePath, scene->getFilePath());

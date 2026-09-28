@@ -2,7 +2,9 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include "tiffconverter.hpp"
+#include "slideio/slideio/sceneinternal.hpp"
 #include "converterparameters.hpp"
+#include "converterparametersinternal.hpp"
 #include "convertertools.hpp"
 #include "slideio/core/cvscene.hpp"
 #include "slideio/core/tools/tools.hpp"
@@ -304,7 +306,7 @@ void TiffConverter::createFileLayout(const std::shared_ptr<CVScene>& scene, cons
     }
     m_scene = scene;
     m_parameters = parameters;
-    m_parameters.updateNotDefinedParameters(scene);
+    slideio::converter::updateNotDefinedParameters(m_parameters, scene);
     m_pages.clear();
     m_file.reset();
     m_filePath.clear();
@@ -573,7 +575,7 @@ void TiffConverter::readTiles(const TiffDirectory& dir, const TiffDirectoryStruc
 			}
 			const cv::Rect& blockRect = currentBlock.rect;
 			const int numTiles = blockRect.width / sceneTileSize.width;
-			ConverterTools::readTile(scene->getCVScene(), channels, zoomLevel, blockRect, slice, frame, block);
+			ConverterTools::readTile(slideio::SceneInternal::getCVScene(scene), channels, zoomLevel, blockRect, slice, frame, block);
 			if (block.rows != tileSize.height || block.cols != tileSize.width * numTiles) {
 				RAISE_RUNTIME_ERROR << "Converter: Unexpected tile size ("
 					<< block.cols << ","
@@ -955,5 +957,5 @@ void TiffConverter::checkContainerRequirements() const {
 
 void TiffConverter::updateNotDefinedParameters() {
     makeSureValid();
-    m_parameters.updateNotDefinedParameters(m_scene);
+    slideio::converter::updateNotDefinedParameters(m_parameters, m_scene);
 }

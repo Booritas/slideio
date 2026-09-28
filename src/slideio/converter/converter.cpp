@@ -2,6 +2,7 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/core/tools/tools.hpp"
+#include "slideio/slideio/sceneinternal.hpp"
 #include "slideio/imagetools/tifftools.hpp"
 #include "slideio/converter/converter.hpp"
 #include "slideio/converter/converterparameters.hpp"
@@ -38,7 +39,7 @@ void converter::convertScene(std::shared_ptr<Scene> scene, ConverterParameters& 
     }
     try {
         TiffConverter structure;
-        structure.createFileLayout(scene->getCVScene(), parameters);
+        structure.createFileLayout(slideio::SceneInternal::getCVScene(scene), parameters);
 		structure.createTiff(outputPath, cb, tileBatchSize);
     }
     catch (std::exception&) {

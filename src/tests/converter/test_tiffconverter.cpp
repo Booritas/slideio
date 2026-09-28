@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include "slideio/slideio/sceneinternal.hpp"
 #include <chrono>
 #include <queue>
 #include "tests/testlib/testtools.hpp"
@@ -85,7 +86,7 @@ public:
         cvScene->setNumTFrames(getScene()->getNumTFrames());
         cvScene->setNumZSlices(getScene()->getNumZSlices());
         cvScene->setRect(getScene()->getRect());
-        std::shared_ptr<Scene> scene(new Scene(std::static_pointer_cast<CVScene>(cvScene)));
+        std::shared_ptr<Scene> scene = slideio::SceneInternal::createScene(std::static_pointer_cast<CVScene>(cvScene));
         return { nullptr, scene };
     }
 
@@ -807,7 +808,7 @@ TEST(TiffConverterTests, jpegToOMETIFF) {
     tiffParams->setTileHeight(tileHeight);
 
     TiffConverter converter;
-    ASSERT_NO_THROW(converter.createFileLayout(scene->getCVScene(), parameters));
+    ASSERT_NO_THROW(converter.createFileLayout(slideio::SceneInternal::getCVScene(scene), parameters));
     EXPECT_EQ(1, converter.getNumTiffPages());
     std::set<int> progress;
     int progressLast = 0;
@@ -878,7 +879,7 @@ TEST(TiffConverterTests, jpegToSVS) {
     tiffParams->setTileHeight(tileHeight);
 
     TiffConverter converter;
-    ASSERT_NO_THROW(converter.createFileLayout(scene->getCVScene(), parameters));
+    ASSERT_NO_THROW(converter.createFileLayout(slideio::SceneInternal::getCVScene(scene), parameters));
     EXPECT_EQ(5, converter.getNumTiffPages());
     ASSERT_NO_THROW(converter.createTiff(outputPath, nullptr, 1));
     std::vector<TiffDirectory> directories;
@@ -942,7 +943,7 @@ TEST(TiffConverterTests, OMETIFFJp2KRaster) {
     converter.createTiff(outputPath, nullptr, 1);
     auto slide = openSlide(outputPath, "OMETIFF");
 	ASSERT_EQ(1, slide->getNumScenes());
-	auto cvScene = slide->getScene(0)->getCVScene();
+	auto cvScene = slideio::SceneInternal::getCVScene(slide->getScene(0));
 	Rect cvSceneRect = cvScene->getRect();
     EXPECT_EQ(converter.getSceneRect(), cvSceneRect);
     EXPECT_EQ(channelRange.size(), cvScene->getNumChannels());
@@ -1033,7 +1034,7 @@ TEST(TiffConverterTests, OMETIFFJpegRaster) {
     converter.createTiff(outputPath, nullptr, 1);
     auto slide = openSlide(outputPath, "OMETIFF");
     ASSERT_EQ(1, slide->getNumScenes());
-    auto cvScene = slide->getScene(0)->getCVScene();
+    auto cvScene = slideio::SceneInternal::getCVScene(slide->getScene(0));
     EXPECT_EQ(converter.getSceneRect(), cvScene->getRect());
     EXPECT_EQ(channelRange.size(), cvScene->getNumChannels());
     EXPECT_EQ(scene->getChannelDataType(0), cvScene->getChannelDataType(0));

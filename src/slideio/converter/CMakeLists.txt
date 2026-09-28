@@ -12,6 +12,7 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/convertertools.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/converterparameters.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/converterparameters.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/converterparametersinternal.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/convertercallback.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/tiffconverter.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/tiffconverter.cpp
