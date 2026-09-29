@@ -361,13 +361,20 @@ still 1 for that scene, and closer to what the assertion means.
 `OTImageDriverTests.TIFFFiles`, which unit-tests the class directly, is
 unaffected.
 
-**ThreadSanitizer.** MSVC has no TSan and there is no Linux build on the
-primary development machine, so as with every driver in the previous branch the
-byte-exactness gate carries the weight locally. The `tsan-linux` CI job covers
-`FileReader` and `ContextPool` only; a Linux TSan run of `slideio_ometiff_tests`
-is the natural gate before this ships and should be treated as required rather
-than eventual, since the eight-format claim in `BREAKING_CHANGES.md` becomes a
-nine-format claim.
+**ThreadSanitizer.** MSVC has no TSan, and when this was written there was no
+Linux build on the primary development machine, so as with every driver in the
+previous branch the byte-exactness gate carried the weight locally. The
+`tsan-linux` CI job covers `FileReader` and `ContextPool` only; a Linux TSan run
+of `slideio_ometiff_tests` was the natural gate before this shipped, treated as
+required rather than eventual, since the eight-format claim in
+`BREAKING_CHANGES.md` becomes a nine-format claim.
+
+**That run was done on 2026-09-29**, on WSL against the `v2.10.0` tree:
+`slideio_ometiff_tests` ran its 4 concurrency tests, all passed, **0
+ThreadSanitizer warnings**, with instrumentation verified rather than assumed.
+The other nine drivers were clean in the same pass. See `BREAKING_CHANGES.md`,
+"`Scene` block reads may now overlap", for the conditions, and `TECH_DEBT.md`
+§29 for the four races the same pass found in `slideio_transformer_tests`.
 
 **Suites to run:** `slideio_ometiff_tests` and `slideio_tests` (the latter
 carries the deferred-driver contract coverage that this change edits).

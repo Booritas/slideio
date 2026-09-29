@@ -804,20 +804,37 @@ exclusive in order to protect **its own** state must now take its own lock.
 
 See `software-docs/specs/2026-09-07-parallel-read-block-design.md`.
 
-**Outstanding, required before this ships, not eventual.** Two gaps in what
-was actually verified for OME-TIFF, recorded here because this entry is what
-turns the eight-format claim into a nine-format one:
+**One gap closed, one still open.** Two gaps were recorded here in what was
+actually verified for OME-TIFF, because this entry is what turns the
+eight-format claim into a nine-format one. The first has since been discharged;
+the second has not.
 
-- **No ThreadSanitizer run exists for `slideio_ometiff_tests`.** MSVC has no
-  TSan and there is no Linux build on this machine, so — as with the eight
-  formats converted before it — the byte-exactness gates carried the weight
-  locally. The `tsan-linux` CI job added by the parallel-read-block work
-  covers only the mechanism-level suites (`FileReader.*` and
-  `ContextPool.*`); it does not run `slideio_ometiff_tests`, and cannot,
-  because that suite needs the image corpus CI does not carry. A Linux TSan
-  run of `slideio_ometiff_tests` is a required gate before this ships, not a
-  follow-up.
-- **The concurrent-read harness proves cross-file-in-one-read only for
+- **~~No ThreadSanitizer run exists for `slideio_ometiff_tests`.~~ Closed
+  2026-09-29.** The run was done on WSL Ubuntu 24.04 (gcc 13.3.0, conan 2.32.0)
+  against the `v2.10.0` tree, built `-c debug` with
+  `-fsanitize=thread -g -O1`: **`slideio_ometiff_tests` ran its 4 concurrency
+  tests, all passed, 0 ThreadSanitizer warnings.** The other nine converted
+  drivers were run in the same pass — 34 concurrency tests across
+  `slideio_tests`, `slideio_ndpi_tests`, `slideio_vsi_tests`,
+  `slideio_pke_tests` and `slideio_phtiff_tests`, all passed, 0 warnings,
+  nothing skipped. Instrumentation was verified rather than assumed
+  (`libtsan.so.2` linked, `__tsan` symbols present in both the test binary and
+  `libslideio-ometiff_d.so`), so the clean result is not a build that quietly
+  dropped the flag.
+
+  Two things about that run are worth knowing before repeating it. TSan aborts
+  with `unexpected memory mapping` on this kernel unless the process runs under
+  `setarch $(uname -m) -R`; the usual `sysctl vm.mmap_rnd_bits=28` needs root.
+  And Conan **built OpenCV from source** in that environment, so OpenCV was
+  instrumented and statically linked into the slideio libraries — which is how
+  the transformer races in `TECH_DEBT.md` §29 became visible. A run against
+  prebuilt Conan binaries cannot see them.
+
+  The `tsan-linux` CI job still covers only the mechanism-level suites
+  (`FileReader.*`, `ContextPool.*`) and still cannot run the driver suites,
+  which need the image corpus CI does not carry. This closure is therefore a
+  one-off manual result, not standing coverage.
+- **Still open. The concurrent-read harness proves cross-file-in-one-read only for
   channel-split slides.** `TestTools::concurrentReadIdentityTest` reads only
   z=0/t=0, because `CVScene::readResampledBlockChannels` and
   `readResampledLevelBlockChannels` both pass a literal `0, 0`
@@ -1670,11 +1687,26 @@ Callers that relied on reads of a transformed scene being mutually exclusive in
 order to protect their own state must take their own lock. This is the same
 contract `Scene` already documents for driver scenes.
 
-Evidence is repeated multi-threaded stress runs (`applyIsSafeFromSeveralThreads`
-in `slideio_tests`, `concurrentReadsOfAManagedSceneAgree` here), not a
-ThreadSanitizer run -- MSVC has no TSan and there is no Linux build on this
-machine, the same gap already recorded above for the concurrent-reads
-conversion itself. A sanitizer run remains outstanding.
+Evidence was repeated multi-threaded stress runs
+(`applyIsSafeFromSeveralThreads` in `slideio_tests`,
+`concurrentReadsOfAManagedSceneAgree` here), not a ThreadSanitizer run, because
+MSVC has no TSan and there was then no Linux build on this machine.
+
+**The sanitizer run has since happened (2026-09-29), and this is the one place
+it did not come back clean.** `slideio_transformer_tests` passed all four of its
+concurrency tests while ThreadSanitizer reported **four data races** -- on the
+reference count of a `shared_ptr<cv::ParallelJob>` inside OpenCV's thread pool,
+reached from `TransformerScene::applyChain` calling `cv::parallel_for_` from two
+threads at once. Both `TransformedSceneReadLock` tests are affected. The races
+are in OpenCV's code rather than slideio's, and no test has failed because of
+them, but a caller reading one transformed scene from several threads is the
+situation that provokes them. `TECH_DEBT.md` §29 has the detail and states
+plainly what is not yet known: whether this is a genuine OpenCV defect, a benign
+pattern, or an artifact of how OpenCV was built for that run.
+
+The ten driver scenes this section's forwarding exposes were clean in the same
+pass, so the concurrency being forwarded is sound; what is unresolved sits above
+it, in the transformation chain.
 
 ### `CVScene` gains a second virtual method, `readSerialisationMutex()`
 

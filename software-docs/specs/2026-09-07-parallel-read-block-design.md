@@ -728,16 +728,23 @@ sequencing is unchanged: the per-driver ThreadSanitizer run above must be
 green before a driver's opt-in commit merges, not after the last driver lands
 -- it is a required local/manual step, since CI cannot carry it.
 
-**As practiced, this gate has not been met for any driver.** The run needs a
-Linux build with the image corpus, and development has happened on a
+**As practiced, this gate was not met for any driver until after the fact.** The
+run needs a Linux build with the image corpus, and development happened on a
 Windows-only machine throughout, for ZVI and for every driver converted before
-it. `software-docs/TECH_DEBT.md` §20.3 is the first place this is stated
-plainly rather than left implicit -- `TECH_DEBT.md` names a TSan gap only in
-the ZVI entry, which is a symptom of the same machine limitation rather than
-evidence that the other nine were actually run. This document should stop
-asserting the run as established practice until a Linux machine with the
-corpus is actually in the loop for a driver's opt-in commit; §20.3 is the
-standing item that tracks closing it.
+it. `software-docs/TECH_DEBT.md` §20.3 is the first place this was stated
+plainly rather than left implicit -- `TECH_DEBT.md` named a TSan gap only in
+the ZVI entry, which was a symptom of the same machine limitation rather than
+evidence that the other nine had been run.
+
+**It was met retrospectively on 2026-09-29**, against the `v2.10.0` tree, on
+WSL Ubuntu 24.04 rather than a separate Linux machine: all ten concurrent
+drivers clean over 34 concurrency tests, with four races found in
+`slideio_transformer_tests` instead (`TECH_DEBT.md` §29). That is the sequencing
+this section asks for run in the wrong order -- after the drivers landed, not
+before each opt-in commit -- so it retires the question "is there a race in the
+converted drivers" without vindicating the practice. The gate is still a manual
+step no CI job carries, and §20.3 remains the standing item for making it
+standing coverage.
 
 **Lifetime.** A test that closes a `Slide` while 16 reader threads are mid-read
 and then asserts the file can be deleted (`std::filesystem::remove` succeeds on

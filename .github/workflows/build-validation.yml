@@ -105,15 +105,27 @@ jobs:
     # fail here rather than skip. Design intent is that they instead run under
     # ThreadSanitizer on a machine with the corpus before each driver's opt-in
     # commit merges (software-docs/specs/2026-09-07-parallel-read-block-design.md,
-    # §6); in practice that run has not happened for any converted driver on
-    # this Windows-only development setup -- see software-docs/TECH_DEBT.md
-    # §20.3.
+    # §6). That run happened for the first time on 2026-09-29, by hand, on WSL
+    # against the v2.10.0 tree: all ten concurrent drivers clean over 34
+    # concurrency tests, and four races in slideio_transformer_tests -- see
+    # software-docs/TECH_DEBT.md §20.3 and §29. It is a one-off result, not
+    # standing coverage; this job still cannot run the driver suites.
+    #
+    # Two things that run needed and this job does not express. TSan aborts
+    # with "unexpected memory mapping" on kernels whose mmap randomisation
+    # entropy exceeds what its shadow mapping tolerates, unless the process
+    # runs under `setarch $(uname -m) -R` or vm.mmap_rnd_bits is lowered; and
+    # SLIDEIO_SKIP_MISSING_IMAGES was set for it, which CI must never do.
     #
     # CXXFLAGS/CFLAGS/LDFLAGS are set at job level so they reach both the
-    # compile and link steps of the CMake build below. Conan's own
-    # dependencies (OpenCV, libtiff, etc.) are prebuilt binaries and are NOT
-    # instrumented -- TSan will miss races inside them but still catches races
-    # in slideio's own code, which is what these two suites exercise.
+    # compile and link steps of the CMake build below. Whether Conan's own
+    # dependencies (OpenCV, libtiff, etc.) are instrumented depends on whether
+    # Conan downloads them or builds them: a prebuilt binary is NOT
+    # instrumented and TSan will miss races inside it, while a cache miss that
+    # compiles from source inherits these flags and TSan sees everything. The
+    # 2026-09-29 run hit the second case for OpenCV, which is the only reason
+    # the §29 races in cv::ThreadPool were visible at all. Do not read a clean
+    # run of this job as covering the dependencies.
     #
     # Built with -c debug, deliberately, not -c release: CMakeLists.txt only
     # appends -s (strip symbols) to CMAKE_CXX_FLAGS_RELEASE/_C_FLAGS_RELEASE

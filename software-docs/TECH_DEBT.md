@@ -646,9 +646,20 @@ green suites do and do not stand behind.
    buffer to `decodeJpegStream`. **The fix is acquiring a JPEG-compressed ZVI
    fixture**; nothing else closes this.
 
-3. **ThreadSanitizer was never run, and the byte-exactness tests are not a
-   replacement for it.** MSVC has no TSan and there is no Linux build on the
-   development machine. The intended stand-in — revert `readRaster` to its
+3. **ThreadSanitizer has now been run (2026-09-29) and reported nothing on the
+   ZVI paths; the byte-exactness tests are still not a replacement for it.**
+   ~~MSVC has no TSan and there is no Linux build on the
+   development machine.~~ There is one now: WSL Ubuntu 24.04 on this machine
+   builds and runs the suites under TSan, which is how this was closed. The
+   ZVI concurrency tests in `slideio_tests` were part of a 38-test pass across
+   every concurrent driver and came back clean — see `BREAKING_CHANGES.md`,
+   "`Scene` block reads may now overlap", for the conditions and the caveats.
+
+   That result does not retire the rest of this item. It says no race was
+   *observed* on the exercised paths, which is weaker than the paragraph below
+   asks for: the `_ref_count` and `_state` races were removed by construction,
+   and a clean TSan run over the existing tests exercises them only as far as
+   those tests reach. The intended stand-in — revert `readRaster` to its
    cursor form and watch `concurrentReadsAreByteIdenticalMosaic` go red — was
    tried and the plain revert **passed** three times, because that race's
    window is roughly 50 ns against a ~2 ms read, a duty cycle near 1e-5.
@@ -657,8 +668,10 @@ green suites do and do not stand behind.
    the four read paths. So what the three tests support is exactly this: they
    detect read corruption on a shared ZVI scene (demonstrated), and they do not
    reliably catch this specific narrow-window race. The `_ref_count` and
-   `_state` races were removed by construction and are unverified by any race
-   detector; `_ref_count` has one direct property test at the pole layer
+   `_state` races were removed by construction; the 2026-09-29 TSan pass
+   reported nothing against them, but that pass reaches them only through the
+   existing tests, so it is evidence and not proof. `_ref_count` has one direct
+   property test at the pole layer
    (`stream.const_borrow_does_not_bump_the_ref_count`), which checks that a
    `const` borrow does not increment the count, not the absence of a race under
    contention. **A Linux CI job running TSan is the real fix.** The existing
@@ -1170,6 +1183,63 @@ against three time frames and two channels, and `doughnut.czi` states 87 across
 the tiles of a single plane. **The lesson for what is left: a blocker phrased as
 "the corpus has nothing" is worth re-reading, because sometimes it is really "we
 never looked".**
+
+---
+
+## 29. ThreadSanitizer reports four data races in OpenCV's thread pool, reached through `TransformerScene::applyChain`
+
+**Files:** `src/slideio/transformer/transformerscene.cpp:274`,
+`src/tests/transformer/test_readlock.cpp`
+**Related:** `BREAKING_CHANGES.md`, "`Scene` block reads may now overlap";
+§20.3 for why a passing test is not evidence of absence here
+**Status:** Open, uninvestigated. Found by the 2026-09-29 TSan pass; not a
+regression — nothing had ever looked.
+
+The TSan run that closed the OME-TIFF gate found every driver suite clean and
+`slideio_transformer_tests` **not** clean: four data races, while all four of
+its concurrency tests **passed**. That combination is the whole point of §20.3 —
+a green suite is not evidence of absence.
+
+All four reports are the same shape:
+
+```
+SUMMARY: ThreadSanitizer: data race
+  /usr/include/c++/13/ext/atomicity.h:66 in __gnu_cxx::__exchange_and_add(int volatile*, int)
+```
+
+The raced memory is the reference count of a `shared_ptr<cv::ParallelJob>` —
+OpenCV's thread-pool job object, allocated in `cv::ThreadPool`
+(`modules/core/src/parallel_impl.cpp`) and reached from
+`TransformerScene::applyChain` (`transformerscene.cpp:274`) calling OpenCV's
+`parallel_for_`. They occur in
+`TransformedSceneReadLock.twoTransformsOverOneOriginDoNotReadItConcurrently`
+(2 races) and
+`TransformedSceneReadLock.aConcurrentOriginIsStillReadConcurrentlyThroughATransform`
+(2 races) — that is, when two threads drive `parallel_for_` through a transform
+at the same time. slideio's own read lock is held across the access.
+
+**What this is not.** It is not in the `ContextPool`/`FileReader` machinery the
+2.10 concurrency work added, and not in any driver: those 34 concurrency tests
+came back with zero warnings. It is in third-party code that slideio calls from
+more than one thread.
+
+**Why it was invisible until now, and why CI will not see it.** The `tsan-linux`
+job's comment states that Conan's dependencies "are prebuilt binaries and are
+NOT instrumented — TSan will miss races inside them". That is true of that job
+and false of the run that found these: Conan **built OpenCV from source** in the
+WSL environment, so it inherited `-fsanitize=thread` and was statically linked
+into `libslideio-transformer_d.so` (80 `cv::ThreadPool`/`cv::ParallelJob`
+symbols in the library). Any future run wanting to see this class must force
+OpenCV to build from source; a cache hit on a prebuilt binary silently reports
+zero.
+
+**Unresolved, and deliberately not guessed at here:** whether this is a genuine
+defect in OpenCV's thread pool, a known-benign pattern in its refcounting, or an
+artifact of an instrumented OpenCV built this particular way. Deciding that
+needs a standalone reproducer calling `cv::parallel_for_` from two threads with
+no slideio in the picture, which is its own piece of work. Until someone does
+that, the honest statement is: reported, unexplained, and not known to affect
+correctness — no test has ever failed because of it.
 
 ---
 
