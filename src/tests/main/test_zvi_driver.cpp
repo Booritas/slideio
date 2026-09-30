@@ -549,6 +549,36 @@ TEST(ZVIImageDriver, openFileUtf8)
     }
 }
 
+TEST(ZVIImageDriver, getFilePath)
+{
+    // ZVISlide::getFilePath() returned a hardcoded empty string while the
+    // scene reported the path correctly, so a caller holding only the slide
+    // could not tell which file it came from. Every other driver returns the
+    // path it was opened with; this pins that ZVI does too.
+    slideio::ZVIImageDriver driver;
+    const std::string filePath = TestTools::getTestImagePath("zvi", "Zeiss-1-Merged.zvi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide.get() != nullptr);
+    EXPECT_EQ(slide->getFilePath(), filePath);
+    std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
+    ASSERT_TRUE(scene.get() != nullptr);
+    EXPECT_EQ(scene->getFilePath(), filePath);
+}
+
+TEST(ZVIImageDriver, getFilePathUtf8)
+{
+    // The path crosses into a wide string on Windows for the OLE reader, so a
+    // non-ASCII path is checked separately from the ASCII one above.
+    slideio::ZVIImageDriver driver;
+    const std::string filePath = TestTools::getTestImagePath("unicode", u8"тест/TOMMAlexaFluor647.zvi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide.get() != nullptr);
+    EXPECT_EQ(slide->getFilePath(), filePath);
+    EXPECT_EQ(slide->getScene(0)->getFilePath(), filePath);
+}
+
 TEST(ZVIImageDriver, zoomLevel)
 {
     slideio::ZVIImageDriver driver;
