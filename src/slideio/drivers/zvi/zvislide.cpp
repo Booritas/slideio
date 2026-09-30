@@ -25,7 +25,7 @@ ZVISlide::ZVISlide(const std::string& filePath, const std::string& driverId) : m
 }
 
 int ZVISlide::getNumScenes() const { return 1; }
-std::string ZVISlide::getFilePath() const { return ""; }
+std::string ZVISlide::getFilePath() const { return m_filePath; }
 
 std::shared_ptr<CVScene> ZVISlide::getScene(int index) const
 {
