@@ -7,10 +7,14 @@ sidebar_sort_order: 200
 
 ## Overview
 
-SlideIO is a cross-platform C++ library. It is built and tested on Windows 10/11,
-Ubuntu 22.04, macOS 14 on Apple Silicon, and a `manylinux_2_28` container. The
-macOS build targets macOS 12 and above; the Linux packages need glibc 2.28 or
-newer, and the Debian packages target Debian 12+ and Ubuntu 22.04+.
+SlideIO is a cross-platform C++ library. It runs on Windows 10 and 11, on
+macOS 12 and above, and on Linux distributions with glibc 2.28 or newer; the
+Debian packages target Debian 12+ and Ubuntu 22.04+. Every release is built
+and tested on all three before it is published.
+
+The prebuilt macOS archive is for Apple Silicon. Intel Macs are supported by
+the library itself -- build it from source, or use the Python module, whose
+wheels cover both architectures.
 
 The library is reached through the global functions `slideio::openSlide()` and
 `slideio::getDriverIDs()`, and provides two main classes: `slideio::Slide`, a
