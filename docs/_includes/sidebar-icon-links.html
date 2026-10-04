@@ -1,0 +1,70 @@
+{% comment %}
+  A copy of the hydeout theme's include of the same name, overriding it for one
+  reason: the theme points its download icon at
+
+      {{ site.hydeout.repo }}/archive/v{{ site.hydeout.version }}.zip
+
+  and nothing sets hydeout.version, so the icon linked to /archive/v.zip and
+  returned 404. It now goes to the Downloads page, which is the better
+  destination in any case -- the theme's link offers a source tarball of the
+  default branch, while the Downloads page carries the released packages for
+  the library, the Python module and the viewer.
+
+  Everything else here is verbatim from jekyll-theme-hydeout 4.2.0, which is
+  byte-identical to fongandrew/hydeout master, the remote_theme this site
+  builds with. Re-copy it from the theme if the theme's version changes.
+{% endcomment %}
+<nav id="sidebar-icon-links">
+  {% if site.hydeout.repo %}
+    <a id="github-link"
+       class="icon" title="Github Project" aria-label="Github Project"
+       href="{{ site.hydeout.repo }}">
+      {% include svg/github.svg %}
+    </a>
+  {% endif %}
+
+  <a id="github-download-link"
+     class="icon" title="Downloads" aria-label="Downloads"
+     href="{{ '/downloads.html' | relative_url }}">
+    {% include svg/download.svg %}
+  </a>
+
+  <a id="subscribe-link"
+     class="icon" title="Subscribe" aria-label="Subscribe"
+     href="{{ site.feed.path | default: 'feed.xml' | relative_url }}">
+    {% include svg/feed.svg %}
+  </a>
+
+  {% comment %}
+    Check if we have tag or search pages page active before linking to it.
+  {% endcomment %}
+  {% assign tags_page = false %}
+  {% assign search_page = false %}
+  {% for node in site.pages %}
+    {% if node.layout == "tags" %}
+      {% assign tags_page = node %}
+    {% elsif node.layout == "search" %}
+      {% assign search_page = node %}
+    {% endif %}
+  {% endfor %}
+
+  {% if tags_page %}
+    <a id="tags-link"
+       class="icon{% if page.url == '/tags' %} active{% endif %}"
+       title="Tags" aria-label="Tags"
+       href="{{ tags_page.url | relative_url }}">
+      {% include svg/tags.svg %}
+    </a>
+  {% endif %}
+
+  {% if search_page %}
+    <a id="search-link"
+       class="icon{% if page.url == '/search' %} active{% endif %}"
+       title="Search" aria-label="Search"
+       href="{{ search_page.url | relative_url }}">
+      {% include svg/search.svg %}
+    </a>
+  {% endif %}
+
+  {% include custom-icon-links.html %}
+</nav>
