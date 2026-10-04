@@ -25,6 +25,12 @@ The module builds accesses images through a system of image drivers that impleme
 | **OMETIFF** | OME-TIFF image format | *.ome.tiff, *.ome.tif | [OME-TIFF](https://docs.openmicroscopy.org/ome-model/5.6.3/ome-tiff/) |  |
 
 The library is built as a c++ python extension and provides c++ and python interfaces.
+# SlideIO Viewer
+Slides can also be opened without writing any code. SlideIO Viewer is a free desktop application for Windows, macOS and Linux that renders a whole slide with GPU-accelerated panning and zooming, and shows its scenes, channels, associated images and metadata. It reads every format listed above.
+
+<a href="{{ site.baseurl }}/viewer.html"><img src="{{ site.baseurl }}/assets/viewer.png" alt="SlideIO Viewer"/></a>
+
+[Read more about SlideIO Viewer]({{ site.baseurl }}/viewer.html) or [download it](https://github.com/Booritas/slideio-view/releases/latest).
 # Library latest news
 <ul>
   {% for post in site.posts limit:3 %}
