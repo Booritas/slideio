@@ -1,0 +1,20 @@
+{% comment %}
+  GoatCounter page-view statistics.
+
+  The theme ships this include empty as an extension point and pulls it in at
+  the end of <body> in default.html. Every layout chains to default --
+  category and tags through page -- so this one file counts every page,
+  including 404.
+
+  The production guard keeps development out of the statistics. The deploy
+  workflow builds with actions/jekyll-build-pages, whose entrypoint exports
+  JEKYLL_ENV=production, so the script ships on www.slideio.com. A local
+  `jekyll build` leaves JEKYLL_ENV at development and emits nothing, so
+  previewing the site does not register page views.
+
+  GoatCounter sets no cookies and stores no personal data.
+{% endcomment %}
+{% if jekyll.environment == "production" %}
+<script data-goatcounter="https://booritas.goatcounter.com/count"
+        async src="//gc.zgo.at/count.js"></script>
+{% endif %}
