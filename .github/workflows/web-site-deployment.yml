@@ -54,7 +54,15 @@ jobs:
       # and it fails rather than no-ops if either tree is missing or a served
       # page is left without the snippet.
       - name: Add the analytics snippet to the generated reference
-        run: python3 auxfiles/add-analytics.py ./_site/sphinx ./_site/doxygen
+        run: |
+          # The Doxygen action runs in a container as root, so everything it
+          # wrote into _site/doxygen is owned by root while this step runs as
+          # the runner user -- readable, but not writable. Take ownership
+          # first, or the injection dies on the first Doxygen page with
+          # EACCES. The Sphinx tree is written by the runner and needs no
+          # such treatment.
+          sudo chown -R "$(id -u):$(id -g)" ./_site/doxygen
+          python3 auxfiles/add-analytics.py ./_site/sphinx ./_site/doxygen
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
 
