@@ -2,10 +2,10 @@
 layout: page
 title: Downloads
 sidebar_link: true
-sidebar_sort_order: 50
+sidebar_sort_order: 275
 ---
 
-# Downloads
+## Overview
 
 SlideIO comes in three pieces, each released separately. The Python module is
 what most users want; the C++ library is for building SlideIO into your own
