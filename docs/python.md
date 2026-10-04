@@ -4,61 +4,33 @@ title: Python API
 sidebar_link: true
 sidebar_sort_order: 100
 ---
-# Overview
+## Overview
 The python module provides 2 python classes: Slide and Scene. Slide is a container object returned by the module function open_slide. In the simplest case, a Slide object contains a single Scene object. Some slides can contain multiple scenes. For example, a czi file can contain several scanned regions, each of them is represented as a Scene object. Scene class provides methods to access image pixel values and metadata.
 See [Sphinx generated SlideIO python API]({{ site.baseurl }}/sphinx/)
 
-# Installation
+## Installation
 
-Installation
-Installation of the modile available through pip.
+The module is installed from PyPI:
 
-{% gist 0c71e368e849d707a2834f8e2905bc9e %}
-
-### Building python extension from the source code
-
-You need a python distribution to compile the extension. You can find the distribution(s) on the [Python Web Site](https://www.python.org/downloads/). 
-Note: the distribution should include header files and static libraries. 
-
-You can build the extension for multiple distributions. For this purpose, create a text file with a list of paths to the python executables. Here is an example of the file for Windows:
 ```
-D:\conan\python\3.10\slideio\stable\package\ca33edce272a279b24f87dc0d4cf5bbdcffbc187\Python310\python.exe
-D:\conan\python\3.6\slideio\stable\package\ca33edce272a279b24f87dc0d4cf5bbdcffbc187\Python36\python.exe
-D:\conan\python\3.7\slideio\stable\package\ca33edce272a279b24f87dc0d4cf5bbdcffbc187\Python37\python.exe
-D:\conan\python\3.8\slideio\stable\package\ca33edce272a279b24f87dc0d4cf5bbdcffbc187\Python38\python.exe
-D:\conan\python\3.9\slideio\stable\package\ca33edce272a279b24f87dc0d4cf5bbdcffbc187\Python39\python.exe
+pip install slideio
 ```
 
-Execute the following steps to build the library.
-#### 1. Install conan package manager
-```
-pip install conan==1.59.0
-```
-#### 2. Setup SlideIO conan repository
-```
-export CONAN_REVISIONS_ENABLED=1
-conan remote add slideio https://bioslide.jfrog.io/artifactory/api/conan/slideio-conan
-```
-#### 3. Download/Build library dependencies
-```
-python install.py -a conan
-```
-#### 4. Build the library
-```
-cd ./src/py-bind
-python build_py_dists.py path-to-the-file-with-python-distributons
-```
-Here, *path-to-the-file-with-python-distributions* refers to a path to a text file that contains a list of paths for Python executables, for which the package should be built. For example
-```
-D:\Python310\python.exe
-D:\Python36\python.exe
-D:\Python37\python.exe
-D:\Python38\python.exe
-D:\Python39\python.exe
-```
-After successful build, the wheel files of the extension can be found in the *SLIDEIO-ROOT/src/py-bin/dist* folder.
+Wheels are published for Python 3.9 through 3.14 on Windows x86-64, macOS
+(Apple Silicon and Intel) and Linux x86-64. The wheel carries the SlideIO
+library inside it, so no compiler, no Conan and no separate library
+installation is needed. See the [Downloads page]({{ site.baseurl }}/downloads.html)
+for every way to get SlideIO.
 
-# Quick Start
+### Building the module from the source
+
+The Python module is developed in its own repository,
+[Booritas/slideio-python](https://github.com/Booritas/slideio-python), where
+the build instructions are kept current with the code: see
+[Building from source](https://github.com/Booritas/slideio-python#building-from-source)
+in its README.
+
+## Quick Start
 
 Here is an example of a reading of a czi file:
 
