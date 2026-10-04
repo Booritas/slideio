@@ -6,57 +6,74 @@ sidebar_sort_order: 200
 ---
 
 ## Overview
-The software is cross-platform and should work on Windows10/11, MacOS version 10.14 and above, most of the Linux systems. It is tested on Window 10/10, [Ubuntu] 22.04, MacOS 11.
-The library provides 2 main c++ calsses: 
-### Installation the library from the source
-System requrements:
 
-- Python v3.6 and above
-- [Conan package manager](https://conan.io/).
+SlideIO is a cross-platform C++ library. It is built and tested on Windows 10/11,
+Ubuntu 22.04, macOS 14 on Apple Silicon, and a `manylinux_2_28` container. The
+macOS build targets macOS 12 and above; the Linux packages need glibc 2.28 or
+newer, and the Debian packages target Debian 12+ and Ubuntu 22.04+.
 
-Execute the following steps to build the library.
-#### 1. Install conan package manager
-```
-pip install conan
-```
-#### 2. Setup SlideIO conan repository
-```
-export CONAN_REVISIONS_ENABLED=1
-conan remote add slideio-conan-local https://bioslide.jfrog.io/artifactory/api/conan/slideio-conan-local
-```
-#### 3. Build the library
-```
-python ./install.py -a build
-```
-After the successful build you can find all shared libraries in the directory ./build/<OSName>/Release|Debug/bin
+The library is reached through the global functions `slideio::openSlide()` and
+`slideio::getDriverIDs()`, and provides two main classes: `slideio::Slide`, a
+slide container, and `slideio::Scene`, a single raster image within it.
 
-## C++ API 
+### Building the library from the source
 
-SlideIO library provides two c++ interfaces: generic interface and OpenCV based interface. Both of them implement the same functionality. The only difference that OpenCV API expose objects of OpenCV library, generic interface uses only standard c++ classes.
-See [SlideIO c++ API doxygen documentation](https://booritas.github.io/slideio/doxygen/html/)
+Build instructions live with the code, where they are kept current:
+see [Build instructions](https://github.com/Booritas/slideio#build-instructions)
+in the SlideIO README for the prerequisites, the dependencies, and the
+commands for Linux, macOS and Windows.
 
-## Generic c++ Interface
-SlideIO generic c++ interface provides 2 global functions slideio::openSlide(), slideio::getDriverIDs() and 2 classes: slideio::Slide and slideio::Scene. Function slideio::openSlide() opens a slide and returns object of class slideio::Slide. The class slideio::Slide exposes methods for accessing of the slide properties including metadata and images. A single instance of slideio::Slide can contain multiple raster images that are represented by slideio::Scene class. Class slideio::Scene exposes methods for working with a single raster image of a slide. The class provides method for accessing to raster data and metadata.
+If you do not need to build from source, prebuilt packages for all three
+platforms are on the [Downloads page]({{ site.baseurl }}/downloads.html).
+
+## C++ API
+
+`slideio::openSlide()` opens a slide and returns an object of class
+`slideio::Slide`. That class exposes methods for the slide's properties,
+including its metadata and associated images. A single `slideio::Slide` can
+hold several raster images, each represented by a `slideio::Scene`. For example,
+a CZI file can contain several scanned regions, each of them a separate scene.
+`slideio::Scene` exposes the methods for reading raster data and per-scene
+metadata.
+
+The API uses only standard C++ types, so a program that includes SlideIO does
+not need OpenCV on its include path.
+
+See the
+[SlideIO C++ API reference]({{ site.baseurl }}/doxygen/html/), generated with
+Doxygen, for the full documentation.
+
 {% gist 83df5998e83a737661374aa3515a84d8 %}
 
-## OpenCV Interface
-SlideIO OpenCV interface exposes methods for extraction information from medical slides and intensively uses classes of the OpenCV library. The interface exposes the following classes: slideio::CVSlide, slideio::CVScene
+## Used 3rd party libraries
 
-{% gist 1ec5e35da0097e8df6b6ad25791d406c %}
+From [conan center](https://conan.io/center):
 
-## Used 3rd party libraries:
-
-- [boost](https://boost.org)
-- [dcmtk](https://dicom.offis.de/)
-- [gdal](https://gdal.org)
-- [gtest](https://github.com/google/googletest)
-- [json-c](https://github.com/json-c/json-c)
-- [JPEG XR Reference Codec](https://jpeg.org/jpegxr/software.html)
+- [OpenCV](https://opencv.org)
+- [DCMTK](https://dicom.offis.de/dcmtk)
+- [FreeImage](https://freeimage.sourceforge.io/)
+- [libtiff](http://libtiff.org)
 - [libjpeg](https://libjpeg.sourceforge.net/)
 - [libpng](http://libpng.org)
-- [libtiff](http://libtiff.org)
-- [NDPITools](https://www.imnc.in2p3.fr/pagesperso/deroulers/software/ndpitools/)
-- [opencv](https://opencv.org)
-- [openjpeg](https://openjpeg.org)
-- [pole](https://www.dimin.net/software/pole/)
+- [OpenJPEG](https://www.openjpeg.org)
+- [WebP](https://developers.google.com/speed/webp)
+- [zlib](https://zlib.net)
+- [Zstandard](https://facebook.github.io/zstd/)
+- [SQLite](https://sqlite.org)
 - [tinyxml2](https://github.com/leethomason/tinyxml2)
+- [ICU](https://icu.unicode.org/)
+- [libiconv](https://www.gnu.org/software/libiconv/)
+- [Expat](https://libexpat.github.io/)
+- [nlohmann/json](https://github.com/nlohmann/json)
+- [spdlog](https://github.com/gabime/spdlog)
+- [Little CMS](https://littlecms.com/)
+- [CLI11](https://github.com/CLIUtils/CLI11)
+
+As git submodules, because they are not on conan center:
+
+- [JPEG XR codec](https://github.com/Booritas/jpegxrcodec)
+- [pole](https://github.com/Booritas/pole), an OLE compound file reader, used by
+  the ZVI driver
+- [ndpi-libjpeg-turbo](https://github.com/Booritas/ndpi-libjpeg-turbo) and
+  [ndpi-tiff](https://github.com/Booritas/ndpi-tiff), forks the NDPI driver
+  needs
