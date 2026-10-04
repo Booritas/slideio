@@ -32,10 +32,13 @@ installation is needed.
 - [Release notes and wheels on GitHub](https://github.com/Booritas/slideio-python/releases/latest)
 - [Python API documentation]({{ site.baseurl }}/python.html)
 
-## SlideIO library (C++)
+## SlideIO library and Tools
 
 Prebuilt packages of the C++ library — headers, shared libraries, and the
-`slideio-converter` and `slideio-tiffinspector` command line tools.
+`slideio-converter` and `slideio-tiffinspector` command line tools. The tools
+need no programming and no Python; see the
+[Tools page]({{ site.baseurl }}/tools.html) for what they do and how to run
+them.
 
 [Download the SlideIO library](https://github.com/Booritas/slideio/releases/latest)
 
