@@ -21,7 +21,7 @@ The module builds accesses images through a system of image drivers that impleme
 | **NDPI** | [Hamamatsu NDPI image format](https://www.hamamatsu.com/eu/en/product/life-science-and-medical-systems/digital-slide-scanner/U12388-01.html) | *.ndpi | [Hamamatsu](https://www.hamamatsu.com/eu/en.html) |  |
 | **VSI** | Olympus VSI image format | *.vsi |  |  |
 | **QPTIFF** | PerkinElmer Vectra QPTIFF | *.qptiff | [Akoya Biosciences](https://www.akoyabio.com/software-data-analysis/) | [Perkin Elmer Vectra scanner](https://www.akoyabio.com/phenoimager/instruments/vectra-3-0/) |
-| **GDAL** | General image formates | *.jpeg,*.jpg,*.tiff,*.tiff,*.png | - | - |
+| **GDAL** | General image formats | *.png, *.jpeg, *.jpg, *.tif, *.tiff, *.bmp, *.gif, *.gtiff, *.gtif, *.ntif, *.jp2 | - | - |
 | **OMETIFF** | OME-TIFF image format | *.ome.tiff, *.ome.tif | [OME-TIFF](https://docs.openmicroscopy.org/ome-model/5.6.3/ome-tiff/) |  |
 | **PHTIFF** | Philips TIFF whole slide images | *.tif, *.tiff | [Philips](https://www.philips.com/) | [Philips IntelliSite Pathology Solution](https://www.usa.philips.com/healthcare/resources/landing/philips-intellisite-pathology-solution) |
 

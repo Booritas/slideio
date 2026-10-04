@@ -14,9 +14,16 @@ sidebar_sort_order: 500
 | ZVI    | Zeiss ZVI image format                                                                                                                       | *.zvi                            |
 | DCM    | DICOM images                                                                                                                                 | *.dcm, no extension              |
 | NDPI   | [Hamamatsu NDPI image format](https://www.hamamatsu.com/eu/en/product/life-science-and-medical-systems/digital-slide-scanner/U12388-01.html) | *.ndpi                           |
-| GDAL   | General image formates                                                                                                                       | *.jpeg,*.jpg,*.tiff,*.tiff,*.png |
+| GDAL   | General image formats                                                                                                                        | *.png, *.jpeg, *.jpg, *.tif, *.tiff, *.bmp, *.gif, *.gtiff, *.gtif, *.ntif, *.jp2 |
 | VSI    | Olympus VSI image format                                                                                                                     | *.vsi                            |
 | QPTIFF | PerkinElmer Vectra QPTIFF                                                                                                                    | *.qptiff                         |
+| OMETIFF | [OME-TIFF](https://docs.openmicroscopy.org/ome-model/5.6.3/ome-tiff/) image format                                                          | *.ome.tif, *.ome.tiff, *.ome.tf2, *.ome.tf8, *.ome.btf |
+| PHTIFF | [Philips](https://www.usa.philips.com/healthcare/resources/landing/philips-intellisite-pathology-solution) TIFF whole slide images           | *.tif, *.tiff                    |
+
+Three drivers accept `*.tif` and `*.tiff`: GDAL, OMETIFF and PHTIFF. They are
+told apart by the content of the file, so `openSlide()` with the default
+`AUTO` driver opens each with the right one. Name a driver explicitly only to
+override that.
 
 
 ## Descriptions of the drivers
