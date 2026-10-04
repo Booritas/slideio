@@ -58,6 +58,11 @@ The notebooks download the slides they use, so no test corpus is needed.
 
 - [converter.ipynb](https://github.com/Booritas/slideio-tutorial/blob/master/converter.ipynb)
   — converting slides to the Aperio SVS format, step by step.
+- [color-management.ipynb](https://github.com/Booritas/slideio-tutorial/blob/master/color-management.ipynb)
+  — the colour profile API: reading the ICC profile a scene embeds, recording
+  where a colour claim came from, and converting pixels through the profile
+  with the `ColorManagement` transformation, including slides that carry no
+  profile at all.
 - [color-transformations.ipynb](https://github.com/Booritas/slideio-tutorial/blob/master/color-transformations.ipynb)
   — colour transformations: manipulating channels, adjusting brightness and
   contrast, and related operations.
