@@ -6,7 +6,7 @@ sidebar_sort_order: 100
 ---
 # Overview
 The python module provides 2 python classes: Slide and Scene. Slide is a container object returned by the module function open_slide. In the simplest case, a Slide object contains a single Scene object. Some slides can contain multiple scenes. For example, a czi file can contain several scanned regions, each of them is represented as a Scene object. Scene class provides methods to access image pixel values and metadata.
-See [Sphinx generated SlideIO python API](https://booritas.github.io/slideio/sphinx/)
+See [Sphinx generated SlideIO python API]({{ site.baseurl }}/sphinx/)
 
 # Installation
 
@@ -64,4 +64,4 @@ Here is an example of a reading of a czi file:
 
 {% gist 89c29934ebb371a60afdfd7821b9741f %}
 
-For a tutorial check [Sphinx generated SlideioIO python documentation](https://booritas.github.io/slideio/sphinx/).
+For a tutorial check [Sphinx generated SlideIO python documentation]({{ site.baseurl }}/sphinx/).
