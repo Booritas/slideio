@@ -4,6 +4,7 @@
 #pragma once
 
 #include <cstdio>
+#include <memory>
 
 #include "ndpitifftools.hpp"
 #include "slideio/drivers/ndpi/ndpi_api_def.hpp"
@@ -63,7 +64,7 @@ namespace slideio
         NDPIScene();
     public:
         virtual ~NDPIScene();
-        void init(const std::string& name, int sceneIndex, const std::string& driverId, NDPIFile* file, int32_t startDirIndex, int32_t endDirIndex);
+        void init(const std::string& name, int sceneIndex, const std::string& driverId, const std::shared_ptr<NDPIFile>& file, int32_t startDirIndex, int32_t endDirIndex);
         bool supportsConcurrentReads() const override { return true; }
         /// Forwards to the shared NDPIFile's pool. For tests -- see
         /// NDPIFile::contextCount(); this is how a test reaches it from a scene,
@@ -110,7 +111,9 @@ namespace slideio
     private:
         void makeSureValidDirectoryType(NDPITiffDirectory::Type directoryType);
     protected:
-        NDPIFile* m_pfile;
+        // Shared with the slide and every other scene of the file, so that a scene stays
+        // readable after the slide that opened it is released.
+        std::shared_ptr<NDPIFile> m_pfile;
         int m_startDir;
         int m_endDir;
         std::string m_sceneName;

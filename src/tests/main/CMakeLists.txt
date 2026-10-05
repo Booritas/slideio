@@ -44,6 +44,7 @@ set(TEST_SOURCES
   test_boundedqueue.cpp
   test_levelreading.cpp
   test_edge_reads.cpp
+  test_scene_lifetime.cpp
   test_log_macro_collision.cpp
   test_concurrency_contract.cpp
   test_filereader.cpp

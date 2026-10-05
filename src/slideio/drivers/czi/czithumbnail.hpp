@@ -6,6 +6,7 @@
 
 #include "slideio/drivers/czi/czi_api_def.hpp"
 #include "slideio/core/cvsmallscene.hpp"
+#include <memory>
 
 #if defined(_MSC_VER)
 #pragma warning( push )
@@ -15,6 +16,7 @@
 namespace slideio
 {
     class CZISlide;
+    class FileReader;
 
     class SLIDEIO_CZI_EXPORTS CZIThumbnail : public CVSmallScene
     {
@@ -34,7 +36,9 @@ namespace slideio
     private:
         int64_t m_dataPos{ 0 };
         int64_t m_dataSize{ 0 };
-        CZISlide* m_slide{ nullptr };
+        // The slide's reader rather than the slide: a thumbnail may outlive its slide,
+        // and the slide owns the thumbnail, so holding the slide itself would be a cycle.
+        std::shared_ptr<const FileReader> m_reader;
         std::shared_ptr<CVSmallScene> m_scene;
         std::string m_driverId;
     };
