@@ -40,7 +40,7 @@ removed without renumbering the rest and its number is retired in
 21. [pole read-path throughput: two remaining items](#21-pole-read-path-throughput-two-remaining-items)
 22. [The colour/ICC extraction work: what no test covers](#22-the-colouricc-extraction-work-what-no-test-covers)
 23. [DCMTK codec registration is process-wide but tied to one instance's lifetime](#23-dcmtk-codec-registration-is-process-wide-but-tied-to-one-instances-lifetime)
-24. [GDAL and CZI scenes hold raw pointers into slide-owned state](#24-gdal-and-czi-scenes-hold-raw-pointers-into-slide-owned-state)
+24. *retired -- fixed, see [Resolved and removed](#resolved-and-removed)*
 25. *retired -- fixed, see [Resolved and removed](#resolved-and-removed)*
 26. [The positional read path has no buffer for small sequential reads](#26-the-positional-read-path-has-no-buffer-for-small-sequential-reads)
 27. *retired -- fixed, see [Resolved and removed](#resolved-and-removed)*
@@ -830,65 +830,6 @@ the rest of that file. That is a workaround in one test, not a fix.
 
 ---
 
-## 24. GDAL and CZI scenes hold raw pointers into slide-owned state
-
-**Files:** `src/slideio/drivers/gdal/gdalscene.hpp` (`m_imagePage`),
-`src/slideio/drivers/gdal/gdalslide.cpp` (scene construction),
-`src/slideio/drivers/czi/cziscene.hpp` (`m_slide`),
-`src/slideio/slideio/scene.hpp` (the lifetime contract),
-`D:/Projects/slideio/slideio-python/src/pyscene.hpp` (why Python is immune)
-**Related:** hit during the colour/ICC work on `v2.10.0` as non-deterministic
-SEH / `bad_alloc` crashes while writing a pixel-reading transformer test
-**Status:** Open. Pre-existing, silent for metadata, crashes on pixel reads.
-
-A `Scene` can outlive the `Slide` it came from, and for two drivers that is a
-use-after-free rather than merely unsupported:
-
-- `GDALSlide` owns `std::shared_ptr<SmallImage> m_image`, and
-  `m_image->readPage(i)` returns a **raw** `SmallImagePage*` owned by that
-  `SmallImage`. `GDALScene` stores it as `SmallImagePage* m_imagePage`.
-- `CZIScene` stores `CZISlide* m_slide`, also raw.
-
-Nothing in `slideio::Scene` keeps the slide alive — it holds only
-`std::shared_ptr<CVScene> m_scene`. So the natural one-liner
-
-```cpp
-auto scene = openSlide(path, driver)->getScene(0);   // Slide dies here
-scene->readBlock(rect, buffer, size);                // reads freed memory
-```
-
-destroys the `Slide` at the end of the first full expression and leaves the
-scene pointing at freed state. It is easy to write and hard to notice: metadata
-accessors that touch none of the slide-owned state keep working, so the pattern
-looks correct until something reads pixels, and then it fails
-non-deterministically — as `bad_alloc`, as an SEH exception, or not at all
-depending on what reclaimed the memory.
-
-**The documented contract is weaker than the real requirement.** `scene.hpp`
-says a `Scene` or the `Slide` it came from "must not be destroyed while a read
-on it is still in flight". A reader takes that as *do not destroy mid-read*,
-which the one-liner above does not do — the slide is long gone before the read
-starts. The actual requirement is that the slide outlive the scene entirely.
-
-**The Python binding is already immune**, and by construction rather than by
-luck: `PyScene` holds `std::shared_ptr<slideio::Slide> m_slide` alongside its
-scene, so a Python `Scene` keeps its slide alive. Only C++ callers are exposed.
-
-Three fixes, in increasing cost:
-
-1. Sharpen the `scene.hpp` contract to say the slide must outlive the scene, not
-   merely the read. Cheapest, and leaves the hazard in place.
-2. Have `GDALScene` and `CZIScene` hold a `shared_ptr` to the owner — the
-   `SmallImage` and the `CZISlide` respectively — so the dependency is expressed
-   in the type system instead of in prose.
-3. Have `slideio::Scene` retain its `Slide`, as `PyScene` already does, which
-   closes it for every driver at once and makes the documented caveat
-   unnecessary.
-
-Only the third removes the class of bug rather than this instance of it.
-
----
-
 ## 26. The positional read path has no buffer for small sequential reads
 
 **Files:** `extern/pole/sources/pole/detail/stream.cpp` (`StreamImpl::read`, both
@@ -1223,6 +1164,7 @@ retired here rather than reused.
 | 11 | `TransformerScene` has no level table, so transformed scenes cannot be read by level | `TransformerScene` copies the origin's `m_levels` in its constructor and overrides `readResampledLevelBlockChannelsEx` to read the origin at the level it was asked for, inflating in level coordinates. The entry's open design question is answered in `transformerscene.hpp`: a transformation's parameters are in the pixels of the level being read, which is what `computeInflatedRectParams` already does for a scaled read. | `TransformerSceneLevels.*` in `slideio_transformer_tests` — four tests, all watched failing first. `aLevelReadAgreesWithTheEquivalentScaledRead` is the one that pins the semantics: a full read of level 1 is bit-identical to a half-scale read of the scene. |
 | 14 | ZVI serialised every block read | `ZVIScene::supportsConcurrentReads()` returns `true` (`zviscene.hpp:62`), on one shared `ole::compound_document` made safe by pole's positional read path. | `software-docs/specs/2026-09-09-zvi-concurrent-reads-design.md` §3.2, §4, §5.3, §5.4. Its follow-ups are still open as [§19](#19-pole-read-path-defects-left-in-place), [§20](#20-the-zvi-concurrent-read-work-what-no-test-covers) and [§21](#21-pole-read-path-throughput-two-remaining-items). |
 | 17 | OME-TIFF serialised every block read | `OTScene::supportsConcurrentReads()` returns `true` (`otscene.hpp:88`); `TIFFFiles` moved off `OTScene` into a per-thread `OTReadContext` held by a `ContextPool`. | `software-docs/specs/2026-09-08-ometiff-concurrent-reads-design.md`; the contract assertion is `OTImageDriverTests.reportsConcurrentReadSupport`. |
+| 24 | GDAL and CZI scenes hold raw pointers into slide-owned state | The entry's second fix, applied to three drivers rather than two: `GDALScene` shares ownership of the `SmallImage` that owns its page (`fddde520`); `NDPIScene` shares the slide's `NDPIFile`, which the entry did not list and which threw "Invalid directory index" after the release; `CZIScene` copies resolution, magnification and the z and t resolutions during `init()` and clears `m_slide` there, and `CZIThumbnail` reads through the slide's shared `FileReader` instead of the slide, which owns it (`83e0d63e`). With every scene owning what it reads, the `scene.hpp` contract -- do not destroy a scene or its slide while a read is in flight -- is the real requirement again and was left as written. The entry's third fix, `slideio::Scene` retaining its `Slide` as `PyScene` does, was not taken, so a new driver can reintroduce the bug; the lifetime test is what would catch it. | `SceneLifetime.*` in `slideio_tests` opens one file per driver -- all twelve -- and compares what every scene and auxiliary image reports and reads before and after the slide is released. It failed for NDPI and crashed for CZI before the fix; GDAL's own case is `GDALDriver.sceneOutlivesItsSlide`, watched crashing first. |
 | 25 | A transformed scene bypasses its origin's read lock | `CVScene::lockIfSerialised()` now takes the mutex named by the new virtual `readSerialisationMutex()`, and `TransformerScene` overrides it to return its origin's (`transformerscene.hpp`), so a wrap chain contends on one lock instead of one mutex per scene. | The two exposures are `TransformedSceneReadLock.twoTransformsOverOneOriginDoNotReadItConcurrently` and `.aDirectReadOfTheOriginExcludesATransformedRead` in `slideio_transformer_tests`; both were watched failing on the unfixed code. `.aConcurrentOriginIsStillReadConcurrentlyThroughATransform` guards `TransformerScene::supportsConcurrentReads()`'s forwarding to the origin against a fix that re-serialises what it made concurrent. |
 | 27 | VSI scales X, Y and Z resolution by a hardcoded 1e-6 and ignores the unit the file states | `VSITools::unitToMeters` parses the length unit as `unitToSeconds` parses the time one, both now through one base-parameterised parser that also refuses a power other than 1 — `m^2` is an area. `Volume::setResolution(rawX, rawY, unit)` and `setZResolution(raw, unit)` convert on the way in and store nothing when the unit cannot be read, giving `Volume` the same invariant for length it already had for time. `vsifile.cpp` passes `RWC_FRAME_UNIT` for X/Y and the dimension's sibling `UNITS` for Z. | `VSITools.UnitToMeters`, `.AUnitRaisedToAnotherPowerIsNotThatUnit`, `Volume.ResolutionIsStoredInMetres`, `.ResolutionRequiresAParseableUnit`, `.ZResolutionIsStoredInMetres`, `.ZResolutionRequiresAParseableUnit`. Every corpus file states `10^-6m^1`, so the four existing resolution assertions in `slideio_vsi_tests` are unchanged — which is the check that the conversion agrees with the factor it replaced. |
 
