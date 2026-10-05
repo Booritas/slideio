@@ -18,27 +18,29 @@ void CVSmallScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, const
     cv::Mat image;
     readImage(image);
     cv::Rect imageRect = { 0, 0, image.size().width, image.size().height };
-    cv::Rect intersection = blockRect & imageRect;
-    cv::Mat imageBlock = image(intersection);
-    cv::Mat block;
-    if(!channelIndices.empty()) {
-        std::vector<cv::Mat> channels;
-        for(auto channelIndex:channelIndices) {
-            cv::Mat channel;
-            cv::extractChannel(imageBlock, channel, channelIndex);
-            channels.push_back(channel);
-        }
-        cv::merge(channels.data(), channels.size(), block);
-    } else {
-        block = imageBlock;
-    }
-    cv::Mat resizedBlock;
-    cv::resize(block, resizedBlock, blockSize);
-    if(output.empty()) {
-        output.assign(resizedBlock);
-    }
-    else {
-        resizedBlock.copyTo(output);
-    }
-
+    readClampedBlock(imageRect, blockRect, blockSize, channelIndices,
+        [&](const cv::Rect& rect, const cv::Size& size, cv::OutputArray part) {
+            cv::Mat imageBlock = image(rect);
+            cv::Mat block;
+            if(!channelIndices.empty()) {
+                std::vector<cv::Mat> channels;
+                for(auto channelIndex:channelIndices) {
+                    cv::Mat channel;
+                    cv::extractChannel(imageBlock, channel, channelIndex);
+                    channels.push_back(channel);
+                }
+                cv::merge(channels.data(), channels.size(), block);
+            } else {
+                block = imageBlock;
+            }
+            cv::Mat resizedBlock;
+            cv::resize(block, resizedBlock, size);
+            if(part.empty()) {
+                part.assign(resizedBlock);
+            }
+            else {
+                resizedBlock.copyTo(part);
+            }
+        },
+        output);
 }

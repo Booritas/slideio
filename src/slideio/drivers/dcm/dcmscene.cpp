@@ -363,8 +363,12 @@ void DCMScene::readResampledBlockChannelsEx(const cv::Rect& blockRect,
     const auto indices = findFileIndex(zSliceIndex);
     const int fileIndex = indices.first;
     const int fileSlice = indices.second;
-    auto file = m_files[fileIndex];
-    std::vector<cv::Mat> frames;
-    file->readPixelValues(frames, fileSlice, 1);
-    extractSliceRaster(frames[0], blockRect, blockSize, componentIndices, output);
+    readClampedBlock(m_rect, blockRect, blockSize, componentIndices,
+        [&](const cv::Rect& rect, const cv::Size& size, cv::OutputArray block) {
+            auto file = m_files[fileIndex];
+            std::vector<cv::Mat> frames;
+            file->readPixelValues(frames, fileSlice, 1);
+            extractSliceRaster(frames[0], rect, size, componentIndices, block);
+        },
+        output);
 }

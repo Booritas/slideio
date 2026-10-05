@@ -7,6 +7,32 @@ by branch.
 
 ---
 
+## issue-45-edge-reads
+
+### Scenes of a multi-file VSI slide can come in a different order
+
+**Module:** VSI driver (`slideio-vsi`), reached through `Slide::getScene(index)`
+**Files:** `src/slideio/drivers/vsi/vsifile.cpp` (`VSIFile::readExternalFiles`)
+
+A VSI slide with external `.ets` files numbers its scenes in the order those
+files are processed, and they were processed in the order the file system listed
+them -- which is not specified, and differs between file systems, so the same
+slide could already number its scenes differently on macOS, Linux and Windows.
+The list is now sorted by the number of each file's `stack<id>` directory, then by
+path, before it is processed, so the order is the same everywhere. Bio-Formats sorts
+the same directories as text, so the two agree -- scene `i` is Bio-Formats/QuPath
+series `i` -- except on a slide whose stack numbers differ in length, where slideio
+puts `stack9999` before `stack10002` and Bio-Formats does not.
+
+The cost is that a caller that read a scene by index on one platform may find a
+different scene at that index. In the corpus, `G1M16_ABD_HE_B6.vsi` on macOS
+used to list `40x_02` before `40x_01` and now lists `40x_01` first. Which ETS
+file belongs to which volume did not change for any corpus file. Code that
+needs one particular region should select it by `Scene::getName()`, which has
+always been stable.
+
+---
+
 ## public-header-separation
 
 ### `Scene`'s CVScene constructor and `getCVScene()` moved to `SceneInternal`

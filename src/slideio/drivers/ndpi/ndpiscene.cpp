@@ -98,7 +98,7 @@ NDPIUserData::~NDPIUserData()
     }
 }
 
-NDPIScene::NDPIScene() : m_pfile(nullptr), m_startDir(-1), m_endDir(-1), m_rect(0, 0, 0, 0), m_sceneIndex(-1)
+NDPIScene::NDPIScene() : m_startDir(-1), m_endDir(-1), m_rect(0, 0, 0, 0), m_sceneIndex(-1)
 {
 }
 
@@ -106,7 +106,7 @@ NDPIScene::~NDPIScene()
 {
 }
 
-void NDPIScene::init(const std::string& name, int sceneIndex, const std::string& driverId, NDPIFile* file, int32_t startDirIndex, int32_t endDirIndex)
+void NDPIScene::init(const std::string& name, int sceneIndex, const std::string& driverId, const std::shared_ptr<NDPIFile>& file, int32_t startDirIndex, int32_t endDirIndex)
 {
     m_sceneName = name;
     m_pfile = file;

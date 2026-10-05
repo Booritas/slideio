@@ -164,8 +164,15 @@ namespace slideio
         std::string m_filePath;
         cv::Rect m_sceneRect;
         std::map<int, std::pair<int, int>> m_componentToChannelIndex;
+        // Valid during init() only. A scene may outlive its slide, so what it needs from
+        // the slide afterwards is copied into the members below, and the file is reached
+        // through the shared reader.
         CZISlide* m_slide;
         std::shared_ptr<const FileReader> m_reader;
+        Resolution m_resolution;
+        double m_magnification = 0.;
+        double m_zSliceResolution = 0.;
+        double m_tFrameResolution = 0.;
         std::string m_name;
         uint64_t m_id{};
         SceneParams m_sceneParams{};

@@ -133,3 +133,76 @@ double Volume::getPlaneTimestampByIndex(int index) const {
     }
     return m_planeTimestamps[static_cast<std::size_t>(index)];
 }
+
+void Volume::fitDimensionOrderToTiles(int numCoordinates, bool usePyramid) {
+    const Dimensions dimensions[] = {Dimensions::Z, Dimensions::C, Dimensions::T, Dimensions::L, Dimensions::P};
+    const int levelIndex = usePyramid ? numCoordinates - 1 : -1;
+    // One past the last coordinate that can hold a dimension.
+    const int upperLimit = usePyramid ? numCoordinates - 1 : numCoordinates;
+    auto isSet = [this](Dimensions dim) { return getDimensionOrder(dim) != UNSET_DIMENSION_ORDER; };
+    auto unset = [this](Dimensions dim) { setDimensionOrder(dim, UNSET_DIMENSION_ORDER); };
+
+    // The level coordinate is never Z or T. This runs before the shift below on purpose,
+    // as in Bio-Formats (CellSensReader.java, parseETSFile: the usePyramid checks precede
+    // the upperLimit shift): an order that is off by one throughout therefore loses the
+    // Z or T that lands on the level instead of having it shifted back. Shifting first
+    // would read such a file more plausibly, but differently from Bio-Formats and QuPath,
+    // with no file yet to say which is right -- keep the two in step until one turns up.
+    // Volume.FitDropsTheLevelBeforeShiftingAsBioFormatsDoes pins the result.
+    for (const Dimensions dim : {Dimensions::Z, Dimensions::T}) {
+        if (isSet(dim) && getDimensionOrder(dim) == levelIndex) {
+            unset(dim);
+        }
+    }
+
+    // Every stated order past the last dimension coordinate: the file counted from one
+    // further along, so all of them move back by one.
+    bool anySet = false;
+    bool allOverrun = true;
+    for (const Dimensions dim : dimensions) {
+        if (isSet(dim)) {
+            anySet = true;
+            allOverrun = allOverrun && getDimensionOrder(dim) >= upperLimit;
+        }
+    }
+    if (anySet && allOverrun) {
+        for (const Dimensions dim : dimensions) {
+            if (isSet(dim)) {
+                setDimensionOrder(dim, getDimensionOrder(dim) - 1);
+            }
+        }
+    }
+
+    // No Z or T stated over tiles with extra coordinates: infer them, and C with them
+    // when it is not stated either. An inferred order is kept only where it indexes a
+    // free dimension coordinate.
+    if (!isSet(Dimensions::Z) && !isSet(Dimensions::T) && numCoordinates > 4) {
+        auto inferIfFree = [&](Dimensions dim, int order) {
+            if (order < 2 || order >= upperLimit) {
+                return;
+            }
+            for (const Dimensions other : dimensions) {
+                if (other != dim && getDimensionOrder(other) == order) {
+                    return;
+                }
+            }
+            setDimensionOrder(dim, order);
+        };
+        const bool channelStated = isSet(Dimensions::C);
+        if (!channelStated) {
+            inferIfFree(Dimensions::C, 2);
+        }
+        const int channelOrder = getDimensionOrder(Dimensions::C);
+        inferIfFree(Dimensions::T, channelStated ? channelOrder + 2 : 3);
+        if (numCoordinates > 5) {
+            inferIfFree(Dimensions::Z, channelStated ? channelOrder + 1 : 4);
+        }
+    }
+
+    // Whatever still does not index a dimension coordinate must not be used to index one.
+    for (const Dimensions dim : dimensions) {
+        if (isSet(dim) && (getDimensionOrder(dim) < 2 || getDimensionOrder(dim) >= upperLimit)) {
+            unset(dim);
+        }
+    }
+}

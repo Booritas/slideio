@@ -10,6 +10,8 @@
 #include <algorithm>
 #include <cctype>
 #include <cmath>
+#include <filesystem>
+#include <limits>
 #include <optional>
 
 using namespace slideio;
@@ -967,6 +969,38 @@ std::optional<double> vsi::VSITools::unitToMeters(const std::string& unitStr) {
         return std::nullopt;
     }
     return std::pow(10.0, static_cast<double>(*exponent));
+}
+
+int vsi::VSITools::stackIdFromPath(const std::string& etsFilePath) {
+    const std::string dirName = std::filesystem::path(etsFilePath).parent_path().filename().string();
+    const std::string prefix = "stack";
+    if (dirName.size() <= prefix.size() || dirName.compare(0, prefix.size(), prefix) != 0) {
+        return -1;
+    }
+    long long id = 0;
+    for (size_t pos = prefix.size(); pos < dirName.size(); ++pos) {
+        const char ch = dirName[pos];
+        if (!std::isdigit(static_cast<unsigned char>(ch))) {
+            return -1;
+        }
+        id = id * 10 + (ch - '0');
+        if (id > std::numeric_limits<int>::max()) {
+            return -1;
+        }
+    }
+    return static_cast<int>(id);
+}
+
+void vsi::VSITools::sortEtsFilePaths(std::list<std::string>& paths) {
+    const auto key = [](const std::string& path) {
+        const int stackId = stackIdFromPath(path);
+        return stackId < 0 ? std::numeric_limits<int>::max() : stackId;
+    };
+    paths.sort([&key](const std::string& left, const std::string& right) {
+        const int leftKey = key(left);
+        const int rightKey = key(right);
+        return leftKey != rightKey ? leftKey < rightKey : left < right;
+    });
 }
 
 int vsi::VSITools::significantBits(int statedBits, DataType dataType) {

@@ -10,6 +10,7 @@
 #include "slideio/imagetools/icctransform.hpp"
 #include "slideio/core/tools/tempfile.hpp"
 #include "slideio/imagetools/libtiff.hpp"
+#include "slideio/imagetools/encodeparameters.hpp"
 
 class TiffToolsTests : public ::testing::Test {
 protected:
@@ -436,4 +437,68 @@ TEST(TiffTools, iccProfileIsClearedOnReuse)
     ASSERT_TRUE(reuseDir.iccProfile.empty())
         << "iccProfile was not cleared when scanning a directory without ICC tag; "
         << "stale data from previous directory would be attributed to this one";
+}
+
+// Encoders pad edge tiles to the full tile size; one may pad the last JPEG 2000 strip to
+// the full rows-per-strip the same way. Such a strip decodes taller than the rows it
+// carries, and must be cropped rather than rejected. The file is written here: a 128x80
+// image in two strips of 64 rows, the second of which is encoded at 64 rows although only
+// 16 of them are inside the image. (Smaller strips are refused by the encoder's default
+// number of resolutions.)
+TEST_F(TiffToolsTests, readStripedDirCropsAPaddedJpeg2000Strip)
+{
+    const int width = 128;
+    const int height = 80;
+    const int rowsPerStrip = 64;
+    cv::Mat stripRasters[2];
+    for (int strip = 0; strip < 2; ++strip) {
+        stripRasters[strip].create(rowsPerStrip, width, CV_8UC1);
+        cv::randu(stripRasters[strip], cv::Scalar(0), cv::Scalar(255));
+    }
+    slideio::TempFile tempFile("tif");
+    const std::string path = tempFile.getPath().string();
+    {
+        slideio::TIFFKeeper tiff(path, false);
+        libtiff::TIFF* hFile = tiff.getHandle();
+        libtiff::TIFFSetField(hFile, TIFFTAG_IMAGEWIDTH, width);
+        libtiff::TIFFSetField(hFile, TIFFTAG_IMAGELENGTH, height);
+        libtiff::TIFFSetField(hFile, TIFFTAG_BITSPERSAMPLE, 8);
+        libtiff::TIFFSetField(hFile, TIFFTAG_SAMPLESPERPIXEL, 1);
+        libtiff::TIFFSetField(hFile, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_MINISBLACK);
+        libtiff::TIFFSetField(hFile, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
+        libtiff::TIFFSetField(hFile, TIFFTAG_ROWSPERSTRIP, rowsPerStrip);
+        ASSERT_EQ(1, libtiff::TIFFSetField(hFile, TIFFTAG_COMPRESSION, 34712));
+        std::vector<uint8_t> buffer(width * rowsPerStrip * 4 + 4096);
+        for (int strip = 0; strip < 2; ++strip) {
+            const int size = slideio::ImageTools::encodeJp2KStream(stripRasters[strip], buffer.data(),
+                static_cast<int>(buffer.size()), slideio::JP2KEncodeParameters());
+            ASSERT_GT(size, 0);
+            ASSERT_EQ(size, libtiff::TIFFWriteRawStrip(hFile, strip, buffer.data(), size));
+        }
+        ASSERT_EQ(1, libtiff::TIFFWriteDirectory(hFile));
+    }
+
+    // What the strips decode to, independently of the striped reader: the first whole,
+    // the second cut to the 16 rows that are inside the image.
+    std::vector<uint8_t> encoded(width * rowsPerStrip * 4 + 4096);
+    cv::Mat expected(height, width, CV_8UC1);
+    for (int strip = 0; strip < 2; ++strip) {
+        const int size = slideio::ImageTools::encodeJp2KStream(stripRasters[strip], encoded.data(),
+            static_cast<int>(encoded.size()), slideio::JP2KEncodeParameters());
+        cv::Mat decoded;
+        slideio::ImageTools::decodeJp2KStream(encoded.data(), size, decoded);
+        ASSERT_EQ(cv::Size(width, rowsPerStrip), decoded.size());
+        const int rows = std::min(rowsPerStrip, height - strip * rowsPerStrip);
+        decoded(cv::Rect(0, 0, width, rows)).copyTo(expected(cv::Rect(0, strip * rowsPerStrip, width, rows)));
+    }
+
+    slideio::TIFFKeeper tiff(path);
+    slideio::TiffDirectory dir;
+    slideio::TiffTools::scanTiffDir(tiff.getHandle(), 0, 0, dir);
+    ASSERT_EQ(34712, dir.compression);
+    cv::Mat raster;
+    ASSERT_NO_THROW(slideio::TiffTools::readStripedDir(tiff.getHandle(), dir, raster));
+    ASSERT_EQ(expected.size(), raster.size());
+    ASSERT_EQ(expected.type(), raster.type());
+    EXPECT_EQ(0, cv::norm(expected, raster, cv::NORM_INF));
 }

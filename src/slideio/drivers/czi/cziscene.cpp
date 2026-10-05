@@ -60,12 +60,12 @@ int CZIScene::getNumTFrames() const
 
 double CZIScene::getZSliceResolution() const
 {
-    return m_slide->getZSliceResolution();
+    return m_zSliceResolution;
 }
 
 double CZIScene::getTFrameResolution() const
 {
-    return m_slide->getTFrameResolution();
+    return m_tFrameResolution;
 }
 
 slideio::DataType CZIScene::getChannelDataType(int channel) const
@@ -88,12 +88,12 @@ std::string CZIScene::getChannelName(int channel) const
 
 Resolution CZIScene::getResolution() const
 {
-    return m_slide->getResolution();
+    return m_resolution;
 }
 
 double CZIScene::getMagnification() const
 {
-    return m_slide->getMagnification();
+    return m_magnification;
 }
 
 void CZIScene::addAuxImage(const std::string& name, std::shared_ptr<CVScene> image)
@@ -296,6 +296,10 @@ void CZIScene::init(uint64_t sceneId, SceneParams& sceneParams, const std::strin
     m_sceneParams = sceneParams;
     m_slide = slide;
     m_reader = slide->getReader();
+    m_resolution = slide->getResolution();
+    m_magnification = slide->getMagnification();
+    m_zSliceResolution = slide->getZSliceResolution();
+    m_tFrameResolution = slide->getTFrameResolution();
     m_id = sceneId;
 	m_sceneIndex = sceneIndex;
     m_filePath = filePath;
@@ -365,6 +369,7 @@ void CZIScene::init(uint64_t sceneId, SceneParams& sceneParams, const std::strin
         m_hasAcquisitionTime = true;
     }
     collectPlaneTimestamps(blocks);
+    m_slide = nullptr;
 }
 
 int CZIScene::getTileCount(void* userData)

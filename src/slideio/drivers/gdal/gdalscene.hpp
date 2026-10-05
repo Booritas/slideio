@@ -8,6 +8,7 @@
 #include "slideio/core/cvscene.hpp"
 #include "slideio/core/slideio_enums.hpp"
 #include <opencv2/core.hpp>
+#include <memory>
 
 #if defined(_MSC_VER)
 #pragma warning( push )
@@ -16,12 +17,14 @@
 
 namespace slideio
 {
+    class SmallImage;
     class SmallImagePage;
 
     class SLIDEIO_GDAL_EXPORTS GDALScene : public slideio::CVScene
     {
     public:
-        GDALScene(SmallImagePage* image, const std::string& filePath, const std::string& driverId);
+        GDALScene(const std::shared_ptr<SmallImage>& image, int pageIndex, const std::string& filePath,
+                  const std::string& driverId);
         virtual ~GDALScene() = default;
         std::string getFilePath() const override;
         int getSceneIndex() const override { return 0; }
@@ -52,6 +55,9 @@ namespace slideio
             m_colorProfile = profile;
         }
     private:
+        // The image owns the page; holding it keeps the page alive for as long as the
+        // scene is, which may be longer than the slide that opened it.
+        std::shared_ptr<SmallImage> m_image;
         SmallImagePage* m_imagePage;
         int64_t m_acquisitionTime = 0;
         std::string m_filePath;

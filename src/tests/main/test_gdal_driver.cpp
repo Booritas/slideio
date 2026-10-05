@@ -532,3 +532,25 @@ TEST(GDALDriver, noSignificantBitsOrPlaneTimestamps)
     EXPECT_DOUBLE_EQ(0., scene->getPlaneTimestamp(0, 0, 0));
 }
 
+
+// A scene must stay readable after its slide is released: Python code that keeps a
+// scene and drops the slide is ordinary. The scene used to hold a raw pointer to a
+// page the slide's image owned, so this read dereferenced freed memory.
+TEST(GDALDriver, sceneOutlivesItsSlide)
+{
+    for (const auto& image : {"img_2448x2448_3x8bit_SRC_RGB_ducks.png", "img_2448x2448_3x16bit_SRC_RGB_ducks.tif"}) {
+        SCOPED_TRACE(image);
+        const std::string path = TestTools::getTestImagePath("gdal", image);
+        SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
+        std::shared_ptr<slideio::Slide> slide = slideio::openSlide(path, "GDAL");
+        std::shared_ptr<slideio::Scene> scene = slide->getScene(0);
+        cv::Mat expected;
+        slideio::SceneInternal::getCVScene(scene)->readBlock(cv::Rect(100, 200, 64, 32), expected);
+        slide.reset();
+        cv::Mat raster;
+        slideio::SceneInternal::getCVScene(scene)->readBlock(cv::Rect(100, 200, 64, 32), raster);
+        ASSERT_EQ(expected.size(), raster.size());
+        ASSERT_EQ(expected.type(), raster.type());
+        EXPECT_EQ(0, cv::norm(expected, raster, cv::NORM_INF));
+    }
+}

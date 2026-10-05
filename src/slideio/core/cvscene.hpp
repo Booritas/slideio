@@ -332,6 +332,20 @@ namespace slideio
         void validateLevel(int level) const;
         void initializeSceneBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices,
                                   cv::OutputArray output) const;
+        /**@brief reads part of a block: the rect, size and output of that part.*/
+        using BlockReader = std::function<void(const cv::Rect&, const cv::Size&, cv::OutputArray)>;
+        /**@brief reads a rectangle that may extend beyond @p bounds.
+         *
+         * A rectangle inside @p bounds goes to @p reader unchanged, with @p blockSize. Any
+         * other is clamped to @p bounds: @p reader is handed only the part that survives,
+         * with the share of @p blockSize it covers, and the rest of the block is filled with
+         * the background value -- 255 for byte data, 0 otherwise. A rectangle entirely
+         * outside never reaches @p reader. That is the edge contract of every read, so that
+         * a tile overhanging the image is not an error (issue #45).
+         */
+        void readClampedBlock(const cv::Rect& bounds, const cv::Rect& rect, const cv::Size& blockSize,
+                              const std::vector<int>& channelIndices, const BlockReader& reader,
+                              cv::OutputArray output) const;
         /**@brief Driver hook: convert m_rawMetadata into a Metadata tree.
          *
          * The default implementation handles MetadataFormat::{None,Text,JSON,XML}.
