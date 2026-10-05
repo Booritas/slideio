@@ -780,8 +780,45 @@ void TiffTools::readDirRaster(libtiff::TIFF* tiff, const TiffDirectory& dir, cv:
 }
 
 
+void TiffTools::readJ2KStripedDir(libtiff::TIFF* file, const TiffDirectory& dir, cv::OutputArray output) {
+    if (!dir.interleaved && dir.channels != 1) {
+        RAISE_RUNTIME_ERROR << "TiffTools: planar JPEG 2000 strips are not supported. Directory " << dir.dirIndex;
+    }
+    setCurrentDirectory(file, dir);
+    output.create(cv::Size(dir.width, dir.height), CV_MAKETYPE(CVTools::toOpencvType(dir.dataType), dir.channels));
+    cv::Mat imageRaster = output.getMat();
+    const bool yuv = dir.channels == 3 && dir.compression == 33003;
+    const int rowsPerStrip = dir.rowsPerStrip > 0 ? dir.rowsPerStrip : dir.height;
+    std::vector<uint8_t> rawStrip;
+    for (int strip = 0, row = 0; row < dir.height; strip++, row += rowsPerStrip) {
+        const auto rawSize = libtiff::TIFFRawStripSize(file, strip);
+        if (rawSize <= 0) {
+            RAISE_RUNTIME_ERROR << "TiffTools: cannot get the size of strip " << strip << " of directory " << dir.dirIndex;
+        }
+        rawStrip.resize(rawSize);
+        const auto readBytes = libtiff::TIFFReadRawStrip(file, strip, rawStrip.data(), rawSize);
+        if (readBytes <= 0) {
+            RAISE_RUNTIME_ERROR << "TiffTools: error reading raw strip " << strip << " of directory " << dir.dirIndex;
+        }
+        rawStrip.resize(readBytes);
+        cv::Mat stripRaster;
+        ImageTools::decodeJp2KStream(rawStrip, stripRaster, {}, yuv);
+        const cv::Rect stripRect(0, row, dir.width, std::min(rowsPerStrip, dir.height - row));
+        if (stripRaster.size() != stripRect.size() || stripRaster.type() != imageRaster.type()) {
+            RAISE_RUNTIME_ERROR << "TiffTools: strip " << strip << " of directory " << dir.dirIndex
+                << " decodes to " << stripRaster.cols << "x" << stripRaster.rows << " type " << stripRaster.type()
+                << " instead of " << stripRect.width << "x" << stripRect.height << " type " << imageRaster.type();
+        }
+        stripRaster.copyTo(imageRaster(stripRect));
+    }
+}
+
 void TiffTools::readStripedDir(libtiff::TIFF* file, const TiffDirectory& dir, cv::OutputArray output) {
-    if (!dir.interleaved) {
+    // libtiff has no codec for JPEG 2000, so its strips are decoded here, as tiles are.
+    if (dir.compression == 34712 || dir.compression == 33003 || dir.compression == 33005) {
+        readJ2KStripedDir(file, dir, output);
+    }
+    else if (!dir.interleaved) {
         readPlanarStripedDir(file, dir, output);
     }
     else {

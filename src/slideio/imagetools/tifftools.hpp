@@ -72,6 +72,7 @@ namespace slideio
         static void readNotRGBStripedDir(libtiff::TIFF* tiff, const TiffDirectory& dir, cv::_OutputArray output);
         static void readRegularStripedDir(libtiff::TIFF* file, const slideio::TiffDirectory& dir, cv::OutputArray output);
         static void readPlanarStripedDir(libtiff::TIFF* tiff, const TiffDirectory& dir, cv::OutputArray output);
+        static void readJ2KStripedDir(libtiff::TIFF* tiff, const TiffDirectory& dir, cv::OutputArray output);
         static void readDirRaster(const std::string& filePath, int dir, cv::OutputArray output);
         static void readDirRaster(libtiff::TIFF* tiff, const TiffDirectory& dir, cv::OutputArray output);
         static void readTiledDir(libtiff::TIFF* tiff, const TiffDirectory& dir, cv::OutputArray output);

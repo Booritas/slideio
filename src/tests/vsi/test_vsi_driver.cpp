@@ -1273,3 +1273,32 @@ TEST_F(VSIImageDriverTests, colorProfileAbsentWhenTiffTagIsAbsent) {
     ASSERT_TRUE(profile.isEmpty());
     ASSERT_EQ(slideio::ColorProfileSource::None, profile.getSource());
 }
+
+// OS-1's "20x FocusMap" is a striped TIFF directory compressed with JPEG 2000 (34712),
+// which libtiff has no codec for: TIFFReadEncodedStrip failed and the read threw "Error
+// by reading of tif strip". The expected values were decoded independently, by Pillow,
+// from the raw strip bytes.
+TEST_F(VSIImageDriverTests, readsAJpeg2000StripedAuxImage) {
+    const std::string filePath = TestTools::getTestImagePath("vsi", "OS-1/OS-1.vsi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::VSIImageDriver driver;
+    std::shared_ptr<CVSlide> slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide != nullptr);
+    std::shared_ptr<CVScene> focusMap = slide->getScene(0)->getAuxImage("20x FocusMap");
+    ASSERT_TRUE(focusMap != nullptr);
+    EXPECT_EQ(Compression::Jpeg2000, focusMap->getCompression());
+    ASSERT_EQ(cv::Rect(0, 0, 40, 46), focusMap->getRect());
+    cv::Mat raster;
+    ASSERT_NO_THROW(focusMap->readBlock(focusMap->getRect(), raster));
+    ASSERT_EQ(CV_16UC1, raster.type());
+    ASSERT_EQ(cv::Size(40, 46), raster.size());
+    EXPECT_EQ(62942184., cv::sum(raster)[0]);
+    double minValue = 0, maxValue = 0;
+    cv::minMaxLoc(raster, &minValue, &maxValue);
+    EXPECT_EQ(34099., minValue);
+    EXPECT_EQ(34318., maxValue);
+    EXPECT_EQ(34131, raster.at<uint16_t>(0, 0));
+    EXPECT_EQ(34212, raster.at<uint16_t>(23, 20));
+    EXPECT_EQ(34310, raster.at<uint16_t>(45, 39));
+    EXPECT_EQ(34296, raster.at<uint16_t>(40, 5));
+}
