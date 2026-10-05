@@ -804,12 +804,17 @@ void TiffTools::readJ2KStripedDir(libtiff::TIFF* file, const TiffDirectory& dir,
         cv::Mat stripRaster;
         ImageTools::decodeJp2KStream(rawStrip, stripRaster, {}, yuv);
         const cv::Rect stripRect(0, row, dir.width, std::min(rowsPerStrip, dir.height - row));
-        if (stripRaster.size() != stripRect.size() || stripRaster.type() != imageRaster.type()) {
+        // A strip may decode larger than the rows it carries -- an encoder can pad the last
+        // one to the full rows-per-strip, as edge tiles are padded -- so the excess is
+        // cropped. Smaller, or of another type, is a strip that does not fit the directory.
+        if (stripRaster.cols < stripRect.width || stripRaster.rows < stripRect.height
+            || stripRaster.type() != imageRaster.type()) {
             RAISE_RUNTIME_ERROR << "TiffTools: strip " << strip << " of directory " << dir.dirIndex
                 << " decodes to " << stripRaster.cols << "x" << stripRaster.rows << " type " << stripRaster.type()
-                << " instead of " << stripRect.width << "x" << stripRect.height << " type " << imageRaster.type();
+                << " instead of at least " << stripRect.width << "x" << stripRect.height
+                << " type " << imageRaster.type();
         }
-        stripRaster.copyTo(imageRaster(stripRect));
+        stripRaster(cv::Rect(0, 0, stripRect.width, stripRect.height)).copyTo(imageRaster(stripRect));
     }
 }
 
