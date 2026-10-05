@@ -13,8 +13,10 @@
 #include "slideio/imagetools/smallimage.hpp"
 
 
-slideio::GDALScene::GDALScene(SmallImagePage* page, const std::string& path, const std::string& driverId) :
-    m_imagePage(page),
+slideio::GDALScene::GDALScene(const std::shared_ptr<SmallImage>& image, int pageIndex, const std::string& path,
+                              const std::string& driverId) :
+    m_image(image),
+    m_imagePage(image->readPage(pageIndex)),
     m_filePath(path),
 	m_driverId(driverId)
 {

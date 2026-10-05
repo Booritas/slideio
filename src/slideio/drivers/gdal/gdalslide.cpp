@@ -19,7 +19,7 @@ slideio::GDALSlide::GDALSlide(const std::string& filePath, const std::string& dr
 	}
 	const int numPages = m_image->getNumPages();
 	for (int pageIndex = 0; pageIndex < numPages; ++pageIndex) {
-		std::shared_ptr<slideio::CVScene> scenePtr(new GDALScene(m_image->readPage(pageIndex), filePath, getDriverId()));
+		std::shared_ptr<slideio::CVScene> scenePtr(new GDALScene(m_image, pageIndex, filePath, getDriverId()));
 		m_scenes.push_back(scenePtr);
 	}
 	if (numPages == 1) {
