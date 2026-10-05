@@ -19,7 +19,7 @@ removed without renumbering the rest and its number is retired in
 
 1. [`TIFFKeeper` and `NDPITIFFKeeper` are two classes with one contract](#1-tiffkeeper-and-ndpitiffkeeper-are-two-classes-with-one-contract)
 2. *retired -- fixed, see [Resolved and removed](#resolved-and-removed)*
-3. [`SCNSlide` passes a `TIFF*` where `SVSSmallScene` expects a `bool`](#3-scnslide-passes-a-tiff-where-svssmallscene-expects-a-bool)
+3. *retired -- fixed, see [Resolved and removed](#resolved-and-removed)*
 4. [`CVScene` still serialises every block read for two drivers](#4-cvscene-still-serialises-every-block-read-for-two-drivers)
 5. [`ImageTools::computeSimilarity2` cannot handle more than four channels](#5-imagetoolscomputesimilarity2-cannot-handle-more-than-four-channels)
 6. [`CZIScene::getRect()` returns non-zero-based coordinates that block reads cannot use](#6-cziscenegetrect-returns-non-zero-based-coordinates-that-block-reads-cannot-use)
@@ -99,52 +99,6 @@ none of them is in the design spec:
   handler, so whatever handler is already current reports any problem with that
   open. Opening through the `filePath` constructor or `openTiffFile()` has no
   such gap.
-
----
-
-## 3. `SCNSlide` passes a `TIFF*` where `SVSSmallScene` expects a `bool`
-
-**File:** `src/slideio/drivers/scn/scnslide.cpp` — the `new SVSSmallScene(...)`
-call inside `constructScenes`, which carries a `TECH_DEBT #3` comment
-**Related:** `src/slideio/drivers/svs/svssmallscene.hpp`, the `SVSSmallScene`
-constructor declaration
-**Status:** Open. Found while reviewing the `TIFFKeeper` ownership change;
-pre-existing and unrelated to it.
-
-`SCNSlide` builds a `supplementalImage` scene with:
-
-```cpp
-std::shared_ptr<SVSSmallScene> scene(new SVSSmallScene(m_filePath, getDriverId(), tagName,
-    directory, m_tiff.getHandle()));
-```
-
-`SVSSmallScene`'s fifth constructor parameter is `bool auxiliary = true`, not a
-`TIFF*`. The `libtiff::TIFF*` returned by `m_tiff.getHandle()` silently
-converts to `bool` — non-null, so `true` — and the handle itself is discarded;
-`SVSSmallScene` never sees it. The call is equivalent to omitting the argument
-and taking the default.
-
-**Impact today: none.** `m_tiff` is validated non-null before this code runs,
-so the converted value always matches the default every other call site
-already passes. This is a latent trap, not a live bug.
-
-**Trap for whoever fixes it:** the obvious repair — add a `TIFF*`-taking
-`SVSSmallScene` overload/parameter so the scene reuses the slide's already-open
-handle instead of implying it should open its own — creates a real double
-close if implemented naively. `SCNSlide::m_tiff` keeps ownership of that handle
-and closes it in `~SCNSlide`. Handing the same raw pointer to `SVSSmallScene`
-without transferring ownership means two owners closing one handle. Any fix
-that shares the handle must go through `TIFFKeeper::release()` (or equivalent
-explicit ownership transfer), not a bare `getHandle()` passed to a second
-owner.
-
-**Constraint added 2026-09-07.** SCN scenes now declare concurrent reads
-(`software-docs/specs/2026-09-07-parallel-read-block-design.md` §4.5.1). The
-handle being silently discarded is what makes SCN's auxiliary scenes safe, so
-fixing this must **drop** the argument, not plumb the slide's handle into the
-scene -- the latter would put a shared, unsynchronised `TIFF*` back into a
-driver that advertises concurrency. The code already carries this warning at
-the construction site in `scnslide.cpp`.
 
 ---
 
@@ -1265,6 +1219,7 @@ retired here rather than reused.
 | # | Entry | Verified fixed by | Record |
 |---|---|---|---|
 | 2 | Philips TIFF driver follow-ups | All nine items landed across `75a48f65..a9f179aa`. Spot-verified: the tile-count and parallel-arrays guards are in `phCropLevelPadding` (`phtiffslide.cpp:278-298`), `svsdriverids.hpp` exists, and `Tools::isXml` is gone from the tree. | `git log --oneline 75a48f65..a9f179aa`; `software-docs/specs/2026-08-11-phtiff-format-detection-design.md`. The one item that was never debt is kept above, under [Consciously accepted, not debt](#consciously-accepted-not-debt). |
+| 3 | `SCNSlide` passed a `TIFF*` where `SVSSmallScene` expects a `bool` | Fixed the way the entry required: the argument is dropped, not plumbed through, so the supplemental-image scene still opens its own per-thread handles and SCN's concurrent-read contract is untouched. `auxiliary` takes its default `true`, the value the pointer used to convert to, so behaviour is unchanged. `SVSSmallScene` also declares a deleted constructor taking `const volatile void*` in that position (`svssmallscene.hpp`), which out-ranks the pointer-to-`bool` conversion, so passing a handle there is now a compile error rather than a silent `true`. | Watched the deleted overload reject the old `scnslide.cpp` call before dropping the argument. `SceneLifetime.scn` and the SCN driver tests read the `Macro` supplemental image. |
 | 11 | `TransformerScene` has no level table, so transformed scenes cannot be read by level | `TransformerScene` copies the origin's `m_levels` in its constructor and overrides `readResampledLevelBlockChannelsEx` to read the origin at the level it was asked for, inflating in level coordinates. The entry's open design question is answered in `transformerscene.hpp`: a transformation's parameters are in the pixels of the level being read, which is what `computeInflatedRectParams` already does for a scaled read. | `TransformerSceneLevels.*` in `slideio_transformer_tests` — four tests, all watched failing first. `aLevelReadAgreesWithTheEquivalentScaledRead` is the one that pins the semantics: a full read of level 1 is bit-identical to a half-scale read of the scene. |
 | 14 | ZVI serialised every block read | `ZVIScene::supportsConcurrentReads()` returns `true` (`zviscene.hpp:62`), on one shared `ole::compound_document` made safe by pole's positional read path. | `software-docs/specs/2026-09-09-zvi-concurrent-reads-design.md` §3.2, §4, §5.3, §5.4. Its follow-ups are still open as [§19](#19-pole-read-path-defects-left-in-place), [§20](#20-the-zvi-concurrent-read-work-what-no-test-covers) and [§21](#21-pole-read-path-throughput-two-remaining-items). |
 | 17 | OME-TIFF serialised every block read | `OTScene::supportsConcurrentReads()` returns `true` (`otscene.hpp:88`); `TIFFFiles` moved off `OTScene` into a per-thread `OTReadContext` held by a `ContextPool`. | `software-docs/specs/2026-09-08-ometiff-concurrent-reads-design.md`; the contract assertion is `OTImageDriverTests.reportsConcurrentReadSupport`. |

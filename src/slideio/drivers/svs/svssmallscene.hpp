@@ -23,6 +23,11 @@ namespace slideio
             const std::string& name,
             const slideio::TiffDirectory& dir,
             bool auxiliary=true);
+        // A pointer would otherwise convert silently to `auxiliary`: SCNSlide once passed
+        // its TIFF* here, which was discarded as `true` (TECH_DEBT #3). The scene opens
+        // its own handles, per thread, and must not be given a shared one.
+        SVSSmallScene(const std::string&, const std::string&, const std::string&,
+            const slideio::TiffDirectory&, const volatile void*) = delete;
         cv::Rect getRect() const override;
         int getNumChannels() const override;
         void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
