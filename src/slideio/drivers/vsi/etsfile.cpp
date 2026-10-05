@@ -9,6 +9,7 @@
 #include "slideio/core/tools/cvtools.hpp"
 #include "slideio/core/tools/endian.hpp"
 #include <climits>
+#include <limits>
 
 using namespace slideio;
 
@@ -17,30 +18,49 @@ slideio::vsi::EtsFile::EtsFile(const std::string& filePath)
       m_contextPool([] { return std::make_unique<EtsReadContext>(); }, ContextPool::kUnbounded) {
 }
 
-bool vsi::EtsFile::assignVolume(std::list<std::shared_ptr<vsi::Volume>>& volumes) {
+bool vsi::EtsFile::assignVolume(std::list<std::shared_ptr<vsi::Volume>>& volumes,
+                                 const std::set<int>& claimedStackIds) {
     const int64_t minWidth = static_cast<int64_t>(m_maxCoordinates[0]) * m_tileSize.width;
     const int64_t minHeight = static_cast<int64_t>(m_maxCoordinates[1]) * m_tileSize.height;
     const int64_t maxWidth = minWidth + m_tileSize.width;
     const int64_t maxHeight = minHeight + m_tileSize.height;
+    const auto toInt = [](int64_t value) {
+        return static_cast<int>(std::min<int64_t>(value, std::numeric_limits<int>::max()));
+    };
+    const auto it = findVolume(volumes, VSITools::stackIdFromPath(m_filePath), claimedStackIds,
+        cv::Size(toInt(minWidth), toInt(minHeight)), cv::Size(toInt(maxWidth), toInt(maxHeight)));
+    if (it != volumes.end()) {
+        setVolume(*it);
+        volumes.erase(it);
+    }
+    return m_volume != nullptr;
+}
 
+std::list<std::shared_ptr<vsi::Volume>>::iterator vsi::EtsFile::findVolume(
+    std::list<std::shared_ptr<vsi::Volume>>& volumes, int stackId,
+    const std::set<int>& claimedStackIds,
+    const cv::Size& minSize, const cv::Size& maxSize) {
+    auto firstFit = volumes.end();
     for (auto it = volumes.begin(); it != volumes.end(); ++it) {
-        const std::shared_ptr<Volume> volume = *it;
-        const cv::Size volumeSize = volume->getSize();
-        const int volumeWidth = volumeSize.width;
-        const int volumeHeight = volumeSize.height;
-        if (volumeWidth >= minWidth && volumeWidth <= maxWidth && volumeHeight >= minHeight && volumeHeight <=
-            maxHeight) {
-            volumes.erase(it);
-            setVolume(volume);
-            break;
+        const cv::Size size = (*it)->getSize();
+        if (size.width < minSize.width || size.width > maxSize.width
+            || size.height < minSize.height || size.height > maxSize.height) {
+            continue;
+        }
+        if (stackId >= 0 && (*it)->getStackId() == stackId) {
+            return it;
+        }
+        if (firstFit == volumes.end() && claimedStackIds.count((*it)->getStackId()) == 0) {
+            firstFit = it;
         }
     }
-    return m_volume !=nullptr;
+    return firstFit;
 }
 
 void vsi::EtsFile::initStruct(TileInfoListPtr& tiles) {
 
     if (m_volume) {
+        m_volume->fitDimensionOrderToTiles(m_numDimensions, m_usePyramid);
         m_size.width = m_volume->getSize().width;
         m_size.height = m_volume->getSize().height;
     }
@@ -57,8 +77,12 @@ void vsi::EtsFile::initStruct(TileInfoListPtr& tiles) {
     if (lambdaIndex > 1 && lambdaIndex < static_cast<int>(m_maxCoordinates.size())) {
         m_numLambdas = m_maxCoordinates[lambdaIndex] + 1;
     }
+    // A C coordinate that never leaves 0 says nothing about channels: the header's
+    // component count stands, as in Bio-Formats. Otherwise every channel is one
+    // component, stored at its own C coordinate.
     const int channelIndex = m_volume->getDimensionOrder(Dimensions::C);
-    if (channelIndex > 1 && channelIndex < static_cast<int>(m_maxCoordinates.size())) {
+    if (channelIndex > 1 && channelIndex < static_cast<int>(m_maxCoordinates.size())
+        && m_maxCoordinates[channelIndex] > 0) {
         m_numChannels = m_maxCoordinates[channelIndex] + 1;
     }
 

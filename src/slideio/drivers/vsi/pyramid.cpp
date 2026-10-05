@@ -47,18 +47,22 @@ void Pyramid::init(const TileInfoListPtr& tiles, const cv::Size& imageSize, cons
     m_numChannelIndices = 0;
     m_numZIndices = 0;
     m_numTIndices = 0;
+    // An order that does not index one of the tile's dimension coordinates is ignored
+    // rather than used to index past them; Volume::fitDimensionOrderToTiles has
+    // already dropped such orders, and this keeps the read safe on its own.
+    auto validIndex = [numDimensions](int index) { return index > 1 && index < numDimensions; };
     const int channelIndex = dimOrder->getDimensionOrder(Dimensions::C);
     const int zIndex = dimOrder->getDimensionOrder(Dimensions::Z);
     const int tIndex = dimOrder->getDimensionOrder(Dimensions::T);
     for (auto& tile : *tiles) {
         numPyramidLevels = std::max(numPyramidLevels, tile.coordinates.back());
-        if (channelIndex > 0) {
+        if (validIndex(channelIndex)) {
             m_numChannelIndices = std::max(m_numChannelIndices, tile.coordinates[channelIndex]);
         }
-        if (zIndex > 0) {
+        if (validIndex(zIndex)) {
             m_numZIndices = std::max(m_numZIndices, tile.coordinates[zIndex]);
         }
-        if(tIndex > 0) {
+        if (validIndex(tIndex)) {
             m_numTIndices = std::max(m_numTIndices, tile.coordinates[tIndex]);
         }
     }
@@ -80,9 +84,9 @@ void Pyramid::init(const TileInfoListPtr& tiles, const cv::Size& imageSize, cons
         pyramidLevel.m_scaleLevel = 1 << level;
         pyramidLevel.m_size.width = width;
         pyramidLevel.m_size.height = height;
-        pyramidLevel.m_channelDimIndex = channelIndex;
-        pyramidLevel.m_zDimIndex = dimOrder->getDimensionOrder(Dimensions::Z);
-        pyramidLevel.m_tDimIndex = dimOrder->getDimensionOrder(Dimensions::T);
+        pyramidLevel.m_channelDimIndex = validIndex(channelIndex) ? channelIndex : -1;
+        pyramidLevel.m_zDimIndex = validIndex(zIndex) ? zIndex : -1;
+        pyramidLevel.m_tDimIndex = validIndex(tIndex) ? tIndex : -1;
     }
 
     if (numPyramidLevels == 1) {
@@ -98,13 +102,13 @@ void Pyramid::init(const TileInfoListPtr& tiles, const cv::Size& imageSize, cons
     }
     std::vector<int> sortOrder = {1, 0};
 
-    if (channelIndex > 0) {
+    if (validIndex(channelIndex)) {
         sortOrder.push_back(channelIndex);
     }
-    if (zIndex > 0) {
+    if (validIndex(zIndex)) {
         sortOrder.push_back(zIndex);
     }
-    if (tIndex > 0) {
+    if (validIndex(tIndex)) {
         sortOrder.push_back(tIndex);
     }
     std::vector<int> unknownDims;

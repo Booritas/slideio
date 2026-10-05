@@ -66,6 +66,21 @@ namespace slideio
 
             int getDimensionOrder(Dimensions dim) const override { return m_dimensionOrder[dimensionIndex(dim)]; } 
             void setDimensionOrder(Dimensions dim, int value) { m_dimensionOrder[dimensionIndex(dim)] = value; }
+            // Reconciles the stated dimension order with the tiles of the ETS file this
+            // volume describes, which have numCoordinates coordinates: x and y, then the
+            // dimensions, then -- when usePyramid -- the pyramid level. Ports the rules
+            // Bio-Formats' CellSensReader applies: a Z or T on the level is dropped; if
+            // every stated order lies past the last dimension coordinate they all shift
+            // back by one; if no Z or T is stated and the tiles carry more than four
+            // coordinates, C (when unstated), T and Z are inferred. An order that still
+            // does not index a dimension coordinate is dropped, never used.
+            void fitDimensionOrderToTiles(int numCoordinates, bool usePyramid);
+
+            // The id of the stack this volume describes: the secondTag of its
+            // MULTIDIM_IMAGE_VOLUME, which names the stack<id> directory of its .ets
+            // file. -1 when unknown.
+            int getStackId() const { return m_stackId; }
+            void setStackId(int stackId) { m_stackId = stackId; }
 
             // Length in a Volume is always in metres, on the same terms as time
             // below: the raw value arrives with the unit the file stated and is
@@ -137,6 +152,7 @@ namespace slideio
             std::vector<double> m_channelEmissionWavelengths;
             std::vector<double> m_planeTimestamps;   // seconds
             int64_t m_acquisitionTime = 0;
+            int m_stackId = -1;
         };
 
     };

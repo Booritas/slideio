@@ -16,6 +16,7 @@
 #include "taginfo.hpp"
 #include "slideio/core/tools/endian.hpp"
 #include "slideio/imagetools/tifftools.hpp"
+#include <set>
 
 
 using namespace slideio;
@@ -42,14 +43,6 @@ static std::string formatEpochTime(const std::string& rawEpoch) {
         SLIDEIO_LOG(WARNING) << "VSI driver: error parsing time value (" << rawEpoch << "): " << ex.what();
         return rawEpoch;
     }
-}
-
-
-static int extractBaseDirectoryNameSuffix(const fs::path& path) {
-    std::filesystem::path parentDir = path.parent_path();
-    std::string dirName = parentDir.filename().string();
-    int suffix = std::stoi(dirName.c_str() + 5); // skip 'stack' prefix
-    return suffix;
 }
 
 
@@ -153,6 +146,8 @@ void VSIFile::extractVolumesFromMetadata() {
             //}
             std::shared_ptr<Volume> volumeObj = std::make_shared<Volume>();
             volumeObj->setType(stackType);
+            // The volume's secondTag names the stack<id> directory of its .ets file.
+            volumeObj->setStackId(volume->secondTag);
             std::list<const TagInfo*> frames;
             getImageFrameMetadataItems(volume, frames);
             if (frames.size() > 1) {
@@ -673,7 +668,16 @@ void VSIFile::readExternalFiles() {
     const fs::path subDirName = "_" + fileName.stem().string() + "_";
     const fs::path subDirPath = dirPath / subDirName;
     if (fs::exists(subDirPath)) {
-        const std::list<std::string> files = Tools::findFilesWithExtension(subDirPath.string(), ".ets");
+        // Sorted, so that pairing does not depend on the order the file system lists them in.
+        std::list<std::string> files = Tools::findFilesWithExtension(subDirPath.string(), ".ets");
+        VSITools::sortEtsFilePaths(files);
+        std::set<int> claimedStackIds;
+        for (const auto& file : files) {
+            const int stackId = VSITools::stackIdFromPath(file);
+            if (stackId >= 0) {
+                claimedStackIds.insert(stackId);
+            }
+        }
         if (files.size() != this->getNumVolumes()) {
             SLIDEIO_LOG(WARNING) << "VSI driver: number of ETS files does not match the number of volumes";
         }
@@ -688,7 +692,7 @@ void VSIFile::readExternalFiles() {
                 auto etsFile = std::make_shared<EtsFile>(file);
                 auto tiles = std::make_shared<TileInfoList>();
                 etsFile->read(volumes, tiles);
-                if (etsFile->assignVolume(volumes)) {
+                if (etsFile->assignVolume(volumes, claimedStackIds)) {
                     etsFile->initStruct(tiles);
                     m_etsFiles.push_back(etsFile);
                 }

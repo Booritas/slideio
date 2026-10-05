@@ -4,6 +4,7 @@
 #include "slideio/drivers/vsi/vsifile.hpp"
 #include "slideio/drivers/vsi/volume.hpp"
 #include "slideio/drivers/vsi/vsitools.hpp"
+#include "slideio/drivers/vsi/etsfile.hpp"
 #include "tests/testlib/testtools.hpp"
 
 
@@ -530,4 +531,219 @@ TEST(Volume, PlaneTimestampsAtOrAfterTheCreationTimeAreLeftAlone) {
     EXPECT_DOUBLE_EQ(volume.getPlaneTimestampByIndex(0), 0.0);
     EXPECT_DOUBLE_EQ(volume.getPlaneTimestampByIndex(2), 4.0);
     EXPECT_EQ(volume.getAcquisitionTime(), 1000);
+}
+
+// fitDimensionOrderToTiles ports the rules Bio-Formats' CellSensReader applies to a
+// pyramid's dimension order before reading its tiles (issue #50). Positions are
+// indices into a tile's coordinates: x and y at 0 and 1, the dimensions after them,
+// and, in a file with a pyramid, the level last.
+
+TEST(Volume, FitKeepsADimensionOrderThatFitsTheTiles) {
+    vsi::Volume volume;
+    volume.setDimensionOrder(Dimensions::C, 2);
+    volume.fitDimensionOrderToTiles(4, true);
+    EXPECT_EQ(2, volume.getDimensionOrder(Dimensions::C));
+    EXPECT_EQ(-1, volume.getDimensionOrder(Dimensions::Z));
+    EXPECT_EQ(-1, volume.getDimensionOrder(Dimensions::T));
+}
+
+// The case behind issue #50: metadata that names no dimension at all, over tiles that
+// carry more than x, y and a level. Without the inference a grayscale fluorescence
+// scene reports the one component its ETS header states instead of its channels.
+TEST(Volume, FitInfersTheChannelWhenTheFileStatesNoDimension) {
+    vsi::Volume five;
+    five.fitDimensionOrderToTiles(5, true);
+    EXPECT_EQ(2, five.getDimensionOrder(Dimensions::C));
+    EXPECT_EQ(3, five.getDimensionOrder(Dimensions::T));
+    EXPECT_EQ(-1, five.getDimensionOrder(Dimensions::Z));
+
+    vsi::Volume six;
+    six.fitDimensionOrderToTiles(6, true);
+    EXPECT_EQ(2, six.getDimensionOrder(Dimensions::C));
+    EXPECT_EQ(3, six.getDimensionOrder(Dimensions::T));
+    EXPECT_EQ(4, six.getDimensionOrder(Dimensions::Z));
+}
+
+TEST(Volume, FitInfersNothingFromTilesWithoutExtraCoordinates) {
+    vsi::Volume volume;
+    volume.fitDimensionOrderToTiles(4, true);
+    for (const Dimensions dim : {Dimensions::Z, Dimensions::C, Dimensions::T}) {
+        EXPECT_EQ(-1, volume.getDimensionOrder(dim)) << "dimension " << static_cast<int>(dim);
+    }
+}
+
+// Every stated position past the last dimension coordinate means the file counted from
+// one further along; Bio-Formats shifts them all back by one.
+TEST(Volume, FitShiftsOrdersThatAllOverrunTheTiles) {
+    vsi::Volume volume;
+    volume.setDimensionOrder(Dimensions::C, 3);
+    volume.fitDimensionOrderToTiles(4, true);
+    EXPECT_EQ(2, volume.getDimensionOrder(Dimensions::C));
+}
+
+TEST(Volume, FitDropsAZOrTOrderOnThePyramidLevel) {
+    vsi::Volume volume;
+    volume.setDimensionOrder(Dimensions::Z, 3);
+    volume.fitDimensionOrderToTiles(4, true);
+    EXPECT_EQ(-1, volume.getDimensionOrder(Dimensions::Z));
+}
+
+// Bio-Formats drops a Z or T on the pyramid level before it decides whether to shift, and
+// so does this port, deliberately. C=3, Z=4 over five coordinates loses Z and keeps C at 3,
+// exactly as Bio-Formats reads it; shifting first would give C=2, Z=3. Change this only
+// together with the comment in fitDimensionOrderToTiles and with a file to justify it.
+TEST(Volume, FitDropsTheLevelBeforeShiftingAsBioFormatsDoes) {
+    vsi::Volume volume;
+    volume.setDimensionOrder(Dimensions::C, 3);
+    volume.setDimensionOrder(Dimensions::Z, 4);
+    volume.fitDimensionOrderToTiles(5, true);
+    EXPECT_EQ(3, volume.getDimensionOrder(Dimensions::C));
+    EXPECT_EQ(-1, volume.getDimensionOrder(Dimensions::Z));
+    EXPECT_EQ(-1, volume.getDimensionOrder(Dimensions::T));
+}
+
+// Not every position overruns, so nothing shifts -- but the one that does must not be
+// used to index a tile's coordinates.
+TEST(Volume, FitDropsAnOrderThatStillOverrunsTheTiles) {
+    vsi::Volume volume;
+    volume.setDimensionOrder(Dimensions::C, 2);
+    volume.setDimensionOrder(Dimensions::T, 7);
+    volume.fitDimensionOrderToTiles(5, true);
+    EXPECT_EQ(2, volume.getDimensionOrder(Dimensions::C));
+    EXPECT_EQ(-1, volume.getDimensionOrder(Dimensions::T));
+}
+
+// With C stated and no Z or T, Bio-Formats places T two past C. Here that is the
+// pyramid level, which is never a dimension.
+TEST(Volume, FitNeverInfersADimensionOntoThePyramidLevel) {
+    vsi::Volume volume;
+    volume.setDimensionOrder(Dimensions::C, 2);
+    volume.fitDimensionOrderToTiles(5, true);
+    EXPECT_EQ(2, volume.getDimensionOrder(Dimensions::C));
+    EXPECT_EQ(-1, volume.getDimensionOrder(Dimensions::T));
+    EXPECT_EQ(-1, volume.getDimensionOrder(Dimensions::Z));
+}
+
+// C is inferred at position 2 only when no stated dimension already holds it.
+TEST(Volume, FitDoesNotInferTheChannelOntoAStatedDimension) {
+    vsi::Volume volume;
+    volume.setDimensionOrder(Dimensions::L, 2);
+    volume.fitDimensionOrderToTiles(5, true);
+    EXPECT_EQ(2, volume.getDimensionOrder(Dimensions::L));
+    EXPECT_EQ(-1, volume.getDimensionOrder(Dimensions::C));
+    EXPECT_EQ(3, volume.getDimensionOrder(Dimensions::T));
+}
+
+TEST(Volume, StackIdIsUnsetUntilTheFileSetsIt) {
+    vsi::Volume volume;
+    EXPECT_EQ(-1, volume.getStackId());
+    volume.setStackId(10004);
+    EXPECT_EQ(10004, volume.getStackId());
+}
+
+TEST(VSITools, StackIdFromPath) {
+    EXPECT_EQ(10002, VSITools::stackIdFromPath("/data/_slide_/stack10002/frame_t.ets"));
+    EXPECT_EQ(1, VSITools::stackIdFromPath("/data/_slide_/stack1/frame_t.ets"));
+    EXPECT_EQ(-1, VSITools::stackIdFromPath("/data/_slide_/frames/frame_t.ets"));
+    EXPECT_EQ(-1, VSITools::stackIdFromPath("/data/_slide_/stack/frame_t.ets"));
+    EXPECT_EQ(-1, VSITools::stackIdFromPath("/data/_slide_/stack12ab/frame_t.ets"));
+    EXPECT_EQ(-1, VSITools::stackIdFromPath("/data/_slide_/stack99999999999999/frame_t.ets"));
+    EXPECT_EQ(-1, VSITools::stackIdFromPath("frame_t.ets"));
+}
+
+// By stack number, not as text: stack9999 comes before stack10002. Within one stack the
+// paths keep their order, and a path outside any stack directory goes last.
+TEST(VSITools, SortEtsFilePaths) {
+    std::list<std::string> paths{
+        "/s/_x_/stack10002/frame_t.ets",
+        "/s/_x_/other/frame_t.ets",
+        "/s/_x_/stack9999/frame_t.ets",
+        "/s/_x_/stack10002/blob_21_f_Frame#0.ets",
+        "/s/_x_/stack1/frame_t.ets",
+    };
+    VSITools::sortEtsFilePaths(paths);
+    const std::list<std::string> expected{
+        "/s/_x_/stack1/frame_t.ets",
+        "/s/_x_/stack9999/frame_t.ets",
+        "/s/_x_/stack10002/blob_21_f_Frame#0.ets",
+        "/s/_x_/stack10002/frame_t.ets",
+        "/s/_x_/other/frame_t.ets",
+    };
+    EXPECT_EQ(expected, paths);
+}
+
+namespace
+{
+    std::shared_ptr<vsi::Volume> makeVolume(int stackId, const cv::Size& size) {
+        auto volume = std::make_shared<vsi::Volume>();
+        volume->setStackId(stackId);
+        volume->setSize(size);
+        return volume;
+    }
+}
+
+// A brightfield and a fluorescence scan of one region are the same size, so size alone
+// cannot tell their volumes apart (issue #50). The stack directory decides between them.
+TEST(EtsFile, FindVolumePrefersTheStackIdAmongVolumesThatFit) {
+    std::list<std::shared_ptr<vsi::Volume>> volumes{
+        makeVolume(10001, {1000, 800}), makeVolume(10002, {1000, 800})};
+    auto it = vsi::EtsFile::findVolume(volumes, 10002, {10001, 10002}, {990, 790}, {1020, 820});
+    ASSERT_NE(volumes.end(), it);
+    EXPECT_EQ(10002, (*it)->getStackId());
+}
+
+// A stack directory can hold more than one .ets file -- a blob beside the frame -- so the
+// id alone cannot claim a volume whose size does not fit. The size fallback may take a
+// volume no .ets file claims...
+TEST(EtsFile, FindVolumeIgnoresAStackIdWhoseSizeDoesNotFit) {
+    std::list<std::shared_ptr<vsi::Volume>> volumes{
+        makeVolume(-1, {1000, 800}), makeVolume(10002, {50, 40})};
+    auto it = vsi::EtsFile::findVolume(volumes, 10002, {10002}, {990, 790}, {1020, 820});
+    ASSERT_NE(volumes.end(), it);
+    EXPECT_EQ(-1, (*it)->getStackId());
+}
+
+// ...but never one whose stack directory holds an .ets file of its own: that file may not
+// have been paired yet, and taking its volume would leave it without one.
+TEST(EtsFile, FindVolumeDoesNotTakeAVolumeAnotherEtsFileClaims) {
+    std::list<std::shared_ptr<vsi::Volume>> volumes{
+        makeVolume(9999, {1000, 800}), makeVolume(10002, {50, 40})};
+    EXPECT_EQ(volumes.end(),
+              vsi::EtsFile::findVolume(volumes, 10002, {9999, 10002}, {990, 790}, {1020, 820}));
+}
+
+TEST(EtsFile, FindVolumeFallsBackToTheFirstFitWithoutAStackId) {
+    std::list<std::shared_ptr<vsi::Volume>> volumes{
+        makeVolume(10001, {1000, 800}), makeVolume(10002, {1000, 800})};
+    auto it = vsi::EtsFile::findVolume(volumes, -1, {}, {990, 790}, {1020, 820});
+    ASSERT_NE(volumes.end(), it);
+    EXPECT_EQ(10001, (*it)->getStackId());
+}
+
+TEST(EtsFile, FindVolumeReturnsEndWhenNothingFits) {
+    std::list<std::shared_ptr<vsi::Volume>> volumes{makeVolume(10001, {50, 40})};
+    EXPECT_EQ(volumes.end(), vsi::EtsFile::findVolume(volumes, 10001, {10001}, {990, 790}, {1020, 820}));
+}
+
+// On every multi-file slide in the corpus, each .ets file is paired with the volume whose
+// stack id names its directory.
+TEST(VSIFile, EtsFilesArePairedWithTheVolumeOfTheirStack) {
+    const char* images[] = {
+        "Zenodo/Abdominal/G1M16_ABD_HE_B6.vsi",
+        "OS-1/OS-1.vsi",
+        "vs200-vsi-share/Image_B309.vsi",
+    };
+    for (const char* image : images) {
+        SCOPED_TRACE(image);
+        const std::string path = TestTools::getTestImagePath("vsi", image);
+        SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
+        vsi::VSIFile file(path);
+        ASSERT_GT(file.getNumEtsFiles(), 0);
+        for (int index = 0; index < file.getNumEtsFiles(); ++index) {
+            const auto ets = file.getEtsFile(index);
+            ASSERT_TRUE(ets->getVolume() != nullptr);
+            EXPECT_EQ(VSITools::stackIdFromPath(ets->getFilePath()), ets->getVolume()->getStackId())
+                << ets->getFilePath();
+        }
+    }
 }

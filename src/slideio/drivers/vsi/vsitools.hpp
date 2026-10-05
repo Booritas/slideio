@@ -4,6 +4,7 @@
 #pragma once
 #include <cstdint>
 #include <optional>
+#include <list>
 #include <string>
 #include <vector>
 #include "slideio/drivers/vsi/vsi_api_def.hpp"
@@ -64,6 +65,13 @@ namespace slideio
             // saying every stored bit is significant. An unknown data type has no
             // width to contradict, so the stated value stands.
             static int significantBits(int statedBits, DataType dataType);
+            // The id in the stack<id> directory that holds an .ets file, which is the
+            // stack id of the volume it belongs to; -1 when the directory is not named so.
+            static int stackIdFromPath(const std::string& etsFilePath);
+            // Orders .ets paths by the number of their stack directory -- stack9999 before
+            // stack10002, unlike a text sort -- then by path. Paths outside a stack
+            // directory go last.
+            static void sortEtsFilePaths(std::list<std::string>& paths);
             static bool isPlaneTimestampNode(const TagInfo& node);
             /**@brief Per-plane times read from one volume subtree. */
             struct PlaneTimes

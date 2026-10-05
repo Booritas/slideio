@@ -3,6 +3,9 @@
 // of this distribution and at http://slideio.com/license.html.
 #pragma once
 
+#include <list>
+#include <memory>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -69,7 +72,19 @@ namespace slideio
 
             void read(std::list<std::shared_ptr<Volume>>& volumes, TileInfoListPtr& tiles);
             void readTilePart(const vsi::TileInfo& tileInfo, EtsReadContext& context, cv::OutputArray tileRaster) const;
-            bool assignVolume(std::list<std::shared_ptr<vsi::Volume>>& volumes);
+            // claimedStackIds: the stack ids of every .ets file of the slide.
+            bool assignVolume(std::list<std::shared_ptr<vsi::Volume>>& volumes,
+                              const std::set<int>& claimedStackIds);
+            // The volume an .ets file belongs to, among those whose size lies within
+            // [minSize, maxSize]: the one with stackId, else the first that no .ets file
+            // claims; end() if there is none. Size alone cannot tell apart two scans of one
+            // region (issue #50), and the id alone cannot either -- a stack directory may
+            // hold a blob beside its frame. A volume another .ets file claims is left to
+            // that file, which may not have been paired yet.
+            static std::list<std::shared_ptr<vsi::Volume>>::iterator findVolume(
+                std::list<std::shared_ptr<vsi::Volume>>& volumes, int stackId,
+                const std::set<int>& claimedStackIds,
+                const cv::Size& minSize, const cv::Size& maxSize);
             void initStruct(TileInfoListPtr& tiles);
 
             void setVolume(const std::shared_ptr<Volume>& volume) {
