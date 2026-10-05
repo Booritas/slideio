@@ -101,24 +101,28 @@ void slideio::GDALScene::readResampledBlockChannelsEx(const cv::Rect& blockRect,
     }
     const int numChannels = m_imagePage->getNumChannels();
     auto channelIndices = Tools::completeChannelList(componentIndices, numChannels);
-    cv::Mat sceneRaster;
-    if (Tools::isConsecutiveFromZero(channelIndices, numChannels)) {
-        m_imagePage->readRaster(sceneRaster);
-    } else {
-        cv::Mat raster;
-        m_imagePage->readRaster(raster);
-        std::vector<cv::Mat> channels(channelIndices.size());
-        int channelNum = 0;
-        for (const auto& channelIndex : channelIndices) {
-            cv::extractChannel(raster, channels[channelNum++], channelIndex);
-        }
-        cv::merge(channels, sceneRaster);
-    }
-    cv::Mat blockRaster = sceneRaster(blockRect);
-    if ((blockSize.width != blockRect.width) || (blockSize.height != blockRect.height)) {
-        cv::resize(blockRaster, blockRaster, blockSize, 0, 0, cv::INTER_LINEAR);
-    }
-    blockRaster.copyTo(output);
+    readClampedBlock(cv::Rect(cv::Point(), m_imagePage->getSize()), blockRect, blockSize, componentIndices,
+        [&](const cv::Rect& rect, const cv::Size& size, cv::OutputArray block) {
+            cv::Mat sceneRaster;
+            if (Tools::isConsecutiveFromZero(channelIndices, numChannels)) {
+                m_imagePage->readRaster(sceneRaster);
+            } else {
+                cv::Mat raster;
+                m_imagePage->readRaster(raster);
+                std::vector<cv::Mat> channels(channelIndices.size());
+                int channelNum = 0;
+                for (const auto& channelIndex : channelIndices) {
+                    cv::extractChannel(raster, channels[channelNum++], channelIndex);
+                }
+                cv::merge(channels, sceneRaster);
+            }
+            cv::Mat blockRaster = sceneRaster(rect);
+            if ((size.width != rect.width) || (size.height != rect.height)) {
+                cv::resize(blockRaster, blockRaster, size, 0, 0, cv::INTER_LINEAR);
+            }
+            blockRaster.copyTo(block);
+        },
+        output);
 }
 
 slideio::Compression slideio::GDALScene::getCompression() const {

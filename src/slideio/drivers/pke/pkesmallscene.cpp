@@ -122,6 +122,9 @@ void PKESmallScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, cons
             cv::merge(channelRasters, wholeDirRaster);
         }
     }
-    cv::Mat blockRaster = wholeDirRaster(blockRect);
-    cv::resize(blockRaster, output, blockSize);
+    readClampedBlock(getRect(), blockRect, blockSize, channelIndices,
+        [&](const cv::Rect& rect, const cv::Size& size, cv::OutputArray block) {
+            cv::resize(wholeDirRaster(rect), block, size);
+        },
+        output);
 }

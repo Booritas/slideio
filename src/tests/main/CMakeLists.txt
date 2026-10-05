@@ -43,6 +43,7 @@ set(TEST_SOURCES
   test_channel_attributes.cpp
   test_boundedqueue.cpp
   test_levelreading.cpp
+  test_edge_reads.cpp
   test_log_macro_collision.cpp
   test_concurrency_contract.cpp
   test_filereader.cpp

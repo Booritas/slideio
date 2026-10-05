@@ -239,45 +239,65 @@ void CVScene::readResampledLevelBlockChannelsEx(int level, const cv::Rect& level
     validateLevel(level);
     const LevelInfo* levelInfo = getZoomLevelInfo(level);
     const cv::Rect levelBounds(0, 0, levelInfo->getSize().width, levelInfo->getSize().height);
-    const cv::Rect validRect = levelRect & levelBounds;
+    readClampedBlock(levelBounds, levelRect, blockSize, channelIndices,
+        [&](const cv::Rect& validRect, const cv::Size& partSize, cv::OutputArray part) {
+            // Level coordinates back to scene coordinates. getScale() is the level's width as a
+            // fraction of the base level, so dividing by it undoes the conversion the driver's own
+            // read path performs in the other direction.
+            const double levelScale = levelInfo->getScale();
+            if (levelScale <= 0.) {
+                RAISE_RUNTIME_ERROR << "Zoom level " << level << " reports a non-positive scale: " << levelScale;
+            }
+            cv::Rect sceneRect;
+            Tools::scaleRect(validRect, 1. / levelScale, 1. / levelScale, sceneRect);
+            readResampledBlockChannelsEx(sceneRect, partSize, channelIndices, zSliceIndex, tFrameIndex, part);
+        },
+        output);
+}
 
-    // The whole block is background first: what follows only overwrites the part of it
-    // that the level actually covers.
-    initializeSceneBlock(blockSize, channelIndices, output);
-    if (validRect.empty() || blockSize.width <= 0 || blockSize.height <= 0
-        || levelRect.width <= 0 || levelRect.height <= 0) {
+void CVScene::readClampedBlock(const cv::Rect& bounds, const cv::Rect& rect, const cv::Size& blockSize,
+    const std::vector<int>& channelIndices, const BlockReader& reader, cv::OutputArray output) const
+{
+    const cv::Rect validRect = rect & bounds;
+    if (blockSize.width <= 0 || blockSize.height <= 0 || rect.width <= 0 || rect.height <= 0
+        || validRect.empty()) {
+        initializeSceneBlock(blockSize, channelIndices, output);
+        return;
+    }
+    if (validRect == rect) {
+        reader(rect, blockSize, output);
         return;
     }
 
     // Where the surviving part of the rectangle lands in the output. Derived from the
     // offsets rather than from the width so that a rectangle clipped on both sides keeps
     // both of them.
-    const double scaleX = static_cast<double>(blockSize.width) / static_cast<double>(levelRect.width);
-    const double scaleY = static_cast<double>(blockSize.height) / static_cast<double>(levelRect.height);
+    const double scaleX = static_cast<double>(blockSize.width) / static_cast<double>(rect.width);
+    const double scaleY = static_cast<double>(blockSize.height) / static_cast<double>(rect.height);
     cv::Rect target;
-    target.x = static_cast<int>(std::floor((validRect.x - levelRect.x) * scaleX));
-    target.y = static_cast<int>(std::floor((validRect.y - levelRect.y) * scaleY));
+    target.x = static_cast<int>(std::floor((validRect.x - rect.x) * scaleX));
+    target.y = static_cast<int>(std::floor((validRect.y - rect.y) * scaleY));
     target.width = std::min(static_cast<int>(std::ceil(validRect.width * scaleX)),
                             blockSize.width - target.x);
     target.height = std::min(static_cast<int>(std::ceil(validRect.height * scaleY)),
                              blockSize.height - target.y);
     if (target.width <= 0 || target.height <= 0) {
+        initializeSceneBlock(blockSize, channelIndices, output);
         return;
     }
 
-    // Level coordinates back to scene coordinates. getScale() is the level's width as a
-    // fraction of the base level, so dividing by it undoes the conversion the driver's own
-    // read path performs in the other direction.
-    const double levelScale = levelInfo->getScale();
-    if (levelScale <= 0.) {
-        RAISE_RUNTIME_ERROR << "Zoom level " << level << " reports a non-positive scale: " << levelScale;
-    }
-    cv::Rect sceneRect;
-    Tools::scaleRect(validRect, 1. / levelScale, 1. / levelScale, sceneRect);
-
     cv::Mat part;
-    readResampledBlockChannelsEx(sceneRect, target.size(), channelIndices, zSliceIndex, tFrameIndex, part);
+    reader(validRect, target.size(), part);
+    if (part.size() != target.size()) {
+        RAISE_RUNTIME_ERROR << "Scene '" << getName() << "': a clamped read returned "
+            << part.cols << "x" << part.rows << " instead of " << target.width << "x" << target.height;
+    }
+    // The block takes the type of what the driver returned rather than the one the scene
+    // reports: copying into a region of a different type would quietly reallocate the
+    // region instead of writing into the block.
+    output.create(blockSize, part.type());
     cv::Mat block = output.getMat();
+    block.setTo(part.depth() == CV_8U ? cv::Scalar::all(255) : cv::Scalar::all(0));
     part.copyTo(block(target));
 }
 

@@ -36,10 +36,13 @@ void VsiFileScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, const
         libtiff::TIFF* hFile = borrow.as<VsiTiffReadContext>().keeper.getHandle();
         cv::Mat directoryRaster;
         TiffTools::readStripedDir(hFile, directory, directoryRaster);
-        cv::Mat blockRaster(directoryRaster, blockRect);
-        cv::Mat resizedBlockRaster;
-        cv::resize(blockRaster, resizedBlockRaster, blockSize);
-        Tools::extractChannels(resizedBlockRaster, channelIndices, output);
+        readClampedBlock(m_rect, blockRect, blockSize, channelIndices,
+            [&](const cv::Rect& rect, const cv::Size& size, cv::OutputArray block) {
+                cv::Mat resizedBlockRaster;
+                cv::resize(directoryRaster(rect), resizedBlockRaster, size);
+                Tools::extractChannels(resizedBlockRaster, channelIndices, block);
+            },
+            output);
     } else {
         RAISE_RUNTIME_ERROR << "VSIImageDriver: Tiled images are not implemented";
     }
