@@ -176,6 +176,12 @@ int NDPIScene::stripedDecodeCount() const
     return m_pfile->stripedDecodeCount();
 }
 
+NDPITiffDirectory::Type NDPIScene::levelDirectoryType(int level) const
+{
+    validateLevel(level);
+    return m_pfile->directories()[m_startDir + level].getType();
+}
+
 int NDPIScene::getNumChannels() const
 {
     const std::vector<NDPITiffDirectory>& directories = m_pfile->directories();
@@ -454,8 +460,9 @@ bool NDPIScene::readTile(int tileIndex, const std::vector<int>& channelIndices, 
             break;
         }
         case NDPITiffDirectory::Type::SingleStripe: {
-            cv::Mat raster;
-            NDPITiffTools::readStripedDir(data->context->keeper.getHandle(), *dir, raster);
+            // Through the file's cache, as in readResampledLevelBlockChannelsEx: every
+            // tile of this directory needs the same whole-image decode.
+            cv::Mat raster = m_pfile->readStripedDirectory(data->context->keeper.getHandle(), *dir);
             cv::Rect tileRect;
             if(getTileRect(tileIndex,tileRect, userData)) {
                 cv::Mat blockRaster(raster, tileRect);

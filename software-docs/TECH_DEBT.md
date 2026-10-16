@@ -1253,6 +1253,16 @@ inherent to `findDriver` and identical for every other format; the
 `software-docs/specs/2026-08-11-phtiff-format-detection-design.md` §6. Recorded
 here so it stays a decision rather than becoming a discovery.
 
+**The NDPI SingleStripe raster cache holds up to 256 MB with no release API.**
+`NDPIStripedRasterCache` (`src/slideio/drivers/ndpi/ndpistripedcache.hpp`) keeps
+decoded SingleStripe rasters so a caller walking a coarse level tile by tile
+decodes it once rather than once per tile. The budget is process-wide, shared by
+every open NDPI file and evicted least-recently-used, so it does not grow with the
+number of open slides; a file's entries are dropped when it closes. What remains
+is that up to 256 MB can stay resident while NDPI files are open, and a caller
+cannot shrink or flush it. Accepted: the bound is fixed and small next to the
+rasters a viewer of these slides already holds.
+
 ---
 
 ## Resolved and removed

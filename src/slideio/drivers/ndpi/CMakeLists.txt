@@ -180,6 +180,8 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/ndpi_api_def.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/ndpifile.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/ndpifile.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/ndpistripedcache.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/ndpistripedcache.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/ndpitifftools.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/ndpitifftools.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/ndpitiffkeeper.hpp

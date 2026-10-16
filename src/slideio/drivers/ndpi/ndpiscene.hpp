@@ -72,6 +72,9 @@ namespace slideio
         /// Forwards to the shared NDPIFile's counter. For tests, exactly as
         /// contextCount() above -- a test holds a scene, not the file.
         int stripedDecodeCount() const;
+        /// The TIFF directory type behind a zoom level. For tests, so one that
+        /// depends on a level being SingleStripe can say so before relying on it.
+        NDPITiffDirectory::Type levelDirectoryType(int level) const;
         int getNumChannels() const override;
         cv::Rect getRect() const override;
         std::string getFilePath() const override;
