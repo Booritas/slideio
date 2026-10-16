@@ -8,29 +8,24 @@
 
 slideio::NDPIStripedRasterCache& slideio::NDPIStripedRasterCache::instance()
 {
-    static NDPIStripedRasterCache cache;
-    return cache;
+    // Allocated once and never destroyed. Every NDPIFile calls releaseFile() when it
+    // is destroyed, and a file held in static storage can be destroyed after every
+    // other static -- including a cache that was a static itself.
+    //
+    // Ordering the statics does not fix that. Statics are destroyed in reverse order
+    // of when their initialisation completed, and what counts is the static holding
+    // the slide, not the NDPIFile inside it. A holder initialised before any slide
+    // is opened -- a namespace-scope shared_ptr assigned later, or a function-local
+    // one filled on first use -- completes its initialisation before the cache
+    // exists, and so is destroyed after it, whenever the cache is constructed.
+    //
+    // The cost is the cache's rasters at process exit, which the OS reclaims.
+    static NDPIStripedRasterCache* const cache = new NDPIStripedRasterCache;
+    return *cache;
 }
 
 uint64_t slideio::NDPIStripedRasterCache::newFileId()
 {
-    // Touches the singleton for its side effect, which is the whole point of the
-    // line: every NDPIFile takes an id when it is constructed and calls
-    // releaseFile() when it is destroyed, so the cache must outlive every file.
-    //
-    // Function-local statics are destroyed in reverse order of construction, and
-    // without this the cache is first constructed by the first striped read --
-    // after the file that performs it. A file in static storage, which the Python
-    // bindings make easy to end up with, would then be destroyed AFTER the cache,
-    // and releaseFile() would lock a destroyed mutex and walk a destroyed map.
-    // Constructing the cache here, from the file's own member initialiser, makes
-    // its construction complete first and so its destruction last.
-    //
-    // Not covered by a test: a flag saying "the cache exists" is already true by
-    // the time any test but the first one runs, so such a test would pass whether
-    // or not this line is here. Covering it honestly needs a separate process
-    // holding a slide in static storage.
-    instance();
     static std::atomic<uint64_t> next{1};
     return next.fetch_add(1);
 }

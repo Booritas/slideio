@@ -42,11 +42,10 @@ namespace slideio
     public:
         using Decoder = std::function<cv::Mat()>;
 
+        /// The process-wide cache. Never destroyed, so a file closed during static
+        /// destruction can still release itself from it -- see the definition.
         static NDPIStripedRasterCache& instance();
-        /// An id for one open file, never reused. Also guarantees the cache is
-        /// constructed before the file taking the id, which is what keeps the
-        /// cache alive for that file's releaseFile() on close -- see the
-        /// definition.
+        /// An id for one open file, never reused.
         static uint64_t newFileId();
         /// The most the cache holds across all files. A raster larger than this on
         /// its own is handed back and not kept.
