@@ -8,9 +8,12 @@
 #pragma warning( push )
 #pragma warning(disable: 4251)
 #endif
+#include <atomic>
+#include <cstdint>
 #include <memory>
 #include <string>
 
+#include "ndpistripedcache.hpp"
 #include "ndpitifftools.hpp"
 #include "ndpitiffkeeper.hpp"
 #include "slideio/core/exceptions.hpp"
@@ -63,6 +66,22 @@ namespace slideio
         /// growing a pool of its own. Mirrors ContextPool::contextCount(), which
         /// exists for the same reason.
         int contextCount() const { return pool().contextCount(); }
+        /// The whole raster of a SingleStripe directory, decoded once and then served
+        /// from NDPIStripedRasterCache while it stays within that cache's budget.
+        ///
+        /// A SingleStripe directory is one JPEG with no tile structure, so libtiff
+        /// can only decode it entire -- there is no random access into it. Every
+        /// read of such a level therefore paid for the whole image and then threw
+        /// away everything outside the requested rect, which made a level the
+        /// caller walks tile by tile cost one full decode per tile. The returned
+        /// Mat shares the cached buffer; callers must treat it as read-only.
+        cv::Mat readStripedDirectory(libtiff::TIFF* tiff, const NDPITiffDirectory& dir);
+        /// Successful whole-directory decodes so far. For tests -- it is how
+        /// singleStripeDirectoryIsDecodedOncePerLevel (test_ndpi_driver.cpp)
+        /// observes that repeated reads of one SingleStripe level decode once,
+        /// which no timing assertion could state honestly. Same purpose as
+        /// contextCount() above.
+        int stripedDecodeCount() const { return m_stripedDecodeCount.load(); }
         const NDPITiffDirectory& findZoomDirectory(double zoom, int sceneWidth, int dirBegin, int dirEnd);
     private:
         void scanFile();
@@ -79,6 +98,13 @@ namespace slideio
     private:
         std::string m_filePath;
         std::vector<NDPITiffDirectory> m_directories;
+        // This file's key in NDPIStripedRasterCache, which holds the decoded
+        // SingleStripe rasters of every open file under one process-wide budget.
+        // Never reused, unlike this object's address; see that class.
+        const uint64_t m_stripedCacheId = NDPIStripedRasterCache::newFileId();
+        // Must stay BEFORE m_contextPool, for the reason spelled out on it: a
+        // decode increments it inside a read that holds a borrow.
+        std::atomic<int> m_stripedDecodeCount{0};
         // A plain ContextPool member can't be initialized until filePath is known, and
         // NDPIFile is default-constructed well before that (init() supplies the path
         // later) -- so the pool is built in init(), not in the constructor init list.

@@ -171,6 +171,17 @@ int NDPIScene::contextCount() const
     return m_pfile->contextCount();
 }
 
+int NDPIScene::stripedDecodeCount() const
+{
+    return m_pfile->stripedDecodeCount();
+}
+
+NDPITiffDirectory::Type NDPIScene::levelDirectoryType(int level) const
+{
+    validateLevel(level);
+    return m_pfile->directories()[m_startDir + level].getType();
+}
+
 int NDPIScene::getNumChannels() const
 {
     const std::vector<NDPITiffDirectory>& directories = m_pfile->directories();
@@ -300,8 +311,12 @@ void NDPIScene::readResampledLevelBlockChannelsEx(int level, const cv::Rect& lev
         // finds no tile there and keeps the background.
         TileComposer::composeRect(this, channelIndices, levelRect, blockSize, output, (void*)&data);
     } else if (dirType == NDPITiffDirectory::Type::SingleStripe) {
-        cv::Mat raster;
-        NDPITiffTools::readStripedDir(tiff, dir, raster);
+        // Through the file rather than NDPITiffTools directly: the raster is the
+        // whole directory however little of it this call wants, so the file keeps
+        // the last one and a caller walking this level decodes it once instead of
+        // once per read. Read-only here -- the crop below is a view and cv::resize
+        // writes elsewhere -- which is what makes sharing the buffer safe.
+        cv::Mat raster = m_pfile->readStripedDirectory(tiff, dir);
         // cv::Mat(raster, rect) throws unless the rect is contained, and an edge tile of a
         // level is not: clamp, read the part that exists, and leave the rest background.
         const cv::Rect valid = levelRect & cv::Rect(0, 0, raster.cols, raster.rows);
@@ -445,8 +460,9 @@ bool NDPIScene::readTile(int tileIndex, const std::vector<int>& channelIndices, 
             break;
         }
         case NDPITiffDirectory::Type::SingleStripe: {
-            cv::Mat raster;
-            NDPITiffTools::readStripedDir(data->context->keeper.getHandle(), *dir, raster);
+            // Through the file's cache, as in readResampledLevelBlockChannelsEx: every
+            // tile of this directory needs the same whole-image decode.
+            cv::Mat raster = m_pfile->readStripedDirectory(data->context->keeper.getHandle(), *dir);
             cv::Rect tileRect;
             if(getTileRect(tileIndex,tileRect, userData)) {
                 cv::Mat blockRaster(raster, tileRect);

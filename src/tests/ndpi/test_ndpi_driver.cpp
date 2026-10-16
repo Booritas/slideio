@@ -830,3 +830,207 @@ TEST_F(NDPIImageDriverTests, noPlaneTimestampsOrSignificantBits)
         EXPECT_EQ(scene->getChannelSignificantBits(channel), 0) << "channel " << channel;
     }
 }
+
+// A SingleStripe directory is one JPEG with no tile structure: libtiff can only decode it
+// whole, so every read of such a level paid for the entire image and then discarded all but
+// the requested rect. A caller walking the level tile by tile therefore paid one full decode
+// per tile -- on this file's 4144x2016 level that is 136 decodes of the same 8 Mpx image,
+// which measured out at over two minutes. Two reads of two different rects of one such level
+// must decode it once.
+//
+// Asserted on the decode counter, not on elapsed time: a timing assertion would be a
+// statement about the machine it ran on, and would pass on a fast one with the bug present.
+//
+// DM0014 is the file for this because its levels 3 and 4 (8288x4032 and 4144x2016) are
+// SingleStripe while levels 0-2 are Tiled -- a pyramid that changes type partway down, which
+// is what makes the coarse end of it expensive while the fine end is not. 2017-02-27's
+// levels are all SingleStripeMCU and never enter this branch at all.
+TEST_F(NDPIImageDriverTests, singleStripeDirectoryIsDecodedOncePerLevel)
+{
+    const std::string filePath = TestTools::getTestImagePath("hamamatsu", "DM0014 - 2020-04-02 11.10.47.ndpi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::NDPIImageDriver driver;
+    auto slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide);
+    auto scene = std::dynamic_pointer_cast<slideio::NDPIScene>(slide->getScene(0));
+    ASSERT_TRUE(scene);
+
+    const int level = scene->getNumZoomLevels() - 1;
+    ASSERT_EQ(slideio::NDPITiffDirectory::Type::SingleStripe, scene->levelDirectoryType(level))
+        << "the test needs a SingleStripe level; the file's level layout is not what it assumes";
+    const slideio::LevelInfo* info = scene->getZoomLevelInfo(level);
+    ASSERT_TRUE(info != nullptr);
+    const cv::Size levelSize(info->getSize().width, info->getSize().height);
+    ASSERT_GE(levelSize.width, 64);
+    ASSERT_GE(levelSize.height, 64);
+
+    const int before = scene->stripedDecodeCount();
+
+    cv::Mat topLeft, bottomRight;
+    scene->readResampledLevelBlockChannels(level, cv::Rect(0, 0, 32, 32), cv::Size(32, 32), {}, topLeft);
+    scene->readResampledLevelBlockChannels(level, cv::Rect(levelSize.width - 32, levelSize.height - 32, 32, 32),
+                                           cv::Size(32, 32), {}, bottomRight);
+
+    ASSERT_EQ(cv::Size(32, 32), topLeft.size());
+    ASSERT_EQ(cv::Size(32, 32), bottomRight.size());
+    EXPECT_EQ(1, scene->stripedDecodeCount() - before)
+        << "two reads of one SingleStripe level must decode its raster once";
+}
+
+// The cached raster is handed to the caller as a shared buffer, not a copy, so a read served
+// from the cache must return exactly what a cold decode of the same rect returns. Anything
+// that mutated the shared raster -- a crop written through, a resize in place -- would show
+// here as a difference between the two, and nowhere else: the decode-count test above would
+// still pass while the pixels were wrong.
+//
+// Two separately opened files, because the cache belongs to the file: the first serves the
+// rect cold, the second serves it only after a different rect of the same level has put the
+// raster in its cache.
+TEST_F(NDPIImageDriverTests, aCachedStripedRasterServesTheSamePixelsAsAColdDecode)
+{
+    const std::string filePath = TestTools::getTestImagePath("hamamatsu", "DM0014 - 2020-04-02 11.10.47.ndpi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::NDPIImageDriver driver;
+
+    auto coldSlide = driver.openFile(filePath);
+    auto warmSlide = driver.openFile(filePath);
+    ASSERT_TRUE(coldSlide);
+    ASSERT_TRUE(warmSlide);
+    auto coldScene = std::dynamic_pointer_cast<slideio::NDPIScene>(coldSlide->getScene(0));
+    auto warmScene = std::dynamic_pointer_cast<slideio::NDPIScene>(warmSlide->getScene(0));
+    ASSERT_TRUE(coldScene);
+    ASSERT_TRUE(warmScene);
+
+    const int level = coldScene->getNumZoomLevels() - 1;
+    ASSERT_EQ(slideio::NDPITiffDirectory::Type::SingleStripe, coldScene->levelDirectoryType(level))
+        << "the test needs a SingleStripe level; the file's level layout is not what it assumes";
+    const slideio::LevelInfo* info = coldScene->getZoomLevelInfo(level);
+    ASSERT_TRUE(info != nullptr);
+    const cv::Size levelSize(info->getSize().width, info->getSize().height);
+    const cv::Rect subject(levelSize.width / 2, levelSize.height / 2, 64, 64);
+    const cv::Rect other(0, 0, 64, 64);
+
+    cv::Mat cold;
+    coldScene->readResampledLevelBlockChannels(level, subject, subject.size(), {}, cold);
+
+    cv::Mat ignored, warm;
+    warmScene->readResampledLevelBlockChannels(level, other, other.size(), {}, ignored);
+    const int decodesBeforeWarm = warmScene->stripedDecodeCount();
+    warmScene->readResampledLevelBlockChannels(level, subject, subject.size(), {}, warm);
+    ASSERT_EQ(decodesBeforeWarm, warmScene->stripedDecodeCount())
+        << "the second read was meant to be served from the cache";
+
+    ASSERT_EQ(cold.size(), warm.size());
+    ASSERT_EQ(cold.type(), warm.type());
+    EXPECT_EQ(0, cv::countNonZero(cv::Mat(cold.reshape(1) != warm.reshape(1))))
+        << "a cache hit returned different pixels than a cold decode";
+}
+
+// The cache belongs to the file and is shared by every directory in it, so a caller that
+// alternates between two SingleStripe levels -- or between the main scene's coarse level and
+// the macro image -- must not evict one with the other. DM0014's levels 3 and 4 (100MB and
+// 25MB decoded) fit the budget together: four alternating reads decode each once.
+TEST_F(NDPIImageDriverTests, alternatingStripedLevelsDecodeEachOnce)
+{
+    const std::string filePath = TestTools::getTestImagePath("hamamatsu", "DM0014 - 2020-04-02 11.10.47.ndpi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::NDPIImageDriver driver;
+    auto slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide);
+    auto scene = std::dynamic_pointer_cast<slideio::NDPIScene>(slide->getScene(0));
+    ASSERT_TRUE(scene);
+
+    const int coarse = scene->getNumZoomLevels() - 1;
+    const int finer = coarse - 1;
+    ASSERT_EQ(slideio::NDPITiffDirectory::Type::SingleStripe, scene->levelDirectoryType(coarse));
+    ASSERT_EQ(slideio::NDPITiffDirectory::Type::SingleStripe, scene->levelDirectoryType(finer));
+
+    const int before = scene->stripedDecodeCount();
+    cv::Mat block;
+    for (int pass = 0; pass < 2; ++pass) {
+        scene->readResampledLevelBlockChannels(coarse, cv::Rect(0, 0, 32, 32), cv::Size(32, 32), {}, block);
+        scene->readResampledLevelBlockChannels(finer, cv::Rect(0, 0, 32, 32), cv::Size(32, 32), {}, block);
+    }
+    EXPECT_EQ(2, scene->stripedDecodeCount() - before)
+        << "alternating between two SingleStripe levels must decode each of them once";
+}
+
+// Threads reading one SingleStripe level at once share the one decode: the first thread
+// decodes outside the cache lock and the rest wait on it, rather than each starting its own.
+TEST_F(NDPIImageDriverTests, concurrentReadsOfOneStripedLevelShareOneDecode)
+{
+    const std::string filePath = TestTools::getTestImagePath("hamamatsu", "DM0014 - 2020-04-02 11.10.47.ndpi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    slideio::NDPIImageDriver driver;
+    auto slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide);
+    auto scene = std::dynamic_pointer_cast<slideio::NDPIScene>(slide->getScene(0));
+    ASSERT_TRUE(scene);
+
+    const int level = scene->getNumZoomLevels() - 1;
+    ASSERT_EQ(slideio::NDPITiffDirectory::Type::SingleStripe, scene->levelDirectoryType(level));
+
+    const int before = scene->stripedDecodeCount();
+    constexpr int threadCount = 4;
+    std::vector<cv::Mat> blocks(threadCount);
+    std::vector<std::thread> threads;
+    for (int index = 0; index < threadCount; ++index) {
+        threads.emplace_back([&scene, &blocks, level, index]() {
+            scene->readResampledLevelBlockChannels(level, cv::Rect(index * 32, 0, 32, 32), cv::Size(32, 32), {},
+                                                   blocks[index]);
+        });
+    }
+    for (auto& thread : threads) {
+        thread.join();
+    }
+    for (const auto& block : blocks) {
+        EXPECT_EQ(cv::Size(32, 32), block.size());
+    }
+    EXPECT_EQ(1, scene->stripedDecodeCount() - before)
+        << "concurrent reads of one SingleStripe level must share one decode";
+}
+
+// The striped-raster budget is shared by every open file, not granted to each: an application
+// holding many slides open must not pin one budget per slide. DM0014's 8288x4032 level decodes
+// to about 100MB, so three open copies of the file reading it exceed the 256MB budget, and the
+// least recently used one -- the first -- is evicted while the most recent stays cached.
+TEST_F(NDPIImageDriverTests, theStripedCacheBudgetIsSharedAcrossOpenFiles)
+{
+    const std::string filePath = TestTools::getTestImagePath("hamamatsu", "DM0014 - 2020-04-02 11.10.47.ndpi");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
+    auto& cache = slideio::NDPIStripedRasterCache::instance();
+    const size_t bytesBefore = cache.cachedBytes();
+    {
+        slideio::NDPIImageDriver driver;
+        std::vector<std::shared_ptr<slideio::CVSlide>> slides;
+        std::vector<std::shared_ptr<slideio::NDPIScene>> scenes;
+        for (int index = 0; index < 3; ++index) {
+            slides.push_back(driver.openFile(filePath));
+            ASSERT_TRUE(slides.back());
+            scenes.push_back(std::dynamic_pointer_cast<slideio::NDPIScene>(slides.back()->getScene(0)));
+            ASSERT_TRUE(scenes.back());
+        }
+        const int level = scenes[0]->getNumZoomLevels() - 2;
+        ASSERT_EQ(slideio::NDPITiffDirectory::Type::SingleStripe, scenes[0]->levelDirectoryType(level));
+
+        const cv::Rect rect(0, 0, 32, 32);
+        cv::Mat block;
+        for (const auto& scene : scenes) {
+            scene->readResampledLevelBlockChannels(level, rect, rect.size(), {}, block);
+            EXPECT_LE(cache.cachedBytes(), slideio::NDPIStripedRasterCache::budgetBytes());
+        }
+
+        const int lastBefore = scenes[2]->stripedDecodeCount();
+        scenes[2]->readResampledLevelBlockChannels(level, rect, rect.size(), {}, block);
+        EXPECT_EQ(lastBefore, scenes[2]->stripedDecodeCount())
+            << "the most recently read file's raster must still be cached";
+
+        const int firstBefore = scenes[0]->stripedDecodeCount();
+        scenes[0]->readResampledLevelBlockChannels(level, rect, rect.size(), {}, block);
+        EXPECT_EQ(firstBefore + 1, scenes[0]->stripedDecodeCount())
+            << "the least recently read file's raster must have been evicted to keep the shared budget";
+        EXPECT_LE(cache.cachedBytes(), slideio::NDPIStripedRasterCache::budgetBytes());
+    }
+    EXPECT_EQ(bytesBefore, cache.cachedBytes())
+        << "closing the files must release everything they put in the cache";
+}

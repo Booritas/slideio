@@ -6,6 +6,7 @@
 #include "slideio/drivers/ndpi/ndpilibtiff.hpp"
 #include "slideio/core/log.hpp"
 #include "slideio/core/exceptions.hpp"
+#include "slideio/drivers/ndpi/ndpistripedcache.hpp"
 
 
 slideio::NDPIFile::~NDPIFile()
@@ -13,6 +14,12 @@ slideio::NDPIFile::~NDPIFile()
     // The pool's destructor blocks until every outstanding borrow is returned and then
     // destroys every NDPIReadContext, which closes its keeper -- so there is no handle
     // left to close here explicitly, unlike the old single-handle m_tiff.
+    //
+    // Destroyed here rather than left to member destruction so that it happens before
+    // releaseFile below: every striped decode runs inside a read holding a borrow, so
+    // once the pool is gone no decode of this file can still add a cache entry.
+    m_contextPool.reset();
+    NDPIStripedRasterCache::instance().releaseFile(m_stripedCacheId);
     SLIDEIO_LOG(INFO) << "Closing file " << m_filePath;
 }
 
@@ -57,6 +64,19 @@ void slideio::NDPIFile::scanFile()
         NDPITiffTools::scanTiffDir(tiff, dir, 0, m_directories[dir]);
     }
     SLIDEIO_LOG(INFO) << "NDPITiffTools::scanFile-end";
+}
+
+cv::Mat slideio::NDPIFile::readStripedDirectory(libtiff::TIFF* tiff, const slideio::NDPITiffDirectory& dir)
+{
+    // Keyed by (dirIndex, offset): a SubIFD shares its parent's dirIndex and differs
+    // from it only by offset.
+    return NDPIStripedRasterCache::instance().get(m_stripedCacheId, dir.dirIndex,
+        static_cast<int64_t>(dir.offset), [this, tiff, &dir]() {
+            cv::Mat raster;
+            NDPITiffTools::readStripedDir(tiff, dir, raster);
+            m_stripedDecodeCount.fetch_add(1);
+            return raster;
+        });
 }
 
 const slideio::NDPITiffDirectory& slideio::NDPIFile::findZoomDirectory(double zoom, int sceneWidth, int dirBegin, int dirEnd)
