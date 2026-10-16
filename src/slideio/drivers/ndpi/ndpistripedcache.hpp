@@ -43,6 +43,10 @@ namespace slideio
         using Decoder = std::function<cv::Mat()>;
 
         static NDPIStripedRasterCache& instance();
+        /// An id for one open file, never reused. Also guarantees the cache is
+        /// constructed before the file taking the id, which is what keeps the
+        /// cache alive for that file's releaseFile() on close -- see the
+        /// definition.
         static uint64_t newFileId();
         /// The most the cache holds across all files. A raster larger than this on
         /// its own is handed back and not kept.
