@@ -59,6 +59,47 @@ void slideio::NDPIFile::scanFile()
     SLIDEIO_LOG(INFO) << "NDPITiffTools::scanFile-end";
 }
 
+namespace
+{
+    // Above this, the raster is handed back and not kept. A SingleStripe level is
+    // usually the coarse end of a pyramid and runs to tens of megabytes -- this
+    // file's two are 25MB and 100MB -- but nothing in the format bounds it, and a
+    // library holding an unbounded buffer per open file on the strength of one
+    // read is worse than the slowness this avoids. Past the cap the behaviour is
+    // exactly what it was before: correct, and a decode per read.
+    constexpr size_t kMaxCachedStripedRasterBytes = 256ull * 1024ull * 1024ull;
+}
+
+cv::Mat slideio::NDPIFile::readStripedDirectory(libtiff::TIFF* tiff, const slideio::NDPITiffDirectory& dir)
+{
+    // The decode happens under the lock, so two threads reading one directory do not
+    // each decode it: the second waits and then finds it cached. That serializes
+    // decodes of *different* directories too, which is accepted -- the decode being
+    // expensive is the whole reason this function exists, and the alternative is
+    // every thread paying for its own copy of the same image.
+    std::lock_guard<std::mutex> lock(m_stripedCacheMutex);
+    if (m_stripedCacheDirIndex == dir.dirIndex && !m_stripedCacheRaster.empty()) {
+        return m_stripedCacheRaster;
+    }
+
+    cv::Mat raster;
+    m_stripedDecodeCount.fetch_add(1);
+    NDPITiffTools::readStripedDir(tiff, dir, raster);
+
+    const size_t bytes = raster.total() * raster.elemSize();
+    if (!raster.empty() && bytes <= kMaxCachedStripedRasterBytes) {
+        m_stripedCacheRaster = raster;
+        m_stripedCacheDirIndex = dir.dirIndex;
+    }
+    else {
+        // Drop whatever was held rather than leaving a stale entry behind a
+        // directory index that is no longer the one last read.
+        m_stripedCacheRaster = cv::Mat();
+        m_stripedCacheDirIndex = -1;
+    }
+    return raster;
+}
+
 const slideio::NDPITiffDirectory& slideio::NDPIFile::findZoomDirectory(double zoom, int sceneWidth, int dirBegin, int dirEnd)
 {
     const auto& directories = m_directories;

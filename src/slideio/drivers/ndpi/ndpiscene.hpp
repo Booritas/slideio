@@ -69,6 +69,9 @@ namespace slideio
         /// NDPIFile::contextCount(); this is how a test reaches it from a scene,
         /// which is all a test normally holds.
         int contextCount() const;
+        /// Forwards to the shared NDPIFile's counter. For tests, exactly as
+        /// contextCount() above -- a test holds a scene, not the file.
+        int stripedDecodeCount() const;
         int getNumChannels() const override;
         cv::Rect getRect() const override;
         std::string getFilePath() const override;
