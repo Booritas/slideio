@@ -107,7 +107,7 @@ void CVScene::assemble4DBlock(const cv::Size& blockSize, const std::vector<int>&
     if (tDimIndex > 0)
         dims.push_back(frameCount);
 
-    const slideio::DataType dt = getChannelDataType(0);
+    const slideio::DataType dt = blockDataType(channelIndices);
     const int cvDt = CVTools::toOpencvType(dt);
     std::vector<int> indices;
 
@@ -325,9 +325,19 @@ std::vector<int> CVScene::getValidChannelIndices(const std::vector<int>& channel
     return validChannelIndices;
 }
 
+DataType CVScene::blockDataType(const std::vector<int>& channelIndices) const
+{
+    int channel = 0;
+    if (!channelIndices.empty() && channelIndices.front() >= 0
+        && channelIndices.front() < getNumChannels()) {
+        channel = channelIndices.front();
+    }
+    return getChannelDataType(channel);
+}
+
 void CVScene::initializeSceneBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices, cv::OutputArray output) const
 {
-    const slideio::DataType dt = this->getChannelDataType(0);
+    const slideio::DataType dt = blockDataType(channelIndices);
     int numChannels = static_cast<int>(channelIndices.size());
     if (numChannels == 0) {
         numChannels = getNumChannels();

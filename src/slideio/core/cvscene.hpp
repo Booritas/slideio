@@ -177,6 +177,17 @@ namespace slideio
          * ContextPool) or cursor-free (see FileReader).
          */
         virtual bool supportsConcurrentReads() const { return false; }
+        /**
+         * True if an equivalent scene can be obtained again by opening
+         * getFilePath() with the driver named by getDriverId() and taking
+         * scene getSceneIndex().
+         *
+         * True -- the default -- for every file-backed driver. A scene with
+         * no file behind it returns false, and code that would re-open a
+         * scene by path (the converter's reader threads) shares it instead.
+         * A scene that wraps another forwards its origin's answer.
+         */
+        virtual bool canReopenByPath() const { return true; }
         /**@brief reads multi-dimensional raster block.
          *
          * @param blockRect : rectangle of the block to be read. The rectangle is represented by cv::Rect structure
@@ -330,8 +341,18 @@ namespace slideio
         std::vector<int> getValidChannelIndices(const std::vector<int>& channelIndices);
         /**@brief throws unless level names a zoom level of this scene. */
         void validateLevel(int level) const;
+        /**@brief allocates a block of the requested channels, filled with the background.
+         *
+         * Typed by blockDataType(): the first requested channel, not channel 0.*/
         void initializeSceneBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices,
                                   cv::OutputArray output) const;
+        /**@brief the data type of a block of @p channelIndices.
+         *
+         * That of the first requested channel, or of channel 0 when none is
+         * named (or the first is out of range, which the read rejects later).
+         * A cv::Mat carries one depth, so typing a block by channel 0 whatever
+         * was requested sizes it wrongly for a scene whose channels differ.*/
+        DataType blockDataType(const std::vector<int>& channelIndices) const;
         /**@brief reads part of a block: the rect, size and output of that part.*/
         using BlockReader = std::function<void(const cv::Rect&, const cv::Size&, cv::OutputArray)>;
         /**@brief reads a rectangle that may extend beyond @p bounds.

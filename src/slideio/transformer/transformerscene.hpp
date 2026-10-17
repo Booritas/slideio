@@ -76,6 +76,14 @@ namespace slideio
         bool supportsConcurrentReads() const override {
             return m_originScene->supportsConcurrentReads();
         }
+        /**@brief whether the origin can be re-opened by path.
+         *
+         * Forwarded because getFilePath() and getDriverId() are: a transform
+         * over a computed scene reports the origin's driver id, which no
+         * registered driver answers to.*/
+        bool canReopenByPath() const override {
+            return m_originScene->canReopenByPath();
+        }
     protected:
         /**@brief a transformed scene is serialised by its origin's lock, not its own.
          *

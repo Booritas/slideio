@@ -46,7 +46,8 @@ namespace
         if (m.levels.empty()) {
             RAISE_RUNTIME_ERROR << "makeScene: levels must describe at least level 0";
         }
-        if (std::fabs(m.levels[0].getScale() - 1.0) > 1.e-6) {
+        // Written so that NaN fails it: every comparison with NaN is false.
+        if (!(std::fabs(m.levels[0].getScale() - 1.0) <= 1.e-6)) {
             RAISE_RUNTIME_ERROR << "makeScene: level 0 must have scale 1, got "
                                 << m.levels[0].getScale();
         }
@@ -62,8 +63,25 @@ namespace
             if (info.getSize().width <= 0 || info.getSize().height <= 0) {
                 RAISE_RUNTIME_ERROR << "makeScene: level " << level << " has non-positive size";
             }
+            if (!std::isfinite(info.getScale())) {
+                RAISE_RUNTIME_ERROR << "makeScene: level " << level << " has a non-finite scale";
+            }
             if (info.getScale() <= 0.0) {
                 RAISE_RUNTIME_ERROR << "makeScene: level " << level << " has non-positive scale";
+            }
+            // The level read path clamps against getSize() but maps to scene
+            // coordinates through getScale(), so the two must describe the
+            // same level. One pixel of rounding either way, plus 1% for
+            // pyramids whose heights were rounded independently of the widths.
+            const double expectedWidth = m.rect.width * info.getScale();
+            const double expectedHeight = m.rect.height * info.getScale();
+            if (std::fabs(info.getSize().width - expectedWidth) > 1.0 + 0.01 * expectedWidth ||
+                std::fabs(info.getSize().height - expectedHeight) > 1.0 + 0.01 * expectedHeight) {
+                RAISE_RUNTIME_ERROR << "makeScene: level " << level << " size "
+                                    << info.getSize().width << "x" << info.getSize().height
+                                    << " disagrees with its scale " << info.getScale()
+                                    << ", which implies about " << expectedWidth << "x"
+                                    << expectedHeight;
             }
             if (info.getTileSize().width < 0 || info.getTileSize().height < 0) {
                 RAISE_RUNTIME_ERROR << "makeScene: level " << level << " has a negative tile size";

@@ -4,7 +4,9 @@
 #pragma once
 #include "slideio/slideio/scenesource.hpp"
 #include <cstdint>
+#include <mutex>
 #include <stdexcept>
+#include <utility>
 #include <vector>
 
 namespace slideio
@@ -33,13 +35,17 @@ namespace slideio
         void setHasPyramid(bool v)            { m_hasPyramid = v; }
         void setConcurrent(bool v)            { m_concurrent = v; }
         void setThrowOnRead(bool v)           { m_throwOnRead = v; }
-        const std::vector<Call>& calls() const { return m_calls; }
+        /// A snapshot: with setConcurrent(true) reads may still be appending.
+        std::vector<Call> calls() const {
+            std::lock_guard<std::mutex> lock(m_callsMutex);
+            return m_calls;
+        }
 
         void readBlock(const Rect& sceneRect, const Size& blockSize,
                        const std::vector<int>& channelIndices,
                        int zSlice, int tFrame,
                        void* buffer, size_t bufferSize) override {
-            m_calls.push_back({-1, sceneRect, blockSize, channelIndices, zSlice, tFrame});
+            record({-1, sceneRect, blockSize, channelIndices, zSlice, tFrame});
             fill(sceneRect, blockSize, channelIndices, buffer, bufferSize);
         }
 
@@ -50,7 +56,7 @@ namespace slideio
             if (!m_hasPyramid) {
                 return false;
             }
-            m_calls.push_back({level, levelRect, blockSize, channelIndices, zSlice, tFrame});
+            record({level, levelRect, blockSize, channelIndices, zSlice, tFrame});
             fill(levelRect, blockSize, channelIndices, buffer, bufferSize);
             return true;
         }
@@ -58,6 +64,11 @@ namespace slideio
         bool supportsConcurrentReads() const override { return m_concurrent; }
 
     private:
+        void record(Call call) {
+            std::lock_guard<std::mutex> lock(m_callsMutex);
+            m_calls.push_back(std::move(call));
+        }
+
         void fill(const Rect& rect, const Size& blockSize,
                   const std::vector<int>& channels, void* buffer, size_t bufferSize) {
             if (m_throwOnRead) {
@@ -81,6 +92,7 @@ namespace slideio
         bool m_hasPyramid = false;
         bool m_concurrent = false;
         bool m_throwOnRead = false;
+        mutable std::mutex m_callsMutex;
         std::vector<Call> m_calls;
     };
 }

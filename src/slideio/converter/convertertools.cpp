@@ -55,7 +55,11 @@ void ConverterTools::readTile(const std::shared_ptr <CVScene>& scene, const std:
         if (numChannels == 0) {
 			numChannels = scene->getNumChannels();
         }
-        int dt = CVTools::toOpencvType(scene->getChannelDataType(0));
+        // Typed by the channels being read, not channel 0: copying a read of
+        // another type into a ROI of this tile would reallocate the ROI and
+        // leave the tile zero-filled.
+        const int dt = CVTools::toOpencvType(
+            scene->getChannelDataType(channels.empty() ? 0 : channels.front()));
         tile.create(tileSize, CV_MAKE_TYPE(dt, numChannels));
         tile.setTo(0);
         const Rect adjustedRect = rectScene & sceneBlockRect;

@@ -24,8 +24,8 @@ namespace slideio
     {
     public:
         /// Driver id every SourceCVScene reports. No registered driver has it,
-        /// so openSlide() cannot re-open such a scene; code that would re-open a
-        /// scene by (file path, driver id) checks for it and shares the scene instead.
+        /// so openSlide() cannot re-open such a scene: canReopenByPath() says so,
+        /// and code that would re-open a scene by path asks that, not this id.
         static constexpr const char* DRIVER_ID = "SOURCE";
 
         SourceCVScene(std::shared_ptr<ISceneSource> source, SceneMetadata metadata);
@@ -50,7 +50,7 @@ namespace slideio
         int getNumZoomLevels() const override;
         const LevelInfo* getZoomLevelInfo(int level) const override;
         bool supportsConcurrentReads() const override;
-        std::string getRawMetadata() const override;
+        bool canReopenByPath() const override;
         const std::list<std::string>& getAuxImageNames() const override;
         int getNumAuxImages() const override;
         std::shared_ptr<CVScene> getAuxImage(const std::string& imageName) const override;
@@ -64,10 +64,12 @@ namespace slideio
             int zSliceIndex, int tFrameIndex, cv::OutputArray output) override;
 
     private:
-        cv::Mat prepareBlock(const cv::Rect& rect, const char* rectLabel,
-            const cv::Size& blockSize, const std::vector<int>& requested,
-            int zSliceIndex, int tFrameIndex,
-            std::vector<int>& channels, cv::OutputArray output) const;
+        /**@brief validates z, t and channels; returns the channels, "all" expanded.*/
+        std::vector<int> validateRequest(const std::vector<int>& requested,
+            int zSliceIndex, int tFrameIndex) const;
+        /**@brief allocates output for @p channels, which validateRequest accepted.*/
+        cv::Mat allocateBlock(const cv::Size& blockSize, const std::vector<int>& channels,
+            cv::OutputArray output) const;
 
         std::shared_ptr<ISceneSource> m_source;
         SceneMetadata m_metadata;

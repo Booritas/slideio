@@ -3,7 +3,6 @@
 // of this distribution and at http://slideio.com/license.html.
 #include "tiffconverter.hpp"
 #include "slideio/slideio/sceneinternal.hpp"
-#include "slideio/slideio/sourcecvscene.hpp"
 #include "converterparameters.hpp"
 #include "converterparametersinternal.hpp"
 #include "convertertools.hpp"
@@ -536,11 +535,11 @@ void TiffConverter::createTileQueue(const TiffDirectory& dir, const TiffDirector
 }
 
 std::pair<std::shared_ptr<Slide>, std::shared_ptr<Scene>> TiffConverter::cloneScene() const {
-	if (m_scene->getDriverId() == slideio::SourceCVScene::DRIVER_ID) {
-		// A computed scene (makeScene) has no file and no registered driver, so
-		// it cannot be re-opened by path. Share it instead: every reader thread
-		// gets the same CVScene, whose base class serialises block reads unless
-		// the source reports supportsConcurrentReads().
+	if (!m_scene->canReopenByPath()) {
+		// A scene with no file behind it (makeScene) cannot be re-opened by
+		// path. Share it instead: every reader thread gets the same CVScene,
+		// whose base class serialises block reads unless the scene reports
+		// supportsConcurrentReads().
 		return { nullptr, slideio::SceneInternal::createScene(m_scene) };
 	}
 	std::string filePath = m_scene->getFilePath();

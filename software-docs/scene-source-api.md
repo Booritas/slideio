@@ -23,7 +23,11 @@ raster: a processing pipeline, a synthetic test pattern, a remote tile service.
   serve a zoom level directly; a source without one returns `false` and
   SlideIO falls back to reading the base level. `supportsConcurrentReads` says
   whether two reads may overlap; it defaults to `false`, and SlideIO then
-  serialises reads for you.
+  serialises reads for you. `getRawMetadata` and `getMetadataFormat` feed both
+  `Scene::getRawMetadata` and the structured `Scene::getMetadata` tree; raw
+  metadata with no stated format is kept as text. `getAuxImageNames` and
+  `getAuxImage` serve auxiliary images, each one a `Scene` -- usually another
+  `makeScene` result.
 - **`SceneMetadata`** (`slideio/slideio/scenemetadata.hpp`) describes the
   scene: its name, rectangle, per-channel data types and names, resolution,
   magnification, Z and T dimensions, zoom levels and colour profile.
@@ -59,17 +63,26 @@ The new headers, like every installed SlideIO header, do not include OpenCV.
 Metadata is checked once, when the scene is made: a null source, a rectangle
 without positive size, no channels or an unusable channel type, channel names
 or significant bits that do not match the channel count, a zoom pyramid whose
-level 0 does not match the scene or whose scales do not decrease, Z or T
-counts below 1, and similar mistakes raise **`slideio::RuntimeError`** from
-`makeScene` rather than surfacing later as a failed or out-of-bounds read.
+level 0 does not match the scene, whose scales are not finite or do not
+decrease, or whose level sizes disagree with their scales, Z or T counts below
+1, and similar mistakes raise **`slideio::RuntimeError`** from `makeScene`
+rather than surfacing later as a failed or out-of-bounds read.
 
-Reads are checked before the source is called: a non-positive block or
-rectangle, an out-of-range channel, level, Z slice or time frame, and a
-request mixing channels of different data types all raise
-`slideio::RuntimeError`, and the source never sees them.
+Reads are checked before the source is called: an out-of-range channel, level,
+Z slice or time frame, and a request mixing channels of different data types
+all raise `slideio::RuntimeError`, and the source never sees them. A
+non-positive block or rectangle raises the same error on a scene-coordinate
+read; on a level read it yields a background block, as it does for every
+file-backed scene.
 
-The change is **additive**. No existing class changes behaviour, and there is
-no source or binary incompatibility.
+The public API change is **additive**: there is no source or binary
+incompatibility. One base-class behaviour changed with it, for every driver:
+`CVScene` used to type the blocks it allocates itself -- 4D/multi-plane reads,
+and background blocks for reads outside the image -- by channel 0 whatever was
+requested. It now types them by the first requested channel. For a scene
+whose channels share one type nothing changes; for a mixed-type scene, a read
+of a channel whose type differs from channel 0's used to fail or come back
+empty and now works.
 
 ## Converting computed scenes
 
@@ -77,17 +90,16 @@ A computed scene converts through `slideio::converter::convertScene` like any
 other. The converter used to give each of its reader threads its own copy of
 the scene by re-opening the source file by path and driver, which a scene with
 no file cannot do. It now **shares a computed scene across its reader threads**
-instead of re-opening it (a computed scene reports the driver id `SOURCE`);
-file-backed scenes are re-opened exactly as before. A failure to prepare a
+instead of re-opening it -- it asks `CVScene::canReopenByPath()`, which a
+computed scene answers `false` and a transform forwards from its origin;
+file-backed scenes are re-opened exactly as before. Edge tiles of a channel
+whose type differs from channel 0's are now typed by that channel; before,
+they were written zero-filled. A failure to prepare a
 reader thread's scene is now reported as an exception from `convertScene`
 rather than terminating the process.
 
 ## Limitations
 
-- **Auxiliary images.** The names a source reports through
-  `ISceneSource::getAuxImageNames` are forwarded by the scene, but the images
-  themselves are not yet retrievable: `Scene::getAuxImage` on a computed scene
-  raises `slideio::RuntimeError`.
 - **Compression for OME-TIFF export.** `convertScene` writes JPEG or JPEG 2000;
   there is no uncompressed option. A JPEG 2000 compression rate of 1 encodes
   losslessly.

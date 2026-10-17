@@ -2,6 +2,7 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/slideio/sourcecvscene.hpp"
+#include "slideio/slideio/sceneinternal.hpp"
 #include "slideio/core/exceptions.hpp"
 #include "slideio/core/tools/cvtools.hpp"
 #include <numeric>
@@ -12,7 +13,13 @@ using namespace slideio;
 SourceCVScene::SourceCVScene(std::shared_ptr<ISceneSource> source, SceneMetadata metadata)
     : m_source(std::move(source)), m_metadata(std::move(metadata)), m_driverId(DRIVER_ID)
 {
+    // Into the base members, so getRawMetadata(), getMetadataFormat() and the
+    // structured tree getMetadata() builds from them all report the same thing.
+    m_rawMetadata = m_source->getRawMetadata();
+    m_metadataFormat = m_source->getMetadataFormat();
 }
+
+bool SourceCVScene::canReopenByPath() const { return false; }
 
 std::string SourceCVScene::getFilePath() const      { return m_metadata.reportedFilePath; }
 std::string SourceCVScene::getName() const          { return m_metadata.name; }
@@ -68,20 +75,9 @@ const LevelInfo* SourceCVScene::getZoomLevelInfo(int level) const
     return &m_metadata.levels[level];
 }
 
-cv::Mat SourceCVScene::prepareBlock(const cv::Rect& rect, const char* rectLabel,
-    const cv::Size& blockSize, const std::vector<int>& requested,
-    int zSliceIndex, int tFrameIndex,
-    std::vector<int>& channels, cv::OutputArray output) const
+std::vector<int> SourceCVScene::validateRequest(const std::vector<int>& requested,
+    int zSliceIndex, int tFrameIndex) const
 {
-    if (blockSize.width <= 0 || blockSize.height <= 0) {
-        RAISE_RUNTIME_ERROR << "SourceCVScene: block size must be positive, got "
-                            << blockSize.width << "x" << blockSize.height;
-    }
-    if (rect.width <= 0 || rect.height <= 0) {
-        RAISE_RUNTIME_ERROR << "SourceCVScene: " << rectLabel
-                            << " rectangle must have positive size, got "
-                            << rect.width << "x" << rect.height;
-    }
     // Neither Scene nor CVScene::assemble4DBlock checks these: file drivers
     // validate them themselves, so this adapter must too, before the source
     // sees an index the scene never declared.
@@ -94,7 +90,7 @@ cv::Mat SourceCVScene::prepareBlock(const cv::Rect& rect, const char* rectLabel,
                             << " out of range [0, " << m_metadata.numTFrames << ")";
     }
     const int numChannels = getNumChannels();
-    channels = requested;
+    std::vector<int> channels = requested;
     if (channels.empty()) {
         channels.resize(numChannels);
         std::iota(channels.begin(), channels.end(), 0);
@@ -110,12 +106,9 @@ cv::Mat SourceCVScene::prepareBlock(const cv::Rect& rect, const char* rectLabel,
                                 << " out of range [0, " << numChannels << ")";
         }
     }
-    // The type comes from the channels the caller asked for, deliberately not
-    // from CVScene::initializeSceneBlock, which takes channel 0's type
-    // whatever was requested (cvscene.cpp:330) and would size this block
-    // wrongly for a mixed-type scene -- the source then writes elements of a
-    // different width into it and overruns the buffer. Do not "simplify" this
-    // by calling the base helper. See the design document 6.1.
+    // A cv::Mat carries one depth, so a block cannot mix channel types: the
+    // source would write elements of a different width than the block holds.
+    // A scene whose channels differ is read one type per call.
     const DataType dataType = m_metadata.channelDataTypes[channels.front()];
     for (int channel : channels) {
         if (m_metadata.channelDataTypes[channel] != dataType) {
@@ -125,8 +118,15 @@ cv::Mat SourceCVScene::prepareBlock(const cv::Rect& rect, const char* rectLabel,
                                 << m_metadata.channelDataTypes[channel];
         }
     }
+    return channels;
+}
 
-    const int depth = CVTools::toOpencvType(dataType);
+cv::Mat SourceCVScene::allocateBlock(const cv::Size& blockSize,
+    const std::vector<int>& channels, cv::OutputArray output) const
+{
+    // Typed by the requested channels, as CVScene::blockDataType does for the
+    // blocks the base allocates, so the two always agree.
+    const int depth = CVTools::toOpencvType(m_metadata.channelDataTypes[channels.front()]);
     output.create(blockSize, CV_MAKETYPE(depth, static_cast<int>(channels.size())));
     cv::Mat mat = output.getMat();
     if (!mat.isContinuous()) {
@@ -139,9 +139,16 @@ void SourceCVScene::readResampledBlockChannelsEx(const cv::Rect& blockRect,
     const cv::Size& blockSize, const std::vector<int>& componentIndices,
     int zSliceIndex, int tFrameIndex, cv::OutputArray output)
 {
-    std::vector<int> channels;
-    cv::Mat mat = prepareBlock(blockRect, "block", blockSize, componentIndices,
-                               zSliceIndex, tFrameIndex, channels, output);
+    if (blockSize.width <= 0 || blockSize.height <= 0) {
+        RAISE_RUNTIME_ERROR << "SourceCVScene: block size must be positive, got "
+                            << blockSize.width << "x" << blockSize.height;
+    }
+    if (blockRect.width <= 0 || blockRect.height <= 0) {
+        RAISE_RUNTIME_ERROR << "SourceCVScene: block rectangle must have positive size, got "
+                            << blockRect.width << "x" << blockRect.height;
+    }
+    const std::vector<int> channels = validateRequest(componentIndices, zSliceIndex, tFrameIndex);
+    cv::Mat mat = allocateBlock(blockSize, channels, output);
     m_source->readBlock(Rect(blockRect), Size(blockSize.width, blockSize.height),
                         channels, zSliceIndex, tFrameIndex,
                         mat.data, mat.total() * mat.elemSize());
@@ -152,43 +159,33 @@ void SourceCVScene::readResampledLevelBlockChannelsEx(int level, const cv::Rect&
     int zSliceIndex, int tFrameIndex, cv::OutputArray output)
 {
     validateLevel(level);
-    std::vector<int> channels;
-    cv::Mat mat = prepareBlock(levelRect, "level", blockSize, channelIndices,
-                               zSliceIndex, tFrameIndex, channels, output);
+    const std::vector<int> channels = validateRequest(channelIndices, zSliceIndex, tFrameIndex);
 
-    const bool served = m_source->readLevelBlock(
-        level, Rect(levelRect), Size(blockSize.width, blockSize.height),
-        channels, zSliceIndex, tFrameIndex, mat.data, mat.total() * mat.elemSize());
-    if (served) {
-        return;
+    // An empty rectangle or block is not an error on the level path: the base
+    // contract (readClampedBlock) answers it with a background block, and the
+    // fallback below delivers exactly that. Only a real read goes to the source.
+    const bool hasPixels = blockSize.width > 0 && blockSize.height > 0
+                           && levelRect.width > 0 && levelRect.height > 0;
+    if (hasPixels) {
+        cv::Mat mat = allocateBlock(blockSize, channels, output);
+        if (m_source->readLevelBlock(level, Rect(levelRect),
+                Size(blockSize.width, blockSize.height), channels,
+                zSliceIndex, tFrameIndex, mat.data, mat.total() * mat.elemSize())) {
+            return;
+        }
     }
-    // The source has no pyramid of its own. Fall back to the base, which maps
-    // the level rectangle to scene coordinates through LevelInfo::getScale()
-    // and comes back through readResampledBlockChannelsEx. The base fills a
-    // block that has nothing to read (rectangle wholly outside the level, or
-    // clamped away) through initializeSceneBlock, which types it by channel 0
-    // whatever was requested. Give it a scratch block, and keep its result
-    // only if it has the type this call promised; otherwise write the
-    // background ourselves (255 for 8-bit, 0 otherwise, as the base does).
-    cv::Mat scratch;
+    // The source has no pyramid of its own. The base clamps the rectangle to
+    // the level, maps it to scene coordinates through LevelInfo::getScale()
+    // and comes back through readResampledBlockChannelsEx. Every block it
+    // allocates is typed by the requested channels, so output -- already of
+    // that size and type -- is written in place rather than reallocated.
     CVScene::readResampledLevelBlockChannelsEx(level, levelRect, blockSize, channels,
-                                               zSliceIndex, tFrameIndex, scratch);
-    if (scratch.type() == mat.type() && scratch.size() == mat.size()) {
-        scratch.copyTo(mat);
-    }
-    else {
-        mat.setTo(mat.depth() == CV_8U ? cv::Scalar::all(255) : cv::Scalar::all(0));
-    }
+                                               zSliceIndex, tFrameIndex, output);
 }
 
 bool SourceCVScene::supportsConcurrentReads() const
 {
     return m_source->supportsConcurrentReads();
-}
-
-std::string SourceCVScene::getRawMetadata() const
-{
-    return m_source->getRawMetadata();
 }
 
 const std::list<std::string>& SourceCVScene::getAuxImageNames() const
@@ -209,9 +206,10 @@ int SourceCVScene::getNumAuxImages() const
 
 std::shared_ptr<CVScene> SourceCVScene::getAuxImage(const std::string& imageName) const
 {
-    // The source may report names (getAuxImageNames forwards them), but the
-    // adapter cannot yet turn an ISceneSource aux image into a scene.
-    RAISE_RUNTIME_ERROR << "SourceCVScene: auxiliary image '" << imageName
-                        << "' is not retrievable: auxiliary images of a computed "
-                           "scene are not supported yet";
+    const std::shared_ptr<Scene> image = m_source->getAuxImage(imageName);
+    if (!image) {
+        RAISE_RUNTIME_ERROR << "SourceCVScene: the source has no auxiliary image '"
+                            << imageName << "'";
+    }
+    return SceneInternal::getCVScene(image);
 }

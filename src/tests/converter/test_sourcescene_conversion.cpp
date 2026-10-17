@@ -11,6 +11,8 @@
 #include "slideio/converter/converter.hpp"
 #include "slideio/converter/converterparameters.hpp"
 #include "slideio/converter/tiffconverter.hpp"
+#include "slideio/converter/convertertools.hpp"
+#include "slideio/core/cvscene.hpp"
 #include "tests/testlib/testscenesource.hpp"
 #include "tests/testlib/testtools.hpp"
 #include <filesystem>
@@ -102,6 +104,45 @@ TEST(SourceSceneConversion, aComputedSceneConvertsToOmeTiffAndReadsBack)
     }
 
     std::filesystem::remove(outPath);
+}
+
+namespace
+{
+    // Channel 0 is bytes, channel 1 is 16-bit with value 1000 + x.
+    class MixedTypeSource : public ISceneSource
+    {
+    public:
+        void readBlock(const Rect& rect, const Size& blockSize, const std::vector<int>& channels,
+                       int, int, void* buffer, size_t) override {
+            ASSERT_EQ(std::vector<int>{1}, channels);
+            ASSERT_EQ(rect.width, blockSize.width);
+            uint16_t* out = static_cast<uint16_t*>(buffer);
+            for (int row = 0; row < blockSize.height; ++row) {
+                for (int col = 0; col < blockSize.width; ++col) {
+                    *out++ = static_cast<uint16_t>(1000 + rect.x + col);
+                }
+            }
+        }
+    };
+}
+
+TEST(SourceSceneConversion, aBorderTileOfANonFirstChannelTypeKeepsItsPixels)
+{
+    // The border-tile path typed its tile by channel 0. A 16-bit read copied
+    // into an 8-bit tile reallocated the ROI and left the tile zero-filled.
+    SceneMetadata m;
+    m.rect = Rect(0, 0, 300, 300);
+    m.channelDataTypes = {DataType::DT_Byte, DataType::DT_UInt16};
+    m.levels.emplace_back(0, Size(300, 300), 1.0, 20.0, Size(256, 256));
+    auto scene = SceneInternal::getCVScene(makeScene(std::make_shared<MixedTypeSource>(), m));
+
+    cv::Mat tile;
+    converter::ConverterTools::readTile(scene, {1}, 0, cv::Rect(256, 256, 256, 256), 0, 0, tile);
+    ASSERT_EQ(CV_16UC1, tile.type());
+    ASSERT_EQ(cv::Size(256, 256), tile.size());
+    EXPECT_EQ(1256, tile.at<uint16_t>(0, 0));
+    EXPECT_EQ(1299, tile.at<uint16_t>(43, 43));
+    EXPECT_EQ(0, tile.at<uint16_t>(44, 44));        // outside the scene
 }
 
 TEST(SourceSceneConversion, aSourceThatThrowsSurfacesAsAnExceptionFromConvertScene)

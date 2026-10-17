@@ -6,6 +6,7 @@
 #include <chrono>
 #include <condition_variable>
 #include <cstring>
+#include <limits>
 #include <mutex>
 #include <thread>
 #include "slideio/slideio/scenemetadata.hpp"
@@ -276,6 +277,29 @@ TEST(SourceCVSceneRead, readsAMixedTypeSceneOneChannelAtATime)
                                              floatBuffer.size() * sizeof(float)));
 }
 
+TEST(SourceCVSceneRead, readsAMixedTypeChannelAcrossSeveralSlicesAndFrames)
+{
+    // The 4D assembly types its block by the requested channel, not channel 0;
+    // typing it by channel 0 made every multi-plane read of channel 1 throw.
+    auto src = std::make_shared<TestSceneSource>();
+    SceneMetadata m = byteMetadata(2);
+    m.channelDataTypes = {DataType::DT_Byte, DataType::DT_Float32};
+    m.numZSlices = 3;
+    m.numTFrames = 2;
+    auto scene = sceneOver(src, m);
+
+    std::vector<float> buffer(2 * 2 * 3 * 2);
+    EXPECT_NO_THROW(scene->read4DBlockChannels(std::make_tuple(0, 0, 2, 2), {1},
+                                               std::make_tuple(0, 3), std::make_tuple(0, 2),
+                                               buffer.data(), buffer.size() * sizeof(float)));
+    EXPECT_EQ(6u, src->calls().size());
+
+    std::vector<uint8_t> bytes(2 * 2 * 3);
+    EXPECT_NO_THROW(scene->read4DBlockChannels(std::make_tuple(0, 0, 2, 2), {0},
+                                               std::make_tuple(0, 3), std::make_tuple(0, 1),
+                                               bytes.data(), bytes.size()));
+}
+
 TEST(SourceCVSceneRead, rejectsADegenerateBlock)   // Review Focus 1
 {
     auto src = std::make_shared<TestSceneSource>();
@@ -538,36 +562,51 @@ TEST(SourceCVSceneLevels, rejectsAnOutOfRangeLevel)
                  slideio::RuntimeError);
 }
 
-TEST(SourceCVSceneLevels, rejectsADegenerateLevelBlock)   // Review Focus 1
+TEST(SourceCVSceneLevels, aDegenerateLevelBlockIsEmptyAndNeverReachesTheSource)   // Review Focus 1
 {
+    // The base level contract (readClampedBlock) every file driver inherits:
+    // nothing to read is not an error.
     auto src = std::make_shared<TestSceneSource>();
     src->setHasPyramid(true);
-    auto scene = sceneOver(src, twoLevelMetadata());
+    SourceCVScene adapter(src, twoLevelMetadata());
 
-    std::vector<uint8_t> buffer(16);
-    EXPECT_THROW(scene->readResampledLevelBlockChannels(
-                     0, std::make_tuple(0, 0, 4, 4), std::make_tuple(0, 4), {},
-                     buffer.data(), buffer.size()),
-                 slideio::RuntimeError);
+    cv::Mat block;
+    EXPECT_NO_THROW(adapter.readResampledLevelBlockChannels(
+        0, cv::Rect(0, 0, 4, 4), cv::Size(0, 4), {}, block));
+    EXPECT_TRUE(block.empty());
+    EXPECT_TRUE(src->calls().empty());
 }
 
-TEST(SourceCVSceneLevels, rejectsADegenerateLevelRectBeforeCallingTheSource)   // Review Focus 1
+TEST(SourceCVSceneLevels, aDegenerateLevelRectIsBackgroundAndNeverReachesTheSource)   // Review Focus 1
 {
     for (bool pyramid : {true, false}) {
         auto src = std::make_shared<TestSceneSource>();
         src->setHasPyramid(pyramid);
         auto scene = sceneOver(src, twoLevelMetadata());
-        std::vector<uint8_t> buffer(4 * 4 * 3);
-        EXPECT_THROW(scene->readResampledLevelBlockChannels(
-                         1, std::make_tuple(0, 0, 0, 4), std::make_tuple(4, 4), {},
-                         buffer.data(), buffer.size()),
-                     slideio::RuntimeError);
-        EXPECT_THROW(scene->readResampledLevelBlockChannels(
-                         1, std::make_tuple(0, 0, 4, -2), std::make_tuple(4, 4), {},
-                         buffer.data(), buffer.size()),
-                     slideio::RuntimeError);
+        for (auto rect : {std::make_tuple(0, 0, 0, 4), std::make_tuple(0, 0, 4, -2)}) {
+            std::vector<uint8_t> buffer(4 * 4 * 3, 7);
+            EXPECT_NO_THROW(scene->readResampledLevelBlockChannels(
+                1, rect, std::make_tuple(4, 4), {}, buffer.data(), buffer.size()));
+            for (uint8_t v : buffer) {
+                EXPECT_EQ(255, v);
+            }
+        }
         EXPECT_TRUE(src->calls().empty());
     }
+}
+
+TEST(SourceCVSceneLevels, aDeclinedLevelReadIsWrittenInPlace)
+{
+    // The fallback hands the caller's block to the base, which reads into it
+    // directly: no scratch block, no copy.
+    auto src = std::make_shared<TestSceneSource>();
+    SourceCVScene adapter(src, twoLevelMetadata());
+    cv::Mat block(4, 4, CV_8UC3);
+    const uchar* data = block.data;
+    adapter.readResampledLevelBlockChannels(1, cv::Rect(10, 10, 4, 4), cv::Size(4, 4), {}, block);
+    EXPECT_EQ(data, block.data);
+    ASSERT_EQ(1u, src->calls().size());
+    EXPECT_EQ(-1, src->calls()[0].level);
 }
 
 TEST(SourceCVSceneLevels, declinedFallbackKeepsTheRequestedChannelType)
@@ -709,14 +748,72 @@ TEST(SourceCVSceneExtras, forwardsRawMetadataAndAuxImageNames)
     EXPECT_EQ(2, adapter.getNumAuxImages());
 }
 
-TEST(SourceCVSceneExtras, anAuxImageIsNotRetrievableAndSaysSo)
+TEST(SourceCVSceneExtras, getMetadataParsesTheSourcesRawMetadata)
+{
+    class JsonSource : public TestSceneSource {
+    public:
+        std::string getRawMetadata() const override { return R"({"stain":"HE","width":400})"; }
+        MetadataFormat getMetadataFormat() const override { return MetadataFormat::JSON; }
+    };
+    auto scene = makeScene(std::make_shared<JsonSource>(), byteMetadata());
+    EXPECT_EQ(MetadataFormat::JSON, scene->getMetadataFormat());
+    const Metadata& tree = scene->getMetadata();
+    ASSERT_TRUE(tree.contains("stain"));
+    EXPECT_EQ("HE", tree["stain"].asString());
+    EXPECT_EQ(400, tree["width"].asInt());
+}
+
+TEST(SourceCVSceneExtras, rawMetadataWithoutAFormatIsKeptAsText)
+{
+    class TextSource : public TestSceneSource {
+    public:
+        std::string getRawMetadata() const override { return "<meta/>"; }
+    };
+    auto scene = makeScene(std::make_shared<TextSource>(), byteMetadata());
+    EXPECT_EQ(MetadataFormat::Text, scene->getMetadataFormat());
+    EXPECT_EQ("<meta/>", scene->getMetadata()["text"].asString());
+
+    auto bare = makeScene(std::make_shared<TestSceneSource>(), byteMetadata());
+    EXPECT_EQ(MetadataFormat::None, bare->getMetadataFormat());
+    EXPECT_EQ(0u, bare->getMetadata().size());
+}
+
+TEST(SourceCVSceneExtras, servesTheAuxImagesTheSourceProvides)
+{
+    class LabelledSource : public TestSceneSource {
+    public:
+        std::list<std::string> getAuxImageNames() const override { return {"label"}; }
+        std::shared_ptr<Scene> getAuxImage(const std::string& name) const override {
+            if (name != "label") {
+                return nullptr;
+            }
+            SceneMetadata m;
+            m.name = "label";
+            m.rect = Rect(0, 0, 40, 30);
+            m.channelDataTypes = {DataType::DT_Byte};
+            m.levels.emplace_back(0, Size(40, 30), 1.0, 0.0, Size(0, 0));
+            return makeScene(std::make_shared<TestSceneSource>(), m);
+        }
+    };
+    auto scene = makeScene(std::make_shared<LabelledSource>(), byteMetadata());
+    ASSERT_EQ(1u, scene->getAuxImageNames().size());
+    auto label = scene->getAuxImage("label");
+    ASSERT_NE(nullptr, label);
+    EXPECT_EQ("label", label->getName());
+    EXPECT_EQ(std::make_tuple(0, 0, 40, 30), label->getRect());
+
+    std::vector<uint8_t> buffer(2 * 2);
+    label->readBlock(std::make_tuple(1, 1, 2, 2), buffer.data(), buffer.size());
+    EXPECT_EQ(TestSceneSource::expected(1, 1, 0), buffer[0]);
+}
+
+TEST(SourceCVSceneExtras, anAuxImageTheSourceDoesNotServeSaysSo)
 {
     class DescribedSource : public TestSceneSource {
     public:
         std::list<std::string> getAuxImageNames() const override { return {"label"}; }
     };
     auto scene = makeScene(std::make_shared<DescribedSource>(), byteMetadata());
-    ASSERT_EQ(1u, scene->getAuxImageNames().size());
     try {
         scene->getAuxImage("label");
         FAIL() << "getAuxImage should have thrown";
@@ -724,18 +821,24 @@ TEST(SourceCVSceneExtras, anAuxImageIsNotRetrievableAndSaysSo)
     catch (const slideio::RuntimeError& e) {
         const std::string what = e.what();
         EXPECT_NE(std::string::npos, what.find("'label'")) << what;
-        EXPECT_NE(std::string::npos, what.find("not supported yet")) << what;
+        EXPECT_NE(std::string::npos, what.find("no auxiliary image")) << what;
     }
 }
 
 TEST(MakeScene, reportsTheSourceDriverId)
 {
-    // The converter keys on this id to share a computed scene instead of
-    // re-opening it by path.
     auto scene = makeScene(std::make_shared<TestSceneSource>(), byteMetadata());
     EXPECT_EQ(std::string(SourceCVScene::DRIVER_ID),
               SceneInternal::getCVScene(scene)->getDriverId());
     EXPECT_EQ("SOURCE", SceneInternal::getCVScene(scene)->getDriverId());
+}
+
+TEST(MakeScene, aComputedSceneCannotBeReopenedByPath)
+{
+    // The converter asks this, not the driver id, before re-opening a scene
+    // by path in each reader thread.
+    auto scene = makeScene(std::make_shared<TestSceneSource>(), byteMetadata());
+    EXPECT_FALSE(SceneInternal::getCVScene(scene)->canReopenByPath());
 }
 
 TEST(MakeScene, returnsAUsableSceneForValidMetadata)
@@ -898,6 +1001,40 @@ TEST(MakeScene, rejectsAnUpperLevelWithNonPositiveScale)
     SceneMetadata zero = twoLevelMetadata();
     zero.levels[1].setScale(0.0);
     expectRejected(zero, "level 1 has non-positive scale");
+}
+
+TEST(MakeScene, rejectsANaNScale)
+{
+    // Every comparison with NaN is false, so a check written as "> bad" lets
+    // it through to the first level read.
+    const double nan = std::numeric_limits<double>::quiet_NaN();
+
+    SceneMetadata base = byteMetadata();
+    base.levels[0].setScale(nan);
+    expectRejected(base, "level 0 must have scale 1");
+
+    SceneMetadata upper = twoLevelMetadata();
+    upper.levels[1].setScale(nan);
+    expectRejected(upper, "level 1 has a non-finite scale");
+}
+
+TEST(MakeScene, rejectsAnUpperLevelWhoseSizeDisagreesWithItsScale)
+{
+    SceneMetadata m = twoLevelMetadata();          // 400x300, level 1 at 0.5
+    m.levels[1].setSize(Size(400, 300));
+    expectRejected(m, "level 1 size 400x300 disagrees with its scale");
+}
+
+TEST(MakeScene, acceptsAnUpperLevelSizeRoundedEitherWay)
+{
+    auto src = std::make_shared<TestSceneSource>();
+    SceneMetadata m = byteMetadata();
+    m.rect = Rect(0, 0, 401, 301);
+    m.levels[0].setSize(Size(401, 301));
+    m.levels.emplace_back(1, Size(201, 150), 0.5, 10.0, Size(256, 256));
+    EXPECT_NO_THROW(makeScene(src, m));
+    m.levels[1].setSize(Size(200, 151));
+    EXPECT_NO_THROW(makeScene(src, m));
 }
 
 TEST(MakeScene, rejectsANegativeTileDimension)

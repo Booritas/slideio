@@ -4,6 +4,7 @@
 #pragma once
 #include "slideio/slideio/slideio_def.hpp"
 #include "slideio/slideio/scenemetadata.hpp"
+#include "slideio/core/slideio_enums.hpp"
 #include "slideio/core/rect.hpp"
 #include "slideio/core/size.hpp"
 #include <cstddef>
@@ -14,6 +15,8 @@
 
 namespace slideio
 {
+    class Scene;
+
     /**@brief Supplies the pixels of a scene that is computed rather than decoded.
      *
      * Implement this, describe the result in a SceneMetadata, and #makeScene
@@ -97,24 +100,38 @@ namespace slideio
          */
         virtual bool supportsConcurrentReads() const { return false; }
 
-        /**@brief Scene metadata as the source's own format. Empty by default.*/
+        /**@brief Scene metadata as the source's own format. Empty by default.
+         *
+         * Read once, when #makeScene builds the scene: Scene::getRawMetadata
+         * and Scene::getMetadata both report that snapshot.*/
         virtual std::string getRawMetadata() const { return std::string(); }
 
-        /**@brief Names of auxiliary images. Empty by default.*/
+        /**@brief The format of #getRawMetadata, which decides how
+         * Scene::getMetadata parses it.
+         *
+         * By default MetadataFormat::Text when there is raw metadata -- kept
+         * as a single "text" entry -- and MetadataFormat::None when there is
+         * not. Override to report JSON or XML and get a structured tree.*/
+        virtual MetadataFormat getMetadataFormat() const {
+            return getRawMetadata().empty() ? MetadataFormat::None : MetadataFormat::Text;
+        }
+
+        /**@brief Names of auxiliary images. Empty by default.
+         *
+         * Every name reported here must be served by #getAuxImage.*/
         virtual std::list<std::string> getAuxImageNames() const {
             return std::list<std::string>();
         }
 
-        /**@brief An auxiliary image by name, or nullptr. nullptr by default.
+        /**@brief An auxiliary image by name. nullptr by default.
          *
-         * Not yet consulted: Scene::getAuxImage on a computed scene throws
-         * RuntimeError, although the names above are reported.*/
-        virtual std::shared_ptr<ISceneSource> getAuxImage(const std::string& /*name*/) const {
+         * Return a Scene -- usually one built by #makeScene from a source of
+         * its own -- for every name #getAuxImageNames reports. nullptr makes
+         * Scene::getAuxImage throw RuntimeError for that name.*/
+        virtual std::shared_ptr<Scene> getAuxImage(const std::string& /*name*/) const {
             return nullptr;
         }
     };
-
-    class Scene;
 
     /**@brief Wraps an ISceneSource in a genuine slideio::Scene.
      *
