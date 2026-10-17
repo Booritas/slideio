@@ -508,3 +508,34 @@ TEST(SourceCVSceneLevels, declinedFallbackKeepsTheRequestedChannelType)
     }
     EXPECT_TRUE(src->calls().empty());
 }
+
+TEST(SourceCVSceneConcurrency, defaultsToSerialisedReads)
+{
+    auto src = std::make_shared<TestSceneSource>();     // concurrent = false
+    SourceCVScene adapter(src, byteMetadata());
+    EXPECT_FALSE(adapter.supportsConcurrentReads());
+}
+
+TEST(SourceCVSceneConcurrency, reportsConcurrencyWhenTheSourceDoes)
+{
+    auto src = std::make_shared<TestSceneSource>();
+    src->setConcurrent(true);
+    SourceCVScene adapter(src, byteMetadata());
+    EXPECT_TRUE(adapter.supportsConcurrentReads());
+}
+
+TEST(SourceCVSceneExtras, forwardsRawMetadataAndAuxImageNames)
+{
+    class DescribedSource : public TestSceneSource {
+    public:
+        std::string getRawMetadata() const override { return "<meta/>"; }
+        std::list<std::string> getAuxImageNames() const override { return {"label", "macro"}; }
+    };
+    auto src = std::make_shared<DescribedSource>();
+    SourceCVScene adapter(src, byteMetadata());
+
+    EXPECT_EQ("<meta/>", adapter.getRawMetadata());
+    ASSERT_EQ(2u, adapter.getAuxImageNames().size());
+    EXPECT_EQ("label", adapter.getAuxImageNames().front());
+    EXPECT_EQ(2, adapter.getNumAuxImages());
+}

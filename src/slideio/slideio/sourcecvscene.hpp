@@ -6,7 +6,9 @@
 #include "slideio/slideio/scenemetadata.hpp"
 #include "slideio/slideio/scenesource.hpp"
 #include "slideio/slideio/slideio_def.hpp"
+#include <list>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -42,6 +44,10 @@ namespace slideio
         ColorProfile getColorProfile() const override;
         int getNumZoomLevels() const override;
         const LevelInfo* getZoomLevelInfo(int level) const override;
+        bool supportsConcurrentReads() const override;
+        std::string getRawMetadata() const override;
+        const std::list<std::string>& getAuxImageNames() const override;
+        int getNumAuxImages() const override;
 
         void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
             const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex,
@@ -59,5 +65,6 @@ namespace slideio
         std::shared_ptr<ISceneSource> m_source;
         SceneMetadata m_metadata;
         std::string m_driverId;
+        mutable std::once_flag m_auxNamesOnce;
     };
 }

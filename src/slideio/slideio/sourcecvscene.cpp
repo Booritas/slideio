@@ -161,3 +161,29 @@ void SourceCVScene::readResampledLevelBlockChannelsEx(int level, const cv::Rect&
         mat.setTo(mat.depth() == CV_8U ? cv::Scalar::all(255) : cv::Scalar::all(0));
     }
 }
+
+bool SourceCVScene::supportsConcurrentReads() const
+{
+    return m_source->supportsConcurrentReads();
+}
+
+std::string SourceCVScene::getRawMetadata() const
+{
+    return m_source->getRawMetadata();
+}
+
+const std::list<std::string>& SourceCVScene::getAuxImageNames() const
+{
+    // Cached because the base returns a reference. Sources are expected to
+    // report a fixed set, as every driver does.
+    std::call_once(m_auxNamesOnce, [this]() {
+        // Fills the base class's protected m_auxNames.
+        const_cast<SourceCVScene*>(this)->m_auxNames = m_source->getAuxImageNames();
+    });
+    return m_auxNames;
+}
+
+int SourceCVScene::getNumAuxImages() const
+{
+    return static_cast<int>(getAuxImageNames().size());
+}
