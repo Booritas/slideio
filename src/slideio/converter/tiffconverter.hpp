@@ -181,6 +181,11 @@ namespace slideio
 			// once per createTiff before any reader starts.
 			enum class CloneMode { Undecided, Reopen, Share };
 			CloneMode m_cloneMode = CloneMode::Undecided;
+			// The scene createTiff re-opened to settle m_cloneMode, handed to
+			// the first reader thread that asks rather than opened again. Not
+			// copied with the converter: it belongs to one conversion.
+			mutable std::mutex m_probedCloneMutex;
+			mutable std::pair<std::shared_ptr<Slide>, std::shared_ptr<Scene>> m_probedClone;
 		};
     }
 }

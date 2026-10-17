@@ -111,7 +111,7 @@ namespace
                                     << ": expected " << formatDimension(expectedWidth) << "x"
                                     << formatDimension(expectedHeight)
                                     << ", within " << formatDimension(allowWidth) << "x"
-                                    << formatDimension(std::floor(allowHeight)) << " pixels";
+                                    << formatDimension(allowHeight) << " pixels";
             }
             if (info.getTileSize().width < 0 || info.getTileSize().height < 0) {
                 RAISE_RUNTIME_ERROR << "makeScene: level " << level << " has a negative tile size";

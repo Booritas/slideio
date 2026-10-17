@@ -22,6 +22,7 @@
 #include <condition_variable>
 #include <atomic>
 #include <unordered_map>
+#include <utility>
 
 #include "slideio/core/log.hpp"
 #include "slideio/core/tools/boundedqueue.hpp"
@@ -545,6 +546,12 @@ std::pair<std::shared_ptr<Slide>, std::shared_ptr<Scene>> TiffConverter::cloneSc
 	// scene that cannot be re-opened is tried (and warned about) once per
 	// conversion rather than once per reader thread per page. Undecided only
 	// when called outside createTiff, and then decided here.
+	if (m_cloneMode == CloneMode::Reopen) {
+		std::lock_guard<std::mutex> lock(m_probedCloneMutex);
+		if (m_probedClone.second) {
+			return std::exchange(m_probedClone, {});
+		}
+	}
 	if (m_cloneMode != CloneMode::Share) {
 		auto clone = tryReopenScene();
 		if (clone.second) {
@@ -879,8 +886,12 @@ void TiffConverter::writeDirectoryDataMT(TiffDirectory& dir, const TiffDirectory
 
 void TiffConverter::createTiff(const std::string& filePath, const std::function<void(int)>& cb, int tileBatchSize) {
     m_currentTile = 0;
-    m_cloneMode = CloneMode::Undecided;
-    m_cloneMode = tryReopenScene().second ? CloneMode::Reopen : CloneMode::Share;
+    {
+        // The probe's copy is not wasted: the first reader thread takes it.
+        std::lock_guard<std::mutex> lock(m_probedCloneMutex);
+        m_probedClone = tryReopenScene();
+        m_cloneMode = m_probedClone.second ? CloneMode::Reopen : CloneMode::Share;
+    }
     m_file.reset(new TIFFKeeper(filePath, false));
     m_filePath = filePath;
     std::string description = createImageDescriptionTag();
@@ -907,6 +918,8 @@ void TiffConverter::createTiff(const std::string& filePath, const std::function<
             m_file->writeDirectory();
         }
     }
+    std::lock_guard<std::mutex> lock(m_probedCloneMutex);
+    m_probedClone = {};
 }
 
 
