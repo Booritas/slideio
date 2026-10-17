@@ -206,3 +206,12 @@ int SourceCVScene::getNumAuxImages() const
 {
     return static_cast<int>(getAuxImageNames().size());
 }
+
+std::shared_ptr<CVScene> SourceCVScene::getAuxImage(const std::string& imageName) const
+{
+    // The source may report names (getAuxImageNames forwards them), but the
+    // adapter cannot yet turn an ISceneSource aux image into a scene.
+    RAISE_RUNTIME_ERROR << "SourceCVScene: auxiliary image '" << imageName
+                        << "' is not retrievable: auxiliary images of a computed "
+                           "scene are not supported yet";
+}

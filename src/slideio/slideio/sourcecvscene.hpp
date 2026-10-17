@@ -53,6 +53,7 @@ namespace slideio
         std::string getRawMetadata() const override;
         const std::list<std::string>& getAuxImageNames() const override;
         int getNumAuxImages() const override;
+        std::shared_ptr<CVScene> getAuxImage(const std::string& imageName) const override;
 
         void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
             const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex,

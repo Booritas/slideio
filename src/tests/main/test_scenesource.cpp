@@ -615,6 +615,25 @@ TEST(SourceCVSceneExtras, forwardsRawMetadataAndAuxImageNames)
     EXPECT_EQ(2, adapter.getNumAuxImages());
 }
 
+TEST(SourceCVSceneExtras, anAuxImageIsNotRetrievableAndSaysSo)
+{
+    class DescribedSource : public TestSceneSource {
+    public:
+        std::list<std::string> getAuxImageNames() const override { return {"label"}; }
+    };
+    auto scene = makeScene(std::make_shared<DescribedSource>(), byteMetadata());
+    ASSERT_EQ(1u, scene->getAuxImageNames().size());
+    try {
+        scene->getAuxImage("label");
+        FAIL() << "getAuxImage should have thrown";
+    }
+    catch (const slideio::RuntimeError& e) {
+        const std::string what = e.what();
+        EXPECT_NE(std::string::npos, what.find("'label'")) << what;
+        EXPECT_NE(std::string::npos, what.find("not supported yet")) << what;
+    }
+}
+
 TEST(MakeScene, returnsAUsableSceneForValidMetadata)
 {
     auto src = std::make_shared<TestSceneSource>();
