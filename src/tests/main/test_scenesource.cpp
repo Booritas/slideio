@@ -2,6 +2,7 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include <gtest/gtest.h>
+#include <cstring>
 #include "slideio/slideio/scenemetadata.hpp"
 
 using namespace slideio;
@@ -39,4 +40,28 @@ TEST(SceneMetadata, isAnAggregateCallersCanFillFieldByField)
     EXPECT_EQ(2u, m.channelDataTypes.size());
     EXPECT_EQ(1u, m.levels.size());
     EXPECT_DOUBLE_EQ(1.0, m.levels[0].getScale());
+}
+
+#include "slideio/slideio/scenesource.hpp"
+#include "tests/testlib/testscenesource.hpp"
+
+namespace {
+    // The smallest legal source: implements the one pure virtual and nothing else.
+    class MinimalSource : public ISceneSource {
+    public:
+        void readBlock(const Rect&, const Size&, const std::vector<int>&,
+                       int, int, void* buffer, size_t bufferSize) override {
+            std::memset(buffer, 0, bufferSize);
+        }
+    };
+}
+
+TEST(ISceneSource, aMinimalSourceGetsTheDocumentedDefaults)
+{
+    MinimalSource s;
+    EXPECT_FALSE(s.readLevelBlock(0, Rect(0,0,1,1), Size(1,1), {}, 0, 0, nullptr, 0));
+    EXPECT_FALSE(s.supportsConcurrentReads());
+    EXPECT_TRUE(s.getRawMetadata().empty());
+    EXPECT_TRUE(s.getAuxImageNames().empty());
+    EXPECT_EQ(nullptr, s.getAuxImage("anything"));
 }
