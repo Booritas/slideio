@@ -4,6 +4,12 @@
 #include <gtest/gtest.h>
 #include <cstring>
 #include "slideio/slideio/scenemetadata.hpp"
+#include "slideio/slideio/scenesource.hpp"
+#include "slideio/slideio/sourcecvscene.hpp"
+#include "slideio/slideio/sceneinternal.hpp"
+#include "slideio/slideio/scene.hpp"
+#include "slideio/core/exceptions.hpp"
+#include "tests/testlib/testscenesource.hpp"
 
 using namespace slideio;
 
@@ -42,9 +48,6 @@ TEST(SceneMetadata, isAnAggregateCallersCanFillFieldByField)
     EXPECT_DOUBLE_EQ(1.0, m.levels[0].getScale());
 }
 
-#include "slideio/slideio/scenesource.hpp"
-#include "tests/testlib/testscenesource.hpp"
-
 namespace {
     // The smallest legal source: implements the one pure virtual and nothing else.
     class MinimalSource : public ISceneSource {
@@ -65,11 +68,6 @@ TEST(ISceneSource, aMinimalSourceGetsTheDocumentedDefaults)
     EXPECT_TRUE(s.getAuxImageNames().empty());
     EXPECT_EQ(nullptr, s.getAuxImage("anything"));
 }
-
-#include "slideio/slideio/sourcecvscene.hpp"
-#include "slideio/slideio/sceneinternal.hpp"
-#include "slideio/slideio/scene.hpp"
-#include "slideio/core/exceptions.hpp"
 
 namespace {
     SceneMetadata describedMetadata()
