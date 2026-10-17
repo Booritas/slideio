@@ -96,8 +96,12 @@ other. The converter used to give each of its reader threads its own copy of
 the scene by re-opening the source file by path and driver, which a scene with
 no file cannot do. It now **shares a computed scene across its reader threads**
 instead of re-opening it -- it asks `CVScene::canReopenByPath()`, which a
-computed scene answers `false` and a transform forwards from its origin;
-file-backed scenes are re-opened exactly as before. Edge tiles of a channel
+computed scene and a transform answer `false` (re-opening a transform's path
+yields its untransformed origin). A file-backed scene is re-opened as before
+when it has a scene index; whatever re-opens must match the original's
+rectangle, channel count and types, and Z and T counts, and a scene that
+cannot be re-opened (an auxiliary image, index -1), fails to re-open or
+re-opens as something else is shared instead. Edge tiles of a channel
 whose type differs from channel 0's are now typed by that channel; before,
 they were written zero-filled. A failure to prepare a
 reader thread's scene is now reported as an exception from `convertScene`

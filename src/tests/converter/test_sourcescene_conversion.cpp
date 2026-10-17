@@ -14,6 +14,7 @@
 #include "slideio/converter/convertertools.hpp"
 #include "slideio/core/cvscene.hpp"
 #include "tests/testlib/testscenesource.hpp"
+#include "tests/testlib/testscene.hpp"
 #include "tests/testlib/testtools.hpp"
 #include <filesystem>
 #include <vector>
@@ -257,4 +258,112 @@ TEST(SourceSceneConversion, aChannelRangeOfAnotherTypeThanChannelZeroIsWrittenWi
     }
 
     std::filesystem::remove(outPath);
+}
+
+namespace
+{
+    // Converts a computed 512x512, 3 x 8-bit scene to a lossless OME-TIFF, so
+    // a test has a file-backed scene without shipping a test image.
+    std::string writeComputedOmeTiff(const char* name)
+    {
+        auto scene = makeScene(std::make_shared<TestSceneSource>(), computedSceneMetadata());
+        const std::string path = tempOutputPath(name);
+        converter::OMETIFFJp2KConverterParameters parameters;
+        parameters.setCompressionRate(1.f);
+        converter::convertScene(scene, parameters, path, 4);
+        return path;
+    }
+
+    // A file-backed-looking scene whose path, driver, scene index and shape a
+    // test chooses, to drive TiffConverter::cloneScene's re-open decision.
+    class ReopenableScene : public TestScene
+    {
+    public:
+        ReopenableScene(const std::string& path, int sceneIndex)
+            : m_sceneIndex(sceneIndex), m_driver("OMETIFF")
+        {
+            setFilePath(path);
+            setRect(cv::Rect(0, 0, 512, 512));
+            setNumChannels(3);
+            setChannelDataType(DataType::DT_Byte);
+        }
+        int getSceneIndex() const override { return m_sceneIndex; }
+        const std::string& getDriverId() const override { return m_driver; }
+    private:
+        int m_sceneIndex;
+        std::string m_driver;
+    };
+
+    std::pair<std::shared_ptr<Slide>, std::shared_ptr<Scene>> cloneOf(
+        const std::shared_ptr<CVScene>& scene)
+    {
+        converter::OMETIFFJp2KConverterParameters parameters;
+        converter::TiffConverter converter;
+        converter.createFileLayout(scene, parameters);
+        return converter.cloneScene();
+    }
+
+    bool isShared(const std::pair<std::shared_ptr<Slide>, std::shared_ptr<Scene>>& clone,
+                  const std::shared_ptr<CVScene>& scene)
+    {
+        return clone.first == nullptr && clone.second != nullptr
+            && SceneInternal::getCVScene(clone.second) == scene;
+    }
+}
+
+TEST(SourceSceneConversion, aSceneMatchingItsReopenedFileIsReopened)
+{
+    const std::string path = writeComputedOmeTiff("slideio_clone_match.ome.tiff");
+    {
+        auto scene = std::make_shared<ReopenableScene>(path, 0);
+        auto clone = cloneOf(scene);
+        ASSERT_NE(nullptr, clone.first);                 // a slide of its own
+        ASSERT_NE(nullptr, clone.second);
+        EXPECT_NE(std::static_pointer_cast<CVScene>(scene), SceneInternal::getCVScene(clone.second));
+    }
+    std::filesystem::remove(path);
+}
+
+TEST(SourceSceneConversion, aSceneWithANegativeIndexIsSharedNotReopened)
+{
+    // An auxiliary image (a CZI thumbnail, say) reports index -1: there is no
+    // getScene(-1) to re-open it by.
+    const std::string path = writeComputedOmeTiff("slideio_clone_negative.ome.tiff");
+    {
+        auto scene = std::make_shared<ReopenableScene>(path, -1);
+        std::pair<std::shared_ptr<Slide>, std::shared_ptr<Scene>> clone;
+        ASSERT_NO_THROW(clone = cloneOf(scene));
+        EXPECT_TRUE(isShared(clone, scene));
+    }
+    std::filesystem::remove(path);
+}
+
+TEST(SourceSceneConversion, aSceneWhoseReopenFailsIsShared)
+{
+    const std::string path = tempOutputPath("slideio_clone_missing.ome.tiff");   // never written
+    auto scene = std::make_shared<ReopenableScene>(path, 0);
+    std::pair<std::shared_ptr<Slide>, std::shared_ptr<Scene>> clone;
+    ASSERT_NO_THROW(clone = cloneOf(scene));
+    EXPECT_TRUE(isShared(clone, scene));
+}
+
+TEST(SourceSceneConversion, aSceneThatDiffersFromItsReopenedFileIsShared)
+{
+    // Re-opening by (path, driver, index) succeeds but yields another raster:
+    // the converter would silently write that one instead.
+    const std::string path = writeComputedOmeTiff("slideio_clone_mismatch.ome.tiff");
+    {
+        auto otherRect = std::make_shared<ReopenableScene>(path, 0);
+        otherRect->setRect(cv::Rect(0, 0, 256, 512));
+        EXPECT_TRUE(isShared(cloneOf(otherRect), otherRect));
+
+        auto otherChannels = std::make_shared<ReopenableScene>(path, 0);
+        otherChannels->setNumChannels(1);
+        EXPECT_TRUE(isShared(cloneOf(otherChannels), otherChannels));
+
+        auto otherType = std::make_shared<ReopenableScene>(path, 0);
+        otherType->setChannelDataType(DataType::DT_UInt16);
+        EXPECT_TRUE(isShared(cloneOf(otherType), otherType));
+    }
+    std::filesystem::remove(path);
 }

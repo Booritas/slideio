@@ -548,20 +548,59 @@ void TiffConverter::createTileQueue(const TiffDirectory& dir, const TiffDirector
     }
 }
 
+namespace
+{
+    // Cheap invariants a re-opened scene must share with the scene being
+    // converted before the converter may read the one in place of the other.
+    bool describesSameRaster(const CVScene& original, const CVScene& reopened)
+    {
+        if (original.getRect() != reopened.getRect()
+            || original.getNumChannels() != reopened.getNumChannels()
+            || original.getNumZSlices() != reopened.getNumZSlices()
+            || original.getNumTFrames() != reopened.getNumTFrames()) {
+            return false;
+        }
+        for (int channel = 0; channel < original.getNumChannels(); ++channel) {
+            if (original.getChannelDataType(channel) != reopened.getChannelDataType(channel)) {
+                return false;
+            }
+        }
+        return true;
+    }
+}
+
 std::pair<std::shared_ptr<Slide>, std::shared_ptr<Scene>> TiffConverter::cloneScene() const {
-	if (!m_scene->canReopenByPath()) {
-		// A scene with no file behind it (makeScene) cannot be re-opened by
-		// path. Share it instead: every reader thread gets the same CVScene,
-		// whose base class serialises block reads unless the scene reports
-		// supportsConcurrentReads().
-		return { nullptr, slideio::SceneInternal::createScene(m_scene) };
+	// Each reader thread gets a scene of its own by re-opening the file, when
+	// that yields the scene being converted. It does not for a scene with no
+	// file behind it (makeScene) or one that is not its file's content
+	// (a transform), which say so through canReopenByPath(); nor for an
+	// auxiliary image, which has no scene index to re-open it by (a CZI
+	// thumbnail reports -1). Whatever re-opens is checked against the
+	// original, and a failure to re-open is not fatal: the scene is then
+	// shared, as a computed scene is -- every reader thread gets the same
+	// CVScene, whose base class serialises block reads unless the scene
+	// reports supportsConcurrentReads().
+	const int sceneIndex = m_scene->getSceneIndex();
+	if (m_scene->canReopenByPath() && sceneIndex >= 0) {
+		const std::string filePath = m_scene->getFilePath();
+		const std::string driverId = m_scene->getDriverId();
+		try {
+			std::shared_ptr<Slide> slide = openSlide(filePath, driverId);
+			std::shared_ptr<Scene> scene = slide ? slide->getScene(sceneIndex) : nullptr;
+			if (scene && describesSameRaster(*m_scene, *slideio::SceneInternal::getCVScene(scene))) {
+				return { slide, scene };
+			}
+			SLIDEIO_LOG(WARNING) << "Converter: scene " << sceneIndex << " of '" << filePath
+				<< "' re-opened with driver " << driverId
+				<< " differs from the scene being converted; sharing the scene across reader threads";
+		}
+		catch (const std::exception& e) {
+			SLIDEIO_LOG(WARNING) << "Converter: cannot re-open scene " << sceneIndex << " of '"
+				<< filePath << "' with driver " << driverId << ": " << e.what()
+				<< "; sharing the scene across reader threads";
+		}
 	}
-	std::string filePath = m_scene->getFilePath();
-	int sceneIndex = m_scene->getSceneIndex();
-	std::string driverId = m_scene->getDriverId();
-    std::shared_ptr<Slide> slide = openSlide(filePath, driverId);
-    std::shared_ptr<Scene> scene = slide->getScene(sceneIndex);
-	return { slide, scene };
+	return { nullptr, slideio::SceneInternal::createScene(m_scene) };
 }
 
 void TiffConverter::readTiles(const TiffDirectory& dir, const TiffDirectoryStructure& page, BoundedQueue<Tile>& inputQueue,
