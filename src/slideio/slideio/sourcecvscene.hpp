@@ -65,6 +65,7 @@ namespace slideio
     private:
         cv::Mat prepareBlock(const cv::Rect& rect, const char* rectLabel,
             const cv::Size& blockSize, const std::vector<int>& requested,
+            int zSliceIndex, int tFrameIndex,
             std::vector<int>& channels, cv::OutputArray output) const;
 
         std::shared_ptr<ISceneSource> m_source;

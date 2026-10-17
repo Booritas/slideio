@@ -323,6 +323,70 @@ TEST(SourceCVSceneRead, servesA4DReadFromASourceThatImplementsOnlyReadBlock)
     EXPECT_EQ(1, src->calls()[1].zSlice);
 }
 
+TEST(SourceCVSceneRead, rejectsAnOutOfRangeZSliceOrTFrameWithoutCallingTheSource)
+{
+    auto src = std::make_shared<TestSceneSource>();
+    SceneMetadata m = byteMetadata();
+    m.numZSlices = 3;
+    m.numTFrames = 2;
+    auto scene = sceneOver(src, m);
+
+    std::vector<uint8_t> buffer(2 * 2 * 3);
+    EXPECT_THROW(scene->read4DBlock(std::make_tuple(0, 0, 2, 2), std::make_tuple(3, 4),
+                                    std::make_tuple(0, 1), buffer.data(), buffer.size()),
+                 slideio::RuntimeError);
+    EXPECT_THROW(scene->read4DBlock(std::make_tuple(0, 0, 2, 2), std::make_tuple(0, 1),
+                                    std::make_tuple(2, 3), buffer.data(), buffer.size()),
+                 slideio::RuntimeError);
+    EXPECT_THROW(scene->read4DBlock(std::make_tuple(0, 0, 2, 2), std::make_tuple(-1, 0),
+                                    std::make_tuple(0, 1), buffer.data(), buffer.size()),
+                 slideio::RuntimeError);
+    EXPECT_TRUE(src->calls().empty());
+}
+
+TEST(SourceCVSceneRead, aZRangeRunningPastTheSceneNeverReachesTheSource)
+{
+    // The case from the review: z range [0, 5) on a 3-slice scene used to ask
+    // the source for z = 3 and 4. Slices are read one at a time, so the valid
+    // ones may be read before the first bad one throws; the bad ones never are.
+    auto src = std::make_shared<TestSceneSource>();
+    SceneMetadata m = byteMetadata();
+    m.numZSlices = 3;
+    auto scene = sceneOver(src, m);
+
+    std::vector<uint8_t> buffer(2 * 2 * 3 * 5);
+    EXPECT_THROW(scene->read4DBlock(std::make_tuple(0, 0, 2, 2), std::make_tuple(0, 5),
+                                    std::make_tuple(0, 1), buffer.data(), buffer.size()),
+                 slideio::RuntimeError);
+    for (const auto& call : src->calls()) {
+        EXPECT_GE(call.zSlice, 0);
+        EXPECT_LT(call.zSlice, 3);
+    }
+}
+
+TEST(SourceCVSceneLevels, rejectsAnOutOfRangeZSliceOrTFrameWithoutCallingTheSource)
+{
+    for (bool pyramid : {true, false}) {
+        auto src = std::make_shared<TestSceneSource>();
+        src->setHasPyramid(pyramid);
+        SceneMetadata m = byteMetadata();
+        m.numZSlices = 3;
+        m.numTFrames = 2;
+        auto scene = sceneOver(src, m);
+
+        std::vector<uint8_t> buffer(2 * 2 * 3);
+        EXPECT_THROW(scene->readResampledLevel4DBlockChannels(0, std::make_tuple(0, 0, 2, 2),
+                         std::make_tuple(2, 2), {}, std::make_tuple(3, 4), std::make_tuple(0, 1),
+                         buffer.data(), buffer.size()),
+                     slideio::RuntimeError) << "pyramid " << pyramid;
+        EXPECT_THROW(scene->readResampledLevel4DBlockChannels(0, std::make_tuple(0, 0, 2, 2),
+                         std::make_tuple(2, 2), {}, std::make_tuple(0, 1), std::make_tuple(2, 3),
+                         buffer.data(), buffer.size()),
+                     slideio::RuntimeError) << "pyramid " << pyramid;
+        EXPECT_TRUE(src->calls().empty()) << "pyramid " << pyramid;
+    }
+}
+
 TEST(SourceCVSceneRead, rejectsADegenerateRectBeforeCallingTheSource)   // Review Focus 1
 {
     auto src = std::make_shared<TestSceneSource>();

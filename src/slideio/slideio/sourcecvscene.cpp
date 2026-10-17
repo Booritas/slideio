@@ -70,6 +70,7 @@ const LevelInfo* SourceCVScene::getZoomLevelInfo(int level) const
 
 cv::Mat SourceCVScene::prepareBlock(const cv::Rect& rect, const char* rectLabel,
     const cv::Size& blockSize, const std::vector<int>& requested,
+    int zSliceIndex, int tFrameIndex,
     std::vector<int>& channels, cv::OutputArray output) const
 {
     if (blockSize.width <= 0 || blockSize.height <= 0) {
@@ -80,6 +81,17 @@ cv::Mat SourceCVScene::prepareBlock(const cv::Rect& rect, const char* rectLabel,
         RAISE_RUNTIME_ERROR << "SourceCVScene: " << rectLabel
                             << " rectangle must have positive size, got "
                             << rect.width << "x" << rect.height;
+    }
+    // Neither Scene nor CVScene::assemble4DBlock checks these: file drivers
+    // validate them themselves, so this adapter must too, before the source
+    // sees an index the scene never declared.
+    if (zSliceIndex < 0 || zSliceIndex >= m_metadata.numZSlices) {
+        RAISE_RUNTIME_ERROR << "SourceCVScene: z slice " << zSliceIndex
+                            << " out of range [0, " << m_metadata.numZSlices << ")";
+    }
+    if (tFrameIndex < 0 || tFrameIndex >= m_metadata.numTFrames) {
+        RAISE_RUNTIME_ERROR << "SourceCVScene: time frame " << tFrameIndex
+                            << " out of range [0, " << m_metadata.numTFrames << ")";
     }
     const int numChannels = getNumChannels();
     channels = requested;
@@ -123,7 +135,8 @@ void SourceCVScene::readResampledBlockChannelsEx(const cv::Rect& blockRect,
     int zSliceIndex, int tFrameIndex, cv::OutputArray output)
 {
     std::vector<int> channels;
-    cv::Mat mat = prepareBlock(blockRect, "block", blockSize, componentIndices, channels, output);
+    cv::Mat mat = prepareBlock(blockRect, "block", blockSize, componentIndices,
+                               zSliceIndex, tFrameIndex, channels, output);
     m_source->readBlock(Rect(blockRect), Size(blockSize.width, blockSize.height),
                         channels, zSliceIndex, tFrameIndex,
                         mat.data, mat.total() * mat.elemSize());
@@ -135,7 +148,8 @@ void SourceCVScene::readResampledLevelBlockChannelsEx(int level, const cv::Rect&
 {
     validateLevel(level);
     std::vector<int> channels;
-    cv::Mat mat = prepareBlock(levelRect, "level", blockSize, channelIndices, channels, output);
+    cv::Mat mat = prepareBlock(levelRect, "level", blockSize, channelIndices,
+                               zSliceIndex, tFrameIndex, channels, output);
 
     const bool served = m_source->readLevelBlock(
         level, Rect(levelRect), Size(blockSize.width, blockSize.height),
