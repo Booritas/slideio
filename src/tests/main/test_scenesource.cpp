@@ -489,3 +489,22 @@ TEST(SourceCVSceneLevels, rejectsADegenerateLevelRectBeforeCallingTheSource)   /
         EXPECT_TRUE(src->calls().empty());
     }
 }
+
+TEST(SourceCVSceneLevels, declinedFallbackKeepsTheRequestedChannelType)
+{
+    SceneMetadata m = twoLevelMetadata();
+    m.channelDataTypes = {DataType::DT_Byte, DataType::DT_Float32};
+    auto src = std::make_shared<TestSceneSource>();
+    src->setHasPyramid(false);
+    auto scene = sceneOver(src, m);
+
+    // Wholly outside level 1 (200x150): the base would type the block by channel 0.
+    std::vector<float> buffer(4 * 4, 7.f);
+    EXPECT_NO_THROW(scene->readResampledLevelBlockChannels(
+        1, std::make_tuple(500, 500, 4, 4), std::make_tuple(4, 4), {1},
+        reinterpret_cast<uint8_t*>(buffer.data()), buffer.size() * sizeof(float)));
+    for (float v : buffer) {
+        EXPECT_EQ(0.f, v);
+    }
+    EXPECT_TRUE(src->calls().empty());
+}

@@ -52,6 +52,10 @@ namespace slideio
             int zSliceIndex, int tFrameIndex, cv::OutputArray output) override;
 
     private:
+        cv::Mat prepareBlock(const cv::Rect& rect, const char* rectLabel,
+            const cv::Size& blockSize, const std::vector<int>& requested,
+            std::vector<int>& channels, cv::OutputArray output) const;
+
         std::shared_ptr<ISceneSource> m_source;
         SceneMetadata m_metadata;
         std::string m_driverId;
