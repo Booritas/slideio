@@ -6,6 +6,8 @@ set(SOURCE_FILES
    ${SOURCE_FILES}
    ${CMAKE_CURRENT_SOURCE_DIR}/imagedrivermanager.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/imagedrivermanager.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/sourcecvscene.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/sourcecvscene.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/slideio.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/slideio.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/slideio_def.hpp
