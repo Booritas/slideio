@@ -188,6 +188,17 @@ namespace slideio
          * A scene that wraps another forwards its origin's answer.
          */
         virtual bool canReopenByPath() const { return true; }
+        /**@brief the data type of a block of @p channelIndices.
+         *
+         * That of the first requested channel, or of channel 0 when none is
+         * named (or the first is out of range, which the read rejects later).
+         * A cv::Mat carries one depth, so typing a block by channel 0 whatever
+         * was requested sizes it wrongly for a scene whose channels differ.
+         *
+         * Public so that code allocating a block for a scene's read -- the
+         * converter's border tiles, a CVScene subclass's own blocks -- types
+         * it by the same rule as the blocks CVScene allocates itself.*/
+        DataType blockDataType(const std::vector<int>& channelIndices) const;
         /**@brief reads multi-dimensional raster block.
          *
          * @param blockRect : rectangle of the block to be read. The rectangle is represented by cv::Rect structure
@@ -346,13 +357,6 @@ namespace slideio
          * Typed by blockDataType(): the first requested channel, not channel 0.*/
         void initializeSceneBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices,
                                   cv::OutputArray output) const;
-        /**@brief the data type of a block of @p channelIndices.
-         *
-         * That of the first requested channel, or of channel 0 when none is
-         * named (or the first is out of range, which the read rejects later).
-         * A cv::Mat carries one depth, so typing a block by channel 0 whatever
-         * was requested sizes it wrongly for a scene whose channels differ.*/
-        DataType blockDataType(const std::vector<int>& channelIndices) const;
         /**@brief reads part of a block: the rect, size and output of that part.*/
         using BlockReader = std::function<void(const cv::Rect&, const cv::Size&, cv::OutputArray)>;
         /**@brief reads a rectangle that may extend beyond @p bounds.

@@ -124,9 +124,9 @@ std::vector<int> SourceCVScene::validateRequest(const std::vector<int>& requeste
 cv::Mat SourceCVScene::allocateBlock(const cv::Size& blockSize,
     const std::vector<int>& channels, cv::OutputArray output) const
 {
-    // Typed by the requested channels, as CVScene::blockDataType does for the
-    // blocks the base allocates, so the two always agree.
-    const int depth = CVTools::toOpencvType(m_metadata.channelDataTypes[channels.front()]);
+    // Typed by CVScene::blockDataType, the rule the base types the blocks it
+    // allocates by, so the two always agree.
+    const int depth = CVTools::toOpencvType(blockDataType(channels));
     output.create(blockSize, CV_MAKETYPE(depth, static_cast<int>(channels.size())));
     cv::Mat mat = output.getMat();
     if (!mat.isContinuous()) {
