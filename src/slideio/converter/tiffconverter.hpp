@@ -41,7 +41,8 @@ namespace slideio
 				, m_encodersIdleTimeNs(other.m_encodersIdleTimeNs.load())
 				, m_writerIdleTimeNs(other.m_writerIdleTimeNs.load())
 				, m_numReaderThreads(other.m_numReaderThreads)
-				, m_numEncoderThreads(other.m_numEncoderThreads) {}
+				, m_numEncoderThreads(other.m_numEncoderThreads)
+				, m_cloneMode(other.m_cloneMode) {}
 			TiffConverter& operator=(const TiffConverter& other) {
 				if (this != &other) {
 					m_pages = other.m_pages;
@@ -58,6 +59,7 @@ namespace slideio
 					m_writerIdleTimeNs.store(other.m_writerIdleTimeNs.load());
 					m_numReaderThreads = other.m_numReaderThreads;
 					m_numEncoderThreads = other.m_numEncoderThreads;
+					m_cloneMode = other.m_cloneMode;
 				}
 				return *this;
 			}
@@ -130,14 +132,15 @@ namespace slideio
                 return m_pages.emplace_back();
             }
             DataType getChannelRangeDataType(const Range& channelRange) const;
+            /**@brief a reader thread's own copy of the scene, or {} to share it.*/
+            std::pair<std::shared_ptr<Slide>, std::shared_ptr<Scene>> tryReopenScene() const;
+            void checkOMETIFFRequirements() const;
             int computeChannelChunk(int firstChannel, const std::shared_ptr<CVScene>& scene) const;
             std::string createSVSImageDescription() const;
             std::string createImageDescriptionTag() const;
             TiffDirectory setUpDirectory(const TiffDirectoryStructure& page);
             void writeDirectoryData(TiffDirectory& dir, const TiffDirectoryStructure& page,
                 const std::function<void(int)>& cb, int param);
-            void writeDirectoryDataST(TiffDirectory& dir, const TiffDirectoryStructure& page,
-                const std::function<void(int)>& cb, int tileBatchSize);
             void writeDirectoryDataMT(TiffDirectory& dir, const TiffDirectoryStructure& page,
                                       const std::function<void(int)>& cb, int tileBatchSize);
             void computeCropRect();
@@ -174,6 +177,15 @@ namespace slideio
 			std::atomic<int64_t> m_writerIdleTimeNs{0};
 			int m_numReaderThreads = 0;
 			int m_numEncoderThreads = 0;
+			// Whether reader threads re-open the scene or share it, settled
+			// once per createTiff before any reader starts.
+			enum class CloneMode { Undecided, Reopen, Share };
+			CloneMode m_cloneMode = CloneMode::Undecided;
+			// The scene createTiff re-opened to settle m_cloneMode, handed to
+			// the first reader thread that asks rather than opened again. Not
+			// copied with the converter: it belongs to one conversion.
+			mutable std::mutex m_probedCloneMutex;
+			mutable std::pair<std::shared_ptr<Slide>, std::shared_ptr<Scene>> m_probedClone;
 		};
     }
 }

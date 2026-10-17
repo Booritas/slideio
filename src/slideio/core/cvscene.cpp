@@ -107,7 +107,7 @@ void CVScene::assemble4DBlock(const cv::Size& blockSize, const std::vector<int>&
     if (tDimIndex > 0)
         dims.push_back(frameCount);
 
-    const slideio::DataType dt = getChannelDataType(0);
+    const slideio::DataType dt = blockDataType(channelIndices);
     const int cvDt = CVTools::toOpencvType(dt);
     std::vector<int> indices;
 
@@ -204,6 +204,12 @@ void CVScene::readResampledLevel4DBlockChannels(int level, const cv::Rect& level
 std::shared_ptr<CVScene> CVScene::getAuxImage(const std::string& sceneName) const
 {
     throw std::runtime_error("The scene does not have any auxiliary image");
+}
+
+std::shared_ptr<CVScene> CVScene::rewrapOrigin(const std::shared_ptr<CVScene>& /*origin*/) const
+{
+    RAISE_RUNTIME_ERROR << "Scene '" << getName() << "' of driver '" << getDriverId()
+        << "' wraps no origin scene and cannot be re-created over one";
 }
 
 
@@ -325,9 +331,23 @@ std::vector<int> CVScene::getValidChannelIndices(const std::vector<int>& channel
     return validChannelIndices;
 }
 
+int CVScene::blockReferenceChannel(const std::vector<int>& channelIndices) const
+{
+    if (!channelIndices.empty() && channelIndices.front() >= 0
+        && channelIndices.front() < getNumChannels()) {
+        return channelIndices.front();
+    }
+    return 0;
+}
+
+DataType CVScene::blockDataType(const std::vector<int>& channelIndices) const
+{
+    return getChannelDataType(blockReferenceChannel(channelIndices));
+}
+
 void CVScene::initializeSceneBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices, cv::OutputArray output) const
 {
-    const slideio::DataType dt = this->getChannelDataType(0);
+    const slideio::DataType dt = blockDataType(channelIndices);
     int numChannels = static_cast<int>(channelIndices.size());
     if (numChannels == 0) {
         numChannels = getNumChannels();

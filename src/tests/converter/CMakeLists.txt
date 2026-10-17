@@ -12,6 +12,7 @@ set(TEST_SOURCES
   test_tiffconverter.cpp
   test_tiffstructure.cpp
   test_converterparameters.cpp
+  test_sourcescene_conversion.cpp
 )
 
 add_executable(${TEST_NAME} ${TEST_SOURCES})

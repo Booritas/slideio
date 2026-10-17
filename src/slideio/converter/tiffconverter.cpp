@@ -22,6 +22,7 @@
 #include <condition_variable>
 #include <atomic>
 #include <unordered_map>
+#include <utility>
 
 #include "slideio/core/log.hpp"
 #include "slideio/core/tools/boundedqueue.hpp"
@@ -206,8 +207,10 @@ std::string TiffConverter::createOMETiffDescription() const {
     pixels->SetAttribute("BigEndian", false);
     pixels->SetAttribute("Interleaved", interleaved);
 
-    // DataType mapping
-    auto dt = m_scene->getChannelDataType(0);
+    // DataType mapping: the type of the channels being written, not channel
+    // 0's. checkOMETIFFRequirements has rejected a range of mixed types, so
+    // its first channel's type is every channel's.
+    const DataType dt = m_scene->getChannelDataType(sceneChannelRange.start);
     const char* typeStr = "uint8";
     switch (dt) {
     case DataType::DT_Byte: typeStr = "uint8";
@@ -306,6 +309,7 @@ void TiffConverter::createFileLayout(const std::shared_ptr<CVScene>& scene, cons
     }
     m_scene = scene;
     m_parameters = parameters;
+    m_cloneMode = CloneMode::Undecided;
     slideio::converter::updateNotDefinedParameters(m_parameters, scene);
     m_pages.clear();
     m_file.reset();
@@ -436,75 +440,9 @@ void TiffConverter::writeDirectoryData(TiffDirectory& dir, const TiffDirectorySt
         RAISE_RUNTIME_ERROR << "Converter: Invalid zoom level range in page! Expected: 1, received: " << page.
             getZoomLevelRange().size();
     }
-    if (m_parameters.getEncodeParameters()->getCompression() == Compression::Jpeg2000
-        || m_parameters.getEncodeParameters()->getCompression() == Compression::Jpeg
-        || param != 1) {
-        writeDirectoryDataMT(dir, page, cb, param);
-    }
-    else {
-        writeDirectoryDataST(dir, page, cb, param);
-    }
-}
-
-void TiffConverter::writeDirectoryDataST(TiffDirectory& dir, const TiffDirectoryStructure& page, const std::function<void(int)>& cb, int tileBatchSize) {
-    if (page.getZoomLevelRange().size() != 1) {
-        RAISE_RUNTIME_ERROR << "Converter: Invalid zoom level range in page! Expected: 1, received: " << page.getZoomLevelRange().size();
-    }
-    int zoomLevel = page.getZoomLevelRange().start;
-    cv::Size tileSize = cv::Size(dir.tileWidth, dir.tileHeight);
-    cv::Size sceneTileSize = ConverterTools::scaleSize(tileSize, zoomLevel, false);
-    std::vector<uint8_t> buffer;
-    if (m_parameters.getEncoding() == Compression::Jpeg2000) {
-        int dataSize = tileSize.width * tileSize.height * m_scene->getNumChannels() * Tools::dataTypeSize(m_scene->getChannelDataType(0));
-        buffer.resize(dataSize);
-    }
-    cv::Mat block;
-    std::shared_ptr<const EncodeParameters> encoding = m_parameters.getEncodeParameters();
-    const int xEnd = m_cropRect.x + m_cropRect.width;
-    const int yEnd = m_cropRect.y + m_cropRect.height;
-    const int slice = page.getZSliceRange().start;
-    const int frame = page.getTFrameRange().start;
-    std::vector<int> channels;
-    channels.reserve(dir.channels);
-    for (int channel = 0; channel < dir.channels; ++channel) {
-        channels.push_back(page.getChannelRange().start + channel);
-    }
-    const int batchWidth = tileBatchSize * sceneTileSize.width;
-    for (int y = m_cropRect.y; y < yEnd; y += sceneTileSize.height) {
-        for (int x = m_cropRect.x; x < xEnd; x += batchWidth) {
-            int numTiles = 1 + (xEnd - x - 1) / sceneTileSize.width;
-            numTiles = std::min(numTiles, tileBatchSize);
-            numTiles = std::max(1, numTiles);
-            const int blockWidth = numTiles * sceneTileSize.width;
-            cv::Rect blockRect(x, y, blockWidth, sceneTileSize.height);
-            ConverterTools::readTile(m_scene, channels, zoomLevel, blockRect, slice, frame, block);
-            if (block.rows != tileSize.height || block.cols != tileSize.width * numTiles) {
-                RAISE_RUNTIME_ERROR << "Converter: Unexpected tile size ("
-                    << block.cols << ","
-                    << block.rows << "). Expected tile size: ("
-                    << tileSize.width << ","
-                    << tileSize.height << ").";
-            }
-            blockRect.x -= m_cropRect.x;
-            blockRect.y -= m_cropRect.y;
-            cv::Rect zoomLevelRect = ConverterTools::scaleRect(blockRect, zoomLevel, true);
-            for (int blockTile = 0; blockTile < numTiles; ++blockTile) {
-                cv::Rect tileRect(blockTile * tileSize.width, 0, tileSize.width, tileSize.height);
-                cv::Mat tile;
-                block(tileRect).copyTo(tile);
-                const int tileWritePosX = zoomLevelRect.x + blockTile * tileSize.width;
-                m_file->writeTile(tileWritePosX, zoomLevelRect.y, dir.slideioCompression, *encoding, tile, buffer.data(), (int)buffer.size());
-                m_currentTile++;
-                if (cb) {
-                    double proc = 100. * (double)m_currentTile / (double)m_totalTiles;
-                    if (const int lproc = std::lround(proc); lproc != m_lastProgress) {
-                        cb(lproc);
-                        m_lastProgress = lproc;
-                    }
-                }
-            }
-        }
-    }
+    // setUpDirectory accepts only Jpeg and Jpeg2000, both written by the
+    // multithreaded writer whatever the batch size.
+    writeDirectoryDataMT(dir, page, cb, param);
 }
 
 void TiffConverter::createTileQueue(const TiffDirectory& dir, const TiffDirectoryStructure& page, int tileBatchSize, std::queue<Block>& queue)
@@ -534,13 +472,95 @@ void TiffConverter::createTileQueue(const TiffDirectory& dir, const TiffDirector
     }
 }
 
+namespace
+{
+    // Cheap invariants a re-opened scene must share with the scene being
+    // converted before the converter may read the one in place of the other.
+    bool describesSameRaster(const CVScene& original, const CVScene& reopened)
+    {
+        if (original.getRect() != reopened.getRect()
+            || original.getNumChannels() != reopened.getNumChannels()
+            || original.getNumZSlices() != reopened.getNumZSlices()
+            || original.getNumTFrames() != reopened.getNumTFrames()) {
+            return false;
+        }
+        for (int channel = 0; channel < original.getNumChannels(); ++channel) {
+            if (original.getChannelDataType(channel) != reopened.getChannelDataType(channel)) {
+                return false;
+            }
+        }
+        return true;
+    }
+}
+
+std::pair<std::shared_ptr<Slide>, std::shared_ptr<Scene>> TiffConverter::tryReopenScene() const {
+	// Each reader thread gets a scene of its own by re-opening the file, when
+	// that yields the scene being converted. A wrapper (a transform) is not
+	// its file's content, so the scene it wraps is re-opened and the wrapper
+	// re-created over it (getOriginScene/rewrapOrigin). The innermost scene
+	// must say it can be re-opened: a computed scene (makeScene) and an
+	// auxiliary image do not, through canReopenByPath(), and a negative index
+	// names no scene. Whatever re-opens is checked against the original. Any
+	// failure returns no scene, and the caller shares the original instead.
+	if (!m_scene) {
+		return {};
+	}
+	std::vector<std::shared_ptr<CVScene>> wrappers;
+	std::shared_ptr<CVScene> origin = m_scene;
+	while (std::shared_ptr<CVScene> inner = origin->getOriginScene()) {
+		wrappers.push_back(origin);
+		origin = inner;
+	}
+	const int sceneIndex = origin->getSceneIndex();
+	if (!origin->canReopenByPath() || sceneIndex < 0) {
+		return {};
+	}
+	const std::string filePath = origin->getFilePath();
+	const std::string driverId = origin->getDriverId();
+	try {
+		std::shared_ptr<Slide> slide = openSlide(filePath, driverId);
+		std::shared_ptr<Scene> scene = slide ? slide->getScene(sceneIndex) : nullptr;
+		std::shared_ptr<CVScene> clone = scene ? slideio::SceneInternal::getCVScene(scene) : nullptr;
+		if (clone && describesSameRaster(*origin, *clone)) {
+			for (auto wrapper = wrappers.rbegin(); wrapper != wrappers.rend(); ++wrapper) {
+				clone = (*wrapper)->rewrapOrigin(clone);
+			}
+			if (describesSameRaster(*m_scene, *clone)) {
+				return { slide, slideio::SceneInternal::createScene(clone) };
+			}
+		}
+		SLIDEIO_LOG(WARNING) << "Converter: scene " << sceneIndex << " of '" << filePath
+			<< "' re-opened with driver " << driverId
+			<< " differs from the scene being converted; sharing the scene across reader threads";
+	}
+	catch (const std::exception& e) {
+		SLIDEIO_LOG(WARNING) << "Converter: cannot re-open scene " << sceneIndex << " of '"
+			<< filePath << "' with driver " << driverId << ": " << e.what()
+			<< "; sharing the scene across reader threads";
+	}
+	return {};
+}
+
 std::pair<std::shared_ptr<Slide>, std::shared_ptr<Scene>> TiffConverter::cloneScene() const {
-	std::string filePath = m_scene->getFilePath();
-	int sceneIndex = m_scene->getSceneIndex();
-	std::string driverId = m_scene->getDriverId();
-    std::shared_ptr<Slide> slide = openSlide(filePath, driverId);
-    std::shared_ptr<Scene> scene = slide->getScene(sceneIndex);
-	return { slide, scene };
+	// createTiff settles re-open or share once, before any reader starts, so a
+	// scene that cannot be re-opened is tried (and warned about) once per
+	// conversion rather than once per reader thread per page. Undecided only
+	// when called outside createTiff, and then decided here.
+	if (m_cloneMode == CloneMode::Reopen) {
+		std::lock_guard<std::mutex> lock(m_probedCloneMutex);
+		if (m_probedClone.second) {
+			return std::exchange(m_probedClone, {});
+		}
+	}
+	if (m_cloneMode != CloneMode::Share) {
+		auto clone = tryReopenScene();
+		if (clone.second) {
+			return clone;
+		}
+	}
+	// Shared: every reader thread gets the same CVScene, whose base class
+	// serialises block reads unless the scene reports supportsConcurrentReads().
+	return { nullptr, slideio::SceneInternal::createScene(m_scene) };
 }
 
 void TiffConverter::readTiles(const TiffDirectory& dir, const TiffDirectoryStructure& page, BoundedQueue<Tile>& inputQueue,
@@ -556,12 +576,14 @@ void TiffConverter::readTiles(const TiffDirectory& dir, const TiffDirectoryStruc
 	for (int channel = 0; channel < dir.channels; ++channel) {
 		channels.push_back(page.getChannelRange().start + channel);
 	}
-	auto clone = cloneScene();
-	auto slide = clone.first;
-	auto scene = clone.second;
 	int64_t localIdleNs = 0;
 
 	try {
+		// Inside the try: a scene that cannot be cloned must surface as an
+		// exception on the caller's thread, not terminate the process.
+		auto clone = cloneScene();
+		auto slide = clone.first;
+		auto scene = clone.second;
 		cv::Mat block;
 		while (true) {
 			Block currentBlock;
@@ -864,6 +886,21 @@ void TiffConverter::writeDirectoryDataMT(TiffDirectory& dir, const TiffDirectory
 
 void TiffConverter::createTiff(const std::string& filePath, const std::function<void(int)>& cb, int tileBatchSize) {
     m_currentTile = 0;
+    {
+        // The probe's copy is not wasted: the first reader thread takes it.
+        std::lock_guard<std::mutex> lock(m_probedCloneMutex);
+        m_probedClone = tryReopenScene();
+        m_cloneMode = m_probedClone.second ? CloneMode::Reopen : CloneMode::Share;
+    }
+    // Released however createTiff ends: a copy no reader took before a write
+    // failed would otherwise hold its file open as long as the converter lives.
+    struct ProbedCloneRelease {
+        const TiffConverter& converter;
+        ~ProbedCloneRelease() {
+            std::lock_guard<std::mutex> lock(converter.m_probedCloneMutex);
+            converter.m_probedClone = {};
+        }
+    } releaseProbedClone{*this};
     m_file.reset(new TIFFKeeper(filePath, false));
     m_filePath = filePath;
     std::string description = createImageDescriptionTag();
@@ -949,9 +986,26 @@ void TiffConverter::checkEncodingRequirements() const {
     }
 }
 
+void TiffConverter::checkOMETIFFRequirements() const {
+    // One OME Pixels element states one Type for every channel it holds, while
+    // each directory is written in its own channels' type: a range of mixed
+    // types would produce a file whose metadata contradicts its pixels.
+    // Only the channels the scene has: validating the range itself is not
+    // this check's business, and the layout tolerates one that runs past them.
+    const Range& requested = m_parameters.getChannelRange();
+    const Range range(requested.start, std::min(requested.end, m_scene->getNumChannels()));
+    if (range.size() > 1 && getChannelRangeDataType(range) == DataType::DT_Unknown) {
+        RAISE_RUNTIME_ERROR << "Converter: Cannot convert channels of different types to OME-TIFF;"
+            " convert a range of channels that share one type";
+    }
+}
+
 void TiffConverter::checkContainerRequirements() const {
     if (m_parameters.getFormat() == ImageFormat::SVS) {
         checkSVSRequirements();
+    }
+    else if (m_parameters.getFormat() == ImageFormat::OME_TIFF) {
+        checkOMETIFFRequirements();
     }
 }
 

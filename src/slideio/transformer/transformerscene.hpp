@@ -63,9 +63,15 @@ namespace slideio
         void readResampledLevelBlockChannelsEx(int level, const cv::Rect& levelRect,
             const cv::Size& blockSize, const std::vector<int>& componentIndices,
             int zSliceIndex, int tFrameIndex, cv::OutputArray output) override;
-        std::shared_ptr<CVScene> getOriginScene() const {
+        std::shared_ptr<CVScene> getOriginScene() const override {
             return m_originScene;
         }
+        /**@brief the same transformations over another origin.
+         *
+         * Built from the transformations as they were handed in, not their
+         * bound forms, so each is bound afresh against @p origin -- a bound
+         * ColorManagement holds an lcms2 transform compiled for one source.*/
+        std::shared_ptr<CVScene> rewrapOrigin(const std::shared_ptr<CVScene>& origin) const override;
         /**@brief a transformed scene reads as concurrently as its origin does.
          *
          * Every transformation applies as a const, stateless operation over a
@@ -75,6 +81,20 @@ namespace slideio
          * serialised reads.*/
         bool supportsConcurrentReads() const override {
             return m_originScene->supportsConcurrentReads();
+        }
+        /**@brief never: re-opening a transform's path yields its origin.
+         *
+         * getFilePath(), getDriverId() and getSceneIndex() forward the
+         * origin's, so opening them again gives the untransformed origin, not
+         * this scene -- a converter that re-opened it would silently write
+         * raw pixels. Code wanting a copy per thread re-opens the origin
+         * instead and calls rewrapOrigin() over it; failing that, it shares
+         * the transform, which is safe across threads: reads go through the
+         * origin's *Ex variants, the transformations are stateless const
+         * operations, and a non-concurrent origin serialises every one of
+         * them on its own mutex (see readSerialisationMutex()).*/
+        bool canReopenByPath() const override {
+            return false;
         }
     protected:
         /**@brief a transformed scene is serialised by its origin's lock, not its own.
@@ -103,6 +123,7 @@ namespace slideio
     private:
         std::shared_ptr<CVScene> m_originScene;
         std::list<std::shared_ptr<Transformation>> m_transformations;
+        std::list<std::shared_ptr<Transformation>> m_unboundTransformations;
         std::vector<DataType> m_channelDataTypes;
         int m_inflationValue;
     };

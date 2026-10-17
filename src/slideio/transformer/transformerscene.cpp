@@ -13,7 +13,7 @@ using namespace slideio;
 
 TransformerScene::TransformerScene(std::shared_ptr<CVScene> originScene,
                                    const std::list<std::shared_ptr<Transformation>>& list) :
-    m_originScene(originScene), m_inflationValue(0)
+    m_originScene(originScene), m_unboundTransformations(list), m_inflationValue(0)
 {
     // Binding and channel-type accumulation are one loop, not two passes.
     //
@@ -66,6 +66,14 @@ TransformerScene::TransformerScene(std::shared_ptr<CVScene> originScene,
     for (int level = 0; level < originScene->getNumZoomLevels(); ++level) {
         m_levels.push_back(*originScene->getZoomLevelInfo(level));
     }
+}
+
+std::shared_ptr<CVScene> TransformerScene::rewrapOrigin(const std::shared_ptr<CVScene>& origin) const
+{
+    if (!origin) {
+        RAISE_RUNTIME_ERROR << "TransformerScene: cannot re-create a transform over a null origin";
+    }
+    return std::make_shared<TransformerScene>(origin, m_unboundTransformations);
 }
 
 std::string TransformerScene::getFilePath() const

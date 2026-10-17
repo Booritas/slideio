@@ -6,12 +6,17 @@ set(SOURCE_FILES
    ${SOURCE_FILES}
    ${CMAKE_CURRENT_SOURCE_DIR}/imagedrivermanager.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/imagedrivermanager.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/sourcecvscene.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/sourcecvscene.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/scenesourcefactory.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/slideio.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/slideio.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/slideio_def.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/slide.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/slide.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/scene.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/scenemetadata.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/scenesource.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/sceneinternal.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/scene.cpp
    )
