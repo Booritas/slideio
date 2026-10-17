@@ -76,12 +76,12 @@ namespace slideio
          * the surviving part in scene coordinates. Overriding receives
          * levelRect unclamped and owns its own bounds handling.
          */
-        virtual bool readLevelBlock(int level,
-                                    const Rect& levelRect,
-                                    const Size& blockSize,
-                                    const std::vector<int>& channelIndices,
-                                    int zSlice, int tFrame,
-                                    void* buffer, size_t bufferSize) {
+        virtual bool readLevelBlock(int /*level*/,
+                                    const Rect& /*levelRect*/,
+                                    const Size& /*blockSize*/,
+                                    const std::vector<int>& /*channelIndices*/,
+                                    int /*zSlice*/, int /*tFrame*/,
+                                    void* /*buffer*/, size_t /*bufferSize*/) {
             return false;
         }
 
@@ -102,7 +102,7 @@ namespace slideio
         }
 
         /**@brief An auxiliary image by name, or nullptr. nullptr by default.*/
-        virtual std::shared_ptr<ISceneSource> getAuxImage(const std::string& name) const {
+        virtual std::shared_ptr<ISceneSource> getAuxImage(const std::string& /*name*/) const {
             return nullptr;
         }
     };
