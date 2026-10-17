@@ -641,3 +641,70 @@ TEST(MakeScene, rejectsNonPositiveSliceAndFrameCounts)
     t.numTFrames = -1;
     EXPECT_THROW(makeScene(src, t), slideio::RuntimeError);
 }
+
+namespace {
+    std::string makeSceneMessage(const SceneMetadata& m)
+    {
+        auto src = std::make_shared<TestSceneSource>();
+        try {
+            makeScene(src, m);
+        }
+        catch (const slideio::RuntimeError& e) {
+            return e.what();
+        }
+        return "<no RuntimeError thrown>";
+    }
+
+    void expectRejected(const SceneMetadata& m, const char* fragment)
+    {
+        const std::string msg = makeSceneMessage(m);
+        EXPECT_NE(std::string::npos, msg.find(fragment))
+            << "expected a message containing \"" << fragment << "\", got: " << msg;
+    }
+}
+
+TEST(MakeScene, rejectsTheNoneChannelDataType)
+{
+    SceneMetadata m = byteMetadata();
+    m.channelDataTypes[0] = DataType::DT_None;
+    expectRejected(m, "channelDataTypes[0] is not a usable data type");
+}
+
+TEST(MakeScene, rejectsARectWithNonPositiveHeight)
+{
+    SceneMetadata m = byteMetadata();
+    m.rect = Rect(0, 0, 400, 0);
+    expectRejected(m, "rect must have positive size");
+}
+
+TEST(MakeScene, rejectsALevelZeroWithTheRightWidthButWrongHeight)
+{
+    SceneMetadata m = byteMetadata();
+    m.levels[0].setSize(Size(400, 299));
+    expectRejected(m, "differs from rect");
+}
+
+TEST(MakeScene, rejectsAnUpperLevelWithNonPositiveSize)
+{
+    SceneMetadata m = twoLevelMetadata();
+    m.levels[1].setSize(Size(0, 150));
+    expectRejected(m, "level 1 has non-positive size");
+}
+
+TEST(MakeScene, rejectsAnUpperLevelWithNonPositiveScale)
+{
+    SceneMetadata negative = twoLevelMetadata();
+    negative.levels[1].setScale(-0.5);
+    expectRejected(negative, "level 1 has non-positive scale");
+
+    SceneMetadata zero = twoLevelMetadata();
+    zero.levels[1].setScale(0.0);
+    expectRejected(zero, "level 1 has non-positive scale");
+}
+
+TEST(MakeScene, rejectsANegativeTileDimension)
+{
+    SceneMetadata m = byteMetadata();
+    m.levels[0].setTileSize(Size(-1, 256));
+    expectRejected(m, "level 0 has a negative tile size");
+}
