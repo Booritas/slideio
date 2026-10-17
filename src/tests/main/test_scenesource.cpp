@@ -1078,6 +1078,40 @@ TEST(MakeScene, acceptsAnUpperLevelSizeRoundedEitherWay)
     EXPECT_NO_THROW(makeScene(src, m));
 }
 
+namespace {
+    // A scene wide enough that the old tolerance (1 px + 1%) was 501 px.
+    SceneMetadata wideTwoLevelMetadata(int level1Width)
+    {
+        SceneMetadata m;
+        m.rect = Rect(0, 0, 100000, 300);
+        m.channelDataTypes.assign(1, DataType::DT_Byte);
+        m.levels.emplace_back(0, Size(100000, 300), 1.0, 40.0, Size(256, 256));
+        m.levels.emplace_back(1, Size(level1Width, 150), 0.5, 20.0, Size(256, 256));
+        return m;
+    }
+}
+
+TEST(MakeScene, rejectsALevelSizeMoreThanAPixelFromItsScale)
+{
+    // 50500 for an expected 50000: the old 1% tolerance accepted it, and the
+    // level read path then clamped against a level 1% larger than the one
+    // getScale() maps to scene coordinates.
+    const std::string msg = makeSceneMessage(wideTwoLevelMetadata(50500));
+    EXPECT_NE(std::string::npos, msg.find("level 1")) << msg;
+    EXPECT_NE(std::string::npos, msg.find("50500x150")) << msg;      // declared
+    EXPECT_NE(std::string::npos, msg.find("50000x150")) << msg;      // expected
+}
+
+TEST(MakeScene, acceptsALevelSizeWithinAPixelOfItsScale)
+{
+    auto src = std::make_shared<TestSceneSource>();
+    EXPECT_NO_THROW(makeScene(src, wideTwoLevelMetadata(50001)));
+    EXPECT_NO_THROW(makeScene(src, wideTwoLevelMetadata(49999)));
+    EXPECT_NO_THROW(makeScene(src, wideTwoLevelMetadata(50000)));
+    EXPECT_THROW(makeScene(src, wideTwoLevelMetadata(50002)), slideio::RuntimeError);
+    EXPECT_THROW(makeScene(src, wideTwoLevelMetadata(49998)), slideio::RuntimeError);
+}
+
 TEST(MakeScene, rejectsANegativeTileDimension)
 {
     SceneMetadata m = byteMetadata();

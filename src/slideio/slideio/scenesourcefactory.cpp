@@ -7,11 +7,29 @@
 #include "slideio/slideio/sourcecvscene.hpp"
 #include "slideio/core/exceptions.hpp"
 #include <cmath>
+#include <sstream>
+#include <string>
 
 using namespace slideio;
 
 namespace
 {
+    // A level dimension for a message: whole numbers without a fraction or an
+    // exponent, so a size reads "50000x150" whatever its magnitude.
+    std::string formatDimension(double value)
+    {
+        std::ostringstream out;
+        if (value == std::floor(value) && std::fabs(value) < 1.e15) {
+            out << static_cast<long long>(value);
+        }
+        else {
+            out.setf(std::ios::fixed);
+            out.precision(1);
+            out << value;
+        }
+        return out.str();
+    }
+
     void validate(const std::shared_ptr<ISceneSource>& source, const SceneMetadata& m)
     {
         if (!source) {
@@ -71,17 +89,20 @@ namespace
             }
             // The level read path clamps against getSize() but maps to scene
             // coordinates through getScale(), so the two must describe the
-            // same level. One pixel of rounding either way, plus 1% for
-            // pyramids whose heights were rounded independently of the widths.
+            // same level: each dimension within one pixel of the scene's times
+            // the scale, which accepts it rounded down or up and nothing more.
+            // A relative allowance would grow with the slide -- 1% of a
+            // 100000-pixel-wide scene is 1000 pixels of disagreement.
             const double expectedWidth = m.rect.width * info.getScale();
             const double expectedHeight = m.rect.height * info.getScale();
-            if (std::fabs(info.getSize().width - expectedWidth) > 1.0 + 0.01 * expectedWidth ||
-                std::fabs(info.getSize().height - expectedHeight) > 1.0 + 0.01 * expectedHeight) {
+            if (std::fabs(info.getSize().width - expectedWidth) > 1.0 ||
+                std::fabs(info.getSize().height - expectedHeight) > 1.0) {
                 RAISE_RUNTIME_ERROR << "makeScene: level " << level << " size "
                                     << info.getSize().width << "x" << info.getSize().height
                                     << " disagrees with its scale " << info.getScale()
-                                    << ", which implies about " << expectedWidth << "x"
-                                    << expectedHeight;
+                                    << ": expected " << formatDimension(expectedWidth) << "x"
+                                    << formatDimension(expectedHeight)
+                                    << ", within 1 pixel in each dimension";
             }
             if (info.getTileSize().width < 0 || info.getTileSize().height < 0) {
                 RAISE_RUNTIME_ERROR << "makeScene: level " << level << " has a negative tile size";

@@ -64,9 +64,11 @@ Metadata is checked once, when the scene is made: a null source, a rectangle
 without positive size, no channels or an unusable channel type, channel names
 or significant bits that do not match the channel count, a zoom pyramid whose
 level 0 does not match the scene, whose scales are not finite or do not
-decrease, or whose level sizes disagree with their scales, Z or T counts below
-1, and similar mistakes raise **`slideio::RuntimeError`** from `makeScene`
-rather than surfacing later as a failed or out-of-bounds read.
+decrease, or whose level sizes disagree with their scales (each level
+dimension must be within one pixel of the scene's dimension times the level's
+scale, so either rounding is accepted), Z or T counts below 1, and similar
+mistakes raise **`slideio::RuntimeError`** from `makeScene` rather than
+surfacing later as a failed or out-of-bounds read.
 
 Reads are checked before the source is called: an out-of-range channel, level,
 Z slice or time frame, and a request mixing channels of different data types
