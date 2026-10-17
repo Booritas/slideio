@@ -728,6 +728,16 @@ TEST(SourceCVSceneExtras, anAuxImageIsNotRetrievableAndSaysSo)
     }
 }
 
+TEST(MakeScene, reportsTheSourceDriverId)
+{
+    // The converter keys on this id to share a computed scene instead of
+    // re-opening it by path.
+    auto scene = makeScene(std::make_shared<TestSceneSource>(), byteMetadata());
+    EXPECT_EQ(std::string(SourceCVScene::DRIVER_ID),
+              SceneInternal::getCVScene(scene)->getDriverId());
+    EXPECT_EQ("SOURCE", SceneInternal::getCVScene(scene)->getDriverId());
+}
+
 TEST(MakeScene, returnsAUsableSceneForValidMetadata)
 {
     auto src = std::make_shared<TestSceneSource>();
