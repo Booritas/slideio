@@ -282,6 +282,7 @@ TEST(SourceCVSceneRead, rejectsADegenerateBlock)   // Review Focus 1
                  slideio::RuntimeError);
     EXPECT_THROW(scene->readBlock(std::make_tuple(0, 0, 5, -1), buffer.data(), buffer.size()),
                  slideio::RuntimeError);
+    EXPECT_TRUE(src->calls().empty());
 }
 
 TEST(SourceCVSceneRead, rejectsABufferSmallerThanTheBlock)   // Review Focus 3
@@ -322,4 +323,18 @@ TEST(SourceCVSceneRead, servesA4DReadFromASourceThatImplementsOnlyReadBlock)
     ASSERT_EQ(2u, src->calls().size());
     EXPECT_EQ(0, src->calls()[0].zSlice);
     EXPECT_EQ(1, src->calls()[1].zSlice);
+}
+
+TEST(SourceCVSceneRead, rejectsADegenerateRectBeforeCallingTheSource)   // Review Focus 1
+{
+    auto src = std::make_shared<TestSceneSource>();
+    auto scene = sceneOver(src, byteMetadata());
+    std::vector<uint8_t> buffer(5 * 5 * 3);
+    EXPECT_THROW(scene->readResampledBlock(std::make_tuple(0, 0, 0, 5), std::make_tuple(5, 5),
+                                           buffer.data(), buffer.size()),
+                 slideio::RuntimeError);
+    EXPECT_THROW(scene->readResampledBlock(std::make_tuple(0, 0, 5, -2), std::make_tuple(5, 5),
+                                           buffer.data(), buffer.size()),
+                 slideio::RuntimeError);
+    EXPECT_TRUE(src->calls().empty());
 }

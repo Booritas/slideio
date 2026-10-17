@@ -76,6 +76,10 @@ void SourceCVScene::readResampledBlockChannelsEx(const cv::Rect& blockRect,
         RAISE_RUNTIME_ERROR << "SourceCVScene: block size must be positive, got "
                             << blockSize.width << "x" << blockSize.height;
     }
+    if (blockRect.width <= 0 || blockRect.height <= 0) {
+        RAISE_RUNTIME_ERROR << "SourceCVScene: block rectangle must have positive size, got "
+                            << blockRect.width << "x" << blockRect.height;
+    }
     const int numChannels = getNumChannels();
     std::vector<int> channels(componentIndices);
     if (channels.empty()) {
