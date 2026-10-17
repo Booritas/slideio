@@ -99,6 +99,11 @@ cv::Mat SourceCVScene::prepareBlock(const cv::Rect& rect, const char* rectLabel,
         channels.resize(numChannels);
         std::iota(channels.begin(), channels.end(), 0);
     }
+    if (channels.empty()) {
+        // Only reachable for a scene constructed directly with no channels:
+        // makeScene rejects such metadata.
+        RAISE_RUNTIME_ERROR << "SourceCVScene: the scene declares no channels";
+    }
     for (int channel : channels) {
         if (channel < 0 || channel >= numChannels) {
             RAISE_RUNTIME_ERROR << "SourceCVScene: channel " << channel

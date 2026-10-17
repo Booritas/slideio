@@ -387,6 +387,19 @@ TEST(SourceCVSceneLevels, rejectsAnOutOfRangeZSliceOrTFrameWithoutCallingTheSour
     }
 }
 
+TEST(SourceCVSceneRead, rejectsAReadOfASceneWithNoChannels)
+{
+    // makeScene rejects such metadata, but SourceCVScene is exported and can be
+    // constructed directly; an empty request must not reach channels.front().
+    auto src = std::make_shared<TestSceneSource>();
+    SourceCVScene adapter(src, byteMetadata(0));
+    cv::Mat out;
+    EXPECT_THROW(adapter.readResampledBlockChannelsEx(cv::Rect(0, 0, 2, 2), cv::Size(2, 2),
+                                                      {}, 0, 0, out),
+                 slideio::RuntimeError);
+    EXPECT_TRUE(src->calls().empty());
+}
+
 TEST(SourceCVSceneRead, rejectsADegenerateRectBeforeCallingTheSource)   // Review Focus 1
 {
     auto src = std::make_shared<TestSceneSource>();
