@@ -48,8 +48,10 @@ std::string PKESlide::getFilePath() const
 
 std::shared_ptr<CVScene> PKESlide::getScene(int index) const
 {
-    if(index>=getNumScenes())
-        throw std::runtime_error("PKE driver: invalid m_scene index");
+    if(index<0 || index>=getNumScenes()) {
+        RAISE_RUNTIME_ERROR << "PKE driver: invalid scene index: " << index
+            << ". Total scenes: " << getNumScenes();
+    }
     return m_Scenes[index];
 }
 

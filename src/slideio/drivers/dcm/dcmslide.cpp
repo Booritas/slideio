@@ -39,6 +39,10 @@ std::string DCMSlide::getFilePath() const {
 }
 
 std::shared_ptr<CVScene> DCMSlide::getScene(int index) const {
+    if (index < 0 || index >= getNumScenes()) {
+        RAISE_RUNTIME_ERROR << "DCM driver: invalid scene index: " << index
+            << ". Total scenes: " << getNumScenes();
+    }
     return m_scenes[index];
 }
 

@@ -51,7 +51,8 @@ std::string CZISlide::getFilePath() const
 std::shared_ptr<CVScene> CZISlide::getScene(int index) const
 {
     if(index<0 || index>=getNumScenes()) {
-        RAISE_RUNTIME_ERROR << "CZIImageDriver: Invalid scene index: " << index;
+        RAISE_RUNTIME_ERROR << "CZIImageDriver: invalid scene index: " << index
+            << ". Total scenes: " << getNumScenes();
     }
 
 	return m_scenes[index];

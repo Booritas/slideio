@@ -82,9 +82,9 @@ std::string VSISlide::getFilePath() const
 
 std::shared_ptr<CVScene> VSISlide::getScene(int index) const
 {
-    if (index >= getNumScenes()) {
-        RAISE_RUNTIME_ERROR << "VSI driver: invalid m_scene index: " << index << " from " << getNumScenes() <<
-            " scenes";
+    if (index < 0 || index >= getNumScenes()) {
+        RAISE_RUNTIME_ERROR << "VSI driver: invalid scene index: " << index
+            << ". Total scenes: " << getNumScenes();
     }
     return m_Scenes[index];
 }
