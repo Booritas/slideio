@@ -232,7 +232,7 @@ src/
 
 ## Public headers
 
-37 headers ship in the `-dev` package. Each module names its own in
+39 headers ship in the `-dev` package. Each module names its own in
 `src/slideio/<module>/public-headers.cmake`, next to the headers themselves, and
 those five lists are the single definition of the public surface: the root
 `CMakeLists.txt` turns them into the `install(FILES)` rules, and
