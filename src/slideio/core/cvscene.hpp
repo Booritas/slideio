@@ -185,7 +185,8 @@ namespace slideio
          * True -- the default -- for every file-backed driver. A scene with
          * no file behind it returns false, and code that would re-open a
          * scene by path (the converter's reader threads) shares it instead.
-         * A scene that wraps another forwards its origin's answer.
+         * So does a scene that wraps another and changes its pixels
+         * (TransformerScene): re-opening its path yields the origin.
          */
         virtual bool canReopenByPath() const { return true; }
         /**@brief the data type of a block of @p channelIndices.

@@ -76,13 +76,18 @@ namespace slideio
         bool supportsConcurrentReads() const override {
             return m_originScene->supportsConcurrentReads();
         }
-        /**@brief whether the origin can be re-opened by path.
+        /**@brief never: re-opening a transform's path yields its origin.
          *
-         * Forwarded because getFilePath() and getDriverId() are: a transform
-         * over a computed scene reports the origin's driver id, which no
-         * registered driver answers to.*/
+         * getFilePath(), getDriverId() and getSceneIndex() forward the
+         * origin's, so opening them again gives the untransformed origin, not
+         * this scene -- a converter that re-opened it would silently write
+         * raw pixels. Code that would re-open a scene by path shares a
+         * transform instead, which is safe across threads: reads go through
+         * the origin's *Ex variants, the transformations are stateless const
+         * operations, and a non-concurrent origin serialises every one of
+         * them on its own mutex (see readSerialisationMutex()).*/
         bool canReopenByPath() const override {
-            return m_originScene->canReopenByPath();
+            return false;
         }
     protected:
         /**@brief a transformed scene is serialised by its origin's lock, not its own.

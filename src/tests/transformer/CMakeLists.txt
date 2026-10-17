@@ -14,6 +14,7 @@ set(TEST_SOURCES
   test_readlock.cpp
   test_levels.cpp
   test_forwarding.cpp
+  test_conversion.cpp
 )
 
 add_executable(${TEST_NAME} ${TEST_SOURCES})
