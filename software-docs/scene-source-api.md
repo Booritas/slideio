@@ -24,8 +24,10 @@ raster: a processing pipeline, a synthetic test pattern, a remote tile service.
   SlideIO falls back to reading the base level. `supportsConcurrentReads` says
   whether two reads may overlap; it defaults to `false`, and SlideIO then
   serialises reads for you. `getRawMetadata` and `getMetadataFormat` feed both
-  `Scene::getRawMetadata` and the structured `Scene::getMetadata` tree; raw
-  metadata with no stated format is kept as text. `getAuxImageNames` and
+  `Scene::getRawMetadata` and the structured `Scene::getMetadata` tree; both
+  are asked once, when the scene is made. `getMetadataFormat` defaults to
+  `MetadataFormat::Unknown` -- not declared -- and raw metadata with no
+  declared format is kept as text. `getAuxImageNames` and
   `getAuxImage` serve auxiliary images, each one a `Scene` -- usually another
   `makeScene` result.
 - **`SceneMetadata`** (`slideio/slideio/scenemetadata.hpp`) describes the

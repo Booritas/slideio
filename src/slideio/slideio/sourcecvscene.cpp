@@ -15,8 +15,16 @@ SourceCVScene::SourceCVScene(std::shared_ptr<ISceneSource> source, SceneMetadata
 {
     // Into the base members, so getRawMetadata(), getMetadataFormat() and the
     // structured tree getMetadata() builds from them all report the same thing.
+    // Fetched exactly once: a source may build its metadata on demand.
     m_rawMetadata = m_source->getRawMetadata();
-    m_metadataFormat = m_source->getMetadataFormat();
+    const MetadataFormat declared = m_source->getMetadataFormat();
+    if (declared == MetadataFormat::Unknown) {
+        // Not declared (ISceneSource's default): text if there is any.
+        m_metadataFormat = m_rawMetadata.empty() ? MetadataFormat::None : MetadataFormat::Text;
+    }
+    else {
+        m_metadataFormat = declared;
+    }
 }
 
 bool SourceCVScene::canReopenByPath() const { return false; }

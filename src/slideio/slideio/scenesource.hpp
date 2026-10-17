@@ -109,11 +109,13 @@ namespace slideio
         /**@brief The format of #getRawMetadata, which decides how
          * Scene::getMetadata parses it.
          *
-         * By default MetadataFormat::Text when there is raw metadata -- kept
-         * as a single "text" entry -- and MetadataFormat::None when there is
-         * not. Override to report JSON or XML and get a structured tree.*/
+         * MetadataFormat::Unknown by default, meaning "not declared": the
+         * scene then reports MetadataFormat::Text when there is raw metadata
+         * -- kept as a single "text" entry -- and MetadataFormat::None when
+         * there is not, deciding from the one #getRawMetadata call #makeScene
+         * makes. Override to report JSON or XML and get a structured tree.*/
         virtual MetadataFormat getMetadataFormat() const {
-            return getRawMetadata().empty() ? MetadataFormat::None : MetadataFormat::Text;
+            return MetadataFormat::Unknown;
         }
 
         /**@brief Names of auxiliary images. Empty by default.

@@ -71,6 +71,9 @@ TEST(ISceneSource, aMinimalSourceGetsTheDocumentedDefaults)
     EXPECT_FALSE(s.readLevelBlock(0, Rect(0,0,1,1), Size(1,1), {}, 0, 0, nullptr, 0));
     EXPECT_FALSE(s.supportsConcurrentReads());
     EXPECT_TRUE(s.getRawMetadata().empty());
+    // "Not declared": makeScene decides Text or None from the raw metadata it
+    // has already fetched, rather than this default fetching it again.
+    EXPECT_EQ(MetadataFormat::Unknown, s.getMetadataFormat());
     EXPECT_TRUE(s.getAuxImageNames().empty());
     EXPECT_EQ(nullptr, s.getAuxImage("anything"));
 }
@@ -817,6 +820,56 @@ TEST(SourceCVSceneExtras, rawMetadataWithoutAFormatIsKeptAsText)
     auto bare = makeScene(std::make_shared<TestSceneSource>(), byteMetadata());
     EXPECT_EQ(MetadataFormat::None, bare->getMetadataFormat());
     EXPECT_EQ(0u, bare->getMetadata().size());
+}
+
+namespace {
+    // Counts getRawMetadata calls: a source may build its metadata on demand.
+    class CountingMetadataSource : public TestSceneSource {
+    public:
+        CountingMetadataSource(std::string raw, MetadataFormat format, bool declare)
+            : m_raw(std::move(raw)), m_format(format), m_declare(declare) {}
+        std::string getRawMetadata() const override {
+            ++m_rawCalls;
+            return m_raw;
+        }
+        MetadataFormat getMetadataFormat() const override {
+            return m_declare ? m_format : TestSceneSource::getMetadataFormat();
+        }
+        int rawCalls() const { return m_rawCalls; }
+    private:
+        std::string m_raw;
+        MetadataFormat m_format;
+        bool m_declare;
+        mutable std::atomic<int> m_rawCalls{0};
+    };
+}
+
+TEST(SourceCVSceneExtras, rawMetadataIsFetchedOncePerScene)
+{
+    struct Case {
+        const char* raw;
+        bool declare;
+        MetadataFormat declared;
+        MetadataFormat expected;
+    };
+    const Case cases[] = {
+        {"",        false, MetadataFormat::Unknown, MetadataFormat::None},
+        {"<meta/>", false, MetadataFormat::Unknown, MetadataFormat::Text},
+        {"<meta/>", true,  MetadataFormat::XML,     MetadataFormat::XML},
+        {"<meta/>", true,  MetadataFormat::Unknown, MetadataFormat::Text},
+        {"{}",      true,  MetadataFormat::JSON,    MetadataFormat::JSON},
+    };
+    for (const Case& c : cases) {
+        auto src = std::make_shared<CountingMetadataSource>(c.raw, c.declared, c.declare);
+        auto scene = makeScene(src, byteMetadata());
+        EXPECT_EQ(1, src->rawCalls()) << "raw '" << c.raw << "'";
+        EXPECT_EQ(c.expected, scene->getMetadataFormat()) << "raw '" << c.raw << "'";
+        EXPECT_EQ(c.raw, scene->getRawMetadata());
+        scene->getMetadata();
+        EXPECT_EQ(1, src->rawCalls()) << "the scene asked the source again";
+        makeScene(src, byteMetadata());
+        EXPECT_EQ(2, src->rawCalls()) << "raw '" << c.raw << "'";
+    }
 }
 
 TEST(SourceCVSceneExtras, servesTheAuxImagesTheSourceProvides)
