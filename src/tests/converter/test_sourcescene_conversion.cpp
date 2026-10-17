@@ -177,3 +177,84 @@ TEST(SourceSceneConversion, aSceneCloneFailureSurfacesAsAnExceptionNotACrash)
 
     std::filesystem::remove(outPath);
 }
+
+namespace
+{
+    // Channel 0 is bytes, channel 1 is 16-bit; both a pure function of the
+    // scene coordinate, so a converted file can be checked pixel by pixel.
+    class MixedPixelSource : public ISceneSource
+    {
+    public:
+        static uint8_t byteValue(int x, int y) { return static_cast<uint8_t>((x * 3 + y * 5) & 0xFF); }
+        static uint16_t wordValue(int x, int y) { return static_cast<uint16_t>(300 + x * 11 + y * 17); }
+
+        void readBlock(const Rect& rect, const Size& blockSize, const std::vector<int>& channels,
+                       int, int, void* buffer, size_t) override {
+            if (channels.size() != 1) {
+                throw std::runtime_error("MixedPixelSource: one channel per read");
+            }
+            for (int row = 0; row < blockSize.height; ++row) {
+                const int y = rect.y + row * rect.height / blockSize.height;
+                for (int col = 0; col < blockSize.width; ++col) {
+                    const int x = rect.x + col * rect.width / blockSize.width;
+                    const size_t i = static_cast<size_t>(row) * blockSize.width + col;
+                    if (channels[0] == 0) {
+                        static_cast<uint8_t*>(buffer)[i] = byteValue(x, y);
+                    }
+                    else {
+                        static_cast<uint16_t*>(buffer)[i] = wordValue(x, y);
+                    }
+                }
+            }
+        }
+    };
+}
+
+TEST(SourceSceneConversion, aChannelRangeOfAnotherTypeThanChannelZeroIsWrittenWithItsType)
+{
+    // The OME-XML Pixels Type came from channel 0 whatever channel range was
+    // written, so a range of 16-bit channels was declared uint8.
+    SceneMetadata m;
+    m.name = "mixed";
+    m.rect = Rect(0, 0, 300, 200);
+    m.channelDataTypes = {DataType::DT_Byte, DataType::DT_UInt16};
+    m.levels.emplace_back(0, Size(300, 200), 1.0, 20.0, Size(256, 256));
+    auto scene = makeScene(std::make_shared<MixedPixelSource>(), m);
+    const std::string outPath = tempOutputPath("slideio_source_scene_range.ome.tiff");
+
+    converter::OMETIFFJp2KConverterParameters parameters;
+    parameters.setCompressionRate(1.f);                 // lossless
+    parameters.setChannelRange(Range(1, 2));
+    ASSERT_NO_THROW(converter::convertScene(scene, parameters, outPath, 4));
+
+    {
+        auto reopened = openSlide(outPath, "AUTO");
+        ASSERT_NE(nullptr, reopened);
+        auto readBack = reopened->getScene(0);
+        ASSERT_NE(nullptr, readBack);
+        ASSERT_EQ(1, readBack->getNumChannels());
+        EXPECT_EQ(DataType::DT_UInt16, readBack->getChannelDataType(0));
+        if (readBack->getChannelDataType(0) == DataType::DT_UInt16) {
+            std::vector<uint16_t> buffer(300 * 200);
+            readBack->readBlock(std::make_tuple(0, 0, 300, 200),
+                                reinterpret_cast<uint8_t*>(buffer.data()),
+                                buffer.size() * sizeof(uint16_t));
+            int mismatches = 0;
+            for (int y = 0; y < 200; ++y) {
+                for (int x = 0; x < 300; ++x) {
+                    const uint16_t actual = buffer[static_cast<size_t>(y) * 300 + x];
+                    if (actual != MixedPixelSource::wordValue(x, y)) {
+                        if (mismatches == 0) {
+                            EXPECT_EQ(MixedPixelSource::wordValue(x, y), actual)
+                                << "first mismatch at x=" << x << " y=" << y;
+                        }
+                        ++mismatches;
+                    }
+                }
+            }
+            EXPECT_EQ(0, mismatches);
+        }
+    }
+
+    std::filesystem::remove(outPath);
+}

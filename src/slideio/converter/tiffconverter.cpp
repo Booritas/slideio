@@ -206,8 +206,14 @@ std::string TiffConverter::createOMETiffDescription() const {
     pixels->SetAttribute("BigEndian", false);
     pixels->SetAttribute("Interleaved", interleaved);
 
-    // DataType mapping
-    auto dt = m_scene->getChannelDataType(0);
+    // DataType mapping: the type of the channels being written, not channel
+    // 0's -- a channel range of another type than channel 0 was declared with
+    // the wrong one. One Pixels element cannot state a range of mixed types;
+    // that names its first channel's, the type its directory is written with.
+    DataType dt = getChannelRangeDataType(sceneChannelRange);
+    if (dt == DataType::DT_Unknown) {
+        dt = m_scene->getChannelDataType(sceneChannelRange.start);
+    }
     const char* typeStr = "uint8";
     switch (dt) {
     case DataType::DT_Byte: typeStr = "uint8";
@@ -455,7 +461,15 @@ void TiffConverter::writeDirectoryDataST(TiffDirectory& dir, const TiffDirectory
     cv::Size sceneTileSize = ConverterTools::scaleSize(tileSize, zoomLevel, false);
     std::vector<uint8_t> buffer;
     if (m_parameters.getEncoding() == Compression::Jpeg2000) {
-        int dataSize = tileSize.width * tileSize.height * m_scene->getNumChannels() * Tools::dataTypeSize(m_scene->getChannelDataType(0));
+        // Sized for this page's tiles -- its channels, of their type -- not for
+        // every scene channel at channel 0's type. A page of mixed types is
+        // read typed by its first channel, as its directory is.
+        const cv::Range pageChannels = page.getChannelRange();
+        DataType pageType = getChannelRangeDataType(Range(pageChannels.start, pageChannels.end));
+        if (pageType == DataType::DT_Unknown) {
+            pageType = dir.dataType;
+        }
+        const int dataSize = tileSize.width * tileSize.height * dir.channels * Tools::dataTypeSize(pageType);
         buffer.resize(dataSize);
     }
     cv::Mat block;
