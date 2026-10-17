@@ -2,8 +2,10 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include <gtest/gtest.h>
+#include <chrono>
 #include <filesystem>
 #include <memory>
+#include <random>
 #include <string>
 #include <vector>
 #include "slideio/slideio/slideio.hpp"
@@ -14,6 +16,7 @@
 #include "slideio/core/cvscene.hpp"
 #include "slideio/converter/converter.hpp"
 #include "slideio/converter/converterparameters.hpp"
+#include "slideio/converter/tiffconverter.hpp"
 #include "slideio/transformer/transformer.hpp"
 #include "slideio/transformer/colortransformation.hpp"
 #include "tests/testlib/testscene.hpp"
@@ -23,9 +26,14 @@ using namespace slideio;
 
 namespace
 {
+    // Prefixed with a token drawn once per process, so concurrent runs of the
+    // suite on one machine (ctest -j, two CI jobs) never share a file.
     std::string tempOutputPath(const char* name)
     {
-        const std::string path = (std::filesystem::temp_directory_path() / name).string();
+        static const std::string token = std::to_string(std::random_device{}()) + "_"
+            + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count());
+        const std::string path =
+            (std::filesystem::temp_directory_path() / (token + "_" + name)).string();
         std::filesystem::remove(path);
         return path;
     }
@@ -75,6 +83,35 @@ TEST(TransformerSceneConversion, aTransformedSceneIsNeverReopenedByPath)
     ASSERT_TRUE(origin->canReopenByPath());
     auto transformed = grayTransformOf(SceneInternal::createScene(origin));
     EXPECT_FALSE(SceneInternal::getCVScene(transformed)->canReopenByPath());
+}
+
+TEST(TransformerSceneConversion, eachReaderGetsItsOwnTransformOverAReopenedOrigin)
+{
+    // Sharing one transform made a conversion over a non-concurrent origin
+    // single-threaded. Each reader instead re-opens the origin and gets the
+    // same transformations re-created over it.
+    const std::string originPath = writeComputedOmeTiff("slideio_transform_clone.ome.tiff");
+    {
+        auto originSlide = openSlide(originPath, "AUTO");
+        ASSERT_NE(nullptr, originSlide);
+        auto origin = originSlide->getScene(0);
+        auto transformed = grayTransformOf(origin);
+        auto cvTransformed = SceneInternal::getCVScene(transformed);
+
+        converter::OMETIFFJp2KConverterParameters parameters;
+        converter::TiffConverter converter;
+        converter.createFileLayout(cvTransformed, parameters);
+        auto clone = converter.cloneScene();
+        ASSERT_NE(nullptr, clone.first);                  // a slide of its own
+        ASSERT_NE(nullptr, clone.second);
+        auto cvClone = SceneInternal::getCVScene(clone.second);
+        EXPECT_NE(cvTransformed, cvClone);
+        ASSERT_NE(nullptr, cvClone->getOriginScene());
+        EXPECT_NE(SceneInternal::getCVScene(origin), cvClone->getOriginScene());
+        EXPECT_EQ(1, cvClone->getNumChannels());          // still the gray transform
+        EXPECT_EQ(readAll(transformed, 512, 512), readAll(clone.second, 512, 512));
+    }
+    std::filesystem::remove(originPath);
 }
 
 TEST(TransformerSceneConversion, aTransformOfAFileBackedSceneConvertsTransformed)

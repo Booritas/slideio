@@ -7,6 +7,24 @@ by branch.
 
 ---
 
+## feature/scene-source
+
+### OME-TIFF conversion rejects a channel range of mixed data types
+
+**Module:** `slideio-converter` (exported: `converter::convertScene`)
+**Files:** `src/slideio/converter/tiffconverter.cpp` (`TiffConverter::checkOMETIFFRequirements`)
+
+Converting channels of different data types -- an 8-bit and a 16-bit channel,
+say -- to OME-TIFF used to succeed and produce a file that contradicted
+itself: the OME-XML `Pixels` element declared every channel with one type
+while each directory held its own channel's samples, so any OME reader,
+slideio's included, decoded the other channels as garbage. It now raises
+`slideio::RuntimeError` before anything is written, as SVS conversion always
+has. A caller converting such a scene should convert each type's channels
+separately through `ConverterParameters::setChannelRange`.
+
+---
+
 ## issue-45-edge-reads
 
 ### Scenes of a multi-file VSI slide can come in a different order

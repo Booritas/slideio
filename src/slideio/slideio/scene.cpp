@@ -183,7 +183,7 @@ void Scene::readResampledBlockChannels(const std::tuple<int, int, int, int>& rec
     const int numChannels = (channelIndices.empty()?m_scene->getNumChannels():static_cast<int>(channelIndices.size()));
     const int numSlices = 1;
     const int numFrames = 1;
-    const int refChannel = (channelIndices.empty()?0:channelIndices[0]);
+    const int refChannel = m_scene->blockReferenceChannel(channelIndices);
     const int blockMemSize = getBlockSize(size, refChannel, numChannels, numSlices, numFrames);
     const auto dt = m_scene->getChannelDataType(refChannel);
     int cvType = CVTools::cvTypeFromDataType(dt);
@@ -244,7 +244,7 @@ void Scene::readResampled4DBlockChannels(const std::tuple<int, int, int, int>& r
     const int numChannels = (channelIndices.empty()?m_scene->getNumChannels():static_cast<int>(channelIndices.size()));
     const int numSlices = sliceRange.size();
     const int numFrames = frameRange.size();
-    const int refChannel = (channelIndices.empty()?0:channelIndices[0]);
+    const int refChannel = m_scene->blockReferenceChannel(channelIndices);
     const int numPlanes =  numChannels*numSlices*numFrames;
     const int blockMemSize = getBlockSize(size, refChannel, numChannels, numSlices, numFrames);
     const int planeMemSize = getBlockSize(size, refChannel, numChannels, 1, 1);
@@ -307,7 +307,7 @@ void Scene::readResampledLevelBlockChannels(int level, const std::tuple<int, int
     cv::Rect rect = tupleToRect(levelRect);
     cv::Size size = tupleToSize(blockSize);
     const int numChannels = (channelIndices.empty()?m_scene->getNumChannels():static_cast<int>(channelIndices.size()));
-    const int refChannel = (channelIndices.empty()?0:channelIndices[0]);
+    const int refChannel = m_scene->blockReferenceChannel(channelIndices);
     const int blockMemSize = getBlockSize(blockSize, refChannel, numChannels, 1, 1);
     const auto dt = m_scene->getChannelDataType(refChannel);
     const int cvType = CVTools::cvTypeFromDataType(dt);
@@ -341,7 +341,7 @@ void Scene::readResampledLevel4DBlockChannels(int level, const std::tuple<int, i
     const int numChannels = (channelIndices.empty()?m_scene->getNumChannels():static_cast<int>(channelIndices.size()));
     const int numSlices = sliceRange.size();
     const int numFrames = frameRange.size();
-    const int refChannel = (channelIndices.empty()?0:channelIndices[0]);
+    const int refChannel = m_scene->blockReferenceChannel(channelIndices);
     const int numPlanes = numChannels*numSlices*numFrames;
     const int blockMemSize = getBlockSize(blockSize, refChannel, numChannels, numSlices, numFrames);
     const int planeMemSize = getBlockSize(blockSize, refChannel, numChannels, 1, 1);
@@ -439,6 +439,9 @@ std::shared_ptr<Scene> Scene::getAuxImage(const std::string& sceneName) const
 {
     SLIDEIO_LOG(INFO) << "Scene::getAuxImage " << sceneName; 
     std::shared_ptr<CVScene> cvScene = m_scene->getAuxImage(sceneName);
+    if (cvScene) {
+        cvScene->markAsAuxImage();
+    }
     std::shared_ptr<Scene> scene(new Scene(cvScene));
     return scene;
 }

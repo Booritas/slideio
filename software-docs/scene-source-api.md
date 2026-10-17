@@ -66,9 +66,10 @@ Metadata is checked once, when the scene is made: a null source, a rectangle
 without positive size, no channels or an unusable channel type, channel names
 or significant bits that do not match the channel count, a zoom pyramid whose
 level 0 does not match the scene, whose scales are not finite or do not
-decrease, or whose level sizes disagree with their scales (each level
-dimension must be within one pixel of the scene's dimension times the level's
-scale, so either rounding is accepted), Z or T counts below 1, and similar
+decrease, or whose level sizes disagree with their scales (the scale is the
+level's width fraction, so each level width must be within one pixel of the
+scene width times the scale, and each height within 1 + H/W pixels, the width's
+rounding carried into the height), Z or T counts below 1, and similar
 mistakes raise **`slideio::RuntimeError`** from `makeScene` rather than
 surfacing later as a failed or out-of-bounds read.
 
@@ -96,16 +97,31 @@ other. The converter used to give each of its reader threads its own copy of
 the scene by re-opening the source file by path and driver, which a scene with
 no file cannot do. It now **shares a computed scene across its reader threads**
 instead of re-opening it -- it asks `CVScene::canReopenByPath()`, which a
-computed scene and a transform answer `false` (re-opening a transform's path
-yields its untransformed origin). A file-backed scene is re-opened as before
-when it has a scene index; whatever re-opens must match the original's
-rectangle, channel count and types, and Z and T counts, and a scene that
-cannot be re-opened (an auxiliary image, index -1), fails to re-open or
-re-opens as something else is shared instead. Edge tiles of a channel
-whose type differs from channel 0's are now typed by that channel; before,
-they were written zero-filled. A failure to prepare a
-reader thread's scene is now reported as an exception from `convertScene`
-rather than terminating the process.
+computed scene answers `false`. So does an auxiliary image: drivers number
+those apart from the slide's scenes (an SVS label reports index 0), so every
+scene handed out by `Slide::getAuxImage` or `Scene::getAuxImage` is marked and
+shared rather than re-opened as whatever its index names.
+
+A transform also answers `false` -- re-opening its path yields its
+untransformed origin -- but it is not shared: the converter re-opens the
+scene it wraps (`CVScene::getOriginScene()`) and re-creates the transform over
+that copy (`rewrapOrigin()`), so each reader thread keeps a scene of its own
+and reads in parallel even when the origin's driver serialises reads.
+
+A file-backed scene is re-opened as before when it has a scene index. Whatever
+re-opens must match the original's rectangle, channel count and types, and Z
+and T counts; a scene that fails to re-open or re-opens as something else is
+shared instead. The decision is made once per conversion, before any reader
+starts, so a scene that cannot be re-opened costs one attempt and one warning,
+not one per reader thread per page.
+
+Edge tiles of a channel whose type differs from channel 0's are now typed by
+that channel; before, they were written zero-filled. OME-TIFF output rejects
+a channel range of mixed types with `slideio::RuntimeError` -- one OME
+`Pixels` element states one type -- as SVS output already did; convert each
+type's channels separately. A failure to prepare a reader thread's scene is
+reported as an exception from `convertScene` rather than terminating the
+process.
 
 ## Limitations
 

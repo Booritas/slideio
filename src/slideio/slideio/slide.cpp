@@ -77,6 +77,10 @@ std::shared_ptr<Scene> Slide::getAuxImage(const std::string& sceneName) const
 {
     SLIDEIO_LOG(INFO) << "Slide::getAuxImage " << sceneName; 
     std::shared_ptr<CVScene> cvScene = m_slide->getAuxImage(sceneName);
+    if (cvScene) {
+        // Its scene index does not name it in its file: see canReopenByPath().
+        cvScene->markAsAuxImage();
+    }
     std::shared_ptr<Scene> scene(new Scene(cvScene));
     return scene;
 }

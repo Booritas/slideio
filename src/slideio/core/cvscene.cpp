@@ -206,6 +206,12 @@ std::shared_ptr<CVScene> CVScene::getAuxImage(const std::string& sceneName) cons
     throw std::runtime_error("The scene does not have any auxiliary image");
 }
 
+std::shared_ptr<CVScene> CVScene::rewrapOrigin(const std::shared_ptr<CVScene>& /*origin*/) const
+{
+    RAISE_RUNTIME_ERROR << "Scene '" << getName() << "' of driver '" << getDriverId()
+        << "' wraps no origin scene and cannot be re-created over one";
+}
+
 
 int CVScene::getNumZoomLevels() const {
     return static_cast<int>(m_levels.size());
@@ -325,14 +331,18 @@ std::vector<int> CVScene::getValidChannelIndices(const std::vector<int>& channel
     return validChannelIndices;
 }
 
-DataType CVScene::blockDataType(const std::vector<int>& channelIndices) const
+int CVScene::blockReferenceChannel(const std::vector<int>& channelIndices) const
 {
-    int channel = 0;
     if (!channelIndices.empty() && channelIndices.front() >= 0
         && channelIndices.front() < getNumChannels()) {
-        channel = channelIndices.front();
+        return channelIndices.front();
     }
-    return getChannelDataType(channel);
+    return 0;
+}
+
+DataType CVScene::blockDataType(const std::vector<int>& channelIndices) const
+{
+    return getChannelDataType(blockReferenceChannel(channelIndices));
 }
 
 void CVScene::initializeSceneBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices, cv::OutputArray output) const

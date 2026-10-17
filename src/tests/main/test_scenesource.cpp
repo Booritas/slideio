@@ -1165,6 +1165,26 @@ TEST(MakeScene, acceptsALevelSizeWithinAPixelOfItsScale)
     EXPECT_THROW(makeScene(src, wideTwoLevelMetadata(49998)), slideio::RuntimeError);
 }
 
+TEST(MakeScene, acceptsATallPyramidWhoseScaleComesFromTheWidth)
+{
+    // As a driver reports it: each axis rounded on its own (ceil(x / 4)) and
+    // the scale taken from the width. Level 2 of 301x100001 is 76x25001 at
+    // 76/301, which names a height of 25249.5 -- 248 pixels off, inside the
+    // 1 + H/W = 333 the width's rounding can carry into the height.
+    auto src = std::make_shared<TestSceneSource>();
+    SceneMetadata m;
+    m.rect = Rect(0, 0, 301, 100001);
+    m.channelDataTypes.assign(1, DataType::DT_Byte);
+    m.levels.emplace_back(0, Size(301, 100001), 1.0, 40.0, Size(256, 256));
+    m.levels.emplace_back(1, Size(76, 25001), 76.0 / 301.0, 10.0, Size(256, 256));
+    EXPECT_NO_THROW(makeScene(src, m));
+
+    m.levels[1].setSize(Size(76, 26000));                // beyond that
+    EXPECT_THROW(makeScene(src, m), slideio::RuntimeError);
+    m.levels[1].setSize(Size(78, 25001));                // the width stays exact
+    EXPECT_THROW(makeScene(src, m), slideio::RuntimeError);
+}
+
 TEST(MakeScene, rejectsANegativeTileDimension)
 {
     SceneMetadata m = byteMetadata();

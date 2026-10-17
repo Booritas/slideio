@@ -89,20 +89,29 @@ namespace
             }
             // The level read path clamps against getSize() but maps to scene
             // coordinates through getScale(), so the two must describe the
-            // same level: each dimension within one pixel of the scene's times
-            // the scale, which accepts it rounded down or up and nothing more.
-            // A relative allowance would grow with the slide -- 1% of a
-            // 100000-pixel-wide scene is 1000 pixels of disagreement.
+            // same level. The scale is the level's width as a fraction of the
+            // scene's (LevelInfo, and how drivers compute it: w_k / W), so:
+            //  - the width must be within 1 pixel of W * scale -- rounded
+            //    down or up and nothing more. A relative allowance would grow
+            //    with the slide: 1% of a 100000-pixel-wide scene is 1000;
+            //  - the height, rounded on its own axis (ceil(H / 2^k), say),
+            //    also inherits the width's rounding through the scale,
+            //    magnified by H / W: 1 + H / W pixels. Holding it to one
+            //    pixel rejected a tall scene's pyramid copied verbatim from
+            //    the driver that read it.
             const double expectedWidth = m.rect.width * info.getScale();
             const double expectedHeight = m.rect.height * info.getScale();
-            if (std::fabs(info.getSize().width - expectedWidth) > 1.0 ||
-                std::fabs(info.getSize().height - expectedHeight) > 1.0) {
+            const double allowWidth = 1.0;
+            const double allowHeight = 1.0 + static_cast<double>(m.rect.height) / m.rect.width;
+            if (std::fabs(info.getSize().width - expectedWidth) > allowWidth ||
+                std::fabs(info.getSize().height - expectedHeight) > allowHeight) {
                 RAISE_RUNTIME_ERROR << "makeScene: level " << level << " size "
                                     << info.getSize().width << "x" << info.getSize().height
                                     << " disagrees with its scale " << info.getScale()
                                     << ": expected " << formatDimension(expectedWidth) << "x"
                                     << formatDimension(expectedHeight)
-                                    << ", within 1 pixel in each dimension";
+                                    << ", within " << formatDimension(allowWidth) << "x"
+                                    << formatDimension(std::floor(allowHeight)) << " pixels";
             }
             if (info.getTileSize().width < 0 || info.getTileSize().height < 0) {
                 RAISE_RUNTIME_ERROR << "makeScene: level " << level << " has a negative tile size";

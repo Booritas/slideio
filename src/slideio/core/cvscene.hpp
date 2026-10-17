@@ -9,7 +9,9 @@
 #include "slideio/core/metadata.hpp"
 #include "slideio/core/colorprofile.hpp"
 #include <opencv2/core.hpp>
+#include <atomic>
 #include <cstdint>
+#include <memory>
 #include <vector>
 #include <string>
 #include <list>
@@ -186,9 +188,29 @@ namespace slideio
          * no file behind it returns false, and code that would re-open a
          * scene by path (the converter's reader threads) shares it instead.
          * So does a scene that wraps another and changes its pixels
-         * (TransformerScene): re-opening its path yields the origin.
+         * (TransformerScene): re-opening its path yields the origin -- such a
+         * wrapper is re-created over a re-opened origin instead, through
+         * getOriginScene() and rewrapOrigin(). And so does an auxiliary
+         * image: drivers number theirs apart from the slide's scenes (an SVS
+         * label reports index 0, a CZI thumbnail -1), so its index re-opens
+         * a main scene or nothing.
          */
-        virtual bool canReopenByPath() const { return true; }
+        virtual bool canReopenByPath() const { return !m_auxImage.load(); }
+        /**@brief records that this scene was handed out as an auxiliary image.
+         *
+         * Called by Slide::getAuxImage and Scene::getAuxImage, the one place
+         * every driver's auxiliary images pass through, so no driver has to
+         * remember to override canReopenByPath() for them.*/
+        void markAsAuxImage() { m_auxImage.store(true); }
+        /**@brief the scene a wrapper reads through, or nullptr for one that
+         * wraps nothing. TransformerScene returns its origin.*/
+        virtual std::shared_ptr<CVScene> getOriginScene() const { return nullptr; }
+        /**@brief this wrapper re-created over @p origin, an equivalent of
+         * getOriginScene() -- a re-opened copy of it, typically -- so that a
+         * caller wanting a scene of its own per thread need not share the
+         * wrapper. Only a scene whose getOriginScene() is not null overrides
+         * it; the default throws.*/
+        virtual std::shared_ptr<CVScene> rewrapOrigin(const std::shared_ptr<CVScene>& origin) const;
         /**@brief the data type of a block of @p channelIndices.
          *
          * That of the first requested channel, or of channel 0 when none is
@@ -200,6 +222,9 @@ namespace slideio
          * converter's border tiles, a CVScene subclass's own blocks -- types
          * it by the same rule as the blocks CVScene allocates itself.*/
         DataType blockDataType(const std::vector<int>& channelIndices) const;
+        /**@brief the channel whose type blockDataType() reports, for code --
+         * Scene's buffer sizing -- that is handed a channel, not a type.*/
+        int blockReferenceChannel(const std::vector<int>& channelIndices) const;
         /**@brief reads multi-dimensional raster block.
          *
          * @param blockRect : rectangle of the block to be read. The rectangle is represented by cv::Rect structure
@@ -385,6 +410,7 @@ namespace slideio
         std::list<std::string> m_auxNames;
         std::vector<LevelInfo> m_levels;
         mutable std::mutex m_readBlockMutex;
+        std::atomic<bool> m_auxImage{false};
         std::string m_rawMetadata;
         MetadataFormat m_metadataFormat = MetadataFormat::None;
         MetadataBuilder m_channelAttrs;

@@ -16,7 +16,11 @@
 #include "tests/testlib/testscenesource.hpp"
 #include "tests/testlib/testscene.hpp"
 #include "tests/testlib/testtools.hpp"
+#include <atomic>
+#include <chrono>
 #include <filesystem>
+#include <random>
+#include <string>
 #include <vector>
 
 using namespace slideio;
@@ -35,9 +39,14 @@ namespace
         return m;
     }
 
+    // Prefixed with a token drawn once per process, so concurrent runs of the
+    // suite on one machine (ctest -j, two CI jobs) never share a file.
     std::string tempOutputPath(const char* name)
     {
-        const std::string path = (std::filesystem::temp_directory_path() / name).string();
+        static const std::string token = std::to_string(std::random_device{}()) + "_"
+            + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count());
+        const std::string path =
+            (std::filesystem::temp_directory_path() / (token + "_" + name)).string();
         std::filesystem::remove(path);
         return path;
     }
@@ -366,4 +375,88 @@ TEST(SourceSceneConversion, aSceneThatDiffersFromItsReopenedFileIsShared)
         EXPECT_TRUE(isShared(cloneOf(otherType), otherType));
     }
     std::filesystem::remove(path);
+}
+
+TEST(SourceSceneConversion, anAuxiliaryImageIsSharedNotReopenedAsItsIndex)
+{
+    // An SVS label reports scene index 0: re-opening (path, driver, 0) yields
+    // the main image, and when that happens to match the label's shape the
+    // converter would write the main image's pixels. Being handed out as an
+    // auxiliary image is what rules it out, not the shape check.
+    const std::string path = writeComputedOmeTiff("slideio_clone_aux.ome.tiff");
+    {
+        auto label = std::make_shared<ReopenableScene>(path, 0);   // matches scene 0
+        class AuxParent : public TestScene {
+        public:
+            explicit AuxParent(std::shared_ptr<CVScene> aux) : m_aux(std::move(aux)) {}
+            std::shared_ptr<CVScene> getAuxImage(const std::string&) const override { return m_aux; }
+        private:
+            std::shared_ptr<CVScene> m_aux;
+        };
+        auto owner = SceneInternal::createScene(std::make_shared<AuxParent>(label));
+        auto handedOut = owner->getAuxImage("label");
+        EXPECT_FALSE(SceneInternal::getCVScene(handedOut)->canReopenByPath());
+        EXPECT_TRUE(isShared(cloneOf(label), label));
+    }
+    std::filesystem::remove(path);
+}
+
+TEST(SourceSceneConversion, aMixedTypeChannelRangeIsRejectedForOmeTiff)
+{
+    // One OME Pixels element has one Type; each directory is written in its
+    // own type. A mixed range would yield a file whose metadata lies.
+    SceneMetadata m;
+    m.rect = Rect(0, 0, 300, 200);
+    m.channelDataTypes = {DataType::DT_Byte, DataType::DT_UInt16};
+    m.levels.emplace_back(0, Size(300, 200), 1.0, 20.0, Size(256, 256));
+    auto scene = makeScene(std::make_shared<MixedPixelSource>(), m);
+
+    converter::OMETIFFJp2KConverterParameters parameters;
+    converter::TiffConverter converter;
+    try {
+        converter.createFileLayout(SceneInternal::getCVScene(scene), parameters);
+        FAIL() << "a mixed-type channel range should have been rejected";
+    }
+    catch (const RuntimeError& e) {
+        EXPECT_NE(std::string::npos, std::string(e.what()).find("different types to OME-TIFF"))
+            << e.what();
+    }
+}
+
+namespace
+{
+    // Counts re-open attempts: tryReopenScene reads the path once per attempt.
+    class CountingScene : public ReopenableScene
+    {
+    public:
+        using ReopenableScene::ReopenableScene;
+        std::string getFilePath() const override {
+            ++m_pathReads;
+            return ReopenableScene::getFilePath();
+        }
+        int pathReads() const { return m_pathReads.load(); }
+    private:
+        mutable std::atomic<int> m_pathReads{0};
+    };
+}
+
+TEST(SourceSceneConversion, aSceneThatCannotBeReopenedIsTriedOncePerConversion)
+{
+    // Not once per reader thread per page: every attempt opens and parses the
+    // whole file and logs a warning.
+    const std::string missing = tempOutputPath("slideio_clone_once_missing.ome.tiff");
+    const std::string outPath = tempOutputPath("slideio_clone_once_output.ome.tiff");
+    auto scene = std::make_shared<CountingScene>(missing, 0);
+    scene->setRect(cv::Rect(0, 0, 2048, 2048));               // several directories
+    {
+        converter::OMETIFFJp2KConverterParameters parameters;
+        parameters.setNumReadingThreads(4);
+        converter::TiffConverter converter;
+        converter.createFileLayout(scene, parameters);
+        ASSERT_GT(converter.getNumTiffPages(), 0);
+        const int before = scene->pathReads();
+        ASSERT_NO_THROW(converter.createTiff(outPath, nullptr, 4));
+        EXPECT_EQ(1, scene->pathReads() - before);
+    }
+    std::filesystem::remove(outPath);
 }
