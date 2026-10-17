@@ -2,7 +2,12 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include <gtest/gtest.h>
+#include <atomic>
+#include <chrono>
+#include <condition_variable>
 #include <cstring>
+#include <mutex>
+#include <thread>
 #include "slideio/slideio/scenemetadata.hpp"
 #include "slideio/slideio/scenesource.hpp"
 #include "slideio/slideio/sourcecvscene.hpp"
@@ -597,6 +602,95 @@ TEST(SourceCVSceneConcurrency, reportsConcurrencyWhenTheSourceDoes)
     src->setConcurrent(true);
     SourceCVScene adapter(src, byteMetadata());
     EXPECT_TRUE(adapter.supportsConcurrentReads());
+}
+
+namespace {
+    // Counts reads in flight and records the most ever seen at once.
+    class InFlightSource : public ISceneSource {
+    public:
+        explicit InFlightSource(bool concurrent) : m_concurrent(concurrent) {}
+
+        void readBlock(const Rect&, const Size&, const std::vector<int>&,
+                       int, int, void* buffer, size_t bufferSize) override {
+            const int now = ++m_inFlight;
+            int seen = m_maxInFlight.load();
+            while (now > seen && !m_maxInFlight.compare_exchange_weak(seen, now)) {}
+            if (m_concurrent) {
+                // A handshake, not a timing bet: hold this read until two reads
+                // have been in flight at once, which can only happen if the
+                // scene lets them overlap. The timeout turns a serialising
+                // adapter into a test failure instead of a hang.
+                std::unique_lock<std::mutex> lock(m_mutex);
+                m_cv.notify_all();
+                const bool overlapped = m_cv.wait_for(lock, std::chrono::seconds(5),
+                    [this] { return m_maxInFlight.load() >= 2; });
+                if (!overlapped) {
+                    m_timedOut = true;
+                }
+            }
+            else {
+                // Widen the window so overlapping reads would be caught.
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            }
+            std::memset(buffer, 0, bufferSize);
+            --m_inFlight;
+        }
+
+        bool supportsConcurrentReads() const override { return m_concurrent; }
+
+        int maxInFlight() const { return m_maxInFlight.load(); }
+        bool timedOut() const { return m_timedOut.load(); }
+
+    private:
+        const bool m_concurrent;
+        std::atomic<int> m_inFlight{0};
+        std::atomic<int> m_maxInFlight{0};
+        std::atomic<bool> m_timedOut{false};
+        std::mutex m_mutex;
+        std::condition_variable m_cv;
+    };
+
+    // Reads through the public Scene API from several threads at once.
+    void readFromThreads(const std::shared_ptr<Scene>& scene, int threads, int readsPerThread)
+    {
+        std::atomic<int> failures{0};
+        std::vector<std::thread> pool;
+        for (int i = 0; i < threads; ++i) {
+            pool.emplace_back([&scene, &failures, readsPerThread, i]() {
+                std::vector<uint8_t> buffer(8 * 8 * 3);
+                for (int r = 0; r < readsPerThread; ++r) {
+                    try {
+                        scene->readBlock(std::make_tuple(i * 8, r * 8, 8, 8),
+                                         buffer.data(), buffer.size());
+                    }
+                    catch (...) {
+                        ++failures;
+                    }
+                }
+            });
+        }
+        for (auto& t : pool) {
+            t.join();
+        }
+        EXPECT_EQ(0, failures.load());
+    }
+}
+
+TEST(SourceCVSceneConcurrency, aSerialisedSourceNeverSeesOverlappingReads)
+{
+    auto src = std::make_shared<InFlightSource>(false);
+    auto scene = makeScene(src, byteMetadata());
+    readFromThreads(scene, 4, 2);
+    EXPECT_EQ(1, src->maxInFlight());
+}
+
+TEST(SourceCVSceneConcurrency, aConcurrentSourceSeesOverlappingReads)
+{
+    auto src = std::make_shared<InFlightSource>(true);
+    auto scene = makeScene(src, byteMetadata());
+    readFromThreads(scene, 4, 2);
+    EXPECT_FALSE(src->timedOut()) << "reads never overlapped: the scene serialised them";
+    EXPECT_GT(src->maxInFlight(), 1);
 }
 
 TEST(SourceCVSceneExtras, forwardsRawMetadataAndAuxImageNames)
