@@ -40,8 +40,9 @@ std::string slideio::GDALSlide::getFilePath() const
 
 std::shared_ptr<slideio::CVScene> slideio::GDALSlide::getScene(int index) const
 {
-	if(index>=getNumScenes()) {
-		RAISE_RUNTIME_ERROR << "GDAL driver: invalid scene index";
+	if(index<0 || index>=getNumScenes()) {
+		RAISE_RUNTIME_ERROR << "GDAL driver: invalid scene index: " << index
+			<< ". Total scenes: " << getNumScenes();
 	}
 	return m_scenes[index];
 }

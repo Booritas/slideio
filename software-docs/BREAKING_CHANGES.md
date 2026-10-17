@@ -7,6 +7,25 @@ by branch.
 
 ---
 
+## fix/issue-87-negative-scene-index
+
+### An invalid scene index raises `slideio::RuntimeError` from every driver
+
+**Module:** OME-TIFF, QPTIFF (PKE), SCN and ZVI drivers, reached through
+`Slide::getScene(index)`
+**Files:** `src/slideio/drivers/ome-tiff/otslide.cpp`, `pke/pkeslide.cpp`,
+`scn/scnslide.cpp`, `zvi/zvislide.cpp` (`getScene`)
+
+These four drivers threw `std::runtime_error` for a scene index past the end.
+They now raise `slideio::RuntimeError`, as the other drivers always have, and
+every driver also rejects a negative index, which used to read out of bounds
+(#87). `slideio::RuntimeError` derives from `std::exception`, not
+`std::runtime_error`, so a C++ caller catching `std::runtime_error` around
+`getScene` no longer catches it; catch `std::exception` or
+`slideio::RuntimeError`. Python is unaffected: both surface as `RuntimeError`.
+
+---
+
 ## feature/scene-source
 
 ### OME-TIFF conversion rejects a channel range of mixed data types

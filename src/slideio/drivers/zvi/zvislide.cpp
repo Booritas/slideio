@@ -9,6 +9,7 @@
 #include "slideio/core/metadata_internal.hpp"
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/core/log.hpp"
+#include "slideio/core/exceptions.hpp"
 #include <nlohmann/json.hpp>
 #include <pole/storage.hpp>
 #include <map>
@@ -30,7 +31,8 @@ std::string ZVISlide::getFilePath() const { return m_filePath; }
 std::shared_ptr<CVScene> ZVISlide::getScene(int index) const
 {
 	if (index != 0) {
-		throw std::runtime_error("ZVIImageDriver: Invalid scene index");
+		RAISE_RUNTIME_ERROR << "ZVIImageDriver: invalid scene index: " << index
+			<< ". Total scenes: " << getNumScenes();
 	}
 	return m_scene;
 }

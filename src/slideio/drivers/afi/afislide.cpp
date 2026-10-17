@@ -70,7 +70,7 @@ std::string AFISlide::getFilePath() const
 
 std::shared_ptr<CVScene> AFISlide::getScene(int index) const
 {
-    if(index>=getNumScenes()) {
+    if(index<0 || index>=getNumScenes()) {
         RAISE_RUNTIME_ERROR << "AFI driver: invalid scene index: " 
             << index << ". Total scenes: " << getNumScenes();
     }

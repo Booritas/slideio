@@ -102,9 +102,10 @@ std::string NDPISlide::getFilePath() const
 
 std::shared_ptr<CVScene> NDPISlide::getScene(int index) const
 {
-    if(index>=getNumScenes())
+    if(index<0 || index>=getNumScenes())
     {
-        RAISE_RUNTIME_ERROR << "NDPIImageDriver: invalid m_scene index:" << index << "for file: " << m_filePath;
+        RAISE_RUNTIME_ERROR << "NDPIImageDriver: invalid scene index: " << index
+            << ". Total scenes: " << getNumScenes() << ", file: " << m_filePath;
     }
     return m_Scenes[index];
 }

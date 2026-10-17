@@ -43,8 +43,10 @@ std::string OTSlide::getFilePath() const {
 }
 
 std::shared_ptr<CVScene> OTSlide::getScene(int index) const {
-    if (index >= getNumScenes())
-        throw std::runtime_error("OMETIFF driver: invalid m_scene index");
+    if (index < 0 || index >= getNumScenes()) {
+        RAISE_RUNTIME_ERROR << "OMETIFF driver: invalid scene index: " << index
+            << ". Total scenes: " << getNumScenes();
+    }
     return m_Scenes[index];
 }
 
