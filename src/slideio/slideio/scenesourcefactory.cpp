@@ -30,6 +30,22 @@ namespace
         return out.str();
     }
 
+    // An allowance for a message: truncated, never rounded, to two decimals,
+    // so it never states more slack than the check grants -- 1.96 rounded to
+    // one decimal read "2.0" while a level 2 pixels off was rejected.
+    std::string formatAllowance(double value)
+    {
+        const double truncated = std::floor(value * 100.0) / 100.0;
+        if (truncated == std::floor(truncated)) {
+            return formatDimension(truncated);
+        }
+        std::ostringstream out;
+        out.setf(std::ios::fixed);
+        out.precision(2);
+        out << truncated;
+        return out.str();
+    }
+
     void validate(const std::shared_ptr<ISceneSource>& source, const SceneMetadata& m)
     {
         if (!source) {
@@ -110,8 +126,8 @@ namespace
                                     << " disagrees with its scale " << info.getScale()
                                     << ": expected " << formatDimension(expectedWidth) << "x"
                                     << formatDimension(expectedHeight)
-                                    << ", within " << formatDimension(allowWidth) << "x"
-                                    << formatDimension(allowHeight) << " pixels";
+                                    << ", within " << formatAllowance(allowWidth) << "x"
+                                    << formatAllowance(allowHeight) << " pixels";
             }
             if (info.getTileSize().width < 0 || info.getTileSize().height < 0) {
                 RAISE_RUNTIME_ERROR << "makeScene: level " << level << " has a negative tile size";

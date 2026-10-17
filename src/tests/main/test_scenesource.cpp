@@ -1185,6 +1185,26 @@ TEST(MakeScene, acceptsATallPyramidWhoseScaleComesFromTheWidth)
     EXPECT_THROW(makeScene(src, m), slideio::RuntimeError);
 }
 
+TEST(MakeScene, statesTheHeightAllowanceWithoutRoundingItUp)
+{
+    // 1000x960 grants 1 + 960/1000 = 1.96 pixels of height; one decimal
+    // rounded that to "2.0", more than a 2-pixel miss is granted.
+    auto src = std::make_shared<TestSceneSource>();
+    SceneMetadata m;
+    m.rect = Rect(0, 0, 1000, 960);
+    m.channelDataTypes.assign(1, DataType::DT_Byte);
+    m.levels.emplace_back(0, Size(1000, 960), 1.0, 40.0, Size(256, 256));
+    m.levels.emplace_back(1, Size(500, 482), 0.5, 20.0, Size(256, 256));
+    try {
+        makeScene(src, m);
+        FAIL() << "a height 2 pixels off was accepted";
+    }
+    catch (const slideio::RuntimeError& e) {
+        const std::string what = e.what();
+        EXPECT_NE(std::string::npos, what.find("within 1x1.96 pixels")) << what;
+    }
+}
+
 TEST(MakeScene, rejectsANegativeTileDimension)
 {
     SceneMetadata m = byteMetadata();

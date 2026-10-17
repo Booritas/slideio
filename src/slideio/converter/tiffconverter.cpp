@@ -892,6 +892,15 @@ void TiffConverter::createTiff(const std::string& filePath, const std::function<
         m_probedClone = tryReopenScene();
         m_cloneMode = m_probedClone.second ? CloneMode::Reopen : CloneMode::Share;
     }
+    // Released however createTiff ends: a copy no reader took before a write
+    // failed would otherwise hold its file open as long as the converter lives.
+    struct ProbedCloneRelease {
+        const TiffConverter& converter;
+        ~ProbedCloneRelease() {
+            std::lock_guard<std::mutex> lock(converter.m_probedCloneMutex);
+            converter.m_probedClone = {};
+        }
+    } releaseProbedClone{*this};
     m_file.reset(new TIFFKeeper(filePath, false));
     m_filePath = filePath;
     std::string description = createImageDescriptionTag();
@@ -918,8 +927,6 @@ void TiffConverter::createTiff(const std::string& filePath, const std::function<
             m_file->writeDirectory();
         }
     }
-    std::lock_guard<std::mutex> lock(m_probedCloneMutex);
-    m_probedClone = {};
 }
 
 
