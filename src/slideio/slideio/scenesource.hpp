@@ -39,6 +39,9 @@ namespace slideio
          * @param channelIndices : channels to return, in the given order.
          * Never empty: makeScene's adapter expands "every channel" before
          * calling, so an implementation always receives explicit indices.
+         * Duplicated indices are permitted: a channel listed more than once is
+         * delivered once per occurrence, in request order (so {0, 0} yields
+         * two copies of channel 0).
          * @param zSlice : z slice index, 0 for a plane scene.
          * @param tFrame : time frame index, 0 for a scene without time frames.
          * @param buffer : destination. Row-major, channel-interleaved in the
@@ -68,7 +71,8 @@ namespace slideio
          * directly avoids rounding twice.
          *
          * Parameters are those of #readBlock, with levelRect in the coordinate
-         * system of @p level.
+         * system of @p level. The channel contract is the same, duplicated
+         * indices included.
          *
          * The two paths differ in who clamps. Declining hands the read to
          * CVScene::readClampedBlock, which clips levelRect to the level
@@ -101,7 +105,10 @@ namespace slideio
             return std::list<std::string>();
         }
 
-        /**@brief An auxiliary image by name, or nullptr. nullptr by default.*/
+        /**@brief An auxiliary image by name, or nullptr. nullptr by default.
+         *
+         * Not yet consulted: Scene::getAuxImage on a computed scene throws
+         * RuntimeError, although the names above are reported.*/
         virtual std::shared_ptr<ISceneSource> getAuxImage(const std::string& /*name*/) const {
             return nullptr;
         }

@@ -42,6 +42,13 @@
 * for accessing of the slide properties including metadata and images. A single instance of slideio::Slide can contain multiple
 * raster images that are represented by slideio::Scene class. Class slideio::Scene exposes methods for working with a single raster
 * image of a slide. The class provides method for accessing to raster data and metadata.
+*
+* A scene does not have to come from a file. To present pixels an application computes itself as an
+* ordinary slideio::Scene, implement slideio::ISceneSource (scenesource.hpp), describe the result in a
+* slideio::SceneMetadata (scenemetadata.hpp) and call slideio::makeScene(). The returned scene reads
+* through the source on demand and can be passed to the converter like any other; makeScene() raises
+* slideio::RuntimeError if the metadata is inconsistent. Auxiliary images of such a scene are not yet
+* retrievable.
 * @code
     std::shared_ptr<slideio::Slide> slide = slideio::openSlide(path, "GDAL");
     const int numScenes = slide->getNumScenes();
