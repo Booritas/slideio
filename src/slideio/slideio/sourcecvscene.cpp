@@ -118,3 +118,59 @@ void SourceCVScene::readResampledBlockChannelsEx(const cv::Rect& blockRect,
                         channels, zSliceIndex, tFrameIndex,
                         mat.data, mat.total() * mat.elemSize());
 }
+
+void SourceCVScene::readResampledLevelBlockChannelsEx(int level, const cv::Rect& levelRect,
+    const cv::Size& blockSize, const std::vector<int>& channelIndices,
+    int zSliceIndex, int tFrameIndex, cv::OutputArray output)
+{
+    validateLevel(level);
+    if (blockSize.width <= 0 || blockSize.height <= 0) {
+        RAISE_RUNTIME_ERROR << "SourceCVScene: block size must be positive, got "
+                            << blockSize.width << "x" << blockSize.height;
+    }
+    if (levelRect.width <= 0 || levelRect.height <= 0) {
+        RAISE_RUNTIME_ERROR << "SourceCVScene: level rectangle must have positive size, got "
+                            << levelRect.width << "x" << levelRect.height;
+    }
+
+    const int numChannels = getNumChannels();
+    std::vector<int> channels(channelIndices);
+    if (channels.empty()) {
+        channels.resize(numChannels);
+        std::iota(channels.begin(), channels.end(), 0);
+    }
+    for (int channel : channels) {
+        if (channel < 0 || channel >= numChannels) {
+            RAISE_RUNTIME_ERROR << "SourceCVScene: channel " << channel
+                                << " out of range [0, " << numChannels << ")";
+        }
+    }
+
+    const DataType dataType = m_metadata.channelDataTypes[channels.front()];
+    for (int channel : channels) {
+        if (m_metadata.channelDataTypes[channel] != dataType) {
+            RAISE_RUNTIME_ERROR << "SourceCVScene: all channels of one block must share a "
+                                   "data type; channel " << channels.front() << " is "
+                                << dataType << " and channel " << channel << " is "
+                                << m_metadata.channelDataTypes[channel];
+        }
+    }
+    const int depth = CVTools::toOpencvType(dataType);
+    output.create(blockSize, CV_MAKETYPE(depth, static_cast<int>(channels.size())));
+    cv::Mat mat = output.getMat();
+    if (!mat.isContinuous()) {
+        RAISE_RUNTIME_ERROR << "SourceCVScene: output buffer is not continuous";
+    }
+
+    const bool served = m_source->readLevelBlock(
+        level, Rect(levelRect), Size(blockSize.width, blockSize.height),
+        channels, zSliceIndex, tFrameIndex, mat.data, mat.total() * mat.elemSize());
+    if (served) {
+        return;
+    }
+    // The source has no pyramid of its own. Fall back to the base, which maps
+    // the level rectangle to scene coordinates through LevelInfo::getScale()
+    // and comes back through readResampledBlockChannelsEx.
+    CVScene::readResampledLevelBlockChannelsEx(level, levelRect, blockSize, channels,
+                                               zSliceIndex, tFrameIndex, output);
+}

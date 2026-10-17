@@ -47,6 +47,10 @@ namespace slideio
             const std::vector<int>& componentIndices, int zSliceIndex, int tFrameIndex,
             cv::OutputArray output) override;
 
+        void readResampledLevelBlockChannelsEx(int level, const cv::Rect& levelRect,
+            const cv::Size& blockSize, const std::vector<int>& channelIndices,
+            int zSliceIndex, int tFrameIndex, cv::OutputArray output) override;
+
     private:
         std::shared_ptr<ISceneSource> m_source;
         SceneMetadata m_metadata;

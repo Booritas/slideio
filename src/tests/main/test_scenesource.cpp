@@ -338,3 +338,154 @@ TEST(SourceCVSceneRead, rejectsADegenerateRectBeforeCallingTheSource)   // Revie
                  slideio::RuntimeError);
     EXPECT_TRUE(src->calls().empty());
 }
+
+namespace {
+    SceneMetadata twoLevelMetadata()
+    {
+        SceneMetadata m;
+        m.rect = Rect(0, 0, 400, 300);
+        m.channelDataTypes.assign(3, DataType::DT_Byte);
+        m.levels.emplace_back(0, Size(400, 300), 1.0, 40.0, Size(256, 256));
+        m.levels.emplace_back(1, Size(200, 150), 0.5, 20.0, Size(256, 256));
+        return m;
+    }
+}
+
+TEST(SourceCVSceneLevels, asksASourceWithAPyramidDirectly)
+{
+    auto src = std::make_shared<TestSceneSource>();
+    src->setHasPyramid(true);
+    auto scene = sceneOver(src, twoLevelMetadata());
+
+    std::vector<uint8_t> buffer(2 * 2 * 3);
+    scene->readResampledLevelBlockChannels(1, std::make_tuple(10, 10, 2, 2),
+                                           std::make_tuple(2, 2), {}, buffer.data(), buffer.size());
+
+    ASSERT_EQ(1u, src->calls().size());
+    EXPECT_EQ(1, src->calls()[0].level);                  // the named level, not -1
+    EXPECT_EQ(10, src->calls()[0].rect.x);                // level coordinates, unscaled
+}
+
+TEST(SourceCVSceneLevels, derivesTheReadWhenTheSourceDeclinesTheLevel)
+{
+    auto src = std::make_shared<TestSceneSource>();
+    src->setHasPyramid(false);                            // readLevelBlock returns false
+    auto scene = sceneOver(src, twoLevelMetadata());
+
+    std::vector<uint8_t> buffer(2 * 2 * 3);
+    scene->readResampledLevelBlockChannels(1, std::make_tuple(10, 10, 2, 2),
+                                           std::make_tuple(2, 2), {}, buffer.data(), buffer.size());
+
+    ASSERT_EQ(1u, src->calls().size());
+    EXPECT_EQ(-1, src->calls()[0].level);                 // came through readBlock
+    EXPECT_EQ(20, src->calls()[0].rect.x);                // scaled to scene coordinates by 1/0.5
+}
+
+// The two level paths clamp differently, and an implementer who assumes
+// otherwise ships wrong edge tiles. CVScene::readClampedBlock is reached only
+// from the base readResampledLevelBlockChannelsEx (cvscene.cpp:233): a source
+// that DECLINES the level is clamped and background-filled for it, and one
+// that IMPLEMENTS the level is handed the rectangle untouched. Level 1 is
+// 200x150, so (190, 140, 20, 20) hangs 10 px off both edges.
+
+TEST(SourceCVSceneLevels, aSourceThatImplementsTheLevelGetsTheRectUnclamped)
+{
+    auto src = std::make_shared<TestSceneSource>();
+    src->setHasPyramid(true);
+    auto scene = sceneOver(src, twoLevelMetadata());
+
+    std::vector<uint8_t> buffer(20 * 20 * 3);
+    scene->readResampledLevelBlockChannels(1, std::make_tuple(190, 140, 20, 20),
+                                           std::make_tuple(20, 20), {},
+                                           buffer.data(), buffer.size());
+
+    ASSERT_EQ(1u, src->calls().size());
+    EXPECT_EQ(190, src->calls()[0].rect.x);               // not clipped to 190..200
+    EXPECT_EQ(20,  src->calls()[0].rect.width);           // the source owns the overhang
+    EXPECT_EQ(20,  src->calls()[0].blockSize.width);
+}
+
+TEST(SourceCVSceneLevels, aSourceThatDeclinesTheLevelGetsAClampedSceneRect)
+{
+    auto src = std::make_shared<TestSceneSource>();
+    src->setHasPyramid(false);
+    auto scene = sceneOver(src, twoLevelMetadata());
+
+    std::vector<uint8_t> buffer(20 * 20 * 3);
+    scene->readResampledLevelBlockChannels(1, std::make_tuple(190, 140, 20, 20),
+                                           std::make_tuple(20, 20), {},
+                                           buffer.data(), buffer.size());
+
+    ASSERT_EQ(1u, src->calls().size());
+    EXPECT_EQ(-1,  src->calls()[0].level);                // came through readBlock
+    EXPECT_EQ(380, src->calls()[0].rect.x);               // clipped, then /0.5 to scene
+    EXPECT_EQ(20,  src->calls()[0].rect.width);           // 10 level px -> 20 scene px
+    EXPECT_EQ(10,  src->calls()[0].blockSize.width);      // only the surviving part
+
+    // CVScene filled the overhang itself: 255 for an 8-bit block.
+    const size_t outside = (0 * 20 + 15) * 3;             // x = 15 is past the edge
+    EXPECT_EQ(255, buffer[outside]);
+}
+
+TEST(SourceCVSceneLevels, bothPathsAgreeAtLevelZero)
+{
+    SceneMetadata m = twoLevelMetadata();
+
+    auto direct = std::make_shared<TestSceneSource>();
+    direct->setHasPyramid(true);
+    auto derived = std::make_shared<TestSceneSource>();
+    derived->setHasPyramid(false);
+
+    std::vector<uint8_t> a(4 * 4 * 3), b(4 * 4 * 3);
+    sceneOver(direct, m)->readResampledLevelBlockChannels(
+        0, std::make_tuple(8, 8, 4, 4), std::make_tuple(4, 4), {}, a.data(), a.size());
+    sceneOver(derived, m)->readResampledLevelBlockChannels(
+        0, std::make_tuple(8, 8, 4, 4), std::make_tuple(4, 4), {}, b.data(), b.size());
+
+    EXPECT_EQ(a, b);
+}
+
+TEST(SourceCVSceneLevels, rejectsAnOutOfRangeLevel)
+{
+    auto src = std::make_shared<TestSceneSource>();
+    src->setHasPyramid(true);
+    auto scene = sceneOver(src, twoLevelMetadata());
+
+    std::vector<uint8_t> buffer(2 * 2 * 3);
+    EXPECT_THROW(scene->readResampledLevelBlockChannels(
+                     5, std::make_tuple(0, 0, 2, 2), std::make_tuple(2, 2), {},
+                     buffer.data(), buffer.size()),
+                 slideio::RuntimeError);
+}
+
+TEST(SourceCVSceneLevels, rejectsADegenerateLevelBlock)   // Review Focus 1
+{
+    auto src = std::make_shared<TestSceneSource>();
+    src->setHasPyramid(true);
+    auto scene = sceneOver(src, twoLevelMetadata());
+
+    std::vector<uint8_t> buffer(16);
+    EXPECT_THROW(scene->readResampledLevelBlockChannels(
+                     0, std::make_tuple(0, 0, 4, 4), std::make_tuple(0, 4), {},
+                     buffer.data(), buffer.size()),
+                 slideio::RuntimeError);
+}
+
+TEST(SourceCVSceneLevels, rejectsADegenerateLevelRectBeforeCallingTheSource)   // Review Focus 1
+{
+    for (bool pyramid : {true, false}) {
+        auto src = std::make_shared<TestSceneSource>();
+        src->setHasPyramid(pyramid);
+        auto scene = sceneOver(src, twoLevelMetadata());
+        std::vector<uint8_t> buffer(4 * 4 * 3);
+        EXPECT_THROW(scene->readResampledLevelBlockChannels(
+                         1, std::make_tuple(0, 0, 0, 4), std::make_tuple(4, 4), {},
+                         buffer.data(), buffer.size()),
+                     slideio::RuntimeError);
+        EXPECT_THROW(scene->readResampledLevelBlockChannels(
+                         1, std::make_tuple(0, 0, 4, -2), std::make_tuple(4, 4), {},
+                         buffer.data(), buffer.size()),
+                     slideio::RuntimeError);
+        EXPECT_TRUE(src->calls().empty());
+    }
+}
