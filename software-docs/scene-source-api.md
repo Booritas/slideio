@@ -72,8 +72,9 @@ Reads are checked before the source is called: an out-of-range channel, level,
 Z slice or time frame, and a request mixing channels of different data types
 all raise `slideio::RuntimeError`, and the source never sees them. A
 non-positive block or rectangle raises the same error on a scene-coordinate
-read; on a level read it yields a background block, as it does for every
-file-backed scene.
+read. On a level read a non-positive block size or a rectangle of negative
+width or height raises it too; a rectangle of zero area yields a background
+block, as it does for every file-backed scene.
 
 The public API change is **additive**: there is no source or binary
 incompatibility. One base-class behaviour changed with it, for every driver:

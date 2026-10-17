@@ -159,14 +159,24 @@ void SourceCVScene::readResampledLevelBlockChannelsEx(int level, const cv::Rect&
     int zSliceIndex, int tFrameIndex, cv::OutputArray output)
 {
     validateLevel(level);
+    // A block of no pixels, or a negative size anywhere, is a caller error,
+    // as on the block path: raised here, before OpenCV allocates anything
+    // (a negative size would otherwise surface as a cv::Exception from the
+    // background block) and before the source sees it.
+    if (blockSize.width <= 0 || blockSize.height <= 0) {
+        RAISE_RUNTIME_ERROR << "SourceCVScene: level block size must be positive, got "
+                            << blockSize.width << "x" << blockSize.height;
+    }
+    if (levelRect.width < 0 || levelRect.height < 0) {
+        RAISE_RUNTIME_ERROR << "SourceCVScene: level rectangle must not have a negative size, got "
+                            << levelRect.width << "x" << levelRect.height;
+    }
     const std::vector<int> channels = validateRequest(channelIndices, zSliceIndex, tFrameIndex);
 
-    // An empty rectangle or block is not an error on the level path: the base
+    // A rectangle of zero area is not an error on the level path: the base
     // contract (readClampedBlock) answers it with a background block, and the
     // fallback below delivers exactly that. Only a real read goes to the source.
-    const bool hasPixels = blockSize.width > 0 && blockSize.height > 0
-                           && levelRect.width > 0 && levelRect.height > 0;
-    if (hasPixels) {
+    if (levelRect.width > 0 && levelRect.height > 0) {
         cv::Mat mat = allocateBlock(blockSize, channels, output);
         if (m_source->readLevelBlock(level, Rect(levelRect),
                 Size(blockSize.width, blockSize.height), channels,

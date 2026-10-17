@@ -562,28 +562,69 @@ TEST(SourceCVSceneLevels, rejectsAnOutOfRangeLevel)
                  slideio::RuntimeError);
 }
 
-TEST(SourceCVSceneLevels, aDegenerateLevelBlockIsEmptyAndNeverReachesTheSource)   // Review Focus 1
+TEST(SourceCVSceneLevels, rejectsANonPositiveLevelBlockSizeBeforeCallingTheSource)   // Review Focus 1
 {
-    // The base level contract (readClampedBlock) every file driver inherits:
-    // nothing to read is not an error.
-    auto src = std::make_shared<TestSceneSource>();
-    src->setHasPyramid(true);
-    SourceCVScene adapter(src, twoLevelMetadata());
-
-    cv::Mat block;
-    EXPECT_NO_THROW(adapter.readResampledLevelBlockChannels(
-        0, cv::Rect(0, 0, 4, 4), cv::Size(0, 4), {}, block));
-    EXPECT_TRUE(block.empty());
-    EXPECT_TRUE(src->calls().empty());
+    // A block of no pixels, or of a negative size, is a caller error on the
+    // level path as on the block path: RuntimeError naming the size, raised
+    // before OpenCV allocates anything (a negative size used to surface as a
+    // cv::Exception from the background allocation).
+    for (bool pyramid : {true, false}) {
+        auto src = std::make_shared<TestSceneSource>();
+        src->setHasPyramid(pyramid);
+        SourceCVScene adapter(src, twoLevelMetadata());
+        for (const cv::Size& size : {cv::Size(0, 4), cv::Size(4, 0), cv::Size(4, -1), cv::Size(-3, 4)}) {
+            cv::Mat block;
+            try {
+                adapter.readResampledLevelBlockChannels(1, cv::Rect(0, 0, 4, 4), size, {}, block);
+                ADD_FAILURE() << "no RuntimeError for block size " << size.width << "x" << size.height;
+            }
+            catch (const slideio::RuntimeError& e) {
+                const std::string expected = std::to_string(size.width) + "x" + std::to_string(size.height);
+                EXPECT_NE(std::string::npos, std::string(e.what()).find(expected)) << e.what();
+            }
+            catch (const std::exception& e) {
+                ADD_FAILURE() << "block size " << size.width << "x" << size.height
+                              << " raised a non-RuntimeError: " << e.what();
+            }
+        }
+        EXPECT_TRUE(src->calls().empty());
+    }
 }
 
-TEST(SourceCVSceneLevels, aDegenerateLevelRectIsBackgroundAndNeverReachesTheSource)   // Review Focus 1
+TEST(SourceCVSceneLevels, rejectsANegativeLevelRectBeforeCallingTheSource)   // Review Focus 1
 {
     for (bool pyramid : {true, false}) {
         auto src = std::make_shared<TestSceneSource>();
         src->setHasPyramid(pyramid);
+        SourceCVScene adapter(src, twoLevelMetadata());
+        for (const cv::Rect& rect : {cv::Rect(0, 0, 4, -2), cv::Rect(0, 0, -4, 4)}) {
+            cv::Mat block;
+            try {
+                adapter.readResampledLevelBlockChannels(1, rect, cv::Size(4, 4), {}, block);
+                ADD_FAILURE() << "no RuntimeError for rectangle " << rect.width << "x" << rect.height;
+            }
+            catch (const slideio::RuntimeError& e) {
+                const std::string expected = std::to_string(rect.width) + "x" + std::to_string(rect.height);
+                EXPECT_NE(std::string::npos, std::string(e.what()).find(expected)) << e.what();
+            }
+            catch (const std::exception& e) {
+                ADD_FAILURE() << "rectangle " << rect.width << "x" << rect.height
+                              << " raised a non-RuntimeError: " << e.what();
+            }
+        }
+        EXPECT_TRUE(src->calls().empty());
+    }
+}
+
+TEST(SourceCVSceneLevels, aZeroAreaLevelRectIsBackgroundAndNeverReachesTheSource)   // Review Focus 1
+{
+    // The base level contract (readClampedBlock) every file driver inherits:
+    // a rectangle with nothing in it is not an error.
+    for (bool pyramid : {true, false}) {
+        auto src = std::make_shared<TestSceneSource>();
+        src->setHasPyramid(pyramid);
         auto scene = sceneOver(src, twoLevelMetadata());
-        for (auto rect : {std::make_tuple(0, 0, 0, 4), std::make_tuple(0, 0, 4, -2)}) {
+        for (auto rect : {std::make_tuple(0, 0, 0, 4), std::make_tuple(0, 0, 4, 0)}) {
             std::vector<uint8_t> buffer(4 * 4 * 3, 7);
             EXPECT_NO_THROW(scene->readResampledLevelBlockChannels(
                 1, rect, std::make_tuple(4, 4), {}, buffer.data(), buffer.size()));
