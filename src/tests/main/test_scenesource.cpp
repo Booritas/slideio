@@ -69,6 +69,7 @@ TEST(ISceneSource, aMinimalSourceGetsTheDocumentedDefaults)
 #include "slideio/slideio/sourcecvscene.hpp"
 #include "slideio/slideio/sceneinternal.hpp"
 #include "slideio/slideio/scene.hpp"
+#include "slideio/core/exceptions.hpp"
 
 namespace {
     SceneMetadata describedMetadata()
@@ -143,4 +144,182 @@ TEST(SourceCVScene, levelInfoPointersSurviveTheCallerMetadataGoingAway)
     const LevelInfo* level0 = scene->getLevelInfo(0);
     ASSERT_NE(nullptr, level0);
     EXPECT_EQ(400, level0->getSize().width);
+}
+
+namespace {
+    SceneMetadata byteMetadata(int channels = 3)
+    {
+        SceneMetadata m;
+        m.rect = Rect(0, 0, 400, 300);
+        m.channelDataTypes.assign(channels, DataType::DT_Byte);
+        m.levels.emplace_back(0, Size(400, 300), 1.0, 20.0, Size(256, 256));
+        return m;
+    }
+}
+
+TEST(SourceCVSceneRead, deliversTheSourcePixels)
+{
+    auto src = std::make_shared<TestSceneSource>();
+    auto scene = sceneOver(src, byteMetadata());
+
+    const std::tuple<int,int,int,int> rect(10, 20, 4, 3);
+    std::vector<uint8_t> buffer(4 * 3 * 3);
+    scene->readBlock(rect, buffer.data(), buffer.size());
+
+    for (int row = 0; row < 3; ++row) {
+        for (int col = 0; col < 4; ++col) {
+            for (int c = 0; c < 3; ++c) {
+                const size_t i = (static_cast<size_t>(row) * 4 + col) * 3 + c;
+                EXPECT_EQ(TestSceneSource::expected(10 + col, 20 + row, c), buffer[i])
+                    << "at col " << col << " row " << row << " channel " << c;
+            }
+        }
+    }
+}
+
+TEST(SourceCVSceneRead, forwardsARectStraddlingTheEdgeUnclamped)   // Review Focus 2
+{
+    auto src = std::make_shared<TestSceneSource>();
+    auto scene = sceneOver(src, byteMetadata());     // scene is 400x300
+
+    // Straddles the right edge: 2 columns inside, 2 outside.
+    std::vector<uint8_t> buffer(4 * 2 * 3);
+    ASSERT_NO_THROW(scene->readBlock(std::make_tuple(398, 0, 4, 2),
+                                     buffer.data(), buffer.size()));
+
+    // The adapter must hand the source the whole rectangle, not a clipped one:
+    // filling the outside part with background is the source's documented job,
+    // and a clipped rect would silently shift the pixels the caller gets back.
+    ASSERT_EQ(1u, src->calls().size());
+    EXPECT_EQ(398, src->calls()[0].rect.x);
+    EXPECT_EQ(4, src->calls()[0].rect.width);
+}
+
+TEST(SourceCVSceneRead, forwardsARectEntirelyOutsideTheScene)   // Review Focus 2
+{
+    auto src = std::make_shared<TestSceneSource>();
+    auto scene = sceneOver(src, byteMetadata());
+
+    std::vector<uint8_t> buffer(2 * 2 * 3);
+    EXPECT_NO_THROW(scene->readBlock(std::make_tuple(1000, 1000, 2, 2),
+                                     buffer.data(), buffer.size()));
+}
+
+TEST(SourceCVSceneRead, emptyChannelSelectionMeansEveryChannelInOrder)
+{
+    auto src = std::make_shared<TestSceneSource>();
+    auto scene = sceneOver(src, byteMetadata());
+
+    std::vector<uint8_t> buffer(2 * 2 * 3);
+    scene->readBlockChannels(std::make_tuple(0, 0, 2, 2), {}, buffer.data(), buffer.size());
+
+    ASSERT_EQ(1u, src->calls().size());
+    EXPECT_EQ(std::vector<int>({0, 1, 2}), src->calls()[0].channels);
+}
+
+TEST(SourceCVSceneRead, selectsAndOrdersTheRequestedChannels)
+{
+    auto src = std::make_shared<TestSceneSource>();
+    auto scene = sceneOver(src, byteMetadata());
+
+    std::vector<uint8_t> buffer(1 * 1 * 2);
+    scene->readBlockChannels(std::make_tuple(5, 6, 1, 1), {2, 0}, buffer.data(), buffer.size());
+
+    EXPECT_EQ(TestSceneSource::expected(5, 6, 2), buffer[0]);
+    EXPECT_EQ(TestSceneSource::expected(5, 6, 0), buffer[1]);
+}
+
+TEST(SourceCVSceneRead, rejectsAnOutOfRangeChannelIndex)
+{
+    auto src = std::make_shared<TestSceneSource>();
+    auto scene = sceneOver(src, byteMetadata());
+    std::vector<uint8_t> buffer(16);
+    EXPECT_THROW(scene->readBlockChannels(std::make_tuple(0, 0, 2, 2), {0, 9},
+                                          buffer.data(), buffer.size()),
+                 slideio::RuntimeError);
+}
+
+TEST(SourceCVSceneRead, rejectsChannelsOfDifferingDataTypesInOneBlock)
+{
+    auto src = std::make_shared<TestSceneSource>();
+    SceneMetadata m = byteMetadata(2);
+    m.channelDataTypes = {DataType::DT_Byte, DataType::DT_Float32};
+    auto scene = sceneOver(src, m);
+
+    std::vector<uint8_t> buffer(64);
+    EXPECT_THROW(scene->readBlockChannels(std::make_tuple(0, 0, 2, 2), {0, 1},
+                                          buffer.data(), buffer.size()),
+                 slideio::RuntimeError);
+}
+
+TEST(SourceCVSceneRead, readsAMixedTypeSceneOneChannelAtATime)
+{
+    // The rejection above costs no reach: every channel of a mixed-type scene
+    // is still readable, one per call, which is what keeps UR-IMG-10 true of a
+    // computed scene. Only a *simultaneous* multi-channel read is restricted,
+    // and that is cv::Mat's single depth, not this adapter's choice.
+    auto src = std::make_shared<TestSceneSource>();
+    SceneMetadata m = byteMetadata(2);
+    m.channelDataTypes = {DataType::DT_Byte, DataType::DT_Float32};
+    auto scene = sceneOver(src, m);
+
+    std::vector<uint8_t> byteBuffer(2 * 2);
+    EXPECT_NO_THROW(scene->readBlockChannels(std::make_tuple(0, 0, 2, 2), {0},
+                                             byteBuffer.data(), byteBuffer.size()));
+
+    std::vector<float> floatBuffer(2 * 2);
+    EXPECT_NO_THROW(scene->readBlockChannels(std::make_tuple(0, 0, 2, 2), {1},
+                                             floatBuffer.data(),
+                                             floatBuffer.size() * sizeof(float)));
+}
+
+TEST(SourceCVSceneRead, rejectsADegenerateBlock)   // Review Focus 1
+{
+    auto src = std::make_shared<TestSceneSource>();
+    auto scene = sceneOver(src, byteMetadata());
+    std::vector<uint8_t> buffer(16);
+    EXPECT_THROW(scene->readBlock(std::make_tuple(0, 0, 0, 5), buffer.data(), buffer.size()),
+                 slideio::RuntimeError);
+    EXPECT_THROW(scene->readBlock(std::make_tuple(0, 0, 5, -1), buffer.data(), buffer.size()),
+                 slideio::RuntimeError);
+}
+
+TEST(SourceCVSceneRead, rejectsABufferSmallerThanTheBlock)   // Review Focus 3
+{
+    auto src = std::make_shared<TestSceneSource>();
+    auto scene = sceneOver(src, byteMetadata());
+    std::vector<uint8_t> tooSmall(5);            // needs 4*3*3 = 36
+    EXPECT_THROW(scene->readBlock(std::make_tuple(0, 0, 4, 3), tooSmall.data(), tooSmall.size()),
+                 slideio::RuntimeError);
+}
+
+TEST(SourceCVSceneRead, aThrowingSourceLeavesTheSceneUsable)   // Review Focus 5
+{
+    auto src = std::make_shared<TestSceneSource>();
+    auto scene = sceneOver(src, byteMetadata());
+    std::vector<uint8_t> buffer(2 * 2 * 3);
+
+    src->setThrowOnRead(true);
+    EXPECT_THROW(scene->readBlock(std::make_tuple(0, 0, 2, 2), buffer.data(), buffer.size()),
+                 std::exception);
+
+    src->setThrowOnRead(false);
+    EXPECT_NO_THROW(scene->readBlock(std::make_tuple(0, 0, 2, 2), buffer.data(), buffer.size()));
+    EXPECT_EQ(TestSceneSource::expected(0, 0, 0), buffer[0]);
+}
+
+TEST(SourceCVSceneRead, servesA4DReadFromASourceThatImplementsOnlyReadBlock)
+{
+    auto src = std::make_shared<TestSceneSource>();
+    SceneMetadata m = byteMetadata();
+    m.numZSlices = 3;
+    auto scene = sceneOver(src, m);
+
+    std::vector<uint8_t> buffer(2 * 2 * 3 * 2);   // two z slices
+    scene->read4DBlock(std::make_tuple(0, 0, 2, 2), std::make_tuple(0, 2),
+                       std::make_tuple(0, 1), buffer.data(), buffer.size());
+
+    ASSERT_EQ(2u, src->calls().size());
+    EXPECT_EQ(0, src->calls()[0].zSlice);
+    EXPECT_EQ(1, src->calls()[1].zSlice);
 }

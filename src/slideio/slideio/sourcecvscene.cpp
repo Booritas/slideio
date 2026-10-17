@@ -3,6 +3,8 @@
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/slideio/sourcecvscene.hpp"
 #include "slideio/core/exceptions.hpp"
+#include "slideio/core/tools/cvtools.hpp"
+#include <numeric>
 #include <utility>
 
 using namespace slideio;
@@ -66,8 +68,49 @@ const LevelInfo* SourceCVScene::getZoomLevelInfo(int level) const
     return &m_metadata.levels[level];
 }
 
-void SourceCVScene::readResampledBlockChannelsEx(const cv::Rect&, const cv::Size&,
-    const std::vector<int>&, int, int, cv::OutputArray)
+void SourceCVScene::readResampledBlockChannelsEx(const cv::Rect& blockRect,
+    const cv::Size& blockSize, const std::vector<int>& componentIndices,
+    int zSliceIndex, int tFrameIndex, cv::OutputArray output)
 {
-    RAISE_RUNTIME_ERROR << "SourceCVScene: read not implemented yet";
+    if (blockSize.width <= 0 || blockSize.height <= 0) {
+        RAISE_RUNTIME_ERROR << "SourceCVScene: block size must be positive, got "
+                            << blockSize.width << "x" << blockSize.height;
+    }
+    const int numChannels = getNumChannels();
+    std::vector<int> channels(componentIndices);
+    if (channels.empty()) {
+        channels.resize(numChannels);
+        std::iota(channels.begin(), channels.end(), 0);
+    }
+    for (int channel : channels) {
+        if (channel < 0 || channel >= numChannels) {
+            RAISE_RUNTIME_ERROR << "SourceCVScene: channel " << channel
+                                << " out of range [0, " << numChannels << ")";
+        }
+    }
+    // The type comes from the channels the caller asked for, deliberately not
+    // from CVScene::initializeSceneBlock, which takes channel 0's type
+    // whatever was requested (cvscene.cpp:330) and would size this block
+    // wrongly for a mixed-type scene -- the source then writes elements of a
+    // different width into it and overruns the buffer. Do not "simplify" this
+    // by calling the base helper. See the design document 6.1.
+    const DataType dataType = m_metadata.channelDataTypes[channels.front()];
+    for (int channel : channels) {
+        if (m_metadata.channelDataTypes[channel] != dataType) {
+            RAISE_RUNTIME_ERROR << "SourceCVScene: all channels of one block must share a "
+                                   "data type; channel " << channels.front() << " is "
+                                << dataType << " and channel " << channel << " is "
+                                << m_metadata.channelDataTypes[channel];
+        }
+    }
+
+    const int depth = CVTools::toOpencvType(dataType);
+    output.create(blockSize, CV_MAKETYPE(depth, static_cast<int>(channels.size())));
+    cv::Mat mat = output.getMat();
+    if (!mat.isContinuous()) {
+        RAISE_RUNTIME_ERROR << "SourceCVScene: output buffer is not continuous";
+    }
+    m_source->readBlock(Rect(blockRect), Size(blockSize.width, blockSize.height),
+                        channels, zSliceIndex, tFrameIndex,
+                        mat.data, mat.total() * mat.elemSize());
 }
