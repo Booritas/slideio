@@ -10,7 +10,7 @@
 using namespace slideio;
 
 SourceCVScene::SourceCVScene(std::shared_ptr<ISceneSource> source, SceneMetadata metadata)
-    : m_source(std::move(source)), m_metadata(std::move(metadata)), m_driverId("SOURCE")
+    : m_source(std::move(source)), m_metadata(std::move(metadata)), m_driverId(DRIVER_ID)
 {
 }
 

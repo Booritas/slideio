@@ -23,6 +23,11 @@ namespace slideio
     class SLIDEIO_EXPORTS SourceCVScene : public CVScene
     {
     public:
+        /// Driver id every SourceCVScene reports. No registered driver has it,
+        /// so openSlide() cannot re-open such a scene; code that would re-open a
+        /// scene by (file path, driver id) checks for it and shares the scene instead.
+        static constexpr const char* DRIVER_ID = "SOURCE";
+
         SourceCVScene(std::shared_ptr<ISceneSource> source, SceneMetadata metadata);
 
         std::string getFilePath() const override;
