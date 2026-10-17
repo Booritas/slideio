@@ -5,4 +5,5 @@ set(SLIDEIO_PUBLIC_HEADERS_slideio
     slideio.hpp
     slide.hpp
     scene.hpp
+    scenemetadata.hpp
 )
