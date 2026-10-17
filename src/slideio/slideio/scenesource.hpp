@@ -3,6 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 #pragma once
 #include "slideio/slideio/slideio_def.hpp"
+#include "slideio/slideio/scenemetadata.hpp"
 #include "slideio/core/rect.hpp"
 #include "slideio/core/size.hpp"
 #include <cstddef>
@@ -105,4 +106,25 @@ namespace slideio
             return nullptr;
         }
     };
+
+    class Scene;
+
+    /**@brief Wraps an ISceneSource in a genuine slideio::Scene.
+     *
+     * Performs no image work: no file is opened, nothing is cropped, no
+     * channel is selected. Every field of @p metadata is reported verbatim by
+     * the corresponding Scene getter, and pixels are fetched from @p source
+     * on demand.
+     *
+     * @param source : supplies the pixels. Must not be null.
+     * @param metadata : what the resulting scene reports about itself.
+     * @return a Scene usable anywhere a file backed one is, convertScene and
+     * the Python bindings included.
+     *
+     * Throws RuntimeError if the metadata is not internally consistent --
+     * deliberately at construction, so a malformed scene fails here rather
+     * than at its first tile read.
+     */
+    std::shared_ptr<Scene> SLIDEIO_EXPORTS makeScene(std::shared_ptr<ISceneSource> source,
+                                                     const SceneMetadata& metadata);
 }

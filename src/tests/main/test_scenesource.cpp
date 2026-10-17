@@ -539,3 +539,105 @@ TEST(SourceCVSceneExtras, forwardsRawMetadataAndAuxImageNames)
     EXPECT_EQ("label", adapter.getAuxImageNames().front());
     EXPECT_EQ(2, adapter.getNumAuxImages());
 }
+
+TEST(MakeScene, returnsAUsableSceneForValidMetadata)
+{
+    auto src = std::make_shared<TestSceneSource>();
+    auto scene = makeScene(src, byteMetadata());
+
+    ASSERT_NE(nullptr, scene);
+    EXPECT_EQ(std::make_tuple(0, 0, 400, 300), scene->getRect());
+    EXPECT_EQ(3, scene->getNumChannels());
+
+    std::vector<uint8_t> buffer(2 * 2 * 3);
+    scene->readBlock(std::make_tuple(0, 0, 2, 2), buffer.data(), buffer.size());
+    EXPECT_EQ(TestSceneSource::expected(0, 0, 0), buffer[0]);
+}
+
+TEST(MakeScene, readsNoPixelsAtConstruction)
+{
+    auto src = std::make_shared<TestSceneSource>();
+    auto scene = makeScene(src, byteMetadata());
+    EXPECT_TRUE(src->calls().empty());
+}
+
+TEST(MakeScene, rejectsANullSource)
+{
+    EXPECT_THROW(makeScene(nullptr, byteMetadata()), slideio::RuntimeError);
+}
+
+TEST(MakeScene, rejectsEmptyOrUnknownChannelTypes)
+{
+    auto src = std::make_shared<TestSceneSource>();
+
+    SceneMetadata none = byteMetadata();
+    none.channelDataTypes.clear();
+    EXPECT_THROW(makeScene(src, none), slideio::RuntimeError);
+
+    SceneMetadata unknown = byteMetadata();
+    unknown.channelDataTypes[1] = DataType::DT_Unknown;
+    EXPECT_THROW(makeScene(src, unknown), slideio::RuntimeError);
+}
+
+TEST(MakeScene, rejectsMismatchedPerChannelVectors)
+{
+    auto src = std::make_shared<TestSceneSource>();
+
+    SceneMetadata names = byteMetadata();
+    names.channelNames = {"only-one"};               // 3 channels declared
+    EXPECT_THROW(makeScene(src, names), slideio::RuntimeError);
+
+    SceneMetadata bits = byteMetadata();
+    bits.channelSignificantBits = {8, 8};            // 3 channels declared
+    EXPECT_THROW(makeScene(src, bits), slideio::RuntimeError);
+}
+
+TEST(MakeScene, rejectsADegenerateRect)
+{
+    auto src = std::make_shared<TestSceneSource>();
+    SceneMetadata m = byteMetadata();
+    m.rect = Rect(0, 0, 0, 300);
+    EXPECT_THROW(makeScene(src, m), slideio::RuntimeError);
+}
+
+TEST(MakeScene, rejectsAnEmptyPyramid)
+{
+    auto src = std::make_shared<TestSceneSource>();
+    SceneMetadata m = byteMetadata();
+    m.levels.clear();
+    EXPECT_THROW(makeScene(src, m), slideio::RuntimeError);
+}
+
+TEST(MakeScene, rejectsALevelZeroThatDisagreesWithTheRect)
+{
+    auto src = std::make_shared<TestSceneSource>();
+
+    SceneMetadata scale = byteMetadata();
+    scale.levels[0].setScale(0.5);
+    EXPECT_THROW(makeScene(src, scale), slideio::RuntimeError);
+
+    SceneMetadata size = byteMetadata();
+    size.levels[0].setSize(Size(200, 300));
+    EXPECT_THROW(makeScene(src, size), slideio::RuntimeError);
+}
+
+TEST(MakeScene, rejectsNonDecreasingLevelScales)
+{
+    auto src = std::make_shared<TestSceneSource>();
+    SceneMetadata m = twoLevelMetadata();
+    m.levels[1].setScale(1.0);                       // not smaller than level 0
+    EXPECT_THROW(makeScene(src, m), slideio::RuntimeError);
+}
+
+TEST(MakeScene, rejectsNonPositiveSliceAndFrameCounts)
+{
+    auto src = std::make_shared<TestSceneSource>();
+
+    SceneMetadata z = byteMetadata();
+    z.numZSlices = 0;
+    EXPECT_THROW(makeScene(src, z), slideio::RuntimeError);
+
+    SceneMetadata t = byteMetadata();
+    t.numTFrames = -1;
+    EXPECT_THROW(makeScene(src, t), slideio::RuntimeError);
+}
