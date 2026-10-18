@@ -1278,6 +1278,12 @@ TEST_F(VSIImageDriverTests, colorProfileAbsentWhenTiffTagIsAbsent) {
 // which libtiff has no codec for: TIFFReadEncodedStrip failed and the read threw "Error
 // by reading of tif strip". The expected values were decoded independently, by Pillow,
 // from the raw strip bytes.
+//
+// The strip is lossy: its COD marker names the irreversible 9/7 wavelet, computed in
+// floating point, so OpenJPEG builds differ from one another by a grey level here and
+// there. Pillow's sum is 62942184; slideio's OpenJPEG 2.5.2 on MSVC and ImageMagick's
+// 2.5.3 both give 62942186. The sum therefore gets a little slack, while the extremes
+// and the sampled pixels -- on which every decoder agrees -- stay exact.
 TEST_F(VSIImageDriverTests, readsAJpeg2000StripedAuxImage) {
     const std::string filePath = TestTools::getTestImagePath("vsi", "OS-1/OS-1.vsi");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
@@ -1292,7 +1298,7 @@ TEST_F(VSIImageDriverTests, readsAJpeg2000StripedAuxImage) {
     ASSERT_NO_THROW(focusMap->readBlock(focusMap->getRect(), raster));
     ASSERT_EQ(CV_16UC1, raster.type());
     ASSERT_EQ(cv::Size(40, 46), raster.size());
-    EXPECT_EQ(62942184., cv::sum(raster)[0]);
+    EXPECT_NEAR(62942184., cv::sum(raster)[0], 8.);
     double minValue = 0, maxValue = 0;
     cv::minMaxLoc(raster, &minValue, &maxValue);
     EXPECT_EQ(34099., minValue);
