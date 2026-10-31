@@ -1,8 +1,8 @@
 name: Build Validation
 
 # A documentation-only change cannot break a C++ build, so it does not start
-# one. The filter lists the Jekyll site, the Sphinx and Doxygen sources, the
-# internal engineering docs, and markdown anywhere in the tree.
+# one. The filter lists the internal engineering docs and markdown anywhere in
+# the tree.
 #
 # This skips a push only when *every* changed file matches: a commit touching
 # src/ alongside a README still runs the full suite, because GitHub starts the
@@ -19,15 +19,11 @@ on:
   push:
     branches: [main, master]
     paths-ignore:
-      - 'docs/**'
-      - 'docs-src/**'
       - 'software-docs/**'
       - '**/*.md'
   pull_request:
     branches: [main, master]
     paths-ignore:
-      - 'docs/**'
-      - 'docs-src/**'
       - 'software-docs/**'
       - '**/*.md'
   workflow_dispatch:

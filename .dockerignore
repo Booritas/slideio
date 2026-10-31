@@ -7,8 +7,6 @@
 build/
 .git/
 .github/
-docs/
-docs-src/
 software-docs/
 extern/
 __pycache__/

@@ -284,9 +284,8 @@ shipped in every release; removing it needs a `BREAKING_CHANGES.md` entry.
 
 ## Documentation
 
-- `docs/` is the published Jekyll site (GitHub Pages); release announcements live in `docs/_posts/`. Anything added here is public.
-- `docs-src/` holds the sources of the published API reference: `Sphinx/source/` (Python API, `*.rst`) and `Doxygen/` (C++ API). The Sphinx pages are also public.
-- `software-docs/` holds internal engineering documentation: `specs/` (designs), `plans/` (implementation plans), `TECH_DEBT.md`, `BREAKING_CHANGES.md`, `review.md`. Internal docs go here, never under `docs/`.
+- The public site www.slideio.com -- user documentation, Python and C++ API reference, release announcements -- lives in the separate repository `Booritas/slideio-doc` and is published by Read the Docs. It pins this repository as the submodule `extern/slideio` for the C++ headers and the version; a release means a news post there and a submodule bump.
+- `software-docs/` holds internal engineering documentation: `specs/` (designs), `plans/` (implementation plans), `TECH_DEBT.md`, `BREAKING_CHANGES.md`, `review.md`. Internal docs go here; nothing in this repository is published.
 - Record exported-API changes that break out-of-tree callers in `software-docs/BREAKING_CHANGES.md`, grouped by branch. There is no changelog in the repository.
 
 ## Dependencies (managed via Conan)
