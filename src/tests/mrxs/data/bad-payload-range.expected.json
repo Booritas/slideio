@@ -1,0 +1,6 @@
+{
+ "error": "corrupt",
+ "error_on": "open",
+ "name": "bad-payload-range",
+ "reason": "a level-0 payload extends past the end of its data file"
+}

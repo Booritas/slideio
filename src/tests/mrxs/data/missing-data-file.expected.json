@@ -1,0 +1,6 @@
+{
+ "error": "corrupt",
+ "error_on": "open",
+ "name": "missing-data-file",
+ "reason": "a data file listed in [DATAFILE] does not exist"
+}

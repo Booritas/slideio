@@ -1,0 +1,24 @@
+{
+ "fixtures": [
+  "bad-map-length",
+  "bad-negative-pointer",
+  "bad-page-cycle",
+  "bad-payload-range",
+  "bad-slide-id",
+  "bmp-not-24bit",
+  "bmp24",
+  "codec-mismatch",
+  "ini-duplicates",
+  "layout-variants",
+  "missing-data-file",
+  "nomap-d1",
+  "nomap-overlap-d2",
+  "nondivisible-grid",
+  "pages-out-of-order",
+  "rawmap-d2",
+  "saved-c0-4",
+  "zlibmap-d2-jpeg"
+ ],
+ "generator_version": 1,
+ "pillow": "11.0.0"
+}
