@@ -51,6 +51,7 @@ target_link_libraries(${LIBRARY_NAME}
    ${VSI_DRIVER_NAME}
    ${PKE_DRIVER_NAME}
    ${OMETIFF_DRIVER_NAME}
+   ${MRXS_DRIVER_NAME}
    )
 
 IF(WIN32)

@@ -209,6 +209,10 @@ jobs:
           exe="${{ matrix.bin_dir }}/slideio_tests"
           if [ "${RUNNER_OS}" = "Windows" ]; then exe="${exe}.exe"; fi
           "$exe" --gtest_filter="FileReader.*:ContextPool.*"
+          # MRXS suites over the fixtures committed in src/tests/mrxs/data only.
+          mrxs="${{ matrix.bin_dir }}/slideio_mrxs_tests"
+          if [ "${RUNNER_OS}" = "Windows" ]; then mrxs="${mrxs}.exe"; fi
+          "$mrxs" --gtest_filter="-MRXSCorpus*"
 
       - name: Build packages
         run: python install.py -a package-only -c release
@@ -390,6 +394,7 @@ jobs:
               python3 install.py -a configure-only -c release
               python3 install.py -a build-only -c release
               ./build/release/bin/slideio_tests --gtest_filter="FileReader.*:ContextPool.*"
+              ./build/release/bin/slideio_mrxs_tests --gtest_filter="-MRXSCorpus*"
               python3 install.py -a package-only -c release
 
               # The consumer smoke test, run in the same image the package was
