@@ -236,8 +236,9 @@ void slideio::Tools::scaleRect(const cv::Rect& srcRect, double scaleX, double sc
 {
     trgRect.x = static_cast<int>(std::floor(static_cast<double>(srcRect.x) * scaleX));
     trgRect.y = static_cast<int>(std::floor(static_cast<double>(srcRect.y) * scaleY));
-    int xn = srcRect.x + srcRect.width;
-    int yn = srcRect.y + srcRect.height;
+    // 64-bit: the far edge of a rect that fits can still lie past INT32_MAX.
+    const int64_t xn = int64_t(srcRect.x) + srcRect.width;
+    const int64_t yn = int64_t(srcRect.y) + srcRect.height;
     int dxn = static_cast<int>(std::ceil(static_cast<double>(xn) * scaleX));
     int dyn = static_cast<int>(std::ceil(static_cast<double>(yn) * scaleY));
     trgRect.width = dxn - trgRect.x;
