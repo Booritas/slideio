@@ -5,12 +5,14 @@
 
 #include "slideio/drivers/mrxs/mrxs_api_def.hpp"
 #include "slideio/core/cvslide.hpp"
+#include <map>
 #include <memory>
 #include <string>
 
 namespace slideio
 {
     class MRXSScene;
+    namespace mrxs { struct MRXSDataset; }
 
     class SLIDEIO_MRXS_EXPORTS MRXSSlide : public CVSlide
     {
@@ -21,9 +23,16 @@ namespace slideio
         int getNumScenes() const override { return 1; }
         std::string getFilePath() const override { return m_filePath; }
         std::shared_ptr<CVScene> getScene(int index) const override;
+        /// "Macro", "Label" or "Thumbnail", when the bundle has it.
+        std::shared_ptr<CVScene> getAuxImage(const std::string& name) const override;
+
+    protected:
+        MetadataBuilder buildMetadataTree() const override;
 
     private:
         std::string m_filePath;
+        std::shared_ptr<const mrxs::MRXSDataset> m_dataset;
         std::shared_ptr<MRXSScene> m_scene;
+        std::map<std::string, std::shared_ptr<CVScene>> m_auxImages;
     };
 }

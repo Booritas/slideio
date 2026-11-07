@@ -18,6 +18,7 @@
   "layout-variants",
   "malformed-divisions",
   "missing-data-file",
+  "mixed-codecs",
   "nomap-d1",
   "nomap-overlap-d2",
   "nondivisible-grid",

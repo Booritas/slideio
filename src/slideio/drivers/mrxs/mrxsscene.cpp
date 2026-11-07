@@ -3,6 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/drivers/mrxs/mrxsscene.hpp"
 #include "slideio/drivers/mrxs/mrxsrenderer.hpp"
+#include "slideio/drivers/mrxs/mrxsdescription.hpp"
 #include "slideio/core/exceptions.hpp"
 #include "slideio/core/tools/tools.hpp"
 
@@ -16,6 +17,9 @@ namespace
 
 MRXSScene::MRXSScene(std::shared_ptr<const MRXSDataset> dataset) : m_dataset(std::move(dataset))
 {
+    // Slidedat.ini exactly as read; its structured form is buildMetadataTree's.
+    m_rawMetadata = m_dataset->structure.ini.text();
+    m_metadataFormat = MetadataFormat::Text;
     const auto& levels = m_dataset->geometry.levels;
     const double magnification = getMagnification();
     for (size_t l = 0; l < levels.size(); ++l) {
@@ -95,6 +99,11 @@ Compression MRXSScene::getCompression() const
     case ImageFormat::Bmp24: return Compression::BMP;
     }
     return Compression::Unknown;
+}
+
+MetadataBuilder MRXSScene::buildMetadataTree() const
+{
+    return describe(*m_dataset);
 }
 
 double MRXSScene::getChannelBackground(int channel) const

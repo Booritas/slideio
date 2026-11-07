@@ -11,9 +11,13 @@
 #include <cstdlib>
 #include <fstream>
 #include <iostream>
+#include <map>
 #include <nlohmann/json.hpp>
 #include <string>
 #include "slideio/drivers/mrxs/mrxsgeometry.hpp"
+#include "slideio/drivers/mrxs/mrxsimagedriver.hpp"
+#include "slideio/core/cvscene.hpp"
+#include "slideio/core/cvslide.hpp"
 #include "tests/testlib/testtools.hpp"
 
 using json = nlohmann::json;
@@ -52,6 +56,36 @@ TEST(MRXSCorpusGeometry, levelSizesAndBoundsMatchOpenSlide)
         EXPECT_EQ(expected["bounds"][1].get<int64_t>(), y0);
         EXPECT_EQ(expected["bounds"][2].get<int64_t>(), x1 - x0);
         EXPECT_EQ(expected["bounds"][3].get<int64_t>(), y1 - y0);
+        ++checked;
+    }
+    EXPECT_EQ(8, checked);
+}
+
+TEST(MRXSCorpusGeometry, associatedImagesMatchOpenSlide)
+{
+    // Names and sizes only: no label pixels are decoded or compared.
+    const std::string manifestPath = TestTools::getTestImagePath("mirax/reference", "manifest.json");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(manifestPath);
+    std::ifstream in(manifestPath);
+    const json manifest = json::parse(in);
+    const std::map<std::string, std::string> openslideName = {{"Macro", "macro"}, {"Label", "label"},
+                                                              {"Thumbnail", "thumbnail"}};
+    int checked = 0;
+    for (const auto& item : manifest["bundles"].items()) {
+        const std::string& rel = item.key();
+        if (rel.find("2401582-38") != std::string::npos) continue;
+        SCOPED_TRACE(rel);
+        const std::string path = TestTools::getTestImagePath("mirax", rel);
+        SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
+        slideio::MRXSImageDriver driver;
+        const auto slide = driver.openFile(path);
+        const json& expected = item.value()["associated"];
+        EXPECT_EQ(expected.size(), slide->getAuxImageNames().size());
+        for (const std::string& name : slide->getAuxImageNames()) {
+            const json& size = expected[openslideName.at(name)];
+            EXPECT_EQ(cv::Rect(0, 0, size[0].get<int>(), size[1].get<int>()), slide->getAuxImage(name)->getRect())
+                << name;
+        }
         ++checked;
     }
     EXPECT_EQ(8, checked);

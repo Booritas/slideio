@@ -24,6 +24,10 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/mrxsdataset.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/mrxsrenderer.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/mrxsrenderer.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/mrxsauxscene.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/mrxsauxscene.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/mrxsdescription.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/mrxsdescription.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/mrxsscene.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/mrxsscene.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/mrxsslide.hpp
@@ -36,10 +40,12 @@ set_target_properties(${LIBRARY_NAME} PROPERTIES OUTPUT_NAME "${LIBRARY_NAME}${L
 
 find_package(OpenCV)
 find_package(ZLIB)
+find_package(nlohmann_json)
 
 target_link_libraries(${LIBRARY_NAME}
    opencv::opencv
    ZLIB::ZLIB
+   nlohmann_json::nlohmann_json
 )
 
 SOURCE_GROUP_BY_FOLDER(SOURCE_FILES)

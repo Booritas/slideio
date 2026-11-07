@@ -654,9 +654,10 @@ def base_specs():
         "hier_slot_multiplier": 3, "nonhier_next_page": True, "tagged_family": True,
     })
 
-    # BMP24 payloads 13 pixels wide: rows padded to a multiple of four bytes.
+    # BMP24 payloads 13 pixels wide: rows padded to a multiple of four bytes. No associated
+    # images, so no Scan data layer at all.
     specs.append({
-        "name": "bmp24", "slide_id": "B0B0B0B0B0B0B0B0B0B0B0B0B0B0B0B0",
+        "name": "bmp24", "slide_id": "B0B0B0B0B0B0B0B0B0B0B0B0B0B0B0B0", "associated": False,
         "Nx": 4, "Ny": 2, "D": 1, "mpp": [0.5, 0.5], "fill_bgr": 0x00FFFFFF,
         "levels": [dict(exp=0, W=13, H=7, overlap_x=0, overlap_y=0, format="BMP24"),
                    dict(exp=1, W=13, H=7, overlap_x=0, overlap_y=0, format="BMP24")],
@@ -672,6 +673,11 @@ def base_specs():
     specs.append({**specs[0], "name": "pages-out-of-order", "slide_id": "0E0E0E0E0E0E0E0E0E0E0E0E0E0E0E0E",
                   "page_size": 3, "reverse_pages": True, "openslide_incompatible":
                   "OpenSlide reads hierarchical pages sequentially instead of following next pointers"})
+
+    # Levels in different codecs: compression has no single answer.
+    specs.append({**specs[0], "name": "mixed-codecs", "slide_id": "3C3C3C3C3C3C3C3C3C3C3C3C3C3C3C3C",
+                  "levels": [specs[0]["levels"][0], {**specs[0]["levels"][1], "format": "JPEG"},
+                             {**specs[0]["levels"][2], "format": "BMP24"}]})
 
     # Repeated key and repeated group: the reader must follow GKeyFile. Which value
     # wins is established against OpenSlide by the reference harness.

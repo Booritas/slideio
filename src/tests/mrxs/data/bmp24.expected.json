@@ -1,9 +1,5 @@
 {
- "associated": {
-  "Label": {"height":20,"rgb":[200,190,60],"width":24},
-  "Macro": {"height":70,"rgb":[90,110,160],"width":30},
-  "Thumbnail": {"height":40,"rgb":[60,170,90],"width":18}
- },
+ "associated": {},
  "background_rgb": [255,255,255],
  "bounds_level0": [0.0,0.0,52.0,14.0],
  "camera_grid": [4,2],

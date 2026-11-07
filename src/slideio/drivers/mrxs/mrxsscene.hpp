@@ -39,6 +39,9 @@ namespace slideio
                                                const std::vector<int>& channelIndices, int zSliceIndex,
                                                int tFrameIndex, cv::OutputArray output) override;
 
+    protected:
+        MetadataBuilder buildMetadataTree() const override;
+
     private:
         std::shared_ptr<const mrxs::MRXSDataset> m_dataset;
     };
