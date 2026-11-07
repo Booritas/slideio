@@ -27,6 +27,7 @@
   "truncated-index",
   "two-image-groups",
   "unsupported-format",
+  "wrong-image-size",
   "zlibmap-d2-jpeg"
  ],
  "generator_version": 1,

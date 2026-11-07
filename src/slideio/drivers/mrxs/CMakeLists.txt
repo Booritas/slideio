@@ -18,6 +18,14 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/mrxsindex.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/mrxsgeometry.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/mrxsgeometry.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/mrxsdecoder.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/mrxsdecoder.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/mrxsdataset.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/mrxsdataset.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/mrxsrenderer.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/mrxsrenderer.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/mrxsscene.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/mrxsscene.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/mrxsslide.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/mrxsslide.cpp
    )

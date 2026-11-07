@@ -10,6 +10,11 @@ None of them runs in CI, and none shares code with the C++ driver.
 | `mrxs-openslide-reference.py check-fixtures` | nothing | Checks every synthetic fixture against OpenSlide |
 | `mrxs-openslide-reference.py references <images-root> <out>` | `<images-root>/mirax/reference/` | OpenSlide reference regions of the nine real bundles |
 | `mrxs-renderer-prototype.py <reference-dir>` | nothing | Measures the design's renderer against those references |
+| `mrxs-decoder-difference.py <images-root> <dump-dir>` | `<images-root>/mirax/reference/decoder-difference.json` | Per-region difference between slideio's JPEG decoder (libjpeg 9f) and OpenSlide's (libjpeg-turbo); needs the tile dump of `MRXSCorpusRender.DISABLED_dumpDecodedTilesOfEveryRegion` |
+
+Reference regions are centred on actual drawables (found with the prototype's geometry),
+never on the middle of the bounds: on sparse tissue that lands in holes, and a region
+with nothing in it matches on background alone.
 
 ## Environment
 

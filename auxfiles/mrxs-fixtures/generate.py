@@ -721,6 +721,8 @@ def invalid_specs(valid):
             positions={"kind": "zlib", "records": mapped["positions"]["records"], "truncate_stream": 12})
     variant(base, "codec-mismatch", "corrupt", "IMAGE_FORMAT says PNG but one level-0 payload is a BMP",
             error_on="read", payload_override={(0, 1, 0): encode_bmp24(uniform_pixels(8, 8, (9, 9, 9)), 8, 8)})
+    variant(base, "wrong-image-size", "corrupt", "a level-0 PNG is 9 x 8 pixels where DIGITIZER_WIDTH says 8",
+            error_on="read", payload_override={(0, 1, 0): encode_png(uniform_pixels(9, 8, (9, 9, 9)), 9, 8)})
     variant(bmp, "bmp-not-24bit", "corrupt", "a BMP24 level holds an 8-bit palette BMP",
             error_on="read", payload_override={(0, 1, 0): encode_bmp8(13, 7, 128)})
     variant(base, "bad-version", "unsupported", "the index version is 01.03, not 01.02",

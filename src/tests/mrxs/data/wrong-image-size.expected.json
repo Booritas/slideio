@@ -1,0 +1,6 @@
+{
+ "error": "corrupt",
+ "error_on": "read",
+ "name": "wrong-image-size",
+ "reason": "a level-0 PNG is 9 x 8 pixels where DIGITIZER_WIDTH says 8"
+}

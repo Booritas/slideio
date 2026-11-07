@@ -25,8 +25,17 @@ import math
 import os
 import sys
 
+import importlib.util
+
 import openslide
 from PIL import Image
+
+# The renderer prototype's bundle reader and geometry, used only to place reference regions
+# on content; the references themselves come from OpenSlide.
+_spec = importlib.util.spec_from_file_location(
+    "mrxs_prototype", os.path.join(os.path.dirname(os.path.abspath(__file__)), "mrxs-renderer-prototype.py"))
+proto = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(proto)
 
 INTEGRATION_BUNDLES = [
     "openslide/Mirax2-Fluorescence-1/Mirax2-Fluorescence-1.mrxs",
@@ -167,14 +176,22 @@ def references(images_root, out_dir):
                  "downsamples": list(slide.level_downsamples), "bounds": b,
                  "background_rgb": list(bg), "associated": {k: list(v.size) for k, v in slide.associated_images.items()},
                  "regions": []}
+        # Regions are placed on actual drawables. Centring them on the populated bounds put a
+        # fifth of them in holes of sparse tissue, where an exact match proves nothing.
+        drawables = proto.drawables(proto.Bundle(path))
         for level in range(slide.level_count):
             ds = slide.level_downsamples[level]
             lw, lh = slide.level_dimensions[level]
             size = 256
-            # Centre of the populated bounds, and its top-left corner straddling the content edge.
-            cx = int((b[0] + b[2] / 2) / ds) - size // 2
-            cy = int((b[1] + b[3] / 2) / ds) - size // 2
-            ex, ey = int(b[0] / ds) - size // 4, int(b[1] / ds) - size // 4
+            tiles = drawables[level]
+            # The drawable nearest the centre of the populated bounds, at the region's centre;
+            # and the top-left-most drawable's corner at the region's centre, so the region
+            # straddles the edge of the content.
+            bx, by = (b[0] + b[2] / 2) / ds, (b[1] + b[3] / 2) / ds
+            near = min(tiles, key=lambda t: (t[0] + t[2] / 2 - bx) ** 2 + (t[1] + t[3] / 2 - by) ** 2)
+            corner = min(tiles, key=lambda t: t[0] + t[1])
+            cx, cy = int(near[0] + near[2] / 2) - size // 2, int(near[1] + near[3] / 2) - size // 2
+            ex, ey = int(corner[0]) - size // 2, int(corner[1]) - size // 2
             for tag, x, y in (("centre", cx, cy), ("edge", ex, ey)):
                 x, y = max(0, min(x, max(0, lw - 1))), max(0, min(y, max(0, lh - 1)))
                 w, h = min(size, lw - x), min(size, lh - y)

@@ -11,8 +11,10 @@ set(TEST_SOURCES
   test_mrxs_ini.cpp
   test_mrxs_index.cpp
   test_mrxs_geometry.cpp
+  test_mrxs_render.cpp
   test_mrxs_corpus_index.cpp
   test_mrxs_corpus_geometry.cpp
+  test_mrxs_corpus_render.cpp
 )
 
 add_executable(${TEST_NAME} ${TEST_SOURCES})
