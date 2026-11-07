@@ -7,6 +7,8 @@
 #include "tests/testlib/testtools.hpp"
 #include <fstream>
 #include <filesystem>
+#include <iterator>
+#include "slideio/core/exceptions.hpp"
 
 #include "slideio/core/tools/cvtools.hpp"
 #include "slideio/core/tools/endian.hpp"
@@ -495,3 +497,157 @@ TEST(ImageTools, readBitmapInvalidFormat)
     }, slideio::RuntimeError);
 }
 
+
+// ---------------------------------------------------------------------------
+// In-memory FreeImage decoding: ImageTools::probeFreeImageStream and
+// ImageTools::decodeFreeImageStream. Every input is encoded by the test itself,
+// so these need no test images.
+namespace
+{
+    // An asymmetric RGB pattern: a flipped row order or swapped red/blue changes it.
+    cv::Mat rgbPattern(int width, int height)
+    {
+        cv::Mat raster(height, width, CV_8UC3);
+        for (int y = 0; y < height; ++y) {
+            for (int x = 0; x < width; ++x) {
+                raster.at<cv::Vec3b>(y, x) = cv::Vec3b(static_cast<uint8_t>(10 + x * 7),
+                                                       static_cast<uint8_t>(20 + y * 11),
+                                                       static_cast<uint8_t>((x * y) % 256));
+            }
+        }
+        return raster;
+    }
+
+    // Encodes raster through the library's own writer and returns the file's bytes.
+    std::vector<uint8_t> encodeToBytes(const cv::Mat& raster, slideio::Compression compression, const char* ext)
+    {
+        slideio::TempFile file(ext);
+        slideio::ImageTools::writeSmallImageRaster(file.getPath().string(), compression, raster);
+        std::ifstream stream(file.getPath(), std::ios::binary);
+        return std::vector<uint8_t>(std::istreambuf_iterator<char>(stream), std::istreambuf_iterator<char>());
+    }
+
+    bool identical(const cv::Mat& left, const cv::Mat& right)
+    {
+        return left.size() == right.size() && left.type() == right.type() && cv::norm(left, right, cv::NORM_INF) == 0;
+    }
+}
+
+TEST(ImageTools, decodeFreeImageStreamPngRoundTrip)
+{
+    const cv::Mat source = rgbPattern(37, 23);
+    const auto bytes = encodeToBytes(source, slideio::Compression::Png, "png");
+    cv::Mat decoded;
+    slideio::ImageTools::decodeFreeImageStream(bytes.data(), bytes.size(), decoded);
+    EXPECT_TRUE(identical(source, decoded));
+}
+
+TEST(ImageTools, decodeFreeImageStreamBmpRoundTrip)
+{
+    // BMP rows are stored bottom-up and padded to four bytes; 37 * 3 is not a multiple of four.
+    const cv::Mat source = rgbPattern(37, 23);
+    const auto bytes = encodeToBytes(source, slideio::Compression::BMP, "bmp");
+    cv::Mat decoded;
+    slideio::ImageTools::decodeFreeImageStream(bytes.data(), bytes.size(), decoded);
+    EXPECT_TRUE(identical(source, decoded));
+}
+
+TEST(ImageTools, decodeFreeImageStreamGrayscalePng)
+{
+    cv::Mat source(9, 13, CV_8UC1);
+    for (int y = 0; y < source.rows; ++y) {
+        for (int x = 0; x < source.cols; ++x) {
+            source.at<uint8_t>(y, x) = static_cast<uint8_t>(x * 19 + y);
+        }
+    }
+    const auto bytes = encodeToBytes(source, slideio::Compression::Png, "png");
+    cv::Mat decoded;
+    slideio::ImageTools::decodeFreeImageStream(bytes.data(), bytes.size(), decoded);
+    EXPECT_TRUE(identical(source, decoded));
+}
+
+TEST(ImageTools, decodeFreeImageStreamRejectsGarbage)
+{
+    const std::vector<uint8_t> garbage(256, 0x5a);
+    cv::Mat decoded;
+    EXPECT_THROW(slideio::ImageTools::decodeFreeImageStream(garbage.data(), garbage.size(), decoded),
+                 slideio::RuntimeError);
+}
+
+TEST(ImageTools, decodeFreeImageStreamRejectsATruncatedPng)
+{
+    const auto bytes = encodeToBytes(rgbPattern(64, 64), slideio::Compression::Png, "png");
+    cv::Mat decoded;
+    EXPECT_THROW(slideio::ImageTools::decodeFreeImageStream(bytes.data(), bytes.size() / 2, decoded),
+                 slideio::RuntimeError);
+}
+
+TEST(ImageTools, probeFreeImageStreamDescribesAPng)
+{
+    const auto bytes = encodeToBytes(rgbPattern(37, 23), slideio::Compression::Png, "png");
+    const auto info = slideio::ImageTools::probeFreeImageStream(bytes.data(), bytes.size());
+    EXPECT_EQ(slideio::Compression::Png, info.codec);
+    EXPECT_EQ(cv::Size(37, 23), info.size);
+    EXPECT_EQ(24, info.bitsPerPixel);
+    EXPECT_FALSE(info.hasAlpha);
+}
+
+TEST(ImageTools, probeFreeImageStreamDescribesABmp)
+{
+    const auto bytes = encodeToBytes(rgbPattern(37, 23), slideio::Compression::BMP, "bmp");
+    const auto info = slideio::ImageTools::probeFreeImageStream(bytes.data(), bytes.size());
+    EXPECT_EQ(slideio::Compression::BMP, info.codec);
+    EXPECT_EQ(cv::Size(37, 23), info.size);
+    EXPECT_EQ(24, info.bitsPerPixel);
+}
+
+TEST(ImageTools, probeFreeImageStreamDescribesAJpeg)
+{
+    std::vector<uint8_t> bytes;
+    slideio::ImageTools::encodeJpeg(rgbPattern(40, 24), bytes, slideio::JpegEncodeParameters(90));
+    const auto info = slideio::ImageTools::probeFreeImageStream(bytes.data(), bytes.size());
+    EXPECT_EQ(slideio::Compression::Jpeg, info.codec);
+    EXPECT_EQ(cv::Size(40, 24), info.size);
+}
+
+TEST(ImageTools, probeFreeImageStreamReportsAlpha)
+{
+    cv::Mat source(8, 8, CV_8UC4, cv::Scalar(10, 20, 30, 128));
+    const auto bytes = encodeToBytes(source, slideio::Compression::Png, "png");
+    const auto info = slideio::ImageTools::probeFreeImageStream(bytes.data(), bytes.size());
+    EXPECT_EQ(slideio::Compression::Png, info.codec);
+    EXPECT_EQ(32, info.bitsPerPixel);
+    EXPECT_TRUE(info.hasAlpha);
+}
+
+TEST(ImageTools, probeFreeImageStreamNeedsOnlyTheHeader)
+{
+    // The probe reads no pixel data: a PNG cut off after its first chunks still
+    // describes itself, although it cannot be decoded.
+    const auto bytes = encodeToBytes(rgbPattern(64, 48), slideio::Compression::Png, "png");
+    const size_t headerOnly = 64;
+    ASSERT_LT(headerOnly, bytes.size());
+    const auto info = slideio::ImageTools::probeFreeImageStream(bytes.data(), headerOnly);
+    EXPECT_EQ(slideio::Compression::Png, info.codec);
+    EXPECT_EQ(cv::Size(64, 48), info.size);
+}
+
+TEST(ImageTools, probeFreeImageStreamDoesNotRecogniseGarbage)
+{
+    const std::vector<uint8_t> garbage(256, 0x5a);
+    const auto info = slideio::ImageTools::probeFreeImageStream(garbage.data(), garbage.size());
+    EXPECT_EQ(slideio::Compression::Unknown, info.codec);
+}
+
+TEST(ImageTools, decodeFreeImageStreamJpegMatchesTheJpegDecoder)
+{
+    std::vector<uint8_t> bytes;
+    slideio::ImageTools::encodeJpeg(rgbPattern(40, 24), bytes, slideio::JpegEncodeParameters(90));
+    cv::Mat viaFreeImage, viaLibjpeg;
+    slideio::ImageTools::decodeFreeImageStream(bytes.data(), bytes.size(), viaFreeImage);
+    slideio::ImageTools::decodeJpegStream(bytes.data(), bytes.size(), viaLibjpeg);
+    ASSERT_EQ(CV_8UC3, viaFreeImage.type());
+    ASSERT_EQ(viaLibjpeg.size(), viaFreeImage.size());
+    // Two libjpeg builds may round differently; the channel order and row order may not differ.
+    EXPECT_LE(cv::norm(viaFreeImage, viaLibjpeg, cv::NORM_INF), 2.);
+}
