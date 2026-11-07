@@ -16,6 +16,8 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/mrxsmetadata.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/mrxsindex.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/mrxsindex.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/mrxsgeometry.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/mrxsgeometry.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/mrxsslide.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/mrxsslide.cpp
    )

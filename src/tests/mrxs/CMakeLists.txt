@@ -10,7 +10,9 @@ set(TEST_SOURCES
   test_mrxs_bundle.cpp
   test_mrxs_ini.cpp
   test_mrxs_index.cpp
+  test_mrxs_geometry.cpp
   test_mrxs_corpus_index.cpp
+  test_mrxs_corpus_geometry.cpp
 )
 
 add_executable(${TEST_NAME} ${TEST_SOURCES})
@@ -21,11 +23,13 @@ target_compile_definitions(${TEST_NAME} PRIVATE MRXS_TEST_DATA_DIR="${CMAKE_CURR
 find_package(GTest)
 find_package(OpenCV)
 find_package(nlohmann_json)
+find_package(ZLIB)
 
 target_link_libraries(${TEST_NAME}
   gtest::gtest
   opencv::opencv
   nlohmann_json::nlohmann_json
+  ZLIB::ZLIB
 )
 
 target_link_libraries(${TEST_NAME}

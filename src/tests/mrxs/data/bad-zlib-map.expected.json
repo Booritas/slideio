@@ -1,0 +1,6 @@
+{
+ "error": "corrupt",
+ "error_on": "open",
+ "name": "bad-zlib-map",
+ "reason": "the compressed position map is a truncated zlib stream"
+}

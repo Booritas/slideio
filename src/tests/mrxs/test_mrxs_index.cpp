@@ -44,10 +44,17 @@ namespace
 
     std::string entry(const std::string& name) { return (dataDir() / (name + ".mrxs")).u8string(); }
 
-    // Position-map length is checked when positions are decoded (step 6), not here.
+    // Position-map contents are checked when positions are decoded (test_mrxs_geometry.cpp),
+    // not while indexing: these bundles index cleanly.
+    bool isPositionMapFixture(const std::string& name)
+    {
+        return name == "bad-map-length" || name == "bad-map-flag" || name == "bad-zlib-map";
+    }
+
     bool failsWhileIndexing(const json& expected)
     {
-        return expected.contains("error") && expected["error_on"] == "open" && expected["name"] != "bad-map-length";
+        return expected.contains("error") && expected["error_on"] == "open"
+            && !isPositionMapFixture(expected["name"].get<std::string>());
     }
 
     ImageFormat formatOf(const std::string& name)

@@ -69,6 +69,8 @@ struct Drawable {
 
 The actual implementation must check container narrowing, including the proposed 32-bit image ID, rather than assume all datasets fit. Store encoded descriptors once. Avoid allocating a heap object for every potential subtile: retain compact descriptor tables and generate intersecting subtiles on demand, or use compact drawable arrays where measured memory allows it. Choose between these representations at the geometry milestone by measuring the TCIA bundle `003` (§9), the only million-descriptor sample. Both must produce identical ordering and query results.
 
+**Decided on 2026-11-07: compact drawable arrays.** Each level keeps a `std::vector<Drawable>` of 32-byte entries plus a binned spatial index in two flat `uint32_t` arrays. On TCIA `003` (1,347,718 records) that is 49 MiB of geometry beside 51 MiB of index records, built in 0.45 s after a 0.87 s index read on the development machine (`MRXSCorpusGeometry.DISABLED_measureTheLargestBundle`). Lazy subtile generation would save at most the 49 MiB and buys nothing for the position-aware slides, where every subtile has to be placed anyway. The performance targets below are set from this measurement: opening `003` within **2 s** and **128 MiB** of index and geometry. If memory ever matters more, the first saving is the records, not the drawables: `ImageRecord` is 40 bytes, and its offset and length are 32-bit on disk.
+
 ## 4. Open and parse pipeline
 
 1. Resolve entry and data directory; read `Slidedat.ini` with an explicit size limit. Start with 1 MiB for compatibility, report the limit clearly, and keep it a named internal policy constant.

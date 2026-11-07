@@ -1,12 +1,14 @@
 {
  "fixtures": [
   "bad-exponent",
+  "bad-map-flag",
   "bad-map-length",
   "bad-negative-pointer",
   "bad-page-cycle",
   "bad-payload-range",
   "bad-slide-id",
   "bad-version",
+  "bad-zlib-map",
   "bmp-not-24bit",
   "bmp24",
   "codec-mismatch",

@@ -493,6 +493,7 @@ def write_fixture(spec, root):
         raw = raw[:len(raw) - pos.get("truncate", 0)]
         family = "VIMSLIDE_POSITION_BUFFER" if pos["kind"] == "raw" else "StitchingIntensityLayer"
         payload = raw if pos["kind"] == "raw" else zlib.compress(raw, 9)
+        payload = payload[:len(payload) - pos.get("truncate_stream", 0)]
         value = "default" if pos["kind"] == "raw" else "StitchingIntensityLevel"
         nonhier.append({"name": family, "values": [{"name": value, "entries": [(0, 0, bundle.store(payload))]}]})
     if spec.get("tagged_family"):
@@ -713,6 +714,11 @@ def invalid_specs(valid):
             omit_files=["Data0001.dat"])
     variant(mapped, "bad-map-length", "corrupt", "the raw position map is one record short",
             positions={"kind": "raw", "records": mapped["positions"]["records"], "truncate": 9})
+    variant(mapped, "bad-map-flag", "corrupt", "a position record has flag 2 (only 0 and 1 are valid)",
+            positions={"kind": "raw", "records": [[2, x, y] if i == 5 else [f, x, y]
+                                                  for i, (f, x, y) in enumerate(mapped["positions"]["records"])]})
+    variant(mapped, "bad-zlib-map", "corrupt", "the compressed position map is a truncated zlib stream",
+            positions={"kind": "zlib", "records": mapped["positions"]["records"], "truncate_stream": 12})
     variant(base, "codec-mismatch", "corrupt", "IMAGE_FORMAT says PNG but one level-0 payload is a BMP",
             error_on="read", payload_override={(0, 1, 0): encode_bmp24(uniform_pixels(8, 8, (9, 9, 9)), 8, 8)})
     variant(bmp, "bmp-not-24bit", "corrupt", "a BMP24 level holds an 8-bit palette BMP",
