@@ -5,6 +5,8 @@
 // The Slidedat.ini reader: GKeyFile-compatible syntax (format description 2,
 // design section 4) and locale-independent numbers.
 #include <gtest/gtest.h>
+#include <algorithm>
+#include <chrono>
 #include <filesystem>
 #include <fstream>
 #include <string>
@@ -96,6 +98,44 @@ TEST(MRXSIni, aRepeatedGroupMergesIntoTheFirst)
         extras += group.name == "EXTRA" ? 1 : 0;
     }
     EXPECT_EQ(1, extras);
+}
+
+TEST(MRXSIni, parsingAndLookupGrowLinearlyWithTheNumberOfKeys)
+{
+    // A 1 MiB Slidedat.ini holds about 100 000 keys. Parsing (which has to find a repeated
+    // key to replace it) and looking each key up once must not be quadratic in them: four
+    // times the keys may cost about four times as long, not sixteen. The fastest of three
+    // runs is compared, so a stall on a busy machine does not decide the ratio.
+    const auto seconds = [](int keys, int groups) {
+        std::string text;
+        for (int g = 0; g < groups; ++g) {
+            text += "[G" + std::to_string(g) + "]\n";
+            for (int k = 0; k < keys / groups; ++k) {
+                text += "K" + std::to_string(k) + " = " + std::to_string(k) + "\n";
+            }
+        }
+        double best = 1e300;
+        for (int run = 0; run < 3; ++run) {
+            const auto start = std::chrono::steady_clock::now();
+            const IniFile ini = IniFile::parse(text);
+            size_t found = 0;
+            for (int g = 0; g < groups; ++g) {
+                for (int k = 0; k < keys / groups; ++k) {
+                    found += ini.find("G" + std::to_string(g), "K" + std::to_string(k)) ? 1 : 0;
+                }
+            }
+            EXPECT_EQ(size_t(keys / groups) * groups, found);
+            best = std::min(best, std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count());
+        }
+        return best;
+    };
+    for (const int groups : {1, 20000}) {
+        SCOPED_TRACE(groups);
+        const int keys = groups == 1 ? 25000 : 20000;
+        const double small = seconds(keys, groups == 1 ? 1 : groups);
+        const double large = seconds(keys * 4, groups == 1 ? 1 : groups * 4);
+        EXPECT_LT(large, 8 * small) << small << " s for " << keys << " keys, " << large << " s for four times as many";
+    }
 }
 
 TEST(MRXSIni, keepsGroupsInFileOrder)

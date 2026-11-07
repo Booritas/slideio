@@ -7,10 +7,17 @@
 #include "slideio/drivers/mrxs/mrxsdataset.hpp"
 #include "slideio/drivers/mrxs/mrxsdecoder.hpp"
 #include <opencv2/core.hpp>
+#include <cstddef>
 #include <cstdint>
 
 namespace slideio::mrxs
 {
+    /**@brief what one render held, for checking its memory bounds.*/
+    struct RenderStats
+    {
+        size_t peakHeldImages = 0;     ///< decoded images held at once by one band
+    };
+
     /**@brief composites a level's drawables into RGB (design section 6).
      *
      * Each drawable is cut from its decoded image through a transparent
@@ -29,7 +36,7 @@ namespace slideio::mrxs
 
         /// Renders rect (level pixels, inside the level) into out as CV_8UC3 RGB.
         /// The band size bounds memory and never changes a pixel.
-        void render(int level, const cv::Rect& rect, cv::Mat& out, int64_t bandPixels = kBandPixels) const;
+        RenderStats render(int level, const cv::Rect& rect, cv::Mat& out, int64_t bandPixels = kBandPixels) const;
 
     private:
         const MRXSDataset& m_dataset;

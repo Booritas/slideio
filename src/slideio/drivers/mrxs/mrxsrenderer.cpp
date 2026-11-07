@@ -8,6 +8,7 @@
 #include <cmath>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 using namespace slideio::mrxs;
 
@@ -71,30 +72,40 @@ namespace
     }
 }
 
-void Renderer::render(int level, const cv::Rect& rect, cv::Mat& out, int64_t bandPixels) const
+RenderStats Renderer::render(int level, const cv::Rect& rect, cv::Mat& out, int64_t bandPixels) const
 {
     const SlideStructure& slide = m_dataset.structure;
     const LevelGeometry& lg = m_dataset.geometry.levels.at(level);
     const LevelMetadata& meta = slide.metadata.levels.at(level);
     const std::vector<ImageRecord>& records = slide.levels.at(level);
+    RenderStats stats;
     out.create(rect.size(), CV_8UC3);
     if (rect.empty()) {
-        return;
+        return stats;
     }
     const cv::Vec3f background(m_dataset.background[0] / 255.f, m_dataset.background[1] / 255.f,
                                m_dataset.background[2] / 255.f);
     const int tileW = static_cast<int>(std::ceil(lg.tileWidth));
     const int tileH = static_cast<int>(std::ceil(lg.tileHeight));
     const bool cut = meta.imageWidth > lg.tileWidth || meta.imageHeight > lg.tileHeight;
-    const int bandRows = static_cast<int>(std::clamp<int64_t>(bandPixels / rect.width, 1, rect.height));
+    // No taller than one image either: a narrow band otherwise spans every image row of the
+    // slide, and the band holds each image it touches as padded float RGBA.
+    const int bandRows = static_cast<int>(
+        std::clamp<int64_t>(bandPixels / rect.width, 1, std::min<int64_t>(rect.height, meta.imageHeight)));
 
     for (int bandY = 0; bandY < rect.height; bandY += bandRows) {
         const int rows = std::min(bandRows, rect.height - bandY);
         cv::Mat acc(rows, rect.width, CV_32FC4, cv::Scalar::all(0));
         const double originX = rect.x, originY = rect.y + bandY;
-        // Request-local: a decoded image serves every subtile cut from it in this band.
+        const std::vector<uint32_t> hits = lg.query(originX, originY, originX + rect.width, originY + rows);
+        // Request-local: a decoded image serves every subtile cut from it in this band, and
+        // is released after the last of them.
+        std::unordered_map<uint32_t, int> uses;
+        for (uint32_t i : hits) {
+            ++uses[lg.drawables()[i].record];
+        }
         std::unordered_map<uint32_t, cv::Mat> decoded;
-        for (uint32_t i : lg.query(originX, originY, originX + rect.width, originY + rows)) {
+        for (uint32_t i : hits) {
             const Drawable& d = lg.drawables()[i];
             cv::Mat& image = decoded[d.record];
             if (image.empty()) {
@@ -106,6 +117,7 @@ void Renderer::render(int level, const cv::Rect& rect, cv::Mat& out, int64_t ban
                     return decodeImage(runtime.payload(record.payload), meta.format, meta.imageWidth,
                                        meta.imageHeight, what);
                 }));
+                stats.peakHeldImages = std::max(stats.peakHeldImages, decoded.size());
             }
             cv::Mat tile = image;
             if (cut) {
@@ -118,6 +130,9 @@ void Renderer::render(int level, const cv::Rect& rect, cv::Mat& out, int64_t ban
             }
             translate(tile, d.x - originX, d.y - originY, acc.size(),
                       [&](int x, int y, const cv::Vec4f& v) { saturate(acc.at<cv::Vec4f>(y, x), v); });
+            if (--uses[d.record] == 0) {
+                decoded.erase(d.record);
+            }
         }
         // The background goes underneath only now: an opaque accumulator would have made
         // every saturating paint a no-op.
@@ -132,4 +147,5 @@ void Renderer::render(int level, const cv::Rect& rect, cv::Mat& out, int64_t ban
             }
         }
     }
+    return stats;
 }

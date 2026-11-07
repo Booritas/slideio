@@ -57,7 +57,7 @@ IniFile IniFile::parse(const std::string& text)
     IniFile ini;
     ini.m_text = text;
     size_t pos = text.compare(0, 3, "\xEF\xBB\xBF") == 0 ? 3 : 0;
-    Group* current = nullptr;
+    size_t current = std::string::npos;     // index into m_groups
     int lineNumber = 0;
     while (pos <= text.size()) {
         size_t end = text.find('\n', pos);
@@ -76,13 +76,11 @@ IniFile IniFile::parse(const std::string& text)
                 MRXS_CORRUPT << "Slidedat.ini line " << lineNumber << " is not a valid group header";
             }
             const std::string name = line.substr(1, line.size() - 2);
-            current = nullptr;
-            for (Group& group : ini.m_groups) {
-                if (group.name == name) { current = &group; break; }     // repeated group: merge
-            }
-            if (!current) {
+            const auto inserted = ini.m_groupIndex.emplace(name, ini.m_groups.size());
+            current = inserted.first->second;       // repeated group: merge
+            if (inserted.second) {
                 ini.m_groups.push_back(Group{name, {}});
-                current = &ini.m_groups.back();
+                ini.m_keyIndex.emplace_back();
             }
             continue;
         }
@@ -90,17 +88,18 @@ IniFile IniFile::parse(const std::string& text)
         if (equals == std::string::npos) {
             MRXS_CORRUPT << "Slidedat.ini line " << lineNumber << " is neither a group nor a key";
         }
-        if (!current) {
+        if (current == std::string::npos) {
             MRXS_CORRUPT << "Slidedat.ini line " << lineNumber << " has a key outside any group";
         }
         const std::string key = trim(line.substr(0, equals));
         const std::string value = trim(line.substr(equals + 1));
-        bool replaced = false;
-        for (auto& entry : current->entries) {
-            if (entry.first == key) { entry.second = value; replaced = true; break; }   // last value wins
+        auto& entries = ini.m_groups[current].entries;
+        const auto inserted = ini.m_keyIndex[current].emplace(key, entries.size());
+        if (inserted.second) {
+            entries.emplace_back(key, value);
         }
-        if (!replaced) {
-            current->entries.emplace_back(key, value);
+        else {
+            entries[inserted.first->second].second = value;     // last value wins
         }
     }
     return ini;
@@ -131,15 +130,12 @@ IniFile IniFile::read(const fs::path& path)
 
 const std::string* IniFile::find(const std::string& group, const std::string& key) const
 {
-    for (const Group& g : m_groups) {
-        if (g.name == group) {
-            for (const auto& entry : g.entries) {
-                if (entry.first == key) return &entry.second;
-            }
-            return nullptr;
-        }
+    const auto g = m_groupIndex.find(group);
+    if (g == m_groupIndex.end()) {
+        return nullptr;
     }
-    return nullptr;
+    const auto k = m_keyIndex[g->second].find(key);
+    return k == m_keyIndex[g->second].end() ? nullptr : &m_groups[g->second].entries[k->second].second;
 }
 
 const std::string& IniFile::require(const std::string& group, const std::string& key) const
@@ -153,10 +149,7 @@ const std::string& IniFile::require(const std::string& group, const std::string&
 
 bool IniFile::hasGroup(const std::string& group) const
 {
-    for (const Group& g : m_groups) {
-        if (g.name == group) return true;
-    }
-    return false;
+    return m_groupIndex.count(group) != 0;
 }
 
 int64_t slideio::mrxs::parseInteger(const std::string& value, const std::string& what)

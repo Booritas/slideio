@@ -196,6 +196,20 @@ TEST(MRXSRender, theBandSizeDoesNotChangeAnyPixel)
     }
 }
 
+TEST(MRXSRender, aTallNarrowReadHoldsFewDecodedImagesAtOnce)
+{
+    // A one-pixel column spans few accumulator pixels but every image row of the slide;
+    // the band must not keep all of those images decoded together. nomap-d1 is 4 images
+    // of 8 x 8 tall without overlap, and x = 20 is inside one image column.
+    const auto dataset = MRXSDataset::open(entry("nomap-d1"));
+    const LevelGeometry& lg = dataset->geometry.levels[0];
+    const cv::Rect column(20, 0, 1, static_cast<int>(lg.height));
+    cv::Mat out;
+    const RenderStats stats = Renderer(*dataset).render(0, column, out);
+    EXPECT_LE(stats.peakHeldImages, 2u);
+    EXPECT_GE(stats.peakHeldImages, 1u);
+}
+
 TEST(MRXSRender, channelsComeInTheCallersOrder)
 {
     auto scene = sceneOf("rawmap-d2");

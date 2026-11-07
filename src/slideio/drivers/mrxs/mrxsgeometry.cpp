@@ -136,6 +136,15 @@ void LevelGeometry::buildIndex()
         maxX = std::max(maxX, d.x - 1 + extentW);
         maxY = std::max(maxY, d.y - 1 + extentH);
     }
+    // Positions come from the map unchecked: one far camera would otherwise fill the gap to
+    // the rest with empty bins. Coarser bins keep the grid proportional to the drawables.
+    const double maxBins = 4.0 * double(m_drawables.size()) + 64.0;
+    const auto binCount = [&](double size) {
+        return (std::floor((maxX - minX) / size) + 1) * (std::floor((maxY - minY) / size) + 1);
+    };
+    while (binCount(m_binSize) > maxBins) {
+        m_binSize *= 2;
+    }
     m_binOriginX = minX;
     m_binOriginY = minY;
     m_binColumns = static_cast<int>(std::floor((maxX - minX) / m_binSize)) + 1;

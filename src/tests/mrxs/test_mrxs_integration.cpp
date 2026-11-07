@@ -94,9 +94,11 @@ TEST(MRXSIntegration, autoOpensSlidedatIni)
 TEST(MRXSIntegration, autoIgnoresLetterCase)
 {
     ScratchDir dir;
-    const fs::path entry = copyBundle("nomap-d1", dir.path(), "UPPER");
+    // Written under the upper-case name directly: a rename that changes only the case is
+    // refused by some sandboxed file systems, and is not what this test is about.
+    fs::copy(dataDir() / "nomap-d1", dir.path() / "UPPER", fs::copy_options::recursive);
     const fs::path upper = dir.path() / "UPPER.MRXS";
-    fs::rename(entry, upper);
+    fs::copy_file(dataDir() / "nomap-d1.mrxs", upper);
     EXPECT_EQ("MRXS", slideio::openSlide(upper.u8string(), "")->getDriverId());
 }
 

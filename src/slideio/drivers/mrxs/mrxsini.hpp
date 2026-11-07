@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <string>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -48,6 +49,10 @@ namespace slideio::mrxs
 
     private:
         std::vector<Group> m_groups;
+        /// Group name to its index in m_groups, and per group key to its index in entries:
+        /// a 1 MiB file holds about 100 000 keys, too many to search linearly.
+        std::unordered_map<std::string, size_t> m_groupIndex;
+        std::vector<std::unordered_map<std::string, size_t>> m_keyIndex;
         std::string m_text;
     };
 

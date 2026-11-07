@@ -240,6 +240,41 @@ TEST(MRXSGeometry, queriesMatchABruteForceScan)
     }
 }
 
+TEST(MRXSGeometry, aFarCameraDoesNotInflateTheSpatialIndex)
+{
+    // Positions come from the map unchecked, so one camera far from the rest must not make
+    // the index cover the empty space between them with dense bins. nomap-d1: 6 x 4 cameras
+    // of 8 x 8, built as if from a map with the camera of the last stored image moved away.
+    const SlideStructure slide = readSlideStructure(entry("nomap-d1"));
+    const SlideMetadata& meta = slide.metadata;
+    const ImageRecord& moved = slide.levels[0].back();
+    const size_t movedCamera = size_t(moved.y / meta.d) * (meta.nx / meta.d) + size_t(moved.x / meta.d);
+    for (const int64_t far : {int64_t(1) << 18, int64_t(1) << 40}) {
+        SCOPED_TRACE(far);
+        std::vector<CameraPosition> positions;
+        for (int y = 0; y < meta.ny; ++y) {
+            for (int x = 0; x < meta.nx; ++x) {
+                positions.push_back({int64_t(x) * meta.levels[0].imageWidth, int64_t(y) * meta.levels[0].imageHeight});
+            }
+        }
+        positions[movedCamera] = {far, far};
+        const Geometry geometry = Geometry::build(slide, positions, true);
+        for (const LevelGeometry& level : geometry.levels) {
+            ASSERT_LE(level.memoryBytes(), size_t(1) << 20) << "level concat " << level.concat;
+            for (const Drawable& d : level.drawables()) {
+                const double x0 = std::floor(d.x), y0 = std::floor(d.y);
+                std::vector<uint32_t> expected;
+                for (uint32_t i = 0; i < level.drawables().size(); ++i) {
+                    if (level.contributes(level.drawables()[i], x0, y0, x0 + 3, y0 + 3)) expected.push_back(i);
+                }
+                std::vector<uint32_t> got = level.query(x0, y0, x0 + 3, y0 + 3);
+                std::sort(got.begin(), got.end());
+                EXPECT_EQ(expected, got) << "region at " << x0 << "," << y0;
+            }
+        }
+    }
+}
+
 TEST(MRXSGeometry, aLowResolutionLevelNeedsTheLevelZeroCameras)
 {
     // Active-camera filtering is seeded at level 0 even when only a coarse level is used:
