@@ -213,6 +213,26 @@ The residual is Cairo's 8-bit premultiplied arithmetic against the float accumul
 
 Release requires bounded malformed-input behavior, public explicit/AUTO opening (including a corrupt `.mrxs` under AUTO reporting an MRXS error, not a GDAL one), main/auxiliary lifetime correctness, exact-level and resampled reads agreeing bit for bit with each other (§6), uncovered pixels inside and outside the canvas both taking the `IMAGE_FILL_COLOR_BGR` background (§7), channel selection, converter compatibility, package linking and cross-platform CI. Track open time, index memory, cold/warm ROI latency and decode count on the TCIA bundle `003` described above; cache usage must remain under its configured budget. Exact default performance budgets are set from measured baselines at the geometry milestone.
 
+### Qualification record, 2026-11-07 (Windows x64, Release)
+
+`slideio_mrxs_tests`: 98 tests pass with `SLIDEIO_SKIP_MISSING_IMAGES` unset, none skipped, 90 of them corpus-free (what CI runs). The bundles qualified are identified by SHA-256 of their `Slidedat.ini` and index file in `test_mrxs_corpus_index.cpp`.
+
+| Gate | Evidence |
+|---|---|
+| Bounded malformed input | 20 invalid fixtures fail with their category and intended reason; budgets on pages, records, decoded size |
+| Explicit and AUTO opening, corrupt bundle under AUTO | `MRXSIntegration.*` |
+| Scene and aux-image lifetime | `MRXSScene.aSceneOutlivesItsSlide`, `MRXSConcurrency.closingTheSlideReleasesItsFiles` |
+| Level and scaled reads agree bit for bit | `MRXSRender.aLevelReadEqualsTheEquivalentScaledReadBitForBit` |
+| Holes and off-canvas take the fill colour | `MRXSRender.pixelsOutsideTheCanvasTakeTheBackground`, fixture hole probes |
+| Channel selection | `MRXSRender.channelsComeInTheCallersOrder` |
+| Against OpenSlide | 148 content-bearing regions within the tolerances above |
+| Mask and hardware layers not applied; five-channel rejected | `MRXSCorpusGeometry.aMaskAndHardwareBundleRendersItsPrimaryPyramidOnly`, `MRXSCorpusIndex.theFiveChannelBundleIsUnsupported` |
+| Converter | `MRXSIntegration.anMrxsSceneConvertsToSvs`, including reopening by path |
+| Package | Windows zip built locally; the package-smoke consumer reports 13 drivers including MRXS |
+| Cross-platform CI, ThreadSanitizer | **Not yet run**: needs the branch pushed and CI run on it |
+
+Performance on TCIA `003` (1,347,718 records, read in place from the archive; `MRXSCorpusGeometry.DISABLED_measureTheLargestBundle`): open 1.31 s, index and geometry 100 MiB — inside the 2 s / 128 MiB targets; a 1024 x 1024 level-0 read costs 148 ms cold (55 ms with the OS file cache warm, 36 decodes), 40 ms warm with 0 decodes and 36 cache hits, holding 6 MiB of the 128 MiB decoded-image budget. No associated image of that bundle, and so no label, is decoded by the measurement.
+
 ## 10. Repository integration checklist
 
 A new driver has to be registered in several places, and most omissions fail silently — the build stays green and the driver is simply missing somewhere. Each item below is part of the first release:
