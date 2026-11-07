@@ -101,8 +101,11 @@ void Renderer::render(int level, const cv::Rect& rect, cv::Mat& out, int64_t ban
                 const ImageRecord& record = records[d.record];
                 const std::string what = "zoom level " + std::to_string(level) + " image (" + std::to_string(record.x)
                     + ", " + std::to_string(record.y) + ")";
-                image = toPaddedRgba(decodeImage(readPayload(slide, record.payload), meta.format,
-                                                 meta.imageWidth, meta.imageHeight, what));
+                MRXSRuntime& runtime = *m_dataset.runtime;
+                image = toPaddedRgba(runtime.decoded(level, record.payload, [&] {
+                    return decodeImage(runtime.payload(record.payload), meta.format, meta.imageWidth,
+                                       meta.imageHeight, what);
+                }));
             }
             cv::Mat tile = image;
             if (cut) {

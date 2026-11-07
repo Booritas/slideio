@@ -29,6 +29,9 @@ namespace slideio
         double getMagnification() const override;
         Compression getCompression() const override;
         double getChannelBackground(int channel) const override;
+        /// Every read is request-local except MRXSRuntime's caches, which synchronise
+        /// themselves without holding a lock across I/O or decoding (design section 8).
+        bool supportsConcurrentReads() const override { return true; }
 
         /// Selects the level as Tools::findZoomLevel does and delegates to the level read.
         void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,

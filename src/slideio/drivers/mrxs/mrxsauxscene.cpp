@@ -19,7 +19,7 @@ MRXSAuxScene::MRXSAuxScene(std::shared_ptr<const MRXSDataset> dataset, std::stri
     if (m_payload.length > kMaxDecodedBytes) {
         MRXS_LIMIT << "associated image " << m_name << " is " << m_payload.length << " bytes";
     }
-    const std::vector<uint8_t> bytes = readPayload(m_dataset->structure, m_payload);
+    const std::vector<uint8_t> bytes = m_dataset->runtime->payload(m_payload);
     const ImageTools::EncodedImageInfo info = ImageTools::probeFreeImageStream(bytes.data(), bytes.size());
     if (info.codec != Compression::Jpeg || info.size.width <= 0 || info.size.height <= 0) {
         MRXS_CORRUPT << "associated image " << m_name << " is not a readable JPEG";
@@ -70,8 +70,12 @@ void MRXSAuxScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, const
     }
     readClampedBlock(getRect(), blockRect, blockSize, channelIndices,
         [&](const cv::Rect& validRect, const cv::Size& partSize, cv::OutputArray part) {
-            const cv::Mat image = decodeImage(readPayload(m_dataset->structure, m_payload), ImageFormat::Jpeg,
-                                              m_size.width, m_size.height, "associated image " + m_name);
+            // Level -1 keeps associated images apart from pyramid levels in the cache.
+            MRXSRuntime& runtime = *m_dataset->runtime;
+            const cv::Mat image = runtime.decoded(-1, m_payload, [&] {
+                return decodeImage(runtime.payload(m_payload), ImageFormat::Jpeg, m_size.width, m_size.height,
+                                   "associated image " + m_name);
+            });
             cv::Mat block = image(validRect);
             if (block.size() != partSize) {
                 cv::Mat resized;

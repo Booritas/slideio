@@ -31,6 +31,8 @@ namespace slideio
         Resolution getResolution() const override { return Resolution(0, 0); }
         double getMagnification() const override { return 0; }
         Compression getCompression() const override { return Compression::Jpeg; }
+        /// Reads share only the dataset's self-synchronised runtime.
+        bool supportsConcurrentReads() const override { return true; }
         void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
                                           const std::vector<int>& channelIndices, int zSliceIndex, int tFrameIndex,
                                           cv::OutputArray output) override;

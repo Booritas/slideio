@@ -7,6 +7,9 @@
 // section 9 before this test existed.
 #include <gtest/gtest.h>
 #include <algorithm>
+#include <atomic>
+#include <thread>
+#include <vector>
 #include <cstdlib>
 #include <fstream>
 #include <iomanip>
@@ -22,6 +25,7 @@
 #include "slideio/drivers/mrxs/mrxsdecoder.hpp"
 #include "slideio/core/cvscene.hpp"
 #include "slideio/core/cvslide.hpp"
+#include "slideio/core/levelinfo.hpp"
 #include "slideio/imagetools/imagetools.hpp"
 #include "tests/testlib/testtools.hpp"
 
@@ -98,6 +102,46 @@ TEST(MRXSCorpusRender, DISABLED_dumpDecodedTilesOfEveryRegion)
         }
     }
     std::ofstream(std::string(dumpDir) + "/regions.json") << regionsOut.dump(1);
+}
+
+TEST(MRXSCorpusRender, concurrentReadsOfARealBundleEqualSerialReads)
+{
+    // PDX: D=8, fractional overlaps, thousands of drawables per level; eight threads read
+    // overlapping regions through one scene while its caches fill and evict.
+    const std::string path = TestTools::getTestImagePath("mirax/zenodo/PDX_H5097_ID_2053_LG_HE",
+                                                         "PDX_H5097_ID_2053_LG_HE.mrxs");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
+    slideio::MRXSImageDriver driver;
+    const auto scene = driver.openFile(path)->getScene(0);
+    ASSERT_TRUE(scene->supportsConcurrentReads());
+    struct Job { int level; cv::Rect rect; cv::Mat expected; };
+    std::vector<Job> jobs;
+    for (int level : {2, 4, 6, 8}) {
+        const auto size = scene->getZoomLevelInfo(level)->getSize();
+        const int w = std::min(512, size.width), h = std::min(512, size.height);
+        for (int k = 0; k < 4; ++k) {
+            const cv::Rect rect((size.width - w) * k / 4, (size.height - h) / 2 + (k % 2) * h / 3 - h / 6, w, h);
+            Job job{level, rect & cv::Rect(0, 0, size.width, size.height), {}};
+            scene->readResampledLevelBlockChannels(job.level, job.rect, job.rect.size(), {}, job.expected);
+            jobs.push_back(job);
+        }
+    }
+    std::atomic<int> mismatches{0};
+    std::vector<std::thread> threads;
+    for (int t = 0; t < 8; ++t) {
+        threads.emplace_back([&, t] {
+            for (size_t i = 0; i < jobs.size(); ++i) {
+                const Job& job = jobs[(i + t * 3) % jobs.size()];
+                cv::Mat got;
+                scene->readResampledLevelBlockChannels(job.level, job.rect, job.rect.size(), {}, got);
+                if (got.size() != job.expected.size() || cv::norm(got, job.expected, cv::NORM_INF) != 0) {
+                    ++mismatches;
+                }
+            }
+        });
+    }
+    for (auto& thread : threads) thread.join();
+    EXPECT_EQ(0, mismatches.load());
 }
 
 TEST(MRXSCorpusRender, regionsMatchOpenSlideWithinTheDesignTolerances)

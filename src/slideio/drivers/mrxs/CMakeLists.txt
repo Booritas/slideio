@@ -28,6 +28,8 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/mrxsauxscene.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/mrxsdescription.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/mrxsdescription.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/mrxsruntime.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/mrxsruntime.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/mrxsscene.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/mrxsscene.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/mrxsslide.hpp
