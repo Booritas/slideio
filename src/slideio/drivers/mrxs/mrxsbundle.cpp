@@ -62,6 +62,11 @@ slideio::mrxs::BundlePaths slideio::mrxs::resolveBundle(const std::string& fileP
 {
     BundlePaths paths;
     paths.entry = pathFromUtf8(filePath);
+    // A bare "Slidedat.ini" has an empty parent: anchor it to the current directory so the
+    // data directory, its containment checks and the scene name all have a real path.
+    if (paths.entry.is_relative()) {
+        paths.entry = fs::absolute(paths.entry);
+    }
     if (isSlidedatIni(paths.entry)) {
         if (!isRegularFile(paths.entry)) {
             MRXS_CORRUPT << filePath << " does not exist";

@@ -28,6 +28,9 @@ namespace slideio::mrxs
     {
         size_t decodedCacheBytes = size_t(128) << 20;   ///< decoded 8-bit RGB images kept
         int maxOpenFiles = 16;                          ///< data-file handles kept open
+        /// Level pixels rendered at once for a read that is resampled to another size; a
+        /// larger region is rendered and resampled piece by piece.
+        int64_t maxResampleSourcePixels = int64_t(16) << 20;
     };
 
     struct RuntimeStats
@@ -37,6 +40,7 @@ namespace slideio::mrxs
         int64_t fileOpens = 0;      ///< data files opened
         int openFiles = 0;          ///< handles currently held by the cache
         size_t cachedBytes = 0;     ///< decoded bytes currently held by the cache
+        int64_t peakRenderedPixels = 0; ///< the largest region rendered by one Renderer call
     };
 
     /**@brief the only mutable state of an open bundle: a byte-bounded LRU of decoded images
@@ -59,6 +63,9 @@ namespace slideio::mrxs
         /// The decoded image for a level's payload: from the cache, or from `decode`,
         /// called without any lock held. The returned image must not be modified.
         cv::Mat decoded(int level, const PayloadRef& ref, const std::function<cv::Mat()>& decode);
+        const RuntimeOptions& options() const { return m_options; }
+        /// Records a render of the given number of pixels for the peak statistic.
+        void noteRendered(int64_t pixels);
         RuntimeStats stats() const;
 
     private:
@@ -82,5 +89,6 @@ namespace slideio::mrxs
         std::atomic<int64_t> m_decodes{0};
         std::atomic<int64_t> m_hits{0};
         std::atomic<int64_t> m_fileOpens{0};
+        std::atomic<int64_t> m_peakRenderedPixels{0};
     };
 }

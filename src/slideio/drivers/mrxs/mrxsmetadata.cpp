@@ -213,7 +213,10 @@ SlideMetadata slideio::mrxs::readMetadata(const IniFile& ini, const fs::path& da
             MRXS_CORRUPT << "zoom level " << l << " has a non-positive pixel size";
         }
         level.format = formatOf(ini.require(section, "IMAGE_FORMAT"), section);
-        level.fillColorBGR = parseInteger(ini.require(section, "IMAGE_FILL_COLOR_BGR"), "IMAGE_FILL_COLOR_BGR");
+        // Absent means white (design section 7); present but malformed is still corrupt.
+        if (const std::string* fill = ini.find(section, "IMAGE_FILL_COLOR_BGR")) {
+            level.fillColorBGR = parseInteger(*fill, "IMAGE_FILL_COLOR_BGR");
+        }
         meta.levels.push_back(level);
     }
 

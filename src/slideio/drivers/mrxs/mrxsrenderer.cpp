@@ -80,6 +80,7 @@ RenderStats Renderer::render(int level, const cv::Rect& rect, cv::Mat& out, int6
     const std::vector<ImageRecord>& records = slide.levels.at(level);
     RenderStats stats;
     out.create(rect.size(), CV_8UC3);
+    m_dataset.runtime->noteRendered(int64_t(rect.width) * rect.height);
     if (rect.empty()) {
         return stats;
     }

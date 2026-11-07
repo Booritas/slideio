@@ -7,6 +7,9 @@
 #include "slideio/core/exceptions.hpp"
 #include "slideio/core/tools/tools.hpp"
 
+#include <algorithm>
+#include <cmath>
+
 using namespace slideio;
 using namespace slideio::mrxs;
 
@@ -149,12 +152,43 @@ void MRXSScene::readResampledLevelBlockChannelsEx(int level, const cv::Rect& lev
     const cv::Rect bounds(0, 0, static_cast<int>(lg.width), static_cast<int>(lg.height));
     readClampedBlock(bounds, levelRect, blockSize, channelIndices,
         [&](const cv::Rect& validRect, const cv::Size& partSize, cv::OutputArray part) {
+            const Renderer renderer(*m_dataset);
+            const int64_t budget = m_dataset->runtime->options().maxResampleSourcePixels;
             cv::Mat rgb;
-            Renderer(*m_dataset).render(level, validRect, rgb);
-            if (rgb.size() != partSize) {
-                cv::Mat resized;
-                Tools::resize(rgb, resized, partSize);
-                rgb = resized;
+            if (partSize == validRect.size() || int64_t(validRect.width) * validRect.height <= budget) {
+                renderer.render(level, validRect, rgb);
+                if (rgb.size() != partSize) {
+                    cv::Mat resized;
+                    Tools::resize(rgb, resized, partSize);
+                    rgb = resized;
+                }
+            }
+            else {
+                // Too large to render whole before resampling: render and resample it in
+                // pieces of at most `budget` level pixels, each piece into its share of the
+                // output, as TileComposer does for the tiled drivers.
+                rgb.create(partSize, CV_8UC3);
+                const double sx = double(validRect.width) / partSize.width;
+                const double sy = double(validRect.height) / partSize.height;
+                // A piece's source spans tw * sx pixels plus at most one for rounding.
+                const double side = std::floor(std::sqrt(double(budget)));
+                const int tw = std::max(1, static_cast<int>(std::floor((side - 1) / sx)));
+                const int th = std::max(1, static_cast<int>(std::floor((side - 1) / sy)));
+                for (int oy = 0; oy < partSize.height; oy += th) {
+                    const int oh = std::min(th, partSize.height - oy);
+                    const int y0 = static_cast<int>(std::floor(oy * sy));
+                    const int y1 = std::min(validRect.height, static_cast<int>(std::ceil((oy + oh) * sy)));
+                    for (int ox = 0; ox < partSize.width; ox += tw) {
+                        const int ow = std::min(tw, partSize.width - ox);
+                        const int x0 = static_cast<int>(std::floor(ox * sx));
+                        const int x1 = std::min(validRect.width, static_cast<int>(std::ceil((ox + ow) * sx)));
+                        cv::Mat piece;
+                        renderer.render(level, cv::Rect(validRect.x + x0, validRect.y + y0, x1 - x0, y1 - y0), piece);
+                        cv::Mat resized;
+                        Tools::resize(piece, resized, cv::Size(ow, oh));
+                        resized.copyTo(rgb(cv::Rect(ox, oy, ow, oh)));
+                    }
+                }
             }
             Tools::extractChannels(rgb, channelIndices, part);
         },

@@ -88,12 +88,20 @@ cv::Mat MRXSRuntime::decoded(int level, const PayloadRef& ref, const std::functi
     return image;
 }
 
+void MRXSRuntime::noteRendered(int64_t pixels)
+{
+    int64_t peak = m_peakRenderedPixels.load();
+    while (pixels > peak && !m_peakRenderedPixels.compare_exchange_weak(peak, pixels)) {
+    }
+}
+
 RuntimeStats MRXSRuntime::stats() const
 {
     RuntimeStats s;
     s.decodes = m_decodes.load();
     s.hits = m_hits.load();
     s.fileOpens = m_fileOpens.load();
+    s.peakRenderedPixels = m_peakRenderedPixels.load();
     std::lock_guard<std::mutex> lock(m_mutex);
     s.openFiles = static_cast<int>(m_files.size());
     s.cachedBytes = m_cachedBytes;

@@ -27,7 +27,7 @@ namespace slideio::mrxs
         double mppX = 0;            ///< micrometres per pixel
         double mppY = 0;
         ImageFormat format = ImageFormat::Jpeg;
-        int64_t fillColorBGR = 0;   ///< low byte red, then green, then blue
+        int64_t fillColorBGR = 0xFFFFFF;    ///< low byte red, then green, then blue; white when absent
         std::string section;
     };
 

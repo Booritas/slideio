@@ -97,6 +97,23 @@ TEST(MRXSBundle, resolvesSlidedatIniToItsParentDirectory)
     EXPECT_EQ("nomap-d1", paths.sceneName);
 }
 
+TEST(MRXSBundle, aBareSlidedatIniResolvesAgainstTheCurrentDirectory)
+{
+    // "Slidedat.ini" alone has an empty parent path: it must still name its directory,
+    // and the bundle must open, its Index.dat inside that directory.
+    struct RestoreCurrentPath
+    {
+        fs::path saved = fs::current_path();
+        ~RestoreCurrentPath() { std::error_code ec; fs::current_path(saved, ec); }
+    } restore;
+    fs::current_path(fixture("nomap-d1"));
+    const BundlePaths paths = resolveBundle("Slidedat.ini");
+    EXPECT_TRUE(fs::equivalent(fixture("nomap-d1"), paths.dataDir));
+    EXPECT_EQ("nomap-d1", paths.sceneName);
+    slideio::MRXSImageDriver driver;
+    EXPECT_EQ(1, driver.openFile("Slidedat.ini")->getNumScenes());
+}
+
 TEST(MRXSBundle, anIniEntryNeedsNoMrxsFile)
 {
     // An extracted bundle: the data directory alone, no entry file next to it.

@@ -17,6 +17,7 @@
 #include "slideio/core/cvslide.hpp"
 #include "slideio/core/levelinfo.hpp"
 #include "slideio/core/metadata.hpp"
+#include "slideio/core/tools/tempfile.hpp"
 
 namespace fs = std::filesystem;
 using json = nlohmann::json;
@@ -217,4 +218,38 @@ TEST(MRXSScene, onlySceneZeroExists)
     const auto slide = slideOf("nomap-d1");
     EXPECT_ANY_THROW(slide->getScene(1));
     EXPECT_ANY_THROW(slide->getScene(-1));
+}
+
+TEST(MRXSScene, anAbsentFillColourMeansAWhiteBackground)
+{
+    // Design section 7: without IMAGE_FILL_COLOR_BGR the background keeps the default of
+    // 255 per channel; the bundle still opens. nomap-d1 copied with the key removed.
+    const fs::path dir = fs::temp_directory_path() / slideio::TempFile::unique_path("mrxs-%%%%-%%%%");
+    struct Remove { fs::path path; ~Remove() { std::error_code ec; fs::remove_all(path, ec); } } remove{dir};
+    fs::create_directories(dir);
+    fs::copy(dataDir() / "nomap-d1", dir / "nomap-d1", fs::copy_options::recursive);
+    fs::copy_file(dataDir() / "nomap-d1.mrxs", dir / "nomap-d1.mrxs");
+    const fs::path iniPath = dir / "nomap-d1" / "Slidedat.ini";
+    const std::string ini = fileText(iniPath);
+    std::string stripped;
+    size_t removed = 0;
+    for (size_t pos = 0; pos < ini.size();) {
+        size_t end = ini.find('\n', pos);
+        end = end == std::string::npos ? ini.size() : end + 1;
+        const std::string line = ini.substr(pos, end - pos);
+        if (line.rfind("IMAGE_FILL_COLOR_BGR", 0) == 0) {
+            ++removed;
+        }
+        else {
+            stripped += line;
+        }
+        pos = end;
+    }
+    ASSERT_GT(removed, 0u);
+    std::ofstream(iniPath, std::ios::binary) << stripped;
+    slideio::MRXSImageDriver driver;
+    const auto scene = driver.openFile((dir / "nomap-d1.mrxs").u8string())->getScene(0);
+    for (int c = 0; c < 3; ++c) {
+        EXPECT_EQ(255., scene->getChannelBackground(c)) << "channel " << c;
+    }
 }

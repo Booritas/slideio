@@ -16,6 +16,7 @@
 #include "slideio/drivers/mrxs/mrxsimagedriver.hpp"
 #include "slideio/drivers/mrxs/mrxsdataset.hpp"
 #include "slideio/drivers/mrxs/mrxsrenderer.hpp"
+#include "slideio/drivers/mrxs/mrxsscene.hpp"
 #include "slideio/core/cvscene.hpp"
 #include "slideio/core/cvslide.hpp"
 #include "slideio/core/exceptions.hpp"
@@ -208,6 +209,32 @@ TEST(MRXSRender, aTallNarrowReadHoldsFewDecodedImagesAtOnce)
     const RenderStats stats = Renderer(*dataset).render(0, column, out);
     EXPECT_LE(stats.peakHeldImages, 2u);
     EXPECT_GE(stats.peakHeldImages, 1u);
+}
+
+TEST(MRXSRender, aShrinkingReadRendersABoundedAreaAtOnce)
+{
+    // A large level region read into a small block must not be rendered whole at the
+    // level's resolution first. With a budget of 64 source pixels, reading nomap-d1's
+    // 48 x 32 level 0 into 12 x 8 renders it piecewise; at an integer factor the pieces
+    // resample exactly as the whole does.
+    const std::string path = entry("nomap-d1");
+    RuntimeOptions bounded;
+    bounded.maxResampleSourcePixels = 64;
+    const auto dataset = MRXSDataset::open(path, bounded);
+    slideio::MRXSScene scene(dataset);
+    const LevelGeometry& lg = dataset->geometry.levels[0];
+    const cv::Rect whole(0, 0, static_cast<int>(lg.width), static_cast<int>(lg.height));
+    ASSERT_EQ(cv::Size(48, 32), whole.size());
+    const cv::Mat piecewise = readLevel(scene, 0, whole, cv::Size(12, 8));
+    EXPECT_LE(dataset->runtime->stats().peakRenderedPixels, 64);
+    EXPECT_GT(dataset->runtime->stats().peakRenderedPixels, 0);
+    EXPECT_TRUE(identical(readLevel(*sceneOf("nomap-d1"), 0, whole, cv::Size(12, 8)), piecewise));
+
+    // A non-integer factor stays within the budget too.
+    const auto other = MRXSDataset::open(path, bounded);
+    slideio::MRXSScene otherScene(other);
+    readLevel(otherScene, 0, whole, cv::Size(7, 5));
+    EXPECT_LE(other->runtime->stats().peakRenderedPixels, 64);
 }
 
 TEST(MRXSRender, channelsComeInTheCallersOrder)
