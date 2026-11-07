@@ -18,6 +18,10 @@ namespace slideio::mrxs
         std::string sceneName;          ///< stem of the data directory, UTF-8
     };
 
+    /**@brief a native path from a UTF-8 string (on Windows a std::string path would be
+     * read in the ANSI code page).*/
+    SLIDEIO_MRXS_EXPORTS std::filesystem::path pathFromUtf8(const std::string& utf8);
+
     /**@brief true for a path the driver claims: `*.mrxs` or a file named Slidedat.ini,
      * both compared without regard to ASCII letter case. Does no I/O.*/
     SLIDEIO_MRXS_EXPORTS bool isEntryName(const std::string& filePath);

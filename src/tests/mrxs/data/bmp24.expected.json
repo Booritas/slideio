@@ -7,6 +7,8 @@
  "background_rgb": [255,255,255],
  "bounds_level0": [0.0,0.0,52.0,14.0],
  "camera_grid": [4,2],
+ "data_files": 1,
+ "image_grid": [4,2,1],
  "levels": [
   {
    "concat": 1,
@@ -33,6 +35,7 @@
     {"rgb":[119,160,147],"x":6,"y":10},
     {"rgb":[169,145,152],"x":19,"y":10}
    ],
+   "records": [[0,0,0,334],[1,0,334,334],[2,0,668,334],[3,0,1002,334],[4,0,1336,334],[5,0,1670,334],[6,0,2004,334],[7,0,2338,334]],
    "width": 52
   },
   {
@@ -50,6 +53,7 @@
     {"rgb":[115,144,176],"x":6,"y":3},
     {"rgb":[47,50,191],"x":19,"y":3}
    ],
+   "records": [[0,0,2672,334],[2,0,3006,334]],
    "width": 26
   }
  ],
@@ -58,5 +62,7 @@
  "nominal_lattice": [52,14],
  "objective": 20,
  "pixel_tolerance": 0,
- "position_aware": false
+ "position_aware": false,
+ "positions": null,
+ "slide_id": "B0B0B0B0B0B0B0B0B0B0B0B0B0B0B0B0"
 }

@@ -9,6 +9,13 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/mrxsimagedriver.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/mrxsbundle.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/mrxsbundle.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/mrxserrors.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/mrxsini.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/mrxsini.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/mrxsmetadata.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/mrxsmetadata.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/mrxsindex.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/mrxsindex.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/mrxsslide.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/mrxsslide.cpp
    )

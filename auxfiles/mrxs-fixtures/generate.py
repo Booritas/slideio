@@ -428,6 +428,9 @@ def ini_text(spec, geo):
         for j in range(spec["hier_slot_multiplier"]):
             group("LAYER_1_LEVEL_%d_SECTION" % j)
             kv("FILTER_NAME", "Filter%d" % j)
+            # Which stored image group holds this filter (format description 12.4).
+            kv("DATA_IN_THIS_FILTER_LEVEL", spec.get("filter_groups", ["FilterLevel_0"] * spec["hier_slot_multiplier"])[j])
+            kv("STORING_CHANNEL_NUMBER", j % 3)
     for i, fam in enumerate(spec["_nonhier"]):
         for j, value in enumerate(fam["values"]):
             group("NONHIERLAYER_%d_LEVEL_%d_SECTION" % (i, j))
@@ -524,8 +527,10 @@ def write_fixture(spec, root):
                     "reason": spec["reason"]}
     else:
         levels = []
-        for lv in geo["levels"]:
+        for l, lv in enumerate(geo["levels"]):
             levels.append({
+                # Every hierarchical record of the level: [image index, file, offset, length].
+                "records": sorted([idx, fileno, off, length] for (idx, off, length, fileno) in spec["_records"][l]),
                 "width": lv["width"], "height": lv["height"], "downsample": lv["downsample"],
                 "concat": lv["concat"], "format": lv["format"], "image_size": lv["image_size"],
                 "drawables": [{k: dr[k] for k in ("image", "subtile", "source", "destination", "grid")}
@@ -533,7 +538,10 @@ def write_fixture(spec, root):
                 "probes": probes(lv), "holes": hole_probes(lv, background),
             })
         expected = {
-            "name": name, "position_aware": geo["position_aware"],
+            "name": name, "slide_id": spec["slide_id"], "image_grid": [spec["Nx"], spec["Ny"], spec["D"]],
+            "data_files": len(spec["data_files"]),
+            "positions": spec["positions"]["kind"] if spec.get("positions") else None,
+            "position_aware": geo["position_aware"],
             "nominal_lattice": geo["nominal_lattice"], "camera_grid": geo["camera_grid"],
             "background_rgb": background, "mpp_um": spec["mpp"], "objective": spec.get("objective", 20),
             "bounds_level0": bounds(geo["levels"][0]), "levels": levels,
@@ -709,6 +717,26 @@ def invalid_specs(valid):
             error_on="read", payload_override={(0, 1, 0): encode_bmp24(uniform_pixels(8, 8, (9, 9, 9)), 8, 8)})
     variant(bmp, "bmp-not-24bit", "corrupt", "a BMP24 level holds an 8-bit palette BMP",
             error_on="read", payload_override={(0, 1, 0): encode_bmp8(13, 7, 128)})
+    variant(base, "bad-version", "unsupported", "the index version is 01.03, not 01.02",
+            mutations=[lambda s, b, idx, ini: (b"01.03" + idx[5:], ini)])
+    variant(base, "duplicate-record", "corrupt", "two level-0 records share an image index",
+            mutations=[lambda s, b, idx, ini:
+                       (_patch_i32(idx, b.offsets["level_first_page"][0] + 8 + 16,
+                                   struct.unpack_from("<i", idx, b.offsets["level_first_page"][0] + 8)[0]), ini)])
+    variant(base, "malformed-divisions", "corrupt", "CameraImageDivisionsPerSide is not a number",
+            mutations=[lambda s, b, idx, ini:
+                       (idx, ini.replace(b"CameraImageDivisionsPerSide = 1", b"CameraImageDivisionsPerSide = one"))])
+    variant(base, "truncated-index", "corrupt", "the index file ends in the middle of level 0's page",
+            mutations=[lambda s, b, idx, ini: (idx[:b.offsets["level_first_page"][0] + 8 + 16 * 3], ini)])
+    variant(base, "two-image-groups", "unsupported",
+            "the filter sections reference two stored image groups (a multichannel bundle)",
+            hier_slot_multiplier=4, filter_groups=["FilterLevel_0", "FilterLevel_0", "FilterLevel_0", "FilterLevel_1"])
+    variant(base, "bad-exponent", "corrupt", "a level after the first has IMAGE_CONCAT_FACTOR 0",
+            levels=[base["levels"][0], {**base["levels"][1], "exp": 0}, base["levels"][2]])
+    variant(base, "unsupported-format", "unsupported", "IMAGE_FORMAT is JPEG2000",
+            levels=[{**lv, "declared_format": "JPEG2000"} for lv in base["levels"]])
+    variant(base, "data-file-escape", "corrupt", "a [DATAFILE] name leads outside the bundle directory",
+            data_files=["Data0000.dat", "../escape.dat"], omit_files=["../escape.dat"])
     variant(base, "nondivisible-grid", "unsupported", "IMAGENUMBER_X is not a multiple of D",
             Nx=6, D=4, images0=[(0, 0)], levels=[dict(exp=0, W=8, H=8, overlap_x=0, overlap_y=0, format="PNG")])
     return specs

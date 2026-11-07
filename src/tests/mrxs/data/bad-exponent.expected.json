@@ -1,0 +1,6 @@
+{
+ "error": "corrupt",
+ "error_on": "open",
+ "name": "bad-exponent",
+ "reason": "a level after the first has IMAGE_CONCAT_FACTOR 0"
+}

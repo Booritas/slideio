@@ -1,0 +1,6 @@
+{
+ "error": "corrupt",
+ "error_on": "open",
+ "name": "truncated-index",
+ "reason": "the index file ends in the middle of level 0's page"
+}

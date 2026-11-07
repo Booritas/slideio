@@ -1,0 +1,6 @@
+{
+ "error": "unsupported",
+ "error_on": "open",
+ "name": "two-image-groups",
+ "reason": "the filter sections reference two stored image groups (a multichannel bundle)"
+}

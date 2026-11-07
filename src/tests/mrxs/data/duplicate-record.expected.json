@@ -1,0 +1,6 @@
+{
+ "error": "corrupt",
+ "error_on": "open",
+ "name": "duplicate-record",
+ "reason": "two level-0 records share an image index"
+}
