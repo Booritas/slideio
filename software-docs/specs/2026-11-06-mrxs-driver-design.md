@@ -229,7 +229,7 @@ Release requires bounded malformed-input behavior, public explicit/AUTO opening 
 | Mask and hardware layers not applied; five-channel rejected | `MRXSCorpusGeometry.aMaskAndHardwareBundleRendersItsPrimaryPyramidOnly`, `MRXSCorpusIndex.theFiveChannelBundleIsUnsupported` |
 | Converter | `MRXSIntegration.anMrxsSceneConvertsToSvs`, including reopening by path |
 | Package | Windows zip built locally; the package-smoke consumer reports 13 drivers including MRXS |
-| Cross-platform CI, ThreadSanitizer | **Not yet run**: needs the branch pushed and CI run on it |
+| Cross-platform CI, ThreadSanitizer | PR #93, run 42403347844: Linux, macOS, Windows and manylinux_2_28 builds pass; the 90 corpus-free MRXS tests pass under ThreadSanitizer with no race reported, and in the manylinux image |
 
 Performance on TCIA `003` (1,347,718 records, read in place from the archive; `MRXSCorpusGeometry.DISABLED_measureTheLargestBundle`): open 1.31 s, index and geometry 100 MiB — inside the 2 s / 128 MiB targets; a 1024 x 1024 level-0 read costs 148 ms cold (55 ms with the OS file cache warm, 36 decodes), 40 ms warm with 0 decodes and 36 cache hits, holding 6 MiB of the 128 MiB decoded-image budget. No associated image of that bundle, and so no label, is decoded by the measurement.
 
