@@ -13,6 +13,7 @@ set(TEST_SOURCES
   test_mrxs_geometry.cpp
   test_mrxs_render.cpp
   test_mrxs_scene.cpp
+  test_mrxs_integration.cpp
   test_mrxs_corpus_index.cpp
   test_mrxs_corpus_geometry.cpp
   test_mrxs_corpus_render.cpp
@@ -40,6 +41,7 @@ target_link_libraries(${TEST_NAME}
     ${TEST_LIB_NAME}
     ${CORE_LIB_NAME}
     ${SLIDEIO_LIB_NAME}
+    ${CONVERTER_LIB_NAME}
   )
 
 IF(WIN32)

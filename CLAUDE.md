@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-SlideIO is a C++ library (with Python bindings in a separate repo) for reading medical/microscopy slide images. It supports 12 formats (SVS, AFI, SCN, CZI, ZVI, NDPI, VSI, DCM, QPTIFF, OME-TIFF, PHTIFF, GDAL) through a pluggable driver architecture. Cross-platform: Linux, macOS, Windows.
+SlideIO is a C++ library (with Python bindings in a separate repo) for reading medical/microscopy slide images. It supports 13 formats (SVS, AFI, SCN, CZI, ZVI, NDPI, VSI, DCM, QPTIFF, OME-TIFF, PHTIFF, MRXS, GDAL) through a pluggable driver architecture. Cross-platform: Linux, macOS, Windows.
 
-The 12 formats are served by 11 driver libraries: PHTIFF (Philips TIFF) has no library of its own — it ships inside the `slideio-svs` library, as `PHTIFFImageDriver`/`PHTIFFSlide`/`PHTIFFTiledScene` (`phtiff*.cpp` in `src/slideio/drivers/svs/`). `PHTIFFTiledScene` derives from `SVSTiledScene` to reuse the tiled-tiff reading path; everything format specific (detection, metadata parsing in `phtdescription.cpp`/`phtmetadata.cpp`, level-to-directory matching, tile padding crop) lives in the PHTIFF classes. Both driver ids are declared in `svsdriverids.hpp`.
+The 13 formats are served by 12 driver libraries: PHTIFF (Philips TIFF) has no library of its own — it ships inside the `slideio-svs` library, as `PHTIFFImageDriver`/`PHTIFFSlide`/`PHTIFFTiledScene` (`phtiff*.cpp` in `src/slideio/drivers/svs/`). `PHTIFFTiledScene` derives from `SVSTiledScene` to reuse the tiled-tiff reading path; everything format specific (detection, metadata parsing in `phtdescription.cpp`/`phtmetadata.cpp`, level-to-directory matching, tile padding crop) lives in the PHTIFF classes. Both driver ids are declared in `svsdriverids.hpp`.
 
 ## Build Commands
 
@@ -132,6 +132,7 @@ Tests use Google Test. Test executables (release build):
 ./build/release/bin/slideio_pke_tests          # PKE driver tests
 ./build/release/bin/slideio_ometiff_tests      # OME-TIFF tests
 ./build/release/bin/slideio_phtiff_tests       # Philips TIFF (PHTIFF) tests
+./build/release/bin/slideio_mrxs_tests         # MIRAX (MRXS) tests
 
 # Run a single test:
 ./build/release/bin/slideio_tests --gtest_filter="TestSuiteName.TestName"
@@ -158,6 +159,18 @@ entirely red and a real regression is indistinguishable from an absent file.
 how many tests would be lost by deleting it. Regenerate it with
 `python3 auxfiles/list-test-images.py`.
 
+The MRXS driver is the one exception to "test images live outside the repository":
+its synthetic bundles are committed in `src/tests/mrxs/data/` (about 230 KB, written by
+`auxfiles/mrxs-fixtures/generate.py`, which shares no code with the driver), so the
+parser and renderer tests need no corpus. `.gitattributes` marks that directory
+`-text`: the fixtures are exact bytes, CRLF included on purpose, and autocrlf would
+silently change what they test. Every `slideio_mrxs_tests` suite that does need the
+corpus is named `MRXSCorpus*`, and CI runs the executable with
+`--gtest_filter=-MRXSCorpus*` -- a corpus test with any other name breaks CI. The
+OpenSlide references those corpus suites compare against, and the per-region JPEG
+decoder difference they allow for, are produced by hand with the tools listed in
+`auxfiles/mrxs-fixtures/README.md`.
+
 ## Architecture
 
 ### Module Hierarchy (each is a shared library, prefixed `slideio-`):
@@ -167,7 +180,7 @@ how many tests would be lost by deleting it. Regenerate it with
 - **slideio** (main) — Public API: `Slide`, `Scene`, `ImageDriverManager` (loads drivers dynamically)
 - **converter** — Format conversion (mainly TIFF output), multithreaded encoding
 - **transformer** — Image filters and color transformations (Gaussian, Canny, Sobel, etc.)
-- **drivers** — 11 format-specific shared libraries, each implementing `ImageDriver`/`CVScene`/`CVSlide` (the svs library serves both SVS and PHTIFF)
+- **drivers** — 12 format-specific shared libraries, each implementing `ImageDriver`/`CVScene`/`CVSlide` (the svs library serves both SVS and PHTIFF)
 
 ### Driver Plugin Pattern
 
@@ -221,10 +234,10 @@ src/
 │   ├── imagetools/     # slideio-imagetools
 │   ├── converter/      # slideio-converter
 │   ├── transformer/    # slideio-transformer
-│   └── drivers/        # 11 driver libraries, serving 12 formats
+│   └── drivers/        # 12 driver libraries, serving 13 formats
 │       ├── svs/  afi/  scn/  czi/  zvi/     # svs/ also serves PHTIFF
 │       ├── ndpi/ vsi/  dcm/  pke/
-│       └── ome-tiff/  gdal/
+│       └── ome-tiff/  gdal/  mrxs/
 ├── tests/              # Test suites (one per module/driver)
 ├── single_tests/       # Memory leak and performance tests
 └── tools/              # CLI tools
