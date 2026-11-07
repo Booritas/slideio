@@ -113,9 +113,22 @@ void ImageTools::decodeFreeImageStream(const uint8_t* data, size_t size, cv::Out
     if (!bitmap.get() || !FreeImage_HasPixels(bitmap.get())) {
         RAISE_RUNTIME_ERROR << "decodeFreeImageStream: cannot decode the " << toCompression(fif) << " stream";
     }
-    FIBITMAP* const bits = bitmap.get();
+    FIBITMAP* bits = bitmap.get();
     if (FreeImage_GetImageType(bits) != FIT_BITMAP) {
         RAISE_RUNTIME_ERROR << "decodeFreeImageStream: unsupported sample type " << FreeImage_GetImageType(bits);
+    }
+    // Indexed images (a palette, or fewer than eight bits a pixel) carry their colours in a
+    // table: expand them to RGB, or to RGBA where the table has transparent entries.
+    const bool indexed = FreeImage_GetColorType(bits) == FIC_PALETTE || FreeImage_GetBPP(bits) < 8;
+    const bool transparent = FreeImage_IsTransparent(bits) != FALSE;
+    Bitmap expanded(indexed ? (transparent ? FreeImage_ConvertTo32Bits(bits) : FreeImage_ConvertTo24Bits(bits))
+                            : nullptr);
+    if (indexed) {
+        if (!expanded.get()) {
+            RAISE_RUNTIME_ERROR << "decodeFreeImageStream: cannot expand the indexed " << toCompression(fif)
+                << " image";
+        }
+        bits = expanded.get();
     }
     const unsigned bpp = FreeImage_GetBPP(bits);
     const FREE_IMAGE_COLOR_TYPE colorType = FreeImage_GetColorType(bits);
