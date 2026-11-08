@@ -218,6 +218,12 @@ namespace slideio
          * A cv::Mat carries one depth, so typing a block by channel 0 whatever
          * was requested sizes it wrongly for a scene whose channels differ.
          *
+         * Raises RuntimeError when the requested channels -- all of the
+         * scene's when none is named -- do not share one data type, since no
+         * one block can hold them. Out-of-range channels are skipped here and
+         * left for the read to reject. The public read methods call it before
+         * reaching a driver, so every driver rejects a mixed request (#90).
+         *
          * Public so that code allocating a block for a scene's read -- the
          * converter's border tiles, a CVScene subclass's own blocks -- types
          * it by the same rule as the blocks CVScene allocates itself.*/
