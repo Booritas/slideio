@@ -3,6 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 #include "transformations.hpp"
 #include "slideio/core/exceptions.hpp"
+#include "slideio/transformer/checkedcast.hpp"
 #include "slideio/transformer/colortransformation.hpp"
 #include "slideio/transformer/colormanagement.hpp"
 #include "slideio/transformer/gaussianblurfilter.hpp"
@@ -22,55 +23,55 @@ std::shared_ptr<Transformation> slideio::makeTransformationCopy(const Transforma
     switch (type) {
     case TransformationType::GaussianBlurFilter:
         {
-            GaussianBlurFilter& filter = (GaussianBlurFilter&)source;
+            const GaussianBlurFilter& filter = checkedTransformationCast<GaussianBlurFilter>(source);
             std::shared_ptr<TransformationEx> transformation(new GaussianBlurFilter(filter));
             return transformation;
         }
     case TransformationType::MedianBlurFilter:
         {
-            MedianBlurFilter& filter = (MedianBlurFilter&)source;
+            const MedianBlurFilter& filter = checkedTransformationCast<MedianBlurFilter>(source);
             std::shared_ptr<TransformationEx> transformation(new MedianBlurFilter(filter));
             return transformation;
         }
     case TransformationType::SobelFilter:
         {
-            SobelFilter& filter = (SobelFilter&)source;
+            const SobelFilter& filter = checkedTransformationCast<SobelFilter>(source);
             std::shared_ptr<TransformationEx> transformation(new SobelFilter(filter));
             return transformation;
         }
     case TransformationType::ScharrFilter:
         {
-            ScharrFilter& filter = (ScharrFilter&)source;
+            const ScharrFilter& filter = checkedTransformationCast<ScharrFilter>(source);
             std::shared_ptr<TransformationEx> transformation(new ScharrFilter(filter));
             return transformation;
         }
     case TransformationType::LaplacianFilter:
         {
-            LaplacianFilter& filter = (LaplacianFilter&)source;
+            const LaplacianFilter& filter = checkedTransformationCast<LaplacianFilter>(source);
             std::shared_ptr<TransformationEx> transformation(new LaplacianFilter(filter));
             return transformation;
         }
     case TransformationType::BilateralFilter:
         {
-            BilateralFilter& filter = (BilateralFilter&)source;
+            const BilateralFilter& filter = checkedTransformationCast<BilateralFilter>(source);
             std::shared_ptr<TransformationEx> transformation(new BilateralFilter(filter));
             return transformation;
         }
     case TransformationType::CannyFilter:
         {
-            CannyFilter& filter = (CannyFilter&)source;
+            const CannyFilter& filter = checkedTransformationCast<CannyFilter>(source);
             std::shared_ptr<TransformationEx> transformation(new CannyFilter(filter));
             return transformation;
         }
     case TransformationType::ColorTransformation:
         {
-            ColorTransformation& filter = (ColorTransformation&)source;
+            const ColorTransformation& filter = checkedTransformationCast<ColorTransformation>(source);
             std::shared_ptr<TransformationEx> transformation(new ColorTransformation(filter));
             return transformation;
         }
     case TransformationType::ColorManagement:
         {
-            ColorManagement& filter = (ColorManagement&)source;
+            const ColorManagement& filter = checkedTransformationCast<ColorManagement>(source);
             std::shared_ptr<TransformationEx> transformation(new ColorManagement(filter));
             return transformation;
         }
@@ -84,55 +85,55 @@ std::shared_ptr<TransformationWrapper> slideio::makeTransformationCopy(const Tra
     switch (type) {
     case TransformationType::GaussianBlurFilter:
         {
-            const GaussianBlurFilterWrap& filter = (const GaussianBlurFilterWrap&)source;
+            const GaussianBlurFilterWrap& filter = checkedTransformationCast<GaussianBlurFilterWrap>(source);
             std::shared_ptr<TransformationWrapper> transformation(new GaussianBlurFilterWrap(filter));
             return transformation;
         }
     case TransformationType::MedianBlurFilter:
         {
-            const MedianBlurFilterWrap& filter = (const MedianBlurFilterWrap&)source;
+            const MedianBlurFilterWrap& filter = checkedTransformationCast<MedianBlurFilterWrap>(source);
             std::shared_ptr<TransformationWrapper> transformation(new MedianBlurFilterWrap(filter));
             return transformation;
         }
     case TransformationType::SobelFilter:
         {
-            const SobelFilterWrap& filter = (const SobelFilterWrap&)source;
+            const SobelFilterWrap& filter = checkedTransformationCast<SobelFilterWrap>(source);
             std::shared_ptr<TransformationWrapper> transformation(new SobelFilterWrap(filter));
             return transformation;
         }
     case TransformationType::ScharrFilter:
         {
-            const ScharrFilterWrap& filter = (const ScharrFilterWrap&)source;
+            const ScharrFilterWrap& filter = checkedTransformationCast<ScharrFilterWrap>(source);
             std::shared_ptr<TransformationWrapper> transformation(new ScharrFilterWrap(filter));
             return transformation;
         }
     case TransformationType::LaplacianFilter:
         {
-            const LaplacianFilterWrap& filter = (const LaplacianFilterWrap&)source;
+            const LaplacianFilterWrap& filter = checkedTransformationCast<LaplacianFilterWrap>(source);
             std::shared_ptr<TransformationWrapper> transformation(new LaplacianFilterWrap(filter));
             return transformation;
         }
     case TransformationType::BilateralFilter:
         {
-            const BilateralFilterWrap& filter = (const BilateralFilterWrap&)source;
+            const BilateralFilterWrap& filter = checkedTransformationCast<BilateralFilterWrap>(source);
             std::shared_ptr<TransformationWrapper> transformation(new BilateralFilterWrap(filter));
             return transformation;
         }
     case TransformationType::CannyFilter:
         {
-            const CannyFilterWrap& filter = (const CannyFilterWrap&)source;
+            const CannyFilterWrap& filter = checkedTransformationCast<CannyFilterWrap>(source);
             std::shared_ptr<TransformationWrapper> transformation(new CannyFilterWrap(filter));
             return transformation;
         }
     case TransformationType::ColorTransformation:
         {
-            const ColorTransformationWrap& filter = (const ColorTransformationWrap&)source;
+            const ColorTransformationWrap& filter = checkedTransformationCast<ColorTransformationWrap>(source);
             std::shared_ptr<TransformationWrapper> transformation(new ColorTransformationWrap(filter));
             return transformation;
         }
     case TransformationType::ColorManagement:
         {
-            const ColorManagementWrap& filter = (const ColorManagementWrap&)source;
+            const ColorManagementWrap& filter = checkedTransformationCast<ColorManagementWrap>(source);
             std::shared_ptr<TransformationWrapper> transformation(new ColorManagementWrap(filter));
             return transformation;
         }

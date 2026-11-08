@@ -6,6 +6,7 @@
 #include "slideio/transformer/transformations.hpp"
 #include "slideio/transformer/transformerscene.hpp"
 #include "slideio/core/exceptions.hpp"
+#include "slideio/transformer/checkedcast.hpp"
 #include "slideio/slideio/scene.hpp"
 #include "slideio/transformer/transformationtype.hpp"
 #include "slideio/transformer/wrappers.hpp"
@@ -35,23 +36,23 @@ static std::shared_ptr<Transformation> transformFromWrapper(std::shared_ptr<slid
     switch (wrap->getType())
     {
     case TransformationType::ScharrFilter:
-        return static_cast<ScharrFilterWrap*>(wrap)->getFilter();
+        return checkedTransformationCast<ScharrFilterWrap>(*wrap).getFilter();
     case TransformationType::SobelFilter:
-        return static_cast<SobelFilterWrap*>(wrap)->getFilter();
+        return checkedTransformationCast<SobelFilterWrap>(*wrap).getFilter();
     case TransformationType::GaussianBlurFilter:
-        return static_cast<GaussianBlurFilterWrap*>(wrap)->getFilter();
+        return checkedTransformationCast<GaussianBlurFilterWrap>(*wrap).getFilter();
     case TransformationType::MedianBlurFilter:
-        return static_cast<MedianBlurFilterWrap*>(wrap)->getFilter();
+        return checkedTransformationCast<MedianBlurFilterWrap>(*wrap).getFilter();
     case TransformationType::BilateralFilter:
-        return static_cast<BilateralFilterWrap*>(wrap)->getFilter();
+        return checkedTransformationCast<BilateralFilterWrap>(*wrap).getFilter();
     case TransformationType::CannyFilter:
-        return static_cast<CannyFilterWrap*>(wrap)->getFilter();
+        return checkedTransformationCast<CannyFilterWrap>(*wrap).getFilter();
     case TransformationType::LaplacianFilter:
-        return static_cast<LaplacianFilterWrap*>(wrap)->getFilter();
+        return checkedTransformationCast<LaplacianFilterWrap>(*wrap).getFilter();
     case TransformationType::ColorTransformation:
-        return static_cast<ColorTransformationWrap*>(wrap)->getFilter();
+        return checkedTransformationCast<ColorTransformationWrap>(*wrap).getFilter();
     case TransformationType::ColorManagement:
-        return static_cast<ColorManagementWrap*>(wrap)->getFilter();
+        return checkedTransformationCast<ColorManagementWrap>(*wrap).getFilter();
     default:
         RAISE_RUNTIME_ERROR << "Unknown transformation type: " << wrap->getType();
     }
