@@ -1,0 +1,6 @@
+{
+ "error": "corrupt",
+ "error_on": "open",
+ "name": "bad-negative-pointer",
+ "reason": "the hierarchical table pointer is negative"
+}

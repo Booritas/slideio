@@ -1,0 +1,6 @@
+{
+ "error": "unsupported",
+ "error_on": "open",
+ "name": "nondivisible-grid",
+ "reason": "IMAGENUMBER_X is not a multiple of D"
+}

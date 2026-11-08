@@ -1,0 +1,4 @@
+# MRXS test fixtures are exact byte sequences written by
+# auxfiles/mrxs-fixtures/generate.py: line endings are part of what they test
+# (layout-variants uses CRLF on purpose), so git must never convert them.
+src/tests/mrxs/data/** -text

@@ -1,0 +1,6 @@
+{
+ "error": "corrupt",
+ "error_on": "read",
+ "name": "bmp-not-24bit",
+ "reason": "a BMP24 level holds an 8-bit palette BMP"
+}

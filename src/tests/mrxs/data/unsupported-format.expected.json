@@ -1,0 +1,6 @@
+{
+ "error": "unsupported",
+ "error_on": "open",
+ "name": "unsupported-format",
+ "reason": "IMAGE_FORMAT is JPEG2000"
+}

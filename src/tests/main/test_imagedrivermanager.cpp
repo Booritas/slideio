@@ -56,7 +56,10 @@ TEST(ImageDriverManager, findDriver)
         TestEntity("NDPI", TestTools::getTestImagePath("hamamatsu", "test3-DAPI-2-(387).ndpi")),
         TestEntity("SCN", TestTools::getTestImagePath("scn", "Leica-Fluorescence-1.scn")),
         TestEntity("SVS", TestTools::getTestImagePath("svs", "CMU-1-Small-Region.svs")),
-        TestEntity("ZVI", TestTools::getTestImagePath("svs", "TOMMAlexaFluor647.zvi"))
+        TestEntity("ZVI", TestTools::getTestImagePath("svs", "TOMMAlexaFluor647.zvi")),
+        // MRXS is chosen by name, before GDAL, whether or not the bundle is on this machine.
+        TestEntity("MRXS", TestTools::getTestImagePath("mirax/openslide/CMU-1-Saved-1_16", "CMU-1-Saved-1_16.mrxs")),
+        TestEntity("MRXS", TestTools::getTestImagePath("mirax/openslide/CMU-1-Saved-1_16/CMU-1-Saved-1_16", "Slidedat.ini"))
     };
     for(const auto& entity: testList) {
         auto driverId = std::get<0>(entity);

@@ -1,0 +1,6 @@
+{
+ "error": "corrupt",
+ "error_on": "open",
+ "name": "malformed-divisions",
+ "reason": "CameraImageDivisionsPerSide is not a number"
+}

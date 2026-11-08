@@ -1,0 +1,6 @@
+{
+ "error": "unsupported",
+ "error_on": "open",
+ "name": "bad-version",
+ "reason": "the index version is 01.03, not 01.02"
+}

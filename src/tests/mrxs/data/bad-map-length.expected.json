@@ -1,0 +1,6 @@
+{
+ "error": "corrupt",
+ "error_on": "open",
+ "name": "bad-map-length",
+ "reason": "the raw position map is one record short"
+}

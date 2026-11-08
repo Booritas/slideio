@@ -299,6 +299,15 @@ namespace slideio
          * macro image are captured through different optics than the tissue
          * scan.*/
         virtual ColorProfile getColorProfile() const { return ColorProfile(); }
+        /**@brief returns the value an uncovered pixel of a channel takes.
+         *
+         * Used wherever a block has pixels the scene has no data for: outside the
+         * scene, outside a level, or a hole a driver does not cover. The default is
+         * 255 for byte channels and 0 for every other type. A driver overrides it to
+         * state its own background colour -- MRXS takes it from the slide's
+         * IMAGE_FILL_COLOR_BGR. Asked per channel rather than as a cv::Scalar, which
+         * holds at most four values.*/
+        virtual double getChannelBackground(int channel) const;
         /**@brief returns metadata as a navigable tree. Built lazily on first call. */
         const Metadata& getMetadata() const;
         virtual void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
@@ -383,6 +392,11 @@ namespace slideio
          * Typed by blockDataType(): the first requested channel, not channel 0.*/
         void initializeSceneBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices,
                                   cv::OutputArray output) const;
+        /**@brief fills an allocated block with the background of its channels.
+         *
+         * Plane k takes getChannelBackground(channelIndices[k]); an empty
+         * @p channelIndices means every channel in order.*/
+        void fillWithBackground(cv::Mat& block, const std::vector<int>& channelIndices) const;
         /**@brief reads part of a block: the rect, size and output of that part.*/
         using BlockReader = std::function<void(const cv::Rect&, const cv::Size&, cv::OutputArray)>;
         /**@brief reads a rectangle that may extend beyond @p bounds.
@@ -390,7 +404,7 @@ namespace slideio
          * A rectangle inside @p bounds goes to @p reader unchanged, with @p blockSize. Any
          * other is clamped to @p bounds: @p reader is handed only the part that survives,
          * with the share of @p blockSize it covers, and the rest of the block is filled with
-         * the background value -- 255 for byte data, 0 otherwise. A rectangle entirely
+         * each channel's getChannelBackground() value. A rectangle entirely
          * outside never reaches @p reader. That is the edge contract of every read, so that
          * a tile overhanging the image is not an error (issue #45).
          */

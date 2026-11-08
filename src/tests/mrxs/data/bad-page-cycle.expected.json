@@ -1,0 +1,6 @@
+{
+ "error": "corrupt",
+ "error_on": "open",
+ "name": "bad-page-cycle",
+ "reason": "level-0 page chain points back to itself"
+}

@@ -10,6 +10,7 @@ set(TEST_SOURCES
   test_colorprofile.cpp
   test_scenesource.cpp
   test_scene_index.cpp
+  test_scene_background.cpp
   test_icctransform.cpp
   test_imagedrivermanager.cpp
   test_czi_driver.cpp

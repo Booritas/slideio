@@ -62,6 +62,20 @@ TEST(Tools, findZoomLevel) {
 }
 
 
+TEST(Tools, scaleRectOfARectEndingPastInt32) {
+    // x + width exceeds INT32_MAX while both fit: the far edge must be computed wide,
+    // because downscaling brings it back into range.
+    const cv::Rect rect(std::numeric_limits<int>::max() - 100, 8, 200, 16);
+    cv::Rect scaled;
+    Tools::scaleRect(rect, 0.25, 0.25, scaled);
+    const int64_t x0 = (int64_t(rect.x)) / 4;
+    const int64_t x1 = (int64_t(rect.x) + rect.width + 3) / 4;
+    EXPECT_EQ(x0, scaled.x);
+    EXPECT_EQ(x1 - x0, scaled.width);
+    EXPECT_EQ(2, scaled.y);
+    EXPECT_EQ(4, scaled.height);
+}
+
 TEST(Tools, convert12BitsTo16Bits) {
     const uint8_t src[] = {
         0xF7, 0xDC, 0xBF,

@@ -4,6 +4,7 @@
 #include "slideio/core/cvscene.hpp"
 #include "slideio/core/tools/cvtools.hpp"
 
+#include <algorithm>
 #include <numeric>
 #include <mutex>
 #include "slideio/core/exceptions.hpp"
@@ -303,7 +304,7 @@ void CVScene::readClampedBlock(const cv::Rect& bounds, const cv::Rect& rect, con
     // region instead of writing into the block.
     output.create(blockSize, part.type());
     cv::Mat block = output.getMat();
-    block.setTo(part.depth() == CV_8U ? cv::Scalar::all(255) : cv::Scalar::all(0));
+    fillWithBackground(block, channelIndices);
     part.copyTo(block(target));
 }
 
@@ -353,11 +354,45 @@ void CVScene::initializeSceneBlock(const cv::Size& blockSize, const std::vector<
         numChannels = getNumChannels();
     }
     output.create(blockSize, CV_MAKETYPE(CVTools::toOpencvType(dt), numChannels));
-    if (dt == DataType::DT_Byte) {
-        output.setTo(255);
+    cv::Mat block = output.getMat();
+    fillWithBackground(block, channelIndices);
+}
+
+double CVScene::getChannelBackground(int channel) const
+{
+    return getChannelDataType(channel) == DataType::DT_Byte ? 255. : 0.;
+}
+
+void CVScene::fillWithBackground(cv::Mat& block, const std::vector<int>& channelIndices) const
+{
+    const int numPlanes = block.channels();
+    std::vector<double> values(numPlanes);
+    for (int plane = 0; plane < numPlanes; ++plane) {
+        const int channel = plane < static_cast<int>(channelIndices.size()) ? channelIndices[plane] : plane;
+        values[plane] = getChannelBackground(channel);
+    }
+    const bool uniform = std::all_of(values.begin(), values.end(),
+                                     [&values](double v) { return v == values.front(); });
+    if (uniform) {
+        // A single number, not cv::Scalar::all: OpenCV broadcasts a scalar to any
+        // channel count but rejects a four-element Scalar for a wider block.
+        block.setTo(values.front());
+    }
+    else if (numPlanes <= 4) {
+        cv::Scalar scalar;
+        for (int plane = 0; plane < numPlanes; ++plane) {
+            scalar[plane] = values[plane];
+        }
+        block.setTo(scalar);
     }
     else {
-        output.setTo(0.0);
+        // cv::Scalar holds four values; wider blocks are filled plane by plane.
+        std::vector<cv::Mat> planes;
+        cv::split(block, planes);
+        for (int plane = 0; plane < numPlanes; ++plane) {
+            planes[plane].setTo(values[plane]);
+        }
+        cv::merge(planes, block);
     }
 }
 

@@ -1,0 +1,66 @@
+set(LIBRARY_NAME ${MRXS_DRIVER_NAME})
+set(CMAKE_PREFIX_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
+set(SOURCE_FILES
+   ${SOURCE_FILES}
+   ${CMAKE_CURRENT_SOURCE_DIR}/mrxs_api_def.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/mrxsimagedriver.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/mrxsimagedriver.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/mrxsbundle.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/mrxsbundle.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/mrxserrors.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/mrxsini.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/mrxsini.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/mrxsmetadata.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/mrxsmetadata.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/mrxsindex.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/mrxsindex.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/mrxsgeometry.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/mrxsgeometry.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/mrxsdecoder.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/mrxsdecoder.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/mrxsdataset.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/mrxsdataset.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/mrxsrenderer.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/mrxsrenderer.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/mrxsauxscene.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/mrxsauxscene.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/mrxsdescription.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/mrxsdescription.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/mrxsruntime.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/mrxsruntime.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/mrxsscene.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/mrxsscene.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/mrxsslide.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/mrxsslide.cpp
+   )
+
+add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES})
+HIDE_THIRD_PARTY_SYMBOLS(${LIBRARY_NAME})
+set_target_properties(${LIBRARY_NAME} PROPERTIES OUTPUT_NAME "${LIBRARY_NAME}${LIB_NAME_SUFFIX}")
+
+find_package(OpenCV)
+find_package(ZLIB)
+find_package(nlohmann_json)
+
+target_link_libraries(${LIBRARY_NAME}
+   opencv::opencv
+   ZLIB::ZLIB
+   nlohmann_json::nlohmann_json
+)
+
+SOURCE_GROUP_BY_FOLDER(SOURCE_FILES)
+
+target_link_libraries(${LIBRARY_NAME} ${CORE_LIB_NAME} ${IMAGETOOLS_LIB_NAME})
+
+IF(WIN32)
+   set_target_properties(${LIBRARY_NAME} PROPERTIES LINK_FLAGS "/ignore:4099")
+   target_compile_definitions(${LIBRARY_NAME} PRIVATE SLIDEIO_MRXS_API _CRT_SECURE_NO_WARNINGS)
+ENDIF(WIN32)
+
+set_target_properties(${LIBRARY_NAME} PROPERTIES LINKER_LANGUAGE CXX)
+
+if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    target_link_options(${LIBRARY_NAME} PRIVATE "-Wl,-Bsymbolic")
+endif()

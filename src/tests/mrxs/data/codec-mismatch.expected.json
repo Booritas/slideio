@@ -1,0 +1,6 @@
+{
+ "error": "corrupt",
+ "error_on": "read",
+ "name": "codec-mismatch",
+ "reason": "IMAGE_FORMAT says PNG but one level-0 payload is a BMP"
+}

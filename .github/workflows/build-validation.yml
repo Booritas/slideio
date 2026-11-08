@@ -198,6 +198,11 @@ jobs:
       - name: FileReader and ContextPool under ThreadSanitizer
         run: ./build/debug/bin/slideio_tests --gtest_filter="FileReader.*:ContextPool.*"
 
+      # The MRXS suites that read only the fixtures committed in src/tests/mrxs/data;
+      # MRXSCorpus* suites need the slide corpus and are excluded.
+      - name: MRXS fixture tests under ThreadSanitizer
+        run: ./build/debug/bin/slideio_mrxs_tests --gtest_filter="-MRXSCorpus*"
+
   build-windows:
     name: Windows
     runs-on: windows-2022
@@ -280,4 +285,5 @@ jobs:
               python3 install.py -a build-only -c release
               # The suites that need no slide corpus, as elsewhere in this file.
               ./build/release/bin/slideio_tests --gtest_filter="FileReader.*:ContextPool.*"
+              ./build/release/bin/slideio_mrxs_tests --gtest_filter="-MRXSCorpus*"
             '

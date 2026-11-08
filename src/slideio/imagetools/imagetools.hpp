@@ -26,7 +26,27 @@ namespace slideio
             std::vector<int> chanelTypes; // cv types
             cv::Size size = {};
         };
+        /**@brief what the header of an encoded image says, read without decoding pixels.*/
+        struct EncodedImageInfo {
+            /// Jpeg, Png or BMP; Unknown when the stream is none of those or unreadable.
+            Compression codec = Compression::Unknown;
+            cv::Size size = {};
+            int bitsPerPixel = 0;
+            bool hasAlpha = false;
+        };
     public:
+        /**@brief describes an in-memory JPEG, PNG or BMP stream from its header alone.
+         *
+         * Never allocates pixels (FreeImage's FIF_LOAD_NOPIXELS), so a caller can check
+         * the declared size against its own limits before decoding. Never throws for
+         * unrecognised or truncated input: it reports codec Unknown instead.*/
+        static EncodedImageInfo probeFreeImageStream(const uint8_t* data, size_t size);
+        /**@brief decodes an in-memory PNG, BMP or JPEG stream through FreeImage.
+         *
+         * Reads only the @p size bytes given. The result is top-down, 8 bits per
+         * sample: CV_8UC1 for grayscale, CV_8UC3 RGB, CV_8UC4 RGBA. Throws
+         * RuntimeError for anything it cannot decode in that form.*/
+        static void decodeFreeImageStream(const uint8_t* data, size_t size, cv::OutputArray output);
         static void readSmallImageRaster(const std::string& path, cv::OutputArray output);
         static void writeSmallImageRaster(const std::string& path, Compression compression, cv::Mat raster);
         static void readJxrImage(const std::string& path, cv::OutputArray output);

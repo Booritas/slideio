@@ -1,0 +1,64 @@
+{
+ "associated": {},
+ "background_rgb": [255,255,255],
+ "bounds_level0": [0.0,0.0,52.0,14.0],
+ "camera_grid": [4,2],
+ "data_files": 1,
+ "image_grid": [4,2,1],
+ "levels": [
+  {
+   "concat": 1,
+   "downsample": 1,
+   "drawables": [
+    {"destination":[0.0,0.0,13.0,7.0],"grid":[0,0],"image":[0,0],"source":[0.0,0.0,13.0,7.0],"subtile":[0,0]},
+    {"destination":[13.0,0.0,13.0,7.0],"grid":[0,1],"image":[1,0],"source":[0.0,0.0,13.0,7.0],"subtile":[0,0]},
+    {"destination":[26.0,0.0,13.0,7.0],"grid":[0,2],"image":[2,0],"source":[0.0,0.0,13.0,7.0],"subtile":[0,0]},
+    {"destination":[39.0,0.0,13.0,7.0],"grid":[0,3],"image":[3,0],"source":[0.0,0.0,13.0,7.0],"subtile":[0,0]},
+    {"destination":[0.0,7.0,13.0,7.0],"grid":[1,0],"image":[0,1],"source":[0.0,0.0,13.0,7.0],"subtile":[0,0]},
+    {"destination":[13.0,7.0,13.0,7.0],"grid":[1,1],"image":[1,1],"source":[0.0,0.0,13.0,7.0],"subtile":[0,0]},
+    {"destination":[26.0,7.0,13.0,7.0],"grid":[1,2],"image":[2,1],"source":[0.0,0.0,13.0,7.0],"subtile":[0,0]},
+    {"destination":[39.0,7.0,13.0,7.0],"grid":[1,3],"image":[3,1],"source":[0.0,0.0,13.0,7.0],"subtile":[0,0]}
+   ],
+   "format": "BMP24",
+   "height": 14,
+   "holes": [],
+   "image_size": [13,7],
+   "probes": [
+    {"rgb":[40,40,40],"x":6,"y":3},
+    {"rgb":[81,174,63],"x":19,"y":3},
+    {"rgb":[207,174,56],"x":32,"y":3},
+    {"rgb":[185,179,53],"x":45,"y":3},
+    {"rgb":[119,160,147],"x":6,"y":10},
+    {"rgb":[169,145,152],"x":19,"y":10}
+   ],
+   "records": [[0,0,0,334],[1,0,334,334],[2,0,668,334],[3,0,1002,334],[4,0,1336,334],[5,0,1670,334],[6,0,2004,334],[7,0,2338,334]],
+   "width": 52
+  },
+  {
+   "concat": 2,
+   "downsample": 2,
+   "drawables": [
+    {"destination":[0.0,0.0,13.0,7.0],"grid":[0,0],"image":[0,0],"source":[0.0,0.0,13.0,7.0],"subtile":[0,0]},
+    {"destination":[13.0,0.0,13.0,7.0],"grid":[0,1],"image":[2,0],"source":[0.0,0.0,13.0,7.0],"subtile":[0,0]}
+   ],
+   "format": "BMP24",
+   "height": 7,
+   "holes": [],
+   "image_size": [13,7],
+   "probes": [
+    {"rgb":[115,144,176],"x":6,"y":3},
+    {"rgb":[47,50,191],"x":19,"y":3}
+   ],
+   "records": [[0,0,2672,334],[2,0,3006,334]],
+   "width": 26
+  }
+ ],
+ "mpp_um": [0.5,0.5],
+ "name": "bmp24",
+ "nominal_lattice": [52,14],
+ "objective": 20,
+ "pixel_tolerance": 0,
+ "position_aware": false,
+ "positions": null,
+ "slide_id": "B0B0B0B0B0B0B0B0B0B0B0B0B0B0B0B0"
+}

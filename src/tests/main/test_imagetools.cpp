@@ -7,6 +7,8 @@
 #include "tests/testlib/testtools.hpp"
 #include <fstream>
 #include <filesystem>
+#include <iterator>
+#include "slideio/core/exceptions.hpp"
 
 #include "slideio/core/tools/cvtools.hpp"
 #include "slideio/core/tools/endian.hpp"
@@ -495,3 +497,211 @@ TEST(ImageTools, readBitmapInvalidFormat)
     }, slideio::RuntimeError);
 }
 
+
+// ---------------------------------------------------------------------------
+// In-memory FreeImage decoding: ImageTools::probeFreeImageStream and
+// ImageTools::decodeFreeImageStream. Every input is encoded by the test itself,
+// so these need no test images.
+namespace
+{
+    // An asymmetric RGB pattern: a flipped row order or swapped red/blue changes it.
+    cv::Mat rgbPattern(int width, int height)
+    {
+        cv::Mat raster(height, width, CV_8UC3);
+        for (int y = 0; y < height; ++y) {
+            for (int x = 0; x < width; ++x) {
+                raster.at<cv::Vec3b>(y, x) = cv::Vec3b(static_cast<uint8_t>(10 + x * 7),
+                                                       static_cast<uint8_t>(20 + y * 11),
+                                                       static_cast<uint8_t>((x * y) % 256));
+            }
+        }
+        return raster;
+    }
+
+    // Encodes raster through the library's own writer and returns the file's bytes.
+    std::vector<uint8_t> encodeToBytes(const cv::Mat& raster, slideio::Compression compression, const char* ext)
+    {
+        slideio::TempFile file(ext);
+        slideio::ImageTools::writeSmallImageRaster(file.getPath().string(), compression, raster);
+        std::ifstream stream(file.getPath(), std::ios::binary);
+        return std::vector<uint8_t>(std::istreambuf_iterator<char>(stream), std::istreambuf_iterator<char>());
+    }
+
+    bool identical(const cv::Mat& left, const cv::Mat& right)
+    {
+        return left.size() == right.size() && left.type() == right.type() && cv::norm(left, right, cv::NORM_INF) == 0;
+    }
+}
+
+TEST(ImageTools, decodeFreeImageStreamPngRoundTrip)
+{
+    const cv::Mat source = rgbPattern(37, 23);
+    const auto bytes = encodeToBytes(source, slideio::Compression::Png, "png");
+    cv::Mat decoded;
+    slideio::ImageTools::decodeFreeImageStream(bytes.data(), bytes.size(), decoded);
+    EXPECT_TRUE(identical(source, decoded));
+}
+
+TEST(ImageTools, decodeFreeImageStreamBmpRoundTrip)
+{
+    // BMP rows are stored bottom-up and padded to four bytes; 37 * 3 is not a multiple of four.
+    const cv::Mat source = rgbPattern(37, 23);
+    const auto bytes = encodeToBytes(source, slideio::Compression::BMP, "bmp");
+    cv::Mat decoded;
+    slideio::ImageTools::decodeFreeImageStream(bytes.data(), bytes.size(), decoded);
+    EXPECT_TRUE(identical(source, decoded));
+}
+
+TEST(ImageTools, decodeFreeImageStreamGrayscalePng)
+{
+    cv::Mat source(9, 13, CV_8UC1);
+    for (int y = 0; y < source.rows; ++y) {
+        for (int x = 0; x < source.cols; ++x) {
+            source.at<uint8_t>(y, x) = static_cast<uint8_t>(x * 19 + y);
+        }
+    }
+    const auto bytes = encodeToBytes(source, slideio::Compression::Png, "png");
+    cv::Mat decoded;
+    slideio::ImageTools::decodeFreeImageStream(bytes.data(), bytes.size(), decoded);
+    EXPECT_TRUE(identical(source, decoded));
+}
+
+namespace
+{
+    // 5 x 3 indexed PNGs at two bits per pixel, written by Pillow: pixel (x, y) is palette
+    // entry (x + 2y) % 4. The second carries a tRNS chunk making entry 2 transparent.
+    const uint8_t kPalettePng[] = {
+        0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52,
+        0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x03, 0x02, 0x03, 0x00, 0x00, 0x00, 0x26, 0x58, 0x2d,
+        0x6b, 0x00, 0x00, 0x00, 0x0c, 0x50, 0x4c, 0x54, 0x45, 0xc8, 0x0a, 0x1e, 0x0f, 0xb4, 0x3c, 0x28,
+        0x32, 0xdc, 0xfa, 0xfa, 0x05, 0x20, 0xb9, 0xc9, 0x2f, 0x00, 0x00, 0x00, 0x11, 0x49, 0x44, 0x41,
+        0x54, 0x78, 0x9c, 0x63, 0x90, 0x66, 0x60, 0xd8, 0xd8, 0xc0, 0x20, 0xcd, 0x00, 0x00, 0x06, 0x8c,
+        0x01, 0x68, 0x5c, 0x39, 0xf6, 0x06, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4e, 0x44, 0xae, 0x42,
+        0x60, 0x82};
+    const uint8_t kTransparentPalettePng[] = {
+        0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52,
+        0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x03, 0x02, 0x03, 0x00, 0x00, 0x00, 0x26, 0x58, 0x2d,
+        0x6b, 0x00, 0x00, 0x00, 0x0c, 0x50, 0x4c, 0x54, 0x45, 0xc8, 0x0a, 0x1e, 0x0f, 0xb4, 0x3c, 0x28,
+        0x32, 0xdc, 0xfa, 0xfa, 0x05, 0x20, 0xb9, 0xc9, 0x2f, 0x00, 0x00, 0x00, 0x04, 0x74, 0x52, 0x4e,
+        0x53, 0xff, 0xff, 0x00, 0xff, 0xfe, 0x0c, 0xbb, 0x0b, 0x00, 0x00, 0x00, 0x11, 0x49, 0x44, 0x41,
+        0x54, 0x78, 0x9c, 0x63, 0x90, 0x66, 0x60, 0xd8, 0xd8, 0xc0, 0x20, 0xcd, 0x00, 0x00, 0x06, 0x8c,
+        0x01, 0x68, 0x5c, 0x39, 0xf6, 0x06, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4e, 0x44, 0xae, 0x42,
+        0x60, 0x82};
+    const cv::Vec3b kPalette[] = {{200, 10, 30}, {15, 180, 60}, {40, 50, 220}, {250, 250, 5}};
+}
+
+TEST(ImageTools, decodeFreeImageStreamExpandsAPalettePngToRgb)
+{
+    cv::Mat decoded;
+    slideio::ImageTools::decodeFreeImageStream(kPalettePng, sizeof(kPalettePng), decoded);
+    ASSERT_EQ(CV_8UC3, decoded.type());
+    ASSERT_EQ(cv::Size(5, 3), decoded.size());
+    for (int y = 0; y < 3; ++y) {
+        for (int x = 0; x < 5; ++x) {
+            EXPECT_EQ(kPalette[(x + 2 * y) % 4], decoded.at<cv::Vec3b>(y, x)) << x << "," << y;
+        }
+    }
+}
+
+TEST(ImageTools, decodeFreeImageStreamExpandsATransparentPalettePngToRgba)
+{
+    cv::Mat decoded;
+    slideio::ImageTools::decodeFreeImageStream(kTransparentPalettePng, sizeof(kTransparentPalettePng), decoded);
+    ASSERT_EQ(CV_8UC4, decoded.type());
+    for (int y = 0; y < 3; ++y) {
+        for (int x = 0; x < 5; ++x) {
+            const int entry = (x + 2 * y) % 4;
+            const cv::Vec4b pixel = decoded.at<cv::Vec4b>(y, x);
+            EXPECT_EQ(kPalette[entry], cv::Vec3b(pixel[0], pixel[1], pixel[2])) << x << "," << y;
+            EXPECT_EQ(entry == 2 ? 0 : 255, pixel[3]) << x << "," << y;
+        }
+    }
+    EXPECT_TRUE(slideio::ImageTools::probeFreeImageStream(kTransparentPalettePng,
+                                                          sizeof(kTransparentPalettePng)).hasAlpha);
+}
+
+TEST(ImageTools, decodeFreeImageStreamRejectsGarbage)
+{
+    const std::vector<uint8_t> garbage(256, 0x5a);
+    cv::Mat decoded;
+    EXPECT_THROW(slideio::ImageTools::decodeFreeImageStream(garbage.data(), garbage.size(), decoded),
+                 slideio::RuntimeError);
+}
+
+TEST(ImageTools, decodeFreeImageStreamRejectsATruncatedPng)
+{
+    const auto bytes = encodeToBytes(rgbPattern(64, 64), slideio::Compression::Png, "png");
+    cv::Mat decoded;
+    EXPECT_THROW(slideio::ImageTools::decodeFreeImageStream(bytes.data(), bytes.size() / 2, decoded),
+                 slideio::RuntimeError);
+}
+
+TEST(ImageTools, probeFreeImageStreamDescribesAPng)
+{
+    const auto bytes = encodeToBytes(rgbPattern(37, 23), slideio::Compression::Png, "png");
+    const auto info = slideio::ImageTools::probeFreeImageStream(bytes.data(), bytes.size());
+    EXPECT_EQ(slideio::Compression::Png, info.codec);
+    EXPECT_EQ(cv::Size(37, 23), info.size);
+    EXPECT_EQ(24, info.bitsPerPixel);
+    EXPECT_FALSE(info.hasAlpha);
+}
+
+TEST(ImageTools, probeFreeImageStreamDescribesABmp)
+{
+    const auto bytes = encodeToBytes(rgbPattern(37, 23), slideio::Compression::BMP, "bmp");
+    const auto info = slideio::ImageTools::probeFreeImageStream(bytes.data(), bytes.size());
+    EXPECT_EQ(slideio::Compression::BMP, info.codec);
+    EXPECT_EQ(cv::Size(37, 23), info.size);
+    EXPECT_EQ(24, info.bitsPerPixel);
+}
+
+TEST(ImageTools, probeFreeImageStreamDescribesAJpeg)
+{
+    std::vector<uint8_t> bytes;
+    slideio::ImageTools::encodeJpeg(rgbPattern(40, 24), bytes, slideio::JpegEncodeParameters(90));
+    const auto info = slideio::ImageTools::probeFreeImageStream(bytes.data(), bytes.size());
+    EXPECT_EQ(slideio::Compression::Jpeg, info.codec);
+    EXPECT_EQ(cv::Size(40, 24), info.size);
+}
+
+TEST(ImageTools, probeFreeImageStreamReportsAlpha)
+{
+    cv::Mat source(8, 8, CV_8UC4, cv::Scalar(10, 20, 30, 128));
+    const auto bytes = encodeToBytes(source, slideio::Compression::Png, "png");
+    const auto info = slideio::ImageTools::probeFreeImageStream(bytes.data(), bytes.size());
+    EXPECT_EQ(slideio::Compression::Png, info.codec);
+    EXPECT_EQ(32, info.bitsPerPixel);
+    EXPECT_TRUE(info.hasAlpha);
+}
+
+TEST(ImageTools, probeFreeImageStreamNeedsOnlyTheHeader)
+{
+    // The probe reads no pixel data: a PNG cut off after its first chunks still
+    // describes itself, although it cannot be decoded.
+    const auto bytes = encodeToBytes(rgbPattern(64, 48), slideio::Compression::Png, "png");
+    const size_t headerOnly = 64;
+    ASSERT_LT(headerOnly, bytes.size());
+    const auto info = slideio::ImageTools::probeFreeImageStream(bytes.data(), headerOnly);
+    EXPECT_EQ(slideio::Compression::Png, info.codec);
+    EXPECT_EQ(cv::Size(64, 48), info.size);
+}
+
+TEST(ImageTools, probeFreeImageStreamDoesNotRecogniseGarbage)
+{
+    const std::vector<uint8_t> garbage(256, 0x5a);
+    const auto info = slideio::ImageTools::probeFreeImageStream(garbage.data(), garbage.size());
+    EXPECT_EQ(slideio::Compression::Unknown, info.codec);
+}
+
+TEST(ImageTools, decodeFreeImageStreamJpegMatchesTheJpegDecoder)
+{
+    std::vector<uint8_t> bytes;
+    slideio::ImageTools::encodeJpeg(rgbPattern(40, 24), bytes, slideio::JpegEncodeParameters(90));
+    cv::Mat viaFreeImage, viaLibjpeg;
+    slideio::ImageTools::decodeFreeImageStream(bytes.data(), bytes.size(), viaFreeImage);
+    slideio::ImageTools::decodeJpegStream(bytes.data(), bytes.size(), viaLibjpeg);
+    ASSERT_EQ(CV_8UC3, viaFreeImage.type());
+    ASSERT_EQ(viaLibjpeg.size(), viaFreeImage.size());
+    // Two libjpeg builds may round differently; the channel order and row order may not differ.
+    EXPECT_LE(cv::norm(viaFreeImage, viaLibjpeg, cv::NORM_INF), 2.);
+}

@@ -30,6 +30,7 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/imagetoolsinitializer.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/fiwrapper.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/fiwrapper.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/freeimagestream.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/smallimage.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/smallimage.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/smalltiffwrapper.cpp
