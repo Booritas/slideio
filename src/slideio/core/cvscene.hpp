@@ -222,6 +222,14 @@ namespace slideio
          * converter's border tiles, a CVScene subclass's own blocks -- types
          * it by the same rule as the blocks CVScene allocates itself.*/
         DataType blockDataType(const std::vector<int>& channelIndices) const;
+        /**@brief raises RuntimeError naming @p blockSize when either dimension
+         * is negative. A zero-size block is valid and reads as a no-op.
+         *
+         * The public read methods and initializeSceneBlock() call it, so a
+         * negative size never reaches cv::Mat::create, which would throw
+         * cv::Exception instead (#88). Public and static for Scene, which
+         * sizes a caller's buffer before it reaches the CVScene.*/
+        static void validateBlockSize(const cv::Size& blockSize);
         /**@brief the channel whose type blockDataType() reports, for code --
          * Scene's buffer sizing -- that is handed a channel, not a type.*/
         int blockReferenceChannel(const std::vector<int>& channelIndices) const;

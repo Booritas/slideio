@@ -11,6 +11,7 @@ set(TEST_SOURCES
   test_scenesource.cpp
   test_scene_index.cpp
   test_scene_background.cpp
+  test_block_size_validation.cpp
   test_icctransform.cpp
   test_imagedrivermanager.cpp
   test_czi_driver.cpp

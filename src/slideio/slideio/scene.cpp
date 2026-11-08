@@ -180,6 +180,7 @@ void Scene::readResampledBlockChannels(const std::tuple<int, int, int, int>& rec
     SLIDEIO_LOG(INFO) << "Scene::readResampledBlockChannels ";// << rect << "," << size << "," << channelIndices;
     cv::Rect blockRect = tupleToRect(rect);
     cv::Size blockSize = tupleToSize(size);
+    CVScene::validateBlockSize(blockSize);
     const int numChannels = (channelIndices.empty()?m_scene->getNumChannels():static_cast<int>(channelIndices.size()));
     const int numSlices = 1;
     const int numFrames = 1;
@@ -238,6 +239,7 @@ void Scene::readResampled4DBlockChannels(const std::tuple<int, int, int, int>& r
     SLIDEIO_LOG(INFO) << "Scene::readResampled4DBlockChannels ";// << rect << "," << size << "," << channelIndices << "," << zSliceRange << "," << timeFrameRange;
     cv::Rect blockRect = tupleToRect(rect);
     cv::Size blockSize = tupleToSize(size);
+    CVScene::validateBlockSize(blockSize);
     cv::Range sliceRange = tupleToRange(zSliceRange);
     cv::Range frameRange = tupleToRange(timeFrameRange);
 
@@ -306,6 +308,7 @@ void Scene::readResampledLevelBlockChannels(int level, const std::tuple<int, int
     SLIDEIO_LOG(INFO) << "Scene::readResampledLevelBlockChannels level " << level;
     cv::Rect rect = tupleToRect(levelRect);
     cv::Size size = tupleToSize(blockSize);
+    CVScene::validateBlockSize(size);
     const int numChannels = (channelIndices.empty()?m_scene->getNumChannels():static_cast<int>(channelIndices.size()));
     const int refChannel = m_scene->blockReferenceChannel(channelIndices);
     const int blockMemSize = getBlockSize(blockSize, refChannel, numChannels, 1, 1);
@@ -335,6 +338,7 @@ void Scene::readResampledLevel4DBlockChannels(int level, const std::tuple<int, i
     SLIDEIO_LOG(INFO) << "Scene::readResampledLevel4DBlockChannels level " << level;
     cv::Rect rect = tupleToRect(levelRect);
     cv::Size size = tupleToSize(blockSize);
+    CVScene::validateBlockSize(size);
     cv::Range sliceRange = tupleToRange(zSliceRange);
     cv::Range frameRange = tupleToRange(timeFrameRange);
 

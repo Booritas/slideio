@@ -46,6 +46,7 @@ void CVScene::readResampledBlockChannels(const cv::Rect& blockRect,
     const cv::Size& blockSize, const std::vector<int>& channelIndices,
     cv::OutputArray output) {
     RefCounterGuard guard(this);
+    validateBlockSize(blockSize);
     auto lock = lockIfSerialised();
     readResampledBlockChannelsEx(blockRect, blockSize, channelIndices, 0, 0, output);
 }
@@ -169,6 +170,7 @@ void CVScene::readResampled4DBlockChannels(const cv::Rect& blockRect, const cv::
     cv::OutputArray output)
 {
     RefCounterGuard guard(this);
+    validateBlockSize(blockSize);
     std::vector<int> channelIndices(channelIndicesIn);
     if (channelIndices.empty()) {
         const int sceneNumChannels = getNumChannels();
@@ -188,6 +190,7 @@ void CVScene::readResampledLevel4DBlockChannels(int level, const cv::Rect& level
 {
     RefCounterGuard guard(this);
     validateLevel(level);
+    validateBlockSize(blockSize);
     std::vector<int> channelIndices(channelIndicesIn);
     if (channelIndices.empty()) {
         const int sceneNumChannels = getNumChannels();
@@ -312,6 +315,7 @@ void CVScene::readResampledLevelBlockChannels(int level, const cv::Rect& levelRe
     const cv::Size& blockSize, const std::vector<int>& channelIndices, cv::OutputArray output)
 {
     RefCounterGuard guard(this);
+    validateBlockSize(blockSize);
     auto lock = lockIfSerialised();
     readResampledLevelBlockChannelsEx(level, levelRect, blockSize, channelIndices, 0, 0, output);
 }
@@ -346,8 +350,17 @@ DataType CVScene::blockDataType(const std::vector<int>& channelIndices) const
     return getChannelDataType(blockReferenceChannel(channelIndices));
 }
 
+void CVScene::validateBlockSize(const cv::Size& blockSize)
+{
+    if (blockSize.width < 0 || blockSize.height < 0) {
+        RAISE_RUNTIME_ERROR << "Invalid block size: " << blockSize.width << "x" << blockSize.height
+            << ". Block dimensions cannot be negative.";
+    }
+}
+
 void CVScene::initializeSceneBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices, cv::OutputArray output) const
 {
+    validateBlockSize(blockSize);
     const slideio::DataType dt = blockDataType(channelIndices);
     int numChannels = static_cast<int>(channelIndices.size());
     if (numChannels == 0) {
