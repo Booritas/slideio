@@ -447,6 +447,19 @@ design.
 The check is a throwaway tool in the scratchpad, not a shipped test. Its
 conclusion is pinned by the corpus seam correlation test below.
 
+Orientation verified 2026-11-09: described snake order. The check shipped after
+all, as `BIFCorpusOrientation.SnakeMatchesPixels`, sampling 20 joints per axis.
+Horizontal joints agree 18/20 (OS-1) and 20/20 (OS-2 AOI2), vertical joints
+20/20 and 19/20. The three misses are joints whose recorded overlap is an
+outlier that no orientation reproduces. Each axis can rule out only one flip.
+Overlaps belong to boundaries (§2.3), so the orthogonal flip lands a joint on
+another true neighbour pair across the same boundary and agrees as well as the
+right orientation does. For example, rows flipped agrees on 17/20 and 19/20
+horizontal joints but 0/20 vertical ones. The test therefore requires the
+described order to agree on both axes, and every other order to fall below
+half on at least one. Columns mirrored: 1/20 and 5/20 horizontal. Both flipped:
+0/20 and 6/20 horizontal, 0/20 vertical on both files.
+
 **Corpus-free (CI).** These run on XML strings committed in the test sources;
 no TIFF fixture is needed:
 
