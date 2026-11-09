@@ -2,6 +2,7 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/drivers/bif/bifdescription.hpp"
+#include "slideio/drivers/bif/bifnumeric.hpp"
 #include "slideio/core/exceptions.hpp"
 
 #include <sstream>
@@ -12,34 +13,12 @@ namespace slideio::bif
     {
         int parseInt(const std::string& name, const std::string& value)
         {
-            size_t pos = 0;
-            int result = 0;
-            try {
-                result = std::stoi(value, &pos);
-            }
-            catch (const std::exception&) {
-                pos = 0;
-            }
-            if (pos == 0 || pos != value.size()) {
-                RAISE_RUNTIME_ERROR << "BIF: cannot parse " << name << " value '" << value << "'";
-            }
-            return result;
+            return detail::parseIntStrict(name, value);
         }
 
         double parseDouble(const std::string& name, const std::string& value)
         {
-            size_t pos = 0;
-            double result = 0.;
-            try {
-                result = std::stod(value, &pos);
-            }
-            catch (const std::exception&) {
-                pos = 0;
-            }
-            if (pos == 0 || pos != value.size()) {
-                RAISE_RUNTIME_ERROR << "BIF: cannot parse " << name << " value '" << value << "'";
-            }
-            return result;
+            return detail::parseDoubleStrict(name, value);
         }
     }
 

@@ -2,6 +2,7 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include <gtest/gtest.h>
+#include <clocale>
 #include "slideio/drivers/bif/bifxml.hpp"
 #include "slideio/core/exceptions.hpp"
 #include "bif_xml_fixtures.hpp"
@@ -139,4 +140,41 @@ TEST(BIFXmlStitch, truncated)
 {
     const std::string xml = fixtures::ventanaStitch();
     EXPECT_THROW(parseStitchXml(xml.substr(0, xml.size() / 2)), slideio::RuntimeError);
+}
+
+TEST(BIFXmlStrict, partialIntegerOnJointThrows)
+{
+    const std::string joint =
+        "<TileJointInfo FlagJoined=\"1\" Confidence=\"100\" Direction=\"LEFT\" Tile1=\"1\" Tile2=\"12x\"/>\n";
+    EXPECT_THROW(parseStitchXml(fixtures::ventanaStitch(joint)), slideio::RuntimeError);
+}
+
+TEST(BIFXmlStrict, fractionalColumnCountThrows)
+{
+    const std::string xml = replaceOnce(fixtures::ventanaStitch(), "NumCols=\"23\"", "NumCols=\"11.5\"");
+    EXPECT_THROW(parseStitchXml(xml), slideio::RuntimeError);
+}
+
+TEST(BIFXmlStrict, commaDecimalThrows)
+{
+    const std::string xml = replaceOnce(fixtures::os2Acquisition, "ScanRes=\"0.232500\"", "ScanRes=\"0,25\"");
+    EXPECT_THROW(parseAcquisitionXml(xml), slideio::RuntimeError);
+}
+
+TEST(BIFXmlStrict, parsingIgnoresProcessLocale)
+{
+    const std::string previous = std::setlocale(LC_NUMERIC, nullptr);
+    if (!std::setlocale(LC_NUMERIC, "de-DE") && !std::setlocale(LC_NUMERIC, "de_DE.UTF-8")) {
+        GTEST_SKIP() << "no German locale installed";
+    }
+    double scanRes = 0;
+    try {
+        scanRes = parseAcquisitionXml(fixtures::os2Acquisition).scanResMicrons;
+    }
+    catch (...) {
+        std::setlocale(LC_NUMERIC, previous.c_str());
+        throw;
+    }
+    std::setlocale(LC_NUMERIC, previous.c_str());
+    EXPECT_DOUBLE_EQ(0.2325, scanRes);
 }

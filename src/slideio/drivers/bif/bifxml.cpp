@@ -2,6 +2,7 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/drivers/bif/bifxml.hpp"
+#include "slideio/drivers/bif/bifnumeric.hpp"
 #include "slideio/core/exceptions.hpp"
 
 #include <tinyxml2.h>
@@ -25,41 +26,13 @@ namespace slideio::bif
         double readDouble(const XMLElement* element, const char* name, double defaultValue)
         {
             const char* value = element->Attribute(name);
-            if (value == nullptr) {
-                return defaultValue;
-            }
-            size_t pos = 0;
-            double result = 0;
-            try {
-                result = std::stod(value, &pos);
-            }
-            catch (const std::exception&) {
-                pos = 0;
-            }
-            if (pos == 0) {
-                RAISE_RUNTIME_ERROR << "BIF: cannot parse attribute " << name << " value '" << value << "'";
-            }
-            return result;
+            return value ? detail::parseDoubleStrict(name, value) : defaultValue;
         }
 
         int readInt(const XMLElement* element, const char* name, int defaultValue)
         {
             const char* value = element->Attribute(name);
-            if (value == nullptr) {
-                return defaultValue;
-            }
-            size_t pos = 0;
-            int result = 0;
-            try {
-                result = std::stoi(value, &pos);
-            }
-            catch (const std::exception&) {
-                pos = 0;
-            }
-            if (pos == 0) {
-                RAISE_RUNTIME_ERROR << "BIF: cannot parse attribute " << name << " value '" << value << "'";
-            }
-            return result;
+            return value ? detail::parseIntStrict(name, value) : defaultValue;
         }
 
         // Integer suffix of a name such as "AOI3"; -1 when there is none.

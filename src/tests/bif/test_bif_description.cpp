@@ -57,3 +57,10 @@ TEST(BIFDescription, auxNames)
     EXPECT_EQ("Thumbnail", auxImageName(AuxKind::Thumbnail));
     EXPECT_EQ("Probability", auxImageName(AuxKind::Probability));
 }
+
+TEST(BIFDescription, partialNumbersThrow)
+{
+    EXPECT_THROW(parseLevelDescription("level=1x mag=40"), slideio::RuntimeError);
+    EXPECT_THROW(parseLevelDescription("level=1 mag=40,5"), slideio::RuntimeError);
+    EXPECT_THROW(parseLevelDescription("level=1.5 mag=40"), slideio::RuntimeError);
+}
