@@ -1,6 +1,6 @@
 # Ventana BIF reader driver design
 
-Date: 2026-11-09. Status: proposed; no driver implementation in this change.
+Date: 2026-11-09. Status: implemented on `feature/bif-driver` (2026-11-09); the manual sign-off (§8) is pending.
 
 ## 1. Intent
 
@@ -444,8 +444,8 @@ and in a corrigendum to the format description; the description is
 source-derived, not authoritative. If none agrees, stop and come back to the
 design.
 
-The check is a throwaway tool in the scratchpad, not a shipped test. Its
-conclusion is pinned by the corpus seam correlation test below.
+The check was planned as a throwaway scratchpad tool but shipped as a test (below). Its
+conclusion is also pinned by the corpus seam correlation test below.
 
 Orientation verified 2026-11-09: described snake order. The check shipped after
 all, as `BIFCorpusOrientation.SnakeMatchesPixels`, sampling 20 joints per axis.

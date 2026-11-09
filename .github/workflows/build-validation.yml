@@ -203,6 +203,8 @@ jobs:
       - name: MRXS fixture tests under ThreadSanitizer
         run: ./build/debug/bin/slideio_mrxs_tests --gtest_filter="-MRXSCorpus*"
 
+      # The BIF suites that need no corpus: synthetic files and inline XML;
+      # BIFCorpus* suites need the slide corpus and are excluded.
       - name: BIF tests under ThreadSanitizer
         run: ./build/debug/bin/slideio_bif_tests --gtest_filter="-BIFCorpus*"
 
