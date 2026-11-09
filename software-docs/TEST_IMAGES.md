@@ -10,8 +10,8 @@ every data root can be written the same way.
 | Root | Environment variable | Path |
 |---|---|---|
 | `full` | `SLIDEIO_IMAGES_PATH` | `images/images` |
-| `std` | `SLIDEIO_TEST_DATA_PATH` | `(unset)` |
-| `priv` | `SLIDEIO_TEST_DATA_PRIV_PATH` | `(unset)` |
+| `std` | `SLIDEIO_TEST_DATA_PATH` | `images/slideio_extra/testdata/cv/slideio` |
+| `priv` | `SLIDEIO_TEST_DATA_PRIV_PATH` | `images/slideio_extra_priv/testdata/cv/slideio` |
 
 | Suite | Test binary |
 |---|---|
@@ -30,12 +30,16 @@ every data root can be written the same way.
 The **Tests** column counts the distinct `TEST`/`TEST_F` cases naming the image. The
 programs under `src/single_tests/` have no test cases, so they show `--`.
 
+> The BIF rows were added by hand from a run with only `SLIDEIO_IMAGES_PATH` set, because the
+> `std` and `priv` roots were absent on the machine that added the BIF driver. A full
+> regeneration needs all three roots set; otherwise their rows are lost.
+
 ## Summary
 
 | | Count | Size |
 |---|---:|---:|
-| Images referenced by tests | 256 | |
-| Present on this machine | 251 | **110.2 GB** |
+| Images referenced by tests | 255 | |
+| Present on this machine | 250 | **110.0 GB** |
 | Referenced but absent | 5 | -- |
 | Static references in test code | 766 | |
 | References built at run time | 57 | |
@@ -55,7 +59,6 @@ programs under `src/single_tests/` have no test cases, so they show `--`.
 | `images/images/scn` | 1.3 GB | 12 | 1 |
 | `images/images/svs` | 815.7 MB | 12 | 1 |
 | `images/images/gdal` | 376.7 MB | 21 | 1 |
-| `images/images/bif` | 216.8 MB | 1 | 0 |
 | `images/images/vsi` | 38.2 MB | 17 | 0 |
 | `images/images/unicode` | 34.2 MB | 7 | 0 |
 | `images/images/jpeg` | 2.3 MB | 4 | 0 |
@@ -104,8 +107,7 @@ Sizes are what is on disk now. "Tests" counts the distinct tests naming the imag
 | `images/images/zvi/mouse/20140207_mouse_2cell_H2AUb_HA_DAPI_inj_002.zvi` | 323.1 MB | main | 1 |
 | `images/images/philips/Philips-1.tiff` | 311.5 MB | phtiff | 1 |
 | `images/images/philips/Philips-4.tiff` | 277.5 MB | main, phtiff | 6 |
-| `images/images/bif/openslide/Ventana-1.bif` | 216.8 MB | bif, main | 2 |
-| `images/images/bif/openslide/Ventana-1.bif` | 216.8 MB | main | 2 |
+| `images/images/bif/openslide/Ventana-1.bif` | 216.8 MB | bif, main | 4 |
 | `images/images/ometiff/Subresolutions/retina_large.ome.tiff` | 214.8 MB | main, ometiff | 9 |
 | `images/images/hamamatsu/openslide/CMU-1.ndpi` | 188.9 MB | main, ndpi, ndpi_memory | 13 |
 | `images/images/czi/jxr-16bit-4chnls.czi` | 174.2 MB | converter, main | 7 |
