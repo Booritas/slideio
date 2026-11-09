@@ -12,6 +12,7 @@ set(TEST_SOURCES
   test_bif_geometry.cpp
   test_bif_corpus_orientation.cpp
   test_bif_corpus_open.cpp
+  test_bif_corpus_read.cpp
 )
 
 add_executable(${TEST_NAME} ${TEST_SOURCES})

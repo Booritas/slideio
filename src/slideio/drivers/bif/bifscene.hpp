@@ -7,6 +7,7 @@
 #include "slideio/drivers/bif/bifxml.hpp"
 #include "slideio/core/colorprofile.hpp"
 #include "slideio/core/cvscene.hpp"
+#include "slideio/core/tools/contextpool.hpp"
 #include "slideio/imagetools/tifftools.hpp"
 #include <string>
 #include <vector>
@@ -47,7 +48,15 @@ namespace slideio
         void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
             const std::vector<int>& channelIndices, int zSliceIndex, int tFrameIndex,
             cv::OutputArray output) override;
+        void readResampledLevelBlockChannelsEx(int level, const cv::Rect& levelRect,
+            const cv::Size& blockSize, const std::vector<int>& channelIndices,
+            int zSliceIndex, int tFrameIndex, cv::OutputArray output) override;
     private:
+        // Stitches `rect`, which lies inside level `level`, at native size: each output
+        // pixel is copied from the storage pixel the geometry maps it to (design §5.5),
+        // and each storage tile the maps reference is decoded once.
+        void renderLevelRect(int level, const cv::Rect& rect, const std::vector<int>& channels,
+                             cv::Mat& out, ContextPool::Borrow& ctx) const;
         std::string m_filePath;
         std::string m_driverId;
         std::string m_name;
@@ -62,6 +71,10 @@ namespace slideio
         double m_magnification = 0.;
         Compression m_compression = Compression::Unknown;
         ColorProfile m_colorProfile;
+        // Declared last on purpose, and it must stay last: ~ContextPool blocks until
+        // every borrow is returned, and members die in reverse declaration order, so the
+        // pool has to be destroyed before the directories and geometry an in-flight read uses.
+        ContextPool m_contextPool;
     };
 }
 
