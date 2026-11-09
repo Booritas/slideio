@@ -7,7 +7,9 @@
 #include <gtest/gtest.h>
 #include <algorithm>
 #include <list>
+#include <optional>
 #include <string>
+#include <tuple>
 #include <vector>
 #include <opencv2/core.hpp>
 #include "slideio/drivers/bif/bifdescription.hpp"
@@ -185,6 +187,131 @@ TEST(BIFOpen, NotBifFails)
     catch (const RuntimeError& e) {
         EXPECT_NE(std::string::npos, std::string(e.what()).find("not a Ventana BIF file")) << e.what();
     }
+}
+
+namespace
+{
+    // What a synthetic BIF-like file carries: the iScan attributes of IFD 0 and the
+    // optional level-0 stitching packet and ImageDepth.
+    struct SyntheticBif
+    {
+        std::string iScanAttributes = R"(Magnification="40" ScanRes="0.25" Z-layers="1")";
+        std::optional<std::string> stitchPacket;
+        uint32_t levelZeroDepth = 1;
+    };
+
+    void writeSyntheticDirectory(TIFFKeeper& tiff, int size, const std::string& description,
+                                 const std::optional<std::string>& xmlPacket, uint32_t depth = 1)
+    {
+        TiffDirectory dir;
+        dir.width = size;
+        dir.height = size;
+        dir.tiled = true;
+        dir.tileWidth = 32;
+        dir.tileHeight = 32;
+        dir.channels = 3;
+        dir.bitsPerSample = 8;
+        dir.dataType = DataType::DT_Byte;
+        dir.slideioCompression = Compression::Jpeg;
+        dir.compressionQuality = 90;
+        dir.description = description;
+        TiffTools::setTags(tiff.getHandle(), dir);
+        if (xmlPacket) {
+            TiffTools::setXmlPacket(tiff.getHandle(), *xmlPacket);
+        }
+        if (depth != 1) {
+            TiffTools::setImageDepth(tiff.getHandle(), depth);
+        }
+        const cv::Mat tile(32, 32, CV_8UC3, cv::Scalar(10, 20, 30));
+        const JpegEncodeParameters parameters(90);
+        for (int y = 0; y < size; y += 32) {
+            for (int x = 0; x < size; x += 32) {
+                TiffTools::writeTile(tiff.getHandle(), x, y, Compression::Jpeg, tile, parameters);
+            }
+        }
+        TiffTools::writeDirectory(tiff.getHandle());
+    }
+
+    // A tiny BIF-like file: IFD 0 a thumbnail carrying the iScan packet, then a 64x64
+    // level 0 and a 32x32 level 1, both in 32x32 JPEG tiles.
+    void writeSyntheticBif(const std::string& path, const SyntheticBif& spec)
+    {
+        TIFFKeeper tiff(path, false);
+        writeSyntheticDirectory(tiff, 32, "Thumbnail", "<iScan " + spec.iScanAttributes + "/>");
+        writeSyntheticDirectory(tiff, 64, "level=0 mag=40 quality=90", spec.stitchPacket,
+                                spec.levelZeroDepth);
+        writeSyntheticDirectory(tiff, 32, "level=1 mag=20 quality=90", std::nullopt);
+    }
+
+    std::string openFailure(const std::string& path)
+    {
+        try {
+            openSlide(path, "BIF");
+        }
+        catch (const RuntimeError& e) {
+            return e.what();
+        }
+        return std::string();
+    }
+}
+
+TEST(BIFOpen, ZLayersRefused)
+{
+    TempFile file("bif");
+    const std::string path = file.getPath().string();
+    SyntheticBif spec;
+    spec.iScanAttributes = R"(Magnification="40" ScanRes="0.25" Z-layers="2")";
+    writeSyntheticBif(path, spec);
+    const std::string message = openFailure(path);
+    EXPECT_NE(std::string::npos, message.find("BIF: multi-layer (Z=2) files are not supported yet")) << message;
+}
+
+TEST(BIFOpen, ImageDepthRefused)
+{
+    TempFile file("bif");
+    const std::string path = file.getPath().string();
+    SyntheticBif spec;
+    spec.levelZeroDepth = 2;
+    writeSyntheticBif(path, spec);
+    const std::string message = openFailure(path);
+    EXPECT_NE(std::string::npos, message.find("BIF: multi-layer (Z=2) files are not supported yet")) << message;
+}
+
+TEST(BIFOpen, NoStitchPacketGivesImageScene)
+{
+    TempFile file("bif");
+    const std::string path = file.getPath().string();
+    writeSyntheticBif(path, SyntheticBif());
+    auto slide = openSlide(path, "BIF");
+    ASSERT_EQ(1, slide->getNumScenes());
+    auto scene = slide->getScene(0);
+    EXPECT_EQ("Image", scene->getName());
+    EXPECT_EQ(std::make_tuple(0, 0, 64, 64), scene->getRect());
+    EXPECT_EQ(2, scene->getNumZoomLevels());
+}
+
+// Design §4.4: a level-0 packet that is there but holds nothing is malformed, not absent.
+TEST(BIFOpen, EmptyStitchPacketFails)
+{
+    TempFile file("bif");
+    const std::string path = file.getPath().string();
+    SyntheticBif spec;
+    spec.stitchPacket = std::string(4, '\0');
+    writeSyntheticBif(path, spec);
+    const std::string message = openFailure(path);
+    EXPECT_NE(std::string::npos, message.find("level-0 stitching packet is empty")) << message;
+}
+
+TEST(BIFOpen, MagnificationFallsBackToLevelToken)
+{
+    TempFile file("bif");
+    const std::string path = file.getPath().string();
+    SyntheticBif spec;
+    spec.iScanAttributes = R"(ScanRes="0.25" Z-layers="1")";
+    writeSyntheticBif(path, spec);
+    auto slide = openSlide(path, "BIF");
+    ASSERT_EQ(1, slide->getNumScenes());
+    EXPECT_DOUBLE_EQ(40., slide->getScene(0)->getMagnification());
 }
 
 // The aux scenes read their whole directory: tiled JPEG (OS-1 label), striped

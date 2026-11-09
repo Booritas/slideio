@@ -164,8 +164,14 @@ void BIFSlide::init()
         levelDirectories.push_back(level.directory);
     }
 
+    // Design §4.4: an absent packet means a plain Ventana TIFF; a present one that holds
+    // nothing (all NULs or whitespace) is malformed and must not degrade to the plain path.
+    const bool hasStitchPacket = TiffTools::hasXmlPacket(tiff.getHandle(), base);
     const std::string stitchXml = TiffTools::readXmlPacket(tiff.getHandle(), base);
-    if (!stitchXml.empty()) {
+    if (hasStitchPacket && stitchXml.find_first_not_of(" \t\r\n") == std::string::npos) {
+        RAISE_RUNTIME_ERROR << "BIF: level-0 stitching packet is empty";
+    }
+    if (hasStitchPacket) {
         const StitchInfo stitch = parseStitchXml(stitchXml);
         const auto medianX = slideMedianOverlap(stitch.aois, JointAxis::Horizontal);
         const auto medianY = slideMedianOverlap(stitch.aois, JointAxis::Vertical);

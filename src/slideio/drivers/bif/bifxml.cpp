@@ -6,6 +6,7 @@
 #include "slideio/core/exceptions.hpp"
 
 #include <tinyxml2.h>
+#include <cstdint>
 #include <cstring>
 #include <string>
 
@@ -117,7 +118,7 @@ namespace slideio::bif
 
     cv::Point snakePosition(int tileNumber, int cols, int rows)
     {
-        if (cols <= 0 || rows <= 0 || tileNumber < 1 || tileNumber > cols * rows) {
+        if (cols <= 0 || rows <= 0 || tileNumber < 1 || tileNumber > static_cast<int64_t>(cols) * rows) {
             RAISE_RUNTIME_ERROR << "BIF: tile number " << tileNumber << " is outside the grid of "
                 << cols << "x" << rows << " tiles";
         }

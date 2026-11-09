@@ -64,6 +64,12 @@ TEST(BIFXmlSnake, threeByThree)
     EXPECT_THROW(snakePosition(10, 3, 3), slideio::RuntimeError);
 }
 
+// The grid comes from untrusted XML: cols * rows must not wrap an int (65536^2 is 2^32).
+TEST(BIFXmlSnake, hugeGridDoesNotOverflow)
+{
+    EXPECT_EQ(cv::Point(0, 65535), snakePosition(1, 65536, 65536));
+}
+
 TEST(BIFXmlStitch, os2)
 {
     const StitchInfo info = parseStitchXml(fixtures::os2Stitch());
