@@ -1132,6 +1132,26 @@ std::string TiffTools::readStringTag(libtiff::TIFF* tiff, uint16_t tag) {
     return result;
 }
 
+std::string TiffTools::readXmlPacket(libtiff::TIFF* tiff, const TiffDirectory& dir) {
+    setCurrentDirectory(tiff, dir);
+    uint32_t count = 0;
+    void* data = nullptr;
+    if (!libtiff::TIFFGetField(tiff, TIFFTAG_XMLPACKET, &count, &data) || !data || count == 0) {
+        return std::string();
+    }
+    const char* bytes = static_cast<const char*>(data);
+    return std::string(bytes, strnlen(bytes, count));
+}
+
+uint32_t TiffTools::readImageDepth(libtiff::TIFF* tiff, const TiffDirectory& dir) {
+    setCurrentDirectory(tiff, dir);
+    uint32_t depth = 1;
+    if (!libtiff::TIFFGetField(tiff, TIFFTAG_IMAGEDEPTH, &depth)) {
+        depth = 1;
+    }
+    return depth;
+}
+
 int TiffTools::getNumberOfDirectories(libtiff::TIFF* tiff) {
     return libtiff::TIFFNumberOfDirectories(tiff);
 }

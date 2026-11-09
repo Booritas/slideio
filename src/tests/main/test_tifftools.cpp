@@ -502,3 +502,79 @@ TEST_F(TiffToolsTests, readStripedDirCropsAPaddedJpeg2000Strip)
     ASSERT_EQ(expected.type(), raster.type());
     EXPECT_EQ(0, cv::norm(expected, raster, cv::NORM_INF));
 }
+
+namespace {
+    // Writes a 16x16 tiled RGB TIFF; xml/depth are optional tags.
+    void writeTinyTiled(const std::string& path, const std::string* xml, const uint32_t* depth)
+    {
+        libtiff::TIFF* tiff = slideio::TiffTools::openTiffFile(path, false);
+        ASSERT_TRUE(tiff != nullptr);
+        libtiff::TIFFSetField(tiff, TIFFTAG_IMAGEWIDTH, 16U);
+        libtiff::TIFFSetField(tiff, TIFFTAG_IMAGELENGTH, 16U);
+        libtiff::TIFFSetField(tiff, TIFFTAG_BITSPERSAMPLE, 8U);
+        libtiff::TIFFSetField(tiff, TIFFTAG_SAMPLESPERPIXEL, 3U);
+        libtiff::TIFFSetField(tiff, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
+        libtiff::TIFFSetField(tiff, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_RGB);
+        libtiff::TIFFSetField(tiff, TIFFTAG_TILEWIDTH, 16U);
+        libtiff::TIFFSetField(tiff, TIFFTAG_TILELENGTH, 16U);
+        if (xml) {
+            libtiff::TIFFSetField(tiff, TIFFTAG_XMLPACKET, (uint32_t)xml->size(), xml->data());
+        }
+        if (depth) {
+            libtiff::TIFFSetField(tiff, TIFFTAG_IMAGEDEPTH, *depth);
+        }
+        std::vector<uint8_t> tile(16 * 16 * 3, 0);
+        libtiff::TIFFWriteEncodedTile(tiff, 0, tile.data(), (int)tile.size());
+        slideio::TiffTools::closeTiffFile(tiff);
+    }
+
+    std::string readXml(const std::string& path)
+    {
+        std::vector<slideio::TiffDirectory> dirs;
+        slideio::TiffTools::scanFile(path, dirs);
+        EXPECT_FALSE(dirs.empty());
+        libtiff::TIFF* tiff = slideio::TiffTools::openTiffFile(path, true);
+        std::string xml = slideio::TiffTools::readXmlPacket(tiff, dirs[0]);
+        slideio::TiffTools::closeTiffFile(tiff);
+        return xml;
+    }
+
+    uint32_t readDepth(const std::string& path)
+    {
+        std::vector<slideio::TiffDirectory> dirs;
+        slideio::TiffTools::scanFile(path, dirs);
+        EXPECT_FALSE(dirs.empty());
+        libtiff::TIFF* tiff = slideio::TiffTools::openTiffFile(path, true);
+        uint32_t depth = slideio::TiffTools::readImageDepth(tiff, dirs[0]);
+        slideio::TiffTools::closeTiffFile(tiff);
+        return depth;
+    }
+}
+
+TEST(TiffTools, readXmlPacketTrimsNul)
+{
+    slideio::TempFile temp("tif");
+    const std::string path = temp.getPath().string();
+    const std::string xml("<a b=\"1\"/>\0\0\0", 13);
+    writeTinyTiled(path, &xml, nullptr);
+    EXPECT_EQ("<a b=\"1\"/>", readXml(path));
+}
+
+TEST(TiffTools, readXmlPacketAbsent)
+{
+    slideio::TempFile temp("tif");
+    const std::string path = temp.getPath().string();
+    writeTinyTiled(path, nullptr, nullptr);
+    EXPECT_EQ("", readXml(path));
+}
+
+TEST(TiffTools, readImageDepth)
+{
+    const uint32_t three = 3;
+    slideio::TempFile with("tif");
+    writeTinyTiled(with.getPath().string(), nullptr, &three);
+    EXPECT_EQ(3U, readDepth(with.getPath().string()));
+    slideio::TempFile without("tif");
+    writeTinyTiled(without.getPath().string(), nullptr, nullptr);
+    EXPECT_EQ(1U, readDepth(without.getPath().string()));
+}
