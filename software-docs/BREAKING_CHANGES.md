@@ -47,6 +47,30 @@ no-op. Python surfaces the error as `RuntimeError`.
 
 ---
 
+## fix/issue-89-transformation-downcast
+
+### `Transformation` has a virtual destructor; outside subclasses are rejected
+
+**Module:** `slideio-transformer` (exported: `Transformation`,
+`makeTransformationCopy`, `transformScene`, `transformSceneEx`)
+**Files:** `src/slideio/transformer/transformation.hpp`,
+`transformations.cpp`, `transformer.cpp`, `checkedcast.hpp`
+
+`Transformation` gains `virtual ~Transformation()`, so deleting a subclass through
+a `Transformation*` is no longer undefined. That adds a slot to its vtable and to
+every subclass's: code compiled against an earlier `transformation.hpp` must be
+rebuilt, the Python bindings included.
+
+`makeTransformationCopy` (both overloads) and `transformScene` used to downcast to
+whichever built-in class `getType()` named, without checking. A subclass of
+`Transformation` or `TransformationWrapper` defined outside SlideIO that reported
+a built-in type was read as that class -- undefined behaviour, observed as an
+access violation (#89). They now raise `slideio::RuntimeError`. Such subclasses
+were never supported; the built-in wrappers remain the way to build a
+transformation from outside the library.
+
+---
+
 ## fix/issue-87-negative-scene-index
 
 ### An invalid scene index raises `slideio::RuntimeError` from every driver

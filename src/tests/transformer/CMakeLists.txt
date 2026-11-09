@@ -10,6 +10,7 @@ set(TEST_SOURCES
   test_filters.cpp
   test_transformertools.cpp
   test_copy.cpp
+  test_impostor.cpp
   test_colormanagement.cpp
   test_readlock.cpp
   test_levels.cpp
