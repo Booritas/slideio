@@ -9,7 +9,16 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/bifdescription.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/bifgeometry.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/bifgeometry.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/bifimagedriver.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/bifimagedriver.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/bifnumeric.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/bifreadcontext.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/bifscene.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/bifscene.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/bifslide.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/bifslide.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/bifsmallscene.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/bifsmallscene.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/bifxml.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/bifxml.cpp
    )
