@@ -7,6 +7,8 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/bif_api_def.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/bifdescription.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/bifdescription.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/bifxml.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/bifxml.cpp
    )
 
 add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES})

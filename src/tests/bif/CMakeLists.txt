@@ -8,6 +8,7 @@ set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 # and needs no corpus.
 set(TEST_SOURCES
   test_bif_description.cpp
+  test_bif_xml.cpp
 )
 
 add_executable(${TEST_NAME} ${TEST_SOURCES})
