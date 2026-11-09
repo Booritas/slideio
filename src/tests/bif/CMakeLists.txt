@@ -9,6 +9,7 @@ set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 set(TEST_SOURCES
   test_bif_description.cpp
   test_bif_xml.cpp
+  test_bif_geometry.cpp
   test_bif_corpus_orientation.cpp
 )
 
