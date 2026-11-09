@@ -46,6 +46,9 @@ void CVScene::readResampledBlockChannels(const cv::Rect& blockRect,
     const cv::Size& blockSize, const std::vector<int>& channelIndices,
     cv::OutputArray output) {
     RefCounterGuard guard(this);
+    // Rejects channels of mixed data types for every driver, including one
+    // whose read never types its block through blockDataType().
+    blockDataType(channelIndices);
     auto lock = lockIfSerialised();
     readResampledBlockChannelsEx(blockRect, blockSize, channelIndices, 0, 0, output);
 }
@@ -312,6 +315,7 @@ void CVScene::readResampledLevelBlockChannels(int level, const cv::Rect& levelRe
     const cv::Size& blockSize, const std::vector<int>& channelIndices, cv::OutputArray output)
 {
     RefCounterGuard guard(this);
+    blockDataType(channelIndices);
     auto lock = lockIfSerialised();
     readResampledLevelBlockChannelsEx(level, levelRect, blockSize, channelIndices, 0, 0, output);
 }
@@ -343,7 +347,25 @@ int CVScene::blockReferenceChannel(const std::vector<int>& channelIndices) const
 
 DataType CVScene::blockDataType(const std::vector<int>& channelIndices) const
 {
-    return getChannelDataType(blockReferenceChannel(channelIndices));
+    const int referenceChannel = blockReferenceChannel(channelIndices);
+    const DataType dataType = getChannelDataType(referenceChannel);
+    // A cv::Mat carries one depth, so every channel of the block -- all of the
+    // scene's when none is named -- must share the reference channel's type.
+    const int numChannels = getNumChannels();
+    const int numRequested = channelIndices.empty() ? numChannels : static_cast<int>(channelIndices.size());
+    for (int index = 0; index < numRequested; ++index) {
+        const int channel = channelIndices.empty() ? index : channelIndices[index];
+        // An out-of-range channel is the read's to reject, with its own message.
+        if (channel < 0 || channel >= numChannels) {
+            continue;
+        }
+        if (getChannelDataType(channel) != dataType) {
+            RAISE_RUNTIME_ERROR << "Scene '" << getName() << "': channels of one block must share a data type;"
+                << " channel " << referenceChannel << " is " << dataType
+                << " and channel " << channel << " is " << getChannelDataType(channel);
+        }
+    }
+    return dataType;
 }
 
 void CVScene::initializeSceneBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices, cv::OutputArray output) const

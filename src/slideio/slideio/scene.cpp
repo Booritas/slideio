@@ -185,7 +185,7 @@ void Scene::readResampledBlockChannels(const std::tuple<int, int, int, int>& rec
     const int numFrames = 1;
     const int refChannel = m_scene->blockReferenceChannel(channelIndices);
     const int blockMemSize = getBlockSize(size, refChannel, numChannels, numSlices, numFrames);
-    const auto dt = m_scene->getChannelDataType(refChannel);
+    const auto dt = m_scene->blockDataType(channelIndices);
     int cvType = CVTools::cvTypeFromDataType(dt);
 
     if(blockMemSize>bufferSize)
@@ -248,7 +248,7 @@ void Scene::readResampled4DBlockChannels(const std::tuple<int, int, int, int>& r
     const int numPlanes =  numChannels*numSlices*numFrames;
     const int blockMemSize = getBlockSize(size, refChannel, numChannels, numSlices, numFrames);
     const int planeMemSize = getBlockSize(size, refChannel, numChannels, 1, 1);
-    const auto cvType = m_scene->getChannelDataType(refChannel);
+    const auto cvType = m_scene->blockDataType(channelIndices);
 
     if(blockMemSize>bufferSize) {
         RAISE_RUNTIME_ERROR << "Supplied memory buffer is too small. Received: " << bufferSize << ". Required: " << blockMemSize;
@@ -309,7 +309,7 @@ void Scene::readResampledLevelBlockChannels(int level, const std::tuple<int, int
     const int numChannels = (channelIndices.empty()?m_scene->getNumChannels():static_cast<int>(channelIndices.size()));
     const int refChannel = m_scene->blockReferenceChannel(channelIndices);
     const int blockMemSize = getBlockSize(blockSize, refChannel, numChannels, 1, 1);
-    const auto dt = m_scene->getChannelDataType(refChannel);
+    const auto dt = m_scene->blockDataType(channelIndices);
     const int cvType = CVTools::cvTypeFromDataType(dt);
 
     if(blockMemSize>bufferSize)
@@ -345,7 +345,7 @@ void Scene::readResampledLevel4DBlockChannels(int level, const std::tuple<int, i
     const int numPlanes = numChannels*numSlices*numFrames;
     const int blockMemSize = getBlockSize(blockSize, refChannel, numChannels, numSlices, numFrames);
     const int planeMemSize = getBlockSize(blockSize, refChannel, numChannels, 1, 1);
-    const auto cvType = m_scene->getChannelDataType(refChannel);
+    const auto cvType = m_scene->blockDataType(channelIndices);
 
     if(blockMemSize>bufferSize) {
         RAISE_RUNTIME_ERROR << "Supplied memory buffer is too small. Received: " << bufferSize

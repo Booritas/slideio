@@ -7,6 +7,25 @@ by branch.
 
 ---
 
+## fix/issue-90-mixed-channel-types
+
+### A block read of channels of mixed data types raises `slideio::RuntimeError`
+
+**Module:** `slideio-core`, reached through every `Scene`/`CVScene` block read
+(`readBlock*`, `readResampled*`, `read4D*`, `readResampledLevel*`) and every driver
+**Files:** `src/slideio/core/cvscene.cpp` (`CVScene::blockDataType` and the
+public read entry points), `src/slideio/slideio/scene.cpp` (buffer overloads)
+
+A read whose channels differ in data type -- `{0: Byte, 3: Float32}`, say --
+used to succeed and return a block typed by the first channel alone, so the
+other channels were written at the wrong width (#90). It now raises
+`slideio::RuntimeError` on every driver, as computed scenes already did. That
+includes a read naming no channels on a scene whose channels differ: it used
+to return a corrupted block and now throws. Read such a scene one data type
+per call. Python surfaces the error as `RuntimeError`.
+
+---
+
 ## fix/issue-87-negative-scene-index
 
 ### An invalid scene index raises `slideio::RuntimeError` from every driver
