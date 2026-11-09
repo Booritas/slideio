@@ -7,6 +7,7 @@
 #include <opencv2/imgproc.hpp>
 #include "tests/testlib/testscene.hpp"
 #include "slideio/core/cvscene.hpp"
+#include "slideio/core/exceptions.hpp"
 #include "slideio/core/levelinfo.hpp"
 #include "slideio/slideio/scene.hpp"
 #include "slideio/transformer/transformer.hpp"
@@ -247,5 +248,20 @@ TEST(TransformerSceneLevels, anOutOfBoundsLevelRectIsSafeForAKernelTransformToo)
             << "levelRect " << levelRect;
         EXPECT_EQ(raster.size(), cv::Size(100, 100)) << "levelRect " << levelRect;
         EXPECT_EQ(raster.channels(), 3) << "levelRect " << levelRect;
+    }
+}
+
+TEST(TransformerSceneLevels, aNegativeBlockSizeIsARuntimeErrorNotAnOpenCVException)
+{
+    // initializeSceneBlock ran before the size guard, so the negative size
+    // reached cv::Mat::create and escaped as cv::Exception (issue #88).
+    auto originScene = slideio::SceneInternal::createScene(pyramidOrigin());
+    std::shared_ptr<CVScene> transformed = slideio::SceneInternal::getCVScene(grayTransformOf(originScene));
+    for (const cv::Size& size : {cv::Size(-1, 100), cv::Size(100, -1), cv::Size(-1, -100)}) {
+        cv::Mat block;
+        EXPECT_THROW(transformed->readResampledLevelBlockChannels(1, cv::Rect(0, 0, 100, 100), size, {}, block),
+                     RuntimeError) << size;
+        EXPECT_THROW(transformed->readResampledBlockChannels(cv::Rect(0, 0, 100, 100), size, {}, block),
+                     RuntimeError) << size;
     }
 }

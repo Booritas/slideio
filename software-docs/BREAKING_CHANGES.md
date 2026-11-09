@@ -26,6 +26,27 @@ per call. Python surfaces the error as `RuntimeError`.
 
 ---
 
+## fix/issue-88-negative-block-size
+
+### A negative block size raises `slideio::RuntimeError` from every read
+
+**Module:** `slideio-core`, reached through every `Scene`/`CVScene` resampled,
+4D and level block read, and the transformer
+**Files:** `src/slideio/core/cvscene.cpp` (`CVScene::validateBlockSize`, the
+public read entry points, `initializeSceneBlock`), `src/slideio/slideio/scene.cpp`
+(buffer overloads)
+
+A block size with a negative width or height used to fail in one of three ways,
+depending on the path: OpenCV's `cv::Exception` from a `cv::Mat` allocation, a
+misleading `RuntimeError` "Supplied memory buffer is too small" from `Scene`'s
+buffer reads, or -- with both dimensions negative through a buffer read -- no
+error at all (#88). Every read now raises `slideio::RuntimeError` naming the size
+before any allocation. A C++ caller that caught `cv::Exception` for this must
+catch `slideio::RuntimeError` or `std::exception`. A zero-size block is still a
+no-op. Python surfaces the error as `RuntimeError`.
+
+---
+
 ## fix/issue-87-negative-scene-index
 
 ### An invalid scene index raises `slideio::RuntimeError` from every driver
