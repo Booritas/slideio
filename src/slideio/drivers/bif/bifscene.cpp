@@ -147,7 +147,7 @@ void BIFScene::readResampledLevelBlockChannelsEx(int level, const cv::Rect& leve
             cv::Mat raster;
             renderLevelRect(level, validRect, channelIndices, raster, borrow);
             if (partSize == validRect.size()) {
-                part.assign(raster);
+                raster.copyTo(part);
             }
             else {
                 cv::resize(raster, part, partSize, 0, 0, cv::INTER_AREA);

@@ -159,3 +159,10 @@ TEST(EdgeReads, ndpi)
     SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
     expectEdgeContract(openScene(path, "NDPI").scene);
 }
+
+TEST(EdgeReads, bif)
+{
+    const std::string path = TestTools::getTestImagePath("bif", "openslide/Ventana-1.bif");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
+    expectEdgeContract(openScene(path, "BIF").scene);
+}

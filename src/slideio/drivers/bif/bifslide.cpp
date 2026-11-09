@@ -219,7 +219,7 @@ std::string BIFSlide::getFilePath() const
 std::shared_ptr<CVScene> BIFSlide::getScene(int index) const
 {
     if (index < 0 || index >= getNumScenes()) {
-        RAISE_RUNTIME_ERROR << "BIF: invalid scene index " << index << ", the slide has "
+        RAISE_RUNTIME_ERROR << "BIF driver: invalid scene index: " << index << ", the slide has "
             << getNumScenes() << " scenes";
     }
     return m_scenes[index];

@@ -203,6 +203,9 @@ jobs:
       - name: MRXS fixture tests under ThreadSanitizer
         run: ./build/debug/bin/slideio_mrxs_tests --gtest_filter="-MRXSCorpus*"
 
+      - name: BIF tests under ThreadSanitizer
+        run: ./build/debug/bin/slideio_bif_tests --gtest_filter="-BIFCorpus*"
+
   build-windows:
     name: Windows
     runs-on: windows-2022
@@ -286,4 +289,5 @@ jobs:
               # The suites that need no slide corpus, as elsewhere in this file.
               ./build/release/bin/slideio_tests --gtest_filter="FileReader.*:ContextPool.*"
               ./build/release/bin/slideio_mrxs_tests --gtest_filter="-MRXSCorpus*"
+              ./build/release/bin/slideio_bif_tests --gtest_filter="-BIFCorpus*"
             '

@@ -30,7 +30,8 @@ ROOTS = {key: os.environ.get(var, '') for key, var in ROOT_VAR.items()}
 BINARY = {'main': 'slideio_tests', 'ndpi': 'slideio_ndpi_tests', 'vsi': 'slideio_vsi_tests',
           'pke': 'slideio_pke_tests', 'ometiff': 'slideio_ometiff_tests',
           'phtiff': 'slideio_phtiff_tests', 'converter': 'slideio_converter_tests',
-          'transformer': 'slideio_transformer_tests', 'mrxs': 'slideio_mrxs_tests'}
+          'transformer': 'slideio_transformer_tests', 'mrxs': 'slideio_mrxs_tests',
+          'bif': 'slideio_bif_tests'}
 
 CALL = re.compile(r'TestTools::getTestImagePath\s*\(')
 LITERAL = re.compile(r'"((?:[^"\\]|\\.)*)"')

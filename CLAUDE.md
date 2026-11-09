@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-SlideIO is a C++ library (with Python bindings in a separate repo) for reading medical/microscopy slide images. It supports 13 formats (SVS, AFI, SCN, CZI, ZVI, NDPI, VSI, DCM, QPTIFF, OME-TIFF, PHTIFF, MRXS, GDAL) through a pluggable driver architecture. Cross-platform: Linux, macOS, Windows.
+SlideIO is a C++ library (with Python bindings in a separate repo) for reading medical/microscopy slide images. It supports 14 formats (SVS, AFI, SCN, CZI, ZVI, NDPI, VSI, DCM, QPTIFF, OME-TIFF, PHTIFF, MRXS, BIF, GDAL) through a pluggable driver architecture. Cross-platform: Linux, macOS, Windows.
 
-The 13 formats are served by 12 driver libraries: PHTIFF (Philips TIFF) has no library of its own — it ships inside the `slideio-svs` library, as `PHTIFFImageDriver`/`PHTIFFSlide`/`PHTIFFTiledScene` (`phtiff*.cpp` in `src/slideio/drivers/svs/`). `PHTIFFTiledScene` derives from `SVSTiledScene` to reuse the tiled-tiff reading path; everything format specific (detection, metadata parsing in `phtdescription.cpp`/`phtmetadata.cpp`, level-to-directory matching, tile padding crop) lives in the PHTIFF classes. Both driver ids are declared in `svsdriverids.hpp`.
+The 14 formats are served by 13 driver libraries: PHTIFF (Philips TIFF) has no library of its own — it ships inside the `slideio-svs` library, as `PHTIFFImageDriver`/`PHTIFFSlide`/`PHTIFFTiledScene` (`phtiff*.cpp` in `src/slideio/drivers/svs/`). `PHTIFFTiledScene` derives from `SVSTiledScene` to reuse the tiled-tiff reading path; everything format specific (detection, metadata parsing in `phtdescription.cpp`/`phtmetadata.cpp`, level-to-directory matching, tile padding crop) lives in the PHTIFF classes. Both driver ids are declared in `svsdriverids.hpp`.
 
 ## Build Commands
 
@@ -133,6 +133,7 @@ Tests use Google Test. Test executables (release build):
 ./build/release/bin/slideio_ometiff_tests      # OME-TIFF tests
 ./build/release/bin/slideio_phtiff_tests       # Philips TIFF (PHTIFF) tests
 ./build/release/bin/slideio_mrxs_tests         # MIRAX (MRXS) tests
+./build/release/bin/slideio_bif_tests          # Ventana BIF tests
 
 # Run a single test:
 ./build/release/bin/slideio_tests --gtest_filter="TestSuiteName.TestName"
@@ -171,6 +172,9 @@ OpenSlide references those corpus suites compare against, and the per-region JPE
 decoder difference they allow for, are produced by hand with the tools listed in
 `auxfiles/mrxs-fixtures/README.md`.
 
+The BIF driver has no committed fixtures: every `slideio_bif_tests` suite that needs the
+corpus is named `BIFCorpus*`, and CI runs it with `--gtest_filter=-BIFCorpus*`.
+
 ## Architecture
 
 ### Module Hierarchy (each is a shared library, prefixed `slideio-`):
@@ -180,7 +184,7 @@ decoder difference they allow for, are produced by hand with the tools listed in
 - **slideio** (main) — Public API: `Slide`, `Scene`, `ImageDriverManager` (loads drivers dynamically)
 - **converter** — Format conversion (mainly TIFF output), multithreaded encoding
 - **transformer** — Image filters and color transformations (Gaussian, Canny, Sobel, etc.)
-- **drivers** — 12 format-specific shared libraries, each implementing `ImageDriver`/`CVScene`/`CVSlide` (the svs library serves both SVS and PHTIFF)
+- **drivers** — 13 format-specific shared libraries, each implementing `ImageDriver`/`CVScene`/`CVSlide` (the svs library serves both SVS and PHTIFF)
 
 ### Driver Plugin Pattern
 
@@ -209,7 +213,7 @@ Each driver in `src/slideio/drivers/<format>/` is an independent shared library 
   file state and are therefore fine: `FileReader` keeps one event object on the
   Windows read path, pole's `PositionalFile` keeps a manual-reset event of its
   own mirroring it, and `tempfile.cpp` keeps two for random names.) Concurrent
-  today: SVS, PHTIFF, AFI, PKE, SCN, NDPI, CZI, VSI, OME-TIFF, ZVI, MRXS. A
+  today: SVS, PHTIFF, AFI, PKE, SCN, NDPI, CZI, VSI, OME-TIFF, ZVI, MRXS, BIF. A
   `TransformerScene` forwards its origin scene's `supportsConcurrentReads()`
   rather than hard-coding `false`, so wrapping one of these in a transform no
   longer silently downgrades it to serialised reads. A scene that wraps another
@@ -234,10 +238,10 @@ src/
 │   ├── imagetools/     # slideio-imagetools
 │   ├── converter/      # slideio-converter
 │   ├── transformer/    # slideio-transformer
-│   └── drivers/        # 12 driver libraries, serving 13 formats
+│   └── drivers/        # 13 driver libraries, serving 14 formats
 │       ├── svs/  afi/  scn/  czi/  zvi/     # svs/ also serves PHTIFF
 │       ├── ndpi/ vsi/  dcm/  pke/
-│       └── ome-tiff/  gdal/  mrxs/
+│       └── ome-tiff/  gdal/  mrxs/  bif/
 ├── tests/              # Test suites (one per module/driver)
 ├── single_tests/       # Memory leak and performance tests
 └── tools/              # CLI tools
