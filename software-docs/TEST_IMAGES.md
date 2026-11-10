@@ -15,6 +15,7 @@ every data root can be written the same way.
 
 | Suite | Test binary |
 |---|---|
+| `bif` | `slideio_bif_tests` |
 | `converter` | `slideio_converter_tests` |
 | `main` | `slideio_tests` |
 | `mrxs` | `slideio_mrxs_tests` |
@@ -29,15 +30,19 @@ every data root can be written the same way.
 The **Tests** column counts the distinct `TEST`/`TEST_F` cases naming the image. The
 programs under `src/single_tests/` have no test cases, so they show `--`.
 
+> The BIF rows were added by hand from a run with only `SLIDEIO_IMAGES_PATH` set, because the
+> `std` and `priv` roots were absent on the machine that added the BIF driver. A full
+> regeneration needs all three roots set; otherwise their rows are lost.
+
 ## Summary
 
 | | Count | Size |
 |---|---:|---:|
-| Images referenced by tests | 252 | |
-| Present on this machine | 247 | **103.6 GB** |
+| Images referenced by tests | 255 | |
+| Present on this machine | 250 | **110.0 GB** |
 | Referenced but absent | 5 | -- |
-| Static references in test code | 758 | |
-| References built at run time | 47 | |
+| Static references in test code | 766 | |
+| References built at run time | 57 | |
 
 ### By directory
 
@@ -46,6 +51,7 @@ programs under `src/single_tests/` have no test cases, so they show `--`.
 | `images/images/ometiff` | 69.9 GB | 40 | 0 |
 | `images/images/czi` | 8.9 GB | 31 | 1 |
 | `images/images/dcm` | 7.5 GB | 39 | 1 |
+| `images/images/bif/openslide` | 6.3 GB | 3 | 0 |
 | `images/images/hamamatsu` | 5.8 GB | 26 | 0 |
 | `images/images/philips` | 3.7 GB | 3 | 0 |
 | `images/images/zvi` | 2.9 GB | 10 | 0 |
@@ -76,8 +82,10 @@ Sizes are what is on disk now. "Tests" counts the distinct tests naming the imag
 | `images/images/ometiff/private/test.ome.tif` | 21.1 GB | ometiff | 2 |
 | `images/images/czi/30-10-2020_NothingRecognized-15986.czi` | 6.1 GB | main | 3 |
 | `images/images/dcm/private/H01EBB49P-24900` *(dir)* | 4.1 GB | performance | -- |
+| `images/images/bif/openslide/OS-1.bif` | 3.6 GB | bif | 2 |
 | `images/images/philips/Philips-3.tiff` | 3.1 GB | phtiff | 8 |
 | `images/images/hamamatsu/DM0014 - 2020-04-02 10.25.21.ndpi` | 2.6 GB | ndpi | 3 |
+| `images/images/bif/openslide/OS-2.bif` | 2.5 GB | bif | 2 |
 | `images/images/zvi/openslide/Zeiss-3-Mosaic.zvi` | 2.0 GB | main | 2 |
 | `images/images/hamamatsu/DM0014 - 2020-04-02 11.10.47.ndpi` | 2.0 GB | ndpi | 11 |
 | `images/images/pke/openmicroscopy/PKI_scans/LuCa-7color_Scan1.qptiff` | 1.9 GB | pke | 19 |
@@ -99,6 +107,7 @@ Sizes are what is on disk now. "Tests" counts the distinct tests naming the imag
 | `images/images/zvi/mouse/20140207_mouse_2cell_H2AUb_HA_DAPI_inj_002.zvi` | 323.1 MB | main | 1 |
 | `images/images/philips/Philips-1.tiff` | 311.5 MB | phtiff | 1 |
 | `images/images/philips/Philips-4.tiff` | 277.5 MB | main, phtiff | 6 |
+| `images/images/bif/openslide/Ventana-1.bif` | 216.8 MB | bif, main | 4 |
 | `images/images/ometiff/Subresolutions/retina_large.ome.tiff` | 214.8 MB | main, ometiff | 9 |
 | `images/images/hamamatsu/openslide/CMU-1.ndpi` | 188.9 MB | main, ndpi, ndpi_memory | 13 |
 | `images/images/czi/jxr-16bit-4chnls.czi` | 174.2 MB | converter, main | 7 |
@@ -339,6 +348,16 @@ identified by reading the source. They are not counted in the tables above.
 
 | File | Line | Test | Arguments |
 |---|---:|---|---|
+| `src/tests/bif/test_bif_corpus_open.cpp` | 195 | `BIFCorpusOpen.AuxImagesRead` | `"bif/openslide", file` |
+| `src/tests/bif/test_bif_corpus_read.cpp` | 250 | `BIFCorpusRead.SeamMatchesSources` | `Folder, "OS-1.bif"` |
+| `src/tests/bif/test_bif_corpus_read.cpp` | 251 | `BIFCorpusRead.SeamMatchesSources` | `Folder, "Ventana-1.bif"` |
+| `src/tests/bif/test_bif_corpus_read.cpp` | 283 | `BIFCorpusRead.SeamHasNoDuplication` | `Folder, "OS-1.bif"` |
+| `src/tests/bif/test_bif_corpus_read.cpp` | 303 | `BIFCorpusRead.LevelEqualsScaled` | `Folder, "OS-1.bif"` |
+| `src/tests/bif/test_bif_corpus_read.cpp` | 319 | `BIFCorpusRead.ScaledEqualsResize` | `Folder, "OS-1.bif"` |
+| `src/tests/bif/test_bif_corpus_read.cpp` | 336 | `BIFCorpusRead.ChannelOrder` | `Folder, "OS-1.bif"` |
+| `src/tests/bif/test_bif_corpus_read.cpp` | 354 | `BIFCorpusRead.CoarseEdge` | `Folder, "OS-1.bif"` |
+| `src/tests/bif/test_bif_corpus_read.cpp` | 372 | `BIFCorpusRead.PastEdgeBackground` | `Folder, "OS-1.bif"` |
+| `src/tests/bif/test_bif_corpus_read.cpp` | 397 | `BIFCorpusRead.Concurrency` | `Folder, file` |
 | `src/tests/main/test_afi_driver.cpp` | 18 | `(outside a test)` | `dir, file` |
 | `src/tests/main/test_czi_driver.cpp` | 214 | `CZIImageDriver.readBlock4D` | `"czi",bmpFileName` |
 | `src/tests/main/test_czi_driver.cpp` | 356 | `CZIImageDriver.sceneIdsFromDims` | `"czi",imageName` |

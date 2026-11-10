@@ -45,6 +45,8 @@ removed without renumbering the rest and its number is retired in
 26. [The positional read path has no buffer for small sequential reads](#26-the-positional-read-path-has-no-buffer-for-small-sequential-reads)
 27. *retired -- fixed, see [Resolved and removed](#resolved-and-removed)*
 28. [OME-TIFF plane timestamps have no file that states one](#28-ome-tiff-plane-timestamps-have-no-file-that-states-one)
+29. [ThreadSanitizer reports four data races in OpenCV's thread pool, reached through `TransformerScene::applyChain`](#29-threadsanitizer-reports-four-data-races-in-opencvs-thread-pool-reached-through-transformersceneapplychain)
+30. [BIF: no banded rendering](#30-bif-no-banded-rendering)
 
 Not debt, recorded so it stays a decision:
 [Consciously accepted, not debt](#consciously-accepted-not-debt).
@@ -1135,6 +1137,32 @@ needs a standalone reproducer calling `cv::parallel_for_` from two threads with
 no slideio in the picture, which is its own piece of work. Until someone does
 that, the honest statement is: reported, unexplained, and not known to affect
 correctness — no test has ever failed because of it.
+
+---
+
+## 30. BIF: no banded rendering
+
+**Files:** `src/slideio/drivers/bif/bifscene.cpp`
+(`BIFScene::readResampledLevelBlockChannelsEx`, `BIFScene::renderLevelRect`)
+**Related:** `software-docs/specs/2026-11-09-bif-driver-design.md`;
+`src/slideio/drivers/mrxs/mrxsrenderer.hpp` (`kBandPixels`) for the shape of a fix
+**Status:** Open, by design for the first version. No caller is known to hit it.
+
+A BIF level read renders the whole requested level rect into one `cv::Mat` and
+only then resizes it to the output size. Through `readResampledBlockChannels`
+that is bounded: level selection picks the coarsest level at least as fine as
+the output, so the intermediate raster is at most about 4× the output — the same
+bound the SVS driver lives with. Through `readResampledLevelBlockChannels`
+nothing bounds it: a caller asking for a large rect of level 0 at a small output
+size allocates the full native-size rect first (3 bytes a pixel), which for a
+whole BIF slide is many gigabytes.
+
+If that becomes a real use, render in horizontal bands the way the MRXS renderer
+does (`MRXSRenderer::render`, `kBandPixels`): render a band of level rows,
+resize it into its slice of the output, and move on, so memory is bounded by the
+band size. The band edges must fall on whole output rows, and a test must show the
+banded result equal to the unbanded one, since `INTER_AREA` resampling reads
+across rows.
 
 ---
 

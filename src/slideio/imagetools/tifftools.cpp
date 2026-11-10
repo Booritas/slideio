@@ -12,6 +12,7 @@
 #include "slideio/core/tools/endian.hpp"
 #include "slideio/core/tools/tools.hpp"
 #include <opencv2/core.hpp>
+#include <cstring>
 #include <filesystem>
 #include <iomanip>
 
@@ -1130,6 +1131,41 @@ std::string TiffTools::readStringTag(libtiff::TIFF* tiff, uint16_t tag) {
         result = value;
     }
     return result;
+}
+
+std::string TiffTools::readXmlPacket(libtiff::TIFF* tiff, const TiffDirectory& dir) {
+    setCurrentDirectory(tiff, dir);
+    uint32_t count = 0;
+    void* data = nullptr;
+    if (!libtiff::TIFFGetField(tiff, TIFFTAG_XMLPACKET, &count, &data) || !data || count == 0) {
+        return std::string();
+    }
+    const char* bytes = static_cast<const char*>(data);
+    return std::string(bytes, strnlen(bytes, count));
+}
+
+bool TiffTools::hasXmlPacket(libtiff::TIFF* tiff, const TiffDirectory& dir) {
+    setCurrentDirectory(tiff, dir);
+    uint32_t count = 0;
+    void* data = nullptr;
+    return libtiff::TIFFGetField(tiff, TIFFTAG_XMLPACKET, &count, &data) != 0;
+}
+
+void TiffTools::setXmlPacket(libtiff::TIFF* tiff, const std::string& bytes) {
+    libtiff::TIFFSetField(tiff, TIFFTAG_XMLPACKET, static_cast<uint32_t>(bytes.size()), bytes.data());
+}
+
+void TiffTools::setImageDepth(libtiff::TIFF* tiff, uint32_t depth) {
+    libtiff::TIFFSetField(tiff, TIFFTAG_IMAGEDEPTH, depth);
+}
+
+uint32_t TiffTools::readImageDepth(libtiff::TIFF* tiff, const TiffDirectory& dir) {
+    setCurrentDirectory(tiff, dir);
+    uint32_t depth = 1;
+    if (!libtiff::TIFFGetField(tiff, TIFFTAG_IMAGEDEPTH, &depth)) {
+        depth = 1;
+    }
+    return depth;
 }
 
 int TiffTools::getNumberOfDirectories(libtiff::TIFF* tiff) {

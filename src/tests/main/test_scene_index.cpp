@@ -55,6 +55,7 @@ INSTANTIATE_TEST_SUITE_P(
     AllDrivers, SceneIndex,
     ::testing::Values(
         DriverImage{"AFI", "afi", "fs.afi"},
+        DriverImage{"BIF", "bif", "openslide/Ventana-1.bif"},
         DriverImage{"CZI", "czi", "pJP31mCherry.czi"},
         DriverImage{"DCM", "dcm", "barre.dev/OT-MONO2-8-hip.dcm"},
         DriverImage{"GDAL", "gdal", "img_2448x2448_3x8bit_SRC_RGB_ducks.png"},

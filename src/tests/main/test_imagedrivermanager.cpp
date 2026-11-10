@@ -59,7 +59,9 @@ TEST(ImageDriverManager, findDriver)
         TestEntity("ZVI", TestTools::getTestImagePath("svs", "TOMMAlexaFluor647.zvi")),
         // MRXS is chosen by name, before GDAL, whether or not the bundle is on this machine.
         TestEntity("MRXS", TestTools::getTestImagePath("mirax/openslide/CMU-1-Saved-1_16", "CMU-1-Saved-1_16.mrxs")),
-        TestEntity("MRXS", TestTools::getTestImagePath("mirax/openslide/CMU-1-Saved-1_16/CMU-1-Saved-1_16", "Slidedat.ini"))
+        TestEntity("MRXS", TestTools::getTestImagePath("mirax/openslide/CMU-1-Saved-1_16/CMU-1-Saved-1_16", "Slidedat.ini")),
+        // BIF is chosen by name too: the structural probe runs in openFile.
+        TestEntity("BIF", TestTools::getTestImagePath("bif/openslide", "Ventana-1.bif"))
     };
     for(const auto& entity: testList) {
         auto driverId = std::get<0>(entity);

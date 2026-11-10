@@ -185,3 +185,10 @@ TEST(SceneLifetime, vsi)
     SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
     expectScenesOutliveTheirSlide(path, "VSI");
 }
+
+TEST(SceneLifetime, bif)
+{
+    const std::string path = TestTools::getTestImagePath("bif", "openslide/Ventana-1.bif");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
+    expectScenesOutliveTheirSlide(path, "BIF");
+}

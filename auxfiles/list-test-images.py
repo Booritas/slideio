@@ -30,7 +30,8 @@ ROOTS = {key: os.environ.get(var, '') for key, var in ROOT_VAR.items()}
 BINARY = {'main': 'slideio_tests', 'ndpi': 'slideio_ndpi_tests', 'vsi': 'slideio_vsi_tests',
           'pke': 'slideio_pke_tests', 'ometiff': 'slideio_ometiff_tests',
           'phtiff': 'slideio_phtiff_tests', 'converter': 'slideio_converter_tests',
-          'transformer': 'slideio_transformer_tests', 'mrxs': 'slideio_mrxs_tests'}
+          'transformer': 'slideio_transformer_tests', 'mrxs': 'slideio_mrxs_tests',
+          'bif': 'slideio_bif_tests'}
 
 CALL = re.compile(r'TestTools::getTestImagePath\s*\(')
 LITERAL = re.compile(r'"((?:[^"\\]|\\.)*)"')
@@ -176,7 +177,10 @@ def main():
         root = ROOTS.get(reference['root'], '')
         absolute = (os.path.normpath(os.path.join(root, reference['subfolder'], reference['image']))
                     if root else None)
-        key = (reference['root'], reference['subfolder'], reference['image'])
+        # Keyed by the joined path, not by the two arguments: ("bif/openslide", "x.bif")
+        # and ("bif", "openslide/x.bif") name one file and must make one row.
+        key = (reference['root'],
+               os.path.normpath(os.path.join(reference['subfolder'], reference['image'])).replace(os.sep, '/'))
         entry = images.setdefault(key, dict(root=reference['root'], absolute=absolute,
                                             subfolder=reference['subfolder'],
                                             tests=set(), suites=set()))

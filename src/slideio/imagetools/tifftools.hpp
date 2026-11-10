@@ -95,6 +95,19 @@ namespace slideio
             const cv::Mat& tileRaster, const EncodeParameters& parameters,
             uint8_t* buffer=nullptr, int bufferSize=0);
         static std::string readStringTag(libtiff::TIFF* tiff, uint16_t tag);
+        /**@brief bytes of TIFFTAG_XMLPACKET (700) of the directory, cut at the first NUL.
+         * Empty when the tag is absent.*/
+        static std::string readXmlPacket(libtiff::TIFF* tiff, const TiffDirectory& dir);
+        /**@brief true when the directory carries TIFFTAG_XMLPACKET (700) at all, whatever its
+         * bytes: tells a present-but-empty packet from an absent one.*/
+        static bool hasXmlPacket(libtiff::TIFF* tiff, const TiffDirectory& dir);
+        /**@brief sets TIFFTAG_XMLPACKET (700) of the directory being written to the bytes
+         * given, NULs included.*/
+        static void setXmlPacket(libtiff::TIFF* tiff, const std::string& bytes);
+        /**@brief sets TIFFTAG_IMAGEDEPTH (32997) of the directory being written.*/
+        static void setImageDepth(libtiff::TIFF* tiff, uint32_t depth);
+        /**@brief TIFFTAG_IMAGEDEPTH (32997) of the directory; 1 when the tag is absent.*/
+        static uint32_t readImageDepth(libtiff::TIFF* tiff, const TiffDirectory& dir);
         static int getNumberOfDirectories(libtiff::TIFF* tiff);
         static void writeRawTile(libtiff::TIFF* tiff, int x, int y, const uint8_t* data, int size);
     };
