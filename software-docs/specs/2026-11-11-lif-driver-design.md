@@ -1,6 +1,9 @@
 # Leica LIF reader driver design
 
-Date: 2026-11-11. Status: design, not yet reviewed.
+Date: 2026-11-11. Status: implemented on feature/lif-driver (2026-11-11); manual
+review of AI-written code pending before merge. Points marked *(decided during
+implementation)* record where the build departed from, or settled, the original
+design.
 
 ## 1. Intent
 
@@ -169,9 +172,14 @@ acceptance of Bio-Formats' `initFile` (FD §2) is not reproduced.
   `uint64_t` with checked addition.
 - **Index**: every block is recorded, empty ones included. A duplicated ID is
   recorded as ambiguous: an image referencing it is unsupported (§4.4); an
-  unreferenced duplicate is harmless and only logged at DEBUG.
+  unreferenced duplicate is harmless and only logged at INFO. *(Decided during
+  implementation: core logging has no DEBUG level, so every message this design
+  once put at DEBUG is INFO.)*
 - A block whose declared payload runs past EOF ends traversal; it is recorded
   as truncated, and an image referencing it is unsupported.
+- A malformed block header in mid-file (bad marker, impossible identifier count)
+  ends traversal with a WARNING; images whose blocks were not indexed are skipped
+  as unsupported. *(Decided during implementation.)*
 
 ### 4.3 Images
 
@@ -203,7 +211,9 @@ reasons.
 
 The skipped images are recorded on the slide so a test, and a curious user, can
 find them: the slide's raw metadata (§6.4) is the whole XML, and the driver
-logs the list once at open. *(My call: one exotic acquisition in a project
+logs the list once at open. Errors raised while opening are normalised at
+`LIFSlide::openFile` to begin with `LIF: ` and end with `(file: <path>)`, whichever
+layer threw them. *(Decided during implementation.)* *(My call: one exotic acquisition in a project
 must not lock the user out of the rest — anti-goal 6. The trade-off is that
 scene indices are not XML image indices; §4.5.)*
 
@@ -242,7 +252,7 @@ other attribute kept verbatim). Axes are kept by identity, not flattened:
 
 Display axes: X, and Y = the DimID 2 dimension. With no DimID 2, the next
 dimension in document order is Y if it is Z (an XZ scan) or T (an XT scan); that
-axis then has extent 1 as a stack axis (FD §6). Rules, each a rejection
+axis then has extent 1 as a stack axis (FD §6). In that case an XZ scan has Z resolution 0 and numZ 1, an XT scan has T resolution 0, and an image with no Y, Z or T second axis is one row high *(decided during implementation)*. Rules, each a rejection
 with a reason when broken:
 
 - X, Y and every stacked axis have `NumberOfElements ≥ 1`; a repeated DimID is
@@ -271,6 +281,11 @@ with it, or the image is rejected.
 All channels of an image must share one storage width (FD §13.2: liffile does
 not support mixed either). `Resolution` is reported as
 `getChannelSignificantBits`; pixels are returned as stored.
+
+*(Decided during implementation.)* UInt32 and UInt64 images are skipped as
+unsupported in this version: core maps `DT_UInt32` to a wrong OpenCV type, and
+OpenCV has no 64-bit unsigned type (§10 has the follow-on). `DataType` present on
+only some channels, or mixed integer and float at one width, is rejected.
 
 ### 5.3 Interleaved colour
 
@@ -332,6 +347,7 @@ image (anti-goal 3).
 | Compression | `Compression::Uncompressed` |
 | Zoom levels | one (no pyramid in LIF; §1.2) |
 | Concurrent reads | `true` (§7) |
+| Channel background | `getChannelBackground` returns 0 for every channel (dark fluorescence background; *decided during implementation*) |
 | Channel name | Always empty for now: none of the seven corpus files carries `UserDefName`/`UesrDefName`, so its shape is unknown and is not parsed (`lif::Channel::name` stays empty) |
 | Channel attributes | every `ChannelDescription` attribute, via `setChannelAttribute` (`LUTName`, `ChannelTag`, `Resolution`, `Min`, `Max`, …) |
 
@@ -340,7 +356,7 @@ image (anti-goal 3).
 `slideio::Resolution` is in metres.
 
 - X, Y: `|Length| / (N − 1)` for `N > 1` (FD §8.1; not `Length/N`). Unit `m`
-  only; any other unit gives 0 (unknown) and a DEBUG log. `N = 1` gives 0.
+  only; any other unit gives 0 (unknown) and an INFO log. `N = 1` gives 0.
 - Z (`getZSliceResolution`): the same rule on the Z dimension.
 - T (`getTFrameResolution`): the T dimension's `|Length|/(N−1)` when its unit is
   `s` (`Ks` × 1000); else the scanner setting `nDelayTime_s` when present; else 0.
@@ -373,11 +389,15 @@ The k-th timestamp belongs to the k-th stored plane in **storage order**: the
 stacked axes (C, Z, T, M) sorted by stride, fastest first — the same order §5.4
 validates. `hasPlaneTimestamps()` is true only when the list has exactly one
 entry per stored plane (C·Z·T·M); anything else reports no timestamps and logs
-the count at DEBUG. Partial lists are never padded (FD §8.2).
+the count at INFO. Partial lists are never padded (FD §8.2).
 
 `getAcquisitionTime()` is the earliest timestamp of the scene's own field, in
-Unix seconds; `getPlaneTimestamp` is the offset from it, so the earliest plane
-reads 0 and none is negative, as the `CVScene` contract requires.
+Unix seconds, floored to a whole second; `getPlaneTimestamp` is the offset from
+that floored value, so none is negative, as the `CVScene` contract requires, and
+`acquisition + offset` is exact. The earliest plane may therefore read a
+sub-second fraction rather than 0. A tick list containing a zero tick, or one that
+gives an acquisition time before 1970, is treated as absent. *(Decided during
+implementation.)*
 
 *(Builder's note: the field-dependence of timestamps is not established by any
 reader — Bio-Formats reuses one array for every field. Storage order including M
@@ -420,7 +440,8 @@ the 4D and level variants use the base class defaults (single level).
 
 Downscaled reads of large images (merged mosaics) read the source in bands when
 the source exceeds the `maxResampleSourcePixels` bound, as MRXS does, so memory
-stays bounded.
+stays bounded. Banding applies only to downscaled reads; banded and unbanded
+results are identical only at integer ratios. *(Decided during implementation.)*
 
 **Concurrency.** The scene's only file state is the slide's `FileReader`, which
 is cursor-free and thread-safe; the `Layout` is immutable after open. So the
@@ -519,6 +540,8 @@ data. The release notes say so until a sample appears.
 - `.lifext` companions: verify whether `*_pmd_N` children are a usable pyramid
   for their `ChildrenOf` parent and expose them as zoom levels or aux images.
 - Truncated acquisitions: expose the complete planes of a block that ends early.
+- UInt32 and UInt64 images (§5.2): fix `CVTools::toOpencvType` for `DT_UInt32`
+  first, and decide how a 64-bit unsigned type is exposed.
 - Real samples for interleaved RGB, float and Version-1 LIF.
 - XLIF/XLEF (LAS X's folder-based export), which share the XML model.
 - Moving the format description into `software-docs/`.
