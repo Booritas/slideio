@@ -6,6 +6,7 @@ set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 # The fixtures are synthetic and committed in data/, so every suite here is corpus-free.
 set(TEST_SOURCES
   test_lif_container.cpp
+  test_lif_xml.cpp
 )
 
 add_executable(${TEST_NAME} ${TEST_SOURCES})

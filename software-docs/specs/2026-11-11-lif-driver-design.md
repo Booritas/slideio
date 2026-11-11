@@ -332,7 +332,7 @@ image (anti-goal 3).
 | Compression | `Compression::Uncompressed` |
 | Zoom levels | one (no pyramid in LIF; §1.2) |
 | Concurrent reads | `true` (§7) |
-| Channel name | `UserDefName` from the WFC scanner settings (FD §8.4) when present, else empty |
+| Channel name | Always empty for now: none of the seven corpus files carries `UserDefName`/`UesrDefName`, so its shape is unknown and is not parsed (`lif::Channel::name` stays empty) |
 | Channel attributes | every `ChannelDescription` attribute, via `setChannelAttribute` (`LUTName`, `ChannelTag`, `Resolution`, `Min`, `Max`, …) |
 
 ### 6.2 Calibration

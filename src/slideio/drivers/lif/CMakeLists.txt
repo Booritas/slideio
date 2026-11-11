@@ -7,6 +7,10 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/lif_api_def.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/lifcontainer.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/lifcontainer.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/lifxml.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/lifxml.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/liftimestamps.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/liftimestamps.cpp
    )
 
 add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES})
