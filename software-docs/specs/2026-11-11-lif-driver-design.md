@@ -353,6 +353,16 @@ image (anti-goal 3).
   `@Magnification` in the `HardwareSetting` attachment, when present; else 0.
   To be confirmed on the corpus before relying on it.
 
+*Corpus outcome (`LIFCorpusOpen.ScenesMatchBioFormats`, `.Magnification`):* X, Y and
+Z agree with Bio-Formats to 1e-9 relative on 137 of 137 series, except Z on the 21
+Z stacks of `IT4_27_02_15.lif`: Bio-Formats reports one step for the whole file,
+1.00708103855232 µm (the scanner's `dblVoxelZ`/`dblStepSize`), while `|Length|/(N−1)`
+gives 1.0070808–1.0070813 µm per image — under 3e-7 relative, kept as is and printed by
+the test. Magnification matches the attribute in six files (FRET-Efficiency, a
+computed image, has none); `IT4_27_02_15.lif` reads 0 because its attachment is named
+`HardwareSettingList` and holds the definition only inside `LDM_Block_Sequential`
+(100 on the Z stacks, 5 on the `*_5x` images) — a known gap the test pins.
+
 ### 6.3 Timestamps
 
 Parse `TimeStampList` (hex, LAS AF ≥ 3.1) or `TimeStamp` `HighInteger`/
@@ -372,6 +382,12 @@ reads 0 and none is negative, as the `CVScene` contract requires.
 reader — Bio-Formats reuses one array for every field. Storage order including M
 is the natural reading of the data; the corpus test checks plane timestamps
 against liffile on Intro's tile scans and the FRAP time series.)*
+
+*Corpus outcome (`LIFCorpusOpen.Timestamps`, liffile 2026.11.8 from PyPI):* all 461
+planes of the 21 FRAP and Intro images with a complete list agree — liffile floors to
+a millisecond, so `acquisition + offset` is required to lie in [liffile, liffile + 1 ms),
+which it does on every plane, the 21- and 12-field tile scans of Intro included (M in
+storage order). `Region 1` and `Region 1_Merged` (6 stamps for 354 planes) report none.
 
 ### 6.4 Metadata
 

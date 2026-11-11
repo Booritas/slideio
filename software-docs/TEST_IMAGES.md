@@ -34,16 +34,21 @@ programs under `src/single_tests/` have no test cases, so they show `--`.
 > The BIF rows were added by hand from a run with only `SLIDEIO_IMAGES_PATH` set, because the
 > `std` and `priv` roots were absent on the machine that added the BIF driver. A full
 > regeneration needs all three roots set; otherwise their rows are lost.
+>
+> The LIF corpus rows were merged by hand for the same reason. The `LIFCorpus*` suites name
+> their seven files through a variable (`TestTools::getTestImagePath("lif", rel)`), so the
+> script lists only that call site; the image rows below were added from the files on disk
+> and the tests in `src/tests/lif/test_lif_corpus.cpp`.
 
 ## Summary
 
 | | Count | Size |
 |---|---:|---:|
-| Images referenced by tests | 256 | |
-| Present on this machine | 251 | **110.0 GB** |
+| Images referenced by tests | 262 | |
+| Present on this machine | 257 | **114.2 GB** |
 | Referenced but absent | 5 | -- |
 | Static references in test code | 769 | |
-| References built at run time | 57 | |
+| References built at run time | 58 | |
 
 ### By directory
 
@@ -54,6 +59,7 @@ programs under `src/single_tests/` have no test cases, so they show `--`.
 | `images/images/dcm` | 7.5 GB | 39 | 1 |
 | `images/images/bif/openslide` | 6.3 GB | 3 | 0 |
 | `images/images/hamamatsu` | 5.8 GB | 26 | 0 |
+| `images/images/lif` | 4.2 GB | 7 | 0 |
 | `images/images/philips` | 3.7 GB | 3 | 0 |
 | `images/images/zvi` | 2.9 GB | 10 | 0 |
 | `images/images/pke` | 2.4 GB | 10 | 0 |
@@ -65,7 +71,6 @@ programs under `src/single_tests/` have no test cases, so they show `--`.
 | `images/images/jpeg` | 2.3 MB | 4 | 0 |
 | `images/images/jxr` | 2.1 MB | 5 | 0 |
 | `images/images/jp2K` | 367.5 KB | 2 | 0 |
-| `images/images/lif` | 222.1 KB | 1 | 0 |
 | `images/images/mirax/zenodo/2401582-38_mihc` | 51.9 KB | 1 | 0 |
 | `images/images/mirax/openslide/CMU-1-Saved-1_16` | 41.3 KB | 1 | 0 |
 | `images/images/mirax/reference` | 35.6 KB | 2 | 0 |
@@ -86,6 +91,7 @@ Sizes are what is on disk now. "Tests" counts the distinct tests naming the imag
 | `images/images/dcm/private/H01EBB49P-24900` *(dir)* | 4.1 GB | performance | -- |
 | `images/images/bif/openslide/OS-1.bif` | 3.6 GB | bif | 2 |
 | `images/images/philips/Philips-3.tiff` | 3.1 GB | phtiff | 8 |
+| `images/images/lif/bioformats/imagesc-110520/AMR1.lif` | 2.8 GB | lif | 4 |
 | `images/images/hamamatsu/DM0014 - 2020-04-02 10.25.21.ndpi` | 2.6 GB | ndpi | 3 |
 | `images/images/bif/openslide/OS-2.bif` | 2.5 GB | bif | 2 |
 | `images/images/zvi/openslide/Zeiss-3-Mosaic.zvi` | 2.0 GB | main | 2 |
@@ -97,9 +103,11 @@ Sizes are what is on disk now. "Tests" counts the distinct tests naming the imag
 | `images/images/dcm/private/wsi/M01FBC14P-589_level-0.dcm` | 1.1 GB | main | 5 |
 | `images/images/dcm/private/H01EBB50P-24777/H01EBB50P-24777_level-0.dcm` | 968.7 MB | main | 4 |
 | `images/images/scn/ultivue/Leica Aperio Versa 5 channel fluorescent image.scn` | 930.5 MB | main | 7 |
+| `images/images/lif/figshare/IT4_27_02_15.lif` | 714.5 MB | lif | 3 |
 | `images/images/ometiff/Subresolutions/Leica-1.ome.tiff` | 689.4 MB | main, ometiff | 9 |
 | `images/images/svs/S1303802-11-HE-DX1.svs` | 631.0 MB | main, svs_memory | 1 |
 | `images/images/czi/private/E2_A3_W12.czi` | 582.5 MB | main | 1 |
+| `images/images/lif/zenodo/intro/Intro.lif` | 577.4 MB | lif | 4 |
 | `images/images/hamamatsu/HE_Hamamatsu.ndpi` | 557.6 MB | ndpi | 3 |
 | `images/images/czi/private/20-024_K5_HE.czi` | 518.9 MB | main | 1 |
 | `images/images/pke/openmicroscopy/PKI_scans/HandEcompressed_Scan1.qptiff` | 402.3 MB | main, pke | 8 |
@@ -116,12 +124,14 @@ Sizes are what is on disk now. "Tests" counts the distinct tests naming the imag
 | `images/images/hamamatsu/openslide/CMU-1_002.tif` | 137.4 MB | ndpi | 2 |
 | `images/images/ometiff/00001_01.ome.tiff` | 126.1 MB | phtiff | 2 |
 | `images/images/zvi/Zeiss-1-Stacked.zvi` | 107.7 MB | main | 12 |
+| `images/images/lif/bioformats/zenodo-6606445/Project007.lif` | 106.5 MB | lif | 5 |
 | `images/images/gdal/test.svs` | 99.3 MB | converter | 2 |
 | `images/images/svs/jp2k_3chnl_8bit.svs` | 98.9 MB | main | 2 |
 | `images/images/czi/jxr-rgb-5scenes.czi` | 88.8 MB | converter, main | 7 |
 | `images/images/czi/private/example_split.czi` | 87.7 MB | main | 1 |
 | `images/images/czi/zeiss.czi` | 87.7 MB | main | 3 |
 | `images/images/svs/JP2K-33003-1.svs` | 60.9 MB | main, transformer | 15 |
+| `images/images/lif/bioformats/imagesc-30856/20191025 Test FRET 585. 423, 426.lif` | 47.0 MB | lif | 3 |
 | `images/images/czi/03_14_2019_DSGN0545_A_wb_1353_fov_1_633.czi` | 45.9 MB | main | 4 |
 | `images/images/gdal/multipage-ducks.tif` | 45.7 MB | main | 1 |
 | `images/images/gdal/Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg` | 39.1 MB | converter, main, transformer | 23 |
@@ -151,6 +161,7 @@ Sizes are what is on disk now. "Tests" counts the distinct tests naming the imag
 | `images/images/dcm/series` *(dir)* | 10.3 MB | main | 2 |
 | `images/images/gdal/img_2448x2448_1x16bit_SRC_RGB_ducks.tif` | 9.8 MB | main | 1 |
 | `images/images/zvi/Zeiss-1-Merged.zvi` | 9.7 MB | converter, main | 25 |
+| `images/images/lif/bioformats/seanwarren/150519_FRAP_test_ROIs_chromagreen/150519_FRAP_test_ROIs_chromagreen.lif` | 9.2 MB | lif | 4 |
 | `images/images/dcm/series/series_1` *(dir)* | 8.0 MB | main | 4 |
 | `images/images/dcm/benigns_01/patient0186/0186.LEFT_MLO.dcm` | 7.5 MB | main | 4 |
 | `images/images/dcm/benigns_01/patient0186/0186.LEFT_CC.dcm` | 7.5 MB | main | 2 |
@@ -271,7 +282,7 @@ Sizes are what is on disk now. "Tests" counts the distinct tests naming the imag
 | `images/images/hamamatsu/DM0014 - 2020-04-02 11.10.47-resampled.png` | 256.3 KB | ndpi | 1 |
 | `images/images/dcm/private/H01EBB50P-24777.block.png` | 250.1 KB | main | 1 |
 | `images/images/vsi/test-output/G1M16_ABD_HE_B6.vsi-40x_01(1,x=0,y=0,w=512,h=512).png` | 227.6 KB | vsi | 1 |
-| `images/images/lif/bioformats/michael/PR2729_frameOrderCombinedScanTypes.lif` | 222.1 KB | main | 3 |
+| `images/images/lif/bioformats/michael/PR2729_frameOrderCombinedScanTypes.lif` | 222.1 KB | lif, main | 6 |
 | `images/images/vsi/test-output/1286FL9057GDF8RGDX257R2GLHZ.png` | 205.9 KB | vsi | 3 |
 | `images/images/hamamatsu/DM0014 - 2020-04-02 10.25.21-roi-resampled.png` | 198.6 KB | ndpi | 1 |
 | `images/images/hamamatsu/HE_Hamamatsu-roi.png` | 196.2 KB | ndpi | 1 |
@@ -361,6 +372,7 @@ identified by reading the source. They are not counted in the tables above.
 | `src/tests/bif/test_bif_corpus_read.cpp` | 354 | `BIFCorpusRead.CoarseEdge` | `Folder, "OS-1.bif"` |
 | `src/tests/bif/test_bif_corpus_read.cpp` | 372 | `BIFCorpusRead.PastEdgeBackground` | `Folder, "OS-1.bif"` |
 | `src/tests/bif/test_bif_corpus_read.cpp` | 397 | `BIFCorpusRead.Concurrency` | `Folder, file` |
+| `src/tests/lif/test_lif_corpus.cpp` | 54 | `(outside a test)` | `"lif", rel` |
 | `src/tests/main/test_afi_driver.cpp` | 18 | `(outside a test)` | `dir, file` |
 | `src/tests/main/test_czi_driver.cpp` | 214 | `CZIImageDriver.readBlock4D` | `"czi",bmpFileName` |
 | `src/tests/main/test_czi_driver.cpp` | 356 | `CZIImageDriver.sceneIdsFromDims` | `"czi",imageName` |

@@ -79,3 +79,27 @@ design), `types/NoDataType16` and `rgb/Untagged` (it requires `DataType` /
 `ChannelTag` on every channel), and `types/Mismatch` (its payload is smaller than
 the declared float32 array). It reproduces the pixel function on `nesting` and
 `types`, and the `Hex` and `Decimal` timestamps agree with each other.
+
+## Corpus references
+
+The `LIFCorpus*` suites (`src/tests/lif/test_lif_corpus.cpp`) compare the driver with
+three committed references in `src/tests/lif/data/`, made from the seven corpus files
+under `$SLIDEIO_IMAGES_PATH/lif/` and the LIF validation folder of the documents
+repository (`image_formats/lif/validation`). All three are deterministic: rerunning a
+generator reproduces its file byte for byte.
+
+```bash
+# lif-regions.tsv: 9,264 rows, CRC-32 of the 7x5 regions Bio-Formats read. Stdlib only.
+py -3 auxfiles/lif-fixtures/make_region_reference.py <validation-dir> src/tests/lif/data/lif-regions.tsv
+# lif-scenes.tsv: 137 rows, one per Bio-Formats series (Java 17, Bio-Formats 8.5.0-SNAPSHOT).
+java -cp bioformats_package.jar auxfiles/lif-fixtures/LifScenes.java $SLIDEIO_IMAGES_PATH/lif src/tests/lif/data/lif-scenes.tsv
+# lif-timestamps.tsv: 461 rows, liffile's plane timestamps for FRAP and Intro.
+python auxfiles/lif-fixtures/make_timestamp_reference.py $SLIDEIO_IMAGES_PATH/lif src/tests/lif/data/lif-timestamps.tsv
+```
+
+`make_region_reference.py` repeats the validation's `compare_regions.py` read for every
+region and refuses to write anything unless all SHA-256s equal Bio-Formats'; it prints
+`9264 regions, 0 mismatches`. It reads the source files at the inventories' recorded
+paths. `make_timestamp_reference.py` needs liffile (2026.11.8 from PyPI, not the pinned
+git revision the validation README names) and NumPy; liffile keeps millisecond
+precision, so the test allows the driver's exact time to sit up to 1 ms above it.

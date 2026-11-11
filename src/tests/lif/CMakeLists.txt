@@ -3,13 +3,16 @@ set(TEST_NAME slideio_lif_tests)
 set(CMAKE_PREFIX_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
-# The fixtures are synthetic and committed in data/, so every suite here is corpus-free.
+# The fixtures are synthetic and committed in data/. Suites named LIFCorpus* read the
+# image corpus under SLIDEIO_IMAGES_PATH; every other suite is corpus-free, so CI runs
+# this executable with --gtest_filter=-LIFCorpus* and needs no corpus.
 set(TEST_SOURCES
   test_lif_container.cpp
   test_lif_xml.cpp
   test_lif_layout.cpp
   test_lif_timestamps.cpp
   test_lif_scene.cpp
+  test_lif_corpus.cpp
   lif_fixture_values.hpp
 )
 
@@ -19,10 +22,13 @@ target_include_directories(${TEST_NAME} PRIVATE ${INCLUDE_ROOT})
 
 find_package(GTest)
 find_package(OpenCV)
+# crc32 for the corpus region references
+find_package(ZLIB)
 
 target_link_libraries(${TEST_NAME}
   gtest::gtest
   opencv::opencv
+  ZLIB::ZLIB
 )
 
 target_link_libraries(${TEST_NAME}
