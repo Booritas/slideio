@@ -13,6 +13,12 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/liftimestamps.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/liflayout.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/liflayout.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/lifscene.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/lifscene.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/lifslide.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/lifslide.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/lifimagedriver.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/lifimagedriver.cpp
    )
 
 add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES})
