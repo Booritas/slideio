@@ -8,6 +8,7 @@ set(TEST_SOURCES
   test_lif_container.cpp
   test_lif_xml.cpp
   test_lif_layout.cpp
+  test_lif_timestamps.cpp
 )
 
 add_executable(${TEST_NAME} ${TEST_SOURCES})
