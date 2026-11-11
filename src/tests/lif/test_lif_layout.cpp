@@ -351,3 +351,62 @@ TEST(LifLayout, Calibration)
         EXPECT_NEAR(2.5, Layout::build(d, 48).calibration().t, 1e-12);
     }
 }
+
+TEST(LifLayout, UnusedAxisMayHaveNegativeStride)
+{
+    // An axis of one element is never stepped along, so its BytesInc is never used:
+    // a negative one does not make the image unreadable.
+    for (int id : {3, 4, 10, 5}) {
+        SCOPED_TRACE(id);
+        ImageDescription d = plainImage(4, 4);
+        d.dimensions.push_back(dim(id, 1, -16));
+        const Layout l = Layout::build(d, 16);
+        EXPECT_EQ(4, l.width());
+        EXPECT_EQ(4, l.height());
+        EXPECT_EQ(0u, l.planeOffset(0, 0, 0, 0));
+    }
+    // X, Y and a stepped axis still reject it, and a count of 0 is malformed anywhere.
+    {
+        ImageDescription d = plainImage(4, 4);
+        d.dimensions.push_back(dim(3, 2, -16));
+        expectUnsupported([&] { Layout::build(d, 64); }, "negative");
+    }
+    {
+        ImageDescription d = plainImage(4, 1);
+        d.dimensions[1].bytesInc = -4;
+        expectUnsupported([&] { Layout::build(d, 16); }, "negative");
+    }
+    {
+        ImageDescription d = plainImage(4, 4);
+        d.dimensions.push_back(dim(5, 0, 16));
+        expectUnsupported([&] { Layout::build(d, 16); }, "0 elements");
+    }
+}
+
+TEST(LifLayout, SignificantBitsNeverExceedStorage)
+{
+    {
+        // Untyped fallback: one byte per sample by X BytesInc, Resolution says 12.
+        ImageDescription d = plainImage(4, 4);
+        d.channels[0].dataType = -1;
+        d.channels[0].resolution = 12;
+        const Layout l = Layout::build(d, 16);
+        EXPECT_EQ(DataType::DT_Byte, l.dataType());
+        EXPECT_EQ(8, l.significantBits(0));
+    }
+    {
+        // Typed and within the storage width: kept as declared.
+        ImageDescription d = plainImage(4, 4);
+        d.dimensions = {dim(1, 4, 2), dim(2, 4, 8)};
+        d.channels[0].resolution = 12;
+        EXPECT_EQ(12, Layout::build(d, 32).significantBits(0));
+    }
+    {
+        // Untyped, no Resolution: the storage width.
+        ImageDescription d = plainImage(4, 4);
+        d.dimensions = {dim(1, 4, 2), dim(2, 4, 8)};
+        d.channels[0].dataType = -1;
+        d.channels[0].resolution = 0;
+        EXPECT_EQ(16, Layout::build(d, 32).significantBits(0));
+    }
+}

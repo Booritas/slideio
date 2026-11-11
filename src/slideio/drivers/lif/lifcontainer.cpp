@@ -12,7 +12,6 @@
 #include <algorithm>
 #include <cstring>
 #include <limits>
-#include <map>
 
 using namespace slideio;
 using namespace slideio::lif;
@@ -174,12 +173,8 @@ namespace
 
 const MemoryBlock* Container::findBlock(const std::string& id) const
 {
-    for (const MemoryBlock& block : m_blocks) {
-        if (block.id == id) {
-            return &block;
-        }
-    }
-    return nullptr;
+    const auto it = m_firstIndex.find(id);
+    return it == m_firstIndex.end() ? nullptr : &m_blocks[it->second];
 }
 
 Container Container::read(const FileReader& file)
@@ -223,7 +218,6 @@ Container Container::read(const FileReader& file)
     c.m_lengthFieldWidth = chooseWidth(file, blocksStart, c.m_version);
     const int width = c.m_lengthFieldWidth;
 
-    std::map<std::string, size_t> firstIndex;
     uint64_t pos = blocksStart;
     while (pos < size) {
         if (pos + 4 > size) {
@@ -257,13 +251,13 @@ Container Container::read(const FileReader& file)
         block.offset = r.payloadOffset;
         block.length = r.length;
         block.truncated = r.end > size;
-        const auto it = firstIndex.find(block.id);
-        if (it != firstIndex.end()) {
+        const auto it = c.m_firstIndex.find(block.id);
+        if (it != c.m_firstIndex.end()) {
             ++c.m_blocks[it->second].occurrences;
             SLIDEIO_LOG(INFO) << "LIF: memory block id \"" << block.id << "\" occurs more than once";
         }
         else {
-            firstIndex[block.id] = c.m_blocks.size();
+            c.m_firstIndex.emplace(block.id, c.m_blocks.size());
         }
         c.m_blocks.push_back(block);
         if (block.truncated) {

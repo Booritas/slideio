@@ -146,9 +146,6 @@ Layout Layout::build(const ImageDescription& image, uint64_t payloadLength)
         if (d.count < 1) {
             (Reason() << "dimension " << d.dimId << " has " << d.count << " elements").raise();
         }
-        if (d.bytesInc < 0) {
-            (Reason() << "dimension " << d.dimId << " has a negative BytesInc " << d.bytesInc).raise();
-        }
         switch (d.dimId) {
         case kDimX: break;
         case kDimY: y = &d; break;
@@ -179,15 +176,27 @@ Layout Layout::build(const ImageDescription& image, uint64_t payloadLength)
         }
     }
 
+    // A negative BytesInc is malformed on an axis that is stepped along: X, the
+    // display Y, and any axis of more than one element. An axis of one element is
+    // only ever at index 0, so its stride is never used: it is taken as 0.
+    for (const Dimension& d : dims) {
+        if (d.bytesInc < 0 && (&d == x || &d == y || d.count > 1)) {
+            (Reason() << "dimension " << d.dimId << " has a negative BytesInc " << d.bytesInc).raise();
+        }
+    }
+    const auto stride = [](const Dimension* d) {
+        return d && d->bytesInc > 0 ? static_cast<uint64_t>(d->bytesInc) : uint64_t(0);
+    };
+
     l.m_width = toInt(x->count, "X");
     l.m_height = y ? toInt(y->count, "Y") : 1;
     l.m_numZ = z ? toInt(z->count, "Z") : 1;
     l.m_numT = t ? toInt(t->count, "T") : 1;
     l.m_numFields = m ? toInt(m->count, "the tile axis") : 1;
-    l.m_xStride = static_cast<uint64_t>(x->bytesInc);
-    l.m_zStride = z ? static_cast<uint64_t>(z->bytesInc) : 0;
-    l.m_tStride = t ? static_cast<uint64_t>(t->bytesInc) : 0;
-    l.m_mStride = m ? static_cast<uint64_t>(m->bytesInc) : 0;
+    l.m_xStride = stride(x);
+    l.m_zStride = stride(z);
+    l.m_tStride = stride(t);
+    l.m_mStride = stride(m);
 
     // ---- sample type (D 5.2)
     const auto& chans = image.channels;
@@ -233,8 +242,11 @@ Layout Layout::build(const ImageDescription& image, uint64_t payloadLength)
     l.m_dataType = type.first;
     l.m_sampleBytes = type.second;
     const uint64_t b = static_cast<uint64_t>(l.m_sampleBytes);
+    // Significant bits cannot exceed the storage width: a Resolution larger than the
+    // sample (possible when the type came from X BytesInc) is clamped to it.
+    const int storageBits = 8 * l.m_sampleBytes;
     for (const Channel& c : chans) {
-        l.m_bits.push_back(c.resolution > 0 ? c.resolution : 8 * l.m_sampleBytes);
+        l.m_bits.push_back(c.resolution > 0 ? std::min(c.resolution, storageBits) : storageBits);
     }
 
     // ---- interleaved colour (D 5.3) or scalar channels (D 5.4)
@@ -293,7 +305,7 @@ Layout Layout::build(const ImageDescription& image, uint64_t payloadLength)
 
     // ---- rows
     const uint64_t rowBytes = mulChecked(static_cast<uint64_t>(l.m_width), l.m_xStride);
-    l.m_yStride = y ? static_cast<uint64_t>(y->bytesInc) : rowBytes;
+    l.m_yStride = y ? stride(y) : rowBytes;
     if (l.m_height > 1 && l.m_yStride < rowBytes) {
         (Reason() << "row stride " << l.m_yStride << " is shorter than a row of " << rowBytes
             << " bytes").raise();

@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace slideio
@@ -54,6 +55,8 @@ namespace slideio
             int m_version = 0;
             int m_lengthFieldWidth = 8;
             std::vector<MemoryBlock> m_blocks;
+            /// id -> index in m_blocks of its first block.
+            std::unordered_map<std::string, size_t> m_firstIndex;
         };
     }
 }
