@@ -127,11 +127,11 @@ them in isolation, as MRXS and BIF do.
 | `LIFImageDriver` | id `LIF`, file spec `*.lif`; `openFile` builds a `LIFSlide` |
 | `LIFSlide : CVSlide` | Owns the `FileReader`, the parsed header, block index and scenes; slide raw metadata |
 | `LIFScene : CVScene` | One image field: size, channels, Z, T, types, resolution, timestamps, read path |
-| `lif::Container` | Reads the file header and XML; indexes memory blocks (§4.2). File-backed through `FileReader`, no other state |
-| `lif::BlockIndex` | `id → (payloadOffset, payloadLength)`, duplicates detected, empty blocks kept |
-| `lif::ImageDescription` | One `Data/Image`: name path, channels, dimensions, memory ID, attachments it needs (§4.3) |
+| `lif::Container` | Reads the file header and the XML, parsing it once into a `lif::XmlDescription`; indexes memory blocks (§4.2): `blocks()` lists every block in file order, empty ones included, and `findBlock(id)` returns the first with an id, its `occurrences` counting duplicates. Reads through `FileReader`, holds no handle |
+| `lif::XmlDescription` | The parsed XML description: the document and its top-level elements, a synthetic `<LEICA>` wrapper excluded (§4.2) |
+| `lif::ImageDescription` | One `Data/Image`, from `parseImages`: name path, channels, dimensions, memory ID, attachments it needs (§4.3) |
 | `lif::Layout` | Pure, file-free: from an `ImageDescription` and its block length, the validated axis model, sample type and the offset function (§5). Throws `lif::Unsupported` with a reason |
-| `lif::Timestamps` | Parses both timestamp encodings into FILETIME ticks (§6.3) |
+| `lif::parseTimestampTicks`, `lif::PlaneTimes` | The first parses both timestamp encodings of an `Image` into FILETIME ticks; the second maps one field's ticks to (t, c, z) planes in storage order (§6.3) |
 
 `lif::Layout` is where correctness lives and is the most heavily unit-tested
 piece. Nothing in it touches a file.
@@ -156,8 +156,16 @@ acceptance of Bio-Formats' `initFile` (FD §2) is not reproduced.
 
 - **XML**: read `2*N` bytes, decode as UTF-16LE with `Tools::fromUnicode16`
   (not Bio-Formats' NUL-stripping, FD §3), parse with tinyxml2, which resolves no
-  external entities. If the text is not a single well-formed document, wrap it in
-  a synthetic `<LEICA>` root and parse once more; failing that, the open fails.
+  external entities. If the text does not parse, wrap it in a synthetic `<LEICA>`
+  root — after removing a leading `<?xml …?>` declaration, which tinyxml2 refuses
+  inside an element — and parse once more; failing that, the open fails with
+  `LIF: malformed XML description: <tinyxml2's error>`, quoting the unwrapped
+  parse. A text that parses is never wrapped, however many top-level elements it
+  has: every top-level element is searched, both for the container identity
+  (an `LMS_Object_File` anywhere rejects the file; the version comes from the
+  first `LMSDataContainerHeader`) and for images (§4.3). The XML is parsed once
+  per open: `Container` keeps the parsed `XmlDescription` and `parseImages` walks
+  it. *(Decided during implementation.)*
 - **Block length width** is chosen by the container version (FD §13.1):
   root `LMSDataContainerHeader`, `Version="1"` → four bytes, `Version="2"` →
   eight. Any other version falls back to the marker probe (FD §4), and a probe
@@ -189,8 +197,10 @@ Following FD §5, on the parsed XML:
 2. Collect every `Image` element under an `Element/Data`, in document order,
    excluding those whose grandparent is `ProcessingHistory`.
 3. For each, the memory reference is the `Memory/@MemoryBlockID` among the
-   immediate children of the owning `Element`. No ID, or a block of length 0:
-   the element is a container, not an image, and is skipped silently.
+   immediate children of the owning `Element`. No ID, `Memory/@Size="0"`, or a
+   block of length 0 with no positive `Memory/@Size`: the element is a container,
+   not an image, and is skipped silently. A block of length 0 whose `Memory/@Size`
+   is positive is an image with its data missing, and is reported by rule 6.
 4. Memory blocks are attached **by ID only**. Positional matching (Bio-Formats'
    fallback and its late recovery pass) is not implemented: every sample
    resolves by ID, and a positional guess is anti-goal 2.
@@ -226,8 +236,10 @@ matches a Bio-Formats series index whenever no image was skipped.
 - An image without a tile axis, or with one of a single element: scene name is
   the image's path, e.g. `TileScan 1/Merged`.
 - An image with `K > 1` tile fields: scene `j` is named `<path>/Field <j+1>`.
-  *(My call on the spelling. `FieldX`/`FieldY` from `TileScanInfo`, when
-  present, go into the scene's metadata, not the name.)*
+  *(My call on the spelling.)* `FieldX`/`FieldY` are not in the name, and no
+  API exposes them: every field's raw metadata is the image's owning `Element`
+  (§6.4), whose `TileScanInfo` attachment holds all the `Tile` records, and field
+  `j`'s record is the `j`-th `Tile`. *(Decided during implementation.)*
 
 All fields of one image share one `Layout` and one block; a scene holds a
 `shared_ptr` to the layout and its own tile index.
@@ -356,7 +368,7 @@ image (anti-goal 3).
 `slideio::Resolution` is in metres.
 
 - X, Y: `|Length| / (N − 1)` for `N > 1` (FD §8.1; not `Length/N`). Unit `m`
-  only; any other unit gives 0 (unknown) and an INFO log. `N = 1` gives 0.
+  only; any other unit gives 0 (unknown), silently. `N = 1` gives 0.
 - Z (`getZSliceResolution`): the same rule on the Z dimension.
 - T (`getTFrameResolution`): the T dimension's `|Length|/(N−1)` when its unit is
   `s` (`Ks` × 1000); else the scanner setting `nDelayTime_s` when present; else 0.
@@ -415,8 +427,9 @@ storage order). `Region 1` and `Region 1_Merged` (6 stamps for 354 planes) repor
 - Slide raw metadata: the complete decoded XML, `MetadataFormat::XML`.
 - Scene raw metadata: the image's owning `Element`, serialised without its
   child `Element`s (so a folder's raw metadata does not contain its children),
-  `MetadataFormat::XML`. Includes `TileScanInfo` and the field's `Tile` record,
-  from which a caller can get stage positions.
+  `MetadataFormat::XML`. Includes `TileScanInfo` with every field's `Tile`
+  record — field `j`'s is the `j`-th `Tile` — from which a caller can get stage
+  positions. All fields of an image share this text.
 - No auxiliary images. No ICC profile.
 
 ## 7. Read path
@@ -478,7 +491,7 @@ can assert exactly which plane it got. The directory is marked `-text` in
 - Non-ASCII element names (UTF-16LE decoding).
 - Both timestamp encodings; a short timestamp list.
 
-Unit tests on `lif::Layout` and `lif::Timestamps` additionally run on XML
+Unit tests on `lif::Layout`, `lif::parseTimestampTicks` and `lif::PlaneTimes` additionally run on XML
 fragments copied from the real samples' inventories in the validation folder.
 
 ### 8.2 Corpus (`LIFCorpus*`)
@@ -512,7 +525,10 @@ data. The release notes say so until a sample appears.
 
 1. `src/slideio/drivers/lif/`: sources, `CMakeLists.txt` modelled on bif
    (opencv, tinyxml2, slideio-core; no TIFF/JPEG), `lif_api_def.hpp`
-   (`SLIDEIO_LIF_API`), `FIX_MACOS_RPATH`.
+   (`SLIDEIO_LIF_API`). No `FIX_MACOS_RPATH` there, as in no other driver: it
+   rewrites a target's references to the libraries of `NAME_TOOL_LIB_LIST`
+   (item 3), so it belongs on the targets that link the driver — the main
+   library and `slideio_lif_tests` — which call it.
 2. `src/slideio/drivers/CMakeLists.txt`: `add_subdirectory(lif)`.
 3. Root `CMakeLists.txt`: `LIF_DRIVER_NAME`, `NAME_TOOL_LIB_LIST`,
    `SLIDEIO_DRIVER_LIBS`.
