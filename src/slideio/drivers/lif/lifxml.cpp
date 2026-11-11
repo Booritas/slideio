@@ -8,9 +8,10 @@
 
 #include <tinyxml2.h>
 #include <algorithm>
-#include <cstdlib>
 #include <cstring>
+#include <locale>
 #include <set>
+#include <sstream>
 
 using namespace slideio;
 using namespace slideio::lif;
@@ -38,14 +39,21 @@ namespace
         return v ? v : "";
     }
 
+    // A number written by the acquisition software: '.' is its decimal point
+    // whatever the process locale says, so neither strtod nor a default stream will
+    // do (both follow LC_NUMERIC / the global locale: "1.5e-05" reads as 1 in a
+    // German locale). std::from_chars would, but its floating overloads are missing
+    // from the libc++ of the Apple Clang the macOS builds use.
     double toDouble(const char* text, double fallback = 0)
     {
         if (!text || !*text) {
             return fallback;
         }
-        char* end = nullptr;
-        const double v = std::strtod(text, &end);
-        return end == text ? fallback : v;
+        std::istringstream in(text);
+        in.imbue(std::locale::classic());
+        double v = 0;
+        in >> v;
+        return in.fail() ? fallback : v;
     }
 
     // Image elements in document order, skipping LDM_Block_Sequential_Master subtrees.

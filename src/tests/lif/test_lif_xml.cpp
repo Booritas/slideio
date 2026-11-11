@@ -2,8 +2,11 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include <gtest/gtest.h>
+#include <clocale>
+#include <cstdlib>
 #include <string>
 #include "slideio/drivers/lif/lifxml.hpp"
+#include "slideio/drivers/lif/liflayout.hpp"
 #include "slideio/drivers/lif/lifcontainer.hpp"
 #include "slideio/core/tools/filereader.hpp"
 
@@ -39,6 +42,32 @@ namespace
             "</Dimensions></ImageDescription></Image></Data>"
             "<Memory MemoryBlockID=\"" + mem + "\" Size=\"" + size + "\"/>" + children + "</Element>";
     }
+
+    // Sets LC_NUMERIC to the first comma-decimal locale the system has, and puts the
+    // previous one back on destruction, whichever way the test leaves.
+    class CommaDecimalLocale
+    {
+    public:
+        CommaDecimalLocale()
+        {
+            const char* current = std::setlocale(LC_NUMERIC, nullptr);
+            m_saved = current ? current : "C";
+            for (const char* name : {"de_DE.UTF-8", "German_Germany.1252", "de_DE", "de_DE.utf8", "German"}) {
+                if (std::setlocale(LC_NUMERIC, name)) {
+                    m_name = name;
+                    break;
+                }
+            }
+        }
+        ~CommaDecimalLocale() { std::setlocale(LC_NUMERIC, m_saved.c_str()); }
+        CommaDecimalLocale(const CommaDecimalLocale&) = delete;
+        CommaDecimalLocale& operator=(const CommaDecimalLocale&) = delete;
+        /// The locale set, empty when none could be.
+        const std::string& name() const { return m_name; }
+    private:
+        std::string m_saved;
+        std::string m_name;
+    };
 
     std::string wrap(const std::string& inner)
     {
@@ -265,4 +294,23 @@ TEST(LifXml, MalformedThrows)
     catch (const std::exception& ex) {
         EXPECT_NE(std::string::npos, std::string(ex.what()).find("LIF: malformed")) << ex.what();
     }
+}
+
+TEST(LifXml, NumbersIgnoreProcessLocale)
+{
+    const CommaDecimalLocale locale;
+    if (locale.name().empty()) {
+        GTEST_SKIP() << "no comma-decimal locale can be set on this system";
+    }
+    // The locale really does read a comma as the decimal point.
+    ASSERT_EQ(1.5, std::strtod("1,5", nullptr)) << locale.name();
+    const auto v = parseFixture("v2_basic.lif");
+    ASSERT_EQ(1u, v.size());
+    ASSERT_EQ(2u, v[0].dimensions.size());
+    EXPECT_NEAR(1.5e-5, v[0].dimensions[0].length, 1e-15) << locale.name();
+    EXPECT_NEAR(1.1e-5, v[0].dimensions[1].length, 1e-15) << locale.name();
+    EXPECT_DOUBLE_EQ(63., v[0].magnification);
+    const Layout l = Layout::build(v[0], 16 * 12);
+    EXPECT_NEAR(1e-6, l.calibration().x, 1e-12) << locale.name();
+    EXPECT_NEAR(1e-6, l.calibration().y, 1e-12) << locale.name();
 }
