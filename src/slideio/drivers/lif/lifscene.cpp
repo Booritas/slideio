@@ -32,38 +32,14 @@ namespace
     }
 
     // INTER_AREA resampling for every depth a LIF scene returns. cv::resize has no
-    // CV_16F path, and DT_UInt32 travels in a CV_32S matrix (OpenCV 4 has no unsigned
-    // 32-bit depth), which Tools::resize would read as signed.
-    void resizeSamples(const cv::Mat& src, cv::Mat& dst, const cv::Size& size, DataType type)
+    // CV_16F path.
+    void resizeSamples(const cv::Mat& src, cv::Mat& dst, const cv::Size& size)
     {
         if (src.depth() == CV_16F) {
             cv::Mat wide, resized;
             src.convertTo(wide, CV_MAKETYPE(CV_32F, src.channels()));
             cv::resize(wide, resized, size, 0, 0, cv::INTER_AREA);
             resized.convertTo(dst, src.type());
-            return;
-        }
-        if (type == DataType::DT_UInt32) {
-            const int cn = src.channels();
-            cv::Mat wide(src.rows, src.cols, CV_MAKETYPE(CV_64F, cn));
-            for (int y = 0; y < src.rows; ++y) {
-                const uint32_t* s = src.ptr<uint32_t>(y);
-                double* d = wide.ptr<double>(y);
-                for (int i = 0; i < src.cols * cn; ++i) {
-                    d[i] = static_cast<double>(s[i]);
-                }
-            }
-            cv::Mat resized;
-            cv::resize(wide, resized, size, 0, 0, cv::INTER_AREA);
-            dst.create(size, src.type());
-            for (int y = 0; y < size.height; ++y) {
-                const double* s = resized.ptr<double>(y);
-                uint32_t* d = dst.ptr<uint32_t>(y);
-                for (int i = 0; i < size.width * cn; ++i) {
-                    const double v = std::round(s[i]);
-                    d[i] = v <= 0 ? 0u : v >= 4294967295.0 ? 0xFFFFFFFFu : static_cast<uint32_t>(v);
-                }
-            }
             return;
         }
         Tools::resize(src, dst, size, cv::INTER_AREA);
@@ -161,7 +137,9 @@ Resolution LIFScene::getResolution() const
 
 double LIFScene::getZSliceResolution() const
 {
-    return m_calibration.z;
+    // One Z slice: either there is no Z axis, or Z is the display Y of an XZ scan,
+    // whose spacing is already the Y resolution.
+    return m_layout->numZ() > 1 ? m_calibration.z : 0.;
 }
 
 double LIFScene::getTFrameResolution() const
@@ -205,10 +183,6 @@ void LIFScene::checkChannel(int channel) const
 
 int LIFScene::cvDepth() const
 {
-    // OpenCV 4 has no unsigned 32-bit depth; the bits travel unchanged in CV_32S.
-    if (m_layout->dataType() == DataType::DT_UInt32) {
-        return CV_32S;
-    }
     return CVTools::cvTypeFromDataType(m_layout->dataType());
 }
 
@@ -232,7 +206,6 @@ void LIFScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv:
     for (int channel : channels) {
         checkChannel(channel);
     }
-    const DataType type = m_layout->dataType();
     readClampedBlock(getRect(), blockRect, blockSize, channelIndices,
         [&](const cv::Rect& rect, const cv::Size& size, cv::OutputArray part) {
             const int64_t budget = m_limits.maxResampleSourcePixels;
@@ -242,16 +215,21 @@ void LIFScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv:
                 raw.copyTo(part);
                 return;
             }
-            if (int64_t(rect.width) * rect.height <= budget) {
+            // Only a downscale is banded: an upscaled read needs no more memory than its
+            // output, and bands would leave seams in an interpolating upscale.
+            if (int64_t(rect.width) * rect.height <= budget || size.height >= rect.height) {
                 cv::Mat raw, resized;
                 readRaw(rect, channels, zSliceIndex, tFrameIndex, raw);
-                resizeSamples(raw, resized, size, type);
+                resizeSamples(raw, resized, size);
                 resized.copyTo(part);
                 return;
             }
             // Too large to read whole before resampling: read and resample horizontal
             // bands of the source, each into its share of the output rows, so that the
-            // band heights sum exactly to the target height.
+            // band heights sum exactly to the target height. A banded read equals an
+            // unbanded one exactly only at integer ratios, where every band boundary
+            // falls on a whole box of the area filter (as in MRXS); elsewhere it
+            // differs by rounding along the seams.
             cv::Mat result(size, CV_MAKETYPE(cvDepth(), static_cast<int>(channels.size())));
             const double sy = static_cast<double>(rect.height) / size.height;
             const int64_t budgetRows = std::max<int64_t>(1, budget / rect.width);
@@ -264,7 +242,7 @@ void LIFScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv:
                 cv::Mat raw, resized;
                 readRaw(cv::Rect(rect.x, rect.y + y0, rect.width, y1 - y0), channels,
                         zSliceIndex, tFrameIndex, raw);
-                resizeSamples(raw, resized, cv::Size(size.width, oh), type);
+                resizeSamples(raw, resized, cv::Size(size.width, oh));
                 resized.copyTo(result(cv::Rect(0, oy, size.width, oh)));
             }
             result.copyTo(part);

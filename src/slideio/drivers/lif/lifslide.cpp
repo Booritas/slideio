@@ -30,7 +30,13 @@ std::shared_ptr<LIFSlide> LIFSlide::openFile(const std::string& path, ReadLimits
         slide->init(limits);
     }
     catch (const std::exception& e) {
-        throw RuntimeError() << e.what() << " (file: " << path << ")";
+        // The user sees "LIF: <cause> (file: <path>)": the file:line prefix that
+        // RAISE_RUNTIME_ERROR adds is dropped, and a cause from outside the driver
+        // (FileReader, tinyxml2) gains the driver's prefix.
+        const std::string what = e.what();
+        const size_t start = what.find("LIF: ");
+        const std::string cause = start == std::string::npos ? "LIF: " + what : what.substr(start);
+        throw RuntimeError() << cause << " (file: " << path << ")";
     }
     return slide;
 }
@@ -73,9 +79,16 @@ void LIFSlide::init(const ReadLimits& limits)
                 reason = e.what();
             }
         }
-        if (layout && layout->dataType() == DataType::DT_UInt64) {
+        // CVTools::toOpencvType maps DT_UInt32 (8) and DT_UInt64 (10) onto OpenCV type
+        // codes of other types, so the base class's 4D and edge paths would return
+        // wrong output for them.
+        if (layout && layout->dataType() == DataType::DT_UInt32) {
             layout.reset();
-            reason = "64-bit unsigned samples have no OpenCV representation";
+            reason = "32-bit unsigned samples are not supported yet";
+        }
+        else if (layout && layout->dataType() == DataType::DT_UInt64) {
+            layout.reset();
+            reason = "64-bit unsigned samples are not supported yet";
         }
         if (!layout) {
             SLIDEIO_LOG(WARNING) << "LIF: image \"" << image.path << "\" skipped: " << reason;

@@ -72,14 +72,17 @@ namespace
         return out;
     }
 
-    void expectThrowsContaining(const std::function<void()>& f, const std::string& text)
+    // An open error at the user boundary starts with "LIF: " and contains `text`.
+    void expectOpenError(const std::function<void()>& f, const std::string& text)
     {
         try {
             f();
             ADD_FAILURE() << "expected an exception containing \"" << text << "\"";
         }
         catch (const std::exception& e) {
-            EXPECT_NE(std::string(e.what()).find(text), std::string::npos) << e.what();
+            const std::string what = e.what();
+            EXPECT_EQ(0u, what.rfind("LIF: ", 0)) << what;
+            EXPECT_NE(what.find(text), std::string::npos) << what;
         }
     }
 }
@@ -190,7 +193,7 @@ TEST(LifSlide, SkipsUnsupported)
 
 TEST(LifSlide, AllUnsupportedFails)
 {
-    expectThrowsContaining([] { openFixture("all_unsupported.lif"); }, "Lambda");
+    expectOpenError([] { openFixture("all_unsupported.lif"); }, "Lambda");
 }
 
 TEST(LifSlide, DuplicateNamesKept)
@@ -248,14 +251,20 @@ TEST(LifScene, TypesRoundTrip)
     const Expect cases[] = {
         {"U8", DataType::DT_Byte, 0},
         {"U16_12bit", DataType::DT_UInt16, 1},
-        {"U32", DataType::DT_UInt32, 2},
         {"F16", DataType::DT_Float16, 3},
         {"F32", DataType::DT_Float32, 4},
         {"F64", DataType::DT_Float64, 5},
         {"NoDataType16", DataType::DT_UInt16, 6},
     };
     auto slide = openFixture("types.lif");
-    EXPECT_EQ(7, slide->getNumScenes());   // Mismatch is skipped
+    // Mismatch (stride against type) and U32 (no OpenCV depth) are skipped.
+    EXPECT_EQ(6, slide->getNumScenes());
+    const auto& skipped = std::dynamic_pointer_cast<LIFSlide>(slide)->skippedImages();
+    ASSERT_EQ(2u, skipped.size());
+    EXPECT_EQ(0u, skipped[0].rfind("U32: ", 0)) << skipped[0];
+    EXPECT_NE(std::string::npos, skipped[0].find("32-bit unsigned")) << skipped[0];
+    EXPECT_EQ(0u, skipped[1].rfind("Mismatch: ", 0)) << skipped[1];
+    EXPECT_FALSE(slide->getSceneByName("U32"));
     for (const auto& e : cases) {
         SCOPED_TRACE(e.name);
         auto scene = sceneNamed(slide, e.name);
@@ -313,6 +322,9 @@ TEST(LifScene, XzScan)
     ASSERT_TRUE(xz);
     EXPECT_EQ(cv::Rect(0, 0, 16, 5), xz->getRect());
     EXPECT_EQ(1, xz->getNumZSlices());
+    // Z is the display Y here: its spacing is the Y resolution, not a slice spacing.
+    EXPECT_EQ(0., xz->getZSliceResolution());
+    EXPECT_NEAR(5e-6 / 4, xz->getResolution().y, 1e-12);
     const cv::Mat d = toDouble(readFull(xz));
     EXPECT_EQ(lifExpected(2, 0, 0, 3, 0, 0, 0, DataType::DT_Byte), at(d, 2, 3, 0));
     auto xt = sceneNamed(slide, "XT");
@@ -389,7 +401,7 @@ TEST(LifScene, ResampleMatchesCvResize)
     EXPECT_EQ(0, cv::norm(expected, out, cv::NORM_INF));
 }
 
-TEST(LifScene, BandedResampleEqualsUnbanded)
+TEST(LifScene, BandedResampleEqualsUnbandedAtIntegerRatio)
 {
     lif::ReadLimits tiny;
     tiny.maxResampleSourcePixels = 16;
@@ -405,6 +417,23 @@ TEST(LifScene, BandedResampleEqualsUnbanded)
         ASSERT_EQ(rb.size(), ra.size());
         ASSERT_EQ(rb.type(), ra.type());
         EXPECT_EQ(0, cv::norm(ra, rb, cv::NORM_INF)) << a->getName();
+    }
+}
+
+TEST(LifScene, UpscaleIsNeverBanded)
+{
+    // An upscale over the budget is read whole: bands would leave seams in an
+    // interpolating upscale and save no memory.
+    lif::ReadLimits tiny;
+    tiny.maxResampleSourcePixels = 16;
+    auto a = LIFSlide::openFile(fixture("v2_basic.lif"), tiny)->getScene(0);
+    auto b = LIFSlide::openFile(fixture("v2_basic.lif"))->getScene(0);
+    for (int height = 13; height <= 40; ++height) {
+        cv::Mat ra, rb;
+        a->readResampledBlock(a->getRect(), cv::Size(16, height), ra);
+        b->readResampledBlock(b->getRect(), cv::Size(16, height), rb);
+        ASSERT_EQ(rb.size(), ra.size());
+        EXPECT_EQ(0, cv::norm(ra, rb, cv::NORM_INF)) << "height " << height;
     }
 }
 
@@ -443,5 +472,22 @@ TEST(LifImageDriver, ClaimsByNameOnly)
     EXPECT_TRUE(driver.canOpenFile("x.LIF"));
     EXPECT_TRUE(driver.canOpenFile("x.lif"));
     EXPECT_FALSE(driver.canOpenFile("x.lifext"));
-    expectThrowsContaining([&] { driver.openFile(fixture("not_lif.lif")); }, "LIF: not a Leica LIF file");
+    expectOpenError([&] { driver.openFile(fixture("not_lif.lif")); }, "LIF: not a Leica LIF file");
+    expectOpenError([&] { driver.openFile(fixture("not_lif.lif")); }, "(file: ");
+}
+
+TEST(LifSlide, OpenErrorsStartWithLif)
+{
+    // The file:line prefix of the internal error is dropped...
+    try {
+        openFixture("lof.lif");
+        ADD_FAILURE() << "lof.lif opened";
+    }
+    catch (const std::exception& e) {
+        const std::string what = e.what();
+        EXPECT_EQ(0u, what.rfind("LIF: ", 0)) << what;
+        EXPECT_EQ(std::string::npos, what.find(".cpp:")) << what;
+    }
+    // ...and an error from outside the driver gains the prefix.
+    expectOpenError([] { openFixture("does_not_exist.lif"); }, "does_not_exist.lif");
 }
