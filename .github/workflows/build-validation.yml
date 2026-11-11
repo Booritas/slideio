@@ -208,6 +208,11 @@ jobs:
       - name: BIF tests under ThreadSanitizer
         run: ./build/debug/bin/slideio_bif_tests --gtest_filter="-BIFCorpus*"
 
+      # The LIF suites that need no corpus: synthetic fixtures committed in
+      # src/tests/lif/data; LIFCorpus* suites need the slide corpus and are excluded.
+      - name: LIF tests under ThreadSanitizer
+        run: ./build/debug/bin/slideio_lif_tests --gtest_filter="-LIFCorpus*"
+
   build-windows:
     name: Windows
     runs-on: windows-2022
@@ -292,4 +297,5 @@ jobs:
               ./build/release/bin/slideio_tests --gtest_filter="FileReader.*:ContextPool.*"
               ./build/release/bin/slideio_mrxs_tests --gtest_filter="-MRXSCorpus*"
               ./build/release/bin/slideio_bif_tests --gtest_filter="-BIFCorpus*"
+              ./build/release/bin/slideio_lif_tests --gtest_filter="-LIFCorpus*"
             '

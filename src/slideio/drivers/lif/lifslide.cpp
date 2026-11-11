@@ -138,8 +138,8 @@ std::string LIFSlide::getFilePath() const
 std::shared_ptr<CVScene> LIFSlide::getScene(int index) const
 {
     if (index < 0 || index >= getNumScenes()) {
-        RAISE_RUNTIME_ERROR << "LIF: scene index " << index << " is out of range [0, "
-            << getNumScenes() << ")";
+        RAISE_RUNTIME_ERROR << "LIF driver: invalid scene index: " << index << ", the slide has "
+            << getNumScenes() << " scenes";
     }
     return m_scenes[index];
 }

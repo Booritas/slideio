@@ -192,3 +192,10 @@ TEST(SceneLifetime, bif)
     SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
     expectScenesOutliveTheirSlide(path, "BIF");
 }
+
+TEST(SceneLifetime, lif)
+{
+    const std::string path = TestTools::getTestImagePath("lif", "bioformats/michael/PR2729_frameOrderCombinedScanTypes.lif");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
+    expectScenesOutliveTheirSlide(path, "LIF");
+}

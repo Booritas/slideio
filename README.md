@@ -29,6 +29,7 @@ The module accesses images through a system of image drivers, each implementing 
 | **OME-TIFF** | [OME-TIFF](https://ome-model.readthedocs.io/en/stable/ome-tiff/) | *.ome.tif, *.ome.tiff, *.ome.tf2, *.ome.tf8, *.ome.btf | [Open Microscopy Environment](https://www.openmicroscopy.org/) | |
 | **PHTIFF** | Philips TIFF | *.tif, *.tiff | [Philips](https://www.philips.com/) | [Philips IntelliSite Ultra Fast Scanner](https://www.usa.philips.com/healthcare/resources/landing/philips-intellisite-pathology-solution) |
 | **BIF** | [Ventana BIF](https://diagnostics.roche.com/global/en/products/instruments/ventana-dp-200-ins-2575.html) | *.bif | [Roche Diagnostics](https://diagnostics.roche.com/) | Tested with Ventana iScan (Coreo/HT, 2011) and [VENTANA DP 200](https://diagnostics.roche.com/global/en/products/instruments/ventana-dp-200-ins-2575.html) |
+| **LIF** | [Leica LIF](https://www.openmicroscopy.org/bio-formats/) | *.lif | [Leica Microsystems](https://www.leica-microsystems.com/) | Tested with Leica LAS X files from the Bio-Formats sample set |
 | **GDAL** | General image formats | *.png, *.jpeg, *.jpg, *.tif, *.tiff, *.bmp, *.gif, *.jp2 | - | - |
 
 The library is built as a c++ python extension and provides c++ and python interfaces.

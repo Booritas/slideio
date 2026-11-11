@@ -53,6 +53,7 @@ target_link_libraries(${LIBRARY_NAME}
    ${OMETIFF_DRIVER_NAME}
    ${MRXS_DRIVER_NAME}
    ${BIF_DRIVER_NAME}
+   ${LIF_DRIVER_NAME}
    )
 
 IF(WIN32)

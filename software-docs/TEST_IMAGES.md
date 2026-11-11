@@ -17,6 +17,7 @@ every data root can be written the same way.
 |---|---|
 | `bif` | `slideio_bif_tests` |
 | `converter` | `slideio_converter_tests` |
+| `lif` | `slideio_lif_tests` |
 | `main` | `slideio_tests` |
 | `mrxs` | `slideio_mrxs_tests` |
 | `ndpi` | `slideio_ndpi_tests` |
@@ -38,10 +39,10 @@ programs under `src/single_tests/` have no test cases, so they show `--`.
 
 | | Count | Size |
 |---|---:|---:|
-| Images referenced by tests | 255 | |
-| Present on this machine | 250 | **110.0 GB** |
+| Images referenced by tests | 256 | |
+| Present on this machine | 251 | **110.0 GB** |
 | Referenced but absent | 5 | -- |
-| Static references in test code | 766 | |
+| Static references in test code | 769 | |
 | References built at run time | 57 | |
 
 ### By directory
@@ -64,6 +65,7 @@ programs under `src/single_tests/` have no test cases, so they show `--`.
 | `images/images/jpeg` | 2.3 MB | 4 | 0 |
 | `images/images/jxr` | 2.1 MB | 5 | 0 |
 | `images/images/jp2K` | 367.5 KB | 2 | 0 |
+| `images/images/lif` | 222.1 KB | 1 | 0 |
 | `images/images/mirax/zenodo/2401582-38_mihc` | 51.9 KB | 1 | 0 |
 | `images/images/mirax/openslide/CMU-1-Saved-1_16` | 41.3 KB | 1 | 0 |
 | `images/images/mirax/reference` | 35.6 KB | 2 | 0 |
@@ -269,6 +271,7 @@ Sizes are what is on disk now. "Tests" counts the distinct tests naming the imag
 | `images/images/hamamatsu/DM0014 - 2020-04-02 11.10.47-resampled.png` | 256.3 KB | ndpi | 1 |
 | `images/images/dcm/private/H01EBB50P-24777.block.png` | 250.1 KB | main | 1 |
 | `images/images/vsi/test-output/G1M16_ABD_HE_B6.vsi-40x_01(1,x=0,y=0,w=512,h=512).png` | 227.6 KB | vsi | 1 |
+| `images/images/lif/bioformats/michael/PR2729_frameOrderCombinedScanTypes.lif` | 222.1 KB | main | 3 |
 | `images/images/vsi/test-output/1286FL9057GDF8RGDX257R2GLHZ.png` | 205.9 KB | vsi | 3 |
 | `images/images/hamamatsu/DM0014 - 2020-04-02 10.25.21-roi-resampled.png` | 198.6 KB | ndpi | 1 |
 | `images/images/hamamatsu/HE_Hamamatsu-roi.png` | 196.2 KB | ndpi | 1 |

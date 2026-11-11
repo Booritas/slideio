@@ -122,6 +122,7 @@ set(NAME_TOOL_LIB_LIST
     "lib${OMETIFF_DRIVER_NAME}.dylib"
     "lib${MRXS_DRIVER_NAME}.dylib"
     "lib${BIF_DRIVER_NAME}.dylib"
+    "lib${LIF_DRIVER_NAME}.dylib"
     "lib${IMAGETOOLS_LIB_NAME}.dylib"
     "lib${CONVERTER_LIB_NAME}.dylib"
     "lib${TRANSFORMER_LIB_NAME}.dylib"
@@ -352,6 +353,7 @@ set(SLIDEIO_DRIVER_LIBS
     ${OMETIFF_DRIVER_NAME}
     ${MRXS_DRIVER_NAME}
     ${BIF_DRIVER_NAME}
+    ${LIF_DRIVER_NAME}
 )
 
 set(SLIDEIO_ALL_LIBS ${SLIDEIO_PUBLIC_LIBS} ${SLIDEIO_DRIVER_LIBS})
