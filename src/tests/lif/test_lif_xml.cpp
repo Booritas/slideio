@@ -132,6 +132,53 @@ TEST(LifXml, ReadsMagnification)
     EXPECT_EQ(16 * 12, v[0].declaredSize);
 }
 
+namespace
+{
+    std::vector<ImageDescription> withAttachment(const std::string& attachment)
+    {
+        return parseImages(wrap("<Element Name=\"T\"><Data><Image><ImageDescription/>" + attachment
+            + "</Image></Data><Memory MemoryBlockID=\"M\" Size=\"4\"/></Element>"));
+    }
+}
+
+// The shape of IT4_27_02_15.lif (figshare), trimmed: the attachment is a
+// HardwareSettingList and the definitions live only inside LDM_Block_Sequential.
+TEST(LifXml, ReadsMagnificationFromSequentialList)
+{
+    const auto v = withAttachment(
+        "<Attachment Name=\"HardwareSettingList\" Application=\"LAS AF\">"
+        "<HardwareSetting Name=\"default\"><ScannerSetting/>"
+        "<LDM_Block_Sequential>"
+        "<LDM_Block_Sequential_Master><ATLConfocalSettingDefinition Magnification=\"100\" ObjectiveName=\"Dummy6\"/>"
+        "</LDM_Block_Sequential_Master>"
+        "<LDM_Block_Sequential_List><ATLConfocalSettingDefinition Magnification=\"100\" ObjectiveName=\"Dummy6\"/>"
+        "<ATLConfocalSettingDefinition Magnification=\"100\" ObjectiveName=\"Dummy6\"/></LDM_Block_Sequential_List>"
+        "<LDM_Block_Sequential_Execution_Mask><InstrumentSettingMask/></LDM_Block_Sequential_Execution_Mask>"
+        "</LDM_Block_Sequential><FilterSetting/></HardwareSetting></Attachment>");
+    ASSERT_EQ(1u, v.size());
+    EXPECT_EQ(100.0, v[0].magnification);
+}
+
+// A direct definition wins over a sequential one, as in Project007.
+TEST(LifXml, DirectMagnificationWinsOverSequential)
+{
+    const auto v = withAttachment(
+        "<Attachment Name=\"HardwareSetting\">"
+        "<LDM_Block_Sequential><LDM_Block_Sequential_Master>"
+        "<ATLConfocalSettingDefinition Magnification=\"10\"/></LDM_Block_Sequential_Master></LDM_Block_Sequential>"
+        "<ATLConfocalSettingDefinition Magnification=\"63\"/></Attachment>");
+    ASSERT_EQ(1u, v.size());
+    EXPECT_EQ(63.0, v[0].magnification);
+}
+
+TEST(LifXml, NoMagnificationIsZero)
+{
+    const auto v = withAttachment("<Attachment Name=\"TileScanInfo\"/>"
+        "<Attachment Name=\"HardwareSettingList\"><HardwareSetting/></Attachment>");
+    ASSERT_EQ(1u, v.size());
+    EXPECT_EQ(0.0, v[0].magnification);
+}
+
 TEST(LifXml, ReadsDelayAndTileFields)
 {
     const std::string att =

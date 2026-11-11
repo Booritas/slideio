@@ -350,8 +350,8 @@ image (anti-goal 3).
 - For an XZ scan the Y resolution is the Z spacing; for XT it is 0 (time is not
   a length).
 - Magnification: `ATLConfocalSettingDefinition` or `ATLCameraSettingDefinition`
-  `@Magnification` in the `HardwareSetting` attachment, when present; else 0.
-  To be confirmed on the corpus before relying on it.
+  `@Magnification`, a direct child of the `HardwareSetting` (or `HardwareSettingList`)
+  attachment; failing that, the first one under an `LDM_Block_Sequential` in it; else 0.
 
 *Corpus outcome (`LIFCorpusOpen.ScenesMatchBioFormats`, `.Magnification`):* X, Y and
 Z agree with Bio-Formats to 1e-9 relative on 137 of 137 series, except Z on the 21
@@ -359,9 +359,10 @@ Z stacks of `IT4_27_02_15.lif`: Bio-Formats reports one step for the whole file,
 1.00708103855232 µm (the scanner's `dblVoxelZ`/`dblStepSize`), while `|Length|/(N−1)`
 gives 1.0070808–1.0070813 µm per image — under 3e-7 relative, kept as is and printed by
 the test. Magnification matches the attribute in six files (FRET-Efficiency, a
-computed image, has none); `IT4_27_02_15.lif` reads 0 because its attachment is named
-`HardwareSettingList` and holds the definition only inside `LDM_Block_Sequential`
-(100 on the Z stacks, 5 on the `*_5x` images) — a known gap the test pins.
+computed image, has none). `IT4_27_02_15.lif` names its attachment `HardwareSettingList`
+and holds the definition only inside `LDM_Block_Sequential`; when no direct definition
+carries `@Magnification`, the first one under `LDM_Block_Sequential` is used (sequences
+share the objective), giving 100 on the Z stacks and 5 on the `*_5x` images.
 
 ### 6.3 Timestamps
 

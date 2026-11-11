@@ -29,6 +29,10 @@ public class LifScenes {
         return v == null ? "" : Double.toString(v.doubleValue());
     }
 
+    static String name(String n) {
+        return n == null ? "" : n;
+    }
+
     public static void main(String[] args) throws Exception {
         DebugTools.setRootLevel("ERROR");
         Path root = Path.of(args[0]);
@@ -47,7 +51,7 @@ public class LifScenes {
                     r.setId(p.toString());
                     for (int s = 0; s < r.getSeriesCount(); s++) {
                         r.setSeries(s);
-                        out.print(String.join("\t", rel, Integer.toString(s), meta.getImageName(s),
+                        out.print(String.join("\t", rel, Integer.toString(s), name(meta.getImageName(s)),
                             Integer.toString(r.getSizeX()), Integer.toString(r.getSizeY()),
                             Integer.toString(r.getSizeC()), Integer.toString(r.getSizeZ()),
                             Integer.toString(r.getSizeT()),

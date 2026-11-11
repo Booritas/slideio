@@ -139,18 +139,59 @@ namespace
         }
     }
 
-    // HardwareSetting attachment, direct ATL*SettingDefinition child. The
-    // definition nested in LDM_Block_Sequential_Master is deliberately not looked at.
+    bool isSettingDefinition(const XMLElement* e)
+    {
+        return (is(e, "ATLConfocalSettingDefinition") || is(e, "ATLCameraSettingDefinition"))
+            && e->Attribute("Magnification");
+    }
+
+    // First ATL*SettingDefinition carrying @Magnification anywhere below `node`, in
+    // document order. Unlike findDescendant it does enter LDM_Block_Sequential_Master:
+    // it is only used inside an LDM_Block_Sequential, where the master is one more copy
+    // of the hardware setting, not a sequence image.
+    const XMLElement* findSettingDefinition(const XMLElement* node)
+    {
+        for (const XMLElement* c = node->FirstChildElement(); c; c = c->NextSiblingElement()) {
+            if (isSettingDefinition(c)) {
+                return c;
+            }
+            if (const XMLElement* r = findSettingDefinition(c)) {
+                return r;
+            }
+        }
+        return nullptr;
+    }
+
+    // Magnification of the objective, from the image's hardware setting attachment.
+    // Two shapes occur in the corpus:
+    //  - Attachment Name="HardwareSetting" with a direct ATL*SettingDefinition child
+    //    (AMR1, FRET, PR2729, FRAP, Project007, Intro). The direct child wins; the copy
+    //    nested in LDM_Block_Sequential_Master is not looked at.
+    //  - Attachment Name="HardwareSettingList" > HardwareSetting > LDM_Block_Sequential >
+    //    LDM_Block_Sequential_List / _Master > ATLConfocalSettingDefinition, with no direct
+    //    definition (IT4_27_02_15.lif). Then the first definition under an
+    //    LDM_Block_Sequential is used. Assumption: the sequences of one acquisition share
+    //    the objective, so every definition there carries the same Magnification (true
+    //    of every image in IT4).
     void readMagnification(const XMLElement* image, ImageDescription& d)
     {
         for (const XMLElement* att = image->FirstChildElement("Attachment"); att;
              att = att->NextSiblingElement("Attachment")) {
-            if (attr(att, "Name") != "HardwareSetting") {
+            const std::string name = attr(att, "Name");
+            if (name != "HardwareSetting" && name != "HardwareSettingList") {
                 continue;
             }
             for (const XMLElement* e = att->FirstChildElement(); e; e = e->NextSiblingElement()) {
-                if ((is(e, "ATLConfocalSettingDefinition") || is(e, "ATLCameraSettingDefinition"))
-                    && e->Attribute("Magnification")) {
+                if (isSettingDefinition(e)) {
+                    d.magnification = toDouble(e->Attribute("Magnification"));
+                    return;
+                }
+            }
+            const XMLElement* sequential = findDescendant(att, [](const XMLElement* e) {
+                return is(e, "LDM_Block_Sequential");
+            });
+            if (sequential) {
+                if (const XMLElement* e = findSettingDefinition(sequential)) {
                     d.magnification = toDouble(e->Attribute("Magnification"));
                     return;
                 }

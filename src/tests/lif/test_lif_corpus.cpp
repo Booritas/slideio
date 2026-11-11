@@ -150,7 +150,7 @@ TEST(LIFCorpusOpen, ScenesMatchBioFormats)
     }
     ASSERT_EQ(std::size(kFiles), byFile.size());
     size_t seriesChecked = 0;
-    int recordedZDisagreements = 0;
+    std::set<int> recordedZDisagreements;
     for (const auto& [file, rows] : byFile) {
         SCOPED_TRACE(file);
         const auto slide = openCorpus(file);
@@ -203,7 +203,7 @@ TEST(LIFCorpusOpen, ScenesMatchBioFormats)
                 const bool recorded = file == "figshare/IT4_27_02_15.lif" && axis == 2
                     && std::abs(driverUm[axis] - reference) <= 1e-6 * reference;
                 if (recorded) {
-                    ++recordedZDisagreements;
+                    recordedZDisagreements.insert(series);
                 }
                 else {
                     ADD_FAILURE() << columns[axis] << ": driver " << driverUm[axis]
@@ -215,7 +215,11 @@ TEST(LIFCorpusOpen, ScenesMatchBioFormats)
     }
     EXPECT_EQ(137u, seriesChecked);
     // Series 0-20 of IT4 are its Z stacks; 21-25 are single planes (no Z step).
-    EXPECT_EQ(21, recordedZDisagreements);
+    std::set<int> zStacks;
+    for (int series = 0; series <= 20; ++series) {
+        zStacks.insert(series);
+    }
+    EXPECT_EQ(zStacks, recordedZDisagreements);
 }
 
 // Three 7x5 regions of every plane of every series, against the CRC-32 of the bytes
@@ -371,14 +375,11 @@ TEST(LIFCorpusOpen, Timestamps)
     EXPECT_EQ(461, planesCompared);
 }
 
-// Magnification, printed per file and checked against the values in the files: the
-// @Magnification of the ATLConfocalSettingDefinition directly under each image's
-// "HardwareSetting" attachment. FRET-Efficiency, a computed image, has no attachment.
-//
-// IT4_27_02_15.lif reads 0: its attachment is named "HardwareSettingList" and holds
-// the definition only inside LDM_Block_Sequential (Magnification 100 on the Z stacks,
-// 5 on the *_5x images), a shape the driver does not look into. That is a known gap,
-// asserted as it stands so that closing it changes this test on purpose.
+// Magnification, printed per file and checked against the values in the files. Six
+// files carry it on the ATLConfocalSettingDefinition directly under each image's
+// "HardwareSetting" attachment; FRET-Efficiency, a computed image, has no attachment.
+// IT4_27_02_15.lif has a "HardwareSettingList" attachment with the definition only
+// inside LDM_Block_Sequential: 100 on its 21 Z stacks, 5 on the five *_5x images.
 TEST(LIFCorpusOpen, Magnification)
 {
     for (const char* file : kFiles) {
@@ -391,7 +392,7 @@ TEST(LIFCorpusOpen, Magnification)
         {"bioformats/michael/PR2729_frameOrderCombinedScanTypes.lif", {{10., 4}}},
         {kFrap, {{63., 8}}},
         {kProject007, {{63., 7}}},
-        {"figshare/IT4_27_02_15.lif", {{0., 26}}},
+        {"figshare/IT4_27_02_15.lif", {{5., 5}, {100., 21}}},
         {kIntro, {{10., 51}, {25., 6}}},
     };
     for (const char* file : kFiles) {
