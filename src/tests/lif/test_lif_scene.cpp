@@ -6,7 +6,11 @@
 // auxfiles/lif-fixtures/generate.py. Corpus-free.
 #include <gtest/gtest.h>
 #include <filesystem>
+#include <algorithm>
+#include <cmath>
+#include <functional>
 #include <memory>
+#include <sstream>
 #include <string>
 #include <vector>
 #include <opencv2/core.hpp>
@@ -435,7 +439,7 @@ TEST(LifScene, ResampleMatchesCvResize)
     EXPECT_EQ(0, cv::norm(expected, out, cv::NORM_INF));
 }
 
-TEST(LifScene, BandedResampleEqualsUnbandedAtIntegerRatio)
+TEST(LifScene, BandedResampleIsExactAtIntegerRatio)
 {
     lif::ReadLimits tiny;
     tiny.maxResampleSourcePixels = 16;
@@ -454,9 +458,172 @@ TEST(LifScene, BandedResampleEqualsUnbandedAtIntegerRatio)
     }
 }
 
+namespace
+{
+    // Integer types: within 1 (OpenCV's fixed-point and rounding paths); float types:
+    // 1e-4 relative, 1e-3 for half floats, whose own step is about that size.
+    void expectResampleClose(const cv::Mat& expected, const cv::Mat& actual, const std::string& what)
+    {
+        ASSERT_EQ(expected.size(), actual.size()) << what;
+        ASSERT_EQ(expected.type(), actual.type()) << what;
+        const int depth = expected.depth();
+        if (depth != CV_16F && depth != CV_32F && depth != CV_64F) {
+            EXPECT_LE(cv::norm(expected, actual, cv::NORM_INF), 1.) << what;
+            return;
+        }
+        const double relative = depth == CV_16F ? 1e-3 : 1e-4;
+        const cv::Mat e = toDouble(expected);
+        const cv::Mat a = toDouble(actual);
+        const int n = e.cols * e.channels();
+        int bad = 0;
+        for (int y = 0; y < e.rows; ++y) {
+            for (int i = 0; i < n; ++i) {
+                const double ev = e.ptr<double>(y)[i];
+                const double av = a.ptr<double>(y)[i];
+                if (std::fabs(ev - av) > relative * std::max(1., std::fabs(ev))) {
+                    ++bad;
+                }
+            }
+        }
+        EXPECT_EQ(0, bad) << what;
+    }
+
+    struct Budgeted
+    {
+        std::shared_ptr<CVSlide> slide;
+        std::shared_ptr<lif::ReadStats> stats;
+    };
+
+    Budgeted openBudgeted(const std::string& name, int64_t budget)
+    {
+        lif::ReadLimits limits;
+        limits.maxResampleSourcePixels = budget;
+        limits.stats = std::make_shared<lif::ReadStats>();
+        return {LIFSlide::openFile(fixture(name), limits), limits.stats};
+    }
+
+    std::string describe(const std::string& scene, const cv::Rect& rect, const cv::Size& size, int64_t budget)
+    {
+        std::ostringstream s;
+        s << scene << " " << rect << " -> " << size << " budget " << budget;
+        return s.str();
+    }
+}
+
+TEST(LifScene, BandedEqualsUnbandedFractional)
+{
+    // Every depth and layout the fixtures have: uint8, uint16 with two channels,
+    // interleaved RGB, half/single/double floats, and the hard edges of contrast.lif.
+    const char* files[] = {"v2_basic.lif", "nesting.lif", "rgb.lif", "types.lif", "contrast.lif"};
+    const cv::Size sizes[] = {{5, 4}, {3, 5}, {7, 2}, {1, 1}, {5, 5}, {8, 1}, {1, 6}};
+    const int64_t budgets[] = {1, 7, 16, 47};
+    for (const char* file : files) {
+        auto plain = LIFSlide::openFile(fixture(file));
+        for (int64_t budget : budgets) {
+            auto banded = openBudgeted(file, budget);
+            for (int i = 0; i < plain->getNumScenes(); ++i) {
+                auto a = banded.slide->getScene(i);
+                auto b = plain->getScene(i);
+                const cv::Rect full = b->getRect();
+                // The whole image and an interior rectangle, whose grid starts off zero.
+                const cv::Rect rects[] = {full, cv::Rect(1, 1, full.width - 2, full.height - 1)};
+                for (const cv::Rect& rect : rects) {
+                    for (const cv::Size& size : sizes) {
+                        if (size.width > rect.width || size.height > rect.height) {
+                            continue;
+                        }
+                        cv::Mat ra, rb;
+                        a->readResampledBlockChannels(rect, size, {}, ra);
+                        b->readResampledBlockChannels(rect, size, {}, rb);
+                        expectResampleClose(rb, ra, describe(std::string(file) + ":" + b->getName(), rect, size, budget));
+                    }
+                }
+            }
+            EXPECT_LE(banded.stats->peakSourcePixels.load(), std::max<int64_t>(budget, 1)) << file << " budget " << budget;
+        }
+    }
+}
+
+TEST(LifScene, BandedHighContrastIsTheAreaFilter)
+{
+    // Rows 0, 255, 0 ... at 12 -> 5: each output row is a 2.4-row box of the source.
+    // Bands resampled on their own grids give a different answer; the tiled filter
+    // must give the whole-image one.
+    auto plain = LIFSlide::openFile(fixture("contrast.lif"))->getScene(0);
+    const cv::Mat full = readFull(plain);
+    ASSERT_EQ(CV_8UC1, full.type());
+    for (const cv::Size size : {cv::Size(12, 5), cv::Size(5, 5)}) {
+        SCOPED_TRACE(::testing::Message() << size);
+        cv::Mat expected;
+        cv::resize(full, expected, size, 0, 0, cv::INTER_AREA);
+        // What the per-band resampling did: one output row per band, each from its own
+        // rounded source rows.
+        cv::Mat perBand(size, CV_8UC1);
+        const double sy = 12. / 5.;
+        for (int oy = 0; oy < size.height; ++oy) {
+            const int y0 = static_cast<int>(std::floor(oy * sy));
+            const int y1 = std::min(12, static_cast<int>(std::ceil((oy + 1) * sy)));
+            cv::Mat band;
+            cv::resize(full.rowRange(y0, y1), band, cv::Size(size.width, 1), 0, 0, cv::INTER_AREA);
+            band.copyTo(perBand.row(oy));
+        }
+        // Far outside the tolerance of 1, so the comparison below can tell them apart.
+        ASSERT_GE(cv::norm(expected, perBand, cv::NORM_INF), 10.) << "the fixture does not tell the two apart";
+        for (int64_t budget : {12, 1, 30}) {
+            auto banded = openBudgeted("contrast.lif", budget);
+            cv::Mat out;
+            banded.slide->getScene(0)->readResampledBlock(plain->getRect(), size, out);
+            expectResampleClose(expected, out, "budget " + std::to_string(budget));
+            EXPECT_LE(banded.stats->peakSourcePixels.load(), budget);
+        }
+    }
+}
+
+TEST(LifScene, WidthOnlyDownscaleRespectsBudget)
+{
+    for (const char* file : {"v2_basic.lif", "contrast.lif"}) {
+        auto plain = LIFSlide::openFile(fixture(file))->getScene(0);
+        const cv::Rect rect = plain->getRect();
+        for (int width : {5, 7, 1}) {
+            const cv::Size size(width, rect.height);
+            cv::Mat expected;
+            plain->readResampledBlock(rect, size, expected);
+            for (int64_t budget : {1, 7, 16}) {
+                auto banded = openBudgeted(file, budget);
+                cv::Mat out;
+                banded.slide->getScene(0)->readResampledBlock(rect, size, out);
+                expectResampleClose(expected, out, describe(file, rect, size, budget));
+                EXPECT_LE(banded.stats->peakSourcePixels.load(), budget) << describe(file, rect, size, budget);
+            }
+        }
+    }
+}
+
+TEST(LifScene, TallColumnRespectsBudget)
+{
+    // One output row whose source is the whole image: no budget smaller than the
+    // image may lead to reading it whole, even one smaller than a source row.
+    for (const char* file : {"v2_basic.lif", "contrast.lif"}) {
+        auto plain = LIFSlide::openFile(fixture(file))->getScene(0);
+        const cv::Rect rect = plain->getRect();
+        for (int width : {rect.width, 3, 1}) {
+            const cv::Size size(width, 1);
+            cv::Mat expected;
+            plain->readResampledBlock(rect, size, expected);
+            for (int64_t budget : {1, 7, 16, 47}) {
+                auto banded = openBudgeted(file, budget);
+                cv::Mat out;
+                banded.slide->getScene(0)->readResampledBlock(rect, size, out);
+                expectResampleClose(expected, out, describe(file, rect, size, budget));
+                EXPECT_LE(banded.stats->peakSourcePixels.load(), budget) << describe(file, rect, size, budget);
+            }
+        }
+    }
+}
+
 TEST(LifScene, UpscaleIsNeverBanded)
 {
-    // An upscale over the budget is read whole: bands would leave seams in an
+    // An upscale over the budget is read whole: tiles would leave seams in an
     // interpolating upscale and save no memory.
     lif::ReadLimits tiny;
     tiny.maxResampleSourcePixels = 16;

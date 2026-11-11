@@ -249,7 +249,8 @@ All fields of one image share one `Layout` and one block; a scene holds a
 ### 5.1 Axis model
 
 Parse every `DimensionDescription` (`DimID`, `NumberOfElements`, `BytesInc`,
-`Origin`, `Length`, `Unit`) and every `ChannelDescription` (`DataType`,
+`Origin`, `Length`, `Unit`; every floating-point value in the XML is read with `.` as
+the decimal point whatever the process locale, *PR #96 review*) and every `ChannelDescription` (`DataType`,
 `Resolution`, `BytesInc`, `LUTName`, `ChannelTag`, `Min`, `Max`, `Unit`, any
 other attribute kept verbatim). Axes are kept by identity, not flattened:
 
@@ -269,6 +270,9 @@ with a reason when broken:
 
 - X, Y and every stacked axis have `NumberOfElements ≥ 1`; a repeated DimID is
   rejected (Bio-Formats' "second Y fills Z, then T" is not reproduced).
+- A negative `BytesInc` is rejected on X, on the display Y and on any axis with
+  more than one element. On an axis of one element it is never used (index 0) and
+  is taken as 0 *(PR #96 review)*.
 - An extra axis with more than one element is rejected. With exactly one
   element it is ignored. *(Bio-Formats folds extra axes into Z or T, which
   misnames them; refusing is what FD §9 recommends. λ-scans are the likely
@@ -292,7 +296,8 @@ with it, or the image is rejected.
 
 All channels of an image must share one storage width (FD §13.2: liffile does
 not support mixed either). `Resolution` is reported as
-`getChannelSignificantBits`; pixels are returned as stored.
+`getChannelSignificantBits`, clamped to the storage width (it can exceed it when the
+type came from the X-stride fallback); pixels are returned as stored.
 
 *(Decided during implementation.)* UInt32 and UInt64 images are skipped as
 unsupported in this version: core maps `DT_UInt32` to a wrong OpenCV type, and
@@ -451,10 +456,36 @@ the 4D and level variants use the base class defaults (single level).
 4. Resize to `blockSize` when it differs, with the resize helper the other
    drivers use, then return.
 
-Downscaled reads of large images (merged mosaics) read the source in bands when
-the source exceeds the `maxResampleSourcePixels` bound, as MRXS does, so memory
-stays bounded. Banding applies only to downscaled reads; banded and unbanded
-results are identical only at integer ratios. *(Decided during implementation.)*
+A downscale (no larger on either axis) whose source exceeds
+`ReadLimits::maxResampleSourcePixels` (16 Mi pixels) is not read whole: it is read in
+tiles and area-filtered tile by tile, so memory stays bounded on merged mosaics.
+*(Decided during implementation; revised after the PR #96 review.)*
+
+- **Same filter as the unbanded read.** The weights are those of
+  `cv::resize(INTER_AREA)` for the whole source rectangle — OpenCV's
+  `computeResizeAreaTab`, rebuilt per axis with the same scale, cell bounds and
+  thresholds — indexed by each source pixel's position in that rectangle. Output
+  pixel `(ox, oy)` is the weighted mean of the box `[ox·sx, (ox+1)·sx) ×
+  [oy·sy, (oy+1)·sy)` with fractional edge weights in global coordinates. Each tile
+  adds its pixels' weighted values to per-output sums (horizontal pass, then
+  vertical), so tiles need not align with output cells and an output cell that
+  spans many tiles collects its sum from all of them. The result does not depend on
+  the budget and equals the unbanded `cv::resize` within 1 for integer types (sums
+  kept in double and rounded half up, where OpenCV accumulates in float or fixed
+  point) and within 1e-4 relative for float types, 1e-3 for half floats — at integer
+  and non-integer ratios alike.
+- **Budget invariant, on both axes.** No buffer such a read assembles from the file
+  holds more than `max(maxResampleSourcePixels, 1)` source pixels: a tile is as wide
+  as the rectangle when a row fits in the budget, else a run of one row. A
+  width-only downscale and a single output row whose box is the whole image obey it
+  like any other. The per-row byte span `readRaw` gathers gapped or interleaved
+  pixels from is part of one tile row, so within it too. Tests observe the peak
+  through `lif::ReadStats` (an optional member of `ReadLimits`).
+- **Not tiled:** a read within the budget, and any read that enlarges either axis.
+  For those `cv::resize` interpolates rather than averages, and a read that enlarges
+  needs no more memory than its output on that axis — except a read that enlarges
+  one axis while shrinking the other, which is read whole (a known gap: such a
+  read of a large mosaic is not bounded by the budget).
 
 **Concurrency.** The scene's only file state is the slide's `FileReader`, which
 is cursor-free and thread-safe; the `Layout` is immutable after open. So the

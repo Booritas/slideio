@@ -13,6 +13,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstring>
+#include <limits>
 
 using namespace slideio;
 using namespace slideio::lif;
@@ -43,6 +44,92 @@ namespace
             return;
         }
         Tools::resize(src, dst, size, cv::INTER_AREA);
+    }
+
+    // One source index's contribution to one output index along one axis.
+    struct Tap
+    {
+        int out;
+        double weight;
+    };
+
+    // The area filter's weights along one axis of a downscale (dsize <= ssize), by
+    // source index: OpenCV's computeResizeAreaTab, the table cv::resize(INTER_AREA)
+    // builds, with the same scale, cell bounds, 1e-3 thresholds and float weights.
+    // An output cell is at least one source pixel wide, so a source index feeds at
+    // most two outputs.
+    std::vector<std::vector<Tap>> areaTaps(int ssize, int dsize)
+    {
+        const double scale = 1. / (static_cast<double>(dsize) / ssize);
+        std::vector<std::vector<Tap>> bySource(ssize);
+        const auto add = [&](int s, int out, double weight) {
+            bySource[s].push_back({out, static_cast<double>(static_cast<float>(weight))});
+        };
+        for (int dx = 0; dx < dsize; ++dx) {
+            const double fsx1 = dx * scale;
+            const double fsx2 = fsx1 + scale;
+            const double cellWidth = std::min(scale, ssize - fsx1);
+            int sx1 = static_cast<int>(std::ceil(fsx1));
+            int sx2 = static_cast<int>(std::floor(fsx2));
+            sx2 = std::min(sx2, ssize - 1);
+            sx1 = std::min(sx1, sx2);
+            if (sx1 - fsx1 > 1e-3) {
+                add(sx1 - 1, dx, (sx1 - fsx1) / cellWidth);
+            }
+            for (int sx = sx1; sx < sx2; ++sx) {
+                add(sx, dx, 1. / cellWidth);
+            }
+            if (fsx2 - sx2 > 1e-3) {
+                add(sx2, dx, std::min(std::min(fsx2 - sx2, 1.), cellWidth) / cellWidth);
+            }
+        }
+        return bySource;
+    }
+
+    // Adds one source tile's contribution to the output sums: horizontal pass into
+    // `row`, then vertical into `sums` (outW x outH x n, interleaved). The tile's
+    // top-left is (x0, y0) in the coordinates of the resampled rectangle, so every
+    // weight is the one the whole-rectangle filter would use.
+    template <typename T>
+    void accumulateTile(const cv::Mat& tile, int x0, int y0, const std::vector<std::vector<Tap>>& xTaps,
+                        const std::vector<std::vector<Tap>>& yTaps, int outW, std::vector<double>& row,
+                        std::vector<double>& sums)
+    {
+        const int n = tile.channels();
+        int outLo = std::numeric_limits<int>::max(), outHi = -1;
+        for (int x = 0; x < tile.cols; ++x) {
+            for (const Tap& tap : xTaps[x0 + x]) {
+                outLo = std::min(outLo, tap.out);
+                outHi = std::max(outHi, tap.out);
+            }
+        }
+        if (outHi < 0) {
+            return;
+        }
+        for (int y = 0; y < tile.rows; ++y) {
+            const std::vector<Tap>& rowTaps = yTaps[y0 + y];
+            if (rowTaps.empty()) {
+                continue;
+            }
+            std::fill(row.begin() + static_cast<size_t>(outLo) * n, row.begin() + static_cast<size_t>(outHi + 1) * n, 0.);
+            const T* src = tile.ptr<T>(y);
+            for (int x = 0; x < tile.cols; ++x) {
+                for (const Tap& tap : xTaps[x0 + x]) {
+                    double* dst = row.data() + static_cast<size_t>(tap.out) * n;
+                    for (int c = 0; c < n; ++c) {
+                        dst[c] += tap.weight * static_cast<double>(src[static_cast<size_t>(x) * n + c]);
+                    }
+                }
+            }
+            for (const Tap& tap : rowTaps) {
+                double* dst = sums.data() + (static_cast<size_t>(tap.out) * outW + outLo) * n;
+                const double* from = row.data() + static_cast<size_t>(outLo) * n;
+                const size_t count = static_cast<size_t>(outHi - outLo + 1) * n;
+                for (size_t i = 0; i < count; ++i) {
+                    dst[i] += tap.weight * from[i];
+                }
+            }
+        }
     }
 }
 
@@ -215,43 +302,105 @@ void LIFScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv:
                 raw.copyTo(part);
                 return;
             }
-            // Only a downscale is banded: an upscaled read needs no more memory than its
-            // output, and bands would leave seams in an interpolating upscale.
-            if (int64_t(rect.width) * rect.height <= budget || size.height >= rect.height) {
+            // Within the budget, or enlarging along either axis (cv::resize then
+            // interpolates rather than averaging, and the read needs no more memory than
+            // its output on the enlarged axis): one read and cv::resize.
+            const bool downscale = size.width <= rect.width && size.height <= rect.height;
+            if (int64_t(rect.width) * rect.height <= budget || !downscale) {
                 cv::Mat raw, resized;
                 readRaw(rect, channels, zSliceIndex, tFrameIndex, raw);
                 resizeSamples(raw, resized, size);
                 resized.copyTo(part);
                 return;
             }
-            // Too large to read whole before resampling: read and resample horizontal
-            // bands of the source, each into its share of the output rows, so that the
-            // band heights sum exactly to the target height. A banded read equals an
-            // unbanded one exactly only at integer ratios, where every band boundary
-            // falls on a whole box of the area filter (as in MRXS); elsewhere it
-            // differs by rounding along the seams.
-            cv::Mat result(size, CV_MAKETYPE(cvDepth(), static_cast<int>(channels.size())));
-            const double sy = static_cast<double>(rect.height) / size.height;
-            const int64_t budgetRows = std::max<int64_t>(1, budget / rect.width);
-            // A band's source spans bandRows * sy rows plus at most one for rounding.
-            const int bandRows = std::max(1, static_cast<int>(std::floor((budgetRows - 1) / sy)));
-            for (int oy = 0; oy < size.height; oy += bandRows) {
-                const int oh = std::min(bandRows, size.height - oy);
-                const int y0 = static_cast<int>(std::floor(oy * sy));
-                const int y1 = std::min(rect.height, static_cast<int>(std::ceil((oy + oh) * sy)));
-                cv::Mat raw, resized;
-                readRaw(cv::Rect(rect.x, rect.y + y0, rect.width, y1 - y0), channels,
-                        zSliceIndex, tFrameIndex, raw);
-                resizeSamples(raw, resized, cv::Size(size.width, oh));
-                resized.copyTo(result(cv::Rect(0, oy, size.width, oh)));
-            }
+            cv::Mat result;
+            readTiledDownscale(rect, size, channels, zSliceIndex, tFrameIndex, result);
             result.copyTo(part);
         },
         output);
 }
 
+// The area filter of cv::resize(INTER_AREA), computed tile by tile (spec D 7).
+//
+// Invariant: no buffer this read assembles from the file holds more than
+// max(maxResampleSourcePixels, 1) source pixels, on either axis and at any ratio --
+// a tile is as wide as the rectangle when a row fits in the budget, otherwise a run
+// of one row. (readRaw's per-row byte span for gapped or interleaved pixels is a
+// part of one tile row, so within that too.) ReadStats::peakSourcePixels records it.
+//
+// The weights are those of the whole rectangle (areaTaps), indexed by each source
+// pixel's position in it, so tiles need not align with output cells: a source pixel
+// adds the same weighted value to the same output pixels whichever tile carries it,
+// and an output cell spanning many tiles collects its sum from all of them. The
+// result is therefore independent of the budget, and equals cv::resize up to
+// rounding: the sums are kept in double and rounded half up for integer depths,
+// where OpenCV accumulates in float (or fixed point at integer ratios).
+void LIFScene::readTiledDownscale(const cv::Rect& rect, const cv::Size& size, const std::vector<int>& channels,
+                                  int z, int t, cv::Mat& out) const
+{
+    const int n = static_cast<int>(channels.size());
+    const auto xTaps = areaTaps(rect.width, size.width);
+    const auto yTaps = areaTaps(rect.height, size.height);
+    std::vector<double> sums(static_cast<size_t>(size.width) * size.height * n, 0.);
+    std::vector<double> row(static_cast<size_t>(size.width) * n, 0.);
+    const int64_t budget = std::max<int64_t>(1, m_limits.maxResampleSourcePixels);
+    const int tileW = static_cast<int>(std::min<int64_t>(rect.width, budget));
+    const int tileH = static_cast<int>(std::max<int64_t>(1, std::min<int64_t>(rect.height, budget / tileW)));
+    const int depth = cvDepth();
+    for (int ty = 0; ty < rect.height; ty += tileH) {
+        const int th = std::min(tileH, rect.height - ty);
+        for (int tx = 0; tx < rect.width; tx += tileW) {
+            const int tw = std::min(tileW, rect.width - tx);
+            cv::Mat tile;
+            readRaw(cv::Rect(rect.x + tx, rect.y + ty, tw, th), channels, z, t, tile);
+            switch (depth) {
+            case CV_8U: accumulateTile<uint8_t>(tile, tx, ty, xTaps, yTaps, size.width, row, sums); break;
+            case CV_8S: accumulateTile<int8_t>(tile, tx, ty, xTaps, yTaps, size.width, row, sums); break;
+            case CV_16U: accumulateTile<uint16_t>(tile, tx, ty, xTaps, yTaps, size.width, row, sums); break;
+            case CV_16S: accumulateTile<int16_t>(tile, tx, ty, xTaps, yTaps, size.width, row, sums); break;
+            case CV_32S: accumulateTile<int32_t>(tile, tx, ty, xTaps, yTaps, size.width, row, sums); break;
+            case CV_32F: accumulateTile<float>(tile, tx, ty, xTaps, yTaps, size.width, row, sums); break;
+            case CV_64F: accumulateTile<double>(tile, tx, ty, xTaps, yTaps, size.width, row, sums); break;
+            case CV_16F: {
+                cv::Mat wide;
+                tile.convertTo(wide, CV_MAKETYPE(CV_32F, n));
+                accumulateTile<float>(wide, tx, ty, xTaps, yTaps, size.width, row, sums);
+                break;
+            }
+            default:
+                RAISE_RUNTIME_ERROR << "LIF: unexpected sample depth " << depth << " in scene \"" << m_name << "\"";
+            }
+        }
+    }
+    const bool integral = depth != CV_16F && depth != CV_32F && depth != CV_64F;
+    if (integral) {
+        for (double& v : sums) {
+            v = std::floor(v + 0.5);
+        }
+    }
+    const cv::Mat wide(size, CV_MAKETYPE(CV_64F, n), sums.data());
+    if (depth == CV_16F) {
+        cv::Mat single;
+        wide.convertTo(single, CV_MAKETYPE(CV_32F, n));
+        single.convertTo(out, CV_MAKETYPE(CV_16F, n));
+    }
+    else {
+        wide.convertTo(out, CV_MAKETYPE(depth, n));
+    }
+}
+
+void ReadStats::noteSource(int64_t pixels)
+{
+    int64_t peak = peakSourcePixels.load();
+    while (pixels > peak && !peakSourcePixels.compare_exchange_weak(peak, pixels)) {
+    }
+}
+
 void LIFScene::readRaw(const cv::Rect& rect, const std::vector<int>& channels, int z, int t, cv::Mat& out) const
 {
+    if (m_limits.stats) {
+        m_limits.stats->noteSource(static_cast<int64_t>(rect.width) * rect.height);
+    }
     if (m_layout->interleaved()) {
         readInterleaved(rect, channels, z, t, out);
         return;

@@ -15,7 +15,8 @@ index in its file (document order).  Each axis uses its own identity: in an XZ
 image the second raster axis is z (y is 0), in an XT image it is t.  For
 interleaved images c is the sample index inside the pixel.  An axis the
 function has no term for (DimID 5, 9, ...) contributes 0.  "bits" is the
-storage width, not the declared Resolution.
+storage width, not the declared Resolution.  An image given its own `pixel`
+function (contrast.lif) uses that instead.
 """
 import struct
 import sys
@@ -57,7 +58,7 @@ class Image:
     def __init__(self, name, dims, chans, dtype='u8', datatype_attr=True,
                  resolution=None, sample_bytes=None, sample_code=None,
                  payload_len=None, block_id=None, declared_size=None,
-                 write_block=True, stamps=None, attachment=False):
+                 write_block=True, stamps=None, attachment=False, pixel=None):
         self.name, self.dims, self.chans = name, dims, chans
         self.dtype = dtype
         self.datatype_attr = datatype_attr    # False: omit DataType
@@ -70,6 +71,7 @@ class Image:
         self.write_block = write_block
         self.stamps = stamps                  # (kind, [ticks])
         self.attachment = attachment
+        self.pixel = pixel                    # callable(x, y) -> value, replaces the function
         self.salt = 0
         self.payload = b''
 
@@ -101,9 +103,12 @@ def build_payload(img):
     def rec(i, base, idx):
         if i == len(axes):
             for ci, ch in enumerate(img.chans):
-                v = (idx.get('x', 0) + 3 * idx.get('y', 0) + 17 * ci +
-                     31 * idx.get('z', 0) + 59 * idx.get('t', 0) +
-                     97 * idx.get('m', 0) + 7 * img.salt)
+                if img.pixel:
+                    v = img.pixel(idx.get('x', 0), idx.get('y', 0))
+                else:
+                    v = (idx.get('x', 0) + 3 * idx.get('y', 0) + 17 * ci +
+                         31 * idx.get('z', 0) + 59 * idx.get('t', 0) +
+                         97 * idx.get('m', 0) + 7 * img.salt)
                 if code:
                     raw = struct.pack('<' + code, v + 0.5)
                 else:
@@ -373,6 +378,16 @@ def empty_declared():
     return make_lif([simple('Hollow', payload_len=0, declared_size=16 * 12), simple('Plain')])
 
 
+def contrast():
+    """12 x 12 uint8 of hard 0/255 edges: rows run 0, 255, 0 and repeat, and odd
+    columns invert that.  At a non-integer ratio an area filter that is applied
+    band by band, each band with its own grid, gives visibly different values
+    from one applied to the whole image."""
+    def pixel(x, y):
+        return 255 if (y % 3 == 1) != (x % 2 == 1) else 0
+    return make_lif([Image('Contrast', default_dims(12, 12), [Chan(0)], pixel=pixel)])
+
+
 def malformed_xml():
     return header('<LMSDataContainerHeader Version="2"><Element Name="Fixture"><Data/>'
                   '</LMSDataContainerHeader>') + b'\0\0\0\0'
@@ -406,6 +421,7 @@ FIXTURES = {
     'multi_root': lambda: multi_root(False),
     'multi_root_decl': lambda: multi_root(True),
     'empty_declared': empty_declared,
+    'contrast': contrast,
     'malformed_xml': malformed_xml,
     'not_lif': lambda: b'A' * 64,
 }
