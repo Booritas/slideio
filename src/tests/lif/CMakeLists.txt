@@ -7,6 +7,7 @@ set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 set(TEST_SOURCES
   test_lif_container.cpp
   test_lif_xml.cpp
+  test_lif_layout.cpp
 )
 
 add_executable(${TEST_NAME} ${TEST_SOURCES})
