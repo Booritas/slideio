@@ -30,7 +30,10 @@ namespace slideio
         {
             /// The most source pixels one read of the file assembled into one buffer.
             std::atomic<int64_t> peakSourcePixels{0};
+            /// The most output rows one tiled downscale held sums for at once.
+            std::atomic<int64_t> peakSumRows{0};
             void noteSource(int64_t pixels);
+            void noteSumRows(int64_t rows);
         };
 
         /// Bounds of a read. A downscaling read whose source rectangle holds more pixels
@@ -94,6 +97,10 @@ namespace slideio
         // the area filter, reading the source in tiles within m_limits (spec D 7).
         void readTiledDownscale(const cv::Rect& rect, const cv::Size& size, const std::vector<int>& channels,
                                 int z, int t, cv::Mat& out) const;
+        // The same, accumulating in W (OpenCV's accumulator for the depth).
+        template <typename W>
+        void readTiledDownscaleAs(const cv::Rect& rect, const cv::Size& size, const std::vector<int>& channels,
+                                  int z, int t, cv::Mat& out) const;
         int cvDepth() const;
     private:
         std::string m_filePath;

@@ -470,22 +470,35 @@ tiles and area-filtered tile by tile, so memory stays bounded on merged mosaics.
   adds its pixels' weighted values to per-output sums (horizontal pass, then
   vertical), so tiles need not align with output cells and an output cell that
   spans many tiles collects its sum from all of them. The result does not depend on
-  the budget and equals the unbanded `cv::resize` within 1 for integer types (sums
-  kept in double and rounded half up, where OpenCV accumulates in float or fixed
-  point) and within 1e-4 relative for float types, 1e-3 for half floats — at integer
-  and non-integer ratios alike.
+  the budget. It reproduces `cv::resize`'s arithmetic: at non-integer ratios float
+  weights and a float accumulator summed in OpenCV's order (`resizeArea`); at
+  integer ratios an exact block sum times `1.f / area` (`resizeAreaFast`), with
+  `(sum + 2) >> 2` at 2 × 2; rounding half to even (`cvRound`); doubles in double.
+  Integer results are therefore bit-exact whenever a source row fits in the budget.
+  The one remaining difference: when a row does not fit, tiles split it and its
+  float sums are added in another order, which can move a value by 1. Float types
+  agree within 1e-4 relative (1e-3 for half floats).
 - **Budget invariant, on both axes.** No buffer such a read assembles from the file
   holds more than `max(maxResampleSourcePixels, 1)` source pixels: a tile is as wide
   as the rectangle when a row fits in the budget, else a run of one row. A
   width-only downscale and a single output row whose box is the whole image obey it
   like any other. The per-row byte span `readRaw` gathers gapped or interleaved
-  pixels from is part of one tile row, so within it too. Tests observe the peak
-  through `lif::ReadStats` (an optional member of `ReadLimits`).
-- **Not tiled:** a read within the budget, and any read that enlarges either axis.
-  For those `cv::resize` interpolates rather than averages, and a read that enlarges
-  needs no more memory than its output on that axis — except a read that enlarges
-  one axis while shrinking the other, which is read whole (a known gap: such a
-  read of a large mosaic is not bounded by the budget).
+  pixels from is part of one tile row, so within it too.
+- **Sums: a rolling window, not an output-sized accumulator.** Tiles arrive strip by
+  strip, top to bottom, and only the output rows the current strip can reach hold
+  sums: at most `ceil(tileH / sy) + 2` rows of output width in the accumulator type. An output row
+  is rounded into the result, and its buffer reused, as soon as the last source row
+  feeding it has been read. Extra memory beyond the output is therefore
+  O(output width × a few rows) plus the source budget and the per-axis weight tables
+  (O(source width + height)).
+- Tests observe both peaks — source pixels per buffer and rows of sums — through
+  `lif::ReadStats` (an optional member of `ReadLimits`).
+- **Not tiled:** a read whose source is within the budget is read whole and passed to
+  `cv::resize`, which is the reference the tiled filter matches. A read that enlarges
+  either axis is not tiled either: there `cv::resize(INTER_AREA)` interpolates rather
+  than averages, and a read that only enlarges needs no more source than its output.
+  A read that enlarges one axis while shrinking the other is read whole too — a known
+  gap: such a read of a large mosaic is not bounded by the budget.
 
 **Concurrency.** The scene's only file state is the slide's `FileReader`, which
 is cursor-free and thread-safe; the `Layout` is immutable after open. So the

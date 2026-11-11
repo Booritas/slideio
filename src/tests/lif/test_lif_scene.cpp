@@ -460,15 +460,16 @@ TEST(LifScene, BandedResampleIsExactAtIntegerRatio)
 
 namespace
 {
-    // Integer types: within 1 (OpenCV's fixed-point and rounding paths); float types:
-    // 1e-4 relative, 1e-3 for half floats, whose own step is about that size.
-    void expectResampleClose(const cv::Mat& expected, const cv::Mat& actual, const std::string& what)
+    // Integer types: within intTolerance; float types: 1e-4 relative, 1e-3 for half
+    // floats, whose own step is about that size.
+    void expectResampleClose(const cv::Mat& expected, const cv::Mat& actual, const std::string& what,
+                             double intTolerance = 1.)
     {
         ASSERT_EQ(expected.size(), actual.size()) << what;
         ASSERT_EQ(expected.type(), actual.type()) << what;
         const int depth = expected.depth();
         if (depth != CV_16F && depth != CV_32F && depth != CV_64F) {
-            EXPECT_LE(cv::norm(expected, actual, cv::NORM_INF), 1.) << what;
+            EXPECT_LE(cv::norm(expected, actual, cv::NORM_INF), intTolerance) << what;
             return;
         }
         const double relative = depth == CV_16F ? 1e-3 : 1e-4;
@@ -500,6 +501,25 @@ namespace
         limits.maxResampleSourcePixels = budget;
         limits.stats = std::make_shared<lif::ReadStats>();
         return {LIFSlide::openFile(fixture(name), limits), limits.stats};
+    }
+
+    // The most output rows a tiled downscale may hold sums for: the rows one strip of
+    // tiles (tileH source rows) can reach, ceil(tileH / sy) + 2.
+    int64_t sumRowBound(const cv::Rect& rect, const cv::Size& size, int64_t budget)
+    {
+        budget = std::max<int64_t>(1, budget);
+        const int64_t tileW = std::min<int64_t>(rect.width, budget);
+        const int64_t tileH = std::max<int64_t>(1, std::min<int64_t>(rect.height, budget / tileW));
+        const double sy = static_cast<double>(rect.height) / size.height;
+        return static_cast<int64_t>(std::ceil(tileH / sy)) + 2;
+    }
+
+    // Integer samples: bit-exact against cv::resize when a source row fits in the
+    // budget (each output's terms are then summed in OpenCV's order); within 1 when
+    // rows are split across tiles, which reorders the float sums.
+    double intTolerance(const cv::Rect& rect, int64_t budget)
+    {
+        return budget >= rect.width ? 0. : 1.;
     }
 
     std::string describe(const std::string& scene, const cv::Rect& rect, const cv::Size& size, int64_t budget)
@@ -535,7 +555,8 @@ TEST(LifScene, BandedEqualsUnbandedFractional)
                         cv::Mat ra, rb;
                         a->readResampledBlockChannels(rect, size, {}, ra);
                         b->readResampledBlockChannels(rect, size, {}, rb);
-                        expectResampleClose(rb, ra, describe(std::string(file) + ":" + b->getName(), rect, size, budget));
+                        expectResampleClose(rb, ra, describe(std::string(file) + ":" + b->getName(), rect, size, budget),
+                                            intTolerance(rect, budget));
                     }
                 }
             }
@@ -573,7 +594,8 @@ TEST(LifScene, BandedHighContrastIsTheAreaFilter)
             auto banded = openBudgeted("contrast.lif", budget);
             cv::Mat out;
             banded.slide->getScene(0)->readResampledBlock(plain->getRect(), size, out);
-            expectResampleClose(expected, out, "budget " + std::to_string(budget));
+            expectResampleClose(expected, out, "budget " + std::to_string(budget),
+                                intTolerance(plain->getRect(), budget));
             EXPECT_LE(banded.stats->peakSourcePixels.load(), budget);
         }
     }
@@ -592,9 +614,37 @@ TEST(LifScene, WidthOnlyDownscaleRespectsBudget)
                 auto banded = openBudgeted(file, budget);
                 cv::Mat out;
                 banded.slide->getScene(0)->readResampledBlock(rect, size, out);
-                expectResampleClose(expected, out, describe(file, rect, size, budget));
+                expectResampleClose(expected, out, describe(file, rect, size, budget), intTolerance(rect, budget));
                 EXPECT_LE(banded.stats->peakSourcePixels.load(), budget) << describe(file, rect, size, budget);
+                // One source row per strip at these budgets, so at most 3 rows of sums
+                // for a 12-row output: an output-sized accumulator would hold 12.
+                const int64_t bound = sumRowBound(rect, size, budget);
+                EXPECT_EQ(3, bound);
+                EXPECT_GE(banded.stats->peakSumRows.load(), 1) << describe(file, rect, size, budget);
+                EXPECT_LE(banded.stats->peakSumRows.load(), bound) << describe(file, rect, size, budget);
             }
+        }
+    }
+}
+
+TEST(LifScene, TallDownscaleKeepsFewSumRows)
+{
+    // 12 rows down to 6 and 5: the sums held at once stay within one strip's reach,
+    // well under the output height.
+    auto plain = LIFSlide::openFile(fixture("contrast.lif"))->getScene(0);
+    const cv::Rect rect = plain->getRect();
+    for (const cv::Size size : {cv::Size(5, 6), cv::Size(12, 5), cv::Size(3, 11)}) {
+        cv::Mat expected;
+        plain->readResampledBlock(rect, size, expected);
+        for (int64_t budget : {1, 12, 24}) {
+            auto banded = openBudgeted("contrast.lif", budget);
+            cv::Mat out;
+            banded.slide->getScene(0)->readResampledBlock(rect, size, out);
+            expectResampleClose(expected, out, describe("contrast.lif", rect, size, budget),
+                                intTolerance(rect, budget));
+            const int64_t bound = sumRowBound(rect, size, budget);
+            EXPECT_LT(bound, size.height) << describe("contrast.lif", rect, size, budget);
+            EXPECT_LE(banded.stats->peakSumRows.load(), bound) << describe("contrast.lif", rect, size, budget);
         }
     }
 }
@@ -614,10 +664,29 @@ TEST(LifScene, TallColumnRespectsBudget)
                 auto banded = openBudgeted(file, budget);
                 cv::Mat out;
                 banded.slide->getScene(0)->readResampledBlock(rect, size, out);
-                expectResampleClose(expected, out, describe(file, rect, size, budget));
+                expectResampleClose(expected, out, describe(file, rect, size, budget), intTolerance(rect, budget));
                 EXPECT_LE(banded.stats->peakSourcePixels.load(), budget) << describe(file, rect, size, budget);
             }
         }
+    }
+}
+
+TEST(LifScene, MixedDirectionIsCvResize)
+{
+    // Enlarging one axis and shrinking the other is not tiled: it is cv::resize of the
+    // whole source, whatever the budget (spec D 7 records the unbounded read).
+    auto plain = LIFSlide::openFile(fixture("v2_basic.lif"))->getScene(0);
+    const cv::Mat full = readFull(plain);
+    for (const cv::Size size : {cv::Size(5, 30), cv::Size(40, 3)}) {
+        cv::Mat expected;
+        cv::resize(full, expected, size, 0, 0, cv::INTER_AREA);
+        auto banded = openBudgeted("v2_basic.lif", 16);
+        cv::Mat out;
+        banded.slide->getScene(0)->readResampledBlock(plain->getRect(), size, out);
+        ASSERT_EQ(expected.size(), out.size());
+        ASSERT_EQ(expected.type(), out.type());
+        EXPECT_EQ(0, cv::norm(expected, out, cv::NORM_INF)) << size;
+        EXPECT_EQ(0, banded.stats->peakSumRows.load());
     }
 }
 

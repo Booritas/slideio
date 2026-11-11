@@ -44,6 +44,9 @@ namespace
     // do (both follow LC_NUMERIC / the global locale: "1.5e-05" reads as 1 in a
     // German locale). std::from_chars would, but its floating overloads are missing
     // from the libc++ of the Apple Clang the macOS builds use.
+    // Unlike strtod, the stream accepts plain decimal notation only: "inf", "nan" and
+    // a value out of double's range give the fallback, and a hex float such as "0x10"
+    // reads as its leading 0. None of these occur in LIF metadata.
     double toDouble(const char* text, double fallback = 0)
     {
         if (!text || !*text) {
