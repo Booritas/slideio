@@ -2,6 +2,7 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/drivers/lif/lifcontainer.hpp"
+#include "slideio/drivers/lif/lifxml.hpp"
 #include "slideio/core/exceptions.hpp"
 #include "slideio/core/log.hpp"
 #include "slideio/core/tools/filereader.hpp"
@@ -169,30 +170,6 @@ namespace
         }
         return ok8 ? 8 : 4;
     }
-
-    // Parses the description; on a failure or a document without a single root,
-    // retries inside a synthetic <LEICA> root. `wrapped` tells which one parsed.
-    bool parseXml(tinyxml2::XMLDocument& doc, const std::string& xml, bool& wrapped)
-    {
-        wrapped = false;
-        std::string text = xml;
-        while (!text.empty() && text.back() == '\0') {
-            text.pop_back();   // a terminator would be read as content
-        }
-        if (doc.Parse(text.c_str(), text.size()) == tinyxml2::XML_SUCCESS) {
-            const tinyxml2::XMLElement* root = doc.RootElement();
-            if (root && !root->NextSiblingElement()) {
-                return true;
-            }
-        }
-        const std::string wrappedText = "<LEICA>" + text + "</LEICA>";
-        doc.Clear();
-        if (doc.Parse(wrappedText.c_str(), wrappedText.size()) == tinyxml2::XML_SUCCESS && doc.RootElement()) {
-            wrapped = true;
-            return true;
-        }
-        return false;
-    }
 }
 
 const MemoryBlock* Container::findBlock(const std::string& id) const
@@ -229,25 +206,18 @@ Container Container::read(const FileReader& file)
     Container c;
     c.m_xml = decodeUtf16(file, kXmlOffset, xmlChars);
 
-    tinyxml2::XMLDocument doc;
-    bool wrapped = false;
-    if (!parseXml(doc, c.m_xml, wrapped)) {
-        RAISE_RUNTIME_ERROR << "LIF: malformed XML description";
+    c.m_description = std::make_shared<const XmlDescription>(c.m_xml);
+    // The container identity may sit on any top-level element, not only the first.
+    for (const tinyxml2::XMLElement* top : c.m_description->topLevel()) {
+        if (std::strcmp(top->Name(), "LMS_Object_File") == 0) {
+            RAISE_RUNTIME_ERROR << "LIF: not a Leica LIF file (a LOF object file)";
+        }
     }
-    // The element carrying the container identity: the document root, or its
-    // first child when the root is the synthetic wrapper.
-    const tinyxml2::XMLElement* identity = doc.RootElement();
-    if (wrapped && identity) {
-        identity = identity->FirstChildElement();
-    }
-    if (!identity) {
-        RAISE_RUNTIME_ERROR << "LIF: malformed XML description";
-    }
-    if (std::strcmp(identity->Name(), "LMS_Object_File") == 0) {
-        RAISE_RUNTIME_ERROR << "LIF: not a Leica LIF file (a LOF object file)";
-    }
-    if (std::strcmp(identity->Name(), "LMSDataContainerHeader") == 0) {
-        c.m_version = identity->IntAttribute("Version", 0);
+    for (const tinyxml2::XMLElement* top : c.m_description->topLevel()) {
+        if (std::strcmp(top->Name(), "LMSDataContainerHeader") == 0) {
+            c.m_version = top->IntAttribute("Version", 0);
+            break;
+        }
     }
 
     c.m_lengthFieldWidth = chooseWidth(file, blocksStart, c.m_version);

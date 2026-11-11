@@ -5,6 +5,7 @@
 
 #include "slideio/drivers/lif/lif_api_def.hpp"
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -14,6 +15,8 @@ namespace slideio
 
     namespace lif
     {
+        class XmlDescription;
+
         /// One memory block of a LIF file: an identifier and the extent of its payload.
         struct MemoryBlock
         {
@@ -24,9 +27,9 @@ namespace slideio
             int occurrences = 1;      // >1: the id is ambiguous
         };
 
-        /// The file-level structure of a Leica LIF file: the XML description and
-        /// the index of memory blocks. Holds no file handle; payloads are read by
-        /// whoever owns the FileReader.
+        /// The file-level structure of a Leica LIF file: the XML description, as
+        /// text and parsed, and the index of memory blocks. Holds no file handle;
+        /// payloads are read by whoever owns the FileReader.
         class SLIDEIO_LIF_EXPORTS Container
         {
         public:
@@ -34,6 +37,8 @@ namespace slideio
             static Container read(const FileReader& file);
             /// The XML description, UTF-8.
             const std::string& xml() const { return m_xml; }
+            /// The XML description parsed, the one parse of this open.
+            const XmlDescription& description() const { return *m_description; }
             /// LMSDataContainerHeader@Version, 0 if absent.
             int version() const { return m_version; }
             /// Width of a block's length field: 4 or 8 bytes.
@@ -45,6 +50,7 @@ namespace slideio
 
         private:
             std::string m_xml;
+            std::shared_ptr<const XmlDescription> m_description;
             int m_version = 0;
             int m_lengthFieldWidth = 8;
             std::vector<MemoryBlock> m_blocks;

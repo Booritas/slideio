@@ -25,7 +25,7 @@ namespace
         FileReader file(std::string(LIF_TEST_DATA_DIR) + "/" + name);
         const Container c = Container::read(file);
         std::vector<FixtureImage> out;
-        for (auto& d : parseImages(c.xml())) {
+        for (auto& d : parseImages(c.description())) {
             const MemoryBlock* block = c.findBlock(d.memoryId);
             FixtureImage fi;
             fi.payloadLength = block ? block->length : 0;

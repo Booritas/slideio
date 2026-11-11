@@ -16,7 +16,7 @@ namespace
     {
         FileReader file(std::string(LIF_TEST_DATA_DIR) + "/" + name);
         const Container c = Container::read(file);
-        return parseImages(c.xml());
+        return parseImages(c.description());
     }
 
     const ImageDescription& named(const std::vector<ImageDescription>& v, const std::string& path)
@@ -179,7 +179,7 @@ TEST(LifXml, NoMagnificationIsZero)
     EXPECT_EQ(0.0, v[0].magnification);
 }
 
-TEST(LifXml, ReadsDelayAndTileFields)
+TEST(LifXml, ReadsDelayAndKeepsTilesInRawXml)
 {
     const std::string att =
         "<Data><Image><ImageDescription/>"
@@ -190,9 +190,13 @@ TEST(LifXml, ReadsDelayAndTileFields)
     const auto v = parseImages(wrap("<Element Name=\"T\">" + att + "<Memory MemoryBlockID=\"M\" Size=\"4\"/></Element>"));
     ASSERT_EQ(1u, v.size());
     EXPECT_DOUBLE_EQ(2.5, v[0].delayTimeSeconds);
-    ASSERT_EQ(2u, v[0].tileFieldAttributes.size());
-    EXPECT_EQ("1", v[0].tileFieldAttributes[1].first);
-    EXPECT_EQ("FieldX=1;FieldY=0;PosX=0.6;PosY=0.25", v[0].tileFieldAttributes[1].second);
+    // Field j's record is the j-th Tile of the raw XML (spec 4.5, 6.4).
+    const std::string& raw = v[0].rawXml;
+    const size_t first = raw.find("<Tile FieldX=\"0\" FieldY=\"0\" PosX=\"0.5\" PosY=\"0.25\"/>");
+    const size_t second = raw.find("<Tile FieldX=\"1\" FieldY=\"0\" PosX=\"0.6\" PosY=\"0.25\"/>");
+    ASSERT_NE(std::string::npos, first) << raw;
+    ASSERT_NE(std::string::npos, second) << raw;
+    EXPECT_LT(first, second);
 }
 
 TEST(LifXml, RawXmlExcludesChildElements)
@@ -204,6 +208,52 @@ TEST(LifXml, RawXmlExcludesChildElements)
     EXPECT_EQ(std::string::npos, v[0].rawXml.find("ChildName"));
     EXPECT_NE(std::string::npos, v[0].rawXml.find("ImageDescription"));
     EXPECT_NE(std::string::npos, v[1].rawXml.find("ChildName"));
+}
+
+TEST(LifXml, EveryTopLevelElement)
+{
+    // tinyxml2 accepts several top-level elements; images under each are found, and
+    // a leading declaration does not stand in the way.
+    const std::string body = wrap(image("A", "M1")) + "<Element Name=\"Exp2\"><Data/><Children>"
+        + image("B", "M2") + "</Children></Element>";
+    for (const std::string& xml : {body, "<?xml version=\"1.0\"?>" + body}) {
+        const auto v = parseImages(xml);
+        ASSERT_EQ(2u, v.size()) << xml;
+        EXPECT_EQ("A", v[0].path);
+        EXPECT_EQ("B", v[1].path);
+    }
+}
+
+TEST(LifXml, WrapsOnlyTextThatDoesNotParse)
+{
+    // Several top-level elements parse as they are: no wrapper.
+    {
+        const XmlDescription d("<A/><B/>");
+        EXPECT_FALSE(d.wrapped());
+        EXPECT_EQ(2u, d.topLevel().size());
+    }
+    // Text after the last element fails a plain parse and passes inside the wrapper,
+    // and a leading declaration is taken out of the way first.
+    for (const std::string xml : {std::string("<A/>text<B/>tail"),
+                                  std::string("<?xml version=\"1.0\"?> <A/>text<B/>tail")}) {
+        const XmlDescription d(xml);
+        EXPECT_TRUE(d.wrapped()) << xml;
+        EXPECT_EQ(2u, d.topLevel().size()) << xml;
+    }
+}
+
+TEST(LifXml, NoElementThrows)
+{
+    // Wrapped, bare text parses but holds no element; the error quotes the plain parse.
+    try {
+        XmlDescription d("text");
+        FAIL() << "expected an exception";
+    }
+    catch (const std::exception& ex) {
+        const std::string what = ex.what();
+        EXPECT_NE(std::string::npos, what.find("LIF: malformed XML description: ")) << what;
+        EXPECT_NE(std::string::npos, what.find("XML_ERROR_PARSING_TEXT")) << what;
+    }
 }
 
 TEST(LifXml, MalformedThrows)

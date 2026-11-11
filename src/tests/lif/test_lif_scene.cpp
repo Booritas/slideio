@@ -191,6 +191,40 @@ TEST(LifSlide, SkipsUnsupported)
     }
 }
 
+TEST(LifSlide, OpensEveryTopLevelElement)
+{
+    // An image under each of two top-level elements, with and without a leading
+    // XML declaration.
+    for (const char* name : {"multi_root.lif", "multi_root_decl.lif"}) {
+        SCOPED_TRACE(name);
+        auto slide = std::dynamic_pointer_cast<LIFSlide>(openFixture(name));
+        ASSERT_TRUE(slide);
+        EXPECT_EQ((std::vector<std::string>{"First", "Second"}), sceneNames(slide));
+        EXPECT_TRUE(slide->skippedImages().empty());
+        ASSERT_EQ(2, slide->getNumScenes());
+        const cv::Mat d = toDouble(readFull(slide->getScene(1)));
+        EXPECT_EQ(lifExpected(5, 6, 0, 0, 0, 0, 1, DataType::DT_Byte), at(d, 5, 6, 0));
+    }
+}
+
+TEST(LifSlide, EmptyBlockWithDeclaredSizeIsReported)
+{
+    // Memory/@Size declares a plane but the block is empty: an image whose data is
+    // missing, not a container element, so it is reported rather than dropped.
+    auto slide = std::dynamic_pointer_cast<LIFSlide>(openFixture("empty_declared.lif"));
+    ASSERT_TRUE(slide);
+    EXPECT_EQ((std::vector<std::string>{"Plain"}), sceneNames(slide));
+    ASSERT_EQ(1u, slide->skippedImages().size());
+    const std::string& reason = slide->skippedImages()[0];
+    EXPECT_EQ(0u, reason.rfind("Hollow: ", 0)) << reason;
+    EXPECT_NE(std::string::npos, reason.find("Memory/@Size declares 192")) << reason;
+}
+
+TEST(LifSlide, MalformedXmlFails)
+{
+    expectOpenError([] { openFixture("malformed_xml.lif"); }, "LIF: malformed XML description");
+}
+
 TEST(LifSlide, AllUnsupportedFails)
 {
     expectOpenError([] { openFixture("all_unsupported.lif"); }, "Lambda");

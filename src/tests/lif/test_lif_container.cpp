@@ -110,3 +110,22 @@ TEST(LifContainer, RejectsLof)
 {
     EXPECT_NE(std::string::npos, errorOf("lof.lif").find("LIF: not a Leica LIF file"));
 }
+
+TEST(LifContainer, ReadsEveryTopLevelElement)
+{
+    // Two top-level elements: the identity comes from whichever is the header.
+    for (const char* name : {"multi_root.lif", "multi_root_decl.lif"}) {
+        SCOPED_TRACE(name);
+        const Container c = readFixture(name);
+        EXPECT_EQ(2, c.version());
+        EXPECT_NE(nullptr, c.findBlock("MemBlock_1"));
+    }
+}
+
+TEST(LifContainer, MalformedXmlFails)
+{
+    const std::string what = errorOf("malformed_xml.lif");
+    EXPECT_NE(std::string::npos, what.find("LIF: malformed XML description")) << what;
+    // tinyxml2's own diagnosis follows
+    EXPECT_NE(std::string::npos, what.find("XML_ERROR")) << what;
+}

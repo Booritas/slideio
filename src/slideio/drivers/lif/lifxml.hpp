@@ -5,9 +5,21 @@
 
 #include "slideio/drivers/lif/lif_api_def.hpp"
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
+
+#if defined(_MSC_VER)
+#pragma warning( push )
+#pragma warning(disable: 4251)
+#endif
+
+namespace tinyxml2
+{
+    class XMLDocument;
+    class XMLElement;
+}
 
 namespace slideio
 {
@@ -48,14 +60,42 @@ namespace slideio
             std::vector<uint64_t> timestampTicks;
             double delayTimeSeconds = 0;         // scanner nDelayTime_s, 0 if absent
             double magnification = 0;            // HardwareSetting ATL*SettingDefinition/@Magnification
-            /// One entry per TileScanInfo/Tile: (field index in document order,
-            /// "FieldX=..;FieldY=..;PosX=..;PosY=..", attributes verbatim as written).
-            std::vector<std::pair<std::string, std::string>> tileFieldAttributes;
-            std::string rawXml;          // owning Element without child Elements
+            /// Owning Element without child Elements. Holds TileScanInfo whole: field j's
+            /// record is its j-th Tile (spec 4.5, 6.4).
+            std::string rawXml;
         };
 
-        /// Every image of the XML description with its own memory block id, in
-        /// document order (spec 4.3). Throws RuntimeError "LIF: ..." on malformed XML.
+        /// The XML description, parsed once (spec 4.2). A text that does not parse is
+        /// retried inside a synthetic <LEICA> root, a leading XML declaration removed;
+        /// a text that parses as it is is never wrapped, however many top-level
+        /// elements it has.
+        class SLIDEIO_LIF_EXPORTS XmlDescription
+        {
+        public:
+            /// Throws RuntimeError "LIF: malformed XML description: <tinyxml2 error>".
+            explicit XmlDescription(const std::string& xml);
+            ~XmlDescription();
+            XmlDescription(const XmlDescription&) = delete;
+            XmlDescription& operator=(const XmlDescription&) = delete;
+            /// The elements at the top of the document, in document order; the
+            /// synthetic wrapper, when there is one, is not among them. Never empty.
+            const std::vector<const tinyxml2::XMLElement*>& topLevel() const { return m_topLevel; }
+            /// True when only the synthetic wrapper made the text parse.
+            bool wrapped() const { return m_wrapped; }
+        private:
+            std::unique_ptr<tinyxml2::XMLDocument> m_doc;
+            bool m_wrapped = false;
+            std::vector<const tinyxml2::XMLElement*> m_topLevel;
+        };
+
+        /// Every image under every top-level element with its own memory block id, in
+        /// document order (spec 4.3).
+        SLIDEIO_LIF_EXPORTS std::vector<ImageDescription> parseImages(const XmlDescription& xml);
+        /// Parses `xml` and does the same. Throws as XmlDescription does.
         SLIDEIO_LIF_EXPORTS std::vector<ImageDescription> parseImages(const std::string& xml);
     }
 }
+
+#if defined(_MSC_VER)
+#pragma warning( pop )
+#endif

@@ -48,12 +48,15 @@ void LIFSlide::init(const ReadLimits& limits)
     m_rawMetadata = container.xml();
     m_metadataFormat = MetadataFormat::XML;
 
-    const std::vector<ImageDescription> images = parseImages(container.xml());
+    const std::vector<ImageDescription> images = parseImages(container.description());
     for (const ImageDescription& image : images) {
         std::string reason;
         const MemoryBlock* block = container.findBlock(image.memoryId);
-        if (block && block->length == 0 && !block->truncated && block->occurrences == 1) {
+        if (block && block->length == 0 && !block->truncated && block->occurrences == 1
+            && image.declaredSize <= 0) {
             // A block of length 0 marks a container element, not an image (D 4.3).
+            // One whose Memory/@Size promises data is an image with its data
+            // missing: it falls through to the size check and is reported.
             continue;
         }
         std::shared_ptr<const Layout> layout;

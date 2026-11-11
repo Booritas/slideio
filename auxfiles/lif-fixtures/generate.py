@@ -214,14 +214,17 @@ def prepare(nodes):
 
 
 def make_lif(nodes, version=2, order=None, before=(), after=(), trailer=b'\0\0\0\0',
-             declare_extra=None, duplicate_of=None):
+             declare_extra=None, duplicate_of=None, xml=None):
     """before/after: (id, payload) blocks around the image blocks.
     order: image names in the order their blocks are written.
     declare_extra: (image name, n) -- that block declares n more bytes than it holds.
     duplicate_of: image name; a second block with the same id, 0xFF filled,
-    is written straight after the real one."""
+    is written straight after the real one.
+    xml: callable(version) -> the XML description, in place of container_xml;
+    called once the payloads exist, so it may render the images itself."""
     imgs = prepare(nodes)
-    out = bytearray(header(container_xml(nodes, version)))
+    text = xml(version) if xml else container_xml(nodes, version)
+    out = bytearray(header(text))
     for bid, p in before:
         out += block(bid, p, version)
     writ = imgs
@@ -352,6 +355,29 @@ def timestamps():
     return make_lif([im('Hex', 'hex', 6), im('Decimal', 'dec', 6), im('Short', 'hex', 5)])
 
 
+def multi_root(declaration):
+    """Two top-level elements, one image under each; optionally led by an XML
+    declaration (which tinyxml2 refuses inside a synthetic wrapper)."""
+    first, second = simple('First'), simple('Second')
+
+    def xml(version):
+        text = (container_xml([first], version) +
+                '<Element Name="Second root"><Data/><Children>%s</Children></Element>'
+                % image_xml(second))
+        return ('<?xml version="1.0"?>' + text) if declaration else text
+    return make_lif([first, second], xml=xml)
+
+
+def empty_declared():
+    # Memory/@Size declares a full plane, the block holds nothing
+    return make_lif([simple('Hollow', payload_len=0, declared_size=16 * 12), simple('Plain')])
+
+
+def malformed_xml():
+    return header('<LMSDataContainerHeader Version="2"><Element Name="Fixture"><Data/>'
+                  '</LMSDataContainerHeader>') + b'\0\0\0\0'
+
+
 def lof():
     return header('<LMS_Object_File Version="2"><Element Name="Fixture"><Data/></Element>'
                   '</LMS_Object_File>')
@@ -377,6 +403,10 @@ FIXTURES = {
     'dup_names': lambda: make_lif([simple('Same'), simple('Same')]),
     'trailer_garbage': lambda: make_lif([simple('Plain')], trailer=b'\0\0\0\0\xff\xff'),
     'lof': lof,
+    'multi_root': lambda: multi_root(False),
+    'multi_root_decl': lambda: multi_root(True),
+    'empty_declared': empty_declared,
+    'malformed_xml': malformed_xml,
     'not_lif': lambda: b'A' * 64,
 }
 

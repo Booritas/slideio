@@ -9,7 +9,7 @@ py -3 auxfiles/lif-fixtures/generate.py            # writes src/tests/lif/data/
 py -3 auxfiles/lif-fixtures/generate.py <out-dir>  # or elsewhere
 ```
 
-The files are committed, about 93 KB in all. They are exact byte sequences
+The files are committed, about 115 KB in all. They are exact byte sequences
 (UTF-16LE XML, binary block framing, deliberate garbage), so `.gitattributes`
 marks `src/tests/lif/data/**` as `-text`: autocrlf must never touch them.
 
@@ -70,6 +70,10 @@ without them. The driver reads none of the extras.
 | `dup_names` | `Same` (salt 0), `Same` (salt 1) |
 | `trailer_garbage` | `Plain`, then a zero trailer followed by `FF FF` |
 | `lof` | header + XML root `LMS_Object_File`, no blocks |
+| `multi_root` | two top-level elements: the usual `LMSDataContainerHeader` holding `First`, then `Element Name="Second root"` holding `Second` |
+| `multi_root_decl` | the same led by `<?xml version="1.0"?>` |
+| `empty_declared` | `Hollow` (`Memory/@Size="192"`, its block empty), `Plain` |
+| `malformed_xml` | header + an unclosed `Element` inside `LMSDataContainerHeader`, then the trailer |
 | `not_lif` | 64 bytes of `0x41` |
 
 ## Cross-check with liffile
@@ -78,7 +82,9 @@ liffile 2026.11.8 reads every fixture except `not_lif` and `v3_probe` (by
 design), `types/NoDataType16` and `rgb/Untagged` (it requires `DataType` /
 `ChannelTag` on every channel), and `types/Mismatch` (its payload is smaller than
 the declared float32 array). It reproduces the pixel function on `nesting` and
-`types`, and the `Hex` and `Decimal` timestamps agree with each other.
+`types`, and the `Hex` and `Decimal` timestamps agree with each other. The
+`multi_root`, `multi_root_decl`, `empty_declared` and `malformed_xml` fixtures
+were added after this check and have not been through liffile.
 
 ## Corpus references
 

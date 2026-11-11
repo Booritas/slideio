@@ -29,7 +29,7 @@ namespace
     {
         FileReader reader(std::string(LIF_TEST_DATA_DIR) + "/" + file);
         const Container c = Container::read(reader);
-        for (auto& d : parseImages(c.xml())) {
+        for (auto& d : parseImages(c.description())) {
             if (d.path == path) {
                 Loaded l;
                 const MemoryBlock* block = c.findBlock(d.memoryId);

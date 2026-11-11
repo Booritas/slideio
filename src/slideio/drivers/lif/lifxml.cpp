@@ -18,6 +18,9 @@ using tinyxml2::XMLElement;
 
 namespace
 {
+    // What may precede an XML declaration: whitespace and a UTF-8 byte order mark.
+    const char* const kLeadingSpace = " \t\r\n\xEF\xBB\xBF";
+
     bool is(const XMLElement* e, const char* name)
     {
         return e && std::strcmp(e->Value(), name) == 0;
@@ -209,24 +212,6 @@ namespace
         }
     }
 
-    void readTiles(const XMLElement* image, ImageDescription& d)
-    {
-        for (const XMLElement* att = image->FirstChildElement("Attachment"); att;
-             att = att->NextSiblingElement("Attachment")) {
-            if (attr(att, "Name") != "TileScanInfo") {
-                continue;
-            }
-            int index = 0;
-            for (const XMLElement* t = att->FirstChildElement("Tile"); t; t = t->NextSiblingElement("Tile")) {
-                d.tileFieldAttributes.emplace_back(
-                    std::to_string(index++),
-                    "FieldX=" + attr(t, "FieldX") + ";FieldY=" + attr(t, "FieldY") +
-                    ";PosX=" + attr(t, "PosX") + ";PosY=" + attr(t, "PosY"));
-            }
-            return;
-        }
-    }
-
     // The owner serialised without its child Elements: the Children list is emptied.
     std::string rawXmlOf(const XMLElement* owner)
     {
@@ -242,15 +227,56 @@ namespace
     }
 }
 
+XmlDescription::XmlDescription(const std::string& xml) : m_doc(new tinyxml2::XMLDocument)
+{
+    // tinyxml2 stops at the first NUL, so whatever follows one is never parsed;
+    // cut it here, or the wrapped retry below would lose its closing tag to it.
+    const std::string text = xml.substr(0, xml.find('\0'));
+    if (m_doc->Parse(text.c_str(), text.size()) == tinyxml2::XML_SUCCESS) {
+        for (const XMLElement* e = m_doc->FirstChildElement(); e; e = e->NextSiblingElement()) {
+            m_topLevel.push_back(e);
+        }
+        if (m_topLevel.empty()) {
+            RAISE_RUNTIME_ERROR << "LIF: malformed XML description: no element";
+        }
+        return;
+    }
+    const std::string error = m_doc->ErrorStr();
+    // tinyxml2 refuses a declaration anywhere but at the start of the document, so
+    // it cannot go inside the wrapper.
+    size_t body = text.find_first_not_of(kLeadingSpace);
+    if (body != std::string::npos && text.compare(body, 5, "<?xml") == 0) {
+        const size_t close = text.find("?>", body);
+        body = close == std::string::npos ? body : close + 2;
+    }
+    const std::string wrapped = "<LEICA>" + (body == std::string::npos ? std::string() : text.substr(body))
+        + "</LEICA>";
+    m_doc->Clear();
+    if (m_doc->Parse(wrapped.c_str(), wrapped.size()) == tinyxml2::XML_SUCCESS) {
+        m_wrapped = true;
+        for (const XMLElement* e = m_doc->RootElement()->FirstChildElement(); e; e = e->NextSiblingElement()) {
+            m_topLevel.push_back(e);
+        }
+    }
+    if (m_topLevel.empty()) {
+        // The original text's diagnosis: the wrapper's would point into text the
+        // file does not hold.
+        RAISE_RUNTIME_ERROR << "LIF: malformed XML description: " << error;
+    }
+}
+
+XmlDescription::~XmlDescription() = default;
+
 std::vector<ImageDescription> lif::parseImages(const std::string& xml)
 {
-    tinyxml2::XMLDocument doc;
-    if (doc.Parse(xml.c_str(), xml.size()) != tinyxml2::XML_SUCCESS) {
-        RAISE_RUNTIME_ERROR << "LIF: malformed XML description: " << doc.ErrorStr();
-    }
+    return parseImages(XmlDescription(xml));
+}
+
+std::vector<ImageDescription> lif::parseImages(const XmlDescription& xml)
+{
     std::vector<const XMLElement*> images;
-    if (const XMLElement* root = doc.RootElement()) {
-        collectImages(root, images);
+    for (const XMLElement* top : xml.topLevel()) {
+        collectImages(top, images);
     }
 
     std::vector<ImageDescription> result;
@@ -284,7 +310,6 @@ std::vector<ImageDescription> lif::parseImages(const std::string& xml)
         d.timestampTicks = parseTimestampTicks(image);
         readDelay(image, d);
         readMagnification(image, d);
-        readTiles(image, d);
         d.rawXml = rawXmlOf(owner);
         result.push_back(std::move(d));
     }
