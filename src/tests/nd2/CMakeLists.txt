@@ -9,6 +9,7 @@ set(TEST_SOURCES
   test_nd2_variant.cpp
   test_nd2_attributes.cpp
   test_nd2_experiment.cpp
+  test_nd2_imageinfo.cpp
 )
 
 add_executable(${TEST_NAME} ${TEST_SOURCES})

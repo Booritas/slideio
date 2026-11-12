@@ -13,6 +13,9 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/nd2attributes.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/nd2experiment.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/nd2experiment.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/nd2internal.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/nd2imageinfo.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/nd2imageinfo.cpp
    )
 
 add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES})

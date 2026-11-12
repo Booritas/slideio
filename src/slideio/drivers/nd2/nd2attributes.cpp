@@ -2,12 +2,14 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/drivers/nd2/nd2attributes.hpp"
+#include "slideio/drivers/nd2/nd2internal.hpp"
 
 #include <cstdio>
 #include <limits>
 
 using namespace slideio;
 using namespace slideio::nd2;
+using slideio::nd2::detail::elementsOf;
 
 namespace
 {
@@ -40,26 +42,6 @@ namespace
             refuse(field, "is " + std::to_string(tile) + " but the frame is " +
                 std::to_string(frameSize) + " (tiled frames are not supported)");
         }
-    }
-
-    /// The elements of a list, or the members of a map whose names are not indices.
-    std::vector<const Variant*> elementsOf(const Variant* v)
-    {
-        std::vector<const Variant*> out;
-        if (!v) {
-            return out;
-        }
-        if (!v->items().empty()) {
-            for (const Variant& item : v->items()) {
-                out.push_back(&item);
-            }
-        }
-        else {
-            for (const auto& member : v->members()) {
-                out.push_back(&member.second);
-            }
-        }
-        return out;
     }
 }
 
