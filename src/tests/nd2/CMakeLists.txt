@@ -10,6 +10,8 @@ set(TEST_SOURCES
   test_nd2_attributes.cpp
   test_nd2_experiment.cpp
   test_nd2_imageinfo.cpp
+  test_nd2_scene.cpp
+  nd2_fixture_values.hpp
 )
 
 add_executable(${TEST_NAME} ${TEST_SOURCES})

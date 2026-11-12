@@ -16,6 +16,14 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/nd2internal.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/nd2imageinfo.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/nd2imageinfo.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/nd2framesource.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/nd2framesource.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/nd2imagedriver.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/nd2imagedriver.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/nd2slide.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/nd2slide.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/nd2scene.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/nd2scene.cpp
    )
 
 add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES})
