@@ -232,7 +232,7 @@ exist (FD §7.4). Let the loop product be `L`:
   and become addressable (`old_cells_02.nd2` 41 → 42, `rfp_h2a_cells_02.nd2`
   115 → 116, `jonas/3.nd2` 26 → 27, all as Bio-Formats). The loop product `L`
   below is the one after fitting, and frame times cover it.
-  A frame index at or past  (before fitting) cannot be
+  A frame index at or past `L + presentFrameCount` (before fitting) cannot be
   an acquired frame and is ignored, which keeps the fitted product bounded by
   the file.
 - When T is not outermost, nothing is fitted, and frames with `N ≥ L` are
