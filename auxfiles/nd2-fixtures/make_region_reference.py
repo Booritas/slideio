@@ -38,7 +38,10 @@ Beside <out-regions.tsv> it also writes
   type with count <= 1 is dropped, as the driver drops it);
 - nd2-times.tsv: nd2's frame times (relativeTimeMs, absoluteJulianDayNumber of the
   first channel) for every frame present inside the loops of the two time-lapse files in
-  TIME_FILES, with the frame decomposed into (series, t, z) over nd2spec's loops.
+  TIME_FILES, with the frame decomposed into (series, t, z) over nd2spec's loops; with T
+  the outermost loop, frames past the declared product count as further time points.
+  `source` is `nd2`, or `prefix` for a frame past uiSequenceCount, which nd2 does not serve:
+  its time is the frame's 8-byte prefix and its absolute time is taken from nd2's frame 0.
 
 Output is deterministic: rows in input order, LF line endings, repr() for floats.
 """
@@ -48,6 +51,7 @@ import hashlib
 import itertools
 import json
 import pathlib
+import struct
 import sys
 import zlib
 
@@ -247,27 +251,43 @@ def main():
             f.write('\t'.join(r) + '\n')
     print(f'{len(loop_rows)} chunked files in nd2-loops.tsv')
 
-    # Frame times of the two time-lapse files.
+    # Frame times of the two time-lapse files. nd2 serves frame metadata only up to
+    # uiSequenceCount; a frame past it gets its time from its own 8-byte prefix (FD 6), and
+    # its absolute time from nd2's frame 0 (dTimeAbsolute = absolute - relative of frame 0).
     time_rows = []
     for rel in TIME_FILES:
         with open(root / rel, 'rb') as src:
             info = nd2spec.describe_chunked(src)
-        loops = [(l['axis'], l['count']) for l in info['loops']]
-        product = 1
-        for _, count in loops:
-            product *= count
-        present = sorted(i for i, _ in info['frames'] if i < product)
-        with nd2.ND2File(root / rel) as lib:
-            for index in present:
-                coords, n = {}, index
-                for axis, count in reversed(loops):
-                    coords[axis] = n % count
-                    n //= count
-                time = lib.frame_metadata(index).channels[0].time
-                time_rows.append([rel, coords.get('M', 0), coords.get('T', 0), coords.get('Z', 0), index,
-                                  repr(float(time.relativeTimeMs)), repr(float(time.absoluteJulianDayNumber))])
+            offsets = dict(info['frames'])
+            loops = [(l['axis'], l['count']) for l in info['loops']]
+            product = 1
+            for _, count in loops:
+                product *= count
+            # With T the outermost loop, frames past the declared product continue T (FD 7.4,
+            # design 4.5); otherwise they lie outside the loops and are left out.
+            t_outer = bool(loops) and loops[0][0] == 'T'
+            present = sorted(i for i in offsets if t_outer or i < product)
+            with nd2.ND2File(root / rel) as lib:
+                served = lib.attributes.sequenceCount
+                first = lib.frame_metadata(0).channels[0].time
+                start_jdn = first.absoluteJulianDayNumber - first.relativeTimeMs / 86400000.
+                for index in present:
+                    coords, n = {}, index
+                    for k, (axis, count) in enumerate(reversed(loops)):
+                        outermost = k == len(loops) - 1
+                        coords[axis] = n if outermost else n % count
+                        n //= count
+                    if index < served:
+                        time = lib.frame_metadata(index).channels[0].time
+                        ms, jdn, source = time.relativeTimeMs, time.absoluteJulianDayNumber, 'nd2'
+                    else:
+                        name_length, _, _ = nd2spec.read_chunk_header(src, offsets[index])
+                        ms = struct.unpack('<d', src.read(8))[0]
+                        jdn, source = start_jdn + ms / 86400000., 'prefix'
+                    time_rows.append([rel, coords.get('M', 0), coords.get('T', 0), coords.get('Z', 0), index,
+                                      repr(float(ms)), repr(float(jdn)), source])
     with (out_path.parent / 'nd2-times.tsv').open('w', encoding='utf8', newline='\n') as f:
-        f.write('file\tseries\tt\tz\tframe\trelativeMs\tabsoluteJdn\n')
+        f.write('file\tseries\tt\tz\tframe\trelativeMs\tabsoluteJdn\tsource\n')
         for r in time_rows:
             f.write('\t'.join(str(v) for v in r) + '\n')
     print(f'{len(time_rows)} frame times in nd2-times.tsv')

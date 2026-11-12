@@ -120,7 +120,7 @@ endings.
 
 ```bash
 # nd2-regions.tsv: 3,117 rows, CRC-32 per slideio channel of the 7x5 regions Bio-Formats read;
-# also nd2-loops.tsv (55 chunked files' inventory loops) and nd2-times.tsv (2,236 nd2 frame
+# also nd2-loops.tsv (55 chunked files' inventory loops) and nd2-times.tsv (2,246 frame
 # times of 190821_L1_IRS-Akt_CS2003.nd2 and B08.nd2). Needs nd2, imagecodecs and numpy
 # (the environment of the validation README).
 nd2env/Scripts/python -I auxfiles/nd2-fixtures/make_region_reference.py $SLIDEIO_IMAGES_PATH/nd2 <validation-dir> src/tests/nd2/data/nd2-regions.tsv
