@@ -20,6 +20,7 @@ every data root can be written the same way.
 | `lif` | `slideio_lif_tests` |
 | `main` | `slideio_tests` |
 | `mrxs` | `slideio_mrxs_tests` |
+| `nd2` | `slideio_nd2_tests` |
 | `ndpi` | `slideio_ndpi_tests` |
 | `ometiff` | `slideio_ometiff_tests` |
 | `phtiff` | `slideio_phtiff_tests` |
@@ -39,22 +40,28 @@ programs under `src/single_tests/` have no test cases, so they show `--`.
 > their seven files through a variable (`TestTools::getTestImagePath("lif", rel)`), so the
 > script lists only that call site; the image rows below were added from the files on disk
 > and the tests in `src/tests/lif/test_lif_corpus.cpp`.
+>
+> The ND2 corpus rows were merged by hand in the same way. `ND2CorpusOpen.ScenesMatchBioFormats`,
+> `ND2CorpusOpen.LoopsMatchInventory` and `ND2CorpusRead.Regions` name their files through
+> `src/tests/nd2/data/nd2-scenes.tsv`, `nd2-loops.tsv` and `nd2-regions.tsv`; their image rows
+> below were added from those tables and the files on disk.
 
 ## Summary
 
 | | Count | Size |
 |---|---:|---:|
-| Images referenced by tests | 262 | |
-| Present on this machine | 257 | **114.2 GB** |
+| Images referenced by tests | 326 | |
+| Present on this machine | 321 | **172.3 GB** |
 | Referenced but absent | 5 | -- |
-| Static references in test code | 769 | |
-| References built at run time | 58 | |
+| Static references in test code | 778 | |
+| References built at run time | 59 | |
 
 ### By directory
 
 | Directory | Size present | Images present | Images absent |
 |---|---:|---:|---:|
 | `images/images/ometiff` | 69.9 GB | 40 | 0 |
+| `images/images/nd2` | 58.1 GB | 64 | 0 |
 | `images/images/czi` | 8.9 GB | 31 | 1 |
 | `images/images/dcm` | 7.5 GB | 39 | 1 |
 | `images/images/bif/openslide` | 6.3 GB | 3 | 0 |
@@ -87,61 +94,115 @@ Sizes are what is on disk now. "Tests" counts the distinct tests naming the imag
 |---|---:|---|---:|
 | `images/images/ometiff/private/ULT-2020-111-014-1.ome.tif` | 46.5 GB | ometiff | 1 |
 | `images/images/ometiff/private/test.ome.tif` | 21.1 GB | ometiff | 2 |
+| `images/images/nd2/zenodo-7439387/ns_blobtest2.0_20x_A2_far.nd2` | 6.5 GB | nd2 | 3 |
 | `images/images/czi/30-10-2020_NothingRecognized-15986.czi` | 6.1 GB | main | 3 |
+| `images/images/nd2/zenodo-16921650/B08.nd2` | 6.0 GB | nd2 | 4 |
+| `images/images/nd2/jonas/2112-2265.nd2` | 5.2 GB | nd2 | 3 |
+| `images/images/nd2/zenodo-15493140/19825_Original.nd2` | 4.5 GB | nd2 | 3 |
+| `images/images/nd2/imagesc-92810/Test_OMERO_nd2/not_correct/WellA03_ChannelBrightfield,Cy3 SD_Seq0002.nd2` | 4.3 GB | nd2 | 3 |
+| `images/images/nd2/imagesc-92810/Test_OMERO_nd2/correct/WellA02_ChannelBrightfield,Cy3 SD_Seq0001.nd2` | 4.3 GB | nd2 | 3 |
 | `images/images/dcm/private/H01EBB49P-24900` *(dir)* | 4.1 GB | performance | -- |
+| `images/images/nd2/zenodo-15493140/169_Original.nd2` | 3.9 GB | nd2 | 3 |
 | `images/images/bif/openslide/OS-1.bif` | 3.6 GB | bif | 2 |
+| `images/images/nd2/aryeh/but3_cont2002.nd2` | 3.3 GB | nd2 | 2 |
 | `images/images/philips/Philips-3.tiff` | 3.1 GB | phtiff | 8 |
 | `images/images/lif/bioformats/imagesc-110520/AMR1.lif` | 2.8 GB | lif | 4 |
+| `images/images/nd2/jonas/512c/cag_p5_simgc_2511_70ms22s_crop.nd2` | 2.7 GB | nd2 | 3 |
 | `images/images/hamamatsu/DM0014 - 2020-04-02 10.25.21.ndpi` | 2.6 GB | ndpi | 3 |
 | `images/images/bif/openslide/OS-2.bif` | 2.5 GB | bif | 2 |
+| `images/images/nd2/aryeh/b16_pdtB+y50__crop.nd2` | 2.5 GB | nd2 | 4 |
+| `images/images/nd2/zenodo-16628927/Slide4-4_Region0001_Channel20xDAPI,20xCy3_Seq0027.nd2` | 2.1 GB | nd2 | 4 |
 | `images/images/zvi/openslide/Zeiss-3-Mosaic.zvi` | 2.0 GB | main | 2 |
 | `images/images/hamamatsu/DM0014 - 2020-04-02 11.10.47.ndpi` | 2.0 GB | ndpi | 11 |
 | `images/images/pke/openmicroscopy/PKI_scans/LuCa-7color_Scan1.qptiff` | 1.9 GB | pke | 19 |
+| `images/images/nd2/aryeh/qa-9507/control003.nd2` | 1.8 GB | nd2 | 3 |
+| `images/images/nd2/aryeh/rfp_h2a_cells_02.nd2` | 1.6 GB | nd2 | 3 |
 | `images/images/dcm/private/H01EBB50P-24777` *(dir)* | 1.3 GB | main | 12 |
 | `images/images/ometiff/Subresolutions/Leica-2.ome.tiff` | 1.2 GB | main, ometiff | 11 |
+| `images/images/nd2/jonas/2.nd2` | 1.1 GB | nd2 | 3 |
 | `images/images/czi/openslide/Zeiss-4-Mosaic.czi` | 1.1 GB | main | 1 |
 | `images/images/dcm/private/wsi/M01FBC14P-589_level-0.dcm` | 1.1 GB | main | 5 |
 | `images/images/dcm/private/H01EBB50P-24777/H01EBB50P-24777_level-0.dcm` | 968.7 MB | main | 4 |
 | `images/images/scn/ultivue/Leica Aperio Versa 5 channel fluorescent image.scn` | 930.5 MB | main | 7 |
+| `images/images/nd2/aryeh/4_con_2_1_cot002.nd2` | 752.2 MB | nd2 | 2 |
 | `images/images/lif/figshare/IT4_27_02_15.lif` | 714.5 MB | lif | 3 |
 | `images/images/ometiff/Subresolutions/Leica-1.ome.tiff` | 689.4 MB | main, ometiff | 9 |
 | `images/images/svs/S1303802-11-HE-DX1.svs` | 631.0 MB | main, svs_memory | 1 |
+| `images/images/nd2/zenodo-15579371/823_Clarkia pulchella_09-1_DIC_SG.nd2` | 600.7 MB | nd2 | 3 |
 | `images/images/czi/private/E2_A3_W12.czi` | 582.5 MB | main | 1 |
 | `images/images/lif/zenodo/intro/Intro.lif` | 577.4 MB | lif | 4 |
 | `images/images/hamamatsu/HE_Hamamatsu.ndpi` | 557.6 MB | ndpi | 3 |
 | `images/images/czi/private/20-024_K5_HE.czi` | 518.9 MB | main | 1 |
+| `images/images/nd2/jonas/512c/nikonTest_1.nd2` | 486.9 MB | nd2 | 3 |
 | `images/images/pke/openmicroscopy/PKI_scans/HandEcompressed_Scan1.qptiff` | 402.3 MB | main, pke | 8 |
 | `images/images/zvi/mouse/20140505_mouse_2cell_H2AUb_RING1B_DAPI_T_005.zvi` | 396.6 MB | main | 3 |
 | `images/images/hamamatsu/openslide/CMU-2.ndpi` | 382.1 MB | ndpi | 2 |
 | `images/images/scn/private/HER2-63x_1.scn` | 378.7 MB | main | 5 |
+| `images/images/nd2/zenodo/bioformats/190821_L1_IRS-Akt_CS2003.nd2` | 376.3 MB | nd2 | 5 |
+| `images/images/nd2/jonas/512c/wtf_DIC.nd2` | 342.8 MB | nd2 | 3 |
+| `images/images/nd2/jonas/512c/wtf_alignment.nd2` | 342.8 MB | nd2 | 3 |
+| `images/images/nd2/zenodo-15493140/19825_Cropped.nd2` | 333.1 MB | nd2 | 3 |
+| `images/images/nd2/aryeh/old_cells_02.nd2` | 330.9 MB | nd2 | 3 |
+| `images/images/nd2/zenodo-15046688/N3_file_nobug_raw-version.nd2` | 324.2 MB | nd2 | 3 |
 | `images/images/zvi/mouse/20140207_mouse_2cell_H2AUb_HA_DAPI_inj_002.zvi` | 323.1 MB | main | 1 |
+| `images/images/nd2/aryeh/4_2_1_cont_NoMR001.nd2` | 316.4 MB | nd2 | 2 |
 | `images/images/philips/Philips-1.tiff` | 311.5 MB | phtiff | 1 |
+| `images/images/nd2/jonas/multicolorTest.nd2` | 290.0 MB | nd2 | 3 |
+| `images/images/nd2/zenodo-15046688/N3_file_nobug_reconstructed-version.nd2` | 288.3 MB | nd2 | 3 |
 | `images/images/philips/Philips-4.tiff` | 277.5 MB | main, phtiff | 6 |
+| `images/images/nd2/aryeh/multipoint.nd2` | 264.7 MB | nd2 | 2 |
+| `images/images/nd2/jonas/512c/nikonTest_two.nd2` | 244.3 MB | nd2 | 3 |
+| `images/images/nd2/jonas/100217_OD122_001.nd2` | 243.7 MB | nd2 | 3 |
+| `images/images/nd2/jonas/qa-7534/130606_JCC719_003.nd2` | 225.3 MB | nd2 | 3 |
 | `images/images/bif/openslide/Ventana-1.bif` | 216.8 MB | bif, main | 4 |
 | `images/images/ometiff/Subresolutions/retina_large.ome.tiff` | 214.8 MB | main, ometiff | 9 |
+| `images/images/nd2/karl/sample_image.nd2` | 208.5 MB | nd2 | 3 |
+| `images/images/nd2/jonas/movieSize/JJ_RNAi_hmr-1_001.nd2` | 194.9 MB | nd2 | 3 |
 | `images/images/hamamatsu/openslide/CMU-1.ndpi` | 188.9 MB | main, ndpi, ndpi_memory | 13 |
+| `images/images/nd2/jonas/JJ1473_control_24h/JJ1473_conrol_24h_02.nd2` | 185.3 MB | nd2 | 3 |
+| `images/images/nd2/aryeh/weekend002.nd2` | 183.1 MB | nd2 | 2 |
+| `images/images/nd2/zenodo-15046688/N4_file_nobug_raw-version.nd2` | 180.3 MB | nd2 | 3 |
+| `images/images/nd2/jonas/JJ1473_control_24h/JJ1473_control_24h_03.nd2` | 174.7 MB | nd2 | 3 |
 | `images/images/czi/jxr-16bit-4chnls.czi` | 174.2 MB | converter, main | 7 |
+| `images/images/nd2/jonas/3.nd2` | 169.9 MB | nd2 | 3 |
+| `images/images/nd2/zenodo-14893791/C3_N01Ato5_nucleo-trans_div3_mSG_b2s_200ms_30%_Reconstructed.nd2` | 160.3 MB | nd2 | 3 |
+| `images/images/nd2/zenodo-15046688/N4_file_nobug_reconstructed-version.nd2` | 160.3 MB | nd2 | 3 |
 | `images/images/hamamatsu/openslide/CMU-1_002.tif` | 137.4 MB | ndpi | 2 |
+| `images/images/nd2/zenodo-15493140/169_Cropped.nd2` | 132.0 MB | nd2 | 3 |
 | `images/images/ometiff/00001_01.ome.tiff` | 126.1 MB | phtiff | 2 |
+| `images/images/nd2/zenodo-15046688/N2_file_bugged_raw-version.nd2` | 108.2 MB | nd2 | 3 |
 | `images/images/zvi/Zeiss-1-Stacked.zvi` | 107.7 MB | main | 12 |
 | `images/images/lif/bioformats/zenodo-6606445/Project007.lif` | 106.5 MB | lif | 5 |
 | `images/images/gdal/test.svs` | 99.3 MB | converter | 2 |
 | `images/images/svs/jp2k_3chnl_8bit.svs` | 98.9 MB | main | 2 |
+| `images/images/nd2/zenodo-15046688/N2_file_bugged_reconstructed-version.nd2` | 96.3 MB | nd2 | 3 |
+| `images/images/nd2/zenodo-15046688/N1_file_bugged_raw-version.nd2` | 90.2 MB | nd2 | 3 |
 | `images/images/czi/jxr-rgb-5scenes.czi` | 88.8 MB | converter, main | 7 |
 | `images/images/czi/private/example_split.czi` | 87.7 MB | main | 1 |
 | `images/images/czi/zeiss.czi` | 87.7 MB | main | 3 |
+| `images/images/nd2/aryeh/por003.nd2` | 85.5 MB | nd2 | 2 |
+| `images/images/nd2/aryeh/Time sequence 24.nd2` | 81.7 MB | nd2 | 2 |
+| `images/images/nd2/zenodo-15046688/N1_file_bugged_reconstructed-version.nd2` | 80.3 MB | nd2 | 3 |
 | `images/images/svs/JP2K-33003-1.svs` | 60.9 MB | main, transformer | 15 |
+| `images/images/nd2/zenodo-17186598/Experiment_0001.nd2` | 47.5 MB | nd2 | 3 |
 | `images/images/lif/bioformats/imagesc-30856/20191025 Test FRET 585. 423, 426.lif` | 47.0 MB | lif | 3 |
 | `images/images/czi/03_14_2019_DSGN0545_A_wb_1353_fov_1_633.czi` | 45.9 MB | main | 4 |
+| `images/images/nd2/jonas/control002.nd2` | 45.8 MB | nd2 | 3 |
 | `images/images/gdal/multipage-ducks.tif` | 45.7 MB | main | 1 |
 | `images/images/gdal/Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg` | 39.1 MB | converter, main, transformer | 23 |
 | `images/images/czi/doughnut.czi` | 36.3 MB | converter, main | 2 |
 | `images/images/gdal/img_2448x2448_3x16bit_SRC_RGB_ducks.raw` | 34.3 MB | main | 1 |
+| `images/images/nd2/jonas/jonas_nd2Test/Exception61.nd2` | 33.7 MB | nd2 | 3 |
 | `images/images/ometiff/Tests/ULT-2020-111-014_1 (1, x=4375, y=39330, w=1153, h=743).tif` | 31.1 MB | ometiff | 1 |
+| `images/images/nd2/jonas/divisionByZero/290110.tranMgc005cr.nd2` | 30.5 MB | nd2 | 2 |
 | `images/images/ometiff/Tests/ULT-2020-111-014_1 (1, x=28333, y=36086, w=1099, h=760).tif` | 30.3 MB | ometiff | 1 |
 | `images/images/gdal/img_2448x2448_3x16bit_SRC_RGB_ducks.tif` | 30.1 MB | main, phtiff | 4 |
+| `images/images/nd2/zenodo/bioformats-issue/2D 500uM VPA002.nd2` | 30.0 MB | nd2 | 3 |
+| `images/images/nd2/jonas/movieSize/JJ_RNAi_hmr-1_001_CropCyan.nd2` | 29.8 MB | nd2 | 3 |
+| `images/images/nd2/jonas/header_test1.nd2` | 29.2 MB | nd2 | 3 |
 | `images/images/gdal/Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.svs` | 28.4 MB | converter | 1 |
 | `images/images/gdal/img_2448x2448_3x16bit_SRC_RGB_ducks.png` | 24.2 MB | main | 2 |
+| `images/images/nd2/aryeh/b16_14_12.nd2` | 23.5 MB | nd2 | 2 |
 | `images/images/scn/Leica-Fluorescence-1.scn` | 20.7 MB | converter, main | 22 |
 | `images/images/unicode/тест/Leica-Fluorescence-1.scn` | 20.7 MB | main | 1 |
 | `images/images/svs/CMU-1-Small-Region-page-0.tif` | 18.8 MB | main | 3 |
@@ -150,10 +211,17 @@ Sizes are what is on disk now. "Tests" counts the distinct tests naming the imag
 | `images/images/pke/test-images/LuCa-7color_Scan1.qptiff - resolution #1 (1, x=4981, y=10654, w=2367, h=1578).tif` | 17.8 MB | pke | 1 |
 | `images/images/gdal/img_2448x2448_3x8bit_SRC_RGB_ducks.bmp` | 17.1 MB | main | 1 |
 | `images/images/gdal/img_2448x2448_3x8bit_SRC_RGB_ducks.raw` | 17.1 MB | main | 1 |
+| `images/images/nd2/zenodo-12734440/HE_002.nd2` | 17.0 MB | nd2 | 3 |
+| `images/images/nd2/zenodo-10277961/MRAP1 KO DN_10X03.nd2` | 17.0 MB | nd2 | 3 |
 | `images/images/ometiff/Tests/Leica-1.ome-page_1.tif` | 16.6 MB | ometiff | 2 |
+| `images/images/nd2/aryeh/but3_cont200-1.nd2` | 15.4 MB | nd2 | 2 |
 | `images/images/czi/jxr-16bit-4chnls.preview.tiff` | 14.7 MB | main | 1 |
 | `images/images/hamamatsu/2017-02-27 15.29.08.ndpi` | 14.6 MB | ndpi | 9 |
+| `images/images/nd2/jonas/header_test2.nd2` | 14.0 MB | nd2 | 3 |
 | `images/images/dcm/benigns_01/patient0186/0186.LEFT_MLO.frames/frame0.tif` | 13.3 MB | main | 3 |
+| `images/images/nd2/aryeh/MeOh_high_fluo_003.nd2` | 12.5 MB | nd2 | 3 |
+| `images/images/nd2/aryeh/MeOh_high_fluo_007.nd2` | 12.5 MB | nd2 | 3 |
+| `images/images/nd2/aryeh/MeOh_high_fluo_011.nd2` | 12.5 MB | nd2 | 3 |
 | `images/images/czi/08_18_2018_enc_1001_633.czi` | 11.7 MB | converter, main, transformer | 4 |
 | `images/images/vsi/Zenodo/Q6VM49JF/Figure-1-ultrasound-raw-data/SPECTRUM_#201_2016-06-14_Jiangtao Liu/1286FL9057GDF8RGDX257R2GLHZ.vsi` | 11.6 MB | vsi | 6 |
 | `images/images/gdal/img_2448x2448_1x16bit_SRC_RGB_ducks.raw` | 11.4 MB | main | 2 |
@@ -162,9 +230,11 @@ Sizes are what is on disk now. "Tests" counts the distinct tests naming the imag
 | `images/images/gdal/img_2448x2448_1x16bit_SRC_RGB_ducks.tif` | 9.8 MB | main | 1 |
 | `images/images/zvi/Zeiss-1-Merged.zvi` | 9.7 MB | converter, main | 25 |
 | `images/images/lif/bioformats/seanwarren/150519_FRAP_test_ROIs_chromagreen/150519_FRAP_test_ROIs_chromagreen.lif` | 9.2 MB | lif | 4 |
+| `images/images/nd2/jonas/jonas_nd2Test/Exception9_e3.nd2` | 8.5 MB | nd2 | 3 |
 | `images/images/dcm/series/series_1` *(dir)* | 8.0 MB | main | 4 |
 | `images/images/dcm/benigns_01/patient0186/0186.LEFT_MLO.dcm` | 7.5 MB | main | 4 |
 | `images/images/dcm/benigns_01/patient0186/0186.LEFT_CC.dcm` | 7.5 MB | main | 2 |
+| `images/images/nd2/jonas/jonas_nd2Test/Exception_2.nd2` | 7.3 MB | nd2 | 3 |
 | `images/images/ometiff/SPIM-ModuloAlongZ.ome.tiff` | 6.9 MB | main | 1 |
 | `images/images/scn/private/page-67-StitchAB907A82-6319-422F-9B5B-EB0E0A9D0525-z=4-r=0-c=2.tiff` | 6.6 MB | main | 2 |
 | `images/images/czi/jxr-rgb-5scenes.preview.tiff` | 5.8 MB | main | 1 |
@@ -267,6 +337,7 @@ Sizes are what is on disk now. "Tests" counts the distinct tests naming the imag
 | `images/images/hamamatsu/openslide/CMU-1-dir.png` | 313.9 KB | main, ndpi | 3 |
 | `images/images/vsi/test-output/Image_B309_Macro.png` | 292.3 KB | vsi | 1 |
 | `images/images/hamamatsu/openslide/CMU-1-dir1.png` | 279.9 KB | main | 1 |
+| `images/images/nd2/maxime/BF007.nd2` | 264.0 KB | main, nd2 | 6 |
 | `images/images/ometiff/Tests/tubhiswt4D-C0-T20-Z3.tif` | 259.3 KB | ometiff | 1 |
 | `images/images/ometiff/Tests/tubhiswt4D-C0-T20-Z4.tif` | 259.3 KB | ometiff | 1 |
 | `images/images/ometiff/Tests/tubhiswt4D-C0-T20-Z5.tif` | 259.3 KB | ometiff | 1 |
@@ -362,7 +433,7 @@ identified by reading the source. They are not counted in the tables above.
 
 | File | Line | Test | Arguments |
 |---|---:|---|---|
-| `src/tests/bif/test_bif_corpus_open.cpp` | 195 | `BIFCorpusOpen.AuxImagesRead` | `"bif/openslide", file` |
+| `src/tests/bif/test_bif_corpus_open.cpp` | 322 | `BIFCorpusOpen.AuxImagesRead` | `"bif/openslide", file` |
 | `src/tests/bif/test_bif_corpus_read.cpp` | 250 | `BIFCorpusRead.SeamMatchesSources` | `Folder, "OS-1.bif"` |
 | `src/tests/bif/test_bif_corpus_read.cpp` | 251 | `BIFCorpusRead.SeamMatchesSources` | `Folder, "Ventana-1.bif"` |
 | `src/tests/bif/test_bif_corpus_read.cpp` | 283 | `BIFCorpusRead.SeamHasNoDuplication` | `Folder, "OS-1.bif"` |
@@ -393,6 +464,7 @@ identified by reading the source. They are not counted in the tables above.
 | `src/tests/mrxs/test_mrxs_corpus_render.cpp` | 78 | `MRXSCorpusRender.DISABLED_dumpDecodedTilesOfEveryRegion` | `"mirax", rel` |
 | `src/tests/mrxs/test_mrxs_corpus_render.cpp` | 167 | `MRXSCorpusRender.regionsMatchOpenSlideWithinTheDesignTolerances` | `"mirax", rel` |
 | `src/tests/mrxs/test_mrxs_corpus_render.cpp` | 187 | `MRXSCorpusRender.regionsMatchOpenSlideWithinTheDesignTolerances` | `"mirax/reference", region["file"].get<std::string>()` |
+| `src/tests/nd2/test_nd2_corpus.cpp` | 51 | `(outside a test)` | `"nd2", rel` |
 | `src/tests/phtiff/test_phtiff_driver.cpp` | 439 | `PhTiffImageDriverTests.canOpenFileByContent` | `"philips", fileName` |
 | `src/tests/phtiff/test_phtiff_driver.cpp` | 1090 | `PhTiffImageDriverTests.metadataOfTheTestFiles` | `"philips", fileName` |
 | `src/tests/phtiff/test_phtiff_driver.cpp` | 1147 | `PhTiffImageDriverTests.magnificationOfTheTestFiles` | `"philips", param.first` |

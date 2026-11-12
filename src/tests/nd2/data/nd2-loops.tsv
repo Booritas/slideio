@@ -1,0 +1,56 @@
+file	loops
+aryeh/MeOh_high_fluo_003.nd2	T13
+aryeh/MeOh_high_fluo_007.nd2	T13
+aryeh/MeOh_high_fluo_011.nd2	T13
+aryeh/b16_pdtB+y50__crop.nd2	T57 P12
+aryeh/old_cells_02.nd2	T41 P4 Z7
+aryeh/qa-9507/control003.nd2	P10 Z17
+aryeh/rfp_h2a_cells_02.nd2	T115 P5 Z5
+imagesc-92810/Test_OMERO_nd2/correct/WellA02_ChannelBrightfield,Cy3 SD_Seq0001.nd2	T30
+imagesc-92810/Test_OMERO_nd2/not_correct/WellA03_ChannelBrightfield,Cy3 SD_Seq0002.nd2	T30
+jonas/100217_OD122_001.nd2	T25 Z29
+jonas/2.nd2	T126 Z51
+jonas/2112-2265.nd2	T49 P8 Z27
+jonas/3.nd2	T26 Z35
+jonas/512c/cag_p5_simgc_2511_70ms22s_crop.nd2	T8 P2 Z31
+jonas/512c/nikonTest_1.nd2	T16 Z11
+jonas/512c/nikonTest_two.nd2	T16 Z11
+jonas/512c/wtf_DIC.nd2	T1 P2 Z31
+jonas/512c/wtf_alignment.nd2	T1 P2 Z31
+jonas/JJ1473_control_24h/JJ1473_conrol_24h_02.nd2	T51 Z29
+jonas/JJ1473_control_24h/JJ1473_control_24h_03.nd2	T44 Z29
+jonas/control002.nd2	T65 Z9
+jonas/divisionByZero/290110.tranMgc005cr.nd2	T3 Z61
+jonas/header_test1.nd2	T7 Z3
+jonas/header_test2.nd2	T4 Z5
+jonas/jonas_nd2Test/Exception61.nd2	T11 Z13
+jonas/jonas_nd2Test/Exception9_e3.nd2	T9 Z16
+jonas/jonas_nd2Test/Exception_2.nd2	Z31
+jonas/movieSize/JJ_RNAi_hmr-1_001.nd2	T57 Z19
+jonas/movieSize/JJ_RNAi_hmr-1_001_CropCyan.nd2	T57 Z19
+jonas/multicolorTest.nd2	T13 Z15
+jonas/qa-7534/130606_JCC719_003.nd2	T20 Z8
+karl/sample_image.nd2	P1 Z21
+maxime/BF007.nd2	
+zenodo-10277961/MRAP1 KO DN_10X03.nd2	
+zenodo-12734440/HE_002.nd2	
+zenodo-14893791/C3_N01Ato5_nucleo-trans_div3_mSG_b2s_200ms_30%_Reconstructed.nd2	P10
+zenodo-15046688/N1_file_bugged_raw-version.nd2	P5
+zenodo-15046688/N1_file_bugged_reconstructed-version.nd2	P5
+zenodo-15046688/N2_file_bugged_raw-version.nd2	P6
+zenodo-15046688/N2_file_bugged_reconstructed-version.nd2	P6
+zenodo-15046688/N3_file_nobug_raw-version.nd2	P18
+zenodo-15046688/N3_file_nobug_reconstructed-version.nd2	P18
+zenodo-15046688/N4_file_nobug_raw-version.nd2	P10
+zenodo-15046688/N4_file_nobug_reconstructed-version.nd2	P10
+zenodo-15493140/169_Cropped.nd2	Z57
+zenodo-15493140/169_Original.nd2	Z88
+zenodo-15493140/19825_Cropped.nd2	Z48
+zenodo-15493140/19825_Original.nd2	Z100
+zenodo-15579371/823_Clarkia pulchella_09-1_DIC_SG.nd2	Z44
+zenodo-16628927/Slide4-4_Region0001_Channel20xDAPI,20xCy3_Seq0027.nd2	
+zenodo-16921650/B08.nd2	T92 P2 Z5
+zenodo-17186598/Experiment_0001.nd2	Z17
+zenodo-7439387/ns_blobtest2.0_20x_A2_far.nd2	T44 P1 Z3
+zenodo/bioformats-issue/2D 500uM VPA002.nd2	
+zenodo/bioformats/190821_L1_IRS-Akt_CS2003.nd2	T31 P46

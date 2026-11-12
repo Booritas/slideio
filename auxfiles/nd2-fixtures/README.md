@@ -109,3 +109,36 @@ without them): every picture plane carries a non-empty `pFluorescentProbe` (`m_s
   `v20_unpadded` wrongly (its fast path assumes `nameLength 4072`; see FD section 3.4).
 - `nd2` reports `legacy_xy` with 4 positions (it ignores the `TINF` count), and cannot parse
   `v21_xml`'s text info (the `\x01`).
+
+## Corpus references
+
+The `ND2Corpus*` suites (`src/tests/nd2/test_nd2_corpus.cpp`) compare the driver with four
+committed references in `src/tests/nd2/data/`, made from the 64 corpus files under
+`$SLIDEIO_IMAGES_PATH/nd2/` and the ND2 validation folder of the documents repository
+(`image_formats/nd2/validation`). Both generators write rows in a fixed order with LF line
+endings.
+
+```bash
+# nd2-regions.tsv: 3,117 rows, CRC-32 per slideio channel of the 7x5 regions Bio-Formats read;
+# also nd2-loops.tsv (55 chunked files' inventory loops) and nd2-times.tsv (2,236 nd2 frame
+# times of 190821_L1_IRS-Akt_CS2003.nd2 and B08.nd2). Needs nd2, imagecodecs and numpy
+# (the environment of the validation README).
+nd2env/Scripts/python -I auxfiles/nd2-fixtures/make_region_reference.py $SLIDEIO_IMAGES_PATH/nd2 <validation-dir> src/tests/nd2/data/nd2-regions.tsv
+# nd2-scenes.tsv: 248 rows, one per Bio-Formats series of the 63 files it reads validly.
+java -cp bioformats_package.jar auxfiles/nd2-fixtures/Nd2Scenes.java $SLIDEIO_IMAGES_PATH/nd2 src/tests/nd2/data/nd2-scenes.tsv
+```
+
+`make_region_reference.py` maps each Bio-Formats (series, plane) to a frame exactly as the
+validation's `compare_regions.py` (chunked, through `nd2spec`) and `compare_nd2lib.py`
+(legacy JPEG 2000, through `nd2`, undoing Bio-Formats' big-endian and planar-RGB output) do,
+and writes nothing unless every SHA-256 equals Bio-Formats'. It prints
+`3057 regions, 0 unexpected mismatches, 12 VPA002 regions referenced from nd2`. For
+`2D 500uM VPA002.nd2`, where Bio-Formats reads 4 x RGB with a 4-sample stride, it checks
+that Bio-Formats' bytes are exactly that misaddressing of the right frame, then takes each of
+the three components of the channel from where `nd2spec` and `nd2` agree. The 18 rows of
+`290110.tranMgc005cr.nd2` (`uiWidth` 0, refused) are skipped.
+
+`Nd2Scenes.java` writes Bio-Formats' size, type and calibration per series. Bio-Formats sets
+no time increment and no nominal magnification for ND2, so its `tIncrement_s` is the mean
+step of the plane times and its `magnification` the calibrated one (parsed from the objective
+name); the test records where the driver differs.

@@ -4,6 +4,7 @@ set(CMAKE_PREFIX_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 # The fixtures are synthetic and committed in data/ (auxfiles/nd2-fixtures/generate.py).
+# test_nd2_corpus.cpp (ND2Corpus*) reads the corpus under SLIDEIO_IMAGES_PATH/nd2; CI excludes it.
 set(TEST_SOURCES
   test_nd2_chunkfile.cpp
   test_nd2_variant.cpp
@@ -12,6 +13,7 @@ set(TEST_SOURCES
   test_nd2_imageinfo.cpp
   test_nd2_scene.cpp
   test_nd2_legacy.cpp
+  test_nd2_corpus.cpp
   nd2_fixture_values.hpp
 )
 
