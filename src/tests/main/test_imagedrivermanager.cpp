@@ -61,7 +61,9 @@ TEST(ImageDriverManager, findDriver)
         TestEntity("MRXS", TestTools::getTestImagePath("mirax/openslide/CMU-1-Saved-1_16", "CMU-1-Saved-1_16.mrxs")),
         TestEntity("MRXS", TestTools::getTestImagePath("mirax/openslide/CMU-1-Saved-1_16/CMU-1-Saved-1_16", "Slidedat.ini")),
         // BIF is chosen by name too: the structural probe runs in openFile.
-        TestEntity("BIF", TestTools::getTestImagePath("bif/openslide", "Ventana-1.bif"))
+        TestEntity("BIF", TestTools::getTestImagePath("bif/openslide", "Ventana-1.bif")),
+        // LIF is chosen by name too, before GDAL.
+        TestEntity("LIF", TestTools::getTestImagePath("lif/bioformats/michael", "PR2729_frameOrderCombinedScanTypes.lif"))
     };
     for(const auto& entity: testList) {
         auto driverId = std::get<0>(entity);

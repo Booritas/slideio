@@ -11,6 +11,7 @@
 #include <opencv2/core.hpp>
 #include <algorithm>
 #include <string>
+#include <vector>
 #include "slideio/slideio/sceneinternal.hpp"
 #include "slideio/slideio/slideio.hpp"
 #include "slideio/slideio/scene.hpp"
@@ -42,12 +43,20 @@ namespace
         return {slide, SceneInternal::getCVScene(slide->getAuxImage(auxName))};
     }
 
-    bool isBackground(const cv::Mat& raster)
+    // Background is what the scene itself states: the default (255 for bytes, 0 otherwise),
+    // or a driver's own colour -- LIF is dark, being mostly fluorescence.
+    bool isBackground(const cv::Mat& raster, const CVScene& scene)
     {
-        const double background = raster.depth() == CV_8U ? 255. : 0.;
-        cv::Mat diff;
-        cv::absdiff(raster.reshape(1), cv::Scalar(background), diff);
-        return cv::countNonZero(diff) == 0;
+        std::vector<cv::Mat> planes;
+        cv::split(raster, planes);
+        for (size_t channel = 0; channel < planes.size(); ++channel) {
+            cv::Mat diff;
+            cv::absdiff(planes[channel], cv::Scalar(scene.getChannelBackground(static_cast<int>(channel))), diff);
+            if (cv::countNonZero(diff) != 0) {
+                return false;
+            }
+        }
+        return true;
     }
 
     void expectEdgeContract(const std::shared_ptr<CVScene>& scene)
@@ -69,18 +78,18 @@ namespace
         cv::Mat diff;
         cv::absdiff(straddle(cv::Rect(0, 0, a, a)), inside, diff);
         EXPECT_EQ(0, cv::countNonZero(diff.reshape(1))) << "the inside half differs from an in-bounds read";
-        EXPECT_TRUE(isBackground(straddle(cv::Rect(a, 0, a, a)))) << "the outside half is not background";
+        EXPECT_TRUE(isBackground(straddle(cv::Rect(a, 0, a, a)), *scene)) << "the outside half is not background";
 
         // Bottom edge and a negative origin: the outside part is background.
         cv::Mat bottom;
         ASSERT_NO_THROW(scene->readBlock(cv::Rect(0, h - a, a, 2 * a), bottom));
         ASSERT_EQ(cv::Size(a, 2 * a), bottom.size());
-        EXPECT_TRUE(isBackground(bottom(cv::Rect(0, a, a, a))));
+        EXPECT_TRUE(isBackground(bottom(cv::Rect(0, a, a, a)), *scene));
         cv::Mat negative;
         ASSERT_NO_THROW(scene->readBlock(cv::Rect(-a, -a, 2 * a, 2 * a), negative));
         ASSERT_EQ(cv::Size(2 * a, 2 * a), negative.size());
-        EXPECT_TRUE(isBackground(negative(cv::Rect(0, 0, 2 * a, a))));
-        EXPECT_TRUE(isBackground(negative(cv::Rect(0, a, a, a))));
+        EXPECT_TRUE(isBackground(negative(cv::Rect(0, 0, 2 * a, a)), *scene));
+        EXPECT_TRUE(isBackground(negative(cv::Rect(0, a, a, a)), *scene));
 
         // The read from the issue: a large rectangle over the edge, downscaled.
         cv::Mat scaled;
@@ -91,7 +100,7 @@ namespace
         cv::Mat outside;
         ASSERT_NO_THROW(scene->readBlock(cv::Rect(w + a, 0, a, a), outside));
         ASSERT_EQ(cv::Size(a, a), outside.size());
-        EXPECT_TRUE(isBackground(outside));
+        EXPECT_TRUE(isBackground(outside, *scene));
     }
 }
 
@@ -165,4 +174,11 @@ TEST(EdgeReads, bif)
     const std::string path = TestTools::getTestImagePath("bif", "openslide/Ventana-1.bif");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
     expectEdgeContract(openScene(path, "BIF").scene);
+}
+
+TEST(EdgeReads, lif)
+{
+    const std::string path = TestTools::getTestImagePath("lif", "bioformats/michael/PR2729_frameOrderCombinedScanTypes.lif");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
+    expectEdgeContract(openScene(path, "LIF").scene);
 }
