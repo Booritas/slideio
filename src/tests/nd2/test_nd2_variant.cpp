@@ -5,7 +5,9 @@
 #include <nlohmann/json.hpp>
 #include <zlib.h>
 #include <cstdint>
+#include <cmath>
 #include <cstring>
+#include <limits>
 #include <functional>
 #include <iostream>
 #include <locale>
@@ -179,29 +181,61 @@ TEST(Nd2Variant, LiteNestedLevelsAndCopy)
     EXPECT_EQ(copy.get("n")->asInt(), 5);
 }
 
+namespace
+{
+    /// A type-76 record: type, nameChars (0), 10 skipped bytes, zlib to the end.
+    Bytes compressed(const Bytes& plain)
+    {
+        Bytes b{ 76, 0 };
+        append(b, le<uint64_t>(plain.size()));
+        append(b, Bytes{ 0, 0 });
+        append(b, zlibOf(plain));
+        return b;
+    }
+}
+
 TEST(Nd2Variant, LiteCompressed)
 {
     const Bytes plain = level(u"SLxPictureMetadata", { lite(3, u"uiCount", le<uint32_t>(2)), lite(8, u"name", utf16(u"DAPI")) });
-    Bytes packed{ 76 };
-    append(packed, Bytes(9, 0));   // 10 bytes in all precede the zlib stream
-    append(packed, zlibOf(plain));
-
     const Variant a = decode(plain);
-    const Variant b = decode(packed);
+    const Variant b = decode(compressed(plain));
     EXPECT_EQ(a.toJson(), b.toJson());
     EXPECT_EQ(b.path({ "SLxPictureMetadata", "uiCount" })->asInt(), 2);
 
-    // two more header bytes, as the fixture generator writes them
-    Bytes packed12{ 76, 0 };
-    append(packed12, le<uint64_t>(plain.size()));
-    append(packed12, Bytes{ 0, 0 });
-    append(packed12, zlibOf(plain));
-    EXPECT_EQ(decode(packed12).toJson(), a.toJson());
+    // zlib at offset 10 is a malformed record, not a variant of the format
+    Bytes at10{ 76 };
+    append(at10, Bytes(9, 0));
+    append(at10, zlibOf(plain));
+    EXPECT_THROW(decode(at10), std::exception);
 
-    Bytes garbage{ 76 };
-    append(garbage, Bytes(9, 0));
+    Bytes tooShort{ 76, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    EXPECT_THROW(decode(tooShort), std::exception);
+
+    Bytes garbage{ 76, 0 };
+    append(garbage, Bytes(10, 0));
     append(garbage, Bytes{ 0x78, 0x9c, 1, 2, 3, 4, 5, 6 });
     EXPECT_THROW(decode(garbage), std::exception);
+}
+
+TEST(Nd2Variant, LiteInflateBudgetCoversNestedRecords)
+{
+    const Bytes inner = level(u"SLxInner", { lite(9, u"pad", [] { Bytes b = le<uint64_t>(40000); append(b, Bytes(40000, 0)); return b; }()) });
+    // a type-76 record whose inflated content holds another type-76 record
+    Bytes outerContent = level(u"SLxOuter", { lite(9, u"pad", [] { Bytes b = le<uint64_t>(40000); append(b, Bytes(40000, 0)); return b; }()) });
+    append(outerContent, compressed(inner));
+    const Bytes nested = compressed(outerContent);
+    const Variant v = decode(nested);
+    EXPECT_EQ(v.path({ "SLxInner", "pad" })->bytes().size(), 40000u);
+
+    // each stream inflates to about 40 KB, the outer one to 80 KB with the inner; the total they exceeds a 64 KiB budget
+    const std::string msg = messageOf([&] { decodeClxLite(nested.data(), nested.size(), 64 * 1024); });
+    EXPECT_NE(msg.find("ND2: "), std::string::npos) << msg;
+    // a single stream above the budget throws too
+    EXPECT_THROW(decodeClxLite(compressed(inner).data(), compressed(inner).size(), 1000), std::exception);
+    // and the same data decodes with room for both
+    EXPECT_NO_THROW(decodeClxLite(nested.data(), nested.size(), 128 * 1024));
+    EXPECT_NO_THROW(decodeMetadata(nested, 128 * 1024));
+    EXPECT_THROW(decodeMetadata(nested, 1000), std::exception);
 }
 
 TEST(Nd2Variant, LiteTruncatedThrows)
@@ -366,4 +400,41 @@ TEST(Nd2Variant, ToJson)
     EXPECT_EQ(j["list"][0], 1);
     EXPECT_EQ(j["list"][1], "two");
     EXPECT_EQ(j["b"], true);
+}
+
+TEST(Nd2Variant, XmlByteArrayIsRawText)
+{
+    const std::string xml =
+        "<variant><no_name runtype=\"CLxListVariant\"><a runtype=\"CLxByteArray\" value=\"abcd\"/>"
+        "<b runtype=\"CLxByteArray\" value=\"true\"/></no_name></variant>";
+    const Variant v = decodeMetadata(toBytes(xml));
+    EXPECT_EQ(v.get("a")->bytes(), (Bytes{ 'a', 'b', 'c', 'd' }));
+    EXPECT_EQ(v.get("b")->bytes(), (Bytes{ 't', 'r', 'u', 'e' }));
+}
+
+TEST(Nd2Variant, XmlSpecialDoublesAndPartialNumbers)
+{
+    const std::string xml =
+        "<variant><no_name runtype=\"CLxListVariant\">"
+        "<q runtype=\"double\" value=\"1.#QNAN\"/><i runtype=\"double\" value=\"-1.#IND\"/>"
+        "<p runtype=\"double\" value=\"1.#INF\"/><n runtype=\"double\" value=\"-1.#INF\"/>"
+        "<w runtype=\"double\" value=\"nan\"/><x runtype=\"double\" value=\"inf\"/><y runtype=\"double\" value=\"-inf\"/>"
+        "<g runtype=\"double\" value=\"1.5abc\"/>"
+        "<old runtype=\"CLxListVariant\" _VERSION=\"1.000000\" num=\"12\" bad=\"12abc\" frac=\"2.5\"/>"
+        "</no_name></variant>";
+    const Variant v = decodeMetadata(toBytes(xml));
+    EXPECT_TRUE(std::isnan(v.get("q")->asDouble()));
+    EXPECT_TRUE(std::isnan(v.get("i")->asDouble()));
+    EXPECT_EQ(v.get("p")->asDouble(), std::numeric_limits<double>::infinity());
+    EXPECT_EQ(v.get("n")->asDouble(), -std::numeric_limits<double>::infinity());
+    EXPECT_TRUE(std::isnan(v.get("w")->asDouble()));
+    EXPECT_EQ(v.get("x")->asDouble(), std::numeric_limits<double>::infinity());
+    EXPECT_EQ(v.get("y")->asDouble(), -std::numeric_limits<double>::infinity());
+    EXPECT_TRUE(std::isnan(v.get("g")->asDouble()));   // not 1.5
+    const Variant* old = v.get("old");
+    ASSERT_NE(old, nullptr);
+    EXPECT_EQ(old->get("num")->kind(), Variant::Kind::Int);
+    EXPECT_EQ(old->get("bad")->kind(), Variant::Kind::String);
+    EXPECT_EQ(old->get("bad")->asString(), "12abc");
+    EXPECT_EQ(old->get("frac")->kind(), Variant::Kind::Double);
 }

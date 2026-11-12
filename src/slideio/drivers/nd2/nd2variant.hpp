@@ -65,12 +65,18 @@ namespace slideio
             std::vector<Variant> m_items;
         };
 
+        /// Total bytes all compressed (type 76) records of one buffer may inflate to,
+        /// nested ones included.
+        constexpr size_t kDefaultMaxInflatedBytes = size_t(256) << 20;
+
         /// Decodes CLX Lite. Throws RuntimeError "ND2: ..." on malformed data.
-        SLIDEIO_ND2_EXPORTS Variant decodeClxLite(const uint8_t* data, size_t size);
+        SLIDEIO_ND2_EXPORTS Variant decodeClxLite(const uint8_t* data, size_t size,
+            size_t maxInflatedBytes = kDefaultMaxInflatedBytes);
         /// Decodes CLX XML (`<variant>` root). Throws RuntimeError "ND2: ...".
         SLIDEIO_ND2_EXPORTS Variant decodeClxXml(const std::string& text);
         /// '<' as the first byte means XML, anything else Lite. Unwraps the `SLx...`
         /// level (Lite) or the single `no_name` child (XML).
-        SLIDEIO_ND2_EXPORTS Variant decodeMetadata(const std::vector<uint8_t>& data);
+        SLIDEIO_ND2_EXPORTS Variant decodeMetadata(const std::vector<uint8_t>& data,
+            size_t maxInflatedBytes = kDefaultMaxInflatedBytes);
     }
 }

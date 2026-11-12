@@ -95,7 +95,6 @@ namespace slideio
 namespace
 {
     constexpr int kMaxDepth = 64;
-    constexpr size_t kMaxInflated = size_t(1) << 30;
 
     [[noreturn]] void fail(const std::string& what)
     {
@@ -111,6 +110,7 @@ namespace
         const uint8_t* data;
         size_t size;     // end of the buffer
         size_t pos;
+        size_t* budget;  // inflated bytes still allowed, shared by the whole decode
 
         size_t remaining() const { return size - pos; }
         void need(size_t n, const char* what) const
@@ -136,12 +136,10 @@ namespace
         }
     };
 
-    bool looksLikeZlibHeader(const uint8_t* p)
-    {
-        return (p[0] & 0x0F) == 8 && ((p[0] << 8) | p[1]) % 31 == 0;
-    }
-
-    std::vector<uint8_t> inflateAll(const uint8_t* src, size_t n)
+    /// Inflates a whole zlib stream. `budget` is what is left of the total inflated
+    /// bytes allowed for the whole buffer; it is charged as output is produced, so
+    /// nothing is allocated past it.
+    std::vector<uint8_t> inflateAll(const uint8_t* src, size_t n, size_t& budget)
     {
         z_stream zs;
         std::memset(&zs, 0, sizeof(zs));
@@ -159,11 +157,13 @@ namespace
                 inflateEnd(&zs);
                 fail("compressed CLX Lite record is not valid zlib data");
             }
-            out.insert(out.end(), chunk.begin(), chunk.begin() + (chunk.size() - zs.avail_out));
-            if (out.size() > kMaxInflated) {
+            const size_t produced = chunk.size() - zs.avail_out;
+            if (produced > budget) {
                 inflateEnd(&zs);
-                fail("compressed CLX Lite record inflates beyond the size limit");
+                fail("compressed CLX Lite data inflates beyond the size limit");
             }
+            budget -= produced;
+            out.insert(out.end(), chunk.begin(), chunk.begin() + produced);
             if (rc == Z_OK && zs.avail_in == 0 && zs.avail_out != 0) {
                 inflateEnd(&zs);
                 fail("compressed CLX Lite record is truncated");
@@ -196,21 +196,14 @@ namespace
         const size_t start = c.pos;
         const uint8_t type = c.u8("a record type");
         if (type == 76) {
-            // Compressed: no name; a fixed header, then zlib to the end of the region.
-            // The header is 10 bytes counted from the type byte; some writers add two
-            // more, so take whichever offset holds a zlib header.
+            // Compressed: a 2-byte header (type, nameChars), 10 skipped bytes, then
+            // zlib to the end of the region: the stream starts at offset 12.
+            constexpr size_t kHeader = 12;
             const size_t avail = end - start;
-            size_t skip = 0;
-            for (size_t candidate : {size_t(10), size_t(12)}) {
-                if (avail >= candidate + 2 && looksLikeZlibHeader(c.data + start + candidate)) {
-                    skip = candidate;
-                    break;
-                }
-            }
-            if (skip == 0) fail("compressed CLX Lite record has no zlib stream");
-            std::vector<uint8_t> raw = inflateAll(c.data + start + skip, avail - skip);
+            if (avail < kHeader + 2) fail("compressed CLX Lite record is too short");
+            std::vector<uint8_t> raw = inflateAll(c.data + start + kHeader, avail - kHeader, *c.budget);
             c.pos = end;
-            Cursor inner{ raw.data(), raw.size(), 0 };
+            Cursor inner{ raw.data(), raw.size(), 0, c.budget };
             decodeRecords(inner, raw.size(), depth + 1, out);
             return;
         }
@@ -288,12 +281,34 @@ namespace
         return names;
     }
 
-    bool parseDouble(const std::string& s, double& out)
+    /// The whole text must be one number: "12abc" and "1.#QNAN" are not.
+    bool parseDouble(const std::string& text, double& out)
     {
+        std::string s = text;
+        while (!s.empty() && std::isspace(static_cast<unsigned char>(s.back()))) s.pop_back();
+        if (s.empty()) return false;
         std::istringstream in(s);
-        in.imbue(std::locale::classic());   // '.' is the decimal point, whatever the process locale
+        in.imbue(std::locale::classic());   // "." is the decimal point, whatever the process locale
         in >> out;
-        return !in.fail();
+        return !in.fail() && in.eof();
+    }
+
+    /// NaN and infinity as the MSVC runtime and others print them.
+    bool parseSpecialDouble(const std::string& text, double& out)
+    {
+        std::string s = text;
+        while (!s.empty() && std::isspace(static_cast<unsigned char>(s.back()))) s.pop_back();
+        size_t b = 0;
+        while (b < s.size() && std::isspace(static_cast<unsigned char>(s[b]))) ++b;
+        s = s.substr(b);
+        std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c) { return char(std::tolower(c)); });
+        if (s == "1.#qnan" || s == "-1.#ind" || s == "nan" || s == "1.#ind" || s == "-1.#qnan" || s == "-nan") {
+            out = std::numeric_limits<double>::quiet_NaN();
+        }
+        else if (s == "1.#inf" || s == "inf" || s == "+inf") out = std::numeric_limits<double>::infinity();
+        else if (s == "-1.#inf" || s == "-inf") out = -std::numeric_limits<double>::infinity();
+        else return false;
+        return true;
     }
 
     template <typename T>
@@ -310,33 +325,6 @@ namespace
     {
         std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c) { return char(std::tolower(c)); });
         return s;
-    }
-
-    bool decodeBase64(const std::string& s, std::vector<uint8_t>& out)
-    {
-        if (s.empty() || s.size() % 4 != 0) return false;
-        out.clear();
-        uint32_t acc = 0;
-        int bits = 0;
-        size_t pad = 0;
-        for (char ch : s) {
-            int v;
-            if (ch >= 'A' && ch <= 'Z') v = ch - 'A';
-            else if (ch >= 'a' && ch <= 'z') v = ch - 'a' + 26;
-            else if (ch >= '0' && ch <= '9') v = ch - '0' + 52;
-            else if (ch == '+') v = 62;
-            else if (ch == '/') v = 63;
-            else if (ch == '=') { ++pad; continue; }
-            else return false;
-            if (pad) return false;
-            acc = (acc << 6) | uint32_t(v);
-            bits += 6;
-            if (bits >= 8) {
-                bits -= 8;
-                out.push_back(uint8_t((acc >> bits) & 0xFF));
-            }
-        }
-        return pad <= 2;
     }
 
     Variant scalarFromText(const std::string& runtype, const std::string& text, const std::string& element)
@@ -357,15 +345,11 @@ namespace
         }
         if (runtype == "double" || runtype == "float") {
             double v;
-            // "1.#QNAN", "inf" and the like are not numbers a stream reads; they are not
-            // errors either
-            if (!parseDouble(text, v)) v = std::numeric_limits<double>::quiet_NaN();
+            if (!parseSpecialDouble(text, v) && !parseDouble(text, v)) v = std::numeric_limits<double>::quiet_NaN();
             return VariantAccess::scalarDouble(v);
         }
         if (runtype == "CLxByteArray") {
-            std::vector<uint8_t> bytes;
-            if (!decodeBase64(text, bytes)) bytes.assign(text.begin(), text.end());
-            return VariantAccess::scalarBytes(std::move(bytes));
+            return VariantAccess::scalarBytes(std::vector<uint8_t>(text.begin(), text.end()));   // the raw UTF-8 bytes, as the nd2 package stores them
         }
         return VariantAccess::scalarString(text);   // CLxStringW, unknown, anything else
     }
@@ -581,10 +565,11 @@ nlohmann::json Variant::toJson() const
 
 // -------------------------------------------------------------------- decoders
 
-Variant slideio::nd2::decodeClxLite(const uint8_t* data, size_t size)
+Variant slideio::nd2::decodeClxLite(const uint8_t* data, size_t size, size_t maxInflatedBytes)
 {
     if (!data && size) fail("no CLX Lite data");
-    Cursor c{ data, size, 0 };
+    size_t budget = maxInflatedBytes;
+    Cursor c{ data, size, 0, &budget };
     Members top;
     decodeRecords(c, size, 0, top);
     return VariantAccess::finalize(std::move(top));
@@ -603,7 +588,7 @@ Variant slideio::nd2::decodeClxXml(const std::string& text)
     return v;
 }
 
-Variant slideio::nd2::decodeMetadata(const std::vector<uint8_t>& data)
+Variant slideio::nd2::decodeMetadata(const std::vector<uint8_t>& data, size_t maxInflatedBytes)
 {
     if (data.empty()) fail("metadata chunk is empty");
     size_t first = 0;
@@ -611,5 +596,5 @@ Variant slideio::nd2::decodeMetadata(const std::vector<uint8_t>& data)
     if (data[first] == '<') {
         return unwrap(decodeClxXml(std::string(data.begin() + first, data.end())));
     }
-    return unwrap(decodeClxLite(data.data(), data.size()));
+    return unwrap(decodeClxLite(data.data(), data.size(), maxInflatedBytes));
 }
