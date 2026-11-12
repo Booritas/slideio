@@ -199,3 +199,10 @@ TEST(SceneLifetime, lif)
     SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
     expectScenesOutliveTheirSlide(path, "LIF");
 }
+
+TEST(SceneLifetime, nd2)
+{
+    const std::string path = TestTools::getTestImagePath("nd2", "maxime/BF007.nd2");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
+    expectScenesOutliveTheirSlide(path, "ND2");
+}

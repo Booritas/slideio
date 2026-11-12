@@ -173,7 +173,7 @@ std::string ND2Slide::getFilePath() const
 std::shared_ptr<CVScene> ND2Slide::getScene(int index) const
 {
     if (index < 0 || index >= getNumScenes()) {
-        RAISE_RUNTIME_ERROR << "ND2: invalid scene index " << index << ", the slide has "
+        RAISE_RUNTIME_ERROR << "ND2: invalid scene index: " << index << ", the slide has "
             << getNumScenes() << " scenes";
     }
     return m_scenes[index];

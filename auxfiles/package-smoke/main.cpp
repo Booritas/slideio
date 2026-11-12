@@ -30,8 +30,8 @@ namespace {
 // spelled out rather than counted: a count would still pass if one driver were
 // swapped for another.
 const std::vector<std::string> kExpectedDrivers = {
-    "AFI", "BIF", "CZI", "DCM", "GDAL", "LIF", "MRXS", "NDPI", "OMETIFF",
-    "PHTIFF", "QPTIFF", "SCN", "SVS", "VSI", "ZVI",
+    "AFI", "BIF", "CZI", "DCM", "GDAL", "LIF", "MRXS", "ND2", "NDPI",
+    "OMETIFF", "PHTIFF", "QPTIFF", "SCN", "SVS", "VSI", "ZVI",
 };
 
 } // namespace

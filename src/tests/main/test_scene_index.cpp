@@ -60,6 +60,7 @@ INSTANTIATE_TEST_SUITE_P(
         DriverImage{"DCM", "dcm", "barre.dev/OT-MONO2-8-hip.dcm"},
         DriverImage{"GDAL", "gdal", "img_2448x2448_3x8bit_SRC_RGB_ducks.png"},
         DriverImage{"LIF", "lif", "bioformats/michael/PR2729_frameOrderCombinedScanTypes.lif"},
+        DriverImage{"ND2", "nd2", "maxime/BF007.nd2"},
         DriverImage{"NDPI", "hamamatsu", "openslide/CMU-1.ndpi"},
         DriverImage{"OMETIFF", "ometiff", "Multifile/multifile-Z1.ome.tiff"},
         DriverImage{"PHTIFF", "philips", "Philips-3.tiff"},

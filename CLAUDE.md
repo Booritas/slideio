@@ -4,9 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-SlideIO is a C++ library (with Python bindings in a separate repo) for reading medical/microscopy slide images. It supports 15 formats (SVS, AFI, SCN, CZI, ZVI, NDPI, VSI, DCM, QPTIFF, OME-TIFF, PHTIFF, MRXS, BIF, LIF, GDAL) through a pluggable driver architecture. Cross-platform: Linux, macOS, Windows.
+SlideIO is a C++ library (with Python bindings in a separate repo) for reading medical/microscopy slide images. It supports 16 formats (SVS, AFI, SCN, CZI, ZVI, NDPI, VSI, DCM, QPTIFF, OME-TIFF, PHTIFF, MRXS, BIF, LIF, ND2, GDAL) through a pluggable driver architecture. Cross-platform: Linux, macOS, Windows.
 
-The 15 formats are served by 14 driver libraries: PHTIFF (Philips TIFF) has no library of its own — it ships inside the `slideio-svs` library, as `PHTIFFImageDriver`/`PHTIFFSlide`/`PHTIFFTiledScene` (`phtiff*.cpp` in `src/slideio/drivers/svs/`). `PHTIFFTiledScene` derives from `SVSTiledScene` to reuse the tiled-tiff reading path; everything format specific (detection, metadata parsing in `phtdescription.cpp`/`phtmetadata.cpp`, level-to-directory matching, tile padding crop) lives in the PHTIFF classes. Both driver ids are declared in `svsdriverids.hpp`.
+The 16 formats are served by 15 driver libraries: PHTIFF (Philips TIFF) has no library of its own — it ships inside the `slideio-svs` library, as `PHTIFFImageDriver`/`PHTIFFSlide`/`PHTIFFTiledScene` (`phtiff*.cpp` in `src/slideio/drivers/svs/`). `PHTIFFTiledScene` derives from `SVSTiledScene` to reuse the tiled-tiff reading path; everything format specific (detection, metadata parsing in `phtdescription.cpp`/`phtmetadata.cpp`, level-to-directory matching, tile padding crop) lives in the PHTIFF classes. Both driver ids are declared in `svsdriverids.hpp`.
 
 ## Build Commands
 
@@ -135,6 +135,7 @@ Tests use Google Test. Test executables (release build):
 ./build/release/bin/slideio_mrxs_tests         # MIRAX (MRXS) tests
 ./build/release/bin/slideio_bif_tests          # Ventana BIF tests
 ./build/release/bin/slideio_lif_tests          # Leica LIF tests
+./build/release/bin/slideio_nd2_tests          # Nikon ND2 tests
 
 # Run a single test:
 ./build/release/bin/slideio_tests --gtest_filter="TestSuiteName.TestName"
@@ -182,6 +183,14 @@ marks that directory `-text` because the fixtures are exact bytes, every
 `slideio_lif_tests` suite that needs the corpus is named `LIFCorpus*`, and CI runs the
 executable with `--gtest_filter=-LIFCorpus*` -- a corpus test with any other name breaks CI.
 
+The ND2 driver is the same arrangement a third time: its synthetic files are committed in
+`src/tests/nd2/data/` (24 of them, written by `auxfiles/nd2-fixtures/generate.py`),
+`.gitattributes` marks that directory `-text` because the fixtures are exact bytes, every
+`slideio_nd2_tests` suite that needs the corpus is named `ND2Corpus*`, and CI runs the
+executable with `--gtest_filter=-ND2Corpus*` -- a corpus test with any other name breaks CI.
+The legacy JPEG 2000 fixtures need `imagecodecs` to regenerate; the generator is
+otherwise standard-library only.
+
 ## Architecture
 
 ### Module Hierarchy (each is a shared library, prefixed `slideio-`):
@@ -191,7 +200,7 @@ executable with `--gtest_filter=-LIFCorpus*` -- a corpus test with any other nam
 - **slideio** (main) — Public API: `Slide`, `Scene`, `ImageDriverManager` (loads drivers dynamically)
 - **converter** — Format conversion (mainly TIFF output), multithreaded encoding
 - **transformer** — Image filters and color transformations (Gaussian, Canny, Sobel, etc.)
-- **drivers** — 14 format-specific shared libraries, each implementing `ImageDriver`/`CVScene`/`CVSlide` (the svs library serves both SVS and PHTIFF)
+- **drivers** — 15 format-specific shared libraries, each implementing `ImageDriver`/`CVScene`/`CVSlide` (the svs library serves both SVS and PHTIFF)
 
 ### Driver Plugin Pattern
 
@@ -220,7 +229,7 @@ Each driver in `src/slideio/drivers/<format>/` is an independent shared library 
   file state and are therefore fine: `FileReader` keeps one event object on the
   Windows read path, pole's `PositionalFile` keeps a manual-reset event of its
   own mirroring it, and `tempfile.cpp` keeps two for random names.) Concurrent
-  today: SVS, PHTIFF, AFI, PKE, SCN, NDPI, CZI, VSI, OME-TIFF, ZVI, MRXS, BIF, LIF. A
+  today: SVS, PHTIFF, AFI, PKE, SCN, NDPI, CZI, VSI, OME-TIFF, ZVI, MRXS, BIF, LIF, ND2. A
   `TransformerScene` forwards its origin scene's `supportsConcurrentReads()`
   rather than hard-coding `false`, so wrapping one of these in a transform no
   longer silently downgrades it to serialised reads. A scene that wraps another
@@ -233,6 +242,7 @@ Each driver in `src/slideio/drivers/<format>/` is an independent shared library 
   read the origin through its `…Ex` variants only — the public entry points
   would re-enter the non-recursive mutex and deadlock — and keep the origin
   alive for the wrapper's lifetime.
+- **Tiled area downscale**: `slideio/core/tools/tiledareadownscale.hpp` (moved out of LIF) is the shared bounded-memory downscale that LIF and ND2 use for reads far below native size. It is bit-exact with `cv::resize(INTER_AREA)` whenever a source row fits in the budget
 - **Library naming**: `slideio-<module>` with `_d` suffix for debug builds
 
 ### Source Layout
@@ -245,10 +255,10 @@ src/
 │   ├── imagetools/     # slideio-imagetools
 │   ├── converter/      # slideio-converter
 │   ├── transformer/    # slideio-transformer
-│   └── drivers/        # 14 driver libraries, serving 15 formats
+│   └── drivers/        # 15 driver libraries, serving 16 formats
 │       ├── svs/  afi/  scn/  czi/  zvi/     # svs/ also serves PHTIFF
 │       ├── ndpi/ vsi/  dcm/  pke/
-│       └── ome-tiff/  gdal/  mrxs/  bif/  lif/
+│       └── ome-tiff/  gdal/  mrxs/  bif/  lif/  nd2/
 ├── tests/              # Test suites (one per module/driver)
 ├── single_tests/       # Memory leak and performance tests
 └── tools/              # CLI tools

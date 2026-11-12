@@ -219,6 +219,9 @@ jobs:
           lif="${{ matrix.bin_dir }}/slideio_lif_tests"
           if [ "${RUNNER_OS}" = "Windows" ]; then lif="${lif}.exe"; fi
           "$lif" --gtest_filter="-LIFCorpus*"
+          nd2="${{ matrix.bin_dir }}/slideio_nd2_tests"
+          if [ "${RUNNER_OS}" = "Windows" ]; then nd2="${nd2}.exe"; fi
+          "$nd2" --gtest_filter="-ND2Corpus*"
 
       - name: Build packages
         run: python install.py -a package-only -c release
@@ -403,6 +406,7 @@ jobs:
               ./build/release/bin/slideio_mrxs_tests --gtest_filter="-MRXSCorpus*"
               ./build/release/bin/slideio_bif_tests --gtest_filter="-BIFCorpus*"
               ./build/release/bin/slideio_lif_tests --gtest_filter="-LIFCorpus*"
+              ./build/release/bin/slideio_nd2_tests --gtest_filter="-ND2Corpus*"
               python3 install.py -a package-only -c release
 
               # The consumer smoke test, run in the same image the package was

@@ -143,7 +143,7 @@ else()
         "C++ library for reading medical and microscopy slide images\n\
  SlideIO reads whole-slide and microscopy images through a pluggable driver\n\
  architecture, covering SVS, AFI, SCN, CZI, ZVI, NDPI, VSI, DCM, QPTIFF,\n\
- OME-TIFF, Philips TIFF, Ventana BIF, Leica LIF and formats reachable through GDAL. It supports zoom\n\
+ OME-TIFF, Philips TIFF, Ventana BIF, Leica LIF, Nikon ND2 and formats reachable through GDAL. It supports zoom\n\
  pyramids, multidimensional (3D and time-series) images and block reads with\n\
  arbitrary scaling.")
 endif()
