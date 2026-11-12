@@ -120,29 +120,24 @@ namespace
 
     std::vector<double> buildFrameTimes(const ChunkFile& chunks, const FileReader& file, int64_t count)
     {
-        std::vector<double> times(static_cast<size_t>(count), kNaN);
-        size_t covered = 0;
-        const ChunkHeader* cache = chunks.find("CustomData|AcqTimesCache!");
-        if (cache) {
-            const std::vector<uint8_t> data = chunks.readData(file, *cache);
-            covered = std::min(data.size() / sizeof(double), times.size());
-            for (size_t i = 0; i < covered; ++i) {
-                std::memcpy(&times[i], data.data() + i * sizeof(double), sizeof(double));
+        std::vector<double> cache;
+        const ChunkHeader* chunk = chunks.find("CustomData|AcqTimesCache!");
+        if (chunk) {
+            const std::vector<uint8_t> data = chunks.readData(file, *chunk);
+            cache.resize(data.size() / sizeof(double));
+            if (!cache.empty()) {
+                std::memcpy(cache.data(), data.data(), cache.size() * sizeof(double));
             }
         }
-        // Entries the cache does not cover come from the frame's own 8-byte prefix.
-        for (const auto& frame : chunks.frames()) {
-            if (frame.first < 0 || frame.first >= count || static_cast<size_t>(frame.first) < covered) {
-                continue;
+        const auto& frames = chunks.frames();
+        return mergeFrameTimes(cache, count, [&](int64_t frame, double& t) {
+            const auto it = frames.find(frame);
+            if (it == frames.end() || it->second.dataLength < sizeof(double)) {
+                return false;
             }
-            if (frame.second.dataLength < sizeof(double)) {
-                continue;
-            }
-            double t = 0;
-            file.readAt(frame.second.dataOffset(), &t, sizeof(t));
-            times[static_cast<size_t>(frame.first)] = t;
-        }
-        return times;
+            file.readAt(it->second.dataOffset(), &t, sizeof(t));
+            return true;
+        });
     }
 
     /// Seconds: `dPeriod` of the time loop; for an NE loop the first valid period's.
@@ -169,9 +164,12 @@ namespace
     }
 
     /// Mean difference of consecutive per-T times at p=0, z=0 in seconds; 0 unless all are known.
-    double meanStepSeconds(const Experiment& experiment, const std::vector<double>& times)
+    double meanStepImpl(const Experiment& experiment, const std::vector<double>& times)
     {
         const int64_t n = experiment.count(Axis::T);
+        if (static_cast<int64_t>(times.size()) < experiment.loopProduct()) {
+            return 0;
+        }
         if (n < 2) {
             return 0;
         }
@@ -276,4 +274,24 @@ ImageInfo slideio::nd2::buildImageInfo(const ChunkFile& chunks, const FileReader
         }
     }
     return info;
+}
+
+std::vector<double> slideio::nd2::mergeFrameTimes(const std::vector<double>& cache, int64_t count,
+    const std::function<bool(int64_t, double&)>& prefixTime)
+{
+    std::vector<double> times(static_cast<size_t>(std::max<int64_t>(count, 0)), kNaN);
+    const size_t covered = std::min(cache.size(), times.size());
+    std::copy(cache.begin(), cache.begin() + covered, times.begin());
+    for (size_t i = covered; i < times.size(); ++i) {
+        double t = 0;
+        if (prefixTime(static_cast<int64_t>(i), t)) {
+            times[i] = t;
+        }
+    }
+    return times;
+}
+
+double slideio::nd2::meanStepSeconds(const Experiment& experiment, const std::vector<double>& times)
+{
+    return meanStepImpl(experiment, times);
 }

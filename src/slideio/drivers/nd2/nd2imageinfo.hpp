@@ -8,6 +8,8 @@
 #include "slideio/drivers/nd2/nd2chunkfile.hpp"
 #include "slideio/drivers/nd2/nd2experiment.hpp"
 #include "slideio/drivers/nd2/nd2variant.hpp"
+#include <cstdint>
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -44,7 +46,10 @@ namespace slideio
             double magnification = 0;
             /// Julian day of the acquisition start; 0 = unknown.
             double absoluteJulianDay = 0;
-            /// Milliseconds by frame index (length = the loop product); NaN where unknown.
+            /// Milliseconds by frame index (length = the loop product). Each entry is the
+            /// `CustomData|AcqTimesCache!` value when the cache covers that index; entries past
+            /// the end of a short (or absent) cache come from the frame's own 8-byte prefix
+            /// when the frame exists. NaN where neither exists.
             std::vector<double> frameTimesMs;
             /// Slide raw metadata (design 6.5).
             std::string rawJson;
@@ -57,5 +62,14 @@ namespace slideio
         /// Z step in metres from the parameters of a Z loop: |dZStep|, or when that is 0
         /// and `uiCount` > 1, |dZHigh - dZLow| / (uiCount - 1). The fields are micrometres.
         SLIDEIO_ND2_EXPORTS double zStepFrom(const Variant& zLoopPars);
+
+        /// Frame times (ms) for `count` frames: the first cache.size() entries come from `cache`
+        /// (clipped to count); the rest from `prefixTime(frame, out)` where it returns true, else NaN.
+        SLIDEIO_ND2_EXPORTS std::vector<double> mergeFrameTimes(const std::vector<double>& cache, int64_t count,
+            const std::function<bool(int64_t, double&)>& prefixTime);
+
+        /// Mean difference in seconds of consecutive per-T times (ms) at p=0, z=0; 0 when
+        /// T < 2 or any of those times is NaN. `times` is indexed by frame.
+        SLIDEIO_ND2_EXPORTS double meanStepSeconds(const Experiment& experiment, const std::vector<double>& times);
     }
 }
