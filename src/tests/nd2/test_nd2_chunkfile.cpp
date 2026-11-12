@@ -286,3 +286,30 @@ TEST(Nd2ChunkFile, ScanSkipsTruncatedChunk)
     EXPECT_TRUE(c.frames().count(1));
     EXPECT_NE(c.find("ImageAttributesLV!"), nullptr);
 }
+
+TEST(Nd2ChunkFile, RejectsUnsupportedMajor)
+{
+    std::vector<uint8_t> bytes;
+    {
+        FileReader src(fixture("v3_basic.nd2"));
+        bytes.resize(static_cast<size_t>(src.size()));
+        src.readAt(0, bytes.data(), bytes.size());
+    }
+    // signature chunk: 16-byte header + 32-byte name, then "Ver3.0"
+    ASSERT_EQ(std::memcmp(&bytes[48], "Ver3.0", 6), 0);
+    bytes[51] = '4';
+    TempFile temp(".nd2");
+    {
+        SparseWriter w(temp.getPath().string());
+        ASSERT_TRUE(w.ok());
+        ASSERT_TRUE(w.writeAt(0, bytes));
+    }
+    FileReader file(temp.getPath().string());
+    try {
+        ChunkFile::read(file);
+        FAIL() << "expected an exception";
+    }
+    catch (const std::exception& ex) {
+        EXPECT_NE(std::string(ex.what()).find("unsupported ND2 version 4.0"), std::string::npos) << ex.what();
+    }
+}

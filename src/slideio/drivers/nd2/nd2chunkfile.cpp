@@ -282,6 +282,9 @@ ChunkFile ChunkFile::read(const FileReader& file)
     const Version version = readSignature(file);
     result.m_versionMajor = version.major;
     result.m_versionMinor = version.minor;
+    if (version.major != 2 && version.major != 3) {
+        RAISE_RUNTIME_ERROR << "ND2: unsupported ND2 version " << version.major << "." << version.minor;
+    }
 
     bool needScan = false;
     auto entries = readMap(file);
