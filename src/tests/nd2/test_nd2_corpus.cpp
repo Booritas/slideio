@@ -167,8 +167,10 @@ namespace
     }
 
     // Reads every region row of one file; returns the number of mismatches (the first few
-    // are reported) and adds the matches to `matches`.
-    int checkRegions(const std::string& file, const std::vector<Row>& rows, int& matches)
+    // are reported) and adds the matches to `matches`. A row whose time point is beyond the
+    // scene's T (a frame the driver ignores) is not read but counted in `beyondT`, per file.
+    int checkRegions(const std::string& file, const std::vector<Row>& rows, int& matches,
+                     std::map<std::string, int>& beyondT)
     {
         const auto slide = openCorpus(file);
         EXPECT_TRUE(slide) << file;
@@ -183,6 +185,10 @@ namespace
             const int t = toInt(row.at("t"));
             const cv::Rect rect(toInt(row.at("rx")), toInt(row.at("ry")), toInt(row.at("rw")), toInt(row.at("rh")));
             const auto scene = slide->getScene(series);
+            if (t >= scene->getNumTFrames()) {
+                ++beyondT[file];
+                continue;
+            }
             cv::Mat raster;
             scene->read4DBlockChannels(rect, {c}, cv::Range(z, z + 1), cv::Range(t, t + 1), raster);
             EXPECT_EQ(rect.width, raster.cols);
@@ -224,14 +230,12 @@ namespace
 // Recorded differences, asserted rather than skipped (design §2, §4.5, §6.2, §6.3):
 // - VPA002 (4 channels x RGB): Bio-Formats reports 4 channels and reads them with the
 //   wrong stride (FD §6.2); the driver exposes the 12 components.
-// - T on the files with frames beyond the declared loop product (FD 7.4). With T the
-//   outermost loop the driver takes T = ceil((maxFrame + 1) / innerProduct) (R25,
-//   design 4.5), which agrees with Bio-Formats where the surplus is whole time points
-//   (old_cells_02 42, rfp_h2a_cells_02 116, jonas/3 27) and differs where it is not:
-//   190821_L1_IRS-Akt_CS2003.nd2 (T31 x P46, 10 surplus frames: 32 here, Bio-Formats 31),
-//   multicolorTest.nd2 (T13 x Z15, 14 surplus: 14 vs 13) and 130606_JCC719_003.nd2
-//   (T20 x Z8, 82 surplus frames whose times run back to 241 s, inside the declared
-//   series: 31 vs 20), where Bio-Formats keeps the declared T.
+// - T: equal everywhere but one file. With T the outermost loop the driver trims trailing
+//   empty time points and adds surplus ones (FD 7.4) only while each is complete and its
+//   times follow the series (R29, design 4.5). That gives Bio-Formats' T on all the
+//   surplus files: old_cells_02 42, rfp_h2a_cells_02 116, jonas/3 27 extended;
+//   190821_L1_IRS-Akt_CS2003 31 and multicolorTest 13 (partial surplus) and
+//   130606_JCC719_003 20 (82 surplus frames whose times run back into the series) not.
 // - b16_pdtB+y50__crop.nd2: T is 57, Bio-Formats 56 (R26). All 684 frames are present;
 //   nd2 and the file's text (T'(57) x XY(12)) agree on 57. Bio-Formats
 //   discards the stale chunk map, rescans, and ends with fewer than 684 offsets; its
@@ -242,14 +246,14 @@ namespace
 //                  reports none for the 8 named legacy files (it does not parse their
 //                  names) nor for BF007 (100x) and 130606_JCC719_003 (60x), whose names nd2
 //                  reads as the driver does.
-//   tIncrement_s   the measured mean step of the plane times at P = 0, Z = 0, the nominal
-//                  period only when that cannot be measured (R28). The reference is the
-//                  mean step of Bio-Formats' plane times of each series. They differ where
-//                  Bio-Formats has no plane times (the legacy files; T = 1, where the driver
-//                  falls back to the period: wtf_DIC, wtf_alignment); on series other than
-//                  the first of a multi-position file (the driver measures at P = 0 for
-//                  every scene: old_cells_02, rfp_h2a_cells_02, 2112-2265, B08); and where T
-//                  differs (b16_pdtB, 190821, multicolorTest, 130606 above).
+//   tIncrement_s   each scene's measured mean step of its own plane times (its P, Z = 0),
+//                  the nominal period only when that cannot be measured (R28, R30). The
+//                  reference is the mean step of Bio-Formats' plane times of each series.
+//                  They differ where Bio-Formats has no plane times (the 9 legacy files;
+//                  T = 1, where the driver falls back to the period: wtf_DIC,
+//                  wtf_alignment); on b16_pdtB, where T differs (above); and on series 1 of
+//                  cag_p5_simgc_2511_70ms22s_crop, where Bio-Formats repeats series 0's
+//                  plane times (599.998 s) while that position's frames step 599.952 s.
 //   physX/Y_um     but3_cont200-1, but3_cont2002 and por003 (legacy): Bio-Formats reports
 //                  no pixel size; the driver's 50 and 100 um are the calibration nd2 reports.
 TEST(ND2CorpusOpen, ScenesMatchBioFormats)
@@ -264,24 +268,16 @@ TEST(ND2CorpusOpen, ScenesMatchBioFormats)
         {"aryeh/but3_cont200-1.nd2", {"magnification", "physX_um", "physY_um", "tIncrement_s"}},
         {"aryeh/but3_cont2002.nd2", {"magnification", "physX_um", "physY_um", "tIncrement_s"}},
         {"aryeh/multipoint.nd2", {"magnification", "tIncrement_s"}},
-        {"aryeh/old_cells_02.nd2", {"tIncrement_s"}},
         {"aryeh/por003.nd2", {"magnification", "physX_um", "physY_um", "tIncrement_s"}},
-        {"aryeh/rfp_h2a_cells_02.nd2", {"tIncrement_s"}},
         {"aryeh/weekend002.nd2", {"magnification", "tIncrement_s"}},
-        {"jonas/2112-2265.nd2", {"tIncrement_s"}},
+        {"jonas/512c/cag_p5_simgc_2511_70ms22s_crop.nd2", {"tIncrement_s"}},
         {"jonas/512c/wtf_DIC.nd2", {"tIncrement_s"}},
         {"jonas/512c/wtf_alignment.nd2", {"tIncrement_s"}},
-        {"jonas/multicolorTest.nd2", {"tIncrement_s"}},
-        {"jonas/qa-7534/130606_JCC719_003.nd2", {"magnification", "tIncrement_s"}},
+        {"jonas/qa-7534/130606_JCC719_003.nd2", {"magnification"}},
         {"maxime/BF007.nd2", {"magnification"}},
-        {"zenodo-16921650/B08.nd2", {"tIncrement_s"}},
-        {"zenodo/bioformats/190821_L1_IRS-Akt_CS2003.nd2", {"tIncrement_s"}},
     };
     // file -> (Bio-Formats T, driver T)
     const std::map<std::string, std::pair<int, int>> kTimeDifferences = {
-        {"zenodo/bioformats/190821_L1_IRS-Akt_CS2003.nd2", {31, 32}},
-        {"jonas/multicolorTest.nd2", {13, 14}},
-        {"jonas/qa-7534/130606_JCC719_003.nd2", {20, 31}},
         {kStaleMap, {56, 57}},
     };
     std::vector<std::string> skipped;
@@ -427,21 +423,30 @@ TEST(ND2CorpusOpen, LoopsMatchInventory)
 // Bio-Formats returned (confirmed there by SHA-256; for VPA002, where Bio-Formats is
 // wrong, the bytes nd2spec and nd2 agree on). That includes the 30 regions Bio-Formats
 // read from the surplus time points of old_cells_02, rfp_h2a_cells_02 and jonas/3, which
-// the driver exposes since R25 (design 4.5).
+// the driver exposes (R29, design 4.5). A region in a frame the driver ignores would be
+// counted, not read; there is none, since wherever the driver's T differs from
+// Bio-Formats' it is the larger.
 TEST(ND2CorpusRead, Regions)
 {
     std::vector<std::string> skipped;
+    std::map<std::string, int> beyondT;
     int matches = 0;
     int mismatches = 0;
     for (const auto& [file, rows] : byFile(readTsv("nd2-regions.tsv"))) {
         if (absent(file, skipped)) {
             continue;
         }
-        mismatches += checkRegions(file, rows, matches);
+        mismatches += checkRegions(file, rows, matches, beyondT);
     }
     reportSkipped(skipped);
-    std::printf("%d regions matched, %d mismatched\n", matches, mismatches);
+    int notRead = 0;
+    for (const auto& [file, count] : beyondT) {
+        notRead += count;
+        std::printf("  %d regions beyond T in %s\n", count, file.c_str());
+    }
+    std::printf("%d regions matched, %d mismatched, %d in ignored frames\n", matches, mismatches, notRead);
     EXPECT_EQ(0, mismatches);
+    EXPECT_TRUE(beyondT.empty());
     if (skipped.empty()) {
         EXPECT_EQ(3117, matches);
     }
@@ -464,7 +469,9 @@ TEST(ND2CorpusOpen, StaleMapRecovered)
     }
     ASSERT_EQ(240u, rows.size());
     int matches = 0;
-    EXPECT_EQ(0, checkRegions(kStaleMap, rows, matches));
+    std::map<std::string, int> beyondT;
+    EXPECT_EQ(0, checkRegions(kStaleMap, rows, matches, beyondT));
+    EXPECT_TRUE(beyondT.empty());
     EXPECT_EQ(240, matches);
 }
 
@@ -508,10 +515,9 @@ TEST(ND2CorpusRead, ConcurrentIdentity)
 }
 
 // Plane timestamps of two time-lapse files against nd2's frame times (nd2-times.tsv):
-// 190821_L1_IRS-Akt_CS2003.nd2 (T31 x P46, Ver3.0, extended to T32 by 10 surplus frames
-// whose times come from their prefixes, as nd2 serves only uiSequenceCount frames) and
-// B08.nd2 (NE time loop, T trimmed from 92 to 81). Planes whose frame is absent (the
-// last time point of 190821's positions 10-45) have no reference row and are skipped. Offsets are non-negative and non-decreasing in T; differences between
+// 190821_L1_IRS-Akt_CS2003.nd2 (T31 x P46, Ver3.0; its 10 surplus frames are a partial
+// time point and ignored) and B08.nd2 (NE time loop, T trimmed from 92 to 81). A plane
+// whose frame is absent would have no reference row and be skipped; there is none. Offsets are non-negative and non-decreasing in T; differences between
 // planes equal nd2's relative times to 1 us; acquisition + offset equals nd2's absolute
 // Julian day to 1 ms (a Julian day near 2.46e6 in a double keeps about 40 us).
 TEST(ND2CorpusOpen, Timestamps)
@@ -594,5 +600,5 @@ TEST(ND2CorpusOpen, Timestamps)
     }
     std::printf("%d planes compared; worst relative %.3g s, worst absolute %.3g s\n",
                 planesCompared, worstRelative, worstAbsolute);
-    EXPECT_EQ(1436 + 810, planesCompared);
+    EXPECT_EQ(1426 + 810, planesCompared);
 }
