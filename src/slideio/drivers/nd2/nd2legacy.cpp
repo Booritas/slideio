@@ -116,8 +116,7 @@ namespace
     }
 
     /// The legacy schema of a loop record (FD 11.2): XY points in `dPosX`, and the child
-    /// either the `ppNextLevelEx` record itself or the elements of that list. An empty
-    /// `pItemValid` (multipoint.nd2) validates every point.
+    /// either the `ppNextLevelEx` record itself or the elements of that list.
     LoopRecord readLegacyRecord(const Variant& node)
     {
         LoopRecord r;
@@ -125,14 +124,8 @@ namespace
         r.type = typeField ? static_cast<int>(typeField->asInt(0)) : 0;
         if (const Variant* pars = fieldOf(&node, "uLoopPars")) {
             r.hasPars = true;
-            // A legacy `uLoopPars` holds its record in a one-element `no_name` list.
-            const bool listed = pars->kind() == Variant::Kind::List && pars->items().size() == 1;
-            r.loop.pars = unwrapPars(listed ? pars->items().front() : *pars);
-            const Variant* itemValid = fieldOf(&node, "pItemValid");
-            if (itemValid && elementsOf(itemValid).empty() && itemValid->kind() != Variant::Kind::Bytes) {
-                itemValid = nullptr;
-            }
-            countLoop(r.type, fieldOf(&r.loop.pars, "dPosX"), itemValid, r.loop);
+            r.loop.pars = unwrapPars(*pars);
+            countLoop(r.type, fieldOf(&r.loop.pars, "dPosX"), fieldOf(&node, "pItemValid"), r.loop);
         }
         const Variant* next = fieldOf(&node, "ppNextLevelEx");
         if (next && fieldOf(next, "eType")) {

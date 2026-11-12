@@ -134,6 +134,12 @@ const Variant& slideio::nd2::detail::unwrapPars(const Variant& pars)
     if (pars.kind() == Variant::Kind::Map && pars.get("i0000000000") && !pars.items().empty()) {
         return pars.items().front();
     }
+    // CLX XML (2.x chunked and legacy) wraps the record in one `no_name`, which decodes as
+    // a one-element list.
+    if (pars.kind() == Variant::Kind::List && pars.items().size() == 1
+        && pars.items().front().kind() == Variant::Kind::Map) {
+        return pars.items().front();
+    }
     return pars;
 }
 
@@ -189,6 +195,9 @@ std::vector<int64_t> slideio::nd2::detail::validPoints(int64_t n, const Variant*
 {
     bool hasFlags = false;
     const std::vector<bool> flags = flagsOf(itemValid, hasFlags);
+    // An empty flag list (`<pItemValid runtype="CLxListVariant"/>` in 2.x files such as
+    // old_cells_02.nd2) says nothing: every point counts, as without one.
+    hasFlags = hasFlags && !flags.empty();
     std::vector<int64_t> valid;
     for (int64_t i = 0; i < n; ++i) {
         if (flagSet(flags, hasFlags, static_cast<size_t>(i))) {

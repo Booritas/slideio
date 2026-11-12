@@ -58,8 +58,9 @@ namespace slideio
             /// the nd2 package and the legacy fixtures name it. nullptr when neither exists.
             const Variant* fieldOf(const Variant* record, const std::string& name);
 
-            /// `uLoopPars` and period records can arrive wrapped in an `i0000000000` map (2.x).
-            /// Returns the record inside.
+            /// `uLoopPars` and period records can arrive wrapped: in an `i0000000000` map
+            /// (2.x Lite) or a one-element list (the single `no_name` of CLX XML, 2.x and
+            /// legacy). Returns the record inside.
             const Variant& unwrapPars(const Variant& pars);
 
             /// A validity flag list: a byte array, a list or map of flags, or a lone flag.
@@ -75,7 +76,7 @@ namespace slideio
             int64_t countPeriods(const Variant& pars);
 
             /// XY loop (FD 7.3): the indices among `n` points whose flag in `itemValid` is
-            /// set; every index when `itemValid` is nullptr.
+            /// set; every index when `itemValid` is nullptr or holds no flags.
             std::vector<int64_t> validPoints(int64_t n, const Variant* itemValid);
 
             /// A loop record before it is checked against the supported shapes.

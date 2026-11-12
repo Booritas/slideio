@@ -2,7 +2,9 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include <gtest/gtest.h>
+#include <cstdint>
 #include <set>
+#include <vector>
 #include <string>
 #include "slideio/drivers/nd2/nd2experiment.hpp"
 #include "nd2_test_trees.hpp"
@@ -142,4 +144,89 @@ TEST(Nd2Experiment, Refusals)
     EXPECT_NE(two.find("T2, T3"), std::string::npos) << two;
     const std::string custom = refusal("custom_loop.nd2");
     EXPECT_NE(custom.find("3"), std::string::npos) << custom;
+}
+
+namespace
+{
+    // The shape of aryeh/old_cells_02.nd2 (Ver2.1 CLX XML), trimmed to what the loops need:
+    // every uLoopPars wraps its record in one `no_name` (a one-element list once decoded),
+    // and every pItemValid is an empty CLxListVariant. FD 7.2 / validation inventory:
+    // T41 (the valid period of an NE loop), P4, Z7.
+    const char* const kOldCellsShape =
+        "<?xml version=\"1.0\" encoding=\"UTF-8\"?><variant version=\"1.0\">"
+        "<no_name runtype=\"RLxExperiment\"><eType runtype=\"lx_uint32\" value=\"8\"/>"
+        "<uLoopPars runtype=\"CLxListVariant\"><no_name runtype=\"RLxExperiment.RLxExpNETimeLoop\">"
+        "<uiCount runtype=\"lx_uint32\" value=\"73\"/>"
+        "<pPeriod runtype=\"CLxListVariant\">"
+        "<_00 runtype=\"RLxExperiment.RLxExpTimeLoop\"><uiCount runtype=\"lx_uint32\" value=\"41\"/>"
+        "<dPeriod runtype=\"double\" value=\"300000.0\"/></_00>"
+        "<_01 runtype=\"RLxExperiment.RLxExpTimeLoop\"><uiCount runtype=\"lx_uint32\" value=\"11\"/>"
+        "<dPeriod runtype=\"double\" value=\"360000.0\"/></_01></pPeriod>"
+        "<pPeriodValid runtype=\"CLxListVariant\"><_00 runtype=\"bool\" value=\"true\"/>"
+        "<_01 runtype=\"bool\" value=\"false\"/></pPeriodValid>"
+        "</no_name></uLoopPars>"
+        "<pItemValid runtype=\"CLxListVariant\"></pItemValid>"
+        "<ppNextLevelEx runtype=\"CLxListVariant\"><no_name runtype=\"RLxExperiment\">"
+        "<eType runtype=\"lx_uint32\" value=\"2\"/>"
+        "<uLoopPars runtype=\"CLxListVariant\"><no_name runtype=\"RLxExperiment.RLxExpXYPosLoop\">"
+        "<uiCount runtype=\"lx_uint32\" value=\"4\"/>"
+        "<dPosX runtype=\"CLxListVariant\"><item_00000 runtype=\"double\" value=\"1\"/>"
+        "<item_00001 runtype=\"double\" value=\"2\"/><item_00002 runtype=\"double\" value=\"3\"/>"
+        "<item_00003 runtype=\"double\" value=\"4\"/></dPosX>"
+        "</no_name></uLoopPars>"
+        "<pItemValid runtype=\"CLxListVariant\"></pItemValid>"
+        "<ppNextLevelEx runtype=\"CLxListVariant\"><no_name runtype=\"RLxExperiment\">"
+        "<eType runtype=\"lx_uint32\" value=\"4\"/>"
+        "<uLoopPars runtype=\"CLxListVariant\"><no_name runtype=\"RLxExperiment.RLxExpZStackLoop\">"
+        "<uiCount runtype=\"lx_uint32\" value=\"7\"/><dZStep runtype=\"double\" value=\"3.0\"/>"
+        "</no_name></uLoopPars>"
+        "<pItemValid runtype=\"CLxListVariant\"></pItemValid>"
+        "<ppNextLevelEx runtype=\"CLxListVariant\"></ppNextLevelEx>"
+        "</no_name></ppNextLevelEx>"
+        "</no_name></ppNextLevelEx>"
+        "</no_name></variant>";
+
+    Variant decodeText(const std::string& text)
+    {
+        return decodeMetadata(std::vector<uint8_t>(text.begin(), text.end()));
+    }
+}
+
+TEST(Nd2Experiment, XmlListWrappedLoopPars)
+{
+    // A one-element-list uLoopPars is the loop's parameters, not an empty record.
+    const Variant tree = decodeText(kOldCellsShape);
+    const Experiment e = Experiment::parse(&tree);
+    EXPECT_EQ("T41,P4,Z7", describe(e));
+    const Loop* z = e.loop(Axis::Z);
+    ASSERT_NE(nullptr, z);
+    ASSERT_NE(nullptr, z->pars.get("dZStep"));
+    EXPECT_DOUBLE_EQ(3.0, z->pars.get("dZStep")->asDouble());
+}
+
+TEST(Nd2Experiment, EmptyItemValidCountsEveryPoint)
+{
+    // old_cells_02: an XY loop of 4 points with an empty pItemValid list has 4 points.
+    const Variant tree = decodeText(kOldCellsShape);
+    const Experiment e = Experiment::parse(&tree);
+    const Loop* xy = e.loop(Axis::P);
+    ASSERT_NE(nullptr, xy);
+    EXPECT_EQ(4, xy->count);
+    EXPECT_EQ((std::vector<int64_t>{ 0, 1, 2, 3 }), xy->validItems);
+
+    // A non-empty list still filters (FD 7.3).
+    std::string flagged = kOldCellsShape;
+    const std::string empty = "<pItemValid runtype=\"CLxListVariant\"></pItemValid><ppNextLevelEx runtype=\"CLxListVariant\"><no_name runtype=\"RLxExperiment\"><eType runtype=\"lx_uint32\" value=\"4\"/>";
+    const size_t at = flagged.find(empty);
+    ASSERT_NE(std::string::npos, at);
+    flagged.replace(at, std::string("<pItemValid runtype=\"CLxListVariant\"></pItemValid>").size(),
+        "<pItemValid runtype=\"CLxListVariant\"><_00 runtype=\"bool\" value=\"false\"/>"
+        "<_01 runtype=\"bool\" value=\"true\"/><_02 runtype=\"bool\" value=\"false\"/>"
+        "<_03 runtype=\"bool\" value=\"true\"/></pItemValid>");
+    const Variant flaggedTree = decodeText(flagged);
+    const Experiment f = Experiment::parse(&flaggedTree);
+    const Loop* filtered = f.loop(Axis::P);
+    ASSERT_NE(nullptr, filtered);
+    EXPECT_EQ(2, filtered->count);
+    EXPECT_EQ((std::vector<int64_t>{ 1, 3 }), filtered->validItems);
 }
