@@ -330,6 +330,52 @@ TEST(Nd2Scene, Timestamps)
     EXPECT_NEAR(0.0, first->getPlaneTimestamp(0, 0, 0), 1e-9);     // frame 0
 }
 
+TEST(Nd2Scene, TimestampsWithoutAbsoluteTime)
+{
+    // Every fixture carries dTimeAbsolute 2460000.5, so this copy of order_pz has it
+    // zeroed: in CLX Lite the value follows the UTF-16LE name and its 2-byte terminator.
+    std::vector<char> bytes;
+    {
+        std::ifstream in(fixture("order_pz.nd2"), std::ios::binary);
+        bytes.assign(std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>());
+    }
+    const std::string ascii = "dTimeAbsolute";
+    std::string name;
+    for (char c : ascii) {
+        name.push_back(c);
+        name.push_back('\0');
+    }
+    const std::string text(bytes.begin(), bytes.end());
+    int patched = 0;
+    for (size_t pos = text.find(name); pos != std::string::npos; pos = text.find(name, pos + 1)) {
+        const size_t value = pos + name.size() + 2;
+        ASSERT_LE(value + sizeof(double), bytes.size());
+        double julian = 0;
+        std::memcpy(&julian, bytes.data() + value, sizeof(julian));
+        ASSERT_EQ(2460000.5, julian);
+        std::memset(bytes.data() + value, 0, sizeof(double));
+        ++patched;
+    }
+    ASSERT_GT(patched, 0);
+    TempFile copy("nd2");
+    {
+        std::ofstream out(copy.getPath(), std::ios::binary);
+        out.write(bytes.data(), static_cast<std::streamsize>(bytes.size()));
+    }
+    auto slide = ND2Slide::openFile(copy.getPath().string());
+    ASSERT_EQ(2, slide->getNumScenes());
+    // Scene p=1 holds frames 3, 4, 5 (300, 400, 500 ms): its earliest frame is not 0,
+    // and timestamps are relative to the experiment start (design 6.4).
+    auto scene = slide->getScene(1);
+    EXPECT_TRUE(scene->hasPlaneTimestamps());
+    EXPECT_EQ(0, scene->getAcquisitionTime());
+    EXPECT_NEAR(0.3, scene->getPlaneTimestamp(0, 0, 0), 1e-12);
+    EXPECT_NEAR(0.5, scene->getPlaneTimestamp(0, 0, 2), 1e-12);
+    auto first = slide->getScene(0);
+    EXPECT_EQ(0, first->getAcquisitionTime());
+    EXPECT_NEAR(0.1, first->getPlaneTimestamp(0, 0, 1), 1e-12);
+}
+
 TEST(Nd2Scene, EdgeIsBackground)
 {
     auto scene = openFixture("v3_basic.nd2")->getScene(0);

@@ -75,6 +75,8 @@ namespace slideio
         int m_numZ = 1;
         int m_numT = 1;
         bool m_hasTimestamps = false;
+        // dTimeAbsolute is known (>= 1, design 6.4).
+        bool m_hasAbsoluteTime = false;
         int64_t m_acquisitionTime = 0;
         // Seconds from m_acquisitionTime to the scene's earliest frame, in [0, 1)
         // with an absolute time, 0 without.

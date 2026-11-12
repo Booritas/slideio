@@ -90,14 +90,13 @@ void ND2Scene::initTimestamps()
     // whole and fractional seconds are kept apart so that the offsets keep their
     // precision next to a Unix time of ~1.7e9.
     //
-    // Without an absolute time (dTimeAbsolute < 1), getAcquisitionTime() is 0 and the
-    // offsets are relative to the scene's earliest frame, which is then at 0. (Design
-    // 6.4 says "relative to the experiment start"; the controller's ruling for Task 7
-    // makes them relative to the scene's earliest frame, matching the case with an
-    // absolute time, where the scene's earliest frame is the acquisition time.)
+    // Without an absolute time (dTimeAbsolute < 1 is unknown, design 6.4),
+    // getAcquisitionTime() is 0 and a plane's timestamp is relative to the experiment
+    // start: its frame time in seconds, as recorded.
     // With an absolute time but no complete frame times, the acquisition time is still
     // reported, from the earliest known frame time (or dTimeAbsolute alone).
-    if (m_info->absoluteJulianDay > 0) {
+    m_hasAbsoluteTime = m_info->absoluteJulianDay >= 1;
+    if (m_hasAbsoluteTime) {
         const double absolute = (m_info->absoluteJulianDay - kUnixEpochJulianDay) * kSecondsPerDay;
         const double whole = std::floor(absolute);
         const double fraction = (absolute - whole) + m_earliestMs / 1000.;
@@ -170,6 +169,9 @@ double ND2Scene::getPlaneTimestamp(int tFrame, int channel, int zSlice) const
     }
     // Every present frame of the scene has a time (m_hasTimestamps), at or after the earliest.
     const double ms = m_info->frameTimesMs[static_cast<size_t>(frame)];
+    if (!m_hasAbsoluteTime) {
+        return ms / 1000.;   // relative to the experiment start
+    }
     return m_firstOffset + (ms - m_earliestMs) / 1000.;
 }
 
