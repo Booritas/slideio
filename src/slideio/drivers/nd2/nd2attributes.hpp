@@ -65,10 +65,15 @@ namespace slideio
         };
 
         /// One entry per component of a frame. `pictureMetadata` is the unwrapped
-        /// `ImageMetadataSeq[LV]|0!` tree, or nullptr. Without usable plane records
-        /// every component is a single-component channel with no name. Throws
-        /// Unsupported when `components` is not a multiple of `sPicturePlanes.uiCount`.
-        SLIDEIO_ND2_EXPORTS std::vector<ChannelInfo> parseChannels(const Variant* pictureMetadata, int components);
+        /// `ImageMetadataSeq[LV]|0!` tree, or nullptr. The ND2 channel count is
+        /// `sPicturePlanes.uiCount` (else the number of plane records); when the metadata
+        /// gives none, `channelsWithoutMetadata` is used, and when that is 0 too (the
+        /// chunked default) every component is a single-component channel with no name.
+        /// The legacy variant passes the number of codestreams per frame, so that
+        /// nd2Channel always names a codestream. Throws Unsupported when `components` is
+        /// not a multiple of the channel count.
+        SLIDEIO_ND2_EXPORTS std::vector<ChannelInfo> parseChannels(const Variant* pictureMetadata, int components,
+            int64_t channelsWithoutMetadata = 0);
 
         /// 0x00BBGGRR -> "#RRGGBB".
         SLIDEIO_ND2_EXPORTS std::string colorToHex(uint32_t packedBGR);

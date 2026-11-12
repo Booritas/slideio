@@ -8,7 +8,7 @@ timestamps, no randomness, so a second run changes no byte.
     py -3 auxfiles/nd2-fixtures/generate.py            # writes src/tests/nd2/data/
     py -3 auxfiles/nd2-fixtures/generate.py <out-dir>  # or elsewhere
 
-Stdlib only for the chunked files. The two legacy JPEG 2000 files need `imagecodecs`
+Stdlib only for the chunked files. The three legacy JPEG 2000 files need `imagecodecs`
 and `numpy`; without them they are skipped with a note (they are committed, so CI
 never runs this script).
 
@@ -420,8 +420,10 @@ def _text_item(text):
 
 
 def write_legacy(path, width, height, bits, channels, frames, timepoints_xy, loops_xml, dims_text,
-                 missing=(), calibration=0.25):
-    """frames: number of frames; missing: (frame, channel) pairs with no codestream."""
+                 missing=(), calibration=0.25, components=1, planes=True):
+    """frames: number of frames; missing: (frame, channel) pairs with no codestream.
+    components: samples per codestream (ihdr; 3 = RGB); planes=False leaves PicturePlanes
+    out of VIMD, so the file says nothing about its channels."""
     import numpy as np
     import imagecodecs
 
@@ -429,7 +431,7 @@ def write_legacy(path, width, height, bits, channels, frames, timepoints_xy, loo
     boxes = []   # (box type, lim type, bytes)
     boxes.append((b'jP  ', b'LUNK', b'\x00\x00\x00\x0cjP  \r\n\x87\n'))
     boxes.append((b'ftyp', b'LUNK', _box(b'ftyp', b'jp2 ' + struct.pack('>I', 0) + b'jp2 ')))
-    ihdr = struct.pack('>IIHBBBB', height, width, 1, bits - 1, 7, 0, 0)
+    ihdr = struct.pack('>IIHBBBB', height, width, components, bits - 1, 7, 0, 0)
     colr = struct.pack('>BBBI', 1, 0, 0, 17)
     boxes.append((b'jp2h', b'LUNK', _box(b'jp2h', _box(b'ihdr', ihdr) + _box(b'colr', colr))))
 
@@ -441,15 +443,20 @@ def write_legacy(path, width, height, bits, channels, frames, timepoints_xy, loo
         for c in range(channels):
             if (f, c) in missing:
                 continue
-            arr = ((xs + 3 * ys + 17 * c + 31 * f) % (1 << bits)).astype(dtype)
+            if components == 1:
+                arr = ((xs + 3 * ys + 17 * c + 31 * f) % (1 << bits)).astype(dtype)
+            else:
+                arr = np.stack([(xs + 3 * ys + 17 * (c * components + j) + 31 * f) % (1 << bits)
+                                for j in range(components)], axis=-1).astype(dtype)
             stream = imagecodecs.jpeg2k_encode(arr, level=0, reversible=True, codecformat='J2K')
             boxes.append((b'jp2c', b'LUNK', _box(b'jp2c', stream)))
         vimd = [D('TimeMSec', f * 100.0), D('TimeAbsolute', DEFAULT_JULIAN), D('XPos', 0.0), D('YPos', 0.0),
                 D('ZPos', 0.0), D('Calibration', calibration), D('Aspect', 1.0), B('Calibrated', True),
                 S('ObjectiveName', 'Plan Apo 20x'), D('ObjectiveMag', DEFAULT_MAG), D('ObjectiveNA', 0.75),
-                D('RefractIndex1', 1.0), D('ProjectiveMag', -1.0),
-                L('PicturePlanes', [U32('Count', channels), U32('CompCount', channels),
-                                    L('Plane', plane_children)])]
+                D('RefractIndex1', 1.0), D('ProjectiveMag', -1.0)]
+        if planes:
+            vimd.append(L('PicturePlanes', [U32('Count', channels), U32('CompCount', channels * components),
+                                            L('Plane', plane_children)]))
         boxes.append((b'xml ', b'VIMD', _box(b'xml ', _lim_xml(vimd))))
         vcal = [D('Calibration', calibration), D('Aspect', 1.0), B('Calibrated', True)]
         boxes.append((b'xml ', b'VCAL', _box(b'xml ', _lim_xml(vcal))))
@@ -578,14 +585,16 @@ def main():
         import imagecodecs  # noqa: F401
         import numpy  # noqa: F401
     except ImportError:
-        print('imagecodecs/numpy not available: legacy.nd2 and legacy_xy.nd2 skipped '
+        print('imagecodecs/numpy not available: legacy.nd2, legacy_xy.nd2 and legacy_rgb.nd2 skipped '
               '(the committed copies stay as they are)')
     else:
         write_legacy(os.path.join(out, 'legacy.nd2'), 8, 6, 16, 2, 3, None, legacy_loops_tchannel(3),
                      'T(3) x λ(2)', missing=((2, 1),))
         write_legacy(os.path.join(out, 'legacy_xy.nd2'), 8, 6, 8, 1, 4, None, legacy_loops_t_xy(2, 4),
                      'T(2) x XY(2)')
-        written += 2
+        write_legacy(os.path.join(out, 'legacy_rgb.nd2'), 8, 6, 8, 1, 2, None, _legacy_time_loop(2),
+                     'T(2)', components=3, planes=False)
+        written += 3
     print('wrote %d files to %s' % (written, out))
 
 

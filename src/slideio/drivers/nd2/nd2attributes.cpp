@@ -128,13 +128,17 @@ int64_t slideio::nd2::detail::pictureChannelCount(const Variant* pictureMetadata
     return count > 0 ? count : static_cast<int64_t>(planeRecords(planes).size());
 }
 
-std::vector<ChannelInfo> slideio::nd2::parseChannels(const Variant* pictureMetadata, int components)
+std::vector<ChannelInfo> slideio::nd2::parseChannels(const Variant* pictureMetadata, int components,
+    int64_t channelsWithoutMetadata)
 {
     if (components <= 0) {
         throw Unsupported("ND2: unsupported image attributes: uiComp is " + std::to_string(components));
     }
     const std::vector<const Variant*> plane = planeRecords(fieldOf(pictureMetadata, "sPicturePlanes"));
-    const int64_t channelCount = detail::pictureChannelCount(pictureMetadata);
+    int64_t channelCount = detail::pictureChannelCount(pictureMetadata);
+    if (channelCount <= 0) {
+        channelCount = channelsWithoutMetadata;
+    }
 
     std::vector<ChannelInfo> out;
     out.reserve(static_cast<size_t>(components));

@@ -263,3 +263,39 @@ TEST(Nd2Legacy, RealShapedXml)
     ASSERT_NE(nullptr, text);
     EXPECT_EQ(5, xyCountFromText(text->asString()));
 }
+
+TEST(Nd2Legacy, RgbWithoutPicturePlanes)
+{
+    // legacy_rgb.nd2: 8x6, 8 bits, ihdr 3 components, 2 frames (one RGB codestream each),
+    // and a VIMD with no PicturePlanes at all: one ND2 channel of 3 components.
+    auto slide = ND2Slide::openFile(fixture("legacy_rgb.nd2"));
+    ASSERT_EQ(1, slide->getNumScenes());
+    auto scene = slide->getScene(0);
+    ASSERT_EQ(3, scene->getNumChannels());
+    EXPECT_EQ(2, scene->getNumTFrames());
+    EXPECT_EQ(DataType::DT_Byte, scene->getChannelDataType(0));
+    EXPECT_EQ("R", scene->getChannelName(0));
+    EXPECT_EQ("G", scene->getChannelName(1));
+    EXPECT_EQ("B", scene->getChannelName(2));
+    const Metadata& attrs = scene->getChannelAttributes();
+    for (int k = 0; k < 3; ++k) {
+        EXPECT_EQ(0, attrs[size_t(k)]["ND2Channel"].asInt()) << k;
+        EXPECT_EQ(k, attrs[size_t(k)]["Component"].asInt()) << k;
+    }
+    for (int t = 0; t < 2; ++t) {
+        for (int k = 0; k < 3; ++k) {
+            expectPlane(readPlane(scene, t, k), k, t, DataType::DT_Byte,
+                "legacy_rgb t=" + std::to_string(t) + " k=" + std::to_string(k));
+        }
+    }
+
+    FileReader file(fixture("legacy_rgb.nd2"));
+    const LegacyFile legacy = LegacyFile::read(file);
+    EXPECT_EQ(3, legacy.components());
+    EXPECT_EQ(2u, legacy.codestreams().size());
+    const ImageInfo info = buildImageInfo(legacy, file, "legacy_rgb");
+    ASSERT_EQ(3u, info.channels.size());
+    for (const ChannelInfo& ch : info.channels) {
+        EXPECT_EQ(0, ch.nd2Channel);   // every component is in the one codestream per frame
+    }
+}

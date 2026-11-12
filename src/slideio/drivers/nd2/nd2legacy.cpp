@@ -521,7 +521,9 @@ ImageInfo slideio::nd2::buildImageInfo(const LegacyFile& legacy, const FileReade
     a.rowStride = static_cast<int64_t>(a.width) * a.components * a.sampleBytes();
     a.compression = FrameCompression::None;
     a.sequenceCount = static_cast<int64_t>(legacy.all("VCAL").size());
-    info.channels = parseChannels(hasVimd ? &vimd : nullptr, a.components);
+    // Without plane information the file is one channel of ihdr-components samples, one
+    // codestream per frame, as the frame source reads it.
+    info.channels = parseChannels(hasVimd ? &vimd : nullptr, a.components, channelCount);
     // The nd2 package names a legacy channel by its optical configuration; real files
     // also carry sDescription, the chunked name, which parseChannels prefers.
     const Variant* planes = fieldOf(hasVimd ? &vimd : nullptr, "sPicturePlanes");
