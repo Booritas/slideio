@@ -7,6 +7,8 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/nd2_api_def.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/nd2chunkfile.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/nd2chunkfile.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/nd2variant.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/nd2variant.cpp
    )
 
 add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES})

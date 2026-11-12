@@ -6,6 +6,7 @@ set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 # The fixtures are synthetic and committed in data/ (auxfiles/nd2-fixtures/generate.py).
 set(TEST_SOURCES
   test_nd2_chunkfile.cpp
+  test_nd2_variant.cpp
 )
 
 add_executable(${TEST_NAME} ${TEST_SOURCES})
