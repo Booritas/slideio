@@ -240,7 +240,8 @@ namespace
 //   nd2 and the file's text (T'(57) x XY(12)) agree on 57. Bio-Formats
 //   discards the stale chunk map, rescans, and ends with fewer than 684 offsets; its
 //   image-count fallback then floors to 56 time points.
-// - Calibration, kRecorded, every pair printed:
+// - Calibration, kRecorded: per (file, series or all series, column), the driver value
+//   it must keep, each printed beside Bio-Formats':
 //   magnification  dObjectiveMag when > 0, else the number before the 'x' of the
 //                  objective name (R27), as Bio-Formats does for chunked files. Bio-Formats
 //                  reports none for the 8 named legacy files (it does not parse their
@@ -258,30 +259,95 @@ namespace
 //                  no pixel size; the driver's 50 and 100 um are the calibration nd2 reports.
 TEST(ND2CorpusOpen, ScenesMatchBioFormats)
 {
-    // file -> quantities that differ from Bio-Formats (design §6.3).
-    const std::map<std::string, std::set<std::string>> kRecorded = {
-        {"aryeh/4_2_1_cont_NoMR001.nd2", {"magnification", "tIncrement_s"}},
-        {"aryeh/4_con_2_1_cot002.nd2", {"magnification", "tIncrement_s"}},
-        {"aryeh/Time sequence 24.nd2", {"tIncrement_s"}},
-        {"aryeh/b16_14_12.nd2", {"magnification", "tIncrement_s"}},
-        {"aryeh/b16_pdtB+y50__crop.nd2", {"tIncrement_s"}},
-        {"aryeh/but3_cont200-1.nd2", {"magnification", "physX_um", "physY_um", "tIncrement_s"}},
-        {"aryeh/but3_cont2002.nd2", {"magnification", "physX_um", "physY_um", "tIncrement_s"}},
-        {"aryeh/multipoint.nd2", {"magnification", "tIncrement_s"}},
-        {"aryeh/por003.nd2", {"magnification", "physX_um", "physY_um", "tIncrement_s"}},
-        {"aryeh/weekend002.nd2", {"magnification", "tIncrement_s"}},
-        {"jonas/512c/cag_p5_simgc_2511_70ms22s_crop.nd2", {"tIncrement_s"}},
-        {"jonas/512c/wtf_DIC.nd2", {"tIncrement_s"}},
-        {"jonas/512c/wtf_alignment.nd2", {"tIncrement_s"}},
-        {"jonas/qa-7534/130606_JCC719_003.nd2", {"magnification"}},
-        {"maxime/BF007.nd2", {"magnification"}},
+    // Each difference from Bio-Formats (design §6.3), with the driver value it must keep:
+    // (file, series or kAllSeries, column, driver value), compared with same(). Every
+    // (file, series, column) not listed must equal Bio-Formats.
+    struct Recorded
+    {
+        const char* file;
+        int series;
+        const char* column;
+        double driver;
+    };
+    constexpr int kAllSeries = -1;
+    const Recorded kRecorded[] = {
+        {"aryeh/4_2_1_cont_NoMR001.nd2", kAllSeries, "magnification", 40},
+        {"aryeh/4_2_1_cont_NoMR001.nd2", 0, "tIncrement_s", 180.02198055551722},
+        {"aryeh/4_2_1_cont_NoMR001.nd2", 1, "tIncrement_s", 180.01767156432271},
+        {"aryeh/4_2_1_cont_NoMR001.nd2", 2, "tIncrement_s", 180.01763375483304},
+        {"aryeh/4_2_1_cont_NoMR001.nd2", 3, "tIncrement_s", 180.01747141575294},
+        {"aryeh/4_2_1_cont_NoMR001.nd2", 4, "tIncrement_s", 180.01759636382013},
+        {"aryeh/4_con_2_1_cot002.nd2", kAllSeries, "magnification", 40},
+        {"aryeh/4_con_2_1_cot002.nd2", 0, "tIncrement_s", 897.16766233912824},
+        {"aryeh/4_con_2_1_cot002.nd2", 1, "tIncrement_s", 897.1679769727582},
+        {"aryeh/4_con_2_1_cot002.nd2", 2, "tIncrement_s", 897.16818900451437},
+        {"aryeh/4_con_2_1_cot002.nd2", 3, "tIncrement_s", 897.16918989357168},
+        {"aryeh/4_con_2_1_cot002.nd2", 4, "tIncrement_s", 897.17008143336648},
+        {"aryeh/Time sequence 24.nd2", kAllSeries, "tIncrement_s", 14.995510791495885},
+        {"aryeh/b16_14_12.nd2", kAllSeries, "magnification", 40},
+        {"aryeh/b16_14_12.nd2", kAllSeries, "tIncrement_s", 899.99862669645154},
+        {"aryeh/b16_pdtB+y50__crop.nd2", 0, "tIncrement_s", 638.50731409967477},
+        {"aryeh/b16_pdtB+y50__crop.nd2", 1, "tIncrement_s", 638.51860647271099},
+        {"aryeh/b16_pdtB+y50__crop.nd2", 2, "tIncrement_s", 638.52523447098395},
+        {"aryeh/b16_pdtB+y50__crop.nd2", 3, "tIncrement_s", 638.54040063523803},
+        {"aryeh/b16_pdtB+y50__crop.nd2", 4, "tIncrement_s", 638.55530205297316},
+        {"aryeh/b16_pdtB+y50__crop.nd2", 5, "tIncrement_s", 638.57030634921352},
+        {"aryeh/b16_pdtB+y50__crop.nd2", 6, "tIncrement_s", 638.58476335376906},
+        {"aryeh/b16_pdtB+y50__crop.nd2", 7, "tIncrement_s", 638.59968742262356},
+        {"aryeh/b16_pdtB+y50__crop.nd2", 8, "tIncrement_s", 638.61590901669501},
+        {"aryeh/b16_pdtB+y50__crop.nd2", 9, "tIncrement_s", 638.63312652909497},
+        {"aryeh/b16_pdtB+y50__crop.nd2", 10, "tIncrement_s", 638.64788025787846},
+        {"aryeh/b16_pdtB+y50__crop.nd2", 11, "tIncrement_s", 638.66423228805684},
+        {"aryeh/but3_cont200-1.nd2", kAllSeries, "magnification", 20},
+        {"aryeh/but3_cont200-1.nd2", kAllSeries, "physX_um", 49.999999999999993},
+        {"aryeh/but3_cont200-1.nd2", kAllSeries, "physY_um", 49.999999999999993},
+        {"aryeh/but3_cont200-1.nd2", kAllSeries, "tIncrement_s", 900},
+        {"aryeh/but3_cont2002.nd2", kAllSeries, "magnification", 20},
+        {"aryeh/but3_cont2002.nd2", kAllSeries, "physX_um", 49.999999999999993},
+        {"aryeh/but3_cont2002.nd2", kAllSeries, "physY_um", 49.999999999999993},
+        {"aryeh/but3_cont2002.nd2", 0, "tIncrement_s", 898.46406748280765},
+        {"aryeh/but3_cont2002.nd2", 1, "tIncrement_s", 898.45110830289059},
+        {"aryeh/but3_cont2002.nd2", 2, "tIncrement_s", 898.4382424018421},
+        {"aryeh/but3_cont2002.nd2", 3, "tIncrement_s", 898.42498262985816},
+        {"aryeh/but3_cont2002.nd2", 4, "tIncrement_s", 898.41160441013426},
+        {"aryeh/multipoint.nd2", kAllSeries, "magnification", 40},
+        {"aryeh/multipoint.nd2", 0, "tIncrement_s", 59.878697622346884},
+        {"aryeh/multipoint.nd2", 1, "tIncrement_s", 59.847037250256534},
+        {"aryeh/multipoint.nd2", 2, "tIncrement_s", 59.844467342185979},
+        {"aryeh/multipoint.nd2", 3, "tIncrement_s", 59.853741819405556},
+        {"aryeh/por003.nd2", kAllSeries, "magnification", 20},
+        {"aryeh/por003.nd2", kAllSeries, "physX_um", 99.999999999999986},
+        {"aryeh/por003.nd2", kAllSeries, "physY_um", 99.999999999999986},
+        {"aryeh/por003.nd2", 0, "tIncrement_s", 1185.5630766867216},
+        {"aryeh/por003.nd2", 1, "tIncrement_s", 1185.5643729436695},
+        {"aryeh/por003.nd2", 2, "tIncrement_s", 1185.5662859407485},
+        {"aryeh/weekend002.nd2", kAllSeries, "magnification", 20},
+        {"aryeh/weekend002.nd2", 0, "tIncrement_s", 877.39134727596513},
+        {"aryeh/weekend002.nd2", 1, "tIncrement_s", 877.38716237363815},
+        {"aryeh/weekend002.nd2", 2, "tIncrement_s", 877.3874076095716},
+        {"jonas/512c/cag_p5_simgc_2511_70ms22s_crop.nd2", 1, "tIncrement_s", 599.95165747424528},
+        {"jonas/512c/wtf_DIC.nd2", kAllSeries, "tIncrement_s", 600},
+        {"jonas/512c/wtf_alignment.nd2", kAllSeries, "tIncrement_s", 600},
+        {"jonas/qa-7534/130606_JCC719_003.nd2", kAllSeries, "magnification", 60},
+        {"maxime/BF007.nd2", kAllSeries, "magnification", 100},
     };
     // file -> (Bio-Formats T, driver T)
     const std::map<std::string, std::pair<int, int>> kTimeDifferences = {
         {kStaleMap, {56, 57}},
     };
+    const auto findRecorded = [&](const std::string& file, int series, const std::string& column) {
+        const Recorded* found = nullptr;
+        for (const Recorded& r : kRecorded) {
+            if (file == r.file && column == r.column && (r.series == series || r.series == kAllSeries)) {
+                EXPECT_EQ(nullptr, found) << "two entries for " << file << " series " << series << " " << column;
+                found = &r;
+            }
+        }
+        return found;
+    };
     std::vector<std::string> skipped;
-    std::map<std::string, std::set<std::string>> recorded;
+    std::set<const Recorded*> used;
+    int differences = 0;
     size_t seriesChecked = 0;
     for (const auto& [file, rows] : byFile(readTsv("nd2-scenes.tsv"))) {
         if (absent(file, skipped)) {
@@ -332,32 +398,31 @@ TEST(ND2CorpusOpen, ScenesMatchBioFormats)
             };
             for (const auto& [column, driver] : quantities) {
                 const double reference = value(row.at(column));
-                if (same(driver, reference)) {
+                const Recorded* expected = findRecorded(file, series, column);
+                if (!expected) {
+                    EXPECT_TRUE(same(driver, reference)) << column << ": driver " << driver
+                        << ", Bio-Formats " << reference << " (not a recorded difference)";
                     continue;
                 }
-                std::printf("difference %s %s series %d: driver %.17g, Bio-Formats %.17g\n",
-                            column, file.c_str(), series, driver, reference);
-                recorded[file].insert(column);
+                used.insert(expected);
+                ++differences;
+                std::printf("difference %s %s series %d: driver %.17g (expected %.17g), Bio-Formats %.17g\n",
+                            column, file.c_str(), series, driver, expected->driver, reference);
+                EXPECT_TRUE(same(driver, expected->driver)) << column << ": driver " << driver
+                    << ", recorded " << expected->driver;
+                EXPECT_FALSE(same(expected->driver, reference)) << column
+                    << ": the recorded difference is gone; Bio-Formats " << reference;
             }
             ++seriesChecked;
         }
     }
     reportSkipped(skipped);
-    for (const auto& [file, columns] : recorded) {
-        std::cout << "recorded: " << file << ":";
-        for (const std::string& column : columns) {
-            std::cout << " " << column;
-        }
-        std::cout << std::endl;
-    }
+    std::printf("%d recorded differences checked\n", differences);
     if (skipped.empty()) {
         EXPECT_EQ(248u, seriesChecked);
-        EXPECT_EQ(kRecorded, recorded);
-    }
-    else {
-        for (const auto& [file, columns] : recorded) {
-            const auto it = kRecorded.find(file);
-            EXPECT_TRUE(it != kRecorded.end() && it->second == columns) << file;
+        EXPECT_EQ(108, differences);
+        for (const Recorded& r : kRecorded) {
+            EXPECT_TRUE(used.count(&r)) << "unused entry: " << r.file << " series " << r.series << " " << r.column;
         }
     }
     ND2_SKIP_IF_ANY_ABSENT(skipped);
