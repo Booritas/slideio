@@ -542,12 +542,15 @@ ImageInfo slideio::nd2::buildImageInfo(const LegacyFile& legacy, const FileReade
     const int64_t textXY = hasTinf ? xyCountFromText(metadataText(tinf)) : -1;
     info.experiment = buildExperiment(hasAim ? &aim : nullptr, textXY, fileStem);
     const int64_t streams = static_cast<int64_t>(legacy.codestreams().size());
-    const int64_t framesInFile = (streams + channelCount - 1) / channelCount;
+    // Design 4.5 (R25): a frame counts toward T only when the codestreams of all its
+    // channels exist. A partial last frame stays readable inside T (its missing channels
+    // read as background) but never adds a time point.
+    const int64_t completeFrames = streams / channelCount;
     std::set<int64_t> present;
-    for (int64_t f = 0; f < framesInFile && f < info.experiment.loopProduct(); ++f) {
+    for (int64_t f = 0; f < completeFrames; ++f) {
         present.insert(f);
     }
-    info.experiment.trimTime(present);
+    info.experiment.fitTime(present);
     info.positions = buildPositions(info.experiment, fileStem);
 
     // Calibration (design 6.3): VCAL of frame 0, else ACAL; 0 when uncalibrated or <= 0.
@@ -576,6 +579,11 @@ ImageInfo slideio::nd2::buildImageInfo(const LegacyFile& legacy, const FileReade
     }
     const double mag = hasVimd ? number(&vimd, "dObjectiveMag", 0) : 0;
     info.magnification = mag > 0 ? mag : 0;
+    if (info.magnification <= 0 && hasVimd) {
+        if (const Variant* name = fieldOf(&vimd, "wsObjectiveName")) {
+            info.magnification = magnificationFromObjectiveName(name->asString());
+        }
+    }
     const double julian = hasVimd ? number(&vimd, "dTimeAbsolute", 0) : 0;
     info.absoluteJulianDay = julian >= 1 ? julian : 0;
     if (const Loop* z = info.experiment.loop(Axis::Z)) {
@@ -590,11 +598,6 @@ ImageInfo slideio::nd2::buildImageInfo(const LegacyFile& legacy, const FileReade
         info.frameTimesMs[static_cast<size_t>(f)] = f == 0
             ? number(&vimd, "dTimeMSec", kNaN) : frameTime(legacy, file, *vimds[static_cast<size_t>(f)]);
     }
-    if (const Loop* t = info.experiment.loop(Axis::T)) {
-        info.tStep = periodOf(*t);
-        if (info.tStep <= 0) {
-            info.tStep = meanStepSeconds(info.experiment, info.frameTimesMs);
-        }
-    }
+    info.tStep = timeStepSeconds(info.experiment, info.frameTimesMs);
     return info;
 }

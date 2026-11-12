@@ -165,7 +165,7 @@ TEST(Nd2Slide, ScenesArePositions)
         EXPECT_EQ(12, scene->getChannelSignificantBits(0));
         EXPECT_EQ(12, scene->getChannelSignificantBits(1));
         EXPECT_NEAR(1.5e-6, scene->getZSliceResolution(), 1e-15);
-        EXPECT_NEAR(2.0, scene->getTFrameResolution(), 1e-12);
+        EXPECT_NEAR(0.8, scene->getTFrameResolution(), 1e-12);   // measured, not dPeriod (R28)
         EXPECT_EQ(MetadataFormat::JSON, scene->getMetadataFormat());
         EXPECT_NE(std::string::npos, scene->getRawMetadata().find("dPosName"));
     }

@@ -225,13 +225,24 @@ string (UTF-8), byte array, or children. Both decoders produce it (FD §4):
 The set of verified `ImageDataSeq|N!` chunks is the authority for which frames
 exist (FD §7.4). Let the loop product be `L`:
 
-- Frames with `N ≥ L` are ignored (logged once at INFO with a count).
+- **T fitting (R25).** When the time loop is the outermost loop, T is
+  `ceil((maxPresentIndex + 1) / innerProduct)` (FD §7.4), whichever way that
+  moves it: trailing time points without any frame are dropped (`B08.nd2`:
+  92 → 81, as Bio-Formats), and frames recorded past the declared count extend T
+  and become addressable (`old_cells_02.nd2` 41 → 42, `rfp_h2a_cells_02.nd2`
+  115 → 116, `jonas/3.nd2` 26 → 27, all as Bio-Formats). The loop product `L`
+  below is the one after fitting, and frame times cover it.
+  A frame index at or past  (before fitting) cannot be
+  an acquired frame and is ignored, which keeps the fitted product bounded by
+  the file.
+- When T is not outermost, nothing is fitted, and frames with `N ≥ L` are
+  ignored (logged once at INFO with a count).
 - Missing frames with `N < L` read as background (§7).
-- **T trimming.** When the time loop is the outermost loop and the last time
-  points have no frames at all, T is reduced to the last time point with at
-  least one present frame. This is `ceil((maxPresentIndex + 1) / innerProduct)`
-  from FD §7.4, and gives Bio-Formats' T = 81 for `B08.nd2`. When T is not
-  outermost, no trimming. *(My call; FD §7.4 leaves the choice to the API.)*
+- A partial surplus time point counts too, which Bio-Formats does not do:
+  `190821_L1_IRS-Akt_CS2003.nd2` (10 of 46 positions) gives T 32 against 31,
+  `multicolorTest.nd2` (14 of 15 Z) 14 against 13, and
+  `130606_JCC719_003.nd2` 31 against 20 -- its 82 surplus frames carry times
+  that run back inside the declared series. The corpus test records all three.
 - `uiSequenceCount` is not used for counts; it is reported as metadata only.
 
 ### 4.6 Scenes
@@ -264,11 +275,10 @@ Following FD §11:
   from the spectral loop.
 - Frame `i`, channel `c` is the `(i·C + c)`-th `jp2c` box; RGB (`ihdr` 3
   components) has one codestream per frame. A missing codestream reads as
-  background, so `b16_14_12.nd2`'s last frame has an empty second channel.
-  T trimming (§4.5) then drops nothing for that file, giving T = 51 where
-  Bio-Formats reports 50. *(My call: the first channel of frame 51 exists, so
-  hiding it loses data; the corpus test records the difference rather than
-  hiding it.)*
+  background. For T fitting (§4.5) a frame counts only when the codestreams of
+  all its channels exist (R25), so `b16_14_12.nd2` (101 codestreams, 2
+  channels) has T = 50, as Bio-Formats. A partial frame inside T still reads
+  its existing channels, and background for the missing ones.
 - Pixels are returned in native byte order and RGB interleaved, as for chunked
   files. (Bio-Formats' big-endian, planar output is a convention the corpus test
   undoes, FD §11.3.)
@@ -314,7 +324,7 @@ inflated block.
 | Zoom levels | one |
 | Concurrent reads | `true` (§7) |
 | Channel background | 0 for every channel *(my call, as LIF)* |
-| Magnification | `dObjectiveMag` when > 0, else 0 |
+| Magnification | `dObjectiveMag` when > 0, else the number immediately before the first `x`/`X` of `wsObjectiveName` that begins a word (`"Plan Apo 60x Oil"` → 60; R27), else 0. Legacy: the same fields of `VIMD` |
 
 ### 6.2 Channels and components
 
@@ -343,10 +353,13 @@ Per slideio channel:
   else 0. `dAspect ≠ 1` scales Y *(to be confirmed against Bio-Formats on the
   corpus; no sample is known to have it)*.
 - Z: `|dZStep|`; if 0 and count > 1, `|dZHigh − dZLow| / (count − 1)` (FD §8).
-- T: the time loop's `dPeriod` ms ÷ 1000 when > 0; else the mean difference of
-  consecutive per-T-frame times from `AcqTimesCache` when complete; else 0.
-  *(My call: the corpus test compares both with Bio-Formats and records which
-  matches.)*
+- T (R28): the mean difference of consecutive per-T frame times at P = 0,
+  Z = 0 when they are all known; else the time loop's `dPeriod` ms ÷ 1000 (or
+  the first valid NE period) when > 0; else 0. The measured step is what
+  Bio-Formats' plane times give; `dPeriod` is only the requested interval
+  (3600 s against a measured 8122 s in `ns_blobtest2.0_20x_A2_far.nd2`). One
+  value serves every scene, so a multi-position file's other series can differ
+  slightly from Bio-Formats, which measures per series.
 - Legacy: the same fields from `ACAL`/`VCAL`/`AIM1` (FD §11.2).
 
 ### 6.4 Timestamps
@@ -459,8 +472,10 @@ named `ND2Corpus*`; CI runs `slideio_nd2_tests --gtest_filter=-ND2Corpus*`.
   the reference comes from `nd2` (`nd2lib-summary.json` path), not Bio-Formats.
   Legacy regions are compared after undoing Bio-Formats' big-endian, planar
   convention.
-- Scene count, names, size, channels, Z/T against the same TSV, with the
-  recorded exceptions (`b16_14_12.nd2` T, §4.7).
+- Scene count, size, channels, Z/T against the same TSV, with the recorded
+  exceptions asserted explicitly: VPA002's channels, the partial-surplus T of
+  §4.5, and `b16_pdtB+y50__crop.nd2` T 57 against 56 (R26: all 684 frames are
+  present; nd2 and the file's text agree on 57).
 - `290110.tranMgc005cr.nd2` fails to open with the attributes message.
 - Resolution, magnification and T increment against Bio-Formats (extend
   `Nd2Check.java` to record them).

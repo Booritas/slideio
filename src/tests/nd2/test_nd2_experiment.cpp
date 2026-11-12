@@ -108,32 +108,71 @@ TEST(Nd2Experiment, FrameIndexIsChecked)
     EXPECT_THROW(none.frameIndex(0, 0, 1), std::exception);
 }
 
-TEST(Nd2Experiment, TrimTime)
+// Design 4.5 (R25): with T outermost, T = ceil((maxPresent + 1) / innerProduct), which
+// trims trailing empty time points and extends T over surplus frames; otherwise nothing.
+TEST(Nd2Experiment, FitTime)
 {
     Experiment missing = experimentOf("frames_missing.nd2");
     ASSERT_EQ(describe(missing), "T5,Z2");
-    missing.trimTime({ 0, 1, 2, 4, 5 });
+    missing.fitTime({ 0, 1, 2, 4, 5 });
     EXPECT_EQ(missing.count(Axis::T), 3);
     EXPECT_EQ(missing.loopProduct(), 6);
 
+    // Z only: surplus frames 3 and 4 change nothing and stay outside the loops.
     Experiment surplus = experimentOf("frames_surplus.nd2");
-    surplus.trimTime({ 0, 1, 2, 3, 4 });
-    EXPECT_EQ(surplus.count(Axis::Z), 3);
+    ASSERT_EQ(describe(surplus), "Z3");
+    surplus.fitTime({ 0, 1, 2, 3, 4 });
+    EXPECT_EQ(describe(surplus), "Z3");
     EXPECT_EQ(surplus.loopProduct(), 3);
 
+    // T not outermost: neither trimmed nor extended.
     Experiment zt = experimentOf("order_zt.nd2");
-    zt.trimTime({ 0 });
+    zt.fitTime({ 0 });
+    EXPECT_EQ(describe(zt), "Z2,T3");
+    zt.fitTime({ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 });
     EXPECT_EQ(describe(zt), "Z2,T3");
 
-    // Frames beyond the loop product do not keep a time point alive.
+    // Frames beyond the loop product extend T to cover the highest one.
     Experiment beyond = experimentOf("frames_missing.nd2");
-    beyond.trimTime({ 0, 1, 2, 99 });
-    EXPECT_EQ(beyond.count(Axis::T), 2);
+    beyond.fitTime({ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 });
+    EXPECT_EQ(beyond.count(Axis::T), 6);
+    EXPECT_EQ(beyond.loopProduct(), 12);
+    EXPECT_EQ(beyond.frameIndex(5, 0, 1), 11);
 
-    // No frame inside the loops at all: nothing to trim to.
+    // An index no set of present frames could reach (>= product + count) is a damaged
+    // name: it is ignored, and the rest trims as usual.
+    Experiment damaged = experimentOf("frames_missing.nd2");
+    damaged.fitTime({ 0, 1, 2, 15, int64_t(1) << 62 });   // bound 10 + 5
+    EXPECT_EQ(damaged.count(Axis::T), 2);
+
+    // No frame at all: nothing to fit to.
     Experiment none = experimentOf("frames_missing.nd2");
-    none.trimTime({});
+    none.fitTime({});
     EXPECT_EQ(none.count(Axis::T), 5);
+}
+
+// An in-memory T-outermost experiment whose acquisition ran past the declared count, as
+// old_cells_02.nd2 does (T41 x P4 x Z7, 1176 frames = 42 time points).
+TEST(Nd2Experiment, FitTimeExtendsOverSurplusFrames)
+{
+    Loop t;
+    t.axis = Axis::T;
+    t.count = 2;
+    Loop z;
+    z.axis = Axis::Z;
+    z.count = 3;
+    Experiment e = Experiment::fromLoops({ t, z });
+    std::set<int64_t> frames;
+    for (int64_t f = 0; f < 9; ++f) {
+        frames.insert(f);
+    }
+    e.fitTime(frames);
+    EXPECT_EQ(describe(e), "T3,Z3");
+    EXPECT_EQ(e.frameIndex(2, 0, 2), 8);
+    // A partial extra time point still counts: frame 10 is t = 3, z = 1.
+    frames.insert(10);
+    e.fitTime(frames);
+    EXPECT_EQ(e.count(Axis::T), 4);
 }
 
 TEST(Nd2Experiment, Refusals)

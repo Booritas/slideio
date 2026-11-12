@@ -53,10 +53,13 @@ namespace slideio
             /// the valid XY points. Each index must be in [0, count(axis)); an axis
             /// without a loop only accepts 0. Throws RuntimeError otherwise.
             int64_t frameIndex(int64_t t, int64_t p, int64_t z) const;
-            /// Design 4.5: when the time loop is the outermost, drop the trailing time
-            /// points that have no frame. Frames at or beyond the loop product are
-            /// ignored. Does nothing when no frame lies inside the loops.
-            void trimTime(const std::set<int64_t>& presentFrames);
+            /// Design 4.5 (R25): when the time loop is the outermost, T becomes
+            /// ceil((maxPresent + 1) / innerProduct), maxPresent being the highest frame
+            /// present. That drops trailing time points without a frame and extends T over
+            /// frames recorded beyond the declared count (FD 7.4). A frame at or past
+            /// loopProduct() + presentFrames.size() cannot be an acquired one and is
+            /// ignored. Does nothing when T is not the outermost loop or no frame counts.
+            void fitTime(const std::set<int64_t>& presentFrames);
             /// nullptr when there is no loop on this axis.
             const Loop* loop(Axis a) const;
 

@@ -10,6 +10,7 @@
 #include <vector>
 #include <opencv2/core.hpp>
 #include "slideio/drivers/nd2/nd2legacy.hpp"
+#include "slideio/drivers/nd2/nd2framesource.hpp"
 #include "slideio/drivers/nd2/nd2slide.hpp"
 #include "slideio/core/cvscene.hpp"
 #include "slideio/core/tools/filereader.hpp"
@@ -108,7 +109,9 @@ TEST(Nd2Legacy, Dimensions)
     ASSERT_EQ(1, slide->getNumScenes());
     auto scene = slide->getScene(0);
     EXPECT_EQ("legacy", scene->getName());
-    EXPECT_EQ(3, scene->getNumTFrames());
+    // Frame 2 lacks channel 1's codestream, so it adds no time point (R25), as Bio-Formats
+    // gives T 50 for b16_14_12.nd2.
+    EXPECT_EQ(2, scene->getNumTFrames());
     EXPECT_EQ(1, scene->getNumZSlices());
     ASSERT_EQ(2, scene->getNumChannels());
     EXPECT_EQ(DataType::DT_UInt16, scene->getChannelDataType(0));
@@ -130,11 +133,29 @@ TEST(Nd2Legacy, FrameTimes)
     FileReader file(fixture("legacy.nd2"));
     const LegacyFile legacy = LegacyFile::read(file);
     const ImageInfo info = buildImageInfo(legacy, file, "legacy");
-    ASSERT_EQ(3u, info.frameTimesMs.size());
+    ASSERT_EQ(2u, info.frameTimesMs.size());
     EXPECT_DOUBLE_EQ(0., info.frameTimesMs[0]);
     EXPECT_DOUBLE_EQ(100., info.frameTimesMs[1]);
-    EXPECT_DOUBLE_EQ(200., info.frameTimesMs[2]);
     EXPECT_DOUBLE_EQ(2460000.5, info.absoluteJulianDay);
+}
+
+// A frame whose codestreams are not all there is present: it reads its existing channel
+// and background for the missing one (R25). In legacy.nd2 it lies beyond T, so the frame
+// source is asked directly; inside T (P or Z inner) the scene reads it the same way.
+TEST(Nd2Legacy, PartialFrameReadsBackground)
+{
+    auto file = std::make_shared<const FileReader>(fixture("legacy.nd2"));
+    const LegacyFile legacy = LegacyFile::read(*file);
+    const auto frames = makeJp2FrameSource(file, legacy, 2);
+    ASSERT_TRUE(frames->hasFrame(2));
+    EXPECT_FALSE(frames->hasFrame(3));
+    cv::Mat both;
+    frames->readRows(2, cv::Rect(0, 0, 8, 6), both);
+    ASSERT_EQ(2, both.channels());
+    cv::Mat planes[2];
+    cv::split(both, planes);
+    expectPlane(planes[0], 0, 2, DataType::DT_UInt16, "legacy frame 2 channel 0");
+    EXPECT_EQ(0, cv::countNonZero(planes[1]));
 }
 
 TEST(Nd2Legacy, Pixels)
@@ -154,12 +175,7 @@ TEST(Nd2Legacy, Pixels)
         for (int k = 0; k < scene->getNumChannels(); ++k) {
             const cv::Mat plane = readPlane(scene, t, k);
             const std::string what = "legacy t=" + std::to_string(t) + " k=" + std::to_string(k);
-            if (t == 2 && k == 1) {
-                EXPECT_EQ(0, cv::countNonZero(plane)) << what;   // no codestream: background
-            }
-            else {
-                expectPlane(plane, k, t, DataType::DT_UInt16, what);
-            }
+            expectPlane(plane, k, t, DataType::DT_UInt16, what);
         }
     }
 

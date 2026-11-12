@@ -13,6 +13,8 @@
 #include <cstring>
 #include <limits>
 #include <set>
+#include <sstream>
+#include <locale>
 
 using namespace slideio;
 using namespace slideio::nd2;
@@ -215,7 +217,7 @@ ImageInfo slideio::nd2::buildImageInfo(const ChunkFile& chunks, const FileReader
     for (const auto& frame : chunks.frames()) {
         present.insert(frame.first);
     }
-    info.experiment.trimTime(present);
+    info.experiment.fitTime(present);
     info.positions = buildPositions(info.experiment, fileStem);
 
     // Design 6.3. The fields live in the picture metadata; the calibration chunk is the fallback.
@@ -229,6 +231,11 @@ ImageInfo slideio::nd2::buildImageInfo(const ChunkFile& chunks, const FileReader
     }
     const double mag = number(pic, cal, "dObjectiveMag", 0);
     info.magnification = mag > 0 ? mag : 0;
+    if (info.magnification <= 0) {
+        if (const Variant* name = fieldOf(pic, cal, "wsObjectiveName")) {
+            info.magnification = magnificationFromObjectiveName(name->asString());
+        }
+    }
     const double julian = number(pic, cal, "dTimeAbsolute", 0);
     info.absoluteJulianDay = julian >= 1 ? julian : 0;
     const double aspect = number(pic, cal, "dAspect", 1);
@@ -242,12 +249,7 @@ ImageInfo slideio::nd2::buildImageInfo(const ChunkFile& chunks, const FileReader
     }
 
     info.frameTimesMs = buildFrameTimes(chunks, file, info.experiment.loopProduct());
-    if (const Loop* t = info.experiment.loop(Axis::T)) {
-        info.tStep = detail::periodOf(*t);
-        if (info.tStep <= 0) {
-            info.tStep = meanStepSeconds(info.experiment, info.frameTimesMs);
-        }
-    }
+    info.tStep = timeStepSeconds(info.experiment, info.frameTimesMs);
     return info;
 }
 
@@ -264,6 +266,44 @@ std::vector<double> slideio::nd2::mergeFrameTimes(const std::vector<double>& cac
         }
     }
     return times;
+}
+
+double slideio::nd2::magnificationFromObjectiveName(const std::string& name)
+{
+    const auto isDigit = [](char c) { return c >= '0' && c <= '9'; };
+    const auto isAsciiAlnum = [&](char c) {
+        return isDigit(c) || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
+    };
+    for (size_t i = 1; i < name.size(); ++i) {
+        if ((name[i] != 'x' && name[i] != 'X') || !isDigit(name[i - 1])) {
+            continue;
+        }
+        size_t start = i;
+        while (start > 0 && (isDigit(name[start - 1]) || name[start - 1] == '.')) {
+            --start;
+        }
+        // The number must begin a word: "N2x" or "A1.4x" is not a magnification.
+        if (start > 0 && isAsciiAlnum(name[start - 1])) {
+            continue;
+        }
+        std::istringstream in(name.substr(start, i - start));
+        in.imbue(std::locale::classic());
+        double value = 0;
+        if (in >> value && in.eof() && value > 0) {
+            return value;
+        }
+    }
+    return 0;
+}
+
+double slideio::nd2::timeStepSeconds(const Experiment& experiment, const std::vector<double>& times)
+{
+    const Loop* t = experiment.loop(Axis::T);
+    if (!t) {
+        return 0;
+    }
+    const double measured = meanStepImpl(experiment, times);
+    return measured > 0 ? measured : std::max(0., detail::periodOf(*t));
 }
 
 double slideio::nd2::meanStepSeconds(const Experiment& experiment, const std::vector<double>& times)

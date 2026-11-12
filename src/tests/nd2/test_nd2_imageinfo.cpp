@@ -36,7 +36,8 @@ TEST(Nd2ImageInfo, Calibration)
     EXPECT_EQ(basic.zStep, 0);
     const ImageInfo tpz = infoOf("v3_tpz.nd2");
     EXPECT_NEAR(tpz.zStep, 1.5e-6, 1e-15);
-    EXPECT_DOUBLE_EQ(tpz.tStep, 2.0);
+    // Measured (R28): frame N is at N*100 ms and t advances 8 frames; dPeriod says 2 s.
+    EXPECT_NEAR(tpz.tStep, 0.8, 1e-12);
     EXPECT_EQ(tpz.attributes.width, 16);
     EXPECT_EQ(tpz.channels.size(), 2u);
 }
@@ -117,12 +118,13 @@ TEST(Nd2ImageInfo, MergeFrameTimesShortCache)
 
 namespace
 {
-    Experiment timeLoop(int count)
+    Experiment timeLoop(int count, double periodMs = 0)
     {
         const std::string xml =
             "<variant><no_name runtype=\"CLxListVariant\"><eType runtype=\"lx_uint32\" value=\"1\"/>"
             "<uLoopPars runtype=\"CLxListVariant\"><uiCount runtype=\"lx_uint32\" value=\"" +
-            std::to_string(count) + "\"/></uLoopPars></no_name></variant>";
+            std::to_string(count) + "\"/><dPeriod runtype=\"double\" value=\"" + std::to_string(periodMs) +
+            "\"/></uLoopPars></no_name></variant>";
         const Variant v = decodeMetadata(std::vector<uint8_t>(xml.begin(), xml.end()));
         return Experiment::parse(&v);
     }
@@ -144,9 +146,41 @@ TEST(Nd2ImageInfo, MeanStepFallback)
 
 TEST(Nd2ImageInfo, NeTimeStep)
 {
-    // ne_time: periods 100 ms and 100 ms, the first valid one is used
+    // ne_time: periods of 100 ms; the step measured from the frame times (frame N at
+    // N*100 ms, t advancing 2 frames) wins over the period (R28).
     const ImageInfo info = infoOf("ne_time.nd2");
-    EXPECT_NEAR(info.tStep, 0.1, 1e-12);
+    EXPECT_NEAR(info.tStep, 0.2, 1e-12);
+}
+
+// R28: the measured mean step first, the nominal period when it cannot be measured.
+TEST(Nd2ImageInfo, TimeStepPrefersMeasured)
+{
+    const double nan = std::numeric_limits<double>::quiet_NaN();
+    const Experiment three = timeLoop(3, 2000.);
+    ASSERT_EQ(three.count(Axis::T), 3);
+    EXPECT_NEAR(timeStepSeconds(three, { 0.0, 1000.0, 2000.0 }), 1.0, 1e-12);
+    EXPECT_DOUBLE_EQ(timeStepSeconds(three, { 0.0, nan, 2000.0 }), 2.0);   // fallback: dPeriod
+    EXPECT_DOUBLE_EQ(timeStepSeconds(three, {}), 2.0);
+    EXPECT_DOUBLE_EQ(timeStepSeconds(timeLoop(3), { 0.0, nan, 2000.0 }), 0.0);   // neither
+    EXPECT_DOUBLE_EQ(timeStepSeconds(Experiment(), {}), 0.0);   // no time loop
+}
+
+// R27: the magnification an objective name states.
+TEST(Nd2ImageInfo, MagnificationFromObjectiveName)
+{
+    EXPECT_DOUBLE_EQ(60., magnificationFromObjectiveName("Plan Apo 60x Oil"));
+    EXPECT_DOUBLE_EQ(20., magnificationFromObjectiveName("20X"));
+    EXPECT_DOUBLE_EQ(1.4, magnificationFromObjectiveName("1.4x"));
+    EXPECT_DOUBLE_EQ(20., magnificationFromObjectiveName("Plan Fluor 20xC ELWD ADL"));
+    EXPECT_DOUBLE_EQ(100., magnificationFromObjectiveName("SR HP Apo TIRF 100xAC Oil"));
+    EXPECT_DOUBLE_EQ(60., magnificationFromObjectiveName("Apo TIRF 60x Oil DIC N2"));
+    EXPECT_DOUBLE_EQ(60., magnificationFromObjectiveName("Plan Apo \xCE\xBB 60x Oil"));   // UTF-8 lambda
+    EXPECT_DOUBLE_EQ(0., magnificationFromObjectiveName(""));
+    EXPECT_DOUBLE_EQ(0., magnificationFromObjectiveName("Plan Apo Oil"));
+    EXPECT_DOUBLE_EQ(0., magnificationFromObjectiveName("x60"));
+    EXPECT_DOUBLE_EQ(0., magnificationFromObjectiveName("N2x"));   // the number must begin a word
+    EXPECT_DOUBLE_EQ(0., magnificationFromObjectiveName("0x"));
+    EXPECT_DOUBLE_EQ(0., magnificationFromObjectiveName("1.2.3x"));
 }
 
 namespace

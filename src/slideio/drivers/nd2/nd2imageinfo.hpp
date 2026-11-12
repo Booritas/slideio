@@ -70,6 +70,17 @@ namespace slideio
         SLIDEIO_ND2_EXPORTS std::vector<double> mergeFrameTimes(const std::vector<double>& cache, int64_t count,
             const std::function<bool(int64_t, double&)>& prefixTime);
 
+        /// The magnification an objective name states: the number immediately before the
+        /// first 'x' or 'X' that ends a number beginning a word ("Plan Apo 60x Oil" -> 60,
+        /// "20X" -> 20, "1.4x" -> 1.4, "SR HP Apo TIRF 100xAC" -> 100); 0 when there is
+        /// none. Used when dObjectiveMag is not > 0 (design 6.1, R27).
+        SLIDEIO_ND2_EXPORTS double magnificationFromObjectiveName(const std::string& name);
+
+        /// The T increment in seconds (design 6.3, R28): the measured meanStepSeconds when it
+        /// is > 0, else the time loop's nominal period (`dPeriod`, or the first valid NE
+        /// period); 0 without a time loop.
+        SLIDEIO_ND2_EXPORTS double timeStepSeconds(const Experiment& experiment, const std::vector<double>& times);
+
         /// Mean difference in seconds of consecutive per-T times (ms) at p=0, z=0; 0 when
         /// T < 2 or any of those times is NaN. `times` is indexed by frame.
         SLIDEIO_ND2_EXPORTS double meanStepSeconds(const Experiment& experiment, const std::vector<double>& times);

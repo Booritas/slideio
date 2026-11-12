@@ -356,15 +356,19 @@ int64_t Experiment::frameIndex(int64_t t, int64_t p, int64_t z) const
     return frame;
 }
 
-void Experiment::trimTime(const std::set<int64_t>& presentFrames)
+void Experiment::fitTime(const std::set<int64_t>& presentFrames)
 {
-    if (m_loops.empty() || m_loops.front().axis != Axis::T) {
+    if (m_loops.empty() || m_loops.front().axis != Axis::T || presentFrames.empty()) {
         return;
     }
+    // A frame can extend T only as far as the frames present could fill: an index at or
+    // past product + count is a damaged name, not an acquisition, and is ignored. That
+    // also keeps the new product, and every array sized by it, bounded by the file.
     const int64_t product = loopProduct();
+    const int64_t bound = product + static_cast<int64_t>(presentFrames.size());
     int64_t maxPresent = -1;
     for (auto it = presentFrames.rbegin(); it != presentFrames.rend(); ++it) {
-        if (*it >= 0 && *it < product) {
+        if (*it >= 0 && *it < bound) {
             maxPresent = *it;
             break;
         }
@@ -374,8 +378,5 @@ void Experiment::trimTime(const std::set<int64_t>& presentFrames)
     }
     Loop& time = m_loops.front();
     const int64_t inner = product / time.count;
-    const int64_t points = maxPresent / inner + 1;   // ceil((maxPresent + 1) / inner)
-    if (points < time.count) {
-        time.count = points;
-    }
+    time.count = maxPresent / inner + 1;   // ceil((maxPresent + 1) / inner)
 }
