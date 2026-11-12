@@ -4,6 +4,7 @@
 #include <gtest/gtest.h>
 #include <opencv2/core.hpp>
 #include <opencv2/imgproc.hpp>
+#include "slideio/core/exceptions.hpp"
 #include "slideio/core/tools/tiledareadownscale.hpp"
 
 using namespace slideio;
@@ -36,7 +37,7 @@ TEST(TiledAreaDownscale, MatchesCvResize)
     // Tiles narrower than the rectangle sum non-integer ratios in a different float
     // order than OpenCV does: within one step (the contract LIF always had).
     expectMatchesCvResize(src, cv::Size(77, 31), limits, 1);
-    expectMatchesCvResize(src, cv::Size(150, 100), limits, 1);
+    expectMatchesCvResize(src, cv::Size(150, 100), limits, 1);  // 50-wide tiles split every row
     EXPECT_LE(limits.stats->peakSourcePixels.load(), 50);
     EXPECT_GT(limits.stats->peakSourcePixels.load(), 0);
 }
@@ -59,4 +60,67 @@ TEST(TiledAreaDownscale, FullWidthTilesAreBitExact)
     ResampleLimits limits;
     limits.maxResampleSourcePixels = 300 * 7;   // a tile is as wide as the rectangle
     expectMatchesCvResize(src, cv::Size(77, 31), limits);
+}
+
+namespace
+{
+    cv::Mat randomMat(int rows, int cols, int type, uint64_t seed)
+    {
+        cv::Mat m(rows, cols, type);
+        cv::RNG rng(seed);
+        const int depth = CV_MAT_DEPTH(type);
+        if (depth == CV_32F) {
+            rng.fill(m, cv::RNG::UNIFORM, 0., 1000.);
+        }
+        else if (depth == CV_8U) {
+            rng.fill(m, cv::RNG::UNIFORM, 0, 256);
+        }
+        else if (depth == CV_16U) {
+            rng.fill(m, cv::RNG::UNIFORM, 0, 65536);
+        }
+        else {
+            rng.fill(m, cv::RNG::UNIFORM, -32768, 32768);
+        }
+        return m;
+    }
+}
+
+// The integer-ratio path against cv::resize for every channel count and the depths
+// OpenCV treats differently (SIMD 2 x 2 rounding vs. float scale).
+TEST(TiledAreaDownscale, IntegerRatioIsExactForAllChannelCounts)
+{
+    const int depths[] = {CV_8U, CV_16U, CV_16S, CV_32F};
+    for (int ratio : {2, 3}) {
+        for (int depth : depths) {
+            for (int cn = 1; cn <= 5; ++cn) {
+                const cv::Mat src = randomMat(60, 90, CV_MAKETYPE(depth, cn), 1000 + depth * 10 + cn);
+                ResampleLimits limits;
+                limits.maxResampleSourcePixels = int64_t(90) * 60;
+                SCOPED_TRACE(testing::Message() << "ratio " << ratio << " depth " << depth << " cn " << cn);
+                const double tol = depth == CV_32F ? 1e-3 : 0;
+                expectMatchesCvResize(src, cv::Size(90 / ratio, 60 / ratio), limits, tol);
+            }
+        }
+    }
+}
+
+TEST(TiledAreaDownscale, RejectsTileOfWrongShape)
+{
+    const cv::Mat src = randomMat(40, 40, CV_16UC2, 5);
+    ResampleLimits limits;
+    limits.maxResampleSourcePixels = 100;
+    const cv::Rect rect(0, 0, 40, 40);
+    cv::Mat out;
+    // Wrong channel count.
+    EXPECT_THROW(tiledAreaDownscale(rect, cv::Size(10, 10), CV_16U, 2, limits,
+        [&](const cv::Rect& r, cv::Mat& tile) {
+            cv::Mat one;
+            cv::extractChannel(src(r), one, 0);
+            tile = one;
+        }, out), slideio::RuntimeError);
+    // Wrong size.
+    EXPECT_THROW(tiledAreaDownscale(rect, cv::Size(10, 10), CV_16U, 2, limits,
+        [&](const cv::Rect& r, cv::Mat& tile) {
+            src(cv::Rect(r.x, r.y, r.width, 1)).copyTo(tile);
+        }, out), slideio::RuntimeError);
 }

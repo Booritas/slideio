@@ -274,11 +274,14 @@ namespace
         const int64_t budget = std::max<int64_t>(1, limits.maxResampleSourcePixels);
         const int tileW = static_cast<int>(std::min<int64_t>(rect.width, budget));
         const int tileH = static_cast<int>(std::max<int64_t>(1, std::min<int64_t>(rect.height, budget / tileW)));
-        const bool integral = depth != CV_16F && depth != CV_32F && depth != CV_64F;
-        // The integer-ratio path: sum * (1.f / area), except 2 x 2 integer samples,
-        // which OpenCV rounds as (sum + 2) >> 2.
+        // The integer-ratio path: sum * (1.f / area) rounded half to even, except
+        // where OpenCV's SIMD ResizeAreaFastVec takes the block: 2 x 2 samples of
+        // 8U, 16U or 16S with 1, 3 or 4 channels, which it rounds as (sum + 2) >> 2.
+        // Checked against the linked OpenCV for cn 1..5 (see the test).
+        const bool vecDepth = depth == CV_8U || depth == CV_16U || depth == CV_16S;
+        const bool vecChannels = n == 1 || n == 3 || n == 4;
         const float areaScale = fast ? 1.f / (scaleX * scaleY) : 1.f;
-        const bool halfUp = fast && integral && scaleX == 2 && scaleY == 2;
+        const bool halfUp = fast && vecDepth && vecChannels && scaleX == 2 && scaleY == 2;
         out.create(size, CV_MAKETYPE(depth, n));
         int peakRows = 0;
 
@@ -315,6 +318,11 @@ namespace
                 const int tw = std::min(tileW, rect.width - tx);
                 cv::Mat tile;
                 read(cv::Rect(rect.x + tx, rect.y + ty, tw, th), tile);
+                if (tile.size() != cv::Size(tw, th) || tile.type() != CV_MAKETYPE(depth, n)) {
+                    RAISE_RUNTIME_ERROR << "tiled downscale: the reader returned a " << tile.cols << "x" << tile.rows
+                        << " tile of type " << tile.type() << ", expected " << tw << "x" << th
+                        << " of type " << CV_MAKETYPE(depth, n);
+                }
                 if (limits.stats) {
                     limits.stats->noteSource(static_cast<int64_t>(tw) * th);
                 }
