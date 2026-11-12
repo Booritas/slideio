@@ -185,3 +185,19 @@ TEST(Nd2ImageInfo, ZStepFallback)
     const Variant v = decodeMetadata(std::vector<uint8_t>(xml.begin(), xml.end()));
     EXPECT_NEAR(zStepFrom(v), 2e-6, 1e-15);
 }
+
+TEST(Nd2ImageInfo, ZStepUnprefixedNames)
+{
+    // The nd2 package and the legacy fixtures spell the fields without the type prefix.
+    const std::string xml =
+        "<variant><no_name runtype=\"CLxListVariant\"><Count runtype=\"lx_uint32\" value=\"4\"/>"
+        "<ZStep runtype=\"double\" value=\"0\"/><ZLow runtype=\"double\" value=\"0\"/>"
+        "<ZHigh runtype=\"double\" value=\"6\"/></no_name></variant>";
+    const Variant v = decodeMetadata(std::vector<uint8_t>(xml.begin(), xml.end()));
+    EXPECT_NEAR(zStepFrom(v), 2e-6, 1e-15);
+    const std::string step =
+        "<variant><no_name runtype=\"CLxListVariant\"><dZStep runtype=\"double\" value=\"-1.5\"/>"
+        "<ZStep runtype=\"double\" value=\"9\"/></no_name></variant>";
+    // The prefixed spelling wins when both are present.
+    EXPECT_NEAR(zStepFrom(decodeMetadata(std::vector<uint8_t>(step.begin(), step.end()))), 1.5e-6, 1e-15);
+}

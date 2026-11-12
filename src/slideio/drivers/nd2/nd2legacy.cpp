@@ -20,7 +20,7 @@
 
 using namespace slideio;
 using namespace slideio::nd2;
-using slideio::nd2::detail::elementsOf;
+using namespace slideio::nd2::detail;
 
 namespace
 {
@@ -31,16 +31,8 @@ namespace
     constexpr uint64_t kIhdrSize = 14;
     constexpr double kMicro = 1e-6;
     constexpr double kNaN = std::numeric_limits<double>::quiet_NaN();
-    /// The loop tree is a chain in practice; a deeper one is a damaged file.
-    constexpr int kMaxDepth = 64;
     /// A VIMD box keeps its time near the start; this much is read before the whole box.
     constexpr uint64_t kTimeProbeBytes = 4096;
-
-    constexpr int kEtTime = 1;
-    constexpr int kEtXY = 2;
-    constexpr int kEtZ = 4;
-    constexpr int kEtSpectral = 6;
-    constexpr int kEtNeTime = 8;
 
     [[noreturn]] void damaged(const std::string& what)
     {
@@ -111,176 +103,45 @@ namespace
     }
 
     // ------------------------------------------------------------------ metadata
-
-    /// The legacy writers prefix names with their type (`uiCount`, `dZStep`, `eType`);
-    /// the nd2 package strips `^[a-z_]+`, and the fixtures use the stripped names.
-    std::string stripped(const std::string& name)
-    {
-        size_t i = 0;
-        while (i < name.size() && ((name[i] >= 'a' && name[i] <= 'z') || name[i] == '_')) {
-            ++i;
-        }
-        return i == name.size() ? name : name.substr(i);
-    }
-
-    /// Member `name` of a Map, matched as written or after stripping the type prefix.
-    const Variant* field(const Variant* v, const std::string& name)
-    {
-        if (!v) {
-            return nullptr;
-        }
-        if (const Variant* exact = v->get(name)) {
-            return exact;
-        }
-        for (const auto& m : v->members()) {
-            if (stripped(m.first) == name) {
-                return &m.second;
-            }
-        }
-        return nullptr;
-    }
+    //
+    // Real legacy boxes use the chunked, prefixed names (`eType`, `uLoopPars`, `uiCount`,
+    // `sPicturePlanes`, `dCalibration`); the nd2 package and the fixtures use them without
+    // the prefix (`Type`, `LoopPars`, `Count`). detail::fieldOf accepts both spellings, so
+    // every lookup below names the prefixed field.
 
     double number(const Variant* v, const std::string& name, double fallback)
     {
-        const Variant* f = field(v, name);
+        const Variant* f = fieldOf(v, name);
         return f ? f->asDouble(fallback) : fallback;
     }
 
-    /// A single-element wrapper (a `no_name` list of one, an `i0000000000` map) around a record.
-    const Variant& single(const Variant& v)
+    /// The legacy schema of a loop record (FD 11.2): XY points in `dPosX`, and the child
+    /// either the `ppNextLevelEx` record itself or the elements of that list. An empty
+    /// `pItemValid` (multipoint.nd2) validates every point.
+    LoopRecord readLegacyRecord(const Variant& node)
     {
-        const Variant* node = &v;
-        for (int i = 0; i < kMaxDepth && node->items().size() == 1
-            && (node->kind() == Variant::Kind::List || node->members().size() == 1); ++i) {
-            node = &node->items().front();
-        }
-        return *node;
-    }
-
-    /// Flags of a validity list; `present` is false when there is none or it is empty.
-    std::vector<bool> flagsOf(const Variant* v, bool& present)
-    {
-        std::vector<bool> flags;
-        if (v) {
-            if (v->kind() == Variant::Kind::Bytes) {
-                for (uint8_t b : v->bytes()) {
-                    flags.push_back(b != 0);
-                }
+        LoopRecord r;
+        const Variant* typeField = fieldOf(&node, "eType");
+        r.type = typeField ? static_cast<int>(typeField->asInt(0)) : 0;
+        if (const Variant* pars = fieldOf(&node, "uLoopPars")) {
+            r.hasPars = true;
+            // A legacy `uLoopPars` holds its record in a one-element `no_name` list.
+            const bool listed = pars->kind() == Variant::Kind::List && pars->items().size() == 1;
+            r.loop.pars = unwrapPars(listed ? pars->items().front() : *pars);
+            const Variant* itemValid = fieldOf(&node, "pItemValid");
+            if (itemValid && elementsOf(itemValid).empty() && itemValid->kind() != Variant::Kind::Bytes) {
+                itemValid = nullptr;
             }
-            else if (v->kind() == Variant::Kind::Map || v->kind() == Variant::Kind::List) {
-                for (const Variant* e : elementsOf(v)) {
-                    flags.push_back(e->asBool(false));
-                }
-            }
-            else if (v->kind() != Variant::Kind::Null) {
-                flags.push_back(v->asBool(false));
-            }
+            countLoop(r.type, fieldOf(&r.loop.pars, "dPosX"), itemValid, r.loop);
         }
-        present = !flags.empty();
-        return flags;
-    }
-
-    int64_t countOf(const Variant* pars)
-    {
-        const Variant* c = field(pars, "Count");
-        return c ? c->asInt(0) : 0;
-    }
-
-    struct RawLoop
-    {
-        int type = 0;
-        int level = 0;
-        int64_t count = 0;
-        Variant pars;
-        std::vector<int64_t> validItems;
-    };
-
-    /// NE time (FD 7.1): the counts of the valid periods; `Count` when there is no period list.
-    int64_t neTimeCount(const Variant& pars)
-    {
-        const std::vector<const Variant*> periods = elementsOf(field(&pars, "Period"));
-        if (periods.empty()) {
-            return countOf(&pars);
+        const Variant* next = fieldOf(&node, "ppNextLevelEx");
+        if (next && fieldOf(next, "eType")) {
+            r.children.push_back(next);
         }
-        bool hasFlags = false;
-        const std::vector<bool> valid = flagsOf(field(&pars, "PeriodValid"), hasFlags);
-        int64_t total = 0;
-        for (size_t i = 0; i < periods.size(); ++i) {
-            if (!hasFlags || (i < valid.size() && valid[i])) {
-                const int64_t n = countOf(&single(*periods[i]));
-                if (n > 0 && total <= std::numeric_limits<int64_t>::max() - n) {
-                    total += n;
-                }
-            }
+        else {
+            r.children = elementsOf(next);
         }
-        return total;
-    }
-
-    /// XY: the points of `PosX` (or `Count`) whose `ItemValid` flag is set; all without flags.
-    void countPoints(const Variant& node, RawLoop& loop)
-    {
-        int64_t n = static_cast<int64_t>(elementsOf(field(&loop.pars, "PosX")).size());
-        if (n == 0) {
-            n = countOf(&loop.pars);
-        }
-        bool hasFlags = false;
-        const std::vector<bool> valid = flagsOf(field(&node, "ItemValid"), hasFlags);
-        for (int64_t i = 0; i < n; ++i) {
-            if (!hasFlags || (static_cast<size_t>(i) < valid.size() && valid[static_cast<size_t>(i)])) {
-                loop.validItems.push_back(i);
-            }
-        }
-        loop.count = static_cast<int64_t>(loop.validItems.size());
-    }
-
-    /// FD 7.2 rules over the legacy names (FD 11.2): a spectral loop is skipped and its
-    /// children stand at its level.
-    void flatten(const Variant& node, int level, int depth, std::vector<RawLoop>& out)
-    {
-        if (depth > kMaxDepth) {
-            throw Unsupported("ND2: unsupported experiment: loop tree deeper than " + std::to_string(kMaxDepth));
-        }
-        const Variant* typeField = field(&node, "Type");
-        const int type = typeField ? static_cast<int>(typeField->asInt(0)) : 0;
-        const Variant* parsField = field(&node, "LoopPars");
-        int childLevel = level + 1;
-        if (type == kEtSpectral) {
-            childLevel = level;
-        }
-        else if (parsField) {
-            RawLoop loop;
-            loop.type = type;
-            loop.level = level;
-            loop.pars = single(*parsField);
-            if (type == kEtXY) {
-                countPoints(node, loop);
-            }
-            else if (type == kEtNeTime) {
-                loop.count = neTimeCount(loop.pars);
-            }
-            else {
-                loop.count = countOf(&loop.pars);
-            }
-            if (loop.count > 0) {
-                if (out.empty() || out.back().level < level) {
-                    out.push_back(std::move(loop));
-                }
-                else if (out.back().level == level && out.back().type == type && out.back().count < loop.count) {
-                    out.back() = std::move(loop);
-                }
-            }
-        }
-        const Variant* next = field(&node, "NextLevelEx");
-        if (!next) {
-            return;
-        }
-        if (field(next, "Type")) {
-            flatten(*next, childLevel, depth + 1, out);   // the child record itself
-            return;
-        }
-        for (const Variant* child : elementsOf(next)) {
-            flatten(single(*child), childLevel, depth + 1, out);
-        }
+        return r;
     }
 
     /// AIM1/AIMD: the loop record under its wrappers (`vMetadata`, `no_name`), or the old
@@ -288,7 +149,7 @@ namespace
     std::vector<RawLoop> readLoops(const Variant& aim)
     {
         const Variant* node = &aim;
-        for (int i = 0; i < kMaxDepth && !field(node, "Type"); ++i) {
+        for (int i = 0; i < kMaxLoopDepth && !fieldOf(node, "eType"); ++i) {
             if (node->get("LoopNo00")) {
                 break;
             }
@@ -313,32 +174,20 @@ namespace
             int level = 0;
             for (const auto& m : node->members()) {
                 if (m.first.compare(0, 6, "LoopNo") == 0) {
-                    flatten(single(m.second), level++, 0, raw);
+                    flattenLoops(unwrapPars(m.second), readLegacyRecord, level++, raw);
                 }
             }
         }
-        else if (field(node, "Type")) {
-            flatten(*node, 0, 0, raw);
+        else if (fieldOf(node, "eType")) {
+            flattenLoops(*node, readLegacyRecord, 0, raw);
         }
         return raw;
-    }
-
-    std::string describe(const std::vector<RawLoop>& loops)
-    {
-        std::string s;
-        for (const RawLoop& l : loops) {
-            if (!s.empty()) {
-                s += ", ";
-            }
-            s += "type " + std::to_string(l.type) + ":" + std::to_string(l.count);
-        }
-        return s;
     }
 
     /// The text of the TINF item that starts with "Metadata:"; empty when there is none.
     std::string metadataText(const Variant& v, int depth = 0)
     {
-        if (depth > kMaxDepth) {
+        if (depth > kMaxLoopDepth) {
             return std::string();
         }
         for (const auto& m : v.members()) {
@@ -360,31 +209,13 @@ namespace
         return std::string();
     }
 
+    /// The shared loop rules, then FD 11.3: the TINF Dimensions XY count rules over the XY
+    /// loop's when they differ (R22: when they agree, the flagged points are kept).
     Experiment buildExperiment(const Variant* aim, int64_t textXY, const std::string& fileStem)
     {
-        std::vector<RawLoop> raw;
-        if (aim) {
-            raw = readLoops(*aim);
-        }
-        std::vector<Loop> loops;
-        for (RawLoop& l : raw) {
-            Loop loop;
-            switch (l.type) {
-            case kEtTime: case kEtNeTime: loop.axis = Axis::T; break;
-            case kEtXY: loop.axis = Axis::P; break;
-            case kEtZ: loop.axis = Axis::Z; break;
-            default:
-                if (l.count > 1) {
-                    throw Unsupported("ND2: unsupported experiment (loop type " + std::to_string(l.type)
-                        + " is not supported): " + describe(raw));
-                }
-                continue;   // one item: no dimension
-            }
-            loop.count = l.count;
-            loop.pars = std::move(l.pars);
-            loop.validItems = std::move(l.validItems);
+        std::vector<Loop> loops = axisLoops(aim ? readLoops(*aim) : std::vector<RawLoop>());
+        for (Loop& loop : loops) {
             if (loop.axis == Axis::P && textXY > 0 && textXY != loop.count) {
-                // FD 11.3: the Dimensions text rules over the loop for the XY count.
                 SLIDEIO_LOG(INFO) << "ND2: '" << fileStem << "': the XY loop has " << loop.count
                     << " valid points; the text info says XY(" << textXY << "), which is used";
                 loop.count = textXY;
@@ -393,7 +224,6 @@ namespace
                     loop.validItems.push_back(i);
                 }
             }
-            loops.push_back(std::move(loop));
         }
         return Experiment::fromLoops(std::move(loops));
     }
@@ -455,89 +285,6 @@ namespace
         return kNaN;
     }
 
-    std::vector<ChannelInfo> buildChannels(const Variant* planes, int64_t channelCount, int perChannel)
-    {
-        const Variant* records = field(planes, "PlaneNew");
-        if (!records) {
-            records = field(planes, "Plane");
-        }
-        const std::vector<const Variant*> plane = elementsOf(records);
-        static const char* const rgb[] = { "R", "G", "B" };
-        std::vector<ChannelInfo> out;
-        for (int c = 0; c < channelCount; ++c) {
-            std::string base;
-            uint32_t color = 0xFFFFFF;
-            std::string probe;
-            if (static_cast<size_t>(c) < plane.size()) {
-                const Variant* rec = &single(*plane[static_cast<size_t>(c)]);
-                if (const Variant* d = field(rec, "Description")) {
-                    base = d->asString();
-                }
-                if (base.empty()) {
-                    if (const Variant* n = field(rec, "OpticalConfigName")) {
-                        base = n->asString();
-                    }
-                }
-                if (const Variant* col = field(rec, "Color")) {
-                    color = static_cast<uint32_t>(col->asInt(0xFFFFFF));
-                }
-                if (const Variant* p = field(field(rec, "FluorescentProbe"), "Name")) {
-                    probe = p->asString();
-                }
-            }
-            for (int j = 0; j < perChannel; ++j) {
-                ChannelInfo ch;
-                ch.nd2Channel = c;
-                ch.component = j;
-                ch.color = color;
-                if (perChannel == 1) {
-                    ch.name = base;
-                }
-                else {
-                    const std::string suffix = perChannel == 3 ? rgb[j] : std::to_string(j);
-                    ch.name = base.empty() ? suffix : base + " " + suffix;
-                }
-                if (!probe.empty()) {
-                    ch.attributes.emplace_back("FluorescentProbe", probe);
-                }
-                out.push_back(std::move(ch));
-            }
-        }
-        return out;
-    }
-
-    /// Seconds between time points: the time loop's period (the first valid one of an NE loop).
-    double periodSeconds(const Loop& time)
-    {
-        double ms = 0;
-        const Variant* periods = field(&time.pars, "Period");
-        const std::vector<const Variant*> list = elementsOf(periods);
-        if (!list.empty()) {
-            bool hasFlags = false;
-            const std::vector<bool> valid = flagsOf(field(&time.pars, "PeriodValid"), hasFlags);
-            for (size_t i = 0; i < list.size(); ++i) {
-                if (!hasFlags || (i < valid.size() && valid[i])) {
-                    ms = number(&single(*list[i]), "Period", 0);
-                    break;
-                }
-            }
-        }
-        else if (periods) {
-            ms = periods->asDouble(0);
-        }
-        return ms > 0 ? ms / 1000.0 : 0;
-    }
-
-    double zStepMetres(const Loop& z)
-    {
-        double um = std::fabs(number(&z.pars, "ZStep", 0));
-        const int64_t n = countOf(&z.pars);
-        if (um == 0 && n > 1) {
-            um = std::fabs(number(&z.pars, "ZHigh", 0) - number(&z.pars, "ZLow", 0)) / static_cast<double>(n - 1);
-        }
-        return um * kMicro;
-    }
-
     std::vector<Position> buildPositions(const Experiment& experiment, const std::string& fileStem)
     {
         std::vector<Position> out;
@@ -546,16 +293,16 @@ namespace
             out.push_back(Position{ fileStem, std::string() });
             return out;
         }
-        const char* const axes[] = { "PosX", "PosY", "PosZ", "PFSOffset" };
+        const char* const axes[] = { "dPosX", "dPosY", "dPosZ", "dPFSOffset" };
         for (size_t k = 0; k < xy->validItems.size(); ++k) {
             const size_t item = static_cast<size_t>(xy->validItems[k]);
             Position p;
             p.name = "Position " + std::to_string(k + 1);
             nlohmann::json point = nlohmann::json::object();
             for (const char* axis : axes) {
-                const std::vector<const Variant*> values = elementsOf(field(&xy->pars, axis));
+                const std::vector<const Variant*> values = elementsOf(fieldOf(&xy->pars, axis));
                 if (item < values.size()) {
-                    point[axis] = values[item]->toJson();
+                    point[unprefixed(axis)] = values[item]->toJson();
                 }
             }
             if (!point.empty()) {
@@ -761,12 +508,7 @@ ImageInfo slideio::nd2::buildImageInfo(const LegacyFile& legacy, const FileReade
             + "-bit " + (legacy.signedSamples() ? "signed" : "unsigned") + " samples (expected 8 or 16 bit unsigned)");
     }
     // Channels from VIMD.PicturePlanes.Count of frame 0, never from the spectral loop.
-    const Variant* planes = hasVimd ? field(&vimd, "PicturePlanes") : nullptr;
-    int64_t channelCount = countOf(planes);
-    if (channelCount <= 0) {
-        const Variant* records = field(planes, "PlaneNew");
-        channelCount = static_cast<int64_t>(elementsOf(records ? records : field(planes, "Plane")).size());
-    }
+    int64_t channelCount = pictureChannelCount(hasVimd ? &vimd : nullptr);
     if (channelCount <= 0) {
         channelCount = 1;
     }
@@ -780,13 +522,26 @@ ImageInfo slideio::nd2::buildImageInfo(const LegacyFile& legacy, const FileReade
     a.height = legacy.height();
     a.components = static_cast<int>(channelCount) * perChannel;
     a.bitsInMemory = legacy.bits();
-    const Variant* significantField = hasArtt ? field(&artt, "SignificantBits") : nullptr;
+    const Variant* significantField = hasArtt ? fieldOf(&artt, "SignificantBits") : nullptr;
     const int64_t significant = significantField ? significantField->asInt(0) : 0;
     a.significantBits = (significant > 0 && significant <= a.bitsInMemory) ? static_cast<int>(significant) : a.bitsInMemory;
     a.rowStride = static_cast<int64_t>(a.width) * a.components * a.sampleBytes();
     a.compression = FrameCompression::None;
     a.sequenceCount = static_cast<int64_t>(legacy.all("VCAL").size());
-    info.channels = buildChannels(planes, channelCount, perChannel);
+    info.channels = parseChannels(hasVimd ? &vimd : nullptr, a.components);
+    // The nd2 package names a legacy channel by its optical configuration; real files
+    // also carry sDescription, the chunked name, which parseChannels prefers.
+    const Variant* planes = fieldOf(hasVimd ? &vimd : nullptr, "sPicturePlanes");
+    const Variant* records = fieldOf(planes, "sPlaneNew");
+    const std::vector<const Variant*> planeRecords = elementsOf(records ? records : fieldOf(planes, "sPlane"));
+    for (ChannelInfo& ch : info.channels) {
+        const size_t c = static_cast<size_t>(ch.nd2Channel);
+        if (ch.name.empty() && c < planeRecords.size()) {
+            if (const Variant* name = fieldOf(planeRecords[c], "sOpticalConfigName")) {
+                ch.name = name->asString();
+            }
+        }
+    }
 
     // Dimensions (FD 11.3): the AIM loops, with the XY count from the TINF text.
     const int64_t textXY = hasTinf ? xyCountFromText(metadataText(tinf)) : -1;
@@ -802,34 +557,34 @@ ImageInfo slideio::nd2::buildImageInfo(const LegacyFile& legacy, const FileReade
 
     // Calibration (design 6.3): VCAL of frame 0, else ACAL; 0 when uncalibrated or <= 0.
     if (hasVcal) {
-        const Variant* flag = field(&vcal, "Calibrated");
+        const Variant* flag = fieldOf(&vcal, "bCalibrated");
         if (!flag) {
-            flag = field(&vcal, "Valid");
+            flag = fieldOf(&vcal, "bValid");
         }
-        const double um = number(&vcal, "Calibration", 0);
+        const double um = number(&vcal, "dCalibration", 0);
         if (flag && flag->asBool(false) && um > 0) {
             info.pixelSizeX = um * kMicro;
             info.pixelSizeY = um * kMicro;
         }
-        const double aspect = number(&vcal, "Aspect", 1);
+        const double aspect = number(&vcal, "dAspect", 1);
         if (aspect != 1) {
             SLIDEIO_LOG(INFO) << "ND2: dAspect is " << aspect << " in '" << fileStem
                 << "'; it is read but not applied";
         }
     }
     else if (hasAcal) {
-        const Variant* values = field(&acal, "CalibrationValues");
+        const Variant* values = fieldOf(&acal, "CalibrationValues");
         const double x = number(values, "Calibration_11", 0);
         const double y = number(values, "Calibration_22", 0);
         info.pixelSizeX = x > 0 ? x * kMicro : 0;
         info.pixelSizeY = y > 0 ? y * kMicro : 0;
     }
-    const double mag = hasVimd ? number(&vimd, "ObjectiveMag", 0) : 0;
+    const double mag = hasVimd ? number(&vimd, "dObjectiveMag", 0) : 0;
     info.magnification = mag > 0 ? mag : 0;
-    const double julian = hasVimd ? number(&vimd, "TimeAbsolute", 0) : 0;
+    const double julian = hasVimd ? number(&vimd, "dTimeAbsolute", 0) : 0;
     info.absoluteJulianDay = julian >= 1 ? julian : 0;
     if (const Loop* z = info.experiment.loop(Axis::Z)) {
-        info.zStep = zStepMetres(*z);
+        info.zStep = zStepFrom(z->pars);
     }
 
     // Frame times: TimeMSec of each frame's VIMD, else NaN.
@@ -838,10 +593,10 @@ ImageInfo slideio::nd2::buildImageInfo(const LegacyFile& legacy, const FileReade
     info.frameTimesMs.assign(static_cast<size_t>(product), kNaN);
     for (int64_t f = 0; f < product && f < static_cast<int64_t>(vimds.size()); ++f) {
         info.frameTimesMs[static_cast<size_t>(f)] = f == 0
-            ? number(&vimd, "TimeMSec", kNaN) : frameTime(legacy, file, *vimds[static_cast<size_t>(f)]);
+            ? number(&vimd, "dTimeMSec", kNaN) : frameTime(legacy, file, *vimds[static_cast<size_t>(f)]);
     }
     if (const Loop* t = info.experiment.loop(Axis::T)) {
-        info.tStep = periodSeconds(*t);
+        info.tStep = periodOf(*t);
         if (info.tStep <= 0) {
             info.tStep = meanStepSeconds(info.experiment, info.frameTimesMs);
         }

@@ -11,167 +11,11 @@
 using namespace slideio;
 using namespace slideio::nd2;
 using slideio::nd2::detail::elementsOf;
+using slideio::nd2::detail::RawLoop;
 
 namespace
 {
-    constexpr int kEtTime = 1;
-    constexpr int kEtXY = 2;
-    constexpr int kEtZ = 4;
-    constexpr int kEtSpectral = 6;
-    constexpr int kEtCustom = 7;
-    constexpr int kEtNeTime = 8;
-    /// The tree is a chain in practice; a deeper one is a damaged file.
-    constexpr int kMaxDepth = 64;
-
-    /// A loop record before it is checked against the supported shapes.
-    struct RawLoop
-    {
-        int type = 0;
-        int level = 0;
-        int64_t count = 0;
-        Variant pars;
-        std::vector<int64_t> validItems;
-    };
-
-    /// A validity flag list: a byte array, a list of numbers, or a lone flag.
-    /// `present` is false when the field is absent.
-    std::vector<bool> flagsOf(const Variant* v, bool& present)
-    {
-        std::vector<bool> flags;
-        present = v != nullptr;
-        if (!v) {
-            return flags;
-        }
-        switch (v->kind()) {
-        case Variant::Kind::Bytes:
-            for (uint8_t b : v->bytes()) {
-                flags.push_back(b != 0);
-            }
-            break;
-        case Variant::Kind::Map:
-        case Variant::Kind::List:
-            for (const Variant* e : elementsOf(v)) {
-                flags.push_back(e->asInt(0) != 0 || e->asBool(false));
-            }
-            break;
-        case Variant::Kind::Null:
-            break;
-        default:
-            flags.push_back(v->asInt(0) != 0 || v->asBool(false));
-            break;
-        }
-        return flags;
-    }
-
-    int64_t uiCount(const Variant& pars)
-    {
-        const Variant* v = pars.get("uiCount");
-        return v ? v->asInt(0) : 0;
-    }
-
-    /// `uLoopPars` in 2.x can be wrapped in a single `i0000000000`.
-    const Variant& unwrapPars(const Variant& pars)
-    {
-        if (pars.kind() == Variant::Kind::Map && pars.get("i0000000000") && !pars.items().empty()) {
-            return pars.items().front();
-        }
-        return pars;
-    }
-
-    /// XY: the points whose `pItemValid` flag is set (FD 7.3). The point list rules
-    /// over the flag list, which can be longer. Without flags every point counts.
-    void countPoints(RawLoop& loop, const Variant& node)
-    {
-        const Variant* points = loop.pars.get("Points");
-        int64_t n = points ? static_cast<int64_t>(elementsOf(points).size()) : 0;
-        if (n == 0) {
-            n = uiCount(loop.pars);
-        }
-        bool hasFlags = false;
-        const std::vector<bool> flags = flagsOf(node.get("pItemValid"), hasFlags);
-        for (int64_t i = 0; i < n; ++i) {
-            const bool valid = hasFlags ? (static_cast<size_t>(i) < flags.size() && flags[static_cast<size_t>(i)]) : true;
-            if (valid) {
-                loop.validItems.push_back(i);
-            }
-        }
-        loop.count = static_cast<int64_t>(loop.validItems.size());
-    }
-
-    /// NE time: the sum of the counts of the periods flagged valid.
-    int64_t countPeriods(const Variant& pars)
-    {
-        bool hasFlags = false;
-        const std::vector<bool> flags = flagsOf(pars.get("pPeriodValid"), hasFlags);
-        int64_t total = 0;
-        const std::vector<const Variant*> periods = elementsOf(pars.get("pPeriod"));
-        for (size_t i = 0; i < periods.size(); ++i) {
-            const bool valid = hasFlags ? (i < flags.size() && flags[i]) : true;
-            if (valid) {
-                total += uiCount(unwrapPars(*periods[i]));
-            }
-        }
-        return total;
-    }
-
-    bool computeLoop(const Variant& node, int type, RawLoop& loop)
-    {
-        const Variant* pars = node.get("uLoopPars");
-        if (!pars) {
-            return false;
-        }
-        loop.type = type;
-        loop.pars = unwrapPars(*pars);
-        switch (type) {
-        case kEtXY:
-            countPoints(loop, node);
-            break;
-        case kEtNeTime:
-            loop.count = countPeriods(loop.pars);
-            break;
-        case kEtSpectral: {
-            const Variant* planes = loop.pars.get("pPlanes");
-            loop.count = planes ? uiCount(*planes) : 0;
-            if (loop.count == 0) {
-                loop.count = uiCount(loop.pars);
-            }
-            break;
-        }
-        default:
-            loop.count = uiCount(loop.pars);
-            break;
-        }
-        return true;
-    }
-
-    /// FD 7.2 rules 1-4, without the `pSubLoops` special case.
-    void flatten(const Variant& node, int level, int depth, std::vector<RawLoop>& out)
-    {
-        if (depth > kMaxDepth) {
-            throw Unsupported("ND2: unsupported experiment: loop tree deeper than " + std::to_string(kMaxDepth));
-        }
-        const Variant* typeField = node.get("eType");
-        const int type = typeField ? static_cast<int>(typeField->asInt(0)) : 0;
-        RawLoop loop;
-        const bool hasPars = computeLoop(node, type, loop);
-        int childLevel = level + 1;
-        if (type == kEtSpectral) {
-            // Rule 2: not a frame dimension; its children stand at its own level.
-            childLevel = level;
-        }
-        else if (hasPars && loop.count > 0) {
-            loop.level = level;
-            if (out.empty() || out.back().level < level) {
-                out.push_back(std::move(loop));
-            }
-            else if (out.back().level == level && out.back().type == type && out.back().count < loop.count) {
-                out.back() = std::move(loop);
-            }
-        }
-        for (const Variant* child : elementsOf(node.get("ppNextLevelEx"))) {
-            flatten(*child, childLevel, depth + 1, out);
-        }
-    }
+    using namespace slideio::nd2::detail;
 
     std::string label(const RawLoop& l)
     {
@@ -216,16 +60,186 @@ namespace
         default: return false;
         }
     }
+
+    void flattenImpl(const Variant& node, const LoopRecordReader& read, int level, int depth,
+        std::vector<RawLoop>& out)
+    {
+        if (depth > kMaxLoopDepth) {
+            throw Unsupported("ND2: unsupported experiment: loop tree deeper than " + std::to_string(kMaxLoopDepth));
+        }
+        LoopRecord record = read(node);
+        int childLevel = level + 1;
+        if (record.type == kEtSpectral) {
+            // Rule 2: not a frame dimension; its children stand at its own level.
+            childLevel = level;
+        }
+        else if (record.hasPars && record.loop.count > 0) {
+            RawLoop& loop = record.loop;
+            loop.type = record.type;
+            loop.level = level;
+            if (out.empty() || out.back().level < level) {
+                out.push_back(std::move(loop));
+            }
+            else if (out.back().level == level && out.back().type == record.type && out.back().count < loop.count) {
+                out.back() = std::move(loop);
+            }
+        }
+        for (const Variant* child : record.children) {
+            flattenImpl(*child, read, childLevel, depth + 1, out);
+        }
+    }
+
+    /// The chunked schema (`ImageMetadata[LV]!`, FD 7.1): `eType`, `uLoopPars`,
+    /// `pItemValid`, `ppNextLevelEx`; XY points in `uLoopPars.Points`.
+    LoopRecord readChunkedRecord(const Variant& node)
+    {
+        LoopRecord r;
+        const Variant* typeField = node.get("eType");
+        r.type = typeField ? static_cast<int>(typeField->asInt(0)) : 0;
+        if (const Variant* pars = node.get("uLoopPars")) {
+            r.hasPars = true;
+            r.loop.pars = unwrapPars(*pars);
+            countLoop(r.type, r.loop.pars.get("Points"), node.get("pItemValid"), r.loop);
+        }
+        r.children = elementsOf(node.get("ppNextLevelEx"));
+        return r;
+    }
 }
 
-Experiment Experiment::parse(const Variant* experiment)
-{
-    if (!experiment) {
-        return Experiment();
-    }
-    std::vector<RawLoop> raw;
-    flatten(*experiment, 0, 0, raw);
+// ------------------------------------------------------------- shared loop rules
 
+std::string slideio::nd2::detail::unprefixed(const std::string& name)
+{
+    size_t i = 0;
+    while (i < name.size() && ((name[i] >= 'a' && name[i] <= 'z') || name[i] == '_')) {
+        ++i;
+    }
+    return i == name.size() ? name : name.substr(i);
+}
+
+const Variant* slideio::nd2::detail::fieldOf(const Variant* record, const std::string& name)
+{
+    if (!record) {
+        return nullptr;
+    }
+    if (const Variant* v = record->get(name)) {
+        return v;
+    }
+    const std::string bare = unprefixed(name);
+    return bare == name ? nullptr : record->get(bare);
+}
+
+const Variant& slideio::nd2::detail::unwrapPars(const Variant& pars)
+{
+    if (pars.kind() == Variant::Kind::Map && pars.get("i0000000000") && !pars.items().empty()) {
+        return pars.items().front();
+    }
+    return pars;
+}
+
+std::vector<bool> slideio::nd2::detail::flagsOf(const Variant* v, bool& present)
+{
+    std::vector<bool> flags;
+    present = v != nullptr;
+    if (!v) {
+        return flags;
+    }
+    switch (v->kind()) {
+    case Variant::Kind::Bytes:
+        for (uint8_t b : v->bytes()) {
+            flags.push_back(b != 0);
+        }
+        break;
+    case Variant::Kind::Map:
+    case Variant::Kind::List:
+        for (const Variant* e : elementsOf(v)) {
+            flags.push_back(e->asInt(0) != 0 || e->asBool(false));
+        }
+        break;
+    case Variant::Kind::Null:
+        break;
+    default:
+        flags.push_back(v->asInt(0) != 0 || v->asBool(false));
+        break;
+    }
+    return flags;
+}
+
+bool slideio::nd2::detail::flagSet(const std::vector<bool>& flags, bool present, size_t i)
+{
+    return !present || (i < flags.size() && flags[i]);
+}
+
+int64_t slideio::nd2::detail::countPeriods(const Variant& pars)
+{
+    bool hasFlags = false;
+    const std::vector<bool> flags = flagsOf(fieldOf(&pars, "pPeriodValid"), hasFlags);
+    int64_t total = 0;
+    const std::vector<const Variant*> periods = elementsOf(fieldOf(&pars, "pPeriod"));
+    for (size_t i = 0; i < periods.size(); ++i) {
+        if (flagSet(flags, hasFlags, i)) {
+            const Variant* n = fieldOf(&unwrapPars(*periods[i]), "uiCount");
+            total += n ? n->asInt(0) : 0;
+        }
+    }
+    return total;
+}
+
+std::vector<int64_t> slideio::nd2::detail::validPoints(int64_t n, const Variant* itemValid)
+{
+    bool hasFlags = false;
+    const std::vector<bool> flags = flagsOf(itemValid, hasFlags);
+    std::vector<int64_t> valid;
+    for (int64_t i = 0; i < n; ++i) {
+        if (flagSet(flags, hasFlags, static_cast<size_t>(i))) {
+            valid.push_back(i);
+        }
+    }
+    return valid;
+}
+
+void slideio::nd2::detail::countLoop(int type, const Variant* points, const Variant* itemValid, RawLoop& loop)
+{
+    auto uiCount = [](const Variant* pars) -> int64_t {
+        const Variant* v = fieldOf(pars, "uiCount");
+        return v ? v->asInt(0) : 0;
+    };
+    switch (type) {
+    case kEtXY: {
+        // The point list rules over the flag list, which can be longer (FD 7.3).
+        int64_t n = points ? static_cast<int64_t>(elementsOf(points).size()) : 0;
+        if (n == 0) {
+            n = uiCount(&loop.pars);
+        }
+        loop.validItems = validPoints(n, itemValid);
+        loop.count = static_cast<int64_t>(loop.validItems.size());
+        break;
+    }
+    case kEtNeTime:
+        loop.count = countPeriods(loop.pars);
+        break;
+    case kEtSpectral: {
+        const Variant* planes = fieldOf(&loop.pars, "pPlanes");
+        loop.count = planes ? uiCount(planes) : 0;
+        if (loop.count == 0) {
+            loop.count = uiCount(&loop.pars);
+        }
+        break;
+    }
+    default:
+        loop.count = uiCount(&loop.pars);
+        break;
+    }
+}
+
+void slideio::nd2::detail::flattenLoops(const Variant& node, const LoopRecordReader& read, int level,
+    std::vector<RawLoop>& out)
+{
+    flattenImpl(node, read, level, 0, out);
+}
+
+std::vector<Loop> slideio::nd2::detail::axisLoops(std::vector<RawLoop> raw)
+{
     std::vector<Loop> loops;
     for (RawLoop& l : raw) {
         Axis axis;
@@ -243,7 +257,19 @@ Experiment Experiment::parse(const Variant* experiment)
         loop.validItems = std::move(l.validItems);
         loops.push_back(std::move(loop));
     }
-    return fromLoops(std::move(loops));
+    return loops;
+}
+
+// ------------------------------------------------------------------ Experiment
+
+Experiment Experiment::parse(const Variant* experiment)
+{
+    if (!experiment) {
+        return Experiment();
+    }
+    std::vector<RawLoop> raw;
+    flattenLoops(*experiment, readChunkedRecord, 0, raw);
+    return fromLoops(axisLoops(std::move(raw)));
 }
 
 Experiment Experiment::fromLoops(std::vector<Loop> loops)

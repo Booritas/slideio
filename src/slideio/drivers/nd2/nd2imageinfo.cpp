@@ -59,31 +59,6 @@ namespace
         return v ? v->asDouble(fallback) : fallback;
     }
 
-    /// uLoopPars may arrive wrapped in an `i0000000000` map.
-    const Variant& unwrap(const Variant& pars)
-    {
-        if (pars.kind() == Variant::Kind::Map && pars.get("i0000000000") && !pars.items().empty()) {
-            return pars.items().front();
-        }
-        return pars;
-    }
-
-    /// Flag i of a validity list; true when there is no list.
-    bool validAt(const Variant* flags, size_t i)
-    {
-        if (!flags) {
-            return true;
-        }
-        if (flags->kind() == Variant::Kind::Bytes) {
-            return i < flags->bytes().size() && flags->bytes()[i] != 0;
-        }
-        const std::vector<const Variant*> e = elementsOf(flags);
-        if (e.empty()) {
-            return i == 0 && (flags->asInt(0) != 0 || flags->asBool(false));
-        }
-        return i < e.size() && (e[i]->asInt(0) != 0 || e[i]->asBool(false));
-    }
-
     std::vector<Position> buildPositions(const Experiment& experiment, const std::string& fileStem)
     {
         std::vector<Position> out;
@@ -140,29 +115,6 @@ namespace
         });
     }
 
-    /// Seconds: `dPeriod` of the time loop; for an NE loop the first valid period's.
-    double periodOf(const Loop& time)
-    {
-        double ms = 0;
-        const Variant* periods = time.pars.get("pPeriod");
-        if (periods) {
-            const Variant* valid = time.pars.get("pPeriodValid");
-            const std::vector<const Variant*> list = elementsOf(periods);
-            for (size_t i = 0; i < list.size(); ++i) {
-                if (validAt(valid, i)) {
-                    const Variant* d = unwrap(*list[i]).get("dPeriod");
-                    ms = d ? d->asDouble(0) : 0;
-                    break;
-                }
-            }
-        }
-        else {
-            const Variant* d = time.pars.get("dPeriod");
-            ms = d ? d->asDouble(0) : 0;
-        }
-        return ms > 0 ? ms / 1000.0 : 0;
-    }
-
     /// Mean difference of consecutive per-T times at p=0, z=0 in seconds; 0 unless all are known.
     double meanStepImpl(const Experiment& experiment, const std::vector<double>& times)
     {
@@ -186,16 +138,39 @@ namespace
     }
 }
 
+double slideio::nd2::detail::periodOf(const Loop& time)
+{
+    double ms = 0;
+    const Variant* periods = detail::fieldOf(&time.pars, "pPeriod");
+    if (periods && (periods->kind() == Variant::Kind::Map || periods->kind() == Variant::Kind::List)) {
+        bool hasFlags = false;
+        const std::vector<bool> valid = detail::flagsOf(detail::fieldOf(&time.pars, "pPeriodValid"), hasFlags);
+        const std::vector<const Variant*> list = elementsOf(periods);
+        for (size_t i = 0; i < list.size(); ++i) {
+            if (detail::flagSet(valid, hasFlags, i)) {
+                const Variant* d = detail::fieldOf(&detail::unwrapPars(*list[i]), "dPeriod");
+                ms = d ? d->asDouble(0) : 0;
+                break;
+            }
+        }
+    }
+    else {
+        const Variant* d = detail::fieldOf(&time.pars, "dPeriod");
+        ms = d ? d->asDouble(0) : 0;
+    }
+    return ms > 0 ? ms / 1000.0 : 0;
+}
+
 double slideio::nd2::zStepFrom(const Variant& pars)
 {
-    const Variant* step = pars.get("dZStep");
+    const Variant* step = detail::fieldOf(&pars, "dZStep");
     double um = std::fabs(step ? step->asDouble(0) : 0);
     if (um == 0) {
-        const Variant* count = pars.get("uiCount");
+        const Variant* count = detail::fieldOf(&pars, "uiCount");
         const int64_t n = count ? count->asInt(0) : 0;
         if (n > 1) {
-            const Variant* low = pars.get("dZLow");
-            const Variant* high = pars.get("dZHigh");
+            const Variant* low = detail::fieldOf(&pars, "dZLow");
+            const Variant* high = detail::fieldOf(&pars, "dZHigh");
             const double span = std::fabs((high ? high->asDouble(0) : 0) - (low ? low->asDouble(0) : 0));
             um = span / static_cast<double>(n - 1);
         }
@@ -268,7 +243,7 @@ ImageInfo slideio::nd2::buildImageInfo(const ChunkFile& chunks, const FileReader
 
     info.frameTimesMs = buildFrameTimes(chunks, file, info.experiment.loopProduct());
     if (const Loop* t = info.experiment.loop(Axis::T)) {
-        info.tStep = periodOf(*t);
+        info.tStep = detail::periodOf(*t);
         if (info.tStep <= 0) {
             info.tStep = meanStepSeconds(info.experiment, info.frameTimesMs);
         }

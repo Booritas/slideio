@@ -60,7 +60,9 @@ namespace slideio
             const std::string& fileStem);
 
         /// Z step in metres from the parameters of a Z loop: |dZStep|, or when that is 0
-        /// and `uiCount` > 1, |dZHigh - dZLow| / (uiCount - 1). The fields are micrometres.
+        /// and `uiCount` > 1, |dZHigh - dZLow| / (uiCount - 1). The fields are micrometres. Each
+        /// field may also be spelled without its type prefix (`ZStep`, `Count`...), as in the
+        /// legacy fixtures.
         SLIDEIO_ND2_EXPORTS double zStepFrom(const Variant& zLoopPars);
 
         /// Frame times (ms) for `count` frames: the first cache.size() entries come from `cache`

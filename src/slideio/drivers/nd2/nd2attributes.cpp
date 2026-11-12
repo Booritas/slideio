@@ -10,6 +10,7 @@
 using namespace slideio;
 using namespace slideio::nd2;
 using slideio::nd2::detail::elementsOf;
+using slideio::nd2::detail::fieldOf;
 
 namespace
 {
@@ -106,25 +107,34 @@ Attributes Attributes::parse(const Variant& attrs)
     return a;
 }
 
+namespace
+{
+    /// `sPicturePlanes.sPlaneNew`, else `sPlane`: the plane records.
+    std::vector<const Variant*> planeRecords(const Variant* planes)
+    {
+        const Variant* records = fieldOf(planes, "sPlaneNew");
+        if (!records) {
+            records = fieldOf(planes, "sPlane");
+        }
+        return elementsOf(records);
+    }
+}
+
+int64_t slideio::nd2::detail::pictureChannelCount(const Variant* pictureMetadata)
+{
+    const Variant* planes = fieldOf(pictureMetadata, "sPicturePlanes");
+    const Variant* countField = fieldOf(planes, "uiCount");
+    const int64_t count = countField ? countField->asInt(0) : 0;
+    return count > 0 ? count : static_cast<int64_t>(planeRecords(planes).size());
+}
+
 std::vector<ChannelInfo> slideio::nd2::parseChannels(const Variant* pictureMetadata, int components)
 {
     if (components <= 0) {
         throw Unsupported("ND2: unsupported image attributes: uiComp is " + std::to_string(components));
     }
-    const Variant* planes = pictureMetadata ? pictureMetadata->get("sPicturePlanes") : nullptr;
-    const Variant* records = nullptr;
-    if (planes) {
-        records = planes->get("sPlaneNew");
-        if (!records) {
-            records = planes->get("sPlane");
-        }
-    }
-    const std::vector<const Variant*> plane = elementsOf(records);
-    const Variant* countField = planes ? planes->get("uiCount") : nullptr;
-    int64_t channelCount = countField ? countField->asInt(0) : 0;
-    if (channelCount <= 0) {
-        channelCount = static_cast<int64_t>(plane.size());
-    }
+    const std::vector<const Variant*> plane = planeRecords(fieldOf(pictureMetadata, "sPicturePlanes"));
+    const int64_t channelCount = detail::pictureChannelCount(pictureMetadata);
 
     std::vector<ChannelInfo> out;
     out.reserve(static_cast<size_t>(components));
@@ -152,13 +162,13 @@ std::vector<ChannelInfo> slideio::nd2::parseChannels(const Variant* pictureMetad
         std::string base;
         if (static_cast<size_t>(c) < plane.size()) {
             const Variant& rec = *plane[static_cast<size_t>(c)];
-            if (const Variant* name = rec.get("sDescription")) {
+            if (const Variant* name = fieldOf(&rec, "sDescription")) {
                 base = name->asString();
             }
-            if (const Variant* color = rec.get("uiColor")) {
+            if (const Variant* color = fieldOf(&rec, "uiColor")) {
                 ch.color = static_cast<uint32_t>(color->asInt(0xFFFFFF));
             }
-            if (const Variant* probe = rec.path({ "pFluorescentProbe", "m_sName" })) {
+            if (const Variant* probe = fieldOf(fieldOf(&rec, "pFluorescentProbe"), "m_sName")) {
                 const std::string text = probe->asString();
                 if (!text.empty()) {
                     ch.attributes.emplace_back("FluorescentProbe", text);

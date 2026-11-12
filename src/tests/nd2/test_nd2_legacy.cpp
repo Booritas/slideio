@@ -228,3 +228,38 @@ TEST(Nd2Legacy, FromLoopsValidates)
     EXPECT_THROW(Experiment::fromLoops({ t, p, huge }), Unsupported);
     EXPECT_EQ(1, Experiment::fromLoops({}).loopProduct());
 }
+
+TEST(Nd2Legacy, RealShapedXml)
+{
+    // A legacy VIMD as NIS writes it: a LIM comment, a <MetadataSeq> root around the
+    // <variant>, prefixed names; and a TINF whose text sits in attributes.
+    const std::string vimd =
+        "<!--Laboratory Imaging(http://www.lim.cz) generated xml-->\r\n"
+        "<MetadataSeq _SEQUENCE_INDEX=\"0\"><variant version=\"1.0\"><no_name runtype=\"RLxPictureMetadata\">"
+        "<dTimeMSec runtype=\"double\" value=\"5830.5\"/>"
+        "<sPicturePlanes runtype=\"RLxPicturePlanes\"><uiCount runtype=\"lx_uint32\" value=\"2\"/>"
+        "<sPlane runtype=\"CLxListVariant\"><a0 runtype=\"x\"><sDescription runtype=\"CLxStringW\" value=\"rfp\"/></a0>"
+        "<a1 runtype=\"x\"><sDescription runtype=\"CLxStringW\" value=\"phase\"/></a1></sPlane></sPicturePlanes>"
+        "</no_name></variant></MetadataSeq>";
+    const Variant v = decodeLegacyXml(std::vector<uint8_t>(vimd.begin(), vimd.end()));
+    ASSERT_NE(nullptr, v.get("dTimeMSec"));
+    EXPECT_DOUBLE_EQ(5830.5, v.get("dTimeMSec")->asDouble());
+    const std::vector<ChannelInfo> channels = parseChannels(&v, 2);
+    ASSERT_EQ(2u, channels.size());
+    EXPECT_EQ("rfp", channels[0].name);
+    EXPECT_EQ("phase", channels[1].name);
+
+    const std::string tinf =
+        "<!--Laboratory Imaging(http://www.lim.cz) generated xml-->\r\n"
+        "<TextInfo Count=\"2\" _DOCTYPE=\"TextInfoDocument\" _VERSION=\"1.000000\">"
+        "<TextInfoItem Text=\"\" Index=\"0\"/>"
+        "<TextInfoItem Text=\"Metadata:&#x000d;&#x000a;Dimensions: T'(81) x XY(5)&#x000d;&#x000a;\" Index=\"1\"/>"
+        "</TextInfo>";
+    const Variant t = decodeLegacyXml(std::vector<uint8_t>(tinf.begin(), tinf.end()));
+    const Variant* items = t.get("TextInfoItem");
+    ASSERT_NE(nullptr, items);
+    ASSERT_EQ(2u, items->items().size());
+    const Variant* text = items->items()[1].get("Text");
+    ASSERT_NE(nullptr, text);
+    EXPECT_EQ(5, xyCountFromText(text->asString()));
+}
