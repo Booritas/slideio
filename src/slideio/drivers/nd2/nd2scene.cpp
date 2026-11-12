@@ -48,6 +48,8 @@ ND2Scene::ND2Scene(const std::string& filePath, int position, std::shared_ptr<co
     }
 
     initTimestamps();
+    // Design 6.3 (R30): this scene's own measured step, else the nominal period.
+    m_tStep = nd2::timeStepSeconds(m_info->experiment, m_info->frameTimesMs, m_position);
 
     m_rawMetadata = pos.rawJson;
     m_metadataFormat = pos.rawJson.empty() ? MetadataFormat::None : MetadataFormat::JSON;
@@ -140,7 +142,7 @@ double ND2Scene::getZSliceResolution() const
 
 double ND2Scene::getTFrameResolution() const
 {
-    return m_info->tStep;
+    return m_tStep;
 }
 
 int ND2Scene::getChannelSignificantBits(int channel) const

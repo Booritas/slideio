@@ -40,8 +40,10 @@ namespace slideio
             /// Metres; 0 when the file is not calibrated.
             double pixelSizeX = 0;
             double pixelSizeY = 0;
-            /// Metres and seconds; 0 when unknown.
+            /// Metres; 0 when unknown.
             double zStep = 0;
+            /// Seconds: the time loop's nominal period, 0 when unknown. A scene reports
+            /// its own measured step first (timeStepSeconds, design 6.3).
             double tStep = 0;
             double magnification = 0;
             /// Julian day of the acquisition start; 0 = unknown.
@@ -76,13 +78,17 @@ namespace slideio
         /// none. Used when dObjectiveMag is not > 0 (design 6.1, R27).
         SLIDEIO_ND2_EXPORTS double magnificationFromObjectiveName(const std::string& name);
 
-        /// The T increment in seconds (design 6.3, R28): the measured meanStepSeconds when it
-        /// is > 0, else the time loop's nominal period (`dPeriod`, or the first valid NE
-        /// period); 0 without a time loop.
-        SLIDEIO_ND2_EXPORTS double timeStepSeconds(const Experiment& experiment, const std::vector<double>& times);
+        /// The T increment in seconds of the scene at XY ordinal `p` (design 6.3, R28, R30):
+        /// meanStepSeconds at that p when it is > 0, else the time loop's nominal period
+        /// (`dPeriod`, or the first valid NE period); 0 without a time loop. With empty
+        /// `times` it is the nominal period alone.
+        SLIDEIO_ND2_EXPORTS double timeStepSeconds(const Experiment& experiment, const std::vector<double>& times,
+            int64_t p = 0);
 
-        /// Mean difference in seconds of consecutive per-T times (ms) at p=0, z=0; 0 when
-        /// T < 2 or any of those times is NaN. `times` is indexed by frame.
-        SLIDEIO_ND2_EXPORTS double meanStepSeconds(const Experiment& experiment, const std::vector<double>& times);
+        /// Mean difference in seconds of consecutive per-T times (ms) at XY ordinal `p`,
+        /// z = 0; 0 when T < 2, p is out of range or any of those times is NaN. `times` is
+        /// indexed by frame.
+        SLIDEIO_ND2_EXPORTS double meanStepSeconds(const Experiment& experiment, const std::vector<double>& times,
+            int64_t p = 0);
     }
 }

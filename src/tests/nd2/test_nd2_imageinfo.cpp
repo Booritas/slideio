@@ -36,8 +36,11 @@ TEST(Nd2ImageInfo, Calibration)
     EXPECT_EQ(basic.zStep, 0);
     const ImageInfo tpz = infoOf("v3_tpz.nd2");
     EXPECT_NEAR(tpz.zStep, 1.5e-6, 1e-15);
-    // Measured (R28): frame N is at N*100 ms and t advances 8 frames; dPeriod says 2 s.
-    EXPECT_NEAR(tpz.tStep, 0.8, 1e-12);
+    // ImageInfo keeps the nominal dPeriod (R30); a scene measures its own step: frame N
+    // is at N*100 ms and t advances 8 frames.
+    EXPECT_DOUBLE_EQ(tpz.tStep, 2.0);
+    EXPECT_NEAR(timeStepSeconds(tpz.experiment, tpz.frameTimesMs, 0), 0.8, 1e-12);
+    EXPECT_NEAR(timeStepSeconds(tpz.experiment, tpz.frameTimesMs, 1), 0.8, 1e-12);
     EXPECT_EQ(tpz.attributes.width, 16);
     EXPECT_EQ(tpz.channels.size(), 2u);
 }
@@ -146,10 +149,11 @@ TEST(Nd2ImageInfo, MeanStepFallback)
 
 TEST(Nd2ImageInfo, NeTimeStep)
 {
-    // ne_time: periods of 100 ms; the step measured from the frame times (frame N at
-    // N*100 ms, t advancing 2 frames) wins over the period (R28).
+    // ne_time: periods of 100 ms, the nominal step; the step measured from the frame
+    // times (frame N at N*100 ms, t advancing 2 frames) wins over it (R28).
     const ImageInfo info = infoOf("ne_time.nd2");
-    EXPECT_NEAR(info.tStep, 0.2, 1e-12);
+    EXPECT_NEAR(info.tStep, 0.1, 1e-12);
+    EXPECT_NEAR(timeStepSeconds(info.experiment, info.frameTimesMs), 0.2, 1e-12);
 }
 
 // R28: the measured mean step first, the nominal period when it cannot be measured.
@@ -163,6 +167,25 @@ TEST(Nd2ImageInfo, TimeStepPrefersMeasured)
     EXPECT_DOUBLE_EQ(timeStepSeconds(three, {}), 2.0);
     EXPECT_DOUBLE_EQ(timeStepSeconds(timeLoop(3), { 0.0, nan, 2000.0 }), 0.0);   // neither
     EXPECT_DOUBLE_EQ(timeStepSeconds(Experiment(), {}), 0.0);   // no time loop
+}
+
+// R30: each scene measures at its own XY ordinal.
+TEST(Nd2ImageInfo, TimeStepPerPosition)
+{
+    Loop t;
+    t.axis = Axis::T;
+    t.count = 3;
+    Loop p;
+    p.axis = Axis::P;
+    p.count = 2;
+    p.validItems = { 0, 1 };
+    const Experiment e = Experiment::fromLoops({ t, p });
+    // frame = t*2 + p: position 0 steps 1 s, position 1 steps 1.5 s.
+    const std::vector<double> times = { 0., 0., 1000., 1500., 2000., 3000. };
+    EXPECT_NEAR(meanStepSeconds(e, times, 0), 1.0, 1e-12);
+    EXPECT_NEAR(meanStepSeconds(e, times, 1), 1.5, 1e-12);
+    EXPECT_NEAR(timeStepSeconds(e, times, 1), 1.5, 1e-12);
+    EXPECT_EQ(meanStepSeconds(e, times, 2), 0.0);   // no such position
 }
 
 // R27: the magnification an objective name states.

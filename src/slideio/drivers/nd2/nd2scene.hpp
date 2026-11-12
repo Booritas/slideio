@@ -74,6 +74,8 @@ namespace slideio
         ResampleLimits m_limits;
         int m_numZ = 1;
         int m_numT = 1;
+        // Seconds: the measured step at this scene's position, else the nominal period.
+        double m_tStep = 0;
         bool m_hasTimestamps = false;
         // dTimeAbsolute is known (>= 1, design 6.4).
         bool m_hasAbsoluteTime = false;

@@ -118,7 +118,7 @@ namespace
     }
 
     /// Mean difference of consecutive per-T times at p=0, z=0 in seconds; 0 unless all are known.
-    double meanStepImpl(const Experiment& experiment, const std::vector<double>& times)
+    double meanStepImpl(const Experiment& experiment, const std::vector<double>& times, int64_t p)
     {
         const int64_t n = experiment.count(Axis::T);
         if (static_cast<int64_t>(times.size()) < experiment.loopProduct()) {
@@ -127,10 +127,13 @@ namespace
         if (n < 2) {
             return 0;
         }
-        const double first = times[static_cast<size_t>(experiment.frameIndex(0, 0, 0))];
+        if (p < 0 || p >= experiment.count(Axis::P)) {
+            return 0;
+        }
+        const double first = times[static_cast<size_t>(experiment.frameIndex(0, p, 0))];
         double last = first;
         for (int64_t t = 1; t < n; ++t) {
-            last = times[static_cast<size_t>(experiment.frameIndex(t, 0, 0))];
+            last = times[static_cast<size_t>(experiment.frameIndex(t, p, 0))];
             if (std::isnan(first) || std::isnan(last)) {
                 return 0;
             }
@@ -217,7 +220,12 @@ ImageInfo slideio::nd2::buildImageInfo(const ChunkFile& chunks, const FileReader
     for (const auto& frame : chunks.frames()) {
         present.insert(frame.first);
     }
-    info.experiment.fitTime(present);
+    // Frame times decide whether surplus time points continue the series (R29); they are
+    // read as far as a fitted T could reach (R31), then cut to the fitted product.
+    const int64_t reach = info.experiment.loopProduct() + static_cast<int64_t>(present.size());
+    std::vector<double> times = buildFrameTimes(chunks, file, reach);
+    info.experiment.fitTime(present, times);
+    times.resize(static_cast<size_t>(info.experiment.loopProduct()), kNaN);
     info.positions = buildPositions(info.experiment, fileStem);
 
     // Design 6.3. The fields live in the picture metadata; the calibration chunk is the fallback.
@@ -248,8 +256,9 @@ ImageInfo slideio::nd2::buildImageInfo(const ChunkFile& chunks, const FileReader
         info.zStep = zStepFrom(z->pars);
     }
 
-    info.frameTimesMs = buildFrameTimes(chunks, file, info.experiment.loopProduct());
-    info.tStep = timeStepSeconds(info.experiment, info.frameTimesMs);
+    info.frameTimesMs = std::move(times);
+    // The nominal step; each scene measures its own (design 6.3, R30).
+    info.tStep = timeStepSeconds(info.experiment, {});
     return info;
 }
 
@@ -296,17 +305,17 @@ double slideio::nd2::magnificationFromObjectiveName(const std::string& name)
     return 0;
 }
 
-double slideio::nd2::timeStepSeconds(const Experiment& experiment, const std::vector<double>& times)
+double slideio::nd2::timeStepSeconds(const Experiment& experiment, const std::vector<double>& times, int64_t p)
 {
     const Loop* t = experiment.loop(Axis::T);
     if (!t) {
         return 0;
     }
-    const double measured = meanStepImpl(experiment, times);
+    const double measured = meanStepImpl(experiment, times, p);
     return measured > 0 ? measured : std::max(0., detail::periodOf(*t));
 }
 
-double slideio::nd2::meanStepSeconds(const Experiment& experiment, const std::vector<double>& times)
+double slideio::nd2::meanStepSeconds(const Experiment& experiment, const std::vector<double>& times, int64_t p)
 {
-    return meanStepImpl(experiment, times);
+    return meanStepImpl(experiment, times, p);
 }

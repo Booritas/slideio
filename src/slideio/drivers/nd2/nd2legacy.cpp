@@ -550,7 +550,18 @@ ImageInfo slideio::nd2::buildImageInfo(const LegacyFile& legacy, const FileReade
     for (int64_t f = 0; f < completeFrames; ++f) {
         present.insert(f);
     }
-    info.experiment.fitTime(present);
+    // Frame times: TimeMSec of each frame's VIMD, else NaN. Read as far as a fitted T
+    // could reach (R31), so surplus time points can be checked against them (R29).
+    const std::vector<const Box*> vimds = legacy.all("VIMD");
+    const int64_t reach = info.experiment.loopProduct() + static_cast<int64_t>(present.size());
+    std::vector<double> times(static_cast<size_t>(reach), kNaN);
+    for (int64_t f = 0; f < reach && f < static_cast<int64_t>(vimds.size()); ++f) {
+        times[static_cast<size_t>(f)] = f == 0
+            ? number(&vimd, "dTimeMSec", kNaN) : frameTime(legacy, file, *vimds[static_cast<size_t>(f)]);
+    }
+    info.experiment.fitTime(present, times);
+    times.resize(static_cast<size_t>(info.experiment.loopProduct()), kNaN);
+    info.frameTimesMs = std::move(times);
     info.positions = buildPositions(info.experiment, fileStem);
 
     // Calibration (design 6.3): VCAL of frame 0, else ACAL; 0 when uncalibrated or <= 0.
@@ -590,14 +601,7 @@ ImageInfo slideio::nd2::buildImageInfo(const LegacyFile& legacy, const FileReade
         info.zStep = zStepFrom(z->pars);
     }
 
-    // Frame times: TimeMSec of each frame's VIMD, else NaN.
-    const std::vector<const Box*> vimds = legacy.all("VIMD");
-    const int64_t product = info.experiment.loopProduct();
-    info.frameTimesMs.assign(static_cast<size_t>(product), kNaN);
-    for (int64_t f = 0; f < product && f < static_cast<int64_t>(vimds.size()); ++f) {
-        info.frameTimesMs[static_cast<size_t>(f)] = f == 0
-            ? number(&vimd, "dTimeMSec", kNaN) : frameTime(legacy, file, *vimds[static_cast<size_t>(f)]);
-    }
-    info.tStep = timeStepSeconds(info.experiment, info.frameTimesMs);
+    // The nominal step; each scene measures its own (design 6.3, R30).
+    info.tStep = timeStepSeconds(info.experiment, {});
     return info;
 }

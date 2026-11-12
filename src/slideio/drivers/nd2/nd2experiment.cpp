@@ -5,6 +5,8 @@
 #include "slideio/drivers/nd2/nd2internal.hpp"
 #include "slideio/core/exceptions.hpp"
 
+#include <algorithm>
+#include <cmath>
 #include <limits>
 #include <string>
 
@@ -356,27 +358,82 @@ int64_t Experiment::frameIndex(int64_t t, int64_t p, int64_t z) const
     return frame;
 }
 
-void Experiment::fitTime(const std::set<int64_t>& presentFrames)
+namespace
+{
+    // Earliest and latest known (not NaN) time of frames [first, first + n); false when
+    // none is known.
+    bool timeSpan(const std::vector<double>& times, int64_t first, int64_t n, double& lo, double& hi)
+    {
+        bool any = false;
+        for (int64_t f = first; f < first + n; ++f) {
+            if (f < 0 || f >= static_cast<int64_t>(times.size()) || std::isnan(times[static_cast<size_t>(f)])) {
+                continue;
+            }
+            const double v = times[static_cast<size_t>(f)];
+            lo = any ? std::min(lo, v) : v;
+            hi = any ? std::max(hi, v) : v;
+            any = true;
+        }
+        return any;
+    }
+}
+
+void Experiment::fitTime(const std::set<int64_t>& presentFrames, const std::vector<double>& frameTimesMs)
 {
     if (m_loops.empty() || m_loops.front().axis != Axis::T || presentFrames.empty()) {
         return;
     }
-    // A frame can extend T only as far as the frames present could fill: an index at or
-    // past product + count is a damaged name, not an acquisition, and is ignored. That
-    // also keeps the new product, and every array sized by it, bounded by the file.
+    Loop& time = m_loops.front();
     const int64_t product = loopProduct();
-    const int64_t bound = product + static_cast<int64_t>(presentFrames.size());
-    int64_t maxPresent = -1;
+    const int64_t inner = product / time.count;
+    const int64_t declared = time.count;
+
+    // Trim: the last declared time point with a frame ends T.
+    int64_t maxInside = -1;
     for (auto it = presentFrames.rbegin(); it != presentFrames.rend(); ++it) {
-        if (*it >= 0 && *it < bound) {
-            maxPresent = *it;
+        if (*it >= 0 && *it < product) {
+            maxInside = *it;
             break;
         }
     }
-    if (maxPresent < 0) {
+    if (maxInside < 0) {
         return;
     }
-    Loop& time = m_loops.front();
-    const int64_t inner = product / time.count;
-    time.count = maxPresent / inner + 1;   // ceil((maxPresent + 1) / inner)
+    if (maxInside / inner + 1 < declared) {
+        time.count = maxInside / inner + 1;
+        return;
+    }
+
+    // Extend (R29): add surplus time points while each is complete -- every inner frame
+    // present -- and its known times follow the previous time point's. Frames at or past
+    // product + presentFrames.size() are never acquired ones (R31). Unknown (NaN) times
+    // leave completeness to decide alone.
+    const int64_t bound = product + static_cast<int64_t>(presentFrames.size());
+    double prevLo = 0, prevHi = 0;
+    bool prevKnown = timeSpan(frameTimesMs, (declared - 1) * inner, inner, prevLo, prevHi);
+    int64_t points = declared;
+    for (;;) {
+        const int64_t first = points * inner;
+        if (first + inner > bound) {
+            break;
+        }
+        bool complete = true;
+        for (int64_t f = first; f < first + inner && complete; ++f) {
+            complete = presentFrames.count(f) != 0;
+        }
+        if (!complete) {
+            break;
+        }
+        double lo = 0, hi = 0;
+        const bool known = timeSpan(frameTimesMs, first, inner, lo, hi);
+        if (known && prevKnown && lo <= prevHi) {
+            break;
+        }
+        if (known) {
+            prevHi = hi;
+            prevKnown = true;
+        }
+        ++points;
+    }
+    time.count = points;
 }

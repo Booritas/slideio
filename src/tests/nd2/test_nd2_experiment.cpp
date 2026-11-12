@@ -3,6 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 #include <gtest/gtest.h>
 #include <cstdint>
+#include <limits>
 #include <set>
 #include <vector>
 #include <string>
@@ -151,28 +152,96 @@ TEST(Nd2Experiment, FitTime)
     EXPECT_EQ(none.count(Axis::T), 5);
 }
 
-// An in-memory T-outermost experiment whose acquisition ran past the declared count, as
-// old_cells_02.nd2 does (T41 x P4 x Z7, 1176 frames = 42 time points).
-TEST(Nd2Experiment, FitTimeExtendsOverSurplusFrames)
+namespace
 {
-    Loop t;
-    t.axis = Axis::T;
-    t.count = 2;
-    Loop z;
-    z.axis = Axis::Z;
-    z.count = 3;
-    Experiment e = Experiment::fromLoops({ t, z });
-    std::set<int64_t> frames;
-    for (int64_t f = 0; f < 9; ++f) {
-        frames.insert(f);
+    // T2 x Z3, declared product 6, frames 0..n-1 present.
+    Experiment tz()
+    {
+        Loop t;
+        t.axis = Axis::T;
+        t.count = 2;
+        Loop z;
+        z.axis = Axis::Z;
+        z.count = 3;
+        return Experiment::fromLoops({ t, z });
     }
-    e.fitTime(frames);
-    EXPECT_EQ(describe(e), "T3,Z3");
-    EXPECT_EQ(e.frameIndex(2, 0, 2), 8);
-    // A partial extra time point still counts: frame 10 is t = 3, z = 1.
-    frames.insert(10);
-    e.fitTime(frames);
-    EXPECT_EQ(e.count(Axis::T), 4);
+
+    std::set<int64_t> framesUpTo(int64_t n)
+    {
+        std::set<int64_t> frames;
+        for (int64_t f = 0; f < n; ++f) {
+            frames.insert(f);
+        }
+        return frames;
+    }
+
+    // Frame f at f*100 ms, then `tail` rewritten.
+    std::vector<double> times(int64_t n, const std::vector<std::pair<int64_t, double>>& tail = {})
+    {
+        std::vector<double> v;
+        for (int64_t f = 0; f < n; ++f) {
+            v.push_back(100.0 * static_cast<double>(f));
+        }
+        for (const auto& [f, ms] : tail) {
+            v[static_cast<size_t>(f)] = ms;
+        }
+        return v;
+    }
+}
+
+// R29: a complete surplus time point whose times follow the series extends T, as in
+// old_cells_02.nd2 (T41 x P4 x Z7, 1176 frames = 42 time points).
+TEST(Nd2Experiment, FitTimeExtendsByCompleteSurplus)
+{
+    Experiment e = tz();
+    e.fitTime(framesUpTo(12), times(12));
+    EXPECT_EQ(describe(e), "T4,Z3");
+    EXPECT_EQ(e.frameIndex(3, 0, 2), 11);
+}
+
+// R29: a partial surplus time point (190821: 10 of 46 positions) does not.
+TEST(Nd2Experiment, FitTimeIgnoresPartialSurplus)
+{
+    Experiment e = tz();
+    e.fitTime(framesUpTo(8), times(8));   // frames 6, 7 of 6..8
+    EXPECT_EQ(describe(e), "T2,Z3");
+    // A complete point followed by a partial one: only the complete one is added.
+    Experiment f = tz();
+    f.fitTime(framesUpTo(11), times(11));
+    EXPECT_EQ(describe(f), "T3,Z3");
+}
+
+// R29: a complete surplus time point whose times run back into the series
+// (130606_JCC719_003.nd2) does not extend T, and nothing after it does either.
+TEST(Nd2Experiment, FitTimeIgnoresSurplusRunningBack)
+{
+    Experiment e = tz();
+    // Frames 6..8 at 250..270 ms, before frame 5 (500 ms); frames 9..11 would follow.
+    e.fitTime(framesUpTo(12), times(12, { {6, 250.}, {7, 260.}, {8, 270.} }));
+    EXPECT_EQ(describe(e), "T2,Z3");
+    // Times equal to the last declared one do not continue the series either.
+    Experiment f = tz();
+    f.fitTime(framesUpTo(9), times(9, { {6, 500.} }));
+    EXPECT_EQ(describe(f), "T2,Z3");
+}
+
+// R29: with no times known, completeness alone decides; one unknown time does not
+// block a point whose known times follow.
+TEST(Nd2Experiment, FitTimeWithoutTimes)
+{
+    const double nan = std::numeric_limits<double>::quiet_NaN();
+    Experiment e = tz();
+    e.fitTime(framesUpTo(12));
+    EXPECT_EQ(describe(e), "T4,Z3");
+    Experiment f = tz();
+    f.fitTime(framesUpTo(12), std::vector<double>(12, nan));
+    EXPECT_EQ(describe(f), "T4,Z3");
+    Experiment g = tz();
+    g.fitTime(framesUpTo(9), times(9, { {6, nan} }));
+    EXPECT_EQ(describe(g), "T3,Z3");
+    Experiment partial = tz();
+    partial.fitTime(framesUpTo(8));
+    EXPECT_EQ(describe(partial), "T2,Z3");
 }
 
 TEST(Nd2Experiment, Refusals)

@@ -225,24 +225,28 @@ string (UTF-8), byte array, or children. Both decoders produce it (FD §4):
 The set of verified `ImageDataSeq|N!` chunks is the authority for which frames
 exist (FD §7.4). Let the loop product be `L`:
 
-- **T fitting (R25).** When the time loop is the outermost loop, T is
-  `ceil((maxPresentIndex + 1) / innerProduct)` (FD §7.4), whichever way that
-  moves it: trailing time points without any frame are dropped (`B08.nd2`:
-  92 → 81, as Bio-Formats), and frames recorded past the declared count extend T
-  and become addressable (`old_cells_02.nd2` 41 → 42, `rfp_h2a_cells_02.nd2`
-  115 → 116, `jonas/3.nd2` 26 → 27, all as Bio-Formats). The loop product `L`
-  below is the one after fitting, and frame times cover it.
-  A frame index at or past `L + presentFrameCount` (before fitting) cannot be
-  an acquired frame and is ignored, which keeps the fitted product bounded by
-  the file.
+- **T fitting (R25, R29, R31).** Only when the time loop is the outermost loop:
+  - *Trim.* T ends at the last declared time point holding a frame,
+    `ceil((maxPresentIndex + 1) / innerProduct)` over the frames inside the
+    loops (`B08.nd2`: 92 → 81, as Bio-Formats).
+  - *Extend.* When the last declared time point holds a frame, surplus time
+    points (FD §7.4) are added one at a time while each is **complete** -- all
+    `innerProduct` frames present -- and its known frame times come after the
+    previous time point's. Unknown (NaN) times leave completeness to decide
+    alone. The first time point that fails either test stops the extension;
+    frames that do not form such a time point are ignored. This gives
+    `old_cells_02.nd2` 41 → 42, `rfp_h2a_cells_02.nd2` 115 → 116 and
+    `jonas/3.nd2` 26 → 27, and leaves `190821_L1_IRS-Akt_CS2003.nd2` (10 of 46
+    positions), `multicolorTest.nd2` (14 of 15 Z) and `130606_JCC719_003.nd2`
+    (82 surplus frames whose times run back into the declared series) at their
+    declared T -- all as Bio-Formats.
+  - A frame index at or past `L + presentFrameCount` (before fitting) is never
+    an acquired frame (R31); this also bounds the fitted product by the file.
+  - The loop product `L` below is the one after fitting, and frame times cover
+    it. Frames the fit does not take in are ignored (logged once at INFO).
 - When T is not outermost, nothing is fitted, and frames with `N ≥ L` are
   ignored (logged once at INFO with a count).
 - Missing frames with `N < L` read as background (§7).
-- A partial surplus time point counts too, which Bio-Formats does not do:
-  `190821_L1_IRS-Akt_CS2003.nd2` (10 of 46 positions) gives T 32 against 31,
-  `multicolorTest.nd2` (14 of 15 Z) 14 against 13, and
-  `130606_JCC719_003.nd2` 31 against 20 -- its 82 surplus frames carry times
-  that run back inside the declared series. The corpus test records all three.
 - `uiSequenceCount` is not used for counts; it is reported as metadata only.
 
 ### 4.6 Scenes
@@ -353,13 +357,13 @@ Per slideio channel:
   else 0. `dAspect ≠ 1` scales Y *(to be confirmed against Bio-Formats on the
   corpus; no sample is known to have it)*.
 - Z: `|dZStep|`; if 0 and count > 1, `|dZHigh − dZLow| / (count − 1)` (FD §8).
-- T (R28): the mean difference of consecutive per-T frame times at P = 0,
-  Z = 0 when they are all known; else the time loop's `dPeriod` ms ÷ 1000 (or
-  the first valid NE period) when > 0; else 0. The measured step is what
-  Bio-Formats' plane times give; `dPeriod` is only the requested interval
-  (3600 s against a measured 8122 s in `ns_blobtest2.0_20x_A2_far.nd2`). One
-  value serves every scene, so a multi-position file's other series can differ
-  slightly from Bio-Formats, which measures per series.
+- T (R28, R30), per scene: the mean difference of consecutive per-T frame
+  times at the scene's own P, Z = 0 when they are all known; else the time
+  loop's `dPeriod` ms ÷ 1000 (or the first valid NE period) when > 0; else 0.
+  The measured step is what Bio-Formats' plane times give; `dPeriod` is only
+  the requested interval (3600 s against a measured 8122 s in
+  `ns_blobtest2.0_20x_A2_far.nd2`). `ImageInfo::tStep` holds the nominal
+  fallback.
 - Legacy: the same fields from `ACAL`/`VCAL`/`AIM1` (FD §11.2).
 
 ### 6.4 Timestamps
@@ -473,9 +477,9 @@ named `ND2Corpus*`; CI runs `slideio_nd2_tests --gtest_filter=-ND2Corpus*`.
   Legacy regions are compared after undoing Bio-Formats' big-endian, planar
   convention.
 - Scene count, size, channels, Z/T against the same TSV, with the recorded
-  exceptions asserted explicitly: VPA002's channels, the partial-surplus T of
-  §4.5, and `b16_pdtB+y50__crop.nd2` T 57 against 56 (R26: all 684 frames are
-  present; nd2 and the file's text agree on 57).
+  exceptions asserted explicitly: VPA002's channels and
+  `b16_pdtB+y50__crop.nd2` T 57 against 56 (R26: all 684 frames are present;
+  nd2 and the file's text agree on 57).
 - `290110.tranMgc005cr.nd2` fails to open with the attributes message.
 - Resolution, magnification and T increment against Bio-Formats (extend
   `Nd2Check.java` to record them).
