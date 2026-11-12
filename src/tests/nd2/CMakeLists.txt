@@ -7,6 +7,8 @@ set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 set(TEST_SOURCES
   test_nd2_chunkfile.cpp
   test_nd2_variant.cpp
+  test_nd2_attributes.cpp
+  test_nd2_experiment.cpp
 )
 
 add_executable(${TEST_NAME} ${TEST_SOURCES})

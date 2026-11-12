@@ -9,6 +9,10 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/nd2chunkfile.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/nd2variant.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/nd2variant.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/nd2attributes.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/nd2attributes.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/nd2experiment.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/nd2experiment.cpp
    )
 
 add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES})
