@@ -25,5 +25,7 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/readcontext.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/contextpool.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/contextpool.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/tiledareadownscale.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/tiledareadownscale.cpp
    PARENT_SCOPE
    )

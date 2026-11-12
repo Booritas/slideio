@@ -7,6 +7,7 @@
 #include "slideio/drivers/lif/liftimestamps.hpp"
 #include "slideio/drivers/lif/lifxml.hpp"
 #include "slideio/core/cvscene.hpp"
+#include "slideio/core/tools/tiledareadownscale.hpp"
 #include <atomic>
 #include <cstdint>
 #include <memory>
@@ -24,29 +25,9 @@ namespace slideio
 
     namespace lif
     {
-        /// What reads have done, for tests: shared by every scene opened with the
-        /// ReadLimits that carry it.
-        struct ReadStats
-        {
-            /// The most source pixels one read of the file assembled into one buffer.
-            std::atomic<int64_t> peakSourcePixels{0};
-            /// The most output rows one tiled downscale held sums for at once.
-            std::atomic<int64_t> peakSumRows{0};
-            void noteSource(int64_t pixels);
-            void noteSumRows(int64_t rows);
-        };
-
-        /// Bounds of a read. A downscaling read whose source rectangle holds more pixels
-        /// than maxResampleSourcePixels is read in tiles of at most that many pixels and
-        /// area-filtered tile by tile on the global sampling grid, so memory stays
-        /// bounded on large mosaics and the result does not depend on the budget
-        /// (spec D 7).
-        struct ReadLimits
-        {
-            int64_t maxResampleSourcePixels = int64_t(16) << 20;
-            /// Optional: when set, reads record into it.
-            std::shared_ptr<ReadStats> stats;
-        };
+        /// The read bounds and statistics live in core, shared with other drivers.
+        using ReadStats = slideio::ResampleStats;
+        using ReadLimits = slideio::ResampleLimits;
     }
 
     /**@brief one field of one LIF image (spec D 6, 7).
@@ -93,14 +74,6 @@ namespace slideio
         void readRaw(const cv::Rect& rect, const std::vector<int>& channels, int z, int t, cv::Mat& out) const;
         void readScalarPlane(const cv::Rect& rect, int channel, int z, int t, cv::Mat& plane) const;
         void readInterleaved(const cv::Rect& rect, const std::vector<int>& channels, int z, int t, cv::Mat& out) const;
-        // Downscales `rect` (inside the image) to `size`, no larger on either axis, with
-        // the area filter, reading the source in tiles within m_limits (spec D 7).
-        void readTiledDownscale(const cv::Rect& rect, const cv::Size& size, const std::vector<int>& channels,
-                                int z, int t, cv::Mat& out) const;
-        // The same, accumulating in W (OpenCV's accumulator for the depth).
-        template <typename W>
-        void readTiledDownscaleAs(const cv::Rect& rect, const cv::Size& size, const std::vector<int>& channels,
-                                  int z, int t, cv::Mat& out) const;
         int cvDepth() const;
     private:
         std::string m_filePath;
