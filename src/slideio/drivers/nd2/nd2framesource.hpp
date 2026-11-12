@@ -16,6 +16,8 @@ namespace slideio
 
     namespace nd2
     {
+        class LegacyFile;
+
         /// The pixels of the frames of one file (design 7). Immutable after construction
         /// and safe to call from several threads at once: every decode buffer is local
         /// to a call and the only file state is a cursor-free FileReader.
@@ -35,5 +37,12 @@ namespace slideio
         /// Keeps `file` alive and copies what it needs from `chunks` and `attrs`.
         SLIDEIO_ND2_EXPORTS std::shared_ptr<const FrameSource> makeChunkFrameSource(
             std::shared_ptr<const FileReader> file, const ChunkFile& chunks, const Attributes& attrs);
+
+        /// The frames of a legacy JPEG 2000 file (design 4.7): frame i, ND2 channel c is the
+        /// (i*channelCount + c)-th codestream, and an RGB file (`ihdr` 3 components) has one
+        /// codestream per channel. A missing codestream reads as zeros; a frame exists when at
+        /// least one of its codestreams does. Keeps `file` alive.
+        SLIDEIO_ND2_EXPORTS std::shared_ptr<const FrameSource> makeJp2FrameSource(
+            std::shared_ptr<const FileReader> file, const LegacyFile& legacy, int channelCount);
     }
 }

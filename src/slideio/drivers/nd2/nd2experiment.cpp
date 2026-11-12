@@ -220,15 +220,14 @@ namespace
 
 Experiment Experiment::parse(const Variant* experiment)
 {
-    Experiment result;
     if (!experiment) {
-        return result;
+        return Experiment();
     }
     std::vector<RawLoop> raw;
     flatten(*experiment, 0, 0, raw);
 
-    int perAxis[3] = { 0, 0, 0 };
-    for (const RawLoop& l : raw) {
+    std::vector<Loop> loops;
+    for (RawLoop& l : raw) {
         Axis axis;
         if (!axisOf(l.type, axis)) {
             if (l.count > 1) {
@@ -237,29 +236,45 @@ Experiment Experiment::parse(const Variant* experiment)
             }
             continue;   // one item: it adds no dimension
         }
-        if (++perAxis[static_cast<int>(axis)] > 1) {
-            refuse(axis == Axis::T ? "more than one time loop" :
-                axis == Axis::P ? "more than one XY loop" : "more than one Z loop", raw);
-        }
-    }
-
-    int64_t product = 1;
-    for (RawLoop& l : raw) {
-        Axis axis;
-        if (!axisOf(l.type, axis)) {
-            continue;
-        }
-        if (l.count > std::numeric_limits<int64_t>::max() / product) {
-            refuse("too many frames", raw);
-        }
-        product *= l.count;
         Loop loop;
         loop.axis = axis;
         loop.count = l.count;
         loop.pars = std::move(l.pars);
         loop.validItems = std::move(l.validItems);
-        result.m_loops.push_back(std::move(loop));
+        loops.push_back(std::move(loop));
     }
+    return fromLoops(std::move(loops));
+}
+
+Experiment Experiment::fromLoops(std::vector<Loop> loops)
+{
+    auto describe = [&loops]() {
+        std::string s;
+        for (const Loop& l : loops) {
+            if (!s.empty()) {
+                s += ", ";
+            }
+            s += l.axis == Axis::T ? "T" : l.axis == Axis::P ? "P" : "Z";
+            s += std::to_string(l.count);
+        }
+        return s;
+    };
+    int perAxis[3] = { 0, 0, 0 };
+    int64_t product = 1;
+    for (const Loop& l : loops) {
+        if (++perAxis[static_cast<int>(l.axis)] > 1) {
+            throw Unsupported(std::string("ND2: unsupported experiment (") +
+                (l.axis == Axis::T ? "more than one time loop" :
+                 l.axis == Axis::P ? "more than one XY loop" : "more than one Z loop") + "): " + describe());
+        }
+        if (l.count < 1 || l.count > std::numeric_limits<int64_t>::max() / product) {
+            throw Unsupported("ND2: unsupported experiment (" +
+                std::string(l.count < 1 ? "a loop without items" : "too many frames") + "): " + describe());
+        }
+        product *= l.count;
+    }
+    Experiment result;
+    result.m_loops = std::move(loops);
     return result;
 }
 

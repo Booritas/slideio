@@ -74,6 +74,13 @@ namespace slideio
             size_t maxInflatedBytes = kDefaultMaxInflatedBytes);
         /// Decodes CLX XML (`<variant>` root). Throws RuntimeError "ND2: ...".
         SLIDEIO_ND2_EXPORTS Variant decodeClxXml(const std::string& text);
+        /// Decodes the XML box of a legacy JPEG 2000 ND2 file (FD 11.2): an optional
+        /// declaration and LIM comment, then a root element of any name. A `<variant>` root,
+        /// or the `<variant>` child of another root (`<MetadataSeq>`, `<Metadata_V1.2>`...),
+        /// is the content, else the root itself (`<TextInfo>`, `<Calibration>`). Every
+        /// element's attributes other than runtype, value, version and _VERSION become
+        /// members. The single wrapping `no_name` is unwrapped. Throws RuntimeError "ND2: ...".
+        SLIDEIO_ND2_EXPORTS Variant decodeLegacyXml(const std::vector<uint8_t>& data);
         /// '<' as the first byte means XML, anything else Lite. Unwraps the `SLx...`
         /// level (Lite) or the single `no_name` child (XML).
         SLIDEIO_ND2_EXPORTS Variant decodeMetadata(const std::vector<uint8_t>& data,

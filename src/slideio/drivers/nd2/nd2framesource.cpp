@@ -2,10 +2,12 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/drivers/nd2/nd2framesource.hpp"
+#include "slideio/drivers/nd2/nd2legacy.hpp"
 #include "slideio/core/exceptions.hpp"
 #include "slideio/core/tools/cvtools.hpp"
 #include "slideio/core/tools/endian.hpp"
 #include "slideio/core/tools/filereader.hpp"
+#include "slideio/imagetools/imagetools.hpp"
 
 #include <zlib.h>
 #include <algorithm>
@@ -189,10 +191,97 @@ namespace
         int64_t m_pixelBytes;
         int m_cvType;
     };
+
+    /// Legacy JPEG 2000 frames (design 4.7). Each read decodes the whole codestream of
+    /// every channel of the frame, then copies the rectangle out of it.
+    class Jp2FrameSource : public FrameSource
+    {
+    public:
+        Jp2FrameSource(std::shared_ptr<const FileReader> file, const LegacyFile& legacy, int channelCount)
+            : m_file(std::move(file)),
+              m_legacy(legacy),
+              m_channels(channelCount),
+              m_components(legacy.components()),
+              m_depth(legacy.bits() == 8 ? CV_8U : CV_16U)
+        {
+            if (m_channels < 1 || m_components < 1 || m_channels > CV_CN_MAX / m_components) {
+                RAISE_RUNTIME_ERROR << "ND2: " << m_channels << " channels of " << m_components
+                    << " components each cannot be read";
+            }
+        }
+
+        bool hasFrame(int64_t frame) const override
+        {
+            if (frame < 0 || frame > std::numeric_limits<int64_t>::max() / m_channels) {
+                return false;
+            }
+            return frame * m_channels < static_cast<int64_t>(m_legacy.codestreams().size());
+        }
+
+        void readRows(int64_t frame, const cv::Rect& rect, cv::Mat& out) const override
+        {
+            if (!hasFrame(frame)) {
+                RAISE_RUNTIME_ERROR << "ND2: frame " << frame << " is not in the file";
+            }
+            const int width = m_legacy.width();
+            const int height = m_legacy.height();
+            if (rect.x < 0 || rect.y < 0 || rect.width <= 0 || rect.height <= 0
+                || rect.x + rect.width > width || rect.y + rect.height > height) {
+                RAISE_RUNTIME_ERROR << "ND2: frame " << frame << ": rectangle (" << rect.x << ", " << rect.y
+                    << ", " << rect.width << ", " << rect.height << ") is outside the "
+                    << width << "x" << height << " frame";
+            }
+            out.create(rect.height, rect.width, CV_MAKETYPE(m_depth, m_channels * m_components));
+            out.setTo(cv::Scalar::all(0));
+            const std::vector<Box>& streams = m_legacy.codestreams();
+            for (int c = 0; c < m_channels; ++c) {
+                const int64_t index = frame * m_channels + c;
+                if (index >= static_cast<int64_t>(streams.size())) {
+                    continue;   // a missing codestream reads as background
+                }
+                cv::Mat decoded;
+                try {
+                    const std::vector<uint8_t> data = m_legacy.readBox(*m_file, streams[static_cast<size_t>(index)]);
+                    ImageTools::decodeJp2KStream(data.data(), data.size(), decoded);
+                }
+                catch (const std::exception& e) {
+                    RAISE_RUNTIME_ERROR << "ND2: frame " << frame << " channel " << c
+                        << ": cannot decode the JPEG 2000 codestream: " << e.what();
+                }
+                if (decoded.cols != width || decoded.rows != height || decoded.channels() != m_components
+                    || decoded.depth() != m_depth) {
+                    RAISE_RUNTIME_ERROR << "ND2: frame " << frame << " channel " << c << ": the codestream decodes to "
+                        << decoded.cols << "x" << decoded.rows << " with " << decoded.channels()
+                        << " components of CV depth " << decoded.depth() << ", but ihdr says " << width << "x"
+                        << height << " with " << m_components << " components of " << m_legacy.bits() << " bits";
+                }
+                const cv::Mat roi = decoded(rect);
+                std::vector<int> pairs;
+                for (int j = 0; j < m_components; ++j) {
+                    pairs.push_back(j);
+                    pairs.push_back(c * m_components + j);
+                }
+                cv::mixChannels(&roi, 1, &out, 1, pairs.data(), static_cast<size_t>(m_components));
+            }
+        }
+
+    private:
+        std::shared_ptr<const FileReader> m_file;
+        LegacyFile m_legacy;
+        int m_channels;
+        int m_components;
+        int m_depth;
+    };
 }
 
 std::shared_ptr<const FrameSource> slideio::nd2::makeChunkFrameSource(
     std::shared_ptr<const FileReader> file, const ChunkFile& chunks, const Attributes& attrs)
 {
     return std::make_shared<const ChunkFrameSource>(std::move(file), chunks, attrs);
+}
+
+std::shared_ptr<const FrameSource> slideio::nd2::makeJp2FrameSource(
+    std::shared_ptr<const FileReader> file, const LegacyFile& legacy, int channelCount)
+{
+    return std::make_shared<const Jp2FrameSource>(std::move(file), legacy, channelCount);
 }

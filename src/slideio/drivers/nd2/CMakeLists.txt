@@ -18,6 +18,8 @@ set(SOURCE_FILES
    ${CMAKE_CURRENT_SOURCE_DIR}/nd2imageinfo.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/nd2framesource.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/nd2framesource.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/nd2legacy.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/nd2legacy.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/nd2imagedriver.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/nd2imagedriver.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/nd2slide.hpp

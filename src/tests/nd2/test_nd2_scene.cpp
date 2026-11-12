@@ -180,7 +180,6 @@ TEST(Nd2Slide, Refusals)
     }
     expectOpenError(fixture("not_nd2.nd2"), "not a Nikon ND2 file");
     expectOpenError(fixture("lossy.nd2"), "eCompression");
-    expectOpenError(fixture("legacy.nd2"), "legacy JPEG 2000");
 }
 
 namespace

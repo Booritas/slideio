@@ -39,6 +39,10 @@ namespace slideio
             /// listing the loops, for a custom loop with more than one item or for
             /// more than one loop of an axis.
             static Experiment parse(const Variant* experiment);
+            /// Builds an experiment from loops already flattened, outermost first, applying the
+            /// checks parse() applies: at most one loop per axis and a loop product that fits
+            /// in int64. Throws Unsupported, listing the loops, otherwise.
+            static Experiment fromLoops(std::vector<Loop> loops);
             /// Outermost first.
             const std::vector<Loop>& loops() const { return m_loops; }
             /// Items along the axis; 1 when there is no such loop.

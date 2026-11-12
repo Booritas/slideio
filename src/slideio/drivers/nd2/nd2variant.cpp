@@ -361,9 +361,25 @@ namespace
             rt == "CLxByteArray" || rt == "unknown";
     }
 
-    Variant convertChildren(const tinyxml2::XMLElement* parent, int depth);
+    /// Adds the attributes of `e` as members, as numbers when they read as numbers.
+    /// `runtype`, `value`, `_VERSION` and (in legacy mode) `version` are not data.
+    void addAttributes(const tinyxml2::XMLElement* e, bool legacy, Members& children)
+    {
+        for (auto a = e->FirstAttribute(); a; a = a->Next()) {
+            const std::string n = a->Name();
+            if (n == "runtype" || n == "_VERSION" || n == "value" || (legacy && n == "version")) continue;
+            const std::string t = a->Value();
+            int64_t i;
+            double d;
+            if (parseInteger(t, i)) children.emplace_back(n, VariantAccess::scalarInt(i));
+            else if (parseDouble(t, d)) children.emplace_back(n, VariantAccess::scalarDouble(d));
+            else children.emplace_back(n, VariantAccess::scalarString(t));
+        }
+    }
 
-    Variant convertElement(const tinyxml2::XMLElement* e, int depth)
+    /// `legacy`: every element's attributes are data (legacy JPEG 2000 ND2 boxes such as
+    /// `<TextInfoItem Text="..."/>`), not only those of `_VERSION` elements.
+    Variant convertElement(const tinyxml2::XMLElement* e, int depth, bool legacy)
     {
         const char* rt = e->Attribute("runtype");
         const char* value = e->Attribute("value");
@@ -376,9 +392,12 @@ namespace
             if (depth > kMaxDepth * 4) fail("CLX XML tree is nested too deeply");
             const std::string name = child->Name();
             const bool listItem = listNames().count(name) != 0;
-            Variant v = convertElement(child, depth + 1);
+            Variant v = convertElement(child, depth + 1, legacy);
             if (listItem && VariantAccess::isEmptyContainer(v)) continue;   // empty list elements are dropped
             children.emplace_back(name == "no_name" ? std::string() : name, std::move(v));
+        }
+        if (legacy) {
+            addAttributes(e, legacy, children);
         }
         // List-name elements are list elements. When nothing else is a sibling the
         // parent is the list (as the empty-named siblings of CLX Lite); otherwise the
@@ -406,18 +425,9 @@ namespace
             }
             children = std::move(gathered);
         }
-        if (e->Attribute("_VERSION")) {
+        if (!legacy && e->Attribute("_VERSION")) {
             // very old files also keep data in the attributes of the element
-            for (auto a = e->FirstAttribute(); a; a = a->Next()) {
-                const std::string n = a->Name();
-                if (n == "runtype" || n == "_VERSION" || n == "value") continue;
-                const std::string t = a->Value();
-                int64_t i;
-                double d;
-                if (parseInteger(t, i)) children.emplace_back(n, VariantAccess::scalarInt(i));
-                else if (parseDouble(t, d)) children.emplace_back(n, VariantAccess::scalarDouble(d));
-                else children.emplace_back(n, VariantAccess::scalarString(t));
-            }
+            addAttributes(e, legacy, children);
         }
         return VariantAccess::finalize(std::move(children));
     }
@@ -584,8 +594,29 @@ Variant slideio::nd2::decodeClxXml(const std::string& text)
     }
     const tinyxml2::XMLElement* root = doc.RootElement();
     if (!root || std::string(root->Name()) != "variant") fail("CLX XML root element is not <variant>");
-    Variant v = convertElement(root, 0);
+    Variant v = convertElement(root, 0, false);
     return v;
+}
+
+Variant slideio::nd2::decodeLegacyXml(const std::vector<uint8_t>& data)
+{
+    if (data.empty()) fail("legacy XML box is empty");
+    size_t first = 0;
+    if (data.size() >= 3 && data[0] == 0xEF && data[1] == 0xBB && data[2] == 0xBF) first = 3;
+    const std::string clean = sanitizeXml(std::string(data.begin() + first, data.end()));
+    tinyxml2::XMLDocument doc;   // tinyxml2 neither expands nor fetches external entities
+    if (doc.Parse(clean.data(), clean.size()) != tinyxml2::XML_SUCCESS) {
+        fail(std::string("legacy XML does not parse: ") + doc.ErrorStr());
+    }
+    const tinyxml2::XMLElement* root = doc.RootElement();
+    if (!root) fail("legacy XML has no root element");
+    const tinyxml2::XMLElement* content = root;
+    if (std::string(root->Name()) != "variant") {
+        // <MetadataSeq>, <CalibrationSeq>, <Metadata_V1.2>... wrap a <variant>; when there
+        // is none (<TextInfo>, <Calibration>) the root element is the content.
+        if (const tinyxml2::XMLElement* v = root->FirstChildElement("variant")) content = v;
+    }
+    return unwrap(convertElement(content, 0, true));
 }
 
 Variant slideio::nd2::decodeMetadata(const std::vector<uint8_t>& data, size_t maxInflatedBytes)

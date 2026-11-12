@@ -5,6 +5,7 @@
 #include "slideio/drivers/nd2/nd2chunkfile.hpp"
 #include "slideio/drivers/nd2/nd2framesource.hpp"
 #include "slideio/drivers/nd2/nd2imageinfo.hpp"
+#include "slideio/drivers/nd2/nd2legacy.hpp"
 #include "slideio/drivers/nd2/nd2scene.hpp"
 #include "slideio/core/exceptions.hpp"
 #include "slideio/core/log.hpp"
@@ -15,6 +16,7 @@
 #include <exception>
 #include <filesystem>
 #include <limits>
+#include <memory>
 
 using namespace slideio;
 using namespace slideio::nd2;
@@ -38,9 +40,9 @@ namespace
         return std::memcmp(buffer.data(), expected, size) == 0;
     }
 
-    /// Design 4.1: which variant the file is, from its first bytes; throws for
-    /// anything that is not a chunked ND2.
-    void detect(const FileReader& file)
+    /// Design 4.1: which variant the file is, from its first bytes: true for the legacy
+    /// JPEG 2000 variant, false for a chunked file; throws for anything that is not an ND2.
+    bool isLegacy(const FileReader& file)
     {
         if (bytesAt(file, 0, kChunkMagic, sizeof(kChunkMagic))) {
             if (!bytesAt(file, 16, kSignatureName, kNameSize)) {
@@ -50,11 +52,10 @@ namespace
                 RAISE_RUNTIME_ERROR << "ND2: not a Nikon ND2 file (no chunk map signature "
                                        "40 bytes before the end of the file)";
             }
-            return;
+            return false;
         }
         if (bytesAt(file, 0, kJp2Signature, sizeof(kJp2Signature))) {
-            // Task 8 replaces this with the legacy variant's reader.
-            RAISE_RUNTIME_ERROR << "ND2: legacy JPEG 2000 ND2 is not supported yet";
+            return true;
         }
         if (file.size() < sizeof(kChunkMagic)) {
             RAISE_RUNTIME_ERROR << "ND2: not a Nikon ND2 file (the file is " << file.size() << " bytes long)";
@@ -95,10 +96,19 @@ std::shared_ptr<ND2Slide> ND2Slide::openFile(const std::string& path, ResampleLi
 void ND2Slide::init(const ResampleLimits& limits)
 {
     m_file = std::make_shared<const FileReader>(m_filePath);
-    detect(*m_file);
-    const ChunkFile chunks = ChunkFile::read(*m_file);
+    const bool legacy = isLegacy(*m_file);
     const std::string stem = std::filesystem::u8path(m_filePath).stem().u8string();
-    auto info = std::make_shared<const ImageInfo>(buildImageInfo(chunks, *m_file, stem));
+    std::unique_ptr<ChunkFile> chunks;
+    std::unique_ptr<LegacyFile> boxes;
+    std::shared_ptr<const ImageInfo> info;
+    if (legacy) {
+        boxes = std::make_unique<LegacyFile>(LegacyFile::read(*m_file));
+        info = std::make_shared<const ImageInfo>(buildImageInfo(*boxes, *m_file, stem));
+    }
+    else {
+        chunks = std::make_unique<ChunkFile>(ChunkFile::read(*m_file));
+        info = std::make_shared<const ImageInfo>(buildImageInfo(*chunks, *m_file, stem));
+    }
 
     const Attributes& attrs = info->attributes;
     if (attrs.components > CV_CN_MAX) {
@@ -112,9 +122,18 @@ void ND2Slide::init(const ResampleLimits& limits)
     }
     // Design 4.5: frames beyond the loops are ignored.
     const int64_t loopProduct = info->experiment.loopProduct();
-    const auto& frames = chunks.frames();
-    const int64_t beyond = std::count_if(frames.begin(), frames.end(),
-        [loopProduct](const std::pair<const int64_t, ChunkHeader>& f) { return f.first >= loopProduct; });
+    int64_t beyond = 0;
+    // Legacy: frame i, channel c is codestream i*C + c; RGB has one codestream per channel.
+    const int legacyChannels = legacy ? attrs.components / boxes->components() : 0;
+    if (legacy) {
+        const int64_t streams = static_cast<int64_t>(boxes->codestreams().size());
+        beyond = std::max<int64_t>(0, (streams + legacyChannels - 1) / legacyChannels - loopProduct);
+    }
+    else {
+        const auto& frames = chunks->frames();
+        beyond = std::count_if(frames.begin(), frames.end(),
+            [loopProduct](const std::pair<const int64_t, ChunkHeader>& f) { return f.first >= loopProduct; });
+    }
     if (beyond > 0) {
         SLIDEIO_LOG(INFO) << "ND2: " << beyond << " frames beyond the " << loopProduct
             << " the experiment describes are ignored in " << m_filePath;
@@ -123,9 +142,18 @@ void ND2Slide::init(const ResampleLimits& limits)
     m_rawMetadata = info->rawJson;
     m_metadataFormat = MetadataFormat::JSON;
 
-    const Compression compression = attrs.compression == FrameCompression::Zlib
-        ? Compression::Zlib : Compression::Uncompressed;
-    std::shared_ptr<const FrameSource> source = makeChunkFrameSource(m_file, chunks, attrs);
+    Compression compression = Compression::Uncompressed;
+    std::shared_ptr<const FrameSource> source;
+    if (legacy) {
+        compression = Compression::Jpeg2000;
+        source = makeJp2FrameSource(m_file, *boxes, legacyChannels);
+    }
+    else {
+        if (attrs.compression == FrameCompression::Zlib) {
+            compression = Compression::Zlib;
+        }
+        source = makeChunkFrameSource(m_file, *chunks, attrs);
+    }
     for (size_t p = 0; p < info->positions.size(); ++p) {
         m_scenes.push_back(std::make_shared<ND2Scene>(m_filePath, static_cast<int>(p), info, source,
             compression, limits));
