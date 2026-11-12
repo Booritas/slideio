@@ -240,9 +240,10 @@ namespace
 //   discards the stale chunk map, rescans, and ends with fewer than 684 offsets; its
 //   image-count fallback then floors to 56 time points.
 // - Calibration, kRecorded, every pair printed:
-//   magnification  the driver reports dObjectiveMag, which is > 0 in one corpus file only
-//                  (Time sequence 24.nd2: 1, as Bio-Formats), so 0 everywhere else;
-//                  Bio-Formats parses the objective name ("60x") on the chunked files.
+//   magnification  the driver reports dObjectiveMag, which is > 0 in six corpus files only
+//                  (the five zenodo-15493140/15579371 Z stacks: 60, Time sequence 24.nd2: 1,
+//                  all as Bio-Formats), so 0 on the other 40 where Bio-Formats has a value:
+//                  Bio-Formats parses it from the objective name ("60x").
 //   tIncrement_s   the driver reports the time loop's nominal dPeriod; the reference is the
 //                  measured mean step of Bio-Formats' plane times (Nd2Scenes.java), absent
 //                  for the legacy files (no plane times) and T = 1. They agree on
