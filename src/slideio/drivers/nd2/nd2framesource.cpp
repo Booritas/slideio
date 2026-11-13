@@ -291,7 +291,7 @@ namespace
               m_legacy(legacy),
               m_channels(channelCount),
               m_components(legacy.components()),
-              m_depth(legacy.bits() == 8 ? CV_8U : CV_16U)
+              m_depth(legacy.bits() <= 8 ? CV_8U : CV_16U)
         {
             if (m_channels < 1 || m_components < 1 || m_channels > CV_CN_MAX / m_components) {
                 RAISE_RUNTIME_ERROR << "ND2: " << m_channels << " channels of " << m_components

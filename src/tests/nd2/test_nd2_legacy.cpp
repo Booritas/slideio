@@ -328,6 +328,24 @@ TEST(Nd2Legacy, NestedIndexedTinfIsLinear)
     EXPECT_LT(elapsed, std::chrono::seconds(1));
 }
 
+// PR review: legacy_12bit.nd2 is 8x6, 1 channel, T2, with 12-bit codestreams (ihdr BPC 11).
+// It reads as 16-bit samples whose significant bits are 12.
+TEST(Nd2Legacy, TwelveBitCodestreams)
+{
+    FileReader file(fixture("legacy_12bit.nd2"));
+    EXPECT_EQ(12, LegacyFile::read(file).bits());
+    auto slide = ND2Slide::openFile(fixture("legacy_12bit.nd2"));
+    ASSERT_EQ(1, slide->getNumScenes());
+    auto scene = slide->getScene(0);
+    ASSERT_EQ(1, scene->getNumChannels());
+    ASSERT_EQ(2, scene->getNumTFrames());
+    EXPECT_EQ(DataType::DT_UInt16, scene->getChannelDataType(0));
+    EXPECT_EQ(12, scene->getChannelSignificantBits(0));
+    for (int t = 0; t < 2; ++t) {
+        expectPlane(readPlane(scene, t, 0), 0, t, DataType::DT_UInt16, "legacy_12bit t=" + std::to_string(t));
+    }
+}
+
 TEST(Nd2Legacy, RgbWithoutPicturePlanes)
 {
     // legacy_rgb.nd2: 8x6, 8 bits, ihdr 3 components, 2 frames (one RGB codestream each),

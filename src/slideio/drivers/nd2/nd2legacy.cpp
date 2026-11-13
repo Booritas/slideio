@@ -513,9 +513,11 @@ ImageInfo slideio::nd2::buildImageInfo(const LegacyFile& legacy, const FileReade
     const bool hasArtt = load("ARTT", artt, false);
 
     // Sample type from ihdr (FD 11.3).
-    if (legacy.signedSamples() || (legacy.bits() != 8 && legacy.bits() != 16)) {
+    // A codestream narrower than 16 bits (a 12-bit camera) is read as 16-bit samples, with
+    // the true depth as the significant bits (PR review).
+    if (legacy.signedSamples() || legacy.bits() < 1 || legacy.bits() > 16) {
         throw Unsupported("ND2: unsupported legacy sample type: ihdr gives " + std::to_string(legacy.bits())
-            + "-bit " + (legacy.signedSamples() ? "signed" : "unsigned") + " samples (expected 8 or 16 bit unsigned)");
+            + "-bit " + (legacy.signedSamples() ? "signed" : "unsigned") + " samples (expected 1 to 16 bit unsigned)");
     }
     // Channels from VIMD.PicturePlanes.Count of frame 0, never from the spectral loop.
     int64_t channelCount = pictureChannelCount(hasVimd ? &vimd : nullptr);
@@ -531,10 +533,10 @@ ImageInfo slideio::nd2::buildImageInfo(const LegacyFile& legacy, const FileReade
     a.width = legacy.width();
     a.height = legacy.height();
     a.components = static_cast<int>(channelCount) * perChannel;
-    a.bitsInMemory = legacy.bits();
+    a.bitsInMemory = legacy.bits() <= 8 ? 8 : 16;
     const Variant* significantField = hasArtt ? fieldOf(&artt, "SignificantBits") : nullptr;
     const int64_t significant = significantField ? significantField->asInt(0) : 0;
-    a.significantBits = (significant > 0 && significant <= a.bitsInMemory) ? static_cast<int>(significant) : a.bitsInMemory;
+    a.significantBits = (significant > 0 && significant <= a.bitsInMemory) ? static_cast<int>(significant) : legacy.bits();
     a.rowStride = static_cast<int64_t>(a.width) * a.components * a.sampleBytes();
     a.compression = FrameCompression::None;
     a.sequenceCount = static_cast<int64_t>(legacy.all("VCAL").size());

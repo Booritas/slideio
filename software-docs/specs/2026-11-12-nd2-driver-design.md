@@ -230,7 +230,12 @@ string (UTF-8), byte array, or children. Both decoders produce it (FD §4):
   missing, treat as `uiComp` single-component channels with no names
   *(my call)*.
 - **Experiment** (FD §7.2): flatten the loop tree exactly as FD §7.2 rules 1–4,
-  **without** `nd2`'s `pSubLoops` special case. XY count = points whose
+  **without** `nd2`'s `pSubLoops` special case, and with one departure from
+  rule 3: a loop that rule 3 would drop (another type at the same level, or a
+  shallower level after a deeper one) means the tree branches, and the file is
+  refused as unsupported rather than read with a frame order that no longer
+  matches its loops. No corpus file has such a tree. *(Decided after the PR
+  review.)* XY count = points whose
   `pItemValid` flag is non-zero (FD §7.3), where an empty `pItemValid` counts
   every point; NE time count = sum of valid periods, where a missing
   `pPeriodValid` means all periods are valid (R16). The 2.x quirk of `uLoopPars`
@@ -318,7 +323,7 @@ Following FD §11:
   and read the box map from the trailer; require that the map's offsets each
   point at a box start. *(The walk is the authority if they disagree; FD §11.1
   shows they never do.)*
-- `jp2h/ihdr` gives width, height, components and bit depth (8 or 16 unsigned).
+- `jp2h/ihdr` gives width, height, components and bit depth: 1 to 16 bits unsigned, read as 8-bit samples up to 8 bits and as 16-bit samples above, with the `ihdr` depth (12 for a 12-bit camera) as the significant bits unless `ARTT` says otherwise. *(Widened after the PR review; the corpus has only 8 and 16.)*
 - XML boxes by LIM type: `VIMD` (frame 0) for channels, `ACAL`/`VCAL` for
   calibration, `AIM1`/`AIMD` for loops, `TINF` for text. These are parsed with
   the §4.3 XML decoder.
@@ -512,7 +517,7 @@ swapped. slideio does not build for one; this is a guard, not a tested path.
 
 ### 8.1 Corpus-free (CI)
 
-24 synthetic files from `auxfiles/nd2-fixtures/generate.py`, sharing no code with
+25 synthetic files from `auxfiles/nd2-fixtures/generate.py`, sharing no code with
 the driver (and not with `nd2spec.py`, so fixtures and reference parser cannot
 share a mistake), committed in `src/tests/nd2/data/`, marked `-text` in
 `.gitattributes`. Pixels are a function of `(x, y, component, frameIndex)`.

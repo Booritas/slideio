@@ -184,7 +184,7 @@ marks that directory `-text` because the fixtures are exact bytes, every
 executable with `--gtest_filter=-LIFCorpus*` -- a corpus test with any other name breaks CI.
 
 The ND2 driver is the same arrangement a third time: its synthetic files are committed in
-`src/tests/nd2/data/` (24 of them, written by `auxfiles/nd2-fixtures/generate.py`),
+`src/tests/nd2/data/` (25 of them, written by `auxfiles/nd2-fixtures/generate.py`),
 `.gitattributes` marks that directory `-text` because the fixtures are exact bytes, every
 `slideio_nd2_tests` suite that needs the corpus is named `ND2Corpus*`, and CI runs the
 executable with `--gtest_filter=-ND2Corpus*` -- a corpus test with any other name breaks CI.

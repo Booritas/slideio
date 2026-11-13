@@ -427,7 +427,9 @@ def write_legacy(path, width, height, bits, channels, frames, timepoints_xy, loo
     import numpy as np
     import imagecodecs
 
-    dtype = np.uint8 if bits == 8 else np.uint16
+    dtype = np.uint8 if bits <= 8 else np.uint16
+    # A depth other than the container's is declared in the codestream (12-bit cameras).
+    depth = {} if bits in (8, 16) else {'bitspersample': bits}
     boxes = []   # (box type, lim type, bytes)
     boxes.append((b'jP  ', b'LUNK', b'\x00\x00\x00\x0cjP  \r\n\x87\n'))
     boxes.append((b'ftyp', b'LUNK', _box(b'ftyp', b'jp2 ' + struct.pack('>I', 0) + b'jp2 ')))
@@ -448,7 +450,7 @@ def write_legacy(path, width, height, bits, channels, frames, timepoints_xy, loo
             else:
                 arr = np.stack([(xs + 3 * ys + 17 * (c * components + j) + 31 * f) % (1 << bits)
                                 for j in range(components)], axis=-1).astype(dtype)
-            stream = imagecodecs.jpeg2k_encode(arr, level=0, reversible=True, codecformat='J2K')
+            stream = imagecodecs.jpeg2k_encode(arr, level=0, reversible=True, codecformat='J2K', **depth)
             boxes.append((b'jp2c', b'LUNK', _box(b'jp2c', stream)))
         vimd = [D('TimeMSec', f * 100.0), D('TimeAbsolute', DEFAULT_JULIAN), D('XPos', 0.0), D('YPos', 0.0),
                 D('ZPos', 0.0), D('Calibration', calibration), D('Aspect', 1.0), B('Calibrated', True),
@@ -585,8 +587,8 @@ def main():
         import imagecodecs  # noqa: F401
         import numpy  # noqa: F401
     except ImportError:
-        print('imagecodecs/numpy not available: legacy.nd2, legacy_xy.nd2 and legacy_rgb.nd2 skipped '
-              '(the committed copies stay as they are)')
+        print('imagecodecs/numpy not available: legacy.nd2, legacy_xy.nd2, legacy_rgb.nd2 and '
+              'legacy_12bit.nd2 skipped (the committed copies stay as they are)')
     else:
         write_legacy(os.path.join(out, 'legacy.nd2'), 8, 6, 16, 2, 3, None, legacy_loops_tchannel(3),
                      'T(3) x λ(2)', missing=((2, 1),))
@@ -594,7 +596,9 @@ def main():
                      'T(2) x XY(2)')
         write_legacy(os.path.join(out, 'legacy_rgb.nd2'), 8, 6, 8, 1, 2, None, _legacy_time_loop(2),
                      'T(2)', components=3, planes=False)
-        written += 3
+        write_legacy(os.path.join(out, 'legacy_12bit.nd2'), 8, 6, 12, 1, 2, None, _legacy_time_loop(2),
+                     'T(2)')
+        written += 4
     print('wrote %d files to %s' % (written, out))
 
 

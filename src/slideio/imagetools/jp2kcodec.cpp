@@ -56,15 +56,14 @@ void slideio::ImageTools::readJp2KFile(const std::string& filePath, cv::OutputAr
 
 static int getComponentDataType(const opj_image_comp_t* comp)
 {
-    switch(comp->prec)
-    {
-    case 8:
+    // A component narrower than its container (a 12-bit camera, say) is read into the
+    // next one up, its values unchanged.
+    if (comp->prec >= 1 && comp->prec <= 8)
         return ((comp->sgnd)?CV_8S:CV_8U);
-    case 16:
+    if (comp->prec > 8 && comp->prec <= 16)
         return ((comp->sgnd)?CV_16S:CV_16U);
-    case 32:
+    if (comp->prec == 32)
         return CV_32S;
-    }
     RAISE_RUNTIME_ERROR << "Unknown data type of data:" << comp->bpp;
 }
 

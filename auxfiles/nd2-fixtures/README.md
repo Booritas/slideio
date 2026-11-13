@@ -10,10 +10,10 @@ py -3 auxfiles/nd2-fixtures/generate.py            # writes src/tests/nd2/data/
 py -3 auxfiles/nd2-fixtures/generate.py <out-dir>  # or elsewhere
 ```
 
-The chunked files need only the standard library. `legacy.nd2` and `legacy_xy.nd2` encode
+The chunked files need only the standard library. The four `legacy*.nd2` files encode
 JPEG 2000 codestreams with `imagecodecs` (lossless: `jpeg2k_encode(level=0, reversible=True,
 codecformat='J2K')`) and so also need `numpy`; without them the script prints a note and
-leaves those two files alone. The files are committed, so CI never runs the generator.
+leaves those files alone. The files are committed, so CI never runs the generator.
 Run it from an environment that has both to regenerate the full set of 23.
 
 The files are committed, about 970 KB in all (every aligned frame chunk is 8 KB: the
@@ -77,6 +77,7 @@ their bare name as `nameLength` (no padding bytes after the `!`). "Unpadded" mea
 | `not_nd2.nd2` | 64 bytes of `0x41` |
 | `legacy.nd2` | JP2 legacy per FD section 11; 8x6 uint16, 2 channels, T3; codestreams for frames 0-1 both channels, frame 2 channel 0 only (5 `jp2c`); `TINF` `Dimensions: T(3) x λ(2)`; `VIMD` `PicturePlanes Count 2`; `VCAL`/`VIMD` calibration 0.25; `AIM1` has a type-8 time loop (count 3) > type-6 spectral loop |
 | `legacy_xy.nd2` | JP2 legacy; 8x6 uint8, 1 channel; `AIM1` loops T2 (type 8) > XY `Count 4` all valid; `TINF` `Dimensions: T(2) x XY(2)` (the text disagrees with `Count` on purpose); 4 `jp2c` |
+| `legacy_12bit.nd2` | JP2 legacy; 8x6, 1 channel, T2 (type-8 time loop); `ihdr` BPC 11, i.e. 12-bit codestreams (`bitspersample=12`), read as 16-bit samples with 12 significant bits |
 | `big.nd2` | not written by the generator; see the sparse-file test |
 
 Legacy layout: `jP  `, `ftyp`, `jp2h` (`ihdr` + `colr`), then per frame its `jp2c` boxes (raw
