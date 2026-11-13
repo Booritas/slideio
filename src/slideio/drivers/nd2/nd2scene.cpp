@@ -169,10 +169,10 @@ int ND2Scene::getChannelSignificantBits(int channel) const
 
 double ND2Scene::getPlaneTimestamp(int tFrame, int channel, int zSlice) const
 {
-    checkChannel(channel);
-    if (tFrame < 0 || tFrame >= m_numT || zSlice < 0 || zSlice >= m_numZ) {
-        RAISE_RUNTIME_ERROR << "ND2: plane (t " << tFrame << ", z " << zSlice << ") is out of range ["
-            << m_numT << " x " << m_numZ << "] in scene \"" << m_name << "\"";
+    // The CVScene contract: 0 for an index out of range, as in every other driver (#98).
+    if (tFrame < 0 || tFrame >= m_numT || channel < 0 || channel >= getNumChannels()
+        || zSlice < 0 || zSlice >= m_numZ) {
+        return 0.;
     }
     std::call_once(m_timesOnce, [this] { initTimes(); });
     if (!m_hasTimestamps) {
