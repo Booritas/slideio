@@ -93,7 +93,7 @@ namespace
 
     /// The chunked schema (`ImageMetadata[LV]!`, FD 7.1): `eType`, `uLoopPars`,
     /// `pItemValid`, `ppNextLevelEx`; XY points in `uLoopPars.Points`.
-    LoopRecord readChunkedRecord(const Variant& node)
+    LoopRecord readChunkedRecord(const Variant& node, int64_t maxFrames)
     {
         LoopRecord r;
         const Variant* typeField = node.get("eType");
@@ -101,7 +101,7 @@ namespace
         if (const Variant* pars = node.get("uLoopPars")) {
             r.hasPars = true;
             r.loop.pars = unwrapPars(*pars);
-            countLoop(r.type, r.loop.pars.get("Points"), node.get("pItemValid"), r.loop);
+            countLoop(r.type, r.loop.pars.get("Points"), node.get("pItemValid"), r.loop, maxFrames);
         }
         r.children = elementsOf(node.get("ppNextLevelEx"));
         return r;
@@ -187,14 +187,27 @@ int64_t slideio::nd2::detail::countPeriods(const Variant& pars)
     for (size_t i = 0; i < periods.size(); ++i) {
         if (flagSet(flags, hasFlags, i)) {
             const Variant* n = fieldOf(&unwrapPars(*periods[i]), "uiCount");
-            total += n ? n->asInt(0) : 0;
+            const int64_t count = n ? n->asInt(0) : 0;
+            if (count <= 0) {
+                continue;   // a negative count is damage, not a period
+            }
+            if (count > std::numeric_limits<int64_t>::max() - total) {
+                throw Unsupported("ND2: unsupported experiment (the NE time periods' uiCount values sum past "
+                    + std::to_string(std::numeric_limits<int64_t>::max()) + ")");
+            }
+            total += count;
         }
     }
     return total;
 }
 
-std::vector<int64_t> slideio::nd2::detail::validPoints(int64_t n, const Variant* itemValid)
+std::vector<int64_t> slideio::nd2::detail::validPoints(int64_t n, const Variant* itemValid, int64_t maxPoints)
 {
+    // Refused before anything is allocated: the loops of the file could not hold them.
+    if (n > maxPoints) {
+        throw Unsupported("ND2: unsupported experiment (the XY loop declares " + std::to_string(n)
+            + " points, more than the " + std::to_string(maxPoints) + " frames the file can justify)");
+    }
     bool hasFlags = false;
     const std::vector<bool> flags = flagsOf(itemValid, hasFlags);
     // An empty flag list (`<pItemValid runtype="CLxListVariant"/>` in 2.x files such as
@@ -209,7 +222,8 @@ std::vector<int64_t> slideio::nd2::detail::validPoints(int64_t n, const Variant*
     return valid;
 }
 
-void slideio::nd2::detail::countLoop(int type, const Variant* points, const Variant* itemValid, RawLoop& loop)
+void slideio::nd2::detail::countLoop(int type, const Variant* points, const Variant* itemValid, RawLoop& loop,
+    int64_t maxFrames)
 {
     auto uiCount = [](const Variant* pars) -> int64_t {
         const Variant* v = fieldOf(pars, "uiCount");
@@ -222,7 +236,7 @@ void slideio::nd2::detail::countLoop(int type, const Variant* points, const Vari
         if (n == 0) {
             n = uiCount(&loop.pars);
         }
-        loop.validItems = validPoints(n, itemValid);
+        loop.validItems = validPoints(n, itemValid, maxFrames);
         loop.count = static_cast<int64_t>(loop.validItems.size());
         break;
     }
@@ -273,17 +287,28 @@ std::vector<Loop> slideio::nd2::detail::axisLoops(std::vector<RawLoop> raw)
 
 // ------------------------------------------------------------------ Experiment
 
-Experiment Experiment::parse(const Variant* experiment)
+int64_t slideio::nd2::maxDeclaredFrames(int64_t presentFrames)
+{
+    constexpr int64_t kPerPresentFrame = 1024;
+    const int64_t present = std::max<int64_t>(presentFrames, 0);
+    if (present >= kMaxDeclaredFrames / kPerPresentFrame) {
+        return kMaxDeclaredFrames;
+    }
+    return (present + 1) * kPerPresentFrame;
+}
+
+Experiment Experiment::parse(const Variant* experiment, int64_t maxFrames)
 {
     if (!experiment) {
         return Experiment();
     }
     std::vector<RawLoop> raw;
-    flattenLoops(*experiment, readChunkedRecord, 0, raw);
-    return fromLoops(axisLoops(std::move(raw)));
+    flattenLoops(*experiment,
+        [maxFrames](const Variant& node) { return readChunkedRecord(node, maxFrames); }, 0, raw);
+    return fromLoops(axisLoops(std::move(raw)), maxFrames);
 }
 
-Experiment Experiment::fromLoops(std::vector<Loop> loops)
+Experiment Experiment::fromLoops(std::vector<Loop> loops, int64_t maxFrames)
 {
     auto describe = [&loops]() {
         std::string s;
@@ -309,6 +334,11 @@ Experiment Experiment::fromLoops(std::vector<Loop> loops)
                 std::string(l.count < 1 ? "a loop without items" : "too many frames") + "): " + describe());
         }
         product *= l.count;
+    }
+    // Design 4.5: loops the file cannot back are refused before anything is sized by them.
+    if (product > maxFrames) {
+        throw Unsupported("ND2: unsupported experiment (the loops declare " + std::to_string(product)
+            + " frames, more than the " + std::to_string(maxFrames) + " the file can justify): " + describe());
     }
     Experiment result;
     result.m_loops = std::move(loops);

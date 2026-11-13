@@ -72,12 +72,14 @@ namespace slideio
             bool flagSet(const std::vector<bool>& flags, bool present, size_t i);
 
             /// NE time loop count (FD 7.1): the sum of `uiCount` over the `pPeriod` entries
-            /// whose `pPeriodValid` flag is set (all of them without flags).
+            /// whose `pPeriodValid` flag is set (all of them without flags). Counts that are not
+            /// positive are ignored; a sum past INT64_MAX is refused (Unsupported).
             int64_t countPeriods(const Variant& pars);
 
             /// XY loop (FD 7.3): the indices among `n` points whose flag in `itemValid` is
             /// set; every index when `itemValid` is nullptr or holds no flags.
-            std::vector<int64_t> validPoints(int64_t n, const Variant* itemValid);
+            /// Unsupported, before anything is allocated, when `n` exceeds `maxPoints`.
+            std::vector<int64_t> validPoints(int64_t n, const Variant* itemValid, int64_t maxPoints);
 
             /// A loop record before it is checked against the supported shapes.
             struct RawLoop
@@ -105,7 +107,9 @@ namespace slideio
             /// the valid periods, spectral reads `pPlanes.uiCount` then `uiCount`, XY counts
             /// the valid points of `points` (else of `uiCount`) under `itemValid`, the
             /// others read `uiCount`. Sets `loop.count` and, for XY, `loop.validItems`.
-            void countLoop(int type, const Variant* points, const Variant* itemValid, RawLoop& loop);
+            /// An XY loop of more than `maxFrames` points is refused (see validPoints).
+            void countLoop(int type, const Variant* points, const Variant* itemValid, RawLoop& loop,
+                int64_t maxFrames);
 
             /// FD 7.2 rules 1-4 over a loop tree whose records `read` decodes: loops without
             /// parameters or items are ignored; a spectral loop is skipped and its children

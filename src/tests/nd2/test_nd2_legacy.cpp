@@ -315,3 +315,30 @@ TEST(Nd2Legacy, RgbWithoutPicturePlanes)
         EXPECT_EQ(0, ch.nd2Channel);   // every component is in the one codestream per frame
     }
 }
+
+// Design 4.5 (final review): the TINF XY(n) count is bounded like the loops, so XY(4000000000)
+// is refused before 4e9 points are listed.
+TEST(Nd2Legacy, HugeTextXyIsRefused)
+{
+    std::ifstream in(fixture("legacy_xy.nd2"), std::ios::binary);
+    std::string bytes((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+    const std::string from = "T(2) x XY(2)&#13;&#10;Camera: fixture";
+    const std::string to = "XY(4000000000)&#13;&#10;Camera: fixtu";   // same length: no box moves
+    ASSERT_EQ(from.size(), to.size());
+    const size_t at = bytes.find(from);
+    ASSERT_NE(std::string::npos, at);
+    bytes.replace(at, from.size(), to);
+    TempFile copy("nd2");
+    {
+        std::ofstream out(copy.getPath(), std::ios::binary);
+        out.write(bytes.data(), static_cast<std::streamsize>(bytes.size()));
+    }
+    try {
+        ND2Slide::openFile(copy.getPath().string());
+        ADD_FAILURE() << "a text XY count the file cannot hold must fail the open";
+    }
+    catch (const std::exception& e) {   // the slide appends the file name
+        EXPECT_NE(std::string::npos, std::string(e.what()).find(
+            "the text info says XY(4000000000), more than the 5120 frames the file can justify")) << e.what();
+    }
+}

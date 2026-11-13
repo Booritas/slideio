@@ -216,7 +216,9 @@ string (UTF-8), byte array, or children. Both decoders produce it (FD §4):
 
 ### 4.4 Attributes, channels, experiment
 
-- **Attributes** (FD §5): require `uiWidth > 0`, `uiHeight > 0`, `uiComp > 0`,
+- **Attributes** (FD §5): require `uiWidth > 0`, `uiHeight > 0`, `0 < uiComp ≤ CV_CN_MAX`
+  (512, checked in `Attributes::parse` before the component count sizes anything)
+  *(Decided during the final review.)*,
   `uiBpcInMemory ∈ {8, 16, 32}`, `uiWidthBytes ≥ uiWidth·uiComp·bytes`,
   `eCompression ∈ {absent, 0, 2}`, tile size absent, 0 or equal to the frame
   (0 means no tiling, R16). Anything else: the file fails to open with the reason. 8 → `DT_Byte`,
@@ -250,6 +252,20 @@ string (UTF-8), byte array, or children. Both decoders produce it (FD §4):
 The set of verified `ImageDataSeq|N!` chunks is the authority for which frames
 exist (FD §7.4). Let the loop product be `L`:
 
+- **Declared-frame bound.** With `present` the number of frames the file holds
+  (frame chunks; complete frames in a legacy file), the loops may declare at
+  most `min(2^31, (present + 1) · 1024)` frames. A file declaring more fails the
+  open with `Unsupported`, naming the declared count and the bound. The check
+  comes before anything is sized by a declared count: an XY loop whose point
+  count (from `Points`, else `uiCount`) exceeds the bound is refused before its
+  points are listed, a legacy TINF `XY(n)` above it likewise, and the product is
+  checked in `Experiment::fromLoops` before frame times or positions are built.
+  NE time period counts that are not positive are ignored, and a sum past
+  INT64_MAX is refused. Across the 63 corpus files that get this far (the 64th is
+  refused for `uiWidth` 0 first) the largest `L / present` is
+  1.14 (`B08.nd2`, 920 declared, 810 present), so the factor of 1024 leaves
+  three orders of magnitude for acquisitions stopped early while keeping a
+  damaged count from allocating gigabytes. *(Decided during the final review.)*
 - **T fitting (R25 as refined by R29, R31, R32).** Only when the time loop is the outermost loop:
   - *Trim.* T ends at the last declared time point holding a frame,
     `ceil((maxPresentIndex + 1) / innerProduct)` over the frames inside the

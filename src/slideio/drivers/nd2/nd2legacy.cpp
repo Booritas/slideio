@@ -117,7 +117,7 @@ namespace
 
     /// The legacy schema of a loop record (FD 11.2): XY points in `dPosX`, and the child
     /// either the `ppNextLevelEx` record itself or the elements of that list.
-    LoopRecord readLegacyRecord(const Variant& node)
+    LoopRecord readLegacyRecord(const Variant& node, int64_t maxFrames)
     {
         LoopRecord r;
         const Variant* typeField = fieldOf(&node, "eType");
@@ -125,7 +125,7 @@ namespace
         if (const Variant* pars = fieldOf(&node, "uLoopPars")) {
             r.hasPars = true;
             r.loop.pars = unwrapPars(*pars);
-            countLoop(r.type, fieldOf(&r.loop.pars, "dPosX"), fieldOf(&node, "pItemValid"), r.loop);
+            countLoop(r.type, fieldOf(&r.loop.pars, "dPosX"), fieldOf(&node, "pItemValid"), r.loop, maxFrames);
         }
         const Variant* next = fieldOf(&node, "ppNextLevelEx");
         if (next && fieldOf(next, "eType")) {
@@ -139,7 +139,7 @@ namespace
 
     /// AIM1/AIMD: the loop record under its wrappers (`vMetadata`, `no_name`), or the old
     /// `LoopNo00`, `LoopNo01`... list, one loop per level.
-    std::vector<RawLoop> readLoops(const Variant& aim)
+    std::vector<RawLoop> readLoops(const Variant& aim, int64_t maxFrames)
     {
         const Variant* node = &aim;
         for (int i = 0; i < kMaxLoopDepth && !fieldOf(node, "eType"); ++i) {
@@ -162,17 +162,18 @@ namespace
             }
             node = inner.front();
         }
+        const LoopRecordReader read = [maxFrames](const Variant& n) { return readLegacyRecord(n, maxFrames); };
         std::vector<RawLoop> raw;
         if (node->get("LoopNo00")) {
             int level = 0;
             for (const auto& m : node->members()) {
                 if (m.first.compare(0, 6, "LoopNo") == 0) {
-                    flattenLoops(unwrapPars(m.second), readLegacyRecord, level++, raw);
+                    flattenLoops(unwrapPars(m.second), read, level++, raw);
                 }
             }
         }
         else if (fieldOf(node, "eType")) {
-            flattenLoops(*node, readLegacyRecord, 0, raw);
+            flattenLoops(*node, read, 0, raw);
         }
         return raw;
     }
@@ -203,12 +204,18 @@ namespace
     }
 
     /// The shared loop rules, then FD 11.3: the TINF Dimensions XY count rules over the XY
-    /// loop's when they differ (R22: when they agree, the flagged points are kept).
-    Experiment buildExperiment(const Variant* aim, int64_t textXY, const std::string& fileStem)
+    /// loop's when they differ (R22: when they agree, the flagged points are kept). The
+    /// loops, the text count included, may declare at most `maxFrames` frames (design 4.5).
+    Experiment buildExperiment(const Variant* aim, int64_t textXY, const std::string& fileStem,
+        int64_t maxFrames)
     {
-        std::vector<Loop> loops = axisLoops(aim ? readLoops(*aim) : std::vector<RawLoop>());
+        std::vector<Loop> loops = axisLoops(aim ? readLoops(*aim, maxFrames) : std::vector<RawLoop>());
         for (Loop& loop : loops) {
             if (loop.axis == Axis::P && textXY > 0 && textXY != loop.count) {
+                if (textXY > maxFrames) {
+                    throw Unsupported("ND2: unsupported experiment (the text info says XY(" + std::to_string(textXY)
+                        + "), more than the " + std::to_string(maxFrames) + " frames the file can justify)");
+                }
                 SLIDEIO_LOG(INFO) << "ND2: '" << fileStem << "': the XY loop has " << loop.count
                     << " valid points; the text info says XY(" << textXY << "), which is used";
                 loop.count = textXY;
@@ -218,7 +225,7 @@ namespace
                 }
             }
         }
-        return Experiment::fromLoops(std::move(loops));
+        return Experiment::fromLoops(std::move(loops), maxFrames);
     }
 
     /// `TimeMSec` of a VIMD box, read from its text without parsing the whole box (each
@@ -540,12 +547,14 @@ ImageInfo slideio::nd2::buildImageInfo(const LegacyFile& legacy, const FileReade
 
     // Dimensions (FD 11.3): the AIM loops, with the XY count from the TINF text.
     const int64_t textXY = hasTinf ? xyCountFromText(metadataText(tinf)) : -1;
-    info.experiment = buildExperiment(hasAim ? &aim : nullptr, textXY, fileStem);
     const int64_t streams = static_cast<int64_t>(legacy.codestreams().size());
     // Design 4.5 (R25): a frame counts toward T only when the codestreams of all its
     // channels exist. A partial last frame stays readable inside T (its missing channels
     // read as background) but never adds a time point.
     const int64_t completeFrames = streams / channelCount;
+    // Design 4.5: the loops may declare at most maxDeclaredFrames(present) frames.
+    info.experiment = buildExperiment(hasAim ? &aim : nullptr, textXY, fileStem,
+        maxDeclaredFrames(completeFrames));
     std::set<int64_t> present;
     for (int64_t f = 0; f < completeFrames; ++f) {
         present.insert(f);

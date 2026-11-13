@@ -31,18 +31,28 @@ namespace slideio
             std::vector<int64_t> validItems;
         };
 
+        /// The absolute ceiling on the frames the loops of any file may declare: 2^31.
+        constexpr int64_t kMaxDeclaredFrames = int64_t(1) << 31;
+
+        /// Design 4.5: the most frames the loops of a file holding `presentFrames` frames
+        /// may declare, min(2^31, (presentFrames + 1) * 1024). Everything sized by the
+        /// declared loops (valid XY points, frame times, positions) stays within it.
+        SLIDEIO_ND2_EXPORTS int64_t maxDeclaredFrames(int64_t presentFrames);
+
         /// The experiment loop tree flattened to frame dimensions (FD 7, design 4.4).
         class SLIDEIO_ND2_EXPORTS Experiment
         {
         public:
             /// nullptr or a tree without loops gives no loops. Throws Unsupported,
-            /// listing the loops, for a custom loop with more than one item or for
-            /// more than one loop of an axis.
-            static Experiment parse(const Variant* experiment);
+            /// listing the loops, for a custom loop with more than one item, for
+            /// more than one loop of an axis, or for loops declaring more than
+            /// `maxFrames` frames (an XY loop declaring more points is refused before
+            /// its points are listed).
+            static Experiment parse(const Variant* experiment, int64_t maxFrames = kMaxDeclaredFrames);
             /// Builds an experiment from loops already flattened, outermost first, applying the
-            /// checks parse() applies: at most one loop per axis and a loop product that fits
-            /// in int64. Throws Unsupported, listing the loops, otherwise.
-            static Experiment fromLoops(std::vector<Loop> loops);
+            /// checks parse() applies: at most one loop per axis and a loop product of at most
+            /// `maxFrames`. Throws Unsupported, listing the loops, otherwise.
+            static Experiment fromLoops(std::vector<Loop> loops, int64_t maxFrames = kMaxDeclaredFrames);
             /// Outermost first.
             const std::vector<Loop>& loops() const { return m_loops; }
             /// Items along the axis; 1 when there is no such loop.

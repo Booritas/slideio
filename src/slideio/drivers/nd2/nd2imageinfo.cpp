@@ -215,11 +215,14 @@ ImageInfo slideio::nd2::buildImageInfo(const ChunkFile& chunks, const FileReader
 
     info.attributes = Attributes::parse(attrTree);
     info.channels = parseChannels(hasPicture ? &pictureTree : nullptr, info.attributes.components);
-    info.experiment = Experiment::parse(hasMeta ? &metaTree : nullptr);
     std::set<int64_t> present;
     for (const auto& frame : chunks.frames()) {
         present.insert(frame.first);
     }
+    // Design 4.5: the loops may declare at most maxDeclaredFrames(present) frames, which
+    // bounds everything below that is sized by them.
+    info.experiment = Experiment::parse(hasMeta ? &metaTree : nullptr,
+        maxDeclaredFrames(static_cast<int64_t>(present.size())));
     // Frame times decide whether surplus time points continue the series (R29); they are
     // read as far as a fitted T could reach (R31), then cut to the fitted product.
     const int64_t reach = info.experiment.loopProduct() + static_cast<int64_t>(present.size());

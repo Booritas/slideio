@@ -2,6 +2,7 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include <gtest/gtest.h>
+#include <chrono>
 #include <cstdint>
 #include <limits>
 #include <set>
@@ -337,4 +338,88 @@ TEST(Nd2Experiment, EmptyItemValidCountsEveryPoint)
     ASSERT_NE(nullptr, filtered);
     EXPECT_EQ(2, filtered->count);
     EXPECT_EQ((std::vector<int64_t>{ 1, 3 }), filtered->validItems);
+}
+
+namespace
+{
+    /// A one-loop experiment of `type` whose (no_name-wrapped) parameters are `pars`.
+    Variant oneLoop(int type, const std::string& pars)
+    {
+        return decodeText(
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?><variant version=\"1.0\">"
+            "<no_name runtype=\"RLxExperiment\"><eType runtype=\"lx_uint32\" value=\"" + std::to_string(type) + "\"/>"
+            "<uLoopPars runtype=\"CLxListVariant\"><no_name runtype=\"RLxExperiment.Loop\">" + pars +
+            "</no_name></uLoopPars><ppNextLevelEx runtype=\"CLxListVariant\"></ppNextLevelEx>"
+            "</no_name></variant>");
+    }
+
+    std::string parseRefusal(const Variant& tree, int64_t maxFrames, long long& elapsedMs)
+    {
+        const auto start = std::chrono::steady_clock::now();
+        std::string what;
+        try {
+            Experiment::parse(&tree, maxFrames);
+        }
+        catch (const Unsupported& e) {
+            what = e.what();
+        }
+        elapsedMs = static_cast<long long>(std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - start).count());
+        return what;
+    }
+
+    std::string periods(const char* first, const char* second)
+    {
+        return std::string("<pPeriod runtype=\"CLxListVariant\">"
+            "<_00 runtype=\"RLxExperiment.RLxExpTimeLoop\"><uiCount runtype=\"lx_int64\" value=\"") + first + "\"/></_00>"
+            "<_01 runtype=\"RLxExperiment.RLxExpTimeLoop\"><uiCount runtype=\"lx_int64\" value=\"" + second + "\"/></_01>"
+            "</pPeriod>";
+    }
+}
+
+// Design 4.5 (final review): the loops may declare at most min(2^31, (present + 1) * 1024)
+// frames, and nothing is sized by a declared count before that is checked.
+TEST(Nd2Experiment, DeclaredFramesAreBounded)
+{
+    EXPECT_EQ(1024, maxDeclaredFrames(0));
+    EXPECT_EQ(2048, maxDeclaredFrames(1));
+    EXPECT_EQ(kMaxDeclaredFrames, maxDeclaredFrames(int64_t(1) << 21));
+    EXPECT_EQ(kMaxDeclaredFrames, maxDeclaredFrames(std::numeric_limits<int64_t>::max()));
+
+    long long ms = 0;
+    // Z uiCount 0xFFFFFFFF with one present frame.
+    const Variant z = oneLoop(4, "<uiCount runtype=\"lx_uint32\" value=\"4294967295\"/>");
+    const std::string zWhy = parseRefusal(z, maxDeclaredFrames(1), ms);
+    EXPECT_NE(std::string::npos, zWhy.find("ND2: unsupported experiment (the loops declare 4294967295 frames, "
+        "more than the 2048 the file can justify): Z4294967295")) << zWhy;
+    EXPECT_LT(ms, 1000);
+    // ... and refused by the absolute ceiling without a file-relative bound.
+    EXPECT_THROW(Experiment::parse(&z), Unsupported);
+
+    // An XY loop of uiCount points without a point list: refused before the points are listed.
+    const Variant xy = oneLoop(2, "<uiCount runtype=\"lx_uint32\" value=\"4294967295\"/>");
+    const std::string xyWhy = parseRefusal(xy, maxDeclaredFrames(1), ms);
+    EXPECT_NE(std::string::npos, xyWhy.find("the XY loop declares 4294967295 points, more than the 2048")) << xyWhy;
+    EXPECT_LT(ms, 1000);
+
+    // The bound itself is allowed.
+    const Variant edge = oneLoop(4, "<uiCount runtype=\"lx_uint32\" value=\"2048\"/>");
+    EXPECT_EQ(2048, Experiment::parse(&edge, maxDeclaredFrames(1)).loopProduct());
+    const Variant over = oneLoop(4, "<uiCount runtype=\"lx_uint32\" value=\"2049\"/>");
+    EXPECT_THROW(Experiment::parse(&over, maxDeclaredFrames(1)), Unsupported);
+}
+
+TEST(Nd2Experiment, NeTimePeriodCountsAreChecked)
+{
+    // A negative period count is ignored rather than subtracted.
+    const Variant negative = oneLoop(8, periods("-5", "3"));
+    EXPECT_EQ("T3", describe(Experiment::parse(&negative)));
+    // Counts summing past INT64_MAX are refused, not wrapped (signed overflow).
+    const Variant overflow = oneLoop(8, periods("9223372036854775807", "1"));
+    long long ms = 0;
+    const std::string why = parseRefusal(overflow, kMaxDeclaredFrames, ms);
+    EXPECT_NE(std::string::npos, why.find("NE time periods' uiCount values sum past 9223372036854775807")) << why;
+    // A sum that fits is still bounded by the declared-frame rule.
+    const Variant large = oneLoop(8, periods("4611686018427387904", "1"));
+    EXPECT_THROW(Experiment::parse(&large, maxDeclaredFrames(1)), Unsupported);
 }
