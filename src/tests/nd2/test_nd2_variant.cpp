@@ -438,3 +438,56 @@ TEST(Nd2Variant, XmlSpecialDoublesAndPartialNumbers)
     EXPECT_EQ(old->get("bad")->asString(), "12abc");
     EXPECT_EQ(old->get("frac")->kind(), Variant::Kind::Double);
 }
+
+namespace
+{
+    /// `depth` Lite levels, each a Map whose only member is `i0000000000`.
+    Bytes indexedChain(int depth)
+    {
+        Bytes inner = lite(3, u"v", le<uint32_t>(7));
+        for (int i = 0; i < depth; ++i) inner = level(u"i0000000000", { inner });
+        return inner;
+    }
+}
+
+TEST(Nd2Variant, DeepIndexedMapsStayLinear)
+{
+    // Each indexed member used to be copied into items() as well, doubling the tree at
+    // every level: 60 levels would have needed 2^60 nodes.
+    const Variant v = decode(indexedChain(60));
+    const Variant* node = &v;
+    for (int i = 0; i < 60; ++i) {
+        ASSERT_EQ(node->items().size(), 1u) << "level " << i;
+        EXPECT_EQ(&node->items().front(), node->get("i0000000000"));   // a view, not a copy
+        node = &node->items().front();
+    }
+    ASSERT_NE(node->get("v"), nullptr);
+    EXPECT_EQ(node->get("v")->asInt(), 7);
+
+    const size_t at30 = decode(indexedChain(30)).toJson().dump().size();
+    const size_t at60 = v.toJson().dump().size();
+    EXPECT_LT(at60, at30 * 21 / 10);   // linear in depth: about twice, not 2^30 times
+
+    const Variant copy = v;   // still a self-contained value
+    EXPECT_EQ(copy.toJson().dump().size(), at60);
+
+    std::string xml = "<variant>";
+    for (int i = 0; i < 90; ++i) xml += "<i0000000000 runtype=\"CLxListVariant\">";
+    xml += "<v runtype=\"lx_uint32\" value=\"7\"/>";
+    for (int i = 0; i < 90; ++i) xml += "</i0000000000>";
+    xml += "</variant>";
+    const Variant x = decodeClxXml(xml);
+    node = &x;
+    for (int i = 0; i < 90; ++i) {
+        ASSERT_EQ(node->items().size(), 1u) << "level " << i;
+        node = &node->items()[0];
+    }
+    EXPECT_EQ(node->get("v")->asInt(), 7);
+}
+
+TEST(Nd2Variant, BomOnlyMetadataIsRefused)
+{
+    const std::string msg = messageOf([] { decodeMetadata(Bytes{ 0xEF, 0xBB, 0xBF }); });
+    EXPECT_NE(msg.find("ND2:"), std::string::npos) << msg;
+    EXPECT_NE(msg.find("byte order mark"), std::string::npos) << msg;
+}

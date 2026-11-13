@@ -79,13 +79,11 @@ namespace slideio
                 }
                 r.m_kind = Variant::Kind::Map;
                 r.m_members = std::move(children);
-                const bool indexed = !r.m_members.empty() &&
+                // Indexed members are stored once and items() views them in place:
+                // copying them into m_items doubled the tree at every indexed level.
+                r.m_indexed = !r.m_members.empty() &&
                     std::all_of(r.m_members.begin(), r.m_members.end(),
                         [](const auto& m) { return isIndexName(m.first); });
-                if (indexed) {
-                    r.m_items.reserve(r.m_members.size());
-                    for (const auto& m : r.m_members) r.m_items.push_back(m.second);
-                }
                 return r;
             }
         };
@@ -624,6 +622,7 @@ Variant slideio::nd2::decodeMetadata(const std::vector<uint8_t>& data, size_t ma
     if (data.empty()) fail("metadata chunk is empty");
     size_t first = 0;
     if (data.size() >= 3 && data[0] == 0xEF && data[1] == 0xBB && data[2] == 0xBF) first = 3;
+    if (first >= data.size()) fail("metadata chunk holds only a byte order mark");
     if (data[first] == '<') {
         return unwrap(decodeClxXml(std::string(data.begin() + first, data.end())));
     }
