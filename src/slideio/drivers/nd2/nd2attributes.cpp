@@ -4,6 +4,8 @@
 #include "slideio/drivers/nd2/nd2attributes.hpp"
 #include "slideio/drivers/nd2/nd2internal.hpp"
 
+#include <opencv2/core/hal/interface.h>
+
 #include <cstdio>
 #include <limits>
 
@@ -65,6 +67,12 @@ Attributes Attributes::parse(const Variant& attrs)
     a.width = positive(attrs, "uiWidth");
     a.height = positive(attrs, "uiHeight");
     a.components = positive(attrs, "uiComp");
+    // A scene is a cv::Mat with one channel per component; refused here, before anything
+    // is sized by the component count.
+    if (a.components > CV_CN_MAX) {
+        refuse("uiComp", "is " + std::to_string(a.components) + " (at most " + std::to_string(CV_CN_MAX)
+            + " components are supported)");
+    }
     const Variant* bits = attrs.get("uiBpcInMemory");
     const int64_t bitsValue = bits ? bits->asInt(0) : 0;
     if (bitsValue != 8 && bitsValue != 16 && bitsValue != 32) {
@@ -79,7 +87,13 @@ Attributes Attributes::parse(const Variant& attrs)
 
     const Variant* stride = attrs.get("uiWidthBytes");
     a.rowStride = stride ? stride->asInt(0) : 0;
-    const int64_t packed = static_cast<int64_t>(a.width) * a.components * a.sampleBytes();
+    // Checked: width and components are positive ints, bytes is 1, 2 or 4.
+    const int64_t perPixel = static_cast<int64_t>(a.components) * a.sampleBytes();
+    if (a.width > std::numeric_limits<int64_t>::max() / perPixel) {
+        refuse("uiWidth", "is " + std::to_string(a.width) + " (a row of " + std::to_string(perPixel)
+            + "-byte pixels overflows)");
+    }
+    const int64_t packed = static_cast<int64_t>(a.width) * perPixel;
     if (a.rowStride < packed) {
         refuse("uiWidthBytes", "is " + std::to_string(a.rowStride) + " but a packed row needs " +
             std::to_string(packed));
@@ -131,8 +145,9 @@ int64_t slideio::nd2::detail::pictureChannelCount(const Variant* pictureMetadata
 std::vector<ChannelInfo> slideio::nd2::parseChannels(const Variant* pictureMetadata, int components,
     int64_t channelsWithoutMetadata)
 {
-    if (components <= 0) {
-        throw Unsupported("ND2: unsupported image attributes: uiComp is " + std::to_string(components));
+    if (components <= 0 || components > CV_CN_MAX) {
+        throw Unsupported("ND2: unsupported image attributes: uiComp is " + std::to_string(components)
+            + " (expected 1.." + std::to_string(CV_CN_MAX) + ")");
     }
     const std::vector<const Variant*> plane = planeRecords(fieldOf(pictureMetadata, "sPicturePlanes"));
     int64_t channelCount = detail::pictureChannelCount(pictureMetadata);

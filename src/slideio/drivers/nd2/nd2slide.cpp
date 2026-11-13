@@ -110,11 +110,9 @@ void ND2Slide::init(const ResampleLimits& limits)
         info = std::make_shared<const ImageInfo>(buildImageInfo(*chunks, *m_file, stem));
     }
 
+    // uiComp > CV_CN_MAX is refused by Attributes::parse and parseChannels (chunked and
+    // legacy), before the component count sizes anything.
     const Attributes& attrs = info->attributes;
-    if (attrs.components > CV_CN_MAX) {
-        throw Unsupported("ND2: unsupported image attributes: uiComp " + std::to_string(attrs.components)
-            + " exceeds " + std::to_string(CV_CN_MAX) + " components");
-    }
     countToInt(info->experiment.count(Axis::Z), "Z");
     countToInt(info->experiment.count(Axis::T), "T");
     if (info->positions.empty()) {

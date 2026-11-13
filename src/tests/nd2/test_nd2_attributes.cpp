@@ -137,3 +137,47 @@ TEST(Nd2Channels, ColorHex)
     EXPECT_EQ(colorToHex(0xFFFFFF), "#FFFFFF");
     EXPECT_EQ(colorToHex(0), "#000000");
 }
+
+namespace
+{
+    /// An attributes tree with the given values, as CLX XML decodes it.
+    Variant attributesTree(const std::string& width, const std::string& comp, const std::string& bits,
+        const std::string& widthBytes)
+    {
+        return decodeClxXml(
+            "<variant><uiWidth runtype=\"lx_uint32\" value=\"" + width + "\"/>"
+            "<uiHeight runtype=\"lx_uint32\" value=\"4\"/>"
+            "<uiComp runtype=\"lx_uint32\" value=\"" + comp + "\"/>"
+            "<uiBpcInMemory runtype=\"lx_uint32\" value=\"" + bits + "\"/>"
+            "<uiWidthBytes runtype=\"lx_uint64\" value=\"" + widthBytes + "\"/></variant>");
+    }
+
+    std::string parseRefusal(const Variant& tree)
+    {
+        try {
+            Attributes::parse(tree);
+        }
+        catch (const Unsupported& e) {
+            return e.what();
+        }
+        return "";
+    }
+}
+
+TEST(Nd2Attributes, ComponentLimitAndRowSize)
+{
+    // uiComp beyond CV_CN_MAX (512) is refused by parse itself, naming the field, before
+    // parseChannels reserves anything by it.
+    const std::string many = parseRefusal(attributesTree("16", "2147483647", "8", "34359738352"));
+    EXPECT_NE(many.find("uiComp is 2147483647"), std::string::npos) << many;
+    EXPECT_NE(parseRefusal(attributesTree("16", "513", "8", "8208")).find("uiComp"), std::string::npos);
+    EXPECT_THROW(parseChannels(nullptr, 513), Unsupported);
+    EXPECT_EQ(Attributes::parse(attributesTree("16", "512", "8", "8192")).components, 512);
+
+    // The largest row the limits allow: INT_MAX pixels of 512 4-byte components.
+    const Attributes wide = Attributes::parse(attributesTree("2147483647", "512", "32", "4398046509056"));
+    EXPECT_EQ(wide.rowStride, 4398046509056LL);
+    const std::string shortRow = parseRefusal(attributesTree("2147483647", "512", "32", "4398046509055"));
+    EXPECT_NE(shortRow.find("uiWidthBytes is 4398046509055 but a packed row needs 4398046509056"),
+        std::string::npos) << shortRow;
+}
