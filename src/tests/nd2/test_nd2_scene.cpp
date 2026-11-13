@@ -393,6 +393,28 @@ TEST(Nd2Scene, Timestamps)
     EXPECT_NEAR(0.0, first->getPlaneTimestamp(0, 0, 0), 1e-9);     // frame 0
 }
 
+// Issue #98: the CVScene contract returns 0 for an out-of-range index, as every other
+// driver does, rather than throwing.
+TEST(Nd2Scene, OutOfRangeTimestampIsZero)
+{
+    auto scene = openFixture("v3_tpz.nd2")->getScene(1);
+    ASSERT_TRUE(scene->hasPlaneTimestamps());
+    const int t = scene->getNumTFrames();
+    const int c = scene->getNumChannels();
+    const int z = scene->getNumZSlices();
+    ASSERT_GT(scene->getPlaneTimestamp(t - 1, c - 1, z - 1), 0.);   // the last plane is in range
+    const int planes[][3] = {
+        { t, 0, 0 }, { -1, 0, 0 },     // T
+        { 0, c, 0 }, { 0, -1, 0 },     // channel
+        { 0, 0, z }, { 0, 0, -1 },     // Z
+    };
+    for (const auto& p : planes) {
+        double ts = -1;
+        EXPECT_NO_THROW(ts = scene->getPlaneTimestamp(p[0], p[1], p[2])) << p[0] << " " << p[1] << " " << p[2];
+        EXPECT_EQ(0., ts) << p[0] << " " << p[1] << " " << p[2];
+    }
+}
+
 TEST(Nd2Scene, TimestampsWithoutAbsoluteTime)
 {
     // Every fixture carries dTimeAbsolute 2460000.5, so this copy of order_pz has it
