@@ -110,8 +110,10 @@ TEST(Nd2Experiment, FrameIndexIsChecked)
     EXPECT_THROW(none.frameIndex(0, 0, 1), std::exception);
 }
 
-// Design 4.5 (R25): with T outermost, T = ceil((maxPresent + 1) / innerProduct), which
-// trims trailing empty time points and extends T over surplus frames; otherwise nothing.
+// Design 4.5 (R25, R29, R31): with T outermost, T is trimmed to end at the last declared time
+// point holding a frame, as before, and extended only by complete surplus time points whose
+// known times continue the series, never past loopProduct() + the present frames; otherwise
+// nothing.
 TEST(Nd2Experiment, FitTime)
 {
     Experiment missing = experimentOf("frames_missing.nd2");
@@ -252,7 +254,7 @@ TEST(Nd2Experiment, Refusals)
     const std::string two = refusal("two_time_loops.nd2");
     EXPECT_NE(two.find("T2, T3"), std::string::npos) << two;
     const std::string custom = refusal("custom_loop.nd2");
-    EXPECT_NE(custom.find("3"), std::string::npos) << custom;
+    EXPECT_NE(custom.find("C3"), std::string::npos) << custom;
 }
 
 namespace
