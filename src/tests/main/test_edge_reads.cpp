@@ -182,3 +182,10 @@ TEST(EdgeReads, lif)
     SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
     expectEdgeContract(openScene(path, "LIF").scene);
 }
+
+TEST(EdgeReads, nd2)
+{
+    const std::string path = TestTools::getTestImagePath("nd2", "maxime/BF007.nd2");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
+    expectEdgeContract(openScene(path, "ND2").scene);
+}

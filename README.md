@@ -4,6 +4,7 @@ Relevant resources:
 - [Core C++ **SlideIO** library](https://github.com/Booritas/slideio)
 - [**SlideIO** Python bindings](https://github.com/Booritas/slideio-python)
 - [**SlideIO** Python tutorial](https://github.com/Booritas/slideio-tutorial)
+- [**SlideIO** Viewer](https://github.com/Booritas/slideio-view) - a desktop application for viewing whole-slide images, built on SlideIO
 - [**SlideIO** Home page](https://www.slideio.com/)
 - [**SlideIO** Python API documentation](https://www.slideio.com/sphinx)
 
@@ -28,8 +29,10 @@ The module accesses images through a system of image drivers, each implementing 
 | **QPTIFF** | PerkinElmer Vectra QPTIFF | *.qptiff | [Akoya Biosciences](https://www.akoyabio.com/software-data-analysis/) | [Perkin Elmer Vectra scanner](https://www.akoyabio.com/phenoimager/instruments/vectra-3-0/) |
 | **OME-TIFF** | [OME-TIFF](https://ome-model.readthedocs.io/en/stable/ome-tiff/) | *.ome.tif, *.ome.tiff, *.ome.tf2, *.ome.tf8, *.ome.btf | [Open Microscopy Environment](https://www.openmicroscopy.org/) | |
 | **PHTIFF** | Philips TIFF | *.tif, *.tiff | [Philips](https://www.philips.com/) | [Philips IntelliSite Ultra Fast Scanner](https://www.usa.philips.com/healthcare/resources/landing/philips-intellisite-pathology-solution) |
+| **MRXS** | [3DHISTECH MIRAX](https://openslide.org/formats/mirax/) | *.mrxs (or the bundle's Slidedat.ini) | [3DHISTECH](https://www.3dhistech.com/) | Tested with MIRAX bundles from the OpenSlide test-data collection |
 | **BIF** | [Ventana BIF](https://diagnostics.roche.com/global/en/products/instruments/ventana-dp-200-ins-2575.html) | *.bif | [Roche Diagnostics](https://diagnostics.roche.com/) | Tested with Ventana iScan (Coreo/HT, 2011) and [VENTANA DP 200](https://diagnostics.roche.com/global/en/products/instruments/ventana-dp-200-ins-2575.html) |
 | **LIF** | [Leica LIF](https://www.openmicroscopy.org/bio-formats/) | *.lif | [Leica Microsystems](https://www.leica-microsystems.com/) | Tested with Leica LAS X files from the Bio-Formats sample set |
+| **ND2** | [Nikon ND2](https://www.openmicroscopy.org/bio-formats/) | *.nd2 | [Nikon](https://www.microscope.healthcare.nikon.com/) | Tested with NIS-Elements files from the Bio-Formats sample set |
 | **GDAL** | General image formats | *.png, *.jpeg, *.jpg, *.tif, *.tiff, *.bmp, *.gif, *.jp2 | - | - |
 
 The library is built as a c++ python extension and provides c++ and python interfaces.

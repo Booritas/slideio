@@ -213,6 +213,11 @@ jobs:
       - name: LIF tests under ThreadSanitizer
         run: ./build/debug/bin/slideio_lif_tests --gtest_filter="-LIFCorpus*"
 
+      # The ND2 suites that need no corpus: synthetic fixtures committed in
+      # src/tests/nd2/data; ND2Corpus* suites need the slide corpus and are excluded.
+      - name: ND2 tests under ThreadSanitizer
+        run: ./build/debug/bin/slideio_nd2_tests --gtest_filter="-ND2Corpus*"
+
   build-windows:
     name: Windows
     runs-on: windows-2022
@@ -298,4 +303,5 @@ jobs:
               ./build/release/bin/slideio_mrxs_tests --gtest_filter="-MRXSCorpus*"
               ./build/release/bin/slideio_bif_tests --gtest_filter="-BIFCorpus*"
               ./build/release/bin/slideio_lif_tests --gtest_filter="-LIFCorpus*"
+              ./build/release/bin/slideio_nd2_tests --gtest_filter="-ND2Corpus*"
             '

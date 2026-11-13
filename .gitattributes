@@ -7,3 +7,8 @@ src/tests/mrxs/data/** -text
 # auxfiles/lif-fixtures/generate.py (UTF-16 XML, binary framing): git must never
 # convert them.
 src/tests/lif/data/** -text
+
+# ND2 test fixtures are exact byte sequences written by
+# auxfiles/nd2-fixtures/generate.py (binary chunk framing, deliberate garbage, a raw
+# control character in XML): git must never convert them.
+src/tests/nd2/data/** -text

@@ -63,7 +63,9 @@ TEST(ImageDriverManager, findDriver)
         // BIF is chosen by name too: the structural probe runs in openFile.
         TestEntity("BIF", TestTools::getTestImagePath("bif/openslide", "Ventana-1.bif")),
         // LIF is chosen by name too, before GDAL.
-        TestEntity("LIF", TestTools::getTestImagePath("lif/bioformats/michael", "PR2729_frameOrderCombinedScanTypes.lif"))
+        TestEntity("LIF", TestTools::getTestImagePath("lif/bioformats/michael", "PR2729_frameOrderCombinedScanTypes.lif")),
+        // ND2 is chosen by name too, before GDAL.
+        TestEntity("ND2", TestTools::getTestImagePath("nd2/maxime", "BF007.nd2"))
     };
     for(const auto& entity: testList) {
         auto driverId = std::get<0>(entity);

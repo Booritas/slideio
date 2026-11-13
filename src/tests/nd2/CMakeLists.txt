@@ -1,0 +1,51 @@
+set(INCLUDE_ROOT ${CMAKE_SOURCE_DIR}/src)
+set(TEST_NAME slideio_nd2_tests)
+set(CMAKE_PREFIX_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
+# The fixtures are synthetic and committed in data/ (auxfiles/nd2-fixtures/generate.py).
+# test_nd2_corpus.cpp (ND2Corpus*) reads the corpus under SLIDEIO_IMAGES_PATH/nd2; CI excludes it.
+set(TEST_SOURCES
+  test_nd2_chunkfile.cpp
+  test_nd2_variant.cpp
+  test_nd2_attributes.cpp
+  test_nd2_experiment.cpp
+  test_nd2_imageinfo.cpp
+  test_nd2_scene.cpp
+  test_nd2_legacy.cpp
+  test_nd2_corpus.cpp
+  nd2_fixture_values.hpp
+)
+
+add_executable(${TEST_NAME} ${TEST_SOURCES})
+
+target_include_directories(${TEST_NAME} PRIVATE ${INCLUDE_ROOT})
+
+find_package(GTest)
+find_package(OpenCV)
+find_package(ZLIB)
+
+target_link_libraries(${TEST_NAME}
+  gtest::gtest
+  opencv::opencv
+  ZLIB::ZLIB
+)
+
+target_link_libraries(${TEST_NAME}
+    ${ND2_DRIVER_NAME}
+    ${TEST_LIB_NAME}
+    ${CORE_LIB_NAME}
+    ${SLIDEIO_LIB_NAME}
+    ${CONVERTER_LIB_NAME}
+  )
+
+target_compile_definitions(${TEST_NAME} PRIVATE ND2_TEST_DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data")
+
+IF(WIN32)
+   set_target_properties(${TEST_NAME} PROPERTIES LINK_FLAGS "/ignore:4099")
+   target_compile_definitions(${TEST_NAME} PRIVATE _CRT_SECURE_NO_WARNINGS)
+ENDIF(WIN32)
+
+add_test(${TEST_NAME} ${TEST_DIR}/${TEST_NAME})
+
+FIX_MACOS_RPATH(${TEST_NAME})
