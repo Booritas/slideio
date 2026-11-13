@@ -1,7 +1,10 @@
 # Nikon ND2 reader driver design
 
-Date: 2026-11-12. Status: proposed. Points marked *(my call)* are design
-decisions taken without a requirement behind them; review them first.
+Date: 2026-11-12. Status: implemented on feature/nd2-driver (2026-11-13); manual
+review of AI-written code pending before merge. Points marked *(my call)* are
+design decisions taken without a requirement behind them; review them first.
+Points marked *(Decided during implementation.)* record where the build settled
+or departed from the original design.
 
 ## 1. Intent
 
@@ -143,19 +146,24 @@ before `"GDAL"`.
 `openFile` reads the first 16 bytes:
 
 - `DA CE BE 0A` → chunked; also require `ND2 FILE SIGNATURE CHUNK NAME01!` at
-  offset 16 and `ND2 CHUNK MAP SIGNATURE 0000001!` at `size − 40` (FD §2).
+  offset 16 and `ND2 CHUNK MAP SIGNATURE 0000001!` at `size − 40` (FD §2). The
+  trailer is required at open (R18): a file with a destroyed trailer is refused,
+  not recovered. `ChunkFile`'s scan for a missing map stays as a unit-tested
+  defence behind that check. *(Decided during implementation.)*
 - `00 00 00 0C 6A 50 20 20 0D 0A 87 0A` → legacy; also require
   `LABORATORY IMAGING ND BOX MAP 00` at `size − 40`.
 - Otherwise `ND2: not a Nikon ND2 file (<reason>)`.
 
 All errors raised while opening are normalised at `ND2Slide::openFile` to
-start with `ND2: ` and end with `(file: <path>)`, as LIF does.
+start with `ND2: ` and end with `(file: <path>)`, as LIF does. The legacy
+branch is built by `nd2::LegacyFile` and the §4.7 reader.
 
 ### 4.2 Chunked container
 
 - Version from the signature chunk's data (`VerM.m`). Major 3 reads the `…LV`
   chunks; major 2 prefers the XML chunks and falls back to `…LV` when a 2.x file
-  has only those (FD §3.2). Any other major is refused.
+  has only those (FD §3.2). Any other major is refused by `ChunkFile` itself,
+  so no caller can open such a file by another route. *(Decided during implementation.)*
 - Chunk map: from the trailer offset, parse entries (`!`-terminated name, u64
   offset, u64 size) until the terminating `ND2 CHUNK MAP SIGNATURE 0000001!`.
   The `size` field is ignored; lengths come from each chunk's own header
@@ -175,7 +183,10 @@ start with `ND2: ` and end with `(file: <path>)`, as LIF does.
   by the scan keeps the later chunk *(my call: an edited file appends)*, and is
   logged.
 - All offsets `uint64_t`, all additions checked; a chunk whose data runs past
-  EOF is treated as absent.
+  EOF is treated as absent (R6) and reads as background, so `truncated_frame`
+  is not a refusal. A raw frame chunk that lies inside the file but is shorter
+  than the 8-byte prefix plus `height · uiWidthBytes` is *present* and throws on
+  read: the driver never pads from neighbouring bytes (R20). *(Decided during implementation.)*
 
 ### 4.3 Metadata decoding
 
@@ -184,15 +195,21 @@ string (UTF-8), byte array, or children. Both decoders produce it (FD §4):
 
 - **CLX Lite**: records as FD §4.1; level `indexOffset` used only to skip the
   index table; empty-named siblings become a list; type 76 inflates with zlib
-  and recurses. A byte array is decoded as a nested tree only on demand by the
-  caller that expects one (JOBS), never speculatively. Every length is checked
-  against the remaining buffer; a decode error names the chunk.
+  and recurses. A type-76 record is a 2-byte header (type, name length) plus 10
+  skipped bytes, so the zlib stream starts at offset 12 and nothing is sniffed
+  (R13). All inflation in one decode shares a budget of 256 MiB, so nested
+  type-76 records cannot multiply it. A byte array is decoded as a nested tree
+  only on demand by the caller that expects one (JOBS), never speculatively.
+  Every length is checked against the remaining buffer; a decode error names
+  the chunk. *(Decided during implementation.)*
 - **CLX XML**: tinyxml2 (no external entities). Before parsing, replace control
   characters other than tab/CR/LF with spaces (Bio-Formats does this; some files
   contain them). `runtype` selects the scalar type; `no_name` and the FD's list
   names (`BinaryItem`, `TextInfoItem`, `Wavelength`, `MinSrc`, `MaxSrc`) become
   list elements. Numbers are parsed with `.` as the decimal point whatever the
-  locale (the LIF PR #96 lesson).
+  locale (the LIF PR #96 lesson). A `CLxByteArray` in XML is stored as raw UTF-8
+  text, not base64. Numbers must parse completely; the MSVC spellings of NaN and
+  infinity (`1.#QNAN`, `-1.#INF`) are recognised and map to NaN/inf. *(Decided during implementation.)*
 - The `SLx…` wrapper level (binary) or single `no_name` child (XML) is unwrapped.
 - Field lookup tolerates the 2.x quirk of `uLoopPars` wrapped in
   `i0000000000` (FD §7.1).
@@ -201,8 +218,8 @@ string (UTF-8), byte array, or children. Both decoders produce it (FD §4):
 
 - **Attributes** (FD §5): require `uiWidth > 0`, `uiHeight > 0`, `uiComp > 0`,
   `uiBpcInMemory ∈ {8, 16, 32}`, `uiWidthBytes ≥ uiWidth·uiComp·bytes`,
-  `eCompression ∈ {absent, 0, 2}`, tile size absent or equal to the frame.
-  Anything else: the file fails to open with the reason. 8 → `DT_Byte`,
+  `eCompression ∈ {absent, 0, 2}`, tile size absent, 0 or equal to the frame
+  (0 means no tiling, R16). Anything else: the file fails to open with the reason. 8 → `DT_Byte`,
   16 → `DT_UInt16`, 32 → `DT_Float32`.
 - **Channels** (FD §6.2): `sPicturePlanes.uiCount` channels,
   `componentsPerChannel = uiComp / uiCount`, which must divide exactly. Records
@@ -211,13 +228,21 @@ string (UTF-8), byte array, or children. Both decoders produce it (FD §4):
   *(my call)*.
 - **Experiment** (FD §7.2): flatten the loop tree exactly as FD §7.2 rules 1–4,
   **without** `nd2`'s `pSubLoops` special case. XY count = points whose
-  `pItemValid` flag is non-zero (FD §7.3); NE time count = sum of valid periods.
-  Then validate:
+  `pItemValid` flag is non-zero (FD §7.3), where an empty `pItemValid` counts
+  every point; NE time count = sum of valid periods, where a missing
+  `pPeriodValid` means all periods are valid (R16). The 2.x quirk of `uLoopPars`
+  wrapped in a one-item list is unwrapped (Task 8b: without it 22 Ver2.x files
+  had no loops). Chunked and legacy files share one path: both build a
+  `std::vector<Loop>` and call `Experiment::fromLoops` (R21), which owns the
+  flatten rules, axis classification and the validation below. A `Loop` stores
+  what it needs by value (R4). Then validate: *(Decided during implementation.)*
   - at most one time loop (types 1 and 8 both map to T), one XY loop, one Z loop;
   - a custom loop (`eType 7`) with count > 1 is refused;
   - spectral loops never appear (rule 2 removes them).
 
-  A refusal fails the open with the loop list in the message — unlike LIF there
+  `Experiment::frameIndex` takes the scene's position as an ordinal among the
+  valid points, and `validItems` maps ordinal to loop item (R5). A refusal fails
+  the open with the loop list in the message — unlike LIF there
   is no per-image fallback, because all positions share one loop tree.
 
 ### 4.5 Frames present, and the T count
@@ -225,7 +250,7 @@ string (UTF-8), byte array, or children. Both decoders produce it (FD §4):
 The set of verified `ImageDataSeq|N!` chunks is the authority for which frames
 exist (FD §7.4). Let the loop product be `L`:
 
-- **T fitting (R25, R29, R31).** Only when the time loop is the outermost loop:
+- **T fitting (R25 as refined by R29, R31, R32).** Only when the time loop is the outermost loop:
   - *Trim.* T ends at the last declared time point holding a frame,
     `ceil((maxPresentIndex + 1) / innerProduct)` over the frames inside the
     loops (`B08.nd2`: 92 → 81, as Bio-Formats).
@@ -236,17 +261,21 @@ exist (FD §7.4). Let the loop product be `L`:
     alone. The first time point that fails either test stops the extension;
     frames that do not form such a time point are ignored. This gives
     `old_cells_02.nd2` 41 → 42, `rfp_h2a_cells_02.nd2` 115 → 116 and
-    `jonas/3.nd2` 26 → 27, and leaves `190821_L1_IRS-Akt_CS2003.nd2` (10 of 46
+    `jonas/3.nd2` 26 → 27 (R32: `rfp_h2a_cells_02`'s frame 973 is missing from
+    inside the declared series, so its surplus time point is complete), and
+    leaves `190821_L1_IRS-Akt_CS2003.nd2` (10 of 46
     positions), `multicolorTest.nd2` (14 of 15 Z) and `130606_JCC719_003.nd2`
     (82 surplus frames whose times run back into the declared series) at their
     declared T -- all as Bio-Formats.
   - A frame index at or past `L + presentFrameCount` (before fitting) is never
-    an acquired frame (R31); this also bounds the fitted product by the file.
+    an acquired frame (R31), which guards damaged chunk names and bounds the
+    fitted product by the file.
   - The loop product `L` below is the one after fitting, and frame times cover
     it. Frames the fit does not take in are ignored (logged once at INFO).
 - When T is not outermost, nothing is fitted, and frames with `N ≥ L` are
   ignored (logged once at INFO with a count).
-- Missing frames with `N < L` read as background (§7).
+- Missing frames with `N < L` read as background (§7). A present raw frame
+  chunk too short for its image throws instead (§4.2, R20).
 - `uiSequenceCount` is not used for counts; it is reported as metadata only.
 
 ### 4.6 Scenes
@@ -260,6 +289,10 @@ Scene name: the point's `dPosName` when non-empty, else `Position <k+1>` with
 after the file stem. *(My call on spelling.)* Duplicate point names get
 ` (<k+1>)` appended so names stay unique.
 
+**Known gap.** Ver2.x chunked files that keep stage positions as `dPosX`/`dPosY`
+lists rather than `Points` records get `Position <k+1>` names and empty scene
+raw metadata; the legacy path already reads those lists (§11). *(Decided during implementation.)*
+
 ### 4.7 Legacy JPEG 2000 variant
 
 Following FD §11:
@@ -272,17 +305,22 @@ Following FD §11:
 - XML boxes by LIM type: `VIMD` (frame 0) for channels, `ACAL`/`VCAL` for
   calibration, `AIM1`/`AIMD` for loops, `TINF` for text. These are parsed with
   the §4.3 XML decoder.
-- **Dimensions.** Loops from `AIM1`/`AIMD` as in §4.4, but the XY count comes
-  from the `TINF` `Dimensions:` line when it has an `XY(n)` term, which
-  overrides the loop's count (FD §11.3; gives 5, not 11, for
-  `4_2_1_cont_NoMR001.nd2`). Channels from `VIMD.PicturePlanes.Count`, never
+- **Dimensions.** Loops from `AIM1`/`AIMD` (types 2, 4, 8; type 6 skipped) as in
+  §4.4, through `Experiment::fromLoops` (R21). The XY count comes from the `TINF`
+  `Dimensions:` line when it has an `XY(n)` term (R22). When the number of points
+  flagged valid equals `n`, those points are used and keep their stage records;
+  otherwise `n` overrides the loop count, with points `0 … n-1`. Both give 5, not
+  11, for `4_2_1_cont_NoMR001.nd2`. FD §11.3's statement that all 11 points are
+  flagged in that file is wrong: only 6 to 10 are. *(Decided during implementation.)* Channels from `VIMD.PicturePlanes.Count`, never
   from the spectral loop.
 - Frame `i`, channel `c` is the `(i·C + c)`-th `jp2c` box; RGB (`ihdr` 3
   components) has one codestream per frame. A missing codestream reads as
   background. For T fitting (§4.5) a frame counts only when the codestreams of
-  all its channels exist (R25), so `b16_14_12.nd2` (101 codestreams, 2
-  channels) has T = 50, as Bio-Formats. A partial frame inside T still reads
-  its existing channels, and background for the missing ones.
+  all its channels exist, so `b16_14_12.nd2` (101 codestreams, 2
+  channels) has T = 50, as Bio-Formats (R23; the first draft predicted 51). The
+  51st frame is at or past the loop product and ignored. Only where such a
+  partial frame is kept as a time point does it read its existing channels, and
+  background for the missing ones. *(Decided during implementation.)*
 - Pixels are returned in native byte order and RGB interleaved, as for chunked
   files. (Bio-Formats' big-endian, planar output is a convention the corpus test
   undoes, FD §11.3.)
@@ -328,7 +366,7 @@ inflated block.
 | Zoom levels | one |
 | Concurrent reads | `true` (§7) |
 | Channel background | 0 for every channel *(my call, as LIF)* |
-| Magnification | `dObjectiveMag` when > 0, else the number immediately before the first `x`/`X` of `wsObjectiveName` that begins a word (`"Plan Apo 60x Oil"` → 60; R27), else 0. Legacy: the same fields of `VIMD` |
+| Magnification | `dObjectiveMag` when > 0, else the number immediately before the first `x`/`X` of `wsObjectiveName` that begins a word (`"Plan Apo 60x Oil"` → 60; R27), else 0. Legacy: the same fields of `VIMD` *(Decided during implementation.)* |
 
 ### 6.2 Channels and components
 
@@ -346,8 +384,9 @@ Per slideio channel:
   channels `<name> R`/`G`/`B` (or `<name> <j>` when the count is not 3).
 - Attributes: `Color` as `#RRGGBB` decoded from `uiColor` = `0x00BBGGRR`
   (FD §8), `ND2Channel` (index), `Component` (index within it), and the
-  optics/probe fields present on the plane record (`pFluorescentProbe` name,
-  emission wavelength), kept verbatim as strings.
+  probe field present on the plane record (`pFluorescentProbe` name), kept
+  verbatim as a string. Emission wavelength is not reported: the FD names no
+  field for it (R16, §11). *(Decided during implementation.)*
 
 ### 6.3 Calibration
 
@@ -363,14 +402,30 @@ Per slideio channel:
   The measured step is what Bio-Formats' plane times give; `dPeriod` is only
   the requested interval (3600 s against a measured 8122 s in
   `ns_blobtest2.0_20x_A2_far.nd2`). `ImageInfo::tStep` holds the nominal
-  fallback.
+  fallback. *(Decided during implementation.)*
+- **Recorded differences from Bio-Formats** (corpus test, asserted per file and
+  per series with the driver's own value):
+  - VPA002 channels, 12 against 4: Bio-Formats' stride bug (FD §6.2).
+  - `b16_pdtB+y50__crop` T 57 against 56 (R26): all 684 frames are present and
+    `nd2` and the file's text agree; Bio-Formats' rescan after the stale map
+    keeps fewer offsets. Its T step differs too (638.5 against 633.8 s).
+  - Magnification, 10 files where Bio-Formats has none: 8 legacy files (it does
+    not parse legacy objective names), and BF007 (100x) and
+    `130606_JCC719_003` (60x), where the driver equals `nd2`.
+  - T step, 13 files: 9 legacy files (Bio-Formats has no plane times);
+    `wtf_DIC` and `wtf_alignment` (T = 1, the driver falls back to `dPeriod`,
+    600 s); `b16_pdtB`; `cag_p5_simgc_2511_70ms22s_crop` series 1 (Bio-Formats
+    repeats series 0's 599.998 s, the position's own prefixes step 599.952 s).
+  - Pixel size of the legacy `but3_cont200-1`, `but3_cont2002` and `por003`:
+    Bio-Formats has none, the driver reports 50/50/100 µm, equal to `nd2`.
 - Legacy: the same fields from `ACAL`/`VCAL`/`AIM1` (FD §11.2).
 
 ### 6.4 Timestamps
 
 Per-frame time is `CustomData|AcqTimesCache!` (float64 ms, indexed by frame
 index), or, if that chunk is absent, each frame's 8-byte prefix (FD §6; equal
-in all 53 samples that have both).
+in all 53 samples that have both). Frames past the end of a short cache take
+their time from the prefix too, not NaN (R17). *(Decided during implementation.)*
 
 - `hasPlaneTimestamps()` is true when every frame of the scene that exists has
   a time and none is NaN. Missing frames return the scene's acquisition offset
@@ -381,7 +436,9 @@ in all 53 samples that have both).
   value, so none is negative and `acquisition + offset` is exact — the LIF
   convention.
 - No absolute time → `getAcquisitionTime()` 0 and plane timestamps relative to
-  the experiment start.
+  the experiment start (frame time ms ÷ 1000, the same for every scene; R19).
+  When frame times are incomplete, `getAcquisitionTime()` is still reported
+  while `hasPlaneTimestamps()` is false. *(Decided during implementation.)*
 
 ### 6.5 Metadata
 
@@ -418,14 +475,13 @@ in all 53 samples that have both).
 4. Resize to the requested size with the helper other drivers use.
 
 **Large downscaled reads.** The 23641² frame is 2.2 GB of uint16 × 2. A
-downscaled read whose source exceeds the budget must be read in strips and area
-filtered, exactly the problem LIF solved (LIF design §7). *(My call: move LIF's
-tiled `INTER_AREA` downscale out of `lifscene.cpp` into a shared helper in
-slideio-core — e.g. `slideio::TiledAreaResampler`, taking a row-strip reader
-callback and `ReadLimits` — and use it from both drivers, rather than copying
-it. That refactor is a separate first step with LIF's existing tests as its
-safety net. It applies to uncompressed chunked frames; zlib and legacy frames
-are small.)*
+downscaled read whose source exceeds the budget is read in strips and area
+filtered, exactly the problem LIF solved (LIF design §7). The tiled `INTER_AREA`
+downscale now lives in slideio-core, taking a row-strip reader callback and
+`ReadLimits`, and both drivers use it. It applies to uncompressed chunked
+frames; zlib and legacy frames are small. Extracting it corrected the 2×2
+rounding to match OpenCV for every channel count, which also fixed LIF's 2- and
+5-channel downscale. *(Decided during implementation.)*
 
 **Concurrency.** The only file state is the slide's cursor-free `FileReader`;
 everything parsed at open is immutable; zlib streams and decode buffers are
@@ -439,7 +495,7 @@ swapped. slideio does not build for one; this is a guard, not a tested path.
 
 ### 8.1 Corpus-free (CI)
 
-Synthetic files from `auxfiles/nd2-fixtures/generate.py`, sharing no code with
+24 synthetic files from `auxfiles/nd2-fixtures/generate.py`, sharing no code with
 the driver (and not with `nd2spec.py`, so fixtures and reference parser cannot
 share a mistake), committed in `src/tests/nd2/data/`, marked `-text` in
 `.gitattributes`. Pixels are a function of `(x, y, component, frameIndex)`.
@@ -457,7 +513,9 @@ Fixtures:
 - CLX Lite with a type-76 compressed tree; XML with control characters and the
   `i0000000000`-wrapped `uLoopPars`.
 - Refusals: `uiWidth = 0`, lossy compression, tiled frames, a custom loop of 3,
-  two time loops, a truncated frame chunk.
+  two time loops, an unsupported major version, a missing trailer.
+- `truncated_frame`: a frame chunk whose declared length runs past EOF is
+  absent and reads as background; it is not a refusal (R6). *(Decided during implementation.)*
 - A tiny legacy JP2 file (encoded with OpenJPEG at generation time) with two
   channels and one codestream missing.
 
@@ -473,7 +531,8 @@ named `ND2Corpus*`; CI runs `slideio_nd2_tests --gtest_filter=-ND2Corpus*`.
 - **Pixels.** As for LIF: a one-off script turns `bioformats-regions.tsv`
   (and `bioformats-relocated.tsv`) into a CRC-32 reference file after
   confirming each SHA-256, committed in `src/tests/nd2/`. For the 4 × RGB file
-  the reference comes from `nd2` (`nd2lib-summary.json` path), not Bio-Formats.
+  the reference comes from the regions where `nd2spec` and `nd2` agree, not from
+  Bio-Formats.
   Legacy regions are compared after undoing Bio-Formats' big-endian, planar
   convention.
 - Scene count, size, channels, Z/T against the same TSV, with the recorded
@@ -481,8 +540,10 @@ named `ND2Corpus*`; CI runs `slideio_nd2_tests --gtest_filter=-ND2Corpus*`.
   `b16_pdtB+y50__crop.nd2` T 57 against 56 (R26: all 684 frames are present;
   nd2 and the file's text agree on 57).
 - `290110.tranMgc005cr.nd2` fails to open with the attributes message.
-- Resolution, magnification and T increment against Bio-Formats (extend
-  `Nd2Check.java` to record them).
+- Resolution, magnification and T increment against Bio-Formats, recorded by
+  `Nd2Scenes.java`. Final results: 3117 regions match; T 62 of 63;
+  magnification 46 of 46; T step 27 of 29; the remainder are the recorded
+  differences of §6.3. *(Decided during implementation.)*
 - Plane timestamps against `nd2`'s frame metadata on two time-lapse files.
 - `TestTools::concurrentReadIdentityTestAllScenes`; an edge read is background;
   a downscaled read of the 23641² slide stays within the read budget
@@ -528,6 +589,14 @@ named `ND2Corpus*`; CI runs `slideio_nd2_tests --gtest_filter=-ND2Corpus*`.
 - Custom loops and NE sub-loop dimensions: needs the same fifth-dimension
   decision as LIF's λ-scans.
 - Per-frame stage positions (`CustomData|X/Y/Z!`) as an API.
+- `dPosX`/`dPosY` list-style positions in Ver2.x chunked files: scene names and
+  scene raw metadata (§4.6); share the legacy reader's code.
+- Emission wavelength as a channel attribute, once a source field is identified.
+- Legacy reads decode every channel's whole codestream per region, which makes
+  the 75 s corpus regions test; cache or decode by tile if it matters.
+- Real lossy or tiled samples, to test those paths instead of refusing them.
 - Binary mask layers as auxiliary images.
 - A frame cache for zlib/legacy frames if real workloads read them repeatedly.
-- Moving the format description into `software-docs/`.
+- Moving the format description into `software-docs/`, with two corrections:
+  FD §11.3 (4_2_1 has 6 to 10 flagged points, not all 11) and FD §4.1 (type 76
+  is a 2-byte header plus 10 skipped bytes, zlib at offset 12).
