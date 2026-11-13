@@ -178,8 +178,8 @@ namespace
         return raw;
     }
 
-    /// The text of the TINF item that starts with "Metadata:"; empty when there is none.
-    std::string metadataText(const Variant& v, int depth = 0)
+    /// tinfMetadataText, `depth` levels down.
+    std::string metadataTextImpl(const Variant& v, int depth)
     {
         if (depth > kMaxLoopDepth) {
             return std::string();
@@ -189,15 +189,19 @@ namespace
                 && m.second.asString().compare(0, 9, "Metadata:") == 0) {
                 return m.second.asString();
             }
-            const std::string found = metadataText(m.second, depth + 1);
+            const std::string found = metadataTextImpl(m.second, depth + 1);
             if (!found.empty()) {
                 return found;
             }
         }
-        for (const Variant& item : v.items()) {
-            const std::string found = metadataText(item, depth + 1);
-            if (!found.empty()) {
-                return found;
+        // An indexed Map's items() are its members again: walking both would visit
+        // each child twice per level, 2^depth in all.
+        if (v.kind() == Variant::Kind::List) {
+            for (const Variant& item : v.items()) {
+                const std::string found = metadataTextImpl(item, depth + 1);
+                if (!found.empty()) {
+                    return found;
+                }
             }
         }
         return std::string();
@@ -437,6 +441,11 @@ std::vector<const Box*> LegacyFile::all(const std::string& limType) const
 
 // ------------------------------------------------------------------- functions
 
+std::string slideio::nd2::tinfMetadataText(const Variant& tinf)
+{
+    return metadataTextImpl(tinf, 0);
+}
+
 int64_t slideio::nd2::xyCountFromText(const std::string& textInfo)
 {
     const size_t at = textInfo.find("Dimensions:");
@@ -546,7 +555,7 @@ ImageInfo slideio::nd2::buildImageInfo(const LegacyFile& legacy, const FileReade
     }
 
     // Dimensions (FD 11.3): the AIM loops, with the XY count from the TINF text.
-    const int64_t textXY = hasTinf ? xyCountFromText(metadataText(tinf)) : -1;
+    const int64_t textXY = hasTinf ? xyCountFromText(tinfMetadataText(tinf)) : -1;
     const int64_t streams = static_cast<int64_t>(legacy.codestreams().size());
     // Design 4.5 (R25): a frame counts toward T only when the codestreams of all its
     // channels exist. A partial last frame stays readable inside T (its missing channels

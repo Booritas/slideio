@@ -65,6 +65,9 @@ namespace slideio
             bool m_signed = false;
         };
 
+        /// The text of the TINF item that starts with "Metadata:"; empty when there is none.
+        SLIDEIO_ND2_EXPORTS std::string tinfMetadataText(const Variant& tinf);
+
         /// The XY count from the `Dimensions:` line of the TINF text (FD 11.3), e.g. 5 for
         /// "Dimensions: T'(81) x XY(5) x lambda(2)"; -1 when the line has no XY(n) term.
         SLIDEIO_ND2_EXPORTS int64_t xyCountFromText(const std::string& textInfo);
