@@ -182,6 +182,34 @@ TEST(Nd2Slide, Refusals)
     expectOpenError(fixture("lossy.nd2"), "eCompression");
 }
 
+TEST(Nd2Slide, MissingTrailerRefused)
+{
+    TempFile copy("nd2");
+    std::filesystem::copy_file(fixture("v3_basic.nd2"), copy.getPath());
+    const std::string path = copy.getPath().string();
+    {
+        // Zero the 40-byte chunk map signature trailer (R18).
+        const auto size = std::filesystem::file_size(path);
+        std::fstream f(path, std::ios::in | std::ios::out | std::ios::binary);
+        ASSERT_TRUE(f.good());
+        f.seekp(static_cast<std::streamoff>(size - 40));
+        const std::string zeros(40, '\0');
+        f.write(zeros.data(), zeros.size());
+    }
+    ND2ImageDriver driver;
+    try {
+        driver.openFile(path);
+        ADD_FAILURE() << "a file without a trailer opened";
+    }
+    catch (const std::exception& e) {
+        const std::string what = e.what();
+        EXPECT_NE(std::string::npos, what.find("ND2: not a Nikon ND2 file")) << what;
+        const std::string tail = "(file: " + path + ")";
+        EXPECT_TRUE(what.size() >= tail.size() && what.compare(what.size() - tail.size(), tail.size(), tail) == 0)
+            << what;
+    }
+}
+
 namespace
 {
     // The loop order of each fixture, written down from auxfiles/nd2-fixtures (not

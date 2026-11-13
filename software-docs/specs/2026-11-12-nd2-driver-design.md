@@ -512,8 +512,10 @@ Fixtures:
   4 × RGB.
 - CLX Lite with a type-76 compressed tree; XML with control characters and the
   `i0000000000`-wrapped `uLoopPars`.
-- Refusals: `uiWidth = 0`, lossy compression, tiled frames, a custom loop of 3,
-  two time loops, an unsupported major version, a missing trailer.
+- Refusals: `bad_width`, `lossy`, `tiled`, `custom_loop`, `two_time_loops`,
+  `bad_comp`, `not_nd2`. The unsupported major version and the missing trailer
+  have no fixtures of their own: they are tested by patching temporary copies
+  (`Nd2ChunkFile.RejectsUnsupportedMajor`, `Nd2Slide.MissingTrailerRefused`).
 - `truncated_frame`: a frame chunk whose declared length runs past EOF is
   absent and reads as background; it is not a refusal (R6). *(Decided during implementation.)*
 - A tiny legacy JP2 file (encoded with OpenJPEG at generation time) with two
