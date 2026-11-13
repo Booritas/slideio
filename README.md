@@ -4,6 +4,7 @@ Relevant resources:
 - [Core C++ **SlideIO** library](https://github.com/Booritas/slideio)
 - [**SlideIO** Python bindings](https://github.com/Booritas/slideio-python)
 - [**SlideIO** Python tutorial](https://github.com/Booritas/slideio-tutorial)
+- [**SlideIO** Viewer](https://github.com/Booritas/slideio-view) - a desktop application for viewing whole-slide images, built on SlideIO
 - [**SlideIO** Home page](https://www.slideio.com/)
 - [**SlideIO** Python API documentation](https://www.slideio.com/sphinx)
 
