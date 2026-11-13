@@ -99,11 +99,11 @@ void ND2Slide::init(const ResampleLimits& limits)
     std::shared_ptr<const ImageInfo> info;
     if (legacy) {
         boxes = std::make_unique<LegacyFile>(LegacyFile::read(*m_file));
-        info = std::make_shared<const ImageInfo>(buildImageInfo(*boxes, *m_file, stem));
+        info = std::make_shared<const ImageInfo>(buildImageInfo(*boxes, m_file, stem));
     }
     else {
         chunks = std::make_unique<ChunkFile>(ChunkFile::read(*m_file));
-        info = std::make_shared<const ImageInfo>(buildImageInfo(*chunks, *m_file, stem));
+        info = std::make_shared<const ImageInfo>(buildImageInfo(*chunks, m_file, stem));
     }
 
     // uiComp > CV_CN_MAX is refused by Attributes::parse and parseChannels (chunked and

@@ -484,9 +484,10 @@ int64_t slideio::nd2::xyCountFromText(const std::string& textInfo)
     return -1;
 }
 
-ImageInfo slideio::nd2::buildImageInfo(const LegacyFile& legacy, const FileReader& file,
+ImageInfo slideio::nd2::buildImageInfo(const LegacyFile& legacy, std::shared_ptr<const FileReader> fileRef,
     const std::string& fileStem)
 {
+    const FileReader& file = *fileRef;
     ImageInfo info;
     nlohmann::json raw = nlohmann::json::object();
     raw["version"] = "1.0";
@@ -571,17 +572,22 @@ ImageInfo slideio::nd2::buildImageInfo(const LegacyFile& legacy, const FileReade
     for (int64_t f = 0; f < completeFrames; ++f) {
         present.insert(f);
     }
-    // Frame times: TimeMSec of each frame's VIMD, else NaN. Read as far as a fitted T
-    // could reach (R31), so surplus time points can be checked against them (R29).
-    const std::vector<const Box*> vimds = legacy.all("VIMD");
-    const int64_t reach = info.experiment.loopProduct() + static_cast<int64_t>(present.size());
-    std::vector<double> times(static_cast<size_t>(reach), kNaN);
-    for (int64_t f = 0; f < reach && f < static_cast<int64_t>(vimds.size()); ++f) {
-        times[static_cast<size_t>(f)] = f == 0
-            ? number(&vimd, "dTimeMSec", kNaN) : frameTime(legacy, file, *vimds[static_cast<size_t>(f)]);
+    // Frame times: TimeMSec of each frame's VIMD, else NaN. Available as far as a fitted
+    // T could reach (R31), so surplus time points can be checked against them (R29); each
+    // frame's VIMD is read when its time is first asked for (PR review).
+    auto vimds = std::make_shared<std::vector<Box>>();
+    for (const Box* box : legacy.all("VIMD")) {
+        vimds->push_back(*box);
     }
+    auto boxes = std::make_shared<const LegacyFile>(legacy);
+    const int64_t reach = info.experiment.loopProduct() + static_cast<int64_t>(present.size());
+    FrameTimes times({ hasVimd ? number(&vimd, "dTimeMSec", kNaN) : kNaN }, reach,
+        [fileRef, boxes, vimds](int64_t frame) {
+            return frame < static_cast<int64_t>(vimds->size())
+                ? frameTime(*boxes, *fileRef, (*vimds)[static_cast<size_t>(frame)]) : kNaN;
+        });
     info.experiment.fitTime(present, times);
-    times.resize(static_cast<size_t>(info.experiment.loopProduct()), kNaN);
+    times.resize(info.experiment.loopProduct());
     info.frameTimesMs = std::move(times);
     info.positions = buildPositions(info.experiment, fileStem);
 

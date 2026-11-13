@@ -77,7 +77,8 @@ namespace slideio
 
         /// Design 4.7. Throws Unsupported for an unsupported file and RuntimeError for a
         /// damaged one.
-        SLIDEIO_ND2_EXPORTS ImageInfo buildImageInfo(const LegacyFile& legacy, const FileReader& file,
+        /// Keeps `file` (and a copy of `legacy`'s boxes) for the frame times it reads later.
+        SLIDEIO_ND2_EXPORTS ImageInfo buildImageInfo(const LegacyFile& legacy, std::shared_ptr<const FileReader> file,
             const std::string& fileStem);
     }
 }

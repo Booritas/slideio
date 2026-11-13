@@ -9,6 +9,7 @@
 #include "slideio/core/tools/tiledareadownscale.hpp"
 #include <cstdint>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -45,9 +46,9 @@ namespace slideio
         double getZSliceResolution() const override;
         double getTFrameResolution() const override;
         int getChannelSignificantBits(int channel) const override;
-        bool hasPlaneTimestamps() const override { return m_hasTimestamps; }
+        bool hasPlaneTimestamps() const override;
         double getPlaneTimestamp(int tFrame, int channel, int zSlice) const override;
-        int64_t getAcquisitionTime() const override { return m_acquisitionTime; }
+        int64_t getAcquisitionTime() const override;
         double getMagnification() const override;
         Compression getCompression() const override { return m_compression; }
         bool supportsConcurrentReads() const override { return true; }
@@ -58,7 +59,9 @@ namespace slideio
             cv::OutputArray output) override;
     private:
         void checkChannel(int channel) const;
-        void initTimestamps();
+        // Design 6.3, 6.4: the time step and timestamps, worked out on first use, since
+        // they read the times of the scene's frames (PR review: not at open).
+        void initTimes() const;
         // Reads `rect` (inside the frame) of `frame` at native size, one plane per
         // entry of `channels`; zeros when the frame is absent. Through `cursor` when
         // one is given (the tiles of one tiled read), else straight from the source.
@@ -76,17 +79,19 @@ namespace slideio
         ResampleLimits m_limits;
         int m_numZ = 1;
         int m_numT = 1;
+        // Set once by initTimes.
+        mutable std::once_flag m_timesOnce;
         // Seconds: the measured step at this scene's position, else the nominal period.
-        double m_tStep = 0;
-        bool m_hasTimestamps = false;
+        mutable double m_tStep = 0;
+        mutable bool m_hasTimestamps = false;
         // dTimeAbsolute is known (>= 1, design 6.4).
-        bool m_hasAbsoluteTime = false;
-        int64_t m_acquisitionTime = 0;
+        mutable bool m_hasAbsoluteTime = false;
+        mutable int64_t m_acquisitionTime = 0;
         // Seconds from m_acquisitionTime to the scene's earliest frame, in [0, 1)
         // with an absolute time, 0 without.
-        double m_firstOffset = 0;
+        mutable double m_firstOffset = 0;
         // The scene's earliest frame time, ms.
-        double m_earliestMs = 0;
+        mutable double m_earliestMs = 0;
     };
 }
 

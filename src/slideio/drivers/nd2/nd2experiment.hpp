@@ -5,6 +5,7 @@
 
 #include "slideio/drivers/nd2/nd2_api_def.hpp"
 #include "slideio/drivers/nd2/nd2attributes.hpp"
+#include "slideio/drivers/nd2/nd2frametimes.hpp"
 #include "slideio/drivers/nd2/nd2variant.hpp"
 #include <cstdint>
 #include <set>
@@ -72,7 +73,7 @@ namespace slideio
             ///   decides. The first time point failing either test stops it, and frames
             ///   at or past loopProduct() + presentFrames.size() never count.
             /// Does nothing when T is not the outermost loop or no frame lies inside it.
-            void fitTime(const std::set<int64_t>& presentFrames, const std::vector<double>& frameTimesMs = {});
+            void fitTime(const std::set<int64_t>& presentFrames, const FrameTimes& frameTimesMs = FrameTimes());
             /// nullptr when there is no loop on this axis.
             const Loop* loop(Axis a) const;
 

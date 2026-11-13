@@ -18,8 +18,8 @@ namespace
     ImageInfo infoOf(const char* name)
     {
         const std::string path = std::string(ND2_TEST_DATA_DIR) + "/" + name;
-        FileReader file(path);
-        const ChunkFile chunks = ChunkFile::read(file);
+        auto file = std::make_shared<const FileReader>(path);
+        const ChunkFile chunks = ChunkFile::read(*file);
         std::string stem = name;
         stem = stem.substr(0, stem.rfind('.'));
         return buildImageInfo(chunks, file, stem);
@@ -68,11 +68,11 @@ TEST(Nd2ImageInfo, Positions)
 TEST(Nd2ImageInfo, FrameTimes)
 {
     const ImageInfo tpz = infoOf("v3_tpz.nd2");
-    ASSERT_EQ(tpz.frameTimesMs.size(), 24u);
+    ASSERT_EQ(tpz.frameTimesMs.size(), 24);
     EXPECT_EQ(tpz.frameTimesMs[5], 500.0);
     // v20_unpadded has no AcqTimesCache: the times come from the frame prefixes
     const ImageInfo v20 = infoOf("v20_unpadded.nd2");
-    ASSERT_EQ(v20.frameTimesMs.size(), 3u);
+    ASSERT_EQ(v20.frameTimesMs.size(), 3);
     EXPECT_EQ(v20.frameTimesMs[0], 0.0);
     EXPECT_EQ(v20.frameTimesMs[2], 200.0);
 }
@@ -82,41 +82,57 @@ TEST(Nd2ImageInfo, FrameTimesMissingFrames)
     // frames 0-5 except 3 exist; T5 x Z2 trims to T3 = 6 frames. The cache covers frame 3,
     // so its time is the cache value although the frame itself is absent.
     const ImageInfo info = infoOf("frames_missing.nd2");
-    ASSERT_EQ(info.frameTimesMs.size(), 6u);
+    ASSERT_EQ(info.frameTimesMs.size(), 6);
     EXPECT_EQ(info.frameTimesMs[3], 300.0);
     EXPECT_EQ(info.frameTimesMs[4], 400.0);
     EXPECT_EQ(info.frameTimesMs[0], 0.0);
 }
 
-TEST(Nd2ImageInfo, MergeFrameTimesShortCache)
+TEST(Nd2ImageInfo, FrameTimesShortCache)
 {
-    // The cache covers 2 of 5 frames; frames 2 and 4 exist, frame 3 does not.
-    const std::vector<double> cache = { 0.0, 100.0 };
-    const std::vector<double> t = mergeFrameTimes(cache, 5, [](int64_t frame, double& out) {
-        if (frame == 2 || frame == 4) {
-            out = 1000.0 + static_cast<double>(frame);
-            return true;
-        }
-        return false;
+    // The table covers 2 of 5 frames; frames 2 and 4 have a prefix time, frame 3 none.
+    int reads = 0;
+    const FrameTimes t({ 0.0, 100.0 }, 5, [&reads](int64_t frame) {
+        ++reads;
+        return frame == 2 || frame == 4 ? 1000.0 + static_cast<double>(frame)
+                                        : std::numeric_limits<double>::quiet_NaN();
     });
-    ASSERT_EQ(t.size(), 5u);
+    ASSERT_EQ(t.size(), 5);
     EXPECT_EQ(t[0], 0.0);
     EXPECT_EQ(t[1], 100.0);
+    EXPECT_EQ(reads, 0);   // the table answers without reading
     EXPECT_EQ(t[2], 1002.0);
     EXPECT_TRUE(std::isnan(t[3]));
     EXPECT_EQ(t[4], 1004.0);
-    // a cache longer than the loop product is clipped and the reader is not consulted
-    const std::vector<double> clipped = mergeFrameTimes({ 1, 2, 3, 4 }, 2, [](int64_t, double&) {
+    EXPECT_TRUE(std::isnan(t[5]));    // past the count: not read
+    EXPECT_TRUE(std::isnan(t[-1]));
+    EXPECT_EQ(reads, 3);
+    // PR review: a time is read when first asked for, once, however often it is asked.
+    EXPECT_EQ(t[2], 1002.0);
+    const FrameTimes copy = t;        // copies share what has been read
+    EXPECT_EQ(copy[4], 1004.0);
+    EXPECT_EQ(reads, 3);
+
+    // A table longer than the count is cut, and the reader is not consulted.
+    FrameTimes clipped({ 1, 2, 3, 4 }, 2, [](int64_t) {
         ADD_FAILURE() << "prefix reader must not run";
-        return false;
+        return 0.0;
     });
-    EXPECT_EQ(clipped, (std::vector<double>{ 1, 2 }));
-    // no cache at all: everything comes from the prefixes
-    const std::vector<double> none = mergeFrameTimes({}, 2, [](int64_t f, double& out) {
-        out = 10.0 * static_cast<double>(f);
-        return true;
-    });
-    EXPECT_EQ(none, (std::vector<double>{ 0, 10 }));
+    EXPECT_EQ(clipped[1], 2.0);
+    EXPECT_TRUE(std::isnan(clipped[2]));
+    // resize shortens what is visible.
+    clipped.resize(1);
+    EXPECT_TRUE(std::isnan(clipped[1]));
+}
+
+// PR review: nothing is sized by the declared frame count, so 2^31 declared frames
+// cost nothing until a time is read.
+TEST(Nd2ImageInfo, FrameTimesForHugeCounts)
+{
+    const int64_t count = int64_t(1) << 31;
+    const FrameTimes t({}, count, [](int64_t frame) { return static_cast<double>(frame); });
+    EXPECT_EQ(t.size(), count);
+    EXPECT_EQ(t[count - 1], static_cast<double>(count - 1));
 }
 
 namespace

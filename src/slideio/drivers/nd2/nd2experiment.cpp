@@ -401,14 +401,14 @@ namespace
 {
     // Earliest and latest known (not NaN) time of frames [first, first + n); false when
     // none is known.
-    bool timeSpan(const std::vector<double>& times, int64_t first, int64_t n, double& lo, double& hi)
+    bool timeSpan(const FrameTimes& times, int64_t first, int64_t n, double& lo, double& hi)
     {
         bool any = false;
         for (int64_t f = first; f < first + n; ++f) {
-            if (f < 0 || f >= static_cast<int64_t>(times.size()) || std::isnan(times[static_cast<size_t>(f)])) {
+            const double v = times[f];
+            if (std::isnan(v)) {
                 continue;
             }
-            const double v = times[static_cast<size_t>(f)];
             lo = any ? std::min(lo, v) : v;
             hi = any ? std::max(hi, v) : v;
             any = true;
@@ -417,7 +417,7 @@ namespace
     }
 }
 
-void Experiment::fitTime(const std::set<int64_t>& presentFrames, const std::vector<double>& frameTimesMs)
+void Experiment::fitTime(const std::set<int64_t>& presentFrames, const FrameTimes& frameTimesMs)
 {
     if (m_loops.empty() || m_loops.front().axis != Axis::T || presentFrames.empty()) {
         return;

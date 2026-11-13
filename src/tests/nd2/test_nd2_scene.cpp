@@ -581,7 +581,7 @@ TEST(Nd2FrameSource, CorruptZlibThrows)
     }
     auto file = std::make_shared<const FileReader>(copy.getPath().string());
     const nd2::ChunkFile chunks = nd2::ChunkFile::read(*file);
-    const nd2::ImageInfo info = nd2::buildImageInfo(chunks, *file, "copy");
+    const nd2::ImageInfo info = nd2::buildImageInfo(chunks, file, "copy");
     auto frames = nd2::makeChunkFrameSource(file, chunks, info.attributes);
     ASSERT_TRUE(frames->hasFrame(0));
     cv::Mat out;
@@ -604,7 +604,7 @@ TEST(Nd2FrameSource, CursorMatchesReadRows)
 {
     auto file = std::make_shared<const FileReader>(fixture("v20_zlib.nd2"));
     const nd2::ChunkFile chunks = nd2::ChunkFile::read(*file);
-    const nd2::ImageInfo info = nd2::buildImageInfo(chunks, *file, "v20_zlib");
+    const nd2::ImageInfo info = nd2::buildImageInfo(chunks, file, "v20_zlib");
     ASSERT_EQ(nd2::FrameCompression::Zlib, info.attributes.compression);
     expectCursorMatches(nd2::makeChunkFrameSource(file, chunks, info.attributes), 1,
         info.attributes.width, info.attributes.height);

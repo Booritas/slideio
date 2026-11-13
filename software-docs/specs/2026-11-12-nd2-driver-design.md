@@ -448,6 +448,12 @@ Per-frame time is `CustomData|AcqTimesCache!` (float64 ms, indexed by frame
 index), or, if that chunk is absent, each frame's 8-byte prefix (FD §6; equal
 in all 53 samples that have both). Frames past the end of a short cache take
 their time from the prefix too, not NaN (R17). *(Decided during implementation.)*
+The times are an `nd2::FrameTimes`: the cache table as it is, and a frame's
+prefix (or a legacy frame's `VIMD`) read the first time that frame's time is
+asked for, then kept. Opening a file reads only the times the T fit (R29) needs;
+a scene works out its step and timestamps on first use. Nothing is sized by the
+declared frame count. *(Decided after the PR review: open used to make one
+positional read per frame, and the time vector could reach 2^31 doubles.)*
 
 - `hasPlaneTimestamps()` is true when every frame of the scene that exists has
   a time and none is NaN. Missing frames return the scene's acquisition offset
@@ -489,11 +495,16 @@ their time from the prefix too, not NaN (R17). *(Decided during implementation.)
      the rect spans the full width, else one read per row of `w·uiComp·bytes`
      bytes starting at column `x`. All components come with one read; the
      requested channels are picked out with `cv::mixChannels` (or `extractChannel`).
-   - **zlib**: inflate the frame as a stream into a one-row buffer, discarding
-     rows before `y` and stopping after `y+h−1`. No cache. *(My call: only two
-     tiny Ver2.0 files use it; correctness over speed.)*
+   - **zlib**: inflate the frame as a stream, discarding rows before `y` and
+     stopping after `y+h−1`; the compressed data is read in 1 MiB blocks.
    - **Legacy**: decode the channel's codestream with
-     `ImageTools::decodeJp2KStream` and crop. No cache.
+     `ImageTools::decodeJp2KStream` and crop.
+
+   A tiled downscale reads the tiles of one frame through one
+   `nd2::FrameCursor`, so a compressed frame is decoded once per read, not once
+   per tile: a zlib cursor keeps its inflate position and the full-width rows of
+   the last band, and a legacy cursor keeps each channel's decoded codestream.
+   *(Decided after the PR review.)*
 4. Resize to the requested size with the helper other drivers use.
 
 **Large downscaled reads.** The 23641² frame is 2.2 GB of uint16 × 2. A
@@ -619,11 +630,13 @@ named `ND2Corpus*`; CI runs `slideio_nd2_tests --gtest_filter=-ND2Corpus*`.
 - `dPosX`/`dPosY` list-style positions in Ver2.x chunked files: scene names and
   scene raw metadata (§4.6); share the legacy reader's code.
 - Emission wavelength as a channel attribute, once a source field is identified.
-- Legacy reads decode every channel's whole codestream per region, which makes
-  the 75 s corpus regions test; cache or decode by tile if it matters.
+- Legacy reads decode every channel's whole codestream per read (once per read
+  since the cursors), which makes the 75 s corpus regions test; OpenJPEG's
+  decode-area or reduced-resolution decoding would cut both time and the
+  whole-frame memory a legacy cursor holds.
 - Real lossy or tiled samples, to test those paths instead of refusing them.
 - Binary mask layers as auxiliary images.
 - A frame cache for zlib/legacy frames if real workloads read them repeatedly.
-- Moving the format description into `software-docs/`, with two corrections:
-  FD §11.3 (4_2_1 has 6 to 10 flagged points, not all 11) and FD §4.1 (type 76
-  is a 2-byte header plus 10 skipped bytes, zlib at offset 12).
+- Moving the format description into `software-docs/`. Its two errors are
+  corrected in place (2026-11-13): FD §11.3 (4_2_1 has 6 to 10 flagged points,
+  not all 11) and FD §4.1 (type 76 is a 2-byte header plus 10 skipped bytes, zlib at offset 12).

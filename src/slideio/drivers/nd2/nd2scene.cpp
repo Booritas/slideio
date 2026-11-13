@@ -47,9 +47,6 @@ ND2Scene::ND2Scene(const std::string& filePath, int position, std::shared_ptr<co
         }
     }
 
-    initTimestamps();
-    // Design 6.3 (R30): this scene's own measured step, else the nominal period.
-    m_tStep = nd2::timeStepSeconds(m_info->experiment, m_info->frameTimesMs, m_position);
 
     m_rawMetadata = pos.rawJson;
     m_metadataFormat = pos.rawJson.empty() ? MetadataFormat::None : MetadataFormat::JSON;
@@ -58,11 +55,14 @@ ND2Scene::ND2Scene(const std::string& filePath, int position, std::shared_ptr<co
     m_levels.emplace_back(0, size, 1.0, getMagnification(), size);
 }
 
-void ND2Scene::initTimestamps()
+void ND2Scene::initTimes() const
 {
+    // Design 6.3 (R30): this scene's own measured step, else the nominal period.
+    m_tStep = nd2::timeStepSeconds(m_info->experiment, m_info->frameTimesMs, m_position);
+
     // Design 6.4. Frame times are ms by frame index; a plane's time is its frame's.
     const Experiment& experiment = m_info->experiment;
-    const std::vector<double>& times = m_info->frameTimesMs;
+    const nd2::FrameTimes& times = m_info->frameTimesMs;
     bool anyPresent = false;
     bool allKnown = true;
     double earliest = std::numeric_limits<double>::infinity();
@@ -73,8 +73,7 @@ void ND2Scene::initTimestamps()
                 continue;
             }
             anyPresent = true;
-            const double ms = frame < static_cast<int64_t>(times.size())
-                ? times[static_cast<size_t>(frame)] : std::numeric_limits<double>::quiet_NaN();
+            const double ms = times[frame];
             if (std::isnan(ms)) {
                 allKnown = false;
             }
@@ -142,7 +141,20 @@ double ND2Scene::getZSliceResolution() const
 
 double ND2Scene::getTFrameResolution() const
 {
+    std::call_once(m_timesOnce, [this] { initTimes(); });
     return m_tStep;
+}
+
+bool ND2Scene::hasPlaneTimestamps() const
+{
+    std::call_once(m_timesOnce, [this] { initTimes(); });
+    return m_hasTimestamps;
+}
+
+int64_t ND2Scene::getAcquisitionTime() const
+{
+    std::call_once(m_timesOnce, [this] { initTimes(); });
+    return m_acquisitionTime;
 }
 
 int ND2Scene::getChannelSignificantBits(int channel) const
@@ -162,6 +174,7 @@ double ND2Scene::getPlaneTimestamp(int tFrame, int channel, int zSlice) const
         RAISE_RUNTIME_ERROR << "ND2: plane (t " << tFrame << ", z " << zSlice << ") is out of range ["
             << m_numT << " x " << m_numZ << "] in scene \"" << m_name << "\"";
     }
+    std::call_once(m_timesOnce, [this] { initTimes(); });
     if (!m_hasTimestamps) {
         return 0.;
     }
@@ -170,7 +183,7 @@ double ND2Scene::getPlaneTimestamp(int tFrame, int channel, int zSlice) const
         return 0.;
     }
     // Every present frame of the scene has a time (m_hasTimestamps), at or after the earliest.
-    const double ms = m_info->frameTimesMs[static_cast<size_t>(frame)];
+    const double ms = m_info->frameTimesMs[frame];
     if (!m_hasAbsoluteTime) {
         return ms / 1000.;   // relative to the experiment start
     }

@@ -135,10 +135,10 @@ TEST(Nd2Legacy, Dimensions)
 
 TEST(Nd2Legacy, FrameTimes)
 {
-    FileReader file(fixture("legacy.nd2"));
-    const LegacyFile legacy = LegacyFile::read(file);
+    auto file = std::make_shared<const FileReader>(fixture("legacy.nd2"));
+    const LegacyFile legacy = LegacyFile::read(*file);
     const ImageInfo info = buildImageInfo(legacy, file, "legacy");
-    ASSERT_EQ(2u, info.frameTimesMs.size());
+    ASSERT_EQ(2, info.frameTimesMs.size());
     EXPECT_DOUBLE_EQ(0., info.frameTimesMs[0]);
     EXPECT_DOUBLE_EQ(100., info.frameTimesMs[1]);
     EXPECT_DOUBLE_EQ(2460000.5, info.absoluteJulianDay);
@@ -371,8 +371,8 @@ TEST(Nd2Legacy, RgbWithoutPicturePlanes)
         }
     }
 
-    FileReader file(fixture("legacy_rgb.nd2"));
-    const LegacyFile legacy = LegacyFile::read(file);
+    auto file = std::make_shared<const FileReader>(fixture("legacy_rgb.nd2"));
+    const LegacyFile legacy = LegacyFile::read(*file);
     EXPECT_EQ(3, legacy.components());
     EXPECT_EQ(2u, legacy.codestreams().size());
     const ImageInfo info = buildImageInfo(legacy, file, "legacy_rgb");

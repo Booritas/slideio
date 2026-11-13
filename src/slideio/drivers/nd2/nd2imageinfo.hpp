@@ -7,6 +7,7 @@
 #include "slideio/drivers/nd2/nd2attributes.hpp"
 #include "slideio/drivers/nd2/nd2chunkfile.hpp"
 #include "slideio/drivers/nd2/nd2experiment.hpp"
+#include "slideio/drivers/nd2/nd2frametimes.hpp"
 #include "slideio/drivers/nd2/nd2variant.hpp"
 #include <cstdint>
 #include <functional>
@@ -48,17 +49,18 @@ namespace slideio
             double magnification = 0;
             /// Julian day of the acquisition start; 0 = unknown.
             double absoluteJulianDay = 0;
-            /// Milliseconds by frame index (length = the loop product). Each entry is the
-            /// `CustomData|AcqTimesCache!` value when the cache covers that index; entries past
-            /// the end of a short (or absent) cache come from the frame's own 8-byte prefix
-            /// when the frame exists. NaN where neither exists.
-            std::vector<double> frameTimesMs;
+            /// Milliseconds by frame index (size = the loop product). Each time is the
+            /// `CustomData|AcqTimesCache!` value when the cache covers that index; past the
+            /// end of a short (or absent) cache it is the frame's own 8-byte prefix when the
+            /// frame exists, read when first asked for. NaN where neither exists.
+            FrameTimes frameTimesMs;
             /// Slide raw metadata (design 6.5).
             std::string rawJson;
         };
 
         /// Throws Unsupported for an unsupported file and RuntimeError for a damaged one.
-        SLIDEIO_ND2_EXPORTS ImageInfo buildImageInfo(const ChunkFile& chunks, const FileReader& file,
+        /// Keeps `file` for the frame times it reads later.
+        SLIDEIO_ND2_EXPORTS ImageInfo buildImageInfo(const ChunkFile& chunks, std::shared_ptr<const FileReader> file,
             const std::string& fileStem);
 
         /// Z step in metres from the parameters of a Z loop: |dZStep|, or when that is 0
@@ -66,11 +68,6 @@ namespace slideio
         /// field may also be spelled without its type prefix (`ZStep`, `Count`...), as in the
         /// legacy fixtures.
         SLIDEIO_ND2_EXPORTS double zStepFrom(const Variant& zLoopPars);
-
-        /// Frame times (ms) for `count` frames: the first cache.size() entries come from `cache`
-        /// (clipped to count); the rest from `prefixTime(frame, out)` where it returns true, else NaN.
-        SLIDEIO_ND2_EXPORTS std::vector<double> mergeFrameTimes(const std::vector<double>& cache, int64_t count,
-            const std::function<bool(int64_t, double&)>& prefixTime);
 
         /// The magnification an objective name states: the number immediately before the
         /// first 'x' or 'X' that ends a number beginning a word ("Plan Apo 60x Oil" -> 60,
@@ -82,13 +79,13 @@ namespace slideio
         /// meanStepSeconds at that p when it is > 0, else the time loop's nominal period
         /// (`dPeriod`, or the first valid NE period); 0 without a time loop. With empty
         /// `times` it is the nominal period alone.
-        SLIDEIO_ND2_EXPORTS double timeStepSeconds(const Experiment& experiment, const std::vector<double>& times,
+        SLIDEIO_ND2_EXPORTS double timeStepSeconds(const Experiment& experiment, const FrameTimes& times,
             int64_t p = 0);
 
         /// Mean difference in seconds of consecutive per-T times (ms) at XY ordinal `p`,
         /// z = 0; 0 when T < 2, p is out of range or any of those times is NaN. `times` is
         /// indexed by frame.
-        SLIDEIO_ND2_EXPORTS double meanStepSeconds(const Experiment& experiment, const std::vector<double>& times,
+        SLIDEIO_ND2_EXPORTS double meanStepSeconds(const Experiment& experiment, const FrameTimes& times,
             int64_t p = 0);
     }
 }

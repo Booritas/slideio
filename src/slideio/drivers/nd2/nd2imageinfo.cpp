@@ -5,6 +5,7 @@
 #include "slideio/drivers/nd2/nd2internal.hpp"
 #include "slideio/core/exceptions.hpp"
 #include "slideio/core/log.hpp"
+#include "slideio/core/tools/endian.hpp"
 #include "slideio/core/tools/filereader.hpp"
 
 #include <nlohmann/json.hpp>
@@ -15,6 +16,8 @@
 #include <set>
 #include <sstream>
 #include <locale>
+#include <map>
+#include <memory>
 
 using namespace slideio;
 using namespace slideio::nd2;
@@ -95,33 +98,38 @@ namespace
         return out;
     }
 
-    std::vector<double> buildFrameTimes(const ChunkFile& chunks, const FileReader& file, int64_t count)
+    /// Design 6.4: the AcqTimesCache table, then each frame's 8-byte prefix, read when
+    /// first asked for (PR review: not one positional read per frame at open).
+    FrameTimes buildFrameTimes(const ChunkFile& chunks, const std::shared_ptr<const FileReader>& file,
+        int64_t count)
     {
         std::vector<double> cache;
         const ChunkHeader* chunk = chunks.find("CustomData|AcqTimesCache!");
         if (chunk) {
-            const std::vector<uint8_t> data = chunks.readData(file, *chunk);
+            const std::vector<uint8_t> data = chunks.readData(*file, *chunk);
             cache.resize(data.size() / sizeof(double));
             if (!cache.empty()) {
                 std::memcpy(cache.data(), data.data(), cache.size() * sizeof(double));
+                Endian::fromLittleEndianToNative(cache.data(), cache.size());
             }
         }
-        const auto& frames = chunks.frames();
-        return mergeFrameTimes(cache, count, [&](int64_t frame, double& t) {
-            const auto it = frames.find(frame);
-            if (it == frames.end() || it->second.dataLength < sizeof(double)) {
-                return false;
+        auto frames = std::make_shared<const std::map<int64_t, ChunkHeader>>(chunks.frames());
+        return FrameTimes(std::move(cache), count, [file, frames](int64_t frame) {
+            const auto it = frames->find(frame);
+            if (it == frames->end() || it->second.dataLength < sizeof(double)) {
+                return kNaN;
             }
-            file.readAt(it->second.dataOffset(), &t, sizeof(t));
-            return true;
+            double t = 0;
+            file->readAt(it->second.dataOffset(), &t, sizeof(t));
+            return Endian::fromLittleEndianToNative(t);
         });
     }
 
     /// Mean difference of consecutive per-T times at p=0, z=0 in seconds; 0 unless all are known.
-    double meanStepImpl(const Experiment& experiment, const std::vector<double>& times, int64_t p)
+    double meanStepImpl(const Experiment& experiment, const FrameTimes& times, int64_t p)
     {
         const int64_t n = experiment.count(Axis::T);
-        if (static_cast<int64_t>(times.size()) < experiment.loopProduct()) {
+        if (times.size() < experiment.loopProduct()) {
             return 0;
         }
         if (n < 2) {
@@ -130,10 +138,10 @@ namespace
         if (p < 0 || p >= experiment.count(Axis::P)) {
             return 0;
         }
-        const double first = times[static_cast<size_t>(experiment.frameIndex(0, p, 0))];
+        const double first = times[experiment.frameIndex(0, p, 0)];
         double last = first;
         for (int64_t t = 1; t < n; ++t) {
-            last = times[static_cast<size_t>(experiment.frameIndex(t, p, 0))];
+            last = times[experiment.frameIndex(t, p, 0)];
             if (std::isnan(first) || std::isnan(last)) {
                 return 0;
             }
@@ -183,9 +191,10 @@ double slideio::nd2::zStepFrom(const Variant& pars)
     return um * kMicro;
 }
 
-ImageInfo slideio::nd2::buildImageInfo(const ChunkFile& chunks, const FileReader& file,
+ImageInfo slideio::nd2::buildImageInfo(const ChunkFile& chunks, std::shared_ptr<const FileReader> fileRef,
     const std::string& fileStem)
 {
+    const FileReader& file = *fileRef;
     ImageInfo info;
     nlohmann::json raw = nlohmann::json::object();
     raw["version"] = std::to_string(chunks.versionMajor()) + "." + std::to_string(chunks.versionMinor());
@@ -226,9 +235,9 @@ ImageInfo slideio::nd2::buildImageInfo(const ChunkFile& chunks, const FileReader
     // Frame times decide whether surplus time points continue the series (R29); they are
     // read as far as a fitted T could reach (R31), then cut to the fitted product.
     const int64_t reach = info.experiment.loopProduct() + static_cast<int64_t>(present.size());
-    std::vector<double> times = buildFrameTimes(chunks, file, reach);
+    FrameTimes times = buildFrameTimes(chunks, fileRef, reach);
     info.experiment.fitTime(present, times);
-    times.resize(static_cast<size_t>(info.experiment.loopProduct()), kNaN);
+    times.resize(info.experiment.loopProduct());
     info.positions = buildPositions(info.experiment, fileStem);
 
     // Design 6.3. The fields live in the picture metadata; the calibration chunk is the fallback.
@@ -265,21 +274,6 @@ ImageInfo slideio::nd2::buildImageInfo(const ChunkFile& chunks, const FileReader
     return info;
 }
 
-std::vector<double> slideio::nd2::mergeFrameTimes(const std::vector<double>& cache, int64_t count,
-    const std::function<bool(int64_t, double&)>& prefixTime)
-{
-    std::vector<double> times(static_cast<size_t>(std::max<int64_t>(count, 0)), kNaN);
-    const size_t covered = std::min(cache.size(), times.size());
-    std::copy(cache.begin(), cache.begin() + covered, times.begin());
-    for (size_t i = covered; i < times.size(); ++i) {
-        double t = 0;
-        if (prefixTime(static_cast<int64_t>(i), t)) {
-            times[i] = t;
-        }
-    }
-    return times;
-}
-
 double slideio::nd2::magnificationFromObjectiveName(const std::string& name)
 {
     const auto isDigit = [](char c) { return c >= '0' && c <= '9'; };
@@ -308,7 +302,7 @@ double slideio::nd2::magnificationFromObjectiveName(const std::string& name)
     return 0;
 }
 
-double slideio::nd2::timeStepSeconds(const Experiment& experiment, const std::vector<double>& times, int64_t p)
+double slideio::nd2::timeStepSeconds(const Experiment& experiment, const FrameTimes& times, int64_t p)
 {
     const Loop* t = experiment.loop(Axis::T);
     if (!t) {
@@ -318,7 +312,7 @@ double slideio::nd2::timeStepSeconds(const Experiment& experiment, const std::ve
     return measured > 0 ? measured : std::max(0., detail::periodOf(*t));
 }
 
-double slideio::nd2::meanStepSeconds(const Experiment& experiment, const std::vector<double>& times, int64_t p)
+double slideio::nd2::meanStepSeconds(const Experiment& experiment, const FrameTimes& times, int64_t p)
 {
     return meanStepImpl(experiment, times, p);
 }
