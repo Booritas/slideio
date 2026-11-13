@@ -48,7 +48,10 @@ namespace slideio
             int bits() const { return m_bits; }
             bool signedSamples() const { return m_signed; }
             /// The data of a box of this file.
-            std::vector<uint8_t> readBox(const FileReader& file, const Box& box) const;
+            /// A box longer than `maxBytes` is refused before anything is allocated: the
+            /// default bounds a metadata box.
+            std::vector<uint8_t> readBox(const FileReader& file, const Box& box,
+                uint64_t maxBytes = kMaxMetadataBytes) const;
             /// The first box with this LIM type (VIMD, VCAL, AIM1, AIMD, TINF, ACAL, ...);
             /// nullptr when there is none.
             const Box* first(const std::string& limType) const;

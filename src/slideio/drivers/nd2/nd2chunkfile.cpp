@@ -383,10 +383,14 @@ const ChunkHeader* ChunkFile::find(const std::string& name) const
     return it == m_chunks.end() ? nullptr : &it->second;
 }
 
-std::vector<uint8_t> ChunkFile::readData(const FileReader& file, const ChunkHeader& chunk) const
+std::vector<uint8_t> ChunkFile::readData(const FileReader& file, const ChunkHeader& chunk, uint64_t maxBytes) const
 {
     if (!dataInFile(chunk, file.size())) {
         RAISE_RUNTIME_ERROR << "ND2: chunk at " << chunk.offset << " runs past the end of the file";
+    }
+    if (chunk.dataLength > maxBytes) {
+        RAISE_RUNTIME_ERROR << "ND2: chunk at " << chunk.offset << " declares " << chunk.dataLength
+            << " bytes, more than the " << maxBytes << " it may hold";
     }
     if (chunk.dataLength > std::numeric_limits<size_t>::max()) {
         RAISE_RUNTIME_ERROR << "ND2: chunk at " << chunk.offset << " is too large to read";

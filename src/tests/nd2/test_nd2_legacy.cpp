@@ -73,6 +73,10 @@ TEST(Nd2Legacy, Boxes)
     EXPECT_NE(nullptr, legacy.first("AIM1"));
     EXPECT_NE(nullptr, legacy.first("TINF"));
     EXPECT_EQ(nullptr, legacy.first("ACAL"));
+    // PR review P2: a metadata box longer than the bound is refused before it is allocated.
+    const Box& vimd = *legacy.first("VIMD");
+    EXPECT_ANY_THROW(legacy.readBox(file, vimd, vimd.dataLength - 1));
+    EXPECT_EQ(vimd.dataLength, legacy.readBox(file, vimd).size());
     for (const Box& box : legacy.codestreams()) {
         EXPECT_EQ("jp2c", box.type);
         const std::vector<uint8_t> data = legacy.readBox(file, box);

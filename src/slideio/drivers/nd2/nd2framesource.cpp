@@ -344,7 +344,9 @@ namespace
                 }
                 cv::Mat& decoded = channels[static_cast<size_t>(c)];
                 try {
-                    const std::vector<uint8_t> data = m_legacy.readBox(*m_file, streams[static_cast<size_t>(index)]);
+                    // A codestream is pixel data, bounded only by the file.
+                    const std::vector<uint8_t> data = m_legacy.readBox(*m_file, streams[static_cast<size_t>(index)],
+                        std::numeric_limits<uint64_t>::max());
                     ImageTools::decodeJp2KStream(data.data(), data.size(), decoded);
                 }
                 catch (const std::exception& e) {

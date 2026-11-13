@@ -406,10 +406,11 @@ LegacyFile LegacyFile::read(const FileReader& file)
     return legacy;
 }
 
-std::vector<uint8_t> LegacyFile::readBox(const FileReader& file, const Box& box) const
+std::vector<uint8_t> LegacyFile::readBox(const FileReader& file, const Box& box, uint64_t maxBytes) const
 {
-    if (box.dataLength > std::numeric_limits<size_t>::max()) {
-        damaged("legacy box at offset " + std::to_string(box.offset) + " is too large to read");
+    if (box.dataLength > maxBytes || box.dataLength > std::numeric_limits<size_t>::max()) {
+        damaged("legacy box at offset " + std::to_string(box.offset) + " declares "
+            + std::to_string(box.dataLength) + " bytes, more than it may hold");
     }
     std::vector<uint8_t> data(static_cast<size_t>(box.dataLength));
     if (!data.empty()) {

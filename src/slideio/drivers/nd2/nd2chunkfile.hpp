@@ -28,6 +28,11 @@ namespace slideio
             uint64_t dataOffset() const;
         };
 
+        /// The most a metadata chunk or box may hold (PR review P2). A damaged length
+        /// could otherwise allocate gigabytes before the decoder sees a byte. The largest
+        /// metadata chunk in the corpus is a few MiB.
+        constexpr uint64_t kMaxMetadataBytes = uint64_t(256) << 20;
+
         /// The container of a chunked (Ver2.x / Ver3.x) Nikon ND2 file: the signature
         /// chunk, the chunk map and a verified name -> header table. Holds no file
         /// handle; payloads are read by whoever owns the FileReader.
@@ -46,8 +51,10 @@ namespace slideio
             /// The chunk with this name (including the trailing '!'); nullptr if
             /// there is none or its data runs past EOF.
             const ChunkHeader* find(const std::string& name) const;
-            /// The data of a chunk found in this file.
-            std::vector<uint8_t> readData(const FileReader& file, const ChunkHeader& chunk) const;
+            /// The data of a chunk found in this file. A chunk longer than `maxBytes` is
+            /// refused before anything is allocated: the default bounds a metadata chunk.
+            std::vector<uint8_t> readData(const FileReader& file, const ChunkHeader& chunk,
+                uint64_t maxBytes = kMaxMetadataBytes) const;
             /// `ImageDataSeq|N!` chunks by N, verified.
             const std::map<int64_t, ChunkHeader>& frames() const { return m_frames; }
             /// True if the table was rebuilt by scanning rather than taken from the map.

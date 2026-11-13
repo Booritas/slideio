@@ -211,6 +211,9 @@ TEST(Nd2ChunkFile, ReadDataReturnsChunkPayload)
     const ChunkHeader* attrs = c.find("ImageAttributesLV!");
     ASSERT_NE(attrs, nullptr);
     EXPECT_EQ(c.readData(file, *attrs).size(), attrs->dataLength);
+    // PR review P2: a chunk longer than the bound is refused before it is allocated.
+    EXPECT_ANY_THROW(c.readData(file, *attrs, attrs->dataLength - 1));
+    EXPECT_EQ(c.readData(file, *attrs, attrs->dataLength).size(), attrs->dataLength);
 }
 
 TEST(Nd2ChunkFile, OffsetsAbove4GiB)
