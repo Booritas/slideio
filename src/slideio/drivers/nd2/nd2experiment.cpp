@@ -82,8 +82,17 @@ namespace
             if (out.empty() || out.back().level < level) {
                 out.push_back(std::move(loop));
             }
-            else if (out.back().level == level && out.back().type == record.type && out.back().count < loop.count) {
-                out.back() = std::move(loop);
+            else if (out.back().level == level && out.back().type == record.type) {
+                if (out.back().count < loop.count) {
+                    out.back() = std::move(loop);
+                }
+            }
+            else {
+                // A branched tree (PR review): a loop of another type at the same level, or
+                // one at a shallower level after a deeper one. [ND2] drops it silently, and
+                // then the frame order no longer matches the loops. No corpus file has one.
+                out.push_back(std::move(loop));
+                refuse("the loop tree branches", out);
             }
         }
         for (const Variant* child : record.children) {

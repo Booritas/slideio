@@ -411,6 +411,38 @@ TEST(Nd2Experiment, DeclaredFramesAreBounded)
     EXPECT_THROW(Experiment::parse(&over, maxDeclaredFrames(1)), Unsupported);
 }
 
+// PR review: a loop tree that branches cannot be flattened into one frame order, so it is
+// refused rather than one branch being dropped.
+TEST(Nd2Experiment, BranchedLoopTreeIsRefused)
+{
+    const auto loop = [](int type, int count, const std::string& children) {
+        return "<eType runtype=\"lx_uint32\" value=\"" + std::to_string(type) + "\"/>"
+            "<uLoopPars runtype=\"CLxListVariant\"><no_name runtype=\"RLxExperiment.Loop\">"
+            "<uiCount runtype=\"lx_uint32\" value=\"" + std::to_string(count) + "\"/></no_name></uLoopPars>"
+            "<ppNextLevelEx runtype=\"CLxListVariant\">" + children + "</ppNextLevelEx>";
+    };
+    const auto child = [](int index, const std::string& body) {
+        const std::string name = "i000000000" + std::to_string(index);
+        return "<" + name + " runtype=\"RLxExperiment\">" + body + "</" + name + ">";
+    };
+    const auto tree = [](const std::string& root) {
+        return decodeText("<?xml version=\"1.0\" encoding=\"UTF-8\"?><variant version=\"1.0\">"
+            "<no_name runtype=\"RLxExperiment\">" + root + "</no_name></variant>");
+    };
+    // A chain T2 > Z3 is fine.
+    const Variant chain = tree(loop(1, 2, child(0, loop(4, 3, ""))));
+    EXPECT_EQ("T2,Z3", describe(Experiment::parse(&chain)));
+    // T2 with two children of different types at the same level.
+    const Variant siblings = tree(loop(1, 2, child(0, loop(4, 3, "")) + child(1, loop(2, 4, ""))));
+    long long ms = 0;
+    const std::string why = parseRefusal(siblings, kMaxDeclaredFrames, ms);
+    EXPECT_NE(std::string::npos, why.find("ND2: unsupported experiment (the loop tree branches): T2, Z3, P4")) << why;
+    // A shallower loop after a deeper one: T2 > Z3 > P5, then a second child of T2.
+    const Variant shallower = tree(loop(1, 2, child(0, loop(4, 3, child(0, loop(2, 5, ""))))
+        + child(1, loop(4, 3, ""))));
+    EXPECT_THROW(Experiment::parse(&shallower), Unsupported);
+}
+
 TEST(Nd2Experiment, NeTimePeriodCountsAreChecked)
 {
     // A negative period count is ignored rather than subtracted.
