@@ -343,9 +343,14 @@ ChunkFile ChunkFile::read(const FileReader& file)
                 }
                 result.m_chunks[name] = header;
                 scanFrom = *dataEnd(header);
-                blockStart = scanFrom;
-                jumped = true;
-                break;
+                // The next header is usually in the block already read: keep scanning it,
+                // and read a new block only once the scan passes its end.
+                if (scanFrom - blockStart + 4 > n) {
+                    blockStart = scanFrom;
+                    jumped = true;
+                    break;
+                }
+                i = static_cast<size_t>(scanFrom - blockStart) - 1;
             }
             if (jumped) {
                 continue;

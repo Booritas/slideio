@@ -287,6 +287,38 @@ TEST(Nd2ChunkFile, ScanSkipsTruncatedChunk)
     EXPECT_NE(c.find("ImageAttributesLV!"), nullptr);
 }
 
+// PR review: the scan keeps going through the block in memory after each chunk instead
+// of reading a new 4 MiB block per chunk. 3000 frames of about 3 KB span three blocks,
+// so some headers straddle a block edge; every frame must still be found.
+TEST(Nd2ChunkFile, ScanFindsManySmallChunks)
+{
+    std::vector<uint8_t> signatureData(64, 0);
+    std::memcpy(signatureData.data(), "Ver3.0", 6);
+    std::vector<uint8_t> bytes = chunk("ND2 FILE SIGNATURE CHUNK NAME01!", 32, signatureData);
+    const int frames = 3000;
+    for (int f = 0; f < frames; ++f) {
+        std::vector<uint8_t> data(8 + 2999 + f % 7, uint8_t(f));
+        const auto c = chunk("ImageDataSeq|" + std::to_string(f) + "!", 32, data);
+        bytes.insert(bytes.end(), c.begin(), c.end());
+    }
+    bytes.resize(bytes.size() + 40, 0);   // no chunk map, no trailer
+    ASSERT_GT(bytes.size(), size_t(8) << 20);
+    TempFile temp(".nd2");
+    {
+        SparseWriter w(temp.getPath().string());
+        ASSERT_TRUE(w.ok());
+        ASSERT_TRUE(w.writeAt(0, bytes));
+    }
+    FileReader file(temp.getPath().string());
+    const ChunkFile c = ChunkFile::read(file);
+    EXPECT_TRUE(c.recoveredByScan());
+    ASSERT_EQ(c.frames().size(), size_t(frames));
+    for (int f = 0; f < frames; ++f) {
+        ASSERT_TRUE(c.frames().count(f)) << f;
+        EXPECT_EQ(c.frames().at(f).dataLength, uint64_t(8 + 2999 + f % 7)) << f;
+    }
+}
+
 TEST(Nd2ChunkFile, RejectsUnsupportedMajor)
 {
     std::vector<uint8_t> bytes;
