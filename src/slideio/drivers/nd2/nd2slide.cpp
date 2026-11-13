@@ -26,9 +26,7 @@ namespace
     const uint8_t kChunkMagic[4] = { 0xDA, 0xCE, 0xBE, 0x0A };
     const uint8_t kJp2Signature[12] = { 0x00, 0x00, 0x00, 0x0C, 0x6A, 0x50, 0x20, 0x20, 0x0D, 0x0A, 0x87, 0x0A };
     const char kSignatureName[] = "ND2 FILE SIGNATURE CHUNK NAME01!";
-    const char kTrailerName[] = "ND2 CHUNK MAP SIGNATURE 0000001!";
     constexpr uint64_t kNameSize = 32;
-    constexpr uint64_t kTrailerSize = 40;
 
     bool bytesAt(const FileReader& file, uint64_t offset, const void* expected, size_t size)
     {
@@ -48,10 +46,8 @@ namespace
             if (!bytesAt(file, 16, kSignatureName, kNameSize)) {
                 RAISE_RUNTIME_ERROR << "ND2: not a Nikon ND2 file (no file signature at offset 16)";
             }
-            if (file.size() < kTrailerSize || !bytesAt(file, file.size() - kTrailerSize, kTrailerName, kNameSize)) {
-                RAISE_RUNTIME_ERROR << "ND2: not a Nikon ND2 file (no chunk map signature "
-                                       "40 bytes before the end of the file)";
-            }
+            // A missing chunk map signature is not checked here: ChunkFile recovers
+            // the chunks by scanning, with a WARNING (R18).
             return false;
         }
         if (bytesAt(file, 0, kJp2Signature, sizeof(kJp2Signature))) {

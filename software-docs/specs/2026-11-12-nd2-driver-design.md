@@ -146,10 +146,11 @@ before `"GDAL"`.
 `openFile` reads the first 16 bytes:
 
 - `DA CE BE 0A` → chunked; also require `ND2 FILE SIGNATURE CHUNK NAME01!` at
-  offset 16 and `ND2 CHUNK MAP SIGNATURE 0000001!` at `size − 40` (FD §2). The
-  trailer is required at open (R18): a file with a destroyed trailer is refused,
-  not recovered. `ChunkFile`'s scan for a missing map stays as a unit-tested
-  defence behind that check. *(Decided during implementation.)*
+  offset 16. The `ND2 CHUNK MAP SIGNATURE 0000001!` trailer at `size − 40`
+  (FD §2) is *not* required (R18): a file whose trailer is missing or destroyed
+  — a crashed acquisition, a truncated copy — opens, and `ChunkFile` rebuilds
+  the chunk map by the scan in §4.2 with a WARNING naming the file. *(Decided
+  after review: recovering such a file is worth more than refusing it.)*
 - `00 00 00 0C 6A 50 20 20 0D 0A 87 0A` → legacy; also require
   `LABORATORY IMAGING ND BOX MAP 00` at `size − 40`.
 - Otherwise `ND2: not a Nikon ND2 file (<reason>)`.
@@ -529,9 +530,12 @@ Fixtures:
 - CLX Lite with a type-76 compressed tree; XML with control characters and the
   `i0000000000`-wrapped `uLoopPars`.
 - Refusals: `bad_width`, `lossy`, `tiled`, `custom_loop`, `two_time_loops`,
-  `bad_comp`, `not_nd2`. The unsupported major version and the missing trailer
-  have no fixtures of their own: they are tested by patching temporary copies
-  (`Nd2ChunkFile.RejectsUnsupportedMajor`, `Nd2Slide.MissingTrailerRefused`).
+  `bad_comp`, `not_nd2`. The unsupported major version has no fixture of its
+  own: it is tested by patching a temporary copy
+  (`Nd2ChunkFile.RejectsUnsupportedMajor`).
+- Missing trailer: recovered, not refused. `Nd2Slide.MissingTrailerRecovered`
+  zeroes the trailer of a temporary copy of `v3_basic` and checks that every
+  plane reads the same as the original.
 - `truncated_frame`: a frame chunk whose declared length runs past EOF is
   absent and reads as background; it is not a refusal (R6). *(Decided during implementation.)*
 - A tiny legacy JP2 file (encoded with OpenJPEG at generation time) with two

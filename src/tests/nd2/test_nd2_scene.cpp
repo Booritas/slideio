@@ -182,13 +182,13 @@ TEST(Nd2Slide, Refusals)
     expectOpenError(fixture("lossy.nd2"), "eCompression");
 }
 
-TEST(Nd2Slide, MissingTrailerRefused)
+TEST(Nd2Slide, MissingTrailerRecovered)
 {
     TempFile copy("nd2");
     std::filesystem::copy_file(fixture("v3_basic.nd2"), copy.getPath());
     const std::string path = copy.getPath().string();
     {
-        // Zero the 40-byte chunk map signature trailer (R18).
+        // Zero the 40-byte chunk map signature trailer (R18): the chunks are found by scan.
         const auto size = std::filesystem::file_size(path);
         std::fstream f(path, std::ios::in | std::ios::out | std::ios::binary);
         ASSERT_TRUE(f.good());
@@ -197,16 +197,25 @@ TEST(Nd2Slide, MissingTrailerRefused)
         f.write(zeros.data(), zeros.size());
     }
     ND2ImageDriver driver;
-    try {
-        driver.openFile(path);
-        ADD_FAILURE() << "a file without a trailer opened";
-    }
-    catch (const std::exception& e) {
-        const std::string what = e.what();
-        EXPECT_NE(std::string::npos, what.find("ND2: not a Nikon ND2 file")) << what;
-        const std::string tail = "(file: " + path + ")";
-        EXPECT_TRUE(what.size() >= tail.size() && what.compare(what.size() - tail.size(), tail.size(), tail) == 0)
-            << what;
+    auto damaged = driver.openFile(path);
+    auto original = openFixture("v3_basic.nd2");
+    ASSERT_EQ(original->getNumScenes(), damaged->getNumScenes());
+    for (int s = 0; s < original->getNumScenes(); ++s) {
+        SCOPED_TRACE(s);
+        auto expected = original->getScene(s);
+        auto actual = damaged->getScene(s);
+        ASSERT_EQ(expected->getRect(), actual->getRect());
+        ASSERT_EQ(expected->getNumChannels(), actual->getNumChannels());
+        ASSERT_EQ(expected->getNumZSlices(), actual->getNumZSlices());
+        ASSERT_EQ(expected->getNumTFrames(), actual->getNumTFrames());
+        const cv::Rect rect(0, 0, expected->getRect().width, expected->getRect().height);
+        for (int z = 0; z < expected->getNumZSlices(); ++z) {
+            for (int t = 0; t < expected->getNumTFrames(); ++t) {
+                const cv::Mat e = readPlane(expected, rect, z, t);
+                const cv::Mat a = readPlane(actual, rect, z, t);
+                ASSERT_EQ(0, cv::norm(e, a, cv::NORM_INF)) << "z=" << z << " t=" << t;
+            }
+        }
     }
 }
 
