@@ -63,6 +63,33 @@ namespace
         return out;
     }
 
+    // Reads a fixed sequence of rectangles through one cursor over `frame` and checks
+    // each against readRows.
+    void expectCursorMatches(const std::shared_ptr<const nd2::FrameSource>& frames, int64_t frame,
+        int width, int height)
+    {
+        ASSERT_GE(width, 4);
+        ASSERT_GE(height, 4);
+        const int half = width / 2;
+        const std::vector<cv::Rect> rects = {
+            { 0, 0, half, 2 }, { half, 0, width - half, 2 },    // one band, two tiles
+            { 0, 2, width, 1 }, { 1, 3, width - 1, 1 },         // the bands below
+            { 0, 1, width, 2 },                                 // above: a restart
+            { 0, 0, width, height },                            // the whole frame
+            { 0, height - 1, width, 1 },                        // the last row again
+        };
+        auto cursor = frames->openCursor(frame);
+        ASSERT_TRUE(cursor);
+        for (const cv::Rect& rect : rects) {
+            cv::Mat expected, actual;
+            frames->readRows(frame, rect, expected);
+            cursor->readRows(rect, actual);
+            ASSERT_EQ(expected.size(), actual.size()) << rect;
+            ASSERT_EQ(expected.type(), actual.type()) << rect;
+            EXPECT_EQ(0, cv::norm(expected, actual, cv::NORM_INF)) << rect;
+        }
+    }
+
     bool allZero(const cv::Mat& m)
     {
         return cv::countNonZero(m.reshape(1)) == 0;
@@ -439,6 +466,29 @@ TEST(Nd2Scene, ResampleMatchesCvResize)
     EXPECT_EQ(0, cv::norm(expected, out, cv::NORM_INF));
 }
 
+TEST(Nd2Scene, TiledDownscaleThroughCursors)
+{
+    // A budget of 4 pixels splits every band into column tiles, so the zlib and JPEG 2000
+    // cursors serve several tiles per band and several bands per read.
+    for (const char* name : { "v20_zlib.nd2", "legacy.nd2", "legacy_rgb.nd2" }) {
+        SCOPED_TRACE(name);
+        auto banded = ND2Slide::openFile(fixture(name), ResampleLimits{4, std::make_shared<ResampleStats>()});
+        auto plain = ND2Slide::openFile(fixture(name));
+        for (int i = 0; i < plain->getNumScenes(); ++i) {
+            auto a = banded->getScene(i);
+            auto b = plain->getScene(i);
+            for (int t = 0; t < b->getNumTFrames(); ++t) {
+                cv::Mat ra, rb;
+                a->readResampledBlockChannelsEx(a->getRect(), cv::Size(2, 2), {}, 0, t, ra);
+                b->readResampledBlockChannelsEx(b->getRect(), cv::Size(2, 2), {}, 0, t, rb);
+                ASSERT_EQ(rb.size(), ra.size());
+                ASSERT_EQ(rb.type(), ra.type());
+                EXPECT_EQ(0, cv::norm(ra, rb, cv::NORM_INF)) << a->getName() << " t=" << t;
+            }
+        }
+    }
+}
+
 TEST(Nd2Scene, TiledDownscaleWithinBudget)
 {
     auto stats = std::make_shared<ResampleStats>();
@@ -545,4 +595,17 @@ TEST(Nd2FrameSource, CorruptZlibThrows)
     // The intact frame 1 still reads.
     frames->readRows(1, cv::Rect(0, 0, 7, 4), out);
     expectFrame(out, cv::Point(0, 0), {0}, 1, DataType::DT_UInt16, "v20_zlib frame 1");
+}
+
+// PR review: a cursor keeps one decode across the tiles of a read. Tiles along a band,
+// the next band down, a band above (which restarts a zlib stream) and the whole frame
+// must all read what readRows reads.
+TEST(Nd2FrameSource, CursorMatchesReadRows)
+{
+    auto file = std::make_shared<const FileReader>(fixture("v20_zlib.nd2"));
+    const nd2::ChunkFile chunks = nd2::ChunkFile::read(*file);
+    const nd2::ImageInfo info = nd2::buildImageInfo(chunks, *file, "v20_zlib");
+    ASSERT_EQ(nd2::FrameCompression::Zlib, info.attributes.compression);
+    expectCursorMatches(nd2::makeChunkFrameSource(file, chunks, info.attributes), 1,
+        info.attributes.width, info.attributes.height);
 }

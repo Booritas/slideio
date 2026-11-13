@@ -2,6 +2,7 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include <gtest/gtest.h>
+#include <chrono>
 #include <cstring>
 #include <fstream>
 #include <iterator>
@@ -158,6 +159,27 @@ TEST(Nd2Legacy, PartialFrameReadsBackground)
     EXPECT_EQ(0, cv::countNonZero(planes[1]));
 }
 
+// PR review: a JPEG 2000 cursor decodes the frame once and serves every tile from it.
+TEST(Nd2Legacy, CursorMatchesReadRows)
+{
+    auto file = std::make_shared<const FileReader>(fixture("legacy.nd2"));
+    const LegacyFile legacy = LegacyFile::read(*file);
+    const auto frames = makeJp2FrameSource(file, legacy, 2);
+    for (int64_t frame : { 0, 2 }) {   // frame 2 lacks its second channel's codestream
+        SCOPED_TRACE(frame);
+        auto cursor = frames->openCursor(frame);
+        for (const cv::Rect& rect : { cv::Rect(0, 0, 4, 3), cv::Rect(4, 0, 4, 3), cv::Rect(0, 3, 8, 3),
+                                      cv::Rect(0, 0, 8, 6), cv::Rect(2, 1, 5, 4) }) {
+            cv::Mat expected, actual;
+            frames->readRows(frame, rect, expected);
+            cursor->readRows(rect, actual);
+            ASSERT_EQ(expected.size(), actual.size());
+            ASSERT_EQ(expected.type(), actual.type());
+            EXPECT_EQ(0, cv::norm(expected, actual, cv::NORM_INF)) << rect;
+        }
+    }
+}
+
 TEST(Nd2Legacy, Pixels)
 {
     auto xy = ND2Slide::openFile(fixture("legacy_xy.nd2"));
@@ -278,6 +300,28 @@ TEST(Nd2Legacy, RealShapedXml)
     const Variant* text = items->items()[1].get("Text");
     ASSERT_NE(nullptr, text);
     EXPECT_EQ(5, xyCountFromText(text->asString()));
+}
+
+// PR review P1: an indexed Map is reachable both as members and as items, so a walk
+// over both visited 2^depth nodes. 60 nested i0000000000 levels must stay instant.
+TEST(Nd2Legacy, NestedIndexedTinfIsLinear)
+{
+    std::string xml = "<TextInfo Count=\"1\">";
+    const int depth = 60;
+    for (int i = 0; i < depth; ++i) {
+        xml += "<i0000000000 runtype=\"x\">";
+    }
+    xml += "<Index runtype=\"lx_int32\" value=\"1\"/>";
+    for (int i = 0; i < depth; ++i) {
+        xml += "</i0000000000>";
+    }
+    xml += "<TextInfoItem Text=\"Metadata:&#x000d;&#x000a;Dimensions: XY(3)\" Index=\"0\"/></TextInfo>";
+    const Variant tinf = decodeLegacyXml(std::vector<uint8_t>(xml.begin(), xml.end()));
+    const auto start = std::chrono::steady_clock::now();
+    const std::string text = tinfMetadataText(tinf);
+    const auto elapsed = std::chrono::steady_clock::now() - start;
+    EXPECT_EQ(3, xyCountFromText(text));
+    EXPECT_LT(elapsed, std::chrono::seconds(1));
 }
 
 TEST(Nd2Legacy, RgbWithoutPicturePlanes)

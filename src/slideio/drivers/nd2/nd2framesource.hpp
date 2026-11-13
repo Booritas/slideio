@@ -18,6 +18,18 @@ namespace slideio
     {
         class LegacyFile;
 
+        /// One frame during one block read. The tiled downscale asks for its tiles top to
+        /// bottom and left to right; a cursor keeps the decode state between them, so a
+        /// compressed frame is decoded once per read rather than once per tile. Used by
+        /// one thread at a time.
+        class SLIDEIO_ND2_EXPORTS FrameCursor
+        {
+        public:
+            virtual ~FrameCursor() = default;
+            /// As FrameSource::readRows, for the cursor's frame.
+            virtual void readRows(const cv::Rect& rect, cv::Mat& out) = 0;
+        };
+
         /// The pixels of the frames of one file (design 7). Immutable after construction
         /// and safe to call from several threads at once: every decode buffer is local
         /// to a call and the only file state is a cursor-free FileReader.
@@ -31,6 +43,9 @@ namespace slideio
             /// `frame`, every component interleaved, into `out` (CV type of the sample
             /// depth with `components` channels). `rect` must lie inside the frame.
             virtual void readRows(int64_t frame, const cv::Rect& rect, cv::Mat& out) const = 0;
+            /// A cursor over `frame`, which must be in the file. The default forwards every
+            /// call to readRows.
+            virtual std::unique_ptr<FrameCursor> openCursor(int64_t frame) const;
         };
 
         /// The frames of a chunked file: `ImageDataSeq|N!` chunks, uncompressed or zlib.

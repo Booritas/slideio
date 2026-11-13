@@ -225,29 +225,35 @@ void ND2Scene::readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv:
         [&](const cv::Rect& rect, const cv::Size& size, cv::OutputArray part) {
             if (size == rect.size()) {
                 cv::Mat raw;
-                readRaw(rect, channels, frame, raw);
+                readRaw(rect, channels, frame, nullptr, raw);
                 raw.copyTo(part);
                 return;
             }
             // Within the budget, or enlarging along either axis: one read and cv::resize.
             if (!needsTiledDownscale(rect.size(), size, m_limits)) {
                 cv::Mat raw, resized;
-                readRaw(rect, channels, frame, raw);
+                readRaw(rect, channels, frame, nullptr, raw);
                 Tools::resize(raw, resized, size, cv::INTER_AREA);
                 resized.copyTo(part);
                 return;
             }
+            // One cursor for all the tiles, so a compressed frame is decoded once.
+            std::unique_ptr<nd2::FrameCursor> cursor;
+            if (m_frames->hasFrame(frame)) {
+                cursor = m_frames->openCursor(frame);
+            }
             cv::Mat result;
             tiledAreaDownscale(rect, size, cvDepth(), static_cast<int>(channels.size()), m_limits,
                 [&](const cv::Rect& tileRect, cv::Mat& tile) {
-                    readRaw(tileRect, channels, frame, tile);
+                    readRaw(tileRect, channels, frame, cursor.get(), tile);
                 }, result);
             result.copyTo(part);
         },
         output);
 }
 
-void ND2Scene::readRaw(const cv::Rect& rect, const std::vector<int>& channels, int64_t frame, cv::Mat& out) const
+void ND2Scene::readRaw(const cv::Rect& rect, const std::vector<int>& channels, int64_t frame,
+    nd2::FrameCursor* cursor, cv::Mat& out) const
 {
     if (m_limits.stats) {
         m_limits.stats->noteSource(static_cast<int64_t>(rect.width) * rect.height);
@@ -261,7 +267,12 @@ void ND2Scene::readRaw(const cv::Rect& rect, const std::vector<int>& channels, i
         return;
     }
     cv::Mat all;
-    m_frames->readRows(frame, rect, all);
+    if (cursor) {
+        cursor->readRows(rect, all);
+    }
+    else {
+        m_frames->readRows(frame, rect, all);
+    }
     bool identity = n == all.channels();
     for (int k = 0; identity && k < n; ++k) {
         identity = channels[k] == k;

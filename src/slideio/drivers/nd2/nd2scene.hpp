@@ -60,8 +60,10 @@ namespace slideio
         void checkChannel(int channel) const;
         void initTimestamps();
         // Reads `rect` (inside the frame) of `frame` at native size, one plane per
-        // entry of `channels`; zeros when the frame is absent.
-        void readRaw(const cv::Rect& rect, const std::vector<int>& channels, int64_t frame, cv::Mat& out) const;
+        // entry of `channels`; zeros when the frame is absent. Through `cursor` when
+        // one is given (the tiles of one tiled read), else straight from the source.
+        void readRaw(const cv::Rect& rect, const std::vector<int>& channels, int64_t frame,
+            nd2::FrameCursor* cursor, cv::Mat& out) const;
         int cvDepth() const;
     private:
         std::string m_filePath;
