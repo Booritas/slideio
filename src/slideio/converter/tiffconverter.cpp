@@ -2,6 +2,7 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include "tiffconverter.hpp"
+#include "slideio/core/channelattributes.hpp"
 #include "slideio/slideio/sceneinternal.hpp"
 #include "converterparameters.hpp"
 #include "converterparametersinternal.hpp"
@@ -183,7 +184,7 @@ std::string TiffConverter::createOMETiffDescription() const {
         const slideio::Metadata chan = chanAttrs[channel];
         for (const std::string& attrName : chan.keys()) {
             std::string attrValue = chan[attrName].asString();
-            if (attrName == "Color" && ColorTools::detectHexColorFormat(attrValue) != HexColorFormat::UNKNOWN) {
+            if (attrName == ChannelAttribute::Color && ColorTools::detectHexColorFormat(attrValue) != HexColorFormat::UNKNOWN) {
                 attrValue = ColorTools::hexToInt32String(attrValue);
             }
             xmlChannel->SetAttribute(attrName.c_str(), attrValue.c_str());

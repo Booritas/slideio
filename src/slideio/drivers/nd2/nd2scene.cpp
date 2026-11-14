@@ -2,6 +2,7 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/drivers/nd2/nd2scene.hpp"
+#include "slideio/core/channelattributes.hpp"
 #include "slideio/core/exceptions.hpp"
 #include "slideio/core/levelinfo.hpp"
 #include "slideio/core/tools/cvtools.hpp"
@@ -39,7 +40,7 @@ ND2Scene::ND2Scene(const std::string& filePath, int position, std::shared_ptr<co
     const std::vector<ChannelInfo>& channels = m_info->channels;
     for (size_t k = 0; k < channels.size(); ++k) {
         const int channel = static_cast<int>(k);
-        setChannelAttribute(channel, "Color", colorToHex(channels[k].color));
+        setChannelAttribute(channel, ChannelAttribute::Color, colorToHex(channels[k].color));
         setChannelAttribute(channel, "ND2Channel", static_cast<int64_t>(channels[k].nd2Channel));
         setChannelAttribute(channel, "Component", static_cast<int64_t>(channels[k].component));
         for (const auto& attribute : channels[k].attributes) {

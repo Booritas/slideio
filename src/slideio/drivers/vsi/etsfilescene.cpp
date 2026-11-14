@@ -3,6 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 
 #include "etsfilescene.hpp"
+#include "slideio/core/channelattributes.hpp"
 
 #include "slideio/core/exceptions.hpp"
 #include "slideio/core/tools/tools.hpp"
@@ -297,11 +298,11 @@ void EtsFileScene::init() {
                               static_cast<unsigned int>(r),
                               static_cast<unsigned int>(g),
                               static_cast<unsigned int>(b));
-                setChannelAttribute(ch, "Color", std::string(buf));
+                setChannelAttribute(ch, ChannelAttribute::Color, std::string(buf));
             }
             const double nm = volume->getChannelEmissionWavelength(ch);
             if (nm > 0.0) {
-                setChannelAttribute(ch, "EmissionWavelength", nm);
+                setChannelAttribute(ch, ChannelAttribute::EmissionWavelength, nm);
             }
         }
     }

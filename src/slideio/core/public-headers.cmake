@@ -26,6 +26,7 @@ set(SLIDEIO_PUBLIC_HEADERS_core
     slideio_core_def.hpp
     slideio_enums.hpp
     slideio_structs.hpp
+    channelattributes.hpp
     colorprofile.hpp
     exceptions.hpp
     levelinfo.hpp

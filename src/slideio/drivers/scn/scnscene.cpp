@@ -2,6 +2,7 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/drivers/scn/scnscene.hpp"
+#include "slideio/core/channelattributes.hpp"
 #include "slideio/imagetools/tifftools.hpp"
 #include "slideio/core/tools/xmltools.hpp"
 #include "slideio/imagetools/imagetools.hpp"
@@ -186,10 +187,10 @@ void SCNScene::parseChannelNames(const XMLElement* xmlImage)
                     if (attrName != nullptr && attrValue != nullptr) {
                         if (strcmp(attrName, "name") == 0) {
                             m_channelNames[channelIndex] = attrValue;
-                            setChannelAttribute(channelIndex, "Name", attrValue);
+                            setChannelAttribute(channelIndex, ChannelAttribute::Name, attrValue);
                         }
                         else if (strcmp(attrName, "rgb") == 0) {
-                            setChannelAttribute(channelIndex, "Color", attrValue);
+                            setChannelAttribute(channelIndex, ChannelAttribute::Color, attrValue);
                         }
                         else {
                             setChannelAttribute(channelIndex, attrName, attrValue);

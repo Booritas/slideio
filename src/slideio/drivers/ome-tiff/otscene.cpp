@@ -3,6 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 
 #include "slideio/drivers/ome-tiff/otscene.hpp"
+#include "slideio/core/channelattributes.hpp"
 
 #include <algorithm>
 #include <filesystem>
@@ -269,7 +270,7 @@ void OTScene::initializeChannelAttributes(tinyxml2::XMLElement* pixels) {
                         }
                         m_channelNames[channelIndex] = attrValue;
                     }
-                    if (strcmp(attrName, "Color") == 0) {
+                    if (strcmp(attrName, ChannelAttribute::Color) == 0) {
                         try {
                             setChannelAttribute(channelIndex, attrName,
                                 ColorTools::rgbaInt32StringToHexARGB(attrValue));

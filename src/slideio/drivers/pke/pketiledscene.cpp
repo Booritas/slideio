@@ -3,6 +3,7 @@
 // of this distribution and at http://slideio.com/license.html.
 
 #include "slideio/drivers/pke//pketiledscene.hpp"
+#include "slideio/core/channelattributes.hpp"
 #include "slideio/imagetools/tifftools.hpp"
 #include "slideio/drivers/pke/pketools.hpp"
 #include "slideio/drivers/pke/pkescene.hpp"
@@ -179,16 +180,16 @@ void PKETiledScene::initializeChannelNames() {
                 name = xmlName->GetText();
             }
             m_channelNames.push_back(name);
-            setChannelAttribute(channel, "Name", name);
+            setChannelAttribute(channel, ChannelAttribute::Name, name);
 			auto xmlColor = root->FirstChildElement("Color");
             if (xmlColor) {
                 const char* colorText = xmlColor->GetText();
                 if (colorText != nullptr) {
                     try {
-                        setChannelAttribute(channel, "Color",
+                        setChannelAttribute(channel, ChannelAttribute::Color,
                             ColorTools::rgbCsvToHexRGB(colorText));
                     } catch (const std::exception&) {
-                        setChannelAttribute(channel, "Color", colorText);
+                        setChannelAttribute(channel, ChannelAttribute::Color, colorText);
                     }
                 }
             }

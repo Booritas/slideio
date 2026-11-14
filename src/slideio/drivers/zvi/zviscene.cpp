@@ -2,6 +2,7 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/core/exceptions.hpp"
+#include "slideio/core/channelattributes.hpp"
 #include "slideio/core/log.hpp"
 #include "slideio/drivers/zvi/zviscene.hpp"
 #include "slideio/drivers/zvi/zvislide.hpp"
@@ -429,15 +430,15 @@ void ZVIScene::computeSceneDimensions()
             const unsigned int b = static_cast<unsigned int>((color >> 16) & 0xFF);
             char buf[8];
             std::snprintf(buf, sizeof(buf), "#%02X%02X%02X", r, g, b);
-            setChannelAttribute(channelIndex, "Color", std::string(buf));
+            setChannelAttribute(channelIndex, ChannelAttribute::Color, std::string(buf));
         }
         const double em = imageItem.getEmissionWavelength();
         if (em > 0.0) {
-            setChannelAttribute(channelIndex, "EmissionWavelength", em);
+            setChannelAttribute(channelIndex, ChannelAttribute::EmissionWavelength, em);
         }
         const double ex = imageItem.getExcitationWavelength();
         if (ex > 0.0) {
-            setChannelAttribute(channelIndex, "ExcitationWavelength", ex);
+            setChannelAttribute(channelIndex, ChannelAttribute::ExcitationWavelength, ex);
         }
         const std::string reflector = imageItem.getReflector();
         if (!reflector.empty()) {

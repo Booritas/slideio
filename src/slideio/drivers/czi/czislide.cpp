@@ -2,6 +2,7 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/drivers/czi/czislide.hpp"
+#include "slideio/core/channelattributes.hpp"
 #include "slideio/drivers/czi/cziscene.hpp"
 #include "slideio/drivers/czi/czistructs.hpp"
 #include "slideio/core/tools/xmltools.hpp"
@@ -390,9 +391,9 @@ void CZISlide::processBgrChannelAttributes() {
     for (int i = 0; i < 3; ++i) {
         auto& attrs = m_channels[i].attributes;
         auto colorIt = std::find_if(attrs.begin(), attrs.end(),
-            [](const std::pair<std::string, std::string>& a) { return a.first == "Color"; });
+            [](const std::pair<std::string, std::string>& a) { return a.first == ChannelAttribute::Color; });
         if (colorIt == attrs.end()) {
-            attrs.emplace_back("Color", kBgrColors[i]);
+            attrs.emplace_back(ChannelAttribute::Color, kBgrColors[i]);
         } else {
             colorIt->second = kBgrColors[i];
         }
