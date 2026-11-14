@@ -211,7 +211,7 @@ jobs:
           set -euo pipefail
           exe="${{ matrix.bin_dir }}/slideio_tests"
           if [ "${RUNNER_OS}" = "Windows" ]; then exe="${exe}.exe"; fi
-          "$exe" --gtest_filter="FileReader.*:ContextPool.*"
+          "$exe" --gtest_filter="FileReader.*:ContextPool.*:TiledAreaDownscale.*"
           # MRXS suites over the fixtures committed in src/tests/mrxs/data only.
           mrxs="${{ matrix.bin_dir }}/slideio_mrxs_tests"
           if [ "${RUNNER_OS}" = "Windows" ]; then mrxs="${mrxs}.exe"; fi
@@ -405,7 +405,7 @@ jobs:
               python3 install.py -a conan -c release
               python3 install.py -a configure-only -c release
               python3 install.py -a build-only -c release
-              ./build/release/bin/slideio_tests --gtest_filter="FileReader.*:ContextPool.*"
+              ./build/release/bin/slideio_tests --gtest_filter="FileReader.*:ContextPool.*:TiledAreaDownscale.*"
               ./build/release/bin/slideio_mrxs_tests --gtest_filter="-MRXSCorpus*"
               ./build/release/bin/slideio_bif_tests --gtest_filter="-BIFCorpus*"
               ./build/release/bin/slideio_lif_tests --gtest_filter="-LIFCorpus*"

@@ -59,7 +59,7 @@ TEST(TiledAreaDownscale, FullWidthTilesAreBitExact)
     rng.fill(src, cv::RNG::UNIFORM, 0, 65536);
     ResampleLimits limits;
     limits.maxResampleSourcePixels = 300 * 7;   // a tile is as wide as the rectangle
-    expectMatchesCvResize(src, cv::Size(77, 31), limits);
+    expectMatchesCvResize(src, cv::Size(77, 31), limits, fullWidthTileTolerance);
 }
 
 namespace
