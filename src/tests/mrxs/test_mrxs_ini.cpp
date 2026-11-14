@@ -103,9 +103,11 @@ TEST(MRXSIni, aRepeatedGroupMergesIntoTheFirst)
 TEST(MRXSIni, parsingAndLookupGrowLinearlyWithTheNumberOfKeys)
 {
     // A 1 MiB Slidedat.ini holds about 100 000 keys. Parsing (which has to find a repeated
-    // key to replace it) and looking each key up once must not be quadratic in them: four
-    // times the keys may cost about four times as long, not sixteen. The fastest of three
-    // runs is compared, so a stall on a busy machine does not decide the ratio.
+    // key to replace it) and looking each key up once must not be quadratic in them: eight
+    // times the keys may cost about eight times as long, not sixty-four. The fastest of
+    // three runs is compared, so a stall on a busy machine does not decide the ratio, and
+    // the limit is three times linear: at four times the keys and a limit of 8, a shared
+    // CI runner measured 9.2 -- cache misses on the larger input, not a quadratic path.
     const auto seconds = [](int keys, int groups) {
         std::string text;
         for (int g = 0; g < groups; ++g) {
@@ -133,8 +135,8 @@ TEST(MRXSIni, parsingAndLookupGrowLinearlyWithTheNumberOfKeys)
         SCOPED_TRACE(groups);
         const int keys = groups == 1 ? 25000 : 20000;
         const double small = seconds(keys, groups == 1 ? 1 : groups);
-        const double large = seconds(keys * 4, groups == 1 ? 1 : groups * 4);
-        EXPECT_LT(large, 8 * small) << small << " s for " << keys << " keys, " << large << " s for four times as many";
+        const double large = seconds(keys * 8, groups == 1 ? 1 : groups * 8);
+        EXPECT_LT(large, 24 * small) << small << " s for " << keys << " keys, " << large << " s for eight times as many";
     }
 }
 
