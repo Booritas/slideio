@@ -320,7 +320,8 @@ shipped in every release; removing it needs a `BREAKING_CHANGES.md` entry.
 
 - The public site www.slideio.com -- user documentation, Python and C++ API reference, release announcements -- lives in the separate repository `Booritas/slideio-doc` and is published by Read the Docs. It pins this repository as the submodule `extern/slideio` for the C++ headers and the version; a release means a news post there and a submodule bump.
 - `software-docs/` holds internal engineering documentation: `specs/` (designs), `plans/` (implementation plans), `TECH_DEBT.md`, `BREAKING_CHANGES.md`, `review.md`. Internal docs go here; nothing in this repository is published.
-- Record exported-API changes that break out-of-tree callers in `software-docs/BREAKING_CHANGES.md`, grouped by branch. There is no changelog in the repository.
+- Record exported-API changes that break out-of-tree callers in `software-docs/BREAKING_CHANGES.md`, grouped by branch.
+- `CHANGELOG.md` at the root lists notable changes per release, starting with 2.11.0. It summarises the breaking changes and links to `BREAKING_CHANGES.md` for the detail rather than repeating it.
 
 ## Dependencies (managed via Conan)
 
