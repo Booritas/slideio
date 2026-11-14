@@ -242,7 +242,7 @@ Each driver in `src/slideio/drivers/<format>/` is an independent shared library 
   read the origin through its `…Ex` variants only — the public entry points
   would re-enter the non-recursive mutex and deadlock — and keep the origin
   alive for the wrapper's lifetime.
-- **Tiled area downscale**: `slideio/core/tools/tiledareadownscale.hpp` (moved out of LIF) is the shared bounded-memory downscale that LIF and ND2 use for reads far below native size. It is bit-exact with `cv::resize(INTER_AREA)` whenever a source row fits in the budget
+- **Tiled area downscale**: `slideio/core/tools/tiledareadownscale.hpp` (moved out of LIF) is the shared bounded-memory downscale that LIF and ND2 use for reads far below native size. It is bit-exact with `cv::resize(INTER_AREA)` whenever a source row fits in the budget -- on x86. On arm64 a non-integer ratio may differ by 1 (`fullWidthTileTolerance`): clang fuses `a += b * c` into one rounding there and OpenCV's area resize is fused only in its scalar loops, not its NEON pass, so no reimplementation can track it without copying OpenCV's lane boundaries. Integer ratios stay exact everywhere
 - **Library naming**: `slideio-<module>` with `_d` suffix for debug builds
 
 ### Source Layout

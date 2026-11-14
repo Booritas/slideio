@@ -22,6 +22,7 @@
 #include "slideio/core/cvscene.hpp"
 #include "slideio/core/cvslide.hpp"
 #include "slideio/core/tools/tempfile.hpp"
+#include "slideio/core/tools/tiledareadownscale.hpp"
 #include "tests/testlib/testtools.hpp"
 #include "tests/lif/lif_fixture_values.hpp"
 
@@ -517,12 +518,13 @@ namespace
         return static_cast<int64_t>(std::ceil(tileH / sy)) + 2;
     }
 
-    // Integer samples: bit-exact against cv::resize when a source row fits in the
-    // budget (each output's terms are then summed in OpenCV's order); within 1 when
-    // rows are split across tiles, which reorders the float sums.
+    // Integer samples: against cv::resize within fullWidthTileTolerance -- bit-exact
+    // off arm64 -- when a source row fits in the budget (each output's terms are then
+    // summed in OpenCV's order); within 1 when rows are split across tiles, which
+    // reorders the float sums.
     double intTolerance(const cv::Rect& rect, int64_t budget)
     {
-        return budget >= rect.width ? 0. : 1.;
+        return budget >= rect.width ? fullWidthTileTolerance : 1.;
     }
 
     std::string describe(const std::string& scene, const cv::Rect& rect, const cv::Size& size, int64_t budget)

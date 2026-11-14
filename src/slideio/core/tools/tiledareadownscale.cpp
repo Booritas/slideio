@@ -236,7 +236,9 @@ bool slideio::needsTiledDownscale(const cv::Size& rect, const cv::Size& size, co
 // and an output cell spanning many tiles collects its sum from all of them. The
 // result is therefore independent of the budget. It reproduces cv::resize's
 // arithmetic for integer samples: at non-integer ratios float weights and a float
-// accumulator summed in OpenCV's order (resizeArea); at integer ratios an exact
+// accumulator summed in OpenCV's order (resizeArea) -- bit for bit where the
+// compiler does not fuse multiply-adds, within fullWidthTileTolerance where it
+// does; at integer ratios an exact
 // block sum times 1.f / area (resizeAreaFast), (sum + 2) >> 2 at 2 x 2; rounding
 // half to even (cvRound, through convertTo's saturate_cast). Doubles accumulate in
 // double. Float samples are summed in a different order than OpenCV's integer-ratio

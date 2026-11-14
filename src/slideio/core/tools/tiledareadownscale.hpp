@@ -39,6 +39,21 @@ namespace slideio
         std::shared_ptr<ResampleStats> stats;
     };
 
+    /// How far an integer sample of tiledAreaDownscale may differ from
+    /// cv::resize(INTER_AREA) at a non-integer ratio when every tile is as wide as
+    /// the rectangle. 0 where nothing fuses a multiply and an add, as on x86: the
+    /// sums are then OpenCV's own. 1 on arm64, where clang contracts `a += b * c`
+    /// into one rounding by default and OpenCV's area resize is contracted only in
+    /// part -- its scalar loops are, its NEON vertical pass (an explicit multiply,
+    /// then an add) is not -- so which terms round twice depends on SIMD lane
+    /// boundaries inside OpenCV. Integer ratios sum exactly and stay bit-exact
+    /// everywhere.
+#if defined(__aarch64__) || defined(_M_ARM64)
+    constexpr double fullWidthTileTolerance = 1.;
+#else
+    constexpr double fullWidthTileTolerance = 0.;
+#endif
+
     /// Reads `rect` (source coordinates) at native size into `tile`, `channels`
     /// interleaved planes.
     using TileReader = std::function<void(const cv::Rect& rect, cv::Mat& tile)>;
