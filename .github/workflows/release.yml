@@ -109,10 +109,13 @@ jobs:
           # at 2.35, so the .deb installs on Ubuntu 22.04+ and Debian 12+. Built
           # on 24.04 it would refuse both.
           debian='{"name":"Debian x86_64","os":"ubuntu-22.04","artifact":"debian-x86_64","bin_dir":"build/release/bin"}'
-          # macos-14 is the first arm64 image; macos-latest also points at Apple
-          # Silicon now, but naming the version keeps the artifact's
-          # architecture from changing under us.
-          macos='{"name":"macOS arm64","os":"macos-14","artifact":"macos-arm64","bin_dir":"build/release/bin"}'
+          # Every current macOS image is arm64, but naming the version rather
+          # than macos-latest keeps the artifact's architecture from changing
+          # under us. The pin has to be moved by hand when GitHub retires the
+          # image: macos-14 was retired under the v2.11.0 release, whose macOS
+          # job then failed before a single step ran. CMAKE_OSX_DEPLOYMENT_TARGET,
+          # not the runner, sets the macOS floor, so moving the pin leaves it alone.
+          macos='{"name":"macOS arm64","os":"macos-26","artifact":"macos-arm64","bin_dir":"build/release/bin"}'
 
           case "$PLATFORMS" in
             all)     include="${windows},${debian},${macos}" ;;
@@ -486,7 +489,7 @@ jobs:
             |---|---|---|
             | Windows x86_64 | `slideio-${{ needs.check-version.outputs.version }}-windows-x86_64.zip` | MSVC 2022. Add `bin` to `PATH`. |
             | Windows x86_64 | `slideio-${{ needs.check-version.outputs.version }}-windows-x86_64-pdb.zip` | Debug symbols for the above. |
-            | macOS arm64 | `slideio-${{ needs.check-version.outputs.version }}-macos-arm64.tar.gz` | Apple Silicon. Built with a macOS 12 deployment target; tested on macOS 14. |
+            | macOS arm64 | `slideio-${{ needs.check-version.outputs.version }}-macos-arm64.tar.gz` | Apple Silicon. Built with a macOS 12 deployment target; tested on macOS 26. |
             | Debian/Ubuntu x86_64 | `libslideio*.deb` | Ubuntu 22.04+ / Debian 12+. Install both for development. |
 
             Each package carries the CMake package config, so a consumer can use it with:
