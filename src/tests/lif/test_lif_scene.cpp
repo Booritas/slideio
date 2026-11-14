@@ -18,6 +18,7 @@
 #include "slideio/drivers/lif/lifimagedriver.hpp"
 #include "slideio/drivers/lif/lifslide.hpp"
 #include "slideio/drivers/lif/lifscene.hpp"
+#include "slideio/core/channelattributes.hpp"
 #include "slideio/core/cvscene.hpp"
 #include "slideio/core/cvslide.hpp"
 #include "slideio/core/tools/tempfile.hpp"
@@ -126,6 +127,8 @@ TEST(LifSlide, ChannelAttributes)
     ASSERT_EQ(1u, attrs.size());
     EXPECT_EQ("Gray", attrs[size_t(0)]["LUTName"].asString());
     EXPECT_EQ("8", attrs[size_t(0)]["Resolution"].asString());
+    // Derived from LUTName, under the cross-driver attribute name.
+    EXPECT_EQ("#FFFFFF", attrs[size_t(0)][ChannelAttribute::Color].asString());
 }
 
 TEST(LifSlide, MatchesById)

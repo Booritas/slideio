@@ -2,6 +2,8 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.com/license.html.
 #include "slideio/drivers/lif/lifscene.hpp"
+#include "slideio/drivers/lif/lifxml.hpp"
+#include "slideio/core/channelattributes.hpp"
 #include "slideio/core/exceptions.hpp"
 #include "slideio/core/levelinfo.hpp"
 #include "slideio/core/log.hpp"
@@ -72,6 +74,13 @@ LIFScene::LIFScene(const std::string& filePath, const std::string& name, int sce
             m_channelNames[channel] = description.name;
             for (const auto& attribute : description.attributes) {
                 setChannelAttribute(channel, attribute.first, attribute.second);
+                // LIF has no colour attribute; a single-hue LUT is the display colour.
+                if (attribute.first == "LUTName") {
+                    const std::string color = lutColor(attribute.second);
+                    if (!color.empty()) {
+                        setChannelAttribute(channel, ChannelAttribute::Color, color);
+                    }
+                }
             }
         }
     }

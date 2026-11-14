@@ -8,6 +8,7 @@
 
 #include <tinyxml2.h>
 #include <algorithm>
+#include <cctype>
 #include <cstring>
 #include <locale>
 #include <set>
@@ -325,4 +326,28 @@ std::vector<ImageDescription> lif::parseImages(const XmlDescription& xml)
         result.push_back(std::move(d));
     }
     return result;
+}
+
+std::string slideio::lif::lutColor(const std::string& lutName)
+{
+    const auto first = lutName.find_first_not_of(" \t");
+    if (first == std::string::npos) {
+        return {};
+    }
+    const auto last = lutName.find_last_not_of(" \t");
+    std::string key = lutName.substr(first, last - first + 1);
+    std::transform(key.begin(), key.end(), key.begin(),
+        [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+
+    static const std::pair<const char*, const char*> kHues[] = {
+        {"red", "#FF0000"}, {"green", "#00FF00"}, {"blue", "#0000FF"},
+        {"cyan", "#00FFFF"}, {"magenta", "#FF00FF"}, {"yellow", "#FFFF00"},
+        {"gray", "#FFFFFF"}, {"grey", "#FFFFFF"},
+    };
+    for (const auto& hue : kHues) {
+        if (key == hue.first) {
+            return hue.second;
+        }
+    }
+    return {};
 }

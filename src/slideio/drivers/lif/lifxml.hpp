@@ -93,6 +93,11 @@ namespace slideio
         SLIDEIO_LIF_EXPORTS std::vector<ImageDescription> parseImages(const XmlDescription& xml);
         /// Parses `xml` and does the same. Throws as XmlDescription does.
         SLIDEIO_LIF_EXPORTS std::vector<ImageDescription> parseImages(const std::string& xml);
+        /// Display colour of a ChannelDescription/@LUTName as "#RRGGBB", or "" when
+        /// the LUT is not a single hue. LAS X names its single-hue LUTs after the hue
+        /// (Red, Green, Blue, Cyan, Magenta, Yellow, Gray); matched ignoring case and
+        /// surrounding spaces. Gray is white: the colour a grey ramp ends in.
+        SLIDEIO_LIF_EXPORTS std::string lutColor(const std::string& lutName);
     }
 }
 

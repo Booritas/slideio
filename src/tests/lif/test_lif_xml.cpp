@@ -314,3 +314,29 @@ TEST(LifXml, NumbersIgnoreProcessLocale)
     EXPECT_NEAR(1e-6, l.calibration().x, 1e-12) << locale.name();
     EXPECT_NEAR(1e-6, l.calibration().y, 1e-12) << locale.name();
 }
+
+TEST(LifXml, LutColorNamedHues)
+{
+    EXPECT_EQ("#FF0000", lutColor("Red"));
+    EXPECT_EQ("#00FF00", lutColor("Green"));
+    EXPECT_EQ("#0000FF", lutColor("Blue"));
+    EXPECT_EQ("#00FFFF", lutColor("Cyan"));
+    EXPECT_EQ("#FF00FF", lutColor("Magenta"));
+    EXPECT_EQ("#FFFF00", lutColor("Yellow"));
+    EXPECT_EQ("#FFFFFF", lutColor("Gray"));
+    EXPECT_EQ("#FFFFFF", lutColor("Grey"));
+}
+
+TEST(LifXml, LutColorIgnoresCaseAndSurroundingSpace)
+{
+    EXPECT_EQ("#FF0000", lutColor("red"));
+    EXPECT_EQ("#FFFF00", lutColor(" YELLOW "));
+}
+
+TEST(LifXml, LutColorUnknownIsEmpty)
+{
+    EXPECT_EQ("", lutColor(""));
+    EXPECT_EQ("", lutColor("Fire"));
+    EXPECT_EQ("", lutColor("Glow Over/Under"));
+    EXPECT_EQ("", lutColor("Reddish"));
+}
