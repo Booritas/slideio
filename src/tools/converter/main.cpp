@@ -112,6 +112,13 @@ int main(int argc, char* argv[]) {
     app.add_option("-d,--driver", inputDriver, "Input driver name (AUTO for auto-detection)")
        ->default_val("AUTO");
 
+    std::vector<std::string> openOptionArgs;
+    app.add_option("-o,--option", openOptionArgs,
+                   "Open option for the input driver, key=value; repeatable. "
+                   "E.g. mrxs.crop_to_content=false converts the full MRXS canvas")
+       ->take_all()
+       ->allow_extra_args(false);
+
     app.add_option("-f,--format", targetFormat, "Target format (SVS or OMETIFF)")
        ->default_val("OMETIFF")
        ->check(CLI::IsMember({"SVS", "OMETIFF"}));
@@ -176,6 +183,7 @@ int main(int argc, char* argv[]) {
         parseRange(channelRangeStr, channelRange);
         parseRange(sliceRangeStr, sliceRange);
         parseRange(frameRangeStr, frameRange);
+        const std::map<std::string, std::string> openOptions = parseOpenOptions(openOptionArgs);
 
         std::string logLevel;
         switch (logLevelValue) {
@@ -215,7 +223,8 @@ int main(int argc, char* argv[]) {
                     deleteIfExists,
                     tileBatchSize,
                     numReadingThreads,
-                    numEncodingThreads);
+                    numEncodingThreads,
+                    openOptions);
     }
     catch (const std::exception& e) {
         std::cerr << "Error during processing: " << e.what() << std::endl;

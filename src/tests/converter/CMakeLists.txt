@@ -13,11 +13,15 @@ set(TEST_SOURCES
   test_tiffstructure.cpp
   test_converterparameters.cpp
   test_sourcescene_conversion.cpp
+  test_converter_tool.cpp
+  ${CMAKE_SOURCE_DIR}/src/tools/converter/sceneconverter.cpp
 )
 
 add_executable(${TEST_NAME} ${TEST_SOURCES})
 
 target_include_directories(${TEST_NAME} PRIVATE ${INCLUDE_ROOT})
+# The tool's open-options test converts a committed MRXS fixture.
+target_compile_definitions(${TEST_NAME} PRIVATE MRXS_FIXTURE_DIR="${CMAKE_SOURCE_DIR}/src/tests/mrxs/data")
 
 
 find_package(GTest)

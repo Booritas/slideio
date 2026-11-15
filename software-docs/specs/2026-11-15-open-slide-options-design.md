@@ -121,6 +121,21 @@ slideio.Slide(path, driver, options=None)               # driver stays required,
 - A dict rather than `**kwargs`: keys contain dots (`mrxs.crop_to_content`),
   which are not valid Python identifiers. *(my call)*
 
+### 4.3 `slideio-converter`
+
+*(Added in PR #101 review: the first version left the tool without a way to pass
+options, so with cropping on by default it could not convert a full MRXS canvas.)*
+
+- `-o, --option key=value`, repeatable, one `key=value` per occurrence, so the flag
+  never swallows the positional input and output paths.
+- `parseOpenOptions` in `src/tools/converter/sceneconverter.cpp` splits each
+  argument at the first `=`. It rejects an argument with no `=`, an empty key, or a
+  key given twice. The keys themselves are validated by `openSlide`, so they get the
+  library's errors.
+- `convertFile` takes the resulting map and opens the input with the
+  three-argument `openSlide`. `slideio_converter_tests` compiles
+  `sceneconverter.cpp` to test both.
+
 ## 5. Option keys
 
 - **Every key is namespaced by a driver ID**: `<driver-id>.<name>`. The prefix is

@@ -37,7 +37,8 @@ marked **Breaking** below summarise them.
   or an option name the driver does not know is rejected, the first two before the
   file is touched. The two-argument `openSlide` is unchanged. Converting a scene
   re-opens it with the options it was opened with. `mrxs.crop_to_content` is the
-  first option.
+  first option. `slideio-converter` takes them as `-o key=value`, repeatable; for
+  example, `-o mrxs.crop_to_content=false` converts the full MRXS canvas.
 - `slideio/core/channelattributes.hpp` names the standard channel attributes
   (`ChannelAttribute::Color`, `Name`, `EmissionWavelength`, `ExcitationWavelength`);
   the drivers and the converter use them instead of literal keys.

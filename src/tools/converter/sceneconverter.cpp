@@ -191,6 +191,22 @@ void printInfo(const TiffConverter& converter) {
 }
 
 
+std::map<std::string, std::string> parseOpenOptions(const std::vector<std::string>& arguments) {
+	std::map<std::string, std::string> options;
+	for (const std::string& argument : arguments) {
+		const size_t eq = argument.find('=');
+		if (eq == std::string::npos || eq == 0) {
+			throw std::runtime_error("Invalid open option '" + argument + "'. Use: key=value, e.g. mrxs.crop_to_content=false");
+		}
+		const std::string key = argument.substr(0, eq);
+		if (!options.emplace(key, argument.substr(eq + 1)).second) {
+			throw std::runtime_error("Open option '" + key + "' is given twice");
+		}
+	}
+	return options;
+}
+
+
 void convertFile(
 	const std::string& inputPath,
 	const std::string& outputPath,
@@ -211,7 +227,8 @@ void convertFile(
 	bool deleteIfExists,
 	int tileBatchSize,
 	int numReadingThreads,
-	int numEncodingThreads) {
+	int numEncodingThreads,
+	const std::map<std::string, std::string>& openOptions) {
 	if (!std::filesystem::exists(inputPath)) {
 		throw std::runtime_error("Input file does not exist: " + inputPath);
 	}
@@ -222,7 +239,7 @@ void convertFile(
 			throw std::runtime_error("Output file already exists: " + outputPath);
 		}
 	}
-	auto slide = openSlide(inputPath, inputDriver);
+	auto slide = openSlide(inputPath, inputDriver, openOptions);
 	auto scene = slide->getScene(sceneIndex);
 
 	Compression compression = (targetCompression == "Jpeg") ? Compression::Jpeg : Compression::Jpeg2000;
