@@ -19,7 +19,8 @@ namespace slideio::mrxs
      *
      * level0 is the level-0 content bounds rounded outward and clipped to the canvas;
      * levels[l] is that box at level l, origin floored and far edge ceiled, clipped to the
-     * level. Both are in nominal (uncropped) pixels of their level.*/
+     * level. Both are in nominal (uncropped) pixels of their level. levels stops before
+     * the first level the box misses entirely, so it can be shorter than the pyramid.*/
     struct CropBox
     {
         cv::Rect level0;

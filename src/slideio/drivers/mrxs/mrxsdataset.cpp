@@ -30,6 +30,12 @@ std::optional<CropBox> slideio::mrxs::computeCropBox(const Geometry& geometry)
         const int64_t lx0 = x0 / d, ly0 = y0 / d;      // non-negative: floor
         const int64_t lx1 = std::min(level.width, (x1 + d - 1) / d);
         const int64_t ly1 = std::min(level.height, (y1 + d - 1) / d);
+        if (lx1 <= lx0 || ly1 <= ly0) {
+            // A level floors the lattice, so content in the canvas's last few columns or
+            // rows can fall outside it. This level and every coarser one would be empty:
+            // the cropped pyramid ends at the previous level.
+            break;
+        }
         box.levels.emplace_back(int(lx0), int(ly0), int(lx1 - lx0), int(ly1 - ly0));
     }
     return box;

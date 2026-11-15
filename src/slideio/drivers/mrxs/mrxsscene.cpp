@@ -25,7 +25,9 @@ MRXSScene::MRXSScene(std::shared_ptr<const MRXSDataset> dataset) : m_dataset(std
     m_metadataFormat = MetadataFormat::Text;
     const auto& levels = m_dataset->geometry.levels;
     const double magnification = getMagnification();
-    for (size_t l = 0; l < levels.size(); ++l) {
+    // A cropped pyramid ends where the crop box would leave a level empty.
+    const size_t numLevels = m_dataset->crop ? m_dataset->crop->levels.size() : levels.size();
+    for (size_t l = 0; l < numLevels; ++l) {
         const LevelGeometry& lg = levels[l];
         const cv::Rect box = levelBox(static_cast<int>(l));
         // The tile size is a logical read grid, not the irregular physical layout of the
@@ -136,13 +138,14 @@ void MRXSScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv
                                              int tFrameIndex, cv::OutputArray output)
 {
     const auto& levels = m_dataset->geometry.levels;
-    auto selectLevel = [&levels](const cv::Rect& rect, const cv::Size& size) {
+    const int numLevels = static_cast<int>(m_levels.size());     // the scene's, not the bundle's
+    auto selectLevel = [&levels, numLevels](const cv::Rect& rect, const cv::Size& size) {
         if (rect.width <= 0 || rect.height <= 0) {
             return 0;
         }
         const double zoomX = double(size.width) / double(rect.width);
         const double zoomY = double(size.height) / double(rect.height);
-        return Tools::findZoomLevel(std::max(zoomX, zoomY), static_cast<int>(levels.size()),
+        return Tools::findZoomLevel(std::max(zoomX, zoomY), numLevels,
                                     [&levels](int index) { return 1.0 / double(levels[index].downsample); });
     };
     if (!m_dataset->crop) {

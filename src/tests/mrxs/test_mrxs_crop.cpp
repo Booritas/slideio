@@ -14,6 +14,7 @@
 #include "slideio/drivers/mrxs/mrxsdataset.hpp"
 #include "slideio/drivers/mrxs/mrxsgeometry.hpp"
 #include "slideio/drivers/mrxs/mrxsimagedriver.hpp"
+#include "slideio/drivers/mrxs/mrxsscene.hpp"
 #include "slideio/slideio/slideio.hpp"
 #include "slideio/slideio/sceneinternal.hpp"
 #include "slideio/converter/converterparameters.hpp"
@@ -303,4 +304,46 @@ TEST(MRXSCrop, scaledReadsOverhangingTheEdgeFillTheOverhangWithBackground)
             EXPECT_EQ(background, outside.at<cv::Vec3b>(y, x)) << "(" << x << ", " << y << ")";
         }
     }
+}
+
+namespace
+{
+    // nomap-d1 (48 x 32; levels 48, 24 and 12 wide) with level 2 one pixel narrower, as
+    // a lattice whose width the downsample does not divide floors it, and content only
+    // in the canvas's last three columns: the level-2 box starts at its width.
+    Geometry geometryWithContentInTheLastColumns()
+    {
+        Geometry g = MRXSDataset::open(entry("nomap-d1"))->geometry;
+        g.levels[2].width = 11;
+        g.bounds0 = cv::Rect2d(45, 0, 3, 10);
+        return g;
+    }
+}
+
+TEST(MRXSCropBox, levelsWhoseBoxIsEmptyAreDropped)
+{
+    const auto box = computeCropBox(geometryWithContentInTheLastColumns());
+    ASSERT_TRUE(box.has_value());
+    EXPECT_EQ(cv::Rect(45, 0, 3, 10), box->level0);
+    ASSERT_EQ(2u, box->levels.size());
+    for (const cv::Rect& level : box->levels) {
+        EXPECT_GT(level.width, 0);
+        EXPECT_GT(level.height, 0);
+    }
+}
+
+TEST(MRXSCrop, aCroppedSceneHasNoEmptyZoomLevels)
+{
+    auto dataset = std::make_shared<MRXSDataset>(*MRXSDataset::open(entry("nomap-d1")));
+    dataset->geometry = geometryWithContentInTheLastColumns();
+    dataset->cropRequested = true;
+    dataset->crop = computeCropBox(dataset->geometry);
+    const auto scene = std::make_shared<slideio::MRXSScene>(dataset);
+    ASSERT_EQ(2, scene->getNumZoomLevels());
+    for (int l = 0; l < scene->getNumZoomLevels(); ++l) {
+        EXPECT_GT(scene->getZoomLevelInfo(l)->getSize().width, 0) << "level " << l;
+        EXPECT_GT(scene->getZoomLevelInfo(l)->getSize().height, 0) << "level " << l;
+    }
+    // A read far below native size selects among the levels the scene reports.
+    EXPECT_EQ(cv::Size(1, 3), read(scene, cv::Rect(0, 0, 3, 10), cv::Size(1, 3)).size());
 }
