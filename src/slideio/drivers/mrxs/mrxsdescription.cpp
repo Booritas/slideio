@@ -53,6 +53,12 @@ slideio::MetadataBuilder slideio::mrxs::describe(const MRXSDataset& dataset)
     mrxs["positionSource"] = positionSourceName(slide.positionSource);
     mrxs["positionAware"] = geometry.positionAware;
     mrxs["nominalSize"] = {geometry.levels[0].width, geometry.levels[0].height};
+    if (dataset.crop) {
+        // The box a cropped scene presents, in nominal level-0 pixels: where the scene's
+        // (0, 0) sits on the canvas that nominalSize and contentBounds describe.
+        const cv::Rect& c = dataset.crop->level0;
+        mrxs["crop"] = {c.x, c.y, c.width, c.height};
+    }
     if (geometry.bounds0) {
         // As OpenSlide publishes them: rounded outward, not clipped to the canvas.
         const cv::Rect2d& b = *geometry.bounds0;

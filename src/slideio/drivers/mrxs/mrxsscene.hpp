@@ -33,7 +33,11 @@ namespace slideio
         /// themselves without holding a lock across I/O or decoding (design section 8).
         bool supportsConcurrentReads() const override { return true; }
 
-        /// Selects the level as Tools::findZoomLevel does and delegates to the level read.
+        /// {"mrxs.crop_to_content": "true" | "false"}, as opened: a re-open by path crops alike.
+        DriverOptions getOpenOptions() const override;
+
+        /// Selects the level as Tools::findZoomLevel does and reads it. Cropped, the
+        /// rect is translated into nominal level-0 pixels before the level is scaled.
         void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
                                           const std::vector<int>& channelIndices, int zSliceIndex, int tFrameIndex,
                                           cv::OutputArray output) override;
@@ -46,6 +50,15 @@ namespace slideio
         MetadataBuilder buildMetadataTree() const override;
 
     private:
+        /// The part of the nominal level the scene presents: the crop box at that
+        /// level, or the whole level when uncropped.
+        cv::Rect levelBox(int level) const;
+        void validateChannels(const std::vector<int>& channelIndices) const;
+        /// Renders levelRect, in nominal level pixels, clamped to bounds.
+        void readNominalLevel(int level, const cv::Rect& levelRect, const cv::Rect& bounds,
+                              const cv::Size& blockSize, const std::vector<int>& channelIndices,
+                              cv::OutputArray output) const;
+
         std::shared_ptr<const mrxs::MRXSDataset> m_dataset;
     };
 }

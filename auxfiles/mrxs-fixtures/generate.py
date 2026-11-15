@@ -686,6 +686,18 @@ def base_specs():
         "ini_general_extra": ["SLIDE_NAME = first-value", "SLIDE_NAME = last-value"],
         "ini_tail": ["[EXTRA_GROUP]", "KEY_A = a", "[EXTRA_GROUP]", "KEY_B = b"],
     })
+
+    # Content starting at (27, 9): neither offset divides by the coarser downsamples, so a
+    # crop to the content box has non-zero, non-aligned level origins.
+    specs.append({
+        "name": "offset-content", "slide_id": "0FF5E70FF5E70FF5E70FF5E70FF5E70F",
+        "Nx": 8, "Ny": 6, "D": 1, "mpp": [0.25, 0.25], "fill_bgr": 0x00405060,
+        "levels": [dict(exp=0, W=9, H=9, overlap_x=0, overlap_y=0, format="PNG"),
+                   dict(exp=1, W=9, H=9, overlap_x=0, overlap_y=0, format="PNG"),
+                   dict(exp=1, W=9, H=9, overlap_x=0, overlap_y=0, format="PNG")],
+        "images0": [(x, y) for (x, y) in grid(8, 6, 1) if x >= 3 and y >= 1 and (x, y) != (6, 4)],
+        "index_file": "Index.dat", "data_files": ["Data0000.dat"],
+    })
     return specs
 
 

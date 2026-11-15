@@ -9,10 +9,27 @@
 #include "slideio/drivers/mrxs/mrxsruntime.hpp"
 #include <opencv2/core.hpp>
 #include <memory>
+#include <optional>
 #include <string>
+#include <vector>
 
 namespace slideio::mrxs
 {
+    /**@brief the content box a cropped scene presents (open options design, section 7.1).
+     *
+     * level0 is the level-0 content bounds rounded outward and clipped to the canvas;
+     * levels[l] is that box at level l, origin floored and far edge ceiled, clipped to the
+     * level. Both are in nominal (uncropped) pixels of their level. levels stops before
+     * the first level the box misses entirely, so it can be shorter than the pyramid.*/
+    struct CropBox
+    {
+        cv::Rect level0;
+        std::vector<cv::Rect> levels;
+    };
+
+    /**@brief the crop box, or nothing when there are no drawables or they miss the canvas.*/
+    SLIDEIO_MRXS_EXPORTS std::optional<CropBox> computeCropBox(const Geometry& geometry);
+
     /**@brief everything an open bundle needs to be read, validated and immutable.
      *
      * Scenes share it by shared_ptr<const MRXSDataset>, so they outlive the slide that
@@ -25,8 +42,13 @@ namespace slideio::mrxs
         Geometry geometry;
         cv::Vec3b background;       ///< RGB, from level 0's IMAGE_FILL_COLOR_BGR
         std::shared_ptr<MRXSRuntime> runtime;
+        bool cropRequested = false;     ///< mrxs.crop_to_content as opened
+        std::optional<CropBox> crop;    ///< set when requested and a box exists
 
+        /// cropToContent defaults to false here: the dataset's own tests describe the
+        /// nominal geometry. The driver applies the option's real default (true).
         static std::shared_ptr<const MRXSDataset> open(const std::string& entryPath,
-                                                       const RuntimeOptions& options = RuntimeOptions());
+                                                       const RuntimeOptions& options = RuntimeOptions(),
+                                                       bool cropToContent = false);
     };
 }

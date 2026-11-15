@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include <functional>
 
 #include "slideio/core/imagedriver.hpp"
 #include "slideio/slideio/imagedrivermanager.hpp"
@@ -90,4 +91,51 @@ TEST(ImageDriverManager, getVersion)
 	std::string version = slideio::ImageDriverManager::getVersion();
 	EXPECT_EQ(version, SLIDEIO_VERSION);
 	EXPECT_FALSE(version.empty());
+}
+namespace
+{
+    std::string errorOf(const std::function<void()>& call)
+    {
+        try {
+            call();
+        }
+        catch (const std::exception& e) {
+            return e.what();
+        }
+        return "";
+    }
+}
+
+TEST(ImageDriverManagerOptions, aKeyWithoutADriverPrefixIsRejected)
+{
+    const std::string message = errorOf([] {
+        slideio::ImageDriverManager::openSlide("missing.svs", "SVS", {{"crop", "1"}});
+    });
+    EXPECT_NE(std::string::npos, message.find("names no driver")) << message;
+    EXPECT_NE(std::string::npos, message.find("crop")) << message;
+}
+
+TEST(ImageDriverManagerOptions, anUnknownDriverPrefixIsRejected)
+{
+    const std::string message = errorOf([] {
+        slideio::ImageDriverManager::openSlide("missing.mrxs", "AUTO", {{"mrsx.crop_to_content", "1"}});
+    });
+    EXPECT_NE(std::string::npos, message.find("unknown driver 'mrsx'")) << message;
+}
+
+TEST(ImageDriverManagerOptions, theChosenDriverReceivesItsKeysCaseInsensitivelyByPrefix)
+{
+    // SVS takes no options: its base openFile rejects the key before touching the file.
+    const std::string message = errorOf([] {
+        slideio::ImageDriverManager::openSlide("missing.svs", "SVS", {{"Svs.x", "1"}});
+    });
+    EXPECT_NE(std::string::npos, message.find("has no open option 'svs.x'")) << message;
+}
+
+TEST(ImageDriverManagerOptions, validationRunsBeforeTheFileIsTouched)
+{
+    const std::string message = errorOf([] {
+        slideio::openSlide("Z:/no/such/dir/x.mrxs", "AUTO", {{"nosuch.x", "1"}});
+    });
+    EXPECT_NE(std::string::npos, message.find("unknown driver 'nosuch'")) << message;
 }

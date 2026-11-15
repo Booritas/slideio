@@ -12,7 +12,10 @@ marked **Breaking** below summarise them.
 - **Four new drivers**, each detected automatically, each reporting concurrent reads:
   - **MRXS** (3DHISTECH MIRAX): stitched rendering from camera positions, scene
     metadata and associated images, decoded-image and file-handle caches, bounded
-    resampling of large regions. A bare `Slidedat.ini` path opens too.
+    resampling of large regions. A bare `Slidedat.ini` path opens too. The scene
+    is cropped to the bounding box of the scanned area by default, as QuPath shows
+    it; the open option `mrxs.crop_to_content=false` gives the full canvas OpenSlide
+    reports, and `mrxs.crop` metadata gives the box's offset on that canvas.
   - **BIF** (Roche Ventana): one scene per area of interest, per-boundary stitching
     geometry, stitched level reads with per-tile decode, iScan and EncodeInfo XML
     metadata.
@@ -28,6 +31,14 @@ marked **Breaking** below summarise them.
   source with a real pyramid serves level reads directly, and such a scene can be
   converted like any other. New public headers `slideio/slideio/scenesource.hpp`
   and `slideio/slideio/scenemetadata.hpp`.
+- **Open options**: `openSlide(path, driver, options)` passes driver-namespaced
+  options (`<driver-id>.<name>` -> value) to the driver that opens the file. Keys
+  for other drivers are ignored; a key without a driver prefix, an unknown driver
+  or an option name the driver does not know is rejected, the first two before the
+  file is touched. The two-argument `openSlide` is unchanged. Converting a scene
+  re-opens it with the options it was opened with. `mrxs.crop_to_content` is the
+  first option. `slideio-converter` takes them as `-o key=value`, repeatable; for
+  example, `-o mrxs.crop_to_content=false` converts the full MRXS canvas.
 - `slideio/core/channelattributes.hpp` names the standard channel attributes
   (`ChannelAttribute::Color`, `Name`, `EmissionWavelength`, `ExcitationWavelength`);
   the drivers and the converter use them instead of literal keys.

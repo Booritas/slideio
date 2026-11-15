@@ -5,6 +5,7 @@
 
 #include "slideio/slideio/slideio_def.hpp"
 #include "slideio/core/metadata.hpp"
+#include <map>
 #include <string>
 #include <memory>
 #include <list>
@@ -29,6 +30,8 @@ namespace slideio
     class SLIDEIO_EXPORTS Slide
     {
         friend SLIDEIO_EXPORTS std::shared_ptr<Slide> openSlide(const std::string& path, const std::string& driver);
+        friend SLIDEIO_EXPORTS std::shared_ptr<Slide> openSlide(const std::string& path, const std::string& driver,
+                                                                const std::map<std::string, std::string>& options);
     private:
         /** Constructor of the class. 
         @param slide : object of a CVSlide class created by a corresponding ImageDriver object. */

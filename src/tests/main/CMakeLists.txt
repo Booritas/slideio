@@ -15,6 +15,7 @@ set(TEST_SOURCES
   test_block_size_validation.cpp
   test_icctransform.cpp
   test_imagedrivermanager.cpp
+  test_openoptions.cpp
   test_czi_driver.cpp
   test_czi_tools.cpp
   test_scn_driver.cpp

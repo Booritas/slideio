@@ -35,7 +35,9 @@ namespace
     std::shared_ptr<slideio::CVSlide> slideOf(const std::string& name)
     {
         slideio::MRXSImageDriver driver;
-        return driver.openFile((dataDir() / (name + ".mrxs")).u8string());
+        // The nominal canvas: these tests describe the uncropped geometry.
+        return driver.openFile((dataDir() / (name + ".mrxs")).u8string(),
+                               slideio::DriverOptions{{"crop_to_content", "false"}});
     }
 
     std::string fileText(const fs::path& path)
