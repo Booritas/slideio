@@ -347,6 +347,31 @@ TEST(SourceSceneConversion, aSceneWithANegativeIndexIsSharedNotReopened)
     std::filesystem::remove(path);
 }
 
+namespace
+{
+    class SceneWithOpenOptions : public ReopenableScene
+    {
+    public:
+        using ReopenableScene::ReopenableScene;
+        DriverOptions getOpenOptions() const override { return {{"ometiff.no_such_option", "1"}}; }
+    };
+}
+
+TEST(SourceSceneConversion, aScenesOpenOptionsReachTheReopen)
+{
+    // OMETIFF takes no options, so passing them makes the re-open throw and the
+    // converter share the scene. Without them the same file is re-opened (see
+    // aSceneMatchingItsReopenedFileIsReopened).
+    const std::string path = writeComputedOmeTiff("slideio_clone_options.ome.tiff");
+    {
+        auto scene = std::make_shared<SceneWithOpenOptions>(path, 0);
+        std::pair<std::shared_ptr<Slide>, std::shared_ptr<Scene>> clone;
+        ASSERT_NO_THROW(clone = cloneOf(scene));
+        EXPECT_TRUE(isShared(clone, scene));
+    }
+    std::filesystem::remove(path);
+}
+
 TEST(SourceSceneConversion, aSceneWhoseReopenFailsIsShared)
 {
     const std::string path = tempOutputPath("slideio_clone_missing.ome.tiff");   // never written

@@ -8,6 +8,7 @@
 #include "slideio/core/slideio_enums.hpp"
 #include "slideio/core/metadata.hpp"
 #include "slideio/core/colorprofile.hpp"
+#include "slideio/core/openoptions.hpp"
 #include <opencv2/core.hpp>
 #include <atomic>
 #include <cstdint>
@@ -196,6 +197,12 @@ namespace slideio
          * a main scene or nothing.
          */
         virtual bool canReopenByPath() const { return !m_auxImage.load(); }
+        /**@brief the open options a re-open by path must pass to reproduce this
+         * scene: full prefixed keys, as given to openSlide. Empty for a driver
+         * without options. A driver that honours options overrides this; without
+         * it the converter's per-thread re-open yields a different raster and
+         * falls back to sharing one scene.*/
+        virtual DriverOptions getOpenOptions() const { return {}; }
         /**@brief records that this scene was handed out as an auxiliary image.
          *
          * Called by Slide::getAuxImage and Scene::getAuxImage, the one place

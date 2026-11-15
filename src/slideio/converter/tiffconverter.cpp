@@ -519,7 +519,7 @@ std::pair<std::shared_ptr<Slide>, std::shared_ptr<Scene>> TiffConverter::tryReop
 	const std::string filePath = origin->getFilePath();
 	const std::string driverId = origin->getDriverId();
 	try {
-		std::shared_ptr<Slide> slide = openSlide(filePath, driverId);
+		std::shared_ptr<Slide> slide = openSlide(filePath, driverId, origin->getOpenOptions());
 		std::shared_ptr<Scene> scene = slide ? slide->getScene(sceneIndex) : nullptr;
 		std::shared_ptr<CVScene> clone = scene ? slideio::SceneInternal::getCVScene(scene) : nullptr;
 		if (clone && describesSameRaster(*origin, *clone)) {
