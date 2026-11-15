@@ -1,7 +1,9 @@
 # Open options for `openSlide`, and MRXS crop-to-content
 
-Date: 2026-11-15. Status: design, not implemented. Points marked *(my call)* are
-design decisions taken without a requirement behind them; review them first.
+Date: 2026-11-15. Status: implemented on feature/open-slide-options (2026-11-15),
+slideio and slideio-python; manual review of AI-written code pending before merge.
+Points marked *(my call)* are design decisions taken without a requirement behind
+them; review them first.
 
 ## 1. Intent
 
