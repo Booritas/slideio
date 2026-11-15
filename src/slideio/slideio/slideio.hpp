@@ -4,6 +4,7 @@
 #pragma once
 #include "slideio/slideio/slideio_def.hpp"
 #include "slideio/slideio/slide.hpp"
+#include <map>
 #include <string>
 #include <vector>
 
@@ -107,6 +108,23 @@ namespace  slideio
     if the id is unknown or if no driver accepts the file.
     */
     SLIDEIO_EXPORTS std::shared_ptr<Slide> openSlide(const std::string& path, const std::string& driver= "");
+    /**@brief Open options: driver-namespaced key -> value strings.*/
+    using SlideOpenOptions = std::map<std::string, std::string>;
+    /**Function for opening a slide file with open options.
+    @brief Opens a slide as openSlide(path, driver) does, passing options to the driver.
+    @param path : path of the file/folder that contains the slide.
+    @param driver : id of image driver, or an empty string or "AUTO" to detect it.
+    @param options : every key is written `<driver-id>.<name>`; the driver id is matched
+    case-insensitively against getDriverIDs(), the name exactly. Keys addressed to a driver
+    other than the one that opens the file are ignored. The function throws, before the
+    file is opened, for a key without a driver prefix or with an unknown one, and the
+    driver throws for a name or value it does not know. Boolean values are true/false/1/0.
+    Known options:
+    - `mrxs.crop_to_content` (default true): the MRXS scene is the bounding box of the
+      scanned area, with coordinates starting at its corner; false gives the full canvas.
+    */
+    SLIDEIO_EXPORTS std::shared_ptr<Slide> openSlide(const std::string& path, const std::string& driver,
+                                                     const SlideOpenOptions& options);
     /**@brief Returns a list of available driver ids. */
     SLIDEIO_EXPORTS std::vector<std::string> getDriverIDs();
     /**@brief Sets the log level for the library.*/

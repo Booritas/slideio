@@ -41,6 +41,14 @@ namespace slideio
          * @throw std::runtime_error if driver cannot be found.
          */
         static std::shared_ptr<CVSlide> openSlide(const std::string& filePath, const std::string& driver);
+        /**@brief opens a slide with open options.
+         *
+         * Every key is `<driver-id>.<name>`. Before the file is touched, a key with no
+         * prefix and a prefix naming no registered driver are rejected. The chosen driver
+         * then receives its own keys, prefix stripped; keys for other drivers are ignored.
+         */
+        static std::shared_ptr<CVSlide> openSlide(const std::string& filePath, const std::string& driver,
+                                                  const std::map<std::string, std::string>& options);
         /**@brief sets logging level.
          *
          * @params level : log level. Should be one of the following strings:

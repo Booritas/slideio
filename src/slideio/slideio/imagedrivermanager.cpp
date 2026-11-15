@@ -138,7 +138,33 @@ void ImageDriverManager::initialize()
 
 std::shared_ptr<CVSlide> ImageDriverManager::openSlide(const std::string& filePath, const std::string& driverName)
 {
+    return openSlide(filePath, driverName, DriverOptions());
+}
+
+std::shared_ptr<CVSlide> ImageDriverManager::openSlide(const std::string& filePath, const std::string& driverName,
+                                                       const std::map<std::string, std::string>& options)
+{
     initialize();
+    // Every key is validated before a driver is chosen or the file touched, so a typo is
+    // reported as itself and never as a file the driver could not open.
+    auto driverOf = [](const std::string& prefix) -> std::shared_ptr<ImageDriver> {
+        for (const auto& entry : driverMap) {
+            if (optionKeyOf(entry.first, "") == optionKeyOf(prefix, "")) {
+                return entry.second;
+            }
+        }
+        return nullptr;
+    };
+    for (const auto& option : options) {
+        const OptionKey key = splitOptionKey(option.first);
+        if (key.driver.empty()) {
+            RAISE_RUNTIME_ERROR << "open option '" << option.first
+                << "' names no driver: options are written <driver>.<name>";
+        }
+        if (!driverOf(key.driver)) {
+            RAISE_RUNTIME_ERROR << "open option '" << option.first << "': unknown driver '" << key.driver << "'";
+        }
+    }
     std::shared_ptr<slideio::ImageDriver> driver;
     if(driverName.compare("AUTO")==0 || driverName.empty()) {
         driver = findDriver(filePath);
@@ -152,7 +178,14 @@ std::shared_ptr<CVSlide> ImageDriverManager::openSlide(const std::string& filePa
             throw std::runtime_error("ImageDriverManager: Unknown driver " + driverName);
         driver = it->second;
     }
-	auto slide = driver->openFile(filePath);
+    DriverOptions own;
+    for (const auto& option : options) {
+        const OptionKey key = splitOptionKey(option.first);
+        if (driverOf(key.driver) == driver) {
+            own[key.name] = option.second;
+        }
+    }
+	auto slide = driver->openFile(filePath, own);
 	slide->setDriverId(driver->getID());
     return slide;
 }
