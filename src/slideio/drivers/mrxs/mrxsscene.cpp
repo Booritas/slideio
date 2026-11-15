@@ -166,12 +166,14 @@ void MRXSScene::readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv
     // ceil(W/d) is not always ceil((C.x + W)/d), so the read could cover a source column
     // more or fewer than the uncropped read of the same box (open options design 7.3).
     // The level read is clamped to the full level, not the level's box, for the same
-    // reason; the level-0 clamp has already cut away everything outside the crop.
+    // reason; the level-0 clamp has already cut away everything outside the crop. The
+    // level comes from the whole request, as on the uncropped path: the clipped part's
+    // size is rounded up, so choosing from it could pick a finer level at an edge.
     const cv::Point origin = m_dataset->crop->level0.tl();
+    const int level = selectLevel(blockRect, blockSize);
+    const double scale = 1.0 / double(levels[level].downsample);
     readClampedBlock(getRect(), blockRect, blockSize, channelIndices,
         [&](const cv::Rect& validRect, const cv::Size& partSize, cv::OutputArray part) {
-            const int level = selectLevel(validRect, partSize);
-            const double scale = 1.0 / double(levels[level].downsample);
             cv::Rect levelRect;
             Tools::scaleRect(validRect + origin, scale, scale, levelRect);
             const LevelGeometry& lg = levels[level];

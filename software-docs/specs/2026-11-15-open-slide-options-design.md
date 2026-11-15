@@ -254,12 +254,19 @@ The invariants tests rely on, both bit-exact:
   size, equals an uncropped scaled read of R shifted by `(C.x, C.y)` at the same
   output size.
 
-A scaled read that overhangs the cropped scene is clamped at level 0 first. Its
-valid part is resampled to its share of the output, so it may use a different
-level than the uncropped read of the whole shifted rect would. The overhang is
-background, and so is everything outside the crop on the uncropped canvas, because
-the crop is the bounds of every drawable. The output's size and layout are what is
-pinned there, not bit-equality with the uncropped read.
+A scaled read that overhangs the cropped scene takes its level from the whole
+request, as the uncropped path does, and is then clamped at level 0. The uncropped
+path clamps at the chosen level instead. So the two agree bit for bit where the crop
+edge is also the canvas edge, and elsewhere only up to that rounding. The overhang
+is background, and so is everything outside the crop on the uncropped canvas,
+because the crop is the bounds of every drawable. *(Decided in PR #101 review: the
+level was first chosen per clipped part, whose rounded-up size could select a finer
+level at an edge.)*
+
+A coarse level the crop box misses entirely is dropped, together with every level
+coarser than it: the cropped pyramid ends at the last level with pixels. This can
+happen because a level floors the lattice, so content in the canvas's last few
+columns or rows falls outside it. *(Decided in PR #101 review.)*
 
 `supportsConcurrentReads()` is unaffected. The crop is immutable per scene.
 

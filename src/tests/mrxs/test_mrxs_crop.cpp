@@ -347,3 +347,15 @@ TEST(MRXSCrop, aCroppedSceneHasNoEmptyZoomLevels)
     // A read far below native size selects among the levels the scene reports.
     EXPECT_EQ(cv::Size(1, 3), read(scene, cv::Rect(0, 0, 3, 10), cv::Size(1, 3)).size());
 }
+
+TEST(MRXSCrop, anOverhangingScaledReadChoosesItsLevelFromTheWholeRequest)
+{
+    // offset-content's crop ends where its canvas does, on the right and at the bottom,
+    // so a read overhanging there clamps at the same place cropped or not. Its level must
+    // come from the whole request (20 -> 5: level 2), as the uncropped read's does, not
+    // from the clipped part (5 -> 2, rounded up: level 1), whose colours differ.
+    const auto plain = plainOf("offset-content")->getScene(0);
+    const auto cropped = croppedOf("offset-content")->getScene(0);
+    EXPECT_TRUE(same(read(cropped, cv::Rect(40, 40, 20, 20), cv::Size(5, 5)),
+                     read(plain, cv::Rect(67, 49, 20, 20), cv::Size(5, 5))));
+}
