@@ -7,6 +7,8 @@ set(SOURCE_FILES
    ${SOURCE_FILES}
    ${CMAKE_CURRENT_SOURCE_DIR}/imagedriver.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/imagedriver.cpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/openoptions.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/openoptions.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/cvscene.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/cvscene.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/cvslide.hpp
