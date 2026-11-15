@@ -250,8 +250,16 @@ coordinate space:
 The invariants tests rely on, both bit-exact:
 - a cropped level read of rect R at level *l* equals an uncropped level read of R
   shifted by that level's `(x0, y0)`;
-- a cropped scaled read of rect R at any output size equals an uncropped scaled
-  read of R shifted by `(C.x, C.y)` at the same output size.
+- a cropped scaled read of rect R **lying inside the cropped scene**, at any output
+  size, equals an uncropped scaled read of R shifted by `(C.x, C.y)` at the same
+  output size.
+
+A scaled read that overhangs the cropped scene is clamped at level 0 first. Its
+valid part is resampled to its share of the output, so it may use a different
+level than the uncropped read of the whole shifted rect would. The overhang is
+background, and so is everything outside the crop on the uncropped canvas, because
+the crop is the bounds of every drawable. The output's size and layout are what is
+pinned there, not bit-equality with the uncropped read.
 
 `supportsConcurrentReads()` is unaffected. The crop is immutable per scene.
 

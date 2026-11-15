@@ -279,3 +279,28 @@ TEST(MRXSCrop, openOptionsRoundTripAndTheConverterReopensCropped)
     EXPECT_NE(cropped, cloneScene);     // re-opened, not shared
     EXPECT_EQ(cv::Rect(0, 0, 45, 45), cloneScene->getRect());
 }
+
+TEST(MRXSCrop, scaledReadsOverhangingTheEdgeFillTheOverhangWithBackground)
+{
+    // The cropped scaled path clamps at level 0 before choosing a level, then reads the
+    // valid part; the rest of the output is the scene's background.
+    const auto cropped = croppedOf("offset-content")->getScene(0);
+    const cv::Vec3b background(static_cast<uchar>(cropped->getChannelBackground(0)),
+                               static_cast<uchar>(cropped->getChannelBackground(1)),
+                               static_cast<uchar>(cropped->getChannelBackground(2)));
+    const cv::Mat right = read(cropped, cv::Rect(40, 40, 10, 10), cv::Size(5, 5));
+    ASSERT_EQ(cv::Size(5, 5), right.size());
+    EXPECT_NE(background, right.at<cv::Vec3b>(0, 0));      // inside: content
+    EXPECT_EQ(background, right.at<cv::Vec3b>(4, 4));      // beyond the far corner
+    const cv::Mat left = read(cropped, cv::Rect(-5, -5, 20, 20), cv::Size(7, 7));
+    ASSERT_EQ(cv::Size(7, 7), left.size());
+    EXPECT_EQ(background, left.at<cv::Vec3b>(0, 0));       // before the origin
+    EXPECT_NE(background, left.at<cv::Vec3b>(6, 6));
+    const cv::Mat outside = read(cropped, cv::Rect(50, 50, 10, 10), cv::Size(5, 5));
+    ASSERT_EQ(cv::Size(5, 5), outside.size());
+    for (int y = 0; y < 5; ++y) {
+        for (int x = 0; x < 5; ++x) {
+            EXPECT_EQ(background, outside.at<cv::Vec3b>(y, x)) << "(" << x << ", " << y << ")";
+        }
+    }
+}
