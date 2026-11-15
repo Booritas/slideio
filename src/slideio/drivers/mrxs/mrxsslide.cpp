@@ -8,11 +8,11 @@
 #include "slideio/drivers/mrxs/mrxsdescription.hpp"
 #include "slideio/core/exceptions.hpp"
 
-std::shared_ptr<slideio::MRXSSlide> slideio::MRXSSlide::openFile(const std::string& filePath)
+std::shared_ptr<slideio::MRXSSlide> slideio::MRXSSlide::openFile(const std::string& filePath, bool cropToContent)
 {
     auto slide = std::make_shared<MRXSSlide>();
     slide->m_filePath = filePath;
-    slide->m_dataset = mrxs::MRXSDataset::open(filePath);
+    slide->m_dataset = mrxs::MRXSDataset::open(filePath, mrxs::RuntimeOptions(), cropToContent);
     slide->m_scene = std::make_shared<MRXSScene>(slide->m_dataset);
     slide->m_rawMetadata = slide->m_dataset->structure.ini.text();
     slide->m_metadataFormat = MetadataFormat::Text;

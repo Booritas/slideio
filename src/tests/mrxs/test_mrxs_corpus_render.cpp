@@ -167,7 +167,8 @@ TEST(MRXSCorpusRender, regionsMatchOpenSlideWithinTheDesignTolerances)
         const std::string path = TestTools::getTestImagePath("mirax", rel);
         SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
         slideio::MRXSImageDriver driver;
-        const auto scene = driver.openFile(path)->getScene(0);
+        // Uncropped, as OpenSlide reports it and as the dataset below is.
+        const auto scene = driver.openFile(path, slideio::DriverOptions{{"crop_to_content", "false"}})->getScene(0);
         const auto dataset = slideio::mrxs::MRXSDataset::open(path);
         // Zero-overlap bundles have only integer placement: the prototype was exact on every level.
         const bool integerPlacement = rel.find("20240920152150628") != std::string::npos;

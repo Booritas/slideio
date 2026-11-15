@@ -65,6 +65,39 @@ TEST(MRXSCorpusGeometry, levelSizesAndBoundsMatchOpenSlide)
     EXPECT_EQ(8, checked);
 }
 
+TEST(MRXSCorpusCrop, theDefaultSceneIsOpenSlidesBoundsClippedToTheCanvas)
+{
+    // What QuPath shows: OpenSlide's openslide.bounds-*, clipped to its level-0 size,
+    // presented with its corner at (0, 0).
+    const std::string manifestPath = TestTools::getTestImagePath("mirax/reference", "manifest.json");
+    SLIDEIO_SKIP_IF_IMAGE_MISSING(manifestPath);
+    std::ifstream in(manifestPath);
+    const json manifest = json::parse(in);
+    int checked = 0;
+    for (const auto& item : manifest["bundles"].items()) {
+        const std::string& rel = item.key();
+        if (rel.find("2401582-38") != std::string::npos) {
+            continue;   // five-channel: rejected as unsupported
+        }
+        SCOPED_TRACE(rel);
+        const std::string path = TestTools::getTestImagePath("mirax", rel);
+        SLIDEIO_SKIP_IF_IMAGE_MISSING(path);
+        const json& expected = item.value();
+        const int64_t w0 = expected["levels"][0][0].get<int64_t>(), h0 = expected["levels"][0][1].get<int64_t>();
+        const int64_t bx = expected["bounds"][0].get<int64_t>(), by = expected["bounds"][1].get<int64_t>();
+        const int64_t x0 = std::max<int64_t>(0, bx), y0 = std::max<int64_t>(0, by);
+        const int64_t x1 = std::min(w0, bx + expected["bounds"][2].get<int64_t>());
+        const int64_t y1 = std::min(h0, by + expected["bounds"][3].get<int64_t>());
+        const auto slide = slideio::MRXSImageDriver().openFile(path);
+        EXPECT_EQ(cv::Rect(0, 0, int(x1 - x0), int(y1 - y0)), slide->getScene(0)->getRect());
+        const slideio::Metadata crop = slide->getMetadata()["mrxs"]["crop"];
+        EXPECT_EQ(x0, crop[0].asInt());
+        EXPECT_EQ(y0, crop[1].asInt());
+        ++checked;
+    }
+    EXPECT_EQ(8, checked);
+}
+
 TEST(MRXSCorpusGeometry, associatedImagesMatchOpenSlide)
 {
     // Names and sizes only: no label pixels are decoded or compared.

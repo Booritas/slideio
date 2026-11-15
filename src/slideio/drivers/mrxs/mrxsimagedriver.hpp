@@ -23,7 +23,12 @@ namespace slideio
          * bundle must reach openFile and report its own error, not fall through to
          * the next driver in AUTO detection.*/
         bool canOpenFile(const std::string& filePath) const override;
+        using ImageDriver::openFile;
+        /// As openFile(filePath, {}): crop_to_content defaults to true.
         std::shared_ptr<CVSlide> openFile(const std::string& filePath) override;
+        /**@brief the one option is crop_to_content (default true): the scene is the
+         * bounding box of the scanned area, or the full canvas when false.*/
+        std::shared_ptr<CVSlide> openFile(const std::string& filePath, const DriverOptions& options) override;
         std::string getFileSpecs() const override;
     };
 }

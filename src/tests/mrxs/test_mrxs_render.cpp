@@ -52,7 +52,8 @@ namespace
     std::shared_ptr<slideio::CVScene> sceneOf(const std::string& name)
     {
         slideio::MRXSImageDriver driver;
-        return driver.openFile(entry(name))->getScene(0);
+        // The nominal canvas: the probes in .expected.json are in uncropped coordinates.
+        return driver.openFile(entry(name), slideio::DriverOptions{{"crop_to_content", "false"}})->getScene(0);
     }
 
     cv::Mat readLevel(slideio::CVScene& scene, int level, const cv::Rect& rect, const cv::Size& size,
