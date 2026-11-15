@@ -15,6 +15,7 @@ set(TEST_SOURCES
   test_mrxs_scene.cpp
   test_mrxs_integration.cpp
   test_mrxs_cache.cpp
+  test_mrxs_crop.cpp
   test_mrxs_corpus_index.cpp
   test_mrxs_corpus_geometry.cpp
   test_mrxs_corpus_render.cpp
