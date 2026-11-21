@@ -1094,36 +1094,60 @@ TEST(OMETiffDriver, noPlaneTimestampsWhenTheFileStatesNoDeltaT) {
 
 namespace
 {
-    // Writes a one-page, tiled, uncompressed 8-bit OME-TIFF whose pixel at (x, y) is
-    // (x + 3 * y) % 251, so a stretched or shifted read cannot match it by accident.
-    cv::Mat writeTiledOmeTiff(const std::string& path, int width, int height, int tileSize) {
+    // The pixel at (x, y) of channel `channel` on pyramid level `level`. Every channel
+    // and level gets its own values, so a stretched, shifted or swapped read cannot
+    // match by accident.
+    cv::Mat fixturePattern(int width, int height, int channel, int level) {
         cv::Mat image(height, width, CV_8UC1);
         for (int y = 0; y < height; ++y) {
             for (int x = 0; x < width; ++x) {
-                image.at<uint8_t>(y, x) = static_cast<uint8_t>((x + 3 * y) % 251);
+                image.at<uint8_t>(y, x) =
+                    static_cast<uint8_t>((x + 3 * y + 97 * channel + 41 * level) % 251);
             }
         }
-        const std::string xml =
-            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
-            "<OME xmlns=\"http://www.openmicroscopy.org/Schemas/OME/2016-06\">"
-            "<Image ID=\"Image:0\" Name=\"tile\"><Pixels ID=\"Pixels:0\" DimensionOrder=\"XYCZT\""
-            " Type=\"uint8\" SizeX=\"" + std::to_string(width) + "\" SizeY=\"" + std::to_string(height) +
-            "\" SizeC=\"1\" SizeZ=\"1\" SizeT=\"1\">"
-            "<Channel ID=\"Channel:0:0\" SamplesPerPixel=\"1\"/>"
-            "<TiffData IFD=\"0\" PlaneCount=\"1\"/></Pixels></Image></OME>";
-        libtiff::TIFF* tiff = libtiff::TIFFOpen(path.c_str(), "w");
-        EXPECT_NE(tiff, nullptr);
-        libtiff::TIFFSetField(tiff, TIFFTAG_IMAGEWIDTH, width);
-        libtiff::TIFFSetField(tiff, TIFFTAG_IMAGELENGTH, height);
-        libtiff::TIFFSetField(tiff, TIFFTAG_TILEWIDTH, tileSize);
-        libtiff::TIFFSetField(tiff, TIFFTAG_TILELENGTH, tileSize);
-        libtiff::TIFFSetField(tiff, TIFFTAG_BITSPERSAMPLE, 8);
-        libtiff::TIFFSetField(tiff, TIFFTAG_SAMPLESPERPIXEL, 1);
-        libtiff::TIFFSetField(tiff, TIFFTAG_SAMPLEFORMAT, SAMPLEFORMAT_UINT);
-        libtiff::TIFFSetField(tiff, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_MINISBLACK);
-        libtiff::TIFFSetField(tiff, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
-        libtiff::TIFFSetField(tiff, TIFFTAG_COMPRESSION, COMPRESSION_NONE);
-        libtiff::TIFFSetField(tiff, TIFFTAG_IMAGEDESCRIPTION, xml.c_str());
+        return image;
+    }
+
+    struct TiffCloser {
+        void operator()(libtiff::TIFF* tiff) const { libtiff::TIFFClose(tiff); }
+    };
+
+    // Throws rather than asserting: gtest turns the exception into a failure of the one
+    // test, where an EXPECT in a helper would let the caller go on with a null handle.
+    void checkTiff(bool ok, const char* what) {
+        if (!ok) {
+            throw std::runtime_error(std::string("OME-TIFF fixture: ") + what + " failed");
+        }
+    }
+
+    // Writes one tiled, uncompressed 8-bit directory. `description` is set only when
+    // not null; `numSubIfds` reserves that many SubIFD slots, which libtiff fills with
+    // the next directories written.
+    void writeTiledDirectory(libtiff::TIFF* tiff, const cv::Mat& image, int tileSize,
+                             const char* description, int numSubIfds, bool reduced) {
+        const int width = image.cols;
+        const int height = image.rows;
+        checkTiff(libtiff::TIFFSetField(tiff, TIFFTAG_SUBFILETYPE,
+            reduced ? FILETYPE_REDUCEDIMAGE : 0) == 1, "SUBFILETYPE");
+        checkTiff(libtiff::TIFFSetField(tiff, TIFFTAG_IMAGEWIDTH, width) == 1, "IMAGEWIDTH");
+        checkTiff(libtiff::TIFFSetField(tiff, TIFFTAG_IMAGELENGTH, height) == 1, "IMAGELENGTH");
+        checkTiff(libtiff::TIFFSetField(tiff, TIFFTAG_TILEWIDTH, tileSize) == 1, "TILEWIDTH");
+        checkTiff(libtiff::TIFFSetField(tiff, TIFFTAG_TILELENGTH, tileSize) == 1, "TILELENGTH");
+        checkTiff(libtiff::TIFFSetField(tiff, TIFFTAG_BITSPERSAMPLE, 8) == 1, "BITSPERSAMPLE");
+        checkTiff(libtiff::TIFFSetField(tiff, TIFFTAG_SAMPLESPERPIXEL, 1) == 1, "SAMPLESPERPIXEL");
+        checkTiff(libtiff::TIFFSetField(tiff, TIFFTAG_SAMPLEFORMAT, SAMPLEFORMAT_UINT) == 1, "SAMPLEFORMAT");
+        checkTiff(libtiff::TIFFSetField(tiff, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_MINISBLACK) == 1, "PHOTOMETRIC");
+        checkTiff(libtiff::TIFFSetField(tiff, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG) == 1, "PLANARCONFIG");
+        checkTiff(libtiff::TIFFSetField(tiff, TIFFTAG_COMPRESSION, COMPRESSION_NONE) == 1, "COMPRESSION");
+        if (description != nullptr) {
+            checkTiff(libtiff::TIFFSetField(tiff, TIFFTAG_IMAGEDESCRIPTION, description) == 1,
+                "IMAGEDESCRIPTION");
+        }
+        if (numSubIfds > 0) {
+            std::vector<uint64_t> offsets(numSubIfds, 0);
+            checkTiff(libtiff::TIFFSetField(tiff, TIFFTAG_SUBIFD, numSubIfds, offsets.data()) == 1,
+                "SUBIFD");
+        }
         std::vector<uint8_t> tile(static_cast<size_t>(tileSize) * tileSize);
         for (int ty = 0; ty < height; ty += tileSize) {
             for (int tx = 0; tx < width; tx += tileSize) {
@@ -1133,31 +1157,76 @@ namespace
                         tile[static_cast<size_t>(y - ty) * tileSize + (x - tx)] = image.at<uint8_t>(y, x);
                     }
                 }
-                libtiff::TIFFWriteTile(tiff, tile.data(), tx, ty, 0, 0);
+                checkTiff(libtiff::TIFFWriteTile(tiff, tile.data(), tx, ty, 0, 0) >= 0, "TIFFWriteTile");
             }
         }
-        libtiff::TIFFWriteDirectory(tiff);
-        libtiff::TIFFClose(tiff);
-        return image;
+        checkTiff(libtiff::TIFFWriteDirectory(tiff) == 1, "TIFFWriteDirectory");
+    }
+
+    // Writes an OME-TIFF of `numChannels` single-sample pages, one per channel, each
+    // carrying the pyramid levels after the first as SubIFDs. Returns the expected
+    // rasters as [level][channel].
+    std::vector<std::vector<cv::Mat>> writeTiledOmeTiff(const std::string& path, int numChannels,
+            const std::vector<cv::Size>& levelSizes, int tileSize) {
+        const cv::Size& size = levelSizes.front();
+        std::string xml =
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+            "<OME xmlns=\"http://www.openmicroscopy.org/Schemas/OME/2016-06\">"
+            "<Image ID=\"Image:0\" Name=\"tile\"><Pixels ID=\"Pixels:0\" DimensionOrder=\"XYCZT\""
+            " Type=\"uint8\" SizeX=\"" + std::to_string(size.width) +
+            "\" SizeY=\"" + std::to_string(size.height) +
+            "\" SizeC=\"" + std::to_string(numChannels) + "\" SizeZ=\"1\" SizeT=\"1\">";
+        for (int channel = 0; channel < numChannels; ++channel) {
+            xml += "<Channel ID=\"Channel:0:" + std::to_string(channel) + "\" SamplesPerPixel=\"1\"/>";
+        }
+        xml += "<TiffData IFD=\"0\" PlaneCount=\"" + std::to_string(numChannels) +
+            "\"/></Pixels></Image></OME>";
+
+        std::vector<std::vector<cv::Mat>> expected(levelSizes.size());
+        for (size_t level = 0; level < levelSizes.size(); ++level) {
+            for (int channel = 0; channel < numChannels; ++channel) {
+                expected[level].push_back(fixturePattern(levelSizes[level].width,
+                    levelSizes[level].height, channel, static_cast<int>(level)));
+            }
+        }
+
+        std::unique_ptr<libtiff::TIFF, TiffCloser> tiff(libtiff::TIFFOpen(path.c_str(), "w"));
+        checkTiff(tiff != nullptr, "TIFFOpen");
+        const int numSubIfds = static_cast<int>(levelSizes.size()) - 1;
+        for (int channel = 0; channel < numChannels; ++channel) {
+            writeTiledDirectory(tiff.get(), expected[0][channel], tileSize,
+                channel == 0 ? xml.c_str() : nullptr, numSubIfds, false);
+            for (int level = 1; level <= numSubIfds; ++level) {
+                writeTiledDirectory(tiff.get(), expected[level][channel], tileSize, nullptr, 0, true);
+            }
+        }
+        return expected;
+    }
+
+    std::shared_ptr<CVScene> openFixtureScene(const std::string& path) {
+        slideio::ometiff::OTImageDriver driver;
+        std::shared_ptr<CVSlide> slide = driver.openFile(path);
+        if (!slide) {
+            throw std::runtime_error("OME-TIFF fixture: driver returned no slide");
+        }
+        return slide->getScene(0);
+    }
+
+    void expectSameRaster(const cv::Mat& actual, const cv::Mat& expected) {
+        ASSERT_EQ(actual.size(), expected.size());
+        ASSERT_EQ(actual.type(), expected.type());
+        EXPECT_EQ(cv::countNonZero(actual != expected), 0);
     }
 
     void expectExactRead(int width, int height, int tileSize) {
         slideio::TempFile tmp("ome.tiff");
         const std::string path = tmp.getPath().string();
-        const cv::Mat expected = writeTiledOmeTiff(path, width, height, tileSize);
-        std::shared_ptr<CVScene> scene;
-        {
-            slideio::ometiff::OTImageDriver driver;
-            std::shared_ptr<CVSlide> slide = driver.openFile(path);
-            ASSERT_TRUE(slide != nullptr);
-            scene = slide->getScene(0);
-        }
+        const auto expected = writeTiledOmeTiff(path, 1, {cv::Size(width, height)}, tileSize);
+        std::shared_ptr<CVScene> scene = openFixtureScene(path);
         ASSERT_EQ(scene->getRect(), cv::Rect(0, 0, width, height));
         cv::Mat raster;
         scene->readBlock(scene->getRect(), raster);
-        ASSERT_EQ(raster.size(), expected.size());
-        ASSERT_EQ(raster.type(), expected.type());
-        EXPECT_EQ(cv::countNonZero(raster != expected), 0);
+        expectSameRaster(raster, expected[0][0]);
         scene.reset();
     }
 }
@@ -1172,4 +1241,32 @@ TEST(OMETiffDriver, singleTileLevelSmallerThanTileIsReadExactly) {
 // The multi-tile case, whose edge tiles overhang the level, as a control.
 TEST(OMETiffDriver, multiTileLevelIsReadExactly) {
     expectExactRead(600, 400, 256);
+}
+
+// Where the bug bites in practice: the small top level of a pyramid, stored as a SubIFD,
+// read with several channels so the crop runs once per channel raster before the merge.
+TEST(OMETiffDriver, singleTileSubIfdLevelIsReadExactlyForEveryChannel) {
+    slideio::TempFile tmp("ome.tiff");
+    const std::string path = tmp.getPath().string();
+    const std::vector<cv::Size> levelSizes = {cv::Size(600, 400), cv::Size(150, 100)};
+    const auto expected = writeTiledOmeTiff(path, 2, levelSizes, 256);
+    std::shared_ptr<CVScene> scene = openFixtureScene(path);
+    ASSERT_EQ(scene->getNumChannels(), 2);
+    ASSERT_EQ(scene->getNumZoomLevels(), 2);
+    ASSERT_EQ(scene->getZoomLevelInfo(1)->getSize(), slideio::Size(150, 100));
+    for (int level = 0; level < 2; ++level) {
+        SCOPED_TRACE("level " + std::to_string(level));
+        const cv::Size& size = levelSizes[level];
+        cv::Mat raster;
+        scene->readResampledLevelBlockChannelsEx(level, cv::Rect(0, 0, size.width, size.height),
+            size, {0, 1}, 0, 0, raster);
+        ASSERT_EQ(raster.channels(), 2);
+        for (int channel = 0; channel < 2; ++channel) {
+            SCOPED_TRACE("channel " + std::to_string(channel));
+            cv::Mat channelRaster;
+            cv::extractChannel(raster, channelRaster, channel);
+            expectSameRaster(channelRaster, expected[level][channel]);
+        }
+    }
+    scene.reset();
 }
