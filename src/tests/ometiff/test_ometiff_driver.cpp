@@ -10,6 +10,8 @@
 #include "slideio/drivers/ome-tiff/otscene.hpp"
 #include "slideio/imagetools/smallimage.hpp"
 #include "slideio/slideio/slideio.hpp"
+#include "slideio/core/tools/tempfile.hpp"
+#include "slideio/imagetools/libtiff.hpp"
 
 
 namespace slideio
@@ -1088,4 +1090,86 @@ TEST(OMETiffDriver, noPlaneTimestampsWhenTheFileStatesNoDeltaT) {
     std::shared_ptr<CVScene> scene = slide->getScene(0);
     EXPECT_FALSE(scene->hasPlaneTimestamps());
     EXPECT_DOUBLE_EQ(scene->getPlaneTimestamp(0, 0, 0), 0.);
+}
+
+namespace
+{
+    // Writes a one-page, tiled, uncompressed 8-bit OME-TIFF whose pixel at (x, y) is
+    // (x + 3 * y) % 251, so a stretched or shifted read cannot match it by accident.
+    cv::Mat writeTiledOmeTiff(const std::string& path, int width, int height, int tileSize) {
+        cv::Mat image(height, width, CV_8UC1);
+        for (int y = 0; y < height; ++y) {
+            for (int x = 0; x < width; ++x) {
+                image.at<uint8_t>(y, x) = static_cast<uint8_t>((x + 3 * y) % 251);
+            }
+        }
+        const std::string xml =
+            "<?xml version=\"1.0\" encoding=\"UTF-8\"?>"
+            "<OME xmlns=\"http://www.openmicroscopy.org/Schemas/OME/2016-06\">"
+            "<Image ID=\"Image:0\" Name=\"tile\"><Pixels ID=\"Pixels:0\" DimensionOrder=\"XYCZT\""
+            " Type=\"uint8\" SizeX=\"" + std::to_string(width) + "\" SizeY=\"" + std::to_string(height) +
+            "\" SizeC=\"1\" SizeZ=\"1\" SizeT=\"1\">"
+            "<Channel ID=\"Channel:0:0\" SamplesPerPixel=\"1\"/>"
+            "<TiffData IFD=\"0\" PlaneCount=\"1\"/></Pixels></Image></OME>";
+        libtiff::TIFF* tiff = libtiff::TIFFOpen(path.c_str(), "w");
+        EXPECT_NE(tiff, nullptr);
+        libtiff::TIFFSetField(tiff, TIFFTAG_IMAGEWIDTH, width);
+        libtiff::TIFFSetField(tiff, TIFFTAG_IMAGELENGTH, height);
+        libtiff::TIFFSetField(tiff, TIFFTAG_TILEWIDTH, tileSize);
+        libtiff::TIFFSetField(tiff, TIFFTAG_TILELENGTH, tileSize);
+        libtiff::TIFFSetField(tiff, TIFFTAG_BITSPERSAMPLE, 8);
+        libtiff::TIFFSetField(tiff, TIFFTAG_SAMPLESPERPIXEL, 1);
+        libtiff::TIFFSetField(tiff, TIFFTAG_SAMPLEFORMAT, SAMPLEFORMAT_UINT);
+        libtiff::TIFFSetField(tiff, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_MINISBLACK);
+        libtiff::TIFFSetField(tiff, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
+        libtiff::TIFFSetField(tiff, TIFFTAG_COMPRESSION, COMPRESSION_NONE);
+        libtiff::TIFFSetField(tiff, TIFFTAG_IMAGEDESCRIPTION, xml.c_str());
+        std::vector<uint8_t> tile(static_cast<size_t>(tileSize) * tileSize);
+        for (int ty = 0; ty < height; ty += tileSize) {
+            for (int tx = 0; tx < width; tx += tileSize) {
+                std::fill(tile.begin(), tile.end(), uint8_t(0));
+                for (int y = ty; y < std::min(height, ty + tileSize); ++y) {
+                    for (int x = tx; x < std::min(width, tx + tileSize); ++x) {
+                        tile[static_cast<size_t>(y - ty) * tileSize + (x - tx)] = image.at<uint8_t>(y, x);
+                    }
+                }
+                libtiff::TIFFWriteTile(tiff, tile.data(), tx, ty, 0, 0);
+            }
+        }
+        libtiff::TIFFWriteDirectory(tiff);
+        libtiff::TIFFClose(tiff);
+        return image;
+    }
+
+    void expectExactRead(int width, int height, int tileSize) {
+        slideio::TempFile tmp("ome.tiff");
+        const std::string path = tmp.getPath().string();
+        const cv::Mat expected = writeTiledOmeTiff(path, width, height, tileSize);
+        std::shared_ptr<CVScene> scene;
+        {
+            slideio::ometiff::OTImageDriver driver;
+            std::shared_ptr<CVSlide> slide = driver.openFile(path);
+            ASSERT_TRUE(slide != nullptr);
+            scene = slide->getScene(0);
+        }
+        ASSERT_EQ(scene->getRect(), cv::Rect(0, 0, width, height));
+        cv::Mat raster;
+        scene->readBlock(scene->getRect(), raster);
+        ASSERT_EQ(raster.size(), expected.size());
+        ASSERT_EQ(raster.type(), expected.type());
+        EXPECT_EQ(cv::countNonZero(raster != expected), 0);
+        scene.reset();
+    }
+}
+
+// A tiled level that fits in one tile larger than the level: the TIFF tile is read whole
+// (tileSize x tileSize) while the level's one tile rectangle is the level itself, so the
+// raster must be cropped to that rectangle, not resized onto it.
+TEST(OMETiffDriver, singleTileLevelSmallerThanTileIsReadExactly) {
+    expectExactRead(300, 200, 512);
+}
+
+// The multi-tile case, whose edge tiles overhang the level, as a control.
+TEST(OMETiffDriver, multiTileLevelIsReadExactly) {
+    expectExactRead(600, 400, 256);
 }
