@@ -433,6 +433,21 @@ bool OTScene::readTile(int tileIndex, const std::vector<int>& channelIndices, cv
 		}
         ++channel;
 	}
+	// A tiled directory is read a whole TIFF tile at a time, but on a level of a single
+	// tile getTileRect returns the level itself, which can be smaller than the tile.
+	// TileComposer resizes the raster to the tile rectangle, so the padding is cropped
+	// here; otherwise the whole tile would be stretched onto the level. On a level of
+	// several tiles the rectangle is the tile, and the crop takes everything.
+	if (!channelRasters.empty()) {
+		cv::Rect tileRect;
+		getTileRect(tileIndex, tileRect, userData);
+		const cv::Rect part(0, 0,
+			std::min(tileRect.width, channelRasters.front().cols),
+			std::min(tileRect.height, channelRasters.front().rows));
+		for (cv::Mat& channelRaster : channelRasters) {
+			channelRaster = channelRaster(part);
+		}
+	}
 	cv::merge(channelRasters, tileRaster);
     return true;
 }
