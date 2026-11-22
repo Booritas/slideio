@@ -5,6 +5,15 @@ out-of-tree callers are described in full in
 [software-docs/BREAKING_CHANGES.md](software-docs/BREAKING_CHANGES.md); the entries
 marked **Breaking** below summarise them.
 
+## [2.11.1] - 2026-11-22
+
+### Fixed
+
+- **OME-TIFF**: a tiled pyramid level that fits in a single tile smaller than the
+  tile size was stretched to the level size, interpolating its pixels. The tile
+  is now cropped to the level, so reads return the pixels the file holds
+  ([#102](https://github.com/Booritas/slideio/pull/102)).
+
 ## [2.11.0] - 2026-11-14
 
 ### Added
@@ -97,4 +106,5 @@ marked **Breaking** below summarise them.
   macOS 12 deployment target); `macos-14` is retired.
 - The release job also runs the `TiledAreaDownscale` unit tests on every platform.
 
+[2.11.1]: https://github.com/Booritas/slideio/compare/v2.11.0...v2.11.1
 [2.11.0]: https://github.com/Booritas/slideio/compare/v2.10.0...v2.11.0
