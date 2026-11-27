@@ -109,12 +109,22 @@ Applied to the top-level IFDs in file order, by `GDALSlide` for a TIFF:
    one already accepted is dropped. Candidates are considered SubIFDs first,
    then top-level IFDs in file order, so on a tie the SubIFD is kept.
    *(Design call.)*
-6. A top-level reduced-resolution IFD that fails rule 4, or that comes before
-   any base, becomes a scene of its own (single level). It does **not** end the
-   base's run: in `A, r1, x, r2`, where x fails rule 4, r1 and r2 are both
-   levels of A. Scenes are ordered by the file position of their first IFD, so
-   x's scene comes right after A's. *(Design call.)* A SubIFD that fails rule 4
-   is ignored, which is exactly how SubIFDs are treated today.
+6. A top-level reduced-resolution IFD that fails rule 4 against the current
+   base, or that comes before any base, starts a scene of its own and becomes
+   that scene's base for later reduced IFDs. A later top-level reduced IFD is
+   tested against the original base (the most recent non-reduced IFD) first. If
+   it fails, it is tested against the most recent scene started this way, and
+   joins it if it passes rule 4 against that scene's base. Otherwise it starts
+   a new scene of this kind itself. It does **not** end the original base's
+   run: in `A, r1, x, r2`, where x fails rule 4 against A, r1 and r2 are both
+   levels of A; in `A, g1, g2`, where the gray g1 and g2 fail rule 4 against
+   the RGB A, g2 is a level of g1; and in `A, g1, rA, g2` the two pyramids
+   interleave -- `A {A, rA}` and `g1 {g1, g2}`. Scenes are ordered by the file
+   position of their first IFD, so x's scene comes right after A's.
+   *(Design call, amended by the PR review: a mismatched reduced page used to
+   be a single-level scene, which split a second pyramid into one scene per
+   level.)* A SubIFD that fails rule 4 is ignored, which is exactly how SubIFDs
+   are treated today; a scene started by a reduced IFD takes no SubIFDs.
 7. If skipping masks would leave no scenes at all (a file of nothing but mask
    pages), the masks are kept as scenes, one level each. A file that opens
    today keeps opening. *(Design call, which follows from the level-0 goal.)*
@@ -200,6 +210,8 @@ one scene per top-level IFD (minus masks), one level each.
   - reduced-IFD pyramid (COG layout, tiled) with a mask page;
   - two independent pyramids in one file;
   - a reduced page with a different channel count (must stay its own scene);
+  - a mismatched reduced page followed by a reduced page that matches it (the
+    second is a level of the first, rule 6);
   - a striped base with tiled reduced levels;
   - a plain multi-page file (scene count unchanged).
   Each checks scene count, level count and sizes, and that a level read

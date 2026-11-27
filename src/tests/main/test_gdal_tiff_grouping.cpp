@@ -97,6 +97,54 @@ TEST(GDALTiffPyramid, mismatchedReducedPageIsOwnSceneAndDoesNotEndRun)
     EXPECT_EQ(1u, groups[1].levels.size());
 }
 
+// Rule 6: a reduced page that fails rule 4 against the base starts a scene of its
+// own and is the base for later reduced pages that match it: g2 is a level of g1.
+TEST(GDALTiffPyramid, mismatchedReducedPageCarriesItsOwnLevels)
+{
+    std::vector<TiffDirectory> dirs = {
+        dir(1000, 800, 3),
+        dir(500, 400, 1, DataType::DT_Byte, 8, 1),
+        dir(250, 200, 1, DataType::DT_Byte, 8, 1) };
+    for (int i = 0; i < 3; ++i) dirs[i].dirIndex = i;
+    auto groups = groupTiffDirectories(dirs);
+    ASSERT_EQ(2u, groups.size());
+    EXPECT_EQ(0, groups[0].firstDirectory);
+    EXPECT_EQ((std::vector<int>{1000}), widths(groups[0]));
+    EXPECT_EQ(1, groups[1].firstDirectory);
+    EXPECT_EQ((std::vector<int>{500, 250}), widths(groups[1]));
+}
+
+// Rule 6: a later reduced page is tested against the original base first, so the
+// two pyramids interleave: rA is a level of A, g2 a level of g1.
+TEST(GDALTiffPyramid, interleavedReducedPagesJoinTheirOwnBases)
+{
+    std::vector<TiffDirectory> dirs = {
+        dir(1000, 800, 3),
+        dir(500, 400, 1, DataType::DT_Byte, 8, 1),
+        dir(500, 400, 3, DataType::DT_Byte, 8, 1),
+        dir(250, 200, 1, DataType::DT_Byte, 8, 1) };
+    for (int i = 0; i < 4; ++i) dirs[i].dirIndex = i;
+    auto groups = groupTiffDirectories(dirs);
+    ASSERT_EQ(2u, groups.size());
+    EXPECT_EQ(0, groups[0].firstDirectory);
+    EXPECT_EQ((std::vector<int>{1000, 500}), widths(groups[0]));
+    EXPECT_EQ(3, groups[0].levels[0].channels);
+    EXPECT_EQ(3, groups[0].levels[1].channels);
+    EXPECT_EQ(1, groups[1].firstDirectory);
+    EXPECT_EQ((std::vector<int>{500, 250}), widths(groups[1]));
+    EXPECT_EQ(1, groups[1].levels[0].channels);
+    EXPECT_EQ(1, groups[1].levels[1].channels);
+}
+
+// Rule 6 before any base: the first reduced page is a base for the next.
+TEST(GDALTiffPyramid, reducedPagesBeforeAnyBaseGroup)
+{
+    auto groups = groupTiffDirectories({ dir(500, 400, 3, DataType::DT_Byte, 8, 1),
+                                         dir(250, 200, 3, DataType::DT_Byte, 8, 1) });
+    ASSERT_EQ(1u, groups.size());
+    EXPECT_EQ((std::vector<int>{500, 250}), widths(groups[0]));
+}
+
 TEST(GDALTiffPyramid, aspectRatioMismatchIsNotALevel)
 {
     auto groups = groupTiffDirectories({ dir(1000, 800), dir(300, 300, 3, DataType::DT_Byte, 8, 1) });

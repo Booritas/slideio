@@ -477,6 +477,42 @@ TEST(GDALTiffPyramid, mismatchedReducedPageStaysOwnScene)
     }
 }
 
+// Rule 6: a reduced page that is not a level of the base starts a scene of its own
+// and carries the reduced pages that match it. A (RGB), g1 and g2 (gray, both
+// flagged reduced) open as A alone and g1 with g2 as its level.
+TEST(GDALTiffPyramid, mismatchedReducedPageFileOpensWithItsOwnLevels)
+{
+    slideio::TempFile temp("tif");
+    const std::string path = temp.getPath().string();
+    const cv::Mat base = makeRgbImage(1000, 800);
+    cv::Mat gray;
+    cv::extractChannel(makeRgbImage(500, 400, 50), gray, 2);
+    const auto grayLevels = makePyramid(gray, {{250, 200}});
+    writeTiff(path, [&](libtiff::TIFF* tiff) {
+        ASSERT_NO_FATAL_FAILURE(writeTiledDirectory(tiff, base, 128, false, 255, 0));
+        ASSERT_NO_FATAL_FAILURE(writeTiledDirectory(tiff, grayLevels[0], 128, false, 255, 1));
+        ASSERT_NO_FATAL_FAILURE(writeTiledDirectory(tiff, grayLevels[1], 128, false, 255, 1));
+    });
+    ASSERT_FALSE(::testing::Test::HasFatalFailure());
+
+    auto slide = openGdal(path);
+    ASSERT_EQ(2, slide->getNumScenes());
+    {
+        SCOPED_TRACE("scene 0");
+        auto scene = slide->getScene(0);
+        EXPECT_EQ(3, scene->getNumChannels());
+        expectLevelsRead(scene, {base});
+    }
+    {
+        SCOPED_TRACE("scene 1");
+        auto scene = slide->getScene(1);
+        EXPECT_EQ(cv::Rect(0, 0, 500, 400), scene->getRect());
+        EXPECT_EQ(1, scene->getNumChannels());
+        expectLevelInfo(scene, grayLevels, {{128, 128}, {128, 128}});
+        expectLevelsRead(scene, grayLevels);
+    }
+}
+
 // The scene holds no handle of the slide's: it stays readable, at every level,
 // once the slide is gone.
 TEST(GDALTiffPyramid, pyramidSceneOutlivesSlide)

@@ -76,6 +76,9 @@ std::vector<GDALTiffSceneGroup> slideio::groupTiffDirectories(const std::vector<
 {
     std::vector<Pending> pending;
     int currentBase = -1; // index into pending of the open base, or -1
+    // Index into pending of the most recent scene a reduced IFD started (rule 6),
+    // or -1. Its first IFD is the base later reduced IFDs fall back to.
+    int reducedBase = -1;
 
     auto startScene = [&](const TiffDirectory& d) -> int {
         Pending p;
@@ -101,8 +104,13 @@ std::vector<GDALTiffSceneGroup> slideio::groupTiffDirectories(const std::vector<
         if (currentBase >= 0 && isLevelOf(pending[currentBase].group.levels[0], dir)) {
             pending[currentBase].candidates.push_back(dir); // rule 3
         }
+        else if (reducedBase >= 0 && isLevelOf(pending[reducedBase].group.levels[0], dir)) {
+            pending[reducedBase].candidates.push_back(dir); // rule 6: a level of the reduced scene
+        }
         else {
-            startScene(dir); // rule 6: own scene, the run of the base goes on
+            // Rule 6: a scene of its own, and the base later reduced IFDs fall back
+            // to. The run of the original base goes on.
+            reducedBase = startScene(dir);
         }
     }
 
