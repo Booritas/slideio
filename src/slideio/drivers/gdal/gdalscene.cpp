@@ -15,15 +15,17 @@
 #include "slideio/imagetools/tifftools.hpp"
 #include "slideio/core/tools/cvtools.hpp"
 
+#include <algorithm>
 #include <numeric>
 
 
 slideio::GDALScene::GDALScene(const std::shared_ptr<SmallImage>& image, int pageIndex, const std::string& path,
-                              const std::string& driverId) :
+                              const std::string& driverId, std::shared_ptr<std::mutex> readMutex) :
     m_image(image),
     m_imagePage(image->readPage(pageIndex)),
     m_filePath(path),
-	m_driverId(driverId)
+	m_driverId(driverId),
+    m_readMutex(readMutex ? std::move(readMutex) : std::make_shared<std::mutex>())
 {
     m_filePath = path;
     // A gdal image has no pyramid, but a scene with no level cannot be addressed by level
@@ -166,14 +168,12 @@ int slideio::GDALScene::getTileCount(void* /*userData*/)
 bool slideio::GDALScene::getTileRect(int tileIndex, cv::Rect& tileRect, void* /*userData*/)
 {
     // Tiles are numbered row by row, as libtiff numbers a single-plane directory.
-    // Edge tiles keep their full size: TileComposer intersects each with the block,
-    // and the padding an encoder writes past the page edge never reaches it.
-    const TiffDirectory& dir = *m_tiledDirectory;
-    const int tilesX = (dir.width - 1) / dir.tileWidth + 1;
-    tileRect.x = (tileIndex % tilesX) * dir.tileWidth;
-    tileRect.y = (tileIndex / tilesX) * dir.tileHeight;
-    tileRect.width = dir.tileWidth;
-    tileRect.height = dir.tileHeight;
+    // Edge tiles are clipped to the page, and readTile crops them to match.
+    // Clipping only the rect is not enough: TileComposer resizes the whole tile
+    // before it intersects it with the block, so for a scaled read the padding an
+    // encoder writes past the page edge would be interpolated into the last real
+    // pixels.
+    tileRect = tileRectOf(tileIndex);
     return true;
 }
 
@@ -183,13 +183,41 @@ bool slideio::GDALScene::readTile(int tileIndex, const std::vector<int>& channel
     // The same call readTiledDir makes for every tile of the page, so a tile reads
     // exactly as it did when the page was decoded whole. A tile that fails to decode
     // still fails the read: the whole-page path never painted over a bad tile either.
-    // Every channel in file order is passed as the empty list, which copies the decoded
-    // tile as it is; an explicit list costs a split and a merge per tile.
+    // For an interleaved directory every channel in file order is passed as the empty
+    // list, which copies the decoded tile as it is; an explicit list costs a split and
+    // a merge per tile. A planar directory reads one plane per listed channel, so the
+    // empty list would read none: it always gets the explicit list.
+    const TiffDirectory& dir = *m_tiledDirectory;
     static const std::vector<int> allChannels;
-    const bool wholeTile = Tools::isConsecutiveFromZero(channelIndices, m_tiledDirectory->channels);
-    TiffTools::readTile(m_tiff->getHandle(), *m_tiledDirectory, tileIndex,
-                        wholeTile ? allChannels : channelIndices, tileRaster);
+    const bool wholeTile = dir.interleaved && Tools::isConsecutiveFromZero(channelIndices, dir.channels);
+    cv::Mat decoded;
+    TiffTools::readTile(m_tiff->getHandle(), dir, tileIndex,
+                        wholeTile ? allChannels : channelIndices, decoded);
+
+    // TileComposer resizes whatever comes back to the tile rect, so a tile of the
+    // wrong size or type would be stretched or silently dropped rather than fail.
+    // A decoder may return the padded tile or, for JPEG 2000, just the valid part;
+    // either is cropped to the valid part. Anything smaller is an error.
+    const cv::Rect validRect = tileRectOf(tileIndex);
+    const int expectedType = CV_MAKETYPE(CVTools::toOpencvType(dir.dataType),
+                                         static_cast<int>(channelIndices.size()));
+    if (decoded.cols < validRect.width || decoded.rows < validRect.height || decoded.type() != expectedType) {
+        RAISE_RUNTIME_ERROR << "GDALDriver: tile " << tileIndex << " of directory " << dir.dirIndex
+            << " decodes to " << decoded.cols << "x" << decoded.rows << " type " << decoded.type()
+            << ", expected at least " << validRect.width << "x" << validRect.height
+            << " type " << expectedType;
+    }
+    decoded(cv::Rect(0, 0, validRect.width, validRect.height)).copyTo(tileRaster);
     return true;
+}
+
+cv::Rect slideio::GDALScene::tileRectOf(int tileIndex) const
+{
+    const TiffDirectory& dir = *m_tiledDirectory;
+    const int tilesX = (dir.width - 1) / dir.tileWidth + 1;
+    const int x = (tileIndex % tilesX) * dir.tileWidth;
+    const int y = (tileIndex / tilesX) * dir.tileHeight;
+    return {x, y, std::min(dir.tileWidth, dir.width - x), std::min(dir.tileHeight, dir.height - y)};
 }
 
 void slideio::GDALScene::initializeBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices,

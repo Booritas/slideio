@@ -10,6 +10,7 @@
 #include "slideio/core/tools/tilecomposer.hpp"
 #include <opencv2/core.hpp>
 #include <memory>
+#include <mutex>
 
 #if defined(_MSC_VER)
 #pragma warning( push )
@@ -30,8 +31,10 @@ namespace slideio
     class SLIDEIO_GDAL_EXPORTS GDALScene : public slideio::CVScene, public Tiler
     {
     public:
+        // readMutex is shared by every scene of one file; null gives the scene a
+        // mutex of its own, which is only correct for a single-page image.
         GDALScene(const std::shared_ptr<SmallImage>& image, int pageIndex, const std::string& filePath,
-                  const std::string& driverId);
+                  const std::string& driverId, std::shared_ptr<std::mutex> readMutex = nullptr);
         virtual ~GDALScene() = default;
         std::string getFilePath() const override;
         int getSceneIndex() const override { return 0; }
@@ -69,9 +72,17 @@ namespace slideio
             void* userData) override;
         void initializeBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices,
             cv::OutputArray output) override;
+    protected:
+        // Every page of a file decodes through the image's one handle -- libtiff's
+        // current directory, FreeImage's multi-page bitmap -- so a lock per scene
+        // would let two pages of one file read at once. All scenes of the file
+        // contend on the slide's one mutex instead.
+        std::mutex& readSerialisationMutex() const override { return *m_readMutex; }
     private:
         void readWholePageBlock(const cv::Rect& rect, const cv::Size& size,
             const std::vector<int>& channelIndices, cv::OutputArray block);
+        // The tile's rect in page pixels, clipped to the page at the right and bottom.
+        cv::Rect tileRectOf(int tileIndex) const;
     private:
         // The image owns the page; holding it keeps the page alive for as long as the
         // scene is, which may be longer than the slide that opened it.
@@ -79,14 +90,15 @@ namespace slideio
         SmallImagePage* m_imagePage;
         // Both non-null only for a tiled tiff page. The wrapper is owned by m_image and
         // the directory by the wrapper, so they live exactly as long as the scene does.
-        // The wrapper's one libtiff handle is shared by every page of the file; this
-        // scene keeps the base class's serialised reads, like the whole-page path.
+        // The wrapper's one libtiff handle is shared by every page of the file, which
+        // is why reads serialise on m_readMutex, shared with the file's other scenes.
         SmallTiffWrapper* m_tiff = nullptr;
         const TiffDirectory* m_tiledDirectory = nullptr;
         int64_t m_acquisitionTime = 0;
         std::string m_filePath;
         std::string m_driverId;
         ColorProfile m_colorProfile;
+        std::shared_ptr<std::mutex> m_readMutex;
     };
 }
 

@@ -6,6 +6,8 @@
 #include "slideio/slideio/slideio.hpp"
 
 #include <gtest/gtest.h>
+#include <atomic>
+#include <thread>
 #include <numeric>
 #include <tinyxml2.h>
 #include <nlohmann/json.hpp>
@@ -557,41 +559,71 @@ TEST(GDALDriver, sceneOutlivesItsSlide)
 
 namespace
 {
-    // A tiled, uncompressed RGB tiff whose size is not a multiple of the tile, so
-    // the right and bottom tiles are partial. Every pixel is a function of its
-    // position, so a tile placed in the wrong spot cannot go unnoticed.
-    void writeTiledRgbTiff(const std::string& path, int width, int height, int tileSize, cv::Mat& image)
+    // An RGB image whose every pixel is a function of its position (and of seed,
+    // so two pages of one file differ), so a tile placed in the wrong spot cannot
+    // go unnoticed.
+    cv::Mat makeRgbImage(int width, int height, int seed = 0)
     {
-        image.create(height, width, CV_8UC3);
+        cv::Mat image(height, width, CV_8UC3);
         for (int y = 0; y < height; ++y) {
             for (int x = 0; x < width; ++x) {
-                image.at<cv::Vec3b>(y, x) = cv::Vec3b(static_cast<uint8_t>(x),
+                image.at<cv::Vec3b>(y, x) = cv::Vec3b(static_cast<uint8_t>(x + seed),
                                                       static_cast<uint8_t>(y),
-                                                      static_cast<uint8_t>((x / 7 + y / 5) * 13));
+                                                      static_cast<uint8_t>((x / 7 + y / 5) * 13 + seed));
             }
         }
-        libtiff::TIFF* tiff = libtiff::TIFFOpen(path.c_str(), "w");
-        ASSERT_TRUE(tiff != nullptr);
+        return image;
+    }
+
+    // Writes image as one tiled, uncompressed RGB directory. The padding past the
+    // right and bottom edges is padValue rather than zero, so a read that lets it
+    // bleed into the page shows it.
+    void writeTiledRgbDirectory(libtiff::TIFF* tiff, const cv::Mat& image, int tileSize, bool planar,
+                                uint8_t padValue)
+    {
+        const int width = image.cols;
+        const int height = image.rows;
         libtiff::TIFFSetField(tiff, TIFFTAG_IMAGEWIDTH, width);
         libtiff::TIFFSetField(tiff, TIFFTAG_IMAGELENGTH, height);
         libtiff::TIFFSetField(tiff, TIFFTAG_SAMPLESPERPIXEL, 3);
         libtiff::TIFFSetField(tiff, TIFFTAG_BITSPERSAMPLE, 8);
         libtiff::TIFFSetField(tiff, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_RGB);
-        libtiff::TIFFSetField(tiff, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
+        libtiff::TIFFSetField(tiff, TIFFTAG_PLANARCONFIG, planar ? PLANARCONFIG_SEPARATE : PLANARCONFIG_CONTIG);
         libtiff::TIFFSetField(tiff, TIFFTAG_COMPRESSION, COMPRESSION_NONE);
         libtiff::TIFFSetField(tiff, TIFFTAG_TILEWIDTH, tileSize);
         libtiff::TIFFSetField(tiff, TIFFTAG_TILELENGTH, tileSize);
-        cv::Mat tile(tileSize, tileSize, CV_8UC3);
-        for (int y = 0; y < height; y += tileSize) {
-            for (int x = 0; x < width; x += tileSize) {
-                tile.setTo(cv::Scalar::all(0));
-                const cv::Rect part(x, y, std::min(tileSize, width - x), std::min(tileSize, height - y));
-                image(part).copyTo(tile(cv::Rect(0, 0, part.width, part.height)));
-                const auto tileIndex = libtiff::TIFFComputeTile(tiff, x, y, 0, 0);
-                const auto size = static_cast<libtiff::tmsize_t>(tile.total() * tile.elemSize());
-                ASSERT_EQ(size, libtiff::TIFFWriteEncodedTile(tiff, tileIndex, tile.data, size));
+        std::vector<cv::Mat> planes;
+        if (planar) {
+            cv::split(image, planes);
+        } else {
+            planes.push_back(image);
+        }
+        for (int plane = 0; plane < static_cast<int>(planes.size()); ++plane) {
+            const cv::Mat& source = planes[plane];
+            cv::Mat tile(tileSize, tileSize, source.type());
+            for (int y = 0; y < height; y += tileSize) {
+                for (int x = 0; x < width; x += tileSize) {
+                    tile.setTo(cv::Scalar::all(padValue));
+                    const cv::Rect part(x, y, std::min(tileSize, width - x), std::min(tileSize, height - y));
+                    source(part).copyTo(tile(cv::Rect(0, 0, part.width, part.height)));
+                    const auto tileIndex = libtiff::TIFFComputeTile(tiff, x, y, 0,
+                                                                    static_cast<uint16_t>(plane));
+                    const auto size = static_cast<libtiff::tmsize_t>(tile.total() * tile.elemSize());
+                    ASSERT_EQ(size, libtiff::TIFFWriteEncodedTile(tiff, tileIndex, tile.data, size));
+                }
             }
         }
+    }
+
+    // A tiled RGB tiff whose size is not a multiple of the tile, so the right and
+    // bottom tiles are partial.
+    void writeTiledRgbTiff(const std::string& path, int width, int height, int tileSize, cv::Mat& image,
+                           bool planar = false, uint8_t padValue = 255)
+    {
+        image = makeRgbImage(width, height);
+        libtiff::TIFF* tiff = libtiff::TIFFOpen(path.c_str(), "w");
+        ASSERT_TRUE(tiff != nullptr);
+        writeTiledRgbDirectory(tiff, image, tileSize, planar, padValue);
         libtiff::TIFFClose(tiff);
     }
 }
@@ -679,4 +711,122 @@ TEST(GDALDriver, tiledTiffResampledReadMatchesThePage)
     for (int channel = 0; channel < 3; ++channel) {
         EXPECT_LT(meanDiff[channel], 2.0) << "channel " << channel;
     }
+}
+
+// Reading over the partial edge tiles at a scale other than 1 must not interpolate
+// the encoder's padding into the page. The page edge replicates its last pixel, as
+// a resize of the region itself does, so the last row and column agree with that
+// resize. (The first ones need not: there the tile read sees the real neighbours
+// outside the region, which a resize of the region alone replicates instead.)
+TEST(GDALDriver, tiledTiffScaledEdgeReadsKeepPaddingOut)
+{
+    slideio::TempFile temp("tif");
+    const std::string path = temp.getPath().string();
+    cv::Mat image;
+    writeTiledRgbTiff(path, 1000, 700, 256, image);
+
+    slideio::GDALImageDriver driver;
+    std::shared_ptr<slideio::CVScene> scene = driver.openFile(path)->getScene(0);
+
+    // An upscale of a region inside the partial bottom-right tile.
+    const cv::Rect rect(900, 600, 100, 100);
+    const cv::Size size(200, 200);
+    cv::Mat block;
+    scene->readResampledBlock(rect, size, block);
+    ASSERT_EQ(size, block.size());
+    cv::Mat expected;
+    cv::resize(image(rect), expected, size, 0, 0, cv::INTER_LINEAR);
+    const cv::Rect lastColumn(size.width - 1, 2, 1, size.height - 2);
+    const cv::Rect lastRow(2, size.height - 1, size.width - 2, 1);
+    EXPECT_LE(cv::norm(expected(lastColumn), block(lastColumn), cv::NORM_INF), 1.);
+    EXPECT_LE(cv::norm(expected(lastRow), block(lastRow), cv::NORM_INF), 1.);
+
+    // A non-integer downscale of the whole page. The second channel is y alone,
+    // so it does not change from column to column, and the first is x alone, so it
+    // does not change from row to row: the last column must repeat the one before
+    // it in the second channel, and the last row the one above it in the first.
+    // Padding of 255 interpolated into the edge is the only thing that could make
+    // them differ.
+    const cv::Size small(333, 233);
+    cv::Mat smallBlock;
+    scene->readResampledBlock({0, 0, 1000, 700}, small, smallBlock);
+    ASSERT_EQ(small, smallBlock.size());
+    cv::Mat lastY, previousY, lastX, previousX;
+    cv::extractChannel(smallBlock.col(small.width - 1), lastY, 1);
+    cv::extractChannel(smallBlock.col(small.width - 2), previousY, 1);
+    cv::extractChannel(smallBlock.row(small.height - 1), lastX, 0);
+    cv::extractChannel(smallBlock.row(small.height - 2), previousX, 0);
+    EXPECT_LE(cv::norm(lastY, previousY, cv::NORM_INF), 1.) << "last column";
+    EXPECT_LE(cv::norm(lastX, previousX, cv::NORM_INF), 1.) << "last row";
+}
+
+// A planar tiled tiff reads one plane per channel, so reading every channel must
+// not collapse to reading none.
+TEST(GDALDriver, planarTiledTiffReadsAllChannels)
+{
+    slideio::TempFile temp("tif");
+    const std::string path = temp.getPath().string();
+    cv::Mat image;
+    writeTiledRgbTiff(path, 1000, 700, 256, image, true);
+
+    slideio::GDALImageDriver driver;
+    std::shared_ptr<slideio::CVScene> scene = driver.openFile(path)->getScene(0);
+    const cv::Rect rect(200, 230, 800, 470);
+    cv::Mat block;
+    scene->readBlock(rect, block);
+    ASSERT_EQ(rect.size(), block.size());
+    ASSERT_EQ(CV_8UC3, block.type());
+    EXPECT_EQ(0, cv::norm(image(rect), block, cv::NORM_INF));
+
+    cv::Mat blue;
+    scene->readBlockChannels(rect, {2}, blue);
+    cv::Mat expectedBlue;
+    cv::extractChannel(image(rect), expectedBlue, 2);
+    EXPECT_EQ(0, cv::norm(expectedBlue, blue, cv::NORM_INF));
+}
+
+// The pages of one file decode through one libtiff handle, so the scenes of one
+// file must serialise their reads together: reading two pages on two threads
+// must still return each page's own pixels.
+TEST(GDALDriver, twoPagesOfOneTiffReadConcurrently)
+{
+    slideio::TempFile temp("tif");
+    const std::string path = temp.getPath().string();
+    const cv::Mat page0 = makeRgbImage(600, 500, 0);
+    const cv::Mat page1 = makeRgbImage(600, 500, 100);
+    {
+        libtiff::TIFF* tiff = libtiff::TIFFOpen(path.c_str(), "w");
+        ASSERT_TRUE(tiff != nullptr);
+        writeTiledRgbDirectory(tiff, page0, 64, false, 255);
+        libtiff::TIFFWriteDirectory(tiff);
+        writeTiledRgbDirectory(tiff, page1, 64, false, 255);
+        libtiff::TIFFClose(tiff);
+    }
+
+    slideio::GDALImageDriver driver;
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(path);
+    ASSERT_EQ(2, slide->getNumScenes());
+    const std::shared_ptr<slideio::CVScene> scenes[] = {slide->getScene(0), slide->getScene(1)};
+    const cv::Mat* pages[] = {&page0, &page1};
+    std::atomic<int> failures{0};
+    auto reader = [&](int index) {
+        try {
+            for (int iteration = 0; iteration < 20; ++iteration) {
+                cv::Mat block;
+                const cv::Rect rect(0, 0, 600, 500);
+                scenes[index]->readBlock(rect, block);
+                if (block.size() != rect.size() || cv::norm((*pages[index])(rect), block, cv::NORM_INF) != 0) {
+                    ++failures;
+                }
+            }
+        }
+        catch (...) {
+            ++failures;
+        }
+    };
+    std::thread first(reader, 0);
+    std::thread second(reader, 1);
+    first.join();
+    second.join();
+    EXPECT_EQ(0, failures.load());
 }

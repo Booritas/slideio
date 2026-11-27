@@ -18,8 +18,12 @@ slideio::GDALSlide::GDALSlide(const std::string& filePath, const std::string& dr
 		RAISE_RUNTIME_ERROR << "GDAL driver: cannot open file " << filePath;
 	}
 	const int numPages = m_image->getNumPages();
+	// Every page reads through the image's one decoder handle, so every scene of
+	// the file serialises its reads on this one mutex rather than on its own.
+	const auto readMutex = std::make_shared<std::mutex>();
 	for (int pageIndex = 0; pageIndex < numPages; ++pageIndex) {
-		std::shared_ptr<slideio::CVScene> scenePtr(new GDALScene(m_image, pageIndex, filePath, getDriverId()));
+		std::shared_ptr<slideio::CVScene> scenePtr(
+			new GDALScene(m_image, pageIndex, filePath, getDriverId(), readMutex));
 		m_scenes.push_back(scenePtr);
 	}
 	if (numPages == 1) {
