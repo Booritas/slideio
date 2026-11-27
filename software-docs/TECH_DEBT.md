@@ -1112,8 +1112,8 @@ reached from a single thread as well as from several. Nothing in slideio was
 named. That step runs with `OPENCV_FOR_THREADS_NUM=1`, which makes
 `parallel_for_` run serially so the pool never starts, while TSan keeps watching
 slideio's own synchronisation. This hides the class rather than explains it:
-the transformer step does not set the variable, and the reproducer above is
-still the way to close this entry.
+the transformer suite, where the class was first found, is not run by that job
+at all, and the reproducer above is still the way to close this entry.
 
 ---
 
