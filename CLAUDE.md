@@ -177,6 +177,11 @@ decoder difference they allow for, are produced by hand with the tools listed in
 The BIF driver has no committed fixtures: every `slideio_bif_tests` suite that needs the
 corpus is named `BIFCorpus*`, and CI runs it with `--gtest_filter=-BIFCorpus*`.
 
+`GDALTiffPyramid.*` is in the corpus-free `slideio_tests` filter that CI runs
+(`build-validation.yml`, `release.yml`), so every test in that suite must write its
+own fixtures -- they are generated at run time by `src/tests/main/gdaltiffwriter.cpp`
+-- and a corpus-dependent test given that suite name breaks CI.
+
 The LIF driver is the MRXS arrangement again: its synthetic files are committed in
 `src/tests/lif/data/` (written by `auxfiles/lif-fixtures/generate.py`), `.gitattributes`
 marks that directory `-text` because the fixtures are exact bytes, every

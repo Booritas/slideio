@@ -15,6 +15,10 @@ marked **Breaking** below summarise them.
   level instead of the full-resolution page. **Breaking**: such a file reports
   fewer scenes, and mask pages are no longer scenes; see
   [BREAKING_CHANGES.md](software-docs/BREAKING_CHANGES.md).
+- **GDAL**: concurrent reads. GDAL scenes, TIFF and FreeImage alike, report
+  `supportsConcurrentReads()`, so two block reads of one scene no longer
+  serialise. The handles a TIFF reads through come from one pool per file,
+  bounded whatever the page count.
 
 ## [2.11.1] - 2026-11-22
 
