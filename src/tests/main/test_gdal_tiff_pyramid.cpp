@@ -6,9 +6,11 @@
 // with raw libtiff calls (gdaltiffwriter.cpp), and every level written is the
 // exact raster the test compares against, so a level read must match bit for bit.
 #include "slideio/drivers/gdal/gdalimagedriver.hpp"
+#include "slideio/drivers/gdal/gdaltiffscene.hpp"
 #include "slideio/core/cvscene.hpp"
 #include "slideio/core/cvslide.hpp"
 #include "slideio/core/levelinfo.hpp"
+#include "slideio/core/tools/contextpool.hpp"
 #include "slideio/core/tools/tempfile.hpp"
 #include "slideio/core/tools/tools.hpp"
 #include "slideio/imagetools/libtiff.hpp"
@@ -21,6 +23,7 @@
 #include <atomic>
 #include <functional>
 #include <random>
+#include <set>
 #include <thread>
 
 using namespace gdaltest;
@@ -109,13 +112,33 @@ namespace
         cv::Size size;
     };
 
+    enum class ReadPath
+    {
+        // readResampledLevelBlockChannels on a random level.
+        Level,
+        // readResampledBlock on the base, leaving level selection to the scene
+        // (readResampledBlockChannelsEx).
+        ScaledBlock
+    };
+
+    void readSpec(const std::shared_ptr<slideio::CVScene>& scene, ReadPath path, const ReadSpec& spec,
+                  cv::Mat& raster)
+    {
+        if (path == ReadPath::Level) {
+            scene->readResampledLevelBlockChannels(spec.level, spec.rect, spec.size, {}, raster);
+        } else {
+            scene->readResampledBlock(spec.rect, spec.size, raster);
+        }
+    }
+
     // 8 threads x 50 reads, each a random level, rect and output scale from a fixed
     // per-thread seed. Every result must equal the same read made serially first.
-    void expectConcurrentReadsMatchSerial(const std::shared_ptr<slideio::CVScene>& scene)
+    void expectConcurrentReadsMatchSerial(const std::shared_ptr<slideio::CVScene>& scene,
+                                          ReadPath path = ReadPath::Level)
     {
         constexpr int kThreads = 8;
         constexpr int kReads = 50;
-        const int numLevels = scene->getNumZoomLevels();
+        const int numLevels = path == ReadPath::Level ? scene->getNumZoomLevels() : 1;
         std::vector<std::vector<ReadSpec>> specs(kThreads);
         std::vector<std::vector<cv::Mat>> expected(kThreads);
         for (int t = 0; t < kThreads; ++t) {
@@ -132,7 +155,7 @@ namespace
                                     std::max(1, static_cast<int>(h * scale)));
                 specs[t].push_back({level, rect, size});
                 cv::Mat raster;
-                scene->readResampledLevelBlockChannels(level, rect, size, {}, raster);
+                readSpec(scene, path, specs[t].back(), raster);
                 expected[t].push_back(raster);
             }
         }
@@ -142,7 +165,7 @@ namespace
                 for (int i = 0; i < kReads; ++i) {
                     const ReadSpec& spec = specs[t][i];
                     cv::Mat raster;
-                    scene->readResampledLevelBlockChannels(spec.level, spec.rect, spec.size, {}, raster);
+                    readSpec(scene, path, spec, raster);
                     if (raster.size() != expected[t][i].size() || raster.type() != expected[t][i].type()
                         || cv::norm(raster, expected[t][i], cv::NORM_INF) != 0) {
                         ++failures;
@@ -400,6 +423,68 @@ TEST(GDALTiffPyramid, concurrentRandomReadsMatchSerial)
 
     auto slide = openGdal(path);
     expectConcurrentReadsMatchSerial(slide->getScene(0));
+}
+
+// A plain many-page tiff read page by page must not hold a handle per page: every
+// scene of the file borrows from one pool, bounded by ContextPool::defaultMax().
+TEST(GDALTiffPyramid, manyPagesShareBoundedHandles)
+{
+    slideio::TempFile temp("tif");
+    const std::string path = temp.getPath().string();
+    constexpr int kPages = 64;
+    std::vector<cv::Mat> pages;
+    for (int page = 0; page < kPages; ++page) {
+        pages.push_back(makeRgbImage(96, 80, page));
+    }
+    writeTiff(path, [&](libtiff::TIFF* tiff) {
+        for (const cv::Mat& page : pages) {
+            ASSERT_NO_FATAL_FAILURE(writeTiledDirectory(tiff, page, 64, false, 255));
+        }
+    });
+    ASSERT_FALSE(::testing::Test::HasFatalFailure());
+
+    auto slide = openGdal(path);
+    ASSERT_EQ(kPages, slide->getNumScenes());
+    std::set<const slideio::ContextPool*> pools;
+    for (int index = 0; index < kPages; ++index) {
+        SCOPED_TRACE(::testing::Message() << "scene " << index);
+        auto scene = std::dynamic_pointer_cast<slideio::GDALTiffScene>(slide->getScene(index));
+        ASSERT_TRUE(scene != nullptr);
+        ASSERT_TRUE(scene->contextPool() != nullptr);
+        pools.insert(scene->contextPool());
+        cv::Mat block;
+        scene->readBlock({10, 10, 50, 40}, block);
+        EXPECT_EQ(0, cv::norm(pages[index]({10, 10, 50, 40}), block, cv::NORM_INF));
+    }
+    EXPECT_EQ(1u, pools.size());
+    // Every handle the file's scenes opened, wherever they live.
+    int handles = 0;
+    for (const slideio::ContextPool* pool : pools) {
+        handles += pool->contextCount();
+    }
+    EXPECT_LE(handles, slideio::ContextPool::defaultMax());
+}
+
+// A striped base with tiled levels, read through readResampledBlock with a scale,
+// so level selection lands on the striped base for some reads and the tiled level
+// for others.
+TEST(GDALTiffPyramid, concurrentStripedScaledReadsMatchSerial)
+{
+    slideio::TempFile temp("tif");
+    const std::string path = temp.getPath().string();
+    const auto levels = makePyramid(makeRgbImage(600, 400), {{300, 200}, {150, 100}});
+    writeTiff(path, [&](libtiff::TIFF* tiff) {
+        ASSERT_NO_FATAL_FAILURE(writeStripedDirectory(tiff, levels[0], 0, 2));
+        ASSERT_NO_FATAL_FAILURE(writeTiledDirectory(tiff, levels[1], 64, false, 255, 1));
+        ASSERT_NO_FATAL_FAILURE(writeTiledDirectory(tiff, levels[2], 64, false, 255, 1));
+    });
+    ASSERT_FALSE(::testing::Test::HasFatalFailure());
+
+    auto slide = openGdal(path);
+    ASSERT_EQ(1, slide->getNumScenes());
+    auto scene = slide->getScene(0);
+    ASSERT_EQ(3, scene->getNumZoomLevels());
+    expectConcurrentReadsMatchSerial(scene, ReadPath::ScaledBlock);
 }
 
 TEST(GDALTiffPyramid, concurrentFreeImageReadsMatchSerial)

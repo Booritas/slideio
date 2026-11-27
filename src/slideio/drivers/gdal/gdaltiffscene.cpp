@@ -48,24 +48,25 @@ namespace
     }
 }
 
+// openTiffFile never returns null: it raises for a missing file and for one
+// libtiff cannot open, so the keeper is always valid here.
 GDALReadContext::GDALReadContext(const std::string& filePath)
     : keeper(TiffTools::openTiffFile(filePath))
 {
-    if (!keeper.isValid()) {
-        RAISE_RUNTIME_ERROR << "GDALDriver: cannot open file " << filePath;
-    }
 }
 
-// The factory captures the path by value, not `this`, as SVSTiledScene's does.
 GDALTiffScene::GDALTiffScene(const std::string& filePath, const std::string& driverId,
-                             std::vector<TiffDirectory> levels)
+                             std::vector<TiffDirectory> levels, std::shared_ptr<ContextPool> contextPool)
     : m_filePath(filePath),
       m_driverId(driverId),
       m_directories(std::move(levels)),
-      m_contextPool([filePath]() { return std::make_unique<GDALReadContext>(filePath); })
+      m_contextPool(std::move(contextPool))
 {
     if (m_directories.empty()) {
         RAISE_RUNTIME_ERROR << "GDALDriver: a tiff scene needs at least one directory. File: " << filePath;
+    }
+    if (!m_contextPool) {
+        RAISE_RUNTIME_ERROR << "GDALDriver: a tiff scene needs a context pool. File: " << filePath;
     }
     const TiffDirectory& base = m_directories.front();
     // The same string SmallTiffPage reported for this directory, so level 0 of a
@@ -178,7 +179,7 @@ void GDALTiffScene::readLevelRect(int level, const cv::Rect& levelRect, const cv
     const TiffDirectory& dir = m_directories[level];
     // One borrow for the whole read: readTile below reads the handle out of this
     // same context and never acquires one of its own.
-    auto borrow = m_contextPool.acquire();
+    auto borrow = m_contextPool->acquire();
     GDALReadContext& context = borrow.as<GDALReadContext>();
     if (isTiledLevel(dir)) {
         GDALTileComposerUserData userData{&dir, &context};

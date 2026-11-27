@@ -13,6 +13,7 @@
 #include "slideio/imagetools/tiffkeeper.hpp"
 #include "slideio/imagetools/tifftools.hpp"
 #include <opencv2/core.hpp>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -23,8 +24,9 @@
 
 namespace slideio
 {
-    // One libtiff handle of the scene's file, borrowed from the scene's pool for
-    // exactly one read. Same shape as SVSReadContext.
+    // One libtiff handle of the file, borrowed from the file's pool for exactly
+    // one read. Same shape as SVSReadContext. A handle is not tied to a scene:
+    // every read seeks to its own directory, so any scene of the file can use it.
     class GDALReadContext : public ReadContext
     {
     public:
@@ -35,13 +37,16 @@ namespace slideio
     // A scene of a generic tiff: a base directory and the reduced-resolution
     // directories groupTiffDirectories accepted as its zoom levels. Everything the
     // scene reports comes from copies of those directories; the only handles it
-    // ever holds live in its ContextPool.
+    // ever reads through live in the file's ContextPool, which every scene of the
+    // file shares -- so a plain many-page tiff read page by page holds at most
+    // ContextPool::defaultMax() handles, not one per page.
     class SLIDEIO_GDAL_EXPORTS GDALTiffScene : public CVScene, public Tiler
     {
     public:
-        // levels[0] is the base; the rest descend in width.
+        // levels[0] is the base; the rest descend in width. contextPool hands out
+        // GDALReadContexts of filePath and is shared with the file's other scenes.
         GDALTiffScene(const std::string& filePath, const std::string& driverId,
-                      std::vector<TiffDirectory> levels);
+                      std::vector<TiffDirectory> levels, std::shared_ptr<ContextPool> contextPool);
         std::string getFilePath() const override { return m_filePath; }
         int getSceneIndex() const override { return 0; }
         const std::string& getDriverId() const override { return m_driverId; }
@@ -58,7 +63,8 @@ namespace slideio
         // the file states none. See TECH_DEBT #28.
         int64_t getAcquisitionTime() const override { return m_acquisitionTime; }
         ColorProfile getColorProfile() const override { return m_colorProfile; }
-        // Each read borrows its own GDALReadContext (own libtiff handle) from the pool.
+        // Each read borrows its own GDALReadContext (own libtiff handle) from the
+        // file's pool.
         bool supportsConcurrentReads() const override { return true; }
         void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
             const std::vector<int>& channelIndices, int zSliceIndex, int tFrameIndex,
@@ -73,6 +79,8 @@ namespace slideio
             void* userData) override;
         void initializeBlock(const cv::Size& blockSize, const std::vector<int>& channelIndices,
             cv::OutputArray output) override;
+        // For tests: the pool this scene borrows its handles from.
+        const ContextPool* contextPool() const { return m_contextPool.get(); }
     private:
         // Reads a rect lying inside the level: one borrow, then tile by tile for a
         // tiled level or the whole level decoded for a striped one.
@@ -86,10 +94,14 @@ namespace slideio
         std::string m_metadata;
         int64_t m_acquisitionTime = 0;
         ColorProfile m_colorProfile;
-        // Declared last on purpose, and it must stay last: ~ContextPool blocks until
-        // every outstanding borrow is returned, and members die in reverse order, so
-        // the pool goes before the directories an in-flight read's userData points into.
-        ContextPool m_contextPool;
+        // Shared by every scene of the file. Declared last on purpose, and it must
+        // stay last: members die in reverse order, so this reference is dropped
+        // before the directories a read's userData points into. Only the scene
+        // holding the last reference destroys the pool, and only then does it block
+        // in ~ContextPool until every outstanding borrow is returned; otherwise
+        // dropping it returns at once, and borrows still out belong to reads of the
+        // other scenes, whose directories are alive.
+        std::shared_ptr<ContextPool> m_contextPool;
     };
 }
 

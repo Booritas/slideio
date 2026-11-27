@@ -30,8 +30,15 @@ slideio::GDALSlide::GDALSlide(const std::string& filePath, const std::string& dr
 			directories.push_back(tiff->getDirectory(pageIndex));
 		}
 		image.reset();
+		// One pool for the whole file, shared by all its scenes, so the handles the
+		// file holds are bounded by the pool rather than growing with the page
+		// count. The factory captures the path by value, not a scene or the slide,
+		// as SVSTiledScene's does: the pool outlives whichever of them goes first.
+		auto contextPool = std::make_shared<ContextPool>(
+			[filePath]() { return std::make_unique<GDALReadContext>(filePath); });
 		for (auto& group : groupTiffDirectories(directories)) {
-			m_scenes.push_back(std::make_shared<GDALTiffScene>(filePath, getDriverId(), std::move(group.levels)));
+			m_scenes.push_back(std::make_shared<GDALTiffScene>(filePath, getDriverId(), std::move(group.levels),
+				contextPool));
 		}
 		if (m_scenes.empty()) {
 			RAISE_RUNTIME_ERROR << "GDAL driver: no image found in tiff file " << filePath;

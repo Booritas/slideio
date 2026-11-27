@@ -123,16 +123,28 @@ one scene per top-level IFD (minus masks), one level each.
 - **`GDALSlide`** branches on the file type. For a TIFF it scans with
   `TiffTools::scanFile`, applies the grouping rules and builds one
   `GDALTiffScene` per group. Otherwise it opens `FIWrapper` as today and builds
-  one `GDALScene` per page. The shared `readMutex` goes away.
+  one `GDALScene` per page. The shared `readMutex` goes away. For a TIFF it
+  also creates the file's one `std::shared_ptr<ContextPool>` and hands it to
+  every `GDALTiffScene` it builds.
 - **`GDALTiffScene`** (new; `CVScene` + `Tiler`). Holds the base and level
   `TiffDirectory` copies, the file path, metadata derived from the base, and a
-  `ContextPool` declared last. It does not hold a `SmallImage` or any open
-  handle outside the pool.
+  `std::shared_ptr` to the file's `ContextPool`, declared last. It does not hold
+  a `SmallImage` or any open handle outside the pool. *Amended by the final
+  review:* the pool is per file, shared by all its scenes, not per scene. A pool
+  per scene made open handles scale with the page count -- a plain 1000-page
+  TIFF read page by page would hold up to one handle per page, a regression from
+  the one handle per file the old driver kept. A shared pool bounds the file at
+  `ContextPool::defaultMax()` handles. Each read still borrows once. Because the
+  pool is shared, a scene being destroyed blocks in `~ContextPool` only if it
+  holds the last reference; borrows still out then belong to reads of other
+  scenes, whose directories are alive.
 - **`GDALScene`** keeps only the FreeImage path: the tiled-TIFF branch,
   `m_tiff`, `m_tiledDirectory`, the `Tiler` methods and the shared mutex leave
   it. It overrides `supportsConcurrentReads()` to `true`.
 - **`GDALReadContext : ReadContext`** owns one `TIFFKeeper` opened from the
   path, as `SVSReadContext` does. The pool factory captures the path by value.
+  A context is not tied to a scene -- every read sets its own directory -- so
+  the file's scenes can share one pool of them.
 
 ### Read path of `GDALTiffScene`
 
