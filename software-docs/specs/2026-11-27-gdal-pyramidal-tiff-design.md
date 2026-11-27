@@ -115,7 +115,12 @@ Applied to the top-level IFDs in file order, by `GDALSlide` for a TIFF:
    tested against the original base (the most recent non-reduced IFD) first. If
    it fails, it is tested against the most recent scene started this way, and
    joins it if it passes rule 4 against that scene's base. Otherwise it starts
-   a new scene of this kind itself. It does **not** end the original base's
+   a new scene of this kind itself. The fallback applies only within the
+   current base's run: a non-reduced IFD that starts a scene clears it, so in
+   `A, g1, B, g2`, where g2 fails rule 4 against B, g2 is a scene of its own
+   and does not reach back across B to join g1 -- a wrong merge loses data
+   silently, and when in doubt a page stays its own scene (see Anti-goals).
+   It does **not** end the original base's
    run: in `A, r1, x, r2`, where x fails rule 4 against A, r1 and r2 are both
    levels of A; in `A, g1, g2`, where the gray g1 and g2 fail rule 4 against
    the RGB A, g2 is a level of g1; and in `A, g1, rA, g2` the two pyramids

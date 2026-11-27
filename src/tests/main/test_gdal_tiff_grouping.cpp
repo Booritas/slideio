@@ -136,6 +136,25 @@ TEST(GDALTiffPyramid, interleavedReducedPagesJoinTheirOwnBases)
     EXPECT_EQ(1, groups[1].levels[1].channels);
 }
 
+// Rule 6's fallback lives only within the current base's run: once B starts a
+// scene, g2 (which fails B) does not reach back across B to join g1. A wrong merge
+// loses data silently; a page left as its own scene does not.
+TEST(GDALTiffPyramid, reducedFallbackDoesNotCrossANewBase)
+{
+    std::vector<TiffDirectory> dirs = {
+        dir(1000, 800, 3),
+        dir(500, 400, 1, DataType::DT_Byte, 8, 1),
+        dir(600, 600, 3),
+        dir(250, 200, 1, DataType::DT_Byte, 8, 1) };
+    for (int i = 0; i < 4; ++i) dirs[i].dirIndex = i;
+    auto groups = groupTiffDirectories(dirs);
+    ASSERT_EQ(4u, groups.size());
+    for (int i = 0; i < 4; ++i) {
+        EXPECT_EQ(i, groups[i].firstDirectory);
+        EXPECT_EQ(1u, groups[i].levels.size());
+    }
+}
+
 // Rule 6 before any base: the first reduced page is a base for the next.
 TEST(GDALTiffPyramid, reducedPagesBeforeAnyBaseGroup)
 {

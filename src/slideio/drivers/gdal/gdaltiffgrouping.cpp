@@ -94,6 +94,11 @@ std::vector<GDALTiffSceneGroup> slideio::groupTiffDirectories(const std::vector<
         }
         if (!isReduced(dir)) {
             currentBase = startScene(dir); // rule 2
+            // Rule 6's fallback lives within one base's run only: a reduced IFD
+            // after this base never reaches back across it to an earlier reduced
+            // scene. A wrong merge loses data silently; a page left as its own
+            // scene does not.
+            reducedBase = -1;
             for (const auto& sub : dir.subdirectories) {
                 if (isLevelOf(dir, sub)) {
                     pending[currentBase].candidates.push_back(sub);
