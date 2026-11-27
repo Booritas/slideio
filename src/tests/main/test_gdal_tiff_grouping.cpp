@@ -61,7 +61,7 @@ TEST(GDALTiffPyramid, reducedIfdsBecomeLevels)
 
 TEST(GDALTiffPyramid, masksAreSkipped)
 {
-    TiffDirectory maskSub = dir(500, 400, 3, DataType::DT_Byte, 8, 4);
+    TiffDirectory maskSub = dir(600, 480, 3, DataType::DT_Byte, 8, 4);
     TiffDirectory base = dir(1000, 800);
     base.subdirectories = { maskSub };
     auto groups = groupTiffDirectories({ base,
@@ -69,7 +69,7 @@ TEST(GDALTiffPyramid, masksAreSkipped)
                                          dir(500, 400, 3, DataType::DT_Byte, 8, 4),
                                          dir(500, 400, 3, DataType::DT_Byte, 8, 5) });
     ASSERT_EQ(1u, groups.size());
-    EXPECT_EQ(2u, groups[0].levels.size());
+    EXPECT_EQ((std::vector<int>{1000, 500}), widths(groups[0]));
 }
 
 TEST(GDALTiffPyramid, onlyMasksFallBackToScenes)
