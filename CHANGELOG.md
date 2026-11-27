@@ -5,6 +5,17 @@ out-of-tree callers are described in full in
 [software-docs/BREAKING_CHANGES.md](software-docs/BREAKING_CHANGES.md); the entries
 marked **Breaking** below summarise them.
 
+## [Unreleased]
+
+### Added
+
+- **GDAL**: pyramid support for generic TIFFs. A TIFF whose SubIFDs or
+  reduced-resolution pages form a pyramid (COG, libvips, bfconvert) opens as one
+  scene with zoom levels, and a downscaled read is served from the matching
+  level instead of the full-resolution page. **Breaking**: such a file reports
+  fewer scenes, and mask pages are no longer scenes; see
+  [BREAKING_CHANGES.md](software-docs/BREAKING_CHANGES.md).
+
 ## [2.11.1] - 2026-11-22
 
 ### Fixed

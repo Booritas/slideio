@@ -7,6 +7,28 @@ by branch.
 
 ---
 
+## feature/gdal-pyramidal-tiff
+
+### A pyramidal TIFF opens in the GDAL driver as fewer scenes
+
+**Module:** `slideio-gdal`
+**Files:** `src/slideio/drivers/gdal/gdalslide.cpp`, `gdaltiffscene.cpp`,
+`gdaltiffgrouping.cpp`
+
+A TIFF the GDAL driver opens used to yield one scene per top-level directory,
+each with a single zoom level, and its SubIFDs were never seen. Its directories
+are now grouped: a full-resolution page becomes one scene, and its SubIFDs and
+the reduced-resolution pages (`SubfileType` bit 0) that follow it become that
+scene's zoom levels when they match its channels, data type and aspect ratio.
+A file with SubIFDs or reduced-resolution pages -- a COG, or a pyramid written by
+libvips or bfconvert -- therefore reports fewer scenes, and scene indices past
+the first pyramid shift. Transparency-mask pages (`SubfileType` bit 2) are no
+longer scenes at all, unless the file holds nothing but masks. A TIFF with
+neither SubIFDs, reduced pages nor masks opens exactly as before. The grouping
+rules are in `software-docs/specs/2026-11-27-gdal-pyramidal-tiff-design.md`.
+
+---
+
 ## fix/issue-90-mixed-channel-types
 
 ### A block read of channels of mixed data types raises `slideio::RuntimeError`

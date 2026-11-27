@@ -21,6 +21,8 @@ set(TEST_SOURCES
   test_scn_driver.cpp
   test_gdal_driver.cpp
   test_gdal_tiff_grouping.cpp
+  test_gdal_tiff_pyramid.cpp
+  gdaltiffwriter.cpp
   test_imagetools.cpp
   test_afi_driver.cpp
   test_svs_driver.cpp

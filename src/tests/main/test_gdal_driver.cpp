@@ -15,6 +15,7 @@
 #include "slideio/imagetools/imagetools.hpp"
 #include "slideio/imagetools/libtiff.hpp"
 #include "slideio/core/tools/tempfile.hpp"
+#include "tests/main/gdaltiffwriter.hpp"
 
 using namespace tinyxml2;
 using json = nlohmann::json;
@@ -557,76 +558,10 @@ TEST(GDALDriver, sceneOutlivesItsSlide)
     }
 }
 
-namespace
-{
-    // An RGB image whose every pixel is a function of its position (and of seed,
-    // so two pages of one file differ), so a tile placed in the wrong spot cannot
-    // go unnoticed.
-    cv::Mat makeRgbImage(int width, int height, int seed = 0)
-    {
-        cv::Mat image(height, width, CV_8UC3);
-        for (int y = 0; y < height; ++y) {
-            for (int x = 0; x < width; ++x) {
-                image.at<cv::Vec3b>(y, x) = cv::Vec3b(static_cast<uint8_t>(x + seed),
-                                                      static_cast<uint8_t>(y),
-                                                      static_cast<uint8_t>((x / 7 + y / 5) * 13 + seed));
-            }
-        }
-        return image;
-    }
-
-    // Writes image as one tiled, uncompressed RGB directory. The padding past the
-    // right and bottom edges is padValue rather than zero, so a read that lets it
-    // bleed into the page shows it.
-    void writeTiledRgbDirectory(libtiff::TIFF* tiff, const cv::Mat& image, int tileSize, bool planar,
-                                uint8_t padValue)
-    {
-        const int width = image.cols;
-        const int height = image.rows;
-        libtiff::TIFFSetField(tiff, TIFFTAG_IMAGEWIDTH, width);
-        libtiff::TIFFSetField(tiff, TIFFTAG_IMAGELENGTH, height);
-        libtiff::TIFFSetField(tiff, TIFFTAG_SAMPLESPERPIXEL, 3);
-        libtiff::TIFFSetField(tiff, TIFFTAG_BITSPERSAMPLE, 8);
-        libtiff::TIFFSetField(tiff, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_RGB);
-        libtiff::TIFFSetField(tiff, TIFFTAG_PLANARCONFIG, planar ? PLANARCONFIG_SEPARATE : PLANARCONFIG_CONTIG);
-        libtiff::TIFFSetField(tiff, TIFFTAG_COMPRESSION, COMPRESSION_NONE);
-        libtiff::TIFFSetField(tiff, TIFFTAG_TILEWIDTH, tileSize);
-        libtiff::TIFFSetField(tiff, TIFFTAG_TILELENGTH, tileSize);
-        std::vector<cv::Mat> planes;
-        if (planar) {
-            cv::split(image, planes);
-        } else {
-            planes.push_back(image);
-        }
-        for (int plane = 0; plane < static_cast<int>(planes.size()); ++plane) {
-            const cv::Mat& source = planes[plane];
-            cv::Mat tile(tileSize, tileSize, source.type());
-            for (int y = 0; y < height; y += tileSize) {
-                for (int x = 0; x < width; x += tileSize) {
-                    tile.setTo(cv::Scalar::all(padValue));
-                    const cv::Rect part(x, y, std::min(tileSize, width - x), std::min(tileSize, height - y));
-                    source(part).copyTo(tile(cv::Rect(0, 0, part.width, part.height)));
-                    const auto tileIndex = libtiff::TIFFComputeTile(tiff, x, y, 0,
-                                                                    static_cast<uint16_t>(plane));
-                    const auto size = static_cast<libtiff::tmsize_t>(tile.total() * tile.elemSize());
-                    ASSERT_EQ(size, libtiff::TIFFWriteEncodedTile(tiff, tileIndex, tile.data, size));
-                }
-            }
-        }
-    }
-
-    // A tiled RGB tiff whose size is not a multiple of the tile, so the right and
-    // bottom tiles are partial.
-    void writeTiledRgbTiff(const std::string& path, int width, int height, int tileSize, cv::Mat& image,
-                           bool planar = false, uint8_t padValue = 255)
-    {
-        image = makeRgbImage(width, height);
-        libtiff::TIFF* tiff = libtiff::TIFFOpen(path.c_str(), "w");
-        ASSERT_TRUE(tiff != nullptr);
-        writeTiledRgbDirectory(tiff, image, tileSize, planar, padValue);
-        libtiff::TIFFClose(tiff);
-    }
-}
+// The writers live in gdaltiffwriter.cpp, shared with test_gdal_tiff_pyramid.cpp.
+using gdaltest::makeRgbImage;
+using gdaltest::writeTiledRgbDirectory;
+using gdaltest::writeTiledRgbTiff;
 
 // A tiled tiff is read tile by tile: the scene reports the file's own tile size,
 // so a caller can ask for one tile's worth of pixels without the driver decoding

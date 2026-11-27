@@ -1166,6 +1166,28 @@ across rows.
 
 ---
 
+## 31. GDAL: a striped TIFF level is decoded whole for every block
+
+**Files:** `src/slideio/drivers/gdal/gdaltiffscene.cpp` (`GDALTiffScene::readLevelRect`)
+**Related:** `software-docs/specs/2026-11-27-gdal-pyramidal-tiff-design.md`
+**Status:** Open, by design for the first version.
+
+A tiled level of a GDAL TIFF scene is read tile by tile, but a striped one --
+and every TIFF in the gdal corpus is striped -- is decoded in full through
+`TiffTools::readStripedDir` on every block read, then cropped and resized. That
+is what the driver did before pyramids, so nothing regressed, but a small block
+of a large striped page costs the whole page, every time. A pyramid helps only
+when a reduced level serves the zoom; a full-resolution block of a striped base
+still decodes the base.
+
+The fix is strip-by-strip reading: decode only the strips the block's rows
+cross (`TIFFReadEncodedStrip` per strip, as `readRegularStripedDir` already does
+for all of them), with a planar and a JPEG 2000 variant to match the existing
+whole-directory readers. A test must show the strip-wise result equal to the
+whole-page one for interleaved, planar and subsampled directories.
+
+---
+
 ## Consciously accepted, not debt
 
 **PHTIFF detection has no fallback if the claiming driver then fails.** A
