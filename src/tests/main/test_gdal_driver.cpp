@@ -720,9 +720,9 @@ TEST(GDALDriver, planarTiledTiffReadsAllChannels)
     EXPECT_EQ(0, cv::norm(expectedBlue, blue, cv::NORM_INF));
 }
 
-// The pages of one file decode through one libtiff handle, so the scenes of one
-// file must serialise their reads together: reading two pages on two threads
-// must still return each page's own pixels.
+// Each read borrows its own libtiff handle from the scene's pool, so the scenes
+// of one file do not share a cursor: reading two pages on two threads must
+// still return each page's own pixels.
 TEST(GDALDriver, twoPagesOfOneTiffReadConcurrently)
 {
     slideio::TempFile temp("tif");

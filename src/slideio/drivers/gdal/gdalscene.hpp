@@ -50,6 +50,8 @@ namespace slideio
         // driver opens states significant bits or a per-plane time, so those keep
         // the base class defaults; see TECH_DEBT #28.
         int64_t getAcquisitionTime() const override { return m_acquisitionTime; }
+        // Pages are locked at construction and readRaster is a read-only copy.
+        bool supportsConcurrentReads() const override { return true; }
         ColorProfile getColorProfile() const override {
             return m_colorProfile;
         }

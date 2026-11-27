@@ -16,8 +16,12 @@
 #include "tests/main/gdaltiffwriter.hpp"
 
 #include <gtest/gtest.h>
+#include "slideio/imagetools/imagetools.hpp"
 #include <opencv2/imgproc.hpp>
+#include <atomic>
 #include <functional>
+#include <random>
+#include <thread>
 
 using namespace gdaltest;
 
@@ -97,6 +101,67 @@ namespace
     }
 
     const std::vector<cv::Size> kSubIfdLevels{{500, 400}, {250, 200}};
+
+    struct ReadSpec
+    {
+        int level;
+        cv::Rect rect;
+        cv::Size size;
+    };
+
+    // 8 threads x 50 reads, each a random level, rect and output scale from a fixed
+    // per-thread seed. Every result must equal the same read made serially first.
+    void expectConcurrentReadsMatchSerial(const std::shared_ptr<slideio::CVScene>& scene)
+    {
+        constexpr int kThreads = 8;
+        constexpr int kReads = 50;
+        const int numLevels = scene->getNumZoomLevels();
+        std::vector<std::vector<ReadSpec>> specs(kThreads);
+        std::vector<std::vector<cv::Mat>> expected(kThreads);
+        for (int t = 0; t < kThreads; ++t) {
+            std::mt19937 rng(1000 + t);
+            auto pick = [&](int lo, int hi) { return std::uniform_int_distribution<int>(lo, hi)(rng); };
+            for (int i = 0; i < kReads; ++i) {
+                const int level = pick(0, numLevels - 1);
+                const cv::Size levelSize = scene->getZoomLevelInfo(level)->getSize();
+                const int w = pick(1, levelSize.width);
+                const int h = pick(1, levelSize.height);
+                const cv::Rect rect(pick(0, levelSize.width - w), pick(0, levelSize.height - h), w, h);
+                const double scale = pick(25, 100) / 100.0;
+                const cv::Size size(std::max(1, static_cast<int>(w * scale)),
+                                    std::max(1, static_cast<int>(h * scale)));
+                specs[t].push_back({level, rect, size});
+                cv::Mat raster;
+                scene->readResampledLevelBlockChannels(level, rect, size, {}, raster);
+                expected[t].push_back(raster);
+            }
+        }
+        std::atomic<int> failures{0};
+        auto reader = [&](int t) {
+            try {
+                for (int i = 0; i < kReads; ++i) {
+                    const ReadSpec& spec = specs[t][i];
+                    cv::Mat raster;
+                    scene->readResampledLevelBlockChannels(spec.level, spec.rect, spec.size, {}, raster);
+                    if (raster.size() != expected[t][i].size() || raster.type() != expected[t][i].type()
+                        || cv::norm(raster, expected[t][i], cv::NORM_INF) != 0) {
+                        ++failures;
+                    }
+                }
+            }
+            catch (...) {
+                ++failures;
+            }
+        };
+        std::vector<std::thread> threads;
+        for (int t = 0; t < kThreads; ++t) {
+            threads.emplace_back(reader, t);
+        }
+        for (auto& thread : threads) {
+            thread.join();
+        }
+        EXPECT_EQ(0, failures.load());
+    }
 }
 
 // The SubIFD layout libvips and bfconvert write: one scene, three levels.
@@ -313,4 +378,38 @@ TEST(GDALTiffPyramid, autoDetectionLandsInGdal)
     EXPECT_EQ("GDAL", slide->getDriverId());
     ASSERT_EQ(1, slide->getNumScenes());
     EXPECT_EQ(3, slide->getScene(0)->getNumZoomLevels());
+}
+
+TEST(GDALTiffPyramid, tiffSceneReportsConcurrent)
+{
+    slideio::TempFile temp("tif");
+    const std::string path = temp.getPath().string();
+    const auto levels = makePyramid(makeRgbImage(1000, 800), kSubIfdLevels);
+    writeSubIfdPyramid(path, levels, 256);
+
+    auto slide = openGdal(path);
+    EXPECT_TRUE(slide->getScene(0)->supportsConcurrentReads());
+}
+
+TEST(GDALTiffPyramid, concurrentRandomReadsMatchSerial)
+{
+    slideio::TempFile temp("tif");
+    const std::string path = temp.getPath().string();
+    const auto levels = makePyramid(makeRgbImage(1000, 800), kSubIfdLevels);
+    writeSubIfdPyramid(path, levels, 256);
+
+    auto slide = openGdal(path);
+    expectConcurrentReadsMatchSerial(slide->getScene(0));
+}
+
+TEST(GDALTiffPyramid, concurrentFreeImageReadsMatchSerial)
+{
+    slideio::TempFile temp("png");
+    const std::string path = temp.getPath().string();
+    slideio::ImageTools::writeSmallImageRaster(path, slideio::Compression::Png, makeRgbImage(1200, 900));
+
+    auto slide = openGdal(path);
+    auto scene = slide->getScene(0);
+    ASSERT_EQ(1, scene->getNumZoomLevels());
+    expectConcurrentReadsMatchSerial(scene);
 }

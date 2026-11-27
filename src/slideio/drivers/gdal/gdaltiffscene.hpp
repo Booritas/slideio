@@ -58,6 +58,8 @@ namespace slideio
         // the file states none. See TECH_DEBT #28.
         int64_t getAcquisitionTime() const override { return m_acquisitionTime; }
         ColorProfile getColorProfile() const override { return m_colorProfile; }
+        // Each read borrows its own GDALReadContext (own libtiff handle) from the pool.
+        bool supportsConcurrentReads() const override { return true; }
         void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
             const std::vector<int>& channelIndices, int zSliceIndex, int tFrameIndex,
             cv::OutputArray output) override;
