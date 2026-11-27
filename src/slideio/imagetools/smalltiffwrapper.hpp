@@ -44,6 +44,8 @@ namespace slideio
         };
 	public:
 		SmallTiffWrapper(const std::string& filePath);
+		/**@brief JSON description of a tiff directory, the same string SmallTiffPage::getMetadata returns for it.*/
+		static std::string directoryMetadata(const TiffDirectory& dir);
 		int getNumPages() const override;
 		bool isValid() const override;
 		SmallImagePage* readPage(int pageIndex) override;

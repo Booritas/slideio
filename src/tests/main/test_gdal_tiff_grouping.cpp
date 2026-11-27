@@ -2,7 +2,9 @@
 // It is subject to the license terms in the LICENSE file found in the top-level directory
 // of this distribution and at http://slideio.org/license.html.
 #include "slideio/drivers/gdal/gdaltiffgrouping.hpp"
+#include "slideio/imagetools/smalltiffwrapper.hpp"
 #include <gtest/gtest.h>
+#include <nlohmann/json.hpp>
 
 using namespace slideio;
 
@@ -140,4 +142,40 @@ TEST(GDALTiffPyramid, twoPyramidsInOneFile)
     ASSERT_EQ(2u, groups.size());
     EXPECT_EQ(2u, groups[0].levels.size());
     EXPECT_EQ(2u, groups[1].levels.size());
+}
+
+TEST(GDALTiffPyramid, directoryMetadataMatchesPage)
+{
+    TiffDirectory tiled = dir(512, 256);
+    tiled.tiled = true;
+    tiled.tileWidth = 256;
+    tiled.tileHeight = 128;
+    tiled.interleaved = true;
+    tiled.slideioCompression = Compression::Jpeg;
+    tiled.description = "desc";
+    tiled.software = "sw";
+    auto mt = nlohmann::json::parse(SmallTiffWrapper::directoryMetadata(tiled));
+    EXPECT_EQ(512, mt["width"].get<int>());
+    EXPECT_EQ(256, mt["height"].get<int>());
+    EXPECT_TRUE(mt["tiled"].get<bool>());
+    EXPECT_EQ(256, mt["tileWidth"].get<int>());
+    EXPECT_EQ(128, mt["tileHeight"].get<int>());
+    EXPECT_EQ(3, mt["channels"].get<int>());
+    EXPECT_TRUE(mt.contains("dataType"));
+    EXPECT_EQ(compressionToString(Compression::Jpeg), mt["compression"].get<std::string>());
+    EXPECT_EQ("desc", mt["description"].get<std::string>());
+    EXPECT_EQ("sw", mt["software"].get<std::string>());
+    EXPECT_FALSE(mt.contains("rowsPerStrip"));
+
+    TiffDirectory striped = dir(512, 256);
+    striped.rowsPerStrip = 16;
+    striped.stripSize = 2048;
+    striped.slideioCompression = Compression::Uncompressed;
+    auto st = nlohmann::json::parse(SmallTiffWrapper::directoryMetadata(striped));
+    EXPECT_FALSE(st["tiled"].get<bool>());
+    EXPECT_EQ(16, st["rowsPerStrip"].get<int>());
+    EXPECT_EQ(2048, st["stripSize"].get<int>());
+    EXPECT_FALSE(st.contains("tileWidth"));
+    EXPECT_FALSE(st.contains("description"));
+    EXPECT_FALSE(st.contains("software"));
 }
