@@ -12,6 +12,8 @@ set(SOURCE_FILES ${SOURCE_FILES}
    ${CMAKE_CURRENT_SOURCE_DIR}/gdalslide.hpp
    ${CMAKE_CURRENT_SOURCE_DIR}/gdalslide.cpp
    ${CMAKE_CURRENT_SOURCE_DIR}/gdal_api_def.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/gdaltiffgrouping.hpp
+   ${CMAKE_CURRENT_SOURCE_DIR}/gdaltiffgrouping.cpp
    )
 
 add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILES})
