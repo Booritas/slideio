@@ -136,8 +136,8 @@ one scene per top-level IFD (minus masks), one level each.
   the one handle per file the old driver kept. A shared pool bounds the file at
   `ContextPool::defaultMax()` handles. Each read still borrows once. Because the
   pool is shared, a scene being destroyed blocks in `~ContextPool` only if it
-  holds the last reference; borrows still out then belong to reads of other
-  scenes, whose directories are alive.
+  holds the last reference; otherwise dropping it returns at once, and borrows
+  still out belong to reads of other scenes, whose directories are alive.
 - **`GDALScene`** keeps only the FreeImage path: the tiled-TIFF branch,
   `m_tiff`, `m_tiledDirectory`, the `Tiler` methods and the shared mutex leave
   it. It overrides `supportsConcurrentReads()` to `true`.

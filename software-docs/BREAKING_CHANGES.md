@@ -47,9 +47,10 @@ metadata, with `getMetadataFormat()` reporting `JSON` instead of `None`.
 The slide used to keep the file's handle open from `openSlide` until the slide
 was destroyed. It now scans the file, closes it, and opens handles only when a
 read needs one, from a pool shared by the file's scenes that keeps them until the
-last scene is gone. Two consequences: on Linux, a read after the file has been
-unlinked fails, where it used to succeed through the handle opened at
-`openSlide`; on Windows, the file can be deleted or replaced while the slide is
+last scene is gone. Two consequences: on Linux, once the file has been unlinked,
+a read that has to open a new handle -- the first read, or one that grows the
+pool under concurrency -- fails, where it used to succeed through the handle
+opened at `openSlide`; on Windows, the file can be deleted or replaced while the slide is
 open and before its first read, and that read then sees the new file.
 
 ---
