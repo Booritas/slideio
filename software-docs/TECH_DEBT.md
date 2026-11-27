@@ -1103,6 +1103,18 @@ no slideio in the picture, which is its own piece of work. Until someone does
 that, the honest statement is: reported, unexplained, and not known to affect
 correctness — no test has ever failed because of it.
 
+**CI now sees it, and works around it in one step.** On 2026-11-27 the
+`tsan-linux` job's OpenCV was instrumented after all, and PR #104 added
+`GDALTiffPyramid.*` to its `slideio_tests` step. That suite calls `cv::resize`
+both in its fixture builder and on the GDAL read path, and TSan reported three
+races at `cv::ThreadPool::run` (`parallel_impl.cpp:598`) — the same pool, now
+reached from a single thread as well as from several. Nothing in slideio was
+named. That step runs with `OPENCV_FOR_THREADS_NUM=1`, which makes
+`parallel_for_` run serially so the pool never starts, while TSan keeps watching
+slideio's own synchronisation. This hides the class rather than explains it:
+the transformer step does not set the variable, and the reproducer above is
+still the way to close this entry.
+
 ---
 
 ## 30. BIF: no banded rendering

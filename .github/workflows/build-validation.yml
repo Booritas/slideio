@@ -195,7 +195,14 @@ jobs:
       - name: Build
         run: python install.py -a build-only -c debug
 
-      - name: FileReader and ContextPool under ThreadSanitizer
+      # GDALTiffPyramid.* calls cv::resize, whose thread pool TSan reports races
+      # inside (TECH_DEBT.md §29) -- third-party code, not slideio's. One OpenCV
+      # thread makes parallel_for_ run serially, so the pool never starts and
+      # TSan still watches slideio's own concurrency: the context pool, the
+      # striped-decode lock, the parallel reads.
+      - name: FileReader, ContextPool and GDAL pyramid tests under ThreadSanitizer
+        env:
+          OPENCV_FOR_THREADS_NUM: "1"
         run: ./build/debug/bin/slideio_tests --gtest_filter="FileReader.*:ContextPool.*:GDALTiffPyramid.*"
 
       # The MRXS suites that read only the fixtures committed in src/tests/mrxs/data;
