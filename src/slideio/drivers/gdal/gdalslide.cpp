@@ -36,9 +36,13 @@ slideio::GDALSlide::GDALSlide(const std::string& filePath, const std::string& dr
 		// as SVSTiledScene's does: the pool outlives whichever of them goes first.
 		auto contextPool = std::make_shared<ContextPool>(
 			[filePath]() { return std::make_unique<GDALReadContext>(filePath); });
+		// Also one per file: a striped level is decoded whole on every read, so
+		// those decodes take turns across the file to keep at most one whole level
+		// in memory. Tiled reads never take it.
+		auto stripedDecodeMutex = std::make_shared<std::mutex>();
 		for (auto& group : groupTiffDirectories(directories)) {
 			m_scenes.push_back(std::make_shared<GDALTiffScene>(filePath, getDriverId(), std::move(group.levels),
-				contextPool));
+				contextPool, stripedDecodeMutex));
 		}
 		if (m_scenes.empty()) {
 			RAISE_RUNTIME_ERROR << "GDAL driver: no image found in tiff file " << filePath;

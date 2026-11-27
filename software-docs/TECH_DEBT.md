@@ -1180,6 +1180,16 @@ of a large striped page costs the whole page, every time. A pyramid helps only
 when a reduced level serves the zoom; a full-resolution block of a striped base
 still decodes the base.
 
+Because each such read holds a whole decoded level, concurrent reads of striped
+levels could hold up to `ContextPool::defaultMax()` of them in memory at once.
+Until strip-wise reading lands, those decodes are **serialised per file**: the
+whole-level decode, crop and resize run under a `std::mutex` that `GDALSlide`
+creates next to the file's shared `ContextPool` and hands to every
+`GDALTiffScene`. Tiled levels never take it, and the scene still reports
+`supportsConcurrentReads() == true` -- the mutex bounds memory, it does not
+protect shared state. `GDALTiffPyramid.stripedDecodesDoNotOverlap` pins it. The
+mutex goes once strip-wise reading bounds each read to the strips it crosses.
+
 The fix is strip-by-strip reading: decode only the strips the block's rows
 cross (`TIFFReadEncodedStrip` per strip, as `readRegularStripedDir` already does
 for all of them), with a planar and a JPEG 2000 variant to match the existing

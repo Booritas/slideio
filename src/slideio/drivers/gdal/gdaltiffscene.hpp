@@ -14,6 +14,7 @@
 #include "slideio/imagetools/tifftools.hpp"
 #include <opencv2/core.hpp>
 #include <memory>
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -44,9 +45,12 @@ namespace slideio
     {
     public:
         // levels[0] is the base; the rest descend in width. contextPool hands out
-        // GDALReadContexts of filePath and is shared with the file's other scenes.
+        // GDALReadContexts of filePath and is shared with the file's other scenes;
+        // so is stripedDecodeMutex, which serialises whole-level decodes of
+        // striped levels across the file.
         GDALTiffScene(const std::string& filePath, const std::string& driverId,
-                      std::vector<TiffDirectory> levels, std::shared_ptr<ContextPool> contextPool);
+                      std::vector<TiffDirectory> levels, std::shared_ptr<ContextPool> contextPool,
+                      std::shared_ptr<std::mutex> stripedDecodeMutex);
         std::string getFilePath() const override { return m_filePath; }
         int getSceneIndex() const override { return 0; }
         const std::string& getDriverId() const override { return m_driverId; }
@@ -64,7 +68,10 @@ namespace slideio
         int64_t getAcquisitionTime() const override { return m_acquisitionTime; }
         ColorProfile getColorProfile() const override { return m_colorProfile; }
         // Each read borrows its own GDALReadContext (own libtiff handle) from the
-        // file's pool.
+        // file's pool. Reads of tiled levels run fully in parallel; only the
+        // whole-level decode of a striped level takes the file's striped-decode
+        // mutex, which bounds memory rather than protecting shared state, so the
+        // scene stays concurrent.
         bool supportsConcurrentReads() const override { return true; }
         void readResampledBlockChannelsEx(const cv::Rect& blockRect, const cv::Size& blockSize,
             const std::vector<int>& channelIndices, int zSliceIndex, int tFrameIndex,
@@ -81,6 +88,10 @@ namespace slideio
             cv::OutputArray output) override;
         // For tests: the pool this scene borrows its handles from.
         const ContextPool* contextPool() const { return m_contextPool.get(); }
+        // For tests: the most whole-level decodes of striped levels that were ever
+        // in flight at once, process-wide, since the last reset.
+        static int maxStripedDecodesInFlight();
+        static void resetStripedDecodeStats();
     private:
         // Reads a rect lying inside the level: one borrow, then tile by tile for a
         // tiled level or the whole level decoded for a striped one.
@@ -94,6 +105,13 @@ namespace slideio
         std::string m_metadata;
         int64_t m_acquisitionTime = 0;
         ColorProfile m_colorProfile;
+        // Shared by every scene of the file. Held only around the whole-level
+        // decode, crop and resize of a striped level, so at most one striped level
+        // of the file is in memory at a time: without it, concurrent reads could
+        // hold up to ContextPool::defaultMax() whole levels at once. Tiled levels
+        // never take it. Goes away once striped levels are read strip by strip
+        // (TECH_DEBT §31).
+        std::shared_ptr<std::mutex> m_stripedDecodeMutex;
         // Shared by every scene of the file. Declared last on purpose, and it must
         // stay last: members die in reverse order, so this reference is dropped
         // before the directories a read's userData points into. Only the scene

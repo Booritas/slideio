@@ -615,6 +615,62 @@ TEST(GDALTiffPyramid, concurrentStripedScaledReadsMatchSerial)
     expectConcurrentReadsMatchSerial(scene, ReadPath::ScaledBlock);
 }
 
+// A striped level is decoded whole on every read, so concurrent reads of striped
+// levels would hold one whole level each in memory. They are serialised per file:
+// two striped pages (two scenes) of one file, 8 threads reading both, and at no
+// point is more than one whole-level decode in flight. The counter is maintained
+// inside the driver, so the assertion does not depend on timing; without the lock
+// 8 threads decoding a 2000x1500 level overlap on every run.
+TEST(GDALTiffPyramid, stripedDecodesDoNotOverlap)
+{
+    slideio::TempFile temp("tif");
+    const std::string path = temp.getPath().string();
+    const cv::Mat page0 = makeRgbImage(2000, 1500, 0);
+    const cv::Mat page1 = makeRgbImage(2000, 1500, 100);
+    writeTiff(path, [&](libtiff::TIFF* tiff) {
+        ASSERT_NO_FATAL_FAILURE(writeStripedDirectory(tiff, page0));
+        ASSERT_NO_FATAL_FAILURE(writeStripedDirectory(tiff, page1));
+    });
+    ASSERT_FALSE(::testing::Test::HasFatalFailure());
+
+    auto slide = openGdal(path);
+    ASSERT_EQ(2, slide->getNumScenes());
+    const std::vector<std::shared_ptr<slideio::CVScene>> scenes{slide->getScene(0), slide->getScene(1)};
+    const std::vector<cv::Mat> pages{page0, page1};
+
+    slideio::GDALTiffScene::resetStripedDecodeStats();
+    constexpr int kThreads = 8;
+    constexpr int kReads = 4;
+    std::atomic<int> mismatches{0};
+    std::atomic<int> failures{0};
+    auto reader = [&](int t) {
+        try {
+            const int index = t % 2;
+            for (int read = 0; read < kReads; ++read) {
+                const cv::Rect rect(100 * t + 10 * read, 50 * read, 300, 200);
+                cv::Mat block;
+                scenes[index]->readBlock(rect, block);
+                if (block.size() != rect.size() || cv::norm(pages[index](rect), block, cv::NORM_INF) != 0) {
+                    ++mismatches;
+                }
+            }
+        }
+        catch (...) {
+            ++failures;
+        }
+    };
+    std::vector<std::thread> threads;
+    for (int t = 0; t < kThreads; ++t) {
+        threads.emplace_back(reader, t);
+    }
+    for (auto& thread : threads) {
+        thread.join();
+    }
+    EXPECT_EQ(0, failures.load());
+    EXPECT_EQ(0, mismatches.load());
+    EXPECT_EQ(1, slideio::GDALTiffScene::maxStripedDecodesInFlight());
+}
+
 TEST(GDALTiffPyramid, concurrentFreeImageReadsMatchSerial)
 {
     slideio::TempFile temp("png");

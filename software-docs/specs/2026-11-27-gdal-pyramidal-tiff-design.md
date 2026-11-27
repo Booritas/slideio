@@ -165,7 +165,15 @@ one scene per top-level IFD (minus masks), one level each.
     SVS).
   - A striped level is decoded whole with `TiffTools::readStripedDir` through
     the borrowed handle, then cropped and resized as `readWholePageBlock` does
-    today.
+    today. *Amended by the PR review:* that decode, crop and resize run under a
+    per-file `std::mutex`, which `GDALSlide` creates next to the shared
+    `ContextPool` and passes to every `GDALTiffScene` as a `shared_ptr`. Without
+    it, concurrent reads could hold up to `ContextPool::defaultMax()` whole
+    decoded levels at once. The lock is taken before the borrow, so a read
+    waiting for it holds no handle. Tiled levels never take it, and
+    `supportsConcurrentReads()` stays `true`: the mutex bounds memory, it does
+    not guard shared state. It goes once striped levels are read strip by strip
+    (`TECH_DEBT.md` §31).
 - Level 0 of a single-level scene must give the same pixels as today for both
   the tiled and striped case.
 

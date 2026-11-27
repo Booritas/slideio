@@ -11,6 +11,7 @@
 
 #include <opencv2/imgproc.hpp>
 #include <algorithm>
+#include <atomic>
 
 using namespace slideio;
 
@@ -46,6 +47,36 @@ namespace
     {
         return *static_cast<const GDALTileComposerUserData*>(userData);
     }
+
+    // Test seam: how many whole-level decodes of striped levels are running now,
+    // and the most there have ever been at once. Two atomics on a path that
+    // already decodes a whole level, so they cost nothing measurable.
+    std::atomic<int> g_stripedDecodesInFlight{0};
+    std::atomic<int> g_maxStripedDecodesInFlight{0};
+
+    struct StripedDecodeCounter
+    {
+        StripedDecodeCounter()
+        {
+            const int now = ++g_stripedDecodesInFlight;
+            int seen = g_maxStripedDecodesInFlight.load();
+            while (now > seen && !g_maxStripedDecodesInFlight.compare_exchange_weak(seen, now)) {
+            }
+        }
+        ~StripedDecodeCounter() { --g_stripedDecodesInFlight; }
+        StripedDecodeCounter(const StripedDecodeCounter&) = delete;
+        StripedDecodeCounter& operator=(const StripedDecodeCounter&) = delete;
+    };
+}
+
+int GDALTiffScene::maxStripedDecodesInFlight()
+{
+    return g_maxStripedDecodesInFlight.load();
+}
+
+void GDALTiffScene::resetStripedDecodeStats()
+{
+    g_maxStripedDecodesInFlight = g_stripedDecodesInFlight.load();
 }
 
 // openTiffFile never returns null: it raises for a missing file and for one
@@ -56,10 +87,12 @@ GDALReadContext::GDALReadContext(const std::string& filePath)
 }
 
 GDALTiffScene::GDALTiffScene(const std::string& filePath, const std::string& driverId,
-                             std::vector<TiffDirectory> levels, std::shared_ptr<ContextPool> contextPool)
+                             std::vector<TiffDirectory> levels, std::shared_ptr<ContextPool> contextPool,
+                             std::shared_ptr<std::mutex> stripedDecodeMutex)
     : m_filePath(filePath),
       m_driverId(driverId),
       m_directories(std::move(levels)),
+      m_stripedDecodeMutex(std::move(stripedDecodeMutex)),
       m_contextPool(std::move(contextPool))
 {
     if (m_directories.empty()) {
@@ -67,6 +100,9 @@ GDALTiffScene::GDALTiffScene(const std::string& filePath, const std::string& dri
     }
     if (!m_contextPool) {
         RAISE_RUNTIME_ERROR << "GDALDriver: a tiff scene needs a context pool. File: " << filePath;
+    }
+    if (!m_stripedDecodeMutex) {
+        RAISE_RUNTIME_ERROR << "GDALDriver: a tiff scene needs a striped-decode mutex. File: " << filePath;
     }
     const TiffDirectory& base = m_directories.front();
     // The same string SmallTiffPage reported for this directory, so level 0 of a
@@ -177,18 +213,24 @@ void GDALTiffScene::readLevelRect(int level, const cv::Rect& levelRect, const cv
                                   const std::vector<int>& channelIndices, cv::OutputArray output)
 {
     const TiffDirectory& dir = m_directories[level];
-    // One borrow for the whole read: readTile below reads the handle out of this
-    // same context and never acquires one of its own.
-    auto borrow = m_contextPool->acquire();
-    GDALReadContext& context = borrow.as<GDALReadContext>();
     if (isTiledLevel(dir)) {
-        GDALTileComposerUserData userData{&dir, &context};
+        // One borrow for the whole read: readTile below reads the handle out of
+        // this same context and never acquires one of its own.
+        auto borrow = m_contextPool->acquire();
+        GDALTileComposerUserData userData{&dir, &borrow.as<GDALReadContext>()};
         TileComposer::composeRect(this, channelIndices, levelRect, blockSize, output, &userData);
         return;
     }
     // The whole level, then cropped and resized: what GDALScene::readWholePageBlock
     // did for a striped page through SmallTiffPage::readRaster. See TECH_DEBT on
-    // striped levels.
+    // striped levels. Each such read holds a whole decoded level, so they run one
+    // at a time per file, under the file's striped-decode mutex; tiled reads never
+    // take it. The lock comes before the borrow, so a read waiting its turn does
+    // not sit on a handle a tiled read could be using.
+    std::lock_guard<std::mutex> stripedLock(*m_stripedDecodeMutex);
+    const StripedDecodeCounter counter;
+    auto borrow = m_contextPool->acquire();
+    GDALReadContext& context = borrow.as<GDALReadContext>();
     cv::Mat raster;
     if (dir.tiled) {
         TiffTools::readTiledDir(context.keeper.getHandle(), dir, raster);
