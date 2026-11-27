@@ -17,8 +17,9 @@ marked **Breaking** below summarise them.
   [BREAKING_CHANGES.md](software-docs/BREAKING_CHANGES.md).
 - **GDAL**: concurrent reads. GDAL scenes, TIFF and FreeImage alike, report
   `supportsConcurrentReads()`, so two block reads of one scene no longer
-  serialise. The handles a TIFF reads through come from one pool per file,
-  bounded whatever the page count.
+  serialise -- except whole-level decodes of striped TIFF levels, which still
+  run one at a time per file to bound memory. The handles a TIFF reads through
+  come from one pool per file, bounded whatever the page count.
 
 ## [2.11.1] - 2026-11-22
 

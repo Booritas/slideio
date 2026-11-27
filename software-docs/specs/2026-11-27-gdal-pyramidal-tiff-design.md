@@ -92,9 +92,9 @@ Applied to the top-level IFDs in file order, by `GDALSlide` for a TIFF:
    - it has the same `channels`, `dataType` and `bitsPerSample` as the base;
    - it is strictly smaller than the base in both width and height;
    - it keeps the base's aspect ratio: its height is within
-     `max(1, ceil(baseHeight / baseWidth))` pixels of
+     `max(1, ceil(baseHeight / baseWidth))` pixels (real division, not integer) of
      `baseHeight * width / baseWidth` (rounded), and its width within
-     `max(1, ceil(baseWidth / baseHeight))` pixels of
+     `max(1, ceil(baseWidth / baseHeight))` pixels (real division) of
      `baseWidth * height / baseHeight` (rounded). Writers round each level's
      size, so the check cannot be exact, and one pixel of rounding in one
      dimension moves the prediction of the other by the base's ratio -- a fixed
