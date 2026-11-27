@@ -554,3 +554,129 @@ TEST(GDALDriver, sceneOutlivesItsSlide)
         EXPECT_EQ(0, cv::norm(expected, raster, cv::NORM_INF));
     }
 }
+
+namespace
+{
+    // A tiled, uncompressed RGB tiff whose size is not a multiple of the tile, so
+    // the right and bottom tiles are partial. Every pixel is a function of its
+    // position, so a tile placed in the wrong spot cannot go unnoticed.
+    void writeTiledRgbTiff(const std::string& path, int width, int height, int tileSize, cv::Mat& image)
+    {
+        image.create(height, width, CV_8UC3);
+        for (int y = 0; y < height; ++y) {
+            for (int x = 0; x < width; ++x) {
+                image.at<cv::Vec3b>(y, x) = cv::Vec3b(static_cast<uint8_t>(x),
+                                                      static_cast<uint8_t>(y),
+                                                      static_cast<uint8_t>((x / 7 + y / 5) * 13));
+            }
+        }
+        libtiff::TIFF* tiff = libtiff::TIFFOpen(path.c_str(), "w");
+        ASSERT_TRUE(tiff != nullptr);
+        libtiff::TIFFSetField(tiff, TIFFTAG_IMAGEWIDTH, width);
+        libtiff::TIFFSetField(tiff, TIFFTAG_IMAGELENGTH, height);
+        libtiff::TIFFSetField(tiff, TIFFTAG_SAMPLESPERPIXEL, 3);
+        libtiff::TIFFSetField(tiff, TIFFTAG_BITSPERSAMPLE, 8);
+        libtiff::TIFFSetField(tiff, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_RGB);
+        libtiff::TIFFSetField(tiff, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG);
+        libtiff::TIFFSetField(tiff, TIFFTAG_COMPRESSION, COMPRESSION_NONE);
+        libtiff::TIFFSetField(tiff, TIFFTAG_TILEWIDTH, tileSize);
+        libtiff::TIFFSetField(tiff, TIFFTAG_TILELENGTH, tileSize);
+        cv::Mat tile(tileSize, tileSize, CV_8UC3);
+        for (int y = 0; y < height; y += tileSize) {
+            for (int x = 0; x < width; x += tileSize) {
+                tile.setTo(cv::Scalar::all(0));
+                const cv::Rect part(x, y, std::min(tileSize, width - x), std::min(tileSize, height - y));
+                image(part).copyTo(tile(cv::Rect(0, 0, part.width, part.height)));
+                const auto tileIndex = libtiff::TIFFComputeTile(tiff, x, y, 0, 0);
+                const auto size = static_cast<libtiff::tmsize_t>(tile.total() * tile.elemSize());
+                ASSERT_EQ(size, libtiff::TIFFWriteEncodedTile(tiff, tileIndex, tile.data, size));
+            }
+        }
+        libtiff::TIFFClose(tiff);
+    }
+}
+
+// A tiled tiff is read tile by tile: the scene reports the file's own tile size,
+// so a caller can ask for one tile's worth of pixels without the driver decoding
+// the whole page to serve it. A 63803x44997 page used to come back as one
+// 63803x44997 "tile", which a viewer then held as one 8.6 GB block.
+TEST(GDALDriver, tiledTiffReportsItsTileSize)
+{
+    slideio::TempFile temp("tif");
+    const std::string path = temp.getPath().string();
+    cv::Mat image;
+    writeTiledRgbTiff(path, 1000, 700, 256, image);
+
+    slideio::GDALImageDriver driver;
+    std::shared_ptr<slideio::CVSlide> slide = driver.openFile(path);
+    ASSERT_TRUE(slide != nullptr);
+    std::shared_ptr<slideio::CVScene> scene = slide->getScene(0);
+    ASSERT_EQ(1, scene->getNumZoomLevels());
+    const slideio::LevelInfo* level = scene->getZoomLevelInfo(0);
+    ASSERT_TRUE(level != nullptr);
+    EXPECT_EQ(1000, level->getSize().width);
+    EXPECT_EQ(700, level->getSize().height);
+    EXPECT_EQ(256, level->getTileSize().width);
+    EXPECT_EQ(256, level->getTileSize().height);
+}
+
+// Reading tile by tile must return exactly the pixels of the page: regions inside
+// one tile, across tile seams, and over the partial edge tiles.
+TEST(GDALDriver, tiledTiffBlockReadsMatchThePage)
+{
+    slideio::TempFile temp("tif");
+    const std::string path = temp.getPath().string();
+    cv::Mat image;
+    writeTiledRgbTiff(path, 1000, 700, 256, image);
+
+    slideio::GDALImageDriver driver;
+    std::shared_ptr<slideio::CVScene> scene = driver.openFile(path)->getScene(0);
+    const std::vector<cv::Rect> rects = {
+        {10, 20, 100, 50},      // inside the first tile
+        {200, 230, 120, 90},    // across four tiles
+        {900, 600, 100, 100},   // the partial bottom-right tile
+        {0, 0, 1000, 700},      // the whole page
+    };
+    for (const cv::Rect& rect : rects) {
+        SCOPED_TRACE(::testing::Message() << rect);
+        cv::Mat block;
+        scene->readBlock(rect, block);
+        ASSERT_EQ(rect.size(), block.size());
+        ASSERT_EQ(CV_8UC3, block.type());
+        EXPECT_EQ(0, cv::norm(image(rect), block, cv::NORM_INF));
+    }
+    // A single channel, picked out of the interleaved tile.
+    cv::Mat green;
+    scene->readBlockChannels({200, 230, 120, 90}, {1}, green);
+    cv::Mat expectedGreen;
+    cv::extractChannel(image({200, 230, 120, 90}), expectedGreen, 1);
+    ASSERT_EQ(CV_8UC1, green.type());
+    EXPECT_EQ(0, cv::norm(expectedGreen, green, cv::NORM_INF));
+}
+
+// A downscaled read is composed from per-tile linear resizes, so it may differ from
+// one linear resize of the whole region -- which is what reading the whole page
+// returned -- by interpolation at the seams, never by more.
+TEST(GDALDriver, tiledTiffResampledReadMatchesThePage)
+{
+    slideio::TempFile temp("tif");
+    const std::string path = temp.getPath().string();
+    cv::Mat image;
+    writeTiledRgbTiff(path, 1000, 700, 256, image);
+
+    slideio::GDALImageDriver driver;
+    std::shared_ptr<slideio::CVScene> scene = driver.openFile(path)->getScene(0);
+    const cv::Rect rect(0, 0, 1000, 700);
+    const cv::Size size(250, 175);
+    cv::Mat block;
+    scene->readResampledBlock(rect, size, block);
+    ASSERT_EQ(size, block.size());
+    cv::Mat expected;
+    cv::resize(image(rect), expected, size, 0, 0, cv::INTER_LINEAR);
+    cv::Mat diff;
+    cv::absdiff(expected, block, diff);
+    cv::Scalar meanDiff = cv::mean(diff);
+    for (int channel = 0; channel < 3; ++channel) {
+        EXPECT_LT(meanDiff[channel], 2.0) << "channel " << channel;
+    }
+}
