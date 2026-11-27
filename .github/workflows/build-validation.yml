@@ -195,8 +195,15 @@ jobs:
       - name: Build
         run: python install.py -a build-only -c debug
 
-      - name: FileReader and ContextPool under ThreadSanitizer
-        run: ./build/debug/bin/slideio_tests --gtest_filter="FileReader.*:ContextPool.*"
+      # GDALTiffPyramid.* calls cv::resize, whose thread pool TSan reports races
+      # inside (TECH_DEBT.md §29) -- third-party code, not slideio's. One OpenCV
+      # thread makes parallel_for_ run serially, so the pool never starts and
+      # TSan still watches slideio's own concurrency: the context pool, the
+      # striped-decode lock, the parallel reads.
+      - name: FileReader, ContextPool and GDAL pyramid tests under ThreadSanitizer
+        env:
+          OPENCV_FOR_THREADS_NUM: "1"
+        run: ./build/debug/bin/slideio_tests --gtest_filter="FileReader.*:ContextPool.*:GDALTiffPyramid.*"
 
       # The MRXS suites that read only the fixtures committed in src/tests/mrxs/data;
       # MRXSCorpus* suites need the slide corpus and are excluded.
@@ -299,7 +306,7 @@ jobs:
               python3 install.py -a configure-only -c release
               python3 install.py -a build-only -c release
               # The suites that need no slide corpus, as elsewhere in this file.
-              ./build/release/bin/slideio_tests --gtest_filter="FileReader.*:ContextPool.*"
+              ./build/release/bin/slideio_tests --gtest_filter="FileReader.*:ContextPool.*:GDALTiffPyramid.*"
               ./build/release/bin/slideio_mrxs_tests --gtest_filter="-MRXSCorpus*"
               ./build/release/bin/slideio_bif_tests --gtest_filter="-BIFCorpus*"
               ./build/release/bin/slideio_lif_tests --gtest_filter="-LIFCorpus*"

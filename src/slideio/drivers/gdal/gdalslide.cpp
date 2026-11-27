@@ -4,29 +4,59 @@
 #include "slideio/core/exceptions.hpp"
 #include "slideio/drivers/gdal/gdalslide.hpp"
 #include "slideio/drivers/gdal/gdalscene.hpp"
+#include "slideio/drivers/gdal/gdaltiffgrouping.hpp"
+#include "slideio/drivers/gdal/gdaltiffscene.hpp"
 #include <nlohmann/json.hpp>
 
 #include "slideio/imagetools/fiwrapper.hpp"
+#include "slideio/imagetools/smalltiffwrapper.hpp"
 
 using json = nlohmann::json;
 
 slideio::GDALSlide::GDALSlide(const std::string& filePath, const std::string& driverId) : m_filePath(filePath)
 {
 	m_driverId = driverId;
-	m_image = ImageTools::openSmallImage(filePath);
-	if (!m_image->isValid()) {
+	std::shared_ptr<SmallImage> image = ImageTools::openSmallImage(filePath);
+	if (!image->isValid()) {
 		RAISE_RUNTIME_ERROR << "GDAL driver: cannot open file " << filePath;
 	}
-	const int numPages = m_image->getNumPages();
-	// Every page reads through the image's one decoder handle, so every scene of
-	// the file serialises its reads on this one mutex rather than on its own.
-	const auto readMutex = std::make_shared<std::mutex>();
-	for (int pageIndex = 0; pageIndex < numPages; ++pageIndex) {
-		std::shared_ptr<slideio::CVScene> scenePtr(
-			new GDALScene(m_image, pageIndex, filePath, getDriverId(), readMutex));
-		m_scenes.push_back(scenePtr);
+	if (auto* tiff = dynamic_cast<SmallTiffWrapper*>(image.get())) {
+		// A tiff: the scan is all the scenes need. They read through handles of
+		// their own, so the wrapper's handle is closed before the constructor ends.
+		std::vector<TiffDirectory> directories;
+		const int numPages = tiff->getNumPages();
+		directories.reserve(numPages);
+		for (int pageIndex = 0; pageIndex < numPages; ++pageIndex) {
+			directories.push_back(tiff->getDirectory(pageIndex));
+		}
+		image.reset();
+		// One pool for the whole file, shared by all its scenes, so the handles the
+		// file holds are bounded by the pool rather than growing with the page
+		// count. The factory captures the path by value, not a scene or the slide,
+		// as SVSTiledScene's does: the pool outlives whichever of them goes first.
+		auto contextPool = std::make_shared<ContextPool>(
+			[filePath]() { return std::make_unique<GDALReadContext>(filePath); });
+		// Also one per file: a striped level is decoded whole on every read, so
+		// those decodes take turns across the file to keep at most one whole level
+		// in memory. Tiled reads never take it.
+		auto stripedDecodeMutex = std::make_shared<std::mutex>();
+		for (auto& group : groupTiffDirectories(directories)) {
+			m_scenes.push_back(std::make_shared<GDALTiffScene>(filePath, getDriverId(), std::move(group.levels),
+				contextPool, stripedDecodeMutex));
+		}
+		if (m_scenes.empty()) {
+			RAISE_RUNTIME_ERROR << "GDAL driver: no image found in tiff file " << filePath;
+		}
 	}
-	if (numPages == 1) {
+	else {
+		// Every scene keeps the image alive; FreeImage locked each page's bitmap
+		// when the scene was built, and reads only copy out of it.
+		const int numPages = image->getNumPages();
+		for (int pageIndex = 0; pageIndex < numPages; ++pageIndex) {
+			m_scenes.push_back(std::make_shared<GDALScene>(image, pageIndex, filePath, getDriverId()));
+		}
+	}
+	if (getNumScenes() == 1) {
 		m_rawMetadata = getScene(0)->getRawMetadata();
 		m_metadataFormat = MetadataFormat::JSON;
 	}

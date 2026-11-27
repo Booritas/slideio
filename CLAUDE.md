@@ -177,6 +177,11 @@ decoder difference they allow for, are produced by hand with the tools listed in
 The BIF driver has no committed fixtures: every `slideio_bif_tests` suite that needs the
 corpus is named `BIFCorpus*`, and CI runs it with `--gtest_filter=-BIFCorpus*`.
 
+`GDALTiffPyramid.*` is in the corpus-free `slideio_tests` filter that CI runs
+(`build-validation.yml`, `release.yml`), so every test in that suite must write its
+own fixtures -- they are generated at run time by `src/tests/main/gdaltiffwriter.cpp`
+-- and a corpus-dependent test given that suite name breaks CI.
+
 The LIF driver is the MRXS arrangement again: its synthetic files are committed in
 `src/tests/lif/data/` (written by `auxfiles/lif-fixtures/generate.py`), `.gitattributes`
 marks that directory `-text` because the fixtures are exact bytes, every
@@ -229,7 +234,7 @@ Each driver in `src/slideio/drivers/<format>/` is an independent shared library 
   file state and are therefore fine: `FileReader` keeps one event object on the
   Windows read path, pole's `PositionalFile` keeps a manual-reset event of its
   own mirroring it, and `tempfile.cpp` keeps two for random names.) Concurrent
-  today: SVS, PHTIFF, AFI, PKE, SCN, NDPI, CZI, VSI, OME-TIFF, ZVI, MRXS, BIF, LIF, ND2. A
+  today: SVS, PHTIFF, AFI, PKE, SCN, NDPI, CZI, VSI, OME-TIFF, ZVI, MRXS, BIF, LIF, ND2, GDAL. A
   `TransformerScene` forwards its origin scene's `supportsConcurrentReads()`
   rather than hard-coding `false`, so wrapping one of these in a transform no
   longer silently downgrades it to serialised reads. A scene that wraps another

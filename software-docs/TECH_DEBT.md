@@ -32,7 +32,7 @@ removed without renumbering the rest and its number is retired in
 13. [`slideio-core`'s export-control define breaks the project naming convention](#13-slideio-cores-export-control-define-breaks-the-project-naming-convention)
 14. *retired -- fixed, see [Resolved and removed](#resolved-and-removed)*
 15. [DCM still serialises every block read](#15-dcm-still-serialises-every-block-read)
-16. [GDAL still serialises every block read](#16-gdal-still-serialises-every-block-read)
+16. *retired -- fixed, see [Resolved and removed](#resolved-and-removed)*
 17. *retired -- fixed, see [Resolved and removed](#resolved-and-removed)*
 18. [CZI rejects a corrupt sub-block position on the main path and tolerates it on the attachment path](#18-czi-rejects-a-corrupt-sub-block-position-on-the-main-path-and-tolerates-it-on-the-attachment-path)
 19. [pole read-path defects left in place](#19-pole-read-path-defects-left-in-place)
@@ -109,17 +109,17 @@ none of them is in the design spec:
 **File:** `src/slideio/core/cvscene.cpp`
 **Related:** issue #69, the 2026-08-16 explicit-level-reading plan,
 `software-docs/specs/2026-09-07-parallel-read-block-design.md`
-**Status:** Partially fixed, and what is left of it is DCM and GDAL. The
+**Status:** Partially fixed, and what is left of it is DCM. The
 `assemble4DBlock` asymmetry this entry also recorded is resolved outright: both
 branches now take `lockIfSerialised()` (`cvscene.cpp:150`, `:156`), with the
 lock scoped to the `readPlane` call only in the multi-plane branch. The
 serialisation itself is removed for the scenes of SVS, PHTIFF, AFI, PKE, SCN,
-NDPI, CZI, VSI, OME-TIFF and ZVI — the last two per
+NDPI, CZI, VSI, OME-TIFF, ZVI and GDAL — OME-TIFF and ZVI per
 `software-docs/specs/2026-09-08-ometiff-concurrent-reads-design.md` and
-`software-docs/specs/2026-09-09-zvi-concurrent-reads-design.md`. Kept open
-because DCM and GDAL still serialise every block read — see
-[§15](#15-dcm-still-serialises-every-block-read) and
-[§16](#16-gdal-still-serialises-every-block-read).
+`software-docs/specs/2026-09-09-zvi-concurrent-reads-design.md`, GDAL per
+`software-docs/specs/2026-11-27-gdal-pyramidal-tiff-design.md`. Kept open
+because DCM still serialises every block read — see
+[§15](#15-dcm-still-serialises-every-block-read).
 
 `CVScene::readResampledBlockChannels` and `readResampledLevelBlockChannels`
 used to each take `m_readBlockMutex` for the whole read, so no two block
@@ -384,41 +384,6 @@ encapsulated-pixel-data offset once at `init()` and read via `FileReader`
 thereafter, bypassing DCMTK on the read path entirely. That is faster
 single-threaded too, but it means owning DICOM encapsulated-pixel-data basic
 offset tables.
-
----
-
-## 16. GDAL still serialises every block read
-
-**Files:** `src/slideio/drivers/gdal/`
-**Related:** [§4](#4-cvscene-still-serialises-every-block-read-for-two-drivers);
-`software-docs/specs/2026-09-07-parallel-read-block-design.md` §3.2
-**Status:** Open, deliberately deferred.
-
-`GDALScene` returns `false` from `supportsConcurrentReads()`, so the base
-class serialises its reads as it always did. It was deferred because its
-mutable read-path state lives inside FreeImage rather than in slideio, and it
-is not in the tiling or converter path.
-
-**That driver contains no GDAL.** `GDALScene::m_imagePage` is a
-`SmallImagePage*` (`gdalscene.hpp:42`), obtained from `GDALSlide`'s
-`m_image->readPage(...)` (`gdalslide.cpp:22`) where `m_image` is a
-`SmallImage`. The only implementation of `SmallImagePage` in the tree is
-`FIWrapper::Page` (`fiwrapper.hpp:25`), and `fiwrapper.hpp` includes
-`<FreeImage.h>`. A tree-wide search for `GDALOpen`, `gdal_priv` and
-`GDALAllRegister` returns nothing.
-
-The work is now bounded: add a `ReadContext` subclass holding whatever
-`FIWrapper`/`FIWrapper::Page` state the read path shares. The real question is
-FreeImage's thread-safety — its plugin registry and `FreeImage_Initialise` are
-process-global — plus whatever mutable state `FIWrapper` and `FIWrapper::Page`
-hold, so the read granularity wants revisiting at the same time as the pool's
-cap is chosen.
-
-The alternative, if this ever matters for throughput: resolve tile
-`(offset, length)` once at `init()` and read via `FileReader` thereafter,
-bypassing FreeImage on the read path entirely. That is faster single-threaded
-too, but it means owning whatever container format `FIWrapper` was
-abstracting.
 
 ---
 
@@ -1138,6 +1103,18 @@ no slideio in the picture, which is its own piece of work. Until someone does
 that, the honest statement is: reported, unexplained, and not known to affect
 correctness — no test has ever failed because of it.
 
+**CI now sees it, and works around it in one step.** On 2026-11-27 the
+`tsan-linux` job's OpenCV was instrumented after all, and PR #104 added
+`GDALTiffPyramid.*` to its `slideio_tests` step. That suite calls `cv::resize`
+both in its fixture builder and on the GDAL read path, and TSan reported three
+races at `cv::ThreadPool::run` (`parallel_impl.cpp:598`) — the same pool, now
+reached from a single thread as well as from several. Nothing in slideio was
+named. That step runs with `OPENCV_FOR_THREADS_NUM=1`, which makes
+`parallel_for_` run serially so the pool never starts, while TSan keeps watching
+slideio's own synchronisation. This hides the class rather than explains it:
+the transformer suite, where the class was first found, is not run by that job
+at all, and the reproducer above is still the way to close this entry.
+
 ---
 
 ## 30. BIF: no banded rendering
@@ -1163,6 +1140,38 @@ resize it into its slice of the output, and move on, so memory is bounded by the
 band size. The band edges must fall on whole output rows, and a test must show the
 banded result equal to the unbanded one, since `INTER_AREA` resampling reads
 across rows.
+
+---
+
+## 31. GDAL: a striped TIFF level is decoded whole for every block
+
+**Files:** `src/slideio/drivers/gdal/gdaltiffscene.cpp` (`GDALTiffScene::readLevelRect`)
+**Related:** `software-docs/specs/2026-11-27-gdal-pyramidal-tiff-design.md`
+**Status:** Open, by design for the first version.
+
+A tiled level of a GDAL TIFF scene is read tile by tile, but a striped one --
+and every TIFF in the gdal corpus is striped -- is decoded in full through
+`TiffTools::readStripedDir` on every block read, then cropped and resized. That
+is what the driver did before pyramids, so nothing regressed, but a small block
+of a large striped page costs the whole page, every time. A pyramid helps only
+when a reduced level serves the zoom; a full-resolution block of a striped base
+still decodes the base.
+
+Because each such read holds a whole decoded level, concurrent reads of striped
+levels could hold up to `ContextPool::defaultMax()` of them in memory at once.
+Until strip-wise reading lands, those decodes are **serialised per file**: the
+whole-level decode, crop and resize run under a `std::mutex` that `GDALSlide`
+creates next to the file's shared `ContextPool` and hands to every
+`GDALTiffScene`. Tiled levels never take it, and the scene still reports
+`supportsConcurrentReads() == true` -- the mutex bounds memory, it does not
+protect shared state. `GDALTiffPyramid.stripedDecodesDoNotOverlap` pins it. The
+mutex goes once strip-wise reading bounds each read to the strips it crosses.
+
+The fix is strip-by-strip reading: decode only the strips the block's rows
+cross (`TIFFReadEncodedStrip` per strip, as `readRegularStripedDir` already does
+for all of them), with a planar and a JPEG 2000 variant to match the existing
+whole-directory readers. A test must show the strip-wise result equal to the
+whole-page one for interleaved, planar and subsampled directories.
 
 ---
 
@@ -1201,6 +1210,7 @@ retired here rather than reused.
 | 3 | `SCNSlide` passed a `TIFF*` where `SVSSmallScene` expects a `bool` | Fixed the way the entry required: the argument is dropped, not plumbed through, so the supplemental-image scene still opens its own per-thread handles and SCN's concurrent-read contract is untouched. `auxiliary` takes its default `true`, the value the pointer used to convert to, so behaviour is unchanged. `SVSSmallScene` also declares a deleted constructor taking `const volatile void*` in that position (`svssmallscene.hpp`), which out-ranks the pointer-to-`bool` conversion, so passing a handle there is now a compile error rather than a silent `true`. | Watched the deleted overload reject the old `scnslide.cpp` call before dropping the argument. `SceneLifetime.scn` and the SCN driver tests read the `Macro` supplemental image. |
 | 11 | `TransformerScene` has no level table, so transformed scenes cannot be read by level | `TransformerScene` copies the origin's `m_levels` in its constructor and overrides `readResampledLevelBlockChannelsEx` to read the origin at the level it was asked for, inflating in level coordinates. The entry's open design question is answered in `transformerscene.hpp`: a transformation's parameters are in the pixels of the level being read, which is what `computeInflatedRectParams` already does for a scaled read. | `TransformerSceneLevels.*` in `slideio_transformer_tests` — four tests, all watched failing first. `aLevelReadAgreesWithTheEquivalentScaledRead` is the one that pins the semantics: a full read of level 1 is bit-identical to a half-scale read of the scene. |
 | 14 | ZVI serialised every block read | `ZVIScene::supportsConcurrentReads()` returns `true` (`zviscene.hpp:62`), on one shared `ole::compound_document` made safe by pole's positional read path. | `software-docs/specs/2026-09-09-zvi-concurrent-reads-design.md` §3.2, §4, §5.3, §5.4. Its follow-ups are still open as [§19](#19-pole-read-path-defects-left-in-place), [§20](#20-the-zvi-concurrent-read-work-what-no-test-covers) and [§21](#21-pole-read-path-throughput-two-remaining-items). |
+| 16 | GDAL serialised every block read | `GDALTiffScene` and `GDALScene` both return `true` from `supportsConcurrentReads()`. TIFF reads borrow a handle from one `ContextPool` per file, shared by the file's scenes; FreeImage pages are locked at construction and read as plain copies. The one serialisation left is deliberate: whole-level decodes of striped levels take a per-file mutex to bound memory until strip-wise reading lands ([§31](#31-gdal-a-striped-tiff-level-is-decoded-whole-for-every-block)). | `software-docs/specs/2026-11-27-gdal-pyramidal-tiff-design.md`; `ConcurrencyContract.gdalReadsConcurrently`, `GDALTiffPyramid.concurrent*`, `GDALTiffPyramid.stripedDecodesDoNotOverlap`. |
 | 17 | OME-TIFF serialised every block read | `OTScene::supportsConcurrentReads()` returns `true` (`otscene.hpp:88`); `TIFFFiles` moved off `OTScene` into a per-thread `OTReadContext` held by a `ContextPool`. | `software-docs/specs/2026-09-08-ometiff-concurrent-reads-design.md`; the contract assertion is `OTImageDriverTests.reportsConcurrentReadSupport`. |
 | 24 | GDAL and CZI scenes hold raw pointers into slide-owned state | The entry's second fix, applied to three drivers rather than two: `GDALScene` shares ownership of the `SmallImage` that owns its page (`fddde520`); `NDPIScene` shares the slide's `NDPIFile`, which the entry did not list and which threw "Invalid directory index" after the release; `CZIScene` copies resolution, magnification and the z and t resolutions during `init()` and clears `m_slide` there, and `CZIThumbnail` reads through the slide's shared `FileReader` instead of the slide, which owns it (`83e0d63e`). With every scene owning what it reads, the `scene.hpp` contract -- do not destroy a scene or its slide while a read is in flight -- is the real requirement again and was left as written. The entry's third fix, `slideio::Scene` retaining its `Slide` as `PyScene` does, was not taken, so a new driver can reintroduce the bug; the lifetime test is what would catch it. | `SceneLifetime.*` in `slideio_tests` opens one file per driver -- all twelve -- and compares what every scene and auxiliary image reports and reads before and after the slide is released. It failed for NDPI and crashed for CZI before the fix; GDAL's own case is `GDALDriver.sceneOutlivesItsSlide`, watched crashing first. |
 | 25 | A transformed scene bypasses its origin's read lock | `CVScene::lockIfSerialised()` now takes the mutex named by the new virtual `readSerialisationMutex()`, and `TransformerScene` overrides it to return its origin's (`transformerscene.hpp`), so a wrap chain contends on one lock instead of one mutex per scene. | The two exposures are `TransformedSceneReadLock.twoTransformsOverOneOriginDoNotReadItConcurrently` and `.aDirectReadOfTheOriginExcludesATransformedRead` in `slideio_transformer_tests`; both were watched failing on the unfixed code. `.aConcurrentOriginIsStillReadConcurrentlyThroughATransform` guards `TransformerScene::supportsConcurrentReads()`'s forwarding to the origin against a fix that re-serialises what it made concurrent. |

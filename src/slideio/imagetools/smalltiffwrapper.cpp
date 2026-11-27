@@ -66,7 +66,10 @@ std::vector<uint8_t> SmallTiffWrapper::SmallTiffPage::getICCProfile() const {
 }
 
 void SmallTiffWrapper::SmallTiffPage::extractMetadata() {
-	const TiffDirectory& dir = m_parent->getDirectory(m_pageIndex);
+	m_metadata = SmallTiffWrapper::directoryMetadata(m_parent->getDirectory(m_pageIndex));
+}
+
+std::string SmallTiffWrapper::directoryMetadata(const TiffDirectory& dir) {
 	json mtdObj = json::object();
 	mtdObj["width"] = dir.width;
 	mtdObj["height"] = dir.height;
@@ -89,7 +92,7 @@ void SmallTiffWrapper::SmallTiffPage::extractMetadata() {
 	if (!dir.software.empty()) {
 		mtdObj["software"] = dir.software;
 	}
-	m_metadata = mtdObj.dump();
+	return mtdObj.dump();
 }
 
 SmallTiffWrapper::SmallTiffWrapper(const std::string& filePath) {

@@ -7,6 +7,54 @@ by branch.
 
 ---
 
+## feature/gdal-pyramidal-tiff
+
+### A pyramidal TIFF opens in the GDAL driver as fewer scenes
+
+**Module:** `slideio-gdal`
+**Files:** `src/slideio/drivers/gdal/gdalslide.cpp`, `gdaltiffscene.cpp`,
+`gdaltiffgrouping.cpp`
+
+A TIFF the GDAL driver opens used to yield one scene per top-level directory,
+each with a single zoom level, and its SubIFDs were never seen. Its directories
+are now grouped: a full-resolution page becomes one scene, and its SubIFDs and
+the reduced-resolution pages (`SubfileType` bit 0) that follow it become that
+scene's zoom levels when they match its channels, data type and aspect ratio.
+A file with SubIFDs or reduced-resolution pages -- a COG, or a pyramid written by
+libvips or bfconvert -- therefore reports fewer scenes, and scene indices past
+the first pyramid shift. Transparency-mask pages (`SubfileType` bit 2) are no
+longer scenes at all, unless the file holds nothing but masks. A TIFF with
+neither SubIFDs, reduced pages nor masks opens exactly as before. The grouping
+rules are in `software-docs/specs/2026-11-27-gdal-pyramidal-tiff-design.md`.
+
+### `GDALSlide::getRawMetadata` returns the scene's metadata for a file that collapsed to one scene
+
+**Module:** `slideio-gdal`
+**Files:** `src/slideio/drivers/gdal/gdalslide.cpp`
+
+A slide with exactly one scene reports that scene's metadata as its own, in JSON;
+a slide with more reports none (`MetadataFormat::None`). That rule is unchanged,
+but the grouping above changes which side of it a file lands on: a TIFF of two or
+more pages that now opens as a single pyramid scene used to return an empty
+string from `GDALSlide::getRawMetadata`, and now returns the base directory's
+metadata, with `getMetadataFormat()` reporting `JSON` instead of `None`.
+
+### A GDAL-opened TIFF is no longer held open between `openSlide` and the first read
+
+**Module:** `slideio-gdal`
+**Files:** `src/slideio/drivers/gdal/gdalslide.cpp`, `gdaltiffscene.cpp`
+
+The slide used to keep the file's handle open from `openSlide` until the slide
+was destroyed. It now scans the file, closes it, and opens handles only when a
+read needs one, from a pool shared by the file's scenes that keeps them until the
+last scene is gone. Two consequences: on Linux, once the file has been unlinked,
+a read that has to open a new handle -- the first read, or one that grows the
+pool under concurrency -- fails, where it used to succeed through the handle
+opened at `openSlide`; on Windows, the file can be deleted or replaced while the slide is
+open and before its first read, and that read then sees the new file.
+
+---
+
 ## fix/issue-90-mixed-channel-types
 
 ### A block read of channels of mixed data types raises `slideio::RuntimeError`

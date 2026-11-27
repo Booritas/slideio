@@ -75,10 +75,14 @@ TEST(ConcurrencyContract, dcmIsStillSerialised) {
     expectSerialised(filePath, driver);
 }
 
-TEST(ConcurrencyContract, gdalIsStillSerialised) {
+TEST(ConcurrencyContract, gdalReadsConcurrently) {
     const std::string filePath = TestTools::getTestImagePath(
         "gdal", "Airbus_Pleiades_50cm_8bit_RGB_Yogyakarta.jpg");
     SLIDEIO_SKIP_IF_IMAGE_MISSING(filePath);
     slideio::GDALImageDriver driver;
-    expectSerialised(filePath, driver);
+    auto slide = driver.openFile(filePath);
+    ASSERT_TRUE(slide);
+    auto scene = slide->getScene(0);
+    ASSERT_TRUE(scene);
+    EXPECT_TRUE(scene->supportsConcurrentReads());
 }

@@ -15,8 +15,6 @@
 
 namespace slideio
 {
-    class SmallImage;
-
     class SLIDEIO_GDAL_EXPORTS GDALSlide : public slideio::CVSlide
     {
         friend class GDALImageDriver;
@@ -32,7 +30,6 @@ namespace slideio
     private:
         std::vector<std::shared_ptr<CVScene>> m_scenes;
         std::string m_filePath;
-		std::shared_ptr<SmallImage> m_image;
     };
 
 }
