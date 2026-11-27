@@ -90,15 +90,15 @@ cv::Mat gdaltest::makeGrayImage16(int width, int height, int seed)
 void gdaltest::writeTiledDirectory(libtiff::TIFF* tiff, const cv::Mat& image, int tileSize, bool planar,
                                    uint8_t padValue, uint32_t subFileType, int numSubIfds)
 {
-    setCommonFields(tiff, image, planar, subFileType, numSubIfds);
-    writeTiles(tiff, image, tileSize, planar, padValue);
+    ASSERT_NO_FATAL_FAILURE(setCommonFields(tiff, image, planar, subFileType, numSubIfds));
+    ASSERT_NO_FATAL_FAILURE(writeTiles(tiff, image, tileSize, planar, padValue));
     ASSERT_EQ(1, libtiff::TIFFWriteDirectory(tiff));
 }
 
 void gdaltest::writeStripedDirectory(libtiff::TIFF* tiff, const cv::Mat& image, uint32_t subFileType,
                                      int numSubIfds)
 {
-    setCommonFields(tiff, image, false, subFileType, numSubIfds);
+    ASSERT_NO_FATAL_FAILURE(setCommonFields(tiff, image, false, subFileType, numSubIfds));
     libtiff::TIFFSetField(tiff, TIFFTAG_ROWSPERSTRIP, 16);
     for (int y = 0; y < image.rows; ++y) {
         cv::Mat row = image.row(y).clone();
@@ -118,7 +118,7 @@ void gdaltest::writeTiledRgbDirectory(libtiff::TIFF* tiff, const cv::Mat& image,
     libtiff::TIFFSetField(tiff, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_RGB);
     libtiff::TIFFSetField(tiff, TIFFTAG_PLANARCONFIG, planar ? PLANARCONFIG_SEPARATE : PLANARCONFIG_CONTIG);
     libtiff::TIFFSetField(tiff, TIFFTAG_COMPRESSION, COMPRESSION_NONE);
-    writeTiles(tiff, image, tileSize, planar, padValue);
+    ASSERT_NO_FATAL_FAILURE(writeTiles(tiff, image, tileSize, planar, padValue));
 }
 
 void gdaltest::writeTiledRgbTiff(const std::string& path, int width, int height, int tileSize, cv::Mat& image,
@@ -127,6 +127,7 @@ void gdaltest::writeTiledRgbTiff(const std::string& path, int width, int height,
     image = makeRgbImage(width, height);
     libtiff::TIFF* tiff = libtiff::TIFFOpen(path.c_str(), "w");
     ASSERT_TRUE(tiff != nullptr);
+    // Not wrapped: the handle is closed either way, and the caller sees the failure.
     writeTiledRgbDirectory(tiff, image, tileSize, planar, padValue);
     libtiff::TIFFClose(tiff);
 }

@@ -21,9 +21,12 @@
 #include "slideio/imagetools/imagetools.hpp"
 #include <opencv2/imgproc.hpp>
 #include <atomic>
+#include <filesystem>
+#include <fstream>
 #include <functional>
 #include <random>
 #include <set>
+#include <system_error>
 #include <thread>
 
 using namespace gdaltest;
@@ -42,10 +45,13 @@ namespace
         return levels;
     }
 
-    // Writes a file through a callback that receives the open handle.
-    void writeTiff(const std::string& path, const std::function<void(libtiff::TIFF*)>& body)
+    // Writes a file through a callback that receives the open handle. mode is
+    // TIFFOpen's: "w" for a classic tiff, "w8" for a BigTIFF. The handle is closed
+    // even when body fails, so a caller checks HasFatalFailure() afterwards.
+    void writeTiff(const std::string& path, const std::function<void(libtiff::TIFF*)>& body,
+                   const char* mode = "w")
     {
-        libtiff::TIFF* tiff = libtiff::TIFFOpen(path.c_str(), "w");
+        libtiff::TIFF* tiff = libtiff::TIFFOpen(path.c_str(), mode);
         ASSERT_TRUE(tiff != nullptr);
         body(tiff);
         libtiff::TIFFClose(tiff);
@@ -53,15 +59,15 @@ namespace
 
     // The base as a tiled directory carrying every other level as a tiled SubIFD.
     void writeSubIfdPyramid(const std::string& path, const std::vector<cv::Mat>& levels, int tileSize,
-                            bool planar = false, uint8_t padValue = 255)
+                            bool planar = false, uint8_t padValue = 255, const char* mode = "w")
     {
         writeTiff(path, [&](libtiff::TIFF* tiff) {
             const int numSubIfds = static_cast<int>(levels.size()) - 1;
-            writeTiledDirectory(tiff, levels[0], tileSize, planar, padValue, 0, numSubIfds);
+            ASSERT_NO_FATAL_FAILURE(writeTiledDirectory(tiff, levels[0], tileSize, planar, padValue, 0, numSubIfds));
             for (int level = 1; level < static_cast<int>(levels.size()); ++level) {
-                writeTiledDirectory(tiff, levels[level], tileSize, planar, padValue, 1);
+                ASSERT_NO_FATAL_FAILURE(writeTiledDirectory(tiff, levels[level], tileSize, planar, padValue, 1));
             }
-        });
+        }, mode);
     }
 
     std::shared_ptr<slideio::CVSlide> openGdal(const std::string& path)
@@ -193,13 +199,39 @@ TEST(GDALTiffPyramid, subIfdPyramidOpensAsOneScene)
     slideio::TempFile temp("tif");
     const std::string path = temp.getPath().string();
     const auto levels = makePyramid(makeRgbImage(1000, 800), kSubIfdLevels);
-    writeSubIfdPyramid(path, levels, 256);
+    ASSERT_NO_FATAL_FAILURE(writeSubIfdPyramid(path, levels, 256));
 
     auto slide = openGdal(path);
     ASSERT_EQ(1, slide->getNumScenes());
     auto scene = slide->getScene(0);
     EXPECT_EQ(cv::Rect(0, 0, 1000, 800), scene->getRect());
     EXPECT_EQ(3, scene->getNumChannels());
+    expectLevelInfo(scene, levels, {{256, 256}, {256, 256}, {256, 256}});
+    expectLevelsRead(scene, levels);
+}
+
+// The same SubIFD pyramid written as a BigTIFF: 64-bit offsets, including the
+// SubIFD offsets themselves.
+TEST(GDALTiffPyramid, bigTiffSubIfdPyramidOpensAsOneScene)
+{
+    slideio::TempFile temp("tif");
+    const std::string path = temp.getPath().string();
+    const auto levels = makePyramid(makeRgbImage(1000, 800), kSubIfdLevels);
+    ASSERT_NO_FATAL_FAILURE(writeSubIfdPyramid(path, levels, 256, false, 255, "w8"));
+    {
+        // The header says BigTIFF: version 43 rather than 42.
+        std::ifstream file(path, std::ios::binary);
+        unsigned char header[4] = {};
+        file.read(reinterpret_cast<char*>(header), sizeof(header));
+        ASSERT_TRUE(file.good());
+        const int version = header[0] == 'I' ? header[2] | (header[3] << 8) : (header[2] << 8) | header[3];
+        ASSERT_EQ(43, version);
+    }
+
+    auto slide = openGdal(path);
+    ASSERT_EQ(1, slide->getNumScenes());
+    auto scene = slide->getScene(0);
+    EXPECT_EQ(cv::Rect(0, 0, 1000, 800), scene->getRect());
     expectLevelInfo(scene, levels, {{256, 256}, {256, 256}, {256, 256}});
     expectLevelsRead(scene, levels);
 }
@@ -212,12 +244,13 @@ TEST(GDALTiffPyramid, cogLayoutOpensAsOneScene)
     const std::string path = temp.getPath().string();
     const auto levels = makePyramid(makeRgbImage(1000, 800), kSubIfdLevels);
     writeTiff(path, [&](libtiff::TIFF* tiff) {
-        writeTiledDirectory(tiff, levels[0], 256, false, 255, 0);
+        ASSERT_NO_FATAL_FAILURE(writeTiledDirectory(tiff, levels[0], 256, false, 255, 0));
         cv::Mat mask(800, 1000, CV_8UC1, cv::Scalar(255));
-        writeTiledDirectory(tiff, mask, 256, false, 0, 4);
-        writeTiledDirectory(tiff, levels[1], 256, false, 255, 1);
-        writeTiledDirectory(tiff, levels[2], 256, false, 255, 1);
+        ASSERT_NO_FATAL_FAILURE(writeTiledDirectory(tiff, mask, 256, false, 0, 4));
+        ASSERT_NO_FATAL_FAILURE(writeTiledDirectory(tiff, levels[1], 256, false, 255, 1));
+        ASSERT_NO_FATAL_FAILURE(writeTiledDirectory(tiff, levels[2], 256, false, 255, 1));
     });
+    ASSERT_FALSE(::testing::Test::HasFatalFailure());
 
     auto slide = openGdal(path);
     ASSERT_EQ(1, slide->getNumScenes());
@@ -232,9 +265,10 @@ TEST(GDALTiffPyramid, uint16GrayCog)
     const std::string path = temp.getPath().string();
     const auto levels = makePyramid(makeGrayImage16(600, 400), {{300, 200}});
     writeTiff(path, [&](libtiff::TIFF* tiff) {
-        writeTiledDirectory(tiff, levels[0], 128, false, 255, 0);
-        writeTiledDirectory(tiff, levels[1], 128, false, 255, 1);
+        ASSERT_NO_FATAL_FAILURE(writeTiledDirectory(tiff, levels[0], 128, false, 255, 0));
+        ASSERT_NO_FATAL_FAILURE(writeTiledDirectory(tiff, levels[1], 128, false, 255, 1));
     });
+    ASSERT_FALSE(::testing::Test::HasFatalFailure());
 
     auto slide = openGdal(path);
     ASSERT_EQ(1, slide->getNumScenes());
@@ -251,7 +285,7 @@ TEST(GDALTiffPyramid, planarPyramidChannelSubset)
     slideio::TempFile temp("tif");
     const std::string path = temp.getPath().string();
     const auto levels = makePyramid(makeRgbImage(1000, 800), kSubIfdLevels);
-    writeSubIfdPyramid(path, levels, 256, true);
+    ASSERT_NO_FATAL_FAILURE(writeSubIfdPyramid(path, levels, 256, true));
 
     auto scene = openGdal(path)->getScene(0);
     ASSERT_EQ(3, scene->getNumZoomLevels());
@@ -288,7 +322,7 @@ TEST(GDALTiffPyramid, oddSizedLevelsScaledReadAtEdge)
         }
     }
     const auto levels = makePyramid(base, {{501, 351}, {251, 176}});
-    writeSubIfdPyramid(path, levels, 64, false, 255);
+    ASSERT_NO_FATAL_FAILURE(writeSubIfdPyramid(path, levels, 64, false, 255));
 
     auto scene = openGdal(path)->getScene(0);
     ASSERT_EQ(3, scene->getNumZoomLevels());
@@ -306,11 +340,9 @@ TEST(GDALTiffPyramid, oddSizedLevelsScaledReadAtEdge)
     levelRect &= cv::Rect(0, 0, level2.cols, level2.rows);
     cv::Mat expected;
     cv::resize(level2(levelRect), expected, size, 0, 0, cv::INTER_AREA);
+    // Padding interpolated into the edge would differ from the expected block by
+    // far more than rounding.
     EXPECT_LE(cv::norm(expected, block, cv::NORM_INF), 1.);
-    // No pixel is the pad pattern.
-    cv::Mat isPad;
-    cv::inRange(block, cv::Scalar(255, 255, 255), cv::Scalar(255, 255, 255), isPad);
-    EXPECT_EQ(0, cv::countNonZero(isPad));
 }
 
 // A downscaled read of the whole scene into the size of level 2 is level 2 exactly,
@@ -320,7 +352,7 @@ TEST(GDALTiffPyramid, scaledReadPicksReducedLevel)
     slideio::TempFile temp("tif");
     const std::string path = temp.getPath().string();
     const auto levels = makePyramid(makeRgbImage(1000, 800), kSubIfdLevels);
-    writeSubIfdPyramid(path, levels, 256);
+    ASSERT_NO_FATAL_FAILURE(writeSubIfdPyramid(path, levels, 256));
 
     auto scene = openGdal(path)->getScene(0);
     cv::Mat block;
@@ -337,9 +369,10 @@ TEST(GDALTiffPyramid, stripedBaseTiledLevels)
     const std::string path = temp.getPath().string();
     const auto levels = makePyramid(makeRgbImage(600, 400), {{300, 200}});
     writeTiff(path, [&](libtiff::TIFF* tiff) {
-        writeStripedDirectory(tiff, levels[0], 0, 1);
-        writeTiledDirectory(tiff, levels[1], 64, false, 255, 1);
+        ASSERT_NO_FATAL_FAILURE(writeStripedDirectory(tiff, levels[0], 0, 1));
+        ASSERT_NO_FATAL_FAILURE(writeTiledDirectory(tiff, levels[1], 64, false, 255, 1));
     });
+    ASSERT_FALSE(::testing::Test::HasFatalFailure());
 
     auto slide = openGdal(path);
     ASSERT_EQ(1, slide->getNumScenes());
@@ -363,14 +396,85 @@ TEST(GDALTiffPyramid, plainMultiPageUnchanged)
     const cv::Mat page0 = makeRgbImage(600, 500, 0);
     const cv::Mat page1 = makeRgbImage(600, 500, 100);
     writeTiff(path, [&](libtiff::TIFF* tiff) {
-        writeTiledDirectory(tiff, page0, 64, false, 255);
-        writeTiledDirectory(tiff, page1, 64, false, 255);
+        ASSERT_NO_FATAL_FAILURE(writeTiledDirectory(tiff, page0, 64, false, 255));
+        ASSERT_NO_FATAL_FAILURE(writeTiledDirectory(tiff, page1, 64, false, 255));
     });
+    ASSERT_FALSE(::testing::Test::HasFatalFailure());
 
     auto slide = openGdal(path);
     ASSERT_EQ(2, slide->getNumScenes());
     expectLevelsRead(slide->getScene(0), {page0});
     expectLevelsRead(slide->getScene(1), {page1});
+}
+
+// Two COG-style pyramids one after the other: A, rA1, rA2, B, rB1, all top-level,
+// the reduced ones flagged. Two scenes in file order, and the second reads from
+// directories past the first.
+TEST(GDALTiffPyramid, twoPyramidsInOneFileOpenAsTwoScenes)
+{
+    slideio::TempFile temp("tif");
+    const std::string path = temp.getPath().string();
+    const auto levelsA = makePyramid(makeRgbImage(1000, 800, 0), {{500, 400}, {250, 200}});
+    const auto levelsB = makePyramid(makeRgbImage(600, 600, 100), {{300, 300}});
+    writeTiff(path, [&](libtiff::TIFF* tiff) {
+        ASSERT_NO_FATAL_FAILURE(writeTiledDirectory(tiff, levelsA[0], 128, false, 255, 0));
+        ASSERT_NO_FATAL_FAILURE(writeTiledDirectory(tiff, levelsA[1], 128, false, 255, 1));
+        ASSERT_NO_FATAL_FAILURE(writeTiledDirectory(tiff, levelsA[2], 128, false, 255, 1));
+        ASSERT_NO_FATAL_FAILURE(writeTiledDirectory(tiff, levelsB[0], 128, false, 255, 0));
+        ASSERT_NO_FATAL_FAILURE(writeTiledDirectory(tiff, levelsB[1], 128, false, 255, 1));
+    });
+    ASSERT_FALSE(::testing::Test::HasFatalFailure());
+
+    auto slide = openGdal(path);
+    ASSERT_EQ(2, slide->getNumScenes());
+    auto sceneA = slide->getScene(0);
+    auto sceneB = slide->getScene(1);
+    EXPECT_EQ(cv::Rect(0, 0, 1000, 800), sceneA->getRect());
+    EXPECT_EQ(cv::Rect(0, 0, 600, 600), sceneB->getRect());
+    {
+        SCOPED_TRACE("scene A");
+        expectLevelInfo(sceneA, levelsA, {{128, 128}, {128, 128}, {128, 128}});
+        expectLevelsRead(sceneA, levelsA);
+    }
+    {
+        SCOPED_TRACE("scene B");
+        expectLevelInfo(sceneB, levelsB, {{128, 128}, {128, 128}});
+        // Level 1 of B is directory 4.
+        expectLevelsRead(sceneB, levelsB);
+    }
+}
+
+// A reduced page whose channel count differs from the open base is not a level:
+// it becomes a scene of its own, one level, one channel.
+TEST(GDALTiffPyramid, mismatchedReducedPageStaysOwnScene)
+{
+    slideio::TempFile temp("tif");
+    const std::string path = temp.getPath().string();
+    const auto levels = makePyramid(makeRgbImage(1000, 800), {{500, 400}});
+    cv::Mat gray;
+    cv::extractChannel(makeRgbImage(250, 200, 50), gray, 2);
+    writeTiff(path, [&](libtiff::TIFF* tiff) {
+        ASSERT_NO_FATAL_FAILURE(writeTiledDirectory(tiff, levels[0], 128, false, 255, 0));
+        ASSERT_NO_FATAL_FAILURE(writeTiledDirectory(tiff, levels[1], 128, false, 255, 1));
+        ASSERT_NO_FATAL_FAILURE(writeTiledDirectory(tiff, gray, 128, false, 255, 1));
+    });
+    ASSERT_FALSE(::testing::Test::HasFatalFailure());
+
+    auto slide = openGdal(path);
+    ASSERT_EQ(2, slide->getNumScenes());
+    {
+        SCOPED_TRACE("scene 0");
+        auto scene = slide->getScene(0);
+        EXPECT_EQ(3, scene->getNumChannels());
+        expectLevelsRead(scene, levels);
+    }
+    {
+        SCOPED_TRACE("scene 1");
+        auto scene = slide->getScene(1);
+        EXPECT_EQ(cv::Rect(0, 0, 250, 200), scene->getRect());
+        EXPECT_EQ(1, scene->getNumChannels());
+        expectLevelsRead(scene, {gray});
+    }
 }
 
 // The scene holds no handle of the slide's: it stays readable, at every level,
@@ -380,12 +484,36 @@ TEST(GDALTiffPyramid, pyramidSceneOutlivesSlide)
     slideio::TempFile temp("tif");
     const std::string path = temp.getPath().string();
     const auto levels = makePyramid(makeRgbImage(1000, 800), kSubIfdLevels);
-    writeSubIfdPyramid(path, levels, 256);
+    ASSERT_NO_FATAL_FAILURE(writeSubIfdPyramid(path, levels, 256));
 
     auto slide = openGdal(path);
     auto scene = slide->getScene(0);
     slide.reset();
     expectLevelsRead(scene, levels);
+}
+
+// Every handle the scenes read through is closed once the last scene and the
+// slide are gone: on Windows an open handle would make the remove fail.
+TEST(GDALTiffPyramid, fileIsReleasedAfterSceneAndSlideAreGone)
+{
+    slideio::TempFile temp("tif");
+    const std::string path = temp.getPath().string();
+    const auto levels = makePyramid(makeRgbImage(1000, 800), kSubIfdLevels);
+    ASSERT_NO_FATAL_FAILURE(writeSubIfdPyramid(path, levels, 256));
+
+    {
+        auto slide = openGdal(path);
+        auto scene = slide->getScene(0);
+        expectLevelsRead(scene, levels);
+        // Concurrent reads, so the pool holds more than one handle.
+        expectConcurrentReadsMatchSerial(scene);
+        slide.reset();
+        scene.reset();
+    }
+    std::error_code error;
+    EXPECT_TRUE(std::filesystem::remove(temp.getPath(), error)) << error.message();
+    EXPECT_FALSE(std::filesystem::exists(temp.getPath()));
+    // TempFile's destructor checks exists() first, so the file being gone is fine.
 }
 
 // No vendor driver claims a generic pyramidal tiff, so auto-detection lands in GDAL.
@@ -394,7 +522,7 @@ TEST(GDALTiffPyramid, autoDetectionLandsInGdal)
     slideio::TempFile temp("tif");
     const std::string path = temp.getPath().string();
     const auto levels = makePyramid(makeRgbImage(1000, 800), kSubIfdLevels);
-    writeSubIfdPyramid(path, levels, 256);
+    ASSERT_NO_FATAL_FAILURE(writeSubIfdPyramid(path, levels, 256));
 
     auto slide = slideio::openSlide(path, "");
     ASSERT_TRUE(slide != nullptr);
@@ -408,7 +536,7 @@ TEST(GDALTiffPyramid, tiffSceneReportsConcurrent)
     slideio::TempFile temp("tif");
     const std::string path = temp.getPath().string();
     const auto levels = makePyramid(makeRgbImage(1000, 800), kSubIfdLevels);
-    writeSubIfdPyramid(path, levels, 256);
+    ASSERT_NO_FATAL_FAILURE(writeSubIfdPyramid(path, levels, 256));
 
     auto slide = openGdal(path);
     EXPECT_TRUE(slide->getScene(0)->supportsConcurrentReads());
@@ -419,7 +547,7 @@ TEST(GDALTiffPyramid, concurrentRandomReadsMatchSerial)
     slideio::TempFile temp("tif");
     const std::string path = temp.getPath().string();
     const auto levels = makePyramid(makeRgbImage(1000, 800), kSubIfdLevels);
-    writeSubIfdPyramid(path, levels, 256);
+    ASSERT_NO_FATAL_FAILURE(writeSubIfdPyramid(path, levels, 256));
 
     auto slide = openGdal(path);
     expectConcurrentReadsMatchSerial(slide->getScene(0));

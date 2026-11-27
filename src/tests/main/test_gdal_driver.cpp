@@ -572,7 +572,7 @@ TEST(GDALDriver, tiledTiffReportsItsTileSize)
     slideio::TempFile temp("tif");
     const std::string path = temp.getPath().string();
     cv::Mat image;
-    writeTiledRgbTiff(path, 1000, 700, 256, image);
+    ASSERT_NO_FATAL_FAILURE(writeTiledRgbTiff(path, 1000, 700, 256, image));
 
     slideio::GDALImageDriver driver;
     std::shared_ptr<slideio::CVSlide> slide = driver.openFile(path);
@@ -594,7 +594,7 @@ TEST(GDALDriver, tiledTiffBlockReadsMatchThePage)
     slideio::TempFile temp("tif");
     const std::string path = temp.getPath().string();
     cv::Mat image;
-    writeTiledRgbTiff(path, 1000, 700, 256, image);
+    ASSERT_NO_FATAL_FAILURE(writeTiledRgbTiff(path, 1000, 700, 256, image));
 
     slideio::GDALImageDriver driver;
     std::shared_ptr<slideio::CVScene> scene = driver.openFile(path)->getScene(0);
@@ -629,7 +629,7 @@ TEST(GDALDriver, tiledTiffResampledReadMatchesThePage)
     slideio::TempFile temp("tif");
     const std::string path = temp.getPath().string();
     cv::Mat image;
-    writeTiledRgbTiff(path, 1000, 700, 256, image);
+    ASSERT_NO_FATAL_FAILURE(writeTiledRgbTiff(path, 1000, 700, 256, image));
 
     slideio::GDALImageDriver driver;
     std::shared_ptr<slideio::CVScene> scene = driver.openFile(path)->getScene(0);
@@ -658,7 +658,7 @@ TEST(GDALDriver, tiledTiffScaledEdgeReadsKeepPaddingOut)
     slideio::TempFile temp("tif");
     const std::string path = temp.getPath().string();
     cv::Mat image;
-    writeTiledRgbTiff(path, 1000, 700, 256, image);
+    ASSERT_NO_FATAL_FAILURE(writeTiledRgbTiff(path, 1000, 700, 256, image));
 
     slideio::GDALImageDriver driver;
     std::shared_ptr<slideio::CVScene> scene = driver.openFile(path)->getScene(0);
@@ -702,7 +702,7 @@ TEST(GDALDriver, planarTiledTiffReadsAllChannels)
     slideio::TempFile temp("tif");
     const std::string path = temp.getPath().string();
     cv::Mat image;
-    writeTiledRgbTiff(path, 1000, 700, 256, image, true);
+    ASSERT_NO_FATAL_FAILURE(writeTiledRgbTiff(path, 1000, 700, 256, image, true));
 
     slideio::GDALImageDriver driver;
     std::shared_ptr<slideio::CVScene> scene = driver.openFile(path)->getScene(0);
@@ -736,6 +736,7 @@ TEST(GDALDriver, twoPagesOfOneTiffReadConcurrently)
         libtiff::TIFFWriteDirectory(tiff);
         writeTiledRgbDirectory(tiff, page1, 64, false, 255);
         libtiff::TIFFClose(tiff);
+        ASSERT_FALSE(::testing::Test::HasFatalFailure());
     }
 
     slideio::GDALImageDriver driver;
