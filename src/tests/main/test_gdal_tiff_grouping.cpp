@@ -108,6 +108,29 @@ TEST(GDALTiffPyramid, aspectRatioMismatchIsNotALevel)
     EXPECT_EQ(3u, groups[0].levels.size());
 }
 
+// Whole-slide sizes: base.height * level.width is 4e9 here, past int32, so the
+// aspect-ratio check must not multiply two ints.
+TEST(GDALTiffPyramid, largeSubIfdsBecomeLevels)
+{
+    TiffDirectory base = dir(100000, 80000);
+    base.subdirectories = { dir(50000, 40000, 3, DataType::DT_Byte, 8, 1),
+                            dir(25000, 20000, 3, DataType::DT_Byte, 8, 1) };
+    auto groups = groupTiffDirectories({ base });
+    ASSERT_EQ(1u, groups.size());
+    EXPECT_EQ((std::vector<int>{100000, 50000, 25000}), widths(groups[0]));
+}
+
+TEST(GDALTiffPyramid, largeReducedIfdsBecomeLevels)
+{
+    std::vector<TiffDirectory> dirs = { dir(100000, 80000),
+                                        dir(50000, 40000, 3, DataType::DT_Byte, 8, 1),
+                                        dir(25000, 20000, 3, DataType::DT_Byte, 8, 1) };
+    for (int i = 0; i < 3; ++i) dirs[i].dirIndex = i;
+    auto groups = groupTiffDirectories(dirs);
+    ASSERT_EQ(1u, groups.size());
+    EXPECT_EQ((std::vector<int>{100000, 50000, 25000}), widths(groups[0]));
+}
+
 TEST(GDALTiffPyramid, notSmallerIsNotALevel)
 {
     auto groups = groupTiffDirectories({ dir(1000, 800), dir(1000, 800, 3, DataType::DT_Byte, 8, 1) });

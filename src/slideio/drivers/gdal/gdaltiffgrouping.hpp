@@ -12,7 +12,7 @@ namespace slideio
     struct GDALTiffSceneGroup
     {
         /**@brief Index of the top-level directory the scene is ordered by.*/
-        int firstDirectory;
+        int firstDirectory = 0;
         /**@brief levels[0] is the base; widths descend.*/
         std::vector<TiffDirectory> levels;
     };

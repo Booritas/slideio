@@ -19,8 +19,10 @@ namespace
 
     bool keepsAspectRatio(const TiffDirectory& base, const TiffDirectory& c)
     {
-        const double expectedH = std::round(base.height * c.width / static_cast<double>(base.width));
-        const double expectedW = std::round(base.width * c.height / static_cast<double>(base.height));
+        // Cast before multiplying: for a whole-slide base the product of two
+        // dimensions is past int32 (100000x80000 with a 50000-wide level is 4e9).
+        const double expectedH = std::round(static_cast<double>(base.height) * c.width / base.width);
+        const double expectedW = std::round(static_cast<double>(base.width) * c.height / base.height);
         return std::abs(c.height - expectedH) <= 1 && std::abs(c.width - expectedW) <= 1;
     }
 
