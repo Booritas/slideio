@@ -91,10 +91,16 @@ Applied to the top-level IFDs in file order, by `GDALSlide` for a TIFF:
 4. A candidate is accepted as a level only if all of these hold:
    - it has the same `channels`, `dataType` and `bitsPerSample` as the base;
    - it is strictly smaller than the base in both width and height;
-   - it keeps the base's aspect ratio: its height is within 1 pixel of
-     `baseHeight * width / baseWidth` (rounded), with the same check run with
-     width and height swapped. Writers round each level's size, so the check
-     cannot be exact; a thumbnail or label with its own proportions fails it.
+   - it keeps the base's aspect ratio: its height is within
+     `max(1, ceil(baseHeight / baseWidth))` pixels of
+     `baseHeight * width / baseWidth` (rounded), and its width within
+     `max(1, ceil(baseWidth / baseHeight))` pixels of
+     `baseWidth * height / baseHeight` (rounded). Writers round each level's
+     size, so the check cannot be exact, and one pixel of rounding in one
+     dimension moves the prediction of the other by the base's ratio -- a fixed
+     tolerance of 1 rejected 98x33 as a level of 100001x33000, whose predicted
+     width is 100. A thumbnail or label with its own proportions still fails it.
+     *(Amended by the PR review.)*
      *(Design call, from the builder check: without it a thumbnail flagged
      reduced-resolution would be read as a level and return wrong pixels.)*
    - it is not a mask (`subFileType & 4`). This applies to SubIFDs too, not only

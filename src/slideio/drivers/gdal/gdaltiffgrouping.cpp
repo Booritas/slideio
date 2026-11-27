@@ -21,9 +21,18 @@ namespace
     {
         // Cast before multiplying: for a whole-slide base the product of two
         // dimensions is past int32 (100000x80000 with a 50000-wide level is 4e9).
-        const double expectedH = std::round(static_cast<double>(base.height) * c.width / base.width);
-        const double expectedW = std::round(static_cast<double>(base.width) * c.height / base.height);
-        return std::abs(c.height - expectedH) <= 1 && std::abs(c.width - expectedW) <= 1;
+        const double baseW = static_cast<double>(base.width);
+        const double baseH = static_cast<double>(base.height);
+        const double expectedH = std::round(baseH * c.width / baseW);
+        const double expectedW = std::round(baseW * c.height / baseH);
+        // A writer rounds each dimension of a level by up to one pixel, and one
+        // pixel of the height predicts baseW/baseH pixels of the width (and the
+        // other way round), so the tolerance on each side scales with the ratio.
+        // A fixed 1 rejects a small level of a long thin base: 98x33 of
+        // 100001x33000 predicts a width of 100.
+        const double toleranceW = std::max(1.0, std::ceil(baseW / baseH));
+        const double toleranceH = std::max(1.0, std::ceil(baseH / baseW));
+        return std::abs(c.height - expectedH) <= toleranceH && std::abs(c.width - expectedW) <= toleranceW;
     }
 
     // Rule 4.

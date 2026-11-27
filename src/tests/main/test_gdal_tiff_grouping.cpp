@@ -108,6 +108,32 @@ TEST(GDALTiffPyramid, aspectRatioMismatchIsNotALevel)
     EXPECT_EQ(3u, groups[0].levels.size());
 }
 
+// One pixel of rounding in a level's height becomes baseWidth/baseHeight pixels in
+// its predicted width, so a long thin base needs a wider width tolerance: 98x33 is
+// 100001x33000 reduced by about 1020, and its predicted width is 100.
+TEST(GDALTiffPyramid, wideBaseToleratesRoundedWidth)
+{
+    auto groups = groupTiffDirectories({ dir(100001, 33000), dir(98, 33, 3, DataType::DT_Byte, 8, 1) });
+    ASSERT_EQ(1u, groups.size());
+    EXPECT_EQ((std::vector<int>{100001, 98}), widths(groups[0]));
+}
+
+// The same with height and width swapped: 2x5 of a 1025x4100 base predicts a
+// height of 8.
+TEST(GDALTiffPyramid, tallBaseToleratesRoundedHeight)
+{
+    auto groups = groupTiffDirectories({ dir(1025, 4100), dir(2, 5, 3, DataType::DT_Byte, 8, 1) });
+    ASSERT_EQ(1u, groups.size());
+    EXPECT_EQ((std::vector<int>{1025, 2}), widths(groups[0]));
+}
+
+// The scaled tolerance still rejects a page whose proportions are clearly its own.
+TEST(GDALTiffPyramid, wideBaseRejectsOtherAspect)
+{
+    auto groups = groupTiffDirectories({ dir(100001, 33000), dir(98, 60, 3, DataType::DT_Byte, 8, 1) });
+    EXPECT_EQ(2u, groups.size());
+}
+
 // Whole-slide sizes: base.height * level.width is 4e9 here, past int32, so the
 // aspect-ratio check must not multiply two ints.
 TEST(GDALTiffPyramid, largeSubIfdsBecomeLevels)
